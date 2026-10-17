@@ -92,6 +92,242 @@ theorem lintegral_pi_poissonCountingMeasure_eq_tsum
       exact congrArg (fun f : Fin (n + 1) → S => f i) (hc q).symm
     · exact (hΦ.comp e.symm.measurable).aemeasurable
 
+/-- Integrating against the restriction of a block counting measure sums exactly the
+indices whose sampled point lies in the restriction set. No sigma-finiteness of the
+unrestricted measure is needed. -/
+theorem lintegral_poissonCountingMeasure_restrict_eq_tsum
+    {S : Type*} [MeasurableSpace S] (N : ℕ → ℕ) (X : ℕ → ℕ → S)
+    {A : Set S} [DecidablePred (· ∈ A)] (hA : MeasurableSet A)
+    {f : S → ℝ≥0∞} (hf : Measurable f) :
+    (∫⁻ x, f x ∂(poissonCountingMeasure N X).restrict A) =
+      ∑' q : {p : ℕ × ℕ // p.2 < N p.1},
+        (if X q.1.1 q.1.2 ∈ A then f (X q.1.1 q.1.2) else 0) := by
+  classical
+  simp only [poissonCountingMeasure_eq_sum_dirac]
+  rw [← lintegral_indicator hA, lintegral_sum_measure]
+  exact tsum_congr fun q => by
+    rw [lintegral_dirac' _ (hf.indicator hA)]
+    simp [Set.indicator]
+
+/-- Replica integrals against a restricted block counting measure are sums over
+block-index tuples. This applies even if the unrestricted measure is not sigma-finite.
+The one-point restricted formula above is the induction step. -/
+theorem lintegral_pi_poissonCountingMeasure_restrict_eq_tsum
+    {S : Type*} [MeasurableSpace S] (N : ℕ → ℕ) (X : ℕ → ℕ → S)
+    {A : Set S} [DecidablePred (· ∈ A)] (hA : MeasurableSet A)
+    [SigmaFinite ((poissonCountingMeasure N X).restrict A)]
+    (n : ℕ) {Φ : (Fin n → S) → ℝ≥0∞} (hΦ : Measurable Φ) :
+    (∫⁻ q, Φ q ∂Measure.pi fun _ : Fin n =>
+      (poissonCountingMeasure N X).restrict A) =
+      ∑' q : Fin n → {p : ℕ × ℕ // p.2 < N p.1},
+        (if ∀ i, X (q i).1.1 (q i).1.2 ∈ A then
+          Φ (fun i => X (q i).1.1 (q i).1.2) else 0) := by
+  classical
+  induction n with
+  | zero =>
+    rw [Measure.pi_of_empty, lintegral_dirac' _ hΦ]
+    have hzero : ∀ q : Fin 0 → {p : ℕ × ℕ // p.2 < N p.1},
+        q = (isEmptyElim : Fin 0 → {p : ℕ × ℕ // p.2 < N p.1}) :=
+      fun _ => Subsingleton.elim _ _
+    simp_rw [hzero]
+    rw [tsum_fintype]
+    let _ : Unique (Fin 0 → {p : ℕ × ℕ // p.2 < N p.1}) :=
+      uniqueOfSubsingleton (fun i : Fin 0 => i.elim0)
+    simp only [Finset.univ_unique, Finset.sum_const, Finset.card_singleton, one_smul]
+    congr 1
+    funext i
+    exact isEmptyElim i
+  | succ n ih =>
+    let e := MeasurableEquiv.piFinSuccAbove (fun _ : Fin (n + 1) => S) (Fin.last n)
+    have hmp := measurePreserving_piFinSuccAbove
+      (fun _ : Fin (n + 1) => (poissonCountingMeasure N X).restrict A) (Fin.last n)
+    have h := hmp.lintegral_comp_emb e.measurableEmbedding
+      (fun z => Φ (e.symm z))
+    simp only [MeasurableEquiv.symm_apply_apply, e] at h
+    change (∫⁻ q, Φ q ∂Measure.pi fun _ : Fin (n + 1) =>
+      (poissonCountingMeasure N X).restrict A) =
+      (∫⁻ z, Φ (e.symm z) ∂((poissonCountingMeasure N X).restrict A).prod
+        (Measure.pi fun _ : Fin n => (poissonCountingMeasure N X).restrict A)) at h
+    rw [h, lintegral_prod_symm]
+    · have hmeas : Measurable fun y : Fin n → S =>
+          ∫⁻ x, Φ (e.symm (x, y)) ∂(poissonCountingMeasure N X).restrict A :=
+        (hΦ.comp e.symm.measurable).lintegral_prod_left'
+      rw [ih hmeas]
+      have hx (y : Fin n → S) : Measurable fun x : S => Φ (e.symm (x, y)) :=
+        (hΦ.comp e.symm.measurable).comp
+          (measurable_id.prodMk measurable_const)
+      simp_rw [lintegral_poissonCountingMeasure_restrict_eq_tsum N X hA (hx _)]
+      have hsplit (q : Fin n → {p : ℕ × ℕ // p.2 < N p.1}) :
+          (if ∀ i, X (q i).1.1 (q i).1.2 ∈ A then
+            ∑' p : {p : ℕ × ℕ // p.2 < N p.1},
+              if X p.1.1 p.1.2 ∈ A then
+                Φ (e.symm (X p.1.1 p.1.2,
+                  fun i => X (q i).1.1 (q i).1.2)) else 0 else 0) =
+          ∑' p : {p : ℕ × ℕ // p.2 < N p.1},
+            if (∀ i, X (q i).1.1 (q i).1.2 ∈ A) then
+              (if X p.1.1 p.1.2 ∈ A then
+                Φ (e.symm (X p.1.1 p.1.2,
+                  fun i => X (q i).1.1 (q i).1.2)) else 0) else 0 := by
+        split_ifs <;> simp_all
+      simp_rw [hsplit]
+      rw [ENNReal.tsum_comm, ← ENNReal.tsum_prod]
+      let eI := MeasurableEquiv.piFinSuccAbove (fun _ : Fin (n + 1) =>
+        {p : ℕ × ℕ // p.2 < N p.1}) (Fin.last n)
+      refine (Equiv.tsum_eq eI.toEquiv
+        (fun z => if (∀ i, X (z.2 i).1.1 (z.2 i).1.2 ∈ A) then
+          (if X z.1.1.1 z.1.1.2 ∈ A then
+            Φ (e.symm (X z.1.1.1 z.1.1.2,
+              fun i => X (z.2 i).1.1 (z.2 i).1.2)) else 0) else 0)).symm.trans ?_
+      congr 1
+      funext q
+      have hc : (fun i => X (q i).1.1 (q i).1.2) =
+          e.symm (X (eI q).1.1.1 (eI q).1.1.2,
+            fun i => X ((eI q).2 i).1.1 ((eI q).2 i).1.2) := by
+        apply e.injective
+        ext i <;> simp [e, eI, MeasurableEquiv.piFinSuccAbove_apply, Fin.init_def]
+      have hp : (∀ i, X (q i).1.1 (q i).1.2 ∈ A) ↔
+          (∀ i, X ((eI q).2 i).1.1 ((eI q).2 i).1.2 ∈ A) ∧
+            X (eI q).1.1.1 (eI q).1.1.2 ∈ A := by
+        constructor
+        · intro hq
+          exact ⟨fun i => by simpa [eI, MeasurableEquiv.piFinSuccAbove_apply,
+            Fin.init_def] using hq i.castSucc, by simpa [eI,
+            MeasurableEquiv.piFinSuccAbove_apply] using hq (Fin.last n)⟩
+        · rintro ⟨hq, hlast⟩ i
+          refine Fin.lastCases ?_ (fun j => ?_) i
+          · simpa [eI, MeasurableEquiv.piFinSuccAbove_apply] using hlast
+          · simpa [eI, MeasurableEquiv.piFinSuccAbove_apply,
+              Fin.init_def] using hq j
+      rw [hc]
+      by_cases hlast : X (eI q).1.1.1 (eI q).1.1.2 ∈ A <;>
+        by_cases hrest : ∀ i, X ((eI q).2 i).1.1 ((eI q).2 i).1.2 ∈ A <;>
+        simp [hp, hlast, hrest]
+    · exact (hΦ.comp e.symm.measurable).aemeasurable
+
+/-- Finite counts on every positive shell make the counting measure restricted to
+positive masses sigma-finite, regardless of what happens at nonpositive points. -/
+theorem sigmaFinite_poissonCountingMeasure_restrict_pos_of_shells
+    {S : Type*} [MeasurableSpace S] (N : ℕ → ℕ) (X : ℕ → ℕ → ℝ × S)
+    (hfin : ∀ k : ℕ, poissonCountingMeasure N X
+      (Set.Ioi (1 / ((k : ℝ) + 1)) ×ˢ Set.univ) < ∞) :
+    SigmaFinite ((poissonCountingMeasure N X).restrict
+      (Set.Ioi 0 ×ˢ (Set.univ : Set S))) := by
+  let A : ℕ → Set (ℝ × S) := fun k =>
+    Set.Ioi (1 / ((k : ℝ) + 1)) ×ˢ Set.univ
+  let μ := (poissonCountingMeasure N X).restrict
+    (Set.Ioi 0 ×ˢ (Set.univ : Set S))
+  have hA : ∀ k, A k ⊆ Set.Ioi 0 ×ˢ (Set.univ : Set S) := by
+    intro k p hp
+    exact ⟨lt_trans (show (0 : ℝ) < 1 / ((k : ℝ) + 1) by positivity) hp.1,
+      Set.mem_univ _⟩
+  have hμ : ∀ k, μ (A k) < ∞ := by
+    intro k
+    rw [Measure.restrict_apply (measurableSet_Ioi.prod MeasurableSet.univ),
+      Set.inter_eq_left.mpr (hA k)]
+    exact hfin k
+  have hcover : ⋃ k, A k = Set.Ioi 0 ×ˢ (Set.univ : Set S) :=
+    iUnion_Ioi_inv_succ_prod_univ
+  have hcover' : ⋃ k, (A k ∪ (Set.Ioi 0 ×ˢ (Set.univ : Set S))ᶜ) = Set.univ := by
+    ext p
+    simp only [Set.mem_iUnion, Set.mem_union, Set.mem_univ, iff_true]
+    by_cases hp : p ∈ Set.Ioi 0 ×ˢ (Set.univ : Set S)
+    · have : p ∈ ⋃ k, A k := hcover.symm ▸ hp
+      obtain ⟨k, hk⟩ := Set.mem_iUnion.mp this
+      exact ⟨k, Or.inl hk⟩
+    · exact ⟨0, Or.inr hp⟩
+  have hzero : μ ((Set.Ioi 0 ×ˢ (Set.univ : Set S))ᶜ) = 0 := by
+    rw [Measure.restrict_apply
+      ((measurableSet_Ioi.prod MeasurableSet.univ).compl)]
+    simp
+  refine Measure.sigmaFinite_of_countable
+    (μ := μ) (S := Set.range fun k : ℕ =>
+      A k ∪ (Set.Ioi 0 ×ˢ (Set.univ : Set S))ᶜ)
+    (Set.countable_range _) ?_ ?_
+  · rintro s ⟨k, rfl⟩
+    have heq : μ (A k ∪ (Set.Ioi 0 ×ˢ (Set.univ : Set S))ᶜ) = μ (A k) := by
+      rw [Set.union_comm]
+      have hd : Disjoint (Set.Ioi 0 ×ˢ (Set.univ : Set S))ᶜ (A k) :=
+        Set.disjoint_left.mpr fun _ hp hk => hp (hA k hk)
+      rw [measure_union hd (show MeasurableSet (A k) from
+        measurableSet_Ioi.prod MeasurableSet.univ), hzero, zero_add]
+    rw [heq]
+    exact hμ k
+  · simpa only [Set.sUnion_range] using hcover'
+
+/-- The Gaussian-marked reference process has sigma-finite positive-mass restriction
+almost surely. This supplies the instance required by the block-index replica bridge. -/
+theorem ae_sigmaFinite_poissonDirichlet_gaussian_restrict_pos
+    {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω} {ζ : ℝ} (hζ : 0 < ζ)
+    (ν : ℕ → Measure (ℝ × ℝ)) [∀ n, IsProbabilityMeasure (ν n)] (r : ℕ → NNReal)
+    {B : ℕ → Ω → ℕ × (ℕ → ℝ × ℝ)}
+    (hBm : ∀ n, Measurable (B n)) (hB : iIndepFun B P)
+    (hlaw : ∀ n, HasLaw (B n)
+      (Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)) P)
+    (hμ : (zetaPoissonMeasure ζ).prod (gaussianReal 0 1) =
+      Measure.sum fun n => (r n : ℝ≥0∞) • ν n) :
+    ∀ᵐ ω ∂P, SigmaFinite ((poissonCountingMeasure (fun n => (B n ω).1)
+      (fun n l => (B n ω).2 l)).restrict (Set.Ioi 0 ×ˢ Set.univ)) := by
+  have hshell : ∀ᵐ ω ∂P, ∀ k : ℕ,
+      poissonCountingMeasure (fun n => (B n ω).1) (fun n l => (B n ω).2 l)
+        (Set.Ioi (1 / ((k : ℝ) + 1)) ×ˢ Set.univ) < ∞ := by
+    rw [ae_all_iff]
+    intro k
+    exact ae_poissonCountingMeasure_Ioi_prod_univ_lt_top hζ (gaussianReal 0 1)
+      ν r hBm hB hlaw hμ (by positivity)
+  filter_upwards [hshell] with ω hω
+  exact sigmaFinite_poissonCountingMeasure_restrict_pos_of_shells
+    (fun n => (B n ω).1) (fun n l => (B n ω).2 l) hω
+
+/-- Almost surely the order-free finite-replica integral of the Gaussian-marked
+reference process has an explicit block-index expansion, with the positivity guard.
+This is the stochastic specialization of the deterministic restricted bridge. -/
+theorem ae_lintegral_pi_poissonDirichlet_gaussian_eq_tsum
+    {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω} {ζ : ℝ} (hζ : 0 < ζ)
+    (ν : ℕ → Measure (ℝ × ℝ)) [∀ n, IsProbabilityMeasure (ν n)] (r : ℕ → NNReal)
+    {B : ℕ → Ω → ℕ × (ℕ → ℝ × ℝ)}
+    (hBm : ∀ k, Measurable (B k)) (hB : iIndepFun B P)
+    (hlaw : ∀ k, HasLaw (B k)
+      (Po(r k).prod (Measure.infinitePi fun _ : ℕ => ν k)) P)
+    (hμ : (zetaPoissonMeasure ζ).prod (gaussianReal 0 1) =
+      Measure.sum fun k => (r k : ℝ≥0∞) • ν k)
+    (n : ℕ) {Φ : (Fin n → ℝ × ℝ) → ℝ≥0∞} (hΦ : Measurable Φ) :
+    ∀ᵐ ω ∂P,
+      (∫⁻ q, Φ q ∂Measure.pi fun _ : Fin n =>
+        (poissonCountingMeasure (fun k => (B k ω).1)
+          (fun k l => (B k ω).2 l)).restrict (Set.Ioi 0 ×ˢ Set.univ)) =
+        ∑' q : Fin n → {p : ℕ × ℕ // p.2 < (B p.1 ω).1},
+          (if ∀ i, 0 < ((B (q i).1.1 ω).2 (q i).1.2).1 then
+            Φ (fun i => (B (q i).1.1 ω).2 (q i).1.2) else 0) := by
+  filter_upwards [ae_sigmaFinite_poissonDirichlet_gaussian_restrict_pos
+    hζ ν r hBm hB hlaw hμ] with ω hσ
+  let _ : SigmaFinite ((poissonCountingMeasure (fun k => (B k ω).1)
+      (fun k l => (B k ω).2 l)).restrict (Set.Ioi 0 ×ˢ Set.univ)) := hσ
+  simpa only [Set.mem_prod, Set.mem_Ioi, Set.mem_univ, and_true] using
+    (lintegral_pi_poissonCountingMeasure_restrict_eq_tsum
+      (fun k => (B k ω).1) (fun k l => (B k ω).2 l)
+      (measurableSet_Ioi.prod MeasurableSet.univ) n hΦ)
+
+/-- A bounded observable of finitely many replicas is integrable under any
+random probability kernel. This supplies the bounded-observable integrability
+needed to pass from equality in law to expectations in Theorem 2.7. -/
+theorem integrable_replica_average_of_bound
+    {S Ω : Type*} [MeasurableSpace S] [MeasurableSpace Ω]
+    {P : Measure Ω} [IsFiniteMeasure P] (n : ℕ)
+    (G : Ω → Measure S) [∀ ω, IsProbabilityMeasure (G ω)]
+    {Φ : (Fin n → S) → ℝ} (hΦ : Measurable Φ) {C : ℝ}
+    (hC : ∀ q, |Φ q| ≤ C)
+    (hm : AEMeasurable (fun ω => ∫ q, Φ q ∂Measure.pi fun _ : Fin n => G ω) P) :
+    Integrable (fun ω => ∫ q, Φ q ∂Measure.pi fun _ : Fin n => G ω) P := by
+  refine Integrable.of_bound hm.aestronglyMeasurable C (ae_of_all _ fun ω => ?_)
+  let _ : IsProbabilityMeasure (Measure.pi fun _ : Fin n => G ω) := inferInstance
+  have hi : Integrable Φ (Measure.pi fun _ : Fin n => G ω) :=
+    Integrable.of_bound hΦ.aestronglyMeasurable C
+      (ae_of_all _ fun q => by simpa only [Real.norm_eq_abs] using hC q)
+  rw [Real.norm_eq_abs]
+  exact (abs_integral_le_integral_abs).trans
+    ((integral_mono_of_nonneg (ae_of_all _ fun q => abs_nonneg (Φ q))
+      (integrable_const C) (ae_of_all _ hC)).trans (by simp))
+
 /-- On the almost-sure distinctness event, equality of two sampled points is exactly
 index equality. This is the overlap `R = 1` versus replica-index coincidence bridge. -/
 theorem ae_poissonBlocks_point_eq_iff_index_eq
