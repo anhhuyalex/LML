@@ -3403,6 +3403,38 @@ The transformed process of Lemma~2.3 is realized on the \emph{same} probability 
 (a) Separate the two marks of a block, $\mathrm{Po}\otimes(\nu\otimes\gamma)^{\otimes\mathbb N}\mapsto(\mathrm{Po}\otimes\nu^{\otimes\mathbb N})\otimes\gamma^{\otimes\mathbb N}$ (pairing coordinates of two infinite products and associativity of the product); the joint law of the independent blocks is the infinite product of these, which separates as the product of the infinite product of the first factors and of the second factors. (b) Independence of coordinates and the Gaussian law of each coordinate; the covariance of distinct coordinates vanishes by independence. (c) A function on the finite set $\{0,1\}^{n\times n}$ is bounded; the correction is a difference of two numbers in $[0,n]$.
 \end{proof}
 
+\begin{lemma}[Conditional Gaussian IBP and finite-replica bounds toward Theorem~2.7]\label{lem:sg:pd-conditional-ibp}
+  \lean{SpinGlasses.integral_gaussian_gibbs_replica_guard_tilt_ibp,
+        SpinGlasses.gaussian_gibbs_tilt_guard_eq_active,
+        SpinGlasses.ae_summable_active_gaussian_tilt,
+        SpinGlasses.abs_gaussian_ibp_overlap_correction_le,
+        SpinGlasses.gaussian_gibbs_tilt_correction_integrable_and_bound,
+        abs_tsum_prod_pi_mul_le_bound}
+  \leanok
+  \uses{lem:sg:pd-gibbs-inputs, thm:sg:pd-gibbs}
+  Fix a finite replica set $J$, a designated $r_0\in J$, a real tilt $t$, and a
+  count/mass environment $(N_m,u_{ml})$ with at least one active index, strictly positive
+  masses at every active index $(m,l)$ with $l<N_m$, and a summable family of active
+  masses. For any index observable $\Phi$ satisfying $|\Phi|\le M$, the expected
+  tilted Gibbs series of $\Phi(\sigma)g_{\sigma(r_0)}$ over the independent standard
+  Gaussian marks equals the expected Gibbs series over $\operatorname{Option}(J)$ of
+  $\Phi(\tau\circ\operatorname{some})$ times
+  $t(\sum_{j\in J}\mathbf 1\{\tau(r_0)=\tau(j)\}
+     -|J|\mathbf 1\{\tau(r_0)=\tau(\operatorname{none})\})$.
+  Both series are explicitly guarded by the random block counts on the fixed type
+  $\mathbb N\times\mathbb N$; the reindexing from active subtypes is valid without
+  integrability assumptions. For any countable active type and any nonnegative summable
+  mass family, the Gaussian-tilted masses are summable almost surely. The displayed
+  overlap correction times $\Phi$ has absolute value at most $|J|M|t|$; more generally,
+  a bounded observable averaged against any normalized nonnegative summable weights on
+  a finite replica power remains bounded by the same constant. For each fixed environment
+  satisfying the stated hypotheses, the correction series is Gaussian-integrable and
+  almost surely bounded in absolute value by $|J|M|t|$, uniformly in that environment.
+  This is a \emph{conditional} identity: joint integrability and Fubini for the tilted
+  correction over the random mass environment, the final overlap algebra, and the
+  ranked-weight formulation of Theorem~2.7 are not proved.
+\end{lemma}
+
 \begin{remark}[Differences from the book, and what is left]\label{rem:sg:pd}
 \begin{enumerate}
 \item \emph{Sums in $[0,\infty]$.} Lemma~2.1 is formalized in $[0,\infty]$ (Theorem~\ref{thm:sg:pd-moment}); the real-valued integrability is a corollary. The book's statement $\mathbb E(\sum x)^a<\infty$ does not say that the sum is finite; here finiteness of the sum is a proved consequence.
