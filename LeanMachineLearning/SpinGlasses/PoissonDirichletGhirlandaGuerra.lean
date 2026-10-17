@@ -388,4 +388,38 @@ theorem integrable_gaussian_gibbs_tilt_correction_prod
     exact (integrable_const ((Fintype.card J : ℝ) * M * |t|)).mono'
       (hm.aestronglyMeasurable.norm.integral_prod_right') hb
 
+/-- A guarded replica average of a bounded observable is uniformly bounded whenever
+its active tilted weights are summable. This also applies to the extra `Option J` replica. -/
+theorem abs_gaussian_gibbs_tilt_guard_le
+    {J : Type*} [Fintype J] (t : ℝ)
+    (z : ℕ → ℕ × (ℕ → ℝ)) (g : ℕ → ℕ → ℝ)
+    (hn : ∃ p : ℕ × ℕ, p.2 < (z p.1).1)
+    (hp : ∀ p : ℕ × ℕ, p.2 < (z p.1).1 → 0 < (z p.1).2 p.2)
+    (hs : Summable (fun p : {p : ℕ × ℕ // p.2 < (z p.1).1} =>
+      (z p.1.1).2 p.1.2 * Real.exp (t * g p.1.1 p.1.2)))
+    (F : (J → ℕ × ℕ) → ℝ) (M : ℝ) (hF : ∀ σ, |F σ| ≤ M) :
+    |∑' σ : J → ℕ × ℕ,
+      if ∀ j, (σ j).2 < (z (σ j).1).1 then
+        (∏ j, ((z (σ j).1).2 (σ j).2 * Real.exp (t * g (σ j).1 (σ j).2)) /
+          ∑' p : ℕ × ℕ, if p.2 < (z p.1).1 then
+            (z p.1).2 p.2 * Real.exp (t * g p.1 p.2) else 0) * F σ
+      else 0| ≤ M := by
+  let α := {p : ℕ × ℕ // p.2 < (z p.1).1}
+  let _ : Nonempty α := by obtain ⟨p, h⟩ := hn; exact ⟨⟨p, h⟩⟩
+  let v : α → ℝ := fun p =>
+    (z p.1.1).2 p.1.2 * Real.exp (t * g p.1.1 p.1.2)
+  have hv (a : α) : 0 < v a := mul_pos (hp a.1 a.2) (Real.exp_pos _)
+  have hV : 0 < ∑' a, v a :=
+    hs.tsum_pos (fun a => (hv a).le) (Classical.choice inferInstance) (hv _)
+  let w : α → ℝ := fun a => v a / ∑' b, v b
+  have hw0 (a : α) : 0 ≤ w a := div_nonneg (hv a).le hV.le
+  have hws : Summable w := hs.div_const _
+  have hw : ∑' a, w a = 1 := by
+    change (∑' a, v a / ∑' b, v b) = 1
+    rw [tsum_div_const, div_self hV.ne']
+  rw [gaussian_gibbs_tilt_guard_eq_active]
+  exact abs_tsum_prod_pi_mul_le_bound hw0 hws hw
+    (fun σ => hF (fun j => (σ j).1))
+
+
 end SpinGlasses
