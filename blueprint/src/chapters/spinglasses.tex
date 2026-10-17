@@ -3403,6 +3403,28 @@ The transformed process of Lemma~2.3 is realized on the \emph{same} probability 
 (a) Separate the two marks of a block, $\mathrm{Po}\otimes(\nu\otimes\gamma)^{\otimes\mathbb N}\mapsto(\mathrm{Po}\otimes\nu^{\otimes\mathbb N})\otimes\gamma^{\otimes\mathbb N}$ (pairing coordinates of two infinite products and associativity of the product); the joint law of the independent blocks is the infinite product of these, which separates as the product of the infinite product of the first factors and of the second factors. (b) Independence of coordinates and the Gaussian law of each coordinate; the covariance of distinct coordinates vanishes by independence. (c) A function on the finite set $\{0,1\}^{n\times n}$ is bounded; the correction is a difference of two numbers in $[0,n]$.
 \end{proof}
 
+\begin{lemma}[Extra-replica correction and transfer of independent Gaussian marks]\label{lem:sg:pd-extra-replica-transfer}
+  \lean{SpinGlasses.gaussian_ibp_overlap_correction_marginal,
+        SpinGlasses.gaussian_ibp_overlap_correction_active,
+        SpinGlasses.integral_split_poissonBlocks_gaussian}
+  \leanok
+  \uses{lem:sg:pd-gibbs-inputs}
+  Let $J$ be finite, $r_0\in J$, and $w_a\geq0$ be summable with
+  $\sum_a w_a=1$. For every bounded $\Phi:(J\to\alpha)\to\mathbb R$, the extra-replica Gaussian correction
+  $\sum_j t\mathbf1\{\tau(r_0)=\tau(j)\}
+    -|J|t\mathbf1\{\tau(r_0)=\tau(\operatorname{none})\}$,
+  averaged over $\tau:\operatorname{Option}(J)\to\alpha$ with product weights,
+  equals $t$ times the old-replica overlap average minus $|J|t$ times
+  the new-replica overlap average. The same holds for weights obtained by
+  normalizing positive summable masses $u_a e^{tg_a}$. If Poisson blocks have
+  product mass/Gaussian mark laws, any integrable measurable function of the
+  count/mass environment and Gaussian array has the same integral on the
+  original block space as on the product of the environment law and the
+  standard Gaussian-array law. These statements do not yet establish
+  Theorem~2.7: they must be applied to the product-space IBP equality, and
+  the result must still be reduced to the reference process and ranked weights.
+\end{lemma}
+
 \begin{lemma}[Conditional Gaussian IBP and finite-replica bounds toward Theorem~2.7]\label{lem:sg:pd-conditional-ibp}
   \lean{SpinGlasses.integral_gaussian_gibbs_replica_guard_tilt_ibp,
         SpinGlasses.gaussian_gibbs_tilt_guard_eq_active,
@@ -3458,8 +3480,9 @@ The transformed process of Lemma~2.3 is realized on the \emph{same} probability 
   correction. The latter is integrable without the additional hypothesis.
   For any normalized nonnegative summable weights, the unused extra replica
   in the old-replica overlap sum marginalizes out. The additional marked
-  integrability hypothesis has not yet been discharged for the random Poisson
-  environment; neither Equation~(2.34) nor Theorem~2.7 follows yet.
+  integrability hypothesis is discharged for Gaussian-marked Poisson blocks
+  in Lemma~\ref{lem:sg:pd-marked-transfer}; Equation~(2.34) and Theorem~2.7
+  still require transfer to the block space and overlap algebra.
 \end{lemma}
 
 \begin{lemma}[Centering and marginalization of countable Gibbs series]\label{lem:sg:pd-centering}
@@ -3498,9 +3521,42 @@ The transformed process of Lemma~2.3 is realized on the \emph{same} probability 
   has positive active masses and a summable guarded mass family, finiteness of
   the corresponding fixed-index $[0,\infty]$ series is a measurable event
   and holds almost everywhere on its product with the Gaussian-array law.
-  This does not yet prove that the \emph{random-environment expectation} of
-  the centered or uncentered marked Gibbs series is integrable; hence the
-  extra hypothesis in the product-space IBP lemma is still outstanding.
+  Joint integrability and the consequent product-space IBP for the Poisson
+  construction are established in Lemma~\ref{lem:sg:pd-marked-transfer}.
+\end{lemma}
+
+\begin{lemma}[Marked integrability and Gaussian IBP for Poisson blocks]\label{lem:sg:pd-marked-transfer}
+  \lean{SpinGlasses.measurable_gaussian_gibbs_tilt_centered_guard,
+        SpinGlasses.integrable_gaussian_gibbs_tilt_centered_guard_prod,
+        SpinGlasses.ae_gaussian_gibbs_tilt_mark_centering_prod,
+        SpinGlasses.integrable_gaussian_gibbs_tilt_mark_guard_prod,
+        SpinGlasses.integral_poissonDirichlet_gaussian_tilt_ibp_prod}
+  \leanok
+  \uses{lem:sg:pd-ibp-product, lem:sg:pd-centering,
+        lem:sg:pd-marked-summability, thm:sg:pd-gibbs}
+  Fix $0<\zeta<1$, a real tilt $t$, probability laws $\nu_m$ for positive
+  masses, and nonnegative block rates $r_m$. Let independent measurable
+  blocks $B_m=(N_m,(u_{ml},g_{ml})_l)$ have laws
+  $\operatorname{Po}(r_m)\otimes(\nu_m\otimes N(0,1))^{\otimes\mathbb N}$;
+  assume their summed intensity equals $\mu_\zeta\otimes N(0,1)$.
+  Write $Z=(N,u)$, $G=(g_{ml})$, $\rho=P\circ Z^{-1}$, and let $\gamma$
+  be the independent doubly countable standard Gaussian law. For any
+  $n\ge1$, distinguished $r_0\in\operatorname{Fin}(n)$, and measurable
+  $f:\mathbb R^{n\times n}\to\mathbb R$, put
+  $\Phi(\sigma)=f((\mathbf 1\{\sigma_i=\sigma_j\})_{ij})$.
+  Under $\rho\otimes\gamma$ the guarded normalized tilted series of
+  $\Phi(\sigma)(g_{\sigma(r_0)}-t\zeta)$ is integrable; the series with
+  $g_{\sigma(r_0)}$ in place of its centered version is integrable too.
+  Its expectation equals the expectation of the guarded extra-replica
+  series whose observable is
+  $\Phi(\tau|_{\operatorname{Fin}(n)})
+    [\sum_{j<n}t\mathbf1\{\tau(r_0)=\tau(j)\}
+       -nt\mathbf1\{\tau(r_0)=\tau(\mathrm{none})\}]$.
+  The index $\mathrm{none}$ denotes the additional replica. No boundedness
+  assumption on $f$ is needed: its values on the finite set of overlap
+  matrices are bounded. The statement is on the product law, not yet on
+  the original block space or on ranked Poisson--Dirichlet weights;
+  Theorem~2.7 and Equation~(2.34) are still open.
 \end{lemma}
 
 \begin{remark}[Differences from the book, and what is left]\label{rem:sg:pd}
