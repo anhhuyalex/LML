@@ -93,6 +93,33 @@ theorem tsum_prod_pi {f : J → α → ℝ} (hf0 : ∀ j a, 0 ≤ f j a)
   ext s
   exact (Finset.prod_univ_sum (fun _ : J => s) (fun j a => f j a)).symm
 
+/-- Two independently sampled indices coincide with probability given by the
+sum of squared weights. This identity also holds for unnormalized summable
+nonnegative weights. -/
+theorem tsum_pair_eq_tsum_sq (w : α → ℝ) (hw0 : ∀ a, 0 ≤ w a)
+    (hws : Summable w) [DecidableEq α] :
+    (∑' p : α × α, w p.1 * w p.2 * (if p.1 = p.2 then 1 else 0)) =
+      ∑' a : α, w a ^ 2 := by
+  have hs : Summable (fun p : α × α => w p.1 * w p.2) := by
+    exact summable_mul_of_summable_norm
+      (by simpa only [Real.norm_eq_abs, abs_of_nonneg (hw0 _)] using hws)
+      (by simpa only [Real.norm_eq_abs, abs_of_nonneg (hw0 _)] using hws)
+  have hguard : Summable (fun p : α × α =>
+      w p.1 * w p.2 * (if p.1 = p.2 then 1 else 0)) := by
+    apply hs.of_norm_bounded
+    intro p
+    simp only [Real.norm_eq_abs, abs_mul, abs_of_nonneg (hw0 _)]
+    split_ifs
+    · simp
+    · simpa only [mul_zero, abs_zero] using mul_nonneg (hw0 p.1) (hw0 p.2)
+  rw [hguard.tsum_prod]
+  apply tsum_congr
+  intro a
+  rw [tsum_eq_single a]
+  · simp [pow_two]
+  · intro b hb
+    simp [hb.symm]
+
 /-- Reindex a finite tuple of elements of a subset as a tuple of elements of the ambient
 set satisfying the coordinatewise membership guard. This also applies to `Option J` for the
 extra replica in Gaussian integration by parts. -/

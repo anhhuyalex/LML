@@ -647,4 +647,69 @@ theorem poissonDirichlet_blocks_expected_overlap_eq_one_sub_zeta
   rw [hone'] at h
   simpa only [Nat.cast_one, one_mul, mul_one, add_zero] using h
 
+/-- Equation (2.34) as the expected sum of squared normalized *block*
+weights. Ranking the atoms to `poissonDirichletWeight` is a separate bridge. -/
+theorem poissonDirichlet_blocks_expected_weight_sq_eq_one_sub_zeta
+    {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω} [IsProbabilityMeasure P]
+    {ζ : ℝ} (hζ : 0 < ζ) (hζ1 : ζ < 1)
+    (ν : ℕ → Measure ℝ) [∀ n, IsProbabilityMeasure (ν n)] (r : ℕ → ℝ≥0)
+    {B : ℕ → Ω → ℕ × (ℕ → ℝ × ℝ)}
+    (hBm : ∀ n, Measurable (B n)) (hB : iIndepFun B P)
+    (hlaw : ∀ n, HasLaw (B n)
+      (Po(r n).prod (Measure.infinitePi fun _ : ℕ =>
+        (ν n).prod (gaussianReal 0 1))) P)
+    (hμ : (zetaPoissonMeasure ζ).prod (gaussianReal 0 1) =
+      Measure.sum fun n => (r n : ℝ≥0∞) • (ν n).prod (gaussianReal 0 1)) :
+    (∫ ω, ∑' a : {p : ℕ × ℕ // p.2 < (B p.1 ω).1},
+      (((B a.1.1 ω).2 a.1.2).1 /
+        ∑' b : {p : ℕ × ℕ // p.2 < (B p.1 ω).1},
+          ((B b.1.1 ω).2 b.1.2).1) ^ 2 ∂P) = 1 - ζ := by
+  have hbase := poissonDirichlet_blocks_expected_overlap_eq_one_sub_zeta
+    hζ hζ1 ν r hBm hB hlaw hμ
+  have hpoint : ∀ᵐ ω ∂P,
+      (∑' τ : Option (Fin 1) → {p : ℕ × ℕ // p.2 < (B p.1 ω).1},
+        (∏ j, ((B (τ j).1.1 ω).2 (τ j).1.2).1 /
+          ∑' a : {p : ℕ × ℕ // p.2 < (B p.1 ω).1},
+            ((B a.1.1 ω).2 a.1.2).1) *
+          (if τ (some 0) = τ none then (1 : ℝ) else 0)) =
+      ∑' a : {p : ℕ × ℕ // p.2 < (B p.1 ω).1},
+        (((B a.1.1 ω).2 a.1.2).1 /
+          ∑' b : {p : ℕ × ℕ // p.2 < (B p.1 ω).1},
+            ((B b.1.1 ω).2 b.1.2).1) ^ 2 := by
+    filter_upwards [ae_poissonDirichlet_gaussian_ibp_environment hζ hζ1
+      (fun m => (ν m).prod (gaussianReal 0 1)) r hBm hB hlaw hμ]
+      with ω ⟨_, hp, hs⟩
+    let w : {p : ℕ × ℕ // p.2 < (B p.1 ω).1} → ℝ := fun a =>
+      ((B a.1.1 ω).2 a.1.2).1 /
+        ∑' b : {p : ℕ × ℕ // p.2 < (B p.1 ω).1},
+          ((B b.1.1 ω).2 b.1.2).1
+    have hnonneg (a : {p : ℕ × ℕ // p.2 < (B p.1 ω).1}) : 0 ≤ w a :=
+      div_nonneg (hp a).le (tsum_nonneg fun b => (hp b).le)
+    have hsum : Summable w := hs.div_const _
+    have hreindex := tsum_option_fin_replica_eq 1 w
+      (fun τ => if τ (some 0) = τ none then (1 : ℝ) else 0)
+    rw [hreindex]
+    let hpair : (Fin 2 → {p : ℕ × ℕ // p.2 < (B p.1 ω).1}) ≃
+        {p : ℕ × ℕ // p.2 < (B p.1 ω).1} ×
+          {p : ℕ × ℕ // p.2 < (B p.1 ω).1} := finTwoArrowEquiv _
+    have hdiag := (hpair.tsum_eq (fun p =>
+      w p.1 * w p.2 * (if p.1 = p.2 then 1 else 0))).trans
+        (tsum_pair_eq_tsum_sq w hnonneg hsum)
+    convert hdiag using 1
+    · apply tsum_congr
+      intro σ
+      simp only [Function.comp_apply, finSuccEquivLast_symm_some,
+        finSuccEquivLast_symm_none]
+      change (∏ j, w (σ j)) * (if σ (Fin.castSucc 0) = σ (Fin.last 1)
+        then 1 else 0) =
+        w (σ 0) * w (σ 1) * (if σ 0 = σ 1 then 1 else 0)
+      have hprod : (∏ j : Fin 2, w (σ j)) = w (σ 0) * w (σ 1) := by
+        simp [Fin.prod_univ_two]
+      rw [hprod]
+      have h0 : Fin.castSucc (0 : Fin 1) = (0 : Fin 2) := rfl
+      have h1 : Fin.last 1 = (1 : Fin 2) := rfl
+      rw [h0, h1]
+  rw [← integral_congr_ae hpoint]
+  exact hbase
+
 end SpinGlasses
