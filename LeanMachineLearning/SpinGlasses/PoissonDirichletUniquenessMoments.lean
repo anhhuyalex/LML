@@ -185,4 +185,58 @@ theorem poissonDirichletSimplex_measure_ext_of_powerSum_products
   intro f hf
   exact hTE (hle hf)
 
+/-- A sequence of nonnegative weights summing to one and decreasing in rank
+belongs to the compact simplex (which also includes subprobability limits). -/
+theorem mem_poissonDirichletSimplex_of_hasSum
+    {w : ℕ → ℝ} (hw0 : ∀ j, 0 ≤ w j) (hanti : Antitone w)
+    (hs : HasSum w 1) : w ∈ poissonDirichletSimplex := by
+  refine ⟨hw0, hanti, ?_⟩
+  rw [← ENNReal.ofReal_tsum_of_nonneg hw0 hs.summable]
+  simp [hs.tsum_eq]
+
+/-- Every independent-block realization of the zeta-Poisson process has its
+ranked Poisson--Dirichlet weights in the compact simplex almost surely. -/
+theorem ae_poissonDirichletWeight_mem_simplex_of_blocks
+    {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω} [IsProbabilityMeasure P]
+    {ζ : ℝ} (hζ0 : 0 < ζ) (hζ1 : ζ < 1)
+    (ν : ℕ → Measure ℝ) [∀ n, IsProbabilityMeasure (ν n)] (r : ℕ → NNReal)
+    {B : ℕ → Ω → ℕ × (ℕ → ℝ)}
+    (hBm : ∀ n, Measurable (B n)) (hB : ProbabilityTheory.iIndepFun B P)
+    (hlaw : ∀ n, ProbabilityTheory.HasLaw (B n)
+      ((ProbabilityTheory.poissonMeasure (r n)).prod
+        (Measure.infinitePi fun _ : ℕ => ν n)) P)
+    (hμ : zetaPoissonMeasure ζ = Measure.sum (fun n => (r n : ENNReal) • ν n)) :
+    ∀ᵐ ω ∂P, (fun k => poissonDirichletWeight k
+      (poissonCountingMeasure (fun n => (B n ω).1)
+        (fun n l => (B n ω).2 l))) ∈ poissonDirichletSimplex := by
+  have h := ae_poissonDirichletWeight ν r hζ0 hζ1 hBm hB hlaw hμ
+    (fun ω => rfl)
+  filter_upwards [h] with ω hω
+  exact mem_poissonDirichletSimplex_of_hasSum
+    (fun k => (hω.2.2.2.1 k).le) hω.2.2.2.2 hω.2.2.1
+
+/-- The ranked-weight law is supported on the compact simplex. The source
+measure is any unmarked independent-block realization of zeta intensity. -/
+theorem map_poissonDirichletWeight_simplex_compl_eq_zero_of_blocks
+    {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω} [IsProbabilityMeasure P]
+    {ζ : ℝ} (hζ0 : 0 < ζ) (hζ1 : ζ < 1)
+    (ν : ℕ → Measure ℝ) [∀ n, IsProbabilityMeasure (ν n)] (r : ℕ → NNReal)
+    {B : ℕ → Ω → ℕ × (ℕ → ℝ)}
+    (hBm : ∀ n, Measurable (B n)) (hB : ProbabilityTheory.iIndepFun B P)
+    (hlaw : ∀ n, ProbabilityTheory.HasLaw (B n)
+      ((ProbabilityTheory.poissonMeasure (r n)).prod
+        (Measure.infinitePi fun _ : ℕ => ν n)) P)
+    (hμ : zetaPoissonMeasure ζ = Measure.sum (fun n => (r n : ENNReal) • ν n)) :
+    (P.map (fun ω k => poissonDirichletWeight k
+      (poissonCountingMeasure (fun n => (B n ω).1)
+        (fun n l => (B n ω).2 l)))) poissonDirichletSimplexᶜ = 0 := by
+  have hm : Measurable (fun ω k => poissonDirichletWeight k
+      (poissonCountingMeasure (fun n => (B n ω).1)
+        (fun n l => (B n ω).2 l))) := by
+    exact (measurable_pi_iff.2 measurable_poissonDirichletWeight).comp
+      (measurable_poissonCountingMeasure_of_blocks hBm (fun ω => rfl))
+  rw [Measure.map_apply hm isClosed_poissonDirichletSimplex.measurableSet.compl]
+  exact ae_poissonDirichletWeight_mem_simplex_of_blocks
+    hζ0 hζ1 ν r hBm hB hlaw hμ
+
 end SpinGlasses
