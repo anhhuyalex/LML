@@ -23,6 +23,61 @@ open scoped ENNReal
 
 namespace SpinGlasses
 
+/-- An overlap observable on finitely many replicas is bounded without any global
+boundedness assumption on the function of real matrices: overlap entries are in `{0, 1}`.
+The witness is reusable for both the unperturbed and tilted Gaussian IBP formulas. -/
+theorem exists_bound_index_overlap_observable
+    {R α : Type*} [Fintype R] [DecidableEq α] (f : (R → R → ℝ) → ℝ) :
+    ∃ M : ℝ, ∀ σ : R → α,
+      |f (fun i j => if σ i = σ j then 1 else 0)| ≤ M := by
+  classical
+  let s : Finset (R → R → ℝ) :=
+    Finset.univ.image (fun a : R → R → Bool => fun i j => if a i j then 1 else 0)
+  refine ⟨∑ a ∈ s, |f a|, fun σ => ?_⟩
+  have hmem : (fun i j => if σ i = σ j then (1 : ℝ) else 0) ∈ s := by
+    apply Finset.mem_image.mpr
+    refine ⟨fun i j => decide (σ i = σ j), Finset.mem_univ _, ?_⟩
+    funext i j
+    simp
+  exact Finset.single_le_sum (fun a _ => abs_nonneg (f a)) hmem
+
+/-- The covariance correction in the countable Gaussian IBP formula is uniformly
+bounded. In particular, it needs no additional hypothesis on the test function. -/
+theorem exists_bound_index_overlap_ibp_observable
+    {R α : Type*} [Fintype R] [DecidableEq α] (r₀ : R)
+    (f : (R → R → ℝ) → ℝ) :
+    ∃ M : ℝ, ∀ τ : Option R → α,
+      |f (fun i j => if τ (some i) = τ (some j) then 1 else 0) *
+        ((∑ r : R, if τ (some r₀) = τ (some r) then (1 : ℝ) else 0) -
+          (Fintype.card R : ℝ) *
+            (if τ (some r₀) = τ none then 1 else 0))| ≤ M := by
+  classical
+  obtain ⟨M, hM⟩ := exists_bound_index_overlap_observable (α := α) f
+  refine ⟨(2 * Fintype.card R : ℝ) * M, fun τ => ?_⟩
+  have hM' := hM (fun r => τ (some r))
+  have hM0 : 0 ≤ M := (abs_nonneg _).trans hM'
+  have hsum : 0 ≤ (∑ r : R, if τ (some r₀) = τ (some r) then (1 : ℝ) else 0) ∧
+      (∑ r : R, if τ (some r₀) = τ (some r) then (1 : ℝ) else 0) ≤ Fintype.card R := by
+    constructor
+    · exact Finset.sum_nonneg fun _ _ => by split_ifs <;> norm_num
+    · simpa using (Finset.sum_le_sum (s := Finset.univ) (fun r _ =>
+        show (if τ (some r₀) = τ (some r) then (1 : ℝ) else 0) ≤ 1 by
+          split_ifs <;> norm_num))
+  have hlast : 0 ≤ (Fintype.card R : ℝ) *
+      (if τ (some r₀) = τ none then 1 else 0) ∧
+      (Fintype.card R : ℝ) * (if τ (some r₀) = τ none then 1 else 0) ≤
+        Fintype.card R := by
+    constructor
+    · positivity
+    · split_ifs <;> simp
+  rw [abs_mul]
+  have hcorr : |(∑ r : R, if τ (some r₀) = τ (some r) then (1 : ℝ) else 0) -
+      (Fintype.card R : ℝ) * (if τ (some r₀) = τ none then 1 else 0)| ≤
+        (2 * Fintype.card R : ℝ) := by
+    rw [abs_le]
+    constructor <;> linarith [hsum.1, hsum.2, hlast.1, hlast.2]
+  exact (mul_le_mul hM' hcorr (abs_nonneg _) hM0).trans_eq (by ring)
+
 /-- Integrating against the restriction of a block counting measure sums exactly the
 indices whose sampled point lies in the restriction set. No sigma-finiteness of the
 unrestricted measure is needed. -/
