@@ -3435,6 +3435,50 @@ The transformed process of Lemma~2.3 is realized on the \emph{same} probability 
   ranked-weight formulation of Theorem~2.7 are not proved.
 \end{lemma}
 
+\begin{lemma}[Product-law bounds and conditional-IBP transfer]\label{lem:sg:pd-ibp-product}
+  \lean{SpinGlasses.measurableSet_gaussian_gibbs_tilt_summable,
+        SpinGlasses.ae_gaussian_gibbs_tilt_summable_prod,
+        SpinGlasses.integrable_gaussian_gibbs_tilt_bounded_prod,
+        SpinGlasses.integral_gaussian_gibbs_replica_guard_tilt_ibp_prod,
+        SpinGlasses.gaussian_ibp_option_overlap_marginal}
+  \leanok
+  \uses{lem:sg:pd-conditional-ibp}
+  Let $\rho$ be a probability law on count/mass environments, with almost surely at
+  least one active index, strictly positive active masses, and summable active masses.
+  Let $\mu$ be the doubly countable product of standard Gaussian laws, independent of
+  the environment. For any real tilt $t$, the finite sum of the Gaussian-tilted
+  active masses is a measurable almost-sure event under $\rho\otimes\mu$.
+  For a finite replica set $J$ and an arbitrary bounded index observable $F$,
+  the normalized guarded tilted Gibbs average of $F$ is jointly integrable under
+  $\rho\otimes\mu$. For an observable $\Phi$ bounded by $M$ and a distinguished
+  replica $r_0$, **if** the guarded tilted average of
+  $\Phi(\sigma)g_{\sigma(r_0)}$ is jointly integrable, integrating the
+  fixed-environment Gaussian integration-by-parts identity gives equality of its
+  product-law expectation with the expectation of the extra-replica covariance
+  correction. The latter is integrable without the additional hypothesis.
+  For any normalized nonnegative summable weights, the unused extra replica
+  in the old-replica overlap sum marginalizes out. The additional marked
+  integrability hypothesis has not yet been discharged for the random Poisson
+  environment; neither Equation~(2.34) nor Theorem~2.7 follows yet.
+\end{lemma}
+
+\begin{lemma}[Centering and marginalization of countable Gibbs series]\label{lem:sg:pd-centering}
+  \lean{SpinGlasses.gaussian_gibbs_mark_centering_identity,
+        SpinGlasses.gaussian_gibbs_mark_centering_identity_of_masses,
+        SpinGlasses.gaussian_gibbs_mark_centering_option_marginal}
+  \leanok
+  \uses{lem:sg:pd-conditional-ibp}
+  Let $J$ be finite, let $u_a>0$ be a summable family on a nonempty countable
+  index set, put $w_a=u_a/\sum_bu_b$, and suppose $|\Phi(\sigma)|\le M$.
+  If the series for the Gibbs average of $\Phi(\sigma)(x_\sigma-c)$ is
+  summable, then the uncentered series is summable and its value equals the
+  centered average plus $c$ times the unmarked average. More generally this
+  holds for any nonnegative summable weights, without normalization. For
+  normalized weights, an unused coordinate in a series indexed by
+  $\operatorname{Option}(J)$ marginalizes out. These are deterministic series
+  identities; they do not assert integrability under the random environment.
+\end{lemma}
+
 \begin{remark}[Differences from the book, and what is left]\label{rem:sg:pd}
 \begin{enumerate}
 \item \emph{Sums in $[0,\infty]$.} Lemma~2.1 is formalized in $[0,\infty]$ (Theorem~\ref{thm:sg:pd-moment}); the real-valued integrability is a corollary. The book's statement $\mathbb E(\sum x)^a<\infty$ does not say that the sum is finite; here finiteness of the sum is a proved consequence.
