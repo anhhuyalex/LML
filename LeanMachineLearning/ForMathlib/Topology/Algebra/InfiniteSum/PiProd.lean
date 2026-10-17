@@ -76,6 +76,39 @@ theorem tsum_prod_pi {f : J → α → ℝ} (hf0 : ∀ j a, 0 ≤ f j a)
   ext s
   exact (Finset.prod_univ_sum (fun _ : J => s) (fun j a => f j a)).symm
 
+/-- Replacing the factor at one coordinate `j₀` of a product `∏ⱼ a (σ j)` by `a (σ j₀) * b (σ j₀)`
+multiplies the product by `b (σ j₀)`. -/
+theorem prod_ite_mul_eval [DecidableEq J] (a b : α → ℝ) (σ : J → α) (j₀ : J) :
+    ∏ j, (if j = j₀ then a (σ j) * b (σ j) else a (σ j)) = (∏ j, a (σ j)) * b (σ j₀) := by
+  have h : ∀ j, (if j = j₀ then a (σ j) * b (σ j) else a (σ j)) =
+      a (σ j) * (if j = j₀ then b (σ j) else 1) := fun j => by split_ifs <;> simp
+  rw [Finset.prod_congr rfl fun j _ => h j, Finset.prod_mul_distrib,
+    Finset.prod_ite_eq' Finset.univ j₀ (fun j => b (σ j))]
+  simp
+
+/-- A normalized product weight has the expected one-coordinate marginal at the replica
+`j₀` (so the replica set is nonempty). -/
+theorem tsum_prod_pi_mul_eval {w χ : α → ℝ}
+    (hw0 : ∀ a, 0 ≤ w a) (hws : Summable w) (hw : ∑' a, w a = 1)
+    (hχ0 : ∀ a, 0 ≤ χ a) (hχ : Summable fun a => w a * χ a) (j₀ : J) :
+    (∑' σ : J → α, (∏ j, w (σ j)) * χ (σ j₀)) = ∑' a, w a * χ a := by
+  classical
+  have hprod := tsum_prod_pi (J := J)
+    (f := fun j a => if j = j₀ then w a * χ a else w a)
+  have hf0 : ∀ j a, 0 ≤ (if j = j₀ then w a * χ a else w a) := by
+    intro j a
+    split_ifs <;> [exact mul_nonneg (hw0 a) (hχ0 a); exact hw0 a]
+  have hf : ∀ j, Summable (fun a => if j = j₀ then w a * χ a else w a) := by
+    intro j
+    split_ifs <;> assumption
+  have hp := hprod hf0 hf
+  convert hp using 1
+  · exact tsum_congr fun σ => (prod_ite_mul_eval w χ σ j₀).symm
+  · simp_rw [show ∀ j, (∑' a, if j = j₀ then w a * χ a else w a) =
+        if j = j₀ then (∑' a, w a * χ a) else 1 from fun j => by
+          split_ifs <;> simp [hw]]
+    simp
+
 /-- **Tannery's theorem for replica averages:** if the weights `w i` are dominated by a summable
 `B` and converge pointwise, then the `J`-fold product averages of an observable `Ψ` with
 `∑_σ ∏ⱼ B(σ j) |Ψ σ| < ∞` converge. -/
@@ -104,16 +137,54 @@ theorem summable_prod_pi_mul_abs_eval {B χ : α → ℝ}
     (fun j => by split_ifs <;> assumption)
   refine (h.mul_left M).of_nonneg_of_le (fun σ => ?_) fun σ => ?_
   · exact mul_nonneg (Finset.prod_nonneg fun j _ => hB0 _) (abs_nonneg _)
-  · have hprod : ∏ j, (if j = j₀ then B (σ j) * |χ (σ j)| else B (σ j)) =
-        (∏ j, B (σ j)) * |χ (σ j₀)| := by
-      have : ∀ j, (if j = j₀ then B (σ j) * |χ (σ j)| else B (σ j)) =
-          B (σ j) * (if j = j₀ then |χ (σ j)| else 1) := fun j => by split_ifs <;> simp
-      rw [Finset.prod_congr rfl fun j _ => this j, Finset.prod_mul_distrib,
-        Finset.prod_ite_eq' Finset.univ j₀ (fun j => |χ (σ j)|)]
-      simp
+  · have hprod := prod_ite_mul_eval B (fun a => |χ a|) σ j₀
     rw [hprod, abs_mul]
     calc (∏ j, B (σ j)) * (|Φ σ| * |χ (σ j₀)|)
         ≤ (∏ j, B (σ j)) * (M * |χ (σ j₀)|) :=
           mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_right (hΦ σ) (abs_nonneg _))
             (Finset.prod_nonneg fun j _ => hB0 _)
       _ = M * ((∏ j, B (σ j)) * |χ (σ j₀)|) := by ring
+
+/-- A product-weighted series is bounded in absolute value by the series of the absolute values.
+This is the triangle inequality for a summable family of real terms. -/
+theorem abs_tsum_prod_pi_mul_le {w : α → ℝ} (hw0 : ∀ a, 0 ≤ w a) {Ψ : (J → α) → ℝ}
+    (hΨ : Summable fun σ : J → α => (∏ j, w (σ j)) * |Ψ σ|) :
+    |∑' σ : J → α, (∏ j, w (σ j)) * Ψ σ| ≤ ∑' σ : J → α, (∏ j, w (σ j)) * |Ψ σ| := by
+  have habs : ∀ σ : J → α, ‖(∏ j, w (σ j)) * Ψ σ‖ = (∏ j, w (σ j)) * |Ψ σ| := fun σ => by
+    rw [Real.norm_eq_abs, abs_mul, abs_of_nonneg (Finset.prod_nonneg fun j _ => hw0 _)]
+  have hs : Summable fun σ : J → α => ‖(∏ j, w (σ j)) * Ψ σ‖ :=
+    hΨ.congr fun σ => (habs σ).symm
+  calc |∑' σ : J → α, (∏ j, w (σ j)) * Ψ σ|
+      = ‖∑' σ : J → α, (∏ j, w (σ j)) * Ψ σ‖ := (Real.norm_eq_abs _).symm
+    _ ≤ ∑' σ : J → α, ‖(∏ j, w (σ j)) * Ψ σ‖ := norm_tsum_le_tsum_norm hs
+    _ = _ := tsum_congr habs
+
+/-- For normalized nonnegative weights, the weighted absolute value of an observable
+at one replica is bounded by its one-coordinate marginal. -/
+theorem abs_tsum_prod_pi_mul_eval_le
+    {w χ : α → ℝ} (hw0 : ∀ a, 0 ≤ w a) (hws : Summable w)
+    (hw : ∑' a, w a = 1) (hχ : Summable fun a => w a * |χ a|)
+    {Φ : (J → α) → ℝ} {M : ℝ}
+    (hΦ : ∀ σ, |Φ σ| ≤ M) (j₀ : J) :
+    |∑' σ : J → α, (∏ j, w (σ j)) * (Φ σ * χ (σ j₀))| ≤
+      M * ∑' a, w a * |χ a| := by
+  classical
+  have hs := summable_prod_pi_mul_abs_eval hw0 hws hχ j₀ hΦ
+  have hs0 : Summable fun σ : J → α => (∏ j, w (σ j)) * |χ (σ j₀)| := by
+    simpa using summable_prod_pi_mul_abs_eval hw0 hws hχ j₀ (Φ := fun _ => (1 : ℝ)) (M := 1)
+      fun _ => by simp
+  have hbase := tsum_prod_pi_mul_eval hw0 hws hw (fun a => abs_nonneg _) hχ j₀
+  have hle : ∑' σ : J → α, (∏ j, w (σ j)) * |Φ σ * χ (σ j₀)| ≤
+      ∑' σ : J → α, M * ((∏ j, w (σ j)) * |χ (σ j₀)|) := by
+    refine hs.tsum_le_tsum (fun σ => ?_) (hs0.mul_left M)
+    rw [abs_mul]
+    calc (∏ j, w (σ j)) * (|Φ σ| * |χ (σ j₀)|)
+        ≤ (∏ j, w (σ j)) * (M * |χ (σ j₀)|) :=
+          mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_right (hΦ σ) (abs_nonneg _))
+            (Finset.prod_nonneg fun j _ => hw0 _)
+      _ = M * ((∏ j, w (σ j)) * |χ (σ j₀)|) := by ring
+  calc _ ≤ ∑' σ : J → α, (∏ j, w (σ j)) * |Φ σ * χ (σ j₀)| :=
+        abs_tsum_prod_pi_mul_le hw0 hs
+    _ ≤ _ := hle
+    _ = M * ∑' σ : J → α, (∏ j, w (σ j)) * |χ (σ j₀)| := tsum_mul_left
+    _ = _ := by rw [hbase]
