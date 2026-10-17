@@ -47,6 +47,35 @@ theorem summable_prod_pi {f : J → α → ℝ} (hf0 : ∀ j a, 0 ≤ f j a) (hf
         Finset.prod_le_prod₀ (fun j _ => Finset.sum_nonneg fun a _ => hf0 j a)
           (fun j _ => (hf j).sum_le_tsum _ fun a _ => hf0 j a)
 
+/-- A countable product of nonnegative summable series over a finite coordinate set.
+This is the infinite-series counterpart of `Finset.prod_univ_sum`. -/
+theorem tsum_prod_pi {f : J → α → ℝ} (hf0 : ∀ j a, 0 ≤ f j a)
+    (hf : ∀ j, Summable (f j)) :
+    (∑' σ : J → α, ∏ j, f j (σ j)) = ∏ j, ∑' a, f j a := by
+  classical
+  have hs := summable_prod_pi hf0 hf
+  have hnet : Tendsto
+      (fun s : Finset α => ∑ σ ∈ Fintype.piFinset (fun _ : J => s), ∏ j, f j (σ j))
+      atTop (𝓝 (∑' σ : J → α, ∏ j, f j (σ j))) := by
+    apply hs.hasSum.comp
+    apply tendsto_atTop.2
+    intro T
+    refine Filter.eventually_atTop.2 ⟨Finset.univ.biUnion (fun j : J => T.image (· j)), ?_⟩
+    intro s hs
+    have hs' : Finset.univ.biUnion (fun j : J => T.image (· j)) ⊆ s := hs
+    intro σ hσ
+    apply Fintype.mem_piFinset.mpr
+    intro j
+    exact hs' (Finset.mem_biUnion.mpr ⟨j, Finset.mem_univ j,
+      Finset.mem_image.mpr ⟨σ, hσ, rfl⟩⟩)
+  have hright : Tendsto (fun s : Finset α => ∏ j, ∑ a ∈ s, f j a)
+      atTop (𝓝 (∏ j, ∑' a, f j a)) :=
+    tendsto_finsetProd _ fun j _ => (hf j).hasSum
+  apply tendsto_nhds_unique hnet
+  convert hright using 1
+  ext s
+  exact (Finset.prod_univ_sum (fun _ : J => s) (fun j a => f j a)).symm
+
 /-- **Tannery's theorem for replica averages:** if the weights `w i` are dominated by a summable
 `B` and converge pointwise, then the `J`-fold product averages of an observable `Ψ` with
 `∑_σ ∏ⱼ B(σ j) |Ψ σ| < ∞` converge. -/
