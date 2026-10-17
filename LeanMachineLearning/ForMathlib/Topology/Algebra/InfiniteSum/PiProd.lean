@@ -167,6 +167,66 @@ theorem tsum_prod_pi_all_eq {I : Type*} [Fintype I] [Nonempty I]
   simp only [Function.const_apply, forall_const, ite_true, mul_one,
     Finset.prod_const, Finset.card_univ]
 
+/-- Replica assignments constant on the fibers of a surjective block map are precisely
+assignments of one label per block. The resulting series is a product of power sums. -/
+theorem tsum_prod_pi_fiber_eq {I K : Type*} [Fintype I] [Fintype K]
+    (b : I → K) (hb : Function.Surjective b) [DecidableEq K]
+    [∀ σ : I → α, Decidable (∀ i j, b i = b j → σ i = σ j)]
+    {w : α → ℝ} (hw0 : ∀ a, 0 ≤ w a) (hws : Summable w)
+    (hw : ∑' a, w a = 1) :
+    (∑' σ : I → α, (∏ i, w (σ i)) *
+      (if ∀ i j, b i = b j → σ i = σ j then 1 else 0)) =
+      ∏ m : K, ∑' a, w a ^ Fintype.card {i : I // b i = m} := by
+  let _ : DecidableEq (I → α) := Classical.decEq _
+  let e : (K → α) ≃ {σ : I → α // ∀ i j, b i = b j → σ i = σ j} :=
+    { toFun := fun τ => ⟨τ ∘ b, fun i j h => congrArg τ h⟩
+      invFun := fun σ m => σ.1 (Classical.choose (hb m))
+      left_inv := by
+        intro τ
+        funext m
+        exact congrArg τ (Classical.choose_spec (hb m))
+      right_inv := by
+        intro σ
+        apply Subtype.ext
+        funext i
+        exact (σ.2 i (Classical.choose (hb (b i)))
+          (Classical.choose_spec (hb (b i))).symm).symm }
+  have hguard : (∑' σ : I → α, (∏ i, w (σ i)) *
+      (if ∀ i j, b i = b j → σ i = σ j then 1 else 0)) =
+      ∑' σ : {σ : I → α // ∀ i j, b i = b j → σ i = σ j},
+        ∏ i, w (σ.1 i) := by
+    let F : (I → α) → ℝ := fun σ => (∏ i, w (σ i)) *
+      (if ∀ i j, b i = b j → σ i = σ j then 1 else 0)
+    calc
+      (∑' σ : I → α, F σ) = ∑' σ : {σ : I → α // ∀ i j,
+          b i = b j → σ i = σ j}, F σ.1 := by
+        symm
+        apply tsum_subtype_eq_of_support_subset
+        intro σ hσ
+        by_contra hn
+        have h : ¬ ∀ i j, b i = b j → σ i = σ j := hn
+        exact hσ (by simp [F, h])
+      _ = _ := tsum_congr fun σ => by
+        change (∏ i, w (σ.1 i)) *
+          (if ∀ i j, b i = b j → σ.1 i = σ.1 j then 1 else 0) = _
+        rw [ite_eq_left σ.property, mul_one]
+  rw [hguard, ← e.tsum_eq (fun σ : {σ : I → α // ∀ i j,
+    b i = b j → σ i = σ j} => ∏ i, w (σ.1 i))]
+  have hf (m : K) : Summable (fun a => w a ^ Fintype.card {i : I // b i = m}) :=
+    summable_pow_of_normalized hw0 hws hw
+      (Fintype.card_pos_iff.mpr (let ⟨i, hi⟩ := hb m; ⟨⟨i, hi⟩⟩))
+  calc
+    (∑' τ : K → α, ∏ i, w ((e τ).1 i)) =
+        ∑' τ : K → α, ∏ m, w (τ m) ^ Fintype.card {i : I // b i = m} := by
+      apply tsum_congr
+      intro τ
+      change (∏ i, w (τ (b i))) = _
+      rw [← Fintype.prod_fiberwise' b (fun m => w (τ m))]
+      congr 1
+      funext m
+      simp only [Finset.prod_const, Finset.card_univ]
+    _ = _ := tsum_prod_pi (fun m a => pow_nonneg (hw0 a) _) hf
+
 /-- Reindex a finite tuple of elements of a subset as a tuple of elements of the ambient
 set satisfying the coordinatewise membership guard. This also applies to `Option J` for the
 extra replica in Gaussian integration by parts. -/
@@ -252,7 +312,6 @@ theorem tsum_prod_option_some {w : α → ℝ} (hw0 : ∀ a, 0 ≤ w a)
     (hΦ : Summable fun σ : J → α => (∏ j, w (σ j)) * Φ σ) :
     (∑' τ : Option J → α, (∏ o, w (τ o)) * Φ (fun j => τ (some j))) =
       ∑' σ : J → α, (∏ j, w (σ j)) * Φ σ := by
-  classical
   let e : (Option J → α) ≃ α × (J → α) := Equiv.piOptionEquivProd
   let F : (J → α) → ℝ := fun σ => (∏ j, w (σ j)) * Φ σ
   have hFnorm : Summable fun σ => ‖F σ‖ := by
@@ -336,7 +395,6 @@ theorem abs_tsum_prod_pi_mul_le_bound
     (hw : ∑' a, w a = 1) {Ψ : (J → α) → ℝ} {M : ℝ}
     (hΨ : ∀ σ, |Ψ σ| ≤ M) :
     |∑' σ : J → α, (∏ j, w (σ j)) * Ψ σ| ≤ M := by
-  classical
   have hs : Summable (fun σ : J → α => (∏ j, w (σ j)) * |Ψ σ|) := by
     have hbase := summable_prod_pi (J := J) (f := fun _ => w)
       (fun _ a => hw0 a) (fun _ => hws)
@@ -368,7 +426,6 @@ theorem abs_tsum_prod_pi_mul_eval_le
     (hΦ : ∀ σ, |Φ σ| ≤ M) (j₀ : J) :
     |∑' σ : J → α, (∏ j, w (σ j)) * (Φ σ * χ (σ j₀))| ≤
       M * ∑' a, w a * |χ a| := by
-  classical
   have hs := summable_prod_pi_mul_abs_eval hw0 hws hχ j₀ hΦ
   have hs0 : Summable fun σ : J → α => (∏ j, w (σ j)) * |χ (σ j₀)| := by
     simpa using summable_prod_pi_mul_abs_eval hw0 hws hχ j₀ (Φ := fun _ => (1 : ℝ)) (M := 1)
