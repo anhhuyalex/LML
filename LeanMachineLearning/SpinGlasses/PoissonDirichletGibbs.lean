@@ -202,6 +202,95 @@ theorem ae_poissonDirichlet_gaussian_ibp_environment
     with ω hn hp hs
   exact ⟨hn, (fun p => hp p.1.1 p.1.2 p.2), hs⟩
 
+/-- Conditional on positive summable masses, the mass-weighted absolute Gaussian marks
+form an integrable series. This is the un-tilted one-replica domination input for
+transferring integrability through Lemma 2.3. -/
+theorem integrable_gaussian_mass_weighted_abs
+    {α : Type*} [Countable α] (u : α → ℝ)
+    (hu0 : ∀ a, 0 ≤ u a) (hu : Summable u)
+    (iota : α → ℕ × ℕ) :
+    (∀ᵐ g ∂(Measure.infinitePi fun _ : ℕ =>
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1),
+      Summable fun a => u a * |g (iota a).1 (iota a).2|) ∧
+    Integrable (fun g : ℕ → ℕ → ℝ =>
+      ∑' a, u a * |g (iota a).1 (iota a).2|)
+      (Measure.infinitePi fun _ : ℕ =>
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) := by
+  let μ : Measure (ℕ → ℕ → ℝ) :=
+    Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1
+  have hlaw (a : α) : HasLaw (fun g : ℕ → ℕ → ℝ => g (iota a).1 (iota a).2)
+      (gaussianReal 0 1) μ :=
+    (hasLaw_eval_infinitePi (fun _ : ℕ => gaussianReal 0 1) (iota a).2).comp
+      (hasLaw_eval_infinitePi
+        (fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) (iota a).1)
+  have h := ae_summable_and_integrable_tsum_mul_exp
+    (P := μ) (G := u) (X := fun a g => g (iota a).1 (iota a).2)
+    (Z := fun _ _ => (0 : ℝ)) hu0 hu
+    (fun _ => by
+      change HasGaussianLaw (fun _ : ℕ → ℕ → ℝ => (0 : ℝ)) μ
+      exact ⟨measurable_const.aemeasurable, by
+        rw [Measure.map_const, measure_univ]
+        simp only [one_smul]
+        infer_instance⟩)
+    (fun _ => by simp)
+    (fun a => (hlaw a).hasGaussianLaw.memLp_two)
+    (a := 1) (v := 0)
+    (fun a => (integral_gaussianReal_coordinate_sq hlaw a).le)
+    (fun _ => by simp)
+  simpa only [Real.exp_zero, mul_one] using h
+
+/-- Conditional on a positive summable mass environment, the un-tilted marked
+replica average is integrable under the Gaussian law. The normalized product-weighted
+series is dominated by the single-coordinate Gaussian absolute-moment series. -/
+theorem integrable_gaussian_gibbs_replica_untilted
+    {α J : Type*} [Countable α] [Fintype J]
+    (u : α → ℝ) [Nonempty α] (hu0 : ∀ a, 0 < u a) (hu : Summable u)
+    (iota : α → ℕ × ℕ) (r₀ : J) (Φ : (J → α) → ℝ)
+    (M : ℝ) (hΦ : ∀ σ, |Φ σ| ≤ M) :
+    Integrable (fun g : ℕ → ℕ → ℝ =>
+      ∑' σ : J → α,
+        (∏ j, u (σ j) / ∑' a, u a) *
+          (Φ σ * g (iota (σ r₀)).1 (iota (σ r₀)).2))
+      (Measure.infinitePi fun _ : ℕ =>
+        Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) := by
+  let μ : Measure (ℕ → ℕ → ℝ) :=
+    Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1
+  have hUpos : 0 < ∑' a, u a := by
+    apply hu.tsum_pos (fun a => (hu0 a).le)
+      (Classical.choice (inferInstance : Nonempty α))
+    exact hu0 _
+  let w : α → ℝ := fun a => u a / ∑' b, u b
+  have hw0 (a : α) : 0 ≤ w a := div_nonneg (hu0 a).le hUpos.le
+  have hws : Summable w := hu.div_const _
+  have hw : ∑' a, w a = 1 := by
+    change (∑' a, u a / ∑' b, u b) = 1
+    rw [tsum_div_const, div_self hUpos.ne']
+  have hmass := integrable_gaussian_mass_weighted_abs u (fun a => (hu0 a).le) hu iota
+  have hmark : ∀ᵐ g ∂μ,
+      Summable fun a => w a * |g (iota a).1 (iota a).2| := by
+    filter_upwards [hmass.1] with g hg
+    simpa only [w, div_mul_eq_mul_div] using hg.div_const (∑' b, u b)
+  have hbound : ∀ᵐ g ∂μ,
+      |∑' σ : J → α,
+        (∏ j, w (σ j)) * (Φ σ * g (iota (σ r₀)).1 (iota (σ r₀)).2)| ≤
+        M / (∑' a, u a) *
+          ∑' a, u a * |g (iota a).1 (iota a).2| := by
+    filter_upwards [hmark] with g hg
+    convert abs_tsum_prod_pi_mul_eval_le hw0 hws hw hg hΦ r₀ using 1
+    simp only [w, div_mul_eq_mul_div, tsum_div_const]
+    ring
+  have hmeas : Measurable fun g : ℕ → ℕ → ℝ =>
+      ∑' σ : J → α,
+        (∏ j, w (σ j)) * (Φ σ * g (iota (σ r₀)).1 (iota (σ r₀)).2) := by
+    apply Measurable.tsum
+    intro σ
+    fun_prop
+  have hdom : Integrable (fun g : ℕ → ℕ → ℝ =>
+      M / (∑' a, u a) * ∑' a, u a * |g (iota a).1 (iota a).2|) μ :=
+    hmass.2.const_mul _
+  have hint := hdom.mono' hmeas.aestronglyMeasurable hbound
+  simpa only [w] using hint
+
 /-- A random active-index replica series can be expressed on the fixed type of block-index
 tuples. The guard is determined solely by the block counts; this removes the dependent
 index type before applying product-space measurability or Fubini. -/
