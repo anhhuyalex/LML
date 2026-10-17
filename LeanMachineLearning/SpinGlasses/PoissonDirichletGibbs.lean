@@ -216,6 +216,71 @@ theorem tsum_poissonBlocks_active_eq_tsum_guard
   exact tsum_pi_subtype_eq_tsum_ite (J := J)
     (s := {p : ℕ × ℕ | p.2 < N p.1}) f
 
+/-- A guarded replica series is measurable jointly in the block environment and the marks.
+The weights and observable are arbitrary measurable coordinate functions; this formulation
+applies both to Gaussian-marked Gibbs averages and to their bounded overlap terms. -/
+theorem measurable_tsum_guarded_replica
+    {S T : Type*} [MeasurableSpace S] [MeasurableSpace T]
+    {J : Type*} [Fintype J] (N : S → ℕ → ℕ)
+    (hN : ∀ m, Measurable fun z => N z m)
+    (w : S × T → ℕ × ℕ → ℝ)
+    (hw : ∀ p, Measurable fun zg => w zg p)
+    (F : S × T → (J → ℕ × ℕ) → ℝ)
+    (hF : ∀ σ, Measurable fun zg => F zg σ) :
+    Measurable fun zg : S × T =>
+      ∑' σ : J → ℕ × ℕ,
+        if ∀ j, (σ j).2 < N zg.1 (σ j).1 then
+          (∏ j, w zg (σ j) / ∑' p : ℕ × ℕ,
+            if p.2 < N zg.1 p.1 then w zg p else 0) * F zg σ
+        else 0 := by
+  classical
+  have hden : Measurable fun zg : S × T =>
+      ∑' p : ℕ × ℕ, if p.2 < N zg.1 p.1 then w zg p else 0 := by
+    apply Measurable.tsum
+    intro p
+    exact (hw p).ite (measurableSet_lt measurable_const
+      ((hN p.1).comp measurable_fst)) measurable_const
+  apply Measurable.tsum
+  intro σ
+  have hguard : MeasurableSet {zg : S × T | ∀ j, (σ j).2 < N zg.1 (σ j).1} := by
+    simp only [Set.ofPred_forall]
+    exact MeasurableSet.iInter fun j => measurableSet_lt measurable_const
+      ((hN (σ j).1).comp measurable_fst)
+  have hprod : Measurable fun zg : S × T => ∏ j, w zg (σ j) / (
+      ∑' p : ℕ × ℕ, if p.2 < N zg.1 p.1 then w zg p else 0) := by
+    exact Finset.measurable_prod _ fun j _ => (hw (σ j)).div hden
+  exact (hprod.mul (hF σ)).ite hguard measurable_const
+
+/-- The fixed-index Gaussian-marked Gibbs replica observable is jointly measurable in
+block counts, masses and Gaussian marks. The guard avoids dependent active index types. -/
+theorem measurable_gaussian_gibbs_replica_guard
+    {J : Type*} [Fintype J] [DecidableEq (ℕ × ℕ)]
+    (t : ℝ) (r₀ : J) (f : (J → J → ℝ) → ℝ) :
+    Measurable fun zg : (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℕ → ℝ) =>
+      ∑' σ : J → ℕ × ℕ,
+        if ∀ j, (σ j).2 < (zg.1 (σ j).1).1 then
+          (∏ j, ((zg.1 (σ j).1).2 (σ j).2 *
+              Real.exp (t * zg.2 (σ j).1 (σ j).2)) /
+            ∑' p : ℕ × ℕ,
+              if p.2 < (zg.1 p.1).1 then
+                (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) else 0) *
+            (f (fun i j => if σ i = σ j then 1 else 0) *
+              zg.2 (σ r₀).1 (σ r₀).2)
+        else 0 := by
+  classical
+  apply measurable_tsum_guarded_replica
+    (S := ℕ → ℕ × (ℕ → ℝ)) (T := ℕ → ℕ → ℝ)
+    (N := fun z m => (z m).1)
+    (w := fun zg p => (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2))
+    (F := fun zg σ => f (fun i j => if σ i = σ j then 1 else 0) *
+      zg.2 (σ r₀).1 (σ r₀).2)
+  · intro m
+    fun_prop
+  · intro p
+    fun_prop
+  · intro σ
+    fun_prop
+
 /-- **Lemma 2.3's replica average as a Gibbs series over block indices.** For a counting measure
 whose active atoms `(xₚ, yₚ)` have positive masses and are pairwise distinct, the ratio of
 order-free integrals
