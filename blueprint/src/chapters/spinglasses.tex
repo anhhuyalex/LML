@@ -3479,6 +3479,30 @@ The transformed process of Lemma~2.3 is realized on the \emph{same} probability 
   identities; they do not assert integrability under the random environment.
 \end{lemma}
 
+\begin{lemma}[Absolute convergence of Gaussian-tilted marked replicas]\label{lem:sg:pd-marked-summability}
+  \lean{SpinGlasses.ae_summable_gaussian_tilted_mark,
+        SpinGlasses.ae_summable_gaussian_gibbs_centered_replica,
+        SpinGlasses.measurableSet_gaussian_gibbs_tilt_mark_summable,
+        SpinGlasses.ae_gaussian_gibbs_tilt_mark_summable_prod}
+  \leanok
+  \uses{lem:sg:pd-centering, lem:sg:pd-conditional-ibp}
+  Let $u_a\ge0$ be summable on a countable index set, let $g_{\iota(a)}$ be
+  coordinates of the infinite array of independent standard Gaussians, and
+  fix real $t,c$. Almost surely, the family
+  $u_a\exp(tg_{\iota(a)})|g_{\iota(a)}-c|$ is summable. If all masses are
+  strictly positive and the index set is nonempty, then for any finite
+  replica type $J$, distinguished coordinate $r_0$, and observable
+  $|\Phi(\sigma)|\le M$, the normalized product-weighted series of
+  $\Phi(\sigma)(g_{\iota(\sigma(r_0))}-c)$ is summable almost surely.
+  For a probability law of block-count/mass environments that almost surely
+  has positive active masses and a summable guarded mass family, finiteness of
+  the corresponding fixed-index $[0,\infty]$ series is a measurable event
+  and holds almost everywhere on its product with the Gaussian-array law.
+  This does not yet prove that the \emph{random-environment expectation} of
+  the centered or uncentered marked Gibbs series is integrable; hence the
+  extra hypothesis in the product-space IBP lemma is still outstanding.
+\end{lemma}
+
 \begin{remark}[Differences from the book, and what is left]\label{rem:sg:pd}
 \begin{enumerate}
 \item \emph{Sums in $[0,\infty]$.} Lemma~2.1 is formalized in $[0,\infty]$ (Theorem~\ref{thm:sg:pd-moment}); the real-valued integrability is a corollary. The book's statement $\mathbb E(\sum x)^a<\infty$ does not say that the sum is finite; here finiteness of the sum is a proved consequence.
