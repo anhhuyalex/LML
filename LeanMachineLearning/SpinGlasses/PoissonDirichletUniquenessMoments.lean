@@ -23,6 +23,13 @@ open MeasureTheory
 
 namespace SpinGlasses
 
+/-- A continuous real function on a compact space is integrable against any finite measure. -/
+private theorem integrable_continuousMap {X : Type*} [TopologicalSpace X] [CompactSpace X]
+    [MeasurableSpace X] [OpensMeasurableSpace X] (μ : Measure X) [IsFiniteMeasure μ]
+    (f : C(X, ℝ)) :
+    Integrable (fun x => f x) μ :=
+  f.continuous.integrable_of_hasCompactSupport (HasCompactSupport.of_compactSpace f)
+
 /-- Integrals against a finite measure vary continuously with a continuous
 function on the compact simplex in the uniform norm. -/
 private theorem continuous_simplex_integral (μ : Measure poissonDirichletSimplex)
@@ -32,11 +39,9 @@ private theorem continuous_simplex_integral (μ : Measure poissonDirichletSimple
   apply (LipschitzWith.of_dist_le_mul (K := ENNReal.toNNReal (μ Set.univ) + 1)
     (fun f g => ?_)).continuous
   have hf : Integrable (fun x => f x) μ :=
-    (integrable_const (‖f‖)).mono' f.continuous.aestronglyMeasurable
-      (Filter.Eventually.of_forall fun x => ContinuousMap.norm_coe_le_norm f x)
+    integrable_continuousMap μ f
   have hg : Integrable (fun x => g x) μ :=
-    (integrable_const (‖g‖)).mono' g.continuous.aestronglyMeasurable
-      (Filter.Eventually.of_forall fun x => ContinuousMap.norm_coe_le_norm g x)
+    integrable_continuousMap μ g
   rw [dist_eq_norm, ← integral_sub hf hg]
   calc
     ‖∫ x, (f x - g x) ∂μ‖ ≤ ‖f - g‖ * μ.real Set.univ := by
@@ -148,17 +153,13 @@ theorem poissonDirichletSimplex_measure_ext_of_powerSum_products
       add_mem' := by
         intro f g hf hg
         have hfμ : Integrable (fun x => f x) μ :=
-          (integrable_const (‖f‖)).mono' f.continuous.aestronglyMeasurable
-            (Filter.Eventually.of_forall fun x => ContinuousMap.norm_coe_le_norm f x)
+          integrable_continuousMap μ f
         have hgμ : Integrable (fun x => g x) μ :=
-          (integrable_const (‖g‖)).mono' g.continuous.aestronglyMeasurable
-            (Filter.Eventually.of_forall fun x => ContinuousMap.norm_coe_le_norm g x)
+          integrable_continuousMap μ g
         have hfν : Integrable (fun x => f x) ν :=
-          (integrable_const (‖f‖)).mono' f.continuous.aestronglyMeasurable
-            (Filter.Eventually.of_forall fun x => ContinuousMap.norm_coe_le_norm f x)
+          integrable_continuousMap ν f
         have hgν : Integrable (fun x => g x) ν :=
-          (integrable_const (‖g‖)).mono' g.continuous.aestronglyMeasurable
-            (Filter.Eventually.of_forall fun x => ContinuousMap.norm_coe_le_norm g x)
+          integrable_continuousMap ν g
         change (∫ x, (f + g) x ∂μ) = ∫ x, (f + g) x ∂ν
         simp only [ContinuousMap.add_apply, integral_add hfμ hgμ,
           integral_add hfν hgν]

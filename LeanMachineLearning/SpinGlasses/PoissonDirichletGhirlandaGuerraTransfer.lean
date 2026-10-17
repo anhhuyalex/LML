@@ -236,6 +236,46 @@ theorem measurable_gaussian_gibbs_tilt_centered_guard
   · intro σ
     fun_prop
 
+/-- On the split-block probability space, almost surely the tilted mass series
+`∑ u_a e^{t g_a}` over active block indices has finite `ENNReal` total. The
+environment (counts and masses) is independent of the Gaussian marks, so this
+transfers from the product law. -/
+theorem ae_poissonDirichlet_gaussian_tilt_summable_blocks
+    {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω} [IsProbabilityMeasure P]
+    {ζ : ℝ} (hζ : 0 < ζ) (hζ1 : ζ < 1) (t : ℝ)
+    (ν : ℕ → Measure ℝ) [∀ n, IsProbabilityMeasure (ν n)] (r : ℕ → ℝ≥0)
+    {B : ℕ → Ω → ℕ × (ℕ → ℝ × ℝ)}
+    (hBm : ∀ n, Measurable (B n)) (hB : iIndepFun B P)
+    (hlaw : ∀ n, HasLaw (B n)
+      (Po(r n).prod (Measure.infinitePi fun _ : ℕ =>
+        (ν n).prod (gaussianReal 0 1))) P)
+    (hμ : (zetaPoissonMeasure ζ).prod (gaussianReal 0 1) =
+      Measure.sum fun n => (r n : ℝ≥0∞) • (ν n).prod (gaussianReal 0 1)) :
+    ∀ᵐ ω ∂P, (∑' p : ℕ × ℕ, ENNReal.ofReal
+      (if p.2 < (B p.1 ω).1 then
+        ((B p.1 ω).2 p.2).1 * Real.exp (t * ((B p.1 ω).2 p.2).2) else 0)) < ⊤ := by
+  let Z : Ω → ℕ → ℕ × (ℕ → ℝ) :=
+    fun ω m => ((B m ω).1, fun l => ((B m ω).2 l).1)
+  let G : Ω → ℕ → ℕ → ℝ := fun ω m l => ((B m ω).2 l).2
+  have hZm : Measurable Z := measurable_poissonBlocks_counts_fst hBm
+  have hGm : Measurable G := measurable_poissonBlocks_snd hBm
+  have hsplit := indepFun_poissonBlocks_snd_marks ν
+    (fun _ => gaussianReal 0 1) r hBm hB hlaw
+  have henv := ae_poissonDirichlet_environment_map hζ hζ1 ν r hBm hB hlaw hμ
+  have hprod := ae_gaussian_gibbs_tilt_summable_prod t (P.map Z)
+    (henv.mono fun z hz => ⟨hz.2.1, hz.2.2⟩)
+  have hpair : P.map (fun ω => (Z ω, G ω)) =
+      (P.map Z).prod (P.map G) :=
+    hsplit.1.map_prod_eq_prod_map_map hZm.aemeasurable hGm.aemeasurable
+  have hmap : ∀ᵐ zg ∂P.map (fun ω => (Z ω, G ω)),
+      (∑' p : ℕ × ℕ, ENNReal.ofReal
+        (if p.2 < (zg.1 p.1).1 then
+          (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) else 0)) < ⊤ := by
+    rw [hpair, hsplit.2.1.map_eq]
+    exact hprod
+  exact (ae_map_iff (hZm.prodMk hGm).aemeasurable
+    (measurableSet_gaussian_gibbs_tilt_summable t)).1 hmap
+
 /-- Lemma 2.3 supplies integrability of the centered tilted Gibbs series on
 Poisson blocks; independent-mark splitting transports it to the product law. -/
 theorem integrable_gaussian_gibbs_tilt_centered_guard_prod

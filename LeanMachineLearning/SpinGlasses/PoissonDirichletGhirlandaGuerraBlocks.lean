@@ -186,31 +186,8 @@ theorem ae_poissonDirichlet_gaussian_overlap_correction
       Summable (fun a : {p : ℕ × ℕ // p.2 < (B p.1 ω).1} =>
         ((B a.1.1 ω).2 a.1.2).1 *
           Real.exp (t * ((B a.1.1 ω).2 a.1.2).2)) := by
-    have henvρ : ∀ᵐ z ∂P.map Z,
-        (∀ p : ℕ × ℕ, p.2 < (z p.1).1 → 0 < (z p.1).2 p.2) ∧
-        Summable (fun p : ℕ × ℕ =>
-          if p.2 < (z p.1).1 then (z p.1).2 p.2 else 0) :=
-      (ae_poissonDirichlet_environment_map hζ hζ1 ν r hBm hB hlaw hμ).mono
-        fun z ⟨_, hp, hs⟩ => ⟨hp, hs⟩
-    have hprod := ae_gaussian_gibbs_tilt_summable_prod t (P.map Z) henvρ
-    have hsplit := indepFun_poissonBlocks_snd_marks ν
-      (fun _ => gaussianReal 0 1) r hBm hB hlaw
-    have hGm : Measurable G := measurable_poissonBlocks_snd hBm
-    have hae : ∀ᵐ ω ∂P,
-        (∑' p : ℕ × ℕ, ENNReal.ofReal
-          (if p.2 < (Z ω p.1).1 then
-            (Z ω p.1).2 p.2 * Real.exp (t * G ω p.1 p.2) else 0)) < ∞ := by
-      have hpair : P.map (fun ω => (Z ω, G ω)) =
-          (P.map Z).prod (P.map G) :=
-        hsplit.1.map_prod_eq_prod_map_map hZm.aemeasurable hGm.aemeasurable
-      have hp' : ∀ᵐ zg ∂P.map (fun ω => (Z ω, G ω)),
-          (∑' p : ℕ × ℕ, ENNReal.ofReal
-            (if p.2 < (zg.1 p.1).1 then
-              (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) else 0)) < ∞ := by
-        rw [hpair, hsplit.2.1.map_eq]
-        exact hprod
-      exact (ae_map_iff (hZm.prodMk hGm).aemeasurable
-        (measurableSet_gaussian_gibbs_tilt_summable t)).1 hp'
+    have hae := ae_poissonDirichlet_gaussian_tilt_summable_blocks hζ hζ1 t ν r
+      hBm hB hlaw hμ
     filter_upwards [hae, henv] with ω hs ⟨_, hp, _⟩
     have ht := summable_of_tsum_ofReal_lt_top (fun p : ℕ × ℕ => by
       split_ifs with h

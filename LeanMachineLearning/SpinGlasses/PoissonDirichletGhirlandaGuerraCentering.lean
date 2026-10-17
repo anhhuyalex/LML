@@ -124,20 +124,8 @@ theorem ae_poissonDirichlet_gaussian_tilt_centering_series
   have hmass := ae_poissonDirichlet_gaussian_ibp_environment hζ hζ1
     (fun m => (ν m).prod (ProbabilityTheory.gaussianReal 0 1))
     r hBm hB hlaw hμ
-  have hprodTilt := ae_gaussian_gibbs_tilt_summable_prod t (P.map Z)
-    (henv.mono fun z hz => ⟨hz.2.1, hz.2.2⟩)
-  have htilt : ∀ᵐ ω ∂P,
-      (∑' p : ℕ × ℕ, ENNReal.ofReal
-        (if p.2 < (Z ω p.1).1 then
-          (Z ω p.1).2 p.2 * Real.exp (t * G ω p.1 p.2) else 0)) < ⊤ := by
-    have hmap : ∀ᵐ zg ∂P.map (fun ω => (Z ω, G ω)),
-        (∑' p : ℕ × ℕ, ENNReal.ofReal
-          (if p.2 < (zg.1 p.1).1 then
-            (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) else 0)) < ⊤ := by
-      rw [hpair, hsplit.2.1.map_eq]
-      exact hprodTilt
-    exact (ae_map_iff (hZm.prodMk hGm).aemeasurable
-      (measurableSet_gaussian_gibbs_tilt_summable t)).1 hmap
+  have htilt := ae_poissonDirichlet_gaussian_tilt_summable_blocks hζ hζ1 t ν r
+    hBm hB hlaw hμ
   filter_upwards [hmark, htilt, hmass] with ω hm ht ⟨hn, hp, hs⟩
   let α := {p : ℕ × ℕ // p.2 < (B p.1 ω).1}
   let _ : Nonempty α := hn

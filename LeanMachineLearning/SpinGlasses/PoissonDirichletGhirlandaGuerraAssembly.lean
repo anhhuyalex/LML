@@ -23,43 +23,23 @@ open scoped NNReal ENNReal
 namespace SpinGlasses
 
 /-- A finite overlap observable, multiplied by one zero-one overlap, is again
-measurable and bounded on index-coincidence matrices. -/
+bounded on index-coincidence matrices. -/
 theorem bound_index_overlap_mul_entry
     {J α : Type*} [Finite J] [DecidableEq α]
     (f : (J → J → ℝ) → ℝ) (i j : J) :
     ∃ M : ℝ, ∀ σ : J → α,
       |f (fun a b => if σ a = σ b then 1 else 0) *
-        (if σ i = σ j then 1 else 0)| ≤ M := by
-  obtain ⟨M, hM⟩ := exists_bound_index_overlap_observable (α := α) f
-  refine ⟨M, fun σ => ?_⟩
-  split_ifs with hij
-  · simpa using hM σ
-  · simpa using (abs_nonneg _).trans (hM σ)
+        (if σ i = σ j then 1 else 0)| ≤ M :=
+  exists_bound_index_overlap_observable (α := α) (fun R => f R * R i j)
 
-/-- The old-replica overlap sum is bounded uniformly over every index array.
-The bound is the number of replicas times a bound for the test observable. -/
+/-- The old-replica overlap sum is bounded uniformly over every index array. -/
 theorem bound_index_overlap_sum
     {J α : Type*} [Fintype J] [DecidableEq α]
     (f : (J → J → ℝ) → ℝ) (i : J) :
     ∃ M : ℝ, ∀ σ : J → α,
       |f (fun a b => if σ a = σ b then 1 else 0) *
-        (∑ j : J, if σ i = σ j then 1 else 0)| ≤ M := by
-  obtain ⟨M, hM⟩ := exists_bound_index_overlap_observable (α := α) f
-  refine ⟨Fintype.card J * M, fun σ => ?_⟩
-  rw [abs_mul]
-  have hnonneg : 0 ≤ (∑ j : J, if σ i = σ j then (1 : ℝ) else 0) :=
-    Finset.sum_nonneg fun _ _ => by split_ifs <;> norm_num
-  rw [abs_of_nonneg hnonneg]
-  have hsum : (∑ j : J, if σ i = σ j then (1 : ℝ) else 0) ≤ Fintype.card J := by
-    simpa using Finset.sum_le_card_nsmul Finset.univ
-      (fun j => if σ i = σ j then (1 : ℝ) else 0) 1
-      (fun j _ => by split_ifs <;> norm_num)
-  have hM0 : 0 ≤ M := (abs_nonneg _).trans (hM σ)
-  calc
-    _ ≤ M * (∑ j : J, if σ i = σ j then (1 : ℝ) else 0) :=
-      mul_le_mul_of_nonneg_right (hM σ) hnonneg
-    _ ≤ M * Fintype.card J := mul_le_mul_of_nonneg_left hsum hM0
-    _ = _ := by ring
+        (∑ j : J, if σ i = σ j then 1 else 0)| ≤ M :=
+  exists_bound_index_overlap_observable (α := α) (fun R => f R * ∑ j, R i j)
 
 /-- On the split-block probability space the old-overlap series separates into
 its diagonal term and a finite sum of off-diagonal overlap series. -/
@@ -93,28 +73,13 @@ theorem ae_poissonDirichlet_gaussian_old_overlap_split
   let Z : Ω → ℕ → ℕ × (ℕ → ℝ) :=
     fun ω m => ((B m ω).1, fun l => ((B m ω).2 l).1)
   let G : Ω → ℕ → ℕ → ℝ := fun ω m l => ((B m ω).2 l).2
-  have hZm : Measurable Z := measurable_poissonBlocks_counts_fst hBm
-  have hGm : Measurable G := measurable_poissonBlocks_snd hBm
-  have hsplit := indepFun_poissonBlocks_snd_marks ν
-    (fun _ => gaussianReal 0 1) r hBm hB hlaw
-  have henv := ae_poissonDirichlet_environment_map hζ hζ1 ν r hBm hB hlaw hμ
-  have hprod := ae_gaussian_gibbs_tilt_summable_prod 1 (P.map Z)
-    (henv.mono fun z hz => ⟨hz.2.1, hz.2.2⟩)
-  have hpair : P.map (fun ω => (Z ω, G ω)) =
-      (P.map Z).prod (P.map G) :=
-    hsplit.1.map_prod_eq_prod_map_map hZm.aemeasurable hGm.aemeasurable
   have htilt : ∀ᵐ ω ∂P,
       (∑' p : ℕ × ℕ, ENNReal.ofReal
         (if p.2 < (Z ω p.1).1 then
           (Z ω p.1).2 p.2 * Real.exp (G ω p.1 p.2) else 0)) < ⊤ := by
-    have hmap : ∀ᵐ zg ∂P.map (fun ω => (Z ω, G ω)),
-        (∑' p : ℕ × ℕ, ENNReal.ofReal
-          (if p.2 < (zg.1 p.1).1 then
-            (zg.1 p.1).2 p.2 * Real.exp (zg.2 p.1 p.2) else 0)) < ⊤ := by
-      rw [hpair, hsplit.2.1.map_eq]
-      simpa only [one_mul] using hprod
-    exact (ae_map_iff (hZm.prodMk hGm).aemeasurable
-      (by simpa only [one_mul] using measurableSet_gaussian_gibbs_tilt_summable 1)).1 hmap
+    filter_upwards [ae_poissonDirichlet_gaussian_tilt_summable_blocks hζ hζ1 1 ν r
+      hBm hB hlaw hμ] with ω h
+    simpa only [one_mul] using h
   have hmass := ae_poissonDirichlet_gaussian_ibp_environment hζ hζ1
     (fun m => (ν m).prod (gaussianReal 0 1)) r hBm hB hlaw hμ
   filter_upwards [htilt, hmass] with ω ht ⟨hn, hp, hs⟩
@@ -689,26 +654,20 @@ theorem poissonDirichlet_blocks_expected_weight_sq_eq_one_sub_zeta
     have hreindex := tsum_option_fin_replica_eq 1 w
       (fun τ => if τ (some 0) = τ none then (1 : ℝ) else 0)
     rw [hreindex]
-    let hpair : (Fin 2 → {p : ℕ × ℕ // p.2 < (B p.1 ω).1}) ≃
-        {p : ℕ × ℕ // p.2 < (B p.1 ω).1} ×
-          {p : ℕ × ℕ // p.2 < (B p.1 ω).1} := finTwoArrowEquiv _
-    have hdiag := (hpair.tsum_eq (fun p =>
-      w p.1 * w p.2 * (if p.1 = p.2 then 1 else 0))).trans
-        (tsum_pair_eq_tsum_sq w hnonneg hsum)
-    convert hdiag using 1
-    · apply tsum_congr
-      intro σ
+    have hall := tsum_prod_pi_all_eq (I := Fin 2) hnonneg hsum
+    rw [Fintype.card_fin] at hall
+    refine Eq.trans (tsum_congr fun σ => ?_) hall
+    have hiff : (σ ∘ finSuccEquivLast.symm) (some 0) = (σ ∘ finSuccEquivLast.symm) none ↔
+        ∀ i j : Fin 2, σ i = σ j := by
       simp only [Function.comp_apply, finSuccEquivLast_symm_some,
         finSuccEquivLast_symm_none]
-      change (∏ j, w (σ j)) * (if σ (Fin.castSucc 0) = σ (Fin.last 1)
-        then 1 else 0) =
-        w (σ 0) * w (σ 1) * (if σ 0 = σ 1 then 1 else 0)
-      have hprod : (∏ j : Fin 2, w (σ j)) = w (σ 0) * w (σ 1) := by
-        simp [Fin.prod_univ_two]
-      rw [hprod]
-      have h0 : Fin.castSucc (0 : Fin 1) = (0 : Fin 2) := rfl
-      have h1 : Fin.last 1 = (1 : Fin 2) := rfl
-      rw [h0, h1]
+      refine ⟨fun h i j => ?_, fun h => h _ _⟩
+      change σ 0 = σ 1 at h
+      fin_cases i <;> fin_cases j
+      exacts [rfl, h, h.symm, rfl]
+    by_cases h : ∀ i j : Fin 2, σ i = σ j
+    · rw [if_pos (hiff.mpr h), if_pos h]
+    · rw [if_neg (mt hiff.mp h), if_neg h]
   rw [← integral_congr_ae hpoint]
   exact hbase
 

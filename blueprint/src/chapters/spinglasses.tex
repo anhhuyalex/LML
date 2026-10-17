@@ -3234,6 +3234,7 @@ No choice of an ordering of the points is made: $u_n(M)$ is defined by a formula
         MeasureTheory.ofReal_lt_nthLargestAtom_iff,
         MeasureTheory.tsum_ite_add_one_le,
         MeasureTheory.volume_ofReal_lt_inter_Ioi,
+        MeasureTheory.measure_Ioi_eq_iSup_add_one_div,
         MeasureTheory.tsum_nthLargestAtom}
   \leanok
 (a) $M\mapsto u_n(M)$ is measurable for the $\sigma$-algebra on the space of measures, and $u_0(M)\ge u_1(M)\ge\cdots$. Assume now that $M\big((s,\infty)\big)\in\mathbb N\cup\{\infty\}$ for every $s>0$. (b) For $t\ge0$: $t<u_n(M)$ if and only if $M\big((t,\infty)\big)\ge n+1$; consequently $M\big((t,\infty)\big)=\#\{n:u_n(M)>t\}$ for $t>0$. (c) $\sum_{n\ge0}u_n(M)=\int_{(0,\infty)}x\,dM(x)$ in $[0,\infty]$.
@@ -3377,12 +3378,13 @@ The Gaussian exponential multiplier has $\zeta$-moment one, and its size-biased 
   \lean{SpinGlasses.identDistrib_poissonDirichlet_gaussian_transform,
         SpinGlasses.measurable_rankedMasses,
         SpinGlasses.identDistrib_poissonDirichlet_gaussian_rankedMasses,
+        SpinGlasses.identDistrib_poissonDirichlet_gaussian_masses,
         SpinGlasses.iUnion_Ioi_inv_succ_prod_univ,
         SpinGlasses.ae_poissonCountingMeasure_Ioi_inv_succ_prod_univ_lt_top}
   \leanok
   \uses{thm:sg:pd-gaussian-weights, thm:sg:pd-marking}
 Work under the hypotheses of Theorem~\ref{thm:sg:pd-gaussian-weights}: $0<\zeta$, $t\in\mathbb R$, independent blocks $B$ whose total intensity is $\mu_\zeta\otimes\tau_t$, and independent reference blocks $B'$ whose total intensity is $\mu_\zeta\otimes N(0,1)$, possibly on a different probability space.
-(a) \emph{Marked form.} Let $M_B$ be the counting measure of the points $(u,(x,y))$ of $B$, and let $M_B^{t}$ be its image under $(u,(x,y))\mapsto(ux,y)$. Let $M_{B'}$ be the counting measure of the points $(u,g)$ of $B'$. Then $M_B^{t}$ and $M_{B'}$ are identically distributed random measures on $\mathbb R^2$ (the statement is about the whole marked measure, so it contains Theorem~\ref{thm:sg:pd-gaussian-weights} as the special case obtained by forgetting the marks).
+(a) \emph{Marked form.} Let $M_B$ be the counting measure of the points $(u,(x,y))$ of $B$, and let $M_B^{t}$ be its image under $(u,(x,y))\mapsto(ux,y)$. Let $M_{B'}$ be the counting measure of the points $(u,g)$ of $B'$. Then $M_B^{t}$ and $M_{B'}$ are identically distributed random measures on $\mathbb R^2$ (the statement is about the whole marked measure, so it contains Theorem~\ref{thm:sg:pd-gaussian-weights} as the special case obtained by forgetting the marks). In particular, with the marks forgotten, the transformed and the reference \emph{unmarked} mass processes (the counting measures of the masses alone) are identically distributed.
 (b) \emph{All ranked masses.} The map sending a measure $M$ on $\mathbb R$ to the sequence $(x_n(M))_{n\ge1}$ of its decreasingly ranked atoms is measurable for the Giry $\sigma$-algebra. Consequently the whole sequences of ranked masses of $M_B^{t}$ and of $M_{B'}$, with the marks forgotten, have the same law, which is the first step in the proof of Theorem~\ref{thm:sg:pd-gaussian-weights}.
 (c) \emph{Shells.} The sets $(1/(k+1),\infty)\times S$ increase to $(0,\infty)\times S$. Almost surely, for every $k$ the reference counting measure of $\mu_\zeta\otimes\rho$ (for any probability space $S$ of marks) gives finite mass to $(1/(k+1),\infty)\times S$. By part~(a) the same holds almost surely for $M_B^{t}$ (Lemma~\ref{lem:sg:pd-tilt-law}).
 \end{lemma}
@@ -3843,11 +3845,15 @@ Part~(a) is the finiteness of $\{0,1\}^{n\times n}$ and the bound $\sum_j\mathbf
   \lean{SpinGlasses.ghirlanda_guerra_poissonDirichlet_ranked_parameter,
         SpinGlasses.ghirlanda_guerra_poissonDirichlet_ranked,
         SpinGlasses.ghirlanda_guerra_poissonDirichlet_of_blocks,
+        SpinGlasses.ghirlanda_guerra_poissonDirichlet_of_blocks_parameter,
         SpinGlasses.poissonDirichlet_expected_weight_sq_eq_one_sub_zeta_of_blocks,
         SpinGlasses.poissonDirichlet_ranked_expected_overlap_eq_one_sub_zeta,
         SpinGlasses.poissonDirichlet_ranked_expected_weight_sq_eq_one_sub_zeta,
         SpinGlasses.ae_poissonDirichlet_gaussian_masses_injective,
-        MeasureTheory.nthLargestAtom_sum_dirac_rankEquiv,
+        MeasureTheory.finite_superlevel_of_summable,
+        MeasureTheory.sum_dirac_apply,
+        MeasureTheory.exists_equiv_nthLargestAtom_sum_dirac,
+        SpinGlasses.exists_equiv_poissonDirichletWeight_sum_dirac,
         SpinGlasses.ae_poissonDirichlet_gaussian_replica_eq_ranked}
   \leanok
   \uses{thm:sg:pd-gg-blocks, lem:sg:pd-split-env}
@@ -3865,6 +3871,45 @@ Here $n\ge1$ because $r_0\in\mathrm{Fin}\,n$; $\langle\cdot\rangle$ denotes the 
 The mass intensity $\mu_\zeta$ is atomless. Simplicity for mapped Poisson blocks implies that their active positive masses are pairwise distinct almost surely; the number of positive points is infinite almost surely, and their total mass is finite almost surely. For any fixed such configuration, the number of strictly larger masses gives a bijection from active indices to $\mathbb N$. The counting-measure level characterization identifies the mass at rank $k$ with $\mathrm{nthLargestAtom}(k,M)$; the ranked total equals the original sum. Reindex both ordinary and extra-replica series by this bijection, then apply Theorem~\ref{thm:sg:pd-gg-blocks}; the one-replica diagonal is the sum of squared ranked weights.
 \end{proof}
 
+\begin{lemma}[Deterministic rank transport and construction independence]\label{lem:sg:pd-rank-transport}
+  \lean{MeasureTheory.ncard_superlevel_lt_of_lt,
+        MeasureTheory.injective_ncard_superlevel_lt,
+        MeasureTheory.surjective_ncard_superlevel_lt,
+        MeasureTheory.nthLargestAtom_sum_dirac_rank,
+        MeasureTheory.tsum_nthLargestAtom_sum_dirac,
+        SpinGlasses.ae_poissonDirichlet_gaussian_active_infinite,
+        SpinGlasses.tsum_normalized_masses_eq_ranked,
+        SpinGlasses.tsum_normalized_masses_fresh_eq_ranked,
+        SpinGlasses.ae_poissonDirichlet_gaussian_fresh_eq_ranked,
+        SpinGlasses.measurable_ranked_replica_series,
+        SpinGlasses.measurable_ranked_fresh_replica_series,
+        SpinGlasses.identDistrib_poissonDirichlet_weights_of_unmarked_blocks,
+        SpinGlasses.identDistrib_poissonDirichlet_weights_of_intensity_eq}
+  \leanok
+  \uses{thm:sg:pd-gg-ranked, lem:sg:pd-atoms, thm:sg:pd-weights}
+These are the ingredients of Theorem~\ref{thm:sg:pd-gg-ranked}, stated separately because they hold for any index type and any construction.
+(a) \emph{Ranks.} Let $(u_a)_{a\in A}$ be strictly positive, pairwise distinct and summable, with $A$ infinite. Then only finitely many $u_a$ exceed any fixed $s>0$, and $a\mapsto\#\{b:u_b>u_a\}$ is a bijection $A\to\mathbb N$ which is strictly decreasing in $u_a$. For $M=\sum_a\delta_{u_a}$, the point of rank $k$ is the atom $u_k(M)$ of Definition~\ref{def:sg:pd-atoms}, and $\sum_ku_k(M)=\sum_au_a$ (so $v_{e(a)}(M)=u_a/\sum_bu_b$ for the rank bijection $e$).
+(b) \emph{Transport of replica series.} For a finite replica set $J$ and any function $F$ of the $J\times J$ matrix of $0$--$1$ coincidences, the Gibbs series over tuples $\sigma:J\to A$ with weights $\prod_iu_{\sigma_i}/\sum_bu_b$ equals the series over rank tuples $\sigma:J\to\mathbb N$ with weights $\prod_iv_{\sigma_i}(M)$. The fresh-replica series (replica set $\mathrm{Option}\,J$ with the observable $F(R|_J)\,R_{r_0,\mathrm{none}}$) is the same statement for the index set $\mathrm{Option}\,J$. On the split-block space both identities hold almost surely, since almost surely the active index set is infinite, the masses are positive, distinct and summable.
+(c) \emph{Measurability of the ranked series.} For fixed $J$ and $F$, $w\mapsto\sum_{\sigma:J\to\mathbb N}\prod_iw_{\sigma_i}\,F(\mathbf 1\{\sigma_i=\sigma_j\})$ is measurable on $\mathbb R^{\mathbb N}$ with no assumption on $F$ (for each fixed $\sigma$ the observable is a constant), and likewise for the fresh-replica series.
+(d) \emph{Construction independence.} If two independent-block constructions (one without marks, one with Gaussian marks, on possibly different probability spaces) have the same total mass intensity, the sequences of normalized ranked weights have the same joint law. This is what lets Theorem~2.7 and (2.34) pass from the Gaussian-marked reference construction to \emph{any} independent-block construction of the unmarked $\zeta$-Poisson process.
+\end{lemma}
+\begin{proof}
+  \leanok
+(a) The set $\{a:u_a\ge s\}$ is finite because $u_a\to0$ along the cofinite filter for a summable family. A point with larger mass has strictly fewer larger masses, so the rank is injective on distinct masses; it is onto $\mathbb N$ because the finitely many points above a given point would otherwise exhaust the infinite family. The level counts $M((s,\infty))=\#\{a:u_a>s\}$ then identify the rank-$k$ point with $u_k(M)$ through Lemma~\ref{lem:sg:pd-atoms}(b), and the total follows by reindexing along the bijection. (b) Reindex the sum over $J\to A$ by the induced bijection $J\to\mathbb N$ and use $v_{e(a)}(M)=u_a/\sum_bu_b$ together with injectivity of $e$ to preserve every coincidence $\sigma_i=\sigma_j$. (c) Countable sums and finite products of coordinate maps are measurable. (d) The unmarked and marked constructions induce the same counting measure of masses (Lemma~\ref{lem:sg:pd-gaussian-marked} and the equivalence of Poisson constructions), and the map to the weight sequence is measurable by Theorem~\ref{thm:sg:pd-weights}(a).
+\end{proof}
+
+\begin{lemma}[A replica block with all indices equal is a power sum]\label{lem:sg:pd-power-sum-bridge}
+  \lean{tsum_prod_pi_all_eq,
+        summable_pow_of_normalized}
+  \leanok
+  \uses{thm:sg:pd-gg-ranked}
+Let $w:A\to[0,\infty)$ be summable and let $I$ be a finite nonempty replica set. Then $\sum_{\sigma:I\to A}\prod_{i\in I}w_{\sigma_i}\,\mathbf 1\{\sigma_i=\sigma_j\ \forall i,j\}=\sum_{a}w_a^{|I|}$. If moreover $\sum_aw_a=1$, then $\sum_aw_a^n$ converges for every $n\ge1$. With $I=\{1,2\}$ this is the diagonal identity $\sum_{a,b}w_aw_b\mathbf 1\{a=b\}=\sum_aw_a^2$ behind Equation~(2.34). \emph{Not formalized:} the version for a partition of the replicas into blocks, whose indicator evaluates to a product of power sums $\prod_m\sum_lv_l^{|B_m|}$, which is the bridge to Talagrand's identities (2.39) and to Theorem~2.8.
+\end{lemma}
+\begin{proof}
+  \leanok
+Only the constant tuples $\sigma\equiv a$ survive in the guarded sum; they are in bijection with $A$ and contribute $w_a^{|I|}$. Summability of the guarded series follows by comparison with the product series. If the weights sum to $1$ then each is at most $1$, so $w_a^n\le w_a$.
+\end{proof}
+
 \begin{lemma}[Compact simplex and continuous higher power sums: groundwork for Theorem~2.8]\label{lem:sg:pd-compact-simplex}
   \lean{SpinGlasses.isCompact_poissonDirichletSimplex,
         SpinGlasses.continuousOn_poissonDirichletSimplex_powerSum,
@@ -3872,13 +3917,23 @@ The mass intensity $\mu_\zeta$ is atomless. Simplicity for mapped Poisson blocks
         SpinGlasses.poissonDirichletSimplex_eq_of_powerSums_eq,
         SpinGlasses.poissonDirichletPowerSumAlgebra_separatesPoints,
         SpinGlasses.poissonDirichletPowerSumAlgebra_dense,
+        SpinGlasses.poissonDirichletSimplex_coordinate_mem,
+        SpinGlasses.isClosed_poissonDirichletSimplex,
+        SpinGlasses.poissonDirichletSimplex_summable_pow,
+        SpinGlasses.poissonDirichletSimplex_tsum_le_one,
+        SpinGlasses.poissonDirichletSimplex_coordinate_le_inv,
+        SpinGlasses.poissonDirichletSimplex_first_pow_le_powerSum,
+        SpinGlasses.poissonDirichletSimplex_powerSum_le_first_pow,
+        SpinGlasses.poissonDirichletSimplex_first_eq_of_powerSums_eq,
+        SpinGlasses.poissonDirichletSimplex_tail,
+        SpinGlasses.poissonDirichletSimplex_tail_powerSums_eq,
         SpinGlasses.poissonDirichlet_stoneWeierstrass}
   \leanok
 Let $V$ be the decreasing nonnegative sequences $x=(x_j)$ with $\sum_jx_j\le1$, endowed with the product topology. Then $V$ is compact, every power sum $p_s(x)=\sum_jx_j^s$ for integer $s\ge2$ is continuous on $V$, and the real subalgebra of $C(V,\mathbb R)$ generated by these power sums separates points and is dense (Mathlib Stone--Weierstrass). The first power sum is not asserted continuous: total mass may escape to the origin under coordinatewise convergence. The distributional uniqueness conclusion of Theorem~2.8, which requires identifying the expectations of these power-sum products for the competing laws, remains open.
 \end{lemma}
 \begin{proof}
   \leanok
-The simplex is the intersection of closed coordinate nonnegativity, antitonicity, and finite-partial-sum constraints, hence a closed subset of the compact cube $[0,1]^{\mathbb N}$. Antitonicity and the mass bound yield $x_j\le (j+1)^{-1}$. Therefore $x_j^s\le(j+1)^{-2}$ uniformly for $s\ge2$, and the uniform-convergence theorem for series of continuous functions gives continuity. If all higher power sums of two sequences agree, the inequalities $x_0^s\le p_s(x)\le x_0^{s-1}$ identify their largest coordinates by taking high powers. Subtract the matching first-coordinate contributions and repeat on the tails to identify every coordinate, including zeros. The generators therefore separate points, and Mathlib's Stone--Weierstrass theorem makes their subalgebra dense.
+The simplex is the intersection of closed coordinate nonnegativity, antitonicity, and finite-partial-sum constraints, hence a closed subset of the compact cube $[0,1]^{\mathbb N}$. The real-valued total mass is at most one (the constraint is stated in $[0,\infty]$, and the coordinates are summable). Antitonicity and the mass bound yield $x_j\le (j+1)^{-1}$. Therefore $x_j^s\le(j+1)^{-2}$ uniformly for $s\ge2$, and the uniform-convergence theorem for series of continuous functions gives continuity. If all higher power sums of two sequences agree, the inequalities $x_0^s\le p_s(x)\le x_0^{s-1}$ identify their largest coordinates by taking high powers. Subtract the matching first-coordinate contributions and repeat on the tails to identify every coordinate, including zeros. The generators therefore separate points, and Mathlib's Stone--Weierstrass theorem makes their subalgebra dense.
 \end{proof}
 
 \begin{lemma}[Mixed power-sum moments determine a law on the simplex]\label{lem:sg:pd-moment-ext}
@@ -3934,6 +3989,17 @@ nonnegative simplex constraint and apply the measurable pushforward formula.
 \begin{proof}
   \leanok
 (a) Decompose $\mu_\zeta$ first (a $\sigma$-finite measure is a countable combination of probability measures), take the product of each piece with $N(0,1)$, and use the existence theorem for independent blocks. (b) Nonemptiness: the process has infinitely many points of positive mass. Positivity: $\mu_\zeta$ does not charge $(-\infty,0]$, so blocks with positive rate sample almost surely in $\{x>0\}$ and blocks of rate $0$ are empty. Summability: Lemma~2.1 gives finiteness of the total mass $\sum_{p}u_p$. (c) Push the almost sure statement of (b) through the measurable map taking blocks to the environment; the guard turns the dependence on the random subtype into a statement about a fixed countable series, and measurability of the set is measurability of countably many conditions, finiteness of an $[0,\infty]$-valued series being a measurable event. (d) Both sides are sums of Dirac masses.
+\end{proof}
+
+\begin{lemma}[Tilted masses are summable on the split-block space]\label{lem:sg:pd-tilt-summable-blocks}
+  \lean{SpinGlasses.ae_poissonDirichlet_gaussian_tilt_summable_blocks}
+  \leanok
+  \uses{lem:sg:pd-split-env, lem:sg:pd-ibp-product}
+  Under the hypotheses of Lemma~\ref{lem:sg:pd-split-env} and for every real $t$, almost surely the series $\sum_a u_ae^{tg_a}$ over the active block indices is finite (as an extended nonnegative series; equivalently, summable when the terms are positive). This is the single place where the independence of the Gaussian marks from the counts and masses is converted into summability of the tilted masses on $\Omega$; the tilt, centering and Theorem~2.7 arguments all reuse it.
+\end{lemma}
+\begin{proof}
+  \leanok
+Push the almost sure environment statement of Lemma~\ref{lem:sg:pd-split-env} through the counts-and-masses map, use that this map is independent of the Gaussian array, and apply the product-law summability of Lemma~\ref{lem:sg:pd-ibp-product} under the product of the two laws. The statement is measurable in the pair (environment, marks), so it transfers back to $\Omega$.
 \end{proof}
 
 \begin{lemma}[Series over random active indices, guarded form, and measurability]\label{lem:sg:pd-guarded}
@@ -4103,7 +4169,7 @@ These were proved while building the statements above; each is a short consequen
 \[
 n\,\mathbb E\langle f(R)R_{r_0,n+1}\rangle=(1-\zeta)\mathbb E\langle f(R)\rangle+\sum_{j\ne r_0}\mathbb E\langle f(R)R_{r_0,j}\rangle,
 \]
-where each bracket is the series over active block-index replicas weighted by products of $w_a$, $R_{ij}=\mathbf 1\{a_i=a_j\}$, and the fresh replica is indexed by $\mathrm{none}\in\mathrm{Option}(\mathrm{Fin}\,n)$. There is no global boundedness assumption on $f$ because the matrix inputs are finite-valued. The proof uses \lean{SpinGlasses.integral_poissonDirichlet_gaussian_old_overlap_split}, the fresh-replica transfer \lean{SpinGlasses.integral_poissonDirichlet_gaussian_fresh_overlap_tilt_eq}, and the expected marked identity. With $n=1$ and $f=1$, \lean{SpinGlasses.ae_poissonDirichlet_gaussian_one_replica_average} and \lean{SpinGlasses.poissonDirichlet_blocks_expected_overlap_eq_one_sub_zeta} yield $\mathbb E\langle R_{12}\rangle=1-\zeta$ (Equation~(2.34)) for block-index weights. The general diagonal identity \lean{tsum_pair_eq_tsum_sq} applies to any nonnegative summable weights on an arbitrary index type; its specialization \lean{SpinGlasses.poissonDirichlet_blocks_expected_weight_sq_eq_one_sub_zeta} also proves $\mathbb E\sum_a(u_a/\sum_bu_b)^2=1-\zeta$ for active block indices. Reindexing these weights by decreasing atom rank is carried out in Theorem~\ref{thm:sg:pd-gg-ranked}.
+where each bracket is the series over active block-index replicas weighted by products of $w_a$, $R_{ij}=\mathbf 1\{a_i=a_j\}$, and the fresh replica is indexed by $\mathrm{none}\in\mathrm{Option}(\mathrm{Fin}\,n)$. There is no global boundedness assumption on $f$ because the matrix inputs are finite-valued. The proof uses \lean{SpinGlasses.integral_poissonDirichlet_gaussian_old_overlap_split}, the fresh-replica transfer \lean{SpinGlasses.integral_poissonDirichlet_gaussian_fresh_overlap_tilt_eq}, and the expected marked identity. With $n=1$ and $f=1$, \lean{SpinGlasses.ae_poissonDirichlet_gaussian_one_replica_average} and \lean{SpinGlasses.poissonDirichlet_blocks_expected_overlap_eq_one_sub_zeta} yield $\mathbb E\langle R_{12}\rangle=1-\zeta$ (Equation~(2.34)) for block-index weights. The general diagonal identity \lean{tsum_prod_pi_all_eq} (here with the replica set $\mathrm{Fin}\,2$) applies to any nonnegative summable weights on an arbitrary index type and gives $\sum_{\sigma_1,\sigma_2}w_{\sigma_1}w_{\sigma_2}\mathbf 1\{\sigma_1=\sigma_2\}=\sum_aw_a^2$; its specialization \lean{SpinGlasses.poissonDirichlet_blocks_expected_weight_sq_eq_one_sub_zeta} also proves $\mathbb E\sum_a(u_a/\sum_bu_b)^2=1-\zeta$ for active block indices. Reindexing these weights by decreasing atom rank is carried out in Theorem~\ref{thm:sg:pd-gg-ranked}.
 \item \emph{Partial Gaussian invariance.} Gaussian marking is formalized at the level of the entire marked counting measure: multiplying masses by $\exp(t(g-t\zeta/2))$ and shifting marks by $-t\zeta$ preserves its law (with the specified independent block laws and intensity equalities). Forgetting the marks and ranking gives equality in law of the full sequences of ranked masses and normalized ranked weights, not just their one-dimensional marginals (Theorem~\ref{thm:sg:pd-gaussian-weights}). Lemma~2.3 is proved in an order-free form (Theorem~\ref{thm:sg:pd-lemma23}): the replica average of the book is written as an integral against the product $M^{\otimes n}$ of the random counting measure, so no marks have to be attached to ranks. We do not formalize the marks paired with ranks (the marked-sequence form (2.24) of the Bolthausen--Sznitman invariance); the passage from the order-free form to sums over the actual block-indexed atoms is formalized (Theorem~\ref{thm:sg:pd-blockindex}), and the replica averages of both processes are written as real-valued Gibbs series over block indices on one probability space (Theorems~\ref{thm:sg:pd-gibbs-bridge} and~\ref{thm:sg:pd-gibbs}), with the Gaussian marks shown independent of the counts and masses (Lemma~\ref{lem:sg:pd-gibbs-inputs}); and Gaussian integration by parts has been carried out conditionally on the counts and masses and integrated back (Lemmas~\ref{lem:sg:pd-split-env}--\ref{lem:sg:pd-gaussian-array}, \ref{lem:sg:pd-ibp-blocks} and~\ref{lem:sg:pd-ibp-expectation}); the final combination with tilt invariance at $t=1$ is proved for block-index weights (Theorem~\ref{thm:sg:pd-gg-blocks}), and the passage to ranked weights is proved in Theorem~\ref{thm:sg:pd-gg-ranked}; Talagrand's identities (2.39) and uniqueness Theorem~2.8 remain open. The plan for these is in \texttt{docs/SpinGlasses\_PoissonDirichlet\_formalization\_plan.md}.
 \end{enumerate}
 \end{remark}

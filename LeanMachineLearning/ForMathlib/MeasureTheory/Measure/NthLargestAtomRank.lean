@@ -30,25 +30,13 @@ above any fixed positive threshold. -/
 theorem finite_superlevel_of_summable {α : Type*} {u : α → ℝ}
     (hs : Summable u) {t : ℝ} (ht : 0 < t) :
     {a | t ≤ u a}.Finite := by
-  by_contra hfin
-  have hi : Set.Infinite {a | t ≤ u a} := Set.not_finite.1 hfin
-  let e : ℕ ↪ α := hi.natEmbedding.trans (Function.Embedding.subtype _)
-  have he (n : ℕ) : t ≤ u (e n) := (hi.natEmbedding.toFun n).property
-  have hsum : Summable (fun n => u (e n)) := hs.comp_injective e.injective
-  have hzero := hsum.tendsto_atTop_zero
-  have hlim : Filter.Tendsto (fun n => u (e n)) Filter.atTop (nhds 0) := hzero
-  have hclosed : t ≤ (0 : ℝ) := ge_of_tendsto hlim (Filter.Eventually.of_forall he)
-  exact (not_le_of_gt ht) hclosed
+  simpa only [Set.mem_setOf_eq, not_lt] using Filter.eventually_cofinite.mp
+    (hs.tendsto_cofinite_zero.eventually (gt_mem_nhds ht))
 
-/-- For a positive injective family with finite superlevels, counting the larger
-values gives each point a unique natural-number rank. -/
-noncomputable def positiveMassRank {α : Type*} (u : α → ℝ) (a : α) : ℕ :=
-  Set.ncard {b | u a < u b}
-
-/-- A point with smaller mass has strictly larger rank. -/
-theorem positiveMassRank_strictAnti {α : Type*} {u : α → ℝ}
+/-- A point with smaller mass has strictly more larger masses above it. -/
+theorem ncard_superlevel_lt_of_lt {α : Type*} {u : α → ℝ}
     (hfin : ∀ a, {b | u a ≤ u b}.Finite) {a b : α} (hab : u a < u b) :
-    positiveMassRank u b < positiveMassRank u a := by
+    {c | u b < u c}.ncard < {c | u a < u c}.ncard := by
   classical
   have hsubset : {c | u b < u c} ⊂ {c | u a < u c} := by
     refine Set.ssubset_iff_subset_ne.mpr ⟨fun c hc => hab.trans hc, ?_⟩
@@ -60,32 +48,32 @@ theorem positiveMassRank_strictAnti {α : Type*} {u : α → ℝ}
   exact Set.ncard_lt_ncard hsubset
 
 /-- Distinct masses are distinguished by their number of larger masses. -/
-theorem positiveMassRank_injective {α : Type*} {u : α → ℝ}
+theorem injective_ncard_superlevel_lt {α : Type*} {u : α → ℝ}
     (hu : Function.Injective u)
     (hfin : ∀ a, {b | u a ≤ u b}.Finite) :
-    Function.Injective (positiveMassRank u) := by
+    Function.Injective fun a => {b | u a < u b}.ncard := by
   intro a b h
   rcases lt_trichotomy (u a) (u b) with hab | hab | hab
-  · exact False.elim ((positiveMassRank_strictAnti hfin hab).ne h.symm)
+  · exact False.elim ((ncard_superlevel_lt_of_lt hfin hab).ne h.symm)
   · exact hu hab
-  · exact False.elim ((positiveMassRank_strictAnti hfin hab).ne h)
+  · exact False.elim ((ncard_superlevel_lt_of_lt hfin hab).ne h)
 
 /-- Every natural rank occurs when there are infinitely many distinct masses:
 otherwise the finitely many masses above a fixed one would exhaust the family. -/
-theorem positiveMassRank_surjective {α : Type*} [Infinite α] {u : α → ℝ}
+theorem surjective_ncard_superlevel_lt {α : Type*} [Infinite α] {u : α → ℝ}
     (hu : Function.Injective u)
     (hfin : ∀ a, {b | u a ≤ u b}.Finite) :
-    Function.Surjective (positiveMassRank u) := by
+    Function.Surjective fun a => {b | u a < u b}.ncard := by
   classical
-  let rank := positiveMassRank u
-  have hrank : Function.Injective rank := positiveMassRank_injective hu hfin
+  let rank := fun a => {b | u a < u b}.ncard
+  have hrank : Function.Injective rank := injective_ncard_superlevel_lt hu hfin
   have hdown : ∀ a : α, ∀ k < rank a, ∃ b, rank b = k := by
     intro a k hk
     let s : Set α := {b | u a < u b}
     have hs : s.Finite := (hfin a).subset
       (fun b hb => show u a ≤ u b from le_of_lt hb)
     have hstep : ∀ b ∈ s, rank b < rank a := fun b hb =>
-      positiveMassRank_strictAnti hfin hb
+      ncard_superlevel_lt_of_lt hfin hb
     let _ : Finite s := hs.to_subtype
     have hcount : (Set.Iio (rank a)).ncard = rank a := Set.ncard_Iio_nat _
     have himage : (rank '' s).ncard = s.ncard :=
@@ -95,7 +83,6 @@ theorem positiveMassRank_surjective {α : Type*} [Infinite α] {u : α → ℝ}
       · rintro j ⟨b, hb, rfl⟩
         exact hstep b hb
       · rw [hcount, himage]
-        rfl
     have hmem : k ∈ rank '' s := heq.symm ▸ (show k ∈ Set.Iio (rank a) from hk)
     obtain ⟨b, _, hb'⟩ := hmem
     exact ⟨b, hb'⟩
@@ -116,21 +103,15 @@ theorem positiveMassRank_surjective {α : Type*} [Infinite α] {u : α → ℝ}
     exact (Set.finite_Iio k).subset hsub
   exact (Set.infinite_range_of_injective hrank) hfinite
 
-/-- The ranking equivalence of an infinite family of distinct positive masses. -/
-noncomputable def positiveMassRankEquiv {α : Type*} [Infinite α] (u : α → ℝ)
-    (hu : Function.Injective u) (hfin : ∀ a, {b | u a ≤ u b}.Finite) : α ≃ ℕ :=
-  Equiv.ofBijective (positiveMassRank u)
-    ⟨positiveMassRank_injective hu hfin, positiveMassRank_surjective hu hfin⟩
-
-/-- The level count for a Dirac sum of positive distinct masses is the number
-of masses above the level. -/
-theorem count_Ioi_sum_dirac {α : Type*} (u : α → ℝ) (t : ℝ) :
-    (Measure.sum fun a : α => Measure.dirac (u a)) (Ioi t) =
-      (Set.encard {a | t < u a} : ℝ≥0∞) := by
-  rw [Measure.sum_apply _ measurableSet_Ioi]
-  simp only [Measure.dirac_apply' _ measurableSet_Ioi]
-  rw [← ENNReal.tsum_set_one,
-    tsum_subtype {a : α | t < u a} (fun _ => (1 : ℝ≥0∞))]
+/-- The mass of a set under a sum of Dirac masses at the values of `u` counts the
+indices whose value lies in the set. -/
+theorem sum_dirac_apply {α β : Type*} [MeasurableSpace β] (u : α → β) {s : Set β}
+    (hs : MeasurableSet s) :
+    (Measure.sum fun a : α => Measure.dirac (u a)) s =
+      (Set.encard {a | u a ∈ s} : ℝ≥0∞) := by
+  rw [Measure.sum_apply _ hs]
+  simp only [Measure.dirac_apply' _ hs]
+  rw [← ENNReal.tsum_set_one, tsum_subtype {a : α | u a ∈ s} (fun _ => (1 : ℝ≥0∞))]
   apply tsum_congr
   intro a
   simp [Set.indicator]
@@ -140,22 +121,24 @@ the `n`-th largest atom of its counting measure. -/
 theorem nthLargestAtom_sum_dirac_rank {α : Type*} (u : α → ℝ)
     (hpos : ∀ a, 0 < u a) (hs : Summable u)
     (a : α) :
-    nthLargestAtom (positiveMassRank u a)
+    nthLargestAtom {b | u a < u b}.ncard
       (Measure.sum fun b : α => Measure.dirac (u b)) = ENNReal.ofReal (u a) := by
   classical
   let M : Measure ℝ := Measure.sum fun b : α => Measure.dirac (u b)
-  let n := positiveMassRank u a
+  let n := {b | u a < u b}.ncard
   have hfin (b : α) : {c | u b ≤ u c}.Finite :=
     finite_superlevel_of_summable hs (hpos b)
+  have hcount (s : ℝ) : M (Ioi s) = (Set.encard {a | s < u a} : ℝ≥0∞) :=
+    sum_dirac_apply u measurableSet_Ioi
   have hint : ∀ s : ℝ, 0 < s → M (Ioi s) = ⊤ ∨ ∃ k : ℕ, M (Ioi s) = k := by
     intro s _
-    rw [count_Ioi_sum_dirac]
+    rw [hcount]
     generalize Set.encard {a | s < u a} = e
     induction e using ENat.recTopCoe with
     | top => exact Or.inl rfl
     | coe k => exact Or.inr ⟨k, rfl⟩
   have hlevel : M (Ioi (u a)) = (n : ℝ≥0∞) := by
-    rw [count_Ioi_sum_dirac]
+    rw [hcount]
     have hf : {b | u a < u b}.Finite := (hfin a).subset
       (fun b hb => show u a ≤ u b from le_of_lt hb)
     rw [← hf.cast_ncard_eq]
@@ -163,7 +146,7 @@ theorem nthLargestAtom_sum_dirac_rank {α : Type*} (u : α → ℝ)
   have hstrict : ∀ t : ℝ, 0 ≤ t → t < u a →
       (n + 1 : ℝ≥0∞) ≤ M (Ioi t) := by
     intro t ht hta
-    rw [count_Ioi_sum_dirac]
+    rw [hcount]
     have hsub : insert a {b | u a < u b} ⊆ {b | t < u b} := by
       intro b hb
       rcases Set.mem_insert_iff.mp hb with rfl | hb
@@ -206,31 +189,25 @@ theorem nthLargestAtom_sum_dirac_rank {α : Type*} (u : α → ℝ)
       exact ENNReal.ofReal_lt_ofReal_iff'.2 ⟨hq1, hq0⟩
     exact hqstrict.trans_le (hle q hq2)
 
-/-- The entire ranked sequence is the original family reindexed by its rank
-bijection; no measurable selection of the bijection is needed. -/
-theorem nthLargestAtom_sum_dirac_rankEquiv {α : Type*} [Infinite α] (u : α → ℝ)
-    (hu : Function.Injective u) (hpos : ∀ a, 0 < u a) (hs : Summable u)
-    (k : ℕ) :
-    nthLargestAtom k (Measure.sum fun a : α => Measure.dirac (u a)) =
-      ENNReal.ofReal (u ((positiveMassRankEquiv u hu
-        (fun a => finite_superlevel_of_summable hs (hpos a))).symm k)) := by
-  let e := positiveMassRankEquiv u hu
-    (fun a => finite_superlevel_of_summable hs (hpos a))
-  have hk : positiveMassRank u (e.symm k) = k := e.apply_symm_apply k
-  change nthLargestAtom k (Measure.sum fun a : α => Measure.dirac (u a)) =
-    ENNReal.ofReal (u (e.symm k))
-  simpa only [hk] using nthLargestAtom_sum_dirac_rank u hpos hs (e.symm k)
+/-- The whole ranked sequence is the original family reindexed by a rank bijection
+`e : α ≃ ℕ`; no measurable selection of the bijection is needed. -/
+theorem exists_equiv_nthLargestAtom_sum_dirac {α : Type*} [Infinite α] (u : α → ℝ)
+    (hu : Function.Injective u) (hpos : ∀ a, 0 < u a) (hs : Summable u) :
+    ∃ e : α ≃ ℕ, ∀ a, nthLargestAtom (e a)
+      (Measure.sum fun b : α => Measure.dirac (u b)) = ENNReal.ofReal (u a) := by
+  have hfin (a : α) := finite_superlevel_of_summable hs (hpos a)
+  exact ⟨Equiv.ofBijective _ ⟨injective_ncard_superlevel_lt hu hfin,
+    surjective_ncard_superlevel_lt hu hfin⟩, nthLargestAtom_sum_dirac_rank u hpos hs⟩
 
 /-- The sum of ranked masses equals the sum over the original atom indices. -/
 theorem tsum_nthLargestAtom_sum_dirac {α : Type*} [Infinite α] (u : α → ℝ)
     (hu : Function.Injective u) (hpos : ∀ a, 0 < u a) (hs : Summable u) :
     (∑' k, nthLargestAtom k (Measure.sum fun a : α => Measure.dirac (u a))) =
       ENNReal.ofReal (∑' a, u a) := by
-  let e := positiveMassRankEquiv u hu
-    (fun a => finite_superlevel_of_summable hs (hpos a))
-  simp_rw [nthLargestAtom_sum_dirac_rankEquiv u hu hpos hs]
-  change (∑' k, ENNReal.ofReal (u (e.symm k))) = ENNReal.ofReal (∑' a, u a)
-  rw [ENNReal.ofReal_tsum_of_nonneg (fun a => (hpos a).le) hs]
-  exact Equiv.tsum_eq e.symm (fun a => ENNReal.ofReal (u a))
+  obtain ⟨e, he⟩ := exists_equiv_nthLargestAtom_sum_dirac u hu hpos hs
+  rw [← e.tsum_eq (fun k => nthLargestAtom k
+    (Measure.sum fun a : α => Measure.dirac (u a))), ENNReal.ofReal_tsum_of_nonneg
+    (fun a => (hpos a).le) hs]
+  exact tsum_congr he
 
 end MeasureTheory

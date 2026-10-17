@@ -104,25 +104,21 @@ theorem ae_poissonDirichlet_gaussian_active_infinite
   exact Infinite.of_injective (fun a : {a : {p : ℕ × ℕ // p.2 < (B p.1 ω).1} |
       0 < ((B a.1.1 ω).2 a.1.2).1} => a.1) Subtype.val_injective
 
-/-- For a positive summable family of distinct masses, the normalized
-`nthLargestAtom` weight at rank `e a` equals the normalized mass `u a`.
-This also gives the deterministic transport needed for replica series. -/
-theorem poissonDirichletWeight_sum_dirac_rank
+/-- For a positive summable family of distinct masses, some bijection `e : α ≃ ℕ`
+sends each index to its rank, and the normalized `nthLargestAtom` weight at rank
+`e a` equals the normalized mass `u a`. This is the deterministic transport needed
+for replica series. -/
+theorem exists_equiv_poissonDirichletWeight_sum_dirac
     {α : Type*} [Infinite α] (u : α → ℝ)
-    (hu : Function.Injective u) (hpos : ∀ a, 0 < u a) (hs : Summable u)
-    (a : α) :
-    poissonDirichletWeight
-      ((positiveMassRankEquiv u hu
-        (fun b => finite_superlevel_of_summable hs (hpos b))) a)
+    (hu : Function.Injective u) (hpos : ∀ a, 0 < u a) (hs : Summable u) :
+    ∃ e : α ≃ ℕ, ∀ a, poissonDirichletWeight (e a)
       (Measure.sum fun b : α => Measure.dirac (u b)) = u a / ∑' b, u b := by
-  let e := positiveMassRankEquiv u hu
-    (fun b => finite_superlevel_of_summable hs (hpos b))
-  have hmass := nthLargestAtom_sum_dirac_rank u hpos hs a
+  obtain ⟨e, hmass⟩ := exists_equiv_nthLargestAtom_sum_dirac u hu hpos hs
+  refine ⟨e, fun a => ?_⟩
   have htotal := tsum_nthLargestAtom_sum_dirac u hu hpos hs
   change (nthLargestAtom (e a) (Measure.sum fun b : α => Measure.dirac (u b)) /
     ∑' k, nthLargestAtom k (Measure.sum fun b : α => Measure.dirac (u b))).toReal = _
-  have he : e a = positiveMassRank u a := rfl
-  rw [he, hmass, htotal]
+  rw [hmass, htotal]
   have hsum : 0 < ∑' b, u b := hs.tsum_pos
     (fun b => (hpos b).le) (Classical.choice (Infinite.nonempty α)) (hpos _)
   rw [ENNReal.toReal_div, ENNReal.toReal_ofReal (hpos a).le,
@@ -142,8 +138,7 @@ theorem tsum_normalized_masses_eq_ranked
         (Measure.sum fun a : α => Measure.dirac (u a))) *
       F (fun i j => if σ i = σ j then 1 else 0) := by
   classical
-  let e := positiveMassRankEquiv u hu
-    (fun a => finite_superlevel_of_summable hs (hpos a))
+  obtain ⟨e, hw⟩ := exists_equiv_poissonDirichletWeight_sum_dirac u hu hpos hs
   let E : (J → α) ≃ (J → ℕ) := Equiv.arrowCongr (Equiv.refl J) e
   rw [← E.tsum_eq (fun σ : J → ℕ =>
     (∏ i, poissonDirichletWeight (σ i)
@@ -152,19 +147,11 @@ theorem tsum_normalized_masses_eq_ranked
   apply tsum_congr
   intro σ
   have he (i : J) : E σ i = e (σ i) := rfl
-  simp only [he]
-  have hw (i : J) : poissonDirichletWeight (e (σ i))
-      (Measure.sum fun a : α => Measure.dirac (u a)) =
-      u (σ i) / ∑' a, u a := by
-    exact poissonDirichletWeight_sum_dirac_rank u hu hpos hs (σ i)
-  simp_rw [hw]
-  congr 1
-  congr 1
-  funext i j
-  simp only [e.injective.eq_iff]
+  simp only [he, hw, e.injective.eq_iff]
 
 /-- The fresh replica's index-coincidence observable also transports under
-any ranking bijection. -/
+any ranking bijection: it is the previous statement for the replica set
+`Option J` and the observable `R ↦ F(R|_J) * R(r₀, fresh)`. -/
 theorem tsum_normalized_masses_fresh_eq_ranked
     {α J : Type*} [Infinite α] [Fintype J] [DecidableEq α]
     (u : α → ℝ) (hu : Function.Injective u)
@@ -177,27 +164,9 @@ theorem tsum_normalized_masses_fresh_eq_ranked
       (∏ i, poissonDirichletWeight (τ i)
         (Measure.sum fun a : α => Measure.dirac (u a))) *
       (F (fun i j => if τ (some i) = τ (some j) then 1 else 0) *
-        if τ (some r₀) = τ none then 1 else 0) := by
-  classical
-  let e := positiveMassRankEquiv u hu
-    (fun a => finite_superlevel_of_summable hs (hpos a))
-  let E : (Option J → α) ≃ (Option J → ℕ) :=
-    Equiv.arrowCongr (Equiv.refl (Option J)) e
-  rw [← E.tsum_eq (fun τ : Option J → ℕ =>
-    (∏ i, poissonDirichletWeight (τ i)
-      (Measure.sum fun a : α => Measure.dirac (u a))) *
-      (F (fun i j => if τ (some i) = τ (some j) then 1 else 0) *
-        if τ (some r₀) = τ none then 1 else 0))]
-  apply tsum_congr
-  intro τ
-  have he (i : Option J) : E τ i = e (τ i) := rfl
-  simp only [he]
-  have hw (i : Option J) : poissonDirichletWeight (e (τ i))
-      (Measure.sum fun a : α => Measure.dirac (u a)) =
-      u (τ i) / ∑' a, u a :=
-    poissonDirichletWeight_sum_dirac_rank u hu hpos hs (τ i)
-  simp_rw [hw]
-  simp only [e.injective.eq_iff]
+        if τ (some r₀) = τ none then 1 else 0) :=
+  tsum_normalized_masses_eq_ranked u hu hpos hs
+    (fun R => F (fun i j => R (some i) (some j)) * R (some r₀) none)
 
 /-- Almost surely, every finite-replica block-index overlap average is the
 corresponding average formed from `poissonDirichletWeight` of the unmarked mass
@@ -263,19 +232,9 @@ theorem ae_poissonDirichlet_gaussian_fresh_eq_ranked
           (poissonCountingMeasure (fun k => (B k ω).1)
             (fun k l => ((B k ω).2 l).1))) *
           (F (fun i j => if τ (some i) = τ (some j) then 1 else 0) *
-            if τ (some r₀) = τ none then 1 else 0) := by
-  filter_upwards [ae_poissonDirichlet_gaussian_masses_injective ν r hBm hB hlaw hμ,
-    ae_poissonDirichlet_gaussian_active_infinite hζ ν r hBm hB hlaw hμ,
-    ae_poissonDirichlet_gaussian_ibp_environment hζ hζ1
-      (fun n => (ν n).prod (gaussianReal 0 1)) r hBm hB hlaw hμ]
-    with ω hinj hinf henv
-  let α := {p : ℕ × ℕ // p.2 < (B p.1 ω).1}
-  let _ : Infinite α := hinf
-  let u : α → ℝ := fun a => ((B a.1.1 ω).2 a.1.2).1
-  have hr := tsum_normalized_masses_fresh_eq_ranked u hinj
-    henv.2.1 henv.2.2 r₀ F
-  rw [poissonCountingMeasure_eq_sum_dirac] at ⊢
-  exact hr
+            if τ (some r₀) = τ none then 1 else 0) :=
+  ae_poissonDirichlet_gaussian_replica_eq_ranked hζ hζ1 ν r hBm hB hlaw hμ (Option J)
+    (fun R => F (fun i j => R (some i) (some j)) * R (some r₀) none)
 
 /-- Equation (2.34) for the ranked Poisson--Dirichlet masses: the expected
 probability that two independently sampled ranks coincide is `1 - ζ`. -/
@@ -335,16 +294,14 @@ theorem poissonDirichlet_ranked_expected_weight_sq_eq_one_sub_zeta
     let α := {p : ℕ × ℕ // p.2 < (B p.1 ω).1}
     let _ : Infinite α := hinf
     let u : α → ℝ := fun a => ((B a.1.1 ω).2 a.1.2).1
-    let e := positiveMassRankEquiv u hinj
-      (fun a => finite_superlevel_of_summable henv.2.2 (henv.2.1 a))
+    obtain ⟨e, hw⟩ := exists_equiv_poissonDirichletWeight_sum_dirac u hinj henv.2.1 henv.2.2
     rw [poissonCountingMeasure_eq_sum_dirac]
     change (∑' a : α, (u a / ∑' b, u b) ^ 2) =
       ∑' k, (poissonDirichletWeight k
         (Measure.sum fun a : α => Measure.dirac (u a))) ^ 2
     rw [← e.tsum_eq (fun k => (poissonDirichletWeight k
       (Measure.sum fun a : α => Measure.dirac (u a))) ^ 2)]
-    exact tsum_congr fun a => by
-      rw [poissonDirichletWeight_sum_dirac_rank u hinj henv.2.1 henv.2.2]
+    exact tsum_congr fun a => by rw [hw]
   rw [← integral_congr_ae hr]
   exact poissonDirichlet_blocks_expected_weight_sq_eq_one_sub_zeta
     hζ hζ1 ν r hBm hB hlaw hμ

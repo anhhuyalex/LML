@@ -113,39 +113,24 @@ theorem poissonDirichletSimplex_summable_pow (x : poissonDirichletSimplex)
       (lt_of_le_of_lt x.2.2.2 ENNReal.one_lt_top)
   apply Summable.of_nonneg_of_le (fun j => pow_nonneg (x.2.1 j) _)
     (fun j => ?_) hbase
-  calc
-    x.1 j ^ s ≤ x.1 j ^ 1 :=
-      by
-        have hbound := poissonDirichletSimplex_coordinate_mem x.2 j
-        induction s with
-        | zero => omega
-        | succ s ih =>
-          cases s with
-          | zero => simp
-          | succ s =>
-            calc
-              x.1 j ^ (s + 2) = x.1 j ^ (s + 1) * x.1 j := by ring
-              _ ≤ x.1 j ^ (s + 1) * 1 :=
-                mul_le_mul_of_nonneg_left hbound.2 (pow_nonneg hbound.1 _)
-              _ ≤ x.1 j ^ 1 := by
-                simpa only [mul_one] using ih (by omega)
-    _ = x.1 j := pow_one _
+  have hbound := poissonDirichletSimplex_coordinate_mem x.2 j
+  exact pow_le_of_le_one hbound.1 hbound.2 (by omega)
+
+/-- The real-valued total mass on the simplex is at most one. -/
+theorem poissonDirichletSimplex_tsum_le_one (x : poissonDirichletSimplex) :
+    (∑' j, x.1 j) ≤ 1 := by
+  have hs : Summable (fun j => x.1 j) := by
+    simpa only [pow_one] using poissonDirichletSimplex_summable_pow x 1 le_rfl
+  rw [← ENNReal.toReal_ofReal (tsum_nonneg x.2.1),
+    ENNReal.ofReal_tsum_of_nonneg x.2.1 hs]
+  exact ENNReal.toReal_mono ENNReal.one_ne_top x.2.2.2
 
 /-- The simplex condition gives the uniform coordinate decay `x_j ≤ 1/(j+1)`.
 This is the key quantitative input for uniform convergence of power sums
 of degree at least two. -/
 theorem poissonDirichletSimplex_coordinate_le_inv (x : poissonDirichletSimplex)
     (j : ℕ) : x.1 j ≤ 1 / ((j : ℝ) + 1) := by
-  have hsum : (∑' k, x.1 k) ≤ 1 := by
-    have hs := poissonDirichletSimplex_summable_pow x 1 (by omega)
-    have hreal : (∑' k, x.1 k) =
-        (∑' k, ENNReal.ofReal (x.1 k)).toReal := by
-      rw [← ENNReal.ofReal_tsum_of_nonneg x.2.1
-        (by simpa only [pow_one] using hs)]
-      have hnonneg : 0 ≤ ∑' k, x.1 k := tsum_nonneg x.2.1
-      exact (ENNReal.toReal_ofReal hnonneg).symm
-    rw [hreal]
-    exact ENNReal.toReal_mono ENNReal.one_ne_top x.2.2.2
+  have hsum := poissonDirichletSimplex_tsum_le_one x
   have hprefix : ∑ k ∈ Finset.range (j + 1), x.1 k ≤ 1 :=
     (Summable.sum_le_tsum (Finset.range (j + 1))
       (fun k _ => x.2.1 k)
@@ -186,28 +171,7 @@ theorem continuousOn_poissonDirichletSimplex_powerSum (s : ℕ) (hs : 2 ≤ s) :
       pow_le_pow_left₀ (hx.1 j)
         (poissonDirichletSimplex_coordinate_le_inv ⟨x, hx⟩ j) _
     _ ≤ 1 / ((j : ℝ) + 1) ^ 2 := by
-      rw [one_div_pow]
-      have ha : ∀ m : ℕ, 2 ≤ m →
-          (1 / ((j : ℝ) + 1)) ^ m ≤ (1 / ((j : ℝ) + 1)) ^ 2 := by
-        intro m hm
-        induction m with
-        | zero => omega
-        | succ m ih =>
-          cases m with
-          | zero => omega
-          | succ m =>
-            cases m with
-            | zero => simp
-            | succ m =>
-              calc
-                (1 / ((j : ℝ) + 1)) ^ (m + 3) =
-                    (1 / ((j : ℝ) + 1)) ^ (m + 2) *
-                      (1 / ((j : ℝ) + 1)) := by ring
-                _ ≤ (1 / ((j : ℝ) + 1)) ^ (m + 2) * 1 :=
-                  mul_le_mul_of_nonneg_left hbound.2 (pow_nonneg hbound.1 _)
-                _ ≤ (1 / ((j : ℝ) + 1)) ^ 2 := by
-                  simpa only [mul_one] using ih (by omega)
-      simpa only [one_div_pow] using ha s hs
+      simpa only [one_div_pow] using pow_le_pow_of_le_one hbound.1 hbound.2 hs
 
 /-- A power sum is at least the power of the largest coordinate. -/
 theorem poissonDirichletSimplex_first_pow_le_powerSum
@@ -223,10 +187,7 @@ theorem poissonDirichletSimplex_powerSum_le_first_pow
     (∑' j, x.1 j ^ (s + 1)) ≤ x.1 0 ^ s := by
   have hs := poissonDirichletSimplex_summable_pow x (s + 1) (by omega)
   have hbase := poissonDirichletSimplex_summable_pow x 1 (by omega)
-  have hmass : (∑' j, x.1 j) ≤ 1 := by
-    rw [← ENNReal.toReal_ofReal (tsum_nonneg x.2.1),
-      ENNReal.ofReal_tsum_of_nonneg x.2.1 (by simpa only [pow_one] using hbase)]
-    exact ENNReal.toReal_mono ENNReal.one_ne_top x.2.2.2
+  have hmass := poissonDirichletSimplex_tsum_le_one x
   calc
     (∑' j, x.1 j ^ (s + 1)) ≤ ∑' j, x.1 0 ^ s * x.1 j := by
       apply hs.tsum_le_tsum (fun j => by

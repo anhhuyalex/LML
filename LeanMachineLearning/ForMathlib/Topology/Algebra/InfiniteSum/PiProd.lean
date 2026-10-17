@@ -103,23 +103,7 @@ theorem summable_pow_of_normalized {w : α → ℝ} (hw0 : ∀ a, 0 ≤ w a)
     simpa using hws.sum_le_tsum {a} (fun _ _ => hw0 _)
   apply Summable.of_nonneg_of_le (fun a => pow_nonneg (hw0 a) _)
     (fun a => ?_) hws
-  calc
-    w a ^ n ≤ w a ^ 1 := by
-      have h : ∀ m : ℕ, 1 ≤ m → w a ^ m ≤ w a := by
-        intro m hm
-        induction m with
-        | zero => omega
-        | succ m ih =>
-            cases m with
-            | zero => simp
-            | succ m =>
-                calc
-                  w a ^ (m + 2) = w a ^ (m + 1) * w a := by ring
-                  _ ≤ w a ^ (m + 1) * 1 :=
-                    mul_le_mul_of_nonneg_left (hbound a) (pow_nonneg (hw0 a) _)
-                  _ ≤ w a := by simpa only [mul_one] using ih (by omega)
-      simpa only [pow_one] using h n hn
-    _ = w a := pow_one _
+  exact pow_le_of_le_one (hw0 a) (hbound a) hn.ne'
 
 /-- For a nonempty finite replica block, imposing equality of all sampled
 indices turns its Gibbs series into a power sum. -/
@@ -182,33 +166,6 @@ theorem tsum_prod_pi_all_eq {I : Type*} [Fintype I] [Nonempty I]
   intro a
   simp only [Function.const_apply, forall_const, ite_true, mul_one,
     Finset.prod_const, Finset.card_univ]
-
-/-- Two independently sampled indices coincide with probability given by the
-sum of squared weights. This identity also holds for unnormalized summable
-nonnegative weights. -/
-theorem tsum_pair_eq_tsum_sq (w : α → ℝ) (hw0 : ∀ a, 0 ≤ w a)
-    (hws : Summable w) [DecidableEq α] :
-    (∑' p : α × α, w p.1 * w p.2 * (if p.1 = p.2 then 1 else 0)) =
-      ∑' a : α, w a ^ 2 := by
-  have hs : Summable (fun p : α × α => w p.1 * w p.2) := by
-    exact summable_mul_of_summable_norm
-      (by simpa only [Real.norm_eq_abs, abs_of_nonneg (hw0 _)] using hws)
-      (by simpa only [Real.norm_eq_abs, abs_of_nonneg (hw0 _)] using hws)
-  have hguard : Summable (fun p : α × α =>
-      w p.1 * w p.2 * (if p.1 = p.2 then 1 else 0)) := by
-    apply hs.of_norm_bounded
-    intro p
-    simp only [Real.norm_eq_abs, abs_mul, abs_of_nonneg (hw0 _)]
-    split_ifs
-    · simp
-    · simpa only [mul_zero, abs_zero] using mul_nonneg (hw0 p.1) (hw0 p.2)
-  rw [hguard.tsum_prod]
-  apply tsum_congr
-  intro a
-  rw [tsum_eq_single a]
-  · simp [pow_two]
-  · intro b hb
-    simp [hb.symm]
 
 /-- Reindex a finite tuple of elements of a subset as a tuple of elements of the ambient
 set satisfying the coordinatewise membership guard. This also applies to `Option J` for the
