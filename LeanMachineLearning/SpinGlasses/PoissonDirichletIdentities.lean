@@ -227,8 +227,8 @@ theorem lintegral_pi_poissonCountingMeasure_restrict_eq_tsum
       have hp : (∀ i, X (q i).1.1 (q i).1.2 ∈ A) ↔
           (∀ i, X ((eI q).2 i).1.1 ((eI q).2 i).1.2 ∈ A) ∧
             X (eI q).1.1.1 (eI q).1.1.2 ∈ A := by
-        simp only [eI, MeasurableEquiv.piFinSuccAbove_last_fst,
-          MeasurableEquiv.piFinSuccAbove_last_snd]
+        simp only [eI, MeasurableEquiv.piFinSuccAbove_apply, Fin.insertNthEquiv_last,
+          Fin.snocEquiv_symm_apply, Fin.init_def]
         exact Fin.forall_fin_succ'
       rw [hc]
       by_cases hlast : X (eI q).1.1.1 (eI q).1.1.2 ∈ A <;>

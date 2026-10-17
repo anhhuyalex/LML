@@ -252,6 +252,38 @@ theorem iUnion_Ioi_inv_succ_prod_univ {S : Type*} :
   obtain ⟨k, hk⟩ := exists_nat_one_div_lt hx
   exact ⟨k, hk⟩
 
+/-- Almost surely the transformed marked counting measure is finite on every positive shell
+`{x > 1/(k+1)}`; transported from the reference process by Theorem 2.6. -/
+theorem ae_forall_measure_Ioi_inv_succ_transform_lt_top
+    {Ω Ω' : Type*} [MeasurableSpace Ω] [MeasurableSpace Ω']
+    {P : Measure Ω} {Q : Measure Ω'} [IsProbabilityMeasure P] [IsProbabilityMeasure Q]
+    {ζ : ℝ} (hζ : 0 < ζ) (t : ℝ)
+    (ν : ℕ → Measure (ℝ × (ℝ × ℝ))) [∀ n, IsProbabilityMeasure (ν n)] (r : ℕ → NNReal)
+    {B : ℕ → Ω → ℕ × (ℕ → ℝ × (ℝ × ℝ))}
+    (hBm : ∀ n, Measurable (B n)) (hB : iIndepFun B P)
+    (hlaw : ∀ n, HasLaw (B n) (Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)) P)
+    (hμ : (zetaPoissonMeasure ζ).prod ((gaussianReal 0 1).map
+        (fun g => (Real.exp (t * (g - t * ζ / 2)), g - t * ζ))) =
+      Measure.sum (fun n => (r n : ENNReal) • ν n))
+    (ν' : ℕ → Measure (ℝ × ℝ)) [∀ n, IsProbabilityMeasure (ν' n)] (r' : ℕ → NNReal)
+    {B' : ℕ → Ω' → ℕ × (ℕ → ℝ × ℝ)}
+    (hBm' : ∀ n, Measurable (B' n)) (hB' : iIndepFun B' Q)
+    (hlaw' : ∀ n, HasLaw (B' n) (Po(r' n).prod
+      (Measure.infinitePi fun _ : ℕ => ν' n)) Q)
+    (hμ' : (zetaPoissonMeasure ζ).prod (gaussianReal 0 1) =
+      Measure.sum (fun n => (r' n : ENNReal) • ν' n)) :
+    ∀ᵐ ω ∂P, ∀ k : ℕ,
+      ((poissonCountingMeasure (fun j => (B j ω).1) (fun j l => (B j ω).2 l)).map
+        (fun p : ℝ × (ℝ × ℝ) => (p.1 * p.2.1, p.2.2)))
+      (Set.Ioi (1 / ((k : ℝ) + 1)) ×ˢ Set.univ) < ∞ := by
+  have hid := identDistrib_poissonDirichlet_gaussian_transform hζ t ν r hBm hB hlaw hμ ν' r' hBm'
+    hB' hlaw' hμ'
+  let C : ℕ → Set (ℝ × ℝ) := fun k => Set.Ioi (1 / ((k : ℝ) + 1)) ×ˢ Set.univ
+  have hC : ∀ k, MeasurableSet (C k) := fun k => measurableSet_Ioi.prod MeasurableSet.univ
+  have hY := ae_poissonCountingMeasure_Ioi_inv_succ_prod_univ_lt_top hζ (gaussianReal 0 1)
+    ν' r' hBm' hB' hlaw' hμ'
+  exact hid.symm.ae_snd (measurableSet_forall_measure_lt_top hC) hY
+
 /-- **Lemma 2.3, order-free form (Panchenko, Eq. (2.33)).** Replica integrals of the Gaussian
 marked process are invariant: for every finite or infinite family of measurable
 `Φᵢ : (ℝ × ℝ)ⁿ → [0, ∞]`, the family `(∫ Φᵢ d(M ↾ {x > 0})^{⊗n})ᵢ` has the same joint law for the
@@ -291,7 +323,8 @@ theorem identDistrib_lintegral_pi_poissonDirichlet_gaussian
   have hC : ∀ k, MeasurableSet (C k) := fun k => measurableSet_Ioi.prod MeasurableSet.univ
   have hY := ae_poissonCountingMeasure_Ioi_inv_succ_prod_univ_lt_top hζ (gaussianReal 0 1)
     ν' r' hBm' hB' hlaw' hμ'
-  have hX := hid.symm.ae_snd (measurableSet_forall_measure_lt_top hC) hY
+  have hX := ae_forall_measure_Ioi_inv_succ_transform_lt_top hζ t ν r hBm hB hlaw hμ ν' r' hBm'
+    hB' hlaw' hμ'
   have h := hid.lintegral_pi_restrict hC hX hY n hΦ
   simpa only [C, iUnion_Ioi_inv_succ_prod_univ] using h
 
