@@ -25,6 +25,30 @@ open scoped NNReal ENNReal
 
 namespace SpinGlasses
 
+/-- A reference block construction whose masses and Gaussian marks have independent
+product laws. The split is chosen *before* constructing the blocks, rather than trying
+to infer independent marks from an arbitrary decomposition of the product intensity. -/
+theorem exists_poissonDirichlet_gaussian_split_blocks (ζ : ℝ) :
+    ∃ (ν : ℕ → Measure ℝ) (r : ℕ → ℝ≥0)
+      (P : Measure (ℕ → ℕ × (ℕ → ℝ × ℝ))),
+      (∀ n, IsProbabilityMeasure (ν n)) ∧ IsProbabilityMeasure P ∧
+      (∀ n, Measurable fun ω : ℕ → ℕ × (ℕ → ℝ × ℝ) => ω n) ∧
+      iIndepFun (fun n (ω : ℕ → ℕ × (ℕ → ℝ × ℝ)) => ω n) P ∧
+      (∀ n, HasLaw (fun ω : ℕ → ℕ × (ℕ → ℝ × ℝ) => ω n)
+        (Po(r n).prod (Measure.infinitePi fun _ : ℕ => (ν n).prod (gaussianReal 0 1))) P) ∧
+      (zetaPoissonMeasure ζ).prod (gaussianReal 0 1) =
+        Measure.sum fun n => (r n : ℝ≥0∞) • (ν n).prod (gaussianReal 0 1) := by
+  obtain ⟨ν, r, hν, hμ⟩ := exists_probabilityMeasure_sum_smul_eq_of_sigmaFinite
+    (zetaPoissonMeasure ζ)
+  let ν' : ℕ → Measure (ℝ × ℝ) := fun n => (ν n).prod (gaussianReal 0 1)
+  have _ : ∀ n, IsProbabilityMeasure (ν' n) := fun n => inferInstance
+  obtain ⟨P, hP, hBm, hB, hlaw⟩ := exists_poissonBlocks ν' r
+  refine ⟨ν, r, P, hν, hP, hBm, hB, hlaw, ?_⟩
+  rw [hμ, Measure.prod_sum_left]
+  congr 1
+  funext n
+  rw [Measure.prod_smul_left]
+
 /-- Almost surely every sampled point of the active indices lies in a measurable set `A` that
 carries all the mass of the blocks of positive intensity. -/
 theorem ae_poissonBlocks_forall_mem {Ω S : Type*} [MeasurableSpace Ω] [MeasurableSpace S]

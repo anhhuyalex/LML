@@ -24,6 +24,39 @@ open scoped NNReal ENNReal
 
 namespace SpinGlasses
 
+/-- Fubini for an observable of two independent random variables. The observable may
+couple the variables: in the Poisson-Dirichlet application its index set depends on the
+first variable (the block counts and masses). -/
+theorem IndepFun.integral_comp_prod
+    {Ω S T : Type*} [MeasurableSpace Ω] [MeasurableSpace S] [MeasurableSpace T]
+    {P : Measure Ω} [IsProbabilityMeasure P] {Z : Ω → S} {G : Ω → T}
+    (h : IndepFun Z G P) (hZ : Measurable Z) (hG : Measurable G)
+    {H : S × T → ℝ} (hH : Integrable H ((P.map Z).prod (P.map G))) :
+    ∫ ω, H (Z ω, G ω) ∂P = ∫ z, ∫ g, H (z, g) ∂(P.map G) ∂(P.map Z) := by
+  have hpair := (indepFun_iff_map_prod_eq_prod_map_map hZ.aemeasurable
+    hG.aemeasurable).1 h
+  calc
+    ∫ ω, H (Z ω, G ω) ∂P = ∫ p, H p ∂(P.map fun ω => (Z ω, G ω)) :=
+      (integral_map (hZ.prodMk hG).aemeasurable
+        (hpair.symm ▸ hH.aestronglyMeasurable)).symm
+    _ = ∫ p, H p ∂((P.map Z).prod (P.map G)) := by rw [hpair]
+    _ = ∫ z, ∫ g, H (z, g) ∂(P.map G) ∂(P.map Z) := integral_prod H hH
+
+/-- Joint integrability of an observable of independent variables is equivalent to
+integrability on the product of their laws. -/
+theorem IndepFun.integrable_comp_prod_iff
+    {Ω S T : Type*} [MeasurableSpace Ω] [MeasurableSpace S] [MeasurableSpace T]
+    {P : Measure Ω} [IsProbabilityMeasure P] {Z : Ω → S} {G : Ω → T}
+    (h : IndepFun Z G P) (hZ : Measurable Z) (hG : Measurable G)
+    {H : S × T → ℝ}
+    (hH : AEStronglyMeasurable H ((P.map Z).prod (P.map G))) :
+    Integrable (fun ω => H (Z ω, G ω)) P ↔
+      Integrable H ((P.map Z).prod (P.map G)) := by
+  have hpair := (indepFun_iff_map_prod_eq_prod_map_map hZ.aemeasurable
+    hG.aemeasurable).1 h
+  rw [← hpair] at hH ⊢
+  exact (integrable_map_measure hH (hZ.prodMk hG).aemeasurable).symm
+
 /-- A block with product mark law `ν ⊗ γ` is, after separating the two marks, the product of a
 block with marks `ν` and an i.i.d. sequence of `γ`-marks. -/
 theorem map_poissonBlock_split {S T : Type*} [MeasurableSpace S] [MeasurableSpace T]
