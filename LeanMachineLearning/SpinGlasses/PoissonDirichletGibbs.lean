@@ -78,6 +78,49 @@ theorem ae_poissonDirichlet_gaussian_mass_pos {Ω : Type*} [MeasurableSpace Ω] 
   filter_upwards [ae_poissonBlocks_forall_mem ν r hlaw hA hmem] with ω h n l hl
   exact (h n l hl).1
 
+/-- A ζ-Poisson marked process has infinitely many strictly positive-mass atoms almost surely.
+This supplies an active index for Gaussian integration by parts after fixing the environment. -/
+theorem ae_poissonDirichlet_gaussian_active_nonempty
+    {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω} [IsProbabilityMeasure P]
+    {ζ : ℝ} (hζ : 0 < ζ)
+    (ν : ℕ → Measure (ℝ × ℝ)) [∀ n, IsProbabilityMeasure (ν n)]
+    (r : ℕ → ℝ≥0) {B : ℕ → Ω → ℕ × (ℕ → ℝ × ℝ)}
+    (hBm : ∀ n, Measurable (B n)) (hB : iIndepFun B P)
+    (hlaw : ∀ n, HasLaw (B n) (Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)) P)
+    (hμ : (zetaPoissonMeasure ζ).prod (gaussianReal 0 1) =
+      Measure.sum fun n => (r n : ℝ≥0∞) • ν n) :
+    ∀ᵐ ω ∂P, Nonempty {p : ℕ × ℕ // p.2 < (B p.1 ω).1} := by
+  have hν : ∀ n, IsProbabilityMeasure ((ν n).map Prod.fst) := fun _ => inferInstance
+  obtain ⟨hCm, hCi, hClaw⟩ := poissonBlocks_map hBm hB hlaw measurable_fst
+  have hμ0 := eq_sum_map_fst_of_prod_eq ν r hμ
+  let M : Ω → Measure ℝ := fun ω => poissonCountingMeasure
+    (fun n => (B n ω).1) (fun n l => ((B n ω).2 l).1)
+  have hL := (iIndepFun_hasLaw_poissonCountingMeasure_apply (κ := Unit)
+    (fun n => (ν n).map Prod.fst) r hCm hCi hClaw hμ0 (fun _ => rfl)
+    (A := fun _ => Set.Ioi (0 : ℝ)) (fun _ => measurableSet_Ioi)
+    (fun i j hij => absurd (Subsingleton.elim i j) hij)).1 ()
+  simp only [zetaPoissonMeasure_Ioi_zero hζ, ↓reduceIte] at hL
+  have htop : ∀ᵐ ω ∂P, M ω (Set.Ioi 0) = ∞ := by
+    have hd : ∀ᵐ y ∂(P.map fun ω => M ω (Set.Ioi 0)), y = ∞ := by
+      rw [hL.map_eq, ae_dirac_eq]
+      simp
+    exact (ae_map_iff hL.aemeasurable (measurableSet_singleton ∞)).1 hd
+  filter_upwards [htop] with ω hω
+  by_contra he
+  have hempty : ∀ p : ℕ × ℕ, ¬ p.2 < (B p.1 ω).1 := by
+    intro p hp
+    exact he ⟨⟨p, hp⟩⟩
+  have hzero : M ω (Set.Ioi 0) = 0 := by
+    rw [show M ω = poissonCountingMeasure (fun n => (B n ω).1)
+      (fun n l => ((B n ω).2 l).1) by rfl,
+      poissonCountingMeasure_apply _ _ measurableSet_Ioi]
+    apply ENNReal.tsum_eq_zero.2
+    intro n
+    apply Finset.sum_eq_zero
+    intro l hl
+    exact False.elim ((hempty (n, l)) (Finset.mem_range.1 hl))
+  exact ENNReal.top_ne_zero (hω.symm.trans hzero)
+
 /-- Almost surely the Gaussian-marked reference process has a summable family of
 positive masses on its active block indices. These are the deterministic Gibbs weights
 needed after conditioning on the counts and masses. -/
@@ -113,6 +156,27 @@ theorem ae_poissonDirichlet_gaussian_summable_masses
     intro q
     simp [hp q.1.1 q.1.2 q.2]
   exact summable_of_tsum_ofReal_lt_top (fun p => (hp _ _ p.2).le) hω'
+
+/-- The three almost-sure hypotheses needed to apply Gaussian IBP after conditioning on
+counts and masses: an active point exists, and its positive masses form a summable family. -/
+theorem ae_poissonDirichlet_gaussian_ibp_environment
+    {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω} [IsProbabilityMeasure P]
+    {ζ : ℝ} (hζ : 0 < ζ) (hζ1 : ζ < 1)
+    (ν : ℕ → Measure (ℝ × ℝ)) [∀ n, IsProbabilityMeasure (ν n)]
+    (r : ℕ → ℝ≥0) {B : ℕ → Ω → ℕ × (ℕ → ℝ × ℝ)}
+    (hBm : ∀ n, Measurable (B n)) (hB : iIndepFun B P)
+    (hlaw : ∀ n, HasLaw (B n) (Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)) P)
+    (hμ : (zetaPoissonMeasure ζ).prod (gaussianReal 0 1) =
+      Measure.sum fun n => (r n : ℝ≥0∞) • ν n) :
+    ∀ᵐ ω ∂P, Nonempty {p : ℕ × ℕ // p.2 < (B p.1 ω).1} ∧
+      (∀ p : {p : ℕ × ℕ // p.2 < (B p.1 ω).1}, 0 < ((B p.1.1 ω).2 p.1.2).1) ∧
+      Summable (fun p : {p : ℕ × ℕ // p.2 < (B p.1 ω).1} =>
+        ((B p.1.1 ω).2 p.1.2).1) := by
+  filter_upwards [ae_poissonDirichlet_gaussian_active_nonempty hζ ν r hBm hB hlaw hμ,
+    ae_poissonDirichlet_gaussian_mass_pos ν r hlaw hμ,
+    ae_poissonDirichlet_gaussian_summable_masses hζ hζ1 ν r hBm hB hlaw hμ]
+    with ω hn hp hs
+  exact ⟨hn, (fun p => hp p.1.1 p.1.2 p.2), hs⟩
 
 /-- **Lemma 2.3's replica average as a Gibbs series over block indices.** For a counting measure
 whose active atoms `(xₚ, yₚ)` have positive masses and are pairwise distinct, the ratio of
