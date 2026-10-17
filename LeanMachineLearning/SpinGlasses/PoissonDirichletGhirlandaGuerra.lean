@@ -423,3 +423,207 @@ theorem abs_gaussian_gibbs_tilt_guard_le
 
 
 end SpinGlasses
+
+namespace SpinGlasses
+
+/-- The convergence of the active Gaussian-tilted masses is a measurable event on the
+fixed product of block environments and Gaussian arrays. No dependent subtype appears
+in the measurable predicate. -/
+theorem measurableSet_gaussian_gibbs_tilt_summable (t : ℝ) :
+    MeasurableSet {zg : (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℕ → ℝ) |
+      ∑' p : ℕ × ℕ, ENNReal.ofReal
+        (if p.2 < (zg.1 p.1).1 then
+          (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) else 0) < ∞} := by
+  have hm : Measurable fun zg : (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℕ → ℝ) =>
+      ∑' p : ℕ × ℕ, ENNReal.ofReal
+        (if p.2 < (zg.1 p.1).1 then
+          (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) else 0) := by
+    apply Measurable.tsum
+    intro p
+    exact ENNReal.measurable_ofReal.comp ((by fun_prop : Measurable
+      (fun zg : (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℕ → ℝ) =>
+        (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2))).ite
+      (measurableSet_lt measurable_const (by fun_prop)) measurable_const)
+  exact measurableSet_lt hm measurable_const
+
+/-- For almost every independent environment and Gaussian array, the tilted
+active masses have a finite sum. The bound uses positivity only on active indices. -/
+theorem ae_gaussian_gibbs_tilt_summable_prod (t : ℝ)
+    (ρ : Measure (ℕ → ℕ × (ℕ → ℝ)))
+    (henv : ∀ᵐ z ∂ρ,
+      (∀ p : ℕ × ℕ, p.2 < (z p.1).1 → 0 < (z p.1).2 p.2) ∧
+      Summable (fun p : ℕ × ℕ =>
+        if p.2 < (z p.1).1 then (z p.1).2 p.2 else 0)) :
+    let μ : Measure (ℕ → ℕ → ℝ) :=
+      Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1
+    ∀ᵐ zg ∂ρ.prod μ,
+      ∑' p : ℕ × ℕ, ENNReal.ofReal
+        (if p.2 < (zg.1 p.1).1 then
+          (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) else 0) < ∞ := by
+  let μ : Measure (ℕ → ℕ → ℝ) :=
+    Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1
+  rw [Measure.ae_prod_iff_ae_ae (measurableSet_gaussian_gibbs_tilt_summable t)]
+  filter_upwards [henv] with z ⟨hp, hs⟩
+  let α := {p : ℕ × ℕ // p.2 < (z p.1).1}
+  let u : α → ℝ := fun p => (z p.1.1).2 p.1.2
+  have hu (p : α) : 0 ≤ u p := (hp p.1 p.2).le
+  have hus : Summable u := by
+    apply (summable_subtype_iff_indicator (s :=
+      {p : ℕ × ℕ | p.2 < (z p.1).1})
+      (f := fun p : ℕ × ℕ => (z p.1).2 p.2)).2
+    convert hs using 1
+    funext p
+    by_cases h : p.2 < (z p.1).1 <;> simp [Set.indicator, h]
+  filter_upwards [ae_summable_active_gaussian_tilt u hu hus Subtype.val t] with g hg
+  have ht := (summable_subtype_iff_indicator (s :=
+      {p : ℕ × ℕ | p.2 < (z p.1).1})
+      (f := fun p : ℕ × ℕ => (z p.1).2 p.2 * Real.exp (t * g p.1 p.2))).1 hg
+  have ht' : Summable (fun p : ℕ × ℕ =>
+      if p.2 < (z p.1).1 then (z p.1).2 p.2 * Real.exp (t * g p.1 p.2) else 0) := by
+    convert ht using 1
+    funext p
+    by_cases h : p.2 < (z p.1).1 <;> simp [Set.indicator, h]
+  exact ht'.tsum_ofReal_lt_top
+
+end SpinGlasses
+
+namespace SpinGlasses
+
+/-- Uniform product-space integrability of a bounded tilted Gibbs observable,
+for an arbitrary law of positive summable mass environments. -/
+theorem integrable_gaussian_gibbs_tilt_bounded_prod
+    {J : Type*} [Fintype J] (t : ℝ)
+    (F : (J → ℕ × ℕ) → ℝ) (M : ℝ) (hF : ∀ σ, |F σ| ≤ M)
+    (ρ : Measure (ℕ → ℕ × (ℕ → ℝ))) [IsProbabilityMeasure ρ]
+    (henv : ∀ᵐ z ∂ρ,
+      (∃ p : ℕ × ℕ, p.2 < (z p.1).1) ∧
+      (∀ p : ℕ × ℕ, p.2 < (z p.1).1 → 0 < (z p.1).2 p.2) ∧
+      Summable (fun p : ℕ × ℕ =>
+        if p.2 < (z p.1).1 then (z p.1).2 p.2 else 0)) :
+    let μ : Measure (ℕ → ℕ → ℝ) :=
+      Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1
+    Integrable (fun zg : (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℕ → ℝ) =>
+      ∑' σ : J → ℕ × ℕ,
+        if ∀ j, (σ j).2 < (zg.1 (σ j).1).1 then
+          (∏ j, ((zg.1 (σ j).1).2 (σ j).2 *
+              Real.exp (t * zg.2 (σ j).1 (σ j).2)) /
+            ∑' p : ℕ × ℕ, if p.2 < (zg.1 p.1).1 then
+              (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) else 0) * F σ
+        else 0) (ρ.prod μ) := by
+  let μ : Measure (ℕ → ℕ → ℝ) :=
+    Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1
+  let H : (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℕ → ℝ) → ℝ := fun zg =>
+    ∑' σ : J → ℕ × ℕ,
+      if ∀ j, (σ j).2 < (zg.1 (σ j).1).1 then
+        (∏ j, ((zg.1 (σ j).1).2 (σ j).2 *
+            Real.exp (t * zg.2 (σ j).1 (σ j).2)) /
+          ∑' p : ℕ × ℕ, if p.2 < (zg.1 p.1).1 then
+            (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) else 0) * F σ
+      else 0
+  have hm : Measurable H :=
+    measurable_tsum_guarded_replica
+      (fun z : ℕ → ℕ × (ℕ → ℝ) => fun n => (z n).1)
+      (fun n => (measurable_pi_apply n).fst)
+      (fun (zg : (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℕ → ℝ)) p =>
+        (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2))
+      (fun p => by fun_prop) (fun _ σ => F σ) (fun _ => measurable_const)
+  have ha := ae_gaussian_gibbs_tilt_summable_prod t ρ
+    (henv.mono fun z hz => ⟨hz.2.1, hz.2.2⟩)
+  have hb : ∀ᵐ zg ∂ρ.prod μ, |H zg| ≤ M := by
+    filter_upwards [Measure.quasiMeasurePreserving_fst.ae henv, ha] with zg ⟨hn, hp, hs⟩ ht
+    have hnonneg (p : ℕ × ℕ) :
+        0 ≤ if p.2 < (zg.1 p.1).1 then
+          (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) else 0 := by
+      split_ifs with h
+      · exact mul_nonneg (hp p h).le (Real.exp_pos _).le
+      · exact le_refl 0
+    have hsum := summable_of_tsum_ofReal_lt_top hnonneg ht
+    have hsactive : Summable (fun p : {p : ℕ × ℕ // p.2 < (zg.1 p.1).1} =>
+        (zg.1 p.1.1).2 p.1.2 * Real.exp (t * zg.2 p.1.1 p.1.2)) := by
+      apply (summable_subtype_iff_indicator (s :=
+        {p : ℕ × ℕ | p.2 < (zg.1 p.1).1})
+        (f := fun p : ℕ × ℕ =>
+          (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2))).2
+      convert hsum using 1
+      funext p
+      by_cases h : p.2 < (zg.1 p.1).1 <;> simp [Set.indicator, h]
+    exact abs_gaussian_gibbs_tilt_guard_le t zg.1 zg.2 hn hp hsactive F M hF
+  exact (integrable_const M).mono' hm.aestronglyMeasurable (by
+    filter_upwards [hb] with zg hzg
+    simpa only [Real.norm_eq_abs] using hzg)
+
+end SpinGlasses
+
+
+namespace SpinGlasses
+
+/-- Integrating the fixed-environment Gaussian IBP identity over an independent
+probability law on positive summable mass environments. The marked left side
+must be integrable; the extra-replica right side is integrable automatically. -/
+theorem integral_gaussian_gibbs_replica_guard_tilt_ibp_prod
+    {J : Type*} [Fintype J] (t : ℝ) (r₀ : J)
+    (Φ : (J → ℕ × ℕ) → ℝ) (M : ℝ) (hΦ : ∀ σ, |Φ σ| ≤ M)
+    (ρ : Measure (ℕ → ℕ × (ℕ → ℝ))) [IsProbabilityMeasure ρ]
+    (henv : ∀ᵐ z ∂ρ,
+      (∃ p : ℕ × ℕ, p.2 < (z p.1).1) ∧
+      (∀ p : ℕ × ℕ, p.2 < (z p.1).1 → 0 < (z p.1).2 p.2) ∧
+      Summable (fun p : ℕ × ℕ =>
+        if p.2 < (z p.1).1 then (z p.1).2 p.2 else 0))
+    (hleft : Integrable (fun zg : (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℕ → ℝ) =>
+      ∑' σ : J → ℕ × ℕ,
+        if ∀ j, (σ j).2 < (zg.1 (σ j).1).1 then
+          (∏ j, ((zg.1 (σ j).1).2 (σ j).2 * Real.exp (t * zg.2 (σ j).1 (σ j).2)) /
+            ∑' p : ℕ × ℕ, if p.2 < (zg.1 p.1).1 then
+              (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) else 0) *
+            (Φ σ * zg.2 (σ r₀).1 (σ r₀).2)
+        else 0) (ρ.prod (Measure.infinitePi fun _ : ℕ =>
+          Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))) :
+    let μ : Measure (ℕ → ℕ → ℝ) :=
+      Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1
+    (∫ zg, ∑' σ : J → ℕ × ℕ,
+      if ∀ j, (σ j).2 < (zg.1 (σ j).1).1 then
+        (∏ j, ((zg.1 (σ j).1).2 (σ j).2 * Real.exp (t * zg.2 (σ j).1 (σ j).2)) /
+          ∑' p : ℕ × ℕ, if p.2 < (zg.1 p.1).1 then
+            (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) else 0) *
+          (Φ σ * zg.2 (σ r₀).1 (σ r₀).2)
+      else 0 ∂ρ.prod μ) =
+    ∫ zg, ∑' τ : Option J → ℕ × ℕ,
+      if ∀ j, (τ j).2 < (zg.1 (τ j).1).1 then
+        (∏ j, ((zg.1 (τ j).1).2 (τ j).2 * Real.exp (t * zg.2 (τ j).1 (τ j).2)) /
+          ∑' p : ℕ × ℕ, if p.2 < (zg.1 p.1).1 then
+            (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) else 0) *
+          (Φ (fun j => τ (some j)) *
+            (∑ j, t * (if τ (some r₀) = τ (some j) then 1 else 0) -
+              Fintype.card J * t *
+                (if τ (some r₀) = τ none then 1 else 0)))
+      else 0 ∂ρ.prod μ := by
+  let μ : Measure (ℕ → ℕ → ℝ) :=
+    Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1
+  let L : (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℕ → ℝ) → ℝ := fun zg =>
+    ∑' σ : J → ℕ × ℕ,
+      if ∀ j, (σ j).2 < (zg.1 (σ j).1).1 then
+        (∏ j, ((zg.1 (σ j).1).2 (σ j).2 * Real.exp (t * zg.2 (σ j).1 (σ j).2)) /
+          ∑' p : ℕ × ℕ, if p.2 < (zg.1 p.1).1 then
+            (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) else 0) *
+          (Φ σ * zg.2 (σ r₀).1 (σ r₀).2)
+      else 0
+  let R : (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℕ → ℝ) → ℝ := fun zg =>
+    ∑' τ : Option J → ℕ × ℕ,
+      if ∀ j, (τ j).2 < (zg.1 (τ j).1).1 then
+        (∏ j, ((zg.1 (τ j).1).2 (τ j).2 * Real.exp (t * zg.2 (τ j).1 (τ j).2)) /
+          ∑' p : ℕ × ℕ, if p.2 < (zg.1 p.1).1 then
+            (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) else 0) *
+          (Φ (fun j => τ (some j)) *
+            (∑ j, t * (if τ (some r₀) = τ (some j) then 1 else 0) -
+              Fintype.card J * t *
+                (if τ (some r₀) = τ none then 1 else 0)))
+      else 0
+  have hright : Integrable R (ρ.prod μ) :=
+    integrable_gaussian_gibbs_tilt_correction_prod t r₀ Φ M hΦ ρ henv
+  change (∫ zg, L zg ∂ρ.prod μ) = ∫ zg, R zg ∂ρ.prod μ
+  rw [integral_prod L hleft, integral_prod R hright]
+  apply integral_congr_ae
+  filter_upwards [henv] with z ⟨hn, hp, hs⟩
+  exact integral_gaussian_gibbs_replica_guard_tilt_ibp t r₀ Φ M hΦ z hn hp hs
+
+end SpinGlasses
