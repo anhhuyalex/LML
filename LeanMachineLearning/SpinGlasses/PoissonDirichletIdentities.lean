@@ -56,7 +56,8 @@ theorem lintegral_pi_poissonCountingMeasure_restrict_eq_tsum
   classical
   induction n with
   | zero =>
-    rw [lintegral_pi_fin_zero _ hΦ, tsum_fin_zero, if_pos fun i => isEmptyElim i]
+    rw [lintegral_pi_fin_zero _ hΦ, tsum_fin_zero]
+    simp only [IsEmpty.forall_iff, ↓reduceIte]
     exact congrArg Φ (funext fun i => isEmptyElim i)
   | succ n ih =>
     let e := MeasurableEquiv.piFinSuccAbove (fun _ : Fin (n + 1) => S) (Fin.last n)
@@ -140,7 +141,7 @@ theorem lintegral_pi_poissonCountingMeasure_eq_tsum
         Φ (fun i => X (q i).1.1 (q i).1.2) := by
   have _ : SigmaFinite ((poissonCountingMeasure N X).restrict Set.univ) := by
     rwa [Measure.restrict_univ]
-  simpa only [Measure.restrict_univ, Set.mem_univ, implies_true, if_true] using
+  simpa only [Measure.restrict_univ, Set.mem_univ, implies_true, ite_true] using
     lintegral_pi_poissonCountingMeasure_restrict_eq_tsum N X MeasurableSet.univ n hΦ
 
 /-- Finite counts on every positive shell make the counting measure restricted to
