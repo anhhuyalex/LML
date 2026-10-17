@@ -23,6 +23,77 @@ open scoped ENNReal
 
 namespace SpinGlasses
 
+/-- Independent standard Gaussian coordinates form a Gaussian process even when the
+sample space is not itself a single-coordinate product. This is the conditioning-friendly
+version of `isGaussianProcess_pi_gaussianReal`. -/
+theorem isGaussianProcess_of_iIndepFun_gaussianReal
+    {α Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω}
+    {X : α → Ω → ℝ} (hi : iIndepFun X P)
+    (hlaw : ∀ a, HasLaw (X a) (gaussianReal 0 1) P) :
+    IsGaussianProcess X P := by
+  refine ⟨fun I => ?_⟩
+  exact (hi.precomp Subtype.val_injective).hasGaussianLaw (fun a => by
+    have h := hlaw a
+    change HasGaussianLaw (X a) P
+    exact ⟨h.aemeasurable, by rw [h.map_eq]; infer_instance⟩)
+
+/-- A standard Gaussian process remains jointly Gaussian with any fixed scaled copy. -/
+theorem IsGaussianProcess.sum_elim_scaled {α Ω : Type*} [MeasurableSpace Ω]
+    {P : Measure Ω} {X : α → Ω → ℝ} (h : IsGaussianProcess X P) (t : ℝ) :
+    IsGaussianProcess (Sum.elim X (fun a ω => t * X a ω)) P := by
+  have hsum := h.comp_right (fun s : α ⊕ α => Sum.elim id id s)
+  have hscaled := hsum.smul (fun s : α ⊕ α => Sum.elim (fun _ => (1 : ℝ))
+    (fun _ => t) s)
+  convert hscaled using 1
+  ext s ω
+  cases s <;> simp [smul_eq_mul]
+
+/-- Standard Gaussian coordinates have mean zero under any probability space with
+the specified coordinate laws. -/
+theorem integral_gaussianReal_coordinate
+    {α Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω}
+    {X : α → Ω → ℝ} (hlaw : ∀ a, HasLaw (X a) (gaussianReal 0 1) P)
+    (a : α) : ∫ ω, X a ω ∂P = 0 := by
+  simpa [integral_id_gaussianReal] using (hlaw a).integral_eq
+
+/-- Standard Gaussian coordinates have unit second moment independently of their
+ambient probability space. -/
+theorem integral_gaussianReal_coordinate_sq
+    {α Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω}
+    {X : α → Ω → ℝ} (hlaw : ∀ a, HasLaw (X a) (gaussianReal 0 1) P)
+    (a : α) : ∫ ω, X a ω ^ 2 ∂P = 1 := by
+  have hv := variance_id_gaussianReal (μ := (0 : ℝ)) (v := (1 : NNReal))
+  rw [variance_eq_integral (X := id) measurable_id'.aemeasurable] at hv
+  have h := (hlaw a).integral_comp (f := fun x : ℝ => x ^ 2) (by fun_prop)
+  simpa [id] using h.trans (by simpa [id] using hv)
+
+/-- The covariance of independent standard Gaussian coordinates and their scaled
+copies is diagonal. -/
+theorem integral_gaussianReal_coordinate_mul_scaled
+    {α Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω} [DecidableEq α]
+    {X : α → Ω → ℝ} (hi : iIndepFun X P)
+    (hlaw : ∀ a, HasLaw (X a) (gaussianReal 0 1) P)
+    (a b : α) (t : ℝ) :
+    ∫ ω, X a ω * (t * X b ω) ∂P = t * (if a = b then 1 else 0) := by
+  by_cases hab : a = b
+  · subst b
+    have heq : (fun ω => X a ω * (t * X a ω)) =
+        fun ω => t * X a ω ^ 2 := by
+      funext ω
+      ring
+    rw [heq, integral_const_mul, integral_gaussianReal_coordinate_sq hlaw]
+    simp
+  · have hprod : (fun ω => X a ω * (t * X b ω)) =
+        fun ω => t * (X a ω * X b ω) := by
+      funext ω
+      ring
+    rw [hprod, integral_const_mul,
+      (hi.indepFun hab).integral_fun_mul_eq_mul_integral
+        (hlaw a).aemeasurable.aestronglyMeasurable
+        (hlaw b).aemeasurable.aestronglyMeasurable,
+      integral_gaussianReal_coordinate hlaw, zero_mul]
+    simp [hab]
+
 /-- An i.i.d. standard Gaussian field indexed by any type is a Gaussian process.
 This provides the fixed-index Gaussian hypothesis needed after conditioning on
 Poisson block counts and masses; no finite-dimensional truncation is needed. -/
@@ -109,6 +180,92 @@ theorem integral_pi_gaussianReal_eval_mul_scaled {α : Type*} [DecidableEq α]
         (measurable_pi_apply b).aestronglyMeasurable,
       integral_pi_gaussianReal_eval, zero_mul]
     simp [hab]
+
+/-- On a doubly indexed independent standard Gaussian array, restricting coordinates
+to any injectively indexed active subset still gives precisely the centered, unit-variance,
+diagonal-covariance Gaussian input required by countable Gibbs integration by parts.
+In particular, the active subset may depend on Poisson counts once those counts are fixed. -/
+theorem gaussian_inputs_infinitePi_active
+    {α : Type*} [DecidableEq α] (ι : α → ℕ × ℕ)
+    (hι : Function.Injective ι) (t : ℝ) :
+    let P : Measure (ℕ → ℕ → ℝ) :=
+      Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1
+    let X : α → (ℕ → ℕ → ℝ) → ℝ := fun a g => g (ι a).1 (ι a).2
+    IsGaussianProcess (Sum.elim X (fun a g => t * X a g)) P ∧
+      (∀ a, ∫ g, X a g ∂P = 0) ∧
+      (∀ a, ∫ g, X a g ^ 2 ∂P = 1) ∧
+      (∀ a b, ∫ g, X a g * (t * X b g) ∂P =
+        t * (if a = b then 1 else 0)) := by
+  let μ : Measure (ℕ → ℕ → ℝ) :=
+    Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1
+  let Y : ℕ × ℕ → (ℕ → ℕ → ℝ) → ℝ := fun p g => g p.1 p.2
+  have hY : iIndepFun Y μ :=
+    iIndepFun_uncurry_infinitePi'
+      (μ := fun _ : ℕ => fun _ : ℕ => gaussianReal 0 1)
+      (X := fun _ _ x => x) (by fun_prop)
+  have hi : iIndepFun (fun a g => Y (ι a) g) μ := hY.precomp hι
+  have hYlaw (p : ℕ × ℕ) : HasLaw (Y p) (gaussianReal 0 1) μ := by
+    have hout := hasLaw_eval_infinitePi
+      (fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) p.1
+    have hin := hasLaw_eval_infinitePi (fun _ : ℕ => gaussianReal 0 1) p.2
+    exact hin.comp hout
+  have hlaw (a : α) : HasLaw (fun g => Y (ι a) g) (gaussianReal 0 1) μ :=
+    hYlaw (ι a)
+  dsimp
+  refine ⟨IsGaussianProcess.sum_elim_scaled
+      (isGaussianProcess_of_iIndepFun_gaussianReal hi hlaw) t,
+    (fun a => integral_gaussianReal_coordinate hlaw a),
+    (fun a => integral_gaussianReal_coordinate_sq hlaw a), ?_⟩
+  classical
+  exact fun a b => integral_gaussianReal_coordinate_mul_scaled hi hlaw a b t
+
+/-- Finiteness of the ENNReal sum of positive masses implies summability of the
+corresponding real series. This converts the output of Lemma 2.1 into the hypothesis of
+countable Gaussian integration by parts without passing through `toReal` of an infinite sum. -/
+theorem summable_of_tsum_ofReal_lt_top {α : Type*} {G : α → ℝ}
+    (hG : ∀ a, 0 ≤ G a) (h : ∑' a, ENNReal.ofReal (G a) < ∞) : Summable G := by
+  have hs := ENNReal.summable_toReal h.ne
+  simpa only [ENNReal.toReal_ofReal (hG _)] using hs
+
+/-- Countable Gaussian integration by parts for any injectively indexed selection of
+coordinates from a doubly indexed standard Gaussian array. The deterministic `G` may be
+taken to be the positive masses after fixing the Poisson counts and marks. -/
+theorem integral_gibbs_replica_average_gaussian_active
+    {α R : Type*} [Countable α] [Nonempty α] [Fintype R] [DecidableEq α]
+    (ι : α → ℕ × ℕ) (hι : Function.Injective ι)
+    (G : α → ℝ) (hG : ∀ a, 0 < G a) (hGs : Summable G)
+    (t : ℝ) (r₀ : R) (Φ : (R → α) → ℝ)
+    {M : ℝ} (hΦ : ∀ σ, |Φ σ| ≤ M) :
+    let μ : Measure (ℕ → ℕ → ℝ) :=
+      Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1
+    let x : α → (ℕ → ℕ → ℝ) → ℝ := fun a g => g (ι a).1 (ι a).2
+    ∫ g, ∑' σ : R → α,
+        (∏ r, G (σ r) * Real.exp (t * x (σ r) g) /
+          ∑' b, G b * Real.exp (t * x b g)) * (Φ σ * x (σ r₀) g) ∂μ =
+      ∫ g, ∑' τ : Option R → α,
+        (∏ o, G (τ o) * Real.exp (t * x (τ o) g) /
+          ∑' b, G b * Real.exp (t * x b g)) *
+          (Φ (fun r => τ (some r)) *
+            (∑ r, t * (if τ (some r₀) = τ (some r) then 1 else 0) -
+              Fintype.card R * t * (if τ (some r₀) = τ none then 1 else 0))) ∂μ := by
+  obtain ⟨hgauss, hmean, hsecond, hcov⟩ := gaussian_inputs_infinitePi_active ι hι t
+  let μ : Measure (ℕ → ℕ → ℝ) :=
+    Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1
+  let x : α → (ℕ → ℕ → ℝ) → ℝ := fun a g => g (ι a).1 (ι a).2
+  have h := integral_gibbs_replica_average_gaussian_countable
+    (P := μ) x (fun a g => t * x a g) hgauss hmean
+    (fun a => by rw [integral_const_mul, hmean a, mul_zero])
+    (v := max 1 (t ^ 2))
+    (fun a => by rw [hsecond a]; exact le_max_left _ _)
+    (fun a => by
+      have heq : (fun g => (t * x a g) ^ 2) = fun g => t ^ 2 * x a g ^ 2 := by
+        funext g
+        ring
+      rw [heq, integral_const_mul, hsecond a, mul_one]
+      exact le_max_right _ _)
+    (fun a b => t * (if a = b then 1 else 0)) (fun a b => (hcov a b).symm)
+    G hG hGs r₀ Φ hΦ
+  simpa only [mul_assoc] using h
 
 /-- An overlap observable on finitely many replicas is bounded without any global
 boundedness assumption on the function of real matrices: overlap entries are in `{0, 1}`.

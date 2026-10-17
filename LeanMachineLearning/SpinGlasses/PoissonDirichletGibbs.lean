@@ -78,6 +78,42 @@ theorem ae_poissonDirichlet_gaussian_mass_pos {Ω : Type*} [MeasurableSpace Ω] 
   filter_upwards [ae_poissonBlocks_forall_mem ν r hlaw hA hmem] with ω h n l hl
   exact (h n l hl).1
 
+/-- Almost surely the Gaussian-marked reference process has a summable family of
+positive masses on its active block indices. These are the deterministic Gibbs weights
+needed after conditioning on the counts and masses. -/
+theorem ae_poissonDirichlet_gaussian_summable_masses
+    {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω} [IsProbabilityMeasure P]
+    {ζ : ℝ} (hζ : 0 < ζ) (hζ1 : ζ < 1)
+    (ν : ℕ → Measure (ℝ × ℝ)) [∀ n, IsProbabilityMeasure (ν n)]
+    (r : ℕ → ℝ≥0) {B : ℕ → Ω → ℕ × (ℕ → ℝ × ℝ)}
+    (hBm : ∀ n, Measurable (B n)) (hB : iIndepFun B P)
+    (hlaw : ∀ n, HasLaw (B n) (Po(r n).prod (Measure.infinitePi fun _ : ℕ => ν n)) P)
+    (hμ : (zetaPoissonMeasure ζ).prod (gaussianReal 0 1) =
+      Measure.sum fun n => (r n : ℝ≥0∞) • ν n) :
+    ∀ᵐ ω ∂P, Summable (fun p : {p : ℕ × ℕ // p.2 < (B p.1 ω).1} =>
+      ((B p.1.1 ω).2 p.1.2).1) := by
+  have hν : ∀ n, IsProbabilityMeasure ((ν n).map Prod.fst) := fun _ => inferInstance
+  obtain ⟨hCm, hCi, hClaw⟩ := poissonBlocks_map hBm hB hlaw measurable_fst
+  have hμ0 := eq_sum_map_fst_of_prod_eq ν r hμ
+  have hfin := ae_lintegral_poisson_lt_top_of_blocks
+    (P := P) (M := fun ω => poissonCountingMeasure (fun n => (B n ω).1)
+      (fun n l => ((B n ω).2 l).1)) (fun n => (ν n).map Prod.fst) r hζ hζ1
+    hCm hClaw hμ0 (fun _ => rfl)
+  have hpos := ae_poissonDirichlet_gaussian_mass_pos ν r hlaw hμ
+  filter_upwards [hfin, hpos] with ω hω hp
+  have hsum := lintegral_poissonCountingMeasure_restrict_eq_tsum
+    (fun n => (B n ω).1) (fun n l => ((B n ω).2 l).1)
+    (A := Set.Ioi (0 : ℝ)) measurableSet_Ioi ENNReal.measurable_ofReal
+  simp only [Set.mem_Ioi] at hsum
+  rw [hsum] at hω
+  have hω' : (∑' q : {p : ℕ × ℕ // p.2 < (B p.1 ω).1},
+      ENNReal.ofReal (((B q.1.1 ω).2 q.1.2).1)) < ∞ := by
+    convert hω using 1
+    apply tsum_congr
+    intro q
+    simp [hp q.1.1 q.1.2 q.2]
+  exact summable_of_tsum_ofReal_lt_top (fun p => (hp _ _ p.2).le) hω'
+
 /-- **Lemma 2.3's replica average as a Gibbs series over block indices.** For a counting measure
 whose active atoms `(xₚ, yₚ)` have positive masses and are pairwise distinct, the ratio of
 order-free integrals
