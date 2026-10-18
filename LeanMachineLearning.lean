@@ -46,11 +46,13 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.LocallyFinite
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.MapPairInfinitePi
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.NthLargestAtom
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.NthLargestAtomRank
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.NthLargestAtomRpow
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.PiKernelLIntegral
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.PiUpdate
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.ProbabilityMeasureLimit
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.ProbabilityMeasureMeasurable
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.ProdBound
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.RankedMark
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.RestrictPartition
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Order.Lattice
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Order.MeasurableArg
@@ -323,6 +325,7 @@ public import LeanMachineLearning.SpinGlasses.AsymptoticGibbsMeasure
 public import LeanMachineLearning.SpinGlasses.Basic
 public import LeanMachineLearning.SpinGlasses.CascadeBS
 public import LeanMachineLearning.SpinGlasses.CascadeBSReplica
+public import LeanMachineLearning.SpinGlasses.CascadeCoalescent
 public import LeanMachineLearning.SpinGlasses.CascadeData
 public import LeanMachineLearning.SpinGlasses.CascadeFiniteness
 public import LeanMachineLearning.SpinGlasses.CascadeGaussianField
@@ -379,6 +382,7 @@ public import LeanMachineLearning.SpinGlasses.PoissonDirichletTalagrandRecurrenc
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletTransform
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletUniqueness
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletUniquenessMoments
+public import LeanMachineLearning.SpinGlasses.PoissonMarkedSuperposition
 public import LeanMachineLearning.SpinGlasses.PoissonProcess
 public import LeanMachineLearning.SpinGlasses.PoissonProcessEquivalence
 public import LeanMachineLearning.SpinGlasses.PoissonProcessIndepMarks
