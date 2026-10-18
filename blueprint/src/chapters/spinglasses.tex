@@ -91,12 +91,16 @@ The notation $\xi\sim\gamma_K$ means that $\xi\in\mathbb R^K$ has i.i.d.\ standa
 \texttt{P.map X = (Measure.pi fun \_ : K => gaussianReal 0 1).map (fun xi => fun r => a r}~$\cdot$\texttt{ xi)}.
 \end{itemize}
 
-\begin{lemma}[Overlap]\label{lem:sg:overlap}
+\begin{lemma}[Overlap Properties]\label{lem:sg:overlap}
   \lean{SpinGlasses.card_inv_mul_dotProduct_self_eq_one, SpinGlasses.abs_card_inv_mul_dotProduct_le_one,
         SpinGlasses.card_spin_configurations, Matrix.mulVec_dotProduct_mulVec_of_transpose_mul_self}
   \leanok
-Let $\iota$ be a nonempty finite type. (1) If $\sigma_i^2=1$ for all $i$ then $R(\sigma,\sigma)=1$.
+Let $\iota$ be a nonempty finite type. 
+
+(1) If $\sigma_i^2=1$ for all $i$ then $R(\sigma,\sigma)=1$.
+
 (2) If $|\sigma_i|\le1$ and $|\tau_i|\le1$ for all $i$ then $|R(\sigma,\tau)|\le1$.
+
 (3) $|\Sigma_\iota|=2^N$. (4) If $A^\top A=1$ for a matrix $A$ then $(Ax)\cdot(Ay)=x\cdot y$; in particular
 $R(O\sigma,O\tau)=R(\sigma,\tau)$ for every orthogonal $O$.
 \end{lemma}
@@ -161,6 +165,29 @@ otherwise; split each term accordingly.
 The estimate of this section is deterministic; it is proved first for a finite set, then integrated, then specialized
 to the hypercube, so that it applies to any finite Gibbs system and not only to SK.
 
+\begin{remark}[Intuition for this section, and how its results are used]\label{rem:sg:free-intuition}
+\emph{The two quantities.} For a random energy landscape $H$ on the configurations, physicists care about two numbers per spin: the \emph{ground-state energy} $N^{-1}\mathbb E\max_\sigma H(\sigma)$, the energy of the best configuration at
+temperature zero, and the \emph{free energy} $F_N(\beta)=N^{-1}\mathbb E\log\sum_\sigma e^{\beta H(\sigma)}$ at inverse temperature $\beta$. The maximum is hard to handle: it is not differentiable, and it is not an average of anything.
+The free energy is smooth in $\beta$ and is a logarithm of a sum of exponentials, for which we have Gaussian calculus (Stein's lemma, Gaussian comparison). The reason to study the free energy at all is the approximation below.
+
+\emph{Why $\frac1\beta\log\sum e^{\beta f}$ approximates $\max f$.} Each term of the sum is $e^{\beta f(a)}$. At large $\beta$ the largest term is exponentially larger than the others, so the sum is dominated by it, and $\frac1\beta\log$ of it is $\max f$.
+The sandwich of Lemma~\ref{lem:sg:lse} makes this quantitative with no limit: the sum is at least its biggest term and at most $|\alpha|$ times it, so the error is at most $\log|\alpha|/\beta$. On the hypercube $|\alpha|=2^N$, so after dividing by $N$ the error is $\log2/\beta$
+\emph{independently of $N$} (Theorem~\ref{thm:sg:smooth}). This independence is the whole point: the free energy per spin is a uniformly good approximation of the ground-state energy per spin, whatever the size of the system, so a limit in $N$ of the free energy tells us about
+a limit in $N$ of the ground-state energy. (Equivalently, in physical terms, $\beta^{-1}F(\beta)\to E_0$ as the temperature $\beta^{-1}\to0$.)
+
+\emph{Why integrability comes first.} The sandwich is pointwise in the disorder. To integrate it over the randomness we need $\max_\sigma H$ and $\log Z$ to be integrable random variables; Lemma~\ref{lem:sg:integrable} shows this from a mild assumption on the coordinates,
+by the bound $|\log Z|\le\beta|\max H|+\log|\alpha|$. The same lemma is a hypothesis-checker for the rest of the repository: the free energy $\mathbb E\log Z$ is only a meaningful number once $\log Z$ is known to be integrable.
+
+\emph{How the results are used in the formalization.}
+\begin{enumerate}
+\item \emph{Integrability and measurability} (Lemma~\ref{lem:sg:integrable}, Theorem~\ref{thm:sg:sksmooth}, the Lean names \texttt{integrable\_log\_sum\_exp} and \texttt{sk\_measurable\_integrable}) are used everywhere the free energy is differentiated, compared or telescoped:
+  in the temperature derivative (Theorem~\ref{thm:sg:deriv}), the Gaussian comparison and Guerra--Toninelli superadditivity (Section~\ref{sec:sg:gt}), the Aizenman--Sims--Starr representation (Section~\ref{sec:sg:ass}).
+  They are what allows each of those theorems to subtract and integrate $\mathbb E\log Z$ without worrying about undefined expectations.
+\item \emph{The uniform sandwich} (Theorem~\ref{thm:sg:smooth}, and its SK instance Theorem~\ref{thm:sg:sksmooth}) is used once, but at a critical place: in the zero-temperature theorem (Theorem~\ref{thm:sg:zerotemp}) to transfer the existence of the thermodynamic limit of the free energy
+  (Theorem~\ref{thm:sg:thermolimit}) into the existence of the limit of the ground-state energy. The maximum $\mathbb E\max_\sigma H_N$ has no Gaussian calculus of its own in this formalization, so this comparison with the free energy is how statements about the ground-state energy are obtained.
+\end{enumerate}
+\end{remark}
+
 \begin{lemma}[Log-sum-exp sandwich]\label{lem:sg:lse}
   \lean{SpinGlasses.max_le_inv_mul_log_sum_exp, SpinGlasses.inv_mul_log_sum_exp_le,
         SpinGlasses.abs_inv_mul_log_sum_exp_sub_max_le}
@@ -218,15 +245,23 @@ by $N$.
   \lean{SpinGlasses.sk_measurable_integrable, SpinGlasses.sk_smooth_approximation_sandwich,
         SpinGlasses.sk_smooth_approximation_error_bound}
   \leanok
-For the SK Hamiltonian under i.i.d.\ Gaussian disorder, the hypotheses of Theorem~\ref{thm:sg:smooth} hold, so its
-conclusion holds with $H=H_N$.
+Let $\iota$ be a finite index set with $N=|\iota|$ and let $G=(g_{ij})_{i,j\in\iota}$ have i.i.d.\ standard Gaussian entries (the probability measure $\mathbb P$ is the product Gaussian measure on $\mathbb R^{\iota\times\iota}$). Let
+\[H_N(G,\sigma)=N^{-1/2}\sum_{i,j\in\iota}g_{ij}\sigma_i\sigma_j,\qquad\sigma\in\Sigma_\iota=\{-1,+1\}^\iota,\]
+be the SK Hamiltonian, and for $\beta>0$ put $Z_N(\beta)=\sum_{\sigma\in\Sigma_\iota}e^{\beta H_N(G,\sigma)}$ and $\max_\sigma H_N=\max_{\sigma\in\Sigma_\iota}H_N(G,\sigma)$. Then:
+\begin{enumerate}
+\item[(a)] \emph{(the hypotheses of Theorem~\ref{thm:sg:smooth} hold)} for every $\sigma$ the map $G\mapsto H_N(G,\sigma)$ is measurable and $\mathbb P$-integrable, and $\mathbb P$ is a probability measure;
+\item[(b)] \emph{(the conclusion of Theorem~\ref{thm:sg:smooth})} for every $\beta>0$,
+\[\frac1N\mathbb E[\max_\sigma H_N]\ \le\ \frac1{N\beta}\mathbb E[\log Z_N(\beta)]\ \le\ \frac{\log2}{\beta}+\frac1N\mathbb E[\max_\sigma H_N],\]
+and hence $\Big|\frac1{N\beta}\mathbb E[\log Z_N(\beta)]-\frac1N\mathbb E[\max_\sigma H_N]\Big|\le\frac{\log2}{\beta}$, an error bound which does not depend on $N$.
+\end{enumerate}
+(For $N=0$ both sides vanish by the convention $0^{-1}=0$.) In the Lean statements the Hamiltonian $H$ is an arbitrary function with the defining equation above supplied as a hypothesis; no definition of $H_N$ is introduced.
 \end{theorem}
 
 \begin{proof}
   \leanok
   \uses{thm:sg:smooth, lem:sg:bilinear}
 For fixed $\sigma$, $G\mapsto H_N(\sigma)$ is a finite linear combination of the coordinates $g_{ij}$, hence
-measurable, and it is integrable because it is square-integrable (Lemma~\ref{lem:sg:bilinear}).
+measurable, and it is integrable because it is square-integrable (Lemma~\ref{lem:sg:bilinear}). This is (a); then (b) is the conclusion of Theorem~\ref{thm:sg:smooth} applied with $H=H_N$ and $\mathbb P$ the Gaussian measure.
 \end{proof}
 
 \section{Monotonicity in the temperature and the zero-temperature limit}\label{sec:sg:thermo}
@@ -3903,7 +3938,7 @@ These are the ingredients of Theorem~\ref{thm:sg:pd-gg-ranked}, stated separatel
         summable_pow_of_normalized}
   \leanok
   \uses{thm:sg:pd-gg-ranked}
-Let $w:A\to[0,\infty)$ be summable and let $I$ be a finite nonempty replica set. Then $\sum_{\sigma:I\to A}\prod_{i\in I}w_{\sigma_i}\,\mathbf 1\{\sigma_i=\sigma_j\ \forall i,j\}=\sum_{a}w_a^{|I|}$. If moreover $\sum_aw_a=1$, then $\sum_aw_a^n$ converges for every $n\ge1$. With $I=\{1,2\}$ this is the diagonal identity $\sum_{a,b}w_aw_b\mathbf 1\{a=b\}=\sum_aw_a^2$ behind Equation~(2.34). \emph{Not formalized:} the version for a partition of the replicas into blocks, whose indicator evaluates to a product of power sums $\prod_m\sum_lv_l^{|B_m|}$, which is the bridge to Talagrand's identities (2.39) and to Theorem~2.8.
+Let $w:A\to[0,\infty)$ be summable and let $I$ be a finite nonempty replica set. Then $\sum_{\sigma:I\to A}\prod_{i\in I}w_{\sigma_i}\,\mathbf 1\{\sigma_i=\sigma_j\ \forall i,j\}=\sum_{a}w_a^{|I|}$. If moreover $\sum_aw_a=1$, then $\sum_aw_a^n$ converges for every $n\ge1$. With $I=\{1,2\}$ this is the diagonal identity $\sum_{a,b}w_aw_b\mathbf 1\{a=b\}=\sum_aw_a^2$ behind Equation~(2.34). The finite-block version and its overlap-indicator interpretation are proved in Lemma~\ref{lem:sg:pd-partition-bridge}; Talagrand's recurrence (2.39) and Theorem~2.8 remain open.
 \end{lemma}
 \begin{proof}
   \leanok
@@ -3934,6 +3969,42 @@ Let $V$ be the decreasing nonnegative sequences $x=(x_j)$ with $\sum_jx_j\le1$, 
 \begin{proof}
   \leanok
 The simplex is the intersection of closed coordinate nonnegativity, antitonicity, and finite-partial-sum constraints, hence a closed subset of the compact cube $[0,1]^{\mathbb N}$. The real-valued total mass is at most one (the constraint is stated in $[0,\infty]$, and the coordinates are summable). Antitonicity and the mass bound yield $x_j\le (j+1)^{-1}$. Therefore $x_j^s\le(j+1)^{-2}$ uniformly for $s\ge2$, and the uniform-convergence theorem for series of continuous functions gives continuity. If all higher power sums of two sequences agree, the inequalities $x_0^s\le p_s(x)\le x_0^{s-1}$ identify their largest coordinates by taking high powers. Subtract the matching first-coordinate contributions and repeat on the tails to identify every coordinate, including zeros. The generators therefore separate points, and Mathlib's Stone--Weierstrass theorem makes their subalgebra dense.
+\end{proof}
+
+\begin{lemma}[Finite partition replica series and power sums]\label{lem:sg:pd-partition-bridge}
+  \lean{tsum_prod_pi_fiber_eq,
+        SpinGlasses.partition_overlap_indicator_eq,
+        SpinGlasses.tsum_partition_overlap_eq_powerSums}
+  \leanok
+Let $I,K$ be finite sets and $b:I\to K$ surjective. Suppose $w:A\to[0,\infty)$ is
+summable and $\sum_aw_a=1$. If the replica assignments are constrained to agree
+whenever $b(i)=b(j)$, their weighted sum is
+$\prod_{m\in K}\sum_aw_a^{|b^{-1}(m)|}$. The constraint is exactly the product
+of overlap indicators for pairs in each block. This is a deterministic
+partition identity, not Talagrand's expectation recurrence (2.39).
+\end{lemma}
+\begin{proof}
+  \leanok
+A constrained assignment factors uniquely through $b$. Reindex by one label
+per block, regroup the weight product fiberwise, and use the finite product
+of nonnegative summable series.
+\end{proof}
+
+\begin{lemma}[Random power-sum moments determine ranked-weight laws]
+\label{lem:sg:pd-random-moment-ext}
+  \lean{SpinGlasses.exists_measurable_poissonDirichletSimplex_version,
+        SpinGlasses.identDistrib_of_poissonDirichlet_powerSum_products}
+  \leanok
+For measurable random sequences on two probability spaces, assume that both
+are almost surely in $V$. Equality of every mixed expectation of higher power
+sums, including the empty product, implies equality in distribution of the
+sequences. No Poisson or Ghirlanda--Guerra assumption is needed for this step.
+\end{lemma}
+\begin{proof}
+  \leanok
+Replace each sequence by an almost-everywhere equal measurable $V$-valued
+version. The mixed moments identify the laws on $V$ by
+Lemma~\ref{lem:sg:pd-moment-ext}; push forward under the subtype inclusion.
 \end{proof}
 
 \begin{lemma}[Mixed power-sum moments determine a law on the simplex]\label{lem:sg:pd-moment-ext}
@@ -4192,7 +4263,7 @@ The book's proof has four steps, which we list together with their status. \emph
 \item \textbf{Poisson processes without ranking (Section~2.1; done).} A Poisson process is represented by independent blocks $B_n=(N_n,(X_{nl})_l)\sim\mathrm{Po}(r_n)\otimes\nu_n^{\otimes\mathbb N}$ and its counting measure $\sum_n\sum_{l<N_n}\delta_{X_{nl}}$. Existence, the counts on disjoint sets, the mapping, marking and superposition theorems, and the equivalence with the usual finite-dimensional definition are formalized (Section~\ref{sec:sg:poisson}). The advantage of blocks is that every point has a \emph{name} $(n,l)$ that does not depend on an ordering of the points; ordering the points decreasingly is never needed until the very last step (item~4).
 \item \textbf{The process $\mathrm{PD}(\zeta)$ and the invariance under Gaussian tilting (Section~2.2; done in an order-free form).} The intensity $\mu_\zeta$, the finiteness and integrability of the total mass (Lemma~2.1), the log-sum identity (Lemma~2.2), the homogeneity and marking theorem (Theorem~2.6), and the key invariance statement of Lemma~2.3 are formalized (Section~\ref{sec:sg:pd}). Lemma~2.3 compares the process of the points $(u\,e^{t(g-t\zeta/2)},g-t\zeta)$ with the process of the points $(u,g)$, where $g$ is a standard Gaussian mark; the book states it for the \emph{ranked} atoms with their marks. We state it for \emph{replica integrals} against the counting measure, which does not mention ranks (Theorem~\ref{thm:sg:pd-lemma23}). Proving that the replica average is a measurable function of the random measure is the technical heart (Mathlib's measurability of iterated integrals needs an s-finite kernel, and the identity map on measures is not one; we use the locally finite kernel $M\mapsto M\!\restriction\!\{x>0\}$ instead).
 \item \textbf{From the order-free form to Gibbs series, and conditioning on the masses (done for block indices).} Gaussian integration by parts (Section~\ref{sec:sg:countable}, Theorem~\ref{thm:sg:lemma12}) is a statement about a Gibbs measure on a \emph{fixed} countable set with \emph{deterministic} weights and a Gaussian field. In the Poisson--Dirichlet process the set of atoms $\{(n,l):l<N_n\}$ and the masses are random, and only the marks $g$ are Gaussian. We therefore (a) rewrote the order-free replica integrals as series over tuples of block indices (Theorems~\ref{thm:sg:pd-blockindex} and~\ref{thm:sg:pd-gibbs-bridge}), where overlaps become index coincidences; (b) proved Lemma~2.3 in this form on a single probability space, with the Gibbs weights $u_pe^{tg_p}/\sum_qu_qe^{tg_q}$ (Theorem~\ref{thm:sg:pd-gibbs}); (c) proved that the Gaussian marks are independent of the counts and masses, and that a fixed-index Gaussian field has the covariance structure and the boundedness needed to apply Gaussian integration by parts (Lemma~\ref{lem:sg:pd-gibbs-inputs}). (d) carried out the conditioning: the split-block construction and the almost sure environment (Lemma~\ref{lem:sg:pd-split-env}), the guarded fixed-index form of the series (Lemma~\ref{lem:sg:pd-guarded}), Fubini for independent variables (Lemma~\ref{lem:sg:pd-fubini}), integrability and the value $0$ of the untilted average at $t=0$ (Lemma~\ref{lem:sg:pd-untilted}), tilt invariance in law and integrability of the tilted centered mark (Lemma~\ref{lem:sg:pd-tilt-law}), the fixed-environment and product-law Gaussian integration by parts with its bounds (Lemmas~\ref{lem:sg:pd-conditional-ibp},~\ref{lem:sg:pd-ibp-product},~\ref{lem:sg:pd-product-ibp-summary},~\ref{lem:sg:pd-gaussian-array}), and the resulting identity on the original blocks $\mathbb E\langle fg_{r_0}\rangle_t=\mathbb E[t(\langle f\sum_jR_{r_0j}\rangle_t-n\langle fR_{r_0,n+1}\rangle_t)]$ (Lemmas~\ref{lem:sg:pd-ibp-blocks} and~\ref{lem:sg:pd-ibp-expectation}). The combination at $t=1$ with tilt invariance and centering is formalized in Theorem~\ref{thm:sg:pd-gg-blocks}; the extra replica uses the equivalence between $\mathrm{Option}(\mathrm{Fin}\,n)$ and $\mathrm{Fin}(n+1)$.
-\item \textbf{Ranked Theorem~2.7 complete; uniqueness Theorem~2.8 open.} Theorem~2.7 and Equation~(2.34) hold for the ranked weights $v_k=\mathrm{poissonDirichletWeight}(k,M)$ of the split Gaussian-mark block construction (Theorem~\ref{thm:sg:pd-gg-ranked}). The deterministic ranking bijection, simplicity of mass blocks, and transport of both ordinary and extra-replica series are proved without a measurable random ranking permutation. The compact decreasing subprobability simplex and continuity of its higher integer power sums are proved in Lemma~\ref{lem:sg:pd-compact-simplex}. Talagrand's identities (2.39), point separation by higher power sums, and distributional uniqueness Theorem~2.8 remain open.
+\item \textbf{Ranked Theorem~2.7 complete; uniqueness Theorem~2.8 open.} Theorem~2.7 and Equation~(2.34) hold for the ranked weights $v_k=\mathrm{poissonDirichletWeight}(k,M)$ of the split Gaussian-mark block construction (Theorem~\ref{thm:sg:pd-gg-ranked}). The deterministic ranking bijection, simplicity of mass blocks, and transport of both ordinary and extra-replica series are proved without a measurable random ranking permutation. The compact decreasing subprobability simplex and continuity of its higher integer power sums are proved in Lemma~\ref{lem:sg:pd-compact-simplex}. Point separation by higher power sums, the finite partition replica identity (Lemma~\ref{lem:sg:pd-partition-bridge}), and the conditional moment-to-law step (Lemma~\ref{lem:sg:pd-random-moment-ext}) are proved; the expectation recurrence (2.39) and GG-based uniqueness Theorem~2.8 remain open.
 \end{enumerate}
 
 \subsection*{How Lemma~2.3 and integration by parts combine (the plan for Theorem~2.7)}

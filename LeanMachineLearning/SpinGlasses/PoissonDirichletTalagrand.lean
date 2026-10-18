@@ -54,7 +54,7 @@ theorem partition_overlap_indicator_eq {I K α : Type*} [Fintype I]
 /-- For normalized nonnegative weights, a block-overlap observable has the
 product-of-power-sums value dictated by the sizes of its fibers. -/
 theorem tsum_partition_overlap_eq_powerSums {I K α : Type*}
-    [Fintype I] [Fintype K] [DecidableEq I] [DecidableEq K] [DecidableEq α]
+    [Fintype I] [Fintype K] [DecidableEq K] [DecidableEq α]
     (b : I → K) (hb : Function.Surjective b)
     {w : α → ℝ} (hw0 : ∀ a, 0 ≤ w a) (hws : Summable w)
     (hw : ∑' a, w a = 1) :
