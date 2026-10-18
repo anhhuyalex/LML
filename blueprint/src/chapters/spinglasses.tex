@@ -4720,6 +4720,7 @@ $n$-th subtree, where $\ell_n$ is the label of the $n$-th child of the root.
   \lean{SpinGlasses.identDistrib_marked_sum,
         MeasureTheory.Measure.prod_infinitePi_map_assoc_zip,
         SpinGlasses.map_prod_infinitePi_allBlockMarks,
+        SpinGlasses.iIndepFun_hasLaw_eval_blocks,
         SpinGlasses.map_tsum_active_mul_eq_map_tsum_ranked_mul,
         SpinGlasses.lintegral_marked_blocks_eq_tsum,
         SpinGlasses.map_prod_tsum_active_eq_map_prod_tsum_ranked,
@@ -4776,6 +4777,7 @@ and the same theorem with $X=V$ gives $\sum_nu_nV(s_n)\sim c_V\sum_nu_n$.
 
 \begin{theorem}[Distributional Parisi identity]\label{thm:sg:parisi-law}
   \lean{SpinGlasses.cascadeSubtreeVertex_injective,
+        SpinGlasses.cascadeChildVertex_injective,
         SpinGlasses.iIndepFun_cascadeSubtreeData,
         SpinGlasses.indepFun_cascadeRoot_subtreeData,
         SpinGlasses.hasLaw_cascadeSubtreeData,
@@ -4994,8 +4996,8 @@ hypothesis $\tilde V_n$ and $V_n$ have the same law. The marks $(\eta_n,\tilde V
   \lean{SpinGlasses.replicaGibbs, SpinGlasses.replicaGibbsAt,
         SpinGlasses.cascadeGibbs, SpinGlasses.cascadeGibbsAt}
   \leanok
-For $n\ge1$, overlap values $q_0,\dots,q_r$ and a function $f$ of the overlap matrix $R^n_{ll'}=q_{\alpha_l\wedge\alpha_{l'}}$ with values
-in $[0,\infty]$, put (in $[0,\infty]$, with the convention $x/\infty=0$)
+For $n\ge1$ and a function $f$ with values in $[0,\infty]$ of the overlap pattern $R^n_{ll'}=\alpha_l\wedge\alpha_{l'}\in\{0,\dots,r\}$ (the length of the
+common prefix; a function of the overlap values $q_{\alpha_l\wedge\alpha_{l'}}$ is a special case), put (in $[0,\infty]$, with the convention $x/\infty=0$)
 \[
  \langle f(R^n)\rangle_t=\frac{\sum_{\alpha_1,\dots,\alpha_n}\prod_lw_{\alpha_l}e^{tg(\alpha_l)}\,f(R^n)}{\big(\sum_\alpha w_\alpha e^{tg(\alpha)}\big)^n},
 \]
@@ -5008,7 +5010,7 @@ and $\langle f(R^n)\psi(\eta_{\alpha_{l_0},i}-s)\rangle_t$ in the same way, with
         SpinGlasses.replicaGibbs_zero_le}
   \leanok
 Let $c=\exp(-\tfrac{t^2}{2}\sum_i\sigma_i^2\zeta_i)$. Summing the tilted replica sums over the finitely many overlap patterns $P$ gives
-$\sum_Pf(q\circ P)\,Z_r[P,\tilde a]=c^n\sum_{\alpha_1,\dots,\alpha_n}\prod_lw_{\alpha_l}e^{tg(\alpha_l)}\prod_{l,i}a_{l,i}(\eta_{\alpha_l,i}-t\sigma_i\zeta_i)\,f(R^n)$,
+$\sum_Pf(P)\,Z_r[P,\tilde a]=c^n\sum_{\alpha_1,\dots,\alpha_n}\prod_lw_{\alpha_l}e^{tg(\alpha_l)}\prod_{l,i}a_{l,i}(\eta_{\alpha_l,i}-t\sigma_i\zeta_i)\,f(R^n)$,
 and for the constant test $a=1$ the sum over $P$ is $c^n\big(\sum_\alpha w_\alpha e^{tg(\alpha)}\big)^n$. Hence
 $\langle f(R^n)\rangle_t$, and $\langle f(R^n)\psi(\eta_{\alpha_{l_0},i}-t\sigma_i\zeta_i)\rangle_t$, are quotients of sums of tilted replica sums. If $f\le C$ and the total mass is positive and finite,
 $\langle f\rangle_0\le C$.
@@ -5068,3 +5070,282 @@ The general case of Lemma~2.5, with arbitrary exponents $k_l\ge0$, is not formal
 The integrals in Theorem~\ref{thm:sg:lemma25-one} are expressed through the positive and negative parts $P_i^\pm$ of the signed averages;
 the conversion of $\sum_i(P_i^+-P_i^-)$ to the real series $\sum_{\alpha_1..\alpha_n}\prod_l G_t(\alpha_l)\,f\,(g(\alpha_{l_0})-tb)$ used in the next section is done there.
 \end{remark}
+
+
+\section{Supporting lemmas of the cascade chapters (Sections~2.3--2.5)}\label{sec:sg:cascade-support}
+
+This section records the smaller formalized results that the theorems above rely on but that were not described
+where they are used: measurability and moment facts about the Poisson blocks, the bookkeeping of the first-level
+peeling of leaves, the real-series form of the Gibbs average (the first step towards the Ghirlanda--Guerra
+identities), and general probability tools from \texttt{ForMathlib}.
+Every statement below is fully proved in Lean; none of them is a new probabilistic idea.
+
+\subsection*{Almost sure properties of the Poisson blocks}
+
+\begin{lemma}[Good Poisson blocks]\label{lem:sg:blocks-good}
+  \lean{SpinGlasses.ae_infinitePi_blocks_good,
+        SpinGlasses.iIndepFun_hasLaw_eval_blocks,
+        ProbabilityTheory.iIndepFun_hasLaw_of_hasLaw_infinitePi}
+  \leanok
+Let $0<\zeta<1$ and let $b=(b_k)_{k\ge0}$ be independent blocks, where $b_k$ consists of a Poisson number $N_k$ of points of the $\zeta$-Poisson
+intensity $\mu_\zeta=\sum_k\mathrm{rate}_k\,\nu_k$ with i.i.d.\ locations drawn from $\nu_k$. Almost surely the set of all points of all blocks is infinite, every
+point is positive, the sum of the points is finite, and no two points coincide.
+Moreover the coordinates $b\mapsto b_k$ of the product law are independent with the block laws, and conversely if a random vector has the
+product law of independent probability measures then its coordinates are independent with those laws.
+\end{lemma}
+\begin{proof}
+  \leanok
+Each property is proved block-wise from the corresponding statement for one Poisson process (infinitely many points because $\mu_\zeta$ has infinite mass,
+positivity because the intensity lives on $(0,\infty)$, finiteness because $\int_{(0,1)}x\,d\mu_\zeta<\infty$, distinctness because the intensity has no atoms) and
+combined using the independence of the blocks.
+\end{proof}
+
+\begin{lemma}[Small-mass first moment of the $\zeta$-Poisson intensity]\label{lem:sg:small-mass}
+  \lean{SpinGlasses.lintegral_zetaPoissonMeasure_Ioo_one}
+  \leanok
+For $0<\zeta<1$, $\int_{(0,1)}x\,\mu_\zeta(dx)=\zeta/(1-\zeta)$, where $\mu_\zeta(dx)=\zeta x^{-1-\zeta}dx$ on $(0,\infty)$.
+\end{lemma}
+\begin{proof}
+  \leanok
+Direct integration: $\int_0^1\zeta x^{-\zeta}dx=\zeta/(1-\zeta)$.
+\end{proof}
+
+\begin{lemma}[Marked sums with the size-biased reference process]\label{lem:sg:marked-tilt}
+  \lean{SpinGlasses.identDistrib_marked_sum_tilt,
+        SpinGlasses.measurable_lintegral_fst_Ioi,
+        SpinGlasses.measurable_tsum_active_mul,
+        SpinGlasses.measurable_tsum_ranked_mul}
+  \leanok
+The variant of Theorem~2.6 (equality in law of $\sum_n u_nX(Y_n)$ and $c\sum_nu_n$, see Theorem~\ref{thm:sg:ranked-marking}) in which the marked
+points carry real second coordinates; its measurability requirements are
+that the total first coordinate of the positive points of a measure on $\mathbb R\times S$ is a measurable function of the measure, and that the sum
+over the active points of the product (mass) x (mark), and the sum over the ranked masses times rank-indexed marks, are measurable functions of the block
+configuration and of the mark array.
+\end{lemma}
+\begin{proof}
+  \leanok
+Measurability follows from the measurability of the counting measure of the blocks and of the $n$-th largest atom as functions of the blocks,
+and of countable sums of measurable $[0,\infty]$-valued functions. The equality in law is the case of Theorem~2.6 for total masses.
+\end{proof}
+
+\subsection*{Moments, finiteness and cancellation in $[0,\infty]$}
+
+\begin{lemma}[Elementary facts used in the moment inductions]\label{lem:sg:moment-facts}
+  \lean{SpinGlasses.ae_lt_top_of_lintegral_rpow_lt_top,
+        SpinGlasses.rpow_le_one_add_rpow,
+        SpinGlasses.ennreal_eq_of_mul_right_eq}
+  \leanok
+(a) If $S\ge0$ is measurable, $a>0$ and $\mathbb E S^a<\infty$ then $S<\infty$ almost surely.
+(b) For $0<a\le b$ and $x\in[0,\infty]$: $x^a\le1+x^b$.
+(c) In $[0,\infty]$, if $c\ne0,\infty$ and $ac=bc$ then $a=b$.
+\end{lemma}
+\begin{proof}
+  \leanok
+(a) If $S=\infty$ on a set of positive probability then $\mathbb E S^a=\infty$. (b) If $x\le1$ then $x^a\le1$; if $x>1$ then $x^a\le x^b$. (c) Cancel $c$.
+\end{proof}
+
+\begin{lemma}[Measurability of prepending a coordinate]\label{lem:sg:cons-measurable}
+  \lean{SpinGlasses.measurable_fin_cons_right, SpinGlasses.measurable_fin_cons_pair}
+  \leanok
+For a measurable space $\Xi$, the maps $\theta'\mapsto(\theta,\theta')\in\Xi^{l+1}$ (with $\theta$ fixed) and $(\theta,\theta')\mapsto(\theta,\theta')$ from
+$\Xi\times\Xi^l$ to $\Xi^{l+1}$ are measurable.
+\end{lemma}
+\begin{proof}
+  \leanok
+Check each coordinate.
+\end{proof}
+
+\subsection*{Bookkeeping of the first-level peeling}
+
+\begin{lemma}[Splitting a leaf below the root]\label{lem:sg:peeling-bookkeeping}
+  \lean{SpinGlasses.take_succ_cons,
+        SpinGlasses.leafLabel_cons_zero,
+        SpinGlasses.leafLabel_cons_succ,
+        SpinGlasses.cascadeBranchWeight_mul_prod_cons,
+        SpinGlasses.consPiEquiv,
+        SpinGlasses.replicaSum_succ_term,
+        SpinGlasses.tiltTest_zero}
+  \leanok
+Let a leaf of depth $r+1$ be $(n,\beta)$ with $n\in\mathbb N$ the root child and $\beta\in\mathbb N^r$ a leaf of the subtree below $n$.
+(a) The first $k+1$ coordinates of $(n,\beta)$ are $n$ followed by the first $k$ coordinates of $\beta$.
+(b) The label at level $0$ of $(n,\beta)$ is the label of the root child $n$, and the label at level $i+1$ is the label of $\beta$ at level $i$ in the subtree
+whose vertex data is the data below $n$.
+(c) The branch weight of $(n,\beta)$ times the product over the levels of the tests of the labels equals (root weight $u_{\emptyset,n}$ times the test at level $0$ of the label of $n$)
+times (the branch weight of $\beta$ in the subtree times the product of the tests over the remaining levels).
+(d) A family of $|\iota|$ leaves of depth $r+1$ is the same as a family of root children together with a family of leaves of depth $r$, and the summand of the first-level
+peeling of the replica sum is obtained by pulling these root factors out of the product over the replicas (when two replicas have the same root child exactly
+if their prescribed overlap is positive).
+(e) The tilt with parameter $0$ is the identity: $\tilde f=f$.
+\end{lemma}
+\begin{proof}
+  \leanok
+All are direct computations with \texttt{Fin.cons}, \texttt{Fin.take} and the definition of the branch weight as the product of the ranked atoms along the path.
+For (d) one uses that the overlap of two leaves with the same root child is one plus the overlap of the subtree leaves, and $0$ otherwise.
+\end{proof}
+
+\subsection*{Real-series form of the Gibbs average}
+
+\begin{definition}[Gibbs series]\label{def:sg:gibbs-series}
+  \lean{SpinGlasses.gibbsSeries}
+  \leanok
+For a countable set $A$, real weights $W:A\to\mathbb R$ and a real observable $\Phi$ of $K$ replicas, put
+\[
+ \langle\Phi\rangle_W=\sum_{\sigma\in A^K}\Big(\prod_{k\in K}\frac{W(\sigma_k)}{\sum_{a}W(a)}\Big)\Phi(\sigma).
+\]
+For the Ruelle cascade $A=\mathbb N^r$ and $W(\alpha)=w_\alpha e^{tg(\alpha)}$; this is the form in which countable Gaussian integration by parts
+(Lemma~1.2 of the book, see the chapter on integration by parts) is stated.
+\end{definition}
+
+\begin{theorem}[Basic properties of the Gibbs series]\label{thm:sg:gibbs-series}
+  \lean{SpinGlasses.toReal_tsum_prod_div_eq_gibbsSeries,
+        SpinGlasses.hasSum_prod_div,
+        SpinGlasses.summable_prod_div_mul,
+        SpinGlasses.abs_gibbsSeries_le,
+        SpinGlasses.gibbsSeries_castSucc}
+  \leanok
+Let $W\ge0$ be summable with $\sum_aW(a)\ne0$ (so $0<\sum_aW(a)<\infty$). Then
+(a) the Gibbs weights $\prod_kW(\sigma_k)/\sum_aW(a)$ of $K$ replicas sum to $1$ over $\sigma\in A^K$;
+(b) if $|\Phi|\le M$ then $\Phi$ is summable against the Gibbs weights and $|\langle\Phi\rangle_W|\le M$;
+(c) (adding a replica) if $\Phi$ is a bounded observable of the first $n$ replicas then the Gibbs series over $n+1$ replicas of $\Phi(\sigma_1,\dots,\sigma_n)$ equals the
+Gibbs series over $n$ replicas of $\Phi$.
+(d) (from $[0,\infty]$ to $\mathbb R$) If $w:A\to[0,\infty)$ and $F\ge0$ are finite then
+$\Big(\sum_\sigma\prod_kw(\sigma_k)F(\sigma)\Big/\big(\sum_aw(a)\big)^{|K|}\Big)^{\mathrm{real}}=\langle F^{\mathrm{real}}\rangle_{w^{\mathrm{real}}}$,
+that is, the real part of the $[0,\infty]$-valued Gibbs average used in Lemma~2.5 is the Gibbs series of the real parts.
+\end{theorem}
+\begin{proof}
+  \leanok
+(a) $\sum_\sigma\prod_k p(\sigma_k)=\prod_k\sum_ap(a)=1$ with $p=W/\sum W$ (the sum over a finite product of types factorizes in $[0,\infty]$, hence also the finiteness of the
+real sum). (b) Bound $|\Phi|$ by $M$ and use (a). (c) The map $\sigma\mapsto(\sigma_{n+1},(\sigma_1,\dots,\sigma_n))$ is a bijection of $A^{n+1}$ with $A\times A^n$; the sum over the last coordinate of the
+weight is $1$ and the double series is the product of the two series because the terms are absolutely summable. (d) Taking real parts commutes with the unconditional sum of finite
+$[0,\infty]$-valued terms.
+\end{proof}
+
+\subsection*{General tools from \texttt{ForMathlib} used by the Poisson, Gaussian and cascade chapters}
+
+\begin{lemma}[Independence and product $\sigma$-algebras]\label{lem:sg:indep-tools}
+  \lean{MeasurableSpace.comap_pi,
+        MeasurableSpace.comap_pi_subtype,
+        MeasurableSpace.comap_pi_range,
+        ProbabilityTheory.iIndepFun.indepFun_set_of_disjoint,
+        ProbabilityTheory.Measure.prod_diagonal_eq_zero,
+        MeasureTheory.measurePreserving_finThreeArrow,
+        MeasureTheory.measurePreserving_prod_regroup}
+  \leanok
+(a) The $\sigma$-algebra generated by a map into a product is the supremum of the $\sigma$-algebras generated by its coordinates; the same holds for sub-families
+indexed by a subset or by the range of an index map.
+(b) Vectors of variables indexed by disjoint index sets of an independent family are independent.
+(c) If $\nu$ has no atoms then $(\mu\otimes\nu)(\text{diagonal})=0$.
+(d) Three coordinates of an i.i.d.\ vector have the product law, and regrouping $((w,u),(v,x))\mapsto((w,(u,v)),x)$ preserves product measures.
+\end{lemma}
+\begin{proof}
+  \leanok
+Standard; (a) is the universal property of the product $\sigma$-algebra, (b) follows from (a) and the grouping property of independence, (c) by Tonelli and $\nu(\{x\})=0$.
+\end{proof}
+
+\begin{lemma}[Positive and negative parts of integrals]\label{lem:sg:signed-to-real}
+  \lean{Real.enorm_eq_ofReal_add_ofReal_neg,
+        MeasureTheory.integrable_iff_lintegral_ofReal_lt_top,
+        MeasureTheory.signedToReal,
+        MeasureTheory.measurable_signedToReal,
+        MeasureTheory.integral_eq_signedToReal_lintegral}
+  \leanok
+For $x\in\mathbb R$, $|x|=x^++x^-$ in $[0,\infty]$. A measurable real function $g$ is integrable iff $\int g^+<\infty$ and $\int g^-<\infty$, and then
+$\int g=\int g^+-\int g^-$; in general $\int g=\mathrm{signedToReal}(\int g^+,\int g^-)$, where $\mathrm{signedToReal}(a,b)=a-b$ if both are finite and $0$ otherwise.
+This is how the signed identities of the Ghirlanda--Guerra identities are deduced from the identities between positive and negative parts proved by tilt invariance.
+\end{lemma}
+\begin{proof}
+  \leanok
+Elementary.
+\end{proof}
+
+\begin{lemma}[Gaussian series and bilinear forms]\label{lem:sg:gaussian-support}
+  \lean{ProbabilityTheory.integral_comp_eval,
+        ProbabilityTheory.tsum_eLpNorm_coord_ne_top,
+        ProbabilityTheory.dotProduct_mulVec_eq_sum_vecMulVec}
+  \leanok
+(a) For the Gaussian field $g=(g_p)_p$ with i.i.d.\ standard Gaussian blocks $g_p\in\mathbb R^{\kappa_p}$, a function of one block $g_p$ is integrated as under the
+$N(0,1)^{\kappa_p}$ law. (b) If $\sum_p\|a_p\|<\infty$ then $\sum_p\|\langle a_p,g_p\rangle\|_{L^2}<\infty$, hence the series $\sum_p\langle a_p,g_p\rangle$ converges in $L^2$.
+(c) $u\cdot(Mv)=\sum_{i,j}(uv^{\mathsf T})_{ij}M_{ij}$.
+\end{lemma}
+\begin{proof}
+  \leanok
+(a) Pushforward of the product measure by a coordinate. (b) $\|\langle a_p,g_p\rangle\|_{L^2}=\|a_p\|$. (c) Expand both sides.
+\end{proof}
+
+\begin{lemma}[Sub-Gaussian variables and Hoeffding inequality]\label{lem:sg:subgaussian}
+  \lean{ProbabilityTheory.HasCondSubgaussianMGF.ae_trim_condExp_exp_sub_le_one,
+        ProbabilityTheory.HasCondSubgaussianMGF.ae_condExp_exp_sub_le_one,
+        ProbabilityTheory.HasCondSubgaussianMGF.memLp_exp_mul_sub,
+        ProbabilityTheory.HasCondSubgaussianMGF.integrable_exp_mul_sub,
+        ProbabilityTheory.HasSubgaussianMGF.measure_le_le,
+        ProbabilityTheory.HasSubgaussianMGF.measure_sum_le_le_of_iIndepFun,
+        ProbabilityTheory.HasSubgaussianMGF.measure_sum_range_le_le_of_iIndepFun}
+  \leanok
+Let $X$ have sub-Gaussian moment generating function with variance proxy $c$ given a sub-$\sigma$-algebra $\mathcal G$, i.e.\ $\mathbb E[e^{tX}\mid\mathcal G]\le e^{ct^2/2}$.
+Then $\mathbb E[e^{tX-ct^2/2}\mid\mathcal G]\le1$ almost surely, and $e^{tX-ct^2/2}\in L^p$ for every $p<\infty$.
+Unconditionally, $P(X\le-\varepsilon)\le e^{-\varepsilon^2/2c}$ (Chernoff bound for the left tail) and, for independent sub-Gaussian $X_i$ with proxies $c_i$,
+the Hoeffding inequality $P(\sum_{i\in s}X_i\le-\varepsilon)\le\exp(-\varepsilon^2/(2\sum_{i\in s}c_i))$ holds; for $n$ variables with proxy $c$ the bound is $e^{-\varepsilon^2/(2nc)}$.
+\end{lemma}
+\begin{proof}
+  \leanok
+Chernoff's method: optimize $e^{-t\varepsilon}\mathbb E e^{tX}\le e^{-t\varepsilon+ct^2/2}$ at $t=\varepsilon/c$; independence multiplies the moment generating functions, and the proxies add.
+\end{proof}
+
+\begin{lemma}[Argmax, conditional distributions and infinite Cholesky factors]\label{lem:sg:misc-tools}
+  \lean{Function.exists_argmax,
+        Function.argmax_spec,
+        Function.isMaxOn_argmax,
+        Function.measurable_max,
+        Function.measurable_argmax,
+        Function.neg_max_eq_min_neg,
+        Matrix.cholInf_of_gt,
+        Matrix.cholInf_self,
+        Matrix.cholInf_of_lt,
+        Real.rpow_neg_lt_iff,
+        MeasureTheory.Measurable.integral_prod_right',
+        ProbabilityTheory.smul_cond_eq_restrict}
+  \leanok
+(a) On a finite nonempty index set with a linearly ordered target, the maximum and a (measurably chosen) argmax of a vector exist and are measurable functions of the vector, and $-\max f=\min(-f)$.
+(b) For an infinite positive semidefinite matrix $A$, the Cholesky factor $L=\mathrm{cholInf}(A)$ is lower triangular, $L_{ll}=\sqrt{A_{ll}-\sum_{j<l}L_{lj}^2}$, and below a positive pivot
+$L_{lk}=(A_{lk}-\sum_{j<k}L_{lj}L_{kj})/L_{kk}$ (and $0$ below a zero pivot).
+(c) For $x,t,a>0$: $t<x^{-a}\iff x<t^{-1/a}$.
+(d) A partial integral $x\mapsto\int f(x,y)\,d\nu(y)$ of a measurable function is measurable.
+(e) $\mu(s)\cdot\mu[\,\cdot\mid s]=\mu|_s$ when $\mu(s)<\infty$.
+\end{lemma}
+\begin{proof}
+  \leanok
+Direct from the definitions.
+\end{proof}
+
+\begin{lemma}[Having a conditional distribution]\label{lem:sg:hascond}
+  \lean{ProbabilityTheory.hasCondDistrib_fst_prod,
+        ProbabilityTheory.HasCondDistrib.prod_right,
+        ProbabilityTheory.hasCondDistrib_prod_right_iff,
+        ProbabilityTheory.HasCondDistrib.indepFun_of_const,
+        ProbabilityTheory.IndepFun.hasCondDistrib_const,
+        ProbabilityTheory.hasCondDistrib_self,
+        ProbabilityTheory.HasCondDistrib.const_map_of_const,
+        ProbabilityTheory.HasLaw.prod_of_hasCondDistrib,
+        ProbabilityTheory.HasCondDistrib.congr,
+        ProbabilityTheory.HasCondDistrib.hasLaw_comp,
+        ProbabilityTheory.HasCondDistrib.prod,
+        ProbabilityTheory.hasCondDistrib_comp_self,
+        ProbabilityTheory.ae_eq_of_hasCondDistrib_deterministic,
+        ProbabilityTheory.hasCondDistrib_deterministic_iff,
+        ProbabilityTheory.hasCondDistrib_const_iff,
+        ProbabilityTheory.HasCondDistrib.hasLaw_cond,
+        ProbabilityTheory.HasCondDistrib.indepFun_cond,
+        ProbabilityTheory.HasCondDistrib.condDistrib_eq,
+        ProbabilityTheory.hasCondDistrib_of_condDistrib_eq}
+  \leanok
+Write $Y\mid X\sim\kappa$ if the conditional distribution of $Y$ given $X$ is the kernel $\kappa$, i.e.\ the pair $(X,Y)$ has law $(\mathrm{law}\,X)\otimes\kappa$.
+It depends only on almost sure classes; $Y\mid X\sim\kappa$ and $X\sim P$ give $(X,Y)\sim P\otimes\kappa$ and $Y\sim\kappa\circ P$; chaining
+$Y\mid X\sim\kappa$ and $Z\mid(X,Y)\sim\eta$ gives $(Y,Z)\mid X\sim\kappa\otimes\eta$; $Y\mid X\sim\mathrm{const}\,Q$ iff $X$ and $Y$ are independent with $Y\sim Q$;
+$Y\mid X\sim\delta_{f}$ iff $Y=f(X)$ almost surely; conditioning on a constant is having the law $\kappa(b)$; adding a coordinate which is a function of $X$ does not change
+the conditional distribution; and when $\kappa$ equals a fixed law $\eta$ on a measurable set $s$ then, conditionally on $X\in s$, $Y\sim\eta$ and $X,Y$ are independent;
+finally it agrees with the Mathlib \texttt{condDistrib} almost everywhere.
+\end{lemma}
+\begin{proof}
+  \leanok
+Each equivalence is a restatement of the defining identity $\mathrm{law}(X,Y)=\mathrm{law}(X)\otimes\kappa$ under the corresponding measurable map of the pair.
+\end{proof}
