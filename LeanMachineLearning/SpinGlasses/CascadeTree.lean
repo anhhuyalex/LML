@@ -96,6 +96,39 @@ theorem cascadeBranchWeight_snoc
       simp [Fin.take, Fin.snoc, Fin.castLE]
     · simp
 
+/-- Peeling the first edge of a branch leaves the branch weight in the chosen subtree. -/
+theorem cascadeBranchWeight_cons
+    (u : (p : ℕ) → (Fin p → ℕ) → ℕ → ENNReal)
+    {r : ℕ} (n : ℕ) (β : Fin r → ℕ) :
+    cascadeBranchWeight u (Fin.cons n β) =
+      u 0 (fun i : Fin 0 => i.elim0) n *
+        cascadeBranchWeight (fun p γ m => u (p + 1) (Fin.cons n γ) m) β := by
+  unfold cascadeBranchWeight
+  rw [Fin.prod_univ_succ]
+  simp only [Fin.val_zero, Fin.cons_zero]
+  refine congrArg₂ (· * ·) (by congr 1; funext i; exact i.elim0) ?_
+  refine Finset.prod_congr rfl fun i _ => ?_
+  congr 1
+  · funext j
+    cases j using Fin.cases with
+    | zero => simp [Fin.take, Fin.cons]
+    | succ k => simp [Fin.take, Fin.cons, Fin.castLE]
+
+/-- The first-level total is the root-child-weighted sum of subtree totals. -/
+theorem tsum_cascadeBranchWeight_cons
+    (u : (p : ℕ) → (Fin p → ℕ) → ℕ → ENNReal) (r : ℕ) :
+    ∑' α : Fin (r + 1) → ℕ, cascadeBranchWeight u α =
+      ∑' n : ℕ, u 0 (fun i : Fin 0 => i.elim0) n *
+        (∑' β : Fin r → ℕ,
+          cascadeBranchWeight (fun p γ m => u (p + 1) (Fin.cons n γ) m) β) := by
+  rw [← (Fin.consEquiv (fun _ : Fin (r + 1) => ℕ)).tsum_eq]
+  change (∑' c : ℕ × (Fin r → ℕ), cascadeBranchWeight u (Fin.cons c.1 c.2)) = _
+  simp_rw [cascadeBranchWeight_cons]
+  rw [ENNReal.tsum_prod']
+  exact tsum_congr fun n => ENNReal.tsum_mul_left
+    (f := fun β => cascadeBranchWeight (fun p γ m => u (p + 1) (Fin.cons n γ) m) β)
+    (a := u 0 (fun i : Fin 0 => i.elim0) n)
+
 /-- Strictly positive, finite branch masses give strictly positive, finite leaf weights. -/
 theorem cascadeBranchWeight_pos_finite
     (u : (p : ℕ) → (Fin p → ℕ) → ℕ → ENNReal)

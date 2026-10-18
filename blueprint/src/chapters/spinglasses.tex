@@ -4426,15 +4426,17 @@ the comparison between the first two. Maximality of the common prefix proves the
 \begin{definition}[Branch weight of a leaf]\label{def:sg:cascade-weight}
   \lean{SpinGlasses.cascadeBranchWeight}
   \leanok
-Given extended-nonnegative branch masses $u_{p,\gamma,n}\in[0,\infty]$ (depth $p$, vertex $\gamma\in\mathbb N^p$, child label $n$), the weight of a leaf $\alpha\in\mathbb N^r$ is $w_\alpha=\prod_{i<r}u_{i,\alpha|_i,\alpha_i}$, where $\alpha|_i$ is the prefix of length $i$. For $r=0$ it equals $1$. This is the finite-depth analogue of the weights $w_{\alpha n}=w_\alpha u_{\alpha n}$ in Section~2.3; the branch masses are arbitrary here, and the Poisson points are plugged in only in Lemma~\ref{lem:sg:cascade-depth-one}.
+Given extended-nonnegative branch masses $u_{p,\gamma,n}\in[0,\infty]$ (depth $p$, vertex $\gamma\in\mathbb N^p$, child label $n$), the weight of a leaf $\alpha\in\mathbb N^r$ is $w_\alpha=\prod_{i<r}u_{i,\alpha|_i,\alpha_i}$, where $\alpha|_i$ is the prefix of length $i$. For $r=0$ it equals $1$. This is the finite-depth analogue of the weights $w_{\alpha n}=w_\alpha u_{\alpha n}$ in Section~2.3; the branch masses are arbitrary here; Poisson points are plugged in below, at all vertices of the infinite tree.
 \end{definition}
 
 \begin{lemma}[Deterministic branch products and normalization]\label{lem:sg:cascade-mass}
   \lean{SpinGlasses.cascadeBranchWeight_zero,
         SpinGlasses.cascadeBranchWeight_snoc,
+        SpinGlasses.cascadeBranchWeight_cons,
         SpinGlasses.cascadeBranchWeight_pos_finite,
         SpinGlasses.tsum_cascadeBranchWeight_zero,
         SpinGlasses.tsum_cascadeBranchWeight_succ,
+        SpinGlasses.tsum_cascadeBranchWeight_cons,
         SpinGlasses.tsum_cascadeBranchWeight_ne_zero,
         SpinGlasses.tsum_cascadeBranchWeight_succ_le_tsum_bounds,
         SpinGlasses.tsum_cascadeBranchWeight_succ_lt_top_of_tsum_bounds,
@@ -4451,8 +4453,11 @@ weight $w_\alpha$ is the product along its path (the only definition here:
 total mass $\sum_\alpha w_\alpha$ and normalized weights
 $w_\alpha/\sum_\beta w_\beta$ are written explicitly, not as new objects).
 The root weight and total mass are $1$; appending child $n$ multiplies the parent
-weight by $u_{p,\alpha,n}$. At depth $r+1$, the total mass is the sum over
-parents of their weights times the sum of their child masses. If each child
+weight by $u_{p,\alpha,n}$. Peeling the first edge instead writes the weight of
+$(n,\beta)$ as the root mass $u_{0,\emptyset,n}$ times the weight of $\beta$
+in the shifted subtree. At depth $r+1$, the total mass is either the sum over
+parents of their weights times the sum of their child masses, or the sum over
+root children of their mass times the corresponding subtree total. If each child
 mass is at most $C_\alpha$, the next total is at most
 $\sum_\alpha w_\alpha C_\alpha$, so finiteness of this bound gives
 finiteness at the next depth. A common bound $C$ is the special case
@@ -4464,8 +4469,10 @@ almost surely. If every branch mass is positive and
 finite and the total mass is finite, the normalized weights are positive,
 finite, and sum to $1$; the nonzero
 total mass follows from positivity alone. These are deterministic results: they do
-\emph{not} assert almost-sure finiteness or positivity for Poisson
-branches; Panchenko's Lemma~2.4 is not yet formalized.
+\emph{not} assert almost-sure finiteness for Poisson
+branches; the unconditional higher-depth assertion of Panchenko's Lemma~2.4
+is not yet formalized. The independent vertex model does prove positivity of
+its Poisson branch masses; see Lemma~\ref{lem:sg:cascade-conditional}.
 \end{lemma}
 \begin{proof}
   \leanok
@@ -4491,8 +4498,9 @@ independence of the blocks is not needed for this finiteness assertion.
 For the canonical decreasing atoms $u_{\emptyset,k}$, the equality of the
 series and the counting-measure integral follows from the Section~2.2
 ranked-atom identity, so it is not an additional hypothesis.
-This is only the base case of Lemma~2.4. No independent vertex-indexed
-family or higher-depth almost-sure finiteness is proved here.
+This is only the base case of Lemma~2.4. The independent vertex-indexed
+model and its local positivity are described in Lemma~\ref{lem:sg:cascade-conditional};
+higher-depth unconditional finiteness remains open.
 \end{lemma}
 \begin{proof}
   \leanok
@@ -4500,6 +4508,63 @@ Apply the Section~2.2 almost-sure finiteness theorem for the positive-part
 integral of a zeta-Poisson counting measure, then use the depth-one mass
 recursion and the assumed equality of the two sums.
 \end{proof}
+
+\begin{lemma}[Lemma 2.4: vertex model and conditional higher-depth step]
+  \label{lem:sg:cascade-conditional}
+  \lean{SpinGlasses.cascadePoissonMass,
+        SpinGlasses.measurable_cascadePoissonMass,
+        SpinGlasses.measurable_tsum_cascadePoissonMass,
+        SpinGlasses.iIndepFun_cascadeVertexBlocks,
+        SpinGlasses.iIndepFun_cascadeSubtreeBlocks,
+        SpinGlasses.iIndepFun_cascadeSubtreeArrays,
+        SpinGlasses.iIndepFun_cascadeSubtreeTotals,
+        SpinGlasses.indepFun_cascadeRoot_subtreeArrays,
+        SpinGlasses.indepFun_cascadeRoot_subtreeTotals,
+        SpinGlasses.iIndepFun_cascadeChildBlocks,
+        SpinGlasses.hasLaw_cascadeChildBlockArray,
+        SpinGlasses.hasLaw_cascadeChildTotal,
+        SpinGlasses.ae_cascadePoissonMass_pos_finite,
+        SpinGlasses.ae_cascadePoissonMass_one_lt_top,
+        SpinGlasses.ae_cascadePoissonMass_lt_top_of_marked_step,
+        SpinGlasses.ae_cascadePoissonMass_div_probability_of_marked_step}
+  \leanok
+Let $P$ be a probability measure on a measurable space $\Omega$. Index every
+vertex by $(p,\gamma)$ with $p\in\mathbb N$ and $\gamma\in\mathbb N^p$.
+Let $\zeta:\mathbb N\to\mathbb R$ satisfy $0<\zeta_p<1$; to perform the
+probabilistic induction one additionally needs $\zeta_p<\zeta_{p+1}$.
+For each vertex and block number $k$, let $B_{(p,\gamma),k}$ be a measurable
+Poisson block, with count rate $a_{p,k}$ and i.i.d. point law $\nu_{p,k}$.
+Assume the entire family indexed by (vertex, block number) is independent,
+each block has its specified Poisson product law, and
+$\sum_k a_{p,k}\nu_{p,k}=\mu_{\zeta_p}$. Restriction of global independence to a vertex or to all the blocks in
+first-child subtrees uses injective precomposition. A product-valued
+independence lemma then proves that the \emph{whole arrays} below distinct
+children are independent. Consequently, their depth-$r$ totals are
+independent, and the root block array is independent of the whole vector of
+subtree totals. Each child block array has the law of the canonical independent
+block array with level parameters shifted by one; applying the measurable total
+mass to this equality also gives the shifted law of each child total. Thus
+child totals are identically distributed as well as independent. The law of
+these totals as a rescaled Poisson sum remains to be established.
+The child mass is
+the $m$-th largest atom of the vertex counting measure. The code proves all
+child masses are positive and finite simultaneously, and proves that the
+depth-one total mass is finite almost surely. A separate conditional theorem
+identifies, at any depth $r$, the required root-child-weighted sum of depth-$r$
+subtree totals with the depth-$(r+1)$ mass, and deduces positive normalized
+probability weights if that sum is finite almost surely. This assumption is
+equivalent to the positive-depth finiteness conclusion; it is a proof interface,
+not a probabilistic induction.
+\emph{This is not the unconditional Lemma 2.4:} the assumed marked-sum estimate
+is precisely the missing probabilistic step. In particular, the displayed
+hypotheses now include independence of blocks across different vertices,
+and independence of subtree totals from root blocks is proved, but the
+conditional theorem does not infer the required ranked-marked Poisson law
+or the Poisson-sum law and moment bound for shifted subtree totals. The proposed all-depth model uses
+one infinite exponent list; each finite strictly increasing list ending below
+$1$ can be extended to one approaching $1$, but that extension has not been
+formalized.
+\end{lemma}
 
 \begin{definition}[Cascade point]\label{def:sg:cascade-point}
   \lean{SpinGlasses.cascadePoint}
