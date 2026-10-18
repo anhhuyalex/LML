@@ -4558,6 +4558,8 @@ sum estimate equivalent to the missing finiteness conclusion.
         SpinGlasses.ae_tsum_rankedRoot_eq_lintegral,
         SpinGlasses.lintegral_rankedRoot_marked_campbell,
         SpinGlasses.lintegral_zetaPoissonMeasure_mul_ennreal,
+        SpinGlasses.lintegral_zetaPoissonMeasure_mul_mark_positive,
+        SpinGlasses.lintegral_zetaPoissonMeasure_normalized_marks_positive,
         SpinGlasses.ae_cascadeRankedMass_lt_top_of_marked_step,
         SpinGlasses.ae_cascadeRankedMass_div_probability_of_marked_step}
   \leanok
@@ -4598,9 +4600,16 @@ Combining this reindexing with independent-mark Tonelli and root Campbell
 proves the expected marked-sum identity for every measurable nonnegative
 two-variable test and every common probability law of the independent marks.
 The dilation identity for a strictly positive finite extended-nonnegative
-mark is formalized using homogeneity of the zeta intensity. Its extension
-under the mark law (including zero and infinite marks), normalization by the
-mark moment, the depth-two case, and unconditional Lemma~2.4 remain open.
+mark is formalized using homogeneity of the zeta intensity. For measurable
+tests vanishing at zero, its mark-law integral is also established for finite
+marks that may equal zero; the law need not have a finite power moment.
+For a positive finite scaling constant whose zeta power equals the finite
+mark moment, the normalized intensity identity is proved for tests vanishing
+at zero. Proving that the actual subtree law has the required finite moment,
+converting this identity into the counting-measure Campbell formula, the
+depth-two case, and unconditional Lemma~2.4 remain open. The corresponding
+identity for arbitrary tests is false if the law has a zero mark: infinitely
+many zero atoms then contribute to a test nonzero at zero.
 No rescaled Poisson-sum law is required by the proposed first-moment moment
 induction.
 The child mass is

@@ -406,6 +406,99 @@ theorem lintegral_zetaPoissonMeasure_mul_mark_positive
       simp [hf0, hζ]
     · exact lintegral_zetaPoissonMeasure_mul_ennreal hζ t ht0 ht f hf
   have hpow : Measurable (fun t : ENNReal => t ^ ζ) := by fun_prop
-  exact (lintegral_congr_ae hscale).trans (lintegral_mul_const hpow _)
+  exact (lintegral_congr_ae hscale).trans (lintegral_mul_const _ hpow)
+
+/-- A positive scaling constant normalizes the Campbell intensity on tests that
+vanish at zero. This is precisely the test class needed for the fractional-moment
+bound, even if the mark law charges zero. -/
+theorem lintegral_zetaPoissonMeasure_normalized_marks_positive
+    {ζ : ℝ} (hζ : 0 < ζ) (τ : Measure ENNReal)
+    (hfinite : ∀ᵐ t ∂τ, t ≠ ∞) (c : ENNReal) (hc0 : c ≠ 0) (hcfin : c ≠ ∞)
+    (hmoment : ∫⁻ t, t ^ ζ ∂τ = c ^ ζ)
+    (f : ℝ → ENNReal) (hf : Measurable f) (hf0 : f 0 = 0) :
+    (∫⁻ t, (∫⁻ x, f (x * (t / c).toReal) ∂zetaPoissonMeasure ζ) ∂τ) =
+      ∫⁻ x, f x ∂zetaPoissonMeasure ζ := by
+  have hratio : ∀ᵐ t ∂τ, t / c ≠ ∞ := by
+    filter_upwards [hfinite] with t ht
+    exact ENNReal.div_ne_top ht hc0
+  have hscale : ∀ᵐ t ∂τ,
+      (∫⁻ x, f (x * (t / c).toReal) ∂zetaPoissonMeasure ζ) =
+        (t / c) ^ ζ * (∫⁻ x, f x ∂zetaPoissonMeasure ζ) := by
+    filter_upwards [hratio] with t ht
+    by_cases ht0 : t / c = 0
+    · rw [ht0]
+      simp [hf0, hζ]
+    · exact lintegral_zetaPoissonMeasure_mul_ennreal hζ (t / c) ht0 ht f hf
+  have hquot : Measurable (fun t : ENNReal => (t / c) ^ ζ) := by fun_prop
+  rw [lintegral_congr_ae hscale, lintegral_mul_const _ hquot]
+  have hpow : Measurable (fun t : ENNReal => t ^ ζ) := by fun_prop
+  simp_rw [ENNReal.div_rpow_of_nonneg _ _ hζ.le]
+  simp_rw [div_eq_mul_inv]
+  rw [lintegral_mul_const _ hpow, hmoment]
+  rw [ENNReal.mul_inv_cancel (ne_of_gt
+    (ENNReal.rpow_pos_of_nonneg (pos_iff_ne_zero.mpr hc0) hζ.le))
+    (ENNReal.rpow_ne_top_of_nonneg hζ.le hcfin), one_mul]
+
+/-- On the positive support of the zeta intensity, conversion of a scaled
+extended-nonnegative mass to a real atom commutes with real multiplication. -/
+theorem ae_zetaPoissonMeasure_toReal_mul_div
+    (ζ : ℝ) (t c : ENNReal) :
+    ∀ᵐ x ∂zetaPoissonMeasure ζ,
+      (ENNReal.ofReal x * t / c).toReal = x * (t / c).toReal := by
+  have hpos : ∀ᵐ x ∂zetaPoissonMeasure ζ, x ∈ Set.Ioi (0 : ℝ) := by
+    rw [ae_iff]
+    change (zetaPoissonMeasure ζ) (Set.Ioi (0 : ℝ))ᶜ = 0
+    rw [Set.compl_Ioi]
+    exact zetaPoissonMeasure_Iic_zero ζ
+  filter_upwards [hpos] with x hx
+  rw [mul_div_assoc, ENNReal.toReal_mul, ENNReal.toReal_ofReal hx.le]
+
+/-- The normalized positive-test Campbell identity for an independently marked
+ranked root, without requiring the marked total to be finite. -/
+theorem lintegral_rankedRoot_normalized_marked_positive
+    [IsProbabilityMeasure P] {ζ : ℝ} (hζ : 0 < ζ) (hζ1 : ζ < 1)
+    (nu : ℕ → Measure ℝ) [∀ k, IsProbabilityMeasure (nu k)]
+    (rate : ℕ → NNReal) (B : ℕ → Ω → ℕ × (ℕ → ℝ))
+    (hBm : ∀ k, Measurable (B k)) (hB : iIndepFun B P)
+    (hlaw : ∀ k, HasLaw (B k)
+      ((Po(rate k)).prod (Measure.infinitePi fun _ : ℕ => nu k)) P)
+    (hmu : zetaPoissonMeasure ζ = Measure.sum fun k => (rate k : ENNReal) • nu k)
+    (T : Ω → ℕ → ENNReal) (hTm : Measurable T)
+    (hind : IndepFun (fun ω => fun k => B k ω) T P)
+    (τ : Measure ENNReal) [IsProbabilityMeasure τ]
+    (hTlaw : ∀ n, HasLaw (fun ω => T ω n) τ P)
+    (hfinite : ∀ᵐ t ∂τ, t ≠ ∞)
+    (c : ENNReal) (hc0 : c ≠ 0) (hcfin : c ≠ ∞)
+    (hmoment : ∫⁻ t, t ^ ζ ∂τ = c ^ ζ)
+    (f : ℝ → ENNReal) (hf : Measurable f) (hf0 : f 0 = 0) :
+    (∫⁻ ω, ∑' n, f ((nthLargestAtom n (poissonCountingMeasure
+      (fun k => (B k ω).1) (fun k l => (B k ω).2 l)) * T ω n / c).toReal) ∂P) =
+      ∫⁻ x, f x ∂zetaPoissonMeasure ζ := by
+  have hg : Measurable (Function.uncurry
+      (fun (x t : ENNReal) => f ((x * t / c).toReal))) := by fun_prop
+  rw [lintegral_rankedRoot_marked_campbell hζ hζ1 nu rate B hBm hB hlaw hmu
+    T hTm hind τ hTlaw _ hg]
+  have heq : ∀ᵐ x ∂zetaPoissonMeasure ζ, ∀ t : ENNReal,
+      f ((ENNReal.ofReal x * t / c).toReal) = f (x * (t / c).toReal) := by
+    have hpos : ∀ᵐ x ∂zetaPoissonMeasure ζ, x ∈ Set.Ioi (0 : ℝ) := by
+      rw [ae_iff]
+      change (zetaPoissonMeasure ζ) (Set.Ioi (0 : ℝ))ᶜ = 0
+      rw [Set.compl_Ioi]
+      exact zetaPoissonMeasure_Iic_zero ζ
+    filter_upwards [hpos] with x hx
+    intro t
+    rw [mul_div_assoc, ENNReal.toReal_mul, ENNReal.toReal_ofReal hx.le]
+  have hinner : ∀ᵐ x ∂zetaPoissonMeasure ζ,
+      (∫⁻ t, f ((ENNReal.ofReal x * t / c).toReal) ∂τ) =
+        ∫⁻ t, f (x * (t / c).toReal) ∂τ := by
+    filter_upwards [heq] with x hx
+    exact lintegral_congr fun t => hx t
+  rw [lintegral_congr_ae hinner]
+  rw [lintegral_lintegral_swap (by fun_prop :
+    AEMeasurable (Function.uncurry
+      (fun (x : ℝ) (t : ENNReal) => f (x * (t / c).toReal)))
+      ((zetaPoissonMeasure ζ).prod τ))]
+  exact lintegral_zetaPoissonMeasure_normalized_marks_positive hζ τ hfinite
+    c hc0 hcfin hmoment f hf hf0
 
 end SpinGlasses

@@ -171,31 +171,26 @@ theorem expected_poisson_sum_lt_one {Ω : Type*} [MeasurableSpace Ω]
   filter_upwards [ae_restrict_mem measurableSet_Ioo] with x hx
   exact mul_nonneg hζ0.le (Real.rpow_nonneg hx.1.le _)
 
-/-- **Lemma 2.1, quantitative form (Panchenko, Eq. (2.15)).** For `0 < a < ζ < 1`, the `a`-th moment
-of the total mass `∑_{x ∈ Π} x` of the `ζ`-Poisson process is at most
-`1 + ζ / (1 - ζ) + ζ / (ζ - a)`. It is stated in `ℝ≥0∞`, so it also shows that the total mass is
-finite almost surely (see `ae_lintegral_poisson_lt_top`), unlike a real-valued statement, which
-would be vacuous on the event `∑ x = ∞` where `ENNReal.toReal ∞ = 0`.
-
-The process enters only through Campbell's formula and through the fact that each `M ω` is a
-counting measure `poissonCountingMeasure N X` (the subadditivity `(∑ xᵢ) ^ a ≤ ∑ xᵢ ^ a` is an
-atomic statement and fails for diffuse measures). -/
-theorem lintegral_poisson_sum_rpow_le {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω}
-    [IsProbabilityMeasure P] {ζ a : ℝ} (ha0 : 0 < a) (haζ : a < ζ) (hζ1 : ζ < 1)
+/-- The fractional-moment argument only uses Campbell for the small-mass and
+large-mass test functions. In particular it does not require Campbell at zero. -/
+theorem lintegral_poisson_sum_rpow_le_of_two_tests {Ω : Type*} [MeasurableSpace Ω]
+    {P : Measure Ω} [IsProbabilityMeasure P] {ζ a : ℝ}
+    (ha0 : 0 < a) (haζ : a < ζ) (hζ1 : ζ < 1)
     {M : Ω → Measure ℝ} (hMm : Measurable M)
     (hatom : ∀ ω, ∃ (N : ℕ → ℕ) (X : ℕ → ℕ → ℝ), M ω = poissonCountingMeasure N X)
-    (hCamp : ∀ f : ℝ → ℝ≥0∞, Measurable f →
-      ∫⁻ ω, ∫⁻ x, f x ∂(M ω) ∂P = ∫⁻ x, f x ∂(zetaPoissonMeasure ζ)) :
+    (hsmall : ∫⁻ ω, ∫⁻ x in Ioo (0 : ℝ) 1, ENNReal.ofReal x ∂(M ω) ∂P =
+      ENNReal.ofReal (ζ / (1 - ζ)))
+    (hlarge : ∫⁻ ω, ∫⁻ x,
+        ((Ici (1 : ℝ)).indicator fun y => ENNReal.ofReal y ^ a) x ∂(M ω) ∂P =
+      ENNReal.ofReal (ζ / (ζ - a))) :
     ∫⁻ ω, (∫⁻ x in Ioi 0, ENNReal.ofReal x ∂(M ω)) ^ a ∂P ≤
       1 + ENNReal.ofReal (ζ / (1 - ζ)) + ENNReal.ofReal (ζ / (ζ - a)) := by
-  have hζ0 : 0 < ζ := ha0.trans haζ
   have ha1 : a ≤ 1 := by linarith
   set g₂ : ℝ → ℝ≥0∞ := (Ici (1 : ℝ)).indicator fun x => ENNReal.ofReal x ^ a with hg₂
   have hg₂m : Measurable g₂ := (ENNReal.measurable_ofReal.pow_const a).indicator measurableSet_Ici
   have hA : Measurable fun ω => ∫⁻ x in Ioo (0 : ℝ) 1, ENNReal.ofReal x ∂(M ω) :=
     (Measure.measurable_lintegral_restrict measurableSet_Ioo ENNReal.measurable_ofReal).comp hMm
   have hB : Measurable fun ω => ∫⁻ x, g₂ x ∂(M ω) := (Measure.measurable_lintegral hg₂m).comp hMm
-  -- pointwise: split at `1`, use `x ^ a ≤ 1 + x` below and atomic subadditivity above
   have hpt : ∀ ω, (∫⁻ x in Ioi 0, ENNReal.ofReal x ∂(M ω)) ^ a ≤
       1 + ∫⁻ x in Ioo (0 : ℝ) 1, ENNReal.ofReal x ∂(M ω) + ∫⁻ x, g₂ x ∂(M ω) := by
     intro ω
@@ -217,8 +212,32 @@ theorem lintegral_poisson_sum_rpow_le {Ω : Type*} [MeasurableSpace Ω] {P : Mea
         lintegral_mono hpt
     _ = 1 + ENNReal.ofReal (ζ / (1 - ζ)) + ENNReal.ofReal (ζ / (ζ - a)) := by
         rw [lintegral_add_right _ hB, lintegral_add_right _ hA, lintegral_const, measure_univ,
-          mul_one, expected_poisson_sum_lt_one hζ0 hζ1 hCamp, hCamp g₂ hg₂m,
-          lintegral_zetaPoissonMeasure_Ici_rpow hζ0 ha0.le haζ]
+          mul_one, hsmall, hlarge]
+
+/-- **Lemma 2.1, quantitative form (Panchenko, Eq. (2.15)).** For `0 < a < ζ < 1`, the `a`-th moment
+of the total mass `∑_{x ∈ Π} x` of the `ζ`-Poisson process is at most
+`1 + ζ / (1 - ζ) + ζ / (ζ - a)`. It is stated in `ℝ≥0∞`, so it also shows that the total mass is
+finite almost surely (see `ae_lintegral_poisson_lt_top`), unlike a real-valued statement, which
+would be vacuous on the event `∑ x = ∞` where `ENNReal.toReal ∞ = 0`.
+
+The process enters only through Campbell's formula and through the fact that each `M ω` is a
+counting measure `poissonCountingMeasure N X` (the subadditivity `(∑ xᵢ) ^ a ≤ ∑ xᵢ ^ a` is an
+atomic statement and fails for diffuse measures). -/
+theorem lintegral_poisson_sum_rpow_le {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω}
+    [IsProbabilityMeasure P] {ζ a : ℝ} (ha0 : 0 < a) (haζ : a < ζ) (hζ1 : ζ < 1)
+    {M : Ω → Measure ℝ} (hMm : Measurable M)
+    (hatom : ∀ ω, ∃ (N : ℕ → ℕ) (X : ℕ → ℕ → ℝ), M ω = poissonCountingMeasure N X)
+    (hCamp : ∀ f : ℝ → ℝ≥0∞, Measurable f →
+      ∫⁻ ω, ∫⁻ x, f x ∂(M ω) ∂P = ∫⁻ x, f x ∂(zetaPoissonMeasure ζ)) :
+    ∫⁻ ω, (∫⁻ x in Ioi 0, ENNReal.ofReal x ∂(M ω)) ^ a ∂P ≤
+      1 + ENNReal.ofReal (ζ / (1 - ζ)) + ENNReal.ofReal (ζ / (ζ - a)) := by
+  have hζ0 : 0 < ζ := ha0.trans haζ
+  have hsmall := expected_poisson_sum_lt_one hζ0 hζ1 hCamp
+  have hg : Measurable ((Ici (1 : ℝ)).indicator fun y => ENNReal.ofReal y ^ a) :=
+    (ENNReal.measurable_ofReal.pow_const a).indicator measurableSet_Ici
+  have hlarge := (hCamp _ hg).trans (lintegral_zetaPoissonMeasure_Ici_rpow
+    hζ0 ha0.le haζ)
+  exact lintegral_poisson_sum_rpow_le_of_two_tests ha0 haζ hζ1 hMm hatom hsmall hlarge
 
 variable {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω} [IsProbabilityMeasure P] {ζ : ℝ}
   {M : Ω → Measure ℝ}
