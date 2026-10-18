@@ -3976,6 +3976,9 @@ The simplex is the intersection of closed coordinate nonnegativity, antitonicity
         SpinGlasses.partition_overlap_indicator_eq,
         SpinGlasses.partition_overlap_merge_indicator,
         SpinGlasses.partition_overlap_same_block,
+        SpinGlasses.partition_overlap_merge_as_fiber,
+        SpinGlasses.measurable_partition_overlap_observable,
+        SpinGlasses.card_partition_fresh_fiber,
         SpinGlasses.partition_overlap_fresh_indicator,
         SpinGlasses.tsum_partition_overlap_eq_powerSums,
         SpinGlasses.tsum_partition_overlap_fresh_eq_powerSums}
@@ -3988,8 +3991,11 @@ of overlap indicators for pairs in each block. This is a deterministic
 partition identity, not Talagrand's expectation recurrence (2.39). Attaching a fresh
 replica to one block enlarges precisely that block by one; attaching an old
 replica in the same block leaves the constraint unchanged. For replicas in
-different blocks the constraint adds equality of those two block labels, but
-the corresponding moment-reindexing and expectation recurrence remain open.
+different blocks the constraint adds equality of those two block labels; this
+is the fiber constraint for the block map identifying them. The observable is
+measurable and the fresh block's fiber cardinality increases by one. Evaluating
+the merged-label series as a mixed power sum and proving the expectation
+recurrence remain open.
 \end{lemma}
 \begin{proof}
   \leanok

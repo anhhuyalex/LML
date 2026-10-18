@@ -162,6 +162,80 @@ theorem tsum_partition_overlap_fresh_eq_powerSums {I K α : Type*}
   exact tsum_prod_pi_fiber_eq (fun o : Option I => o.elim (b r) b)
     hext hw0 hws hw
 
+/-- A measurable block observable, formulated directly on overlap matrices. -/
+theorem measurable_partition_overlap_observable {I K : Type*}
+    [Fintype I] [DecidableEq K] (b : I → K) :
+    Measurable (fun R : I → I → ℝ =>
+      ∏ i : I, ∏ j : I, if b i = b j then R i j else 1) := by
+  classical
+  apply Finset.measurable_prod
+  intro i _
+  apply Finset.measurable_prod
+  intro j _
+  by_cases hij : b i = b j
+  · simp only [ite_eq_left hij]
+    fun_prop
+  · simp only [ite_eq_right hij]
+    exact measurable_const
+
+/-- Merging two distinct blocks is again a fiber constraint, now for the
+quotient block map that sends the second block to the first. -/
+theorem partition_overlap_merge_as_fiber {I K α : Type*} [Fintype I]
+    [DecidableEq K] [DecidableEq α] (b : I → K) (σ : I → α)
+    (r l : I) :
+    (∏ i : I, ∏ j : I, if b i = b j then
+      (if σ i = σ j then (1 : ℝ) else 0) else 1) *
+      (if σ r = σ l then 1 else 0) =
+    if ∀ i j, (if b i = b l then b r else b i) =
+      (if b j = b l then b r else b j) → σ i = σ j then 1 else 0 := by
+  classical
+  rw [partition_overlap_merge_indicator]
+  congr 1
+  apply propext
+  constructor
+  · rintro ⟨h, hrl⟩ i j hij
+    by_cases hi : b i = b l <;> by_cases hj : b j = b l
+    · exact h i j (hi.trans hj.symm)
+    · have hbj : b j = b r := by simpa [hi, hj] using hij.symm
+      exact (h i l hi).trans (hrl.symm.trans (h r j hbj.symm))
+    · have hbi : b i = b r := by simpa [hi, hj] using hij
+      exact (h i r hbi).trans (hrl.trans (h l j hj.symm))
+    · exact h i j (by simpa [hi, hj] using hij)
+  · intro h
+    constructor
+    · intro i j hij
+      apply h i j
+      rw [hij]
+    · apply h r l
+      simp
+
+/-- Merging labels `b l` into `b r` preserves surjectivity onto the
+remaining block labels. This supplies the domain for the partition-series
+identity without choosing a new `Fin` numbering. -/
+theorem partition_merge_surjective {I K : Type*} [DecidableEq K]
+    (b : I → K) (hb : Function.Surjective b) (r l : I)
+    (hbl : b r ≠ b l) :
+    Function.Surjective (fun i : I =>
+      (⟨if b i = b l then b r else b i, by
+        split_ifs with hi
+        · exact hbl
+        · exact hi⟩ : {m : K // m ≠ b l})) := by
+  intro m
+  obtain ⟨i, hi⟩ := hb m.1
+  refine ⟨i, ?_⟩
+  apply Subtype.ext
+  simp [hi, m.2]
+
+/-- The fresh replica contributes one position to exactly one fiber. -/
+theorem card_partition_fresh_fiber {I K : Type*} [Fintype I]
+    [DecidableEq K] (b : I → K) (r : I) (m : K) :
+    Fintype.card {o : Option I // o.elim (b r) b = m} =
+      Fintype.card {i : I // b i = m} + if b r = m then 1 else 0 := by
+  classical
+  simp only [Fintype.card_subtype, Finset.card_eq_sum_ones, Finset.sum_filter]
+  simp only [Fintype.sum_option, Option.elim]
+  exact add_comm _ _
+
 /-- Pass a random sequence supported almost surely on the compact simplex to a
 measurable simplex-valued version, preserving its law and integrals of observables. -/
 theorem exists_measurable_poissonDirichletSimplex_version
