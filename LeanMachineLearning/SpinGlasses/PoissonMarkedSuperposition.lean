@@ -88,7 +88,7 @@ measure of the points `(w_γ x, γ)` (all sampled points `x` of the blocks of `�
 marked by `γ`) has the law of the counting measure of independent blocks with sample laws
 `(nu k).map (· * c) ⊗ Λ`, where `c ^ e = ∑ w_γ ^ e` and `Λ = (w_γ ^ e / ∑ w ^ e)_γ`: positions
 `c x` with i.i.d. marks of law `Λ` independent of the positions. -/
-theorem identDistrib_marked_superposition [Countable Γ] [Nonempty Γ] [MeasurableSingletonClass Γ]
+theorem identDistrib_marked_superposition [Countable Γ] [Nonempty Γ]
     {P₀ : Measure Ω₀} [IsProbabilityMeasure P₀] {e : ℝ} (he : 0 < e)
     (nu : ℕ → Measure ℝ) [∀ k, IsProbabilityMeasure (nu k)] (rate : ℕ → ℝ≥0)
     (hmu : zetaPoissonMeasure e = Measure.sum fun k => (rate k : ℝ≥0∞) • nu k)
