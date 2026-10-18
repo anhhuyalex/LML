@@ -4542,10 +4542,21 @@ sum estimate equivalent to the missing finiteness conclusion.
         SpinGlasses.hasLaw_cascadeChildTotal,
         SpinGlasses.hasLaw_cascadeRoot_subtreeTotals_prod,
         SpinGlasses.hasLaw_rankedRoot_independent_marks,
+        SpinGlasses.lintegral_ranked_independent_marks,
+        SpinGlasses.lintegral_cascadeRoot_independent_subtreeTotals,
         SpinGlasses.ae_cascadeRankedMass_pos_finite,
         SpinGlasses.ae_cascadeRankedMass_one_lt_top,
         SpinGlasses.tsum_mul_le_tsum_add_tsum_mul,
         SpinGlasses.exists_tsum_ranked_mul_eq_tsum_active_mul,
+        SpinGlasses.tsum_comp_nthLargestAtom_sum_dirac,
+        SpinGlasses.tsum_comp_nthLargestAtom_sum_dirac_ennreal,
+        SpinGlasses.lintegral_poissonCountingMeasure_singletons,
+        SpinGlasses.ae_cascadeRoot_active_infinite,
+        SpinGlasses.ae_cascadeRoot_active_pos,
+        SpinGlasses.ae_cascadeRoot_active_summable,
+        SpinGlasses.ae_cascadeRoot_active_injective,
+        SpinGlasses.ae_tsum_rankedRoot_eq_lintegral,
+        SpinGlasses.lintegral_rankedRoot_marked_campbell,
         SpinGlasses.ae_cascadeRankedMass_lt_top_of_marked_step,
         SpinGlasses.ae_cascadeRankedMass_div_probability_of_marked_step}
   \leanok
@@ -4572,7 +4583,23 @@ product of the canonical shifted-total law. This is proved without assuming
 finite total mass. More generally, for any measurable mark vector independent
 of the root block array, ranking the root atoms preserves the product law
 with that vector. This does not construct independently marked Poisson blocks.
-The law of the subtree totals as a rescaled Poisson sum remains to be established.
+A separate Tonelli identity, specialized to these vertex blocks, shows that
+for every measurable nonnegative $g$, the expected sum of
+$g(u_{\emptyset,n},T_n)$ equals the expected sum of
+$\int g(u_{\emptyset,n},t)\,\tau(dt)$, where $T_n$ is the depth-$r$
+child total and $\tau$ is its common law. This does not require any
+finiteness of the child totals or the weighted series.
+The pointwise rank-to-counting-measure step is proved almost surely for every
+fixed measurable nonnegative test: active root points are positive, distinct,
+infinite in number, and summable under the specified intensity and independent
+block laws. The rank equivalence is only pointwise, not a measurable permutation.
+Combining this reindexing with independent-mark Tonelli and root Campbell
+proves the expected marked-sum identity for every measurable nonnegative
+two-variable test and every common probability law of the independent marks.
+The power-law intensity scaling, normalization by the mark moment, the
+depth-two case, and unconditional Lemma~2.4 remain open.
+No rescaled Poisson-sum law is required by the proposed first-moment moment
+induction.
 The child mass is
 the $m$-th largest atom of the vertex counting measure. The code proves all
 child masses are positive and finite simultaneously, and proves that the
@@ -4586,15 +4613,22 @@ weighted sum of subtree totals by the unmarked root total plus a weighted
 excess, provided each subtree total is bounded by one plus its excess.
 This inequality carries no stochastic moment or finiteness assertion.
 A further pointwise lemma reindexes a weighted sum of ranked, positive,
-distinct and summable atoms by their original active indices. Its marks
-are transported along the rank equivalence; it neither supplies a measurable
-rank permutation nor proves that the transported marks are independent.
+distinct and summable atoms by their original active indices. For every
+measurable nonnegative test function, another lemma equates its series over
+the ranked real atoms with its integral against the original sum of Dirac
+masses. A companion lemma reindexes arbitrary nonnegative tests on extended
+ranked atom masses; another identifies the integral of a measurable test
+against one Dirac point per block with the series of its values. These results
+are deterministic; the rank equivalence is only pointwise, not a measurable
+random permutation. Independent-mark Campbell is established before intensity
+rescaling; the normalized first-moment identity for the scaled real-valued
+marked measure, the depth-two case, and the moment induction remain unformalized.
 \emph{This is not the unconditional Lemma 2.4:} the assumed marked-sum estimate
 is precisely the missing probabilistic step. In particular, the displayed
 hypotheses now include independence of blocks across different vertices,
 and independence of subtree totals from root blocks is proved, but the
-conditional theorem does not infer the required ranked-marked Poisson law
-or the Poisson-sum law and moment bound for shifted subtree totals. The proposed all-depth model uses
+conditional theorem does not infer the required scaled-intensity identity
+or a fractional moment bound for shifted subtree totals. The proposed all-depth model uses
 one infinite exponent list; each finite strictly increasing list ending below
 $1$ can be extended to one approaching $1$, but that extension has not been
 formalized.
