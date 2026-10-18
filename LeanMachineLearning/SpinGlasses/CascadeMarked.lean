@@ -485,24 +485,8 @@ theorem lintegral_rankedRoot_normalized_two_tests
   · have h := lintegral_rankedRoot_normalized_counting_positive hζ hζ1 nu rate B
       hBm hB hlaw hmu T hTm hind τ hTlaw hfinite c hc0 hcfin hmoment
       _ hs (by simp [Set.indicator])
-    simp only [lintegral_indicator measurableSet_Ioo] at h
-    rw [h, ← lintegral_indicator measurableSet_Ioo]
-    have hp : (∫⁻ x, (Set.Ioo (0 : ℝ) 1).indicator ENNReal.ofReal x
-        ∂zetaPoissonMeasure ζ) =
-        ∫⁻ x, (Set.Ioo (0 : ℝ) 1).indicator
-          (fun y => ENNReal.ofReal y ^ (1 : ℝ)) x ∂zetaPoissonMeasure ζ := by
-      congr 1
-      funext x
-      simp only [ENNReal.rpow_one]
-    rw [hp, lintegral_zetaPoissonMeasure_indicator_rpow hζ.le zero_le_one
-      measurableSet_Ioo Set.Ioo_subset_Ioi_self]
-    rw [show (1 : ℝ) - 1 - ζ = -ζ by ring]
-    have hi : IntegrableOn (fun x : ℝ => ζ * x ^ (-ζ)) (Set.Ioo 0 1) :=
-      ((intervalIntegral.integrableOn_Ioo_rpow_iff
-        (by norm_num : (0 : ℝ) < 1)).2 (by linarith : -1 < -ζ)).const_mul ζ
-    rw [← ofReal_integral_eq_lintegral_ofReal hi, integral_Ioo_zeta_rpow hζ1]
-    filter_upwards [ae_restrict_mem measurableSet_Ioo] with x hx
-    exact mul_nonneg hζ.le (Real.rpow_nonneg hx.1.le _)
+    simpa only [lintegral_indicator measurableSet_Ioo] using
+      h.trans (lintegral_zetaPoissonMeasure_Ioo_one hζ hζ1)
   · have h := lintegral_rankedRoot_normalized_counting_positive hζ hζ1 nu rate B
       hBm hB hlaw hmu T hTm hind τ hTlaw hfinite c hc0 hcfin hmoment
       _ hl (by simp [Set.indicator])

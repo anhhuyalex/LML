@@ -148,6 +148,22 @@ theorem lintegral_zetaPoissonMeasure_Ici_rpow {ζ a : ℝ} (hζ : 0 < ζ) (ha : 
   filter_upwards [ae_restrict_mem measurableSet_Ioi] with x hx
   exact mul_nonneg hζ.le (Real.rpow_nonneg (lt_trans zero_lt_one hx).le _)
 
+/-- Small-mass first moment of the `ζ`-Poisson intensity: `∫_{(0,1)} x dμ_ζ = ζ / (1 - ζ)`. -/
+theorem lintegral_zetaPoissonMeasure_Ioo_one {ζ : ℝ} (hζ0 : 0 < ζ) (hζ1 : ζ < 1) :
+    (∫⁻ x, (Ioo (0 : ℝ) 1).indicator ENNReal.ofReal x ∂zetaPoissonMeasure ζ) =
+      ENNReal.ofReal (ζ / (1 - ζ)) := by
+  have hf : (Ioo (0 : ℝ) 1).indicator ENNReal.ofReal =
+      (Ioo (0 : ℝ) 1).indicator fun x => ENNReal.ofReal x ^ (1 : ℝ) := by
+    simp only [ENNReal.rpow_one]
+  rw [hf, lintegral_zetaPoissonMeasure_indicator_rpow hζ0.le zero_le_one measurableSet_Ioo
+    Ioo_subset_Ioi_self, show (1 : ℝ) - 1 - ζ = -ζ by ring]
+  have hi : IntegrableOn (fun x : ℝ => ζ * x ^ (-ζ)) (Ioo 0 1) :=
+    ((intervalIntegral.integrableOn_Ioo_rpow_iff (by norm_num : (0 : ℝ) < 1)).2
+      (by linarith : -1 < -ζ)).const_mul ζ
+  rw [← ofReal_integral_eq_lintegral_ofReal hi, integral_Ioo_zeta_rpow hζ1]
+  filter_upwards [ae_restrict_mem measurableSet_Ioo] with x hx
+  exact mul_nonneg hζ0.le (Real.rpow_nonneg hx.1.le _)
+
 /-- Expected small-point mass from Campbell's identity. The result assumes only Campbell's
 formula, so it applies to any construction of the Poisson counting measure. -/
 theorem expected_poisson_sum_lt_one {Ω : Type*} [MeasurableSpace Ω]
@@ -157,19 +173,9 @@ theorem expected_poisson_sum_lt_one {Ω : Type*} [MeasurableSpace Ω]
       ∫⁻ ω, ∫⁻ x, f x ∂(M ω) ∂P = ∫⁻ x, f x ∂(zetaPoissonMeasure ζ)) :
     ∫⁻ ω, ∫⁻ x in Ioo 0 1, ENNReal.ofReal x ∂(M ω) ∂P =
       ENNReal.ofReal (ζ / (1 - ζ)) := by
-  have hf : Measurable ((Ioo (0 : ℝ) 1).indicator fun x => ENNReal.ofReal x ^ (1 : ℝ)) :=
-    (ENNReal.measurable_ofReal.pow_const 1).indicator measurableSet_Ioo
-  have hc := hCamp _ hf
-  rw [lintegral_zetaPoissonMeasure_indicator_rpow hζ0.le zero_le_one measurableSet_Ioo
-    Ioo_subset_Ioi_self] at hc
-  simp only [ENNReal.rpow_one, lintegral_indicator measurableSet_Ioo] at hc
-  rw [hc, show (1 : ℝ) - 1 - ζ = -ζ by ring]
-  have hi : IntegrableOn (fun x : ℝ => ζ * x ^ (-ζ)) (Ioo 0 1) :=
-    ((intervalIntegral.integrableOn_Ioo_rpow_iff (by norm_num : (0 : ℝ) < 1)).2
-      (by linarith : -1 < -ζ)).const_mul ζ
-  rw [← ofReal_integral_eq_lintegral_ofReal hi, integral_Ioo_zeta_rpow hζ1]
-  filter_upwards [ae_restrict_mem measurableSet_Ioo] with x hx
-  exact mul_nonneg hζ0.le (Real.rpow_nonneg hx.1.le _)
+  simp only [← lintegral_indicator measurableSet_Ioo]
+  exact (hCamp _ (ENNReal.measurable_ofReal.indicator measurableSet_Ioo)).trans
+    (lintegral_zetaPoissonMeasure_Ioo_one hζ0 hζ1)
 
 /-- The fractional-moment argument only uses Campbell for the small-mass and
 large-mass test functions. In particular it does not require Campbell at zero. -/

@@ -4472,8 +4472,8 @@ finite, and sum to $1$; the nonzero
 total mass follows from positivity alone. These are deterministic results: they do
 \emph{not} assert almost-sure finiteness for Poisson
 branches; the unconditional higher-depth assertion of Panchenko's Lemma~2.4
-is not yet formalized. The independent vertex model does prove positivity of
-its Poisson branch masses; see Lemma~\ref{lem:sg:cascade-conditional}.
+is Theorem~\ref{thm:sg:cascade-finite}; the independent vertex model that proves positivity of
+its Poisson branch masses is Lemma~\ref{lem:sg:cascade-conditional}.
 \end{lemma}
 \begin{proof}
   \leanok
@@ -4501,7 +4501,7 @@ series and the counting-measure integral follows from the Section~2.2
 ranked-atom identity, so it is not an additional hypothesis.
 This is only the base case of Lemma~2.4. The independent vertex-indexed
 model and its local positivity are described in Lemma~\ref{lem:sg:cascade-conditional};
-higher-depth unconditional finiteness remains open.
+all depths are Theorem~\ref{thm:sg:cascade-finite}.
 \end{lemma}
 \begin{proof}
   \leanok
@@ -4510,49 +4510,74 @@ integral of a zeta-Poisson counting measure, then use the depth-one mass
 recursion and the assumed equality of the two sums.
 \end{proof}
 
-\begin{remark}[Checked first-moment reduction toward Lemma 2.4]
+\begin{lemma}[Marked first-moment bound for the ranked root]\label{lem:sg:cascade-marked}
   \lean{SpinGlasses.lintegral_poisson_sum_rpow_le_of_two_tests,
         SpinGlasses.lintegral_rankedRoot_normalized_marked_positive,
         SpinGlasses.lintegral_rankedRoot_normalized_counting_positive,
-        SpinGlasses.lintegral_rankedRoot_normalized_two_tests}
-For a probability measure $P$, $0<a<\zeta<1$, a measurable random atomic
-counting measure $M$, and the two Campbell identities for
-$x\mathbf{1}_{0<x<1}$ and $x^a\mathbf{1}_{x\geq1}$, the first declaration
-bounds the $a$-moment of the positive total mass. The second declaration
-applies to independent ranked root atoms and identically distributed
-extended-nonnegative marks with probability law $\tau$; it assumes
-that $\tau$-almost every mark is finite and that a constant $0<c<\infty$
-satisfies $\int t^\zeta\,d\tau=c^\zeta$. For every measurable test $f$
-with $f(0)=0$, the expected sum of $f((u_nT_n/c).\mathrm{toReal})$
-equals its integral against the $\zeta$-Poisson intensity. These assumptions
-do not assert finiteness of the marked sum. The third declaration expresses
-this identity as an integral against one Dirac atom per rank. The fourth
-computes precisely the two small- and large-mass test integrals needed by
-the first declaration, without assuming finiteness of the marked sum.
-Constructing $c$ from the shifted-subtree moment, applying the two-test bound
-to the cascade, and the all-depth induction remain unformalized; this is not
-Lemma 2.4.
-\end{remark}
+        SpinGlasses.lintegral_rankedRoot_normalized_two_tests,
+        SpinGlasses.lintegral_rankedRoot_marked_sum_rpow_lt_top}
+  \leanok
+Let $P$ be a probability measure, $0<a<\zeta<1$, and let the root blocks be
+independent measurable Poisson blocks with $\sum_k a_k\nu_k=\mu_\zeta$. Let $u_n$ be
+the $n$-th largest atom of their counting measure and let $(T_n)_n$ be
+extended-nonnegative marks, independent of the root blocks, each with law $\tau$,
+such that $\int t^\zeta\,d\tau<\infty$ and, almost surely, every $T_n$ is nonzero and
+every $u_n$ is positive and finite. Then
+$\mathbb E\big(\sum_n u_nT_n\big)^a<\infty$.
+\end{lemma}
+\begin{proof}
+  \leanok
+Put $c=(\int t^\zeta\,d\tau)^{1/\zeta}\in(0,\infty)$, so that $\int t^\zeta d\tau=c^\zeta$.
+Almost surely the points $u_nT_n/c$ are positive and finite, so the
+counting measure with one atom at each of them has the same positive-part mass
+as $\sum_n u_nT_n/c$. By the rank-to-counting-measure identity, independent-mark Tonelli
+and the root Campbell formula, the expectation of any test vanishing at $0$ against this
+counting measure is its integral against $\mu_\zeta$; the dilation $x\mapsto xt/c$ is
+absorbed by the homogeneity of $\mu_\zeta$ and $\mathbb E(T/c)^\zeta=1$. The tests
+$x\mathbf 1_{0<x<1}$ and $x^a\mathbf 1_{x\ge1}$ give the constants $\zeta/(1-\zeta)$
+and $\zeta/(\zeta-a)$, and the two-test form of Lemma~2.1 bounds the
+$a$-th moment of $\sum_nu_nT_n/c$ by $1+\zeta/(1-\zeta)+\zeta/(\zeta-a)$.
+Multiply by $c^a$. The rank equivalence between ranked and unranked atoms is chosen
+pointwise in the sample, never as a measurable random permutation.
+\end{proof}
 
-\begin{remark}[Full target for Lemma 2.4]
-For every depth $r$, let $P$ be a probability measure and let all the measurable
-vertex-indexed Poisson blocks $B_{(p,\gamma),k}$ be jointly independent, with
-laws $\mathrm{Po}(a_{p,k})\otimes\nu_{p,k}^{\otimes\mathbb N}$.
-Assume $0<\zeta_p<1$, $\zeta_p<\zeta_{p+1}$, and
-$\sum_k a_{p,k}\nu_{p,k}=\mu_{\zeta_p}$ for each $p$. Define
-$u_{(p,\gamma),m}$ as the $m$-th largest atom of the vertex counting measure
-and $w_\alpha$ as the product of these masses along the path to $\alpha$.
-The desired unconditional conclusion, under the full hypotheses above
-including strict increase of the exponents, is that for every $r\in\mathbb N$,
-$\sum_{\alpha\in\mathbb N^r}w_\alpha<\infty$ almost surely and the
-normalized weights are positive and sum to one almost surely. This conclusion is not yet formalized
-for arbitrary $r$: the available higher-depth normalization assumes a marked
-sum estimate equivalent to the missing finiteness conclusion.
-\end{remark}
+\begin{theorem}[Lemma 2.4 (Ruelle probability cascade total mass)]
+  \label{thm:sg:cascade-finite}
+  \lean{SpinGlasses.lintegral_tsum_cascadeBranchWeight_rpow_lt_top,
+        SpinGlasses.ae_cascadeRankedMass_lt_top,
+        SpinGlasses.ae_cascadeRankedMass_div_probability}
+  \leanok
+Let $P$ be a probability measure and let the measurable Poisson blocks
+$B_{(p,\gamma),k}$, indexed by vertices $(p,\gamma)$, $p\in\mathbb N$,
+$\gamma\in\mathbb N^p$, and block numbers $k$, be jointly independent with laws
+$\mathrm{Po}(a_{p,k})\otimes\nu_{p,k}^{\otimes\mathbb N}$, where
+$\sum_ka_{p,k}\nu_{p,k}=\mu_{\zeta_p}$, $0<\zeta_p<1$ and $\zeta_p<\zeta_{p+1}$.
+Let $u_{(p,\gamma),m}$ be the $m$-th largest atom of the counting measure of the
+blocks of $(p,\gamma)$ and $w_\alpha=\prod_i u_{\alpha|_i,\alpha_i}$. Then for every
+depth $r$ and every $0<a<\zeta_0$, $\mathbb E\big(\sum_{\alpha\in\mathbb N^r}w_\alpha\big)^a<\infty$;
+consequently $\sum_{\alpha\in\mathbb N^r}w_\alpha<\infty$ almost surely, and almost surely
+the normalized weights $w_\alpha/\sum_\beta w_\beta$ are positive and sum to $1$.
+\end{theorem}
+\begin{proof}
+  \leanok
+Induction on $r$ for the moment statement, for all parameter families at once. At $r=0$
+the mass is $1$. For the step, the first-level recursion writes the depth-$(r+1)$ mass as
+$\sum_nu_{\emptyset,n}T_n$, where $T_n$ is the depth-$r$ mass of the cascade rooted at the
+$n$-th child. That cascade has the shifted exponents $(\zeta_{p+1})_p$, and
+$\zeta_0<\zeta_1$, so the induction hypothesis with $a=\zeta_0$ gives
+$\mathbb E\,T_n^{\zeta_0}<\infty$; by Lemma~\ref{lem:sg:cascade-conditional} the $T_n$ are
+independent of the root blocks and identically distributed, so
+Lemma~\ref{lem:sg:cascade-marked} applies. Positivity of all atoms and of the totals is
+the local positivity of the vertex model. Finiteness of the mass follows because a finite
+$a$-th moment forces the mass to be finite almost surely. The normalized statement is the deterministic
+normalization of Lemma~\ref{lem:sg:cascade-tree}-type given finite, positive masses.
+Theorem~2.6 is not needed for this step.
+\end{proof}
 
-\begin{lemma}[Lemma 2.4 (open): vertex model and conditional higher-depth step]
+\begin{lemma}[Independent vertex model]
   \label{lem:sg:cascade-conditional}
   \lean{SpinGlasses.measurable_tsum_cascadeRankedMass,
+        SpinGlasses.measurable_cascadeBlocksTotal,
         SpinGlasses.iIndepFun_cascadeVertexBlocks,
         SpinGlasses.cascadeSubtree_index_injective,
         ProbabilityTheory.HasLaw.infinitePi,
@@ -4564,14 +4589,9 @@ sum estimate equivalent to the missing finiteness conclusion.
         SpinGlasses.iIndepFun_cascadeChildBlocks,
         SpinGlasses.hasLaw_cascadeChildBlockArray,
         SpinGlasses.hasLaw_cascadeChildTotal,
-        SpinGlasses.hasLaw_cascadeRoot_subtreeTotals_prod,
-        SpinGlasses.hasLaw_rankedRoot_independent_marks,
         SpinGlasses.lintegral_ranked_independent_marks,
-        SpinGlasses.lintegral_cascadeRoot_independent_subtreeTotals,
         SpinGlasses.ae_cascadeRankedMass_pos_finite,
         SpinGlasses.ae_cascadeRankedMass_one_lt_top,
-        SpinGlasses.tsum_mul_le_tsum_add_tsum_mul,
-        SpinGlasses.exists_tsum_ranked_mul_eq_tsum_active_mul,
         SpinGlasses.tsum_comp_nthLargestAtom_sum_dirac,
         SpinGlasses.tsum_comp_nthLargestAtom_sum_dirac_ennreal,
         SpinGlasses.lintegral_poissonCountingMeasure_singletons,
@@ -4583,92 +4603,35 @@ sum estimate equivalent to the missing finiteness conclusion.
         SpinGlasses.lintegral_rankedRoot_marked_campbell,
         SpinGlasses.lintegral_zetaPoissonMeasure_mul_ennreal,
         SpinGlasses.lintegral_zetaPoissonMeasure_mul_mark_positive,
-        SpinGlasses.lintegral_zetaPoissonMeasure_normalized_marks_positive,
-        SpinGlasses.ae_cascadeRankedMass_lt_top_of_marked_step,
-        SpinGlasses.ae_cascadeRankedMass_div_probability_of_marked_step}
+        SpinGlasses.lintegral_zetaPoissonMeasure_normalized_marks_positive}
   \leanok
 Let $P$ be a probability measure on a measurable space $\Omega$. Index every
-vertex by $(p,\gamma)$ with $p\in\mathbb N$ and $\gamma\in\mathbb N^p$.
-Let $\zeta:\mathbb N\to\mathbb R$ satisfy $0<\zeta_p<1$; to perform the
-probabilistic induction one additionally needs $\zeta_p<\zeta_{p+1}$.
-For each vertex and block number $k$, let $B_{(p,\gamma),k}$ be a measurable
-Poisson block, with count rate $a_{p,k}$ and i.i.d. point law $\nu_{p,k}$.
-Assume the entire family indexed by (vertex, block number) is independent,
-each block has its specified Poisson product law, and
-$\sum_k a_{p,k}\nu_{p,k}=\mu_{\zeta_p}$. Restriction of global independence to a vertex or to all the blocks in
-first-child subtrees uses injective precomposition: the map sending a child label $n$, a vertex $(p,\gamma)$ of the shifted tree and a block number $k$ to the vertex $(p+1,(n,\gamma))$ and block number $k$ of the whole tree is injective (\texttt{cascadeSubtree\_index\_injective}), because the successor is injective and consing is injective in both arguments. Whenever coordinates are independent, measurable, and have prescribed marginal laws, their joint law is the infinite product of the marginals (\texttt{HasLaw.infinitePi}, a general fact used for the root block array, for each shifted block array and for the vector of child totals). A product-valued
-independence lemma then proves that the \emph{whole arrays} below distinct
-children are independent. Consequently, their depth-$r$ totals are
-independent, and the root block array is independent of the whole vector of
-subtree totals. Each child block array has the law of the canonical independent
-block array with level parameters shifted by one; applying the measurable total
-mass to this equality also gives the shifted law of each child total. Thus
-child totals are identically distributed as well as independent. More
-precisely, the joint law of the root block array and the entire child-total
-vector is the product of the canonical root block-array law and the infinite
-product of the canonical shifted-total law. This is proved without assuming
-finite total mass. More generally, for any measurable mark vector independent
-of the root block array, ranking the root atoms preserves the product law
-with that vector. This does not construct independently marked Poisson blocks.
-A separate Tonelli identity, specialized to these vertex blocks, shows that
-for every measurable nonnegative $g$, the expected sum of
-$g(u_{\emptyset,n},T_n)$ equals the expected sum of
-$\int g(u_{\emptyset,n},t)\,\tau(dt)$, where $T_n$ is the depth-$r$
-child total and $\tau$ is its common law. This does not require any
-finiteness of the child totals or the weighted series.
-The pointwise rank-to-counting-measure step is proved almost surely for every
-fixed measurable nonnegative test: active root points are positive, distinct,
-infinite in number, and summable under the specified intensity and independent
-block laws. The rank equivalence is only pointwise, not a measurable permutation.
-Combining this reindexing with independent-mark Tonelli and root Campbell
-proves the expected marked-sum identity for every measurable nonnegative
-two-variable test and every common probability law of the independent marks.
-The dilation identity for a strictly positive finite extended-nonnegative
-mark is formalized using homogeneity of the zeta intensity. For measurable
-tests vanishing at zero, its mark-law integral is also established for finite
-marks that may equal zero; the law need not have a finite power moment.
-For a positive finite scaling constant whose zeta power equals the finite
-mark moment, the normalized intensity identity is proved for tests vanishing
-at zero. Its counting-measure form (one atom per rank) and the two precise
-tests required by Lemma~2.1 are also checked. Proving that the actual subtree
-law has the required finite moment, applying the moment estimate, the
-depth-two case, and unconditional Lemma~2.4 remain open. The corresponding
-identity for arbitrary tests is false if the law has a zero mark: infinitely
-many zero atoms then contribute to a test nonzero at zero.
-No rescaled Poisson-sum law is required by the proposed first-moment moment
-induction.
-The child mass is
-the $m$-th largest atom of the vertex counting measure. The code proves all
-child masses are positive and finite simultaneously, and proves that the
-depth-one total mass is finite almost surely. A separate conditional theorem
-identifies, at any depth $r$, the required root-child-weighted sum of depth-$r$
-subtree totals with the depth-$(r+1)$ mass, and deduces positive normalized
-probability weights if that sum is finite almost surely. This assumption is
-equivalent to the positive-depth finiteness conclusion; it is a proof interface,
-not a probabilistic induction. A separate deterministic inequality bounds a
-weighted sum of subtree totals by the unmarked root total plus a weighted
-excess, provided each subtree total is bounded by one plus its excess.
-This inequality carries no stochastic moment or finiteness assertion.
-A further pointwise lemma reindexes a weighted sum of ranked, positive,
-distinct and summable atoms by their original active indices. For every
-measurable nonnegative test function, another lemma equates its series over
-the ranked real atoms with its integral against the original sum of Dirac
-masses. A companion lemma reindexes arbitrary nonnegative tests on extended
-ranked atom masses; another identifies the integral of a measurable test
-against one Dirac point per block with the series of its values. These results
-are deterministic; the rank equivalence is only pointwise, not a measurable
-random permutation. Independent-mark Campbell and the normalized first-moment identity for
-positive tests on the scaled real-valued marked measure are established;
-the depth-two case and the moment induction remain unformalized.
-\emph{This is not the unconditional Lemma 2.4:} the assumed marked-sum estimate
-is precisely the missing probabilistic step. In particular, the displayed
-hypotheses now include independence of blocks across different vertices,
-and independence of subtree totals from root blocks is proved, but the
-conditional theorem does not infer the required scaled-intensity identity
-or a fractional moment bound for shifted subtree totals. The proposed all-depth model uses
-one infinite exponent list; each finite strictly increasing list ending below
-$1$ can be extended to one approaching $1$, but that extension has not been
-formalized.
+vertex by $(p,\gamma)$ with $p\in\mathbb N$ and $\gamma\in\mathbb N^p$, and let
+$B_{(p,\gamma),k}$ be measurable Poisson blocks with count rates $a_{p,k}$ and i.i.d.
+point laws $\nu_{p,k}$, jointly independent over (vertex, block number), with
+$\sum_k a_{p,k}\nu_{p,k}=\mu_{\zeta_p}$ and $0<\zeta_p<1$. Then:
+(i) the blocks of one vertex, and the blocks of all vertices below distinct root children,
+are independent; restriction uses injective precomposition, the map sending a child label $n$,
+a vertex $(p,\gamma)$ of the shifted tree and a block number $k$ to the vertex
+$(p+1,(n,\gamma))$ and block number $k$ being injective
+(\texttt{cascadeSubtree\_index\_injective}); (ii) coordinates that are independent,
+measurable with prescribed marginals have the infinite product of the marginals as joint law
+(\texttt{HasLaw.infinitePi}); (iii) the whole block arrays below distinct children are independent,
+so their depth-$r$ totals are independent, and the root block array is independent of the vector of
+totals; (iv) each child array has the law of the canonical block array with parameters shifted by one,
+so the child totals are identically distributed, with a law that is the same measurable image
+of the shifted canonical law; (v) all child masses (ranked atoms) are positive and finite simultaneously, and the
+depth-one total mass is finite almost surely. None of this assumes a finite total mass.
+
+For independently marked ranked root atoms, the pointwise rank-to-counting-measure
+step holds almost surely for every measurable nonnegative test (active root points are positive,
+distinct, infinite in number and summable), with the rank equivalence chosen pointwise and not
+measurably in the sample. With independent-mark Tonelli and the root Campbell formula,
+this gives the expected marked-sum identity for every measurable nonnegative two-variable test
+and every common law of the marks. The dilation identity for a positive finite mark follows from
+homogeneity of the zeta intensity; for tests vanishing at zero it also holds for marks that
+may be zero. The corresponding identity for arbitrary tests is false if the law has a zero mark,
+since infinitely many zero atoms then contribute to a test not vanishing at zero.
 \end{lemma}
 
 \begin{definition}[Cascade point]\label{def:sg:cascade-point}
