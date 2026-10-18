@@ -55,4 +55,22 @@ theorem infinitePi_prod_map_zip (μ : ι → Measure X) (ν : ι → Measure Y)
     Measure.pi_pi]
   exact Finset.prod_coe_sort s fun i => ((μ i).prod (ν i)) (t i)
 
+/-- Associating an outer factor with the coordinatewise pairing of two infinite products. -/
+theorem prod_infinitePi_map_assoc_zip {A : Type*} [MeasurableSpace A] (μ : Measure A)
+    [SFinite μ] (ν₁ : ι → Measure X) (ν₂ : ι → Measure Y)
+    [∀ i, IsProbabilityMeasure (ν₁ i)] [∀ i, IsProbabilityMeasure (ν₂ i)] :
+    ((μ.prod (infinitePi ν₁)).prod (infinitePi ν₂)).map
+        (fun p => (p.1.1, fun i => (p.1.2 i, p.2 i))) =
+      μ.prod (infinitePi fun i => (ν₁ i).prod (ν₂ i)) := by
+  have hz : Measurable fun p : (ι → X) × (ι → Y) => fun i => (p.1 i, p.2 i) :=
+    measurable_pi_iff.2 fun i => ((measurable_pi_apply i).comp measurable_fst).prodMk
+      ((measurable_pi_apply i).comp measurable_snd)
+  have hassoc := measurePreserving_prodAssoc μ (infinitePi ν₁) (infinitePi ν₂)
+  have hmap := Measure.map_prod_map μ ((infinitePi ν₁).prod (infinitePi ν₂))
+    (f := id) (g := fun p : (ι → X) × (ι → Y) => fun i => (p.1 i, p.2 i)) measurable_id hz
+  rw [infinitePi_prod_map_zip ν₁ ν₂, Measure.map_id] at hmap
+  rw [hmap, ← hassoc.map_eq, Measure.map_map (measurable_id.prodMap hz)
+    MeasurableEquiv.prodAssoc.measurable]
+  rfl
+
 end MeasureTheory.Measure

@@ -93,8 +93,8 @@ end MeasureTheory.Measure
 
 namespace ProbabilityTheory
 
-variable {Ω ι 𝒜 Θ ℰ F : Type*} [MeasurableSpace Ω] [MeasurableSpace 𝒜] [MeasurableSpace Θ]
-  [MeasurableSpace ℰ] [MeasurableSpace F]
+variable {Ω ι 𝒜 Θ ℰ F 𝒴 : Type*} [MeasurableSpace Ω] [MeasurableSpace 𝒜] [MeasurableSpace Θ]
+  [MeasurableSpace ℰ] [MeasurableSpace F] [MeasurableSpace 𝒴]
 
 /-- **Conditional replacement.** Let `A` be a random parameter and `(Eⱼ)` an i.i.d. family
 independent of `A`. A measurable functional of `(A, (Φ(θⱼ(A), Eⱼ))ⱼ)` has the same law when `Φ` is
@@ -105,7 +105,7 @@ theorem identDistrib_map_replace {P : Measure Ω} [IsProbabilityMeasure P] (A : 
     (hAE : IndepFun A (fun ω j => E j ω) P) (θ : 𝒜 → ι → Θ) (hθ : Measurable θ)
     (Φ Ψ : Θ → ℰ → F) (hΦ : Measurable (Function.uncurry Φ))
     (hΨ : Measurable (Function.uncurry Ψ)) (h : ∀ t, ν.map (Φ t) = ν.map (Ψ t))
-    (G : 𝒜 × (ι → F) → ENNReal) (hG : Measurable G) :
+    (G : 𝒜 × (ι → F) → 𝒴) (hG : Measurable G) :
     IdentDistrib (fun ω => G (A ω, fun j => Φ (θ (A ω) j) (E j ω)))
       (fun ω => G (A ω, fun j => Ψ (θ (A ω) j) (E j ω))) P P := by
   have hEvec : Measurable fun ω j => E j ω := measurable_pi_iff.2 hEm
@@ -136,9 +136,9 @@ theorem identDistrib_map_replace {P : Measure Ω} [IsProbabilityMeasure P] (A : 
 /-- Two functions factoring through a random element `pair` with law `M` are identically
 distributed when the two factors have the same image law under `M`. -/
 theorem identDistrib_of_hasLaw_map_eq {T : Type*} [MeasurableSpace T] {P : Measure Ω}
-    {pair : Ω → T} {M : Measure T} (hp : HasLaw pair M P) {F₁ F₂ : T → ENNReal}
+    {pair : Ω → T} {M : Measure T} (hp : HasLaw pair M P) {F₁ F₂ : T → 𝒴}
     (h₁ : Measurable F₁) (h₂ : Measurable F₂) (hmap : M.map F₁ = M.map F₂)
-    {f₁ f₂ : Ω → ENNReal} (hf₁ : ∀ ω, f₁ ω = F₁ (pair ω))
+    {f₁ f₂ : Ω → 𝒴} (hf₁ : ∀ ω, f₁ ω = F₁ (pair ω))
     (hf₂ : f₂ =ᵐ[P] fun ω => F₂ (pair ω)) (hm₁ : AEMeasurable f₁ P)
     (hm₂ : AEMeasurable f₂ P) : IdentDistrib f₁ f₂ P P := by
   refine ⟨hm₁, hm₂, ?_⟩

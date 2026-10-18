@@ -76,28 +76,6 @@ theorem map_tsum_active_mul_eq_map_tsum_ranked_mul
         (fun y' : ℕ → ℕ → T => fun n : ℕ => y' (e.symm n).1.1 (e.symm n).1.2)
     from funext hsum, ← Measure.map_map hF hm, h1]
 
-/-- Marking the points of one Poisson block by an independent i.i.d. array of marks. -/
-theorem map_prod_infinitePi_blockMarks {X : Type*} [MeasurableSpace X] (π : Measure ℕ)
-    (ν : Measure X) [IsProbabilityMeasure ν] (τ : Measure T)
-    [IsProbabilityMeasure τ] :
-    (((π.prod (Measure.infinitePi fun _ : ℕ => ν)).prod
-        (Measure.infinitePi fun _ : ℕ => τ)).map
-      (fun p => (p.1.1, fun l => (p.1.2 l, p.2 l)))) =
-      π.prod (Measure.infinitePi fun _ : ℕ => ν.prod τ) := by
-  have hz : Measurable fun p : (ℕ → X) × (ℕ → T) => fun l => (p.1 l, p.2 l) :=
-    measurable_pi_iff.2 fun l => ((measurable_pi_apply l).comp measurable_fst).prodMk
-      ((measurable_pi_apply l).comp measurable_snd)
-  have hassoc := (measurePreserving_prodAssoc π (Measure.infinitePi fun _ : ℕ => ν)
-    (Measure.infinitePi fun _ : ℕ => τ))
-  have hmap := Measure.map_prod_map π ((Measure.infinitePi fun _ : ℕ => ν).prod
-    (Measure.infinitePi fun _ : ℕ => τ)) (f := id) (g := fun p : (ℕ → X) × (ℕ → T) =>
-      fun l => (p.1 l, p.2 l)) measurable_id hz
-  rw [Measure.infinitePi_prod_map_zip (fun _ : ℕ => ν) (fun _ : ℕ => τ), Measure.map_id]
-    at hmap
-  rw [hmap, ← hassoc.map_eq, Measure.map_map (measurable_id.prodMap hz)
-    MeasurableEquiv.prodAssoc.measurable]
-  rfl
-
 /-- Marking the points of all blocks of an independent family of Poisson blocks by an
 independent i.i.d. array of marks. -/
 theorem map_prod_infinitePi_allBlockMarks {X : Type*} [MeasurableSpace X]
@@ -120,7 +98,7 @@ theorem map_prod_infinitePi_allBlockMarks {X : Type*} [MeasurableSpace X]
       (Measure.infinitePi fun _ : ℕ => τ))
     (f := fun _ w => ((w.1.1, fun l => (w.1.2 l, w.2 l)) : ℕ × (ℕ → X × T)))
     (fun _ => hblock)
-  simp only [map_prod_infinitePi_blockMarks] at hpi
+  simp only [Measure.prod_infinitePi_map_assoc_zip] at hpi
   rw [← hpi, ← hzip, Measure.map_map]
   · rfl
   · exact measurable_pi_iff.2 fun k => hblock.comp (measurable_pi_apply k)

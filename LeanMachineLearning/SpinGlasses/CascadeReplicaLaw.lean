@@ -217,9 +217,9 @@ theorem hasLaw_cascadeRoot_marks {Ω : Type*} [MeasurableSpace Ω] {P : Measure 
           ((Measure.infinitePi fun v : Σ p : ℕ, Fin p → ℕ => 𝔡 (v.1 + 1)).map Y))) P := by
   have hjoint := hasLaw_cascadeRoot_subtreeData D hDm hD 𝔡 hDlaw
   rw [h𝔡₀] at hjoint
-  have hzip := map_prod_prod_zip (Measure.infinitePi fun k =>
-      Po(rate₀ k).prod (Measure.infinitePi fun _ : ℕ => nu₀ k)) ρ
-    (Measure.infinitePi fun v : Σ p : ℕ, Fin p → ℕ => 𝔡 (v.1 + 1))
+  have hzip := Measure.prod_infinitePi_map_assoc_zip (Measure.infinitePi fun k =>
+      Po(rate₀ k).prod (Measure.infinitePi fun _ : ℕ => nu₀ k)) (fun _ : ℕ => ρ)
+    (fun _ : ℕ => Measure.infinitePi fun v : Σ p : ℕ, Fin p → ℕ => 𝔡 (v.1 + 1))
   set μ := Measure.infinitePi fun k =>
     Po(rate₀ k).prod (Measure.infinitePi fun _ : ℕ => nu₀ k) with hμ
   set σ := Measure.infinitePi fun v : Σ p : ℕ, Fin p → ℕ => 𝔡 (v.1 + 1) with hσ

@@ -99,26 +99,6 @@ theorem lintegral_prod_rpow_exp_mul {ζ : ℝ} (hζ : 0 < ζ) (ρ : Measure Ξ) 
     ← ofReal_integral_eq_lintegral_ofReal hint (Filter.Eventually.of_forall fun θ =>
       (Real.exp_pos _).le)]
 
-/-- Pairing the label and subtree coordinates: `((b, λ), s) ↦ (b, (λₙ, sₙ))`. -/
-theorem map_prod_prod_zip {A : Type*} [MeasurableSpace A] (μ : Measure A) [IsProbabilityMeasure μ]
-    (ρ : Measure Ξ) [IsProbabilityMeasure ρ] (σ : Measure S) [IsProbabilityMeasure σ] :
-    ((μ.prod (Measure.infinitePi fun _ : ℕ => ρ)).prod (Measure.infinitePi fun _ : ℕ => σ)).map
-      (fun p => (p.1.1, fun n => (p.1.2 n, p.2 n))) =
-    μ.prod (Measure.infinitePi fun _ : ℕ => ρ.prod σ) := by
-  have hz : Measurable fun p : (ℕ → Ξ) × (ℕ → S) => fun n => (p.1 n, p.2 n) :=
-    measurable_pi_iff.2 fun n => ((measurable_pi_apply n).comp measurable_fst).prodMk
-      ((measurable_pi_apply n).comp measurable_snd)
-  have hassoc := measurePreserving_prodAssoc μ (Measure.infinitePi fun _ : ℕ => ρ)
-    (Measure.infinitePi fun _ : ℕ => σ)
-  have hmap := Measure.map_prod_map μ ((Measure.infinitePi fun _ : ℕ => ρ).prod
-    (Measure.infinitePi fun _ : ℕ => σ)) (f := id) (g := fun p : (ℕ → Ξ) × (ℕ → S) =>
-      fun n => (p.1 n, p.2 n)) measurable_id hz
-  rw [Measure.infinitePi_prod_map_zip (fun _ : ℕ => ρ) (fun _ : ℕ => σ), Measure.map_id]
-    at hmap
-  rw [hmap, ← hassoc.map_eq, Measure.map_map (measurable_id.prodMap hz)
-    MeasurableEquiv.prodAssoc.measurable]
-  rfl
-
 /-- **The root step of Theorem 2.9.** Let the ranked masses `uₙ` of ζ-Poisson blocks be marked by
 i.i.d. labels `λₙ ~ ρ` and i.i.d. subtree data `sₙ ~ σ`. Suppose that for every label `θ` the
 subtree quantity `Φ(θ, s)` has the law of `exp (h θ) V(s)`, with `V` positive and
@@ -149,7 +129,7 @@ theorem map_root_sum_parisi {ζ : ℝ} (hζ0 : 0 < ζ) (hζ1 : ζ < 1)
   rw [map_root_sum_replace nu rate ρ σ Φ _ hΦ hΨ hlaw]
   set 𝓑 := Measure.infinitePi fun k => Po(rate k).prod (Measure.infinitePi fun _ : ℕ => nu k)
     with h𝓑
-  have hzip := map_prod_prod_zip 𝓑 ρ σ
+  have hzip := Measure.prod_infinitePi_map_assoc_zip 𝓑 (fun _ : ℕ => ρ) (fun _ : ℕ => σ)
   -- moments of the two marks
   have hXpos : ∀ᵐ y ∂ρ.prod σ, 0 < Real.exp (h y.1) * V y.2 := by
     filter_upwards [Measure.quasiMeasurePreserving_snd.ae hVpos] with y hy
