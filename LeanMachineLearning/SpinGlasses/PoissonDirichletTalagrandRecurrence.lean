@@ -188,9 +188,7 @@ theorem integral_partition_fresh_eq {N : ℕ} {K : Type} [Fintype K] [DecidableE
       exact hgw hw0 hw.summable
     rw [hl, hr]
     exact hIH (Fin N) (Fintype.card_fin N) K' g hg
-  have hN : (N : ℝ) ≠ 0 := by
-    have : 0 < N := Fin.pos r₀
-    positivity
+  have hN : (N : ℝ) ≠ 0 := Nat.cast_ne_zero.mpr (Fin.pos r₀).ne'
   apply mul_left_cancel₀ hN
   rw [h1, h2, hbase, Finset.sum_congr rfl hsum]
 

@@ -5,6 +5,7 @@ public import LeanMachineLearning.ForMathlib.Analysis.Calculus.Gradient.Basic
 public import LeanMachineLearning.ForMathlib.Analysis.Cesaro
 public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.GramIsometry
 public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.ProjectionDistance
+public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.UltrametricEmbed
 public import LeanMachineLearning.ForMathlib.Analysis.RpowTsum
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.LogRpow
 public import LeanMachineLearning.ForMathlib.Analysis.Subadditive

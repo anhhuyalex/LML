@@ -6,6 +6,7 @@ Authors: LML contributors
 module
 
 public import LeanMachineLearning.SpinGlasses.PoissonDirichlet
+public import Mathlib.Data.Fin.Tuple.Take
 public import Mathlib.Data.Nat.Find
 
 /-!
@@ -21,80 +22,56 @@ namespace SpinGlasses
 
 open ENNReal
 
-/-- Restrict a leaf to its first `p` coordinates. -/
-def cascadePrefix {r p : ℕ} (hp : p ≤ r) (α : Fin r → ℕ) : Fin p → ℕ :=
-  fun i => α (Fin.castLE hp i)
-
-@[simp] theorem cascadePrefix_self {r : ℕ} (α : Fin r → ℕ) :
-    cascadePrefix (le_refl r) α = α := by
-  funext i
-  rfl
-
 /-- The longest common prefix, with values from `0` through `r`. -/
-def prefixOverlap {r : ℕ} (α β : Fin r → ℕ) : Fin (r + 1) :=
+def prefixOverlap {ι : Type*} [DecidableEq ι] {r : ℕ} (α β : Fin r → ι) : Fin (r + 1) :=
   ⟨Nat.findGreatest (fun p => ∀ i : Fin r, i.val < p → α i = β i) r,
     Nat.lt_succ_of_le (Nat.findGreatest_le r)⟩
 
+variable {ι : Type*} [DecidableEq ι]
+
 /-- All coordinates before the overlap agree. -/
-theorem prefixOverlap_agree {r : ℕ} (α β : Fin r → ℕ) (i : Fin r)
-    (hi : i.val < (prefixOverlap α β).val) : α i = β i := by
-  exact Nat.findGreatest_spec (P := fun p => ∀ j : Fin r,
-    j.val < p → α j = β j) (Nat.zero_le r) (by simp) i hi
+theorem prefixOverlap_agree {r : ℕ} (α β : Fin r → ι) (i : Fin r)
+    (hi : i.val < (prefixOverlap α β).val) : α i = β i :=
+  Nat.findGreatest_spec (P := fun p => ∀ j : Fin r, j.val < p → α j = β j)
+    (Nat.zero_le r) (by simp) i hi
 
 /-- An agreeing prefix is no longer than the maximal agreeing prefix. -/
-theorem le_prefixOverlap {r : ℕ} (α β : Fin r → ℕ) (p : ℕ) (hp : p ≤ r)
-    (h : ∀ i : Fin r, i.val < p → α i = β i) : p ≤ (prefixOverlap α β).val := by
-  exact Nat.le_findGreatest hp h
+theorem le_prefixOverlap {r : ℕ} (α β : Fin r → ι) (p : ℕ) (hp : p ≤ r)
+    (h : ∀ i : Fin r, i.val < p → α i = β i) : p ≤ (prefixOverlap α β).val :=
+  Nat.le_findGreatest hp h
 
-@[simp] theorem prefixOverlap_self {r : ℕ} (α : Fin r → ℕ) :
-    prefixOverlap α α = ⟨r, Nat.lt_succ_self r⟩ := by
-  apply Fin.ext
-  exact Nat.le_antisymm (Nat.findGreatest_le r)
+@[simp] theorem prefixOverlap_self {r : ℕ} (α : Fin r → ι) :
+    prefixOverlap α α = Fin.last r :=
+  Fin.ext <| Nat.le_antisymm (Nat.findGreatest_le r)
     (le_prefixOverlap α α r le_rfl (by simp))
 
-theorem prefixOverlap_comm {r : ℕ} (α β : Fin r → ℕ) :
+theorem prefixOverlap_comm {r : ℕ} (α β : Fin r → ι) :
     prefixOverlap α β = prefixOverlap β α := by
-  apply Fin.ext
-  apply Nat.le_antisymm
-  · exact le_prefixOverlap β α _ (Fin.le_last _) (fun i hi =>
-      (prefixOverlap_agree α β i hi).symm)
-  · exact le_prefixOverlap α β _ (Fin.le_last _) (fun i hi =>
-      (prefixOverlap_agree β α i hi).symm)
+  refine Fin.ext (Nat.le_antisymm ?_ ?_)
+  · exact le_prefixOverlap β α _ (Fin.le_last _) fun i hi =>
+      (prefixOverlap_agree α β i hi).symm
+  · exact le_prefixOverlap α β _ (Fin.le_last _) fun i hi =>
+      (prefixOverlap_agree β α i hi).symm
 
 /-- Common-prefix depth obeys the reverse ultrametric triangle inequality. -/
-theorem prefixOverlap_min_le {r : ℕ} (α β γ : Fin r → ℕ) :
+theorem prefixOverlap_min_le {r : ℕ} (α β γ : Fin r → ι) :
     min (prefixOverlap α γ) (prefixOverlap β γ) ≤ prefixOverlap α β := by
-  apply Fin.le_iff_val_le_val.mpr
-  apply le_prefixOverlap α β _ (le_trans (Nat.min_le_left _ _) (Fin.le_last _))
-  intro i hi
-  exact (prefixOverlap_agree α γ i (lt_of_lt_of_le hi (Nat.min_le_left _ _))).trans
-    (prefixOverlap_agree β γ i (lt_of_lt_of_le hi (Nat.min_le_right _ _))).symm
+  refine Fin.le_iff_val_le_val.mpr
+    (le_prefixOverlap α β _ (le_trans (Nat.min_le_left _ _) (Fin.le_last _)) fun i hi => ?_)
+  exact (prefixOverlap_agree α γ i (hi.trans_le (Nat.min_le_left _ _))).trans
+    (prefixOverlap_agree β γ i (hi.trans_le (Nat.min_le_right _ _))).symm
 
-/-- A prefix agrees precisely when its length does not exceed the overlap. -/
-theorem cascadePrefix_eq_iff_le_overlap {r p : ℕ} (hp : p ≤ r)
-    (α β : Fin r → ℕ) :
-    cascadePrefix hp α = cascadePrefix hp β ↔ p ≤ (prefixOverlap α β).val := by
-  constructor
-  · intro h
-    apply le_prefixOverlap α β p hp
-    intro i hi
-    exact congrFun h ⟨i.val, hi⟩
-  · intro h
-    funext i
-    exact prefixOverlap_agree α β _ (lt_of_lt_of_le i.isLt h)
-
-/-- Vertices sharing a prefix at level `p` also share all preceding prefixes. -/
-theorem cascadePrefix_eq_of_le {r p k : ℕ} (hp : p ≤ r) (hk : k ≤ p)
-    (α β : Fin r → ℕ) (h : cascadePrefix hp α = cascadePrefix hp β) :
-    cascadePrefix (hk.trans hp) α = cascadePrefix (hk.trans hp) β := by
-  apply (cascadePrefix_eq_iff_le_overlap (hk.trans hp) α β).2
-  exact hk.trans ((cascadePrefix_eq_iff_le_overlap hp α β).1 h)
+/-- The first `p` coordinates of two leaves agree precisely when `p` does not exceed
+their overlap. -/
+theorem take_eq_take_iff_le_prefixOverlap {r p : ℕ} (hp : p ≤ r) (α β : Fin r → ι) :
+    Fin.take p hp α = Fin.take p hp β ↔ p ≤ (prefixOverlap α β).val := by
+  refine ⟨fun h => le_prefixOverlap α β p hp fun i hi => congrFun h ⟨i.val, hi⟩, fun h => ?_⟩
+  exact funext fun i => prefixOverlap_agree α β _ (i.isLt.trans_le h)
 
 /-- Branch products with one multiplier for each parent and child label. -/
 noncomputable def cascadeBranchWeight (u : (p : ℕ) → (Fin p → ℕ) → ℕ → ENNReal)
     {r : ℕ} (α : Fin r → ℕ) : ENNReal :=
-  Finset.univ.prod (fun i : Fin r =>
-    u i.val (cascadePrefix (Nat.le_of_lt i.isLt) α) (α i))
+  Finset.univ.prod (fun i : Fin r => u i.val (Fin.take i.val i.isLt.le α) (α i))
 
 @[simp] theorem cascadeBranchWeight_zero
     (u : (p : ℕ) → (Fin p → ℕ) → ℕ → ENNReal) (α : Fin 0 → ℕ) :
@@ -108,16 +85,15 @@ theorem cascadeBranchWeight_snoc
     cascadeBranchWeight u (Fin.snoc α n) = cascadeBranchWeight u α * u r α n := by
   simp only [cascadeBranchWeight, Fin.prod_univ_castSucc]
   congr 1
-  · apply Finset.prod_congr rfl
-    intro i _
+  · refine Finset.prod_congr rfl fun i _ => ?_
     congr 1
     · funext j
-      have hj : j.val < r := lt_of_lt_of_le j.isLt i.isLt.le
-      simp [cascadePrefix, Fin.snoc, Fin.castLE, hj]
+      have hj : j.val < r := j.isLt.trans_le i.isLt.le
+      simp [Fin.take, Fin.snoc, Fin.castLE, hj]
     · simp
   · congr 1
     · funext j
-      simp [cascadePrefix, Fin.snoc, Fin.castLE]
+      simp [Fin.take, Fin.snoc, Fin.castLE]
     · simp
 
 /-- Strictly positive, finite branch masses give strictly positive, finite leaf weights. -/
@@ -126,141 +102,116 @@ theorem cascadeBranchWeight_pos_finite
     (hu_pos : ∀ p α n, u p α n ≠ 0)
     (hu_fin : ∀ p α n, u p α n ≠ ∞)
     {r : ℕ} (α : Fin r → ℕ) :
-    cascadeBranchWeight u α ≠ 0 ∧ cascadeBranchWeight u α ≠ ∞ := by
-  unfold cascadeBranchWeight
-  constructor
-  · apply Finset.prod_ne_zero_iff.mpr
-    intro i _
-    exact hu_pos _ _ _
-  · exact ENNReal.prod_ne_top (fun i _ => hu_fin _ _ _)
-
-/-- The total mass of all leaves at a fixed depth, including the depth-zero root. -/
-noncomputable def cascadeTotalMass (u : (p : ℕ) → (Fin p → ℕ) → ℕ → ENNReal)
-    (r : ℕ) : ENNReal :=
-  ∑' α : Fin r → ℕ, cascadeBranchWeight u α
+    cascadeBranchWeight u α ≠ 0 ∧ cascadeBranchWeight u α ≠ ∞ :=
+  ⟨Finset.prod_ne_zero_iff.mpr fun _ _ => hu_pos _ _ _,
+    ENNReal.prod_ne_top fun _ _ => hu_fin _ _ _⟩
 
 /-- The depth-zero cascade has unit total mass. -/
-@[simp] theorem cascadeTotalMass_zero
+theorem tsum_cascadeBranchWeight_zero
     (u : (p : ℕ) → (Fin p → ℕ) → ℕ → ENNReal) :
-    cascadeTotalMass u 0 = 1 := by
-  simp [cascadeTotalMass, cascadeBranchWeight_zero]
+    ∑' α : Fin 0 → ℕ, cascadeBranchWeight u α = 1 := by
+  simp [cascadeBranchWeight_zero]
+
+/-- Positive branch masses give a nonzero total mass (finiteness is not needed). -/
+theorem tsum_cascadeBranchWeight_ne_zero
+    (u : (p : ℕ) → (Fin p → ℕ) → ℕ → ENNReal)
+    (hu_pos : ∀ p α n, u p α n ≠ 0) (r : ℕ) :
+    ∑' α : Fin r → ℕ, cascadeBranchWeight u α ≠ 0 := fun h =>
+  (Finset.prod_ne_zero_iff.mpr fun _ _ => hu_pos _ _ _ : cascadeBranchWeight u
+    (fun _ : Fin r => 0) ≠ 0)
+    (nonpos_iff_eq_zero.mp (h ▸ ENNReal.le_tsum (f := cascadeBranchWeight u) _))
 
 /-- The last-level total mass is the parent-weighted sum of its children's masses. -/
-theorem cascadeTotalMass_succ
+theorem tsum_cascadeBranchWeight_succ
     (u : (p : ℕ) → (Fin p → ℕ) → ℕ → ENNReal) (r : ℕ) :
-    cascadeTotalMass u (r + 1) =
+    ∑' α : Fin (r + 1) → ℕ, cascadeBranchWeight u α =
       ∑' α : Fin r → ℕ, cascadeBranchWeight u α * (∑' n, u r α n) := by
-  classical
-  simp only [cascadeTotalMass]
   rw [← (Fin.snocEquiv (fun _ : Fin (r + 1) => ℕ)).tsum_eq]
-  change (∑' c : ℕ × (Fin r → ℕ),
-    cascadeBranchWeight u (Fin.snoc c.2 c.1)) = _
+  change (∑' c : ℕ × (Fin r → ℕ), cascadeBranchWeight u (Fin.snoc c.2 c.1)) = _
   simp_rw [cascadeBranchWeight_snoc]
-  rw [ENNReal.tsum_prod']
-  rw [ENNReal.tsum_comm]
-  congr 1
-  funext α
-  simpa only [Prod.fst, Prod.snd] using
-    (ENNReal.tsum_mul_left (f := fun n => u r α n)
-      (a := cascadeBranchWeight u α))
+  rw [ENNReal.tsum_prod', ENNReal.tsum_comm]
+  exact tsum_congr fun α =>
+    ENNReal.tsum_mul_left (f := fun n => u r α n) (a := cascadeBranchWeight u α)
 
-/-- Algebraic normalization, independent of the probabilistic finiteness argument. -/
-noncomputable def cascadeProbabilityWeight
-    (u : (p : ℕ) → (Fin p → ℕ) → ℕ → ENNReal)
-    (r : ℕ) (α : Fin r → ℕ) : ENNReal :=
-  cascadeBranchWeight u α / cascadeTotalMass u r
-
-/-- Finite, nonzero total mass gives a probability vector on the leaves. -/
-theorem tsum_cascadeProbabilityWeight
+/-- Finite, nonzero total mass normalizes the leaf weights to a probability vector. -/
+theorem tsum_cascadeBranchWeight_div
     (u : (p : ℕ) → (Fin p → ℕ) → ℕ → ENNReal) (r : ℕ)
-    (hfinite : cascadeTotalMass u r ≠ ∞)
-    (hpos : cascadeTotalMass u r ≠ 0) :
-    (∑' α : Fin r → ℕ, cascadeProbabilityWeight u r α) = 1 := by
-  simp only [cascadeProbabilityWeight, div_eq_mul_inv]
+    (hfinite : ∑' α : Fin r → ℕ, cascadeBranchWeight u α ≠ ∞)
+    (hpos : ∑' α : Fin r → ℕ, cascadeBranchWeight u α ≠ 0) :
+    (∑' α : Fin r → ℕ, cascadeBranchWeight u α /
+      ∑' β : Fin r → ℕ, cascadeBranchWeight u β) = 1 := by
+  simp only [div_eq_mul_inv]
   rw [ENNReal.tsum_mul_right]
-  change cascadeTotalMass u r * (cascadeTotalMass u r)⁻¹ = 1
   exact ENNReal.mul_inv_cancel hpos hfinite
 
 /-- If every branch mass is positive and finite, finite total mass makes every
 normalized leaf weight positive and finite. -/
-theorem cascadeProbabilityWeight_pos_finite
+theorem cascadeBranchWeight_div_pos_finite
     (u : (p : ℕ) → (Fin p → ℕ) → ℕ → ENNReal)
     (hu_pos : ∀ p α n, u p α n ≠ 0)
     (hu_fin : ∀ p α n, u p α n ≠ ∞)
-    (r : ℕ) (hfinite : cascadeTotalMass u r ≠ ∞) (α : Fin r → ℕ) :
-    cascadeProbabilityWeight u r α ≠ 0 ∧
-      cascadeProbabilityWeight u r α ≠ ∞ := by
+    (r : ℕ) (hfinite : ∑' α : Fin r → ℕ, cascadeBranchWeight u α ≠ ∞) (α : Fin r → ℕ) :
+    cascadeBranchWeight u α / (∑' β : Fin r → ℕ, cascadeBranchWeight u β) ≠ 0 ∧
+      cascadeBranchWeight u α / (∑' β : Fin r → ℕ, cascadeBranchWeight u β) ≠ ∞ := by
   have hw := cascadeBranchWeight_pos_finite u hu_pos hu_fin α
-  have hmass : cascadeTotalMass u r ≠ 0 := by
-    intro hzero
-    have hle : cascadeBranchWeight u α ≤ cascadeTotalMass u r :=
-      ENNReal.le_tsum (f := cascadeBranchWeight u) α
-    exact hw.1 (nonpos_iff_eq_zero.mp (hzero ▸ hle))
-  unfold cascadeProbabilityWeight
-  constructor
-  · exact ENNReal.div_ne_zero.mpr ⟨hw.1, hfinite⟩
-  · exact ENNReal.div_ne_top hw.2 hmass
+  exact ⟨ENNReal.div_ne_zero.mpr ⟨hw.1, hfinite⟩,
+    ENNReal.div_ne_top hw.2 (tsum_cascadeBranchWeight_ne_zero u hu_pos r)⟩
 
 /-- Positive finite branch masses and finite total mass give a probability vector
 with strictly positive entries. -/
-theorem cascadeProbabilityWeight_probability
+theorem cascadeBranchWeight_div_probability
     (u : (p : ℕ) → (Fin p → ℕ) → ℕ → ENNReal)
     (hu_pos : ∀ p α n, u p α n ≠ 0)
     (hu_fin : ∀ p α n, u p α n ≠ ∞)
-    (r : ℕ) (hfinite : cascadeTotalMass u r ≠ ∞) :
-    (∑' α : Fin r → ℕ, cascadeProbabilityWeight u r α) = 1 ∧
-      ∀ α : Fin r → ℕ, cascadeProbabilityWeight u r α ≠ 0 := by
-  have hmass : cascadeTotalMass u r ≠ 0 := by
-    intro hzero
-    have hw := (cascadeBranchWeight_pos_finite u hu_pos hu_fin
-      (fun _ : Fin r => 0)).1
-    exact hw (nonpos_iff_eq_zero.mp
-      (hzero ▸ ENNReal.le_tsum (f := cascadeBranchWeight u) (fun _ : Fin r => 0)))
-  exact ⟨tsum_cascadeProbabilityWeight u r hfinite hmass,
-    fun α => (cascadeProbabilityWeight_pos_finite u hu_pos hu_fin r hfinite α).1⟩
+    (r : ℕ) (hfinite : ∑' α : Fin r → ℕ, cascadeBranchWeight u α ≠ ∞) :
+    (∑' α : Fin r → ℕ, cascadeBranchWeight u α /
+        ∑' β : Fin r → ℕ, cascadeBranchWeight u β) = 1 ∧
+      ∀ α : Fin r → ℕ, cascadeBranchWeight u α /
+        (∑' β : Fin r → ℕ, cascadeBranchWeight u β) ≠ 0 :=
+  ⟨tsum_cascadeBranchWeight_div u r hfinite (tsum_cascadeBranchWeight_ne_zero u hu_pos r),
+    fun α => (cascadeBranchWeight_div_pos_finite u hu_pos hu_fin r hfinite α).1⟩
 
 /-- Measurability of the total mass of an arbitrary measurable vertex-indexed family. -/
-theorem measurable_cascadeTotalMass
+theorem measurable_tsum_cascadeBranchWeight
     {Ω : Type*} [MeasurableSpace Ω]
     (u : Ω → (p : ℕ) → (Fin p → ℕ) → ℕ → ENNReal)
     (hu : ∀ p α n, Measurable fun ω => u ω p α n) (r : ℕ) :
-    Measurable fun ω => cascadeTotalMass (u ω) r := by
-  unfold cascadeTotalMass cascadeBranchWeight
-  exact Measurable.tsum (fun α =>
-    Finset.measurable_prod Finset.univ (fun i _ =>
-      hu i.val _ _))
+    Measurable fun ω => ∑' α : Fin r → ℕ, cascadeBranchWeight (u ω) α :=
+  Measurable.tsum fun _ => Finset.measurable_prod _ fun i _ => hu i.val _ _
 
 /-- Almost-sure finiteness and positive finite branch masses give almost-sure
 normalization. This separates the deterministic conclusion of Lemma 2.4 from its
 still-needed probabilistic finiteness and positivity inputs. -/
-theorem ae_cascadeProbabilityWeight_probability
+theorem ae_cascadeBranchWeight_div_probability
     {Ω : Type*} [MeasurableSpace Ω] {P : MeasureTheory.Measure Ω}
     (u : Ω → (p : ℕ) → (Fin p → ℕ) → ℕ → ENNReal) (r : ℕ)
-    (hfinite : ∀ᵐ ω ∂P, cascadeTotalMass (u ω) r < ∞)
+    (hfinite : ∀ᵐ ω ∂P, ∑' α : Fin r → ℕ, cascadeBranchWeight (u ω) α < ∞)
     (hpos : ∀ᵐ ω ∂P, ∀ p α n, u ω p α n ≠ 0)
     (hbranch : ∀ᵐ ω ∂P, ∀ p α n, u ω p α n ≠ ∞) :
     ∀ᵐ ω ∂P,
-      (∑' α : Fin r → ℕ, cascadeProbabilityWeight (u ω) r α) = 1 ∧
-        ∀ α : Fin r → ℕ, cascadeProbabilityWeight (u ω) r α ≠ 0 := by
+      (∑' α : Fin r → ℕ, cascadeBranchWeight (u ω) α /
+          ∑' β : Fin r → ℕ, cascadeBranchWeight (u ω) β) = 1 ∧
+        ∀ α : Fin r → ℕ, cascadeBranchWeight (u ω) α /
+          (∑' β : Fin r → ℕ, cascadeBranchWeight (u ω) β) ≠ 0 := by
   filter_upwards [hfinite, hpos, hbranch] with ω hf hp hb
-  exact cascadeProbabilityWeight_probability (u ω) hp hb r (ne_of_lt hf)
+  exact cascadeBranchWeight_div_probability (u ω) hp hb r hf.ne
 
 /-- Measurability of every leaf's normalized weight, without a finiteness
 hypothesis (division in `ENNReal` is defined also on exceptional samples). -/
-theorem measurable_cascadeProbabilityWeight
+theorem measurable_cascadeBranchWeight_div
     {Ω : Type*} [MeasurableSpace Ω]
     (u : Ω → (p : ℕ) → (Fin p → ℕ) → ℕ → ENNReal)
     (hu : ∀ p α n, Measurable fun ω => u ω p α n)
     (r : ℕ) (α : Fin r → ℕ) :
-    Measurable fun ω => cascadeProbabilityWeight (u ω) r α := by
-  unfold cascadeProbabilityWeight cascadeBranchWeight
-  exact (Finset.measurable_prod Finset.univ (fun i _ => hu i.val _ _)).div
-    (measurable_cascadeTotalMass u hu r)
+    Measurable fun ω => cascadeBranchWeight (u ω) α /
+      ∑' β : Fin r → ℕ, cascadeBranchWeight (u ω) β :=
+  (Finset.measurable_prod _ fun i _ => hu i.val _ _).div
+    (measurable_tsum_cascadeBranchWeight u hu r)
 
 /-- The depth-one cascade is finite almost surely when its child masses are the
 positive-part masses of a Poisson counting measure with zeta intensity. The indexing
 of positive atoms by natural numbers is supplied as an explicit, pointwise hypothesis. -/
-theorem ae_cascadeTotalMass_one_lt_top_of_poisson_blocks
+theorem ae_tsum_cascadeBranchWeight_one_lt_top_of_poisson_blocks
     {Ω : Type*} [MeasurableSpace Ω] {P : MeasureTheory.Measure Ω}
     [MeasureTheory.IsProbabilityMeasure P]
     {ζ : ℝ} (hζ0 : 0 < ζ) (hζ1 : ζ < 1)
@@ -277,18 +228,17 @@ theorem ae_cascadeTotalMass_one_lt_top_of_poisson_blocks
     (hroot : ∀ ω, (∑' n, u ω 0 (fun i : Fin 0 => i.elim0) n) =
       ∫⁻ x in Set.Ioi 0, ENNReal.ofReal x ∂
         poissonCountingMeasure (fun n => (B n ω).1) (fun n l => (B n ω).2 l)) :
-    ∀ᵐ ω ∂P, cascadeTotalMass (u ω) 1 < ∞ := by
+    ∀ᵐ ω ∂P, ∑' α : Fin 1 → ℕ, cascadeBranchWeight (u ω) α < ∞ := by
   have hfin := ae_lintegral_poisson_lt_top_of_blocks (P := P)
     (M := fun ω => poissonCountingMeasure (fun n => (B n ω).1)
       (fun n l => (B n ω).2 l)) ν rate hζ0 hζ1 hBm hlaw hμ (fun _ => rfl)
   filter_upwards [hfin] with ω hω
-  rw [cascadeTotalMass_succ]
-  have hsub : Subsingleton (Fin 0 → ℕ) := inferInstance
+  rw [tsum_cascadeBranchWeight_succ]
   simpa [cascadeBranchWeight_zero] using (hroot ω ▸ hω)
 
 /-- The canonical decreasing enumeration of the root Poisson atoms has finite
-    total mass almost surely. No separate enumeration-to-integral assumption is needed. -/
-theorem ae_cascadeTotalMass_one_lt_top_of_ranked_poisson_blocks
+total mass almost surely. No separate enumeration-to-integral assumption is needed. -/
+theorem ae_tsum_cascadeBranchWeight_one_lt_top_of_ranked_poisson_blocks
     {Ω : Type*} [MeasurableSpace Ω] {P : MeasureTheory.Measure Ω}
     [MeasureTheory.IsProbabilityMeasure P]
     {ζ : ℝ} (hζ0 : 0 < ζ) (hζ1 : ζ < 1)
@@ -301,76 +251,45 @@ theorem ae_cascadeTotalMass_one_lt_top_of_ranked_poisson_blocks
         (MeasureTheory.Measure.infinitePi fun _ : ℕ => ν n)) P)
     (hμ : zetaPoissonMeasure ζ =
       MeasureTheory.Measure.sum fun n => (rate n : ENNReal) • ν n) :
-    ∀ᵐ ω ∂P, cascadeTotalMass
+    ∀ᵐ ω ∂P, ∑' α : Fin 1 → ℕ, cascadeBranchWeight
       (fun (p : ℕ) (_ : Fin p → ℕ) n => MeasureTheory.nthLargestAtom n
-        (poissonCountingMeasure (fun k => (B k ω).1) (fun k l => (B k ω).2 l))) 1 < ∞ := by
-  apply ae_cascadeTotalMass_one_lt_top_of_poisson_blocks hζ0 hζ1 ν rate B hBm hlaw hμ
-  intro ω
-  have hroot : (∑' n, MeasureTheory.nthLargestAtom n
-      (poissonCountingMeasure (fun k => (B k ω).1) (fun k l => (B k ω).2 l))) =
-      ∫⁻ x in Set.Ioi 0, ENNReal.ofReal x ∂
-        poissonCountingMeasure (fun k => (B k ω).1) (fun k l => (B k ω).2 l) := by
-    apply MeasureTheory.tsum_nthLargestAtom
-    intro s hs
-    exact poissonCountingMeasure_apply_eq_top_or_natCast _ _ measurableSet_Ioi
-  exact hroot
-
-/-- If child masses are bounded by a common finite factor, finiteness propagates one level.
-This deterministic estimate does not assert that Poisson child masses admit such a bound. -/
-theorem cascadeTotalMass_succ_le_mul
-    (u : (p : ℕ) → (Fin p → ℕ) → ℕ → ENNReal) (r : ℕ) (C : ENNReal)
-    (hU : ∀ α : Fin r → ℕ, (∑' n, u r α n) ≤ C) :
-    cascadeTotalMass u (r + 1) ≤ cascadeTotalMass u r * C := by
-  rw [cascadeTotalMass_succ, cascadeTotalMass]
-  calc
-    (∑' α : Fin r → ℕ, cascadeBranchWeight u α * (∑' n, u r α n)) ≤
-        ∑' α : Fin r → ℕ, cascadeBranchWeight u α * C :=
-      ENNReal.tsum_le_tsum (fun α => mul_le_mul_of_nonneg_left (hU α) (by simp))
-    _ = (∑' α : Fin r → ℕ, cascadeBranchWeight u α) * C :=
-      ENNReal.tsum_mul_right
+        (poissonCountingMeasure (fun k => (B k ω).1) (fun k l => (B k ω).2 l))) α < ∞ := by
+  refine ae_tsum_cascadeBranchWeight_one_lt_top_of_poisson_blocks hζ0 hζ1 ν rate B hBm hlaw
+    hμ _ fun ω => MeasureTheory.tsum_nthLargestAtom fun s _ =>
+      poissonCountingMeasure_apply_eq_top_or_natCast _ _ measurableSet_Ioi
 
 /-- A summable weighted family of parent-specific bounds controls the next level.
 Unlike a uniform bound, this can handle infinitely many parents with unbounded child masses. -/
-theorem cascadeTotalMass_succ_le_tsum_bounds
+theorem tsum_cascadeBranchWeight_succ_le_tsum_bounds
     (u : (p : ℕ) → (Fin p → ℕ) → ℕ → ENNReal) (r : ℕ)
     (C : (Fin r → ℕ) → ENNReal)
     (hU : ∀ α : Fin r → ℕ, (∑' n, u r α n) ≤ C α) :
-    cascadeTotalMass u (r + 1) ≤
+    ∑' α : Fin (r + 1) → ℕ, cascadeBranchWeight u α ≤
       ∑' α : Fin r → ℕ, cascadeBranchWeight u α * C α := by
-  rw [cascadeTotalMass_succ]
-  exact ENNReal.tsum_le_tsum (fun α =>
-    mul_le_mul_of_nonneg_left (hU α) (by simp))
+  rw [tsum_cascadeBranchWeight_succ]
+  exact ENNReal.tsum_le_tsum fun α => mul_le_mul_of_nonneg_left (hU α) zero_le
 
 /-- Summability of weighted parent-specific child bounds implies finite leaf mass. -/
-theorem cascadeTotalMass_succ_lt_top_of_tsum_bounds
+theorem tsum_cascadeBranchWeight_succ_lt_top_of_tsum_bounds
     (u : (p : ℕ) → (Fin p → ℕ) → ℕ → ENNReal) (r : ℕ)
     (C : (Fin r → ℕ) → ENNReal)
     (hU : ∀ α : Fin r → ℕ, (∑' n, u r α n) ≤ C α)
     (hC : (∑' α : Fin r → ℕ, cascadeBranchWeight u α * C α) < ∞) :
-    cascadeTotalMass u (r + 1) < ∞ :=
-  lt_of_le_of_lt (cascadeTotalMass_succ_le_tsum_bounds u r C hU) hC
-
-/-- A finite parent mass and a finite uniform child-mass bound give finite leaf mass. -/
-theorem cascadeTotalMass_succ_lt_top_of_bound
-    (u : (p : ℕ) → (Fin p → ℕ) → ℕ → ENNReal) (r : ℕ) (C : ENNReal)
-    (hparent : cascadeTotalMass u r < ∞) (hC : C < ∞)
-    (hU : ∀ α : Fin r → ℕ, (∑' n, u r α n) ≤ C) :
-    cascadeTotalMass u (r + 1) < ∞ := by
-  exact lt_of_le_of_lt (cascadeTotalMass_succ_le_mul u r C hU)
-    (ENNReal.mul_lt_top hparent hC)
+    ∑' α : Fin (r + 1) → ℕ, cascadeBranchWeight u α < ∞ :=
+  (tsum_cascadeBranchWeight_succ_le_tsum_bounds u r C hU).trans_lt hC
 
 /-- Almost-sure summable parent-specific bounds yield almost-sure finiteness at the
 next depth. The weighted bound is an explicit hypothesis, not a consequence of
 independence of the child processes. -/
-theorem ae_cascadeTotalMass_succ_lt_top_of_tsum_bounds
+theorem ae_tsum_cascadeBranchWeight_succ_lt_top_of_tsum_bounds
     {Ω : Type*} [MeasurableSpace Ω] {P : MeasureTheory.Measure Ω}
     (u : Ω → (p : ℕ) → (Fin p → ℕ) → ℕ → ENNReal) (r : ℕ)
     (C : Ω → (Fin r → ℕ) → ENNReal)
     (hU : ∀ᵐ ω ∂P, ∀ α : Fin r → ℕ, (∑' n, u ω r α n) ≤ C ω α)
     (hC : ∀ᵐ ω ∂P,
       (∑' α : Fin r → ℕ, cascadeBranchWeight (u ω) α * C ω α) < ∞) :
-    ∀ᵐ ω ∂P, cascadeTotalMass (u ω) (r + 1) < ∞ := by
+    ∀ᵐ ω ∂P, ∑' α : Fin (r + 1) → ℕ, cascadeBranchWeight (u ω) α < ∞ := by
   filter_upwards [hU, hC] with ω hu hc
-  exact cascadeTotalMass_succ_lt_top_of_tsum_bounds (u ω) r (C ω) hu hc
+  exact tsum_cascadeBranchWeight_succ_lt_top_of_tsum_bounds (u ω) r (C ω) hu hc
 
 end SpinGlasses

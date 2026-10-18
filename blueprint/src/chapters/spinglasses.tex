@@ -1000,11 +1000,12 @@ $\sum_aw(a)C(a,a)$, and $-w(b)$ gives the term with two independent replicas.
 \section{A countable configuration space}\label{sec:sg:countable}
 
 \begin{lemma}[Analytic tools for series over replicas]\label{lem:sg:tannery}
-  \lean{summable_prod_pi, tendsto_tsum_prod_pi, summable_prod_pi_mul_abs_eval,
+  \lean{summable_prod_pi, tsum_prod_pi, abs_tsum_prod_pi_mul_le, tendsto_tsum_prod_pi,
+        summable_prod_pi_mul_abs_eval,
         SpinGlasses.truncated_gibbs_weights, SpinGlasses.tendsto_truncated_replica_average,
         ProbabilityTheory.integrable_tsum_of_tsum_eLpNorm_ne_top}
   \leanok
-Let $J$ be finite and $f_j:\alpha\to[0,\infty)$ summable. Then $\sigma\mapsto\prod_jf_j(\sigma_j)$ is summable on $J\to\alpha$. If
+Let $J$ be finite and $f_j:\alpha\to[0,\infty)$ summable. Then $\sigma\mapsto\prod_jf_j(\sigma_j)$ is summable on $J\to\alpha$, with $\sum_\sigma\prod_jf_j(\sigma_j)=\prod_j\sum_af_j(a)$ (the infinite analogue of expanding a product of finite sums). A product-weighted series is bounded in absolute value by the series of absolute values, $\big|\sum_\sigma\prod_jw(\sigma_j)\Psi(\sigma)\big|\le\sum_\sigma\prod_jw(\sigma_j)|\Psi(\sigma)|$, whenever the latter converges. If
 weights $w_m\to w$ pointwise with $0\le w_m\le B$, $B$ summable and $\sum_\sigma\prod_jB(\sigma_j)|\Psi(\sigma)|<\infty$, then
 $\sum_\sigma\prod_jw_m(\sigma_j)\Psi(\sigma)\to\sum_\sigma\prod_jw(\sigma_j)\Psi(\sigma)$. In particular, for $g>0$ summable and finite
 sets $A_m\uparrow\alpha$ containing $a_0$, the truncated weights $\mathbf 1_{A_m}g/\sum_{A_m}g$ are bounded by $g/g(a_0)$ and converge to $g/\sum g$. A series with
@@ -1146,6 +1147,7 @@ Pointwise, $\frac{d}{ds}\log\sum_ae^{f}=\sum_ae^{f}f'/\sum_ae^{f}=\langle f'\ran
 
 \begin{theorem}[Gaussian comparison, the smooth Slepian inequality]\label{thm:sg:comparison}
   \lean{SpinGlasses.hasGaussianLaw_sumElim_lincomb, SpinGlasses.integral_lincomb_mul_lincomb,
+        SpinGlasses.integral_lincomb_eq_zero,
         SpinGlasses.hasDerivAt_integral_log_sum_exp_trig, SpinGlasses.integral_log_sum_exp_le_of_covariance_le}
   \leanok
   \uses{lem:sg:pathderiv, thm:sg:lemma11}
@@ -1607,11 +1609,12 @@ and the remaining claims are the cases $t=\pm1$ of the definition.
 \begin{lemma}[Elementary inequalities for the truncation]\label{lem:sg:clamp}
   \lean{SpinGlasses.abs_log_le_add_inv, SpinGlasses.abs_log_sub_log_clamp_le, SpinGlasses.abs_clamp_sub_clamp_le,
         SpinGlasses.abs_log_sub_log_le, SpinGlasses.abs_log_clamp_sub_le, SpinGlasses.abs_log_clamp_le,
-        SpinGlasses.abs_sub_comp_clamp_le, SpinGlasses.inv_sum_mul_le, SpinGlasses.sum_mul_pos}
+        SpinGlasses.abs_sub_comp_clamp_le, SpinGlasses.inv_sum_mul_le, SpinGlasses.sum_mul_pos,
+        SpinGlasses.abs_clamp_le, SpinGlasses.abs_two_cosh_clamp_le, SpinGlasses.abs_exp_clamp_le}
   \leanok
 Let $a\ge0$. (i) $|\log x|\le x+x^{-1}$ for $x>0$. (ii) $|\log x-\log T_a(x)|\le e^{-a}(x+x^{-1})$ for $x>0$. (iii) $T_a$ is $1$-Lipschitz, $\log T_a\in[-a,a]$,
 and $|\log T_a(x)-\log T_a(x')|\le e^a|x-x'|$. (iv) If $\varphi>0$ and $\varphi(x)\le Ae^{|x|}$, then
-$|\varphi(x)-\varphi(\mathrm{cl}_a(x))|\le2Ae^{-2a}e^{3|x|}$. (v) For a probability vector $w$ and $x_i>0$, $(\sum_iw_ix_i)^{-1}\le\sum_iw_ix_i^{-1}$.
+$|\varphi(x)-\varphi(\mathrm{cl}_a(x))|\le2Ae^{-2a}e^{3|x|}$. (v) For a probability vector $w$ and $x_i>0$, $(\sum_iw_ix_i)^{-1}\le\sum_iw_ix_i^{-1}$. (vi) For the clamp $\mathrm{cl}_a(x)=\max(-a,\min(x,a))$ on the real line, $|\mathrm{cl}_a(x)|\le a$, hence $|\exp\mathrm{cl}_a(x)|\le e^a$ and $|2\cosh\mathrm{cl}_a(x)|\le2e^a$.
 \end{lemma}
 
 \begin{proof}
@@ -1620,7 +1623,7 @@ $|\varphi(x)-\varphi(\mathrm{cl}_a(x))|\le2Ae^{-2a}e^{3|x|}$. (v) For a probabil
 then $T_a(x)=e^{-a}$ and $0\le-a-\log x\le e^{-\log x-a}=x^{-1}e^{-a}$; otherwise the difference is $0$. (iii) $T_a$ is a composition of $\min$ and $\max$ with
 constants. For $s,t\ge e^{-a}$ with $s\ge t$, $\log s-\log t=\log(s/t)\le s/t-1\le(s-t)e^a$. (iv) If $|x|\le a$ the difference vanishes. If $|x|>a$, then
 $|\mathrm{cl}_a(x)|\le a<|x|$, so both $\varphi(x)$ and $\varphi(\mathrm{cl}_ax)$ lie in $(0,Ae^{|x|}]$ and $|\varphi(x)-\varphi(\mathrm{cl}_ax)|\le Ae^{|x|}\le Ae^{-2a}e^{3|x|}$
-because $3|x|-2a\ge|x|$. (v) Jensen's inequality for the convex function $x\mapsto x^{-1}$ on $(0,\infty)$.
+because $3|x|-2a\ge|x|$. (v) Jensen's inequality for the convex function $x\mapsto x^{-1}$ on $(0,\infty)$. (vi) $-a\le\mathrm{cl}_a(x)\le a$; then use monotonicity of $\exp$ and $2\cosh y\le 2e^{|y|}$.
 \end{proof}
 
 \begin{theorem}[Truncation of the Gibbs free energy, Panchenko Eqs.~(1.65), (1.68)--(1.72)]\label{thm:sg:gibbs-truncation}
@@ -2447,7 +2450,11 @@ This is the cell version of Theorem~\ref{thm:sg:seq-decoupling}: for $K\subseteq
         SpinGlasses.measurable_reindex,
         SpinGlasses.range_two_mul,
         SpinGlasses.infinite_even,
-        Equiv.sym2Congr,
+        Equiv.sym2Congr, Equiv.sym2Congr_apply, Equiv.sym2Congr_symm,
+        SpinGlasses.exists_equiv_fix_even, SpinGlasses.mem_range_vertexMap,
+        SpinGlasses.comap_vertexData, SpinGlasses.comap_vertexData_iSup,
+        SpinGlasses.infinite_vertexSet, SpinGlasses.cells_vertexData,
+        SpinGlasses.cells_vertexData_subset, SpinGlasses.ne_of_mk_eq,
         MeasureTheory.Measure.measurePreserving_comp_equiv_infinitePi,
         SpinGlasses.map_codedCells_eq_compProd,
         SpinGlasses.map_codedArray_eq_compProd,
@@ -2464,9 +2471,9 @@ Conversely, for all measurable $g$ and measurable $f$ symmetric in its two middl
   \leanok
 \uses{thm:sg:de-finetti, thm:sg:cond-indep-array, lem:sg:lemma16, lem:sg:subarray, lem:sg:cond-iid, lem:sg:cond-swap, lem:sg:coding, lem:sg:mixture}
 We follow the book, with the odd vertices $2a+1$ in the role of the infinite set $I$ and the even vertices in the role of $I^c$. For $a\in\mathbb N$ let $S_a$ be the array on the vertices $\{2a+1\}\cup\{\text{even numbers}\}$ (reindexed by $\mathbb N$ through
-$\kappa_a(0)=2a+1$, $\kappa_a(m+1)=2m$): the vertex array of Eq.~(1.91). Permuting the odd vertices and fixing the even ones shows that $(S_a)_a$ is an exchangeable sequence with values in the standard Borel space $E^{\operatorname{Sym}^2\mathbb N}$ (even jointly with the entries
+$\kappa_a(0)=2a+1$, $\kappa_a(m+1)=2m$): the vertex array of Eq.~(1.91). The vertex set of $S_a$ is exactly the even numbers together with $2a+1$ (\texttt{mem\_range\_vertexMap}), and $\sigma(S_a)$ is generated by the cells of this sub-array (\texttt{comap\_vertexData}, and \texttt{comap\_vertexData\_iSup} for all the $S_a$ at once). Every permutation $\pi$ of $\mathbb N$ acting on the odd vertices extends to a permutation of $\mathbb N$ fixing the even numbers (\texttt{exists\_equiv\_fix\_even}; \texttt{Equiv.sym2Congr} transports it to unordered pairs). Permuting the odd vertices and fixing the even ones shows that $(S_a)_a$ is an exchangeable sequence with values in the standard Borel space $E^{\operatorname{Sym}^2\mathbb N}$ (even jointly with the entries
 $Z_{\{a,b\}}=s_{\{2a+1,2b+1\}}$, Lean: \texttt{identDistrib\_vertexData\_comp\_equiv}). By de Finetti's theorem (Theorem~\ref{thm:sg:de-finetti}) $(S_a)_a\overset d=(X(w,u_a))_a$ for a measurable $X$.
-(1) \emph{Conditional independence.} Let $\mathscr F=\sigma(S_a:a)$. It is generated by all the pairs except the off-diagonal pairs of odd vertices. For $a\ne b$, the set of pairs inside $V=\{\text{even}\}\cup\{2a+1,2b+1\}$ other than $\{2a+1,2b+1\}$ is contained in the pairs
+(1) \emph{Conditional independence.} Let $\mathscr F=\sigma(S_a:a)$. It is generated by all the pairs except the off-diagonal pairs of odd vertices (\texttt{cells\_vertexData}: the cell $\{2a+1,2b+1\}$ is revealed by no vertex array, while every other cell spanned by the even vertices and $2a+1$, $2b+1$ is revealed by $S_a$ or $S_b$, \texttt{cells\_vertexData\_subset}; the even vertices together with two odd ones form an infinite set, \texttt{infinite\_vertexSet}; an orientation of an off-diagonal cell has distinct endpoints, \texttt{ne\_of\_mk\_eq}). For $a\ne b$, the set of pairs inside $V=\{\text{even}\}\cup\{2a+1,2b+1\}$ other than $\{2a+1,2b+1\}$ is contained in the pairs
 generating $\sigma(S_a,S_b)$, which is contained in the pairs generating $\mathscr F$, which does not contain $\{2a+1,2b+1\}$. Lemma~\ref{lem:sg:lemma16} and Theorem~\ref{thm:sg:cond-indep-array} give: the entries $Z_c$ ($c$ off-diagonal) are conditionally independent given $\mathscr F$ and
 $\mathbb E[h(Z_{\{a,b\}})\mid\mathscr F]=\mathbb E[h(Z_{\{a,b\}})\mid\sigma(S_a,S_b)]=\int h\,d\nu(S_a,S_b)$, with the \emph{same} kernel $\nu$ (the conditional law of $Z_{\{0,1\}}$ given $(S_0,S_1)$) for all pairs, because $(S_a,S_b,Z_{\{a,b\}})\overset d=(S_0,S_1,Z_{\{0,1\}})$
 by exchangeability. By Lemma~\ref{lem:sg:cond-iid}(a) the law of $\big((S_a)_a,(Z_c)_c\big)$ is $\mathrm{law}(S)\otimes K$, $K(x)=\bigotimes_{c=\{a,b\}}\nu(x_a,x_b)$ (with an arbitrary orientation of each pair).
@@ -2963,17 +2970,34 @@ in Lean \texttt{SpinGlasses.poissonCountingMeasure}. Everything below is stated 
 Lemma~\ref{thm:sg:poisson-blocks-exist} shows that they exist. No new structure or predicate ``is a Poisson process'' is introduced:
 ``$M$ is a Poisson process with mean measure $\mu=\sum_n r_n\nu_n$'' means exactly that these hypotheses hold.
 
+\begin{definition}[Counting measure of the blocks]\label{def:sg:poisson-counting}
+  \lean{SpinGlasses.poissonCountingMeasure,
+        SpinGlasses.poissonCountingMeasure_apply,
+        SpinGlasses.measurable_poissonCountingMeasure}
+  \leanok
+For counts $N:\mathbb N\to\mathbb N$ and points $X:\mathbb N\to\mathbb N\to S$, the counting measure is the measure $M=\sum_n\sum_{l<N_n}\delta_{X_{nl}}$ on $S$. This is a deterministic construction: probability enters only through the law of the blocks $(N_n,(X_{nl})_l)$. On a measurable set $A$ it evaluates to $M(A)=\sum_n\sum_{l<N_n}\mathbf 1_A(X_{nl})$, the number of sampled points in $A$ counted with multiplicity (an element of $[0,\infty]$). The map from all block coordinates $(N_n,(X_{nl})_l)_n$ to the measure $M$ is measurable for the Giry $\sigma$-algebra on measures on $S$ (the $\sigma$-algebra generated by evaluation at measurable sets), so $M$ is a random measure whenever the blocks are measurable.
+\end{definition}
+
 \begin{lemma}[Poisson splitting (multinomial thinning)]\label{lem:sg:poisson-thinning}
   \lean{ProbabilityTheory.poisson_mul_multinomial_eq_prod_poisson,
         ProbabilityTheory.multinomial_eq_card_words,
         ProbabilityTheory.hasLaw_counts_poisson_thinning,
         ProbabilityTheory.iIndepFun_hasLaw_counts_poisson_thinning,
         ProbabilityTheory.hasLaw_map_prod_infinitePi,
-        ProbabilityTheory.hasLaw_counts_poisson_thinning_of_hasLaw_prod}
+        ProbabilityTheory.hasLaw_counts_poisson_thinning_of_hasLaw_prod,
+        ProbabilityTheory.multinomial_eq_card_words_zero,
+        ProbabilityTheory.multinomial_eq_factorial_div,
+        ProbabilityTheory.prod_factorial_mul_multinomial,
+        ProbabilityTheory.count_ofFn_eq_sum,
+        ProbabilityTheory.measure_pi_counts_eq,
+        ProbabilityTheory.measurable_categoryCounts,
+        ProbabilityTheory.map_counts_prod_infinitePi,
+        ProbabilityTheory.iIndepFun_hasLaw_counts_poisson_thinning_of_hasLaw_prod}
   \leanok
 Let $N\sim\mathrm{Po}(r)$ be independent of an i.i.d.\ sequence $(X_l)$ with values in a finite set $\iota$ and $\mathbb P(X_l=i)=p_i$. Then the counts
 $N_i=\sum_{l<N}\mathbf 1_{X_l=i}$ are independent with $N_i\sim\mathrm{Po}(rp_i)$. In the block form used below: if a block $B=(N,X)$ has law $\mathrm{Po}(r)\otimes\nu^{\otimes\mathbb N}$ and $c:S\to\iota$ is
 measurable with $\nu(c^{-1}\{i\})=p_i$, then the vector $\big(\#\{l<N:c(X_l)=i\}\big)_{i\in\iota}$ has law $\bigotimes_i\mathrm{Po}(rp_i)$.
+The proof uses the following auxiliary facts, all proved: the multinomial coefficient of the zero count vector is $1$, equals $(\sum m_i)!/\prod m_i!$, and $\prod m_i!\cdot\binom{\sum m_i}{m}=(\sum m_i)!$; the number of occurrences of $i$ in a word is the number of positions carrying $i$; under the product measure of fixed length $\sum m_i$ the set of words with letter counts $m$ has mass $\binom{\sum m_i}{m}\prod p_i^{m_i}$ (the fixed-horizon multinomial law); and the count vector of the first $N$ letters is a measurable function of $(N,x)$, which is needed to push the law of a block forward.
 \end{lemma}
 
 \begin{proof}
@@ -2988,9 +3012,18 @@ Hence the count vector has law $\bigotimes_i\mathrm{Po}(rp_i)$, and independence
         ProbabilityTheory.integral_natCast_poissonMeasure,
         ProbabilityTheory.ae_summable_natCast_of_hasLaw_poissonMeasure,
         ProbabilityTheory.iIndepFun.hasLaw_tsum_poissonMeasure,
-        ProbabilityTheory.iIndepFun.ae_tendsto_sum_range_poissonMeasure_atTop}
+        ProbabilityTheory.iIndepFun.ae_tendsto_sum_range_poissonMeasure_atTop,
+        ProbabilityTheory.hasSum_natCast_poissonMeasure,
+        ProbabilityTheory.integrable_natCast_poissonMeasure,
+        ProbabilityTheory.summable_of_summable_natCast,
+        ProbabilityTheory.measure_finset_eq_sum_singleton,
+        ProbabilityTheory.measure_Iic_eq_sum_singleton,
+        ProbabilityTheory.poissonMeasure_zero,
+        ProbabilityTheory.HasLaw.ae_eq_zero_of_poisson_zero,
+        ProbabilityTheory.iIndepFun.measure_sum_range_le_eq,
+        ProbabilityTheory.iIndepFun.hasLaw_fun_sum_poissonMeasure}
   \leanok
-Let $Y_n\sim\mathrm{Po}(\rho_n)$ be independent. If $\sum\rho_n<\infty$, then $\sum_nY_n$ is almost surely finite and $\sum_nY_n\sim\mathrm{Po}(\sum_n\rho_n)$. If $\sum\rho_n=\infty$, the partial sums tend to $\infty$ almost surely.
+Let $Y_n\sim\mathrm{Po}(\rho_n)$ be independent. If $\sum\rho_n<\infty$, then $\sum_nY_n$ is almost surely finite and $\sum_nY_n\sim\mathrm{Po}(\sum_n\rho_n)$. If $\sum\rho_n=\infty$, the partial sums tend to $\infty$ almost surely. The ingredients are also available separately: $\sum_nn\,\mathrm{Po}(\rho)\{n\}=\rho$ (so the identity map is integrable); the sum of finitely many independent Poisson variables is Poisson with the summed rate; $\mathrm{Po}(0)=\delta_0$, so a rate-zero Poisson variable is almost surely $0$; on a countable discrete space the mass of a finite set is the sum of its singleton masses, in particular $\mu(\{0,\dots,k\})=\sum_{n\le k}\mu\{n\}$ for measures on $\mathbb N$, so $\mathbb P(\sum_{i<n}Y_i\le k)=\sum_{j\le k}\mathrm{Po}(\sum_{i<n}\rho_i)\{j\}$; and a series of natural numbers that is summable in $\mathbb R$ is summable in $\mathbb N$ (its terms eventually vanish).
 \end{lemma}
 
 \begin{proof}
@@ -3855,7 +3888,8 @@ Part~(a) is the finiteness of $\{0,1\}^{n\times n}$ and the bound $\sum_j\mathbf
 
 \begin{lemma}[The diagonal term in the countable Gaussian-IBP overlap correction]\label{lem:sg:pd-ibp-diagonal}
   \lean{SpinGlasses.gibbs_old_replica_self_overlap,
-        SpinGlasses.gaussian_ibp_overlap_correction_self_marginal}
+        SpinGlasses.gaussian_ibp_overlap_correction_self_marginal,
+        SpinGlasses.gaussian_ibp_overlap_correction_self}
   \leanok
   \uses{lem:sg:pd-ibp-blocks}
   Let $J$ be finite, $\alpha$ a type with decidable equality, $r_0\in J$,
@@ -3870,6 +3904,9 @@ Part~(a) is the finiteness of $\{0,1\}^{n\times n}$ and the bound $\sum_j\mathbf
   $\tau:\operatorname{Option}(J)\to\alpha$ equals $t$ times the
   difference of that diagonal-and-old-replica expression and
   $|J|$ times the fresh-replica series for $\Phi R_{r_0,\mathrm{none}}$.
+  The underlying finite identity is pointwise and needs no summability: for $\tau:\operatorname{Option}(J)\to\alpha$,
+  $\sum_{j\in J}\mathbf 1\{\tau_{r_0}=\tau_j\}-|J|\,\mathbf 1\{\tau_{r_0}=\tau_{\mathrm{none}}\}=1+\sum_{j\ne r_0}\mathbf 1\{\tau_{r_0}=\tau_j\}-|J|\,\mathbf 1\{\tau_{r_0}=\tau_{\mathrm{none}}\}$
+  (the term $j=r_0$ contributes $1$).
   The first statement does not need normalization; both statements
   concern deterministic summable series. Their conversion into the
   expected reference-process Ghirlanda--Guerra identity and the
@@ -3948,6 +3985,7 @@ Only the constant tuples $\sigma\equiv a$ survive in the guarded sum; they are i
 \begin{lemma}[Compact simplex and continuous higher power sums: groundwork for Theorem~2.8]\label{lem:sg:pd-compact-simplex}
   \lean{SpinGlasses.isCompact_poissonDirichletSimplex,
         SpinGlasses.continuousOn_poissonDirichletSimplex_powerSum,
+        SpinGlasses.poissonDirichletPowerSum,
         SpinGlasses.poissonDirichletPowerSumAlgebra,
         SpinGlasses.poissonDirichletSimplex_eq_of_powerSums_eq,
         SpinGlasses.poissonDirichletPowerSumAlgebra_separatesPoints,
@@ -3965,7 +4003,7 @@ Only the constant tuples $\sigma\equiv a$ survive in the guarded sum; they are i
         SpinGlasses.poissonDirichletSimplex_tail_powerSums_eq,
         SpinGlasses.poissonDirichlet_stoneWeierstrass}
   \leanok
-Let $V$ be the decreasing nonnegative sequences $x=(x_j)$ with $\sum_jx_j\le1$, endowed with the product topology (in Lean this is the explicit set $\{x:\mathbb N\to\mathbb R\mid\forall j,\,0\le x_j,\ x\text{ antitone},\ \sum_j\mathrm{ofReal}(x_j)\le1\}$, abbreviated by a notation, not a definition; the lemma names keep the prefix \texttt{poissonDirichletSimplex}). Then $V$ is compact, every power sum $p_s(x)=\sum_jx_j^s$ for integer $s\ge2$ is continuous on $V$, and the real subalgebra of $C(V,\mathbb R)$ generated by these power sums separates points and is dense (Mathlib Stone--Weierstrass). The first power sum is not asserted continuous: total mass may escape to the origin under coordinatewise convergence. The distributional uniqueness conclusion of Theorem~2.8 is Theorem~\ref{thm:sg:pd-uniqueness}.
+Let $V$ be the decreasing nonnegative sequences $x=(x_j)$ with $\sum_jx_j\le1$, endowed with the product topology (in Lean this is the explicit set $\{x:\mathbb N\to\mathbb R\mid\forall j,\,0\le x_j,\ x\text{ antitone},\ \sum_j\mathrm{ofReal}(x_j)\le1\}$, abbreviated by a notation, not a definition; the lemma names keep the prefix \texttt{poissonDirichletSimplex}). Then $V$ is compact, every power sum $p_s(x)=\sum_jx_j^s$ for integer $s\ge2$ is continuous on $V$, and the real subalgebra of $C(V,\mathbb R)$ generated by these power sums separates points and is dense (Mathlib Stone--Weierstrass). The power sums are packaged as the continuous functions $p_s\in C(V,\mathbb R)$ (Lean \texttt{poissonDirichletPowerSum}, a bundled continuous function rather than a bare formula, because the Stone--Weierstrass argument is carried out in the algebra $C(V,\mathbb R)$). The first power sum is not asserted continuous: total mass may escape to the origin under coordinatewise convergence. The distributional uniqueness conclusion of Theorem~2.8 is Theorem~\ref{thm:sg:pd-uniqueness}.
 \end{lemma}
 \begin{proof}
   \leanok
@@ -4355,13 +4393,22 @@ Using $\mathbb E\langle f\,g_1\rangle_1=\zeta\,\mathbb E\langle f\rangle_1$ (fro
 \section{Ruelle probability cascades: tree and geometry (Section~2.3)}\label{sec:sg:cascade}
 
 At depth $r\ge0$ a leaf is a function $\alpha:\mathrm{Fin}\,r\to\mathbb N$.
-Its prefix of length $p\le r$ is its restriction to $\mathrm{Fin}\,p$.
+Its prefix of length $p\le r$ is its restriction to $\mathrm{Fin}\,p$
+(Mathlib's \texttt{Fin.take}; no separate definition).
 The overlap $\alpha\wedge\beta$ is the largest number of initial coordinates
 on which the two leaves agree, with values in $\mathrm{Fin}(r+1)$.
 These deterministic statements do not assume a Poisson construction.
 
+\begin{definition}[Prefix overlap]\label{def:sg:cascade-overlap}
+  \lean{SpinGlasses.prefixOverlap,
+        SpinGlasses.prefixOverlap_agree,
+        SpinGlasses.le_prefixOverlap}
+  \leanok
+For two functions $\alpha,\beta:\mathrm{Fin}\,r\to\iota$ (the Lean definition works for any index type $\iota$ with decidable equality, not only $\mathbb N$), $\alpha\wedge\beta=\max\{p\le r:\alpha_i=\beta_i\ \forall i<p\}\in\mathrm{Fin}(r+1)$ is the length of the longest common prefix (the largest agreeing length, computed by \texttt{Nat.findGreatest}). All coordinates before $\alpha\wedge\beta$ agree, and every agreeing length is at most $\alpha\wedge\beta$.
+\end{definition}
+
 \begin{lemma}[Common-prefix ultrametric]\label{lem:sg:cascade-prefix}
-  \lean{SpinGlasses.cascadePrefix_eq_iff_le_overlap,
+  \lean{SpinGlasses.take_eq_take_iff_le_prefixOverlap,
         SpinGlasses.prefixOverlap_self, SpinGlasses.prefixOverlap_comm,
         SpinGlasses.prefixOverlap_min_le}
   \leanok
@@ -4376,39 +4423,47 @@ Every prefix that agrees in two comparisons with a common third leaf agrees in
 the comparison between the first two. Maximality of the common prefix proves the claim.
 \end{proof}
 
+\begin{definition}[Branch weight of a leaf]\label{def:sg:cascade-weight}
+  \lean{SpinGlasses.cascadeBranchWeight}
+  \leanok
+Given extended-nonnegative branch masses $u_{p,\gamma,n}\in[0,\infty]$ (depth $p$, vertex $\gamma\in\mathbb N^p$, child label $n$), the weight of a leaf $\alpha\in\mathbb N^r$ is $w_\alpha=\prod_{i<r}u_{i,\alpha|_i,\alpha_i}$, where $\alpha|_i$ is the prefix of length $i$. For $r=0$ it equals $1$. This is the finite-depth analogue of the weights $w_{\alpha n}=w_\alpha u_{\alpha n}$ in Section~2.3; the branch masses are arbitrary here, and the Poisson points are plugged in only in Lemma~\ref{lem:sg:cascade-depth-one}.
+\end{definition}
+
 \begin{lemma}[Deterministic branch products and normalization]\label{lem:sg:cascade-mass}
   \lean{SpinGlasses.cascadeBranchWeight_zero,
         SpinGlasses.cascadeBranchWeight_snoc,
         SpinGlasses.cascadeBranchWeight_pos_finite,
-        SpinGlasses.cascadeTotalMass_zero,
-        SpinGlasses.cascadeTotalMass_succ,
-        SpinGlasses.cascadeTotalMass_succ_le_mul,
-        SpinGlasses.cascadeTotalMass_succ_lt_top_of_bound,
-        SpinGlasses.cascadeTotalMass_succ_le_tsum_bounds,
-        SpinGlasses.cascadeTotalMass_succ_lt_top_of_tsum_bounds,
-        SpinGlasses.ae_cascadeTotalMass_succ_lt_top_of_tsum_bounds,
-        SpinGlasses.measurable_cascadeTotalMass,
-        SpinGlasses.measurable_cascadeProbabilityWeight,
-        SpinGlasses.ae_cascadeProbabilityWeight_probability,
-        SpinGlasses.tsum_cascadeProbabilityWeight,
-        SpinGlasses.cascadeProbabilityWeight_pos_finite,
-        SpinGlasses.cascadeProbabilityWeight_probability}
+        SpinGlasses.tsum_cascadeBranchWeight_zero,
+        SpinGlasses.tsum_cascadeBranchWeight_succ,
+        SpinGlasses.tsum_cascadeBranchWeight_ne_zero,
+        SpinGlasses.tsum_cascadeBranchWeight_succ_le_tsum_bounds,
+        SpinGlasses.tsum_cascadeBranchWeight_succ_lt_top_of_tsum_bounds,
+        SpinGlasses.ae_tsum_cascadeBranchWeight_succ_lt_top_of_tsum_bounds,
+        SpinGlasses.measurable_tsum_cascadeBranchWeight,
+        SpinGlasses.measurable_cascadeBranchWeight_div,
+        SpinGlasses.ae_cascadeBranchWeight_div_probability,
+        SpinGlasses.tsum_cascadeBranchWeight_div,
+        SpinGlasses.cascadeBranchWeight_div_pos_finite,
+        SpinGlasses.cascadeBranchWeight_div_probability}
   \leanok
-For arbitrary extended-nonnegative branch masses $u_{p,\alpha,n}$ define the
-leaf weight as the product along its path, the total mass as the sum over
-leaves, and the normalized weight as the quotient by the total mass. The
-root weight and total mass are $1$; appending child $n$ multiplies the parent
+For arbitrary extended-nonnegative branch masses $u_{p,\alpha,n}$ the leaf
+weight $w_\alpha$ is the product along its path (the only definition here:
+total mass $\sum_\alpha w_\alpha$ and normalized weights
+$w_\alpha/\sum_\beta w_\beta$ are written explicitly, not as new objects).
+The root weight and total mass are $1$; appending child $n$ multiplies the parent
 weight by $u_{p,\alpha,n}$. At depth $r+1$, the total mass is the sum over
 parents of their weights times the sum of their child masses. If each child
 mass is at most $C_\alpha$, the next total is at most
-$\sum_\alpha w_\alpha C_\alpha$. In particular a common bound $C$ gives
-$C\sum_\alpha w_\alpha$; finiteness of either upper bound gives
-finiteness at the next depth. For measurable branch masses this total and every normalized weight are
+$\sum_\alpha w_\alpha C_\alpha$, so finiteness of this bound gives
+finiteness at the next depth. A common bound $C$ is the special case
+$C_\alpha=C$; it is not useful for Poisson cascades, where the child sums are
+i.i.d. and unbounded over infinitely many parents. For measurable branch
+masses the total and every normalized weight are
 measurable. If these hypotheses hold almost surely, normalization also holds
 almost surely. If every branch mass is positive and
 finite and the total mass is finite, the normalized weights are positive,
 finite, and sum to $1$; the nonzero
-total mass follows automatically. These are deterministic results: they do
+total mass follows from positivity alone. These are deterministic results: they do
 \emph{not} assert almost-sure finiteness or positivity for Poisson
 branches; Panchenko's Lemma~2.4 is not yet formalized.
 \end{lemma}
@@ -4420,8 +4475,8 @@ Distribute the common denominator over the total mass for normalization.
 \end{proof}
 
 \begin{lemma}[Depth-one Poisson cascade finiteness]\label{lem:sg:cascade-depth-one}
-  \lean{SpinGlasses.ae_cascadeTotalMass_one_lt_top_of_poisson_blocks,
-        SpinGlasses.ae_cascadeTotalMass_one_lt_top_of_ranked_poisson_blocks}
+  \lean{SpinGlasses.ae_tsum_cascadeBranchWeight_one_lt_top_of_poisson_blocks,
+        SpinGlasses.ae_tsum_cascadeBranchWeight_one_lt_top_of_ranked_poisson_blocks}
   \leanok
 Let $0<\zeta<1$. On a probability space, let measurable Poisson blocks
 $B_n=(N_n,(X_{nl})_l)$ have marginal laws
@@ -4446,8 +4501,15 @@ integral of a zeta-Poisson counting measure, then use the depth-one mass
 recursion and the assumed equality of the two sums.
 \end{proof}
 
+\begin{definition}[Cascade point]\label{def:sg:cascade-point}
+  \lean{SpinGlasses.cascadePoint}
+  \leanok
+Let $H$ be a real inner product space, $e$ a family of vectors indexed by the non-root prefix vertices (pairs of a depth $p\in\{1,\dots,r\}$ and a prefix of length $p$), and $q:\mathrm{Fin}(r+1)\to\mathbb R$. The point of a leaf is $h_\alpha=\sum_{p=1}^r\sqrt{q_p-q_{p-1}}\,e_{\alpha|_p}\in H$. If $q$ is not monotone the square roots are junk values, so all geometric statements assume $q$ monotone.
+\end{definition}
+
 \begin{theorem}[Gram and ultrametric geometry of cascade points]\label{thm:sg:cascade-geometry}
   \lean{SpinGlasses.inner_cascadePoint_eq_sum,
+        norm_sub_le_max_of_inner_min_le,
         SpinGlasses.inner_cascadePoint_eq,
         SpinGlasses.inner_cascadePoint_min_le,
         SpinGlasses.norm_cascadePoint_sq,
@@ -4474,5 +4536,8 @@ family is an explicit hypothesis. Strict monotonicity is not needed here.
 Orthonormality retains exactly the equal-prefix terms of the double inner
 product sum, which telescope to the overlap parameter. Expanding the
 squared norm of a difference and applying the common-prefix inequality
-gives the distance formula and the ultrametric inequality.
+gives the distance formula. The ultrametric inequality is an instance of a
+general fact: points of equal norm whose scalar products satisfy the
+common-prefix inequality are at ultrametric distances, because the squared
+distance is $2(M-\langle\cdot,\cdot\rangle)$.
 \end{proof}
