@@ -3194,7 +3194,7 @@ By the law of total probability for the partition, $\mu=\sum_m\mu(A_m)\,p_m$, so
 \item \emph{The conditional statement of Theorem~2.4 is an equality in law with an explicit model, not a regular conditional distribution.}
 \emph{Meaning.} Think of $\Pi$ as an ideal gas in the grand-canonical ensemble and of $A_1,A_2,\dots$ as a coarse-graining of space. The book says: the occupation numbers $N(A_m)$ are independent $\mathrm{Po}(\mu(A_m))$ and, once they are fixed (the canonical ensemble), the particles in $A_m$ are $N(A_m)$ non-interacting particles with i.i.d.\ positions of law $p_m=\mu(\,\cdot\cap A_m)/\mu(A_m)$, independently over $m$. For a machine-learning reader this is a generative model: draw a Poisson count, then draw that many i.i.d. samples, then forget the order. Theorem~\ref{thm:sg:poisson-partition} says that the joint law of (all cell counts, the configuration in each cell) equals the joint law of this generative model. We compare \emph{counting measures}, so ``an i.i.d.\ sample of size $k$ with the order forgotten'' is just the law of $\delta_{Z_1}+\dots+\delta_{Z_k}$, and no measurable ordering of the atoms of $M$ is needed.
 \emph{What is not stated.} A regular conditional distribution would be a kernel $\kappa$ from count vectors $k\in\mathbb N^{\mathbb N}$ to configurations, with $\kappa(k)=\bigotimes_m\mathrm{Law}(k_m\text{ i.i.d.\ samples from }p_m)$ and with the joint law equal to ``law of the counts, then $\kappa$''. With finitely many cells this is elementary conditioning on atoms. With infinitely many cells the count vector lives in $\mathbb N^{\mathbb N}$, every single value of $k$ has probability $0$, and conditioning is by disintegration, so one must exhibit the kernel and prove that $k\mapsto\kappa(k)$ is measurable. The kernel exists and is explicit (by the independence structure of the model), and the joint law of the model equals ``counts, then $\kappa$''; what we lack is only the packaging, because Mathlib has no infinite product of kernels and no measurability lemma for $k\mapsto\bigotimes_m(\text{law depending on }k_m)$. For one block the conditional law is Lemma~\ref{lem:sg:poisson-campbell}(b).
-\emph{Does this limit later sections?} We do not expect so. The book proves the cell statement ``by considering finitely many $m$ at a time'' (proof of Theorem~2.4), so the all-cells equality in law is already stronger than the book's argument. The one later citation we found (the Poisson--Dirichlet setup, Wald's identity $\mathbb E\sum_{x\in\Pi\cap S_m}x=\int_{S_m}x\,\mu(dx)$) uses one cell at a time, with Poisson count, i.i.d.\ points and Wald, and Wald's identity is Lemma~\ref{lem:sg:poisson-campbell}(a). The later ``conditionally on $\mathscr F_{p}$'' arguments of the Ruelle cascade sections appear, from the places we located but did not read in full, to condition on the $\sigma$-algebra of earlier independent levels, which is ordinary independence, not a conditional law over an infinite count vector. The items that \emph{could} cause work in Section~2.2 are different: (i) Theorem~2.6 marks a \emph{given} process by an independent i.i.d.\ sequence, while our marking theorem is a coupling (item below), which should suffice because the conclusion is only equality of mean measures, i.e.\ a statement about laws; (ii) the decreasing enumeration $u_1\ge u_2\ge\dots$ of the points defining $PD(\zeta)$ needs a measurable ``$n$-th largest point'' map on counting measures, which is not yet formalized and is independent of conditional laws.
+\emph{Does this limit later sections?} We do not expect so. The book proves the cell statement ``by considering finitely many $m$ at a time'' (proof of Theorem~2.4), so the all-cells equality in law is already stronger than the book's argument. The one later citation we found (the Poisson--Dirichlet setup, Wald's identity $\mathbb E\sum_{x\in\Pi\cap S_m}x=\int_{S_m}x\,\mu(dx)$) uses one cell at a time, with Poisson count, i.i.d.\ points and Wald, and Wald's identity is Lemma~\ref{lem:sg:poisson-campbell}(a). The later ``conditionally on $\mathscr F_{p}$'' arguments of the Ruelle cascade sections appear, from the places we located but did not read in full, to condition on the $\sigma$-algebra of earlier independent levels, which is ordinary independence, not a conditional law over an infinite count vector. The items in Section~2.2 are: (i) Theorem~2.6 marks a \emph{given} process by an independent i.i.d.\ sequence, while our marking theorem is a coupling (item below), which suffices because the conclusion is only equality of mean measures, i.e.\ a statement about laws; (ii) the decreasing enumeration $u_1\ge u_2\ge\dots$ of the points defining $PD(\zeta)$ uses the measurable ``$n$-th largest atom'' map on counting measures (formalized in \texttt{ForMathlib/MeasureTheory/Measure/NthLargestAtom.lean}).
 \item \emph{Left to do in Section~2.1.} A regular-conditional-distribution form of Theorem~\ref{thm:sg:poisson-partition} for the whole vector of cells, and a marking of a previously fixed family of blocks by a position-dependent kernel (independent marks are done). The Giry law of the entire random counting measure agrees with that of the canonical block construction by \texttt{identDistrib\_poissonCountingMeasure\_canonical}; this applies also to the transformed blocks.
 \end{enumerate}
 \end{remark}
@@ -4333,7 +4333,7 @@ These were proved while building the statements above; each is a short consequen
 n\,\mathbb E\langle f(R)R_{r_0,n+1}\rangle=(1-\zeta)\mathbb E\langle f(R)\rangle+\sum_{j\ne r_0}\mathbb E\langle f(R)R_{r_0,j}\rangle,
 \]
 where each bracket is the series over active block-index replicas weighted by products of $w_a$, $R_{ij}=\mathbf 1\{a_i=a_j\}$, and the fresh replica is indexed by $\mathrm{none}\in\mathrm{Option}(\mathrm{Fin}\,n)$. There is no global boundedness assumption on $f$ because the matrix inputs are finite-valued. The proof uses \lean{SpinGlasses.integral_poissonDirichlet_gaussian_old_overlap_split}, the fresh-replica transfer \lean{SpinGlasses.integral_poissonDirichlet_gaussian_fresh_overlap_tilt_eq}, and the expected marked identity. With $n=1$ and $f=1$, \lean{SpinGlasses.ae_poissonDirichlet_gaussian_one_replica_average} and \lean{SpinGlasses.poissonDirichlet_blocks_expected_overlap_eq_one_sub_zeta} yield $\mathbb E\langle R_{12}\rangle=1-\zeta$ (Equation~(2.34)) for block-index weights. The general diagonal identity \lean{tsum_prod_pi_all_eq} (here with the replica set $\mathrm{Fin}\,2$) applies to any nonnegative summable weights on an arbitrary index type and gives $\sum_{\sigma_1,\sigma_2}w_{\sigma_1}w_{\sigma_2}\mathbf 1\{\sigma_1=\sigma_2\}=\sum_aw_a^2$; its specialization \lean{SpinGlasses.poissonDirichlet_blocks_expected_weight_sq_eq_one_sub_zeta} also proves $\mathbb E\sum_a(u_a/\sum_bu_b)^2=1-\zeta$ for active block indices. Reindexing these weights by decreasing atom rank is carried out in Theorem~\ref{thm:sg:pd-gg-ranked}.
-\item \emph{Partial Gaussian invariance.} Gaussian marking is formalized at the level of the entire marked counting measure: multiplying masses by $\exp(t(g-t\zeta/2))$ and shifting marks by $-t\zeta$ preserves its law (with the specified independent block laws and intensity equalities). Forgetting the marks and ranking gives equality in law of the full sequences of ranked masses and normalized ranked weights, not just their one-dimensional marginals (Theorem~\ref{thm:sg:pd-gaussian-weights}). Lemma~2.3 is proved in an order-free form (Theorem~\ref{thm:sg:pd-lemma23}): the replica average of the book is written as an integral against the product $M^{\otimes n}$ of the random counting measure, so no marks have to be attached to ranks. We do not formalize the marks paired with ranks (the marked-sequence form (2.24) of the Bolthausen--Sznitman invariance); the passage from the order-free form to sums over the actual block-indexed atoms is formalized (Theorem~\ref{thm:sg:pd-blockindex}), and the replica averages of both processes are written as real-valued Gibbs series over block indices on one probability space (Theorems~\ref{thm:sg:pd-gibbs-bridge} and~\ref{thm:sg:pd-gibbs}), with the Gaussian marks shown independent of the counts and masses (Lemma~\ref{lem:sg:pd-gibbs-inputs}); and Gaussian integration by parts has been carried out conditionally on the counts and masses and integrated back (Lemmas~\ref{lem:sg:pd-split-env}--\ref{lem:sg:pd-gaussian-array}, \ref{lem:sg:pd-ibp-blocks} and~\ref{lem:sg:pd-ibp-expectation}); the final combination with tilt invariance at $t=1$ is proved for block-index weights (Theorem~\ref{thm:sg:pd-gg-blocks}), and the passage to ranked weights is proved in Theorem~\ref{thm:sg:pd-gg-ranked}; Talagrand's identities (2.39) and uniqueness Theorem~2.8 remain open. The plan for these is in \texttt{docs/SpinGlasses\_PoissonDirichlet\_formalization\_plan.md}.
+\item \emph{Partial Gaussian invariance.} Gaussian marking is formalized at the level of the entire marked counting measure: multiplying masses by $\exp(t(g-t\zeta/2))$ and shifting marks by $-t\zeta$ preserves its law (with the specified independent block laws and intensity equalities). Forgetting the marks and ranking gives equality in law of the full sequences of ranked masses and normalized ranked weights, not just their one-dimensional marginals (Theorem~\ref{thm:sg:pd-gaussian-weights}). Lemma~2.3 is proved in an order-free form (Theorem~\ref{thm:sg:pd-lemma23}): the replica average of the book is written as an integral against the product $M^{\otimes n}$ of the random counting measure, so no marks have to be attached to ranks. We do not formalize the marks paired with ranks (the marked-sequence form (2.24) of the Bolthausen--Sznitman invariance); the passage from the order-free form to sums over the actual block-indexed atoms is formalized (Theorem~\ref{thm:sg:pd-blockindex}), and the replica averages of both processes are written as real-valued Gibbs series over block indices on one probability space (Theorems~\ref{thm:sg:pd-gibbs-bridge} and~\ref{thm:sg:pd-gibbs}), with the Gaussian marks shown independent of the counts and masses (Lemma~\ref{lem:sg:pd-gibbs-inputs}); and Gaussian integration by parts has been carried out conditionally on the counts and masses and integrated back (Lemmas~\ref{lem:sg:pd-split-env}--\ref{lem:sg:pd-gaussian-array}, \ref{lem:sg:pd-ibp-blocks} and~\ref{lem:sg:pd-ibp-expectation}); the final combination with tilt invariance at $t=1$ is proved for block-index weights (Theorem~\ref{thm:sg:pd-gg-blocks}), and the passage to ranked weights is proved in Theorem~\ref{thm:sg:pd-gg-ranked}; uniqueness Theorem~2.8 is formalized in the abstract form of Theorem~\ref{thm:sg:pd-uniqueness} (using Talagrand's identities (2.39) in structural form; see there).
 \end{enumerate}
 \end{remark}
 
@@ -4358,11 +4358,11 @@ The book's proof has four steps, which we list together with their status. \emph
 \item \textbf{Ranked Theorem~2.7 and uniqueness Theorem~2.8 complete (abstract form).} Theorem~2.7 and Equation~(2.34) hold for the ranked weights $v_k=\mathrm{poissonDirichletWeight}(k,M)$ of the split Gaussian-mark block construction (Theorem~\ref{thm:sg:pd-gg-ranked}). The deterministic ranking bijection, simplicity of mass blocks, and transport of both ordinary and extra-replica series are proved without a measurable random ranking permutation. The compact decreasing subprobability simplex and continuity of its higher integer power sums are proved in Lemma~\ref{lem:sg:pd-compact-simplex}. Point separation by higher power sums, the finite partition replica identity (Lemma~\ref{lem:sg:pd-partition-bridge}), and the conditional moment-to-law step (Lemma~\ref{lem:sg:pd-random-moment-ext}) are proved. Theorem~\ref{thm:sg:pd-uniqueness} proves the GG-based uniqueness; Talagrand's identities (2.39) are used there in structural form (their explicit coefficients $(n_1-\zeta)/n$ and $n_j/n$ are not computed).
 \end{enumerate}
 
-\subsection*{How Lemma~2.3 and integration by parts combine (the plan for Theorem~2.7)}
+\subsection*{How Lemma~2.3 and integration by parts combine to prove Theorem~2.7}
 
-The following argument is \emph{our own derivation}, not the book's, and is the target of the next formalization step. Take $t=1$. By the Gibbs form of Lemma~2.3 (Theorem~\ref{thm:sg:pd-gibbs}) with exponents $k=0$, the expected tilted average of $f(R)$ equals the expected reference average of $f(R)$; with $k_1=1$ and $k_l=0$ for $l\ge2$, the expected tilted average of $f(R)(g_1-\zeta)$ equals the expected reference average of $f(R)g_1$, which is $0$ by Gaussian integration by parts at $t=0$ (the marks are centered and independent of the weights). Gaussian integration by parts for the tilted Gibbs measure, with the covariance $\mathbb E\,g_p(tg_q)=t\mathbf 1\{p=q\}$, gives
+The following argument is \emph{our own derivation}, not the book's, which was used to formalize Theorem~2.7 (Theorems~\ref{thm:sg:pd-gg-blocks} and~\ref{thm:sg:pd-gg-ranked}). Take $t=1$. By the Gibbs form of Lemma~2.3 (Theorem~\ref{thm:sg:pd-gibbs}) with exponents $k=0$, the expected tilted average of $f(R)$ equals the expected reference average of $f(R)$; with $k_1=1$ and $k_l=0$ for $l\ge2$, the expected tilted average of $f(R)(g_1-\zeta)$ equals the expected reference average of $f(R)g_1$, which is $0$ by Gaussian integration by parts at $t=0$ (the marks are centered and independent of the weights). Gaussian integration by parts for the tilted Gibbs measure, with the covariance $\mathbb E\,g_p(tg_q)=t\mathbf 1\{p=q\}$, gives
 \[\mathbb E\langle f\,g_1\rangle_1=\mathbb E\Big\langle f\Big(\sum_{l\le n}R_{1l}-nR_{1,n+1}\Big)\Big\rangle_1.\]
-Using $\mathbb E\langle f\,g_1\rangle_1=\zeta\,\mathbb E\langle f\rangle_1$ (from the previous display and the case $k=0$), transferring the right side back to the reference process by Lemma~2.3 with $k=0$, and using $R_{11}=1$, one obtains $n\,\mathbb E\langle fR_{1,n+1}\rangle=(1-\zeta)\mathbb E\langle f\rangle+\sum_{l=2}^n\mathbb E\langle fR_{1l}\rangle$, which is Theorem~2.7. For $n=1$ and $f=1$ it gives $\mathbb E\langle R_{12}\rangle=1-\zeta$. No boundedness hypothesis on $f$ is needed, since $R$ takes values in the finite set of $0$--$1$ matrices (Lemma~\ref{lem:sg:pd-gibbs-inputs}(c)). The only genuinely new difficulty is the conditioning in item~3.
+Using $\mathbb E\langle f\,g_1\rangle_1=\zeta\,\mathbb E\langle f\rangle_1$ (from the previous display and the case $k=0$), transferring the right side back to the reference process by Lemma~2.3 with $k=0$, and using $R_{11}=1$, one obtains $n\,\mathbb E\langle fR_{1,n+1}\rangle=(1-\zeta)\mathbb E\langle f\rangle+\sum_{l=2}^n\mathbb E\langle fR_{1l}\rangle$, which is Theorem~2.7. For $n=1$ and $f=1$ it gives $\mathbb E\langle R_{12}\rangle=1-\zeta$. No boundedness hypothesis on $f$ is needed, since $R$ takes values in the finite set of $0$--$1$ matrices (Lemma~\ref{lem:sg:pd-gibbs-inputs}(c)).
 
 \subsection*{Conventions that a reader of the Lean statements should know}
 
@@ -4386,6 +4386,8 @@ Using $\mathbb E\langle f\,g_1\rangle_1=\zeta\,\mathbb E\langle f\rangle_1$ (fro
 \texttt{PoissonDirichletGibbs.lean} & Lemma~2.3 as Gibbs series on block indices; split blocks; untilted integrability and mean zero \\
 \texttt{PoissonDirichletIBPAlgebra.lean} & extra-replica algebra of the IBP correction \\
 \texttt{PoissonDirichletGhirlandaGuerra*.lean} & conditional and product-law Gaussian IBP, centering, block-space transfer, expected overlap correction \\
+\texttt{PoissonDirichletRanked.lean} & ranked-weight correspondence for Theorem~2.7 \\
+\texttt{PoissonDirichletUniqueness*.lean} & Theorem~2.8 uniqueness and moment characterization \\
 \texttt{ForMathlib/.../PiProd.lean} & series over finite powers of a countable set (products, marginals, guards) \\
 \texttt{GaussianIBPCountable.lean} & Gaussian integration by parts on a countable set \\
 \end{tabular}
@@ -5074,7 +5076,7 @@ the conversion of $\sum_i(P_i^+-P_i^-)$ to the real series $\sum_{\alpha_1..\alp
 \end{remark}
 
 
-\section{The Ghirlanda--Guerra identities of the Ruelle cascade (Sections~2.5--2.6 of the book)}\label{sec:sg:gg-cascade}
+\section{The Ghirlanda--Guerra identities of the Ruelle cascade (Section~2.5 of the book)}\label{sec:sg:gg-cascade}
 
 This section proves Theorem~2.10 of the book for the Ruelle probability cascade, together with the formulas for the functional order parameter.
 We use the model and the notation of Section~\ref{sec:sg:bs-cascade}: $0<\zeta_0<\dots<\zeta_{r-1}<1$ (strictly increasing, which is needed to make the total
@@ -5617,13 +5619,15 @@ $[0,\infty]$-valued terms.
         ProbabilityTheory.iIndepFun.indepFun_set_of_disjoint,
         ProbabilityTheory.Measure.prod_diagonal_eq_zero,
         MeasureTheory.measurePreserving_finThreeArrow,
-        MeasureTheory.measurePreserving_prod_regroup}
+        MeasureTheory.measurePreserving_prod_regroup,
+        ProbabilityTheory.IndepFun.integral_comp_pair_eq_integral_integral_map'}
   \leanok
 (a) The $\sigma$-algebra generated by a map into a product is the supremum of the $\sigma$-algebras generated by its coordinates; the same holds for sub-families
 indexed by a subset or by the range of an index map.
 (b) Vectors of variables indexed by disjoint index sets of an independent family are independent.
 (c) If $\nu$ has no atoms then $(\mu\otimes\nu)(\text{diagonal})=0$.
 (d) Three coordinates of an i.i.d.\ vector have the product law, and regrouping $((w,u),(v,x))\mapsto((w,(u,v)),x)$ preserves product measures.
+(e) Fubini for independent random variables: if $X, Y$ are independent, $\mathbb E[H(X, Y)] = \iint H(x, y) \, dP_Y(y) \, dP_X(x)$ holds for any complete normed space.
 \end{lemma}
 \begin{proof}
   \leanok
@@ -5632,12 +5636,13 @@ Standard; (a) is the universal property of the product $\sigma$-algebra, (b) fol
 
 \begin{lemma}[Positive and negative parts of integrals]\label{lem:sg:signed-to-real}
   \lean{Real.enorm_eq_ofReal_add_ofReal_neg,
+        Real.toReal_ofReal_sub_toReal_ofReal_neg,
         MeasureTheory.integrable_iff_lintegral_ofReal_lt_top,
         MeasureTheory.signedToReal,
         MeasureTheory.measurable_signedToReal,
         MeasureTheory.integral_eq_signedToReal_lintegral}
   \leanok
-For $x\in\mathbb R$, $|x|=x^++x^-$ in $[0,\infty]$. A measurable real function $g$ is integrable iff $\int g^+<\infty$ and $\int g^-<\infty$, and then
+For $x\in\mathbb R$, $|x|=x^++x^-$ in $[0,\infty]$ and $(x^+)^{\mathrm{real}}-(x^-)^{\mathrm{real}}=x$. A measurable real function $g$ is integrable iff $\int g^+<\infty$ and $\int g^-<\infty$, and then
 $\int g=\int g^+-\int g^-$; in general $\int g=\mathrm{signedToReal}(\int g^+,\int g^-)$, where $\mathrm{signedToReal}(a,b)=a-b$ if both are finite and $0$ otherwise.
 This is how the signed identities of the Ghirlanda--Guerra identities are deduced from the identities between positive and negative parts proved by tilt invariance.
 \end{lemma}
@@ -5648,11 +5653,12 @@ Elementary.
 
 \begin{lemma}[Gaussian series and bilinear forms]\label{lem:sg:gaussian-support}
   \lean{ProbabilityTheory.integral_comp_eval,
+        SpinGlasses.integral_gaussianReal_coordinate_scaled_mul_scaled,
         ProbabilityTheory.tsum_eLpNorm_coord_ne_top,
         ProbabilityTheory.dotProduct_mulVec_eq_sum_vecMulVec}
   \leanok
 (a) For the Gaussian field $g=(g_p)_p$ with i.i.d.\ standard Gaussian blocks $g_p\in\mathbb R^{\kappa_p}$, a function of one block $g_p$ is integrated as under the
-$N(0,1)^{\kappa_p}$ law. (b) If $\sum_p\|a_p\|<\infty$ then $\sum_p\|\langle a_p,g_p\rangle\|_{L^2}<\infty$, hence the series $\sum_p\langle a_p,g_p\rangle$ converges in $L^2$.
+$N(0,1)^{\kappa_p}$ law; coordinates scaled by $s, t$ have covariance $(s t) \mathbf 1\{a = b\}$. (b) If $\sum_p\|a_p\|<\infty$ then $\sum_p\|\langle a_p,g_p\rangle\|_{L^2}<\infty$, hence the series $\sum_p\langle a_p,g_p\rangle$ converges in $L^2$.
 (c) $u\cdot(Mv)=\sum_{i,j}(uv^{\mathsf T})_{ij}M_{ij}$.
 \end{lemma}
 \begin{proof}
@@ -5680,7 +5686,8 @@ Chernoff's method: optimize $e^{-t\varepsilon}\mathbb E e^{tX}\le e^{-t\varepsil
 \end{proof}
 
 \begin{lemma}[Argmax, conditional distributions and infinite Cholesky factors]\label{lem:sg:misc-tools}
-  \lean{exists_argmax,
+  \lean{Finset.abs_sum_sub_card_mul_le,
+        exists_argmax,
         argmax_spec,
         isMaxOn_argmax,
         measurable_max,
@@ -5699,6 +5706,7 @@ $L_{lk}=(A_{lk}-\sum_{j<k}L_{lj}L_{kj})/L_{kk}$ (and $0$ below a zero pivot).
 (c) For $x,t,a>0$: $t<x^{-a}\iff x<t^{-1/a}$.
 (d) A partial integral $x\mapsto\int f(x,y)\,d\nu(y)$ of a measurable function is measurable.
 (e) $\mu(s)\cdot\mu[\,\cdot\mid s]=\mu|_s$ when $\mu(s)<\infty$.
+(f) For any non-negative function $Q$ bounded by $M$ on a finite index set $\iota$, $|\sum_{i \in \iota} Q(x_i) - |\iota| Q(y)| \le 2 |\iota| M$.
 \end{lemma}
 \begin{proof}
   \leanok
