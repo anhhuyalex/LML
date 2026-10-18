@@ -236,6 +236,33 @@ theorem card_partition_fresh_fiber {I K : Type*} [Fintype I]
   simp only [Fintype.sum_option, Option.elim]
   exact add_comm _ _
 
+/-- Merging two block labels evaluates the old-replica overlap as a product of
+power sums on the remaining block-label subtype. No renumbering of `Fin k` is needed. -/
+theorem tsum_partition_overlap_merged_eq_powerSums {I K α : Type*}
+    [Fintype I] [Fintype K] [DecidableEq K] [DecidableEq α]
+    (b : I → K) (hb : Function.Surjective b) (r l : I) (hbl : b r ≠ b l)
+    {w : α → ℝ} (hw0 : ∀ a, 0 ≤ w a) (hws : Summable w)
+    (hw : ∑' a, w a = 1) :
+    (∑' σ : I → α, (∏ i, w (σ i)) *
+      ((∏ i : I, ∏ j : I, if b i = b j then
+        (if σ i = σ j then (1 : ℝ) else 0) else 1) *
+        (if σ r = σ l then 1 else 0))) =
+      ∏ m : {m : K // m ≠ b l}, ∑' a, w a ^
+        Fintype.card {i : I //
+          (⟨if b i = b l then b r else b i, by
+            split_ifs with hi
+            · exact hbl
+            · exact hi⟩ : {m : K // m ≠ b l}) = m} := by
+  simp_rw [partition_overlap_merge_as_fiber b]
+  convert tsum_prod_pi_fiber_eq _ (partition_merge_surjective b hb r l hbl)
+    hw0 hws hw using 1
+  · apply tsum_congr
+    intro σ
+    congr 1
+    congr 1
+    apply propext
+    simp only [Subtype.mk.injEq]
+
 /-- Pass a random sequence supported almost surely on the compact simplex to a
 measurable simplex-valued version, preserving its law and integrals of observables. -/
 theorem exists_measurable_poissonDirichletSimplex_version
