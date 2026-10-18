@@ -492,26 +492,30 @@ theorem replicaGibbs_eq_div (r n : ℕ) (σ ζ : ℕ → ℝ) (t : ℝ)
   rw [ENNReal.mul_div_mul_left _ _ (pow_ne_zero n hc0) (ENNReal.pow_ne_top hct)]
   rfl
 
-/-- A Gibbs average of a bounded function of the overlaps at `t = 0` is bounded by the same
-constant when the total mass is positive and finite. -/
-theorem replicaGibbs_zero_le (r n : ℕ) (σ : ℕ → ℝ)
+/-- A Gibbs average of a function of the overlap pattern bounded by `C` is bounded by `C` when
+the total mass is positive and finite. -/
+theorem replicaGibbs_le (r n : ℕ) (σ : ℕ → ℝ) (t : ℝ)
     (F : (Fin n → Fin n → Fin (r + 1)) → ℝ≥0∞) (C : ℝ≥0∞) (hf : ∀ P, F P ≤ C)
     (u : (p : ℕ) → (Fin p → ℕ) → ℕ → ℝ≥0∞) (lab : (p : ℕ) → (Fin p → ℕ) → ℕ → ℝ)
-    (h0 : ∑' α : Fin r → ℕ, cascadeBranchWeight u α ≠ 0)
-    (ht : ∑' α : Fin r → ℕ, cascadeBranchWeight u α ≠ ∞) :
-    replicaGibbs r n σ 0 F u lab ≤ C := by
+    (h0 : ∑' α : Fin r → ℕ, cascadeBranchWeight u α *
+      ENNReal.ofReal (Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab α i)) ≠ 0)
+    (ht : ∑' α : Fin r → ℕ, cascadeBranchWeight u α *
+      ENNReal.ofReal (Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab α i)) ≠ ∞) :
+    replicaGibbs r n σ t F u lab ≤ C := by
   unfold replicaGibbs
-  simp only [zero_mul, Real.exp_zero, ENNReal.ofReal_one, mul_one]
-  have hn0 : (∑' α : Fin r → ℕ, cascadeBranchWeight u α) ^ n ≠ 0 := pow_ne_zero n h0
-  have hnt : (∑' α : Fin r → ℕ, cascadeBranchWeight u α) ^ n ≠ ∞ := ENNReal.pow_ne_top ht
-  rw [ENNReal.div_le_iff hn0 hnt]
-  calc ∑' α : Fin n → Fin r → ℕ, (∏ l, cascadeBranchWeight u (α l)) *
+  set Z := ∑' α : Fin r → ℕ, cascadeBranchWeight u α *
+    ENNReal.ofReal (Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab α i)) with hZ
+  rw [ENNReal.div_le_iff (pow_ne_zero n h0) (ENNReal.pow_ne_top ht)]
+  calc ∑' α : Fin n → Fin r → ℕ, (∏ l, cascadeBranchWeight u (α l) *
+        ENNReal.ofReal (Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab (α l) i))) *
         F (fun l l' => prefixOverlap (α l) (α l'))
-      ≤ ∑' α : Fin n → Fin r → ℕ, (∏ l, cascadeBranchWeight u (α l)) * C :=
+      ≤ ∑' α : Fin n → Fin r → ℕ, (∏ l, cascadeBranchWeight u (α l) *
+        ENNReal.ofReal (Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab (α l) i))) * C :=
         ENNReal.tsum_le_tsum fun α => mul_le_mul_right (hf _) _
-    _ = C * (∑' α : Fin r → ℕ, cascadeBranchWeight u α) ^ n := by
-        rw [ENNReal.tsum_mul_right, ENNReal.tsum_pi_prod fun _ α => cascadeBranchWeight u α]
-        simp [mul_comm]
+    _ = C * Z ^ n := by
+        rw [ENNReal.tsum_mul_right, ENNReal.tsum_pi_prod fun _ α => cascadeBranchWeight u α *
+          ENNReal.ofReal (Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab α i))]
+        simp [mul_comm, hZ]
 
 /-- The Gibbs average `⟨F(Rⁿ) ψ(label of αˡ⁰ at level i₀ - s)⟩_t` with a test of the label of one
 replica at one level. -/

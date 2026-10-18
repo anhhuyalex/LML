@@ -10,7 +10,7 @@ public import LeanMachineLearning.SpinGlasses.GaussianIBPCountable
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletIdentities
 
 /-!
-# Real-valued Gibbs series for the Ruelle cascade
+# Real-valued Gibbs series for the Ruelle cascade (no definitions, only lemmas)
 
 The Gibbs average of a real observable of `K` replicas for the weights `W(α) = w(α) exp (t g(α))`
 is the series `∑_σ (∏_k W(σ_k) / ∑_α W(α)) Φ(σ)`; this is the form in which countable Gaussian
@@ -25,18 +25,13 @@ open scoped ENNReal NNReal
 
 namespace SpinGlasses
 
-/-- The Gibbs series of a real observable `Φ` of `K` replicas for the real weights `W`. -/
-noncomputable def gibbsSeries {α K : Type*} [Fintype K] (W : α → ℝ) (Φ : (K → α) → ℝ) : ℝ :=
-  ∑' σ : K → α, (∏ k, W (σ k) / ∑' b, W b) * Φ σ
-
-/-- **From quotients in `[0, ∞]` to Gibbs series.** For finite weights and a finite observable
-the real part of the quotient `∑_σ ∏_k w(σ_k) F(σ) / (∑ w)^{|K|}` is the Gibbs series of the real
-parts. -/
-theorem toReal_tsum_prod_div_eq_gibbsSeries {α K : Type*} [Fintype K] (w : α → ℝ≥0∞)
+/-- **From quotients in `[0, ∞]` to real Gibbs series.** For finite weights and a finite
+observable the real part of the quotient `∑_σ ∏_k w(σ_k) F(σ) / (∑ w)^{|K|}` is the series
+`∑_σ ∏_k (w(σ_k) / ∑ w) F(σ)` of the real parts. -/
+theorem toReal_tsum_prod_div_eq_tsum {α K : Type*} [Fintype K] (w : α → ℝ≥0∞)
     (hw : ∀ a, w a ≠ ∞) (F : (K → α) → ℝ≥0∞) (hF : ∀ σ, F σ ≠ ∞) :
     ((∑' σ : K → α, (∏ k, w (σ k)) * F σ) / (∑' a, w a) ^ Fintype.card K).toReal =
-      gibbsSeries (fun a => (w a).toReal) (fun σ => (F σ).toReal) := by
-  unfold gibbsSeries
+      ∑' σ : K → α, (∏ k, (w (σ k)).toReal / ∑' b, (w b).toReal) * (F σ).toReal := by
   rw [ENNReal.toReal_div, ENNReal.tsum_toReal_eq (fun σ => ENNReal.mul_ne_top
     (ENNReal.prod_ne_top fun k _ => hw _) (hF σ)), ENNReal.toReal_pow,
     ENNReal.tsum_toReal_eq hw, ← tsum_div_const]
@@ -79,13 +74,15 @@ theorem summable_prod_div_mul (hW : ∀ a, 0 ≤ W a) (hs : Summable W) (h0 : �
   exact mul_le_mul_of_nonneg_left (hΦ σ) (Finset.prod_nonneg fun k _ => div_nonneg (hW _) hZ.le)
 
 /-- The Gibbs series of a bounded observable is bounded by the same constant. -/
-theorem abs_gibbsSeries_le (hW : ∀ a, 0 ≤ W a) (hs : Summable W) (h0 : ∑' b, W b ≠ 0)
-    {Φ : (K → α) → ℝ} {M : ℝ} (hΦ : ∀ σ, |Φ σ| ≤ M) : |gibbsSeries W Φ| ≤ M := by
+theorem abs_tsum_prod_div_mul_le (hW : ∀ a, 0 ≤ W a) (hs : Summable W) (h0 : ∑' b, W b ≠ 0)
+    {Φ : (K → α) → ℝ} {M : ℝ} (hΦ : ∀ σ, |Φ σ| ≤ M) :
+    |∑' σ : K → α, (∏ k, W (σ k) / ∑' b, W b) * Φ σ| ≤ M := by
   have hZ : 0 < ∑' b, W b := lt_of_le_of_ne (tsum_nonneg hW) (Ne.symm h0)
   have hnn : ∀ σ : K → α, 0 ≤ ∏ k, W (σ k) / ∑' b, W b := fun σ =>
     Finset.prod_nonneg fun k _ => div_nonneg (hW _) hZ.le
   have h1 := (hasSum_prod_div (K := K) hW hs h0)
-  calc |gibbsSeries W Φ| ≤ ∑' σ : K → α, ‖(∏ k, W (σ k) / ∑' b, W b) * Φ σ‖ :=
+  calc |∑' σ : K → α, (∏ k, W (σ k) / ∑' b, W b) * Φ σ|
+      ≤ ∑' σ : K → α, ‖(∏ k, W (σ k) / ∑' b, W b) * Φ σ‖ :=
         norm_tsum_le_tsum_norm (summable_prod_div_mul hW hs h0 hΦ).norm
     _ ≤ ∑' σ : K → α, (∏ k, W (σ k) / ∑' b, W b) * M := by
         refine Summable.tsum_le_tsum (fun σ => ?_) (summable_prod_div_mul hW hs h0 hΦ).norm
@@ -96,7 +93,7 @@ theorem abs_gibbsSeries_le (hW : ∀ a, 0 ≤ W a) (hs : Summable W) (h0 : ∑' 
 
 /-- **Marginalizing the last replica.** The Gibbs series of an observable of the first `n`
 replicas does not change when a further replica is added. -/
-theorem gibbsSeries_castSucc {n : ℕ} (hW : ∀ a, 0 ≤ W a) (hs : Summable W)
+theorem tsum_prod_div_mul_castSucc {n : ℕ} (hW : ∀ a, 0 ≤ W a) (hs : Summable W)
     (h0 : ∑' b, W b ≠ 0) {Φ : (Fin n → α) → ℝ} {M : ℝ} (hΦ : ∀ σ, |Φ σ| ≤ M) :
     ∑' τ : Fin (n + 1) → α, (∏ k, W (τ k) / ∑' b, W b) * Φ (fun k => τ k.castSucc) =
       ∑' σ : Fin n → α, (∏ k, W (σ k) / ∑' b, W b) * Φ σ := by
@@ -116,5 +113,116 @@ theorem gibbsSeries_castSucc {n : ℕ} (hW : ∀ a, 0 ≤ W a) (hs : Summable W)
     one_mul]
 
 end GibbsSeries
+
+section Cascade
+
+variable (r n : ℕ) (σ : ℕ → ℝ) (t : ℝ) (u : (p : ℕ) → (Fin p → ℕ) → ℕ → ℝ≥0∞)
+  (lab : (p : ℕ) → (Fin p → ℕ) → ℕ → ℝ)
+
+/-- **The Gibbs average of the cascade as a real series.** If the branch weights are finite and
+the observable is finite, the real part of `⟨F(Rⁿ)⟩_t` is the Gibbs series of the real weights
+`w_α exp (t g(α))`. -/
+theorem toReal_replicaGibbs_eq_tsum (F : (Fin n → Fin n → Fin (r + 1)) → ℝ≥0∞)
+    (hu : ∀ α : Fin r → ℕ, cascadeBranchWeight u α ≠ ∞) (hF : ∀ P, F P ≠ ∞) :
+    (replicaGibbs r n σ t F u lab).toReal =
+      ∑' τ : Fin n → Fin r → ℕ, (∏ l, (cascadeBranchWeight u (τ l)).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab (τ l) i) /
+        ∑' b : Fin r → ℕ, (cascadeBranchWeight u b).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab b i)) *
+        (F fun l l' => prefixOverlap (τ l) (τ l')).toReal := by
+  have h := toReal_tsum_prod_div_eq_tsum (K := Fin n)
+    (fun α : Fin r → ℕ => cascadeBranchWeight u α *
+      ENNReal.ofReal (Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab α i)))
+    (fun α => ENNReal.mul_ne_top (hu α) ENNReal.ofReal_ne_top)
+    (fun τ => F fun l l' => prefixOverlap (τ l) (τ l')) (fun τ => hF _)
+  simp only [ENNReal.toReal_mul, ENNReal.toReal_ofReal (Real.exp_pos _).le] at h
+  rw [Fintype.card_fin] at h
+  exact h
+
+/-- The Gibbs average with a test of one label, as a real series. -/
+theorem toReal_replicaGibbsAt_eq_tsum (F : (Fin n → Fin n → Fin (r + 1)) → ℝ≥0∞) (l₀ : Fin n)
+    (i₀ : Fin r) (ψ : ℝ → ℝ≥0∞) (s : ℝ) (hu : ∀ α : Fin r → ℕ, cascadeBranchWeight u α ≠ ∞)
+    (hF : ∀ P, F P ≠ ∞) (hψ : ∀ y, ψ y ≠ ∞) :
+    (replicaGibbsAt r n σ t F l₀ i₀ ψ s u lab).toReal =
+      ∑' τ : Fin n → Fin r → ℕ, (∏ l, (cascadeBranchWeight u (τ l)).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab (τ l) i) /
+        ∑' b : Fin r → ℕ, (cascadeBranchWeight u b).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab b i)) *
+        ((F fun l l' => prefixOverlap (τ l) (τ l')).toReal *
+          (ψ (leafLabel lab (τ l₀) i₀ - s)).toReal) := by
+  have h := toReal_tsum_prod_div_eq_tsum (K := Fin n)
+    (fun α : Fin r → ℕ => cascadeBranchWeight u α *
+      ENNReal.ofReal (Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab α i)))
+    (fun α => ENNReal.mul_ne_top (hu α) ENNReal.ofReal_ne_top)
+    (fun τ => (F fun l l' => prefixOverlap (τ l) (τ l')) *
+      ψ (leafLabel lab (τ l₀) i₀ - s)) (fun τ => ENNReal.mul_ne_top (hF _) (hψ _))
+  simp only [ENNReal.toReal_mul, ENNReal.toReal_ofReal (Real.exp_pos _).le] at h
+  rw [Fintype.card_fin] at h
+  unfold replicaGibbsAt
+  simp_rw [mul_assoc] at h ⊢
+  exact h
+
+/-- The real weights of a cascade with finite branch weights and positive finite total mass are
+nonnegative, summable, with a nonzero sum. -/
+theorem summable_tsum_ne_zero_cascadeWeight (hu : ∀ α : Fin r → ℕ, cascadeBranchWeight u α ≠ ∞)
+    (h0 : ∑' α : Fin r → ℕ, cascadeBranchWeight u α *
+      ENNReal.ofReal (Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab α i)) ≠ 0)
+    (ht : ∑' α : Fin r → ℕ, cascadeBranchWeight u α *
+      ENNReal.ofReal (Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab α i)) ≠ ∞) :
+    Summable (fun α : Fin r → ℕ => (cascadeBranchWeight u α).toReal *
+      Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab α i)) ∧
+    ∑' α : Fin r → ℕ, (cascadeBranchWeight u α).toReal *
+      Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab α i) ≠ 0 := by
+  have e : ∀ α : Fin r → ℕ, (cascadeBranchWeight u α).toReal *
+      Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab α i) = (cascadeBranchWeight u α *
+      ENNReal.ofReal (Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab α i))).toReal := fun α => by
+    rw [ENNReal.toReal_mul, ENNReal.toReal_ofReal (Real.exp_pos _).le]
+  simp_rw [e]
+  refine ⟨ENNReal.summable_toReal ht, ?_⟩
+  rw [← ENNReal.tsum_toReal_eq (f := fun α => cascadeBranchWeight u α *
+    ENNReal.ofReal (Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab α i)))
+    fun α => ENNReal.mul_ne_top (hu α) ENNReal.ofReal_ne_top]
+  exact (ENNReal.toReal_pos h0 ht).ne'
+
+/-- **The Gibbs series of a bounded real pattern observable** is the difference of the real parts
+of the Gibbs averages of its positive and negative parts. -/
+theorem tsum_cascadeSeries_eq_toReal_sub (Ξ : (Fin n → Fin n → Fin (r + 1)) → ℝ) {M : ℝ}
+    (hΞ : ∀ P, |Ξ P| ≤ M) (hu : ∀ α : Fin r → ℕ, cascadeBranchWeight u α ≠ ∞)
+    (h0 : ∑' α : Fin r → ℕ, cascadeBranchWeight u α *
+      ENNReal.ofReal (Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab α i)) ≠ 0)
+    (ht : ∑' α : Fin r → ℕ, cascadeBranchWeight u α *
+      ENNReal.ofReal (Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab α i)) ≠ ∞) :
+    ∑' τ : Fin n → Fin r → ℕ, (∏ l, (cascadeBranchWeight u (τ l)).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab (τ l) i) /
+        ∑' b : Fin r → ℕ, (cascadeBranchWeight u b).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab b i)) *
+        Ξ (fun l l' => prefixOverlap (τ l) (τ l')) =
+      (replicaGibbs r n σ t (fun P => ENNReal.ofReal (Ξ P)) u lab).toReal -
+        (replicaGibbs r n σ t (fun P => ENNReal.ofReal (-Ξ P)) u lab).toReal := by
+  obtain ⟨hs, hne⟩ := summable_tsum_ne_zero_cascadeWeight r σ t u lab hu h0 ht
+  have hW : ∀ α : Fin r → ℕ, 0 ≤ (cascadeBranchWeight u α).toReal *
+      Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab α i) := fun α =>
+    mul_nonneg ENNReal.toReal_nonneg (Real.exp_pos _).le
+  rw [toReal_replicaGibbs_eq_tsum r n σ t u lab _ hu fun P => ENNReal.ofReal_ne_top,
+    toReal_replicaGibbs_eq_tsum r n σ t u lab _ hu fun P => ENNReal.ofReal_ne_top,
+    ← Summable.tsum_sub]
+  · refine tsum_congr fun τ => ?_
+    rw [← mul_sub, ENNReal.toReal_ofReal', ENNReal.toReal_ofReal']
+    congr 1
+    rcases le_total 0 (Ξ fun l l' => prefixOverlap (τ l) (τ l')) with h | h
+    · rw [max_eq_left h, max_eq_right (neg_nonpos.2 h)]; ring
+    · rw [max_eq_right h, max_eq_left (neg_nonneg.2 h)]; ring
+  · refine summable_prod_div_mul hW hs hne (Φ := fun τ => (ENNReal.ofReal
+      (Ξ fun l l' => prefixOverlap (τ l) (τ l'))).toReal) (M := M) fun τ => ?_
+    rw [ENNReal.toReal_ofReal', abs_of_nonneg (le_max_right _ _)]
+    have hb := hΞ fun l l' => prefixOverlap (τ l) (τ l')
+    exact max_le ((le_abs_self _).trans hb) ((abs_nonneg _).trans hb)
+  · refine summable_prod_div_mul hW hs hne (Φ := fun τ => (ENNReal.ofReal
+      (-Ξ fun l l' => prefixOverlap (τ l) (τ l'))).toReal) (M := M) fun τ => ?_
+    rw [ENNReal.toReal_ofReal', abs_of_nonneg (le_max_right _ _)]
+    have hb := hΞ fun l l' => prefixOverlap (τ l) (τ l')
+    exact max_le ((neg_le_abs _).trans hb) ((abs_nonneg _).trans hb)
+
+end Cascade
 
 end SpinGlasses

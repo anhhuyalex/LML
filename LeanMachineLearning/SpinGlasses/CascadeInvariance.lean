@@ -25,14 +25,6 @@ open scoped ENNReal NNReal
 
 namespace SpinGlasses
 
-/-- The Gibbs average `⟨f(Rⁿ)⟩_t` of the Ruelle cascade with vertex data `d`. -/
-noncomputable def cascadeGibbs (r n : ℕ) (σ : ℕ → ℝ) (t : ℝ)
-    (F : (Fin n → Fin n → Fin (r + 1)) → ℝ≥0∞)
-    (d : (Σ p : ℕ, Fin p → ℕ) → (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℝ)) : ℝ≥0∞ :=
-  replicaGibbs r n σ t F (fun p γ m => nthLargestAtom m (poissonCountingMeasure
-    (fun k => ((d ⟨p, γ⟩).1 k).1) (fun k l => ((d ⟨p, γ⟩).1 k).2 l)))
-    (fun p γ n => (d ⟨p, γ⟩).2 n)
-
 /-- **Lemma 2.5 of Panchenko for `k = 0`: overlap invariance under the tilt.** For the Ruelle
 cascade with exponents `0 < ζ_p < 1`, i.i.d. standard Gaussian labels and any nonnegative
 function `f` of the overlap matrix of `n` replicas, the expected Gibbs average
@@ -47,10 +39,16 @@ theorem lintegral_cascadeGibbs_tilt {Ω : Type*} [MeasurableSpace Ω] {P : Measu
       Po(rate p k).prod (Measure.infinitePi fun _ : ℕ => nu p k)).prod
         (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
     (D : (Σ p : ℕ, Fin p → ℕ) → Ω → (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℝ)) (hDm : ∀ v, Measurable (D v))
-    (hD : iIndepFun D P) (hDlaw : ∀ v, HasLaw (D v) (𝔡 v.1) P) (n : ℕ)
+    (hD : iIndepFun D P) (hDlaw : ∀ v, HasLaw (D v) (𝔡 v.1) P)
+    (u : Ω → (p : ℕ) → (Fin p → ℕ) → ℕ → ℝ≥0∞)
+    (hu : u = fun ω p γ m => nthLargestAtom m (poissonCountingMeasure
+      (fun k => ((D ⟨p, γ⟩ ω).1 k).1) (fun k l => ((D ⟨p, γ⟩ ω).1 k).2 l)))
+    (lab : Ω → (p : ℕ) → (Fin p → ℕ) → ℕ → ℝ)
+    (hlab : lab = fun ω p γ k => (D ⟨p, γ⟩ ω).2 k) (n : ℕ)
     (F : (Fin n → Fin n → Fin (r + 1)) → ℝ≥0∞) :
-    ∫⁻ ω, cascadeGibbs r n σ t F (fun v => D v ω) ∂P =
-      ∫⁻ ω, cascadeGibbs r n σ 0 F (fun v => D v ω) ∂P := by
+    ∫⁻ ω, replicaGibbs r n σ t F (u ω) (lab ω) ∂P =
+      ∫⁻ ω, replicaGibbs r n σ 0 F (u ω) (lab ω) ∂P := by
+  subst hu hlab
   have h := identDistrib_cascadeReplicaSum_tilt (P := P) r ζ σ t hζ0 hζ1 nu rate hmu 𝔡 h𝔡 D hDm
     hD hDlaw (X := Fin n → Fin n → Fin (r + 1)) (fun _ => Fin n) (fun P l l' => (P l l').val)
     (fun _ _ _ => fun _ => 1) fun _ _ _ => measurable_const
@@ -67,24 +65,13 @@ theorem lintegral_cascadeGibbs_tilt {Ω : Type*} [MeasurableSpace Ω] {P : Measu
   convert h2 using 2
   · funext ω
     rw [Function.comp_apply, hΨ]
-    unfold cascadeGibbs
     rw [replicaGibbs_eq_div r n σ ζ t F]
     rfl
   · funext ω
     rw [Function.comp_apply, hΨ]
-    unfold cascadeGibbs
     rw [replicaGibbs_eq_div r n σ ζ 0 F]
     simp only [zero_mul, tiltTest_zero]
     rfl
-
-/-- The Gibbs average `⟨f(Rⁿ) ψ(label of σˡ⁰ at level i₀ - s)⟩_t` of the Ruelle cascade with
-vertex data `d`. -/
-noncomputable def cascadeGibbsAt (r n : ℕ) (σ : ℕ → ℝ) (t : ℝ)
-    (F : (Fin n → Fin n → Fin (r + 1)) → ℝ≥0∞) (l₀ : Fin n) (i₀ : Fin r) (ψ : ℝ → ℝ≥0∞) (s : ℝ)
-    (d : (Σ p : ℕ, Fin p → ℕ) → (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℝ)) : ℝ≥0∞ :=
-  replicaGibbsAt r n σ t F l₀ i₀ ψ s (fun p γ m => nthLargestAtom m (poissonCountingMeasure
-    (fun k => ((d ⟨p, γ⟩).1 k).1) (fun k l => ((d ⟨p, γ⟩).1 k).2 l)))
-    (fun p γ n => (d ⟨p, γ⟩).2 n)
 
 /-- **Lemma 2.5 of Panchenko for `k = (1, 0, …, 0)`, in law.** The Gibbs averages
 `⟨f(Rⁿ) (σᵢ (label of σ^{l₀} at level i - tσᵢζᵢ))^±⟩_t` have the joint law of the untilted
@@ -100,17 +87,23 @@ theorem identDistrib_cascadeGibbsAt_tilt {Ω : Type*} [MeasurableSpace Ω] {P : 
       Po(rate p k).prod (Measure.infinitePi fun _ : ℕ => nu p k)).prod
         (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
     (D : (Σ p : ℕ, Fin p → ℕ) → Ω → (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℝ)) (hDm : ∀ v, Measurable (D v))
-    (hD : iIndepFun D P) (hDlaw : ∀ v, HasLaw (D v) (𝔡 v.1) P) (n : ℕ)
+    (hD : iIndepFun D P) (hDlaw : ∀ v, HasLaw (D v) (𝔡 v.1) P)
+    (u : Ω → (p : ℕ) → (Fin p → ℕ) → ℕ → ℝ≥0∞)
+    (hu : u = fun ω p γ m => nthLargestAtom m (poissonCountingMeasure
+      (fun k => ((D ⟨p, γ⟩ ω).1 k).1) (fun k l => ((D ⟨p, γ⟩ ω).1 k).2 l)))
+    (lab : Ω → (p : ℕ) → (Fin p → ℕ) → ℕ → ℝ)
+    (hlab : lab = fun ω p γ k => (D ⟨p, γ⟩ ω).2 k) (n : ℕ)
     (F : (Fin n → Fin n → Fin (r + 1)) → ℝ≥0∞) (l₀ : Fin n) :
     IdentDistrib
-      (fun ω (o : Fin r × Bool) => cascadeGibbsAt r n σ t F l₀ o.1
+      (fun ω (o : Fin r × Bool) => replicaGibbsAt r n σ t F l₀ o.1
         (if o.2 then fun y => ENNReal.ofReal (σ o.1 * y)
           else fun y => ENNReal.ofReal (-(σ o.1 * y)))
-        (t * σ o.1 * ζ o.1) (fun v => D v ω))
-      (fun ω (o : Fin r × Bool) => cascadeGibbsAt r n σ 0 F l₀ o.1
+        (t * σ o.1 * ζ o.1) (u ω) (lab ω))
+      (fun ω (o : Fin r × Bool) => replicaGibbsAt r n σ 0 F l₀ o.1
         (if o.2 then fun y => ENNReal.ofReal (σ o.1 * y)
           else fun y => ENNReal.ofReal (-(σ o.1 * y)))
-        0 (fun v => D v ω)) P P := by
+        0 (u ω) (lab ω)) P P := by
+  subst hu hlab
   obtain ⟨ψ, hψ⟩ : ∃ ψ : Fin r × Bool → ℝ → ℝ≥0∞, ∀ o, ψ o =
       if o.2 then fun y => ENNReal.ofReal (σ o.1 * y) else fun y => ENNReal.ofReal (-(σ o.1 * y)) :=
     ⟨_, fun _ => rfl⟩
@@ -159,13 +152,11 @@ theorem identDistrib_cascadeGibbsAt_tilt {Ω : Type*} [MeasurableSpace Ω] {P : 
   convert h2 using 1
   · funext ω o
     rw [Function.comp_apply, hΨ]
-    unfold cascadeGibbsAt
     rw [replicaGibbsAt_eq_div r n σ ζ t F l₀ o.1 (ψ o) _ rfl]
     simp only [hAs, hAn]
     rfl
   · funext ω o
     rw [Function.comp_apply, hΨ]
-    unfold cascadeGibbsAt
     rw [replicaGibbsAt_eq_div r n σ ζ 0 F l₀ o.1 (ψ o) 0 (by simp)]
     simp only [hAs, hAn, zero_mul, tiltTest_zero]
     rfl
@@ -188,11 +179,16 @@ theorem lintegral_cascadeGibbsAt_zero {Ω : Type*} [MeasurableSpace Ω] {P : Mea
       Po(rate p k).prod (Measure.infinitePi fun _ : ℕ => nu p k)).prod
         (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
     (D : (Σ p : ℕ, Fin p → ℕ) → Ω → (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℝ)) (hDm : ∀ v, Measurable (D v))
-    (hD : iIndepFun D P) (hDlaw : ∀ v, HasLaw (D v) (𝔡 v.1) P) (n : ℕ)
+    (hD : iIndepFun D P) (hDlaw : ∀ v, HasLaw (D v) (𝔡 v.1) P)
+    (u : Ω → (p : ℕ) → (Fin p → ℕ) → ℕ → ℝ≥0∞)
+    (hu : u = fun ω p γ m => nthLargestAtom m (poissonCountingMeasure
+      (fun k => ((D ⟨p, γ⟩ ω).1 k).1) (fun k l => ((D ⟨p, γ⟩ ω).1 k).2 l)))
+    (lab : Ω → (p : ℕ) → (Fin p → ℕ) → ℕ → ℝ)
+    (hlab : lab = fun ω p γ k => (D ⟨p, γ⟩ ω).2 k) (n : ℕ)
     (F : (Fin n → Fin n → Fin (r + 1)) → ℝ≥0∞) (l₀ : Fin n) (i₀ : Fin r) (ψ : ℝ → ℝ≥0∞)
     (hψ : Measurable ψ) :
-    ∫⁻ ω, cascadeGibbsAt r n σ 0 F l₀ i₀ ψ 0 (fun v => D v ω) ∂P =
-      (∫⁻ y, ψ y ∂gaussianReal 0 1) * ∫⁻ ω, cascadeGibbs r n σ 0 F (fun v => D v ω) ∂P := by
+    ∫⁻ ω, replicaGibbsAt r n σ 0 F l₀ i₀ ψ 0 (u ω) (lab ω) ∂P =
+      (∫⁻ y, ψ y ∂gaussianReal 0 1) * ∫⁻ ω, replicaGibbs r n σ 0 F (u ω) (lab ω) ∂P := by
   classical
   have h𝔡p : ∀ p, IsProbabilityMeasure (𝔡 p) := fun p => by rw [h𝔡 p]; infer_instance
   obtain ⟨-, hLlaw, hind⟩ := hasLaw_indepFun_fst_snd_of_iIndepFun D hDm hD
@@ -231,20 +227,22 @@ theorem lintegral_cascadeGibbsAt_zero {Ω : Type*} [MeasurableSpace Ω] {P : Mea
     measurable_pi_iff.2 fun v => measurable_fst.comp (hDm v)
   have hL : Measurable fun ω (v : Σ p : ℕ, Fin p → ℕ) => (D v ω).2 :=
     measurable_pi_iff.2 fun v => measurable_snd.comp (hDm v)
-  have hkey : ∀ ω, cascadeGibbsAt r n σ 0 F l₀ i₀ ψ 0 (fun v => D v ω) =
+  have hkey : ∀ ω, replicaGibbsAt r n σ 0 F l₀ i₀ ψ 0 (u ω) (lab ω) =
       ∑' α, Xb (fun v => (D v ω).1) α * Yl (fun v => (D v ω).2) α := by
     intro ω
-    unfold cascadeGibbsAt replicaGibbsAt
+    subst hu hlab
+    unfold replicaGibbsAt
     simp only [zero_mul, Real.exp_zero, ENNReal.ofReal_one, mul_one, sub_zero, leafLabel]
     simp_rw [hXb, hYl]
     rw [div_eq_mul_inv, ← ENNReal.tsum_mul_right]
     refine tsum_congr fun α => ?_
     simp only [div_eq_mul_inv]
     ring
-  have hgibbs : ∀ ω, cascadeGibbs r n σ 0 F (fun v => D v ω) =
+  have hgibbs : ∀ ω, replicaGibbs r n σ 0 F (u ω) (lab ω) =
       ∑' α, Xb (fun v => (D v ω).1) α := by
     intro ω
-    unfold cascadeGibbs replicaGibbs
+    subst hu hlab
+    unfold replicaGibbs
     simp only [zero_mul, Real.exp_zero, ENNReal.ofReal_one, mul_one]
     simp_rw [hXb]
     rw [div_eq_mul_inv, ← ENNReal.tsum_mul_right]
@@ -349,16 +347,22 @@ theorem lintegral_cascadeGibbsAt_tilt_symm {Ω : Type*} [MeasurableSpace Ω] {P 
       Po(rate p k).prod (Measure.infinitePi fun _ : ℕ => nu p k)).prod
         (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
     (D : (Σ p : ℕ, Fin p → ℕ) → Ω → (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℝ)) (hDm : ∀ v, Measurable (D v))
-    (hD : iIndepFun D P) (hDlaw : ∀ v, HasLaw (D v) (𝔡 v.1) P) (n : ℕ)
+    (hD : iIndepFun D P) (hDlaw : ∀ v, HasLaw (D v) (𝔡 v.1) P)
+    (u : Ω → (p : ℕ) → (Fin p → ℕ) → ℕ → ℝ≥0∞)
+    (hu : u = fun ω p γ m => nthLargestAtom m (poissonCountingMeasure
+      (fun k => ((D ⟨p, γ⟩ ω).1 k).1) (fun k l => ((D ⟨p, γ⟩ ω).1 k).2 l)))
+    (lab : Ω → (p : ℕ) → (Fin p → ℕ) → ℕ → ℝ)
+    (hlab : lab = fun ω p γ k => (D ⟨p, γ⟩ ω).2 k) (n : ℕ)
     (F : (Fin n → Fin n → Fin (r + 1)) → ℝ≥0∞) (C : ℝ≥0∞) (hC : C ≠ ∞) (hf : ∀ P, F P ≤ C)
     (l₀ : Fin n) (i : Fin r) :
-    ∫⁻ ω, cascadeGibbsAt r n σ t F l₀ i (fun y => ENNReal.ofReal (σ i * y))
-        (t * σ i * ζ i) (fun v => D v ω) ∂P =
-      ∫⁻ ω, cascadeGibbsAt r n σ t F l₀ i (fun y => ENNReal.ofReal (-(σ i * y)))
-        (t * σ i * ζ i) (fun v => D v ω) ∂P ∧
-    ∫⁻ ω, cascadeGibbsAt r n σ t F l₀ i (fun y => ENNReal.ofReal (σ i * y))
-        (t * σ i * ζ i) (fun v => D v ω) ∂P < ∞ := by
-  have h := identDistrib_cascadeGibbsAt_tilt r ζ σ t hζ0 hζ1 nu rate hmu 𝔡 h𝔡 D hDm hD hDlaw n F
+    ∫⁻ ω, replicaGibbsAt r n σ t F l₀ i (fun y => ENNReal.ofReal (σ i * y))
+        (t * σ i * ζ i) (u ω) (lab ω) ∂P =
+      ∫⁻ ω, replicaGibbsAt r n σ t F l₀ i (fun y => ENNReal.ofReal (-(σ i * y)))
+        (t * σ i * ζ i) (u ω) (lab ω) ∂P ∧
+    ∫⁻ ω, replicaGibbsAt r n σ t F l₀ i (fun y => ENNReal.ofReal (σ i * y))
+        (t * σ i * ζ i) (u ω) (lab ω) ∂P < ∞ := by
+  have h := identDistrib_cascadeGibbsAt_tilt r ζ σ t hζ0 hζ1 nu rate hmu 𝔡 h𝔡 D hDm hD hDlaw u hu
+    lab hlab n F
     l₀
   have hp := (h.comp (measurable_pi_apply (i, true))).lintegral_eq
   have hn := (h.comp (measurable_pi_apply (i, false))).lintegral_eq
@@ -367,16 +371,20 @@ theorem lintegral_cascadeGibbsAt_tilt_symm {Ω : Type*} [MeasurableSpace Ω] {P 
     ENNReal.measurable_ofReal.comp (measurable_id.const_mul c)
   have hmeas' : Measurable fun y : ℝ => ENNReal.ofReal (-(σ i * y)) :=
     ENNReal.measurable_ofReal.comp (measurable_id.const_mul (σ i)).neg
-  have hz1 := lintegral_cascadeGibbsAt_zero r σ nu rate 𝔡 h𝔡 D hDm hD hDlaw n F l₀ i _
+  have hz1 := lintegral_cascadeGibbsAt_zero r σ nu rate 𝔡 h𝔡 D hDm hD hDlaw u hu lab hlab n F l₀ i _
     (hmeas (σ i))
-  have hz2 := lintegral_cascadeGibbsAt_zero r σ nu rate 𝔡 h𝔡 D hDm hD hDlaw n F l₀ i _ hmeas'
-  have hbound : ∫⁻ ω, cascadeGibbs r n σ 0 F (fun v => D v ω) ∂P ≤ C := by
+  have hz2 := lintegral_cascadeGibbsAt_zero r σ nu rate 𝔡 h𝔡 D hDm hD hDlaw u hu lab hlab n F l₀ i _
+    hmeas'
+  have hbound : ∫⁻ ω, replicaGibbs r n σ 0 F (u ω) (lab ω) ∂P ≤ C := by
     have hae := ae_cascadeMass_pos_finite (P := P) r ζ hζ0 hζ1 hmono nu rate hmu 𝔡 h𝔡 D hDm hD
       hDlaw
-    calc ∫⁻ ω, cascadeGibbs r n σ 0 F (fun v => D v ω) ∂P ≤ ∫⁻ _, C ∂P :=
+    calc ∫⁻ ω, replicaGibbs r n σ 0 F (u ω) (lab ω) ∂P ≤ ∫⁻ _, C ∂P :=
           lintegral_mono_ae (by
-            filter_upwards [hae] with ω h
-            exact replicaGibbs_zero_le r n σ F C hf _ _ h.1 h.2.ne)
+            filter_upwards [hae] with ω hω
+            obtain ⟨h1, h2⟩ := hω
+            subst hu hlab
+            simpa using replicaGibbs_le r n σ 0 F C hf _ _ (by simpa using h1)
+              (by simpa using h2.ne))
       _ = C := by simp
   refine ⟨?_, ?_⟩
   · rw [hp, hn, hz1, hz2, lintegral_ofReal_mul_gaussian_symm (σ i)]

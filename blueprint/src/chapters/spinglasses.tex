@@ -4993,8 +4993,7 @@ hypothesis $\tilde V_n$ and $V_n$ have the same law. The marks $(\eta_n,\tilde V
 \subsection*{Lemma~2.5 for $k=0$ and $k=(1,0,\dots,0)$}
 
 \begin{definition}[Gibbs averages of the cascade]\label{def:sg:cascade-gibbs}
-  \lean{SpinGlasses.replicaGibbs, SpinGlasses.replicaGibbsAt,
-        SpinGlasses.cascadeGibbs, SpinGlasses.cascadeGibbsAt}
+  \lean{SpinGlasses.replicaGibbs, SpinGlasses.replicaGibbsAt}
   \leanok
 For $n\ge1$ and a function $f$ with values in $[0,\infty]$ of the overlap pattern $R^n_{ll'}=\alpha_l\wedge\alpha_{l'}\in\{0,\dots,r\}$ (the length of the
 common prefix; a function of the overlap values $q_{\alpha_l\wedge\alpha_{l'}}$ is a special case), put (in $[0,\infty]$, with the convention $x/\infty=0$)
@@ -5002,12 +5001,15 @@ common prefix; a function of the overlap values $q_{\alpha_l\wedge\alpha_{l'}}$ 
  \langle f(R^n)\rangle_t=\frac{\sum_{\alpha_1,\dots,\alpha_n}\prod_lw_{\alpha_l}e^{tg(\alpha_l)}\,f(R^n)}{\big(\sum_\alpha w_\alpha e^{tg(\alpha)}\big)^n},
 \]
 and $\langle f(R^n)\psi(\eta_{\alpha_{l_0},i}-s)\rangle_t$ in the same way, with the extra factor $\psi(\eta_{\alpha_{l_0},i}-s)$ in the numerator.
+In Lean the ranked atoms $u$ and the labels $\eta$ are arguments of \texttt{replicaGibbs}; the theorems on the random cascade take them as functions of $\omega$
+together with equations identifying them with the ranked atoms of the Poisson blocks and the Gaussian labels of the vertex data (there is no separate definition for
+the averages of the random cascade).
 \end{definition}
 
 \begin{theorem}[Gibbs averages as ratios of replica sums]\label{thm:sg:gibbs-ratio}
   \lean{SpinGlasses.prod_tiltTest_one, SpinGlasses.tiltTest_apply, SpinGlasses.sum_replicaSum_tilt_pattern,
         SpinGlasses.replicaGibbs_eq_div, SpinGlasses.replicaGibbsAt_eq_div,
-        SpinGlasses.replicaGibbs_zero_le}
+        SpinGlasses.replicaGibbs_le}
   \leanok
 Let $c=\exp(-\tfrac{t^2}{2}\sum_i\sigma_i^2\zeta_i)$. Summing the tilted replica sums over the finitely many overlap patterns $P$ gives
 $\sum_Pf(P)\,Z_r[P,\tilde a]=c^n\sum_{\alpha_1,\dots,\alpha_n}\prod_lw_{\alpha_l}e^{tg(\alpha_l)}\prod_{l,i}a_{l,i}(\eta_{\alpha_l,i}-t\sigma_i\zeta_i)\,f(R^n)$,
@@ -5191,22 +5193,21 @@ For (d) one uses that the overlap of two leaves with the same root child is one 
 \subsection*{Real-series form of the Gibbs average}
 
 \begin{definition}[Gibbs series]\label{def:sg:gibbs-series}
-  \lean{SpinGlasses.gibbsSeries}
   \leanok
 For a countable set $A$, real weights $W:A\to\mathbb R$ and a real observable $\Phi$ of $K$ replicas, put
 \[
  \langle\Phi\rangle_W=\sum_{\sigma\in A^K}\Big(\prod_{k\in K}\frac{W(\sigma_k)}{\sum_{a}W(a)}\Big)\Phi(\sigma).
 \]
 For the Ruelle cascade $A=\mathbb N^r$ and $W(\alpha)=w_\alpha e^{tg(\alpha)}$; this is the form in which countable Gaussian integration by parts
-(Lemma~1.2 of the book, see the chapter on integration by parts) is stated.
+(Lemma~1.2 of the book, see the chapter on integration by parts) is stated. In Lean the Gibbs series is not a separate definition: the theorems below write the series out.
 \end{definition}
 
 \begin{theorem}[Basic properties of the Gibbs series]\label{thm:sg:gibbs-series}
-  \lean{SpinGlasses.toReal_tsum_prod_div_eq_gibbsSeries,
+  \lean{SpinGlasses.toReal_tsum_prod_div_eq_tsum,
         SpinGlasses.hasSum_prod_div,
         SpinGlasses.summable_prod_div_mul,
-        SpinGlasses.abs_gibbsSeries_le,
-        SpinGlasses.gibbsSeries_castSucc}
+        SpinGlasses.abs_tsum_prod_div_mul_le,
+        SpinGlasses.tsum_prod_div_mul_castSucc}
   \leanok
 Let $W\ge0$ be summable with $\sum_aW(a)\ne0$ (so $0<\sum_aW(a)<\infty$). Then
 (a) the Gibbs weights $\prod_kW(\sigma_k)/\sum_aW(a)$ of $K$ replicas sum to $1$ over $\sigma\in A^K$;
