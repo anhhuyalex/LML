@@ -30,6 +30,14 @@ theorem enorm_eq_ofReal_add_ofReal_neg (x : ℝ) :
   · simp [abs_of_nonneg h, ENNReal.ofReal_eq_zero.2 (neg_nonpos.2 h)]
   · simp [abs_of_nonpos h, ENNReal.ofReal_eq_zero.2 h]
 
+/-- The positive and negative parts of a real number recover it. -/
+theorem toReal_ofReal_sub_toReal_ofReal_neg (x : ℝ) :
+    (ENNReal.ofReal x).toReal - (ENNReal.ofReal (-x)).toReal = x := by
+  rw [ENNReal.toReal_ofReal', ENNReal.toReal_ofReal']
+  rcases le_total 0 x with h | h
+  · rw [max_eq_left h, max_eq_right (neg_nonpos.2 h)]; ring
+  · rw [max_eq_right h, max_eq_left (neg_nonneg.2 h)]; ring
+
 end Real
 
 namespace MeasureTheory

@@ -133,20 +133,12 @@ theorem integral_leafField_mul (α β : Fin r → ℕ) :
   have hc : ∀ i j : Fin r, ∫ ℓ : (Σ p : ℕ, Fin p → ℕ) → ℕ → ℝ,
       σ i * ℓ ⟨i, Fin.take i i.isLt.le α⟩ (α i) *
         (σ j * ℓ ⟨j, Fin.take j j.isLt.le β⟩ (β j)) ∂μΛ =
-      σ i * σ j * (if i = j ∧ i.val < (prefixOverlap α β).val then 1 else 0) := by
-    intro i j
-    have h := integral_gaussianReal_coordinate_mul_scaled iIndepFun_labelArray hlaw
+      σ i * σ j * (if i = j ∧ i.val < (prefixOverlap α β).val then 1 else 0) := fun i j => by
+    have h := integral_gaussianReal_coordinate_scaled_mul_scaled iIndepFun_labelArray hlaw
       (⟨⟨i, Fin.take i i.isLt.le α⟩, α i⟩ : (Σ p : ℕ, Fin p → ℕ) × ℕ)
-      ⟨⟨j, Fin.take j j.isLt.le β⟩, β j⟩ 1
-    simp only [one_mul] at h
-    have e : (fun ℓ : (Σ p : ℕ, Fin p → ℕ) → ℕ → ℝ =>
-        σ i * ℓ ⟨i, Fin.take i i.isLt.le α⟩ (α i) *
-          (σ j * ℓ ⟨j, Fin.take j j.isLt.le β⟩ (β j))) =
-        fun ℓ => (σ i * σ j) * (ℓ ⟨i, Fin.take i i.isLt.le α⟩ (α i) *
-          ℓ ⟨j, Fin.take j j.isLt.le β⟩ (β j)) := funext fun ℓ => by ring
-    rw [e, integral_const_mul]
+      ⟨⟨j, Fin.take j j.isLt.le β⟩, β j⟩ (σ i) (σ j)
     simp only [coordinate_eq_iff] at h
-    rw [h]
+    exact h
   simp_rw [hg, Finset.sum_mul_sum]
   rw [integral_finsetSum _ fun i _ => integrable_finsetSum _ fun j _ => hI i j]
   refine Finset.sum_congr rfl fun i _ => ?_

@@ -23,13 +23,14 @@ open MeasureTheory
 
 namespace ProbabilityTheory
 
-variable {Ω α β : Type*} [MeasurableSpace Ω] [MeasurableSpace α] [MeasurableSpace β]
+variable {Ω α β E : Type*} [MeasurableSpace Ω] [MeasurableSpace α] [MeasurableSpace β]
+  [NormedAddCommGroup E] [NormedSpace ℝ E]
   {P : Measure Ω} [IsProbabilityMeasure P] {X : Ω → α} {Y : Ω → β}
 
-/-- **Fubini for independent variables.** -/
-theorem IndepFun.integral_comp_pair_eq_integral_integral_map (hX : Measurable X)
-    (hY : Measurable Y) (hind : IndepFun X Y P) {H : α → β → ℝ}
-    (hH : Measurable (Function.uncurry H)) (hint : Integrable (fun ω => H (X ω) (Y ω)) P) :
+/-- **Fubini for independent variables with strongly measurable integrand.** -/
+theorem IndepFun.integral_comp_pair_eq_integral_integral_map' (hX : Measurable X)
+    (hY : Measurable Y) (hind : IndepFun X Y P) {H : α → β → E}
+    (hH : StronglyMeasurable (Function.uncurry H)) (hint : Integrable (fun ω => H (X ω) (Y ω)) P) :
     ∫ ω, H (X ω) (Y ω) ∂P = ∫ ω, ∫ y, H (X ω) y ∂(P.map Y) ∂P := by
   have hpair := (indepFun_iff_map_prod_eq_prod_map_map hX.aemeasurable hY.aemeasurable).1 hind
   have hXY : Measurable fun ω => (X ω, Y ω) := hX.prodMk hY
@@ -40,8 +41,16 @@ theorem IndepFun.integral_comp_pair_eq_integral_integral_map (hX : Measurable X)
     rw [← hpair, integral_map hXY.aemeasurable hH.aestronglyMeasurable]
     rfl
   have hm : AEStronglyMeasurable (fun x => ∫ y, Function.uncurry H (x, y) ∂(P.map Y))
-      (P.map X) := (hH.stronglyMeasurable.integral_prod_right' (ν := P.map Y)).aestronglyMeasurable
+      (P.map X) := (hH.integral_prod_right' (ν := P.map Y)).aestronglyMeasurable
   rw [h1, integral_prod _ hI, integral_map hX.aemeasurable hm]
   rfl
+
+/-- **Fubini for independent variables.** -/
+theorem IndepFun.integral_comp_pair_eq_integral_integral_map [MeasurableSpace E] [BorelSpace E]
+    [SecondCountableTopology E] (hX : Measurable X) (hY : Measurable Y) (hind : IndepFun X Y P)
+    {H : α → β → E} (hH : Measurable (Function.uncurry H))
+    (hint : Integrable (fun ω => H (X ω) (Y ω)) P) :
+    ∫ ω, H (X ω) (Y ω) ∂P = ∫ ω, ∫ y, H (X ω) y ∂(P.map Y) ∂P :=
+  hind.integral_comp_pair_eq_integral_integral_map' hX hY hH.stronglyMeasurable hint
 
 end ProbabilityTheory

@@ -262,7 +262,7 @@ theorem isRankedMark_sum_dirac_iff (hpos : ∀ q, 0 < x q) (hinj : Function.Inje
     have hpq : p = q₀ := by
       have hfin' : ∀ r, {s | x r ≤ x s}.Finite := fun r => hfin (x r) (hpos r)
       refine injective_ncard_superlevel_lt hinj hfin' ?_
-      show {r | x p < x r}.ncard = {r | x q₀ < x r}.ncard
+      change {r | x p < x r}.ncard = {r | x q₀ < x r}.ncard
       rw [hrank, hBc]
     subst hpq
     by_contra hne

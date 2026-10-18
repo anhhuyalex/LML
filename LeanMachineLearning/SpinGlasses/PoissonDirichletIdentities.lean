@@ -111,6 +111,28 @@ theorem integral_gaussianReal_coordinate_mul_scaled
       integral_gaussianReal_coordinate hlaw, zero_mul]
     simp [hab]
 
+/-- The covariance of scaled independent standard Gaussians is diagonal. -/
+theorem integral_gaussianReal_coordinate_scaled_mul_scaled
+    {α Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω} [DecidableEq α]
+    {X : α → Ω → ℝ} (hi : iIndepFun X P)
+    (hlaw : ∀ a, HasLaw (X a) (gaussianReal 0 1) P)
+    (a b : α) (s t : ℝ) :
+    ∫ ω, (s * X a ω) * (t * X b ω) ∂P = (s * t) * (if a = b then 1 else 0) := by
+  by_cases hab : a = b
+  · subst b
+    have heq : (fun ω => (s * X a ω) * (t * X a ω)) = fun ω => (s * t) * X a ω ^ 2 := by
+      funext ω; ring
+    rw [heq, integral_const_mul, integral_gaussianReal_coordinate_sq hlaw]
+    simp
+  · have hprod : (fun ω => (s * X a ω) * (t * X b ω)) = fun ω => (s * t) * (X a ω * X b ω) := by
+      funext ω; ring
+    rw [hprod, integral_const_mul,
+      (hi.indepFun hab).integral_fun_mul_eq_mul_integral
+        (hlaw a).aemeasurable.aestronglyMeasurable
+        (hlaw b).aemeasurable.aestronglyMeasurable,
+      integral_gaussianReal_coordinate hlaw, zero_mul]
+    simp [hab]
+
 /-- An i.i.d. standard Gaussian field indexed by any type is a Gaussian process.
 This provides the fixed-index Gaussian hypothesis needed after conditioning on
 Poisson block counts and masses; no finite-dimensional truncation is needed. -/

@@ -9,6 +9,7 @@ public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.Ultramet
 public import LeanMachineLearning.ForMathlib.Analysis.RpowTsum
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.LogRpow
 public import LeanMachineLearning.ForMathlib.Analysis.Subadditive
+public import LeanMachineLearning.ForMathlib.Data.Finset.SumBound
 public import LeanMachineLearning.ForMathlib.Data.Sym.Sym2
 public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.ChainRule
 public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.CompProd

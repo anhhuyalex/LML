@@ -8,6 +8,7 @@ module
 public import LeanMachineLearning.SpinGlasses.CascadeInvariance
 public import LeanMachineLearning.SpinGlasses.GaussianIBPCountable
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletIdentities
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SignedToReal
 
 /-!
 # Real-valued Gibbs series for the Ruelle cascade (no definitions, only lemmas)
@@ -243,11 +244,7 @@ theorem tsum_cascadeSeries_eq_toReal_sub (Ξ : (Fin n → Fin n → Fin (r + 1))
     toReal_replicaGibbs_eq_tsum r n σ t u lab _ hu fun P => ENNReal.ofReal_ne_top,
     ← Summable.tsum_sub]
   · refine tsum_congr fun τ => ?_
-    rw [← mul_sub, ENNReal.toReal_ofReal', ENNReal.toReal_ofReal']
-    congr 1
-    rcases le_total 0 (Ξ fun l l' => prefixOverlap (τ l) (τ l')) with h | h
-    · rw [max_eq_left h, max_eq_right (neg_nonpos.2 h)]; ring
-    · rw [max_eq_right h, max_eq_left (neg_nonneg.2 h)]; ring
+    rw [← mul_sub, Real.toReal_ofReal_sub_toReal_ofReal_neg]
   · refine summable_prod_div_mul hW hs hne (Φ := fun τ => (ENNReal.ofReal
       (Ξ fun l l' => prefixOverlap (τ l) (τ l'))).toReal) (M := M) fun τ => ?_
     rw [ENNReal.toReal_ofReal', abs_of_nonneg (le_max_right _ _)]
@@ -290,11 +287,8 @@ theorem summable_replicaGibbsAt_series (F : (Fin n → Fin n → Fin (r + 1)) �
 
 /-- The positive and negative parts of a real number, as real numbers, recover it. -/
 theorem toReal_ofReal_sub_toReal_ofReal_neg (x : ℝ) :
-    (ENNReal.ofReal x).toReal - (ENNReal.ofReal (-x)).toReal = x := by
-  rw [ENNReal.toReal_ofReal', ENNReal.toReal_ofReal']
-  rcases le_total 0 x with h | h
-  · rw [max_eq_left h, max_eq_right (neg_nonpos.2 h)]; ring
-  · rw [max_eq_right h, max_eq_left (neg_nonneg.2 h)]; ring
+    (ENNReal.ofReal x).toReal - (ENNReal.ofReal (-x)).toReal = x :=
+  Real.toReal_ofReal_sub_toReal_ofReal_neg x
 
 /-- **The Gibbs series of an observable times the centred field, through the Gibbs averages with a
 test of one label.** If the Gibbs averages `⟨F (±σᵢ(labelᵢ - tσᵢζᵢ))^+⟩_t` of the replica `l₀` are
