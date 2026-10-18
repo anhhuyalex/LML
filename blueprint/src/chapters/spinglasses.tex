@@ -4382,7 +4382,14 @@ the comparison between the first two. Maximality of the common prefix proves the
         SpinGlasses.cascadeBranchWeight_pos_finite,
         SpinGlasses.cascadeTotalMass_zero,
         SpinGlasses.cascadeTotalMass_succ,
+        SpinGlasses.cascadeTotalMass_succ_le_mul,
+        SpinGlasses.cascadeTotalMass_succ_lt_top_of_bound,
+        SpinGlasses.cascadeTotalMass_succ_le_tsum_bounds,
+        SpinGlasses.cascadeTotalMass_succ_lt_top_of_tsum_bounds,
+        SpinGlasses.ae_cascadeTotalMass_succ_lt_top_of_tsum_bounds,
         SpinGlasses.measurable_cascadeTotalMass,
+        SpinGlasses.measurable_cascadeProbabilityWeight,
+        SpinGlasses.ae_cascadeProbabilityWeight_probability,
         SpinGlasses.tsum_cascadeProbabilityWeight,
         SpinGlasses.cascadeProbabilityWeight_pos_finite,
         SpinGlasses.cascadeProbabilityWeight_probability}
@@ -4392,8 +4399,13 @@ leaf weight as the product along its path, the total mass as the sum over
 leaves, and the normalized weight as the quotient by the total mass. The
 root weight and total mass are $1$; appending child $n$ multiplies the parent
 weight by $u_{p,\alpha,n}$. At depth $r+1$, the total mass is the sum over
-parents of their weights times the sum of their child masses. For measurable
-branch masses this total is measurable. If every branch mass is positive and
+parents of their weights times the sum of their child masses. If each child
+mass is at most $C_\alpha$, the next total is at most
+$\sum_\alpha w_\alpha C_\alpha$. In particular a common bound $C$ gives
+$C\sum_\alpha w_\alpha$; finiteness of either upper bound gives
+finiteness at the next depth. For measurable branch masses this total and every normalized weight are
+measurable. If these hypotheses hold almost surely, normalization also holds
+almost surely. If every branch mass is positive and
 finite and the total mass is finite, the normalized weights are positive,
 finite, and sum to $1$; the nonzero
 total mass follows automatically. These are deterministic results: they do
@@ -4407,9 +4419,37 @@ Tonelli for extended-nonnegative series gives the parent-child sum.
 Distribute the common denominator over the total mass for normalization.
 \end{proof}
 
+\begin{lemma}[Depth-one Poisson cascade finiteness]\label{lem:sg:cascade-depth-one}
+  \lean{SpinGlasses.ae_cascadeTotalMass_one_lt_top_of_poisson_blocks,
+        SpinGlasses.ae_cascadeTotalMass_one_lt_top_of_ranked_poisson_blocks}
+  \leanok
+Let $0<\zeta<1$. On a probability space, let measurable Poisson blocks
+$B_n=(N_n,(X_{nl})_l)$ have marginal laws
+$\mathrm{Po}(a_n)\otimes\nu_n^{\otimes\mathbb N}$, where $\nu_n$ are
+probability measures and $\sum_n a_n\nu_n=\mu_\zeta$.
+Suppose the natural-number-indexed root child masses $u_{\emptyset,k}$
+sum, for every sample, to the positive-part integral of $x$ against the
+Poisson counting measure of these blocks. Then
+$\sum_k u_{\emptyset,k}<\infty$ almost surely. This hypothesis relates
+an enumeration to the counting measure but does not require it to be sorted;
+independence of the blocks is not needed for this finiteness assertion.
+For the canonical decreasing atoms $u_{\emptyset,k}$, the equality of the
+series and the counting-measure integral follows from the Section~2.2
+ranked-atom identity, so it is not an additional hypothesis.
+This is only the base case of Lemma~2.4. No independent vertex-indexed
+family or higher-depth almost-sure finiteness is proved here.
+\end{lemma}
+\begin{proof}
+  \leanok
+Apply the Section~2.2 almost-sure finiteness theorem for the positive-part
+integral of a zeta-Poisson counting measure, then use the depth-one mass
+recursion and the assumed equality of the two sums.
+\end{proof}
+
 \begin{theorem}[Gram and ultrametric geometry of cascade points]\label{thm:sg:cascade-geometry}
   \lean{SpinGlasses.inner_cascadePoint_eq_sum,
         SpinGlasses.inner_cascadePoint_eq,
+        SpinGlasses.inner_cascadePoint_min_le,
         SpinGlasses.norm_cascadePoint_sq,
         SpinGlasses.norm_sub_cascadePoint_sq,
         SpinGlasses.norm_sub_cascadePoint_le_max}
@@ -4419,6 +4459,8 @@ indexed by the non-root prefix vertices at depths $1$ through $r$.
 For a monotone function $q:\mathrm{Fin}(r+1)\to\mathbb R$ with $q_0=0$, set
 $h_\alpha=\sum_{p=1}^r\sqrt{q_p-q_{p-1}}\,e_{\alpha|_p}$.
 Then $\langle h_\alpha,h_\beta\rangle=q_{\alpha\wedge\beta}$,
+$\langle h_\beta,h_\gamma\rangle\ge
+\min(\langle h_\alpha,h_\beta\rangle,\langle h_\alpha,h_\gamma\rangle)$,
 $\|h_\alpha\|^2=q_r$, and
 $\|h_\alpha-h_\beta\|^2=2(q_r-q_{\alpha\wedge\beta})$.
 Consequently

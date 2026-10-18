@@ -230,6 +230,91 @@ theorem measurable_cascadeTotalMass
     Finset.measurable_prod Finset.univ (fun i _ =>
       hu i.val _ _))
 
+/-- Almost-sure finiteness and positive finite branch masses give almost-sure
+normalization. This separates the deterministic conclusion of Lemma 2.4 from its
+still-needed probabilistic finiteness and positivity inputs. -/
+theorem ae_cascadeProbabilityWeight_probability
+    {Ω : Type*} [MeasurableSpace Ω] {P : MeasureTheory.Measure Ω}
+    (u : Ω → (p : ℕ) → (Fin p → ℕ) → ℕ → ENNReal) (r : ℕ)
+    (hfinite : ∀ᵐ ω ∂P, cascadeTotalMass (u ω) r < ∞)
+    (hpos : ∀ᵐ ω ∂P, ∀ p α n, u ω p α n ≠ 0)
+    (hbranch : ∀ᵐ ω ∂P, ∀ p α n, u ω p α n ≠ ∞) :
+    ∀ᵐ ω ∂P,
+      (∑' α : Fin r → ℕ, cascadeProbabilityWeight (u ω) r α) = 1 ∧
+        ∀ α : Fin r → ℕ, cascadeProbabilityWeight (u ω) r α ≠ 0 := by
+  filter_upwards [hfinite, hpos, hbranch] with ω hf hp hb
+  exact cascadeProbabilityWeight_probability (u ω) hp hb r (ne_of_lt hf)
+
+/-- Measurability of every leaf's normalized weight, without a finiteness
+hypothesis (division in `ENNReal` is defined also on exceptional samples). -/
+theorem measurable_cascadeProbabilityWeight
+    {Ω : Type*} [MeasurableSpace Ω]
+    (u : Ω → (p : ℕ) → (Fin p → ℕ) → ℕ → ENNReal)
+    (hu : ∀ p α n, Measurable fun ω => u ω p α n)
+    (r : ℕ) (α : Fin r → ℕ) :
+    Measurable fun ω => cascadeProbabilityWeight (u ω) r α := by
+  unfold cascadeProbabilityWeight cascadeBranchWeight
+  exact (Finset.measurable_prod Finset.univ (fun i _ => hu i.val _ _)).div
+    (measurable_cascadeTotalMass u hu r)
+
+/-- The depth-one cascade is finite almost surely when its child masses are the
+positive-part masses of a Poisson counting measure with zeta intensity. The indexing
+of positive atoms by natural numbers is supplied as an explicit, pointwise hypothesis. -/
+theorem ae_cascadeTotalMass_one_lt_top_of_poisson_blocks
+    {Ω : Type*} [MeasurableSpace Ω] {P : MeasureTheory.Measure Ω}
+    [MeasureTheory.IsProbabilityMeasure P]
+    {ζ : ℝ} (hζ0 : 0 < ζ) (hζ1 : ζ < 1)
+    (ν : ℕ → MeasureTheory.Measure ℝ)
+    [∀ n, MeasureTheory.IsProbabilityMeasure (ν n)] (rate : ℕ → NNReal)
+    (B : ℕ → Ω → ℕ × (ℕ → ℝ))
+    (hBm : ∀ n, Measurable (B n))
+    (hlaw : ∀ n, ProbabilityTheory.HasLaw (B n)
+      ((ProbabilityTheory.poissonMeasure (rate n)).prod
+        (MeasureTheory.Measure.infinitePi fun _ : ℕ => ν n)) P)
+    (hμ : zetaPoissonMeasure ζ =
+      MeasureTheory.Measure.sum fun n => (rate n : ENNReal) • ν n)
+    (u : Ω → (p : ℕ) → (Fin p → ℕ) → ℕ → ENNReal)
+    (hroot : ∀ ω, (∑' n, u ω 0 (fun i : Fin 0 => i.elim0) n) =
+      ∫⁻ x in Set.Ioi 0, ENNReal.ofReal x ∂
+        poissonCountingMeasure (fun n => (B n ω).1) (fun n l => (B n ω).2 l)) :
+    ∀ᵐ ω ∂P, cascadeTotalMass (u ω) 1 < ∞ := by
+  have hfin := ae_lintegral_poisson_lt_top_of_blocks (P := P)
+    (M := fun ω => poissonCountingMeasure (fun n => (B n ω).1)
+      (fun n l => (B n ω).2 l)) ν rate hζ0 hζ1 hBm hlaw hμ (fun _ => rfl)
+  filter_upwards [hfin] with ω hω
+  rw [cascadeTotalMass_succ]
+  have hsub : Subsingleton (Fin 0 → ℕ) := inferInstance
+  simpa [cascadeBranchWeight_zero] using (hroot ω ▸ hω)
+
+/-- The canonical decreasing enumeration of the root Poisson atoms has finite
+    total mass almost surely. No separate enumeration-to-integral assumption is needed. -/
+theorem ae_cascadeTotalMass_one_lt_top_of_ranked_poisson_blocks
+    {Ω : Type*} [MeasurableSpace Ω] {P : MeasureTheory.Measure Ω}
+    [MeasureTheory.IsProbabilityMeasure P]
+    {ζ : ℝ} (hζ0 : 0 < ζ) (hζ1 : ζ < 1)
+    (ν : ℕ → MeasureTheory.Measure ℝ)
+    [∀ n, MeasureTheory.IsProbabilityMeasure (ν n)] (rate : ℕ → NNReal)
+    (B : ℕ → Ω → ℕ × (ℕ → ℝ))
+    (hBm : ∀ n, Measurable (B n))
+    (hlaw : ∀ n, ProbabilityTheory.HasLaw (B n)
+      ((ProbabilityTheory.poissonMeasure (rate n)).prod
+        (MeasureTheory.Measure.infinitePi fun _ : ℕ => ν n)) P)
+    (hμ : zetaPoissonMeasure ζ =
+      MeasureTheory.Measure.sum fun n => (rate n : ENNReal) • ν n) :
+    ∀ᵐ ω ∂P, cascadeTotalMass
+      (fun (p : ℕ) (_ : Fin p → ℕ) n => MeasureTheory.nthLargestAtom n
+        (poissonCountingMeasure (fun k => (B k ω).1) (fun k l => (B k ω).2 l))) 1 < ∞ := by
+  apply ae_cascadeTotalMass_one_lt_top_of_poisson_blocks hζ0 hζ1 ν rate B hBm hlaw hμ
+  intro ω
+  have hroot : (∑' n, MeasureTheory.nthLargestAtom n
+      (poissonCountingMeasure (fun k => (B k ω).1) (fun k l => (B k ω).2 l))) =
+      ∫⁻ x in Set.Ioi 0, ENNReal.ofReal x ∂
+        poissonCountingMeasure (fun k => (B k ω).1) (fun k l => (B k ω).2 l) := by
+    apply MeasureTheory.tsum_nthLargestAtom
+    intro s hs
+    exact poissonCountingMeasure_apply_eq_top_or_natCast _ _ measurableSet_Ioi
+  exact hroot
+
 /-- If child masses are bounded by a common finite factor, finiteness propagates one level.
 This deterministic estimate does not assert that Poisson child masses admit such a bound. -/
 theorem cascadeTotalMass_succ_le_mul
@@ -240,9 +325,30 @@ theorem cascadeTotalMass_succ_le_mul
   calc
     (∑' α : Fin r → ℕ, cascadeBranchWeight u α * (∑' n, u r α n)) ≤
         ∑' α : Fin r → ℕ, cascadeBranchWeight u α * C :=
-      ENNReal.tsum_le_tsum (fun α => mul_le_mul_left (hU α) _)
+      ENNReal.tsum_le_tsum (fun α => mul_le_mul_of_nonneg_left (hU α) (by simp))
     _ = (∑' α : Fin r → ℕ, cascadeBranchWeight u α) * C :=
       ENNReal.tsum_mul_right
+
+/-- A summable weighted family of parent-specific bounds controls the next level.
+Unlike a uniform bound, this can handle infinitely many parents with unbounded child masses. -/
+theorem cascadeTotalMass_succ_le_tsum_bounds
+    (u : (p : ℕ) → (Fin p → ℕ) → ℕ → ENNReal) (r : ℕ)
+    (C : (Fin r → ℕ) → ENNReal)
+    (hU : ∀ α : Fin r → ℕ, (∑' n, u r α n) ≤ C α) :
+    cascadeTotalMass u (r + 1) ≤
+      ∑' α : Fin r → ℕ, cascadeBranchWeight u α * C α := by
+  rw [cascadeTotalMass_succ]
+  exact ENNReal.tsum_le_tsum (fun α =>
+    mul_le_mul_of_nonneg_left (hU α) (by simp))
+
+/-- Summability of weighted parent-specific child bounds implies finite leaf mass. -/
+theorem cascadeTotalMass_succ_lt_top_of_tsum_bounds
+    (u : (p : ℕ) → (Fin p → ℕ) → ℕ → ENNReal) (r : ℕ)
+    (C : (Fin r → ℕ) → ENNReal)
+    (hU : ∀ α : Fin r → ℕ, (∑' n, u r α n) ≤ C α)
+    (hC : (∑' α : Fin r → ℕ, cascadeBranchWeight u α * C α) < ∞) :
+    cascadeTotalMass u (r + 1) < ∞ :=
+  lt_of_le_of_lt (cascadeTotalMass_succ_le_tsum_bounds u r C hU) hC
 
 /-- A finite parent mass and a finite uniform child-mass bound give finite leaf mass. -/
 theorem cascadeTotalMass_succ_lt_top_of_bound
@@ -252,5 +358,19 @@ theorem cascadeTotalMass_succ_lt_top_of_bound
     cascadeTotalMass u (r + 1) < ∞ := by
   exact lt_of_le_of_lt (cascadeTotalMass_succ_le_mul u r C hU)
     (ENNReal.mul_lt_top hparent hC)
+
+/-- Almost-sure summable parent-specific bounds yield almost-sure finiteness at the
+next depth. The weighted bound is an explicit hypothesis, not a consequence of
+independence of the child processes. -/
+theorem ae_cascadeTotalMass_succ_lt_top_of_tsum_bounds
+    {Ω : Type*} [MeasurableSpace Ω] {P : MeasureTheory.Measure Ω}
+    (u : Ω → (p : ℕ) → (Fin p → ℕ) → ℕ → ENNReal) (r : ℕ)
+    (C : Ω → (Fin r → ℕ) → ENNReal)
+    (hU : ∀ᵐ ω ∂P, ∀ α : Fin r → ℕ, (∑' n, u ω r α n) ≤ C ω α)
+    (hC : ∀ᵐ ω ∂P,
+      (∑' α : Fin r → ℕ, cascadeBranchWeight (u ω) α * C ω α) < ∞) :
+    ∀ᵐ ω ∂P, cascadeTotalMass (u ω) (r + 1) < ∞ := by
+  filter_upwards [hU, hC] with ω hu hc
+  exact cascadeTotalMass_succ_lt_top_of_tsum_bounds (u ω) r (C ω) hu hc
 
 end SpinGlasses

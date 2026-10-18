@@ -153,6 +153,29 @@ theorem inner_cascadePoint_eq {r : ℕ}
     simp [f, hk]
   simpa only [hsum, k, hq0, sub_zero] using htel
 
+/-- The scalar-product form of the cascade ultrametric inequality. -/
+theorem inner_cascadePoint_min_le {r : ℕ}
+    (e : (Σ p : Fin r, Fin (p.val + 1) → ℕ) → H)
+    (he : Orthonormal ℝ e) (q : Fin (r + 1) → ℝ)
+    (hq : Monotone q) (hq0 : q 0 = 0) (α β γ : Fin r → ℕ) :
+    min (inner ℝ (cascadePoint e q α) (cascadePoint e q β))
+        (inner ℝ (cascadePoint e q α) (cascadePoint e q γ)) ≤
+      inner ℝ (cascadePoint e q β) (cascadePoint e q γ) := by
+  rw [inner_cascadePoint_eq e he q hq hq0,
+    inner_cascadePoint_eq e he q hq hq0,
+    inner_cascadePoint_eq e he q hq hq0]
+  rcases le_total (prefixOverlap α β) (prefixOverlap α γ) with h | h
+  · rw [min_eq_left (hq h)]
+    exact hq (by
+      have hmin := prefixOverlap_min_le β γ α
+      rw [prefixOverlap_comm β α, prefixOverlap_comm γ α, min_eq_left h] at hmin
+      exact hmin)
+  · rw [min_eq_right (hq h)]
+    exact hq (by
+      have hmin := prefixOverlap_min_le β γ α
+      rw [prefixOverlap_comm β α, prefixOverlap_comm γ α, min_eq_right h] at hmin
+      exact hmin)
+
 /-- Every cascade point lies on the sphere of squared radius `q r`. -/
 theorem norm_cascadePoint_sq {r : ℕ}
     (e : (Σ p : Fin r, Fin (p.val + 1) → ℕ) → H)
