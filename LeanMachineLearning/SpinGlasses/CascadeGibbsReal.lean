@@ -40,6 +40,17 @@ theorem toReal_tsum_prod_div_eq_tsum {α K : Type*} [Fintype K] (w : α → ℝ�
     Finset.card_univ]
   ring
 
+/-- If the quotient series in `[0, ∞]` has a finite numerator, the real series is summable. -/
+theorem summable_prod_div_toReal {α K : Type*} [Fintype K] (w : α → ℝ≥0∞)
+    (F : (K → α) → ℝ≥0∞)
+    (hfin : ∑' σ : K → α, (∏ k, w (σ k)) * F σ ≠ ∞) :
+    Summable fun σ : K → α => (∏ k, (w (σ k)).toReal / ∑' b, (w b).toReal) * (F σ).toReal := by
+  have h := (ENNReal.summable_toReal hfin).div_const ((∑' b, (w b).toReal) ^ Fintype.card K)
+  refine h.congr fun σ => ?_
+  rw [ENNReal.toReal_mul, ENNReal.toReal_prod, Finset.prod_div_distrib, Finset.prod_const,
+    Finset.card_univ]
+  ring
+
 section GibbsSeries
 
 variable {α K : Type*} [Fintype K] {W : α → ℝ}
@@ -222,6 +233,84 @@ theorem tsum_cascadeSeries_eq_toReal_sub (Ξ : (Fin n → Fin n → Fin (r + 1))
     rw [ENNReal.toReal_ofReal', abs_of_nonneg (le_max_right _ _)]
     have hb := hΞ fun l l' => prefixOverlap (τ l) (τ l')
     exact max_le ((neg_le_abs _).trans hb) ((abs_nonneg _).trans hb)
+
+/-- If the Gibbs average with a test of one label is finite, the corresponding real series is
+summable. -/
+theorem summable_replicaGibbsAt_series (F : (Fin n → Fin n → Fin (r + 1)) → ℝ≥0∞) (l₀ : Fin n)
+    (i₀ : Fin r) (ψ : ℝ → ℝ≥0∞) (s : ℝ)
+    (ht : ∑' α : Fin r → ℕ, cascadeBranchWeight u α *
+      ENNReal.ofReal (Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab α i)) ≠ ∞)
+    (hA : replicaGibbsAt r n σ t F l₀ i₀ ψ s u lab ≠ ∞) :
+    Summable fun τ : Fin n → Fin r → ℕ => (∏ l, (cascadeBranchWeight u (τ l)).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab (τ l) i) /
+        ∑' b : Fin r → ℕ, (cascadeBranchWeight u b).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab b i)) *
+        ((F fun l l' => prefixOverlap (τ l) (τ l')).toReal *
+          (ψ (leafLabel lab (τ l₀) i₀ - s)).toReal) := by
+  have hfin : ∑' τ : Fin n → Fin r → ℕ, (∏ l, cascadeBranchWeight u (τ l) *
+      ENNReal.ofReal (Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab (τ l) i))) *
+      ((F fun l l' => prefixOverlap (τ l) (τ l')) * ψ (leafLabel lab (τ l₀) i₀ - s)) ≠ ∞ := by
+    intro h
+    apply hA
+    unfold replicaGibbsAt
+    simp_rw [mul_assoc]
+    rw [h]
+    exact ENNReal.top_div_of_ne_top (ENNReal.pow_ne_top ht)
+  have h := summable_prod_div_toReal (K := Fin n)
+    (fun α : Fin r → ℕ => cascadeBranchWeight u α *
+      ENNReal.ofReal (Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab α i)))
+    (fun τ => (F fun l l' => prefixOverlap (τ l) (τ l')) * ψ (leafLabel lab (τ l₀) i₀ - s))
+    hfin
+  simpa only [ENNReal.toReal_mul, ENNReal.toReal_ofReal (Real.exp_pos _).le] using h
+
+/-- The positive and negative parts of a real number, as real numbers, recover it. -/
+theorem toReal_ofReal_sub_toReal_ofReal_neg (x : ℝ) :
+    (ENNReal.ofReal x).toReal - (ENNReal.ofReal (-x)).toReal = x := by
+  rw [ENNReal.toReal_ofReal', ENNReal.toReal_ofReal']
+  rcases le_total 0 x with h | h
+  · rw [max_eq_left h, max_eq_right (neg_nonpos.2 h)]; ring
+  · rw [max_eq_right h, max_eq_left (neg_nonneg.2 h)]; ring
+
+/-- **The Gibbs series of an observable times the centred field, through the Gibbs averages with a
+test of one label.** If the Gibbs averages `⟨F (±σᵢ(labelᵢ - tσᵢζᵢ))^+⟩_t` of the replica `l₀` are
+finite for every level `i`, the Gibbs series of `F (g(α^{l₀}) - t ∑ᵢ σᵢ² ζᵢ)` is the sum over the
+levels of their real differences. -/
+theorem tsum_cascadeSeries_energy_eq (ζ : ℕ → ℝ) (F : (Fin n → Fin n → Fin (r + 1)) → ℝ≥0∞)
+    (hF : ∀ P, F P ≠ ∞) (l₀ : Fin n) (hu : ∀ α : Fin r → ℕ, cascadeBranchWeight u α ≠ ∞)
+    (ht : ∑' α : Fin r → ℕ, cascadeBranchWeight u α *
+      ENNReal.ofReal (Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab α i)) ≠ ∞)
+    (hA : ∀ i : Fin r, replicaGibbsAt r n σ t F l₀ i (fun y => ENNReal.ofReal (σ i * y))
+        (t * σ i * ζ i) u lab ≠ ∞ ∧
+      replicaGibbsAt r n σ t F l₀ i (fun y => ENNReal.ofReal (-(σ i * y)))
+        (t * σ i * ζ i) u lab ≠ ∞) :
+    ∑' τ : Fin n → Fin r → ℕ, (∏ l, (cascadeBranchWeight u (τ l)).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab (τ l) i) /
+        ∑' b : Fin r → ℕ, (cascadeBranchWeight u b).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab b i)) *
+        ((F fun l l' => prefixOverlap (τ l) (τ l')).toReal *
+          (∑ i : Fin r, σ i * leafLabel lab (τ l₀) i - t * ∑ i : Fin r, σ i ^ 2 * ζ i)) =
+      ∑ i : Fin r, ((replicaGibbsAt r n σ t F l₀ i (fun y => ENNReal.ofReal (σ i * y))
+        (t * σ i * ζ i) u lab).toReal - (replicaGibbsAt r n σ t F l₀ i
+          (fun y => ENNReal.ofReal (-(σ i * y))) (t * σ i * ζ i) u lab).toReal) := by
+  have e1 := fun i : Fin r => toReal_replicaGibbsAt_eq_tsum r n σ t u lab F l₀ i
+    (fun y => ENNReal.ofReal (σ i * y)) (t * σ i * ζ i) hu hF fun _ => ENNReal.ofReal_ne_top
+  have e2 := fun i : Fin r => toReal_replicaGibbsAt_eq_tsum r n σ t u lab F l₀ i
+    (fun y => ENNReal.ofReal (-(σ i * y))) (t * σ i * ζ i) hu hF fun _ => ENNReal.ofReal_ne_top
+  have s1 := fun i : Fin r => summable_replicaGibbsAt_series r n σ t u lab F l₀ i
+    (fun y => ENNReal.ofReal (σ i * y)) (t * σ i * ζ i) ht (hA i).1
+  have s2 := fun i : Fin r => summable_replicaGibbsAt_series r n σ t u lab F l₀ i
+    (fun y => ENNReal.ofReal (-(σ i * y))) (t * σ i * ζ i) ht (hA i).2
+  simp_rw [e1, e2]
+  rw [Finset.sum_congr rfl fun i _ => (Summable.tsum_sub (s1 i) (s2 i)).symm,
+    ← Summable.tsum_finsetSum fun i _ => (s1 i).sub (s2 i)]
+  refine tsum_congr fun τ => ?_
+  simp_rw [← mul_sub]
+  rw [← Finset.mul_sum, ← Finset.mul_sum]
+  congr 2
+  simp_rw [toReal_ofReal_sub_toReal_ofReal_neg]
+  rw [Finset.mul_sum, ← Finset.sum_sub_distrib]
+  refine Finset.sum_congr rfl fun i _ => ?_
+  ring
 
 end Cascade
 

@@ -204,6 +204,121 @@ theorem integral_cascadeSeries_eq (hζ0 : ∀ p, 0 < ζ p) (hζ1 : ∀ p, ζ p <
     integral_toReal (measurable_replicaGibbs_omega r σ D u lab hDm hu hlab n t _).aemeasurable
       (hle _ hFn |>.mono fun ω h => lt_of_le_of_lt h ENNReal.ofReal_lt_top)]
 
+/-- **Lemma 2.5 for `k = 0`, in real form.** The expected Gibbs series of a bounded function of
+the overlap pattern does not depend on the tilt `t`. -/
+theorem integral_cascadeSeries_tilt (hζ0 : ∀ p, 0 < ζ p) (hζ1 : ∀ p, ζ p < 1)
+    (hmono : StrictMono ζ)
+    (hmu : ∀ p, zetaPoissonMeasure (ζ p) = Measure.sum fun k => (rate p k : ℝ≥0∞) • nu p k)
+    (h𝔡 : ∀ p, 𝔡 p = (Measure.infinitePi fun k =>
+      Po(rate p k).prod (Measure.infinitePi fun _ : ℕ => nu p k)).prod
+        (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+    (hDm : ∀ v, Measurable (D v)) (hD : iIndepFun D P) (hDlaw : ∀ v, HasLaw (D v) (𝔡 v.1) P)
+    (hu : u = fun ω p γ m => nthLargestAtom m (poissonCountingMeasure
+      (fun k => ((D ⟨p, γ⟩ ω).1 k).1) (fun k l => ((D ⟨p, γ⟩ ω).1 k).2 l)))
+    (hlab : lab = fun ω p γ k => (D ⟨p, γ⟩ ω).2 k) (n : ℕ) (t : ℝ)
+    (Ξ : (Fin n → Fin n → Fin (r + 1)) → ℝ) {M : ℝ} (hΞ : ∀ P, |Ξ P| ≤ M) :
+    ∫ ω, ∑' τ : Fin n → Fin r → ℕ, (∏ l, (cascadeBranchWeight (u ω) (τ l)).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel (lab ω) (τ l) i) /
+        ∑' b : Fin r → ℕ, (cascadeBranchWeight (u ω) b).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel (lab ω) b i)) *
+        Ξ (fun l l' => prefixOverlap (τ l) (τ l')) ∂P =
+      ∫ ω, ∑' τ : Fin n → Fin r → ℕ, (∏ l, (cascadeBranchWeight (u ω) (τ l)).toReal *
+          Real.exp (0 * ∑ i : Fin r, σ i * leafLabel (lab ω) (τ l) i) /
+        ∑' b : Fin r → ℕ, (cascadeBranchWeight (u ω) b).toReal *
+          Real.exp (0 * ∑ i : Fin r, σ i * leafLabel (lab ω) b i)) *
+        Ξ (fun l l' => prefixOverlap (τ l) (τ l')) ∂P := by
+  rw [integral_cascadeSeries_eq r ζ σ nu rate 𝔡 D u lab hζ0 hζ1 hmono hmu h𝔡 hDm hD hDlaw hu hlab
+    n t Ξ hΞ, integral_cascadeSeries_eq r ζ σ nu rate 𝔡 D u lab hζ0 hζ1 hmono hmu h𝔡 hDm hD hDlaw
+    hu hlab n 0 Ξ hΞ, lintegral_cascadeGibbs_tilt r ζ σ t hζ0 hζ1 nu rate hmu 𝔡 h𝔡 D hDm hD hDlaw
+    u hu lab hlab n, lintegral_cascadeGibbs_tilt r ζ σ t hζ0 hζ1 nu rate hmu 𝔡 h𝔡 D hDm hD hDlaw
+    u hu lab hlab n]
+
+/-- **Lemma 2.5 for `k = (1, 0, …, 0)`, in real form.** For a bounded nonnegative function `F` of
+the overlap pattern, the Gibbs series of `F (g(σ^{l₀}) - t b)` with `b = ∑ᵢ σᵢ² ζᵢ` is integrable
+and has expectation zero. -/
+theorem integral_cascadeEnergy (hζ0 : ∀ p, 0 < ζ p) (hζ1 : ∀ p, ζ p < 1)
+    (hmono : StrictMono ζ)
+    (hmu : ∀ p, zetaPoissonMeasure (ζ p) = Measure.sum fun k => (rate p k : ℝ≥0∞) • nu p k)
+    (h𝔡 : ∀ p, 𝔡 p = (Measure.infinitePi fun k =>
+      Po(rate p k).prod (Measure.infinitePi fun _ : ℕ => nu p k)).prod
+        (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+    (hDm : ∀ v, Measurable (D v)) (hD : iIndepFun D P) (hDlaw : ∀ v, HasLaw (D v) (𝔡 v.1) P)
+    (hu : u = fun ω p γ m => nthLargestAtom m (poissonCountingMeasure
+      (fun k => ((D ⟨p, γ⟩ ω).1 k).1) (fun k l => ((D ⟨p, γ⟩ ω).1 k).2 l)))
+    (hlab : lab = fun ω p γ k => (D ⟨p, γ⟩ ω).2 k) (n : ℕ) (t : ℝ)
+    (F : (Fin n → Fin n → Fin (r + 1)) → ℝ≥0∞) (C : ℝ≥0∞) (hC : C ≠ ∞) (hf : ∀ P, F P ≤ C)
+    (l₀ : Fin n) :
+    Integrable (fun ω => ∑' τ : Fin n → Fin r → ℕ, (∏ l, (cascadeBranchWeight (u ω) (τ l)).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel (lab ω) (τ l) i) /
+        ∑' b : Fin r → ℕ, (cascadeBranchWeight (u ω) b).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel (lab ω) b i)) *
+        ((F fun l l' => prefixOverlap (τ l) (τ l')).toReal *
+          (∑ i : Fin r, σ i * leafLabel (lab ω) (τ l₀) i - t * ∑ i : Fin r, σ i ^ 2 * ζ i))) P ∧
+    ∫ ω, ∑' τ : Fin n → Fin r → ℕ, (∏ l, (cascadeBranchWeight (u ω) (τ l)).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel (lab ω) (τ l) i) /
+        ∑' b : Fin r → ℕ, (cascadeBranchWeight (u ω) b).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel (lab ω) b i)) *
+        ((F fun l l' => prefixOverlap (τ l) (τ l')).toReal *
+          (∑ i : Fin r, σ i * leafLabel (lab ω) (τ l₀) i - t * ∑ i : Fin r, σ i ^ 2 * ζ i)) ∂P
+      = 0 := by
+  have h0 : ∀ᵐ ω ∂P, (∑' α : Fin r → ℕ, cascadeBranchWeight (u ω) α) ≠ 0 ∧
+      (∑' α : Fin r → ℕ, cascadeBranchWeight (u ω) α) < ∞ := by
+    subst hu hlab
+    exact ae_cascadeMass_pos_finite (P := P) r ζ hζ0 hζ1 hmono nu rate hmu 𝔡 h𝔡 D hDm hD hDlaw
+  have ht := ae_tiltedMass_pos_finite (P := P) r ζ σ nu rate 𝔡 D u lab hζ0 hζ1 hmono hmu h𝔡 hDm hD
+    hDlaw hu hlab t
+  have hsym := fun i : Fin r => lintegral_cascadeGibbsAt_tilt_symm (P := P) r ζ σ t hζ0 hζ1 hmono
+    nu rate hmu 𝔡 h𝔡 D hDm hD hDlaw u hu lab hlab n F C hC hf l₀ i
+  have hid := identDistrib_cascadeGibbsAt_tilt (P := P) r ζ σ t hζ0 hζ1 nu rate hmu 𝔡 h𝔡 D hDm hD
+    hDlaw u hu lab hlab n F l₀
+  have hmp : ∀ i : Fin r, AEMeasurable (fun ω => replicaGibbsAt r n σ t F l₀ i
+      (fun y => ENNReal.ofReal (σ i * y)) (t * σ i * ζ i) (u ω) (lab ω)) P := fun i => by
+    have h := (hid.comp (measurable_pi_apply (i, true))).aemeasurable_fst
+    exact h
+  have hmn : ∀ i : Fin r, AEMeasurable (fun ω => replicaGibbsAt r n σ t F l₀ i
+      (fun y => ENNReal.ofReal (-(σ i * y))) (t * σ i * ζ i) (u ω) (lab ω)) P := fun i => by
+    have h := (hid.comp (measurable_pi_apply (i, false))).aemeasurable_fst
+    exact h
+  have hfin : ∀ i : Fin r, ∫⁻ ω, replicaGibbsAt r n σ t F l₀ i
+      (fun y => ENNReal.ofReal (-(σ i * y))) (t * σ i * ζ i) (u ω) (lab ω) ∂P ≠ ∞ := fun i =>
+    ((hsym i).1 ▸ (hsym i).2).ne
+  have hint : ∀ i : Fin r, Integrable (fun ω => (replicaGibbsAt r n σ t F l₀ i
+      (fun y => ENNReal.ofReal (σ i * y)) (t * σ i * ζ i) (u ω) (lab ω)).toReal) P ∧
+      Integrable (fun ω => (replicaGibbsAt r n σ t F l₀ i
+      (fun y => ENNReal.ofReal (-(σ i * y))) (t * σ i * ζ i) (u ω) (lab ω)).toReal) P :=
+    fun i => ⟨integrable_toReal_of_lintegral_ne_top (hmp i) (hsym i).2.ne,
+      integrable_toReal_of_lintegral_ne_top (hmn i) (hfin i)⟩
+  have hae : ∀ᵐ ω ∂P, ∀ i : Fin r, replicaGibbsAt r n σ t F l₀ i
+      (fun y => ENNReal.ofReal (σ i * y)) (t * σ i * ζ i) (u ω) (lab ω) ≠ ∞ ∧
+      replicaGibbsAt r n σ t F l₀ i (fun y => ENNReal.ofReal (-(σ i * y))) (t * σ i * ζ i)
+        (u ω) (lab ω) ≠ ∞ := by
+    rw [ae_all_iff]
+    exact fun i => (ae_lt_top' (hmp i) (hsym i).2.ne).and (ae_lt_top' (hmn i) (hfin i))
+      |>.mono fun ω h => ⟨h.1.ne, h.2.ne⟩
+  have hcongr : (fun ω => ∑' τ : Fin n → Fin r → ℕ, (∏ l, (cascadeBranchWeight (u ω) (τ l)).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel (lab ω) (τ l) i) /
+        ∑' b : Fin r → ℕ, (cascadeBranchWeight (u ω) b).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel (lab ω) b i)) *
+        ((F fun l l' => prefixOverlap (τ l) (τ l')).toReal *
+          (∑ i : Fin r, σ i * leafLabel (lab ω) (τ l₀) i - t * ∑ i : Fin r, σ i ^ 2 * ζ i)))
+      =ᵐ[P] fun ω => ∑ i : Fin r, ((replicaGibbsAt r n σ t F l₀ i
+        (fun y => ENNReal.ofReal (σ i * y)) (t * σ i * ζ i) (u ω) (lab ω)).toReal -
+        (replicaGibbsAt r n σ t F l₀ i (fun y => ENNReal.ofReal (-(σ i * y))) (t * σ i * ζ i)
+          (u ω) (lab ω)).toReal) := by
+    filter_upwards [h0, ht, hae] with ω hω0 hωt hωA
+    exact tsum_cascadeSeries_energy_eq r n σ t (u ω) (lab ω) ζ F
+      (fun P => ne_top_of_le_ne_top hC (hf P)) l₀
+      (fun α => ENNReal.ne_top_of_tsum_ne_top hω0.2.ne α) hωt.2 hωA
+  have hdiff : ∀ i : Fin r, Integrable (fun ω => (replicaGibbsAt r n σ t F l₀ i
+      (fun y => ENNReal.ofReal (σ i * y)) (t * σ i * ζ i) (u ω) (lab ω)).toReal -
+      (replicaGibbsAt r n σ t F l₀ i (fun y => ENNReal.ofReal (-(σ i * y))) (t * σ i * ζ i)
+        (u ω) (lab ω)).toReal) P := fun i => (hint i).1.sub (hint i).2
+  refine ⟨(integrable_finsetSum _ fun i _ => hdiff i).congr hcongr.symm, ?_⟩
+  rw [integral_congr_ae hcongr, integral_finsetSum _ fun i _ => hdiff i]
+  refine Finset.sum_eq_zero fun i _ => ?_
+  rw [integral_sub (hint i).1 (hint i).2, integral_toReal (hmp i) (ae_lt_top' (hmp i)
+    (hsym i).2.ne), integral_toReal (hmn i) (ae_lt_top' (hmn i) (hfin i)), (hsym i).1, sub_self]
+
 end Setting
 
 end SpinGlasses
