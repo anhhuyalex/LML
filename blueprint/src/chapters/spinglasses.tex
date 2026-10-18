@@ -5116,16 +5116,21 @@ Direct integration: $\int_0^1\zeta x^{-\zeta}dx=\zeta/(1-\zeta)$.
         SpinGlasses.measurable_tsum_active_mul,
         SpinGlasses.measurable_tsum_ranked_mul}
   \leanok
-The variant of Theorem~2.6 (equality in law of $\sum_n u_nX(Y_n)$ and $c\sum_nu_n$, see Theorem~\ref{thm:sg:ranked-marking}) in which the marked
-points carry real second coordinates; its measurability requirements are
-that the total first coordinate of the positive points of a measure on $\mathbb R\times S$ is a measurable function of the measure, and that the sum
-over the active points of the product (mass) x (mark), and the sum over the ranked masses times rank-indexed marks, are measurable functions of the block
+Let $0<\zeta$ and let $\tau$ be a probability measure on $\mathbb R\times S$ whose first coordinate $m$ is a.s.\ positive with $0<\int m^\zeta d\tau<\infty$.
+Let $\Pi$ be a Poisson process with intensity $\mu_\zeta\otimes\tau$ on $(0,\infty)\times(\mathbb R\times S)$ (a point is a mass $u$ and a mark $(m,s)$), realized by
+independent Poisson blocks, and let $\Pi'$ be a Poisson process with intensity $\mu_\zeta\otimes\tau'$ on $(0,\infty)\times(\mathbb R\times S)$, where $\tau'$ is the size-biased (tilted)
+mark law of $\tau$ (the tilt that appears in Theorem~2.6 for the total mass). Then the total mass of the product masses,
+$\sum_{(u,(m,s))\in\Pi}u\,m$ (the positive part), has the same law as
+$\big(\int m^\zeta d\tau\big)^{1/\zeta}$ times the total mass $\sum_{(u,s')\in\Pi'}u$ of the first coordinates of $\Pi'$.
+This is the form of Theorem~2.6 for total masses used before passing to ranked atoms.
+Its measurability requirements are formalized separately: the total first coordinate of the positive points of a measure on $\mathbb R\times S$ is a measurable function of the
+measure, and the sum over the active points of (mass) x (mark), and the sum over the ranked masses times rank-indexed marks, are measurable functions of the block
 configuration and of the mark array.
 \end{lemma}
 \begin{proof}
   \leanok
 Measurability follows from the measurability of the counting measure of the blocks and of the $n$-th largest atom as functions of the blocks,
-and of countable sums of measurable $[0,\infty]$-valued functions. The equality in law is the case of Theorem~2.6 for total masses.
+and of countable sums of measurable $[0,\infty]$-valued functions. The equality in law is Theorem~2.6 for total masses (the transformation of Poisson processes with marks, Chapter~2), stated for the block realization of the process.
 \end{proof}
 
 \subsection*{Moments, finiteness and cancellation in $[0,\infty]$}
@@ -5292,18 +5297,18 @@ Chernoff's method: optimize $e^{-t\varepsilon}\mathbb E e^{tX}\le e^{-t\varepsil
 \end{proof}
 
 \begin{lemma}[Argmax, conditional distributions and infinite Cholesky factors]\label{lem:sg:misc-tools}
-  \lean{Function.exists_argmax,
-        Function.argmax_spec,
-        Function.isMaxOn_argmax,
-        Function.measurable_max,
-        Function.measurable_argmax,
-        Function.neg_max_eq_min_neg,
+  \lean{exists_argmax,
+        argmax_spec,
+        isMaxOn_argmax,
+        measurable_max,
+        measurable_argmax,
+        neg_max_eq_min_neg,
         Matrix.cholInf_of_gt,
         Matrix.cholInf_self,
         Matrix.cholInf_of_lt,
         Real.rpow_neg_lt_iff,
-        MeasureTheory.Measurable.integral_prod_right',
-        ProbabilityTheory.smul_cond_eq_restrict}
+        Measurable.integral_prod_right',
+        MeasureTheory.Measure.smul_cond_eq_restrict}
   \leanok
 (a) On a finite nonempty index set with a linearly ordered target, the maximum and a (measurably chosen) argmax of a vector exist and are measurable functions of the vector, and $-\max f=\min(-f)$.
 (b) For an infinite positive semidefinite matrix $A$, the Cholesky factor $L=\mathrm{cholInf}(A)$ is lower triangular, $L_{ll}=\sqrt{A_{ll}-\sum_{j<l}L_{lj}^2}$, and below a positive pivot
