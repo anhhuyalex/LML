@@ -2780,3 +2780,4 @@ SpinGlasses.tsum_partition_overlap_fresh_eq_powerSums
 SpinGlasses.partition_overlap_merge_as_fiber
 SpinGlasses.measurable_partition_overlap_observable
 SpinGlasses.card_partition_fresh_fiber
+SpinGlasses.partition_merge_surjective

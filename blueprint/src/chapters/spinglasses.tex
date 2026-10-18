@@ -3938,7 +3938,7 @@ These are the ingredients of Theorem~\ref{thm:sg:pd-gg-ranked}, stated separatel
         summable_pow_of_normalized}
   \leanok
   \uses{thm:sg:pd-gg-ranked}
-Let $w:A\to[0,\infty)$ be summable and let $I$ be a finite nonempty replica set. Then $\sum_{\sigma:I\to A}\prod_{i\in I}w_{\sigma_i}\,\mathbf 1\{\sigma_i=\sigma_j\ \forall i,j\}=\sum_{a}w_a^{|I|}$. If moreover $\sum_aw_a=1$, then $\sum_aw_a^n$ converges for every $n\ge1$. With $I=\{1,2\}$ this is the diagonal identity $\sum_{a,b}w_aw_b\mathbf 1\{a=b\}=\sum_aw_a^2$ behind Equation~(2.34). The finite-block version and its overlap-indicator interpretation are proved in Lemma~\ref{lem:sg:pd-partition-bridge}; Talagrand's recurrence (2.39) and Theorem~2.8 remain open.
+Let $w:A\to[0,\infty)$ be summable and let $I$ be a finite nonempty replica set. Then $\sum_{\sigma:I\to A}\prod_{i\in I}w_{\sigma_i}\,\mathbf 1\{\sigma_i=\sigma_j\ \forall i,j\}=\sum_{a}w_a^{|I|}$. If moreover $\sum_aw_a=1$, then $\sum_aw_a^n$ converges for every $n\ge1$. With $I=\{1,2\}$ this is the diagonal identity $\sum_{a,b}w_aw_b\mathbf 1\{a=b\}=\sum_aw_a^2$ behind Equation~(2.34). The finite-block version and its overlap-indicator interpretation are proved in Lemma~\ref{lem:sg:pd-partition-bridge}; The merged block map is proved surjective onto the labels remaining after deleting the second block (\lean{SpinGlasses.partition_merge_surjective}); however, Talagrand's recurrence (2.39) and Theorem~2.8 remain open.
 \end{lemma}
 \begin{proof}
   \leanok
