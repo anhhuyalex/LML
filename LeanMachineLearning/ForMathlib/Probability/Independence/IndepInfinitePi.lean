@@ -118,4 +118,14 @@ lemma HasLaw.infinitePi {Ω ι : Type*} [MeasurableSpace Ω] {P : Measure Ω}
   funext i
   exact (hlaw i).map_eq
 
+/-- Vectors indexed by disjoint index sets of an independent family are independent. -/
+lemma iIndepFun.indepFun_set_of_disjoint {Ω ι : Type*} [MeasurableSpace Ω] {P : Measure Ω}
+    {β : ι → Type*} [∀ i, MeasurableSpace (β i)] {f : (i : ι) → Ω → β i}
+    (hf : iIndepFun f P) (hfm : ∀ i, Measurable (f i)) (S T : Set ι) (hST : Disjoint S T) :
+    IndepFun (fun ω (i : S) => f i ω) (fun ω (i : T) => f i ω) P := by
+  have hind := indep_iSup_of_disjoint (fun i => (hfm i).comap_le)
+    (show iIndep (fun i => MeasurableSpace.comap (f i) inferInstance) P from hf) hST
+  rw [IndepFun_iff_Indep, MeasurableSpace.comap_pi_subtype, MeasurableSpace.comap_pi_subtype]
+  exact hind
+
 end ProbabilityTheory

@@ -41,7 +41,9 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.MeasurableSpace.Units
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.AbsolutelyContinuous
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.Deviation
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.Empirical
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.InfinitePiCurryRestrict
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.LocallyFiniteKernel
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.MapPairInfinitePi
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.NthLargestAtom
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.NthLargestAtomRank
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.PiKernelLIntegral
@@ -316,10 +318,12 @@ public import LeanMachineLearning.SpinGlasses.AsymptoticGibbsApproximation
 public import LeanMachineLearning.SpinGlasses.AsymptoticGibbsApproximationCountable
 public import LeanMachineLearning.SpinGlasses.AsymptoticGibbsMeasure
 public import LeanMachineLearning.SpinGlasses.Basic
+public import LeanMachineLearning.SpinGlasses.CascadeData
 public import LeanMachineLearning.SpinGlasses.CascadeFiniteness
 public import LeanMachineLearning.SpinGlasses.CascadeGeometry
 public import LeanMachineLearning.SpinGlasses.CascadeMarked
 public import LeanMachineLearning.SpinGlasses.CascadeMoment
+public import LeanMachineLearning.SpinGlasses.CascadeParisiStep
 public import LeanMachineLearning.SpinGlasses.CascadeTree
 public import LeanMachineLearning.SpinGlasses.Concentration
 public import LeanMachineLearning.SpinGlasses.DeFinetti
@@ -349,7 +353,9 @@ public import LeanMachineLearning.SpinGlasses.PoissonDirichletIBPAlgebra
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletIdentities
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletInvariance
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletLogSum
+public import LeanMachineLearning.SpinGlasses.PoissonDirichletMarkedLaw
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletRanked
+public import LeanMachineLearning.SpinGlasses.PoissonDirichletRankedMarkedLaw
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletTalagrand
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletTalagrandRecurrence
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletTransform
