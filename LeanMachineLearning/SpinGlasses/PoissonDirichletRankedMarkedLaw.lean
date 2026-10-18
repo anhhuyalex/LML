@@ -157,6 +157,19 @@ theorem measurable_tsum_ranked_mul {X : T → ℝ} (hX : Measurable X) :
       measurable_fst)).mul (ENNReal.measurable_ofReal.comp
         (hX.comp ((measurable_pi_apply n).comp measurable_snd)))
 
+/-- The coordinates of an independent family of Poisson blocks are independent with the block
+laws. -/
+theorem iIndepFun_hasLaw_eval_blocks (nu : ℕ → Measure ℝ) [∀ k, IsProbabilityMeasure (nu k)]
+    (rate : ℕ → ℝ≥0) :
+    iIndepFun (fun k (b : ℕ → ℕ × (ℕ → ℝ)) => b k)
+      (Measure.infinitePi fun k => Po(rate k).prod (Measure.infinitePi fun _ : ℕ => nu k)) ∧
+    ∀ k, HasLaw (fun b : ℕ → ℕ × (ℕ → ℝ) => b k)
+      (Po(rate k).prod (Measure.infinitePi fun _ : ℕ => nu k))
+      (Measure.infinitePi fun k => Po(rate k).prod (Measure.infinitePi fun _ : ℕ => nu k)) :=
+  ⟨iIndepFun_infinitePi (X := fun _ x => x) fun _ => measurable_id, fun k =>
+    hasLaw_eval_infinitePi
+      (fun k => Po(rate k).prod (Measure.infinitePi fun _ : ℕ => nu k)) k⟩
+
 /-- Almost surely, the active masses of independent ζ-Poisson blocks are infinite in number,
 positive, summable and pairwise distinct. -/
 theorem ae_infinitePi_blocks_good {ζ : ℝ} (hζ0 : 0 < ζ) (hζ1 : ζ < 1)
@@ -169,14 +182,7 @@ theorem ae_infinitePi_blocks_good {ζ : ℝ} (hζ0 : 0 < ζ) (hζ1 : ζ < 1)
       Summable (fun q : {q : ℕ × ℕ // q.2 < (b q.1).1} => (b q.1.1).2 q.1.2) ∧
       Function.Injective (fun q : {q : ℕ × ℕ // q.2 < (b q.1).1} => (b q.1.1).2 q.1.2) := by
   have hBm : ∀ k, Measurable fun b : ℕ → ℕ × (ℕ → ℝ) => b k := fun k => measurable_pi_apply k
-  have hB : iIndepFun (fun k (b : ℕ → ℕ × (ℕ → ℝ)) => b k)
-      (Measure.infinitePi fun k => Po(rate k).prod (Measure.infinitePi fun _ : ℕ => nu k)) :=
-    iIndepFun_infinitePi (X := fun _ x => x) fun _ => measurable_id
-  have hlaw : ∀ k, HasLaw (fun b : ℕ → ℕ × (ℕ → ℝ) => b k)
-      (Po(rate k).prod (Measure.infinitePi fun _ : ℕ => nu k))
-      (Measure.infinitePi fun k => Po(rate k).prod (Measure.infinitePi fun _ : ℕ => nu k)) :=
-    fun k => hasLaw_eval_infinitePi
-      (fun k => Po(rate k).prod (Measure.infinitePi fun _ : ℕ => nu k)) k
+  obtain ⟨hB, hlaw⟩ := iIndepFun_hasLaw_eval_blocks nu rate
   have h1 := ae_cascadeRoot_active_infinite hζ0 nu rate
     (fun k (b : ℕ → ℕ × (ℕ → ℝ)) => b k) hBm hB hlaw hmu
   have h2 := ae_cascadeRoot_active_pos nu rate (fun k (b : ℕ → ℕ × (ℕ → ℝ)) => b k) hlaw hmu
@@ -229,14 +235,7 @@ theorem map_prod_tsum_ranked_marked_eq {ζ : ℝ} (hζ0 : 0 < ζ) (hζ1 : ζ < 1
         ∑' n, nthLargestAtom n (poissonCountingMeasure
           (fun k => (b k).1) (fun k l => (b k).2 l))) := by
   have hBm : ∀ k, Measurable fun b : ℕ → ℕ × (ℕ → ℝ) => b k := fun k => measurable_pi_apply k
-  have hB : iIndepFun (fun k (b : ℕ → ℕ × (ℕ → ℝ)) => b k)
-      (Measure.infinitePi fun k => Po(rate k).prod (Measure.infinitePi fun _ : ℕ => nu k)) :=
-    iIndepFun_infinitePi (X := fun _ x => x) fun _ => measurable_id
-  have hlaw : ∀ k, HasLaw (fun b : ℕ → ℕ × (ℕ → ℝ) => b k)
-      (Po(rate k).prod (Measure.infinitePi fun _ : ℕ => nu k))
-      (Measure.infinitePi fun k => Po(rate k).prod (Measure.infinitePi fun _ : ℕ => nu k)) :=
-    fun k => hasLaw_eval_infinitePi
-      (fun k => Po(rate k).prod (Measure.infinitePi fun _ : ℕ => nu k)) k
+  obtain ⟨hB, hlaw⟩ := iIndepFun_hasLaw_eval_blocks nu rate
   have hμ1 : (zetaPoissonMeasure ζ).prod τ =
       Measure.sum fun k => (rate k : ℝ≥0∞) • (nu k).prod τ := by
     rw [hmu, Measure.prod_sum_left]

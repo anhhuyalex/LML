@@ -325,6 +325,7 @@ public import LeanMachineLearning.SpinGlasses.CascadeBSReplica
 public import LeanMachineLearning.SpinGlasses.CascadeData
 public import LeanMachineLearning.SpinGlasses.CascadeFiniteness
 public import LeanMachineLearning.SpinGlasses.CascadeGeometry
+public import LeanMachineLearning.SpinGlasses.CascadeGibbsReal
 public import LeanMachineLearning.SpinGlasses.CascadeInvariance
 public import LeanMachineLearning.SpinGlasses.CascadeMarked
 public import LeanMachineLearning.SpinGlasses.CascadeMoment
