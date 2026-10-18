@@ -104,4 +104,18 @@ lemma iIndepFun.curry' {X : (i : ι) → (j : κ) → Ω → 𝓧 i j} (mX : ∀
 
 end curry
 
+/-- Independent measurable coordinates with given marginal laws have the infinite product
+law. -/
+lemma HasLaw.infinitePi {Ω ι : Type*} [MeasurableSpace Ω] {P : Measure Ω}
+    [IsProbabilityMeasure P]
+    {E : ι → Type*} [∀ i, MeasurableSpace (E i)] {X : (i : ι) → Ω → E i}
+    (hXm : ∀ i, Measurable (X i)) (hXi : iIndepFun X P) {μ : (i : ι) → Measure (E i)}
+    (hlaw : ∀ i, HasLaw (X i) (μ i) P) :
+    HasLaw (fun ω i => X i ω) (Measure.infinitePi μ) P := by
+  refine ⟨(measurable_pi_iff.2 hXm).aemeasurable, ?_⟩
+  rw [(iIndepFun_iff_map_fun_eq_infinitePi_map hXm).1 hXi]
+  congr 1
+  funext i
+  exact (hlaw i).map_eq
+
 end ProbabilityTheory

@@ -38,34 +38,42 @@ theorem iIndepFun_cascadeVertexBlocks
     intro k l h
     exact congrArg Prod.snd h)
 
+/-- The map sending a (child label, vertex inside that child's subtree, block number) to the
+corresponding vertex and block number of the whole tree is injective. -/
+theorem cascadeSubtree_index_injective :
+    Function.Injective (fun nk : (ℕ × (Σ p : ℕ, Fin p → ℕ)) × ℕ =>
+      ((⟨nk.1.2.1 + 1, Fin.cons nk.1.1 nk.1.2.2⟩ : Σ p : ℕ, Fin p → ℕ), nk.2)) := by
+  rintro ⟨⟨n, ⟨p, gamma⟩⟩, k⟩ ⟨⟨m, ⟨q, delta⟩⟩, l⟩ hab
+  have hv := congrArg Prod.fst hab
+  have hk := congrArg Prod.snd hab
+  have hp : p = q := Nat.succ.inj (congrArg Sigma.fst hv)
+  subst hp
+  have hcons : (Fin.cons n gamma : Fin (p + 1) → ℕ) = Fin.cons m delta :=
+    eq_of_heq (Sigma.mk.inj hv).2
+  have hn : n = m := congrArg (fun f => f 0) hcons
+  have hg : gamma = delta := (Fin.cons_inj.mp hcons).2
+  subst hn hg hk
+  rfl
+
 /-- Restrict the global block family to the disjoint subtrees below the root.
 The first index is the child label; the second describes a vertex inside that subtree. -/
 theorem iIndepFun_cascadeSubtreeBlocks
     (B : (Σ p : ℕ, Fin p → ℕ) → ℕ → Ω → ℕ × (ℕ → ℝ))
     (hB : iIndepFun (fun vk : (Σ p : ℕ, Fin p → ℕ) × ℕ => B vk.1 vk.2) P) :
     iIndepFun (fun nk : (ℕ × (Σ p : ℕ, Fin p → ℕ)) × ℕ =>
-      B ⟨nk.1.2.1 + 1, Fin.cons nk.1.1 nk.1.2.2⟩ nk.2) P := by
-  let g : ((ℕ × (Σ p : ℕ, Fin p → ℕ)) × ℕ) →
-      (Σ p : ℕ, Fin p → ℕ) × ℕ :=
-    fun nk => (⟨nk.1.2.1 + 1, Fin.cons nk.1.1 nk.1.2.2⟩, nk.2)
-  change iIndepFun (fun nk => B (g nk).1 (g nk).2) P
-  apply hB.precomp (g := g)
-  intro a b hab
-  have hv := congrArg Prod.fst hab
-  have hk := congrArg Prod.snd hab
-  rcases a with ⟨⟨n, ⟨p, gamma⟩⟩, k⟩
-  rcases b with ⟨⟨m, ⟨q, delta⟩⟩, l⟩
-  have hp : p = q := Nat.succ.inj (congrArg Sigma.fst hv)
-  cases hp
-  have hcons : (Fin.cons n gamma : Fin (p + 1) → ℕ) =
-      (Fin.cons m delta : Fin (p + 1) → ℕ) := by
-    exact eq_of_heq (Sigma.mk.inj hv).2
-  have hn : n = m := congrArg (fun f => f 0) hcons
-  subst m
-  have hg : gamma = delta := (Fin.cons_inj.mp hcons).2
-  subst delta
-  cases hk
-  rfl
+      B ⟨nk.1.2.1 + 1, Fin.cons nk.1.1 nk.1.2.2⟩ nk.2) P :=
+  hB.precomp cascadeSubtree_index_injective
+
+/-- Every individual child-subtree inherits independence among all its blocks. -/
+theorem iIndepFun_cascadeChildBlocks
+    (B : (Σ p : ℕ, Fin p → ℕ) → ℕ → Ω → ℕ × (ℕ → ℝ))
+    (hB : iIndepFun (fun vk : (Σ p : ℕ, Fin p → ℕ) × ℕ => B vk.1 vk.2) P)
+    (n : ℕ) :
+    iIndepFun (fun vk : (Σ p : ℕ, Fin p → ℕ) × ℕ =>
+      B ⟨vk.1.1 + 1, Fin.cons n vk.1.2⟩ vk.2) P :=
+  (iIndepFun_cascadeSubtreeBlocks B hB).precomp
+    (g := fun (vk : (Σ p : ℕ, Fin p → ℕ) × ℕ) => ((n, vk.1), vk.2))
+    fun _ _ h => Prod.ext (congrArg (fun x => x.1.2) h) (congrArg (fun x => x.2) h)
 
 /-- A child has the full joint law of a fresh cascade whose exponent and block
 parameters have been shifted by one level. This is a law of block arrays, not yet
@@ -89,29 +97,8 @@ theorem hasLaw_cascadeChildBlockArray
     B ⟨vk.1.1 + 1, Fin.cons n vk.1.2⟩ vk.2 ω
   have hXm : ∀ vk, Measurable (X vk) := fun vk =>
     hBm ⟨vk.1.1 + 1, Fin.cons n vk.1.2⟩ vk.2
-  have hXi : iIndepFun X P := by
-    apply hB.precomp (g := fun vk : (Σ p : ℕ, Fin p → ℕ) × ℕ =>
-      ((⟨vk.1.1 + 1, Fin.cons n vk.1.2⟩ : Σ p : ℕ, Fin p → ℕ), vk.2))
-    intro a b hab
-    have hv := congrArg Prod.fst hab
-    have hk := congrArg Prod.snd hab
-    rcases a with ⟨⟨p, gamma⟩, k⟩
-    rcases b with ⟨⟨q, delta⟩, l⟩
-    have hp : p = q := Nat.succ.inj (congrArg Sigma.fst hv)
-    cases hp
-    have hcons : (Fin.cons n gamma : Fin (p + 1) → ℕ) =
-        (Fin.cons n delta : Fin (p + 1) → ℕ) :=
-      eq_of_heq (Sigma.mk.inj hv).2
-    have hg : gamma = delta := (Fin.cons_inj.mp hcons).2
-    subst delta
-    cases hk
-    rfl
-  have hmap := (iIndepFun_iff_map_fun_eq_infinitePi_map hXm).1 hXi
-  refine ⟨(measurable_pi_iff.2 hXm).aemeasurable, ?_⟩
-  rw [hmap]
-  congr 1
-  funext vk
-  exact (hlaw ⟨vk.1.1 + 1, Fin.cons n vk.1.2⟩ vk.2).map_eq
+  have hXi : iIndepFun X P := iIndepFun_cascadeChildBlocks B hB n
+  exact HasLaw.infinitePi hXm hXi fun vk => hlaw ⟨vk.1.1 + 1, Fin.cons n vk.1.2⟩ vk.2
 
 /-- The complete block arrays below distinct root children are independent.
 This is stronger than independence of the individual blocks: it permits applying
@@ -178,11 +165,9 @@ theorem indepFun_cascadeRoot_subtreeArrays
     {vk | vk.1.1 = 0}
   let below : Set ((Σ p : ℕ, Fin p → ℕ) × ℕ) :=
     {vk | 0 < vk.1.1}
-  have hd : Disjoint root below := by
-    simp only [Set.disjoint_left]
-    intro vk hr hb
-    have heq : vk.1.1 = 0 := hr
-    have hlt : 0 < vk.1.1 := hb
+  have hd : Disjoint root below := Set.disjoint_left.2 fun _ hr hb => by
+    have : _ = 0 := hr
+    have : 0 < _ := hb
     omega
   have hind := indep_iSup_of_disjoint
     (fun vk => (hBm vk.1 vk.2).comap_le) (show iIndep
@@ -359,14 +344,10 @@ theorem hasLaw_cascadeRoot_subtreeTotals_prod
       (measurable_poissonCountingMeasure_comp
         (fun k => hBm ⟨p + 1, Fin.cons n gamma⟩ k))
   have hXlaw : HasLaw X (Measure.infinitePi fun k =>
-      (Po(rate 0 k)).prod (Measure.infinitePi fun _ : ℕ => nu 0 k)) P := by
-    refine ⟨hXm.aemeasurable, ?_⟩
-    rw [(iIndepFun_iff_map_fun_eq_infinitePi_map
-      (fun k => hBm ⟨0, fun i => i.elim0⟩ k)).1
-        (iIndepFun_cascadeVertexBlocks B hB ⟨0, fun i => i.elim0⟩)]
-    congr 1
-    funext k
-    exact (hlaw ⟨0, fun i => i.elim0⟩ k).map_eq
+      (Po(rate 0 k)).prod (Measure.infinitePi fun _ : ℕ => nu 0 k)) P :=
+    HasLaw.infinitePi (fun k => hBm ⟨0, fun i => i.elim0⟩ k)
+      (iIndepFun_cascadeVertexBlocks B hB ⟨0, fun i => i.elim0⟩)
+      fun k => hlaw ⟨0, fun i => i.elim0⟩ k
   have hTlaw : HasLaw T (Measure.infinitePi fun _ : ℕ =>
       (Measure.infinitePi fun vk : (Σ p : ℕ, Fin p → ℕ) × ℕ =>
         (Po(rate (vk.1.1 + 1) vk.2)).prod
@@ -375,18 +356,9 @@ theorem hasLaw_cascadeRoot_subtreeTotals_prod
           (fun p gamma m => nthLargestAtom m (poissonCountingMeasure
             (fun k => (a (⟨p, gamma⟩, k)).1)
             (fun k l => (a (⟨p, gamma⟩, k)).2 l))) beta)) P := by
-    refine ⟨hTm.aemeasurable, ?_⟩
-    change P.map (fun ω n => T ω n) = _
-    have hpi := (iIndepFun_iff_map_fun_eq_infinitePi_map
-      (fun n => (measurable_pi_apply n).comp hTm)).1
+    exact HasLaw.infinitePi (fun n => (measurable_pi_apply n).comp hTm)
       (iIndepFun_cascadeSubtreeTotals B hBm hB r)
-    calc
-      P.map T = Measure.infinitePi (fun n => P.map (fun ω => T ω n)) := by
-        simpa only [Function.comp_def] using hpi
-      _ = _ := by
-        congr 1
-        funext n
-        exact (hasLaw_cascadeChildTotal nu rate B hBm hB hlaw n r).map_eq
+      fun n => hasLaw_cascadeChildTotal nu rate B hBm hB hlaw n r
   have hind : IndepFun X T P := indepFun_cascadeRoot_subtreeTotals B hBm hB r
   refine ⟨(hXm.prodMk hTm).aemeasurable, ?_⟩
   calc
@@ -426,18 +398,6 @@ theorem hasLaw_rankedRoot_independent_marks
   rw [← Measure.map_map (hF.prodMap measurable_id) (hXm.prodMk hTm), hpair]
   rw [← Measure.map_prod_map (P.map (fun ω k => B k ω)) (P.map T)
     hF measurable_id, Measure.map_id]
-
-/-- Every individual child-subtree inherits independence among all its blocks. -/
-theorem iIndepFun_cascadeChildBlocks
-    (B : (Σ p : ℕ, Fin p → ℕ) → ℕ → Ω → ℕ × (ℕ → ℝ))
-    (hB : iIndepFun (fun vk : (Σ p : ℕ, Fin p → ℕ) × ℕ => B vk.1 vk.2) P)
-    (n : ℕ) :
-    iIndepFun (fun vk : (Σ p : ℕ, Fin p → ℕ) × ℕ =>
-      B ⟨vk.1.1 + 1, Fin.cons n vk.1.2⟩ vk.2) P := by
-  exact (iIndepFun_cascadeSubtreeBlocks B hB).precomp
-    (g := fun (vk : (Σ p : ℕ, Fin p → ℕ) × ℕ) => ((n, vk.1), vk.2)) (by
-      intro a b h
-      exact Prod.ext (congrArg (fun x => x.1.2) h) (congrArg (fun x => x.2) h))
 
 /-- Every parent in a globally independent vertex-block model has positive, finite
 ranked atoms simultaneously. This uses the Section 2.2 Poisson--Dirichlet theorem. -/
@@ -494,10 +454,7 @@ theorem measurable_tsum_cascadeRankedMass
     Measurable fun ω => ∑' alpha : Fin r → ℕ,
       cascadeBranchWeight (u ω) alpha :=
   measurable_tsum_cascadeBranchWeight u (fun p gamma m => by
-    have heq : (fun ω => u ω p gamma m) = fun ω => nthLargestAtom m
-        (poissonCountingMeasure (fun k => (B ⟨p, gamma⟩ k ω).1)
-          (fun k l => (B ⟨p, gamma⟩ k ω).2 l)) := funext fun ω => hu ω p gamma m
-    rw [heq]
+    simp_rw [hu]
     exact (measurable_nthLargestAtom m).comp
       (measurable_poissonCountingMeasure_comp (fun k => hBm ⟨p, gamma⟩ k))) r
 
@@ -525,16 +482,11 @@ theorem ae_cascadeRankedMass_one_lt_top
   filter_upwards [h] with ω hω
   rw [tsum_cascadeBranchWeight_succ] at hω ⊢
   simp only [cascadeBranchWeight_zero, one_mul] at hω ⊢
-  have hroot (ω : Ω) : ∀ n, u ω 0 (fun i : Fin 0 => i.elim0) n =
-      nthLargestAtom n (poissonCountingMeasure
-        (fun k => (B ⟨0, fun i => i.elim0⟩ k ω).1)
-        (fun k l => (B ⟨0, fun i => i.elim0⟩ k ω).2 l)) :=
-    fun n => hu ω 0 (fun i => i.elim0) n
   convert hω using 1
   congr 1
   funext gamma
   rw [Subsingleton.elim gamma (fun i => i.elim0)]
-  exact tsum_congr (hroot ω)
+  exact tsum_congr (hu ω 0 _)
 
 /-- The weighted sum of marks bounded by `1 + x n` is controlled by the
 unmarked root mass and the weighted excess. This does not assume a Poisson law. -/

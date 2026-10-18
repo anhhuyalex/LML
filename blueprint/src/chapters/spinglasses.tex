@@ -4530,6 +4530,8 @@ sum estimate equivalent to the missing finiteness conclusion.
   \label{lem:sg:cascade-conditional}
   \lean{SpinGlasses.measurable_tsum_cascadeRankedMass,
         SpinGlasses.iIndepFun_cascadeVertexBlocks,
+        SpinGlasses.cascadeSubtree_index_injective,
+        ProbabilityTheory.HasLaw.infinitePi,
         SpinGlasses.iIndepFun_cascadeSubtreeBlocks,
         SpinGlasses.iIndepFun_cascadeSubtreeArrays,
         SpinGlasses.iIndepFun_cascadeSubtreeTotals,
@@ -4556,7 +4558,7 @@ Poisson block, with count rate $a_{p,k}$ and i.i.d. point law $\nu_{p,k}$.
 Assume the entire family indexed by (vertex, block number) is independent,
 each block has its specified Poisson product law, and
 $\sum_k a_{p,k}\nu_{p,k}=\mu_{\zeta_p}$. Restriction of global independence to a vertex or to all the blocks in
-first-child subtrees uses injective precomposition. A product-valued
+first-child subtrees uses injective precomposition: the map sending a child label $n$, a vertex $(p,\gamma)$ of the shifted tree and a block number $k$ to the vertex $(p+1,(n,\gamma))$ and block number $k$ of the whole tree is injective (\texttt{cascadeSubtree\_index\_injective}), because the successor is injective and consing is injective in both arguments. Whenever coordinates are independent, measurable, and have prescribed marginal laws, their joint law is the infinite product of the marginals (\texttt{HasLaw.infinitePi}, a general fact used for the root block array, for each shifted block array and for the vector of child totals). A product-valued
 independence lemma then proves that the \emph{whole arrays} below distinct
 children are independent. Consequently, their depth-$r$ totals are
 independent, and the root block array is independent of the whole vector of
