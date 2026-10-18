@@ -325,7 +325,7 @@ theorem identDistrib_lintegral_pi_poissonDirichlet_gaussian
     ν' r' hBm' hB' hlaw' hμ'
   have hX := ae_forall_measure_Ioi_inv_succ_transform_lt_top hζ t ν r hBm hB hlaw hμ ν' r' hBm'
     hB' hlaw' hμ'
-  have h := hid.lintegral_pi_restrict hC hX hY n hΦ
+  have h := hid.lintegral_pi_restrict hC hX hY (fun _ => n) hΦ
   simpa only [C, iUnion_Ioi_inv_succ_prod_univ] using h
 
 /-- **Lemma 2.3 (Panchenko, Eq. (2.33)) for the Gaussian marked process, as an equality in law.**

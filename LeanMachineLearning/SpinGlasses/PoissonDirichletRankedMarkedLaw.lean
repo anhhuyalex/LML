@@ -78,7 +78,7 @@ theorem map_tsum_active_mul_eq_map_tsum_ranked_mul
 
 /-- Marking the points of one Poisson block by an independent i.i.d. array of marks. -/
 theorem map_prod_infinitePi_blockMarks {X : Type*} [MeasurableSpace X] (π : Measure ℕ)
-    [IsProbabilityMeasure π] (ν : Measure X) [IsProbabilityMeasure ν] (τ : Measure T)
+    (ν : Measure X) [IsProbabilityMeasure ν] (τ : Measure T)
     [IsProbabilityMeasure τ] :
     (((π.prod (Measure.infinitePi fun _ : ℕ => ν)).prod
         (Measure.infinitePi fun _ : ℕ => τ)).map

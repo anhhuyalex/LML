@@ -30,21 +30,23 @@ variable {Ω Ω' α ι : Type*} [MeasurableSpace Ω] [MeasurableSpace Ω'] [Meas
 /-- **Equality in law of replica integrals.** -/
 theorem IdentDistrib.lintegral_pi_restrict {X : Ω → Measure α} {Y : Ω' → Measure α}
     (h : IdentDistrib X Y P Q) (hC : ∀ k, MeasurableSet (C k))
-    (hX : ∀ᵐ ω ∂P, ∀ k, X ω (C k) < ∞) (hY : ∀ᵐ ω ∂Q, ∀ k, Y ω (C k) < ∞) (n : ℕ)
-    {Φ : ι → (Fin n → α) → ℝ≥0∞} (hΦ : ∀ i, Measurable (Φ i)) :
+    (hX : ∀ᵐ ω ∂P, ∀ k, X ω (C k) < ∞) (hY : ∀ᵐ ω ∂Q, ∀ k, Y ω (C k) < ∞) (n : ι → ℕ)
+    {Φ : (i : ι) → (Fin (n i) → α) → ℝ≥0∞} (hΦ : ∀ i, Measurable (Φ i)) :
     IdentDistrib
-      (fun ω i => ∫⁻ q, Φ i q ∂Measure.pi fun _ : Fin n => (X ω).restrict (⋃ k, C k))
-      (fun ω i => ∫⁻ q, Φ i q ∂Measure.pi fun _ : Fin n => (Y ω).restrict (⋃ k, C k))
+      (fun ω i => ∫⁻ q, Φ i q ∂Measure.pi fun _ : Fin (n i) => (X ω).restrict (⋃ k, C k))
+      (fun ω i => ∫⁻ q, Φ i q ∂Measure.pi fun _ : Fin (n i) => (Y ω).restrict (⋃ k, C k))
       P Q := by
-  choose F hFm hF using fun i => exists_measurable_lintegral_pi_restrict hC n (hΦ i)
+  choose F hFm hF using fun i => exists_measurable_lintegral_pi_restrict hC (n i) (hΦ i)
   have hFv : Measurable fun (M : Measure α) (i : ι) => F i M := measurable_pi_iff.2 hFm
   have h1 := h.comp hFv
-  have hXF : (fun ω i => ∫⁻ q, Φ i q ∂Measure.pi fun _ : Fin n => (X ω).restrict (⋃ k, C k)) =ᵐ[P]
+  have hXF : (fun ω i =>
+      ∫⁻ q, Φ i q ∂Measure.pi fun _ : Fin (n i) => (X ω).restrict (⋃ k, C k)) =ᵐ[P]
       (fun M i => F i M) ∘ X := by
     filter_upwards [hX] with ω hω
     funext i
     exact (hF i _ hω).symm
-  have hYF : (fun ω i => ∫⁻ q, Φ i q ∂Measure.pi fun _ : Fin n => (Y ω).restrict (⋃ k, C k)) =ᵐ[Q]
+  have hYF : (fun ω i =>
+      ∫⁻ q, Φ i q ∂Measure.pi fun _ : Fin (n i) => (Y ω).restrict (⋃ k, C k)) =ᵐ[Q]
       (fun M i => F i M) ∘ Y := by
     filter_upwards [hY] with ω hω
     funext i

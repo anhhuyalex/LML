@@ -114,6 +114,15 @@ theorem cascadeBranchWeight_cons
     | zero => simp [Fin.take, Fin.cons]
     | succ k => simp [Fin.take, Fin.cons, Fin.castLE]
 
+/-- The first `k + 1` coordinates of `cons n β` are `n` followed by the first `k` of `β`. -/
+theorem take_succ_cons {r : ℕ} (n : ℕ) (β : Fin r → ℕ) (k : ℕ) (hk : k + 1 ≤ r + 1)
+    (hk' : k ≤ r) :
+    Fin.take (k + 1) hk (Fin.cons n β : Fin (r + 1) → ℕ) = Fin.cons n (Fin.take k hk' β) := by
+  funext j
+  cases j using Fin.cases with
+  | zero => simp [Fin.take, Fin.cons]
+  | succ i => simp [Fin.take, Fin.cons, Fin.castLE]
+
 /-- The first-level total is the root-child-weighted sum of subtree totals. -/
 theorem tsum_cascadeBranchWeight_cons
     (u : (p : ℕ) → (Fin p → ℕ) → ℕ → ENNReal) (r : ℕ) :

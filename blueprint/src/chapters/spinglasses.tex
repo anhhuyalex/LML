@@ -4674,3 +4674,397 @@ general fact: points of equal norm whose scalar products satisfy the
 common-prefix inequality are at ultrametric distances, because the squared
 distance is $2(M-\langle\cdot,\cdot\rangle)$.
 \end{proof}
+
+
+\section{The Parisi recursion and Theorem~2.9 (Section~2.4 of the book)}\label{sec:sg:parisi}
+
+This section formalizes the first half of Section~2.4 of the book: the recursively defined
+functions $X_l$ of the Parisi formula, and Theorem~2.9, which says that $X_0$ is the expected
+logarithm of an average of $\exp X_r$ over the Ruelle probability cascade. The multi-copy
+versions (2.59)--(2.60) of the book are not formalized yet.
+
+\paragraph{The model.}
+The data at the vertex $(p,\gamma)$ of the tree is one random element $D_{(p,\gamma)}$ of the space
+$(\mathbb N\to\mathbb N\times(\mathbb N\to\mathbb R))\times(\mathbb N\to\Xi)$: the Poisson blocks
+of the vertex (as in Section~2.3, independent with laws $\mathrm{Po}(a_{p,k})\otimes\nu_{p,k}^{\otimes\mathbb N}$ and
+$\sum_ka_{p,k}\nu_{p,k}=\mu_{\zeta_p}$) together with the labels of its children, an i.i.d. sequence
+with law $\rho$ on a measurable space $\Xi$. The family $(D_v)$ is independent. The label of the child
+$\gamma n$ of $\gamma$ is the $n$-th label stored at $\gamma$, and
+$\Omega_\alpha\in\Xi^r$ is the vector of labels along the path to a leaf $\alpha$. The book takes
+$\Xi=[0,1]$ with the uniform law; here $\rho$ is arbitrary. For a measurable function $X_r$ on
+$\Xi^r$ and a leaf mark $g$ (a function of the data at the leaf), the partition sum is
+\[
+  L_r(X_r,g)=\sum_{\alpha\in\mathbb N^r}w_\alpha\,g(D_{(r,\alpha)})\,e^{X_r(\Omega_\alpha)} .
+\]
+The book's Theorem~2.9 is the case $g\equiv1$. The functions $X_l$ ($l<r$) are given by the
+recursion in exponential form, $\mathbb E_\rho\,e^{\zeta_lX_{l+1}(\theta,\cdot)}=e^{\zeta_lX_l(\theta)}$.
+\emph{Deviation from the book:} the book defines $X_l$ by the logarithm of the conditional
+expectation, which is finite only almost everywhere; we assume the recursion and the integrability of
+$e^{\zeta_lX_{l+1}(\theta,\cdot)}$ for \emph{every} $\theta$, and we do not prove the Jensen/H\"older bound
+$\mathbb E e^{\zeta_{r-1}X_l}\le\mathbb E e^{\zeta_{r-1}X_r}$ that shows the recursion is well
+defined; the hypotheses are what the proof uses.
+
+\begin{definition}[Marked partition sum of the cascade]\label{def:sg:cascade-marked-sum}
+  \lean{SpinGlasses.cascadeMarkedSum}
+  \leanok
+For vertex data $d$ and a depth $r$, $\mathrm{cascadeMarkedSum}\ r\ X\ g\ d$ is the sum over leaves
+$\alpha\in\mathbb N^r$ of $w_\alpha\,g(d_{(r,\alpha)})\,\exp X(\Omega_\alpha)$ in $[0,\infty]$, where
+$w_\alpha$ is the product of the ranked atoms along the path and $\Omega_\alpha$ is the vector of
+labels along the path. Peeling the first level
+(\texttt{cascadeMarkedSum\_succ}) writes it as
+$\sum_n u_{\emptyset,n}\cdot\mathrm{cascadeMarkedSum}\ (r-1)\ X(\ell_n,\cdot)\ g$ on the data of the
+$n$-th subtree, where $\ell_n$ is the label of the $n$-th child of the root.
+\end{definition}
+
+\begin{theorem}[Theorem~2.6 for ranked atoms with i.i.d. marks]\label{thm:sg:ranked-marking}
+  \lean{SpinGlasses.identDistrib_marked_sum,
+        SpinGlasses.map_prod_infinitePi_blockMarks,
+        SpinGlasses.map_prod_infinitePi_allBlockMarks,
+        SpinGlasses.map_tsum_active_mul_eq_map_tsum_ranked_mul,
+        SpinGlasses.lintegral_marked_blocks_eq_tsum,
+        SpinGlasses.map_prod_tsum_active_eq_map_prod_tsum_ranked,
+        SpinGlasses.map_prod_tsum_ranked_marked_eq,
+        SpinGlasses.identDistrib_ranked_marked_sum,
+        MeasureTheory.Measure.map_infinitePi_infinitePi_restrict,
+        MeasureTheory.Measure.map_infinitePi_infinitePi_restrict_equiv}
+  \leanok
+Let $0<\zeta<1$, let $u_1\ge u_2\ge\dots$ be the ranked atoms of independent Poisson blocks of the
+$\zeta$-Poisson process, and let $Y_n$ be i.i.d. marks independent of the blocks and $X$ a positive
+measurable function with $0<\mathbb E X(Y)^\zeta<\infty$. Then
+$\sum_nu_nX(Y_n)$ has the same law as $c\sum_nu_n$, with $c=(\mathbb E X(Y)^\zeta)^{1/\zeta}$.
+\end{theorem}
+\begin{proof}
+  \leanok
+The version with marks attached to the sampled \emph{points} of the blocks is Theorem~2.6
+(\texttt{identDistrib\_marked\_sum}, a law version of Lemma~2.2). To pass to marks attached to the
+\emph{rank}, fix the blocks. For almost every block configuration the active masses are positive,
+distinct and summable, so there is a bijection of the active points onto $\mathbb N$ sending each
+point to its rank; the marks transported along it are again i.i.d. with the same law (an i.i.d. array is
+invariant under any re-enumeration), and the two sums agree. The bijection is chosen for each fixed
+configuration and never as a measurable function of it: only an equality of laws for each
+configuration is used.
+\end{proof}
+
+\begin{theorem}[Conditional replacement and the root step]\label{thm:sg:root-step}
+  \lean{MeasureTheory.Measure.map_prod_infinitePi_replace,
+        MeasureTheory.Measure.map_prod_eq_of_ae_map_fiber_eq,
+        ProbabilityTheory.identDistrib_map_replace,
+        ProbabilityTheory.identDistrib_of_hasLaw_map_eq,
+        SpinGlasses.map_root_sum_replace,
+        SpinGlasses.lintegral_prod_rpow_exp_mul,
+        SpinGlasses.map_prod_prod_zip,
+        SpinGlasses.map_root_sum_parisi,
+        SpinGlasses.measurable_rootMarkedSum}
+  \leanok
+Let $A$ be a random parameter and $(E_j)$ an i.i.d. family independent of $A$. A measurable
+functional of $(A,(\Phi(\theta_j(A),E_j))_j)$ has the same law with $\Phi$ replaced by $\Psi$ as long as
+$\Phi(\theta,E_0)$ and $\Psi(\theta,E_0)$ have the same law for every fixed $\theta$.
+Consequently, let the ranked atoms $u_n$ of the root be marked by i.i.d. labels $\lambda_n\sim\rho$ and
+i.i.d. subtree data $s_n\sim\sigma$, all independent. If for every label $\theta$ the subtree
+quantity $\Phi(\theta,s)$ has the law of $e^{h(\theta)}V(s)$ with $V>0$,
+$0<\mathbb E V^{\zeta}<\infty$ and $\mathbb E_\rho e^{\zeta h}=e^{\zeta h_0}$, then
+$\sum_nu_n\Phi(\lambda_n,s_n)$ has the law of $e^{h_0}\sum_nu_nV(s_n)$.
+\end{theorem}
+\begin{proof}
+  \leanok
+Replace $\Phi$ by $e^hV$ using the conditional replacement (the pair map pushes the product measure
+$\mu\otimes\sigma^{\otimes\mathbb N}$ forward to a measure depending on $\Phi$ only through the
+laws $\Phi(\theta,\cdot)_*\sigma$). Then apply Theorem~\ref{thm:sg:ranked-marking} to the marks
+$(\lambda_n,s_n)$ with $X=e^{h}V$: the constant is $(\mathbb E e^{\zeta h}\,\mathbb E V^\zeta)^{1/\zeta}=e^{h_0}c_V$,
+and the same theorem with $X=V$ gives $\sum_nu_nV(s_n)\sim c_V\sum_nu_n$.
+\end{proof}
+
+\begin{theorem}[Distributional Parisi identity]\label{thm:sg:parisi-law}
+  \lean{SpinGlasses.cascadeSubtreeVertex_injective,
+        SpinGlasses.iIndepFun_cascadeSubtreeData,
+        SpinGlasses.indepFun_cascadeRoot_subtreeData,
+        SpinGlasses.hasLaw_cascadeSubtreeData,
+        SpinGlasses.hasLaw_cascadeRoot_subtreeData,
+        SpinGlasses.iIndepFun_cascadeChildData,
+        SpinGlasses.cascadeMarkedSum_succ,
+        SpinGlasses.ae_infinitePi_blocks_atoms_pos_finite,
+        SpinGlasses.ae_cascadeData_atoms_pos_finite,
+        SpinGlasses.measurable_cascadeAtom,
+        SpinGlasses.measurable_cascadeMarkedSum_param,
+        SpinGlasses.measurable_cascadeMarkedSum,
+        SpinGlasses.cascadeMarkedSum_ne_zero,
+        SpinGlasses.lintegral_cascadeMarkedSum_rpow_lt_top,
+        SpinGlasses.cascadeSubtree_unmarked_facts,
+        SpinGlasses.identDistrib_cascadeMarkedSum_of_rootStep,
+        SpinGlasses.identDistrib_cascadeMarkedSum_parisi_succ,
+        SpinGlasses.identDistrib_cascadeMarkedSum_parisi}
+  \leanok
+In the model above, with $0<\zeta_p<1$ strictly increasing, a leaf mark $g$ that is positive and finite
+almost surely with a finite $\zeta_{r-1}$-moment (for $r\ge1$), and $X_l$ satisfying the Parisi
+recursion for $l<r$, the partition sum $L_r(X_r,g)$ has the same law as
+$e^{X_0}L_r(0,g)=e^{X_0}\sum_\alpha w_\alpha g(D_{(r,\alpha)})$.
+\end{theorem}
+\begin{proof}
+  \leanok
+Induction on $r$. For $r=0$ both sides are $g(D_\emptyset)e^{X_0}$. For the step, peel the first
+level: $L_{r+1}(X,g)=\sum_nu_n\,L_r(X(\ell_n,\cdot),g)[\text{subtree }n]$. The subtrees below the root children are
+i.i.d. copies of the cascade with exponents $(\zeta_{p+1})_p$, independent of the root, and
+the label $\ell_n$ is independent of the subtree. For each fixed label $\theta$, the induction
+hypothesis applied to the shifted data and to $X_l^\theta=X_{l+1}(\theta,\cdot)$ (which still satisfies the
+recursion) says that $L_r(X(\theta,\cdot),g)[\text{subtree}]$ has the law of $e^{X_1(\theta)}V$, where
+$V=L_r(0,g)[\text{subtree}]$. This $V$ is positive and finite almost surely, and has a finite
+$\zeta_0$-moment because $\zeta_0<\zeta_1$ and the moment bound for the unmarked partition sum
+(the analogue of Lemma~2.4 with a leaf mark, proved by the same moment induction; see the lemma
+\texttt{lintegral\_cascadeMarkedSum\_rpow\_lt\_top}). The recursion gives $\mathbb E_\rho e^{\zeta_0X_1}=e^{\zeta_0X_0}$.
+Theorem~\ref{thm:sg:root-step} concludes.
+\end{proof}
+
+\begin{theorem}[Theorem~2.9]\label{thm:sg:parisi-29}
+  \lean{SpinGlasses.integrable_log_tsum_ranked,
+        SpinGlasses.identDistrib_cascadeMarkedSum_succ_root,
+        SpinGlasses.cascadeMarkedSum_succ_log_facts,
+        SpinGlasses.integral_log_cascade_ratio_eq}
+  \leanok
+In the model above with depth $r+1\ge1$, $0<\zeta_p<1$ strictly increasing, $X_{r+1}$ measurable and
+the recursion and integrability hypotheses for $l\le r$,
+\[
+  X_0=\mathbb E\log\sum_{\alpha\in\mathbb N^{r+1}}v_\alpha\exp X_{r+1}(\Omega_\alpha),\qquad
+  v_\alpha=\frac{w_\alpha}{\sum_\beta w_\beta}.
+\]
+In the formal statement the sum is written as the quotient of the two partition sums
+$L_{r+1}(X_{r+1},1)/L_{r+1}(0,1)$ in $[0,\infty]$, and the logarithm is taken of its real part
+(the quotient is finite and positive almost surely).
+\end{theorem}
+\begin{proof}
+  \leanok
+By Theorem~\ref{thm:sg:parisi-law} with $g\equiv1$, $\log L_{r+1}(X_{r+1},1)$ has the law of
+$X_0+\log L_{r+1}(0,1)$. The total mass $S=L_{r+1}(0,1)$ is positive and finite almost surely, and
+$\log S$ is integrable: peeling the first level, $S=\sum_nu_nT_n$ with i.i.d. subtree masses $T_n$
+independent of the root, which by Theorem~\ref{thm:sg:ranked-marking} has the law of
+$c\sum_nu_n$, and $\log\sum_nu_n$ is integrable (Section~\ref{sec:sg:pd}). Hence both logarithms are integrable and
+$\mathbb E\log(L_{r+1}(X_{r+1},1)/L_{r+1}(0,1))=X_0$.
+\end{proof}
+
+\begin{remark}[What is not formalized in Section~2.4 so far]
+The conclusion for depth $r=0$ is trivial and omitted. The multi-copy generalizations (2.59) and (2.60)
+of the book, and the Jensen--H\"older argument showing that the recursion defining $X_l$ is
+well defined from the integrability of $e^{\zeta_{r-1}X_r}$, are not formalized; the recursion is an hypothesis
+(see the deviation noted above).
+\end{remark}
+
+\section{The Bolthausen--Sznitman invariance of the Ruelle cascade and Lemma~2.5 (Section~2.5 of the book)}\label{sec:sg:bs-cascade}
+
+\emph{Setting.} We keep the vertex data model of Section~\ref{sec:sg:parisi}: for each vertex $v=(p,\gamma)$ of the tree
+$\bigcup_p\mathbb N^p$ the data $D_v=(\text{blocks}_v,\text{labels}_v)$ are independent; at depth $p$ the blocks are
+independent $\zeta_p$-Poisson blocks (whose ranked atoms $u_{v,n}$ are the weights below $v$) and the labels
+$\eta_{v,n}$, $n\ge1$, are i.i.d.\ standard Gaussians independent of the blocks. Here $0<\zeta_p<1$. The label of a
+leaf $\alpha\in\mathbb N^r$ at level $i<r$ is $\eta_{\alpha|i,\alpha_i}$, the weight is $w_\alpha=\prod_{i<r}u_{\alpha|i,\alpha_i}$,
+and for reals $\sigma_0,\sigma_1,\dots$ (in the book $\sigma_i^2=q_{i+1}-q_i$) the Gaussian field is
+$g(\alpha)=\sum_{i<r}\sigma_i\eta_{\alpha|i,\alpha_i}$, with $b=\sum_{i<r}\sigma_i^2\zeta_i$. The overlap of two leaves is
+the length of their common prefix.
+
+\begin{remark}[How this differs from the book]
+The book proves Theorem~2.11 by constructing a random bijection $\pi:\mathbb N^r\to\mathbb N^r$ that preserves the
+overlaps and such that $\big((G_t(\pi(\alpha)),g(\pi(\alpha))-tb)\big)_\alpha$ has the law of $\big((G(\alpha),g(\alpha))\big)_\alpha$,
+and deduces Lemma~2.5 from it. We do \emph{not} construct $\pi$, and Theorem~2.11 is \emph{not} formalized. Instead we prove
+directly the consequence that Lemma~2.5 needs: every finite family of \emph{replica sums} (the numerators and the
+denominators of the Gibbs averages of functions of the overlaps and of one label) has the same joint law
+before and after the Gaussian exponential tilt (Theorem~\ref{thm:sg:bs-replica}). The proof is by induction on the depth, peeling the first level, and uses
+the Bolthausen--Sznitman invariance of the Poisson process with a marked point cloud
+(Theorem~\ref{thm:sg:bs-marked}); no permutation of the atoms is ever chosen, which avoids measurability problems.
+Lemma~2.5 is formalized for $k=0$ and for $k=(1,0,\dots,0)$, which are the two cases used for the
+Ghirlanda--Guerra identities; the general case $k\in\mathbb N^n$ needs the expansion of $(g-tb)^k$ into
+products of one-level tests and is not formalized.
+\end{remark}
+
+\subsection*{Poisson-level ingredients}
+
+\begin{theorem}[Gaussian Bolthausen--Sznitman invariance with an extra mark]\label{thm:sg:bs-marked}
+  \lean{SpinGlasses.poissonMarkTilt_gaussian_prod,
+        SpinGlasses.identDistrib_poissonDirichlet_gaussian_marked_transform}
+  \leanok
+Let $0<\zeta<1$ and let $\Pi=\{(x_m,(\eta_m,V_m))\}$ be the ($\zeta$-Poisson process) $\otimes$ ($N(0,1)\otimes\kappa$)-marked
+counting measure built from independent Poisson blocks, with $\kappa$ any probability measure. For $t\in\mathbb R$ the image of $\Pi$ under
+$(x,(\eta,V))\mapsto(x\,e^{t(\eta-t\zeta/2)},(\eta-t\zeta,V))$, restricted to $\{x>0\}$, has the same law as $\Pi$.
+\end{theorem}
+\begin{proof}
+  \leanok
+This is Eq.~(2.85) of the book with the independent mark $V$ carried along: the intensity $\mu_\zeta\otimes N(0,1)$ is mapped
+to itself by the transformation, because $\int e^{\zeta t(\eta-t\zeta/2)}\,dN(0,1)=1$, and a Poisson process is determined by its
+intensity (Theorem~2.1 and the marking theorem).
+\end{proof}
+
+\begin{theorem}[Replica sums over ranked atoms with rank-indexed marks]\label{thm:sg:bs-ranked-replica}
+  \lean{SpinGlasses.map_replica_active_eq_map_replica_ranked,
+        SpinGlasses.tsum_fin_pi_subtype,
+        SpinGlasses.map_prod_replica_active_eq_ranked,
+        SpinGlasses.hasLaw_markedBlocks,
+        SpinGlasses.lintegral_pi_restrict_pos_eq_tsum,
+        SpinGlasses.identDistrib_replica_point_tilt,
+        SpinGlasses.map_replica_ranked_tilt_eq,
+        SpinGlasses.map_replica_ranked_tilt_eq_fintype,
+        ProbabilityTheory.IdentDistrib.lintegral_pi_restrict}
+  \leanok
+Let $0<\zeta<1$, let $u_1\ge u_2\ge\dots$ be the ranked atoms of independent $\zeta$-Poisson blocks and let $(\eta_m,V_m)_m$ be
+i.i.d.\ with law $N(0,1)\otimes\kappa$, independent of the blocks. For finite sets $K_x$ of replicas and measurable
+$\Theta_x:(\mathbb R_{\ge0}\times(\mathbb R\times S))^{K_x}\to[0,\infty]$, $x$ in an arbitrary index set, the family
+$\big(\sum_{m\in\mathbb N^{K_x}}\Theta_x((u_{m_l},(\eta_{m_l},V_{m_l}))_l)\big)_x$ has the same law when every point
+$(u,(\eta,V))$ is replaced by $(u\,e^{t(\eta-t\zeta/2)},(\eta-t\zeta,V))$.
+\end{theorem}
+\begin{proof}
+  \leanok
+First, marks attached to the \emph{points} of the blocks instead of to the \emph{ranks}: for a fixed configuration of the blocks with
+positive, distinct, summable masses the ranking is a bijection, and i.i.d.\ marks composed with a bijection are i.i.d.\
+(no measurable choice of the bijection is needed, since it is chosen after fixing the configuration). Second, for marks attached to
+points, the replica sum is the $n$-fold integral of $\Theta_x$ against the counting measure restricted to $\{u>0\}$, which is a
+measurable function (for the Giry $\sigma$-algebra) of the counting measure on the event that it is finite on the shells $\{u>1/(k+1)\}$;
+this event has probability one, and the counting measure has the same law after the transformation by
+Theorem~\ref{thm:sg:bs-marked}.
+\end{proof}
+
+\subsection*{Replica sums of the cascade and the first-level peeling}
+
+\begin{definition}[Replica sums]\label{def:sg:replica-sum}
+  \lean{SpinGlasses.leafLabel, SpinGlasses.replicaSum, SpinGlasses.prefixOverlap_cons,
+        SpinGlasses.cascadeReplicaSum, SpinGlasses.measurable_cascadeReplicaSum}
+  \leanok
+For a finite set $\iota$ of replicas, a matrix $P\in\mathbb N^{\iota\times\iota}$ of prescribed overlaps and measurable tests
+$a_{l,i}:\mathbb R\to[0,\infty]$ of the label at level $i$ of the replica $l$, the replica sum of depth $r$ is
+\[
+ Z_r[P,a]=\sum_{\alpha:\iota\to\mathbb N^r}\mathbf 1\{\alpha_l\wedge\alpha_{l'}=P_{ll'}\ \forall l,l'\}\prod_{l\in\iota}\Big(w_{\alpha_l}\prod_{i<r}a_{l,i}(\eta_{\alpha_l,i})\Big)\in[0,\infty],
+\]
+where $\eta_{\alpha,i}$ is the label of $\alpha$ at level $i$. It is a measurable function of the vertex data.
+\end{definition}
+
+\begin{theorem}[First-level peeling of a replica sum]\label{thm:sg:replica-peeling}
+  \lean{ENNReal.tsum_pi_prod_fin, ENNReal.tsum_pi_prod,
+        SpinGlasses.tsum_pi_fiberwise,
+        SpinGlasses.replicaSum_congr_equiv,
+        SpinGlasses.fiber_sum_eq_replicaSum_block,
+        SpinGlasses.prod_fiber_sum_eq,
+        SpinGlasses.tsum_replicaSum_succ_inner,
+        SpinGlasses.forall_child_eq_iff_of_overlap,
+        SpinGlasses.replicaSum_succ}
+  \leanok
+Let $\iota$ be finite and linearly ordered. Then $Z_{r+1}[P,a]=\sum_{m\in\mathbb N^\iota}T_m$, where $T_m=0$ unless
+$m_l=m_{l'}\Leftrightarrow P_{ll'}>0$ for all $l,l'$, in which case
+\[
+ T_m=\prod_{l\in\iota}u_{m_l}\,a_{l,0}(\eta_{m_l})\ \cdot\prod_{l:\ l=\min\{l':P_{ll'}>0\}}Z_r^{(m_l)}\big[P^{(l)},a^{(l)}\big].
+\]
+Here $u_n,\eta_n$ are the $n$th ranked atom and label of the root, $Z_r^{(n)}$ is the replica sum in the subtree below the root child $n$,
+and for the block $\iota^{(l)}=\{l':P_{ll'}>0\}$ of the replicas that share the child of $l$ we put $P^{(l)}_{l'l''}=P_{l'l''}-1$ and
+$a^{(l)}_{l',i}=a_{l',i+1}$.
+\end{theorem}
+\begin{proof}
+  \leanok
+Write a leaf below the root as $(m,\beta)$. The overlap of $(m,\beta)$ and $(m',\beta')$ is $0$ if $m\ne m'$ and $1+$ the overlap of
+$\beta,\beta'$ if $m=m'$, the weight factorizes as $u_m\,w'_\beta$ and the labels are $\eta_m$ and those of $\beta$ in the subtree.
+Splitting the sum over $\alpha:\iota\to\mathbb N^{r+1}$ into the sum over $m:\iota\to\mathbb N$ and over $\beta:\iota\to\mathbb N^r$, the
+constraint forces the pattern of coincidences of $m$, and then the sum over $\beta$ factorizes over the fibres of $m$
+(a sum over a product of finite fibres of a product of one-variable functions is the product of the sums, valid in $[0,\infty]$).
+\end{proof}
+
+\begin{theorem}[Bolthausen--Sznitman invariance of the replica sums]\label{thm:sg:bs-replica}
+  \lean{SpinGlasses.tiltTest, SpinGlasses.measurable_tiltTest,
+        SpinGlasses.ae_infinitePi_blocks_atoms_injective,
+        SpinGlasses.replicaTheta, SpinGlasses.measurable_replicaTheta,
+        SpinGlasses.cascadeReplicaSum_succ, SpinGlasses.replicaTheta_tilt,
+        SpinGlasses.hasLaw_cascadeRoot_marks,
+        ProbabilityTheory.identDistrib_of_hasLaw_map_eq_two,
+        SpinGlasses.identDistrib_cascadeReplicaSum_tilt_succ,
+        SpinGlasses.identDistrib_cascadeReplicaSum_tilt}
+  \leanok
+In the model above let $t\in\mathbb R$ and $\sigma_i,\zeta_i$ as above with $0<\zeta_i<1$. Let $(\iota_x,P_x,a_x)_{x\in X}$ be an
+arbitrary family of finite linearly ordered replica sets, overlap matrices and measurable tests. Replace each test by its
+tilt $\tilde a_{x,l,i}(y)=a_{x,l,i}(y-t\sigma_i\zeta_i)\,\exp\big(t\sigma_i(y-t\sigma_i\zeta_i/2)\big)$. Then
+$\big(Z_r[P_x,\tilde a_x]\big)_{x\in X}$ and $\big(Z_r[P_x,a_x]\big)_{x\in X}$ have the same joint law.
+\end{theorem}
+\begin{proof}
+  \leanok
+Induction on $r$ (for all level parameters, all families and all data of the model, as in Theorem~\ref{thm:sg:parisi-law}). For $r=0$ a
+replica sum does not depend on the tests. For the step, peel the first level (Theorem~\ref{thm:sg:replica-peeling}): almost surely
+the ranked atoms of the root are distinct, so the condition on the coincidences of $m$ is the same as the condition that the
+points $(u_{m_l},\eta_{m_l})$ coincide as prescribed by $P_x$, and $Z_{r+1}[P_x,a_x]$ is a replica sum over the points
+$(u_n,(\eta_n,V_n))$ of a measurable function $\Theta_x$, where $V_n$ collects, over all $x$ and all blocks, the subtree replica sums
+$Z_r^{(n)}[P^{(l)},a^{(l)}]$. The tilted sum $Z_{r+1}[P_x,\tilde a_x]$ is the same function
+evaluated at the points transformed as in Theorem~\ref{thm:sg:bs-ranked-replica} (the root tilt) with the marks
+$V_n$ replaced by $\tilde V_n$, the subtree replica sums with the tilted tests of the deeper levels (the transformation of the
+points is injective, so the pattern of coincidences is unchanged). The subtrees are independent of the root and i.i.d., so by the induction
+hypothesis $\tilde V_n$ and $V_n$ have the same law. The marks $(\eta_n,\tilde V_n)$ are i.i.d.\ $N(0,1)\otimes\mathrm{law}(V)$, so Theorem~\ref{thm:sg:bs-ranked-replica} applies.
+\end{proof}
+
+\subsection*{Lemma~2.5 for $k=0$ and $k=(1,0,\dots,0)$}
+
+\begin{definition}[Gibbs averages of the cascade]\label{def:sg:cascade-gibbs}
+  \lean{SpinGlasses.replicaGibbs, SpinGlasses.replicaGibbsAt,
+        SpinGlasses.cascadeGibbs, SpinGlasses.cascadeGibbsAt}
+  \leanok
+For $n\ge1$, overlap values $q_0,\dots,q_r$ and a function $f$ of the overlap matrix $R^n_{ll'}=q_{\alpha_l\wedge\alpha_{l'}}$ with values
+in $[0,\infty]$, put (in $[0,\infty]$, with the convention $x/\infty=0$)
+\[
+ \langle f(R^n)\rangle_t=\frac{\sum_{\alpha_1,\dots,\alpha_n}\prod_lw_{\alpha_l}e^{tg(\alpha_l)}\,f(R^n)}{\big(\sum_\alpha w_\alpha e^{tg(\alpha)}\big)^n},
+\]
+and $\langle f(R^n)\psi(\eta_{\alpha_{l_0},i}-s)\rangle_t$ in the same way, with the extra factor $\psi(\eta_{\alpha_{l_0},i}-s)$ in the numerator.
+\end{definition}
+
+\begin{theorem}[Gibbs averages as ratios of replica sums]\label{thm:sg:gibbs-ratio}
+  \lean{SpinGlasses.prod_tiltTest_one, SpinGlasses.tiltTest_apply, SpinGlasses.sum_replicaSum_tilt_pattern,
+        SpinGlasses.replicaGibbs_eq_div, SpinGlasses.replicaGibbsAt_eq_div,
+        SpinGlasses.replicaGibbs_zero_le}
+  \leanok
+Let $c=\exp(-\tfrac{t^2}{2}\sum_i\sigma_i^2\zeta_i)$. Summing the tilted replica sums over the finitely many overlap patterns $P$ gives
+$\sum_Pf(q\circ P)\,Z_r[P,\tilde a]=c^n\sum_{\alpha_1,\dots,\alpha_n}\prod_lw_{\alpha_l}e^{tg(\alpha_l)}\prod_{l,i}a_{l,i}(\eta_{\alpha_l,i}-t\sigma_i\zeta_i)\,f(R^n)$,
+and for the constant test $a=1$ the sum over $P$ is $c^n\big(\sum_\alpha w_\alpha e^{tg(\alpha)}\big)^n$. Hence
+$\langle f(R^n)\rangle_t$, and $\langle f(R^n)\psi(\eta_{\alpha_{l_0},i}-t\sigma_i\zeta_i)\rangle_t$, are quotients of sums of tilted replica sums. If $f\le C$ and the total mass is positive and finite,
+$\langle f\rangle_0\le C$.
+\end{theorem}
+\begin{proof}
+  \leanok
+For fixed $\alpha_l$ the product over the levels of the tilts of the constant test is $\exp(tg(\alpha_l)-\tfrac{t^2}2\sum\sigma_i^2\zeta_i)$, so each tilted
+replica sum is $c^n$ times the sum over the $\alpha$ with the prescribed overlaps. The sum over the patterns is a sum over all $n$-tuples because every
+tuple has exactly one overlap pattern (finitely many values), and the sum over all $n$-tuples of a product is the $n$th power of the one-replica sum.
+\end{proof}
+
+\begin{theorem}[Lemma~2.5 for $k=0$]\label{thm:sg:lemma25-zero}
+  \lean{SpinGlasses.lintegral_cascadeGibbs_tilt}
+  \leanok
+In the model above with $0<\zeta_p<1$, for every $n\ge1$, every function $f\ge0$ of the overlap matrix and every $t\in\mathbb R$,
+\[
+ \mathbb E\langle f(R^n)\rangle_t=\mathbb E\langle f(R^n)\rangle_0.
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+By Theorem~\ref{thm:sg:gibbs-ratio} $\langle f\rangle_t$ is the image of the family $(Z_r[P,\tilde1])_P$ under a fixed measurable function of the numerators
+(the sum over $P$), and $\langle f\rangle_0$ is the image of $(Z_r[P,1])_P$; Theorem~\ref{thm:sg:bs-replica} gives the same law.
+\end{proof}
+
+\begin{theorem}[Lemma~2.5 for $k=(1,0,\dots,0)$]\label{thm:sg:lemma25-one}
+  \lean{ProbabilityTheory.hasLaw_indepFun_fst_snd_of_iIndepFun,
+        SpinGlasses.identDistrib_cascadeGibbsAt_tilt,
+        SpinGlasses.measurable_branchWeight_blocks,
+        SpinGlasses.lintegral_cascadeGibbsAt_zero,
+        SpinGlasses.lintegral_ofReal_mul_gaussian_symm,
+        SpinGlasses.lintegral_ofReal_mul_gaussian_lt_top,
+        SpinGlasses.ae_cascadeMass_pos_finite,
+        SpinGlasses.lintegral_cascadeGibbsAt_tilt_symm}
+  \leanok
+In the model above with $0<\zeta_p<1$ \emph{strictly increasing}, let $f\le C<\infty$ be a function of the overlap matrix of $n$ replicas, $l_0\le n$ and $t\in\mathbb R$.
+Put $P_i^\pm=\big\langle f(R^n)\,(\pm\sigma_i(\eta_{\alpha_{l_0},i}-t\sigma_i\zeta_i))^+\big\rangle_t\in[0,\infty]$. Then for each level $i$
+\[
+ \mathbb EP_i^+=\mathbb EP_i^-<\infty .
+\]
+Since $g(\alpha)-tb=\sum_i\sigma_i(\eta_{\alpha,i}-t\sigma_i\zeta_i)$, summing over the levels gives $\mathbb E\langle f(R^n)(g(\sigma^{l_0})-tb)\rangle_t=0$
+whenever the Gibbs average is written as $\sum_i(P_i^+-P_i^-)$; this is exactly the identity needed for the Ghirlanda--Guerra identities.
+Moreover the vector $(P^\pm_i)_{i,\pm}$ has the law, for every $t$, of the vector of untilted averages $\big\langle f(R^n)(\pm\sigma_i\eta_{\alpha_{l_0},i})^+\big\rangle_0$.
+\end{theorem}
+\begin{proof}
+  \leanok
+The statement about the joint law is Theorem~\ref{thm:sg:bs-replica} applied to the numerators with the test $(\pm\sigma_i\,\cdot)^+$ at the replica $l_0$ and level $i$,
+the denominators, and Theorem~\ref{thm:sg:gibbs-ratio}. It gives $\mathbb EP_i^\pm=\mathbb E\langle f(\pm\sigma_i\eta_{\alpha_{l_0},i})^+\rangle_0$.
+At $t=0$ the weights are a function of the blocks and the labels are a function of the labels of the vertices; the two families are independent (independent
+pairs with product laws), and each label is $N(0,1)$. Hence by Tonelli and independence
+$\mathbb E\langle f\,(\pm\sigma_i\eta)^+\rangle_0=\mathbb E\big[(\pm\sigma_i\eta)^+\big]\ \mathbb E\langle f\rangle_0$. The two constants coincide because $N(0,1)$
+is symmetric, and are finite because $\mathbb E|\eta|<\infty$ and $\langle f\rangle_0\le C$ almost surely (the total mass is positive and finite almost surely by Lemma~2.4).
+\end{proof}
+
+\begin{remark}[Not formalized in this section]
+The general case of Lemma~2.5, with arbitrary exponents $k_l\ge0$, is not formalized, and neither is Theorem~2.11 itself (the random bijection of $\mathbb N^r$).
+The integrals in Theorem~\ref{thm:sg:lemma25-one} are expressed through the positive and negative parts $P_i^\pm$ of the signed averages;
+the conversion of $\sum_i(P_i^+-P_i^-)$ to the real series $\sum_{\alpha_1..\alpha_n}\prod_l G_t(\alpha_l)\,f\,(g(\alpha_{l_0})-tb)$ used in the next section is done there.
+\end{remark}

@@ -128,4 +128,18 @@ lemma iIndepFun.indepFun_set_of_disjoint {Ω ι : Type*} [MeasurableSpace Ω] {P
   rw [IndepFun_iff_Indep, MeasurableSpace.comap_pi_subtype, MeasurableSpace.comap_pi_subtype]
   exact hind
 
+/-- If the vector `ω ↦ (Xᵢ ω)ᵢ` has the infinite product law, its coordinates are independent with
+the factor laws. -/
+lemma iIndepFun_hasLaw_of_hasLaw_infinitePi {Ω ι : Type*} [MeasurableSpace Ω] [Countable ι]
+    {P : Measure Ω} [IsProbabilityMeasure P] {E : ι → Type*} [∀ i, MeasurableSpace (E i)]
+    {μ : (i : ι) → Measure (E i)} [∀ i, IsProbabilityMeasure (μ i)] {X : Ω → (i : ι) → E i}
+    (hX : HasLaw X (infinitePi μ) P) :
+    iIndepFun (fun i ω => X ω i) P ∧ ∀ i, HasLaw (fun ω => X ω i) (μ i) P := by
+  have hl : ∀ i, HasLaw (fun ω => X ω i) (μ i) P := fun i =>
+    (hasLaw_eval_infinitePi μ i).comp hX
+  refine ⟨?_, hl⟩
+  rw [iIndepFun_iff_map_fun_eq_infinitePi_map₀' fun i => (hl i).aemeasurable]
+  simp only [fun i => (hl i).map_eq]
+  exact hX.map_eq
+
 end ProbabilityTheory

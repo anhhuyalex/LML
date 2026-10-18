@@ -29,7 +29,7 @@ variable {ι 𝒜 Θ 𝒟 𝒟' E : Type*} [MeasurableSpace 𝒜] [MeasurableSpa
 
 /-- The pair `(a, (Φ(aᵢ, dᵢ))ᵢ)` under `μ ⊗ ν^{⊗ι}` has a law that depends on `Φ` and `ν` only
 through the laws `ν.map (Φ θ)`. -/
-theorem map_prod_infinitePi_replace (μ : Measure 𝒜) [SFinite μ] (a : 𝒜 → ι → Θ)
+theorem map_prod_infinitePi_replace (μ : Measure 𝒜) (a : 𝒜 → ι → Θ)
     (ha : Measurable a) (ν : Measure 𝒟) [IsProbabilityMeasure ν]
     (ν' : Measure 𝒟') [IsProbabilityMeasure ν'] (Φ : Θ → 𝒟 → E) (Ψ : Θ → 𝒟' → E)
     (hΦ : Measurable (Function.uncurry Φ)) (hΨ : Measurable (Function.uncurry Ψ))
@@ -74,7 +74,7 @@ variable {α β γ δ : Type*} [MeasurableSpace α] [MeasurableSpace β] [Measur
 
 /-- Two functions of a parameter and an independent coordinate have the same joint-law image if
 their fibre laws agree for almost every parameter. -/
-theorem map_prod_eq_of_ae_map_fiber_eq (μ : Measure α) [SFinite μ] (ν : Measure β) [SFinite ν]
+theorem map_prod_eq_of_ae_map_fiber_eq (μ : Measure α) (ν : Measure β) [SFinite ν]
     (ρ : Measure γ) [SFinite ρ] {F : α × β → δ} {G : α × γ → δ}
     (hF : Measurable F) (hG : Measurable G)
     (h : ∀ᵐ a ∂μ, ν.map (fun b => F (a, b)) = ρ.map (fun c => G (a, c))) :
@@ -132,5 +132,36 @@ theorem identDistrib_map_replace {P : Measure Ω} [IsProbabilityMeasure P] (A : 
         fun ω => (A ω, fun j => E j ω) := rfl
   rw [e1, e2, ← Measure.map_map (hG.comp hm1) hpm, ← Measure.map_map (hG.comp hm2) hpm, hpair,
     ← Measure.map_map hG hm1, ← Measure.map_map hG hm2, hrep]
+
+/-- Two functions factoring through a random element `pair` with law `M` are identically
+distributed when the two factors have the same image law under `M`. -/
+theorem identDistrib_of_hasLaw_map_eq {T : Type*} [MeasurableSpace T] {P : Measure Ω}
+    {pair : Ω → T} {M : Measure T} (hp : HasLaw pair M P) {F₁ F₂ : T → ENNReal}
+    (h₁ : Measurable F₁) (h₂ : Measurable F₂) (hmap : M.map F₁ = M.map F₂)
+    {f₁ f₂ : Ω → ENNReal} (hf₁ : ∀ ω, f₁ ω = F₁ (pair ω))
+    (hf₂ : f₂ =ᵐ[P] fun ω => F₂ (pair ω)) (hm₁ : AEMeasurable f₁ P)
+    (hm₂ : AEMeasurable f₂ P) : IdentDistrib f₁ f₂ P P := by
+  refine ⟨hm₁, hm₂, ?_⟩
+  have e₁ : f₁ = F₁ ∘ pair := funext hf₁
+  rw [e₁, ← AEMeasurable.map_map_of_aemeasurable h₁.aemeasurable hp.aemeasurable, hp.map_eq,
+    hmap, Measure.map_congr hf₂, ← hp.map_eq,
+    AEMeasurable.map_map_of_aemeasurable h₂.aemeasurable hp.aemeasurable]
+  rfl
+
+/-- Two functions factoring, up to null sets, through random elements with the same law `M` are
+identically distributed when the two factors have the same image law under `M`. -/
+theorem identDistrib_of_hasLaw_map_eq_two {β T : Type*} [MeasurableSpace β] [MeasurableSpace T]
+    {P : Measure Ω} {pair₁ pair₂ : Ω → T} {M : Measure T} (hp₁ : HasLaw pair₁ M P)
+    (hp₂ : HasLaw pair₂ M P) {F₁ F₂ : T → β} (h₁ : Measurable F₁) (h₂ : Measurable F₂)
+    (hmap : M.map F₁ = M.map F₂) {f₁ f₂ : Ω → β} (hf₁ : f₁ =ᵐ[P] fun ω => F₁ (pair₁ ω))
+    (hf₂ : f₂ =ᵐ[P] fun ω => F₂ (pair₂ ω)) (hm₁ : AEMeasurable f₁ P)
+    (hm₂ : AEMeasurable f₂ P) : IdentDistrib f₁ f₂ P P := by
+  refine ⟨hm₁, hm₂, ?_⟩
+  rw [Measure.map_congr hf₁, Measure.map_congr hf₂]
+  have e₁ : (fun ω => F₁ (pair₁ ω)) = F₁ ∘ pair₁ := rfl
+  have e₂ : (fun ω => F₂ (pair₂ ω)) = F₂ ∘ pair₂ := rfl
+  rw [e₁, e₂, ← AEMeasurable.map_map_of_aemeasurable h₁.aemeasurable hp₁.aemeasurable,
+    ← AEMeasurable.map_map_of_aemeasurable h₂.aemeasurable hp₂.aemeasurable, hp₁.map_eq,
+    hp₂.map_eq, hmap]
 
 end ProbabilityTheory

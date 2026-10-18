@@ -28,8 +28,8 @@ variable {Ξ S : Type*} [MeasurableSpace Ξ] [MeasurableSpace S]
 
 /-- Replacing the subtree quantity `Φ(λₙ, sₙ)` by a variable with the same conditional law given
 the label does not change the law of the root sum. -/
-theorem map_root_sum_replace (nu : ℕ → Measure ℝ) [∀ k, IsProbabilityMeasure (nu k)]
-    (rate : ℕ → ℝ≥0) (ρ : Measure Ξ) [IsProbabilityMeasure ρ] (σ : Measure S)
+theorem map_root_sum_replace (nu : ℕ → Measure ℝ)
+    (rate : ℕ → ℝ≥0) (ρ : Measure Ξ) (σ : Measure S)
     [IsProbabilityMeasure σ] (Φ Ψ : Ξ → S → ℝ≥0∞) (hΦ : Measurable (Function.uncurry Φ))
     (hΨ : Measurable (Function.uncurry Ψ)) (h : ∀ θ, σ.map (Φ θ) = σ.map (Ψ θ)) :
     (((Measure.infinitePi fun k => Po(rate k).prod (Measure.infinitePi fun _ : ℕ => nu k)).prod
@@ -80,8 +80,8 @@ theorem map_root_sum_replace (nu : ℕ → Measure ℝ) [∀ k, IsProbabilityMea
     ← e1, ← e2, hrep]
 
 /-- The `ζ`-moment of `exp (h θ) V(s)` over independent `θ ~ ρ` and `s ~ σ` factors. -/
-theorem lintegral_prod_rpow_exp_mul {ζ : ℝ} (hζ : 0 < ζ) (ρ : Measure Ξ)
-    [IsProbabilityMeasure ρ] (σ : Measure S) [IsProbabilityMeasure σ] {h : Ξ → ℝ}
+theorem lintegral_prod_rpow_exp_mul {ζ : ℝ} (hζ : 0 < ζ) (ρ : Measure Ξ) (σ : Measure S)
+    [IsProbabilityMeasure σ] {h : Ξ → ℝ}
     (hh : Measurable h) {V : S → ℝ} (hV : Measurable V)
     (hint : Integrable (fun θ => Real.exp (ζ * h θ)) ρ) :
     (∫⁻ y, ENNReal.ofReal (Real.exp (h y.1) * V y.2) ^ ζ ∂ρ.prod σ) =
@@ -218,5 +218,18 @@ theorem map_root_sum_parisi {ζ : ℝ} (hζ0 : 0 < ζ) (hζ1 : ζ < 1)
   rw [← mul_assoc, ← ENNReal.ofReal_mul (Real.exp_pos _).le, hm1, hmV, ENNReal.toReal_mul,
     ENNReal.toReal_ofReal (Real.exp_pos _).le, Real.mul_rpow (Real.exp_pos _).le
     ENNReal.toReal_nonneg, ← Real.exp_mul, show ζ * h₀ * ζ⁻¹ = h₀ by field_simp]
+
+/-- The root sum `∑ uₙ Φ(λₙ, sₙ)` is a measurable function of the root data and subtree data. -/
+theorem measurable_rootMarkedSum (Φ : Ξ → S → ℝ≥0∞) (hΦ : Measurable (Function.uncurry Φ)) :
+    Measurable fun q : ((ℕ → ℕ × (ℕ → ℝ)) × (ℕ → Ξ)) × (ℕ → S) =>
+      ∑' n, nthLargestAtom n (poissonCountingMeasure
+        (fun k => (q.1.1 k).1) (fun k l => (q.1.1 k).2 l)) * Φ (q.1.2 n) (q.2 n) := by
+  have hl : ∀ n, Measurable fun q : ((ℕ → ℕ × (ℕ → ℝ)) × (ℕ → Ξ)) × (ℕ → S) =>
+      (q.1.2 n, q.2 n) := fun n =>
+    ((measurable_pi_apply n).comp (measurable_snd.comp measurable_fst)).prodMk
+      ((measurable_pi_apply n).comp measurable_snd)
+  exact Measurable.tsum fun n => ((measurable_nthLargestAtom n).comp
+    (measurable_poissonCountingMeasure.comp (measurable_fst.comp measurable_fst))).mul
+    (hΦ.comp (hl n))
 
 end SpinGlasses

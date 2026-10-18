@@ -40,7 +40,7 @@ theorem cascadeSubtreeVertex_injective :
   rfl
 
 /-- The data below distinct children of the root are independent. -/
-theorem iIndepFun_cascadeSubtreeData [IsProbabilityMeasure P]
+theorem iIndepFun_cascadeSubtreeData
     (D : (Σ p : ℕ, Fin p → ℕ) → Ω → 𝒟) (hDm : ∀ v, Measurable (D v)) (hD : iIndepFun D P) :
     iIndepFun (fun n ω (v : Σ p : ℕ, Fin p → ℕ) => D ⟨v.1 + 1, Fin.cons n v.2⟩ ω) P := by
   let X : ℕ → (Σ p : ℕ, Fin p → ℕ) → Ω → 𝒟 := fun n v => D ⟨v.1 + 1, Fin.cons n v.2⟩
@@ -84,7 +84,7 @@ theorem hasLaw_cascadeSubtreeData [IsProbabilityMeasure P]
 /-- Joint law of the root data and the vector of subtree data. -/
 theorem hasLaw_cascadeRoot_subtreeData [IsProbabilityMeasure P]
     (D : (Σ p : ℕ, Fin p → ℕ) → Ω → 𝒟) (hDm : ∀ v, Measurable (D v)) (hD : iIndepFun D P)
-    (𝔡 : ℕ → Measure 𝒟) [∀ p, IsProbabilityMeasure (𝔡 p)] (hDlaw : ∀ v, HasLaw (D v) (𝔡 v.1) P) :
+    (𝔡 : ℕ → Measure 𝒟) (hDlaw : ∀ v, HasLaw (D v) (𝔡 v.1) P) :
     HasLaw (fun ω => (D ⟨0, fun i => i.elim0⟩ ω,
         fun n (v : Σ p : ℕ, Fin p → ℕ) => D ⟨v.1 + 1, Fin.cons n v.2⟩ ω))
       ((𝔡 0).prod (Measure.infinitePi fun _ : ℕ =>
@@ -97,5 +97,13 @@ theorem hasLaw_cascadeRoot_subtreeData [IsProbabilityMeasure P]
   refine ⟨((hDm _).prodMk hSm).aemeasurable, ?_⟩
   rw [(indepFun_iff_map_prod_eq_prod_map_map (hDm _).aemeasurable hSm.aemeasurable).1 hind,
     hS.map_eq, (hDlaw ⟨0, fun i => i.elim0⟩).map_eq]
+
+/-- The data of the subtree below one child of the root is again an independent family. -/
+theorem iIndepFun_cascadeChildData
+    (D : (Σ p : ℕ, Fin p → ℕ) → Ω → 𝒟) (hD : iIndepFun D P) (n : ℕ) :
+    iIndepFun (fun (v : Σ p : ℕ, Fin p → ℕ) => D ⟨v.1 + 1, Fin.cons n v.2⟩) P :=
+  hD.precomp (g := fun v : Σ p : ℕ, Fin p → ℕ =>
+    (⟨v.1 + 1, Fin.cons n v.2⟩ : Σ p : ℕ, Fin p → ℕ))
+    fun a b h => by simpa using cascadeSubtreeVertex_injective (a₁ := (n, a)) (a₂ := (n, b)) h
 
 end SpinGlasses
