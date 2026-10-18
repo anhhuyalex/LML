@@ -123,6 +123,16 @@ theorem tsum_prod_div_mul_castSucc {n : ℕ} (hW : ∀ a, 0 ≤ W a) (hs : Summa
   rw [← tsum_mul_tsum_of_summable_norm (hf.norm) (hg.norm), tsum_div_const, div_self h0,
     one_mul]
 
+/-- A Gibbs series of measurable weights and measurable observables is a measurable function of
+the parameter. -/
+theorem measurable_tsum_prod_div_mul {X : Type*} [MeasurableSpace X] [Countable α]
+    (W : X → α → ℝ) (hW : ∀ a, Measurable fun x => W x a) (Ψ : (K → α) → X → ℝ)
+    (hΨ : ∀ τ, Measurable (Ψ τ)) :
+    Measurable fun x => ∑' τ : K → α, (∏ k, W x (τ k) / ∑' c, W x c) * Ψ τ x := by
+  have hZ : Measurable fun x => ∑' c, W x c := Measurable.tsum hW
+  exact Measurable.tsum fun τ => (Finset.measurable_prod _ fun k _ => (hW (τ k)).div hZ).mul
+    (hΨ τ)
+
 end GibbsSeries
 
 section Cascade

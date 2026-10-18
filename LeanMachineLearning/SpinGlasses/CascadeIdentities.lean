@@ -8,6 +8,8 @@ module
 public import LeanMachineLearning.SpinGlasses.CascadeGibbsReal
 public import LeanMachineLearning.SpinGlasses.CascadeGaussianField
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SignedToReal
+public import LeanMachineLearning.ForMathlib.Probability.Independence.IntegralIndepFun
+public import LeanMachineLearning.ForMathlib.Probability.Independence.IndepFstSndInfinitePi
 
 /-!
 # Ghirlanda--Guerra identities for the Ruelle cascade
@@ -318,6 +320,44 @@ theorem integral_cascadeEnergy (hζ0 : ∀ p, 0 < ζ p) (hζ1 : ∀ p, ζ p < 1)
   refine Finset.sum_eq_zero fun i _ => ?_
   rw [integral_sub (hint i).1 (hint i).2, integral_toReal (hmp i) (ae_lt_top' (hmp i)
     (hsym i).2.ne), integral_toReal (hmn i) (ae_lt_top' (hmn i) (hfin i)), (hsym i).1, sub_self]
+
+/-- The measure of the label array: independent standard Gaussians. -/
+local notation "μΛ" => Measure.infinitePi fun _ : Σ p : ℕ, Fin p → ℕ =>
+  Measure.infinitePi fun _ : ℕ => gaussianReal 0 1
+
+/-- **Integrated Gaussian integration by parts for the Gibbs measure of the cascade.** Conditionally
+on the Poisson blocks the leaf field `g(α) = ∑ᵢ σᵢ ℓ(α|ᵢ, αᵢ)` is a Gaussian process with covariance
+`Q (α ∧ β)`, `Q m = ∑_{i < m} σᵢ²`; integrating over the blocks gives, for a bounded nonnegative
+function `F` of the overlap pattern of `n` replicas,
+`E ⟨F g(σ^{l₀})⟩ = E ⟨F (∑_l Q(σ^{l₀} ∧ σ^l) - n Q(σ^{l₀} ∧ σ^{n+1}))⟩`,
+where the Gibbs measure has the weights `w_α exp (g(α))`. -/
+theorem integral_cascade_ibp (hζ0 : ∀ p, 0 < ζ p) (hζ1 : ∀ p, ζ p < 1)
+    (hmono : StrictMono ζ)
+    (hmu : ∀ p, zetaPoissonMeasure (ζ p) = Measure.sum fun k => (rate p k : ℝ≥0∞) • nu p k)
+    (h𝔡 : ∀ p, 𝔡 p = (Measure.infinitePi fun k =>
+      Po(rate p k).prod (Measure.infinitePi fun _ : ℕ => nu p k)).prod
+        (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+    (hDm : ∀ v, Measurable (D v)) (hD : iIndepFun D P) (hDlaw : ∀ v, HasLaw (D v) (𝔡 v.1) P)
+    (hu : u = fun ω p γ m => nthLargestAtom m (poissonCountingMeasure
+      (fun k => ((D ⟨p, γ⟩ ω).1 k).1) (fun k l => ((D ⟨p, γ⟩ ω).1 k).2 l)))
+    (hlab : lab = fun ω p γ k => (D ⟨p, γ⟩ ω).2 k) (n : ℕ)
+    (F : (Fin n → Fin n → Fin (r + 1)) → ℝ≥0∞) (C : ℝ≥0∞) (hC : C ≠ ∞) (hf : ∀ P, F P ≤ C)
+    (l₀ : Fin n) (Q : Fin (r + 1) → ℝ)
+    (hQ : ∀ m, Q m = ∑ i : Fin r, if i.val < m.val then σ i ^ 2 else 0) :
+    ∫ ω, ∑' τ : Fin n → Fin r → ℕ, (∏ l, (cascadeBranchWeight (u ω) (τ l)).toReal *
+          Real.exp (∑ i : Fin r, σ i * leafLabel (lab ω) (τ l) i) /
+        ∑' b : Fin r → ℕ, (cascadeBranchWeight (u ω) b).toReal *
+          Real.exp (∑ i : Fin r, σ i * leafLabel (lab ω) b i)) *
+        ((F fun l l' => prefixOverlap (τ l) (τ l')).toReal *
+          ∑ i : Fin r, σ i * leafLabel (lab ω) (τ l₀) i) ∂P =
+      ∫ ω, ∑' τ : Option (Fin n) → Fin r → ℕ, (∏ o, (cascadeBranchWeight (u ω) (τ o)).toReal *
+          Real.exp (∑ i : Fin r, σ i * leafLabel (lab ω) (τ o) i) /
+        ∑' b : Fin r → ℕ, (cascadeBranchWeight (u ω) b).toReal *
+          Real.exp (∑ i : Fin r, σ i * leafLabel (lab ω) b i)) *
+        ((F fun l l' => prefixOverlap (τ (some l)) (τ (some l'))).toReal *
+          (∑ k : Fin n, Q (prefixOverlap (τ (some l₀)) (τ (some k))) -
+            n * Q (prefixOverlap (τ (some l₀)) (τ none)))) ∂P := by
+  sorry
 
 end Setting
 
