@@ -5281,7 +5281,182 @@ $\mathbb E\langle Q(\sigma^1\wedge\sigma^2)\rangle=\sum_i\sigma_i^2(1-\zeta_i)=Q
 The first formula is the combination of Theorem~\ref{thm:sg:gg-ind} (the case $n=1$) with the decomposition of $\psi$ in indicators. For $\psi=\mathbf 1\{\cdot=p\}$ the sum has at most two nonzero terms. For $Q$ the increments are $Q(j+1)-Q(j)=\sigma_j^2$ and $Q(0)=0$.
 \end{proof}
 
-\section{Supporting lemmas of the cascade chapters (Sections~2.3--2.5)}\label{sec:sg:cascade-support}
+\section{The coalescent structure and power transformations of the cascade (Section~2.6 of the book)}\label{sec:sg:coalescent}
+
+This section formalizes Section~2.6 of Panchenko's book (\emph{The coalescent of the Ruelle probability cascades}).
+The Ruelle probability cascades possess a recursive coalescent structure governed by power transformations of Poisson point processes.
+When the leaf weights of a cascade of depth $r$ are raised to a power $e = \zeta_{r-1} \in (\zeta_{r-2}, 1)$ (or more generally, any exponent $e > \zeta_p$),
+the parent weights $\lambda_\alpha = w_\alpha^e / \sum_\beta w_\beta^e$ on $\mathbb N^{r-1}$ are themselves distributed as the normalized weights of a cascade of depth $r-1$
+with rescaled parameters $\zeta_p / e$ (Lemma~2.6 of the book).
+Furthermore, conditionally on the parent weights, the superposition of the leaf Poisson processes across all parents reveals that the decreasingly sorted leaf weights
+have law $\mathrm{PD}(\zeta_{r-1})$ independently of the parent configuration and the Gram overlap matrix (Theorem~2.12 of the book).
+We formalize this coalescent mechanism: the analytical transformation of the Poisson intensity under power maps, the rank preservation of atoms under strictly increasing
+transformations, the powered cascade model proving Lemma~2.6, the superposition of marked Poisson processes for Theorem~2.12, the canonical extraction of ranked marks
+as measurable functions of counting measures, and the linear functional representation of the cascade Gibbs measure.
+
+\subsection*{Power transformations of the Poisson intensity and rank preservation}
+
+\begin{theorem}[Power map of the $\zeta$-Poisson intensity]\label{thm:sg:zeta-power}
+  \lean{SpinGlasses.zetaPoissonMeasure_map_rpow}
+  \leanok
+For any $\zeta > 0$ and $e > 0$, the power map $x \mapsto x^e$ pushes forward the $\zeta$-Poisson intensity $\mu_\zeta(dx) = \zeta x^{-1-\zeta} dx$ on $(0, \infty)$ to the $(\zeta / e)$-Poisson intensity:
+\[
+ (\mu_\zeta)_*(x \mapsto x^e) = \mu_{\zeta / e} .
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+This is Panchenko's Equation~(2.98). In Lean it is proved by the one-dimensional Jacobian change-of-variables theorem (\texttt{lintegral\_image\_eq\_lintegral\_abs\_deriv\_mul}) applied to the diffeomorphism $x \mapsto x^e$ on $(0, \infty)$ with derivative $e x^{e-1}$, evaluating $\zeta x^{-1-\zeta} / (e x^{e-1})$ at $x = y^{1/e}$.
+\end{proof}
+
+\begin{theorem}[Ranked atoms commute with strictly increasing maps]\label{thm:sg:ranked-powers}
+  \lean{MeasureTheory.nthLargestAtom_sum_dirac_rpow,
+        MeasureTheory.nthLargestAtom_sum_dirac_mul,
+        SpinGlasses.nthLargestAtom_poissonCountingMeasure_rpow}
+  \leanok
+Let $(u_a)_{a \in A}$ be positive, distinct, and summable masses with $A$ infinite, and let $e > 0$ be such that $\sum_{a \in A} u_a^e < \infty$.
+Then for every $m \in \mathbb N$, the $m$-th largest atom of the powered counting measure $\sum_{a \in A} \delta_{u_a^e}$ is the $e$-th power of the $m$-th largest atom of $\sum_{a \in A} \delta_{u_a}$:
+\[
+ \mathrm{nthLargestAtom}(m, \sum_{a \in A} \delta_{u_a^e}) = \big(\mathrm{nthLargestAtom}(m, \sum_{a \in A} \delta_{u_a})\big)^e .
+\]
+Similarly, for any scaling constant $c > 0$, the $m$-th largest atom of $\sum_{a \in A} \delta_{c u_a}$ equals $c \cdot \mathrm{nthLargestAtom}(m, \sum_{a \in A} \delta_{u_a})$.
+For a Poisson counting measure constructed from blocks $b = (N_k, (y_{kl})_l)$, raising all sample points to the power $e$ raises its $m$-th largest atom to the power $e$.
+\end{theorem}
+\begin{proof}
+  \leanok
+Because $x \mapsto x^e$ is strictly increasing on $(0, \infty)$, the finite set of points $\{b \mid u_a^e < u_b^e\}$ coincides with $\{b \mid u_a < u_b\}$. By the rank characterization of \texttt{nthLargestAtom} (\texttt{nthLargestAtom\_sum\_dirac\_rank}), the rank index $m$ is preserved. Scaling by $c > 0$ is strictly increasing and follows by the same order-isomorphism.
+\end{proof}
+
+\subsection*{The powered cascade model and Lemma~2.6}
+
+\begin{theorem}[The powered cascade data model]\label{thm:sg:power-model}
+  \lean{SpinGlasses.map_infinitePi_blocks_rpow,
+        SpinGlasses.cascade_power_model,
+        SpinGlasses.map_blocks_eq_of_hasLaw}
+  \leanok
+Let $D$ be vertex data consisting of independent Poisson blocks of intensity $\mu_{\zeta_p}$ and i.i.d.\ $N(0,1)$ labels at each vertex of depth $p$. For level-wise exponents $e_p > 0$, let $D'$ be the transformed data obtained by raising every point of every block at level $p$ to the power $e_p$, leaving the Gaussian labels unchanged. Then:
+\begin{enumerate}
+\item the coordinates of $D'$ remain independent;
+\item at each vertex of level $p$, the blocks of $D'$ have the law of Poisson blocks with the same rates and sample laws $(\nu_{pk})_*(x \mapsto x^{e_p})$, whose total intensity is $\mu_{\zeta_p / e_p}$;
+\item the Gaussian labels of $D'$ are identical to those of $D$.
+\end{enumerate}
+In particular, $D'$ satisfies all model hypotheses of a Ruelle probability cascade with rescaled parameters $\zeta_p / e_p$.
+\end{theorem}
+\begin{proof}
+  \leanok
+Applying $x \mapsto x^e$ to every sample coordinate of an independent block family transforms the sample laws to $\nu_k.\mathrm{map}(\cdot^e)$ (\texttt{map\_infinitePi\_blocks\_rpow}). Applying this across all vertices preserves independence and law representations (\texttt{cascade\_power\_model}).
+\end{proof}
+
+\begin{theorem}[Lemma~2.6: Powers of the cascade weights]\label{thm:sg:lemma26}
+  \lean{SpinGlasses.ae_cascade_power_atoms,
+        SpinGlasses.ae_cascade_power_weights}
+  \leanok
+Let $0 < \zeta_0 < \dots < \zeta_{r-1} < 1$, and let $e_0 > 0$ satisfy $\zeta_p < e_0$ for all $p < r$.
+Almost surely:
+\begin{enumerate}
+\item for every vertex $v$ of depth $p < r$ and every rank $m \in \mathbb N$, the ranked atoms $u'$ of the powered data $D'$ satisfy $u'_{v, m} = (u_{v, m})^{e_0}$;
+\item for every depth $r' \le r$ and every path $\alpha \in \mathbb N^{r'}$, the branch weight of $\alpha$ in the cascade built from $D'$ is the $e_0$-th power of its branch weight in $D$:
+\[
+ w_\alpha(D') = (w_\alpha(D))^{e_0} .
+\]
+\end{enumerate}
+In particular, for parents $\alpha \in \mathbb N^{r-1}$ at depth $r-1$ with $e_0 = \zeta_{r-1}$, the rescaled parent weights
+\[
+ \lambda_\alpha = \frac{w_\alpha^{\zeta_{r-1}}}{\sum_{\beta \in \mathbb N^{r-1}} w_\beta^{\zeta_{r-1}}}
+\]
+are the normalized weights of a Ruelle probability cascade of depth $r-1$ with parameters $0 < \zeta_0 / \zeta_{r-1} < \dots < \zeta_{r-2} / \zeta_{r-1} < 1$.
+\end{theorem}
+\begin{proof}
+  \leanok
+Under $\zeta_p < e_0$, the rescaled exponent $\zeta_p / e_0 < 1$ ensures that the powered blocks remain good almost surely (\texttt{ae\_infinitePi\_blocks\_good}), so Theorem~\ref{thm:sg:ranked-powers} applies to each vertex (\texttt{ae\_cascade\_power\_atoms}). The branch weight is the product of ranked atoms along the path; since $x \mapsto x^{e_0}$ is multiplicative, $\prod_{i < r'} u'_{i, \alpha} = (\prod_{i < r'} u_{i, \alpha})^{e_0}$ (\texttt{ae\_cascade\_power\_weights}).
+\end{proof}
+
+\subsection*{Superposition of marked Poisson processes and connection to $\mathrm{PD}(\zeta_{r-1})$}
+
+\begin{theorem}[Intensity of the leaf superposition]\label{thm:sg:marked-intensity}
+  \lean{SpinGlasses.marked_intensity_eq}
+  \leanok
+Let $\Gamma$ be a countable set of parents, $e > 0$, and let $(w_\gamma)_{\gamma \in \Gamma}$ be positive weights such that $\lambda = \sum_{\gamma \in \Gamma} w_\gamma^e < \infty$.
+Let $c = \lambda^{1/e}$, and let $\Lambda = \sum_{\gamma \in \Gamma} (w_\gamma^e / \lambda) \delta_\gamma$ be the discrete probability measure on $\Gamma$.
+Then the sum over $\gamma \in \Gamma$ of the scaled and marked intensities $w_\gamma \cdot \mu_e \otimes \delta_\gamma$ equals the product intensity:
+\[
+ \sum_{\gamma \in \Gamma} (w_\gamma^e \mu_e) \otimes \delta_\gamma = (\lambda \mu_e) \otimes \Lambda = (c \cdot \mu_e) \otimes \Lambda .
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+Scaling the $\zeta$-Poisson intensity by $w_\gamma$ gives $(w_\gamma \cdot \mu_e)(dx) = w_\gamma^e \mu_e(dx)$ by homogeneity (\texttt{zetaPoissonMeasure\_map\_mul}). Summing over $\gamma$ gives $\lambda \mu_e$, and the tensor product factorizes as $\lambda \mu_e \otimes \Lambda$.
+\end{proof}
+
+\begin{theorem}[Marked Poisson superposition (Theorem~2.12 of the book)]\label{thm:sg:marked-superposition}
+  \lean{SpinGlasses.identDistrib_marked_superposition,
+        SpinGlasses.poissonDirichletWeight_counting_mul}
+  \leanok
+Let $(B_{\gamma, k})_{\gamma \in \Gamma, k \in \mathbb N}$ be independent Poisson blocks generating independent Poisson processes of intensity $\mu_e$ for each parent $\gamma \in \Gamma$.
+Then the marked counting measure of all points scaled by $w_\gamma$ and carrying mark $\gamma$,
+\[
+ \Pi^+ = \sum_{\gamma \in \Gamma} \sum_{n} \delta_{(w_\gamma u_{\gamma n}, \gamma)} ,
+\]
+has the same law as the counting measure of a Poisson process of intensity $\lambda \mu_e$ whose points carry i.i.d.\ marks drawn from $\Lambda$ independently of their locations.
+Moreover, normalizing the ranked points of $\Pi^+$ cancels the scale factor $c = \lambda^{1/e}$ (\texttt{poissonDirichletWeight\_counting\_mul}), so that the ranked normalized weights $(v(l))_{l \ge 1}$ have the Poisson--Dirichlet law $\mathrm{PD}(e)$, independent of the parent marks.
+\end{theorem}
+\begin{proof}
+  \leanok
+The superposition of independent Poisson processes is a Poisson process whose intensity is the sum of the intensities (\texttt{poissonProcess\_superposition}). By Theorem~\ref{thm:sg:marked-intensity}, this intensity coincides with that of a Poisson process of scaled positions with independent marks. By the intensity equivalence theorem (\texttt{identDistrib\_poissonCountingMeasure\_of\_intensity\_eq}), their counting measures are identically distributed (\texttt{identDistrib\_marked\_superposition}).
+\end{proof}
+
+\subsection*{Measurable extraction of ranked marks}
+
+\begin{definition}[Ranked mark characterization]\label{def:sg:ranked-mark}
+  \lean{MeasureTheory.IsRankedMark,
+        MeasureTheory.rankedMark}
+  \leanok
+For a counting measure $\mu$ on $\mathbb R \times \Gamma$ (positions and marks) and $l \in \mathbb N, b \in \Gamma$, the predicate $\mathrm{IsRankedMark}(l, b, \mu)$ holds if there exist rational thresholds $q < q'$ such that $\mu((q, \infty) \times \Gamma) = l + 1$, $\mu((q', \infty) \times \Gamma) = l$, and $\mu((q, \infty) \times \{b\}) = \mu((q', \infty) \times \{b\}) + 1$.
+The ranked mark $\mathrm{rankedMark}(l, \mu)$ is defined as the unique mark $b \in \Gamma$ satisfying this condition (or a default value if none exists).
+\end{definition}
+
+\begin{theorem}[Measurability and correctness of ranked marks]\label{thm:sg:ranked-mark-meas}
+  \lean{MeasureTheory.measurableSet_isRankedMark,
+        MeasureTheory.measurable_rankedMark,
+        MeasureTheory.isRankedMark_sum_dirac_iff,
+        MeasureTheory.rankedMark_sum_dirac}
+  \leanok
+For any countable measurable space $\Gamma$ with measurable singletons:
+\begin{enumerate}
+\item the set $\{\mu \mid \mathrm{IsRankedMark}(l, b, \mu)\}$ is measurable;
+\item the function $\mu \mapsto \mathrm{rankedMark}(l, \mu)$ is measurable from $\mathrm{Measure}(\mathbb R \times \Gamma)$ to $\Gamma$;
+\item for any collection of positive, distinct positions $(x_q)_{q \in Q}$ with finitely many points above every positive threshold, and arbitrary marks $(a_q)_{q \in Q}$, $\mathrm{rankedMark}(l, \sum_q \delta_{(x_q, a_q)})$ evaluates to the mark $a_{q_0}$ of the point $q_0$ whose rank is $l$.
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+  \leanok
+Countable unions over pairs of rational numbers $(q, q') \in \mathbb Q^2$ preserve measurability (\texttt{measurableSet\_isRankedMark}). Taking the infimum of encodable codes yields measurability of the selector (\texttt{measurable\_rankedMark}). The existence of isolation gaps above and below the rank-$l$ point guarantees that rational thresholds separating it from all other points exist (\texttt{isRankedMark\_sum\_dirac\_iff}), proving uniqueness and correctness (\texttt{rankedMark\_sum\_dirac}).
+\end{proof}
+
+\subsection*{The linear functional Gibbs framework}
+
+\begin{theorem}[Linear functional representation of the cascade Gibbs average]\label{thm:sg:gibbs-linear-framework}
+  \lean{SpinGlasses.exists_abs_le_pattern,
+        SpinGlasses.ae_cascadeWeights_good,
+        SpinGlasses.measurable_gibbs,
+        SpinGlasses.abs_gibbs_le,
+        SpinGlasses.integrable_gibbs,
+        SpinGlasses.gibbs_finset_sum}
+  \leanok
+In the Ruelle cascade model of depth $r$ with parameters $0 < \zeta_0 < \dots < \zeta_{r-1} < 1$, let $\mathrm{gibbs}(m, t, \Xi, \omega)$ denote the Gibbs series of an observable $\Xi : (\mathrm{Fin}\,m \to \mathrm{Fin}\,m \to \mathrm{Fin}\,(r+1)) \to \mathbb R$ of the replica overlap pattern under the tilted weights $w_\alpha e^{t g(\alpha)}$:
+\begin{enumerate}
+\item almost surely, the tilted weights are strictly positive, summable, with nonzero total mass;
+\item every pattern function $\Xi$ is bounded, $|\Xi(P)| \le M$;
+\item the map $\omega \mapsto \mathrm{gibbs}(m, t, \Xi, \omega)$ is measurable, satisfies $|\mathrm{gibbs}(m, t, \Xi, \omega)| \le M$ almost surely, and is integrable;
+\item $\Xi \mapsto \mathrm{gibbs}(m, t, \Xi, \omega)$ is linear: $\mathrm{gibbs}(m, t, \sum_i c_i \Xi_i, \omega) = \sum_i c_i \mathrm{gibbs}(m, t, \Xi_i, \omega)$ almost surely.
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+  \leanok
+The summability and positivity of tilted weights follow from the fractional moment induction (\texttt{ae\_cascadeWeights\_good}). Since the set of overlap patterns is finite, every function is bounded (\texttt{exists\_abs\_le\_pattern}). Measurability, boundedness and integrability follow by dominated convergence on counting series (\texttt{measurable\_gibbs}, \texttt{abs\_gibbs\_le}, \texttt{integrable\_gibbs}), and linearity follows from the absolute summability of the Gibbs series (\texttt{gibbs\_finset\_sum}).
+\end{proof}
+
+\section{Supporting lemmas of the cascade chapters (Sections~2.3--2.6)}\label{sec:sg:cascade-support}
 
 This section records the smaller formalized results that the theorems above rely on but that were not described
 where they are used: measurability and moment facts about the Poisson blocks, the bookkeeping of the first-level
