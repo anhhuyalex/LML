@@ -20,6 +20,12 @@ imposes exactly the corresponding equality constraint on sampled labels.
 
 namespace SpinGlasses
 
+/-- The product of two zero-one indicators is the indicator of the conjunction. -/
+theorem ite_one_zero_mul {R : Type*} [MulZeroOneClass R] (p q : Prop) [Decidable p]
+    [Decidable q] :
+    (if p then (1 : R) else 0) * (if q then 1 else 0) = if p ∧ q then 1 else 0 := by
+  split_ifs <;> simp_all
+
 /-- The product of overlap indicators for pairs of replicas in the same block
 is the indicator that every block has a single sampled label. -/
 theorem partition_overlap_indicator_eq {I K α : Type*} [Fintype I]
@@ -40,31 +46,25 @@ theorem partition_overlap_indicator_eq {I K α : Type*} [Fintype I]
       push Not at h
       exact h
     obtain ⟨i, j, hij, hne⟩ := hbad
-    have hz (p q : I) (hp : p = i) (hq : q = j) :
-        (if b p = b q then (if σ p = σ q then (1 : ℝ) else 0) else 1) = 0 := by
-      subst p
-      subst q
-      simp [hij, hne]
     have hinner : (∏ q : I, if b i = b q then
-        (if σ i = σ q then (1 : ℝ) else 0) else 1) = 0 := by
-      exact Finset.prod_eq_zero (Finset.mem_univ j) (hz i j rfl rfl)
+        (if σ i = σ q then (1 : ℝ) else 0) else 1) = 0 :=
+      Finset.prod_eq_zero (Finset.mem_univ j) (by simp [hij, hne])
     rw [Finset.prod_eq_zero (Finset.mem_univ i) hinner]
     exact (ite_eq_right h).symm
 
-/-- For normalized nonnegative weights, a block-overlap observable has the
+/-- For nonnegative summable weights, a block-overlap observable has the
 product-of-power-sums value dictated by the sizes of its fibers. -/
 theorem tsum_partition_overlap_eq_powerSums {I K α : Type*}
     [Fintype I] [Fintype K] [DecidableEq K] [DecidableEq α]
     (b : I → K) (hb : Function.Surjective b)
-    {w : α → ℝ} (hw0 : ∀ a, 0 ≤ w a) (hws : Summable w)
-    (hw : ∑' a, w a = 1) :
+    {w : α → ℝ} (hw0 : ∀ a, 0 ≤ w a) (hws : Summable w) :
     (∑' σ : I → α, (∏ i, w (σ i)) *
       (∏ i : I, ∏ j : I, if b i = b j then
         (if σ i = σ j then (1 : ℝ) else 0) else 1)) =
       ∏ m : K, ∑' a, w a ^ Fintype.card {i : I // b i = m} := by
   classical
   simp_rw [partition_overlap_indicator_eq b]
-  exact tsum_prod_pi_fiber_eq b hb hw0 hws hw
+  exact tsum_prod_pi_fiber_eq b hb hw0 hws
 
 /-- An overlap between two labels either preserves a block constraint or merges
 exactly the two blocks containing the labels. This formulation avoids relabeling
@@ -76,9 +76,7 @@ theorem partition_overlap_merge_indicator {I K α : Type*} [Fintype I]
       (if σ i = σ j then (1 : ℝ) else 0) else 1) *
         (if σ r = σ l then 1 else 0) =
       if (∀ i j, b i = b j → σ i = σ j) ∧ σ r = σ l then 1 else 0 := by
-  rw [partition_overlap_indicator_eq]
-  by_cases h : ∀ i j, b i = b j → σ i = σ j <;>
-    by_cases heq : σ r = σ l <;> simp [h, heq]
+  rw [partition_overlap_indicator_eq, ite_one_zero_mul]
 
 /-- If the two replicas are already in one block, their extra overlap factor
 has no effect on the constrained replica observable. -/
@@ -129,25 +127,15 @@ theorem partition_overlap_fresh_indicator {I K α : Type*} [Fintype I]
     · intro h
       refine ⟨fun i j hij => h (some i) (some j) hij, ?_⟩
       exact h (some r) none rfl
-  have hchoice :
-      (if (∀ i j, b i = b j → τ (some i) = τ (some j)) ∧
-        τ (some r) = τ none then (1 : ℝ) else 0) =
-      if ∀ x y : Option I,
-        (fun o : Option I => o.elim (b r) b) x =
-          (fun o : Option I => o.elim (b r) b) y → τ x = τ y
-      then 1 else 0 := by
-    exact ite_congr (propext hiff) (fun _ => rfl) (fun _ => rfl)
-  rw [← hchoice]
-  by_cases hc : ∀ i j, b i = b j → τ (some i) = τ (some j) <;>
-    by_cases hr : τ (some r) = τ none <;> simp [hc, hr]
+  rw [ite_one_zero_mul]
+  exact ite_congr (propext hiff) (fun _ => rfl) (fun _ => rfl)
 
 /-- The fresh-replica overlap series is the product of power sums with
 one extra replica in the block containing `r`. -/
 theorem tsum_partition_overlap_fresh_eq_powerSums {I K α : Type*}
     [Fintype I] [Fintype K] [DecidableEq K] [DecidableEq α]
     (b : I → K) (hb : Function.Surjective b) (r : I)
-    {w : α → ℝ} (hw0 : ∀ a, 0 ≤ w a) (hws : Summable w)
-    (hw : ∑' a, w a = 1) :
+    {w : α → ℝ} (hw0 : ∀ a, 0 ≤ w a) (hws : Summable w) :
     (∑' τ : Option I → α, (∏ o, w (τ o)) *
       ((∏ i : I, ∏ j : I, if b i = b j then
         (if τ (some i) = τ (some j) then (1 : ℝ) else 0) else 1) *
@@ -160,7 +148,7 @@ theorem tsum_partition_overlap_fresh_eq_powerSums {I K α : Type*}
     exact ⟨some i, hi⟩
   simp_rw [partition_overlap_fresh_indicator b]
   exact tsum_prod_pi_fiber_eq (fun o : Option I => o.elim (b r) b)
-    hext hw0 hws hw
+    hext hw0 hws
 
 /-- A measurable block observable, formulated directly on overlap matrices. -/
 theorem measurable_partition_overlap_observable {I K : Type*}
@@ -168,15 +156,8 @@ theorem measurable_partition_overlap_observable {I K : Type*}
     Measurable (fun R : I → I → ℝ =>
       ∏ i : I, ∏ j : I, if b i = b j then R i j else 1) := by
   classical
-  apply Finset.measurable_prod
-  intro i _
-  apply Finset.measurable_prod
-  intro j _
-  by_cases hij : b i = b j
-  · simp only [ite_eq_left hij]
-    fun_prop
-  · simp only [ite_eq_right hij]
-    exact measurable_const
+  refine Finset.measurable_prod _ fun i _ => Finset.measurable_prod _ fun j _ => ?_
+  split_ifs <;> fun_prop
 
 /-- Merging two distinct blocks is again a fiber constraint, now for the
 quotient block map that sends the second block to the first. -/
@@ -241,8 +222,7 @@ power sums on the remaining block-label subtype. No renumbering of `Fin k` is ne
 theorem tsum_partition_overlap_merged_eq_powerSums {I K α : Type*}
     [Fintype I] [Fintype K] [DecidableEq K] [DecidableEq α]
     (b : I → K) (hb : Function.Surjective b) (r l : I) (hbl : b r ≠ b l)
-    {w : α → ℝ} (hw0 : ∀ a, 0 ≤ w a) (hws : Summable w)
-    (hw : ∑' a, w a = 1) :
+    {w : α → ℝ} (hw0 : ∀ a, 0 ≤ w a) (hws : Summable w) :
     (∑' σ : I → α, (∏ i, w (σ i)) *
       ((∏ i : I, ∏ j : I, if b i = b j then
         (if σ i = σ j then (1 : ℝ) else 0) else 1) *
@@ -255,7 +235,7 @@ theorem tsum_partition_overlap_merged_eq_powerSums {I K α : Type*}
             · exact hi⟩ : {m : K // m ≠ b l}) = m} := by
   simp_rw [partition_overlap_merge_as_fiber b]
   convert tsum_prod_pi_fiber_eq _ (partition_merge_surjective b hb r l hbl)
-    hw0 hws hw using 1
+    hw0 hws using 1
   · apply tsum_congr
     intro σ
     congr 1
@@ -268,12 +248,10 @@ measurable simplex-valued version, preserving its law and integrals of observabl
 theorem exists_measurable_poissonDirichletSimplex_version
     {Ω : Type*} [MeasurableSpace Ω] (P : MeasureTheory.Measure Ω)
     (v : Ω → ℕ → ℝ) (hv : Measurable v)
-    (hV : ∀ᵐ ω ∂P, v ω ∈ poissonDirichletSimplex) :
-    ∃ u : Ω → poissonDirichletSimplex,
+    (hV : ∀ᵐ ω ∂P, v ω ∈ 𝕍) :
+    ∃ u : Ω → 𝕍,
       Measurable u ∧ (fun ω => (u ω : ℕ → ℝ)) =ᵐ[P] v := by
-  have hne : poissonDirichletSimplex.Nonempty := by
-    refine ⟨fun _ => 0, ?_⟩
-    exact ⟨fun _ => le_refl _, fun _ _ _ => le_refl _, by simp⟩
+  have hne : Set.Nonempty 𝕍 := ⟨_, zero_mem_poissonDirichletSimplex⟩
   obtain ⟨g, hg, hmem, hvg⟩ :=
     hv.aemeasurable.exists_ae_eq_range_subset hV hne
   refine ⟨fun ω => ⟨g ω, hmem (Set.mem_range_self ω)⟩, hg.subtype_mk, ?_⟩
@@ -288,8 +266,8 @@ theorem identDistrib_of_poissonDirichlet_powerSum_products
     [MeasureTheory.IsProbabilityMeasure P] [MeasureTheory.IsProbabilityMeasure P']
     (v : Ω → ℕ → ℝ) (v' : Ω' → ℕ → ℝ)
     (hv : Measurable v) (hv' : Measurable v')
-    (hV : ∀ᵐ ω ∂P, v ω ∈ poissonDirichletSimplex)
-    (hV' : ∀ᵐ ω ∂P', v' ω ∈ poissonDirichletSimplex)
+    (hV : ∀ᵐ ω ∂P, v ω ∈ 𝕍)
+    (hV' : ∀ᵐ ω ∂P', v' ω ∈ 𝕍)
     (h : ∀ (k : ℕ) (s : Fin k → ℕ) (_hs : ∀ i, 2 ≤ s i),
       (∫ ω, ∏ i, (∑' j, v ω j ^ s i) ∂P) =
         ∫ ω, ∏ i, (∑' j, v' ω j ^ s i) ∂P') :

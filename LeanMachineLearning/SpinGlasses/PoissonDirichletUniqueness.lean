@@ -28,15 +28,20 @@ open Set
 
 namespace SpinGlasses
 
-/-- Panchenko's compact simplex `V` of decreasing subprobability sequences.
-The sum is bounded by one, not required to equal one: mass may escape to zero
-in the product topology. -/
-def poissonDirichletSimplex : Set (ℕ → ℝ) :=
-  {x | (∀ j, 0 ≤ x j) ∧ Antitone x ∧ (∑' j, ENNReal.ofReal (x j)) ≤ 1}
+set_option quotPrecheck false in
+/-- Panchenko's compact simplex `V` of decreasing subprobability sequences, as notation
+for an explicit set (no definition is introduced). The sum is bounded by one, not required
+to equal one: mass may escape to zero in the product topology. -/
+scoped notation "𝕍" =>
+  {x : ℕ → ℝ | (∀ j, 0 ≤ x j) ∧ Antitone x ∧ (∑' j, ENNReal.ofReal (x j)) ≤ 1}
+
+/-- The zero sequence belongs to the simplex. -/
+theorem zero_mem_poissonDirichletSimplex : (fun _ : ℕ => (0 : ℝ)) ∈ 𝕍 :=
+  ⟨fun _ => le_rfl, fun _ _ _ => le_rfl, by simp⟩
 
 /-- Every coordinate of the decreasing subprobability simplex lies in `[0,1]`. -/
 theorem poissonDirichletSimplex_coordinate_mem {x : ℕ → ℝ}
-    (hx : x ∈ poissonDirichletSimplex) (j : ℕ) : x j ∈ Set.Icc 0 1 := by
+    (hx : x ∈ 𝕍) (j : ℕ) : x j ∈ Set.Icc 0 1 := by
   obtain ⟨hpos, _, hsum⟩ := hx
   refine ⟨hpos j, ?_⟩
   have hle : ENNReal.ofReal (x j) ≤ 1 :=
@@ -46,7 +51,7 @@ theorem poissonDirichletSimplex_coordinate_mem {x : ℕ → ℝ}
 
 /-- The simplex is closed in the product topology. The ENNReal summability
 bound is the intersection of the closed finite-partial-sum constraints. -/
-theorem isClosed_poissonDirichletSimplex : IsClosed poissonDirichletSimplex := by
+theorem isClosed_poissonDirichletSimplex : IsClosed 𝕍 := by
   have hpos : IsClosed {x : ℕ → ℝ | ∀ j, 0 ≤ x j} := by
     simp only [show {x : ℕ → ℝ | ∀ j, 0 ≤ x j} =
       ⋂ j, {x | 0 ≤ x j} from Set.ext fun x => by simp]
@@ -90,11 +95,11 @@ theorem isClosed_poissonDirichletSimplex : IsClosed poissonDirichletSimplex := b
       ENNReal.continuous_ofReal.comp (continuous_apply j)) continuous_const
   convert (hpos.inter hanti).inter hsum using 1
   ext x
-  simp only [poissonDirichletSimplex, Set.mem_ofPred_eq, Set.mem_inter_iff]
+  simp only [Set.mem_ofPred_eq, Set.mem_inter_iff]
   tauto
 
 /-- The decreasing subprobability simplex is compact. -/
-theorem isCompact_poissonDirichletSimplex : IsCompact poissonDirichletSimplex := by
+theorem isCompact_poissonDirichletSimplex : IsCompact 𝕍 := by
   have hc : IsCompact {x : ℕ → ℝ | ∀ j, x j ∈ Set.Icc (0 : ℝ) 1} := by
     convert isCompact_univ_pi (fun _ : ℕ =>
       (isCompact_Icc : IsCompact (Set.Icc (0 : ℝ) 1))) using 1
@@ -106,7 +111,7 @@ theorem isCompact_poissonDirichletSimplex : IsCompact poissonDirichletSimplex :=
   exact poissonDirichletSimplex_coordinate_mem hx j
 
 /-- Higher power sums are well-defined on the compact simplex. -/
-theorem poissonDirichletSimplex_summable_pow (x : poissonDirichletSimplex)
+theorem poissonDirichletSimplex_summable_pow (x : 𝕍)
     (s : ℕ) (hs : 1 ≤ s) : Summable (fun j => (x.1 j) ^ s) := by
   have hbase : Summable (fun j => x.1 j) :=
     summable_of_tsum_ofReal_lt_top x.2.1
@@ -117,7 +122,7 @@ theorem poissonDirichletSimplex_summable_pow (x : poissonDirichletSimplex)
   exact pow_le_of_le_one hbound.1 hbound.2 (by omega)
 
 /-- The real-valued total mass on the simplex is at most one. -/
-theorem poissonDirichletSimplex_tsum_le_one (x : poissonDirichletSimplex) :
+theorem poissonDirichletSimplex_tsum_le_one (x : 𝕍) :
     (∑' j, x.1 j) ≤ 1 := by
   have hs : Summable (fun j => x.1 j) := by
     simpa only [pow_one] using poissonDirichletSimplex_summable_pow x 1 le_rfl
@@ -128,7 +133,7 @@ theorem poissonDirichletSimplex_tsum_le_one (x : poissonDirichletSimplex) :
 /-- The simplex condition gives the uniform coordinate decay `x_j ≤ 1/(j+1)`.
 This is the key quantitative input for uniform convergence of power sums
 of degree at least two. -/
-theorem poissonDirichletSimplex_coordinate_le_inv (x : poissonDirichletSimplex)
+theorem poissonDirichletSimplex_coordinate_le_inv (x : 𝕍)
     (j : ℕ) : x.1 j ≤ 1 / ((j : ℝ) + 1) := by
   have hsum := poissonDirichletSimplex_tsum_le_one x
   have hprefix : ∑ k ∈ Finset.range (j + 1), x.1 k ≤ 1 :=
@@ -150,7 +155,7 @@ theorem poissonDirichletSimplex_coordinate_le_inv (x : poissonDirichletSimplex)
 in the product topology: the uniform envelope is `(j+1)⁻²`. -/
 theorem continuousOn_poissonDirichletSimplex_powerSum (s : ℕ) (hs : 2 ≤ s) :
     ContinuousOn (fun x : ℕ → ℝ => ∑' j, (x j) ^ s)
-      poissonDirichletSimplex := by
+      𝕍 := by
   have hmajor : Summable (fun j : ℕ => 1 / ((j : ℝ) + 1) ^ 2) := by
     convert (Real.summable_one_div_nat_add_rpow 1 2).mpr (by norm_num) using 1
     ext j
@@ -175,7 +180,7 @@ theorem continuousOn_poissonDirichletSimplex_powerSum (s : ℕ) (hs : 2 ≤ s) :
 
 /-- A power sum is at least the power of the largest coordinate. -/
 theorem poissonDirichletSimplex_first_pow_le_powerSum
-    (x : poissonDirichletSimplex) (s : ℕ) (hs : 1 ≤ s) :
+    (x : 𝕍) (s : ℕ) (hs : 1 ≤ s) :
     x.1 0 ^ s ≤ ∑' j, x.1 j ^ s := by
   simpa using (poissonDirichletSimplex_summable_pow x s hs).sum_le_tsum
     {0} (fun j hj => pow_nonneg (x.2.1 j) _)
@@ -183,7 +188,7 @@ theorem poissonDirichletSimplex_first_pow_le_powerSum
 /-- The total-mass constraint controls all higher moments by the first
 coordinate: `p_(s+1)(x) ≤ x₀^s`. -/
 theorem poissonDirichletSimplex_powerSum_le_first_pow
-    (x : poissonDirichletSimplex) (s : ℕ) :
+    (x : 𝕍) (s : ℕ) :
     (∑' j, x.1 j ^ (s + 1)) ≤ x.1 0 ^ s := by
   have hs := poissonDirichletSimplex_summable_pow x (s + 1) (by omega)
   have hbase := poissonDirichletSimplex_summable_pow x 1 (by omega)
@@ -204,7 +209,7 @@ theorem poissonDirichletSimplex_powerSum_le_first_pow
 /-- A strict inequality between the largest coordinates is incompatible
 with equality of all higher power sums. -/
 private theorem poissonDirichletSimplex_first_not_lt_of_powerSums_eq
-    (x y : poissonDirichletSimplex)
+    (x y : 𝕍)
     (h : ∀ s : ℕ, 2 ≤ s →
       (∑' j, x.1 j ^ s) = ∑' j, y.1 j ^ s) :
     ¬ y.1 0 < x.1 0 := by
@@ -240,7 +245,7 @@ private theorem poissonDirichletSimplex_first_not_lt_of_powerSums_eq
 Together with tail subtraction, this is an alternative to the atomic-measure
 moment argument for separating points of the simplex. -/
 theorem poissonDirichletSimplex_first_eq_of_powerSums_eq
-    (x y : poissonDirichletSimplex)
+    (x y : 𝕍)
     (h : ∀ s : ℕ, 2 ≤ s →
       (∑' j, x.1 j ^ s) = ∑' j, y.1 j ^ s) :
     x.1 0 = y.1 0 := by
@@ -250,8 +255,8 @@ theorem poissonDirichletSimplex_first_eq_of_powerSums_eq
       y x (fun s hs => (h s hs).symm))
 
 /-- Removing the first coordinate preserves the decreasing subprobability simplex. -/
-theorem poissonDirichletSimplex_tail (x : poissonDirichletSimplex) :
-    (fun j => x.1 (j + 1)) ∈ poissonDirichletSimplex := by
+theorem poissonDirichletSimplex_tail (x : 𝕍) :
+    (fun j => x.1 (j + 1)) ∈ 𝕍 := by
   refine ⟨(fun j => x.2.1 (j + 1)), ?_, ?_⟩
   · intro i j hij
     exact x.2.2.1 (Nat.add_le_add_right hij 1)
@@ -265,7 +270,7 @@ theorem poissonDirichletSimplex_tail (x : poissonDirichletSimplex) :
 
 /-- Equal higher power sums and equal first coordinates pass to the tails. -/
 theorem poissonDirichletSimplex_tail_powerSums_eq
-    (x y : poissonDirichletSimplex) (hfirst : x.1 0 = y.1 0)
+    (x y : 𝕍) (hfirst : x.1 0 = y.1 0)
     (h : ∀ s : ℕ, 2 ≤ s →
       (∑' j, x.1 j ^ s) = ∑' j, y.1 j ^ s) :
     ∀ s : ℕ, 2 ≤ s →
@@ -281,35 +286,35 @@ theorem poissonDirichletSimplex_tail_powerSums_eq
 The proof successively recovers the maximum and removes it; it does not need
 any moment-determinacy theorem for an auxiliary atomic measure. -/
 theorem poissonDirichletSimplex_eq_of_powerSums_eq
-    (x y : poissonDirichletSimplex)
+    (x y : 𝕍)
     (h : ∀ s : ℕ, 2 ≤ s →
       (∑' j, x.1 j ^ s) = ∑' j, y.1 j ^ s) : x = y := by
   have hcoord (k : ℕ) : x.1 k = y.1 k := by
     induction k generalizing x y with
     | zero => exact poissonDirichletSimplex_first_eq_of_powerSums_eq x y h
     | succ k ih =>
-      let xt : poissonDirichletSimplex := ⟨_, poissonDirichletSimplex_tail x⟩
-      let yt : poissonDirichletSimplex := ⟨_, poissonDirichletSimplex_tail y⟩
+      let xt : 𝕍 := ⟨_, poissonDirichletSimplex_tail x⟩
+      let yt : 𝕍 := ⟨_, poissonDirichletSimplex_tail y⟩
       exact ih xt yt (poissonDirichletSimplex_tail_powerSums_eq x y
         (poissonDirichletSimplex_first_eq_of_powerSums_eq x y h) h)
   exact Subtype.ext (funext hcoord)
 
 /-- The continuous higher power-sum observable on the compact simplex. -/
 noncomputable def poissonDirichletPowerSum (s : ℕ) (hs : 2 ≤ s) :
-    C(poissonDirichletSimplex, ℝ) :=
+    C(𝕍, ℝ) :=
   ⟨fun x => ∑' j, x.1 j ^ s,
     continuousOn_iff_continuous_domRestrict.mp
       (continuousOn_poissonDirichletSimplex_powerSum s hs)⟩
 
 /-- The subtype inherits compactness from the closed simplex. This instance
 allows Mathlib's Stone--Weierstrass theorem to apply to its continuous maps. -/
-instance : CompactSpace poissonDirichletSimplex :=
+instance : CompactSpace 𝕍 :=
   isCompact_iff_compactSpace.mp isCompact_poissonDirichletSimplex
 
 /-- The subalgebra of continuous functions generated by higher power sums;
 its point separation is proved below rather than assumed in the definition. -/
 noncomputable def poissonDirichletPowerSumAlgebra :
-    Subalgebra ℝ C(poissonDirichletSimplex, ℝ) :=
+    Subalgebra ℝ C(𝕍, ℝ) :=
   Algebra.adjoin ℝ {f | ∃ s : ℕ, ∃ hs : 2 ≤ s, f = poissonDirichletPowerSum s hs}
 
 /-- The algebra generated by higher power sums separates the decreasing
@@ -326,14 +331,14 @@ theorem poissonDirichletPowerSumAlgebra_separatesPoints :
     refine ⟨poissonDirichletPowerSum s hs, ?_, hne⟩
     refine ⟨poissonDirichletPowerSum s hs, ?_, rfl⟩
     exact Algebra.subset_adjoin (R := ℝ) (show poissonDirichletPowerSum s hs ∈
-      {f : C(poissonDirichletSimplex, ℝ) |
+      {f : C(𝕍, ℝ) |
         ∃ t : ℕ, ∃ ht : 2 ≤ t, f = poissonDirichletPowerSum t ht} from
       ⟨s, hs, rfl⟩)
   exact hxy (poissonDirichletSimplex_eq_of_powerSums_eq x y heq)
 
 /-- Stone--Weierstrass for an arbitrary point-separating algebra on `V`. -/
 theorem poissonDirichlet_stoneWeierstrass
-    (A : Subalgebra ℝ C(poissonDirichletSimplex, ℝ))
+    (A : Subalgebra ℝ C(𝕍, ℝ))
     (hsep : A.SeparatesPoints) : A.topologicalClosure = ⊤ := by
   exact ContinuousMap.subalgebra_topologicalClosure_eq_top_of_separatesPoints A hsep
 

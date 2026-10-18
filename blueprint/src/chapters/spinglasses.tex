@@ -3173,7 +3173,7 @@ This section describes the part of this construction that is formalized, in the 
 \texttt{ForMathlib/Analysis/RpowTsum.lean} (subadditivity of $x^p$ for countable sums),
 \texttt{ForMathlib/MeasureTheory/Measure/NthLargestAtom.lean} (the decreasing enumeration of the atoms of a measure on $\mathbb R$) and
 \texttt{ForMathlib/MeasureTheory/Measure/RestrictPartition.lean} (restriction and decomposition of a measure along a partition).
-\emph{Status:} the intensity, the existence of the process, Lemma~2.1, the decreasing enumeration, and the definition and basic properties of the weights $v_n$ are formalized (Milestone 21A, \texttt{PoissonDirichlet.lean}). So are the homogeneity of $\mu_\zeta$, Theorem~2.6 (marking and rescaling, both as a statement about counts and as an equality in law of random measures), the integrability of $\log\sum_{x\in\Pi}x$, Lemma~2.2 (the log-sum identity) and Equation~(2.22) (independent extra factors), in \texttt{SpinGlasses/PoissonDirichletTransform.lean} and \texttt{SpinGlasses/PoissonDirichletLogSum.lean} (Milestone 21B; see Subsections~\ref{sec:sg:pd-marking} and~\ref{sec:sg:pd-logsum}). Gaussian invariance and the Ghirlanda--Guerra identities for active block-index Gibbs weights and ranked weights are formalized (Theorems~\ref{thm:sg:pd-gg-blocks} and~\ref{thm:sg:pd-gg-ranked}). The full marked-rank Bolthausen--Sznitman statement and uniqueness Theorem~2.8 are not yet formalized.
+\emph{Status:} the intensity, the existence of the process, Lemma~2.1, the decreasing enumeration, and the definition and basic properties of the weights $v_n$ are formalized (Milestone 21A, \texttt{PoissonDirichlet.lean}). So are the homogeneity of $\mu_\zeta$, Theorem~2.6 (marking and rescaling, both as a statement about counts and as an equality in law of random measures), the integrability of $\log\sum_{x\in\Pi}x$, Lemma~2.2 (the log-sum identity) and Equation~(2.22) (independent extra factors), in \texttt{SpinGlasses/PoissonDirichletTransform.lean} and \texttt{SpinGlasses/PoissonDirichletLogSum.lean} (Milestone 21B; see Subsections~\ref{sec:sg:pd-marking} and~\ref{sec:sg:pd-logsum}). Gaussian invariance and the Ghirlanda--Guerra identities for active block-index Gibbs weights and ranked weights are formalized (Theorems~\ref{thm:sg:pd-gg-blocks} and~\ref{thm:sg:pd-gg-ranked}). Uniqueness Theorem~2.8 is formalized in the abstract form of Theorem~\ref{thm:sg:pd-uniqueness} (with the explicit coefficients of Talagrand's identities (2.39) not computed; see there). The full marked-rank Bolthausen--Sznitman statement is not yet formalized.
 
 \medskip\noindent\textbf{How the process is represented.} As in Section~\ref{sec:sg:poisson}, we introduce no new notion of ``Poisson process''. A Poisson process with intensity $\mu_\zeta$ is a random counting measure $M=\sum_n\sum_{l<N_n}\delta_{X_{nl}}$ built from independent blocks $B_n=(N_n,(X_{nl})_l)\sim\mathrm{Po}(r_n)\otimes\nu_n^{\otimes\mathbb N}$ with $\sum_nr_n\nu_n=\mu_\zeta$. We write the sum of all points as the integral $\int_{(0,\infty)}x\,dM(x)$ with respect to $M$, so that ``$\sum_{x\in\Pi}x$'' is, in Lean, a lower Lebesgue integral \texttt{lintegral} of \texttt{ENNReal.ofReal} over \texttt{Ioi 0} with respect to \texttt{M $\omega$}, a value in $[0,\infty]$. We keep all sums in $[0,\infty]$ and only convert to real numbers at the end, because in Lean the real number ``$\infty$'' is $0$: a real-valued statement such as $\mathbb E(\sum x)^a<\infty$ would be vacuously true on an event where the sum is infinite.
 
@@ -3935,14 +3935,14 @@ These are the ingredients of Theorem~\ref{thm:sg:pd-gg-ranked}, stated separatel
 
 \begin{lemma}[A replica block with all indices equal is a power sum]\label{lem:sg:pd-power-sum-bridge}
   \lean{tsum_prod_pi_all_eq,
-        summable_pow_of_normalized}
+        summable_pow_of_nonneg}
   \leanok
   \uses{thm:sg:pd-gg-ranked}
-Let $w:A\to[0,\infty)$ be summable and let $I$ be a finite nonempty replica set. Then $\sum_{\sigma:I\to A}\prod_{i\in I}w_{\sigma_i}\,\mathbf 1\{\sigma_i=\sigma_j\ \forall i,j\}=\sum_{a}w_a^{|I|}$. If moreover $\sum_aw_a=1$, then $\sum_aw_a^n$ converges for every $n\ge1$. With $I=\{1,2\}$ this is the diagonal identity $\sum_{a,b}w_aw_b\mathbf 1\{a=b\}=\sum_aw_a^2$ behind Equation~(2.34). The finite-block version and its overlap-indicator interpretation are proved in Lemma~\ref{lem:sg:pd-partition-bridge}; The merged block map is proved surjective onto the labels remaining after deleting the second block (\lean{SpinGlasses.partition_merge_surjective}); however, Talagrand's recurrence (2.39) and Theorem~2.8 remain open.
+Let $w:A\to[0,\infty)$ be summable and let $I$ be a finite nonempty replica set. Then $\sum_{\sigma:I\to A}\prod_{i\in I}w_{\sigma_i}\,\mathbf 1\{\sigma_i=\sigma_j\ \forall i,j\}=\sum_{a}w_a^{|I|}$. Every power $\sum_aw_a^n$, $n\ge1$, converges (no normalization is needed). With $I=\{1,2\}$ this is the diagonal identity $\sum_{a,b}w_aw_b\mathbf 1\{a=b\}=\sum_aw_a^2$ behind Equation~(2.34). The finite-block version, of which this is the one-block case, and its overlap-indicator interpretation are proved in Lemma~\ref{lem:sg:pd-partition-bridge}.
 \end{lemma}
 \begin{proof}
   \leanok
-Only the constant tuples $\sigma\equiv a$ survive in the guarded sum; they are in bijection with $A$ and contribute $w_a^{|I|}$. Summability of the guarded series follows by comparison with the product series. If the weights sum to $1$ then each is at most $1$, so $w_a^n\le w_a$.
+Only the constant tuples $\sigma\equiv a$ survive in the guarded sum; they are in bijection with $A$ and contribute $w_a^{|I|}$. Summability of the guarded series follows by comparison with the product series. Each term is at most the total $M=\sum_bw_b$, so $w_a^{k+1}\le w_a M^k$ and the powers are summable by comparison.
 \end{proof}
 
 \begin{lemma}[Compact simplex and continuous higher power sums: groundwork for Theorem~2.8]\label{lem:sg:pd-compact-simplex}
@@ -3952,6 +3952,7 @@ Only the constant tuples $\sigma\equiv a$ survive in the guarded sum; they are i
         SpinGlasses.poissonDirichletSimplex_eq_of_powerSums_eq,
         SpinGlasses.poissonDirichletPowerSumAlgebra_separatesPoints,
         SpinGlasses.poissonDirichletPowerSumAlgebra_dense,
+        SpinGlasses.zero_mem_poissonDirichletSimplex,
         SpinGlasses.poissonDirichletSimplex_coordinate_mem,
         SpinGlasses.isClosed_poissonDirichletSimplex,
         SpinGlasses.poissonDirichletSimplex_summable_pow,
@@ -3964,7 +3965,7 @@ Only the constant tuples $\sigma\equiv a$ survive in the guarded sum; they are i
         SpinGlasses.poissonDirichletSimplex_tail_powerSums_eq,
         SpinGlasses.poissonDirichlet_stoneWeierstrass}
   \leanok
-Let $V$ be the decreasing nonnegative sequences $x=(x_j)$ with $\sum_jx_j\le1$, endowed with the product topology. Then $V$ is compact, every power sum $p_s(x)=\sum_jx_j^s$ for integer $s\ge2$ is continuous on $V$, and the real subalgebra of $C(V,\mathbb R)$ generated by these power sums separates points and is dense (Mathlib Stone--Weierstrass). The first power sum is not asserted continuous: total mass may escape to the origin under coordinatewise convergence. The distributional uniqueness conclusion of Theorem~2.8, which requires identifying the expectations of these power-sum products for the competing laws, remains open.
+Let $V$ be the decreasing nonnegative sequences $x=(x_j)$ with $\sum_jx_j\le1$, endowed with the product topology. Then $V$ is compact, every power sum $p_s(x)=\sum_jx_j^s$ for integer $s\ge2$ is continuous on $V$, and the real subalgebra of $C(V,\mathbb R)$ generated by these power sums separates points and is dense (Mathlib Stone--Weierstrass). The first power sum is not asserted continuous: total mass may escape to the origin under coordinatewise convergence. The distributional uniqueness conclusion of Theorem~2.8 is Theorem~\ref{thm:sg:pd-uniqueness}.
 \end{lemma}
 \begin{proof}
   \leanok
@@ -3981,21 +3982,29 @@ The simplex is the intersection of closed coordinate nonnegativity, antitonicity
         SpinGlasses.card_partition_fresh_fiber,
         SpinGlasses.partition_overlap_fresh_indicator,
         SpinGlasses.tsum_partition_overlap_eq_powerSums,
-        SpinGlasses.tsum_partition_overlap_fresh_eq_powerSums}
+        SpinGlasses.tsum_partition_overlap_fresh_eq_powerSums,
+        SpinGlasses.ite_one_zero_mul,
+        SpinGlasses.partition_merge_surjective,
+        SpinGlasses.tsum_partition_overlap_merged_eq_powerSums,
+        SpinGlasses.partition_overlap_old_exists}
   \leanok
 Let $I,K$ be finite sets and $b:I\to K$ surjective. Suppose $w:A\to[0,\infty)$ is
-summable and $\sum_aw_a=1$. If the replica assignments are constrained to agree
+summable and nonnegative (no normalization is needed). If the replica assignments are constrained to agree
 whenever $b(i)=b(j)$, their weighted sum is
 $\prod_{m\in K}\sum_aw_a^{|b^{-1}(m)|}$. The constraint is exactly the product
 of overlap indicators for pairs in each block. This is a deterministic
-partition identity, not Talagrand's expectation recurrence (2.39). Attaching a fresh
+partition identity; the expectation recursion built on it is in
+Theorem~\ref{thm:sg:pd-uniqueness}. Attaching a fresh
 replica to one block enlarges precisely that block by one; attaching an old
 replica in the same block leaves the constraint unchanged. For replicas in
 different blocks the constraint adds equality of those two block labels; this
 is the fiber constraint for the block map identifying them. The observable is
-measurable and the fresh block's fiber cardinality increases by one. Evaluating
-the merged-label series as a mixed power sum and proving the expectation
-recurrence remain open.
+measurable and the fresh block's fiber cardinality increases by one. For
+replicas in different blocks, the constrained series is the product of power
+sums over the labels remaining after the merge (the merged block map is surjective
+onto the remaining labels). Consequently every old-replica term of
+Theorem~2.7 for a block-overlap observable is again a block-overlap series for
+some surjective block map (the lemma \texttt{partition\_overlap\_old\_exists}).
 \end{lemma}
 \begin{proof}
   \leanok
@@ -4026,7 +4035,7 @@ Lemma~\ref{lem:sg:pd-moment-ext}; push forward under the subtype inclusion.
         SpinGlasses.poissonDirichletSimplex_measure_ext_of_algebra,
         SpinGlasses.poissonDirichletSimplex_measure_ext_of_powerSum_products}
   \leanok
-For finite Borel measures $\mu,\nu$ on the compact simplex $V$, suppose that for every $k\ge0$ and every list of degrees $s_1,\ldots,s_k\ge2$ the integrals of $\prod_{i=1}^k p_{s_i}$ against $\mu$ and $\nu$ agree (the empty product also tests total mass). Then $\mu=\nu$. This is only the deterministic measure-determination step of Theorem~2.8: deriving the required equality of moments from (2.34)--(2.35) or Talagrand's identities (2.39) has not yet been formalized.
+For finite Borel measures $\mu,\nu$ on the compact simplex $V$, suppose that for every $k\ge0$ and every list of degrees $s_1,\ldots,s_k\ge2$ the integrals of $\prod_{i=1}^k p_{s_i}$ against $\mu$ and $\nu$ agree (the empty product also tests total mass). Then $\mu=\nu$. This is only the deterministic measure-determination step of Theorem~2.8: deriving the required equality of moments from (2.34)--(2.35) is Theorem~\ref{thm:sg:pd-uniqueness}.
 \end{lemma}
 \begin{proof}
   \leanok
@@ -4052,6 +4061,27 @@ measurable ranking permutation. No competing-law uniqueness is asserted.
 Use the existing almost-sure positivity, unit-sum, and antitonicity theorem
 for Poisson--Dirichlet weights; convert the real sum to the extended
 nonnegative simplex constraint and apply the measurable pushforward formula.
+\end{proof}
+
+\begin{theorem}[Talagrand's recursion and uniqueness of $\mathrm{PD}(\zeta)$, Theorem~2.8]\label{thm:sg:pd-uniqueness}
+  \lean{SpinGlasses.ghirlanda_guerra_partition_fresh,
+        SpinGlasses.integral_prod_tsum_pow_one,
+        SpinGlasses.integral_partition_fresh_eq,
+        SpinGlasses.integral_partition_powerSums_eq_of_ghirlanda_guerra,
+        SpinGlasses.integral_prod_powerSums_eq_of_ghirlanda_guerra,
+        SpinGlasses.identDistrib_of_ghirlanda_guerra,
+        SpinGlasses.identDistrib_poissonDirichlet_of_ghirlanda_guerra}
+  \leanok
+  \uses{thm:sg:pd-gg-ranked, lem:sg:pd-partition-bridge, lem:sg:pd-random-moment-ext, lem:sg:pd-simplex-law}
+Let $0<\zeta<1$, and let $v,v'$ be measurable random sequences, on possibly different probability spaces, that are almost surely nonnegative, nonincreasing, and sum to $1$. Suppose both satisfy the Ghirlanda--Guerra relation of Theorem~2.7 in parameter form with the same $\zeta$: for all $n$, $r_0\in\{1,\dots,n\}$ and measurable $f$ of the $n\times n$ overlap matrix,
+\[
+n\,\mathbb E\langle fR_{r_0,n+1}\rangle=(1-\zeta)\,\mathbb E\langle f\rangle+\sum_{j\ne r_0}\mathbb E\langle fR_{r_0j}\rangle,
+\]
+where $\langle\cdot\rangle$ is the replica series with weights $\prod_iv_{\sigma_i}$. Then (a) for every finite set $I$ of replicas and every surjective block map $g:I\to K$, $\mathbb E\prod_{m\in K}\sum_jv_j^{|g^{-1}(m)|}=\mathbb E'\prod_{m\in K}\sum_jv_j'^{|g^{-1}(m)|}$, so all mixed moments $S(n_1,\dots,n_k)$ of (2.36) agree, and (b) $v$ and $v'$ have the same law. In particular the ranked weights $\mathrm{poissonDirichletWeight}(k,M)$ of any independent-block realization of the $\zeta$-Poisson process have the law of every such sequence, so $\mathrm{PD}(\zeta)$ is characterized by (2.34)--(2.35). \emph{Not formalized:} the explicit coefficients of Talagrand's identities (2.39), i.e.\ the formula $S(n_1+1,\dots)=\frac{n_1-\zeta}{n}S(n_1,\dots)+\sum_{j\ge2}\frac{n_j}n S(\dots)$; we prove only the structural recursion that suffices for uniqueness. The hypothesis is stated in the parameter form (with $\zeta$ explicit) and $n=1$, $f=1$ and total mass one give (2.34), so (2.34) is not a separate hypothesis.
+\end{theorem}
+\begin{proof}
+  \leanok
+Apply the parameter form to the block-overlap observable $f_b=\prod_{b(i)=b(j)}R_{ij}$ of a surjective $b:\mathrm{Fin}\,N\to K$ and use Lemma~\ref{lem:sg:pd-partition-bridge}: the fresh-replica term is the moment of $b$ with one more point in the block of $r_0$, the plain term is the moment of $b$, and each old-replica term is the moment of another surjective block map on the same $N$ replicas (the same $b$ if the two replicas share a block, the merged map otherwise). Induct on the number $N+1$ of replicas. If a block has two points, remove one of them (placing it last, by an equivalence) so that it becomes the fresh replica; the identity above expresses the moment for $N+1$ replicas through moments for $N$ replicas, which agree for $v$ and $v'$ by the inductive hypothesis, and $N\ne0$ cancels. If all blocks are singletons, every factor is $\sum_jv_j=1$. Taking $I=\sum_m\mathrm{Fin}(s_m)$ and $g=\mathrm{fst}$ gives all products of power sums, and Lemma~\ref{lem:sg:pd-random-moment-ext} concludes. For $\mathrm{PD}(\zeta)$ the hypotheses are Theorem~\ref{thm:sg:pd-gg-ranked} and Theorem~\ref{thm:sg:pd-weights}.
 \end{proof}
 
 \begin{lemma}[The split-block reference construction and the almost sure environment]\label{lem:sg:pd-split-env}
@@ -4244,7 +4274,7 @@ These were proved while building the statements above; each is a short consequen
 \item \emph{Sums in $[0,\infty]$.} Lemma~2.1 is formalized in $[0,\infty]$ (Theorem~\ref{thm:sg:pd-moment}); the real-valued integrability is a corollary. The book's statement $\mathbb E(\sum x)^a<\infty$ does not say that the sum is finite; here finiteness of the sum is a proved consequence.
 \item \emph{Index from $0$, and a formula for the ordering.} The book writes $u_1\ge u_2\ge\cdots$ and says that the points are ordered decreasingly. We index from $0$ and define $u_n$ by the formula of Definition~\ref{def:sg:pd-atoms}, which handles measurability and ties at once. We prove $u_0\ge u_1\ge\cdots>0$ almost surely. Strict inequalities $u_0>u_1>\cdots$ (the points of $\Pi$ are a.s.\ distinct, which holds by Lemma~\ref{lem:sg:poisson-distinct}) are not formalized because nothing so far needed them.
 \item \emph{Atomic hypothesis.} Lemma~2.1 and the finiteness of $\sum x$ use that $M$ is a counting measure of blocks (see the remark after Theorem~\ref{thm:sg:pd-moment}); this is the only property of $M$ used besides Campbell's formula for $\mu_\zeta$.
-\item \emph{The law $\mathrm{PD}(\zeta)$ itself.} We prove that $(v_n)_n$ is an almost surely defined, measurable random element of $\ell^1$-sequences; we have not yet introduced the compact set $V$ of nonincreasing sequences with sum at most $1$ nor the law of $(v_n)$ on it. That is done together with Theorem~2.8.
+\item \emph{The law $\mathrm{PD}(\zeta)$ itself.} We prove that $(v_n)_n$ is an almost surely defined, measurable random element of $\ell^1$-sequences; the compact set $V$ of nonincreasing sequences with sum at most $1$ is introduced in Lemma~\ref{lem:sg:pd-compact-simplex}, and the law of $(v_n)$ on it is characterized by Theorem~\ref{thm:sg:pd-uniqueness}.
 \item \emph{Sums over points, not over ranked atoms (Theorem~2.6, Lemma~2.2).} The book writes $\sum_nu_nX_n$ with $u_1\ge u_2\ge\cdots$ and i.i.d.\ marks $X_n$ attached to the ranked points. We state the identity for the sum over the points of the image counting measure, $\int x\,d(f_*M)$ with $f(u,(x,y))=ux$, which does not depend on any ordering. This is exactly what the marking construction of Section~\ref{sec:sg:poisson} produces; passing to the ranked form would additionally require that marks attached to points are exchangeable under the sorting, which is not needed for the statement and is not formalized.
 \item \emph{The reference process in Lemma~2.2 and Equation~(2.22).} The book compares with the ``unmarked'' sum $\sum_nu_n$. We compare with the same functional of an arbitrary block construction of a Poisson process with intensity $\mu_\zeta$; the proof passes through the size-biased process of Theorem~\ref{thm:sg:pd-marking} and returns to the given construction by the Equivalence Theorem~\ref{thm:sg:poisson-equivalence}. In Equation~(2.22) both sums are taken over the \emph{same} marked process (the marks $x,z$ attached to a point are the coordinates of one mark $t=(x,z)$), as in the book. The marks $Y$ in Theorem~\ref{thm:sg:pd-marking} are a free extra coordinate (needed later for the Gaussian marking); they play no role in Lemma~2.2. The marks in Lemma~2.2 are an arbitrary mark space $T$ with a measurable positive function $X$; the book's $(X_n)$ i.i.d.\ is the special case $T=\mathbb R$, $X=\mathrm{id}$.
 \item \emph{A cruder lower tail.} The exact law of the largest point is $\mathbb P(u_0\le s)=\exp(-s^{-\zeta})$. The integrability of $\log\sum u$ only needs $\mathbb P(\sum u<s)\le s^{\zeta}$, which we prove directly from the number of points above $s$, avoiding the ordering of the points.
@@ -4277,7 +4307,7 @@ The book's proof has four steps, which we list together with their status. \emph
 \item \textbf{Poisson processes without ranking (Section~2.1; done).} A Poisson process is represented by independent blocks $B_n=(N_n,(X_{nl})_l)\sim\mathrm{Po}(r_n)\otimes\nu_n^{\otimes\mathbb N}$ and its counting measure $\sum_n\sum_{l<N_n}\delta_{X_{nl}}$. Existence, the counts on disjoint sets, the mapping, marking and superposition theorems, and the equivalence with the usual finite-dimensional definition are formalized (Section~\ref{sec:sg:poisson}). The advantage of blocks is that every point has a \emph{name} $(n,l)$ that does not depend on an ordering of the points; ordering the points decreasingly is never needed until the very last step (item~4).
 \item \textbf{The process $\mathrm{PD}(\zeta)$ and the invariance under Gaussian tilting (Section~2.2; done in an order-free form).} The intensity $\mu_\zeta$, the finiteness and integrability of the total mass (Lemma~2.1), the log-sum identity (Lemma~2.2), the homogeneity and marking theorem (Theorem~2.6), and the key invariance statement of Lemma~2.3 are formalized (Section~\ref{sec:sg:pd}). Lemma~2.3 compares the process of the points $(u\,e^{t(g-t\zeta/2)},g-t\zeta)$ with the process of the points $(u,g)$, where $g$ is a standard Gaussian mark; the book states it for the \emph{ranked} atoms with their marks. We state it for \emph{replica integrals} against the counting measure, which does not mention ranks (Theorem~\ref{thm:sg:pd-lemma23}). Proving that the replica average is a measurable function of the random measure is the technical heart (Mathlib's measurability of iterated integrals needs an s-finite kernel, and the identity map on measures is not one; we use the locally finite kernel $M\mapsto M\!\restriction\!\{x>0\}$ instead).
 \item \textbf{From the order-free form to Gibbs series, and conditioning on the masses (done for block indices).} Gaussian integration by parts (Section~\ref{sec:sg:countable}, Theorem~\ref{thm:sg:lemma12}) is a statement about a Gibbs measure on a \emph{fixed} countable set with \emph{deterministic} weights and a Gaussian field. In the Poisson--Dirichlet process the set of atoms $\{(n,l):l<N_n\}$ and the masses are random, and only the marks $g$ are Gaussian. We therefore (a) rewrote the order-free replica integrals as series over tuples of block indices (Theorems~\ref{thm:sg:pd-blockindex} and~\ref{thm:sg:pd-gibbs-bridge}), where overlaps become index coincidences; (b) proved Lemma~2.3 in this form on a single probability space, with the Gibbs weights $u_pe^{tg_p}/\sum_qu_qe^{tg_q}$ (Theorem~\ref{thm:sg:pd-gibbs}); (c) proved that the Gaussian marks are independent of the counts and masses, and that a fixed-index Gaussian field has the covariance structure and the boundedness needed to apply Gaussian integration by parts (Lemma~\ref{lem:sg:pd-gibbs-inputs}). (d) carried out the conditioning: the split-block construction and the almost sure environment (Lemma~\ref{lem:sg:pd-split-env}), the guarded fixed-index form of the series (Lemma~\ref{lem:sg:pd-guarded}), Fubini for independent variables (Lemma~\ref{lem:sg:pd-fubini}), integrability and the value $0$ of the untilted average at $t=0$ (Lemma~\ref{lem:sg:pd-untilted}), tilt invariance in law and integrability of the tilted centered mark (Lemma~\ref{lem:sg:pd-tilt-law}), the fixed-environment and product-law Gaussian integration by parts with its bounds (Lemmas~\ref{lem:sg:pd-conditional-ibp},~\ref{lem:sg:pd-ibp-product},~\ref{lem:sg:pd-product-ibp-summary},~\ref{lem:sg:pd-gaussian-array}), and the resulting identity on the original blocks $\mathbb E\langle fg_{r_0}\rangle_t=\mathbb E[t(\langle f\sum_jR_{r_0j}\rangle_t-n\langle fR_{r_0,n+1}\rangle_t)]$ (Lemmas~\ref{lem:sg:pd-ibp-blocks} and~\ref{lem:sg:pd-ibp-expectation}). The combination at $t=1$ with tilt invariance and centering is formalized in Theorem~\ref{thm:sg:pd-gg-blocks}; the extra replica uses the equivalence between $\mathrm{Option}(\mathrm{Fin}\,n)$ and $\mathrm{Fin}(n+1)$.
-\item \textbf{Ranked Theorem~2.7 complete; uniqueness Theorem~2.8 open.} Theorem~2.7 and Equation~(2.34) hold for the ranked weights $v_k=\mathrm{poissonDirichletWeight}(k,M)$ of the split Gaussian-mark block construction (Theorem~\ref{thm:sg:pd-gg-ranked}). The deterministic ranking bijection, simplicity of mass blocks, and transport of both ordinary and extra-replica series are proved without a measurable random ranking permutation. The compact decreasing subprobability simplex and continuity of its higher integer power sums are proved in Lemma~\ref{lem:sg:pd-compact-simplex}. Point separation by higher power sums, the finite partition replica identity (Lemma~\ref{lem:sg:pd-partition-bridge}), and the conditional moment-to-law step (Lemma~\ref{lem:sg:pd-random-moment-ext}) are proved; the expectation recurrence (2.39) and GG-based uniqueness Theorem~2.8 remain open.
+\item \textbf{Ranked Theorem~2.7 and uniqueness Theorem~2.8 complete (abstract form).} Theorem~2.7 and Equation~(2.34) hold for the ranked weights $v_k=\mathrm{poissonDirichletWeight}(k,M)$ of the split Gaussian-mark block construction (Theorem~\ref{thm:sg:pd-gg-ranked}). The deterministic ranking bijection, simplicity of mass blocks, and transport of both ordinary and extra-replica series are proved without a measurable random ranking permutation. The compact decreasing subprobability simplex and continuity of its higher integer power sums are proved in Lemma~\ref{lem:sg:pd-compact-simplex}. Point separation by higher power sums, the finite partition replica identity (Lemma~\ref{lem:sg:pd-partition-bridge}), and the conditional moment-to-law step (Lemma~\ref{lem:sg:pd-random-moment-ext}) are proved. Theorem~\ref{thm:sg:pd-uniqueness} proves the GG-based uniqueness; Talagrand's identities (2.39) are used there in structural form (their explicit coefficients $(n_1-\zeta)/n$ and $n_j/n$ are not computed).
 \end{enumerate}
 
 \subsection*{How Lemma~2.3 and integration by parts combine (the plan for Theorem~2.7)}

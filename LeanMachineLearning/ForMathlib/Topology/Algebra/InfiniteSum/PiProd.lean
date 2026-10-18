@@ -93,91 +93,27 @@ theorem tsum_prod_pi {f : J → α → ℝ} (hf0 : ∀ j a, 0 ≤ f j a)
   ext s
   exact (Finset.prod_univ_sum (fun _ : J => s) (fun j a => f j a)).symm
 
-/-- For a normalized nonnegative weight family, the higher power series
-is summable by comparison with the first power. -/
-theorem summable_pow_of_normalized {w : α → ℝ} (hw0 : ∀ a, 0 ≤ w a)
-    (hws : Summable w) (hw : ∑' a, w a = 1) {n : ℕ} (hn : 0 < n) :
-    Summable (fun a => w a ^ n) := by
-  have hbound (a : α) : w a ≤ 1 := by
-    rw [← hw]
-    simpa using hws.sum_le_tsum {a} (fun _ _ => hw0 _)
-  apply Summable.of_nonneg_of_le (fun a => pow_nonneg (hw0 a) _)
-    (fun a => ?_) hws
-  exact pow_le_of_le_one (hw0 a) (hbound a) hn.ne'
-
-/-- For a nonempty finite replica block, imposing equality of all sampled
-indices turns its Gibbs series into a power sum. -/
-theorem tsum_prod_pi_all_eq {I : Type*} [Fintype I] [Nonempty I]
-    [DecidableEq α] {w : α → ℝ} (hw0 : ∀ a, 0 ≤ w a) (hws : Summable w) :
-    (∑' σ : I → α, (∏ i, w (σ i)) *
-      (if (∀ i j, σ i = σ j) then (1 : ℝ) else 0)) =
-      ∑' a, w a ^ Fintype.card I := by
-  classical
-  let i₀ : I := Classical.choice inferInstance
-  have hp : Summable (fun σ : I → α => ∏ i, w (σ i)) :=
-    summable_prod_pi (fun _ => hw0) (fun _ => hws)
-  have hguard : Summable (fun σ : I → α =>
-      (∏ i, w (σ i)) * (if ∀ i j, σ i = σ j then 1 else 0)) := by
-    apply hp.of_norm_bounded
-    intro σ
-    have hpos : 0 ≤ ∏ i, w (σ i) :=
-      Finset.prod_nonneg fun i _ => hw0 (σ i)
-    by_cases h : ∀ i j, σ i = σ j
-    · simp only [ite_eq_left h, mul_one, Real.norm_eq_abs, abs_of_nonneg hpos, le_refl]
-    · simpa [h] using hpos
-  have heq (σ : I → α) : (∀ i j, σ i = σ j) ↔ σ = Function.const I (σ i₀) := by
-    constructor
-    · intro h
-      funext i
-      exact h i i₀
-    · intro h i j
-      exact congrArg (fun f : I → α => f i) h |>.trans
-        (congrArg (fun f : I → α => f j) h).symm
-  have hinj : Function.Injective (Function.const I : α → I → α) := by
-    intro a b h
-    exact congrArg (fun f : I → α => f i₀) h
-  have hsupport (σ : I → α) (h : ∀ i j, σ i = σ j) :
-      σ = Function.const I (σ i₀) := (heq σ).mp h
-  have hzero (σ : I → α)
-      (hσ : σ ∉ Set.range (Function.const I : α → I → α)) :
-      (∏ i, w (σ i)) * (if ∀ i j, σ i = σ j then 1 else 0) = 0 := by
-    have hn : ¬ ∀ i j, σ i = σ j := by
-      intro h
-      exact hσ ⟨σ i₀, (hsupport σ h).symm⟩
-    simp [hn]
-  have hreindex : (∑' σ : I → α,
-      (∏ i, w (σ i)) * (if ∀ i j, σ i = σ j then 1 else 0)) =
-      ∑' a : α, (∏ i, w ((Function.const I a) i)) *
-        (if ∀ i j, (Function.const I a) i = (Function.const I a) j
-          then 1 else 0) := by
-    rw [← tsum_subtype_eq_of_support_subset
-      (s := Set.range (Function.const I : α → I → α))
-      (fun σ hσ => by
-        by_contra hn
-        exact hσ (hzero σ hn))]
-    let e : α ≃ Set.range (Function.const I : α → I → α) :=
-      Equiv.ofBijective (fun a => ⟨Function.const I a, ⟨a, rfl⟩⟩)
-        ⟨fun a b h => hinj (congrArg Subtype.val h),
-          fun ⟨σ, a, ha⟩ => ⟨a, Subtype.ext ha⟩⟩
-    exact (e.tsum_eq (fun σ : Set.range (Function.const I : α → I → α) =>
-      (∏ i, w (σ.1 i)) * (if ∀ i j, σ.1 i = σ.1 j then 1 else 0))).symm
-  rw [hreindex]
-  apply tsum_congr
-  intro a
-  simp only [Function.const_apply, forall_const, ite_true, mul_one,
-    Finset.prod_const, Finset.card_univ]
+/-- For a nonnegative summable family, every positive power is summable: the terms are
+bounded by the total sum, so `w a ^ (k + 1) ≤ w a * (∑' b, w b) ^ k`. -/
+theorem summable_pow_of_nonneg {w : α → ℝ} (hw0 : ∀ a, 0 ≤ w a)
+    (hws : Summable w) {n : ℕ} (hn : 0 < n) : Summable (fun a => w a ^ n) := by
+  obtain ⟨k, rfl⟩ := Nat.exists_eq_succ_of_ne_zero hn.ne'
+  refine Summable.of_nonneg_of_le (fun a => pow_nonneg (hw0 a) _) (fun a => ?_)
+    (hws.mul_right ((∑' b, w b) ^ k))
+  calc
+    w a ^ (k + 1) = w a * w a ^ k := by ring
+    _ ≤ w a * (∑' b, w b) ^ k :=
+      mul_le_mul_of_nonneg_left
+        (pow_le_pow_left₀ (hw0 a) (hws.le_tsum a fun j _ => hw0 j) k) (hw0 a)
 
 /-- Replica assignments constant on the fibers of a surjective block map are precisely
 assignments of one label per block. The resulting series is a product of power sums. -/
 theorem tsum_prod_pi_fiber_eq {I K : Type*} [Fintype I] [Fintype K]
-    (b : I → K) (hb : Function.Surjective b) [DecidableEq K]
-    [∀ σ : I → α, Decidable (∀ i j, b i = b j → σ i = σ j)]
-    {w : α → ℝ} (hw0 : ∀ a, 0 ≤ w a) (hws : Summable w)
-    (hw : ∑' a, w a = 1) :
+    (b : I → K) (hb : Function.Surjective b) [DecidableEq K] [DecidableEq α]
+    {w : α → ℝ} (hw0 : ∀ a, 0 ≤ w a) (hws : Summable w) :
     (∑' σ : I → α, (∏ i, w (σ i)) *
       (if ∀ i j, b i = b j → σ i = σ j then 1 else 0)) =
       ∏ m : K, ∑' a, w a ^ Fintype.card {i : I // b i = m} := by
-  let _ : DecidableEq (I → α) := Classical.decEq _
   let e : (K → α) ≃ {σ : I → α // ∀ i j, b i = b j → σ i = σ j} :=
     { toFun := fun τ => ⟨τ ∘ b, fun i j h => congrArg τ h⟩
       invFun := fun σ m => σ.1 (Classical.choose (hb m))
@@ -213,7 +149,7 @@ theorem tsum_prod_pi_fiber_eq {I K : Type*} [Fintype I] [Fintype K]
   rw [hguard, ← e.tsum_eq (fun σ : {σ : I → α // ∀ i j,
     b i = b j → σ i = σ j} => ∏ i, w (σ.1 i))]
   have hf (m : K) : Summable (fun a => w a ^ Fintype.card {i : I // b i = m}) :=
-    summable_pow_of_normalized hw0 hws hw
+    summable_pow_of_nonneg hw0 hws
       (Fintype.card_pos_iff.mpr (let ⟨i, hi⟩ := hb m; ⟨⟨i, hi⟩⟩))
   calc
     (∑' τ : K → α, ∏ i, w ((e τ).1 i)) =
@@ -226,6 +162,17 @@ theorem tsum_prod_pi_fiber_eq {I K : Type*} [Fintype I] [Fintype K]
       funext m
       simp only [Finset.prod_const, Finset.card_univ]
     _ = _ := tsum_prod_pi (fun m a => pow_nonneg (hw0 a) _) hf
+
+/-- For a nonempty finite replica block, imposing equality of all sampled
+indices turns its Gibbs series into a power sum. This is the one-block case of
+`tsum_prod_pi_fiber_eq`. -/
+theorem tsum_prod_pi_all_eq {I : Type*} [Fintype I] [Nonempty I]
+    [DecidableEq α] {w : α → ℝ} (hw0 : ∀ a, 0 ≤ w a) (hws : Summable w) :
+    (∑' σ : I → α, (∏ i, w (σ i)) *
+      (if (∀ i j, σ i = σ j) then (1 : ℝ) else 0)) =
+      ∑' a, w a ^ Fintype.card I := by
+  simpa using tsum_prod_pi_fiber_eq (fun _ : I => ()) (fun _ => ⟨Classical.arbitrary I, rfl⟩)
+    hw0 hws
 
 /-- Reindex a finite tuple of elements of a subset as a tuple of elements of the ambient
 set satisfying the coordinatewise membership guard. This also applies to `Option J` for the

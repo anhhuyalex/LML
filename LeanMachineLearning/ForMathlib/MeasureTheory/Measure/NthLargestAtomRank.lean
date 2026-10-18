@@ -30,7 +30,7 @@ above any fixed positive threshold. -/
 theorem finite_superlevel_of_summable {α : Type*} {u : α → ℝ}
     (hs : Summable u) {t : ℝ} (ht : 0 < t) :
     {a | t ≤ u a}.Finite := by
-  simpa only [Set.mem_setOf_eq, not_lt] using Filter.eventually_cofinite.mp
+  simpa only [Set.mem_ofPred_eq, not_lt] using Filter.eventually_cofinite.mp
     (hs.tendsto_cofinite_zero.eventually (gt_mem_nhds ht))
 
 /-- A point with smaller mass has strictly more larger masses above it. -/

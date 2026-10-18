@@ -666,8 +666,8 @@ theorem poissonDirichlet_blocks_expected_weight_sq_eq_one_sub_zeta
       fin_cases i <;> fin_cases j
       exacts [rfl, h, h.symm, rfl]
     by_cases h : ∀ i j : Fin 2, σ i = σ j
-    · rw [if_pos (hiff.mpr h), if_pos h]
-    · rw [if_neg (mt hiff.mp h), if_neg h]
+    · rw [ite_eq_left (hiff.mpr h), ite_eq_left h]
+    · rw [ite_eq_right (mt hiff.mp h), ite_eq_right h]
   rw [← integral_congr_ae hpoint]
   exact hbase
 
