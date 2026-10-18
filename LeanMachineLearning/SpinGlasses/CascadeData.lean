@@ -39,6 +39,12 @@ theorem cascadeSubtreeVertex_injective :
   subst hn hg
   rfl
 
+/-- The vertices of the subtree below one child of the root embed injectively in the tree. -/
+theorem cascadeChildVertex_injective (n : ℕ) :
+    Function.Injective fun v : Σ p : ℕ, Fin p → ℕ =>
+      (⟨v.1 + 1, Fin.cons n v.2⟩ : Σ p : ℕ, Fin p → ℕ) :=
+  fun a b h => by simpa using cascadeSubtreeVertex_injective (a₁ := (n, a)) (a₂ := (n, b)) h
+
 /-- The data below distinct children of the root are independent. -/
 theorem iIndepFun_cascadeSubtreeData
     (D : (Σ p : ℕ, Fin p → ℕ) → Ω → 𝒟) (hDm : ∀ v, Measurable (D v)) (hD : iIndepFun D P) :
@@ -76,10 +82,8 @@ theorem hasLaw_cascadeSubtreeData [IsProbabilityMeasure P]
     (𝔡 : ℕ → Measure 𝒟) (hDlaw : ∀ v, HasLaw (D v) (𝔡 v.1) P) (n : ℕ) :
     HasLaw (fun ω (v : Σ p : ℕ, Fin p → ℕ) => D ⟨v.1 + 1, Fin.cons n v.2⟩ ω)
       (Measure.infinitePi fun v : Σ p : ℕ, Fin p → ℕ => 𝔡 (v.1 + 1)) P := by
-  have hinj : Function.Injective fun v : Σ p : ℕ, Fin p → ℕ =>
-      (⟨v.1 + 1, Fin.cons n v.2⟩ : Σ p : ℕ, Fin p → ℕ) :=
-    fun a b h => by simpa using cascadeSubtreeVertex_injective (a₁ := (n, a)) (a₂ := (n, b)) h
-  exact HasLaw.infinitePi (fun v => hDm _) (hD.precomp hinj) fun v => hDlaw _
+  exact HasLaw.infinitePi (fun v => hDm _) (hD.precomp (cascadeChildVertex_injective n))
+    fun v => hDlaw _
 
 /-- Joint law of the root data and the vector of subtree data. -/
 theorem hasLaw_cascadeRoot_subtreeData [IsProbabilityMeasure P]
@@ -102,8 +106,6 @@ theorem hasLaw_cascadeRoot_subtreeData [IsProbabilityMeasure P]
 theorem iIndepFun_cascadeChildData
     (D : (Σ p : ℕ, Fin p → ℕ) → Ω → 𝒟) (hD : iIndepFun D P) (n : ℕ) :
     iIndepFun (fun (v : Σ p : ℕ, Fin p → ℕ) => D ⟨v.1 + 1, Fin.cons n v.2⟩) P :=
-  hD.precomp (g := fun v : Σ p : ℕ, Fin p → ℕ =>
-    (⟨v.1 + 1, Fin.cons n v.2⟩ : Σ p : ℕ, Fin p → ℕ))
-    fun a b h => by simpa using cascadeSubtreeVertex_injective (a₁ := (n, a)) (a₂ := (n, b)) h
+  hD.precomp (cascadeChildVertex_injective n)
 
 end SpinGlasses

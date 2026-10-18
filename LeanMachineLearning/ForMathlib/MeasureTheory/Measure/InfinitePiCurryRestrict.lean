@@ -25,24 +25,24 @@ variable {T : Type*} [MeasurableSpace T]
 
 /-- Restricting an iterated i.i.d. array to a set of positions gives the i.i.d. family on that
 set. -/
-theorem map_infinitePi_infinitePi_restrict (τ : Measure T) [IsProbabilityMeasure τ]
-    (A : Set (ℕ × ℕ)) :
-    (infinitePi fun _ : ℕ => infinitePi fun _ : ℕ => τ).map
+theorem map_infinitePi_infinitePi_restrict {ι κ : Type*} (τ : Measure T) [IsProbabilityMeasure τ]
+    (A : Set (ι × κ)) :
+    (infinitePi fun _ : ι => infinitePi fun _ : κ => τ).map
         (fun y' (a : A) => y' a.1.1 a.1.2) = infinitePi fun _ : A => τ := by
-  have hcur := infinitePi_map_piCurry_symm (κ := fun _ : ℕ => ℕ)
+  have hcur := infinitePi_map_piCurry_symm (κ := fun _ : ι => κ)
     (X := fun _ _ => T) (fun _ _ => τ)
-  have hinj : Function.Injective (fun a : A => (⟨a.1.1, a.1.2⟩ : Σ _ : ℕ, ℕ)) := by
+  have hinj : Function.Injective (fun a : A => (⟨a.1.1, a.1.2⟩ : Σ _ : ι, κ)) := by
     intro a b h
     apply Subtype.ext
     exact Prod.ext (congrArg Sigma.fst h) (eq_of_heq (Sigma.mk.inj h).2)
-  have hres := map_infinitePi_infinitePi_of_inj (P := fun _ : (Σ _ : ℕ, ℕ) => τ) hinj
-  have hm1 : Measurable (fun w : (Σ _ : ℕ, ℕ) → T => fun a : A => w ⟨a.1.1, a.1.2⟩) :=
+  have hres := map_infinitePi_infinitePi_of_inj (P := fun _ : (Σ _ : ι, κ) => τ) hinj
+  have hm1 : Measurable (fun w : (Σ _ : ι, κ) → T => fun a : A => w ⟨a.1.1, a.1.2⟩) :=
     measurable_pi_iff.2 fun a => measurable_pi_apply _
-  calc (infinitePi fun _ : ℕ => infinitePi fun _ : ℕ => τ).map
+  calc (infinitePi fun _ : ι => infinitePi fun _ : κ => τ).map
         (fun y' (a : A) => y' a.1.1 a.1.2)
-      = (Measure.map (fun w : (Σ _ : ℕ, ℕ) → T => fun a : A => w ⟨a.1.1, a.1.2⟩)
-          ((infinitePi fun _ : ℕ => infinitePi fun _ : ℕ => τ).map
-            (MeasurableEquiv.piCurry (fun (_ : ℕ) (_ : ℕ) => T)).symm)) := by
+      = (Measure.map (fun w : (Σ _ : ι, κ) → T => fun a : A => w ⟨a.1.1, a.1.2⟩)
+          ((infinitePi fun _ : ι => infinitePi fun _ : κ => τ).map
+            (MeasurableEquiv.piCurry (fun (_ : ι) (_ : κ) => T)).symm)) := by
         rw [Measure.map_map hm1 (MeasurableEquiv.piCurry _).symm.measurable]
         rfl
     _ = infinitePi fun _ : A => τ := by rw [hcur]; exact hres

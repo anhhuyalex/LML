@@ -454,25 +454,26 @@ theorem sum_replicaSum_tilt_pattern (r n : ℕ) (σ ζ : ℕ → ℝ) (t : ℝ)
   simp only [Finset.mem_univ, ite_true]
   ring
 
-/-- The Gibbs average `⟨f(Rⁿ)⟩_t` of a function of the overlap matrix `Rₗₗ' = q (αˡ ∧ αˡ')` of `n`
-replicas, for the leaf weights `w(α) exp (t g(α))`, where `g(α) = ∑ᵢ σᵢ (label of α at level i)`. -/
-noncomputable def replicaGibbs (r n : ℕ) (σ : ℕ → ℝ) (q : Fin (r + 1) → ℝ) (t : ℝ)
-    (f : (Fin n → Fin n → ℝ) → ℝ≥0∞) (u : (p : ℕ) → (Fin p → ℕ) → ℕ → ℝ≥0∞)
+/-- The Gibbs average `⟨F(Rⁿ)⟩_t` of a function of the overlap pattern `Rₗₗ' = αˡ ∧ αˡ'` (the
+length of the common prefix) of `n` replicas, for the leaf weights `w(α) exp (t g(α))`,
+where `g(α) = ∑ᵢ σᵢ (label of α at level i)`. -/
+noncomputable def replicaGibbs (r n : ℕ) (σ : ℕ → ℝ) (t : ℝ)
+    (F : (Fin n → Fin n → Fin (r + 1)) → ℝ≥0∞) (u : (p : ℕ) → (Fin p → ℕ) → ℕ → ℝ≥0∞)
     (lab : (p : ℕ) → (Fin p → ℕ) → ℕ → ℝ) : ℝ≥0∞ :=
   (∑' α : Fin n → Fin r → ℕ, (∏ l, cascadeBranchWeight u (α l) *
       ENNReal.ofReal (Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab (α l) i))) *
-    f fun l l' => q (prefixOverlap (α l) (α l'))) /
+    F fun l l' => prefixOverlap (α l) (α l')) /
   (∑' α : Fin r → ℕ, cascadeBranchWeight u α *
     ENNReal.ofReal (Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab α i))) ^ n
 
 /-- **The Gibbs average as a ratio of replica sums.** Summing the replica sums with the tilted
 tests over the finitely many overlap patterns recovers the Gibbs average; the factor
 `exp (-t²/2 ∑ σᵢ² ζᵢ)` of the tilt cancels between numerator and denominator. -/
-theorem replicaGibbs_eq_div (r n : ℕ) (σ ζ : ℕ → ℝ) (q : Fin (r + 1) → ℝ) (t : ℝ)
-    (f : (Fin n → Fin n → ℝ) → ℝ≥0∞) (u : (p : ℕ) → (Fin p → ℕ) → ℕ → ℝ≥0∞)
+theorem replicaGibbs_eq_div (r n : ℕ) (σ ζ : ℕ → ℝ) (t : ℝ)
+    (F : (Fin n → Fin n → Fin (r + 1)) → ℝ≥0∞) (u : (p : ℕ) → (Fin p → ℕ) → ℕ → ℝ≥0∞)
     (lab : (p : ℕ) → (Fin p → ℕ) → ℕ → ℝ) :
-    replicaGibbs r n σ q t f u lab =
-      (∑ P : Fin n → Fin n → Fin (r + 1), f (fun l l' => q (P l l')) *
+    replicaGibbs r n σ t F u lab =
+      (∑ P : Fin n → Fin n → Fin (r + 1), F P *
         replicaSum r (fun l l' => (P l l').val)
           (fun _ i => tiltTest (t * σ i) (ζ i) (fun _ => 1)) u lab) /
       ∑ P : Fin n → Fin n → Fin (r + 1), replicaSum r (fun l l' => (P l l').val)
@@ -482,7 +483,7 @@ theorem replicaGibbs_eq_div (r n : ℕ) (σ ζ : ℕ → ℝ) (q : Fin (r + 1) �
   have hc0 : c ≠ 0 := by simp [hc, Real.exp_pos]
   have hct : c ≠ ∞ := ENNReal.ofReal_ne_top
   have h1 := sum_replicaSum_tilt_pattern r n σ ζ t (fun _ _ => fun _ => 1) u lab
-    fun P => f fun l l' => q (P l l')
+    fun P => F P
   have h2 := sum_replicaSum_tilt_pattern r n σ ζ t (fun _ _ => fun _ => 1) u lab fun _ => 1
   simp only [one_mul, Finset.prod_const_one, mul_one] at h1 h2
   rw [h1, h2, ENNReal.tsum_pi_prod fun _ α => cascadeBranchWeight u α *
@@ -493,44 +494,44 @@ theorem replicaGibbs_eq_div (r n : ℕ) (σ ζ : ℕ → ℝ) (q : Fin (r + 1) �
 
 /-- A Gibbs average of a bounded function of the overlaps at `t = 0` is bounded by the same
 constant when the total mass is positive and finite. -/
-theorem replicaGibbs_zero_le (r n : ℕ) (σ : ℕ → ℝ) (q : Fin (r + 1) → ℝ)
-    (f : (Fin n → Fin n → ℝ) → ℝ≥0∞) (C : ℝ≥0∞) (hf : ∀ x, f x ≤ C)
+theorem replicaGibbs_zero_le (r n : ℕ) (σ : ℕ → ℝ)
+    (F : (Fin n → Fin n → Fin (r + 1)) → ℝ≥0∞) (C : ℝ≥0∞) (hf : ∀ P, F P ≤ C)
     (u : (p : ℕ) → (Fin p → ℕ) → ℕ → ℝ≥0∞) (lab : (p : ℕ) → (Fin p → ℕ) → ℕ → ℝ)
     (h0 : ∑' α : Fin r → ℕ, cascadeBranchWeight u α ≠ 0)
     (ht : ∑' α : Fin r → ℕ, cascadeBranchWeight u α ≠ ∞) :
-    replicaGibbs r n σ q 0 f u lab ≤ C := by
+    replicaGibbs r n σ 0 F u lab ≤ C := by
   unfold replicaGibbs
   simp only [zero_mul, Real.exp_zero, ENNReal.ofReal_one, mul_one]
   have hn0 : (∑' α : Fin r → ℕ, cascadeBranchWeight u α) ^ n ≠ 0 := pow_ne_zero n h0
   have hnt : (∑' α : Fin r → ℕ, cascadeBranchWeight u α) ^ n ≠ ∞ := ENNReal.pow_ne_top ht
   rw [ENNReal.div_le_iff hn0 hnt]
   calc ∑' α : Fin n → Fin r → ℕ, (∏ l, cascadeBranchWeight u (α l)) *
-        f (fun l l' => q (prefixOverlap (α l) (α l')))
+        F (fun l l' => prefixOverlap (α l) (α l'))
       ≤ ∑' α : Fin n → Fin r → ℕ, (∏ l, cascadeBranchWeight u (α l)) * C :=
         ENNReal.tsum_le_tsum fun α => mul_le_mul_right (hf _) _
     _ = C * (∑' α : Fin r → ℕ, cascadeBranchWeight u α) ^ n := by
         rw [ENNReal.tsum_mul_right, ENNReal.tsum_pi_prod fun _ α => cascadeBranchWeight u α]
         simp [mul_comm]
 
-/-- The Gibbs average `⟨f(Rⁿ) ψ(label of αˡ⁰ at level i₀ - s)⟩_t` with a test of the label of one
+/-- The Gibbs average `⟨F(Rⁿ) ψ(label of αˡ⁰ at level i₀ - s)⟩_t` with a test of the label of one
 replica at one level. -/
-noncomputable def replicaGibbsAt (r n : ℕ) (σ : ℕ → ℝ) (q : Fin (r + 1) → ℝ) (t : ℝ)
-    (f : (Fin n → Fin n → ℝ) → ℝ≥0∞) (l₀ : Fin n) (i₀ : Fin r) (ψ : ℝ → ℝ≥0∞) (s : ℝ)
+noncomputable def replicaGibbsAt (r n : ℕ) (σ : ℕ → ℝ) (t : ℝ)
+    (F : (Fin n → Fin n → Fin (r + 1)) → ℝ≥0∞) (l₀ : Fin n) (i₀ : Fin r) (ψ : ℝ → ℝ≥0∞) (s : ℝ)
     (u : (p : ℕ) → (Fin p → ℕ) → ℕ → ℝ≥0∞) (lab : (p : ℕ) → (Fin p → ℕ) → ℕ → ℝ) : ℝ≥0∞ :=
   (∑' α : Fin n → Fin r → ℕ, ((∏ l, cascadeBranchWeight u (α l) *
       ENNReal.ofReal (Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab (α l) i))) *
-    f fun l l' => q (prefixOverlap (α l) (α l'))) * ψ (leafLabel lab (α l₀) i₀ - s)) /
+    F fun l l' => prefixOverlap (α l) (α l')) * ψ (leafLabel lab (α l₀) i₀ - s)) /
   (∑' α : Fin r → ℕ, cascadeBranchWeight u α *
     ENNReal.ofReal (Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab α i))) ^ n
 
 /-- The Gibbs average with a test of one label as a ratio of replica sums, provided that the shift
 of the label is the one of the tilt. -/
-theorem replicaGibbsAt_eq_div (r n : ℕ) (σ ζ : ℕ → ℝ) (q : Fin (r + 1) → ℝ) (t : ℝ)
-    (f : (Fin n → Fin n → ℝ) → ℝ≥0∞) (l₀ : Fin n) (i₀ : Fin r) (ψ : ℝ → ℝ≥0∞) (s : ℝ)
+theorem replicaGibbsAt_eq_div (r n : ℕ) (σ ζ : ℕ → ℝ) (t : ℝ)
+    (F : (Fin n → Fin n → Fin (r + 1)) → ℝ≥0∞) (l₀ : Fin n) (i₀ : Fin r) (ψ : ℝ → ℝ≥0∞) (s : ℝ)
     (hs : s = t * σ i₀ * ζ i₀) (u : (p : ℕ) → (Fin p → ℕ) → ℕ → ℝ≥0∞)
     (lab : (p : ℕ) → (Fin p → ℕ) → ℕ → ℝ) :
-    replicaGibbsAt r n σ q t f l₀ i₀ ψ s u lab =
-      (∑ P : Fin n → Fin n → Fin (r + 1), f (fun l l' => q (P l l')) *
+    replicaGibbsAt r n σ t F l₀ i₀ ψ s u lab =
+      (∑ P : Fin n → Fin n → Fin (r + 1), F P *
         replicaSum r (fun l l' => (P l l').val)
           (fun l i => tiltTest (t * σ i) (ζ i)
             (if l = l₀ ∧ i = i₀.val then ψ else fun _ => 1)) u lab) /
@@ -542,7 +543,7 @@ theorem replicaGibbsAt_eq_div (r n : ℕ) (σ ζ : ℕ → ℝ) (q : Fin (r + 1)
   have hct : c ≠ ∞ := ENNReal.ofReal_ne_top
   have h1 := sum_replicaSum_tilt_pattern r n σ ζ t
     (fun l i => if l = l₀ ∧ i = i₀.val then ψ else fun _ => 1) u lab
-    fun P => f fun l l' => q (P l l')
+    fun P => F P
   have h2 := sum_replicaSum_tilt_pattern r n σ ζ t (fun _ _ => fun _ => 1) u lab fun _ => 1
   simp only [one_mul, Finset.prod_const_one, mul_one] at h2
   rw [h1, h2, ENNReal.tsum_pi_prod fun _ α => cascadeBranchWeight u α *
