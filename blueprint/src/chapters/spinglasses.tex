@@ -3974,14 +3974,22 @@ The simplex is the intersection of closed coordinate nonnegativity, antitonicity
 \begin{lemma}[Finite partition replica series and power sums]\label{lem:sg:pd-partition-bridge}
   \lean{tsum_prod_pi_fiber_eq,
         SpinGlasses.partition_overlap_indicator_eq,
-        SpinGlasses.tsum_partition_overlap_eq_powerSums}
+        SpinGlasses.partition_overlap_merge_indicator,
+        SpinGlasses.partition_overlap_same_block,
+        SpinGlasses.partition_overlap_fresh_indicator,
+        SpinGlasses.tsum_partition_overlap_eq_powerSums,
+        SpinGlasses.tsum_partition_overlap_fresh_eq_powerSums}
   \leanok
 Let $I,K$ be finite sets and $b:I\to K$ surjective. Suppose $w:A\to[0,\infty)$ is
 summable and $\sum_aw_a=1$. If the replica assignments are constrained to agree
 whenever $b(i)=b(j)$, their weighted sum is
 $\prod_{m\in K}\sum_aw_a^{|b^{-1}(m)|}$. The constraint is exactly the product
 of overlap indicators for pairs in each block. This is a deterministic
-partition identity, not Talagrand's expectation recurrence (2.39).
+partition identity, not Talagrand's expectation recurrence (2.39). Attaching a fresh
+replica to one block enlarges precisely that block by one; attaching an old
+replica in the same block leaves the constraint unchanged. For replicas in
+different blocks the constraint adds equality of those two block labels, but
+the corresponding moment-reindexing and expectation recurrence remain open.
 \end{lemma}
 \begin{proof}
   \leanok

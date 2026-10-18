@@ -66,6 +66,102 @@ theorem tsum_partition_overlap_eq_powerSums {I K α : Type*}
   simp_rw [partition_overlap_indicator_eq b]
   exact tsum_prod_pi_fiber_eq b hb hw0 hws hw
 
+/-- An overlap between two labels either preserves a block constraint or merges
+exactly the two blocks containing the labels. This formulation avoids relabeling
+finite block indices. -/
+theorem partition_overlap_merge_indicator {I K α : Type*} [Fintype I]
+    [DecidableEq K] [DecidableEq α] (b : I → K) (σ : I → α)
+    (r l : I) :
+    (∏ i : I, ∏ j : I, if b i = b j then
+      (if σ i = σ j then (1 : ℝ) else 0) else 1) *
+        (if σ r = σ l then 1 else 0) =
+      if (∀ i j, b i = b j → σ i = σ j) ∧ σ r = σ l then 1 else 0 := by
+  rw [partition_overlap_indicator_eq]
+  by_cases h : ∀ i j, b i = b j → σ i = σ j <;>
+    by_cases heq : σ r = σ l <;> simp [h, heq]
+
+/-- If the two replicas are already in one block, their extra overlap factor
+has no effect on the constrained replica observable. -/
+theorem partition_overlap_same_block {I K α : Type*} [Fintype I]
+    [DecidableEq K] [DecidableEq α] (b : I → K) (σ : I → α)
+    (r l : I) (h : b r = b l) :
+    (∏ i : I, ∏ j : I, if b i = b j then
+      (if σ i = σ j then (1 : ℝ) else 0) else 1) *
+        (if σ r = σ l then 1 else 0) =
+      ∏ i : I, ∏ j : I, if b i = b j then
+        (if σ i = σ j then (1 : ℝ) else 0) else 1 := by
+  rw [partition_overlap_merge_indicator, partition_overlap_indicator_eq]
+  by_cases hc : ∀ i j, b i = b j → σ i = σ j
+  · simp [hc r l h]
+  · simp [hc]
+
+/-- A fresh replica attached to the block of `r` makes the old block
+constraint exactly the fiber constraint of the extended block map. -/
+theorem partition_overlap_fresh_indicator {I K α : Type*} [Fintype I]
+    [DecidableEq K] [DecidableEq α] (b : I → K) (τ : Option I → α) (r : I) :
+    (∏ i : I, ∏ j : I, if b i = b j then
+      (if τ (some i) = τ (some j) then (1 : ℝ) else 0) else 1) *
+        (if τ (some r) = τ none then 1 else 0) =
+      if ∀ x y : Option I,
+        x.elim (b r) b = y.elim (b r) b → τ x = τ y
+      then 1 else 0 := by
+  rw [partition_overlap_indicator_eq]
+  have hiff :
+      (∀ i j, b i = b j → τ (some i) = τ (some j)) ∧
+        τ (some r) = τ none ↔
+      ∀ x y : Option I,
+        x.elim (b r) b = y.elim (b r) b → τ x = τ y := by
+    constructor
+    · rintro ⟨h, hr⟩ x y
+      cases x with
+      | none =>
+        cases y with
+        | none => exact fun _ => rfl
+        | some j =>
+          intro hj
+          exact hr.symm.trans (h r j hj)
+      | some i =>
+        cases y with
+        | none =>
+          intro hi
+          exact (h i r hi).trans hr
+        | some j => exact h i j
+    · intro h
+      refine ⟨fun i j hij => h (some i) (some j) hij, ?_⟩
+      exact h (some r) none rfl
+  have hchoice :
+      (if (∀ i j, b i = b j → τ (some i) = τ (some j)) ∧
+        τ (some r) = τ none then (1 : ℝ) else 0) =
+      if ∀ x y : Option I,
+        (fun o : Option I => o.elim (b r) b) x =
+          (fun o : Option I => o.elim (b r) b) y → τ x = τ y
+      then 1 else 0 := by
+    exact ite_congr (propext hiff) (fun _ => rfl) (fun _ => rfl)
+  rw [← hchoice]
+  by_cases hc : ∀ i j, b i = b j → τ (some i) = τ (some j) <;>
+    by_cases hr : τ (some r) = τ none <;> simp [hc, hr]
+
+/-- The fresh-replica overlap series is the product of power sums with
+one extra replica in the block containing `r`. -/
+theorem tsum_partition_overlap_fresh_eq_powerSums {I K α : Type*}
+    [Fintype I] [Fintype K] [DecidableEq K] [DecidableEq α]
+    (b : I → K) (hb : Function.Surjective b) (r : I)
+    {w : α → ℝ} (hw0 : ∀ a, 0 ≤ w a) (hws : Summable w)
+    (hw : ∑' a, w a = 1) :
+    (∑' τ : Option I → α, (∏ o, w (τ o)) *
+      ((∏ i : I, ∏ j : I, if b i = b j then
+        (if τ (some i) = τ (some j) then (1 : ℝ) else 0) else 1) *
+        (if τ (some r) = τ none then 1 else 0))) =
+      ∏ m : K, ∑' a, w a ^
+        Fintype.card {o : Option I // o.elim (b r) b = m} := by
+  have hext : Function.Surjective (fun o : Option I => o.elim (b r) b) := by
+    intro m
+    obtain ⟨i, hi⟩ := hb m
+    exact ⟨some i, hi⟩
+  simp_rw [partition_overlap_fresh_indicator b]
+  exact tsum_prod_pi_fiber_eq (fun o : Option I => o.elim (b r) b)
+    hext hw0 hws hw
+
 /-- Pass a random sequence supported almost surely on the compact simplex to a
 measurable simplex-valued version, preserving its law and integrals of observables. -/
 theorem exists_measurable_poissonDirichletSimplex_version
