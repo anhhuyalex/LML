@@ -318,6 +318,7 @@ public import LeanMachineLearning.SpinGlasses.AsymptoticGibbsMeasure
 public import LeanMachineLearning.SpinGlasses.Basic
 public import LeanMachineLearning.SpinGlasses.CascadeFiniteness
 public import LeanMachineLearning.SpinGlasses.CascadeGeometry
+public import LeanMachineLearning.SpinGlasses.CascadeMarked
 public import LeanMachineLearning.SpinGlasses.CascadeTree
 public import LeanMachineLearning.SpinGlasses.Concentration
 public import LeanMachineLearning.SpinGlasses.DeFinetti

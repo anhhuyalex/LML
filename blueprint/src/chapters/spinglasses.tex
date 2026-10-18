@@ -4557,6 +4557,7 @@ sum estimate equivalent to the missing finiteness conclusion.
         SpinGlasses.ae_cascadeRoot_active_injective,
         SpinGlasses.ae_tsum_rankedRoot_eq_lintegral,
         SpinGlasses.lintegral_rankedRoot_marked_campbell,
+        SpinGlasses.lintegral_zetaPoissonMeasure_mul_ennreal,
         SpinGlasses.ae_cascadeRankedMass_lt_top_of_marked_step,
         SpinGlasses.ae_cascadeRankedMass_div_probability_of_marked_step}
   \leanok
@@ -4596,8 +4597,10 @@ block laws. The rank equivalence is only pointwise, not a measurable permutation
 Combining this reindexing with independent-mark Tonelli and root Campbell
 proves the expected marked-sum identity for every measurable nonnegative
 two-variable test and every common probability law of the independent marks.
-The power-law intensity scaling, normalization by the mark moment, the
-depth-two case, and unconditional Lemma~2.4 remain open.
+The dilation identity for a strictly positive finite extended-nonnegative
+mark is formalized using homogeneity of the zeta intensity. Its extension
+under the mark law (including zero and infinite marks), normalization by the
+mark moment, the depth-two case, and unconditional Lemma~2.4 remain open.
 No rescaled Poisson-sum law is required by the proposed first-moment moment
 induction.
 The child mass is
