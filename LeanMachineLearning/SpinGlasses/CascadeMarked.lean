@@ -12,7 +12,8 @@ public import LeanMachineLearning.SpinGlasses.PoissonDirichletTransform
 # Independently marked ranked Poisson cascade roots
 
 Marked Tonelli, rank-to-counting-measure reindexing and the root Campbell formula.
-The all-depth fractional-moment argument is not yet complete.
+The normalized positive-support Campbell formula is established for abstract independent
+marks with a finite prescribed moment; its application to all cascade depths remains open.
 -/
 
 @[expose] public section
@@ -439,20 +440,6 @@ theorem lintegral_zetaPoissonMeasure_normalized_marks_positive
     (ENNReal.rpow_pos_of_nonneg (pos_iff_ne_zero.mpr hc0) hζ.le))
     (ENNReal.rpow_ne_top_of_nonneg hζ.le hcfin), one_mul]
 
-/-- On the positive support of the zeta intensity, conversion of a scaled
-extended-nonnegative mass to a real atom commutes with real multiplication. -/
-theorem ae_zetaPoissonMeasure_toReal_mul_div
-    (ζ : ℝ) (t c : ENNReal) :
-    ∀ᵐ x ∂zetaPoissonMeasure ζ,
-      (ENNReal.ofReal x * t / c).toReal = x * (t / c).toReal := by
-  have hpos : ∀ᵐ x ∂zetaPoissonMeasure ζ, x ∈ Set.Ioi (0 : ℝ) := by
-    rw [ae_iff]
-    change (zetaPoissonMeasure ζ) (Set.Ioi (0 : ℝ))ᶜ = 0
-    rw [Set.compl_Ioi]
-    exact zetaPoissonMeasure_Iic_zero ζ
-  filter_upwards [hpos] with x hx
-  rw [mul_div_assoc, ENNReal.toReal_mul, ENNReal.toReal_ofReal hx.le]
-
 /-- The normalized positive-test Campbell identity for an independently marked
 ranked root, without requiring the marked total to be finite. -/
 theorem lintegral_rankedRoot_normalized_marked_positive
@@ -500,5 +487,100 @@ theorem lintegral_rankedRoot_normalized_marked_positive
       ((zetaPoissonMeasure ζ).prod τ))]
   exact lintegral_zetaPoissonMeasure_normalized_marks_positive hζ τ hfinite
     c hc0 hcfin hmoment f hf hf0
+
+/-- Campbell's formula for the one-point-per-rank counting measure on positive tests.
+The identity needs no assumption that the sum of marked masses is finite. -/
+theorem lintegral_rankedRoot_normalized_counting_positive
+    [IsProbabilityMeasure P] {ζ : ℝ} (hζ : 0 < ζ) (hζ1 : ζ < 1)
+    (nu : ℕ → Measure ℝ) [∀ k, IsProbabilityMeasure (nu k)]
+    (rate : ℕ → NNReal) (B : ℕ → Ω → ℕ × (ℕ → ℝ))
+    (hBm : ∀ k, Measurable (B k)) (hB : iIndepFun B P)
+    (hlaw : ∀ k, HasLaw (B k)
+      ((Po(rate k)).prod (Measure.infinitePi fun _ : ℕ => nu k)) P)
+    (hmu : zetaPoissonMeasure ζ = Measure.sum fun k => (rate k : ENNReal) • nu k)
+    (T : Ω → ℕ → ENNReal) (hTm : Measurable T)
+    (hind : IndepFun (fun ω => fun k => B k ω) T P)
+    (τ : Measure ENNReal) [IsProbabilityMeasure τ]
+    (hTlaw : ∀ n, HasLaw (fun ω => T ω n) τ P)
+    (hfinite : ∀ᵐ t ∂τ, t ≠ ∞)
+    (c : ENNReal) (hc0 : c ≠ 0) (hcfin : c ≠ ∞)
+    (hmoment : ∫⁻ t, t ^ ζ ∂τ = c ^ ζ)
+    (f : ℝ → ENNReal) (hf : Measurable f) (hf0 : f 0 = 0) :
+    (∫⁻ ω, ∫⁻ x, f x ∂poissonCountingMeasure (fun _ => 1)
+      (fun n _ => (nthLargestAtom n (poissonCountingMeasure
+        (fun k => (B k ω).1) (fun k l => (B k ω).2 l)) * T ω n / c).toReal) ∂P) =
+      ∫⁻ x, f x ∂zetaPoissonMeasure ζ := by
+  have hsingle (ω : Ω) := lintegral_poissonCountingMeasure_singletons
+    (fun n => (nthLargestAtom n (poissonCountingMeasure
+      (fun k => (B k ω).1) (fun k l => (B k ω).2 l)) * T ω n / c).toReal) hf
+  rw [show (∫⁻ ω, ∫⁻ x, f x ∂poissonCountingMeasure (fun _ => 1)
+      (fun n _ => (nthLargestAtom n (poissonCountingMeasure
+        (fun k => (B k ω).1) (fun k l => (B k ω).2 l)) * T ω n / c).toReal) ∂P) =
+      ∫⁻ ω, ∑' n, f ((nthLargestAtom n (poissonCountingMeasure
+        (fun k => (B k ω).1) (fun k l => (B k ω).2 l)) * T ω n / c).toReal) ∂P
+    from lintegral_congr fun ω => hsingle ω]
+  exact lintegral_rankedRoot_normalized_marked_positive hζ hζ1 nu rate B hBm hB
+    hlaw hmu T hTm hind τ hTlaw hfinite c hc0 hcfin hmoment f hf hf0
+
+/-- The two first-moment tests needed for the fractional-moment bound, for an
+independently marked ranked root with normalized mark moment. -/
+theorem lintegral_rankedRoot_normalized_two_tests
+    [IsProbabilityMeasure P] {ζ a : ℝ}
+    (hζ : 0 < ζ) (ha0 : 0 < a) (haζ : a < ζ) (hζ1 : ζ < 1)
+    (nu : ℕ → Measure ℝ) [∀ k, IsProbabilityMeasure (nu k)]
+    (rate : ℕ → NNReal) (B : ℕ → Ω → ℕ × (ℕ → ℝ))
+    (hBm : ∀ k, Measurable (B k)) (hB : iIndepFun B P)
+    (hlaw : ∀ k, HasLaw (B k)
+      ((Po(rate k)).prod (Measure.infinitePi fun _ : ℕ => nu k)) P)
+    (hmu : zetaPoissonMeasure ζ = Measure.sum fun k => (rate k : ENNReal) • nu k)
+    (T : Ω → ℕ → ENNReal) (hTm : Measurable T)
+    (hind : IndepFun (fun ω => fun k => B k ω) T P)
+    (τ : Measure ENNReal) [IsProbabilityMeasure τ]
+    (hTlaw : ∀ n, HasLaw (fun ω => T ω n) τ P)
+    (hfinite : ∀ᵐ t ∂τ, t ≠ ∞)
+    (c : ENNReal) (hc0 : c ≠ 0) (hcfin : c ≠ ∞)
+    (hmoment : ∫⁻ t, t ^ ζ ∂τ = c ^ ζ) :
+    (∫⁻ ω, ∫⁻ x in Set.Ioo (0 : ℝ) 1, ENNReal.ofReal x
+      ∂poissonCountingMeasure (fun _ => 1)
+        (fun n _ => (nthLargestAtom n (poissonCountingMeasure
+          (fun k => (B k ω).1) (fun k l => (B k ω).2 l)) * T ω n / c).toReal) ∂P) =
+      ENNReal.ofReal (ζ / (1 - ζ)) ∧
+    (∫⁻ ω, ∫⁻ x, (Set.Ici (1 : ℝ)).indicator
+      (fun y => ENNReal.ofReal y ^ a) x
+      ∂poissonCountingMeasure (fun _ => 1)
+        (fun n _ => (nthLargestAtom n (poissonCountingMeasure
+          (fun k => (B k ω).1) (fun k l => (B k ω).2 l)) * T ω n / c).toReal) ∂P) =
+      ENNReal.ofReal (ζ / (ζ - a)) := by
+  have hs : Measurable ((Set.Ioo (0 : ℝ) 1).indicator ENNReal.ofReal) :=
+    ENNReal.measurable_ofReal.indicator measurableSet_Ioo
+  have hl : Measurable ((Set.Ici (1 : ℝ)).indicator
+      (fun y => ENNReal.ofReal y ^ a)) :=
+    (ENNReal.measurable_ofReal.pow_const a).indicator measurableSet_Ici
+  constructor
+  · have h := lintegral_rankedRoot_normalized_counting_positive hζ hζ1 nu rate B
+      hBm hB hlaw hmu T hTm hind τ hTlaw hfinite c hc0 hcfin hmoment
+      _ hs (by simp [Set.indicator])
+    simp only [lintegral_indicator measurableSet_Ioo] at h
+    rw [h, ← lintegral_indicator measurableSet_Ioo]
+    have hp : (∫⁻ x, (Set.Ioo (0 : ℝ) 1).indicator ENNReal.ofReal x
+        ∂zetaPoissonMeasure ζ) =
+        ∫⁻ x, (Set.Ioo (0 : ℝ) 1).indicator
+          (fun y => ENNReal.ofReal y ^ (1 : ℝ)) x ∂zetaPoissonMeasure ζ := by
+      congr 1
+      funext x
+      simp only [ENNReal.rpow_one]
+    rw [hp, lintegral_zetaPoissonMeasure_indicator_rpow hζ.le zero_le_one
+      measurableSet_Ioo Set.Ioo_subset_Ioi_self]
+    rw [show (1 : ℝ) - 1 - ζ = -ζ by ring]
+    have hi : IntegrableOn (fun x : ℝ => ζ * x ^ (-ζ)) (Set.Ioo 0 1) :=
+      ((intervalIntegral.integrableOn_Ioo_rpow_iff
+        (by norm_num : (0 : ℝ) < 1)).2 (by linarith : -1 < -ζ)).const_mul ζ
+    rw [← ofReal_integral_eq_lintegral_ofReal hi, integral_Ioo_zeta_rpow hζ1]
+    filter_upwards [ae_restrict_mem measurableSet_Ioo] with x hx
+    exact mul_nonneg hζ.le (Real.rpow_nonneg hx.1.le _)
+  · have h := lintegral_rankedRoot_normalized_counting_positive hζ hζ1 nu rate B
+      hBm hB hlaw hmu T hTm hind τ hTlaw hfinite c hc0 hcfin hmoment
+      _ hl (by simp [Set.indicator])
+    exact h.trans (lintegral_zetaPoissonMeasure_Ici_rpow hζ ha0.le haζ)
 
 end SpinGlasses

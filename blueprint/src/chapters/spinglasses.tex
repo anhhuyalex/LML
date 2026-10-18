@@ -4510,6 +4510,30 @@ integral of a zeta-Poisson counting measure, then use the depth-one mass
 recursion and the assumed equality of the two sums.
 \end{proof}
 
+\begin{remark}[Checked first-moment reduction toward Lemma 2.4]
+  \lean{SpinGlasses.lintegral_poisson_sum_rpow_le_of_two_tests,
+        SpinGlasses.lintegral_rankedRoot_normalized_marked_positive,
+        SpinGlasses.lintegral_rankedRoot_normalized_counting_positive,
+        SpinGlasses.lintegral_rankedRoot_normalized_two_tests}
+For a probability measure $P$, $0<a<\zeta<1$, a measurable random atomic
+counting measure $M$, and the two Campbell identities for
+$x\mathbf{1}_{0<x<1}$ and $x^a\mathbf{1}_{x\geq1}$, the first declaration
+bounds the $a$-moment of the positive total mass. The second declaration
+applies to independent ranked root atoms and identically distributed
+extended-nonnegative marks with probability law $\tau$; it assumes
+that $\tau$-almost every mark is finite and that a constant $0<c<\infty$
+satisfies $\int t^\zeta\,d\tau=c^\zeta$. For every measurable test $f$
+with $f(0)=0$, the expected sum of $f((u_nT_n/c).\mathrm{toReal})$
+equals its integral against the $\zeta$-Poisson intensity. These assumptions
+do not assert finiteness of the marked sum. The third declaration expresses
+this identity as an integral against one Dirac atom per rank. The fourth
+computes precisely the two small- and large-mass test integrals needed by
+the first declaration, without assuming finiteness of the marked sum.
+Constructing $c$ from the shifted-subtree moment, applying the two-test bound
+to the cascade, and the all-depth induction remain unformalized; this is not
+Lemma 2.4.
+\end{remark}
+
 \begin{remark}[Full target for Lemma 2.4]
 For every depth $r$, let $P$ be a probability measure and let all the measurable
 vertex-indexed Poisson blocks $B_{(p,\gamma),k}$ be jointly independent, with
@@ -4605,8 +4629,9 @@ tests vanishing at zero, its mark-law integral is also established for finite
 marks that may equal zero; the law need not have a finite power moment.
 For a positive finite scaling constant whose zeta power equals the finite
 mark moment, the normalized intensity identity is proved for tests vanishing
-at zero. Proving that the actual subtree law has the required finite moment,
-converting this identity into the counting-measure Campbell formula, the
+at zero. Its counting-measure form (one atom per rank) and the two precise
+tests required by Lemma~2.1 are also checked. Proving that the actual subtree
+law has the required finite moment, applying the moment estimate, the
 depth-two case, and unconditional Lemma~2.4 remain open. The corresponding
 identity for arbitrary tests is false if the law has a zero mark: infinitely
 many zero atoms then contribute to a test nonzero at zero.
@@ -4632,9 +4657,9 @@ masses. A companion lemma reindexes arbitrary nonnegative tests on extended
 ranked atom masses; another identifies the integral of a measurable test
 against one Dirac point per block with the series of its values. These results
 are deterministic; the rank equivalence is only pointwise, not a measurable
-random permutation. Independent-mark Campbell is established before intensity
-rescaling; the normalized first-moment identity for the scaled real-valued
-marked measure, the depth-two case, and the moment induction remain unformalized.
+random permutation. Independent-mark Campbell and the normalized first-moment identity for
+positive tests on the scaled real-valued marked measure are established;
+the depth-two case and the moment induction remain unformalized.
 \emph{This is not the unconditional Lemma 2.4:} the assumed marked-sum estimate
 is precisely the missing probabilistic step. In particular, the displayed
 hypotheses now include independence of blocks across different vertices,
