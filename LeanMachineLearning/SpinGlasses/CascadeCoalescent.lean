@@ -43,7 +43,8 @@ theorem nthLargestAtom_poissonCountingMeasure_rpow (b : ℕ → ℕ × (ℕ → 
     (b q.1.1).2 q.1.2) hinj hpos hs he hs' m
 
 /-- **Powers of Poisson blocks.** Applying `x ↦ x ^ e` to every point of an independent family of
-Poisson blocks `Po(rateₖ) ⊗ νₖ^{⊗ℕ}` gives the family of blocks with the sample laws `νₖ.map (· ^ e)`. -/
+Poisson blocks `Po(rateₖ) ⊗ νₖ^{⊗ℕ}` gives the family of blocks with the sample laws
+`νₖ.map (· ^ e)`. -/
 theorem map_infinitePi_blocks_rpow (nu : ℕ → Measure ℝ) [∀ k, IsProbabilityMeasure (nu k)]
     (rate : ℕ → ℝ≥0) (e : ℝ) :
     (Measure.infinitePi fun k => Po(rate k).prod (Measure.infinitePi fun _ : ℕ => nu k)).map
@@ -128,7 +129,7 @@ theorem cascade_power_model (hζ0 : ∀ p, 0 < ζ p) (he : ∀ p, 0 < e p)
       poissonIntensity_map _ _ (by fun_prop : Measurable fun x : ℝ => x ^ e p)]
 
 /-- The blocks of a vertex have the product law (the first marginal of the vertex law). -/
-theorem map_blocks_eq_of_hasLaw {B : Measure (ℕ → ℕ × (ℕ → ℝ))} [IsProbabilityMeasure B]
+theorem map_blocks_eq_of_hasLaw {B : Measure (ℕ → ℕ × (ℕ → ℝ))}
     {G : Measure (ℕ → ℝ)} [IsProbabilityMeasure G] {X : Ω → (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℝ)}
     (hX : HasLaw X (B.prod G) P) : P.map (fun ω => (X ω).1) = B := by
   rw [show (fun ω => (X ω).1) = Prod.fst ∘ X from rfl,
@@ -183,8 +184,8 @@ theorem ae_cascade_power_atoms (hζ0 : ∀ p, 0 < ζ p) (hζ1 : ∀ p, ζ p < 1)
 Let `e p = e₀` and `ζ_p < e₀` for the levels `p < r`. Almost surely, for every depth `r' ≤ r` and
 every leaf `α ∈ ℕ^{r'}`, the weight of `α` in the cascade built from the powered data `D'` (whose
 blocks have exponents `ζ_p / e₀`, see `cascade_power_model`) is the `e₀`-th power of its weight in
-the cascade built from `D`. Hence the normalized weights `w_α ^ e / ∑_β w_β ^ e` are the normalized weights of
-a Ruelle cascade with the exponents `ζ_p / e`. -/
+the cascade built from `D`. Hence the normalized weights `w_α ^ e / ∑_β w_β ^ e` are the
+normalized weights of a Ruelle cascade with the exponents `ζ_p / e`. -/
 theorem ae_cascade_power_weights (u u' : Ω → (p : ℕ) → (Fin p → ℕ) → ℕ → ℝ≥0∞)
     (hζ0 : ∀ p, 0 < ζ p) (hζ1 : ∀ p, ζ p < 1) (he : ∀ p, 0 < e p) (r : ℕ) (e₀ : ℝ) (he₀ : 0 < e₀)
     (hec : ∀ p < r, e p = e₀) (hr : ∀ p < r, ζ p < e p)

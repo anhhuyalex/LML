@@ -31,9 +31,10 @@ namespace SpinGlasses
 
 variable {Γ : Type*} [MeasurableSpace Γ]
 
-/-- **The intensity of the superposition.** Scaling the `ζ`-Poisson intensity by `w_γ` and marking
-by `γ`, then summing over `γ`, is the product of `λ μ_ζ` with the probability `Λ = (w_γ^ζ / λ)_γ`. -/
-theorem marked_intensity_eq [Countable Γ] [MeasurableSingletonClass Γ] {e : ℝ} (he : 0 < e)
+/-- **The intensity of the superposition.** Scaling the `ζ`-Poisson intensity by `w_γ` and
+marking by `γ`, then summing over `γ`, is the product of `λ μ_ζ` with the probability
+`Λ = (w_γ^ζ / λ)_γ`. -/
+theorem marked_intensity_eq [Countable Γ] {e : ℝ} (he : 0 < e)
     (nu : ℕ → Measure ℝ) (rate : ℕ → ℝ≥0)
     (hmu : zetaPoissonMeasure e = Measure.sum fun k => (rate k : ℝ≥0∞) • nu k)
     (w : Γ → ℝ) (hw : ∀ γ, 0 < w γ) {c : ℝ} (hc : 0 < c) (hce : c ^ e = ∑' γ, w γ ^ e)
@@ -71,8 +72,8 @@ theorem marked_intensity_eq [Countable Γ] [MeasurableSingletonClass Γ] {e : �
       zetaPoissonMeasure_map_mul he hc, Measure.prod_smul_left, hΛ, Measure.prod_sum_right,
       hsm]
     refine congrArg Measure.sum (funext fun γ => ?_)
-    rw [Measure.prod_smul_right, Measure.prod_dirac, smul_smul, ← ENNReal.ofReal_mul (by positivity),
-      hce]
+    rw [Measure.prod_smul_right, Measure.prod_dirac, smul_smul,
+      ← ENNReal.ofReal_mul (by positivity), hce]
     congr 2
     field_simp
   rw [hL, hR]

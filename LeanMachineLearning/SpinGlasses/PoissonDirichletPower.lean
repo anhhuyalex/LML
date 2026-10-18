@@ -36,7 +36,7 @@ theorem zetaPoissonMeasure_map_rpow {ζ e : ℝ} (hζ : 0 < ζ) (he : 0 < e) :
     ext y
     refine ⟨fun ⟨x, hx, hxy⟩ => hxy ▸ Real.rpow_pos_of_pos hx e, fun hy => ⟨y ^ e⁻¹,
       Real.rpow_pos_of_pos hy _, ?_⟩⟩
-    show (y ^ e⁻¹) ^ e = y
+    change (y ^ e⁻¹) ^ e = y
     rw [← Real.rpow_mul hy.le, inv_mul_cancel₀ he.ne', Real.rpow_one]
   have hinj : InjOn (fun x : ℝ => x ^ e) (Ioi 0) := fun x hx y hy hxy => by
     have := congrArg (fun z => z ^ e⁻¹) hxy
