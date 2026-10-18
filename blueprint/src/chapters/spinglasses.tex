@@ -4351,3 +4351,86 @@ Using $\mathbb E\langle f\,g_1\rangle_1=\zeta\,\mathbb E\langle f\rangle_1$ (fro
 \texttt{GaussianIBPCountable.lean} & Gaussian integration by parts on a countable set \\
 \end{tabular}
 \end{center}
+
+\section{Ruelle probability cascades: tree and geometry (Section~2.3)}\label{sec:sg:cascade}
+
+At depth $r\ge0$ a leaf is a function $\alpha:\mathrm{Fin}\,r\to\mathbb N$.
+Its prefix of length $p\le r$ is its restriction to $\mathrm{Fin}\,p$.
+The overlap $\alpha\wedge\beta$ is the largest number of initial coordinates
+on which the two leaves agree, with values in $\mathrm{Fin}(r+1)$.
+These deterministic statements do not assume a Poisson construction.
+
+\begin{lemma}[Common-prefix ultrametric]\label{lem:sg:cascade-prefix}
+  \lean{SpinGlasses.cascadePrefix_eq_iff_le_overlap,
+        SpinGlasses.prefixOverlap_self, SpinGlasses.prefixOverlap_comm,
+        SpinGlasses.prefixOverlap_min_le}
+  \leanok
+For any leaves $\alpha,\beta,\gamma$, the overlap is symmetric, equals $r$
+on the diagonal, and $\alpha\wedge\beta\ge
+\min(\alpha\wedge\gamma,\beta\wedge\gamma)$.
+Moreover two prefixes of length $p$ agree exactly when $p\le\alpha\wedge\beta$.
+\end{lemma}
+\begin{proof}
+  \leanok
+Every prefix that agrees in two comparisons with a common third leaf agrees in
+the comparison between the first two. Maximality of the common prefix proves the claim.
+\end{proof}
+
+\begin{lemma}[Deterministic branch products and normalization]\label{lem:sg:cascade-mass}
+  \lean{SpinGlasses.cascadeBranchWeight_zero,
+        SpinGlasses.cascadeBranchWeight_snoc,
+        SpinGlasses.cascadeBranchWeight_pos_finite,
+        SpinGlasses.cascadeTotalMass_zero,
+        SpinGlasses.cascadeTotalMass_succ,
+        SpinGlasses.measurable_cascadeTotalMass,
+        SpinGlasses.tsum_cascadeProbabilityWeight,
+        SpinGlasses.cascadeProbabilityWeight_pos_finite,
+        SpinGlasses.cascadeProbabilityWeight_probability}
+  \leanok
+For arbitrary extended-nonnegative branch masses $u_{p,\alpha,n}$ define the
+leaf weight as the product along its path, the total mass as the sum over
+leaves, and the normalized weight as the quotient by the total mass. The
+root weight and total mass are $1$; appending child $n$ multiplies the parent
+weight by $u_{p,\alpha,n}$. At depth $r+1$, the total mass is the sum over
+parents of their weights times the sum of their child masses. For measurable
+branch masses this total is measurable. If every branch mass is positive and
+finite and the total mass is finite, the normalized weights are positive,
+finite, and sum to $1$; the nonzero
+total mass follows automatically. These are deterministic results: they do
+\emph{not} assert almost-sure finiteness or positivity for Poisson
+branches; Panchenko's Lemma~2.4 is not yet formalized.
+\end{lemma}
+\begin{proof}
+  \leanok
+Decompose a leaf into its parent and last label with \texttt{Fin.snocEquiv};
+Tonelli for extended-nonnegative series gives the parent-child sum.
+Distribute the common denominator over the total mass for normalization.
+\end{proof}
+
+\begin{theorem}[Gram and ultrametric geometry of cascade points]\label{thm:sg:cascade-geometry}
+  \lean{SpinGlasses.inner_cascadePoint_eq_sum,
+        SpinGlasses.inner_cascadePoint_eq,
+        SpinGlasses.norm_cascadePoint_sq,
+        SpinGlasses.norm_sub_cascadePoint_sq,
+        SpinGlasses.norm_sub_cascadePoint_le_max}
+  \leanok
+Let $H$ be a real inner product space and let $e$ be an orthonormal family
+indexed by the non-root prefix vertices at depths $1$ through $r$.
+For a monotone function $q:\mathrm{Fin}(r+1)\to\mathbb R$ with $q_0=0$, set
+$h_\alpha=\sum_{p=1}^r\sqrt{q_p-q_{p-1}}\,e_{\alpha|_p}$.
+Then $\langle h_\alpha,h_\beta\rangle=q_{\alpha\wedge\beta}$,
+$\|h_\alpha\|^2=q_r$, and
+$\|h_\alpha-h_\beta\|^2=2(q_r-q_{\alpha\wedge\beta})$.
+Consequently
+$\|h_\beta-h_\gamma\|\le
+\max(\|h_\alpha-h_\beta\|,\|h_\alpha-h_\gamma\|)$.
+No particular Hilbert-space model or orthonormal basis is constructed; the
+family is an explicit hypothesis. Strict monotonicity is not needed here.
+\end{theorem}
+\begin{proof}
+  \leanok
+Orthonormality retains exactly the equal-prefix terms of the double inner
+product sum, which telescope to the overlap parameter. Expanding the
+squared norm of a difference and applying the common-prefix inequality
+gives the distance formula and the ultrametric inequality.
+\end{proof}
