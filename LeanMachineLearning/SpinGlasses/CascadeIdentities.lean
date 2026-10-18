@@ -150,6 +150,22 @@ theorem ae_tiltedMass_pos_finite (hζ0 : ∀ p, 0 < ζ p) (hζ1 : ∀ p, ζ p < 
   filter_upwards [hnull 0 hae'.1, hnull ∞ hae'.2] with ω h0 h1
   refine ⟨fun h => h0 (by rw [h, mul_zero]), fun h => h1 (by rw [h, ENNReal.mul_top hc0])⟩
 
+/-- The total mass of the cascade is almost surely positive and finite, in terms of the atoms
+`u ω`. -/
+theorem ae_cascadeMass_pos_finite_omega (hζ0 : ∀ p, 0 < ζ p) (hζ1 : ∀ p, ζ p < 1)
+    (hmono : StrictMono ζ)
+    (hmu : ∀ p, zetaPoissonMeasure (ζ p) = Measure.sum fun k => (rate p k : ℝ≥0∞) • nu p k)
+    (h𝔡 : ∀ p, 𝔡 p = (Measure.infinitePi fun k =>
+      Po(rate p k).prod (Measure.infinitePi fun _ : ℕ => nu p k)).prod
+        (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1))
+    (hDm : ∀ v, Measurable (D v)) (hD : iIndepFun D P) (hDlaw : ∀ v, HasLaw (D v) (𝔡 v.1) P)
+    (hu : u = fun ω p γ m => nthLargestAtom m (poissonCountingMeasure
+      (fun k => ((D ⟨p, γ⟩ ω).1 k).1) (fun k l => ((D ⟨p, γ⟩ ω).1 k).2 l))) :
+    ∀ᵐ ω ∂P, (∑' α : Fin r → ℕ, cascadeBranchWeight (u ω) α) ≠ 0 ∧
+      (∑' α : Fin r → ℕ, cascadeBranchWeight (u ω) α) < ∞ := by
+  subst hu
+  exact ae_cascadeMass_pos_finite (P := P) r ζ hζ0 hζ1 hmono nu rate hmu 𝔡 h𝔡 D hDm hD hDlaw
+
 /-- The expected Gibbs series of a bounded pattern observable through the positive and negative
 parts of the observable. -/
 theorem integral_cascadeSeries_eq (hζ0 : ∀ p, 0 < ζ p) (hζ1 : ∀ p, ζ p < 1)
@@ -303,7 +319,8 @@ theorem integral_cascadeEnergy (hζ0 : ∀ p, 0 < ζ p) (hζ1 : ∀ p, ζ p < 1)
     rw [ae_all_iff]
     exact fun i => (ae_lt_top' (hmp i) (hsym i).2.ne).and (ae_lt_top' (hmn i) (hfin i))
       |>.mono fun ω h => ⟨h.1.ne, h.2.ne⟩
-  have hsumm : ∀ᵐ ω ∂P, Summable fun τ : Fin n → Fin r → ℕ => (∏ l, (cascadeBranchWeight (u ω) (τ l)).toReal *
+  have hsumm : ∀ᵐ ω ∂P, Summable fun τ : Fin n → Fin r → ℕ => (∏ l, (cascadeBranchWeight (u ω) (τ
+      l)).toReal *
           Real.exp (t * ∑ i : Fin r, σ i * leafLabel (lab ω) (τ l) i) /
         ∑' b : Fin r → ℕ, (cascadeBranchWeight (u ω) b).toReal *
           Real.exp (t * ∑ i : Fin r, σ i * leafLabel (lab ω) b i)) *
@@ -360,13 +377,30 @@ theorem integral_cascade_ibp (hζ0 : ∀ p, 0 < ζ p) (hζ1 : ∀ p, ζ p < 1)
     (F : (Fin n → Fin n → Fin (r + 1)) → ℝ≥0∞) (C : ℝ≥0∞) (hC : C ≠ ∞) (hf : ∀ P, F P ≤ C)
     (l₀ : Fin n) (Q : Fin (r + 1) → ℝ)
     (hQ : ∀ m, Q m = ∑ i : Fin r, if i.val < m.val then σ i ^ 2 else 0) :
+    Integrable (fun ω => ∑' τ : Fin n → Fin r → ℕ, (∏ l, (cascadeBranchWeight (u ω) (τ l)).toReal *
+          Real.exp (∑ i : Fin r, σ i * leafLabel (lab ω) (τ l) i) /
+        ∑' b : Fin r → ℕ, (cascadeBranchWeight (u ω) b).toReal *
+          Real.exp (∑ i : Fin r, σ i * leafLabel (lab ω) b i)) *
+        ((F fun l l' => prefixOverlap (τ l) (τ l')).toReal *
+          ∑ i : Fin r, σ i * leafLabel (lab ω) (τ l₀) i)) P ∧
     ∫ ω, ∑' τ : Fin n → Fin r → ℕ, (∏ l, (cascadeBranchWeight (u ω) (τ l)).toReal *
           Real.exp (∑ i : Fin r, σ i * leafLabel (lab ω) (τ l) i) /
         ∑' b : Fin r → ℕ, (cascadeBranchWeight (u ω) b).toReal *
           Real.exp (∑ i : Fin r, σ i * leafLabel (lab ω) b i)) *
         ((F fun l l' => prefixOverlap (τ l) (τ l')).toReal *
-          ∑ i : Fin r, σ i * leafLabel (lab ω) (τ l₀) i) ∂P =
-      ∫ ω, ∑' τ : Option (Fin n) → Fin r → ℕ, (∏ o, (cascadeBranchWeight (u ω) (τ o)).toReal *
+          ∑ i : Fin r, σ i * leafLabel (lab ω) (τ l₀) i) ∂P = (∑ i : Fin r, σ i ^ 2 * ζ i) * ∫ ω,
+      ∑' τ : Fin n → Fin r → ℕ, (∏ l, (cascadeBranchWeight (u ω) (τ l)).toReal *
+          Real.exp (∑ i : Fin r, σ i * leafLabel (lab ω) (τ l) i) /
+        ∑' b : Fin r → ℕ, (cascadeBranchWeight (u ω) b).toReal *
+          Real.exp (∑ i : Fin r, σ i * leafLabel (lab ω) b i)) *
+        (F fun l l' => prefixOverlap (τ l) (τ l')).toReal ∂P ∧
+    ∫ ω, ∑' τ : Fin n → Fin r → ℕ, (∏ l, (cascadeBranchWeight (u ω) (τ l)).toReal *
+          Real.exp (∑ i : Fin r, σ i * leafLabel (lab ω) (τ l) i) /
+        ∑' b : Fin r → ℕ, (cascadeBranchWeight (u ω) b).toReal *
+          Real.exp (∑ i : Fin r, σ i * leafLabel (lab ω) b i)) *
+        ((F fun l l' => prefixOverlap (τ l) (τ l')).toReal *
+          ∑ i : Fin r, σ i * leafLabel (lab ω) (τ l₀) i) ∂P = ∫ ω, ∑' τ : Option (Fin n) → Fin r →
+      ℕ, (∏ o, (cascadeBranchWeight (u ω) (τ o)).toReal *
           Real.exp (∑ i : Fin r, σ i * leafLabel (lab ω) (τ o) i) /
         ∑' b : Fin r → ℕ, (cascadeBranchWeight (u ω) b).toReal *
           Real.exp (∑ i : Fin r, σ i * leafLabel (lab ω) b i)) *
@@ -465,7 +499,8 @@ theorem integral_cascade_ibp (hζ0 : ∀ p, 0 < ζ p) (hζ1 : ∀ p, ζ p < 1)
     rw [hH1]
     simp only [hG, hg, hΦ]
     rfl
-  have hp2 : ∀ ω, ∑' τ : Option (Fin n) → Fin r → ℕ, (∏ o, (cascadeBranchWeight (u ω) (τ o)).toReal *
+  have hp2 : ∀ ω, ∑' τ : Option (Fin n) → Fin r → ℕ, (∏ o, (cascadeBranchWeight (u ω) (τ
+      o)).toReal *
           Real.exp (∑ i : Fin r, σ i * leafLabel (lab ω) (τ o) i) /
         ∑' b : Fin r → ℕ, (cascadeBranchWeight (u ω) b).toReal *
           Real.exp (∑ i : Fin r, σ i * leafLabel (lab ω) b i)) *
@@ -582,13 +617,23 @@ theorem integral_cascade_ibp (hζ0 : ∀ p, 0 < ζ p) (hζ1 : ∀ p, ζ p < 1)
       Real.exp (g α (fun v => (D v ω).2))) h1 h2 h3 fun τ => ?_
     rw [abs_mul]
     exact mul_le_mul (hM _) (hb2 τ) (abs_nonneg _) ENNReal.toReal_nonneg
-  obtain ⟨hsumE, hintE, -⟩ := integral_cascadeEnergy r ζ σ nu rate 𝔡 D u lab hζ0 hζ1 hmono hmu h𝔡
-    hDm hD hDlaw hu hlab n 1 F C hC hf l₀
-  simp only [one_mul] at hsumE hintE
-  have hI1 : Integrable (fun ω => H1 (fun v => (D v ω).1) (fun v => (D v ω).2)) P := by
-    refine (hintE.add (hI0.const_mul (∑ i : Fin r, σ i ^ 2 * ζ i))).congr ?_
+  obtain ⟨hsumE, hintE, hzeroE⟩ := integral_cascadeEnergy r ζ σ nu rate 𝔡 D u lab hζ0 hζ1 hmono
+    hmu h𝔡 hDm hD hDlaw hu hlab n 1 F C hC hf l₀
+  simp only [one_mul] at hsumE hintE hzeroE
+  have key : ∀ f : Ω → ℝ, Integrable f P → ∫ ω, f ω ∂P = 0 →
+      (∀ᵐ ω ∂P, f ω + (∑ i : Fin r, σ i ^ 2 * ζ i) *
+        H0 (fun v => (D v ω).1) (fun v => (D v ω).2) =
+        H1 (fun v => (D v ω).1) (fun v => (D v ω).2)) →
+      Integrable (fun ω => H1 (fun v => (D v ω).1) (fun v => (D v ω).2)) P ∧
+      ∫ ω, H1 (fun v => (D v ω).1) (fun v => (D v ω).2) ∂P =
+        (∑ i : Fin r, σ i ^ 2 * ζ i) * ∫ ω, H0 (fun v => (D v ω).1) (fun v => (D v ω).2) ∂P :=
+    fun f hf0 hz hae => by
+      have hI := hf0.add (hI0.const_mul (∑ i : Fin r, σ i ^ 2 * ζ i))
+      refine ⟨hI.congr hae, ?_⟩
+      rw [← integral_congr_ae hae, integral_add hf0 (hI0.const_mul _), hz, zero_add,
+        integral_const_mul]
+  obtain ⟨hI1, hEq⟩ := key _ hintE hzeroE (by
     filter_upwards [hWgood, hsumE] with ω ⟨h1, h2, h3⟩ hs
-    simp only [Pi.add_apply]
     rw [← hp1 ω, hH0]
     simp only [hGω, hgω, hΦ]
     have hsb := summable_prod_div_mul (K := Fin n) h1 h2 h3 (Φ := fun τ => (F fun l l' =>
@@ -598,8 +643,39 @@ theorem integral_cascade_ibp (hζ0 : ∀ p, 0 < ζ p) (hζ1 : ∀ p, ζ p < 1)
     simp only [hGω, hgω] at hsb
     rw [← tsum_mul_left, ← Summable.tsum_add hs (hsb.mul_left _)]
     refine tsum_congr fun τ => ?_
-    ring
-  sorry
+    ring)
+  have hF1 := IndepFun.integral_comp_pair_eq_integral_integral_map hBm hLm hind hH1m hI1
+  have hF2 := IndepFun.integral_comp_pair_eq_integral_integral_map hBm hLm hind hH2m hI2
+  rw [hLmap] at hF1 hF2
+  have hcalc : ∫ ω, H1 (fun v => (D v ω).1) (fun v => (D v ω).2) ∂P =
+      ∫ ω, H2 (fun v => (D v ω).1) (fun v => (D v ω).2) ∂P :=
+    hF1.trans ((integral_congr_ae hIBP).trans hF2.symm)
+  have e1 : (fun ω => H1 (fun v => (D v ω).1) (fun v => (D v ω).2)) = fun ω => ∑' τ :
+      Fin n → Fin r → ℕ, (∏ l, (cascadeBranchWeight (u ω) (τ l)).toReal *
+          Real.exp (∑ i : Fin r, σ i * leafLabel (lab ω) (τ l) i) /
+        ∑' b : Fin r → ℕ, (cascadeBranchWeight (u ω) b).toReal *
+          Real.exp (∑ i : Fin r, σ i * leafLabel (lab ω) b i)) *
+        ((F fun l l' => prefixOverlap (τ l) (τ l')).toReal *
+          ∑ i : Fin r, σ i * leafLabel (lab ω) (τ l₀) i) := funext fun ω => (hp1 ω).symm
+  have e2 : (fun ω => H2 (fun v => (D v ω).1) (fun v => (D v ω).2)) = fun ω => ∑' τ :
+      Option (Fin n) → Fin r → ℕ, (∏ o, (cascadeBranchWeight (u ω) (τ o)).toReal *
+          Real.exp (∑ i : Fin r, σ i * leafLabel (lab ω) (τ o) i) /
+        ∑' b : Fin r → ℕ, (cascadeBranchWeight (u ω) b).toReal *
+          Real.exp (∑ i : Fin r, σ i * leafLabel (lab ω) b i)) *
+        ((F fun l l' => prefixOverlap (τ (some l)) (τ (some l'))).toReal *
+          (∑ k : Fin n, Q (prefixOverlap (τ (some l₀)) (τ (some k))) -
+            n * Q (prefixOverlap (τ (some l₀)) (τ none)))) := funext fun ω => (hp2 ω).symm
+  have e0 : (fun ω => H0 (fun v => (D v ω).1) (fun v => (D v ω).2)) = fun ω => ∑' τ :
+      Fin n → Fin r → ℕ, (∏ l, (cascadeBranchWeight (u ω) (τ l)).toReal *
+          Real.exp (∑ i : Fin r, σ i * leafLabel (lab ω) (τ l) i) /
+        ∑' b : Fin r → ℕ, (cascadeBranchWeight (u ω) b).toReal *
+          Real.exp (∑ i : Fin r, σ i * leafLabel (lab ω) b i)) *
+        (F fun l l' => prefixOverlap (τ l) (τ l')).toReal := funext fun ω => by
+    rw [hH0]; simp only [hGω, hgω, hΦ]
+  rw [e1] at hI1 hEq hcalc
+  rw [e2] at hcalc
+  rw [e0] at hEq
+  exact ⟨hI1, hEq, hcalc⟩
 
 end Setting
 

@@ -5074,6 +5074,213 @@ the conversion of $\sum_i(P_i^+-P_i^-)$ to the real series $\sum_{\alpha_1..\alp
 \end{remark}
 
 
+\section{The Ghirlanda--Guerra identities of the Ruelle cascade (Sections~2.5--2.6 of the book)}\label{sec:sg:gg-cascade}
+
+This section proves Theorem~2.10 of the book for the Ruelle probability cascade, together with the formulas for the functional order parameter.
+We use the model and the notation of Section~\ref{sec:sg:bs-cascade}: $0<\zeta_0<\dots<\zeta_{r-1}<1$ (strictly increasing, which is needed to make the total
+mass finite), independent vertex data consisting of Poisson blocks and i.i.d.\ $N(0,1)$ labels, ranked atoms $u$ of the blocks, branch weights $w_\alpha$ and
+overlap $\alpha\wedge\beta\in\{0,\dots,r\}$ (the length of the common prefix). In Lean, $u$ and the labels are functions of $\omega$ with equations
+identifying them with the ranked atoms of the blocks and the labels of the vertex data, and the Gibbs average
+$\langle\Xi\rangle_t=\sum_{\sigma\in(\mathbb N^r)^m}\prod_{k}\frac{w_{\sigma_k}e^{tg(\sigma_k)}}{\sum_\alpha w_\alpha e^{tg(\alpha)}}\,\Xi\big((\sigma_k\wedge\sigma_{k'})_{kk'}\big)$ of a real
+function $\Xi$ of the overlap pattern of $m$ replicas is an abstract function of $\omega$ with an equation hypothesis; $\langle\cdot\rangle_0$ is the Gibbs average of the weights $w_\alpha$.
+Every function of an overlap pattern is automatically bounded because there are finitely many patterns.
+
+\emph{Not formalized.} The route of the book (Lemma~2.5 for all $k$ and the random permutation of Theorem~2.11, differentiated at $t=0$) is not followed: only the cases
+$k=0$ and $k=(1,0,\dots,0)$ of Lemma~2.5 are used (Theorems~\ref{thm:sg:lemma25-zero} and~\ref{thm:sg:lemma25-one}), together with Gaussian integration by parts at $t=1$
+(this avoids differentiating in $t$). The identities for the Poisson--Dirichlet weights (Theorem~2.7 of the book) are proved in the chapter on the Poisson--Dirichlet process.
+
+\subsection*{The Gaussian field of the leaves}
+
+\begin{theorem}[Gaussian leaf field]\label{thm:sg:leaf-field}
+  \lean{SpinGlasses.coordinate_eq_iff,
+        SpinGlasses.iIndepFun_labelArray,
+        SpinGlasses.hasLaw_labelArray,
+        SpinGlasses.isGaussianProcess_labelArray,
+        SpinGlasses.isGaussianProcess_leafField,
+        SpinGlasses.integral_leafField,
+        SpinGlasses.integral_leafField_mul,
+        SpinGlasses.isGaussianProcess_leafField_sumElim}
+  \leanok
+Let $(\ell_{v,m})$ be i.i.d.\ $N(0,1)$ indexed by the vertices $v$ of the tree and the children $m\in\mathbb N$ of $v$, and for $\sigma\in\mathbb R^{\mathbb N}$ and a leaf
+$\alpha\in\mathbb N^r$ let $g(\alpha)=\sum_{i<r}\sigma_i\,\ell_{\alpha|_i,\alpha_i}$. Then $(g(\alpha))_\alpha$ is a centred Gaussian process (jointly with a second copy of itself) with covariance
+\[
+ \mathbb E\,g(\alpha)g(\beta)=\sum_{i<\alpha\wedge\beta}\sigma_i^2 .
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+The coordinates $\ell_{v,m}$ are independent standard Gaussians, so every finite linear combination is Gaussian. The coordinate read by the $i$-th step of $\alpha$ and the coordinate read by the
+$j$-th step of $\beta$ coincide exactly when $i=j$ and $\alpha,\beta$ agree up to and including level $i$, that is when $i<\alpha\wedge\beta$ (Lean: \texttt{coordinate\_eq\_iff}); the covariance of
+two independent standard Gaussian coordinates is the identity.
+\end{proof}
+
+\begin{theorem}[Gaussian integration by parts for the Gibbs measure of the cascade, given the weights]\label{thm:sg:leaf-ibp}
+  \lean{SpinGlasses.integral_gibbs_leafField_ibp}
+  \leanok
+In the setting of Theorem~\ref{thm:sg:leaf-field} let $G_\alpha>0$ be deterministic and summable over $\alpha\in\mathbb N^r$, $Q(m)=\sum_{i<m}\sigma_i^2$, $n\ge1$,
+$\Phi$ a bounded function of $n$ replicas and $l_0\le n$. With $\langle\cdot\rangle$ the Gibbs average of the weights $G_\alpha e^{g(\alpha)}$,
+\[
+ \mathbb E\,\langle\Phi\, g(\sigma^{l_0})\rangle=\mathbb E\,\Big\langle\Phi\Big(\sum_{l\le n}Q(\sigma^{l_0}\wedge\sigma^l)-n\,Q(\sigma^{l_0}\wedge\sigma^{n+1})\Big)\Big\rangle ,
+\]
+the right side being an average over $n+1$ replicas.
+\end{theorem}
+\begin{proof}
+  \leanok
+This is the countable Gaussian integration by parts (Section~1.2 of the book, Theorem~\ref{thm:sg:lemma12}, \texttt{integral\_gibbs\_replica\_average\_gaussian\_countable}) for the pair $x=y=g$ with the covariance of
+Theorem~\ref{thm:sg:leaf-field}; the variance is bounded by $\sum_i\sigma_i^2$.
+\end{proof}
+
+\subsection*{Real forms of Lemma~2.5 and Fubini}
+
+\begin{theorem}[Lemma~2.5 for $k=0$ and $k=(1,0,\dots,0)$ in real form]\label{thm:sg:lemma25-real}
+  \lean{SpinGlasses.measurable_replicaGibbs_omega,
+        SpinGlasses.ae_cascadeMass_pos_finite_omega,
+        SpinGlasses.ae_tiltedMass_pos_finite,
+        SpinGlasses.toReal_replicaGibbs_eq_tsum,
+        SpinGlasses.toReal_replicaGibbsAt_eq_tsum,
+        SpinGlasses.summable_tsum_ne_zero_cascadeWeight,
+        SpinGlasses.tsum_cascadeSeries_eq_toReal_sub,
+        SpinGlasses.integral_cascadeSeries_eq,
+        SpinGlasses.integral_cascadeSeries_tilt,
+        SpinGlasses.toReal_ofReal_sub_toReal_ofReal_neg,
+        SpinGlasses.summable_replicaGibbsAt_series,
+        SpinGlasses.tsum_cascadeSeries_energy_eq,
+        SpinGlasses.integral_cascadeEnergy}
+  \leanok
+In the model above let $t\in\mathbb R$, $n\ge1$.
+(a) Almost surely $0<\sum_\alpha w_\alpha e^{tg(\alpha)}<\infty$.
+(b) For every real function $\Xi$ of the overlap pattern of $n$ replicas, $\mathbb E\langle\Xi\rangle_t=\mathbb E\langle\Xi\rangle_0$.
+(c) For every function $F\ge0$ of the overlap pattern bounded by $C<\infty$ and $l_0\le n$, with $b=\sum_i\sigma_i^2\zeta_i$, the Gibbs series
+$\langle F\,(g(\sigma^{l_0})-tb)\rangle_t$ converges absolutely almost surely, is integrable, and has expectation $0$.
+\end{theorem}
+\begin{proof}
+  \leanok
+(a) For one replica the total mass tilted by $g$ has, up to the constant $\exp(-\tfrac{t^2}2\sum\sigma_i^2\zeta_i)$, the law of the untilted total mass (Theorem~\ref{thm:sg:bs-replica}); the latter is positive and finite by Lemma~2.4.
+(b) Split $\Xi=\Xi^+-\Xi^-$; the Gibbs series of a bounded observable is the difference of the real parts of the $[0,\infty]$-valued Gibbs averages of $\Xi^\pm$ (Theorem~\ref{thm:sg:gibbs-series}), whose expectations do not depend on $t$ (Theorem~\ref{thm:sg:lemma25-zero}),
+and these are bounded by the bound of $\Xi$.
+(c) Write $g(\alpha)-tb=\sum_i\sigma_i(\eta_{\alpha,i}-t\sigma_i\zeta_i)$. The Gibbs series of $F\sigma_i(\eta_{\alpha_{l_0},i}-t\sigma_i\zeta_i)$ is $\mathrm{real}(P_i^+)-\mathrm{real}(P_i^-)$ with the averages $P_i^\pm$ of
+Theorem~\ref{thm:sg:lemma25-one}; they are finite almost surely and have equal finite expectations, which gives integrability and zero expectation of each level, hence of the sum.
+\end{proof}
+
+\begin{theorem}[Integrated Gaussian integration by parts]\label{thm:sg:cascade-ibp}
+  \lean{ProbabilityTheory.IndepFun.integral_comp_pair_eq_integral_integral_map,
+        SpinGlasses.measurable_tsum_prod_div_mul,
+        SpinGlasses.tsum_option_fin_eq,
+        SpinGlasses.integral_cascade_ibp}
+  \leanok
+In the model above let $F\ge0$ be a function of the overlap pattern of $n$ replicas bounded by $C<\infty$, $l_0\le n$, and $Q(m)=\sum_{i<m}\sigma_i^2$. With $\langle\cdot\rangle$ the Gibbs average of the weights
+$w_\alpha e^{g(\alpha)}$, the Gibbs series $\langle F\,g(\sigma^{l_0})\rangle$ is integrable, and
+\[
+ \mathbb E\langle F\,g(\sigma^{l_0})\rangle=\Big(\sum_i\sigma_i^2\zeta_i\Big)\,\mathbb E\langle F\rangle
+ =\mathbb E\Big\langle F\Big(\sum_{l\le n}Q(\sigma^{l_0}\wedge\sigma^l)-n\,Q(\sigma^{l_0}\wedge\sigma^{n+1})\Big)\Big\rangle .
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+The blocks and the labels of the vertices are independent, and the labels are i.i.d.\ $N(0,1)$. By Fubini for independent variables
+(\texttt{integral\_comp\_pair\_eq\_integral\_integral\_map}) the expectation is the expectation over the blocks of the integral over the labels. For almost every blocks the weights $G_\alpha=w_\alpha$ are positive and summable, so Theorem~\ref{thm:sg:leaf-ibp}
+gives the second equality of the inner integrals. The first equality is Theorem~\ref{thm:sg:lemma25-real}(c): $\langle F g(\sigma^{l_0})\rangle=\langle F(g(\sigma^{l_0})-b)\rangle+b\langle F\rangle$, and the first term is integrable with expectation $0$ while
+$\langle F\rangle$ is bounded. Integrability of the left side comes from the same decomposition, integrability of the right side from the bound $|Q|\le\sum_i\sigma_i^2$. The functions of the blocks and the labels are measurable because a countable real series of measurable functions is measurable.
+Replicas indexed by $\mathrm{Option}(\mathrm{Fin}\,n)$ are identified with replicas indexed by $\mathrm{Fin}(n+1)$ (the extra replica being the last one).
+\end{proof}
+
+\subsection*{The Ghirlanda--Guerra identities and the functional order parameter}
+
+\begin{lemma}[The Gibbs series as a linear functional]\label{lem:sg:gibbs-linear}
+  \lean{SpinGlasses.exists_abs_le_pattern,
+        SpinGlasses.ae_cascadeWeights_good,
+        SpinGlasses.measurable_gibbs,
+        SpinGlasses.abs_gibbs_le,
+        SpinGlasses.integrable_gibbs,
+        SpinGlasses.gibbs_finset_sum,
+        SpinGlasses.gibbs_const_mul,
+        SpinGlasses.gibbs_congr,
+        SpinGlasses.gibbs_castSucc,
+        SpinGlasses.integral_gibbs_tilt,
+        SpinGlasses.integral_gibbs_sum_const_mul,
+        SpinGlasses.exists_gibbs_zero,
+        SpinGlasses.integral_gibbs0_sum_const_mul,
+        SpinGlasses.integral_gibbs0_sub,
+        SpinGlasses.integral_gibbs0_castSucc,
+        SpinGlasses.integral_gibbs0_one}
+  \leanok
+For every real function of the overlap pattern the Gibbs series is a measurable, integrable function of $\omega$ bounded by the bound of the function; it is additive and homogeneous in the function,
+only depends on the values of the function at patterns that are overlap patterns of leaves, does not change when a replica is added to an observable of the first $n$ replicas, has an expectation that does not depend on the tilt $t$, and
+$\mathbb E\langle1\rangle=1$. Consequently the expected Gibbs average is a linear functional of the observable.
+\end{lemma}
+\begin{proof}
+  \leanok
+Almost surely the weights $w_\alpha e^{tg(\alpha)}$ are positive and summable (Theorem~\ref{thm:sg:lemma25-real}(a)); the statements follow from the corresponding facts for Gibbs series (Theorem~\ref{thm:sg:gibbs-series}) and from Theorem~\ref{thm:sg:lemma25-real}(b).
+\end{proof}
+
+\begin{theorem}[Ghirlanda--Guerra identity for a covariance $Q$]\label{thm:sg:gg-Q}
+  \lean{SpinGlasses.ghirlandaGuerra_Q}
+  \leanok
+In the model above let $Q(m)=\sum_{i<m}\sigma_i^2$ and $b=\sum_i\sigma_i^2\zeta_i$. For a function $f\ge0$ of the overlap pattern of $n\ge1$ replicas and $l_0\le n$,
+\[
+ n\,\mathbb E\langle f\,Q(\sigma^{l_0}\wedge\sigma^{n+1})\rangle=\Big(Q(r)-b\Big)\mathbb E\langle f\rangle+\sum_{l\ne l_0}\mathbb E\langle f\,Q(\sigma^{l_0}\wedge\sigma^{l})\rangle ,
+\]
+where $\langle\cdot\rangle$ is the Gibbs average of the weights $w_\alpha$ ($n+1$ replicas on the left, $n$ replicas elsewhere) and $Q(r)=\sum_{i<r}\sigma_i^2$.
+\end{theorem}
+\begin{proof}
+  \leanok
+By Theorem~\ref{thm:sg:cascade-ibp}, $b\,\mathbb E\langle f\rangle_1=\mathbb E\langle f(\sum_lQ(\sigma^{l_0}\wedge\sigma^l)-nQ(\sigma^{l_0}\wedge\sigma^{n+1}))\rangle_1$.
+All averages are of bounded functions of the overlap pattern, so by Lemma~\ref{lem:sg:gibbs-linear} (tilt invariance) $t=1$ can be replaced by $t=0$ on both sides, the terms with $l\le n$ are averages of $n$ replicas
+(adding a replica does not change them), and the term $l=l_0$ is $Q(r)\,\mathbb E\langle f\rangle$ since $\sigma^{l_0}\wedge\sigma^{l_0}=r$ (the pattern of a leaf with itself). Rearranging gives the claim.
+\end{proof}
+
+\begin{theorem}[Ghirlanda--Guerra identity for the indicator of an overlap exceeding a level]\label{thm:sg:gg-ind}
+  \lean{SpinGlasses.ghirlandaGuerra_overlap_gt,
+        SpinGlasses.integral_gibbs0_overlap_gt}
+  \leanok
+For a level $j<r$, $n\ge1$, $f\ge0$ a function of the overlap pattern of $n$ replicas and $l_0\le n$,
+\[
+ n\,\mathbb E\langle f\,\mathbf 1\{\sigma^{l_0}\wedge\sigma^{n+1}>j\}\rangle=(1-\zeta_j)\,\mathbb E\langle f\rangle+\sum_{l\ne l_0}\mathbb E\langle f\,\mathbf 1\{\sigma^{l_0}\wedge\sigma^l>j\}\rangle ,
+\]
+and $\mathbb E\langle\mathbf 1\{\sigma^1\wedge\sigma^2>j\}\rangle=1-\zeta_j$.
+\end{theorem}
+\begin{proof}
+  \leanok
+Apply Theorem~\ref{thm:sg:gg-Q} with $\sigma_i=\mathbf 1\{i=j\}$: then $Q(m)=\mathbf 1\{j<m\}$, $Q(r)=1$ and $b=\zeta_j$. For $n=1$ and $f=1$ the sum over $l\ne l_0$ is empty and $\mathbb E\langle1\rangle=1$.
+\end{proof}
+
+\begin{theorem}[Theorem~2.10: the Ghirlanda--Guerra identities of the Ruelle probability cascade]\label{thm:sg:gg-cascade}
+  \lean{SpinGlasses.eq_add_sum_indicator,
+        SpinGlasses.integral_gibbs0_apply,
+        SpinGlasses.ghirlandaGuerra_nonneg,
+        SpinGlasses.ghirlandaGuerra}
+  \leanok
+In the model above (with $0<\zeta_0<\dots<\zeta_{r-1}<1$), let $\langle\cdot\rangle$ be the Gibbs average of the weights $w_\alpha$ of the cascade. For every $n\ge1$, every function $f$ of the overlap pattern of $n$ replicas,
+every function $\psi$ of the overlap level $\{0,\dots,r\}$ (in particular $\psi(\alpha\wedge\beta)=\psi'(q_{\alpha\wedge\beta})$ for any overlap values $q_0<\dots<q_r$) and every $l_0\le n$,
+\[
+ n\,\mathbb E\langle f\,\psi(\sigma^{l_0}\wedge\sigma^{n+1})\rangle=\mathbb E\langle f\rangle\,\mathbb E\langle\psi(\sigma^1\wedge\sigma^2)\rangle+\sum_{l\ne l_0}\mathbb E\langle f\,\psi(\sigma^{l_0}\wedge\sigma^l)\rangle .
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+Every function of the level is a combination $\psi(v)=\psi(0)+\sum_{j<r}(\psi(j+1)-\psi(j))\mathbf 1\{j<v\}$ (telescoping), and the expected Gibbs averages are linear in the observable (Lemma~\ref{lem:sg:gibbs-linear}).
+By Theorem~\ref{thm:sg:gg-ind} the identity holds for each indicator $\mathbf 1\{\cdot>j\}$ when $f\ge0$; for the constant $\psi=1$ it is the statement that adding a replica does not change the averages
+(the number of $l\ne l_0$ is $n-1$). Hence the identity holds for $f\ge0$ and every $\psi$, and for general $f=f^+-f^-$ by linearity in $f$.
+\end{proof}
+
+\begin{theorem}[The functional order parameter]\label{thm:sg:fop}
+  \lean{SpinGlasses.integral_gibbs0_overlap_apply,
+        SpinGlasses.integral_gibbs0_overlap_eq,
+        SpinGlasses.integral_gibbs0_overlap_mean}
+  \leanok
+In the model above, for every function $\psi$ of the overlap level,
+$\mathbb E\langle\psi(\sigma^1\wedge\sigma^2)\rangle=\psi(0)+\sum_{j<r}(\psi(j+1)-\psi(j))(1-\zeta_j)$. In particular, for $p\in\{0,\dots,r\}$,
+\[
+ \mathbb E\langle\mathbf 1\{\sigma^1\wedge\sigma^2=p\}\rangle=\zeta_p-\zeta_{p-1}\qquad(\zeta_{-1}=0,\ \zeta_r=1),
+\]
+so that $\zeta$ determines the law of the overlap of two replicas, and for $Q(m)=\sum_{i<m}\sigma_i^2$ the mean overlap is
+$\mathbb E\langle Q(\sigma^1\wedge\sigma^2)\rangle=\sum_i\sigma_i^2(1-\zeta_i)=Q(r)-b$.
+\end{theorem}
+\begin{proof}
+  \leanok
+The first formula is the combination of Theorem~\ref{thm:sg:gg-ind} (the case $n=1$) with the decomposition of $\psi$ in indicators. For $\psi=\mathbf 1\{\cdot=p\}$ the sum has at most two nonzero terms. For $Q$ the increments are $Q(j+1)-Q(j)=\sigma_j^2$ and $Q(0)=0$.
+\end{proof}
+
 \section{Supporting lemmas of the cascade chapters (Sections~2.3--2.5)}\label{sec:sg:cascade-support}
 
 This section records the smaller formalized results that the theorems above rely on but that were not described

@@ -133,6 +133,21 @@ theorem measurable_tsum_prod_div_mul {X : Type*} [MeasurableSpace X] [Countable 
   exact Measurable.tsum fun τ => (Finset.measurable_prod _ fun k _ => (hW (τ k)).div hZ).mul
     (hΨ τ)
 
+/-- **Replicas indexed by `Option (Fin n)` are replicas indexed by `Fin (n + 1)`** (`none` is the
+last replica). -/
+theorem tsum_option_fin_eq {n : ℕ} (Ψ : (Option (Fin n) → α) → ℝ) :
+    ∑' τ : Option (Fin n) → α, (∏ o, W (τ o) / ∑' b, W b) * Ψ τ =
+      ∑' τ : Fin (n + 1) → α, (∏ k, W (τ k) / ∑' b, W b) *
+        Ψ (fun o => τ (finSuccEquivLast.symm o)) := by
+  rw [← ((finSuccEquivLast (n := n)).arrowCongr (Equiv.refl α)).tsum_eq]
+  refine tsum_congr fun τ => ?_
+  have e : ∀ o, ((finSuccEquivLast (n := n)).arrowCongr (Equiv.refl α) τ) o =
+      τ (finSuccEquivLast.symm o) := fun o => by simp [Equiv.arrowCongr_apply]
+  have e' : ((finSuccEquivLast (n := n)).arrowCongr (Equiv.refl α) τ) =
+      fun o => τ (finSuccEquivLast.symm o) := funext e
+  simp_rw [e']
+  rw [← Equiv.prod_comp finSuccEquivLast.symm (fun k => W (τ k) / ∑' b, W b)]
+
 end GibbsSeries
 
 section Cascade

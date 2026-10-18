@@ -72,6 +72,7 @@ public import LeanMachineLearning.ForMathlib.Probability.Independence.CondIndepF
 public import LeanMachineLearning.ForMathlib.Probability.Independence.IndepFstSndInfinitePi
 public import LeanMachineLearning.ForMathlib.Probability.Independence.IndepFun
 public import LeanMachineLearning.ForMathlib.Probability.Independence.IndepInfinitePi
+public import LeanMachineLearning.ForMathlib.Probability.Independence.IntegralIndepFun
 public import LeanMachineLearning.ForMathlib.Probability.Independence.IntegralTsumMul
 public import LeanMachineLearning.ForMathlib.Probability.Independence.Nonatomic
 public import LeanMachineLearning.ForMathlib.Probability.InfinitePiZip
@@ -326,7 +327,9 @@ public import LeanMachineLearning.SpinGlasses.CascadeData
 public import LeanMachineLearning.SpinGlasses.CascadeFiniteness
 public import LeanMachineLearning.SpinGlasses.CascadeGaussianField
 public import LeanMachineLearning.SpinGlasses.CascadeGeometry
+public import LeanMachineLearning.SpinGlasses.CascadeGhirlandaGuerra
 public import LeanMachineLearning.SpinGlasses.CascadeGibbsReal
+public import LeanMachineLearning.SpinGlasses.CascadeIdentities
 public import LeanMachineLearning.SpinGlasses.CascadeInvariance
 public import LeanMachineLearning.SpinGlasses.CascadeMarked
 public import LeanMachineLearning.SpinGlasses.CascadeMoment
@@ -368,6 +371,7 @@ public import LeanMachineLearning.SpinGlasses.PoissonDirichletIdentities
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletInvariance
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletLogSum
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletMarkedLaw
+public import LeanMachineLearning.SpinGlasses.PoissonDirichletPower
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletRanked
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletRankedMarkedLaw
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletTalagrand
