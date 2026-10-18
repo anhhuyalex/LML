@@ -293,6 +293,12 @@ theorem tsum_cascadeSeries_energy_eq (ζ : ℕ → ℝ) (F : (Fin n → Fin n �
         (t * σ i * ζ i) u lab ≠ ∞ ∧
       replicaGibbsAt r n σ t F l₀ i (fun y => ENNReal.ofReal (-(σ i * y)))
         (t * σ i * ζ i) u lab ≠ ∞) :
+    Summable (fun τ : Fin n → Fin r → ℕ => (∏ l, (cascadeBranchWeight u (τ l)).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab (τ l) i) /
+        ∑' b : Fin r → ℕ, (cascadeBranchWeight u b).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab b i)) *
+        ((F fun l l' => prefixOverlap (τ l) (τ l')).toReal *
+          (∑ i : Fin r, σ i * leafLabel lab (τ l₀) i - t * ∑ i : Fin r, σ i ^ 2 * ζ i))) ∧
     ∑' τ : Fin n → Fin r → ℕ, (∏ l, (cascadeBranchWeight u (τ l)).toReal *
           Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab (τ l) i) /
         ∑' b : Fin r → ℕ, (cascadeBranchWeight u b).toReal *
@@ -311,16 +317,50 @@ theorem tsum_cascadeSeries_energy_eq (ζ : ℕ → ℝ) (F : (Fin n → Fin n �
   have s2 := fun i : Fin r => summable_replicaGibbsAt_series r n σ t u lab F l₀ i
     (fun y => ENNReal.ofReal (-(σ i * y))) (t * σ i * ζ i) ht (hA i).2
   simp_rw [e1, e2]
+  have hterm : ∀ τ : Fin n → Fin r → ℕ, (∏ l, (cascadeBranchWeight u (τ l)).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab (τ l) i) /
+        ∑' b : Fin r → ℕ, (cascadeBranchWeight u b).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab b i)) *
+        ((F fun l l' => prefixOverlap (τ l) (τ l')).toReal *
+          (∑ i : Fin r, σ i * leafLabel lab (τ l₀) i - t * ∑ i : Fin r, σ i ^ 2 * ζ i)) =
+      ∑ i : Fin r, ((∏ l, (cascadeBranchWeight u (τ l)).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab (τ l) i) /
+        ∑' b : Fin r → ℕ, (cascadeBranchWeight u b).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab b i)) *
+        ((F fun l l' => prefixOverlap (τ l) (τ l')).toReal *
+          (ENNReal.ofReal (σ i * (leafLabel lab (τ l₀) i - t * σ i * ζ i))).toReal) -
+        (∏ l, (cascadeBranchWeight u (τ l)).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab (τ l) i) /
+        ∑' b : Fin r → ℕ, (cascadeBranchWeight u b).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab b i)) *
+        ((F fun l l' => prefixOverlap (τ l) (τ l')).toReal *
+          (ENNReal.ofReal (-(σ i * (leafLabel lab (τ l₀) i - t * σ i * ζ i)))).toReal)) := by
+    intro τ
+    simp_rw [← mul_sub]
+    rw [← Finset.mul_sum, ← Finset.mul_sum]
+    congr 2
+    simp_rw [toReal_ofReal_sub_toReal_ofReal_neg]
+    rw [Finset.mul_sum, ← Finset.sum_sub_distrib]
+    refine Finset.sum_congr rfl fun i _ => ?_
+    ring
+  have hsum : Summable (fun τ : Fin n → Fin r → ℕ => ∑ i : Fin r,
+      ((∏ l, (cascadeBranchWeight u (τ l)).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab (τ l) i) /
+        ∑' b : Fin r → ℕ, (cascadeBranchWeight u b).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab b i)) *
+        ((F fun l l' => prefixOverlap (τ l) (τ l')).toReal *
+          (ENNReal.ofReal (σ i * (leafLabel lab (τ l₀) i - t * σ i * ζ i))).toReal) -
+        (∏ l, (cascadeBranchWeight u (τ l)).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab (τ l) i) /
+        ∑' b : Fin r → ℕ, (cascadeBranchWeight u b).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab b i)) *
+        ((F fun l l' => prefixOverlap (τ l) (τ l')).toReal *
+          (ENNReal.ofReal (-(σ i * (leafLabel lab (τ l₀) i - t * σ i * ζ i)))).toReal))) :=
+    summable_sum fun i _ => (s1 i).sub (s2 i)
+  refine ⟨hsum.congr fun τ => (hterm τ).symm, ?_⟩
   rw [Finset.sum_congr rfl fun i _ => (Summable.tsum_sub (s1 i) (s2 i)).symm,
     ← Summable.tsum_finsetSum fun i _ => (s1 i).sub (s2 i)]
-  refine tsum_congr fun τ => ?_
-  simp_rw [← mul_sub]
-  rw [← Finset.mul_sum, ← Finset.mul_sum]
-  congr 2
-  simp_rw [toReal_ofReal_sub_toReal_ofReal_neg]
-  rw [Finset.mul_sum, ← Finset.sum_sub_distrib]
-  refine Finset.sum_congr rfl fun i _ => ?_
-  ring
+  exact tsum_congr hterm
 
 end Cascade
 

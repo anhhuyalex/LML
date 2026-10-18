@@ -250,6 +250,12 @@ theorem integral_cascadeEnergy (hζ0 : ∀ p, 0 < ζ p) (hζ1 : ∀ p, ζ p < 1)
     (hlab : lab = fun ω p γ k => (D ⟨p, γ⟩ ω).2 k) (n : ℕ) (t : ℝ)
     (F : (Fin n → Fin n → Fin (r + 1)) → ℝ≥0∞) (C : ℝ≥0∞) (hC : C ≠ ∞) (hf : ∀ P, F P ≤ C)
     (l₀ : Fin n) :
+    (∀ᵐ ω ∂P, Summable fun τ : Fin n → Fin r → ℕ => (∏ l, (cascadeBranchWeight (u ω) (τ l)).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel (lab ω) (τ l) i) /
+        ∑' b : Fin r → ℕ, (cascadeBranchWeight (u ω) b).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel (lab ω) b i)) *
+        ((F fun l l' => prefixOverlap (τ l) (τ l')).toReal *
+          (∑ i : Fin r, σ i * leafLabel (lab ω) (τ l₀) i - t * ∑ i : Fin r, σ i ^ 2 * ζ i))) ∧
     Integrable (fun ω => ∑' τ : Fin n → Fin r → ℕ, (∏ l, (cascadeBranchWeight (u ω) (τ l)).toReal *
           Real.exp (t * ∑ i : Fin r, σ i * leafLabel (lab ω) (τ l) i) /
         ∑' b : Fin r → ℕ, (cascadeBranchWeight (u ω) b).toReal *
@@ -297,6 +303,16 @@ theorem integral_cascadeEnergy (hζ0 : ∀ p, 0 < ζ p) (hζ1 : ∀ p, ζ p < 1)
     rw [ae_all_iff]
     exact fun i => (ae_lt_top' (hmp i) (hsym i).2.ne).and (ae_lt_top' (hmn i) (hfin i))
       |>.mono fun ω h => ⟨h.1.ne, h.2.ne⟩
+  have hsumm : ∀ᵐ ω ∂P, Summable fun τ : Fin n → Fin r → ℕ => (∏ l, (cascadeBranchWeight (u ω) (τ l)).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel (lab ω) (τ l) i) /
+        ∑' b : Fin r → ℕ, (cascadeBranchWeight (u ω) b).toReal *
+          Real.exp (t * ∑ i : Fin r, σ i * leafLabel (lab ω) b i)) *
+        ((F fun l l' => prefixOverlap (τ l) (τ l')).toReal *
+          (∑ i : Fin r, σ i * leafLabel (lab ω) (τ l₀) i - t * ∑ i : Fin r, σ i ^ 2 * ζ i)) := by
+    filter_upwards [h0, ht, hae] with ω hω0 hωt hωA
+    exact (tsum_cascadeSeries_energy_eq r n σ t (u ω) (lab ω) ζ F
+      (fun P => ne_top_of_le_ne_top hC (hf P)) l₀
+      (fun α => ENNReal.ne_top_of_tsum_ne_top hω0.2.ne α) hωt.2 hωA).1
   have hcongr : (fun ω => ∑' τ : Fin n → Fin r → ℕ, (∏ l, (cascadeBranchWeight (u ω) (τ l)).toReal *
           Real.exp (t * ∑ i : Fin r, σ i * leafLabel (lab ω) (τ l) i) /
         ∑' b : Fin r → ℕ, (cascadeBranchWeight (u ω) b).toReal *
@@ -310,12 +326,12 @@ theorem integral_cascadeEnergy (hζ0 : ∀ p, 0 < ζ p) (hζ1 : ∀ p, ζ p < 1)
     filter_upwards [h0, ht, hae] with ω hω0 hωt hωA
     exact tsum_cascadeSeries_energy_eq r n σ t (u ω) (lab ω) ζ F
       (fun P => ne_top_of_le_ne_top hC (hf P)) l₀
-      (fun α => ENNReal.ne_top_of_tsum_ne_top hω0.2.ne α) hωt.2 hωA
+      (fun α => ENNReal.ne_top_of_tsum_ne_top hω0.2.ne α) hωt.2 hωA |>.2
   have hdiff : ∀ i : Fin r, Integrable (fun ω => (replicaGibbsAt r n σ t F l₀ i
       (fun y => ENNReal.ofReal (σ i * y)) (t * σ i * ζ i) (u ω) (lab ω)).toReal -
       (replicaGibbsAt r n σ t F l₀ i (fun y => ENNReal.ofReal (-(σ i * y))) (t * σ i * ζ i)
         (u ω) (lab ω)).toReal) P := fun i => (hint i).1.sub (hint i).2
-  refine ⟨(integrable_finsetSum _ fun i _ => hdiff i).congr hcongr.symm, ?_⟩
+  refine ⟨hsumm, (integrable_finsetSum _ fun i _ => hdiff i).congr hcongr.symm, ?_⟩
   rw [integral_congr_ae hcongr, integral_finsetSum _ fun i _ => hdiff i]
   refine Finset.sum_eq_zero fun i _ => ?_
   rw [integral_sub (hint i).1 (hint i).2, integral_toReal (hmp i) (ae_lt_top' (hmp i)
@@ -357,6 +373,232 @@ theorem integral_cascade_ibp (hζ0 : ∀ p, 0 < ζ p) (hζ1 : ∀ p, ζ p < 1)
         ((F fun l l' => prefixOverlap (τ (some l)) (τ (some l'))).toReal *
           (∑ k : Fin n, Q (prefixOverlap (τ (some l₀)) (τ (some k))) -
             n * Q (prefixOverlap (τ (some l₀)) (τ none)))) ∂P := by
+  classical
+  obtain ⟨g, hg⟩ : ∃ g : (Fin r → ℕ) → ((Σ p : ℕ, Fin p → ℕ) → ℕ → ℝ) → ℝ, ∀ α ℓ,
+      g α ℓ = ∑ i : Fin r, σ i * ℓ ⟨i, Fin.take i i.isLt.le α⟩ (α i) := ⟨_, fun _ _ => rfl⟩
+  obtain ⟨G, hG⟩ : ∃ G : ((Σ p : ℕ, Fin p → ℕ) → ℕ → ℕ × (ℕ → ℝ)) → (Fin r → ℕ) → ℝ, ∀ b α,
+      G b α = (cascadeBranchWeight (fun p γ m => nthLargestAtom m (poissonCountingMeasure
+        (fun k => (b ⟨p, γ⟩ k).1) (fun k l => (b ⟨p, γ⟩ k).2 l))) α).toReal :=
+    ⟨_, fun _ _ => rfl⟩
+  obtain ⟨Φ, hΦ⟩ : ∃ Φ : (Fin n → Fin r → ℕ) → ℝ, ∀ τ,
+      Φ τ = (F fun l l' => prefixOverlap (τ l) (τ l')).toReal := ⟨_, fun _ => rfl⟩
+  obtain ⟨H1, hH1⟩ : ∃ H1 : ((Σ p : ℕ, Fin p → ℕ) → ℕ → ℕ × (ℕ → ℝ)) →
+      ((Σ p : ℕ, Fin p → ℕ) → ℕ → ℝ) → ℝ, ∀ b ℓ, H1 b ℓ =
+      ∑' τ : Fin n → Fin r → ℕ, (∏ k, G b (τ k) * Real.exp (g (τ k) ℓ) /
+        ∑' c, G b c * Real.exp (g c ℓ)) * (Φ τ * g (τ l₀) ℓ) := ⟨_, fun _ _ => rfl⟩
+  obtain ⟨H2, hH2⟩ : ∃ H2 : ((Σ p : ℕ, Fin p → ℕ) → ℕ → ℕ × (ℕ → ℝ)) →
+      ((Σ p : ℕ, Fin p → ℕ) → ℕ → ℝ) → ℝ, ∀ b ℓ, H2 b ℓ =
+      ∑' τ : Option (Fin n) → Fin r → ℕ, (∏ o, G b (τ o) * Real.exp (g (τ o) ℓ) /
+        ∑' c, G b c * Real.exp (g c ℓ)) * (Φ (fun k => τ (some k)) *
+        (∑ k : Fin n, Q (prefixOverlap (τ (some l₀)) (τ (some k))) -
+          n * Q (prefixOverlap (τ (some l₀)) (τ none)))) := ⟨_, fun _ _ => rfl⟩
+  obtain ⟨H0, hH0⟩ : ∃ H0 : ((Σ p : ℕ, Fin p → ℕ) → ℕ → ℕ × (ℕ → ℝ)) →
+      ((Σ p : ℕ, Fin p → ℕ) → ℕ → ℝ) → ℝ, ∀ b ℓ, H0 b ℓ =
+      ∑' τ : Fin n → Fin r → ℕ, (∏ k, G b (τ k) * Real.exp (g (τ k) ℓ) /
+        ∑' c, G b c * Real.exp (g c ℓ)) * Φ τ := ⟨_, fun _ _ => rfl⟩
+  -- measurability
+  have hGm : ∀ α, Measurable fun b : (Σ p : ℕ, Fin p → ℕ) → ℕ → ℕ × (ℕ → ℝ) => G b α := fun α => by
+    have e : (fun b : (Σ p : ℕ, Fin p → ℕ) → ℕ → ℕ × (ℕ → ℝ) => G b α) = fun b =>
+        (cascadeBranchWeight (fun p γ m => nthLargestAtom m (poissonCountingMeasure
+          (fun k => (b ⟨p, γ⟩ k).1) (fun k l => (b ⟨p, γ⟩ k).2 l))) α).toReal :=
+      funext fun b => hG b α
+    rw [e]
+    exact ENNReal.measurable_toReal.comp (measurable_branchWeight_blocks α)
+  have hgm : ∀ α, Measurable fun ℓ : (Σ p : ℕ, Fin p → ℕ) → ℕ → ℝ => g α ℓ := fun α => by
+    have e : (fun ℓ : (Σ p : ℕ, Fin p → ℕ) → ℕ → ℝ => g α ℓ) = fun ℓ =>
+        ∑ i : Fin r, σ i * ℓ ⟨i, Fin.take i i.isLt.le α⟩ (α i) := funext fun ℓ => hg α ℓ
+    rw [e]
+    exact Finset.measurable_sum _ fun i _ => measurable_const.mul
+      ((measurable_pi_apply (α i)).comp (measurable_pi_apply _))
+  have hWm : ∀ α, Measurable fun p : ((Σ p : ℕ, Fin p → ℕ) → ℕ → ℕ × (ℕ → ℝ)) ×
+      ((Σ p : ℕ, Fin p → ℕ) → ℕ → ℝ) => G p.1 α * Real.exp (g α p.2) := fun α =>
+    ((hGm α).comp measurable_fst).mul (Real.measurable_exp.comp ((hgm α).comp measurable_snd))
+  have hH1m : Measurable (Function.uncurry H1) := by
+    have h := measurable_tsum_prod_div_mul (K := Fin n)
+      (fun (p : ((Σ p : ℕ, Fin p → ℕ) → ℕ → ℕ × (ℕ → ℝ)) × ((Σ p : ℕ, Fin p → ℕ) → ℕ → ℝ))
+        (α : Fin r → ℕ) => G p.1 α * Real.exp (g α p.2)) hWm
+      (fun τ p => Φ τ * g (τ l₀) p.2) fun τ => measurable_const.mul ((hgm _).comp measurable_snd)
+    have e : Function.uncurry H1 = _ := funext fun p => hH1 p.1 p.2
+    rw [e]
+    exact h
+  have hH0m : Measurable (Function.uncurry H0) := by
+    have h := measurable_tsum_prod_div_mul (K := Fin n)
+      (fun (p : ((Σ p : ℕ, Fin p → ℕ) → ℕ → ℕ × (ℕ → ℝ)) × ((Σ p : ℕ, Fin p → ℕ) → ℕ → ℝ))
+        (α : Fin r → ℕ) => G p.1 α * Real.exp (g α p.2)) hWm
+      (fun τ p => Φ τ) fun τ => measurable_const
+    have e : Function.uncurry H0 = _ := funext fun p => hH0 p.1 p.2
+    rw [e]
+    exact h
+  have hH2m : Measurable (Function.uncurry H2) := by
+    have h := measurable_tsum_prod_div_mul (K := Option (Fin n))
+      (fun (p : ((Σ p : ℕ, Fin p → ℕ) → ℕ → ℕ × (ℕ → ℝ)) × ((Σ p : ℕ, Fin p → ℕ) → ℕ → ℝ))
+        (α : Fin r → ℕ) => G p.1 α * Real.exp (g α p.2)) hWm
+      (fun τ p => Φ (fun k => τ (some k)) *
+        (∑ k : Fin n, Q (prefixOverlap (τ (some l₀)) (τ (some k))) -
+          n * Q (prefixOverlap (τ (some l₀)) (τ none)))) fun τ => measurable_const
+    have e : Function.uncurry H2 = _ := funext fun p => hH2 p.1 p.2
+    rw [e]
+    exact h
+  -- blocks and labels
+  have hlaw : ∀ v : Σ p : ℕ, Fin p → ℕ, HasLaw (D v) ((Measure.infinitePi fun k =>
+      Po(rate v.1 k).prod (Measure.infinitePi fun _ : ℕ => nu v.1 k)).prod
+        (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)) P := fun v => by
+    rw [← h𝔡 v.1]; exact hDlaw v
+  obtain ⟨-, hLlaw, hind⟩ := hasLaw_indepFun_fst_snd_of_iIndepFun D hDm hD
+    (fun v : Σ p : ℕ, Fin p → ℕ => Measure.infinitePi fun k =>
+      Po(rate v.1 k).prod (Measure.infinitePi fun _ : ℕ => nu v.1 k))
+    (fun _ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1) hlaw
+  have hBm : Measurable fun ω (v : Σ p : ℕ, Fin p → ℕ) => (D v ω).1 :=
+    measurable_pi_iff.2 fun v => measurable_fst.comp (hDm v)
+  have hLm : Measurable fun ω (v : Σ p : ℕ, Fin p → ℕ) => (D v ω).2 :=
+    measurable_pi_iff.2 fun v => measurable_snd.comp (hDm v)
+  have hLmap : P.map (fun ω (v : Σ p : ℕ, Fin p → ℕ) => (D v ω).2) = μΛ := hLlaw.map_eq
+  -- the integrands as functions of blocks and labels
+  have hp1 : ∀ ω, ∑' τ : Fin n → Fin r → ℕ, (∏ l, (cascadeBranchWeight (u ω) (τ l)).toReal *
+          Real.exp (∑ i : Fin r, σ i * leafLabel (lab ω) (τ l) i) /
+        ∑' b : Fin r → ℕ, (cascadeBranchWeight (u ω) b).toReal *
+          Real.exp (∑ i : Fin r, σ i * leafLabel (lab ω) b i)) *
+        ((F fun l l' => prefixOverlap (τ l) (τ l')).toReal *
+          ∑ i : Fin r, σ i * leafLabel (lab ω) (τ l₀) i) =
+      H1 (fun v => (D v ω).1) (fun v => (D v ω).2) := fun ω => by
+    subst hu hlab
+    rw [hH1]
+    simp only [hG, hg, hΦ]
+    rfl
+  have hp2 : ∀ ω, ∑' τ : Option (Fin n) → Fin r → ℕ, (∏ o, (cascadeBranchWeight (u ω) (τ o)).toReal *
+          Real.exp (∑ i : Fin r, σ i * leafLabel (lab ω) (τ o) i) /
+        ∑' b : Fin r → ℕ, (cascadeBranchWeight (u ω) b).toReal *
+          Real.exp (∑ i : Fin r, σ i * leafLabel (lab ω) b i)) *
+        ((F fun l l' => prefixOverlap (τ (some l)) (τ (some l'))).toReal *
+          (∑ k : Fin n, Q (prefixOverlap (τ (some l₀)) (τ (some k))) -
+            n * Q (prefixOverlap (τ (some l₀)) (τ none)))) =
+      H2 (fun v => (D v ω).1) (fun v => (D v ω).2) := fun ω => by
+    subst hu hlab
+    rw [hH2]
+    simp only [hG, hg, hΦ]
+    rfl
+  -- almost sure properties
+  have hgood : ∀ᵐ ω ∂P, (∀ α : Fin r → ℕ, cascadeBranchWeight (u ω) α ≠ 0 ∧
+      cascadeBranchWeight (u ω) α ≠ ∞) ∧ (∑' α : Fin r → ℕ, cascadeBranchWeight (u ω) α) ≠ 0 ∧
+      (∑' α : Fin r → ℕ, cascadeBranchWeight (u ω) α) < ∞ ∧
+      (∑' α : Fin r → ℕ, cascadeBranchWeight (u ω) α *
+        ENNReal.ofReal (Real.exp (1 * ∑ i : Fin r, σ i * leafLabel (lab ω) α i))) ≠ 0 ∧
+      (∑' α : Fin r → ℕ, cascadeBranchWeight (u ω) α *
+        ENNReal.ofReal (Real.exp (1 * ∑ i : Fin r, σ i * leafLabel (lab ω) α i))) ≠ ∞ := by
+    have h0 : ∀ᵐ ω ∂P, (∑' α : Fin r → ℕ, cascadeBranchWeight (u ω) α) ≠ 0 ∧
+        (∑' α : Fin r → ℕ, cascadeBranchWeight (u ω) α) < ∞ := by
+      subst hu hlab
+      exact ae_cascadeMass_pos_finite (P := P) r ζ hζ0 hζ1 hmono nu rate hmu 𝔡 h𝔡 D hDm hD hDlaw
+    have hat : ∀ᵐ ω ∂P, ∀ α : Fin r → ℕ, cascadeBranchWeight (u ω) α ≠ 0 ∧
+        cascadeBranchWeight (u ω) α ≠ ∞ := by
+      have h := ae_cascadeData_atoms_pos_finite (P := P) ζ hζ0 hζ1 nu rate hmu (gaussianReal 0 1)
+        D hDm hlaw
+      subst hu
+      filter_upwards [h] with ω hω α
+      exact cascadeBranchWeight_pos_finite _ (fun p γ m => (hω ⟨p, γ⟩ m).1)
+        (fun p γ m => (hω ⟨p, γ⟩ m).2) α
+    have ht := ae_tiltedMass_pos_finite (P := P) r ζ σ nu rate 𝔡 D u lab hζ0 hζ1 hmono hmu h𝔡 hDm
+      hD hDlaw hu hlab 1
+    filter_upwards [h0, hat, ht] with ω a b c
+    exact ⟨b, a.1, a.2, c.1, c.2⟩
+  have hGω : ∀ ω α, G (fun v => (D v ω).1) α = (cascadeBranchWeight (u ω) α).toReal :=
+    fun ω α => by subst hu; rw [hG]
+  have hgω : ∀ ω α, g α (fun v => (D v ω).2) = ∑ i : Fin r, σ i * leafLabel (lab ω) α i :=
+    fun ω α => by subst hlab; rw [hg]; rfl
+  have hM : ∀ τ, |Φ τ| ≤ C.toReal := fun τ => by
+    rw [hΦ, abs_of_nonneg ENNReal.toReal_nonneg]
+    exact ENNReal.toReal_mono hC (hf _)
+  -- integrated Gaussian integration by parts, conditionally on the blocks
+  have hIBP : ∀ᵐ ω ∂P, ∫ ℓ, H1 (fun v => (D v ω).1) ℓ ∂μΛ = ∫ ℓ, H2 (fun v => (D v ω).1) ℓ ∂μΛ := by
+    filter_upwards [hgood] with ω hω
+    obtain ⟨hpos, -, hZ0, -, -⟩ := hω
+    have hGpos : ∀ α, 0 < G (fun v => (D v ω).1) α := fun α => by
+      rw [hGω]; exact ENNReal.toReal_pos (hpos α).1 (hpos α).2
+    have hGsum : Summable (G (fun v => (D v ω).1)) := by
+      rw [show G (fun v => (D v ω).1) = fun α => (cascadeBranchWeight (u ω) α).toReal from
+        funext (hGω ω)]
+      exact ENNReal.summable_toReal hZ0.ne
+    have h := integral_gibbs_leafField_ibp hg Q hQ (G (fun v => (D v ω).1)) hGpos hGsum l₀ Φ hM
+    simp only [Fintype.card_fin] at h
+    simp_rw [hH1, hH2]
+    exact h
+  have hWgood : ∀ᵐ ω ∂P, (∀ α, 0 ≤ G (fun v => (D v ω).1) α *
+        Real.exp (g α (fun v => (D v ω).2))) ∧
+      Summable (fun α => G (fun v => (D v ω).1) α * Real.exp (g α (fun v => (D v ω).2))) ∧
+      ∑' α, G (fun v => (D v ω).1) α * Real.exp (g α (fun v => (D v ω).2)) ≠ 0 := by
+    filter_upwards [hgood] with ω hω
+    obtain ⟨hpos, -, -, hZ1, hZ1t⟩ := hω
+    obtain ⟨hs, hne⟩ := summable_tsum_ne_zero_cascadeWeight r σ 1 (u ω) (lab ω)
+      (fun α => (hpos α).2) hZ1 hZ1t
+    simp only [one_mul] at hs hne
+    simp_rw [hGω, hgω]
+    exact ⟨fun α => mul_nonneg ENNReal.toReal_nonneg (Real.exp_pos _).le, hs, hne⟩
+  have hmeasPair : ∀ H : ((Σ p : ℕ, Fin p → ℕ) → ℕ → ℕ × (ℕ → ℝ)) →
+      ((Σ p : ℕ, Fin p → ℕ) → ℕ → ℝ) → ℝ, Measurable (Function.uncurry H) →
+      AEStronglyMeasurable (fun ω => H (fun v => (D v ω).1) (fun v => (D v ω).2)) P :=
+    fun H hH => by
+      have h := hH.comp (hBm.prodMk hLm)
+      exact h.aestronglyMeasurable
+  have hI0 : Integrable (fun ω => H0 (fun v => (D v ω).1) (fun v => (D v ω).2)) P := by
+    refine Integrable.of_bound (hmeasPair H0 hH0m) C.toReal ?_
+    filter_upwards [hWgood] with ω ⟨h1, h2, h3⟩
+    rw [Real.norm_eq_abs, hH0]
+    exact abs_tsum_prod_div_mul_le (W := fun α => G (fun v => (D v ω).1) α *
+      Real.exp (g α (fun v => (D v ω).2))) h1 h2 h3 hM
+  have hQ0 : ∀ m, 0 ≤ Q m := fun m => by
+    rw [hQ]
+    refine Finset.sum_nonneg fun i _ => ?_
+    split_ifs with h
+    · exact sq_nonneg (σ i)
+    · exact le_rfl
+  have hQr : ∀ m, Q m ≤ ∑ i : Fin r, σ i ^ 2 := fun m => by
+    rw [hQ]
+    refine Finset.sum_le_sum fun i _ => ?_
+    split_ifs with h
+    · exact le_rfl
+    · exact sq_nonneg (σ i)
+  have hb2 : ∀ τ : Option (Fin n) → Fin r → ℕ,
+      |∑ k : Fin n, Q (prefixOverlap (τ (some l₀)) (τ (some k))) -
+        n * Q (prefixOverlap (τ (some l₀)) (τ none))| ≤ 2 * n * ∑ i : Fin r, σ i ^ 2 := fun τ => by
+    have hA : |∑ k : Fin n, Q (prefixOverlap (τ (some l₀)) (τ (some k)))| ≤
+        n * ∑ i : Fin r, σ i ^ 2 := by
+      refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
+      calc ∑ k : Fin n, |Q (prefixOverlap (τ (some l₀)) (τ (some k)))|
+          ≤ ∑ k : Fin n, ∑ i : Fin r, σ i ^ 2 := Finset.sum_le_sum fun k _ =>
+            (abs_of_nonneg (hQ0 _)).le.trans (hQr _)
+        _ = n * ∑ i : Fin r, σ i ^ 2 := by simp
+    have hB : |(n : ℝ) * Q (prefixOverlap (τ (some l₀)) (τ none))| ≤
+        n * ∑ i : Fin r, σ i ^ 2 := by
+      rw [abs_mul, abs_of_nonneg (Nat.cast_nonneg n), abs_of_nonneg (hQ0 _)]
+      exact mul_le_mul_of_nonneg_left (hQr _) (Nat.cast_nonneg n)
+    calc _ ≤ _ := abs_sub _ _
+      _ ≤ n * ∑ i : Fin r, σ i ^ 2 + n * ∑ i : Fin r, σ i ^ 2 := add_le_add hA hB
+      _ = _ := by ring
+  have hI2 : Integrable (fun ω => H2 (fun v => (D v ω).1) (fun v => (D v ω).2)) P := by
+    refine Integrable.of_bound (hmeasPair H2 hH2m) (C.toReal * (2 * n * ∑ i : Fin r, σ i ^ 2)) ?_
+    filter_upwards [hWgood] with ω ⟨h1, h2, h3⟩
+    rw [Real.norm_eq_abs, hH2]
+    refine abs_tsum_prod_div_mul_le (W := fun α => G (fun v => (D v ω).1) α *
+      Real.exp (g α (fun v => (D v ω).2))) h1 h2 h3 fun τ => ?_
+    rw [abs_mul]
+    exact mul_le_mul (hM _) (hb2 τ) (abs_nonneg _) ENNReal.toReal_nonneg
+  obtain ⟨hsumE, hintE, -⟩ := integral_cascadeEnergy r ζ σ nu rate 𝔡 D u lab hζ0 hζ1 hmono hmu h𝔡
+    hDm hD hDlaw hu hlab n 1 F C hC hf l₀
+  simp only [one_mul] at hsumE hintE
+  have hI1 : Integrable (fun ω => H1 (fun v => (D v ω).1) (fun v => (D v ω).2)) P := by
+    refine (hintE.add (hI0.const_mul (∑ i : Fin r, σ i ^ 2 * ζ i))).congr ?_
+    filter_upwards [hWgood, hsumE] with ω ⟨h1, h2, h3⟩ hs
+    simp only [Pi.add_apply]
+    rw [← hp1 ω, hH0]
+    simp only [hGω, hgω, hΦ]
+    have hsb := summable_prod_div_mul (K := Fin n) h1 h2 h3 (Φ := fun τ => (F fun l l' =>
+      prefixOverlap (τ l) (τ l')).toReal) (M := C.toReal) fun τ => by
+      have := hM τ
+      rwa [hΦ] at this
+    simp only [hGω, hgω] at hsb
+    rw [← tsum_mul_left, ← Summable.tsum_add hs (hsb.mul_left _)]
+    refine tsum_congr fun τ => ?_
+    ring
   sorry
 
 end Setting
