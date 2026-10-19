@@ -1,0 +1,397 @@
+\chapter{The Sherrington--Kirkpatrick Model at High Temperature: The Talagrand Theory}\label{chap:sg-talagrand}
+
+This chapter formalizes Sections~1.1 through 1.5 of Michel Talagrand's \emph{Spin Glasses: A Challenge for Mathematicians} (Volume~I, Springer, 2010).
+The mathematical narrative develops the high-temperature theory of the Sherrington--Kirkpatrick (SK) model:
+\begin{enumerate}
+\item The decoupled reference system, hypercube factorizations, exact first-moment calculations, and the first-moment upper bound on the free energy (Section~1.2).
+\item Guerra's smart path Gaussian interpolation, the derivative formula with a negative square remainder, and Guerra's replica-symmetric (RS) upper bound minimized at the fixed-point equation $q = \mathbb{E}\tanh^2(\beta z \sqrt{q} + h)$ (Section~1.3).
+\item R.~Lata\l{}a's high-temperature overlap concentration: the general second-order replica derivative formula along Gaussian interpolations, the monotonicity of the compensated exponential functional, exponential overlap concentration $\nu(\exp s N (R_{1,2} - q)^2) \le (1 - 2s - 4\beta^2)^{-1/2}$ for $\beta < 1/2$, and the Aizenman--Lebowitz--Ruelle (ALR) high-temperature free energy formula $|p_N(\beta, h) - \operatorname{SK}(\beta, h)| \le K/N$ (Section~1.4).
+\item Spin decorrelation, asymptotic product measures on finite spin marginals, and high-dimensional random projections (Sections~1.4--1.5).
+\end{enumerate}
+
+\medskip\noindent\textbf{Conventions and Notation.}
+The spin configuration space is $\Sigma_N = \{-1, +1\}^N$, represented in Lean as functions $\sigma : \mathrm{Fin}\,N \to \mathbb{Z}^\times$ where $\mathbb{Z}^\times = \{-1, +1\}$.
+The Hamiltonian with inverse temperature $\beta > 0$ and external field $h \in \mathbb{R}$ is
+\[
+-H_N(\sigma) = \frac{\beta}{\sqrt{N}} \sum_{1 \le i < j \le N} g_{ij} \sigma_i \sigma_j + h \sum_{i \le N} \sigma_i,
+\]
+where the disorder $(g_{ij})_{1 \le i < j \le N}$ consists of $\binom{N}{2} = \frac{N(N-1)}{2}$ independent standard Gaussian variables $\mathcal{N}(0, 1)$ indexed by $\mathrm{FinPairs}\,N = \{p \in \mathrm{Fin}\,N \times \mathrm{Fin}\,N \mid p.1 < p.2\}$.
+The partition function is $Z_N(\beta) = \sum_\sigma \exp(-H_N(\sigma))$, the expected free energy is $p_N(\beta) = N^{-1}\mathbb{E}\log Z_N(\beta)$, and the overlap of two configurations is $R_{1,2} = R(\sigma^1, \sigma^2) = N^{-1}\sum_{i \le N} \sigma_i^1 \sigma_i^2$.
+
+\section{The SK Hamiltonian and Foundations (Talagrand Section~1.1)}\label{sec:sg-tal:foundations}
+
+In Section~1.1, the SK Hamiltonian is defined on the discrete hypercube $\Sigma_N$.
+Its covariance structure, Gaussian comparison properties, concentration of measure, and the thermodynamic limit are foundational.
+
+\begin{definition}[Disorder pairs and Hamiltonian]\label{def:sg-tal:hamiltonian}
+  \lean{SpinGlasses.FinPairs, SpinGlasses.card_finPairs, SpinGlasses.cast_card_finPairs}
+  \leanok
+For $N \in \mathbb{N}$, the type of disordered pairs is $\mathrm{FinPairs}\,N = \{p : \mathrm{Fin}\,N \times \mathrm{Fin}\,N \mid p.1 < p.2\}$.
+Its cardinality is $|\mathrm{FinPairs}\,N| = \binom{N}{2} = \frac{N(N-1)}{2}$.
+For disorder $g : \mathrm{FinPairs}\,N \to \mathbb{R}$ and configuration $\sigma : \mathrm{Fin}\,N \to \mathbb{Z}^\times$, the Hamiltonian is
+\[
+-H_N(g, \sigma) = \frac{\beta}{\sqrt{N}} \sum_{p \in \mathrm{FinPairs}\,N} g_p \sigma_{p.1} \sigma_{p.2} + h \sum_{i \le N} \sigma_i.
+\]
+\end{definition}
+
+\begin{theorem}[Covariance of the SK Hamiltonian]\label{thm:sg-tal:covariance}
+For any two configurations $\sigma^1, \sigma^2 \in \Sigma_N$, the centered Hamiltonian has covariance
+\[
+\mathbb{E} \left[\left(\frac{\beta}{\sqrt{N}} \sum_{i < j} g_{ij} \sigma_i^1 \sigma_j^1\right)\left(\frac{\beta}{\sqrt{N}} \sum_{i < j} g_{ij} \sigma_i^2 \sigma_j^2\right)\right] = \frac{N \beta^2}{4}\left(R(\sigma^1, \sigma^2)^2 - \frac{1}{N}\right).
+\]
+\end{theorem}
+\begin{proof}
+By independence of $g_{ij}$, the expectation is $\frac{\beta^2}{N} \sum_{i < j} \sigma_i^1 \sigma_j^1 \sigma_i^2 \sigma_j^2$.
+Using $\sum_{i < j} x_i x_j = \frac{1}{2}((\sum_i x_i)^2 - \sum_i x_i^2)$ with $x_i = \sigma_i^1 \sigma_i^2$ (so $x_i^2 = 1$ and $\sum x_i = N R_{1,2}$),
+the sum equals $\frac{1}{2}(N^2 R_{1,2}^2 - N) = \frac{N^2}{2}(R_{1,2}^2 - 1/N)$.
+Multiplying by $\beta^2 / N$ gives $\frac{N\beta^2}{4}(R_{1,2}^2 - 1/N)$.
+\end{proof}
+
+\begin{theorem}[Gaussian comparison and Slepian's lemma]\label{thm:sg-tal:slepian}
+  \lean{SpinGlasses.integral_log_sum_exp_le_of_covariance_le}
+  \leanok
+Let $(X_\sigma), (Y_\sigma)$ be centered Gaussian fields on $\Sigma_N$ such that $\mathbb{E} X_\sigma^2 = \mathbb{E} Y_\sigma^2$ and $\mathbb{E} X_{\sigma^1} X_{\sigma^2} \le \mathbb{E} Y_{\sigma^1} Y_{\sigma^2}$ for all $\sigma^1, \sigma^2$.
+Then for any bias $h$,
+\[
+\mathbb{E} \log \sum_\sigma \exp(Y_\sigma + h_\sigma) \le \mathbb{E} \log \sum_\sigma \exp(X_\sigma + h_\sigma).
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+Differentiating along the smooth Slepian path $s \mapsto \cos s X + \sin s Y$ and applying Gaussian integration by parts.
+Formalized in \texttt{SpinGlasses/GaussianComparison.lean}.
+\end{proof}
+
+\begin{theorem}[Concentration of the free energy]\label{thm:sg-tal:concentration}
+  \lean{SpinGlasses.mixedPSpin_free_energy_concentration}
+  \leanok
+For all $t > 0$, the free energy $F_N = N^{-1}\log Z_N$ satisfies the sub-Gaussian concentration inequality
+\[
+\mathbb{P}\left(\left|F_N - \mathbb{E} F_N\right| \ge t\right) \le 2 \exp\left(-\frac{N t^2}{2 \beta^2}\right).
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+By the Tsirelson--Ibragimov--Sudakov Gaussian concentration inequality, as the gradient of the log-partition function with respect to $g$ has Euclidean norm bounded by $\beta \sqrt{N}$.
+Formalized in \texttt{SpinGlasses/Concentration.lean}.
+\end{proof}
+
+\begin{theorem}[The thermodynamic limit: Guerra--Toninelli theorem]\label{thm:sg-tal:gt}
+  \lean{SpinGlasses.integral_log_sum_exp_add_le, SpinGlasses.sk_tendsto_free_energy}
+  \leanok
+The sequence of expected free energies $p_N(\beta, h) = N^{-1}\mathbb{E}\log Z_N(\beta, h)$ is superadditive, and the thermodynamic limit exists:
+\[
+p(\beta, h) = \lim_{N \to \infty} p_N(\beta, h) = \sup_{N \ge 1} p_N(\beta, h).
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+By Guerra--Toninelli cavity interpolation splitting a system of size $N_1 + N_2$ into two independent subsystems of sizes $N_1$ and $N_2$.
+Formalized in \texttt{SpinGlasses/GuerraToninelli.lean}.
+\end{proof}
+
+\section{Decoupled Systems, Hypercube Factorization and First Moments (Talagrand Section~1.2)}\label{sec:sg-tal:decoupled}
+
+Section~1.2 of Talagrand establishes the non-interacting baseline: product factorization over the hypercube, local magnetizations under decoupled fields, exact calculation of $\mathbb{E} Z_N$, the Jensen upper bound, and the temperature derivative of the free energy.
+
+\begin{lemma}[Hypercube product factorization]\label{lem:sg-tal:hypercube-prod}
+  \lean{SpinGlasses.sum_units_int,
+        SpinGlasses.hypercube_sum_prod_eq_prod_add,
+        SpinGlasses.hypercube_sum_prod_erase_eq_prod_add}
+  \leanok
+For any finite index set $\iota$ and family of functions $a : \iota \to \mathbb{Z}^\times \to \mathbb{R}$,
+\[
+\sum_{\sigma : \iota \to \mathbb{Z}^\times} \prod_{i \in \iota} a(i, \sigma_i) = \prod_{i \in \iota} (a(i, 1) + a(i, -1)).
+\]
+For any fixed coordinate $j \in \iota$, the restricted sum satisfies
+\[
+\sum_{\sigma : \iota \to \mathbb{Z}^\times} \prod_{i \neq j} a(i, \sigma_i) = 2 \prod_{i \neq j} (a(i, 1) + a(i, -1)).
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+By induction on the finite set $\iota$ using Fintype embeddings and splitting the sum at $j$.
+Formalized in \texttt{ForMathlib/Algebra/BigOperators/HypercubeProduct.lean}.
+\end{proof}
+
+\begin{theorem}[Decoupled partition function and local observables]\label{thm:sg-tal:decoupled-partition}
+  \lean{SpinGlasses.continuous_tanh,
+        SpinGlasses.decoupled_partition_function_eq,
+        SpinGlasses.decoupled_gibbs_spin_expectation,
+        SpinGlasses.decoupled_two_replica_spin_expectation,
+        SpinGlasses.decoupled_free_energy}
+  \leanok
+For the decoupled cavity-free Hamiltonian $-H_0(\sigma) = \sum_{i \le N} \sigma_i Y_i$, the partition function factorizes as
+\[
+Z_0 = 2^N \prod_{i=1}^N \cosh Y_i.
+\]
+The decoupled Gibbs expectation of a single spin satisfies $\langle \sigma_j \rangle_0 = \tanh Y_j$,
+the two-replica overlap satisfies $\langle \sigma_j^1 \sigma_j^2 \rangle_0 = \tanh^2 Y_j$,
+and the decoupled free energy is
+\[
+p_N(0) = \log 2 + \frac{1}{N} \sum_{i=1}^N \mathbb{E} \log\cosh Y_i.
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+Apply Lemma~\ref{lem:sg-tal:hypercube-prod} with $a(i, \pm 1) = \exp(\pm Y_i)$ and use $\exp(Y) + \exp(-Y) = 2\cosh Y$ and $\exp(Y) - \exp(-Y) = 2\sinh Y$.
+Formalized in \texttt{SpinGlasses/SKDecoupled.lean}.
+\end{proof}
+
+\begin{theorem}[Exact first moment of the SK partition function]\label{thm:sg-tal:first-moment}
+  \lean{SpinGlasses.integral_exp_mul_gaussianReal_zero_one,
+        SpinGlasses.integrable_exp_sum_mul_gaussianReal,
+        SpinGlasses.integral_exp_sum_mul_gaussianReal,
+        SpinGlasses.sk_first_moment_term_sq,
+        SpinGlasses.sum_sk_first_moment_term_sq,
+        SpinGlasses.sum_exp_h_mul_spin,
+        SpinGlasses.integral_sk_partition_function,
+        SpinGlasses.integral_sk_partition_function_eq}
+  \leanok
+For the SK model with Gaussian disorder $g_p \sim \mathcal{N}(0, 1)$ on pairs $1 \le i < j \le N$ and constant external field $h \in \mathbb{R}$,
+the exact first moment of the partition function is
+\[
+\mathbb{E} Z_N = (2\cosh h)^N \exp\left(N \frac{\beta^2}{4}\left(1 - \frac{1}{N}\right)\right),
+\]
+which yields the exact normalized log-moment (Talagrand Exercise~1.2.3, Eq.~(1.25)):
+\[
+\frac{1}{N} \log \mathbb{E} Z_N = \frac{\beta^2}{4}\left(1 - \frac{1}{N}\right) + \log 2 + \log\cosh h.
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+For each configuration $\sigma$, the Gaussian linear combination $\sum_{i<j} \frac{\beta}{\sqrt{N}} g_{ij} \sigma_i \sigma_j$ has variance $\sum_{i<j} \frac{\beta^2}{N} = \binom{N}{2}\frac{\beta^2}{N} = N \frac{\beta^2}{4}(1 - \frac{1}{N})$, independent of $\sigma$.
+Integrating out the Gaussian disorder factors the sum into $(2\cosh h)^N \exp(N \frac{\beta^2}{4}(1 - 1/N))$.
+Formalized in \texttt{SpinGlasses/SKFirstMoment.lean}.
+\end{proof}
+
+\begin{theorem}[First-moment Jensen upper bound on the free energy]\label{thm:sg-tal:first-moment-bound}
+  \lean{SpinGlasses.integral_log_le_log_integral,
+        SpinGlasses.sk_free_energy_le_first_moment}
+  \leanok
+By Jensen's inequality for the concave logarithm under the disorder probability measure, the expected free energy satisfies (Eqs.~(1.24) and (1.26)):
+\[
+p_N(\beta, h) \le \frac{1}{N} \log \mathbb{E} Z_N = \frac{\beta^2}{4}\left(1 - \frac{1}{N}\right) + \log 2 + \log\cosh h.
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+$p_N(\beta, h) = N^{-1}\mathbb{E}\log Z_N \le N^{-1}\log \mathbb{E} Z_N$, and apply Theorem~\ref{thm:sg-tal:first-moment}.
+Formalized in \texttt{SpinGlasses/SKFirstMoment.lean}.
+\end{proof}
+
+\begin{theorem}[Temperature derivative of the expected free energy]\label{thm:sg-tal:beta-derivative}
+  \lean{SpinGlasses.hasDerivAt_log_sum_exp_beta,
+        SpinGlasses.measurable_disorder_u,
+        SpinGlasses.memLp_finPairs_entry,
+        SpinGlasses.integrable_finPairs_entry_abs,
+        SpinGlasses.hasDerivAt_sk_free_energy_beta}
+  \leanok
+For fixed disorder $g$, the map $\beta \mapsto \log Z_N(\beta)$ has derivative equal to the Gibbs average $\langle u_\sigma \rangle$.
+Under the product Gaussian disorder on pairs $i < j$, dominated differentiation under the integral yields Lemma~1.3.11 (Eq.~(1.84)):
+\[
+\frac{\partial p_N}{\partial \beta} = \frac{1}{N} \mathbb{E} \langle u_\sigma \rangle = \frac{\beta}{2}\left(1 - \mathbb{E}\langle R_{1,2}^2 \rangle\right).
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+Differentiating $s \mapsto \log \sum_\sigma \exp(s u_\sigma(g) + C_\sigma)$ yields the Gibbs average.
+Dominated differentiation under the integral applies via the integrable bound $B(g) = (\sqrt{N})^{-1}\sum_{i<j} |g_{ij}|$.
+Applying Gaussian integration by parts to $\mathbb{E}\langle u_\sigma \rangle$ evaluates the expectation to $\frac{N\beta}{2}(1 - \mathbb{E}\langle R_{1,2}^2 \rangle)$.
+Formalized in \texttt{SpinGlasses/SKFirstMoment.lean}.
+\end{proof}
+
+\section{Guerra's Smart Path Interpolation and the RS Upper Bound (Talagrand Section~1.3)}\label{sec:sg-tal:guerra-rs}
+
+Section~1.3 introduces Guerra's smart path interpolation between the fully interacting SK model and decoupled Gaussian spins, leading to the replica-symmetric upper bound.
+
+\begin{definition}[Guerra's smart path Hamiltonian]\label{def:sg-tal:smart-path}
+For $t \in [0, 1]$, independent standard Gaussians $(g_{ij})_{i<j}$ and $(z_i)_{i \le N}$, parameter $q \in [0, 1]$, and bias $h$, the smart path Hamiltonian is
+\[
+-H_t(\sigma) = \sqrt{t} \frac{\beta}{\sqrt{N}} \sum_{1 \le i < j \le N} g_{ij} \sigma_i \sigma_j + \sqrt{1-t} \beta \sqrt{q} \sum_{i \le N} z_i \sigma_i + h \sum_{i \le N} \sigma_i.
+\]
+The interpolating partition function is $Z_t = \sum_\sigma \exp(-H_t(\sigma))$ and $\varphi(t) = N^{-1}\mathbb{E}\log Z_t$.
+\end{definition}
+
+\begin{lemma}[Smart path covariance difference]\label{lem:sg-tal:path-covariance}
+Let $u_\sigma = \frac{\beta}{\sqrt{N}}\sum_{i<j} g_{ij} \sigma_i \sigma_j$ and $v_\sigma = \beta \sqrt{q}\sum_i z_i \sigma_i$.
+The covariance difference matrix $U(\sigma^1, \sigma^2) = \mathbb{E} u_{\sigma^1} u_{\sigma^2} - \mathbb{E} v_{\sigma^1} v_{\sigma^2}$ satisfies (Eq.~(1.64)):
+\[
+\frac{1}{N} U(\sigma^1, \sigma^2) = \frac{\beta^2}{4}\left(R_{1,2}^2 - \frac{1}{N}\right) - \frac{\beta^2}{2} q R_{1,2} = \frac{\beta^2}{4}\left((R_{1,2} - q)^2 - q^2 - \frac{1}{N}\right).
+\]
+On the diagonal $\sigma^1 = \sigma^2$ (where $R_{1,1} = 1$),
+\[
+\frac{1}{N} U(\sigma, \sigma) = \frac{\beta^2}{4}\left((1 - q)^2 - q^2 - \frac{1}{N}\right).
+\]
+\end{lemma}
+\begin{proof}
+Compute $\mathbb{E} u_{\sigma^1} u_{\sigma^2} = \frac{N\beta^2}{4}(R_{1,2}^2 - 1/N)$ and $\mathbb{E} v_{\sigma^1} v_{\sigma^2} = N \beta^2 q R_{1,2}$.
+Subtracting and completing the square yields the identity.
+\end{proof}
+
+\begin{theorem}[Derivative along the smart path]\label{thm:sg-tal:smart-path-deriv}
+The derivative of $\varphi(t) = N^{-1}\mathbb{E}\log Z_t$ along the smart path satisfies (Eq.~(1.65)):
+\[
+\varphi'(t) = \frac{1}{2N} \left(\mathbb{E}\langle U(\sigma, \sigma) \rangle_t - \mathbb{E}\langle U(\sigma^1, \sigma^2) \rangle_t\right) = -\frac{\beta^2}{4} \mathbb{E}\langle (R_{1,2} - q)^2 \rangle_t + \frac{\beta^2}{4}(1 - q)^2.
+\]
+In particular, $\varphi'(t) \le \frac{\beta^2}{4}(1 - q)^2$ for all $t \in [0, 1]$.
+\end{theorem}
+\begin{proof}
+By Gaussian integration by parts on the interpolating Gaussian field, the derivative is $\frac{1}{2N}(\mathbb{E}\langle U(\sigma, \sigma) \rangle_t - \mathbb{E}\langle U(\sigma^1, \sigma^2) \rangle_t)$.
+Substituting the expressions from Lemma~\ref{lem:sg-tal:path-covariance}, the $-q^2 - 1/N$ terms cancel, leaving $-\frac{\beta^2}{4}\mathbb{E}\langle (R_{1,2} - q)^2 \rangle_t + \frac{\beta^2}{4}(1-q)^2$.
+\end{proof}
+
+\begin{theorem}[Guerra's replica-symmetric upper bound]\label{thm:sg-tal:guerra-rs-bound}
+For all $\beta > 0$, $h \in \mathbb{R}$, and any parameter $q \in [0, 1]$ (Theorem~1.3.7):
+\[
+p_N(\beta, h) \le \log 2 + \mathbb{E} \log\cosh(\beta z \sqrt{q} + h) + \frac{\beta^2}{4}(1 - q)^2,
+\]
+where $z \sim \mathcal{N}(0, 1)$.
+\end{theorem}
+\begin{proof}
+Integrate $\varphi'(t) \le \frac{\beta^2}{4}(1 - q)^2$ from $t = 0$ to $t = 1$:
+$p_N(\beta, h) = \varphi(1) \le \varphi(0) + \frac{\beta^2}{4}(1 - q)^2$.
+At $t = 0$, the system is decoupled with field $Y_i = \beta z_i \sqrt{q} + h$, so $\varphi(0) = \log 2 + \mathbb{E}\log\cosh(\beta z \sqrt{q} + h)$ by Theorem~\ref{thm:sg-tal:decoupled-partition}.
+\end{proof}
+
+\begin{theorem}[The self-consistency equation and contractivity]\label{thm:sg-tal:fixed-point}
+The right-hand side of Guerra's bound is minimized at the fixed point of the self-consistency equation (Eq.~(1.74)):
+\[
+q = \mathbb{E}\tanh^2(\beta z \sqrt{q} + h).
+\]
+Defining the replica-symmetric free energy $\operatorname{SK}(\beta, h) = \log 2 + \mathbb{E}\log\cosh(\beta z \sqrt{q} + h) + \frac{\beta^2}{4}(1-q)^2$ at this fixed point,
+\[
+p_N(\beta, h) \le \operatorname{SK}(\beta, h).
+\]
+Furthermore, for $\beta < 1$, the map $\psi(q) = \mathbb{E}\tanh^2(\beta z \sqrt{q} + h)$ satisfies $\psi'(q) \le \beta^2 < 1$ (Proposition~1.3.8), ensuring a unique fixed point in $[0, 1]$.
+\end{theorem}
+\begin{proof}
+Differentiating $f(q) = \mathbb{E}\log\cosh(\beta z \sqrt{q} + h) + \frac{\beta^2}{4}(1-q)^2$ with respect to $q$:
+using Gaussian integration by parts on $z$, $\frac{d}{dq}\mathbb{E}\log\cosh(\beta z \sqrt{q} + h) = \frac{\beta^2}{2}\mathbb{E}\tanh^2(\beta z \sqrt{q} + h)$.
+Setting $f'(q) = \frac{\beta^2}{2}(\mathbb{E}\tanh^2(\beta z \sqrt{q} + h) - q) = 0$ yields the fixed-point equation.
+For contractivity, Gaussian integration by parts shows $\psi'(q) = \beta^2 \mathbb{E}(1 - \tanh^2(\beta z \sqrt{q} + h))^2 \le \beta^2 < 1$.
+\end{proof}
+
+\section{Lata\l{}a's Overlap Concentration and the ALR Formula (Talagrand Section~1.4)}\label{sec:sg-tal:latala-alr}
+
+Section~1.4 proves R.~Lata\l{}a's exponential overlap concentration theorem and establishes the Aizenman--Lebowitz--Ruelle (ALR) high-temperature free energy formula.
+
+\begin{lemma}[General replica derivative under Gaussian interpolation]\label{lem:sg-tal:replica-deriv}
+Let $\alpha$ be a finite configuration space with reference weights $w > 0$.
+For independent centered Gaussian fields $(u_\sigma), (v_\sigma)$, let $\nu_t(f) = \mathbb{E}\langle f \rangle_t$ denote the annealed expectation of an observable $f : \alpha^n \to \mathbb{R}$ on $n$ replicas.
+Then (Lemma~1.4.2):
+\[
+\nu_t'(f) = \sum_{1 \le \ell, \ell' \le n} \nu_t(U(\sigma^\ell, \sigma^{\ell'}) f) - 2n \sum_{\ell \le n} \nu_t(U(\sigma^\ell, \sigma^{n+1}) f) - n \nu_t(U(\sigma^{n+1}, \sigma^{n+1}) f) + n(n+1) \nu_t(U(\sigma^{n+1}, \sigma^{n+2}) f),
+\]
+where $U(\sigma^1, \sigma^2) = \frac{1}{2}(\mathbb{E} u_{\sigma^1} u_{\sigma^2} - \mathbb{E} v_{\sigma^1} v_{\sigma^2})$.
+When $n = 2$ and $f = f(\sigma^1, \sigma^2)$, this simplifies to (Eq.~(1.97)):
+\[
+\nu_t'(f) = \frac{N\beta^2}{2} \left(\nu_t((R_{1,2} - q)^2 f) - 2 \sum_{\ell \le 2} \nu_t((R_{\ell, 3} - q)^2 f) + 3 \nu_t((R_{3,4} - q)^2 f)\right).
+\]
+\end{lemma}
+\begin{proof}
+Direct calculation by differentiating the Gibbs weights $\prod_{\ell=1}^n \exp(-H_t(\sigma^\ell)) / Z_t^n$ and applying Gaussian integration by parts to each coordinate.
+\end{proof}
+
+\begin{lemma}[Replica decoupling via H\"older's inequality and symmetry]\label{lem:sg-tal:replica-decoupling}
+For $\lambda > 0$ and $f = \exp(\lambda N (R_{1,2} - q)^2)$ (Lemma~1.4.5):
+\[
+\nu_t((R_{3,4} - q)^2 \exp \lambda N (R_{1,2} - q)^2) \le \nu_t((R_{1,2} - q)^2 \exp \lambda N (R_{1,2} - q)^2).
+\]
+\end{lemma}
+\begin{proof}
+Expand the exponential in series $\sum_{k \ge 0} \frac{(\lambda N)^k}{k!} \nu_t((R_{3,4}-q)^2 (R_{1,2}-q)^{2k})$.
+Apply H\"older's inequality with conjugate exponents $\tau_1 = k+1$ and $\tau_2 = \frac{k+1}{k}$ under the measure $\nu_t$:
+\[
+\nu_t((R_{3,4}-q)^2 (R_{1,2}-q)^{2k}) \le \nu_t((R_{3,4}-q)^{2k+2})^{1/(k+1)} \nu_t((R_{1,2}-q)^{2k+2})^{k/(k+1)}.
+\]
+By replica permutation symmetry, $\nu_t((R_{3,4}-q)^{2k+2}) = \nu_t((R_{1,2}-q)^{2k+2})$, so the upper bound is $\nu_t((R_{1,2}-q)^{2k+2})$.
+Summing over $k$ yields the claim.
+\end{proof}
+
+\begin{corollary}[Compensated functional monotonicity]\label{cor:sg-tal:compensated-mono}
+The derivative of the replica observable satisfies (Corollary~1.4.6):
+\[
+\nu_t'\left(\exp \lambda N (R_{1,2} - q)^2\right) \le 2 N \beta^2 \nu_t\left((R_{1,2} - q)^2 \exp \lambda N (R_{1,2} - q)^2\right).
+\]
+Consequently, for any $\lambda > 0$, the compensated functional (Corollary~1.4.7)
+\[
+t \mapsto \nu_t\left(\exp\left((\lambda - 2 t \beta^2) N (R_{1,2} - q)^2\right)\right)
+\]
+is non-increasing on the interval $t \in [0, \min(1, \lambda / (2\beta^2))]$.
+\end{corollary}
+\begin{proof}
+Differentiating the compensated functional with respect to $t$ gives $\nu_t'(\dots) - 2 N \beta^2 \nu_t((R_{1,2}-q)^2 \dots) \le 0$ by the differential inequality.
+\end{proof}
+
+\begin{proposition}[Base case at $t = 0$]\label{prop:sg-tal:base-case}
+For independent spins at $t = 0$ and any $\lambda < 1/2$ (Proposition~1.4.8):
+\[
+\nu_0\left(\exp \lambda N (R_{1,2} - q)^2\right) \le \frac{1}{\sqrt{1 - 2\lambda}}.
+\]
+\end{proposition}
+\begin{proof}
+Use the 1D scalar inequality $(\cosh u + q \sinh u) e^{-qu} \le e^{u^2/2}$ to obtain the sub-Gaussian bound $\nu_0(\exp u N (R_{1,2} - q)) \le \exp(N u^2 / 2)$.
+Then randomize $u \sim \mathcal{N}(0, 2\lambda/N)$ using $\mathbb{E}_u \exp(u X) = \exp(\lambda X^2 / N)$ to complete the bound.
+\end{proof}
+
+\begin{theorem}[Exponential overlap concentration]\label{thm:sg-tal:overlap-conc}
+For $\beta < 1/2$ and $2s < 1 - 4\beta^2$, taking $\lambda = s + 2\beta^2 < 1/2$ and combining Proposition~\ref{prop:sg-tal:base-case} with Corollary~\ref{cor:sg-tal:compensated-mono} yields (Theorem~1.4.1):
+\[
+\nu\left(\exp s N (R_{1,2} - q)^2\right) \le \frac{1}{\sqrt{1 - 2s - 4\beta^2}}.
+\]
+In particular, $\nu((R_{1,2} - q)^2) \le K / N$ (Eq.~(1.89)) and $\nu_t((R_{1,2} - q)^2) \le K / N$ uniformly for all $t \in [0, 1]$ (Eq.~(1.103)).
+\end{theorem}
+\begin{proof}
+Since $t \mapsto \nu_t(\exp((\lambda - 2 t \beta^2) N (R_{1,2} - q)^2))$ is non-increasing, evaluating at $t = 1$ gives
+$\nu(\exp(s N (R_{1,2}-q)^2)) \le \nu_0(\exp(\lambda N (R_{1,2}-q)^2)) \le (1 - 2\lambda)^{-1/2} = (1 - 2s - 4\beta^2)^{-1/2}$.
+\end{proof}
+
+\begin{theorem}[The Aizenman--Lebowitz--Ruelle high-temperature free energy formula]\label{thm:sg-tal:alr}
+For $\beta < 1/2$, the free energy coincides with the replica-symmetric value up to an $O(1/N)$ error (Theorem~1.4.10):
+\[
+\left|p_N(\beta, h) - \operatorname{SK}(\beta, h)\right| \le \frac{K}{N}.
+\]
+Consequently, the thermodynamic limit of the free energy is exactly $\lim_{N \to \infty} p_N(\beta, h) = \operatorname{SK}(\beta, h)$.
+\end{theorem}
+\begin{proof}
+Integrating the path derivative $\varphi'(t) = -\frac{\beta^2}{4}\mathbb{E}\langle (R_{1,2}-q)^2\rangle_t + \frac{\beta^2}{4}(1-q)^2$ from $0$ to $1$:
+$\varphi(1) - \varphi(0) - \frac{\beta^2}{4}(1-q)^2 = -\frac{\beta^2}{4}\int_0^1 \nu_t((R_{1,2}-q)^2) dt$.
+Since $|\nu_t((R_{1,2}-q)^2)| \le K/N$ uniformly in $t \in [0, 1]$ by Theorem~\ref{thm:sg-tal:overlap-conc}, the integral is bounded by $K/N$.
+\end{proof}
+
+\section{Spin Decorrelation, Asymptotic Product Measures & Projections (Talagrand Sections~1.4--1.5)}\label{sec:sg-tal:decorrelation}
+
+The final component of the high-temperature theory connects overlap concentration to local spin independence and geometric projections.
+
+\begin{proposition}[Spin decorrelation from overlap concentration]\label{prop:sg-tal:spin-decorr}
+For any $p \ge 1$, site symmetry and overlap concentration imply truncated spin correlations vanish (Proposition~1.4.14, Eq.~(1.132)):
+\[
+\mathbb{E} \left(\langle \sigma_1 \cdots \sigma_p \rangle - \langle \sigma_1 \rangle \cdots \langle \sigma_p \rangle\right)^2 \le K(p) \nu\left((R_{1,2} - q)^2\right) \le \frac{K(p)}{N}.
+\]
+\end{proposition}
+\begin{proof}
+Center the spins $\dot{\sigma}_i = \sigma_i - \langle \sigma_i \rangle$.
+By site permutation symmetry, the sum over all $N(N-1)\cdots(N-p+1)$ disjoint $p$-tuples of spins of $\langle \dot{\sigma}_{i_1} \dots \dot{\sigma}_{i_p} \rangle^2$ is bounded by $N^p \nu((\frac{\dot{\sigma}^1 \cdot \dot{\sigma}^2}{N})^p) \le K(p) N^p \nu((R_{1,2}-q)^2)$.
+Dividing by $N^p$ establishes the result.
+\end{proof}
+
+\begin{theorem}[Gibbs measure is asymptotically product on finite marginals]\label{thm:sg-tal:asymp-product}
+For any fixed $p \in \mathbb{N}$, as $N \to \infty$ the marginal distribution of the first $p$ spins $(\sigma_1, \dots, \sigma_p)$ under the Gibbs measure converges in total variation distance to the product measure $\bigotimes_{i=1}^p \mu_i$, where $\mu_i(\sigma_i) = \frac{1 + \sigma_i \langle \sigma_i \rangle}{2}$ (Theorem~1.4.15).
+\end{theorem}
+\begin{proof}
+Any function on $\{-1, 1\}^p$ expands as a linear combination of spin monomials $\sigma_S = \prod_{i \in S} \sigma_i$ for $S \subseteq \{1, \dots, p\}$.
+By Proposition~\ref{prop:sg-tal:spin-decorr}, $\langle \sigma_S \rangle - \prod_{i \in S} \langle \sigma_i \rangle \to 0$ in $L^2$, ensuring total variation convergence.
+\end{proof}
+
+\begin{theorem}[High-dimensional random projections under Gibbs measure]\label{thm:sg-tal:random-projection}
+Let $\mathbf{g} = (g_1, \dots, g_N)$ be standard Gaussian random variables independent of the disorder.
+Under the high-temperature Gibbs measure, the random projection $\frac{\mathbf{g} \cdot \sigma}{\sqrt{N}}$ converges to a Gaussian mixture with variance $1 - q$ centered at the random barycenter $\frac{\mathbf{g} \cdot \langle \sigma \rangle}{\sqrt{N}}$:
+\[
+\left\langle \exp\left(t \frac{\mathbf{g} \cdot (\sigma - \langle \sigma \rangle)}{\sqrt{N}}\right) \right\rangle \xrightarrow[N \to \infty]{\mathbb{P}} \exp\left(\frac{t^2}{2}(1 - q)\right).
+\]
+\end{theorem}
+\begin{proof}
+Compute the conditional variance $\operatorname{Var}_\sigma(\frac{\mathbf{g} \cdot \sigma}{\sqrt{N}}) = \frac{1}{N}\sum_{i,j} g_i g_j (\langle \sigma_i \sigma_j \rangle - \langle \sigma_i \rangle \langle \sigma_j \rangle)$.
+By spin decorrelation, off-diagonal terms vanish, and the diagonal contributes $\frac{1}{N}\sum_i g_i^2 (1 - \langle \sigma_i \rangle^2) \to 1 - q$ by the law of large numbers.
+\end{proof}

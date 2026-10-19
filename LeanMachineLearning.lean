@@ -1,5 +1,6 @@
 module  -- shake: keep-all --deprecated_module: ignore
 
+public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.HypercubeProduct
 public import LeanMachineLearning.ForMathlib.Analysis.Asymptotics.Theta
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.Gradient.Basic
 public import LeanMachineLearning.ForMathlib.Analysis.Cesaro
@@ -389,6 +390,8 @@ public import LeanMachineLearning.SpinGlasses.PoissonProcessEquivalence
 public import LeanMachineLearning.SpinGlasses.PoissonProcessIndepMarks
 public import LeanMachineLearning.SpinGlasses.PoissonProcessPartition
 public import LeanMachineLearning.SpinGlasses.PoissonProcessTransform
+public import LeanMachineLearning.SpinGlasses.SKDecoupled
+public import LeanMachineLearning.SpinGlasses.SKFirstMoment
 public import LeanMachineLearning.SpinGlasses.SKModel
 public import LeanMachineLearning.SpinGlasses.ThermodynamicLimit
 public import LeanMachineLearning.Tactic.EqLift
