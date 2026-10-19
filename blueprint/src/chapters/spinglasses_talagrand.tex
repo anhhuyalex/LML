@@ -235,7 +235,10 @@ so it is reusable for relaxed and spherical spin models.  Formalized in
 
 \begin{lemma}[Pair-indexed Gaussian covariance]\label{lem:sg-tal:pair-covariance}
   \lean{SpinGlasses.integral_normalized_gaussian_linear_form_mul,
-        SpinGlasses.integral_sk_pair_field_mul}
+        SpinGlasses.integral_sk_pair_field_mul,
+        SpinGlasses.sum_finPairs_mul_eq_sub_sum_sq_div_two,
+        SpinGlasses.sum_sk_pair_coefficient_eq_overlap,
+        SpinGlasses.integral_sk_pair_field_mul_eq_overlap}
   \leanok
 For pair-indexed iid standard Gaussian disorder and two spin configurations, integrating out the
 disorder gives
@@ -251,14 +254,17 @@ disorder gives
   \leanok
 The general Lean theorem is the covariance of two normalized linear forms in an iid Gaussian
 vector; the SK theorem instantiates its coefficients with the pair products of the two spin
-configurations.  Formalized in \texttt{SpinGlasses/SKReplicaSymmetricBound.lean}.
+configurations.  A separate finite combinatorial lemma rewrites the unordered pair sum as half
+the square of the overlap minus its diagonal, yielding the displayed SK covariance exactly.
+Formalized in \texttt{SpinGlasses/SKReplicaSymmetricBound.lean}.
 \end{proof}
 
 \begin{lemma}[Algebraic assembly of the smart-path covariance difference]
   \label{lem:sg-tal:path-covariance-algebra}
-  \lean{SpinGlasses.smart_path_half_covariance_difference_eq}
+  \lean{SpinGlasses.smart_path_half_covariance_difference_eq,
+        SpinGlasses.sk_smart_path_half_covariance_difference_eq}
   \leanok
-Suppose the interacting and cavity covariances for two vectors $sigma,	au$ are respectively
+For Ising configurations, the two concrete Gaussian fields have covariances
 \[
 C = \frac{N\beta^2}{2}\left(R(\sigma,\tau)^2 - \frac1N\right),
 \qquad
@@ -272,9 +278,9 @@ Then their normalized half-difference is exactly
 \end{lemma}
 \begin{proof}
   \leanok
-Substitute $sigma\mathbin{\cdot}\tau=N R(\sigma,\tau)$ and complete the square.
-This purely algebraic bridge is formalized separately so the finite-pair SK covariance and the
-independent cavity covariance can be supplied without duplicating this calculation.
+The concrete theorem first invokes the already-formalized pair and cavity covariance calculations.
+It then reuses the general algebraic bridge, substituting
+$\sigma\mathbin{\cdot}\tau=N R(\sigma,\tau)$ and completing the square.
 \end{proof}
 
 \begin{lemma}[Smart path covariance difference]\label{lem:sg-tal:path-covariance}

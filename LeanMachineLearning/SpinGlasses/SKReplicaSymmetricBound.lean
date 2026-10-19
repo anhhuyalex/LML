@@ -8,6 +8,7 @@ module
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiLinearForm
 public import LeanMachineLearning.SpinGlasses.SKDecoupled
 public import LeanMachineLearning.SpinGlasses.SKFirstMoment
+import Mathlib.Algebra.BigOperators.Sym
 
 /-!
 # The Gaussian cavity field in Guerra's replica-symmetric interpolation
@@ -101,6 +102,94 @@ theorem integral_sk_pair_field_mul {N : ℕ} (β : ℝ)
     (Nat.cast_nonneg N) a b
   simpa only [a, b, dotProduct, mul_assoc] using hmain
 
+/-- The off-diagonal part of a quadratic sum is half the difference between the square of
+the full sum and the sum of squares.  This purely finite identity is reusable independently
+of the SK model. -/
+theorem sum_finPairs_mul_eq_sub_sum_sq_div_two (N : ℕ) (x : Fin N → ℝ) :
+    ∑ p : FinPairs N, x p.val.1 * x p.val.2 =
+      ((∑ i, x i) ^ 2 - ∑ i, x i ^ 2) / 2 := by
+  have hquadratic := QuadraticMap.map_sum (QuadraticMap.sq (R := ℝ))
+    (Finset.univ : Finset (Fin N)) x
+  rw [Finset.sum_sym2_filter_not_isDiag] at hquadratic
+  have hpolar (p : Fin N × Fin N) :
+      QuadraticMap.polarSym2 (QuadraticMap.sq (R := ℝ))
+          (Sym2.map x (Sym2.mk p.1 p.2)) = 2 * x p.1 * x p.2 := by
+    simp only [Sym2.map_mk, QuadraticMap.polarSym2_sym2Mk]
+    change (x p.1 + x p.2) * (x p.1 + x p.2) -
+      x p.1 * x p.1 - x p.2 * x p.2 = _
+    ring
+  simp_rw [hpolar] at hquadratic
+  have hsubtype :
+      ∑ p : FinPairs N, x p.val.1 * x p.val.2 =
+        ∑ p ∈ (Finset.univ : Finset (Fin N)).offDiag with p.1 < p.2,
+          x p.1 * x p.2 := by
+    symm
+    rw [Finset.sum_subtype]
+    intro p
+    constructor
+    · exact fun hp => (Finset.mem_filter.mp hp).2
+    · intro hp
+      apply Finset.mem_filter.2
+      refine ⟨Finset.mem_offDiag.2 ?_, hp⟩
+      exact ⟨Finset.mem_univ _, Finset.mem_univ _, ne_of_lt hp⟩
+  rw [hsubtype]
+  have hquadratic' :
+      (∑ i, x i) ^ 2 = ∑ i, x i ^ 2 +
+        ∑ p ∈ (Finset.univ : Finset (Fin N)).offDiag with p.1 < p.2,
+          2 * x p.1 * x p.2 := by
+    simpa [QuadraticMap.sq, pow_two] using hquadratic
+  have hdouble :
+      ∑ p ∈ (Finset.univ : Finset (Fin N)).offDiag with p.1 < p.2,
+        2 * x p.1 * x p.2 =
+        2 * ∑ p ∈ (Finset.univ : Finset (Fin N)).offDiag with p.1 < p.2,
+          x p.1 * x p.2 := by
+    rw [Finset.mul_sum]
+    apply Finset.sum_congr rfl
+    intro p hp
+    ring
+  rw [hdouble] at hquadratic'
+  linarith [hquadratic']
+
+/-- For Ising configurations, the pair coefficient sum is the square of their overlap minus
+the diagonal.  This is the finite combinatorial ingredient in the SK covariance formula. -/
+theorem sum_sk_pair_coefficient_eq_overlap (N : ℕ) (σ τ : Fin N → ℤˣ) :
+    ∑ p : FinPairs N,
+      (((σ p.val.1 : ℤ) : ℝ) * ((σ p.val.2 : ℤ) : ℝ)) *
+        ((τ p.val.1 : ℤ) : ℝ) * ((τ p.val.2 : ℤ) : ℝ) =
+      (((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ fun i => ((τ i : ℤ) : ℝ)) ^ 2 - N) / 2 := by
+  let x : Fin N → ℝ := fun i => ((σ i : ℤ) : ℝ) * ((τ i : ℤ) : ℝ)
+  have hsum : ∑ i, x i =
+      (fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ fun i => ((τ i : ℤ) : ℝ) := by
+    rfl
+  have hx_sq (i : Fin N) : x i ^ 2 = 1 := by
+    dsimp [x]
+    rw [mul_pow, units_cast_sq, units_cast_sq]
+    norm_num
+  have hsquares : ∑ i, x i ^ 2 = N := by
+    simp_rw [hx_sq]
+    simp
+  have hbase := sum_finPairs_mul_eq_sub_sum_sq_div_two N x
+  rw [hsum, hsquares] at hbase
+  simpa only [x, Nat.cast_ofNat, mul_assoc, mul_left_comm, mul_comm] using hbase
+
+/-- The covariance of the pair-indexed SK Gaussian field, expressed through the normalized
+overlap of two Ising configurations. -/
+theorem integral_sk_pair_field_mul_eq_overlap {N : ℕ} (hN : 0 < N) (β : ℝ)
+    (σ τ : Fin N → ℤˣ) :
+    ∫ g : FinPairs N → ℝ,
+      ((Real.sqrt N)⁻¹ * β *
+        ∑ p : FinPairs N, g p * ((σ p.val.1 : ℤ) : ℝ) * ((σ p.val.2 : ℤ) : ℝ)) *
+        ((Real.sqrt N)⁻¹ * β *
+          ∑ p : FinPairs N, g p * ((τ p.val.1 : ℤ) : ℝ) * ((τ p.val.2 : ℤ) : ℝ))
+      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) =
+      (N : ℝ) * β ^ 2 / 2 *
+        ((((N : ℝ)⁻¹ *
+          ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ fun i => ((τ i : ℤ) : ℝ))) ^ 2 -
+          (N : ℝ)⁻¹)) := by
+  rw [integral_sk_pair_field_mul, sum_sk_pair_coefficient_eq_overlap]
+  have hN' : (N : ℝ) ≠ 0 := Nat.cast_ne_zero.2 (Nat.ne_of_gt hN)
+  field_simp
+
 /-- The covariance of Guerra's independent site-Gaussian field.  This is the
 decoupled contribution to the covariance difference in Eq. (1.64). -/
 theorem integral_decoupled_gaussian_field_mul (β q : ℝ) (hq : 0 ≤ q)
@@ -158,5 +247,33 @@ theorem smart_path_half_covariance_difference_eq [Nonempty ι] (β q : ℝ)
   rw [hC, hD, hdot]
   field_simp
   ring
+
+/-- Eq. (1.64) for the SK pair field and the independent Guerra cavity field.  The proof
+reuses their separate Gaussian covariance calculations and leaves only the model-independent
+algebraic assembly to `smart_path_half_covariance_difference_eq`. -/
+theorem sk_smart_path_half_covariance_difference_eq {N : ℕ} (hN : 0 < N)
+    (β q : ℝ) (hq : 0 ≤ q) (σ τ : Fin N → ℤˣ) :
+    (N : ℝ)⁻¹ *
+      (((∫ g : FinPairs N → ℝ,
+          ((Real.sqrt N)⁻¹ * β *
+            ∑ p : FinPairs N,
+              g p * ((σ p.val.1 : ℤ) : ℝ) * ((σ p.val.2 : ℤ) : ℝ)) *
+            ((Real.sqrt N)⁻¹ * β *
+              ∑ p : FinPairs N,
+                g p * ((τ p.val.1 : ℤ) : ℝ) * ((τ p.val.2 : ℤ) : ℝ))
+          ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) -
+        (∫ z : Fin N → ℝ,
+          (β * Real.sqrt q * ∑ i, z i * ((σ i : ℤ) : ℝ)) *
+            (β * Real.sqrt q * ∑ i, z i * ((τ i : ℤ) : ℝ))
+          ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1))) / 2) =
+      β ^ 2 / 4 *
+        ((((N : ℝ)⁻¹ *
+          ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ fun i => ((τ i : ℤ) : ℝ))) - q) ^ 2 -
+          q ^ 2 - (N : ℝ)⁻¹) := by
+  let _ : Nonempty (Fin N) := ⟨⟨0, hN⟩⟩
+  rw [integral_sk_pair_field_mul_eq_overlap hN,
+    integral_decoupled_gaussian_field_mul β q hq]
+  simpa using smart_path_half_covariance_difference_eq β q
+    (fun i => ((σ i : ℤ) : ℝ)) (fun i => ((τ i : ℤ) : ℝ)) _ _ rfl rfl
 
 end SpinGlasses
