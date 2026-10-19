@@ -444,4 +444,25 @@ theorem HasGaussianLaw.sumElim_prod {Ω' κ' : Type*} {m : MeasurableSpace Ω'} 
   convert hpair.map_fun L using 1
   ext z (a | a) <;> simp [L]
 
+/-- **Independent Gaussian vectors from different source spaces are jointly Gaussian.**  This is
+the two-measure version of `HasGaussianLaw.sumElim_prod`; it is useful when Gaussian fields have
+different index types, such as pair disorder and a site cavity field. -/
+theorem HasGaussianLaw.sumElim_prod_of_independent {Ω₁ Ω₂ κ : Type*}
+    {m₁ : MeasurableSpace Ω₁} {m₂ : MeasurableSpace Ω₂} {μ : Measure Ω₁} {ν : Measure Ω₂}
+    [SFinite μ] [SFinite ν] [Finite κ] {f : Ω₁ → κ → ℝ} {g : Ω₂ → κ → ℝ}
+    (hf : HasGaussianLaw f μ) (hg : HasGaussianLaw g ν) (hfm : Measurable f)
+    (hgm : Measurable g) :
+    HasGaussianLaw (fun z : Ω₁ × Ω₂ => fun s : κ ⊕ κ =>
+      Sum.elim (fun a => f z.1 a) (fun a => g z.2 a) s) (μ.prod ν) := by
+  let _ := Fintype.ofFinite κ
+  have hpair := HasGaussianLaw.prodMk_prod hf hg hfm hgm
+  let L : ((κ → ℝ) × (κ → ℝ)) →L[ℝ] (κ ⊕ κ → ℝ) := ContinuousLinearMap.pi
+    (Sum.elim
+      (fun a => (ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : κ => ℝ) a).comp
+        (ContinuousLinearMap.fst ℝ (κ → ℝ) (κ → ℝ)))
+      (fun a => (ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : κ => ℝ) a).comp
+        (ContinuousLinearMap.snd ℝ (κ → ℝ) (κ → ℝ))))
+  convert hpair.map_fun L using 1
+  ext z (a | a) <;> simp [L]
+
 end ProbabilityTheory

@@ -8,7 +8,9 @@ module
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiLinearForm
 public import LeanMachineLearning.SpinGlasses.SKDecoupled
 public import LeanMachineLearning.SpinGlasses.SKFirstMoment
+public import LeanMachineLearning.SpinGlasses.GaussianComparison
 import Mathlib.Algebra.BigOperators.Sym
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
 
 /-!
 # The Gaussian cavity field in Guerra's replica-symmetric interpolation
@@ -247,6 +249,127 @@ theorem smart_path_half_covariance_difference_eq [Nonempty ι] (β q : ℝ)
   rw [hC, hD, hdot]
   field_simp
   ring
+
+/-- The normalized derivative along a trigonometric Gaussian interpolation when the covariance
+difference has the completed-square form of Guerra's smart path.  This reuses the general
+Gaussian interpolation theorem; it is independent of the SK realization of the two fields. -/
+theorem hasDerivAt_normalized_log_sum_exp_trig_of_covariance_difference
+    {α Ω : Type*} {mΩ : MeasurableSpace Ω} {P : Measure Ω} {X Y : α → Ω → ℝ}
+    {N : ℕ} [Fintype α] [Nonempty α] [MeasurableSpace α] [MeasurableSingletonClass α]
+    (β q t : ℝ) (r : α → α → ℝ) (hXm : ∀ a, Measurable (X a))
+    (hYm : ∀ a, Measurable (Y a))
+    (hXY : HasGaussianLaw (fun ω s => Sum.elim X Y s ω) P)
+    (hX : ∀ a, ∫ ω, X a ω ∂P = 0) (hY : ∀ a, ∫ ω, Y a ω ∂P = 0)
+    (h0 : ∀ a b, ∫ ω, X a ω * Y b ω ∂P = 0)
+    (hCov : ∀ a b, (N : ℝ)⁻¹ *
+      ((∫ ω, X a ω * X b ω ∂P - ∫ ω, Y a ω * Y b ω ∂P) / 2) =
+        β ^ 2 / 4 * ((r a b - q) ^ 2 - q ^ 2 - (N : ℝ)⁻¹))
+    (hdiag : ∀ a, r a a = 1) (h : α → ℝ) :
+    HasDerivAt (fun s => (N : ℝ)⁻¹ *
+      ∫ ω, Real.log (∑ a, Real.exp (Real.cos s * X a ω +
+        Real.sin s * Y a ω + h a)) ∂P)
+      (β ^ 2 / 2 * Real.sin t * Real.cos t *
+        ∫ ω, ∫ p : α × α, ((r p.1 p.2 - q) ^ 2 - (1 - q) ^ 2)
+          ∂((Measure.count.tilted fun a => Real.cos t * X a ω +
+            Real.sin t * Y a ω + h a).prod
+            (Measure.count.tilted fun a => Real.cos t * X a ω +
+              Real.sin t * Y a ω + h a)) ∂P) t := by
+  have hderiv := hasDerivAt_integral_log_sum_exp_trig hXm hYm hXY hX hY h0 h t
+  have hkernel (a b : α) :
+      (N : ℝ)⁻¹ *
+          ((∫ ω, Y a ω * Y a ω ∂P - ∫ ω, X a ω * X a ω ∂P) -
+            (∫ ω, Y a ω * Y b ω ∂P - ∫ ω, X a ω * X b ω ∂P)) =
+        β ^ 2 / 2 * ((r a b - q) ^ 2 - (1 - q) ^ 2) := by
+    have hdiag_cov := hCov a a
+    rw [hdiag a] at hdiag_cov
+    nlinarith [hdiag_cov, hCov a b]
+  convert hderiv.const_mul (N : ℝ)⁻¹ using 1
+  symm
+  calc
+    (N : ℝ)⁻¹ *
+        ∫ ω, ∫ p : α × α, Real.sin t * Real.cos t *
+          ((∫ ω', Y p.1 ω' * Y p.1 ω' ∂P - ∫ ω', X p.1 ω' * X p.1 ω' ∂P) -
+            (∫ ω', Y p.1 ω' * Y p.2 ω' ∂P -
+              ∫ ω', X p.1 ω' * X p.2 ω' ∂P))
+          ∂((Measure.count.tilted fun a => Real.cos t * X a ω +
+            Real.sin t * Y a ω + h a).prod
+            (Measure.count.tilted fun a => Real.cos t * X a ω +
+              Real.sin t * Y a ω + h a)) ∂P =
+        ∫ ω, ∫ p : α × α,
+          (β ^ 2 / 2 * Real.sin t * Real.cos t) *
+            ((r p.1 p.2 - q) ^ 2 - (1 - q) ^ 2)
+          ∂((Measure.count.tilted fun a => Real.cos t * X a ω +
+            Real.sin t * Y a ω + h a).prod
+            (Measure.count.tilted fun a => Real.cos t * X a ω +
+              Real.sin t * Y a ω + h a)) ∂P := by
+      rw [← integral_const_mul]
+      apply integral_congr_ae
+      filter_upwards with ω
+      rw [← integral_const_mul]
+      apply integral_congr_ae
+      filter_upwards with p
+      calc
+        (N : ℝ)⁻¹ * (Real.sin t * Real.cos t *
+            ((∫ ω', Y p.1 ω' * Y p.1 ω' ∂P - ∫ ω', X p.1 ω' * X p.1 ω' ∂P) -
+              (∫ ω', Y p.1 ω' * Y p.2 ω' ∂P -
+                ∫ ω', X p.1 ω' * X p.2 ω' ∂P))) =
+          Real.sin t * Real.cos t * ((N : ℝ)⁻¹ *
+            ((∫ ω', Y p.1 ω' * Y p.1 ω' ∂P - ∫ ω', X p.1 ω' * X p.1 ω' ∂P) -
+              (∫ ω', Y p.1 ω' * Y p.2 ω' ∂P -
+                ∫ ω', X p.1 ω' * X p.2 ω' ∂P))) := by ring
+        _ = Real.sin t * Real.cos t *
+            (β ^ 2 / 2 * ((r p.1 p.2 - q) ^ 2 - (1 - q) ^ 2)) := by
+          rw [hkernel]
+        _ = (β ^ 2 / 2 * Real.sin t * Real.cos t) *
+            ((r p.1 p.2 - q) ^ 2 - (1 - q) ^ 2) := by ring
+    _ = β ^ 2 / 2 * Real.sin t * Real.cos t *
+        ∫ ω, ∫ p : α × α, ((r p.1 p.2 - q) ^ 2 - (1 - q) ^ 2)
+          ∂((Measure.count.tilted fun a => Real.cos t * X a ω +
+            Real.sin t * Y a ω + h a).prod
+            (Measure.count.tilted fun a => Real.cos t * X a ω +
+              Real.sin t * Y a ω + h a)) ∂P := by
+      rw [← integral_const_mul]
+      apply integral_congr_ae
+      filter_upwards with ω
+      rw [integral_const_mul]
+
+/-- A calculus form of Guerra's endpoint estimate.  A derivative with a nonnegative square
+remainder along the trigonometric path yields the usual replica-symmetric endpoint correction. -/
+theorem le_endpoint_of_trig_square_deriv (φ A : ℝ → ℝ) (β q : ℝ)
+    (hderiv : ∀ s, HasDerivAt φ
+      (β ^ 2 / 2 * Real.sin s * Real.cos s * (A s - (1 - q) ^ 2)) s)
+    (hA : ∀ s, 0 ≤ A s) :
+    φ 0 ≤ φ (Real.pi / 2) + β ^ 2 / 4 * (1 - q) ^ 2 := by
+  let F : ℝ → ℝ := fun s => φ s + β ^ 2 / 4 * (1 - q) ^ 2 * Real.sin s ^ 2
+  have hFderiv (s : ℝ) : HasDerivAt F
+      (β ^ 2 / 2 * Real.sin s * Real.cos s * A s) s := by
+    have hsin_sq : HasDerivAt (fun x : ℝ => Real.sin x ^ 2)
+        (2 * Real.sin s * Real.cos s) s := by
+      convert (Real.hasDerivAt_sin s).pow 2 using 1
+      all_goals ring
+    convert (hderiv s).add (hsin_sq.const_mul (β ^ 2 / 4 * (1 - q) ^ 2)) using 1
+    all_goals ring
+  have hmono : MonotoneOn F (Set.Icc 0 (Real.pi / 2)) :=
+    monotoneOn_of_deriv_nonneg (convex_Icc 0 (Real.pi / 2))
+      (fun s _ => (hFderiv s).continuousAt.continuousWithinAt)
+      (fun s _ => (hFderiv s).differentiableAt.differentiableWithinAt)
+      (fun s hs => by
+        rw [interior_Icc] at hs
+        rw [(hFderiv s).deriv]
+        have hsin : 0 ≤ Real.sin s := Real.sin_nonneg_of_nonneg_of_le_pi hs.1.le
+          (hs.2.le.trans (by linarith [Real.pi_pos]))
+        have hcos : 0 ≤ Real.cos s := Real.cos_nonneg_of_mem_Icc
+          ⟨by linarith [hs.1, Real.pi_pos], hs.2.le⟩
+        exact mul_nonneg
+          (mul_nonneg
+            (mul_nonneg (div_nonneg (sq_nonneg β) (by norm_num)) hsin) hcos)
+          (hA s))
+  have hzero : 0 ∈ Set.Icc (0 : ℝ) (Real.pi / 2) :=
+    ⟨le_rfl, div_nonneg (le_of_lt Real.pi_pos) (by norm_num)⟩
+  have hpi : Real.pi / 2 ∈ Set.Icc (0 : ℝ) (Real.pi / 2) :=
+    ⟨div_nonneg (le_of_lt Real.pi_pos) (by norm_num), le_rfl⟩
+  have hle := hmono hzero hpi (by linarith [Real.pi_pos])
+  simpa [F, Real.sin_zero, Real.sin_pi_div_two] using hle
 
 /-- Eq. (1.64) for the SK pair field and the independent Guerra cavity field.  The proof
 reuses their separate Gaussian covariance calculations and leaves only the model-independent

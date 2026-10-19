@@ -243,7 +243,7 @@ so it is reusable for relaxed and spherical spin models.  Formalized in
 For pair-indexed iid standard Gaussian disorder and two spin configurations, integrating out the
 disorder gives
 \[
-\mathbb{E}\left[left(\frac{\beta}{\sqrt{N}}\sum_{i<j}
+\mathbb{E}\left[\left(\frac{\beta}{\sqrt{N}}\sum_{i<j}
   g_{ij}\sigma_i\sigma_j\right)
   \left(\frac{\beta}{\sqrt{N}}\sum_{i<j}
   g_{ij}\tau_i\tau_j\right)\right]
@@ -281,6 +281,55 @@ Then their normalized half-difference is exactly
 The concrete theorem first invokes the already-formalized pair and cavity covariance calculations.
 It then reuses the general algebraic bridge, substituting
 $\sigma\mathbin{\cdot}\tau=N R(\sigma,\tau)$ and completing the square.
+\end{proof}
+
+\begin{lemma}[Normalized trigonometric smart-path derivative]
+  \label{lem:sg-tal:trig-smart-path-derivative}
+  \lean{SpinGlasses.hasDerivAt_normalized_log_sum_exp_trig_of_covariance_difference}
+  \leanok
+Let $X_\sigma$ and $Y_\sigma$ be centered, jointly Gaussian, independent fields on a finite
+configuration space, and let $r(\sigma,\tau)$ satisfy $r(\sigma,\sigma)=1$.  Suppose
+\[
+\frac1N\frac{\operatorname{Cov}(X_\sigma,X_\tau)-
+  \operatorname{Cov}(Y_\sigma,Y_\tau)}2
+= \frac{\beta^2}{4}\left((r(\sigma,\tau)-q)^2-q^2-\frac1N\right).
+\]
+For the smooth path $\cos s\,X+\sin s\,Y+h$, the normalized log-partition function has
+derivative
+\[
+\frac{\beta^2}{2}\sin s\cos s\,
+\mathbb E\left\langle (r(\sigma^1,\sigma^2)-q)^2-(1-q)^2\right\rangle_s.
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+The formal theorem invokes the existing Gaussian integration-by-parts derivative theorem for the
+trigonometric path and substitutes the covariance hypothesis pointwise.  It deliberately applies
+to arbitrary finite Gaussian fields, so the SK covariance calculation is only one specialization.
+This is not yet Eq.~(1.65) for the square-root parameterization; constructing the concrete SK
+and cavity fields as a jointly Gaussian pair and matching their endpoints remains part of
+Milestone T2.
+\end{proof}
+
+\begin{lemma}[Trigonometric replica-symmetric endpoint estimate]
+  \label{lem:sg-tal:trig-rs-endpoint}
+  \lean{SpinGlasses.le_endpoint_of_trig_square_deriv}
+  \leanok
+If a differentiable function satisfies
+\[
+\phi'(s)=\frac{\beta^2}{2}\sin s\cos s
+  \left(A(s)-(1-q)^2\right), \qquad A(s)\geq 0,
+\]
+then
+\[
+\phi(0)\leq \phi(\pi/2)+\frac{\beta^2}{4}(1-q)^2.
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+The formal proof applies Mathlib's monotonicity theorem to
+$\phi(s)+\frac{\beta^2}{4}(1-q)^2\sin^2 s$ on $[0,\pi/2]$.
+The derivative is $\frac{\beta^2}{2}\sin s\cos s\,A(s)$, which is nonnegative.
 \end{proof}
 
 \begin{lemma}[Smart path covariance difference]\label{lem:sg-tal:path-covariance}
