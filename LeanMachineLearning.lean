@@ -393,6 +393,7 @@ public import LeanMachineLearning.SpinGlasses.PoissonProcessTransform
 public import LeanMachineLearning.SpinGlasses.SKDecoupled
 public import LeanMachineLearning.SpinGlasses.SKFirstMoment
 public import LeanMachineLearning.SpinGlasses.SKModel
+public import LeanMachineLearning.SpinGlasses.SKReplicaSymmetricBound
 public import LeanMachineLearning.SpinGlasses.ThermodynamicLimit
 public import LeanMachineLearning.Tactic.EqLift
 public import LeanMachineLearning.Tactic.EqLift.ForMathlib.Kernel

@@ -117,9 +117,9 @@ Formalized in \texttt{ForMathlib/Algebra/BigOperators/HypercubeProduct.lean}.
 \begin{theorem}[Decoupled partition function and local observables]\label{thm:sg-tal:decoupled-partition}
   \lean{SpinGlasses.continuous_tanh,
         SpinGlasses.decoupled_partition_function_eq,
-        SpinGlasses.decoupled_gibbs_spin_expectation,
-        SpinGlasses.decoupled_two_replica_spin_expectation,
-        SpinGlasses.decoupled_free_energy}
+        SpinGlasses.decoupled_gibbs_spin_eq,
+        SpinGlasses.decoupled_gibbs_replica_two_eq,
+        SpinGlasses.decoupled_free_energy_eq}
   \leanok
 For the decoupled cavity-free Hamiltonian $-H_0(\sigma) = \sum_{i \le N} \sigma_i Y_i$, the partition function factorizes as
 \[
@@ -212,6 +212,70 @@ For $t \in [0, 1]$, independent standard Gaussians $(g_{ij})_{i<j}$ and $(z_i)_{
 \]
 The interpolating partition function is $Z_t = \sum_\sigma \exp(-H_t(\sigma))$ and $\varphi(t) = N^{-1}\mathbb{E}\log Z_t$.
 \end{definition}
+
+\begin{lemma}[Covariance of the decoupled Gaussian cavity field]\label{lem:sg-tal:decoupled-covariance}
+  \lean{SpinGlasses.integral_decoupled_gaussian_field_mul}
+  \leanok
+For arbitrary finite real vectors $\sigma, \tau$ and independent standard Gaussian variables
+$(z_i)$, the cavity-field part of Guerra's path satisfies
+\[
+\mathbb{E}\left[\left(\beta\sqrt{q}\sum_i z_i\sigma_i\right)
+  \left(\beta\sqrt{q}\sum_i z_i\tau_i\right)\right]
+= \beta^2 q \sum_i \sigma_i\tau_i,
+\qquad q \geq 0.
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+This is the covariance of two linear forms in an iid standard Gaussian vector.
+The Lean statement is deliberately for arbitrary finite real vectors, not only hypercube spins,
+so it is reusable for relaxed and spherical spin models.  Formalized in
+\texttt{SpinGlasses/SKReplicaSymmetricBound.lean}.
+\end{proof}
+
+\begin{lemma}[Pair-indexed Gaussian covariance]\label{lem:sg-tal:pair-covariance}
+  \lean{SpinGlasses.integral_normalized_gaussian_linear_form_mul,
+        SpinGlasses.integral_sk_pair_field_mul}
+  \leanok
+For pair-indexed iid standard Gaussian disorder and two spin configurations, integrating out the
+disorder gives
+\[
+\mathbb{E}\left[left(\frac{\beta}{\sqrt{N}}\sum_{i<j}
+  g_{ij}\sigma_i\sigma_j\right)
+  \left(\frac{\beta}{\sqrt{N}}\sum_{i<j}
+  g_{ij}\tau_i\tau_j\right)\right]
+= \frac{\beta^2}{N}\sum_{i<j}\sigma_i\sigma_j\tau_i\tau_j.
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+The general Lean theorem is the covariance of two normalized linear forms in an iid Gaussian
+vector; the SK theorem instantiates its coefficients with the pair products of the two spin
+configurations.  Formalized in \texttt{SpinGlasses/SKReplicaSymmetricBound.lean}.
+\end{proof}
+
+\begin{lemma}[Algebraic assembly of the smart-path covariance difference]
+  \label{lem:sg-tal:path-covariance-algebra}
+  \lean{SpinGlasses.smart_path_half_covariance_difference_eq}
+  \leanok
+Suppose the interacting and cavity covariances for two vectors $sigma,	au$ are respectively
+\[
+C = \frac{N\beta^2}{2}\left(R(\sigma,\tau)^2 - \frac1N\right),
+\qquad
+D = \beta^2 q\, \sigma\mathbin{\cdot}\tau.
+\]
+Then their normalized half-difference is exactly
+\[
+\frac{C-D}{2N} = \frac{\beta^2}{4}
+  \left((R(\sigma,\tau)-q)^2-q^2-\frac1N\right).
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+Substitute $sigma\mathbin{\cdot}\tau=N R(\sigma,\tau)$ and complete the square.
+This purely algebraic bridge is formalized separately so the finite-pair SK covariance and the
+independent cavity covariance can be supplied without duplicating this calculation.
+\end{proof}
 
 \begin{lemma}[Smart path covariance difference]\label{lem:sg-tal:path-covariance}
 Let $u_\sigma = \frac{\beta}{\sqrt{N}}\sum_{i<j} g_{ij} \sigma_i \sigma_j$ and $v_\sigma = \beta \sqrt{q}\sum_i z_i \sigma_i$.
