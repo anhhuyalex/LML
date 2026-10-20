@@ -116,7 +116,10 @@ Formalized in \texttt{ForMathlib/Algebra/BigOperators/HypercubeProduct.lean}.
 
 \begin{theorem}[Decoupled partition function and local observables]\label{thm:sg-tal:decoupled-partition}
   \lean{Real.continuous_tanh,
+        SpinGlasses.integrable_tanh_sq,
         SpinGlasses.decoupled_partition_function_eq,
+        SpinGlasses.decoupled_partition_function_eq_mul_erase,
+        SpinGlasses.decoupled_sum_spin_mul_exp_eq,
         SpinGlasses.decoupled_gibbs_spin_eq,
         SpinGlasses.decoupled_gibbs_replica_two_eq,
         SpinGlasses.decoupled_free_energy_eq}
@@ -124,6 +127,12 @@ Formalized in \texttt{ForMathlib/Algebra/BigOperators/HypercubeProduct.lean}.
 For the decoupled cavity-free Hamiltonian $-H_0(\sigma) = \sum_{i \le N} \sigma_i Y_i$, the partition function factorizes as
 \[
 Z_0 = 2^N \prod_{i=1}^N \cosh Y_i.
+\]
+Splitting off the coordinate $j$,
+\[
+Z_0 = 2\cosh Y_j \prod_{i\neq j} 2\cosh Y_i,
+\qquad
+\sum_{\sigma}\sigma_j \exp\Big(\sum_i \sigma_i Y_i\Big) = 2\sinh Y_j \prod_{i\neq j} 2\cosh Y_i .
 \]
 The decoupled Gibbs expectation of a single spin satisfies $\langle \sigma_j \rangle_0 = \tanh Y_j$,
 the two-replica overlap satisfies $\langle \sigma_j^1 \sigma_j^2 \rangle_0 = \tanh^2 Y_j$,
@@ -135,6 +144,30 @@ p_N(0) = \log 2 + \frac{1}{N} \sum_{i=1}^N \mathbb{E} \log\cosh Y_i.
 \begin{proof}
   \leanok
 Apply Lemma~\ref{lem:sg-tal:hypercube-prod} with $a(i, \pm 1) = \exp(\pm Y_i)$ and use $\exp(Y) + \exp(-Y) = 2\cosh Y$ and $\exp(Y) - \exp(-Y) = 2\sinh Y$.
+For the single-spin sum take $a(j,s)=s\,e^{sY_j}$ and $a(i,s)=e^{sY_i}$ for $i\ne j$; the ratio of the two sums is $\tanh Y_j$.
+The integrability of $\tanh^2(Y)$ for any a.e.\ measurable $Y$ (it is bounded by $1$) is recorded separately because every expectation below uses it.
+Formalized in \texttt{SpinGlasses/SKDecoupled.lean}.
+\end{proof}
+
+\begin{theorem}[Overlaps of the decoupled model]\label{thm:sg-tal:decoupled-overlap}
+  \lean{SpinGlasses.decoupled_gibbs_overlap_eq,
+        SpinGlasses.decoupled_replica_overlap_eq}
+  \leanok
+Let $\iota$ be a finite nonempty index set of size $N$, $Y:\iota\to\mathbb R$ and let $\langle\cdot\rangle_0$ be the Gibbs average for $-H_0(\sigma)=\sum_i\sigma_iY_i$.
+For two independent replicas the mean overlap is
+\[
+\Big\langle \frac1N\sum_{j}\sigma^1_j\sigma^2_j\Big\rangle_0=\frac1N\sum_{j}\tanh^2 Y_j .
+\]
+If moreover $Y_j$ are random variables on a probability space with the same law for every $j$, then
+\[
+\mathbb E\,\frac1N\sum_{j}\tanh^2 Y_j=\mathbb E\tanh^2 Y_{j_0},
+\]
+which for $Y_j=\beta z_j\sqrt q+h$ is the right-hand side $\mathbb E\tanh^2(\beta z\sqrt q+h)$ of the self-consistency equation (Eq.~(1.104)): at a fixed point $q$ the decoupled model has expected overlap exactly $q$.
+\end{theorem}
+\begin{proof}
+  \leanok
+Linearity of the integral over the product of the two (identical) Gibbs measures reduces the first claim to the single-site identity $\langle\sigma^1_j\sigma^2_j\rangle_0=\langle\sigma_j\rangle_0^2=\tanh^2Y_j$ of Theorem~\ref{thm:sg-tal:decoupled-partition}.
+The second claim is linearity of the expectation together with $\mathbb E\tanh^2Y_j=\mathbb E\tanh^2Y_{j_0}$, which follows from identical distribution.
 Formalized in \texttt{SpinGlasses/SKDecoupled.lean}.
 \end{proof}
 
@@ -269,7 +302,9 @@ Formalized in \texttt{SpinGlasses/SKReplicaSymmetricBound.lean}.
 
 \begin{lemma}[Algebraic assembly of the smart-path covariance difference]
   \label{lem:sg-tal:path-covariance-algebra}
-  \lean{SpinGlasses.smart_path_half_covariance_difference_eq,
+  \lean{SpinGlasses.sum_mul_comm_eq_dotProduct,
+        SpinGlasses.inv_sqrt_mul_self,
+        SpinGlasses.smart_path_half_covariance_difference_eq,
         SpinGlasses.sk_smart_path_half_covariance_difference_eq}
   \leanok
 For Ising configurations, the two concrete Gaussian fields have covariances
@@ -289,6 +324,7 @@ Then their normalized half-difference is exactly
 The concrete theorem first invokes the already-formalized pair and cavity covariance calculations.
 It then reuses the general algebraic bridge, substituting
 $\sigma\mathbin{\cdot}\tau=N R(\sigma,\tau)$ and completing the square.
+Two elementary facts are used throughout the covariance computations and are stated as separate lemmas: a linear form $\sum_k g_k a_k$ equals the dot product $a\cdot g$, and $(\sqrt n)^{-1}(\sqrt n)^{-1}=n^{-1}$ for $n\ge0$ (this is how the factor $N^{-1/2}$ in the Hamiltonian squares to the $1/N$ of the covariance).
 \end{proof}
 
 \begin{lemma}[Normalized trigonometric smart-path derivative]
@@ -435,7 +471,8 @@ Every statement below is proved in Lean, but several proofs differ from Talagran
 \end{remark}
 
 \begin{lemma}[General replica derivative under Gaussian interpolation]\label{lem:sg-tal:replica-deriv}
-  \lean{SpinGlasses.hasDerivAt_integral_pi_count_tilted_path,
+  \lean{SpinGlasses.abs_neg_sin_mul_add_cos_mul_le_sum,
+        SpinGlasses.hasDerivAt_integral_pi_count_tilted_path,
         SpinGlasses.hasDerivAt_integral_pi_count_tilted_path_moving,
         SpinGlasses.aemeasurable_gibbsWeight,
         SpinGlasses.aemeasurable_integral_pi_count_tilted,
@@ -462,7 +499,7 @@ More generally, if $\Phi_s$ depends differentiably on $s$ with $|\Phi_s|, |\part
 \end{lemma}
 \begin{proof}
 \leanok
-Differentiate the replica average $\prod_\ell w(\sigma^\ell)/Z^n$ along the path (finite-dimensional calculus, \texttt{fderiv\_integral\_pi\_count\_tilted}) and pass the derivative inside $\mathbb{E}$ by dominated differentiation (the path derivative is dominated by $\sum_\sigma |X_\sigma|+|Y_\sigma|$, which is integrable for a Gaussian field).
+Differentiate the replica average $\prod_\ell w(\sigma^\ell)/Z^n$ along the path (finite-dimensional calculus, \texttt{fderiv\_integral\_pi\_count\_tilted}) and pass the derivative inside $\mathbb{E}$ by dominated differentiation (the path derivative is dominated by $\sum_\sigma |X_\sigma|+|Y_\sigma|$, which is integrable for a Gaussian field; this uniform bound $|-\sin s\,x_\sigma+\cos s\,y_\sigma|\le\sum_{\tau}(|x_\tau|+|y_\tau|)$ is a separate lemma, used in all three derivative statements and in the Slepian comparison).
 This gives $\mathbb{E}\langle\Phi(\sum_\ell u'(\sigma^\ell) - n\langle u'\rangle)\rangle$ with $u'=-\sin s\,X+\cos s\,Y$.
 Two Gaussian integrations by parts (\texttt{integral\_gibbs\_replica\_average\_gaussian\_option}, applied to $X$ and to $Y$) turn this into the displayed covariance combination, with $\mathbb{E} X Y = 0$ killing the cross terms; the extra replicas $n+1,n+2$ appear exactly as in Panchenko's Eq.~(1.29), and a marginalization lemma removes the replicas on which the observable does not depend.
 In the parametrization $t = \cos^2 s$ (with $t=1$ the SK end) this is Talagrand's Eq.~(1.90); Eq.~(1.97) for $n=2$ is the specialization used in the proof of Lemma~\ref{lem:sg-tal:replica-decoupling}.
@@ -471,8 +508,8 @@ Formalized in \texttt{SpinGlasses/GaussianInterpolationReplica.lean}.
 
 \begin{lemma}[Replica decoupling]\label{lem:sg-tal:replica-decoupling}
   \lean{MeasureTheory.integral_mul_integral_le_integral_mul,
+        MeasureTheory.integral_comp_mul_integral_comp_le,
         MeasureTheory.integral_pi_fin_two,
-        SpinGlasses.integral_comb_four,
         SpinGlasses.replica_decoupling_comb_nonneg}
   \leanok
 Let $\mu$ be a Gibbs measure on a finite set $\alpha$, $A : \alpha\times\alpha\to[0,\infty)$ symmetric with constant diagonal, $U(\sigma,\tau) = -\kappa (A(\sigma,\tau) - c)$ with $\kappa\ge0$, and $u\ge 0$.
@@ -515,7 +552,9 @@ The path version compares the smart-path energy at any time $t\in[0,\pi/2]$ with
 \end{proof}
 
 \begin{proposition}[Base case at $t = 0$]\label{prop:sg-tal:base-case}
-  \lean{ProbabilityTheory.cosh_add_mul_sinh_mul_exp_neg_le,
+  \lean{ProbabilityTheory.cosh_add_mul_sinh_nonneg,
+        ProbabilityTheory.cosh_add_mul_sinh_mul_exp_neg_le,
+        ProbabilityTheory.gaussianPDFReal_zero_one_mul_exp_sq,
         ProbabilityTheory.integral_exp_mul_sq_gaussianReal,
         ProbabilityTheory.integrable_exp_mul_sq_gaussianReal,
         SpinGlasses.integral_exp_sq_le_of_mgf_le,
@@ -546,6 +585,8 @@ Formalized in \texttt{SpinGlasses/SKLatalaBase.lean}.
 
 \begin{theorem}[Exponential overlap concentration]\label{thm:sg-tal:overlap-conc}
   \lean{SpinGlasses.sk_overlap_concentration_exp,
+        MeasureTheory.one_add_mul_integral_le_integral,
+        MeasureTheory.one_add_mul_integral_le_integral_exp,
         SpinGlasses.sk_path_expected_sq_overlap_le}
   \leanok
 Let $N\ge1$, $\beta,h\in\mathbb R$ and let $q=\mathbb{E}\tanh^2(\beta\sqrt q\,z+h)$.
@@ -564,7 +605,7 @@ Apply Corollary~\ref{cor:sg-tal:compensated-mono} with $\lambda=s+2\beta^2<1/2$ 
 $\nu(\exp sN(R_{1,2}-q)^2)\le\nu_{\mathrm{dec}}(\exp\lambda N(R_{1,2}-q)^2)\le(1-2\lambda)^{-1/2}=(1-2s-4\beta^2)^{-1/2}$.
 For the second claim take $\lambda=1/4+\beta^2$ and $t\in[0,\pi/2]$.
 The compensated inequality at time $t$ gives $\nu_t(\exp(aN(R_{1,2}-q)^2))\le(1-2\lambda)^{-1/2}$ with $a=\lambda-2\beta^2\cos^2t\ge 1/4-\beta^2$.
-From $e^x\ge1+x$ we get $1+aN\,\nu_t((R_{1,2}-q)^2)\le(1-2\lambda)^{-1/2}$, hence $\nu_t((R_{1,2}-q)^2)\le K/N$.
+From $e^x\ge1+x$ (packaged as the general inequality $1+c\,\mathbb E X\le\mathbb E e^{cX}$ on a probability space, applied first to the Gibbs average for each disorder and then to the disorder average) we get $1+aN\,\nu_t((R_{1,2}-q)^2)\le(1-2\lambda)^{-1/2}$, hence $\nu_t((R_{1,2}-q)^2)\le K/N$.
 \emph{Formalization notes.} (i) The fixed-point equation $q=\mathbb{E}\tanh^2(\beta\sqrt q\,z+h)$ is a hypothesis of both statements; only the existence of a solution is proved (Theorem~\ref{thm:sg-tal:fixed-point}).
 (ii) The book's assumption $\beta<1/2$ is stated as $\beta^2<1/4$ (in the first claim it is implied by $2s+4\beta^2<1$ with $s\ge0$).
 (iii) Eq.~(1.88), the bound $(Kk/N)^k$ on all even moments, is not formalized; only the exponential bound and the second moment are.

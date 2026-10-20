@@ -254,12 +254,9 @@ theorem integral_decoupled_pair_exp_le {N : ℕ} (β h q : ℝ)
   rw [Finset.prod_const, Finset.card_univ, Fintype.card_fin,
     show Real.exp (N * u ^ 2 / 2) = Real.exp (u ^ 2 / 2) ^ N by
       rw [← Real.exp_nat_mul]; ring_nf]
-  have hc : 0 ≤ Real.cosh u + q * Real.sinh u := by
-    rw [Real.cosh_eq, Real.sinh_eq]
-    nlinarith [mul_nonneg (by linarith : 0 ≤ 1 + q) (Real.exp_pos u).le,
-      mul_nonneg (by linarith : 0 ≤ 1 - q) (Real.exp_pos (-u)).le]
-  exact pow_le_pow_left₀ (mul_nonneg hc (Real.exp_pos _).le)
-    (cosh_add_mul_sinh_mul_exp_neg_le q (abs_le.2 ⟨by linarith, hq1⟩) u) N
+  have hq : |q| ≤ 1 := abs_le.2 ⟨by linarith, hq1⟩
+  exact pow_le_pow_left₀ (mul_nonneg (cosh_add_mul_sinh_nonneg q hq u) (Real.exp_pos _).le)
+    (cosh_add_mul_sinh_mul_exp_neg_le q hq u) N
 
 /-- **Proposition 1.4.8 (base case at `t = 0`).**  At the fixed point `q = 𝔼 tanh² (β √q z + h)`,
 for `0 ≤ λ < 1 / 2` the decoupled model satisfies

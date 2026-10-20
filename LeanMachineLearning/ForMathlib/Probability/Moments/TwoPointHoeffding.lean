@@ -21,6 +21,14 @@ open MeasureTheory ProbabilityTheory
 
 namespace ProbabilityTheory
 
+/-- `cosh u + q sinh u ≥ 0` for `|q| ≤ 1`: it is `𝔼 exp (u ε)` for `ε = ±1` with `𝔼 ε = q`. -/
+theorem cosh_add_mul_sinh_nonneg (q : ℝ) (hq : |q| ≤ 1) (u : ℝ) :
+    0 ≤ Real.cosh u + q * Real.sinh u := by
+  obtain ⟨h1, h2⟩ := abs_le.1 hq
+  rw [Real.cosh_eq, Real.sinh_eq]
+  nlinarith [mul_nonneg (by linarith : 0 ≤ 1 + q) (Real.exp_pos u).le,
+    mul_nonneg (by linarith : 0 ≤ 1 - q) (Real.exp_pos (-u)).le]
+
 /-- **Hoeffding for a two-point law:** `(cosh u + q sinh u) e^{-q u} ≤ e^{u² / 2}` for `|q| ≤ 1`.
 The left side is `𝔼 exp (u (ε - q))` for `ε = ±1` with `𝔼 ε = q`. -/
 theorem cosh_add_mul_sinh_mul_exp_neg_le (q : ℝ) (hq : |q| ≤ 1) (u : ℝ) :

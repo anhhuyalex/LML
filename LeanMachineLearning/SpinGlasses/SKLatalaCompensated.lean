@@ -33,19 +33,6 @@ namespace SpinGlasses
 
 variable {α : Type*} [MeasurableSpace α] [MeasurableSingletonClass α]
 
-/-- A four-term linear combination of functions on a finite measure space integrates termwise. -/
-theorem integral_comb_four {ι : Type*} [MeasurableSpace ι] [Finite ι] [MeasurableSingletonClass ι]
-    {ν : Measure ι} [IsFiniteMeasure ν] (a b c d : ι → ℝ) (p q r s : ℝ) :
-    ∫ x, (p * a x + q * b x + r * c x + s * d x) ∂ν =
-      p * ∫ x, a x ∂ν + q * ∫ x, b x ∂ν + r * ∫ x, c x ∂ν + s * ∫ x, d x ∂ν := by
-  rw [integral_add (f := fun x => p * a x + q * b x + r * c x) (g := fun x => s * d x)
-      Integrable.of_finite Integrable.of_finite,
-    integral_add (f := fun x => p * a x + q * b x) (g := fun x => r * c x)
-      Integrable.of_finite Integrable.of_finite,
-    integral_add (f := fun x => p * a x) (g := fun x => q * b x)
-      Integrable.of_finite Integrable.of_finite,
-    integral_const_mul, integral_const_mul, integral_const_mul, integral_const_mul]
-
 variable [Finite α] [Nonempty α]
 
 /-- **Lemma 1.4.5 (replica decoupling) inside the derivative formula.**  For a Gibbs measure
@@ -85,7 +72,7 @@ theorem replica_decoupling_comb_nonneg (f : α → ℝ) (A U : α → α → ℝ
     push_cast
     ring
   simp_rw [hpt]
-  rw [integral_comb_four]
+  simp only [integral_add Integrable.of_finite Integrable.of_finite, integral_const_mul]
   -- the four integrals
   have hprob : IsProbabilityMeasure μ := by rw [hμ]; infer_instance
   have hG : ∀ G : (Fin 2 → α) → ℝ,
