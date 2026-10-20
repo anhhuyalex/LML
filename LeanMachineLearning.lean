@@ -405,7 +405,13 @@ public import LeanMachineLearning.SpinGlasses.PoissonProcessPartition
 public import LeanMachineLearning.SpinGlasses.PoissonProcessTransform
 public import LeanMachineLearning.SpinGlasses.SKAizenmanLebowitzRuelle
 public import LeanMachineLearning.SpinGlasses.SKAsymptoticProduct
+public import LeanMachineLearning.SpinGlasses.SKCavityBounds
+public import LeanMachineLearning.SpinGlasses.SKCavityDerivative
+public import LeanMachineLearning.SpinGlasses.SKCavityEndpoint
+public import LeanMachineLearning.SpinGlasses.SKCavityGaussian
 public import LeanMachineLearning.SpinGlasses.SKCavityInterpolation
+public import LeanMachineLearning.SpinGlasses.SKCavityOuterBound
+public import LeanMachineLearning.SpinGlasses.SKCavityOverlap
 public import LeanMachineLearning.SpinGlasses.SKCorrelationDecay
 public import LeanMachineLearning.SpinGlasses.SKDecoupled
 public import LeanMachineLearning.SpinGlasses.SKFirstMoment

@@ -224,6 +224,25 @@ theorem sum_sk_pairs_succ_cavity (N : ℕ) (g : FinPairs (N + 1) → ℝ)
           ∑ i : Fin N, g (lastPair N i) * (σ i.castSucc : ℝ) :=
   sum_finPairs_succ_cavity N g fun i => (σ i : ℝ)
 
+/-- At the coupled endpoint the cavity interaction is exactly the full SK pair
+interaction. The old-pair part retains the `N+1` normalization, not the
+normalization of a separate `N`-spin SK system. -/
+theorem sk_cavity_energy_coupled_eq (N : ℕ) (β h : ℝ)
+    (g : FinPairs (N + 1) → ℝ) (σ : Fin (N + 1) → ℤˣ) :
+    (Real.sqrt (N + 1))⁻¹ * β *
+        (∑ p : FinPairs N,
+          g (oldPair N p) * (σ p.val.1.castSucc : ℝ) *
+            (σ p.val.2.castSucc : ℝ)) +
+      (Real.sqrt (N + 1))⁻¹ * β * (σ (Fin.last N) : ℝ) *
+        (∑ i : Fin N, g (lastPair N i) * (σ i.castSucc : ℝ)) +
+      h * ∑ i : Fin (N + 1), (σ i : ℝ) =
+    (Real.sqrt (N + 1))⁻¹ * β *
+        (∑ p : FinPairs (N + 1),
+          g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
+      h * ∑ i : Fin (N + 1), (σ i : ℝ) := by
+  rw [sum_sk_pairs_succ_cavity]
+  ring
+
 /-- Independence of the old couplings and the new edges of an i.i.d. Gaussian SK disorder.
 The two coordinate blocks are read through `oldPair` and `lastPair`, respectively. -/
 theorem measurePreserving_sk_cavity_disorder (N : ℕ) :

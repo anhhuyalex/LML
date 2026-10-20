@@ -980,6 +980,7 @@ $i\mapsto\tau_N\tau_i$; factor the last spins out of their dot product.
   \lean{SpinGlasses.finPairsSuccEquiv,
         SpinGlasses.sum_finPairs_succ_cavity,
         SpinGlasses.sum_sk_pairs_succ_cavity,
+        SpinGlasses.sk_cavity_energy_coupled_eq,
         SpinGlasses.measurePreserving_sk_cavity_disorder}
   \leanok
 For $N\ge0$, the pairs $i<j$ in $\mathrm{Fin}(N+1)$ are in bijection
@@ -989,7 +990,9 @@ For arbitrary $g$ and real spin coordinates $s$ this gives
 \sum_{i<j\le N}g_{ij}s_i s_j
 =\sum_{i<j<N}g_{ij}s_i s_j+s_N\sum_{i<N}g_{iN}s_i.
 \]
-The statement also holds for Ising spins. If all the $g_{ij}$ are independent
+The statement also holds for Ising spins, including the full coupled endpoint
+energy with the common prefactor $\beta/\sqrt{N+1}$ and magnetic field
+$h\sum_i\sigma_i$. If all the $g_{ij}$ are independent
 standard Gaussians, the restriction $(g_{ij})_{i<j<N}$ and the new-edge family
 $(g_{iN})_{i<N}$ jointly have the product of their respective independent
 Gaussian laws (equality via a measure-preserving map).
@@ -1002,6 +1005,92 @@ the finite sum by this bijection. Reindex the product Gaussian law with
 \texttt{measurePreserving\_sumPiEquivProdPi}.
 \end{proof}
 
+\begin{lemma}[Integrating a uniformly bounded conditional derivative]
+\label{lem:sg-tal:conditional-derivative}
+  \lean{SpinGlasses.hasDerivAt_integral_conditional_of_deriv_bound}
+  \leanok
+Let $P_0$ be a probability measure on a nonempty measurable space of old
+disorder, and let $F,D:\mathbb R\times\Omega_0\to\mathbb R$.
+Suppose $F(s,\cdot)$ is almost everywhere strongly measurable for every $s$,
+$D(t,\cdot)$ is almost everywhere strongly measurable, $F(t,\cdot)$ is
+integrable, and $\partial_s F(s,\eta)=D(s,\eta)$ for every $s,\eta$.
+If $|D(s,\eta)|\le M$ uniformly, then
+\[
+\frac{d}{ds}\bigg|_{s=t}\int F(s,\eta)\,dP_0(\eta)
+=\int D(t,\eta)\,dP_0(\eta).
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+Apply Mathlib's dominated differentiation theorem with constant dominating
+function $M$, which is integrable under a probability measure. This isolates
+the Fubini/differentiation step needed after conditioning the Gaussian
+replica formula on the old couplings. No spin-glass model is required.
+\end{proof}
+
+\begin{lemma}[Coupled endpoint of the cavity path]\label{lem:sg-tal:cavity-coupled-endpoint}
+  \lean{SpinGlasses.integral_sk_cavity_coupled_endpoint}
+  \leanok
+Let $N,n\ge0$, $\beta,h\in\mathbb R$, and let $f$ be any real observable
+of $n$ replicas of $N+1$ Ising spins. Split the pair disorder into independent
+old pairs $g'$ and edges $g_i$, and introduce an independent standard normal
+$z$. The expectation of the $n$-replica Gibbs average for energy
+\[
+E_0(\sigma)=\frac{\beta}{\sqrt{N+1}}
+  \sum_{i<j<N}g'_{ij}\sigma_i\sigma_j
+ +\frac{\beta}{\sqrt{N+1}}\sigma_N\sum_{i<N}g_i\sigma_i
+ +h\sum_{i\le N}\sigma_i
+\]
+over $(g',g,z)$ equals the expectation of the same observable under the
+full $(N+1)$-spin SK pair-disorder Gibbs measure. The variable $z$ does not
+occur at this endpoint. The equality holds also for $n=0$ and $N=0$.
+\end{lemma}
+\begin{proof}
+  \leanok
+The unused scalar Gaussian integrates to one. Apply Fubini to the bounded
+finite-replica Gibbs average, then transport the pair-disorder law using
+Lemma~\ref{lem:sg-tal:cavity-disorder-split}. The pointwise equality of the
+two energies is \texttt{sk\_cavity\_energy\_coupled\_eq}.
+\end{proof}
+
+\begin{lemma}[Conditional cavity replica derivative]\label{lem:sg-tal:cavity-conditional-deriv}
+  \lean{SpinGlasses.hasDerivAt_integral_cavity_conditional}
+  \leanok
+Fix $N,n\ge0$, $\beta\in\mathbb R$, $q\ge0$, and an arbitrary
+base energy $A:\{-1,1\}^{N+1}\to\mathbb R$. Let $f$ be any real
+observable of $n$ replicas. The independent new-edge Gaussian couplings
+$g_i$ and scalar Gaussian $z$ define
+\[
+X_\sigma=\frac{\beta}{\sqrt{N+1}}\sigma_N\sum_{i<N}g_i\sigma_i,
+\qquad Y_\sigma=\beta\sigma_N z\sqrt q,
+\quad E_s(\sigma)=\cos(s)X_\sigma+\sin(s)Y_\sigma+A(\sigma).
+\]
+With $\nu_s^A(f)=\mathbb E_{g,z}\langle f\rangle_{E_s}^{\otimes n}$,
+put $U(a,b)=\beta^2a_Nb_N(q-R^-(a,b))$, where
+$R^-(a,b)=(N+1)^{-1}\sum_{i<N}a_i b_i$. Then for every $s\in\mathbb R$,
+\[
+\frac{d}{ds}\nu_s^A(f)=\sin(s)\cos(s)\,
+\mathbb E_{g,z}\left\langle f(\tau^1,\ldots,\tau^n)
+\left(\sum_{r,r'\le n}U(\tau^r,\tau^{r'})
+-2n\sum_{r\le n}U(\tau^r,\tau^{n+1})
+-nU(\tau^{n+1},\tau^{n+1})
++n(n+1)U(\tau^{n+1},\tau^{n+2})\right)
+\right\rangle_{E_s}^{\otimes(n+2)}.
+\]
+The Lean statement writes both Gaussian and Gibbs expectations as explicit
+integrals; it allows an arbitrary deterministic $A$, in particular the
+old-pair energy after conditioning on its disorder. This is the conditional
+precursor of Eq.~(1.151), not the fully averaged Lemma~1.6.3.
+\end{lemma}
+\begin{proof}
+  \leanok
+Use Lemma~1.4.2 for $X,Y$ with deterministic shift $A$.
+Joint Gaussianity and all covariance hypotheses are supplied by
+Lemmas~\ref{lem:sg-tal:cavity-fields-gaussian} and
+\ref{lem:sg-tal:cavity-field-covariance-difference}; there is no new
+Gaussian integration by parts.
+\end{proof}
+
 \begin{remark}[Scope and normalization of the cavity implementation]
 \label{rem:sg-tal:dev-16}
 Talagrand keeps the full-system inverse square-root prefactor on the old-pair
@@ -1009,10 +1098,183 @@ Hamiltonian after removing the last spin. This does not equal the repository's
 standalone $N$-spin SK Hamiltonian at the same $\beta$; no rescaling parameter
 $\beta_-$ is introduced in Section~1.6. The proved cavity identity above is
 finite and deterministic, for a given base energy and field. The random pair-disorder split and its Gaussian product law are proved above.
-The multi-replica identity, the interpolating path, Lemmas~1.6.2--1.6.4,
-and Propositions~1.6.5--1.6.8
-are \emph{not yet formalized}; this theorem must not be read as asserting them.
-For the future path derivative, the old-pair energy is random: the existing
-Gaussian interpolation theorem must first be applied conditionally on old-pair
-disorder, and only then integrated. Its trigonometric path has $t=\cos^2 s$.
+The coupled endpoint for arbitrary replica number is now proved above.
+The multi-replica finite-fibre identity, the full interpolating-path derivative,
+Lemmas~1.6.2--1.6.4, and Propositions~1.6.5--1.6.8
+are \emph{not yet formalized}; these lemmas must not be read as asserting them.
+For the future path derivative, the old-pair energy is random: apply the existing
+Gaussian interpolation theorem conditionally on old-pair disorder, then use
+Lemma~\ref{lem:sg-tal:conditional-derivative} to integrate its derivative.
+The conditional formula is now proved in
+Lemma~\ref{lem:sg-tal:cavity-conditional-deriv}. The covariance and complete replica-combination bounds are now proved, but
+measurability and differentiation under the old-disorder integral still need proof.
+Its trigonometric path has $t=\cos^2 s$.
 \end{remark}
+
+\begin{lemma}[Gaussianity and centering of the two last-spin fields]
+\label{lem:sg-tal:cavity-fields-gaussian}
+  \lean{SpinGlasses.hasGaussianLaw_sk_cavity_fields,
+        SpinGlasses.integral_sk_cavity_edge_field_eq_zero,
+        SpinGlasses.integral_sk_cavity_scalar_field_eq_zero}
+  \leanok
+Fix $N\ge0$, $\beta,q\in\mathbb R$, and independent $g_i\sim N(0,1)$
+for $i<N$ and $z\sim N(0,1)$. For configurations
+$\sigma\in\{-1,1\}^{N+1}$, write
+\[
+X_\sigma=(N+1)^{-1/2}\beta\sigma_N\sum_{i<N}g_i\sigma_i,
+\qquad Y_\sigma=\beta\sigma_N z\sqrt q.
+\]
+The concatenated family $(X_\sigma,Y_\sigma)_\sigma$ is jointly Gaussian
+under the product disorder law, and each of its components has mean zero.
+No restriction on $q$ is needed for Gaussianity and centering: $\sqrt q$ is real
+for all real $q$. The old-pair disorder does not enter either field.
+These are inputs to the \emph{conditional} derivative, not yet Lemma~1.6.3.
+\end{lemma}
+\begin{proof}
+  \leanok
+The edge family is a finite system of Gaussian linear forms. The scalar
+family is the continuous linear image of $z\sim N(0,1)$; the product
+of independent Gaussian vectors is jointly Gaussian. Both means vanish
+by the centered Gaussian coordinate integrals.
+\end{proof}
+
+\begin{lemma}[Covariances of the last-spin cavity fields]
+\label{lem:sg-tal:cavity-field-covariance-difference}
+  \lean{SpinGlasses.integral_sk_cavity_edge_field_mul,
+        SpinGlasses.integral_sk_cavity_edge_mul_scalar_eq_zero,
+        SpinGlasses.integral_sk_cavity_scalar_field_mul,
+        SpinGlasses.sk_cavity_covariance_difference}
+  \leanok
+With the fields $X_\sigma,Y_\sigma$ above and $q\ge0$, integration over the
+product of new-edge disorder and the scalar standard Gaussian gives
+\[
+\mathbb E[X_\sigma X_\tau]=\beta^2\sigma_N\tau_N R^-(\sigma,\tau),
+\quad \mathbb E[X_\sigma Y_\tau]=0,\quad
+\mathbb E[Y_\sigma Y_\tau]=\beta^2 q\sigma_N\tau_N.
+\]
+Thus the sign convention of the trigonometric replica theorem is
+$U(\sigma,\tau)=\mathbb E[Y_\sigma Y_\tau]-\mathbb E[X_\sigma X_\tau]
+=\beta^2\sigma_N\tau_N(q-R^-(\sigma,\tau))$, where $R^-$ uses the
+full-system normalization $N+1$. These are covariance inputs, not the
+conditional or disorder-averaged derivative formula of Lemma~1.6.3.
+\end{lemma}
+\begin{proof}
+  \leanok
+The edge covariance is the existing normalized Gaussian linear-form lemma,
+transported along the projection from the product disorder. Independence and
+centering make the mixed covariance zero. The scalar square integrates to one;
+$\sqrt q^{\,2}=q$ uses $q\ge0$. Distributivity gives the difference.
+\end{proof}
+
+\begin{lemma}[Uniform truncated-overlap and covariance bounds]
+\label{lem:sg-tal:cavity-covariance-bound}
+  \lean{SpinGlasses.abs_sk_cavity_overlap_le_one,
+        SpinGlasses.abs_sk_cavity_covariance_le}
+  \leanok
+For $N\ge0$, $q\in[0,1]$, $\beta\in\mathbb R$, and arbitrary Ising
+configurations $a,b$ of size $N+1$, the truncated overlap and the cavity
+covariance kernel satisfy
+\[
+|R^-(a,b)|\le1,\qquad
+|\beta^2 a_N b_N(q-R^-(a,b))|\le2\beta^2.
+\]
+Both bounds are deterministic, uniform in the old-pair disorder, and valid
+when $N=0$. Together with Lemma~\ref{lem:sg-tal:cavity-combination-bound}, they supply
+uniform bounds for dominated differentiation; the fully averaged derivative
+remains unproved.
+\end{lemma}
+\begin{proof}
+  \leanok
+Bound the absolute value of the truncated sum by the sum of the absolute
+values of its $N$ Ising terms. Divide by $N+1$ and use $N/(N+1)\le1$.
+The covariance bound follows by the triangle inequality and $|a_N|=|b_N|=1$.
+\end{proof}
+
+\begin{lemma}[Uniform bound on the replica covariance combination]
+\label{lem:sg-tal:cavity-combination-bound}
+  \lean{SpinGlasses.abs_replica_covariance_combination_le}
+  \leanok
+Let $R$ be any finite replica index type of cardinality $n$, let $\alpha$ be
+any type of configurations, and suppose $|U(a,b)|\le C$ for every $a,b\in\alpha$.
+For any extended replica family $\tau:\operatorname{Option}(\operatorname{Option}R)
+\to\alpha$, the absolute value of the four-term replica combination in
+Lemma~\ref{lem:sg-tal:cavity-conditional-deriv} is at most
+$2n(2n+1)C$. In particular, the cavity covariance bound
+$C=2\beta^2$ yields a bound independent of the old-pair disorder.
+This does not yet establish differentiation under the old-disorder integral.
+\end{lemma}
+\begin{proof}
+  \leanok
+Apply the triangle inequality to the four finite sums and bound each
+summand by $C$; the resulting counts are $n^2$, $2n^2$, $n$ and $n(n+1)$.
+\end{proof}
+
+\begin{lemma}[Diagonal cancellation for cavity replica covariances]
+\label{lem:sg-tal:cavity-diagonal-cancel}
+  \lean{SpinGlasses.replica_covariance_combination_cancel_diagonal,
+        SpinGlasses.sk_cavity_covariance_diagonal}
+  \leanok
+Let $R$ be a finite replica index type and $U:\alpha\times\alpha\to\mathbb R$
+have a constant diagonal $U(a,a)=C$. For any extended replica family,
+the diagonal of the double sum in the four-term Gaussian replica combination
+cancels exactly against the term $-|R|U(\tau_{n+1},\tau_{n+1})$.
+Only the off-diagonal double sum, the $-2|R|$ cross term and the
+$|R|(|R|+1)$ extra-replica term remain. For the explicit cavity kernel,
+$C=\beta^2(q-N/(N+1))$ because Ising spins square to one and
+$R^-(a,a)=N/(N+1)$. This proves the diagonal algebra required in
+Eq.~(1.151), not the disorder-averaged derivative or its change of parameter.
+\end{lemma}
+\begin{proof}
+  \leanok
+Split each inner finite sum at the diagonal; sum the common value $C$
+and cancel it. The Ising instance uses
+Lemma~\ref{lem:sg-tal:cavity-overlap-split}.
+\end{proof}
+
+\begin{lemma}[Full and truncated cavity overlaps]
+\label{lem:sg-tal:cavity-overlap-split}
+  \lean{SpinGlasses.sk_overlap_succ_eq_cavity,
+        SpinGlasses.sk_cavity_self_overlap}
+  \leanok
+For $N\ge0$ and $\sigma,\tau\in\{-1,1\}^{N+1}$, put
+$R^-(\sigma,\tau)=(N+1)^{-1}\sum_{i<N}\sigma_i\tau_i$ and
+$R(\sigma,\tau)=(N+1)^{-1}\sum_{i\le N}\sigma_i\tau_i$. Then
+\[
+R(\sigma,\tau)=R^-(\sigma,\tau)
+ +(N+1)^{-1}\sigma_N\tau_N,
+\qquad R^-(\sigma,\sigma)=N/(N+1).
+\]
+These are the deterministic overlap identities (1.149) and the diagonal
+value required for the cancellation in the future replica derivative.
+They do not assert the derivative formula itself.
+\end{lemma}
+\begin{proof}
+  \leanok
+Split the finite dot-product sum at its last coordinate using
+\texttt{Fin.sum\_univ\_castSucc}; each Ising spin has square one.
+\end{proof}
+
+\begin{lemma}[Uniform domination of the conditional cavity derivative]
+\label{lem:sg-tal:cavity-outer-bound}
+  \lean{SpinGlasses.abs_cavity_conditional_derivative_le}
+  \leanok
+Fix $N,n\ge0$, $\beta\in\mathbb R$, $q\in[0,1]$, an arbitrary deterministic
+base energy $A$ on $N+1$ Ising spins, and an observable $f$ of $n$ replicas
+with $|f|\le M$. For the trigonometric interpolation of
+Lemma~\ref{lem:sg-tal:cavity-conditional-deriv}, its explicit Gaussian
+replica-derivative expression has absolute value at most
+\[
+M\,2n(2n+1)\,(2\beta^2).
+\]
+The estimate is uniform in $A$: in particular it does not depend on the
+old-pair disorder after conditioning. This is a domination input, not the
+old-disorder-averaged derivative (1.151).
+\end{lemma}
+\begin{proof}
+  \leanok
+Bound every covariance by $2\beta^2$, the four-term replica combination
+by $2n(2n+1)$ times this bound, and then apply the probability-measure
+bound on the tilted replica integral. The integral over the independent
+Gaussian variables has the same bound, and $|\sin s\cos s|\le1$.
+Measurability follows from the finite Gibbs-average measurability lemma.
+\end{proof}

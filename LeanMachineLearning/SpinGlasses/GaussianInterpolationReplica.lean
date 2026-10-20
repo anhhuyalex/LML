@@ -571,6 +571,27 @@ theorem hasDerivAt_integral_replica_trig
     (fun ω s _ a => abs_neg_sin_mul_add_cos_mul_le_sum (fun b => X b ω) (fun b => Y b ω) s a)
   exact hpath.congr_deriv (integral_replica_trig_key hXm hYm hXY hX hY h0 U hU h hM t)
 
+/-- Integrate a conditional derivative over independent base disorder. In a cavity
+interpolation the covariance formula bounds this derivative independently of the old
+couplings, so the domination is constant rather than Gaussian-dependent. -/
+theorem hasDerivAt_integral_conditional_of_deriv_bound
+    {Ω₀ : Type*} [MeasurableSpace Ω₀] (P₀ : Measure Ω₀) [IsProbabilityMeasure P₀]
+    [Nonempty Ω₀] (F D : ℝ → Ω₀ → ℝ) (t : ℝ)
+    (hFm : ∀ s, AEStronglyMeasurable (F s) P₀)
+    (hDm : AEStronglyMeasurable (D t) P₀)
+    (hF : Integrable (F t) P₀)
+    (hderiv : ∀ η s, HasDerivAt (fun u => F u η) (D s η) s)
+    (M : ℝ) (hbound : ∀ η s, |D s η| ≤ M) :
+    HasDerivAt (fun s => ∫ η, F s η ∂P₀) (∫ η, D t η ∂P₀) t := by
+  have hM : 0 ≤ M := (abs_nonneg _).trans (hbound (Classical.arbitrary Ω₀) t)
+  exact (hasDerivAt_integral_of_dominated_loc_of_deriv_le
+    (μ := P₀) (x₀ := t) (F := F) (F' := D)
+    Filter.univ_mem (Eventually.of_forall hFm) hF hDm
+    (bound := fun _ => M)
+    (ae_of_all _ fun η s _ => by
+      simpa only [Real.norm_eq_abs] using hbound η s)
+    (integrable_const M) (ae_of_all _ fun η s _ => hderiv η s)).2
+
 /-- The replica-derivative term `𝔼⟨Ψ (∑ᵣ f'(σʳ) - n ⟨f'⟩)⟩` is integrable in the disorder when
 `f'` is dominated by an integrable function. -/
 theorem integrable_replica_derivative_term {g χ : α → Ω → ℝ}
