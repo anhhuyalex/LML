@@ -134,7 +134,7 @@ theorem integral_last_spin_cavity_field_mul (N : ℕ) (β : ℝ)
         fun i : Fin N => (τ i.castSucc : ℝ)) := by
     simp only [a, b, dotProduct]
     calc
-      _ = ∑ i, ((σ (Fin.last N) : ℝ) * (τ (Fin.last N) : ℝ)) *
+      _ = ∑ i : Fin N, ((σ (Fin.last N) : ℝ) * (τ (Fin.last N) : ℝ)) *
           ((σ i.castSucc : ℝ) * (τ i.castSucc : ℝ)) := by
         apply Finset.sum_congr rfl
         intro i hi
