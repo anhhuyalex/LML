@@ -1278,3 +1278,30 @@ bound on the tilted replica integral. The integral over the independent
 Gaussian variables has the same bound, and $|\sin s\cos s|\le1$.
 Measurability follows from the finite Gibbs-average measurability lemma.
 \end{proof}
+
+\begin{lemma}[Averaging a conditional cavity derivative]
+\label{lem:sg-tal:cavity-outer-derivative}
+  \lean{SpinGlasses.hasDerivAt_integral_cavity_outer}
+  \leanok
+Let $P_0$ be any probability law for independent base disorder, and let
+$B(\eta,\sigma)$ be a jointly measurable base energy.  For $q\in[0,1]$ and
+a bounded $n$-replica observable $|f|\le M$, average the conditional cavity
+path of Lemma~\ref{lem:sg-tal:cavity-conditional-deriv} first over the
+new-edge/scalar Gaussian variables and then over $\eta\sim P_0$.  The result
+is differentiable in the angle, and its derivative is the $P_0$-average of
+the explicit four-term conditional replica expression.
+
+This is deliberately stated for an arbitrary base-disorder probability law,
+not only SK old-pair couplings.  Taking $B$ to be the old-pair energy is the
+outer analytic step required before converting the angle derivative to
+Talagrand's Eq.~(1.151).  It does not itself perform the diagonal cancellation
+or identify either endpoint.
+\end{lemma}
+\begin{proof}
+  \leanok
+The finite Gibbs formula makes both the conditional expectation and its
+derivative measurable in $\eta$.  The preceding uniform bound is independent
+of $\eta$, so the proof applies the general dominated-differentiation lemma
+\texttt{hasDerivAt\_integral\_conditional\_of\_deriv\_bound} to the conditional
+derivative already proved in Lemma~\ref{lem:sg-tal:cavity-conditional-deriv}.
+\end{proof}

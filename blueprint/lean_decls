@@ -3375,3 +3375,4 @@ SpinGlasses.sk_cavity_self_overlap
 ProbabilityTheory.CondIndepFun.prod_right
 ProbabilityTheory.iIndepFun_nat_iff_forall_indepFun
 SpinGlasses.abs_cavity_conditional_derivative_le
+SpinGlasses.hasDerivAt_integral_cavity_outer
