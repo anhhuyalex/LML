@@ -229,14 +229,9 @@ theorem integral_decoupled_pair_exp_le {N : ℕ} (β h q : ℝ)
           ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted fun a =>
             β * Real.sqrt q * (∑ i, z i * ((a i : ℤ) : ℝ)) + h * ∑ i, ((a i : ℤ) : ℝ))
         ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1) ≤ Real.exp (N * u ^ 2 / 2) := by
-  have hq0 : 0 ≤ q := hfix ▸ integral_nonneg fun x => sq_nonneg _
-  have hq1 : q ≤ 1 := by
-    rw [← hfix]
-    calc ∫ x : ℝ, Real.tanh (β * Real.sqrt q * x + h) ^ 2 ∂(gaussianReal 0 1)
-        ≤ ∫ _x : ℝ, (1 : ℝ) ∂(gaussianReal 0 1) :=
-          integral_mono (integrable_tanh_sq _ (by fun_prop)) (integrable_const _)
-            fun x => (Real.tanh_sq_lt_one _).le
-      _ = 1 := by simp
+  have hqI : q ∈ Set.Icc (0 : ℝ) 1 := hfix ▸ fixedPointMap_mem_Icc β h q
+  have hq0 := hqI.1
+  have hq1 := hqI.2
   simp_rw [decoupled_field_eq, integral_decoupled_pair_exp]
   rw [integral_fintype_prod_eq_prod (E := fun _ : Fin N => ℝ)
     (μ := fun _ : Fin N => gaussianReal 0 1)

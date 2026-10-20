@@ -89,6 +89,19 @@ theorem abs_sum_mul_le {w f : α → ℝ} (hw : ∀ a, 0 ≤ w a) (hw1 : ∑ a, 
         exact mul_le_mul_of_nonneg_left (hf a) (hw a)
     _ = M := sum_mul_const_of_sum_eq_one hw1 M
 
+/-- A weighted average of `c` is at most the weighted average of `|c|` in absolute value. -/
+theorem abs_sum_mul_le_sum_mul_abs {w c : α → ℝ} (hw : ∀ a, 0 ≤ w a) :
+    |∑ a, w a * c a| ≤ ∑ a, w a * |c a| :=
+  (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun a _ => by
+    rw [abs_mul, abs_of_nonneg (hw a)])
+
+/-- The same for a weighted average over two independent replicas. -/
+theorem abs_sum_sum_mul_le {w : α → ℝ} (hw : ∀ a, 0 ≤ w a) (c : α → α → ℝ) :
+    |∑ a, ∑ a', w a * w a' * c a a'| ≤ ∑ a, ∑ a', w a * w a' * |c a a'| :=
+  (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun a _ =>
+    (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun a' _ => by
+      rw [abs_mul, abs_of_nonneg (mul_nonneg (hw a) (hw a'))]))
+
 end Weights
 
 section Tuples
@@ -669,7 +682,8 @@ theorem integral_sq_prod_sub_prod_le (hN : 0 < N) (hξ : ∀ i a, |ξ i a| ≤ 1
       _ = _ := by simp only [spinDecorrConst]; ring
 
 /-- **Proposition 1.4.14 for a set of sites (Talagrand).**  The same bound for the product over a
-set `S` of sites, with constant `K(|S|)`: `𝔼 (⟨∏_{i ∈ S} ξᵢ⟩ - ∏_{i ∈ S} ⟨ξᵢ⟩)² ≤ K(|S|) ν((R₁,₂ - q)²)`. -/
+set `S` of sites, with constant `K(|S|)`:
+`𝔼 (⟨∏_{i ∈ S} ξᵢ⟩ - ∏_{i ∈ S} ⟨ξᵢ⟩)² ≤ K(|S|) ν((R₁,₂ - q)²)`. -/
 theorem integral_sq_prod_sub_prod_le_finset (hN : 0 < N) (hξ : ∀ i a, |ξ i a| ≤ 1)
     (hw0 : ∀ ω a, 0 ≤ w ω a) (hw1 : ∀ ω, ∑ a, w ω a = 1) (hwm : ∀ a, Measurable fun ω => w ω a)
     (act : Equiv.Perm (Fin N) → α ≃ α) (hact : ∀ π i a, ξ i (act π a) = ξ (π i) a)

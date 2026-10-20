@@ -38,14 +38,22 @@ theorem measurePreserving_prod_regroup {W U V X : Type*} {mW : MeasurableSpace W
   have h3 := (measurePreserving_prodAssoc μW (μU.prod μV) μX).symm
   exact h3.comp (h2.comp h1)
 
-/-- **Fubini for two replicas:** a function of the two coordinates of a point of `Fin 2 → α`
-integrates against the product measure as an iterated integral. -/
-theorem integral_pi_fin_two {α : Type*} [MeasurableSpace α] [MeasurableSingletonClass α]
-    [Finite α] (μ : Measure α) [IsFiniteMeasure μ] (g : α → α → ℝ) :
+/-- **Fubini for two i.i.d. coordinates:** an integrable function of the two coordinates of a point
+of `Fin 2 → α` integrates against the product measure as an iterated integral. -/
+theorem integral_pi_fin_two_of_integrable {α : Type*} [MeasurableSpace α] (μ : Measure α)
+    [SigmaFinite μ] {g : α → α → ℝ} (hg : Integrable (fun p : α × α => g p.1 p.2) (μ.prod μ)) :
     ∫ σ, g (σ 0) (σ 1) ∂(Measure.pi fun _ : Fin 2 => μ) = ∫ x, ∫ y, g x y ∂μ ∂μ := by
   have hmp := measurePreserving_piFinTwo (fun _ : Fin 2 => μ)
   have := hmp.integral_comp' (g := fun p : α × α => g p.1 p.2)
   simp only [MeasurableEquiv.piFinTwo_apply] at this
-  rw [this, integral_prod _ Integrable.of_finite]
+  rw [this]
+  exact integral_prod (fun p : α × α => g p.1 p.2) hg
+
+/-- **Fubini for two replicas:** a function of the two coordinates of a point of `Fin 2 → α`
+integrates against the product measure as an iterated integral. -/
+theorem integral_pi_fin_two {α : Type*} [MeasurableSpace α] [MeasurableSingletonClass α]
+    [Finite α] (μ : Measure α) [IsFiniteMeasure μ] (g : α → α → ℝ) :
+    ∫ σ, g (σ 0) (σ 1) ∂(Measure.pi fun _ : Fin 2 => μ) = ∫ x, ∫ y, g x y ∂μ ∂μ :=
+  integral_pi_fin_two_of_integrable μ Integrable.of_finite
 
 end MeasureTheory
