@@ -1,6 +1,7 @@
 \chapter{The Sherrington--Kirkpatrick Model at High Temperature: The Talagrand Theory}\label{chap:sg-talagrand}
 
-This chapter formalizes Sections~1.1 through 1.5 of Michel Talagrand's \emph{Spin Glasses: A Challenge for Mathematicians} (Volume~I, Springer, 2010).
+This chapter formalizes Sections~1.1 through 1.5 and the initial finite Gibbs
+cavity identities of Section~1.6 of Michel Talagrand's \emph{Spin Glasses: A Challenge for Mathematicians} (Volume~I, Springer, 2010).
 The mathematical narrative develops the high-temperature theory of the Sherrington--Kirkpatrick (SK) model:
 \begin{enumerate}
 \item The decoupled reference system, hypercube factorizations, exact first-moment calculations, and the first-moment upper bound on the free energy (Section~1.2).
@@ -917,3 +918,74 @@ Expand $(U-V)^2=U^2-2UV+V^2$. Each of $\mathbb{E}U^2=\sum_{a,a'}w_aw_{a'}\mathbb
 \emph{Formalization note.} The bound is linear, not quadratic, in the overlap deviation, so the rate is $N^{-1/2}$; $f$ must be $C^2$ with $f,f',f''$ bounded. The identification of the barycenter vector with the magnetizations $(\langle\sigma_i\rangle)_i$ is used in the SK statement.
 Formalized in \texttt{SpinGlasses/SKRandomProjectionCLT.lean}.
 \end{proof}
+
+\section{The cavity method (Talagrand Section~1.6): initial identities}
+\label{sec:sg-tal:cavity}
+
+\begin{theorem}[Finite-fibre Gibbs disintegration and cavity identity]
+\label{thm:sg-tal:cavity-finite}
+  \lean{SpinGlasses.integral_count_tilted_fiber,
+        SpinGlasses.integral_count_tilted_equiv,
+        SpinGlasses.integral_count_tilted_cavity_units,
+        SpinGlasses.integral_count_tilted_fin_snoc_cavity_units}
+  \leanok
+Let $\alpha$ be a nonempty finite measurable space with measurable singletons.
+For $A,L:\alpha\to\mathbb R$ and $f:\alpha\times\{-1,1\}\to\mathbb R$,
+write $G_E$ for the probability measure obtained by tilting counting measure
+with energy $E$. Then
+\[
+\int f(a,\varepsilon)\,dG_{A(a)+\varepsilon L(a)}
+=\frac{\int \frac12\bigl(f(a,1)e^{L(a)}+f(a,-1)e^{-L(a)}\bigr)\,dG_A(a)}
+{\int\cosh(L(a))\,dG_A(a)}.
+\]
+The result also holds on configurations $\sigma:\mathrm{Fin}(N+1)\to\{-1,1\}$:
+replace $a$ by $\rho=(\sigma_i)_{i<N}$, $\varepsilon$ by $\sigma_N$,
+and reconstruct $\sigma$ using $\mathrm{Fin.snoc}(\rho,\varepsilon)$.
+The more general finite-fibre theorem applies to arbitrary finite last-spin types
+and arbitrary fibre energies $B(a,\varepsilon)$; a finite equivalence transports
+both the energy and observable without changing their Gibbs averages.
+\end{theorem}
+\begin{proof}
+  \leanok
+Expand the tilted counting measure as a normalized finite sum. Split its sum
+into base and fibre coordinates, cancel the base partition function, and use
+$\cosh x=(e^x+e^{-x})/2$. The last-coordinate form follows by reindexing
+with the canonical $\mathrm{Fin.snoc}$ equivalence.
+\end{proof}
+
+\begin{lemma}[Covariance of the interacting last-spin field]
+\label{lem:sg-tal:cavity-covariance}
+  \lean{SpinGlasses.integral_last_spin_cavity_field_mul}
+  \leanok
+Let $N\ge0$, $M\ge0$, $\beta\in\mathbb R$, and
+$\sigma,\tau:\mathrm{Fin}(N+1)\to\{-1,1\}$. For independent standard
+Gaussians $g_i$ indexed by $i<N$, the fields
+$U_g(\sigma)=\beta M^{-1/2}\sigma_N\sum_{i<N}g_i\sigma_i$ satisfy
+\[
+\mathbb E_g[U_g(\sigma)U_g(\tau)]
+=\beta^2\sigma_N\tau_N M^{-1}\sum_{i<N}\sigma_i\tau_i.
+\]
+In the SK system of size $N+1$ take $M=N+1$. In particular the truncated
+overlap divides by $N+1$, not by the number $N$ of retained coordinates.
+\end{lemma}
+\begin{proof}
+  \leanok
+Use the already-proved covariance of two normalized Gaussian linear forms
+with coefficient vectors $i\mapsto\sigma_N\sigma_i$ and
+$i\mapsto\tau_N\tau_i$; factor the last spins out of their dot product.
+\end{proof}
+
+\begin{remark}[Scope and normalization of the cavity implementation]
+\label{rem:sg-tal:dev-16}
+Talagrand keeps the full-system inverse square-root prefactor on the old-pair
+Hamiltonian after removing the last spin. This does not equal the repository's
+standalone $N$-spin SK Hamiltonian at the same $\beta$; no rescaling parameter
+$\beta_-$ is introduced in Section~1.6. The proved cavity identity above is
+finite and deterministic, for a given base energy and field. The split of the
+random pair disorder and its Gaussian product law, the multi-replica identity,
+the interpolating path, Lemmas~1.6.2--1.6.4, and Propositions~1.6.5--1.6.8
+are \emph{not yet formalized}; this theorem must not be read as asserting them.
+For the future path derivative, the old-pair energy is random: the existing
+Gaussian interpolation theorem must first be applied conditionally on old-pair
+disorder, and only then integrated. Its trigonometric path has $t=\cos^2 s$.
+\end{remark}

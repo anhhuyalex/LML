@@ -109,26 +109,27 @@ theorem integral_count_tilted_fin_snoc_cavity_units (N : ℕ)
   exact integral_count_tilted_cavity_units A L fun ρ ε => f (Fin.snoc ρ ε)
 
 /-- **Covariance of the interacting last-spin cavity field.**  The field
-`ε β N^{-1/2} ∑ᵢ gᵢ ρᵢ` has covariance
-`β² ε ε' R⁻(ρ,ρ')`.  The proof is only a coefficient reindexing of the generic
+`ε β M^{-1/2} ∑ᵢ gᵢ ρᵢ` has covariance
+`β² ε ε' M⁻¹ (ρ · ρ')`.  In the `(N+1)`-spin SK model take `M = N+1`;
+thus the first `N` spins are normalized by the total number of spins.  The proof is only a
+coefficient reindexing of the generic
 Gaussian linear-form covariance, so it applies without choosing an SK Hamiltonian or a Gibbs
 measure. -/
-theorem integral_last_spin_cavity_field_mul (N : ℕ) (β : ℝ)
+theorem integral_last_spin_cavity_field_mul (N : ℕ) (M β : ℝ) (hM : 0 ≤ M)
     (σ τ : Fin (N + 1) → ℤˣ) :
     ∫ g : Fin N → ℝ,
-      ((Real.sqrt N)⁻¹ * β * (σ (Fin.last N) : ℝ) *
+      ((Real.sqrt M)⁻¹ * β * (σ (Fin.last N) : ℝ) *
         ∑ i, g i * (σ i.castSucc : ℝ)) *
-      ((Real.sqrt N)⁻¹ * β * (τ (Fin.last N) : ℝ) *
+      ((Real.sqrt M)⁻¹ * β * (τ (Fin.last N) : ℝ) *
         ∑ i, g i * (τ i.castSucc : ℝ))
       ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1) =
       β ^ 2 * (σ (Fin.last N) : ℝ) * (τ (Fin.last N) : ℝ) *
-        ((N : ℝ)⁻¹ *
+        (M⁻¹ *
           ((fun i : Fin N => (σ i.castSucc : ℝ)) ⬝ᵥ
             fun i : Fin N => (τ i.castSucc : ℝ))) := by
   let a : Fin N → ℝ := fun i => (σ (Fin.last N) : ℝ) * (σ i.castSucc : ℝ)
   let b : Fin N → ℝ := fun i => (τ (Fin.last N) : ℝ) * (τ i.castSucc : ℝ)
-  have hmain := integral_normalized_gaussian_linear_form_mul (N : ℝ) β
-    (Nat.cast_nonneg N) a b
+  have hmain := integral_normalized_gaussian_linear_form_mul M β hM a b
   have hab : a ⬝ᵥ b = (σ (Fin.last N) : ℝ) * (τ (Fin.last N) : ℝ) *
       ((fun i : Fin N => (σ i.castSucc : ℝ)) ⬝ᵥ
         fun i : Fin N => (τ i.castSucc : ℝ)) := by
