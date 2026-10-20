@@ -115,7 +115,8 @@ theorem hasDerivAt_integral_pi_count_tilted_path_moving [Finite α] [Nonempty α
   have hW : ∀ σ : R → α, HasDerivAt (fun s => ∏ r, Real.exp (f s (σ r)) / ∑ b, Real.exp (f s b))
       (fderiv ℝ (fun v : α → ℝ => ∏ r, Real.exp (v (σ r)) / ∑ b, Real.exp (v b)) (f t) f') t :=
     fun σ => by
-      have hd : Differentiable ℝ fun v : α → ℝ => ∏ r, Real.exp (v (σ r)) / ∑ b, Real.exp (v b) := by
+      have hd : Differentiable ℝ fun v : α → ℝ =>
+          ∏ r, Real.exp (v (σ r)) / ∑ b, Real.exp (v b) := by
         have := fun r : R => differentiable_gibbsWeight (σ r)
         fun_prop
       exact (hd (f t)).hasFDerivAt.comp_hasDerivAt t hpath
@@ -134,7 +135,8 @@ theorem hasDerivAt_integral_pi_count_tilted_path_moving [Finite α] [Nonempty α
       exact Finset.sum_congr rfl fun σ _ => by ring
   simp_rw [e]
   refine (h1.add h2).congr_deriv ?_
-  rw [integral_pi_count_tilted]
+  rw [integral_pi_count_tilted (R := R) (f t) Ψ', integral_pi_count_tilted (R := R) (f t)
+    (fun σ => Ψ t σ * (∑ r, f' (σ r) - Fintype.card R * ∫ τ, f' τ ∂(Measure.count.tilted (f t))))]
 
 section Path
 
@@ -160,44 +162,54 @@ theorem aemeasurable_integral_pi_count_tilted [Finite α] [Fintype R] {g : Ω �
   refine Finset.aemeasurable_fun_sum _ fun σ _ => ?_
   exact (Finset.aemeasurable_fun_prod _ fun r _ => aemeasurable_gibbsWeight hg (σ r)).mul (hΘ σ)
 
-/-- **Differentiation of the expected replica average along a path of random energies**, by
-dominated differentiation under the integral. -/
-theorem hasDerivAt_integral_replica_path [Finite α] [Nonempty α] [Fintype R] [IsFiniteMeasure μ]
-    {Ψ : (R → α) → ℝ} {M : ℝ} (hΨ : ∀ σ, |Ψ σ| ≤ M) {S : Set ℝ} {t : ℝ} (hS : S ∈ 𝓝 t)
+/-- **Differentiation of the expected replica average of a moving observable along a path of
+random energies**, by dominated differentiation under the integral. -/
+theorem hasDerivAt_integral_replica_path_moving [Finite α] [Nonempty α] [Fintype R]
+    [IsFiniteMeasure μ]
+    {Ψ Ψ' : ℝ → (R → α) → ℝ} {M M' : ℝ} {S : Set ℝ} {t : ℝ} (hS : S ∈ 𝓝 t)
+    (hΨ : ∀ s ∈ S, ∀ σ, HasDerivAt (fun s => Ψ s σ) (Ψ' s σ) s)
+    (hM : ∀ s ∈ S, ∀ σ, |Ψ s σ| ≤ M) (hM' : ∀ s ∈ S, ∀ σ, |Ψ' s σ| ≤ M')
     {f f' : ℝ → Ω → α → ℝ} (hmeas : ∀ s a, AEMeasurable (fun ω => f s ω a) μ)
     (hmeas' : ∀ a, AEMeasurable (fun ω => f' t ω a) μ)
     (hderiv : ∀ ω, ∀ s ∈ S, ∀ a, HasDerivAt (fun s => f s ω a) (f' s ω a) s)
     {B : Ω → ℝ} (hB : Integrable B μ) (hbound : ∀ ω, ∀ s ∈ S, ∀ a, |f' s ω a| ≤ B ω) :
-    HasDerivAt (fun s => ∫ ω, ∫ σ, Ψ σ ∂(Measure.pi fun _ : R => Measure.count.tilted (f s ω)) ∂μ)
-      (∫ ω, ∫ σ, Ψ σ * (∑ r, f' t ω (σ r) - Fintype.card R *
+    HasDerivAt (fun s => ∫ ω, ∫ σ, Ψ s σ
+        ∂(Measure.pi fun _ : R => Measure.count.tilted (f s ω)) ∂μ)
+      (∫ ω, (∫ σ, Ψ t σ * (∑ r, f' t ω (σ r) - Fintype.card R *
           ∫ τ, f' t ω τ ∂(Measure.count.tilted (f t ω)))
-        ∂(Measure.pi fun _ : R => Measure.count.tilted (f t ω)) ∂μ) t := by
+        ∂(Measure.pi fun _ : R => Measure.count.tilted (f t ω)) +
+        ∫ σ, Ψ' t σ ∂(Measure.pi fun _ : R => Measure.count.tilted (f t ω))) ∂μ) t := by
   have := Fintype.ofFinite α
   classical
-  have hM : 0 ≤ M := (abs_nonneg _).trans (hΨ (fun _ => Classical.arbitrary α))
-  have hF_meas : ∀ s, AEStronglyMeasurable (fun ω => ∫ σ, Ψ σ
+  have htS : t ∈ S := mem_of_mem_nhds hS
+  have hM0 : 0 ≤ M := (abs_nonneg _).trans (hM t htS (fun _ => Classical.arbitrary α))
+  have hM'0 : 0 ≤ M' := (abs_nonneg _).trans (hM' t htS (fun _ => Classical.arbitrary α))
+  have hF_meas : ∀ s, AEStronglyMeasurable (fun ω => ∫ σ, Ψ s σ
       ∂(Measure.pi fun _ : R => Measure.count.tilted (f s ω))) μ := fun s =>
     (aemeasurable_integral_pi_count_tilted (R := R) (hmeas s)
-      (Θ := fun _ σ => Ψ σ) fun σ => aemeasurable_const).aestronglyMeasurable
-  have hF_int : Integrable (fun ω => ∫ σ, Ψ σ
+      (Θ := fun _ σ => Ψ s σ) fun σ => aemeasurable_const).aestronglyMeasurable
+  have hF_int : Integrable (fun ω => ∫ σ, Ψ t σ
       ∂(Measure.pi fun _ : R => Measure.count.tilted (f t ω))) μ :=
     Integrable.of_bound (hF_meas t) M (ae_of_all _ fun ω => by
-      rw [Real.norm_eq_abs]; exact abs_integral_pi_count_tilted_le _ hΨ)
-  have hinner : ∀ ω s, s ∈ S → |∫ τ, f' s ω τ ∂(Measure.count.tilted (f s ω))| ≤ B ω := fun ω s hs => by
-    have := norm_integral_le_of_norm_le_const (μ := Measure.count.tilted (f s ω))
-      (f := fun a => f' s ω a) (C := B ω)
-      (ae_of_all _ fun a => by simpa [Real.norm_eq_abs] using hbound ω s hs a)
-    simpa using this
-  have hF'_bound : ∀ ω s, s ∈ S → ‖∫ σ, Ψ σ * (∑ r, f' s ω (σ r) - Fintype.card R *
+      rw [Real.norm_eq_abs]; exact abs_integral_pi_count_tilted_le _ (hM t htS))
+  have hinner : ∀ ω s, s ∈ S → |∫ τ, f' s ω τ ∂(Measure.count.tilted (f s ω))| ≤ B ω :=
+    fun ω s hs => by
+      have := norm_integral_le_of_norm_le_const (μ := Measure.count.tilted (f s ω))
+        (f := fun a => f' s ω a) (C := B ω)
+        (ae_of_all _ fun a => by simpa [Real.norm_eq_abs] using hbound ω s hs a)
+      simpa using this
+  have hF'_bound : ∀ ω s, s ∈ S → ‖∫ σ, Ψ s σ * (∑ r, f' s ω (σ r) - Fintype.card R *
       ∫ τ, f' s ω τ ∂(Measure.count.tilted (f s ω)))
-        ∂(Measure.pi fun _ : R => Measure.count.tilted (f s ω))‖ ≤
-      M * (Fintype.card R * B ω + Fintype.card R * B ω) := fun ω s hs => by
+        ∂(Measure.pi fun _ : R => Measure.count.tilted (f s ω)) +
+        ∫ σ, Ψ' s σ ∂(Measure.pi fun _ : R => Measure.count.tilted (f s ω))‖ ≤
+      M * (Fintype.card R * B ω + Fintype.card R * B ω) + M' := fun ω s hs => by
     rw [Real.norm_eq_abs]
     have hb := hbound ω s hs
     have hB0 : 0 ≤ B ω := (abs_nonneg _).trans (hb (Classical.arbitrary α))
+    refine (abs_add_le _ _).trans (add_le_add ?_ (abs_integral_pi_count_tilted_le _ (hM' s hs)))
     refine abs_integral_pi_count_tilted_le _ fun σ => ?_
     rw [abs_mul]
-    refine mul_le_mul (hΨ σ) ?_ (abs_nonneg _) hM
+    refine mul_le_mul (hM s hs σ) ?_ (abs_nonneg _) hM0
     calc |∑ r, f' s ω (σ r) - Fintype.card R * ∫ τ, f' s ω τ ∂(Measure.count.tilted (f s ω))|
         ≤ |∑ r, f' s ω (σ r)| + |(Fintype.card R : ℝ) *
             ∫ τ, f' s ω τ ∂(Measure.count.tilted (f s ω))| := abs_sub _ _
@@ -210,22 +222,44 @@ theorem hasDerivAt_integral_replica_path [Finite α] [Nonempty α] [Fintype R] [
           · rw [abs_mul, Nat.abs_cast]
             exact mul_le_mul_of_nonneg_left (hinner ω s hs) (Nat.cast_nonneg _)
   refine (hasDerivAt_integral_of_dominated_loc_of_deriv_le hS (Eventually.of_forall hF_meas)
-    hF_int (F' := fun s ω => ∫ σ, Ψ σ * (∑ r, f' s ω (σ r) - Fintype.card R *
+    hF_int (F' := fun s ω => ∫ σ, Ψ s σ * (∑ r, f' s ω (σ r) - Fintype.card R *
         ∫ τ, f' s ω τ ∂(Measure.count.tilted (f s ω)))
-          ∂(Measure.pi fun _ : R => Measure.count.tilted (f s ω)))
-    ?_ (bound := fun ω => M * (Fintype.card R * B ω + Fintype.card R * B ω))
+          ∂(Measure.pi fun _ : R => Measure.count.tilted (f s ω)) +
+        ∫ σ, Ψ' s σ ∂(Measure.pi fun _ : R => Measure.count.tilted (f s ω)))
+    ?_ (bound := fun ω => M * (Fintype.card R * B ω + Fintype.card R * B ω) + M')
     (ae_of_all _ fun ω s hs => hF'_bound ω s hs) ?_
     (ae_of_all _ fun ω s hs => ?_)).2
-  · refine aemeasurable_integral_pi_count_tilted (hmeas t) (fun σ => ?_) |>.aestronglyMeasurable
-    refine aemeasurable_const.mul ?_
-    refine (Finset.aemeasurable_fun_sum _ fun r _ => hmeas' (σ r)).sub ?_
-    refine aemeasurable_const.mul ?_
-    simp_rw [integral_count_tilted]
-    exact Finset.aemeasurable_fun_sum _ fun a _ => (aemeasurable_gibbsWeight (hmeas t) a).mul
-      (hmeas' a)
-  · exact (((hB.const_mul (Fintype.card R : ℝ)).add (hB.const_mul (Fintype.card R : ℝ))).const_mul M)
-  · exact hasDerivAt_integral_pi_count_tilted_path Ψ (fun s => f s ω) (f' s ω) s
-      (fun a => hderiv ω s hs a)
+  · refine AEStronglyMeasurable.add ?_ ?_
+    · refine aemeasurable_integral_pi_count_tilted (hmeas t) (fun σ => ?_) |>.aestronglyMeasurable
+      refine aemeasurable_const.mul ?_
+      refine (Finset.aemeasurable_fun_sum _ fun r _ => hmeas' (σ r)).sub ?_
+      refine aemeasurable_const.mul ?_
+      simp_rw [integral_count_tilted]
+      exact Finset.aemeasurable_fun_sum _ fun a _ => (aemeasurable_gibbsWeight (hmeas t) a).mul
+        (hmeas' a)
+    · exact (aemeasurable_integral_pi_count_tilted (R := R) (hmeas t)
+        (Θ := fun _ σ => Ψ' t σ) fun σ => aemeasurable_const).aestronglyMeasurable
+  · exact ((((hB.const_mul (Fintype.card R : ℝ)).add (hB.const_mul (Fintype.card R : ℝ))).const_mul
+      M).add (integrable_const M'))
+  · exact hasDerivAt_integral_pi_count_tilted_path_moving (fun s' => Ψ s') (Ψ' s) (fun s => f s ω)
+      (f' s ω) s (fun σ => hΨ s hs σ) (fun a => hderiv ω s hs a)
+
+/-- **Differentiation of the expected replica average along a path of random energies**
+(fixed observable). -/
+theorem hasDerivAt_integral_replica_path [Finite α] [Nonempty α] [Fintype R] [IsFiniteMeasure μ]
+    {Ψ : (R → α) → ℝ} {M : ℝ} (hΨ : ∀ σ, |Ψ σ| ≤ M) {S : Set ℝ} {t : ℝ} (hS : S ∈ 𝓝 t)
+    {f f' : ℝ → Ω → α → ℝ} (hmeas : ∀ s a, AEMeasurable (fun ω => f s ω a) μ)
+    (hmeas' : ∀ a, AEMeasurable (fun ω => f' t ω a) μ)
+    (hderiv : ∀ ω, ∀ s ∈ S, ∀ a, HasDerivAt (fun s => f s ω a) (f' s ω a) s)
+    {B : Ω → ℝ} (hB : Integrable B μ) (hbound : ∀ ω, ∀ s ∈ S, ∀ a, |f' s ω a| ≤ B ω) :
+    HasDerivAt (fun s => ∫ ω, ∫ σ, Ψ σ ∂(Measure.pi fun _ : R => Measure.count.tilted (f s ω)) ∂μ)
+      (∫ ω, ∫ σ, Ψ σ * (∑ r, f' t ω (σ r) - Fintype.card R *
+          ∫ τ, f' t ω τ ∂(Measure.count.tilted (f t ω)))
+        ∂(Measure.pi fun _ : R => Measure.count.tilted (f t ω)) ∂μ) t := by
+  have h := hasDerivAt_integral_replica_path_moving (μ := μ) (Ψ := fun _ => Ψ)
+    (Ψ' := fun _ _ => 0) (M := M) (M' := 0) hS (fun s _ σ => hasDerivAt_const s (Ψ σ))
+    (fun _ _ σ => hΨ σ) (fun _ _ _ => by simp) hmeas hmeas' hderiv hB hbound
+  simpa using h
 
 end Path
 
@@ -235,13 +269,13 @@ variable {Ω : Type*} {mΩ : MeasurableSpace Ω} {P : Measure Ω} {X Y : α → 
 
 /-- The replica average of `Φ χ(σ^{r})` is integrable in the disorder when `χ` is, and `Φ` is
 bounded. -/
-theorem integrable_integral_pi_count_tilted_mul_eval [Fintype α] [Nonempty α] [Fintype R]
-    [IsFiniteMeasure P] {g χ : α → Ω → ℝ} (hg : ∀ a, AEMeasurable (fun ω => g a ω) P)
+theorem integrable_integral_pi_count_tilted_mul_eval [Finite α] [Nonempty α] [Fintype R]
+    {g χ : α → Ω → ℝ} (hg : ∀ a, AEMeasurable (fun ω => g a ω) P)
     (hχm : ∀ a, AEMeasurable (χ a) P) (hχ : ∀ a, Integrable (χ a) P) {Φ : (R → α) → ℝ} {M : ℝ}
     (hΦ : ∀ σ, |Φ σ| ≤ M) (r : R) :
     Integrable (fun ω => ∫ σ, Φ σ * χ (σ r) ω
       ∂(Measure.pi fun _ : R => Measure.count.tilted fun a => g a ω)) P := by
-  classical
+  have := Fintype.ofFinite α
   have hmeas := aemeasurable_integral_pi_count_tilted (R := R) (g := fun ω a => g a ω)
     (Θ := fun ω σ => Φ σ * χ (σ r) ω) hg fun σ => aemeasurable_const.mul (hχm (σ r))
   refine Integrable.mono' ((integrable_finsetSum (Finset.univ : Finset α)
@@ -255,13 +289,13 @@ theorem integrable_integral_pi_count_tilted_mul_eval [Fintype α] [Nonempty α] 
 
 /-- The replica average of `Φ ⟨χ⟩` (the extra replica integrated out) is integrable in the
 disorder. -/
-theorem integrable_integral_pi_count_tilted_mul_integral [Fintype α] [Nonempty α] [Fintype R]
-    [IsFiniteMeasure P] {g χ : α → Ω → ℝ} (hg : ∀ a, AEMeasurable (fun ω => g a ω) P)
+theorem integrable_integral_pi_count_tilted_mul_integral [Finite α] [Nonempty α] [Fintype R]
+    {g χ : α → Ω → ℝ} (hg : ∀ a, AEMeasurable (fun ω => g a ω) P)
     (hχm : ∀ a, AEMeasurable (χ a) P) (hχ : ∀ a, Integrable (χ a) P) {Φ : (R → α) → ℝ} {M : ℝ}
     (hΦ : ∀ σ, |Φ σ| ≤ M) :
     Integrable (fun ω => ∫ σ, Φ σ * ∫ a, χ a ω ∂(Measure.count.tilted fun a => g a ω)
       ∂(Measure.pi fun _ : R => Measure.count.tilted fun a => g a ω)) P := by
-  classical
+  have := Fintype.ofFinite α
   have hmeas := aemeasurable_integral_pi_count_tilted (R := R) (g := fun ω a => g a ω)
     (Θ := fun ω σ => Φ σ * ∫ a, χ a ω ∂(Measure.count.tilted fun a => g a ω)) hg fun σ => by
       refine aemeasurable_const.mul ?_
@@ -278,12 +312,12 @@ theorem integrable_integral_pi_count_tilted_mul_integral [Fintype α] [Nonempty 
   simpa using norm_integral_count_tilted_le (fun a => g a ω) (fun a => χ a ω)
 
 /-- A replica average of a deterministic observable is integrable in the disorder. -/
-theorem integrable_integral_pi_count_tilted_det [Fintype α] [Nonempty α] [Fintype R]
+theorem integrable_integral_pi_count_tilted_det [Finite α] [Nonempty α] [Fintype R]
     [IsFiniteMeasure P] {g : α → Ω → ℝ} (hg : ∀ a, AEMeasurable (fun ω => g a ω) P)
     (Θ : (R → α) → ℝ) :
     Integrable (fun ω => ∫ σ, Θ σ ∂(Measure.pi fun _ : R => Measure.count.tilted fun a => g a ω))
       P := by
-  classical
+  have := Fintype.ofFinite α
   obtain ⟨M, hM⟩ : ∃ M, ∀ σ, |Θ σ| ≤ M :=
     (Set.finite_range fun σ => |Θ σ|).bddAbove.imp fun M hM σ => hM ⟨σ, rfl⟩
   exact Integrable.of_bound (aemeasurable_integral_pi_count_tilted (R := R)
@@ -302,51 +336,35 @@ theorem integral_pi_option_count_tilted_marginal [Finite α] [Nonempty α] [Fint
   have h := integral_pi_option_count_tilted (R := R) f (fun σ _ => G σ)
   simpa [integral_const, probReal_univ] using h
 
-variable [Fintype α] [Nonempty α] [Fintype R]
+variable [Finite α] [Nonempty α] [Fintype R]
 
-/-- **Lemma 1.4.2 (replica derivative along a Gaussian interpolation), trigonometric form.**
-Let `(X, Y)` be a centered jointly Gaussian pair of fields with `𝔼 X Y = 0` and let
-`U(a, b) = 𝔼 Y_a Y_b - 𝔼 X_a X_b`.  For a bounded observable `Φ` of `n = |R|` replicas, the
-derivative of `s ↦ 𝔼⟨Φ⟩_s`, where `⟨·⟩_s` is the Gibbs average of `cos s X + sin s Y + h`, is
-`sin t cos t · 𝔼⟨Φ (∑_{ℓ,ℓ'≤n} U(σˡ, σˡ') - 2n ∑_{ℓ≤n} U(σˡ, σ^{n+1}) - n U(σ^{n+1}, σ^{n+1})
-  + n(n+1) U(σ^{n+1}, σ^{n+2}))⟩_t`
-at `s = t`, the replicas `σ^{n+1}`, `σ^{n+2}` being the `some none` and `none` of
-`Option (Option R)`. -/
-theorem hasDerivAt_integral_replica_trig
+/-- **Key identity of Lemma 1.4.2:** the two Gaussian integrations by parts turn the derivative
+`𝔼⟨Φ (∑ᵣ u'(σʳ) - n ⟨u'⟩)⟩` of the replica average into the covariance combination. -/
+theorem integral_replica_trig_key
     (hXm : ∀ a, Measurable (X a)) (hYm : ∀ a, Measurable (Y a))
     (hXY : HasGaussianLaw (fun ω s => Sum.elim X Y s ω) P)
     (hX : ∀ a, ∫ ω, X a ω ∂P = 0) (hY : ∀ a, ∫ ω, Y a ω ∂P = 0)
     (h0 : ∀ a b, ∫ ω, X a ω * Y b ω ∂P = 0) (U : α → α → ℝ)
     (hU : ∀ a b, U a b = ∫ ω, Y a ω * Y b ω ∂P - ∫ ω, X a ω * X b ω ∂P) (h : α → ℝ)
-    (Φ : (R → α) → ℝ) (t : ℝ) :
-    HasDerivAt (fun s => ∫ ω, ∫ σ, Φ σ ∂(Measure.pi fun _ : R =>
-        Measure.count.tilted fun a => Real.cos s * X a ω + Real.sin s * Y a ω + h a) ∂P)
-      (Real.sin t * Real.cos t * ∫ ω, ∫ τ : Option (Option R) → α,
+    {Φ : (R → α) → ℝ} {M : ℝ} (hM : ∀ σ, |Φ σ| ≤ M) (t : ℝ) :
+    (∫ ω, ∫ σ, Φ σ * (∑ r, (-Real.sin t * X (σ r) ω + Real.cos t * Y (σ r) ω) -
+        Fintype.card R * ∫ τ, (-Real.sin t * X τ ω + Real.cos t * Y τ ω)
+          ∂(Measure.count.tilted fun a => Real.cos t * X a ω + Real.sin t * Y a ω + h a))
+      ∂(Measure.pi fun _ : R =>
+          Measure.count.tilted fun a => Real.cos t * X a ω + Real.sin t * Y a ω + h a) ∂P) =
+      Real.sin t * Real.cos t * ∫ ω, ∫ τ : Option (Option R) → α,
         Φ (fun r => τ (some (some r))) *
           ((∑ r, ∑ r', U (τ (some (some r))) (τ (some (some r')))) -
             2 * Fintype.card R * ∑ r, U (τ (some (some r))) (τ (some none)) -
             Fintype.card R * U (τ (some none)) (τ (some none)) +
             Fintype.card R * (Fintype.card R + 1) * U (τ (some none)) (τ none))
         ∂(Measure.pi fun _ : Option (Option R) =>
-          Measure.count.tilted fun a => Real.cos t * X a ω + Real.sin t * Y a ω + h a) ∂P) t := by
+          Measure.count.tilted fun a => Real.cos t * X a ω + Real.sin t * Y a ω + h a) ∂P := by
+  have := Fintype.ofFinite α
   classical
   have hP := hXY.isProbabilityMeasure
   have hXi : ∀ a, Integrable (X a) P := fun a => (hXY.eval (Sum.inl a)).integrable
   have hYi : ∀ a, Integrable (Y a) P := fun a => (hXY.eval (Sum.inr a)).integrable
-  obtain ⟨M, hM⟩ : ∃ M, ∀ σ, |Φ σ| ≤ M :=
-    (Set.finite_range fun σ => |Φ σ|).bddAbove.imp fun M hM σ => hM ⟨σ, rfl⟩
-  have hpath := hasDerivAt_integral_replica_path (μ := P) (t := t) (S := Set.univ) (R := R)
-    (Ψ := Φ) hM Filter.univ_mem
-    (f := fun s ω a => Real.cos s * X a ω + Real.sin s * Y a ω + h a)
-    (f' := fun s ω a => -Real.sin s * X a ω + Real.cos s * Y a ω)
-    (fun s a => (((hXm a).const_mul _).add ((hYm a).const_mul _)).add_const _ |>.aemeasurable)
-    (fun a => (((hXm a).const_mul _).add ((hYm a).const_mul _)).aemeasurable)
-    (fun ω s _ a => hasDerivAt_cos_mul_add_sin_mul (X a ω) (Y a ω) (h a) s)
-    (B := fun ω => ∑ a, (|X a ω| + |Y a ω|))
-    (integrable_finsetSum _ fun a _ => (hXi a).abs.add (hYi a).abs)
-    (fun ω s _ a => (abs_neg_sin_mul_add_cos_mul_le (X a ω) (Y a ω) s).trans
-      (Finset.single_le_sum (f := fun b => |X b ω| + |Y b ω|) (fun _ _ => by positivity)
-        (mem_univ a)))
   -- the pair `(x, y) = (u', u)` of the Gaussian integration by parts
   obtain ⟨x, hx⟩ : ∃ x : α → Ω → ℝ, ∀ a ω, x a ω = -Real.sin t * X a ω + Real.cos t * Y a ω :=
     ⟨_, fun _ _ => rfl⟩
@@ -415,8 +433,6 @@ theorem hasDerivAt_integral_replica_trig
       (fun σ a => Φ σ * x a ω)
     simp only [integral_const_mul, ← hμt] at h1 ⊢
     exact h1.symm
-  -- the derivative in terms of `x` and the Gibbs measure `μt`
-  refine hpath.congr_deriv ?_
   simp only [← hx, ← hy, ← hμt]
   -- split the derivative into the `∑ᵣ`-terms and the extra-replica term
   have hμprob : ∀ ω, IsProbabilityMeasure (μt ω) := fun ω => by rw [hμt]; infer_instance
@@ -430,7 +446,8 @@ theorem hasDerivAt_integral_replica_trig
         rw [mul_sub, Finset.mul_sum]
         ring
       simp_rw [e]
-      rw [integral_sub (integrable_finsetSum _ fun _ _ => Integrable.of_finite) (Integrable.of_finite),
+      rw [integral_sub
+          (integrable_finsetSum _ fun _ _ => Integrable.of_finite) (Integrable.of_finite),
         integral_finsetSum _ fun _ _ => Integrable.of_finite, integral_const_mul]
   have ha : ∀ r, Integrable (fun ω => ∫ σ, Φ σ * x (σ r) ω
       ∂(Measure.pi fun _ : R => μt ω)) P := fun r => by
@@ -509,6 +526,155 @@ theorem hasDerivAt_integral_replica_trig
         exact integral_congr_ae (ae_of_all _ fun ν => hpt ν)
     _ = _ := by
         simp_rw [integral_const_mul]
+
+
+/-- **Lemma 1.4.2 (replica derivative along a Gaussian interpolation), trigonometric form.**
+Let `(X, Y)` be a centered jointly Gaussian pair of fields with `𝔼 X Y = 0` and let
+`U(a, b) = 𝔼 Y_a Y_b - 𝔼 X_a X_b`.  For a bounded observable `Φ` of `n = |R|` replicas, the
+derivative of `s ↦ 𝔼⟨Φ⟩_s`, where `⟨·⟩_s` is the Gibbs average of `cos s X + sin s Y + h`, is
+`sin t cos t · 𝔼⟨Φ (∑_{ℓ,ℓ'≤n} U(σˡ, σˡ') - 2n ∑_{ℓ≤n} U(σˡ, σ^{n+1}) - n U(σ^{n+1}, σ^{n+1})
+  + n(n+1) U(σ^{n+1}, σ^{n+2}))⟩_t`
+at `s = t`, the replicas `σ^{n+1}`, `σ^{n+2}` being the `some none` and `none` of
+`Option (Option R)`. -/
+theorem hasDerivAt_integral_replica_trig
+    (hXm : ∀ a, Measurable (X a)) (hYm : ∀ a, Measurable (Y a))
+    (hXY : HasGaussianLaw (fun ω s => Sum.elim X Y s ω) P)
+    (hX : ∀ a, ∫ ω, X a ω ∂P = 0) (hY : ∀ a, ∫ ω, Y a ω ∂P = 0)
+    (h0 : ∀ a b, ∫ ω, X a ω * Y b ω ∂P = 0) (U : α → α → ℝ)
+    (hU : ∀ a b, U a b = ∫ ω, Y a ω * Y b ω ∂P - ∫ ω, X a ω * X b ω ∂P) (h : α → ℝ)
+    (Φ : (R → α) → ℝ) (t : ℝ) :
+    HasDerivAt (fun s => ∫ ω, ∫ σ, Φ σ ∂(Measure.pi fun _ : R =>
+        Measure.count.tilted fun a => Real.cos s * X a ω + Real.sin s * Y a ω + h a) ∂P)
+      (Real.sin t * Real.cos t * ∫ ω, ∫ τ : Option (Option R) → α,
+        Φ (fun r => τ (some (some r))) *
+          ((∑ r, ∑ r', U (τ (some (some r))) (τ (some (some r')))) -
+            2 * Fintype.card R * ∑ r, U (τ (some (some r))) (τ (some none)) -
+            Fintype.card R * U (τ (some none)) (τ (some none)) +
+            Fintype.card R * (Fintype.card R + 1) * U (τ (some none)) (τ none))
+        ∂(Measure.pi fun _ : Option (Option R) =>
+          Measure.count.tilted fun a => Real.cos t * X a ω + Real.sin t * Y a ω + h a) ∂P) t := by
+  have := Fintype.ofFinite α
+  have hP := hXY.isProbabilityMeasure
+  have hXi : ∀ a, Integrable (X a) P := fun a => (hXY.eval (Sum.inl a)).integrable
+  have hYi : ∀ a, Integrable (Y a) P := fun a => (hXY.eval (Sum.inr a)).integrable
+  obtain ⟨M, hM⟩ : ∃ M, ∀ σ, |Φ σ| ≤ M :=
+    (Set.finite_range fun σ => |Φ σ|).bddAbove.imp fun M hM σ => hM ⟨σ, rfl⟩
+  have hpath := hasDerivAt_integral_replica_path (μ := P) (t := t) (S := Set.univ) (R := R)
+    (Ψ := Φ) hM Filter.univ_mem
+    (f := fun s ω a => Real.cos s * X a ω + Real.sin s * Y a ω + h a)
+    (f' := fun s ω a => -Real.sin s * X a ω + Real.cos s * Y a ω)
+    (fun s a => (((hXm a).const_mul _).add ((hYm a).const_mul _)).add_const _ |>.aemeasurable)
+    (fun a => (((hXm a).const_mul _).add ((hYm a).const_mul _)).aemeasurable)
+    (fun ω s _ a => hasDerivAt_cos_mul_add_sin_mul (X a ω) (Y a ω) (h a) s)
+    (B := fun ω => ∑ a, (|X a ω| + |Y a ω|))
+    (integrable_finsetSum _ fun a _ => (hXi a).abs.add (hYi a).abs)
+    (fun ω s _ a => (abs_neg_sin_mul_add_cos_mul_le (X a ω) (Y a ω) s).trans
+      (Finset.single_le_sum (f := fun b => |X b ω| + |Y b ω|) (fun _ _ => by positivity)
+        (mem_univ a)))
+  exact hpath.congr_deriv (integral_replica_trig_key hXm hYm hXY hX hY h0 U hU h hM t)
+
+/-- The replica-derivative term `𝔼⟨Ψ (∑ᵣ f'(σʳ) - n ⟨f'⟩)⟩` is integrable in the disorder when
+`f'` is dominated by an integrable function. -/
+theorem integrable_replica_derivative_term {g χ : α → Ω → ℝ}
+    (hg : ∀ a, AEMeasurable (fun ω => g a ω) P) (hχm : ∀ a, AEMeasurable (χ a) P)
+    {B : Ω → ℝ} (hB : Integrable B P) (hχ : ∀ ω a, |χ a ω| ≤ B ω) {Ψ : (R → α) → ℝ} {M : ℝ}
+    (hΨ : ∀ σ, |Ψ σ| ≤ M) :
+    Integrable (fun ω => ∫ σ, Ψ σ * (∑ r, χ (σ r) ω - Fintype.card R *
+        ∫ a, χ a ω ∂(Measure.count.tilted fun a => g a ω))
+      ∂(Measure.pi fun _ : R => Measure.count.tilted fun a => g a ω)) P := by
+  have := Fintype.ofFinite α
+  classical
+  have hM : 0 ≤ M := (abs_nonneg _).trans (hΨ (fun _ => Classical.arbitrary α))
+  have hmeas := aemeasurable_integral_pi_count_tilted (R := R) (g := fun ω a => g a ω)
+    (Θ := fun ω σ => Ψ σ * (∑ r, χ (σ r) ω - Fintype.card R *
+      ∫ a, χ a ω ∂(Measure.count.tilted fun a => g a ω))) hg fun σ => by
+      refine aemeasurable_const.mul ((Finset.aemeasurable_fun_sum _ fun r _ => hχm (σ r)).sub ?_)
+      refine aemeasurable_const.mul ?_
+      simp_rw [integral_count_tilted]
+      exact Finset.aemeasurable_fun_sum _ fun a _ =>
+        (aemeasurable_gibbsWeight (g := fun ω a => g a ω) hg a).mul (hχm a)
+  refine Integrable.mono' ((hB.const_mul (Fintype.card R : ℝ)).add
+    (hB.const_mul (Fintype.card R : ℝ)) |>.const_mul M) hmeas.aestronglyMeasurable
+    (ae_of_all _ fun ω => ?_)
+  rw [Real.norm_eq_abs]
+  have hB0 : 0 ≤ B ω := (abs_nonneg _).trans (hχ ω (Classical.arbitrary α))
+  refine abs_integral_pi_count_tilted_le _ fun σ => ?_
+  rw [abs_mul]
+  refine mul_le_mul (hΨ σ) ?_ (abs_nonneg _) hM
+  have hin : |∫ a, χ a ω ∂(Measure.count.tilted fun a => g a ω)| ≤ B ω := by
+    have := norm_integral_le_of_norm_le_const (μ := Measure.count.tilted fun a => g a ω)
+      (f := fun a => χ a ω) (C := B ω)
+      (ae_of_all _ fun a => by simpa [Real.norm_eq_abs] using hχ ω a)
+    simpa using this
+  calc |∑ r, χ (σ r) ω - Fintype.card R * ∫ a, χ a ω ∂(Measure.count.tilted fun a => g a ω)|
+      ≤ |∑ r, χ (σ r) ω| + |(Fintype.card R : ℝ) *
+          ∫ a, χ a ω ∂(Measure.count.tilted fun a => g a ω)| := abs_sub _ _
+    _ ≤ Fintype.card R * B ω + Fintype.card R * B ω := by
+        refine add_le_add ?_ ?_
+        · refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
+          calc ∑ r, |χ (σ r) ω| ≤ ∑ _r : R, B ω := Finset.sum_le_sum fun r _ => hχ ω _
+            _ = Fintype.card R * B ω := by simp
+        · rw [abs_mul, Nat.abs_cast]
+          exact mul_le_mul_of_nonneg_left hin (Nat.cast_nonneg _)
+
+/-- **Lemma 1.4.2 with a moving observable.**  If the observable `Φ s` of the `n` replicas also
+depends smoothly on the interpolation parameter, the derivative of `s ↦ 𝔼⟨Φ s⟩_s` is the
+derivative of Lemma 1.4.2 for `Φ t` plus `𝔼⟨Φ' t⟩_t`. -/
+theorem hasDerivAt_integral_replica_trig_moving
+    (hXm : ∀ a, Measurable (X a)) (hYm : ∀ a, Measurable (Y a))
+    (hXY : HasGaussianLaw (fun ω s => Sum.elim X Y s ω) P)
+    (hX : ∀ a, ∫ ω, X a ω ∂P = 0) (hY : ∀ a, ∫ ω, Y a ω ∂P = 0)
+    (h0 : ∀ a b, ∫ ω, X a ω * Y b ω ∂P = 0) (U : α → α → ℝ)
+    (hU : ∀ a b, U a b = ∫ ω, Y a ω * Y b ω ∂P - ∫ ω, X a ω * X b ω ∂P) (h : α → ℝ)
+    {Φ Φ' : ℝ → (R → α) → ℝ} {M M' : ℝ}
+    (hΦ : ∀ s σ, HasDerivAt (fun s => Φ s σ) (Φ' s σ) s) (hM : ∀ s σ, |Φ s σ| ≤ M)
+    (hM' : ∀ s σ, |Φ' s σ| ≤ M') (t : ℝ) :
+    HasDerivAt (fun s => ∫ ω, ∫ σ, Φ s σ ∂(Measure.pi fun _ : R =>
+        Measure.count.tilted fun a => Real.cos s * X a ω + Real.sin s * Y a ω + h a) ∂P)
+      (Real.sin t * Real.cos t * ∫ ω, ∫ τ : Option (Option R) → α,
+        Φ t (fun r => τ (some (some r))) *
+          ((∑ r, ∑ r', U (τ (some (some r))) (τ (some (some r')))) -
+            2 * Fintype.card R * ∑ r, U (τ (some (some r))) (τ (some none)) -
+            Fintype.card R * U (τ (some none)) (τ (some none)) +
+            Fintype.card R * (Fintype.card R + 1) * U (τ (some none)) (τ none))
+        ∂(Measure.pi fun _ : Option (Option R) =>
+          Measure.count.tilted fun a => Real.cos t * X a ω + Real.sin t * Y a ω + h a) ∂P +
+        ∫ ω, ∫ σ, Φ' t σ ∂(Measure.pi fun _ : R =>
+          Measure.count.tilted fun a => Real.cos t * X a ω + Real.sin t * Y a ω + h a) ∂P) t := by
+  have := Fintype.ofFinite α
+  classical
+  have hP := hXY.isProbabilityMeasure
+  have hXi : ∀ a, Integrable (X a) P := fun a => (hXY.eval (Sum.inl a)).integrable
+  have hYi : ∀ a, Integrable (Y a) P := fun a => (hXY.eval (Sum.inr a)).integrable
+  have hpath := hasDerivAt_integral_replica_path_moving (μ := P) (t := t) (S := Set.univ) (R := R)
+    (Ψ := Φ) (Ψ' := Φ') (M := M) (M' := M') Filter.univ_mem (fun s _ σ => hΦ s σ)
+    (fun s _ σ => hM s σ) (fun s _ σ => hM' s σ)
+    (f := fun s ω a => Real.cos s * X a ω + Real.sin s * Y a ω + h a)
+    (f' := fun s ω a => -Real.sin s * X a ω + Real.cos s * Y a ω)
+    (fun s a => (((hXm a).const_mul _).add ((hYm a).const_mul _)).add_const _ |>.aemeasurable)
+    (fun a => (((hXm a).const_mul _).add ((hYm a).const_mul _)).aemeasurable)
+    (fun ω s _ a => hasDerivAt_cos_mul_add_sin_mul (X a ω) (Y a ω) (h a) s)
+    (B := fun ω => ∑ a, (|X a ω| + |Y a ω|))
+    (integrable_finsetSum _ fun a _ => (hXi a).abs.add (hYi a).abs)
+    (fun ω s _ a => (abs_neg_sin_mul_add_cos_mul_le (X a ω) (Y a ω) s).trans
+      (Finset.single_le_sum (f := fun b => |X b ω| + |Y b ω|) (fun _ _ => by positivity)
+        (mem_univ a)))
+  refine hpath.congr_deriv ?_
+  have hint1 := integrable_replica_derivative_term (R := R) (P := P)
+    (g := fun a ω => Real.cos t * X a ω + Real.sin t * Y a ω + h a)
+    (χ := fun a ω => -Real.sin t * X a ω + Real.cos t * Y a ω)
+    (fun a => (((hXm a).const_mul _).add ((hYm a).const_mul _)).add_const _ |>.aemeasurable)
+    (fun a => (((hXm a).const_mul _).add ((hYm a).const_mul _)).aemeasurable)
+    (B := fun ω => ∑ a, (|X a ω| + |Y a ω|))
+    (integrable_finsetSum _ fun a _ => (hXi a).abs.add (hYi a).abs)
+    (fun ω a => (abs_neg_sin_mul_add_cos_mul_le (X a ω) (Y a ω) t).trans
+      (Finset.single_le_sum (f := fun b => |X b ω| + |Y b ω|) (fun _ _ => by positivity)
+        (mem_univ a))) (Ψ := Φ t) (hM t)
+  have hint2 := integrable_integral_pi_count_tilted_det (R := R) (P := P)
+    (g := fun a ω => Real.cos t * X a ω + Real.sin t * Y a ω + h a)
+    (fun a => (((hXm a).const_mul _).add ((hYm a).const_mul _)).add_const _ |>.aemeasurable)
+    (Φ' t)
+  rw [integral_add hint1 hint2, integral_replica_trig_key hXm hYm hXY hX hY h0 U hU h (hM t) t]
 
 end Trig
 

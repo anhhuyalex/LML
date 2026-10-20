@@ -365,6 +365,7 @@ Substituting the expressions from Lemma~\ref{lem:sg-tal:path-covariance}, the $-
         ProbabilityTheory.hasGaussianLaw_dotProduct_family,
         SpinGlasses.hasGaussianLaw_const_mul_sum_family,
         SpinGlasses.sk_pair_sum_eq_dotProduct,
+        SpinGlasses.exists_sk_smart_path_fields,
         SpinGlasses.integrable_log_cosh_affine_gaussianReal,
         SpinGlasses.sk_replica_symmetric_upper_bound}
   \leanok
@@ -380,7 +381,7 @@ In Lean the interpolation runs along the trigonometric path $s\mapsto\cos s\,X+\
 \texttt{HasGaussianLaw.sumElim\_prod\_of\_independent}, which allows different index types for the two fields). By Lemma~\ref{lem:sg-tal:trig-smart-path-derivative} the derivative of
 $\varphi(s)=N^{-1}\mathbb E\log Z_s$ is $\frac{\beta^2}{2}\sin s\cos s\,(A(s)-(1-q)^2)$ with $A(s)=\mathbb E\langle (R_{1,2}-q)^2\rangle_s\ge0$ (the expectation of a square under a product of two probability measures), so Lemma~\ref{lem:sg-tal:trig-rs-endpoint} gives
 $\varphi(0)\le\varphi(\pi/2)+\frac{\beta^2}{4}(1-q)^2$. At $s=0$ one has the SK free energy $p_N(\beta,h)$; at $s=\pi/2$ the system is decoupled with field $Y_i=\beta z_i\sqrt q+h$, so $\varphi(\pi/2)=\log 2+\mathbb E\log\cosh(\beta z\sqrt q+h)$ by Theorem~\ref{thm:sg-tal:decoupled-partition}.
-Formalized in \texttt{SpinGlasses/SKGuerraBound.lean}.
+Formalized in \texttt{SpinGlasses/SKGuerraBound.lean} (the free energy profile along the path is \texttt{SKSmartPathProfile.lean}).
 \end{proof}
 
 \begin{theorem}[The self-consistency equation and contractivity]\label{thm:sg-tal:fixed-point}
@@ -413,87 +414,158 @@ For contractivity, Gaussian integration by parts shows $\psi'(q) = \beta^2 \math
 Section~1.4 proves R.~Lata\l{}a's exponential overlap concentration theorem and establishes the Aizenman--Lebowitz--Ruelle (ALR) high-temperature free energy formula.
 
 \begin{lemma}[General replica derivative under Gaussian interpolation]\label{lem:sg-tal:replica-deriv}
-Let $\alpha$ be a finite configuration space with reference weights $w > 0$.
-For independent centered Gaussian fields $(u_\sigma), (v_\sigma)$, let $\nu_t(f) = \mathbb{E}\langle f \rangle_t$ denote the annealed expectation of an observable $f : \alpha^n \to \mathbb{R}$ on $n$ replicas.
-Then (Lemma~1.4.2):
+  \lean{SpinGlasses.hasDerivAt_integral_pi_count_tilted_path,
+        SpinGlasses.hasDerivAt_integral_pi_count_tilted_path_moving,
+        SpinGlasses.aemeasurable_gibbsWeight,
+        SpinGlasses.aemeasurable_integral_pi_count_tilted,
+        SpinGlasses.hasDerivAt_integral_replica_path_moving,
+        SpinGlasses.hasDerivAt_integral_replica_path,
+        SpinGlasses.integrable_integral_pi_count_tilted_mul_eval,
+        SpinGlasses.integrable_integral_pi_count_tilted_mul_integral,
+        SpinGlasses.integrable_integral_pi_count_tilted_det,
+        SpinGlasses.integral_pi_option_count_tilted_marginal,
+        SpinGlasses.integral_replica_trig_key,
+        SpinGlasses.hasDerivAt_integral_replica_trig,
+        SpinGlasses.integrable_replica_derivative_term,
+        SpinGlasses.hasDerivAt_integral_replica_trig_moving}
+  \leanok
+Let $\alpha$ be a finite nonempty configuration space, $R$ a finite set of $n$ replicas, $(\Omega,P)$ a probability space, and $X, Y : \alpha \to \Omega \to \mathbb{R}$ measurable with $(X_\sigma, Y_\sigma)_\sigma$ jointly Gaussian, centered, and $\mathbb{E} X_\sigma Y_\tau = 0$ for all $\sigma,\tau$.
+Put $U(\sigma,\tau) = \mathbb{E} Y_\sigma Y_\tau - \mathbb{E} X_\sigma X_\tau$, let $h : \alpha \to \mathbb{R}$, and let $\langle\cdot\rangle_{s,\omega}$ be the average over $n$ independent replicas of the Gibbs measure with weights $\exp(\cos s\, X_\sigma(\omega) + \sin s\, Y_\sigma(\omega) + h_\sigma)$.
+For every observable $\Phi : \alpha^R \to \mathbb{R}$ (Lemma~1.4.2, trigonometric form),
 \[
-\nu_t'(f) = \sum_{1 \le \ell, \ell' \le n} \nu_t(U(\sigma^\ell, \sigma^{\ell'}) f) - 2n \sum_{\ell \le n} \nu_t(U(\sigma^\ell, \sigma^{n+1}) f) - n \nu_t(U(\sigma^{n+1}, \sigma^{n+1}) f) + n(n+1) \nu_t(U(\sigma^{n+1}, \sigma^{n+2}) f),
+\frac{d}{ds}\mathbb{E}\langle\Phi\rangle_s
+= \sin s\cos s\;\mathbb{E}\Big\langle \Phi\Big(\sum_{\ell,\ell'\le n} U(\sigma^\ell,\sigma^{\ell'}) - 2n\sum_{\ell\le n} U(\sigma^\ell,\sigma^{n+1}) - n\,U(\sigma^{n+1},\sigma^{n+1}) + n(n+1)\,U(\sigma^{n+1},\sigma^{n+2})\Big)\Big\rangle_s,
 \]
-where $U(\sigma^1, \sigma^2) = \frac{1}{2}(\mathbb{E} u_{\sigma^1} u_{\sigma^2} - \mathbb{E} v_{\sigma^1} v_{\sigma^2})$.
-When $n = 2$ and $f = f(\sigma^1, \sigma^2)$, this simplifies to (Eq.~(1.97)):
-\[
-\nu_t'(f) = \frac{N\beta^2}{2} \left(\nu_t((R_{1,2} - q)^2 f) - 2 \sum_{\ell \le 2} \nu_t((R_{\ell, 3} - q)^2 f) + 3 \nu_t((R_{3,4} - q)^2 f)\right).
-\]
+where the right-hand side is a Gibbs average over $n+2$ replicas indexed by $\mathrm{Option}(\mathrm{Option}\,R)$.
+More generally, if $\Phi_s$ depends differentiably on $s$ with $|\Phi_s|, |\partial_s\Phi_s|$ bounded uniformly in $s$, then $\frac{d}{ds}\mathbb{E}\langle\Phi_s\rangle_s$ is the displayed expression for $\Phi = \Phi_s$ plus $\mathbb{E}\langle\partial_s\Phi_s\rangle_s$.
 \end{lemma}
 \begin{proof}
-Direct calculation by differentiating the Gibbs weights $\prod_{\ell=1}^n \exp(-H_t(\sigma^\ell)) / Z_t^n$ and applying Gaussian integration by parts to each coordinate.
+\leanok
+Differentiate the replica average $\prod_\ell w(\sigma^\ell)/Z^n$ along the path (finite-dimensional calculus, \texttt{fderiv\_integral\_pi\_count\_tilted}) and pass the derivative inside $\mathbb{E}$ by dominated differentiation (the path derivative is dominated by $\sum_\sigma |X_\sigma|+|Y_\sigma|$, which is integrable for a Gaussian field).
+This gives $\mathbb{E}\langle\Phi(\sum_\ell u'(\sigma^\ell) - n\langle u'\rangle)\rangle$ with $u'=-\sin s\,X+\cos s\,Y$.
+Two Gaussian integrations by parts (\texttt{integral\_gibbs\_replica\_average\_gaussian\_option}, applied to $X$ and to $Y$) turn this into the displayed covariance combination, with $\mathbb{E} X Y = 0$ killing the cross terms; the extra replicas $n+1,n+2$ appear exactly as in Panchenko's Eq.~(1.29), and a marginalization lemma removes the replicas on which the observable does not depend.
+In the parametrization $t = \cos^2 s$ (with $t=1$ the SK end) this is Talagrand's Eq.~(1.90); Eq.~(1.97) for $n=2$ is the specialization used in the proof of Lemma~\ref{lem:sg-tal:replica-decoupling}.
+Formalized in \texttt{SpinGlasses/GaussianInterpolationReplica.lean}.
 \end{proof}
 
-\begin{lemma}[Replica decoupling via H\"older's inequality and symmetry]\label{lem:sg-tal:replica-decoupling}
-For $\lambda > 0$ and $f = \exp(\lambda N (R_{1,2} - q)^2)$ (Lemma~1.4.5):
+\begin{lemma}[Replica decoupling]\label{lem:sg-tal:replica-decoupling}
+  \lean{MeasureTheory.integral_mul_integral_le_integral_mul,
+        MeasureTheory.integral_pi_fin_two,
+        SpinGlasses.integral_comb_four,
+        SpinGlasses.replica_decoupling_comb_nonneg}
+  \leanok
+Let $\mu$ be a Gibbs measure on a finite set $\alpha$, $A : \alpha\times\alpha\to[0,\infty)$ symmetric with constant diagonal, $U(\sigma,\tau) = -\kappa (A(\sigma,\tau) - c)$ with $\kappa\ge0$, and $u\ge 0$.
+For $\Phi(\sigma^1,\sigma^2) = \exp(u A(\sigma^1,\sigma^2))$ the combination of Lemma~\ref{lem:sg-tal:replica-deriv} (for $n=2$) and the moving-observable term for $u'=8\kappa\sin s\cos s$ is nonnegative:
 \[
-\nu_t((R_{3,4} - q)^2 \exp \lambda N (R_{1,2} - q)^2) \le \nu_t((R_{1,2} - q)^2 \exp \lambda N (R_{1,2} - q)^2).
+\Big\langle \Phi\,\big(\textstyle\sum U \ldots\big)\Big\rangle_{\mu^{\otimes4}} + 8\kappa\,\langle A\,\Phi\rangle_{\mu^{\otimes2}} \ge 0 .
 \]
+(For $A=(R_{1,2}-q)^2$ this contains Lemma~1.4.5, $\nu_t((R_{3,4}-q)^2 e^{\lambda N (R_{1,2}-q)^2}) \le \nu_t((R_{1,2}-q)^2 e^{\lambda N (R_{1,2}-q)^2})$, and Corollary~1.4.6.)
 \end{lemma}
 \begin{proof}
-Expand the exponential in series $\sum_{k \ge 0} \frac{(\lambda N)^k}{k!} \nu_t((R_{3,4}-q)^2 (R_{1,2}-q)^{2k})$.
-Apply H\"older's inequality with conjugate exponents $\tau_1 = k+1$ and $\tau_2 = \frac{k+1}{k}$ under the measure $\nu_t$:
-\[
-\nu_t((R_{3,4}-q)^2 (R_{1,2}-q)^{2k}) \le \nu_t((R_{3,4}-q)^{2k+2})^{1/(k+1)} \nu_t((R_{1,2}-q)^{2k+2})^{k/(k+1)}.
-\]
-By replica permutation symmetry, $\nu_t((R_{3,4}-q)^{2k+2}) = \nu_t((R_{1,2}-q)^{2k+2})$, so the upper bound is $\nu_t((R_{1,2}-q)^{2k+2})$.
-Summing over $k$ yields the claim.
+\leanok
+\emph{Differs from the book:} Talagrand proves Lemma~1.4.5 by expanding the exponential, H\"older's inequality and replica symmetry.
+The Lean proof is shorter and works pointwise in the disorder: since $U$ is $-\kappa(A-c)$ with $A$ symmetric and of constant diagonal, the four-replica combination collapses to $-\kappa(2A_{12}-4A_{13}-4A_{23}+6A_{34})$ (the constants $c$ and the diagonal values cancel because the coefficients sum to zero).
+The terms with $A_{13}, A_{23}$ are integrals of nonnegative functions; the term with $A_{34}$ factors by independence of the replicas $3,4$ from $1,2$ into $\langle\Phi\rangle\langle A\rangle$, and Chebyshev's association inequality (for two similarly ordered functions, $\int a\int b\le\int ab$; here $a=A$ and $b=e^{uA}$ with $u\ge0$) gives $\langle A\rangle\langle e^{uA}\rangle\le\langle A e^{uA}\rangle$.
+Hence the combination is at least $\kappa(6\langle\Phi A\rangle - 6\langle\Phi\rangle\langle A\rangle)\ge0$.
+Formalized in \texttt{SpinGlasses/SKLatalaCompensated.lean} (Chebyshev's inequality in \texttt{ForMathlib/MeasureTheory/Integral/ChebyshevAssociation.lean}).
 \end{proof}
 
 \begin{corollary}[Compensated functional monotonicity]\label{cor:sg-tal:compensated-mono}
-The derivative of the replica observable satisfies (Corollary~1.4.6):
+  \lean{SpinGlasses.exists_sk_smart_path_fields,
+        SpinGlasses.monotoneOn_compensated_functional,
+        SpinGlasses.sk_compensated_path_le_decoupled,
+        SpinGlasses.sk_compensated_le_decoupled}
+  \leanok
+Abstract form: under the hypotheses of Lemma~\ref{lem:sg-tal:replica-deriv} with covariance difference $U=-\kappa(A-c)$ as in Lemma~\ref{lem:sg-tal:replica-decoupling} and $u_0\ge4\kappa$, the function
+$s\mapsto\mathbb{E}\langle\exp((u_0-4\kappa\cos^2 s)A(\sigma^1,\sigma^2))\rangle_s$ is nondecreasing on $[0,\pi/2]$.
+SK form (Corollary~1.4.7 in the endpoint version used for Theorem~1.4.1): for $N\ge1$, $q\ge0$, $s\ge0$,
 \[
-\nu_t'\left(\exp \lambda N (R_{1,2} - q)^2\right) \le 2 N \beta^2 \nu_t\left((R_{1,2} - q)^2 \exp \lambda N (R_{1,2} - q)^2\right).
+\nu_{\mathrm{SK}}\big(\exp sN(R_{1,2}-q)^2\big) \le \nu_{\mathrm{dec}}\big(\exp (s+2\beta^2) N (R_{1,2}-q)^2\big),
 \]
-Consequently, for any $\lambda > 0$, the compensated functional (Corollary~1.4.7)
-\[
-t \mapsto \nu_t\left(\exp\left((\lambda - 2 t \beta^2) N (R_{1,2} - q)^2\right)\right)
-\]
-is non-increasing on the interval $t \in [0, \min(1, \lambda / (2\beta^2))]$.
+where $\nu_{\mathrm{dec}}$ is the average for the decoupled model with fields $\beta\sqrt q\, z_i + h$.
 \end{corollary}
 \begin{proof}
-Differentiating the compensated functional with respect to $t$ gives $\nu_t'(\dots) - 2 N \beta^2 \nu_t((R_{1,2}-q)^2 \dots) \le 0$ by the differential inequality.
+\leanok
+By Lemma~\ref{lem:sg-tal:replica-deriv} (moving-observable form, $\Phi_s=\exp((u_0-4\kappa\cos^2s)A)$, $\partial_s u = 8\kappa\sin s\cos s$) the derivative of the functional is $\sin s\cos s$ times the nonnegative quantity of Lemma~\ref{lem:sg-tal:replica-decoupling} (note $u_0-4\kappa\cos^2 s\ge0$), so it is nonnegative on $[0,\pi/2]$.
+For the SK model take $X$ the pair field and $Y$ the cavity field (\texttt{exists\_sk\_smart\_path\_fields} packages their Gaussianity and Eq.~(1.64)), $A=(R-q)^2$, $\kappa=N\beta^2/2$, $c=q^2+1/N$, $u_0=N(s+2\beta^2)$, so $u_0-4\kappa=Ns$; the endpoints $s=0$ and $s=\pi/2$ are the SK and decoupled models.
+In Talagrand's parametrization $t=\cos^2 s$ the functional $\nu_t(\exp((\lambda-2t\beta^2)N(R_{1,2}-q)^2))$ is non-increasing in $t$, with $\lambda=s+2\beta^2$.
+The path version compares the smart-path energy at any time $t\in[0,\pi/2]$ with the decoupled endpoint, which gives the uniform moment bounds of Theorem~\ref{thm:sg-tal:overlap-conc}.
 \end{proof}
 
 \begin{proposition}[Base case at $t = 0$]\label{prop:sg-tal:base-case}
-For independent spins at $t = 0$ and any $\lambda < 1/2$ (Proposition~1.4.8):
+  \lean{ProbabilityTheory.cosh_add_mul_sinh_mul_exp_neg_le,
+        ProbabilityTheory.integral_exp_mul_sq_gaussianReal,
+        ProbabilityTheory.integrable_exp_mul_sq_gaussianReal,
+        SpinGlasses.integral_exp_sq_le_of_mgf_le,
+        SpinGlasses.sum_sum_exp_overlap_site,
+        SpinGlasses.sum_sum_decoupled_overlap_exp,
+        SpinGlasses.integral_decoupled_pair_exp,
+        SpinGlasses.decoupled_field_eq,
+        SpinGlasses.integral_decoupled_pair_exp_le,
+        SpinGlasses.integral_decoupled_exp_overlap_sq_le}
+  \leanok
+Let $N\ge1$, $\beta,h\in\mathbb R$, and let $q$ satisfy the fixed-point equation $q = \mathbb{E}\tanh^2(\beta\sqrt q\,z+h)$ (so $q\in[0,1]$).
+For the decoupled model (non-interacting spins with fields $\beta\sqrt q\, z_i + h$, two independent replicas) and every $0 \le \lambda < 1/2$ (Proposition~1.4.8):
 \[
-\nu_0\left(\exp \lambda N (R_{1,2} - q)^2\right) \le \frac{1}{\sqrt{1 - 2\lambda}}.
+\mathbb{E}\big\langle \exp\big(\lambda N (R_{1,2} - q)^2\big)\big\rangle \le \frac{1}{\sqrt{1 - 2\lambda}} .
 \]
 \end{proposition}
 \begin{proof}
-Use the 1D scalar inequality $(\cosh u + q \sinh u) e^{-qu} \le e^{u^2/2}$ to obtain the sub-Gaussian bound $\nu_0(\exp u N (R_{1,2} - q)) \le \exp(N u^2 / 2)$.
-Then randomize $u \sim \mathcal{N}(0, 2\lambda/N)$ using $\mathbb{E}_u \exp(u X) = \exp(\lambda X^2 / N)$ to complete the bound.
+\leanok
+\emph{Step 1 (one site).} For $\varepsilon=\pm1$ with $\mathbb{E}\varepsilon=q$, Hoeffding's lemma (Mathlib, applied to the explicit two-point law) gives $(\cosh u + q\sinh u)e^{-qu}=\mathbb{E}e^{u(\varepsilon-q)}\le e^{u^2/2}$.
+\emph{Step 2 (replicas factorize).} For fixed fields $Y_i$, summing first over $\sigma^2$ and then over $\sigma^1$ with the hypercube factorization gives
+$\langle\exp(u\sum_i(\sigma^1_i\sigma^2_i-q))\rangle=\prod_i e^{-uq}(\cosh u+\tanh^2(Y_i)\sinh u)$, because $\sum_{s,t=\pm1}e^{(s+t)y+u(st-q)}=4\cosh^2 y\;e^{-uq}(\cosh u+\tanh^2 y\sinh u)$.
+\emph{Step 3 (disorder).} The coordinates $z_i$ are independent, so the expectation over $z$ is the $N$-th power of $e^{-uq}(\cosh u+\mathbb{E}\tanh^2(Y)\sinh u)=e^{-uq}(\cosh u+q\sinh u)$, which is at most $e^{Nu^2/2}$ by Step~1 (Eq.~(1.105)).
+\emph{Step 4 (Gaussian linearization).} For $X=N(R_{1,2}-q)$ one has $\mathbb{E}\langle e^{uX}\rangle\le e^{Nu^2/2}$ for all $u$; writing $e^{\theta X^2/2}=\mathbb{E}_g e^{\sqrt\theta\, g X}$ with $g\sim\mathcal N(0,1)$, exchanging expectations (Fubini; $X$ is bounded) and using the bound with $u=\sqrt\theta g$ gives $\mathbb{E}\langle e^{\theta X^2/2}\rangle\le\mathbb{E}_g e^{N\theta g^2/2}=(1-N\theta)^{-1/2}$.
+With $\theta=2\lambda/N$ this is the claim.
+\emph{Formalization note.} The fixed-point equation is a hypothesis; only existence of a solution is formalized (Theorem~\ref{thm:sg-tal:fixed-point}).
+Formalized in \texttt{SpinGlasses/SKLatalaBase.lean}.
 \end{proof}
 
 \begin{theorem}[Exponential overlap concentration]\label{thm:sg-tal:overlap-conc}
-For $\beta < 1/2$ and $2s < 1 - 4\beta^2$, taking $\lambda = s + 2\beta^2 < 1/2$ and combining Proposition~\ref{prop:sg-tal:base-case} with Corollary~\ref{cor:sg-tal:compensated-mono} yields (Theorem~1.4.1):
+  \lean{SpinGlasses.sk_overlap_concentration_exp,
+        SpinGlasses.sk_path_expected_sq_overlap_le}
+  \leanok
+Let $N\ge1$, $\beta,h\in\mathbb R$ and let $q=\mathbb{E}\tanh^2(\beta\sqrt q\,z+h)$.
+For $s\ge0$ with $2s+4\beta^2<1$ (Theorem~1.4.1):
 \[
-\nu\left(\exp s N (R_{1,2} - q)^2\right) \le \frac{1}{\sqrt{1 - 2s - 4\beta^2}}.
+\nu\left(\exp s N (R_{1,2} - q)^2\right) \le \frac{1}{\sqrt{1 - 2s - 4\beta^2}} .
 \]
-In particular, $\nu((R_{1,2} - q)^2) \le K / N$ (Eq.~(1.89)) and $\nu_t((R_{1,2} - q)^2) \le K / N$ uniformly for all $t \in [0, 1]$ (Eq.~(1.103)).
+Moreover, if $\beta^2<1/4$ then for every $t\in[0,\pi/2]$ the expected squared overlap under the smart-path energy at time $t$ satisfies (Eqs.~(1.89) and (1.103))
+\[
+\nu_t\big((R_{1,2}-q)^2\big)\le \frac{K}{N},\qquad K=\frac{(1/2-2\beta^2)^{-1/2}-1}{1/4-\beta^2}.
+\]
 \end{theorem}
 \begin{proof}
-Since $t \mapsto \nu_t(\exp((\lambda - 2 t \beta^2) N (R_{1,2} - q)^2))$ is non-increasing, evaluating at $t = 1$ gives
-$\nu(\exp(s N (R_{1,2}-q)^2)) \le \nu_0(\exp(\lambda N (R_{1,2}-q)^2)) \le (1 - 2\lambda)^{-1/2} = (1 - 2s - 4\beta^2)^{-1/2}$.
+\leanok
+Apply Corollary~\ref{cor:sg-tal:compensated-mono} with $\lambda=s+2\beta^2<1/2$ and then Proposition~\ref{prop:sg-tal:base-case}:
+$\nu(\exp sN(R_{1,2}-q)^2)\le\nu_{\mathrm{dec}}(\exp\lambda N(R_{1,2}-q)^2)\le(1-2\lambda)^{-1/2}=(1-2s-4\beta^2)^{-1/2}$.
+For the second claim take $\lambda=1/4+\beta^2$ and $t\in[0,\pi/2]$.
+The compensated inequality at time $t$ gives $\nu_t(\exp(aN(R_{1,2}-q)^2))\le(1-2\lambda)^{-1/2}$ with $a=\lambda-2\beta^2\cos^2t\ge 1/4-\beta^2$.
+From $e^x\ge1+x$ we get $1+aN\,\nu_t((R_{1,2}-q)^2)\le(1-2\lambda)^{-1/2}$, hence $\nu_t((R_{1,2}-q)^2)\le K/N$.
+Formalized in \texttt{SpinGlasses/SKOverlapConcentration.lean}.
 \end{proof}
 
 \begin{theorem}[The Aizenman--Lebowitz--Ruelle high-temperature free energy formula]\label{thm:sg-tal:alr}
-For $\beta < 1/2$, the free energy coincides with the replica-symmetric value up to an $O(1/N)$ error (Theorem~1.4.10):
+  \lean{SpinGlasses.ge_endpoint_of_trig_square_deriv,
+        SpinGlasses.exists_sk_smart_path_profile,
+        SpinGlasses.sk_free_energy_sub_rs_le,
+        SpinGlasses.tendsto_sk_free_energy_of_lt}
+  \leanok
+For $\beta^2<1/4$ and $q=\mathbb{E}\tanh^2(\beta\sqrt q\,z+h)$ (Theorem~1.4.10):
 \[
-\left|p_N(\beta, h) - \operatorname{SK}(\beta, h)\right| \le \frac{K}{N}.
+\Big|p_N(\beta, h) - \Big(\log2+\mathbb{E}\log\cosh(\beta z\sqrt q+h)+\tfrac{\beta^2}{4}(1-q)^2\Big)\Big| \le \frac{\beta^2}{4}\cdot\frac{(1/2-2\beta^2)^{-1/2}-1}{(1/4-\beta^2)\,N}.
 \]
-Consequently, the thermodynamic limit of the free energy is exactly $\lim_{N \to \infty} p_N(\beta, h) = \operatorname{SK}(\beta, h)$.
+Consequently $p_N(\beta,h)\to\operatorname{SK}(\beta,h)=\log2+\mathbb{E}\log\cosh(\beta z\sqrt q+h)+\frac{\beta^2}{4}(1-q)^2$.
 \end{theorem}
 \begin{proof}
-Integrating the path derivative $\varphi'(t) = -\frac{\beta^2}{4}\mathbb{E}\langle (R_{1,2}-q)^2\rangle_t + \frac{\beta^2}{4}(1-q)^2$ from $0$ to $1$:
-$\varphi(1) - \varphi(0) - \frac{\beta^2}{4}(1-q)^2 = -\frac{\beta^2}{4}\int_0^1 \nu_t((R_{1,2}-q)^2) dt$.
-Since $|\nu_t((R_{1,2}-q)^2)| \le K/N$ uniformly in $t \in [0, 1]$ by Theorem~\ref{thm:sg-tal:overlap-conc}, the integral is bounded by $K/N$.
+\leanok
+Let $\varphi(s)=N^{-1}\mathbb E\log Z_s$ along the trigonometric smart path.
+By Theorem~\ref{thm:sg-tal:guerra-rs-bound} (profile lemma) $\varphi'(s)=\frac{\beta^2}{2}\sin s\cos s\,(A(s)-(1-q)^2)$ with $A(s)=\nu_s((R_{1,2}-q)^2)\ge0$, $\varphi(0)=p_N$ and $\varphi(\pi/2)=\log 2+\mathbb E\log\cosh(\beta z\sqrt q+h)$.
+Since $0\le A(s)\le K'/N$ on $[0,\pi/2]$ by Theorem~\ref{thm:sg-tal:overlap-conc}, the functions $\varphi(s)+\frac{\beta^2}{4}(1-q)^2\sin^2 s$ (nondecreasing) and $\varphi(s)+\frac{\beta^2}{4}((1-q)^2-K'/N)\sin^2 s$ (nonincreasing) give $\varphi(0)\le\varphi(\pi/2)+\frac{\beta^2}{4}(1-q)^2$ and $\varphi(0)\ge\varphi(\pi/2)+\frac{\beta^2}{4}((1-q)^2-K'/N)$, i.e.\ the claim.
+\emph{Formalization note.} This is done by monotonicity instead of integrating the derivative (same bound, no integrability to check).
+\emph{Not formalized:} the identification of the solution $q$ with the minimizer of Guerra's bound and the uniqueness of the fixed point for $\beta<1$; the thermodynamic limit of the Guerra--Toninelli theorem is stated there for the full-matrix disorder without field, while the limit here is derived directly from the $O(1/N)$ bound for the pair disorder with field.
+Formalized in \texttt{SpinGlasses/SKAizenmanLebowitzRuelle.lean}.
 \end{proof}
 
 \section{Spin Decorrelation, Asymptotic Product Measures & Projections (Talagrand Sections~1.4--1.5)}\label{sec:sg-tal:decorrelation}

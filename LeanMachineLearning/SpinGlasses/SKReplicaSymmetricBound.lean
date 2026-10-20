@@ -330,6 +330,42 @@ theorem le_endpoint_of_trig_square_deriv (φ A : ℝ → ℝ) (β q : ℝ)
   have hle := hmono hzero hpi (by linarith [Real.pi_pos])
   simpa [F, Real.sin_zero, Real.sin_pi_div_two] using hle
 
+/-- **Two-sided endpoint estimate.**  If `φ' = (β² / 2) sin s cos s (A s - (1 - q)²)` on `ℝ` and
+`A ≤ B` on `[0, π/2]`, then `φ (π/2) + (β² / 4) ((1 - q)² - B) ≤ φ 0` (the upper bound
+`φ 0 ≤ φ (π/2) + (β² / 4)(1 - q)²` of `le_endpoint_of_trig_square_deriv` needs `A ≥ 0`). -/
+theorem ge_endpoint_of_trig_square_deriv (φ A : ℝ → ℝ) (β q B : ℝ)
+    (hderiv : ∀ s, HasDerivAt φ
+      (β ^ 2 / 2 * Real.sin s * Real.cos s * (A s - (1 - q) ^ 2)) s)
+    (hB : ∀ s ∈ Set.Icc 0 (Real.pi / 2), A s ≤ B) :
+    φ (Real.pi / 2) + β ^ 2 / 4 * ((1 - q) ^ 2 - B) ≤ φ 0 := by
+  let F : ℝ → ℝ := fun s => φ s + β ^ 2 / 4 * ((1 - q) ^ 2 - B) * Real.sin s ^ 2
+  have hFderiv (s : ℝ) : HasDerivAt F
+      (β ^ 2 / 2 * Real.sin s * Real.cos s * (A s - B)) s := by
+    have hsin_sq : HasDerivAt (fun x : ℝ => Real.sin x ^ 2)
+        (2 * Real.sin s * Real.cos s) s := by
+      convert (Real.hasDerivAt_sin s).pow 2 using 1
+      all_goals ring
+    convert (hderiv s).add (hsin_sq.const_mul (β ^ 2 / 4 * ((1 - q) ^ 2 - B))) using 1
+    all_goals ring
+  have hanti : AntitoneOn F (Set.Icc 0 (Real.pi / 2)) :=
+    antitoneOn_of_deriv_nonpos (convex_Icc 0 (Real.pi / 2))
+      (fun s _ => (hFderiv s).continuousAt.continuousWithinAt)
+      (fun s _ => (hFderiv s).differentiableAt.differentiableWithinAt)
+      (fun s hs => by
+        rw [interior_Icc] at hs
+        rw [(hFderiv s).deriv]
+        have hsin : 0 ≤ Real.sin s := Real.sin_nonneg_of_nonneg_of_le_pi hs.1.le
+          (hs.2.le.trans (by linarith [Real.pi_pos]))
+        have hcos : 0 ≤ Real.cos s := Real.cos_nonneg_of_mem_Icc
+          ⟨by linarith [hs.1, Real.pi_pos], hs.2.le⟩
+        have := hB s ⟨hs.1.le, hs.2.le⟩
+        have h1 : 0 ≤ β ^ 2 / 2 * Real.sin s * Real.cos s := by positivity
+        nlinarith)
+  have hzero : 0 ∈ Set.Icc (0 : ℝ) (Real.pi / 2) := Set.left_mem_Icc.2 (by positivity)
+  have hpi : Real.pi / 2 ∈ Set.Icc (0 : ℝ) (Real.pi / 2) := Set.right_mem_Icc.2 (by positivity)
+  have hle := hanti hzero hpi (by linarith [Real.pi_pos])
+  simpa [F, Real.sin_zero, Real.sin_pi_div_two] using hle
+
 /-- Eq. (1.64) for the SK pair field and the independent Guerra cavity field.  The proof
 reuses their separate Gaussian covariance calculations and leaves only the model-independent
 algebraic assembly to `smart_path_half_covariance_difference_eq`. -/
