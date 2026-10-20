@@ -47,6 +47,16 @@ namespace SpinGlasses
 
 variable {ι : Type*} [Fintype ι]
 
+/-- A linear form `∑ k, g k * a k` is the dot product `a ⬝ᵥ g`. -/
+theorem sum_mul_comm_eq_dotProduct {κ : Type*} [Fintype κ] (a g : κ → ℝ) :
+    ∑ k, g k * a k = a ⬝ᵥ g :=
+  dotProduct_comm g a
+
+/-- `(√n)⁻¹ * (√n)⁻¹ = n⁻¹` for `n ≥ 0`. -/
+theorem inv_sqrt_mul_self (n : ℝ) (hn : 0 ≤ n) :
+    (Real.sqrt n)⁻¹ * (Real.sqrt n)⁻¹ = n⁻¹ := by
+  rw [← mul_inv, Real.mul_self_sqrt hn]
+
 /-- The covariance of two Gaussian linear forms, with the SK normalization made explicit.
 This is stated for arbitrary coefficient vectors on any finite index type so that the same
 calculation can be reused for pair, tensor, or cavity Gaussian fields. -/
@@ -57,32 +67,12 @@ theorem integral_normalized_gaussian_linear_form_mul {κ : Type*} [Fintype κ]
         ((Real.sqrt n)⁻¹ * β * ∑ k, g k * b k)
       ∂(Measure.pi fun _ : κ => gaussianReal 0 1) =
       n⁻¹ * β ^ 2 * (a ⬝ᵥ b) := by
-  have ha (g : κ → ℝ) : ∑ k, g k * a k = a ⬝ᵥ g := by
-    simp only [dotProduct]
-    exact Finset.sum_congr rfl fun k _ => mul_comm _ _
-  have hb (g : κ → ℝ) : ∑ k, g k * b k = b ⬝ᵥ g := by
-    simp only [dotProduct]
-    exact Finset.sum_congr rfl fun k _ => mul_comm _ _
-  simp_rw [ha, hb]
-  calc
-    ∫ g : κ → ℝ, ((Real.sqrt n)⁻¹ * β * (a ⬝ᵥ g)) *
-        ((Real.sqrt n)⁻¹ * β * (b ⬝ᵥ g))
-        ∂(Measure.pi fun _ : κ => gaussianReal 0 1) =
-        ((Real.sqrt n)⁻¹ * β) ^ 2 *
-          ∫ g : κ → ℝ, (a ⬝ᵥ g) * (b ⬝ᵥ g)
-            ∂(Measure.pi fun _ : κ => gaussianReal 0 1) := by
-      have h_integrand :
-          (fun g : κ → ℝ => ((Real.sqrt n)⁻¹ * β * (a ⬝ᵥ g)) *
-            ((Real.sqrt n)⁻¹ * β * (b ⬝ᵥ g))) =
-            fun g => ((Real.sqrt n)⁻¹ * β) ^ 2 * ((a ⬝ᵥ g) * (b ⬝ᵥ g)) := by
-        ext g
-        ring
-      rw [h_integrand, integral_const_mul]
-    _ = n⁻¹ * β ^ 2 * (a ⬝ᵥ b) := by
-      rw [ProbabilityTheory.integral_dotProduct_mul_dotProduct_pi_gaussianReal]
-      have hsquare : (Real.sqrt n)⁻¹ ^ 2 = n⁻¹ := by
-        rw [inv_pow, Real.sq_sqrt hn]
-      rw [mul_pow, hsquare]
+  have hc (u v : ℝ) : ((Real.sqrt n)⁻¹ * β * u) * ((Real.sqrt n)⁻¹ * β * v) =
+      n⁻¹ * β ^ 2 * (u * v) := by
+    rw [← inv_sqrt_mul_self n hn]
+    ring
+  simp_rw [sum_mul_comm_eq_dotProduct, hc]
+  rw [integral_const_mul, ProbabilityTheory.integral_dotProduct_mul_dotProduct_pi_gaussianReal]
 
 /-- The covariance of the pair-indexed SK Gaussian field before the elementary off-diagonal
 sum is rewritten in terms of the overlap. -/
@@ -145,10 +135,7 @@ theorem sum_finPairs_mul_eq_sub_sum_sq_div_two (N : ℕ) (x : Fin N → ℝ) :
         2 * x p.1 * x p.2 =
         2 * ∑ p ∈ (Finset.univ : Finset (Fin N)).offDiag with p.1 < p.2,
           x p.1 * x p.2 := by
-    rw [Finset.mul_sum]
-    apply Finset.sum_congr rfl
-    intro p hp
-    ring
+    simp_rw [mul_assoc, ← Finset.mul_sum]
   rw [hdouble] at hquadratic'
   linarith [hquadratic']
 
@@ -201,29 +188,10 @@ theorem integral_decoupled_gaussian_field_mul (β q : ℝ) (hq : 0 ≤ q)
         (β * Real.sqrt q * ∑ i, z i * τ i)
       ∂(Measure.pi fun _ : ι => gaussianReal 0 1) =
       β ^ 2 * q * (σ ⬝ᵥ τ) := by
-  have hσ (z : ι → ℝ) : ∑ i, z i * σ i = σ ⬝ᵥ z := by
-    simp only [dotProduct]
-    exact Finset.sum_congr rfl fun i _ => mul_comm _ _
-  have hτ (z : ι → ℝ) : ∑ i, z i * τ i = τ ⬝ᵥ z := by
-    simp only [dotProduct]
-    exact Finset.sum_congr rfl fun i _ => mul_comm _ _
-  simp_rw [hσ, hτ]
-  calc
-    ∫ z : ι → ℝ, (β * Real.sqrt q * (σ ⬝ᵥ z)) *
-        (β * Real.sqrt q * (τ ⬝ᵥ z)) ∂(Measure.pi fun _ : ι => gaussianReal 0 1) =
-        (β * Real.sqrt q) ^ 2 *
-          ∫ z : ι → ℝ, (σ ⬝ᵥ z) * (τ ⬝ᵥ z)
-            ∂(Measure.pi fun _ : ι => gaussianReal 0 1) := by
-      have h_integrand :
-          (fun z : ι → ℝ => (β * Real.sqrt q * (σ ⬝ᵥ z)) *
-            (β * Real.sqrt q * (τ ⬝ᵥ z))) =
-            fun z => (β * Real.sqrt q) ^ 2 * ((σ ⬝ᵥ z) * (τ ⬝ᵥ z)) := by
-        ext z
-        ring
-      rw [h_integrand, integral_const_mul]
-    _ = β ^ 2 * q * (σ ⬝ᵥ τ) := by
-      rw [ProbabilityTheory.integral_dotProduct_mul_dotProduct_pi_gaussianReal,
-        mul_pow, Real.sq_sqrt hq]
+  have hc (u v : ℝ) : (β * Real.sqrt q * u) * (β * Real.sqrt q * v) = β ^ 2 * q * (u * v) := by
+    linear_combination (β ^ 2 * (u * v)) * Real.sq_sqrt hq
+  simp_rw [sum_mul_comm_eq_dotProduct, hc]
+  rw [integral_const_mul, ProbabilityTheory.integral_dotProduct_mul_dotProduct_pi_gaussianReal]
 
 /-- The algebraic covariance difference used by Guerra's smart path.  The hypotheses are the
 interacting and decoupled covariance computations; the conclusion is Eq. (1.64), written with
@@ -240,12 +208,7 @@ theorem smart_path_half_covariance_difference_eq [Nonempty ι] (β q : ℝ)
   have hN : (Fintype.card ι : ℝ) ≠ 0 := Nat.cast_ne_zero.2 Fintype.card_ne_zero
   have hdot : (σ ⬝ᵥ τ) = (Fintype.card ι : ℝ) *
       ((Fintype.card ι : ℝ)⁻¹ * (σ ⬝ᵥ τ)) := by
-    calc
-      σ ⬝ᵥ τ = 1 * (σ ⬝ᵥ τ) := by ring
-      _ = ((Fintype.card ι : ℝ) * (Fintype.card ι : ℝ)⁻¹) * (σ ⬝ᵥ τ) := by
-        rw [mul_inv_cancel₀ hN]
-      _ = (Fintype.card ι : ℝ) * ((Fintype.card ι : ℝ)⁻¹ * (σ ⬝ᵥ τ)) := by
-        ring
+    rw [mul_inv_cancel_left₀ hN]
   rw [hC, hD, hdot]
   field_simp
   ring
@@ -360,14 +323,10 @@ theorem le_endpoint_of_trig_square_deriv (φ A : ℝ → ℝ) (β q : ℝ)
           (hs.2.le.trans (by linarith [Real.pi_pos]))
         have hcos : 0 ≤ Real.cos s := Real.cos_nonneg_of_mem_Icc
           ⟨by linarith [hs.1, Real.pi_pos], hs.2.le⟩
-        exact mul_nonneg
-          (mul_nonneg
-            (mul_nonneg (div_nonneg (sq_nonneg β) (by norm_num)) hsin) hcos)
-          (hA s))
-  have hzero : 0 ∈ Set.Icc (0 : ℝ) (Real.pi / 2) :=
-    ⟨le_rfl, div_nonneg (le_of_lt Real.pi_pos) (by norm_num)⟩
-  have hpi : Real.pi / 2 ∈ Set.Icc (0 : ℝ) (Real.pi / 2) :=
-    ⟨div_nonneg (le_of_lt Real.pi_pos) (by norm_num), le_rfl⟩
+        have := hA s
+        positivity)
+  have hzero : 0 ∈ Set.Icc (0 : ℝ) (Real.pi / 2) := Set.left_mem_Icc.2 (by positivity)
+  have hpi : Real.pi / 2 ∈ Set.Icc (0 : ℝ) (Real.pi / 2) := Set.right_mem_Icc.2 (by positivity)
   have hle := hmono hzero hpi (by linarith [Real.pi_pos])
   simpa [F, Real.sin_zero, Real.sin_pi_div_two] using hle
 

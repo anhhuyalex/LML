@@ -22,9 +22,9 @@ The identity holds for an arbitrary finite index type `ι` and an arbitrary comm
 
 ## Main declarations
 
-* `SpinGlasses.sum_units_int`: the sum of any function over `ℤˣ = {1, -1}` is `f 1 + f (-1)`.
-* `SpinGlasses.hypercube_sum_prod_eq_prod_add`: the hypercube sum-product factorization.
-* `SpinGlasses.hypercube_sum_prod_erase_eq_prod_add`: singles out a coordinate `j : ι`.
+* `sum_units_int`: the sum of any function over `ℤˣ = {1, -1}` is `f 1 + f (-1)`.
+* `hypercube_sum_prod_eq_prod_add`: the hypercube sum-product factorization.
+* `hypercube_sum_prod_erase_eq_prod_add`: singles out a coordinate `j : ι`.
 
 ## References
 
@@ -34,8 +34,6 @@ The identity holds for an arbitrary finite index type `ι` and an arbitrary comm
 @[expose] public section
 
 open scoped BigOperators
-
-namespace SpinGlasses
 
 variable {ι : Type*} [Fintype ι] [DecidableEq ι]
 
@@ -66,5 +64,3 @@ theorem hypercube_sum_prod_erase_eq_prod_add {R : Type*} [CommSemiring R]
     ∑ σ : ι → ℤˣ, ∏ i, a i (σ i) =
       (a j 1 + a j (-1)) * ∏ i ∈ Finset.univ.erase j, (a i 1 + a i (-1)) := by
   rw [hypercube_sum_prod_eq_prod_add, ← Finset.mul_prod_erase Finset.univ _ (Finset.mem_univ j)]
-
-end SpinGlasses

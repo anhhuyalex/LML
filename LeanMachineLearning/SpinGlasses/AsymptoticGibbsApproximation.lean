@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianContinuity
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.JensenLog
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianGram
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianExp
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SubGaussian
@@ -534,29 +535,6 @@ section Jensen
 
 variable {ι : Type*} [Fintype ι] {Ω : Type*} {mΩ : MeasurableSpace Ω} {P : Measure Ω}
   {w : ι → ℝ} {g : ι → Ω → ℝ} {v : ℝ≥0}
-
-/-- **Jensen's inequality for the logarithm**, in the elementary form `log x ≤ x / c - 1 + log c`:
-`𝔼 log X ≤ log 𝔼 X` for a positive integrable `X` with integrable logarithm. -/
-theorem integral_log_le_log_integral [IsProbabilityMeasure P] {X : Ω → ℝ} (hpos : ∀ ω, 0 < X ω)
-    (hX : Integrable X P) (hlog : Integrable (fun ω => Real.log (X ω)) P) :
-    ∫ ω, Real.log (X ω) ∂P ≤ Real.log (∫ ω, X ω ∂P) := by
-  have hc : 0 < ∫ ω, X ω ∂P := by
-    refine (integral_pos_iff_support_of_nonneg (fun ω => (hpos ω).le) hX).2 ?_
-    rw [Set.eq_univ_of_forall (s := Function.support X) fun ω => (hpos ω).ne']
-    simp
-  set c := ∫ ω, X ω ∂P with hcdef
-  have hpt : ∀ ω, Real.log (X ω) ≤ X ω / c - 1 + Real.log c := fun ω => by
-    have := Real.log_le_sub_one_of_pos (div_pos (hpos ω) hc)
-    rw [Real.log_div (hpos ω).ne' hc.ne'] at this
-    linarith
-  have h1 : Integrable (fun ω => X ω / c - 1) P := (hX.div_const c).sub (integrable_const _)
-  have hi : Integrable (fun ω => X ω / c - 1 + Real.log c) P := h1.add (integrable_const _)
-  calc ∫ ω, Real.log (X ω) ∂P ≤ ∫ ω, (X ω / c - 1 + Real.log c) ∂P := integral_mono hlog hi hpt
-    _ = Real.log c := by
-      rw [integral_add h1 (integrable_const _), integral_sub (hX.div_const c) (integrable_const _),
-        integral_div]
-      have : (∫ ω, X ω ∂P) / c = 1 := by rw [← hcdef]; exact div_self hc.ne'
-      simp [this]
 
 theorem exp_le_exp_abs_mul (x : ℝ) : Real.exp x ≤ 1 * Real.exp |x| := by
   rw [one_mul]; exact Real.exp_le_exp.2 (le_abs_self x)

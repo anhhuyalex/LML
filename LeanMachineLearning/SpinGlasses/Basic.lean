@@ -81,6 +81,10 @@ theorem abs_card_inv_mul_dotProduct_le_one [Nonempty ι] (σ τ : ι → ℝ) (h
 theorem abs_units_cast_le_one (u : ℤˣ) : |((u : ℤ) : ℝ)| ≤ 1 := by
   rcases Int.units_eq_one_or u with h | h <;> simp [h]
 
+/-- The coordinates of a hypercube configuration have absolute value exactly `1`. -/
+theorem abs_units_cast_eq_one (u : ℤˣ) : |((u : ℤ) : ℝ)| = 1 := by
+  rcases Int.units_eq_one_or u with h | h <;> simp [h]
+
 /-- The coordinates of a hypercube configuration square to `1`. -/
 theorem units_cast_sq (u : ℤˣ) : ((u : ℤ) : ℝ) ^ 2 = 1 := by
   rcases Int.units_eq_one_or u with h | h <;> simp [h]

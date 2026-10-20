@@ -445,24 +445,26 @@ theorem HasGaussianLaw.sumElim_prod {Ω' κ' : Type*} {m : MeasurableSpace Ω'} 
   ext z (a | a) <;> simp [L]
 
 /-- **Independent Gaussian vectors from different source spaces are jointly Gaussian.**  This is
-the two-measure version of `HasGaussianLaw.sumElim_prod`; it is useful when Gaussian fields have
-different index types, such as pair disorder and a site cavity field. -/
-theorem HasGaussianLaw.sumElim_prod_of_independent {Ω₁ Ω₂ κ : Type*}
+the two-measure version of `HasGaussianLaw.sumElim_prod`, with two different (finite) index types
+`κ₁`, `κ₂`; it is useful when Gaussian fields have different index types, such as pair disorder
+and a site cavity field. -/
+theorem HasGaussianLaw.sumElim_prod_of_independent {Ω₁ Ω₂ κ₁ κ₂ : Type*}
     {m₁ : MeasurableSpace Ω₁} {m₂ : MeasurableSpace Ω₂} {μ : Measure Ω₁} {ν : Measure Ω₂}
-    [SFinite μ] [SFinite ν] [Finite κ] {f : Ω₁ → κ → ℝ} {g : Ω₂ → κ → ℝ}
+    [SFinite μ] [SFinite ν] [Finite κ₁] [Finite κ₂] {f : Ω₁ → κ₁ → ℝ} {g : Ω₂ → κ₂ → ℝ}
     (hf : HasGaussianLaw f μ) (hg : HasGaussianLaw g ν) (hfm : Measurable f)
     (hgm : Measurable g) :
-    HasGaussianLaw (fun z : Ω₁ × Ω₂ => fun s : κ ⊕ κ =>
-      Sum.elim (fun a => f z.1 a) (fun a => g z.2 a) s) (μ.prod ν) := by
-  let _ := Fintype.ofFinite κ
+    HasGaussianLaw (fun z : Ω₁ × Ω₂ => fun s : κ₁ ⊕ κ₂ =>
+      Sum.elim (fun a => f z.1 a) (fun b => g z.2 b) s) (μ.prod ν) := by
+  let _ := Fintype.ofFinite κ₁
+  let _ := Fintype.ofFinite κ₂
   have hpair := HasGaussianLaw.prodMk_prod hf hg hfm hgm
-  let L : ((κ → ℝ) × (κ → ℝ)) →L[ℝ] (κ ⊕ κ → ℝ) := ContinuousLinearMap.pi
+  let L : ((κ₁ → ℝ) × (κ₂ → ℝ)) →L[ℝ] (κ₁ ⊕ κ₂ → ℝ) := ContinuousLinearMap.pi
     (Sum.elim
-      (fun a => (ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : κ => ℝ) a).comp
-        (ContinuousLinearMap.fst ℝ (κ → ℝ) (κ → ℝ)))
-      (fun a => (ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : κ => ℝ) a).comp
-        (ContinuousLinearMap.snd ℝ (κ → ℝ) (κ → ℝ))))
+      (fun a => (ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : κ₁ => ℝ) a).comp
+        (ContinuousLinearMap.fst ℝ (κ₁ → ℝ) (κ₂ → ℝ)))
+      (fun b => (ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : κ₂ => ℝ) b).comp
+        (ContinuousLinearMap.snd ℝ (κ₁ → ℝ) (κ₂ → ℝ))))
   convert hpair.map_fun L using 1
-  ext z (a | a) <;> simp [L]
+  ext z (a | b) <;> simp [L]
 
 end ProbabilityTheory

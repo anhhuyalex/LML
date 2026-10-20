@@ -7,6 +7,7 @@ module
 
 public import Mathlib.Analysis.SpecialFunctions.Log.Basic
 public import Mathlib.Analysis.SpecialFunctions.Sigmoid
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Tanh
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein
@@ -195,11 +196,7 @@ theorem tendsto_standardNormalCDF_atTop : Tendsto standardNormalCDF atTop (nhds 
 theorem tendsto_standardNormalCDF_atBot : Tendsto standardNormalCDF atBot (nhds 0) :=
   ProbabilityTheory.tendsto_cdf_atBot _
 
-lemma continuous_tanhActivation : Continuous Real.tanh := by
-  rw [show Real.tanh = fun x => Real.sinh x / Real.cosh x by
-    funext x
-    exact Real.tanh_eq_sinh_div_cosh x]
-  exact Real.continuous_sinh.div Real.continuous_cosh fun x => (Real.cosh_pos x).ne'
+lemma continuous_tanhActivation : Continuous Real.tanh := Real.continuous_tanh
 
 lemma measurable_tanhActivation : Measurable Real.tanh := continuous_tanhActivation.measurable
 

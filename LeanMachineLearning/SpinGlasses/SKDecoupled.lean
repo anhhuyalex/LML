@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.HypercubeProduct
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Tanh
 public import LeanMachineLearning.SpinGlasses.Basic
 public import LeanMachineLearning.SpinGlasses.GibbsMeasure
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
@@ -27,7 +28,6 @@ in closed form to hyperbolic functions.
 
 ## Main declarations
 
-* `SpinGlasses.continuous_tanh`: continuity of `Real.tanh`.
 * `SpinGlasses.integrable_tanh_sq`: integrability of `tanh²(Y)` under any probability measure.
 * `SpinGlasses.decoupled_partition_function_eq`:
   $Z_0 = 2^N \prod_{i \in \iota} \cosh(Y_i)$ (Eq. 1.32).
@@ -57,21 +57,13 @@ open scoped BigOperators Topology Real Matrix
 
 namespace SpinGlasses
 
-/-- Continuity of `Real.tanh`. -/
-lemma continuous_tanh : Continuous Real.tanh := by
-  have h : Real.tanh = fun x => Real.sinh x / Real.cosh x := by
-    ext x
-    exact Real.tanh_eq_sinh_div_cosh x
-  rw [h]
-  exact Real.continuous_sinh.div Real.continuous_cosh (fun x => ne_of_gt (Real.cosh_pos x))
-
 /-- Integrability of `tanh²(Y)` under any probability measure for an almost-everywhere
 measurable random variable `Y`. -/
 lemma integrable_tanh_sq {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω}
     [IsProbabilityMeasure P] (Y : Ω → ℝ) (hY : AEMeasurable Y P) :
     Integrable (fun ω => Real.tanh (Y ω) ^ 2) P := by
   refine Integrable.of_bound ?_ 1 ?_
-  · exact ((continuous_pow 2).comp continuous_tanh).aestronglyMeasurable.comp_aemeasurable hY
+  · exact ((continuous_pow 2).comp Real.continuous_tanh).aestronglyMeasurable.comp_aemeasurable hY
   · refine ae_of_all _ fun ω => ?_
     rw [Real.norm_eq_abs, abs_sq]
     have h0 : 0 ≤ |Real.tanh (Y ω)| := abs_nonneg _
@@ -105,27 +97,11 @@ theorem decoupled_partition_function_eq [DecidableEq ι] (Y : ι → ℝ) :
 theorem decoupled_partition_function_eq_mul_erase [DecidableEq ι] (Y : ι → ℝ) (j : ι) :
     ∑ σ : ι → ℤˣ, Real.exp (∑ i, ((σ i : ℤ) : ℝ) * Y i) =
       (2 * Real.cosh (Y j)) * ∏ i ∈ Finset.univ.erase j, (2 * Real.cosh (Y i)) := by
-  have h_exp (σ : ι → ℤˣ) : Real.exp (∑ i, ((σ i : ℤ) : ℝ) * Y i) =
-      ∏ i, Real.exp (((σ i : ℤ) : ℝ) * Y i) := by
-    rw [Real.exp_sum]
-  simp_rw [h_exp]
-  rw [hypercube_sum_prod_eq_prod_add (fun i s => Real.exp (((s : ℤ) : ℝ) * Y i))]
-  rw [← Finset.mul_prod_erase Finset.univ _ (Finset.mem_univ j)]
-  have haj : Real.exp ((((1 : ℤˣ) : ℤ) : ℝ) * Y j) +
-      Real.exp ((((-1 : ℤˣ) : ℤ) : ℝ) * Y j) = 2 * Real.cosh (Y j) := by
-    rw [Real.cosh_eq]
-    simp
-    ring
-  have ha_other : ∀ i ∈ Finset.univ.erase j,
-      Real.exp ((((1 : ℤˣ) : ℤ) : ℝ) * Y i) +
-      Real.exp ((((-1 : ℤˣ) : ℤ) : ℝ) * Y i) = 2 * Real.cosh (Y i) := by
-    intro i _hi
-    rw [Real.cosh_eq]
-    simp
-    ring
-  rw [haj]
-  congr 1
-  exact Finset.prod_congr rfl ha_other
+  simp_rw [Real.exp_sum]
+  rw [hypercube_sum_prod_erase_eq_prod_add (fun i s => Real.exp (((s : ℤ) : ℝ) * Y i)) j]
+  simp only [Units.val_one, Units.val_neg, Int.cast_one, Int.cast_neg, one_mul, neg_mul,
+    Real.cosh_eq]
+  congr 1 <;> [ring; exact Finset.prod_congr rfl fun i _ => by ring]
 
 /-- **Decoupled Single-Spin Weighted Sum:**
 `∑ σ, σ j * exp(∑ i, σ i * Y i) = 2 sinh(Y j) * ∏_{i ≠ j} (2 cosh(Y i))`. -/
@@ -137,40 +113,20 @@ theorem decoupled_sum_spin_mul_exp_eq [DecidableEq ι] (Y : ι → ℝ) (j : ι)
     else Real.exp (((s : ℤ) : ℝ) * Y i)
   have h_prod (σ : ι → ℤˣ) : ((σ j : ℤ) : ℝ) * Real.exp (∑ i, ((σ i : ℤ) : ℝ) * Y i) =
       ∏ i, a i (σ i) := by
-    rw [Real.exp_sum]
-    have h_prod_exp : ∏ i, Real.exp (((σ i : ℤ) : ℝ) * Y i) =
-        Real.exp (((σ j : ℤ) : ℝ) * Y j) * ∏ i ∈ Finset.univ.erase j,
-          Real.exp (((σ i : ℤ) : ℝ) * Y i) := by
-      exact (Finset.mul_prod_erase Finset.univ _ (Finset.mem_univ j)).symm
-    have h_prod_a : ∏ i, a i (σ i) =
-        a j (σ j) * ∏ i ∈ Finset.univ.erase j, a i (σ i) := by
-      exact (Finset.mul_prod_erase Finset.univ _ (Finset.mem_univ j)).symm
-    rw [h_prod_a, h_prod_exp]
-    have ha_j : a j (σ j) = ((σ j : ℤ) : ℝ) * Real.exp (((σ j : ℤ) : ℝ) * Y j) := by
-      simp [a]
-    have ha_other : ∀ i ∈ Finset.univ.erase j, a i (σ i) = Real.exp (((σ i : ℤ) : ℝ) * Y i) := by
-      intro i hi
-      have hne : i ≠ j := Finset.ne_of_mem_erase hi
-      simp [a, hne]
-    have h_congr : ∏ i ∈ Finset.univ.erase j, a i (σ i) =
-        ∏ i ∈ Finset.univ.erase j, Real.exp (((σ i : ℤ) : ℝ) * Y i) := by
-      apply Finset.prod_congr rfl ha_other
-    rw [ha_j, h_congr]
-    ring
+    rw [Real.exp_sum, ← Finset.mul_prod_erase Finset.univ _ (Finset.mem_univ j),
+      ← Finset.mul_prod_erase Finset.univ (fun i => a i (σ i)) (Finset.mem_univ j)]
+    rw [← mul_assoc]
+    congr 1
+    · simp [a]
+    · exact Finset.prod_congr rfl fun i hi => by simp [a, Finset.ne_of_mem_erase hi]
   simp_rw [h_prod]
-  rw [hypercube_sum_prod_eq_prod_add a]
-  rw [← Finset.mul_prod_erase Finset.univ _ (Finset.mem_univ j)]
-  have haj : a j 1 + a j (-1) = 2 * Real.sinh (Y j) := by
-    simp [a, Real.sinh_eq]
-    ring
-  have ha_other : ∀ i ∈ Finset.univ.erase j, a i 1 + a i (-1) = 2 * Real.cosh (Y i) := by
-    intro i hi
-    have hne : i ≠ j := Finset.ne_of_mem_erase hi
-    simp [a, hne, Real.cosh_eq]
-    ring
-  rw [haj]
+  rw [hypercube_sum_prod_erase_eq_prod_add a j]
   congr 1
-  exact Finset.prod_congr rfl ha_other
+  · simp [a, Real.sinh_eq]
+    ring
+  · refine Finset.prod_congr rfl fun i hi => ?_
+    simp [a, Finset.ne_of_mem_erase hi, Real.cosh_eq]
+    ring
 
 /-- **Decoupled Local Marginal Magnetization (Eq. 1.36):**
 The Gibbs average of spin `σ j` in the decoupled model is `tanh(Y j)`. -/
@@ -190,13 +146,9 @@ theorem decoupled_gibbs_spin_eq (Y : ι → ℝ) (j : ι) :
   have h_pos : 0 < ∏ i ∈ Finset.univ.erase j, (2 * Real.cosh (Y i)) := by
     apply Finset.prod_pos
     intro i _hi
-    have h2 : (0 : ℝ) < 2 := by linarith
-    exact mul_pos h2 (Real.cosh_pos (Y i))
+    positivity
   have h_prod_ne : (∏ i ∈ Finset.univ.erase j, (2 * Real.cosh (Y i))) ≠ 0 :=
     ne_of_gt h_pos
-  have h_cosh_ne : (2 * Real.cosh (Y j)) ≠ 0 := by
-    have : (0 : ℝ) < 2 * Real.cosh (Y j) := mul_pos (by linarith) (Real.cosh_pos (Y j))
-    exact ne_of_gt this
   have h_sum_div : (∑ a : ι → ℤˣ, Real.exp (∑ i, ((a i : ℤ) : ℝ) * Y i) /
       (∑ b : ι → ℤˣ, Real.exp (∑ i, ((b i : ℤ) : ℝ) * Y i)) * ((a j : ℤ) : ℝ)) =
       (∑ a : ι → ℤˣ, Real.exp (∑ i, ((a i : ℤ) : ℝ) * Y i) * ((a j : ℤ) : ℝ)) /
@@ -258,7 +210,7 @@ theorem decoupled_replica_overlap_eq [Nonempty ι]
       intro j
       have hid : IdentDistrib (fun ω => Real.tanh (Y j ω) ^ 2)
           (fun ω => Real.tanh (Y j₀ ω) ^ 2) P P := by
-        exact (h_law j).comp ((continuous_pow 2).comp continuous_tanh).measurable
+        exact (h_law j).comp ((continuous_pow 2).comp Real.continuous_tanh).measurable
       exact hid.integral_eq
     simp_rw [h_each, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
     rw [← mul_assoc, inv_mul_cancel₀ hN, one_mul]
@@ -279,12 +231,11 @@ theorem decoupled_free_energy_eq [DecidableEq ι] [Nonempty ι]
   have h_part (ω : Ω) : Real.log (∑ σ : ι → ℤˣ, Real.exp (∑ i, ((σ i : ℤ) : ℝ) * Y i ω)) =
       (Fintype.card ι : ℝ) * Real.log 2 + ∑ i, Real.log (Real.cosh (Y i ω)) := by
     rw [decoupled_partition_function_eq (fun i => Y i ω)]
-    have h_two_pow_pos : (0 : ℝ) < (2 : ℝ) ^ Fintype.card ι := by positivity
     have h_prod_pos : 0 < ∏ i, Real.cosh (Y i ω) := by
       apply Finset.prod_pos
       intro i _hi
       exact Real.cosh_pos (Y i ω)
-    rw [Real.log_mul (ne_of_gt h_two_pow_pos) (ne_of_gt h_prod_pos)]
+    rw [Real.log_mul (by positivity) (ne_of_gt h_prod_pos)]
     rw [Real.log_pow]
     congr 1
     exact Real.log_prod (fun i _hi => ne_of_gt (Real.cosh_pos _))

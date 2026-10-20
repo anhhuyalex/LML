@@ -95,9 +95,9 @@ Formalized in \texttt{SpinGlasses/GuerraToninelli.lean}.
 Section~1.2 of Talagrand establishes the non-interacting baseline: product factorization over the hypercube, local magnetizations under decoupled fields, exact calculation of $\mathbb{E} Z_N$, the Jensen upper bound, and the temperature derivative of the free energy.
 
 \begin{lemma}[Hypercube product factorization]\label{lem:sg-tal:hypercube-prod}
-  \lean{SpinGlasses.sum_units_int,
-        SpinGlasses.hypercube_sum_prod_eq_prod_add,
-        SpinGlasses.hypercube_sum_prod_erase_eq_prod_add}
+  \lean{sum_units_int,
+        hypercube_sum_prod_eq_prod_add,
+        hypercube_sum_prod_erase_eq_prod_add}
   \leanok
 For any finite index set $\iota$ and family of functions $a : \iota \to \mathbb{Z}^\times \to \mathbb{R}$,
 \[
@@ -115,7 +115,7 @@ Formalized in \texttt{ForMathlib/Algebra/BigOperators/HypercubeProduct.lean}.
 \end{proof}
 
 \begin{theorem}[Decoupled partition function and local observables]\label{thm:sg-tal:decoupled-partition}
-  \lean{SpinGlasses.continuous_tanh,
+  \lean{Real.continuous_tanh,
         SpinGlasses.decoupled_partition_function_eq,
         SpinGlasses.decoupled_gibbs_spin_eq,
         SpinGlasses.decoupled_gibbs_replica_two_eq,
@@ -166,7 +166,7 @@ Formalized in \texttt{SpinGlasses/SKFirstMoment.lean}.
 \end{proof}
 
 \begin{theorem}[First-moment Jensen upper bound on the free energy]\label{thm:sg-tal:first-moment-bound}
-  \lean{SpinGlasses.integral_log_le_log_integral,
+  \lean{MeasureTheory.integral_log_le_log_integral,
         SpinGlasses.sk_free_energy_le_first_moment}
   \leanok
 By Jensen's inequality for the concave logarithm under the disorder probability measure, the expected free energy satisfies (Eqs.~(1.24) and (1.26)):
@@ -361,19 +361,36 @@ Substituting the expressions from Lemma~\ref{lem:sg-tal:path-covariance}, the $-
 \end{proof}
 
 \begin{theorem}[Guerra's replica-symmetric upper bound]\label{thm:sg-tal:guerra-rs-bound}
-For all $\beta > 0$, $h \in \mathbb{R}$, and any parameter $q \in [0, 1]$ (Theorem~1.3.7):
+  \lean{ProbabilityTheory.HasGaussianLaw.sumElim_prod_of_independent,
+        ProbabilityTheory.hasGaussianLaw_dotProduct_family,
+        SpinGlasses.hasGaussianLaw_const_mul_sum_family,
+        SpinGlasses.sk_pair_sum_eq_dotProduct,
+        SpinGlasses.integrable_log_cosh_affine_gaussianReal,
+        SpinGlasses.sk_replica_symmetric_upper_bound}
+  \leanok
+For all $N\ge1$, $\beta, h \in \mathbb{R}$, and any parameter $q \ge 0$ (Theorem~1.3.7):
 \[
 p_N(\beta, h) \le \log 2 + \mathbb{E} \log\cosh(\beta z \sqrt{q} + h) + \frac{\beta^2}{4}(1 - q)^2,
 \]
 where $z \sim \mathcal{N}(0, 1)$.
 \end{theorem}
 \begin{proof}
-Integrate $\varphi'(t) \le \frac{\beta^2}{4}(1 - q)^2$ from $t = 0$ to $t = 1$:
-$p_N(\beta, h) = \varphi(1) \le \varphi(0) + \frac{\beta^2}{4}(1 - q)^2$.
-At $t = 0$, the system is decoupled with field $Y_i = \beta z_i \sqrt{q} + h$, so $\varphi(0) = \log 2 + \mathbb{E}\log\cosh(\beta z \sqrt{q} + h)$ by Theorem~\ref{thm:sg-tal:decoupled-partition}.
+\leanok
+In Lean the interpolation runs along the trigonometric path $s\mapsto\cos s\,X+\sin s\,Y+h$, $s\in[0,\pi/2]$, with $X$ the SK field and $Y$ the cavity field on the product space of the two independent disorders (jointly Gaussian by
+\texttt{HasGaussianLaw.sumElim\_prod\_of\_independent}, which allows different index types for the two fields). By Lemma~\ref{lem:sg-tal:trig-smart-path-derivative} the derivative of
+$\varphi(s)=N^{-1}\mathbb E\log Z_s$ is $\frac{\beta^2}{2}\sin s\cos s\,(A(s)-(1-q)^2)$ with $A(s)=\mathbb E\langle (R_{1,2}-q)^2\rangle_s\ge0$ (the expectation of a square under a product of two probability measures), so Lemma~\ref{lem:sg-tal:trig-rs-endpoint} gives
+$\varphi(0)\le\varphi(\pi/2)+\frac{\beta^2}{4}(1-q)^2$. At $s=0$ one has the SK free energy $p_N(\beta,h)$; at $s=\pi/2$ the system is decoupled with field $Y_i=\beta z_i\sqrt q+h$, so $\varphi(\pi/2)=\log 2+\mathbb E\log\cosh(\beta z\sqrt q+h)$ by Theorem~\ref{thm:sg-tal:decoupled-partition}.
+Formalized in \texttt{SpinGlasses/SKGuerraBound.lean}.
 \end{proof}
 
 \begin{theorem}[The self-consistency equation and contractivity]\label{thm:sg-tal:fixed-point}
+  \lean{SpinGlasses.tanh_sq_le_one,
+        SpinGlasses.continuous_fixedPointMap,
+        SpinGlasses.fixedPointMap_mem_Icc,
+        SpinGlasses.exists_fixedPoint}
+  \leanok
+\emph{Formalized:} for all $\beta,h\in\mathbb R$ the map $\psi(x)=\mathbb E\tanh^2(\beta z\sqrt x+h)$ is continuous with values in $[0,1]$, hence (intermediate value theorem) the self-consistency equation has a solution $q\in[0,1]$.
+\emph{Not formalized:} the minimization property, the bound $\psi'\le\beta^2$ and the uniqueness of the fixed point for $\beta<1$ (they need differentiation of $x\mapsto\mathbb E f(\beta z\sqrt x+h)$ at $x=0$); the later theorems take the fixed-point equation as a hypothesis.
 The right-hand side of Guerra's bound is minimized at the fixed point of the self-consistency equation (Eq.~(1.74)):
 \[
 q = \mathbb{E}\tanh^2(\beta z \sqrt{q} + h).
