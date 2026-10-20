@@ -46,8 +46,9 @@ variable {κ Ω : Type*} [Fintype κ] [DecidableEq κ] {mΩ : MeasurableSpace Ω
 derivatives weighted by the coordinates of `w`. -/
 theorem fderiv_apply_eq_sum_mul {F : (κ → ℝ) → ℝ} (y w : κ → ℝ) :
     fderiv ℝ F y w = ∑ l, w l * fderiv ℝ F y (Pi.single l 1) := by
-  conv_lhs => rw [pi_eq_sum_univ w]
-  simp only [map_sum, map_smul, smul_eq_mul]
+  have h := ((fderiv ℝ F y : (κ → ℝ) →L[ℝ] ℝ) : (κ → ℝ) →ₗ[ℝ] ℝ).pi_apply_eq_sum_univ w
+  simp only [ContinuousLinearMap.coe_coe, smul_eq_mul] at h
+  rw [h]
   refine Finset.sum_congr rfl fun l _ => ?_
   congr 2
   ext m

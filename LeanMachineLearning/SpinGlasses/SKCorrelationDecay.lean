@@ -36,17 +36,6 @@ open scoped Matrix
 
 namespace SpinGlasses
 
-/-- **Two replicas of a Gibbs measure as a double sum.**  A function of two independent replicas
-integrates against the product of two Gibbs measures to the double sum with the Gibbs weights
-`exp (f a) / ∑_b exp (f b)`. -/
-theorem integral_pi_fin_two_count_tilted {α : Type*} [Fintype α] [MeasurableSpace α]
-    [MeasurableSingletonClass α] (f : α → ℝ) (Θ : α → α → ℝ) :
-    ∫ σ : Fin 2 → α, Θ (σ 0) (σ 1) ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted f) =
-      ∑ x, ∑ y, Real.exp (f x) / (∑ b, Real.exp (f b)) *
-        (Real.exp (f y) / ∑ b, Real.exp (f b)) * Θ x y := by
-  rw [integral_pi_fin_two]
-  simp_rw [integral_count_tilted, Finset.mul_sum, mul_assoc]
-
 /-- **The SK Gibbs weights as a site-symmetric random state.**  For an energy `E g a` of the SK
 form, the Gibbs weights `exp (E g σ) / ∑_b exp (E g b)` are nonnegative, sum to one, depend
 measurably on the couplings `g`, and their law is invariant under every relabelling of the sites:

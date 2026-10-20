@@ -8,6 +8,7 @@ module
 public import LeanMachineLearning.SpinGlasses.GaussianCovarianceInterpolation
 public import LeanMachineLearning.SpinGlasses.SKCorrelationDecay
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ParametrizedL2
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SqSub
 
 /-!
 # A kind of central limit theorem (Talagrand, Section 1.5)
@@ -32,7 +33,7 @@ three terms with the same reference Gaussian integral through the covariance com
 
 @[expose] public section
 
-open MeasureTheory ProbabilityTheory Finset
+open MeasureTheory ProbabilityTheory Finset Weights
 open scoped Matrix
 
 namespace SpinGlasses
@@ -213,11 +214,7 @@ theorem integral_sq_sub_le (hN : 0 < N) (x : α → Fin N → ℝ) {w : α → �
     have hi3 : Integrable (fun g => V g ^ 2) (Measure.pi fun _ : Fin N => gaussianReal 0 1) :=
       hint _ (hVc.pow 2) (M0 * M0) fun g => by
         rw [abs_pow, sq]; exact mul_le_mul (hVb g) (hVb g) (abs_nonneg _) hM0
-    have hi12 : Integrable (fun g => U g ^ 2 - 2 * (U g * V g))
-        (Measure.pi fun _ : Fin N => gaussianReal 0 1) := hi1.sub (hi2.const_mul 2)
-    rw [show (fun g => (U g - V g) ^ 2) = fun g => (U g ^ 2 - 2 * (U g * V g)) + V g ^ 2 from
-      funext fun g => by ring, integral_add hi12 hi3, integral_sub hi1 (hi2.const_mul 2),
-      integral_const_mul]
+    exact integral_sq_sub hi1 hi3 hi2
   rw [hexp]
   have hdot0 : ∀ ξ : Fin 2 → ℝ, ![s, 0] ⬝ᵥ ξ = s * ξ 0 := fun ξ => by
     simp [dotProduct, Fin.sum_univ_two]

@@ -718,12 +718,12 @@ The book gives no formal statement in Section~1.5 (``we shall never need a forma
 \end{remark}
 
 \begin{lemma}[Replica computation for centered correlations]\label{lem:sg-tal:decorr-det}
-  \lean{SpinGlasses.sum_mul_const_of_sum_eq_one,
-        SpinGlasses.sq_sum_mul_eq,
-        SpinGlasses.sq_sum_mul_le_sum_mul_sq,
-        SpinGlasses.sum_mul_sub_avg,
-        SpinGlasses.sum_sum_mul_centered,
-        SpinGlasses.abs_sum_mul_le,
+  \lean{Weights.sum_mul_const_of_sum_eq_one,
+        Weights.sq_sum_mul_eq,
+        Weights.sq_sum_mul_le_sum_mul_sq,
+        Weights.sum_mul_sub_avg,
+        Weights.sum_sum_mul_centered,
+        Weights.abs_sum_mul_le,
         SpinGlasses.sum_tuple_cons_mul,
         SpinGlasses.sum_sq_avg_tuple,
         SpinGlasses.sum_mul_inv_mul_sum,
@@ -757,8 +757,8 @@ Formalized in \texttt{SpinGlasses/SKSpinDecorrelation.lean}.
         SpinGlasses.integral_comp_weights_equiv,
         SpinGlasses.sq_sum_comp_equiv,
         SpinGlasses.integral_sq_centered_perm,
-        SpinGlasses.pow_le_pow_mul_descFactorial,
-        SpinGlasses.descFactorial_mul_le_sum,
+        Nat.pow_le_pow_mul_descFactorial,
+        Fin.descFactorial_mul_le_sum,
         SpinGlasses.integral_sq_centered_le,
         SpinGlasses.spinDecorrConst,
         SpinGlasses.spinDecorrConst_nonneg,
@@ -818,9 +818,9 @@ Formalized in \texttt{SpinGlasses/SKOverlapConcentration.lean} and \texttt{SpinG
 \end{proof}
 
 \begin{lemma}[Walsh expansion of cylinders]\label{lem:sg-tal:walsh}
-  \lean{SpinGlasses.abs_sum_mul_le_sum_mul_abs,
-        SpinGlasses.abs_sum_sum_mul_le,
-        SpinGlasses.prod_one_add_mul_eq,
+  \lean{Weights.abs_sum_mul_le_sum_mul_abs,
+        Weights.abs_sum_sum_mul_le,
+        prod_one_add_mul_eq,
         SpinGlasses.sum_mul_indicator_sub_prod_eq,
         SpinGlasses.sq_sum_abs_le_sum_sq}
   \leanok
@@ -891,6 +891,7 @@ Formalized in \texttt{SpinGlasses/GaussianCovarianceInterpolation.lean} and \tex
         SpinGlasses.integral_pi_fin_two_fst,
         SpinGlasses.integral_pi_fin_two_mul,
         SpinGlasses.continuous_integral_comp_add_mul,
+        MeasureTheory.integral_sq_sub,
         SpinGlasses.integral_sq_sub_le,
         SpinGlasses.sk_random_projection_le}
   \leanok

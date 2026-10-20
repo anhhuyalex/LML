@@ -6,6 +6,8 @@ Authors: LML Contributors
 module
 
 public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Tactic.NormNum
 public import Mathlib.Data.Fintype.Pi
 public import Mathlib.Algebra.GroupWithZero.Units.Fintype
 
@@ -25,6 +27,8 @@ The identity holds for an arbitrary finite index type `ι` and an arbitrary comm
 * `sum_units_int`: the sum of any function over `ℤˣ = {1, -1}` is `f 1 + f (-1)`.
 * `hypercube_sum_prod_eq_prod_add`: the hypercube sum-product factorization.
 * `hypercube_sum_prod_erase_eq_prod_add`: singles out a coordinate `j : ι`.
+* `prod_one_add_mul_eq`: `∏ᵢ (1 + xᵢ eᵢ) = 2^|ι|` if all signs agree and `0` otherwise, the
+  Walsh expansion of the indicator of a point of the hypercube.
 
 ## References
 
@@ -64,3 +68,15 @@ theorem hypercube_sum_prod_erase_eq_prod_add {R : Type*} [CommSemiring R]
     ∑ σ : ι → ℤˣ, ∏ i, a i (σ i) =
       (a j 1 + a j (-1)) * ∏ i ∈ Finset.univ.erase j, (a i 1 + a i (-1)) := by
   rw [hypercube_sum_prod_eq_prod_add, ← Finset.mul_prod_erase Finset.univ _ (Finset.mem_univ j)]
+
+omit [DecidableEq ι] in
+/-- **Walsh expansion of a point of the hypercube.**  For signs `x, e : ι → ℝ` (each `±1`) the
+product `∏ᵢ (1 + xᵢ eᵢ)` is `2 ^ |ι|` times the indicator that all signs agree. -/
+theorem prod_one_add_mul_eq {x e : ι → ℝ} (hx : ∀ i, x i = 1 ∨ x i = -1)
+    (he : ∀ i, e i = 1 ∨ e i = -1) [Decidable (∀ i, x i = e i)] :
+    ∏ i, (1 + x i * e i) = 2 ^ Fintype.card ι * (if ∀ i, x i = e i then 1 else 0) := by
+  have key : ∀ a b : ℝ, (a = 1 ∨ a = -1) → (b = 1 ∨ b = -1) →
+      1 + a * b = if a = b then 2 else 0 := by
+    rintro a b (rfl | rfl) (rfl | rfl) <;> norm_num
+  rw [Finset.prod_congr rfl fun i _ => key _ _ (hx i) (he i), Finset.prod_ite_zero]
+  by_cases hall : ∀ i, x i = e i <;> simp [hall]

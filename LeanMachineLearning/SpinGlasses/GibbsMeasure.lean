@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.Pi
 public import LeanMachineLearning.ForMathlib.MeasureTheory.MeasurableSpace.Units
 public import LeanMachineLearning.SpinGlasses.FreeEnergy
 public import Mathlib.Analysis.Calculus.ParametricIntegral
@@ -73,6 +74,16 @@ theorem integral_count_tilted (f g : α → ℝ) :
       ∑ a, Real.exp (f a) / (∑ b, Real.exp (f b)) * g a := by
   rw [integral_tilted, integral_count_eq_sum, integral_count_eq_sum]
   simp only [smul_eq_mul]
+
+/-- **Two replicas of a Gibbs measure as a double sum.**  A function of two independent replicas
+integrates against the product of two Gibbs measures to the double sum with the Gibbs weights
+`exp (f a) / ∑_b exp (f b)`. -/
+theorem integral_pi_fin_two_count_tilted (f : α → ℝ) (Θ : α → α → ℝ) :
+    ∫ σ : Fin 2 → α, Θ (σ 0) (σ 1) ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted f) =
+      ∑ x, ∑ y, Real.exp (f x) / (∑ b, Real.exp (f b)) *
+        (Real.exp (f y) / ∑ b, Real.exp (f b)) * Θ x y := by
+  rw [integral_pi_fin_two]
+  simp_rw [integral_count_tilted, Finset.mul_sum, mul_assoc]
 
 /-- **The Gibbs weight:** the tilt of the counting measure by `f` gives mass
 `exp (f a) / ∑ᵦ exp (f b)` to `a`. -/

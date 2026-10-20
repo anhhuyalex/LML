@@ -5,6 +5,8 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.Weights
+public import LeanMachineLearning.ForMathlib.Combinatorics.DescFactorial
 public import Mathlib.Basic.Real.Basic
 public import Mathlib.Analysis.Convex.Mul
 public import Mathlib.Analysis.Convex.Jensen
@@ -43,66 +45,9 @@ is Jensen's inequality for the two averaged replicas.
 
 @[expose] public section
 
-open Finset MeasureTheory
+open Finset MeasureTheory Weights
 
 namespace SpinGlasses
-
-section Weights
-
-variable {α : Type*} [Fintype α]
-
-/-- **Jensen for a probability vector:** `(∑ₐ wₐ fₐ)² ≤ ∑ₐ wₐ fₐ²` when `w ≥ 0` and `∑ w = 1`. -/
-theorem sq_sum_mul_le_sum_mul_sq {w f : α → ℝ} (hw : ∀ a, 0 ≤ w a) (hw1 : ∑ a, w a = 1) :
-    (∑ a, w a * f a) ^ 2 ≤ ∑ a, w a * f a ^ 2 := by
-  have := (Even.convexOn_pow (𝕜 := ℝ) even_two).map_sum_le (t := Finset.univ) (w := w)
-    (p := f) (fun i _ => hw i) hw1 (fun _ _ => Set.mem_univ _)
-  simpa [smul_eq_mul] using this
-
-/-- A probability vector averages a constant to the constant. -/
-theorem sum_mul_const_of_sum_eq_one {w : α → ℝ} (hw1 : ∑ a, w a = 1) (c : ℝ) :
-    ∑ a, w a * c = c := by
-  rw [← Finset.sum_mul, hw1, one_mul]
-
-/-- The square of a weighted sum is the double weighted sum of the product. -/
-theorem sq_sum_mul_eq (w f : α → ℝ) :
-    (∑ a, w a * f a) ^ 2 = ∑ a, ∑ b, w a * w b * (f a * f b) := by
-  rw [sq, Finset.sum_mul_sum]
-  refine Finset.sum_congr rfl fun a _ => Finset.sum_congr rfl fun b _ => ?_
-  ring
-
-/-- A centred function has zero Gibbs average. -/
-theorem sum_mul_sub_avg {w : α → ℝ} (hw1 : ∑ a, w a = 1) (f : α → ℝ) :
-    ∑ a, w a * (f a - ∑ b, w b * f b) = 0 := by
-  simp only [mul_sub, Finset.sum_sub_distrib, ← Finset.sum_mul, hw1, one_mul, sub_self]
-
-/-- Two independent replicas of a centred function average to zero. -/
-theorem sum_sum_mul_centered {w : α → ℝ} (hw1 : ∑ a, w a = 1) (f : α → ℝ) :
-    ∑ a, ∑ b, w a * w b * ((f a - ∑ c, w c * f c) * (f b - ∑ c, w c * f c)) = 0 := by
-  rw [← sq_sum_mul_eq, sum_mul_sub_avg hw1, zero_pow two_ne_zero]
-
-/-- A probability vector averages a function bounded by `M` to a number bounded by `M`. -/
-theorem abs_sum_mul_le {w f : α → ℝ} (hw : ∀ a, 0 ≤ w a) (hw1 : ∑ a, w a = 1) {M : ℝ}
-    (hf : ∀ a, |f a| ≤ M) : |∑ a, w a * f a| ≤ M := by
-  refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
-  calc ∑ a, |w a * f a| ≤ ∑ a, w a * M := Finset.sum_le_sum fun a _ => by
-        rw [abs_mul, abs_of_nonneg (hw a)]
-        exact mul_le_mul_of_nonneg_left (hf a) (hw a)
-    _ = M := sum_mul_const_of_sum_eq_one hw1 M
-
-/-- A weighted average of `c` is at most the weighted average of `|c|` in absolute value. -/
-theorem abs_sum_mul_le_sum_mul_abs {w c : α → ℝ} (hw : ∀ a, 0 ≤ w a) :
-    |∑ a, w a * c a| ≤ ∑ a, w a * |c a| :=
-  (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun a _ => by
-    rw [abs_mul, abs_of_nonneg (hw a)])
-
-/-- The same for a weighted average over two independent replicas. -/
-theorem abs_sum_sum_mul_le {w : α → ℝ} (hw : ∀ a, 0 ≤ w a) (c : α → α → ℝ) :
-    |∑ a, ∑ a', w a * w a' * c a a'| ≤ ∑ a, ∑ a', w a * w a' * |c a a'| :=
-  (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun a _ =>
-    (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun a' _ => by
-      rw [abs_mul, abs_of_nonneg (mul_nonneg (hw a) (hw a'))]))
-
-end Weights
 
 section Tuples
 
@@ -417,48 +362,6 @@ theorem integral_comp_weights_equiv [Finite α] {w : Ω → α → ℝ}
 
 end Disorder
 
-section Counting
-
-/-- `n^p ≤ p^p · n^{\underline p}` for `p ≤ n`: each factor `n - i` of the falling factorial is at
-least `n / p`. -/
-theorem pow_le_pow_mul_descFactorial {n p : ℕ} (h : p ≤ n) :
-    n ^ p ≤ p ^ p * n.descFactorial p := by
-  rw [Nat.descFactorial_eq_prod_range]
-  calc n ^ p = ∏ _i ∈ range p, n := by simp
-    _ ≤ ∏ i ∈ range p, (p * (n - i)) := Finset.prod_le_prod fun i hi => by
-        have hi' := Finset.mem_range.1 hi
-        zify [(hi'.le.trans h)]
-        have hp : (1 : ℤ) ≤ p := by exact_mod_cast (Nat.one_le_iff_ne_zero.2 (by omega))
-        have hpn : (p : ℤ) ≤ n := by exact_mod_cast h
-        nlinarith [mul_nonneg (sub_nonneg.2 hp) (sub_nonneg.2 hpn),
-          mul_nonneg (Nat.cast_nonneg p : (0 : ℤ) ≤ p)
-            (sub_nonneg.2 (show (i : ℤ) ≤ p - 1 by omega))]
-    _ = p ^ p * ∏ i ∈ range p, (n - i) := by
-        rw [Finset.prod_mul_distrib]; simp
-
-/-- A nonnegative function of `p`-tuples of sites that is invariant under relabelling the sites
-satisfies `n^{\underline p} T(u) ≤ ∑ T` for an injective tuple `u`: the falling factorial counts the
-injective tuples, and all of them carry the same value. -/
-theorem descFactorial_mul_le_sum {N p : ℕ} {T : (Fin p → Fin N) → ℝ} (hT0 : ∀ u, 0 ≤ T u)
-    (hT : ∀ (π : Equiv.Perm (Fin N)) u, T (π ∘ u) = T u) {u : Fin p → Fin N}
-    (hu : Function.Injective u) : (N.descFactorial p : ℝ) * T u ≤ ∑ u', T u' := by
-  have hconst : ∀ e : Fin p ↪ Fin N, T e = T u := fun e => by
-    obtain ⟨π, hπ⟩ := Equiv.Perm.exists_extending_pair u e hu e.injective
-    rw [← hT π u]
-    exact congrArg T (funext fun a => (hπ a).symm)
-  have h1 : ∑ e : Fin p ↪ Fin N, T e = (N.descFactorial p : ℝ) * T u := by
-    rw [Finset.sum_congr rfl fun e _ => hconst e, Finset.sum_const, Finset.card_univ,
-      Fintype.card_embedding_eq]
-    simp
-  rw [← h1]
-  calc ∑ e : Fin p ↪ Fin N, T e
-      = ∑ u' ∈ Finset.univ.image (fun e : Fin p ↪ Fin N => (e : Fin p → Fin N)), T u' :=
-        (Finset.sum_image fun a _ b _ h => DFunLike.coe_injective h).symm
-    _ ≤ ∑ u', T u' :=
-        Finset.sum_le_sum_of_subset_of_nonneg (Finset.subset_univ _) fun u _ _ => hT0 u
-
-end Counting
-
 section Symmetry
 
 variable {N : ℕ} {Ω α : Type*} [MeasurableSpace Ω] [Fintype α] {P : Measure Ω}
@@ -546,7 +449,7 @@ theorem integral_sq_centered_le (hN : 0 < N) (hξ : ∀ i a, |ξ i a| ≤ 1)
     fun π u => by
       simp only [hΦ]
       exact integral_sq_centered_perm hwm act hact hsym π u
-  have hdesc := descFactorial_mul_le_sum hT0 hTperm hu
+  have hdesc := Fin.descFactorial_mul_le_sum hT0 hTperm hu
   have hdet : ∀ ω, ∑ u', Φ u' ω ≤ 4 * k * (N : ℝ) ^ (k + 1) * Aw ω := fun ω => by
     simp only [hΦ, hAw]
     exact sum_sq_avg_centered_monomial_le hN ξ hξ (hw0 ω) (hw1 ω) hq k
@@ -559,7 +462,7 @@ theorem integral_sq_centered_le (hN : 0 < N) (hξ : ∀ i a, |ξ i a| ≤ 1)
       mul_nonneg (mul_nonneg (hw0 ω x) (hw0 ω y)) (sq_nonneg _)
   have hkN : k + 1 ≤ N := by simpa using Fintype.card_le_of_injective u hu
   have hpow : (N : ℝ) ^ (k + 1) ≤ ((k + 1 : ℕ) : ℝ) ^ (k + 1) * (N.descFactorial (k + 1) : ℝ) := by
-    exact_mod_cast pow_le_pow_mul_descFactorial hkN
+    exact_mod_cast Nat.pow_le_pow_mul_descFactorial hkN
   have hdpos : (0 : ℝ) < N.descFactorial (k + 1) := by exact_mod_cast Nat.descFactorial_pos.2 hkN
   have e1 : ∫ ω, (∑ a, w ω a * ((ξ (u 0) a - ∑ b, w ω b * ξ (u 0) b) *
       ∏ l : Fin k, ξ (u l.succ) a)) ^ 2 ∂P = ∫ ω, Φ u ω ∂P :=

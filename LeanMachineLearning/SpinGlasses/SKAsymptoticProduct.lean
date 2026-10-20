@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.SpinGlasses.SKCorrelationDecay
+public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.HypercubeProduct
 public import Mathlib.Algebra.Order.Chebyshev
 
 /-!
@@ -40,17 +41,6 @@ section Walsh
 
 variable {N n : ℕ} {α : Type*} [Fintype α]
 
-/-- The product of `1 + x e` over `n` sites, for signs `x` and `e`, is `2^n` times the indicator
-that all signs agree. -/
-theorem prod_one_add_mul_eq {x e : Fin n → ℝ} (hx : ∀ i, x i = 1 ∨ x i = -1)
-    (he : ∀ i, e i = 1 ∨ e i = -1) [Decidable (∀ i, x i = e i)] :
-    ∏ i, (1 + x i * e i) = 2 ^ n * (if ∀ i, x i = e i then 1 else 0) := by
-  have key : ∀ a b : ℝ, (a = 1 ∨ a = -1) → (b = 1 ∨ b = -1) →
-      1 + a * b = if a = b then 2 else 0 := by
-    rintro a b (rfl | rfl) (rfl | rfl) <;> norm_num
-  rw [Finset.prod_congr rfl fun i _ => key _ _ (hx i) (he i), Finset.prod_ite_zero]
-  by_cases hall : ∀ i, x i = e i <;> simp [hall]
-
 open scoped Classical in
 /-- **Walsh expansion of the cylinder indicator (Eq. (1.134)).**  For `±1`-valued observables, the
 Gibbs weight of the cylinder `{ξ_{ι i} = ηᵢ}` minus the product density `∏ᵢ (1 + ηᵢ ⟨ξ_{ι i}⟩) / 2`
@@ -70,7 +60,7 @@ theorem sum_mul_indicator_sub_prod_eq {ξ : Fin N → α → ℝ} (hξ : ∀ j a
         (∏ i ∈ I, ((η i : ℤ) : ℝ)) * ∏ i ∈ I, ξ (ι i) a := fun a => by
     have h := prod_one_add_mul_eq (x := fun i => ξ (ι i) a) (e := fun i => ((η i : ℤ) : ℝ))
       (fun i => hξ _ _) he
-    rw [Finset.prod_one_add] at h
+    rw [Finset.prod_one_add, Fintype.card_fin] at h
     have h' : ∑ I ∈ (Finset.univ : Finset (Fin n)).powerset,
         (∏ i ∈ I, ((η i : ℤ) : ℝ)) * ∏ i ∈ I, ξ (ι i) a =
         2 ^ n * (if ∀ i, ξ (ι i) a = ((η i : ℤ) : ℝ) then (1 : ℝ) else 0) := by

@@ -183,23 +183,22 @@ theorem integral_decoupled_pair_exp (Y : ι → ℝ) (u q : ℝ) :
             Measure.count.tilted fun a => ∑ i, ((a i : ℤ) : ℝ) * Y i) =
       ∏ i, (Real.exp (-(u * q)) * (Real.cosh u + Real.tanh (Y i) ^ 2 * Real.sinh u)) := by
   classical
-  rw [integral_pi_fin_two _ (fun a b : ι → ℤˣ =>
+  rw [integral_pi_fin_two_count_tilted _ (fun a b : ι → ℤˣ =>
     Real.exp (u * ∑ i, (((a i : ℤ) : ℝ) * ((b i : ℤ) : ℝ) - q)))]
-  simp_rw [integral_count_tilted]
   have hZ := decoupled_partition_function_eq Y
   have hZ0 : 0 < ∑ b : ι → ℤˣ, Real.exp (∑ i, ((b i : ℤ) : ℝ) * Y i) := by
     rw [hZ]; positivity
   have key : ∀ G : (ι → ℤˣ) → (ι → ℤˣ) → ℝ,
-      ∑ a : ι → ℤˣ, Real.exp (∑ i, ((a i : ℤ) : ℝ) * Y i) /
+      ∑ a : ι → ℤˣ, ∑ b : ι → ℤˣ, Real.exp (∑ i, ((a i : ℤ) : ℝ) * Y i) /
           (∑ b : ι → ℤˣ, Real.exp (∑ i, ((b i : ℤ) : ℝ) * Y i)) *
-        ∑ b : ι → ℤˣ, Real.exp (∑ i, ((b i : ℤ) : ℝ) * Y i) /
-          (∑ b : ι → ℤˣ, Real.exp (∑ i, ((b i : ℤ) : ℝ) * Y i)) * G a b =
+        (Real.exp (∑ i, ((b i : ℤ) : ℝ) * Y i) /
+          ∑ b : ι → ℤˣ, Real.exp (∑ i, ((b i : ℤ) : ℝ) * Y i)) * G a b =
       ((∑ b : ι → ℤˣ, Real.exp (∑ i, ((b i : ℤ) : ℝ) * Y i))⁻¹) ^ 2 *
         ∑ a : ι → ℤˣ, ∑ b : ι → ℤˣ, Real.exp (∑ i, ((a i : ℤ) : ℝ) * Y i) *
           (Real.exp (∑ i, ((b i : ℤ) : ℝ) * Y i) * G a b) := fun G => by
     rw [Finset.mul_sum]
     refine Finset.sum_congr rfl fun a _ => ?_
-    rw [Finset.mul_sum, Finset.mul_sum]
+    rw [Finset.mul_sum]
     refine Finset.sum_congr rfl fun b _ => ?_
     ring
   rw [key (fun a b => Real.exp (u * ∑ i, (((a i : ℤ) : ℝ) * ((b i : ℤ) : ℝ) - q))),
