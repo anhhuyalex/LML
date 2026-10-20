@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.SpinGlasses.GibbsMeasure
 public import LeanMachineLearning.SpinGlasses.SKReplicaSymmetricBound
+public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.HypercubeProduct
 
 /-!
 # The finite Gibbs cavity identity
@@ -35,11 +36,6 @@ namespace SpinGlasses
 variable {α : Type*} [Finite α] [Nonempty α] [MeasurableSpace α]
   [MeasurableSingletonClass α]
 
-/-- Summing a real-valued observable over the two Ising spins. -/
-private theorem sum_int_units (F : ℤˣ → ℝ) : ∑ ε, F ε = F 1 + F (-1) := by
-  change ∑ ε ∈ ({1, -1} : Finset ℤˣ), F ε = _
-  simp
-
 /-- **Finite Gibbs cavity identity.**  For any finite base configuration space `α`, an Ising
 last-spin energy `ε ↦ ε L(a)` can be summed out exactly.  The numerator is the cavity average of
 the observable weighted by the two possible last spins, and the denominator is the cavity average
@@ -52,7 +48,7 @@ theorem integral_count_tilted_cavity_units (A L : α → ℝ) (f : α → ℤˣ 
       (∫ a, Real.cosh (L a) ∂(Measure.count.tilted A)) := by
   let _ := Fintype.ofFinite α
   rw [integral_count_tilted_fiber A (fun a (ε : ℤˣ) => (ε : ℝ) * L a) f]
-  simp_rw [sum_int_units]
+  simp_rw [sum_units_int]
   norm_num
   rw [integral_count_tilted, integral_count_tilted]
   simp_rw [Real.cosh_eq]

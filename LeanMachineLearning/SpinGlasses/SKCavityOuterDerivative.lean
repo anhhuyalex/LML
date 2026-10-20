@@ -157,4 +157,69 @@ theorem hasDerivAt_integral_cavity_outer
   simpa only [F, D, E, U, P] using
     hasDerivAt_integral_conditional_of_deriv_bound P₀ F D t hFm hDm hFi hderiv (M * C) hbound
 
+/-- The old-pair-disorder specialization of the averaged cavity derivative.
+It is the angle form of the analytic part of Talagrand's Lemma 1.6.3; the
+next algebraic step cancels its constant diagonal and rewrites the ordered
+off-diagonal sum. -/
+theorem hasDerivAt_integral_sk_cavity_path_angle (N n : ℕ) (β q h : ℝ)
+    (hq : q ∈ Set.Icc (0 : ℝ) 1)
+    (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) (t : ℝ) :
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
+      (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs N,
+            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    HasDerivAt (fun s =>
+      ∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
+        ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ
+          ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
+            (fun a : Fin (N + 1) → ℤˣ =>
+              Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
+                (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
+              Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a))
+        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1))
+      (∫ g', Real.sin t * Real.cos t *
+        ∫ ω : (Fin N → ℝ) × ℝ,
+          ∫ τ : Option (Option (Fin n)) → Fin (N + 1) → ℤˣ,
+            f (fun r => τ (some (some r))) *
+              ((∑ r : Fin n, ∑ r' : Fin n,
+                  β ^ 2 * (τ (some (some r)) (Fin.last N) : ℝ) *
+                    (τ (some (some r')) (Fin.last N) : ℝ) *
+                    (q - (N + 1 : ℝ)⁻¹ *
+                      ((fun i : Fin N => (τ (some (some r)) i.castSucc : ℝ)) ⬝ᵥ
+                        fun i : Fin N => (τ (some (some r')) i.castSucc : ℝ)))) -
+                2 * (n : ℝ) * ∑ r : Fin n,
+                  β ^ 2 * (τ (some (some r)) (Fin.last N) : ℝ) *
+                    (τ (some none) (Fin.last N) : ℝ) *
+                    (q - (N + 1 : ℝ)⁻¹ *
+                      ((fun i : Fin N => (τ (some (some r)) i.castSucc : ℝ)) ⬝ᵥ
+                        fun i : Fin N => (τ (some none) i.castSucc : ℝ))) -
+                (n : ℝ) * (β ^ 2 * (τ (some none) (Fin.last N) : ℝ) *
+                  (τ (some none) (Fin.last N) : ℝ) *
+                  (q - (N + 1 : ℝ)⁻¹ *
+                    ((fun i : Fin N => (τ (some none) i.castSucc : ℝ)) ⬝ᵥ
+                      fun i : Fin N => (τ (some none) i.castSucc : ℝ)))) +
+                (n : ℝ) * ((n : ℝ) + 1) *
+                  (β ^ 2 * (τ (some none) (Fin.last N) : ℝ) *
+                    (τ none (Fin.last N) : ℝ) *
+                    (q - (N + 1 : ℝ)⁻¹ *
+                      ((fun i : Fin N => (τ (some none) i.castSucc : ℝ)) ⬝ᵥ
+                        fun i : Fin N => (τ none i.castSucc : ℝ)))))
+          ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted
+            (fun a : Fin (N + 1) → ℤˣ =>
+              Real.cos t * ((Real.sqrt (N + 1))⁻¹ * β *
+                (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
+              Real.sin t * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a))
+        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) t := by
+  dsimp
+  obtain ⟨M, hM⟩ : ∃ M, ∀ σ, |f σ| ≤ M :=
+    (Set.finite_range fun σ => |f σ|).bddAbove.imp fun M hM σ => hM ⟨σ, rfl⟩
+  apply hasDerivAt_integral_cavity_outer
+  · exact hq
+  · intro a
+    fun_prop
+  · exact hM
+
 end SpinGlasses
