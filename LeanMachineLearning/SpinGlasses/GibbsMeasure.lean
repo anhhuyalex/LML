@@ -75,6 +75,41 @@ theorem integral_count_tilted (f g : α → ℝ) :
   rw [integral_tilted, integral_count_eq_sum, integral_count_eq_sum]
   simp only [smul_eq_mul]
 
+/-- **Disintegrating a finite Gibbs average over a finite fibre.**  If the energy on
+`α × ε` is `A a + B a e`, its Gibbs average is the quotient of the corresponding fibrewise
+weighted sums.  This is deliberately stated for arbitrary finite types: a last Ising spin is
+the specialization `ε = ℤˣ`, while the same identity also applies to Potts spins and finite
+latent variables. -/
+theorem integral_count_tilted_fiber (A : α → ℝ) {ε : Type*} [Fintype ε]
+    [MeasurableSpace ε] [MeasurableSingletonClass ε] (B : α → ε → ℝ)
+    (g : α → ε → ℝ) :
+    ∫ x : α × ε, g x.1 x.2 ∂(Measure.count.tilted fun x => A x.1 + B x.1 x.2) =
+      (∑ a, Real.exp (A a) * ∑ e, Real.exp (B a e) * g a e) /
+        (∑ a, Real.exp (A a) * ∑ e, Real.exp (B a e)) := by
+  rw [integral_count_tilted]
+  simp only [Fintype.sum_prod_type, Real.exp_add]
+  have hden :
+      (∑ a, ∑ e, Real.exp (A a) * Real.exp (B a e)) =
+        ∑ a, Real.exp (A a) * ∑ e, Real.exp (B a e) := by
+    apply Finset.sum_congr rfl
+    intro a ha
+    rw [Finset.mul_sum]
+  rw [hden]
+  simp only [div_eq_mul_inv]
+  rw [Finset.sum_mul]
+  apply Finset.sum_congr rfl
+  intro a ha
+  calc
+    _ = ∑ e, (Real.exp (A a) * (Real.exp (B a e) * g a e)) *
+        (∑ a, Real.exp (A a) * ∑ e, Real.exp (B a e))⁻¹ := by
+      apply Finset.sum_congr rfl
+      intro e he
+      ring
+    _ = (∑ e, Real.exp (A a) * (Real.exp (B a e) * g a e)) *
+        (∑ a, Real.exp (A a) * ∑ e, Real.exp (B a e))⁻¹ := by
+      rw [Finset.sum_mul]
+    _ = _ := by rw [Finset.mul_sum]
+
 /-- **Two replicas of a Gibbs measure as a double sum.**  A function of two independent replicas
 integrates against the product of two Gibbs measures to the double sum with the Gibbs weights
 `exp (f a) / ∑_b exp (f b)`. -/
