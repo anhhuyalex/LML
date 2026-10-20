@@ -205,6 +205,14 @@ Formalized in \texttt{SpinGlasses/SKFirstMoment.lean}.
 
 Section~1.3 introduces Guerra's smart path interpolation between the fully interacting SK model and decoupled Gaussian spins, leading to the replica-symmetric upper bound.
 
+\begin{remark}[Deviations from the book in Section~1.3]\label{rem:sg-tal:dev-13}
+\begin{itemize}
+\item \emph{Parametrization of the path.} The book interpolates with $\sqrt t\,X+\sqrt{1-t}\,Y$, which is not differentiable at the endpoints. The Lean development uses the trigonometric path $s\mapsto\cos s\,X+\sin s\,Y+h$, $s\in[0,\pi/2]$, with $s=0$ the SK model and $s=\pi/2$ the decoupled model (so $t=\cos^2 s$). All derivative formulas below carry the factor $\sin s\cos s$ instead of the book's $dt$.
+\item \emph{Joint Gaussian space.} The pair disorder $g$ and the site disorder $z$ are realized on the product space $(\mathrm{FinPairs}\,N\to\mathbb R)\times(\mathrm{Fin}\,N\to\mathbb R)$ with the product measure; joint Gaussianity of $(X_\sigma,Y_\sigma)_\sigma$ is proved from independence (\texttt{HasGaussianLaw.sumElim\_prod\_of\_independent}).
+\item \emph{Scope of the fixed-point statement.} Only the existence of a solution $q\in[0,1]$ of $q=\mathbb{E}\tanh^2(\beta z\sqrt q+h)$ is formalized (intermediate value theorem). The minimization property of Guerra's bound at $q$, the bound $\psi'\le\beta^2$ and uniqueness for $\beta<1$ (Proposition~1.3.8) are not. Every later theorem takes the fixed-point equation as a hypothesis. Guerra's bound itself holds for every $q\ge0$.
+\end{itemize}
+\end{remark}
+
 \begin{definition}[Guerra's smart path Hamiltonian]\label{def:sg-tal:smart-path}
 For $t \in [0, 1]$, independent standard Gaussians $(g_{ij})_{i<j}$ and $(z_i)_{i \le N}$, parameter $q \in [0, 1]$, and bias $h$, the smart path Hamiltonian is
 \[
@@ -413,6 +421,20 @@ For contractivity, Gaussian integration by parts shows $\psi'(q) = \beta^2 \math
 
 Section~1.4 proves R.~Lata\l{}a's exponential overlap concentration theorem and establishes the Aizenman--Lebowitz--Ruelle (ALR) high-temperature free energy formula.
 
+\begin{remark}[Deviations from the book in Section~1.4]\label{rem:sg-tal:dev-14}
+Every statement below is proved in Lean, but several proofs differ from Talagrand's, and a few statements are weaker or reorganized.
+\begin{itemize}
+\item \emph{Lemma~1.4.2: trigonometric form, no $\tfrac12$.} The derivative is taken in the trigonometric parameter $s$, with $U(\sigma,\tau)=\mathbb{E}Y_\sigma Y_\tau-\mathbb{E}X_\sigma X_\tau$ (no factor $1/2$) and prefactor $\sin s\cos s$. Via $t=\cos^2 s$ this is the book's Eq.~(1.90), with the opposite sign because $s=0$ is the SK end. Differentiation under $\mathbb{E}$ is justified explicitly by domination. The lemma is also proved for an observable that depends differentiably on $s$, which is what the compensated functional requires.
+\item \emph{Eq.~(1.97) and Corollary~1.4.6 are not separate statements.} The case $n=2$ is expanded inside the proof of Lemma~\ref{lem:sg-tal:replica-decoupling}.
+\item \emph{Lemma~1.4.5 by Chebyshev's inequality.} The book expands the exponential in a series, applies H\"older's inequality and uses replica symmetry. Lean applies Chebyshev's association inequality $\int a\int b\le\int ab$ for similarly ordered functions to $a=A$, $b=e^{uA}$, separately for each realization of the disorder. Lemma~1.4.5 is not stated on its own as an inequality between $\nu_t$-averages.
+\item \emph{Corollary~1.4.7: direction and generality.} The compensated functional is nondecreasing in the trigonometric parameter $s$, equivalently non-increasing in the book's $t=\cos^2 s$. It is proved abstractly for any nonnegative symmetric overlap function $A$ with constant diagonal and $U=-\kappa(A-c)$, and then specialized to $A=(R_{1,2}-q)^2$.
+\item \emph{Proposition~1.4.8.} The one-dimensional inequality $(\cosh u+q\sinh u)e^{-qu}\le e^{u^2/2}$ is obtained from Hoeffding's lemma (Mathlib) applied to an explicit two-point law, not from a direct calculus argument. The randomization $u\sim\mathcal N(0,2\lambda/N)$ is carried out as a Fubini exchange with a standard Gaussian, valid because the overlap is bounded.
+\item \emph{Theorem~1.4.1 and the moment bounds.} The exponential bound is proved for the SK endpoint. The uniform bound $\nu_t((R_{1,2}-q)^2)\le K/N$ (Eqs.~(1.89), (1.103)) is derived from the compensated inequality and $e^x\ge1+x$ with an explicit constant; Eq.~(1.88) for all even moments is not formalized.
+\item \emph{Theorem~1.4.10 by monotonicity.} Instead of integrating $\varphi'$ over $[0,\pi/2]$, Lean shows that $\varphi+c\sin^2$ is monotone for two choices of $c$ (using $0\le A\le K/N$), which gives the same two-sided $O(1/N)$ bound without any integrability check. The convergence $p_N\to\operatorname{SK}(\beta,h)$ is derived from this bound directly for the pair disorder with field, not from the thermodynamic limit of Theorem~1.3.9.
+\item \emph{Hypotheses.} $q$ is a hypothesis (fixed-point equation), and the book's $\beta<1/2$ is stated as $\beta^2<1/4$.
+\end{itemize}
+\end{remark}
+
 \begin{lemma}[General replica derivative under Gaussian interpolation]\label{lem:sg-tal:replica-deriv}
   \lean{SpinGlasses.hasDerivAt_integral_pi_count_tilted_path,
         SpinGlasses.hasDerivAt_integral_pi_count_tilted_path_moving,
@@ -467,6 +489,7 @@ For $\Phi(\sigma^1,\sigma^2) = \exp(u A(\sigma^1,\sigma^2))$ the combination of 
 The Lean proof is shorter and works pointwise in the disorder: since $U$ is $-\kappa(A-c)$ with $A$ symmetric and of constant diagonal, the four-replica combination collapses to $-\kappa(2A_{12}-4A_{13}-4A_{23}+6A_{34})$ (the constants $c$ and the diagonal values cancel because the coefficients sum to zero).
 The terms with $A_{13}, A_{23}$ are integrals of nonnegative functions; the term with $A_{34}$ factors by independence of the replicas $3,4$ from $1,2$ into $\langle\Phi\rangle\langle A\rangle$, and Chebyshev's association inequality (for two similarly ordered functions, $\int a\int b\le\int ab$; here $a=A$ and $b=e^{uA}$ with $u\ge0$) gives $\langle A\rangle\langle e^{uA}\rangle\le\langle A e^{uA}\rangle$.
 Hence the combination is at least $\kappa(6\langle\Phi A\rangle - 6\langle\Phi\rangle\langle A\rangle)\ge0$.
+\emph{Formalization note.} Lemma~1.4.5 is not stated on its own as an inequality between $\nu_t$-averages; only the combination above (Lemma~1.4.2 for $n=2$ plus the moving-observable term), which is what Corollary~\ref{cor:sg-tal:compensated-mono} uses, is a Lean statement.
 Formalized in \texttt{SpinGlasses/SKLatalaCompensated.lean} (Chebyshev's inequality in \texttt{ForMathlib/MeasureTheory/Integral/ChebyshevAssociation.lean}).
 \end{proof}
 
@@ -543,6 +566,9 @@ $\nu(\exp sN(R_{1,2}-q)^2)\le\nu_{\mathrm{dec}}(\exp\lambda N(R_{1,2}-q)^2)\le(1
 For the second claim take $\lambda=1/4+\beta^2$ and $t\in[0,\pi/2]$.
 The compensated inequality at time $t$ gives $\nu_t(\exp(aN(R_{1,2}-q)^2))\le(1-2\lambda)^{-1/2}$ with $a=\lambda-2\beta^2\cos^2t\ge 1/4-\beta^2$.
 From $e^x\ge1+x$ we get $1+aN\,\nu_t((R_{1,2}-q)^2)\le(1-2\lambda)^{-1/2}$, hence $\nu_t((R_{1,2}-q)^2)\le K/N$.
+\emph{Formalization notes.} (i) The fixed-point equation $q=\mathbb{E}\tanh^2(\beta\sqrt q\,z+h)$ is a hypothesis of both statements; only the existence of a solution is proved (Theorem~\ref{thm:sg-tal:fixed-point}).
+(ii) The book's assumption $\beta<1/2$ is stated as $\beta^2<1/4$ (in the first claim it is implied by $2s+4\beta^2<1$ with $s\ge0$).
+(iii) Eq.~(1.88), the bound $(Kk/N)^k$ on all even moments, is not formalized; only the exponential bound and the second moment are.
 Formalized in \texttt{SpinGlasses/SKOverlapConcentration.lean}.
 \end{proof}
 
@@ -564,6 +590,7 @@ Let $\varphi(s)=N^{-1}\mathbb E\log Z_s$ along the trigonometric smart path.
 By Theorem~\ref{thm:sg-tal:guerra-rs-bound} (profile lemma) $\varphi'(s)=\frac{\beta^2}{2}\sin s\cos s\,(A(s)-(1-q)^2)$ with $A(s)=\nu_s((R_{1,2}-q)^2)\ge0$, $\varphi(0)=p_N$ and $\varphi(\pi/2)=\log 2+\mathbb E\log\cosh(\beta z\sqrt q+h)$.
 Since $0\le A(s)\le K'/N$ on $[0,\pi/2]$ by Theorem~\ref{thm:sg-tal:overlap-conc}, the functions $\varphi(s)+\frac{\beta^2}{4}(1-q)^2\sin^2 s$ (nondecreasing) and $\varphi(s)+\frac{\beta^2}{4}((1-q)^2-K'/N)\sin^2 s$ (nonincreasing) give $\varphi(0)\le\varphi(\pi/2)+\frac{\beta^2}{4}(1-q)^2$ and $\varphi(0)\ge\varphi(\pi/2)+\frac{\beta^2}{4}((1-q)^2-K'/N)$, i.e.\ the claim.
 \emph{Formalization note.} This is done by monotonicity instead of integrating the derivative (same bound, no integrability to check).
+As in Theorem~\ref{thm:sg-tal:overlap-conc}, $q$ is a hypothesis (fixed-point equation) and $\beta<1/2$ is stated as $\beta^2<1/4$.
 \emph{Not formalized:} the identification of the solution $q$ with the minimizer of Guerra's bound and the uniqueness of the fixed point for $\beta<1$; the thermodynamic limit of the Guerra--Toninelli theorem is stated there for the full-matrix disorder without field, while the limit here is derived directly from the $O(1/N)$ bound for the pair disorder with field.
 Formalized in \texttt{SpinGlasses/SKAizenmanLebowitzRuelle.lean}.
 \end{proof}
