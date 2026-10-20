@@ -75,6 +75,23 @@ theorem integral_count_tilted (f g : α → ℝ) :
   rw [integral_tilted, integral_count_eq_sum, integral_count_eq_sum]
   simp only [smul_eq_mul]
 
+omit [Fintype α] in
+/-- **Equivariance of finite Gibbs averages.**  Reindexing a finite configuration space along an
+equivalence transports both the energy and the observable.  This packages the algebra needed to
+move a distinguished coordinate to or from a product type, without introducing a model-specific
+Gibbs measure. -/
+theorem integral_count_tilted_equiv {β : Type*} [Finite α] [Finite β] [MeasurableSpace β]
+    [MeasurableSingletonClass β] (e : α ≃ β) (f g : β → ℝ) :
+    ∫ b, g b ∂(Measure.count.tilted f) =
+      ∫ a, g (e a) ∂(Measure.count.tilted fun a => f (e a)) := by
+  let _ := Fintype.ofFinite α
+  let _ := Fintype.ofFinite β
+  rw [integral_count_tilted, integral_count_tilted]
+  have hZ : (∑ b : β, Real.exp (f b)) = ∑ a : α, Real.exp (f (e a)) :=
+    (e.sum_comp fun b => Real.exp (f b)).symm
+  rw [hZ]
+  exact (e.sum_comp fun b => Real.exp (f b) / (∑ a : α, Real.exp (f (e a))) * g b).symm
+
 /-- **Disintegrating a finite Gibbs average over a finite fibre.**  If the energy on
 `α × ε` is `A a + B a e`, its Gibbs average is the quotient of the corresponding fibrewise
 weighted sums.  This is deliberately stated for arbitrary finite types: a last Ising spin is
