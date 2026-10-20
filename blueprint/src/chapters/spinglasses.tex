@@ -347,20 +347,27 @@ $\langle g\rangle_\beta=\int g\,dG_\beta$.
         SpinGlasses.sk_hasDerivAt_free_energy}
   \leanok
 (1) For every $H:\alpha\to\mathbb R$, $\frac{d}{d\beta}\log Z(\beta)=\langle H\rangle_\beta$.
+
 (2) For a random energy with measurable, integrable coordinates and $\beta>0$,
 $\frac{d}{d\beta}\mathbb E[\log Z(\beta)]=\mathbb E\big[\langle H\rangle_\beta\big]$.
+
 (3) For the SK model, $\frac d{d\beta}F_N(\beta)=N^{-1}\,\mathbb E\big[\langle H_N\rangle_\beta\big]$ for $\beta>0$.
 \end{theorem}
 
 \begin{proof}
   \leanok
   \uses{lem:sg:gibbsavg, lem:sg:integrable}
+
 (1) $\log Z=\mathrm{cgf}_H$, the cumulant-generating function of $H$ for the counting measure; every exponential moment
 is finite on a finite set, so Mathlib's \texttt{integral\_tilted\_mul\_self} gives
-$\mathrm{cgf}_H'(\beta)=\int H\,d(\mu.\mathrm{tilted}(\beta H))$. (2) Differentiate under the integral sign
+$\mathrm{cgf}_H'(\beta)=\int H\,d(\mu.\mathrm{tilted}(\beta H))$. 
+
+(2) Differentiate under the integral sign
 (dominated differentiation): the pointwise derivative is $\langle H(\omega)\rangle_\beta$ by (1), and
 $|\langle H(\omega)\rangle_\beta|\le\sum_a|H(\omega)_a|$ uniformly in $\beta$ by Lemma~\ref{lem:sg:gibbsavg}(3), which
-is integrable by assumption. (3) is (2) with the SK landscape (Theorem~\ref{thm:sg:sksmooth}), multiplied by $N^{-1}$.
+is integrable by assumption. 
+
+(3) is (2) with the SK landscape (Theorem~\ref{thm:sg:sksmooth}), multiplied by $N^{-1}$.
 \end{proof}
 
 \begin{theorem}[Zero-temperature concentration]\label{thm:sg:concentration}
@@ -374,7 +381,9 @@ $\beta\to\infty$; indeed $G_\beta(\{a\})\le e^{-\beta(\max H-H(a))}$. (2) $\lang
   \leanok
   \uses{lem:sg:gibbsavg}
 (1) $Z(\beta)\ge e^{\beta\max H}$ since it contains the term of a maximizer, hence
-$e^{\beta H(a)}/Z(\beta)\le e^{-\beta(\max H-H(a))}\to0$. (2) $\max H-\langle H\rangle_\beta=\sum_aG_\beta(\{a\})(\max H-H(a))$
+$e^{\beta H(a)}/Z(\beta)\le e^{-\beta(\max H-H(a))}\to0$. 
+
+(2) $\max H-\langle H\rangle_\beta=\sum_aG_\beta(\{a\})(\max H-H(a))$
 because the weights sum to one; every term with $H(a)<\max H$ tends to $0$ by (1) and the others vanish identically.
 \end{proof}
 
@@ -404,9 +413,11 @@ function is $\xi(x)=\sum_{p\ge1}\beta_p^2x^p$. In Lean the condition $\beta_0=0$
   \leanok
 (1) For $g$ with i.i.d.\ $\mathcal N(0,1)$ coordinates indexed by a finite set $\kappa$ and $a,b\in\mathbb R^\kappa$, the
 linear forms $a\cdot g$ are square-integrable, centered, and $\mathbb E[(a\cdot g)(b\cdot g)]=a\cdot b$.
+
 (2) Let $X_p,Y_p$ ($p$ in a countable set) be square-integrable with $\sum_p\|X_p\|_{L^2}<\infty$,
 $\sum_p\|Y_p\|_{L^2}<\infty$, each $X_p$ centered and independent of $Y_q$ for $p\ne q$. Then
 $\sum_pX_p$ is integrable and $\mathbb E[(\sum_pX_p)(\sum_qY_q)]=\sum_p\mathbb E[X_pY_p]$.
+
 (3) Let $g_p$ ($p$ countable) be independent with i.i.d.\ $\mathcal N(0,1)$ coordinates and let $a_p,b_p$ be coefficient
 vectors with $\sum_p\|a_p\|_2<\infty$ and $\sum_p\|b_p\|_2<\infty$. Then $\sum_pa_p\cdot g_p$ is measurable and integrable and
 $\mathbb E[(\sum_pa_p\cdot g_p)(\sum_pb_p\cdot g_p)]=\sum_pa_p\cdot b_p$.
