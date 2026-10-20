@@ -39,4 +39,17 @@ theorem one_add_mul_integral_le_integral_exp {Ω : Type*} {m : MeasurableSpace �
   one_add_mul_integral_le_integral c hX hexp fun ω => by
     simpa [add_comm] using Real.add_one_le_exp (c * X ω)
 
+/-- **Two-level version:** for a family of probability measures `μ ω` indexed by a probability
+space, `1 + c 𝔼 ∫ X dμ ≤ 𝔼 ∫ exp (c X) dμ`.  This is the passage from an exponential moment of a
+random Gibbs average to its second moment. -/
+theorem one_add_mul_integral_integral_le {Ω Γ : Type*} {mΩ : MeasurableSpace Ω}
+    {mΓ : MeasurableSpace Γ} {P : Measure Ω} [IsProbabilityMeasure P] {μ : Ω → Measure Γ}
+    [∀ ω, IsProbabilityMeasure (μ ω)] {X : Γ → ℝ} (c : ℝ) (hX : ∀ ω, Integrable X (μ ω))
+    (hexp : ∀ ω, Integrable (fun σ => Real.exp (c * X σ)) (μ ω))
+    (hJX : Integrable (fun ω => ∫ σ, X σ ∂μ ω) P)
+    (hJexp : Integrable (fun ω => ∫ σ, Real.exp (c * X σ) ∂μ ω) P) :
+    1 + c * ∫ ω, ∫ σ, X σ ∂μ ω ∂P ≤ ∫ ω, ∫ σ, Real.exp (c * X σ) ∂μ ω ∂P :=
+  one_add_mul_integral_le_integral c hJX hJexp fun ω =>
+    one_add_mul_integral_le_integral_exp c (hX ω) (hexp ω)
+
 end MeasureTheory

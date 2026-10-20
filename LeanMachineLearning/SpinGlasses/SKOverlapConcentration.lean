@@ -59,6 +59,59 @@ theorem sk_overlap_concentration_exp {N : ℕ} (hN : 0 < N) (β h q s : ℝ)
   convert this using 3
   ring
 
+/-- **Second moment of the overlap for the SK model (Eq. (1.89)).**  For `β² < 1/4`, at the fixed
+point `q = 𝔼 tanh² (β √q z + h)`, `𝔼⟨(R₁,₂ - q)²⟩ ≤ K / N` with
+`K = ((1/2 - 2 β²)^{-1/2} - 1) / (1/4 - β²)`.  This is the endpoint `t = 0` of
+`sk_path_expected_sq_overlap_le`, obtained directly from Theorem 1.4.1 at `s = 1/4 - β²`. -/
+theorem sk_expected_sq_overlap_le {N : ℕ} (hN : 0 < N) (β h q : ℝ)
+    (hfix : ∫ x : ℝ, Real.tanh (β * Real.sqrt q * x + h) ^ 2 ∂(gaussianReal 0 1) = q)
+    (hβ : β ^ 2 < 1 / 4) :
+    ∫ g : FinPairs N → ℝ, ∫ σ : Fin 2 → (Fin N → ℤˣ),
+        (((N : ℝ)⁻¹ * ((fun i => ((σ 0 i : ℤ) : ℝ)) ⬝ᵥ fun i => ((σ 1 i : ℤ) : ℝ))) - q) ^ 2
+          ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted fun a =>
+            (Real.sqrt N)⁻¹ * β *
+              (∑ p : FinPairs N, g p * ((a p.val.1 : ℤ) : ℝ) * ((a p.val.2 : ℤ) : ℝ)) +
+              h * ∑ i, ((a i : ℤ) : ℝ))
+        ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) ≤
+      ((Real.sqrt (1 / 2 - 2 * β ^ 2))⁻¹ - 1) / ((1 / 4 - β ^ 2) * N) := by
+  have : Nonempty (Fin N) := ⟨⟨0, hN⟩⟩
+  have hNpos : (0 : ℝ) < N := by positivity
+  have hs0 : 0 < 1 / 4 - β ^ 2 := by linarith
+  have hconc := sk_overlap_concentration_exp hN β h q (1 / 4 - β ^ 2) hfix hs0.le (by nlinarith)
+  have hC : 1 - 2 * (1 / 4 - β ^ 2) - 4 * β ^ 2 = 1 / 2 - 2 * β ^ 2 := by ring
+  rw [hC] at hconc
+  obtain ⟨Pg, hPg⟩ : ∃ Pg : Measure (FinPairs N → ℝ),
+      Pg = Measure.pi fun _ : FinPairs N => gaussianReal 0 1 := ⟨_, rfl⟩
+  have : IsProbabilityMeasure Pg := by rw [hPg]; infer_instance
+  rw [← hPg] at hconc ⊢
+  obtain ⟨gf, hgf⟩ : ∃ gf : (Fin N → ℤˣ) → (FinPairs N → ℝ) → ℝ, ∀ b g,
+      gf b g = (Real.sqrt N)⁻¹ * β *
+        (∑ p : FinPairs N, g p * ((b p.val.1 : ℤ) : ℝ) * ((b p.val.2 : ℤ) : ℝ)) +
+        h * ∑ i, ((b i : ℤ) : ℝ) := ⟨_, fun _ _ => rfl⟩
+  have hmeas : ∀ b : Fin N → ℤˣ, Measurable (gf b) := fun b => by
+    rw [show gf b = _ from funext (hgf b)]
+    fun_prop
+  have hJe := integrable_integral_pi_count_tilted_det (R := Fin 2) (P := Pg)
+    (g := gf) (fun b => (hmeas b).aemeasurable)
+    (fun σ : Fin 2 → (Fin N → ℤˣ) => Real.exp ((N * (1 / 4 - β ^ 2)) * (((N : ℝ)⁻¹ *
+      ((fun i => ((σ 0 i : ℤ) : ℝ)) ⬝ᵥ fun i => ((σ 1 i : ℤ) : ℝ))) - q) ^ 2))
+  have hJx := integrable_integral_pi_count_tilted_det (R := Fin 2) (P := Pg)
+    (g := gf) (fun b => (hmeas b).aemeasurable)
+    (fun σ : Fin 2 → (Fin N → ℤˣ) => (((N : ℝ)⁻¹ *
+      ((fun i => ((σ 0 i : ℤ) : ℝ)) ⬝ᵥ fun i => ((σ 1 i : ℤ) : ℝ))) - q) ^ 2)
+  obtain ⟨X, hX⟩ : ∃ X : (Fin 2 → (Fin N → ℤˣ)) → ℝ, ∀ σ, X σ = (((N : ℝ)⁻¹ *
+      ((fun i => ((σ 0 i : ℤ) : ℝ)) ⬝ᵥ fun i => ((σ 1 i : ℤ) : ℝ))) - q) ^ 2 := ⟨_, fun _ => rfl⟩
+  obtain ⟨μt, hμt⟩ : ∃ μt : (FinPairs N → ℝ) → Measure (Fin 2 → (Fin N → ℤˣ)),
+      ∀ g, μt g = Measure.pi fun _ : Fin 2 => Measure.count.tilted fun b => gf b g :=
+    ⟨_, fun _ => rfl⟩
+  simp only [← hgf] at hconc ⊢
+  simp only [← hX, ← hμt] at hJe hJx hconc ⊢
+  have hprob : ∀ g, IsProbabilityMeasure (μt g) := fun g => by rw [hμt]; infer_instance
+  have hint := one_add_mul_integral_integral_le (μ := μt) (N * (1 / 4 - β ^ 2))
+    (fun _ => Integrable.of_finite) (fun _ => Integrable.of_finite) hJx hJe
+  rw [le_div_iff₀ (by positivity)]
+  nlinarith [hint, hconc]
+
 /-- **Uniform second-moment bound along the smart path (Eqs. (1.89) and (1.103)).**  For
 `β² < 1/4` and every `t ∈ [0, π/2]`, the expected squared overlap of two replicas under the
 smart-path energy at time `t` is at most `K / N`, with
@@ -125,10 +178,8 @@ theorem sk_path_expected_sq_overlap_le {N : ℕ} (hN : 0 < N) (β h q : ℝ)
   simp only [← hX] at hbase
   rw [← hPz] at hbase
   have hprob : ∀ ω, IsProbabilityMeasure (μt ω) := fun ω => by rw [hμt]; infer_instance
-  have hpt : ∀ ω, 1 + (N * a) * ∫ σ, X σ ∂μt ω ≤ ∫ σ, Real.exp ((N * a) * X σ) ∂μt ω :=
-    fun ω => one_add_mul_integral_le_integral_exp (μ := μt ω) (N * a) Integrable.of_finite
-      Integrable.of_finite
-  have hint := one_add_mul_integral_le_integral (N * a) hJx hJe hpt
+  have hint := one_add_mul_integral_integral_le (μ := μt) (N * a) (fun _ => Integrable.of_finite)
+    (fun _ => Integrable.of_finite) hJx hJe
   have hnn : 0 ≤ ∫ ω, ∫ σ, X σ ∂μt ω ∂(Pg.prod Pz) :=
     integral_nonneg fun ω => integral_nonneg fun σ => by rw [hX]; exact sq_nonneg _
   have hle : 1 + (N * a) * ∫ ω, ∫ σ, X σ ∂μt ω ∂(Pg.prod Pz) ≤ (Real.sqrt (1 / 2 - 2 * β ^ 2))⁻¹ :=

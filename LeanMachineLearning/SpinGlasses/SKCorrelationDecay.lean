@@ -1,0 +1,127 @@
+/-
+Copyright (c) 2026 LML Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: LML Contributors
+-/
+module
+
+public import LeanMachineLearning.SpinGlasses.SKSiteSymmetry
+public import LeanMachineLearning.SpinGlasses.SKOverlapConcentration
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.Pi
+
+/-!
+# Decay of truncated spin correlations in the SK model (Talagrand, Eq. (1.132))
+
+Proposition 1.4.14 bounds the truncated correlation of a set of sites by the overlap dispersion
+`ν((R₁,₂ - q)²)` in any model with symmetry between sites
+(`SpinGlasses.integral_sq_prod_sub_prod_le_finset`).
+For the Sherrington-Kirkpatrick model with `β² < 1/4`, the dispersion is `O(1/N)`
+(`SpinGlasses.sk_expected_sq_overlap_le`), so the spins decorrelate at the rate `1/N`.
+
+## Main declarations
+
+* `SpinGlasses.sk_correlation_decay_le`: Eq. (1.132),
+  `𝔼 (⟨∏_{i ∈ S} σᵢ⟩ - ∏_{i ∈ S} ⟨σᵢ⟩)² ≤ K(|S|) / N`.
+
+## References
+
+* M. Talagrand, *Spin Glasses: A Challenge for Mathematicians*, Vol. I, Proposition 1.4.14 and
+  Eq. (1.132).
+-/
+
+@[expose] public section
+
+open MeasureTheory ProbabilityTheory Finset
+open scoped Matrix
+
+namespace SpinGlasses
+
+/-- **Two replicas of a Gibbs measure as a double sum.**  A function of two independent replicas
+integrates against the product of two Gibbs measures to the double sum with the Gibbs weights
+`exp (f a) / ∑_b exp (f b)`. -/
+theorem integral_pi_fin_two_count_tilted {α : Type*} [Fintype α] [MeasurableSpace α]
+    [MeasurableSingletonClass α] [Nonempty α] (f : α → ℝ) (Θ : α → α → ℝ) :
+    ∫ σ : Fin 2 → α, Θ (σ 0) (σ 1) ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted f) =
+      ∑ x, ∑ y, Real.exp (f x) / (∑ b, Real.exp (f b)) *
+        (Real.exp (f y) / ∑ b, Real.exp (f b)) * Θ x y := by
+  rw [integral_pi_fin_two]
+  simp_rw [integral_count_tilted, Finset.mul_sum, mul_assoc]
+
+/-- **The SK Gibbs weights as a site-symmetric random state.**  For an energy `E g a` of the SK
+form, the Gibbs weights `exp (E g σ) / ∑_b exp (E g b)` are nonnegative, sum to one, depend
+measurably on the couplings `g`, and their law is invariant under every relabelling of the sites:
+exactly the hypotheses of `integral_sq_prod_sub_prod_le_finset` for the observables
+`ξᵢ(σ) = σᵢ`. -/
+theorem sk_gibbsWeight_siteSymmetric {N : ℕ} (β h : ℝ) (E : (FinPairs N → ℝ) → (Fin N → ℤˣ) → ℝ)
+    (hE : ∀ g a, E g a = (Real.sqrt N)⁻¹ * β *
+      (∑ p : FinPairs N, g p * ((a p.val.1 : ℤ) : ℝ) * ((a p.val.2 : ℤ) : ℝ)) +
+        h * ∑ i, ((a i : ℤ) : ℝ)) [Nonempty (Fin N)] :
+    (∀ g σ, 0 ≤ Real.exp (E g σ) / ∑ b, Real.exp (E g b)) ∧
+      (∀ g, ∑ σ, Real.exp (E g σ) / ∑ b, Real.exp (E g b) = 1) ∧
+      (∀ σ, Measurable fun g => Real.exp (E g σ) / ∑ b, Real.exp (E g b)) ∧
+      ∀ π : Equiv.Perm (Fin N), ∃ φ : (FinPairs N → ℝ) → (FinPairs N → ℝ),
+        MeasurePreserving φ (Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
+          (Measure.pi fun _ : FinPairs N => gaussianReal 0 1) ∧
+        ∀ g σ, Real.exp (E (φ g) σ) / ∑ b, Real.exp (E (φ g) b) =
+          Real.exp (E g (Equiv.arrowCongr π.symm (Equiv.refl ℤˣ) σ)) / ∑ b, Real.exp (E g b) := by
+  have hZ : ∀ g, 0 < ∑ b, Real.exp (E g b) := fun g =>
+    Finset.sum_pos (fun _ _ => Real.exp_pos _) Finset.univ_nonempty
+  have hEm : ∀ a, Measurable fun g => E g a := fun a => by
+    simp only [hE]; fun_prop
+  exact ⟨fun g σ => div_nonneg (Real.exp_pos _).le (hZ g).le,
+    fun g => by rw [← Finset.sum_div, div_self (hZ g).ne'],
+    fun σ => (Real.measurable_exp.comp (hEm σ)).div
+      (Finset.measurable_sum _ fun b _ => Real.measurable_exp.comp (hEm b)),
+    fun π => exists_measurePreserving_sk_gibbsWeight β h π E hE⟩
+
+/-- **Truncated correlations decay at rate `1/N` (Talagrand, Eq. (1.132)).**  For the SK model with
+`β² < 1/4` at the fixed point `q = 𝔼 tanh² (β √q z + h)`, every set `S` of sites satisfies
+`𝔼 (⟨∏_{i ∈ S} σᵢ⟩ - ∏_{i ∈ S} ⟨σᵢ⟩)² ≤ K(|S|) / N`, with `K(p) = K'(p) K` for the constant
+`K'(p) = spinDecorrConst p` of Proposition 1.4.14 and the overlap constant
+`K = ((1/2 - 2 β²)^{-1/2} - 1) / (1/4 - β²)` of `sk_expected_sq_overlap_le`. -/
+theorem sk_correlation_decay_le {N : ℕ} (hN : 0 < N) (β h q : ℝ)
+    (hfix : ∫ x : ℝ, Real.tanh (β * Real.sqrt q * x + h) ^ 2 ∂(gaussianReal 0 1) = q)
+    (hβ : β ^ 2 < 1 / 4) (S : Finset (Fin N)) :
+    ∫ g : FinPairs N → ℝ,
+        (∫ σ : Fin N → ℤˣ, ∏ i ∈ S, ((σ i : ℤ) : ℝ) ∂(Measure.count.tilted fun a =>
+            (Real.sqrt N)⁻¹ * β *
+              (∑ p : FinPairs N, g p * ((a p.val.1 : ℤ) : ℝ) * ((a p.val.2 : ℤ) : ℝ)) +
+              h * ∑ i, ((a i : ℤ) : ℝ)) -
+          ∏ i ∈ S, ∫ σ : Fin N → ℤˣ, ((σ i : ℤ) : ℝ) ∂(Measure.count.tilted fun a =>
+            (Real.sqrt N)⁻¹ * β *
+              (∑ p : FinPairs N, g p * ((a p.val.1 : ℤ) : ℝ) * ((a p.val.2 : ℤ) : ℝ)) +
+              h * ∑ i, ((a i : ℤ) : ℝ))) ^ 2
+        ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) ≤
+      spinDecorrConst S.card *
+        (((Real.sqrt (1 / 2 - 2 * β ^ 2))⁻¹ - 1) / ((1 / 4 - β ^ 2) * N)) := by
+  have : Nonempty (Fin N) := ⟨⟨0, hN⟩⟩
+  have hq : |q| ≤ 1 := by
+    have := hfix ▸ fixedPointMap_mem_Icc β h q
+    exact abs_le.2 ⟨by linarith [this.1], this.2⟩
+  have hov := sk_expected_sq_overlap_le hN β h q hfix hβ
+  obtain ⟨E, hE⟩ : ∃ E : (FinPairs N → ℝ) → (Fin N → ℤˣ) → ℝ, ∀ g a, E g a =
+      (Real.sqrt N)⁻¹ * β *
+        (∑ p : FinPairs N, g p * ((a p.val.1 : ℤ) : ℝ) * ((a p.val.2 : ℤ) : ℝ)) +
+        h * ∑ i, ((a i : ℤ) : ℝ) := ⟨_, fun _ _ => rfl⟩
+  simp only [← hE] at hov ⊢
+  have hEm : ∀ a, Measurable fun g => E g a := fun a => by
+    simp only [hE]; fun_prop
+  obtain ⟨hw0, hw1, hwm, hsym⟩ := sk_gibbsWeight_siteSymmetric β h E hE
+  have habs : ∀ (i : Fin N) (σ : Fin N → ℤˣ), |((σ i : ℤ) : ℝ)| ≤ 1 := fun i σ => by
+    rcases Int.units_eq_one_or (σ i) with h1 | h1 <;> simp [h1]
+  have hint := integral_sq_prod_sub_prod_le_finset
+    (P := Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
+    (ξ := fun (i : Fin N) (σ : Fin N → ℤˣ) => ((σ i : ℤ) : ℝ))
+    (w := fun g σ => Real.exp (E g σ) / ∑ b, Real.exp (E g b)) hN habs hw0 hw1 hwm
+    (fun π => Equiv.arrowCongr π.symm (Equiv.refl ℤˣ)) (fun π i σ => by simp) hsym hq S
+  have hov' : ∫ g : FinPairs N → ℝ, ∑ x, ∑ y, Real.exp (E g x) / (∑ b, Real.exp (E g b)) *
+      (Real.exp (E g y) / ∑ b, Real.exp (E g b)) * ((N : ℝ)⁻¹ * ∑ i, ((x i : ℤ) : ℝ) *
+        ((y i : ℤ) : ℝ) - q) ^ 2 ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) ≤
+      ((Real.sqrt (1 / 2 - 2 * β ^ 2))⁻¹ - 1) / ((1 / 4 - β ^ 2) * N) := by
+    refine le_trans (le_of_eq (integral_congr_ae (ae_of_all _ fun g => ?_))) hov
+    exact (integral_pi_fin_two_count_tilted (E g) fun x y => ((N : ℝ)⁻¹ *
+      ((fun i => ((x i : ℤ) : ℝ)) ⬝ᵥ fun i => ((y i : ℤ) : ℝ)) - q) ^ 2).symm
+  simp only [integral_count_tilted]
+  exact hint.trans (mul_le_mul_of_nonneg_left hov' (spinDecorrConst_nonneg _))
+
+end SpinGlasses
