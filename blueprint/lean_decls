@@ -3229,6 +3229,8 @@ SpinGlasses.integrable_log_cosh_affine_gaussianReal
 SpinGlasses.sk_replica_symmetric_upper_bound
 SpinGlasses.continuous_fixedPointMap
 SpinGlasses.fixedPointMap_mem_Icc
+SpinGlasses.fixedPoint_mem_Icc
+SpinGlasses.abs_fixedPoint_le_one
 SpinGlasses.exists_fixedPoint
 SpinGlasses.abs_neg_sin_mul_add_cos_mul_le_sum
 SpinGlasses.hasDerivAt_integral_pi_count_tilted_path
@@ -3279,7 +3281,8 @@ Weights.sq_sum_mul_le_sum_mul_sq
 Weights.sum_mul_sub_avg
 Weights.sum_sum_mul_centered
 Weights.abs_sum_mul_le
-SpinGlasses.sum_tuple_cons_mul
+Weights.sq_sum_sum_mul_le
+sum_piFinSucc_mul_prod
 SpinGlasses.sum_sq_avg_tuple
 SpinGlasses.sum_mul_inv_mul_sum
 SpinGlasses.sum_mul_overlap_sub

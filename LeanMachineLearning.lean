@@ -1,6 +1,7 @@
 module  -- shake: keep-all --deprecated_module: ignore
 
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.HypercubeProduct
+public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.PiFinSucc
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.Weights
 public import LeanMachineLearning.ForMathlib.Analysis.Asymptotics.Theta
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.Gradient.Basic

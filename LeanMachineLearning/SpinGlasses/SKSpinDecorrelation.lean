@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.PiFinSucc
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.Weights
 public import LeanMachineLearning.ForMathlib.Combinatorics.DescFactorial
 public import Mathlib.Basic.Real.Basic
@@ -53,17 +54,6 @@ section Tuples
 
 variable {N : ℕ}
 
-/-- The sum over `(k + 1)`-tuples of sites of a centred factor in the first slot times a product
-over the other `k` slots factorizes as `(∑ⱼ cⱼ) (∑ᵢ eᵢ)^k`. -/
-theorem sum_tuple_cons_mul (k : ℕ) (c e : Fin N → ℝ) :
-    ∑ u : Fin (k + 1) → Fin N, c (u 0) * ∏ l : Fin k, e (u l.succ) =
-      (∑ j, c j) * (∑ i, e i) ^ k := by
-  have h := Fintype.prod_sum (fun (l : Fin (k + 1)) (i : Fin N) =>
-    (Fin.cons c (fun _ => e) : Fin (k + 1) → Fin N → ℝ) l i)
-  simp only [Fin.prod_univ_succ, Fin.cons_zero, Fin.cons_succ, Finset.prod_const,
-    Finset.card_univ, Fintype.card_fin] at h
-  exact h.symm
-
 variable {α : Type*} [Fintype α]
 
 /-- **The replica identity of Proposition 1.4.14:** the sum over tuples of sites of the squared
@@ -86,7 +76,7 @@ theorem sum_sq_avg_tuple (ξ : Fin N → α → ℝ) (w : α → ℝ) (m : Fin N
     rw [Finset.prod_mul_distrib]; ring
   rw [← Finset.mul_sum]
   simp_rw [key]
-  rw [sum_tuple_cons_mul k (fun j => (ξ j a - m j) * (ξ j b - m j)) (fun i => ξ i a * ξ i b)]
+  rw [sum_piFinSucc_mul_prod k (fun j => (ξ j a - m j) * (ξ j b - m j)) (fun i => ξ i a * ξ i b)]
 
 /-- Pulling the weighted sum over one replica inside the overlap. -/
 theorem sum_mul_inv_mul_sum (w : α → ℝ) (f : Fin N → ℝ) (g : Fin N → α → ℝ) :
@@ -183,14 +173,8 @@ theorem sum_sum_sq_decoupled_le {w : α → ℝ} (hw : ∀ a, 0 ≤ w a) (hw1 : 
           rw [hA, Finset.sum_comm]
           simp_rw [mul_comm (w _) (w _)]
   have hS : ∑ x, ∑ y, w x * w y * (∑ z, ∑ t, w z * w t * e z t) ^ 2 ≤ A := by
-    have hd : ∑ z, ∑ t, w z * w t * e z t = ∑ z, w z * ∑ t, w t * e z t := by
-      simp_rw [Finset.mul_sum, mul_assoc]
     simp_rw [sum_mul_mul_const hw1, sum_mul_const_of_sum_eq_one hw1]
-    rw [hd]
-    calc _ ≤ ∑ z, w z * (∑ t, w t * e z t) ^ 2 := sq_sum_mul_le_sum_mul_sq hw hw1
-      _ ≤ ∑ z, w z * ∑ t, w t * e z t ^ 2 := Finset.sum_le_sum fun z _ =>
-          mul_le_mul_of_nonneg_left (sq_sum_mul_le_sum_mul_sq hw hw1) (hw z)
-      _ = A := by simp_rw [hA, Finset.mul_sum, mul_assoc]
+    exact (sq_sum_sum_mul_le hw hw1 e).trans_eq hA.symm
   calc _ ≤ ∑ x, ∑ y, w x * w y * (4 * (e x y ^ 2 + (∑ t, w t * e x t) ^ 2 +
           (∑ z, w z * e z y) ^ 2 + (∑ z, ∑ t, w z * w t * e z t) ^ 2)) :=
         Finset.sum_le_sum fun x _ => Finset.sum_le_sum fun y _ =>
@@ -296,7 +280,8 @@ theorem sum_sq_avg_centered_monomial_le (hN : 0 < N) (ξ : Fin N → α → ℝ)
       _ = k * (|C x y| * |R x y - q|) := by ring
       _ ≤ k * (2 * (R x y - q) ^ 2 + C x y ^ 2 / 8) := by
           refine mul_le_mul_of_nonneg_left ?_ (Nat.cast_nonneg k)
-          nlinarith [sq_nonneg (4 * |R x y - q| - |C x y|), sq_abs (R x y - q), sq_abs (C x y)]
+          linarith [two_mul_le_add_mul_sq (a := |R x y - q|) (b := |C x y|)
+            (by norm_num : (0 : ℝ) < 4), sq_abs (R x y - q), sq_abs (C x y)]
   obtain ⟨A, hA⟩ : ∃ A, A = ∑ x, ∑ y, w x * w y * (R x y - q) ^ 2 := ⟨_, rfl⟩
   obtain ⟨B, hB⟩ : ∃ B, B = ∑ x, ∑ y, w x * w y * C x y ^ 2 := ⟨_, rfl⟩
   have hsplit : ∑ x, ∑ y, w x * w y * (C x y * (R x y ^ k - q ^ k)) ≤ k * (2 * A + B / 8) := by

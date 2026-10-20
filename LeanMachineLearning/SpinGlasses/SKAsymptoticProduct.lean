@@ -52,8 +52,7 @@ theorem sum_mul_indicator_sub_prod_eq {ξ : Fin N → α → ℝ} (hξ : ∀ j a
       (1 / 2 : ℝ) ^ n * ∑ I ∈ (Finset.univ : Finset (Fin n)).powerset,
         (∏ i ∈ I, ((η i : ℤ) : ℝ)) *
           (∑ a, w a * ∏ i ∈ I, ξ (ι i) a - ∏ i ∈ I, ∑ a, w a * ξ (ι i) a) := by
-  have he : ∀ i, ((η i : ℤ) : ℝ) = 1 ∨ ((η i : ℤ) : ℝ) = -1 := fun i => by
-    rcases Int.units_eq_one_or (η i) with h | h <;> simp [h]
+  have he : ∀ i, ((η i : ℤ) : ℝ) = 1 ∨ ((η i : ℤ) : ℝ) = -1 := fun i => units_cast_eq_one_or _
   have h2n : (2 : ℝ) ^ n ≠ 0 := by positivity
   have hind : ∀ a, (if ∀ i, ξ (ι i) a = ((η i : ℤ) : ℝ) then (1 : ℝ) else 0) =
       (1 / 2 : ℝ) ^ n * ∑ I ∈ (Finset.univ : Finset (Fin n)).powerset,
@@ -106,8 +105,7 @@ theorem sq_sum_abs_le_sum_sq {ξ : Fin N → α → ℝ} (hξ : ∀ j a, ξ j a 
   have he2 : ∀ (η : Fin n → ℤˣ) (I : Finset (Fin n)), (∏ i ∈ I, ((η i : ℤ) : ℝ)) ^ 2 = 1 :=
     fun η I => by
       rw [← Finset.prod_pow]
-      refine Finset.prod_eq_one fun i _ => ?_
-      rcases Int.units_eq_one_or (η i) with h | h <;> simp [h]
+      exact Finset.prod_eq_one fun i _ => units_cast_sq _
   simp only [sum_mul_indicator_sub_prod_eq hξ w ι, ← hc]
   have hD : ∀ η : Fin n → ℤˣ, ((1 / 2 : ℝ) ^ n * ∑ I ∈ (Finset.univ : Finset (Fin n)).powerset,
       (∏ i ∈ I, ((η i : ℤ) : ℝ)) * c I) ^ 2 ≤ (1 / 2 : ℝ) ^ n * ∑ I ∈ (Finset.univ : Finset
@@ -248,9 +246,7 @@ theorem sk_gibbs_marginal_totalVariation_le {N : ℕ} (hN : 0 < N) (β h q : ℝ
         ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) ≤
       4 ^ n * spinDecorrConst n *
         (((Real.sqrt (1 / 2 - 2 * β ^ 2))⁻¹ - 1) / ((1 / 4 - β ^ 2) * N)) := by
-  have hq : |q| ≤ 1 := by
-    have := hfix ▸ fixedPointMap_mem_Icc β h q
-    exact abs_le.2 ⟨by linarith [this.1], this.2⟩
+  have hq := abs_fixedPoint_le_one hfix
   obtain ⟨E, hE⟩ : ∃ E : (FinPairs N → ℝ) → (Fin N → ℤˣ) → ℝ, ∀ g a, E g a =
       (Real.sqrt N)⁻¹ * β *
         (∑ p : FinPairs N, g p * ((a p.val.1 : ℤ) : ℝ) * ((a p.val.2 : ℤ) : ℝ)) +
@@ -258,7 +254,7 @@ theorem sk_gibbs_marginal_totalVariation_le {N : ℕ} (hN : 0 < N) (β h q : ℝ
   simp only [← hE]
   obtain ⟨hw0, hw1, hwm, hsym⟩ := sk_gibbsWeight_siteSymmetric β h E hE
   have hξ : ∀ (j : Fin N) (σ : Fin N → ℤˣ), ((σ j : ℤ) : ℝ) = 1 ∨ ((σ j : ℤ) : ℝ) = -1 :=
-    fun j σ => by rcases Int.units_eq_one_or (σ j) with h1 | h1 <;> simp [h1]
+    fun _ _ => units_cast_eq_one_or _
   have hint := integral_sq_sum_abs_le
     (P := Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
     (ξ := fun (i : Fin N) (σ : Fin N → ℤˣ) => ((σ i : ℤ) : ℝ))

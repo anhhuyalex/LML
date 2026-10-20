@@ -393,7 +393,7 @@ theorem sk_random_projection_le {N : ℕ} (hN : 0 < N) (β h q : ℝ)
         ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) ≤
       2 * (2 * M1 ^ 2 + M0 * M2) *
         Real.sqrt (((Real.sqrt (1 / 2 - 2 * β ^ 2))⁻¹ - 1) / ((1 / 4 - β ^ 2) * N)) := by
-  have hq01 : q ∈ Set.Icc (0 : ℝ) 1 := hfix ▸ fixedPointMap_mem_Icc β h q
+  have hq01 : q ∈ Set.Icc (0 : ℝ) 1 := fixedPoint_mem_Icc hfix
   obtain ⟨E, hE⟩ : ∃ E : (FinPairs N → ℝ) → (Fin N → ℤˣ) → ℝ, ∀ g a, E g a =
       (Real.sqrt N)⁻¹ * β *
         (∑ p : FinPairs N, g p * ((a p.val.1 : ℤ) : ℝ) * ((a p.val.2 : ℤ) : ℝ)) +
@@ -405,8 +405,8 @@ theorem sk_random_projection_le {N : ℕ} (hN : 0 < N) (β h q : ℝ)
   have hxx : ∀ σ, (N : ℝ)⁻¹ * (xv σ ⬝ᵥ xv σ) = 1 := fun σ => by
     have : xv σ ⬝ᵥ xv σ = N := by
       simp only [hxv, dotProduct]
-      rw [Finset.sum_congr rfl fun i _ => (by rcases Int.units_eq_one_or (σ i) with h1 | h1 <;>
-        simp [h1] : ((σ i : ℤ) : ℝ) * ((σ i : ℤ) : ℝ) = 1)]
+      rw [Finset.sum_congr rfl fun i _ => (by rw [← sq]; exact units_cast_sq _ :
+        ((σ i : ℤ) : ℝ) * ((σ i : ℤ) : ℝ) = 1)]
       simp
     rw [this, inv_mul_cancel₀ (Nat.cast_ne_zero.2 hN.ne')]
   have hZ : ∀ g, 0 < ∑ b, Real.exp (E g b) := fun g =>
@@ -468,14 +468,9 @@ theorem sk_random_projection_le {N : ℕ} (hN : 0 < N) (β h q : ℝ)
       (Real.exp (E g a') / ∑ b, Real.exp (E g b)) * ((N : ℝ)⁻¹ * (xv a ⬝ᵥ xv a') - q) ^ 2 :=
     fun g => by
     rw [hε]
-    simp_rw [mul_assoc, ← Finset.mul_sum]
-    calc _ ≤ ∑ a, Real.exp (E g a) / (∑ b, Real.exp (E g b)) *
-          (∑ a', Real.exp (E g a') / (∑ b, Real.exp (E g b)) *
-            |(N : ℝ)⁻¹ * (xv a ⬝ᵥ xv a') - q|) ^ 2 :=
-          sq_sum_mul_le_sum_mul_sq (hw0 g) (hw1 g)
-      _ ≤ _ := Finset.sum_le_sum fun a _ => mul_le_mul_of_nonneg_left
-          ((sq_sum_mul_le_sum_mul_sq (hw0 g) (hw1 g)).trans (le_of_eq
-            (Finset.sum_congr rfl fun a' _ => by rw [sq_abs]))) (hw0 g a)
+    refine (sq_sum_sum_mul_le (hw0 g) (hw1 g) fun a a' =>
+      |(N : ℝ)⁻¹ * (xv a ⬝ᵥ xv a') - q|).trans_eq ?_
+    simp only [sq_abs]
   have hεint2 : (∫ g, ε g ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) ^ 2 ≤
       ((Real.sqrt (1 / 2 - 2 * β ^ 2))⁻¹ - 1) / ((1 / 4 - β ^ 2) * N) :=
     (sq_integral_le_integral_sq hεm hεsq).trans ((integral_mono hεsq hAint hεA).trans (by

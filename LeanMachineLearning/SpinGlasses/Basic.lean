@@ -85,6 +85,10 @@ theorem abs_units_cast_le_one (u : ℤˣ) : |((u : ℤ) : ℝ)| ≤ 1 := by
 theorem abs_units_cast_eq_one (u : ℤˣ) : |((u : ℤ) : ℝ)| = 1 := by
   rcases Int.units_eq_one_or u with h | h <;> simp [h]
 
+/-- The coordinates of a hypercube configuration are `1` or `-1`. -/
+theorem units_cast_eq_one_or (u : ℤˣ) : ((u : ℤ) : ℝ) = 1 ∨ ((u : ℤ) : ℝ) = -1 := by
+  rcases Int.units_eq_one_or u with h | h <;> simp [h]
+
 /-- The coordinates of a hypercube configuration square to `1`. -/
 theorem units_cast_sq (u : ℤˣ) : ((u : ℤ) : ℝ) ^ 2 = 1 := by
   rcases Int.units_eq_one_or u with h | h <;> simp [h]

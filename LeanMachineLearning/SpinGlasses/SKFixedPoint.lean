@@ -56,6 +56,18 @@ theorem fixedPointMap_mem_Icc (β h x : ℝ) :
           fun z => (Real.tanh_sq_lt_one _).le
     _ = 1 := by simp
 
+/-- A fixed point `q = ψ(q)` lies in `[0, 1]`. -/
+theorem fixedPoint_mem_Icc {β h q : ℝ}
+    (hfix : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂(gaussianReal 0 1) = q) :
+    q ∈ Icc (0 : ℝ) 1 :=
+  hfix ▸ fixedPointMap_mem_Icc β h q
+
+/-- A fixed point `q = ψ(q)` satisfies `|q| ≤ 1`. -/
+theorem abs_fixedPoint_le_one {β h q : ℝ}
+    (hfix : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂(gaussianReal 0 1) = q) :
+    |q| ≤ 1 :=
+  abs_le.2 ⟨by linarith [(fixedPoint_mem_Icc hfix).1], (fixedPoint_mem_Icc hfix).2⟩
+
 /-- **Existence of the replica-symmetric overlap (Eq. 1.74):** there is `q ∈ [0, 1]` with
 `q = 𝔼 tanh²(β z √q + h)`. -/
 theorem exists_fixedPoint (β h : ℝ) :

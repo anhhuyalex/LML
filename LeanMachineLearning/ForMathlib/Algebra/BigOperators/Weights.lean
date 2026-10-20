@@ -44,6 +44,17 @@ theorem sq_sum_mul_le_sum_mul_sq {w f : α → ℝ} (hw : ∀ a, 0 ≤ w a) (hw1
     (p := f) (fun i _ => hw i) hw1 (fun _ _ => Set.mem_univ _)
   simpa [smul_eq_mul] using this
 
+/-- **Jensen for two independent replicas:** `(∑ₐ ∑ᵦ wₐ wᵦ fₐᵦ)² ≤ ∑ₐ ∑ᵦ wₐ wᵦ fₐᵦ²`. -/
+theorem sq_sum_sum_mul_le {w : α → ℝ} (hw : ∀ a, 0 ≤ w a) (hw1 : ∑ a, w a = 1)
+    (f : α → α → ℝ) :
+    (∑ a, ∑ b, w a * w b * f a b) ^ 2 ≤ ∑ a, ∑ b, w a * w b * f a b ^ 2 := by
+  have hd : ∀ g : α → α → ℝ, ∑ a, ∑ b, w a * w b * g a b = ∑ a, w a * ∑ b, w b * g a b :=
+    fun g => by simp_rw [Finset.mul_sum, mul_assoc]
+  rw [hd, hd]
+  calc _ ≤ ∑ a, w a * (∑ b, w b * f a b) ^ 2 := sq_sum_mul_le_sum_mul_sq hw hw1
+    _ ≤ _ := Finset.sum_le_sum fun a _ =>
+        mul_le_mul_of_nonneg_left (sq_sum_mul_le_sum_mul_sq hw hw1) (hw a)
+
 /-- A probability vector averages a constant to the constant. -/
 theorem sum_mul_const_of_sum_eq_one {w : α → ℝ} (hw1 : ∑ a, w a = 1) (c : ℝ) :
     ∑ a, w a * c = c := by
