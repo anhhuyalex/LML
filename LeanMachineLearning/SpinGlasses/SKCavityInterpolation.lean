@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.SpinGlasses.GibbsMeasure
+public import LeanMachineLearning.SpinGlasses.SKReplicaSymmetricBound
 
 /-!
 # The finite Gibbs cavity identity
@@ -85,5 +86,61 @@ theorem integral_count_tilted_cavity_units (A L : α → ℝ) (f : α → ℤˣ 
     dsimp [Z]
     positivity
   exact (div_div_div_cancel_right₀ (mul_ne_zero hZ two_ne_zero) P Q).symm
+
+/-- **Last-coordinate form of the finite Gibbs cavity identity.**  This is
+`integral_count_tilted_cavity_units` after the canonical `Fin.snoc` coordinate split.  It states
+Proposition 1.6.1 on the actual SK configuration type, while retaining arbitrary base energy and
+field.  The change of variables itself is the generic
+`integral_count_tilted_equiv`, so other finite-spin models can use their own equivalence. -/
+theorem integral_count_tilted_fin_snoc_cavity_units (N : ℕ)
+    (A L : (Fin N → ℤˣ) → ℝ) (f : (Fin (N + 1) → ℤˣ) → ℝ) :
+    ∫ σ, f σ ∂(Measure.count.tilted fun σ =>
+      A (fun i => σ i.castSucc) + (σ (Fin.last N) : ℝ) * L (fun i => σ i.castSucc)) =
+      (∫ ρ, (f (Fin.snoc ρ 1) * Real.exp (L ρ) +
+          f (Fin.snoc ρ (-1)) * Real.exp (-L ρ)) / 2 ∂(Measure.count.tilted A)) /
+        (∫ ρ, Real.cosh (L ρ) ∂(Measure.count.tilted A)) := by
+  let e : ((Fin N → ℤˣ) × ℤˣ) ≃ (Fin (N + 1) → ℤˣ) :=
+    (Equiv.prodComm (Fin N → ℤˣ) ℤˣ).trans (Fin.snocEquiv fun _ => ℤˣ)
+  rw [integral_count_tilted_equiv e _ f]
+  simp only [e, Equiv.trans_apply, Equiv.prodComm_apply, Fin.snocEquiv_apply,
+    Fin.snoc_castSucc, Fin.snoc_last]
+  change ∫ x : (Fin N → ℤˣ) × ℤˣ, f (Fin.snoc x.1 x.2)
+    ∂(Measure.count.tilted fun x => A x.1 + (x.2 : ℝ) * L x.1) = _
+  exact integral_count_tilted_cavity_units A L fun ρ ε => f (Fin.snoc ρ ε)
+
+/-- **Covariance of the interacting last-spin cavity field.**  The field
+`ε β N^{-1/2} ∑ᵢ gᵢ ρᵢ` has covariance
+`β² ε ε' R⁻(ρ,ρ')`.  The proof is only a coefficient reindexing of the generic
+Gaussian linear-form covariance, so it applies without choosing an SK Hamiltonian or a Gibbs
+measure. -/
+theorem integral_last_spin_cavity_field_mul (N : ℕ) (β : ℝ)
+    (σ τ : Fin (N + 1) → ℤˣ) :
+    ∫ g : Fin N → ℝ,
+      ((Real.sqrt N)⁻¹ * β * (σ (Fin.last N) : ℝ) *
+        ∑ i, g i * (σ i.castSucc : ℝ)) *
+      ((Real.sqrt N)⁻¹ * β * (τ (Fin.last N) : ℝ) *
+        ∑ i, g i * (τ i.castSucc : ℝ))
+      ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1) =
+      β ^ 2 * (σ (Fin.last N) : ℝ) * (τ (Fin.last N) : ℝ) *
+        ((N : ℝ)⁻¹ *
+          ((fun i : Fin N => (σ i.castSucc : ℝ)) ⬝ᵥ
+            fun i : Fin N => (τ i.castSucc : ℝ))) := by
+  let a : Fin N → ℝ := fun i => (σ (Fin.last N) : ℝ) * (σ i.castSucc : ℝ)
+  let b : Fin N → ℝ := fun i => (τ (Fin.last N) : ℝ) * (τ i.castSucc : ℝ)
+  have hmain := integral_normalized_gaussian_linear_form_mul (N : ℝ) β
+    (Nat.cast_nonneg N) a b
+  have hab : a ⬝ᵥ b = (σ (Fin.last N) : ℝ) * (τ (Fin.last N) : ℝ) *
+      ((fun i : Fin N => (σ i.castSucc : ℝ)) ⬝ᵥ
+        fun i : Fin N => (τ i.castSucc : ℝ)) := by
+    simp only [a, b, dotProduct]
+    calc
+      _ = ∑ i, ((σ (Fin.last N) : ℝ) * (τ (Fin.last N) : ℝ)) *
+          ((σ i.castSucc : ℝ) * (τ i.castSucc : ℝ)) := by
+        apply Finset.sum_congr rfl
+        intro i hi
+        ring
+      _ = _ := by rw [Finset.mul_sum]
+  rw [hab] at hmain
+  simpa only [a, b, Finset.mul_sum, mul_assoc, mul_left_comm, mul_comm] using hmain
 
 end SpinGlasses
