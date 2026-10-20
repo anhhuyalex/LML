@@ -219,14 +219,6 @@ section Decoupled
 
 open scoped Real Matrix
 
-/-- The cavity field `β √q ∑ᵢ zᵢ σᵢ + h ∑ᵢ σᵢ` as a sum over the sites of the local fields
-`β √q zᵢ + h`. -/
-theorem decoupled_field_eq {N : ℕ} (β h q : ℝ) (z : Fin N → ℝ) (a : Fin N → ℤˣ) :
-    β * Real.sqrt q * (∑ i, z i * ((a i : ℤ) : ℝ)) + h * ∑ i, ((a i : ℤ) : ℝ) =
-      ∑ i, ((a i : ℤ) : ℝ) * (β * Real.sqrt q * z i + h) := by
-  rw [Finset.mul_sum, Finset.mul_sum, ← Finset.sum_add_distrib]
-  exact Finset.sum_congr rfl fun i _ => by ring
-
 /-- **Sub-Gaussian overlap of the decoupled model (Talagrand Eq. (1.105)).**  At the fixed point
 `q = 𝔼 tanh² (β √q z + h)` of the self-consistency equation,
 `𝔼 ⟨exp (u ∑ᵢ (σ¹ᵢ σ²ᵢ - q))⟩ ≤ exp (N u² / 2)` for every real `u`. -/
@@ -243,7 +235,7 @@ theorem integral_decoupled_pair_exp_le {N : ℕ} (β h q : ℝ)
     calc ∫ x : ℝ, Real.tanh (β * Real.sqrt q * x + h) ^ 2 ∂(gaussianReal 0 1)
         ≤ ∫ _x : ℝ, (1 : ℝ) ∂(gaussianReal 0 1) :=
           integral_mono (integrable_tanh_sq _ (by fun_prop)) (integrable_const _)
-            fun x => tanh_sq_le_one _
+            fun x => (Real.tanh_sq_lt_one _).le
       _ = 1 := by simp
   simp_rw [decoupled_field_eq, integral_decoupled_pair_exp]
   rw [integral_fintype_prod_eq_prod (E := fun _ : Fin N => ℝ)

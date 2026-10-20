@@ -34,6 +34,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.BorelSp
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.Pi
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Function.LpSectionMeasurable
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ChebyshevAssociation
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ExpMoment
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IntegrableOfBound
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.JensenLog
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ParametrizedL2

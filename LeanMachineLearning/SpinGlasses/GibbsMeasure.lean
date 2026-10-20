@@ -318,6 +318,14 @@ theorem abs_neg_sin_mul_add_cos_mul_le (x y s : ℝ) :
   rw [abs_mul, abs_mul, abs_neg]
   nlinarith [Real.abs_cos_le_one s, Real.abs_sin_le_one s, abs_nonneg x, abs_nonneg y]
 
+/-- The velocity `-sin s x a + cos s y a` of the trigonometric path of a finite family of fields
+is at most `∑_b (|x b| + |y b|)`, uniformly in `s` and in the index `a`. -/
+theorem abs_neg_sin_mul_add_cos_mul_le_sum {ι : Type*} [Fintype ι] (x y : ι → ℝ) (s : ℝ) (a : ι) :
+    |-Real.sin s * x a + Real.cos s * y a| ≤ ∑ b, (|x b| + |y b|) :=
+  (abs_neg_sin_mul_add_cos_mul_le (x a) (y a) s).trans
+    (Finset.single_le_sum (f := fun b => |x b| + |y b|) (fun _ _ => by positivity)
+      (Finset.mem_univ a))
+
 end TrigPath
 
 section Random

@@ -32,9 +32,6 @@ open MeasureTheory ProbabilityTheory Set
 
 namespace SpinGlasses
 
-theorem tanh_sq_le_one (y : ℝ) : Real.tanh y ^ 2 ≤ 1 :=
-  (sq_le_one_iff_abs_le_one _).2 (Real.abs_tanh_lt_one y).le
-
 /-- `ψ(x) = 𝔼 tanh²(β z √x + h)` is continuous in `x`. -/
 theorem continuous_fixedPointMap (β h : ℝ) :
     Continuous fun x : ℝ =>
@@ -45,7 +42,7 @@ theorem continuous_fixedPointMap (β h : ℝ) :
       β * Real.sqrt x * z + h)).pow 2).aestronglyMeasurable
   · refine ae_of_all _ fun z => ?_
     rw [Real.norm_eq_abs, abs_of_nonneg (sq_nonneg _)]
-    exact tanh_sq_le_one _
+    exact (Real.tanh_sq_lt_one _).le
   · exact (Real.continuous_tanh.comp (by fun_prop : Continuous fun x : ℝ =>
       β * Real.sqrt x * z + h)).pow 2
 
@@ -56,7 +53,7 @@ theorem fixedPointMap_mem_Icc (β h x : ℝ) :
   calc ∫ z : ℝ, Real.tanh (β * Real.sqrt x * z + h) ^ 2 ∂(gaussianReal 0 1)
       ≤ ∫ z : ℝ, (1 : ℝ) ∂(gaussianReal 0 1) := by
         exact integral_mono (integrable_tanh_sq _ (by fun_prop)) (integrable_const _)
-          fun z => tanh_sq_le_one _
+          fun z => (Real.tanh_sq_lt_one _).le
     _ = 1 := by simp
 
 /-- **Existence of the replica-symmetric overlap (Eq. 1.74):** there is `q ∈ [0, 1]` with

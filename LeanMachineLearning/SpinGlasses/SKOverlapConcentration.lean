@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.SpinGlasses.SKLatalaBase
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ExpMoment
 public import LeanMachineLearning.SpinGlasses.SKLatalaCompensated
 
 /-!
@@ -125,17 +126,9 @@ theorem sk_path_expected_sq_overlap_le {N : ℕ} (hN : 0 < N) (β h q : ℝ)
   rw [← hPz] at hbase
   have hprob : ∀ ω, IsProbabilityMeasure (μt ω) := fun ω => by rw [hμt]; infer_instance
   have hpt : ∀ ω, 1 + (N * a) * ∫ σ, X σ ∂μt ω ≤ ∫ σ, Real.exp ((N * a) * X σ) ∂μt ω :=
-    fun ω => by
-      have := integral_mono (μ := μt ω) (f := fun σ => 1 + (N * a) * X σ)
-        (g := fun σ => Real.exp ((N * a) * X σ)) Integrable.of_finite Integrable.of_finite
-        (fun σ => by simpa [add_comm] using Real.add_one_le_exp ((N * a) * X σ))
-      rwa [integral_add (integrable_const _) Integrable.of_finite, integral_const,
-        integral_const_mul, probReal_univ, one_smul] at this
-  have hlhs : Integrable (fun ω => 1 + (N * a) * ∫ σ, X σ ∂μt ω) (Pg.prod Pz) :=
-    (integrable_const (1 : ℝ)).add (hJx.const_mul (N * a))
-  have hint := integral_mono hlhs hJe hpt
-  rw [integral_add (integrable_const _) (hJx.const_mul _), integral_const, integral_const_mul,
-    probReal_univ, one_smul] at hint
+    fun ω => one_add_mul_integral_le_integral_exp (μ := μt ω) (N * a) Integrable.of_finite
+      Integrable.of_finite
+  have hint := one_add_mul_integral_le_integral (N * a) hJx hJe hpt
   have hnn : 0 ≤ ∫ ω, ∫ σ, X σ ∂μt ω ∂(Pg.prod Pz) :=
     integral_nonneg fun ω => integral_nonneg fun σ => by rw [hX]; exact sq_nonneg _
   have hle : 1 + (N * a) * ∫ ω, ∫ σ, X σ ∂μt ω ∂(Pg.prod Pz) ≤ (Real.sqrt (1 / 2 - 2 * β ^ 2))⁻¹ :=

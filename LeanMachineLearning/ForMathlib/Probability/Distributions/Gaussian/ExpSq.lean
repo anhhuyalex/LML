@@ -20,18 +20,21 @@ open MeasureTheory ProbabilityTheory
 
 namespace ProbabilityTheory
 
+/-- The standard Gaussian density times `exp (l x²)` is a multiple of `exp (-(1/2 - l) x²)`. -/
+theorem gaussianPDFReal_zero_one_mul_exp_sq (l x : ℝ) :
+    gaussianPDFReal 0 1 x * Real.exp (l * x ^ 2) =
+      (Real.sqrt (2 * Real.pi))⁻¹ * Real.exp (-(1 / 2 - l) * x ^ 2) := by
+  rw [gaussianPDFReal_def, mul_assoc, ← Real.exp_add]
+  simp only [NNReal.coe_one, mul_one, sub_zero]
+  congr 2
+  ring
+
 /-- **Gaussian square exponential moment:** for `l < 1 / 2`,
 `∫ exp (l x²) d𝒩(0, 1) = (√(1 - 2 l))⁻¹`. -/
 theorem integral_exp_mul_sq_gaussianReal {l : ℝ} (hl : l < 1 / 2) :
     ∫ x, Real.exp (l * x ^ 2) ∂(gaussianReal 0 1) = (Real.sqrt (1 - 2 * l))⁻¹ := by
   rw [integral_gaussianReal_eq_integral_smul one_ne_zero]
-  have h : ∀ x : ℝ, gaussianPDFReal 0 1 x • Real.exp (l * x ^ 2) =
-      (Real.sqrt (2 * Real.pi))⁻¹ * Real.exp (-(1 / 2 - l) * x ^ 2) := fun x => by
-    rw [gaussianPDFReal_def, smul_eq_mul, mul_assoc, ← Real.exp_add]
-    simp only [NNReal.coe_one, mul_one, sub_zero]
-    congr 2
-    ring
-  simp_rw [h]
+  simp_rw [smul_eq_mul, gaussianPDFReal_zero_one_mul_exp_sq]
   rw [integral_const_mul, integral_gaussian]
   have h1 : 0 < 1 - 2 * l := by linarith
   have h2 : 0 < 1 / 2 - l := by linarith
@@ -52,10 +55,7 @@ theorem integrable_exp_mul_sq_gaussianReal {l : ℝ} (hl : l < 1 / 2) :
   have h : (fun x : ℝ => (gaussianPDF 0 1 x).toReal • Real.exp (l * x ^ 2)) =
       fun x => (Real.sqrt (2 * Real.pi))⁻¹ * Real.exp (-(1 / 2 - l) * x ^ 2) := by
     funext x
-    rw [toReal_gaussianPDF, gaussianPDFReal_def, smul_eq_mul, mul_assoc, ← Real.exp_add]
-    simp only [NNReal.coe_one, mul_one, sub_zero]
-    congr 2
-    ring
+    rw [toReal_gaussianPDF, smul_eq_mul, gaussianPDFReal_zero_one_mul_exp_sq]
   simp_rw [h]
   exact (integrable_exp_neg_mul_sq (by linarith)).const_mul _
 

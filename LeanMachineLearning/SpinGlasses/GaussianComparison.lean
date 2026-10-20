@@ -149,9 +149,7 @@ theorem hasDerivAt_integral_log_sum_exp_trig [Fintype α] [Nonempty α] [Measura
     (fun ω s _ a => hasDerivAt_cos_mul_add_sin_mul (X a ω) (Y a ω) (h a) s)
     (B := fun ω => ∑ a, (|X a ω| + |Y a ω|))
     (integrable_finsetSum _ fun a _ => (hXi a).abs.add (hYi a).abs)
-    (fun ω s _ a => (abs_neg_sin_mul_add_cos_mul_le (X a ω) (Y a ω) s).trans
-      (Finset.single_le_sum (f := fun b => |X b ω| + |Y b ω|) (fun _ _ => by positivity)
-        (mem_univ a)))
+    (fun ω s _ a => abs_neg_sin_mul_add_cos_mul_le_sum (fun b => X b ω) (fun b => Y b ω) s a)
   refine hpath.congr_deriv ?_
   rw [hmain]
   refine integral_congr_ae (ae_of_all _ fun ω => integral_congr_ae (ae_of_all _ fun p => ?_))

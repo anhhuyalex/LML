@@ -13,7 +13,8 @@ public import Mathlib.MeasureTheory.Integral.Prod
 If two real functions `a, b` on a probability space are similarly ordered, i.e.
 `(a x - a y) * (b x - b y) ≥ 0` for all `x, y` (for instance two monotone functions of a common
 variable), then `𝔼 a * 𝔼 b ≤ 𝔼 (a * b)`.  The proof integrates the nonnegative function
-`(a x - a y) * (b x - b y)` against `μ.prod μ`.
+`(a x - a y) * (b x - b y)` against `μ.prod μ`.  Two monotone functions of a common random
+variable are the standard example.
 -/
 
 @[expose] public section
@@ -54,5 +55,17 @@ theorem integral_mul_integral_le_integral_mul {Ω : Type*} {m : MeasurableSpace 
       funext fun z => mul_comm _ _, integral_prod_mul b a, mul_comm]] at hnn
   simp only [probReal_univ, one_smul] at hnn
   linarith
+
+/-- **Chebyshev's association inequality for monotone functions of a common variable**:
+`∫ f (X x) * ∫ g (X x) ≤ ∫ f (X x) * g (X x)` for monotone `f, g`. -/
+theorem integral_comp_mul_integral_comp_le {Ω : Type*} {m : MeasurableSpace Ω} {μ : Measure Ω}
+    [IsProbabilityMeasure μ] {X : Ω → ℝ} {f g : ℝ → ℝ} (hf : Monotone f) (hg : Monotone g)
+    (ha : Integrable (fun x => f (X x)) μ) (hb : Integrable (fun x => g (X x)) μ)
+    (hab : Integrable (fun x => f (X x) * g (X x)) μ) :
+    (∫ x, f (X x) ∂μ) * ∫ x, g (X x) ∂μ ≤ ∫ x, f (X x) * g (X x) ∂μ :=
+  integral_mul_integral_le_integral_mul ha hb hab fun x y => by
+    rcases le_total (X x) (X y) with h | h
+    · exact mul_nonneg_of_nonpos_of_nonpos (sub_nonpos.2 (hf h)) (sub_nonpos.2 (hg h))
+    · exact mul_nonneg (sub_nonneg.2 (hf h)) (sub_nonneg.2 (hg h))
 
 end MeasureTheory

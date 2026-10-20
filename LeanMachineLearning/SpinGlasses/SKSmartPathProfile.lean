@@ -202,11 +202,7 @@ theorem exists_sk_smart_path_profile {N : ℕ} (hN : 0 < N) (β h q : ℝ) (hq :
     have hfe := decoupled_free_energy_eq (P := Pz) (fun j z => β * Real.sqrt q * z j + h) j₀
       hlaw hint
     simp only [Fintype.card_fin] at hfe
-    have hrew : ∀ z : Fin N → ℝ, ∀ σ : Fin N → ℤˣ, G z σ + h * ∑ i, ((σ i : ℤ) : ℝ) =
-        ∑ i, ((σ i : ℤ) : ℝ) * (β * Real.sqrt q * z i + h) := fun z σ => by
-      rw [hG, Finset.mul_sum, Finset.mul_sum, ← Finset.sum_add_distrib]
-      exact Finset.sum_congr rfl fun i _ => by ring
-    simp only [hrew]
+    simp only [hG, decoupled_field_eq]
     rw [hfe, ← (measurePreserving_eval (fun _ : Fin N => gaussianReal 0 1) j₀).map_eq, hPz]
     rw [integral_map (measurable_pi_apply j₀).aemeasurable]
     exact ((Real.continuous_cosh.comp (by fun_prop : Continuous fun x : ℝ =>

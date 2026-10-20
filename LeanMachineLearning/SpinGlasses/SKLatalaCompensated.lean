@@ -126,14 +126,10 @@ theorem replica_decoupling_comb_nonneg (f : α → ℝ) (A U : α → α → ℝ
   have hcheb : (∫ σ : Fin 2 → α, A (σ 0) (σ 1) ∂(Measure.pi fun _ : Fin 2 => μ)) *
       ∫ σ, Φ σ ∂(Measure.pi fun _ : Fin 2 => μ) ≤
       ∫ σ : Fin 2 → α, A (σ 0) (σ 1) * Φ σ ∂(Measure.pi fun _ : Fin 2 => μ) :=
-    integral_mul_integral_le_integral_mul Integrable.of_finite Integrable.of_finite
-      Integrable.of_finite fun x y => by
-        simp only [hΦ]
-        rcases le_total (A (x 0) (x 1)) (A (y 0) (y 1)) with h | h
-        · exact mul_nonneg_of_nonpos_of_nonpos (sub_nonpos.2 h)
-            (sub_nonpos.2 (Real.exp_le_exp.2 (mul_le_mul_of_nonneg_left h hu)))
-        · exact mul_nonneg (sub_nonneg.2 h)
-            (sub_nonneg.2 (Real.exp_le_exp.2 (mul_le_mul_of_nonneg_left h hu)))
+    integral_comp_mul_integral_comp_le (X := fun σ : Fin 2 → α => A (σ 0) (σ 1))
+      (f := id) (g := fun t => Real.exp (u * t)) monotone_id
+      (fun a b hab => Real.exp_le_exp.2 (mul_le_mul_of_nonneg_left hab hu))
+      Integrable.of_finite Integrable.of_finite Integrable.of_finite
   rw [h12, h34]
   have hmain : 0 ≤ κ * (6 * ∫ σ : Fin 2 → α, A (σ 0) (σ 1) * Φ σ ∂(Measure.pi fun _ : Fin 2 => μ) +
       4 * ∫ τ : Option (Option (Fin 2)) → α,

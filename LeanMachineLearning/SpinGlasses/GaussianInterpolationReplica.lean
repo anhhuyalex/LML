@@ -568,9 +568,7 @@ theorem hasDerivAt_integral_replica_trig
     (fun ω s _ a => hasDerivAt_cos_mul_add_sin_mul (X a ω) (Y a ω) (h a) s)
     (B := fun ω => ∑ a, (|X a ω| + |Y a ω|))
     (integrable_finsetSum _ fun a _ => (hXi a).abs.add (hYi a).abs)
-    (fun ω s _ a => (abs_neg_sin_mul_add_cos_mul_le (X a ω) (Y a ω) s).trans
-      (Finset.single_le_sum (f := fun b => |X b ω| + |Y b ω|) (fun _ _ => by positivity)
-        (mem_univ a)))
+    (fun ω s _ a => abs_neg_sin_mul_add_cos_mul_le_sum (fun b => X b ω) (fun b => Y b ω) s a)
   exact hpath.congr_deriv (integral_replica_trig_key hXm hYm hXY hX hY h0 U hU h hM t)
 
 /-- The replica-derivative term `𝔼⟨Ψ (∑ᵣ f'(σʳ) - n ⟨f'⟩)⟩` is integrable in the disorder when
@@ -656,9 +654,7 @@ theorem hasDerivAt_integral_replica_trig_moving
     (fun ω s _ a => hasDerivAt_cos_mul_add_sin_mul (X a ω) (Y a ω) (h a) s)
     (B := fun ω => ∑ a, (|X a ω| + |Y a ω|))
     (integrable_finsetSum _ fun a _ => (hXi a).abs.add (hYi a).abs)
-    (fun ω s _ a => (abs_neg_sin_mul_add_cos_mul_le (X a ω) (Y a ω) s).trans
-      (Finset.single_le_sum (f := fun b => |X b ω| + |Y b ω|) (fun _ _ => by positivity)
-        (mem_univ a)))
+    (fun ω s _ a => abs_neg_sin_mul_add_cos_mul_le_sum (fun b => X b ω) (fun b => Y b ω) s a)
   refine hpath.congr_deriv ?_
   have hint1 := integrable_replica_derivative_term (R := R) (P := P)
     (g := fun a ω => Real.cos t * X a ω + Real.sin t * Y a ω + h a)
@@ -667,9 +663,8 @@ theorem hasDerivAt_integral_replica_trig_moving
     (fun a => (((hXm a).const_mul _).add ((hYm a).const_mul _)).aemeasurable)
     (B := fun ω => ∑ a, (|X a ω| + |Y a ω|))
     (integrable_finsetSum _ fun a _ => (hXi a).abs.add (hYi a).abs)
-    (fun ω a => (abs_neg_sin_mul_add_cos_mul_le (X a ω) (Y a ω) t).trans
-      (Finset.single_le_sum (f := fun b => |X b ω| + |Y b ω|) (fun _ _ => by positivity)
-        (mem_univ a))) (Ψ := Φ t) (hM t)
+    (fun ω a => abs_neg_sin_mul_add_cos_mul_le_sum (fun b => X b ω) (fun b => Y b ω) t a)
+    (Ψ := Φ t) (hM t)
   have hint2 := integrable_integral_pi_count_tilted_det (R := R) (P := P)
     (g := fun a ω => Real.cos t * X a ω + Real.sin t * Y a ω + h a)
     (fun a => (((hXm a).const_mul _).add ((hYm a).const_mul _)).add_const _ |>.aemeasurable)

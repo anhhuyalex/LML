@@ -260,4 +260,12 @@ theorem decoupled_free_energy_eq [DecidableEq ι] [Nonempty ι]
   rw [mul_add, ← mul_assoc, inv_mul_cancel₀ hN, one_mul]
   rw [← mul_assoc, inv_mul_cancel₀ hN, one_mul]
 
+/-- The cavity field `β √q ∑ᵢ zᵢ σᵢ + h ∑ᵢ σᵢ` as a sum over the sites of the local fields
+`β √q zᵢ + h`. -/
+theorem decoupled_field_eq {N : ℕ} (β h q : ℝ) (z : Fin N → ℝ) (a : Fin N → ℤˣ) :
+    β * Real.sqrt q * (∑ i, z i * ((a i : ℤ) : ℝ)) + h * ∑ i, ((a i : ℤ) : ℝ) =
+      ∑ i, ((a i : ℤ) : ℝ) * (β * Real.sqrt q * z i + h) := by
+  rw [Finset.mul_sum, Finset.mul_sum, ← Finset.sum_add_distrib]
+  exact Finset.sum_congr rfl fun i _ => by ring
+
 end SpinGlasses
