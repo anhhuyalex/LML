@@ -975,15 +975,42 @@ with coefficient vectors $i\mapsto\sigma_N\sigma_i$ and
 $i\mapsto\tau_N\tau_i$; factor the last spins out of their dot product.
 \end{proof}
 
+\begin{lemma}[Split of the SK pair sum and Gaussian disorder]
+\label{lem:sg-tal:cavity-disorder-split}
+  \lean{SpinGlasses.finPairs_succ_equiv,
+        SpinGlasses.sum_finPairs_succ_cavity,
+        SpinGlasses.sum_sk_pairs_succ_cavity,
+        SpinGlasses.measurePreserving_sk_cavity_disorder}
+  \leanok
+For $N\ge0$, the pairs $i<j$ in $\mathrm{Fin}(N+1)$ are in bijection
+with the disjoint union of the old pairs $i<j<N$ and the new edges $(i,N)$.
+For arbitrary $g$ and real spin coordinates $s$ this gives
+\[
+\sum_{i<j\le N}g_{ij}s_i s_j
+=\sum_{i<j<N}g_{ij}s_i s_j+s_N\sum_{i<N}g_{iN}s_i.
+\]
+The statement also holds for Ising spins. If all the $g_{ij}$ are independent
+standard Gaussians, the restriction $(g_{ij})_{i<j<N}$ and the new-edge family
+$(g_{iN})_{i<N}$ jointly have the product of their respective independent
+Gaussian laws (equality via a measure-preserving map).
+\end{lemma}
+\begin{proof}
+  \leanok
+Classify a pair by whether its second coordinate is the last site; reindex
+the finite sum by this bijection. Reindex the product Gaussian law with
+\texttt{measurePreserving\_arrowCongr'} and split it using
+\texttt{measurePreserving\_sumPiEquivProdPi}.
+\end{proof}
+
 \begin{remark}[Scope and normalization of the cavity implementation]
 \label{rem:sg-tal:dev-16}
 Talagrand keeps the full-system inverse square-root prefactor on the old-pair
 Hamiltonian after removing the last spin. This does not equal the repository's
 standalone $N$-spin SK Hamiltonian at the same $\beta$; no rescaling parameter
 $\beta_-$ is introduced in Section~1.6. The proved cavity identity above is
-finite and deterministic, for a given base energy and field. The split of the
-random pair disorder and its Gaussian product law, the multi-replica identity,
-the interpolating path, Lemmas~1.6.2--1.6.4, and Propositions~1.6.5--1.6.8
+finite and deterministic, for a given base energy and field. The random pair-disorder split and its Gaussian product law are proved above.
+The multi-replica identity, the interpolating path, Lemmas~1.6.2--1.6.4,
+and Propositions~1.6.5--1.6.8
 are \emph{not yet formalized}; this theorem must not be read as asserting them.
 For the future path derivative, the old-pair energy is random: the existing
 Gaussian interpolation theorem must first be applied conditionally on old-pair

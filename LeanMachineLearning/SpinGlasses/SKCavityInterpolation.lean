@@ -144,4 +144,118 @@ theorem integral_last_spin_cavity_field_mul (N : ℕ) (M β : ℝ) (hM : 0 ≤ M
   rw [hab] at hmain
   simpa only [a, b, Finset.mul_sum, mul_assoc, mul_left_comm, mul_comm] using hmain
 
+/-- Embed an old pair into the first `N` sites of the enlarged system. -/
+def oldPair (N : ℕ) (p : FinPairs N) : FinPairs (N + 1) :=
+  ⟨(p.val.1.castSucc, p.val.2.castSucc), Fin.castSucc_lt_castSucc_iff.mpr p.property⟩
+
+/-- The edge from site `i` to the new last site. -/
+def lastPair (N : ℕ) (i : Fin N) : FinPairs (N + 1) :=
+  ⟨(i.castSucc, Fin.last N), Fin.castSucc_lt_last i⟩
+
+private theorem oldPair_injective (N : ℕ) : Function.Injective (oldPair N) := by
+  intro p q h
+  apply Subtype.ext
+  exact Prod.ext (Fin.castSucc_injective N (congrArg (fun x => x.val.1) h))
+    (Fin.castSucc_injective N (congrArg (fun x => x.val.2) h))
+
+private theorem lastPair_injective (N : ℕ) : Function.Injective (lastPair N) := by
+  intro i j h
+  exact Fin.castSucc_injective N (congrArg (fun x => x.val.1) h)
+
+/-- Every pair of sites in `Fin (N+1)` is either an old pair or an edge to the last site.
+This is the combinatorial split used for the disorder coordinates. -/
+noncomputable def finPairs_succ_equiv (N : ℕ) : FinPairs N ⊕ Fin N ≃ FinPairs (N + 1) :=
+  Equiv.ofBijective (Sum.elim (oldPair N) (lastPair N)) (by
+    constructor
+    · intro x y h
+      cases x with
+      | inl p =>
+        cases y with
+        | inl q => exact congrArg Sum.inl (oldPair_injective N h)
+        | inr j =>
+          exfalso
+          have he := congrArg (fun p : FinPairs (N + 1) => p.val.2) h
+          exact (Fin.castSucc_ne_last _ he)
+      | inr i =>
+        cases y with
+        | inl q =>
+          exfalso
+          have he := congrArg (fun p : FinPairs (N + 1) => p.val.2) h.symm
+          exact (Fin.castSucc_ne_last _ he)
+        | inr j => exact congrArg Sum.inr (lastPair_injective N h)
+    · intro p
+      by_cases h : p.val.2 = Fin.last N
+      · rcases Fin.exists_castSucc_eq.mpr (ne_of_lt (by simpa only [h] using p.property)) with ⟨i, hi⟩
+        exact ⟨Sum.inr i, Subtype.ext (Prod.ext hi h.symm)⟩
+      · rcases Fin.exists_castSucc_eq.mpr h with ⟨j, hj⟩
+        have hiLast : p.val.1 ≠ Fin.last N := ne_of_lt (lt_of_lt_of_le p.property (Fin.le_last _))
+        rcases Fin.exists_castSucc_eq.mpr hiLast with ⟨i, hi⟩
+        have hij : i < j := by
+          apply Fin.castSucc_lt_castSucc_iff.mp
+          simpa only [hi, hj] using p.property
+        exact ⟨Sum.inl ⟨(i, j), hij⟩, Subtype.ext (Prod.ext hi hj)⟩)
+
+/-- The SK interaction sum splits into old interactions and the `N` new edges. -/
+theorem sum_finPairs_succ_cavity (N : ℕ) (g : FinPairs (N + 1) → ℝ)
+    (s : Fin (N + 1) → ℝ) :
+    (∑ p : FinPairs (N + 1), g p * s p.val.1 * s p.val.2) =
+      (∑ p : FinPairs N, g (oldPair N p) * s p.val.1.castSucc *
+        s p.val.2.castSucc) +
+      s (Fin.last N) * ∑ i : Fin N, g (lastPair N i) * s i.castSucc := by
+  rw [← (finPairs_succ_equiv N).sum_comp]
+  simp only [Fintype.sum_sum_type, finPairs_succ_equiv, Equiv.ofBijective_apply,
+    Sum.elim_inl, Sum.elim_inr, oldPair, lastPair]
+  rw [Finset.mul_sum]
+  apply congrArg₂ (· + ·) rfl
+  apply Finset.sum_congr rfl
+  intro i hi
+  ring
+
+/-- The same decomposition in the Hamiltonian's Ising-spin notation. -/
+theorem sum_sk_pairs_succ_cavity (N : ℕ) (g : FinPairs (N + 1) → ℝ)
+    (σ : Fin (N + 1) → ℤˣ) :
+    (∑ p : FinPairs (N + 1),
+      g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) =
+      (∑ p : FinPairs N,
+        g (oldPair N p) * (σ p.val.1.castSucc : ℝ) *
+          (σ p.val.2.castSucc : ℝ)) +
+        (σ (Fin.last N) : ℝ) *
+          ∑ i : Fin N, g (lastPair N i) * (σ i.castSucc : ℝ) :=
+  sum_finPairs_succ_cavity N g fun i => (σ i : ℝ)
+
+/-- Independence of the old couplings and the new edges of an i.i.d. Gaussian SK disorder.
+The two coordinate blocks are read through `oldPair` and `lastPair`, respectively. -/
+theorem measurePreserving_sk_cavity_disorder (N : ℕ) :
+    MeasurePreserving
+      (fun g : FinPairs (N + 1) → ℝ =>
+        (fun p : FinPairs N => g (oldPair N p),
+          fun i : Fin N => g (lastPair N i)))
+      (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)
+      ((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
+        (Measure.pi fun _ : Fin N => gaussianReal 0 1)) := by
+  let e : (FinPairs (N + 1) → ℝ) ≃ᵐ (FinPairs N ⊕ Fin N → ℝ) :=
+    MeasurableEquiv.arrowCongr' (finPairs_succ_equiv N).symm (MeasurableEquiv.refl ℝ)
+  have hfirst : MeasurePreserving e
+      (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)
+      (Measure.pi fun _ : FinPairs N ⊕ Fin N => gaussianReal 0 1) := by
+    exact measurePreserving_arrowCongr'
+      (fun _ : FinPairs (N + 1) => gaussianReal 0 1)
+      (fun _ : FinPairs N ⊕ Fin N => gaussianReal 0 1)
+      (finPairs_succ_equiv N).symm (MeasurableEquiv.refl ℝ)
+      (fun _ => (MeasurePreserving.id _))
+  have hsecond := measurePreserving_sumPiEquivProdPi
+    (fun _ : FinPairs N ⊕ Fin N => gaussianReal 0 1)
+  have h := hsecond.comp hfirst
+  convert h using 1
+  funext g
+  apply Prod.ext
+  · funext p
+    simp [e, MeasurableEquiv.arrowCongr', Equiv.arrowCongr', Equiv.arrowCongr,
+      MeasurableEquiv.sumPiEquivProdPi, Equiv.sumPiEquivProdPi,
+      finPairs_succ_equiv]
+  · funext i
+    simp [e, MeasurableEquiv.arrowCongr', Equiv.arrowCongr', Equiv.arrowCongr,
+      MeasurableEquiv.sumPiEquivProdPi, Equiv.sumPiEquivProdPi,
+      finPairs_succ_equiv]
+
 end SpinGlasses
