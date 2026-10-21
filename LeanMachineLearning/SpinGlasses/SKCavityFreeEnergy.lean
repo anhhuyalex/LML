@@ -29,6 +29,19 @@ open scoped BigOperators
 
 namespace SpinGlasses
 
+/-- Model-independent single-spin summation: summing out an Ising spin
+`ε ∈ ℤˣ` against an arbitrary base weight `A` and field `L`. -/
+theorem sum_exp_prod_units {α : Type*} [Fintype α] (A L : α → ℝ) :
+    (∑ x : α × ℤˣ, Real.exp (A x.1 + (x.2 : ℝ) * L x.1)) =
+      2 * ∑ a : α, Real.exp (A a) * Real.cosh (L a) := by
+  rw [Fintype.sum_prod_type]
+  simp_rw [Real.exp_add, sum_units_int]
+  simp only [Units.val_one, Int.cast_one, one_mul, Units.val_neg, Int.cast_neg, neg_mul]
+  rw [show (fun a : α => Real.exp (A a) * Real.exp (L a) + Real.exp (A a) * Real.exp (-L a)) =
+      fun a => 2 * (Real.exp (A a) * Real.cosh (L a)) by
+        funext a; rw [Real.cosh_eq]; ring]
+  rw [← Finset.mul_sum]
+
 /-- **Unnormalised finite cavity identity.**  Summing the final Ising coordinate of
 `exp (A ρ + ε L ρ)` gives `2 exp (A ρ) cosh (L ρ)`.  This is the partition-function
 counterpart of `integral_count_tilted_fin_snoc_cavity_units`, and applies to any finite
@@ -44,17 +57,7 @@ theorem sum_exp_fin_snoc_cavity (N : ℕ)
   rw [← e.sum_comp]
   simp only [e, Equiv.trans_apply, Equiv.prodComm_apply, Fin.snocEquiv_apply,
     Fin.snoc_castSucc, Fin.snoc_last]
-  rw [Fintype.sum_prod_type]
-  simp_rw [Real.exp_add, sum_units_int]
-  simp only [Prod.swap_prod_mk]
-  norm_num
-  rw [show (fun ρ : Fin N → ℤˣ =>
-      Real.exp (A ρ) * Real.exp (L ρ) + Real.exp (A ρ) * Real.exp (-L ρ)) =
-      fun ρ => 2 * (Real.exp (A ρ) * Real.cosh (L ρ)) by
-        funext ρ
-        rw [Real.cosh_eq]
-        ring]
-  rw [← Finset.mul_sum]
+  exact sum_exp_prod_units A L
 
 /-- **Logarithmic finite cavity identity.**  Taking the logarithm of the last-spin
 partition-function factorization splits it into the old partition function and the logarithm
@@ -203,10 +206,10 @@ theorem log_partition_sk_pair_perturb (N : ℕ) (a b h : ℝ)
 /-- Rewriting a constant multiple of the pair-spin coefficient vector against a Gaussian
 vector.  This keeps the finite Gaussian integrability statement below independent of a
 particular SK normalization. -/
-theorem dotProduct_const_pair_spin (N : ℕ) (c : ℝ)
-    (σ : Fin (N + 1) → ℤˣ) (g : FinPairs (N + 1) → ℝ) :
-    (fun p : FinPairs (N + 1) => c * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) ⬝ᵥ g =
-      c * ∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ) := by
+theorem dotProduct_const_pair_spin (M : ℕ) (c : ℝ)
+    (σ : Fin M → ℤˣ) (g : FinPairs M → ℝ) :
+    (fun p : FinPairs M => c * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) ⬝ᵥ g =
+      c * ∑ p : FinPairs M, g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ) := by
   rw [dotProduct, Finset.mul_sum]
   apply Finset.sum_congr rfl
   intro p _
@@ -260,15 +263,15 @@ theorem integrable_log_partition_sk_pair (N : ℕ) (a b h : ℝ) :
 
 /-- The one-block instance of `integrable_log_partition_sk_pair`.  Kept separate because it
 is exactly the marginal integrability hypothesis needed by the product-integral Fubini step. -/
-theorem integrable_log_partition_sk (N : ℕ) (a h : ℝ) :
-    Integrable (fun g : FinPairs (N + 1) → ℝ =>
-      Real.log (∑ σ : Fin (N + 1) → ℤˣ,
-        Real.exp (a * (∑ p : FinPairs (N + 1),
+theorem integrable_log_partition_sk (M : ℕ) (a h : ℝ) :
+    Integrable (fun g : FinPairs M → ℝ =>
+      Real.log (∑ σ : Fin M → ℤˣ,
+        Real.exp (a * (∑ p : FinPairs M,
           g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ))))
-      (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) := by
+      (Measure.pi fun _ : FinPairs M => gaussianReal 0 1) := by
   refine (integrable_log_sum_exp_linear_gaussian
-    (fun (σ : Fin (N + 1) → ℤˣ) p => a * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ))
-    (fun (σ : Fin (N + 1) → ℤˣ) => h * ∑ i, (σ i : ℝ))).congr ?_
+    (fun (σ : Fin M → ℤˣ) p => a * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ))
+    (fun (σ : Fin M → ℤˣ) => h * ∑ i, (σ i : ℝ))).congr ?_
   exact ae_of_all _ fun g => by
     apply congrArg Real.log
     apply Finset.sum_congr rfl
@@ -316,7 +319,7 @@ theorem integral_log_partition_sk_pair_perturb (N : ℕ) (a b h : ℝ) :
         a * (∑ p : FinPairs (N + 1),
           q.1 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ)))
   have hF : Integrable F μ := by
-    simpa only [F, μ] using integrable_log_partition_sk N a h
+    simpa only [F, μ] using integrable_log_partition_sk (N + 1) a h
   have hC : Integrable (fun q =>
       Real.log (∑ σ : Fin (N + 1) → ℤˣ,
         Real.exp (a * (∑ p : FinPairs (N + 1),
@@ -397,5 +400,275 @@ theorem sum_exp_sk_cavity_beta_plus (N : ℕ) (β h : ℝ) (hN : 0 < N)
             ∑ i : Fin N, g (lastPair N i) * (ρ i : ℝ) + h) := by
   rw [sk_beta_plus_coefficient N β hN]
   exact sum_exp_sk_cavity_snoc N ((Real.sqrt (N : ℝ))⁻¹ * β) h g
+
+/-- **Talagrand's Eq. (1.173), pointwise logarithmic cavity identity.**  Pointwise in the
+disorder, the log partition function of the `(N+1)`-spin system at coefficient
+`β / √N = β₊ / √(N+1)` splits into `log 2`, the `N`-spin log partition function, and the log
+Gibbs average of `cosh` of the final-spin cavity field. -/
+theorem log_sum_exp_sk_cavity_snoc (N : ℕ) (c h : ℝ)
+    (g : FinPairs (N + 1) → ℝ) :
+    Real.log (∑ σ : Fin (N + 1) → ℤˣ,
+      Real.exp (c * (∑ p : FinPairs (N + 1),
+        g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ))) =
+      Real.log 2 +
+      Real.log (∑ ρ : Fin N → ℤˣ,
+        Real.exp (c * (∑ p : FinPairs N,
+          g (oldPair N p) * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) + h * ∑ i, (ρ i : ℝ))) +
+      Real.log (∫ ρ : Fin N → ℤˣ,
+        Real.cosh (c * ∑ i : Fin N, g (lastPair N i) * (ρ i : ℝ) + h)
+        ∂Measure.count.tilted (fun ρ =>
+          c * (∑ p : FinPairs N,
+            g (oldPair N p) * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) + h * ∑ i, (ρ i : ℝ))) := by
+  let A : (Fin N → ℤˣ) → ℝ := fun ρ =>
+    c * (∑ p : FinPairs N,
+      g (oldPair N p) * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) + h * ∑ i, (ρ i : ℝ)
+  let L : (Fin N → ℤˣ) → ℝ := fun ρ =>
+    c * ∑ i : Fin N, g (lastPair N i) * (ρ i : ℝ) + h
+  have hsplit : ∀ σ : Fin (N + 1) → ℤˣ,
+      c * (∑ p : FinPairs (N + 1),
+        g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ) =
+      A (fun i => σ i.castSucc) + (σ (Fin.last N) : ℝ) * L (fun i => σ i.castSucc) := by
+    intro σ
+    exact sk_cavity_energy_snoc N c h g σ
+  rw [show (fun σ : Fin (N + 1) → ℤˣ =>
+      Real.exp (c * (∑ p : FinPairs (N + 1),
+        g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ))) =
+      fun σ => Real.exp (A (fun i => σ i.castSucc) +
+        (σ (Fin.last N) : ℝ) * L (fun i => σ i.castSucc)) by
+        funext σ
+        rw [hsplit]]
+  simpa only [A, L] using log_sum_exp_fin_snoc_cavity N A L
+
+/-- **Talagrand's Eq. (1.175), integrated expectation comparison.**  The expectation of the
+`(N+1)`-spin log partition function at coefficient `β / √N = β₊ / √(N+1)` equals the
+unperturbed `(N+1)`-spin free energy at `β` plus the expectation of the independent pair-disorder
+Gibbs perturbation. -/
+theorem integral_log_partition_sk_beta_plus_eq_perturb (N : ℕ) (β h : ℝ) (hN : 0 < N) :
+    (∫ g : FinPairs (N + 1) → ℝ,
+      Real.log (∑ σ : Fin (N + 1) → ℤˣ,
+        Real.exp ((Real.sqrt (N : ℝ))⁻¹ * β *
+          (∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
+          h * ∑ i, (σ i : ℝ)))
+      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) =
+    (∫ g : FinPairs (N + 1) → ℝ,
+      Real.log (∑ σ : Fin (N + 1) → ℤˣ,
+        Real.exp ((Real.sqrt (N + 1 : ℝ))⁻¹ * β *
+          (∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
+          h * ∑ i, (σ i : ℝ)))
+      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) +
+    ∫ q : (FinPairs (N + 1) → ℝ) × (FinPairs (N + 1) → ℝ),
+      Real.log (∫ σ : Fin (N + 1) → ℤˣ,
+        Real.exp (β * (Real.sqrt ((N : ℝ) * (N + 1)))⁻¹ *
+          ∑ p : FinPairs (N + 1), q.2 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ))
+        ∂Measure.count.tilted (fun σ =>
+          (Real.sqrt (N + 1 : ℝ))⁻¹ * β *
+            (∑ p : FinPairs (N + 1), q.1 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
+            h * ∑ i, (σ i : ℝ)))
+      ∂((Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1).prod
+        (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) := by
+  let a := (Real.sqrt (N + 1 : ℝ))⁻¹ * β
+  let b := β * (Real.sqrt ((N : ℝ) * (N + 1)))⁻¹
+  have h1 := integral_log_partition_sk_beta_plus_eq N β h hN
+  have h2 := integral_log_partition_sk_pair_perturb N a b h
+  have hlin : ∀ (q : (FinPairs (N + 1) → ℝ) × (FinPairs (N + 1) → ℝ)) (σ : Fin (N + 1) → ℤˣ),
+      (∑ p : FinPairs (N + 1), (a * q.1 p + b * q.2 p) * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
+        h * ∑ i, (σ i : ℝ) =
+      a * (∑ p : FinPairs (N + 1), q.1 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
+        h * ∑ i, (σ i : ℝ) +
+        b * (∑ p : FinPairs (N + 1), q.2 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) := by
+    intro q σ
+    exact sk_pair_linear_combo_expand N a b h q.1 q.2 σ
+  have heq : (∫ q : (FinPairs (N + 1) → ℝ) × (FinPairs (N + 1) → ℝ),
+      Real.log (∑ σ : Fin (N + 1) → ℤˣ,
+        Real.exp ((∑ p : FinPairs (N + 1),
+          (a * q.1 p + b * q.2 p) * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
+          h * ∑ i, (σ i : ℝ)))
+      ∂((Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1).prod
+        (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))) =
+    ∫ q : (FinPairs (N + 1) → ℝ) × (FinPairs (N + 1) → ℝ),
+      Real.log (∑ σ : Fin (N + 1) → ℤˣ,
+        Real.exp (a * (∑ p : FinPairs (N + 1), q.1 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
+          h * ∑ i, (σ i : ℝ) +
+          b * (∑ p : FinPairs (N + 1), q.2 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ))))
+      ∂((Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1).prod
+        (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) := by
+    apply integral_congr_ae
+    exact ae_of_all _ fun q => by
+      apply congrArg Real.log
+      apply Finset.sum_congr rfl
+      intro σ _
+      apply congrArg Real.exp
+      exact hlin q σ
+  rw [h1, heq, h2]
+
+/-- **Talagrand's Eq. (1.173), integrated cavity split.**  Integrating the pointwise cavity
+identity over the full Gaussian disorder splits the `β₊` log partition expectation into `log 2`,
+the unperturbed `N`-spin free energy at `β`, and the expected log Gibbs average of `cosh` of the
+cavity field. -/
+theorem integral_log_partition_sk_cavity_split (N : ℕ) (β h : ℝ) :
+    (∫ g : FinPairs (N + 1) → ℝ,
+      Real.log (∑ σ : Fin (N + 1) → ℤˣ,
+        Real.exp ((Real.sqrt (N : ℝ))⁻¹ * β *
+          (∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
+          h * ∑ i, (σ i : ℝ)))
+      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) =
+    Real.log 2 +
+    (∫ g : FinPairs N → ℝ,
+      Real.log (∑ ρ : Fin N → ℤˣ,
+        Real.exp ((Real.sqrt (N : ℝ))⁻¹ * β *
+          (∑ p : FinPairs N, g p * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) +
+          h * ∑ i, (ρ i : ℝ)))
+      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) +
+    (∫ w : (FinPairs N → ℝ) × (Fin N → ℝ),
+      Real.log (∫ ρ : Fin N → ℤˣ,
+        Real.cosh ((Real.sqrt (N : ℝ))⁻¹ * β *
+          ∑ i : Fin N, w.2 i * (ρ i : ℝ) + h)
+        ∂Measure.count.tilted (fun ρ =>
+          (Real.sqrt (N : ℝ))⁻¹ * β *
+            (∑ p : FinPairs N, w.1 p * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) +
+            h * ∑ i, (ρ i : ℝ)))
+      ∂((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
+        (Measure.pi fun _ : Fin N => gaussianReal 0 1))) := by
+  let μ_all := Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1
+  let μ_old := Measure.pi fun _ : FinPairs N => gaussianReal 0 1
+  let μ_last := Measure.pi fun _ : Fin N => gaussianReal 0 1
+  let c := (Real.sqrt (N : ℝ))⁻¹ * β
+  let π : (FinPairs (N + 1) → ℝ) → (FinPairs N → ℝ) × (Fin N → ℝ) :=
+    fun g => (fun p => g (oldPair N p), fun i => g (lastPair N i))
+  have hπ : MeasurePreserving π μ_all (μ_old.prod μ_last) :=
+    measurePreserving_sk_cavity_disorder N
+  let F_old : (FinPairs N → ℝ) → ℝ := fun g' =>
+    Real.log (∑ ρ : Fin N → ℤˣ,
+      Real.exp (c * (∑ p : FinPairs N, g' p * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) +
+        h * ∑ i, (ρ i : ℝ)))
+  let H : (FinPairs N → ℝ) × (Fin N → ℝ) → ℝ := fun w =>
+    Real.log (∫ ρ : Fin N → ℤˣ,
+      Real.cosh (c * ∑ i : Fin N, w.2 i * (ρ i : ℝ) + h)
+      ∂Measure.count.tilted (fun ρ =>
+        c * (∑ p : FinPairs N, w.1 p * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) +
+        h * ∑ i, (ρ i : ℝ)))
+  let F_total : (FinPairs (N + 1) → ℝ) → ℝ := fun g =>
+    Real.log (∑ σ : Fin (N + 1) → ℤˣ,
+      Real.exp (c * (∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
+        h * ∑ i, (σ i : ℝ)))
+  have hF_old : Integrable F_old μ_old := integrable_log_partition_sk N c h
+  have hF_old_prod : Integrable (fun w => F_old w.1) (μ_old.prod μ_last) :=
+    hF_old.comp_fst μ_last
+  have hF_old_comp : Integrable (fun g => F_old (π g).1) μ_all :=
+    hπ.integrable_comp_of_integrable hF_old_prod
+  have hF_total : Integrable F_total μ_all := integrable_log_partition_sk (N + 1) c h
+  have hLog2 : Integrable (fun _ : FinPairs (N + 1) → ℝ => Real.log 2) μ_all :=
+    integrable_const (Real.log 2)
+  have hptw : ∀ g, F_total g = Real.log 2 + F_old (π g).1 + H (π g) :=
+    fun g => log_sum_exp_sk_cavity_snoc N c h g
+  have hH_comp : Integrable (fun g => H (π g)) μ_all := by
+    have heq : (fun g => H (π g)) = fun g => F_total g - Real.log 2 - F_old (π g).1 := by
+      funext g
+      rw [hptw g]
+      ring
+    rw [heq]
+    exact (hF_total.sub hLog2).sub hF_old_comp
+  have hsum_int : (∫ g, F_total g ∂μ_all) = (∫ g, Real.log 2 + F_old (π g).1 + H (π g) ∂μ_all) :=
+    integral_congr_ae (ae_of_all _ fun g => hptw g)
+  have h_add1 : Integrable (fun g => Real.log 2 + F_old (π g).1) μ_all := hLog2.add hF_old_comp
+  rw [integral_add h_add1 hH_comp, integral_add hLog2 hF_old_comp] at hsum_int
+  rw [integral_const, probReal_univ, one_smul] at hsum_int
+  have h_old_eq : (∫ g, F_old (π g).1 ∂μ_all) = ∫ g', F_old g' ∂μ_old := by
+    have hG_meas : AEStronglyMeasurable (fun w : (FinPairs N → ℝ) × (Fin N → ℝ) => F_old w.1) (μ_all.map π) := by
+      rw [hπ.map_eq]
+      exact hF_old_prod.aestronglyMeasurable
+    rw [← integral_map hπ.measurable.aemeasurable hG_meas, hπ.map_eq,
+      integral_prod_fun_fst_of_isProbabilityMeasure μ_old μ_last F_old]
+  have hF_old_meas : Measurable F_old := by
+    dsimp [F_old]
+    refine (Finset.measurable_sum _ fun ρ _ => ?_).log
+    apply Measurable.exp
+    fun_prop
+  have h_H_eq : (∫ g, H (π g) ∂μ_all) = ∫ w, H w ∂(μ_old.prod μ_last) := by
+    have hH_decomp : ∀ w, H w =
+        Real.log (∑ σ : Fin (N + 1) → ℤˣ,
+          Real.exp ((c * (∑ p : FinPairs N,
+            w.1 p * (σ p.val.1.castSucc : ℝ) * (σ p.val.2.castSucc : ℝ)) +
+            h * ∑ i : Fin N, (σ i.castSucc : ℝ)) +
+            (σ (Fin.last N) : ℝ) *
+              (c * ∑ i : Fin N, w.2 i * (σ i.castSucc : ℝ) + h))) -
+        Real.log 2 - F_old w.1 := by
+      intro w
+      dsimp [H, F_old]
+      have := log_sum_exp_fin_snoc_cavity N
+        (fun ρ => c * (∑ p : FinPairs N, w.1 p * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) + h * ∑ i, (ρ i : ℝ))
+        (fun ρ => c * ∑ i : Fin N, w.2 i * (ρ i : ℝ) + h)
+      linarith
+    have h_tot_meas : Measurable (fun w : (FinPairs N → ℝ) × (Fin N → ℝ) =>
+        Real.log (∑ σ : Fin (N + 1) → ℤˣ,
+          Real.exp ((c * (∑ p : FinPairs N,
+            w.1 p * (σ p.val.1.castSucc : ℝ) * (σ p.val.2.castSucc : ℝ)) +
+            h * ∑ i : Fin N, (σ i.castSucc : ℝ)) +
+            (σ (Fin.last N) : ℝ) *
+              (c * ∑ i : Fin N, w.2 i * (σ i.castSucc : ℝ) + h)))) := by
+      refine (Finset.measurable_sum _ fun σ _ => ?_).log
+      apply Measurable.exp
+      fun_prop
+    have hH_meas_fun : Measurable H := by
+      have heqH : H = fun w =>
+          Real.log (∑ σ : Fin (N + 1) → ℤˣ,
+            Real.exp ((c * (∑ p : FinPairs N,
+              w.1 p * (σ p.val.1.castSucc : ℝ) * (σ p.val.2.castSucc : ℝ)) +
+              h * ∑ i : Fin N, (σ i.castSucc : ℝ)) +
+              (σ (Fin.last N) : ℝ) *
+                (c * ∑ i : Fin N, w.2 i * (σ i.castSucc : ℝ) + h))) -
+          Real.log 2 - F_old w.1 := by
+        funext w
+        exact hH_decomp w
+      rw [heqH]
+      exact (h_tot_meas.sub measurable_const).sub (hF_old_meas.comp measurable_fst)
+    have hH_aestrong : AEStronglyMeasurable H (μ_all.map π) := by
+      rw [hπ.map_eq]
+      exact hH_meas_fun.aestronglyMeasurable
+    rw [← integral_map hπ.measurable.aemeasurable hH_aestrong, hπ.map_eq]
+  rw [h_old_eq, h_H_eq] at hsum_int
+  exact hsum_int
+
+/-- **Talagrand's Eq. (1.176), exact free-energy increment identity.**  The difference
+between `(N+1) p_{N+1}(β)` and `N p_N(β)` is exactly `log 2` plus the expected log Gibbs average
+of `cosh` of the cavity field, minus the expected log Gibbs average of the exponential
+pair perturbation.  This is an exact finite identity valid for all `N > 0`, `β`, `h`. -/
+theorem sk_free_energy_increment_eq (N : ℕ) (β h : ℝ) (hN : 0 < N) :
+    (∫ g : FinPairs (N + 1) → ℝ,
+      Real.log (∑ σ : Fin (N + 1) → ℤˣ,
+        Real.exp ((Real.sqrt (N + 1 : ℝ))⁻¹ * β *
+          (∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
+          h * ∑ i, (σ i : ℝ)))
+      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) -
+    (∫ g : FinPairs N → ℝ,
+      Real.log (∑ σ : Fin N → ℤˣ,
+        Real.exp ((Real.sqrt (N : ℝ))⁻¹ * β *
+          (∑ p : FinPairs N, g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
+          h * ∑ i, (σ i : ℝ)))
+      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) =
+    Real.log 2 +
+    (∫ w : (FinPairs N → ℝ) × (Fin N → ℝ),
+      Real.log (∫ ρ : Fin N → ℤˣ,
+        Real.cosh ((Real.sqrt (N : ℝ))⁻¹ * β *
+          ∑ i : Fin N, w.2 i * (ρ i : ℝ) + h)
+        ∂Measure.count.tilted (fun ρ =>
+          (Real.sqrt (N : ℝ))⁻¹ * β *
+            (∑ p : FinPairs N, w.1 p * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) +
+            h * ∑ i, (ρ i : ℝ)))
+      ∂((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
+        (Measure.pi fun _ : Fin N => gaussianReal 0 1))) -
+    ∫ q : (FinPairs (N + 1) → ℝ) × (FinPairs (N + 1) → ℝ),
+      Real.log (∫ σ : Fin (N + 1) → ℤˣ,
+        Real.exp (β * (Real.sqrt ((N : ℝ) * (N + 1)))⁻¹ *
+          ∑ p : FinPairs (N + 1), q.2 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ))
+        ∂Measure.count.tilted (fun σ =>
+          (Real.sqrt (N + 1 : ℝ))⁻¹ * β *
+            (∑ p : FinPairs (N + 1), q.1 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
+            h * ∑ i, (σ i : ℝ)))
+      ∂((Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1).prod
+        (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) := by
+  have h1 := integral_log_partition_sk_beta_plus_eq_perturb N β h hN
+  have h2 := integral_log_partition_sk_cavity_split N β h
+  linarith
 
 end SpinGlasses
