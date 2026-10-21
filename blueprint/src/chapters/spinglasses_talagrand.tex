@@ -1212,7 +1212,12 @@ summand by $C$; the resulting counts are $n^2$, $2n^2$, $n$ and $n(n+1)$.
 \begin{lemma}[Diagonal cancellation for cavity replica covariances]
 \label{lem:sg-tal:cavity-diagonal-cancel}
   \lean{SpinGlasses.replica_covariance_combination_cancel_diagonal,
-        SpinGlasses.sk_cavity_covariance_diagonal}
+        sum_sum_offDiag_eq_two_sum_lt,
+        SpinGlasses.replica_covariance_combination_eq_two_sum_lt,
+        SpinGlasses.neg_half_replica_covariance_offDiag,
+        SpinGlasses.sk_cavity_covariance_diagonal,
+        SpinGlasses.sk_cavity_covariance_symmetric,
+        SpinGlasses.neg_sk_cavity_covariance}
   \leanok
 Let $R$ be a finite replica index type and $U:\alpha\times\alpha\to\mathbb R$
 have a constant diagonal $U(a,a)=C$. For any extended replica family,
@@ -1223,6 +1228,10 @@ $|R|(|R|+1)$ extra-replica term remain. For the explicit cavity kernel,
 $C=\beta^2(q-N/(N+1))$ because Ising spins square to one and
 $R^-(a,a)=N/(N+1)$. This proves the diagonal algebra required in
 Eq.~(1.151), not the disorder-averaged derivative or its change of parameter.
+When $U$ is symmetric, the remaining ordered off-diagonal sum is twice the
+sum over strictly ordered pairs; this finite-order identity is factored into
+a general `ForMathlib` lemma and then composed with cancellation, rather than
+reproved for replica indices.
 \end{lemma}
 \begin{proof}
   \leanok
@@ -1304,4 +1313,38 @@ derivative measurable in $\eta$.  The preceding uniform bound is independent
 of $\eta$, so the proof applies the general dominated-differentiation lemma
 \texttt{hasDerivAt\_integral\_conditional\_of\_deriv\_bound} to the conditional
 derivative already proved in Lemma~\ref{lem:sg-tal:cavity-conditional-deriv}.
+\end{proof}
+
+\begin{lemma}[Old-disorder cavity derivative in angle form]
+\label{lem:sg-tal:cavity-path-angle-derivative}
+  \lean{SpinGlasses.hasDerivAt_integral_sk_cavity_path_angle,
+        SpinGlasses.hasDerivAt_integral_sk_cavity_path_angle_offDiag,
+        SpinGlasses.hasDerivAt_integral_sk_cavity_path_square,
+        HasDerivAt.comp_arccos_sqrt_of_sin_cos}
+  \leanok
+For the old-pair SK energy with the common $(N+1)^{-1/2}\beta$ prefactor,
+the full expectation over old pairs, new edges, and the scalar Gaussian is
+differentiable along the trigonometric cavity path.  Its derivative is the
+explicit old-disorder average of the four-term replica covariance expression.
+Thus the random base energy has now been incorporated into the angle form of
+the cavity derivative without treating it as another Gaussian interpolation
+field.
+
+The strengthened declaration applies the constant-diagonal cancellation and
+the symmetric off-diagonal reindexing under all three integrals. Its derivative
+therefore has exactly the three finite replica families appearing in
+Eq.~(1.151), apart from using the angle $s$ and the kernel
+$\beta^2\varepsilon_\ell\varepsilon_{\ell'}(q-R^-_{\ell,\ell'})$.
+`hasDerivAt_integral_sk_cavity_path_square` performs the open-interval change
+$s=\arccos\sqrt t$: its derivative is minus one-half of the displayed
+three-family angle bracket. It remains to distribute that scalar through the
+iterated integral and write the resulting kernel syntactically as
+$R^-_{\ell,\ell'}-q$, exactly as in Eq.~(1.151).
+\end{lemma}
+\begin{proof}
+  \leanok
+Bound the finite observable by its maximum, use measurability of the explicit
+old-pair energy, and specialize
+Lemma~\ref{lem:sg-tal:cavity-outer-derivative} to the product Gaussian law on
+old pairs.
 \end{proof}

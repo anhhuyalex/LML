@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.SpinGlasses.SKCavityOuterBound
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.TrigSquareParam
 
 /-!
 # Averaging the conditional cavity derivative
@@ -221,5 +222,105 @@ theorem hasDerivAt_integral_sk_cavity_path_angle (N n : ℕ) (β q h : ℝ)
   · intro a
     fun_prop
   · exact hM
+
+/-- The old-disorder cavity derivative with the diagonal removed and the
+remaining symmetric replica pairs indexed only once. This is the clean angle
+form preceding Talagrand's change from the angle to `t = cos² s`. -/
+theorem hasDerivAt_integral_sk_cavity_path_angle_offDiag (N n : ℕ) (β q h : ℝ)
+    (hq : q ∈ Set.Icc (0 : ℝ) 1)
+    (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) (t : ℝ) :
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
+      (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs N,
+            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
+        (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
+      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
+        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
+      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
+    let U : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ := fun a b =>
+      β ^ 2 * (a (Fin.last N) : ℝ) * (b (Fin.last N) : ℝ) *
+        (q - (N + 1 : ℝ)⁻¹ *
+          ((fun i : Fin N => (a i.castSucc : ℝ)) ⬝ᵥ fun i : Fin N =>
+            (b i.castSucc : ℝ)))
+    HasDerivAt (fun s =>
+      ∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
+        ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ
+          ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (E s g' ω))
+        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1))
+      (Real.sin t * Real.cos t * ∫ g',
+        ∫ ω : (Fin N → ℝ) × ℝ,
+          ∫ τ : Option (Option (Fin n)) → Fin (N + 1) → ℤˣ,
+            f (fun r => τ (some (some r))) *
+              (2 * ∑ p ∈ (Finset.univ : Finset (Fin n)).offDiag with p.1 < p.2,
+                  U (τ (some (some p.1))) (τ (some (some p.2))) -
+                2 * (n : ℝ) * ∑ r : Fin n,
+                  U (τ (some (some r))) (τ (some none)) +
+                (n : ℝ) * ((n : ℝ) + 1) * U (τ (some none)) (τ none))
+          ∂(Measure.pi fun _ : Option (Option (Fin n)) =>
+            Measure.count.tilted (E t g' ω))
+        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) t := by
+  dsimp
+  refine (hasDerivAt_integral_sk_cavity_path_angle N n β q h hq f t).congr_deriv ?_
+  rw [integral_const_mul]
+  apply congrArg (fun x : ℝ => Real.sin t * Real.cos t * x)
+  refine integral_congr_ae (ae_of_all _ fun g' => ?_)
+  refine integral_congr_ae (ae_of_all _ fun ω => ?_)
+  refine integral_congr_ae (ae_of_all _ fun τ => ?_)
+  apply congrArg (fun x : ℝ => f (fun r => τ (some (some r))) * x)
+  simpa only [Fintype.card_fin] using
+    (replica_covariance_combination_eq_two_sum_lt _ _
+      (fun a => sk_cavity_covariance_diagonal N β q a)
+      (fun a b => sk_cavity_covariance_symmetric N β q a b) τ)
+
+/-- Reparameterize the clean cavity angle path by `t = cos² s` on the open
+unit interval. The derivative is already in the book's sign convention: the
+factor `-1 / 2` reverses `q - R⁻` to `R⁻ - q`. -/
+theorem hasDerivAt_integral_sk_cavity_path_square (N n : ℕ) (β q h t : ℝ)
+    (hq : q ∈ Set.Icc (0 : ℝ) 1) (ht : t ∈ Set.Ioo (0 : ℝ) 1)
+    (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) :
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
+      (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs N,
+            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
+        (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
+      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
+        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
+      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
+    let U : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ := fun a b =>
+      β ^ 2 * (a (Fin.last N) : ℝ) * (b (Fin.last N) : ℝ) *
+        (q - (N + 1 : ℝ)⁻¹ *
+          ((fun i : Fin N => (a i.castSucc : ℝ)) ⬝ᵥ fun i : Fin N =>
+            (b i.castSucc : ℝ)))
+    let Φ : ℝ → ℝ := fun s =>
+      ∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
+        ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ
+          ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (E s g' ω))
+        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
+    let D : ℝ → ℝ := fun s =>
+      ∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
+        ∫ τ : Option (Option (Fin n)) → Fin (N + 1) → ℤˣ,
+          f (fun r => τ (some (some r))) *
+            (2 * ∑ p ∈ (Finset.univ : Finset (Fin n)).offDiag with p.1 < p.2,
+                U (τ (some (some p.1))) (τ (some (some p.2))) -
+              2 * (n : ℝ) * ∑ r : Fin n,
+                U (τ (some (some r))) (τ (some none)) +
+              (n : ℝ) * ((n : ℝ) + 1) * U (τ (some none)) (τ none))
+        ∂(Measure.pi fun _ : Option (Option (Fin n)) =>
+          Measure.count.tilted (E s g' ω))
+        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
+    HasDerivAt (fun u => Φ (Real.arccos (Real.sqrt u)))
+      (-(D (Real.arccos (Real.sqrt t))) / 2) t := by
+  dsimp
+  exact HasDerivAt.comp_arccos_sqrt_of_sin_cos ht.1 ht.2
+    (hasDerivAt_integral_sk_cavity_path_angle_offDiag N n β q h hq f
+      (Real.arccos (Real.sqrt t)))
 
 end SpinGlasses

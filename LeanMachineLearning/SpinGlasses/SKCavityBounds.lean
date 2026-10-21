@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.SpinGlasses.SKCavityDerivative
+public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.OffDiag
 
 /-!
 # Uniform covariance bounds for the cavity replica derivative
@@ -179,6 +180,52 @@ theorem replica_covariance_combination_cancel_diagonal
   rw [hdiag (τ (some none))]
   ring
 
+/-- For a symmetric covariance kernel, the surviving ordered off-diagonal
+terms are twice the strictly ordered replica pairs. This combines diagonal
+cancellation with the generic finite-sum reindexing, while remaining
+independent of the cavity model. -/
+theorem replica_covariance_combination_eq_two_sum_lt
+    {R α : Type*} [Fintype R] [LinearOrder R] (U : α → α → ℝ) (C : ℝ)
+    (hdiag : ∀ a, U a a = C) (hsym : ∀ a b, U a b = U b a)
+    (τ : Option (Option R) → α) :
+    (∑ r : R, ∑ r' : R, U (τ (some (some r))) (τ (some (some r')))) -
+        2 * (Fintype.card R : ℝ) *
+          (∑ r : R, U (τ (some (some r))) (τ (some none))) -
+        (Fintype.card R : ℝ) * U (τ (some none)) (τ (some none)) +
+        (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) *
+          U (τ (some none)) (τ none) =
+      2 * ∑ p ∈ (Finset.univ : Finset R).offDiag with p.1 < p.2,
+          U (τ (some (some p.1))) (τ (some (some p.2))) -
+        2 * (Fintype.card R : ℝ) *
+          (∑ r : R, U (τ (some (some r))) (τ (some none))) +
+        (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) *
+          U (τ (some none)) (τ none) := by
+  rw [replica_covariance_combination_cancel_diagonal U C hdiag τ,
+    sum_sum_offDiag_eq_two_sum_lt
+      (fun r r' => U (τ (some (some r))) (τ (some (some r'))))
+      (fun r r' => hsym _ _)]
+
+/-- The square-parameter chain rule multiplies the clean angle bracket by
+`-1 / 2`. This algebraic form reverses the covariance kernel and gives the
+three coefficients used by Talagrand's cavity derivative. -/
+theorem neg_half_replica_covariance_offDiag
+    {R α : Type*} [Fintype R] [LinearOrder R] (U : α → α → ℝ)
+    (τ : Option (Option R) → α) :
+    -(2 * ∑ p ∈ (Finset.univ : Finset R).offDiag with p.1 < p.2,
+        U (τ (some (some p.1))) (τ (some (some p.2))) -
+      2 * (Fintype.card R : ℝ) * ∑ r : R,
+        U (τ (some (some r))) (τ (some none)) +
+      (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) *
+        U (τ (some none)) (τ none)) / 2 =
+    (∑ p ∈ (Finset.univ : Finset R).offDiag with p.1 < p.2,
+        -U (τ (some (some p.1))) (τ (some (some p.2)))) -
+      (Fintype.card R : ℝ) * ∑ r : R,
+        -U (τ (some (some r))) (τ (some none)) +
+      (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) / 2 *
+        (-U (τ (some none)) (τ none)) := by
+  simp only [Finset.sum_neg_distrib]
+  ring
+
 /-- The cavity covariance has a constant diagonal, including at `N = 0`.
 This is the exact hypothesis for `replica_covariance_combination_cancel_diagonal`. -/
 theorem sk_cavity_covariance_diagonal (N : ℕ) (β q : ℝ)
@@ -195,5 +242,33 @@ theorem sk_cavity_covariance_diagonal (N : ℕ) (β q : ℝ)
     _ = β ^ 2 * (a (Fin.last N) : ℝ) ^ 2 *
         (q - (N : ℝ) / (N + 1 : ℝ)) := by ring
     _ = _ := by rw [hs, mul_one]
+
+/-- The cavity covariance is symmetric in its two spin configurations. -/
+theorem sk_cavity_covariance_symmetric (N : ℕ) (β q : ℝ)
+    (a b : Fin (N + 1) → ℤˣ) :
+    β ^ 2 * (a (Fin.last N) : ℝ) * (b (Fin.last N) : ℝ) *
+      (q - (N + 1 : ℝ)⁻¹ *
+        ((fun i : Fin N => (a i.castSucc : ℝ)) ⬝ᵥ
+          fun i : Fin N => (b i.castSucc : ℝ))) =
+    β ^ 2 * (b (Fin.last N) : ℝ) * (a (Fin.last N) : ℝ) *
+      (q - (N + 1 : ℝ)⁻¹ *
+        ((fun i : Fin N => (b i.castSucc : ℝ)) ⬝ᵥ
+          fun i : Fin N => (a i.castSucc : ℝ))) := by
+  rw [dotProduct_comm]
+  ring
+
+/-- Reversing the cavity covariance puts the overlap in Talagrand's
+`R⁻ - q` convention. -/
+theorem neg_sk_cavity_covariance (N : ℕ) (β q : ℝ)
+    (a b : Fin (N + 1) → ℤˣ) :
+    -(β ^ 2 * (a (Fin.last N) : ℝ) * (b (Fin.last N) : ℝ) *
+      (q - (N + 1 : ℝ)⁻¹ *
+        ((fun i : Fin N => (a i.castSucc : ℝ)) ⬝ᵥ
+          fun i : Fin N => (b i.castSucc : ℝ)))) =
+    β ^ 2 * (a (Fin.last N) : ℝ) * (b (Fin.last N) : ℝ) *
+      ((N + 1 : ℝ)⁻¹ *
+        ((fun i : Fin N => (a i.castSucc : ℝ)) ⬝ᵥ
+          fun i : Fin N => (b i.castSucc : ℝ)) - q) := by
+  ring
 
 end SpinGlasses

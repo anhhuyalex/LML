@@ -1,6 +1,7 @@
 module  -- shake: keep-all --deprecated_module: ignore
 
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.HypercubeProduct
+public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.OffDiag
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.PiFinSucc
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.Weights
 public import LeanMachineLearning.ForMathlib.Analysis.Asymptotics.Theta
@@ -12,6 +13,7 @@ public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.Ultramet
 public import LeanMachineLearning.ForMathlib.Analysis.RpowTsum
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.LogRpow
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SinCosEndpoint
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.TrigSquareParam
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Tanh
 public import LeanMachineLearning.ForMathlib.Analysis.Subadditive
 public import LeanMachineLearning.ForMathlib.Combinatorics.DescFactorial
