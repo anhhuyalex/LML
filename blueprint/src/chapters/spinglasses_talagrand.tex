@@ -1148,7 +1148,7 @@ The path derivative (Lemma~1.6.3, Eq.~(1.151)) and the domination estimate (Lemm
 Eqs.~(1.154)--(1.155)) are proved below for the observables stated there.
 Lemma~1.6.2 is proved for the decoupled endpoint (Theorem~\ref{thm:sg-tal:cavity-decoupled}).
 The $R$-form (1.152) (Theorem~\ref{thm:sg-tal:cavity-path-derivative-full}) and
-Propositions~1.6.5 and~1.6.6 are proved below. Propositions~1.6.7--1.6.8 are
+Propositions~1.6.5, 1.6.6 and~1.6.7 are proved below. Proposition~1.6.8 is
 \emph{not yet formalized}; the lemmas of this section must not be read as asserting them.
 The old-pair energy is random: the existing Gaussian interpolation theorem is applied
 conditionally on the old-pair disorder
@@ -1437,7 +1437,9 @@ by the triangle inequality the total is at most $\bigl(\tfrac{n(n-1)}2+n^2+\tfra
 
 \begin{lemma}[Domination of a triple iterated integral]
 \label{lem:sg-tal:iterated-bound}
-  \lean{abs_integral_integral_integral_le}
+  \lean{abs_integral_integral_integral_le,
+        integral_prod_fun_fst_of_isProbabilityMeasure,
+        integral_prod_fun_snd_of_isProbabilityMeasure}
   \leanok
 \talsource{no counterpart in the book; the integration step of Lemma~1.6.4}
 Let $\mu,\nu$ be measures and $\kappa(x,y)$ a family of measures. If
@@ -1451,7 +1453,8 @@ Apply the bound $\|\int g\|\le\int h$ for $\|g\|\le h$ with $h$ integrable three
 
 \begin{lemma}[Grönwall's inequality run backwards from the endpoint]
 \label{lem:sg-tal:gronwall-backward}
-  \lean{le_exp_mul_endpoint_of_neg_mul_le_deriv}
+  \lean{le_exp_mul_endpoint_of_neg_mul_le_deriv,
+        le_exp_mul_endpoint_of_exists_hasDerivAt}
   \leanok
 \talsource{the integration of Eq.~(1.155) in the proof of Lemma~1.6.4}
 Let $g$ be continuous on $[0,1]$ and differentiable on $(0,1)$ with $g'\ge-Kg$ there. Then

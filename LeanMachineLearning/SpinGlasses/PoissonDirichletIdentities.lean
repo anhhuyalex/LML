@@ -63,7 +63,8 @@ theorem integral_gaussianReal_coordinate_sq
     {α Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω}
     {X : α → Ω → ℝ} (hlaw : ∀ a, HasLaw (X a) (gaussianReal 0 1) P)
     (a : α) : ∫ ω, X a ω ^ 2 ∂P = 1 :=
-  ((hlaw a).integral_comp (f := fun x : ℝ => x ^ 2) (by fun_prop)).trans NTK.integral_sq_gaussianReal
+  ((hlaw a).integral_comp (f := fun x : ℝ => x ^ 2) (by fun_prop)).trans
+    NTK.integral_sq_gaussianReal
 
 /-- The second moment of a standard Gaussian variable about a constant `c` is `1 + c ^ 2`. -/
 theorem integral_gaussianReal_sub_const_sq

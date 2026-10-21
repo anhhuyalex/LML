@@ -24,7 +24,7 @@ namespace SpinGlasses
 /-- **Decoupled last spin.** For the energy `A a + ε Y` on `α × ℤˣ`, an observable that is a
 function of the `α`-coordinates times the product of the last spins over `I` has replica average
 `(tanh Y)^|I|` times the average of the `α`-observable under the energy `A`. -/
-theorem integral_pi_count_tilted_decoupled_spin {α : Type*} [Finite α] [Nonempty α]
+theorem integral_pi_count_tilted_decoupled_spin {α : Type*} [Finite α]
     [MeasurableSpace α]
     [MeasurableSingletonClass α] {n : ℕ} (A : α → ℝ) (Y : ℝ) (F : (Fin n → α) → ℝ)
     (I : Finset (Fin n)) :
