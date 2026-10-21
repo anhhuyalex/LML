@@ -77,4 +77,27 @@ theorem abs_sub_le_half_of_exists_hasDerivAt {φ : ℝ → ℝ} {K : ℝ}
   have := mul_le_mul_of_nonneg_left (hDb s hs) (mul_nonneg hsin hcos)
   linarith
 
+/-- If `φ' = sin s cos s D` with `|D - C| ≤ K` on `[0, π/2]`, then
+`|φ (π / 2) - φ 0 - C / 2| ≤ K / 2`. -/
+theorem abs_sub_sub_half_le_of_exists_hasDerivAt {φ : ℝ → ℝ} {C K : ℝ}
+    (hd : ∀ s, ∃ D, HasDerivAt φ (sin s * cos s * D) s ∧ (s ∈ Icc 0 (π / 2) → |D - C| ≤ K)) :
+    |φ (π / 2) - φ 0 - C / 2| ≤ K / 2 := by
+  have hF : ∀ s, ∃ D', HasDerivAt (fun x => φ x - C / 2 * sin x ^ 2) (sin s * cos s * D') s ∧
+      (s ∈ Icc 0 (π / 2) → |D'| ≤ K) := fun s => by
+    obtain ⟨D, hD, hDb⟩ := hd s
+    have hsq : HasDerivAt (fun x => sin x ^ 2) (2 * sin s * cos s) s := by
+      convert (hasDerivAt_sin s).pow 2 using 1
+      all_goals ring
+    refine ⟨D - C, ?_, fun hs => hDb hs⟩
+    have hderv : HasDerivAt (fun x => φ x - C / 2 * sin x ^ 2)
+        (sin s * cos s * D - C / 2 * (2 * sin s * cos s)) s :=
+      hD.sub (hsq.const_mul (C / 2))
+    convert hderv using 1
+    ring
+  have key := abs_sub_le_half_of_exists_hasDerivAt hF
+  simp only [sin_zero, sq, mul_zero, sin_pi_div_two, mul_one, sub_zero] at key
+  rw [sub_right_comm] at key
+  exact key
+
 end Real
+

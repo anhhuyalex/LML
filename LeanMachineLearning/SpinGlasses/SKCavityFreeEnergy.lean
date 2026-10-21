@@ -673,4 +673,49 @@ theorem sk_free_energy_increment_eq (N : ℕ) (β h : ℝ) (hN : 0 < N) :
   have h2 := integral_log_partition_sk_cavity_split N β h
   linarith
 
+/-- **Algebraic decomposition of the free energy increment deviation from `A(β, h, q)`.**
+The constant `A(β, h, q) = log 2 + (β² / 4) (1 - q)² + 𝔼 log cosh` matches exactly the
+difference between `(β² / 2) (1 - q) + 𝔼 log cosh` and `(β² / 4) (1 - q²)`. -/
+theorem sk_free_energy_step_algebra (β q : ℝ) (log_cosh cavity_cosh perturb : ℝ) :
+    (Real.log 2 + cavity_cosh - perturb) -
+      (Real.log 2 + β ^ 2 / 4 * (1 - q) ^ 2 + log_cosh) =
+    (cavity_cosh - (β ^ 2 / 2 * (1 - q) + log_cosh)) -
+      (perturb - β ^ 2 / 4 * (1 - q ^ 2)) := by
+  ring
+
+/-- **Triangle-inequality reduction for the cavity free-energy increment.**  Bounding the cavity
+`cosh` error and the pair perturbation error bounds the total error against `A(β, h, q)`. -/
+theorem abs_sk_free_energy_step_sub_le (β q : ℝ) (log_cosh cavity_cosh perturb : ℝ) :
+    |(Real.log 2 + cavity_cosh - perturb) -
+      (Real.log 2 + β ^ 2 / 4 * (1 - q) ^ 2 + log_cosh)| ≤
+    |cavity_cosh - (β ^ 2 / 2 * (1 - q) + log_cosh)| +
+      |perturb - β ^ 2 / 4 * (1 - q ^ 2)| := by
+  rw [sk_free_energy_step_algebra]
+  exact abs_sub _ _
+
+/-- **Assembly theorem for Proposition 1.6.8 (Talagrand Eq. 1.170).**  Combining the exact
+cavity increment identity (Eq. 1.176) with the cavity `cosh` estimate (Eq. 1.181) and the pair
+perturbation estimate (Eq. 1.182) yields the quantitative rate
+`K (1 / N + ν(|R_{1,2} - q|))` against `A(β, h, q)`. -/
+theorem sk_cavity_free_energy_step_le_of_estimates (β q : ℝ) (N : ℕ) (hN : 0 < N)
+    (log_cosh cavity_cosh perturb ν K1 K2 K3 K : ℝ)
+    (h_cosh : |cavity_cosh - (β ^ 2 / 2 * (1 - q) + log_cosh)| ≤ K1 * ν)
+    (h_perturb : |perturb - β ^ 2 / 4 * (1 - q ^ 2)| ≤ K2 / (N : ℝ) + K3 * ν)
+    (hK1 : K2 ≤ K) (hK2 : K1 + K3 ≤ K) (hν : 0 ≤ ν) :
+    |(Real.log 2 + cavity_cosh - perturb) -
+      (Real.log 2 + β ^ 2 / 4 * (1 - q) ^ 2 + log_cosh)| ≤
+    K * (1 / (N : ℝ) + ν) := by
+  have h_tri := abs_sk_free_energy_step_sub_le β q log_cosh cavity_cosh perturb
+  have hNpos : 0 ≤ 1 / (N : ℝ) := by positivity
+  calc |(Real.log 2 + cavity_cosh - perturb) -
+        (Real.log 2 + β ^ 2 / 4 * (1 - q) ^ 2 + log_cosh)|
+    _ ≤ |cavity_cosh - (β ^ 2 / 2 * (1 - q) + log_cosh)| +
+        |perturb - β ^ 2 / 4 * (1 - q ^ 2)| := h_tri
+    _ ≤ K1 * ν + (K2 / (N : ℝ) + K3 * ν) := add_le_add h_cosh h_perturb
+    _ = K2 * (1 / (N : ℝ)) + (K1 + K3) * ν := by ring
+    _ ≤ K * (1 / (N : ℝ)) + K * ν :=
+      add_le_add (mul_le_mul_of_nonneg_right hK1 hNpos)
+        (mul_le_mul_of_nonneg_right hK2 hν)
+    _ = K * (1 / (N : ℝ) + ν) := by ring
+
 end SpinGlasses

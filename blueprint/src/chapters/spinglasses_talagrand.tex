@@ -1320,6 +1320,33 @@ Combine the integrated cavity split \texttt{integral\_log\_partition\_sk\_cavity
 using measure-preserving coordinate splits and Fubini transport.
 \end{proof}
 
+\begin{theorem}[Reduction of cavity free-energy increment (Proposition 1.6.8, Eq.~(1.170))]
+\label{thm:sg-tal:cavity-free-energy-assembly}
+  \lean{Real.abs_sub_sub_half_le_of_exists_hasDerivAt,
+        SpinGlasses.sk_free_energy_step_algebra,
+        SpinGlasses.abs_sk_free_energy_step_sub_le,
+        SpinGlasses.sk_cavity_free_energy_step_le_of_estimates}
+  \leanok
+\talsource{Proposition~1.6.8, Eq.~(1.170)}
+The exact increment deviation from $A(\beta, h, q) = \log 2 + \frac{\beta^2}{4}(1-q)^2 + \mathbb E \log \cosh(\beta z \sqrt q + h)$
+decomposes algebraically as
+\[
+  ((N+1) p_{N+1} - N p_N) - A(\beta, h, q) =
+  \left(\mathbb E \log \langle \cosh L \rangle - \frac{\beta^2}{2}(1-q) - \mathbb E \log \cosh\right)
+  - \left(\mathbb E \log \langle \exp(\text{perturb}) \rangle' - \frac{\beta^2}{4}(1-q^2)\right).
+\]
+Consequently, any quantitative bounds on the cavity $\cosh$ and pair-perturbation errors
+yield the Proposition~1.6.8 bound $|(N+1)p_{N+1} - N p_N - A(\beta, h, q)| \le K(N^{-1} + \nu(|R_{1,2}-q|))$.
+\end{theorem}
+\begin{proof}
+  \leanok
+Expanding $(1-q)^2 = 1 - 2q + q^2$ and combining with $\frac{\beta^2}{2}(1-q) - \frac{\beta^2}{4}(1-q^2)$ gives
+the exact constant $A(\beta, h, q)$ by \texttt{sk\_free\_energy\_step\_algebra}.
+The triangle inequality \texttt{abs\_sk\_free\_energy\_step\_sub\_le} and \texttt{sk\_cavity\_free\_energy\_step\_le\_of\_estimates}
+complete the reduction.
+\end{proof}
+
+
 
 \begin{lemma}[Covariances of the last-spin cavity fields]
 \label{lem:sg-tal:cavity-field-covariance-difference}

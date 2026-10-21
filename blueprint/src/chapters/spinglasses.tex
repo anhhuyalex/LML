@@ -1178,6 +1178,42 @@ on $[0,\pi/2]$, since $(B-A)(a,a)=0$ and $B\ge A$. Hence $\varphi(\pi/2)\le\varp
 $\mathbb R$, so no endpoint continuity or singular derivative at $t=0,1$ occurs, unlike $\sqrt tX+\sqrt{1-t}Y$.)
 \end{proof}
 
+\begin{remark}[Why the Lean statement assumes \texttt{MeasurableSingletonClass}]\label{rem:sg:measurablesingleton}
+Mathematically $\alpha$ is just a finite set and every average over it is a finite sum, so no measure theory on $\alpha$ is needed.
+The Lean statement carries the extra hypotheses \texttt{[MeasurableSpace $\alpha$] [MeasurableSingletonClass $\alpha$]} only because
+the Gibbs average is written as an integral, $\langle g\rangle=\int g\,d\mu_{f}$ with $\mu_f$ the counting measure \texttt{Measure.count}
+tilted by $e^{f}$ (and $\langle g(\sigma^1,\sigma^2)\rangle$ as an integral against $\mu_f\otimes\mu_f$ on $\alpha\times\alpha$), so that
+Gaussian integration by parts (Lemma~1.1) and the differentiation of Lemma~\ref{lem:sg:pathderiv} apply verbatim.
+\texttt{Fintype $\alpha$} does not imply these hypotheses: a finite type may carry any $\sigma$-algebra, for instance the trivial one
+$\{\emptyset,\alpha\}$, in which the only measurable functions $\alpha\to\mathbb R$ are the constants and the integral against the counting measure
+is no longer the sum $\sum_ag(a)$. \texttt{MeasurableSingletonClass $\alpha$} says that each $\{a\}$ is measurable. On a finite type
+this makes every subset measurable (a finite union of singletons), so the $\sigma$-algebra is the discrete one and every function on $\alpha$ is
+measurable. This is what gives $\int g\,d\texttt{count}=\sum_ag(a)$ (\texttt{integral\_count\_eq\_sum}), and it makes the two-replica space
+$\alpha\times\alpha$ discrete as well, so that $\{(a,b)\}=\{a\}\times\{b\}$ is measurable and the product measure is the sum over pairs.
+The hypotheses lose no generality: they hold for the hypercube $\{-1,+1\}^\iota$ and every other finite configuration space of this
+chapter with the discrete $\sigma$-algebra, which can always be chosen (\texttt{MeasurableSpace.measurableSet\_top}). They are not
+a restriction on the disorder $(X,Y)$, which is a random field on an arbitrary probability space.
+\end{remark}
+
+\begin{remark}[The hypothesis \texttt{hXY}: $(X,Y)$ is jointly Gaussian]\label{rem:sg:hxy}
+In Theorem~\ref{thm:sg:comparison} the Lean hypothesis is
+\texttt{hXY : HasGaussianLaw (fun omega s => Sum.elim X Y s omega) P}. Here $X,Y:\alpha\to\Omega\to\mathbb R$ are two families of random
+variables on the same probability space $(\Omega,P)$. \texttt{Sum.elim X Y} is the combined family indexed by the disjoint union
+$\alpha\sqcup\alpha$: it is $X(a)$ at the index $\texttt{inl}\,a$ and $Y(a)$ at $\texttt{inr}\,a$. So the function
+$\omega\mapsto(s\mapsto\texttt{Sum.elim X Y}\,s\,\omega)$ is the random vector $(X(a))_{a\in\alpha},(Y(a))_{a\in\alpha}$ in $\mathbb R^{\alpha\sqcup\alpha}$,
+and \texttt{HasGaussianLaw} says that its law under $P$ is a Gaussian measure: every finite linear combination
+$\sum_ac_aX(a)+\sum_ad_aY(a)$ is a real Gaussian variable (possibly constant). This is Definition~\ref{def:sg:gaussianfield} applied to the pair.
+It means that $(X,Y)$ is \emph{jointly} Gaussian, which is stronger than $X$ and $Y$ being separately Gaussian: each of
+$X$ and $Y$ may be a Gaussian field and still the pair fail to be, because separate Gaussianity does not constrain how they depend on
+each other. For example, $Y=\varepsilon X$ with an independent sign $\varepsilon=\pm1$ has Gaussian $X$ and $Y$ with $\mathbb E[X(a)Y(b)]=0$, but $(X,Y)$ is not jointly Gaussian.
+The proof uses the hypothesis in two places. First, every linear combination $\cos s\,X+\sin s\,Y+h$ along the interpolation path is
+Gaussian, with covariance computed from $A=\mathrm{Cov}X$ and $B=\mathrm{Cov}Y$ (\texttt{hasGaussianLaw\_sumElim\_lincomb},
+\texttt{integral\_lincomb\_mul\_lincomb}). Second, the pair $(x_s,u_s)$ with $x_s=-\sin s\,X+\cos s\,Y$ is jointly Gaussian, which is the form in which Gaussian integration by
+parts (Lemma~1.1, Theorem~\ref{thm:sg:lemma11}) is stated. The remaining hypotheses \texttt{hX, hY, h0} then say that the means vanish and that the cross-covariance
+$\mathbb E[X(a)Y(b)]$ is zero. Together with \texttt{hXY} they say that $X$ and $Y$ are independent centered Gaussian fields, since for jointly Gaussian
+variables zero covariance is equivalent to independence. The measurability hypotheses \texttt{hXm, hYm} are separate: they say that each $X(a)$, $Y(a)$ is a random variable.
+\end{remark}
+
 \section{The Guerra--Toninelli theorem: superadditivity and the thermodynamic limit}\label{sec:sg:gt}
 
 \begin{lemma}[Fekete's lemma for superadditive sequences, Panchenko Lemma~1.3]\label{lem:sg:fekete}
