@@ -176,21 +176,15 @@ theorem integrable_log_sum_exp_linear_gaussian_prod {κ₁ κ₂ : Type*} [Finty
       Real.log (∑ x, Real.exp (a x ⬝ᵥ q.1 + b x ⬝ᵥ q.2 + d x)))
       ((Measure.pi fun _ : κ₁ => gaussianReal 0 1).prod
         (Measure.pi fun _ : κ₂ => gaussianReal 0 1)) := by
-  have hm : ∀ x, Measurable fun q : (κ₁ → ℝ) × (κ₂ → ℝ) =>
-      a x ⬝ᵥ q.1 + b x ⬝ᵥ q.2 + d x := by
-    intro x
-    fun_prop
-  have hi : ∀ x, Integrable (fun q : (κ₁ → ℝ) × (κ₂ → ℝ) =>
-      a x ⬝ᵥ q.1 + b x ⬝ᵥ q.2 + d x)
-      ((Measure.pi fun _ : κ₁ => gaussianReal 0 1).prod
-        (Measure.pi fun _ : κ₂ => gaussianReal 0 1)) := by
-    intro x
-    refine (((ProbabilityTheory.hasGaussianLaw_dotProduct_family a).eval x).integrable
-      |>.comp_fst _ |>.add
-        (((ProbabilityTheory.hasGaussianLaw_dotProduct_family b).eval x).integrable.comp_snd _)
-      |>.add (integrable_const (d x))).congr ?_
-    exact ae_of_all _ fun q => by simp only [Pi.add_apply]
-  simpa only [one_mul] using integrable_log_sum_exp one_pos hm hi
+  have hmp := measurePreserving_sumPiEquivProdPi_symm
+    (X := fun _ : κ₁ ⊕ κ₂ => ℝ) (fun _ => gaussianReal 0 1)
+  have h := integrable_log_sum_exp_linear_gaussian
+    (fun x => Sum.elim (a x) (b x)) d
+  refine (hmp.integrable_comp_of_integrable h).congr (ae_of_all _ fun q => ?_)
+  simp only [Function.comp_apply, MeasurableEquiv.coe_sumPiEquivProdPi_symm]
+  congr 3
+  funext x
+  simp [dotProduct, Fintype.sum_sum_type]
 
 variable [IsProbabilityMeasure μ]
 

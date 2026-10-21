@@ -44,6 +44,23 @@ theorem sum_exp_prod_units {α : Type*} [Fintype α] (A L : α → ℝ) :
         funext a; rw [Real.cosh_eq]; ring]
   rw [← Finset.mul_sum]
 
+/-- **Model-independent logarithmic single-spin identity.**  Taking the logarithm after
+summing an Ising sign separates the base log partition function from the logarithm of the
+base Gibbs average of `cosh L`. -/
+theorem log_sum_exp_prod_units {α : Type*} [Fintype α] [Nonempty α]
+    [MeasurableSpace α] [MeasurableSingletonClass α] (A L : α → ℝ) :
+    Real.log (∑ x : α × ℤˣ, Real.exp (A x.1 + (x.2 : ℝ) * L x.1)) =
+      Real.log 2 + Real.log (∑ a : α, Real.exp (A a)) +
+        Real.log (∫ a : α, Real.cosh (L a) ∂Measure.count.tilted A) := by
+  rw [sum_exp_prod_units]
+  have hpos : 0 < ∑ a : α, Real.exp (A a) * Real.cosh (L a) :=
+    Finset.sum_pos (fun a _ => mul_pos (Real.exp_pos _) (Real.cosh_pos _))
+      Finset.univ_nonempty
+  rw [Real.log_mul two_ne_zero hpos.ne']
+  have havg := log_integral_count_tilted A (fun a => Real.cosh (L a))
+    (fun a => Real.cosh_pos (L a))
+  linarith
+
 /-- **Unnormalised finite cavity identity.**  Summing the final Ising coordinate of
 `exp (A ρ + ε L ρ)` gives `2 exp (A ρ) cosh (L ρ)`.  This is the partition-function
 counterpart of `integral_count_tilted_fin_snoc_cavity_units`, and applies to any finite
@@ -72,13 +89,12 @@ theorem log_sum_exp_fin_snoc_cavity (N : ℕ)
         L (fun i => σ i.castSucc))) =
       Real.log 2 + Real.log (∑ ρ : Fin N → ℤˣ, Real.exp (A ρ)) +
         Real.log (∫ ρ : Fin N → ℤˣ, Real.cosh (L ρ) ∂Measure.count.tilted A) := by
-  rw [sum_exp_fin_snoc_cavity]
-  have hpos : 0 < ∑ ρ : Fin N → ℤˣ, Real.exp (A ρ) * Real.cosh (L ρ) :=
-    Finset.sum_pos (fun ρ _ => mul_pos (Real.exp_pos _) (Real.cosh_pos _)) Finset.univ_nonempty
-  rw [Real.log_mul two_ne_zero hpos.ne']
-  have havg := log_integral_count_tilted A (fun ρ => Real.cosh (L ρ))
-    (fun ρ => Real.cosh_pos (L ρ))
-  linarith
+  let e : ((Fin N → ℤˣ) × ℤˣ) ≃ (Fin (N + 1) → ℤˣ) :=
+    (Equiv.prodComm (Fin N → ℤˣ) ℤˣ).trans (Fin.snocEquiv fun _ => ℤˣ)
+  rw [← e.sum_comp]
+  simp only [e, Equiv.trans_apply, Equiv.prodComm_apply, Fin.snocEquiv_apply,
+    Fin.snoc_castSucc, Fin.snoc_last]
+  exact log_sum_exp_prod_units A L
 
 /-- Split a pairwise SK energy and its uniform external field into its old-spin energy and
 its final-spin cavity field.  The coefficient is arbitrary, which is exactly what is needed

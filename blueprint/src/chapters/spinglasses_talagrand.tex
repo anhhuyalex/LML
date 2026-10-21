@@ -1151,7 +1151,7 @@ If $|D(s,\eta)|\le M$ uniformly, then
 \frac{d}{ds}\bigg|_{s=t}\int F(s,\eta)\,dP_0(\eta)
 =\int D(t,\eta)\,dP_0(\eta).
 \]
-The specialization \\texttt{has\_DerivAt\_integral\_conditional\_log\_sum\_exp\_trig}
+The specialization \texttt{hasDerivAt\_integral\_conditional\_log\_sum\_exp\_trig}
 combines this Fubini step with the Gaussian log-partition derivative.  It keeps the three
 outer measurability, integrability, and uniform derivative-bound obligations explicit, so it
 applies to a random base energy without a cavity-path wrapper.
@@ -1387,6 +1387,7 @@ independent pair-disorder perturbation.
 \begin{theorem}[Exact cavity free-energy increment identity (Proposition 1.6.8, Eq.~(1.176))]
 \label{thm:sg-tal:cavity-free-energy-increment}
   \lean{SpinGlasses.sum_exp_prod_units,
+        SpinGlasses.log_sum_exp_prod_units,
         SpinGlasses.log_sum_exp_sk_cavity_snoc,
         SpinGlasses.integral_log_partition_sk_pair_perturb,
         SpinGlasses.integral_log_partition_sk_beta_plus_eq_perturb,
