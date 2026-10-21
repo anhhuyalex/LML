@@ -1433,6 +1433,59 @@ The triangle inequality \texttt{abs\_sk\_free\_energy\_step\_sub\_le} and \textt
 complete the reduction.
 \end{proof}
 
+\begin{theorem}[Cavity $\cosh$ interpolation estimate (Proposition 1.6.8, Eq.~(1.181))]
+\label{thm:sg-tal:cavity-cosh-estimate}
+  \lean{SpinGlasses.sk_cavity_cosh_estimate_le}
+  \leanok
+\talsource{Proposition~1.6.8, Eq.~(1.181)}
+For any interpolating path $\varphi$ between the cavity $\cosh$ expectation at $0$ and the decoupled
+standard Gaussian expectation at $\pi / 2$, if its derivative along the trigonometric path has
+deviation from $-\beta^2(1-q)$ bounded by $2 K_1 \nu$ on $[0, \pi/2]$, then
+\[
+  \left|\mathbb E \log \langle \cosh(u_\sigma + h) \rangle - \frac{\beta^2}{2}(1-q) - \mathbb E \log \cosh(\beta z \sqrt q + h)\right| \le K_1 \nu.
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+Apply \texttt{Real.abs\_sub\_sub\_half\_le\_of\_exists\_hasDerivAt} with $C = -\beta^2(1-q)$ and $K = 2 K_1 \nu$.
+\end{proof}
+
+\begin{theorem}[Pair perturbation interpolation estimate (Proposition 1.6.8, Eq.~(1.182))]
+\label{thm:sg-tal:pair-perturb-estimate}
+  \lean{SpinGlasses.sk_pair_perturb_estimate_le}
+  \leanok
+\talsource{Proposition~1.6.8, Eq.~(1.182)}
+For any interpolating path $\psi$ between the pair perturbation expectation at $0$ and $0$ at $\pi / 2$,
+if its derivative along the trigonometric path has deviation from $-\frac{\beta^2}{2}(1-q^2)$ bounded by
+$2 (K_2 / N + K_3 \nu)$ on $[0, \pi/2]$, then
+\[
+  \left|\mathbb E \log \langle \exp(\text{perturb}) \rangle' - \frac{\beta^2}{4}(1-q^2)\right| \le \frac{K_2}{N} + K_3 \nu.
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+Apply \texttt{Real.abs\_sub\_sub\_half\_le\_of\_exists\_hasDerivAt} with $C = -\frac{\beta^2}{2}(1-q^2)$ and $K = 2(K_2/N + K_3 \nu)$.
+\end{proof}
+
+\begin{theorem}[Cavity free-energy step bound (Proposition 1.6.8, Eq.~(1.170))]
+\label{thm:sg-tal:cavity-free-energy-step}
+  \lean{SpinGlasses.cavity_free_energy_step_le,
+        SpinGlasses.sk_cavity_free_energy_step_le}
+  \leanok
+\talsource{Proposition~1.6.8, Eq.~(1.170)}
+For all $N > 0$ and $\beta, h, q \in \mathbb R$, combining the exact free-energy increment identity
+(Eq.~(1.176)) with the cavity $\cosh$ estimate (Eq.~(1.181)) and the pair perturbation estimate (Eq.~(1.182))
+yields the quantitative rate
+\[
+  |(N+1) p_{N+1}(\beta, h) - N p_N(\beta, h) - A(\beta, h, q)| \le K \left(\frac{1}{N} + \nu\right).
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+Combine \texttt{sk\_free\_energy\_increment\_eq} with the assembly theorem
+\texttt{sk\_cavity\_free\_energy\_step\_le\_of\_estimates}.
+\end{proof}
+
 
 
 \begin{lemma}[Covariances of the last-spin cavity fields]
