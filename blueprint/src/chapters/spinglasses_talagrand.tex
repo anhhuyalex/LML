@@ -1150,7 +1150,8 @@ Eqs.~(1.154)--(1.155)) are proved below for the observables stated there.
 Lemma~1.6.2 is proved for the decoupled endpoint (Theorem~\ref{thm:sg-tal:cavity-decoupled}).
 The $R$-form (1.152) (Theorem~\ref{thm:sg-tal:cavity-path-derivative-full}) and
 Propositions~1.6.5, 1.6.6 and~1.6.7 are proved below. Proposition~1.6.8 is
-\emph{not yet formalized}; the lemmas of this section must not be read as asserting them.
+open beyond its pointwise cavity identity (Eq.~(1.172)), formalized below; its disorder-law
+comparison, Gaussian interpolation estimates, and final quantitative bound remain open.
 The old-pair energy is random: the existing Gaussian interpolation theorem is applied
 conditionally on the old-pair disorder
 (Lemma~\ref{lem:sg-tal:cavity-conditional-deriv}), and
@@ -1185,6 +1186,35 @@ The edge family is a finite system of Gaussian linear forms. The scalar
 family is the continuous linear image of $z\sim N(0,1)$; the product
 of independent Gaussian vectors is jointly Gaussian. Both means vanish
 by the centered Gaussian coordinate integrals.
+\end{proof}
+
+\begin{theorem}[Pointwise cavity partition identity (Proposition 1.6.8, Eq.~(1.172))]
+\label{thm:sg-tal:cavity-free-energy-split}
+  \lean{SpinGlasses.sum_exp_fin_snoc_cavity,
+        SpinGlasses.sk_cavity_energy_snoc,
+        SpinGlasses.sk_beta_plus_coefficient,
+        SpinGlasses.sum_exp_sk_cavity_snoc,
+        SpinGlasses.sum_exp_sk_cavity_beta_plus}
+  \leanok
+\talsource{Proposition~1.6.8, Eq.~(1.172)}
+For $N>0$, put $\beta_+=\beta\sqrt{1+1/N}$.  Pointwise in the disorder of an
+$(N+1)$-spin system,
+\[
+ Z_{N+1}(\beta_+)=2\sum_{\rho\in\{-1,1\}^N}
+ \exp\{-H_N(\rho)\}\,
+ \cosh\!\left(\frac\beta{\sqrt N}\sum_{i<N}g_{i,N+1}\rho_i+h\right).
+\]
+Equivalently this is $2Z_N(\beta)$ times the old-system Gibbs average of the displayed
+hyperbolic cosine.  The Lean theorem deliberately states the unnormalised finite sum, so it
+does not introduce a partition-function wrapper.
+\end{theorem}
+\begin{proof}
+  \leanok
+First reindex a configuration by its first $N$ coordinates and its final spin
+(\texttt{Fin.snoc}).  The sum over the two final-spin values is
+$e^L+e^{-L}=2\cosh L$ (\texttt{sum\_exp\_fin\_snoc\_cavity}).  The pair sum and field split
+algebraically by \texttt{sk\_cavity\_energy\_snoc}.  Finally
+$\beta_+/\sqrt{N+1}=\beta/\sqrt N$ is \texttt{sk\_beta\_plus\_coefficient}.
 \end{proof}
 
 \begin{lemma}[Covariances of the last-spin cavity fields]
@@ -1726,4 +1756,3 @@ right-hand side is at most $(64(k+1)x)^{k+1}$.
 \emph{Deviation:} $\beta_0$ is replaced by the explicit smallness hypothesis; the book's
 $\beta_0$ is not made explicit.
 \end{proof}
-
