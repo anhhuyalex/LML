@@ -194,7 +194,7 @@ theorem replica_covariance_combination_eq_two_sum_lt
         (Fintype.card R : ℝ) * U (τ (some none)) (τ (some none)) +
         (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) *
           U (τ (some none)) (τ none) =
-      2 * ∑ p ∈ (Finset.univ : Finset R).offDiag with p.1 < p.2,
+      2 * ∑ p : R × R with p.1 < p.2,
           U (τ (some (some p.1))) (τ (some (some p.2))) -
         2 * (Fintype.card R : ℝ) *
           (∑ r : R, U (τ (some (some r))) (τ (some none))) +
@@ -211,13 +211,13 @@ three coefficients used by Talagrand's cavity derivative. -/
 theorem neg_half_replica_covariance_offDiag
     {R α : Type*} [Fintype R] [LinearOrder R] (U : α → α → ℝ)
     (τ : Option (Option R) → α) :
-    -(2 * ∑ p ∈ (Finset.univ : Finset R).offDiag with p.1 < p.2,
+    -(2 * ∑ p : R × R with p.1 < p.2,
         U (τ (some (some p.1))) (τ (some (some p.2))) -
       2 * (Fintype.card R : ℝ) * ∑ r : R,
         U (τ (some (some r))) (τ (some none)) +
       (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) *
         U (τ (some none)) (τ none)) / 2 =
-    (∑ p ∈ (Finset.univ : Finset R).offDiag with p.1 < p.2,
+    (∑ p : R × R with p.1 < p.2,
         -U (τ (some (some p.1))) (τ (some (some p.2)))) -
       (Fintype.card R : ℝ) * ∑ r : R,
         -U (τ (some (some r))) (τ (some none)) +

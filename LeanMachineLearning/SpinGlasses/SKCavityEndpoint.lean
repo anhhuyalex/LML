@@ -75,12 +75,7 @@ theorem integral_sk_cavity_coupled_endpoint (N n : ℕ) (β h : ℝ)
       dsimp [E]
       fun_prop
     rw [hFE]
-    classical
-    simp_rw [integral_pi_count_tilted]
-    exact Finset.measurable_fun_sum _ fun σ _ =>
-      (Finset.measurable_fun_prod _ fun r _ => by
-        exact ((hm (σ r)).exp.div
-          (Finset.measurable_fun_sum _ fun a _ => (hm a).exp))).mul measurable_const
+    exact measurable_integral_pi_count_tilted hm fun _ => measurable_const
   have hFi : Integrable F ((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
       (Measure.pi fun _ : Fin N => gaussianReal 0 1)) := by
     let M : ℝ := ∑ σ : Fin n → Fin (N + 1) → ℤˣ, |f σ|

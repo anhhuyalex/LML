@@ -26,58 +26,30 @@ The result is stated for every finite linear order, rather than a particular
 replica type. -/
 theorem sum_sum_offDiag_eq_two_sum_lt {ι : Type*} [Fintype ι] [LinearOrder ι]
     (U : ι → ι → ℝ) (hU : ∀ a b, U a b = U b a) :
-    (∑ a, ∑ b, if a = b then 0 else U a b) =
-      2 * ∑ p ∈ (Finset.univ : Finset ι).offDiag with p.1 < p.2, U p.1 p.2 := by
+    (∑ a, ∑ b, if a = b then 0 else U a b) = 2 * ∑ p : ι × ι with p.1 < p.2, U p.1 p.2 := by
   classical
-  let s : Finset (ι × ι) := (Finset.univ : Finset ι).offDiag
-  let sl : Finset (ι × ι) := s.filter fun p => p.1 < p.2
-  let sg : Finset (ι × ι) := s.filter fun p => ¬ p.1 < p.2
-  have hsplit : (∑ p ∈ s, U p.1 p.2) =
-      (∑ p ∈ sl, U p.1 p.2) + ∑ p ∈ sg, U p.1 p.2 := by
-    exact (Finset.sum_filter_add_sum_filter_not s (fun p => p.1 < p.2)
-      fun p => U p.1 p.2).symm
-  have hswap : (∑ p ∈ sg, U p.1 p.2) = ∑ p ∈ sl, U p.1 p.2 := by
-    refine Finset.sum_bij (fun p _ => (p.2, p.1)) ?_ ?_ ?_ ?_
-    · intro p hp
-      rcases Finset.mem_filter.mp (by simpa only [sg] using hp) with ⟨hps, hpnot⟩
-      have hpsoff : p ∈ (Finset.univ : Finset ι).offDiag := by
-        change p ∈ (Finset.univ : Finset ι).offDiag at hps
-        exact hps
-      have hpne : p.1 ≠ p.2 := (Finset.mem_offDiag.mp hpsoff).2.2
-      have hplt : p.2 < p.1 := lt_of_le_of_ne (le_of_not_gt hpnot) (Ne.symm hpne)
-      refine Finset.mem_filter.2 ⟨?_, hplt⟩
-      change (p.2, p.1) ∈ (Finset.univ : Finset ι).offDiag
-      exact Finset.mem_offDiag.mpr ⟨Finset.mem_univ _, Finset.mem_univ _, Ne.symm hpne⟩
-    · intro p hp q hq hpq
-      exact Prod.ext (congrArg Prod.snd hpq) (congrArg Prod.fst hpq)
-    · intro q hq
-      rcases Finset.mem_filter.mp (by simpa only [sl] using hq) with ⟨hqs, hqlt⟩
-      refine ⟨(q.2, q.1), ?_, rfl⟩
-      refine Finset.mem_filter.2 ⟨?_, not_lt_of_ge (le_of_lt hqlt)⟩
-      change (q.2, q.1) ∈ (Finset.univ : Finset ι).offDiag
-      have hqsoff : q ∈ (Finset.univ : Finset ι).offDiag := by
-        change q ∈ (Finset.univ : Finset ι).offDiag at hqs
-        exact hqs
-      have hqne : q.1 ≠ q.2 := (Finset.mem_offDiag.mp hqsoff).2.2
-      exact Finset.mem_offDiag.mpr ⟨Finset.mem_univ _, Finset.mem_univ _, Ne.symm hqne⟩
-    · intro p hp
-      exact hU _ _
-  calc
-    _ = ∑ p ∈ s, U p.1 p.2 := by
-      rw [← Finset.sum_product', Finset.univ_product_univ]
-      have hterm (p : ι × ι) :
-          (if p.1 = p.2 then 0 else U p.1 p.2) =
-            if p.1 ≠ p.2 then U p.1 p.2 else 0 := by
-        by_cases hp : p.1 = p.2 <;> simp [hp]
-      simp_rw [hterm]
-      change (∑ p ∈ (Finset.univ : Finset (ι × ι)),
-        if p.1 ≠ p.2 then U p.1 p.2 else 0) = _
-      rw [← Finset.sum_filter]
-      change (∑ p ∈ (Finset.univ : Finset (ι × ι)).filter (fun p => p.1 ≠ p.2),
-        U p.1 p.2) = _
-      have hs : (Finset.univ : Finset (ι × ι)).filter (fun p => p.1 ≠ p.2) = s := by
-        ext p
-        simp [s, Finset.mem_offDiag]
-      rw [hs]
-    _ = 2 * ∑ p ∈ sl, U p.1 p.2 := by rw [hsplit, hswap, two_mul]
-    _ = _ := by rfl
+  rw [← Finset.sum_product' (f := fun a b => if a = b then 0 else U a b), Finset.univ_product_univ]
+  have hpt (p : ι × ι) : (if p.1 = p.2 then 0 else U p.1 p.2) =
+      (if p.1 < p.2 then U p.1 p.2 else 0) + (if p.2 < p.1 then U p.1 p.2 else 0) := by
+    rcases lt_trichotomy p.1 p.2 with h | h | h
+    · simp [h, h.ne, h.not_gt]
+    · simp [h]
+    · simp [h, h.ne', h.not_gt]
+  simp_rw [hpt, Finset.sum_add_distrib, ← Finset.sum_filter]
+  rw [two_mul]
+  congr 1
+  exact Finset.sum_equiv (Equiv.prodComm ι ι) (by simp) fun p _ => hU _ _
+
+/-- Strictly ordered pairs, as a filtered finite sum or a sum over the subtype. -/
+theorem sum_filter_lt_eq_sum_subtype {ι M : Type*} [Fintype ι] [LinearOrder ι] [AddCommMonoid M]
+    (f : ι × ι → M) :
+    ∑ p : ι × ι with p.1 < p.2, f p = ∑ p : {p : ι × ι // p.1 < p.2}, f p.val :=
+  Finset.sum_subtype _ (by simp) f
+
+/-- Strictly ordered pairs are automatically off-diagonal. -/
+theorem filter_offDiag_lt {ι : Type*} [Fintype ι] [DecidableEq ι] [LinearOrder ι] :
+    (Finset.univ : Finset ι).offDiag.filter (fun p : ι × ι => p.1 < p.2) =
+      (Finset.univ : Finset (ι × ι)).filter fun p => p.1 < p.2 := by
+  ext p
+  simp only [Finset.mem_filter, Finset.mem_offDiag, Finset.mem_univ, true_and, and_iff_right_iff_imp]
+  exact fun h => h.ne

@@ -111,12 +111,7 @@ theorem hasDerivAt_integral_cavity_outer
     have hm : Measurable (fun x : Ω₀ × ((Fin N → ℝ) × ℝ) =>
         ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ
           ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (E s x.1 x.2))) := by
-      classical
-      simp_rw [integral_pi_count_tilted]
-      exact Finset.measurable_fun_sum _ fun σ _ =>
-        (Finset.measurable_fun_prod _ fun r _ =>
-          ((hEm s (σ r)).exp.div
-            (Finset.measurable_fun_sum _ fun a _ => (hEm s a).exp))).mul measurable_const
+      exact measurable_integral_pi_count_tilted (hEm s) fun _ => measurable_const
     exact hm.stronglyMeasurable.integral_prod_right'.aestronglyMeasurable
   have hDm : AEStronglyMeasurable (D t) P₀ := by
     have hm : Measurable (fun x : Ω₀ × ((Fin N → ℝ) × ℝ) =>
@@ -129,12 +124,7 @@ theorem hasDerivAt_integral_cavity_outer
               (n : ℝ) * ((n : ℝ) + 1) * U (τ (some none)) (τ none))
           ∂(Measure.pi fun _ : Option (Option (Fin n)) =>
             Measure.count.tilted (E t x.1 x.2))) := by
-      classical
-      simp_rw [integral_pi_count_tilted]
-      exact Finset.measurable_fun_sum _ fun τ _ =>
-        (Finset.measurable_fun_prod _ fun r _ =>
-          ((hEm t (τ r)).exp.div
-            (Finset.measurable_fun_sum _ fun a _ => (hEm t a).exp))).mul measurable_const
+      exact measurable_integral_pi_count_tilted (hEm t) fun _ => measurable_const
     refine (stronglyMeasurable_const.mul ?_).aestronglyMeasurable
     exact hm.stronglyMeasurable.integral_prod_right'
   have hFi : Integrable (F t) P₀ := by
@@ -254,7 +244,7 @@ theorem hasDerivAt_integral_sk_cavity_path_angle_offDiag (N n : ℕ) (β q h : �
         ∫ ω : (Fin N → ℝ) × ℝ,
           ∫ τ : Option (Option (Fin n)) → Fin (N + 1) → ℤˣ,
             f (fun r => τ (some (some r))) *
-              (2 * ∑ p ∈ (Finset.univ : Finset (Fin n)).offDiag with p.1 < p.2,
+              (2 * ∑ p : Fin n × Fin n with p.1 < p.2,
                   U (τ (some (some p.1))) (τ (some (some p.2))) -
                 2 * (n : ℝ) * ∑ r : Fin n,
                   U (τ (some (some r))) (τ (some none)) +
@@ -307,7 +297,7 @@ theorem hasDerivAt_integral_sk_cavity_path_square (N n : ℕ) (β q h t : ℝ)
       ∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
         ∫ τ : Option (Option (Fin n)) → Fin (N + 1) → ℤˣ,
           f (fun r => τ (some (some r))) *
-            (2 * ∑ p ∈ (Finset.univ : Finset (Fin n)).offDiag with p.1 < p.2,
+            (2 * ∑ p : Fin n × Fin n with p.1 < p.2,
                 U (τ (some (some p.1))) (τ (some (some p.2))) -
               2 * (n : ℝ) * ∑ r : Fin n,
                 U (τ (some (some r))) (τ (some none)) +

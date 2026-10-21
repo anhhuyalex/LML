@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.OffDiag
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiLinearForm
 public import LeanMachineLearning.SpinGlasses.SKDecoupled
 public import LeanMachineLearning.SpinGlasses.SKFirstMoment
@@ -103,7 +104,7 @@ theorem sum_finPairs_mul_eq_sub_sum_sq_div_two (N : ℕ) (x : Fin N → ℝ) :
       ((∑ i, x i) ^ 2 - ∑ i, x i ^ 2) / 2 := by
   have hquadratic := QuadraticMap.map_sum (QuadraticMap.sq (R := ℝ))
     (Finset.univ : Finset (Fin N)) x
-  rw [Finset.sum_sym2_filter_not_isDiag] at hquadratic
+  rw [Finset.sum_sym2_filter_not_isDiag, filter_offDiag_lt] at hquadratic
   have hpolar (p : Fin N × Fin N) :
       QuadraticMap.polarSym2 (QuadraticMap.sq (R := ℝ))
           (Sym2.map x (Sym2.mk p.1 p.2)) = 2 * x p.1 * x p.2 := by
@@ -112,29 +113,19 @@ theorem sum_finPairs_mul_eq_sub_sum_sq_div_two (N : ℕ) (x : Fin N → ℝ) :
       x p.1 * x p.1 - x p.2 * x p.2 = _
     ring
   simp_rw [hpolar] at hquadratic
-  have hsubtype :
-      ∑ p : FinPairs N, x p.val.1 * x p.val.2 =
-        ∑ p ∈ (Finset.univ : Finset (Fin N)).offDiag with p.1 < p.2,
-          x p.1 * x p.2 := by
-    symm
-    rw [Finset.sum_subtype]
-    intro p
-    constructor
-    · exact fun hp => (Finset.mem_filter.mp hp).2
-    · intro hp
-      apply Finset.mem_filter.2
-      refine ⟨Finset.mem_offDiag.2 ?_, hp⟩
-      exact ⟨Finset.mem_univ _, Finset.mem_univ _, ne_of_lt hp⟩
+  have hsubtype : ∑ p : FinPairs N, x p.val.1 * x p.val.2 =
+      ∑ p : Fin N × Fin N with p.1 < p.2, x p.1 * x p.2 :=
+    (sum_filter_lt_eq_sum_subtype fun p : Fin N × Fin N => x p.1 * x p.2).symm
   rw [hsubtype]
   have hquadratic' :
       (∑ i, x i) ^ 2 = ∑ i, x i ^ 2 +
-        ∑ p ∈ (Finset.univ : Finset (Fin N)).offDiag with p.1 < p.2,
+        ∑ p : Fin N × Fin N with p.1 < p.2,
           2 * x p.1 * x p.2 := by
     simpa [QuadraticMap.sq, pow_two] using hquadratic
   have hdouble :
-      ∑ p ∈ (Finset.univ : Finset (Fin N)).offDiag with p.1 < p.2,
+      ∑ p : Fin N × Fin N with p.1 < p.2,
         2 * x p.1 * x p.2 =
-        2 * ∑ p ∈ (Finset.univ : Finset (Fin N)).offDiag with p.1 < p.2,
+        2 * ∑ p : Fin N × Fin N with p.1 < p.2,
           x p.1 * x p.2 := by
     simp_rw [mul_assoc, ← Finset.mul_sum]
   rw [hdouble] at hquadratic'
