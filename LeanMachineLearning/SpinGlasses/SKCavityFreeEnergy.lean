@@ -228,16 +228,8 @@ theorem sk_pair_linear_combo_expand (N : ℕ) (a b h : ℝ)
         g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ) +
         b * (∑ p : FinPairs (N + 1),
           g' p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) := by
-  have hsum (c : ℝ) (u : FinPairs (N + 1) → ℝ) :
-      (∑ p : FinPairs (N + 1),
-        c * u p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) =
-        c * ∑ p : FinPairs (N + 1), u p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ) := by
-    rw [Finset.mul_sum]
-    apply Finset.sum_congr rfl
-    intro p _
-    ring
-  simp_rw [add_mul]
-  rw [Finset.sum_add_distrib, hsum a g, hsum b g']
+  simp_rw [add_mul, mul_assoc]
+  rw [Finset.sum_add_distrib, ← Finset.mul_sum, ← Finset.mul_sum]
   ring
 
 /-- The two-block finite SK log-partition function is integrable.  This is the analytic
@@ -247,9 +239,9 @@ theorem integrable_log_partition_sk_pair (N : ℕ) (a b h : ℝ) :
     Integrable (fun q : (FinPairs (N + 1) → ℝ) × (FinPairs (N + 1) → ℝ) =>
       Real.log (∑ σ : Fin (N + 1) → ℤˣ,
         Real.exp (a * (∑ p : FinPairs (N + 1),
-          q.1 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
+          q.1 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ) +
           b * (∑ p : FinPairs (N + 1),
-            q.2 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ))))
+            q.2 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)))))
       ((Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1).prod
         (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) := by
   refine (integrable_log_sum_exp_linear_gaussian_prod
@@ -262,6 +254,7 @@ theorem integrable_log_partition_sk_pair (N : ℕ) (a b h : ℝ) :
     intro σ _
     apply congrArg Real.exp
     rw [dotProduct_const_pair_spin, dotProduct_const_pair_spin]
+    ring
 
 /-- The one-block instance of `integrable_log_partition_sk_pair`.  Kept separate because it
 is exactly the marginal integrability hypothesis needed by the product-integral Fubini step. -/
@@ -327,13 +320,8 @@ theorem integral_log_partition_sk_pair_perturb (N : ℕ) (a b h : ℝ) :
         Real.exp (a * (∑ p : FinPairs (N + 1),
           q.1 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ) +
           b * (∑ p : FinPairs (N + 1),
-            q.2 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ))))) (μ.prod μ) := by
-    refine (integrable_log_partition_sk_pair N a b h).congr (ae_of_all _ fun q => ?_)
-    apply congrArg Real.log
-    apply Finset.sum_congr rfl
-    intro σ _
-    apply congrArg Real.exp
-    ring
+            q.2 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ))))) (μ.prod μ) :=
+    integrable_log_partition_sk_pair N a b h
   have hP : Integrable P (μ.prod μ) := by
     refine (hC.sub (hF.comp_fst μ)).congr (ae_of_all _ fun q => ?_)
     apply sub_eq_iff_eq_add.mpr
@@ -363,25 +351,11 @@ theorem sum_exp_sk_cavity_snoc (N : ℕ) (c h : ℝ)
         Real.exp (c * (∑ p : FinPairs N,
           g (oldPair N p) * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) + h * ∑ i, (ρ i : ℝ)) *
           Real.cosh (c * ∑ i : Fin N, g (lastPair N i) * (ρ i : ℝ) + h) := by
-  let A : (Fin N → ℤˣ) → ℝ := fun ρ =>
-    c * (∑ p : FinPairs N,
-      g (oldPair N p) * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) + h * ∑ i, (ρ i : ℝ)
-  let L : (Fin N → ℤˣ) → ℝ := fun ρ =>
-    c * ∑ i : Fin N, g (lastPair N i) * (ρ i : ℝ) + h
-  have hsplit : ∀ σ : Fin (N + 1) → ℤˣ,
-      c * (∑ p : FinPairs (N + 1),
-        g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ) =
-      A (fun i => σ i.castSucc) + (σ (Fin.last N) : ℝ) * L (fun i => σ i.castSucc) := by
-    intro σ
-    exact sk_cavity_energy_snoc N c h g σ
-  rw [show (fun σ : Fin (N + 1) → ℤˣ =>
-      Real.exp (c * (∑ p : FinPairs (N + 1),
-        g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ))) =
-      fun σ => Real.exp (A (fun i => σ i.castSucc) +
-        (σ (Fin.last N) : ℝ) * L (fun i => σ i.castSucc)) by
-        funext σ
-        rw [hsplit]]
-  simpa only [A, L] using sum_exp_fin_snoc_cavity N A L
+  simp_rw [sk_cavity_energy_snoc N c h g]
+  exact sum_exp_fin_snoc_cavity N
+    (fun ρ => c * (∑ p : FinPairs N,
+      g (oldPair N p) * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) + h * ∑ i, (ρ i : ℝ))
+    (fun ρ => c * ∑ i : Fin N, g (lastPair N i) * (ρ i : ℝ) + h)
 
 /-- **Talagrand's Eq. (1.172), `β₊` form.**  For `N > 0`, set
 `β₊ = β √(1 + 1/N)`.  The left side is the `(N+1)`-spin partition function at
@@ -421,25 +395,11 @@ theorem log_sum_exp_sk_cavity_snoc (N : ℕ) (c h : ℝ)
         ∂Measure.count.tilted (fun ρ =>
           c * (∑ p : FinPairs N,
             g (oldPair N p) * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) + h * ∑ i, (ρ i : ℝ))) := by
-  let A : (Fin N → ℤˣ) → ℝ := fun ρ =>
-    c * (∑ p : FinPairs N,
-      g (oldPair N p) * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) + h * ∑ i, (ρ i : ℝ)
-  let L : (Fin N → ℤˣ) → ℝ := fun ρ =>
-    c * ∑ i : Fin N, g (lastPair N i) * (ρ i : ℝ) + h
-  have hsplit : ∀ σ : Fin (N + 1) → ℤˣ,
-      c * (∑ p : FinPairs (N + 1),
-        g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ) =
-      A (fun i => σ i.castSucc) + (σ (Fin.last N) : ℝ) * L (fun i => σ i.castSucc) := by
-    intro σ
-    exact sk_cavity_energy_snoc N c h g σ
-  rw [show (fun σ : Fin (N + 1) → ℤˣ =>
-      Real.exp (c * (∑ p : FinPairs (N + 1),
-        g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ))) =
-      fun σ => Real.exp (A (fun i => σ i.castSucc) +
-        (σ (Fin.last N) : ℝ) * L (fun i => σ i.castSucc)) by
-        funext σ
-        rw [hsplit]]
-  simpa only [A, L] using log_sum_exp_fin_snoc_cavity N A L
+  simp_rw [sk_cavity_energy_snoc N c h g]
+  exact log_sum_exp_fin_snoc_cavity N
+    (fun ρ => c * (∑ p : FinPairs N,
+      g (oldPair N p) * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) + h * ∑ i, (ρ i : ℝ))
+    (fun ρ => c * ∑ i : Fin N, g (lastPair N i) * (ρ i : ℝ) + h)
 
 /-- **Talagrand's Eq. (1.175), integrated expectation comparison.**  The expectation of the
 `(N+1)`-spin log partition function at coefficient `β / √N = β₊ / √(N+1)` equals the
@@ -470,38 +430,9 @@ theorem integral_log_partition_sk_beta_plus_eq_perturb (N : ℕ) (β h : ℝ) (h
         (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) := by
   let a := (Real.sqrt (N + 1 : ℝ))⁻¹ * β
   let b := β * (Real.sqrt ((N : ℝ) * (N + 1)))⁻¹
-  have h1 := integral_log_partition_sk_beta_plus_eq N β h hN
-  have h2 := integral_log_partition_sk_pair_perturb N a b h
-  have hlin : ∀ (q : (FinPairs (N + 1) → ℝ) × (FinPairs (N + 1) → ℝ)) (σ : Fin (N + 1) → ℤˣ),
-      (∑ p : FinPairs (N + 1), (a * q.1 p + b * q.2 p) * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
-        h * ∑ i, (σ i : ℝ) =
-      a * (∑ p : FinPairs (N + 1), q.1 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
-        h * ∑ i, (σ i : ℝ) +
-        b * (∑ p : FinPairs (N + 1), q.2 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) := by
-    intro q σ
-    exact sk_pair_linear_combo_expand N a b h q.1 q.2 σ
-  have heq : (∫ q : (FinPairs (N + 1) → ℝ) × (FinPairs (N + 1) → ℝ),
-      Real.log (∑ σ : Fin (N + 1) → ℤˣ,
-        Real.exp ((∑ p : FinPairs (N + 1),
-          (a * q.1 p + b * q.2 p) * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
-          h * ∑ i, (σ i : ℝ)))
-      ∂((Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1).prod
-        (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))) =
-    ∫ q : (FinPairs (N + 1) → ℝ) × (FinPairs (N + 1) → ℝ),
-      Real.log (∑ σ : Fin (N + 1) → ℤˣ,
-        Real.exp (a * (∑ p : FinPairs (N + 1), q.1 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
-          h * ∑ i, (σ i : ℝ) +
-          b * (∑ p : FinPairs (N + 1), q.2 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ))))
-      ∂((Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1).prod
-        (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) := by
-    apply integral_congr_ae
-    exact ae_of_all _ fun q => by
-      apply congrArg Real.log
-      apply Finset.sum_congr rfl
-      intro σ _
-      apply congrArg Real.exp
-      exact hlin q σ
-  rw [h1, heq, h2]
+  rw [integral_log_partition_sk_beta_plus_eq N β h hN]
+  simp_rw [sk_pair_linear_combo_expand]
+  exact integral_log_partition_sk_pair_perturb N a b h
 
 /-- **Talagrand's Eq. (1.173), integrated cavity split.**  Integrating the pointwise cavity
 identity over the full Gaussian disorder splits the `β₊` log partition expectation into `log 2`,
@@ -614,17 +545,7 @@ theorem integral_log_partition_sk_cavity_split (N : ℕ) (β h : ℝ) :
       apply Measurable.exp
       fun_prop
     have hH_meas_fun : Measurable H := by
-      have heqH : H = fun w =>
-          Real.log (∑ σ : Fin (N + 1) → ℤˣ,
-            Real.exp ((c * (∑ p : FinPairs N,
-              w.1 p * (σ p.val.1.castSucc : ℝ) * (σ p.val.2.castSucc : ℝ)) +
-              h * ∑ i : Fin N, (σ i.castSucc : ℝ)) +
-              (σ (Fin.last N) : ℝ) *
-                (c * ∑ i : Fin N, w.2 i * (σ i.castSucc : ℝ) + h))) -
-          Real.log 2 - F_old w.1 := by
-        funext w
-        exact hH_decomp w
-      rw [heqH]
+      rw [funext hH_decomp]
       exact (h_tot_meas.sub measurable_const).sub (hF_old_meas.comp measurable_fst)
     have hH_aestrong : AEStronglyMeasurable H (μ_all.map π) := by
       rw [hπ.map_eq]
@@ -709,16 +630,11 @@ theorem sk_cavity_free_energy_step_le_of_estimates (β q : ℝ) (N : ℕ) (hN : 
     K * (1 / (N : ℝ) + ν) := by
   have h_tri := abs_sk_free_energy_step_sub_le β q log_cosh cavity_cosh perturb
   have hNpos : 0 ≤ 1 / (N : ℝ) := by positivity
-  calc |(Real.log 2 + cavity_cosh - perturb) -
-        (Real.log 2 + β ^ 2 / 4 * (1 - q) ^ 2 + log_cosh)|
-    _ ≤ |cavity_cosh - (β ^ 2 / 2 * (1 - q) + log_cosh)| +
-        |perturb - β ^ 2 / 4 * (1 - q ^ 2)| := h_tri
-    _ ≤ K1 * ν + (K2 / (N : ℝ) + K3 * ν) := add_le_add h_cosh h_perturb
-    _ = K2 * (1 / (N : ℝ)) + (K1 + K3) * ν := by ring
-    _ ≤ K * (1 / (N : ℝ)) + K * ν :=
-      add_le_add (mul_le_mul_of_nonneg_right hK1 hNpos)
-        (mul_le_mul_of_nonneg_right hK2 hν)
-    _ = K * (1 / (N : ℝ) + ν) := by ring
+  have h_add := add_le_add (mul_le_mul_of_nonneg_right hK1 hNpos)
+    (mul_le_mul_of_nonneg_right hK2 hν)
+  have : K2 / (N : ℝ) = K2 * (1 / (N : ℝ)) := by ring
+  have : K * (1 / (N : ℝ) + ν) = K * (1 / (N : ℝ)) + K * ν := by ring
+  linarith
 
 /-- **Talagrand's Eq. (1.181), cavity `cosh` interpolation estimate.**  For any interpolating
 path `φ : ℝ → ℝ` between the cavity `cosh` expectation at `0` and the decoupled standard
@@ -733,9 +649,8 @@ theorem sk_cavity_cosh_estimate_le (β q : ℝ) (log_cosh cavity_cosh ν K1 : �
   have hkey := Real.abs_sub_sub_half_le_of_exists_hasDerivAt (φ := φ)
     (C := -β ^ 2 * (1 - q)) (K := 2 * K1 * ν) hd
   rw [h0, hpi] at hkey
-  have heq : log_cosh - cavity_cosh - (-β ^ 2 * (1 - q)) / 2 =
-      -(cavity_cosh - (β ^ 2 / 2 * (1 - q) + log_cosh)) := by ring
-  rw [heq, abs_neg] at hkey
+  rw [show log_cosh - cavity_cosh - (-β ^ 2 * (1 - q)) / 2 =
+      -(cavity_cosh - (β ^ 2 / 2 * (1 - q) + log_cosh)) by ring, abs_neg] at hkey
   linarith
 
 /-- **Talagrand's Eq. (1.182), pair perturbation interpolation estimate.**  For any interpolating
@@ -752,9 +667,8 @@ theorem sk_pair_perturb_estimate_le (β q : ℝ) (N : ℕ) (perturb ν K2 K3 : �
   have hkey := Real.abs_sub_sub_half_le_of_exists_hasDerivAt (φ := ψ)
     (C := -β ^ 2 / 2 * (1 - q ^ 2)) (K := 2 * (K2 / (N : ℝ) + K3 * ν)) hd
   rw [h0, hpi] at hkey
-  have heq : 0 - perturb - (-β ^ 2 / 2 * (1 - q ^ 2)) / 2 =
-      -(perturb - β ^ 2 / 4 * (1 - q ^ 2)) := by ring
-  rw [heq, abs_neg] at hkey
+  rw [show 0 - perturb - (-β ^ 2 / 2 * (1 - q ^ 2)) / 2 =
+      -(perturb - β ^ 2 / 4 * (1 - q ^ 2)) by ring, abs_neg] at hkey
   linarith
 
 /-- **Proposition 1.6.8 (Talagrand Eq. 1.170).**  The free-energy increment `(N+1) p_{N+1} - N p_N`

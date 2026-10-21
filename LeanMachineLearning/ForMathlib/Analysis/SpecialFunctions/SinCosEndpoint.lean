@@ -26,15 +26,18 @@ open scoped Real
 
 namespace Real
 
+/-- Derivative of `sin x ^ 2` is `2 sin s cos s`. -/
+theorem hasDerivAt_sin_sq (s : ℝ) :
+    HasDerivAt (fun x => sin x ^ 2) (2 * sin s * cos s) s := by
+  convert (hasDerivAt_sin s).pow 2 using 1
+  ring
+
 /-- A derivative bounded above by `K sin s cos s` on `[0, π/2]` bounds the increment by `K / 2`. -/
 theorem sub_le_half_of_deriv_le {φ φ' : ℝ → ℝ} (hd : ∀ s, HasDerivAt φ (φ' s) s) {K : ℝ}
     (hK : ∀ s ∈ Icc 0 (π / 2), φ' s ≤ K * (sin s * cos s)) : φ (π / 2) - φ 0 ≤ K / 2 := by
   have hF : ∀ s, HasDerivAt (fun x => φ x - K / 2 * sin x ^ 2)
       (φ' s - K * (sin s * cos s)) s := fun s => by
-    have hsq : HasDerivAt (fun x => sin x ^ 2) (2 * sin s * cos s) s := by
-      convert (hasDerivAt_sin s).pow 2 using 1
-      all_goals ring
-    convert (hd s).sub (hsq.const_mul (K / 2)) using 1
+    convert (hd s).sub ((hasDerivAt_sin_sq s).const_mul (K / 2)) using 1
     ring
   have hanti : AntitoneOn (fun x => φ x - K / 2 * sin x ^ 2) (Icc 0 (π / 2)) :=
     antitoneOn_of_deriv_nonpos (convex_Icc 0 (π / 2))
@@ -85,13 +88,10 @@ theorem abs_sub_sub_half_le_of_exists_hasDerivAt {φ : ℝ → ℝ} {C K : ℝ}
   have hF : ∀ s, ∃ D', HasDerivAt (fun x => φ x - C / 2 * sin x ^ 2) (sin s * cos s * D') s ∧
       (s ∈ Icc 0 (π / 2) → |D'| ≤ K) := fun s => by
     obtain ⟨D, hD, hDb⟩ := hd s
-    have hsq : HasDerivAt (fun x => sin x ^ 2) (2 * sin s * cos s) s := by
-      convert (hasDerivAt_sin s).pow 2 using 1
-      all_goals ring
     refine ⟨D - C, ?_, fun hs => hDb hs⟩
     have hderv : HasDerivAt (fun x => φ x - C / 2 * sin x ^ 2)
         (sin s * cos s * D - C / 2 * (2 * sin s * cos s)) s :=
-      hD.sub (hsq.const_mul (C / 2))
+      hD.sub ((hasDerivAt_sin_sq s).const_mul (C / 2))
     convert hderv using 1
     ring
   have key := abs_sub_le_half_of_exists_hasDerivAt hF
