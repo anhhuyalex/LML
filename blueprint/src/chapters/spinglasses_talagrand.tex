@@ -1627,25 +1627,95 @@ Eq.~(1.152)). Lemma~1.6.4 for $n+2$ replicas replaces $\nu_s$ by the coupled end
 bounds the endpoint average, and $|\varphi(\pi/2)-\varphi(0)|\le K/2$ for $|\varphi'|\le K\sin s\cos s$ finishes.
 \end{proof}
 
+\begin{lemma}[Elementary power estimates]
+\label{lem:sg-tal:add-pow-estimates}
+  \lean{add_pow_le_mul_pow_add_mul_pow,
+        pow_add_sub_pow_sub_le,
+        abs_add_pow_two_mul_le,
+        rpow_mul_rpow_le_mul_of_le_rpow_mul,
+        Real.exp_half_le_two}
+  \leanok
+\talsource{no counterpart in the book (elementary inequalities used in the proof of Proposition~1.6.7)}
+For $a,b\ge0$, $\theta>0$ and $n\ge1$, $(a+b)^n\le(1+\theta)^{n-1}a^n+(1+\theta^{-1})^{n-1}b^n$; in particular
+$(|a|+b)^{2k}\le2a^{2k}+(1+4k)^{2k-1}b^{2k}$. For odd $n$ and $x\ge0$, $0\le\frac12((a+x)^n-(a-x)^n)\le
+n\,x\,(|a|+x)^{n-1}$. If $Z\le c^pV$ for a conjugate pair $(p,r)$ then $Z^{1/p}V^{1/r}\le cV$. Finally $e^{1/2}\le2$.
+\end{lemma}
+\begin{proof}
+  \leanok
+Convexity of $t\mapsto t^n$ with the weights $1/(1+\theta)$ and $\theta/(1+\theta)$, and $(1+\frac1{4k})^{2k-1}\le e^{1/2}$;
+the mean value inequality for $t\mapsto t^n$ (Mathlib's \texttt{abs\_pow\_sub\_pow\_le}) and monotonicity of odd
+powers; the exponents of $V$ add up to $1/p+1/r=1$.
+\end{proof}
+
+\begin{theorem}[Site symmetry and the decoupled endpoint for a function of the overlap (Eqs.~(1.157), (1.158))]
+\label{thm:sg-tal:overlap-odd-part}
+  \lean{SpinGlasses.sk_two_replica_site_perm,
+        SpinGlasses.integrable_integral_sk_replica,
+        SpinGlasses.integral_integral_sk_replica_mono,
+        SpinGlasses.integral_integral_sk_replica_affine,
+        SpinGlasses.sk_overlap_mul_eq_last_site,
+        SpinGlasses.sk_cavity_decoupled_odd_part}
+  \leanok
+\talsource{Eqs.~(1.157) and (1.158), for an arbitrary function $\varphi$ of $R_{1,2}-q$}
+For every $\varphi:\mathbb R\to\mathbb R$, $\nu((R-q)\varphi(R-q))=\nu((\varepsilon_1\varepsilon_2-q)\varphi(R-q))$
+(symmetry between sites), and if $q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$ then
+$\nu_0((\varepsilon_1\varepsilon_2-q)\varphi(R-q))=(1-q^2)\,\nu_0\bigl(\tfrac12[\varphi(D+x)-\varphi(D-x)]\bigr)$,
+with $D=R^--q$ and $x=1/(N+1)$.
+\end{theorem}
+\begin{proof}
+  \leanok
+The first identity is Eq.~(1.157): the average of $(\sigma^1_i\sigma^2_i-q)\varphi(R-q)$ does not depend on $i$
+(relabel the sites) and the $N+1$ of them add up to $(N+1)(R-q)\varphi(R-q)$. For the second, $R-q=D+\varepsilon x$ with
+$\varepsilon=\varepsilon_1\varepsilon_2=\pm1$, so $\varphi(D+\varepsilon x)=S+\varepsilon T$ with $S,T$ the even and odd
+parts of $\varphi(D+\cdot x)$, and $(\varepsilon-q)(S+\varepsilon T)=\varepsilon S-qS+T-q\varepsilon T$. Lemma~1.6.2 gives
+$\nu_0(\varepsilon\,F)=q\,\nu_0(F)$ and $\nu_0(F)=\nu_0^-(F)$ for functions of the first $N$ coordinates, so the $S$
+terms cancel and the $T$ terms add up to $(1-q^2)\nu_0(T)$.
+\end{proof}
+
 \begin{theorem}[Contraction of the overlap variance (Proposition 1.6.6)]
 \label{thm:sg-tal:overlap-contraction}
-  \lean{SpinGlasses.sk_two_replica_site_perm,
-        SpinGlasses.sk_overlap_sq_eq_last_site,
-        SpinGlasses.sk_cavity_decoupled_overlap,
+  \lean{SpinGlasses.sk_overlap_pow_le_two_nu_zero,
+        SpinGlasses.sk_overlap_pow_le_two_odd_part,
         SpinGlasses.sk_overlap_sq_le_two_div}
   \leanok
 \talsource{Proposition~1.6.6, Eqs.~(1.157)--(1.159)}
 Let $q\in[0,1]$ satisfy $q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$ and $16\beta^2e^{64\beta^2}\le\frac12$. For the
-$(N+1)$-spin SK model, $\nu((R_{1,2}-q)^2)\le 2/(N+1)$.
+$(N+1)$-spin SK model, $\nu((R_{1,2}-q)^2)\le 2/(N+1)$. More generally,
+$\nu((R-q)^{2k+2})\le2(1-q^2)\,\nu_0\bigl(\tfrac12[(D+x)^{2k+1}-(D-x)^{2k+1}]\bigr)$ for every $k\ge0$.
 \end{theorem}
 \begin{proof}
   \leanok
-By symmetry between sites $\nu((R_{1,2}-q)^2)=\nu(f)$ with $f=(\varepsilon_1\varepsilon_2-q)(R_{1,2}-q)$
-(Eq.~(1.157)). Writing $R=R^-+\varepsilon_1\varepsilon_2/(N+1)$ and using Theorem~\ref{thm:sg-tal:cavity-decoupled}
-with the fixed-point equation, $\nu_0(f)=(1-q^2)/(N+1)$ (Eq.~(1.158)). By Theorem~\ref{thm:sg-tal:cavity-holder} with
-$n=2$ and $p=r=2$, $|f|\le2|R-q|$ gives $|\nu(f)-\nu_0(f)|\le16\beta^2e^{64\beta^2}\nu((R-q)^2)\le\frac12\nu((R-q)^2)$,
-which gives Eq.~(1.159) and the claim.
+By Theorem~\ref{thm:sg-tal:overlap-odd-part}, $\nu((R-q)^{2k+2})=\nu(f)$ with
+$f=(\varepsilon_1\varepsilon_2-q)(R-q)^{2k+1}$. By Theorem~\ref{thm:sg-tal:cavity-holder} with $n=2$, $p=(2k+2)/(2k+1)$ and
+$r=2k+2$, and $|f|^p\le2^p(R-q)^{2k+2}$, $|\nu(f)-\nu_0(f)|\le16\beta^2e^{64\beta^2}\nu((R-q)^{2k+2})\le
+\frac12\nu((R-q)^{2k+2})$, so $\nu((R-q)^{2k+2})\le2\nu_0(f)$ (this is the absorption of Eq.~(1.159)). The second part of
+Theorem~\ref{thm:sg-tal:overlap-odd-part} with $\varphi(a)=a^{2k+1}$ evaluates $\nu_0(f)$. For $k=0$ the right-hand
+side is $2(1-q^2)x\le2/(N+1)$.
 \emph{Deviation:} the smallness condition has the constant $64$ rather than the book's $16$ in the exponent, as in
 Theorem~\ref{thm:sg-tal:cavity-holder}, and $\beta_0$ is replaced by this explicit hypothesis.
+\end{proof}
+
+\begin{theorem}[Higher moments of the overlap (Proposition 1.6.7)]
+\label{thm:sg-tal:overlap-moments}
+  \lean{SpinGlasses.sk_overlap_moment_arith,
+        SpinGlasses.abs_sk_overlap_sub_le_two,
+        SpinGlasses.sk_overlap_moment_step,
+        SpinGlasses.sk_overlap_moment_le}
+  \leanok
+\talsource{Proposition~1.6.7, Eq.~(1.160)}
+Under the hypotheses of Theorem~\ref{thm:sg-tal:overlap-contraction}, for every $k\ge1$ and every $N$,
+$\nu((R_{1,2}-q)^{2k})\le(64k/(N+1))^k$.
+\end{theorem}
+\begin{proof}
+  \leanok
+Induction on $k$; $k=1$ is Proposition~1.6.6. Let $x=1/(N+1)$. If $16(k+1)x>1$ the claim is trivial, because
+$|R-q|\le2$ and $64(k+1)x>4$. Otherwise Theorem~\ref{thm:sg-tal:overlap-contraction} reduces
+$\nu((R-q)^{2k+2})$ to $2(1-q^2)\nu_0(T)$ with $T=\frac12[(D+x)^{2k+1}-(D-x)^{2k+1}]$. By Lemma~\ref{lem:sg-tal:add-pow-estimates},
+$0\le T\le(2k+1)x(|D|+x)^{2k}\le(2k+1)x(|R-q|+2x)^{2k}=:G$, since $D=R-q-\varepsilon x$. Lemma~1.6.4 for the two
+replicas gives $\nu_0(G)\le e^{16\beta^2}\nu(G)\le2\nu(G)$, and the weighted Young inequality bounds
+$\nu(G)\le(2k+1)x\,[\,2\nu((R-q)^{2k})+(1+4k)^{2k-1}(2x)^{2k}]$. With $\nu((R-q)^{2k})\le(64kx)^k$ and $16(k+1)x\le1$ the
+right-hand side is at most $(64(k+1)x)^{k+1}$.
+\emph{Deviation:} $\beta_0$ is replaced by the explicit smallness hypothesis; the book's
+$\beta_0$ is not made explicit.
 \end{proof}
 

@@ -173,7 +173,7 @@ theorem integral_sk_cavity_scalar_field_mul (N : ℕ) (β q : ℝ) (hq : 0 ≤ q
       _ = _ := by rw [Real.sq_sqrt hq]
   simp_rw [hc]
   rw [integral_const_mul]
-  rw [integral_sq_gaussianReal, mul_one]
+  rw [NTK.integral_sq_gaussianReal, mul_one]
 
 /-- The covariance difference required by the trigonometric replica derivative.
 The old-pair disorder does not enter either field. -/
