@@ -170,11 +170,8 @@ theorem replica_covariance_combination_cancel_diagonal
       split_ifs with hr
       · subst r'; simp [hdiag]
       · simp
-    calc
-      _ = ∑ r' : R, ((if r = r' then C else 0) +
-          (if r = r' then 0 else U (τ (some (some r))) (τ (some (some r'))))) :=
-        Finset.sum_congr rfl (fun r' _ => hh r')
-      _ = _ := by simp [Finset.sum_add_distrib]
+    rw [Finset.sum_congr rfl fun r' _ => hh r', Finset.sum_add_distrib]
+    simp
   simp_rw [hs, Finset.sum_add_distrib]
   simp only [Finset.sum_const, nsmul_eq_mul, Finset.card_univ]
   rw [hdiag (τ (some none))]

@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedBound
 public import LeanMachineLearning.SpinGlasses.SKCavityOverlap
 public import LeanMachineLearning.SpinGlasses.SKSmartPath
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletIdentities
@@ -81,9 +82,9 @@ theorem integral_sk_cavity_edge_field_eq_zero (N : ℕ) (β : ℝ)
       (Real.sqrt (N + 1))⁻¹ * β * (σ (Fin.last N) : ℝ) *
         ∑ i : Fin N, ω.1 i * (σ i.castSucc : ℝ)
       ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))) = 0 := by
-  rw [integral_fun_fst (fun g : Fin N → ℝ =>
+  rw [integral_prod_fun_fst_of_isProbabilityMeasure _ _ (fun g : Fin N → ℝ =>
     (Real.sqrt (N + 1))⁻¹ * β * (σ (Fin.last N) : ℝ) *
-      ∑ i : Fin N, g i * (σ i.castSucc : ℝ)), probReal_univ, one_smul]
+      ∑ i : Fin N, g i * (σ i.castSucc : ℝ))]
   rw [integral_const_mul]
   have he : (fun g : Fin N → ℝ => ∑ i : Fin N, g i * (σ i.castSucc : ℝ)) =
       (fun g => (fun i : Fin N => (σ i.castSucc : ℝ)) ⬝ᵥ g) := by
@@ -97,8 +98,8 @@ theorem integral_sk_cavity_scalar_field_eq_zero (N : ℕ) (β q : ℝ)
     (∫ ω : (Fin N → ℝ) × ℝ,
       β * (σ (Fin.last N) : ℝ) * ω.2 * Real.sqrt q
       ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))) = 0 := by
-  rw [integral_fun_snd (fun z : ℝ => β * (σ (Fin.last N) : ℝ) * z * Real.sqrt q),
-    probReal_univ, one_smul]
+  rw [integral_prod_fun_snd_of_isProbabilityMeasure _ _
+    (fun z : ℝ => β * (σ (Fin.last N) : ℝ) * z * Real.sqrt q)]
   have he : (fun z : ℝ => β * (σ (Fin.last N) : ℝ) * z * Real.sqrt q) =
       (fun z => (β * (σ (Fin.last N) : ℝ) * Real.sqrt q) * z) := by
     funext z
@@ -119,11 +120,11 @@ theorem integral_sk_cavity_edge_field_mul (N : ℕ) (β : ℝ)
         ((N + 1 : ℝ)⁻¹ *
           ((fun i : Fin N => (σ i.castSucc : ℝ)) ⬝ᵥ
             fun i : Fin N => (τ i.castSucc : ℝ))) := by
-  rw [integral_fun_fst (fun g : Fin N → ℝ =>
+  rw [integral_prod_fun_fst_of_isProbabilityMeasure _ _ (fun g : Fin N → ℝ =>
     ((Real.sqrt (N + 1))⁻¹ * β * (σ (Fin.last N) : ℝ) *
       ∑ i : Fin N, g i * (σ i.castSucc : ℝ)) *
     ((Real.sqrt (N + 1))⁻¹ * β * (τ (Fin.last N) : ℝ) *
-      ∑ i : Fin N, g i * (τ i.castSucc : ℝ))), probReal_univ, one_smul]
+      ∑ i : Fin N, g i * (τ i.castSucc : ℝ)))]
   exact integral_last_spin_cavity_field_mul N (N + 1) β (by positivity) σ τ
 
 /-- The cross-covariance is zero because the new edges and scalar field are independent. -/
@@ -159,10 +160,9 @@ theorem integral_sk_cavity_scalar_field_mul (N : ℕ) (β q : ℝ) (hq : 0 ≤ q
       (β * (τ (Fin.last N) : ℝ) * ω.2 * Real.sqrt q)
       ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))) =
       β ^ 2 * (σ (Fin.last N) : ℝ) * (τ (Fin.last N) : ℝ) * q := by
-  rw [integral_fun_snd (fun z : ℝ =>
+  rw [integral_prod_fun_snd_of_isProbabilityMeasure _ _ (fun z : ℝ =>
     (β * (σ (Fin.last N) : ℝ) * z * Real.sqrt q) *
-      (β * (τ (Fin.last N) : ℝ) * z * Real.sqrt q)),
-    probReal_univ, one_smul]
+      (β * (τ (Fin.last N) : ℝ) * z * Real.sqrt q))]
   have hc (z : ℝ) :
       (β * (σ (Fin.last N) : ℝ) * z * Real.sqrt q) *
         (β * (τ (Fin.last N) : ℝ) * z * Real.sqrt q) =
@@ -173,12 +173,7 @@ theorem integral_sk_cavity_scalar_field_mul (N : ℕ) (β q : ℝ) (hq : 0 ≤ q
       _ = _ := by rw [Real.sq_sqrt hq]
   simp_rw [hc]
   rw [integral_const_mul]
-  have hz : (∫ z : ℝ, z ^ 2 ∂gaussianReal 0 1) = 1 := by
-    simpa only [id_eq] using integral_gaussianReal_coordinate_sq
-      (X := fun _ : Unit => (id : ℝ → ℝ))
-      (fun _ => (HasLaw.id : HasLaw (id : ℝ → ℝ)
-        (gaussianReal 0 1) (gaussianReal 0 1))) ()
-  rw [hz, mul_one]
+  rw [integral_sq_gaussianReal, mul_one]
 
 /-- The covariance difference required by the trigonometric replica derivative.
 The old-pair disorder does not enter either field. -/

@@ -35,3 +35,12 @@ theorem le_exp_mul_endpoint_of_neg_mul_le_deriv {g g' : ℝ → ℝ} {K : ℝ}
       linarith)
     (1 - t) ⟨by linarith [ht.2], by linarith [ht.1]⟩
   simpa [mul_comm, neg_mul] using h
+
+/-- The same comparison with the derivative bound stated pointwise, so callers need not choose a
+global derivative function. -/
+theorem le_exp_mul_endpoint_of_exists_hasDerivAt {g : ℝ → ℝ} {K : ℝ}
+    (hc : ContinuousOn g (Icc 0 1))
+    (hd : ∀ t ∈ Ioo (0 : ℝ) 1, ∃ d, HasDerivAt g d t ∧ -(K * g t) ≤ d) {t : ℝ}
+    (ht : t ∈ Icc (0 : ℝ) 1) : g t ≤ Real.exp (K * (1 - t)) * g 1 := by
+  choose! g' hd' hb using hd
+  exact le_exp_mul_endpoint_of_neg_mul_le_deriv hc hd' hb ht

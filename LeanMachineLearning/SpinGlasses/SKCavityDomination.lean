@@ -262,8 +262,7 @@ theorem sk_cavity_path_square_le_exp_mul (N n : ℕ) (β q h : ℝ)
       (neg_le_neg_iff.2 (abs_cavity_outer_book_derivative_le
         (Measure.pi fun _ : FinPairs N => gaussianReal 0 1) N n β q hq B
         (fun a => by fun_prop) f hf (Real.arccos (Real.sqrt u)))).trans (neg_abs_le _)⟩
-  choose! d hd hb using hkey
-  have hmain := le_exp_mul_endpoint_of_neg_mul_le_deriv hcontOn hd hb ht
+  have hmain := le_exp_mul_endpoint_of_exists_hasDerivAt hcontOn hkey ht
   rw [hzero] at hmain
   have hnn : 0 ≤ ∫ g : FinPairs (N + 1) → ℝ,
         ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ

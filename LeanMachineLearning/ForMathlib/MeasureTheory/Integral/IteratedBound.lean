@@ -60,6 +60,13 @@ theorem integral_integral_finset_sum_le {Ω Z ι : Type*} [MeasurableSpace Ω] [
   rw [integral_const_mul]
   exact mul_le_mul_of_nonneg_left (hX j hj) (hc j hj)
 
+/-- Integrating a function of the first coordinate over a product with a probability measure. -/
+theorem integral_prod_fun_fst_of_isProbabilityMeasure {X Y E : Type*} [MeasurableSpace X]
+    [MeasurableSpace Y] [NormedAddCommGroup E] [NormedSpace ℝ E] (μ : Measure X) [SFinite μ]
+    (ν : Measure Y) [IsProbabilityMeasure ν] (f : X → E) :
+    ∫ x, f x.1 ∂(μ.prod ν) = ∫ y, f y ∂μ := by
+  rw [integral_fun_fst, probReal_univ, one_smul]
+
 /-- Integrating a function of the second coordinate over a product with a probability measure. -/
 theorem integral_prod_fun_snd_of_isProbabilityMeasure {X Y E : Type*} [MeasurableSpace X]
     [MeasurableSpace Y] [NormedAddCommGroup E] [NormedSpace ℝ E] (μ : Measure X)

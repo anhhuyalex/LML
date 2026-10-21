@@ -38,7 +38,6 @@ theorem integral_pi_count_tilted_decoupled_spin {α : Type*} [Finite α] [Nonemp
   set ZA : ℝ := ∑ a, Real.exp (A a) with hZA
   set c : ℝ := Real.exp Y + Real.exp (-Y) with hc
   have hc0 : 0 < c := by positivity
-  have hZA0 : 0 < ZA := Finset.sum_pos (fun a _ => Real.exp_pos _) Finset.univ_nonempty
   have hZ : (∑ x : α × ℤˣ, Real.exp (A x.1 + ((x.2 : ℤˣ) : ℝ) * Y)) = ZA * c := by
     rw [Fintype.sum_prod_type]
     simp_rw [sum_units_int, Real.exp_add, ← mul_add, ← Finset.sum_mul]

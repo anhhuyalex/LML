@@ -56,16 +56,19 @@ theorem integral_gaussianReal_coordinate
     (a : α) : ∫ ω, X a ω ∂P = 0 := by
   simpa [integral_id_gaussianReal] using (hlaw a).integral_eq
 
+/-- The standard Gaussian has unit second moment. -/
+theorem integral_sq_gaussianReal : ∫ z : ℝ, z ^ 2 ∂gaussianReal 0 1 = 1 := by
+  have hv := variance_id_gaussianReal (μ := (0 : ℝ)) (v := (1 : NNReal))
+  rw [variance_eq_integral (X := id) measurable_id'.aemeasurable] at hv
+  simpa [id] using hv
+
 /-- Standard Gaussian coordinates have unit second moment independently of their
 ambient probability space. -/
 theorem integral_gaussianReal_coordinate_sq
     {α Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω}
     {X : α → Ω → ℝ} (hlaw : ∀ a, HasLaw (X a) (gaussianReal 0 1) P)
-    (a : α) : ∫ ω, X a ω ^ 2 ∂P = 1 := by
-  have hv := variance_id_gaussianReal (μ := (0 : ℝ)) (v := (1 : NNReal))
-  rw [variance_eq_integral (X := id) measurable_id'.aemeasurable] at hv
-  have h := (hlaw a).integral_comp (f := fun x : ℝ => x ^ 2) (by fun_prop)
-  simpa [id] using h.trans (by simpa [id] using hv)
+    (a : α) : ∫ ω, X a ω ^ 2 ∂P = 1 :=
+  ((hlaw a).integral_comp (f := fun x : ℝ => x ^ 2) (by fun_prop)).trans integral_sq_gaussianReal
 
 /-- The second moment of a standard Gaussian variable about a constant `c` is `1 + c ^ 2`. -/
 theorem integral_gaussianReal_sub_const_sq
