@@ -574,7 +574,8 @@ theorem integral_log_partition_sk_cavity_split (N : ℕ) (β h : ℝ) :
   rw [integral_add h_add1 hH_comp, integral_add hLog2 hF_old_comp] at hsum_int
   rw [integral_const, probReal_univ, one_smul] at hsum_int
   have h_old_eq : (∫ g, F_old (π g).1 ∂μ_all) = ∫ g', F_old g' ∂μ_old := by
-    have hG_meas : AEStronglyMeasurable (fun w : (FinPairs N → ℝ) × (Fin N → ℝ) => F_old w.1) (μ_all.map π) := by
+    have hG_meas : AEStronglyMeasurable
+        (fun w : (FinPairs N → ℝ) × (Fin N → ℝ) => F_old w.1) (μ_all.map π) := by
       rw [hπ.map_eq]
       exact hF_old_prod.aestronglyMeasurable
     rw [← integral_map hπ.measurable.aemeasurable hG_meas, hπ.map_eq,
@@ -596,7 +597,8 @@ theorem integral_log_partition_sk_cavity_split (N : ℕ) (β h : ℝ) :
       intro w
       dsimp [H, F_old]
       have := log_sum_exp_fin_snoc_cavity N
-        (fun ρ => c * (∑ p : FinPairs N, w.1 p * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) + h * ∑ i, (ρ i : ℝ))
+        (fun ρ => c * (∑ p : FinPairs N,
+          w.1 p * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) + h * ∑ i, (ρ i : ℝ))
         (fun ρ => c * ∑ i : Fin N, w.2 i * (ρ i : ℝ) + h)
       linarith
     have h_tot_meas : Measurable (fun w : (FinPairs N → ℝ) × (Fin N → ℝ) =>

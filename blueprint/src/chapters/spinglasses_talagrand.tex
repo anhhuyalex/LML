@@ -1292,6 +1292,35 @@ generic finite-state log-partition perturbation identity applied to the base SK 
 independent pair-disorder perturbation.
 \end{proof}
 
+\begin{theorem}[Exact cavity free-energy increment identity (Proposition 1.6.8, Eq.~(1.176))]
+\label{thm:sg-tal:cavity-free-energy-increment}
+  \lean{SpinGlasses.sum_exp_prod_units,
+        SpinGlasses.log_sum_exp_sk_cavity_snoc,
+        SpinGlasses.integral_log_partition_sk_pair_perturb,
+        SpinGlasses.integral_log_partition_sk_beta_plus_eq_perturb,
+        SpinGlasses.integral_log_partition_sk_cavity_split,
+        SpinGlasses.sk_free_energy_increment_eq}
+  \leanok
+\talsource{Proposition~1.6.8, Eq.~(1.176)}
+For every $N > 0$ and any $\beta, h \in \mathbb R$, the free-energy increment satisfies
+the exact identity without Guerra interpolation:
+\begin{align*}
+(N+1) p_{N+1}(\beta, h) - N p_N(\beta, h)
+&= \log 2 + \mathbb E \log \left\langle \cosh\left(\frac\beta{\sqrt N} \sum_{i \le N} g_{i,N+1} \sigma_i + h\right) \right\rangle \\
+&\quad - \mathbb E \log \left\langle \exp \frac\beta{\sqrt{N(N+1)}} \sum_{i < j \le N+1} g'_{ij} \sigma_i \sigma_j \right\rangle',
+\end{align*}
+where $p_N$ is the standard SK free energy, the first expectation is over the $(N+1)$-spin cavity field,
+and the second expectation is over the independent pair perturbation under the $(N+1)$-spin Gibbs measure at $\beta$.
+\end{theorem}
+\begin{proof}
+  \leanok
+Combine the integrated cavity split \texttt{integral\_log\_partition\_sk\_cavity\_split}
+(Eq.~(1.173)) with the integrated pair perturbation comparison
+\texttt{integral\_log\_partition\_sk\_beta\_plus\_eq\_perturb} (Eq.~(1.175)),
+using measure-preserving coordinate splits and Fubini transport.
+\end{proof}
+
+
 \begin{lemma}[Covariances of the last-spin cavity fields]
 \label{lem:sg-tal:cavity-field-covariance-difference}
   \lean{SpinGlasses.integral_sk_cavity_edge_field_mul,
