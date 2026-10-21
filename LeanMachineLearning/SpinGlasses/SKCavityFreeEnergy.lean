@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.SpinGlasses.SKCavityInterpolation
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianGram
 
 /-!
 # The finite cavity partition-function identity
@@ -21,7 +22,7 @@ partition-function object.
 
 @[expose] public section
 
-open Finset
+open MeasureTheory ProbabilityTheory Finset
 open scoped BigOperators
 
 namespace SpinGlasses
@@ -53,6 +54,25 @@ theorem sum_exp_fin_snoc_cavity (N : ℕ)
         ring]
   rw [← Finset.mul_sum]
 
+/-- **Logarithmic finite cavity identity.**  Taking the logarithm of the last-spin
+partition-function factorization splits it into the old partition function and the logarithm
+of the old Gibbs average of `cosh L`.  This is the general algebraic core of Talagrand's
+Eq. (1.176), before any SK specialization or disorder expectation. -/
+theorem log_sum_exp_fin_snoc_cavity (N : ℕ)
+    (A L : (Fin N → ℤˣ) → ℝ) :
+    Real.log (∑ σ : Fin (N + 1) → ℤˣ,
+      Real.exp (A (fun i => σ i.castSucc) + (σ (Fin.last N) : ℝ) *
+        L (fun i => σ i.castSucc))) =
+      Real.log 2 + Real.log (∑ ρ : Fin N → ℤˣ, Real.exp (A ρ)) +
+        Real.log (∫ ρ : Fin N → ℤˣ, Real.cosh (L ρ) ∂Measure.count.tilted A) := by
+  rw [sum_exp_fin_snoc_cavity]
+  have hpos : 0 < ∑ ρ : Fin N → ℤˣ, Real.exp (A ρ) * Real.cosh (L ρ) :=
+    Finset.sum_pos (fun ρ _ => mul_pos (Real.exp_pos _) (Real.cosh_pos _)) Finset.univ_nonempty
+  rw [Real.log_mul two_ne_zero hpos.ne']
+  have havg := log_integral_count_tilted A (fun ρ => Real.cosh (L ρ))
+    (fun ρ => Real.cosh_pos (L ρ))
+  linarith
+
 /-- Split a pairwise SK energy and its uniform external field into its old-spin energy and
 its final-spin cavity field.  The coefficient is arbitrary, which is exactly what is needed
 for Talagrand's `β₊` comparison. -/
@@ -80,6 +100,103 @@ theorem sk_beta_plus_coefficient (N : ℕ) (β : ℝ) (hN : 0 < N) :
   have harg : 1 + (N : ℝ)⁻¹ = (N + 1 : ℝ) / N := by field_simp
   rw [harg, Real.sqrt_div (by positivity)]
   field_simp
+
+/-- The two independent Gaussian coefficients in Talagrand's Eq. (1.174) have the
+variance of the `β / √N` coefficient.  This is the scalar covariance calculation needed by a
+Gaussian Gram-law proof of the distributional change from `β` to `β₊`. -/
+theorem sk_beta_plus_variance (N : ℕ) (β : ℝ) (hN : 0 < N) :
+    ((Real.sqrt (N + 1 : ℝ))⁻¹ * β) ^ 2 +
+      (β * (Real.sqrt ((N : ℝ) * (N + 1)))⁻¹) ^ 2 =
+      ((Real.sqrt (N : ℝ))⁻¹ * β) ^ 2 := by
+  have hN0 : (0 : ℝ) < N := Nat.cast_pos.mpr hN
+  have hNp0 : (0 : ℝ) < N + 1 := by positivity
+  have hprod : (0 : ℝ) < (N : ℝ) * (N + 1) := mul_pos hN0 hNp0
+  have hsN : Real.sqrt (N : ℝ) ≠ 0 := (Real.sqrt_pos.2 hN0).ne'
+  have hsNp : Real.sqrt (N + 1 : ℝ) ≠ 0 := (Real.sqrt_pos.2 hNp0).ne'
+  have hsprod : Real.sqrt ((N : ℝ) * (N + 1)) ≠ 0 := (Real.sqrt_pos.2 hprod).ne'
+  simp only [mul_pow]
+  rw [inv_pow, inv_pow, inv_pow, Real.sq_sqrt hN0.le,
+    Real.sq_sqrt hNp0.le, Real.sq_sqrt hprod.le]
+  field_simp
+
+/-- **Talagrand's Eq. (1.174), Gaussian-coordinate law.**  The old disorder with coefficient
+`β / √N` has the law of the sum of independent disorders with coefficients
+`β / √(N+1)` and `β / √(N(N+1))`.  Applying this equality of pushforward measures to the
+SK Hamiltonian is the distributional step in the free-energy comparison. -/
+theorem map_pi_gaussianReal_sk_beta_plus (N : ℕ) (β : ℝ) (hN : 0 < N) :
+    (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1).map
+      (fun g p => (Real.sqrt (N : ℝ))⁻¹ * β * g p) =
+      ((Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1).prod
+        (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)).map
+          (fun q p => (Real.sqrt (N + 1 : ℝ))⁻¹ * β * q.1 p +
+            β * (Real.sqrt ((N : ℝ) * (N + 1)))⁻¹ * q.2 p) := by
+  exact ProbabilityTheory.map_pi_gaussianReal_scale_eq_prod_linear_combo
+    ((Real.sqrt (N + 1 : ℝ))⁻¹ * β)
+    (β * (Real.sqrt ((N : ℝ) * (N + 1)))⁻¹)
+    ((Real.sqrt (N : ℝ))⁻¹ * β) (sk_beta_plus_variance N β hN).symm
+
+/-- **Talagrand's Eq. (1.175), log-partition law transport.**  The Gaussian-coordinate law
+of Eq. (1.174) transports the logarithmic partition function of the `(N+1)`-spin system to
+the two independent disorder blocks which are used in Eq. (1.176).  This is an exact equality
+of integrals; no interpolation estimate has entered yet. -/
+theorem integral_log_partition_sk_beta_plus_eq (N : ℕ) (β h : ℝ) (hN : 0 < N) :
+    ∫ g : FinPairs (N + 1) → ℝ,
+      Real.log (∑ σ : Fin (N + 1) → ℤˣ,
+        Real.exp ((Real.sqrt (N : ℝ))⁻¹ * β *
+          ∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ) +
+          h * ∑ i, (σ i : ℝ)))
+      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) =
+      ∫ q : (FinPairs (N + 1) → ℝ) × (FinPairs (N + 1) → ℝ),
+        Real.log (∑ σ : Fin (N + 1) → ℤˣ,
+          Real.exp ((∑ p : FinPairs (N + 1),
+            ((Real.sqrt (N + 1 : ℝ))⁻¹ * β * q.1 p +
+              β * (Real.sqrt ((N : ℝ) * (N + 1)))⁻¹ * q.2 p) *
+              (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ)))
+        ∂((Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1).prod
+          (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) := by
+  let F : (FinPairs (N + 1) → ℝ) → ℝ := fun g =>
+    Real.log (∑ σ : Fin (N + 1) → ℤˣ,
+      Real.exp ((∑ p : FinPairs (N + 1),
+        g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ)))
+  have hF : Measurable F := by
+    dsimp [F]
+    simpa only [one_mul] using measurable_log_sum_exp (H := fun (g : FinPairs (N + 1) → ℝ)
+      (σ : Fin (N + 1) → ℤˣ) =>
+      (∑ p : FinPairs (N + 1),
+        g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ))
+      (by intro σ; fun_prop) 1
+  simpa only [F, one_mul, Finset.mul_sum, mul_assoc, mul_add, add_mul] using
+    ProbabilityTheory.integral_pi_gaussianReal_scale_eq_prod_linear_combo
+      ((Real.sqrt (N + 1 : ℝ))⁻¹ * β)
+      (β * (Real.sqrt ((N : ℝ) * (N + 1)))⁻¹)
+      ((Real.sqrt (N : ℝ))⁻¹ * β) (sk_beta_plus_variance N β hN).symm hF
+
+/-- **Talagrand's Eq. (1.175), pointwise Gibbs factorization.**  The log partition function
+after adding an independent pair-disorder block equals the unperturbed log partition function
+plus the logarithm of the corresponding Gibbs average of the exponential perturbation.  This
+is a direct SK specialization of the generic finite Gibbs perturbation identity. -/
+theorem log_partition_sk_pair_perturb (N : ℕ) (a b h : ℝ)
+    (g g' : FinPairs (N + 1) → ℝ) :
+    Real.log (∑ σ : Fin (N + 1) → ℤˣ,
+      Real.exp (a * (∑ p : FinPairs (N + 1),
+        g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
+        h * ∑ i, (σ i : ℝ) + b * (∑ p : FinPairs (N + 1),
+          g' p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)))) =
+      Real.log (∑ σ : Fin (N + 1) → ℤˣ,
+        Real.exp (a * (∑ p : FinPairs (N + 1),
+          g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ))) +
+        Real.log (∫ σ : Fin (N + 1) → ℤˣ,
+          Real.exp (b * ∑ p : FinPairs (N + 1),
+            g' p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ))
+          ∂Measure.count.tilted (fun σ =>
+            a * (∑ p : FinPairs (N + 1),
+              g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ))) := by
+  exact log_sum_exp_add_eq_log_sum_exp_add_log_integral_exp
+    (fun σ : Fin (N + 1) → ℤˣ =>
+      a * (∑ p : FinPairs (N + 1),
+        g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ))
+    (fun σ => b * ∑ p : FinPairs (N + 1),
+      g' p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ))
 
 /-- **Talagrand's Eq. (1.172), pointwise partition-function form.**  At a common pair
 coefficient `c`, the `(N+1)`-spin partition function is twice the old-spin partition sum

@@ -1191,8 +1191,14 @@ by the centered Gaussian coordinate integrals.
 \begin{theorem}[Pointwise cavity partition identity (Proposition 1.6.8, Eq.~(1.172))]
 \label{thm:sg-tal:cavity-free-energy-split}
   \lean{SpinGlasses.sum_exp_fin_snoc_cavity,
+        SpinGlasses.log_sum_exp_fin_snoc_cavity,
         SpinGlasses.sk_cavity_energy_snoc,
         SpinGlasses.sk_beta_plus_coefficient,
+        SpinGlasses.sk_beta_plus_variance,
+        ProbabilityTheory.map_pi_gaussianReal_scale_eq_prod_linear_combo,
+        ProbabilityTheory.integral_pi_gaussianReal_scale_eq_prod_linear_combo,
+        SpinGlasses.map_pi_gaussianReal_sk_beta_plus,
+        SpinGlasses.integral_log_partition_sk_beta_plus_eq,
         SpinGlasses.sum_exp_sk_cavity_snoc,
         SpinGlasses.sum_exp_sk_cavity_beta_plus}
   \leanok
@@ -1215,6 +1221,75 @@ First reindex a configuration by its first $N$ coordinates and its final spin
 $e^L+e^{-L}=2\cosh L$ (\texttt{sum\_exp\_fin\_snoc\_cavity}).  The pair sum and field split
 algebraically by \texttt{sk\_cavity\_energy\_snoc}.  Finally
 $\beta_+/\sqrt{N+1}=\beta/\sqrt N$ is \texttt{sk\_beta\_plus\_coefficient}.
+The companion scalar identity \texttt{sk\_beta\_plus\_variance} is the variance computation
+needed for the following Gaussian-law change (1.174).
+\end{proof}
+
+\begin{lemma}[Logarithmic cavity factorization (core of Proposition 1.6.8, Eq.~(1.176))]
+\label{lem:sg-tal:cavity-log-factorization}
+  \lean{SpinGlasses.log_sum_exp_fin_snoc_cavity,
+        SpinGlasses.log_integral_count_tilted}
+  \leanok
+\talsource{Proposition~1.6.8, Eq.~(1.176)}
+For any finite base energy $A$ and last-spin field $L$, the logarithm of the enlarged
+partition function is
+\[
+ \log 2+\log\sum_\rho e^{A(\rho)}+
+ \log\left\langle\cosh L(\rho)\right\rangle_A.
+\]
+This is the model-independent algebraic component of (1.176); the remaining specialization
+inserts the SK old-pair energy and combines it with the two-block Gaussian law.
+\end{lemma}
+\begin{proof}
+  \leanok
+Apply the final-spin sum identity, then \texttt{log\_integral\_count\_tilted} to the strictly
+positive observable $\cosh L$.  Positivity of the finite weighted sum justifies splitting the
+logarithm of its factor $2$.
+\end{proof}
+
+\begin{lemma}[Gaussian coefficient split (Proposition 1.6.8, Eq.~(1.174))]
+\label{lem:sg-tal:cavity-beta-plus-law}
+  \lean{ProbabilityTheory.map_pi_gaussianReal_scale_eq_prod_linear_combo,
+        SpinGlasses.map_pi_gaussianReal_sk_beta_plus}
+  \leanok
+\talsource{Proposition~1.6.8, Eq.~(1.174)}
+For independent standard Gaussian edge arrays $g,g'$, the edge field
+\[
+  \frac\beta{\sqrt{N+1}}g+\frac\beta{\sqrt{N(N+1)}}g'
+\]
+has the same law as $(\beta/\sqrt N)g$.  The first Lean lemma proves the reusable statement
+for every finite coordinate type and coefficients $a,b,c$ with $c^2=a^2+b^2$; the second
+instantiates it for \texttt{FinPairs (N+1)}.
+\end{lemma}
+\begin{proof}
+  \leanok
+Use the existing two-block Gaussian Gram-transfer theorem.  The coefficient of coordinate $i$
+is represented by the Kronecker vector $c\,\mathbf1_{\{i\}}$; its covariance is diagonal and
+agrees with the two independent coefficient vectors precisely when $c^2=a^2+b^2$.
+\end{proof}
+
+\begin{lemma}[Log-partition transport (Proposition 1.6.8, Eq.~(1.175))]
+\label{lem:sg-tal:cavity-log-partition-law}
+  \lean{ProbabilityTheory.integral_pi_gaussianReal_scale_eq_prod_linear_combo,
+        SpinGlasses.integral_log_partition_sk_beta_plus_eq,
+        SpinGlasses.log_sum_exp_add_eq_log_sum_exp_add_log_integral_exp,
+        SpinGlasses.log_partition_sk_pair_perturb}
+  \leanok
+\talsource{Proposition~1.6.8, Eq.~(1.175)}
+Taking the logarithmic $(N+1)$-spin partition function as the observable in the preceding
+Gaussian law yields an exact equality between its expectation at coefficient $\beta/\sqrt N$
+and the expectation under the two independent edge-disorder blocks.  Pointwise, the latter
+logarithmic partition function is the unperturbed log partition function plus the log Gibbs
+average of the exponential independent perturbation.  Passing that pointwise factorization
+through the two expectations remains part of the open analytic assembly.
+\end{lemma}
+\begin{proof}
+  \leanok
+The reusable integral form transports every measurable observable of the finite Gaussian vector.
+For the SK observable, measurability is exactly \texttt{measurable\_log\_sum\_exp}; expanding the
+linear combination gives the displayed two-block Hamiltonian.  The second statement is the
+generic finite-state log-partition perturbation identity applied to the base SK energy and the
+independent pair-disorder perturbation.
 \end{proof}
 
 \begin{lemma}[Covariances of the last-spin cavity fields]

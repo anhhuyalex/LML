@@ -215,6 +215,66 @@ theorem map_eq_map_dotProduct_prod {X : A → Ω → ℝ} (a₁ : A → K₁ →
   simp only [Function.comp_apply, sumElim_dotProduct_comp]
   rfl
 
+/-- **Finite Gaussian two-block rotation.**  A coordinatewise linear combination of two
+independent standard Gaussian vectors has the same law as a scaled standard Gaussian vector
+when the squared coefficients agree.  This is stated entirely in terms of product Gaussian
+measures, so it is reusable without an orthogonal-matrix wrapper. -/
+theorem map_pi_gaussianReal_scale_eq_prod_linear_combo
+    {ι : Type*} [Fintype ι] (a b c : ℝ) (h : c ^ 2 = a ^ 2 + b ^ 2) :
+    (Measure.pi fun _ : ι => gaussianReal 0 1).map (fun x i => c * x i) =
+      ((Measure.pi fun _ : ι => gaussianReal 0 1).prod
+        (Measure.pi fun _ : ι => gaussianReal 0 1)).map
+          (fun q i => a * q.1 i + b * q.2 i) := by
+  classical
+  let δ : ι → ι → ℝ := fun i j => if i = j then 1 else 0
+  let X : ι → (ι → ℝ) → ℝ := fun i ξ => (fun j => c * δ i j) ⬝ᵥ ξ
+  have hX : HasGaussianLaw (fun ξ i => X i ξ)
+      (Measure.pi fun _ : ι => gaussianReal 0 1) :=
+    hasGaussianLaw_dotProduct_family (fun i j => c * δ i j)
+  have hX0 : ∀ i, ∫ ξ, X i ξ ∂(Measure.pi fun _ : ι => gaussianReal 0 1) = 0 := by
+    intro i
+    exact integral_dotProduct_pi_gaussianReal _
+  have hdot (d : ℝ) (i : ι) (x : ι → ℝ) :
+      (fun k => d * δ i k) ⬝ᵥ x = d * x i := by
+    simp [δ, dotProduct]
+  have hcov : ∀ i j, ∫ ξ, X i ξ * X j ξ ∂(Measure.pi fun _ : ι => gaussianReal 0 1) =
+      (fun k => a * δ i k) ⬝ᵥ (fun k => a * δ j k) +
+        (fun k => b * δ i k) ⬝ᵥ (fun k => b * δ j k) := by
+    intro i j
+    rw [integral_dotProduct_mul_dotProduct_pi_gaussianReal]
+    change (fun k => c * δ i k) ⬝ᵥ (fun k => c * δ j k) = _
+    rw [hdot c i, hdot a i, hdot b i]
+    by_cases hij : i = j
+    · subst j
+      simp [δ]
+      simpa [pow_two] using h
+    · have hji : j ≠ i := Ne.symm hij
+      simp [δ, hji]
+  have hmap := map_eq_map_dotProduct_prod (fun i k => a * δ i k) (fun i k => b * δ i k)
+    hX hX0 hcov
+  simpa only [X, hdot] using hmap
+
+/-- **Finite Gaussian two-block rotation, integral form.**  Any measurable observable of a
+scaled standard Gaussian vector has the same expectation after replacing that vector by two
+independent standard Gaussian blocks with matching total variance. -/
+theorem integral_pi_gaussianReal_scale_eq_prod_linear_combo
+    {ι : Type*} [Fintype ι] (a b c : ℝ) (h : c ^ 2 = a ^ 2 + b ^ 2)
+    {f : (ι → ℝ) → ℝ} (hf : Measurable f) :
+    ∫ x, f (fun i => c * x i) ∂(Measure.pi fun _ : ι => gaussianReal 0 1) =
+      ∫ q, f (fun i => a * q.1 i + b * q.2 i)
+        ∂((Measure.pi fun _ : ι => gaussianReal 0 1).prod
+          (Measure.pi fun _ : ι => gaussianReal 0 1)) := by
+  have hscale : Measurable (fun x : ι → ℝ => fun i => c * x i) :=
+    measurable_pi_iff.2 fun i => measurable_const.mul (measurable_pi_apply i)
+  have hcombo : Measurable (fun q : (ι → ℝ) × (ι → ℝ) =>
+      fun i => a * q.1 i + b * q.2 i) :=
+    measurable_pi_iff.2 fun i =>
+      (measurable_const.mul ((measurable_pi_apply i).comp measurable_fst)).add
+        (measurable_const.mul ((measurable_pi_apply i).comp measurable_snd))
+  rw [← integral_map hscale.aemeasurable hf.aestronglyMeasurable,
+    map_pi_gaussianReal_scale_eq_prod_linear_combo a b c h,
+    integral_map hcombo.aemeasurable hf.aestronglyMeasurable]
+
 /-- **Gram transfer, integrals, two independent blocks:** for measurable `f`,
 `𝔼 f (X) = 𝔼 f (r ↦ a₁ r ⬝ᵥ u + a₂ r ⬝ᵥ v)`. -/
 theorem integral_comp_eq_integral_dotProduct_prod {X : A → Ω → ℝ} (a₁ : A → K₁ → ℝ)

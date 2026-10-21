@@ -193,6 +193,20 @@ theorem log_integral_count_tilted [Nonempty α] (f F : α → ℝ) (hF : ∀ a, 
   rw [integral_count_tilted, ← Real.log_div hZF.ne' hZ.ne', Finset.sum_div]
   simp_rw [div_mul_eq_mul_div]
 
+/-- **Log-partition perturbation identity.**  Adding an arbitrary finite perturbation `V` to
+an energy `f` changes its log partition function by the logarithm of the Gibbs average of
+`exp V`.  This is the algebraic form used whenever an independent Gaussian perturbation is
+separated from a base Hamiltonian. -/
+theorem log_sum_exp_add_eq_log_sum_exp_add_log_integral_exp [Nonempty α]
+    (f V : α → ℝ) :
+    Real.log (∑ a, Real.exp (f a + V a)) =
+      Real.log (∑ a, Real.exp (f a)) +
+        Real.log (∫ a, Real.exp (V a) ∂Measure.count.tilted f) := by
+  have h := log_integral_count_tilted f (fun a => Real.exp (V a)) fun a => Real.exp_pos _
+  rw [show (∑ a, Real.exp (f a + V a)) =
+      ∑ a, Real.exp (f a) * Real.exp (V a) by simp_rw [Real.exp_add]]
+  linarith
+
 /-- **Temperature derivative of the log-partition function:**
 `(d/dβ) log Z(β) = ⟨H⟩_β`, the Gibbs average of the energy.  This is
 `ProbabilityTheory.integral_tilted_mul_self`, since `log Z = cgf H count`. -/
