@@ -24,63 +24,46 @@ open scoped BigOperators Real Matrix
 
 namespace SpinGlasses
 
-/-- **Site symmetry of a two-replica SK average.** Relabelling the sites of both replicas by a
-permutation does not change the disorder average of a two-replica observable. -/
-theorem sk_two_replica_site_perm (N : ℕ) (β h : ℝ) (pm : Equiv.Perm (Fin (N + 1)))
-    (Θ : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ) :
+/-- **Site symmetry of an `R`-replica SK average.** Relabelling the sites of all replicas by a
+permutation does not change the disorder average of an observable of the replicas. -/
+theorem sk_replica_site_perm (N : ℕ) (β h : ℝ) {R : Type*} [Fintype R]
+    (pm : Equiv.Perm (Fin (N + 1))) (Θ : (R → Fin (N + 1) → ℤˣ) → ℝ) :
     let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
       (Real.sqrt (N + 1))⁻¹ * β *
         (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
       h * ∑ i : Fin (N + 1), (a i : ℝ)
-    ∫ g, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, Θ (fun i => σ 0 (pm i)) (fun i => σ 1 (pm i))
-        ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted (Esk g))
+    ∫ g, ∫ σ : R → Fin (N + 1) → ℤˣ, Θ (fun r i => σ r (pm i))
+        ∂(Measure.pi fun _ : R => Measure.count.tilted (Esk g))
       ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) =
-    ∫ g, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, Θ (σ 0) (σ 1)
-        ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted (Esk g))
+    ∫ g, ∫ σ : R → Fin (N + 1) → ℤˣ, Θ σ
+        ∂(Measure.pi fun _ : R => Measure.count.tilted (Esk g))
       ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) := by
+  classical
   intro Esk
-  obtain ⟨E, hE⟩ : ∃ E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ, ∀ g a, E g a =
-      (Real.sqrt ((N + 1 : ℕ) : ℝ))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * ((a p.val.1 : ℤ) : ℝ) * ((a p.val.2 : ℤ) : ℝ)) +
-        h * ∑ i, ((a i : ℤ) : ℝ) := ⟨Esk, fun g a => by simp [Esk]⟩
-  have hEsk : Esk = E := funext fun g => funext fun a => by simp [Esk, hE]
-  rw [hEsk]
-  obtain ⟨hw0, hw1, hwm, hsym⟩ := sk_gibbsWeight_siteSymmetric β h E hE
+  obtain ⟨hw0, hw1, hwm, hsym⟩ := sk_gibbsWeight_siteSymmetric β h Esk (fun g a => by simp [Esk])
   obtain ⟨φ, hφ, hφw⟩ := hsym pm.symm
   let e : (Fin (N + 1) → ℤˣ) ≃ (Fin (N + 1) → ℤˣ) := Equiv.arrowCongr pm (Equiv.refl ℤˣ)
+  let w : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g σ =>
+    Real.exp (Esk g σ) / ∑ b, Real.exp (Esk g b)
   have key := integral_comp_weights_equiv
-    (P := Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)
-    (w := fun g σ => Real.exp (E g σ) / ∑ b, Real.exp (E g b)) hwm e hφ
+    (P := Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) (w := w) hwm e hφ
     (fun g a => by simpa [e] using hφw g a)
-    (Ψ := fun v => ∑ x, ∑ y, v x * v y * Θ x y) (by fun_prop)
-  have hre : ∀ g, ∑ x, ∑ y, (Real.exp (E g (e x)) / ∑ b, Real.exp (E g b)) *
-        (Real.exp (E g (e y)) / ∑ b, Real.exp (E g b)) * Θ x y =
-      ∑ x, ∑ y, (Real.exp (E g x) / ∑ b, Real.exp (E g b)) *
-        (Real.exp (E g y) / ∑ b, Real.exp (E g b)) *
-        Θ (fun i => x (pm i)) (fun i => y (pm i)) := fun g => by
-    rw [← e.sum_comp (fun x => ∑ y, (Real.exp (E g x) / ∑ b, Real.exp (E g b)) *
-        (Real.exp (E g y) / ∑ b, Real.exp (E g b)) *
-        Θ (fun i => x (pm i)) (fun i => y (pm i)))]
-    refine Finset.sum_congr rfl fun x _ => ?_
-    rw [← e.sum_comp (fun y => (Real.exp (E g (e x)) / ∑ b, Real.exp (E g b)) *
-        (Real.exp (E g y) / ∑ b, Real.exp (E g b)) *
-        Θ (fun i => (e x) (pm i)) (fun i => y (pm i)))]
-    refine Finset.sum_congr rfl fun y _ => ?_
-    have h1 : (fun i => (e x) (pm i)) = x := funext fun i => by simp [e]
-    have h2 : (fun i => (e y) (pm i)) = y := funext fun i => by simp [e]
-    simp only [h1, h2]
-  have hL : ∀ g, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, Θ (fun i => σ 0 (pm i)) (fun i => σ 1 (pm i))
-      ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted (E g)) =
-      ∑ x, ∑ y, (Real.exp (E g x) / ∑ b, Real.exp (E g b)) *
-        (Real.exp (E g y) / ∑ b, Real.exp (E g b)) *
-        Θ (fun i => x (pm i)) (fun i => y (pm i)) := fun g =>
-    integral_pi_fin_two_count_tilted (E g)
-      (fun x y => Θ (fun i => x (pm i)) (fun i => y (pm i)))
-  have hR : ∀ g, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, Θ (σ 0) (σ 1)
-      ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted (E g)) =
-      ∑ x, ∑ y, (Real.exp (E g x) / ∑ b, Real.exp (E g b)) *
-        (Real.exp (E g y) / ∑ b, Real.exp (E g b)) * Θ x y := fun g =>
-    integral_pi_fin_two_count_tilted (E g) Θ
+    (Ψ := fun v => ∑ τ : R → Fin (N + 1) → ℤˣ, (∏ r, v (τ r)) * Θ τ) (by fun_prop)
+  have hre : ∀ g, ∑ τ : R → Fin (N + 1) → ℤˣ, (∏ r, w g (e (τ r))) * Θ τ =
+      ∑ τ : R → Fin (N + 1) → ℤˣ, (∏ r, w g (τ r)) * Θ (fun r i => τ r (pm i)) := fun g => by
+    rw [← (Equiv.piCongrRight fun _ : R => e).sum_comp fun τ : R → Fin (N + 1) → ℤˣ =>
+      (∏ r, w g (τ r)) * Θ (fun r i => τ r (pm i))]
+    refine Finset.sum_congr rfl fun τ _ => ?_
+    have : (fun r i => (e (τ r)) (pm i)) = τ := funext fun r => funext fun i => by simp [e]
+    simp only [Equiv.piCongrRight_apply, Pi.map_apply, this]
+  have hL : ∀ g, ∫ σ : R → Fin (N + 1) → ℤˣ, Θ (fun r i => σ r (pm i))
+      ∂(Measure.pi fun _ : R => Measure.count.tilted (Esk g)) =
+      ∑ τ : R → Fin (N + 1) → ℤˣ, (∏ r, w g (τ r)) * Θ (fun r i => τ r (pm i)) := fun g =>
+    integral_pi_count_tilted (Esk g) _
+  have hR : ∀ g, ∫ σ : R → Fin (N + 1) → ℤˣ, Θ σ
+      ∂(Measure.pi fun _ : R => Measure.count.tilted (Esk g)) =
+      ∑ τ : R → Fin (N + 1) → ℤˣ, (∏ r, w g (τ r)) * Θ τ := fun g =>
+    integral_pi_count_tilted (Esk g) _
   simp only [hL, hR]
   simp only [hre] at key
   exact key
@@ -196,7 +179,8 @@ theorem sk_overlap_mul_eq_last_site (N : ℕ) (β h q : ℝ) (φ : ℝ → ℝ) 
     simp only [Rf, dotProduct]
     rw [Equiv.sum_comp pm fun i => (x i : ℝ) * (y i : ℝ)]
   have hsite : ∀ i, ν (Θ i) = ν (Θ (Fin.last N)) := fun i => by
-    have h1 := sk_two_replica_site_perm N β h (Equiv.swap i (Fin.last N)) (Θ (Fin.last N))
+    have h1 := sk_replica_site_perm (R := Fin 2) N β h (Equiv.swap i (Fin.last N))
+      (fun σ => Θ (Fin.last N) (σ 0) (σ 1))
     have h2 : ∀ x y, Θ (Fin.last N) (fun j => x (Equiv.swap i (Fin.last N) j))
         (fun j => y (Equiv.swap i (Fin.last N) j)) = Θ i x y := fun x y => by
       simp only [Θ, hRperm, Equiv.swap_apply_right]
@@ -293,12 +277,7 @@ theorem sk_cavity_decoupled_odd_part (N : ℕ) (β q h : ℝ)
       ((σ 0 (Fin.last N) : ℝ) * (σ 1 (Fin.last N) : ℝ) - q) *
           φ ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
             fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) = ∑ j, cw j * G j σ := fun σ => by
-    have h0 := units_cast_sq (σ 0 (Fin.last N))
-    have h1 := units_cast_sq (σ 1 (Fin.last N))
-    have he : (σ 0 (Fin.last N) : ℝ) * (σ 1 (Fin.last N) : ℝ) = 1 ∨
-        (σ 0 (Fin.last N) : ℝ) * (σ 1 (Fin.last N) : ℝ) = -1 := by
-      apply mul_self_eq_one_iff.1
-      linear_combination ((σ 1 (Fin.last N) : ℤˣ) : ℝ) ^ 2 * h0 + h1
+    have he := units_cast_mul_eq_one_or (σ 0 (Fin.last N)) (σ 1 (Fin.last N))
     rw [sk_overlap_succ_eq_cavity N (σ 0) (σ 1)]
     have hA : (N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ 0 i.castSucc : ℝ)) ⬝ᵥ
         fun i : Fin N => (σ 1 i.castSucc : ℝ)) +
@@ -422,20 +401,14 @@ theorem sk_overlap_pow_le_two_nu_zero (N : ℕ) (β q h : ℝ) (hq : q ∈ Set.I
   set p : ℝ := ((2 * k + 2 : ℕ) : ℝ) / m with hp
   set r : ℝ := ((2 * k + 2 : ℕ) : ℝ) with hr
   have hpr : p.HolderConjugate r := by
-    rw [Real.holderConjugate_iff, hp, hm']
-    refine ⟨?_, ?_⟩
-    · rw [lt_div_iff₀ (by linarith)]
-      linarith
-    · field_simp
+    rw [hp, hm']
+    exact Real.HolderConjugate.succ_div_self (by linarith)
   have hp0 : 0 ≤ p := hpr.nonneg
   have h165 := sk_cavity_nu_sub_nu_zero_le N 2 β q h hq f hpr
   dsimp only at h165
   have hpt1 : ∀ σ : Fin 2 → Fin (N + 1) → ℤˣ,
       |f σ| ^ p ≤ 2 ^ p * Ab σ ^ (2 * k + 2) := fun σ => by
-    have hx : |(σ 0 (Fin.last N) : ℝ) * (σ 1 (Fin.last N) : ℝ)| = 1 := by
-      rw [abs_mul, abs_units_cast_eq_one, abs_units_cast_eq_one, mul_one]
-    have hxq : |(σ 0 (Fin.last N) : ℝ) * (σ 1 (Fin.last N) : ℝ) - q| ≤ 2 :=
-      (abs_sub _ _).trans (by rw [hx, abs_of_nonneg hq.1]; linarith [hq.2])
+    have hxq := abs_units_cast_mul_sub_le_two (σ 0 (Fin.last N)) (σ 1 (Fin.last N)) hq
     have e1 : (|Ab σ| ^ (2 * k + 1)) ^ p = Ab σ ^ (2 * k + 2) := by
       rw [← Real.rpow_natCast, ← Real.rpow_mul (abs_nonneg _)]
       have : ((2 * k + 1 : ℕ) : ℝ) * p = r := by

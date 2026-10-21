@@ -86,8 +86,4 @@ theorem integral_integral_mul_le_Lp_mul_Lq {Ω Z : Type*} [MeasurableSpace Ω] [
           (ae_of_all _ fun g => Real.rpow_nonneg (ha0 g) _)
           (ae_of_all _ fun g => Real.rpow_nonneg (hb0 g) _) hLa hLb
     _ = _ := by
-        have e1 : ∀ g, (a g ^ (1 / p)) ^ p = a g := fun g => by
-          rw [← Real.rpow_mul (ha0 g), one_div_mul_cancel hp.ne', Real.rpow_one]
-        have e2 : ∀ g, (b g ^ (1 / r)) ^ r = b g := fun g => by
-          rw [← Real.rpow_mul (hb0 g), one_div_mul_cancel hr.ne', Real.rpow_one]
-        simp only [e1, e2]
+        simp only [one_div, Real.rpow_inv_rpow (ha0 _) hp.ne', Real.rpow_inv_rpow (hb0 _) hr.ne']

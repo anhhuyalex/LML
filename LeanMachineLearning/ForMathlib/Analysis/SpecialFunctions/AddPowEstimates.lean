@@ -122,3 +122,10 @@ theorem abs_add_pow_two_mul_le {k : ℕ} (hk : 1 ≤ k) (a : ℝ) {b : ℝ} (hb 
           nlinarith
       _ ≤ 2 := Real.exp_half_le_two
   nlinarith [mul_le_mul_of_nonneg_right hc hpow]
+
+/-- The pair `((m + 1) / m, m + 1)` is Hölder conjugate for `m > 0`. -/
+theorem Real.HolderConjugate.succ_div_self {m : ℝ} (hm : 0 < m) :
+    ((m + 1) / m).HolderConjugate (m + 1) := by
+  rw [Real.holderConjugate_iff]
+  refine ⟨by rw [lt_div_iff₀ hm]; linarith, ?_⟩
+  field_simp

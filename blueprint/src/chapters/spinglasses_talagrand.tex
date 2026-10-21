@@ -899,6 +899,7 @@ Formalized in \texttt{SpinGlasses/SKAsymptoticProduct.lean}.
         Real.sub_le_half_of_deriv_le,
         Real.neg_half_le_sub_of_le_deriv,
         Real.abs_sub_le_half_of_abs_deriv_le,
+        Real.abs_sub_le_half_of_exists_hasDerivAt,
         SpinGlasses.abs_integral_comp_sub_le,
         SpinGlasses.integral_integral_dotProduct_add,
         SpinGlasses.abs_integral_dotProduct_sub_le,
@@ -1378,7 +1379,8 @@ derivative already proved in Lemma~\ref{lem:sg-tal:cavity-conditional-deriv}.
   \lean{SpinGlasses.hasDerivAt_integral_sk_cavity_path_angle,
         SpinGlasses.hasDerivAt_integral_sk_cavity_path_angle_offDiag,
         SpinGlasses.hasDerivAt_integral_sk_cavity_path_square,
-        HasDerivAt.comp_arccos_sqrt_of_sin_cos}
+        HasDerivAt.comp_arccos_sqrt_of_sin_cos,
+        Real.arccos_sqrt_cos_sq}
   \leanok
 \talsource{Lemma~1.6.3, Eq.~(1.151)}
 Let $N,n\ge0$, $\beta,h\in\mathbb R$, $q\in[0,1]$, and let $f$ be any real function of $n$
@@ -1636,7 +1638,8 @@ bounds the endpoint average, and $|\varphi(\pi/2)-\varphi(0)|\le K/2$ for $|\var
         pow_add_sub_pow_sub_le,
         abs_add_pow_two_mul_le,
         rpow_mul_rpow_le_mul_of_le_rpow_mul,
-        Real.exp_half_le_two}
+        Real.exp_half_le_two,
+        Real.HolderConjugate.succ_div_self}
   \leanok
 \talsource{no counterpart in the book (elementary inequalities used in the proof of Proposition~1.6.7)}
 For $a,b\ge0$, $\theta>0$ and $n\ge1$, $(a+b)^n\le(1+\theta)^{n-1}a^n+(1+\theta^{-1})^{n-1}b^n$; in particular
@@ -1652,10 +1655,12 @@ powers; the exponents of $V$ add up to $1/p+1/r=1$.
 
 \begin{theorem}[Site symmetry and the decoupled endpoint for a function of the overlap (Eqs.~(1.157), (1.158))]
 \label{thm:sg-tal:overlap-odd-part}
-  \lean{SpinGlasses.sk_two_replica_site_perm,
+  \lean{SpinGlasses.sk_replica_site_perm,
         SpinGlasses.integrable_integral_sk_replica,
         SpinGlasses.integral_integral_sk_replica_mono,
         SpinGlasses.integral_integral_sk_replica_affine,
+        SpinGlasses.units_cast_mul_eq_one_or,
+        SpinGlasses.abs_units_cast_mul_sub_le_two,
         SpinGlasses.sk_overlap_mul_eq_last_site,
         SpinGlasses.sk_cavity_decoupled_odd_part}
   \leanok

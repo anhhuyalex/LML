@@ -17,6 +17,12 @@ The substitution `s = arccos √t` turns the ubiquitous factor
 
 @[expose] public section
 
+/-- On `[0, π/2]` the substitution `t = cos² s` is inverted by `s = arccos √t`. -/
+theorem Real.arccos_sqrt_cos_sq {s : ℝ} (hs0 : 0 ≤ s) (hs1 : s ≤ Real.pi / 2) :
+    Real.arccos (Real.sqrt (Real.cos s ^ 2)) = s := by
+  rw [Real.sqrt_sq (Real.cos_nonneg_of_mem_Icc ⟨by linarith [hs0, Real.pi_pos], hs1⟩),
+    Real.arccos_cos hs0 (hs1.trans (by linarith [Real.pi_pos]))]
+
 /-- Compose an angle derivative carrying `sin s * cos s` with
 `t ↦ arccos √t`. On the open unit interval, the two square-root factors in
 the chain rule cancel, leaving `-D / 2`. -/

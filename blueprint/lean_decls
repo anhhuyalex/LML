@@ -3419,7 +3419,7 @@ pow_add_sub_pow_sub_le
 abs_add_pow_two_mul_le
 rpow_mul_rpow_le_mul_of_le_rpow_mul
 Real.exp_half_le_two
-SpinGlasses.sk_two_replica_site_perm
+SpinGlasses.sk_replica_site_perm
 SpinGlasses.integrable_integral_sk_replica
 SpinGlasses.integral_integral_sk_replica_mono
 SpinGlasses.integral_integral_sk_replica_affine

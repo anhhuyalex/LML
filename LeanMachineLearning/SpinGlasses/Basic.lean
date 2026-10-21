@@ -89,6 +89,21 @@ theorem abs_units_cast_eq_one (u : ℤˣ) : |((u : ℤ) : ℝ)| = 1 := by
 theorem units_cast_eq_one_or (u : ℤˣ) : ((u : ℤ) : ℝ) = 1 ∨ ((u : ℤ) : ℝ) = -1 := by
   rcases Int.units_eq_one_or u with h | h <;> simp [h]
 
+/-- The product of two hypercube coordinates is `1` or `-1`. -/
+theorem units_cast_mul_eq_one_or (u v : ℤˣ) :
+    ((u : ℤ) : ℝ) * ((v : ℤ) : ℝ) = 1 ∨ ((u : ℤ) : ℝ) * ((v : ℤ) : ℝ) = -1 := by
+  rcases units_cast_eq_one_or u with h | h <;> rcases units_cast_eq_one_or v with h' | h' <;>
+    simp [h, h']
+
+/-- The product of two hypercube coordinates, shifted by `q ∈ [0, 1]`, has modulus at most `2`. -/
+theorem abs_units_cast_mul_sub_le_two (u v : ℤˣ) {q : ℝ} (hq : q ∈ Set.Icc (0 : ℝ) 1) :
+    |((u : ℤ) : ℝ) * ((v : ℤ) : ℝ) - q| ≤ 2 := by
+  have hx : |((u : ℤ) : ℝ) * ((v : ℤ) : ℝ)| = 1 := by
+    rw [abs_mul, abs_units_cast_eq_one, abs_units_cast_eq_one, mul_one]
+  exact (abs_sub _ _).trans (by
+    rw [hx, abs_of_nonneg hq.1]
+    exact ((add_le_add_right hq.2 1).trans_eq one_add_one_eq_two))
+
 /-- The coordinates of a hypercube configuration square to `1`. -/
 theorem units_cast_sq (u : ℤˣ) : ((u : ℤ) : ℝ) ^ 2 = 1 := by
   rcases Int.units_eq_one_or u with h | h <;> simp [h]

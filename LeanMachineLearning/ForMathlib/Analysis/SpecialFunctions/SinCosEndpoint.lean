@@ -63,4 +63,18 @@ theorem abs_sub_le_half_of_abs_deriv_le {φ φ' : ℝ → ℝ} (hd : ∀ s, HasD
   abs_le.2 ⟨neg_half_le_sub_of_le_deriv hd fun s hs => (abs_le.1 (hK s hs)).1,
     sub_le_half_of_deriv_le hd fun s hs => (abs_le.1 (hK s hs)).2⟩
 
+/-- Pointwise form: if at every `s` the derivative is `sin s cos s D` with `|D| ≤ K` for
+`s ∈ [0, π/2]`, then the increment is at most `K / 2`. The derivative function need not be chosen
+by the caller. -/
+theorem abs_sub_le_half_of_exists_hasDerivAt {φ : ℝ → ℝ} {K : ℝ}
+    (hd : ∀ s, ∃ D, HasDerivAt φ (sin s * cos s * D) s ∧ (s ∈ Icc 0 (π / 2) → |D| ≤ K)) :
+    |φ (π / 2) - φ 0| ≤ K / 2 := by
+  choose D hDd hDb using hd
+  refine abs_sub_le_half_of_abs_deriv_le hDd fun s hs => ?_
+  have hsin := sin_nonneg_of_nonneg_of_le_pi hs.1 (hs.2.trans (by linarith [pi_pos]))
+  have hcos := cos_nonneg_of_mem_Icc ⟨by linarith [hs.1, pi_pos], hs.2⟩
+  rw [abs_mul, abs_of_nonneg (mul_nonneg hsin hcos)]
+  have := mul_le_mul_of_nonneg_left (hDb s hs) (mul_nonneg hsin hcos)
+  linarith
+
 end Real

@@ -122,9 +122,7 @@ theorem sk_cavity_nu_sub_nu_zero_le (N n : ℕ) (β q h : ℝ) (hq : q ∈ Set.I
         |D| ≤ 4 * (n : ℝ) ^ 2 * β ^ 2 * Real.exp (4 * ((n : ℝ) + 2) ^ 2 * β ^ 2) * X) := by
     intro s
     refine ⟨_, hasDerivAt_integral_sk_cavity_path_angle_offDiag N n β q h hq f s, fun hs => ?_⟩
-    have hs' : Real.arccos (Real.sqrt (Real.cos s ^ 2)) = s := by
-      rw [Real.sqrt_sq (Real.cos_nonneg_of_mem_Icc ⟨by linarith [hs.1, Real.pi_pos], hs.2⟩),
-        Real.arccos_cos hs.1 (hs.2.trans (by linarith [Real.pi_pos]))]
+    have hs' := Real.arccos_sqrt_cos_sq hs.1 hs.2
     have hWnn : ∀ τ, 0 ≤ Wsum τ := fun τ => by
       simp only [Wsum, dev]
       positivity
@@ -152,18 +150,7 @@ theorem sk_cavity_nu_sub_nu_zero_le (N n : ℕ) (β q h : ℝ) (hq : q ∈ Set.I
             refine mul_le_mul_of_nonneg_left ((key.trans ?_)) (by positivity)
             exact mul_le_mul_of_nonneg_left hW (Real.exp_pos _).le
         _ = _ := by ring
-  choose D hDd hDb using hd
-  have hmain := Real.abs_sub_le_half_of_abs_deriv_le (φ := Φ)
-    (φ' := fun s => Real.sin s * Real.cos s * D s) hDd
-    (K := 4 * (n : ℝ) ^ 2 * β ^ 2 * Real.exp (4 * ((n : ℝ) + 2) ^ 2 * β ^ 2) * X)
-    (fun s hs => by
-      have hsin : 0 ≤ Real.sin s := Real.sin_nonneg_of_nonneg_of_le_pi hs.1
-        (hs.2.trans (by linarith [Real.pi_pos]))
-      have hcos : 0 ≤ Real.cos s :=
-        Real.cos_nonneg_of_mem_Icc ⟨by linarith [hs.1, Real.pi_pos], hs.2⟩
-      rw [abs_mul, abs_of_nonneg (mul_nonneg hsin hcos)]
-      have := mul_le_mul_of_nonneg_left (hDb s hs) (mul_nonneg hsin hcos)
-      linarith)
+  have hmain := Real.abs_sub_le_half_of_exists_hasDerivAt hd
   have hzero : Φ 0 = ∫ g, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ
         ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (Esk g))
         ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) :=
