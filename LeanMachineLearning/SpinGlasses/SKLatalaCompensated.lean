@@ -79,9 +79,7 @@ theorem replica_decoupling_comb_nonneg (f : α → ℝ) (A U : α → α → ℝ
       ∫ τ : Option (Option (Fin 2)) → α, G (fun r => τ (some (some r)))
           ∂(Measure.pi fun _ : Option (Option (Fin 2)) => μ) =
         ∫ σ, G σ ∂(Measure.pi fun _ : Fin 2 => μ) := fun G =>
-    (integral_pi_option_count_tilted_marginal (R := Option (Fin 2)) f
-      (fun σ' => G (fun r => σ' (some r)))).trans
-      (integral_pi_option_count_tilted_marginal (R := Fin 2) f G)
+    integral_pi_option_option_count_tilted_marginal f G
   have h12 : ∫ τ : Option (Option (Fin 2)) → α,
       Φ (fun r => τ (some (some r))) * A (τ (some (some 0))) (τ (some (some 1)))
         ∂(Measure.pi fun _ : Option (Option (Fin 2)) => μ) =

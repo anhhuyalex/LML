@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.SpinGlasses.SKCavityDecoupled
 public import LeanMachineLearning.SpinGlasses.SKCavityDomination
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedBound
 
 /-!
 # The decoupled endpoint of the cavity path (Talagrand's Lemma 1.6.2)
@@ -87,9 +88,8 @@ theorem sk_cavity_decoupled_endpoint (N n : ℕ) (β q h : ℝ) (I : Finset (Fin
   have hz : ∫ ω : (Fin N → ℝ) × ℝ, Real.tanh (β * ω.2 * Real.sqrt q + h) ^ I.card
       ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)) =
       ∫ z, Real.tanh (β * z * Real.sqrt q + h) ^ I.card ∂(gaussianReal 0 1) := by
-    rw [integral_fun_snd (μ := Measure.pi fun _ : Fin N => gaussianReal 0 1)
-      (ν := gaussianReal 0 1) (fun z => Real.tanh (β * z * Real.sqrt q + h) ^ I.card)]
-    simp
+    exact integral_prod_fun_snd_of_isProbabilityMeasure (Measure.pi fun _ : Fin N => gaussianReal 0 1)
+      (gaussianReal 0 1) fun z => Real.tanh (β * z * Real.sqrt q + h) ^ I.card
   simp_rw [hz]
   exact integral_const_mul _ _
 

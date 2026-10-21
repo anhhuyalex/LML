@@ -348,6 +348,15 @@ theorem integral_pi_option_count_tilted_marginal [Finite α] [Nonempty α] [Fint
   have h := integral_pi_option_count_tilted (R := R) f (fun σ _ => G σ)
   simpa [integral_const, probReal_univ] using h
 
+/-- Marginalizing two extra replicas. -/
+theorem integral_pi_option_option_count_tilted_marginal [Finite α] [Nonempty α] [Fintype R]
+    (f : α → ℝ) (G : (R → α) → ℝ) :
+    ∫ τ, G (fun r => τ (some (some r)))
+        ∂(Measure.pi fun _ : Option (Option R) => Measure.count.tilted f) =
+      ∫ σ, G σ ∂(Measure.pi fun _ : R => Measure.count.tilted f) :=
+  (integral_pi_option_count_tilted_marginal (R := Option R) f fun ν => G fun r => ν (some r)).trans
+    (integral_pi_option_count_tilted_marginal (R := R) f G)
+
 variable [Finite α] [Nonempty α] [Fintype R]
 
 /-- **Key identity of Lemma 1.4.2:** the two Gaussian integrations by parts turn the derivative

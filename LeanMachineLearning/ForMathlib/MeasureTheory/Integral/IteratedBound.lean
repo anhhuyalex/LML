@@ -39,3 +39,29 @@ theorem abs_integral_integral_integral_le {X Y Z : Type*} [MeasurableSpace X] [M
   simpa only [Real.norm_eq_abs] using
     norm_integral_le_of_norm_le (f := fun x => ∫ y, ∫ z, G x y z ∂κ x y ∂ν) h3
       (ae_of_all _ fun x => by simpa only [Real.norm_eq_abs] using l2 x)
+
+/-- A nonnegative combination of iterated averages, each bounded by `X`, is bounded by the sum of
+the coefficients times `X`. The inner integrals are over finite measures and the outer integrand of
+each term is integrable. -/
+theorem integral_integral_finset_sum_le {Ω Z ι : Type*} [MeasurableSpace Ω] [MeasurableSpace Z]
+    (μ : Measure Ω) (κ : Ω → Measure Z) (s : Finset ι) (c : ι → ℝ) (G : ι → Z → ℝ) (X : ℝ)
+    (hG : ∀ j g, Integrable (G j) (κ g))
+    (hint : ∀ j, Integrable (fun g => ∫ z, G j z ∂κ g) μ)
+    (hc : ∀ j ∈ s, 0 ≤ c j) (hX : ∀ j ∈ s, ∫ g, ∫ z, G j z ∂κ g ∂μ ≤ X) :
+    ∫ g, ∫ z, ∑ j ∈ s, c j * G j z ∂κ g ∂μ ≤ (∑ j ∈ s, c j) * X := by
+  have h1 : ∀ g, ∫ z, ∑ j ∈ s, c j * G j z ∂κ g = ∑ j ∈ s, c j * ∫ z, G j z ∂κ g := fun g => by
+    rw [integral_finsetSum _ fun j _ => (hG j g).const_mul (c j)]
+    exact Finset.sum_congr rfl fun j _ => integral_const_mul _ _
+  simp_rw [h1]
+  rw [integral_finsetSum _ fun j _ => (hint j).const_mul (c j)]
+  rw [Finset.sum_mul]
+  refine Finset.sum_le_sum fun j hj => ?_
+  rw [integral_const_mul]
+  exact mul_le_mul_of_nonneg_left (hX j hj) (hc j hj)
+
+/-- Integrating a function of the second coordinate over a product with a probability measure. -/
+theorem integral_prod_fun_snd_of_isProbabilityMeasure {X Y E : Type*} [MeasurableSpace X]
+    [MeasurableSpace Y] [NormedAddCommGroup E] [NormedSpace ℝ E] (μ : Measure X)
+    [IsProbabilityMeasure μ] (ν : Measure Y) (f : Y → E) :
+    ∫ x, f x.2 ∂(μ.prod ν) = ∫ y, f y ∂ν := by
+  rw [integral_fun_snd, probReal_univ, one_smul]

@@ -325,4 +325,56 @@ theorem hasDerivAt_integral_sk_cavity_path_square (N n : ℕ) (β q h t : ℝ)
   rw [← hneg]
   ring
 
+/-- **Talagrand's Eq. (1.152).** The same derivative with the full overlap `R` in place of the
+truncated overlap `R⁻`: the kernel changes by the constant `β² / (N + 1)`, which cancels because
+the three replica families have total weight zero. -/
+theorem hasDerivAt_integral_sk_cavity_path_square_full (N n : ℕ) (β q h t : ℝ)
+    (hq : q ∈ Set.Icc (0 : ℝ) 1) (ht : t ∈ Set.Ioo (0 : ℝ) 1)
+    (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) :
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
+      (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs N,
+            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
+        (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
+      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
+        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
+      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
+    let K : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ := fun a b =>
+      β ^ 2 * (a (Fin.last N) : ℝ) * (b (Fin.last N) : ℝ) *
+        ((N + 1 : ℝ)⁻¹ *
+          ((fun i : Fin (N + 1) => (a i : ℝ)) ⬝ᵥ fun i : Fin (N + 1) =>
+            (b i : ℝ)) - q)
+    HasDerivAt (fun u =>
+      ∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
+        ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ
+          ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
+            (E (Real.arccos (Real.sqrt u)) g' ω))
+        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1))
+      (∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
+        ∫ τ : Option (Option (Fin n)) → Fin (N + 1) → ℤˣ,
+          f (fun r => τ (some (some r))) *
+            ((∑ p : Fin n × Fin n with p.1 < p.2,
+                K (τ (some (some p.1))) (τ (some (some p.2)))) -
+              (n : ℝ) * ∑ r : Fin n, K (τ (some (some r))) (τ (some none)) +
+              (n : ℝ) * ((n : ℝ) + 1) / 2 * K (τ (some none)) (τ none))
+        ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted
+          (E (Real.arccos (Real.sqrt t)) g' ω))
+        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) t := by
+  intro B E K
+  refine (hasDerivAt_integral_sk_cavity_path_square N n β q h t hq ht f).congr_deriv ?_
+  refine integral_congr_ae (ae_of_all _ fun g' => ?_)
+  refine integral_congr_ae (ae_of_all _ fun ω => ?_)
+  refine integral_congr_ae (ae_of_all _ fun τ => ?_)
+  beta_reduce
+  congr 1
+  simp only [K, sk_cavity_kernel_full_eq]
+  exact (book_replica_combination_add_const n
+    (fun a b : Fin (N + 1) → ℤˣ => β ^ 2 * (a (Fin.last N) : ℝ) * (b (Fin.last N) : ℝ) *
+      ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (a i.castSucc : ℝ)) ⬝ᵥ fun i : Fin N =>
+        (b i.castSucc : ℝ)) - q)) (β ^ 2 / (N + 1 : ℝ)) τ).symm
+
 end SpinGlasses

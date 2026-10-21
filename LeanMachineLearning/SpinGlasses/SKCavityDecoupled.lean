@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.GaussianIBP
+public import LeanMachineLearning.SpinGlasses.GibbsReplicaMarginal
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.HypercubeProduct
 
 /-!
@@ -20,24 +20,6 @@ the last spins are independent of the rest, and each carries mean `tanh Y`.
 open MeasureTheory Finset
 
 namespace SpinGlasses
-
-/-- Reindexing the configuration space along an equivalence transports an `R`-replica Gibbs
-average. -/
-theorem integral_pi_count_tilted_equiv {β γ R : Type*} [Finite β] [Finite γ] [Fintype R]
-    [MeasurableSpace β] [MeasurableSingletonClass β] [MeasurableSpace γ]
-    [MeasurableSingletonClass γ] (e : β ≃ γ) (f : γ → ℝ) (Ψ : (R → γ) → ℝ) :
-    ∫ σ, Ψ σ ∂(Measure.pi fun _ : R => Measure.count.tilted f) =
-      ∫ σ : R → β, Ψ (fun r => e (σ r))
-        ∂(Measure.pi fun _ : R => Measure.count.tilted fun b => f (e b)) := by
-  classical
-  have := Fintype.ofFinite β
-  have := Fintype.ofFinite γ
-  rw [integral_pi_count_tilted, integral_pi_count_tilted]
-  have hZ : (∑ b : β, Real.exp (f (e b))) = ∑ c : γ, Real.exp (f c) :=
-    e.sum_comp fun c => Real.exp (f c)
-  simp_rw [hZ]
-  exact ((Equiv.piCongrRight fun _ : R => e).sum_comp fun σ : R → γ =>
-    (∏ r, Real.exp (f (σ r)) / ∑ c : γ, Real.exp (f c)) * Ψ σ).symm
 
 /-- **Decoupled last spin.** For the energy `A a + ε Y` on `α × ℤˣ`, an observable that is a
 function of the `α`-coordinates times the product of the last spins over `I` has replica average
@@ -82,8 +64,7 @@ theorem integral_pi_count_tilted_decoupled_spin {α : Type*} [Finite α] [Nonemp
   rw [hypercube_sum_prod_eq_prod_add
     (fun (r : Fin n) (s : ℤˣ) => Real.exp ((s : ℝ) * Y) / c * if r ∈ I then ((s : ℤˣ) : ℝ) else 1)]
   have htanh : Real.tanh Y = (Real.exp Y - Real.exp (-Y)) / c := by
-    rw [Real.tanh_eq_sinh_div_cosh, Real.sinh_eq, Real.cosh_eq, hc]
-    field_simp
+    rw [hc, Real.tanh_eq]
   have hr : ∀ r : Fin n, (Real.exp (((1 : ℤˣ) : ℝ) * Y) / c *
         (if r ∈ I then (((1 : ℤˣ) : ℤ) : ℝ) else 1) +
       Real.exp (((-1 : ℤˣ) : ℝ) * Y) / c * (if r ∈ I then (((-1 : ℤˣ) : ℤ) : ℝ) else 1)) =

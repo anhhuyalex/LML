@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.SpinGlasses.SKCavityOuterDerivative
 public import LeanMachineLearning.SpinGlasses.SKCavityEndpoint
+public import LeanMachineLearning.SpinGlasses.GibbsReplicaMarginal
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.GronwallBackward
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedBound
 
@@ -24,6 +25,30 @@ open MeasureTheory ProbabilityTheory Finset
 open scoped BigOperators Real Matrix
 
 namespace SpinGlasses
+
+/-- **Domination of a nested replica average.** A pointwise bound `|G| ≤ H` on an observable of
+`R` replicas passes through the Gibbs average of any measurable random energy, with an arbitrary
+base disorder `P₀` and the cavity Gaussian disorder `ω`. -/
+theorem abs_integral_nested_gibbs_le {Ω₀ Ω : Type*} [MeasurableSpace Ω₀] [MeasurableSpace Ω]
+    (P₀ : Measure Ω₀) [IsProbabilityMeasure P₀] (P : Measure Ω) [IsProbabilityMeasure P]
+    {R α : Type*} [Fintype R] [Finite α] [Nonempty α] [MeasurableSpace α]
+    [MeasurableSingletonClass α] (E : Ω₀ → Ω → α → ℝ)
+    (hE : ∀ a, Measurable (fun x : Ω₀ × Ω => E x.1 x.2 a)) {G H : (R → α) → ℝ}
+    (hGH : ∀ τ, |G τ| ≤ H τ) :
+    |∫ η, ∫ ω, ∫ τ, G τ ∂(Measure.pi fun _ : R => Measure.count.tilted (E η ω)) ∂P ∂P₀| ≤
+      ∫ η, ∫ ω, ∫ τ, H τ ∂(Measure.pi fun _ : R => Measure.count.tilted (E η ω)) ∂P ∂P₀ := by
+  have hdet : Integrable (fun x : Ω₀ × Ω =>
+      ∫ τ, H τ ∂(Measure.pi fun _ : R => Measure.count.tilted (E x.1 x.2))) (P₀.prod P) :=
+    integrable_integral_pi_count_tilted_det (g := fun (a : α) (x : Ω₀ × Ω) => E x.1 x.2 a)
+      (fun a => (hE a).aemeasurable) H
+  exact abs_integral_integral_integral_le P₀ P
+    (fun η ω => Measure.pi fun _ : R => Measure.count.tilted (E η ω))
+    (G := fun _ _ τ => G τ) (H := fun _ _ τ => H τ) (fun _ _ τ => hGH τ)
+    (fun _ _ => Integrable.of_finite)
+    (fun η => integrable_integral_pi_count_tilted_det (P := P)
+      (g := fun (a : α) (ω : Ω) => E η ω a)
+      (fun a => ((hE a).comp measurable_prodMk_left).aemeasurable) H)
+    hdet.integral_prod_left
 
 /-- **Talagrand's Eq. (1.155)**, for an arbitrary base disorder: the derivative of the cavity
 path is bounded by `4 n² β²` times the path average of a nonnegative observable. -/
@@ -63,9 +88,7 @@ theorem abs_cavity_outer_book_derivative_le
       Measurable (fun x : Ω₀ × ((Fin N → ℝ) × ℝ) => E s x.1 x.2 a) := by
     dsimp [E]
     fun_prop
-  have hK : ∀ a b, |K a b| ≤ 2 * β ^ 2 := fun a b => by
-    have h := abs_sk_cavity_covariance_le N β q hq a b
-    rwa [← abs_neg, neg_sk_cavity_covariance] at h
+  have hK : ∀ a b, |K a b| ≤ 2 * β ^ 2 := abs_sk_cavity_kernel_le N β q hq
   clear_value E K
   set c : ℝ := 4 * (n : ℝ) ^ 2 * β ^ 2 with hc
   let Θ : (Option (Option (Fin n)) → Fin (N + 1) → ℤˣ) → ℝ := fun τ =>
@@ -75,40 +98,20 @@ theorem abs_cavity_outer_book_derivative_le
         ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted (E s η ω)) =
       ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ
         ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (E s η ω)) :=
-    (integral_pi_option_count_tilted_marginal (R := Option (Fin n)) (E s η ω)
-      fun ν => f fun r => ν (some r)).trans
-      (integral_pi_option_count_tilted_marginal (R := Fin n) (E s η ω) f)
-  let κ : Ω₀ → (Fin N → ℝ) × ℝ → Measure (Option (Option (Fin n)) → Fin (N + 1) → ℤˣ) :=
-    fun η ω => Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted (E s η ω)
-  let G : Ω₀ → (Fin N → ℝ) × ℝ → (Option (Option (Fin n)) → Fin (N + 1) → ℤˣ) → ℝ :=
-    fun _ _ τ => f (fun r => τ (some (some r))) *
-      ((∑ p : Fin n × Fin n with p.1 < p.2,
-          K (τ (some (some p.1))) (τ (some (some p.2)))) -
-        (n : ℝ) * ∑ r : Fin n, K (τ (some (some r))) (τ (some none)) +
-        (n : ℝ) * ((n : ℝ) + 1) / 2 * K (τ (some none)) (τ none))
-  have hpt (η : Ω₀) (ω : (Fin N → ℝ) × ℝ)
-      (τ : Option (Option (Fin n)) → Fin (N + 1) → ℤˣ) : |G η ω τ| ≤ Θ τ := by
-    dsimp only [G]
+    integral_pi_option_option_count_tilted_marginal (E s η ω) f
+  have hpt (τ : Option (Option (Fin n)) → Fin (N + 1) → ℤˣ) :
+      |f (fun r => τ (some (some r))) *
+        ((∑ p : Fin n × Fin n with p.1 < p.2,
+            K (τ (some (some p.1))) (τ (some (some p.2)))) -
+          (n : ℝ) * ∑ r : Fin n, K (τ (some (some r))) (τ (some none)) +
+          (n : ℝ) * ((n : ℝ) + 1) / 2 * K (τ (some none)) (τ none))| ≤ Θ τ := by
     rw [abs_mul, abs_of_nonneg (hf _)]
     have h := abs_book_replica_combination_le n K (2 * β ^ 2) hK τ
     calc _ ≤ f (fun r => τ (some (some r))) * (2 * (n : ℝ) ^ 2 * (2 * β ^ 2)) :=
           mul_le_mul_of_nonneg_left h (hf _)
       _ = Θ τ := by simp only [Θ, hc]; ring
-  have h1 (η : Ω₀) (ω : (Fin N → ℝ) × ℝ) : Integrable Θ (κ η ω) := Integrable.of_finite
-  have hdet : Integrable (fun x : Ω₀ × ((Fin N → ℝ) × ℝ) => ∫ τ, Θ τ ∂(κ x.1 x.2))
-      (P₀.prod P) :=
-    integrable_integral_pi_count_tilted_det
-      (g := fun (a : Fin (N + 1) → ℤˣ) (x : Ω₀ × ((Fin N → ℝ) × ℝ)) => E s x.1 x.2 a)
-      (fun a => (hEm a).aemeasurable) Θ
-  have h2 (η : Ω₀) : Integrable (fun ω => ∫ τ, Θ τ ∂(κ η ω)) P :=
-    integrable_integral_pi_count_tilted_det (P := P)
-      (g := fun (a : Fin (N + 1) → ℤˣ) (ω : (Fin N → ℝ) × ℝ) => E s η ω a)
-      (fun a => ((hEm a).comp measurable_prodMk_left).aemeasurable) Θ
-  have h3 : Integrable (fun η => ∫ ω, ∫ τ, Θ τ ∂(κ η ω) ∂P) P₀ := hdet.integral_prod_left
-  have key := abs_integral_integral_integral_le P₀ P κ (G := G) (H := fun _ _ τ => Θ τ)
-    hpt h1 h2 h3
-  refine key.trans_eq ?_
-  simp only [Θ, integral_const_mul, hmarg, κ]
+  refine (abs_integral_nested_gibbs_le P₀ P (E s) hEm hpt).trans_eq ?_
+  simp only [Θ, integral_const_mul, hmarg]
   rfl
 
 /-- At angle `0` the cavity path is the coupled endpoint: the scalar Gaussian drops out and the
@@ -237,5 +240,41 @@ theorem sk_cavity_path_square_le_exp_mul (N n : ℕ) (β q h : ℝ)
     integral_nonneg fun g => integral_nonneg fun σ => hf σ
   refine hmain.trans (mul_le_mul_of_nonneg_right (Real.exp_le_exp.2 ?_) hnn)
   nlinarith [ht.1, sq_nonneg (n : ℝ), sq_nonneg β, mul_nonneg (sq_nonneg (n : ℝ)) (sq_nonneg β)]
+
+/-- **Lemma 1.6.4 for an arbitrary finite set of replicas.** The replica index type enters only
+through its cardinality `m`, so the comparison constant is `exp (4 m² β²)`. -/
+theorem sk_cavity_path_square_le_exp_mul_replicas (N : ℕ) (β q h : ℝ)
+    (hq : q ∈ Set.Icc (0 : ℝ) 1) {R : Type*} [Fintype R]
+    (G : (R → Fin (N + 1) → ℤˣ) → ℝ) (hG : ∀ τ, 0 ≤ G τ) (t : ℝ) (ht : t ∈ Set.Icc (0 : ℝ) 1) :
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
+      (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs N,
+            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
+        (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
+      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
+        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
+      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
+    (∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
+        ∫ τ : R → Fin (N + 1) → ℤˣ, G τ
+          ∂(Measure.pi fun _ : R => Measure.count.tilted
+            (E (Real.arccos (Real.sqrt t)) g' ω))
+        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) ≤
+    Real.exp (4 * (Fintype.card R : ℝ) ^ 2 * β ^ 2) *
+      ∫ g : FinPairs (N + 1) → ℝ,
+        ∫ τ : R → Fin (N + 1) → ℤˣ, G τ
+          ∂(Measure.pi fun _ : R => Measure.count.tilted
+            (fun a : Fin (N + 1) → ℤˣ =>
+              (Real.sqrt (N + 1))⁻¹ * β *
+                (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+              h * ∑ i : Fin (N + 1), (a i : ℝ)))
+        ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) := by
+  intro B E
+  let e : R ≃ Fin (Fintype.card R) := Fintype.equivFin R
+  have key := sk_cavity_path_square_le_exp_mul N (Fintype.card R) β q h hq
+    (fun σ => G fun r => σ (e r)) (fun σ => hG _) t ht
+  simpa only [integral_pi_count_tilted_reindex e] using key
 
 end SpinGlasses
