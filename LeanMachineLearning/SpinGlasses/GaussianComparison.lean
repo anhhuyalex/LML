@@ -26,6 +26,8 @@ and `M`.  No definitions are introduced.
   `u_s = cos s X + sin s Y + h`, the derivative of `φ(s) = 𝔼 log ∑ₐ exp (u_s(a))` is, by
   Gaussian integration by parts for the Gibbs measure (Lemma 1.1), `sin s cos s` times the Gibbs
   average of `(B - A)(σ¹, σ¹) - (B - A)(σ¹, σ²)` with `A = Cov X`, `B = Cov Y`.
+* `SpinGlasses.hasDerivAt_integral_log_integral_cosh_trig`: the corresponding derivative for
+  the logarithm of a Gibbs average of `cosh`, obtained by adjoining one Ising sign.
 * `SpinGlasses.integral_log_sum_exp_le_of_covariance_le`: the comparison inequality.
 
 The trigonometric path `cos s X + sin s Y` (rather than `√t X + √(1 - t) Y`) is smooth on all of
@@ -155,6 +157,109 @@ theorem hasDerivAt_integral_log_sum_exp_trig [Fintype α] [Nonempty α] [Measura
   refine integral_congr_ae (ae_of_all _ fun ω => integral_congr_ae (ae_of_all _ fun p => ?_))
   simp only [hcov]
   ring
+
+/-- **Gaussian derivative of a logarithmic `cosh` Gibbs average.**  An auxiliary Ising sign
+rewrites `log ⟨cosh (Z + h)⟩` as a log partition function on `α × ℤˣ`, so the general Gaussian
+log-partition derivative applies directly.  This is the model-independent `f = cosh`
+specialization of Talagrand's Eq. (1.178); unlike a quotient differentiation proof, it needs no
+new smooth-functional or integrability API. -/
+theorem hasDerivAt_integral_log_integral_cosh_trig [Finite α] [Nonempty α]
+    [MeasurableSpace α] [MeasurableSingletonClass α]
+    (hXm : ∀ a, Measurable (X a)) (hYm : ∀ a, Measurable (Y a))
+    (hXY : HasGaussianLaw (fun ω s => Sum.elim X Y s ω) P)
+    (hX : ∀ a, ∫ ω, X a ω ∂P = 0) (hY : ∀ a, ∫ ω, Y a ω ∂P = 0)
+    (h0 : ∀ a b, ∫ ω, X a ω * Y b ω ∂P = 0) (A h : α → ℝ) (t : ℝ) :
+    HasDerivAt (fun s => ∫ ω,
+      Real.log (∫ a, Real.cosh (Real.cos s * X a ω + Real.sin s * Y a ω + h a)
+        ∂Measure.count.tilted A) ∂P)
+      (∫ ω, ∫ p : (α × ℤˣ) × (α × ℤˣ), Real.sin t * Real.cos t *
+        ((∫ ω', (p.1.2 : ℝ) * Y p.1.1 ω' * ((p.1.2 : ℝ) * Y p.1.1 ω') ∂P -
+            ∫ ω', (p.1.2 : ℝ) * X p.1.1 ω' * ((p.1.2 : ℝ) * X p.1.1 ω') ∂P) -
+          (∫ ω', (p.1.2 : ℝ) * Y p.1.1 ω' * ((p.2.2 : ℝ) * Y p.2.1 ω') ∂P -
+            ∫ ω', (p.1.2 : ℝ) * X p.1.1 ω' * ((p.2.2 : ℝ) * X p.2.1 ω') ∂P))
+        ∂((Measure.count.tilted fun x : α × ℤˣ =>
+          Real.cos t * ((x.2 : ℝ) * X x.1 ω) +
+          Real.sin t * ((x.2 : ℝ) * Y x.1 ω) + A x.1 + (x.2 : ℝ) * h x.1).prod
+          (Measure.count.tilted fun x : α × ℤˣ =>
+            Real.cos t * ((x.2 : ℝ) * X x.1 ω) +
+            Real.sin t * ((x.2 : ℝ) * Y x.1 ω) + A x.1 + (x.2 : ℝ) * h x.1)) ∂P) t := by
+  let _ := Fintype.ofFinite α
+  let Xs : (α × ℤˣ) → Ω → ℝ := fun x ω => (x.2 : ℝ) * X x.1 ω
+  let Ys : (α × ℤˣ) → Ω → ℝ := fun x ω => (x.2 : ℝ) * Y x.1 ω
+  let B : (α × ℤˣ) → ℝ := fun x => A x.1 + (x.2 : ℝ) * h x.1
+  have hXYs : HasGaussianLaw (fun ω s => Sum.elim Xs Ys s ω) P := by
+    let e : ((α × ℤˣ) ⊕ (α × ℤˣ)) → (α ⊕ α) := fun s => match s with
+      | Sum.inl x => Sum.inl x.1
+      | Sum.inr x => Sum.inr x.1
+    let c : ((α × ℤˣ) ⊕ (α × ℤˣ)) → ℝ := fun s => match s with
+      | Sum.inl x => (x.2 : ℝ)
+      | Sum.inr x => (x.2 : ℝ)
+    have hsign := hXY.reindex_mul e c
+    convert hsign using 1
+    funext ω s
+    rcases s with ⟨a, ε⟩ | ⟨a, ε⟩ <;> rfl
+  have hXsm : ∀ x, Measurable (Xs x) := fun x => measurable_const.mul (hXm x.1)
+  have hYsm : ∀ x, Measurable (Ys x) := fun x => measurable_const.mul (hYm x.1)
+  have hXs : ∀ x, ∫ ω, Xs x ω ∂P = 0 := fun x => by
+    simp only [Xs, integral_const_mul, hX, mul_zero]
+  have hYs : ∀ x, ∫ ω, Ys x ω ∂P = 0 := fun x => by
+    simp only [Ys, integral_const_mul, hY, mul_zero]
+  have h0s : ∀ x y, ∫ ω, Xs x ω * Ys y ω ∂P = 0 := fun x y => by
+    simp only [Xs, Ys]
+    rw [show (fun ω => (x.2 : ℝ) * X x.1 ω * ((y.2 : ℝ) * Y y.1 ω)) =
+      fun ω => ((x.2 : ℝ) * (y.2 : ℝ)) * (X x.1 ω * Y y.1 ω) by funext ω; ring,
+      integral_const_mul, h0, mul_zero]
+  have hd := hasDerivAt_integral_log_sum_exp_trig hXsm hYsm hXYs hXs hYs h0s B t
+  let C : ℝ := Real.log 2 + Real.log (∑ a, Real.exp (A a))
+  let Φ : ℝ → ℝ := fun s => ∫ ω,
+    Real.log (∫ a, Real.cosh (Real.cos s * X a ω + Real.sin s * Y a ω + h a)
+      ∂Measure.count.tilted A) ∂P
+  have hP := hXY.isProbabilityMeasure
+  have hsigned (s : ℝ) : (fun ω => Real.log (∑ x : α × ℤˣ,
+      Real.exp (Real.cos s * Xs x ω + Real.sin s * Ys x ω + B x))) =
+      fun ω => C + Real.log (∫ a,
+        Real.cosh (Real.cos s * X a ω + Real.sin s * Y a ω + h a)
+        ∂Measure.count.tilted A) := by
+    funext ω
+    rw [show (∑ x : α × ℤˣ,
+        Real.exp (Real.cos s * Xs x ω + Real.sin s * Ys x ω + B x)) =
+      ∑ x : α × ℤˣ, Real.exp (A x.1 + (x.2 : ℝ) *
+        (Real.cos s * X x.1 ω + Real.sin s * Y x.1 ω + h x.1)) by
+          apply Finset.sum_congr rfl
+          intro x _
+          congr 1
+          simp only [Xs, Ys, B]
+          ring]
+    simpa only [C] using log_sum_exp_prod_units (α := α) A
+      (fun a => Real.cos s * X a ω + Real.sin s * Y a ω + h a)
+  have hXi : ∀ a, Integrable (X a) P := fun a => (hXY.eval (Sum.inl a)).integrable
+  have hYi : ∀ a, Integrable (Y a) P := fun a => (hXY.eval (Sum.inr a)).integrable
+  have hlog (s : ℝ) : Integrable (fun ω => Real.log (∑ x : α × ℤˣ,
+      Real.exp (Real.cos s * Xs x ω + Real.sin s * Ys x ω + B x))) P := by
+    simpa only [one_mul] using integrable_log_sum_exp (μ := P) (β := 1) one_pos
+      (H := fun ω x => Real.cos s * Xs x ω + Real.sin s * Ys x ω + B x)
+      (fun x => (((hXsm x).const_mul _).add ((hYsm x).const_mul _)).add_const _)
+      (fun x => ((((hXi x.1).const_mul (x.2 : ℝ)).const_mul _).add
+        (((hYi x.1).const_mul (x.2 : ℝ)).const_mul _)).add (integrable_const _))
+  have hphi (s : ℝ) : Integrable (fun ω =>
+      Real.log (∫ a, Real.cosh (Real.cos s * X a ω + Real.sin s * Y a ω + h a)
+        ∂Measure.count.tilted A)) P := by
+    have hc : Integrable (fun _ : Ω => C) P := integrable_const C
+    have hi := (hlog s).sub hc
+    refine hi.congr (ae_of_all _ fun ω => ?_)
+    rw [hsigned s]
+    simp
+  have hfun (s : ℝ) : ∫ ω, Real.log (∑ x : α × ℤˣ,
+      Real.exp (Real.cos s * Xs x ω + Real.sin s * Ys x ω + B x)) ∂P = C + Φ s := by
+    rw [hsigned s, integral_add (integrable_const C) (hphi s), integral_const,
+      probReal_univ, one_smul]
+  have hout := hd.add_const (-C)
+  change HasDerivAt (fun s => Φ s) _ t
+  convert hout using 1
+  · funext s
+    rw [hfun]
+    ring
+  · simp only [Xs, Ys, B, add_assoc]
 
 /-- **Gaussian comparison for the free energy** (the smooth form of Slepian's inequality).
 Let `(X, Y)` be a centered jointly Gaussian pair of fields on a finite set with `𝔼 X(a) Y(b) = 0`,

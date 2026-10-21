@@ -1372,8 +1372,8 @@ Taking the logarithmic $(N+1)$-spin partition function as the observable in the 
 Gaussian law yields an exact equality between its expectation at coefficient $\beta/\sqrt N$
 and the expectation under the two independent edge-disorder blocks.  Pointwise, the latter
 logarithmic partition function is the unperturbed log partition function plus the log Gibbs
-average of the exponential independent perturbation.  Passing that pointwise factorization
-through the two expectations remains part of the open analytic assembly.
+average of the exponential independent perturbation.  The pointwise factorization has also been
+passed through both Gaussian expectations, with the integrability and Fubini obligations explicit.
 \end{lemma}
 \begin{proof}
   \leanok
@@ -1382,6 +1382,36 @@ For the SK observable, measurability is exactly \texttt{measurable\_log\_sum\_ex
 linear combination gives the displayed two-block Hamiltonian.  The second statement is the
 generic finite-state log-partition perturbation identity applied to the base SK energy and the
 independent pair-disorder perturbation.
+\end{proof}
+
+\begin{lemma}[Gaussian derivative of a logarithmic $\cosh$ Gibbs average]
+\label{lem:sg-tal:log-cosh-gaussian-derivative}
+  \lean{ProbabilityTheory.HasGaussianLaw.reindex_mul,
+        SpinGlasses.log_integral_cosh_count_tilted_eq,
+        SpinGlasses.hasDerivAt_integral_log_integral_cosh_trig}
+  \leanok
+\talsource{Proposition~1.6.8, Eq.~(1.178), specialized to $f=\cosh$}
+Let $X=(X_a)$ and $Y=(Y_a)$ be a centered jointly Gaussian pair of fields on a finite
+configuration space, with vanishing cross-covariance, and let $A$ and $h$ be deterministic.
+Then
+\[
+ s\longmapsto \mathbb E\log\left\langle
+   \cosh(\cos(s)X_\sigma+\sin(s)Y_\sigma+h_\sigma)\right\rangle_A
+\]
+is differentiable.  Its derivative is $\sin(s)\cos(s)$ times the two-replica covariance
+difference for the signed fields $\varepsilon X_a$ and $\varepsilon Y_a$ on
+$(a,\varepsilon)\in\alpha\times\{-1,1\}$, under their explicit tilted product measure.
+This is the model-independent derivative needed by the cavity $\cosh$ path.  The current theorem
+does not yet specialize the covariance to the SK overlap or prove the quantitative bound in
+Eq.~(1.181).
+\end{lemma}
+\begin{proof}
+  \leanok
+The identity $\cosh x=(e^x+e^{-x})/2$ turns the logarithmic Gibbs average into a signed log
+partition function minus the constant base log partition function and $\log 2$.
+The signed fields are obtained from $(X,Y)$ by deterministic reindexing and coordinatewise
+scaling, so \texttt{HasGaussianLaw.reindex\_mul} preserves their joint Gaussian law.
+Apply \texttt{hasDerivAt\_integral\_log\_sum\_exp\_trig}; the subtracted terms have zero derivative.
 \end{proof}
 
 \begin{theorem}[Exact cavity free-energy increment identity (Proposition 1.6.8, Eq.~(1.176))]
@@ -1430,7 +1460,8 @@ decomposes algebraically as
 \]
 Consequently, any quantitative bounds on the cavity $\cosh$ and pair-perturbation errors
 yield the Proposition~1.6.8 bound $|(N+1)p_{N+1} - N p_N - A(\beta, h, q)| \le K(N^{-1} + \nu(|R_{1,2}-q|))$.
-This is only a reduction: the concrete derivative estimates are not yet formalized.
+This is only a reduction: the generic $\cosh$ derivative is now formalized, but its concrete SK
+overlap bound and the pair-perturbation derivative estimate are not.
 \end{theorem}
 \begin{proof}
   \leanok
