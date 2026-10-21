@@ -109,7 +109,8 @@ theorem sk_correlation_decay_le {N : ℕ} (hN : 0 < N) (β h q : ℝ)
         h * ∑ i, ((a i : ℤ) : ℝ) := ⟨_, fun _ _ => rfl⟩
   simp only [← hE]
   obtain ⟨hw0, hw1, hwm, hsym⟩ := sk_gibbsWeight_siteSymmetric β h E hE
-  have habs : ∀ (i : Fin N) (σ : Fin N → ℤˣ), |((σ i : ℤ) : ℝ)| ≤ 1 := fun _ _ => abs_units_cast_le_one _
+  have habs : ∀ (i : Fin N) (σ : Fin N → ℤˣ), |((σ i : ℤ) : ℝ)| ≤ 1 :=
+    fun _ _ => abs_units_cast_le_one _
   have hint := integral_sq_prod_sub_prod_le_finset
     (P := Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
     (ξ := fun (i : Fin N) (σ : Fin N → ℤˣ) => ((σ i : ℤ) : ℝ))
