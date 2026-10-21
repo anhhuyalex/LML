@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Order.MeasurableArg
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianGram
 public import LeanMachineLearning.SpinGlasses.Basic
 public import LeanMachineLearning.SpinGlasses.SKModel
 public import Mathlib.Analysis.SpecialFunctions.Log.Basic
@@ -146,6 +147,31 @@ theorem integrable_log_sum_exp [IsFiniteMeasure μ] (hβ : 0 < β)
         mul_le_mul_of_nonneg_left hX hβ.le
     _ = β * |(H ω).max| + Real.log (Fintype.card α) := by
         rw [mul_add, mul_inv_cancel_left₀ hβ.ne']
+
+/-- A finite log-partition function of an affine family of two independent Gaussian blocks is
+integrable.  This is the product-space counterpart of `integrable_log_sum_exp`; it keeps the
+configuration type and both coefficient arrays arbitrary. -/
+theorem integrable_log_sum_exp_linear_gaussian_prod {κ₁ κ₂ : Type*} [Fintype κ₁] [Fintype κ₂]
+    (a : α → κ₁ → ℝ) (b : α → κ₂ → ℝ) (d : α → ℝ) :
+    Integrable (fun q : (κ₁ → ℝ) × (κ₂ → ℝ) =>
+      Real.log (∑ x, Real.exp (a x ⬝ᵥ q.1 + b x ⬝ᵥ q.2 + d x)))
+      ((Measure.pi fun _ : κ₁ => gaussianReal 0 1).prod
+        (Measure.pi fun _ : κ₂ => gaussianReal 0 1)) := by
+  have hm : ∀ x, Measurable fun q : (κ₁ → ℝ) × (κ₂ → ℝ) =>
+      a x ⬝ᵥ q.1 + b x ⬝ᵥ q.2 + d x := by
+    intro x
+    fun_prop
+  have hi : ∀ x, Integrable (fun q : (κ₁ → ℝ) × (κ₂ → ℝ) =>
+      a x ⬝ᵥ q.1 + b x ⬝ᵥ q.2 + d x)
+      ((Measure.pi fun _ : κ₁ => gaussianReal 0 1).prod
+        (Measure.pi fun _ : κ₂ => gaussianReal 0 1)) := by
+    intro x
+    refine (((ProbabilityTheory.hasGaussianLaw_dotProduct_family a).eval x).integrable
+      |>.comp_fst _ |>.add
+        (((ProbabilityTheory.hasGaussianLaw_dotProduct_family b).eval x).integrable.comp_snd _)
+      |>.add (integrable_const (d x))).congr ?_
+    exact ae_of_all _ fun q => by simp only [Pi.add_apply]
+  simpa only [one_mul] using integrable_log_sum_exp one_pos hm hi
 
 variable [IsProbabilityMeasure μ]
 
