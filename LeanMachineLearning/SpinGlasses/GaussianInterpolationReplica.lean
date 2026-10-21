@@ -613,6 +613,7 @@ theorem hasDerivAt_integral_conditional_of_deriv_bound
       simpa only [Real.norm_eq_abs] using hbound η s)
     (integrable_const M) (ae_of_all _ fun η s _ => hderiv η s)).2
 
+omit [Finite α] [Nonempty α] [Fintype R] in
 /-- **Conditional Gaussian derivative of a log partition function.**  This is the natural
 Fubini form of `hasDerivAt_integral_log_sum_exp_trig`: a base energy may depend on independent
 base disorder `η`, while the two interpolated Gaussian fields remain independent of it.  The
@@ -651,11 +652,9 @@ theorem hasDerivAt_integral_conditional_log_sum_exp_trig
             (∫ ω', Y p.1 ω' * Y p.2 ω' ∂P - ∫ ω', X p.1 ω' * X p.2 ω' ∂P))
           ∂((Measure.count.tilted fun a => Real.cos t * X a ω + Real.sin t * Y a ω + B η a).prod
             (Measure.count.tilted fun a => Real.cos t * X a ω + Real.sin t * Y a ω + B η a)) ∂P ∂P₀) t := by
-  apply hasDerivAt_integral_conditional_of_deriv_bound P₀ _ _ t hFm hDm hF
-  · intro η s
-    exact hasDerivAt_integral_log_sum_exp_trig hXm hYm hXY hX hY h0 (B η) s
-  · exact M
-  · exact hbound
+  refine hasDerivAt_integral_conditional_of_deriv_bound P₀ _ _ t hFm hDm hF ?_ M hbound
+  intro η s
+  exact hasDerivAt_integral_log_sum_exp_trig hXm hYm hXY hX hY h0 (B η) s
 
 /-- The replica-derivative term `𝔼⟨Ψ (∑ᵣ f'(σʳ) - n ⟨f'⟩)⟩` is integrable in the disorder when
 `f'` is dominated by an integrable function. -/

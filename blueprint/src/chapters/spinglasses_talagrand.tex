@@ -1137,7 +1137,8 @@ the finite sum by this bijection. Reindex the product Gaussian law with
 
 \begin{lemma}[Integrating a uniformly bounded conditional derivative]
 \label{lem:sg-tal:conditional-derivative}
-  \lean{SpinGlasses.hasDerivAt_integral_conditional_of_deriv_bound}
+  \lean{SpinGlasses.hasDerivAt_integral_conditional_of_deriv_bound,
+        SpinGlasses.hasDerivAt_integral_conditional_log_sum_exp_trig}
   \leanok
 \talsource{no counterpart in the book; an analytic step inside the proof of Lemma~1.6.3, Eq.~(1.151)}
 Let $P_0$ be a probability measure on a nonempty measurable space of old
@@ -1150,6 +1151,10 @@ If $|D(s,\eta)|\le M$ uniformly, then
 \frac{d}{ds}\bigg|_{s=t}\int F(s,\eta)\,dP_0(\eta)
 =\int D(t,\eta)\,dP_0(\eta).
 \]
+The specialization \\texttt{has\_DerivAt\_integral\_conditional\_log\_sum\_exp\_trig}
+combines this Fubini step with the Gaussian log-partition derivative.  It keeps the three
+outer measurability, integrability, and uniform derivative-bound obligations explicit, so it
+applies to a random base energy without a cavity-path wrapper.
 \end{lemma}
 \begin{proof}
   \leanok
