@@ -47,9 +47,10 @@ theorem sum_filter_lt_eq_sum_subtype {ι M : Type*} [Fintype ι] [LinearOrder ι
   Finset.sum_subtype _ (by simp) f
 
 /-- Strictly ordered pairs are automatically off-diagonal. -/
-theorem filter_offDiag_lt {ι : Type*} [Fintype ι] [DecidableEq ι] [LinearOrder ι] :
+theorem filter_offDiag_lt {ι : Type*} [Fintype ι] [LinearOrder ι] :
     (Finset.univ : Finset ι).offDiag.filter (fun p : ι × ι => p.1 < p.2) =
       (Finset.univ : Finset (ι × ι)).filter fun p => p.1 < p.2 := by
   ext p
-  simp only [Finset.mem_filter, Finset.mem_offDiag, Finset.mem_univ, true_and, and_iff_right_iff_imp]
+  simp only [Finset.mem_filter, Finset.mem_offDiag, Finset.mem_univ, true_and,
+    and_iff_right_iff_imp]
   exact fun h => h.ne

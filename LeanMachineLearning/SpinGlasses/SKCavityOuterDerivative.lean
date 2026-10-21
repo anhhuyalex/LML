@@ -266,9 +266,11 @@ theorem hasDerivAt_integral_sk_cavity_path_angle_offDiag (N n : ℕ) (β q h : �
       (fun a => sk_cavity_covariance_diagonal N β q a)
       (fun a b => sk_cavity_covariance_symmetric N β q a b) τ)
 
-/-- Reparameterize the clean cavity angle path by `t = cos² s` on the open
-unit interval. The derivative is already in the book's sign convention: the
-factor `-1 / 2` reverses `q - R⁻` to `R⁻ - q`. -/
+/-- **Talagrand's Eq. (1.151).** Reparameterize the clean cavity angle path by
+`t = cos² s` on the open unit interval. The chain-rule factor `-1 / 2` is pushed under
+the three integrals, which reverses the covariance kernel `q - R⁻` to the book's
+`R⁻ - q`. The replicas `1, …, n` are `some (some r)`, and the two extra replicas
+`n + 1` and `n + 2` are `some none` and `none`. -/
 theorem hasDerivAt_integral_sk_cavity_path_square (N n : ℕ) (β q h t : ℝ)
     (hq : q ∈ Set.Icc (0 : ℝ) 1) (ht : t ∈ Set.Ioo (0 : ℝ) 1)
     (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) :
@@ -282,35 +284,45 @@ theorem hasDerivAt_integral_sk_cavity_path_square (N n : ℕ) (β q h t : ℝ)
       Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
         (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
       Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
-    let U : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ := fun a b =>
+    let K : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ := fun a b =>
       β ^ 2 * (a (Fin.last N) : ℝ) * (b (Fin.last N) : ℝ) *
-        (q - (N + 1 : ℝ)⁻¹ *
+        ((N + 1 : ℝ)⁻¹ *
           ((fun i : Fin N => (a i.castSucc : ℝ)) ⬝ᵥ fun i : Fin N =>
-            (b i.castSucc : ℝ)))
-    let Φ : ℝ → ℝ := fun s =>
+            (b i.castSucc : ℝ)) - q)
+    HasDerivAt (fun u =>
       ∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
         ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ
-          ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (E s g' ω))
+          ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
+            (E (Real.arccos (Real.sqrt u)) g' ω))
         ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
-      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
-    let D : ℝ → ℝ := fun s =>
-      ∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
+      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1))
+      (∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
         ∫ τ : Option (Option (Fin n)) → Fin (N + 1) → ℤˣ,
           f (fun r => τ (some (some r))) *
-            (2 * ∑ p : Fin n × Fin n with p.1 < p.2,
-                U (τ (some (some p.1))) (τ (some (some p.2))) -
-              2 * (n : ℝ) * ∑ r : Fin n,
-                U (τ (some (some r))) (τ (some none)) +
-              (n : ℝ) * ((n : ℝ) + 1) * U (τ (some none)) (τ none))
-        ∂(Measure.pi fun _ : Option (Option (Fin n)) =>
-          Measure.count.tilted (E s g' ω))
+            ((∑ p : Fin n × Fin n with p.1 < p.2,
+                K (τ (some (some p.1))) (τ (some (some p.2)))) -
+              (n : ℝ) * ∑ r : Fin n, K (τ (some (some r))) (τ (some none)) +
+              (n : ℝ) * ((n : ℝ) + 1) / 2 * K (τ (some none)) (τ none))
+        ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted
+          (E (Real.arccos (Real.sqrt t)) g' ω))
         ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
-      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
-    HasDerivAt (fun u => Φ (Real.arccos (Real.sqrt u)))
-      (-(D (Real.arccos (Real.sqrt t))) / 2) t := by
+      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) t := by
   dsimp
-  exact HasDerivAt.comp_arccos_sqrt_of_sin_cos ht.1 ht.2
+  refine (HasDerivAt.comp_arccos_sqrt_of_sin_cos ht.1 ht.2
     (hasDerivAt_integral_sk_cavity_path_angle_offDiag N n β q h hq f
-      (Real.arccos (Real.sqrt t)))
+      (Real.arccos (Real.sqrt t)))).congr_deriv ?_
+  simp only [neg_div, ← integral_div, ← integral_neg]
+  refine integral_congr_ae (ae_of_all _ fun g' => ?_)
+  refine integral_congr_ae (ae_of_all _ fun ω => ?_)
+  refine integral_congr_ae (ae_of_all _ fun τ => ?_)
+  have hneg := neg_half_replica_covariance_offDiag (R := Fin n)
+    (fun a b : Fin (N + 1) → ℤˣ => β ^ 2 * (a (Fin.last N) : ℝ) * (b (Fin.last N) : ℝ) *
+      (q - (N + 1 : ℝ)⁻¹ *
+        ((fun i : Fin N => (a i.castSucc : ℝ)) ⬝ᵥ fun i : Fin N => (b i.castSucc : ℝ))))
+    (fun r => τ r)
+  simp only [Fintype.card_fin, neg_sk_cavity_covariance] at hneg
+  dsimp only
+  rw [← hneg]
+  ring
 
 end SpinGlasses

@@ -226,6 +226,41 @@ theorem neg_half_replica_covariance_offDiag
   simp only [Finset.sum_neg_distrib]
   ring
 
+/-- The book's three families of replica pairs (`ℓ < ℓ' ≤ n`, `ℓ ≤ n` against `n + 1`, and
+`n + 1` against `n + 2`), weighted `1`, `-n`, `n (n + 1) / 2`, carry in total
+`n (n - 1) / 2 + n² + n (n + 1) / 2 = 2 n²` terms. Hence a uniform bound `c` on the kernel
+bounds the combination by `2 n² c`. -/
+theorem abs_book_replica_combination_le {α : Type*} (n : ℕ) (K : α → α → ℝ) (c : ℝ)
+    (hK : ∀ a b, |K a b| ≤ c) (τ : Option (Option (Fin n)) → α) :
+    |(∑ p : Fin n × Fin n with p.1 < p.2, K (τ (some (some p.1))) (τ (some (some p.2)))) -
+        (n : ℝ) * ∑ r : Fin n, K (τ (some (some r))) (τ (some none)) +
+        (n : ℝ) * ((n : ℝ) + 1) / 2 * K (τ (some none)) (τ none)| ≤ 2 * (n : ℝ) ^ 2 * c := by
+  have hc : 0 ≤ c := (abs_nonneg _).trans (hK (τ none) (τ none))
+  have h1 : |∑ p : Fin n × Fin n with p.1 < p.2, K (τ (some (some p.1))) (τ (some (some p.2)))| ≤
+      (n : ℝ) * ((n : ℝ) - 1) / 2 * c := by
+    refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
+    refine (Finset.sum_le_card_nsmul _ _ c fun p _ => hK _ _).trans ?_
+    have hcard : ((Finset.univ : Finset (Fin n × Fin n)).filter fun p => p.1 < p.2).card =
+        n.choose 2 := by
+      rw [← card_finPairs n, Fintype.card_subtype]
+    rw [hcard, nsmul_eq_mul, Nat.cast_choose_two]
+  have h2 : |∑ r : Fin n, K (τ (some (some r))) (τ (some none))| ≤ n * c := by
+    refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
+    refine (Finset.sum_le_card_nsmul _ _ c fun r _ => hK _ _).trans ?_
+    simp
+  have h3 := hK (τ (some none)) (τ none)
+  have hn : (0 : ℝ) ≤ n := Nat.cast_nonneg n
+  calc _ ≤ |∑ p : Fin n × Fin n with p.1 < p.2, K (τ (some (some p.1))) (τ (some (some p.2)))| +
+        (n : ℝ) * |∑ r : Fin n, K (τ (some (some r))) (τ (some none))| +
+        (n : ℝ) * ((n : ℝ) + 1) / 2 * |K (τ (some none)) (τ none)| := by
+        refine (abs_add_le _ _).trans (add_le_add ((abs_sub _ _).trans ?_) ?_)
+        · rw [abs_mul, abs_of_nonneg hn]
+        · rw [abs_mul, abs_of_nonneg (by positivity)]
+    _ ≤ (n : ℝ) * ((n : ℝ) - 1) / 2 * c + (n : ℝ) * (n * c) +
+        (n : ℝ) * ((n : ℝ) + 1) / 2 * c := by
+        gcongr
+    _ = 2 * (n : ℝ) ^ 2 * c := by ring
+
 /-- The cavity covariance has a constant diagonal, including at `N = 0`.
 This is the exact hypothesis for `replica_covariance_combination_cancel_diagonal`. -/
 theorem sk_cavity_covariance_diagonal (N : ℕ) (β q : ℝ)

@@ -1,7 +1,7 @@
 \chapter{The Sherrington--Kirkpatrick Model at High Temperature: The Talagrand Theory}\label{chap:sg-talagrand}
 
-This chapter formalizes Sections~1.1 through 1.5 and the initial finite Gibbs
-cavity identities of Section~1.6 of Michel Talagrand's \emph{Spin Glasses: A Challenge for Mathematicians} (Volume~I, Springer, 2010).
+This chapter formalizes Sections~1.1 through 1.5 and, from Section~1.6, the finite Gibbs
+cavity identities, the cavity path derivative (Lemma~1.6.3) and its domination (Lemma~1.6.4) of Michel Talagrand's \emph{Spin Glasses: A Challenge for Mathematicians} (Volume~I, Springer, 2010).
 The mathematical narrative develops the high-temperature theory of the Sherrington--Kirkpatrick (SK) model:
 \begin{enumerate}
 \item The decoupled reference system, hypercube factorizations, exact first-moment calculations, and the first-moment upper bound on the free energy (Section~1.2).
@@ -1144,16 +1144,17 @@ standalone $N$-spin SK Hamiltonian at the same $\beta$; no rescaling parameter
 $\beta_-$ is introduced in Section~1.6. The proved cavity identity above is
 finite and deterministic, for a given base energy and field. The random pair-disorder split and its Gaussian product law are proved above.
 The coupled endpoint for arbitrary replica number is now proved above.
-The multi-replica finite-fibre identity, the full interpolating-path derivative,
-Lemmas~1.6.2--1.6.4, and Propositions~1.6.5--1.6.8
-are \emph{not yet formalized}; these lemmas must not be read as asserting them.
-For the future path derivative, the old-pair energy is random: apply the existing
-Gaussian interpolation theorem conditionally on old-pair disorder, then use
-Lemma~\ref{lem:sg-tal:conditional-derivative} to integrate its derivative.
-The conditional formula is now proved in
-Lemma~\ref{lem:sg-tal:cavity-conditional-deriv}. The covariance and complete replica-combination bounds are now proved, but
-measurability and differentiation under the old-disorder integral still need proof.
-Its trigonometric path has $t=\cos^2 s$.
+The path derivative (Lemma~1.6.3, Eq.~(1.151)) and the domination estimate (Lemma~1.6.4,
+Eqs.~(1.154)--(1.155)) are proved below for the observables stated there.
+The multi-replica finite-fibre identity, Lemma~1.6.2, the $R$-form (1.152) of the derivative and
+Propositions~1.6.5--1.6.8 are \emph{not yet formalized}; the lemmas of this section
+must not be read as asserting them.
+The old-pair energy is random: the existing Gaussian interpolation theorem is applied
+conditionally on the old-pair disorder
+(Lemma~\ref{lem:sg-tal:cavity-conditional-deriv}), and
+Lemma~\ref{lem:sg-tal:conditional-derivative} integrates its derivative.
+The interpolation is proved in the angle $s$ and then changed to the book's parameter
+$t=\cos^2 s$ on the open interval $(0,1)$.
 \end{remark}
 
 \begin{lemma}[Gaussianity and centering of the two last-spin fields]
@@ -1262,6 +1263,8 @@ summand by $C$; the resulting counts are $n^2$, $2n^2$, $n$ and $n(n+1)$.
 \label{lem:sg-tal:cavity-diagonal-cancel}
   \lean{SpinGlasses.replica_covariance_combination_cancel_diagonal,
         sum_sum_offDiag_eq_two_sum_lt,
+        sum_filter_lt_eq_sum_subtype,
+        filter_offDiag_lt,
         SpinGlasses.replica_covariance_combination_eq_two_sum_lt,
         SpinGlasses.neg_half_replica_covariance_offDiag,
         SpinGlasses.sk_cavity_covariance_diagonal,
@@ -1342,7 +1345,8 @@ Measurability follows from the finite Gibbs-average measurability lemma.
 
 \begin{lemma}[Averaging a conditional cavity derivative]
 \label{lem:sg-tal:cavity-outer-derivative}
-  \lean{SpinGlasses.hasDerivAt_integral_cavity_outer}
+  \lean{SpinGlasses.hasDerivAt_integral_cavity_outer,
+        SpinGlasses.measurable_integral_pi_count_tilted}
   \leanok
 \talsource{Lemma~1.6.3, Eq.~(1.151) (outer averaging step)}
 Let $P_0$ be any probability law for independent base disorder, and let
@@ -1368,37 +1372,133 @@ of $\eta$, so the proof applies the general dominated-differentiation lemma
 derivative already proved in Lemma~\ref{lem:sg-tal:cavity-conditional-deriv}.
 \end{proof}
 
-\begin{lemma}[Old-disorder cavity derivative in angle form]
-\label{lem:sg-tal:cavity-path-angle-derivative}
+\begin{theorem}[The cavity path derivative (Lemma 1.6.3)]
+\label{thm:sg-tal:cavity-path-derivative}
   \lean{SpinGlasses.hasDerivAt_integral_sk_cavity_path_angle,
         SpinGlasses.hasDerivAt_integral_sk_cavity_path_angle_offDiag,
         SpinGlasses.hasDerivAt_integral_sk_cavity_path_square,
         HasDerivAt.comp_arccos_sqrt_of_sin_cos}
   \leanok
-\talsource{Lemma~1.6.3, Eq.~(1.151) (angle form)}
-For the old-pair SK energy with the common $(N+1)^{-1/2}\beta$ prefactor,
-the full expectation over old pairs, new edges, and the scalar Gaussian is
-differentiable along the trigonometric cavity path.  Its derivative is the
-explicit old-disorder average of the four-term replica covariance expression.
-Thus the random base energy has now been incorporated into the angle form of
-the cavity derivative without treating it as another Gaussian interpolation
-field.
+\talsource{Lemma~1.6.3, Eq.~(1.151)}
+Let $N,n\ge0$, $\beta,h\in\mathbb R$, $q\in[0,1]$, and let $f$ be any real function of $n$
+replicas of $N+1$ Ising spins. For the energy
+$E_s=\cos s\,X+\sin s\,Y+B$ of Lemma~\ref{lem:sg-tal:cavity-conditional-deriv}, whose base
+energy $B$ is the old-pair energy with the prefactor $(N+1)^{-1/2}\beta$ and the field $h$,
+put $\nu_t(f)=\mathbb E\langle f\rangle_{E_s}^{\otimes n}$ for $t=\cos^2 s$, the expectation
+being over the old pairs, the new edges and the scalar Gaussian. Then for $0<t<1$
+\[
+\nu_t'(f)=\beta^2\sum_{\ell<\ell'\le n}\nu_t\bigl(f\varepsilon_\ell\varepsilon_{\ell'}
+ (R^-_{\ell,\ell'}-q)\bigr)
+-\beta^2 n\sum_{\ell\le n}\nu_t\bigl(f\varepsilon_\ell\varepsilon_{n+1}(R^-_{\ell,n+1}-q)\bigr)
++\beta^2\frac{n(n+1)}2\nu_t\bigl(f\varepsilon_{n+1}\varepsilon_{n+2}(R^-_{n+1,n+2}-q)\bigr),
+\]
+where $\varepsilon_\ell$ is the last spin of the replica $\ell$, $R^-$ is the truncated overlap
+with the normalization $N+1$, and the Gibbs averages on the right run over $n+2$ replicas.
+\end{theorem}
+\begin{proof}
+  \leanok
+The angle form (the base energy being random is handled by
+Lemma~\ref{lem:sg-tal:cavity-outer-derivative} specialized to the product Gaussian law on the
+old pairs) is rewritten with the constant diagonal cancelled and the symmetric off-diagonal
+pairs counted once (Lemma~\ref{lem:sg-tal:cavity-diagonal-cancel}). The chain rule for
+$t=\cos^2 s=u$, $s=\arccos\sqrt u$, turns the factor $\sin s\cos s$ into $-\tfrac12$
+(Lean: \texttt{HasDerivAt.comp\_arccos\_sqrt\_of\_sin\_cos}). The factor $-\tfrac12$ is pushed under
+the three integrals; it turns the kernel $\beta^2\varepsilon\varepsilon'(q-R^-)$ into the book's
+$\tfrac{\beta^2}2\varepsilon\varepsilon'(R^--q)$ and the covariance combination into the three
+families of (1.151) (Lean: \texttt{neg\_half\_replica\_covariance\_offDiag},
+\texttt{neg\_sk\_cavity\_covariance}). In the Lean statement the observable is not marginalized: the
+three families are written as integrals over $n+2$ replicas of $f(\tau^1,\dots,\tau^n)$ times the
+kernel, which is equal to the $\nu_t$ of the statement by
+\texttt{integral\_pi\_option\_count\_tilted\_marginal}.
+\emph{Not formalized:} the second form (1.152) with $R$ in place of $R^-$ (it follows from
+Lemma~\ref{lem:sg-tal:cavity-overlap-split} since $\varepsilon_\ell^2=1$ and the three
+families have total weight $\binom n2-n^2+\binom{n+1}2=0$).
+\end{proof}
 
-The strengthened declaration applies the constant-diagonal cancellation and
-the symmetric off-diagonal reindexing under all three integrals. Its derivative
-therefore has exactly the three finite replica families appearing in
-Eq.~(1.151), apart from using the angle $s$ and the kernel
-$\beta^2\varepsilon_\ell\varepsilon_{\ell'}(q-R^-_{\ell,\ell'})$.
-\texttt{hasDerivAt\_integral\_sk\_cavity\_path\_square} performs the open-interval change
-$s=\arccos\sqrt t$: its derivative is minus one-half of the displayed
-three-family angle bracket. It remains to distribute that scalar through the
-iterated integral and write the resulting kernel syntactically as
-$R^-_{\ell,\ell'}-q$, exactly as in Eq.~(1.151).
+\begin{lemma}[Pointwise count for the three replica families]
+\label{lem:sg-tal:cavity-family-count}
+  \lean{SpinGlasses.abs_book_replica_combination_le}
+  \leanok
+\talsource{text after Eq.~(1.152): the right-hand side of (1.151) has $2n^2$ simple terms}
+Let $K$ be any real function of two configurations with $|K|\le c$ and let $\tau$ be an
+extended replica family indexed by $\mathrm{Option}(\mathrm{Option}(\mathrm{Fin}\,n))$. Then
+\[
+\Bigl|\sum_{\ell<\ell'\le n}K(\tau^\ell,\tau^{\ell'})-n\sum_{\ell\le n}K(\tau^\ell,\tau^{n+1})
+ +\frac{n(n+1)}2K(\tau^{n+1},\tau^{n+2})\Bigr|\le 2n^2c.
+\]
 \end{lemma}
 \begin{proof}
   \leanok
-Bound the finite observable by its maximum, use measurability of the explicit
-old-pair energy, and specialize
-Lemma~\ref{lem:sg-tal:cavity-outer-derivative} to the product Gaussian law on
-old pairs.
+The three families have $\binom n2$, $n$ and $1$ terms with weights $1$, $n$ and $n(n+1)/2$;
+by the triangle inequality the total is at most $\bigl(\tfrac{n(n-1)}2+n^2+\tfrac{n(n+1)}2\bigr)c
+=2n^2c$.
+\end{proof}
+
+\begin{lemma}[Domination of a triple iterated integral]
+\label{lem:sg-tal:iterated-bound}
+  \lean{abs_integral_integral_integral_le}
+  \leanok
+\talsource{no counterpart in the book; the integration step of Lemma~1.6.4}
+Let $\mu,\nu$ be measures and $\kappa(x,y)$ a family of measures. If
+$|G(x,y,z)|\le H(x,y,z)$ pointwise and the iterated partial integrals of $H$ are integrable, then
+$\bigl|\iiint G\,d\kappa\,d\nu\,d\mu\bigr|\le\iiint H\,d\kappa\,d\nu\,d\mu$.
+\end{lemma}
+\begin{proof}
+  \leanok
+Apply the bound $\|\int g\|\le\int h$ for $\|g\|\le h$ with $h$ integrable three times.
+\end{proof}
+
+\begin{lemma}[Grönwall's inequality run backwards from the endpoint]
+\label{lem:sg-tal:gronwall-backward}
+  \lean{le_exp_mul_endpoint_of_neg_mul_le_deriv}
+  \leanok
+\talsource{the integration of Eq.~(1.155) in the proof of Lemma~1.6.4}
+Let $g$ be continuous on $[0,1]$ and differentiable on $(0,1)$ with $g'\ge-Kg$ there. Then
+$g(t)\le e^{K(1-t)}g(1)$ for $t\in[0,1]$.
+\end{lemma}
+\begin{proof}
+  \leanok
+This is the time reversal $u\mapsto g(1-u)$ of the existing interval Grönwall lemma
+\texttt{NTK.gronwall\_exponential\_decay\_Icc}.
+\end{proof}
+
+\begin{lemma}[Domination of the cavity derivative]
+\label{lem:sg-tal:cavity-derivative-domination}
+  \lean{SpinGlasses.abs_cavity_outer_book_derivative_le}
+  \leanok
+\talsource{Eq.~(1.155)}
+Let $P_0$ be any probability law for the base disorder and $f\ge0$ a function of $n$ replicas.
+For every angle $s$, the three-family derivative of
+Theorem~\ref{thm:sg-tal:cavity-path-derivative} (in the form with $n+2$ replicas) has absolute
+value at most $4n^2\beta^2$ times the path average $\nu_s(f)$.
+\end{lemma}
+\begin{proof}
+  \leanok
+By Lemma~\ref{lem:sg-tal:cavity-covariance-bound} the kernel is bounded by $2\beta^2$, so by
+Lemma~\ref{lem:sg-tal:cavity-family-count} the bracket is bounded by $4n^2\beta^2$ pointwise;
+Lemma~\ref{lem:sg-tal:iterated-bound} passes this through the three integrals, and the extra two
+replicas are marginalized (\texttt{integral\_pi\_option\_count\_tilted\_marginal}).
+\end{proof}
+
+\begin{theorem}[Domination of the cavity path (Lemma 1.6.4)]
+\label{thm:sg-tal:cavity-domination}
+  \lean{SpinGlasses.integral_sk_cavity_path_zero,
+        SpinGlasses.sk_cavity_path_square_le_exp_mul}
+  \leanok
+\talsource{Lemma~1.6.4, Eq.~(1.154)}
+For $f\ge0$ a function of $n$ replicas of $N+1$ Ising spins, $q\in[0,1]$ and $0\le t\le1$,
+\[
+\nu_t(f)\le\exp(4n^2\beta^2)\,\nu(f),
+\]
+where $\nu(f)$ is the average of $f$ under the $n$-replica Gibbs measure of the full
+$(N+1)$-spin SK system (the path at $t=1$, the angle $s=0$).
+\end{theorem}
+\begin{proof}
+  \leanok
+The path average is continuous on $[0,1]$ (its angle form is differentiable everywhere) and
+differentiable on $(0,1)$ with $|\nu_t'(f)|\le4n^2\beta^2\nu_t(f)$ by
+Lemma~\ref{lem:sg-tal:cavity-derivative-domination} and
+Theorem~\ref{thm:sg-tal:cavity-path-derivative}. Lemma~\ref{lem:sg-tal:gronwall-backward} gives
+$\nu_t(f)\le e^{4n^2\beta^2(1-t)}\nu_1(f)$. At the endpoint the scalar Gaussian drops out and the
+split disorder is the $(N+1)$-spin SK disorder (Lemma~\ref{lem:sg-tal:cavity-coupled-endpoint}).
 \end{proof}

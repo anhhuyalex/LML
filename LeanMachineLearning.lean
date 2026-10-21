@@ -6,6 +6,7 @@ public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.PiFinSucc
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.Weights
 public import LeanMachineLearning.ForMathlib.Analysis.Asymptotics.Theta
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.Gradient.Basic
+public import LeanMachineLearning.ForMathlib.Analysis.Calculus.GronwallBackward
 public import LeanMachineLearning.ForMathlib.Analysis.Cesaro
 public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.GramIsometry
 public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.ProjectionDistance
@@ -13,8 +14,8 @@ public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.Ultramet
 public import LeanMachineLearning.ForMathlib.Analysis.RpowTsum
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.LogRpow
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SinCosEndpoint
-public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.TrigSquareParam
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Tanh
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.TrigSquareParam
 public import LeanMachineLearning.ForMathlib.Analysis.Subadditive
 public import LeanMachineLearning.ForMathlib.Combinatorics.DescFactorial
 public import LeanMachineLearning.ForMathlib.Data.Finset.SumBound
@@ -42,6 +43,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Function.LpSectionMea
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ChebyshevAssociation
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ExpMoment
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IntegrableOfBound
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedBound
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.JensenLog
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ParametrizedL2
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SignedToReal
@@ -409,6 +411,7 @@ public import LeanMachineLearning.SpinGlasses.SKAizenmanLebowitzRuelle
 public import LeanMachineLearning.SpinGlasses.SKAsymptoticProduct
 public import LeanMachineLearning.SpinGlasses.SKCavityBounds
 public import LeanMachineLearning.SpinGlasses.SKCavityDerivative
+public import LeanMachineLearning.SpinGlasses.SKCavityDomination
 public import LeanMachineLearning.SpinGlasses.SKCavityEndpoint
 public import LeanMachineLearning.SpinGlasses.SKCavityGaussian
 public import LeanMachineLearning.SpinGlasses.SKCavityInterpolation
