@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.Pi
 public import LeanMachineLearning.ForMathlib.MeasureTheory.MeasurableSpace.Units
+public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.HypercubeProduct
 public import LeanMachineLearning.SpinGlasses.FreeEnergy
 public import Mathlib.Analysis.Calculus.ParametricIntegral
 public import Mathlib.MeasureTheory.Measure.Tilted
@@ -192,6 +193,46 @@ theorem log_integral_count_tilted [Nonempty α] (f F : α → ℝ) (hF : ∀ a, 
     Finset.sum_pos (fun a _ => mul_pos (Real.exp_pos _) (hF a)) Finset.univ_nonempty
   rw [integral_count_tilted, ← Real.log_div hZF.ne' hZ.ne', Finset.sum_div]
   simp_rw [div_mul_eq_mul_div]
+
+omit [MeasurableSpace α] [MeasurableSingletonClass α] in
+/-- Model-independent single-spin summation: summing out an Ising sign
+`ε ∈ ℤˣ` against an arbitrary base weight `A` and field `L`. -/
+theorem sum_exp_prod_units (A L : α → ℝ) :
+    (∑ x : α × ℤˣ, Real.exp (A x.1 + (x.2 : ℝ) * L x.1)) =
+      2 * ∑ a : α, Real.exp (A a) * Real.cosh (L a) := by
+  rw [Fintype.sum_prod_type]
+  simp_rw [Real.exp_add, sum_units_int]
+  simp only [Units.val_one, Int.cast_one, one_mul, Units.val_neg, Int.cast_neg, neg_mul]
+  rw [show (fun a : α => Real.exp (A a) * Real.exp (L a) + Real.exp (A a) * Real.exp (-L a)) =
+      fun a => 2 * (Real.exp (A a) * Real.cosh (L a)) by
+        funext a; rw [Real.cosh_eq]; ring]
+  rw [← Finset.mul_sum]
+
+/-- **Model-independent logarithmic single-spin identity.**  Taking the logarithm after
+summing an Ising sign separates the base log partition function from the logarithm of the
+base Gibbs average of `cosh L`. -/
+theorem log_sum_exp_prod_units [Nonempty α] (A L : α → ℝ) :
+    Real.log (∑ x : α × ℤˣ, Real.exp (A x.1 + (x.2 : ℝ) * L x.1)) =
+      Real.log 2 + Real.log (∑ a : α, Real.exp (A a)) +
+        Real.log (∫ a : α, Real.cosh (L a) ∂Measure.count.tilted A) := by
+  rw [sum_exp_prod_units]
+  have hpos : 0 < ∑ a : α, Real.exp (A a) * Real.cosh (L a) :=
+    Finset.sum_pos (fun a _ => mul_pos (Real.exp_pos _) (Real.cosh_pos _))
+      Finset.univ_nonempty
+  rw [Real.log_mul two_ne_zero hpos.ne']
+  have havg := log_integral_count_tilted A (fun a => Real.cosh (L a))
+    (fun a => Real.cosh_pos (L a))
+  linarith
+
+/-- The logarithm of a Gibbs average of `cosh` is a signed log partition function minus the
+base log partition function and `log 2`.  This form is suited to direct reuse of Gaussian
+log-partition interpolation. -/
+theorem log_integral_cosh_count_tilted_eq [Nonempty α] (A L : α → ℝ) :
+    Real.log (∫ a : α, Real.cosh (L a) ∂Measure.count.tilted A) =
+      Real.log (∑ x : α × ℤˣ, Real.exp (A x.1 + (x.2 : ℝ) * L x.1)) -
+        Real.log 2 - Real.log (∑ a : α, Real.exp (A a)) := by
+  rw [log_sum_exp_prod_units]
+  ring
 
 /-- **Log-partition perturbation identity.**  Adding an arbitrary finite perturbation `V` to
 an energy `f` changes its log partition function by the logarithm of the Gibbs average of

@@ -643,7 +643,8 @@ theorem hasDerivAt_integral_conditional_log_sum_exp_trig
         ((∫ ω', Y p.1 ω' * Y p.1 ω' ∂P - ∫ ω', X p.1 ω' * X p.1 ω' ∂P) -
           (∫ ω', Y p.1 ω' * Y p.2 ω' ∂P - ∫ ω', X p.1 ω' * X p.2 ω' ∂P))
         ∂((Measure.count.tilted fun a => Real.cos s * X a ω + Real.sin s * Y a ω + B η a).prod
-          (Measure.count.tilted fun a => Real.cos s * X a ω + Real.sin s * Y a ω + B η a)) ∂P| ≤ M) :
+          (Measure.count.tilted fun a =>
+            Real.cos s * X a ω + Real.sin s * Y a ω + B η a)) ∂P| ≤ M) :
     HasDerivAt (fun s => ∫ η, ∫ ω,
       Real.log (∑ a, Real.exp (Real.cos s * X a ω + Real.sin s * Y a ω + B η a)) ∂P ∂P₀)
       (∫ η, ∫ ω, ∫ p : α × α,
@@ -651,7 +652,8 @@ theorem hasDerivAt_integral_conditional_log_sum_exp_trig
           ((∫ ω', Y p.1 ω' * Y p.1 ω' ∂P - ∫ ω', X p.1 ω' * X p.1 ω' ∂P) -
             (∫ ω', Y p.1 ω' * Y p.2 ω' ∂P - ∫ ω', X p.1 ω' * X p.2 ω' ∂P))
           ∂((Measure.count.tilted fun a => Real.cos t * X a ω + Real.sin t * Y a ω + B η a).prod
-            (Measure.count.tilted fun a => Real.cos t * X a ω + Real.sin t * Y a ω + B η a)) ∂P ∂P₀) t := by
+            (Measure.count.tilted fun a =>
+              Real.cos t * X a ω + Real.sin t * Y a ω + B η a)) ∂P ∂P₀) t := by
   refine hasDerivAt_integral_conditional_of_deriv_bound P₀ _ _ t hFm hDm hF ?_ M hbound
   intro η s
   exact hasDerivAt_integral_log_sum_exp_trig hXm hYm hXY hX hY h0 (B η) s

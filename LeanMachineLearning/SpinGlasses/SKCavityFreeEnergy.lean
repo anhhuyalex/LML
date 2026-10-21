@@ -31,36 +31,6 @@ open scoped BigOperators
 
 namespace SpinGlasses
 
-/-- Model-independent single-spin summation: summing out an Ising spin
-`ε ∈ ℤˣ` against an arbitrary base weight `A` and field `L`. -/
-theorem sum_exp_prod_units {α : Type*} [Fintype α] (A L : α → ℝ) :
-    (∑ x : α × ℤˣ, Real.exp (A x.1 + (x.2 : ℝ) * L x.1)) =
-      2 * ∑ a : α, Real.exp (A a) * Real.cosh (L a) := by
-  rw [Fintype.sum_prod_type]
-  simp_rw [Real.exp_add, sum_units_int]
-  simp only [Units.val_one, Int.cast_one, one_mul, Units.val_neg, Int.cast_neg, neg_mul]
-  rw [show (fun a : α => Real.exp (A a) * Real.exp (L a) + Real.exp (A a) * Real.exp (-L a)) =
-      fun a => 2 * (Real.exp (A a) * Real.cosh (L a)) by
-        funext a; rw [Real.cosh_eq]; ring]
-  rw [← Finset.mul_sum]
-
-/-- **Model-independent logarithmic single-spin identity.**  Taking the logarithm after
-summing an Ising sign separates the base log partition function from the logarithm of the
-base Gibbs average of `cosh L`. -/
-theorem log_sum_exp_prod_units {α : Type*} [Fintype α] [Nonempty α]
-    [MeasurableSpace α] [MeasurableSingletonClass α] (A L : α → ℝ) :
-    Real.log (∑ x : α × ℤˣ, Real.exp (A x.1 + (x.2 : ℝ) * L x.1)) =
-      Real.log 2 + Real.log (∑ a : α, Real.exp (A a)) +
-        Real.log (∫ a : α, Real.cosh (L a) ∂Measure.count.tilted A) := by
-  rw [sum_exp_prod_units]
-  have hpos : 0 < ∑ a : α, Real.exp (A a) * Real.cosh (L a) :=
-    Finset.sum_pos (fun a _ => mul_pos (Real.exp_pos _) (Real.cosh_pos _))
-      Finset.univ_nonempty
-  rw [Real.log_mul two_ne_zero hpos.ne']
-  have havg := log_integral_count_tilted A (fun a => Real.cosh (L a))
-    (fun a => Real.cosh_pos (L a))
-  linarith
-
 /-- **Unnormalised finite cavity identity.**  Summing the final Ising coordinate of
 `exp (A ρ + ε L ρ)` gives `2 exp (A ρ) cosh (L ρ)`.  This is the partition-function
 counterpart of `integral_count_tilted_fin_snoc_cavity_units`, and applies to any finite

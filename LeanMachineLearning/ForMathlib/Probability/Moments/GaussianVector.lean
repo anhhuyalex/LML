@@ -467,4 +467,19 @@ theorem HasGaussianLaw.sumElim_prod_of_independent {Ω₁ Ω₂ κ₁ κ₂ : Ty
   convert hpair.map_fun L using 1
   ext z (a | b) <;> simp [L]
 
+/-- Reindexing a finite Gaussian vector and multiplying each new coordinate by a deterministic
+scalar preserves its joint Gaussian law.  The reindexing need not be injective, so this also
+covers duplicated and signed coordinates. -/
+theorem HasGaussianLaw.reindex_mul {Ω κ κ' : Type*} {mΩ : MeasurableSpace Ω}
+    {P : Measure Ω} [Finite κ] [Finite κ'] {X : κ → Ω → ℝ}
+    (hX : HasGaussianLaw (fun ω k => X k ω) P) (e : κ' → κ) (c : κ' → ℝ) :
+    HasGaussianLaw (fun ω k => c k * X (e k) ω) P := by
+  let _ := Fintype.ofFinite κ
+  let _ := Fintype.ofFinite κ'
+  let L : (κ → ℝ) →L[ℝ] (κ' → ℝ) := ContinuousLinearMap.pi fun k =>
+    (ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : κ => ℝ) (e k)).smulRight (c k)
+  convert hX.map_fun L using 1
+  ext ω k
+  simp [L, mul_comm]
+
 end ProbabilityTheory
