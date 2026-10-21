@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.SpinGlasses.SKCavityHolder
 public import LeanMachineLearning.SpinGlasses.SKCavityDecoupledEndpoint
+public import LeanMachineLearning.SpinGlasses.SKCavityFreeEnergy
 
 /-!
 # Cavity interpolation bound (Talagrand's Proposition 1.6.5)
