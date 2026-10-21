@@ -6,7 +6,9 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.SpinGlasses.SKCavityInterpolation
+public import LeanMachineLearning.SpinGlasses.FreeEnergy
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianGram
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedBound
 
 /-!
 # The finite cavity partition-function identity
@@ -197,6 +199,151 @@ theorem log_partition_sk_pair_perturb (N : ℕ) (a b h : ℝ)
         g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ))
     (fun σ => b * ∑ p : FinPairs (N + 1),
       g' p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ))
+
+/-- Rewriting a constant multiple of the pair-spin coefficient vector against a Gaussian
+vector.  This keeps the finite Gaussian integrability statement below independent of a
+particular SK normalization. -/
+theorem dotProduct_const_pair_spin (N : ℕ) (c : ℝ)
+    (σ : Fin (N + 1) → ℤˣ) (g : FinPairs (N + 1) → ℝ) :
+    (fun p : FinPairs (N + 1) => c * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) ⬝ᵥ g =
+      c * ∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ) := by
+  rw [dotProduct, Finset.mul_sum]
+  apply Finset.sum_congr rfl
+  intro p _
+  ring
+
+/-- Expand a pairwise Hamiltonian driven by a linear combination of two disorder blocks.
+This deterministic identity is kept coefficient-agnostic so the Gaussian law transport and the
+Gibbs perturbation factorization use exactly the same normal form. -/
+theorem sk_pair_linear_combo_expand (N : ℕ) (a b h : ℝ)
+    (g g' : FinPairs (N + 1) → ℝ) (σ : Fin (N + 1) → ℤˣ) :
+    (∑ p : FinPairs (N + 1),
+      (a * g p + b * g' p) * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ) =
+      a * (∑ p : FinPairs (N + 1),
+        g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ) +
+        b * (∑ p : FinPairs (N + 1),
+          g' p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) := by
+  have hsum (c : ℝ) (u : FinPairs (N + 1) → ℝ) :
+      (∑ p : FinPairs (N + 1),
+        c * u p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) =
+        c * ∑ p : FinPairs (N + 1), u p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ) := by
+    rw [Finset.mul_sum]
+    apply Finset.sum_congr rfl
+    intro p _
+    ring
+  simp_rw [add_mul]
+  rw [Finset.sum_add_distrib, hsum a g, hsum b g']
+  ring
+
+/-- The two-block finite SK log-partition function is integrable.  This is the analytic
+side condition needed to integrate the pointwise Gibbs factorization in Eq. (1.175), and is
+an immediate specialization of the generic affine-Gaussian partition-function theorem. -/
+theorem integrable_log_partition_sk_pair (N : ℕ) (a b h : ℝ) :
+    Integrable (fun q : (FinPairs (N + 1) → ℝ) × (FinPairs (N + 1) → ℝ) =>
+      Real.log (∑ σ : Fin (N + 1) → ℤˣ,
+        Real.exp (a * (∑ p : FinPairs (N + 1),
+          q.1 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
+          b * (∑ p : FinPairs (N + 1),
+            q.2 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ))))
+      ((Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1).prod
+        (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) := by
+  refine (integrable_log_sum_exp_linear_gaussian_prod
+    (fun (σ : Fin (N + 1) → ℤˣ) p => a * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ))
+    (fun (σ : Fin (N + 1) → ℤˣ) p => b * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ))
+    (fun (σ : Fin (N + 1) → ℤˣ) => h * ∑ i, (σ i : ℝ))).congr ?_
+  exact ae_of_all _ fun q => by
+    apply congrArg Real.log
+    apply Finset.sum_congr rfl
+    intro σ _
+    apply congrArg Real.exp
+    rw [dotProduct_const_pair_spin, dotProduct_const_pair_spin]
+
+/-- The one-block instance of `integrable_log_partition_sk_pair`.  Kept separate because it
+is exactly the marginal integrability hypothesis needed by the product-integral Fubini step. -/
+theorem integrable_log_partition_sk (N : ℕ) (a h : ℝ) :
+    Integrable (fun g : FinPairs (N + 1) → ℝ =>
+      Real.log (∑ σ : Fin (N + 1) → ℤˣ,
+        Real.exp (a * (∑ p : FinPairs (N + 1),
+          g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ))))
+      (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) := by
+  refine (integrable_log_sum_exp_linear_gaussian
+    (fun (σ : Fin (N + 1) → ℤˣ) p => a * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ))
+    (fun (σ : Fin (N + 1) → ℤˣ) => h * ∑ i, (σ i : ℝ))).congr ?_
+  exact ae_of_all _ fun g => by
+    apply congrArg Real.log
+    apply Finset.sum_congr rfl
+    intro σ _
+    apply congrArg Real.exp
+    rw [dotProduct_const_pair_spin]
+
+/-- **Talagrand's Eq. (1.175), integrated Gibbs factorization.**  The law-transported
+two-block partition function splits into the one-block free energy and the expectation of the
+logarithmic Gibbs perturbation.  The preceding integrability theorems make every use of
+`integral_add` legitimate. -/
+theorem integral_log_partition_sk_pair_perturb (N : ℕ) (a b h : ℝ) :
+    ∫ q : (FinPairs (N + 1) → ℝ) × (FinPairs (N + 1) → ℝ),
+      Real.log (∑ σ : Fin (N + 1) → ℤˣ,
+        Real.exp (a * (∑ p : FinPairs (N + 1),
+          q.1 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ) +
+          b * (∑ p : FinPairs (N + 1),
+            q.2 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ))))
+      ∂((Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1).prod
+        (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) =
+      (∫ g : FinPairs (N + 1) → ℝ,
+        Real.log (∑ σ : Fin (N + 1) → ℤˣ,
+          Real.exp (a * (∑ p : FinPairs (N + 1),
+            g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ)))
+        ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) +
+      ∫ q : (FinPairs (N + 1) → ℝ) × (FinPairs (N + 1) → ℝ),
+        Real.log (∫ σ : Fin (N + 1) → ℤˣ,
+          Real.exp (b * ∑ p : FinPairs (N + 1),
+            q.2 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ))
+          ∂Measure.count.tilted (fun σ =>
+            a * (∑ p : FinPairs (N + 1),
+              q.1 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ)))
+        ∂((Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1).prod
+          (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) := by
+  let μ := Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1
+  let F : (FinPairs (N + 1) → ℝ) → ℝ := fun g =>
+    Real.log (∑ σ : Fin (N + 1) → ℤˣ,
+      Real.exp (a * (∑ p : FinPairs (N + 1),
+        g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ)))
+  let P : (FinPairs (N + 1) → ℝ) × (FinPairs (N + 1) → ℝ) → ℝ := fun q =>
+    Real.log (∫ σ : Fin (N + 1) → ℤˣ,
+      Real.exp (b * ∑ p : FinPairs (N + 1),
+        q.2 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ))
+      ∂Measure.count.tilted (fun σ =>
+        a * (∑ p : FinPairs (N + 1),
+          q.1 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ)))
+  have hF : Integrable F μ := by
+    simpa only [F, μ] using integrable_log_partition_sk N a h
+  have hC : Integrable (fun q =>
+      Real.log (∑ σ : Fin (N + 1) → ℤˣ,
+        Real.exp (a * (∑ p : FinPairs (N + 1),
+          q.1 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ) +
+          b * (∑ p : FinPairs (N + 1),
+            q.2 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ))))) (μ.prod μ) := by
+    refine (integrable_log_partition_sk_pair N a b h).congr (ae_of_all _ fun q => ?_)
+    apply congrArg Real.log
+    apply Finset.sum_congr rfl
+    intro σ _
+    apply congrArg Real.exp
+    ring
+  have hP : Integrable P (μ.prod μ) := by
+    refine (hC.sub (hF.comp_fst μ)).congr (ae_of_all _ fun q => ?_)
+    apply sub_eq_iff_eq_add.mpr
+    change _ = P q + F q.1
+    calc
+      _ = F q.1 + P q := log_partition_sk_pair_perturb N a b h q.1 q.2
+      _ = _ := add_comm _ _
+  calc
+    _ = ∫ q, F q.1 + P q ∂(μ.prod μ) := integral_congr_ae (ae_of_all _ fun q => by
+      dsimp only [F, P]
+      exact log_partition_sk_pair_perturb N a b h q.1 q.2)
+    _ = (∫ q, F q.1 ∂(μ.prod μ)) + ∫ q, P q ∂(μ.prod μ) :=
+      integral_add (hF.comp_fst μ) hP
+    _ = _ := by
+      rw [integral_prod_fun_fst_of_isProbabilityMeasure μ μ F]
 
 /-- **Talagrand's Eq. (1.172), pointwise partition-function form.**  At a common pair
 coefficient `c`, the `(N+1)`-spin partition function is twice the old-spin partition sum

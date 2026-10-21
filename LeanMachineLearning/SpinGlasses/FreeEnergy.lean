@@ -148,6 +148,25 @@ theorem integrable_log_sum_exp [IsFiniteMeasure μ] (hβ : 0 < β)
     _ = β * |(H ω).max| + Real.log (Fintype.card α) := by
         rw [mul_add, mul_inv_cancel_left₀ hβ.ne']
 
+/-- A finite log-partition function of an affine finite Gaussian family is integrable.
+The deterministic offsets are arbitrary, so this is reusable for external fields as well as
+for Gaussian Hamiltonians. -/
+theorem integrable_log_sum_exp_linear_gaussian {κ : Type*} [Fintype κ]
+    (a : α → κ → ℝ) (d : α → ℝ) :
+    Integrable (fun g : κ → ℝ =>
+      Real.log (∑ x, Real.exp (a x ⬝ᵥ g + d x)))
+      (Measure.pi fun _ : κ => gaussianReal 0 1) := by
+  have hm : ∀ x, Measurable fun g : κ → ℝ => a x ⬝ᵥ g + d x := by
+    intro x
+    fun_prop
+  have hi : ∀ x, Integrable (fun g : κ → ℝ => a x ⬝ᵥ g + d x)
+      (Measure.pi fun _ : κ => gaussianReal 0 1) := by
+    intro x
+    refine (((ProbabilityTheory.hasGaussianLaw_dotProduct_family a).eval x).integrable.add
+      (integrable_const (d x))).congr ?_
+    exact ae_of_all _ fun g => by simp only [Pi.add_apply]
+  simpa only [one_mul] using integrable_log_sum_exp one_pos hm hi
+
 /-- A finite log-partition function of an affine family of two independent Gaussian blocks is
 integrable.  This is the product-space counterpart of `integrable_log_sum_exp`; it keeps the
 configuration type and both coefficient arrays arbitrary. -/
