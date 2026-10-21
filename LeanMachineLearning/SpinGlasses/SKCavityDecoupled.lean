@@ -73,7 +73,30 @@ theorem integral_pi_count_tilted_decoupled_spin {α : Type*} [Finite α] [Nonemp
     simp_rw [Real.exp_add, mul_div_mul_comm, Finset.prod_mul_distrib]
     ring
   simp_rw [hw, ← Finset.sum_mul_sum]
+  rw [mul_comm (Real.tanh Y ^ I.card)]
   congr 1
-  sorry
+  have hε : ∀ ε : Fin n → ℤˣ, (∏ r, Real.exp ((ε r : ℝ) * Y) / c) * ∏ r ∈ I, ((ε r : ℤˣ) : ℝ) =
+      ∏ r, (Real.exp ((ε r : ℝ) * Y) / c * if r ∈ I then ((ε r : ℤˣ) : ℝ) else 1) := fun ε => by
+    rw [Finset.prod_mul_distrib, Finset.prod_ite_mem, Finset.univ_inter]
+  simp_rw [hε]
+  rw [hypercube_sum_prod_eq_prod_add
+    (fun (r : Fin n) (s : ℤˣ) => Real.exp ((s : ℝ) * Y) / c * if r ∈ I then ((s : ℤˣ) : ℝ) else 1)]
+  have htanh : Real.tanh Y = (Real.exp Y - Real.exp (-Y)) / c := by
+    rw [Real.tanh_eq_sinh_div_cosh, Real.sinh_eq, Real.cosh_eq, hc]
+    field_simp
+  have hr : ∀ r : Fin n, (Real.exp (((1 : ℤˣ) : ℝ) * Y) / c *
+        (if r ∈ I then (((1 : ℤˣ) : ℤ) : ℝ) else 1) +
+      Real.exp (((-1 : ℤˣ) : ℝ) * Y) / c * (if r ∈ I then (((-1 : ℤˣ) : ℤ) : ℝ) else 1)) =
+      if r ∈ I then Real.tanh Y else 1 := fun r => by
+    by_cases hr : r ∈ I
+    · simp only [hr, ite_true, htanh]
+      simp
+      ring
+    · simp only [hr, ite_false]
+      simp
+      field_simp
+      exact hc.symm
+  simp_rw [hr]
+  rw [Finset.prod_ite_mem, Finset.univ_inter, Finset.prod_const]
 
 end SpinGlasses

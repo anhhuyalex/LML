@@ -410,6 +410,8 @@ public import LeanMachineLearning.SpinGlasses.PoissonProcessTransform
 public import LeanMachineLearning.SpinGlasses.SKAizenmanLebowitzRuelle
 public import LeanMachineLearning.SpinGlasses.SKAsymptoticProduct
 public import LeanMachineLearning.SpinGlasses.SKCavityBounds
+public import LeanMachineLearning.SpinGlasses.SKCavityDecoupled
+public import LeanMachineLearning.SpinGlasses.SKCavityDecoupledEndpoint
 public import LeanMachineLearning.SpinGlasses.SKCavityDerivative
 public import LeanMachineLearning.SpinGlasses.SKCavityDomination
 public import LeanMachineLearning.SpinGlasses.SKCavityEndpoint

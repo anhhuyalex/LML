@@ -1146,9 +1146,9 @@ finite and deterministic, for a given base energy and field. The random pair-dis
 The coupled endpoint for arbitrary replica number is now proved above.
 The path derivative (Lemma~1.6.3, Eq.~(1.151)) and the domination estimate (Lemma~1.6.4,
 Eqs.~(1.154)--(1.155)) are proved below for the observables stated there.
-The multi-replica finite-fibre identity, Lemma~1.6.2, the $R$-form (1.152) of the derivative and
-Propositions~1.6.5--1.6.8 are \emph{not yet formalized}; the lemmas of this section
-must not be read as asserting them.
+Lemma~1.6.2 is proved for the decoupled endpoint (Theorem~\ref{thm:sg-tal:cavity-decoupled}).
+The $R$-form (1.152) of the derivative and Propositions~1.6.5--1.6.8 are
+\emph{not yet formalized}; the lemmas of this section must not be read as asserting them.
 The old-pair energy is random: the existing Gaussian interpolation theorem is applied
 conditionally on the old-pair disorder
 (Lemma~\ref{lem:sg-tal:cavity-conditional-deriv}), and
@@ -1501,4 +1501,47 @@ Lemma~\ref{lem:sg-tal:cavity-derivative-domination} and
 Theorem~\ref{thm:sg-tal:cavity-path-derivative}. Lemma~\ref{lem:sg-tal:gronwall-backward} gives
 $\nu_t(f)\le e^{4n^2\beta^2(1-t)}\nu_1(f)$. At the endpoint the scalar Gaussian drops out and the
 split disorder is the $(N+1)$-spin SK disorder (Lemma~\ref{lem:sg-tal:cavity-coupled-endpoint}).
+\end{proof}
+
+\begin{lemma}[Decoupled last spin in the finite Gibbs average]
+\label{lem:sg-tal:decoupled-spin}
+  \lean{SpinGlasses.integral_pi_count_tilted_equiv,
+        SpinGlasses.integral_pi_count_tilted_decoupled_spin}
+  \leanok
+\talsource{Eq.~(1.150), finite form}
+Let $\alpha$ be a finite nonempty set, $A:\alpha\to\mathbb R$, $Y\in\mathbb R$, $F$ a function of
+$n$ replicas of $\alpha$ and $I\subseteq\{1,\dots,n\}$. Under $n$ independent copies of the Gibbs
+measure on $\alpha\times\{-1,1\}$ with energy $A(a)+\varepsilon Y$,
+\[
+\mathbb E\Bigl[F(a^1,\dots,a^n)\prod_{r\in I}\varepsilon^r\Bigr]
+=(\tanh Y)^{|I|}\;\mathbb E\,F(a^1,\dots,a^n),
+\]
+the last expectation being under $n$ copies of the Gibbs measure with energy $A$. Replica averages
+are transported along any finite equivalence of the configuration space.
+\end{lemma}
+\begin{proof}
+  \leanok
+Write the replica average as a finite sum, split $(a,\varepsilon)$ coordinatewise, and factor the sum
+over the signs by the hypercube product formula. Each sign factor equals $\tanh Y$ if its replica is in
+$I$ and $1$ otherwise, since $\sum_{\varepsilon=\pm1}\varepsilon e^{\varepsilon Y}/(e^Y+e^{-Y})=\tanh Y$.
+\end{proof}
+
+\begin{theorem}[The decoupled endpoint of the cavity path (Lemma 1.6.2)]
+\label{thm:sg-tal:cavity-decoupled}
+  \lean{SpinGlasses.sk_cavity_decoupled_endpoint}
+  \leanok
+\talsource{Lemma~1.6.2, Eq.~(1.150)}
+Let $f^-$ be a function of $n$ replicas of the first $N$ spins, $I\subseteq\{1,\dots,n\}$ and
+$Y=\beta z\sqrt q+h$ with $z$ standard Gaussian. At the decoupled endpoint $t=0$ of the cavity path,
+\[
+\nu_0\Bigl(f^-\prod_{r\in I}\varepsilon_r\Bigr)=\mathbb E(\tanh Y)^{|I|}\,\nu_0(f^-),
+\]
+where $\nu_0(f^-)$ is the average of $f^-$ under the $N$-spin Gibbs measure with the old-pair energy
+(prefactor $(N+1)^{-1/2}\beta$ and field $h$), averaged over the old pairs.
+\end{theorem}
+\begin{proof}
+  \leanok
+At the angle $\pi/2$ the energy is $A(\rho)+\varepsilon(\beta\omega_2\sqrt q+h)$. Lemma~\ref{lem:sg-tal:decoupled-spin}
+(transported along the $\mathrm{Fin.snoc}$ equivalence) gives the factor $(\tanh Y)^{|I|}$ at fixed disorder;
+the old pairs and the scalar Gaussian are independent, so the two integrals factor.
 \end{proof}
