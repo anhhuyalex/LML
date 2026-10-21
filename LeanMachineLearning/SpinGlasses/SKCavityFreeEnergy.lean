@@ -636,12 +636,12 @@ theorem sk_cavity_free_energy_step_le_of_estimates (β q : ℝ) (N : ℕ) (hN : 
   have : K * (1 / (N : ℝ) + ν) = K * (1 / (N : ℝ)) + K * ν := by ring
   linarith
 
-/-- **Talagrand's Eq. (1.181), cavity `cosh` interpolation estimate.**  For any interpolating
+/-- **Conditional endpoint reduction for Talagrand's Eq. (1.181).**  For any interpolating
 path `φ : ℝ → ℝ` between the cavity `cosh` expectation at `0` and the decoupled standard
 Gaussian expectation at `π / 2`, if its derivative along the trigonometric path has deviation from
 `-β² (1 - q)` bounded by `2 * K1 * ν`, then the distance between the cavity `cosh` observable
 and `(β² / 2) (1 - q) + 𝔼 log cosh(β z √q + h)` is at most `K1 * ν`. -/
-theorem sk_cavity_cosh_estimate_le (β q : ℝ) (log_cosh cavity_cosh ν K1 : ℝ)
+theorem sk_cavity_cosh_estimate_of_deriv_bound (β q : ℝ) (log_cosh cavity_cosh ν K1 : ℝ)
     (φ : ℝ → ℝ) (h0 : φ 0 = cavity_cosh) (hpi : φ (Real.pi / 2) = log_cosh)
     (hd : ∀ s, ∃ D, HasDerivAt φ (Real.sin s * Real.cos s * D) s ∧
       (s ∈ Set.Icc 0 (Real.pi / 2) → |D - (-β ^ 2 * (1 - q))| ≤ 2 * K1 * ν)) :
@@ -653,12 +653,12 @@ theorem sk_cavity_cosh_estimate_le (β q : ℝ) (log_cosh cavity_cosh ν K1 : �
       -(cavity_cosh - (β ^ 2 / 2 * (1 - q) + log_cosh)) by ring, abs_neg] at hkey
   linarith
 
-/-- **Talagrand's Eq. (1.182), pair perturbation interpolation estimate.**  For any interpolating
+/-- **Conditional endpoint reduction for Talagrand's Eq. (1.182).**  For any interpolating
 path `ψ : ℝ → ℝ` between the pair perturbation expectation at `0` and `0` at `π / 2`, if its
 derivative along the trigonometric path has deviation from `-(β² / 2) (1 - q²)` bounded by
 `2 * (K2 / N + K3 * ν)`, then the distance between the pair perturbation observable and
 `(β² / 4) (1 - q²)` is at most `K2 / N + K3 * ν`. -/
-theorem sk_pair_perturb_estimate_le (β q : ℝ) (N : ℕ) (perturb ν K2 K3 : ℝ)
+theorem sk_pair_perturb_estimate_of_deriv_bound (β q : ℝ) (N : ℕ) (perturb ν K2 K3 : ℝ)
     (ψ : ℝ → ℝ) (h0 : ψ 0 = perturb) (hpi : ψ (Real.pi / 2) = 0)
     (hd : ∀ s, ∃ D, HasDerivAt ψ (Real.sin s * Real.cos s * D) s ∧
       (s ∈ Set.Icc 0 (Real.pi / 2) → |D - (-β ^ 2 / 2 * (1 - q ^ 2))| ≤
@@ -671,13 +671,11 @@ theorem sk_pair_perturb_estimate_le (β q : ℝ) (N : ℕ) (perturb ν K2 K3 : �
       -(perturb - β ^ 2 / 4 * (1 - q ^ 2)) by ring, abs_neg] at hkey
   linarith
 
-/-- **Proposition 1.6.8 (Talagrand Eq. 1.170).**  The free-energy increment `(N+1) p_{N+1} - N p_N`
-deviates from the replica-symmetric cavity constant `A(β, h, q) = log 2 + (β² / 4) (1 - q)² +
-𝔼 log cosh` by at most `K (1 / N + ν)`.  This is proved by combining the exact free-energy
-increment identity (Eq. 1.176) with the cavity `cosh` interpolation estimate (Eq. 1.181) and
-the pair perturbation interpolation estimate (Eq. 1.182) via
-`sk_cavity_free_energy_step_le_of_estimates`. -/
-theorem cavity_free_energy_step_le (N : ℕ) (β h q : ℝ) (hN : 0 < N)
+/-- **Conditional reduction of Talagrand's Proposition 1.6.8 (Eq. 1.170).**  If the two
+concrete interpolation estimates are supplied, the exact cavity increment identity gives the
+claimed free-energy bound.  This theorem deliberately leaves those estimates as hypotheses; it
+is not Proposition 1.6.8 itself. -/
+theorem cavity_free_energy_increment_le_of_estimates (N : ℕ) (β h q : ℝ) (hN : 0 < N)
     (log_cosh cavity_cosh perturb ν K1 K2 K3 K : ℝ)
     (h_inc : (∫ g : FinPairs (N + 1) → ℝ,
       Real.log (∑ σ : Fin (N + 1) → ℤˣ,
@@ -713,10 +711,11 @@ theorem cavity_free_energy_step_le (N : ℕ) (β h q : ℝ) (hN : 0 < N)
   exact sk_cavity_free_energy_step_le_of_estimates β q N hN log_cosh cavity_cosh perturb
     ν K1 K2 K3 K h_cosh h_perturb hK1 hK2 hν
 
-/-- **Proposition 1.6.8 (Talagrand Eq. 1.170), closed form with exact cavity increment.**
-Specialization of `cavity_free_energy_step_le` where the increment identity is automatically
-supplied by `sk_free_energy_increment_eq`. -/
-theorem sk_cavity_free_energy_step_le (N : ℕ) (β h q : ℝ) (hN : 0 < N)
+/-- **Conditional SK reduction of Talagrand's Proposition 1.6.8 (Eq. 1.170).**
+Specialization of `cavity_free_energy_increment_le_of_estimates` where the exact increment is
+automatically supplied by `sk_free_energy_increment_eq`.  The interpolation estimates remain
+hypotheses, so this is not yet Proposition 1.6.8. -/
+theorem sk_cavity_free_energy_increment_le_of_estimates (N : ℕ) (β h q : ℝ) (hN : 0 < N)
     (log_cosh ν K1 K2 K3 K : ℝ)
     (h_cosh : |(∫ w : (FinPairs N → ℝ) × (Fin N → ℝ),
       Real.log (∫ ρ : Fin N → ℤˣ,

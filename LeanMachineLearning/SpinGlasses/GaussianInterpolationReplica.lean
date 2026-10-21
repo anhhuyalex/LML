@@ -613,6 +613,50 @@ theorem hasDerivAt_integral_conditional_of_deriv_bound
       simpa only [Real.norm_eq_abs] using hbound η s)
     (integrable_const M) (ae_of_all _ fun η s _ => hderiv η s)).2
 
+/-- **Conditional Gaussian derivative of a log partition function.**  This is the natural
+Fubini form of `hasDerivAt_integral_log_sum_exp_trig`: a base energy may depend on independent
+base disorder `η`, while the two interpolated Gaussian fields remain independent of it.  The
+three analytic obligations on the outer integral are explicit, so the lemma applies equally to
+the cavity `cosh` and pair-perturbation interpolations without creating a model-specific path
+definition. -/
+theorem hasDerivAt_integral_conditional_log_sum_exp_trig
+    {Ω₀ : Type*} [MeasurableSpace Ω₀] (P₀ : Measure Ω₀) [IsProbabilityMeasure P₀]
+    [Nonempty Ω₀] {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω}
+    {X Y : α → Ω → ℝ} [Fintype α] [Nonempty α]
+    (hXm : ∀ a, Measurable (X a)) (hYm : ∀ a, Measurable (Y a))
+    (hXY : HasGaussianLaw (fun ω s => Sum.elim X Y s ω) P)
+    (hX : ∀ a, ∫ ω, X a ω ∂P = 0) (hY : ∀ a, ∫ ω, Y a ω ∂P = 0)
+    (h0 : ∀ a b, ∫ ω, X a ω * Y b ω ∂P = 0) (B : Ω₀ → α → ℝ) (t : ℝ)
+    (hFm : ∀ s, AEStronglyMeasurable (fun η => ∫ ω,
+      Real.log (∑ a, Real.exp (Real.cos s * X a ω + Real.sin s * Y a ω + B η a)) ∂P) P₀)
+    (hDm : AEStronglyMeasurable (fun η => ∫ ω, ∫ p : α × α,
+      Real.sin t * Real.cos t *
+        ((∫ ω', Y p.1 ω' * Y p.1 ω' ∂P - ∫ ω', X p.1 ω' * X p.1 ω' ∂P) -
+          (∫ ω', Y p.1 ω' * Y p.2 ω' ∂P - ∫ ω', X p.1 ω' * X p.2 ω' ∂P))
+        ∂((Measure.count.tilted fun a => Real.cos t * X a ω + Real.sin t * Y a ω + B η a).prod
+          (Measure.count.tilted fun a => Real.cos t * X a ω + Real.sin t * Y a ω + B η a)) ∂P) P₀)
+    (hF : Integrable (fun η => ∫ ω,
+      Real.log (∑ a, Real.exp (Real.cos t * X a ω + Real.sin t * Y a ω + B η a)) ∂P) P₀)
+    (M : ℝ) (hbound : ∀ η s, |∫ ω, ∫ p : α × α,
+      Real.sin s * Real.cos s *
+        ((∫ ω', Y p.1 ω' * Y p.1 ω' ∂P - ∫ ω', X p.1 ω' * X p.1 ω' ∂P) -
+          (∫ ω', Y p.1 ω' * Y p.2 ω' ∂P - ∫ ω', X p.1 ω' * X p.2 ω' ∂P))
+        ∂((Measure.count.tilted fun a => Real.cos s * X a ω + Real.sin s * Y a ω + B η a).prod
+          (Measure.count.tilted fun a => Real.cos s * X a ω + Real.sin s * Y a ω + B η a)) ∂P| ≤ M) :
+    HasDerivAt (fun s => ∫ η, ∫ ω,
+      Real.log (∑ a, Real.exp (Real.cos s * X a ω + Real.sin s * Y a ω + B η a)) ∂P ∂P₀)
+      (∫ η, ∫ ω, ∫ p : α × α,
+        Real.sin t * Real.cos t *
+          ((∫ ω', Y p.1 ω' * Y p.1 ω' ∂P - ∫ ω', X p.1 ω' * X p.1 ω' ∂P) -
+            (∫ ω', Y p.1 ω' * Y p.2 ω' ∂P - ∫ ω', X p.1 ω' * X p.2 ω' ∂P))
+          ∂((Measure.count.tilted fun a => Real.cos t * X a ω + Real.sin t * Y a ω + B η a).prod
+            (Measure.count.tilted fun a => Real.cos t * X a ω + Real.sin t * Y a ω + B η a)) ∂P ∂P₀) t := by
+  apply hasDerivAt_integral_conditional_of_deriv_bound P₀ _ _ t hFm hDm hF
+  · intro η s
+    exact hasDerivAt_integral_log_sum_exp_trig hXm hYm hXY hX hY h0 (B η) s
+  · exact M
+  · exact hbound
+
 /-- The replica-derivative term `𝔼⟨Ψ (∑ᵣ f'(σʳ) - n ⟨f'⟩)⟩` is integrable in the disorder when
 `f'` is dominated by an integrable function. -/
 theorem integrable_replica_derivative_term {g χ : α → Ω → ℝ}

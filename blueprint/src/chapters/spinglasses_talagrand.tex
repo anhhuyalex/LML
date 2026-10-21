@@ -1407,7 +1407,7 @@ Combine the integrated cavity split \texttt{integral\_log\_partition\_sk\_cavity
 using measure-preserving coordinate splits and Fubini transport.
 \end{proof}
 
-\begin{theorem}[Reduction of cavity free-energy increment (Proposition 1.6.8, Eq.~(1.170))]
+\begin{theorem}[Conditional reduction of the cavity free-energy increment]
 \label{thm:sg-tal:cavity-free-energy-assembly}
   \lean{Real.abs_sub_sub_half_le_of_exists_hasDerivAt,
         SpinGlasses.sk_free_energy_step_algebra,
@@ -1424,6 +1424,7 @@ decomposes algebraically as
 \]
 Consequently, any quantitative bounds on the cavity $\cosh$ and pair-perturbation errors
 yield the Proposition~1.6.8 bound $|(N+1)p_{N+1} - N p_N - A(\beta, h, q)| \le K(N^{-1} + \nu(|R_{1,2}-q|))$.
+This is only a reduction: the concrete derivative estimates are not yet formalized.
 \end{theorem}
 \begin{proof}
   \leanok
@@ -1433,9 +1434,9 @@ The triangle inequality \texttt{abs\_sk\_free\_energy\_step\_sub\_le} and \textt
 complete the reduction.
 \end{proof}
 
-\begin{theorem}[Cavity $\cosh$ interpolation estimate (Proposition 1.6.8, Eq.~(1.181))]
+\begin{theorem}[Conditional endpoint reduction for the cavity $\cosh$ estimate]
 \label{thm:sg-tal:cavity-cosh-estimate}
-  \lean{SpinGlasses.sk_cavity_cosh_estimate_le}
+  \lean{SpinGlasses.sk_cavity_cosh_estimate_of_deriv_bound}
   \leanok
 \talsource{Proposition~1.6.8, Eq.~(1.181)}
 For any interpolating path $\varphi$ between the cavity $\cosh$ expectation at $0$ and the decoupled
@@ -1450,9 +1451,9 @@ deviation from $-\beta^2(1-q)$ bounded by $2 K_1 \nu$ on $[0, \pi/2]$, then
 Apply \texttt{Real.abs\_sub\_sub\_half\_le\_of\_exists\_hasDerivAt} with $C = -\beta^2(1-q)$ and $K = 2 K_1 \nu$.
 \end{proof}
 
-\begin{theorem}[Pair perturbation interpolation estimate (Proposition 1.6.8, Eq.~(1.182))]
+\begin{theorem}[Conditional endpoint reduction for the pair perturbation estimate]
 \label{thm:sg-tal:pair-perturb-estimate}
-  \lean{SpinGlasses.sk_pair_perturb_estimate_le}
+  \lean{SpinGlasses.sk_pair_perturb_estimate_of_deriv_bound}
   \leanok
 \talsource{Proposition~1.6.8, Eq.~(1.182)}
 For any interpolating path $\psi$ between the pair perturbation expectation at $0$ and $0$ at $\pi / 2$,
@@ -1467,15 +1468,15 @@ $2 (K_2 / N + K_3 \nu)$ on $[0, \pi/2]$, then
 Apply \texttt{Real.abs\_sub\_sub\_half\_le\_of\_exists\_hasDerivAt} with $C = -\frac{\beta^2}{2}(1-q^2)$ and $K = 2(K_2/N + K_3 \nu)$.
 \end{proof}
 
-\begin{theorem}[Cavity free-energy step bound (Proposition 1.6.8, Eq.~(1.170))]
+\begin{theorem}[Conditional SK cavity free-energy step reduction]
 \label{thm:sg-tal:cavity-free-energy-step}
-  \lean{SpinGlasses.cavity_free_energy_step_le,
-        SpinGlasses.sk_cavity_free_energy_step_le}
+  \lean{SpinGlasses.cavity_free_energy_increment_le_of_estimates,
+        SpinGlasses.sk_cavity_free_energy_increment_le_of_estimates}
   \leanok
 \talsource{Proposition~1.6.8, Eq.~(1.170)}
 For all $N > 0$ and $\beta, h, q \in \mathbb R$, combining the exact free-energy increment identity
 (Eq.~(1.176)) with the cavity $\cosh$ estimate (Eq.~(1.181)) and the pair perturbation estimate (Eq.~(1.182))
-yields the quantitative rate
+yields the quantitative rate, provided the two displayed interpolation estimates are supplied:
 \[
   |(N+1) p_{N+1}(\beta, h) - N p_N(\beta, h) - A(\beta, h, q)| \le K \left(\frac{1}{N} + \nu\right).
 \]
