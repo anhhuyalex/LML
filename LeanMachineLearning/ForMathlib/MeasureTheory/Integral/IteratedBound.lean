@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import Mathlib.MeasureTheory.Integral.Bochner.Basic
+public import Mathlib.MeasureTheory.Integral.Prod
 
 /-!
 # Pointwise domination of a triple iterated integral
@@ -62,6 +63,6 @@ theorem integral_integral_finset_sum_le {Ω Z ι : Type*} [MeasurableSpace Ω] [
 /-- Integrating a function of the second coordinate over a product with a probability measure. -/
 theorem integral_prod_fun_snd_of_isProbabilityMeasure {X Y E : Type*} [MeasurableSpace X]
     [MeasurableSpace Y] [NormedAddCommGroup E] [NormedSpace ℝ E] (μ : Measure X)
-    [IsProbabilityMeasure μ] (ν : Measure Y) (f : Y → E) :
+    [IsProbabilityMeasure μ] (ν : Measure Y) [SFinite ν] (f : Y → E) :
     ∫ x, f x.2 ∂(μ.prod ν) = ∫ y, f y ∂ν := by
   rw [integral_fun_snd, probReal_univ, one_smul]

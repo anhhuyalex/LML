@@ -50,6 +50,42 @@ theorem abs_integral_nested_gibbs_le {Ω₀ Ω : Type*} [MeasurableSpace Ω₀] 
       (fun a => ((hE a).comp measurable_prodMk_left).aemeasurable) H)
     hdet.integral_prod_left
 
+/-- **Linearity of a nested replica average.** The three-level average of a finite combination of
+observables is the combination of the averages. -/
+theorem integral_nested_gibbs_finset_sum {Ω₀ Ω : Type*} [MeasurableSpace Ω₀] [MeasurableSpace Ω]
+    (P₀ : Measure Ω₀) [IsProbabilityMeasure P₀] (P : Measure Ω) [IsProbabilityMeasure P]
+    {R α ι : Type*} [Fintype R] [Finite α] [Nonempty α] [MeasurableSpace α]
+    [MeasurableSingletonClass α] (E : Ω₀ → Ω → α → ℝ)
+    (hE : ∀ a, Measurable (fun x : Ω₀ × Ω => E x.1 x.2 a)) (s : Finset ι) (c : ι → ℝ)
+    (G : ι → (R → α) → ℝ) :
+    ∫ η, ∫ ω, ∫ τ, ∑ j ∈ s, c j * G j τ ∂(Measure.pi fun _ : R => Measure.count.tilted (E η ω))
+        ∂P ∂P₀ =
+      ∑ j ∈ s, c j * ∫ η, ∫ ω, ∫ τ, G j τ
+        ∂(Measure.pi fun _ : R => Measure.count.tilted (E η ω)) ∂P ∂P₀ := by
+  have h2 (j : ι) (η : Ω₀) : Integrable (fun ω => ∫ τ, G j τ
+      ∂(Measure.pi fun _ : R => Measure.count.tilted (E η ω))) P :=
+    integrable_integral_pi_count_tilted_det (P := P) (g := fun (a : α) (ω : Ω) => E η ω a)
+      (fun a => ((hE a).comp measurable_prodMk_left).aemeasurable) (G j)
+  have h3 (j : ι) : Integrable (fun η => ∫ ω, ∫ τ, G j τ
+      ∂(Measure.pi fun _ : R => Measure.count.tilted (E η ω)) ∂P) P₀ :=
+    (integrable_integral_pi_count_tilted_det (P := P₀.prod P)
+      (g := fun (a : α) (x : Ω₀ × Ω) => E x.1 x.2 a) (fun a => (hE a).aemeasurable)
+      (G j)).integral_prod_left
+  have e1 (η : Ω₀) (ω : Ω) : ∫ τ, ∑ j ∈ s, c j * G j τ
+        ∂(Measure.pi fun _ : R => Measure.count.tilted (E η ω)) =
+      ∑ j ∈ s, c j * ∫ τ, G j τ ∂(Measure.pi fun _ : R => Measure.count.tilted (E η ω)) := by
+    rw [integral_finsetSum _ fun j _ => Integrable.of_finite.const_mul (c j)]
+    exact Finset.sum_congr rfl fun j _ => integral_const_mul _ _
+  have e2 (η : Ω₀) : ∫ ω, ∑ j ∈ s, c j * ∫ τ, G j τ
+        ∂(Measure.pi fun _ : R => Measure.count.tilted (E η ω)) ∂P =
+      ∑ j ∈ s, c j * ∫ ω, ∫ τ, G j τ
+        ∂(Measure.pi fun _ : R => Measure.count.tilted (E η ω)) ∂P := by
+    rw [integral_finsetSum _ fun j _ => (h2 j η).const_mul (c j)]
+    exact Finset.sum_congr rfl fun j _ => integral_const_mul _ _
+  simp_rw [e1, e2]
+  rw [integral_finsetSum _ fun j _ => (h3 j).const_mul (c j)]
+  exact Finset.sum_congr rfl fun j _ => integral_const_mul _ _
+
 /-- **Talagrand's Eq. (1.155)**, for an arbitrary base disorder: the derivative of the cavity
 path is bounded by `4 n² β²` times the path average of a nonnegative observable. -/
 theorem abs_cavity_outer_book_derivative_le

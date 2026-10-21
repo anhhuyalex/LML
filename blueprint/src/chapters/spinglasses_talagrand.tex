@@ -1,7 +1,7 @@
 \chapter{The Sherrington--Kirkpatrick Model at High Temperature: The Talagrand Theory}\label{chap:sg-talagrand}
 
 This chapter formalizes Sections~1.1 through 1.5 and, from Section~1.6, the finite Gibbs
-cavity identities, the cavity path derivative (Lemma~1.6.3) and its domination (Lemma~1.6.4) of Michel Talagrand's \emph{Spin Glasses: A Challenge for Mathematicians} (Volume~I, Springer, 2010).
+cavity identities, the cavity path derivative (Lemma~1.6.3), its domination (Lemma~1.6.4), the decoupled endpoint (Lemma~1.6.2) and Propositions~1.6.5--1.6.6 of Michel Talagrand's \emph{Spin Glasses: A Challenge for Mathematicians} (Volume~I, Springer, 2010).
 The mathematical narrative develops the high-temperature theory of the Sherrington--Kirkpatrick (SK) model:
 \begin{enumerate}
 \item The decoupled reference system, hypercube factorizations, exact first-moment calculations, and the first-moment upper bound on the free energy (Section~1.2).
@@ -1147,7 +1147,8 @@ The coupled endpoint for arbitrary replica number is now proved above.
 The path derivative (Lemma~1.6.3, Eq.~(1.151)) and the domination estimate (Lemma~1.6.4,
 Eqs.~(1.154)--(1.155)) are proved below for the observables stated there.
 Lemma~1.6.2 is proved for the decoupled endpoint (Theorem~\ref{thm:sg-tal:cavity-decoupled}).
-The $R$-form (1.152) of the derivative and Propositions~1.6.5--1.6.8 are
+The $R$-form (1.152) (Theorem~\ref{thm:sg-tal:cavity-path-derivative-full}) and
+Propositions~1.6.5 and~1.6.6 are proved below. Propositions~1.6.7--1.6.8 are
 \emph{not yet formalized}; the lemmas of this section must not be read as asserting them.
 The old-pair energy is random: the existing Gaussian interpolation theorem is applied
 conditionally on the old-pair disorder
@@ -1545,3 +1546,106 @@ At the angle $\pi/2$ the energy is $A(\rho)+\varepsilon(\beta\omega_2\sqrt q+h)$
 (transported along the $\mathrm{Fin.snoc}$ equivalence) gives the factor $(\tanh Y)^{|I|}$ at fixed disorder;
 the old pairs and the scalar Gaussian are independent, so the two integrals factor.
 \end{proof}
+
+\begin{theorem}[The cavity path derivative with the full overlap (Eq. 1.152)]
+\label{thm:sg-tal:cavity-path-derivative-full}
+  \lean{SpinGlasses.book_replica_combination_add_const,
+        SpinGlasses.sk_cavity_kernel_full_eq,
+        SpinGlasses.hasDerivAt_integral_sk_cavity_path_square_full}
+  \leanok
+\talsource{Lemma~1.6.3, Eq.~(1.152)}
+The derivative $\nu_t'(f)$ of Theorem~\ref{thm:sg-tal:cavity-path-derivative} is also given by the
+same three families with $R_{\ell,\ell'}$ in place of $R^-_{\ell,\ell'}$.
+\end{theorem}
+\begin{proof}
+  \leanok
+Since $\varepsilon_\ell^2=1$, $\beta^2\varepsilon\varepsilon'(R-q)=\beta^2\varepsilon\varepsilon'(R^--q)+\beta^2/(N+1)$
+(Lemma~\ref{lem:sg-tal:cavity-overlap-split}). A constant shift of the kernel does not change the
+combination, because the weights $\binom n2$, $-n\cdot n$ and $\binom{n+1}2$ of the three families add up
+to zero.
+\end{proof}
+
+\begin{lemma}[Replica relabelling and the two-replica marginal]
+\label{lem:sg-tal:replica-marginal}
+  \lean{SpinGlasses.integral_pi_option_option_count_tilted_marginal,
+        SpinGlasses.integral_pi_count_tilted_reindex,
+        SpinGlasses.integral_pi_count_tilted_pair}
+  \leanok
+\talsource{no counterpart in the book (used implicitly in Proposition~1.6.5)}
+An $R$-replica Gibbs average is unchanged by a relabelling of the replicas, a function of $n$ replicas
+has the same average among $n+2$ replicas, and a function of two distinct replicas has the average of two
+independent replicas.
+\end{lemma}
+\begin{proof}
+  \leanok
+All three are statements about the finite sum $\sum_\tau\prod_r w(\tau_r)\,\Phi(\tau)$ with $\sum w=1$:
+reindex the sum, sum out the unused coordinates (hypercube product formula), or sum over the fibres of the
+pair of coordinates.
+\end{proof}
+
+\begin{lemma}[H\"older's inequality for an iterated average and its use for the cavity bound]
+\label{lem:sg-tal:iterated-holder}
+  \lean{integral_integral_mul_le_Lp_mul_Lq,
+        integral_integral_finset_sum_le,
+        SpinGlasses.sk_nested_holder_pair,
+        SpinGlasses.sk_nested_holder_sum}
+  \leanok
+\talsource{H\"older step of the proof of Proposition~1.6.5}
+For conjugate exponents $p,r$, nonnegative $A,B$ and a random finite probability measure $\kappa_g$,
+$\int\!\int AB\,d\kappa_g\,d\mu\le(\int\!\int A^p)^{1/p}(\int\!\int B^r)^{1/r}$. For the SK average of
+$n+2$ replicas, $\nu(|f|\,|R_{ab}-q|)\le\nu(|f|^p)^{1/p}\nu(|R_{1,2}-q|^r)^{1/r}$ for every pair $a\ne b$, and the
+weighted sum of the $2n^2$ terms of Eq.~(1.152) is at most $2n^2$ times this bound.
+\end{lemma}
+\begin{proof}
+  \leanok
+H\"older's inequality under each $\kappa_g$ and then for the resulting functions of $g$; the replicas
+of $f$ and the two replicas of the overlap are marginalized by Lemma~\ref{lem:sg-tal:replica-marginal}.
+\end{proof}
+
+\begin{theorem}[The cavity interpolation bound (Proposition 1.6.5)]
+\label{thm:sg-tal:cavity-holder}
+  \lean{SpinGlasses.abs_sk_cavity_kernel_full,
+        SpinGlasses.abs_two_sum_lt_combination_le,
+        SpinGlasses.abs_sk_cavity_angle_combination_le,
+        SpinGlasses.sk_cavity_path_square_le_exp_mul_replicas,
+        SpinGlasses.abs_integral_nested_gibbs_le,
+        SpinGlasses.sk_cavity_nu_sub_nu_zero_le}
+  \leanok
+\talsource{Proposition~1.6.5, Eq.~(1.156)}
+For a function $f$ of $n$ replicas and conjugate exponents $p,r$,
+\[
+|\nu(f)-\nu_0(f)|\le2n^2\beta^2\exp\bigl(4(n+2)^2\beta^2\bigr)\,\nu(|f|^p)^{1/p}\,\nu(|R_{1,2}-q|^r)^{1/r}.
+\]
+\emph{Deviation from the book:} the constant is $\exp(4(n+2)^2\beta^2)$ instead of $\exp(4n^2\beta^2)$, because
+the terms of (1.152) are averages over $n+2$ replicas, to which Lemma~1.6.4 applies with $n+2$ replicas.
+\end{theorem}
+\begin{proof}
+  \leanok
+Differentiate in the angle $s$ and bound the derivative by $\sin s\cos s$ times $2\beta^2\,\nu_s(|f|W)$, where
+$W$ is the weighted sum of the overlap deviations (Lemma~\ref{lem:sg-tal:cavity-family-count} and
+Eq.~(1.152)). Lemma~1.6.4 for $n+2$ replicas replaces $\nu_s$ by the coupled endpoint, Lemma~\ref{lem:sg-tal:iterated-holder}
+bounds the endpoint average, and $|\varphi(\pi/2)-\varphi(0)|\le K/2$ for $|\varphi'|\le K\sin s\cos s$ finishes.
+\end{proof}
+
+\begin{theorem}[Contraction of the overlap variance (Proposition 1.6.6)]
+\label{thm:sg-tal:overlap-contraction}
+  \lean{SpinGlasses.sk_two_replica_site_perm,
+        SpinGlasses.sk_overlap_sq_eq_last_site,
+        SpinGlasses.sk_cavity_decoupled_overlap,
+        SpinGlasses.sk_overlap_sq_le_two_div}
+  \leanok
+\talsource{Proposition~1.6.6, Eqs.~(1.157)--(1.159)}
+Let $q\in[0,1]$ satisfy $q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$ and $16\beta^2e^{64\beta^2}\le\frac12$. For the
+$(N+1)$-spin SK model, $\nu((R_{1,2}-q)^2)\le 2/(N+1)$.
+\end{theorem}
+\begin{proof}
+  \leanok
+By symmetry between sites $\nu((R_{1,2}-q)^2)=\nu(f)$ with $f=(\varepsilon_1\varepsilon_2-q)(R_{1,2}-q)$
+(Eq.~(1.157)). Writing $R=R^-+\varepsilon_1\varepsilon_2/(N+1)$ and using Theorem~\ref{thm:sg-tal:cavity-decoupled}
+with the fixed-point equation, $\nu_0(f)=(1-q^2)/(N+1)$ (Eq.~(1.158)). By Theorem~\ref{thm:sg-tal:cavity-holder} with
+$n=2$ and $p=r=2$, $|f|\le2|R-q|$ gives $|\nu(f)-\nu_0(f)|\le16\beta^2e^{64\beta^2}\nu((R-q)^2)\le\frac12\nu((R-q)^2)$,
+which gives Eq.~(1.159) and the claim.
+\emph{Deviation:} the smallness condition has the constant $64$ rather than the book's $16$ in the exponent, as in
+Theorem~\ref{thm:sg-tal:cavity-holder}, and $\beta_0$ is replaced by this explicit hypothesis.
+\end{proof}
+

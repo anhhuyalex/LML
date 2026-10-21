@@ -44,6 +44,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ChebyshevAss
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ExpMoment
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IntegrableOfBound
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedBound
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedHolder
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.JensenLog
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ParametrizedL2
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SignedToReal
@@ -375,6 +376,7 @@ public import LeanMachineLearning.SpinGlasses.GaussianIBP
 public import LeanMachineLearning.SpinGlasses.GaussianIBPCountable
 public import LeanMachineLearning.SpinGlasses.GaussianInterpolationReplica
 public import LeanMachineLearning.SpinGlasses.GibbsMeasure
+public import LeanMachineLearning.SpinGlasses.GibbsReplicaMarginal
 public import LeanMachineLearning.SpinGlasses.GuerraToninelli
 public import LeanMachineLearning.SpinGlasses.MixedPSpin
 public import LeanMachineLearning.SpinGlasses.OverlapExchangeability
@@ -410,12 +412,14 @@ public import LeanMachineLearning.SpinGlasses.PoissonProcessTransform
 public import LeanMachineLearning.SpinGlasses.SKAizenmanLebowitzRuelle
 public import LeanMachineLearning.SpinGlasses.SKAsymptoticProduct
 public import LeanMachineLearning.SpinGlasses.SKCavityBounds
+public import LeanMachineLearning.SpinGlasses.SKCavityContraction
 public import LeanMachineLearning.SpinGlasses.SKCavityDecoupled
 public import LeanMachineLearning.SpinGlasses.SKCavityDecoupledEndpoint
 public import LeanMachineLearning.SpinGlasses.SKCavityDerivative
 public import LeanMachineLearning.SpinGlasses.SKCavityDomination
 public import LeanMachineLearning.SpinGlasses.SKCavityEndpoint
 public import LeanMachineLearning.SpinGlasses.SKCavityGaussian
+public import LeanMachineLearning.SpinGlasses.SKCavityHolder
 public import LeanMachineLearning.SpinGlasses.SKCavityInterpolation
 public import LeanMachineLearning.SpinGlasses.SKCavityOuterBound
 public import LeanMachineLearning.SpinGlasses.SKCavityOuterDerivative
@@ -429,6 +433,7 @@ public import LeanMachineLearning.SpinGlasses.SKLatalaBase
 public import LeanMachineLearning.SpinGlasses.SKLatalaCompensated
 public import LeanMachineLearning.SpinGlasses.SKModel
 public import LeanMachineLearning.SpinGlasses.SKOverlapConcentration
+public import LeanMachineLearning.SpinGlasses.SKOverlapContraction
 public import LeanMachineLearning.SpinGlasses.SKRandomProjectionCLT
 public import LeanMachineLearning.SpinGlasses.SKReplicaSymmetricBound
 public import LeanMachineLearning.SpinGlasses.SKSiteSymmetry
