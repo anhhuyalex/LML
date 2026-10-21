@@ -7,8 +7,10 @@ module
 
 public import LeanMachineLearning.SpinGlasses.SKCavityInterpolation
 public import LeanMachineLearning.SpinGlasses.FreeEnergy
+public import LeanMachineLearning.SpinGlasses.GaussianComparison
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianGram
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedBound
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SinCosEndpoint
 
 /-!
 # The finite cavity partition-function identity

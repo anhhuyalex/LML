@@ -79,7 +79,94 @@ Then for any bias $h:\alpha\to\mathbb R$,
 \end{theorem}
 \begin{proof}
   \leanok
-Differentiating along the smooth Slepian path $s \mapsto \cos s X + \sin s Y + h$ and applying Gaussian integration by parts, the derivative is nonpositive on $[0,\pi/2]$.
+  \uses{lem:sg:pathderiv, thm:sg:lemma11, thm:sg:comparison}
+\emph{Idea.} We do not compare $\mathbb{E}\log\sum_ae^{Y_a+h_a}$ and $\mathbb{E}\log\sum_ae^{X_a+h_a}$ directly. Instead we move continuously from the
+field $X$ to the field $Y$ along a path of Gaussian fields and show that the expected free energy never increases along the path. The covariance of the field at
+time $s$ is a mixture of $A$ and $B$, and the assumption $A\le B$ entrywise, with equal diagonals, is exactly what makes the free energy decrease.
+
+\emph{Notation.} Write $A_{ab}=\mathbb{E}[X_aX_b]$ and $B_{ab}=\mathbb{E}[Y_aY_b]$ (deterministic $\alpha\times\alpha$ matrices), and, for $s\in\mathbb R$,
+\[
+u_s(a)=\cos s\,X_a+\sin s\,Y_a+h_a,\qquad x_s(a)=\frac{d}{ds}u_s(a)=-\sin s\,X_a+\cos s\,Y_a,\qquad
+\varphi(s)=\mathbb{E}\Big[\log\sum_{a\in\alpha}e^{u_s(a)}\Big].
+\]
+For each $\omega$ the Gibbs weights of the energy $u_s$ are $w_s(a)=e^{u_s(a)}/\sum_be^{u_s(b)}$, and $\langle g\rangle_s=\sum_aw_s(a)g(a)$ is the Gibbs average
+(Lemma~\ref{lem:sg:gibbsavg}). For a function of two configurations, $\langle g(\sigma^1,\sigma^2)\rangle_s=\sum_{a,b}w_s(a)w_s(b)g(a,b)$ is the average over two
+independent replicas drawn from the same weights.
+
+\textbf{Step 1: the two sides of the claim are the endpoints of the path.}
+Since $\cos0=1$, $\sin0=0$, $\cos\frac\pi2=0$ and $\sin\frac\pi2=1$ we have $u_0=X+h$ and $u_{\pi/2}=Y+h$, hence
+\[
+\varphi(0)=\mathbb{E}\Big[\log\sum_ae^{X_a+h_a}\Big],\qquad \varphi(\tfrac\pi2)=\mathbb{E}\Big[\log\sum_ae^{Y_a+h_a}\Big].
+\]
+The inequality to be proved is therefore $\varphi(\frac\pi2)\le\varphi(0)$. The trigonometric path is used instead of $\sqrt t\,X+\sqrt{1-t}\,Y$ because it is smooth on all of
+$\mathbb R$ (no singular derivative at the endpoints), and it keeps the covariance of the field at time $s$ equal to $\cos^2s\,A+\sin^2s\,B$ (Step 2, using $\mathbb{E}[XY]=0$), which
+interpolates between $A$ and $B$.
+
+\textbf{Step 2: the field is Gaussian along the whole path, and the covariances needed are computed.}
+Because $(X,Y)$ is jointly Gaussian (hypothesis \texttt{hXY}, Remark~\ref{rem:sg:hxy}), each of $u_s-h=\cos s\,X+\sin s\,Y$ and $x_s$ is a linear image of $(X,Y)$, so the pair
+$(x_s,u_s-h)$ is again a centered jointly Gaussian pair (\texttt{hasGaussianLaw\_sumElim\_lincomb}; centered by \texttt{integral\_lincomb\_eq\_zero}). Expanding the product
+and using $\mathbb{E}[X_aY_b]=0$ for all $a,b$, so that every mixed term vanishes (\texttt{integral\_lincomb\_mul\_lincomb}), we get the two covariances
+\[
+\mathbb{E}\big[(u_s(a)-h_a)(u_s(b)-h_b)\big]=\cos^2s\,A_{ab}+\sin^2s\,B_{ab},
+\]
+\[
+C_s(a,b):=\mathbb{E}[x_s(a)\,(u_s(b)-h_b)]=-\sin s\cos s\,A_{ab}+\cos s\sin s\,B_{ab}=\sin s\cos s\,(B_{ab}-A_{ab}).
+\]
+The cross covariance $C_s$ is the quantity that appears in Gaussian integration by parts, and it is proportional to $B-A$.
+
+\textbf{Step 3: $\varphi$ is differentiable, with derivative the expected Gibbs average of $x_s$.}
+Pointwise in $\omega$, $\frac{d}{ds}\log\sum_ae^{u_s(a)}=\sum_ae^{u_s(a)}x_s(a)/\sum_be^{u_s(b)}=\langle x_s\rangle_s$. To differentiate under the expectation we need a dominating integrable bound
+uniform in $s$. The Gibbs average is an average, so $|\langle x_s\rangle_s|\le\max_a|x_s(a)|\le\sum_a(|X_a|+|Y_a|)$, and the right side does not depend on $s$ and is integrable because
+Gaussian variables are integrable. By dominated differentiation (Lemma~\ref{lem:sg:pathderiv}),
+\[
+\varphi'(s)=\mathbb{E}\big[\langle x_s\rangle_s\big]\qquad\text{for every }s\in\mathbb R.
+\]
+In particular $\varphi$ is differentiable, hence continuous, on all of $\mathbb R$.
+
+\textbf{Step 4: Gaussian integration by parts evaluates the derivative.}
+Gaussian integration by parts for the Gibbs measure (Lemma~1.1, Theorem~\ref{thm:sg:lemma11}) says: if $(x,y)$ is a centered jointly Gaussian pair, $h$ is a deterministic bias and $\langle\cdot\rangle$ is the
+Gibbs average of the energy $y+h$, with $C(a,b)=\mathbb{E}[x(a)y(b)]$, then
+$\mathbb{E}\langle x\rangle=\mathbb{E}\langle C(\sigma^1,\sigma^1)-C(\sigma^1,\sigma^2)\rangle$. We apply it with $x=x_s$, $y=u_s-h$ and $C=C_s$ from Step 2. The right side is an average over two independent replicas,
+so, with $\langle\cdot\rangle_s$ the average for $u_s$,
+\[
+\varphi'(s)=\mathbb{E}\Big[\sum_{a,b}w_s(a)w_s(b)\big(C_s(a,a)-C_s(a,b)\big)\Big]
+=\sin s\cos s\;\mathbb{E}\Big[\big\langle (B-A)(\sigma^1,\sigma^1)-(B-A)(\sigma^1,\sigma^2)\big\rangle_s\Big].
+\]
+This is the Lean statement \texttt{hasDerivAt\_integral\_log\_sum\_exp\_trig}: the function $\varphi$ has this derivative at every $s$.
+Note that $\mathbb{E}[\langle x_s\rangle_s]$ would be hard to bound directly, since $x_s$ is correlated with the weights $w_s$ through $u_s$; integration by parts replaces it by an expression
+that involves only the deterministic covariances $A$ and $B$.
+
+\textbf{Step 5: the derivative is nonpositive on $[0,\pi/2]$.}
+Use the three assumptions on the covariances.
+\begin{itemize}
+\item \emph{Equal variances} $A_{aa}=B_{aa}$: the diagonal term $(B-A)(\sigma^1,\sigma^1)=(B-A)(a,a)$ is $0$ for every configuration $a$, so it drops out.
+\item \emph{Covariance order} $A_{ab}\le B_{ab}$: the cross term satisfies $(B-A)(a,b)\ge0$ for all $a,b$. Therefore the two-replica Gibbs average
+  $\langle (B-A)(\sigma^1,\sigma^2)\rangle_s=\sum_{a,b}w_s(a)w_s(b)(B-A)(a,b)$ is a sum of nonnegative terms, hence $\ge0$ for every $\omega$, and so is its expectation.
+\item \emph{The path factor:} for $s\in[0,\pi/2]$ both $\sin s\ge0$ and $\cos s\ge0$, so $\sin s\cos s\ge0$.
+\end{itemize}
+Hence, for $s\in[0,\pi/2]$,
+\[
+\varphi'(s)=-\sin s\cos s\;\mathbb{E}\big[\langle (B-A)(\sigma^1,\sigma^2)\rangle_s\big]\;\le\;0.
+\]
+(Outside $[0,\pi/2]$ the sign of $\sin s\cos s$ can be negative, which is why the argument is restricted to this interval; only the endpoints $0$ and $\pi/2$ are needed.)
+
+\textbf{Step 6: a nonpositive derivative gives monotonicity, hence the inequality.}
+The function $\varphi$ is continuous on $[0,\pi/2]$, differentiable on the interior with $\varphi'\le0$ (Steps 3--5). By the mean value theorem, for any $0\le s<t\le\pi/2$ there is $\xi\in(s,t)$ with
+\[
+\varphi(t)-\varphi(s)=\varphi'(\xi)\,(t-s)\le0,
+\]
+because $\varphi'(\xi)\le0$ and $t-s>0$. So $\varphi$ is non-increasing on $[0,\pi/2]$ (\texttt{antitoneOn\_of\_deriv\_nonpos}). Taking $s=0$ and $t=\pi/2$ gives
+$\varphi(\frac\pi2)\le\varphi(0)$, which by Step 1 is
+\[
+\mathbb{E}\Big[\log\sum_ae^{Y_a+h_a}\Big]\le\mathbb{E}\Big[\log\sum_ae^{X_a+h_a}\Big].
+\]
+In words, the more strongly the field is correlated (larger $B$ against $A$, same variances), the smaller the expected free energy: positive correlations make the
+field behave like fewer independent values, so the maximum and the log-sum-exp tend to be smaller.
+
+\emph{Sanity check.} Let $\alpha=\{1,2\}$, $X_1,X_2$ independent standard Gaussians and $Y_1=Y_2=Z$ standard Gaussian, with $Z$ independent of $X$. The hypotheses hold
+($A=I$, $B=\begin{psmallmatrix}1&1\\1&1\end{psmallmatrix}$, so $B-A\ge0$ entrywise with zero diagonal). The left side is $\mathbb{E}[Z]+\log(e^{h_1}+e^{h_2})=\log(e^{h_1}+e^{h_2})$ and the right side
+is $\mathbb{E}\log(e^{X_1+h_1}+e^{X_2+h_2})$, which is at least $\log(e^{h_1}+e^{h_2})$ by Jensen's inequality for the convex function $x\mapsto\log\sum_ae^{x_a+h_a}$ and $\mathbb{E}X=0$. This agrees with the theorem.
+
 Formalized in \texttt{SpinGlasses/GaussianComparison.lean}.
 \end{proof}
 
