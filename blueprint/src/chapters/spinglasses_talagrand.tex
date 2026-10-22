@@ -1469,9 +1469,10 @@ Then
 is differentiable.  Its derivative is $\sin(s)\cos(s)$ times the two-replica covariance
 difference for the signed fields $\varepsilon X_a$ and $\varepsilon Y_a$ on
 $(a,\varepsilon)\in\alpha\times\{-1,1\}$, under their explicit tilted product measure.
-This is the model-independent derivative needed by the cavity $\cosh$ path.  The current theorem
-does not yet specialize the covariance to the SK overlap or prove the quantitative bound in
-Eq.~(1.181).
+This is the model-independent derivative needed by the cavity $\cosh$ path.  The covariance
+bracket and its fixed-base signed-overlap bound have now been specialized to the SK model; the
+remaining step for Eq.~(1.181) is to discharge the conditional theorem's outer-disorder
+measurability, domination, and endpoint hypotheses.
 \end{lemma}
 \begin{proof}
   \leanok
@@ -1528,8 +1529,8 @@ decomposes algebraically as
 \]
 Consequently, any quantitative bounds on the cavity $\cosh$ and pair-perturbation errors
 yield the Proposition~1.6.8 bound $|(N+1)p_{N+1} - N p_N - A(\beta, h, q)| \le K(N^{-1} + \nu(|R_{1,2}-q|))$.
-This is only a reduction: the generic $\cosh$ derivative is now formalized, but its concrete SK
-overlap bound and the pair-perturbation derivative estimate are not.
+This is only a reduction: the fixed-base SK signed-overlap bound is now formalized, but the
+outer-disorder conditional path and the pair-perturbation derivative estimate are not.
 \end{theorem}
 \begin{proof}
   \leanok
@@ -1671,6 +1672,7 @@ by independence.
         integrable_cosh_sum_mul_add_mul_gaussianReal,
         integral_cosh_sum_mul_add_mul_gaussianReal,
         SpinGlasses.integral_cosh_sk_cavity_linear_combo_le,
+        SpinGlasses.integrable_abs_sinh_mul_sinh_sk_cavity,
         SpinGlasses.integral_abs_sinh_mul_sinh_sk_cavity_le}
   \leanok
 \talsource{Proof of Eq.~(1.181)}
@@ -1698,6 +1700,34 @@ The reusable product-Gaussian moment formula evaluates the displayed expectation
 $\cosh(m)\exp(V/2)$, where $V$ is that variance bound, and monotonicity of the exponential gives
 the result. For the product of hyperbolic sines, we bound $|\sinh a \sinh b| \le (\cosh(a+b) + \cosh(a-b))/2$
 and apply the moment bound at $m = 2h$ and $m = 0$.
+\end{proof}
+
+\begin{lemma}[Fixed-base signed-overlap domination for the cavity $\cosh$ path]
+\label{lem:sg-tal:cavity-signed-overlap-bound}
+  \lean{SpinGlasses.integrable_integral_prod_count_tilted,
+        SpinGlasses.measurable_integral_prod_count_tilted_units_mul,
+        SpinGlasses.abs_integral_sk_cavity_signed_overlap_le}
+  \leanok
+\talsource{Proof of Eqs.~(1.179)--(1.181)}
+Fix an arbitrary base energy $A$ on the $N$-spin hypercube.  For
+$L_\sigma(s)=\cos(s)X_\sigma+\sin(s)Y_\sigma+h$, the cavity Gaussian average of the signed
+two-replica overlap term satisfies
+\[
+ \left|\mathbb E_\omega\left\langle
+   \varepsilon^1\varepsilon^2\beta^2(R_{1,2}-q)
+ \right\rangle_{A+\varepsilon L(s)}^{\otimes 2}\right|
+ \le \beta^2\cosh(2h)e^{2\beta^2}
+   \left\langle |R_{1,2}-q|\right\rangle_A^{\otimes 2}.
+\]
+The estimate is pointwise in the old-pair disorder and uniform in the interpolation angle.
+\end{lemma}
+\begin{proof}
+  \leanok
+First integrate the two signs and discard the denominator using
+\texttt{abs\_integral\_prod\_count\_tilted\_units\_mul\_le}.  The remaining tilted measure
+depends only on $A$, so the finite Gibbs sum can be exchanged with the cavity Gaussian integral.
+The coordinatewise factor is bounded by the preceding $\sinh$ moment estimate.  The reusable
+integrability and measurability lemmas make the triangle and Fubini steps explicit.
 \end{proof}
 
 \begin{lemma}[Uniform truncated-overlap and covariance bounds]
