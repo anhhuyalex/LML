@@ -657,6 +657,67 @@ theorem hasDerivAt_integral_conditional_log_sum_exp_trig
   intro η s
   exact hasDerivAt_integral_log_sum_exp_trig hXm hYm hXY hX hY h0 (B η) s
 
+omit [Finite α] [Nonempty α] [Fintype R] in
+/-- **Conditional Gaussian derivative of a log cosh Gibbs average.**  This is the conditional
+Fubini form of `hasDerivAt_integral_log_integral_cosh_trig`: a base energy `A` may depend on
+independent base disorder `η`, while the two interpolated Gaussian fields remain independent of it. -/
+theorem hasDerivAt_integral_conditional_log_integral_cosh_trig
+    {Ω₀ : Type*} [MeasurableSpace Ω₀] (P₀ : Measure Ω₀) [IsProbabilityMeasure P₀]
+    {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω}
+    {X Y : α → Ω → ℝ} [Fintype α] [Nonempty α]
+    (hXm : ∀ a, Measurable (X a)) (hYm : ∀ a, Measurable (Y a))
+    (hXY : HasGaussianLaw (fun ω s => Sum.elim X Y s ω) P)
+    (hX : ∀ a, ∫ ω, X a ω ∂P = 0) (hY : ∀ a, ∫ ω, Y a ω ∂P = 0)
+    (h0 : ∀ a b, ∫ ω, X a ω * Y b ω ∂P = 0) (A : Ω₀ → α → ℝ) (h : α → ℝ) (t : ℝ)
+    (hFm : ∀ s, AEStronglyMeasurable (fun η => ∫ ω,
+      Real.log (∫ a, Real.cosh (Real.cos s * X a ω + Real.sin s * Y a ω + h a)
+        ∂Measure.count.tilted (A η)) ∂P) P₀)
+    (hDm : AEStronglyMeasurable (fun η => ∫ ω, ∫ p : (α × ℤˣ) × (α × ℤˣ),
+      Real.sin t * Real.cos t *
+        ((∫ ω', (p.1.2 : ℝ) * Y p.1.1 ω' * ((p.1.2 : ℝ) * Y p.1.1 ω') ∂P -
+            ∫ ω', (p.1.2 : ℝ) * X p.1.1 ω' * ((p.1.2 : ℝ) * X p.1.1 ω') ∂P) -
+          (∫ ω', (p.1.2 : ℝ) * Y p.1.1 ω' * ((p.2.2 : ℝ) * Y p.2.1 ω') ∂P -
+            ∫ ω', (p.1.2 : ℝ) * X p.1.1 ω' * ((p.2.2 : ℝ) * X p.2.1 ω') ∂P))
+        ∂((Measure.count.tilted fun x : α × ℤˣ =>
+          Real.cos t * ((x.2 : ℝ) * X x.1 ω) +
+          Real.sin t * ((x.2 : ℝ) * Y x.1 ω) + A η x.1 + (x.2 : ℝ) * h x.1).prod
+          (Measure.count.tilted fun x : α × ℤˣ =>
+            Real.cos t * ((x.2 : ℝ) * X x.1 ω) +
+            Real.sin t * ((x.2 : ℝ) * Y x.1 ω) + A η x.1 + (x.2 : ℝ) * h x.1)) ∂P) P₀)
+    (hF : Integrable (fun η => ∫ ω,
+      Real.log (∫ a, Real.cosh (Real.cos t * X a ω + Real.sin t * Y a ω + h a)
+        ∂Measure.count.tilted (A η)) ∂P) P₀)
+    (M : ℝ) (hbound : ∀ η s, |∫ ω, ∫ p : (α × ℤˣ) × (α × ℤˣ),
+      Real.sin s * Real.cos s *
+        ((∫ ω', (p.1.2 : ℝ) * Y p.1.1 ω' * ((p.1.2 : ℝ) * Y p.1.1 ω') ∂P -
+            ∫ ω', (p.1.2 : ℝ) * X p.1.1 ω' * ((p.1.2 : ℝ) * X p.1.1 ω') ∂P) -
+          (∫ ω', (p.1.2 : ℝ) * Y p.1.1 ω' * ((p.2.2 : ℝ) * Y p.2.1 ω') ∂P -
+            ∫ ω', (p.1.2 : ℝ) * X p.1.1 ω' * ((p.2.2 : ℝ) * X p.2.1 ω') ∂P))
+        ∂((Measure.count.tilted fun x : α × ℤˣ =>
+          Real.cos s * ((x.2 : ℝ) * X x.1 ω) +
+          Real.sin s * ((x.2 : ℝ) * Y x.1 ω) + A η x.1 + (x.2 : ℝ) * h x.1).prod
+          (Measure.count.tilted fun x : α × ℤˣ =>
+            Real.cos s * ((x.2 : ℝ) * X x.1 ω) +
+            Real.sin s * ((x.2 : ℝ) * Y x.1 ω) + A η x.1 + (x.2 : ℝ) * h x.1)) ∂P| ≤ M) :
+    HasDerivAt (fun s => ∫ η, ∫ ω,
+      Real.log (∫ a, Real.cosh (Real.cos s * X a ω + Real.sin s * Y a ω + h a)
+        ∂Measure.count.tilted (A η)) ∂P ∂P₀)
+      (∫ η, ∫ ω, ∫ p : (α × ℤˣ) × (α × ℤˣ),
+        Real.sin t * Real.cos t *
+          ((∫ ω', (p.1.2 : ℝ) * Y p.1.1 ω' * ((p.1.2 : ℝ) * Y p.1.1 ω') ∂P -
+              ∫ ω', (p.1.2 : ℝ) * X p.1.1 ω' * ((p.1.2 : ℝ) * X p.1.1 ω') ∂P) -
+            (∫ ω', (p.1.2 : ℝ) * Y p.1.1 ω' * ((p.2.2 : ℝ) * Y p.2.1 ω') ∂P -
+              ∫ ω', (p.1.2 : ℝ) * X p.1.1 ω' * ((p.2.2 : ℝ) * X p.2.1 ω') ∂P))
+          ∂((Measure.count.tilted fun x : α × ℤˣ =>
+            Real.cos t * ((x.2 : ℝ) * X x.1 ω) +
+            Real.sin t * ((x.2 : ℝ) * Y x.1 ω) + A η x.1 + (x.2 : ℝ) * h x.1).prod
+            (Measure.count.tilted fun x : α × ℤˣ =>
+              Real.cos t * ((x.2 : ℝ) * X x.1 ω) +
+              Real.sin t * ((x.2 : ℝ) * Y x.1 ω) + A η x.1 + (x.2 : ℝ) * h x.1)) ∂P ∂P₀) t := by
+  refine hasDerivAt_integral_conditional_of_deriv_bound P₀ _ _ t hFm hDm hF ?_ M hbound
+  intro η s
+  exact hasDerivAt_integral_log_integral_cosh_trig hXm hYm hXY hX hY h0 (A η) h s
+
 /-- The replica-derivative term `𝔼⟨Ψ (∑ᵣ f'(σʳ) - n ⟨f'⟩)⟩` is integrable in the disorder when
 `f'` is dominated by an integrable function. -/
 theorem integrable_replica_derivative_term {g χ : α → Ω → ℝ}

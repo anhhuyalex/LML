@@ -13,6 +13,7 @@ public import Mathlib.Analysis.Calculus.ParametricIntegral
 public import Mathlib.MeasureTheory.Measure.Tilted
 public import Mathlib.Probability.Moments.MGFAnalytic
 public import Mathlib.Probability.Moments.Tilted
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
 
 /-!
 # The Gibbs measure
@@ -234,6 +235,224 @@ theorem log_integral_cosh_count_tilted_eq [Nonempty α] (A L : α → ℝ) :
         Real.log 2 - Real.log (∑ a : α, Real.exp (A a)) := by
   rw [log_sum_exp_prod_units]
   ring
+
+/-- Summing an Ising sign weighted by `(s : ℝ) * exp (s * x)` yields `2 * sinh x`. -/
+theorem sum_units_int_mul_exp (x : ℝ) :
+    (∑ s : ℤˣ, (s : ℝ) * Real.exp ((s : ℝ) * x)) = 2 * Real.sinh x := by
+  rw [sum_units_int]
+  simp only [Units.val_one, Int.cast_one, one_mul, Units.val_neg, Int.cast_neg, neg_mul]
+  rw [Real.sinh_eq]
+  ring
+
+/-- Summing two independent Ising signs against `exp(s * x + t * y) * (s * t)` yields
+`4 * sinh x * sinh y`. -/
+theorem sum_units_int_prod_mul_exp (x y : ℝ) :
+    (∑ s : ℤˣ, ∑ t : ℤˣ, Real.exp ((s : ℝ) * x) * Real.exp ((t : ℝ) * y) *
+      ((s : ℝ) * (t : ℝ))) = 4 * Real.sinh x * Real.sinh y := by
+  have h1 : (fun s : ℤˣ => ∑ t : ℤˣ, Real.exp ((s : ℝ) * x) * Real.exp ((t : ℝ) * y) *
+      ((s : ℝ) * (t : ℝ))) =
+      fun s : ℤˣ => ((s : ℝ) * Real.exp ((s : ℝ) * x)) *
+        ∑ t : ℤˣ, (t : ℝ) * Real.exp ((t : ℝ) * y) := by
+    funext s
+    rw [Finset.mul_sum]
+    apply Finset.sum_congr rfl
+    intro t _
+    ring
+  rw [h1, sum_units_int_mul_exp y, ← Finset.sum_mul, sum_units_int_mul_exp x]
+  ring
+
+omit [MeasurableSpace α] [MeasurableSingletonClass α] in
+/-- Summing two replica Ising signs on `α × ℤˣ` factors into a product of `sinh` terms. -/
+theorem sum_exp_prod_units_mul_two_replicas (A L : α → ℝ) (g : α → α → ℝ) :
+    (∑ x : α × ℤˣ, ∑ y : α × ℤˣ,
+      Real.exp (A x.1 + (x.2 : ℝ) * L x.1) * Real.exp (A y.1 + (y.2 : ℝ) * L y.1) *
+        ((x.2 : ℝ) * (y.2 : ℝ) * g x.1 y.1)) =
+    4 * ∑ a : α, ∑ b : α, Real.exp (A a) * Real.exp (A b) * g a b *
+      Real.sinh (L a) * Real.sinh (L b) := by
+  simp_rw [Fintype.sum_prod_type]
+  have h_comm :
+      (∑ a : α, ∑ s : ℤˣ, ∑ b : α, ∑ t : ℤˣ,
+        Real.exp (A a + (s : ℝ) * L a) * Real.exp (A b + (t : ℝ) * L b) *
+          ((s : ℝ) * (t : ℝ) * g a b)) =
+      ∑ a : α, ∑ b : α, ∑ s : ℤˣ, ∑ t : ℤˣ,
+        Real.exp (A a + (s : ℝ) * L a) * Real.exp (A b + (t : ℝ) * L b) *
+          ((s : ℝ) * (t : ℝ) * g a b) := by
+    apply Finset.sum_congr rfl
+    intro a _
+    rw [Finset.sum_comm]
+  rw [h_comm]
+  have h_eval (a b : α) :
+      (∑ s : ℤˣ, ∑ t : ℤˣ,
+        Real.exp (A a + (s : ℝ) * L a) * Real.exp (A b + (t : ℝ) * L b) *
+          ((s : ℝ) * (t : ℝ) * g a b)) =
+      4 * (Real.exp (A a) * Real.exp (A b) * g a b * Real.sinh (L a) * Real.sinh (L b)) := by
+    have he : (∑ s : ℤˣ, ∑ t : ℤˣ,
+        Real.exp (A a + (s : ℝ) * L a) * Real.exp (A b + (t : ℝ) * L b) *
+          ((s : ℝ) * (t : ℝ) * g a b)) =
+        (Real.exp (A a) * Real.exp (A b) * g a b) *
+          ∑ s : ℤˣ, ∑ t : ℤˣ, Real.exp ((s : ℝ) * L a) * Real.exp ((t : ℝ) * L b) *
+            ((s : ℝ) * (t : ℝ)) := by
+      rw [Finset.mul_sum]
+      apply Finset.sum_congr rfl
+      intro s _
+      rw [Finset.mul_sum]
+      apply Finset.sum_congr rfl
+      intro t _
+      simp only [Real.exp_add]
+      ring
+    rw [he, sum_units_int_prod_mul_exp]
+    ring
+  simp_rw [h_eval, ← Finset.mul_sum]
+
+/-- The integral of an observable against the product of two tilted counting measures
+equals the double sum weighted by the normalized Gibbs weights. -/
+theorem integral_prod_count_tilted (f : α → ℝ) (Θ : α → α → ℝ) :
+    ∫ p : α × α, Θ p.1 p.2 ∂((Measure.count.tilted f).prod (Measure.count.tilted f)) =
+      ∑ a, ∑ b, Real.exp (f a) / (∑ c, Real.exp (f c)) *
+        (Real.exp (f b) / ∑ c, Real.exp (f c)) * Θ a b := by
+  have hi : Integrable (fun p : α × α => Θ p.1 p.2)
+      ((Measure.count.tilted f).prod (Measure.count.tilted f)) :=
+    Integrable.of_finite
+  rw [integral_prod _ hi]
+  simp_rw [integral_count_tilted, Finset.mul_sum, mul_assoc]
+
+/-- Double sum expansion of the product of two tilted counting measures with explicit partition
+prefactor. -/
+theorem integral_prod_count_tilted_eq_double_sum (f : α → ℝ) (Θ : α → α → ℝ) :
+    ∫ p : α × α, Θ p.1 p.2 ∂((Measure.count.tilted f).prod (Measure.count.tilted f)) =
+      (∑ a, Real.exp (f a))⁻¹ ^ 2 *
+        ∑ a, ∑ b, Real.exp (f a) * Real.exp (f b) * Θ a b := by
+  rw [integral_prod_count_tilted]
+  rw [Finset.mul_sum]
+  apply Finset.sum_congr rfl
+  intro a _
+  rw [Finset.mul_sum]
+  apply Finset.sum_congr rfl
+  intro b _
+  ring
+
+omit [Fintype α] in
+/-- **Two-replica sign integration for tilted measures (Talagrand Eq. 1.178 for cosh).**
+Integrating `ε¹ ε² g(ρ¹, ρ²)` under the product of the signed tilted measures gives the
+quotient of the two-replica average of `g sinh sinh` by `⟨cosh L⟩²`. -/
+theorem integral_prod_count_tilted_units_mul [Finite α] [Nonempty α] (A L : α → ℝ)
+    (g : α → α → ℝ) :
+    ∫ p : (α × ℤˣ) × (α × ℤˣ), (p.1.2 : ℝ) * (p.2.2 : ℝ) * g p.1.1 p.2.1
+      ∂((Measure.count.tilted fun x : α × ℤˣ => A x.1 + (x.2 : ℝ) * L x.1).prod
+        (Measure.count.tilted fun x : α × ℤˣ => A x.1 + (x.2 : ℝ) * L x.1)) =
+    (∫ p : α × α, g p.1 p.2 * Real.sinh (L p.1) * Real.sinh (L p.2)
+      ∂((Measure.count.tilted A).prod (Measure.count.tilted A))) /
+      (∫ a, Real.cosh (L a) ∂(Measure.count.tilted A)) ^ 2 := by
+  let _ := Fintype.ofFinite α
+  let At := fun x : α × ℤˣ => A x.1 + (x.2 : ℝ) * L x.1
+  let ZA := ∑ a : α, Real.exp (A a)
+  have hZA_pos : 0 < ZA := by
+    obtain ⟨a₀⟩ := (inferInstance : Nonempty α)
+    exact Finset.sum_pos' (fun a _ => (Real.exp_pos (A a)).le) ⟨a₀, mem_univ a₀, Real.exp_pos _⟩
+  have hZt : (∑ x : α × ℤˣ, Real.exp (At x)) =
+      2 * (ZA * ∫ a, Real.cosh (L a) ∂(Measure.count.tilted A)) := by
+    have h1 := sum_exp_prod_units A L
+    rw [integral_count_tilted, h1]
+    have h2 : (∑ a : α, Real.exp (A a) * Real.cosh (L a)) =
+        ZA * ∑ a : α, Real.exp (A a) / ZA * Real.cosh (L a) := by
+      rw [Finset.mul_sum]
+      apply Finset.sum_congr rfl
+      intro a _
+      calc Real.exp (A a) * Real.cosh (L a) =
+          ZA * (Real.exp (A a) / ZA) * Real.cosh (L a) := by
+            rw [mul_div_cancel₀ _ hZA_pos.ne']
+        _ = ZA * (Real.exp (A a) / ZA * Real.cosh (L a)) := by rw [mul_assoc]
+    rw [h2]
+  have h_lhs := integral_prod_count_tilted_eq_double_sum (f := At)
+    (Θ := fun x y => (x.2 : ℝ) * (y.2 : ℝ) * g x.1 y.1)
+  have h_rhs := integral_prod_count_tilted_eq_double_sum (f := A)
+    (Θ := fun a b => g a b * Real.sinh (L a) * Real.sinh (L b))
+  have h_num := sum_exp_prod_units_mul_two_replicas A L g
+  rw [h_lhs, hZt, h_num, h_rhs]
+  have h4 : (2 * (ZA * ∫ a, Real.cosh (L a) ∂Measure.count.tilted A))⁻¹ ^ 2 =
+      4⁻¹ * (ZA * ∫ a, Real.cosh (L a) ∂Measure.count.tilted A)⁻¹ ^ 2 := by
+    rw [mul_inv, mul_pow]
+    norm_num
+  rw [h4]
+  have hZA2 : (ZA * ∫ a, Real.cosh (L a) ∂Measure.count.tilted A)⁻¹ ^ 2 =
+      ZA⁻¹ ^ 2 * (∫ a, Real.cosh (L a) ∂Measure.count.tilted A)⁻¹ ^ 2 := by
+    rw [mul_inv, mul_pow]
+  rw [hZA2]
+  have h_cancel (U V W : ℝ) : 4⁻¹ * (U * V) * (4 * W) = V * (U * W) := by ring
+  rw [h_cancel]
+  rw [div_eq_inv_mul, inv_pow]
+  dsimp only [ZA]
+  congr 2
+  apply Finset.sum_congr rfl
+  intro a _
+  apply Finset.sum_congr rfl
+  intro b _
+  ring
+
+omit [Fintype α] in
+/-- **Pointwise bound on the two-replica signed tilted average.**  Since `⟨cosh L⟩ ≥ 1`, the
+denominator in `integral_prod_count_tilted_units_mul` is at least `1`, so the average is
+dominated by the numerator alone. -/
+theorem abs_integral_prod_count_tilted_units_mul_le [Finite α] [Nonempty α] (A L : α → ℝ)
+    (g : α → α → ℝ) :
+    |∫ p : (α × ℤˣ) × (α × ℤˣ), (p.1.2 : ℝ) * (p.2.2 : ℝ) * g p.1.1 p.2.1
+      ∂((Measure.count.tilted fun x : α × ℤˣ => A x.1 + (x.2 : ℝ) * L x.1).prod
+        (Measure.count.tilted fun x : α × ℤˣ => A x.1 + (x.2 : ℝ) * L x.1))| ≤
+    ∫ p : α × α, |g p.1 p.2| * |Real.sinh (L p.1)| * |Real.sinh (L p.2)|
+      ∂((Measure.count.tilted A).prod (Measure.count.tilted A)) := by
+  let _ := Fintype.ofFinite α
+  rw [integral_prod_count_tilted_units_mul]
+  rw [abs_div, abs_pow]
+  have hcosh : 1 ≤ ∫ a, Real.cosh (L a) ∂Measure.count.tilted A := by
+    have h1 : (1 : ℝ) = ∫ _ : α, (1 : ℝ) ∂Measure.count.tilted A := by
+      simp only [integral_const, probReal_univ, smul_eq_mul, mul_one]
+    rw [h1]
+    exact integral_mono (integrable_const _) Integrable.of_finite fun a => Real.one_le_cosh (L a)
+  have hden : 1 ≤ |∫ a, Real.cosh (L a) ∂Measure.count.tilted A| ^ 2 := by
+    have : 1 ≤ |∫ a, Real.cosh (L a) ∂Measure.count.tilted A| := by
+      rwa [abs_of_nonneg (by linarith)]
+    nlinarith
+  have hnum : |∫ p : α × α, g p.1 p.2 * Real.sinh (L p.1) * Real.sinh (L p.2)
+      ∂(Measure.count.tilted A).prod (Measure.count.tilted A)| ≤
+      ∫ p : α × α, |g p.1 p.2| * |Real.sinh (L p.1)| * |Real.sinh (L p.2)|
+        ∂(Measure.count.tilted A).prod (Measure.count.tilted A) := by
+    refine abs_integral_le_integral_abs.trans ?_
+    refine integral_mono Integrable.of_finite Integrable.of_finite fun p => ?_
+    simp only [abs_mul]
+    exact le_rfl
+  have hnum_nonneg : 0 ≤ ∫ p : α × α, |g p.1 p.2| * |Real.sinh (L p.1)| * |Real.sinh (L p.2)|
+      ∂(Measure.count.tilted A).prod (Measure.count.tilted A) :=
+    integral_nonneg fun p => by positivity
+  exact (div_le_div_of_nonneg_right hnum (by positivity)).trans (div_le_self hnum_nonneg hden)
+
+/-- Product formula for hyperbolic cosine: `cosh x * cosh y = (cosh (x + y) + cosh (x - y)) / 2`. -/
+theorem cosh_mul_cosh (x y : ℝ) :
+    Real.cosh x * Real.cosh y = (Real.cosh (x + y) + Real.cosh (x - y)) / 2 := by
+  have h1 := Real.cosh_add x y
+  have h2 := Real.cosh_sub x y
+  linarith
+
+/-- Hyperbolic sine is bounded by hyperbolic cosine in absolute value: `|sinh x| ≤ cosh x`. -/
+theorem abs_sinh_le_cosh (x : ℝ) : |Real.sinh x| ≤ Real.cosh x := by
+  have h1 : Real.sinh x ≤ Real.cosh x := by
+    have : 0 ≤ Real.exp (-x) := (Real.exp_pos (-x)).le
+    have h_diff : Real.cosh x - Real.sinh x = Real.exp (-x) := by
+      rw [Real.cosh_eq, Real.sinh_eq]; ring
+    linarith
+  have h2 : -Real.sinh x ≤ Real.cosh x := by
+    have : 0 ≤ Real.exp x := (Real.exp_pos x).le
+    have h_diff : Real.cosh x - (-Real.sinh x) = Real.exp x := by
+      rw [Real.cosh_eq, Real.sinh_eq]; ring
+    linarith
+  exact abs_le.2 ⟨by linarith, h1⟩
+
+/-- Product of hyperbolic sines is bounded by the product of hyperbolic cosines:
+`|sinh x * sinh y| ≤ cosh x * cosh y`. -/
+theorem abs_sinh_mul_sinh_le_cosh_mul_cosh (x y : ℝ) :
+    |Real.sinh x * Real.sinh y| ≤ Real.cosh x * Real.cosh y := by
+  rw [abs_mul]
+  exact mul_le_mul (abs_sinh_le_cosh x) (abs_sinh_le_cosh y)
+    (abs_nonneg _) (Real.cosh_pos x).le
 
 omit [Fintype α] in
 /-- The log Gibbs average of `cosh` of a field is measurable in any parameter on which the base
