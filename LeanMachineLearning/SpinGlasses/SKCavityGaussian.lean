@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedBound
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianGram
 public import LeanMachineLearning.SpinGlasses.SKCavityOverlap
 public import LeanMachineLearning.SpinGlasses.SKSmartPath
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletIdentities
@@ -25,6 +26,42 @@ open scoped BigOperators Real Matrix
 
 namespace SpinGlasses
 
+/-- A family of linear forms in standard Gaussians and a family of multiples of an independent
+standard Gaussian together form a jointly Gaussian vector on the product space. -/
+theorem hasGaussianLaw_linear_form_and_scalar_prod
+    {A K : Type*} [Finite A] [Fintype K] (c : A → K → ℝ) (d : A → ℝ) :
+    HasGaussianLaw
+      (fun (ω : (K → ℝ) × ℝ) (s : A ⊕ A) =>
+        Sum.elim (fun a => ∑ i, c a i * ω.1 i) (fun a => d a * ω.2) s)
+      ((Measure.pi fun _ : K => gaussianReal 0 1).prod (gaussianReal 0 1)) := by
+  let _ := Fintype.ofFinite A
+  have hX : HasGaussianLaw (fun (g : K → ℝ) (a : A) => ∑ i, c a i * g i)
+      (Measure.pi fun _ : K => gaussianReal 0 1) := by
+    have h := hasGaussianLaw_dotProduct_family c
+    convert h using 1
+    rfl
+  have hY : HasGaussianLaw (fun (z : ℝ) (a : A) => d a * z) (gaussianReal 0 1) := by
+    have h : HasGaussianLaw (id : ℝ → ℝ) (gaussianReal 0 1) :=
+      IsGaussian.hasGaussianLaw_id
+    let L : ℝ →L[ℝ] (A → ℝ) := ContinuousLinearMap.pi fun a =>
+      ContinuousLinearMap.smulRight (ContinuousLinearMap.id ℝ ℝ) (d a)
+    have hL : Measurable L := L.continuous.measurable
+    have h' := h.map_of_measurable L hL
+    convert h' using 1
+    ext z a
+    simp only [Function.comp_apply, L, ContinuousLinearMap.pi_apply,
+      ContinuousLinearMap.smulRight_apply, ContinuousLinearMap.id_apply, id_eq]
+    ring
+  have hXm : Measurable (fun (g : K → ℝ) (a : A) => ∑ i, c a i * g i) := by
+    refine measurable_pi_iff.2 fun a => ?_
+    change Measurable (fun (g : K → ℝ) => ∑ i, c a i * g i)
+    fun_prop
+  have hYm : Measurable (fun (z : ℝ) (a : A) => d a * z) := by
+    refine measurable_pi_iff.2 fun a => ?_
+    change Measurable (fun z => d a * z)
+    fun_prop
+  exact HasGaussianLaw.sumElim_prod_of_independent hX hY hXm hYm
+
 /-- The interacting last-spin field and the decoupled scalar field, considered together,
 form a jointly Gaussian family under the product law of new-edge couplings and `z`.
 The old-pair disorder is intentionally absent. -/
@@ -37,43 +74,42 @@ theorem hasGaussianLaw_sk_cavity_fields (N : ℕ) (β q : ℝ) :
             ∑ i : Fin N, ω.1 i * (σ i.castSucc : ℝ))
           (fun σ => β * (σ (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) s)
       ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)) := by
-  let X : (Fin N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g σ =>
-    (Real.sqrt (N + 1))⁻¹ * β * (σ (Fin.last N) : ℝ) *
-      ∑ i : Fin N, g i * (σ i.castSucc : ℝ)
-  let Y : ℝ → (Fin (N + 1) → ℤˣ) → ℝ := fun z σ =>
-    β * (σ (Fin.last N) : ℝ) * z * Real.sqrt q
-  have hX : HasGaussianLaw X (Measure.pi fun _ : Fin N => gaussianReal 0 1) := by
-    have h := hasGaussianLaw_const_mul_sum_family ((Real.sqrt (N + 1))⁻¹ * β)
-      (fun (σ : Fin (N + 1) → ℤˣ) (i : Fin N) =>
-        (σ (Fin.last N) : ℝ) * (σ i.castSucc : ℝ))
-    convert h using 1
-    ext g σ
-    simp only [X, Finset.mul_sum]
+  have h := hasGaussianLaw_linear_form_and_scalar_prod
+    (c := fun σ : Fin (N + 1) → ℤˣ => fun i : Fin N =>
+      (Real.sqrt (N + 1))⁻¹ * β * (σ (Fin.last N) : ℝ) * (σ i.castSucc : ℝ))
+    (d := fun σ : Fin (N + 1) → ℤˣ => β * (σ (Fin.last N) : ℝ) * Real.sqrt q)
+  convert h using 1
+  ext ω (σ | σ)
+  · simp only [Sum.elim_inl, Finset.mul_sum]
     apply Finset.sum_congr rfl
-    intro i hi
+    intro i _
     ring
-  have hY : HasGaussianLaw Y (gaussianReal 0 1) := by
-    have h : HasGaussianLaw (id : ℝ → ℝ) (gaussianReal 0 1) :=
-      IsGaussian.hasGaussianLaw_id
-    let L : ℝ →L[ℝ] ((Fin (N + 1) → ℤˣ) → ℝ) :=
-      ContinuousLinearMap.pi fun σ => ContinuousLinearMap.smulRight
-        (ContinuousLinearMap.id ℝ ℝ) (β * (σ (Fin.last N) : ℝ) * Real.sqrt q)
-    have hL : Measurable L := L.continuous.measurable
-    have h' := h.map_of_measurable L hL
-    convert h' using 1
-    ext z σ
-    simp only [Y, Function.comp_apply, L, ContinuousLinearMap.pi_apply,
-      ContinuousLinearMap.smulRight_apply, ContinuousLinearMap.id_apply, id_eq]
+  · simp only [Sum.elim_inr]
     ring
-  have hXm : Measurable X := measurable_pi_iff.2 fun σ => by
-    change Measurable (fun g : Fin N → ℝ =>
-      (Real.sqrt (N + 1))⁻¹ * β * (σ (Fin.last N) : ℝ) *
-        ∑ i : Fin N, g i * (σ i.castSucc : ℝ))
-    fun_prop
-  have hYm : Measurable Y := measurable_pi_iff.2 fun σ => by
-    change Measurable (fun z : ℝ => β * (σ (Fin.last N) : ℝ) * z * Real.sqrt q)
-    fun_prop
-  convert HasGaussianLaw.sumElim_prod_of_independent hX hY hXm hYm using 1
+
+/-- The interacting N-spin cavity field and the decoupled scalar field, considered together,
+form a jointly Gaussian family under the product law of new-edge couplings and `z`. -/
+theorem hasGaussianLaw_sk_cavity_N_fields (N : ℕ) (β q : ℝ) :
+    HasGaussianLaw
+      (fun (ω : (Fin N → ℝ) × ℝ)
+        (s : (Fin N → ℤˣ) ⊕ (Fin N → ℤˣ)) =>
+        Sum.elim
+          (fun σ => (Real.sqrt (N : ℝ))⁻¹ * β *
+            ∑ i : Fin N, ω.1 i * (σ i : ℝ))
+          (fun _ => β * ω.2 * Real.sqrt q) s)
+      ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)) := by
+  have h := hasGaussianLaw_linear_form_and_scalar_prod
+    (c := fun σ : Fin N → ℤˣ => fun i : Fin N =>
+      (Real.sqrt (N : ℝ))⁻¹ * β * (σ i : ℝ))
+    (d := fun _ : Fin N → ℤˣ => β * Real.sqrt q)
+  convert h using 1
+  ext ω (σ | σ)
+  · simp only [Sum.elim_inl, Finset.mul_sum]
+    apply Finset.sum_congr rfl
+    intro i _
+    ring
+  · simp only [Sum.elim_inr]
+    ring
 
 /-- Centering of the interacting field under the independent new-edge and scalar laws. -/
 theorem integral_sk_cavity_edge_field_eq_zero (N : ℕ) (β : ℝ)
