@@ -30,7 +30,7 @@ disorder.  The sole model-specific inputs are a measurable base energy and the
 explicit last-spin fields; no cavity Gibbs-measure wrapper is introduced. -/
 theorem hasDerivAt_integral_cavity_outer
     {Ω₀ : Type*} [MeasurableSpace Ω₀] (P₀ : Measure Ω₀) [IsProbabilityMeasure P₀]
-    [Nonempty Ω₀] (N n : ℕ) (β q : ℝ) (hq : q ∈ Set.Icc (0 : ℝ) 1)
+    (N n : ℕ) (β q : ℝ) (hq : q ∈ Set.Icc (0 : ℝ) 1)
     (B : Ω₀ → (Fin (N + 1) → ℤˣ) → ℝ) (hB : ∀ a, Measurable (fun η => B η a))
     (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) (M : ℝ) (hf : ∀ σ, |f σ| ≤ M) (t : ℝ) :
     HasDerivAt (fun s =>

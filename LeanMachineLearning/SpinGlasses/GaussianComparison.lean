@@ -8,17 +8,17 @@ module
 public import LeanMachineLearning.SpinGlasses.GaussianIBP
 
 /-!
-# Gaussian comparison for the free energy
+# Gaussian interpolation for the free energy
 
-Let `X` and `Y` be independent-of-each-other centered Gaussian fields on a finite set `α`
-(jointly Gaussian with `𝔼 X(a) Y(b) = 0`) with the same variances,
-`𝔼 X(a)² = 𝔼 Y(a)²`, and `𝔼 X(a) X(b) ≤ 𝔼 Y(a) Y(b)` for all `a, b`.  Then
-`𝔼 log ∑ₐ exp (Y(a) + h(a)) ≤ 𝔼 log ∑ₐ exp (X(a) + h(a))`
-for every deterministic bias `h`: less correlated fields have a larger free energy (the smooth
-form of Slepian's inequality).  This is the Gaussian interpolation behind the Guerra–Toninelli
-superadditivity ([Panchenko, 2013, §1.3]); `SpinGlasses/GuerraToninelli.lean` applies it with
-`X` the Hamiltonian of size `N + M` and `Y` the sum of independent Hamiltonians of sizes `N`
-and `M`.  No definitions are introduced.
+Let `X` and `Y` be independent centered Gaussian fields on a finite set `α` (jointly Gaussian with
+`𝔼 X(a) Y(b) = 0`).  Along the trigonometric path `u_s = cos s X + sin s Y + h` the expected free
+energy `φ(s) = 𝔼 log ∑ₐ exp (u_s(a))` has an explicit derivative, given by Gaussian integration
+by parts for the Gibbs measure (Lemma 1.1).  This file proves that derivative formula; the
+comparison inequality `𝔼 log ∑ₐ exp (Y(a) + h(a)) ≤ 𝔼 log ∑ₐ exp (X(a) + h(a))`, the smooth form of
+Slepian's inequality behind the Guerra–Toninelli superadditivity ([Panchenko, 2013, §1.3]), is
+`SpinGlasses.integral_log_sum_exp_le_of_covariance_le` in
+`SpinGlasses/GaussianCovarianceInterpolation.lean`, a special case of Slepian's lemma for a general
+test function (`SpinGlasses.integral_comp_le_of_covariance_le`).  No definitions are introduced.
 
 ## Main declarations
 
@@ -28,7 +28,6 @@ and `M`.  No definitions are introduced.
   average of `(B - A)(σ¹, σ¹) - (B - A)(σ¹, σ²)` with `A = Cov X`, `B = Cov Y`.
 * `SpinGlasses.hasDerivAt_integral_log_integral_cosh_trig`: the corresponding derivative for
   the logarithm of a Gibbs average of `cosh`, obtained by adjoining one Ising sign.
-* `SpinGlasses.integral_log_sum_exp_le_of_covariance_le`: the comparison inequality.
 
 The trigonometric path `cos s X + sin s Y` (rather than `√t X + √(1 - t) Y`) is smooth on all of
 `ℝ`, so no endpoint continuity or singular derivative has to be handled.
@@ -260,39 +259,6 @@ theorem hasDerivAt_integral_log_integral_cosh_trig [Finite α] [Nonempty α]
     rw [hfun]
     ring
   · simp only [Xs, Ys, B, add_assoc]
-
-/-- **Gaussian comparison for the free energy** (the smooth form of Slepian's inequality).
-Let `(X, Y)` be a centered jointly Gaussian pair of fields on a finite set with `𝔼 X(a) Y(b) = 0`,
-equal variances `𝔼 X(a)² = 𝔼 Y(a)²` and `𝔼 X(a) X(b) ≤ 𝔼 Y(a) Y(b)`.  Then for every bias `h`,
-`𝔼 log ∑ₐ exp (Y(a) + h(a)) ≤ 𝔼 log ∑ₐ exp (X(a) + h(a))`.
-Indeed `φ(s) = 𝔼 log ∑ₐ exp (cos s X(a) + sin s Y(a) + h(a))` has derivative
-`sin s cos s · 𝔼 ⟨(B - A)(σ¹, σ¹) - (B - A)(σ¹, σ²)⟩ = -sin s cos s · 𝔼 ⟨(B - A)(σ¹, σ²)⟩ ≤ 0`
-on `[0, π/2]` (`hasDerivAt_integral_log_sum_exp_trig`), and `φ(0)`, `φ(π/2)` are the two sides. -/
-theorem integral_log_sum_exp_le_of_covariance_le [Fintype α] [Nonempty α] [MeasurableSpace α]
-    [MeasurableSingletonClass α] (hXm : ∀ a, Measurable (X a)) (hYm : ∀ a, Measurable (Y a))
-    (hXY : HasGaussianLaw (fun ω s => Sum.elim X Y s ω) P)
-    (hX : ∀ a, ∫ ω, X a ω ∂P = 0) (hY : ∀ a, ∫ ω, Y a ω ∂P = 0)
-    (h0 : ∀ a b, ∫ ω, X a ω * Y b ω ∂P = 0)
-    (hdiag : ∀ a, ∫ ω, Y a ω * Y a ω ∂P = ∫ ω, X a ω * X a ω ∂P)
-    (hle : ∀ a b, ∫ ω, X a ω * X b ω ∂P ≤ ∫ ω, Y a ω * Y b ω ∂P) (h : α → ℝ) :
-    ∫ ω, Real.log (∑ a, Real.exp (Y a ω + h a)) ∂P ≤
-      ∫ ω, Real.log (∑ a, Real.exp (X a ω + h a)) ∂P := by
-  have hd := hasDerivAt_integral_log_sum_exp_trig hXm hYm hXY hX hY h0 h
-  have hanti := antitoneOn_of_deriv_nonpos (convex_Icc 0 (π / 2))
-    (fun s _ => (hd s).differentiableAt.continuousAt.continuousWithinAt)
-    (fun s _ => (hd s).differentiableAt.differentiableWithinAt) (fun s hs => by
-      rw [interior_Icc] at hs
-      rw [(hd s).deriv]
-      have hsin : 0 ≤ Real.sin s := Real.sin_nonneg_of_nonneg_of_le_pi hs.1.le
-        (hs.2.le.trans (by linarith [Real.pi_pos]))
-      have hcos : 0 ≤ Real.cos s := Real.cos_nonneg_of_mem_Icc ⟨by linarith [hs.1, Real.pi_pos],
-        hs.2.le⟩
-      refine integral_nonpos fun ω => integral_nonpos fun p => ?_
-      simp only [hdiag, sub_self, Pi.zero_apply, zero_sub]
-      exact mul_nonpos_of_nonneg_of_nonpos (mul_nonneg hsin hcos) (by linarith [hle p.1 p.2]))
-  have := hanti ⟨le_rfl, by linarith [Real.pi_pos]⟩ ⟨by linarith [Real.pi_pos], le_rfl⟩
-    (by linarith [Real.pi_pos])
-  simpa using this
 
 end Path
 

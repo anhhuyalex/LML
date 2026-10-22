@@ -181,16 +181,21 @@ theorem norm_integral_count_tilted_le [Nonempty α] (f g : α → ℝ) :
     exact Finset.single_le_sum (f := fun b => |g b|) (fun _ _ => abs_nonneg _) (mem_univ a)
   · simp
 
+omit [MeasurableSpace α] [MeasurableSingletonClass α] in
+/-- A weighted partition sum with positive weights is positive. -/
+theorem sum_exp_mul_pos [Nonempty α] (f F : α → ℝ) (hF : ∀ a, 0 < F a) :
+    0 < ∑ a, Real.exp (f a) * F a :=
+  Finset.sum_pos (fun a _ => mul_pos (Real.exp_pos _) (hF a)) Finset.univ_nonempty
+
 /-- **Logarithm of a Gibbs average:** for a positive observable `F`,
 `log ⟨F⟩ = log ∑ₐ exp (f a) F(a) - log ∑ₐ exp (f a)`, i.e. the normalization `Z = ∑ₐ exp (f a)`
 splits off.  This is what makes the partition function cancel in differences of log-averages. -/
 theorem log_integral_count_tilted [Nonempty α] (f F : α → ℝ) (hF : ∀ a, 0 < F a) :
     Real.log (∫ a, F a ∂(Measure.count.tilted f)) =
       Real.log (∑ a, Real.exp (f a) * F a) - Real.log (∑ a, Real.exp (f a)) := by
-  have hZ : 0 < ∑ a, Real.exp (f a) :=
-    Finset.sum_pos (fun _ _ => Real.exp_pos _) Finset.univ_nonempty
-  have hZF : 0 < ∑ a, Real.exp (f a) * F a :=
-    Finset.sum_pos (fun a _ => mul_pos (Real.exp_pos _) (hF a)) Finset.univ_nonempty
+  have hZ : 0 < ∑ a, Real.exp (f a) := by
+    simpa using sum_exp_mul_pos f (fun _ => 1) fun _ => one_pos
+  have hZF := sum_exp_mul_pos f F hF
   rw [integral_count_tilted, ← Real.log_div hZF.ne' hZ.ne', Finset.sum_div]
   simp_rw [div_mul_eq_mul_div]
 
@@ -215,14 +220,10 @@ theorem log_sum_exp_prod_units [Nonempty α] (A L : α → ℝ) :
     Real.log (∑ x : α × ℤˣ, Real.exp (A x.1 + (x.2 : ℝ) * L x.1)) =
       Real.log 2 + Real.log (∑ a : α, Real.exp (A a)) +
         Real.log (∫ a : α, Real.cosh (L a) ∂Measure.count.tilted A) := by
-  rw [sum_exp_prod_units]
-  have hpos : 0 < ∑ a : α, Real.exp (A a) * Real.cosh (L a) :=
-    Finset.sum_pos (fun a _ => mul_pos (Real.exp_pos _) (Real.cosh_pos _))
-      Finset.univ_nonempty
-  rw [Real.log_mul two_ne_zero hpos.ne']
-  have havg := log_integral_count_tilted A (fun a => Real.cosh (L a))
-    (fun a => Real.cosh_pos (L a))
-  linarith
+  rw [sum_exp_prod_units, Real.log_mul two_ne_zero
+    (sum_exp_mul_pos A _ fun a => Real.cosh_pos (L a)).ne',
+    log_integral_count_tilted A _ fun a => Real.cosh_pos (L a)]
+  ring
 
 /-- The logarithm of a Gibbs average of `cosh` is a signed log partition function minus the
 base log partition function and `log 2`.  This form is suited to direct reuse of Gaussian
@@ -234,6 +235,19 @@ theorem log_integral_cosh_count_tilted_eq [Nonempty α] (A L : α → ℝ) :
   rw [log_sum_exp_prod_units]
   ring
 
+omit [Fintype α] in
+/-- The log Gibbs average of `cosh` of a field is measurable in any parameter on which the base
+energy `A` and the field `L` depend measurably. -/
+theorem measurable_log_integral_cosh_count_tilted [Finite α] [Nonempty α] {W : Type*}
+    [MeasurableSpace W] {A L : W → α → ℝ} (hA : ∀ a, Measurable fun w => A w a)
+    (hL : ∀ a, Measurable fun w => L w a) :
+    Measurable fun w => Real.log (∫ a, Real.cosh (L w a) ∂Measure.count.tilted (A w)) := by
+  have := Fintype.ofFinite α
+  simp_rw [log_integral_cosh_count_tilted_eq]
+  refine ((Measurable.log (Finset.measurable_sum _ fun x _ =>
+    ((hA x.1).add (measurable_const.mul (hL x.1))).exp)).sub measurable_const).sub
+    (Measurable.log (Finset.measurable_sum _ fun a _ => (hA a).exp))
+
 /-- **Log-partition perturbation identity.**  Adding an arbitrary finite perturbation `V` to
 an energy `f` changes its log partition function by the logarithm of the Gibbs average of
 `exp V`.  This is the algebraic form used whenever an independent Gaussian perturbation is
@@ -244,8 +258,7 @@ theorem log_sum_exp_add_eq_log_sum_exp_add_log_integral_exp [Nonempty α]
       Real.log (∑ a, Real.exp (f a)) +
         Real.log (∫ a, Real.exp (V a) ∂Measure.count.tilted f) := by
   have h := log_integral_count_tilted f (fun a => Real.exp (V a)) fun a => Real.exp_pos _
-  rw [show (∑ a, Real.exp (f a + V a)) =
-      ∑ a, Real.exp (f a) * Real.exp (V a) by simp_rw [Real.exp_add]]
+  simp_rw [Real.exp_add]
   linarith
 
 /-- **Temperature derivative of the log-partition function:**

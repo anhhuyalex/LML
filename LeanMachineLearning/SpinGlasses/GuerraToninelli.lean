@@ -8,7 +8,7 @@ module
 public import LeanMachineLearning.ForMathlib.Analysis.Subadditive
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.JensenLog
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianExp
-public import LeanMachineLearning.SpinGlasses.GaussianComparison
+public import LeanMachineLearning.SpinGlasses.GaussianCovarianceInterpolation
 public import LeanMachineLearning.SpinGlasses.MixedPSpin
 public import LeanMachineLearning.SpinGlasses.ThermodynamicLimit
 
@@ -264,7 +264,7 @@ theorem integral_log_sum_exp_add_le (hξ : ConvexOn ℝ (Set.Icc (-1) 1) ξ)
     push_cast
     exact h
   -- Gaussian comparison and translation back to the three Hamiltonians
-  have key := integral_log_sum_exp_le_of_covariance_le hXm hYm hXY hX0 hY0 h0XY hdiag hle
+  have key := integral_log_sum_exp_le_of_covariance_le hXY hX0 hY0 h0XY hdiag hle
     (fun _ => (0 : ℝ))
   have hZ : ∀ K, ∀ ω, 0 < ∑ σ : Fin K → ℤˣ, Real.exp (H K ω σ) := fun K ω =>
     Finset.sum_pos (fun _ _ => Real.exp_pos _) Finset.univ_nonempty

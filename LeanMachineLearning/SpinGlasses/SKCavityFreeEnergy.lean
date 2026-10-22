@@ -86,10 +86,6 @@ theorem sk_cavity_energy_snoc (N : ℕ) (c h : ℝ)
 theorem sk_beta_plus_coefficient (N : ℕ) (β : ℝ) (hN : 0 < N) :
     (Real.sqrt (N + 1 : ℝ))⁻¹ * (β * Real.sqrt (1 + (N : ℝ)⁻¹)) =
       (Real.sqrt (N : ℝ))⁻¹ * β := by
-  have hN0 : (0 : ℝ) < N := Nat.cast_pos.mpr hN
-  have hNne : (N : ℝ) ≠ 0 := ne_of_gt hN0
-  have hsN : Real.sqrt (N : ℝ) ≠ 0 := (Real.sqrt_pos.2 hN0).ne'
-  have hsNp : Real.sqrt (N + 1 : ℝ) ≠ 0 := Real.sqrt_ne_zero'.mpr (by positivity)
   have harg : 1 + (N : ℝ)⁻¹ = (N + 1 : ℝ) / N := by field_simp
   rw [harg, Real.sqrt_div (by positivity)]
   field_simp
@@ -102,14 +98,8 @@ theorem sk_beta_plus_variance (N : ℕ) (β : ℝ) (hN : 0 < N) :
       (β * (Real.sqrt ((N : ℝ) * (N + 1)))⁻¹) ^ 2 =
       ((Real.sqrt (N : ℝ))⁻¹ * β) ^ 2 := by
   have hN0 : (0 : ℝ) < N := Nat.cast_pos.mpr hN
-  have hNp0 : (0 : ℝ) < N + 1 := by positivity
-  have hprod : (0 : ℝ) < (N : ℝ) * (N + 1) := mul_pos hN0 hNp0
-  have hsN : Real.sqrt (N : ℝ) ≠ 0 := (Real.sqrt_pos.2 hN0).ne'
-  have hsNp : Real.sqrt (N + 1 : ℝ) ≠ 0 := (Real.sqrt_pos.2 hNp0).ne'
-  have hsprod : Real.sqrt ((N : ℝ) * (N + 1)) ≠ 0 := (Real.sqrt_pos.2 hprod).ne'
-  simp only [mul_pow]
-  rw [inv_pow, inv_pow, inv_pow, Real.sq_sqrt hN0.le,
-    Real.sq_sqrt hNp0.le, Real.sq_sqrt hprod.le]
+  simp only [mul_pow, inv_pow]
+  rw [Real.sq_sqrt (by positivity), Real.sq_sqrt (by positivity), Real.sq_sqrt (by positivity)]
   field_simp
 
 /-- **Talagrand's Eq. (1.174), Gaussian-coordinate law.**  The old disorder with coefficient
@@ -505,34 +495,8 @@ theorem integral_log_partition_sk_cavity_split (N : ℕ) (β h : ℝ) :
     apply Measurable.exp
     fun_prop
   have h_H_eq : (∫ g, H (π g) ∂μ_all) = ∫ w, H w ∂(μ_old.prod μ_last) := by
-    have hH_decomp : ∀ w, H w =
-        Real.log (∑ σ : Fin (N + 1) → ℤˣ,
-          Real.exp ((c * (∑ p : FinPairs N,
-            w.1 p * (σ p.val.1.castSucc : ℝ) * (σ p.val.2.castSucc : ℝ)) +
-            h * ∑ i : Fin N, (σ i.castSucc : ℝ)) +
-            (σ (Fin.last N) : ℝ) *
-              (c * ∑ i : Fin N, w.2 i * (σ i.castSucc : ℝ) + h))) -
-        Real.log 2 - F_old w.1 := by
-      intro w
-      dsimp [H, F_old]
-      have := log_sum_exp_fin_snoc_cavity N
-        (fun ρ => c * (∑ p : FinPairs N,
-          w.1 p * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) + h * ∑ i, (ρ i : ℝ))
-        (fun ρ => c * ∑ i : Fin N, w.2 i * (ρ i : ℝ) + h)
-      linarith
-    have h_tot_meas : Measurable (fun w : (FinPairs N → ℝ) × (Fin N → ℝ) =>
-        Real.log (∑ σ : Fin (N + 1) → ℤˣ,
-          Real.exp ((c * (∑ p : FinPairs N,
-            w.1 p * (σ p.val.1.castSucc : ℝ) * (σ p.val.2.castSucc : ℝ)) +
-            h * ∑ i : Fin N, (σ i.castSucc : ℝ)) +
-            (σ (Fin.last N) : ℝ) *
-              (c * ∑ i : Fin N, w.2 i * (σ i.castSucc : ℝ) + h)))) := by
-      refine (Finset.measurable_sum _ fun σ _ => ?_).log
-      apply Measurable.exp
-      fun_prop
-    have hH_meas_fun : Measurable H := by
-      rw [funext hH_decomp]
-      exact (h_tot_meas.sub measurable_const).sub (hF_old_meas.comp measurable_fst)
+    have hH_meas_fun : Measurable H :=
+      measurable_log_integral_cosh_count_tilted (by intro; fun_prop) (by intro; fun_prop)
     have hH_aestrong : AEStronglyMeasurable H (μ_all.map π) := by
       rw [hπ.map_eq]
       exact hH_meas_fun.aestronglyMeasurable
@@ -632,11 +596,11 @@ theorem sk_cavity_cosh_estimate_of_deriv_bound (β q : ℝ) (log_cosh cavity_cos
     (hd : ∀ s, ∃ D, HasDerivAt φ (Real.sin s * Real.cos s * D) s ∧
       (s ∈ Set.Icc 0 (Real.pi / 2) → |D - (-β ^ 2 * (1 - q))| ≤ 2 * K1 * ν)) :
     |cavity_cosh - (β ^ 2 / 2 * (1 - q) + log_cosh)| ≤ K1 * ν := by
-  have hkey := Real.abs_sub_sub_half_le_of_exists_hasDerivAt (φ := φ)
+  have hkey := Real.abs_sub_add_half_le_of_exists_hasDerivAt (φ := φ)
     (C := -β ^ 2 * (1 - q)) (K := 2 * K1 * ν) hd
   rw [h0, hpi] at hkey
-  rw [show log_cosh - cavity_cosh - (-β ^ 2 * (1 - q)) / 2 =
-      -(cavity_cosh - (β ^ 2 / 2 * (1 - q) + log_cosh)) by ring, abs_neg] at hkey
+  rw [show cavity_cosh - (β ^ 2 / 2 * (1 - q) + log_cosh) =
+    cavity_cosh - log_cosh + (-β ^ 2 * (1 - q)) / 2 by ring]
   linarith
 
 /-- **Conditional endpoint reduction for Talagrand's Eq. (1.182).**  For any interpolating
@@ -650,11 +614,11 @@ theorem sk_pair_perturb_estimate_of_deriv_bound (β q : ℝ) (N : ℕ) (perturb 
       (s ∈ Set.Icc 0 (Real.pi / 2) → |D - (-β ^ 2 / 2 * (1 - q ^ 2))| ≤
         2 * (K2 / (N : ℝ) + K3 * ν))) :
     |perturb - β ^ 2 / 4 * (1 - q ^ 2)| ≤ K2 / (N : ℝ) + K3 * ν := by
-  have hkey := Real.abs_sub_sub_half_le_of_exists_hasDerivAt (φ := ψ)
+  have hkey := Real.abs_sub_add_half_le_of_exists_hasDerivAt (φ := ψ)
     (C := -β ^ 2 / 2 * (1 - q ^ 2)) (K := 2 * (K2 / (N : ℝ) + K3 * ν)) hd
   rw [h0, hpi] at hkey
-  rw [show 0 - perturb - (-β ^ 2 / 2 * (1 - q ^ 2)) / 2 =
-      -(perturb - β ^ 2 / 4 * (1 - q ^ 2)) by ring, abs_neg] at hkey
+  rw [show perturb - β ^ 2 / 4 * (1 - q ^ 2) = perturb - 0 + (-β ^ 2 / 2 * (1 - q ^ 2)) / 2 by
+    ring]
   linarith
 
 /-- **Conditional reduction of Talagrand's Proposition 1.6.8 (Eq. 1.170).**  If the two
@@ -740,9 +704,7 @@ theorem sk_cavity_free_energy_increment_le_of_estimates (N : ℕ) (β h q : ℝ)
         ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) -
       (Real.log 2 + β ^ 2 / 4 * (1 - q) ^ 2 + log_cosh)| ≤
     K * (1 / (N : ℝ) + ν) := by
-  have h_inc := sk_free_energy_increment_eq N β h hN
-  rw [h_inc]
-  exact sk_cavity_free_energy_step_le_of_estimates β q N hN log_cosh _ _
-    ν K1 K2 K3 K h_cosh h_perturb hK1 hK2 hν
+  exact cavity_free_energy_increment_le_of_estimates N β h q hN log_cosh _ _ ν K1 K2 K3 K
+    (sk_free_energy_increment_eq N β h hN) h_cosh h_perturb hK1 hK2 hν
 
 end SpinGlasses

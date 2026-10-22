@@ -31,6 +31,10 @@ Its covariance structure, Gaussian comparison properties, concentration of measu
 The theorem statements below are those of the Lean declarations. They differ from the setting of the text as follows.
 \begin{itemize}
 \item \emph{Slepian's lemma} is proved for abstract finite Gaussian families $(X_a,Y_a)_{a\in\alpha}$ on a probability space, with $X$ and $Y$ uncorrelated, not only for fields on $\Sigma_N$.
+  The statement of Theorem~\ref{thm:sg-tal:slepian} is also not the book's general Proposition~1.3.3: it is the case of the single function $F_h(x)=\log\sum_ae^{x_a+h_a}$,
+  not of an arbitrary smooth $F$ with $\partial_i\partial_jF\ge0$ for $i\ne j$. The sign is reversed, because the mixed second derivatives of $F_h$ are $\le0$: the book's inequality
+  $\mathbb{E}F(u)\ge\mathbb{E}F(v)$ for $\mathbb{E}u_iu_j\ge\mathbb{E}v_iv_j$ is applied to $-F_h$ with $u=Y$, $v=X$. The book's version implies the Lean one, not conversely.
+  The Lean statement also asks that the two fields be independent and jointly Gaussian (without loss of generality, since only the two covariance matrices matter), and it carries the bias $h$ as a separate argument. See Remark~\ref{rem:sg-tal:slepian-compare}.
 \item \emph{Concentration} is proved for the mixed $p$-spin Hamiltonian with the constant $4\sum_p\beta_p^2$ in the exponent. The SK model is a special case, but the SK specialization is not stated as a separate Lean theorem.
 \item \emph{The thermodynamic limit} is proved for the full-matrix Hamiltonian $N^{-1/2}\sigma\cdot(G\sigma)$ without external field, not for the pair disorder with a field $h$ used in Sections~1.2--1.4. The two disorders have different covariances ($NR^2$ versus $\frac N2(R^2-\frac1N)$), and no Lean statement relates the corresponding free energies; the high-temperature limit in Theorem~\ref{thm:sg-tal:alr} is therefore derived directly and does not use this theorem.
 \item \emph{Covariance.} The SK pair field has covariance $\frac{N\beta^2}{2}(R^2-\frac1N)$ (Lean: \texttt{integral\_sk\_pair\_field\_mul\_eq\_overlap}).
@@ -169,6 +173,25 @@ is $\mathbb{E}\log(e^{X_1+h_1}+e^{X_2+h_2})$, which is at least $\log(e^{h_1}+e^
 
 Formalized in \texttt{SpinGlasses/GaussianComparison.lean}.
 \end{proof}
+
+\begin{remark}[Comparison with the book's Proposition~1.3.3]\label{rem:sg-tal:slepian-compare}
+The book states Slepian's lemma for a general test function: if $F:\mathbb R^M\to\mathbb R$ is infinitely differentiable with all partial derivatives of moderate growth (Eq.~(A.18): $F(x)e^{-a|x|^2}\to0$ for every $a>0$) and $\partial_i\partial_jF\ge0$ for all $i\ne j$, and $u,v$ are
+centered jointly Gaussian vectors with $\mathbb{E}u_i^2=\mathbb{E}v_i^2$ for all $i$ and $\mathbb{E}u_iu_j\ge\mathbb{E}v_iv_j$ for all $i\ne j$, then $\mathbb{E}F(u)\ge\mathbb{E}F(v)$.
+Theorem~\ref{thm:sg-tal:slepian} is not literally this statement, but it follows from it. The two statements correspond as follows.
+\begin{itemize}
+\item \emph{The test function.} The Lean theorem uses only $F_h(x)=\log\sum_{a\in\alpha}e^{x_a+h_a}$ (the bias $h$ is absorbed into $F$ in the book). Its Hessian is
+  $\mathrm{diag}(w)-ww^{\top}$ with the Gibbs weights $w_a=e^{x_a+h_a}/\sum_be^{x_b+h_b}$, so $\partial_a\partial_bF_h=-w_aw_b\le0$ for $a\ne b$. The mixed second derivatives have the \emph{opposite} sign to the book's hypothesis. The book's lemma therefore applies to $-F_h$,
+  and the free energy is \emph{smaller} for the field with larger covariances.
+\item \emph{The two fields.} Take $u=Y$, $v=X$ and $F=-F_h$. The book's hypotheses become $\mathbb{E}Y_a^2=\mathbb{E}X_a^2$ and $\mathbb{E}X_aX_b\le\mathbb{E}Y_aY_b$ for $a\ne b$; its conclusion
+  $\mathbb{E}[-F_h(Y)]\ge\mathbb{E}[-F_h(X)]$ is $\mathbb{E}F_h(Y)\le\mathbb{E}F_h(X)$, which is the Lean conclusion.
+\item \emph{The covariance condition.} Lean asks $\mathbb{E}X_aX_b\le\mathbb{E}Y_aY_b$ for all $a,b$, including $a=b$. On the diagonal this follows from equal variances, so it is the same condition.
+\item \emph{Independence.} Lean assumes $(X,Y)$ jointly Gaussian and centered with $\mathbb{E}[X_aY_b]=0$, that is, $X$ and $Y$ independent Gaussian fields. This is not a restriction, since the conclusion depends only on the two covariance matrices,
+  and any two centered Gaussian laws can be realised as independent fields on a product space; in the proof the independence is what makes the covariance of the interpolating field $\cos^2s\,A+\sin^2s\,B$.
+  The book makes the same reduction: before Eq.~(1.38) it notes that one may assume $u$ and $v$ independent, ``since we are comparing a function of the law of $u$ with a function of the law of $v$''.
+\item \emph{What is lost.} The Lean theorem does not give Slepian's lemma for other test functions, for example smoothed indicators or smoothed maxima, which need a function with $\partial_i\partial_jF\ge0$ and are not of the form $-F_h$.
+  So the general proposition implies the Lean theorem, but the Lean theorem does not imply the general proposition. Only the log-sum-exp case is used later in this chapter (the Guerra--Toninelli theorem, Theorem~\ref{thm:sg-tal:gt}).
+\end{itemize}
+\end{remark}
 
 \begin{theorem}[Concentration of the free energy]\label{thm:sg-tal:concentration}
   \lean{SpinGlasses.mixedPSpin_free_energy_concentration}

@@ -597,14 +597,13 @@ interpolation the covariance formula bounds this derivative independently of the
 couplings, so the domination is constant rather than Gaussian-dependent. -/
 theorem hasDerivAt_integral_conditional_of_deriv_bound
     {Ω₀ : Type*} [MeasurableSpace Ω₀] (P₀ : Measure Ω₀) [IsProbabilityMeasure P₀]
-    [Nonempty Ω₀] (F D : ℝ → Ω₀ → ℝ) (t : ℝ)
+    (F D : ℝ → Ω₀ → ℝ) (t : ℝ)
     (hFm : ∀ s, AEStronglyMeasurable (F s) P₀)
     (hDm : AEStronglyMeasurable (D t) P₀)
     (hF : Integrable (F t) P₀)
     (hderiv : ∀ η s, HasDerivAt (fun u => F u η) (D s η) s)
     (M : ℝ) (hbound : ∀ η s, |D s η| ≤ M) :
     HasDerivAt (fun s => ∫ η, F s η ∂P₀) (∫ η, D t η ∂P₀) t := by
-  have hM : 0 ≤ M := (abs_nonneg _).trans (hbound (Classical.arbitrary Ω₀) t)
   exact (hasDerivAt_integral_of_dominated_loc_of_deriv_le
     (μ := P₀) (x₀ := t) (F := F) (F' := D)
     Filter.univ_mem (Eventually.of_forall hFm) hF hDm
@@ -622,7 +621,7 @@ the cavity `cosh` and pair-perturbation interpolations without creating a model-
 definition. -/
 theorem hasDerivAt_integral_conditional_log_sum_exp_trig
     {Ω₀ : Type*} [MeasurableSpace Ω₀] (P₀ : Measure Ω₀) [IsProbabilityMeasure P₀]
-    [Nonempty Ω₀] {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω}
+    {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω}
     {X Y : α → Ω → ℝ} [Fintype α] [Nonempty α]
     (hXm : ∀ a, Measurable (X a)) (hYm : ∀ a, Measurable (Y a))
     (hXY : HasGaussianLaw (fun ω s => Sum.elim X Y s ω) P)

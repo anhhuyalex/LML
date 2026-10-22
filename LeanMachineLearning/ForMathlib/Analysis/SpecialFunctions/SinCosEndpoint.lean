@@ -99,5 +99,13 @@ theorem abs_sub_sub_half_le_of_exists_hasDerivAt {φ : ℝ → ℝ} {C K : ℝ}
   rw [sub_right_comm] at key
   exact key
 
+/-- Reversed-endpoint form of `abs_sub_sub_half_le_of_exists_hasDerivAt`:
+`|φ 0 - φ (π / 2) + C / 2| ≤ K / 2`. -/
+theorem abs_sub_add_half_le_of_exists_hasDerivAt {φ : ℝ → ℝ} {C K : ℝ}
+    (hd : ∀ s, ∃ D, HasDerivAt φ (sin s * cos s * D) s ∧ (s ∈ Icc 0 (π / 2) → |D - C| ≤ K)) :
+    |φ 0 - φ (π / 2) + C / 2| ≤ K / 2 := by
+  rw [show φ 0 - φ (π / 2) + C / 2 = -(φ (π / 2) - φ 0 - C / 2) by ring, abs_neg]
+  exact abs_sub_sub_half_le_of_exists_hasDerivAt hd
+
 end Real
 

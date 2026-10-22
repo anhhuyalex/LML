@@ -184,7 +184,8 @@ theorem integrable_log_sum_exp_linear_gaussian_prod {κ₁ κ₂ : Type*} [Finty
   simp only [Function.comp_apply, MeasurableEquiv.coe_sumPiEquivProdPi_symm]
   congr 3
   funext x
-  simp [dotProduct, Fintype.sum_sum_type]
+  congr 2
+  exact sumElim_dotProduct_sumElim (a x) q.1 (b x) q.2
 
 variable [IsProbabilityMeasure μ]
 

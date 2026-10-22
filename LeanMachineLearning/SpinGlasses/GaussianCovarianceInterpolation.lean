@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.SpinGlasses.Concentration
 public import LeanMachineLearning.SpinGlasses.GaussianComparison
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianVector
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianGram
@@ -26,11 +27,16 @@ over `s ∈ [0, π/2]` gives the Lipschitz dependence of Gaussian expectations o
 
 * `SpinGlasses.hasDerivAt_integral_comp_trig`: the derivative along the path.
 * `SpinGlasses.abs_integral_comp_sub_le`: the covariance comparison.
+* `SpinGlasses.integral_comp_le_of_covariance_le`: **Slepian's lemma** for a general `C²` test
+  function `F` with `∂_k ∂_l F ≥ 0` for `l ≠ k` and exponentially bounded value, gradient and
+  Hessian ([Talagrand, Prop. 1.3.3]).
+* `SpinGlasses.integral_log_sum_exp_le_of_covariance_le`: the instance `F = - log ∑ₐ exp (· + h)`,
+  the Gaussian comparison for the free energy used by the Guerra–Toninelli theorem.
 
 ## References
 
 * [D. Panchenko, *The Sherrington-Kirkpatrick Model*, Springer, 2013], §1.2.
-* M. Talagrand, *Spin Glasses: A Challenge for Mathematicians*, Vol. I, §1.5.
+* M. Talagrand, *Spin Glasses: A Challenge for Mathematicians*, Vol. I, §1.3 and §1.5.
 -/
 
 @[expose] public section
@@ -56,18 +62,32 @@ theorem fderiv_apply_eq_sum_mul {F : (κ → ℝ) → ℝ} (y w : κ → ℝ) :
 
 variable {X Y : κ → Ω → ℝ}
 
+omit [DecidableEq κ] in
+/-- The `ℓ¹` norm of the rotated vector `cos s a + sin s b` is at most that of `(a, b)`. -/
+lemma sum_abs_cos_mul_add_sin_mul_le (s : ℝ) (v : κ ⊕ κ → ℝ) :
+    ∑ l, |Real.cos s * v (Sum.inl l) + Real.sin s * v (Sum.inr l)| ≤ ∑ p, |v p| := by
+  rw [Fintype.sum_sum_type]
+  calc ∑ l, |Real.cos s * v (Sum.inl l) + Real.sin s * v (Sum.inr l)|
+      ≤ ∑ l, (|v (Sum.inl l)| + |v (Sum.inr l)|) :=
+        Finset.sum_le_sum fun l _ => (abs_add_le _ _).trans (add_le_add
+          (by rw [abs_mul]; exact mul_le_of_le_one_left (abs_nonneg _) (Real.abs_cos_le_one s))
+          (by rw [abs_mul]; exact mul_le_of_le_one_left (abs_nonneg _) (Real.abs_sin_le_one s)))
+    _ = _ := Finset.sum_add_distrib
+
 /-- **Derivative of a smooth Gaussian functional along the trigonometric path.**  For independent
 centered Gaussian vectors `X`, `Y` (jointly Gaussian with `𝔼 X Y = 0`) and a `C²` functional `F`
-with bounded value, gradient and Hessian, the derivative of `s ↦ 𝔼 F (cos s X + sin s Y)` at `t` is
+whose value, gradient and Hessian grow at most exponentially in `‖y‖₁`, the derivative of
+`s ↦ 𝔼 F (cos s X + sin s Y)` at `t` is
 `sin t cos t ∑_{l,k} (𝔼 Y_l Y_k - 𝔼 X_l X_k) 𝔼 ∂_k ∂_l F (Z_t)` for `Z_t = cos t X + sin t Y`. -/
 theorem hasDerivAt_integral_comp_trig
     (hXY : HasGaussianLaw (fun ω s => Sum.elim X Y s ω) P)
     (hX : ∀ l, ∫ ω, X l ω ∂P = 0) (hY : ∀ l, ∫ ω, Y l ω ∂P = 0)
-    (h0 : ∀ l k, ∫ ω, X l ω * Y k ω ∂P = 0) {F : (κ → ℝ) → ℝ} (hF : ContDiff ℝ 2 F) {B : ℝ}
-    (hF0 : ∀ y, |F y| ≤ B) {D : κ → ℝ} (hF1 : ∀ l y, |fderiv ℝ F y (Pi.single l 1)| ≤ D l)
-    {D2 : κ → κ → ℝ}
+    (h0 : ∀ l k, ∫ ω, X l ω * Y k ω ∂P = 0) {F : (κ → ℝ) → ℝ} (hF : ContDiff ℝ 2 F)
+    {C₀ c₀ : ℝ} (hF0 : ∀ y, |F y| ≤ C₀ * Real.exp (c₀ * ∑ l, |y l|)) {D : κ → ℝ} {c₁ : ℝ}
+    (hF1 : ∀ l y, |fderiv ℝ F y (Pi.single l 1)| ≤ D l * Real.exp (c₁ * ∑ l, |y l|))
+    {D2 : κ → κ → ℝ} {c₂ : ℝ}
     (hF2 : ∀ k l y, |fderiv ℝ (fun y => fderiv ℝ F y (Pi.single l 1)) y (Pi.single k 1)| ≤
-      D2 k l) (t : ℝ) :
+      D2 k l * Real.exp (c₂ * ∑ l, |y l|)) (t : ℝ) :
     HasDerivAt (fun s => ∫ ω, F (fun l => Real.cos s * X l ω + Real.sin s * Y l ω) ∂P)
       (Real.sin t * Real.cos t * ∑ l, ∑ k, ((∫ ω, Y l ω * Y k ω ∂P) - ∫ ω, X l ω * X k ω ∂P) *
         ∫ ω, fderiv ℝ (fun y => fderiv ℝ F y (Pi.single l 1))
@@ -84,7 +104,34 @@ theorem hasDerivAt_integral_comp_trig
   have hmean : ∀ k, ∫ ω, Sum.elim X Y k ω ∂P = 0 := by
     rintro (k | k)
     exacts [hX k, hY k]
-  have hD0 : ∀ l, 0 ≤ D l := fun l => (abs_nonneg _).trans (hF1 l 0)
+  have hD0 : ∀ l, 0 ≤ D l := fun l => by simpa using (abs_nonneg _).trans (hF1 l 0)
+  have hC₀ : 0 ≤ C₀ := by simpa using (abs_nonneg _).trans (hF0 0)
+  -- the exponential bound on the integrand of the derivative
+  have hbd : ∀ (s : ℝ) (l : κ) (v : κ ⊕ κ → ℝ),
+      |(-Real.sin s * v (Sum.inl l) + Real.cos s * v (Sum.inr l)) *
+        fderiv ℝ F (fun m => Real.cos s * v (Sum.inl m) + Real.sin s * v (Sum.inr m))
+          (Pi.single l 1)| ≤ D l * Real.exp ((|c₁| + 1) * ∑ p, |v p|) := fun s l v => by
+    have hS : (0 : ℝ) ≤ ∑ p, |v p| := Finset.sum_nonneg fun _ _ => abs_nonneg _
+    have hlr : |v (Sum.inl l)| + |v (Sum.inr l)| ≤ ∑ p, |v p| := by
+      rw [Fintype.sum_sum_type]
+      exact add_le_add (Finset.single_le_sum (f := fun m => |v (Sum.inl m)|)
+        (fun _ _ => abs_nonneg _) (Finset.mem_univ l)) (Finset.single_le_sum
+        (f := fun m => |v (Sum.inr m)|) (fun _ _ => abs_nonneg _) (Finset.mem_univ l))
+    have hZ := sum_abs_cos_mul_add_sin_mul_le s v
+    have hexp : Real.exp (c₁ * ∑ m, |Real.cos s * v (Sum.inl m) + Real.sin s * v (Sum.inr m)|) ≤
+        Real.exp (|c₁| * ∑ p, |v p|) := Real.exp_le_exp.2 ((mul_le_mul_of_nonneg_right
+          (le_abs_self c₁) (Finset.sum_nonneg fun _ _ => abs_nonneg _)).trans
+          (mul_le_mul_of_nonneg_left hZ (abs_nonneg _)))
+    rw [abs_mul]
+    calc _ ≤ (∑ p, |v p|) * (D l * Real.exp (|c₁| * ∑ p, |v p|)) :=
+          mul_le_mul ((abs_neg_sin_mul_add_cos_mul_le _ _ s).trans hlr)
+            ((hF1 l _).trans (mul_le_mul_of_nonneg_left hexp (hD0 l))) (abs_nonneg _) hS
+      _ = D l * ((∑ p, |v p|) * Real.exp (|c₁| * ∑ p, |v p|)) := by ring
+      _ ≤ D l * (Real.exp (∑ p, |v p|) * Real.exp (|c₁| * ∑ p, |v p|)) :=
+          mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_right
+            (by linarith [Real.add_one_le_exp (∑ p, |v p|)]) (Real.exp_pos _).le) (hD0 l)
+      _ = D l * Real.exp ((|c₁| + 1) * ∑ p, |v p|) := by
+          rw [← Real.exp_add]; congr 2; ring
   have hder := hasDerivAt_integral_comp_of_exp_growth (X := Sum.elim X Y) hXY hmean
     (G := fun s v => F fun l => Real.cos s * v (Sum.inl l) + Real.sin s * v (Sum.inr l))
     (G' := fun s v => ∑ l, (-Real.sin s * v (Sum.inl l) + Real.cos s * v (Sum.inr l)) *
@@ -102,26 +149,15 @@ theorem hasDerivAt_integral_comp_trig
           ((Real.hasDerivAt_sin s).mul_const _)
       refine ((hFd _).hasFDerivAt.comp_hasDerivAt s hpath).congr_deriv ?_
       rw [fderiv_apply_eq_sum_mul])
-    (C := ∑ l, D l) (c := 1) (fun s v => by
-      have hS : (0 : ℝ) ≤ ∑ p, |v p| := Finset.sum_nonneg fun _ _ => abs_nonneg _
-      have hlr : ∀ l, |v (Sum.inl l)| + |v (Sum.inr l)| ≤ ∑ p, |v p| := fun l => by
-        rw [Fintype.sum_sum_type]
-        exact add_le_add (Finset.single_le_sum (f := fun m => |v (Sum.inl m)|)
-          (fun _ _ => abs_nonneg _) (Finset.mem_univ l)) (Finset.single_le_sum
-          (f := fun m => |v (Sum.inr m)|) (fun _ _ => abs_nonneg _) (Finset.mem_univ l))
-      calc _ ≤ ∑ l, |(-Real.sin s * v (Sum.inl l) + Real.cos s * v (Sum.inr l)) *
-              fderiv ℝ F (fun m => Real.cos s * v (Sum.inl m) + Real.sin s * v (Sum.inr m))
-                (Pi.single l 1)| := Finset.abs_sum_le_sum_abs _ _
-        _ ≤ ∑ l, (∑ p, |v p|) * D l := Finset.sum_le_sum fun l _ => by
-            rw [abs_mul]
-            exact mul_le_mul ((abs_neg_sin_mul_add_cos_mul_le _ _ s).trans (hlr l)) (hF1 l _)
-              (abs_nonneg _) hS
-        _ = (∑ l, D l) * ∑ p, |v p| := by rw [← Finset.mul_sum, mul_comm]
-        _ ≤ (∑ l, D l) * Real.exp (1 * ∑ p, |v p|) :=
-            mul_le_mul_of_nonneg_left (by
-              rw [one_mul]; linarith [Real.add_one_le_exp (∑ p, |v p|)])
-              (Finset.sum_nonneg fun l _ => hD0 l))
-    (C₀ := B) (c₀ := 0) (fun v => by simpa using hF0 _)
+    (C := ∑ l, D l) (c := |c₁| + 1) (fun s v => by
+      refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
+      rw [Finset.sum_mul]
+      exact Finset.sum_le_sum fun l _ => hbd s l v)
+    (C₀ := C₀) (c₀ := |c₀|) (fun v => by
+      refine (hF0 _).trans (mul_le_mul_of_nonneg_left (Real.exp_le_exp.2 ?_) hC₀)
+      exact (mul_le_mul_of_nonneg_right (le_abs_self c₀)
+        (Finset.sum_nonneg fun _ _ => abs_nonneg _)).trans
+          (mul_le_mul_of_nonneg_left (sum_abs_cos_mul_add_sin_mul_le t v) (abs_nonneg _)))
   refine hder.congr_deriv ?_
   -- Gaussian integration by parts
   have hlin := hasGaussianLaw_sumElim_lincomb hXY (-Real.sin t) (Real.cos t) (Real.cos t)
@@ -138,23 +174,24 @@ theorem hasDerivAt_integral_comp_trig
     have h := integral_mul_comp_eq_sum_integral_mul_of_sum
       (W := fun a ω => -Real.sin t * X a ω + Real.cos t * Y a ω)
       (X := fun a ω => Real.cos t * X a ω + Real.sin t * Y a ω) hlin hWmean hZmean l
-      (F := fun y => fderiv ℝ F y (Pi.single l 1)) (hFl l) (C := D l) (c := 0)
-      (fun y => by simpa using hF1 l y) (D := fun k => D2 k l) (d := fun _ => 0)
-      (fun k y => by simpa using hF2 k l y)
+      (F := fun y => fderiv ℝ F y (Pi.single l 1)) (hFl l) (C := D l) (c := c₁)
+      (fun y => hF1 l y) (D := fun k => D2 k l) (d := fun _ => c₂)
+      (fun k y => hF2 k l y)
     rw [h, Finset.mul_sum]
     refine Finset.sum_congr rfl fun k _ => ?_
     rw [integral_lincomb_mul_lincomb hXY h0 (-Real.sin t) (Real.cos t) (Real.cos t)
       (Real.sin t) l k]
     ring
-  have hZm : AEMeasurable (fun ω m => Real.cos t * X m ω + Real.sin t * Y m ω) P :=
-    aemeasurable_pi_iff.2 fun m => (((hXY.eval (Sum.inl m)).aemeasurable).const_mul _).add
-      (((hXY.eval (Sum.inr m)).aemeasurable).const_mul _)
   have hint : ∀ l, Integrable (fun ω => (-Real.sin t * X l ω + Real.cos t * Y l ω) *
       fderiv ℝ F (fun m => Real.cos t * X m ω + Real.sin t * Y m ω) (Pi.single l 1)) P :=
-    fun l => (((hXi l).const_mul _).add ((hYi l).const_mul _)).mul_bdd (c := D l)
-      (((hF.continuous_fderiv (by norm_num)).clm_apply
-        continuous_const).measurable.comp_aemeasurable hZm).aestronglyMeasurable
-      (ae_of_all _ fun ω => by simpa using hF1 l _)
+    fun l => integrable_comp_of_exp_growth (X := Sum.elim X Y) hXY hmean
+      (F := fun v => (-Real.sin t * v (Sum.inl l) + Real.cos t * v (Sum.inr l)) *
+        fderiv ℝ F (fun m => Real.cos t * v (Sum.inl m) + Real.sin t * v (Sum.inr m))
+          (Pi.single l 1))
+      ((by fun_prop : Measurable _).mul
+        ((((hF.continuous_fderiv (by norm_num)).clm_apply continuous_const).measurable).comp
+          (by fun_prop)))
+      (C := D l) (c := |c₁| + 1) (fun v => hbd t l v)
   change ∫ ω, ∑ l, (-Real.sin t * X l ω + Real.cos t * Y l ω) *
       fderiv ℝ F (fun m => Real.cos t * X m ω + Real.sin t * Y m ω) (Pi.single l 1) ∂P = _
   rw [integral_finsetSum _ fun l _ => hint l]
@@ -176,7 +213,10 @@ theorem abs_integral_comp_sub_le
       (1 / 2) * ∑ l, ∑ k, |(∫ ω, Y l ω * Y k ω ∂P) - ∫ ω, X l ω * X k ω ∂P| * D2 k l := by
   classical
   have hP := hXY.isProbabilityMeasure
-  have hd := fun s => hasDerivAt_integral_comp_trig hXY hX hY h0 hF hF0 hF1 hF2 s
+  have hd := fun s => hasDerivAt_integral_comp_trig hXY hX hY h0 hF
+    (C₀ := B) (c₀ := 0) (fun y => by simpa using hF0 y) (D := D) (c₁ := 0)
+    (fun l y => by simpa using hF1 l y) (D2 := D2) (c₂ := 0)
+    (fun k l y => by simpa using hF2 k l y) s
   have h := Real.abs_sub_le_half_of_abs_deriv_le
     (φ := fun s => ∫ ω, F (fun l => Real.cos s * X l ω + Real.sin s * Y l ω) ∂P)
     (K := ∑ l, ∑ k, |(∫ ω, Y l ω * Y k ω ∂P) - ∫ ω, X l ω * X k ω ∂P| * D2 k l) hd
@@ -198,6 +238,52 @@ theorem abs_integral_comp_sub_le
       simpa using this)
   simp only [Real.cos_zero, Real.sin_zero, Real.sin_pi_div_two, Real.cos_pi_div_two] at h
   simpa [mul_comm, div_eq_inv_mul] using h
+
+/-- **Slepian's lemma for a general test function** ([Talagrand, Prop. 1.3.3]).  Let `X`, `Y` be
+independent centered Gaussian vectors (jointly Gaussian with `𝔼 X Y = 0`; this is no restriction,
+as only the two laws matter) with the same variances, `𝔼 X_l² = 𝔼 Y_l²`, and
+`𝔼 X_l X_k ≤ 𝔼 Y_l Y_k` for `l ≠ k`.  If `F` is `C²` with `∂_k ∂_l F ≥ 0` for `l ≠ k` and its value,
+gradient and Hessian grow at most exponentially in `‖y‖₁`, then `𝔼 F(X) ≤ 𝔼 F(Y)`.  (With the
+book's notation `u = Y`, `v = X`.)  Indeed `s ↦ 𝔼 F (cos s X + sin s Y)` has derivative
+`sin s cos s ∑_{l,k} (𝔼 Y_l Y_k - 𝔼 X_l X_k) 𝔼 ∂_k ∂_l F (Z_s) ≥ 0` on `[0, π/2]`
+(`hasDerivAt_integral_comp_trig`): the diagonal terms vanish and the others are products of
+nonnegative factors. -/
+theorem integral_comp_le_of_covariance_le
+    (hXY : HasGaussianLaw (fun ω s => Sum.elim X Y s ω) P)
+    (hX : ∀ l, ∫ ω, X l ω ∂P = 0) (hY : ∀ l, ∫ ω, Y l ω ∂P = 0)
+    (h0 : ∀ l k, ∫ ω, X l ω * Y k ω ∂P = 0)
+    (hdiag : ∀ l, ∫ ω, Y l ω * Y l ω ∂P = ∫ ω, X l ω * X l ω ∂P)
+    (hle : ∀ l k, l ≠ k → ∫ ω, X l ω * X k ω ∂P ≤ ∫ ω, Y l ω * Y k ω ∂P)
+    {F : (κ → ℝ) → ℝ} (hF : ContDiff ℝ 2 F)
+    (hmix : ∀ l k y, l ≠ k →
+      0 ≤ fderiv ℝ (fun y => fderiv ℝ F y (Pi.single l 1)) y (Pi.single k 1))
+    {C₀ c₀ : ℝ} (hF0 : ∀ y, |F y| ≤ C₀ * Real.exp (c₀ * ∑ l, |y l|)) {D : κ → ℝ} {c₁ : ℝ}
+    (hF1 : ∀ l y, |fderiv ℝ F y (Pi.single l 1)| ≤ D l * Real.exp (c₁ * ∑ l, |y l|))
+    {D2 : κ → κ → ℝ} {c₂ : ℝ}
+    (hF2 : ∀ k l y, |fderiv ℝ (fun y => fderiv ℝ F y (Pi.single l 1)) y (Pi.single k 1)| ≤
+      D2 k l * Real.exp (c₂ * ∑ l, |y l|)) :
+    ∫ ω, F (fun l => X l ω) ∂P ≤ ∫ ω, F (fun l => Y l ω) ∂P := by
+  classical
+  have hP := hXY.isProbabilityMeasure
+  have hd := fun s => hasDerivAt_integral_comp_trig hXY hX hY h0 hF hF0 hF1 hF2 s
+  have hmono := monotoneOn_of_deriv_nonneg (convex_Icc 0 (π / 2))
+    (fun s _ => (hd s).differentiableAt.continuousAt.continuousWithinAt)
+    (fun s _ => (hd s).differentiableAt.differentiableWithinAt) (fun s hs => by
+      rw [interior_Icc] at hs
+      rw [(hd s).deriv]
+      have hsin : 0 ≤ Real.sin s := Real.sin_nonneg_of_nonneg_of_le_pi hs.1.le
+        (hs.2.le.trans (by linarith [Real.pi_pos]))
+      have hcos : 0 ≤ Real.cos s := Real.cos_nonneg_of_mem_Icc ⟨by linarith [hs.1, Real.pi_pos],
+        hs.2.le⟩
+      refine mul_nonneg (mul_nonneg hsin hcos) (Finset.sum_nonneg fun l _ =>
+        Finset.sum_nonneg fun k _ => ?_)
+      by_cases hlk : l = k
+      · subst hlk
+        simp [hdiag]
+      · exact mul_nonneg (sub_nonneg.2 (hle l k hlk)) (integral_nonneg fun ω => hmix l k _ hlk))
+  have := hmono ⟨le_rfl, by linarith [Real.pi_pos]⟩ ⟨by linarith [Real.pi_pos], le_rfl⟩
+    (by linarith [Real.pi_pos])
+  simpa using this
 
 section Gram
 
@@ -378,5 +464,117 @@ theorem abs_integral_mul_sub_le (u v : K → ℝ) (u' v' : K' → ℝ) {f : ℝ 
   ring
 
 end Pair
+
+section LogSumExp
+
+variable {α : Type*} [Fintype α] (h : α → ℝ)
+
+/-- A partition function is positive. -/
+lemma sum_exp_add_pos [Nonempty α] (y : α → ℝ) : 0 < ∑ a, Real.exp (y a + h a) :=
+  Finset.sum_pos (fun _ _ => Real.exp_pos _) Finset.univ_nonempty
+
+lemma hasFDerivAt_sum_exp_add (y : α → ℝ) :
+    HasFDerivAt (fun y : α → ℝ => ∑ a, Real.exp (y a + h a))
+      (∑ a, Real.exp (y a + h a) • ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : α => ℝ) a) y :=
+  HasFDerivAt.fun_sum fun a _ => ((hasFDerivAt_apply a y).add_const (h a)).exp
+
+variable [DecidableEq α] [Nonempty α]
+
+/-- **The partial derivatives of the free energy are the Gibbs weights:**
+`∂_l log ∑ₐ exp (y a + h a) = exp (y l + h l) / ∑ₐ exp (y a + h a)`. -/
+lemma fderiv_log_sum_exp_single (y : α → ℝ) (l : α) :
+    fderiv ℝ (fun y : α → ℝ => Real.log (∑ a, Real.exp (y a + h a))) y (Pi.single l 1) =
+      Real.exp (y l + h l) / ∑ a, Real.exp (y a + h a) := by
+  rw [((hasFDerivAt_sum_exp_add h y).log (sum_exp_add_pos h y).ne').fderiv]
+  simp [Pi.single_apply, div_eq_inv_mul]
+
+/-- **The Hessian of the free energy is `diag w - w wᵀ`:** with the Gibbs weights
+`w_l = exp (y l + h l) / ∑ₐ exp (y a + h a)`,
+`∂_k ∂_l log ∑ₐ exp (y a + h a) = w_l (1[l = k] - w_k)`. -/
+lemma fderiv_fderiv_log_sum_exp_single (y : α → ℝ) (l k : α) :
+    fderiv ℝ (fun y : α → ℝ =>
+      fderiv ℝ (fun y : α → ℝ => Real.log (∑ a, Real.exp (y a + h a))) y (Pi.single l 1)) y
+      (Pi.single k 1) =
+    Real.exp (y l + h l) / (∑ a, Real.exp (y a + h a)) *
+      ((if l = k then 1 else 0) - Real.exp (y k + h k) / ∑ a, Real.exp (y a + h a)) := by
+  have hZ := (sum_exp_add_pos h y).ne'
+  have hfun : (fun y : α → ℝ =>
+      fderiv ℝ (fun y : α → ℝ => Real.log (∑ a, Real.exp (y a + h a))) y (Pi.single l 1)) =
+      fun y => Real.exp (y l + h l) * (∑ a, Real.exp (y a + h a))⁻¹ := by
+    ext y
+    rw [fderiv_log_sum_exp_single, div_eq_mul_inv]
+  have hinv : HasFDerivAt (fun y : α → ℝ => (∑ a, Real.exp (y a + h a))⁻¹) _ y :=
+    (hasDerivAt_inv hZ).comp_hasFDerivAt y (hasFDerivAt_sum_exp_add h y)
+  have hexp : HasFDerivAt (fun y : α → ℝ => Real.exp (y l + h l))
+      (Real.exp (y l + h l) • ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : α => ℝ) l) y :=
+    ((hasFDerivAt_apply l y).add_const (h l)).exp
+  rw [hfun, (hexp.fun_mul hinv).fderiv]
+  simp [Pi.single_apply]
+  split_ifs <;> field_simp <;> ring
+
+omit [DecidableEq κ] in
+/-- **Gaussian comparison for the free energy** (the smooth form of Slepian's inequality).
+Let `(X, Y)` be a centered jointly Gaussian pair of fields on a finite set with `𝔼 X(a) Y(b) = 0`,
+equal variances `𝔼 X(a)² = 𝔼 Y(a)²` and `𝔼 X(a) X(b) ≤ 𝔼 Y(a) Y(b)`.  Then for every bias `h`,
+`𝔼 log ∑ₐ exp (Y(a) + h(a)) ≤ 𝔼 log ∑ₐ exp (X(a) + h(a))`.
+This is `integral_comp_le_of_covariance_le` for `F = - log ∑ₐ exp (· + h)`, whose gradient is
+`-w` and whose Hessian is `-(diag w - w wᵀ)` for the Gibbs weights `w`, so `∂_k ∂_l F = w_l w_k ≥ 0`
+for `l ≠ k` (`fderiv_fderiv_log_sum_exp_single`). -/
+theorem integral_log_sum_exp_le_of_covariance_le [Nonempty κ]
+    (hXY : HasGaussianLaw (fun ω s => Sum.elim X Y s ω) P)
+    (hX : ∀ a, ∫ ω, X a ω ∂P = 0) (hY : ∀ a, ∫ ω, Y a ω ∂P = 0)
+    (h0 : ∀ a b, ∫ ω, X a ω * Y b ω ∂P = 0)
+    (hdiag : ∀ a, ∫ ω, Y a ω * Y a ω ∂P = ∫ ω, X a ω * X a ω ∂P)
+    (hle : ∀ a b, ∫ ω, X a ω * X b ω ∂P ≤ ∫ ω, Y a ω * Y b ω ∂P) (h : κ → ℝ) :
+    ∫ ω, Real.log (∑ a, Real.exp (Y a ω + h a)) ∂P ≤
+      ∫ ω, Real.log (∑ a, Real.exp (X a ω + h a)) ∂P := by
+  classical
+  have hP := hXY.isProbabilityMeasure
+  have hF : ContDiff ℝ 2 (fun y : κ → ℝ => -Real.log (∑ a, Real.exp (y a + h a))) :=
+    (ContDiff.log (ContDiff.sum fun a _ => ((contDiff_apply ℝ ℝ a).add contDiff_const).exp)
+      fun y => (sum_exp_add_pos h y).ne').neg
+  have hF1 : ∀ l y, fderiv ℝ (fun y : κ → ℝ => -Real.log (∑ a, Real.exp (y a + h a))) y
+      (Pi.single l 1) = -(Real.exp (y l + h l) / ∑ a, Real.exp (y a + h a)) := fun l y => by
+    rw [fderiv_fun_neg, neg_apply, fderiv_log_sum_exp_single]
+  have hF2 : ∀ k l y, fderiv ℝ (fun y => fderiv ℝ (fun y : κ → ℝ =>
+      -Real.log (∑ a, Real.exp (y a + h a))) y (Pi.single l 1)) y (Pi.single k 1) =
+      -(Real.exp (y l + h l) / (∑ a, Real.exp (y a + h a)) *
+        ((if l = k then 1 else 0) - Real.exp (y k + h k) / ∑ a, Real.exp (y a + h a))) :=
+    fun k l y => by
+    simp_rw [fderiv_fun_neg, neg_apply]
+    rw [fderiv_fun_neg, neg_apply, fderiv_fderiv_log_sum_exp_single]
+  have key := integral_comp_le_of_covariance_le hXY hX hY h0 hdiag
+    (fun l k hlk => hle l k) (F := fun y : κ → ℝ => -Real.log (∑ a, Real.exp (y a + h a))) hF
+    (fun l k y hlk => by
+      rw [hF2]
+      have hl := gibbsWeight_mem_Icc y h l
+      have hk := gibbsWeight_mem_Icc y h k
+      simp only [hlk, ite_false, zero_sub, mul_neg, neg_neg]
+      exact mul_nonneg hl.1 hk.1)
+    (C₀ := |Real.log (∑ a, Real.exp (h a))| + 1) (c₀ := 1) (fun y => by
+      rw [abs_neg]
+      refine (abs_log_sum_exp_le h y).trans ?_
+      have hS : 0 ≤ ∑ a, |y a| := Finset.sum_nonneg fun _ _ => abs_nonneg _
+      have hL := abs_nonneg (Real.log (∑ a, Real.exp (h a)))
+      have h1 : 1 ≤ Real.exp (1 * ∑ a, |y a|) := Real.one_le_exp (by linarith)
+      have h2 : ∑ a, |y a| ≤ Real.exp (1 * ∑ a, |y a|) := by
+        linarith [Real.add_one_le_exp (1 * ∑ a, |y a|)]
+      nlinarith)
+    (D := fun _ => 1) (c₁ := 0) (fun l y => by
+      rw [hF1, abs_neg, abs_of_nonneg (gibbsWeight_mem_Icc y h l).1]
+      simpa using (gibbsWeight_mem_Icc y h l).2)
+    (D2 := fun _ _ => 1) (c₂ := 0) (fun k l y => by
+      rw [hF2, abs_neg, abs_mul]
+      have hl := gibbsWeight_mem_Icc y h l
+      have hk := gibbsWeight_mem_Icc y h k
+      rw [abs_of_nonneg hl.1]
+      have : |(if l = k then (1 : ℝ) else 0) - Real.exp (y k + h k) / ∑ a, Real.exp (y a + h a)| ≤
+          1 := by
+        split_ifs <;> rw [abs_le] <;> constructor <;> linarith [hl.1, hl.2, hk.1, hk.2]
+      simpa using mul_le_mul hl.2 this (abs_nonneg _) zero_le_one)
+  simp only [integral_neg] at key
+  exact neg_le_neg_iff.1 key
+
+end LogSumExp
 
 end SpinGlasses

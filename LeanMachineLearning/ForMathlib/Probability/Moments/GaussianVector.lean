@@ -482,4 +482,18 @@ theorem HasGaussianLaw.reindex_mul {Ω κ κ' : Type*} {mΩ : MeasurableSpace Ω
   ext ω k
   simp [L, mul_comm]
 
+/-- Reindexing a finite Gaussian vector preserves its joint Gaussian law. -/
+theorem HasGaussianLaw.reindex {Ω κ κ' : Type*} {mΩ : MeasurableSpace Ω}
+    {P : Measure Ω} [Finite κ] [Finite κ'] {X : κ → Ω → ℝ}
+    (hX : HasGaussianLaw (fun ω k => X k ω) P) (e : κ' → κ) :
+    HasGaussianLaw (fun ω k => X (e k) ω) P := by
+  simpa using hX.reindex_mul e (fun _ => 1)
+
+/-- Deterministic coordinate scaling preserves the joint Gaussian law. -/
+theorem HasGaussianLaw.mul {Ω κ : Type*} {mΩ : MeasurableSpace Ω}
+    {P : Measure Ω} [Finite κ] {X : κ → Ω → ℝ}
+    (hX : HasGaussianLaw (fun ω k => X k ω) P) (c : κ → ℝ) :
+    HasGaussianLaw (fun ω k => c k * X k ω) P :=
+  hX.reindex_mul id c
+
 end ProbabilityTheory
