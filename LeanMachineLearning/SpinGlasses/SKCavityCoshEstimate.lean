@@ -34,13 +34,6 @@ theorem abs_sk_overlap_N_sub_le_two (N : ℕ) (hN : 0 < N) (q : ℝ)
     (fun i : Fin N => (a i : ℝ)) (fun i : Fin N => (b i : ℝ))
     (fun i => abs_units_cast_le_one (a i)) (fun i => abs_units_cast_le_one (b i)) q hq
 
-/-- `|sin s cos s| ≤ 1 / 2`. -/
-theorem abs_sin_mul_cos_le_half (s : ℝ) : |Real.sin s * Real.cos s| ≤ 1 / 2 := by
-  rw [abs_le]
-  constructor <;> nlinarith [Real.sin_sq_add_cos_sq s, sq_nonneg (Real.sin s + Real.cos s),
-    sq_nonneg (Real.sin s - Real.cos s)]
-
-
 /-- The signed overlap term of the cavity bracket is bounded by `2 β²` for every base energy:
 both the Ising signs and the normalized overlap are bounded, and all measures involved are
 probability measures. -/
@@ -73,29 +66,7 @@ theorem abs_integral_integral_sk_cavity_signed_overlap_le_two_sq (N : ℕ) (β h
         ≤ 1 * (β ^ 2 * 2) := mul_le_mul h4 (mul_le_mul_of_nonneg_left h3 h5)
           (by positivity) zero_le_one
       _ = 2 * β ^ 2 := by ring
-  have hin : ∀ ω : (Fin N → ℝ) × ℝ,
-      |∫ p : ((Fin N → ℤˣ) × ℤˣ) × ((Fin N → ℤˣ) × ℤˣ),
-        (p.1.2 : ℝ) * (p.2.2 : ℝ) *
-          (β ^ 2 * ((N : ℝ)⁻¹ * ∑ i, (p.1.1 i : ℝ) * (p.2.1 i : ℝ) - q))
-        ∂((Measure.count.tilted fun x => A x.1 + (x.2 : ℝ) * L x.1 ω).prod
-          (Measure.count.tilted fun x => A x.1 + (x.2 : ℝ) * L x.1 ω))| ≤ 2 * β ^ 2 := by
-    intro ω
-    have h := norm_integral_le_of_norm_le_const
-      (μ := (Measure.count.tilted fun x => A x.1 + (x.2 : ℝ) * L x.1 ω).prod
-          (Measure.count.tilted fun x => A x.1 + (x.2 : ℝ) * L x.1 ω))
-      (f := fun p : ((Fin N → ℤˣ) × ℤˣ) × ((Fin N → ℤˣ) × ℤˣ) =>
-        (p.1.2 : ℝ) * (p.2.2 : ℝ) *
-          (β ^ 2 * ((N : ℝ)⁻¹ * ∑ i, (p.1.1 i : ℝ) * (p.2.1 i : ℝ) - q)))
-      (C := 2 * β ^ 2) (ae_of_all _ fun p => by simpa only [Real.norm_eq_abs] using hG p)
-    simpa using h
-  have h := norm_integral_le_of_norm_le_const (μ := P)
-    (f := fun ω => ∫ p : ((Fin N → ℤˣ) × ℤˣ) × ((Fin N → ℤˣ) × ℤˣ),
-        (p.1.2 : ℝ) * (p.2.2 : ℝ) *
-          (β ^ 2 * ((N : ℝ)⁻¹ * ∑ i, (p.1.1 i : ℝ) * (p.2.1 i : ℝ) - q))
-        ∂((Measure.count.tilted fun x => A x.1 + (x.2 : ℝ) * L x.1 ω).prod
-          (Measure.count.tilted fun x => A x.1 + (x.2 : ℝ) * L x.1 ω)))
-    (C := 2 * β ^ 2) (ae_of_all _ fun ω => by simpa only [Real.norm_eq_abs] using hin ω)
-  simpa using h
+  exact abs_integral_integral_le_of_forall_le P _ _ hG
 
 
 /-- **Derivative of the cavity `cosh` interpolation (Talagrand Eqs. 1.178--1.181).**
@@ -200,7 +171,7 @@ theorem exists_hasDerivAt_sk_cavity_cosh_path
     (3 * β ^ 2) (fun η s => by
       refine (le_of_eq_of_le (congrArg abs (key η s)) ?_)
       rw [abs_mul]
-      have h1 := abs_sin_mul_cos_le_half s
+      have h1 := Real.abs_sin_mul_cos_le_half s
       have h2 := (abs_add_le _ _).trans (add_le_add hC (hJb η s))
       calc _ ≤ (1 / 2) * (3 * β ^ 2) := mul_le_mul h1 (by linarith) (abs_nonneg _) (by positivity)
         _ ≤ 3 * β ^ 2 := by nlinarith [sq_nonneg β])

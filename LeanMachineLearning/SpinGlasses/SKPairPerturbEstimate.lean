@@ -108,7 +108,7 @@ theorem exists_hasDerivAt_sk_pair_perturb_path
     have := hZ a b
     have := hR2 a b
     linarith
-  have hsc := abs_sin_mul_cos_le_half
+  have hsc := Real.abs_sin_mul_cos_le_half
   have hpt : ∀ s a b, |Real.sin s * Real.cos s * (C + β ^ 2 / 2 * (Zf a b - q ^ 2))| ≤
       2 * β ^ 2 := fun s a b => by
     have h1 := hsc s
@@ -301,7 +301,7 @@ theorem sk_pair_perturb_overlap_path_le
             Measure.count.tilted (E s'' η ω)) Gf hGf40
         rw [abs_mul]
         calc _ ≤ (1 / 2) * (40 * β ^ 2) :=
-              mul_le_mul (abs_sin_mul_cos_le_half s'') hI (abs_nonneg _) (by norm_num)
+              mul_le_mul (Real.abs_sin_mul_cos_le_half s'') hI (abs_nonneg _) (by norm_num)
           _ = 20 * β ^ 2 := by ring)
     refine ⟨_, hder, fun hs' => ?_⟩
     have hsc0 : 0 ≤ Real.sin s' * Real.cos s' :=

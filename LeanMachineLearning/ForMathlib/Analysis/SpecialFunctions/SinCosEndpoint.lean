@@ -26,6 +26,12 @@ open scoped Real
 
 namespace Real
 
+/-- `|sin s cos s| ≤ 1 / 2`. -/
+theorem abs_sin_mul_cos_le_half (s : ℝ) : |Real.sin s * Real.cos s| ≤ 1 / 2 := by
+  have h : Real.sin s * Real.cos s = Real.sin (2 * s) / 2 := by rw [Real.sin_two_mul]; ring
+  rw [h, abs_div, abs_two]
+  exact div_le_div_of_nonneg_right (Real.abs_sin_le_one _) zero_le_two
+
 /-- Derivative of `sin x ^ 2` is `2 sin s cos s`. -/
 theorem hasDerivAt_sin_sq (s : ℝ) :
     HasDerivAt (fun x => sin x ^ 2) (2 * sin s * cos s) s := by
