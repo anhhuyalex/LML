@@ -197,4 +197,101 @@ theorem sk_cavity_covariance_difference (N : ℕ) (β q : ℝ) (hq : 0 ≤ q)
     integral_sk_cavity_edge_field_mul]
   ring
 
+/-- Centering of the interacting N-spin field under the independent disorder laws. -/
+theorem integral_sk_cavity_N_edge_field_eq_zero (N : ℕ) (β : ℝ)
+    (σ : Fin N → ℤˣ) :
+    (∫ ω : (Fin N → ℝ) × ℝ,
+      (Real.sqrt (N : ℝ))⁻¹ * β * ∑ i : Fin N, ω.1 i * (σ i : ℝ)
+      ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))) = 0 := by
+  rw [integral_prod_fun_fst_of_isProbabilityMeasure _ _ (fun g : Fin N → ℝ =>
+    (Real.sqrt (N : ℝ))⁻¹ * β * ∑ i : Fin N, g i * (σ i : ℝ))]
+  rw [integral_const_mul]
+  have he : (fun g : Fin N → ℝ => ∑ i : Fin N, g i * (σ i : ℝ)) =
+      (fun g => (fun i : Fin N => (σ i : ℝ)) ⬝ᵥ g) := by
+    funext g
+    exact sum_mul_comm_eq_dotProduct _ _
+  rw [he, integral_dotProduct_pi_gaussianReal, mul_zero]
+
+/-- Centering of the decoupled scalar field under the product law. -/
+theorem integral_sk_cavity_N_scalar_field_eq_zero (N : ℕ) (β q : ℝ) :
+    (∫ ω : (Fin N → ℝ) × ℝ,
+      β * ω.2 * Real.sqrt q
+      ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))) = 0 := by
+  rw [integral_prod_fun_snd_of_isProbabilityMeasure _ _
+    (fun z : ℝ => β * z * Real.sqrt q)]
+  have he : (fun z : ℝ => β * z * Real.sqrt q) = (fun z => (β * Real.sqrt q) * z) := by
+    funext z; ring
+  rw [he, integral_const_mul]
+  simp
+
+/-- Covariance of two interacting N-spin cavity fields under the product law. -/
+theorem integral_sk_cavity_N_edge_field_mul (N : ℕ) (β : ℝ)
+    (σ τ : Fin N → ℤˣ) :
+    (∫ ω : (Fin N → ℝ) × ℝ,
+      ((Real.sqrt (N : ℝ))⁻¹ * β * ∑ i : Fin N, ω.1 i * (σ i : ℝ)) *
+      ((Real.sqrt (N : ℝ))⁻¹ * β * ∑ i : Fin N, ω.1 i * (τ i : ℝ))
+      ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))) =
+      β ^ 2 * ((N : ℝ)⁻¹ * ∑ i : Fin N, (σ i : ℝ) * (τ i : ℝ)) := by
+  rw [integral_prod_fun_fst_of_isProbabilityMeasure _ _ (fun g : Fin N → ℝ =>
+    ((Real.sqrt (N : ℝ))⁻¹ * β * ∑ i : Fin N, g i * (σ i : ℝ)) *
+    ((Real.sqrt (N : ℝ))⁻¹ * β * ∑ i : Fin N, g i * (τ i : ℝ)))]
+  have h := integral_normalized_gaussian_linear_form_mul (N : ℝ) β (by positivity)
+    (fun i => (σ i : ℝ)) (fun i => (τ i : ℝ))
+  simpa only [dotProduct] using h
+
+/-- The cross-covariance is zero because the new edges and scalar field are independent. -/
+theorem integral_sk_cavity_N_edge_mul_scalar_eq_zero (N : ℕ) (β q : ℝ)
+    (σ τ : Fin N → ℤˣ) :
+    (∫ ω : (Fin N → ℝ) × ℝ,
+      ((Real.sqrt (N : ℝ))⁻¹ * β * ∑ i : Fin N, ω.1 i * (σ i : ℝ)) *
+      (β * ω.2 * Real.sqrt q)
+      ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))) = 0 := by
+  rw [integral_prod_mul
+    (fun g : Fin N → ℝ =>
+      (Real.sqrt (N : ℝ))⁻¹ * β * ∑ i : Fin N, g i * (σ i : ℝ))
+    (fun z : ℝ => β * z * Real.sqrt q)]
+  have he : (∫ g : Fin N → ℝ,
+      (Real.sqrt (N : ℝ))⁻¹ * β * ∑ i : Fin N, g i * (σ i : ℝ)
+      ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1)) = 0 := by
+    rw [integral_const_mul]
+    have hs : (fun g : Fin N → ℝ => ∑ i : Fin N, g i * (σ i : ℝ)) =
+        (fun g => (fun i : Fin N => (σ i : ℝ)) ⬝ᵥ g) := by
+      funext g
+      exact sum_mul_comm_eq_dotProduct _ _
+    rw [hs, integral_dotProduct_pi_gaussianReal, mul_zero]
+  rw [he, zero_mul]
+
+/-- Scalar N-spin cavity covariance. The nonnegativity of `q` removes the square root. -/
+theorem integral_sk_cavity_N_scalar_field_mul (N : ℕ) (β q : ℝ) (hq : 0 ≤ q)
+    (σ τ : Fin N → ℤˣ) :
+    (∫ ω : (Fin N → ℝ) × ℝ,
+      (β * ω.2 * Real.sqrt q) * (β * ω.2 * Real.sqrt q)
+      ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))) =
+      β ^ 2 * q := by
+  rw [integral_prod_fun_snd_of_isProbabilityMeasure _ _ (fun z : ℝ =>
+    (β * z * Real.sqrt q) * (β * z * Real.sqrt q))]
+  have hc (z : ℝ) :
+      (β * z * Real.sqrt q) * (β * z * Real.sqrt q) = (β ^ 2 * q) * z ^ 2 := by
+    calc
+      _ = (β ^ 2 * (Real.sqrt q ^ 2)) * z ^ 2 := by ring
+      _ = _ := by rw [Real.sq_sqrt hq]
+  simp_rw [hc]
+  rw [integral_const_mul]
+  rw [NTK.integral_sq_gaussianReal, mul_one]
+
+/-- The covariance difference for the N-spin cavity fields. -/
+theorem sk_cavity_N_covariance_difference (N : ℕ) (β q : ℝ) (hq : 0 ≤ q)
+    (σ τ : Fin N → ℤˣ) :
+    β ^ 2 * (q - (N : ℝ)⁻¹ * ∑ i : Fin N, (σ i : ℝ) * (τ i : ℝ)) =
+    (∫ ω : (Fin N → ℝ) × ℝ,
+      (β * ω.2 * Real.sqrt q) * (β * ω.2 * Real.sqrt q)
+      ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))) -
+    (∫ ω : (Fin N → ℝ) × ℝ,
+      ((Real.sqrt (N : ℝ))⁻¹ * β * ∑ i : Fin N, ω.1 i * (σ i : ℝ)) *
+      ((Real.sqrt (N : ℝ))⁻¹ * β * ∑ i : Fin N, ω.1 i * (τ i : ℝ))
+      ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))) := by
+  rw [integral_sk_cavity_N_scalar_field_mul N β q hq σ τ,
+    integral_sk_cavity_N_edge_field_mul]
+  ring
+
 end SpinGlasses
