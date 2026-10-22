@@ -657,14 +657,14 @@ theorem hasDerivAt_integral_conditional_log_sum_exp_trig
   intro η s
   exact hasDerivAt_integral_log_sum_exp_trig hXm hYm hXY hX hY h0 (B η) s
 
-omit [Finite α] [Nonempty α] [Fintype R] in
+omit [Fintype R] in
 /-- **Conditional Gaussian derivative of a log cosh Gibbs average.**  This is the conditional
 Fubini form of `hasDerivAt_integral_log_integral_cosh_trig`: a base energy `A` may depend on
-independent base disorder `η`, while the two interpolated Gaussian fields remain independent of it. -/
+independent base disorder `η`, while the two Gaussian fields remain independent of it. -/
 theorem hasDerivAt_integral_conditional_log_integral_cosh_trig
     {Ω₀ : Type*} [MeasurableSpace Ω₀] (P₀ : Measure Ω₀) [IsProbabilityMeasure P₀]
     {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω}
-    {X Y : α → Ω → ℝ} [Fintype α] [Nonempty α]
+    {X Y : α → Ω → ℝ}
     (hXm : ∀ a, Measurable (X a)) (hYm : ∀ a, Measurable (Y a))
     (hXY : HasGaussianLaw (fun ω s => Sum.elim X Y s ω) P)
     (hX : ∀ a, ∫ ω, X a ω ∂P = 0) (hY : ∀ a, ∫ ω, Y a ω ∂P = 0)

@@ -237,11 +237,13 @@ theorem integral_sk_cavity_N_edge_field_mul (N : ℕ) (β : ℝ)
     ((Real.sqrt (N : ℝ))⁻¹ * β * ∑ i : Fin N, g i * (τ i : ℝ)))]
   have h := integral_normalized_gaussian_linear_form_mul (N : ℝ) β (by positivity)
     (fun i => (σ i : ℝ)) (fun i => (τ i : ℝ))
-  simpa only [dotProduct] using h
+  dsimp [dotProduct] at h
+  rw [h]
+  ring
 
 /-- The cross-covariance is zero because the new edges and scalar field are independent. -/
 theorem integral_sk_cavity_N_edge_mul_scalar_eq_zero (N : ℕ) (β q : ℝ)
-    (σ τ : Fin N → ℤˣ) :
+    (σ _τ : Fin N → ℤˣ) :
     (∫ ω : (Fin N → ℝ) × ℝ,
       ((Real.sqrt (N : ℝ))⁻¹ * β * ∑ i : Fin N, ω.1 i * (σ i : ℝ)) *
       (β * ω.2 * Real.sqrt q)
@@ -263,7 +265,7 @@ theorem integral_sk_cavity_N_edge_mul_scalar_eq_zero (N : ℕ) (β q : ℝ)
 
 /-- Scalar N-spin cavity covariance. The nonnegativity of `q` removes the square root. -/
 theorem integral_sk_cavity_N_scalar_field_mul (N : ℕ) (β q : ℝ) (hq : 0 ≤ q)
-    (σ τ : Fin N → ℤˣ) :
+    (_σ _τ : Fin N → ℤˣ) :
     (∫ ω : (Fin N → ℝ) × ℝ,
       (β * ω.2 * Real.sqrt q) * (β * ω.2 * Real.sqrt q)
       ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))) =
