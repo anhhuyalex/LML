@@ -8,6 +8,7 @@ module
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedBound
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianGram
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiExp
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Hyperbolic
 public import LeanMachineLearning.SpinGlasses.SKCavityOverlap
 public import LeanMachineLearning.SpinGlasses.SKSmartPath
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletIdentities
@@ -441,6 +442,103 @@ theorem integral_cosh_sk_cavity_linear_combo_le (N : ℕ) (hN : 0 < N) (β q s m
   refine mul_le_mul_of_nonneg_left (Real.exp_le_exp.mpr ?_) (Real.cosh_pos m).le
   have hvar := sum_sq_sk_cavity_linear_combo_le N hN β q s hq σ τ sign hsign
   dsimp only at hvar
+  linarith
+
+/-- The product of the two `sinh` cavity factors along the trigonometric path has Gaussian
+expectation bounded by `cosh(2h) exp(2β²)`. -/
+theorem integral_abs_sinh_mul_sinh_sk_cavity_le (N : ℕ) (hN : 0 < N) (β q s h : ℝ)
+    (hq : q ∈ Set.Icc (0 : ℝ) 1) (σ τ : Fin N → ℤˣ) :
+    let L : (Fin N → ℤˣ) → (Fin N → ℝ) × ℝ → ℝ := fun ρ ω =>
+      Real.cos s * ((Real.sqrt (N : ℝ))⁻¹ * β * ∑ i : Fin N, ω.1 i * (ρ i : ℝ)) +
+      Real.sin s * (β * ω.2 * Real.sqrt q) + h
+    (∫ ω : (Fin N → ℝ) × ℝ, |Real.sinh (L σ ω)| * |Real.sinh (L τ ω)|
+      ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))) ≤
+      Real.cosh (2 * h) * Real.exp (2 * β ^ 2) := by
+  intro L
+  let c_add : Fin N → ℝ := fun i =>
+    Real.cos s * ((Real.sqrt (N : ℝ))⁻¹ * β * ((σ i : ℝ) + 1 * (τ i : ℝ)))
+  let d_add : ℝ := Real.sin s * (β * Real.sqrt q * (1 + 1))
+  let c_sub : Fin N → ℝ := fun i =>
+    Real.cos s * ((Real.sqrt (N : ℝ))⁻¹ * β * ((σ i : ℝ) + (-1) * (τ i : ℝ)))
+  let d_sub : ℝ := Real.sin s * (β * Real.sqrt q * (1 + (-1)))
+  have h_add_eq (ω : (Fin N → ℝ) × ℝ) :
+      L σ ω + L τ ω = ∑ i, c_add i * ω.1 i + d_add * ω.2 + 2 * h := by
+    have h1 : L σ ω + L τ ω =
+        (Real.cos s * ((Real.sqrt (N : ℝ))⁻¹ * β)) *
+          (∑ i : Fin N, ω.1 i * (σ i : ℝ) + ∑ i : Fin N, ω.1 i * (τ i : ℝ)) +
+        d_add * ω.2 + 2 * h := by
+      dsimp [L, d_add]
+      ring
+    rw [h1, ← Finset.sum_add_distrib, Finset.mul_sum]
+    have h2 : (∑ i : Fin N, (Real.cos s * ((Real.sqrt (N : ℝ))⁻¹ * β)) *
+        (ω.1 i * (σ i : ℝ) + ω.1 i * (τ i : ℝ))) = ∑ i, c_add i * ω.1 i := by
+      dsimp [c_add]
+      refine Finset.sum_congr rfl fun i _ => by ring
+    rw [h2]
+  have h_sub_eq (ω : (Fin N → ℝ) × ℝ) :
+      L σ ω - L τ ω = ∑ i, c_sub i * ω.1 i + d_sub * ω.2 + 0 := by
+    have h1 : L σ ω - L τ ω =
+        (Real.cos s * ((Real.sqrt (N : ℝ))⁻¹ * β)) *
+          (∑ i : Fin N, ω.1 i * (σ i : ℝ) - ∑ i : Fin N, ω.1 i * (τ i : ℝ)) +
+        d_sub * ω.2 + 0 := by
+      dsimp [L, d_sub]
+      ring
+    rw [h1, ← Finset.sum_sub_distrib, Finset.mul_sum]
+    have h2 : (∑ i : Fin N, (Real.cos s * ((Real.sqrt (N : ℝ))⁻¹ * β)) *
+        (ω.1 i * (σ i : ℝ) - ω.1 i * (τ i : ℝ))) = ∑ i, c_sub i * ω.1 i := by
+      dsimp [c_sub]
+      refine Finset.sum_congr rfl fun i _ => by ring
+    rw [h2]
+  have hint_add : Integrable (fun ω : (Fin N → ℝ) × ℝ => Real.cosh (L σ ω + L τ ω))
+      ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)) := by
+    simp_rw [h_add_eq]
+    exact integrable_cosh_sum_mul_add_mul_gaussianReal c_add d_add (2 * h)
+  have hint_sub : Integrable (fun ω : (Fin N → ℝ) × ℝ => Real.cosh (L σ ω - L τ ω))
+      ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)) := by
+    simp_rw [h_sub_eq]
+    exact integrable_cosh_sum_mul_add_mul_gaussianReal c_sub d_sub 0
+  have hint_dom : Integrable (fun ω : (Fin N → ℝ) × ℝ =>
+      (Real.cosh (L σ ω + L τ ω) + Real.cosh (L σ ω - L τ ω)) / 2)
+      ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)) :=
+    (hint_add.add hint_sub).div_const 2
+  have h_le (ω : (Fin N → ℝ) × ℝ) :
+      |Real.sinh (L σ ω)| * |Real.sinh (L τ ω)| ≤
+      (Real.cosh (L σ ω + L τ ω) + Real.cosh (L σ ω - L τ ω)) / 2 := by
+    calc |Real.sinh (L σ ω)| * |Real.sinh (L τ ω)|
+      _ = |Real.sinh (L σ ω) * Real.sinh (L τ ω)| := (abs_mul _ _).symm
+      _ ≤ Real.cosh (L σ ω) * Real.cosh (L τ ω) :=
+        Real.abs_sinh_mul_sinh_le_cosh_mul_cosh _ _
+      _ = (Real.cosh (L σ ω + L τ ω) + Real.cosh (L σ ω - L τ ω)) / 2 :=
+        Real.cosh_mul_cosh _ _
+  have h_meas : AEStronglyMeasurable
+      (fun ω : (Fin N → ℝ) × ℝ => |Real.sinh (L σ ω)| * |Real.sinh (L τ ω)|)
+      ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)) := by
+    dsimp [L]
+    fun_prop
+  have hint_lhs : Integrable (fun ω : (Fin N → ℝ) × ℝ =>
+      |Real.sinh (L σ ω)| * |Real.sinh (L τ ω)|)
+      ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)) := by
+    refine Integrable.mono' hint_dom h_meas (Filter.Eventually.of_forall fun ω => ?_)
+    rw [Real.norm_eq_abs, abs_mul, abs_abs, abs_abs]
+    exact h_le ω
+  have h_int_mono := integral_mono hint_lhs hint_dom h_le
+  refine h_int_mono.trans ?_
+  rw [integral_div, integral_add hint_add hint_sub]
+  have h_int_add : (∫ ω : (Fin N → ℝ) × ℝ, Real.cosh (L σ ω + L τ ω)
+      ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))) ≤
+      Real.cosh (2 * h) * Real.exp (2 * β ^ 2) := by
+    simp_rw [h_add_eq]
+    exact integral_cosh_sk_cavity_linear_combo_le N hN β q s (2 * h) hq σ τ 1 (Or.inl rfl)
+  have h_int_sub : (∫ ω : (Fin N → ℝ) × ℝ, Real.cosh (L σ ω - L τ ω)
+      ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))) ≤
+      Real.cosh (2 * h) * Real.exp (2 * β ^ 2) := by
+    simp_rw [h_sub_eq]
+    have h0 := integral_cosh_sk_cavity_linear_combo_le N hN β q s 0 hq σ τ (-1) (Or.inr rfl)
+    refine h0.trans ?_
+    rw [Real.cosh_zero, one_mul]
+    have h1le : 1 ≤ Real.cosh (2 * h) := Real.one_le_cosh (2 * h)
+    have : 0 ≤ Real.exp (2 * β ^ 2) := (Real.exp_pos _).le
+    nlinarith
   linarith
 
 end SpinGlasses

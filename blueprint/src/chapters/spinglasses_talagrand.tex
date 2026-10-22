@@ -1670,7 +1670,8 @@ by independence.
         integral_cosh_two_sum_mul_gaussianReal,
         integrable_cosh_sum_mul_add_mul_gaussianReal,
         integral_cosh_sum_mul_add_mul_gaussianReal,
-        SpinGlasses.integral_cosh_sk_cavity_linear_combo_le}
+        SpinGlasses.integral_cosh_sk_cavity_linear_combo_le,
+        SpinGlasses.integral_abs_sinh_mul_sinh_sk_cavity_le}
   \leanok
 \talsource{Proof of Eq.~(1.181)}
 For any Ising configurations $\sigma, \tau \in \{-1, 1\}^N$, any angle $s$, and any sign $\pm 1$, the variance of
@@ -1681,7 +1682,11 @@ uniformly by
 \[
   \mathbb E\cosh\!\left(\cos s(X_\sigma\pm X_\tau)
     +\sin s(Y_\sigma\pm Y_\tau)+m\right)
-  \le \cosh(m)\exp(2\beta^2).
+  \le \cosh(m)\exp(2\beta^2),
+\]
+and the two-replica cavity factor product satisfies
+\[
+  \mathbb E [ |\sinh(L_\sigma)| |\sinh(L_\tau)| ] \le \cosh(2h)\exp(2\beta^2).
 \]
 \end{lemma}
 \begin{proof}
@@ -1691,8 +1696,8 @@ the factor $1/N$. The scalar coordinate satisfies $(1 \pm 1)^2 \le 4$ and $q \le
 $\cos^2 s + \sin^2 s = 1$ yields at most $4 \beta^2$.
 The reusable product-Gaussian moment formula evaluates the displayed expectation as
 $\cosh(m)\exp(V/2)$, where $V$ is that variance bound, and monotonicity of the exponential gives
-the result.  Both the two-finite-block and finite-block-plus-scalar formulas live in the generic
-Gaussian moment module rather than in the SK development.
+the result. For the product of hyperbolic sines, we bound $|\sinh a \sinh b| \le (\cosh(a+b) + \cosh(a-b))/2$
+and apply the moment bound at $m = 2h$ and $m = 0$.
 \end{proof}
 
 \begin{lemma}[Uniform truncated-overlap and covariance bounds]
