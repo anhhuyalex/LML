@@ -444,6 +444,36 @@ theorem integral_cosh_sk_cavity_linear_combo_le (N : ℕ) (hN : 0 < N) (β q s m
   dsimp only at hvar
   linarith
 
+/-- A linear combination of two cavity fields is again an affine form in the edge and scalar
+Gaussian coordinates.  Keeping arbitrary coefficients here unifies the sum and difference
+expansions used in hyperbolic moment estimates. -/
+theorem sk_cavity_field_linear_combo_eq (N : ℕ) (β q s h u v : ℝ)
+    (σ τ : Fin N → ℤˣ) (ω : (Fin N → ℝ) × ℝ) :
+    let L : (Fin N → ℤˣ) → (Fin N → ℝ) × ℝ → ℝ := fun ρ w =>
+      Real.cos s * ((Real.sqrt (N : ℝ))⁻¹ * β * ∑ i : Fin N, w.1 i * (ρ i : ℝ)) +
+      Real.sin s * (β * w.2 * Real.sqrt q) + h
+    u * L σ ω + v * L τ ω =
+      ∑ i : Fin N,
+        (Real.cos s * ((Real.sqrt (N : ℝ))⁻¹ * β *
+          (u * (σ i : ℝ) + v * (τ i : ℝ)))) * ω.1 i +
+      (Real.sin s * (β * Real.sqrt q * (u + v))) * ω.2 + (u + v) * h := by
+  intro L
+  have hsum : u * (∑ i : Fin N, ω.1 i * (σ i : ℝ)) +
+      v * (∑ i : Fin N, ω.1 i * (τ i : ℝ)) =
+      ∑ i : Fin N, (u * (ω.1 i * (σ i : ℝ)) + v * (ω.1 i * (τ i : ℝ))) := by
+    rw [Finset.mul_sum, Finset.mul_sum, Finset.sum_add_distrib]
+  rw [show u * L σ ω + v * L τ ω =
+      (Real.cos s * ((Real.sqrt (N : ℝ))⁻¹ * β)) *
+          (u * (∑ i : Fin N, ω.1 i * (σ i : ℝ)) +
+            v * (∑ i : Fin N, ω.1 i * (τ i : ℝ))) +
+        (Real.sin s * (β * Real.sqrt q * (u + v))) * ω.2 + (u + v) * h by
+      dsimp [L]
+      ring]
+  rw [hsum, Finset.mul_sum]
+  congr 2
+  funext i
+  ring
+
 /-- The product of the two `sinh` cavity factors along the trigonometric path is integrable
 under the product Gaussian law.  This is separated from its moment bound because Fubini
 arguments need integrability independently of the numerical estimate. -/
@@ -464,32 +494,12 @@ theorem integrable_abs_sinh_mul_sinh_sk_cavity (N : ℕ) (β q s h : ℝ)
   let d_sub : ℝ := Real.sin s * (β * Real.sqrt q * (1 + (-1)))
   have h_add_eq (ω : (Fin N → ℝ) × ℝ) :
       L σ ω + L τ ω = ∑ i, c_add i * ω.1 i + d_add * ω.2 + 2 * h := by
-    have h1 : L σ ω + L τ ω =
-        (Real.cos s * ((Real.sqrt (N : ℝ))⁻¹ * β)) *
-          (∑ i : Fin N, ω.1 i * (σ i : ℝ) + ∑ i : Fin N, ω.1 i * (τ i : ℝ)) +
-        d_add * ω.2 + 2 * h := by
-      dsimp [L, d_add]
-      ring
-    rw [h1, ← Finset.sum_add_distrib, Finset.mul_sum]
-    have h2 : (∑ i : Fin N, (Real.cos s * ((Real.sqrt (N : ℝ))⁻¹ * β)) *
-        (ω.1 i * (σ i : ℝ) + ω.1 i * (τ i : ℝ))) = ∑ i, c_add i * ω.1 i := by
-      dsimp [c_add]
-      refine Finset.sum_congr rfl fun i _ => by ring
-    rw [h2]
+    simpa [L, c_add, d_add] using
+      sk_cavity_field_linear_combo_eq N β q s h 1 1 σ τ ω
   have h_sub_eq (ω : (Fin N → ℝ) × ℝ) :
       L σ ω - L τ ω = ∑ i, c_sub i * ω.1 i + d_sub * ω.2 + 0 := by
-    have h1 : L σ ω - L τ ω =
-        (Real.cos s * ((Real.sqrt (N : ℝ))⁻¹ * β)) *
-          (∑ i : Fin N, ω.1 i * (σ i : ℝ) - ∑ i : Fin N, ω.1 i * (τ i : ℝ)) +
-        d_sub * ω.2 + 0 := by
-      dsimp [L, d_sub]
-      ring
-    rw [h1, ← Finset.sum_sub_distrib, Finset.mul_sum]
-    have h2 : (∑ i : Fin N, (Real.cos s * ((Real.sqrt (N : ℝ))⁻¹ * β)) *
-        (ω.1 i * (σ i : ℝ) - ω.1 i * (τ i : ℝ))) = ∑ i, c_sub i * ω.1 i := by
-      dsimp [c_sub]
-      refine Finset.sum_congr rfl fun i _ => by ring
-    rw [h2]
+    simpa [L, c_sub, d_sub, sub_eq_add_neg] using
+      sk_cavity_field_linear_combo_eq N β q s h 1 (-1) σ τ ω
   have hint_add : Integrable (fun ω : (Fin N → ℝ) × ℝ => Real.cosh (L σ ω + L τ ω))
       ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)) := by
     simp_rw [h_add_eq]
@@ -543,32 +553,12 @@ theorem integral_abs_sinh_mul_sinh_sk_cavity_le (N : ℕ) (hN : 0 < N) (β q s h
   let d_sub : ℝ := Real.sin s * (β * Real.sqrt q * (1 + (-1)))
   have h_add_eq (ω : (Fin N → ℝ) × ℝ) :
       L σ ω + L τ ω = ∑ i, c_add i * ω.1 i + d_add * ω.2 + 2 * h := by
-    have h1 : L σ ω + L τ ω =
-        (Real.cos s * ((Real.sqrt (N : ℝ))⁻¹ * β)) *
-          (∑ i : Fin N, ω.1 i * (σ i : ℝ) + ∑ i : Fin N, ω.1 i * (τ i : ℝ)) +
-        d_add * ω.2 + 2 * h := by
-      dsimp [L, d_add]
-      ring
-    rw [h1, ← Finset.sum_add_distrib, Finset.mul_sum]
-    have h2 : (∑ i : Fin N, (Real.cos s * ((Real.sqrt (N : ℝ))⁻¹ * β)) *
-        (ω.1 i * (σ i : ℝ) + ω.1 i * (τ i : ℝ))) = ∑ i, c_add i * ω.1 i := by
-      dsimp [c_add]
-      refine Finset.sum_congr rfl fun i _ => by ring
-    rw [h2]
+    simpa [L, c_add, d_add] using
+      sk_cavity_field_linear_combo_eq N β q s h 1 1 σ τ ω
   have h_sub_eq (ω : (Fin N → ℝ) × ℝ) :
       L σ ω - L τ ω = ∑ i, c_sub i * ω.1 i + d_sub * ω.2 + 0 := by
-    have h1 : L σ ω - L τ ω =
-        (Real.cos s * ((Real.sqrt (N : ℝ))⁻¹ * β)) *
-          (∑ i : Fin N, ω.1 i * (σ i : ℝ) - ∑ i : Fin N, ω.1 i * (τ i : ℝ)) +
-        d_sub * ω.2 + 0 := by
-      dsimp [L, d_sub]
-      ring
-    rw [h1, ← Finset.sum_sub_distrib, Finset.mul_sum]
-    have h2 : (∑ i : Fin N, (Real.cos s * ((Real.sqrt (N : ℝ))⁻¹ * β)) *
-        (ω.1 i * (σ i : ℝ) - ω.1 i * (τ i : ℝ))) = ∑ i, c_sub i * ω.1 i := by
-      dsimp [c_sub]
-      refine Finset.sum_congr rfl fun i _ => by ring
-    rw [h2]
+    simpa [L, c_sub, d_sub, sub_eq_add_neg] using
+      sk_cavity_field_linear_combo_eq N β q s h 1 (-1) σ τ ω
   have hint_add : Integrable (fun ω : (Fin N → ℝ) × ℝ => Real.cosh (L σ ω + L τ ω))
       ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)) := by
     simp_rw [h_add_eq]
@@ -773,16 +763,7 @@ theorem abs_integral_integral_sk_cavity_signed_overlap_le
     exact hG.aestronglyMeasurable.integral_prod_right'
   have hJR (η : Ω₀) : |J η| ≤ K * R η := by
     exact abs_integral_sk_cavity_signed_overlap_le N β h q s hN hq (A η)
-  have hK : 0 ≤ K := by dsimp [K]; positivity
-  have hR0 (η : Ω₀) : 0 ≤ R η := integral_nonneg fun _ => abs_nonneg _
-  have hJint : Integrable J P₀ := by
-    refine Integrable.mono' (hRint.const_mul K) hJm (ae_of_all _ fun η => ?_)
-    simpa only [Real.norm_eq_abs, abs_of_nonneg (mul_nonneg hK (hR0 η))] using hJR η
-  calc
-    |∫ η, J η ∂P₀| ≤ ∫ η, |J η| ∂P₀ := abs_integral_le_integral_abs
-    _ ≤ ∫ η, K * R η ∂P₀ :=
-      integral_mono hJint.abs (hRint.const_mul K) hJR
-    _ = K * ∫ η, R η ∂P₀ := by rw [integral_const_mul]
+  exact abs_integral_le_const_mul_integral P₀ hRint hJm hJR
 
 /-- **Covariance bracket identity for the cavity cosh derivative (Talagrand Eq. 1.178).**
 For the signed Gaussian fields on `(Fin N → ℤˣ) × ℤˣ`, the bracket
@@ -803,49 +784,17 @@ theorem sk_cavity_covariance_bracket_eq (N : ℕ) (hN : 0 < N) (β q : ℝ) (hq 
       (p.1.2 : ℝ) * (p.2.2 : ℝ) *
         (β ^ 2 * ((N : ℝ)⁻¹ * ∑ i : Fin N, (p.1.1 i : ℝ) * (p.2.1 i : ℝ) - q)) := by
   intro P X Y
-  have hu1 : (p.1.2 : ℝ) * (p.1.2 : ℝ) = 1 := by
-    rw [← sq, units_cast_sq]
-  have h1 : (∫ ω', (p.1.2 : ℝ) * Y p.1.1 ω' * ((p.1.2 : ℝ) * Y p.1.1 ω') ∂P) =
-      ∫ ω', (Y p.1.1 ω') * (Y p.1.1 ω') ∂P := by
-    have : (fun ω' => (p.1.2 : ℝ) * Y p.1.1 ω' * ((p.1.2 : ℝ) * Y p.1.1 ω')) =
-        fun ω' => (Y p.1.1 ω') * (Y p.1.1 ω') := by
-      funext ω'
-      calc (p.1.2 : ℝ) * Y p.1.1 ω' * ((p.1.2 : ℝ) * Y p.1.1 ω')
-        _ = ((p.1.2 : ℝ) * (p.1.2 : ℝ)) * ((Y p.1.1 ω') * (Y p.1.1 ω')) := by ring
-        _ = (Y p.1.1 ω') * (Y p.1.1 ω') := by rw [hu1, one_mul]
-    rw [this]
-  have h2 : (∫ ω', (p.1.2 : ℝ) * X p.1.1 ω' * ((p.1.2 : ℝ) * X p.1.1 ω') ∂P) =
-      ∫ ω', (X p.1.1 ω') * (X p.1.1 ω') ∂P := by
-    have : (fun ω' => (p.1.2 : ℝ) * X p.1.1 ω' * ((p.1.2 : ℝ) * X p.1.1 ω')) =
-        fun ω' => (X p.1.1 ω') * (X p.1.1 ω') := by
-      funext ω'
-      calc (p.1.2 : ℝ) * X p.1.1 ω' * ((p.1.2 : ℝ) * X p.1.1 ω')
-        _ = ((p.1.2 : ℝ) * (p.1.2 : ℝ)) * ((X p.1.1 ω') * (X p.1.1 ω')) := by ring
-        _ = (X p.1.1 ω') * (X p.1.1 ω') := by rw [hu1, one_mul]
-    rw [this]
-  have h3 : (∫ ω', (p.1.2 : ℝ) * Y p.1.1 ω' * ((p.2.2 : ℝ) * Y p.2.1 ω') ∂P) =
-      (p.1.2 : ℝ) * (p.2.2 : ℝ) * ∫ ω', (Y p.1.1 ω') * (Y p.2.1 ω') ∂P := by
-    have : (fun ω' => (p.1.2 : ℝ) * Y p.1.1 ω' * ((p.2.2 : ℝ) * Y p.2.1 ω')) =
-        fun ω' => ((p.1.2 : ℝ) * (p.2.2 : ℝ)) * ((Y p.1.1 ω') * (Y p.2.1 ω')) := by
-      funext ω'; ring
-    rw [this, integral_const_mul]
-  have h4 : (∫ ω', (p.1.2 : ℝ) * X p.1.1 ω' * ((p.2.2 : ℝ) * X p.2.1 ω') ∂P) =
-      (p.1.2 : ℝ) * (p.2.2 : ℝ) * ∫ ω', (X p.1.1 ω') * (X p.2.1 ω') ∂P := by
-    have : (fun ω' => (p.1.2 : ℝ) * X p.1.1 ω' * ((p.2.2 : ℝ) * X p.2.1 ω')) =
-        fun ω' => ((p.1.2 : ℝ) * (p.2.2 : ℝ)) * ((X p.1.1 ω') * (X p.2.1 ω')) := by
-      funext ω'; ring
-    rw [this, integral_const_mul]
-  rw [h1, h2, h3, h4, ← mul_sub]
+  rw [integral_mul_self_of_sq_eq_one P _ (units_cast_sq p.1.2),
+    integral_mul_self_of_sq_eq_one P _ (units_cast_sq p.1.2),
+    integral_mul_mul_eq_mul_integral, integral_mul_mul_eq_mul_integral, ← mul_sub]
   have hdiff1 := sk_cavity_N_covariance_difference N β q hq p.1.1 p.1.1
   have hdiff2 := sk_cavity_N_covariance_difference N β q hq p.1.1 p.2.1
   dsimp [P, X, Y] at hdiff1 hdiff2 ⊢
   rw [← hdiff1, ← hdiff2]
   have hdiag : (N : ℝ)⁻¹ * ∑ i : Fin N, (p.1.1 i : ℝ) * (p.1.1 i : ℝ) = 1 := by
-    have hs : ∀ i : Fin N, (p.1.1 i : ℝ) * (p.1.1 i : ℝ) = 1 := fun i => by
-      rw [← sq, units_cast_sq]
-    simp_rw [hs, Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
-    have hNne : (N : ℝ) ≠ 0 := (Nat.cast_pos.2 hN).ne'
-    rw [mul_one, inv_mul_cancel₀ hNne]
+    simpa only [Fintype.card_fin, dotProduct, ← sq] using
+      card_inv_mul_dotProduct_self_eq_one (fun i : Fin N => (p.1.1 i : ℝ))
+        (fun i => units_cast_sq (p.1.1 i))
   rw [hdiag]
   ring
 

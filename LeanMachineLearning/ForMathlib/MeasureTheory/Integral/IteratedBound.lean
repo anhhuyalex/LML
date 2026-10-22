@@ -20,6 +20,41 @@ variables, as soon as the dominating function has integrable partial integrals.
 
 open MeasureTheory
 
+/-- Multiplying both copies of a real-valued integrand by a scalar whose square is one does not
+change its second moment. -/
+@[simp] theorem integral_mul_self_of_sq_eq_one {X : Type*} [MeasurableSpace X]
+    (μ : Measure X) (u : ℝ) (hu : u ^ 2 = 1) (f : X → ℝ) :
+    ∫ x, (u * f x) * (u * f x) ∂μ = ∫ x, f x * f x ∂μ := by
+  congr 1
+  funext x
+  calc
+    (u * f x) * (u * f x) = u ^ 2 * (f x * f x) := by ring
+    _ = f x * f x := by rw [hu, one_mul]
+
+/-- Two scalar factors may be collected outside a real-valued integral. -/
+theorem integral_mul_mul_eq_mul_integral {X : Type*} [MeasurableSpace X]
+    (μ : Measure X) (u v : ℝ) (f g : X → ℝ) :
+    ∫ x, (u * f x) * (v * g x) ∂μ = u * v * ∫ x, f x * g x ∂μ := by
+  have hfun : (fun x => (u * f x) * (v * g x)) = fun x => (u * v) * (f x * g x) := by
+    funext x
+    ring
+  rw [hfun, integral_const_mul]
+
+/-- A pointwise bound `|f| ≤ K g` passes through an integral.  The domination hypothesis itself
+forces `K g` to be nonnegative, so no separate sign assumptions on `K` or `g` are needed. -/
+theorem abs_integral_le_const_mul_integral {X : Type*} [MeasurableSpace X]
+    (μ : Measure X) {f g : X → ℝ} {K : ℝ} (hg : Integrable g μ)
+    (hfm : AEStronglyMeasurable f μ) (hfg : ∀ x, |f x| ≤ K * g x) :
+    |∫ x, f x ∂μ| ≤ K * ∫ x, g x ∂μ := by
+  have hKg (x : X) : 0 ≤ K * g x := (abs_nonneg (f x)).trans (hfg x)
+  have hf : Integrable f μ := by
+    refine Integrable.mono' (hg.const_mul K) hfm (ae_of_all _ fun x => ?_)
+    simpa only [Real.norm_eq_abs, abs_of_nonneg (hKg x)] using hfg x
+  calc
+    |∫ x, f x ∂μ| ≤ ∫ x, |f x| ∂μ := abs_integral_le_integral_abs
+    _ ≤ ∫ x, K * g x ∂μ := integral_mono hf.abs (hg.const_mul K) hfg
+    _ = K * ∫ x, g x ∂μ := integral_const_mul K g
+
 /-- Domination of a triple iterated integral by the iterated integral of a dominating function. -/
 theorem abs_integral_integral_integral_le {X Y Z : Type*} [MeasurableSpace X] [MeasurableSpace Y]
     [MeasurableSpace Z] (μ : Measure X) (ν : Measure Y) (κ : X → Y → Measure Z)
