@@ -504,7 +504,7 @@ theorem measurable_integral_prod_count_tilted {W : Type*} [MeasurableSpace W]
 
 omit [Fintype α] in
 /-- Measurability of the signed two-replica average used in cavity `cosh` interpolations. -/
-theorem measurable_integral_prod_count_tilted_units_mul [Finite α] [Nonempty α]
+theorem measurable_integral_prod_count_tilted_units_mul [Finite α]
     {W : Type*} [MeasurableSpace W] {A L : W → α → ℝ}
     (hA : ∀ a, Measurable fun w => A w a) (hL : ∀ a, Measurable fun w => L w a)
     (g : α → α → ℝ) :
