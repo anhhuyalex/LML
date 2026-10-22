@@ -541,4 +541,69 @@ theorem integral_abs_sinh_mul_sinh_sk_cavity_le (N : ℕ) (hN : 0 < N) (β q s h
     nlinarith
   linarith
 
+/-- **Covariance bracket identity for the cavity cosh derivative (Talagrand Eq. 1.178).**
+For the signed Gaussian fields on `(Fin N → ℤˣ) × ℤˣ`, the bracket
+`([E Y² - E X²]_diag - [E Y_a Y_b - E X_a X_b]_pair)` evaluates to
+`-β² (1 - q) + ε¹ ε² β² (R(ρ¹, ρ²) - q)`. -/
+theorem sk_cavity_covariance_bracket_eq (N : ℕ) (hN : 0 < N) (β q : ℝ) (hq : 0 ≤ q)
+    (p : ((Fin N → ℤˣ) × ℤˣ) × ((Fin N → ℤˣ) × ℤˣ)) :
+    let P := (Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)
+    let X : (Fin N → ℤˣ) → (Fin N → ℝ) × ℝ → ℝ := fun σ ω =>
+      (Real.sqrt (N : ℝ))⁻¹ * β * ∑ i : Fin N, ω.1 i * (σ i : ℝ)
+    let Y : (Fin N → ℤˣ) → (Fin N → ℝ) × ℝ → ℝ := fun _ ω =>
+      β * ω.2 * Real.sqrt q
+    ((∫ ω', (p.1.2 : ℝ) * Y p.1.1 ω' * ((p.1.2 : ℝ) * Y p.1.1 ω') ∂P -
+        ∫ ω', (p.1.2 : ℝ) * X p.1.1 ω' * ((p.1.2 : ℝ) * X p.1.1 ω') ∂P) -
+      (∫ ω', (p.1.2 : ℝ) * Y p.1.1 ω' * ((p.2.2 : ℝ) * Y p.2.1 ω') ∂P -
+        ∫ ω', (p.1.2 : ℝ) * X p.1.1 ω' * ((p.2.2 : ℝ) * X p.2.1 ω') ∂P)) =
+    -β ^ 2 * (1 - q) +
+      (p.1.2 : ℝ) * (p.2.2 : ℝ) *
+        (β ^ 2 * ((N : ℝ)⁻¹ * ∑ i : Fin N, (p.1.1 i : ℝ) * (p.2.1 i : ℝ) - q)) := by
+  intro P X Y
+  have hu1 : (p.1.2 : ℝ) * (p.1.2 : ℝ) = 1 := by
+    rw [← sq, units_cast_sq]
+  have h1 : (∫ ω', (p.1.2 : ℝ) * Y p.1.1 ω' * ((p.1.2 : ℝ) * Y p.1.1 ω') ∂P) =
+      ∫ ω', (Y p.1.1 ω') * (Y p.1.1 ω') ∂P := by
+    have : (fun ω' => (p.1.2 : ℝ) * Y p.1.1 ω' * ((p.1.2 : ℝ) * Y p.1.1 ω')) =
+        fun ω' => (Y p.1.1 ω') * (Y p.1.1 ω') := by
+      funext ω'
+      calc (p.1.2 : ℝ) * Y p.1.1 ω' * ((p.1.2 : ℝ) * Y p.1.1 ω')
+        _ = ((p.1.2 : ℝ) * (p.1.2 : ℝ)) * ((Y p.1.1 ω') * (Y p.1.1 ω')) := by ring
+        _ = (Y p.1.1 ω') * (Y p.1.1 ω') := by rw [hu1, one_mul]
+    rw [this]
+  have h2 : (∫ ω', (p.1.2 : ℝ) * X p.1.1 ω' * ((p.1.2 : ℝ) * X p.1.1 ω') ∂P) =
+      ∫ ω', (X p.1.1 ω') * (X p.1.1 ω') ∂P := by
+    have : (fun ω' => (p.1.2 : ℝ) * X p.1.1 ω' * ((p.1.2 : ℝ) * X p.1.1 ω')) =
+        fun ω' => (X p.1.1 ω') * (X p.1.1 ω') := by
+      funext ω'
+      calc (p.1.2 : ℝ) * X p.1.1 ω' * ((p.1.2 : ℝ) * X p.1.1 ω')
+        _ = ((p.1.2 : ℝ) * (p.1.2 : ℝ)) * ((X p.1.1 ω') * (X p.1.1 ω')) := by ring
+        _ = (X p.1.1 ω') * (X p.1.1 ω') := by rw [hu1, one_mul]
+    rw [this]
+  have h3 : (∫ ω', (p.1.2 : ℝ) * Y p.1.1 ω' * ((p.2.2 : ℝ) * Y p.2.1 ω') ∂P) =
+      (p.1.2 : ℝ) * (p.2.2 : ℝ) * ∫ ω', (Y p.1.1 ω') * (Y p.2.1 ω') ∂P := by
+    have : (fun ω' => (p.1.2 : ℝ) * Y p.1.1 ω' * ((p.2.2 : ℝ) * Y p.2.1 ω')) =
+        fun ω' => ((p.1.2 : ℝ) * (p.2.2 : ℝ)) * ((Y p.1.1 ω') * (Y p.2.1 ω')) := by
+      funext ω'; ring
+    rw [this, integral_const_mul]
+  have h4 : (∫ ω', (p.1.2 : ℝ) * X p.1.1 ω' * ((p.2.2 : ℝ) * X p.2.1 ω') ∂P) =
+      (p.1.2 : ℝ) * (p.2.2 : ℝ) * ∫ ω', (X p.1.1 ω') * (X p.2.1 ω') ∂P := by
+    have : (fun ω' => (p.1.2 : ℝ) * X p.1.1 ω' * ((p.2.2 : ℝ) * X p.2.1 ω')) =
+        fun ω' => ((p.1.2 : ℝ) * (p.2.2 : ℝ)) * ((X p.1.1 ω') * (X p.2.1 ω')) := by
+      funext ω'; ring
+    rw [this, integral_const_mul]
+  rw [h1, h2, h3, h4, ← mul_sub]
+  have hdiff1 := sk_cavity_N_covariance_difference N β q hq p.1.1 p.1.1
+  have hdiff2 := sk_cavity_N_covariance_difference N β q hq p.1.1 p.2.1
+  dsimp [P, X, Y] at hdiff1 hdiff2 ⊢
+  rw [← hdiff1, ← hdiff2]
+  have hdiag : (N : ℝ)⁻¹ * ∑ i : Fin N, (p.1.1 i : ℝ) * (p.1.1 i : ℝ) = 1 := by
+    have hs : ∀ i : Fin N, (p.1.1 i : ℝ) * (p.1.1 i : ℝ) = 1 := fun i => by
+      rw [← sq, units_cast_sq]
+    simp_rw [hs, Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
+    have hNne : (N : ℝ) ≠ 0 := (Nat.cast_pos.2 hN).ne'
+    rw [mul_one, inv_mul_cancel₀ hNne]
+  rw [hdiag]
+  ring
+
 end SpinGlasses

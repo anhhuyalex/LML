@@ -411,6 +411,72 @@ theorem abs_integral_prod_count_tilted_units_mul_le [Finite α] [Nonempty α] (A
     integral_nonneg fun p => by positivity
   exact (div_le_div_of_nonneg_right hnum (by positivity)).trans (div_le_self hnum_nonneg hden)
 
+/-- **Exchange of disorder integral with two-replica tilted measure.**  Because the two-replica
+tilted measure on a finite type has weights independent of `ω`, integrating an observable
+against the two-replica measure and then over `ω` equals integrating over `ω` coordinatewise
+and then against the two-replica measure. -/
+theorem integral_prod_count_tilted_swap {Ω : Type*} [MeasurableSpace Ω] (P : Measure Ω)
+    (A : α → ℝ) (Θ : α → α → Ω → ℝ)
+    (h_int : ∀ a b, Integrable (Θ a b) P) :
+    (∫ ω, ∫ p : α × α, Θ p.1 p.2 ω
+        ∂((Measure.count.tilted A).prod (Measure.count.tilted A)) ∂P) =
+      ∫ p : α × α, (∫ ω, Θ p.1 p.2 ω ∂P)
+        ∂((Measure.count.tilted A).prod (Measure.count.tilted A)) := by
+  have h_exp (ω : Ω) :
+      (∫ p : α × α, Θ p.1 p.2 ω ∂((Measure.count.tilted A).prod (Measure.count.tilted A))) =
+      (∑ a, Real.exp (A a))⁻¹ ^ 2 *
+        ∑ a, ∑ b, Real.exp (A a) * Real.exp (A b) * Θ a b ω :=
+    integral_prod_count_tilted_eq_double_sum A (fun a b => Θ a b ω)
+  simp_rw [h_exp]
+  rw [integral_const_mul]
+  rw [integral_prod_count_tilted_eq_double_sum A (fun a b => ∫ ω, Θ a b ω ∂P)]
+  congr 1
+  rw [integral_finsetSum]
+  · apply Finset.sum_congr rfl
+    intro a _
+    rw [integral_finsetSum]
+    · apply Finset.sum_congr rfl
+      intro b _
+      rw [integral_const_mul]
+    · intro b _
+      exact (h_int a b).const_mul _
+  · intro a _
+    refine integrable_finsetSum _ fun b _ => ?_
+    exact (h_int a b).const_mul _
+
+/-- **Averaged two-replica bound under coordinatewise disorder domination.**  If `F a b ω` has
+expectation bounded by `C` for all `a, b`, then the disorder average of `∫ |g| F` under the
+two-replica tilted measure is bounded by `C * ∫ |g|`. -/
+theorem integral_prod_count_tilted_mul_le {Ω : Type*} [MeasurableSpace Ω] (P : Measure Ω)
+    (A : α → ℝ) (g : α → α → ℝ) (F : α → α → Ω → ℝ) (C : ℝ)
+    (hF_int : ∀ a b, Integrable (F a b) P)
+    (hF_le : ∀ a b, (∫ ω, F a b ω ∂P) ≤ C) :
+    (∫ ω, ∫ p : α × α, |g p.1 p.2| * F p.1 p.2 ω
+        ∂((Measure.count.tilted A).prod (Measure.count.tilted A)) ∂P) ≤
+      C * ∫ p : α × α, |g p.1 p.2|
+        ∂((Measure.count.tilted A).prod (Measure.count.tilted A)) := by
+  have h_int : ∀ a b, Integrable (fun ω => |g a b| * F a b ω) P := fun a b =>
+    (hF_int a b).const_mul (|g a b|)
+  rw [integral_prod_count_tilted_swap P A (fun a b ω => |g a b| * F a b ω) h_int]
+  simp_rw [integral_const_mul]
+  rw [← integral_const_mul]
+  refine integral_mono Integrable.of_finite Integrable.of_finite fun p => ?_
+  calc |g p.1 p.2| * ∫ ω, F p.1 p.2 ω ∂P
+    _ ≤ |g p.1 p.2| * C := mul_le_mul_of_nonneg_left (hF_le p.1 p.2) (abs_nonneg _)
+    _ = C * |g p.1 p.2| := mul_comm _ _
+
+/-- Measurability of an observable integrated against the product of two tilted measures. -/
+theorem measurable_integral_prod_count_tilted {W : Type*} [MeasurableSpace W]
+    {g : W → α → ℝ} (hg : ∀ a, Measurable fun w => g w a)
+    {Θ : W → α → α → ℝ} (hΘ : ∀ a b, Measurable fun w => Θ w a b) :
+    Measurable fun w => ∫ p : α × α, Θ w p.1 p.2
+      ∂((Measure.count.tilted (g w)).prod (Measure.count.tilted (g w))) := by
+  simp_rw [integral_prod_count_tilted]
+  refine Finset.measurable_fun_sum _ fun a _ =>
+    Finset.measurable_fun_sum _ fun b _ => ?_
+  exact (((hg a).exp.div (Finset.measurable_fun_sum _ fun c _ => (hg c).exp)).mul
+    ((hg b).exp.div (Finset.measurable_fun_sum _ fun c _ => (hg c).exp))).mul (hΘ a b)
+
 omit [Fintype α] in
 /-- The log Gibbs average of `cosh` of a field is measurable in any parameter on which the base
 energy `A` and the field `L` depend measurably. -/
