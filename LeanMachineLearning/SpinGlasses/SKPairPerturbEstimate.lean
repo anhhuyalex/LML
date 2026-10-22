@@ -306,16 +306,49 @@ theorem sk_pair_perturb_overlap_path_le
       mul_nonneg (Real.sin_nonneg_of_nonneg_of_le_pi hs'.1 (by linarith [hs'.2, Real.pi_pos]))
         (Real.cos_nonneg_of_mem_Icc ⟨by linarith [hs'.1, Real.pi_pos], hs'.2⟩)
     rw [integral_const_mul]
-    have hnest := abs_integral_nested_gibbs_le P₀ P (E s') (hEm s') (R := Fin 2)
+    have hnest := abs_integral_nested_gibbs_le P₀ P (E s') (hEm s') (R := Option (Option (Fin 2)))
       (G := Gf) (H := fun τ => Φ (fun r => τ (some (some r))) * (20 * β ^ 2)) hGf
-    simp only [integral_const_mul, integral_pi_option_option_count_tilted_marginal] at hnest
+    have hmarg : ∀ η ω, ∫ τ : Option (Option (Fin 2)) → Fin (N + 1) → ℤˣ,
+        Φ (fun r => τ (some (some r))) * (20 * β ^ 2)
+          ∂(Measure.pi fun _ : Option (Option (Fin 2)) => Measure.count.tilted (E s' η ω)) =
+        (∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, Φ σ
+          ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted (E s' η ω))) * (20 * β ^ 2) :=
+      fun η ω => by
+        rw [integral_mul_const, integral_pi_option_option_count_tilted_marginal (E s' η ω) Φ]
+    simp_rw [hmarg, integral_mul_const] at hnest
     calc _ ≤ Real.sin s' * Real.cos s' * |∫ η, ∫ ω, ∫ τ, Gf τ
           ∂(Measure.pi fun _ : Option (Option (Fin 2)) =>
             Measure.count.tilted (E s' η ω)) ∂P ∂P₀| :=
           mul_le_mul_of_nonneg_left (le_abs_self _) hsc0
-      _ ≤ Real.sin s' * Real.cos s' * ((20 * β ^ 2) * φ s') := mul_le_mul_of_nonneg_left
-          (hnest.trans_eq (by simp only [φ]; sorry)) hsc0
+      _ ≤ Real.sin s' * Real.cos s' * (φ s' * (20 * β ^ 2)) :=
+          mul_le_mul_of_nonneg_left hnest hsc0
       _ = _ := by ring
-  sorry
+  have hgr := Real.le_exp_mul_sin_sq_of_exists_hasDerivAt (φ := φ) (K := 20 * β ^ 2) hd hs
+  have hφ0 : 0 ≤ φ 0 :=
+    integral_nonneg fun η => integral_nonneg fun ω => integral_nonneg fun σ => hΦ0 σ
+  have hexp : Real.exp (20 * β ^ 2 * Real.sin s ^ 2 / 2) ≤ Real.exp (10 * β ^ 2) :=
+    Real.exp_le_exp.2 (by nlinarith [Real.sin_sq_le_one s, sq_nonneg β])
+  have hconv : ∀ s' η ω, (∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, Φ σ
+      ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted (E s' η ω))) =
+      ∫ p : (Fin (N + 1) → ℤˣ) × (Fin (N + 1) → ℤˣ), |Rf p.1 p.2 - q|
+        ∂((Measure.count.tilted (E s' η ω)).prod (Measure.count.tilted (E s' η ω))) :=
+    fun s' η ω => (integral_pi_fin_two_count_tilted (E s' η ω) (fun a b => |Rf a b - q|)).trans
+      (integral_prod_count_tilted (E s' η ω) (fun a b => |Rf a b - q|)).symm
+  have hE0 : ∀ η ω, E 0 η ω = fun a => X a ω + B η a := fun η ω =>
+    funext fun a => by simp [E]
+  have hφ : ∀ s', φ s' = ∫ η, ∫ ω, ∫ p : (Fin (N + 1) → ℤˣ) × (Fin (N + 1) → ℤˣ),
+      |Rf p.1 p.2 - q|
+      ∂((Measure.count.tilted (E s' η ω)).prod (Measure.count.tilted (E s' η ω))) ∂P ∂P₀ :=
+    fun s' => by simp only [φ, hconv]
+  have hφ0' : φ 0 = ∫ η, ∫ ω, ∫ p : (Fin (N + 1) → ℤˣ) × (Fin (N + 1) → ℤˣ),
+      |Rf p.1 p.2 - q|
+      ∂((Measure.count.tilted fun a => X a ω + B η a).prod
+        (Measure.count.tilted fun a => X a ω + B η a)) ∂P ∂P₀ := by
+    rw [hφ]
+    simp only [hE0]
+  calc _ = φ s := (hφ s).symm
+    _ ≤ Real.exp (20 * β ^ 2 * Real.sin s ^ 2 / 2) * φ 0 := hgr
+    _ ≤ Real.exp (10 * β ^ 2) * φ 0 := mul_le_mul_of_nonneg_right hexp hφ0
+    _ = _ := by rw [hφ0']
 
 end SpinGlasses
