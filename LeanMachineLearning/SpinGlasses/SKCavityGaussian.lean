@@ -332,4 +332,79 @@ theorem sk_cavity_N_covariance_difference (N : ℕ) (β q : ℝ) (hq : 0 ≤ q)
     integral_sk_cavity_N_edge_field_mul]
   ring
 
+/-- Sum of squares of coordinates of `σ¹ ± σ²` is at most `4 N`. -/
+lemma sum_sq_units_add_or_sub_le (N : ℕ) (σ τ : Fin N → ℤˣ) (sign : ℝ)
+    (hsign : sign = 1 ∨ sign = -1) :
+    ∑ i : Fin N, ((σ i : ℝ) + sign * (τ i : ℝ)) ^ 2 ≤ 4 * (N : ℝ) := by
+  have h_each (i : Fin N) : ((σ i : ℝ) + sign * (τ i : ℝ)) ^ 2 ≤ 4 := by
+    have hs : |(σ i : ℝ)| = 1 := by simp [abs_units_cast_eq_one]
+    have ht : |(τ i : ℝ)| = 1 := by simp [abs_units_cast_eq_one]
+    have h_abs : |(σ i : ℝ) + sign * (τ i : ℝ)| ≤ 2 := by
+      rcases hsign with rfl | rfl
+      · calc |(σ i : ℝ) + 1 * (τ i : ℝ)| = |(σ i : ℝ) + (τ i : ℝ)| := by ring_nf
+          _ ≤ |(σ i : ℝ)| + |(τ i : ℝ)| := abs_add_le _ _
+          _ = 1 + 1 := by rw [hs, ht]
+          _ = 2 := by norm_num
+      · calc |(σ i : ℝ) + (-1) * (τ i : ℝ)| = |(σ i : ℝ) - (τ i : ℝ)| := by ring_nf
+          _ ≤ |(σ i : ℝ)| + |-(τ i : ℝ)| := abs_add_le _ _
+          _ = |(σ i : ℝ)| + |(τ i : ℝ)| := by rw [abs_neg]
+          _ = 1 + 1 := by rw [hs, ht]
+          _ = 2 := by norm_num
+    have h1 := (abs_le.1 h_abs).1
+    have h2 := (abs_le.1 h_abs).2
+    nlinarith
+  calc ∑ i : Fin N, ((σ i : ℝ) + sign * (τ i : ℝ)) ^ 2
+    _ ≤ ∑ _i : Fin N, (4 : ℝ) := Finset.sum_le_sum fun i _ => h_each i
+    _ = 4 * (N : ℝ) := by simp [nsmul_eq_mul, mul_comm]
+
+/-- The total variance of the linear combination `cos s (X_σ ± X_τ) + sin s (Y_σ ± Y_τ)`
+is at most `4 β²`. -/
+lemma sum_sq_sk_cavity_linear_combo_le (N : ℕ) (hN : 0 < N) (β q s : ℝ)
+    (hq : q ∈ Set.Icc (0 : ℝ) 1) (σ τ : Fin N → ℤˣ) (sign : ℝ) (hsign : sign = 1 ∨ sign = -1) :
+    let c_edge : Fin N → ℝ := fun i =>
+      Real.cos s * ((Real.sqrt (N : ℝ))⁻¹ * β * ((σ i : ℝ) + sign * (τ i : ℝ)))
+    let c_scalar : ℝ := Real.sin s * (β * Real.sqrt q * (1 + sign))
+    (∑ i, (c_edge i) ^ 2) + c_scalar ^ 2 ≤ 4 * β ^ 2 := by
+  intro c_edge c_scalar
+  have hNpos : 0 < (N : ℝ) := Nat.cast_pos.2 hN
+  have h_edge : ∑ i, (c_edge i) ^ 2 ≤ Real.cos s ^ 2 * (4 * β ^ 2) := by
+    dsimp [c_edge]
+    have h_rw : (∑ i : Fin N,
+        (Real.cos s * ((Real.sqrt (N : ℝ))⁻¹ * β * ((σ i : ℝ) + sign * (τ i : ℝ)))) ^ 2) =
+        (Real.cos s ^ 2 * ((Real.sqrt (N : ℝ))⁻¹ ^ 2 * β ^ 2)) *
+          ∑ i, ((σ i : ℝ) + sign * (τ i : ℝ)) ^ 2 := by
+      simp_rw [show ∀ i,
+        (Real.cos s * ((Real.sqrt (N : ℝ))⁻¹ * β * ((σ i : ℝ) + sign * (τ i : ℝ)))) ^ 2 =
+        (Real.cos s ^ 2 * ((Real.sqrt (N : ℝ))⁻¹ ^ 2 * β ^ 2)) *
+          ((σ i : ℝ) + sign * (τ i : ℝ)) ^ 2 by intro i; ring]
+      rw [← Finset.mul_sum]
+    rw [h_rw]
+    rw [inv_pow, Real.sq_sqrt hNpos.le]
+    have hsum := sum_sq_units_add_or_sub_le N σ τ sign hsign
+    have h_nonneg : 0 ≤ Real.cos s ^ 2 * ((N : ℝ)⁻¹ * β ^ 2) := by positivity
+    calc (Real.cos s ^ 2 * ((N : ℝ)⁻¹ * β ^ 2)) * (∑ i, ((σ i : ℝ) + sign * (τ i : ℝ)) ^ 2)
+      _ ≤ (Real.cos s ^ 2 * ((N : ℝ)⁻¹ * β ^ 2)) * (4 * (N : ℝ)) :=
+        mul_le_mul_of_nonneg_left hsum h_nonneg
+      _ = Real.cos s ^ 2 * (4 * β ^ 2) := by
+        have hNne : (N : ℝ) ≠ 0 := hNpos.ne'
+        field_simp
+  have h_scalar : c_scalar ^ 2 ≤ Real.sin s ^ 2 * (4 * β ^ 2) := by
+    dsimp [c_scalar]
+    have h_sign_sq : (1 + sign) ^ 2 ≤ 4 := by
+      rcases hsign with rfl | rfl <;> norm_num
+    have h_prod : q * (1 + sign) ^ 2 ≤ 1 * 4 := by
+      nlinarith [hq.1, hq.2]
+    calc (Real.sin s * (β * Real.sqrt q * (1 + sign))) ^ 2
+      _ = Real.sin s ^ 2 * β ^ 2 * (Real.sqrt q ^ 2 * (1 + sign) ^ 2) := by ring
+      _ = Real.sin s ^ 2 * β ^ 2 * (q * (1 + sign) ^ 2) := by rw [Real.sq_sqrt hq.1]
+      _ ≤ Real.sin s ^ 2 * β ^ 2 * (1 * 4) := by
+        have : 0 ≤ Real.sin s ^ 2 * β ^ 2 := by positivity
+        exact mul_le_mul_of_nonneg_left h_prod this
+      _ = Real.sin s ^ 2 * (4 * β ^ 2) := by ring
+  calc (∑ i, (c_edge i) ^ 2) + c_scalar ^ 2
+    _ ≤ Real.cos s ^ 2 * (4 * β ^ 2) + Real.sin s ^ 2 * (4 * β ^ 2) :=
+      add_le_add h_edge h_scalar
+    _ = (Real.cos s ^ 2 + Real.sin s ^ 2) * (4 * β ^ 2) := by ring
+    _ = 4 * β ^ 2 := by rw [Real.cos_sq_add_sin_sq, one_mul]
+
 end SpinGlasses

@@ -17,6 +17,7 @@ public import Mathlib.Data.Finset.Prod
 public import Mathlib.Algebra.BigOperators.Field
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.HypercubeProduct
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.JensenLog
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiExp
 public import LeanMachineLearning.SpinGlasses.Basic
 public import LeanMachineLearning.SpinGlasses.GibbsMeasure
 public import LeanMachineLearning.SpinGlasses.SKModel
@@ -33,7 +34,8 @@ Eqs. (1.24)–(1.26) and (1.84)).
 
 ## Main Results
 
-* `SpinGlasses.integral_exp_mul_gaussianReal_zero_one`: MGF of a standard Gaussian `𝒩(0, 1)`.
+* `integral_exp_mul_gaussianReal_zero_one` (in `GaussianPiExp.lean`): MGF of a standard
+  Gaussian `𝒩(0, 1)`.
 * `SpinGlasses.card_finPairs`: the number of pairs `i < j` in `Fin N` is `N.choose 2`.
 * `SpinGlasses.integral_sk_partition_function_eq`: Exercise 1.2.3, Eq. (1.25),
   $$\frac{1}{N} \log \mathbb{E} Z_N = \frac{\beta^2}{4}\left(1 - \frac{1}{N}\right) +
@@ -75,92 +77,6 @@ theorem cast_card_finPairs (N : ℕ) :
     (Fintype.card (FinPairs N) : ℝ) = (N : ℝ) * ((N : ℝ) - 1) / 2 := by
   rw [card_finPairs]
   exact Nat.cast_choose_two (K := ℝ) N
-
-/-- Moment generating function of a standard Gaussian `𝒩(0, 1)`. -/
-theorem integral_exp_mul_gaussianReal_zero_one (t : ℝ) :
-    ∫ x, Real.exp (t * x) ∂(gaussianReal 0 1) = Real.exp (t ^ 2 / 2) := by
-  have h := congr_fun (ProbabilityTheory.mgf_fun_id_gaussianReal (μ := 0) (v := 1)) t
-  dsimp [ProbabilityTheory.mgf] at h
-  rw [h]
-  ring_nf
-
-/-- Integrability of the exponential of a linear combination of independent standard Gaussians. -/
-theorem integrable_exp_sum_mul_gaussianReal {E : Type*} [Fintype E] (c : E → ℝ) :
-    Integrable (fun g : E → ℝ => Real.exp (∑ e, c e * g e))
-      (Measure.pi fun _ : E => gaussianReal 0 1) := by
-  have e : (fun g : E → ℝ => Real.exp (∑ e, c e * g e)) =
-      fun g => ∏ e, Real.exp (c e * g e) := by
-    ext g
-    rw [Real.exp_sum]
-  rw [e]
-  exact MeasureTheory.Integrable.fintype_prod (fun e => integrable_exp_mul_gaussianReal (c e))
-
-/-- Integral of the exponential of a linear combination of independent standard Gaussians. -/
-theorem integral_exp_sum_mul_gaussianReal {E : Type*} [Fintype E] (c : E → ℝ) :
-    ∫ g : E → ℝ, Real.exp (∑ e, c e * g e)
-      ∂(Measure.pi fun _ : E => gaussianReal 0 1) =
-    Real.exp (∑ e, c e ^ 2 / 2) := by
-  simp_rw [Real.exp_sum]
-  have h_int := MeasureTheory.integral_fintype_prod_eq_prod
-    (E := fun _ : E => ℝ) (μ := fun _ : E => gaussianReal 0 1)
-    (fun e (x : ℝ) => Real.exp (c e * x))
-  rw [h_int]
-  have h (e : E) : ∫ x, Real.exp (c e * x) ∂(gaussianReal 0 1) = Real.exp (c e ^ 2 / 2) :=
-    integral_exp_mul_gaussianReal_zero_one (c e)
-  rw [Finset.prod_congr rfl fun e _ => h e, ← Real.exp_sum]
-
-/-- Integrability of the hyperbolic cosine of an affine combination of independent Gaussians. -/
-theorem integrable_cosh_sum_mul_gaussianReal {E : Type*} [Fintype E] (c : E → ℝ) (m : ℝ) :
-    Integrable (fun g : E → ℝ => Real.cosh (∑ e, c e * g e + m))
-      (Measure.pi fun _ : E => gaussianReal 0 1) := by
-  have heq : (fun g : E → ℝ => Real.cosh (∑ e, c e * g e + m)) =
-      fun g => (Real.exp m * Real.exp (∑ e, c e * g e) +
-        Real.exp (-m) * Real.exp (∑ e, (-c) e * g e)) / 2 := by
-    ext g
-    rw [Real.cosh_eq]
-    have h1 : Real.exp (∑ e, c e * g e + m) = Real.exp m * Real.exp (∑ e, c e * g e) := by
-      rw [← Real.exp_add]; ring_nf
-    have h2 : Real.exp (-(∑ e, c e * g e + m)) = Real.exp (-m) * Real.exp (∑ e, (-c) e * g e) := by
-      rw [← Real.exp_add]
-      congr 1
-      have : (∑ e, (-c) e * g e) = -∑ e, c e * g e := by
-        simp only [Pi.neg_apply, neg_mul, ← Finset.sum_neg_distrib]
-      linarith
-    rw [h1, h2]
-  rw [heq]
-  exact (((integrable_exp_sum_mul_gaussianReal c).const_mul _).add
-    ((integrable_exp_sum_mul_gaussianReal (-c)).const_mul _)).div_const 2
-
-/-- Integral of the hyperbolic cosine of an affine combination of independent Gaussians. -/
-theorem integral_cosh_sum_mul_gaussianReal {E : Type*} [Fintype E] (c : E → ℝ) (m : ℝ) :
-    ∫ g : E → ℝ, Real.cosh (∑ e, c e * g e + m)
-      ∂(Measure.pi fun _ : E => gaussianReal 0 1) =
-    Real.cosh m * Real.exp (∑ e, c e ^ 2 / 2) := by
-  have heq : (fun g : E → ℝ => Real.cosh (∑ e, c e * g e + m)) =
-      fun g => (Real.exp m * Real.exp (∑ e, c e * g e) +
-        Real.exp (-m) * Real.exp (∑ e, (-c) e * g e)) / 2 := by
-    ext g
-    rw [Real.cosh_eq]
-    have h1 : Real.exp (∑ e, c e * g e + m) = Real.exp m * Real.exp (∑ e, c e * g e) := by
-      rw [← Real.exp_add]; ring_nf
-    have h2 : Real.exp (-(∑ e, c e * g e + m)) = Real.exp (-m) * Real.exp (∑ e, (-c) e * g e) := by
-      rw [← Real.exp_add]
-      congr 1
-      have : (∑ e, (-c) e * g e) = -∑ e, c e * g e := by
-        simp only [Pi.neg_apply, neg_mul, ← Finset.sum_neg_distrib]
-      linarith
-    rw [h1, h2]
-  rw [heq, integral_div, integral_add]
-  · rw [integral_const_mul, integral_const_mul,
-        integral_exp_sum_mul_gaussianReal c, integral_exp_sum_mul_gaussianReal (-c)]
-    have hsq : (∑ e, (-c) e ^ 2 / 2) = ∑ e, c e ^ 2 / 2 := by
-      apply Finset.sum_congr rfl
-      intro e _
-      simp only [Pi.neg_apply, neg_sq]
-    rw [hsq, Real.cosh_eq]
-    ring
-  · exact (integrable_exp_sum_mul_gaussianReal c).const_mul _
-  · exact (integrable_exp_sum_mul_gaussianReal (-c)).const_mul _
 
 theorem sk_first_moment_term_sq (N : ℕ) (β : ℝ) (σ : Fin N → ℤˣ) (p : FinPairs N) :
     ((Real.sqrt N)⁻¹ * β * ((σ p.val.1 : ℤ) : ℝ) * ((σ p.val.2 : ℤ) : ℝ)) ^ 2 / 2 =

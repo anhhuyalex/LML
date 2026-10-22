@@ -8,6 +8,7 @@ module
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.Pi
 public import LeanMachineLearning.ForMathlib.MeasureTheory.MeasurableSpace.Units
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.HypercubeProduct
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Hyperbolic
 public import LeanMachineLearning.SpinGlasses.FreeEnergy
 public import Mathlib.Analysis.Calculus.ParametricIntegral
 public import Mathlib.MeasureTheory.Measure.Tilted
@@ -346,23 +347,10 @@ theorem integral_prod_count_tilted_units_mul [Finite α] [Nonempty α] (A L : α
   let _ := Fintype.ofFinite α
   let At := fun x : α × ℤˣ => A x.1 + (x.2 : ℝ) * L x.1
   let ZA := ∑ a : α, Real.exp (A a)
-  have hZA_pos : 0 < ZA := by
-    obtain ⟨a₀⟩ := (inferInstance : Nonempty α)
-    exact Finset.sum_pos' (fun a _ => (Real.exp_pos (A a)).le) ⟨a₀, mem_univ a₀, Real.exp_pos _⟩
+  have hZA_pos : 0 < ZA := sum_exp_mul_pos A (fun _ => 1) fun _ => one_pos |>.trans_eq' (by simp [ZA])
   have hZt : (∑ x : α × ℤˣ, Real.exp (At x)) =
       2 * (ZA * ∫ a, Real.cosh (L a) ∂(Measure.count.tilted A)) := by
-    have h1 := sum_exp_prod_units A L
-    rw [integral_count_tilted, h1]
-    have h2 : (∑ a : α, Real.exp (A a) * Real.cosh (L a)) =
-        ZA * ∑ a : α, Real.exp (A a) / ZA * Real.cosh (L a) := by
-      rw [Finset.mul_sum]
-      apply Finset.sum_congr rfl
-      intro a _
-      calc Real.exp (A a) * Real.cosh (L a) =
-          ZA * (Real.exp (A a) / ZA) * Real.cosh (L a) := by
-            rw [mul_div_cancel₀ _ hZA_pos.ne']
-        _ = ZA * (Real.exp (A a) / ZA * Real.cosh (L a)) := by rw [mul_assoc]
-    rw [h2]
+    rw [sum_exp_prod_units, mul_integral_count_tilted]
   have h_lhs := integral_prod_count_tilted_eq_double_sum (f := At)
     (Θ := fun x y => (x.2 : ℝ) * (y.2 : ℝ) * g x.1 y.1)
   have h_rhs := integral_prod_count_tilted_eq_double_sum (f := A)
@@ -424,35 +412,6 @@ theorem abs_integral_prod_count_tilted_units_mul_le [Finite α] [Nonempty α] (A
       ∂(Measure.count.tilted A).prod (Measure.count.tilted A) :=
     integral_nonneg fun p => by positivity
   exact (div_le_div_of_nonneg_right hnum (by positivity)).trans (div_le_self hnum_nonneg hden)
-
-/-- Product formula for hyperbolic cosine: `cosh x * cosh y = (cosh (x + y) + cosh (x - y)) / 2`. -/
-theorem cosh_mul_cosh (x y : ℝ) :
-    Real.cosh x * Real.cosh y = (Real.cosh (x + y) + Real.cosh (x - y)) / 2 := by
-  have h1 := Real.cosh_add x y
-  have h2 := Real.cosh_sub x y
-  linarith
-
-/-- Hyperbolic sine is bounded by hyperbolic cosine in absolute value: `|sinh x| ≤ cosh x`. -/
-theorem abs_sinh_le_cosh (x : ℝ) : |Real.sinh x| ≤ Real.cosh x := by
-  have h1 : Real.sinh x ≤ Real.cosh x := by
-    have : 0 ≤ Real.exp (-x) := (Real.exp_pos (-x)).le
-    have h_diff : Real.cosh x - Real.sinh x = Real.exp (-x) := by
-      rw [Real.cosh_eq, Real.sinh_eq]; ring
-    linarith
-  have h2 : -Real.sinh x ≤ Real.cosh x := by
-    have : 0 ≤ Real.exp x := (Real.exp_pos x).le
-    have h_diff : Real.cosh x - (-Real.sinh x) = Real.exp x := by
-      rw [Real.cosh_eq, Real.sinh_eq]; ring
-    linarith
-  exact abs_le.2 ⟨by linarith, h1⟩
-
-/-- Product of hyperbolic sines is bounded by the product of hyperbolic cosines:
-`|sinh x * sinh y| ≤ cosh x * cosh y`. -/
-theorem abs_sinh_mul_sinh_le_cosh_mul_cosh (x y : ℝ) :
-    |Real.sinh x * Real.sinh y| ≤ Real.cosh x * Real.cosh y := by
-  rw [abs_mul]
-  exact mul_le_mul (abs_sinh_le_cosh x) (abs_sinh_le_cosh y)
-    (abs_nonneg _) (Real.cosh_pos x).le
 
 omit [Fintype α] in
 /-- The log Gibbs average of `cosh` of a field is measurable in any parameter on which the base
