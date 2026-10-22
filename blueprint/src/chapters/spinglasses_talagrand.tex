@@ -1665,18 +1665,34 @@ by independence.
 \begin{lemma}[Uniform variance bound for the cavity field linear combinations]
 \label{lem:sg-tal:cavity-linear-combo-var}
   \lean{SpinGlasses.sum_sq_units_add_or_sub_le,
-        SpinGlasses.sum_sq_sk_cavity_linear_combo_le}
+        SpinGlasses.sum_sq_sk_cavity_linear_combo_le,
+        integrable_cosh_two_sum_mul_gaussianReal,
+        integral_cosh_two_sum_mul_gaussianReal,
+        integrable_cosh_sum_mul_add_mul_gaussianReal,
+        integral_cosh_sum_mul_add_mul_gaussianReal,
+        SpinGlasses.integral_cosh_sk_cavity_linear_combo_le}
   \leanok
 \talsource{Proof of Eq.~(1.181)}
 For any Ising configurations $\sigma, \tau \in \{-1, 1\}^N$, any angle $s$, and any sign $\pm 1$, the variance of
 the linear combination $\cos s (X_\sigma \pm X_\tau) + \sin s (Y_\sigma \pm Y_\tau)$ under the cavity Gaussian disorder
 is at most $4 \beta^2$.
+Consequently, for every $m\in\mathbb R$, the Gaussian moment of the hyperbolic cosine is bounded
+uniformly by
+\[
+  \mathbb E\cosh\!\left(\cos s(X_\sigma\pm X_\tau)
+    +\sin s(Y_\sigma\pm Y_\tau)+m\right)
+  \le \cosh(m)\exp(2\beta^2).
+\]
 \end{lemma}
 \begin{proof}
   \leanok
 The Ising coordinate differences $(\sigma_i \pm \tau_i)^2$ are at most $4$, so their sum is at most $4N$, cancelling
 the factor $1/N$. The scalar coordinate satisfies $(1 \pm 1)^2 \le 4$ and $q \le 1$. Squaring and summing with
 $\cos^2 s + \sin^2 s = 1$ yields at most $4 \beta^2$.
+The reusable product-Gaussian moment formula evaluates the displayed expectation as
+$\cosh(m)\exp(V/2)$, where $V$ is that variance bound, and monotonicity of the exponential gives
+the result.  Both the two-finite-block and finite-block-plus-scalar formulas live in the generic
+Gaussian moment module rather than in the SK development.
 \end{proof}
 
 \begin{lemma}[Uniform truncated-overlap and covariance bounds]

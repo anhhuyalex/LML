@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedBound
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianGram
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiExp
 public import LeanMachineLearning.SpinGlasses.SKCavityOverlap
 public import LeanMachineLearning.SpinGlasses.SKSmartPath
 public import LeanMachineLearning.SpinGlasses.PoissonDirichletIdentities
@@ -422,5 +423,24 @@ lemma sum_sq_sk_cavity_linear_combo_le (N : ℕ) (hN : 0 < N) (β q s : ℝ)
       add_le_add h_edge h_scalar
     _ = (Real.cos s ^ 2 + Real.sin s ^ 2) * (4 * β ^ 2) := by ring
     _ = 4 * β ^ 2 := by rw [Real.cos_sq_add_sin_sq, one_mul]
+
+/-- The Gaussian `cosh` moment of either the sum or the difference of two interpolated
+N-spin cavity fields is bounded uniformly in the interpolation angle. -/
+theorem integral_cosh_sk_cavity_linear_combo_le (N : ℕ) (hN : 0 < N) (β q s m : ℝ)
+    (hq : q ∈ Set.Icc (0 : ℝ) 1) (σ τ : Fin N → ℤˣ) (sign : ℝ)
+    (hsign : sign = 1 ∨ sign = -1) :
+    (∫ ω : (Fin N → ℝ) × ℝ,
+      Real.cosh
+        (∑ i : Fin N,
+            (Real.cos s * ((Real.sqrt (N : ℝ))⁻¹ * β *
+              ((σ i : ℝ) + sign * (τ i : ℝ)))) * ω.1 i +
+          (Real.sin s * (β * Real.sqrt q * (1 + sign))) * ω.2 + m)
+      ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))) ≤
+      Real.cosh m * Real.exp (2 * β ^ 2) := by
+  rw [integral_cosh_sum_mul_add_mul_gaussianReal]
+  refine mul_le_mul_of_nonneg_left (Real.exp_le_exp.mpr ?_) (Real.cosh_pos m).le
+  have hvar := sum_sq_sk_cavity_linear_combo_le N hN β q s hq σ τ sign hsign
+  dsimp only at hvar
+  linarith
 
 end SpinGlasses

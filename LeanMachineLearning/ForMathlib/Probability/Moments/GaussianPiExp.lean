@@ -17,6 +17,10 @@ coefficients `c : E → ℝ`, `m : ℝ`:
 
 * `integral_exp_sum_mul_gaussianReal`: `𝔼 exp (∑ cₑ gₑ) = exp (∑ cₑ² / 2)`;
 * `integral_cosh_sum_mul_gaussianReal`: `𝔼 cosh (∑ cₑ gₑ + m) = cosh m * exp (∑ cₑ² / 2)`.
+* `integral_cosh_two_sum_mul_gaussianReal`: the corresponding formula for two independent
+  finite Gaussian blocks;
+* `integral_cosh_sum_mul_add_mul_gaussianReal`: the product-space formula for a finite block
+  and one independent scalar Gaussian.
 
 Both come with their integrability statements.  The one-dimensional case is
 `integral_exp_mul_gaussianReal_zero_one`.
@@ -91,4 +95,173 @@ theorem integral_cosh_sum_mul_gaussianReal {E : Type*} [Fintype E] (c : E → �
   have hsq : (∑ e, (-c) e ^ 2 / 2) = ∑ e, c e ^ 2 / 2 := by
     simp only [Pi.neg_apply, neg_sq]
   rw [hsq, Real.cosh_eq]
+  ring
+
+
+/-- `cosh` of affine forms in two independent finite Gaussian blocks is the average of the
+corresponding positive and negative exponential products. -/
+theorem cosh_two_sum_mul_add_eq {K L : Type*} [Fintype K] [Fintype L]
+    (c : K → ℝ) (d : L → ℝ) (m : ℝ) (ω : (K → ℝ) × (L → ℝ)) :
+    Real.cosh (∑ i, c i * ω.1 i + ∑ j, d j * ω.2 j + m) =
+      (Real.exp m *
+            (Real.exp (∑ i, c i * ω.1 i) * Real.exp (∑ j, d j * ω.2 j)) +
+          Real.exp (-m) *
+            (Real.exp (∑ i, (-c) i * ω.1 i) *
+              Real.exp (∑ j, (-d) j * ω.2 j))) /
+        2 := by
+  have hc : ∑ i, (-c) i * ω.1 i = -∑ i, c i * ω.1 i := by
+    simp only [Pi.neg_apply, neg_mul, Finset.sum_neg_distrib]
+  have hd : ∑ j, (-d) j * ω.2 j = -∑ j, d j * ω.2 j := by
+    simp only [Pi.neg_apply, neg_mul, Finset.sum_neg_distrib]
+  rw [Real.cosh_eq, hc, hd]
+  have hp : ∑ i, c i * ω.1 i + ∑ j, d j * ω.2 j + m =
+      m + (∑ i, c i * ω.1 i) + ∑ j, d j * ω.2 j := by ring
+  have hn : -(m + ∑ i, c i * ω.1 i + ∑ j, d j * ω.2 j) =
+      -m + (-∑ i, c i * ω.1 i) + -∑ j, d j * ω.2 j := by ring
+  rw [hp, hn, Real.exp_add, Real.exp_add, Real.exp_add, Real.exp_add]
+  ring
+
+/-- Integrability of `cosh` of an affine combination of two independent finite Gaussian
+blocks. -/
+theorem integrable_cosh_two_sum_mul_gaussianReal {K L : Type*} [Fintype K] [Fintype L]
+    (c : K → ℝ) (d : L → ℝ) (m : ℝ) :
+    Integrable (fun ω : (K → ℝ) × (L → ℝ) =>
+      Real.cosh (∑ i, c i * ω.1 i + ∑ j, d j * ω.2 j + m))
+      ((Measure.pi fun _ : K => gaussianReal 0 1).prod
+        (Measure.pi fun _ : L => gaussianReal 0 1)) := by
+  simp_rw [cosh_two_sum_mul_add_eq c d m]
+  have h1 : Integrable (fun ω : (K → ℝ) × (L → ℝ) =>
+      Real.exp (∑ i, c i * ω.1 i) * Real.exp (∑ j, d j * ω.2 j))
+      ((Measure.pi fun _ : K => gaussianReal 0 1).prod
+        (Measure.pi fun _ : L => gaussianReal 0 1)) :=
+    (integrable_exp_sum_mul_gaussianReal c).mul_prod
+      (integrable_exp_sum_mul_gaussianReal d)
+  have h2 : Integrable (fun ω : (K → ℝ) × (L → ℝ) =>
+      Real.exp (∑ i, (-c) i * ω.1 i) * Real.exp (∑ j, (-d) j * ω.2 j))
+      ((Measure.pi fun _ : K => gaussianReal 0 1).prod
+        (Measure.pi fun _ : L => gaussianReal 0 1)) :=
+    (integrable_exp_sum_mul_gaussianReal (-c)).mul_prod
+      (integrable_exp_sum_mul_gaussianReal (-d))
+  exact ((h1.const_mul _).add (h2.const_mul _)).div_const 2
+
+/-- Integral of `cosh` of an affine combination of two independent finite Gaussian blocks. -/
+theorem integral_cosh_two_sum_mul_gaussianReal {K L : Type*} [Fintype K] [Fintype L]
+    (c : K → ℝ) (d : L → ℝ) (m : ℝ) :
+    ∫ ω : (K → ℝ) × (L → ℝ),
+      Real.cosh (∑ i, c i * ω.1 i + ∑ j, d j * ω.2 j + m)
+      ∂((Measure.pi fun _ : K => gaussianReal 0 1).prod
+        (Measure.pi fun _ : L => gaussianReal 0 1)) =
+    Real.cosh m * Real.exp ((∑ i, c i ^ 2 + ∑ j, d j ^ 2) / 2) := by
+  simp_rw [cosh_two_sum_mul_add_eq c d m]
+  have h1 : Integrable (fun ω : (K → ℝ) × (L → ℝ) =>
+      Real.exp (∑ i, c i * ω.1 i) * Real.exp (∑ j, d j * ω.2 j))
+      ((Measure.pi fun _ : K => gaussianReal 0 1).prod
+        (Measure.pi fun _ : L => gaussianReal 0 1)) :=
+    (integrable_exp_sum_mul_gaussianReal c).mul_prod
+      (integrable_exp_sum_mul_gaussianReal d)
+  have h2 : Integrable (fun ω : (K → ℝ) × (L → ℝ) =>
+      Real.exp (∑ i, (-c) i * ω.1 i) * Real.exp (∑ j, (-d) j * ω.2 j))
+      ((Measure.pi fun _ : K => gaussianReal 0 1).prod
+        (Measure.pi fun _ : L => gaussianReal 0 1)) :=
+    (integrable_exp_sum_mul_gaussianReal (-c)).mul_prod
+      (integrable_exp_sum_mul_gaussianReal (-d))
+  rw [integral_div, integral_add (h1.const_mul _) (h2.const_mul _),
+    integral_const_mul, integral_const_mul,
+    integral_prod_mul (fun g : K → ℝ => Real.exp (∑ i, c i * g i))
+      (fun z : L → ℝ => Real.exp (∑ j, d j * z j)),
+    integral_prod_mul (fun g : K → ℝ => Real.exp (∑ i, (-c) i * g i))
+      (fun z : L → ℝ => Real.exp (∑ j, (-d) j * z j)),
+    integral_exp_sum_mul_gaussianReal c, integral_exp_sum_mul_gaussianReal d,
+    integral_exp_sum_mul_gaussianReal (-c), integral_exp_sum_mul_gaussianReal (-d)]
+  have hc : ∑ i, (-c) i ^ 2 / 2 = ∑ i, c i ^ 2 / 2 := by
+    simp only [Pi.neg_apply, neg_sq]
+  have hd : ∑ j, (-d) j ^ 2 / 2 = ∑ j, d j ^ 2 / 2 := by
+    simp only [Pi.neg_apply, neg_sq]
+  rw [hc, hd]
+  have hsum : ∑ i, c i ^ 2 / 2 + ∑ j, d j ^ 2 / 2 =
+      (∑ i, c i ^ 2 + ∑ j, d j ^ 2) / 2 := by
+    rw [← Finset.sum_div, ← Finset.sum_div, ← add_div]
+  have hv : Real.exp (∑ i, c i ^ 2 / 2) * Real.exp (∑ j, d j ^ 2 / 2) =
+      Real.exp ((∑ i, c i ^ 2 + ∑ j, d j ^ 2) / 2) := by
+    rw [← Real.exp_add, hsum]
+  rw [hv, Real.cosh_eq]
+  ring
+
+
+/-- `cosh` of an affine form in a finite Gaussian block and one scalar Gaussian is the average
+of the corresponding positive and negative exponential products. -/
+theorem cosh_sum_mul_add_mul_eq {K : Type*} [Fintype K] (c : K → ℝ) (d m : ℝ)
+    (ω : (K → ℝ) × ℝ) :
+    Real.cosh (∑ i, c i * ω.1 i + d * ω.2 + m) =
+      (Real.exp m * (Real.exp (∑ i, c i * ω.1 i) * Real.exp (d * ω.2)) +
+        Real.exp (-m) *
+          (Real.exp (∑ i, (-c) i * ω.1 i) * Real.exp (-d * ω.2))) / 2 := by
+  have hc : ∑ i, (-c) i * ω.1 i = -∑ i, c i * ω.1 i := by
+    simp only [Pi.neg_apply, neg_mul, Finset.sum_neg_distrib]
+  rw [Real.cosh_eq, hc]
+  have hp : ∑ i, c i * ω.1 i + d * ω.2 + m =
+      m + ∑ i, c i * ω.1 i + d * ω.2 := by ring
+  have hn : -(m + ∑ i, c i * ω.1 i + d * ω.2) =
+      -m + -∑ i, c i * ω.1 i + -d * ω.2 := by ring
+  rw [hp, hn, Real.exp_add, Real.exp_add, Real.exp_add, Real.exp_add]
+  ring
+
+/-- Integrability of `cosh` of an affine combination of a finite Gaussian block and one
+independent scalar Gaussian. -/
+theorem integrable_cosh_sum_mul_add_mul_gaussianReal {K : Type*} [Fintype K]
+    (c : K → ℝ) (d m : ℝ) :
+    Integrable (fun ω : (K → ℝ) × ℝ =>
+      Real.cosh (∑ i, c i * ω.1 i + d * ω.2 + m))
+      ((Measure.pi fun _ : K => gaussianReal 0 1).prod (gaussianReal 0 1)) := by
+  simp_rw [cosh_sum_mul_add_mul_eq c d m]
+  have h1 : Integrable (fun ω : (K → ℝ) × ℝ =>
+      Real.exp (∑ i, c i * ω.1 i) * Real.exp (d * ω.2))
+      ((Measure.pi fun _ : K => gaussianReal 0 1).prod (gaussianReal 0 1)) :=
+    (integrable_exp_sum_mul_gaussianReal c).mul_prod
+      (integrable_exp_mul_gaussianReal d)
+  have h2 : Integrable (fun ω : (K → ℝ) × ℝ =>
+      Real.exp (∑ i, (-c) i * ω.1 i) * Real.exp (-d * ω.2))
+      ((Measure.pi fun _ : K => gaussianReal 0 1).prod (gaussianReal 0 1)) :=
+    (integrable_exp_sum_mul_gaussianReal (-c)).mul_prod
+      (integrable_exp_mul_gaussianReal (-d))
+  exact ((h1.const_mul _).add (h2.const_mul _)).div_const 2
+
+/-- Integral of `cosh` of an affine combination of a finite Gaussian block and one independent
+scalar Gaussian. -/
+theorem integral_cosh_sum_mul_add_mul_gaussianReal {K : Type*} [Fintype K]
+    (c : K → ℝ) (d m : ℝ) :
+    ∫ ω : (K → ℝ) × ℝ, Real.cosh (∑ i, c i * ω.1 i + d * ω.2 + m)
+      ∂((Measure.pi fun _ : K => gaussianReal 0 1).prod (gaussianReal 0 1)) =
+    Real.cosh m * Real.exp ((∑ i, c i ^ 2 + d ^ 2) / 2) := by
+  simp_rw [cosh_sum_mul_add_mul_eq c d m]
+  have h1 : Integrable (fun ω : (K → ℝ) × ℝ =>
+      Real.exp (∑ i, c i * ω.1 i) * Real.exp (d * ω.2))
+      ((Measure.pi fun _ : K => gaussianReal 0 1).prod (gaussianReal 0 1)) :=
+    (integrable_exp_sum_mul_gaussianReal c).mul_prod
+      (integrable_exp_mul_gaussianReal d)
+  have h2 : Integrable (fun ω : (K → ℝ) × ℝ =>
+      Real.exp (∑ i, (-c) i * ω.1 i) * Real.exp (-d * ω.2))
+      ((Measure.pi fun _ : K => gaussianReal 0 1).prod (gaussianReal 0 1)) :=
+    (integrable_exp_sum_mul_gaussianReal (-c)).mul_prod
+      (integrable_exp_mul_gaussianReal (-d))
+  rw [integral_div, integral_add (h1.const_mul _) (h2.const_mul _),
+    integral_const_mul, integral_const_mul,
+    integral_prod_mul (fun g : K → ℝ => Real.exp (∑ i, c i * g i))
+      (fun z : ℝ => Real.exp (d * z)),
+    integral_prod_mul (fun g : K → ℝ => Real.exp (∑ i, (-c) i * g i))
+      (fun z : ℝ => Real.exp (-d * z)),
+    integral_exp_sum_mul_gaussianReal c, integral_exp_sum_mul_gaussianReal (-c),
+    integral_exp_mul_gaussianReal_zero_one d,
+    integral_exp_mul_gaussianReal_zero_one (-d)]
+  have hc : ∑ i, (-c) i ^ 2 / 2 = ∑ i, c i ^ 2 / 2 := by
+    simp only [Pi.neg_apply, neg_sq]
+  have hd : (-d) ^ 2 / 2 = d ^ 2 / 2 := by ring
+  rw [hc, hd]
+  have hsum : ∑ i, c i ^ 2 / 2 + d ^ 2 / 2 =
+      (∑ i, c i ^ 2 + d ^ 2) / 2 := by
+    rw [← Finset.sum_div, ← add_div]
+  have hv : Real.exp (∑ i, c i ^ 2 / 2) * Real.exp (d ^ 2 / 2) =
+      Real.exp ((∑ i, c i ^ 2 + d ^ 2) / 2) := by
+    rw [← Real.exp_add, hsum]
+  rw [hv, Real.cosh_eq]
   ring
