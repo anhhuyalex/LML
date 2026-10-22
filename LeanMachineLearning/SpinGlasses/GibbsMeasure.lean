@@ -332,6 +332,17 @@ theorem integral_prod_count_tilted_eq_double_sum (f : α → ℝ) (Θ : α → �
   intro b _
   ring
 
+/-- Multiplying a tilted counting expectation by the partition function recovers the
+unnormalized weighted sum. -/
+theorem mul_integral_count_tilted [Nonempty α] (f g : α → ℝ) :
+    (∑ c, Real.exp (f c)) * ∫ a, g a ∂(Measure.count.tilted f) =
+      ∑ a, Real.exp (f a) * g a := by
+  have hZ : 0 < ∑ c, Real.exp (f c) :=
+    Finset.sum_pos (fun _ _ => Real.exp_pos _) Finset.univ_nonempty
+  rw [integral_count_tilted, Finset.mul_sum]
+  refine Finset.sum_congr rfl fun a _ => ?_
+  rw [← mul_assoc, mul_div_cancel₀ _ hZ.ne']
+
 omit [Fintype α] in
 /-- **Two-replica sign integration for tilted measures (Talagrand Eq. 1.178 for cosh).**
 Integrating `ε¹ ε² g(ρ¹, ρ²)` under the product of the signed tilted measures gives the
@@ -347,7 +358,6 @@ theorem integral_prod_count_tilted_units_mul [Finite α] [Nonempty α] (A L : α
   let _ := Fintype.ofFinite α
   let At := fun x : α × ℤˣ => A x.1 + (x.2 : ℝ) * L x.1
   let ZA := ∑ a : α, Real.exp (A a)
-  have hZA_pos : 0 < ZA := sum_exp_mul_pos A (fun _ => 1) fun _ => one_pos |>.trans_eq' (by simp [ZA])
   have hZt : (∑ x : α × ℤˣ, Real.exp (At x)) =
       2 * (ZA * ∫ a, Real.cosh (L a) ∂(Measure.count.tilted A)) := by
     rw [sum_exp_prod_units, mul_integral_count_tilted]
@@ -357,24 +367,12 @@ theorem integral_prod_count_tilted_units_mul [Finite α] [Nonempty α] (A L : α
     (Θ := fun a b => g a b * Real.sinh (L a) * Real.sinh (L b))
   have h_num := sum_exp_prod_units_mul_two_replicas A L g
   rw [h_lhs, hZt, h_num, h_rhs]
-  have h4 : (2 * (ZA * ∫ a, Real.cosh (L a) ∂Measure.count.tilted A))⁻¹ ^ 2 =
-      4⁻¹ * (ZA * ∫ a, Real.cosh (L a) ∂Measure.count.tilted A)⁻¹ ^ 2 := by
-    rw [mul_inv, mul_pow]
-    norm_num
-  rw [h4]
-  have hZA2 : (ZA * ∫ a, Real.cosh (L a) ∂Measure.count.tilted A)⁻¹ ^ 2 =
-      ZA⁻¹ ^ 2 * (∫ a, Real.cosh (L a) ∂Measure.count.tilted A)⁻¹ ^ 2 := by
-    rw [mul_inv, mul_pow]
-  rw [hZA2]
-  have h_cancel (U V W : ℝ) : 4⁻¹ * (U * V) * (4 * W) = V * (U * W) := by ring
-  rw [h_cancel]
-  rw [div_eq_inv_mul, inv_pow]
+  have hS : (∑ a, ∑ b, Real.exp (A a) * Real.exp (A b) * g a b * Real.sinh (L a) *
+      Real.sinh (L b)) = ∑ a, ∑ b, Real.exp (A a) * Real.exp (A b) *
+        (g a b * Real.sinh (L a) * Real.sinh (L b)) := by
+    simp_rw [mul_assoc]
+  rw [hS, div_eq_mul_inv, inv_pow]
   dsimp only [ZA]
-  congr 2
-  apply Finset.sum_congr rfl
-  intro a _
-  apply Finset.sum_congr rfl
-  intro b _
   ring
 
 omit [Fintype α] in

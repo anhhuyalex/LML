@@ -512,6 +512,11 @@ lemma fderiv_fderiv_log_sum_exp_single (y : α → ℝ) (l k : α) :
   simp [Pi.single_apply]
   split_ifs <;> field_simp <;> ring
 
+/-- A `0/1` indicator minus a weight in `[0, 1]` has absolute value at most `1`. -/
+theorem abs_ite_one_sub_le_one {p : Prop} [Decidable p] {w : ℝ} (hw : w ∈ Set.Icc (0 : ℝ) 1) :
+    |(if p then (1 : ℝ) else 0) - w| ≤ 1 := by
+  split_ifs <;> rw [abs_le] <;> constructor <;> linarith [hw.1, hw.2]
+
 omit [DecidableEq κ] in
 /-- **Gaussian comparison for the free energy** (the smooth form of Slepian's inequality).
 Let `(X, Y)` be a centered jointly Gaussian pair of fields on a finite set with `𝔼 X(a) Y(b) = 0`,
@@ -554,12 +559,8 @@ theorem integral_log_sum_exp_le_of_covariance_le [Nonempty κ]
     (C₀ := |Real.log (∑ a, Real.exp (h a))| + 1) (c₀ := 1) (fun y => by
       rw [abs_neg]
       refine (abs_log_sum_exp_le h y).trans ?_
-      have hS : 0 ≤ ∑ a, |y a| := Finset.sum_nonneg fun _ _ => abs_nonneg _
-      have hL := abs_nonneg (Real.log (∑ a, Real.exp (h a)))
-      have h1 : 1 ≤ Real.exp (1 * ∑ a, |y a|) := Real.one_le_exp (by linarith)
-      have h2 : ∑ a, |y a| ≤ Real.exp (1 * ∑ a, |y a|) := by
-        linarith [Real.add_one_le_exp (1 * ∑ a, |y a|)]
-      nlinarith)
+      simpa only [one_mul] using Real.add_le_add_one_mul_exp (abs_nonneg _)
+        (Finset.sum_nonneg fun a _ => abs_nonneg (y a)))
     (D := fun _ => 1) (c₁ := 0) (fun l y => by
       rw [hF1, abs_neg, abs_of_nonneg (gibbsWeight_mem_Icc y h l).1]
       simpa using (gibbsWeight_mem_Icc y h l).2)
@@ -568,10 +569,7 @@ theorem integral_log_sum_exp_le_of_covariance_le [Nonempty κ]
       have hl := gibbsWeight_mem_Icc y h l
       have hk := gibbsWeight_mem_Icc y h k
       rw [abs_of_nonneg hl.1]
-      have : |(if l = k then (1 : ℝ) else 0) - Real.exp (y k + h k) / ∑ a, Real.exp (y a + h a)| ≤
-          1 := by
-        split_ifs <;> rw [abs_le] <;> constructor <;> linarith [hl.1, hl.2, hk.1, hk.2]
-      simpa using mul_le_mul hl.2 this (abs_nonneg _) zero_le_one)
+      simpa using mul_le_mul hl.2 (abs_ite_one_sub_le_one hk) (abs_nonneg _) zero_le_one)
   simp only [integral_neg] at key
   exact neg_le_neg_iff.1 key
 

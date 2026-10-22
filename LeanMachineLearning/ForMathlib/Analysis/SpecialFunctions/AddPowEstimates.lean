@@ -129,3 +129,8 @@ theorem Real.HolderConjugate.succ_div_self {m : ℝ} (hm : 0 < m) :
   rw [Real.holderConjugate_iff]
   refine ⟨by rw [lt_div_iff₀ hm]; linarith, ?_⟩
   field_simp
+
+/-- Linear-to-exponential domination: `A + B ≤ (A + 1) * exp B` for `A, B ≥ 0`. -/
+theorem Real.add_le_add_one_mul_exp {A B : ℝ} (hA : 0 ≤ A) (hB : 0 ≤ B) :
+    A + B ≤ (A + 1) * Real.exp B := by
+  nlinarith [mul_le_mul_of_nonneg_left (Real.one_le_exp hB) hA, Real.add_one_le_exp B]
