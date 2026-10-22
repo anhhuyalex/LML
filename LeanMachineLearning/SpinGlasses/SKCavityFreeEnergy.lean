@@ -710,6 +710,46 @@ theorem sk_cavity_free_energy_increment_le_of_estimates (N : ℕ) (β h q : ℝ)
   exact cavity_free_energy_increment_le_of_estimates N β h q hN log_cosh _ _ ν K1 K2 K3 K
     (sk_free_energy_increment_eq N β h hN) h_cosh h_perturb hK1 hK2 hν
 
+/-- The explicit error coefficients in the SK cavity increment are dominated by the single
+constant used in Proposition 1.6.8.  This isolates scalar arithmetic from the free-energy
+assembly. -/
+theorem sk_cavity_constants_le (β h : ℝ) :
+    3 * β ^ 2 * Real.exp (4 * β ^ 2) ≤
+        6 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) + 1 ∧
+      β ^ 2 * Real.cosh (2 * h) * Real.exp (2 * β ^ 2) +
+          3 * β ^ 2 * Real.exp (4 * β ^ 2) ≤
+        6 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) + 1 := by
+  have hcosh : 1 ≤ Real.cosh (2 * h) := Real.one_le_cosh (2 * h)
+  have hexp : Real.exp (2 * β ^ 2) ≤ Real.exp (4 * β ^ 2) := by
+    gcongr
+    nlinarith [sq_nonneg β]
+  constructor
+  · calc
+      3 * β ^ 2 * Real.exp (4 * β ^ 2)
+          ≤ 3 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) :=
+        le_mul_of_one_le_right (by positivity) hcosh
+      _ ≤ 6 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) + 1 := by
+        have hnonneg : 0 ≤ 3 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) := by
+          positivity
+        linarith
+  · have hfirst : β ^ 2 * Real.cosh (2 * h) * Real.exp (2 * β ^ 2) ≤
+        β ^ 2 * Real.cosh (2 * h) * Real.exp (4 * β ^ 2) :=
+      mul_le_mul_of_nonneg_left hexp (by positivity)
+    have hsecond : 3 * β ^ 2 * Real.exp (4 * β ^ 2) ≤
+        3 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) :=
+      le_mul_of_one_le_right (by positivity) hcosh
+    calc
+      β ^ 2 * Real.cosh (2 * h) * Real.exp (2 * β ^ 2) +
+          3 * β ^ 2 * Real.exp (4 * β ^ 2)
+          ≤ β ^ 2 * Real.cosh (2 * h) * Real.exp (4 * β ^ 2) +
+            3 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) :=
+        add_le_add hfirst hsecond
+      _ = 4 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) := by ring
+      _ ≤ 6 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) + 1 := by
+        have hnonneg : 0 ≤ 2 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) := by
+          positivity
+        linarith
+
 /-- **Talagrand's Proposition 1.6.8 (Eq. 1.170), the cavity free-energy increment bound.**
 For all `N > 0`, `β, h, q ∈ ℝ` with `0 ≤ q ≤ 1`, the difference between the expected free energy at
 `N + 1` spins and `N` spins satisfies
@@ -813,34 +853,11 @@ theorem sk_cavity_free_energy_increment_le (N : ℕ) (β h q : ℝ) (hN : 0 < N)
   let K2 := 3 * β ^ 2 * Real.exp (4 * β ^ 2)
   let K3 := 3 * β ^ 2 * Real.exp (4 * β ^ 2)
   let K := 6 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) + 1
-  have hcosh : 1 ≤ Real.cosh (2 * h) := Real.one_le_cosh (2 * h)
-  have hexp1 : Real.exp (2 * β ^ 2) ≤ Real.exp (4 * β ^ 2) := by
-    gcongr
-    nlinarith [sq_nonneg β]
+  have hconstants := sk_cavity_constants_le β h
   have hK1 : K2 ≤ K := by
-    dsimp [K2, K]
-    calc 3 * β ^ 2 * Real.exp (4 * β ^ 2)
-      _ ≤ 3 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) :=
-        le_mul_of_one_le_right (by positivity) hcosh
-      _ ≤ 6 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) + 1 := by
-        have : 0 ≤ 3 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) := by positivity
-        linarith
+    simpa only [K2, K] using hconstants.1
   have hK2 : K1 + K3 ≤ K := by
-    dsimp [K1, K3, K]
-    have hK1_le : β ^ 2 * Real.cosh (2 * h) * Real.exp (2 * β ^ 2) ≤
-        β ^ 2 * Real.cosh (2 * h) * Real.exp (4 * β ^ 2) := by
-      have : 0 ≤ β ^ 2 * Real.cosh (2 * h) := by positivity
-      exact mul_le_mul_of_nonneg_left hexp1 this
-    have hK3_le : 3 * β ^ 2 * Real.exp (4 * β ^ 2) ≤
-        3 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) :=
-      le_mul_of_one_le_right (by positivity) hcosh
-    calc β ^ 2 * Real.cosh (2 * h) * Real.exp (2 * β ^ 2) + 3 * β ^ 2 * Real.exp (4 * β ^ 2)
-      _ ≤ β ^ 2 * Real.cosh (2 * h) * Real.exp (4 * β ^ 2) +
-          3 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) := add_le_add hK1_le hK3_le
-      _ = 4 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) := by ring
-      _ ≤ 6 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) + 1 := by
-        have : 0 ≤ 2 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) := by positivity
-        linarith
+    simpa only [K1, K3, K] using hconstants.2
   have hν : 0 ≤ ν := by
     dsimp [ν]
     apply integral_nonneg

@@ -1598,7 +1598,8 @@ Combine \texttt{sk\_free\_energy\_increment\_eq} with the assembly theorem
 
 \begin{theorem}[Cavity free-energy increment bound (Proposition~1.6.8)]
 \label{thm:sg-tal:cavity-free-energy-increment}
-  \lean{SpinGlasses.sk_cavity_free_energy_increment_le}
+  \lean{SpinGlasses.sk_cavity_constants_le,
+        SpinGlasses.sk_cavity_free_energy_increment_le}
   \leanok
 \talsource{Proposition~1.6.8, Eq.~(1.170)}
 For all $N > 0$, $\beta, h, q \in \mathbb R$ with $0 \le q \le 1$, the expected free-energy increment satisfies
@@ -1670,6 +1671,11 @@ by independence.
 \label{lem:sg-tal:cavity-linear-combo-var}
   \lean{SpinGlasses.sum_sq_units_add_or_sub_le,
         SpinGlasses.sum_sq_sk_cavity_linear_combo_le,
+        SpinGlasses.sk_cavity_field_linear_combo_eq,
+        Real.cosh_add_add_eq,
+        Real.cosh_le_exp_abs,
+        integrable_exp_prod_mul_gaussianReal,
+        integrable_exp_mul_prod_gaussianReal,
         integrable_cosh_two_sum_mul_gaussianReal,
         integral_cosh_two_sum_mul_gaussianReal,
         integrable_cosh_sum_mul_add_mul_gaussianReal,
@@ -1708,6 +1714,8 @@ and apply the moment bound at $m = 2h$ and $m = 0$.
 \begin{lemma}[Fixed-base signed-overlap domination for the cavity $\cosh$ path]
 \label{lem:sg-tal:cavity-signed-overlap-bound}
   \lean{SpinGlasses.sk_cavity_covariance_bracket_eq,
+        integral_mul_self_of_sq_eq_one,
+        integral_mul_mul_eq_mul_integral,
         SpinGlasses.integrable_integral_prod_count_tilted,
         SpinGlasses.integral_prod_count_tilted_swap,
         SpinGlasses.integral_prod_count_tilted_mul_le,
@@ -1742,6 +1750,8 @@ integrability and measurability lemmas make the triangle and Fubini steps explic
 \begin{lemma}[Old-disorder-averaged cavity bracket and domination]
 \label{lem:sg-tal:cavity-outer-signed-overlap-bound}
   \lean{SpinGlasses.abs_log_integral_cosh_count_tilted_le_sum_abs,
+        abs_integral_le_const_mul_integral,
+        integral_const_add_of_isProbabilityMeasure,
         SpinGlasses.aestronglyMeasurable_integral_log_integral_cosh_count_tilted,
         SpinGlasses.integrable_integral_log_integral_cosh_count_tilted,
         SpinGlasses.abs_integral_integral_sk_cavity_signed_overlap_le,

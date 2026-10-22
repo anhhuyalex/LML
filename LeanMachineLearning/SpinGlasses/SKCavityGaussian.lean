@@ -664,7 +664,12 @@ theorem abs_integral_sk_cavity_signed_overlap_le (N : ℕ) (β h q s : ℝ) (hN 
         ∂((Measure.count.tilted A).prod (Measure.count.tilted A)) := by
     simpa only [F, mul_assoc] using
       abs_integral_prod_count_tilted_units_mul_le A (fun σ => L σ ω) g
-  have h_outer := norm_integral_le_of_norm_le h_rhs_int
+  have h_outer := norm_integral_le_of_norm_le
+    (f := fun ω =>
+      ∫ p : ((Fin N → ℤˣ) × ℤˣ) × ((Fin N → ℤˣ) × ℤˣ),
+        (p.1.2 : ℝ) * (p.2.2 : ℝ) * g p.1.1 p.2.1
+      ∂((Measure.count.tilted fun x => A x.1 + (x.2 : ℝ) * L x.1 ω).prod
+        (Measure.count.tilted fun x => A x.1 + (x.2 : ℝ) * L x.1 ω))) h_rhs_int
     (ae_of_all _ fun ω => by simpa only [Real.norm_eq_abs] using h_point ω)
   calc
     |∫ ω, ∫ p : ((Fin N → ℤˣ) × ℤˣ) × ((Fin N → ℤˣ) × ℤˣ),
@@ -815,11 +820,13 @@ theorem integral_integral_sk_cavity_covariance_bracket_eq
           ∫ ω', (p.1.2 : ℝ) * X p.1.1 ω' * ((p.2.2 : ℝ) * X p.2.1 ω') ∂P)) =
         C + G p := fun p => sk_cavity_covariance_bracket_eq N hN β q hq p
     simp_rw [heq]
-    rw [integral_add (integrable_const _) Integrable.of_finite, integral_const,
-      probReal_univ, one_smul]
+    rw [integral_const_add_of_isProbabilityMeasure (μ ω) C G Integrable.of_finite]
   rw [integral_congr_ae (ae_of_all _ hpoint)]
   simp_rw [mul_add]
-  rw [integral_add (integrable_const _) (hGint.const_mul _), integral_const,
-    probReal_univ, one_smul, integral_const_mul]
+  rw [integral_const_add_of_isProbabilityMeasure P
+      (Real.sin s * Real.cos s * C)
+      (fun ω => Real.sin s * Real.cos s * ∫ p, G p ∂μ ω)
+      (hGint.const_mul _),
+    integral_const_mul]
 
 end SpinGlasses

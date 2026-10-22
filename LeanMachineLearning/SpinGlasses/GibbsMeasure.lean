@@ -251,9 +251,7 @@ theorem abs_log_integral_cosh_count_tilted_le_sum_abs [Nonempty α]
   rw [abs_of_nonneg (Real.log_nonneg h_one)]
   refine (Real.log_le_iff_le_exp (by positivity)).2 ?_
   have hpoint : ∀ a, Real.cosh (L a) ≤ Real.exp (∑ b, |L b|) := fun a => by
-    have hc : Real.cosh (L a) ≤ Real.exp |L a| := by
-      nlinarith [two_cosh_le_exp_abs_mul (L a)]
-    refine hc.trans ?_
+    refine (Real.cosh_le_exp_abs (L a)).trans ?_
     exact Real.exp_le_exp.2 (Finset.single_le_sum (fun b _ => abs_nonneg (L b))
       (Finset.mem_univ a))
   calc

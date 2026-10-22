@@ -46,7 +46,7 @@ theorem abs_integral_le_const_mul_integral {X : Type*} [MeasurableSpace X]
     (μ : Measure X) {f g : X → ℝ} {K : ℝ} (hg : Integrable g μ)
     (hfg : ∀ x, |f x| ≤ K * g x) :
     |∫ x, f x ∂μ| ≤ K * ∫ x, g x ∂μ := by
-  have h := norm_integral_le_of_norm_le (hg.const_mul K)
+  have h := norm_integral_le_of_norm_le (f := f) (hg.const_mul K)
     (ae_of_all _ fun x => by simpa only [Real.norm_eq_abs] using hfg x)
   simpa only [Real.norm_eq_abs, integral_const_mul] using h
 
