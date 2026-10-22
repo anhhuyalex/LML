@@ -365,7 +365,7 @@ theorem integral_sk_pair_perturb_endpoint_transport (N : ℕ) (hN : 0 < N) (β h
       Eg (fun i => (Real.sqrt (N + 1 : ℝ))⁻¹ * β * η i +
         β * (Real.sqrt ((N : ℝ) * (N + 1)))⁻¹ * u i) := fun u => funext fun a => by
     simp only [Eg, Finset.mul_sum, add_mul, Finset.sum_add_distrib]
-    ring
+    ring_nf
   simp only [hen]
   exact integral_prod_fun_fst_of_isProbabilityMeasure (Measure.pi fun _ : FinPairs (N + 1) =>
     gaussianReal 0 1) (gaussianReal 0 1) (fun u => f (fun i =>

@@ -12,6 +12,7 @@ public import LeanMachineLearning.SpinGlasses.SKCavityFreeEnergy
 public import LeanMachineLearning.SpinGlasses.SKCavityCoshEstimate
 public import LeanMachineLearning.SpinGlasses.SKCavityBounds
 public import LeanMachineLearning.SpinGlasses.SKCavityDomination
+public import LeanMachineLearning.SpinGlasses.SKPairPerturbCavity
 
 /-!
 # The pair-perturbation estimate (Talagrand Eq. 1.182)
@@ -350,5 +351,168 @@ theorem sk_pair_perturb_overlap_path_le
     _ ≤ Real.exp (20 * β ^ 2 * Real.sin s ^ 2 / 2) * φ 0 := hgr
     _ ≤ Real.exp (10 * β ^ 2) * φ 0 := mul_le_mul_of_nonneg_right hexp hφ0
     _ = _ := by rw [hφ0']
+
+/-- **Talagrand's Eq. (1.182), with explicit constants.**  The expected log Gibbs average of the
+independent pair perturbation `exp(β (N(N+1))^{-1/2} ∑ g''_{ij} σᵢσⱼ)` in the `(N+1)`-spin system
+at coefficient `β / √(N+1)` is within `β² / N + β² cosh(2h) exp(12β²) ν` of
+`(β²/4)(1 - q²)`, where `ν` is the `N`-spin two-replica average of `|R_{1,2} - q|`.  This is the
+hypothesis `h_perturb` of `sk_cavity_free_energy_increment_le`, with the constants that the
+interpolation actually gives. -/
+theorem sk_pair_perturb_estimate (N : ℕ) (hN : 0 < N) (β h q : ℝ)
+    (hq : q ∈ Set.Icc (0 : ℝ) 1) :
+    |(∫ qdis : (FinPairs (N + 1) → ℝ) × (FinPairs (N + 1) → ℝ),
+      Real.log (∫ σ : Fin (N + 1) → ℤˣ,
+        Real.exp (β * (Real.sqrt ((N : ℝ) * (N + 1)))⁻¹ *
+          ∑ p : FinPairs (N + 1), qdis.2 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ))
+        ∂Measure.count.tilted (fun σ =>
+          (Real.sqrt (N + 1 : ℝ))⁻¹ * β *
+            (∑ p : FinPairs (N + 1), qdis.1 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
+            h * ∑ i, (σ i : ℝ)))
+      ∂((Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1).prod
+        (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))) -
+      β ^ 2 / 4 * (1 - q ^ 2)| ≤
+    β ^ 2 / (N : ℝ) +
+      (β ^ 2 * Real.cosh (2 * h) * Real.exp (12 * β ^ 2)) *
+        ∫ g' : FinPairs N → ℝ,
+          ∫ p : (Fin N → ℤˣ) × (Fin N → ℤˣ),
+            |(N : ℝ)⁻¹ * ∑ i : Fin N, (p.1 i : ℝ) * (p.2 i : ℝ) - q|
+            ∂((Measure.count.tilted (fun ρ =>
+              (Real.sqrt (N : ℝ))⁻¹ * β *
+                (∑ p : FinPairs N, g' p * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) +
+                h * ∑ i, (ρ i : ℝ))).prod
+              (Measure.count.tilted (fun ρ =>
+                (Real.sqrt (N : ℝ))⁻¹ * β *
+                  (∑ p : FinPairs N, g' p * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) +
+                  h * ∑ i, (ρ i : ℝ))))
+          ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) := by
+  have _ : Nonempty (Fin (N + 1) → ℤˣ) := ⟨fun _ => 1⟩
+  have _ : Nonempty (Fin N → ℤˣ) := ⟨fun _ => 1⟩
+  set P₀ : Measure (FinPairs (N + 1) → ℝ) := Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1
+    with hP₀
+  set P : Measure ((FinPairs (N + 1) → ℝ) × ℝ) := P₀.prod (gaussianReal 0 1) with hPdef
+  set a₁ : ℝ := (Real.sqrt (N + 1 : ℝ))⁻¹ * β with ha₁
+  set b₁ : ℝ := β * (Real.sqrt ((N : ℝ) * (N + 1)))⁻¹ with hb₁
+  let B : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun η a =>
+    (Real.sqrt (N + 1 : ℝ))⁻¹ * β *
+      (∑ p : FinPairs (N + 1), η p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) + h * ∑ i, (a i : ℝ)
+  have hB : ∀ a, Measurable fun η => B η a := fun a => by simp only [B]; fun_prop
+  have hid : Integrable (id : ℝ → ℝ) (gaussianReal 0 1) :=
+    (memLp_id_gaussianReal 1).integrable le_rfl
+  have hBi : ∀ a, Integrable (fun η => B η a) P₀ := fun a =>
+    ((integrable_finsetSum _ fun p _ =>
+      ((integrable_eval (μ := fun _ : FinPairs (N + 1) => gaussianReal 0 1) hid).mul_const
+        _).mul_const _).const_mul _).add (integrable_const _)
+  let Fp : ℝ → ℝ := fun s => ∫ η, ∫ ω : (FinPairs (N + 1) → ℝ) × ℝ,
+    Real.log (∑ a : Fin (N + 1) → ℤˣ, Real.exp (Real.cos s *
+      (β * (Real.sqrt ((N : ℝ) * (N + 1)))⁻¹ *
+        ∑ p : FinPairs (N + 1), ω.1 p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+      Real.sin s * (β * (Real.sqrt 2)⁻¹ * q * ω.2) + B η a)) ∂P ∂P₀
+  let Zb : ℝ := ∫ η, Real.log (∑ a : Fin (N + 1) → ℤˣ, Real.exp (B η a)) ∂P₀
+  let ψ : ℝ → ℝ := fun s => Fp s - Zb
+  let ν : ℝ := ∫ g' : FinPairs N → ℝ,
+    ∫ p : (Fin N → ℤˣ) × (Fin N → ℤˣ),
+      |(N : ℝ)⁻¹ * ∑ i : Fin N, (p.1 i : ℝ) * (p.2 i : ℝ) - q|
+      ∂((Measure.count.tilted (fun ρ => (Real.sqrt (N : ℝ))⁻¹ * β *
+          (∑ p : FinPairs N, g' p * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) +
+          h * ∑ i, (ρ i : ℝ))).prod
+        (Measure.count.tilted (fun ρ => (Real.sqrt (N : ℝ))⁻¹ * β *
+          (∑ p : FinPairs N, g' p * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) +
+          h * ∑ i, (ρ i : ℝ))))
+    ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
+  have hν : 0 ≤ ν := integral_nonneg fun _ => integral_nonneg fun _ => abs_nonneg _
+  have hK3 : 0 ≤ β ^ 2 * Real.cosh (2 * h) * Real.exp (12 * β ^ 2) := by positivity
+  have hd : ∀ s, ∃ D, HasDerivAt ψ (Real.sin s * Real.cos s * D) s ∧
+      (s ∈ Set.Icc 0 (Real.pi / 2) → |D - (-β ^ 2 / 2 * (1 - q ^ 2))| ≤
+        2 * (β ^ 2 / (N : ℝ) + (β ^ 2 * Real.cosh (2 * h) * Real.exp (12 * β ^ 2)) * ν)) := by
+    intro s
+    obtain ⟨D, hD, hDb⟩ := exists_hasDerivAt_sk_pair_perturb_path P₀ N hN β q hq B hB hBi s
+    refine ⟨D, hD.sub_const Zb, fun hs => ?_⟩
+    have h1 := sk_pair_perturb_overlap_path_le P₀ N hN β q hq B hB hs
+    have h2 := integral_sk_pair_perturb_endpoint_transport N hN β h q hq
+    have h3 := integral_sk_pair_perturb_cavity_le N hN β h q hq
+    have h4 : (2 * β ^ 2 / ((N : ℝ) + 1)) ≤ 2 * β ^ 2 / (N : ℝ) :=
+      div_le_div_of_nonneg_left (by positivity) (by exact_mod_cast hN) (by linarith)
+    have hnu : 0 ≤ (β ^ 2 * Real.cosh (2 * h) * Real.exp (12 * β ^ 2)) * ν := mul_nonneg hK3 hν
+    have e : β ^ 2 * (Real.exp (10 * β ^ 2) * (Real.cosh (2 * h) * Real.exp (2 * β ^ 2) * ν)) =
+        (β ^ 2 * Real.cosh (2 * h) * Real.exp (12 * β ^ 2)) * ν := by
+      rw [show 12 * β ^ 2 = 10 * β ^ 2 + 2 * β ^ 2 by ring, Real.exp_add]
+      ring
+    have key := h1.trans (mul_le_mul_of_nonneg_left (h2.le.trans h3) (Real.exp_nonneg _))
+    calc |D - (-β ^ 2 / 2 * (1 - q ^ 2))| = |D - (-(β ^ 2 / 2) * (1 - q ^ 2))| := by ring_nf
+      _ ≤ _ := hDb
+      _ ≤ β ^ 2 * (Real.exp (10 * β ^ 2) * (Real.cosh (2 * h) * Real.exp (2 * β ^ 2) * ν)) +
+            2 * β ^ 2 / ((N : ℝ) + 1) := by gcongr
+      _ ≤ _ := by
+        have h5 : 2 * β ^ 2 / (N : ℝ) = 2 * (β ^ 2 / (N : ℝ)) := by ring
+        rw [e]; linarith
+  have h0 : ψ 0 = ∫ qdis : (FinPairs (N + 1) → ℝ) × (FinPairs (N + 1) → ℝ),
+      Real.log (∫ σ : Fin (N + 1) → ℤˣ,
+        Real.exp (β * (Real.sqrt ((N : ℝ) * (N + 1)))⁻¹ *
+          ∑ p : FinPairs (N + 1), qdis.2 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ))
+        ∂Measure.count.tilted (fun σ =>
+          (Real.sqrt (N + 1 : ℝ))⁻¹ * β *
+            (∑ p : FinPairs (N + 1), qdis.1 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
+            h * ∑ i, (σ i : ℝ)))
+      ∂(P₀.prod P₀) := by
+    have hsplit := integral_log_partition_sk_pair_perturb N a₁ b₁ h
+    have hint := integrable_log_partition_sk_pair N a₁ b₁ h
+    have harg : ∀ (η u : FinPairs (N + 1) → ℝ) (σ : Fin (N + 1) → ℤˣ) (z : ℝ),
+        Real.cos 0 * (β * (Real.sqrt ((N : ℝ) * (N + 1)))⁻¹ *
+          ∑ p : FinPairs (N + 1), u p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
+          Real.sin 0 * (β * (Real.sqrt 2)⁻¹ * q * z) + B η σ =
+        a₁ * (∑ p : FinPairs (N + 1), η p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
+          h * ∑ i, (σ i : ℝ) +
+        b₁ * (∑ p : FinPairs (N + 1), u p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) :=
+      fun η u σ z => by
+        simp only [B, a₁, b₁, Real.cos_zero, Real.sin_zero]
+        ring
+    have hF0 : Fp 0 = ∫ q : (FinPairs (N + 1) → ℝ) × (FinPairs (N + 1) → ℝ),
+        Real.log (∑ σ : Fin (N + 1) → ℤˣ,
+          Real.exp (a₁ * (∑ p : FinPairs (N + 1),
+            q.1 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ) +
+            b₁ * (∑ p : FinPairs (N + 1),
+              q.2 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)))) ∂(P₀.prod P₀) := by
+      rw [integral_prod _ hint]
+      refine integral_congr_ae (ae_of_all _ fun η => ?_)
+      simp only [harg]
+      exact integral_prod_fun_fst_of_isProbabilityMeasure P₀ (gaussianReal 0 1)
+        (fun u => Real.log (∑ σ : Fin (N + 1) → ℤˣ,
+          Real.exp (a₁ * (∑ p : FinPairs (N + 1),
+            η p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ) +
+            b₁ * (∑ p : FinPairs (N + 1), u p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)))))
+    have hZb : Zb = ∫ g : FinPairs (N + 1) → ℝ,
+        Real.log (∑ σ : Fin (N + 1) → ℤˣ,
+          Real.exp (a₁ * (∑ p : FinPairs (N + 1),
+            g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ))) ∂P₀ := rfl
+    simp only [ψ]
+    rw [hF0, hZb]
+    linarith
+  have hpi : ψ (Real.pi / 2) = 0 := by
+    have hYi : Integrable (fun ω : (FinPairs (N + 1) → ℝ) × ℝ => β * (Real.sqrt 2)⁻¹ * q * ω.2)
+        P := (hid.comp_snd P₀).const_mul _
+    have hY0 : ∫ ω : (FinPairs (N + 1) → ℝ) × ℝ, β * (Real.sqrt 2)⁻¹ * q * ω.2 ∂P = 0 :=
+      integral_sk_pair_perturb_scalar_field_eq_zero N β q
+    have hcalc : ∀ (η : FinPairs (N + 1) → ℝ) (ω : (FinPairs (N + 1) → ℝ) × ℝ),
+        Real.log (∑ a : Fin (N + 1) → ℤˣ, Real.exp (Real.cos (Real.pi / 2) *
+          (β * (Real.sqrt ((N : ℝ) * (N + 1)))⁻¹ *
+            ∑ p : FinPairs (N + 1), ω.1 p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+          Real.sin (Real.pi / 2) * (β * (Real.sqrt 2)⁻¹ * q * ω.2) + B η a)) =
+        β * (Real.sqrt 2)⁻¹ * q * ω.2 + Real.log (∑ a : Fin (N + 1) → ℤˣ, Real.exp (B η a)) := by
+      intro η ω
+      simp only [Real.cos_pi_div_two, Real.sin_pi_div_two, zero_mul, one_mul, zero_add]
+      simp_rw [Real.exp_add]
+      rw [← Finset.mul_sum, Real.log_mul (Real.exp_pos _).ne', Real.log_exp]
+      exact (Finset.sum_pos (fun a _ => Real.exp_pos _) Finset.univ_nonempty).ne'
+    simp only [ψ, Fp, hcalc, Zb]
+    have : ∀ η : FinPairs (N + 1) → ℝ,
+        (∫ ω : (FinPairs (N + 1) → ℝ) × ℝ, β * (Real.sqrt 2)⁻¹ * q * ω.2 +
+          Real.log (∑ a : Fin (N + 1) → ℤˣ, Real.exp (B η a)) ∂P) =
+        Real.log (∑ a : Fin (N + 1) → ℤˣ, Real.exp (B η a)) := fun η => by
+      rw [integral_add hYi (integrable_const _), hY0]
+      simp
+    simp_rw [this]
+    simp
+  exact sk_pair_perturb_estimate_of_deriv_bound β q N _ ν (β ^ 2)
+    (β ^ 2 * Real.cosh (2 * h) * Real.exp (12 * β ^ 2)) ψ h0 hpi hd
 
 end SpinGlasses

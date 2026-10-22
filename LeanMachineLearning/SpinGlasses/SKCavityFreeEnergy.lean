@@ -714,47 +714,32 @@ theorem sk_cavity_free_energy_increment_le_of_estimates (N : ℕ) (β h q : ℝ)
 constant used in Proposition 1.6.8.  This isolates scalar arithmetic from the free-energy
 assembly. -/
 theorem sk_cavity_constants_le (β h : ℝ) :
-    3 * β ^ 2 * Real.exp (4 * β ^ 2) ≤
-        6 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) + 1 ∧
+    β ^ 2 ≤ 2 * β ^ 2 * Real.exp (12 * β ^ 2) * Real.cosh (2 * h) + 1 ∧
       β ^ 2 * Real.cosh (2 * h) * Real.exp (2 * β ^ 2) +
-          3 * β ^ 2 * Real.exp (4 * β ^ 2) ≤
-        6 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) + 1 := by
+          β ^ 2 * Real.cosh (2 * h) * Real.exp (12 * β ^ 2) ≤
+        2 * β ^ 2 * Real.exp (12 * β ^ 2) * Real.cosh (2 * h) + 1 := by
   have hcosh : 1 ≤ Real.cosh (2 * h) := Real.one_le_cosh (2 * h)
-  have hexp : Real.exp (2 * β ^ 2) ≤ Real.exp (4 * β ^ 2) := by
+  have hexp1 : 1 ≤ Real.exp (12 * β ^ 2) := Real.one_le_exp (by positivity)
+  have hexp : Real.exp (2 * β ^ 2) ≤ Real.exp (12 * β ^ 2) := by
     gcongr
     nlinarith [sq_nonneg β]
+  have hb : 0 ≤ β ^ 2 := sq_nonneg β
+  have hbig : β ^ 2 ≤ β ^ 2 * Real.exp (12 * β ^ 2) * Real.cosh (2 * h) := by
+    calc β ^ 2 = β ^ 2 * 1 * 1 := by ring
+      _ ≤ β ^ 2 * Real.exp (12 * β ^ 2) * Real.cosh (2 * h) := by gcongr
+  have hnonneg : 0 ≤ β ^ 2 * Real.exp (12 * β ^ 2) * Real.cosh (2 * h) := by positivity
   constructor
-  · calc
-      3 * β ^ 2 * Real.exp (4 * β ^ 2)
-          ≤ 3 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) :=
-        le_mul_of_one_le_right (by positivity) hcosh
-      _ ≤ 6 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) + 1 := by
-        have hnonneg : 0 ≤ 3 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) := by
-          positivity
-        linarith
+  · linarith
   · have hfirst : β ^ 2 * Real.cosh (2 * h) * Real.exp (2 * β ^ 2) ≤
-        β ^ 2 * Real.cosh (2 * h) * Real.exp (4 * β ^ 2) :=
+        β ^ 2 * Real.cosh (2 * h) * Real.exp (12 * β ^ 2) :=
       mul_le_mul_of_nonneg_left hexp (by positivity)
-    have hsecond : 3 * β ^ 2 * Real.exp (4 * β ^ 2) ≤
-        3 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) :=
-      le_mul_of_one_le_right (by positivity) hcosh
-    calc
-      β ^ 2 * Real.cosh (2 * h) * Real.exp (2 * β ^ 2) +
-          3 * β ^ 2 * Real.exp (4 * β ^ 2)
-          ≤ β ^ 2 * Real.cosh (2 * h) * Real.exp (4 * β ^ 2) +
-            3 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) :=
-        add_le_add hfirst hsecond
-      _ = 4 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) := by ring
-      _ ≤ 6 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) + 1 := by
-        have hnonneg : 0 ≤ 2 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) := by
-          positivity
-        linarith
+    nlinarith
 
 /-- **Talagrand's Proposition 1.6.8 (Eq. 1.170), the cavity free-energy increment bound.**
 For all `N > 0`, `β, h, q ∈ ℝ` with `0 ≤ q ≤ 1`, the difference between the expected free energy at
 `N + 1` spins and `N` spins satisfies
 `|(N + 1) p_{N+1}(β, h) - N p_N(β, h) - A(β, h, q)| ≤ K (1 / N + ν(|R_{1,2} - q|))`
-with explicit constant `K = 6 β² exp(4 β²) cosh(2h) + 1` and `ν` the N-spin two-replica overlap
+with explicit constant `K = 2 β² exp(12 β²) cosh(2h) + 1` and `ν` the N-spin two-replica overlap
 deviation at `β`, provided the two interpolation estimates (1.181) and (1.182) hold. -/
 theorem sk_cavity_free_energy_increment_le (N : ℕ) (β h q : ℝ) (hN : 0 < N)
     (_hq : q ∈ Set.Icc (0 : ℝ) 1)
@@ -794,8 +779,8 @@ theorem sk_cavity_free_energy_increment_le (N : ℕ) (β h q : ℝ) (hN : 0 < N)
       ∂((Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1).prod
         (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))) -
       β ^ 2 / 4 * (1 - q ^ 2)| ≤
-    (3 * β ^ 2 * Real.exp (4 * β ^ 2)) / (N : ℝ) +
-      (3 * β ^ 2 * Real.exp (4 * β ^ 2)) *
+    β ^ 2 / (N : ℝ) +
+      (β ^ 2 * Real.cosh (2 * h) * Real.exp (12 * β ^ 2)) *
         ∫ g' : FinPairs N → ℝ,
           ∫ p : (Fin N → ℤˣ) × (Fin N → ℤˣ),
             |(N : ℝ)⁻¹ * ∑ i : Fin N, (p.1 i : ℝ) * (p.2 i : ℝ) - q|
@@ -822,7 +807,7 @@ theorem sk_cavity_free_energy_increment_le (N : ℕ) (β h q : ℝ) (hN : 0 < N)
         ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) -
       (Real.log 2 + β ^ 2 / 4 * (1 - q) ^ 2 +
         ∫ z : ℝ, Real.log (Real.cosh (β * z * Real.sqrt q + h)) ∂gaussianReal 0 1)| ≤
-    (6 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) + 1) *
+    (2 * β ^ 2 * Real.exp (12 * β ^ 2) * Real.cosh (2 * h) + 1) *
       (1 / (N : ℝ) +
         ∫ g' : FinPairs N → ℝ,
           ∫ p : (Fin N → ℤˣ) × (Fin N → ℤˣ),
@@ -850,9 +835,9 @@ theorem sk_cavity_free_energy_increment_le (N : ℕ) (β h q : ℝ) (hN : 0 < N)
             h * ∑ i, (ρ i : ℝ))))
     ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
   let K1 := β ^ 2 * Real.cosh (2 * h) * Real.exp (2 * β ^ 2)
-  let K2 := 3 * β ^ 2 * Real.exp (4 * β ^ 2)
-  let K3 := 3 * β ^ 2 * Real.exp (4 * β ^ 2)
-  let K := 6 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) + 1
+  let K2 := β ^ 2
+  let K3 := β ^ 2 * Real.cosh (2 * h) * Real.exp (12 * β ^ 2)
+  let K := 2 * β ^ 2 * Real.exp (12 * β ^ 2) * Real.cosh (2 * h) + 1
   have hconstants := sk_cavity_constants_le β h
   have hK1 : K2 ≤ K := by
     simpa only [K2, K] using hconstants.1
