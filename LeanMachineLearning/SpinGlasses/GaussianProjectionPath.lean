@@ -8,6 +8,7 @@ module
 public import LeanMachineLearning.SpinGlasses.GaussianCovarianceInterpolation
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedBound
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiExp
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.PiUpdate
 
 /-!
 # Interpolation between a Gaussian projection and independent Gaussians
@@ -551,6 +552,100 @@ theorem ExpTame.exists_abs_projSum_le (hV : ExpTame V) (hm : 0 < m) (r : ℕ) (B
   refine mul_le_mul ?_ le_rfl (abs_nonneg _) (Finset.sum_nonneg fun p _ => hC0 _)
   exact (hC (pairCount p) N u v s hu hv).trans (Finset.single_le_sum
     (f := fun p => C (pairCount p)) (fun p _ => hC0 _) (Finset.mem_univ p))
+
+theorem continuous_projPath (u : Fin m → Fin N → ℝ) (v s : ℝ) :
+    Continuous fun ω : (Fin m → ℝ) × (Fin N → ℝ) => projPath u v s ω := by
+  refine continuous_pi fun l => ?_
+  simp only [projPath, dotProduct]
+  fun_prop
+
+@[simp] theorem projPath_zero (u : Fin m → Fin N → ℝ) (v : ℝ)
+    (ω : (Fin m → ℝ) × (Fin N → ℝ)) : projPath u v 0 ω = fun l => v * ω.1 l := by
+  funext l
+  simp [projPath]
+
+theorem ExpTame.integrable_derivProd_projPath (hV : ExpTame V) (hm : 0 < m)
+    (u : Fin m → Fin N → ℝ) (v s : ℝ) (a : Fin m → ℕ) :
+    Integrable (fun ω => derivProd V a (projPath u v s ω)) (projMeasure m N) := by
+  obtain ⟨C₀, c, hC₀, hc, hbd⟩ := hV.abs_derivProd_le a
+  set b : ℝ := m * c with hb
+  let G : (Fin m → ℝ) × (Fin N → ℝ) → ℝ := fun ω =>
+    C₀ * ((1 / (m : ℝ)) * ∑ l, (Real.exp (b * projPath u v s ω l) +
+      Real.exp (-b * projPath u v s ω l)))
+  have hGi : Integrable G (projMeasure m N) := by
+    refine Integrable.const_mul (Integrable.const_mul (integrable_finsetSum _ fun l _ => ?_) _) _
+    exact (integrable_exp_mul_projPath u v s b l).add (integrable_exp_mul_projPath u v s (-b) l)
+  have hpt : ∀ ω, |derivProd V a (projPath u v s ω)| ≤ G ω := fun ω => by
+    refine (hbd _).trans ?_
+    refine mul_le_mul_of_nonneg_left ?_ hC₀
+    have h1 := exp_sum_le_avg_exp hm (fun l => c * |projPath u v s ω l|)
+    rw [← Finset.mul_sum] at h1
+    refine (le_of_eq_of_le (by rw [Finset.mul_sum]) h1).trans ?_
+    refine mul_le_mul_of_nonneg_left (Finset.sum_le_sum fun l _ => ?_) (by positivity)
+    have h2 := exp_abs_le_add (b * projPath u v s ω l)
+    rw [abs_mul, abs_of_nonneg (by positivity : 0 ≤ b)] at h2
+    rw [← mul_assoc, ← hb, neg_mul]
+    exact h2
+  have hc_meas : AEStronglyMeasurable (fun ω => derivProd V a (projPath u v s ω))
+      (projMeasure m N) :=
+    ((hV.contDiff_derivProd a).continuous.comp (continuous_projPath u v s)).aestronglyMeasurable
+  exact hGi.mono' hc_meas (ae_of_all _ fun ω => by simpa only [Real.norm_eq_abs] using hpt ω)
+
+theorem ExpTame.integrable_derivProd_scale_gaussian (hV : ExpTame V) (hm : 0 < m)
+    (v : ℝ) (a : Fin m → ℕ) :
+    Integrable (fun ξ : Fin m → ℝ => derivProd V a (fun l => v * ξ l))
+      (Measure.pi fun _ : Fin m => gaussianReal 0 1) := by
+  let u : Fin m → Fin 1 → ℝ := fun _ _ => 0
+  have hI := hV.integrable_derivProd_projPath (N := 1) hm u v 0 a
+  have heq : (fun ω : (Fin m → ℝ) × (Fin 1 → ℝ) => derivProd V a (projPath u v 0 ω)) =
+      fun ω => derivProd V a (fun l => v * ω.1 l) := by
+    funext ω
+    congr 1
+    funext l
+    simp [projPath]
+  rw [heq] at hI
+  have hP : IsProbabilityMeasure (Measure.pi fun _ : Fin 1 => gaussianReal 0 1) := by infer_instance
+  have h_int_y : (fun ξ : Fin m → ℝ => ∫ y : Fin 1 → ℝ,
+      ‖derivProd V a (fun l => v * ξ l)‖ ∂(Measure.pi fun _ : Fin 1 => gaussianReal 0 1)) =
+      fun ξ => ‖derivProd V a (fun l => v * ξ l)‖ := by
+    funext ξ
+    rw [integral_const, probReal_univ, one_smul]
+  have h_prod := (integrable_prod_iff (f := fun ω : (Fin m → ℝ) × (Fin 1 → ℝ) =>
+    derivProd V a (fun l => v * ω.1 l)) (μ := Measure.pi fun _ : Fin m => gaussianReal 0 1)
+    (ν := Measure.pi fun _ : Fin 1 => gaussianReal 0 1) hI.aestronglyMeasurable).mp hI
+  have h_norm := h_prod.2
+  rw [h_int_y] at h_norm
+  have hc : Continuous (fun ξ : Fin m → ℝ => derivProd V a (fun l => v * ξ l)) :=
+    (hV.contDiff_derivProd a).continuous.comp
+      (continuous_pi fun l => continuous_const.mul (continuous_apply l))
+  exact Integrable.mono' h_norm hc.aestronglyMeasurable (ae_of_all _ fun _ => le_rfl)
+
+theorem integral_derivProd_projPath_zero (u : Fin m → Fin N → ℝ) (v : ℝ) (a : Fin m → ℕ) :
+    ∫ ω, derivProd V a (projPath u v 0 ω) ∂(projMeasure m N) =
+      ∫ ξ : Fin m → ℝ, derivProd V a (fun l => v * ξ l)
+        ∂(Measure.pi fun _ : Fin m => gaussianReal 0 1) := by
+  simp_rw [projPath_zero]
+  exact integral_prod_fun_fst_of_isProbabilityMeasure
+    (Measure.pi fun _ : Fin m => gaussianReal 0 1)
+    (Measure.pi fun _ : Fin N => gaussianReal 0 1)
+    (fun ξ => derivProd V a (fun l => v * ξ l))
+
+theorem ExpTame.integral_derivProd_projPath_zero_eq_zero (hV : ExpTame V) (hm : 0 < m)
+    (u : Fin m → Fin N → ℝ) (v : ℝ) (a : Fin m → ℕ) (j : Fin m) (hj : a j = 0)
+    (hV0 : ∫ t, V (v * t) ∂(gaussianReal 0 1) = 0) :
+    ∫ ω, derivProd V a (projPath u v 0 ω) ∂(projMeasure m N) = 0 := by
+  rw [integral_derivProd_projPath_zero u v a]
+  have hprod : (fun ξ : Fin m → ℝ => derivProd V a (fun l => v * ξ l)) =
+      fun ξ => ∏ l : Fin m, deriv^[a l] V (v * ξ l) := by
+    funext ξ; rfl
+  rw [hprod]
+  have hI := hV.integrable_derivProd_scale_gaussian hm v a
+  rw [hprod] at hI
+  refine integral_pi_prod_eq_zero_of_coord_zero
+    (μ := fun _ : Fin m => gaussianReal 0 1)
+    (fun l t => deriv^[a l] V (v * t)) hI j ?_
+  rw [hj]
+  exact hV0
 
 
 end SpinGlasses
