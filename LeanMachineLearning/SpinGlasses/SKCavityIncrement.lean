@@ -58,7 +58,8 @@ theorem sk_cavity_free_energy_increment (N : ℕ) (β h q : ℝ) (hN : 0 < N)
                 (Real.sqrt (N : ℝ))⁻¹ * β *
                   (∑ p : FinPairs N, g' p * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) +
                   h * ∑ i, (ρ i : ℝ))))
-          ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) := sk_cavity_free_energy_increment_le N β h q hN hq
-  (sk_cavity_cosh_estimate N β h q hN hq) (sk_pair_perturb_estimate N hN β h q hq)
+          ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) :=
+  sk_cavity_free_energy_increment_le N β h q hN hq
+    (sk_cavity_cosh_estimate N β h q hN hq) (sk_pair_perturb_estimate N hN β h q hq)
 
 end SpinGlasses

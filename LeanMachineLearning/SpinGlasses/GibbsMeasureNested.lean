@@ -92,7 +92,8 @@ variable {α β : Type*} [Fintype α] [MeasurableSpace α] [MeasurableSingletonC
 theorem integral_prod_count_tilted_equiv (e : β ≃ α) (f : α → ℝ) (Θ : α → α → ℝ) :
     ∫ p : α × α, Θ p.1 p.2 ∂((Measure.count.tilted f).prod (Measure.count.tilted f)) =
       ∫ p : β × β, Θ (e p.1) (e p.2)
-        ∂((Measure.count.tilted fun b => f (e b)).prod (Measure.count.tilted fun b => f (e b))) := by
+        ∂((Measure.count.tilted fun b => f (e b)).prod
+          (Measure.count.tilted fun b => f (e b))) := by
   rw [integral_prod_count_tilted_eq_double_sum f Θ,
     integral_prod_count_tilted_eq_double_sum (fun b => f (e b)) (fun a b => Θ (e a) (e b)),
     ← e.sum_comp (fun a => Real.exp (f a))]

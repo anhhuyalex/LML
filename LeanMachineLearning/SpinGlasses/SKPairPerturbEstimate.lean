@@ -116,7 +116,8 @@ theorem exists_hasDerivAt_sk_pair_perturb_path
       have : 0 ≤ 1 - q ^ 2 := by nlinarith [hq.1, hq.2]
       have : 1 - q ^ 2 ≤ 1 := by nlinarith [hq.1, hq.2]
       simp only [C]
-      rw [abs_mul, abs_neg, abs_of_nonneg (by positivity : 0 ≤ β ^ 2 / 2), abs_of_nonneg ‹0 ≤ 1 - q ^ 2›]
+      rw [abs_mul, abs_neg, abs_of_nonneg (by positivity : 0 ≤ β ^ 2 / 2),
+        abs_of_nonneg ‹0 ≤ 1 - q ^ 2›]
       nlinarith [sq_nonneg β]
     have h3 : |C + β ^ 2 / 2 * (Zf a b - q ^ 2)| ≤ β ^ 2 / 2 + β ^ 2 / 2 * 6 := by
       refine (abs_add_le _ _).trans (add_le_add h2 ?_)
