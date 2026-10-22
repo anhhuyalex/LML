@@ -246,4 +246,21 @@ theorem abs_sk_pair_perturb_Z_sub_le (N : ℕ) (hN : 0 < N) (q : ℝ)
         (fun i : Fin N => (b i.castSucc : ℝ)) (fun i => abs_units_cast_le_one _)
         (fun i => abs_units_cast_le_one _)
 
+/-- `|Z(a, b)| ≤ 1` for Ising configurations of `N + 1` spins, `N > 0`. -/
+theorem abs_sk_pair_perturb_Z_le_one (N : ℕ) (hN : 0 < N) (a b : Fin (N + 1) → ℤˣ) :
+    |((∑ i, (a i : ℝ) * (b i : ℝ)) ^ 2 - (N + 1 : ℝ)) / ((N : ℝ) * (N + 1))| ≤ 1 := by
+  have hS : |∑ i, (a i : ℝ) * (b i : ℝ)| ≤ (N + 1 : ℝ) := by
+    have h := abs_card_inv_mul_dotProduct_le_one (fun i : Fin (N + 1) => (a i : ℝ))
+      (fun i => (b i : ℝ)) (fun i => abs_units_cast_le_one _) (fun i => abs_units_cast_le_one _)
+    simp only [Fintype.card_fin, dotProduct, Nat.cast_add, Nat.cast_one] at h
+    rw [abs_mul, abs_inv, abs_of_pos (by positivity : (0 : ℝ) < N + 1), inv_mul_le_iff₀
+      (by positivity)] at h
+    simpa using h
+  have hS2 : (∑ i, (a i : ℝ) * (b i : ℝ)) ^ 2 ≤ (N + 1 : ℝ) ^ 2 := by
+    rw [← sq_abs]; exact pow_le_pow_left₀ (abs_nonneg _) hS 2
+  have hN1 : (1 : ℝ) ≤ N := by exact_mod_cast hN
+  have hpos : (0 : ℝ) < (N : ℝ) * (N + 1) := by positivity
+  rw [abs_div, abs_of_pos hpos, div_le_one hpos, abs_le]
+  constructor <;> nlinarith [sq_nonneg (∑ i, (a i : ℝ) * (b i : ℝ))]
+
 end SpinGlasses

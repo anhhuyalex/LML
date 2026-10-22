@@ -121,3 +121,14 @@ theorem integral_prod_fun_snd_of_isProbabilityMeasure {X Y E : Type*} [Measurabl
     [IsProbabilityMeasure μ] (ν : Measure Y) [SFinite ν] (f : Y → E) :
     ∫ x, f x.2 ∂(μ.prod ν) = ∫ y, f y ∂ν := by
   rw [integral_fun_snd, probReal_univ, one_smul]
+
+/-- A uniform bound on an observable bounds its iterated average over probability kernels. -/
+theorem abs_integral_integral_le_of_forall_le {X Y : Type*} [MeasurableSpace X]
+    [MeasurableSpace Y] (μ : Measure X) [IsProbabilityMeasure μ] (κ : X → Measure Y)
+    [∀ x, IsProbabilityMeasure (κ x)] (F : Y → ℝ) {M : ℝ} (hF : ∀ y, |F y| ≤ M) :
+    |∫ x, ∫ y, F y ∂κ x ∂μ| ≤ M := by
+  have hin : ∀ x, ‖∫ y, F y ∂κ x‖ ≤ M := fun x => by
+    simpa using norm_integral_le_of_norm_le_const (μ := κ x) (f := F) (C := M)
+      (ae_of_all _ fun y => by simpa only [Real.norm_eq_abs] using hF y)
+  simpa using norm_integral_le_of_norm_le_const (μ := μ) (f := fun x => ∫ y, F y ∂κ x)
+    (C := M) (ae_of_all _ hin)
