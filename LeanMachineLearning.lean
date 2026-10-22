@@ -7,6 +7,7 @@ public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.Weights
 public import LeanMachineLearning.ForMathlib.Analysis.Asymptotics.Theta
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.Gradient.Basic
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.GronwallBackward
+public import LeanMachineLearning.ForMathlib.Analysis.Calculus.TaylorInterpolation
 public import LeanMachineLearning.ForMathlib.Analysis.Cesaro
 public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.GramIsometry
 public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.ProjectionDistance
@@ -379,8 +380,10 @@ public import LeanMachineLearning.SpinGlasses.GaussianIBP
 public import LeanMachineLearning.SpinGlasses.GaussianIBPCountable
 public import LeanMachineLearning.SpinGlasses.GaussianInterpolationConditional
 public import LeanMachineLearning.SpinGlasses.GaussianInterpolationReplica
+public import LeanMachineLearning.SpinGlasses.GaussianProjectionPath
 public import LeanMachineLearning.SpinGlasses.GibbsMeasure
 public import LeanMachineLearning.SpinGlasses.GibbsMeasureNested
+public import LeanMachineLearning.SpinGlasses.GibbsProjectionFluctuation
 public import LeanMachineLearning.SpinGlasses.GibbsReplicaMarginal
 public import LeanMachineLearning.SpinGlasses.GuerraToninelli
 public import LeanMachineLearning.SpinGlasses.MixedPSpin

@@ -149,6 +149,7 @@ theorem sum_weight_mul_centered (f : α → ℝ) (j : Fin N) :
   rw [Finset.sum_sub_distrib, ← Finset.mul_sum, ← Finset.mul_sum, ← hM, h1]
   ring
 
+set_option linter.unusedFintypeInType false in
 /-- **Parity vanishing (the replica-centering step of Theorem 1.7.11).**  If a replica occurs
 exactly once in a list of pairs, the Gibbs average of the product of the corresponding Gram
 entries vanishes, because every entry is linear in the centered replica data and `⟨ξ̇⟩ = 0`. -/
@@ -192,6 +193,7 @@ theorem integral_pairProd_centered_eq_zero (f : α → ℝ) (v : ℝ) {m r : ℕ
     simp only [projGram, dotProduct, Function.update_of_ne hi'.1, Function.update_of_ne hi'.2]
   · simp only [c, Function.update_of_ne hne]
 
+set_option linter.unusedFintypeInType false in
 /-- At s = 0, the Gibbs average of the path functional vanishes for any `r < m`, by parity
 vanishing and Gaussian vanishing. -/
 theorem integral_projSum_centered_zero_eq_zero {m r : ℕ} (V : ℝ → ℝ) (hV : ExpTame V)
@@ -202,6 +204,8 @@ theorem integral_projSum_centered_zero_eq_zero {m r : ℕ} (V : ℝ → ℝ) (hV
         (ξ i (σ l) - ∫ a, ξ i a ∂(Measure.count.tilted f))) v r 0
       ∂(Measure.pi fun _ : Fin m => Measure.count.tilted f) = 0 := by
   rw [integral_pi_count_tilted]
+
+
   have hterm : ∀ σ : Fin m → α,
       projSum V (fun l i => (Real.sqrt N)⁻¹ *
         (ξ i (σ l) - ∫ a, ξ i a ∂(Measure.count.tilted f))) v r 0 =

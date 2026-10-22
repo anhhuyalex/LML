@@ -25,8 +25,8 @@ whose lower-order derivatives vanish at the basepoint.
 
 open Set
 
-/-- If $f : \mathbb{R} \to \mathbb{R}$ is $C^{n+1}$ and all derivatives up to order $n$ vanish at $0$,
-then $f(1) = f^{(n+1)}(x') / (n+1)!$ for some $x' \in (0, 1)$. -/
+/-- If $f : \mathbb{R} \to \mathbb{R}$ is $C^{n+1}$ and all derivatives up to order $n$ vanish at
+$0$, then $f(1) = f^{(n+1)}(x') / (n+1)!$ for some $x' \in (0, 1)$. -/
 theorem taylor_eval_zero_eq_remainder {f : ℝ → ℝ} {n : ℕ}
     (hf : ContDiff ℝ (n + 1) f)
     (h_zero : ∀ k ≤ n, iteratedDeriv k f 0 = 0) :
