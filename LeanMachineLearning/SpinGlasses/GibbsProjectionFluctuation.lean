@@ -179,9 +179,9 @@ theorem integral_pairProd_centered_eq_zero (f : α → ℝ) (v : ℝ) {m r : ℕ
     congr 1
     rcases hp with hp | hp
     · rw [hp]
-      simp only [projGram, dotProduct, if_neg (Ne.symm hne), sub_zero, z, c]
+      simp only [projGram, dotProduct, ite_eq_right (Ne.symm hne), sub_zero, z, c]
     · rw [hp]
-      simp only [projGram, dotProduct, if_neg hne, sub_zero, z, c]
+      simp only [projGram, dotProduct, ite_eq_right hne, sub_zero, z, c]
       exact Finset.sum_congr rfl fun j _ => mul_comm _ _
   simp_rw [hmain]
   refine sum_prod_weight_mul_linear_eq_zero w ℓ z (fun j => sum_weight_mul_centered ξ f j) H c
