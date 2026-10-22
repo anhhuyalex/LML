@@ -377,8 +377,10 @@ public import LeanMachineLearning.SpinGlasses.GaussianComparison
 public import LeanMachineLearning.SpinGlasses.GaussianCovarianceInterpolation
 public import LeanMachineLearning.SpinGlasses.GaussianIBP
 public import LeanMachineLearning.SpinGlasses.GaussianIBPCountable
+public import LeanMachineLearning.SpinGlasses.GaussianInterpolationConditional
 public import LeanMachineLearning.SpinGlasses.GaussianInterpolationReplica
 public import LeanMachineLearning.SpinGlasses.GibbsMeasure
+public import LeanMachineLearning.SpinGlasses.GibbsMeasureNested
 public import LeanMachineLearning.SpinGlasses.GibbsReplicaMarginal
 public import LeanMachineLearning.SpinGlasses.GuerraToninelli
 public import LeanMachineLearning.SpinGlasses.MixedPSpin
@@ -416,6 +418,7 @@ public import LeanMachineLearning.SpinGlasses.SKAizenmanLebowitzRuelle
 public import LeanMachineLearning.SpinGlasses.SKAsymptoticProduct
 public import LeanMachineLearning.SpinGlasses.SKCavityBounds
 public import LeanMachineLearning.SpinGlasses.SKCavityContraction
+public import LeanMachineLearning.SpinGlasses.SKCavityCoshEstimate
 public import LeanMachineLearning.SpinGlasses.SKCavityDecoupled
 public import LeanMachineLearning.SpinGlasses.SKCavityDecoupledEndpoint
 public import LeanMachineLearning.SpinGlasses.SKCavityDerivative
@@ -424,6 +427,7 @@ public import LeanMachineLearning.SpinGlasses.SKCavityEndpoint
 public import LeanMachineLearning.SpinGlasses.SKCavityFreeEnergy
 public import LeanMachineLearning.SpinGlasses.SKCavityGaussian
 public import LeanMachineLearning.SpinGlasses.SKCavityHolder
+public import LeanMachineLearning.SpinGlasses.SKCavityIncrement
 public import LeanMachineLearning.SpinGlasses.SKCavityInterpolation
 public import LeanMachineLearning.SpinGlasses.SKCavityOuterBound
 public import LeanMachineLearning.SpinGlasses.SKCavityOuterDerivative
@@ -439,6 +443,9 @@ public import LeanMachineLearning.SpinGlasses.SKModel
 public import LeanMachineLearning.SpinGlasses.SKOverlapConcentration
 public import LeanMachineLearning.SpinGlasses.SKOverlapContraction
 public import LeanMachineLearning.SpinGlasses.SKOverlapMoments
+public import LeanMachineLearning.SpinGlasses.SKPairPerturbCavity
+public import LeanMachineLearning.SpinGlasses.SKPairPerturbEstimate
+public import LeanMachineLearning.SpinGlasses.SKPairPerturbGaussian
 public import LeanMachineLearning.SpinGlasses.SKRandomProjectionCLT
 public import LeanMachineLearning.SpinGlasses.SKReplicaSymmetricBound
 public import LeanMachineLearning.SpinGlasses.SKSiteSymmetry
