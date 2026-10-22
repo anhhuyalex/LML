@@ -107,5 +107,36 @@ theorem abs_sub_add_half_le_of_exists_hasDerivAt {φ : ℝ → ℝ} {C K : ℝ}
   rw [show φ 0 - φ (π / 2) + C / 2 = -(φ (π / 2) - φ 0 - C / 2) by ring, abs_neg]
   exact abs_sub_sub_half_le_of_exists_hasDerivAt hd
 
+/-- **Grönwall along the trigonometric path.**  If `φ' ≤ K sin s cos s φ` on `[0, π/2]`, then
+`φ s ≤ exp (K sin² s / 2) φ 0`, since `φ exp (-K sin² / 2)` is nonincreasing. -/
+theorem le_exp_mul_sin_sq_of_exists_hasDerivAt {φ : ℝ → ℝ} {K : ℝ}
+    (hd : ∀ s, ∃ d, HasDerivAt φ d s ∧ (s ∈ Icc 0 (π / 2) → d ≤ K * (sin s * cos s) * φ s))
+    {s : ℝ} (hs : s ∈ Icc 0 (π / 2)) : φ s ≤ exp (K * sin s ^ 2 / 2) * φ 0 := by
+  choose d hd1 hd2 using hd
+  set g : ℝ → ℝ := fun x => φ x * exp (-(K * sin x ^ 2 / 2)) with hg
+  have hgd : ∀ x, HasDerivAt g (d x * exp (-(K * sin x ^ 2 / 2)) +
+      φ x * (exp (-(K * sin x ^ 2 / 2)) * (-(K * (2 * sin x * cos x) / 2)))) x := fun x =>
+    (hd1 x).mul (((hasDerivAt_sin_sq x).const_mul K |>.div_const 2).neg.exp)
+  have hanti : AntitoneOn g (Icc 0 (π / 2)) := by
+    refine antitoneOn_of_deriv_nonpos (convex_Icc 0 (π / 2))
+      (fun x _ => (hgd x).continuousAt.continuousWithinAt)
+      (fun x _ => (hgd x).differentiableAt.differentiableWithinAt) fun x hx => ?_
+    rw [interior_Icc] at hx
+    rw [(hgd x).deriv]
+    have h1 := hd2 x ⟨hx.1.le, hx.2.le⟩
+    have h2 := exp_pos (-(K * sin x ^ 2 / 2))
+    nlinarith [mul_le_mul_of_nonneg_right h1 h2.le]
+  have h0 : (0 : ℝ) ∈ Icc 0 (π / 2) := ⟨le_rfl, by positivity⟩
+  have key := hanti h0 hs hs.1
+  simp only [hg, sin_zero] at key
+  have h2 := exp_pos (K * sin s ^ 2 / 2)
+  have h3 : exp (-(K * sin s ^ 2 / 2)) * exp (K * sin s ^ 2 / 2) = 1 := by
+    rw [← exp_add]; simp
+  norm_num at key
+  calc φ s = φ s * exp (-(K * sin s ^ 2 / 2)) * exp (K * sin s ^ 2 / 2) := by
+        rw [mul_assoc, h3, mul_one]
+    _ ≤ φ 0 * exp (K * sin s ^ 2 / 2) := mul_le_mul_of_nonneg_right key h2.le
+    _ = exp (K * sin s ^ 2 / 2) * φ 0 := mul_comm _ _
+
 end Real
 

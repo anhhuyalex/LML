@@ -1114,8 +1114,85 @@ Expand $(U-V)^2=U^2-2UV+V^2$. Each of $\mathbb{E}U^2=\sum_{a,a'}w_aw_{a'}\mathbb
 Formalized in \texttt{SpinGlasses/SKRandomProjectionCLT.lean}.
 \end{proof}
 
-\section{The cavity method (Talagrand Section~1.6): initial identities}
+\section{The cavity method (Talagrand Section~1.6)}
 \label{sec:sg-tal:cavity}
+
+\paragraph{The idea.}
+The cavity method compares the SK system on $N+1$ spins with the one on $N$ spins by singling
+out the last spin.  Splitting the Hamiltonian into the old pairs $i<j<N$ and the $N$ new edges
+$(i,N)$ writes the $(N+1)$-spin Gibbs average as an $N$-spin average whose energy is perturbed
+by a Gaussian field $X_\sigma$ coming from the new edges.  Replacing $X_\sigma$ by an independent
+field $Y_\sigma=\beta z\sqrt q$ with the \emph{same variance structure up to the overlap}
+decouples the last spin.  The size of the error is controlled by the overlap
+$R_{1,2}$ through Gaussian interpolation along the path $s\mapsto\cos(s)X+\sin(s)Y$.
+The section uses this one mechanism twice:
+\begin{itemize}
+\item to show that the overlap concentrates around $q$ (Lemmas~1.6.2--1.6.4 and
+  Propositions~1.6.5--1.6.7), by interpolating a Gibbs average of an observable of the overlap;
+\item to compute the free-energy increment $(N+1)p_{N+1}-Np_N$ up to $O(N^{-1}+\nu(|R_{1,2}-q|))$
+  (Proposition~1.6.8), by interpolating the logarithm of two Gibbs averages.
+\end{itemize}
+
+\paragraph{How the section is organized.}
+The parts are ordered by logical dependence, which is not always the order of the book.
+Each part opens with a short paragraph saying what it proves, which earlier parts it uses and its
+formalization status.
+\begin{enumerate}
+\item[A.] \emph{Setting up the cavity} (Section~\ref{sec:sg-tal:cavity-setup}; Proposition~1.6.1,
+  Eqs.~(1.143)--(1.149), (1.153)): the exact algebra of splitting off the last spin and the
+  covariances of the two fields.  Fully proved.
+\item[B.] \emph{Gaussian interpolation tools} (Section~\ref{sec:sg-tal:cavity-tools}): model-independent
+  lemmas used by every later part: dominated differentiation under the old disorder, Gr\"onwall's
+  inequality, and the Gaussian derivative of the logarithm of a $\cosh$ Gibbs average.  Fully proved.
+\item[C.] \emph{The overlap interpolation} (Section~\ref{sec:sg-tal:cavity-path}; Lemmas~1.6.2--1.6.4,
+  Eqs.~(1.150)--(1.155)): the endpoints, the derivative and its domination.  Fully proved.
+\item[D.] \emph{Concentration of the overlap} (Section~\ref{sec:sg-tal:cavity-overlap};
+  Propositions~1.6.5--1.6.7): consequences of C.  Fully proved.
+\item[E.] \emph{The free-energy increment} (Section~\ref{sec:sg-tal:cavity-prop168};
+  Proposition~1.6.8, Eqs.~(1.170)--(1.182)).  The exact identity (1.176) and the estimate (1.181)
+  are proved; the estimate (1.182) is \textbf{not yet proved}, so the final bound is only a
+  \emph{conditional reduction}.
+\end{enumerate}
+Dependencies: A is used by all later parts, B by C and E, C by D, and A, B and the algebra of E
+by the remainder of E.  Part E does not use C or D; it only uses D afterwards, to turn the
+quantity $\nu(|R_{1,2}-q|)$ into a rate in $N$, which the proposition itself does not need.
+
+\begin{remark}[Conventions and deviations from the book in Section~1.6]
+\label{rem:sg-tal:dev-16}
+\begin{itemize}
+\item \emph{$N$ versus $N+1$ spins.}  In A--D the Gibbs average is over $N+1$ spins with
+  the old-pair energy carrying the full prefactor $\beta/\sqrt{N+1}$, and the \emph{truncated}
+  overlap $R^-=(N+1)^{-1}\sum_{i<N}\sigma_i\tau_i$ divides by $N+1$.  In E the Gibbs average
+  $\langle\cdot\rangle$ and $\nu$ are those of the genuine $N$-spin SK system at $\beta$ with
+  overlap $R=N^{-1}\sum_{i\le N}\sigma_i\tau_i$; the $(N+1)$-spin system is taken at
+  $\beta_+=\beta\sqrt{1+1/N}$ so that $\beta_+/\sqrt{N+1}=\beta/\sqrt N$ (Eq.~(1.174)).  There is no
+  $\beta_-$ in A--D.  Bounds proved for $N+1$ spins (e.g.\ the overlap moments of Part~D) apply to
+  the $\nu$ of Part~E with $N$ replaced by $N-1$.
+\item \emph{Random old energy.}  The old-pair energy is random.  The book applies Lemma~1.4.2 to
+  the whole system; here it is applied \emph{conditionally} on the old-pair disorder to the new-edge
+  Gaussians (Lemma~\ref{lem:sg-tal:cavity-conditional-deriv} and its $\cosh$ analogue), and the resulting
+  derivative is integrated with Lemma~\ref{lem:sg-tal:conditional-derivative}.
+\item \emph{Parameter.}  The interpolation is proved in the angle $s$ and then changed to the book's
+  parameter $t=\cos^2 s$ on the open interval $(0,1)$; all derivatives carry the factor
+  $\sin(s)\cos(s)$.
+\item \emph{Status of Proposition~1.6.8.}  Proved: the exact increment identity (1.176), the cavity
+  $\cosh$ estimate (1.181) with the explicit constant $\beta^2\cosh(2h)e^{2\beta^2}$, and the
+  algebraic reductions.  Not proved: the pair-perturbation estimate (1.182).  Consequently
+  the unconditional Proposition~1.6.8 is still open; every theorem in Part~E that mentions the final
+  bound says that it is conditional.
+\end{itemize}
+\end{remark}
+
+\subsection{Setting up the cavity: splitting off the last spin}
+\label{sec:sg-tal:cavity-setup}
+
+\emph{Content.} Proposition~1.6.1 and the algebra of Eqs.~(1.143)--(1.149), (1.153).  We show
+that the $(N+1)$-spin Gibbs average with the last spin integrated out is an $N$-spin average
+reweighted by $\cosh$ of a Gaussian field; that the pair disorder splits into independent
+old and new parts; that the two fields $X,Y$ that will be interpolated are centered and jointly
+Gaussian with the covariance $\beta^2\sigma_N\tau_N R^-$ resp.\ $\beta^2\sigma_N\tau_N q$; and the
+elementary deterministic bounds on the truncated overlap.  \emph{Uses:} nothing from this section.
+\emph{Used by:} every later part.  \emph{Status:} fully proved.
 
 \begin{theorem}[Finite-fibre Gibbs disintegration and cavity identity]
 \label{thm:sg-tal:cavity-finite}
@@ -1149,29 +1226,6 @@ $\cosh x=(e^x+e^{-x})/2$. The last-coordinate form follows by reindexing
 with the canonical $\mathrm{Fin.snoc}$ equivalence.
 \end{proof}
 
-\begin{lemma}[Covariance of the interacting last-spin field]
-\label{lem:sg-tal:cavity-covariance}
-  \lean{SpinGlasses.integral_last_spin_cavity_field_mul}
-  \leanok
-\talsource{Eq.~(1.153), the fields $u_\sigma,v_\sigma$}
-Let $N\ge0$, $M\ge0$, $\beta\in\mathbb R$, and
-$\sigma,\tau:\mathrm{Fin}(N+1)\to\{-1,1\}$. For independent standard
-Gaussians $g_i$ indexed by $i<N$, the fields
-$U_g(\sigma)=\beta M^{-1/2}\sigma_N\sum_{i<N}g_i\sigma_i$ satisfy
-\[
-\mathbb E_g[U_g(\sigma)U_g(\tau)]
-=\beta^2\sigma_N\tau_N M^{-1}\sum_{i<N}\sigma_i\tau_i.
-\]
-In the SK system of size $N+1$ take $M=N+1$. In particular the truncated
-overlap divides by $N+1$, not by the number $N$ of retained coordinates.
-\end{lemma}
-\begin{proof}
-  \leanok
-Use the already-proved covariance of two normalized Gaussian linear forms
-with coefficient vectors $i\mapsto\sigma_N\sigma_i$ and
-$i\mapsto\tau_N\tau_i$; factor the last spins out of their dot product.
-\end{proof}
-
 \begin{lemma}[Split of the SK pair sum and Gaussian disorder]
 \label{lem:sg-tal:cavity-disorder-split}
   \lean{SpinGlasses.finPairsSuccEquiv,
@@ -1203,6 +1257,148 @@ the finite sum by this bijection. Reindex the product Gaussian law with
 \texttt{measurePreserving\_sumPiEquivProdPi}.
 \end{proof}
 
+\begin{lemma}[Full and truncated cavity overlaps]
+\label{lem:sg-tal:cavity-overlap-split}
+  \lean{SpinGlasses.sk_overlap_succ_eq_cavity,
+        SpinGlasses.sk_cavity_self_overlap}
+  \leanok
+\talsource{Eqs.~(1.148)--(1.149)}
+For $N\ge0$ and $\sigma,\tau\in\{-1,1\}^{N+1}$, put
+$R^-(\sigma,\tau)=(N+1)^{-1}\sum_{i<N}\sigma_i\tau_i$ and
+$R(\sigma,\tau)=(N+1)^{-1}\sum_{i\le N}\sigma_i\tau_i$. Then
+\[
+R(\sigma,\tau)=R^-(\sigma,\tau)
+ +(N+1)^{-1}\sigma_N\tau_N,
+\qquad R^-(\sigma,\sigma)=N/(N+1).
+\]
+These are the deterministic overlap identities (1.149) and the diagonal
+value required for the cancellation in the future replica derivative.
+They do not assert the derivative formula itself.
+\end{lemma}
+\begin{proof}
+  \leanok
+Split the finite dot-product sum at its last coordinate using
+\texttt{Fin.sum\_univ\_castSucc}; each Ising spin has square one.
+\end{proof}
+
+\begin{lemma}[Covariance of the interacting last-spin field]
+\label{lem:sg-tal:cavity-covariance}
+  \lean{SpinGlasses.integral_last_spin_cavity_field_mul}
+  \leanok
+\talsource{Eq.~(1.153), the fields $u_\sigma,v_\sigma$}
+Let $N\ge0$, $M\ge0$, $\beta\in\mathbb R$, and
+$\sigma,\tau:\mathrm{Fin}(N+1)\to\{-1,1\}$. For independent standard
+Gaussians $g_i$ indexed by $i<N$, the fields
+$U_g(\sigma)=\beta M^{-1/2}\sigma_N\sum_{i<N}g_i\sigma_i$ satisfy
+\[
+\mathbb E_g[U_g(\sigma)U_g(\tau)]
+=\beta^2\sigma_N\tau_N M^{-1}\sum_{i<N}\sigma_i\tau_i.
+\]
+In the SK system of size $N+1$ take $M=N+1$. In particular the truncated
+overlap divides by $N+1$, not by the number $N$ of retained coordinates.
+\end{lemma}
+\begin{proof}
+  \leanok
+Use the already-proved covariance of two normalized Gaussian linear forms
+with coefficient vectors $i\mapsto\sigma_N\sigma_i$ and
+$i\mapsto\tau_N\tau_i$; factor the last spins out of their dot product.
+\end{proof}
+
+\begin{lemma}[Gaussianity and centering of the two last-spin fields]
+\label{lem:sg-tal:cavity-fields-gaussian}
+  \lean{SpinGlasses.hasGaussianLaw_sk_cavity_fields,
+        SpinGlasses.integral_sk_cavity_edge_field_eq_zero,
+        SpinGlasses.integral_sk_cavity_scalar_field_eq_zero}
+  \leanok
+\talsource{Eqs.~(1.147), (1.153)}
+Fix $N\ge0$, $\beta,q\in\mathbb R$, and independent $g_i\sim N(0,1)$
+for $i<N$ and $z\sim N(0,1)$. For configurations
+$\sigma\in\{-1,1\}^{N+1}$, write
+\[
+X_\sigma=(N+1)^{-1/2}\beta\sigma_N\sum_{i<N}g_i\sigma_i,
+\qquad Y_\sigma=\beta\sigma_N z\sqrt q.
+\]
+The concatenated family $(X_\sigma,Y_\sigma)_\sigma$ is jointly Gaussian
+under the product disorder law, and each of its components has mean zero.
+No restriction on $q$ is needed for Gaussianity and centering: $\sqrt q$ is real
+for all real $q$. The old-pair disorder does not enter either field.
+These are inputs to the \emph{conditional} derivative, not yet Lemma~1.6.3.
+\end{lemma}
+\begin{proof}
+  \leanok
+The edge family is a finite system of Gaussian linear forms. The scalar
+family is the continuous linear image of $z\sim N(0,1)$; the product
+of independent Gaussian vectors is jointly Gaussian. Both means vanish
+by the centered Gaussian coordinate integrals.
+\end{proof}
+
+\begin{lemma}[Covariances of the last-spin cavity fields]
+\label{lem:sg-tal:cavity-field-covariance-difference}
+  \lean{SpinGlasses.integral_sk_cavity_edge_field_mul,
+        SpinGlasses.integral_sk_cavity_edge_mul_scalar_eq_zero,
+        SpinGlasses.integral_sk_cavity_scalar_field_mul,
+        SpinGlasses.sk_cavity_covariance_difference}
+  \leanok
+\talsource{Eqs.~(1.153), (1.55); the book's $U$ equals $-\tfrac12$ of the $U$ used here}
+With the fields $X_\sigma,Y_\sigma$ of Lemma~\ref{lem:sg-tal:cavity-fields-gaussian} and $q\ge0$, integration over the
+product of new-edge disorder and the scalar standard Gaussian gives
+\[
+\mathbb E[X_\sigma X_\tau]=\beta^2\sigma_N\tau_N R^-(\sigma,\tau),
+\quad \mathbb E[X_\sigma Y_\tau]=0,\quad
+\mathbb E[Y_\sigma Y_\tau]=\beta^2 q\sigma_N\tau_N.
+\]
+Thus the sign convention of the trigonometric replica theorem is
+$U(\sigma,\tau)=\mathbb E[Y_\sigma Y_\tau]-\mathbb E[X_\sigma X_\tau]
+=\beta^2\sigma_N\tau_N(q-R^-(\sigma,\tau))$, where $R^-$ uses the
+full-system normalization $N+1$. These are covariance inputs, not the
+conditional or disorder-averaged derivative formula of Lemma~1.6.3.
+\end{lemma}
+\begin{proof}
+  \leanok
+The edge covariance is the existing normalized Gaussian linear-form lemma,
+transported along the projection from the product disorder. Independence and
+centering make the mixed covariance zero. The scalar square integrates to one;
+$\sqrt q^{\,2}=q$ uses $q\ge0$. Distributivity gives the difference.
+\end{proof}
+
+\begin{lemma}[Uniform truncated-overlap and covariance bounds]
+\label{lem:sg-tal:cavity-covariance-bound}
+  \lean{SpinGlasses.abs_sk_cavity_overlap_le_one,
+        SpinGlasses.abs_sk_cavity_covariance_le}
+  \leanok
+\talsource{proof of Lemma~1.6.4: the bound $|R^-_{\ell,\ell'}-q|\le2$ before Eq.~(1.155)}
+For $N\ge0$, $q\in[0,1]$, $\beta\in\mathbb R$, and arbitrary Ising
+configurations $a,b$ of size $N+1$, the truncated overlap and the cavity
+covariance kernel satisfy
+\[
+|R^-(a,b)|\le1,\qquad
+|\beta^2 a_N b_N(q-R^-(a,b))|\le2\beta^2.
+\]
+Both bounds are deterministic, uniform in the old-pair disorder, and valid
+when $N=0$. Together with Lemma~\ref{lem:sg-tal:cavity-combination-bound}, they supply
+uniform bounds for dominated differentiation; the fully averaged derivative
+remains unproved.
+\end{lemma}
+\begin{proof}
+  \leanok
+Bound the absolute value of the truncated sum by the sum of the absolute
+values of its $N$ Ising terms. Divide by $N+1$ and use $N/(N+1)\le1$.
+The covariance bound follows by the triangle inequality and $|a_N|=|b_N|=1$.
+\end{proof}
+
+\subsection{Gaussian interpolation tools}
+\label{sec:sg-tal:cavity-tools}
+
+\emph{Content.} Four model-independent lemmas.  Differentiating under the integral over the old
+disorder (Lemma~\ref{lem:sg-tal:conditional-derivative}); the derivative of the expected logarithm
+of a $\cosh$ Gibbs average along the angle path, obtained by signing a Gaussian field
+(Lemma~\ref{lem:sg-tal:log-cosh-gaussian-derivative}, Eq.~(1.178) for $f=\cosh$); Gr\"onwall's
+inequality run backwards from an endpoint, and the domination of a triple iterated integral, which
+turn a derivative bound into an integrated one.  \emph{Uses:} the Gaussian interpolation theorem of
+Lemma~1.4.2 and the Gibbs-measure toolkit of Section~\ref{sec:sg-tal:guerra-rs}.  \emph{Used by:} C and E.
+No spin-glass model is needed here, which is why these lemmas come before the cavity-specific
+arguments.  \emph{Status:} fully proved.
+
 \begin{lemma}[Integrating a uniformly bounded conditional derivative]
 \label{lem:sg-tal:conditional-derivative}
   \lean{SpinGlasses.hasDerivAt_integral_conditional_of_deriv_bound,
@@ -1232,6 +1428,84 @@ the Fubini/differentiation step needed after conditioning the Gaussian
 replica formula on the old couplings. No spin-glass model is required.
 \end{proof}
 
+\begin{lemma}[Gaussian derivative of a logarithmic $\cosh$ Gibbs average]
+\label{lem:sg-tal:log-cosh-gaussian-derivative}
+  \lean{ProbabilityTheory.HasGaussianLaw.reindex_mul,
+        SpinGlasses.log_integral_cosh_count_tilted_eq,
+        SpinGlasses.hasDerivAt_integral_log_integral_cosh_trig}
+  \leanok
+\talsource{Proposition~1.6.8, Eq.~(1.178), specialized to $f=\cosh$}
+Let $X=(X_a)$ and $Y=(Y_a)$ be a centered jointly Gaussian pair of fields on a finite
+configuration space, with vanishing cross-covariance, and let $A$ and $h$ be deterministic.
+Then
+\[
+ s\longmapsto \mathbb E\log\left\langle
+   \cosh(\cos(s)X_\sigma+\sin(s)Y_\sigma+h_\sigma)\right\rangle_A
+\]
+is differentiable.  Its derivative is $\sin(s)\cos(s)$ times the two-replica covariance
+difference for the signed fields $\varepsilon X_a$ and $\varepsilon Y_a$ on
+$(a,\varepsilon)\in\alpha\times\{-1,1\}$, under their explicit tilted product measure.
+This is the model-independent derivative needed by the cavity $\cosh$ path.  The covariance
+bracket identity and signed-overlap domination have also been integrated over arbitrary
+measurable old disorder.  General Gibbs lemmas now provide the outer measurability and
+integrability of the logarithmic cosh path.  The remaining step for Eq.~(1.181) is to assemble
+these declarations into the conditional derivative theorem, verify its derivative-integrand
+measurability and uniform bound, and identify the two endpoints.
+\end{lemma}
+\begin{proof}
+  \leanok
+The identity $\cosh x=(e^x+e^{-x})/2$ turns the logarithmic Gibbs average into a signed log
+partition function minus the constant base log partition function and $\log 2$.
+The signed fields are obtained from $(X,Y)$ by deterministic reindexing and coordinatewise
+scaling, so \texttt{HasGaussianLaw.reindex\_mul} preserves their joint Gaussian law.
+Apply \texttt{hasDerivAt\_integral\_log\_sum\_exp\_trig}; the subtracted terms have zero derivative.
+\end{proof}
+
+\begin{lemma}[Grönwall's inequality run backwards from the endpoint]
+\label{lem:sg-tal:gronwall-backward}
+  \lean{le_exp_mul_endpoint_of_neg_mul_le_deriv,
+        le_exp_mul_endpoint_of_exists_hasDerivAt}
+  \leanok
+\talsource{the integration of Eq.~(1.155) in the proof of Lemma~1.6.4}
+Let $g$ be continuous on $[0,1]$ and differentiable on $(0,1)$ with $g'\ge-Kg$ there. Then
+$g(t)\le e^{K(1-t)}g(1)$ for $t\in[0,1]$.
+\end{lemma}
+\begin{proof}
+  \leanok
+This is the time reversal $u\mapsto g(1-u)$ of the existing interval Grönwall lemma
+\texttt{NTK.gronwall\_exponential\_decay\_Icc}.
+\end{proof}
+
+\begin{lemma}[Domination of a triple iterated integral]
+\label{lem:sg-tal:iterated-bound}
+  \lean{abs_integral_integral_integral_le,
+        integral_prod_fun_fst_of_isProbabilityMeasure,
+        integral_prod_fun_snd_of_isProbabilityMeasure}
+  \leanok
+\talsource{no counterpart in the book; the integration step of Lemma~1.6.4}
+Let $\mu,\nu$ be measures and $\kappa(x,y)$ a family of measures. If
+$|G(x,y,z)|\le H(x,y,z)$ pointwise and the iterated partial integrals of $H$ are integrable, then
+$\bigl|\iiint G\,d\kappa\,d\nu\,d\mu\bigr|\le\iiint H\,d\kappa\,d\nu\,d\mu$.
+\end{lemma}
+\begin{proof}
+  \leanok
+Apply the bound $\|\int g\|\le\int h$ for $\|g\|\le h$ with $h$ integrable three times.
+\end{proof}
+
+\subsection{The overlap interpolation path (Lemmas~1.6.2--1.6.4)}
+\label{sec:sg-tal:cavity-path}
+
+\emph{Content.} The path $\nu_s(f)=\mathbb E\langle f\rangle_{E_s}$ with
+$E_s=\cos(s)X+\sin(s)Y+A$ interpolates between the true $(N+1)$-spin system ($s=0$, coupled
+endpoint) and a system in which the last spin is decoupled ($s=\pi/2$, Lemma~1.6.2).
+Its derivative, conditionally on the old disorder, is a combination of replica covariances
+(Eq.~(1.151)); the diagonal terms cancel exactly, the full overlap replaces the truncated one
+(Eq.~(1.152)), and the combination is bounded uniformly, which allows integrating over the old
+disorder (Lemma~1.6.3) and then closing with Gr\"onwall (Lemma~1.6.4).
+\emph{Uses:} A and B.  \emph{Used by:} D.  \emph{Status:} fully proved.  The statements here are for
+observables of the overlap of the $(N+1)$-spin system; Part~E repeats the same mechanism for the logarithm
+of a $\cosh$ Gibbs average on $N$ spins, so its proofs do not depend on this part.
+
 \begin{lemma}[Coupled endpoint of the cavity path]\label{lem:sg-tal:cavity-coupled-endpoint}
   \lean{SpinGlasses.integral_sk_cavity_coupled_endpoint}
   \leanok
@@ -1256,6 +1530,49 @@ The unused scalar Gaussian integrates to one. Apply Fubini to the bounded
 finite-replica Gibbs average, then transport the pair-disorder law using
 Lemma~\ref{lem:sg-tal:cavity-disorder-split}. The pointwise equality of the
 two energies is \texttt{sk\_cavity\_energy\_coupled\_eq}.
+\end{proof}
+
+\begin{lemma}[Decoupled last spin in the finite Gibbs average]
+\label{lem:sg-tal:decoupled-spin}
+  \lean{SpinGlasses.integral_pi_count_tilted_equiv,
+        SpinGlasses.integral_pi_count_tilted_decoupled_spin}
+  \leanok
+\talsource{Eq.~(1.150), finite form}
+Let $\alpha$ be a finite nonempty set, $A:\alpha\to\mathbb R$, $Y\in\mathbb R$, $F$ a function of
+$n$ replicas of $\alpha$ and $I\subseteq\{1,\dots,n\}$. Under $n$ independent copies of the Gibbs
+measure on $\alpha\times\{-1,1\}$ with energy $A(a)+\varepsilon Y$,
+\[
+\mathbb E\Bigl[F(a^1,\dots,a^n)\prod_{r\in I}\varepsilon^r\Bigr]
+=(\tanh Y)^{|I|}\;\mathbb E\,F(a^1,\dots,a^n),
+\]
+the last expectation being under $n$ copies of the Gibbs measure with energy $A$. Replica averages
+are transported along any finite equivalence of the configuration space.
+\end{lemma}
+\begin{proof}
+  \leanok
+Write the replica average as a finite sum, split $(a,\varepsilon)$ coordinatewise, and factor the sum
+over the signs by the hypercube product formula. Each sign factor equals $\tanh Y$ if its replica is in
+$I$ and $1$ otherwise, since $\sum_{\varepsilon=\pm1}\varepsilon e^{\varepsilon Y}/(e^Y+e^{-Y})=\tanh Y$.
+\end{proof}
+
+\begin{theorem}[The decoupled endpoint of the cavity path (Lemma 1.6.2)]
+\label{thm:sg-tal:cavity-decoupled}
+  \lean{SpinGlasses.sk_cavity_decoupled_endpoint}
+  \leanok
+\talsource{Lemma~1.6.2, Eq.~(1.150)}
+Let $f^-$ be a function of $n$ replicas of the first $N$ spins, $I\subseteq\{1,\dots,n\}$ and
+$Y=\beta z\sqrt q+h$ with $z$ standard Gaussian. At the decoupled endpoint $t=0$ of the cavity path,
+\[
+\nu_0\Bigl(f^-\prod_{r\in I}\varepsilon_r\Bigr)=\mathbb E(\tanh Y)^{|I|}\,\nu_0(f^-),
+\]
+where $\nu_0(f^-)$ is the average of $f^-$ under the $N$-spin Gibbs measure with the old-pair energy
+(prefactor $(N+1)^{-1/2}\beta$ and field $h$), averaged over the old pairs.
+\end{theorem}
+\begin{proof}
+  \leanok
+At the angle $\pi/2$ the energy is $A(\rho)+\varepsilon(\beta\omega_2\sqrt q+h)$. Lemma~\ref{lem:sg-tal:decoupled-spin}
+(transported along the $\mathrm{Fin.snoc}$ equivalence) gives the factor $(\tanh Y)^{|I|}$ at fixed disorder;
+the old pairs and the scalar Gaussian are independent, so the two integrals factor.
 \end{proof}
 
 \begin{lemma}[Conditional cavity replica derivative]\label{lem:sg-tal:cavity-conditional-deriv}
@@ -1297,541 +1614,6 @@ Lemmas~\ref{lem:sg-tal:cavity-fields-gaussian} and
 Gaussian integration by parts.
 \end{proof}
 
-\begin{remark}[Scope and normalization of the cavity implementation]
-\label{rem:sg-tal:dev-16}
-Talagrand keeps the full-system inverse square-root prefactor on the old-pair
-Hamiltonian after removing the last spin. This does not equal the repository's
-standalone $N$-spin SK Hamiltonian at the same $\beta$; no rescaling parameter
-$\beta_-$ is introduced in Section~1.6. The proved cavity identity above is
-finite and deterministic, for a given base energy and field. The random pair-disorder split and its Gaussian product law are proved above.
-The coupled endpoint for arbitrary replica number is now proved above.
-The path derivative (Lemma~1.6.3, Eq.~(1.151)) and the domination estimate (Lemma~1.6.4,
-Eqs.~(1.154)--(1.155)) are proved below for the observables stated there.
-Lemma~1.6.2 is proved for the decoupled endpoint (Theorem~\ref{thm:sg-tal:cavity-decoupled}).
-The $R$-form (1.152) (Theorem~\ref{thm:sg-tal:cavity-path-derivative-full}) and
-Propositions~1.6.5, 1.6.6 and~1.6.7 are proved below. Proposition~1.6.8 is
-open beyond its pointwise cavity identity (Eq.~(1.172)), formalized below; its disorder-law
-comparison, Gaussian interpolation estimates, and final quantitative bound remain open.
-The old-pair energy is random: the existing Gaussian interpolation theorem is applied
-conditionally on the old-pair disorder
-(Lemma~\ref{lem:sg-tal:cavity-conditional-deriv}), and
-Lemma~\ref{lem:sg-tal:conditional-derivative} integrates its derivative.
-The interpolation is proved in the angle $s$ and then changed to the book's parameter
-$t=\cos^2 s$ on the open interval $(0,1)$.
-\end{remark}
-
-\begin{lemma}[Gaussianity and centering of the two last-spin fields]
-\label{lem:sg-tal:cavity-fields-gaussian}
-  \lean{SpinGlasses.hasGaussianLaw_sk_cavity_fields,
-        SpinGlasses.integral_sk_cavity_edge_field_eq_zero,
-        SpinGlasses.integral_sk_cavity_scalar_field_eq_zero}
-  \leanok
-\talsource{Eqs.~(1.147), (1.153)}
-Fix $N\ge0$, $\beta,q\in\mathbb R$, and independent $g_i\sim N(0,1)$
-for $i<N$ and $z\sim N(0,1)$. For configurations
-$\sigma\in\{-1,1\}^{N+1}$, write
-\[
-X_\sigma=(N+1)^{-1/2}\beta\sigma_N\sum_{i<N}g_i\sigma_i,
-\qquad Y_\sigma=\beta\sigma_N z\sqrt q.
-\]
-The concatenated family $(X_\sigma,Y_\sigma)_\sigma$ is jointly Gaussian
-under the product disorder law, and each of its components has mean zero.
-No restriction on $q$ is needed for Gaussianity and centering: $\sqrt q$ is real
-for all real $q$. The old-pair disorder does not enter either field.
-These are inputs to the \emph{conditional} derivative, not yet Lemma~1.6.3.
-\end{lemma}
-\begin{proof}
-  \leanok
-The edge family is a finite system of Gaussian linear forms. The scalar
-family is the continuous linear image of $z\sim N(0,1)$; the product
-of independent Gaussian vectors is jointly Gaussian. Both means vanish
-by the centered Gaussian coordinate integrals.
-\end{proof}
-
-\begin{theorem}[Pointwise cavity partition identity (Proposition 1.6.8, Eq.~(1.172))]
-\label{thm:sg-tal:cavity-free-energy-split}
-  \lean{SpinGlasses.sum_exp_fin_snoc_cavity,
-        SpinGlasses.log_sum_exp_fin_snoc_cavity,
-        SpinGlasses.sk_cavity_energy_snoc,
-        SpinGlasses.sk_beta_plus_coefficient,
-        SpinGlasses.sk_beta_plus_variance,
-        ProbabilityTheory.map_pi_gaussianReal_scale_eq_prod_linear_combo,
-        ProbabilityTheory.integral_pi_gaussianReal_scale_eq_prod_linear_combo,
-        SpinGlasses.map_pi_gaussianReal_sk_beta_plus,
-        SpinGlasses.integral_log_partition_sk_beta_plus_eq,
-        SpinGlasses.sum_exp_sk_cavity_snoc,
-        SpinGlasses.sum_exp_sk_cavity_beta_plus}
-  \leanok
-\talsource{Proposition~1.6.8, Eq.~(1.172)}
-For $N>0$, put $\beta_+=\beta\sqrt{1+1/N}$.  Pointwise in the disorder of an
-$(N+1)$-spin system,
-\[
- Z_{N+1}(\beta_+)=2\sum_{\rho\in\{-1,1\}^N}
- \exp\{-H_N(\rho)\}\,
- \cosh\!\left(\frac\beta{\sqrt N}\sum_{i<N}g_{i,N+1}\rho_i+h\right).
-\]
-Equivalently this is $2Z_N(\beta)$ times the old-system Gibbs average of the displayed
-hyperbolic cosine.  The Lean theorem deliberately states the unnormalised finite sum, so it
-does not introduce a partition-function wrapper.
-\end{theorem}
-\begin{proof}
-  \leanok
-First reindex a configuration by its first $N$ coordinates and its final spin
-(\texttt{Fin.snoc}).  The sum over the two final-spin values is
-$e^L+e^{-L}=2\cosh L$ (\texttt{sum\_exp\_fin\_snoc\_cavity}).  The pair sum and field split
-algebraically by \texttt{sk\_cavity\_energy\_snoc}.  Finally
-$\beta_+/\sqrt{N+1}=\beta/\sqrt N$ is \texttt{sk\_beta\_plus\_coefficient}.
-The companion scalar identity \texttt{sk\_beta\_plus\_variance} is the variance computation
-needed for the following Gaussian-law change (1.174).
-\end{proof}
-
-\begin{lemma}[Logarithmic cavity factorization (core of Proposition 1.6.8, Eq.~(1.176))]
-\label{lem:sg-tal:cavity-log-factorization}
-  \lean{SpinGlasses.log_sum_exp_fin_snoc_cavity,
-        SpinGlasses.log_integral_count_tilted}
-  \leanok
-\talsource{Proposition~1.6.8, Eq.~(1.176)}
-For any finite base energy $A$ and last-spin field $L$, the logarithm of the enlarged
-partition function is
-\[
- \log 2+\log\sum_\rho e^{A(\rho)}+
- \log\left\langle\cosh L(\rho)\right\rangle_A.
-\]
-This is the model-independent algebraic component of (1.176); the remaining specialization
-inserts the SK old-pair energy and combines it with the two-block Gaussian law.
-\end{lemma}
-\begin{proof}
-  \leanok
-Apply the final-spin sum identity, then \texttt{log\_integral\_count\_tilted} to the strictly
-positive observable $\cosh L$.  Positivity of the finite weighted sum justifies splitting the
-logarithm of its factor $2$.
-\end{proof}
-
-\begin{lemma}[Gaussian coefficient split (Proposition 1.6.8, Eq.~(1.174))]
-\label{lem:sg-tal:cavity-beta-plus-law}
-  \lean{ProbabilityTheory.map_pi_gaussianReal_scale_eq_prod_linear_combo,
-        SpinGlasses.map_pi_gaussianReal_sk_beta_plus}
-  \leanok
-\talsource{Proposition~1.6.8, Eq.~(1.174)}
-For independent standard Gaussian edge arrays $g,g'$, the edge field
-\[
-  \frac\beta{\sqrt{N+1}}g+\frac\beta{\sqrt{N(N+1)}}g'
-\]
-has the same law as $(\beta/\sqrt N)g$.  The first Lean lemma proves the reusable statement
-for every finite coordinate type and coefficients $a,b,c$ with $c^2=a^2+b^2$; the second
-instantiates it for \texttt{FinPairs (N+1)}.
-\end{lemma}
-\begin{proof}
-  \leanok
-Use the existing two-block Gaussian Gram-transfer theorem.  The coefficient of coordinate $i$
-is represented by the Kronecker vector $c\,\mathbf1_{\{i\}}$; its covariance is diagonal and
-agrees with the two independent coefficient vectors precisely when $c^2=a^2+b^2$.
-\end{proof}
-
-\begin{lemma}[Log-partition transport (Proposition 1.6.8, Eq.~(1.175))]
-\label{lem:sg-tal:cavity-log-partition-law}
-  \lean{ProbabilityTheory.integral_pi_gaussianReal_scale_eq_prod_linear_combo,
-        SpinGlasses.integral_log_partition_sk_beta_plus_eq,
-        SpinGlasses.log_sum_exp_add_eq_log_sum_exp_add_log_integral_exp,
-        SpinGlasses.log_partition_sk_pair_perturb}
-  \leanok
-\talsource{Proposition~1.6.8, Eq.~(1.175)}
-Taking the logarithmic $(N+1)$-spin partition function as the observable in the preceding
-Gaussian law yields an exact equality between its expectation at coefficient $\beta/\sqrt N$
-and the expectation under the two independent edge-disorder blocks.  Pointwise, the latter
-logarithmic partition function is the unperturbed log partition function plus the log Gibbs
-average of the exponential independent perturbation.  The pointwise factorization has also been
-passed through both Gaussian expectations, with the integrability and Fubini obligations explicit.
-\end{lemma}
-\begin{proof}
-  \leanok
-The reusable integral form transports every measurable observable of the finite Gaussian vector.
-For the SK observable, measurability is exactly \texttt{measurable\_log\_sum\_exp}; expanding the
-linear combination gives the displayed two-block Hamiltonian.  The second statement is the
-generic finite-state log-partition perturbation identity applied to the base SK energy and the
-independent pair-disorder perturbation.
-\end{proof}
-
-\begin{lemma}[Gaussian derivative of a logarithmic $\cosh$ Gibbs average]
-\label{lem:sg-tal:log-cosh-gaussian-derivative}
-  \lean{ProbabilityTheory.HasGaussianLaw.reindex_mul,
-        SpinGlasses.log_integral_cosh_count_tilted_eq,
-        SpinGlasses.hasDerivAt_integral_log_integral_cosh_trig}
-  \leanok
-\talsource{Proposition~1.6.8, Eq.~(1.178), specialized to $f=\cosh$}
-Let $X=(X_a)$ and $Y=(Y_a)$ be a centered jointly Gaussian pair of fields on a finite
-configuration space, with vanishing cross-covariance, and let $A$ and $h$ be deterministic.
-Then
-\[
- s\longmapsto \mathbb E\log\left\langle
-   \cosh(\cos(s)X_\sigma+\sin(s)Y_\sigma+h_\sigma)\right\rangle_A
-\]
-is differentiable.  Its derivative is $\sin(s)\cos(s)$ times the two-replica covariance
-difference for the signed fields $\varepsilon X_a$ and $\varepsilon Y_a$ on
-$(a,\varepsilon)\in\alpha\times\{-1,1\}$, under their explicit tilted product measure.
-This is the model-independent derivative needed by the cavity $\cosh$ path.  The covariance
-bracket identity and signed-overlap domination have also been integrated over arbitrary
-measurable old disorder.  General Gibbs lemmas now provide the outer measurability and
-integrability of the logarithmic cosh path.  The remaining step for Eq.~(1.181) is to assemble
-these declarations into the conditional derivative theorem, verify its derivative-integrand
-measurability and uniform bound, and identify the two endpoints.
-\end{lemma}
-\begin{proof}
-  \leanok
-The identity $\cosh x=(e^x+e^{-x})/2$ turns the logarithmic Gibbs average into a signed log
-partition function minus the constant base log partition function and $\log 2$.
-The signed fields are obtained from $(X,Y)$ by deterministic reindexing and coordinatewise
-scaling, so \texttt{HasGaussianLaw.reindex\_mul} preserves their joint Gaussian law.
-Apply \texttt{hasDerivAt\_integral\_log\_sum\_exp\_trig}; the subtracted terms have zero derivative.
-\end{proof}
-
-\begin{theorem}[Exact cavity free-energy increment identity (Proposition 1.6.8, Eq.~(1.176))]
-\label{thm:sg-tal:cavity-free-energy-increment}
-  \lean{SpinGlasses.sum_exp_prod_units,
-        SpinGlasses.log_sum_exp_prod_units,
-        SpinGlasses.log_sum_exp_sk_cavity_snoc,
-        SpinGlasses.integral_log_partition_sk_pair_perturb,
-        SpinGlasses.integral_log_partition_sk_beta_plus_eq_perturb,
-        SpinGlasses.integral_log_partition_sk_cavity_split,
-        SpinGlasses.sk_free_energy_increment_eq}
-  \leanok
-\talsource{Proposition~1.6.8, Eq.~(1.176)}
-For every $N > 0$ and any $\beta, h \in \mathbb R$, the free-energy increment satisfies
-the exact identity without Guerra interpolation:
-\begin{align*}
-(N+1) p_{N+1}(\beta, h) - N p_N(\beta, h)
-&= \log 2 + \mathbb E \log \left\langle \cosh\left(\frac\beta{\sqrt N} \sum_{i \le N} g_{i,N+1} \sigma_i + h\right) \right\rangle \\
-&\quad - \mathbb E \log \left\langle \exp \frac\beta{\sqrt{N(N+1)}} \sum_{i < j \le N+1} g'_{ij} \sigma_i \sigma_j \right\rangle',
-\end{align*}
-where $p_N$ is the standard SK free energy, the first expectation is over the $(N+1)$-spin cavity field,
-and the second expectation is over the independent pair perturbation under the $(N+1)$-spin Gibbs measure at $\beta$.
-\end{theorem}
-\begin{proof}
-  \leanok
-Combine the integrated cavity split \texttt{integral\_log\_partition\_sk\_cavity\_split}
-(Eq.~(1.173)) with the integrated pair perturbation comparison
-\texttt{integral\_log\_partition\_sk\_beta\_plus\_eq\_perturb} (Eq.~(1.175)),
-using measure-preserving coordinate splits and Fubini transport.
-\end{proof}
-
-\begin{theorem}[Conditional reduction of the cavity free-energy increment]
-\label{thm:sg-tal:cavity-free-energy-assembly}
-  \lean{Real.abs_sub_sub_half_le_of_exists_hasDerivAt,
-        SpinGlasses.sk_free_energy_step_algebra,
-        SpinGlasses.abs_sk_free_energy_step_sub_le,
-        SpinGlasses.sk_cavity_free_energy_step_le_of_estimates}
-  \leanok
-\talsource{Proposition~1.6.8, Eq.~(1.170)}
-The exact increment deviation from $A(\beta, h, q) = \log 2 + \frac{\beta^2}{4}(1-q)^2 + \mathbb E \log \cosh(\beta z \sqrt q + h)$
-decomposes algebraically as
-\[
-  ((N+1) p_{N+1} - N p_N) - A(\beta, h, q) =
-  \left(\mathbb E \log \langle \cosh L \rangle - \frac{\beta^2}{2}(1-q) - \mathbb E \log \cosh\right)
-  - \left(\mathbb E \log \langle \exp(\text{perturb}) \rangle' - \frac{\beta^2}{4}(1-q^2)\right).
-\]
-Consequently, any quantitative bounds on the cavity $\cosh$ and pair-perturbation errors
-yield the Proposition~1.6.8 bound $|(N+1)p_{N+1} - N p_N - A(\beta, h, q)| \le K(N^{-1} + \nu(|R_{1,2}-q|))$.
-This is only a reduction: the fixed-base and old-disorder-averaged SK signed-overlap bounds are
-formalized, but the concrete conditional path theorem and the pair-perturbation derivative
-estimate are not yet assembled.
-\end{theorem}
-\begin{proof}
-  \leanok
-Expanding $(1-q)^2 = 1 - 2q + q^2$ and combining with $\frac{\beta^2}{2}(1-q) - \frac{\beta^2}{4}(1-q^2)$ gives
-the exact constant $A(\beta, h, q)$ by \texttt{sk\_free\_energy\_step\_algebra}.
-The triangle inequality \texttt{abs\_sk\_free\_energy\_step\_sub\_le} and \texttt{sk\_cavity\_free\_energy\_step\_le\_of\_estimates}
-complete the reduction.
-\end{proof}
-
-\begin{theorem}[Conditional endpoint reduction for the cavity $\cosh$ estimate]
-\label{thm:sg-tal:cavity-cosh-estimate}
-  \lean{SpinGlasses.sk_cavity_cosh_estimate_of_deriv_bound}
-  \leanok
-\talsource{Proposition~1.6.8, Eq.~(1.181)}
-For any interpolating path $\varphi$ between the cavity $\cosh$ expectation at $0$ and the decoupled
-standard Gaussian expectation at $\pi / 2$, if its derivative along the trigonometric path has
-deviation from $-\beta^2(1-q)$ bounded by $2 K_1 \nu$ on $[0, \pi/2]$, then
-\[
-  \left|\mathbb E \log \langle \cosh(u_\sigma + h) \rangle - \frac{\beta^2}{2}(1-q) - \mathbb E \log \cosh(\beta z \sqrt q + h)\right| \le K_1 \nu.
-\]
-\end{theorem}
-\begin{proof}
-  \leanok
-Apply \texttt{Real.abs\_sub\_sub\_half\_le\_of\_exists\_hasDerivAt} with $C = -\beta^2(1-q)$ and $K = 2 K_1 \nu$.
-\end{proof}
-
-\begin{theorem}[Conditional endpoint reduction for the pair perturbation estimate]
-\label{thm:sg-tal:pair-perturb-estimate}
-  \lean{SpinGlasses.sk_pair_perturb_estimate_of_deriv_bound}
-  \leanok
-\talsource{Proposition~1.6.8, Eq.~(1.182)}
-For any interpolating path $\psi$ between the pair perturbation expectation at $0$ and $0$ at $\pi / 2$,
-if its derivative along the trigonometric path has deviation from $-\frac{\beta^2}{2}(1-q^2)$ bounded by
-$2 (K_2 / N + K_3 \nu)$ on $[0, \pi/2]$, then
-\[
-  \left|\mathbb E \log \langle \exp(\text{perturb}) \rangle' - \frac{\beta^2}{4}(1-q^2)\right| \le \frac{K_2}{N} + K_3 \nu.
-\]
-\end{theorem}
-\begin{proof}
-  \leanok
-Apply \texttt{Real.abs\_sub\_sub\_half\_le\_of\_exists\_hasDerivAt} with $C = -\frac{\beta^2}{2}(1-q^2)$ and $K = 2(K_2/N + K_3 \nu)$.
-\end{proof}
-
-\begin{theorem}[Conditional SK cavity free-energy step reduction]
-\label{thm:sg-tal:cavity-free-energy-step}
-  \lean{SpinGlasses.cavity_free_energy_increment_le_of_estimates,
-        SpinGlasses.sk_cavity_free_energy_increment_le_of_estimates}
-  \leanok
-\talsource{Proposition~1.6.8, Eq.~(1.170)}
-For all $N > 0$ and $\beta, h, q \in \mathbb R$, combining the exact free-energy increment identity
-(Eq.~(1.176)) with the cavity $\cosh$ estimate (Eq.~(1.181)) and the pair perturbation estimate (Eq.~(1.182))
-yields the quantitative rate, provided the two displayed interpolation estimates are supplied:
-\[
-  |(N+1) p_{N+1}(\beta, h) - N p_N(\beta, h) - A(\beta, h, q)| \le K \left(\frac{1}{N} + \nu\right).
-\]
-\end{theorem}
-\begin{proof}
-  \leanok
-Combine \texttt{sk\_free\_energy\_increment\_eq} with the assembly theorem
-\texttt{sk\_cavity\_free\_energy\_step\_le\_of\_estimates}.
-\end{proof}
-
-\begin{theorem}[Cavity free-energy increment bound (Proposition~1.6.8)]
-\label{thm:sg-tal:cavity-free-energy-increment}
-  \lean{SpinGlasses.sk_cavity_constants_le,
-        SpinGlasses.sk_cavity_free_energy_increment_le}
-  \leanok
-\talsource{Proposition~1.6.8, Eq.~(1.170)}
-For all $N > 0$, $\beta, h, q \in \mathbb R$ with $0 \le q \le 1$, the expected free-energy increment satisfies
-\[
-  |(N+1) p_{N+1}(\beta, h) - N p_N(\beta, h) - A(\beta, h, q)| \le K \left(\frac{1}{N} + \nu(|R_{1,2} - q|)\right)
-\]
-with explicit constant $K = 6 \beta^2 \exp(4\beta^2) \cosh(2h) + 1$, where $\nu$ is the $N$-spin two-replica
-average at inverse temperature $\beta$, provided the two interpolation estimates (1.181) and (1.182) hold.
-\end{theorem}
-\begin{proof}
-  \leanok
-Follows from the exact increment decomposition (\texttt{sk\_free\_energy\_increment\_eq}), the arithmetic bounds
-$K_2 \le K$ and $K_1 + K_3 \le K$ (\texttt{le\_mul\_of\_one\_le\_right}), and \texttt{sk\_cavity\_free\_energy\_increment\_le\_of\_estimates}.
-\end{proof}
-
-\begin{lemma}[Covariances of the last-spin cavity fields]
-\label{lem:sg-tal:cavity-field-covariance-difference}
-  \lean{SpinGlasses.integral_sk_cavity_edge_field_mul,
-        SpinGlasses.integral_sk_cavity_edge_mul_scalar_eq_zero,
-        SpinGlasses.integral_sk_cavity_scalar_field_mul,
-        SpinGlasses.sk_cavity_covariance_difference}
-  \leanok
-\talsource{Eqs.~(1.153), (1.55); the book's $U$ equals $-\tfrac12$ of the $U$ used here}
-With the fields $X_\sigma,Y_\sigma$ above and $q\ge0$, integration over the
-product of new-edge disorder and the scalar standard Gaussian gives
-\[
-\mathbb E[X_\sigma X_\tau]=\beta^2\sigma_N\tau_N R^-(\sigma,\tau),
-\quad \mathbb E[X_\sigma Y_\tau]=0,\quad
-\mathbb E[Y_\sigma Y_\tau]=\beta^2 q\sigma_N\tau_N.
-\]
-Thus the sign convention of the trigonometric replica theorem is
-$U(\sigma,\tau)=\mathbb E[Y_\sigma Y_\tau]-\mathbb E[X_\sigma X_\tau]
-=\beta^2\sigma_N\tau_N(q-R^-(\sigma,\tau))$, where $R^-$ uses the
-full-system normalization $N+1$. These are covariance inputs, not the
-conditional or disorder-averaged derivative formula of Lemma~1.6.3.
-\end{lemma}
-\begin{proof}
-  \leanok
-The edge covariance is the existing normalized Gaussian linear-form lemma,
-transported along the projection from the product disorder. Independence and
-centering make the mixed covariance zero. The scalar square integrates to one;
-$\sqrt q^{\,2}=q$ uses $q\ge0$. Distributivity gives the difference.
-\end{proof}
-
-\begin{lemma}[Covariances and Gaussian law of the $N$-spin cavity fields]
-\label{lem:sg-tal:cavity-N-fields}
-  \lean{SpinGlasses.hasGaussianLaw_linear_form_and_scalar_prod,
-        SpinGlasses.hasGaussianLaw_sk_cavity_N_fields,
-        SpinGlasses.integral_sk_cavity_N_edge_field_eq_zero,
-        SpinGlasses.integral_sk_cavity_N_scalar_field_eq_zero,
-        SpinGlasses.integral_sk_cavity_N_edge_field_mul,
-        SpinGlasses.integral_sk_cavity_N_edge_mul_scalar_eq_zero,
-        SpinGlasses.integral_sk_cavity_N_scalar_field_mul,
-        SpinGlasses.sk_cavity_N_covariance_difference}
-  \leanok
-\talsource{Eqs.~(1.178)--(1.180)}
-For the $N$-spin cavity fields $X_\sigma = \frac{\beta}{\sqrt{N}} \sum_{i \le N} g_i \sigma_i$ and $Y_\sigma = \beta z \sqrt{q}$,
-the family forms a jointly Gaussian vector under the product law of the new-edge disorder and $z$, with zero mean,
-$\mathbb E X_\sigma X_\tau = \beta^2 R(\sigma, \tau)$, $\mathbb E X_\sigma Y_\tau = 0$, and $\mathbb E Y_\sigma Y_\tau = \beta^2 q$.
-The covariance difference satisfies $\mathbb E Y^2 - \mathbb E X^2 = \beta^2(q - R(\sigma, \tau))$.
-\end{lemma}
-\begin{proof}
-  \leanok
-Apply \texttt{hasGaussianLaw\_linear\_form\_and\_scalar\_prod} to the linear forms and Gaussian scalar, then compute moments
-by independence.
-\end{proof}
-
-\begin{lemma}[Uniform variance bound for the cavity field linear combinations]
-\label{lem:sg-tal:cavity-linear-combo-var}
-  \lean{SpinGlasses.sum_sq_units_add_or_sub_le,
-        SpinGlasses.sum_sq_sk_cavity_linear_combo_le,
-        SpinGlasses.sk_cavity_field_linear_combo_eq,
-        Real.cosh_add_add_eq,
-        Real.cosh_le_exp_abs,
-        integrable_exp_prod_mul_gaussianReal,
-        integrable_exp_mul_prod_gaussianReal,
-        integrable_cosh_two_sum_mul_gaussianReal,
-        integral_cosh_two_sum_mul_gaussianReal,
-        integrable_cosh_sum_mul_add_mul_gaussianReal,
-        integral_cosh_sum_mul_add_mul_gaussianReal,
-        SpinGlasses.integral_cosh_sk_cavity_linear_combo_le,
-        SpinGlasses.integrable_abs_sinh_mul_sinh_sk_cavity,
-        SpinGlasses.integral_abs_sinh_mul_sinh_sk_cavity_le}
-  \leanok
-\talsource{Proof of Eq.~(1.181)}
-For any Ising configurations $\sigma, \tau \in \{-1, 1\}^N$, any angle $s$, and any sign $\pm 1$, the variance of
-the linear combination $\cos s (X_\sigma \pm X_\tau) + \sin s (Y_\sigma \pm Y_\tau)$ under the cavity Gaussian disorder
-is at most $4 \beta^2$.
-Consequently, for every $m\in\mathbb R$, the Gaussian moment of the hyperbolic cosine is bounded
-uniformly by
-\[
-  \mathbb E\cosh\!\left(\cos s(X_\sigma\pm X_\tau)
-    +\sin s(Y_\sigma\pm Y_\tau)+m\right)
-  \le \cosh(m)\exp(2\beta^2),
-\]
-and the two-replica cavity factor product satisfies
-\[
-  \mathbb E [ |\sinh(L_\sigma)| |\sinh(L_\tau)| ] \le \cosh(2h)\exp(2\beta^2).
-\]
-\end{lemma}
-\begin{proof}
-  \leanok
-The Ising coordinate differences $(\sigma_i \pm \tau_i)^2$ are at most $4$, so their sum is at most $4N$, cancelling
-the factor $1/N$. The scalar coordinate satisfies $(1 \pm 1)^2 \le 4$ and $q \le 1$. Squaring and summing with
-$\cos^2 s + \sin^2 s = 1$ yields at most $4 \beta^2$.
-The reusable product-Gaussian moment formula evaluates the displayed expectation as
-$\cosh(m)\exp(V/2)$, where $V$ is that variance bound, and monotonicity of the exponential gives
-the result. For the product of hyperbolic sines, we bound $|\sinh a \sinh b| \le (\cosh(a+b) + \cosh(a-b))/2$
-and apply the moment bound at $m = 2h$ and $m = 0$.
-\end{proof}
-
-\begin{lemma}[Fixed-base signed-overlap domination for the cavity $\cosh$ path]
-\label{lem:sg-tal:cavity-signed-overlap-bound}
-  \lean{SpinGlasses.sk_cavity_covariance_bracket_eq,
-        integral_mul_self_of_sq_eq_one,
-        integral_mul_mul_eq_mul_integral,
-        SpinGlasses.integrable_integral_prod_count_tilted,
-        SpinGlasses.integral_prod_count_tilted_swap,
-        SpinGlasses.integral_prod_count_tilted_mul_le,
-        SpinGlasses.measurable_integral_prod_count_tilted,
-        SpinGlasses.measurable_integral_prod_count_tilted_units_mul,
-        SpinGlasses.integrable_integral_prod_count_tilted_det,
-        SpinGlasses.integrable_integral_sk_cavity_signed_overlap,
-        SpinGlasses.abs_integral_sk_cavity_signed_overlap_le}
-  \leanok
-\talsource{Proof of Eqs.~(1.179)--(1.181)}
-Fix an arbitrary base energy $A$ on the $N$-spin hypercube.  For
-$L_\sigma(s)=\cos(s)X_\sigma+\sin(s)Y_\sigma+h$, the cavity Gaussian average of the signed
-two-replica overlap term satisfies
-\[
- \left|\mathbb E_\omega\left\langle
-   \varepsilon^1\varepsilon^2\beta^2(R_{1,2}-q)
- \right\rangle_{A+\varepsilon L(s)}^{\otimes 2}\right|
- \le \beta^2\cosh(2h)e^{2\beta^2}
-   \left\langle |R_{1,2}-q|\right\rangle_A^{\otimes 2}.
-\]
-The estimate is pointwise in the old-pair disorder and uniform in the interpolation angle.
-\end{lemma}
-\begin{proof}
-  \leanok
-First integrate the two signs and discard the denominator using
-\texttt{abs\_integral\_prod\_count\_tilted\_units\_mul\_le}.  The remaining tilted measure
-depends only on $A$, so the finite Gibbs sum can be exchanged with the cavity Gaussian integral.
-The coordinatewise factor is bounded by the preceding $\sinh$ moment estimate.  The reusable
-integrability and measurability lemmas make the triangle and Fubini steps explicit.
-\end{proof}
-
-\begin{lemma}[Old-disorder-averaged cavity bracket and domination]
-\label{lem:sg-tal:cavity-outer-signed-overlap-bound}
-  \lean{SpinGlasses.abs_log_integral_cosh_count_tilted_le_sum_abs,
-        abs_integral_le_const_mul_integral,
-        integral_const_add_of_isProbabilityMeasure,
-        SpinGlasses.aestronglyMeasurable_integral_log_integral_cosh_count_tilted,
-        SpinGlasses.integrable_integral_log_integral_cosh_count_tilted,
-        SpinGlasses.abs_integral_integral_sk_cavity_signed_overlap_le,
-        SpinGlasses.integral_integral_sk_cavity_covariance_bracket_eq,
-        SpinGlasses.abs_card_inv_mul_dotProduct_sub_le_two}
-  \leanok
-\talsource{Proof of Eqs.~(1.179)--(1.181)}
-Let $A_\eta$ be any measurable family of base energies under a probability law $P_0$.
-For $N>0$, $q\in[0,1]$, and every interpolation angle $s$, averaging the preceding estimate
-over $\eta$ gives
-\[
- \left|\mathbb E_\eta\mathbb E_\omega\left\langle
-   \varepsilon^1\varepsilon^2\beta^2(R_{1,2}-q)
- \right\rangle_{A_\eta+\varepsilon L(s)}^{\otimes 2}\right|
- \le \beta^2\cosh(2h)e^{2\beta^2}
-   \mathbb E_\eta\left\langle |R_{1,2}-q|\right\rangle_{A_\eta}^{\otimes 2}.
-\]
-For each fixed $A$, the complete Gaussian covariance bracket integrates exactly to
-$\sin(s)\cos(s)$ times $-\beta^2(1-q)$ plus the signed-overlap average above.
-Moreover, for every finite Gibbs measure,
-$|\log\langle\cosh L\rangle_A|\le\sum_a|L_a|$; hence coordinatewise integrability of
-$L$ gives the outer measurability and integrability required by the conditional derivative
-theorem.  The normalized overlap of arbitrary vectors in the finite unit cube differs from
-any $q\in[0,1]$ by at most two.
-\end{lemma}
-\begin{proof}
-  \leanok
-The fixed-base estimate supplies a pointwise integrable majorant.  Measurability of finite
-two-replica Gibbs averages and bounded-observable integrability justify the outer triangle
-inequality.  The bracket identity follows by integrating
-\texttt{sk\_cavity\_covariance\_bracket\_eq}; probability normalization leaves the constant
-term unchanged.  Finally, $\cosh x\le e^{|x|}$ gives the logarithmic domination independently
-of the Gibbs weights.
-\end{proof}
-
-\begin{lemma}[Uniform truncated-overlap and covariance bounds]
-\label{lem:sg-tal:cavity-covariance-bound}
-  \lean{SpinGlasses.abs_sk_cavity_overlap_le_one,
-        SpinGlasses.abs_sk_cavity_covariance_le}
-  \leanok
-\talsource{proof of Lemma~1.6.4: the bound $|R^-_{\ell,\ell'}-q|\le2$ before Eq.~(1.155)}
-For $N\ge0$, $q\in[0,1]$, $\beta\in\mathbb R$, and arbitrary Ising
-configurations $a,b$ of size $N+1$, the truncated overlap and the cavity
-covariance kernel satisfy
-\[
-|R^-(a,b)|\le1,\qquad
-|\beta^2 a_N b_N(q-R^-(a,b))|\le2\beta^2.
-\]
-Both bounds are deterministic, uniform in the old-pair disorder, and valid
-when $N=0$. Together with Lemma~\ref{lem:sg-tal:cavity-combination-bound}, they supply
-uniform bounds for dominated differentiation; the fully averaged derivative
-remains unproved.
-\end{lemma}
-\begin{proof}
-  \leanok
-Bound the absolute value of the truncated sum by the sum of the absolute
-values of its $N$ Ising terms. Divide by $N+1$ and use $N/(N+1)\le1$.
-The covariance bound follows by the triangle inequality and $|a_N|=|b_N|=1$.
-\end{proof}
-
-\begin{lemma}[Uniform bound on the replica covariance combination]
-\label{lem:sg-tal:cavity-combination-bound}
-  \lean{SpinGlasses.abs_replica_covariance_combination_le}
-  \leanok
-\talsource{Lemma~1.6.4, Eq.~(1.155): the term count after Eq.~(1.152)}
-Let $R$ be any finite replica index type of cardinality $n$, let $\alpha$ be
-any type of configurations, and suppose $|U(a,b)|\le C$ for every $a,b\in\alpha$.
-For any extended replica family $\tau:\operatorname{Option}(\operatorname{Option}R)
-\to\alpha$, the absolute value of the four-term replica combination in
-Lemma~\ref{lem:sg-tal:cavity-conditional-deriv} is at most
-$2n(2n+1)C$. In particular, the cavity covariance bound
-$C=2\beta^2$ yields a bound independent of the old-pair disorder.
-This does not yet establish differentiation under the old-disorder integral.
-\end{lemma}
-\begin{proof}
-  \leanok
-Apply the triangle inequality to the four finite sums and bound each
-summand by $C$; the resulting counts are $n^2$, $2n^2$, $n$ and $n(n+1)$.
-\end{proof}
-
 \begin{lemma}[Diagonal cancellation for cavity replica covariances]
 \label{lem:sg-tal:cavity-diagonal-cancel}
   \lean{SpinGlasses.replica_covariance_combination_cancel_diagonal,
@@ -1866,28 +1648,43 @@ and cancel it. The Ising instance uses
 Lemma~\ref{lem:sg-tal:cavity-overlap-split}.
 \end{proof}
 
-\begin{lemma}[Full and truncated cavity overlaps]
-\label{lem:sg-tal:cavity-overlap-split}
-  \lean{SpinGlasses.sk_overlap_succ_eq_cavity,
-        SpinGlasses.sk_cavity_self_overlap}
+\begin{lemma}[Uniform bound on the replica covariance combination]
+\label{lem:sg-tal:cavity-combination-bound}
+  \lean{SpinGlasses.abs_replica_covariance_combination_le}
   \leanok
-\talsource{Eqs.~(1.148)--(1.149)}
-For $N\ge0$ and $\sigma,\tau\in\{-1,1\}^{N+1}$, put
-$R^-(\sigma,\tau)=(N+1)^{-1}\sum_{i<N}\sigma_i\tau_i$ and
-$R(\sigma,\tau)=(N+1)^{-1}\sum_{i\le N}\sigma_i\tau_i$. Then
-\[
-R(\sigma,\tau)=R^-(\sigma,\tau)
- +(N+1)^{-1}\sigma_N\tau_N,
-\qquad R^-(\sigma,\sigma)=N/(N+1).
-\]
-These are the deterministic overlap identities (1.149) and the diagonal
-value required for the cancellation in the future replica derivative.
-They do not assert the derivative formula itself.
+\talsource{Lemma~1.6.4, Eq.~(1.155): the term count after Eq.~(1.152)}
+Let $R$ be any finite replica index type of cardinality $n$, let $\alpha$ be
+any type of configurations, and suppose $|U(a,b)|\le C$ for every $a,b\in\alpha$.
+For any extended replica family $\tau:\operatorname{Option}(\operatorname{Option}R)
+\to\alpha$, the absolute value of the four-term replica combination in
+Lemma~\ref{lem:sg-tal:cavity-conditional-deriv} is at most
+$2n(2n+1)C$. In particular, the cavity covariance bound
+$C=2\beta^2$ yields a bound independent of the old-pair disorder.
+This does not yet establish differentiation under the old-disorder integral.
 \end{lemma}
 \begin{proof}
   \leanok
-Split the finite dot-product sum at its last coordinate using
-\texttt{Fin.sum\_univ\_castSucc}; each Ising spin has square one.
+Apply the triangle inequality to the four finite sums and bound each
+summand by $C$; the resulting counts are $n^2$, $2n^2$, $n$ and $n(n+1)$.
+\end{proof}
+
+\begin{lemma}[Pointwise count for the three replica families]
+\label{lem:sg-tal:cavity-family-count}
+  \lean{SpinGlasses.abs_book_replica_combination_le}
+  \leanok
+\talsource{text after Eq.~(1.152): the right-hand side of (1.151) has $2n^2$ simple terms}
+Let $K$ be any real function of two configurations with $|K|\le c$ and let $\tau$ be an
+extended replica family indexed by $\mathrm{Option}(\mathrm{Option}(\mathrm{Fin}\,n))$. Then
+\[
+\Bigl|\sum_{\ell<\ell'\le n}K(\tau^\ell,\tau^{\ell'})-n\sum_{\ell\le n}K(\tau^\ell,\tau^{n+1})
+ +\frac{n(n+1)}2K(\tau^{n+1},\tau^{n+2})\Bigr|\le 2n^2c.
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+The three families have $\binom n2$, $n$ and $1$ terms with weights $1$, $n$ and $n(n+1)/2$;
+by the triangle inequality the total is at most $\bigl(\tfrac{n(n-1)}2+n^2+\tfrac{n(n+1)}2\bigr)c
+=2n^2c$.
 \end{proof}
 
 \begin{lemma}[Uniform domination of the conditional cavity derivative]
@@ -1939,7 +1736,7 @@ or identify either endpoint.
 \begin{proof}
   \leanok
 The finite Gibbs formula makes both the conditional expectation and its
-derivative measurable in $\eta$.  The preceding uniform bound is independent
+derivative measurable in $\eta$.  The uniform bound of Lemma~\ref{lem:sg-tal:cavity-outer-bound} is independent
 of $\eta$, so the proof applies the general dominated-differentiation lemma
 \texttt{hasDerivAt\_integral\_conditional\_of\_deriv\_bound} to the conditional
 derivative already proved in Lemma~\ref{lem:sg-tal:cavity-conditional-deriv}.
@@ -1989,54 +1786,22 @@ Lemma~\ref{lem:sg-tal:cavity-overlap-split} since $\varepsilon_\ell^2=1$ and the
 families have total weight $\binom n2-n^2+\binom{n+1}2=0$).
 \end{proof}
 
-\begin{lemma}[Pointwise count for the three replica families]
-\label{lem:sg-tal:cavity-family-count}
-  \lean{SpinGlasses.abs_book_replica_combination_le}
+\begin{theorem}[The cavity path derivative with the full overlap (Eq. 1.152)]
+\label{thm:sg-tal:cavity-path-derivative-full}
+  \lean{SpinGlasses.book_replica_combination_add_const,
+        SpinGlasses.sk_cavity_kernel_full_eq,
+        SpinGlasses.hasDerivAt_integral_sk_cavity_path_square_full}
   \leanok
-\talsource{text after Eq.~(1.152): the right-hand side of (1.151) has $2n^2$ simple terms}
-Let $K$ be any real function of two configurations with $|K|\le c$ and let $\tau$ be an
-extended replica family indexed by $\mathrm{Option}(\mathrm{Option}(\mathrm{Fin}\,n))$. Then
-\[
-\Bigl|\sum_{\ell<\ell'\le n}K(\tau^\ell,\tau^{\ell'})-n\sum_{\ell\le n}K(\tau^\ell,\tau^{n+1})
- +\frac{n(n+1)}2K(\tau^{n+1},\tau^{n+2})\Bigr|\le 2n^2c.
-\]
-\end{lemma}
+\talsource{Lemma~1.6.3, Eq.~(1.152)}
+The derivative $\nu_t'(f)$ of Theorem~\ref{thm:sg-tal:cavity-path-derivative} is also given by the
+same three families with $R_{\ell,\ell'}$ in place of $R^-_{\ell,\ell'}$.
+\end{theorem}
 \begin{proof}
   \leanok
-The three families have $\binom n2$, $n$ and $1$ terms with weights $1$, $n$ and $n(n+1)/2$;
-by the triangle inequality the total is at most $\bigl(\tfrac{n(n-1)}2+n^2+\tfrac{n(n+1)}2\bigr)c
-=2n^2c$.
-\end{proof}
-
-\begin{lemma}[Domination of a triple iterated integral]
-\label{lem:sg-tal:iterated-bound}
-  \lean{abs_integral_integral_integral_le,
-        integral_prod_fun_fst_of_isProbabilityMeasure,
-        integral_prod_fun_snd_of_isProbabilityMeasure}
-  \leanok
-\talsource{no counterpart in the book; the integration step of Lemma~1.6.4}
-Let $\mu,\nu$ be measures and $\kappa(x,y)$ a family of measures. If
-$|G(x,y,z)|\le H(x,y,z)$ pointwise and the iterated partial integrals of $H$ are integrable, then
-$\bigl|\iiint G\,d\kappa\,d\nu\,d\mu\bigr|\le\iiint H\,d\kappa\,d\nu\,d\mu$.
-\end{lemma}
-\begin{proof}
-  \leanok
-Apply the bound $\|\int g\|\le\int h$ for $\|g\|\le h$ with $h$ integrable three times.
-\end{proof}
-
-\begin{lemma}[Grönwall's inequality run backwards from the endpoint]
-\label{lem:sg-tal:gronwall-backward}
-  \lean{le_exp_mul_endpoint_of_neg_mul_le_deriv,
-        le_exp_mul_endpoint_of_exists_hasDerivAt}
-  \leanok
-\talsource{the integration of Eq.~(1.155) in the proof of Lemma~1.6.4}
-Let $g$ be continuous on $[0,1]$ and differentiable on $(0,1)$ with $g'\ge-Kg$ there. Then
-$g(t)\le e^{K(1-t)}g(1)$ for $t\in[0,1]$.
-\end{lemma}
-\begin{proof}
-  \leanok
-This is the time reversal $u\mapsto g(1-u)$ of the existing interval Grönwall lemma
-\texttt{NTK.gronwall\_exponential\_decay\_Icc}.
+Since $\varepsilon_\ell^2=1$, $\beta^2\varepsilon\varepsilon'(R-q)=\beta^2\varepsilon\varepsilon'(R^--q)+\beta^2/(N+1)$
+(Lemma~\ref{lem:sg-tal:cavity-overlap-split}). A constant shift of the kernel does not change the
+combination, because the weights $\binom n2$, $-n\cdot n$ and $\binom{n+1}2$ of the three families add up
+to zero.
 \end{proof}
 
 \begin{lemma}[Domination of the cavity derivative]
@@ -2080,66 +1845,14 @@ $\nu_t(f)\le e^{4n^2\beta^2(1-t)}\nu_1(f)$. At the endpoint the scalar Gaussian 
 split disorder is the $(N+1)$-spin SK disorder (Lemma~\ref{lem:sg-tal:cavity-coupled-endpoint}).
 \end{proof}
 
-\begin{lemma}[Decoupled last spin in the finite Gibbs average]
-\label{lem:sg-tal:decoupled-spin}
-  \lean{SpinGlasses.integral_pi_count_tilted_equiv,
-        SpinGlasses.integral_pi_count_tilted_decoupled_spin}
-  \leanok
-\talsource{Eq.~(1.150), finite form}
-Let $\alpha$ be a finite nonempty set, $A:\alpha\to\mathbb R$, $Y\in\mathbb R$, $F$ a function of
-$n$ replicas of $\alpha$ and $I\subseteq\{1,\dots,n\}$. Under $n$ independent copies of the Gibbs
-measure on $\alpha\times\{-1,1\}$ with energy $A(a)+\varepsilon Y$,
-\[
-\mathbb E\Bigl[F(a^1,\dots,a^n)\prod_{r\in I}\varepsilon^r\Bigr]
-=(\tanh Y)^{|I|}\;\mathbb E\,F(a^1,\dots,a^n),
-\]
-the last expectation being under $n$ copies of the Gibbs measure with energy $A$. Replica averages
-are transported along any finite equivalence of the configuration space.
-\end{lemma}
-\begin{proof}
-  \leanok
-Write the replica average as a finite sum, split $(a,\varepsilon)$ coordinatewise, and factor the sum
-over the signs by the hypercube product formula. Each sign factor equals $\tanh Y$ if its replica is in
-$I$ and $1$ otherwise, since $\sum_{\varepsilon=\pm1}\varepsilon e^{\varepsilon Y}/(e^Y+e^{-Y})=\tanh Y$.
-\end{proof}
+\subsection{Concentration of the overlap (Propositions~1.6.5--1.6.7)}
+\label{sec:sg-tal:cavity-overlap}
 
-\begin{theorem}[The decoupled endpoint of the cavity path (Lemma 1.6.2)]
-\label{thm:sg-tal:cavity-decoupled}
-  \lean{SpinGlasses.sk_cavity_decoupled_endpoint}
-  \leanok
-\talsource{Lemma~1.6.2, Eq.~(1.150)}
-Let $f^-$ be a function of $n$ replicas of the first $N$ spins, $I\subseteq\{1,\dots,n\}$ and
-$Y=\beta z\sqrt q+h$ with $z$ standard Gaussian. At the decoupled endpoint $t=0$ of the cavity path,
-\[
-\nu_0\Bigl(f^-\prod_{r\in I}\varepsilon_r\Bigr)=\mathbb E(\tanh Y)^{|I|}\,\nu_0(f^-),
-\]
-where $\nu_0(f^-)$ is the average of $f^-$ under the $N$-spin Gibbs measure with the old-pair energy
-(prefactor $(N+1)^{-1/2}\beta$ and field $h$), averaged over the old pairs.
-\end{theorem}
-\begin{proof}
-  \leanok
-At the angle $\pi/2$ the energy is $A(\rho)+\varepsilon(\beta\omega_2\sqrt q+h)$. Lemma~\ref{lem:sg-tal:decoupled-spin}
-(transported along the $\mathrm{Fin.snoc}$ equivalence) gives the factor $(\tanh Y)^{|I|}$ at fixed disorder;
-the old pairs and the scalar Gaussian are independent, so the two integrals factor.
-\end{proof}
-
-\begin{theorem}[The cavity path derivative with the full overlap (Eq. 1.152)]
-\label{thm:sg-tal:cavity-path-derivative-full}
-  \lean{SpinGlasses.book_replica_combination_add_const,
-        SpinGlasses.sk_cavity_kernel_full_eq,
-        SpinGlasses.hasDerivAt_integral_sk_cavity_path_square_full}
-  \leanok
-\talsource{Lemma~1.6.3, Eq.~(1.152)}
-The derivative $\nu_t'(f)$ of Theorem~\ref{thm:sg-tal:cavity-path-derivative} is also given by the
-same three families with $R_{\ell,\ell'}$ in place of $R^-_{\ell,\ell'}$.
-\end{theorem}
-\begin{proof}
-  \leanok
-Since $\varepsilon_\ell^2=1$, $\beta^2\varepsilon\varepsilon'(R-q)=\beta^2\varepsilon\varepsilon'(R^--q)+\beta^2/(N+1)$
-(Lemma~\ref{lem:sg-tal:cavity-overlap-split}). A constant shift of the kernel does not change the
-combination, because the weights $\binom n2$, $-n\cdot n$ and $\binom{n+1}2$ of the three families add up
-to zero.
-\end{proof}
+\emph{Content.} Applying C with an observable of $R_{1,2}-q$ and using Hoelder's inequality and the
+site symmetry of the Gibbs measure gives a contraction of the overlap variance
+(Proposition~1.6.6) and, by induction, bounds on its higher moments (Proposition~1.6.7).
+\emph{Uses:} C.  \emph{Used by:} only to turn $\nu(|R_{1,2}-q|)$ into a rate in $N$ (Part~E needs
+no rate).  \emph{Status:} fully proved.
 
 \begin{lemma}[Replica relabelling and the two-replica marginal]
 \label{lem:sg-tal:replica-marginal}
@@ -2296,4 +2009,460 @@ $\nu(G)\le(2k+1)x\,[\,2\nu((R-q)^{2k})+(1+4k)^{2k-1}(2x)^{2k}]$. With $\nu((R-q)
 right-hand side is at most $(64(k+1)x)^{k+1}$.
 \emph{Deviation:} $\beta_0$ is replaced by the explicit smallness hypothesis; the book's
 $\beta_0$ is not made explicit.
+\end{proof}
+
+\subsection{The free-energy increment (Proposition~1.6.8)}
+\label{sec:sg-tal:cavity-prop168}
+
+\emph{Statement.} For every $\beta,h$ and $q\in[0,1]$,
+$|(N+1)p_{N+1}-Np_N-A(\beta,h,q)|\le K(N^{-1}+\nu(|R_{1,2}-q|))$ with
+$A=\log2+\tfrac{\beta^2}{4}(1-q)^2+\mathbb E\log\cosh(\beta z\sqrt q+h)$.
+The proof has four steps, each in its own part below:
+an \emph{exact} identity (1.176) for the increment; an estimate (1.181) for the first term
+(the cavity $\cosh$); an estimate (1.182) for the second term (the pair perturbation); and
+the algebra that combines them.  The two estimates are interpolation estimates of the same type as
+in Part~C, but for the logarithm of a Gibbs average on $N$ spins.
+\emph{Status:} steps 1, 2 and 4 are proved (step 4 as a conditional reduction); step 3 is open.
+
+\subsubsection{Step 1: the exact increment identity (Eqs.~(1.172)--(1.176))}
+No estimate is involved: the $(N+1)$-spin partition function at $\beta_+$ factors, pointwise, as
+$2Z_N(\beta)\langle\cosh(\cdot)\rangle$, and taking expectations after the Gaussian rescaling gives
+$\mathbb E\log Z_{N+1}-\mathbb E\log Z_N=\log2+\mathbb E\log\langle\cosh\rangle-\mathbb E\log\langle\exp(\text{pair block})\rangle'$.
+\emph{Status:} proved.
+
+\begin{theorem}[Pointwise cavity partition identity (Proposition 1.6.8, Eq.~(1.172))]
+\label{thm:sg-tal:cavity-free-energy-split}
+  \lean{SpinGlasses.sum_exp_fin_snoc_cavity,
+        SpinGlasses.log_sum_exp_fin_snoc_cavity,
+        SpinGlasses.sk_cavity_energy_snoc,
+        SpinGlasses.sk_beta_plus_coefficient,
+        SpinGlasses.sk_beta_plus_variance,
+        ProbabilityTheory.map_pi_gaussianReal_scale_eq_prod_linear_combo,
+        ProbabilityTheory.integral_pi_gaussianReal_scale_eq_prod_linear_combo,
+        SpinGlasses.map_pi_gaussianReal_sk_beta_plus,
+        SpinGlasses.integral_log_partition_sk_beta_plus_eq,
+        SpinGlasses.sum_exp_sk_cavity_snoc,
+        SpinGlasses.sum_exp_sk_cavity_beta_plus}
+  \leanok
+\talsource{Proposition~1.6.8, Eq.~(1.172)}
+For $N>0$, put $\beta_+=\beta\sqrt{1+1/N}$.  Pointwise in the disorder of an
+$(N+1)$-spin system,
+\[
+ Z_{N+1}(\beta_+)=2\sum_{\rho\in\{-1,1\}^N}
+ \exp\{-H_N(\rho)\}\,
+ \cosh\!\left(\frac\beta{\sqrt N}\sum_{i<N}g_{i,N+1}\rho_i+h\right).
+\]
+Equivalently this is $2Z_N(\beta)$ times the old-system Gibbs average of the displayed
+hyperbolic cosine.  The Lean theorem deliberately states the unnormalised finite sum, so it
+does not introduce a partition-function wrapper.
+\end{theorem}
+\begin{proof}
+  \leanok
+First reindex a configuration by its first $N$ coordinates and its final spin
+(\texttt{Fin.snoc}).  The sum over the two final-spin values is
+$e^L+e^{-L}=2\cosh L$ (\texttt{sum\_exp\_fin\_snoc\_cavity}).  The pair sum and field split
+algebraically by \texttt{sk\_cavity\_energy\_snoc}.  Finally
+$\beta_+/\sqrt{N+1}=\beta/\sqrt N$ is \texttt{sk\_beta\_plus\_coefficient}.
+The companion scalar identity \texttt{sk\_beta\_plus\_variance} is the variance computation
+needed for the Gaussian-law change (1.174) of Lemma~\ref{lem:sg-tal:cavity-beta-plus-law}.
+\end{proof}
+
+\begin{lemma}[Logarithmic cavity factorization (core of Proposition 1.6.8, Eq.~(1.176))]
+\label{lem:sg-tal:cavity-log-factorization}
+  \lean{SpinGlasses.log_sum_exp_fin_snoc_cavity,
+        SpinGlasses.log_integral_count_tilted}
+  \leanok
+\talsource{Proposition~1.6.8, Eq.~(1.176)}
+For any finite base energy $A$ and last-spin field $L$, the logarithm of the enlarged
+partition function is
+\[
+ \log 2+\log\sum_\rho e^{A(\rho)}+
+ \log\left\langle\cosh L(\rho)\right\rangle_A.
+\]
+This is the model-independent algebraic component of (1.176); the remaining specialization
+inserts the SK old-pair energy and combines it with the two-block Gaussian law.
+\end{lemma}
+\begin{proof}
+  \leanok
+Apply the final-spin sum identity, then \texttt{log\_integral\_count\_tilted} to the strictly
+positive observable $\cosh L$.  Positivity of the finite weighted sum justifies splitting the
+logarithm of its factor $2$.
+\end{proof}
+
+\begin{lemma}[Gaussian coefficient split (Proposition 1.6.8, Eq.~(1.174))]
+\label{lem:sg-tal:cavity-beta-plus-law}
+  \lean{ProbabilityTheory.map_pi_gaussianReal_scale_eq_prod_linear_combo,
+        SpinGlasses.map_pi_gaussianReal_sk_beta_plus}
+  \leanok
+\talsource{Proposition~1.6.8, Eq.~(1.174)}
+For independent standard Gaussian edge arrays $g,g'$, the edge field
+\[
+  \frac\beta{\sqrt{N+1}}g+\frac\beta{\sqrt{N(N+1)}}g'
+\]
+has the same law as $(\beta/\sqrt N)g$.  The first Lean lemma proves the reusable statement
+for every finite coordinate type and coefficients $a,b,c$ with $c^2=a^2+b^2$; the second
+instantiates it for \texttt{FinPairs (N+1)}.
+\end{lemma}
+\begin{proof}
+  \leanok
+Use the existing two-block Gaussian Gram-transfer theorem.  The coefficient of coordinate $i$
+is represented by the Kronecker vector $c\,\mathbf1_{\{i\}}$; its covariance is diagonal and
+agrees with the two independent coefficient vectors precisely when $c^2=a^2+b^2$.
+\end{proof}
+
+\begin{lemma}[Log-partition transport (Proposition 1.6.8, Eq.~(1.175))]
+\label{lem:sg-tal:cavity-log-partition-law}
+  \lean{ProbabilityTheory.integral_pi_gaussianReal_scale_eq_prod_linear_combo,
+        SpinGlasses.integral_log_partition_sk_beta_plus_eq,
+        SpinGlasses.log_sum_exp_add_eq_log_sum_exp_add_log_integral_exp,
+        SpinGlasses.log_partition_sk_pair_perturb}
+  \leanok
+\talsource{Proposition~1.6.8, Eq.~(1.175)}
+Taking the logarithmic $(N+1)$-spin partition function as the observable in the Gaussian law of
+Lemma~\ref{lem:sg-tal:cavity-beta-plus-law} yields an exact equality between its expectation at coefficient $\beta/\sqrt N$
+and the expectation under the two independent edge-disorder blocks.  Pointwise, the latter
+logarithmic partition function is the unperturbed log partition function plus the log Gibbs
+average of the exponential independent perturbation.  The pointwise factorization has also been
+passed through both Gaussian expectations, with the integrability and Fubini obligations explicit.
+\end{lemma}
+\begin{proof}
+  \leanok
+The reusable integral form transports every measurable observable of the finite Gaussian vector.
+For the SK observable, measurability is exactly \texttt{measurable\_log\_sum\_exp}; expanding the
+linear combination gives the displayed two-block Hamiltonian.  The second statement is the
+generic finite-state log-partition perturbation identity applied to the base SK energy and the
+independent pair-disorder perturbation.
+\end{proof}
+
+\begin{theorem}[Exact cavity free-energy increment identity (Proposition 1.6.8, Eq.~(1.176))]
+\label{thm:sg-tal:cavity-free-energy-increment}
+  \lean{SpinGlasses.sum_exp_prod_units,
+        SpinGlasses.log_sum_exp_prod_units,
+        SpinGlasses.log_sum_exp_sk_cavity_snoc,
+        SpinGlasses.integral_log_partition_sk_pair_perturb,
+        SpinGlasses.integral_log_partition_sk_beta_plus_eq_perturb,
+        SpinGlasses.integral_log_partition_sk_cavity_split,
+        SpinGlasses.sk_free_energy_increment_eq}
+  \leanok
+\talsource{Proposition~1.6.8, Eq.~(1.176)}
+For every $N > 0$ and any $\beta, h \in \mathbb R$, the free-energy increment satisfies
+the exact identity without Guerra interpolation:
+\begin{align*}
+(N+1) p_{N+1}(\beta, h) - N p_N(\beta, h)
+&= \log 2 + \mathbb E \log \left\langle \cosh\left(\frac\beta{\sqrt N} \sum_{i \le N} g_{i,N+1} \sigma_i + h\right) \right\rangle \\
+&\quad - \mathbb E \log \left\langle \exp \frac\beta{\sqrt{N(N+1)}} \sum_{i < j \le N+1} g'_{ij} \sigma_i \sigma_j \right\rangle',
+\end{align*}
+where $p_N$ is the standard SK free energy, the first expectation is over the $(N+1)$-spin cavity field,
+and the second expectation is over the independent pair perturbation under the $(N+1)$-spin Gibbs measure at $\beta$.
+\end{theorem}
+\begin{proof}
+  \leanok
+Combine the integrated cavity split \texttt{integral\_log\_partition\_sk\_cavity\_split}
+(Eq.~(1.173)) with the integrated pair perturbation comparison
+\texttt{integral\_log\_partition\_sk\_beta\_plus\_eq\_perturb} (Eq.~(1.175)),
+using measure-preserving coordinate splits and Fubini transport.
+\end{proof}
+
+\subsubsection{Step 2: the cavity $\cosh$ term (Eqs.~(1.178)--(1.181))}
+Interpolating the first term between the cavity field $X$ and the decoupled field $Y$ moves it to
+$\tfrac{\beta^2}{2}(1-q)+\mathbb E\log\cosh(\beta z\sqrt q+h)$ at an error controlled by the overlap.
+The covariance structure of the $N$-spin fields and a uniform variance bound (Gaussian side) are combined
+with the sign-averaging of the two replicas (Gibbs side) to bound the derivative by
+$\beta^2\cosh(2h)e^{2\beta^2}\nu$.  This is the same mechanism as Part~C, applied to $\log\langle\cosh\rangle$
+on $N$ spins instead of to an observable on $N+1$ spins.
+\emph{Uses:} A, B and the algebra of Step~1.  \emph{Status:} proved.
+
+\begin{lemma}[Covariances and Gaussian law of the $N$-spin cavity fields]
+\label{lem:sg-tal:cavity-N-fields}
+  \lean{SpinGlasses.hasGaussianLaw_linear_form_and_scalar_prod,
+        SpinGlasses.hasGaussianLaw_sk_cavity_N_fields,
+        SpinGlasses.integral_sk_cavity_N_edge_field_eq_zero,
+        SpinGlasses.integral_sk_cavity_N_scalar_field_eq_zero,
+        SpinGlasses.integral_sk_cavity_N_edge_field_mul,
+        SpinGlasses.integral_sk_cavity_N_edge_mul_scalar_eq_zero,
+        SpinGlasses.integral_sk_cavity_N_scalar_field_mul,
+        SpinGlasses.sk_cavity_N_covariance_difference}
+  \leanok
+\talsource{Eqs.~(1.178)--(1.180)}
+For the $N$-spin cavity fields $X_\sigma = \frac{\beta}{\sqrt{N}} \sum_{i \le N} g_i \sigma_i$ and $Y_\sigma = \beta z \sqrt{q}$,
+the family forms a jointly Gaussian vector under the product law of the new-edge disorder and $z$, with zero mean,
+$\mathbb E X_\sigma X_\tau = \beta^2 R(\sigma, \tau)$, $\mathbb E X_\sigma Y_\tau = 0$, and $\mathbb E Y_\sigma Y_\tau = \beta^2 q$.
+The covariance difference satisfies $\mathbb E Y^2 - \mathbb E X^2 = \beta^2(q - R(\sigma, \tau))$.
+\end{lemma}
+\begin{proof}
+  \leanok
+Apply \texttt{hasGaussianLaw\_linear\_form\_and\_scalar\_prod} to the linear forms and Gaussian scalar, then compute moments
+by independence.
+\end{proof}
+
+\begin{lemma}[Uniform variance bound for the cavity field linear combinations]
+\label{lem:sg-tal:cavity-linear-combo-var}
+  \lean{SpinGlasses.sum_sq_units_add_or_sub_le,
+        SpinGlasses.sum_sq_sk_cavity_linear_combo_le,
+        SpinGlasses.sk_cavity_field_linear_combo_eq,
+        Real.cosh_add_add_eq,
+        Real.cosh_le_exp_abs,
+        integrable_exp_prod_mul_gaussianReal,
+        integrable_exp_mul_prod_gaussianReal,
+        integrable_cosh_two_sum_mul_gaussianReal,
+        integral_cosh_two_sum_mul_gaussianReal,
+        integrable_cosh_sum_mul_add_mul_gaussianReal,
+        integral_cosh_sum_mul_add_mul_gaussianReal,
+        SpinGlasses.integral_cosh_sk_cavity_linear_combo_le,
+        SpinGlasses.integrable_abs_sinh_mul_sinh_sk_cavity,
+        SpinGlasses.integral_abs_sinh_mul_sinh_sk_cavity_le}
+  \leanok
+\talsource{Proof of Eq.~(1.181)}
+For any Ising configurations $\sigma, \tau \in \{-1, 1\}^N$, any angle $s$, and any sign $\pm 1$, the variance of
+the linear combination $\cos s (X_\sigma \pm X_\tau) + \sin s (Y_\sigma \pm Y_\tau)$ under the cavity Gaussian disorder
+is at most $4 \beta^2$.
+Consequently, for every $m\in\mathbb R$, the Gaussian moment of the hyperbolic cosine is bounded
+uniformly by
+\[
+  \mathbb E\cosh\!\left(\cos s(X_\sigma\pm X_\tau)
+    +\sin s(Y_\sigma\pm Y_\tau)+m\right)
+  \le \cosh(m)\exp(2\beta^2),
+\]
+and the two-replica cavity factor product satisfies
+\[
+  \mathbb E [ |\sinh(L_\sigma)| |\sinh(L_\tau)| ] \le \cosh(2h)\exp(2\beta^2).
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+The Ising coordinate differences $(\sigma_i \pm \tau_i)^2$ are at most $4$, so their sum is at most $4N$, cancelling
+the factor $1/N$. The scalar coordinate satisfies $(1 \pm 1)^2 \le 4$ and $q \le 1$. Squaring and summing with
+$\cos^2 s + \sin^2 s = 1$ yields at most $4 \beta^2$.
+The reusable product-Gaussian moment formula evaluates the displayed expectation as
+$\cosh(m)\exp(V/2)$, where $V$ is that variance bound, and monotonicity of the exponential gives
+the result. For the product of hyperbolic sines, we bound $|\sinh a \sinh b| \le (\cosh(a+b) + \cosh(a-b))/2$
+and apply the moment bound at $m = 2h$ and $m = 0$.
+\end{proof}
+
+\begin{lemma}[Fixed-base signed-overlap domination for the cavity $\cosh$ path]
+\label{lem:sg-tal:cavity-signed-overlap-bound}
+  \lean{SpinGlasses.sk_cavity_covariance_bracket_eq,
+        integral_mul_self_of_sq_eq_one,
+        integral_mul_mul_eq_mul_integral,
+        SpinGlasses.integrable_integral_prod_count_tilted,
+        SpinGlasses.integral_prod_count_tilted_swap,
+        SpinGlasses.integral_prod_count_tilted_mul_le,
+        SpinGlasses.measurable_integral_prod_count_tilted,
+        SpinGlasses.measurable_integral_prod_count_tilted_units_mul,
+        SpinGlasses.integrable_integral_prod_count_tilted_det,
+        SpinGlasses.integrable_integral_sk_cavity_signed_overlap,
+        SpinGlasses.abs_integral_sk_cavity_signed_overlap_le}
+  \leanok
+\talsource{Proof of Eqs.~(1.179)--(1.181)}
+Fix an arbitrary base energy $A$ on the $N$-spin hypercube.  For
+$L_\sigma(s)=\cos(s)X_\sigma+\sin(s)Y_\sigma+h$, the cavity Gaussian average of the signed
+two-replica overlap term satisfies
+\[
+ \left|\mathbb E_\omega\left\langle
+   \varepsilon^1\varepsilon^2\beta^2(R_{1,2}-q)
+ \right\rangle_{A+\varepsilon L(s)}^{\otimes 2}\right|
+ \le \beta^2\cosh(2h)e^{2\beta^2}
+   \left\langle |R_{1,2}-q|\right\rangle_A^{\otimes 2}.
+\]
+The estimate is pointwise in the old-pair disorder and uniform in the interpolation angle.
+\end{lemma}
+\begin{proof}
+  \leanok
+First integrate the two signs and discard the denominator using
+\texttt{abs\_integral\_prod\_count\_tilted\_units\_mul\_le}.  The remaining tilted measure
+depends only on $A$, so the finite Gibbs sum can be exchanged with the cavity Gaussian integral.
+The coordinatewise factor is bounded by the $\sinh$ moment estimate of
+Lemma~\ref{lem:sg-tal:cavity-linear-combo-var}.  The reusable
+integrability and measurability lemmas make the triangle and Fubini steps explicit.
+\end{proof}
+
+\begin{lemma}[Old-disorder-averaged cavity bracket and domination]
+\label{lem:sg-tal:cavity-outer-signed-overlap-bound}
+  \lean{SpinGlasses.abs_log_integral_cosh_count_tilted_le_sum_abs,
+        abs_integral_le_const_mul_integral,
+        integral_const_add_of_isProbabilityMeasure,
+        SpinGlasses.aestronglyMeasurable_integral_log_integral_cosh_count_tilted,
+        SpinGlasses.integrable_integral_log_integral_cosh_count_tilted,
+        SpinGlasses.abs_integral_integral_sk_cavity_signed_overlap_le,
+        SpinGlasses.integral_integral_sk_cavity_covariance_bracket_eq,
+        SpinGlasses.abs_card_inv_mul_dotProduct_sub_le_two}
+  \leanok
+\talsource{Proof of Eqs.~(1.179)--(1.181)}
+Let $A_\eta$ be any measurable family of base energies under a probability law $P_0$.
+For $N>0$, $q\in[0,1]$, and every interpolation angle $s$, averaging the estimate of Lemma~\ref{lem:sg-tal:cavity-signed-overlap-bound}
+over $\eta$ gives
+\[
+ \left|\mathbb E_\eta\mathbb E_\omega\left\langle
+   \varepsilon^1\varepsilon^2\beta^2(R_{1,2}-q)
+ \right\rangle_{A_\eta+\varepsilon L(s)}^{\otimes 2}\right|
+ \le \beta^2\cosh(2h)e^{2\beta^2}
+   \mathbb E_\eta\left\langle |R_{1,2}-q|\right\rangle_{A_\eta}^{\otimes 2}.
+\]
+For each fixed $A$, the complete Gaussian covariance bracket integrates exactly to
+$\sin(s)\cos(s)$ times $-\beta^2(1-q)$ plus the signed-overlap average above.
+Moreover, for every finite Gibbs measure,
+$|\log\langle\cosh L\rangle_A|\le\sum_a|L_a|$; hence coordinatewise integrability of
+$L$ gives the outer measurability and integrability required by the conditional derivative
+theorem.  The normalized overlap of arbitrary vectors in the finite unit cube differs from
+any $q\in[0,1]$ by at most two.
+\end{lemma}
+\begin{proof}
+  \leanok
+The fixed-base estimate supplies a pointwise integrable majorant.  Measurability of finite
+two-replica Gibbs averages and bounded-observable integrability justify the outer triangle
+inequality.  The bracket identity follows by integrating
+\texttt{sk\_cavity\_covariance\_bracket\_eq}; probability normalization leaves the constant
+term unchanged.  Finally, $\cosh x\le e^{|x|}$ gives the logarithmic domination independently
+of the Gibbs weights.
+\end{proof}
+
+\begin{theorem}[Endpoint reduction for the cavity $\cosh$ estimate (a derivative bound implies (1.181))]
+\label{thm:sg-tal:cavity-cosh-endpoint}
+  \lean{SpinGlasses.sk_cavity_cosh_estimate_of_deriv_bound}
+  \leanok
+\talsource{Proposition~1.6.8, Eq.~(1.181)}
+For any interpolating path $\varphi$ between the cavity $\cosh$ expectation at $0$ and the decoupled
+standard Gaussian expectation at $\pi / 2$, if its derivative along the trigonometric path has
+deviation from $-\beta^2(1-q)$ bounded by $2 K_1 \nu$ on $[0, \pi/2]$, then
+\[
+  \left|\mathbb E \log \langle \cosh(u_\sigma + h) \rangle - \frac{\beta^2}{2}(1-q) - \mathbb E \log \cosh(\beta z \sqrt q + h)\right| \le K_1 \nu.
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+Apply \texttt{Real.abs\_sub\_sub\_half\_le\_of\_exists\_hasDerivAt} with $C = -\beta^2(1-q)$ and $K = 2 K_1 \nu$.
+\end{proof}
+
+\begin{theorem}[Cavity \texttt{cosh} estimate (Eq.~(1.181))]
+\label{thm:sg-tal:cavity-cosh-estimate}
+  \lean{SpinGlasses.abs_sk_overlap_N_sub_le_two,
+        SpinGlasses.abs_sin_mul_cos_le_half,
+        SpinGlasses.abs_integral_integral_sk_cavity_signed_overlap_le_two_sq,
+        SpinGlasses.exists_hasDerivAt_sk_cavity_cosh_path,
+        SpinGlasses.sk_cavity_cosh_estimate}
+  \leanok
+\talsource{Eqs.~(1.179)--(1.181)}
+Let $N>0$, $\beta,h\in\mathbb R$ and $q\in[0,1]$.  Put $H_A(\rho)$ for the $N$-spin SK energy
+with prefactor $\beta/\sqrt N$ and field $h$ in the old couplings $g'$, and let $\nu$ be the
+$g'$-average of the two-replica Gibbs average of $|R_{1,2}-q|$.  Then
+\[
+ \left|\mathbb E\log\left\langle\cosh\Big(\tfrac{\beta}{\sqrt N}\sum_i g_i\rho_i+h\Big)
+ \right\rangle_{g'}-\Big(\tfrac{\beta^2}{2}(1-q)+\mathbb E\log\cosh(\beta z\sqrt q+h)\Big)\right|
+ \le\beta^2\cosh(2h)e^{2\beta^2}\,\nu .
+\]
+The path $s\mapsto\mathbb E\log\langle\cosh(\cos s\,X+\sin s\,Y+h)\rangle$ has derivative
+$\sin s\cos s\,D$ with $|D+\beta^2(1-q)|\le\beta^2\cosh(2h)e^{2\beta^2}\nu$ at every $s$.
+\end{theorem}
+\begin{proof}
+  \leanok
+Apply the conditional Gaussian derivative of $\log\langle\cosh\rangle$ with the
+$N$-spin cavity fields $X_\rho=\beta N^{-1/2}\sum_i g_i\rho_i$ and $Y=\beta z\sqrt q$.
+The covariance bracket integrates to $\sin s\cos s(-\beta^2(1-q)+\text{signed overlap})$; the
+signed overlap is bounded by $2\beta^2$ (hence the domination constant $3\beta^2$) and, by
+Lemma~\ref{lem:sg-tal:cavity-outer-signed-overlap-bound}, by $\beta^2\cosh(2h)e^{2\beta^2}\nu$.  At $s=0$ the integrand does not depend
+on $z$, and at $s=\pi/2$ the Gibbs average of a constant is that constant, so the endpoints are
+the two displayed expectations, and the endpoint reduction
+(Theorem~\ref{thm:sg-tal:cavity-cosh-endpoint},
+\texttt{sk\_cavity\_cosh\_estimate\_of\_deriv\_bound}) concludes.
+\end{proof}
+
+\subsubsection{Step 3: the pair-perturbation term (Eq.~(1.182)); open}
+The second term is the expected logarithm of the Gibbs average of the extra pair block
+$\exp(\beta(N(N+1))^{-1/2}\sum g''_{ij}\sigma_i\sigma_j)$.  It is interpolated to $0$ at $s=\pi/2$ and
+requires, beyond the derivative formula, the bound $|R'^2-q^2|\le 3|R-q|+2/N$ and a Gr\"onwall argument
+for the weighted overlap average along the path (the book's tail estimate).
+\emph{Proved so far:} only the endpoint reduction below, which turns a derivative bound into (1.182).
+\emph{Open:} the derivative bound itself.  \emph{Uses:} A, B and Step~1.
+
+\begin{theorem}[Endpoint reduction for the pair perturbation estimate (a derivative bound implies (1.182))]
+\label{thm:sg-tal:pair-perturb-estimate}
+  \lean{SpinGlasses.sk_pair_perturb_estimate_of_deriv_bound}
+  \leanok
+\talsource{Proposition~1.6.8, Eq.~(1.182)}
+For any interpolating path $\psi$ between the pair perturbation expectation at $0$ and $0$ at $\pi / 2$,
+if its derivative along the trigonometric path has deviation from $-\frac{\beta^2}{2}(1-q^2)$ bounded by
+$2 (K_2 / N + K_3 \nu)$ on $[0, \pi/2]$, then
+\[
+  \left|\mathbb E \log \langle \exp(\text{perturb}) \rangle' - \frac{\beta^2}{4}(1-q^2)\right| \le \frac{K_2}{N} + K_3 \nu.
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+Apply \texttt{Real.abs\_sub\_sub\_half\_le\_of\_exists\_hasDerivAt} with $C = -\frac{\beta^2}{2}(1-q^2)$ and $K = 2(K_2/N + K_3 \nu)$.
+\end{proof}
+
+\subsubsection{Step 4: assembly of Eq.~(1.170) (conditional reduction)}
+The three theorems below show how the increment bound follows from the exact identity and the two
+estimates, at increasing concreteness: the real-number algebra, the same statement for the SK system with
+abstract constants, and the statement with explicit constants $K_1,K_2,K_3,K$ and $\nu$.
+\textbf{All three assume (1.182)}; they are reductions, not Proposition~1.6.8 itself.  Once Step~3 is
+proved, the last theorem with its hypothesis discharged is the unconditional Proposition~1.6.8.
+
+\begin{theorem}[Conditional reduction of the cavity free-energy increment (the algebra of (1.170))]
+\label{thm:sg-tal:cavity-free-energy-assembly}
+  \lean{Real.abs_sub_sub_half_le_of_exists_hasDerivAt,
+        SpinGlasses.sk_free_energy_step_algebra,
+        SpinGlasses.abs_sk_free_energy_step_sub_le,
+        SpinGlasses.sk_cavity_free_energy_step_le_of_estimates}
+  \leanok
+\talsource{Proposition~1.6.8, Eq.~(1.170)}
+The exact increment deviation from $A(\beta, h, q) = \log 2 + \frac{\beta^2}{4}(1-q)^2 + \mathbb E \log \cosh(\beta z \sqrt q + h)$
+decomposes algebraically as
+\[
+  ((N+1) p_{N+1} - N p_N) - A(\beta, h, q) =
+  \left(\mathbb E \log \langle \cosh L \rangle - \frac{\beta^2}{2}(1-q) - \mathbb E \log \cosh\right)
+  - \left(\mathbb E \log \langle \exp(\text{perturb}) \rangle' - \frac{\beta^2}{4}(1-q^2)\right).
+\]
+Consequently, any quantitative bounds on the cavity $\cosh$ and pair-perturbation errors
+yield the Proposition~1.6.8 bound $|(N+1)p_{N+1} - N p_N - A(\beta, h, q)| \le K(N^{-1} + \nu(|R_{1,2}-q|))$.
+This is only a reduction.  The cavity $\cosh$ estimate (1.181) is now proved
+(Theorem~\ref{thm:sg-tal:cavity-cosh-estimate}); the pair-perturbation derivative estimate (1.182)
+is not yet proved, so the bound is still conditional on it.
+\end{theorem}
+\begin{proof}
+  \leanok
+Expanding $(1-q)^2 = 1 - 2q + q^2$ and combining with $\frac{\beta^2}{2}(1-q) - \frac{\beta^2}{4}(1-q^2)$ gives
+the exact constant $A(\beta, h, q)$ by \texttt{sk\_free\_energy\_step\_algebra}.
+The triangle inequality \texttt{abs\_sk\_free\_energy\_step\_sub\_le} and \texttt{sk\_cavity\_free\_energy\_step\_le\_of\_estimates}
+complete the reduction.
+\end{proof}
+
+\begin{theorem}[Conditional SK cavity free-energy step reduction (abstract constants)]
+\label{thm:sg-tal:cavity-free-energy-step}
+  \lean{SpinGlasses.cavity_free_energy_increment_le_of_estimates,
+        SpinGlasses.sk_cavity_free_energy_increment_le_of_estimates}
+  \leanok
+\talsource{Proposition~1.6.8, Eq.~(1.170)}
+For all $N > 0$ and $\beta, h, q \in \mathbb R$, combining the exact free-energy increment identity
+(Eq.~(1.176)) with the cavity $\cosh$ estimate (Eq.~(1.181)) and the pair perturbation estimate (Eq.~(1.182))
+yields the quantitative rate, provided the two displayed interpolation estimates are supplied:
+\[
+  |(N+1) p_{N+1}(\beta, h) - N p_N(\beta, h) - A(\beta, h, q)| \le K \left(\frac{1}{N} + \nu\right).
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+Combine \texttt{sk\_free\_energy\_increment\_eq} with the assembly theorem
+\texttt{sk\_cavity\_free\_energy\_step\_le\_of\_estimates}.
+\end{proof}
+
+\begin{theorem}[Conditional cavity free-energy increment bound with explicit constants (Proposition~1.6.8 given (1.182))]
+\label{thm:sg-tal:cavity-free-energy-increment-bound}
+  \lean{SpinGlasses.sk_cavity_constants_le,
+        SpinGlasses.sk_cavity_free_energy_increment_le}
+  \leanok
+\talsource{Proposition~1.6.8, Eq.~(1.170)}
+For all $N > 0$, $\beta, h, q \in \mathbb R$ with $0 \le q \le 1$, the expected free-energy increment satisfies
+\[
+  |(N+1) p_{N+1}(\beta, h) - N p_N(\beta, h) - A(\beta, h, q)| \le K \left(\frac{1}{N} + \nu(|R_{1,2} - q|)\right)
+\]
+with explicit constant $K = 6 \beta^2 \exp(4\beta^2) \cosh(2h) + 1$, where $\nu$ is the $N$-spin two-replica
+average at inverse temperature $\beta$, provided the two interpolation estimates (1.181) and (1.182) hold.  The first is
+Theorem~\ref{thm:sg-tal:cavity-cosh-estimate}; the second is the remaining open step, so this
+theorem is \emph{not} yet the unconditional Proposition~1.6.8.
+\end{theorem}
+\begin{proof}
+  \leanok
+Follows from the exact increment decomposition (\texttt{sk\_free\_energy\_increment\_eq}), the arithmetic bounds
+$K_2 \le K$ and $K_1 + K_3 \le K$ (\texttt{le\_mul\_of\_one\_le\_right}), and \texttt{sk\_cavity\_free\_energy\_increment\_le\_of\_estimates}.
 \end{proof}
