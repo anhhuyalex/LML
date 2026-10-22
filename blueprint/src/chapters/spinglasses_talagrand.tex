@@ -1470,9 +1470,11 @@ is differentiable.  Its derivative is $\sin(s)\cos(s)$ times the two-replica cov
 difference for the signed fields $\varepsilon X_a$ and $\varepsilon Y_a$ on
 $(a,\varepsilon)\in\alpha\times\{-1,1\}$, under their explicit tilted product measure.
 This is the model-independent derivative needed by the cavity $\cosh$ path.  The covariance
-bracket and its fixed-base signed-overlap bound have now been specialized to the SK model; the
-remaining step for Eq.~(1.181) is to discharge the conditional theorem's outer-disorder
-measurability, domination, and endpoint hypotheses.
+bracket identity and signed-overlap domination have also been integrated over arbitrary
+measurable old disorder.  General Gibbs lemmas now provide the outer measurability and
+integrability of the logarithmic cosh path.  The remaining step for Eq.~(1.181) is to assemble
+these declarations into the conditional derivative theorem, verify its derivative-integrand
+measurability and uniform bound, and identify the two endpoints.
 \end{lemma}
 \begin{proof}
   \leanok
@@ -1529,8 +1531,9 @@ decomposes algebraically as
 \]
 Consequently, any quantitative bounds on the cavity $\cosh$ and pair-perturbation errors
 yield the Proposition~1.6.8 bound $|(N+1)p_{N+1} - N p_N - A(\beta, h, q)| \le K(N^{-1} + \nu(|R_{1,2}-q|))$.
-This is only a reduction: the fixed-base SK signed-overlap bound is now formalized, but the
-outer-disorder conditional path and the pair-perturbation derivative estimate are not.
+This is only a reduction: the fixed-base and old-disorder-averaged SK signed-overlap bounds are
+formalized, but the concrete conditional path theorem and the pair-perturbation derivative
+estimate are not yet assembled.
 \end{theorem}
 \begin{proof}
   \leanok
@@ -1710,6 +1713,8 @@ and apply the moment bound at $m = 2h$ and $m = 0$.
         SpinGlasses.integral_prod_count_tilted_mul_le,
         SpinGlasses.measurable_integral_prod_count_tilted,
         SpinGlasses.measurable_integral_prod_count_tilted_units_mul,
+        SpinGlasses.integrable_integral_prod_count_tilted_det,
+        SpinGlasses.integrable_integral_sk_cavity_signed_overlap,
         SpinGlasses.abs_integral_sk_cavity_signed_overlap_le}
   \leanok
 \talsource{Proof of Eqs.~(1.179)--(1.181)}
@@ -1732,6 +1737,44 @@ First integrate the two signs and discard the denominator using
 depends only on $A$, so the finite Gibbs sum can be exchanged with the cavity Gaussian integral.
 The coordinatewise factor is bounded by the preceding $\sinh$ moment estimate.  The reusable
 integrability and measurability lemmas make the triangle and Fubini steps explicit.
+\end{proof}
+
+\begin{lemma}[Old-disorder-averaged cavity bracket and domination]
+\label{lem:sg-tal:cavity-outer-signed-overlap-bound}
+  \lean{SpinGlasses.abs_log_integral_cosh_count_tilted_le_sum_abs,
+        SpinGlasses.aestronglyMeasurable_integral_log_integral_cosh_count_tilted,
+        SpinGlasses.integrable_integral_log_integral_cosh_count_tilted,
+        SpinGlasses.abs_integral_integral_sk_cavity_signed_overlap_le,
+        SpinGlasses.integral_integral_sk_cavity_covariance_bracket_eq,
+        SpinGlasses.abs_card_inv_mul_dotProduct_sub_le_two}
+  \leanok
+\talsource{Proof of Eqs.~(1.179)--(1.181)}
+Let $A_\eta$ be any measurable family of base energies under a probability law $P_0$.
+For $N>0$, $q\in[0,1]$, and every interpolation angle $s$, averaging the preceding estimate
+over $\eta$ gives
+\[
+ \left|\mathbb E_\eta\mathbb E_\omega\left\langle
+   \varepsilon^1\varepsilon^2\beta^2(R_{1,2}-q)
+ \right\rangle_{A_\eta+\varepsilon L(s)}^{\otimes 2}\right|
+ \le \beta^2\cosh(2h)e^{2\beta^2}
+   \mathbb E_\eta\left\langle |R_{1,2}-q|\right\rangle_{A_\eta}^{\otimes 2}.
+\]
+For each fixed $A$, the complete Gaussian covariance bracket integrates exactly to
+$\sin(s)\cos(s)$ times $-\beta^2(1-q)$ plus the signed-overlap average above.
+Moreover, for every finite Gibbs measure,
+$|\log\langle\cosh L\rangle_A|\le\sum_a|L_a|$; hence coordinatewise integrability of
+$L$ gives the outer measurability and integrability required by the conditional derivative
+theorem.  The normalized overlap of arbitrary vectors in the finite unit cube differs from
+any $q\in[0,1]$ by at most two.
+\end{lemma}
+\begin{proof}
+  \leanok
+The fixed-base estimate supplies a pointwise integrable majorant.  Measurability of finite
+two-replica Gibbs averages and bounded-observable integrability justify the outer triangle
+inequality.  The bracket identity follows by integrating
+\texttt{sk\_cavity\_covariance\_bracket\_eq}; probability normalization leaves the constant
+term unchanged.  Finally, $\cosh x\le e^{|x|}$ gives the logarithmic domination independently
+of the Gibbs weights.
 \end{proof}
 
 \begin{lemma}[Uniform truncated-overlap and covariance bounds]
