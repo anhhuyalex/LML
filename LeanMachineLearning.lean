@@ -13,6 +13,7 @@ public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.Projecti
 public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.UltrametricEmbed
 public import LeanMachineLearning.ForMathlib.Analysis.RpowTsum
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.AddPowEstimates
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Hyperbolic
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.LogRpow
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SinCosEndpoint
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Tanh
@@ -113,6 +114,7 @@ public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianContinu
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianExp
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianGram
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianMatrix
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiExp
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiLinearForm
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianSeries
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianSeriesLaw

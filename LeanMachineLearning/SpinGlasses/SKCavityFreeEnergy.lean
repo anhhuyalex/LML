@@ -710,4 +710,145 @@ theorem sk_cavity_free_energy_increment_le_of_estimates (N : ℕ) (β h q : ℝ)
   exact cavity_free_energy_increment_le_of_estimates N β h q hN log_cosh _ _ ν K1 K2 K3 K
     (sk_free_energy_increment_eq N β h hN) h_cosh h_perturb hK1 hK2 hν
 
+/-- **Talagrand's Proposition 1.6.8 (Eq. 1.170), the cavity free-energy increment bound.**
+For all `N > 0`, `β, h, q ∈ ℝ` with `0 ≤ q ≤ 1`, the difference between the expected free energy at
+`N + 1` spins and `N` spins satisfies
+`|(N + 1) p_{N+1}(β, h) - N p_N(β, h) - A(β, h, q)| ≤ K (1 / N + ν(|R_{1,2} - q|))`
+with explicit constant `K = 6 β² exp(4 β²) cosh(2h) + 1` and `ν` the N-spin two-replica overlap
+deviation at `β`, provided the two interpolation estimates (1.181) and (1.182) hold. -/
+theorem sk_cavity_free_energy_increment_le (N : ℕ) (β h q : ℝ) (hN : 0 < N)
+    (_hq : q ∈ Set.Icc (0 : ℝ) 1)
+    (h_cosh : |(∫ w : (FinPairs N → ℝ) × (Fin N → ℝ),
+      Real.log (∫ ρ : Fin N → ℤˣ,
+        Real.cosh ((Real.sqrt (N : ℝ))⁻¹ * β *
+          ∑ i : Fin N, w.2 i * (ρ i : ℝ) + h)
+        ∂Measure.count.tilted (fun ρ =>
+          (Real.sqrt (N : ℝ))⁻¹ * β *
+            (∑ p : FinPairs N, w.1 p * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) +
+            h * ∑ i, (ρ i : ℝ)))
+      ∂((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
+        (Measure.pi fun _ : Fin N => gaussianReal 0 1))) -
+      (β ^ 2 / 2 * (1 - q) +
+        ∫ z : ℝ, Real.log (Real.cosh (β * z * Real.sqrt q + h)) ∂gaussianReal 0 1)| ≤
+    (β ^ 2 * Real.cosh (2 * h) * Real.exp (2 * β ^ 2)) *
+      ∫ g' : FinPairs N → ℝ,
+        ∫ p : (Fin N → ℤˣ) × (Fin N → ℤˣ),
+          |(N : ℝ)⁻¹ * ∑ i : Fin N, (p.1 i : ℝ) * (p.2 i : ℝ) - q|
+          ∂((Measure.count.tilted (fun ρ =>
+            (Real.sqrt (N : ℝ))⁻¹ * β *
+              (∑ p : FinPairs N, g' p * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) +
+              h * ∑ i, (ρ i : ℝ))).prod
+            (Measure.count.tilted (fun ρ =>
+              (Real.sqrt (N : ℝ))⁻¹ * β *
+                (∑ p : FinPairs N, g' p * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) +
+                h * ∑ i, (ρ i : ℝ))))
+        ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1))
+    (h_perturb : |(∫ qdis : (FinPairs (N + 1) → ℝ) × (FinPairs (N + 1) → ℝ),
+      Real.log (∫ σ : Fin (N + 1) → ℤˣ,
+        Real.exp (β * (Real.sqrt ((N : ℝ) * (N + 1)))⁻¹ *
+          ∑ p : FinPairs (N + 1), qdis.2 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ))
+        ∂Measure.count.tilted (fun σ =>
+          (Real.sqrt (N + 1 : ℝ))⁻¹ * β *
+            (∑ p : FinPairs (N + 1), qdis.1 p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
+            h * ∑ i, (σ i : ℝ)))
+      ∂((Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1).prod
+        (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))) -
+      β ^ 2 / 4 * (1 - q ^ 2)| ≤
+    (3 * β ^ 2 * Real.exp (4 * β ^ 2)) / (N : ℝ) +
+      (3 * β ^ 2 * Real.exp (4 * β ^ 2)) *
+        ∫ g' : FinPairs N → ℝ,
+          ∫ p : (Fin N → ℤˣ) × (Fin N → ℤˣ),
+            |(N : ℝ)⁻¹ * ∑ i : Fin N, (p.1 i : ℝ) * (p.2 i : ℝ) - q|
+            ∂((Measure.count.tilted (fun ρ =>
+              (Real.sqrt (N : ℝ))⁻¹ * β *
+                (∑ p : FinPairs N, g' p * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) +
+                h * ∑ i, (ρ i : ℝ))).prod
+              (Measure.count.tilted (fun ρ =>
+                (Real.sqrt (N : ℝ))⁻¹ * β *
+                  (∑ p : FinPairs N, g' p * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) +
+                  h * ∑ i, (ρ i : ℝ))))
+          ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) :
+    |(∫ g : FinPairs (N + 1) → ℝ,
+        Real.log (∑ σ : Fin (N + 1) → ℤˣ,
+          Real.exp ((Real.sqrt (N + 1 : ℝ))⁻¹ * β *
+            (∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
+            h * ∑ i, (σ i : ℝ)))
+        ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) -
+      (∫ g : FinPairs N → ℝ,
+        Real.log (∑ σ : Fin N → ℤˣ,
+          Real.exp ((Real.sqrt (N : ℝ))⁻¹ * β *
+            (∑ p : FinPairs N, g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
+            h * ∑ i, (σ i : ℝ)))
+        ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) -
+      (Real.log 2 + β ^ 2 / 4 * (1 - q) ^ 2 +
+        ∫ z : ℝ, Real.log (Real.cosh (β * z * Real.sqrt q + h)) ∂gaussianReal 0 1)| ≤
+    (6 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) + 1) *
+      (1 / (N : ℝ) +
+        ∫ g' : FinPairs N → ℝ,
+          ∫ p : (Fin N → ℤˣ) × (Fin N → ℤˣ),
+            |(N : ℝ)⁻¹ * ∑ i : Fin N, (p.1 i : ℝ) * (p.2 i : ℝ) - q|
+            ∂((Measure.count.tilted (fun ρ =>
+              (Real.sqrt (N : ℝ))⁻¹ * β *
+                (∑ p : FinPairs N, g' p * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) +
+                h * ∑ i, (ρ i : ℝ))).prod
+              (Measure.count.tilted (fun ρ =>
+                (Real.sqrt (N : ℝ))⁻¹ * β *
+                  (∑ p : FinPairs N, g' p * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) +
+                  h * ∑ i, (ρ i : ℝ))))
+          ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) := by
+  let log_cosh := ∫ z : ℝ, Real.log (Real.cosh (β * z * Real.sqrt q + h)) ∂gaussianReal 0 1
+  let ν := ∫ g' : FinPairs N → ℝ,
+    ∫ p : (Fin N → ℤˣ) × (Fin N → ℤˣ),
+      |(N : ℝ)⁻¹ * ∑ i : Fin N, (p.1 i : ℝ) * (p.2 i : ℝ) - q|
+      ∂((Measure.count.tilted (fun ρ =>
+        (Real.sqrt (N : ℝ))⁻¹ * β *
+          (∑ p : FinPairs N, g' p * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) +
+          h * ∑ i, (ρ i : ℝ))).prod
+        (Measure.count.tilted (fun ρ =>
+          (Real.sqrt (N : ℝ))⁻¹ * β *
+            (∑ p : FinPairs N, g' p * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) +
+            h * ∑ i, (ρ i : ℝ))))
+    ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
+  let K1 := β ^ 2 * Real.cosh (2 * h) * Real.exp (2 * β ^ 2)
+  let K2 := 3 * β ^ 2 * Real.exp (4 * β ^ 2)
+  let K3 := 3 * β ^ 2 * Real.exp (4 * β ^ 2)
+  let K := 6 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) + 1
+  have hcosh : 1 ≤ Real.cosh (2 * h) := Real.one_le_cosh (2 * h)
+  have hexp1 : Real.exp (2 * β ^ 2) ≤ Real.exp (4 * β ^ 2) := by
+    gcongr
+    nlinarith [sq_nonneg β]
+  have hK1 : K2 ≤ K := by
+    dsimp [K2, K]
+    calc 3 * β ^ 2 * Real.exp (4 * β ^ 2)
+      _ ≤ 3 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) :=
+        le_mul_of_one_le_right (by positivity) hcosh
+      _ ≤ 6 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) + 1 := by
+        have : 0 ≤ 3 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) := by positivity
+        linarith
+  have hK2 : K1 + K3 ≤ K := by
+    dsimp [K1, K3, K]
+    have hK1_le : β ^ 2 * Real.cosh (2 * h) * Real.exp (2 * β ^ 2) ≤
+        β ^ 2 * Real.cosh (2 * h) * Real.exp (4 * β ^ 2) := by
+      have : 0 ≤ β ^ 2 * Real.cosh (2 * h) := by positivity
+      exact mul_le_mul_of_nonneg_left hexp1 this
+    have hK3_le : 3 * β ^ 2 * Real.exp (4 * β ^ 2) ≤
+        3 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) :=
+      le_mul_of_one_le_right (by positivity) hcosh
+    calc β ^ 2 * Real.cosh (2 * h) * Real.exp (2 * β ^ 2) + 3 * β ^ 2 * Real.exp (4 * β ^ 2)
+      _ ≤ β ^ 2 * Real.cosh (2 * h) * Real.exp (4 * β ^ 2) +
+          3 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) := add_le_add hK1_le hK3_le
+      _ = 4 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) := by ring
+      _ ≤ 6 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) + 1 := by
+        have : 0 ≤ 2 * β ^ 2 * Real.exp (4 * β ^ 2) * Real.cosh (2 * h) := by positivity
+        linarith
+  have hν : 0 ≤ ν := by
+    dsimp [ν]
+    apply integral_nonneg
+    intro g'
+    apply integral_nonneg
+    intro p
+    exact abs_nonneg _
+  exact sk_cavity_free_energy_increment_le_of_estimates N β h q hN log_cosh ν K1 K2 K3 K
+    h_cosh h_perturb hK1 hK2 hν
+
 end SpinGlasses
