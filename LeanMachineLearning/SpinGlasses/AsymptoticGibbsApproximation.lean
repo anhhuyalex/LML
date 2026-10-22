@@ -10,6 +10,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.JensenLog
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianGram
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianExp
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SubGaussian
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Hyperbolic
 public import Mathlib.Analysis.Convex.Mul
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
 public import Mathlib.Topology.ContinuousMap.Weierstrass
@@ -541,21 +542,6 @@ theorem exp_le_exp_abs_mul (x : ℝ) : Real.exp x ≤ 1 * Real.exp |x| := by
 
 theorem inv_exp_le_exp_abs_mul (x : ℝ) : (Real.exp x)⁻¹ ≤ 1 * Real.exp |x| := by
   rw [one_mul, ← Real.exp_neg]; exact Real.exp_le_exp.2 (neg_le_abs x)
-
-theorem two_cosh_le_exp_abs_mul (x : ℝ) : 2 * Real.cosh x ≤ 2 * Real.exp |x| := by
-  rw [Real.cosh_eq]
-  rcases le_total 0 x with h | h
-  · rw [abs_of_nonneg h]
-    nlinarith [Real.exp_pos (-x), Real.exp_le_exp.2 (show -x ≤ x by linarith)]
-  · rw [abs_of_nonpos h]
-    nlinarith [Real.exp_pos x, Real.exp_le_exp.2 (show x ≤ -x by linarith)]
-
-theorem inv_two_cosh_le_exp_abs_mul (x : ℝ) : (2 * Real.cosh x)⁻¹ ≤ 1 * Real.exp |x| := by
-  have h1 : 1 ≤ Real.cosh x := Real.one_le_cosh x
-  have h2 : 1 ≤ Real.exp |x| := Real.one_le_exp (abs_nonneg x)
-  rw [one_mul]
-  calc (2 * Real.cosh x)⁻¹ ≤ 1 := inv_le_one_of_one_le₀ (by linarith)
-    _ ≤ _ := h2
 
 /-- The Gibbs average of expectations is bounded by the common bound of the expectations. -/
 theorem integral_sum_mul_le (hw0 : ∀ i, 0 ≤ w i) (hw1 : ∑ i, w i = 1) {f : ι → Ω → ℝ}

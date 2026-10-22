@@ -610,6 +610,28 @@ theorem integral_abs_sinh_mul_sinh_sk_cavity_le (N : ℕ) (hN : 0 < N) (β q s h
     nlinarith
   linarith
 
+/-- The signed two-replica cavity overlap is integrable in the new Gaussian disorder for every
+fixed base energy.  This is a direct application of bounded finite-Gibbs integrability. -/
+theorem integrable_integral_sk_cavity_signed_overlap (N : ℕ) (β h q s : ℝ)
+    (A : (Fin N → ℤˣ) → ℝ) :
+    let P := (Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)
+    let L : (Fin N → ℤˣ) → (Fin N → ℝ) × ℝ → ℝ := fun ρ ω =>
+      Real.cos s * ((Real.sqrt (N : ℝ))⁻¹ * β * ∑ i : Fin N, ω.1 i * (ρ i : ℝ)) +
+      Real.sin s * (β * ω.2 * Real.sqrt q) + h
+    Integrable (fun ω =>
+      ∫ p : ((Fin N → ℤˣ) × ℤˣ) × ((Fin N → ℤˣ) × ℤˣ),
+        (p.1.2 : ℝ) * (p.2.2 : ℝ) *
+          (β ^ 2 * ((N : ℝ)⁻¹ * ∑ i, (p.1.1 i : ℝ) * (p.2.1 i : ℝ) - q))
+        ∂((Measure.count.tilted fun x => A x.1 + (x.2 : ℝ) * L x.1 ω).prod
+          (Measure.count.tilted fun x => A x.1 + (x.2 : ℝ) * L x.1 ω))) P := by
+  intro P L
+  refine integrable_integral_prod_count_tilted_det P (fun x => ?_)
+    (fun (x : (Fin N → ℤˣ) × ℤˣ) (y : (Fin N → ℤˣ) × ℤˣ) =>
+      (x.2 : ℝ) * (y.2 : ℝ) *
+      (β ^ 2 * ((N : ℝ)⁻¹ * ∑ i, (x.1 i : ℝ) * (y.1 i : ℝ) - q)))
+  dsimp only [L]
+  fun_prop
+
 /-- **Fixed-base cavity `cosh` error bound (Talagrand Eqs. 1.179--1.181).**
 After the two Ising signs are integrated out, the signed overlap term is bounded by the
 old-system Gibbs expectation of `|R - q|`.  The base energy is arbitrary, so this statement
@@ -695,6 +717,73 @@ theorem abs_integral_sk_cavity_signed_overlap_le (N : ℕ) (β h q s : ℝ) (hN 
       simp_rw [g, abs_mul, abs_sq, integral_const_mul]
       ring
 
+/-- **Old-disorder-averaged cavity `cosh` error bound.**  The fixed-base signed-overlap
+estimate remains valid after averaging an arbitrary measurable family of base energies.  This
+is the reusable outer-disorder form needed in Talagrand's Eq. (1.181). -/
+theorem abs_integral_integral_sk_cavity_signed_overlap_le
+    {Ω₀ : Type*} [MeasurableSpace Ω₀] (P₀ : Measure Ω₀) [IsProbabilityMeasure P₀]
+    (N : ℕ) (β h q s : ℝ) (hN : 0 < N) (hq : q ∈ Set.Icc (0 : ℝ) 1)
+    (A : Ω₀ → (Fin N → ℤˣ) → ℝ) (hA : ∀ ρ, Measurable fun η => A η ρ) :
+    let P := (Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)
+    let L : (Fin N → ℤˣ) → (Fin N → ℝ) × ℝ → ℝ := fun ρ ω =>
+      Real.cos s * ((Real.sqrt (N : ℝ))⁻¹ * β * ∑ i : Fin N, ω.1 i * (ρ i : ℝ)) +
+      Real.sin s * (β * ω.2 * Real.sqrt q) + h
+    |∫ η, ∫ ω, ∫ p : ((Fin N → ℤˣ) × ℤˣ) × ((Fin N → ℤˣ) × ℤˣ),
+      (p.1.2 : ℝ) * (p.2.2 : ℝ) *
+        (β ^ 2 * ((N : ℝ)⁻¹ * ∑ i, (p.1.1 i : ℝ) * (p.2.1 i : ℝ) - q))
+      ∂((Measure.count.tilted fun x => A η x.1 + (x.2 : ℝ) * L x.1 ω).prod
+        (Measure.count.tilted fun x => A η x.1 + (x.2 : ℝ) * L x.1 ω)) ∂P ∂P₀| ≤
+      β ^ 2 * (Real.cosh (2 * h) * Real.exp (2 * β ^ 2)) *
+        ∫ η, ∫ p : (Fin N → ℤˣ) × (Fin N → ℤˣ),
+          |(N : ℝ)⁻¹ * ∑ i, (p.1 i : ℝ) * (p.2 i : ℝ) - q|
+          ∂((Measure.count.tilted (A η)).prod (Measure.count.tilted (A η))) ∂P₀ := by
+  intro P L
+  let J : Ω₀ → ℝ := fun η => ∫ ω, ∫ p : ((Fin N → ℤˣ) × ℤˣ) ×
+      ((Fin N → ℤˣ) × ℤˣ),
+    (p.1.2 : ℝ) * (p.2.2 : ℝ) *
+      (β ^ 2 * ((N : ℝ)⁻¹ * ∑ i, (p.1.1 i : ℝ) * (p.2.1 i : ℝ) - q))
+    ∂((Measure.count.tilted fun x => A η x.1 + (x.2 : ℝ) * L x.1 ω).prod
+      (Measure.count.tilted fun x => A η x.1 + (x.2 : ℝ) * L x.1 ω)) ∂P
+  let R : Ω₀ → ℝ := fun η => ∫ p : (Fin N → ℤˣ) × (Fin N → ℤˣ),
+    |(N : ℝ)⁻¹ * ∑ i, (p.1 i : ℝ) * (p.2 i : ℝ) - q|
+    ∂((Measure.count.tilted (A η)).prod (Measure.count.tilted (A η)))
+  let K := β ^ 2 * (Real.cosh (2 * h) * Real.exp (2 * β ^ 2))
+  change |∫ η, J η ∂P₀| ≤ K * ∫ η, R η ∂P₀
+  have hRint : Integrable R P₀ := by
+    exact integrable_integral_prod_count_tilted_det P₀ hA fun σ τ =>
+      |(N : ℝ)⁻¹ * ∑ i, (σ i : ℝ) * (τ i : ℝ) - q|
+  have hJm : AEStronglyMeasurable J P₀ := by
+    let At : Ω₀ × ((Fin N → ℝ) × ℝ) → (Fin N → ℤˣ) → ℝ := fun w ρ => A w.1 ρ
+    let Lt : Ω₀ × ((Fin N → ℝ) × ℝ) → (Fin N → ℤˣ) → ℝ := fun w ρ => L ρ w.2
+    let gt : (Fin N → ℤˣ) → (Fin N → ℤˣ) → ℝ := fun σ τ =>
+      β ^ 2 * ((N : ℝ)⁻¹ * ∑ i, (σ i : ℝ) * (τ i : ℝ) - q)
+    let G : Ω₀ × ((Fin N → ℝ) × ℝ) → ℝ := fun w =>
+      ∫ p : ((Fin N → ℤˣ) × ℤˣ) × ((Fin N → ℤˣ) × ℤˣ),
+        (p.1.2 : ℝ) * (p.2.2 : ℝ) * gt p.1.1 p.2.1
+        ∂((Measure.count.tilted fun x => At w x.1 + (x.2 : ℝ) * Lt w x.1).prod
+          (Measure.count.tilted fun x => At w x.1 + (x.2 : ℝ) * Lt w x.1))
+    have hAt : ∀ ρ, Measurable fun w => At w ρ := fun ρ => by
+      dsimp only [At]
+      exact (hA ρ).comp measurable_fst
+    have hLt : ∀ ρ, Measurable fun w => Lt w ρ := fun ρ => by
+      dsimp only [Lt, L]
+      fun_prop
+    have hG : Measurable G := by
+      exact measurable_integral_prod_count_tilted_units_mul hAt hLt gt
+    exact hG.aestronglyMeasurable.integral_prod_right'
+  have hJR (η : Ω₀) : |J η| ≤ K * R η := by
+    exact abs_integral_sk_cavity_signed_overlap_le N β h q s hN hq (A η)
+  have hK : 0 ≤ K := by dsimp [K]; positivity
+  have hR0 (η : Ω₀) : 0 ≤ R η := integral_nonneg fun _ => abs_nonneg _
+  have hJint : Integrable J P₀ := by
+    refine Integrable.mono' (hRint.const_mul K) hJm (ae_of_all _ fun η => ?_)
+    simpa only [Real.norm_eq_abs, abs_of_nonneg (mul_nonneg hK (hR0 η))] using hJR η
+  calc
+    |∫ η, J η ∂P₀| ≤ ∫ η, |J η| ∂P₀ := abs_integral_le_integral_abs
+    _ ≤ ∫ η, K * R η ∂P₀ :=
+      integral_mono hJint.abs (hRint.const_mul K) hJR
+    _ = K * ∫ η, R η ∂P₀ := by rw [integral_const_mul]
+
 /-- **Covariance bracket identity for the cavity cosh derivative (Talagrand Eq. 1.178).**
 For the signed Gaussian fields on `(Fin N → ℤˣ) × ℤˣ`, the bracket
 `([E Y² - E X²]_diag - [E Y_a Y_b - E X_a X_b]_pair)` evaluates to
@@ -759,5 +848,67 @@ theorem sk_cavity_covariance_bracket_eq (N : ℕ) (hN : 0 < N) (β q : ℝ) (hq 
     rw [mul_one, inv_mul_cancel₀ hNne]
   rw [hdiag]
   ring
+
+/-- **Integrated cavity covariance bracket (Talagrand Eqs. 1.178--1.181).**
+For a fixed base energy, the Gaussian comparison bracket is exactly the constant
+`-β²(1-q)` plus the signed two-replica overlap term. -/
+theorem integral_integral_sk_cavity_covariance_bracket_eq
+    (N : ℕ) (hN : 0 < N) (β h q s : ℝ) (hq : 0 ≤ q)
+    (A : (Fin N → ℤˣ) → ℝ) :
+    let P := (Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)
+    let X : (Fin N → ℤˣ) → (Fin N → ℝ) × ℝ → ℝ := fun σ ω =>
+      (Real.sqrt (N : ℝ))⁻¹ * β * ∑ i : Fin N, ω.1 i * (σ i : ℝ)
+    let Y : (Fin N → ℤˣ) → (Fin N → ℝ) × ℝ → ℝ := fun _ ω =>
+      β * ω.2 * Real.sqrt q
+    let L : (Fin N → ℤˣ) → (Fin N → ℝ) × ℝ → ℝ := fun ρ ω =>
+      Real.cos s * X ρ ω + Real.sin s * Y ρ ω + h
+    (∫ ω, ∫ p : ((Fin N → ℤˣ) × ℤˣ) × ((Fin N → ℤˣ) × ℤˣ),
+      Real.sin s * Real.cos s *
+        ((∫ ω', (p.1.2 : ℝ) * Y p.1.1 ω' * ((p.1.2 : ℝ) * Y p.1.1 ω') ∂P -
+            ∫ ω', (p.1.2 : ℝ) * X p.1.1 ω' * ((p.1.2 : ℝ) * X p.1.1 ω') ∂P) -
+          (∫ ω', (p.1.2 : ℝ) * Y p.1.1 ω' * ((p.2.2 : ℝ) * Y p.2.1 ω') ∂P -
+            ∫ ω', (p.1.2 : ℝ) * X p.1.1 ω' * ((p.2.2 : ℝ) * X p.2.1 ω') ∂P))
+      ∂((Measure.count.tilted fun x => A x.1 + (x.2 : ℝ) * L x.1 ω).prod
+        (Measure.count.tilted fun x => A x.1 + (x.2 : ℝ) * L x.1 ω)) ∂P) =
+      Real.sin s * Real.cos s *
+        (-β ^ 2 * (1 - q) +
+          ∫ ω, ∫ p : ((Fin N → ℤˣ) × ℤˣ) × ((Fin N → ℤˣ) × ℤˣ),
+            (p.1.2 : ℝ) * (p.2.2 : ℝ) *
+              (β ^ 2 * ((N : ℝ)⁻¹ * ∑ i, (p.1.1 i : ℝ) * (p.2.1 i : ℝ) - q))
+            ∂((Measure.count.tilted fun x => A x.1 + (x.2 : ℝ) * L x.1 ω).prod
+              (Measure.count.tilted fun x => A x.1 + (x.2 : ℝ) * L x.1 ω)) ∂P) := by
+  intro P X Y L
+  let C := -β ^ 2 * (1 - q)
+  let G : ((Fin N → ℤˣ) × ℤˣ) × ((Fin N → ℤˣ) × ℤˣ) → ℝ := fun p =>
+    (p.1.2 : ℝ) * (p.2.2 : ℝ) *
+      (β ^ 2 * ((N : ℝ)⁻¹ * ∑ i, (p.1.1 i : ℝ) * (p.2.1 i : ℝ) - q))
+  let μ : (Fin N → ℝ) × ℝ → Measure (((Fin N → ℤˣ) × ℤˣ) ×
+      ((Fin N → ℤˣ) × ℤˣ)) := fun ω =>
+    (Measure.count.tilted fun x => A x.1 + (x.2 : ℝ) * L x.1 ω).prod
+      (Measure.count.tilted fun x => A x.1 + (x.2 : ℝ) * L x.1 ω)
+  have hGint : Integrable (fun ω => ∫ p, G p ∂μ ω) P := by
+    simpa only [G, μ, L, X, Y] using
+      (integrable_integral_sk_cavity_signed_overlap N β h q s A)
+  have hpoint (ω : (Fin N → ℝ) × ℝ) :
+      (∫ p, Real.sin s * Real.cos s *
+        ((∫ ω', (p.1.2 : ℝ) * Y p.1.1 ω' * ((p.1.2 : ℝ) * Y p.1.1 ω') ∂P -
+            ∫ ω', (p.1.2 : ℝ) * X p.1.1 ω' * ((p.1.2 : ℝ) * X p.1.1 ω') ∂P) -
+          (∫ ω', (p.1.2 : ℝ) * Y p.1.1 ω' * ((p.2.2 : ℝ) * Y p.2.1 ω') ∂P -
+            ∫ ω', (p.1.2 : ℝ) * X p.1.1 ω' * ((p.2.2 : ℝ) * X p.2.1 ω') ∂P)) ∂μ ω) =
+        Real.sin s * Real.cos s * (C + ∫ p, G p ∂μ ω) := by
+    rw [integral_const_mul]
+    have heq : ∀ p, ((∫ ω', (p.1.2 : ℝ) * Y p.1.1 ω' *
+          ((p.1.2 : ℝ) * Y p.1.1 ω') ∂P -
+          ∫ ω', (p.1.2 : ℝ) * X p.1.1 ω' * ((p.1.2 : ℝ) * X p.1.1 ω') ∂P) -
+        (∫ ω', (p.1.2 : ℝ) * Y p.1.1 ω' * ((p.2.2 : ℝ) * Y p.2.1 ω') ∂P -
+          ∫ ω', (p.1.2 : ℝ) * X p.1.1 ω' * ((p.2.2 : ℝ) * X p.2.1 ω') ∂P)) =
+        C + G p := fun p => sk_cavity_covariance_bracket_eq N hN β q hq p
+    simp_rw [heq]
+    rw [integral_add (integrable_const _) Integrable.of_finite, integral_const,
+      probReal_univ, one_smul]
+  rw [integral_congr_ae (ae_of_all _ hpoint)]
+  simp_rw [mul_add]
+  rw [integral_add (integrable_const _) (hGint.const_mul _), integral_const,
+    probReal_univ, one_smul, integral_const_mul]
 
 end SpinGlasses

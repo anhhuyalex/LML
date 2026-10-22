@@ -72,22 +72,10 @@ theorem abs_sk_overlap_sub_le_two (N : ℕ) (q : ℝ) (hq : q ∈ Set.Icc (0 : �
     (a b : Fin (N + 1) → ℤˣ) :
     |(N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (a i : ℝ)) ⬝ᵥ
       fun i : Fin (N + 1) => (b i : ℝ)) - q| ≤ 2 := by
-  have hN : (0 : ℝ) < (N + 1 : ℝ) := by positivity
-  have h1 : |(fun i : Fin (N + 1) => (a i : ℝ)) ⬝ᵥ fun i : Fin (N + 1) => (b i : ℝ)| ≤
-      (N + 1 : ℝ) := by
-    refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
-    simp only [abs_mul, abs_units_cast_eq_one, mul_one, Finset.sum_const, Finset.card_univ,
-      Fintype.card_fin, nsmul_eq_mul, mul_one]
-    push_cast
-    exact le_rfl
-  have h2 : |(N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (a i : ℝ)) ⬝ᵥ
-      fun i : Fin (N + 1) => (b i : ℝ))| ≤ 1 := by
-    rw [abs_mul, abs_of_pos (inv_pos.2 hN)]
-    calc _ ≤ (N + 1 : ℝ)⁻¹ * (N + 1 : ℝ) := mul_le_mul_of_nonneg_left h1 (inv_pos.2 hN).le
-      _ = 1 := inv_mul_cancel₀ hN.ne'
-  calc _ ≤ _ := abs_sub _ _
-    _ ≤ 1 + 1 := add_le_add h2 (by rw [abs_of_nonneg hq.1]; exact hq.2)
-    _ = 2 := by norm_num
+  simpa only [Fintype.card_fin, Nat.cast_add, Nat.cast_one] using
+    abs_card_inv_mul_dotProduct_sub_le_two
+    (fun i : Fin (N + 1) => (a i : ℝ)) (fun i : Fin (N + 1) => (b i : ℝ))
+    (fun i => abs_units_cast_le_one (a i)) (fun i => abs_units_cast_le_one (b i)) q hq
 
 /-- **Induction step of Talagrand's Proposition 1.6.7.** If the `2k`-th moment of `R - q` is at
 most `(64 k x)^k` (`x = 1/(N+1)`) and `16 (k+1) x ≤ 1`, then the `(2k+2)`-th moment is at most

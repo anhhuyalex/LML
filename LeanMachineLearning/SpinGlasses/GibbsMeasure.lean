@@ -237,6 +237,31 @@ theorem log_integral_cosh_count_tilted_eq [Nonempty α] (A L : α → ℝ) :
   rw [log_sum_exp_prod_units]
   ring
 
+/-- The logarithm of a finite Gibbs average of `cosh L` is uniformly bounded by the
+`ℓ¹` norm of `L`, independently of the base energy.  This is the reusable domination needed
+when the base Gibbs weights themselves depend on an outer random parameter. -/
+theorem abs_log_integral_cosh_count_tilted_le_sum_abs [Nonempty α]
+    (A L : α → ℝ) :
+    |Real.log (∫ a, Real.cosh (L a) ∂Measure.count.tilted A)| ≤ ∑ a, |L a| := by
+  classical
+  have h_one : 1 ≤ ∫ a, Real.cosh (L a) ∂Measure.count.tilted A := by
+    rw [show (1 : ℝ) = ∫ _ : α, (1 : ℝ) ∂Measure.count.tilted A by simp]
+    exact integral_mono (integrable_const _) Integrable.of_finite fun a =>
+      Real.one_le_cosh (L a)
+  rw [abs_of_nonneg (Real.log_nonneg h_one)]
+  refine (Real.log_le_iff_le_exp (by positivity)).2 ?_
+  have hpoint : ∀ a, Real.cosh (L a) ≤ Real.exp (∑ b, |L b|) := fun a => by
+    have hc : Real.cosh (L a) ≤ Real.exp |L a| := by
+      nlinarith [two_cosh_le_exp_abs_mul (L a)]
+    refine hc.trans ?_
+    exact Real.exp_le_exp.2 (Finset.single_le_sum (fun b _ => abs_nonneg (L b))
+      (Finset.mem_univ a))
+  calc
+    (∫ a, Real.cosh (L a) ∂Measure.count.tilted A)
+        ≤ ∫ _a : α, Real.exp (∑ b, |L b|) ∂Measure.count.tilted A :=
+      integral_mono Integrable.of_finite (integrable_const _) hpoint
+    _ = Real.exp (∑ b, |L b|) := by simp
+
 /-- Summing an Ising sign weighted by `(s : ℝ) * exp (s * x)` yields `2 * sinh x`. -/
 theorem sum_units_int_mul_exp (x : ℝ) :
     (∑ s : ℤˣ, (s : ℝ) * Real.exp ((s : ℝ) * x)) = 2 * Real.sinh x := by
@@ -503,6 +528,29 @@ theorem measurable_integral_prod_count_tilted {W : Type*} [MeasurableSpace W]
     ((hg b).exp.div (Finset.measurable_fun_sum _ fun c _ => (hg c).exp))).mul (hΘ a b)
 
 omit [Fintype α] in
+/-- A bounded deterministic two-replica observable is integrable when the finite Gibbs energy
+depends measurably on outer randomness. -/
+theorem integrable_integral_prod_count_tilted_det {W : Type*} [MeasurableSpace W]
+    (P : Measure W) [IsFiniteMeasure P] [Finite α] [Nonempty α]
+    {A : W → α → ℝ} (hA : ∀ a, Measurable fun w => A w a)
+    (Θ : α → α → ℝ) :
+    Integrable (fun w => ∫ p : α × α, Θ p.1 p.2
+      ∂((Measure.count.tilted (A w)).prod (Measure.count.tilted (A w)))) P := by
+  let _ := Fintype.ofFinite α
+  obtain ⟨C, hC⟩ : ∃ C, ∀ p : α × α, |Θ p.1 p.2| ≤ C :=
+    (Set.finite_range fun p : α × α => |Θ p.1 p.2|).bddAbove.imp fun C hC p =>
+      hC ⟨p, rfl⟩
+  have hm := measurable_integral_prod_count_tilted
+    (g := A) (Θ := fun _ a b => Θ a b) hA
+    (fun _ _ => measurable_const)
+  refine Integrable.of_bound hm.aestronglyMeasurable C (ae_of_all _ fun w => ?_)
+  have h := norm_integral_le_of_norm_le_const
+    (μ := (Measure.count.tilted (A w)).prod (Measure.count.tilted (A w)))
+    (f := fun p : α × α => Θ p.1 p.2) (C := C)
+    (ae_of_all _ fun p => by simpa [Real.norm_eq_abs] using hC p)
+  simpa using h
+
+omit [Fintype α] in
 /-- Measurability of the signed two-replica average used in cavity `cosh` interpolations. -/
 theorem measurable_integral_prod_count_tilted_units_mul [Finite α]
     {W : Type*} [MeasurableSpace W] {A L : W → α → ℝ}
@@ -535,6 +583,58 @@ theorem measurable_log_integral_cosh_count_tilted [Finite α] [Nonempty α] {W :
   refine ((Measurable.log (Finset.measurable_sum _ fun x _ =>
     ((hA x.1).add (measurable_const.mul (hL x.1))).exp)).sub measurable_const).sub
     (Measurable.log (Finset.measurable_sum _ fun a _ => (hA a).exp))
+
+omit [Fintype α] in
+/-- Integrating `log ⟨cosh L⟩_A` in a second parameter preserves a.e. strong
+measurability.  The base energy and the field may depend on separate parameter spaces. -/
+theorem aestronglyMeasurable_integral_log_integral_cosh_count_tilted
+    [Finite α] [Nonempty α] {Ω₀ Ω : Type*} [MeasurableSpace Ω₀] [MeasurableSpace Ω]
+    (P₀ : Measure Ω₀) (P : Measure Ω) [SFinite P]
+    {A : Ω₀ → α → ℝ} {L : Ω → α → ℝ}
+    (hA : ∀ a, Measurable fun η => A η a) (hL : ∀ a, Measurable fun ω => L ω a) :
+    AEStronglyMeasurable (fun η => ∫ ω,
+      Real.log (∫ a, Real.cosh (L ω a) ∂Measure.count.tilted (A η)) ∂P) P₀ := by
+  let _ := Fintype.ofFinite α
+  let F : Ω₀ × Ω → ℝ := fun w =>
+    Real.log (∫ a, Real.cosh (L w.2 a) ∂Measure.count.tilted (A w.1))
+  have hF : Measurable F := measurable_log_integral_cosh_count_tilted
+    (fun a => (hA a).comp measurable_fst) (fun a => (hL a).comp measurable_snd)
+  exact hF.aestronglyMeasurable.integral_prod_right'
+
+omit [Fintype α] in
+/-- The iterated integral of `log ⟨cosh L⟩_A` is integrable when the field has
+coordinatewise first moments.  The estimate is uniform in the random base energy because
+`|log ⟨cosh L⟩_A| ≤ ∑ₐ |L a|`. -/
+theorem integrable_integral_log_integral_cosh_count_tilted
+    [Finite α] [Nonempty α] {Ω₀ Ω : Type*} [MeasurableSpace Ω₀] [MeasurableSpace Ω]
+    (P₀ : Measure Ω₀) (P : Measure Ω) [IsFiniteMeasure P₀] [IsFiniteMeasure P]
+    {A : Ω₀ → α → ℝ} {L : Ω → α → ℝ}
+    (hA : ∀ a, Measurable fun η => A η a) (hL : ∀ a, Measurable fun ω => L ω a)
+    (hLint : ∀ a, Integrable (fun ω => L ω a) P) :
+    Integrable (fun η => ∫ ω,
+      Real.log (∫ a, Real.cosh (L ω a) ∂Measure.count.tilted (A η)) ∂P) P₀ := by
+  let _ := Fintype.ofFinite α
+  let F : Ω₀ → Ω → ℝ := fun η ω =>
+    Real.log (∫ a, Real.cosh (L ω a) ∂Measure.count.tilted (A η))
+  change Integrable (fun η => ∫ ω, F η ω ∂P) P₀
+  let B : Ω → ℝ := fun ω => ∑ a, |L ω a|
+  have hB : Integrable B P := integrable_finsetSum _ fun a _ => (hLint a).abs
+  have hFm (η : Ω₀) : Measurable (F η) := by
+    exact measurable_log_integral_cosh_count_tilted (fun _ => measurable_const) hL
+  have hinner (η : Ω₀) : Integrable (F η) P := by
+    refine Integrable.mono' hB (hFm η).aestronglyMeasurable
+      (ae_of_all _ fun ω => ?_)
+    rw [Real.norm_eq_abs]
+    exact abs_log_integral_cosh_count_tilted_le_sum_abs (A η) (L ω)
+  have hm : AEStronglyMeasurable (fun η => ∫ ω, F η ω ∂P) P₀ := by
+    have hF : Measurable (Function.uncurry F) := measurable_log_integral_cosh_count_tilted
+      (fun a => (hA a).comp measurable_fst) (fun a => (hL a).comp measurable_snd)
+    exact hF.aestronglyMeasurable.integral_prod_right'
+  refine Integrable.of_bound hm (∫ ω, B ω ∂P) (ae_of_all _ fun η => ?_)
+  rw [Real.norm_eq_abs]
+  exact abs_integral_le_integral_abs.trans
+    (integral_mono (hinner η).abs hB fun ω =>
+      abs_log_integral_cosh_count_tilted_le_sum_abs (A η) (L ω))
 
 /-- **Log-partition perturbation identity.**  Adding an arbitrary finite perturbation `V` to
 an energy `f` changes its log partition function by the logarithm of the Gibbs average of

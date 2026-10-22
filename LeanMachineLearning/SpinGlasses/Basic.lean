@@ -76,6 +76,19 @@ theorem abs_card_inv_mul_dotProduct_le_one [Nonempty ι] (σ τ : ι → ℝ) (h
   rw [abs_mul, abs_inv, Nat.abs_cast]
   exact (inv_mul_le_iff₀ hN).2 (by simpa using hsum)
 
+/-- A normalized overlap of vectors in the unit cube differs from any `q ∈ [0,1]` by at most
+two.  This dimension-free form is reusable beyond Ising configurations. -/
+theorem abs_card_inv_mul_dotProduct_sub_le_two [Nonempty ι]
+    (σ τ : ι → ℝ) (hσ : ∀ i, |σ i| ≤ 1) (hτ : ∀ i, |τ i| ≤ 1)
+    (q : ℝ) (hq : q ∈ Set.Icc (0 : ℝ) 1) :
+    |(Fintype.card ι : ℝ)⁻¹ * (σ ⬝ᵥ τ) - q| ≤ 2 := by
+  calc
+    |(Fintype.card ι : ℝ)⁻¹ * (σ ⬝ᵥ τ) - q|
+        ≤ |(Fintype.card ι : ℝ)⁻¹ * (σ ⬝ᵥ τ)| + |q| := abs_sub _ _
+    _ ≤ 1 + 1 := add_le_add (abs_card_inv_mul_dotProduct_le_one σ τ hσ hτ)
+      (by rw [abs_of_nonneg hq.1]; exact hq.2)
+    _ = 2 := one_add_one_eq_two
+
 /-- The coordinates of a hypercube configuration have absolute value `1`, hence lie in
 `[-1, 1]`. -/
 theorem abs_units_cast_le_one (u : ℤˣ) : |((u : ℤ) : ℝ)| ≤ 1 := by
