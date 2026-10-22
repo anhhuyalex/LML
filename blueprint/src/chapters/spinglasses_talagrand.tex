@@ -1122,9 +1122,9 @@ The cavity method compares the SK system on $N+1$ spins with the one on $N$ spin
 out the last spin.  Splitting the Hamiltonian into the old pairs $i<j<N$ and the $N$ new edges
 $(i,N)$ writes the $(N+1)$-spin Gibbs average as an $N$-spin average whose energy is perturbed
 by a Gaussian field $X_\sigma$ coming from the new edges.  Replacing $X_\sigma$ by an independent
-field $Y_\sigma=\beta z\sqrt q$ with the \emph{same variance structure up to the overlap}
-decouples the last spin.  The size of the error is controlled by the overlap
-$R_{1,2}$ through Gaussian interpolation along the path $s\mapsto\cos(s)X+\sin(s)Y$.
+field $Y_\sigma=\beta z\sqrt q$, whose covariance has $q$ where $X_\sigma$ has the overlap,
+decouples the last spin.  The error of this replacement is controlled by $|R_{1,2}-q|$ through
+Gaussian interpolation along the path $s\mapsto\cos(s)X+\sin(s)Y$.
 The section uses this one mechanism twice:
 \begin{itemize}
 \item to show that the overlap concentrates around $q$ (Lemmas~1.6.2--1.6.4 and
@@ -1375,9 +1375,9 @@ covariance kernel satisfy
 |\beta^2 a_N b_N(q-R^-(a,b))|\le2\beta^2.
 \]
 Both bounds are deterministic, uniform in the old-pair disorder, and valid
-when $N=0$. Together with Lemma~\ref{lem:sg-tal:cavity-combination-bound}, they supply
-uniform bounds for dominated differentiation; the fully averaged derivative
-remains unproved.
+when $N=0$. In Part~C (Section~\ref{sec:sg-tal:cavity-path}) they are combined with
+Lemma~\ref{lem:sg-tal:cavity-combination-bound} to give the uniform bound needed for dominated
+differentiation under the old disorder.
 \end{lemma}
 \begin{proof}
   \leanok
@@ -1395,7 +1395,7 @@ of a $\cosh$ Gibbs average along the angle path, obtained by signing a Gaussian 
 (Lemma~\ref{lem:sg-tal:log-cosh-gaussian-derivative}, Eq.~(1.178) for $f=\cosh$); Gr\"onwall's
 inequality run backwards from an endpoint, and the domination of a triple iterated integral, which
 turn a derivative bound into an integrated one.  \emph{Uses:} the Gaussian interpolation theorem of
-Lemma~1.4.2 and the Gibbs-measure toolkit of Section~\ref{sec:sg-tal:guerra-rs}.  \emph{Used by:} C and E.
+Lemma~1.4.2.  \emph{Used by:} C and E.
 No spin-glass model is needed here, which is why these lemmas come before the cavity-specific
 arguments.  \emph{Status:} fully proved.
 
@@ -1461,7 +1461,7 @@ scaling, so \texttt{HasGaussianLaw.reindex\_mul} preserves their joint Gaussian 
 Apply \texttt{hasDerivAt\_integral\_log\_sum\_exp\_trig}; the subtracted terms have zero derivative.
 \end{proof}
 
-\begin{lemma}[Grönwall's inequality run backwards from the endpoint]
+\begin{lemma}[Gr\"onwall's inequality run backwards from the endpoint]
 \label{lem:sg-tal:gronwall-backward}
   \lean{le_exp_mul_endpoint_of_neg_mul_le_deriv,
         le_exp_mul_endpoint_of_exists_hasDerivAt}
@@ -1472,7 +1472,7 @@ $g(t)\le e^{K(1-t)}g(1)$ for $t\in[0,1]$.
 \end{lemma}
 \begin{proof}
   \leanok
-This is the time reversal $u\mapsto g(1-u)$ of the existing interval Grönwall lemma
+This is the time reversal $u\mapsto g(1-u)$ of the existing interval Gr\"onwall lemma
 \texttt{NTK.gronwall\_exponential\_decay\_Icc}.
 \end{proof}
 
@@ -1848,9 +1848,9 @@ split disorder is the $(N+1)$-spin SK disorder (Lemma~\ref{lem:sg-tal:cavity-cou
 \subsection{Concentration of the overlap (Propositions~1.6.5--1.6.7)}
 \label{sec:sg-tal:cavity-overlap}
 
-\emph{Content.} Applying C with an observable of $R_{1,2}-q$ and using Hoelder's inequality and the
+\emph{Content.} Applying C with an observable of $R_{1,2}-q$ and using H\"older's inequality and the
 site symmetry of the Gibbs measure gives a contraction of the overlap variance
-(Proposition~1.6.6) and, by induction, bounds on its higher moments (Proposition~1.6.7).
+(Proposition~1.6.6) and, by iterating it, bounds on its higher moments (Proposition~1.6.7).
 \emph{Uses:} C.  \emph{Used by:} only to turn $\nu(|R_{1,2}-q|)$ into a rate in $N$ (Part~E needs
 no rate).  \emph{Status:} fully proved.
 

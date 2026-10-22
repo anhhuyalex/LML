@@ -197,4 +197,53 @@ theorem abs_sk_pair_perturb_overlap_sub_le (N : ℕ) (hN : 0 < N) (R ε q : ℝ)
     _ ≤ |R ^ 2 - q ^ 2| + |(R - ε) ^ 2 / ((N : ℝ) + 1)| := abs_sub _ _
     _ ≤ 2 * |R - q| + 4 / ((N : ℝ) + 1) := add_le_add h1 h2
 
+/-- **Covariance bracket of the pair perturbation (Talagrand Eq. 1.182).**  The bracket
+`([𝔼 Y² - 𝔼 X²]_{aa}) - ([𝔼 Y_a Y_b - 𝔼 X_a X_b])` equals the constant `-(β²/2)(1 - q²)` plus
+`(β²/2) (Z(a, b) - q²)`, `Z(a, b) = ((∑ᵢ aᵢ bᵢ)² - (N+1)) / (N (N+1))`. -/
+theorem sk_pair_perturb_bracket_eq (N : ℕ) (hN : 0 < N) (β q : ℝ) (a b : Fin (N + 1) → ℤˣ) :
+    let P := (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1).prod (gaussianReal 0 1)
+    let X : (Fin (N + 1) → ℤˣ) → (FinPairs (N + 1) → ℝ) × ℝ → ℝ := fun a ω =>
+      β * (Real.sqrt ((N : ℝ) * (N + 1)))⁻¹ *
+        ∑ p : FinPairs (N + 1), ω.1 p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)
+    let Y : (Fin (N + 1) → ℤˣ) → (FinPairs (N + 1) → ℝ) × ℝ → ℝ := fun _ ω =>
+      β * (Real.sqrt 2)⁻¹ * q * ω.2
+    ((∫ ω', Y a ω' * Y a ω' ∂P - ∫ ω', X a ω' * X a ω' ∂P) -
+      (∫ ω', Y a ω' * Y b ω' ∂P - ∫ ω', X a ω' * X b ω' ∂P)) =
+    -(β ^ 2 / 2) * (1 - q ^ 2) + β ^ 2 / 2 *
+      (((∑ i, (a i : ℝ) * (b i : ℝ)) ^ 2 - (N + 1 : ℝ)) / ((N : ℝ) * (N + 1)) - q ^ 2) := by
+  intro P X Y
+  have h1 := sk_pair_perturb_covariance_difference N hN β q a a
+  have h2 := sk_pair_perturb_covariance_difference N hN β q a b
+  dsimp only [P, X, Y]
+  rw [← h1, ← h2]
+  have hdiag : (∑ i, (a i : ℝ) * (a i : ℝ)) = (N + 1 : ℝ) := by
+    have : ∀ i, (a i : ℝ) * (a i : ℝ) = 1 := fun i => by
+      rw [← sq]; exact units_cast_sq (a i)
+    simp [this]
+  rw [hdiag]
+  have hn : (N : ℝ) * (N + 1) ≠ 0 := by positivity
+  field_simp
+  ring
+
+/-- **Overlap bound of Eq. (1.182) for spins.**  With `R` the normalized overlap of the first
+`N` coordinates, `|Z(a, b) - q²| ≤ 2 |R - q| + 4 / (N+1)`. -/
+theorem abs_sk_pair_perturb_Z_sub_le (N : ℕ) (hN : 0 < N) (q : ℝ)
+    (hq : q ∈ Set.Icc (0 : ℝ) 1) (a b : Fin (N + 1) → ℤˣ) :
+    |((∑ i, (a i : ℝ) * (b i : ℝ)) ^ 2 - (N + 1 : ℝ)) / ((N : ℝ) * (N + 1)) - q ^ 2| ≤
+      2 * |(N : ℝ)⁻¹ * ∑ i : Fin N, (a i.castSucc : ℝ) * (b i.castSucc : ℝ) - q| +
+        4 / ((N : ℝ) + 1) := by
+  have _ : Nonempty (Fin N) := ⟨⟨0, hN⟩⟩
+  have hNe : (N : ℝ) ≠ 0 := by positivity
+  have hS : (∑ i, (a i : ℝ) * (b i : ℝ)) =
+      N * ((N : ℝ)⁻¹ * ∑ i : Fin N, (a i.castSucc : ℝ) * (b i.castSucc : ℝ)) +
+        (a (Fin.last N) : ℝ) * (b (Fin.last N) : ℝ) := by
+    rw [Fin.sum_univ_castSucc, mul_inv_cancel_left₀ hNe]
+  rw [hS]
+  refine abs_sk_pair_perturb_overlap_sub_le N hN _ _ q ?_ ?_ hq
+  · rw [mul_pow, units_cast_sq, units_cast_sq, one_mul]
+  · simpa only [Fintype.card_fin, dotProduct] using
+      abs_card_inv_mul_dotProduct_le_one (fun i : Fin N => (a i.castSucc : ℝ))
+        (fun i : Fin N => (b i.castSucc : ℝ)) (fun i => abs_units_cast_le_one _)
+        (fun i => abs_units_cast_le_one _)
+
 end SpinGlasses
