@@ -43,17 +43,10 @@ theorem hasGaussianLaw_linear_form_and_scalar_prod
     convert h using 1
     rfl
   have hY : HasGaussianLaw (fun (z : ℝ) (a : A) => d a * z) (gaussianReal 0 1) := by
-    have h : HasGaussianLaw (id : ℝ → ℝ) (gaussianReal 0 1) :=
-      IsGaussian.hasGaussianLaw_id
-    let L : ℝ →L[ℝ] (A → ℝ) := ContinuousLinearMap.pi fun a =>
-      ContinuousLinearMap.smulRight (ContinuousLinearMap.id ℝ ℝ) (d a)
-    have hL : Measurable L := L.continuous.measurable
-    have h' := h.map_of_measurable L hL
-    convert h' using 1
-    ext z a
-    simp only [Function.comp_apply, L, ContinuousLinearMap.pi_apply,
-      ContinuousLinearMap.smulRight_apply, ContinuousLinearMap.id_apply, id_eq]
-    ring
+    have h : HasGaussianLaw (fun (z : ℝ) (_ : Unit) => z) (gaussianReal 0 1) := by
+      let L : ℝ →L[ℝ] (Unit → ℝ) := ContinuousLinearMap.pi fun _ => ContinuousLinearMap.id ℝ ℝ
+      exact IsGaussian.hasGaussianLaw_id.map_fun L
+    exact h.reindex_mul (X := fun _ => fun z => z) (fun _ : A => ()) d
   have hXm : Measurable (fun (g : K → ℝ) (a : A) => ∑ i, c a i * g i) := by
     refine measurable_pi_iff.2 fun a => ?_
     change Measurable (fun (g : K → ℝ) => ∑ i, c a i * g i)
