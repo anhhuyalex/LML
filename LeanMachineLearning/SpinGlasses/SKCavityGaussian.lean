@@ -471,8 +471,7 @@ theorem sk_cavity_field_linear_combo_eq (N : ℕ) (β q s h u v : ℝ)
       ring]
   rw [hsum, Finset.mul_sum]
   congr 2
-  funext i
-  ring
+  exact Finset.sum_congr rfl fun i _ => by ring
 
 /-- The product of the two `sinh` cavity factors along the trigonometric path is integrable
 under the product Gaussian law.  This is separated from its moment bound because Fubini
@@ -494,7 +493,7 @@ theorem integrable_abs_sinh_mul_sinh_sk_cavity (N : ℕ) (β q s h : ℝ)
   let d_sub : ℝ := Real.sin s * (β * Real.sqrt q * (1 + (-1)))
   have h_add_eq (ω : (Fin N → ℝ) × ℝ) :
       L σ ω + L τ ω = ∑ i, c_add i * ω.1 i + d_add * ω.2 + 2 * h := by
-    simpa [L, c_add, d_add] using
+    simpa only [L, c_add, d_add, one_mul, one_add_one_eq_two] using
       sk_cavity_field_linear_combo_eq N β q s h 1 1 σ τ ω
   have h_sub_eq (ω : (Fin N → ℝ) × ℝ) :
       L σ ω - L τ ω = ∑ i, c_sub i * ω.1 i + d_sub * ω.2 + 0 := by
@@ -553,7 +552,7 @@ theorem integral_abs_sinh_mul_sinh_sk_cavity_le (N : ℕ) (hN : 0 < N) (β q s h
   let d_sub : ℝ := Real.sin s * (β * Real.sqrt q * (1 + (-1)))
   have h_add_eq (ω : (Fin N → ℝ) × ℝ) :
       L σ ω + L τ ω = ∑ i, c_add i * ω.1 i + d_add * ω.2 + 2 * h := by
-    simpa [L, c_add, d_add] using
+    simpa only [L, c_add, d_add, one_mul, one_add_one_eq_two] using
       sk_cavity_field_linear_combo_eq N β q s h 1 1 σ τ ω
   have h_sub_eq (ω : (Fin N → ℝ) × ℝ) :
       L σ ω - L τ ω = ∑ i, c_sub i * ω.1 i + d_sub * ω.2 + 0 := by
@@ -656,18 +655,6 @@ theorem abs_integral_sk_cavity_signed_overlap_le (N : ℕ) (β h q s : ℝ) (hN 
       ∂((Measure.count.tilted A).prod (Measure.count.tilted A))) P := by
     exact integrable_integral_prod_count_tilted P A
       (fun σ τ ω => |g σ τ| * F σ τ ω) fun σ τ => (hF_int σ τ).const_mul _
-  have h_lhs_meas : AEStronglyMeasurable (fun ω =>
-      ∫ p : ((Fin N → ℤˣ) × ℤˣ) × ((Fin N → ℤˣ) × ℤˣ),
-        (p.1.2 : ℝ) * (p.2.2 : ℝ) * g p.1.1 p.2.1
-      ∂((Measure.count.tilted fun x => A x.1 + (x.2 : ℝ) * L x.1 ω).prod
-        (Measure.count.tilted fun x => A x.1 + (x.2 : ℝ) * L x.1 ω))) P := by
-    refine (measurable_integral_prod_count_tilted_units_mul
-      (A := fun _ σ => A σ) (L := fun ω σ => L σ ω) ?_ ?_ g).aestronglyMeasurable
-    · intro σ
-      exact measurable_const
-    · intro σ
-      dsimp [L]
-      fun_prop
   have h_point (ω : (Fin N → ℝ) × ℝ) :
       |∫ p : ((Fin N → ℤˣ) × ℤˣ) × ((Fin N → ℤˣ) × ℤˣ),
         (p.1.2 : ℝ) * (p.2.2 : ℝ) * g p.1.1 p.2.1
@@ -677,27 +664,17 @@ theorem abs_integral_sk_cavity_signed_overlap_le (N : ℕ) (β h q s : ℝ) (hN 
         ∂((Measure.count.tilted A).prod (Measure.count.tilted A)) := by
     simpa only [F, mul_assoc] using
       abs_integral_prod_count_tilted_units_mul_le A (fun σ => L σ ω) g
-  have h_lhs_int : Integrable (fun ω =>
-      ∫ p : ((Fin N → ℤˣ) × ℤˣ) × ((Fin N → ℤˣ) × ℤˣ),
-        (p.1.2 : ℝ) * (p.2.2 : ℝ) * g p.1.1 p.2.1
-      ∂((Measure.count.tilted fun x => A x.1 + (x.2 : ℝ) * L x.1 ω).prod
-        (Measure.count.tilted fun x => A x.1 + (x.2 : ℝ) * L x.1 ω))) P := by
-    refine Integrable.mono' h_rhs_int h_lhs_meas (ae_of_all _ fun ω => ?_)
-    simpa only [Real.norm_eq_abs] using h_point ω
+  have h_outer := norm_integral_le_of_norm_le h_rhs_int
+    (ae_of_all _ fun ω => by simpa only [Real.norm_eq_abs] using h_point ω)
   calc
     |∫ ω, ∫ p : ((Fin N → ℤˣ) × ℤˣ) × ((Fin N → ℤˣ) × ℤˣ),
       (p.1.2 : ℝ) * (p.2.2 : ℝ) *
         (β ^ 2 * ((N : ℝ)⁻¹ * ∑ i, (p.1.1 i : ℝ) * (p.2.1 i : ℝ) - q))
       ∂((Measure.count.tilted fun x => A x.1 + (x.2 : ℝ) * L x.1 ω).prod
         (Measure.count.tilted fun x => A x.1 + (x.2 : ℝ) * L x.1 ω)) ∂P|
-      ≤ ∫ ω, |∫ p : ((Fin N → ℤˣ) × ℤˣ) × ((Fin N → ℤˣ) × ℤˣ),
-        (p.1.2 : ℝ) * (p.2.2 : ℝ) * g p.1.1 p.2.1
-        ∂((Measure.count.tilted fun x => A x.1 + (x.2 : ℝ) * L x.1 ω).prod
-          (Measure.count.tilted fun x => A x.1 + (x.2 : ℝ) * L x.1 ω))| ∂P :=
-        abs_integral_le_integral_abs
-    _ ≤ ∫ ω, ∫ p : (Fin N → ℤˣ) × (Fin N → ℤˣ), |g p.1 p.2| * F p.1 p.2 ω
-        ∂((Measure.count.tilted A).prod (Measure.count.tilted A)) ∂P :=
-      integral_mono h_lhs_int.abs h_rhs_int h_point
+      ≤ ∫ ω, ∫ p : (Fin N → ℤˣ) × (Fin N → ℤˣ), |g p.1 p.2| * F p.1 p.2 ω
+        ∂((Measure.count.tilted A).prod (Measure.count.tilted A)) ∂P := by
+      simpa only [g, Real.norm_eq_abs] using h_outer
     _ ≤ C * ∫ p : (Fin N → ℤˣ) × (Fin N → ℤˣ), |g p.1 p.2|
         ∂((Measure.count.tilted A).prod (Measure.count.tilted A)) :=
       integral_prod_count_tilted_mul_le P A g F C hF_int hF_le
@@ -742,28 +719,9 @@ theorem abs_integral_integral_sk_cavity_signed_overlap_le
   have hRint : Integrable R P₀ := by
     exact integrable_integral_prod_count_tilted_det P₀ hA fun σ τ =>
       |(N : ℝ)⁻¹ * ∑ i, (σ i : ℝ) * (τ i : ℝ) - q|
-  have hJm : AEStronglyMeasurable J P₀ := by
-    let At : Ω₀ × ((Fin N → ℝ) × ℝ) → (Fin N → ℤˣ) → ℝ := fun w ρ => A w.1 ρ
-    let Lt : Ω₀ × ((Fin N → ℝ) × ℝ) → (Fin N → ℤˣ) → ℝ := fun w ρ => L ρ w.2
-    let gt : (Fin N → ℤˣ) → (Fin N → ℤˣ) → ℝ := fun σ τ =>
-      β ^ 2 * ((N : ℝ)⁻¹ * ∑ i, (σ i : ℝ) * (τ i : ℝ) - q)
-    let G : Ω₀ × ((Fin N → ℝ) × ℝ) → ℝ := fun w =>
-      ∫ p : ((Fin N → ℤˣ) × ℤˣ) × ((Fin N → ℤˣ) × ℤˣ),
-        (p.1.2 : ℝ) * (p.2.2 : ℝ) * gt p.1.1 p.2.1
-        ∂((Measure.count.tilted fun x => At w x.1 + (x.2 : ℝ) * Lt w x.1).prod
-          (Measure.count.tilted fun x => At w x.1 + (x.2 : ℝ) * Lt w x.1))
-    have hAt : ∀ ρ, Measurable fun w => At w ρ := fun ρ => by
-      dsimp only [At]
-      exact (hA ρ).comp measurable_fst
-    have hLt : ∀ ρ, Measurable fun w => Lt w ρ := fun ρ => by
-      dsimp only [Lt, L]
-      fun_prop
-    have hG : Measurable G := by
-      exact measurable_integral_prod_count_tilted_units_mul hAt hLt gt
-    exact hG.aestronglyMeasurable.integral_prod_right'
   have hJR (η : Ω₀) : |J η| ≤ K * R η := by
     exact abs_integral_sk_cavity_signed_overlap_le N β h q s hN hq (A η)
-  exact abs_integral_le_const_mul_integral P₀ hRint hJm hJR
+  exact abs_integral_le_const_mul_integral P₀ hRint hJR
 
 /-- **Covariance bracket identity for the cavity cosh derivative (Talagrand Eq. 1.178).**
 For the signed Gaussian fields on `(Fin N → ℤˣ) × ℤˣ`, the bracket
@@ -784,14 +742,18 @@ theorem sk_cavity_covariance_bracket_eq (N : ℕ) (hN : 0 < N) (β q : ℝ) (hq 
       (p.1.2 : ℝ) * (p.2.2 : ℝ) *
         (β ^ 2 * ((N : ℝ)⁻¹ * ∑ i : Fin N, (p.1.1 i : ℝ) * (p.2.1 i : ℝ) - q)) := by
   intro P X Y
-  rw [integral_mul_self_of_sq_eq_one P _ (units_cast_sq p.1.2),
-    integral_mul_self_of_sq_eq_one P _ (units_cast_sq p.1.2),
-    integral_mul_mul_eq_mul_integral, integral_mul_mul_eq_mul_integral, ← mul_sub]
+  rw [integral_mul_self_of_sq_eq_one P (p.1.2 : ℝ) (units_cast_sq p.1.2) (Y p.1.1),
+    integral_mul_self_of_sq_eq_one P (p.1.2 : ℝ) (units_cast_sq p.1.2) (X p.1.1),
+    integral_mul_mul_eq_mul_integral P (p.1.2 : ℝ) (p.2.2 : ℝ)
+      (Y p.1.1) (Y p.2.1),
+    integral_mul_mul_eq_mul_integral P (p.1.2 : ℝ) (p.2.2 : ℝ)
+      (X p.1.1) (X p.2.1), ← mul_sub]
   have hdiff1 := sk_cavity_N_covariance_difference N β q hq p.1.1 p.1.1
   have hdiff2 := sk_cavity_N_covariance_difference N β q hq p.1.1 p.2.1
   dsimp [P, X, Y] at hdiff1 hdiff2 ⊢
   rw [← hdiff1, ← hdiff2]
   have hdiag : (N : ℝ)⁻¹ * ∑ i : Fin N, (p.1.1 i : ℝ) * (p.1.1 i : ℝ) = 1 := by
+    let _ : Nonempty (Fin N) := ⟨⟨0, hN⟩⟩
     simpa only [Fintype.card_fin, dotProduct, ← sq] using
       card_inv_mul_dotProduct_self_eq_one (fun i : Fin N => (p.1.1 i : ℝ))
         (fun i => units_cast_sq (p.1.1 i))

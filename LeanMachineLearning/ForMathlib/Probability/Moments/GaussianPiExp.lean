@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import Mathlib.Analysis.SpecialFunctions.Exp
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Hyperbolic
 public import Mathlib.MeasureTheory.Integral.Pi
 public import Mathlib.Probability.Distributions.Gaussian.Real
 
@@ -130,17 +130,8 @@ theorem cosh_two_sum_mul_add_eq {K L : Type*} [Fintype K] [Fintype L]
             (Real.exp (∑ i, (-c) i * ω.1 i) *
               Real.exp (∑ j, (-d) j * ω.2 j))) /
         2 := by
-  have hc : ∑ i, (-c) i * ω.1 i = -∑ i, c i * ω.1 i := by
-    simp only [Pi.neg_apply, neg_mul, Finset.sum_neg_distrib]
-  have hd : ∑ j, (-d) j * ω.2 j = -∑ j, d j * ω.2 j := by
-    simp only [Pi.neg_apply, neg_mul, Finset.sum_neg_distrib]
-  rw [Real.cosh_eq, hc, hd]
-  have hp : ∑ i, c i * ω.1 i + ∑ j, d j * ω.2 j + m =
-      m + (∑ i, c i * ω.1 i) + ∑ j, d j * ω.2 j := by ring
-  have hn : -(m + ∑ i, c i * ω.1 i + ∑ j, d j * ω.2 j) =
-      -m + (-∑ i, c i * ω.1 i) + -∑ j, d j * ω.2 j := by ring
-  rw [hp, hn, Real.exp_add, Real.exp_add, Real.exp_add, Real.exp_add]
-  ring
+  simpa only [Pi.neg_apply, neg_mul, Finset.sum_neg_distrib] using
+    Real.cosh_add_add_eq (∑ i, c i * ω.1 i) (∑ j, d j * ω.2 j) m
 
 /-- Integrability of `cosh` of an affine combination of two independent finite Gaussian
 blocks. -/
@@ -197,15 +188,8 @@ theorem cosh_sum_mul_add_mul_eq {K : Type*} [Fintype K] (c : K → ℝ) (d m : �
       (Real.exp m * (Real.exp (∑ i, c i * ω.1 i) * Real.exp (d * ω.2)) +
         Real.exp (-m) *
           (Real.exp (∑ i, (-c) i * ω.1 i) * Real.exp (-d * ω.2))) / 2 := by
-  have hc : ∑ i, (-c) i * ω.1 i = -∑ i, c i * ω.1 i := by
-    simp only [Pi.neg_apply, neg_mul, Finset.sum_neg_distrib]
-  rw [Real.cosh_eq, hc]
-  have hp : ∑ i, c i * ω.1 i + d * ω.2 + m =
-      m + ∑ i, c i * ω.1 i + d * ω.2 := by ring
-  have hn : -(m + ∑ i, c i * ω.1 i + d * ω.2) =
-      -m + -∑ i, c i * ω.1 i + -d * ω.2 := by ring
-  rw [hp, hn, Real.exp_add, Real.exp_add, Real.exp_add, Real.exp_add]
-  ring
+  simpa only [Pi.neg_apply, neg_mul, Finset.sum_neg_distrib] using
+    Real.cosh_add_add_eq (∑ i, c i * ω.1 i) (d * ω.2) m
 
 /-- Integrability of `cosh` of an affine combination of a finite Gaussian block and one
 independent scalar Gaussian. -/

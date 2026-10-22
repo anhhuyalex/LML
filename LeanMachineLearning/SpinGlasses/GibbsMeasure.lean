@@ -627,9 +627,8 @@ theorem integrable_integral_log_integral_cosh_count_tilted
     rw [Real.norm_eq_abs]
     exact abs_log_integral_cosh_count_tilted_le_sum_abs (A η) (L ω)
   have hm : AEStronglyMeasurable (fun η => ∫ ω, F η ω ∂P) P₀ := by
-    have hF : Measurable (Function.uncurry F) := measurable_log_integral_cosh_count_tilted
-      (fun a => (hA a).comp measurable_fst) (fun a => (hL a).comp measurable_snd)
-    exact hF.aestronglyMeasurable.integral_prod_right'
+    simpa only [F] using
+      aestronglyMeasurable_integral_log_integral_cosh_count_tilted P₀ P hA hL
   refine Integrable.of_bound hm (∫ ω, B ω ∂P) (ae_of_all _ fun η => ?_)
   rw [Real.norm_eq_abs]
   exact abs_integral_le_integral_abs.trans

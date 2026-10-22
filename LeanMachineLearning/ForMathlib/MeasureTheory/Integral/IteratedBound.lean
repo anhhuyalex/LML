@@ -44,16 +44,29 @@ theorem integral_mul_mul_eq_mul_integral {X : Type*} [MeasurableSpace X]
 forces `K g` to be nonnegative, so no separate sign assumptions on `K` or `g` are needed. -/
 theorem abs_integral_le_const_mul_integral {X : Type*} [MeasurableSpace X]
     (μ : Measure X) {f g : X → ℝ} {K : ℝ} (hg : Integrable g μ)
-    (hfm : AEStronglyMeasurable f μ) (hfg : ∀ x, |f x| ≤ K * g x) :
+    (hfg : ∀ x, |f x| ≤ K * g x) :
     |∫ x, f x ∂μ| ≤ K * ∫ x, g x ∂μ := by
-  have hKg (x : X) : 0 ≤ K * g x := (abs_nonneg (f x)).trans (hfg x)
-  have hf : Integrable f μ := by
-    refine Integrable.mono' (hg.const_mul K) hfm (ae_of_all _ fun x => ?_)
-    simpa only [Real.norm_eq_abs, abs_of_nonneg (hKg x)] using hfg x
-  calc
-    |∫ x, f x ∂μ| ≤ ∫ x, |f x| ∂μ := abs_integral_le_integral_abs
-    _ ≤ ∫ x, K * g x ∂μ := integral_mono hf.abs (hg.const_mul K) hfg
-    _ = K * ∫ x, g x ∂μ := integral_const_mul K g
+  have h := norm_integral_le_of_norm_le (hg.const_mul K)
+    (ae_of_all _ fun x => by simpa only [Real.norm_eq_abs] using hfg x)
+  simpa only [Real.norm_eq_abs, integral_const_mul] using h
+
+/-- Integrating a constant plus an integrable function over a probability measure preserves the
+constant. -/
+@[simp] theorem integral_const_add_of_isProbabilityMeasure
+    {X E : Type*} [MeasurableSpace X] [NormedAddCommGroup E] [NormedSpace ℝ E]
+    [CompleteSpace E] (μ : Measure X) [IsProbabilityMeasure μ] (c : E) (f : X → E)
+    (hf : Integrable f μ) :
+    ∫ x, c + f x ∂μ = c + ∫ x, f x ∂μ := by
+  rw [integral_add (integrable_const c) hf, integral_const, probReal_univ, one_smul]
+
+/-- Integrating an integrable function plus a constant over a probability measure preserves the
+constant. -/
+@[simp] theorem integral_add_const_of_isProbabilityMeasure
+    {X E : Type*} [MeasurableSpace X] [NormedAddCommGroup E] [NormedSpace ℝ E]
+    [CompleteSpace E] (μ : Measure X) [IsProbabilityMeasure μ] (f : X → E) (c : E)
+    (hf : Integrable f μ) :
+    ∫ x, f x + c ∂μ = (∫ x, f x ∂μ) + c := by
+  simpa only [add_comm] using integral_const_add_of_isProbabilityMeasure μ c f hf
 
 /-- Domination of a triple iterated integral by the iterated integral of a dominating function. -/
 theorem abs_integral_integral_integral_le {X Y Z : Type*} [MeasurableSpace X] [MeasurableSpace Y]
