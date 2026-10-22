@@ -1161,7 +1161,7 @@ Pointwise, $\frac{d}{ds}\log\sum_ae^{f}=\sum_ae^{f}f'/\sum_ae^{f}=\langle f'\ran
         SpinGlasses.integral_lincomb_eq_zero,
         SpinGlasses.hasDerivAt_integral_log_sum_exp_trig, SpinGlasses.integral_log_sum_exp_le_of_covariance_le}
   \leanok
-  \uses{lem:sg:pathderiv, thm:sg:lemma11}
+  \uses{lem:sg:pathderiv, thm:sg:lemma11, thm:sg-tal:slepian-lse}
 Let $(X,Y)$ be a centered jointly Gaussian pair of fields (Definition~\ref{def:sg:gaussianfield}) on a finite configuration space $\alpha$ (Definition~\ref{def:sg:configspace}) with $\mathbb E[X(a)Y(b)]=0$, equal variances
 $\mathbb E[X(a)^2]=\mathbb E[Y(a)^2]$, and $\mathbb E[X(a)X(b)]\le\mathbb E[Y(a)Y(b)]$ for all $a,b$. Then for every bias $h:\alpha\to\mathbb R$,
 \[\mathbb E\big[\log\sum_ae^{Y(a)+h(a)}\big]\le\mathbb E\big[\log\sum_ae^{X(a)+h(a)}\big].\]
@@ -1169,6 +1169,9 @@ $\mathbb E[X(a)^2]=\mathbb E[Y(a)^2]$, and $\mathbb E[X(a)X(b)]\le\mathbb E[Y(a)
 
 \begin{proof}
   \leanok
+\emph{In Lean.} The inequality is the instance $F=-\log\sum_ae^{x_a+h_a}$ of Slepian's lemma for a general test function (Theorem~\ref{thm:sg-tal:slepian-lse}, which applies Theorem~\ref{thm:sg-tal:slepian}); no Gibbs measure is needed for it.
+The argument below is the same interpolation, with the derivative of $\varphi$ computed through Gaussian integration by parts for the Gibbs measure. This Gibbs form of the derivative (\texttt{hasDerivAt\_integral\_log\_sum\_exp\_trig}) is the one used for the replica-symmetric bound and in the cavity computations, and it is the form that explains the sign.
+
 Put $u_s=\cos s\,X+\sin s\,Y+h$ and $\varphi(s)=\mathbb E\big[\log\sum_ae^{u_s(a)}\big]$. By Lemma~\ref{lem:sg:pathderiv}, $\varphi'(s)=\mathbb E\big[\langle x_s\rangle\big]$
 with $x_s=-\sin s\,X+\cos s\,Y=u_s'$. The pair $(x_s,u_s)$ is jointly Gaussian and
 $C(a,b)=\mathbb E[x_s(a)u_s(b)]=\sin s\cos s\,(B-A)(a,b)$ with $A=\mathrm{Cov}X$, $B=\mathrm{Cov}Y$, because $\mathbb E[XY]=0$. Gaussian integration by
@@ -1180,7 +1183,7 @@ $\mathbb R$, so no endpoint continuity or singular derivative at $t=0,1$ occurs,
 
 \begin{remark}[Why the Lean statement assumes \texttt{MeasurableSingletonClass}]\label{rem:sg:measurablesingleton}
 Mathematically $\alpha$ is just a finite set and every average over it is a finite sum, so no measure theory on $\alpha$ is needed.
-The Lean statement carries the extra hypotheses \texttt{[MeasurableSpace $\alpha$] [MeasurableSingletonClass $\alpha$]} only because
+The Lean statement of the derivative formula (\texttt{hasDerivAt\_integral\_log\_sum\_exp\_trig}) carries the extra hypotheses \texttt{[MeasurableSpace $\alpha$] [MeasurableSingletonClass $\alpha$]} only because
 the Gibbs average is written as an integral, $\langle g\rangle=\int g\,d\mu_{f}$ with $\mu_f$ the counting measure \texttt{Measure.count}
 tilted by $e^{f}$ (and $\langle g(\sigma^1,\sigma^2)\rangle$ as an integral against $\mu_f\otimes\mu_f$ on $\alpha\times\alpha$), so that
 Gaussian integration by parts (Lemma~1.1) and the differentiation of Lemma~\ref{lem:sg:pathderiv} apply verbatim.
@@ -1193,6 +1196,7 @@ $\alpha\times\alpha$ discrete as well, so that $\{(a,b)\}=\{a\}\times\{b\}$ is m
 The hypotheses lose no generality: they hold for the hypercube $\{-1,+1\}^\iota$ and every other finite configuration space of this
 chapter with the discrete $\sigma$-algebra, which can always be chosen (\texttt{MeasurableSpace.measurableSet\_top}). They are not
 a restriction on the disorder $(X,Y)$, which is a random field on an arbitrary probability space.
+The comparison inequality of Theorem~\ref{thm:sg:comparison} itself no longer carries them: its Lean proof is the instance $F=-\log\sum_ae^{x_a+h_a}$ of Slepian's lemma (Theorem~\ref{thm:sg-tal:slepian-lse}), which involves no Gibbs measure, only the finite sum.
 \end{remark}
 
 \begin{remark}[The hypothesis \texttt{hXY}: $(X,Y)$ is jointly Gaussian]\label{rem:sg:hxy}
@@ -1211,7 +1215,8 @@ Gaussian, with covariance computed from $A=\mathrm{Cov}X$ and $B=\mathrm{Cov}Y$ 
 \texttt{integral\_lincomb\_mul\_lincomb}). Second, the pair $(x_s,u_s)$ with $x_s=-\sin s\,X+\cos s\,Y$ is jointly Gaussian, which is the form in which Gaussian integration by
 parts (Lemma~1.1, Theorem~\ref{thm:sg:lemma11}) is stated. The remaining hypotheses \texttt{hX, hY, h0} then say that the means vanish and that the cross-covariance
 $\mathbb E[X(a)Y(b)]$ is zero. Together with \texttt{hXY} they say that $X$ and $Y$ are independent centered Gaussian fields, since for jointly Gaussian
-variables zero covariance is equivalent to independence. The measurability hypotheses \texttt{hXm, hYm} are separate: they say that each $X(a)$, $Y(a)$ is a random variable.
+variables zero covariance is equivalent to independence. The comparison inequality needs no separate measurability hypotheses on $X(a)$, $Y(a)$: they are coordinates of a Gaussian vector, hence random variables.
+They are an extra argument only of the derivative formula \texttt{hasDerivAt\_integral\_log\_sum\_exp\_trig}.
 \end{remark}
 
 \section{The Guerra--Toninelli theorem: superadditivity and the thermodynamic limit}\label{sec:sg:gt}

@@ -31,10 +31,7 @@ Its covariance structure, Gaussian comparison properties, concentration of measu
 The theorem statements below are those of the Lean declarations. They differ from the setting of the text as follows.
 \begin{itemize}
 \item \emph{Slepian's lemma} is proved for abstract finite Gaussian families $(X_a,Y_a)_{a\in\alpha}$ on a probability space, with $X$ and $Y$ uncorrelated, not only for fields on $\Sigma_N$.
-  The statement of Theorem~\ref{thm:sg-tal:slepian} is also not the book's general Proposition~1.3.3: it is the case of the single function $F_h(x)=\log\sum_ae^{x_a+h_a}$,
-  not of an arbitrary smooth $F$ with $\partial_i\partial_jF\ge0$ for $i\ne j$. The sign is reversed, because the mixed second derivatives of $F_h$ are $\le0$: the book's inequality
-  $\mathbb{E}F(u)\ge\mathbb{E}F(v)$ for $\mathbb{E}u_iu_j\ge\mathbb{E}v_iv_j$ is applied to $-F_h$ with $u=Y$, $v=X$. The book's version implies the Lean one, not conversely.
-  The Lean statement also asks that the two fields be independent and jointly Gaussian (without loss of generality, since only the two covariance matrices matter), and it carries the bias $h$ as a separate argument. See Remark~\ref{rem:sg-tal:slepian-compare}.
+  Theorem~\ref{thm:sg-tal:slepian} is the book's general Proposition~1.3.3 for a $C^2$ test function with exponentially bounded value, gradient and Hessian instead of a $C^\infty$ function of moderate growth (Eq.~(A.18)). The free-energy comparison, the instance $F=-\log\sum_ae^{x_a+h_a}$ with the bias $h$ as a separate argument, is Theorem~\ref{thm:sg-tal:slepian-lse}. The Lean statements also ask that the two vectors be independent and jointly Gaussian (without loss of generality, since only the two covariance matrices matter). See Remark~\ref{rem:sg-tal:slepian-compare}.
 \item \emph{Concentration} is proved for the mixed $p$-spin Hamiltonian with the constant $4\sum_p\beta_p^2$ in the exponent. The SK model is a special case, but the SK specialization is not stated as a separate Lean theorem.
 \item \emph{The thermodynamic limit} is proved for the full-matrix Hamiltonian $N^{-1/2}\sigma\cdot(G\sigma)$ without external field, not for the pair disorder with a field $h$ used in Sections~1.2--1.4. The two disorders have different covariances ($NR^2$ versus $\frac N2(R^2-\frac1N)$), and no Lean statement relates the corresponding free energies; the high-temperature limit in Theorem~\ref{thm:sg-tal:alr} is therefore derived directly and does not use this theorem.
 \item \emph{Covariance.} The SK pair field has covariance $\frac{N\beta^2}{2}(R^2-\frac1N)$ (Lean: \texttt{integral\_sk\_pair\_field\_mul\_eq\_overlap}).
@@ -71,11 +68,133 @@ Multiplying by $\beta^2 / N$ gives $\frac{N\beta^2}{2}(R_{1,2}^2 - 1/N)$.
 Formalized in \texttt{SpinGlasses/SKReplicaSymmetricBound.lean}.
 \end{proof}
 
-\begin{theorem}[Gaussian comparison and Slepian's lemma]\label{thm:sg-tal:slepian}
-  \lean{SpinGlasses.integral_log_sum_exp_le_of_covariance_le}
+\begin{lemma}[Derivative of a Gaussian expectation along the trigonometric path]\label{lem:sg-tal:path-derivative}
+  \lean{SpinGlasses.fderiv_apply_eq_sum_mul, SpinGlasses.hasDerivAt_integral_comp_trig}
   \leanok
-\talsource{Proposition~1.3.3 (Slepian's lemma), via Lemma~1.3.1, Eqs.~(1.38)--(1.40); the Lean statement is the instance for the log-sum-exp functional}
-Let $\alpha$ be a finite nonempty set, $(\Omega,P)$ a probability space, and $X,Y:\alpha\to\Omega\to\mathbb R$ measurable such that $(X_a,Y_a)_{a\in\alpha}$ is jointly Gaussian, centered, with $\mathbb{E}[X_aY_b]=0$ for all $a,b$, $\mathbb{E}[X_a^2] = \mathbb{E}[Y_a^2]$ and $\mathbb{E}[X_aX_b] \le \mathbb{E}[Y_aY_b]$ for all $a,b$.
+\talsource{Lemma~1.3.1, Eq.~(1.40), with the trigonometric path in place of (1.38)}
+Let $\kappa$ be a finite set, $(\Omega,P)$ a probability space and $X,Y:\kappa\to\Omega\to\mathbb R$ random variables such that the combined family $(X_l,Y_l)_{l\in\kappa}$ (indexed by $\kappa\sqcup\kappa$)
+is a centered Gaussian vector with $\mathbb{E}[X_lY_k]=0$ for all $l,k$; write $A_{lk}=\mathbb{E}[X_lX_k]$ and $B_{lk}=\mathbb{E}[Y_lY_k]$. Let $F\in C^2(\mathbb R^\kappa)$ have \emph{exponential growth of order $\le2$}: there are constants
+$C_0,c_0,c_1,c_2$ and $D_l$, $D_{kl}$ with
+\[
+|F(y)|\le C_0e^{c_0\|y\|_1},\qquad |\partial_lF(y)|\le D_le^{c_1\|y\|_1},\qquad |\partial_k\partial_lF(y)|\le D_{kl}e^{c_2\|y\|_1}\qquad(y\in\mathbb R^\kappa),
+\]
+where $\|y\|_1=\sum_l|y_l|$. Put $Z_s=\cos s\,X+\sin s\,Y$. Then $s\mapsto\mathbb{E}F(Z_s)$ is differentiable on $\mathbb R$, with
+\[
+\frac{d}{ds}\mathbb{E}F(Z_s)\Big|_{s=t}=\sin t\cos t\sum_{l,k\in\kappa}(B_{lk}-A_{lk})\,\mathbb{E}\,\partial_k\partial_lF(Z_t).
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+  \uses{thm:sg:steinvec}
+The path $Z_s$ replaces the book's $\sqrt t\,u+\sqrt{1-t}\,v$ of Eq.~(1.38) by $\cos s\,X+\sin s\,Y$: it has the same endpoints in the roles $v=X$ (at $s=0$) and $u=Y$ (at $s=\pi/2$), the covariance of $Z_s$ is $\cos^2s\,A+\sin^2s\,B$, and it is smooth on all of $\mathbb R$, so that no singular derivative has to be handled at the endpoints.
+\emph{Step 1: differentiate under the expectation.} Pointwise, $\frac{d}{ds}F(Z_s)=\sum_lz_s(l)\,\partial_lF(Z_s)$ with $z_s(l)=-\sin s\,X_l+\cos s\,Y_l$ (chain rule, Eq.~(1.41)). The $\ell^1$ norm of $Z_s$ is at most that of $(X,Y)$, since $|\cos|,|\sin|\le1$,
+and $|z_s(l)|\le\|(X,Y)\|_1\le e^{\|(X,Y)\|_1}$. Hence $|\sum_lz_s(l)\partial_lF(Z_s)|\le(\sum_lD_l)\,e^{(|c_1|+1)\|(X,Y)\|_1}$, a bound that does not depend on $s$ and is integrable, because a Gaussian vector has exponential moments of every order (\texttt{integrable\_comp\_of\_exp\_growth}). Dominated differentiation
+(\texttt{hasDerivAt\_integral\_comp\_of\_exp\_growth}) gives $\frac{d}{ds}\mathbb{E}F(Z_s)=\sum_l\mathbb{E}[z_s(l)\,\partial_lF(Z_s)]$.
+\emph{Step 2: Gaussian integration by parts.} The pair $(z_s,Z_s)$ is a centered jointly Gaussian family (a linear image of $(X,Y)$), and, because $\mathbb{E}[X_lY_k]=0$,
+\[
+\mathbb{E}[z_s(l)Z_s(k)]=-\sin s\cos s\,A_{lk}+\cos s\sin s\,B_{lk}=\sin s\cos s\,(B_{lk}-A_{lk}).
+\]
+Gaussian integration by parts (Eq.~(A.17), Theorem~\ref{thm:sg:steinvec}) applied to the function $\partial_lF$ gives $\mathbb{E}[z_s(l)\,\partial_lF(Z_s)]=\sum_k\mathbb{E}[z_s(l)Z_s(k)]\,\mathbb{E}\,\partial_k\partial_lF(Z_s)$.
+Summing over $l$ gives the formula. The growth bounds on $\partial_lF$ and $\partial_k\partial_lF$ are what the integration by parts needs, to see that all expectations exist.
+Formalized in \texttt{SpinGlasses/GaussianCovarianceInterpolation.lean}.
+\end{proof}
+
+\begin{theorem}[Slepian's lemma]\label{thm:sg-tal:slepian}
+  \lean{SpinGlasses.integral_comp_le_of_covariance_le}
+  \leanok
+  \uses{lem:sg-tal:path-derivative}
+\talsource{Proposition~1.3.3 (Slepian's lemma)}
+Let $\kappa$ be a finite set, $(\Omega,P)$ a probability space and $X,Y:\kappa\to\Omega\to\mathbb R$ random variables such that $(X_l,Y_l)_{l\in\kappa}$ is a centered Gaussian vector with
+$\mathbb{E}[X_lY_k]=0$ for all $l,k$ (that is, $X$ and $Y$ are independent centered Gaussian vectors). Assume
+\begin{itemize}
+\item $\mathbb{E}[X_l^2]=\mathbb{E}[Y_l^2]$ for all $l$, and $\mathbb{E}[X_lX_k]\le\mathbb{E}[Y_lY_k]$ for all $l\ne k$;
+\item $F\in C^2(\mathbb R^\kappa)$ has exponential growth of order $\le2$ (Lemma~\ref{lem:sg-tal:path-derivative}) and $\partial_k\partial_lF\ge0$ for all $l\ne k$.
+\end{itemize}
+Then $\mathbb{E}F(X)\le\mathbb{E}F(Y)$. In the notation of the book, $u=Y$, $v=X$: if $\mathbb{E}u_i^2=\mathbb{E}v_i^2$, $\mathbb{E}u_iu_j\ge\mathbb{E}v_iv_j$ for $i\ne j$ and $\partial_i\partial_jF\ge0$ for $i\ne j$, then $\mathbb{E}F(u)\ge\mathbb{E}F(v)$.
+\end{theorem}
+\begin{proof}
+  \leanok
+\emph{Idea.} We do not compare $\mathbb{E}F(Y)$ and $\mathbb{E}F(X)$ directly. Instead we move continuously from the vector $X$ to the vector $Y$ along a path of Gaussian vectors, and show that the expectation of $F$ never decreases along the path. The covariance matrix of the vector at time $s$ is a mixture of $A$ and $B$, and the assumptions on $A$, $B$ and on the mixed second derivatives of $F$ are exactly what makes $\mathbb{E}F$ increase.
+
+\emph{Notation.} Write $A_{lk}=\mathbb{E}[X_lX_k]$ and $B_{lk}=\mathbb{E}[Y_lY_k]$ (deterministic $\kappa\times\kappa$ matrices), and, for $s\in\mathbb R$,
+\[
+Z_s=\cos s\,X+\sin s\,Y,\qquad z_s=\frac{d}{ds}Z_s=-\sin s\,X+\cos s\,Y,\qquad \varphi(s)=\mathbb{E}F(Z_s).
+\]
+
+\textbf{Step 1: the two sides of the claim are the endpoints of the path.}
+Since $\cos0=1$, $\sin0=0$, $\cos\frac\pi2=0$ and $\sin\frac\pi2=1$ we have $Z_0=X$ and $Z_{\pi/2}=Y$, hence
+\[
+\varphi(0)=\mathbb{E}F(X),\qquad \varphi(\tfrac\pi2)=\mathbb{E}F(Y).
+\]
+The inequality to be proved is therefore $\varphi(0)\le\varphi(\frac\pi2)$. The trigonometric path is used instead of the book's $\sqrt t\,u+\sqrt{1-t}\,v$ because it is smooth on all of $\mathbb R$ (no singular derivative at the endpoints), and it keeps the covariance of $Z_s$ equal to $\cos^2s\,A+\sin^2s\,B$ (Step 2, using $\mathbb{E}[XY]=0$), which interpolates between $A$ and $B$.
+
+\textbf{Step 2: the vector is Gaussian along the whole path, and the covariances needed are computed.}
+Because $(X,Y)$ is jointly Gaussian (Remark~\ref{rem:sg:hxy}), each of $Z_s$ and $z_s$ is a linear image of $(X,Y)$, so the pair $(z_s,Z_s)$ is again a centered jointly Gaussian family (\texttt{hasGaussianLaw\_sumElim\_lincomb}; centered by \texttt{integral\_lincomb\_eq\_zero}).
+Expanding the product and using $\mathbb{E}[X_lY_k]=0$ for all $l,k$, so that every mixed term vanishes (\texttt{integral\_lincomb\_mul\_lincomb}), we get the two covariances
+\[
+\mathbb{E}[Z_s(l)Z_s(k)]=\cos^2s\,A_{lk}+\sin^2s\,B_{lk},
+\qquad
+\mathbb{E}[z_s(l)\,Z_s(k)]=-\sin s\cos s\,A_{lk}+\cos s\sin s\,B_{lk}=\sin s\cos s\,(B_{lk}-A_{lk}).
+\]
+The cross covariance $\mathbb{E}[z_s(l)Z_s(k)]$ is the quantity that appears in Gaussian integration by parts, and it is proportional to $B-A$.
+
+\textbf{Step 3: $\varphi$ is differentiable, with derivative $\sum_l\mathbb{E}[z_s(l)\,\partial_lF(Z_s)]$.}
+Pointwise in $\omega$, the chain rule gives $\frac{d}{ds}F(Z_s)=\sum_lz_s(l)\,\partial_lF(Z_s)$ (Eq.~(1.41) of the book). To differentiate under the expectation we need an integrable bound that is uniform in $s$.
+Since $|\cos s|,|\sin s|\le1$, we have $\|Z_s\|_1\le\|(X,Y)\|_1$ and $|z_s(l)|\le\|(X,Y)\|_1\le e^{\|(X,Y)\|_1}$. The growth assumption $|\partial_lF(y)|\le D_le^{c_1\|y\|_1}$ then gives
+\[
+\Big|\sum_lz_s(l)\,\partial_lF(Z_s)\Big|\le\Big(\sum_lD_l\Big)e^{(|c_1|+1)\|(X,Y)\|_1},
+\]
+and the right side does not depend on $s$ and is integrable, because a Gaussian vector has exponential moments of every order (\texttt{integrable\_comp\_of\_exp\_growth}). The same growth assumption on $F$ shows that $F(Z_s)$ is integrable. By dominated differentiation (\texttt{hasDerivAt\_integral\_comp\_of\_exp\_growth}),
+\[
+\varphi'(s)=\sum_l\mathbb{E}\big[z_s(l)\,\partial_lF(Z_s)\big]\qquad\text{for every }s\in\mathbb R.
+\]
+In particular $\varphi$ is differentiable, hence continuous, on all of $\mathbb R$.
+
+\textbf{Step 4: Gaussian integration by parts evaluates the derivative.}
+Gaussian integration by parts (Eq.~(A.17) of the book, Theorem~\ref{thm:sg:steinvec}) says: if $(W,V)$ is a centered jointly Gaussian family, $G$ is differentiable with exponentially bounded value and partial derivatives, then
+$\mathbb{E}[W\,G(V)]=\sum_k\mathbb{E}[WV_k]\,\mathbb{E}\,\partial_kG(V)$. We apply it with $W=z_s(l)$, $V=Z_s$ and $G=\partial_lF$, whose value and first partial derivatives $\partial_k\partial_lF$ are exponentially bounded by assumption. With the cross covariance from Step 2,
+\[
+\mathbb{E}\big[z_s(l)\,\partial_lF(Z_s)\big]=\sin s\cos s\sum_k(B_{lk}-A_{lk})\,\mathbb{E}\,\partial_k\partial_lF(Z_s),
+\]
+and summing over $l$,
+\[
+\varphi'(s)=\sin s\cos s\sum_{l,k}(B_{lk}-A_{lk})\,\mathbb{E}\,\partial_k\partial_lF(Z_s).
+\]
+This is Lemma~\ref{lem:sg-tal:path-derivative} (\texttt{hasDerivAt\_integral\_comp\_trig}), the analogue of Eq.~(1.40) of the book for the trigonometric path.
+Note that $\mathbb{E}[z_s(l)\,\partial_lF(Z_s)]$ would be hard to bound directly, since $z_s$ is correlated with $Z_s$ and hence with $\partial_lF(Z_s)$; integration by parts replaces it by an expression involving only the deterministic covariances $A$ and $B$ and the second derivatives of $F$.
+
+\textbf{Step 5: the derivative is nonnegative on $[0,\pi/2]$.} Use the assumptions term by term.
+\begin{itemize}
+\item \emph{Equal variances} $A_{ll}=B_{ll}$: the diagonal terms $l=k$ of the double sum vanish, since they carry the factor $B_{ll}-A_{ll}=0$. This is why no sign condition on the pure second derivatives $\partial_l^2F$ is needed.
+\item \emph{Covariance order} $A_{lk}\le B_{lk}$ for $l\ne k$ and \emph{mixed derivatives} $\partial_k\partial_lF\ge0$ for $l\ne k$: each off-diagonal term is the product $(B_{lk}-A_{lk})\cdot\mathbb{E}\,\partial_k\partial_lF(Z_s)$ of two nonnegative factors, because the expectation of a pointwise nonnegative function is nonnegative.
+\item \emph{The path factor:} for $s\in[0,\pi/2]$ both $\sin s\ge0$ and $\cos s\ge0$, so $\sin s\cos s\ge0$.
+\end{itemize}
+Hence, for $s\in[0,\pi/2]$,
+\[
+\varphi'(s)=\sin s\cos s\sum_{l\ne k}(B_{lk}-A_{lk})\,\mathbb{E}\,\partial_k\partial_lF(Z_s)\;\ge\;0.
+\]
+(Outside $[0,\pi/2]$ the sign of $\sin s\cos s$ can be negative, which is why the argument is restricted to this interval; only the endpoints $0$ and $\pi/2$ are needed.)
+
+\textbf{Step 6: a nonnegative derivative gives monotonicity, hence the inequality.}
+The function $\varphi$ is continuous on $[0,\pi/2]$ and differentiable on the interior with $\varphi'\ge0$ (Steps 3--5). By the mean value theorem, for any $0\le s<t\le\pi/2$ there is $\xi\in(s,t)$ with
+\[
+\varphi(t)-\varphi(s)=\varphi'(\xi)\,(t-s)\ge0,
+\]
+because $\varphi'(\xi)\ge0$ and $t-s>0$. So $\varphi$ is non-decreasing on $[0,\pi/2]$ (\texttt{monotoneOn\_of\_deriv\_nonneg}). Taking $s=0$ and $t=\pi/2$ gives $\varphi(0)\le\varphi(\frac\pi2)$, which by Step 1 is
+\[
+\mathbb{E}F(X)\le\mathbb{E}F(Y).
+\]
+In words: if the mixed second derivatives of $F$ are nonnegative, then $F$ is ``supermodular'', it rewards coordinates that move together, so a vector whose coordinates are more strongly correlated (larger $B$ against $A$, same variances) has the larger expectation of $F$.
+Formalized in \texttt{SpinGlasses/GaussianCovarianceInterpolation.lean}.
+\end{proof}
+
+\begin{theorem}[Gaussian comparison for the free energy]\label{thm:sg-tal:slepian-lse}
+  \lean{SpinGlasses.integral_log_sum_exp_le_of_covariance_le, SpinGlasses.sum_exp_add_pos,
+        SpinGlasses.fderiv_log_sum_exp_single, SpinGlasses.fderiv_fderiv_log_sum_exp_single}
+  \leanok
+  \uses{thm:sg-tal:slepian}
+\talsource{Proposition~1.3.3 (Slepian's lemma) for the function $F=-\log\sum_ae^{x_a+h_a}$; no counterpart in the book as a separate statement}
+Let $\alpha$ be a finite nonempty set, $(\Omega,P)$ a probability space, and $X,Y:\alpha\to\Omega\to\mathbb R$ such that $(X_a,Y_a)_{a\in\alpha}$ is a centered Gaussian vector with $\mathbb{E}[X_aY_b]=0$ for all $a,b$, $\mathbb{E}[X_a^2] = \mathbb{E}[Y_a^2]$ and $\mathbb{E}[X_aX_b] \le \mathbb{E}[Y_aY_b]$ for all $a,b$.
 Then for any bias $h:\alpha\to\mathbb R$,
 \[
 \mathbb{E}\Big[\log \sum_a \exp(Y_a + h_a)\Big] \le \mathbb{E}\Big[\log \sum_a \exp(X_a + h_a)\Big].
@@ -83,114 +202,41 @@ Then for any bias $h:\alpha\to\mathbb R$,
 \end{theorem}
 \begin{proof}
   \leanok
-  \uses{lem:sg:pathderiv, thm:sg:lemma11, thm:sg:comparison}
-\emph{Idea.} We do not compare $\mathbb{E}\log\sum_ae^{Y_a+h_a}$ and $\mathbb{E}\log\sum_ae^{X_a+h_a}$ directly. Instead we move continuously from the
-field $X$ to the field $Y$ along a path of Gaussian fields and show that the expected free energy never increases along the path. The covariance of the field at
-time $s$ is a mixture of $A$ and $B$, and the assumption $A\le B$ entrywise, with equal diagonals, is exactly what makes the free energy decrease.
-
-\emph{Notation.} Write $A_{ab}=\mathbb{E}[X_aX_b]$ and $B_{ab}=\mathbb{E}[Y_aY_b]$ (deterministic $\alpha\times\alpha$ matrices), and, for $s\in\mathbb R$,
-\[
-u_s(a)=\cos s\,X_a+\sin s\,Y_a+h_a,\qquad x_s(a)=\frac{d}{ds}u_s(a)=-\sin s\,X_a+\cos s\,Y_a,\qquad
-\varphi(s)=\mathbb{E}\Big[\log\sum_{a\in\alpha}e^{u_s(a)}\Big].
-\]
-For each $\omega$ the Gibbs weights of the energy $u_s$ are $w_s(a)=e^{u_s(a)}/\sum_be^{u_s(b)}$, and $\langle g\rangle_s=\sum_aw_s(a)g(a)$ is the Gibbs average
-(Lemma~\ref{lem:sg:gibbsavg}). For a function of two configurations, $\langle g(\sigma^1,\sigma^2)\rangle_s=\sum_{a,b}w_s(a)w_s(b)g(a,b)$ is the average over two
-independent replicas drawn from the same weights.
-
-\textbf{Step 1: the two sides of the claim are the endpoints of the path.}
-Since $\cos0=1$, $\sin0=0$, $\cos\frac\pi2=0$ and $\sin\frac\pi2=1$ we have $u_0=X+h$ and $u_{\pi/2}=Y+h$, hence
-\[
-\varphi(0)=\mathbb{E}\Big[\log\sum_ae^{X_a+h_a}\Big],\qquad \varphi(\tfrac\pi2)=\mathbb{E}\Big[\log\sum_ae^{Y_a+h_a}\Big].
-\]
-The inequality to be proved is therefore $\varphi(\frac\pi2)\le\varphi(0)$. The trigonometric path is used instead of $\sqrt t\,X+\sqrt{1-t}\,Y$ because it is smooth on all of
-$\mathbb R$ (no singular derivative at the endpoints), and it keeps the covariance of the field at time $s$ equal to $\cos^2s\,A+\sin^2s\,B$ (Step 2, using $\mathbb{E}[XY]=0$), which
-interpolates between $A$ and $B$.
-
-\textbf{Step 2: the field is Gaussian along the whole path, and the covariances needed are computed.}
-Because $(X,Y)$ is jointly Gaussian (hypothesis \texttt{hXY}, Remark~\ref{rem:sg:hxy}), each of $u_s-h=\cos s\,X+\sin s\,Y$ and $x_s$ is a linear image of $(X,Y)$, so the pair
-$(x_s,u_s-h)$ is again a centered jointly Gaussian pair (\texttt{hasGaussianLaw\_sumElim\_lincomb}; centered by \texttt{integral\_lincomb\_eq\_zero}). Expanding the product
-and using $\mathbb{E}[X_aY_b]=0$ for all $a,b$, so that every mixed term vanishes (\texttt{integral\_lincomb\_mul\_lincomb}), we get the two covariances
-\[
-\mathbb{E}\big[(u_s(a)-h_a)(u_s(b)-h_b)\big]=\cos^2s\,A_{ab}+\sin^2s\,B_{ab},
-\]
-\[
-C_s(a,b):=\mathbb{E}[x_s(a)\,(u_s(b)-h_b)]=-\sin s\cos s\,A_{ab}+\cos s\sin s\,B_{ab}=\sin s\cos s\,(B_{ab}-A_{ab}).
-\]
-The cross covariance $C_s$ is the quantity that appears in Gaussian integration by parts, and it is proportional to $B-A$.
-
-\textbf{Step 3: $\varphi$ is differentiable, with derivative the expected Gibbs average of $x_s$.}
-Pointwise in $\omega$, $\frac{d}{ds}\log\sum_ae^{u_s(a)}=\sum_ae^{u_s(a)}x_s(a)/\sum_be^{u_s(b)}=\langle x_s\rangle_s$. To differentiate under the expectation we need a dominating integrable bound
-uniform in $s$. The Gibbs average is an average, so $|\langle x_s\rangle_s|\le\max_a|x_s(a)|\le\sum_a(|X_a|+|Y_a|)$, and the right side does not depend on $s$ and is integrable because
-Gaussian variables are integrable. By dominated differentiation (Lemma~\ref{lem:sg:pathderiv}),
-\[
-\varphi'(s)=\mathbb{E}\big[\langle x_s\rangle_s\big]\qquad\text{for every }s\in\mathbb R.
-\]
-In particular $\varphi$ is differentiable, hence continuous, on all of $\mathbb R$.
-
-\textbf{Step 4: Gaussian integration by parts evaluates the derivative.}
-Gaussian integration by parts for the Gibbs measure (Lemma~1.1, Theorem~\ref{thm:sg:lemma11}) says: if $(x,y)$ is a centered jointly Gaussian pair, $h$ is a deterministic bias and $\langle\cdot\rangle$ is the
-Gibbs average of the energy $y+h$, with $C(a,b)=\mathbb{E}[x(a)y(b)]$, then
-$\mathbb{E}\langle x\rangle=\mathbb{E}\langle C(\sigma^1,\sigma^1)-C(\sigma^1,\sigma^2)\rangle$. We apply it with $x=x_s$, $y=u_s-h$ and $C=C_s$ from Step 2. The right side is an average over two independent replicas,
-so, with $\langle\cdot\rangle_s$ the average for $u_s$,
-\[
-\varphi'(s)=\mathbb{E}\Big[\sum_{a,b}w_s(a)w_s(b)\big(C_s(a,a)-C_s(a,b)\big)\Big]
-=\sin s\cos s\;\mathbb{E}\Big[\big\langle (B-A)(\sigma^1,\sigma^1)-(B-A)(\sigma^1,\sigma^2)\big\rangle_s\Big].
-\]
-This is the Lean statement \texttt{hasDerivAt\_integral\_log\_sum\_exp\_trig}: the function $\varphi$ has this derivative at every $s$.
-Note that $\mathbb{E}[\langle x_s\rangle_s]$ would be hard to bound directly, since $x_s$ is correlated with the weights $w_s$ through $u_s$; integration by parts replaces it by an expression
-that involves only the deterministic covariances $A$ and $B$.
-
-\textbf{Step 5: the derivative is nonpositive on $[0,\pi/2]$.}
-Use the three assumptions on the covariances.
+\emph{Idea.} The statement is Slepian's lemma (Theorem~\ref{thm:sg-tal:slepian}) for one particular test function, the negative free energy. All the work is in checking the hypotheses on the test function: smoothness, growth, and the sign of the mixed second derivatives.
+Put $Z(x)=\sum_be^{x_b+h_b}>0$, $F(x)=-\log Z(x)$ and let $w_a(x)=e^{x_a+h_a}/Z(x)$ be the Gibbs weights; they lie in $[0,1]$ (\texttt{gibbsWeight\_mem\_Icc}). We check the hypotheses of Theorem~\ref{thm:sg-tal:slepian}.
 \begin{itemize}
-\item \emph{Equal variances} $A_{aa}=B_{aa}$: the diagonal term $(B-A)(\sigma^1,\sigma^1)=(B-A)(a,a)$ is $0$ for every configuration $a$, so it drops out.
-\item \emph{Covariance order} $A_{ab}\le B_{ab}$: the cross term satisfies $(B-A)(a,b)\ge0$ for all $a,b$. Therefore the two-replica Gibbs average
-  $\langle (B-A)(\sigma^1,\sigma^2)\rangle_s=\sum_{a,b}w_s(a)w_s(b)(B-A)(a,b)$ is a sum of nonnegative terms, hence $\ge0$ for every $\omega$, and so is its expectation.
-\item \emph{The path factor:} for $s\in[0,\pi/2]$ both $\sin s\ge0$ and $\cos s\ge0$, so $\sin s\cos s\ge0$.
+\item \emph{Smoothness.} $x\mapsto Z(x)$ is $C^\infty$ and positive, and the logarithm is $C^\infty$ on $(0,\infty)$, so $F\in C^\infty\subseteq C^2$.
+\item \emph{Gradient.} By the chain rule, $\partial_a\log Z=\partial_aZ/Z=e^{x_a+h_a}/Z=w_a$, that is, $\partial_aF=-w_a$ (\texttt{fderiv\_log\_sum\_exp\_single}). Hence $|\partial_aF|=w_a\le1$.
+\item \emph{Hessian.} Write $w_l=e^{x_l+h_l}\,Z^{-1}$ and differentiate in the direction $k$ by the product rule: $\partial_ke^{x_l+h_l}=\mathbf 1[l=k]\,e^{x_l+h_l}$ and $\partial_kZ^{-1}=-Z^{-2}e^{x_k+h_k}$. Therefore
+  \[
+  \partial_k\partial_l\log Z=\partial_kw_l=\mathbf 1[l=k]\,w_l-w_lw_k=w_l\big(\mathbf 1[l=k]-w_k\big),
+  \]
+  that is, the Hessian of $\log Z$ is $\mathrm{diag}(w)-ww^{\top}$ (\texttt{fderiv\_fderiv\_log\_sum\_exp\_single}), and $\partial_k\partial_lF=w_lw_k-\mathbf 1[l=k]\,w_l$. Its absolute value is at most $1$, because $w_l\in[0,1]$ and $|\mathbf 1[l=k]-w_k|\le1$.
+  \emph{The sign condition:} for $l\ne k$ the indicator vanishes and $\partial_k\partial_lF=w_lw_k\ge0$. The pure second derivatives $\partial_l^2F=w_l^2-w_l\le0$ have no sign condition imposed on them, and this is fine, because the diagonal terms drop out of the proof of Theorem~\ref{thm:sg-tal:slepian}.
+  Note that the mixed derivatives of $\log Z$ itself are $-w_lw_k\le0$, the \emph{opposite} sign to the book's hypothesis. This is why the comparison is for $F=-\log Z$, and why the field with \emph{larger} correlations has the \emph{smaller} expected free energy.
+\item \emph{Growth.} By the Lipschitz estimate for the free energy, $|\log\sum_ae^{x_a+h_a}|\le|\log\sum_ae^{h_a}|+\|x\|_1$ (\texttt{SpinGlasses.abs\_log\_sum\_exp\_le}, proved in the course of Theorem~\ref{thm:sg:expmoment}), and $\|x\|_1\le e^{\|x\|_1}$ and $1\le e^{\|x\|_1}$, we get $|F(x)|\le(|\log\sum_ae^{h_a}|+1)\,e^{\|x\|_1}$. The gradient and Hessian are bounded by $1=1\cdot e^{0\cdot\|x\|_1}$. So $F$ has exponential growth of order $\le2$.
 \end{itemize}
-Hence, for $s\in[0,\pi/2]$,
-\[
-\varphi'(s)=-\sin s\cos s\;\mathbb{E}\big[\langle (B-A)(\sigma^1,\sigma^2)\rangle_s\big]\;\le\;0.
-\]
-(Outside $[0,\pi/2]$ the sign of $\sin s\cos s$ can be negative, which is why the argument is restricted to this interval; only the endpoints $0$ and $\pi/2$ are needed.)
+The covariance hypotheses are those of Theorem~\ref{thm:sg-tal:slepian}: equal variances on the diagonal, and $\mathbb{E}[X_aX_b]\le\mathbb{E}[Y_aY_b]$ for all $a,b$, which contains the condition for $a\ne b$. Theorem~\ref{thm:sg-tal:slepian} gives $\mathbb{E}F(X)\le\mathbb{E}F(Y)$, that is, $-\mathbb{E}\log Z(X)\le-\mathbb{E}\log Z(Y)$, which is
+$\mathbb{E}\log\sum_ae^{Y_a+h_a}\le\mathbb{E}\log\sum_ae^{X_a+h_a}$.
 
-\textbf{Step 6: a nonpositive derivative gives monotonicity, hence the inequality.}
-The function $\varphi$ is continuous on $[0,\pi/2]$, differentiable on the interior with $\varphi'\le0$ (Steps 3--5). By the mean value theorem, for any $0\le s<t\le\pi/2$ there is $\xi\in(s,t)$ with
-\[
-\varphi(t)-\varphi(s)=\varphi'(\xi)\,(t-s)\le0,
-\]
-because $\varphi'(\xi)\le0$ and $t-s>0$. So $\varphi$ is non-increasing on $[0,\pi/2]$ (\texttt{antitoneOn\_of\_deriv\_nonpos}). Taking $s=0$ and $t=\pi/2$ gives
-$\varphi(\frac\pi2)\le\varphi(0)$, which by Step 1 is
-\[
-\mathbb{E}\Big[\log\sum_ae^{Y_a+h_a}\Big]\le\mathbb{E}\Big[\log\sum_ae^{X_a+h_a}\Big].
-\]
-In words, the more strongly the field is correlated (larger $B$ against $A$, same variances), the smaller the expected free energy: positive correlations make the
-field behave like fewer independent values, so the maximum and the log-sum-exp tend to be smaller.
-
-\emph{Sanity check.} Let $\alpha=\{1,2\}$, $X_1,X_2$ independent standard Gaussians and $Y_1=Y_2=Z$ standard Gaussian, with $Z$ independent of $X$. The hypotheses hold
-($A=I$, $B=\begin{psmallmatrix}1&1\\1&1\end{psmallmatrix}$, so $B-A\ge0$ entrywise with zero diagonal). The left side is $\mathbb{E}[Z]+\log(e^{h_1}+e^{h_2})=\log(e^{h_1}+e^{h_2})$ and the right side
+\emph{Sanity check.} Let $\alpha=\{1,2\}$, $X_1,X_2$ independent standard Gaussians and $Y_1=Y_2=Z$ standard Gaussian, with $Z$ independent of $X$. The hypotheses hold ($A=I$, $B=\begin{psmallmatrix}1&1\\1&1\end{psmallmatrix}$, so $B-A\ge0$ entrywise with zero diagonal). The left side is $\mathbb{E}[Z]+\log(e^{h_1}+e^{h_2})=\log(e^{h_1}+e^{h_2})$ and the right side
 is $\mathbb{E}\log(e^{X_1+h_1}+e^{X_2+h_2})$, which is at least $\log(e^{h_1}+e^{h_2})$ by Jensen's inequality for the convex function $x\mapsto\log\sum_ae^{x_a+h_a}$ and $\mathbb{E}X=0$. This agrees with the theorem.
-
-Formalized in \texttt{SpinGlasses/GaussianComparison.lean}.
+This is the form of Slepian's lemma used in the Guerra--Toninelli theorem (Theorem~\ref{thm:sg-tal:gt}).
+Formalized in \texttt{SpinGlasses/GaussianCovarianceInterpolation.lean}.
 \end{proof}
 
 \begin{remark}[Comparison with the book's Proposition~1.3.3]\label{rem:sg-tal:slepian-compare}
 The book states Slepian's lemma for a general test function: if $F:\mathbb R^M\to\mathbb R$ is infinitely differentiable with all partial derivatives of moderate growth (Eq.~(A.18): $F(x)e^{-a|x|^2}\to0$ for every $a>0$) and $\partial_i\partial_jF\ge0$ for all $i\ne j$, and $u,v$ are
 centered jointly Gaussian vectors with $\mathbb{E}u_i^2=\mathbb{E}v_i^2$ for all $i$ and $\mathbb{E}u_iu_j\ge\mathbb{E}v_iv_j$ for all $i\ne j$, then $\mathbb{E}F(u)\ge\mathbb{E}F(v)$.
-Theorem~\ref{thm:sg-tal:slepian} is not literally this statement, but it follows from it. The two statements correspond as follows.
+Theorem~\ref{thm:sg-tal:slepian} is this statement with the following differences.
 \begin{itemize}
-\item \emph{The test function.} The Lean theorem uses only $F_h(x)=\log\sum_{a\in\alpha}e^{x_a+h_a}$ (the bias $h$ is absorbed into $F$ in the book). Its Hessian is
-  $\mathrm{diag}(w)-ww^{\top}$ with the Gibbs weights $w_a=e^{x_a+h_a}/\sum_be^{x_b+h_b}$, so $\partial_a\partial_bF_h=-w_aw_b\le0$ for $a\ne b$. The mixed second derivatives have the \emph{opposite} sign to the book's hypothesis. The book's lemma therefore applies to $-F_h$,
-  and the free energy is \emph{smaller} for the field with larger covariances.
-\item \emph{The two fields.} Take $u=Y$, $v=X$ and $F=-F_h$. The book's hypotheses become $\mathbb{E}Y_a^2=\mathbb{E}X_a^2$ and $\mathbb{E}X_aX_b\le\mathbb{E}Y_aY_b$ for $a\ne b$; its conclusion
-  $\mathbb{E}[-F_h(Y)]\ge\mathbb{E}[-F_h(X)]$ is $\mathbb{E}F_h(Y)\le\mathbb{E}F_h(X)$, which is the Lean conclusion.
-\item \emph{The covariance condition.} Lean asks $\mathbb{E}X_aX_b\le\mathbb{E}Y_aY_b$ for all $a,b$, including $a=b$. On the diagonal this follows from equal variances, so it is the same condition.
-\item \emph{Independence.} Lean assumes $(X,Y)$ jointly Gaussian and centered with $\mathbb{E}[X_aY_b]=0$, that is, $X$ and $Y$ independent Gaussian fields. This is not a restriction, since the conclusion depends only on the two covariance matrices,
-  and any two centered Gaussian laws can be realised as independent fields on a product space; in the proof the independence is what makes the covariance of the interpolating field $\cos^2s\,A+\sin^2s\,B$.
-  The book makes the same reduction: before Eq.~(1.38) it notes that one may assume $u$ and $v$ independent, ``since we are comparing a function of the law of $u$ with a function of the law of $v$''.
-\item \emph{What is lost.} The Lean theorem does not give Slepian's lemma for other test functions, for example smoothed indicators or smoothed maxima, which need a function with $\partial_i\partial_jF\ge0$ and are not of the form $-F_h$.
-  So the general proposition implies the Lean theorem, but the Lean theorem does not imply the general proposition. Only the log-sum-exp case is used later in this chapter (the Guerra--Toninelli theorem, Theorem~\ref{thm:sg-tal:gt}).
+\item \emph{Regularity and growth.} The book asks $F\in C^\infty$ with all derivatives of moderate growth. Lean asks $F\in C^2$ (only derivatives up to order $2$ occur in the proof) with $F$ and its first and second partial derivatives bounded by $Ce^{c\|y\|_1}$. This is a restriction: functions that grow like $e^{a|y|^2}$ with small $a>0$ have moderate growth in the book's sense but are excluded. Polynomials, bounded functions and everything of exponential type are included. The restriction exists only because the Lean integration by parts is proved under exponential growth. The log-sum-exp function of Theorem~\ref{thm:sg-tal:slepian-lse} satisfies it.
+\item \emph{Independence.} Lean assumes $(X,Y)$ jointly Gaussian and centered with $\mathbb{E}[X_aY_b]=0$, that is, $X$ and $Y$ independent Gaussian vectors. This is not a restriction, since the conclusion depends only on the two covariance matrices,
+  and any two centered Gaussian laws can be realised as independent vectors on a product space; the book makes the same reduction before Eq.~(1.38), noting that one may assume $u$ and $v$ independent ``since we are comparing a function of the law of $u$ with a function of the law of $v$''. In the proof the independence is what makes the covariance of the interpolating vector $\cos^2s\,A+\sin^2s\,B$. The Lean theorem takes such a realisation as given.
+\item \emph{Roles.} The Lean names are $v=X$ and $u=Y$, and the conclusion is written $\mathbb{E}F(X)\le\mathbb{E}F(Y)$. The covariance condition is stated for $l\ne k$ only (the diagonal is the equal-variance hypothesis).
+\item \emph{The path.} The proof uses the path $\cos s\,X+\sin s\,Y$ in place of $\sqrt t\,u+\sqrt{1-t}\,v$, with the same endpoints; see Lemma~\ref{lem:sg-tal:path-derivative}.
 \end{itemize}
+The free-energy statement of Theorem~\ref{thm:sg-tal:slepian-lse} is the instance $F=-\log\sum_ae^{x_a+h_a}$: the mixed derivatives of $\log\sum e^{x}$ are $\le0$, so the book's lemma applies to its negative and the field with larger correlations has the smaller expected free energy.
 \end{remark}
 
 \begin{theorem}[Concentration of the free energy]\label{thm:sg-tal:concentration}
@@ -1004,9 +1050,8 @@ Formalized in \texttt{SpinGlasses/SKAsymptoticProduct.lean}.
 \end{proof}
 
 \begin{lemma}[Gaussian interpolation for smooth functionals]\label{lem:sg-tal:gaussian-interp}
-  \lean{SpinGlasses.fderiv_apply_eq_sum_mul,
-        SpinGlasses.hasDerivAt_integral_comp_trig,
-        Real.sub_le_half_of_deriv_le,
+  \uses{lem:sg-tal:path-derivative}
+  \lean{Real.sub_le_half_of_deriv_le,
         Real.neg_half_le_sub_of_le_deriv,
         Real.abs_sub_le_half_of_abs_deriv_le,
         Real.abs_sub_le_half_of_exists_hasDerivAt,
