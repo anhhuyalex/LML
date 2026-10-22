@@ -271,6 +271,42 @@ theorem pairProd_cons (T : Fin m → Fin m → ℝ) (q : Fin m × Fin m) (p : Fi
     pairProd T (Fin.cons q p : Fin (r + 1) → Fin m × Fin m) = T q.1 q.2 * pairProd T p := by
   simp [pairProd, Fin.prod_univ_succ]
 
+/-- The total multiplicity of all replicas across a list of `r` pairs is `2 * r`. -/
+theorem sum_pairCount (p : Fin r → Fin m × Fin m) :
+    ∑ ℓ : Fin m, pairCount p ℓ = 2 * r := by
+  classical
+  unfold pairCount
+  rw [sum_comm]
+  have h (i : Fin r) : (∑ ℓ : Fin m, ((if (p i).1 = ℓ then 1 else 0) +
+      (if (p i).2 = ℓ then 1 else 0))) = 2 := by
+    rw [sum_add_distrib]
+    simp only [sum_ite_eq, mem_univ, ite_true]
+  simp [h, mul_comm]
+
+/-- If `r < m`, any list of `r` pairs of replicas in `Fin m` must leave some replica with
+multiplicity 0 or 1. -/
+theorem exists_pairCount_le_one_of_lt (p : Fin r → Fin m × Fin m) (hr : r < m) :
+    ∃ ℓ : Fin m, pairCount p ℓ = 0 ∨ pairCount p ℓ = 1 := by
+  by_contra! h
+  have h2 : ∀ ℓ : Fin m, 2 ≤ pairCount p ℓ := fun ℓ => by
+    have := h ℓ
+    omega
+  have hle : 2 * m ≤ ∑ ℓ : Fin m, pairCount p ℓ := by
+    calc 2 * m = ∑ _ℓ : Fin m, 2 := by simp [mul_comm]
+    _ ≤ ∑ ℓ : Fin m, pairCount p ℓ := sum_le_sum fun ℓ _ => h2 ℓ
+  rw [sum_pairCount] at hle
+  omega
+
+/-- If every replica in `Fin m` occurs with multiplicity at least 2 in a list of `r` pairs,
+then `m ≤ r`. -/
+theorem card_le_of_forall_two_le_pairCount (p : Fin r → Fin m × Fin m)
+    (hp : ∀ ℓ : Fin m, 2 ≤ pairCount p ℓ) : m ≤ r := by
+  have hle : 2 * m ≤ ∑ ℓ : Fin m, pairCount p ℓ := by
+    calc 2 * m = ∑ _ℓ : Fin m, 2 := by simp [mul_comm]
+    _ ≤ ∑ ℓ : Fin m, pairCount p ℓ := sum_le_sum fun ℓ _ => hp ℓ
+  rw [sum_pairCount] at hle
+  omega
+
 /-- The path functional `s ↦ ∑_p ∏ T_{p} 𝔼 ∂^{count p} (…)(Z_s)`, i.e. `𝔼 (D^r F)(Z_s)` with
 `D = ∑ T_{l k} ∂_l ∂_k`. -/
 noncomputable def projSum (V : ℝ → ℝ) (u : Fin m → Fin N → ℝ) (v : ℝ) (r : ℕ) (s : ℝ) : ℝ :=
@@ -492,7 +528,7 @@ theorem abs_projGram_le {N : ℕ} {B : ℝ} (u : Fin m → Fin N → ℝ) (v : �
   unfold projGram
   have h1 := abs_dotProduct_le_of_self_le (u l) (u k) (hu l) (hu k)
   by_cases h : l = k
-  · simp only [h, if_true]
+  · simp only [h, ite_true]
     have : 0 ≤ u k ⬝ᵥ u k := dotProduct_self_star_nonneg _
     have h3 := hu k
     rw [abs_le]

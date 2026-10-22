@@ -78,4 +78,25 @@ theorem integral_pi_eq_integral_update {f : (∀ i, X i) → E}
   rw [hmp.map_eq] at h
   exact h
 
+omit [DecidableEq ι] in
+/-- If one coordinate function `f j` has integral zero against a product of probability measures,
+the integral of the product `∏ i, f i (x i)` against the product measure is zero. -/
+theorem integral_pi_prod_eq_zero_of_coord_zero (f : ∀ i, X i → ℝ)
+    (hf : Integrable (fun x : ∀ i, X i => ∏ i, f i (x i)) (Measure.pi μ))
+    (j : ι) (hj : ∫ t, f j t ∂(μ j) = 0) :
+    ∫ x, (∏ i, f i (x i)) ∂(Measure.pi μ) = 0 := by
+  classical
+  rw [integral_pi_eq_integral_update μ j hf]
+  have h_inner : ∀ x : ∀ i, X i,
+      (∫ t, (∏ i, f i (Function.update x j t i)) ∂(μ j)) = 0 := fun x => by
+    have h_prod : ∀ t, (∏ i, f i (Function.update x j t i)) =
+        f j t * ∏ i ∈ Finset.univ.erase j, f i (x i) := fun t => by
+      rw [← Finset.mul_prod_erase Finset.univ _ (Finset.mem_univ j)]
+      simp only [Function.update_self]
+      congr 1
+      refine Finset.prod_congr rfl fun i hi => ?_
+      rw [Function.update_of_ne (Finset.ne_of_mem_erase hi)]
+    simp_rw [h_prod, integral_mul_const, hj, zero_mul]
+  simp [h_inner]
+
 end MeasureTheory

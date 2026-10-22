@@ -8,6 +8,8 @@ module
 public import LeanMachineLearning.SpinGlasses.SKLatalaBase
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ExpMoment
 public import LeanMachineLearning.SpinGlasses.SKLatalaCompensated
+public import Mathlib.Analysis.Normed.Algebra.Exponential
+public import Mathlib.Topology.Algebra.InfiniteSum.Order
 
 /-!
 # Exponential concentration of the overlap (Talagrand, Theorem 1.4.1)
@@ -186,4 +188,127 @@ theorem sk_path_expected_sq_overlap_le {N : ℕ} (hN : 0 < N) (β h q : ℝ)
     hint.trans (hcomp.trans hbase)
   rw [le_div_iff₀ (by positivity)]
   nlinarith [mul_le_mul_of_nonneg_right ha0 (mul_nonneg hNpos.le hnn)]
+
+/-- Pointwise inequality `y^r / r! ≤ exp y` for `y ≥ 0`. -/
+theorem pow_div_factorial_le_exp (y : ℝ) (hy : 0 ≤ y) (r : ℕ) :
+    y ^ r / (Nat.factorial r : ℝ) ≤ Real.exp y := by
+  rw [Real.exp_eq_exp_ℝ]
+  have hsum : HasSum (fun n => y ^ n / (Nat.factorial n : ℝ)) (NormedSpace.exp y) :=
+    NormedSpace.expSeries_div_hasSum_exp y
+  have hterm_nonneg : ∀ n, 0 ≤ y ^ n / (Nat.factorial n : ℝ) := fun n => by positivity
+  have h_single : y ^ r / (Nat.factorial r : ℝ) = ∑ i ∈ {r}, y ^ i / (Nat.factorial i : ℝ) := by
+    simp
+  rw [h_single]
+  exact sum_le_hasSum {r} (fun n _ => hterm_nonneg n) hsum
+
+/-- Pointwise inequality `y^r ≤ r! exp y` for `y ≥ 0`. -/
+theorem pow_le_factorial_mul_exp (y : ℝ) (hy : 0 ≤ y) (r : ℕ) :
+    y ^ r ≤ (Nat.factorial r : ℝ) * Real.exp y := by
+  have h := pow_div_factorial_le_exp y hy r
+  have hfact : 0 < (Nat.factorial r : ℝ) := by positivity
+  have h2 := (div_le_iff₀ hfact).mp h
+  rwa [mul_comm]
+
+/-- **Higher overlap moments for the SK model (Talagrand Eq. (1.88)).**
+For `β < 1/2` and at the fixed point `q = 𝔼 tanh² (β √q z + h)`, for every `r`,
+the `2r`-th moment of `R_{1,2} - q` satisfies `𝔼⟨(R_{1,2} - q)^{2r}⟩ ≤ K / N^r`,
+where `K = r! ((1 - 4β²)/4)^{-r} ((1 - 4β²)/2)^{-1/2}` is independent of `N`. -/
+theorem sk_overlap_moment_le_of_exp (β h q : ℝ)
+    (hfix : ∫ x : ℝ, Real.tanh (β * Real.sqrt q * x + h) ^ 2 ∂(gaussianReal 0 1) = q)
+    (hβ : 4 * β ^ 2 < 1) (r : ℕ) :
+    ∃ K : ℝ, 0 < K ∧ ∀ (N : ℕ) (_ : 0 < N),
+      ∫ g : FinPairs N → ℝ, ∫ σ : Fin 2 → (Fin N → ℤˣ),
+          (((N : ℝ)⁻¹ * ((fun i => ((σ 0 i : ℤ) : ℝ)) ⬝ᵥ fun i => ((σ 1 i : ℤ) : ℝ))) - q) ^ (2 * r)
+            ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted fun a =>
+              (Real.sqrt N)⁻¹ * β *
+                (∑ p : FinPairs N, g p * ((a p.val.1 : ℤ) : ℝ) * ((a p.val.2 : ℤ) : ℝ)) +
+                h * ∑ i, ((a i : ℤ) : ℝ))
+          ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) ≤
+        K / (N : ℝ) ^ r := by
+  set s : ℝ := (1 - 4 * β ^ 2) / 4 with hsdef
+  have hs0 : 0 < s := by linarith
+  have h2s : 2 * s + 4 * β ^ 2 < 1 := by linarith
+  have h12s : 0 < 1 - 2 * s - 4 * β ^ 2 := by linarith
+  set C : ℝ := (Real.sqrt (1 - 2 * s - 4 * β ^ 2))⁻¹ with hCdef
+  have hC0 : 0 < C := by positivity
+  set K : ℝ := (Nat.factorial r : ℝ) * s⁻¹ ^ r * C with hKdef
+  have hK0 : 0 < K := by positivity
+  refine ⟨K, hK0, fun N hN => ?_⟩
+  have hN0 : (0 : ℝ) < N := by positivity
+  have hconc := sk_overlap_concentration_exp hN β h q s hfix hs0.le h2s
+  obtain ⟨Pg, hPg⟩ : ∃ Pg : Measure (FinPairs N → ℝ),
+      Pg = Measure.pi fun _ : FinPairs N => gaussianReal 0 1 := ⟨_, rfl⟩
+  have : IsProbabilityMeasure Pg := by rw [hPg]; infer_instance
+  rw [← hPg] at hconc ⊢
+  obtain ⟨gf, hgf⟩ : ∃ gf : (Fin N → ℤˣ) → (FinPairs N → ℝ) → ℝ, ∀ b g,
+      gf b g = (Real.sqrt N)⁻¹ * β *
+        (∑ p : FinPairs N, g p * ((b p.val.1 : ℤ) : ℝ) * ((b p.val.2 : ℤ) : ℝ)) +
+        h * ∑ i, ((b i : ℤ) : ℝ) := ⟨_, fun _ _ => rfl⟩
+  have hmeas : ∀ b : Fin N → ℤˣ, Measurable (gf b) := fun b => by
+    rw [show gf b = _ from funext (hgf b)]
+    fun_prop
+  obtain ⟨X, hX⟩ : ∃ X : (Fin 2 → (Fin N → ℤˣ)) → ℝ, ∀ σ, X σ = (((N : ℝ)⁻¹ *
+      ((fun i => ((σ 0 i : ℤ) : ℝ)) ⬝ᵥ fun i => ((σ 1 i : ℤ) : ℝ))) - q) ^ 2 := ⟨_, fun _ => rfl⟩
+  obtain ⟨μt, hμt⟩ : ∃ μt : (FinPairs N → ℝ) → Measure (Fin 2 → (Fin N → ℤˣ)),
+      ∀ g, μt g = Measure.pi fun _ : Fin 2 => Measure.count.tilted fun b => gf b g :=
+    ⟨_, fun _ => rfl⟩
+  have hprob : ∀ g, IsProbabilityMeasure (μt g) := fun g => by rw [hμt]; infer_instance
+  simp only [← hgf] at hconc ⊢
+  simp only [← hX, ← hμt] at hconc ⊢
+  have hprod_pos : 0 < s * (N : ℝ) := by positivity
+  have hpow_le : ∀ σ, (X σ) ^ r ≤
+      (Nat.factorial r : ℝ) * (s * (N : ℝ))⁻¹ ^ r * Real.exp (((N : ℝ) * s) * X σ) := fun σ => by
+    have hXnonneg : 0 ≤ X σ := by rw [hX]; positivity
+    have hnonneg : 0 ≤ ((N : ℝ) * s) * X σ := by positivity
+    have hpow := pow_le_factorial_mul_exp (((N : ℝ) * s) * X σ) hnonneg r
+    have heq : (((N : ℝ) * s) * X σ) ^ r = (s * (N : ℝ)) ^ r * (X σ) ^ r := by
+      rw [mul_pow, mul_comm (N : ℝ) s]
+    rw [heq] at hpow
+    calc (X σ) ^ r = (s * (N : ℝ))⁻¹ ^ r * (s * (N : ℝ)) ^ r * (X σ) ^ r := by
+          rw [← mul_pow, inv_mul_cancel₀ hprod_pos.ne', one_pow, one_mul]
+      _ = (s * (N : ℝ))⁻¹ ^ r * ((s * (N : ℝ)) ^ r * (X σ) ^ r) := by rw [mul_assoc]
+      _ ≤ (s * (N : ℝ))⁻¹ ^ r * ((Nat.factorial r : ℝ) * Real.exp (((N : ℝ) * s) * X σ)) :=
+          mul_le_mul_of_nonneg_left hpow (by positivity)
+      _ = (Nat.factorial r : ℝ) * (s * (N : ℝ))⁻¹ ^ r * Real.exp (((N : ℝ) * s) * X σ) := by ring
+  have hpow2 : ∀ σ, (((N : ℝ)⁻¹ *
+      ((fun i => ((σ 0 i : ℤ) : ℝ)) ⬝ᵥ fun i => ((σ 1 i : ℤ) : ℝ))) - q) ^ (2 * r) =
+      (X σ) ^ r := fun σ => by
+    rw [hX, ← pow_mul, mul_comm 2 r]
+  simp_rw [hpow2]
+  have hJσ : ∀ g, (∫ σ, (X σ) ^ r ∂(μt g)) ≤
+      (Nat.factorial r : ℝ) * (s * (N : ℝ))⁻¹ ^ r *
+        ∫ σ, Real.exp (((N : ℝ) * s) * X σ) ∂(μt g) := fun g => by
+    have hmono := integral_mono (Integrable.of_finite (μ := μt g))
+      (Integrable.of_finite (μ := μt g)) (fun σ => hpow_le σ)
+    rwa [integral_const_mul] at hmono
+  have hInt1 : Integrable (fun g => ∫ σ, (X σ) ^ r ∂(μt g)) Pg := by
+    have e : (fun g => ∫ σ, (X σ) ^ r ∂(μt g)) =
+        fun g => ∫ σ, (X σ) ^ r ∂(Measure.pi fun _ : Fin 2 =>
+          Measure.count.tilted fun b => gf b g) := by
+      funext g; simp only [← hμt]
+    rw [e]
+    exact integrable_integral_pi_count_tilted_det (fun b => (hmeas b).aemeasurable) _
+  have hInt2 : Integrable (fun g => ∫ σ, Real.exp (((N : ℝ) * s) * X σ) ∂(μt g)) Pg := by
+    have e : (fun g => ∫ σ, Real.exp (((N : ℝ) * s) * X σ) ∂(μt g)) =
+        fun g => ∫ σ, Real.exp (((N : ℝ) * s) * X σ) ∂(Measure.pi fun _ : Fin 2 =>
+          Measure.count.tilted fun b => gf b g) := by
+      funext g; simp only [← hμt]
+    rw [e]
+    exact integrable_integral_pi_count_tilted_det (fun b => (hmeas b).aemeasurable) _
+  have hJg : (∫ g, ∫ σ, (X σ) ^ r ∂(μt g) ∂Pg) ≤
+      (Nat.factorial r : ℝ) * (s * (N : ℝ))⁻¹ ^ r *
+        ∫ g, ∫ σ, Real.exp (((N : ℝ) * s) * X σ) ∂(μt g) ∂Pg := by
+    rw [← integral_const_mul]
+    exact integral_mono hInt1 (hInt2.const_mul _) (fun g => hJσ g)
+  refine hJg.trans ?_
+  have hfactor : (Nat.factorial r : ℝ) * (s * (N : ℝ))⁻¹ ^ r *
+      ∫ g, ∫ σ, Real.exp (((N : ℝ) * s) * X σ) ∂(μt g) ∂Pg ≤
+      (Nat.factorial r : ℝ) * (s * (N : ℝ))⁻¹ ^ r * C :=
+    mul_le_mul_of_nonneg_left hconc (by positivity)
+  refine hfactor.trans ?_
+  have heqK : (Nat.factorial r : ℝ) * (s * (N : ℝ))⁻¹ ^ r * C = K / (N : ℝ) ^ r := by
+    rw [mul_inv, mul_pow, hKdef]
+    ring
+  rw [heqK]
+
 end SpinGlasses
