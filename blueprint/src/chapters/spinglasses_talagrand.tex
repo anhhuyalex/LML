@@ -1,13 +1,16 @@
 \chapter{The Sherrington--Kirkpatrick Model at High Temperature: The Talagrand Theory}\label{chap:sg-talagrand}
 
-This chapter formalizes Sections~1.1 through 1.5 and, from Section~1.6, the finite Gibbs
-cavity identities, the cavity path derivative (Lemma~1.6.3), its domination (Lemma~1.6.4), the decoupled endpoint (Lemma~1.6.2) and Propositions~1.6.5--1.6.6 of Michel Talagrand's \emph{Spin Glasses: A Challenge for Mathematicians} (Volume~I, Springer, 2010).
+This chapter formalizes Sections~1.1 through 1.6 of Michel Talagrand's \emph{Spin Glasses: A Challenge for Mathematicians} (Volume~I, Springer, 2010) and the first half of Section~1.7.
+Section~1.6, including Proposition~1.6.8 (the cavity free-energy increment), is proved without any smallness assumption on the model parameters.
+Of Section~1.7 the Gaussian-interpolation and Gibbs-side parts of Theorem~1.7.11 (the general Gaussian fluctuation principle) are formalized; the assembly of the theorem and the results that depend on it (Corollary~1.7.13, Lemmas~1.7.4--1.7.6, Theorem~1.7.1) are not yet formalized, and Section~\ref{sec:sg-tal:fluct} says exactly which steps are missing.
 The mathematical narrative develops the high-temperature theory of the Sherrington--Kirkpatrick (SK) model:
 \begin{enumerate}
 \item The decoupled reference system, hypercube factorizations, exact first-moment calculations, and the first-moment upper bound on the free energy (Section~1.2).
 \item Guerra's smart path Gaussian interpolation, the derivative formula with a negative square remainder, and Guerra's replica-symmetric (RS) upper bound minimized at the fixed-point equation $q = \mathbb{E}[\tanh^2(\beta z \sqrt{q} + h)]$ (Section~1.3).
 \item R.~Lata\l{}a's high-temperature overlap concentration: the general second-order replica derivative formula along Gaussian interpolations, the monotonicity of the compensated exponential functional, exponential overlap concentration $\nu(\exp s N (R_{1,2} - q)^2) \le (1 - 2s - 4\beta^2)^{-1/2}$ for $\beta^2 < 1/4$, and the Aizenman--Lebowitz--Ruelle (ALR) high-temperature free energy formula $|p_N(\beta, h) - \operatorname{RS}(q)| \le K/N$ at a solution $q$ of the self-consistency equation (Section~1.4).
 \item Spin decorrelation, asymptotic product measures on finite spin marginals, and high-dimensional random projections (Sections~1.4--1.5).
+\item The cavity method: splitting off the last spin, interpolating the new couplings against an independent Gaussian field, concentration of the overlap around $q$ with all its moments, and the free-energy increment $(N+1)p_{N+1}-Np_N$ (Section~1.6).
+\item The Gaussian fluctuation principle: the Gaussian interpolation between the centered projections $N^{-1/2}\sum_i y_i\dot\sigma_i$ of the Gibbs state and independent Gaussians of variance $1-q$, and the parity argument that makes the first $2k-1$ derivatives vanish at the start of the path (Section~1.7, in progress).
 \end{enumerate}
 
 \medskip\noindent\textbf{Source tags.}
@@ -190,7 +193,11 @@ Formalized in \texttt{SpinGlasses/GaussianCovarianceInterpolation.lean}.
 
 \begin{theorem}[Gaussian comparison for the free energy]\label{thm:sg-tal:slepian-lse}
   \lean{SpinGlasses.integral_log_sum_exp_le_of_covariance_le, SpinGlasses.sum_exp_add_pos,
-        SpinGlasses.fderiv_log_sum_exp_single, SpinGlasses.fderiv_fderiv_log_sum_exp_single}
+        SpinGlasses.fderiv_log_sum_exp_single, SpinGlasses.fderiv_fderiv_log_sum_exp_single,
+        SpinGlasses.hasFDerivAt_sum_exp_add,
+        SpinGlasses.sum_abs_cos_mul_add_sin_mul_le,
+        SpinGlasses.abs_ite_one_sub_le_one,
+        Real.add_le_add_one_mul_exp}
   \leanok
   \uses{thm:sg-tal:slepian}
 \talsource{Proposition~1.3.3 (Slepian's lemma) for the function $F=-\log\sum_ae^{x_a+h_a}$; no counterpart in the book as a separate statement}
@@ -690,7 +697,7 @@ Every statement below is proved in Lean, but several proofs differ from Talagran
 \item \emph{Lemma~1.4.5 by Chebyshev's inequality.} The book expands the exponential in a series, applies H\"older's inequality and uses replica symmetry. Lean applies Chebyshev's association inequality $\int a\int b\le\int ab$ for similarly ordered functions to $a=A$, $b=e^{uA}$, separately for each realization of the disorder. Lemma~1.4.5 is not stated on its own as an inequality between $\nu_t$-averages.
 \item \emph{Corollary~1.4.7: direction and generality.} The compensated functional is nondecreasing in the trigonometric parameter $s$, equivalently non-increasing in the book's $t=\cos^2 s$. It is proved abstractly for any nonnegative symmetric overlap function $A$ with constant diagonal and $U=-\kappa(A-c)$, and then specialized to $A=(R_{1,2}-q)^2$.
 \item \emph{Proposition~1.4.8.} The one-dimensional inequality $(\cosh u+q\sinh u)e^{-qu}\le e^{u^2/2}$ is obtained from Hoeffding's lemma (Mathlib) applied to an explicit two-point law, not from a direct calculus argument. The randomization $u\sim\mathcal N(0,2\lambda/N)$ is carried out as a Fubini exchange with a standard Gaussian, valid because the overlap is bounded.
-\item \emph{Theorem~1.4.1 and the moment bounds.} The exponential bound is proved for the SK endpoint. The uniform bound $\nu_s((R_{1,2}-q)^2)\le K/N$ (Eqs.~(1.89), (1.103)) is derived from the compensated inequality and $e^x\ge1+x$ with an explicit constant; Eq.~(1.88) for all even moments is not formalized.
+\item \emph{Theorem~1.4.1 and the moment bounds.} The exponential bound is proved for the SK endpoint. The uniform bound $\nu_s((R_{1,2}-q)^2)\le K/N$ (Eqs.~(1.89), (1.103)) is derived from the compensated inequality and $e^x\ge1+x$ with an explicit constant. Eq.~(1.88) for all even moments of the $N$-spin overlap is derived from the exponential bound by the elementary inequality $x^r\le r!\,e^x$ (Theorem~\ref{thm:sg-tal:overlap-moments-all}).
 \item \emph{Theorem~1.4.10 by monotonicity.} Instead of integrating $\varphi'$ over $[0,\pi/2]$, Lean shows that $\varphi+c\sin^2$ is monotone for two choices of $c$ (using $0\le A\le K/N$), which gives the same two-sided $O(1/N)$ bound without any integrability check. The convergence $p_N\to\operatorname{SK}(\beta,h)$ is derived from this bound directly for the pair disorder with field, not from the thermodynamic limit of Theorem~1.3.9.
 \item \emph{Hypotheses.} $q$ is a hypothesis (fixed-point equation), and the book's $\beta<1/2$ is stated as $\beta^2<1/4$.
 \end{itemize}
@@ -839,7 +846,40 @@ The compensated inequality at time $s$ gives $\nu_s(\exp(aN(R_{1,2}-q)^2))\le(1-
 From $e^x\ge1+x$ (packaged as the general inequality $1+c\,\mathbb{E}[X]\le\mathbb{E}[e^{cX}]$ on a probability space, applied first to the Gibbs average for each disorder and then to the disorder average) we get $1+aN\,\nu_t((R_{1,2}-q)^2)\le(1-2\lambda)^{-1/2}$, hence $\nu_s((R_{1,2}-q)^2)\le K/N$.
 \emph{Formalization notes.} (i) The fixed-point equation $q=\mathbb{E}[\tanh^2(\beta\sqrt q\,z+h)]$ is a hypothesis of both statements; only the existence of a solution is proved (Theorem~\ref{thm:sg-tal:fixed-point}).
 (ii) The book's assumption $\beta<1/2$ is stated as $\beta^2<1/4$ (in the first claim it is implied by $2s+4\beta^2<1$ with $s\ge0$).
-(iii) Eq.~(1.88), the bound $(Kk/N)^k$ on all even moments, is not formalized; only the exponential bound and the second moment are.
+(iii) Eq.~(1.88), the bound on all even moments, is a consequence of the exponential bound and is proved separately as Theorem~\ref{thm:sg-tal:overlap-moments-all}; the constant there is $r!\,s^{-r}(\cdot)^{-1/2}$ rather than the book's $(Kk/N)^k$.
+Formalized in \texttt{SpinGlasses/SKOverlapConcentration.lean}.
+\end{proof}
+
+\begin{lemma}[Two pointwise inequalities for the exponential]\label{lem:sg-tal:pow-le-exp}
+  \lean{SpinGlasses.pow_div_factorial_le_exp,
+        SpinGlasses.pow_le_factorial_mul_exp}
+  \leanok
+\talsource{no counterpart in the book (the elementary step behind Eq.~(1.88))}
+For every real $y\ge0$ and every $r\in\mathbb N$,
+\[
+\frac{y^r}{r!}\le e^y,\qquad y^r\le r!\,e^y .
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+The exponential is the sum of the nonnegative series $\sum_n y^n/n!$, and a single term of a series with nonnegative terms is at most its sum.
+\end{proof}
+
+\begin{theorem}[All even moments of the overlap (Eq.~(1.88))]\label{thm:sg-tal:overlap-moments-all}
+  \lean{SpinGlasses.sk_overlap_moment_le_of_exp}
+  \leanok
+\talsource{Eq.~(1.88)}
+Let $\beta,h\in\mathbb R$ with $4\beta^2<1$ and let $q$ satisfy $q=\mathbb{E}[\tanh^2(\beta\sqrt q\,z+h)]$. For every $r\in\mathbb N$ there is $K>0$ such that for every $N\ge1$, in the $N$-spin SK model at inverse temperature $\beta$ and field $h$,
+\[
+\nu\big((R_{1,2}-q)^{2r}\big)=\mathbb{E}\big\langle(R_{1,2}-q)^{2r}\big\rangle\le\frac{K}{N^{r}},\qquad
+K=r!\,s^{-r}\,(1-2s-4\beta^2)^{-1/2},\quad s=\frac{1-4\beta^2}{4},
+\]
+so that $K=r!\,\bigl(\tfrac{4}{1-4\beta^2}\bigr)^{r}\bigl(\tfrac{2}{1-4\beta^2}\bigr)^{1/2}$ does not depend on $N$ (it is the book's ``$K$ depends on $r$ and $\beta$ only'').
+\end{theorem}
+\begin{proof}
+  \leanok
+Put $X=(R_{1,2}-q)^2\ge0$. Lemma~\ref{lem:sg-tal:pow-le-exp} with $y=sNX$ gives the pointwise bound $X^r\le r!\,(sN)^{-r}e^{sNX}$. Integrate against the Gibbs measure of two replicas and then against the disorder; the integral of the right-hand side is controlled by Theorem~\ref{thm:sg-tal:overlap-conc}: $\nu(\exp sN(R_{1,2}-q)^2)\le(1-2s-4\beta^2)^{-1/2}$, which applies because $2s+4\beta^2=(1+4\beta^2)/2<1$. Since $(R_{1,2}-q)^{2r}=X^r$ the claim follows.
+\emph{Formalization note.} The statement is for the genuine $N$-spin system with the same normalization as Theorem~\ref{thm:sg-tal:overlap-conc}, not for the $(N+1)$-spin system with $\beta_+$ of Part~D of Section~\ref{sec:sg-tal:cavity}; the latter (Proposition~1.6.7, Theorem~\ref{thm:sg-tal:overlap-moments}) concerns the $(N+1)$-spin system and assumes the stronger smallness condition $16\beta^2e^{64\beta^2}\le\tfrac12$, whereas Section~\ref{sec:sg-tal:fluct} needs the $N$-spin system for every $4\beta^2<1$, which is why it uses this theorem.
 Formalized in \texttt{SpinGlasses/SKOverlapConcentration.lean}.
 \end{proof}
 
@@ -903,7 +943,7 @@ The book gives no formal statement in Section~1.5 (``we shall never need a forma
 
 \item \emph{Hypotheses.} As in Section~\ref{sec:sg-tal:latala-alr}, the fixed point $q$ is a hypothesis (the equation $q=\mathbb{E}[\tanh^2(\beta\sqrt q\,z+h)]$ is assumed, and only the existence of a solution is proved), because Lean does not prove the uniqueness of the solution that makes ``the'' $q$ of the book well defined. The condition $\beta<1/2$ is stated as $\beta^2<1/4$, which is the same condition for $\beta\ge0$ and is the form in which the overlap bound is proved (it also allows $\beta<0$). The abstract results of this section need only $|q|\le1$ (for Proposition~\ref{prop:sg-tal:spin-decorr}) or $0\le q\le\rho$ (for Theorem~\ref{thm:sg-tal:random-projection}); the SK corollaries use $q\in[0,1]$ from the fixed-point equation.
 
-\item \emph{Not formalized.} Models with non-Ising spins: Proposition~\ref{prop:sg-tal:spin-decorr} and the abstract part of Theorem~\ref{thm:sg-tal:random-projection} are stated for $[-1,1]$-valued observables, respectively for arbitrary vectors in $\mathbb{R}^N$ with an arbitrary self-overlap $\rho$, but Theorem~\ref{thm:sg-tal:asymp-product} uses $\sigma_i^2=1$ (the Walsh expansion of cylinders) and no non-Ising SK-type model is instantiated. Also not formalized are the uniqueness of the fixed point and Eq.~(1.88) for all even moments.
+\item \emph{Not formalized.} Models with non-Ising spins: Proposition~\ref{prop:sg-tal:spin-decorr} and the abstract part of Theorem~\ref{thm:sg-tal:random-projection} are stated for $[-1,1]$-valued observables, respectively for arbitrary vectors in $\mathbb{R}^N$ with an arbitrary self-overlap $\rho$, but Theorem~\ref{thm:sg-tal:asymp-product} uses $\sigma_i^2=1$ (the Walsh expansion of cylinders) and no non-Ising SK-type model is instantiated. Also not formalized is the uniqueness of the fixed point (Eq.~(1.88) for all even moments is Theorem~\ref{thm:sg-tal:overlap-moments-all}).
 \end{itemize}
 \end{remark}
 
@@ -1061,7 +1101,9 @@ Formalized in \texttt{SpinGlasses/SKAsymptoticProduct.lean}.
         SpinGlasses.contDiff_pair_mul,
         SpinGlasses.fderiv_pair_mul,
         SpinGlasses.fderiv_fderiv_pair_mul,
-        SpinGlasses.abs_integral_mul_sub_le}
+        SpinGlasses.abs_integral_mul_sub_le,
+        Real.hasDerivAt_sin_sq,
+        Real.abs_sub_add_half_le_of_exists_hasDerivAt}
   \leanok
 \talsource{Lemma~1.3.1, Eq.~(1.40), applied quantitatively to the argument of Section~1.5, Eqs.~(1.139)--(1.141)}
 Let $F:\mathbb R^\kappa\to\mathbb R$ be $C^2$ with $|F|\le B$, $|\partial_lF|\le D_l$, $|\partial_k\partial_lF|\le D_{kl}$, and let $a_l\in\mathbb R^K$, $a'_l\in\mathbb R^{K'}$, $l\in\kappa$, and $\xi,\xi'$ standard Gaussian vectors. Then
@@ -1167,7 +1209,8 @@ quantity $\nu(|R_{1,2}-q|)$ into a rate in $N$, which the proposition itself doe
   overlap $R=N^{-1}\sum_{i\le N}\sigma_i\tau_i$; the $(N+1)$-spin system is taken at
   $\beta_+=\beta\sqrt{1+1/N}$ so that $\beta_+/\sqrt{N+1}=\beta/\sqrt N$ (Eq.~(1.174)).  There is no
   $\beta_-$ in A--D.  Bounds proved for $N+1$ spins (e.g.\ the overlap moments of Part~D) apply to
-  the $\nu$ of Part~E with $N$ replaced by $N-1$.
+  the $\nu$ of Part~E with $N$ replaced by $N-1$.  The moments of the genuine $N$-spin overlap for every $4\beta^2<1$ are
+  Theorem~\ref{thm:sg-tal:overlap-moments-all} (Section~\ref{sec:sg-tal:latala-alr}).
 \item \emph{Random old energy.}  The old-pair energy is random.  The book applies Lemma~1.4.2 to
   the whole system; here it is applied \emph{conditionally} on the old-pair disorder to the new-edge
   Gaussians (Lemma~\ref{lem:sg-tal:cavity-conditional-deriv} and its $\cosh$ analogue), and the resulting
@@ -1233,7 +1276,9 @@ with the canonical $\mathrm{Fin.snoc}$ equivalence.
         SpinGlasses.sum_finPairs_succ_cavity,
         SpinGlasses.sum_sk_pairs_succ_cavity,
         SpinGlasses.sk_cavity_energy_coupled_eq,
-        SpinGlasses.measurePreserving_sk_cavity_disorder}
+        SpinGlasses.measurePreserving_sk_cavity_disorder,
+        SpinGlasses.oldPair,
+        SpinGlasses.lastPair}
   \leanok
 \talsource{Eqs.~(1.143)--(1.144)}
 For $N\ge0$, the pairs $i<j$ in $\mathrm{Fin}(N+1)$ are in bijection
@@ -1249,6 +1294,8 @@ $h\sum_i\sigma_i$. If all the $g_{ij}$ are independent
 standard Gaussians, the restriction $(g_{ij})_{i<j<N}$ and the new-edge family
 $(g_{iN})_{i<N}$ jointly have the product of their respective independent
 Gaussian laws (equality via a measure-preserving map).
+The embeddings of the old pairs and of the new edges into the pairs of $\mathrm{Fin}(N+1)$ are the
+definitions \texttt{oldPair} and \texttt{lastPair}.
 \end{lemma}
 \begin{proof}
   \leanok
@@ -1309,7 +1356,9 @@ $i\mapsto\tau_N\tau_i$; factor the last spins out of their dot product.
 \label{lem:sg-tal:cavity-fields-gaussian}
   \lean{SpinGlasses.hasGaussianLaw_sk_cavity_fields,
         SpinGlasses.integral_sk_cavity_edge_field_eq_zero,
-        SpinGlasses.integral_sk_cavity_scalar_field_eq_zero}
+        SpinGlasses.integral_sk_cavity_scalar_field_eq_zero,
+        SpinGlasses.integral_linear_form_prod_eq_zero,
+        SpinGlasses.integral_scalar_prod_eq_zero}
   \leanok
 \talsource{Eqs.~(1.147), (1.153)}
 Fix $N\ge0$, $\beta,q\in\mathbb R$, and independent $g_i\sim N(0,1)$
@@ -1331,6 +1380,11 @@ The edge family is a finite system of Gaussian linear forms. The scalar
 family is the continuous linear image of $z\sim N(0,1)$; the product
 of independent Gaussian vectors is jointly Gaussian. Both means vanish
 by the centered Gaussian coordinate integrals.
+The same facts for the $N$-spin fields of Part~E and for all covariances (Lemma~\ref{lem:sg-tal:cavity-field-covariance-difference},
+Lemma~\ref{lem:sg-tal:cavity-N-fields}) are one-line specializations of five generic lemmas about a Gaussian linear
+form $c\cdot g$ and an independent standard Gaussian scalar $z$ (with $d,d'\in\mathbb R$):
+$\mathbb E[c\cdot g]=0$, $\mathbb E[dz]=0$, $\mathbb E[(c\cdot g)(c'\cdot g)]=c\cdot c'$,
+$\mathbb E[(c\cdot g)(dz)]=0$ and $\mathbb E[(dz)(d'z)]=dd'$ (\texttt{integral\_linear\_form\_prod\_eq\_zero} and its companions).
 \end{proof}
 
 \begin{lemma}[Covariances of the last-spin cavity fields]
@@ -1338,7 +1392,10 @@ by the centered Gaussian coordinate integrals.
   \lean{SpinGlasses.integral_sk_cavity_edge_field_mul,
         SpinGlasses.integral_sk_cavity_edge_mul_scalar_eq_zero,
         SpinGlasses.integral_sk_cavity_scalar_field_mul,
-        SpinGlasses.sk_cavity_covariance_difference}
+        SpinGlasses.sk_cavity_covariance_difference,
+        SpinGlasses.integral_linear_form_mul_prod,
+        SpinGlasses.integral_linear_form_mul_scalar_prod,
+        SpinGlasses.integral_scalar_mul_prod}
   \leanok
 \talsource{Eqs.~(1.153), (1.55); the book's $U$ equals $-\tfrac12$ of the $U$ used here}
 With the fields $X_\sigma,Y_\sigma$ of Lemma~\ref{lem:sg-tal:cavity-fields-gaussian} and $q\ge0$, integration over the
@@ -1365,7 +1422,8 @@ $\sqrt q^{\,2}=q$ uses $q\ge0$. Distributivity gives the difference.
 \begin{lemma}[Uniform truncated-overlap and covariance bounds]
 \label{lem:sg-tal:cavity-covariance-bound}
   \lean{SpinGlasses.abs_sk_cavity_overlap_le_one,
-        SpinGlasses.abs_sk_cavity_covariance_le}
+        SpinGlasses.abs_sk_cavity_covariance_le,
+        SpinGlasses.abs_sk_cavity_kernel_le}
   \leanok
 \talsource{proof of Lemma~1.6.4: the bound $|R^-_{\ell,\ell'}-q|\le2$ before Eq.~(1.155)}
 For $N\ge0$, $q\in[0,1]$, $\beta\in\mathbb R$, and arbitrary Ising
@@ -1407,7 +1465,8 @@ arguments.  \emph{Status:} fully proved.
 \begin{lemma}[Integrating a uniformly bounded conditional derivative]
 \label{lem:sg-tal:conditional-derivative}
   \lean{SpinGlasses.hasDerivAt_integral_conditional_of_deriv_bound,
-        SpinGlasses.hasDerivAt_integral_conditional_log_sum_exp_trig}
+        SpinGlasses.hasDerivAt_integral_conditional_log_sum_exp_trig,
+        SpinGlasses.hasDerivAt_integral_conditional_log_integral_cosh_trig}
   \leanok
 \talsource{no counterpart in the book; an analytic step inside the proof of Lemma~1.6.3, Eq.~(1.151)}
 Let $P_0$ be a probability measure on a nonempty measurable space of old
@@ -1753,7 +1812,8 @@ summand by $C$; the resulting counts are $n^2$, $2n^2$, $n$ and $n(n+1)$.
 
 \begin{lemma}[Pointwise count for the three replica families]
 \label{lem:sg-tal:cavity-family-count}
-  \lean{SpinGlasses.abs_book_replica_combination_le}
+  \lean{SpinGlasses.abs_book_replica_combination_le,
+        SpinGlasses.card_filter_lt_fin_prod}
   \leanok
 \talsource{text after Eq.~(1.152): the right-hand side of (1.151) has $2n^2$ simple terms}
 Let $K$ be any real function of two configurations with $|K|\le c$ and let $\tau$ be an
@@ -1981,7 +2041,8 @@ of $f$ and the two replicas of the overlap are marginalized by Lemma~\ref{lem:sg
         SpinGlasses.abs_sk_cavity_angle_combination_le,
         SpinGlasses.sk_cavity_path_square_le_exp_mul_replicas,
         SpinGlasses.abs_integral_nested_gibbs_le,
-        SpinGlasses.sk_cavity_nu_sub_nu_zero_le}
+        SpinGlasses.sk_cavity_nu_sub_nu_zero_le,
+        SpinGlasses.integral_nested_gibbs_finset_sum}
   \leanok
 \talsource{Proposition~1.6.5, Eq.~(1.156)}
 For a function $f$ of $n$ replicas and conjugate exponents $p,r$,
@@ -2029,7 +2090,9 @@ powers; the exponents of $V$ add up to $1/p+1/r=1$.
         SpinGlasses.units_cast_mul_eq_one_or,
         SpinGlasses.abs_units_cast_mul_sub_le_two,
         SpinGlasses.sk_overlap_mul_eq_last_site,
-        SpinGlasses.sk_cavity_decoupled_odd_part}
+        SpinGlasses.sk_cavity_decoupled_odd_part,
+        SpinGlasses.abs_units_cast_eq_one,
+        SpinGlasses.units_cast_eq_one_or}
   \leanok
 \talsource{Eqs.~(1.157) and (1.158), for an arbitrary function $\varphi$ of $R_{1,2}-q$}
 For every $\varphi:\mathbb R\to\mathbb R$, $\nu((R-q)\varphi(R-q))=\nu((\varepsilon_1\varepsilon_2-q)\varphi(R-q))$
@@ -2199,7 +2262,13 @@ agrees with the two independent coefficient vectors precisely when $c^2=a^2+b^2$
   \lean{ProbabilityTheory.integral_pi_gaussianReal_scale_eq_prod_linear_combo,
         SpinGlasses.integral_log_partition_sk_beta_plus_eq,
         SpinGlasses.log_sum_exp_add_eq_log_sum_exp_add_log_integral_exp,
-        SpinGlasses.log_partition_sk_pair_perturb}
+        SpinGlasses.log_partition_sk_pair_perturb,
+        SpinGlasses.integrable_log_sum_exp_linear_gaussian,
+        SpinGlasses.integrable_log_sum_exp_linear_gaussian_prod,
+        SpinGlasses.integrable_log_partition_sk,
+        SpinGlasses.integrable_log_partition_sk_pair,
+        SpinGlasses.dotProduct_const_pair_spin,
+        SpinGlasses.sk_pair_linear_combo_expand}
   \leanok
 \talsource{Proposition~1.6.8, Eq.~(1.175)}
 Taking the logarithmic $(N+1)$-spin partition function as the observable in the Gaussian law of
@@ -2294,7 +2363,15 @@ by independence.
         integral_cosh_sum_mul_add_mul_gaussianReal,
         SpinGlasses.integral_cosh_sk_cavity_linear_combo_le,
         SpinGlasses.integrable_abs_sinh_mul_sinh_sk_cavity,
-        SpinGlasses.integral_abs_sinh_mul_sinh_sk_cavity_le}
+        SpinGlasses.integral_abs_sinh_mul_sinh_sk_cavity_le,
+        Real.cosh_mul_cosh,
+        Real.abs_sinh_le_cosh,
+        Real.abs_sinh_mul_sinh_le_cosh_mul_cosh,
+        cosh_sum_mul_add_eq,
+        integrable_cosh_sum_mul_gaussianReal,
+        integral_cosh_sum_mul_gaussianReal,
+        cosh_two_sum_mul_add_eq,
+        cosh_sum_mul_add_mul_eq}
   \leanok
 \talsource{Proof of Eq.~(1.181)}
 For any Ising configurations $\sigma, \tau \in \{-1, 1\}^N$, any angle $s$, and any sign $\pm 1$, the variance of
@@ -2335,7 +2412,17 @@ and apply the moment bound at $m = 2h$ and $m = 0$.
         SpinGlasses.measurable_integral_prod_count_tilted_units_mul,
         SpinGlasses.integrable_integral_prod_count_tilted_det,
         SpinGlasses.integrable_integral_sk_cavity_signed_overlap,
-        SpinGlasses.abs_integral_sk_cavity_signed_overlap_le}
+        SpinGlasses.abs_integral_sk_cavity_signed_overlap_le,
+        SpinGlasses.sum_exp_mul_pos,
+        SpinGlasses.sum_units_int_mul_exp,
+        SpinGlasses.sum_units_int_prod_mul_exp,
+        SpinGlasses.sum_exp_prod_units_mul_two_replicas,
+        SpinGlasses.integral_prod_count_tilted,
+        SpinGlasses.integral_prod_count_tilted_eq_double_sum,
+        SpinGlasses.mul_integral_count_tilted,
+        SpinGlasses.integral_prod_count_tilted_units_mul,
+        SpinGlasses.abs_integral_prod_count_tilted_units_mul_le,
+        SpinGlasses.measurable_log_integral_cosh_count_tilted}
   \leanok
 \talsource{Proof of Eqs.~(1.179)--(1.181)}
 Fix an arbitrary base energy $A$ on the $N$-spin hypercube.  For
@@ -2859,4 +2946,479 @@ two first-order interpolations, a Gr\"onwall step and a last cavity step) but di
   not formalized as statements; Part~D supplies $\nu((R-q)^2)\le2/(N+1)$ for the $(N+1)$-spin system
   (apply it with $N-1$ to bound $\nu$ of Part~E) under its smallness hypothesis on $\beta$.
 \end{itemize}
+\end{remark}
+
+\section{The Gaussian fluctuation principle (Talagrand Section~1.7)}
+\label{sec:sg-tal:fluct}
+
+\paragraph{The idea.}
+Section~1.5 explains that, under the Gibbs measure, the random variable
+$\boldsymbol\sigma\mapsto N^{-1/2}\sum_{i\le N}y_i\sigma_i$ with $y_i$ i.i.d.\ standard Gaussians
+should be approximately Gaussian, and the cavity method of Section~1.6 needs this for the
+\emph{centered} variable $\dot S=N^{-1/2}\sum_{i\le N}y_i\dot\sigma_i$, $\dot\sigma_i=\sigma_i-\langle\sigma_i\rangle$,
+whose variance under the Gibbs measure is $N^{-1}\sum_i\dot\sigma_i^2\approx 1-q$.
+Theorem~1.7.11 makes this precise for every smooth observable $U$: the Gibbs average
+$\langle U(\dot S)\rangle$ differs from the Gaussian average $\mathbb E_\xi U(\xi\sqrt{1-q})$ by an amount whose
+$2k$-th moment is $O(N^{-k})$.
+The proof is a single interpolation, used with $2k$ replicas.
+Raising $\langle V(\dot S)\rangle$ to the power $2k$ turns it into the Gibbs average of the product
+$\prod_{\ell\le 2k}V(\dot S^\ell)$ over $2k$ independent replicas, where $V=U-\mathbb E_\xi U(\xi\sqrt{1-q})$ has
+Gaussian mean zero.
+One interpolates, with a parameter $t\in[0,1]$, between $2k$ independent Gaussians of variance $1-q$
+($t=0$) and the $2k$ projections $\dot S^\ell$ ($t=1$), and applies Taylor's formula to
+$\varphi(t)=\mathbb E\langle\prod_\ell V(\sqrt t\,\dot S^\ell+\sqrt{1-t}\,\xi^\ell\sqrt{1-q})\rangle$.
+Two things have to be shown:
+\begin{itemize}
+\item the first $2k-1$ derivatives of $\varphi$ vanish at $t=0$.  The $r$-th derivative is a sum over lists of $r$
+  pairs of replicas of products of the entries $T_{\ell\ell'}$ of the covariance defect times a Gaussian average; it
+  vanishes unless every replica occurs in the list at least twice, because a replica occurring \emph{zero} times
+  contributes the factor $\mathbb E V(\xi\sqrt{1-q})=0$, and a replica occurring \emph{once} makes the Gibbs average of the
+  $T$'s vanish ($\langle\dot\sigma_i\rangle=0$).  A list of $r$ pairs has $2r$ slots, so $2r\ge 4k$;
+\item the $2k$-th derivative is $O(N^{-k})$, because each entry $T_{\ell\ell'}$ is a centered overlap and has $2k$-th
+  moment $O(N^{-k})$ (Eq.~(1.88), Theorem~\ref{thm:sg-tal:overlap-moments-all}).
+\end{itemize}
+
+\paragraph{How the section is organized.}
+\begin{enumerate}
+\item[A.] \emph{Gaussian interpolation of projections} (Section~\ref{sec:sg-tal:fluct-gauss}): everything about the path
+  that does not involve the Gibbs measure.  Fully proved.
+\item[B.] \emph{Gibbs-side parity} (Section~\ref{sec:sg-tal:fluct-gibbs}): the Gibbs average of the path functional vanishes at the
+  start of the path.  Fully proved.
+\item[C.] \emph{Taylor's formula with vanishing derivatives} (Section~\ref{sec:sg-tal:fluct-taylor}).  Fully proved.
+\item[D.] \emph{Theorem~1.7.11} (Section~\ref{sec:sg-tal:fluct-main}): the statement, how Parts~A--C and Theorem~\ref{thm:sg-tal:overlap-moments-all}
+  assemble to it, and the steps still missing.  \emph{Not yet assembled in Lean.}
+\end{enumerate}
+Parts~A and~B are independent of the spin-glass model: Part~A is about Gaussian vectors, Part~B about an arbitrary finite
+Gibbs measure carrying $N$ bounded observables.  Only Part~D uses the SK model, through the overlap moments of Section~1.4.
+
+\begin{remark}[Conventions and deviations from the book in Section~1.7]
+\label{rem:sg-tal:dev-17}
+\begin{itemize}
+\item \emph{The hypothesis on $U$.}  The book assumes (1.196): $\mathbb E|U^{(\ell)}(z)|^k<\infty$ for every Gaussian $z$.
+  The formalization assumes that $U$ is \emph{exponentially tame} (Definition~\ref{def:sg-tal:exptame}): smooth with every derivative bounded by
+  $Ce^{c|x|}$.  This is a strengthening of the hypothesis.  It is what makes the Gaussian averages along the path
+  \emph{uniformly} bounded, in $N$ and in the Gibbs configuration, without H\"older's inequality (Lemma~\ref{lem:sg-tal:projpath-bound}),
+  and it covers every application of the section: $U(x)=e^{\varepsilon\beta x}$ and $U(x)=xe^{\varepsilon\beta x}$
+  in Corollary~1.7.13.
+\item \emph{Angle versus $t$.}  The Gaussian path is differentiated in the angle $s$,
+  $Z_s=\cos s\,(v\xi)+\sin s\,(u\cdot y)$, with derivative factor $\sin s\cos s$, exactly as in Sections~1.4 and~1.6.  The book's
+  parameter is $t=\sin^2 s$, for which $\sqrt t\,\dot S+\sqrt{1-t}\,\xi\sqrt{1-q}$ is $Z_s$ with $u_{\ell}=N^{-1/2}\dot\sigma^{\ell}$ and
+  $v=\sqrt{1-q}$.  The derivative in $t$ is $\frac12\sum T_{\ell\ell'}\partial_\ell\partial_{\ell'}$, i.e.\ the factor $2^{-r}$ of
+  Eq.~(1.203); the change of variable is not yet formalized (Part~D).
+\item \emph{Hypotheses on $\beta$ and $q$.}  As in Sections~1.4 and~1.5 the fixed point $q$ is a hypothesis
+  ($q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$), and $\beta<1/2$ is stated as $4\beta^2<1$.
+\item \emph{Common $y$.}  All $2k$ replicas are projected on the \emph{same} Gaussian vector $y$; this is why the path functional
+  involves the Gram entries $u_\ell\cdot u_{\ell'}$ and not independent vectors.
+\item \emph{Model independence.}  Parts~A and~B are stated for arbitrary vectors $u_\ell\in\mathbb R^N$ and for an arbitrary finite
+  Gibbs measure with observables $\xi_i$, since only the SK overlap moments of Part~D use the model.  For the SK model $\xi_i(\boldsymbol\sigma)=\sigma_i$.
+\end{itemize}
+\end{remark}
+
+\subsection{Gaussian interpolation of projections}
+\label{sec:sg-tal:fluct-gauss}
+
+\emph{Content.}  Fix $m$ replicas.  For deterministic vectors $u_\ell\in\mathbb R^N$ ($\ell\le m$) and a scalar $v$, the path
+$Z_s=\cos s\,(v\xi)+\sin s\,(u\cdot y)$ interpolates between $m$ independent Gaussians of variance $v^2$ ($s=0$) and the $m$ projections
+$u_\ell\cdot y$ of one Gaussian vector ($s=\pi/2$).  We compute all derivatives of $\mathbb E\prod_\ell V(Z_{s,\ell})$ in $s$,
+show that they are bounded uniformly in $N$, and evaluate them at $s=0$.
+\emph{Uses:} the derivative formula of Lemma~\ref{lem:sg-tal:gaussian-interp}, the Gaussian moment formulas of Theorem~\ref{thm:sg-tal:first-moment}.
+\emph{Used by:} B and D.  \emph{Status:} fully proved.
+
+\begin{definition}[Exponentially tame functions]
+\label{def:sg-tal:exptame}
+  \lean{SpinGlasses.ExpTame}
+  \leanok
+\talsource{replaces the integrability hypothesis (1.196) of Theorem~1.7.11}
+A function $V:\mathbb R\to\mathbb R$ is \emph{exponentially tame} if it is infinitely differentiable and for every $j\in\mathbb N$ there are
+constants $C_j,c_j\ge0$ with $|V^{(j)}(x)|\le C_je^{c_j|x|}$ for all $x\in\mathbb R$.
+\end{definition}
+
+\begin{lemma}[Derivatives of tame functions are tame]
+\label{lem:sg-tal:exptame-deriv}
+  \lean{SpinGlasses.ExpTame.deriv_tame,
+        SpinGlasses.ExpTame.iterate_deriv_tame}
+  \leanok
+\talsource{no counterpart in the book}
+If $V$ is exponentially tame then so are $V'$ and every iterated derivative $V^{(n)}$.
+\end{lemma}
+\begin{proof}
+  \leanok
+The bound for the $j$-th derivative of $V^{(n)}$ is the bound for the $(j+n)$-th derivative of $V$.
+\end{proof}
+
+\begin{definition}[Products of derivatives, the covariance defect and the projection path]
+\label{def:sg-tal:projpath}
+  \lean{SpinGlasses.derivProd,
+        SpinGlasses.projGram,
+        SpinGlasses.projPath,
+        SpinGlasses.projMeasure}
+  \leanok
+\talsource{notation of the proof of Theorem~1.7.11: $F^{(\mathbf s)}$ in Eq.~(1.202), the entries $T_{\ell,\ell'}$, and the path $\mathbf X_t$}
+Let $m,N\in\mathbb N$, $V:\mathbb R\to\mathbb R$ smooth, $u=(u_\ell)_{\ell\le m}$ with $u_\ell\in\mathbb R^N$, and $v\in\mathbb R$.
+For a multi-index $a\in\mathbb N^m$ and $x\in\mathbb R^m$ put
+\[
+F^{(a)}(x)=\prod_{\ell\le m}V^{(a_\ell)}(x_\ell)\quad(\texttt{derivProd}),\qquad
+T_{\ell k}=u_\ell\cdot u_k-v^2\delta_{\ell k}\quad(\texttt{projGram}).
+\]
+Let $(\xi,y)$ have law $\gamma_m\otimes\gamma_N$, $\gamma_n=\mathcal N(0,I_n)$ (\texttt{projMeasure}), and set
+\[
+Z_s(\xi,y)_\ell=\cos s\,(v\xi_\ell)+\sin s\,(u_\ell\cdot y)\quad(\texttt{projPath}).
+\]
+Then $Z_0=(v\xi_\ell)_\ell$ has independent $\mathcal N(0,v^2)$ coordinates, $Z_{\pi/2}=(u_\ell\cdot y)_\ell$ has covariance $(u_\ell\cdot u_k)$, and
+$\mathbb E Z_{s,\ell}Z_{s,k}=\cos^2 s\,v^2\delta_{\ell k}+\sin^2 s\,u_\ell\cdot u_k$.
+In the proof of Theorem~1.7.11, $u_{\ell}=N^{-1/2}\dot{\boldsymbol\sigma}^{\ell}$ and $v^2=1-q$, so that $T_{\ell\ell}=N^{-1}\sum_i(\dot\sigma^\ell_i)^2-(1-q)$ and
+$T_{\ell\ell'}=N^{-1}\sum_i\dot\sigma^\ell_i\dot\sigma^{\ell'}_i$ for $\ell\ne\ell'$.
+\end{definition}
+
+\begin{lemma}[Derivatives of $F^{(a)}$]
+\label{lem:sg-tal:derivprod}
+  \lean{SpinGlasses.ExpTame.contDiff_derivProd,
+        SpinGlasses.ExpTame.hasFDerivAt_derivProd,
+        SpinGlasses.ExpTame.abs_derivProd_le}
+  \leanok
+\talsource{Eq.~(1.202)}
+Let $V$ be exponentially tame and $a\in\mathbb N^m$.  Then $F^{(a)}$ is $C^\infty$, its partial derivative in the direction $e_k$ is
+$\partial_kF^{(a)}=F^{(a+e_k)}$ (Eq.~(1.202): derivatives of the product act on one factor each), and there are $C,c\ge0$ with
+$|F^{(a)}(x)|\le C\exp\bigl(c\sum_{\ell}|x_\ell|\bigr)$ for all $x\in\mathbb R^m$.
+\end{lemma}
+\begin{proof}
+  \leanok
+Smoothness and the derivative follow from the product rule for $\prod_\ell V^{(a_\ell)}(x_\ell)$, only the $k$-th factor depends on $x_k$.
+For the bound multiply the bounds $C_{a_\ell}e^{c_{a_\ell}|x_\ell|}$ of Lemma~\ref{lem:sg-tal:exptame-deriv} and use $c_{a_\ell}\le\sum_jc_{a_j}$.
+\end{proof}
+
+\begin{theorem}[First derivative along the projection path]
+\label{thm:sg-tal:projpath-deriv}
+  \uses{lem:sg-tal:gaussian-interp, lem:sg-tal:derivprod}
+  \lean{SpinGlasses.ExpTame.hasDerivAt_integral_derivProd_projPath}
+  \leanok
+\talsource{Eq.~(1.40) applied to $t\mapsto\mathbb E_0F(\mathbf X_t)$ in the proof of Theorem~1.7.11}
+Let $V$ be exponentially tame, $a\in\mathbb N^m$, and use the notation of Definition~\ref{def:sg-tal:projpath}.  The function
+$s\mapsto\mathbb E\,F^{(a)}(Z_s)$ is differentiable on $\mathbb R$ with
+\[
+\frac{d}{ds}\mathbb E\,F^{(a)}(Z_s)=\sin s\cos s\sum_{\ell,k\le m}T_{\ell k}\;\mathbb E\,F^{(a+e_\ell+e_k)}(Z_s).
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+The family $X_\ell=v\xi_\ell$, $Y_\ell=u_\ell\cdot y$ is jointly Gaussian (a family of Gaussian linear forms in the independent vectors
+$\xi$ and $y$, the same fact as in Lemma~\ref{lem:sg-tal:cavity-fields-gaussian}), centered, with $\mathbb E X_\ell X_k=v^2\delta_{\ell k}$,
+$\mathbb E Y_\ell Y_k=u_\ell\cdot u_k$ and $\mathbb E X_\ell Y_k=0$, so that $\mathbb E Y_\ell Y_k-\mathbb E X_\ell X_k=T_{\ell k}$.
+Lemma~\ref{lem:sg-tal:gaussian-interp} (in its differentiated form, Lemma~\ref{lem:sg-tal:path-derivative}) gives the formula for a $C^2$ function whose first and
+second partial derivatives are dominated by an integrable function.  By Lemma~\ref{lem:sg-tal:derivprod},
+$\partial_\ell\partial_kF^{(a)}=F^{(a+e_\ell+e_k)}$, and each of $F^{(a)}$, $F^{(a+e_\ell)}$, $F^{(a+e_\ell+e_k)}$ is bounded by $Ce^{c\sum_\ell|x_\ell|}$;
+along the path $\sum_\ell|Z_{s,\ell}|\le\sum_\ell(|X_\ell|+|Y_\ell|)$ because $|\cos s|,|\sin s|\le1$, and $\exp(c\sum_\ell(|X_\ell|+|Y_\ell|))$ is integrable because the coordinates are Gaussian.
+\emph{Formalization note.}  The domination is carried out coordinatewise through the Gaussian moment generating function (Lemma~\ref{lem:sg-tal:projpath-bound}).
+\end{proof}
+
+\begin{definition}[Lists of pairs and the path functional]
+\label{def:sg-tal:projsum}
+  \lean{SpinGlasses.pairCount,
+        SpinGlasses.pairProd,
+        SpinGlasses.projSum}
+  \leanok
+\talsource{the list $\ell_1,\ell_1',\dots,\ell_r,\ell_r'$ and the multi-index $\mathbf s$ above Eq.~(1.203)}
+For $r\in\mathbb N$ a \emph{list of $r$ pairs} is a function $p:\{1,\dots,r\}\to\{1,\dots,m\}^2$, $p_j=(\ell_j,\ell_j')$.
+Its \emph{multiplicity} is $\mathrm{pairCount}(p)_\ell=\#\{(j,e):p_j^{(e)}=\ell\}$ (the number of times $\ell$ occurs among the $2r$ entries of the list),
+and $\mathrm{pairProd}(p)=\prod_{j\le r}T_{\ell_j\ell_j'}$.  The \emph{path functional} is
+\[
+\mathrm{projSum}_r(s)=\sum_{p}\mathrm{pairProd}(p)\;\mathbb E\,F^{(\mathrm{pairCount}(p))}(Z_s),
+\]
+the sum over all $m^{2r}$ lists of $r$ pairs.  (In the book $\varphi^{(r)}(t)=2^{-r}\sum\mathbb E\langle T_{\ell_1\ell_1'}\cdots T_{\ell_r\ell_r'}F^{(\mathbf s)}(\mathbf X_t)\rangle$, Eq.~(1.203), is $2^{-r}$ times the Gibbs and disorder average of $\mathrm{projSum}_r$.)
+\end{definition}
+
+\begin{lemma}[Combinatorics of lists of pairs]
+\label{lem:sg-tal:paircount}
+  \lean{SpinGlasses.pairCount_cons,
+        SpinGlasses.pairProd_cons,
+        SpinGlasses.sum_pairCount,
+        SpinGlasses.exists_pairCount_le_one_of_lt,
+        SpinGlasses.card_le_of_forall_two_le_pairCount}
+  \leanok
+\talsource{the counting argument ending the proof of Theorem~1.7.11: ``since the length of the list is $2r$ we must have $2r\ge4k$''}
+(a) Prepending a pair $(\ell,k)$ to a list $p$ adds $e_\ell+e_k$ to the multiplicity and multiplies $\mathrm{pairProd}$ by $T_{\ell k}$.
+(b) The multiplicities of a list of $r$ pairs add up to $2r$.
+(c) If $r<m$, some replica has multiplicity $0$ or $1$.
+(d) If every replica has multiplicity at least $2$, then $m\le r$.
+\end{lemma}
+\begin{proof}
+  \leanok
+(a) is the definition, split off the first entry.  (b): each pair contributes two to the total.  (c): otherwise $2m\le\sum_\ell\mathrm{pairCount}(p)_\ell=2r<2m$.  (d): $2m\le2r$.
+\end{proof}
+
+\begin{theorem}[All derivatives of the path functional]
+\label{thm:sg-tal:projsum-deriv}
+  \uses{thm:sg-tal:projpath-deriv, lem:sg-tal:paircount}
+  \lean{SpinGlasses.ExpTame.hasDerivAt_projSum}
+  \leanok
+\talsource{Eq.~(1.203), by induction on $r$}
+For exponentially tame $V$, every $r\in\mathbb N$ and every $s\in\mathbb R$,
+\[
+\frac{d}{ds}\,\mathrm{projSum}_r(s)=\sin s\cos s\;\mathrm{projSum}_{r+1}(s).
+\]
+Consequently the $r$-th derivative of $s\mapsto\mathbb E\prod_\ell V(Z_{s,\ell})=\mathrm{projSum}_0(s)$, taken $r$ times with respect to the variable
+$\tfrac12(1-\cos 2s)=\sin^2s$ on $(0,\pi/2)$, is $2^{-r}\mathrm{projSum}_r(s)$ (Eq.~(1.203)); that change of variable is not yet formalized.
+\end{theorem}
+\begin{proof}
+  \leanok
+Differentiate each term $\mathrm{pairProd}(p)\,\mathbb E F^{(\mathrm{pairCount}(p))}(Z_s)$ with Theorem~\ref{thm:sg-tal:projpath-deriv}: the factor $\mathrm{pairProd}(p)$ does not depend on
+$s$.  The result is $\sin s\cos s\sum_p\sum_{\ell,k}\mathrm{pairProd}(p)T_{\ell k}\mathbb E F^{(\mathrm{pairCount}(p)+e_\ell+e_k)}(Z_s)$.  Index the pairs $(p,(\ell,k))$ by the lists $(\ell,k)::p$ of length
+$r+1$ (the equivalence \texttt{Fin.consEquiv}) and apply Lemma~\ref{lem:sg-tal:paircount}(a).
+\end{proof}
+
+\begin{lemma}[Gaussian moments along the path]
+\label{lem:sg-tal:projpath-mgf}
+  \lean{SpinGlasses.projPath_apply_exp,
+        SpinGlasses.integrable_exp_mul_projPath,
+        SpinGlasses.integral_exp_mul_projPath,
+        SpinGlasses.exp_sum_le_avg_exp,
+        SpinGlasses.exp_abs_le_add,
+        SpinGlasses.ExpTame.integrable_derivProd_projPath}
+  \leanok
+\talsource{no counterpart in the book (the book uses H\"older's inequality and (1.196))}
+For every $b\in\mathbb R$ and every replica $\ell$, $e^{bZ_{s,\ell}}$ is integrable and
+\[
+\mathbb E\,e^{bZ_{s,\ell}}=\exp\Bigl(\frac{b^2}{2}\bigl(\cos^2s\,v^2+\sin^2s\,u_\ell\cdot u_\ell\bigr)\Bigr).
+\]
+Moreover $\exp(\sum_\ell a_\ell)\le\frac1m\sum_\ell\exp(ma_\ell)$ for $m\ge1$, and $e^{|x|}\le e^x+e^{-x}$.  Consequently $F^{(a)}(Z_s)$ is integrable for every
+exponentially tame $V$, every $a\in\mathbb N^m$ and every $s$.
+\end{lemma}
+\begin{proof}
+  \leanok
+$bZ_{s,\ell}=b\cos s\,v\xi_\ell+\sum_i b\sin s\,u_{\ell i}y_i$ is a linear form in independent standard Gaussians, so the product moment generating function of
+Theorem~\ref{thm:sg-tal:first-moment} applies.  The inequality $\exp(\sum a_\ell)\le\frac1m\sum\exp(ma_\ell)$ is Jensen's inequality for the exponential with
+the weights $1/m$.  For integrability, Lemma~\ref{lem:sg-tal:derivprod} bounds $|F^{(a)}(Z_s)|$ by $C\exp(c\sum_\ell|Z_{s,\ell}|)$; apply the two inequalities and
+the moment generating function with $b=\pm mc$.
+\end{proof}
+
+\begin{lemma}[A bound on the path functional uniform in $N$]
+\label{lem:sg-tal:projpath-bound}
+  \uses{lem:sg-tal:projpath-mgf}
+  \lean{SpinGlasses.ExpTame.exists_abs_integral_derivProd_projPath_le,
+        SpinGlasses.abs_dotProduct_le_of_self_le,
+        SpinGlasses.abs_projGram_le,
+        SpinGlasses.ExpTame.exists_abs_projSum_le}
+  \leanok
+\talsource{the bound $|\varphi^{(r)}(t)|\le KN^{-r/2}$ in the proof of Theorem~1.7.11, here without the Gibbs average}
+Let $V$ be exponentially tame, $m\ge1$, $a\in\mathbb N^m$, $B\ge0$.  There is $C\ge0$, depending only on $V,m,a,B$, such that for every
+$N$, all vectors $u_\ell\in\mathbb R^N$ with $u_\ell\cdot u_\ell\le B$, every $v$ with $v^2\le B$ and every $s\in\mathbb R$,
+\[
+\bigl|\mathbb E\,F^{(a)}(Z_s)\bigr|\le C.
+\]
+Moreover $|u_\ell\cdot u_k|\le B$ and $|T_{\ell k}|\le2B$, and for every $r$ there is $C_r\ge0$ (depending on $V,m,r,B$) such that, under the same
+hypotheses,
+\[
+\bigl|\mathrm{projSum}_r(s)\bigr|\le C_r\sum_{p}\bigl|\mathrm{pairProd}(p)\bigr|,
+\]
+the sum over lists of $r$ pairs.
+\end{lemma}
+\begin{proof}
+  \leanok
+By Lemma~\ref{lem:sg-tal:derivprod} and Jensen's inequality, $|F^{(a)}(x)|\le C_0\frac1m\sum_\ell(e^{b x_\ell}+e^{-bx_\ell})$ with $b=mc$.  By
+Lemma~\ref{lem:sg-tal:projpath-mgf} each of the $2m$ expectations is $\exp(\frac{b^2}2(\cos^2s\,v^2+\sin^2s\,u_\ell\cdot u_\ell))\le\exp(b^2B/2)$, hence
+$|\mathbb E F^{(a)}(Z_s)|\le 2C_0\exp(b^2B/2)$, which depends on neither $N$ nor $s$.
+The bound $|u\cdot u'|\le B$ is $|u\cdot u'|\le\frac12(u\cdot u+u'\cdot u')$, and $|T_{\ell\ell}|\le2B$ since $0\le u_\ell\cdot u_\ell\le B$ and $0\le v^2\le B$.
+For the last claim take absolute values term by term and apply the first bound to each of the finitely many multiplicities $a=\mathrm{pairCount}(p)$.
+\emph{Why this replaces H\"older.}  The book obtains $|\varphi^{(r)}|\le KN^{-r/2}$ by bounding the product $T_{\ell_1\ell_1'}\cdots T_{\ell_r\ell_r'}F^{(\mathbf s)}$ with
+H\"older's inequality, using (1.196) for the factor $F^{(\mathbf s)}$.  Here the Gaussian factor is bounded by a constant independent of everything, so only the product of $T$'s
+remains to be estimated.
+\end{proof}
+
+\begin{lemma}[Continuity and measurability of the path]
+\label{lem:sg-tal:projpath-meas}
+  \lean{SpinGlasses.continuous_projPath,
+        SpinGlasses.continuous_projPath_uncurry,
+        SpinGlasses.ExpTame.measurable_projSum}
+  \leanok
+\talsource{no counterpart in the book (measurability is implicit in taking $\mathbb E\langle\cdot\rangle$ of $\mathrm{projSum}$)}
+For fixed $v,s$, the map $(u,\xi,y)\mapsto Z_s(\xi,y)$ and, for fixed $u,v$, the map $(\xi,y)\mapsto Z_s$ are continuous, and for exponentially tame $V$ the
+function $u\mapsto\mathrm{projSum}_r(s)$ is measurable on $(\mathbb R^N)^m$.  Hence $\mathbb E\langle\mathrm{projSum}_r\rangle$ makes sense when $u$ is a measurable function of the Gibbs configurations and the disorder.
+\end{lemma}
+\begin{proof}
+  \leanok
+The coordinates of $Z_s$ are polynomials in the entries of $u$, $\xi$, $y$.  The map $u\mapsto\mathrm{projSum}_r(s)$ is a finite sum of products of the continuous entries $T_{\ell k}$ and of
+the parameter integral $u\mapsto\mathbb E F^{(a)}(Z_s)$ of a jointly continuous function, which is measurable.
+\end{proof}
+
+\begin{lemma}[The start of the path]
+\label{lem:sg-tal:projpath-zero}
+  \lean{SpinGlasses.projPath_zero,
+        SpinGlasses.integral_derivProd_projPath_zero,
+        SpinGlasses.ExpTame.integrable_derivProd_scale_gaussian,
+        MeasureTheory.integral_pi_prod_eq_zero_of_coord_zero,
+        SpinGlasses.ExpTame.integral_derivProd_projPath_zero_eq_zero}
+  \leanok
+\talsource{``$\mathbb E F^{(\mathbf s)}((\xi^\ell\sqrt{1-q})_\ell)=\prod_\ell\mathbb E V^{(s_\ell)}(\xi\sqrt{1-q})=0$ unless $\forall\ell,s_\ell\ge1$'', Eqs.~(1.199) and (1.204)}
+At $s=0$ the path is $Z_0=(v\xi_\ell)_\ell$ and $\mathbb E F^{(a)}(Z_0)=\int\prod_\ell V^{(a_\ell)}(v\xi_\ell)\,d\gamma_m(\xi)$, which does not depend on $u$.
+If $V$ is exponentially tame, $m\ge1$, $a_j=0$ for some replica $j$, and $\int V(vt)\,d\gamma_1(t)=0$, then $\mathbb E F^{(a)}(Z_0)=0$.
+\end{lemma}
+\begin{proof}
+  \leanok
+At $s=0$ the $y$-component drops out and the integral over $\xi$ remains (a product of probability measures).  Since the integrand is the product over $\ell$ of one-variable functions of
+$\xi_\ell$, it is integrable (Lemma~\ref{lem:sg-tal:projpath-mgf} at $s=0$), and when one factor, here $\xi_j\mapsto V(v\xi_j)$, has integral zero, Fubini gives that the integral of the
+product is zero (\texttt{integral\_pi\_prod\_eq\_zero\_of\_coord\_zero}).
+\end{proof}
+
+\subsection{Gibbs-side parity}
+\label{sec:sg-tal:fluct-gibbs}
+
+\emph{Content.}  Let $\mu$ be a Gibbs measure on a finite set $\alpha$ ($\mu(a)\propto e^{f(a)}$) and $\xi_1,\dots,\xi_N:\alpha\to\mathbb R$ observables, with Gibbs means
+$\langle\xi_i\rangle=\int\xi_i\,d\mu$.  For $m$ replicas $\boldsymbol\sigma=(\sigma^1,\dots,\sigma^m)$ distributed according to $\mu^{\otimes m}$, take the \emph{centered scaled} data
+$u_{\ell i}=N^{-1/2}(\xi_i(\sigma^\ell)-\langle\xi_i\rangle)$, so that $T_{\ell k}=N^{-1}\sum_i\dot\xi_i(\sigma^\ell)\dot\xi_i(\sigma^k)-v^2\delta_{\ell k}$.
+We show that products of the $T_{\ell k}$ in which some replica occurs exactly once have Gibbs average zero, and conclude that $\langle\mathrm{projSum}_r(0)\rangle=0$ for $r<m$.
+For the SK model $\xi_i(\boldsymbol\sigma)=\sigma_i$, $\dot\xi_i=\dot\sigma_i$.
+\emph{Uses:} A.  \emph{Used by:} D.  \emph{Status:} fully proved.
+
+\begin{lemma}[The centered observables have Gibbs mean zero]
+\label{lem:sg-tal:centered-mean}
+  \lean{SpinGlasses.sum_weight_mul_centered}
+  \leanok
+\talsource{$\langle\dot\sigma_i\rangle=0$, used in the proof of Theorem~1.7.11}
+For every energy $f$ on a nonempty finite set $\alpha$ and every $j\le N$,
+$\sum_a\frac{e^{f(a)}}{\sum_be^{f(b)}}\,N^{-1/2}\bigl(\xi_j(a)-\langle\xi_j\rangle\bigr)=0$, where $\langle\xi_j\rangle=\sum_a\frac{e^{f(a)}}{\sum_be^{f(b)}}\xi_j(a)$.
+\end{lemma}
+\begin{proof}
+  \leanok
+The Gibbs weights sum to $1$, so the sum is $N^{-1/2}(\langle\xi_j\rangle-\langle\xi_j\rangle)$.
+\end{proof}
+
+\begin{lemma}[A replica entering only linearly integrates to zero]
+\label{lem:sg-tal:linear-vanishing}
+  \lean{SpinGlasses.insertNth_eq_update,
+        SpinGlasses.sum_prod_weight_mul_linear_eq_zero}
+  \leanok
+\talsource{``averaging $T_{\ell_1\ell_1'}\cdots T_{\ell_r\ell_r'}$ in $\boldsymbol\sigma^\ell$ would already be $0$''}
+Let $w$ be a weight function on a finite set $\alpha$, $z_j:\alpha\to\mathbb R$ with $\sum_aw(a)z_j(a)=0$ for all $j\le N$, and let $H,c_j$ be functions of $\sigma\in\alpha^{n+1}$ that do not
+depend on the coordinate $\ell$.  Then
+\[
+\sum_{\sigma\in\alpha^{n+1}}\Bigl(\prod_{r}w(\sigma_r)\Bigr)\,H(\sigma)\sum_{j\le N}z_j(\sigma_\ell)\,c_j(\sigma)=0 .
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+Split the sum over $\sigma$ into the coordinate $\sigma_\ell$ and the remaining coordinates (\texttt{Fin.insertNthEquiv}).  The weight factorizes, $H$ and $c_j$ do not depend on $\sigma_\ell$, and the sum over $\sigma_\ell$
+of $w(\sigma_\ell)z_j(\sigma_\ell)$ is $0$.
+\end{proof}
+
+\begin{lemma}[A replica occurring once]
+\label{lem:sg-tal:occurs-once}
+  \lean{SpinGlasses.exists_of_pairCount_eq_one}
+  \leanok
+\talsource{implicit in the proof of Theorem~1.7.11 (the case ``$\ell$ occurs exactly once'' in the list)}
+If replica $\ell$ has multiplicity exactly $1$ in a list $p$ of pairs, then there are a position $i_0$ and a replica $\ell'\ne\ell$ with $p_{i_0}\in\{(\ell,\ell'),(\ell',\ell)\}$, and
+no other position contains $\ell$.
+\end{lemma}
+\begin{proof}
+  \leanok
+The multiplicity is the sum over positions of the number of entries of $p_i$ equal to $\ell$; a total of one means that exactly one position contributes, with exactly one entry.  The other entry
+of that pair differs from $\ell$.
+\end{proof}
+
+\begin{theorem}[Parity vanishing]
+\label{thm:sg-tal:parity}
+  \uses{lem:sg-tal:centered-mean, lem:sg-tal:linear-vanishing, lem:sg-tal:occurs-once}
+  \lean{SpinGlasses.integral_pairProd_centered_eq_zero}
+  \leanok
+\talsource{proof of Theorem~1.7.11: ``when (1.205) holds no number $\ell\le2k$ can occur exactly once in the list''}
+Let $\mu=G_f$ be a Gibbs measure on a finite set $\alpha$, $\xi_i:\alpha\to\mathbb R$, $v\in\mathbb R$, $m,r\in\mathbb N$, and $p$ a list of $r$ pairs of replicas in $\{1,\dots,m\}$ in which some replica $\ell$ occurs exactly once.  With
+$u_{\ell i}(\boldsymbol\sigma)=N^{-1/2}(\xi_i(\sigma^\ell)-\langle\xi_i\rangle)$,
+\[
+\int\mathrm{pairProd}\bigl(T(u(\boldsymbol\sigma),v)\bigr)(p)\;d\mu^{\otimes m}(\boldsymbol\sigma)=0 .
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+By Lemma~\ref{lem:sg-tal:occurs-once} the replica $\ell$ appears in exactly one factor $T_{\ell\ell'}$, $\ell'\ne\ell$, and there the term $-v^2\delta_{\ell\ell'}$ is absent, so the factor is the sum
+$\sum_iz_i(\sigma^\ell)c_i(\boldsymbol\sigma)$ with $z_i=N^{-1/2}\dot\xi_i$ and $c_i=N^{-1/2}\dot\xi_i(\sigma^{\ell'})$.  All other factors do not depend on $\sigma^\ell$.
+Writing the integral over $\mu^{\otimes m}$ as a finite sum with the product weights, Lemma~\ref{lem:sg-tal:linear-vanishing} with Lemma~\ref{lem:sg-tal:centered-mean} gives zero.
+\end{proof}
+
+\begin{theorem}[The Gibbs average of the path functional vanishes at the start of the path]
+\label{thm:sg-tal:projsum-vanish}
+  \uses{thm:sg-tal:parity, lem:sg-tal:projpath-zero, lem:sg-tal:paircount}
+  \lean{SpinGlasses.integral_projSum_centered_zero_eq_zero}
+  \leanok
+\talsource{proof of Theorem~1.7.11: ``$\varphi^{(r)}(0)=0$ unless $r\ge2k$'', Eqs.~(1.204)--(1.205)}
+Let $V$ be exponentially tame, $\mu=G_f$ a Gibbs measure on a finite set $\alpha$ with observables $\xi_i$, $m\ge1$, $v\in\mathbb R$ with $\int V(vt)\,d\gamma_1(t)=0$ (for $v=\sqrt{1-q}$ this is
+$\mathbb E_\xi V(\xi\sqrt{1-q})=0$, Eq.~(1.199)), and $r<m$.  Then
+\[
+\int\mathrm{projSum}_r\bigl(u(\boldsymbol\sigma),v;\,s=0\bigr)\;d\mu^{\otimes m}(\boldsymbol\sigma)=0 .
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+By Lemma~\ref{lem:sg-tal:projpath-zero}, $\mathrm{projSum}_r(0)=\sum_p\mathrm{pairProd}(p)\,I_p$ with $I_p=\int F^{(\mathrm{pairCount}(p))}(v\xi)\,d\gamma_m(\xi)$ independent of $u$ (hence of $\boldsymbol\sigma$).
+Fix a list $p$ of $r<m$ pairs.  By Lemma~\ref{lem:sg-tal:paircount}(c) some replica $\ell$ has multiplicity $0$ or $1$.  If it is $0$, then $I_p=0$ by Lemma~\ref{lem:sg-tal:projpath-zero}.  If it is $1$, the Gibbs average of
+$\mathrm{pairProd}(p)$ vanishes by Theorem~\ref{thm:sg-tal:parity}.  In both cases the Gibbs average of the $p$-th term is zero; sum over $p$.
+\end{proof}
+
+\subsection{Taylor's formula with vanishing derivatives}
+\label{sec:sg-tal:fluct-taylor}
+
+\emph{Content.}  The elementary last step of the proof of Theorem~1.7.11: a function whose first $n$ derivatives vanish at $0$ and whose $(n+1)$-th derivative is bounded by $M$ has $|f(1)|\le M/(n+1)!$.
+\emph{Uses:} nothing.  \emph{Used by:} D.  \emph{Status:} proved for functions that are smooth on all of $\mathbb R$; Part~D explains why this must be generalized to $[0,1]$.
+
+\begin{lemma}[Taylor remainder when the lower derivatives vanish]
+\label{lem:sg-tal:taylor-vanishing}
+  \lean{taylor_eval_zero_eq_remainder,
+        abs_le_of_forall_deriv_zero_and_bound}
+  \leanok
+\talsource{``it suffices to prove that $\varphi^{(r)}(0)=0$ for $r<2k$ and that $|\varphi^{(2k)}(t)|\le KN^{-k}$''}
+Let $f:\mathbb R\to\mathbb R$ be $C^{n+1}$ with $f^{(k)}(0)=0$ for all $k\le n$.  Then $f(1)=f^{(n+1)}(x')/(n+1)!$ for some $x'\in(0,1)$.  In particular, if $|f^{(n+1)}|\le M$ on $(0,1)$, then
+$|f(1)|\le M/(n+1)!$.
+\end{lemma}
+\begin{proof}
+  \leanok
+Taylor's theorem with Lagrange remainder on $[0,1]$ (Mathlib's \texttt{taylor\_mean\_remainder\_lagrange\_iteratedDeriv}), where the Taylor polynomial at $0$ of order $n$ is the sum of the terms $f^{(k)}(0)/k!$, all zero.
+\end{proof}
+
+\subsection{Theorem~1.7.11 and what remains of Section~1.7}
+\label{sec:sg-tal:fluct-main}
+
+\emph{Content.}  The statement of the principle, and an account of how far the formalization of its proof has come.  \emph{Uses:} A, B, C and Theorem~\ref{thm:sg-tal:overlap-moments-all}.
+\emph{Status:} the statement below is \emph{not yet} a theorem of the Lean development (it carries no \texttt{\textbackslash lean} tag); Steps~2 and~4 of the proof outline and the Taylor inequality of step~6 are proved,
+the other steps are listed with what is missing.
+
+\begin{theorem}[General Gaussian fluctuation principle (Theorem~1.7.11)]
+\label{thm:sg-tal:general-fluct}
+  \uses{def:sg-tal:exptame, thm:sg-tal:projsum-deriv, lem:sg-tal:projpath-bound, thm:sg-tal:projsum-vanish, lem:sg-tal:taylor-vanishing, thm:sg-tal:overlap-moments-all}
+\talsource{Theorem~1.7.11, Eq.~(1.197)}
+Let $\beta,h\in\mathbb R$ with $4\beta^2<1$, let $q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$, and let $U:\mathbb R\to\mathbb R$ be exponentially tame.  Let $y_1,y_2,\dots$ be i.i.d.\ standard Gaussians independent of the disorder, and
+$\dot\sigma_i=\sigma_i-\langle\sigma_i\rangle$ in the $N$-spin SK model at $(\beta,h)$.  For every $k\ge1$ there is $K$, depending on $k,U,\beta,h$ only, such that for all $N\ge1$
+\[
+\mathbb E\Bigl(\Bigl\langle U\Bigl(\frac1{\sqrt N}\sum_{i\le N}y_i\dot\sigma_i\Bigr)\Bigr\rangle-\mathbb E_\xi U(\xi\sqrt{1-q})\Bigr)^{2k}\le\frac K{N^k},
+\]
+where $\mathbb E$ is the expectation over the disorder and over $y$, and $\mathbb E_\xi$ over a standard Gaussian $\xi$.
+\end{theorem}
+\begin{proof}
+Put $V(x)=U(x)-\mathbb E_\xi U(\xi\sqrt{1-q})$, which is exponentially tame with $\mathbb E_\xi V(\xi\sqrt{1-q})=0$ (Eq.~(1.199)), $v=\sqrt{1-q}$ and $u_\ell=N^{-1/2}\dot{\boldsymbol\sigma}^{\ell}$.
+The argument is the following six steps; \textbf{[done]} marks a step proved in Lean, \textbf{[open]} a step that is not.
+\begin{enumerate}
+\item \textbf{[open]} \emph{Replicas.}  $\langle V(\dot S)\rangle^{2k}=\langle\prod_{\ell\le2k}V(\dot S^\ell)\rangle$ for $2k$ independent replicas with the common $y$ (Eq.~(1.200)).  This is the product formula for the Gibbs measure of independent replicas
+  (\texttt{integral\_pi\_count\_tilted}) applied to the product $\prod_\ell V(\dot S^\ell)$.
+\item \textbf{[done]} \emph{The path and its derivatives in the angle.}  Theorem~\ref{thm:sg-tal:projsum-deriv} gives the $s$-derivatives of $\mathbb E\prod_\ell V(Z_{s,\ell})$ as $\sin s\cos s\,\mathrm{projSum}_{r+1}$ (this is Eq.~(1.203) in the angle variable).
+\item \textbf{[open]} \emph{Change to the variable $t=\sin^2s$ and one-sided derivatives at the endpoint.}
+  With $\varphi(t)=\mathbb E\langle\prod_\ell V(\sqrt t\,\dot S^\ell+\sqrt{1-t}\,\xi^\ell\sqrt{1-q})\rangle$ one needs $\varphi^{(r)}(t)=2^{-r}\mathbb E\langle\mathrm{projSum}_r(\arcsin\sqrt t)\rangle$ on $(0,1)$ and
+  the one-sided derivatives at $t=0$; the second statement needs the continuity of $s\mapsto\mathrm{projSum}_r(s)$ at $0$ (Lemma~\ref{lem:sg-tal:projpath-meas} and the uniform bound of Lemma~\ref{lem:sg-tal:projpath-bound} for dominated convergence).
+\item \textbf{[done]} \emph{Vanishing at $t=0$.}  Theorem~\ref{thm:sg-tal:projsum-vanish} with $m=2k$: $\mathbb E\langle\mathrm{projSum}_r(0)\rangle=0$ for $r<2k$.  (The disorder expectation is an
+  integral of zero.)
+\item \textbf{[open]} \emph{The moments (1.201).}  $\mathbb E\langle T_{\ell\ell'}^{2r}\rangle\le K/N^r$.  For $\ell\ne\ell'$,
+  $T_{\ell\ell'}=(R_{\ell\ell'}-q)-(N^{-1}\sum_i\sigma^\ell_i\langle\sigma_i\rangle-q)-(N^{-1}\sum_i\sigma^{\ell'}_i\langle\sigma_i\rangle-q)+(N^{-1}\sum_i\langle\sigma_i\rangle^2-q)$, and for $\ell=\ell'$ the analogous
+  identity displayed in the book.  Each of the four pieces has $2r$-th moment at most $\mathbb E\langle(R_{1,2}-q)^{2r}\rangle$ by Jensen's inequality (average the second replica \emph{outside} the power), which is at most $K/N^r$ by
+  Theorem~\ref{thm:sg-tal:overlap-moments-all}; the four pieces are combined by $(a+b+c+d)^{2r}\le4^{2r-1}(a^{2r}+b^{2r}+c^{2r}+d^{2r})$.
+\item \textbf{[open]} \emph{The $2k$-th derivative.}  On $(0,1)$, $|\varphi^{(2k)}(t)|\le2^{-2k}C_{2k}\sum_p\mathbb E\langle|\mathrm{pairProd}(p)|\rangle$ by Lemma~\ref{lem:sg-tal:projpath-bound}, with $u_\ell\cdot u_\ell\le4$
+  (since $|\dot\sigma_i|\le2$) and $v^2=1-q\le1$.  Each product of $2k$ factors satisfies $\prod_j|T_j|\le\frac1{2k}\sum_j|T_j|^{2k}$ (arithmetic--geometric mean inequality), so by step~5 with $r=k$, $\mathbb E\langle|\mathrm{pairProd}(p)|\rangle\le K/N^k$.
+\item \textbf{[done, for functions smooth on $\mathbb R$]} \emph{Taylor.}  Lemma~\ref{lem:sg-tal:taylor-vanishing} with $n=2k-1$, $f=\varphi$: $|\varphi(1)|\le M/(2k)!$ with $M=KN^{-k}$, and $\varphi(1)$ is the left side of the theorem by step~1.
+  The lemma assumes $\varphi$ is $C^{2k}$ on all of $\mathbb R$, while $\varphi$ is only defined on $[0,1]$; it has to be restated for $C^{n+1}$ functions on $[0,1]$ with one-sided derivatives at $0$
+  (Mathlib's \texttt{taylor\_mean\_remainder\_lagrange} for \texttt{ContDiffOn}), rather than extending $\varphi$ to $t<0$ artificially.
+\end{enumerate}
+\end{proof}
+
+\begin{remark}[What remains of Section~1.7]
+\label{rem:sg-tal:remaining-17}
+Besides the open steps of the proof above (the replica reduction, the variable $t=\sin^2s$, the moments (1.201), the $2k$-th derivative bound, the interval form of Taylor's lemma, and the assembly), nothing else of
+Section~1.7 is formalized, and for that reason it is not stated here as theorems: Corollary~1.7.13 (the special cases $U(x)=e^{\varepsilon\beta x}$ and $U(x)=xe^{\varepsilon\beta x}$, Eqs.~(1.206)--(1.207)),
+Lemma~1.7.5 ($|q-q_-|\le L/N$), Lemmas~1.7.4 and~1.7.6 (the asymptotic Gaussianity of the cavity field and its coupling with an independent Gaussian) and Theorem~1.7.1 (the local magnetizations
+are asymptotically i.i.d.).  They are the subject of the next milestone.
+Nothing in Sections~1.1--1.6 depends on Section~1.7.
 \end{remark}
