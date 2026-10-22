@@ -154,30 +154,24 @@ theorem integral_cosh_two_sum_mul_gaussianReal {K L : Type*} [Fintype K] [Fintyp
       ∂((Measure.pi fun _ : K => gaussianReal 0 1).prod
         (Measure.pi fun _ : L => gaussianReal 0 1)) =
     Real.cosh m * Real.exp ((∑ i, c i ^ 2 + ∑ j, d j ^ 2) / 2) := by
-  simp_rw [cosh_two_sum_mul_add_eq c d m]
-  have h1 := integrable_exp_prod_mul_gaussianReal c d
-  have h2 := integrable_exp_prod_mul_gaussianReal (-c) (-d)
-  rw [integral_div, integral_add (h1.const_mul _) (h2.const_mul _),
-    integral_const_mul, integral_const_mul,
-    integral_prod_mul (fun g : K → ℝ => Real.exp (∑ i, c i * g i))
-      (fun z : L → ℝ => Real.exp (∑ j, d j * z j)),
-    integral_prod_mul (fun g : K → ℝ => Real.exp (∑ i, (-c) i * g i))
-      (fun z : L → ℝ => Real.exp (∑ j, (-d) j * z j)),
-    integral_exp_sum_mul_gaussianReal c, integral_exp_sum_mul_gaussianReal d,
-    integral_exp_sum_mul_gaussianReal (-c), integral_exp_sum_mul_gaussianReal (-d)]
-  have hc : ∑ i, (-c) i ^ 2 / 2 = ∑ i, c i ^ 2 / 2 := by
-    simp only [Pi.neg_apply, neg_sq]
-  have hd : ∑ j, (-d) j ^ 2 / 2 = ∑ j, d j ^ 2 / 2 := by
-    simp only [Pi.neg_apply, neg_sq]
-  rw [hc, hd]
-  have hsum : ∑ i, c i ^ 2 / 2 + ∑ j, d j ^ 2 / 2 =
-      (∑ i, c i ^ 2 + ∑ j, d j ^ 2) / 2 := by
-    rw [← Finset.sum_div, ← Finset.sum_div, ← add_div]
-  have hv : Real.exp (∑ i, c i ^ 2 / 2) * Real.exp (∑ j, d j ^ 2 / 2) =
-      Real.exp ((∑ i, c i ^ 2 + ∑ j, d j ^ 2) / 2) := by
-    rw [← Real.exp_add, hsum]
-  rw [hv, Real.cosh_eq]
-  ring
+  have hmp := measurePreserving_sumPiEquivProdPi_symm
+    (X := fun _ : K ⊕ L => ℝ) (fun _ => gaussianReal 0 1)
+  calc
+    (∫ ω : (K → ℝ) × (L → ℝ),
+        Real.cosh (∑ i, c i * ω.1 i + ∑ j, d j * ω.2 j + m)
+        ∂((Measure.pi fun _ : K => gaussianReal 0 1).prod
+          (Measure.pi fun _ : L => gaussianReal 0 1))) =
+      ∫ ξ : K ⊕ L → ℝ, Real.cosh (∑ k, Sum.elim c d k * ξ k + m)
+        ∂(Measure.pi fun _ : K ⊕ L => gaussianReal 0 1) := by
+      rw [← hmp.integral_comp']
+      congr 1
+      funext ω
+      simp [MeasurableEquiv.coe_sumPiEquivProdPi_symm, Fintype.sum_sum_type]
+    _ = Real.cosh m * Real.exp (∑ k : K ⊕ L, Sum.elim c d k ^ 2 / 2) :=
+      integral_cosh_sum_mul_gaussianReal (Sum.elim c d) m
+    _ = Real.cosh m * Real.exp ((∑ i, c i ^ 2 + ∑ j, d j ^ 2) / 2) := by
+      simp only [Fintype.sum_sum_type, Sum.elim_inl, Sum.elim_inr]
+      rw [← Finset.sum_div, ← Finset.sum_div, ← add_div]
 
 
 /-- `cosh` of an affine form in a finite Gaussian block and one scalar Gaussian is the average
