@@ -26,7 +26,7 @@ namespace SpinGlasses
 
 section Nested
 
-variable {Ω₀ Ω α : Type*} [MeasurableSpace Ω₀] [MeasurableSpace Ω] [Fintype α] [Nonempty α]
+variable {Ω₀ Ω α : Type*} [MeasurableSpace Ω₀] [MeasurableSpace Ω] [Finite α] [Nonempty α]
   [MeasurableSpace α] [MeasurableSingletonClass α]
   (P₀ : Measure Ω₀) [IsProbabilityMeasure P₀] (P : Measure Ω) [IsProbabilityMeasure P]
   (E : Ω₀ → Ω → α → ℝ) (hE : ∀ a, Measurable (fun x : Ω₀ × Ω => E x.1 x.2 a))
@@ -85,8 +85,8 @@ end Nested
 
 section TwoReplica
 
-variable {α β : Type*} [Fintype α] [MeasurableSpace α] [MeasurableSingletonClass α]
-  [Fintype β] [MeasurableSpace β] [MeasurableSingletonClass β]
+variable {α β : Type*} [Finite α] [MeasurableSpace α] [MeasurableSingletonClass α]
+  [Finite β] [MeasurableSpace β] [MeasurableSingletonClass β]
 
 /-- **Reindexing two replicas along an equivalence.** -/
 theorem integral_prod_count_tilted_equiv (e : β ≃ α) (f : α → ℝ) (Θ : α → α → ℝ) :
@@ -94,6 +94,8 @@ theorem integral_prod_count_tilted_equiv (e : β ≃ α) (f : α → ℝ) (Θ : 
       ∫ p : β × β, Θ (e p.1) (e p.2)
         ∂((Measure.count.tilted fun b => f (e b)).prod
           (Measure.count.tilted fun b => f (e b))) := by
+  have := Fintype.ofFinite α
+  have := Fintype.ofFinite β
   rw [integral_prod_count_tilted_eq_double_sum f Θ,
     integral_prod_count_tilted_eq_double_sum (fun b => f (e b)) (fun a b => Θ (e a) (e b)),
     ← e.sum_comp (fun a => Real.exp (f a))]

@@ -184,7 +184,7 @@ theorem exists_hasDerivAt_sk_pair_perturb_path
     have h2 := integral_nested_prod_gibbs_affine P₀ P (E t) (hEm t)
       (fun a b => |Rf a b - q|) 2 (4 / ((N : ℝ) + 1))
     have hV : |V| ≤ 2 * Ψ + 4 / ((N : ℝ) + 1) := h1.trans h2.le
-    show |C + β ^ 2 / 2 * V - C| ≤ β ^ 2 * Ψ + 2 * β ^ 2 / ((N : ℝ) + 1)
+    change |C + β ^ 2 / 2 * V - C| ≤ β ^ 2 * Ψ + 2 * β ^ 2 / ((N : ℝ) + 1)
     have : |C + β ^ 2 / 2 * V - C| = β ^ 2 / 2 * |V| := by
       rw [add_sub_cancel_left, abs_mul, abs_of_nonneg (by positivity : 0 ≤ β ^ 2 / 2)]
     rw [this]
