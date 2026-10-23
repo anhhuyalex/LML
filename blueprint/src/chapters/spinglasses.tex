@@ -1347,6 +1347,41 @@ gives (i), and dominated differentiation under the integral gives (ii). Part (ii
 derivatives have exponential growth. Part (iv): the image of $P\otimes P$ under $z\mapsto(g(z_1),g(z_2))$ is the product of the two image measures $(P\circ g^{-1})\otimes(P\circ g^{-1})$, and a product of Gaussian measures is Gaussian.
 \end{proof}
 
+\begin{remark}[Dominated differentiation under a Gaussian expectation, part (ii) of Lemma~\ref{lem:sg:expgrowth}]\label{rem:sg:dominated-differentiation}
+\emph{What is claimed.} Let $X=(X_l)_{l\in\kappa}$ be a centered Gaussian vector on a probability space $(\Omega,P)$, $\kappa$ finite, and let $G:\mathbb R\times\mathbb R^\kappa\to\mathbb R$ be a family of test functions
+indexed by a parameter $s$, with $G'(s,y)$ meant to be the derivative of $G(s,y)$ in $s$. The Lean theorem \texttt{hasDerivAt\_integral\_comp\_of\_exp\_growth} assumes, for a fixed point $s_0$:
+\begin{itemize}
+\item each $y\mapsto G(s,y)$ is measurable, and so is $y\mapsto G'(s_0,y)$;
+\item for every $y$ and every $s$, the function $s\mapsto G(s,y)$ is differentiable at $s$ with derivative $G'(s,y)$;
+\item the derivative has exponential growth \emph{uniformly in $s$}: $|G'(s,y)|\le Ce^{c\|y\|_1}$ for all $s$ and all $y$, with $\|y\|_1=\sum_l|y_l|$;
+\item the value at $s_0$ has exponential growth: $|G(s_0,y)|\le C_0e^{c_0\|y\|_1}$.
+\end{itemize}
+Its conclusion is that $s\mapsto\mathbb E\,G(s,X)$ is differentiable at $s_0$ and
+\[
+\frac{d}{ds}\,\mathbb E\,G(s,X)\Big|_{s=s_0}=\mathbb E\,G'(s_0,X),
+\]
+that is, the derivative may be taken inside the expectation.
+
+\emph{Why a hypothesis is needed.} In general $\frac{d}{ds}\mathbb E[\,\cdot\,]\neq\mathbb E[\frac{d}{ds}\,\cdot\,]$: the difference quotient of the expectation is the expectation of the difference quotient, and a pointwise limit of
+random variables need not have the limit of their expectations (mass can escape to infinity). The standard remedy is \emph{domination}: find one integrable random variable that bounds all the difference quotients at once.
+
+\emph{The argument.} Fix $s\ne s_0$ and consider the difference quotient $q_s(\omega)=\big(G(s,X(\omega))-G(s_0,X(\omega))\big)/(s-s_0)$.
+\begin{enumerate}
+\item \emph{Pointwise limit.} By the second hypothesis, $q_s(\omega)\to G'(s_0,X(\omega))$ as $s\to s_0$, for every $\omega$.
+\item \emph{A bound independent of $s$.} By the mean value theorem in the variable $s$, $q_s(\omega)=G'(\xi,X(\omega))$ for some $\xi$ between $s_0$ and $s$ (depending on $\omega$ and $s$), so
+  $|q_s(\omega)|\le Ce^{c\|X(\omega)\|_1}$ by the third hypothesis. This is why the bound on $G'$ must hold \emph{uniformly in $s$}: $\xi$ is not under our control. (In Lean the bound is used in the form
+  $|C|\,e^{|c|\,\|X\|_1}$, which also covers negative constants.)
+\item \emph{The bound is integrable.} A Gaussian vector has exponential moments of every order: $X\overset d=A\xi$ with $\xi$ standard Gaussian (Theorem~\ref{thm:sg:steinvec}), and $\|A\xi\|_1\le M\|\xi\|_1$ with $M=\max_j\sum_l|A_{lj}|$, so
+  $e^{|c|\|X\|_1}\le\prod_je^{|c|M|\xi_j|}$, whose expectation is a product of one-dimensional Gaussian exponential moments $\mathbb E\,e^{a|\xi_j|}<\infty$. This is part (i) of Lemma~\ref{lem:sg:expgrowth} (\texttt{integrable\_comp\_of\_exp\_growth}).
+  The same part (i) gives integrability of $G(s_0,X)$ from the fourth hypothesis, so that $\mathbb E\,G(s_0,X)$ is defined.
+\item \emph{Conclusion.} By the dominated convergence theorem, $\mathbb E\,q_s\to\mathbb E\,G'(s_0,X)$ as $s\to s_0$. Since $\mathbb E\,q_s$ is the difference quotient of $s\mapsto\mathbb E\,G(s,X)$, this is the claim.
+\end{enumerate}
+In Lean the argument is Mathlib's \texttt{hasDerivAt\_integral\_of\_dominated\_loc\_of\_deriv\_le} with the bound function $|C|\,e^{|c|\|X\|_1}$.
+
+\emph{Where it is used.} In Section~\ref{sec:sg-tal:foundations} (Lemma~\ref{lem:sg-tal:path-derivative}), the family is $G(s,y)=F(\cos s\,y_{\mathrm{left}}+\sin s\,y_{\mathrm{right}})$ for a vector $y$ indexed by $\kappa\sqcup\kappa$, the test function is a $C^2$ function $F$ and $X$ is the Gaussian pair $(X,Y)$; then
+$G'(s,y)=\sum_l(-\sin s\,y_{\mathrm{left},l}+\cos s\,y_{\mathrm{right},l})\,\partial_lF(\cdots)$ by the chain rule, and the uniform bound comes from $|\cos|,|\sin|\le1$ and the exponential growth of $\partial_lF$.
+\end{remark}
+
 \begin{theorem}[Exponential moments of the free-energy difference of two copies]\label{thm:sg:expmoment}
   \lean{SpinGlasses.abs_log_sum_exp_sub_le_of_forall, SpinGlasses.abs_log_sum_exp_sub_le,
         SpinGlasses.hasDerivAt_cos_mul_add_sin_mul, SpinGlasses.abs_neg_sin_mul_add_cos_mul_le,

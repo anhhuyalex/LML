@@ -88,11 +88,10 @@ where $\|y\|_1=\sum_l|y_l|$. Put $Z_s=\cos s\,X+\sin s\,Y$. Then $s\mapsto\mathb
 \end{lemma}
 \begin{proof}
   \leanok
-  \uses{thm:sg:steinvec}
+  \uses{thm:sg:steinvec, lem:sg:expgrowth}
 The path $Z_s$ replaces the book's $\sqrt t\,u+\sqrt{1-t}\,v$ of Eq.~(1.38) by $\cos s\,X+\sin s\,Y$: it has the same endpoints in the roles $v=X$ (at $s=0$) and $u=Y$ (at $s=\pi/2$), the covariance of $Z_s$ is $\cos^2s\,A+\sin^2s\,B$, and it is smooth on all of $\mathbb R$, so that no singular derivative has to be handled at the endpoints.
 \emph{Step 1: differentiate under the expectation.} Pointwise, $\frac{d}{ds}F(Z_s)=\sum_lz_s(l)\,\partial_lF(Z_s)$ with $z_s(l)=-\sin s\,X_l+\cos s\,Y_l$ (chain rule, Eq.~(1.41)). The $\ell^1$ norm of $Z_s$ is at most that of $(X,Y)$, since $|\cos|,|\sin|\le1$,
-and $|z_s(l)|\le\|(X,Y)\|_1\le e^{\|(X,Y)\|_1}$. Hence $|\sum_lz_s(l)\partial_lF(Z_s)|\le(\sum_lD_l)\,e^{(|c_1|+1)\|(X,Y)\|_1}$, a bound that does not depend on $s$ and is integrable, because a Gaussian vector has exponential moments of every order (\texttt{integrable\_comp\_of\_exp\_growth}). Dominated differentiation
-(\texttt{hasDerivAt\_integral\_comp\_of\_exp\_growth}) gives $\frac{d}{ds}\mathbb{E}F(Z_s)=\sum_l\mathbb{E}[z_s(l)\,\partial_lF(Z_s)]$.
+and $|z_s(l)|\le\|(X,Y)\|_1\le e^{\|(X,Y)\|_1}$. Hence $|\sum_lz_s(l)\partial_lF(Z_s)|\le(\sum_lD_l)\,e^{(|c_1|+1)\|(X,Y)\|_1}$, a bound that does not depend on $s$ and is integrable, because a Gaussian vector has exponential moments of every order (\texttt{integrable\_comp\_of\_exp\_growth}). Dominated differentiation under a Gaussian expectation (Lemma~\ref{lem:sg:expgrowth}(ii), explained in Remark~\ref{rem:sg:dominated-differentiation}; \texttt{hasDerivAt\_integral\_comp\_of\_exp\_growth}) gives $\frac{d}{ds}\mathbb{E}F(Z_s)=\sum_l\mathbb{E}[z_s(l)\,\partial_lF(Z_s)]$.
 \emph{Step 2: Gaussian integration by parts.} The pair $(z_s,Z_s)$ is a centered jointly Gaussian family (a linear image of $(X,Y)$), and, because $\mathbb{E}[X_lY_k]=0$,
 \[
 \mathbb{E}[z_s(l)Z_s(k)]=-\sin s\cos s\,A_{lk}+\cos s\sin s\,B_{lk}=\sin s\cos s\,(B_{lk}-A_{lk}).
@@ -147,7 +146,7 @@ Since $|\cos s|,|\sin s|\le1$, we have $\|Z_s\|_1\le\|(X,Y)\|_1$ and $|z_s(l)|\l
 \[
 \Big|\sum_lz_s(l)\,\partial_lF(Z_s)\Big|\le\Big(\sum_lD_l\Big)e^{(|c_1|+1)\|(X,Y)\|_1},
 \]
-and the right side does not depend on $s$ and is integrable, because a Gaussian vector has exponential moments of every order (\texttt{integrable\_comp\_of\_exp\_growth}). The same growth assumption on $F$ shows that $F(Z_s)$ is integrable. By dominated differentiation (\texttt{hasDerivAt\_integral\_comp\_of\_exp\_growth}),
+and the right side does not depend on $s$ and is integrable, because a Gaussian vector has exponential moments of every order (\texttt{integrable\_comp\_of\_exp\_growth}). The same growth assumption on $F$ shows that $F(Z_s)$ is integrable. By dominated differentiation under a Gaussian expectation (Lemma~\ref{lem:sg:expgrowth}(ii) and Remark~\ref{rem:sg:dominated-differentiation}; \texttt{hasDerivAt\_integral\_comp\_of\_exp\_growth}),
 \[
 \varphi'(s)=\sum_l\mathbb{E}\big[z_s(l)\,\partial_lF(Z_s)\big]\qquad\text{for every }s\in\mathbb R.
 \]
