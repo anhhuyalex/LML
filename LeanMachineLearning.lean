@@ -7,7 +7,6 @@ public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.Weights
 public import LeanMachineLearning.ForMathlib.Analysis.Asymptotics.Theta
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.Gradient.Basic
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.GronwallBackward
-public import LeanMachineLearning.ForMathlib.Analysis.Calculus.TaylorInterpolation
 public import LeanMachineLearning.ForMathlib.Analysis.Cesaro
 public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.GramIsometry
 public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.ProjectionDistance
@@ -16,6 +15,7 @@ public import LeanMachineLearning.ForMathlib.Analysis.RpowTsum
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.AddPowEstimates
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Hyperbolic
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.LogRpow
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SinCosChain
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SinCosEndpoint
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Tanh
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.TrigSquareParam
@@ -381,8 +381,10 @@ public import LeanMachineLearning.SpinGlasses.GaussianIBPCountable
 public import LeanMachineLearning.SpinGlasses.GaussianInterpolationConditional
 public import LeanMachineLearning.SpinGlasses.GaussianInterpolationReplica
 public import LeanMachineLearning.SpinGlasses.GaussianProjectionPath
+public import LeanMachineLearning.SpinGlasses.GibbsGramMoments
 public import LeanMachineLearning.SpinGlasses.GibbsMeasure
 public import LeanMachineLearning.SpinGlasses.GibbsMeasureNested
+public import LeanMachineLearning.SpinGlasses.GibbsProjectionBound
 public import LeanMachineLearning.SpinGlasses.GibbsProjectionFluctuation
 public import LeanMachineLearning.SpinGlasses.GibbsReplicaMarginal
 public import LeanMachineLearning.SpinGlasses.GuerraToninelli
@@ -439,6 +441,7 @@ public import LeanMachineLearning.SpinGlasses.SKCorrelationDecay
 public import LeanMachineLearning.SpinGlasses.SKDecoupled
 public import LeanMachineLearning.SpinGlasses.SKFirstMoment
 public import LeanMachineLearning.SpinGlasses.SKFixedPoint
+public import LeanMachineLearning.SpinGlasses.SKGaussianFluctuation
 public import LeanMachineLearning.SpinGlasses.SKGuerraBound
 public import LeanMachineLearning.SpinGlasses.SKLatalaBase
 public import LeanMachineLearning.SpinGlasses.SKLatalaCompensated
