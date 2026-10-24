@@ -24,6 +24,8 @@ public section
 open MeasureTheory ProbabilityTheory
 open scoped BigOperators ContDiff
 
+attribute [local instance] Fintype.ofFinite
+
 theorem hasDerivAt_exp_mul (c x : ℝ) :
     HasDerivAt (fun y => Real.exp (c * y)) (c * Real.exp (c * x)) x := by
   have h := ((hasDerivAt_id' x).const_mul c).exp
@@ -290,9 +292,27 @@ theorem integrable_exp_dotProduct_gaussianReal {N : ℕ} (u : Fin N → ℝ) :
       (Measure.pi fun _ : Fin N => gaussianReal 0 1) := by
   have heq : (fun y : Fin N → ℝ => Real.exp (u ⬝ᵥ y)) =
       fun y => Real.exp (∑ i, u i * y i) := by
-    ext y; congr 1; simp [dotProduct]
+    ext y; simp [dotProduct]
   rw [heq]
   exact integrable_exp_sum_mul_gaussianReal u
+
+theorem projPath_zero_pi_div_two {m N : ℕ} (u : Fin m → Fin N → ℝ)
+    (w : (Fin m → ℝ) × (Fin N → ℝ)) (l : Fin m) :
+    projPath u 0 (Real.pi / 2) w l = u l ⬝ᵥ w.2 := by
+  simp only [projPath, Real.cos_pi_div_two, Real.sin_pi_div_two, zero_mul, one_mul, zero_add]
+
+theorem integrable_prod_derivProd_zero {m N : ℕ} (hm : 0 < m)
+    {V : ℝ → ℝ} (hV : ExpTame V) (u : Fin m → Fin N → ℝ) :
+    Integrable (fun y : Fin N → ℝ => ∏ l, V (u l ⬝ᵥ y))
+      (Measure.pi fun _ : Fin N => gaussianReal 0 1) := by
+  have hint := hV.integrable_derivProd_projPath hm u 0 (Real.pi / 2) 0
+  have hpath : (fun (w : (Fin m → ℝ) × (Fin N → ℝ)) =>
+      derivProd V 0 (projPath u 0 (Real.pi / 2) w)) =
+      fun w => ∏ l, V (u l ⬝ᵥ w.2) := by
+    ext w
+    simp only [derivProd, projPath_zero_pi_div_two, Pi.zero_apply, Function.iterate_zero, id]
+  rw [hpath] at hint
+  exact hint.of_comp_snd (NeZero.ne _)
 
 /-- **Talagrand Corollary 1.7.13, Eq. (1.206): Exponential observable.** -/
 theorem sk_gaussian_fluctuation_exp (β h q : ℝ)
@@ -324,26 +344,27 @@ theorem sk_gaussian_fluctuation_exp (β h q : ℝ)
     have h1 := hU.integral_sub_const_mul_gaussianReal v
     rw [← h_gauss]
     exact h1
-  obtain ⟨C, hC0, hCb⟩ := hV.gibbs_fluctuation_abs_le (m := 4 * k) (by omega) v
+  obtain ⟨C, hC0, hCb⟩ := hV.gibbs_fluctuation_abs_le (m := 2 * (2 * k)) (by omega) v
     (by nlinarith [hq.1, hq.2]) hV0
   obtain ⟨K', hK'0, hK'⟩ := sk_overlap_moment_le_of_exp β h q hfix hβ (2 * k)
-  set C₂ : ℝ := C * (((4 * k) * (4 * k) : ℝ) ^ (4 * k) * ((4 * k : ℝ) * 4 ^ (4 * k))) with hC₂
+  set C₂ : ℝ := C * (((2 * (2 * k)) * (2 * (2 * k)) : ℝ) ^ (2 * (2 * k)) *
+    ((2 * (2 * k) : ℝ) * 4 ^ (2 * (2 * k)))) with hC₂
   have hC₂0 : 0 ≤ C₂ := by positivity
   set M : ℝ := Real.exp (8 * (k : ℝ) ^ 2 * β ^ 2) with hM
   have hM0 : 0 < M := Real.exp_pos _
   refine ⟨(C₂ * K' + M) / 2 + 1, by positivity, fun N hN => ?_⟩
   have hNk : (0 : ℝ) < (N : ℝ) ^ k := by positivity
   set ξ : Fin N → (Fin N → ℤˣ) → ℝ := fun i a => ((a i : ℤ) : ℝ) with hξ
-  have hξ_abs : ∀ i a, |ξ i a| ≤ 1 := fun i a => isingObs_abs_le N i a
-  have hξ_sq : ∀ i a, ξ i a ^ 2 = 1 := fun i a => isingObs_sq N i a
+  have hξ_abs : ∀ i a, |ξ i a| ≤ 1 := fun i a => abs_units_cast_le_one (a i)
+  have hξ_sq : ∀ i a, ξ i a ^ 2 = 1 := fun i a => units_cast_sq (a i)
   set P : Measure (FinPairs N → ℝ) := Measure.pi fun _ : FinPairs N => gaussianReal 0 1 with hP
   set Q : Measure (Fin N → ℝ) := Measure.pi fun _ : Fin N => gaussianReal 0 1 with hQ
   set J : (FinPairs N → ℝ) → ℝ := fun g =>
     overlapMoment ξ (skGibbsEnergy N β h g) q (2 * k) with hJ
   have hJint : Integrable J P := by
-    refine integrable_integral_pi_count_tilted_det (R := Fin 2)
+    refine integrable_integral_pi_count_tilted_det (P := P) (R := Fin 2)
       (g := fun a g => skGibbsEnergy N β h g a) (fun a => ?_)
-      (fun τ => (overlapGibbs ξ (τ 0) (τ 1) - q) ^ (4 * k))
+      (fun τ => (overlapGibbs ξ (τ 0) (τ 1) - q) ^ (2 * (2 * k)))
     unfold skGibbsEnergy
     exact (by fun_prop : Measurable _).aemeasurable
   have hJmom : ∫ g, J g ∂P ≤ K' / ((N : ℝ) ^ k) ^ 2 := by
@@ -369,7 +390,8 @@ theorem sk_gaussian_fluctuation_exp (β h q : ℝ)
       Real.exp ((fun i => (Real.sqrt N)⁻¹ * (ε * β * m i)) ⬝ᵥ y)
     have h_split : ∀ y, ((∫ a, Real.exp ((fun i => (Real.sqrt N)⁻¹ * (ε * β * ((a i : ℤ) : ℝ))) ⬝ᵥ y) ∂μ) -
         c₀ * B y) = A y * B y := fun y => by
-      have h1 : ∀ a, Real.exp (ε * β * ((fun i => (Real.sqrt N)⁻¹ * (((a i : ℤ) : ℝ) - m i)) ⬝ᵥ y)) * B y =
+      have h1 : ∀ (a : Fin N → ℤˣ),
+          Real.exp (ε * β * ((fun i => (Real.sqrt N)⁻¹ * (((a i : ℤ) : ℝ) - m i)) ⬝ᵥ y)) * B y =
           Real.exp ((fun i => (Real.sqrt N)⁻¹ * (ε * β * ((a i : ℤ) : ℝ))) ⬝ᵥ y) :=
         fun a => exp_dotProduct_ising_split N β ε y a m
       have h2 : ∫ a, Real.exp ((fun i => (Real.sqrt N)⁻¹ * (ε * β * ((a i : ℤ) : ℝ))) ⬝ᵥ y) ∂μ =
@@ -385,20 +407,30 @@ theorem sk_gaussian_fluctuation_exp (β h q : ℝ)
       have hB4 : (B y ^ (2 * k)) ^ 2 = B y ^ (4 * k) := by rw [← pow_mul]; congr 1; ring
       rw [hA4, hB4] at h_amgm
       have h_inv : ((N : ℝ) ^ k)⁻¹ = (N : ℝ) ^ (- (k : ℝ)) := by
-        rw [Real.rpow_neg hNk.le, Real.rpow_natCast]
+        rw [Real.rpow_neg (by positivity), Real.rpow_natCast]
       rw [h_inv] at h_amgm
       exact h_amgm
+    have hrew : ∀ y : Fin N → ℝ, A y =
+        ∫ a, (Real.exp (ε * β * ((fun i => (Real.sqrt N)⁻¹ * (((a i : ℤ) : ℝ) - m i)) ⬝ᵥ y)) - c₀) ∂μ := fun y => by
+      dsimp [A]
+      rw [integral_sub Integrable.of_finite (integrable_const _)]
+      simp
     have hA_int : ∫ y, A y ^ (4 * k) ∂Q ≤ C₂ * J g := by
-      have hrew : ∀ y : Fin N → ℝ, A y =
-          ∫ a, (Real.exp (ε * β * ((fun i => (Real.sqrt N)⁻¹ * (((a i : ℤ) : ℝ) - m i)) ⬝ᵥ y)) - c₀) ∂μ := fun y => by
-        rw [integral_sub Integrable.of_finite (integrable_const _)]
-        simp
       simp_rw [hrew]
       refine (le_abs_self _).trans ?_
+      have h4k : 4 * k = 2 * (2 * k) := by ring
+      have heq : |∫ y, (∫ a, Real.exp (ε * β * ((fun i => (Real.sqrt N)⁻¹ * (((a i : ℤ) : ℝ) - m i)) ⬝ᵥ y)) - c₀ ∂μ) ^ (4 * k) ∂Q| =
+          |∫ y, (∫ a, Real.exp (ε * β * ((fun i => (Real.sqrt N)⁻¹ * (ξ i a - ∫ b, ξ i b ∂(Measure.count.tilted f))) ⬝ᵥ y)) - c₀ ∂(Measure.count.tilted f)) ^ (2 * (2 * k)) ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1)| := by
+        rw [h4k]
+      rw [heq]
       have h1 := hCb N (Fin N → ℤˣ) ξ hξ_abs f
-      exact h1.trans (mul_le_mul_of_nonneg_left
-        (sum_integral_abs_pairProd_le ξ hξ_sq hN f q v hv (by omega))
-          hC0 |>.trans (le_of_eq (by simp only [hC₂, hJ]; ring)))
+      have h2 := sum_integral_abs_pairProd_le (k := 2 * k) ξ hξ_sq hN f q v hv (by omega)
+      have h3 : C * ((2 * ↑(2 * k) * (2 * ↑(2 * k))) ^ (2 * (2 * k)) *
+          (2 * ↑(2 * k) * (4 ^ (2 * (2 * k)) * overlapMoment ξ f q (2 * k)))) = C₂ * J g := by
+        dsimp [C₂, J, f]
+        push_cast
+        ring
+      exact h1.trans (mul_le_mul_of_nonneg_left h2 hC0 |>.trans (le_of_eq h3))
     have hB_int : ∫ y, B y ^ (4 * k) ∂Q ≤ M := by
       have heq : (fun y => B y ^ (4 * k)) =
           fun y => Real.exp (4 * (k : ℝ) * (ε * β) * ((fun i => (Real.sqrt N)⁻¹ * m i) ⬝ᵥ y)) := by
@@ -408,7 +440,7 @@ theorem sk_gaussian_fluctuation_exp (β h q : ℝ)
         congr 1
         simp only [dotProduct]
         rw [Finset.mul_sum, Finset.mul_sum]
-        refine Finset.sum_congr rfl fun i _ => by ring
+        refine Finset.sum_congr rfl fun i _ => by push_cast; ring
       rw [heq]
       have h_mom := integral_exp_sum_ising_moment_le hN (4 * (k : ℝ) * (ε * β)) m hm_le
       have h_pow : (4 * (k : ℝ) * (ε * β)) ^ 2 / 2 = 8 * (k : ℝ) ^ 2 * β ^ 2 := by
@@ -419,19 +451,134 @@ theorem sk_gaussian_fluctuation_exp (β h q : ℝ)
       rwa [h_pow] at h_mom
     have hg₂ : Integrable (fun y => (N : ℝ) ^ (- (k : ℝ)) * B y ^ (4 * k)) Q := by
       have heq : (fun y => B y ^ (4 * k)) =
-          fun y => Real.exp (((fun i => 4 * (k : ℝ) * ((Real.sqrt N)⁻¹ * (ε * β * m i)))) ⬝ᵥ y) := by
+          fun y => Real.exp (((fun i => ((4 * k : ℕ) : ℝ) * ((Real.sqrt N)⁻¹ * (ε * β * m i)))) ⬝ᵥ y) := by
         ext y
-        simp only [B, dotProduct]
-        rw [← Real.exp_nat_mul, Finset.mul_sum, Finset.mul_sum]
-        refine Finset.sum_congr rfl fun i _ => by ring
+        simp only [B]
+        rw [← Real.exp_nat_mul]
+        congr 1
+        simp only [dotProduct]
+        rw [Finset.mul_sum]
+        refine Finset.sum_congr rfl fun i _ => by push_cast; ring
+      have hB_integrable : Integrable (fun y => B y ^ (4 * k)) Q := by
+        rw [heq]
+        exact integrable_exp_dotProduct_gaussianReal _
+      exact hB_integrable.const_mul _
+    have hA_integrable : Integrable (fun y => A y ^ (4 * k)) Q := by
+      set c : (Fin N → ℤˣ) → Fin N → ℝ :=
+        fun a i => (Real.sqrt N)⁻¹ * (((a i : ℤ) : ℝ) - m i) with hc
+      have h4k : 4 * k = 2 * (2 * k) := by ring
+      have h4k_pos : 0 < 2 * (2 * k) := by omega
+      have hint : ∀ σ : Fin (2 * (2 * k)) → (Fin N → ℤˣ),
+          Integrable (fun y => ∏ l,
+            (fun x => Real.exp (ε * β * x) - c₀) (c (σ l) ⬝ᵥ y)) Q := fun σ =>
+        integrable_prod_derivProd_zero h4k_pos hV (fun l => c (σ l))
+      have h_sum : Integrable (fun y => ∑ σ : Fin (2 * (2 * k)) → (Fin N → ℤˣ),
+          (∏ i, Real.exp (f (σ i)) / ∑ b, Real.exp (f b)) *
+            ∏ l, (fun x => Real.exp (ε * β * x) - c₀) (c (σ l) ⬝ᵥ y)) Q :=
+        integrable_finsetSum _ fun σ _ => (hint σ).const_mul _
+      have heq : (fun y => A y ^ (4 * k)) = fun y =>
+          ∑ σ : Fin (2 * (2 * k)) → (Fin N → ℤˣ),
+            (∏ i, Real.exp (f (σ i)) / ∑ b, Real.exp (f b)) *
+              ∏ l, (fun x => Real.exp (ε * β * x) - c₀) (c (σ l) ⬝ᵥ y) := by
+        ext y
+        rw [hrew y, h4k]
+        have hprod : (∫ a, (fun x => Real.exp (ε * β * x) - c₀) (c a ⬝ᵥ y) ∂μ) ^ (2 * (2 * k)) =
+            ∫ σ : Fin (2 * (2 * k)) → (Fin N → ℤˣ),
+              ∏ l, (fun x => Real.exp (ε * β * x) - c₀) (c (σ l) ⬝ᵥ y)
+              ∂(Measure.pi fun _ : Fin (2 * (2 * k)) => Measure.count.tilted f) := by
+          rw [hμ, integral_fintype_prod_eq_prod (fun (_ : Fin (2 * (2 * k))) (a : Fin N → ℤˣ) =>
+            (fun x => Real.exp (ε * β * x) - c₀) (c a ⬝ᵥ y))]
+          simp
+        rw [hprod, integral_pi_count_tilted f]
       rw [heq]
-      exact (integrable_exp_dotProduct_gaussianReal _).const_mul _
-    -- bound using integral_mono_of_nonneg
+      exact h_sum
+    have hg₁ : Integrable (fun y => (N : ℝ) ^ k * A y ^ (4 * k) / 2) Q :=
+      (hA_integrable.const_mul ((N : ℝ) ^ k)).div_const 2
+    have hg₂_div : Integrable (fun y => (N : ℝ) ^ (- (k : ℝ)) * B y ^ (4 * k) / 2) Q :=
+      hg₂.div_const 2
+    have h_upper_int : Integrable (fun y => ((N : ℝ) ^ k * A y ^ (4 * k) +
+        (N : ℝ) ^ (- (k : ℝ)) * B y ^ (4 * k)) / 2) Q := by
+      have heq : (fun y => ((N : ℝ) ^ k * A y ^ (4 * k) +
+          (N : ℝ) ^ (- (k : ℝ)) * B y ^ (4 * k)) / 2) =
+          (fun y => (N : ℝ) ^ k * A y ^ (4 * k) / 2 +
+            (N : ℝ) ^ (- (k : ℝ)) * B y ^ (4 * k) / 2) := by
+        ext y; ring
+      rw [heq]
+      exact hg₁.add hg₂_div
     have h_nonneg : ∀ y, 0 ≤ ((∫ a, Real.exp ((fun i => (Real.sqrt N)⁻¹ * (ε * β * ((a i : ℤ) : ℝ))) ⬝ᵥ y) ∂μ) -
         c₀ * B y) ^ (2 * k) := fun y => Even.pow_nonneg ⟨k, by ring⟩ _
-    have h_target_nonneg : 0 ≤ (C₂ * (N : ℝ) ^ k * J g + (N : ℝ) ^ (- (k : ℝ)) * M) / 2 := by
-      positivity
-    sorry
+    have h_mono := integral_mono_of_nonneg (ae_of_all _ h_nonneg) h_upper_int (ae_of_all _ h_le)
+    have h_split_int : ∫ y, ((N : ℝ) ^ k * A y ^ (4 * k) +
+        (N : ℝ) ^ (- (k : ℝ)) * B y ^ (4 * k)) / 2 ∂Q =
+        ((N : ℝ) ^ k * (∫ y, A y ^ (4 * k) ∂Q) +
+          (N : ℝ) ^ (- (k : ℝ)) * (∫ y, B y ^ (4 * k) ∂Q)) / 2 := by
+      have heq : (fun y => ((N : ℝ) ^ k * A y ^ (4 * k) +
+          (N : ℝ) ^ (- (k : ℝ)) * B y ^ (4 * k)) / 2) =
+          (fun y => (N : ℝ) ^ k * A y ^ (4 * k) / 2 +
+            (N : ℝ) ^ (- (k : ℝ)) * B y ^ (4 * k) / 2) := by
+        ext y; ring
+      rw [heq, integral_add hg₁ hg₂_div]
+      simp only [integral_div, integral_const_mul]
+      ring_nf
+    rw [h_split_int] at h_mono
+    refine h_mono.trans ?_
+    refine div_le_div_of_nonneg_right (add_le_add ?_ ?_) (by norm_num)
+    · calc (N : ℝ) ^ k * (∫ y, A y ^ (4 * k) ∂Q) ≤ (N : ℝ) ^ k * (C₂ * J g) :=
+           mul_le_mul_of_nonneg_left hA_int (by positivity)
+        _ = C₂ * (N : ℝ) ^ k * J g := by ring
+    · exact mul_le_mul_of_nonneg_left hB_int (by positivity)
+  have hnonneg : ∀ g : FinPairs N → ℝ, 0 ≤ ∫ y : Fin N → ℝ,
+      ((∫ a, Real.exp ((fun i => (Real.sqrt N)⁻¹ * (ε * β * ((a i : ℤ) : ℝ))) ⬝ᵥ y)
+          ∂(Measure.count.tilted (skGibbsEnergy N β h g))) -
+        c₀ * Real.exp ((fun i => (Real.sqrt N)⁻¹ *
+          (ε * β * ∫ b, ((b i : ℤ) : ℝ)
+            ∂(Measure.count.tilted (skGibbsEnergy N β h g)))) ⬝ᵥ y)) ^ (2 * k)
+        ∂Q := fun g => integral_nonneg fun y => Even.pow_nonneg ⟨k, by ring⟩ _
+  have h_bound_int : Integrable (fun g => (C₂ * (N : ℝ) ^ k * J g +
+      (N : ℝ) ^ (- (k : ℝ)) * M) / 2) P := by
+    have h1 : Integrable (fun g => C₂ * (N : ℝ) ^ k * J g / 2) P :=
+      (hJint.const_mul (C₂ * (N : ℝ) ^ k)).div_const 2
+    have h2 : Integrable (fun _ : FinPairs N → ℝ => (N : ℝ) ^ (- (k : ℝ)) * M / 2) P :=
+      integrable_const _
+    have heq : (fun g => (C₂ * (N : ℝ) ^ k * J g + (N : ℝ) ^ (- (k : ℝ)) * M) / 2) =
+        (fun g => C₂ * (N : ℝ) ^ k * J g / 2 + (N : ℝ) ^ (- (k : ℝ)) * M / 2) := by
+      ext g; ring
+    rw [heq]
+    exact h1.add h2
+  have h_outer := integral_mono_of_nonneg (ae_of_all _ hnonneg) h_bound_int (ae_of_all _ hpt)
+  refine h_outer.trans ?_
+  have h_split_outer : ∫ g, (C₂ * (N : ℝ) ^ k * J g + (N : ℝ) ^ (- (k : ℝ)) * M) / 2 ∂P =
+      (C₂ * (N : ℝ) ^ k * (∫ g, J g ∂P) + (N : ℝ) ^ (- (k : ℝ)) * M) / 2 := by
+    have h1 : Integrable (fun g => C₂ * (N : ℝ) ^ k * J g / 2) P :=
+      (hJint.const_mul (C₂ * (N : ℝ) ^ k)).div_const 2
+    have h2 : Integrable (fun _ : FinPairs N → ℝ => (N : ℝ) ^ (- (k : ℝ)) * M / 2) P :=
+      integrable_const _
+    have heq : (fun g => (C₂ * (N : ℝ) ^ k * J g + (N : ℝ) ^ (- (k : ℝ)) * M) / 2) =
+        (fun g => C₂ * (N : ℝ) ^ k * J g / 2 + (N : ℝ) ^ (- (k : ℝ)) * M / 2) := by
+      ext g; ring
+    rw [heq, integral_add h1 h2]
+    simp only [integral_div, integral_const_mul, integral_const, probReal_univ, one_smul]
+    ring_nf
+  rw [h_split_outer]
+  have h_calc : (C₂ * (N : ℝ) ^ k * (∫ g, J g ∂P) + (N : ℝ) ^ (- (k : ℝ)) * M) / 2 ≤
+      ((C₂ * K' + M) / 2) / (N : ℝ) ^ k := by
+    have hJ_le : C₂ * (N : ℝ) ^ k * (∫ g, J g ∂P) ≤ C₂ * K' / (N : ℝ) ^ k := by
+      have h1 : C₂ * (N : ℝ) ^ k * (∫ g, J g ∂P) ≤
+          C₂ * (N : ℝ) ^ k * (K' / ((N : ℝ) ^ k) ^ 2) :=
+        mul_le_mul_of_nonneg_left hJmom (by positivity)
+      refine h1.trans (le_of_eq ?_)
+      have hNk_ne : (N : ℝ) ^ k ≠ 0 := hNk.ne'
+      field_simp
+    have hM_le : (N : ℝ) ^ (- (k : ℝ)) * M = M / (N : ℝ) ^ k := by
+      rw [Real.rpow_neg (by positivity), Real.rpow_natCast]
+      ring
+    rw [hM_le]
+    calc (C₂ * (N : ℝ) ^ k * (∫ g, J g ∂P) + M / (N : ℝ) ^ k) / 2
+      _ ≤ (C₂ * K' / (N : ℝ) ^ k + M / (N : ℝ) ^ k) / 2 := by gcongr
+      _ = ((C₂ * K' + M) / 2) / (N : ℝ) ^ k := by ring
+  refine h_calc.trans ?_
+  gcongr
+  linarith
 
 end
 

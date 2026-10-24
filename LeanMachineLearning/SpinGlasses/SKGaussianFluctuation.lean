@@ -140,13 +140,6 @@ noncomputable def skGibbsEnergy (N : ℕ) (β h : ℝ) (g : FinPairs N → ℝ) 
   (Real.sqrt N)⁻¹ * β * (∑ p : FinPairs N, g p * ((a p.val.1 : ℤ) : ℝ) * ((a p.val.2 : ℤ) : ℝ)) +
     h * ∑ i, ((a i : ℤ) : ℝ)
 
-theorem isingObs_abs_le (N : ℕ) (i : Fin N) (a : Fin N → ℤˣ) : |((a i : ℤ) : ℝ)| ≤ 1 :=
-  (abs_units_cast_eq_one (a i)).le
-
-theorem isingObs_sq (N : ℕ) (i : Fin N) (a : Fin N → ℤˣ) : (((a i : ℤ) : ℝ)) ^ 2 = 1 := by
-  rw [← sq_abs]
-  rw [abs_units_cast_eq_one]
-  norm_num
 
 /-- **The general Gaussian fluctuation principle (Talagrand, Theorem 1.7.11).**  Let
 `4 β² < 1`, let `q = 𝔼 tanh²(β √q z + h)` and let `U` be exponentially tame.  Then for every `k ≥ 1`
@@ -179,8 +172,8 @@ theorem sk_general_gaussian_fluctuation (β h q : ℝ)
   refine ⟨C₂ * K' + 1, by positivity, fun N hN => ?_⟩
   have hNk : (0 : ℝ) < (N : ℝ) ^ k := by positivity
   set ξ : Fin N → (Fin N → ℤˣ) → ℝ := fun i a => ((a i : ℤ) : ℝ) with hξ
-  have hξ_abs : ∀ i a, |ξ i a| ≤ 1 := fun i a => isingObs_abs_le N i a
-  have hξ_sq : ∀ i a, ξ i a ^ 2 = 1 := fun i a => isingObs_sq N i a
+  have hξ_abs : ∀ i a, |ξ i a| ≤ 1 := fun i a => abs_units_cast_le_one (a i)
+  have hξ_sq : ∀ i a, ξ i a ^ 2 = 1 := fun i a => units_cast_sq (a i)
   set P : Measure (FinPairs N → ℝ) := Measure.pi fun _ : FinPairs N => gaussianReal 0 1 with hP
   set J : (FinPairs N → ℝ) → ℝ := fun g =>
     overlapMoment ξ (skGibbsEnergy N β h g) q k with hJ

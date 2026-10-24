@@ -3553,8 +3553,8 @@ on each of the $2k$ factors.  There are $((2k)^2)^{2k}$ lists.
 \begin{definition}[The SK Gibbs energy and the spin observables]
 \label{def:sg-tal:sk-gibbs-energy}
   \lean{SpinGlasses.skGibbsEnergy,
-        SpinGlasses.isingObs_abs_le,
-        SpinGlasses.isingObs_sq}
+        SpinGlasses.abs_units_cast_le_one,
+        SpinGlasses.units_cast_sq}
   \leanok
 \talsource{the Hamiltonian (1.1) with the disorder $g$ held fixed}
 For $g\in\mathbb R^{\mathrm{FinPairs}\,N}$ let $f_g(a)=\frac{\beta}{\sqrt N}\sum_{i<j}g_{ij}a_ia_j+h\sum_ia_i$ be the SK energy on $\{-1,1\}^N$ and $\xi_i(a)=a_i$.  Then $|\xi_i|\le1$ and $\xi_i^2=1$.
