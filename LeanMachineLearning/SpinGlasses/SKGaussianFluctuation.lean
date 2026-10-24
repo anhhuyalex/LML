@@ -140,15 +140,11 @@ noncomputable def skGibbsEnergy (N : ℕ) (β h : ℝ) (g : FinPairs N → ℝ) 
   (Real.sqrt N)⁻¹ * β * (∑ p : FinPairs N, g p * ((a p.val.1 : ℤ) : ℝ) * ((a p.val.2 : ℤ) : ℝ)) +
     h * ∑ i, ((a i : ℤ) : ℝ)
 
-/-- The spin observables `ξ_i(σ) = σ_i`. -/
-def isingObs (N : ℕ) : Fin N → (Fin N → ℤˣ) → ℝ := fun i a => ((a i : ℤ) : ℝ)
-
-theorem isingObs_abs_le (N : ℕ) (i : Fin N) (a : Fin N → ℤˣ) : |isingObs N i a| ≤ 1 :=
+theorem isingObs_abs_le (N : ℕ) (i : Fin N) (a : Fin N → ℤˣ) : |((a i : ℤ) : ℝ)| ≤ 1 :=
   (abs_units_cast_eq_one (a i)).le
 
-theorem isingObs_sq (N : ℕ) (i : Fin N) (a : Fin N → ℤˣ) : isingObs N i a ^ 2 = 1 := by
+theorem isingObs_sq (N : ℕ) (i : Fin N) (a : Fin N → ℤˣ) : (((a i : ℤ) : ℝ)) ^ 2 = 1 := by
   rw [← sq_abs]
-  unfold isingObs
   rw [abs_units_cast_eq_one]
   norm_num
 
@@ -162,8 +158,8 @@ theorem sk_general_gaussian_fluctuation (β h q : ℝ)
     (hβ : 4 * β ^ 2 < 1) {U : ℝ → ℝ} (hU : ExpTame U) {k : ℕ} (hk : 1 ≤ k) :
     ∃ K : ℝ, 0 < K ∧ ∀ N : ℕ, 0 < N →
       ∫ g : FinPairs N → ℝ, ∫ y : Fin N → ℝ,
-        ((∫ a, U ((fun i => (Real.sqrt N)⁻¹ * (isingObs N i a -
-              ∫ b, isingObs N i b ∂(Measure.count.tilted (skGibbsEnergy N β h g)))) ⬝ᵥ y)
+        ((∫ a, U ((fun i => (Real.sqrt N)⁻¹ * (((a i : ℤ) : ℝ) -
+              ∫ b, ((b i : ℤ) : ℝ) ∂(Measure.count.tilted (skGibbsEnergy N β h g)))) ⬝ᵥ y)
             ∂(Measure.count.tilted (skGibbsEnergy N β h g))) -
           ∫ t, U (Real.sqrt (1 - q) * t) ∂(gaussianReal 0 1)) ^ (2 * k)
           ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1)
@@ -182,39 +178,42 @@ theorem sk_general_gaussian_fluctuation (β h q : ℝ)
   have hC₂0 : 0 ≤ C₂ := by positivity
   refine ⟨C₂ * K' + 1, by positivity, fun N hN => ?_⟩
   have hNk : (0 : ℝ) < (N : ℝ) ^ k := by positivity
+  set ξ : Fin N → (Fin N → ℤˣ) → ℝ := fun i a => ((a i : ℤ) : ℝ) with hξ
+  have hξ_abs : ∀ i a, |ξ i a| ≤ 1 := fun i a => isingObs_abs_le N i a
+  have hξ_sq : ∀ i a, ξ i a ^ 2 = 1 := fun i a => isingObs_sq N i a
   set P : Measure (FinPairs N → ℝ) := Measure.pi fun _ : FinPairs N => gaussianReal 0 1 with hP
   set J : (FinPairs N → ℝ) → ℝ := fun g =>
-    overlapMoment (isingObs N) (skGibbsEnergy N β h g) q k with hJ
+    overlapMoment ξ (skGibbsEnergy N β h g) q k with hJ
   have hJint : Integrable J P := by
     refine integrable_integral_pi_count_tilted_det (R := Fin 2)
       (g := fun a g => skGibbsEnergy N β h g a) (fun a => ?_)
-      (fun τ => (overlapGibbs (isingObs N) (τ 0) (τ 1) - q) ^ (2 * k))
+      (fun τ => (overlapGibbs ξ (τ 0) (τ 1) - q) ^ (2 * k))
     unfold skGibbsEnergy
     exact (by fun_prop : Measurable _).aemeasurable
   have hJmom : ∫ g, J g ∂P ≤ K' / (N : ℝ) ^ k := hK' N hN
   -- pointwise bound
   have hpt : ∀ g : FinPairs N → ℝ, ∫ y : Fin N → ℝ,
-      ((∫ a, U ((fun i => (Real.sqrt N)⁻¹ * (isingObs N i a -
-            ∫ b, isingObs N i b ∂(Measure.count.tilted (skGibbsEnergy N β h g)))) ⬝ᵥ y)
+      ((∫ a, U ((fun i => (Real.sqrt N)⁻¹ * (((a i : ℤ) : ℝ) -
+            ∫ b, ((b i : ℤ) : ℝ) ∂(Measure.count.tilted (skGibbsEnergy N β h g)))) ⬝ᵥ y)
           ∂(Measure.count.tilted (skGibbsEnergy N β h g))) - c₀) ^ (2 * k)
         ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1) ≤ C₂ * J g := fun g => by
     set f := skGibbsEnergy N β h g with hf
-    have hrew : ∀ y : Fin N → ℝ, ((∫ a, U ((fun i => (Real.sqrt N)⁻¹ * (isingObs N i a -
-            ∫ b, isingObs N i b ∂(Measure.count.tilted f))) ⬝ᵥ y) ∂(Measure.count.tilted f)) -
-          c₀) = ∫ a, (U ((fun i => (Real.sqrt N)⁻¹ * (isingObs N i a -
-            ∫ b, isingObs N i b ∂(Measure.count.tilted f))) ⬝ᵥ y) - c₀)
+    have hrew : ∀ y : Fin N → ℝ, ((∫ a, U ((fun i => (Real.sqrt N)⁻¹ * (((a i : ℤ) : ℝ) -
+            ∫ b, ((b i : ℤ) : ℝ) ∂(Measure.count.tilted f))) ⬝ᵥ y) ∂(Measure.count.tilted f)) -
+          c₀) = ∫ a, (U ((fun i => (Real.sqrt N)⁻¹ * (((a i : ℤ) : ℝ) -
+            ∫ b, ((b i : ℤ) : ℝ) ∂(Measure.count.tilted f))) ⬝ᵥ y) - c₀)
               ∂(Measure.count.tilted f) := fun y => by
       rw [integral_sub Integrable.of_finite (integrable_const _)]
       simp
     simp_rw [hrew]
     refine (le_abs_self _).trans ?_
-    have h1 := hCb N (Fin N → ℤˣ) (isingObs N) (isingObs_abs_le N) f
+    have h1 := hCb N (Fin N → ℤˣ) ξ hξ_abs f
     exact h1.trans (mul_le_mul_of_nonneg_left
-      (sum_integral_abs_pairProd_le (isingObs N) (isingObs_sq N) hN f q v hv hk) hC0 |>.trans
-        (le_of_eq (by simp only [hC₂, hJ]; ring)))
+      (sum_integral_abs_pairProd_le ξ hξ_sq hN f q v hv hk)
+        hC0 |>.trans (le_of_eq (by simp only [hC₂, hJ]; ring)))
   have hnonneg : ∀ g : FinPairs N → ℝ, 0 ≤ ∫ y : Fin N → ℝ,
-      ((∫ a, U ((fun i => (Real.sqrt N)⁻¹ * (isingObs N i a -
-            ∫ b, isingObs N i b ∂(Measure.count.tilted (skGibbsEnergy N β h g)))) ⬝ᵥ y)
+      ((∫ a, U ((fun i => (Real.sqrt N)⁻¹ * (((a i : ℤ) : ℝ) -
+            ∫ b, ((b i : ℤ) : ℝ) ∂(Measure.count.tilted (skGibbsEnergy N β h g)))) ⬝ᵥ y)
           ∂(Measure.count.tilted (skGibbsEnergy N β h g))) - c₀) ^ (2 * k)
         ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1) := fun g =>
     integral_nonneg fun y => Even.pow_nonneg ⟨k, by ring⟩ _

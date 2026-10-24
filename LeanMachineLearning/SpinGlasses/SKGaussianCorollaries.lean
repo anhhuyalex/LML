@@ -181,27 +181,27 @@ theorem mul_le_half_mul_add_inv_mul {t a b : ℝ} (ht : 0 < t) :
 
 theorem dotProduct_ising_split (N : ℕ) (β ε : ℝ) (y : Fin N → ℝ)
     (a : Fin N → ℤˣ) (m : Fin N → ℝ) :
-    ε * β * ((fun i => (Real.sqrt N)⁻¹ * (isingObs N i a - m i)) ⬝ᵥ y) +
+    ε * β * ((fun i => (Real.sqrt N)⁻¹ * (((a i : ℤ) : ℝ) - m i)) ⬝ᵥ y) +
       ((fun i => (Real.sqrt N)⁻¹ * (ε * β * m i)) ⬝ᵥ y) =
-    (fun i => (Real.sqrt N)⁻¹ * (ε * β * isingObs N i a)) ⬝ᵥ y := by
+    (fun i => (Real.sqrt N)⁻¹ * (ε * β * ((a i : ℤ) : ℝ))) ⬝ᵥ y := by
   simp only [dotProduct]
   rw [Finset.mul_sum, ← Finset.sum_add_distrib]
   refine Finset.sum_congr rfl fun i _ => by ring
 
 theorem exp_dotProduct_ising_split (N : ℕ) (β ε : ℝ) (y : Fin N → ℝ)
     (a : Fin N → ℤˣ) (m : Fin N → ℝ) :
-    Real.exp (ε * β * ((fun i => (Real.sqrt N)⁻¹ * (isingObs N i a - m i)) ⬝ᵥ y)) *
+    Real.exp (ε * β * ((fun i => (Real.sqrt N)⁻¹ * (((a i : ℤ) : ℝ) - m i)) ⬝ᵥ y)) *
       Real.exp (((fun i => (Real.sqrt N)⁻¹ * (ε * β * m i)) ⬝ᵥ y)) =
-    Real.exp ((fun i => (Real.sqrt N)⁻¹ * (ε * β * isingObs N i a)) ⬝ᵥ y) := by
+    Real.exp ((fun i => (Real.sqrt N)⁻¹ * (ε * β * ((a i : ℤ) : ℝ))) ⬝ᵥ y) := by
   rw [← Real.exp_add, dotProduct_ising_split]
 
 theorem id_mul_exp_dotProduct_ising_split (N : ℕ) (β ε : ℝ) (y : Fin N → ℝ)
     (a : Fin N → ℤˣ) (m : Fin N → ℝ) :
-    (((fun i => (Real.sqrt N)⁻¹ * (isingObs N i a - m i)) ⬝ᵥ y) *
-      Real.exp (ε * β * ((fun i => (Real.sqrt N)⁻¹ * (isingObs N i a - m i)) ⬝ᵥ y))) *
+    (((fun i => (Real.sqrt N)⁻¹ * (((a i : ℤ) : ℝ) - m i)) ⬝ᵥ y) *
+      Real.exp (ε * β * ((fun i => (Real.sqrt N)⁻¹ * (((a i : ℤ) : ℝ) - m i)) ⬝ᵥ y))) *
       Real.exp (((fun i => (Real.sqrt N)⁻¹ * (ε * β * m i)) ⬝ᵥ y)) =
-    ((fun i => (Real.sqrt N)⁻¹ * (isingObs N i a - m i)) ⬝ᵥ y) *
-      Real.exp ((fun i => (Real.sqrt N)⁻¹ * (ε * β * isingObs N i a)) ⬝ᵥ y) := by
+    ((fun i => (Real.sqrt N)⁻¹ * (((a i : ℤ) : ℝ) - m i)) ⬝ᵥ y) *
+      Real.exp ((fun i => (Real.sqrt N)⁻¹ * (ε * β * ((a i : ℤ) : ℝ))) ⬝ᵥ y) := by
   rw [mul_assoc, ← Real.exp_add, dotProduct_ising_split]
 
 theorem integral_exp_sum_ising_moment_le {N : ℕ} (hN : 0 < N) (c : ℝ)

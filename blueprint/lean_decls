@@ -3695,7 +3695,6 @@ SpinGlasses.integral_projGram_pow_le
 SpinGlasses.prod_abs_le_sum_pow
 SpinGlasses.sum_integral_abs_pairProd_le
 SpinGlasses.skGibbsEnergy
-SpinGlasses.isingObs
 SpinGlasses.isingObs_abs_le
 SpinGlasses.isingObs_sq
 SpinGlasses.ExpTame.sub_const
