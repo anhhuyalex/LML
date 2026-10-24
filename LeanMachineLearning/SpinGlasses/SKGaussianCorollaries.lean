@@ -9,6 +9,8 @@ public import LeanMachineLearning.SpinGlasses.SKGaussianFluctuation
 public import LeanMachineLearning.ForMathlib.Analysis.RatioBound
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiExp
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Hyperbolic
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.AddPowEstimates
 
 /-!
 # Corollaries of the General Gaussian Fluctuation Bound
@@ -313,6 +315,27 @@ theorem integrable_prod_derivProd_zero {m N : ℕ} (hm : 0 < m)
     simp only [derivProd, projPath_zero_pi_div_two, Pi.zero_apply, Function.iterate_zero, id]
   rw [hpath] at hint
   exact hint.of_comp_snd (NeZero.ne _)
+
+theorem add_pow_two_mul_le {k : ℕ} (hk : 1 ≤ k) (x y : ℝ) :
+    (x + y) ^ (2 * k) ≤ 2 ^ (2 * k - 1) * (x ^ (2 * k) + y ^ (2 * k)) := by
+  have h_even : Even (2 * k) := ⟨k, by ring⟩
+  rw [← Even.pow_abs h_even (x + y)]
+  have h_le : |x + y| ≤ |x| + |y| := abs_add_le x y
+  have h_pow := pow_le_pow_left₀ (abs_nonneg _) h_le (2 * k)
+  refine h_pow.trans ?_
+  have h_add := add_pow_le_mul_pow_add_mul_pow (abs_nonneg x) (abs_nonneg y) zero_lt_one (n := 2 * k) (by omega)
+  have h1 : (1 : ℝ) + 1 = 2 := by norm_num
+  have h2 : (1 : ℝ) + 1⁻¹ = 2 := by norm_num
+  rw [h1, h2] at h_add
+  rw [Even.pow_abs h_even x, Even.pow_abs h_even y] at h_add
+  linarith
+
+theorem sub_pow_two_mul_le {k : ℕ} (hk : 1 ≤ k) (x y : ℝ) :
+    (x - y) ^ (2 * k) ≤ 2 ^ (2 * k - 1) * (x ^ (2 * k) + y ^ (2 * k)) := by
+  have h := add_pow_two_mul_le hk x (-y)
+  rw [show x + -y = x - y by ring] at h
+  have he : (-y) ^ (2 * k) = y ^ (2 * k) := Even.neg_pow ⟨k, by ring⟩ y
+  rwa [he] at h
 
 /-- **The general Gaussian fluctuation principle with multiplier (generalizes (1.206) and (1.207)).** -/
 theorem sk_gaussian_fluctuation_mul_exp (β h q : ℝ)
@@ -688,6 +711,47 @@ theorem sk_gaussian_fluctuation_id_mul_exp (β h q : ℝ)
     rw [h2, sub_mul]
   simp_rw [heq]
   exact h_bound
+
+lemma cosh_add_eq (u h : ℝ) :
+    Real.cosh (u + h) = (Real.exp h * Real.exp u + Real.exp (-h) * Real.exp (-u)) / 2 := by
+  rw [Real.cosh_eq, Real.exp_add, show -(u + h) = -h + -u by ring, Real.exp_add]
+  ring
+
+lemma sinh_add_eq (u h : ℝ) :
+    Real.sinh (u + h) = (Real.exp h * Real.exp u - Real.exp (-h) * Real.exp (-u)) / 2 := by
+  rw [Real.sinh_eq, Real.exp_add, show -(u + h) = -h + -u by ring, Real.exp_add]
+  ring
+
+lemma integral_sinh_add {α : Type*} [MeasurableSpace α] [MeasurableSingletonClass α]
+    (μ : Measure α) [IsProbabilityMeasure μ] [Finite α] (u : α → ℝ) (h : ℝ) :
+    ∫ a, Real.sinh (u a + h) ∂μ =
+      (Real.exp h * (∫ a, Real.exp (u a) ∂μ) -
+        Real.exp (-h) * (∫ a, Real.exp (-u a) ∂μ)) / 2 := by
+  have heq : (fun a => Real.sinh (u a + h)) =
+      fun a => (Real.exp h * Real.exp (u a) - Real.exp (-h) * Real.exp (-u a)) / 2 := by
+    ext a; exact sinh_add_eq (u a) h
+  rw [heq, integral_div]
+  rw [integral_sub Integrable.of_finite Integrable.of_finite]
+  rw [integral_const_mul, integral_const_mul]
+
+lemma integral_cosh_add {α : Type*} [MeasurableSpace α] [MeasurableSingletonClass α]
+    (μ : Measure α) [IsProbabilityMeasure μ] [Finite α] (u : α → ℝ) (h : ℝ) :
+    ∫ a, Real.cosh (u a + h) ∂μ =
+      (Real.exp h * (∫ a, Real.exp (u a) ∂μ) +
+        Real.exp (-h) * (∫ a, Real.exp (-u a) ∂μ)) / 2 := by
+  have heq : (fun a => Real.cosh (u a + h)) =
+      fun a => (Real.exp h * Real.exp (u a) + Real.exp (-h) * Real.exp (-u a)) / 2 := by
+    ext a; exact cosh_add_eq (u a) h
+  rw [heq, integral_div]
+  rw [integral_add Integrable.of_finite Integrable.of_finite]
+  rw [integral_const_mul, integral_const_mul]
+
+lemma dotProduct_neg (N : ℕ) (β : ℝ) (y : Fin N → ℝ) (v : Fin N → ℝ) :
+    ((fun i => (Real.sqrt N)⁻¹ * ((-1) * β * v i)) ⬝ᵥ y) =
+    - (((fun i => (Real.sqrt N)⁻¹ * (β * v i)) ⬝ᵥ y)) := by
+  simp only [dotProduct]
+  rw [← Finset.sum_neg_distrib]
+  refine Finset.sum_congr rfl fun i _ => by ring
 
 end
 
