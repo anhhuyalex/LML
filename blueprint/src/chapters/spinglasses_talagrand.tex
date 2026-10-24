@@ -2990,9 +2990,10 @@ Two things have to be shown:
   $\mathbb E_y\langle V(\dot S)\rangle^m$ by the Gibbs average of the products of Gram entries.  Fully proved.
 \item[E.] \emph{Moments of the Gram entries} (Section~\ref{sec:sg-tal:fluct-gram}; Eq.~(1.201)): $\int T_{\ell\ell'}^{2k}\le4^{2k}\int(R_{1,2}-q)^{2k}$.  Fully proved.
 \item[F.] \emph{Theorem~1.7.11} (Section~\ref{sec:sg-tal:fluct-main}): D, E and the overlap moments of Section~1.4 (Eq.~(1.88)) give the theorem for the SK model.  Fully proved.
+\item[G.] \emph{Fixed-point shift} (Section~\ref{sec:sg-tal:fixed-point-shift}; Lemma~1.7.5): $|q - q_-|\le 1/N$.  Fully proved.
 \end{enumerate}
 Parts~A--E are independent of the spin-glass model: Part~A is about Gaussian vectors, Parts~B--E about an arbitrary finite
-Gibbs measure carrying $N$ bounded observables (Part~E needs $\xi_i^2=1$).  Only Part~F uses the SK model, through the overlap moments of Section~1.4.
+Gibbs measure carrying $N$ bounded observables (Part~E needs $\xi_i^2=1$).  Only Part~F uses the SK model, through the overlap moments of Section~1.4.  Part~G is the fixed-point stability under the cavity parameter shift $\beta_-=\beta\sqrt{1-1/N}$.
 
 \begin{remark}[Conventions and deviations from the book in Section~1.7]
 \label{rem:sg-tal:dev-17}
@@ -3590,10 +3591,40 @@ $\mathbb E_gJ_k(g)\le K'/N^k$ (Theorem~\ref{thm:sg-tal:overlap-moments-all}; $J_
 Formalized in \texttt{SpinGlasses/SKGaussianFluctuation.lean}, \texttt{GibbsGramMoments.lean} and \texttt{GibbsProjectionBound.lean}.
 \end{proof}
 
+\subsection{Fixed-point shift under parameter perturbation (Lemma~1.7.5)}
+\label{sec:sg-tal:fixed-point-shift}
+
+\begin{lemma}[Fixed-point shift under parameter perturbation (Lemma~1.7.5)]
+\label{lem:sg-tal:fixed-point-shift}
+  \lean{SpinGlasses.hasDerivAt_fixedPointMap_param,
+        SpinGlasses.abs_deriv_fixedPointMap_param_le,
+        SpinGlasses.abs_fixedPointMap_sub_le,
+        SpinGlasses.sk_fixed_point_shift_le}
+  \leanok
+\talsource{Lemma~1.7.5, Eq.~(1.187)}
+Let $\beta\ge 0$ with $4\beta^2 < 1$, $h\in\mathbb R$, and $N\ge 1$. Let $q$ be the fixed point at $\beta$,
+$q = \mathbb E\tanh^2(\beta\sqrt q\,z + h)$, and $q_-$ the fixed point at $\beta_- = \beta\sqrt{1 - 1/N}$.
+Then
+\[
+|q - q_-| \le \frac{1}{N}.
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+Follows from the mean value theorem applied to the parameter map $w \mapsto F(w) = \int \tanh^2(w z + h)\,d\gamma(z)$,
+where the derivative is bounded by $2w$, giving $|F(w_1) - F(w_2)| \le 2|w_1^2 - w_2^2|$.
+Since $q = F(\beta\sqrt q)$ and $q_- = F(\beta_-\sqrt{q_-})$,
+\[
+|q - q_-| \le 2|\beta^2 q - \beta_-^2 q_-| \le 2(\beta^2 - \beta_-^2)q + 2\beta_-^2|q - q_-| \le \frac{2\beta^2}{N} + 2\beta^2|q - q_-|.
+\]
+Since $4\beta^2 < 1$, $1 - 2\beta^2 > 1/2 \ge 2\beta^2$, which yields $|q - q_-| \le \frac{2\beta^2}{1 - 2\beta^2}\frac{1}{N} \le \frac{1}{N}$.
+Formalized in \texttt{SpinGlasses/SKFixedPoint.lean}.
+\end{proof}
+
 \begin{remark}[What remains of Section~1.7]
 \label{rem:sg-tal:remaining-17}
-Of Section~1.7 the general Gaussian fluctuation principle (Theorem~\ref{thm:sg-tal:general-fluct}) is formalized.  Not yet formalized, and for that reason not stated here as theorems, are Corollary~1.7.13 (the special cases $U(x)=e^{\varepsilon\beta x}$ and $U(x)=xe^{\varepsilon\beta x}$, Eqs.~(1.206)--(1.207)),
-Lemma~1.7.5 ($|q-q_-|\le L/N$), Lemmas~1.7.4 and~1.7.6 (the asymptotic Gaussianity of the cavity field and its coupling with an independent Gaussian) and Theorem~1.7.1 (the local magnetizations
+Of Section~1.7 the general Gaussian fluctuation principle (Theorem~\ref{thm:sg-tal:general-fluct}) and the fixed-point shift (Lemma~\ref{lem:sg-tal:fixed-point-shift}) are formalized.  Not yet formalized, and for that reason not stated here as theorems, are Corollary~1.7.13 (the special cases $U(x)=e^{\varepsilon\beta x}$ and $U(x)=xe^{\varepsilon\beta x}$, Eqs.~(1.206)--(1.207)),
+Corollary~1.7.15 (the cavity field approximations, Eqs.~(1.209)--(1.210)), Lemmas~1.7.4 and~1.7.6 (the asymptotic Gaussianity of the cavity field and its coupling with an independent Gaussian) and Theorem~1.7.1 (the local magnetizations
 are asymptotically i.i.d.).  They are the subject of the next milestone.
 Nothing in Sections~1.1--1.6 depends on Section~1.7.
 \end{remark}
