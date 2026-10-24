@@ -39,7 +39,9 @@ namespace SpinGlasses
 
 section Gibbs
 
-variable {α : Type*} [Fintype α] [Nonempty α] [MeasurableSpace α] [MeasurableSingletonClass α]
+attribute [local instance] Fintype.ofFinite
+
+variable {α : Type*} [Finite α] [Nonempty α] [MeasurableSpace α] [MeasurableSingletonClass α]
   {N : ℕ} (ξ : Fin N → α → ℝ)
 
 /-- The centered scaled replica data `u_ℓ i = N^{-1/2} (ξ_i(σ_ℓ) - ⟨ξ_i⟩)`. -/
@@ -53,6 +55,7 @@ noncomputable def gibbsProjSum {m : ℕ} (V : ℝ → ℝ) (f : α → ℝ) (v :
 
 variable {m : ℕ} {V : ℝ → ℝ}
 
+omit [Nonempty α] in
 theorem hasDerivAt_gibbsProjSum (hV : ExpTame V) (f : α → ℝ) (v : ℝ) (r : ℕ) (s : ℝ) :
     HasDerivAt (gibbsProjSum (m := m) ξ V f v r)
       (Real.sin s * Real.cos s * gibbsProjSum (m := m) ξ V f v (r + 1) s) s := by
@@ -128,6 +131,7 @@ theorem abs_gibbsProjSum_le_of_bound {C : ℝ} {r : ℕ}
     _ = _ := by
         rw [integral_const_mul, integral_finsetSum _ fun p _ => Integrable.of_finite]
 
+omit [Nonempty α] in
 /-- Swapping the finite Gibbs average with an integral over another space. -/
 theorem integral_integral_swap_pi_count_tilted {Ω : Type*} [MeasurableSpace Ω] (P : Measure Ω)
     (f : α → ℝ) (G : (Fin m → α) → Ω → ℝ) (hG : ∀ σ, Integrable (G σ) P) :
@@ -142,6 +146,7 @@ theorem projSum_zero_index (u : Fin m → Fin N → ℝ) (v s : ℝ) :
     projSum V u v 0 s = ∫ ω, ∏ l, V (projPath u v s ω l) ∂(projMeasure m N) := by
   simp [projSum, pairProd, pairCount, derivProd]
 
+omit [Nonempty α] in
 /-- **The endpoint of the path is the `m`-th power of the Gibbs average.** -/
 theorem gibbsProjSum_zero_index_pi_div_two (hV : ExpTame V) (hm : 0 < m) (f : α → ℝ) (v : ℝ) :
     gibbsProjSum (m := m) ξ V f v 0 (Real.pi / 2) =

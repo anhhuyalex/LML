@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.SpinGlasses.GibbsProjectionBound
+public import Mathlib.Algebra.Order.Chebyshev
 
 /-!
 # Moments of the Gram entries `T_{ℓ ℓ'}` (Talagrand, Eq. (1.201))
@@ -35,7 +36,9 @@ namespace SpinGlasses
 
 section Moments
 
-variable {α : Type*} [Fintype α] [Nonempty α] [MeasurableSpace α] [MeasurableSingletonClass α]
+attribute [local instance] Fintype.ofFinite
+
+variable {α : Type*} [Finite α] [Nonempty α] [MeasurableSpace α] [MeasurableSingletonClass α]
   {N : ℕ} (ξ : Fin N → α → ℝ)
 
 /-- The overlap `R(a, b) = N⁻¹ ∑_i ξ_i(a) ξ_i(b)`. -/
@@ -52,12 +55,13 @@ theorem pow_integral_count_tilted_le (f h : α → ℝ) (k : ℕ) :
     Integrable.of_finite Integrable.of_finite
   simpa [average_eq_integral] using this
 
+omit [Nonempty α] in
 /-- The partial average `A(a) = ∫ R(a, b) dμ(b) = N⁻¹ ∑_i ξ_i(a) ⟨ξ_i⟩`. -/
 theorem integral_overlapGibbs_right (f : α → ℝ) (a : α) :
     ∫ b, overlapGibbs ξ a b ∂(Measure.count.tilted f) =
       (N : ℝ)⁻¹ * ∑ i, ξ i a * ∫ b, ξ i b ∂(Measure.count.tilted f) := by
   unfold overlapGibbs
-  rw [integral_const_mul, integral_finset_sum _ fun i _ => Integrable.of_finite]
+  rw [integral_const_mul, integral_finsetSum _ fun i _ => Integrable.of_finite]
   congr 1
   exact Finset.sum_congr rfl fun i _ => integral_const_mul _ _
 
@@ -74,15 +78,18 @@ noncomputable def overlapMoment (f : α → ℝ) (q : ℝ) (k : ℕ) : ℝ :=
   ∫ τ : Fin 2 → α, (overlapGibbs ξ (τ 0) (τ 1) - q) ^ (2 * k)
     ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted f)
 
+omit [Nonempty α] in
 theorem overlapMoment_eq (f : α → ℝ) (q : ℝ) (k : ℕ) :
     overlapMoment ξ f q k = ∫ a, ∫ b, (overlapGibbs ξ a b - q) ^ (2 * k)
       ∂(Measure.count.tilted f) ∂(Measure.count.tilted f) := by
+  have h2 := integral_pi_fin_two_count_tilted f (fun a b => (overlapGibbs ξ a b - q) ^ (2 * k))
   unfold overlapMoment
-  rw [integral_pi_fin_two_count_tilted, integral_count_tilted]
+  rw [h2, integral_count_tilted]
   refine Finset.sum_congr rfl fun a _ => ?_
   rw [integral_count_tilted, Finset.mul_sum]
   exact Finset.sum_congr rfl fun b _ => by ring
 
+omit [Finite α] [MeasurableSingletonClass α] [Nonempty α] in
 theorem overlapMoment_nonneg (f : α → ℝ) (q : ℝ) (k : ℕ) : 0 ≤ overlapMoment ξ f q k :=
   integral_nonneg fun τ => Even.pow_nonneg ⟨k, by ring⟩ _
 
@@ -124,8 +131,7 @@ theorem four_pow_le (a b c d : ℝ) {k : ℕ} (hk : 1 ≤ k) :
     (a + b + c + d) ^ (2 * k) ≤ 4 ^ (2 * k - 1) *
       (a ^ (2 * k) + b ^ (2 * k) + c ^ (2 * k) + d ^ (2 * k)) := by
   have h := pow_sum_le_card_mul_sum_pow (s := (Finset.univ : Finset (Fin 4)))
-    (f := ![|a|, |b|, |c|, |d|]) (n := 2 * k - 1)
-    (fun i _ => by fin_cases i <;> simp)
+    (f := ![|a|, |b|, |c|, |d|]) (fun i _ => by fin_cases i <;> simp) (2 * k - 1)
   have e : 2 * k - 1 + 1 = 2 * k := by omega
   rw [e] at h
   simp only [Fin.sum_univ_four, Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.cons_val_two,
@@ -139,12 +145,13 @@ theorem four_pow_le (a b c d : ℝ) {k : ℕ} (hk : 1 ≤ k) :
       calc |a + b + c + d| ≤ |a + b + c| + |d| := abs_add_le _ _
         _ ≤ |a + b| + |c| + |d| := by gcongr; exact abs_add_le _ _
         _ ≤ |a| + |b| + |c| + |d| := by gcongr; exact abs_add_le _ _) _
-  exact hs.trans (by simpa using h)
+  exact hs.trans (by simpa [hev] using h)
 
 section Ising
 
 variable (hξ2 : ∀ i a, ξ i a ^ 2 = 1)
 
+omit [Finite α] [Nonempty α] [MeasurableSpace α] [MeasurableSingletonClass α] in
 include hξ2 in
 theorem overlapGibbs_self (hN : 0 < N) (a : α) : overlapGibbs ξ a a = 1 := by
   unfold overlapGibbs
@@ -153,6 +160,7 @@ theorem overlapGibbs_self (hN : 0 < N) (a : α) : overlapGibbs ξ a a = 1 := by
   have : (N : ℝ) ≠ 0 := by positivity
   field_simp
 
+omit [Nonempty α] in
 /-- The mean overlap is `B = N⁻¹ ∑ ⟨ξ_i⟩²`. -/
 theorem meanOverlap_eq (f : α → ℝ) :
     meanOverlap ξ f = (N : ℝ)⁻¹ * ∑ i, (∫ b, ξ i b ∂(Measure.count.tilted f)) ^ 2 := by
@@ -161,11 +169,13 @@ theorem meanOverlap_eq (f : α → ℝ) :
       (N : ℝ)⁻¹ * ∑ i, ξ i a * ∫ b, ξ i b ∂(Measure.count.tilted f) := fun a =>
     integral_overlapGibbs_right ξ f a
   simp_rw [h]
-  rw [integral_const_mul, integral_finset_sum _ fun i _ => Integrable.of_finite]
+  rw [integral_const_mul, integral_finsetSum _ fun i _ => Integrable.of_finite]
   congr 1
   refine Finset.sum_congr rfl fun i _ => ?_
   rw [integral_mul_const, sq]
 
+omit [Nonempty α] in
+include hξ2 in
 /-- **The Gram entry as a signed sum of centered overlaps.**  For `v² = 1 - q` and `N > 0`,
 `T_{ℓ ℓ'} = x₁ - (A(σ_ℓ) - q) - (A(σ_ℓ') - q) + (B - q)` with `x₁ = R(σ_ℓ, σ_ℓ') - q` for
 `ℓ ≠ ℓ'` and `x₁ = 0` for `ℓ = ℓ'`. -/
@@ -202,9 +212,9 @@ theorem projGram_centeredData_eq (hN : 0 < N) {m : ℕ} (f : α → ℝ) (σ : F
   rw [hdot]
   by_cases h : ℓ = ℓ'
   · subst h
-    simp only [if_true, hv, overlapGibbs_self ξ hξ2 hN]
+    simp only [ite_true, hv, overlapGibbs_self ξ hξ2 hN]
     ring
-  · simp only [h, if_false]
+  · simp only [h, ite_false]
     ring
 
 include hξ2 in
@@ -232,13 +242,14 @@ theorem integral_projGram_pow_le (hN : 0 < N) {m : ℕ} (f : α → ℝ) (q v : 
       simpa [sub_eq_add_neg, add_assoc, x1, x2, x3, x4] using this
   have h1 : ∫ σ : Fin m → α, x1 σ ^ (2 * k) ∂(Measure.pi fun _ : Fin m => μ) ≤ J := by
     by_cases h : ℓ = ℓ'
-    · simp only [x1, h, if_true]
+    · simp only [x1, h, ite_true]
       rw [zero_pow (by omega)]
       simpa using hJ0
     · have := integral_pi_count_tilted_pair (R := Fin m) h f
         (fun a b => (overlapGibbs ξ a b - q) ^ (2 * k))
-      simp only [x1, h, if_false]
+      simp only [x1, h, ite_false]
       rw [hμ, this]
+      exact le_of_eq rfl
   have h2 := integral_partialOverlap_sub_pow_le ξ f q k ℓ
   have h3 := integral_partialOverlap_sub_pow_le ξ f q k ℓ'
   have h4 : ∫ σ : Fin m → α, x4 σ ^ (2 * k) ∂(Measure.pi fun _ : Fin m => μ) ≤ J := by
@@ -259,7 +270,6 @@ theorem integral_projGram_pow_le (hN : 0 < N) {m : ℕ} (f : α → ℝ) (q v : 
           integral_add Integrable.of_finite Integrable.of_finite]
     _ ≤ 4 ^ (2 * k - 1) * (J + J + J + J) := by
         gcongr
-        exacts [h1, h2, h3, h4]
     _ = 4 ^ (2 * k) * J := by
         have : (4 : ℝ) ^ (2 * k) = 4 ^ (2 * k - 1) * 4 := by
           rw [← pow_succ]; congr 1; omega

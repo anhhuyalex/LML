@@ -2,7 +2,7 @@
 
 This chapter formalizes Sections~1.1 through 1.6 of Michel Talagrand's \emph{Spin Glasses: A Challenge for Mathematicians} (Volume~I, Springer, 2010) and the first half of Section~1.7.
 Section~1.6, including Proposition~1.6.8 (the cavity free-energy increment), is proved without any smallness assumption on the model parameters.
-Of Section~1.7 the Gaussian-interpolation and Gibbs-side parts of Theorem~1.7.11 (the general Gaussian fluctuation principle) are formalized; the assembly of the theorem and the results that depend on it (Corollary~1.7.13, Lemmas~1.7.4--1.7.6, Theorem~1.7.1) are not yet formalized, and Section~\ref{sec:sg-tal:fluct} says exactly which steps are missing.
+Of Section~1.7 Theorem~1.7.11 (the general Gaussian fluctuation principle) is formalized; the results that depend on it (Corollary~1.7.13, Lemmas~1.7.4--1.7.6, Theorem~1.7.1) are not yet formalized (Section~\ref{sec:sg-tal:fluct}).
 The mathematical narrative develops the high-temperature theory of the Sherrington--Kirkpatrick (SK) model:
 \begin{enumerate}
 \item The decoupled reference system, hypercube factorizations, exact first-moment calculations, and the first-moment upper bound on the free energy (Section~1.2).
@@ -10,7 +10,7 @@ The mathematical narrative develops the high-temperature theory of the Sherringt
 \item R.~Lata\l{}a's high-temperature overlap concentration: the general second-order replica derivative formula along Gaussian interpolations, the monotonicity of the compensated exponential functional, exponential overlap concentration $\nu(\exp s N (R_{1,2} - q)^2) \le (1 - 2s - 4\beta^2)^{-1/2}$ for $\beta^2 < 1/4$, and the Aizenman--Lebowitz--Ruelle (ALR) high-temperature free energy formula $|p_N(\beta, h) - \operatorname{RS}(q)| \le K/N$ at a solution $q$ of the self-consistency equation (Section~1.4).
 \item Spin decorrelation, asymptotic product measures on finite spin marginals, and high-dimensional random projections (Sections~1.4--1.5).
 \item The cavity method: splitting off the last spin, interpolating the new couplings against an independent Gaussian field, concentration of the overlap around $q$ with all its moments, and the free-energy increment $(N+1)p_{N+1}-Np_N$ (Section~1.6).
-\item The Gaussian fluctuation principle: the Gaussian interpolation between the centered projections $N^{-1/2}\sum_i y_i\dot\sigma_i$ of the Gibbs state and independent Gaussians of variance $1-q$, and the parity argument that makes the first $2k-1$ derivatives vanish at the start of the path (Section~1.7, in progress).
+\item The Gaussian fluctuation principle: the Gaussian interpolation between the centered projections $N^{-1/2}\sum_i y_i\dot\sigma_i$ of the Gibbs state and independent Gaussians of variance $1-q$, the parity argument that makes the first $2k-1$ derivatives vanish at the start of the path, and the moment bounds that make the $2k$-th derivative $O(N^{-k})$ (Section~1.7).
 \end{enumerate}
 
 \medskip\noindent\textbf{Source tags.}
@@ -2966,6 +2966,7 @@ Gaussian mean zero.
 One interpolates, with a parameter $t\in[0,1]$, between $2k$ independent Gaussians of variance $1-q$
 ($t=0$) and the $2k$ projections $\dot S^\ell$ ($t=1$), and applies Taylor's formula to
 $\varphi(t)=\mathbb E\langle\prod_\ell V(\sqrt t\,\dot S^\ell+\sqrt{1-t}\,\xi^\ell\sqrt{1-q})\rangle$.
+(The formalization uses the angle $s$, $t=\sin^2s$, and replaces Taylor's formula by a fencing argument in $s$; see Remark~\ref{rem:sg-tal:dev-17}.)
 Two things have to be shown:
 \begin{itemize}
 \item the first $2k-1$ derivatives of $\varphi$ vanish at $t=0$.  The $r$-th derivative is a sum over lists of $r$
@@ -2983,12 +2984,15 @@ Two things have to be shown:
   that does not involve the Gibbs measure.  Fully proved.
 \item[B.] \emph{Gibbs-side parity} (Section~\ref{sec:sg-tal:fluct-gibbs}): the Gibbs average of the path functional vanishes at the
   start of the path.  Fully proved.
-\item[C.] \emph{Taylor's formula with vanishing derivatives} (Section~\ref{sec:sg-tal:fluct-taylor}).  Fully proved.
-\item[D.] \emph{Theorem~1.7.11} (Section~\ref{sec:sg-tal:fluct-main}): the statement, how Parts~A--C and Theorem~\ref{thm:sg-tal:overlap-moments-all}
-  assemble to it, and the steps still missing.  \emph{Not yet assembled in Lean.}
+\item[C.] \emph{Taylor's formula in the angle} (Section~\ref{sec:sg-tal:fluct-taylor}): a chain $Q_r'=\sin s\cos s\,Q_{r+1}$ with
+  $Q_r(0)=0$ for $r<n$ and $Q_n$ bounded has $|Q_0(\pi/2)|\le M/(2^nn!)$.  Fully proved.
+\item[D.] \emph{The Taylor step for a Gibbs measure} (Section~\ref{sec:sg-tal:fluct-gibbs-taylor}): A, B and C combine to bound
+  $\mathbb E_y\langle V(\dot S)\rangle^m$ by the Gibbs average of the products of Gram entries.  Fully proved.
+\item[E.] \emph{Moments of the Gram entries} (Section~\ref{sec:sg-tal:fluct-gram}; Eq.~(1.201)): $\int T_{\ell\ell'}^{2k}\le4^{2k}\int(R_{1,2}-q)^{2k}$.  Fully proved.
+\item[F.] \emph{Theorem~1.7.11} (Section~\ref{sec:sg-tal:fluct-main}): D, E and the overlap moments of Section~1.4 (Eq.~(1.88)) give the theorem for the SK model.  Fully proved.
 \end{enumerate}
-Parts~A and~B are independent of the spin-glass model: Part~A is about Gaussian vectors, Part~B about an arbitrary finite
-Gibbs measure carrying $N$ bounded observables.  Only Part~D uses the SK model, through the overlap moments of Section~1.4.
+Parts~A--E are independent of the spin-glass model: Part~A is about Gaussian vectors, Parts~B--E about an arbitrary finite
+Gibbs measure carrying $N$ bounded observables (Part~E needs $\xi_i^2=1$).  Only Part~F uses the SK model, through the overlap moments of Section~1.4.
 
 \begin{remark}[Conventions and deviations from the book in Section~1.7]
 \label{rem:sg-tal:dev-17}
@@ -2999,17 +3003,22 @@ Gibbs measure carrying $N$ bounded observables.  Only Part~D uses the SK model, 
   \emph{uniformly} bounded, in $N$ and in the Gibbs configuration, without H\"older's inequality (Lemma~\ref{lem:sg-tal:projpath-bound}),
   and it covers every application of the section: $U(x)=e^{\varepsilon\beta x}$ and $U(x)=xe^{\varepsilon\beta x}$
   in Corollary~1.7.13.
-\item \emph{Angle versus $t$.}  The Gaussian path is differentiated in the angle $s$,
+\item \emph{Angle versus $t$; fencing instead of Taylor's theorem.}  The Gaussian path is differentiated in the angle $s$,
   $Z_s=\cos s\,(v\xi)+\sin s\,(u\cdot y)$, with derivative factor $\sin s\cos s$, exactly as in Sections~1.4 and~1.6.  The book's
   parameter is $t=\sin^2 s$, for which $\sqrt t\,\dot S+\sqrt{1-t}\,\xi\sqrt{1-q}$ is $Z_s$ with $u_{\ell}=N^{-1/2}\dot\sigma^{\ell}$ and
   $v=\sqrt{1-q}$.  The derivative in $t$ is $\frac12\sum T_{\ell\ell'}\partial_\ell\partial_{\ell'}$, i.e.\ the factor $2^{-r}$ of
-  Eq.~(1.203); the change of variable is not yet formalized (Part~D).
+  Eq.~(1.203).  The formalization never changes variable: the iterated derivatives $Q_r$ in $s$ satisfy $Q_r'=\sin s\cos s\,Q_{r+1}$, and a
+  fencing argument for the boundary function $\frac{M}{j!}(\sin^2s/2)^j$ (Lemma~\ref{lem:sg-tal:taylor-vanishing}) gives the same bound $M/(2^nn!)$ as Taylor's formula in $t$,
+  without one-sided derivatives at $t=0$ and without any continuity or domination argument for the $r$-th derivatives of the disorder average.
+  A consequence: the Taylor step is carried out for each fixed disorder (Part~D), and only afterwards integrated over the disorder (Part~F).
 \item \emph{Hypotheses on $\beta$ and $q$.}  As in Sections~1.4 and~1.5 the fixed point $q$ is a hypothesis
   ($q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$), and $\beta<1/2$ is stated as $4\beta^2<1$.
 \item \emph{Common $y$.}  All $2k$ replicas are projected on the \emph{same} Gaussian vector $y$; this is why the path functional
   involves the Gram entries $u_\ell\cdot u_{\ell'}$ and not independent vectors.
-\item \emph{Model independence.}  Parts~A and~B are stated for arbitrary vectors $u_\ell\in\mathbb R^N$ and for an arbitrary finite
-  Gibbs measure with observables $\xi_i$, since only the SK overlap moments of Part~D use the model.  For the SK model $\xi_i(\boldsymbol\sigma)=\sigma_i$.
+\item \emph{Model independence.}  Parts~A--E are stated for arbitrary vectors $u_\ell\in\mathbb R^N$ and for an arbitrary finite
+  Gibbs measure with observables $\xi_i$, since only the SK overlap moments of Part~F use the model.  For the SK model $\xi_i(\boldsymbol\sigma)=\sigma_i$.
+\item \emph{Crude constants.}  The constant $K$ is not tracked: the product of $2k$ Gram entries is bounded by the sum of their $2k$-th powers
+  (Lemma~\ref{lem:sg-tal:amgm-pairprod}) and the four pieces of $T_{\ell\ell'}$ by convexity, which loses factors depending on $k$ only.
 \end{itemize}
 \end{remark}
 
@@ -3021,7 +3030,7 @@ $Z_s=\cos s\,(v\xi)+\sin s\,(u\cdot y)$ interpolates between $m$ independent Gau
 $u_\ell\cdot y$ of one Gaussian vector ($s=\pi/2$).  We compute all derivatives of $\mathbb E\prod_\ell V(Z_{s,\ell})$ in $s$,
 show that they are bounded uniformly in $N$, and evaluate them at $s=0$.
 \emph{Uses:} the derivative formula of Lemma~\ref{lem:sg-tal:gaussian-interp}, the Gaussian moment formulas of Theorem~\ref{thm:sg-tal:first-moment}.
-\emph{Used by:} B and D.  \emph{Status:} fully proved.
+\emph{Used by:} B, D and F.  \emph{Status:} fully proved.
 
 \begin{definition}[Exponentially tame functions]
 \label{def:sg-tal:exptame}
@@ -3351,72 +3360,239 @@ Fix a list $p$ of $r<m$ pairs.  By Lemma~\ref{lem:sg-tal:paircount}(c) some repl
 $\mathrm{pairProd}(p)$ vanishes by Theorem~\ref{thm:sg-tal:parity}.  In both cases the Gibbs average of the $p$-th term is zero; sum over $p$.
 \end{proof}
 
-\subsection{Taylor's formula with vanishing derivatives}
+\subsection{Taylor's formula in the angle: fencing a trigonometric chain}
 \label{sec:sg-tal:fluct-taylor}
 
-\emph{Content.}  The elementary last step of the proof of Theorem~1.7.11: a function whose first $n$ derivatives vanish at $0$ and whose $(n+1)$-th derivative is bounded by $M$ has $|f(1)|\le M/(n+1)!$.
-\emph{Uses:} nothing.  \emph{Used by:} D.  \emph{Status:} proved for functions that are smooth on all of $\mathbb R$; Part~D explains why this must be generalized to $[0,1]$.
+\emph{Content.}  The elementary last step of the proof of Theorem~1.7.11, in a form adapted to the angle parametrization: if a chain
+of functions satisfies $Q_r'=\sin s\cos s\,Q_{r+1}$, the first $n$ members vanish at $0$ and $Q_n$ is bounded, then $Q_0(\pi/2)$ is small.
+This is Taylor's formula in the variable $t=\sin^2 s$, but it is proved directly in $s$, so that neither the change of variable nor one-sided
+derivatives at the endpoint are needed.
+\emph{Uses:} nothing.  \emph{Used by:} D.  \emph{Status:} fully proved.
 
-\begin{lemma}[Taylor remainder when the lower derivatives vanish]
+\begin{lemma}[Fencing a trigonometric chain]
 \label{lem:sg-tal:taylor-vanishing}
-  \lean{taylor_eval_zero_eq_remainder,
-        abs_le_of_forall_deriv_zero_and_bound}
+  \lean{Real.abs_chain_le_of_hasDerivAt,
+        Real.abs_chain_zero_le_of_hasDerivAt}
   \leanok
-\talsource{``it suffices to prove that $\varphi^{(r)}(0)=0$ for $r<2k$ and that $|\varphi^{(2k)}(t)|\le KN^{-k}$''}
-Let $f:\mathbb R\to\mathbb R$ be $C^{n+1}$ with $f^{(k)}(0)=0$ for all $k\le n$.  Then $f(1)=f^{(n+1)}(x')/(n+1)!$ for some $x'\in(0,1)$.  In particular, if $|f^{(n+1)}|\le M$ on $(0,1)$, then
-$|f(1)|\le M/(n+1)!$.
+\talsource{``it suffices to prove that $\varphi^{(r)}(0)=0$ for $r<2k$ and that $|\varphi^{(2k)}(t)|\le KN^{-k}$'' (Taylor's formula for $\varphi$ on $[0,1]$)}
+Let $Q_r:\mathbb R\to\mathbb R$ ($r\in\mathbb N$) be differentiable with $Q_r'(s)=\sin s\cos s\,Q_{r+1}(s)$ for all $s$, let $n\in\mathbb N$ and $M\in\mathbb R$ with $Q_r(0)=0$ for all $r<n$ and
+$|Q_n(s)|\le M$ for $s\in[0,\pi/2]$.  Then for $0\le j\le n$ and $s\in[0,\pi/2]$,
+\[
+|Q_{n-j}(s)|\le\frac{M}{j!}\Bigl(\frac{\sin^2s}{2}\Bigr)^{j},\qquad\text{in particular}\qquad |Q_0(\pi/2)|\le\frac{M}{2^n\,n!}.
+\]
 \end{lemma}
 \begin{proof}
   \leanok
-Taylor's theorem with Lagrange remainder on $[0,1]$ (Mathlib's \texttt{taylor\_mean\_remainder\_lagrange\_iteratedDeriv}), where the Taylor polynomial at $0$ of order $n$ is the sum of the terms $f^{(k)}(0)/k!$, all zero.
+Induction on $j$; $j=0$ is the hypothesis.  For the step put $B(s)=\frac{M}{(j+1)!}(\sin^2 s/2)^{j+1}$, so that $B(0)=0$ and $B'(s)=\sin s\cos s\cdot\frac{M}{j!}(\sin^2s/2)^j$.  The function $f=Q_{n-j-1}$ satisfies $f(0)=0$
+and, on $[0,\pi/2)$ where $\sin s\cos s\ge0$, $|f'(s)|=\sin s\cos s\,|Q_{n-j}(s)|\le B'(s)$ by the induction hypothesis.  Mathlib's fencing theorem for functions with a derivative bounded by the
+derivative of a boundary function (\texttt{image\_norm\_le\_of\_norm\_deriv\_right\_le\_deriv\_boundary}) gives $|f(s)|\le B(s)$ on $[0,\pi/2]$.
+\emph{Why not Taylor's theorem.}  With $t=\sin^2s$ one has $\frac d{dt}=\frac1{2\sin s\cos s}\frac d{ds}$, so $\frac{d}{dt}Q_r=\frac12Q_{r+1}$ on $(0,1)$ and the lemma says $|Q_0(1)|\le M/(2^nn!)$, which
+is Taylor's formula for a function with $Q_0^{(r)}(0)=0$ for $r<n$ and $|Q_0^{(n)}|\le M2^{-n}$.  Taylor's theorem would need $Q_0$ to be $C^n$ on a neighbourhood of $t=0$, i.e.\ one-sided derivatives at the endpoint of the interpolation, which the angle form avoids.
 \end{proof}
 
-\subsection{Theorem~1.7.11 and what remains of Section~1.7}
+\subsection{The Taylor step for a Gibbs measure}
+\label{sec:sg-tal:fluct-gibbs-taylor}
+
+\emph{Content.}  We apply Lemma~\ref{lem:sg-tal:taylor-vanishing} to the Gibbs average $Q_r(s)=\int\mathrm{projSum}_r(s)\,d\mu^{\otimes m}$ of the path functionals of Part~A.
+\emph{Uses:} A, B, C.  \emph{Used by:} F.  \emph{Status:} fully proved.  The statements are model independent: $\mu=G_f$ is an arbitrary Gibbs measure on a finite set $\alpha$ with observables $|\xi_i|\le1$.
+
+\begin{definition}[Centered replica data and the Gibbs-averaged path functional]
+\label{def:sg-tal:gibbs-projsum}
+  \lean{SpinGlasses.centeredData,
+        SpinGlasses.gibbsProjSum}
+  \leanok
+\talsource{notation $u_\ell=N^{-1/2}\dot{\boldsymbol\sigma}^\ell$ in the proof of Theorem~1.7.11}
+For $\boldsymbol\sigma=(\sigma^1,\dots,\sigma^m)\in\alpha^m$ put $u_{\ell i}(\boldsymbol\sigma)=N^{-1/2}(\xi_i(\sigma^\ell)-\langle\xi_i\rangle)$ (\texttt{centeredData}) and
+$Q_r(s)=\int\mathrm{projSum}_r\bigl(u(\boldsymbol\sigma),v;s\bigr)\,d\mu^{\otimes m}(\boldsymbol\sigma)$ (\texttt{gibbsProjSum}).
+\end{definition}
+
+\begin{lemma}[The chain of Gibbs-averaged path functionals]
+\label{lem:sg-tal:gibbs-chain}
+  \uses{thm:sg-tal:projsum-deriv, thm:sg-tal:projsum-vanish}
+  \lean{SpinGlasses.hasDerivAt_gibbsProjSum,
+        SpinGlasses.gibbsProjSum_zero_eq_zero,
+        SpinGlasses.centeredData_dotProduct_le,
+        SpinGlasses.abs_gibbsProjSum_le_of_bound}
+  \leanok
+\talsource{Eq.~(1.203) averaged over $\langle\cdot\rangle$, and the bound $|\varphi^{(r)}(t)|\le KN^{-r/2}$}
+Let $V$ be exponentially tame.  (a) $Q_r'(s)=\sin s\cos s\,Q_{r+1}(s)$ for all $r$ and $s$.  (b) If $m\ge1$, $\int V(vt)\,d\gamma_1(t)=0$ and $r<m$, then $Q_r(0)=0$.
+(c) If $|\xi_i|\le1$ then $u_\ell(\boldsymbol\sigma)\cdot u_\ell(\boldsymbol\sigma)\le4$ for all $\boldsymbol\sigma$, and if $v^2\le4$ and $C$ is a constant for which the bound of Lemma~\ref{lem:sg-tal:projpath-bound} holds with $B=4$,
+\[
+|Q_r(s)|\le C\sum_{p}\int\bigl|\mathrm{pairProd}\bigl(T(u(\boldsymbol\sigma),v)\bigr)(p)\bigr|\,d\mu^{\otimes m}(\boldsymbol\sigma)\qquad\text{for all }s,
+\]
+the sum over lists of $r$ pairs.
+\end{lemma}
+\begin{proof}
+  \leanok
+The Gibbs average over $m$ replicas is a finite sum with weights $\prod_\ell e^{f(\sigma^\ell)}/Z$ (\texttt{integral\_pi\_count\_tilted}) that do not depend on $s$.  (a) is Theorem~\ref{thm:sg-tal:projsum-deriv} for each term; (b) is Theorem~\ref{thm:sg-tal:projsum-vanish}.
+(c): $|\xi_i-\langle\xi_i\rangle|\le2$ gives $u_\ell\cdot u_\ell\le N^{-1}\cdot N\cdot4$ (and $0$ for $N=0$); the bound follows from Lemma~\ref{lem:sg-tal:projpath-bound} applied to each $\boldsymbol\sigma$.
+\end{proof}
+
+\begin{lemma}[The endpoint $s=\pi/2$ is the $m$-th power of the Gibbs average]
+\label{lem:sg-tal:gibbs-endpoint}
+  \lean{SpinGlasses.projSum_zero_index,
+        SpinGlasses.integral_integral_swap_pi_count_tilted,
+        SpinGlasses.gibbsProjSum_zero_index_pi_div_two}
+  \leanok
+\talsource{Eq.~(1.200): $\varphi(1)=\mathbb E\langle V(\dot S)\rangle^{2k}$}
+Let $V$ be exponentially tame, $m\ge1$.  Then $Q_0(\pi/2)=\mathbb E_y\bigl(\int V(N^{-1/2}\sum_iy_i(\xi_i(a)-\langle\xi_i\rangle))\,d\mu(a)\bigr)^m$, where $y\sim\gamma_N$.
+\end{lemma}
+\begin{proof}
+  \leanok
+$\mathrm{projSum}_0$ has a single term, the empty list, so $\mathrm{projSum}_0(s)=\mathbb E\prod_\ell V(Z_{s,\ell})$.  At $s=\pi/2$, $Z_{s,\ell}=u_\ell\cdot y$ does not involve $\xi$.  Since the Gibbs average is a finite sum and each term is integrable
+(Lemma~\ref{lem:sg-tal:projpath-mgf}), it can be exchanged with the integral over $y$.  For fixed $y$ the replicas are independent, so the integral of the product $\prod_\ell V(c(\sigma^\ell)\cdot y)$ over $\mu^{\otimes m}$ is the product of the $m$ equal integrals
+(\texttt{integral\_fintype\_prod\_eq\_prod}).
+\end{proof}
+
+\begin{theorem}[The Taylor step of Theorem~1.7.11]
+\label{thm:sg-tal:gibbs-taylor}
+  \uses{lem:sg-tal:taylor-vanishing, lem:sg-tal:gibbs-chain, lem:sg-tal:gibbs-endpoint}
+  \lean{SpinGlasses.ExpTame.gibbs_fluctuation_abs_le}
+  \leanok
+\talsource{proof of Theorem~1.7.11: $\varphi(1)$ is bounded by Taylor's formula from $\varphi^{(r)}(0)=0$ ($r<2k$) and $|\varphi^{(2k)}|\le KN^{-k}$}
+Let $V$ be exponentially tame, $m\ge1$, $v^2\le4$ and $\int V(vt)\,d\gamma_1(t)=0$.  There is $C\ge0$, depending only on $V$ and $m$ (not on $N$, on $\alpha$, on the energy $f$ or on the observables), such that for every Gibbs measure $\mu=G_f$ on a finite set $\alpha$ and observables $\xi_i:\alpha\to[-1,1]$,
+\[
+\Bigl|\mathbb E_y\Bigl(\int V\Bigl(\frac1{\sqrt N}\sum_{i\le N}y_i(\xi_i(a)-\langle\xi_i\rangle)\Bigr)d\mu(a)\Bigr)^m\Bigr|\le C\sum_{p}\int\bigl|\mathrm{pairProd}(T(u(\boldsymbol\sigma),v))(p)\bigr|\,d\mu^{\otimes m}(\boldsymbol\sigma),
+\]
+the sum over all $m^{2m}$ lists $p$ of $m$ pairs of replicas.
+\end{theorem}
+\begin{proof}
+  \leanok
+Apply Lemma~\ref{lem:sg-tal:taylor-vanishing} with $n=m$ to the chain $Q_r$ of Lemma~\ref{lem:sg-tal:gibbs-chain}: (a) is the chain relation, (b) gives $Q_r(0)=0$ for $r<m$, and (c) gives $|Q_m|\le M$ with
+$M=C_0\sum_p\int|\mathrm{pairProd}|$, uniformly in $s$.  Hence $|Q_0(\pi/2)|\le M/(2^mm!)$, and $Q_0(\pi/2)$ is the left side by Lemma~\ref{lem:sg-tal:gibbs-endpoint}; take $C=C_0/(2^mm!)$.
+\emph{Comparison with the book.}  The book takes $m=2k$, obtains $|\varphi^{(2k)}|\le KN^{-k}$ by Hölder's inequality and gets the same factor $1/(2k)!$ from Taylor's formula.
+Here the sum over lists is kept and estimated in Part~E.
+\end{proof}
+
+\subsection{Moments of the Gram entries (Eq.~(1.201))}
+\label{sec:sg-tal:fluct-gram}
+
+\emph{Content.}  Each entry $T_{\ell\ell'}=N^{-1}\sum_i\dot\xi_i(\sigma^\ell)\dot\xi_i(\sigma^{\ell'})-(1-q)\delta_{\ell\ell'}$ is a signed sum of four centered overlaps, and each has $2k$-th moment at most that of $R_{1,2}-q$ by Jensen's inequality.
+\emph{Uses:} nothing from the other parts of this section (only the definition of $T$).  \emph{Used by:} F.  \emph{Status:} fully proved, for any Gibbs measure on a finite set carrying observables with $\xi_i^2=1$.
+
+\begin{definition}[Overlap and its partial averages]
+\label{def:sg-tal:gibbs-overlap}
+  \lean{SpinGlasses.overlapGibbs,
+        SpinGlasses.partialOverlap,
+        SpinGlasses.meanOverlap,
+        SpinGlasses.overlapMoment}
+  \leanok
+\talsource{notation of the proof of (1.201)}
+For $\xi_i^2=1$ put $R(a,b)=N^{-1}\sum_i\xi_i(a)\xi_i(b)$, $A(a)=\int R(a,b)\,d\mu(b)=N^{-1}\sum_i\xi_i(a)\langle\xi_i\rangle$, $B=\int A\,d\mu=N^{-1}\sum_i\langle\xi_i\rangle^2$ and
+$J_k=\int(R(\sigma^1,\sigma^2)-q)^{2k}\,d\mu^{\otimes2}$.
+\end{definition}
+
+\begin{lemma}[Jensen for even powers and the partial overlaps]
+\label{lem:sg-tal:gibbs-jensen}
+  \lean{SpinGlasses.pow_integral_count_tilted_le,
+        SpinGlasses.integral_overlapGibbs_right,
+        SpinGlasses.overlapMoment_eq,
+        SpinGlasses.overlapMoment_nonneg,
+        SpinGlasses.partialOverlap_sub_pow_le,
+        SpinGlasses.meanOverlap_sub_pow_le,
+        SpinGlasses.integral_pi_comp_eval_count_tilted,
+        SpinGlasses.integral_partialOverlap_sub_pow_le}
+  \leanok
+\talsource{``using Jensen's inequality (1.23) to average in $\boldsymbol\sigma^2$ outside the power $2r$''}
+For every probability measure $\mu=G_f$ on a finite set, $(\int h\,d\mu)^{2k}\le\int h^{2k}d\mu$.  Consequently $J_k\ge0$, $J_k=\iint(R(a,b)-q)^{2k}d\mu\,d\mu$, $(A(a)-q)^{2k}\le\int(R(a,b)-q)^{2k}d\mu(b)$, $(B-q)^{2k}\le J_k$, and for every replica $\ell$,
+$\int(A(\sigma^\ell)-q)^{2k}d\mu^{\otimes m}\le J_k$.
+\end{lemma}
+\begin{proof}
+  \leanok
+Jensen's inequality for the convex function $x\mapsto x^{2k}$ and the probability measure $\mu$.  $A(a)-q=\int(R(a,b)-q)\,d\mu(b)$ since $\mu$ is a probability measure, and likewise $B-q=\int(A-q)\,d\mu$; apply Jensen twice.  The marginal of one replica of $\mu^{\otimes m}$ is $\mu$.
+\end{proof}
+
+\begin{theorem}[Moments of the Gram entries, Eq.~(1.201)]
+\label{thm:sg-tal:gram-moments}
+  \uses{lem:sg-tal:gibbs-jensen, def:sg-tal:gibbs-overlap}
+  \lean{SpinGlasses.overlapGibbs_self,
+        SpinGlasses.meanOverlap_eq,
+        SpinGlasses.projGram_centeredData_eq,
+        SpinGlasses.four_pow_le,
+        SpinGlasses.integral_projGram_pow_le}
+  \leanok
+\talsource{Eq.~(1.201): $\mathbb E\langle T_{\ell,\ell'}^{2r}\rangle\le K/N^r$, and the identity displayed after it}
+Let $\mu=G_f$ be a Gibbs measure on a finite set with observables satisfying $\xi_i^2=1$, $N\ge1$, $q\in\mathbb R$, $v^2=1-q$, $k\ge1$, and $m\ge1$ replicas.  For all replicas $\ell,\ell'$, with $T=T(u(\boldsymbol\sigma),v)$,
+\[
+\int T_{\ell\ell'}^{2k}\,d\mu^{\otimes m}\le4^{2k}J_k,\qquad
+T_{\ell\ell'}=x_1-(A(\sigma^\ell)-q)-(A(\sigma^{\ell'})-q)+(B-q),
+\]
+where $x_1=R(\sigma^\ell,\sigma^{\ell'})-q$ for $\ell\ne\ell'$ and $x_1=0$ for $\ell=\ell'$.
+\end{theorem}
+\begin{proof}
+  \leanok
+Expanding $(\xi_i(\sigma^\ell)-\langle\xi_i\rangle)(\xi_i(\sigma^{\ell'})-\langle\xi_i\rangle)$ gives $N^{-1}\sum_i\dot\xi_i(\sigma^\ell)\dot\xi_i(\sigma^{\ell'})=R(\sigma^\ell,\sigma^{\ell'})-A(\sigma^\ell)-A(\sigma^{\ell'})+B$.  For $\ell=\ell'$ use $R(a,a)=1$ (this is where $\xi_i^2=1$ enters) and $v^2=1-q$,
+which gives the book's identity $T_{\ell\ell}=-2(A-q)+(B-q)$; for $\ell\ne\ell'$ the constants $q$ cancel.  Then $(x_1-x_2-x_3+x_4)^{2k}\le4^{2k-1}(x_1^{2k}+x_2^{2k}+x_3^{2k}+x_4^{2k})$ (convexity), and by Lemma~\ref{lem:sg-tal:gibbs-jensen}
+and the two-replica marginal formula (Lemma~\ref{lem:sg-tal:replica-marginal}), each of the four integrals is at most $J_k$, which gives $4^{2k-1}\cdot4J_k=4^{2k}J_k$.
+\end{proof}
+
+\subsection{Theorem~1.7.11}
 \label{sec:sg-tal:fluct-main}
 
-\emph{Content.}  The statement of the principle, and an account of how far the formalization of its proof has come.  \emph{Uses:} A, B, C and Theorem~\ref{thm:sg-tal:overlap-moments-all}.
-\emph{Status:} the statement below is \emph{not yet} a theorem of the Lean development (it carries no \texttt{\textbackslash lean} tag); Steps~2 and~4 of the proof outline and the Taylor inequality of step~6 are proved,
-the other steps are listed with what is missing.
+\emph{Content.}  The principle itself, for the SK model.  \emph{Uses:} A--E and Theorem~\ref{thm:sg-tal:overlap-moments-all}.
+\emph{Status:} fully proved.
+
+\begin{lemma}[Arithmetic--geometric mean for products of Gram entries]
+\label{lem:sg-tal:amgm-pairprod}
+  \lean{SpinGlasses.prod_abs_le_sum_pow,
+        SpinGlasses.sum_integral_abs_pairProd_le}
+  \leanok
+\talsource{``each factor $T_{\ell,\ell'}$ contributes as $N^{-1/2}$''}
+For $a_1,\dots,a_n\in\mathbb R$ ($n\ge1$), $\prod_j|a_j|\le\sum_j|a_j|^n$.  Consequently, under the hypotheses of Theorem~\ref{thm:sg-tal:gram-moments} with $m=2k$,
+\[
+\sum_{p}\int\bigl|\mathrm{pairProd}(T)(p)\bigr|\,d\mu^{\otimes2k}\le(2k)^{4k}\cdot2k\cdot4^{2k}\,J_k .
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+Let $j_0$ maximize $|a_j|$; then $\prod_j|a_j|\le|a_{j_0}|^n\le\sum_j|a_j|^n$ (this is cruder than the arithmetic--geometric mean inequality $\prod|a_j|\le\frac1n\sum|a_j|^n$ and loses the constant $n$ only).  A list of $2k$ pairs gives a product of $2k$ entries; integrate and use $|T|^{2k}=T^{2k}$ with Theorem~\ref{thm:sg-tal:gram-moments}
+on each of the $2k$ factors.  There are $((2k)^2)^{2k}$ lists.
+\end{proof}
+
+\begin{definition}[The SK Gibbs energy and the spin observables]
+\label{def:sg-tal:sk-gibbs-energy}
+  \lean{SpinGlasses.skGibbsEnergy,
+        SpinGlasses.isingObs,
+        SpinGlasses.isingObs_abs_le,
+        SpinGlasses.isingObs_sq}
+  \leanok
+\talsource{the Hamiltonian (1.1) with the disorder $g$ held fixed}
+For $g\in\mathbb R^{\mathrm{FinPairs}\,N}$ let $f_g(a)=\frac{\beta}{\sqrt N}\sum_{i<j}g_{ij}a_ia_j+h\sum_ia_i$ be the SK energy on $\{-1,1\}^N$ and $\xi_i(a)=a_i$.  Then $|\xi_i|\le1$ and $\xi_i^2=1$.
+\end{definition}
 
 \begin{theorem}[General Gaussian fluctuation principle (Theorem~1.7.11)]
 \label{thm:sg-tal:general-fluct}
-  \uses{def:sg-tal:exptame, thm:sg-tal:projsum-deriv, lem:sg-tal:projpath-bound, thm:sg-tal:projsum-vanish, lem:sg-tal:taylor-vanishing, thm:sg-tal:overlap-moments-all}
+  \uses{def:sg-tal:exptame, thm:sg-tal:gibbs-taylor, thm:sg-tal:gram-moments, lem:sg-tal:amgm-pairprod, thm:sg-tal:overlap-moments-all, def:sg-tal:sk-gibbs-energy}
+  \lean{SpinGlasses.ExpTame.sub_const,
+        SpinGlasses.ExpTame.integrable_comp_mul_gaussianReal,
+        SpinGlasses.ExpTame.integral_sub_const_mul_gaussianReal,
+        SpinGlasses.sk_general_gaussian_fluctuation}
+  \leanok
 \talsource{Theorem~1.7.11, Eq.~(1.197)}
-Let $\beta,h\in\mathbb R$ with $4\beta^2<1$, let $q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$, and let $U:\mathbb R\to\mathbb R$ be exponentially tame.  Let $y_1,y_2,\dots$ be i.i.d.\ standard Gaussians independent of the disorder, and
-$\dot\sigma_i=\sigma_i-\langle\sigma_i\rangle$ in the $N$-spin SK model at $(\beta,h)$.  For every $k\ge1$ there is $K$, depending on $k,U,\beta,h$ only, such that for all $N\ge1$
+Let $\beta,h\in\mathbb R$ with $4\beta^2<1$, let $q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$, and let $U:\mathbb R\to\mathbb R$ be exponentially tame.  Let $y$ be a standard Gaussian vector independent of the disorder $g$, and
+$\dot\sigma_i=\sigma_i-\langle\sigma_i\rangle$ in the $N$-spin SK model at $(\beta,h)$.  For every $k\ge1$ there is $K>0$, depending on $k,U,\beta,h,q$ only, such that for all $N\ge1$
 \[
 \mathbb E\Bigl(\Bigl\langle U\Bigl(\frac1{\sqrt N}\sum_{i\le N}y_i\dot\sigma_i\Bigr)\Bigr\rangle-\mathbb E_\xi U(\xi\sqrt{1-q})\Bigr)^{2k}\le\frac K{N^k},
 \]
 where $\mathbb E$ is the expectation over the disorder and over $y$, and $\mathbb E_\xi$ over a standard Gaussian $\xi$.
 \end{theorem}
 \begin{proof}
-Put $V(x)=U(x)-\mathbb E_\xi U(\xi\sqrt{1-q})$, which is exponentially tame with $\mathbb E_\xi V(\xi\sqrt{1-q})=0$ (Eq.~(1.199)), $v=\sqrt{1-q}$ and $u_\ell=N^{-1/2}\dot{\boldsymbol\sigma}^{\ell}$.
-The argument is the following six steps; \textbf{[done]} marks a step proved in Lean, \textbf{[open]} a step that is not.
-\begin{enumerate}
-\item \textbf{[open]} \emph{Replicas.}  $\langle V(\dot S)\rangle^{2k}=\langle\prod_{\ell\le2k}V(\dot S^\ell)\rangle$ for $2k$ independent replicas with the common $y$ (Eq.~(1.200)).  This is the product formula for the Gibbs measure of independent replicas
-  (\texttt{integral\_pi\_count\_tilted}) applied to the product $\prod_\ell V(\dot S^\ell)$.
-\item \textbf{[done]} \emph{The path and its derivatives in the angle.}  Theorem~\ref{thm:sg-tal:projsum-deriv} gives the $s$-derivatives of $\mathbb E\prod_\ell V(Z_{s,\ell})$ as $\sin s\cos s\,\mathrm{projSum}_{r+1}$ (this is Eq.~(1.203) in the angle variable).
-\item \textbf{[open]} \emph{Change to the variable $t=\sin^2s$ and one-sided derivatives at the endpoint.}
-  With $\varphi(t)=\mathbb E\langle\prod_\ell V(\sqrt t\,\dot S^\ell+\sqrt{1-t}\,\xi^\ell\sqrt{1-q})\rangle$ one needs $\varphi^{(r)}(t)=2^{-r}\mathbb E\langle\mathrm{projSum}_r(\arcsin\sqrt t)\rangle$ on $(0,1)$ and
-  the one-sided derivatives at $t=0$; the second statement needs the continuity of $s\mapsto\mathrm{projSum}_r(s)$ at $0$ (Lemma~\ref{lem:sg-tal:projpath-meas} and the uniform bound of Lemma~\ref{lem:sg-tal:projpath-bound} for dominated convergence).
-\item \textbf{[done]} \emph{Vanishing at $t=0$.}  Theorem~\ref{thm:sg-tal:projsum-vanish} with $m=2k$: $\mathbb E\langle\mathrm{projSum}_r(0)\rangle=0$ for $r<2k$.  (The disorder expectation is an
-  integral of zero.)
-\item \textbf{[open]} \emph{The moments (1.201).}  $\mathbb E\langle T_{\ell\ell'}^{2r}\rangle\le K/N^r$.  For $\ell\ne\ell'$,
-  $T_{\ell\ell'}=(R_{\ell\ell'}-q)-(N^{-1}\sum_i\sigma^\ell_i\langle\sigma_i\rangle-q)-(N^{-1}\sum_i\sigma^{\ell'}_i\langle\sigma_i\rangle-q)+(N^{-1}\sum_i\langle\sigma_i\rangle^2-q)$, and for $\ell=\ell'$ the analogous
-  identity displayed in the book.  Each of the four pieces has $2r$-th moment at most $\mathbb E\langle(R_{1,2}-q)^{2r}\rangle$ by Jensen's inequality (average the second replica \emph{outside} the power), which is at most $K/N^r$ by
-  Theorem~\ref{thm:sg-tal:overlap-moments-all}; the four pieces are combined by $(a+b+c+d)^{2r}\le4^{2r-1}(a^{2r}+b^{2r}+c^{2r}+d^{2r})$.
-\item \textbf{[open]} \emph{The $2k$-th derivative.}  On $(0,1)$, $|\varphi^{(2k)}(t)|\le2^{-2k}C_{2k}\sum_p\mathbb E\langle|\mathrm{pairProd}(p)|\rangle$ by Lemma~\ref{lem:sg-tal:projpath-bound}, with $u_\ell\cdot u_\ell\le4$
-  (since $|\dot\sigma_i|\le2$) and $v^2=1-q\le1$.  Each product of $2k$ factors satisfies $\prod_j|T_j|\le\frac1{2k}\sum_j|T_j|^{2k}$ (arithmetic--geometric mean inequality), so by step~5 with $r=k$, $\mathbb E\langle|\mathrm{pairProd}(p)|\rangle\le K/N^k$.
-\item \textbf{[done, for functions smooth on $\mathbb R$]} \emph{Taylor.}  Lemma~\ref{lem:sg-tal:taylor-vanishing} with $n=2k-1$, $f=\varphi$: $|\varphi(1)|\le M/(2k)!$ with $M=KN^{-k}$, and $\varphi(1)$ is the left side of the theorem by step~1.
-  The lemma assumes $\varphi$ is $C^{2k}$ on all of $\mathbb R$, while $\varphi$ is only defined on $[0,1]$; it has to be restated for $C^{n+1}$ functions on $[0,1]$ with one-sided derivatives at $0$
-  (Mathlib's \texttt{taylor\_mean\_remainder\_lagrange} for \texttt{ContDiffOn}), rather than extending $\varphi$ to $t<0$ artificially.
-\end{enumerate}
+  \leanok
+Put $c=\mathbb E_\xi U(\xi\sqrt{1-q})$, $V=U-c$ and $v=\sqrt{1-q}$; $q\in[0,1]$ because it is the integral of $\tanh^2\in[0,1]$ (\texttt{fixedPoint\_mem\_Icc}), so $v^2=1-q\le4$.  The function $V$ is exponentially tame and $\int V(vt)\,d\gamma_1=0$ (Eq.~(1.199)), because $U(v\,\cdot\,)$ is integrable against a Gaussian.
+Fix the disorder $g$ and let $\mu_g$ be the Gibbs measure of $f_g$.  Since $\mu_g$ is a probability measure, $\langle U(\dot S)\rangle-c=\int V(\dot S)\,d\mu_g$, so by Theorem~\ref{thm:sg-tal:gibbs-taylor} with $m=2k$ (this is the book's steps (1.200)--(1.205) and Taylor's formula),
+\[
+0\le\mathbb E_y\bigl(\langle U(\dot S)\rangle-c\bigr)^{2k}\le C\sum_p\int|\mathrm{pairProd}|\,d\mu_g^{\otimes2k}\le C_2\,J_k(g),
+\]
+with $C_2=C(2k)^{4k}\,2k\,4^{2k}$, by Lemma~\ref{lem:sg-tal:amgm-pairprod} (the book's bound $|\varphi^{(2k)}|\le KN^{-k}$ together with (1.201)).  The left side is nonnegative as an even power.  Integrating over $g$ and using
+$\mathbb E_gJ_k(g)\le K'/N^k$ (Theorem~\ref{thm:sg-tal:overlap-moments-all}; $J_k(g)$ is integrable in $g$ as a Gibbs average of a bounded function) gives the claim with $K=C_2K'+1$.
+\emph{Deviations from the book.}  (i) The interpolation is carried out in the angle $s$, with $t=\sin^2s$ never introduced: the chain relation $Q_r'=\sin s\cos s\,Q_{r+1}$ (Theorem~\ref{thm:sg-tal:projsum-deriv}) and the fencing lemma replace the formula $\varphi^{(r)}=2^{-r}\sum\mathbb E\langle T\cdots T\,F^{(\mathbf s)}\rangle$ and Taylor's theorem.  (ii) The Gaussian factor is bounded uniformly (Lemma~\ref{lem:sg-tal:projpath-bound}) instead of by Hölder's inequality, which is why $U$ is assumed exponentially tame rather than satisfying (1.196).
+(iii) The bound is deterministic in the Gibbs measure: for every disorder $g$, $\mathbb E_y(\cdot)^{2k}\le C_2J_k(g)$, and only the last step integrates over $g$.  (iv) The theorem is stated with the centered vector $(N^{-1/2}(\sigma_i-\langle\sigma_i\rangle))_i$ dotted with $y$.
+Formalized in \texttt{SpinGlasses/SKGaussianFluctuation.lean}, \texttt{GibbsGramMoments.lean} and \texttt{GibbsProjectionBound.lean}.
 \end{proof}
 
 \begin{remark}[What remains of Section~1.7]
 \label{rem:sg-tal:remaining-17}
-Besides the open steps of the proof above (the replica reduction, the variable $t=\sin^2s$, the moments (1.201), the $2k$-th derivative bound, the interval form of Taylor's lemma, and the assembly), nothing else of
-Section~1.7 is formalized, and for that reason it is not stated here as theorems: Corollary~1.7.13 (the special cases $U(x)=e^{\varepsilon\beta x}$ and $U(x)=xe^{\varepsilon\beta x}$, Eqs.~(1.206)--(1.207)),
+Of Section~1.7 the general Gaussian fluctuation principle (Theorem~\ref{thm:sg-tal:general-fluct}) is formalized.  Not yet formalized, and for that reason not stated here as theorems, are Corollary~1.7.13 (the special cases $U(x)=e^{\varepsilon\beta x}$ and $U(x)=xe^{\varepsilon\beta x}$, Eqs.~(1.206)--(1.207)),
 Lemma~1.7.5 ($|q-q_-|\le L/N$), Lemmas~1.7.4 and~1.7.6 (the asymptotic Gaussianity of the cavity field and its coupling with an independent Gaussian) and Theorem~1.7.1 (the local magnetizations
 are asymptotically i.i.d.).  They are the subject of the next milestone.
 Nothing in Sections~1.1--1.6 depends on Section~1.7.
