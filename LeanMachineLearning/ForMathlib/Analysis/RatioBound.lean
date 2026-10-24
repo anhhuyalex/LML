@@ -51,3 +51,26 @@ theorem abs_div_sub_div_le {A A' B B' : ℝ} (hA' : |A'| ≤ B') (hB' : 0 < B') 
     rw [abs_sub_comm A' A]
     exact h_div_le_self _ (abs_nonneg _)
   linarith
+
+/-- A generalized ratio comparison bound:
+if `0 < B'`, `0 < B` and `|A / B| ≤ C`, then
+`|A' / B' - A / B| ≤ (B')⁻¹ * (|A' - A| + C * |B' - B|)`. -/
+theorem abs_div_sub_div_le_of_denom_ge {A A' B B' C : ℝ}
+    (hB' : 0 < B') (hB : 0 < B) (hAB : |A / B| ≤ C) :
+    |A' / B' - A / B| ≤ (B')⁻¹ * (|A' - A| + C * |B' - B|) := by
+  have hB_ne : B ≠ 0 := hB.ne'
+  have hB'_ne : B' ≠ 0 := hB'.ne'
+  have h_id : A' / B' - A / B = (A' - A) / B' - (A / B) * ((B' - B) / B') := by
+    field_simp
+    ring
+  rw [h_id]
+  refine (abs_sub _ _).trans ?_
+  simp only [abs_div, abs_mul, abs_of_pos hB']
+  have h1 : |A| / |B| * (|B' - B| / B') ≤ C * (|B' - B| / B') := by
+    rw [← abs_div]
+    exact mul_le_mul_of_nonneg_right hAB (by positivity)
+  calc |A' - A| / B' + |A| / |B| * (|B' - B| / B')
+    _ ≤ |A' - A| / B' + C * (|B' - B| / B') := add_le_add_right h1 (|A' - A| / B')
+    _ = (B')⁻¹ * (|A' - A| + C * |B' - B|) := by
+      have : |A' - A| / B' + C * (|B' - B| / B') = (|A' - A| + C * |B' - B|) / B' := by ring
+      rw [this, div_eq_inv_mul]
