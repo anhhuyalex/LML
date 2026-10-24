@@ -3460,7 +3460,7 @@ the sum over all $m^{2m}$ lists $p$ of $m$ pairs of replicas.
   \leanok
 Apply Lemma~\ref{lem:sg-tal:taylor-vanishing} with $n=m$ to the chain $Q_r$ of Lemma~\ref{lem:sg-tal:gibbs-chain}: (a) is the chain relation, (b) gives $Q_r(0)=0$ for $r<m$, and (c) gives $|Q_m|\le M$ with
 $M=C_0\sum_p\int|\mathrm{pairProd}|$, uniformly in $s$.  Hence $|Q_0(\pi/2)|\le M/(2^mm!)$, and $Q_0(\pi/2)$ is the left side by Lemma~\ref{lem:sg-tal:gibbs-endpoint}; take $C=C_0/(2^mm!)$.
-\emph{Comparison with the book.}  The book takes $m=2k$, obtains $|\varphi^{(2k)}|\le KN^{-k}$ by Hölder's inequality and gets the same factor $1/(2k)!$ from Taylor's formula.
+\emph{Comparison with the book.}  The book takes $m=2k$, obtains $|\varphi^{(2k)}|\le KN^{-k}$ by H\"older's inequality and gets the same factor $1/(2k)!$ from Taylor's formula.
 Here the sum over lists is kept and estimated in Part~E.
 \end{proof}
 
@@ -3585,7 +3585,7 @@ Fix the disorder $g$ and let $\mu_g$ be the Gibbs measure of $f_g$.  Since $\mu_
 \]
 with $C_2=C(2k)^{4k}\,2k\,4^{2k}$, by Lemma~\ref{lem:sg-tal:amgm-pairprod} (the book's bound $|\varphi^{(2k)}|\le KN^{-k}$ together with (1.201)).  The left side is nonnegative as an even power.  Integrating over $g$ and using
 $\mathbb E_gJ_k(g)\le K'/N^k$ (Theorem~\ref{thm:sg-tal:overlap-moments-all}; $J_k(g)$ is integrable in $g$ as a Gibbs average of a bounded function) gives the claim with $K=C_2K'+1$.
-\emph{Deviations from the book.}  (i) The interpolation is carried out in the angle $s$, with $t=\sin^2s$ never introduced: the chain relation $Q_r'=\sin s\cos s\,Q_{r+1}$ (Theorem~\ref{thm:sg-tal:projsum-deriv}) and the fencing lemma replace the formula $\varphi^{(r)}=2^{-r}\sum\mathbb E\langle T\cdots T\,F^{(\mathbf s)}\rangle$ and Taylor's theorem.  (ii) The Gaussian factor is bounded uniformly (Lemma~\ref{lem:sg-tal:projpath-bound}) instead of by Hölder's inequality, which is why $U$ is assumed exponentially tame rather than satisfying (1.196).
+\emph{Deviations from the book.}  (i) The interpolation is carried out in the angle $s$, with $t=\sin^2s$ never introduced: the chain relation $Q_r'=\sin s\cos s\,Q_{r+1}$ (Theorem~\ref{thm:sg-tal:projsum-deriv}) and the fencing lemma replace the formula $\varphi^{(r)}=2^{-r}\sum\mathbb E\langle T\cdots T\,F^{(\mathbf s)}\rangle$ and Taylor's theorem.  (ii) The Gaussian factor is bounded uniformly (Lemma~\ref{lem:sg-tal:projpath-bound}) instead of by H\"older's inequality, which is why $U$ is assumed exponentially tame rather than satisfying (1.196).
 (iii) The bound is deterministic in the Gibbs measure: for every disorder $g$, $\mathbb E_y(\cdot)^{2k}\le C_2J_k(g)$, and only the last step integrates over $g$.  (iv) The theorem is stated with the centered vector $(N^{-1/2}(\sigma_i-\langle\sigma_i\rangle))_i$ dotted with $y$.
 Formalized in \texttt{SpinGlasses/SKGaussianFluctuation.lean}, \texttt{GibbsGramMoments.lean} and \texttt{GibbsProjectionBound.lean}.
 \end{proof}
