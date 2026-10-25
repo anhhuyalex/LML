@@ -130,6 +130,26 @@ theorem map_toLp_dotProduct_pi_gaussianReal [Fintype A] [DecidableEq A] (a : A �
   simp only [Pi.mul_apply, integral_dotProduct_mul_dotProduct_pi_gaussianReal,
     integral_dotProduct_pi_gaussianReal, mul_zero, sub_zero]
 
+/-- **The law of one linear form:** `a ⬝ᵥ ξ ∼ 𝒩(0, a ⬝ᵥ a)` for `ξ` a vector of i.i.d. standard
+Gaussians. -/
+theorem map_dotProduct_pi_gaussianReal (a : K → ℝ) :
+    Measure.map (fun ξ : K → ℝ => a ⬝ᵥ ξ) (Measure.pi fun _ : K => gaussianReal 0 1) =
+      gaussianReal 0 (a ⬝ᵥ a).toNNReal := by
+  have hG : HasGaussianLaw (fun ξ : K → ℝ => a ⬝ᵥ ξ) (Measure.pi fun _ : K => gaussianReal 0 1) :=
+    HasGaussianLaw.eval (X := fun (_ : Unit) (ξ : K → ℝ) => a ⬝ᵥ ξ)
+      (hasGaussianLaw_dotProduct_family (A := Unit) fun _ => a) ()
+  have hv : Var[fun ξ : K → ℝ => a ⬝ᵥ ξ; Measure.pi fun _ : K => gaussianReal 0 1] = a ⬝ᵥ a := by
+    rw [variance_of_integral_eq_zero hG.aemeasurable (integral_dotProduct_pi_gaussianReal a)]
+    simpa [sq] using integral_dotProduct_mul_dotProduct_pi_gaussianReal a a
+  rw [hG.map_eq_gaussianReal, integral_dotProduct_pi_gaussianReal, hv]
+
+/-- A unit vector paired with i.i.d. standard Gaussians is a standard Gaussian. -/
+theorem map_dotProduct_pi_gaussianReal_of_dotProduct_self {a : K → ℝ} (ha : a ⬝ᵥ a = 1) :
+    Measure.map (fun ξ : K → ℝ => a ⬝ᵥ ξ) (Measure.pi fun _ : K => gaussianReal 0 1) =
+      gaussianReal 0 1 := by
+  rw [map_dotProduct_pi_gaussianReal, ha]
+  simp
+
 variable {Ω : Type*} {mΩ : MeasurableSpace Ω} {P : Measure Ω}
 
 /-- **Gram transfer.**  If `X` is a centered Gaussian family with `𝔼 X r X s = a r ⬝ᵥ a s`, then
