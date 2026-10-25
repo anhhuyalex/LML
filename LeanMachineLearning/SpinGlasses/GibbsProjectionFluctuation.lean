@@ -210,7 +210,7 @@ theorem integral_projSum_centered_zero_eq_zero {m r : ℕ} (V : ℝ → ℝ) (hV
       ∑ p : Fin r → Fin m × Fin m,
         pairProd (projGram (fun l i => (Real.sqrt N)⁻¹ *
           (ξ i (σ l) - ∫ a, ξ i a ∂(Measure.count.tilted f))) v) p *
-        ∫ ξ' : Fin m → ℝ, derivProd V (pairCount p) (fun l => v * ξ' l)
+        ∫ ξ' : Fin m → ℝ, ∏ ℓ, deriv^[(pairCount p) ℓ] V ((v * ξ' ℓ))
           ∂(Measure.pi fun _ : Fin m => gaussianReal 0 1) := fun σ => by
     unfold projSum
     refine Finset.sum_congr rfl fun p _ => ?_
@@ -219,7 +219,7 @@ theorem integral_projSum_centered_zero_eq_zero {m r : ℕ} (V : ℝ → ℝ) (hV
   rw [Finset.sum_comm]
   refine Finset.sum_eq_zero fun p _ => ?_
   obtain ⟨ℓ, h0 | h1⟩ := exists_pairCount_le_one_of_lt p hr
-  · have hI : (∫ ξ' : Fin m → ℝ, derivProd V (pairCount p) (fun l => v * ξ' l)
+  · have hI : (∫ ξ' : Fin m → ℝ, ∏ ℓ, deriv^[(pairCount p) ℓ] V ((v * ξ' ℓ))
         ∂(Measure.pi fun _ : Fin m => gaussianReal 0 1)) = 0 := by
       have hz := hV.integral_derivProd_projPath_zero_eq_zero hm
         (fun (_ : Fin m) (_ : Fin N) => (0 : ℝ)) v (pairCount p) ℓ h0 hV0
@@ -235,13 +235,13 @@ theorem integral_projSum_centered_zero_eq_zero {m r : ℕ} (V : ℝ → ℝ) (hV
         (∏ r_1 : Fin m, Real.exp (f (x r_1)) / ∑ b : α, Real.exp (f b)) *
           (pairProd (projGram (fun l i => (Real.sqrt N)⁻¹ *
             (ξ i (x l) - ∫ a, ξ i a ∂(Measure.count.tilted f))) v) p *
-            ∫ ξ' : Fin m → ℝ, derivProd V (pairCount p) (fun l => v * ξ' l)
+            ∫ ξ' : Fin m → ℝ, ∏ ℓ, deriv^[(pairCount p) ℓ] V ((v * ξ' ℓ))
               ∂(Measure.pi fun _ : Fin m => gaussianReal 0 1))) =
         (∑ x : Fin m → α,
           (∏ r_1 : Fin m, Real.exp (f (x r_1)) / ∑ b : α, Real.exp (f b)) *
             pairProd (projGram (fun l i => (Real.sqrt N)⁻¹ *
               (ξ i (x l) - ∫ a, ξ i a ∂(Measure.count.tilted f))) v) p) *
-          ∫ ξ' : Fin m → ℝ, derivProd V (pairCount p) (fun l => v * ξ' l)
+          ∫ ξ' : Fin m → ℝ, ∏ ℓ, deriv^[(pairCount p) ℓ] V ((v * ξ' ℓ))
             ∂(Measure.pi fun _ : Fin m => gaussianReal 0 1) := by
       rw [Finset.sum_mul]
       refine Finset.sum_congr rfl fun x _ => by ring

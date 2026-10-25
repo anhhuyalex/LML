@@ -144,7 +144,7 @@ theorem integral_integral_swap_pi_count_tilted {Ω : Type*} [MeasurableSpace Ω]
 
 theorem projSum_zero_index (u : Fin m → Fin N → ℝ) (v s : ℝ) :
     projSum V u v 0 s = ∫ ω, ∏ l, V (projPath u v s ω l) ∂(projMeasure m N) := by
-  simp [projSum, pairProd, pairCount, derivProd]
+  simp [projSum, pairProd, pairCount]
 
 omit [Nonempty α] in
 /-- **The endpoint of the path is the `m`-th power of the Gibbs average.** -/
@@ -164,7 +164,7 @@ theorem gibbsProjSum_zero_index_pi_div_two (hV : ExpTame V) (hm : 0 < m) (f : α
       (fun ω : (Fin m → ℝ) × (Fin N → ℝ) => ∏ l, V (c (σ l) ⬝ᵥ ω.2)) (projMeasure m N) :=
     fun σ => by
       have := hV.integrable_derivProd_projPath hm (centeredData ξ f σ) v (Real.pi / 2) 0
-      simpa [derivProd, hpath] using this
+      simpa [hpath] using this
   unfold gibbsProjSum
   simp_rw [projSum_zero_index, hpath]
   rw [integral_integral_swap_pi_count_tilted (projMeasure m N) f

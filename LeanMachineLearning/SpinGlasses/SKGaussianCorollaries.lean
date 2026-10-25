@@ -99,10 +99,10 @@ theorem integrable_prod_derivProd_zero {m N : ℕ} (hm : 0 < m)
       (Measure.pi fun _ : Fin N => gaussianReal 0 1) := by
   have hint := hV.integrable_derivProd_projPath hm u 0 (Real.pi / 2) 0
   have hpath : (fun (w : (Fin m → ℝ) × (Fin N → ℝ)) =>
-      derivProd V 0 (projPath u 0 (Real.pi / 2) w)) =
+      ∏ ℓ, deriv^[0 ℓ] V ((projPath u 0 (Real.pi / 2) w) ℓ)) =
       fun w => ∏ l, V (u l ⬝ᵥ w.2) := by
     ext w
-    simp only [derivProd, projPath_zero_pi_div_two, Pi.zero_apply, Function.iterate_zero, id]
+    simp only [projPath_zero_pi_div_two, Pi.zero_apply, Function.iterate_zero, id]
   rw [hpath] at hint
   exact hint.of_comp_snd (NeZero.ne _)
 

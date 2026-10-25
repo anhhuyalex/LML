@@ -209,14 +209,15 @@ theorem pow_le_factorial_mul_exp (y : ℝ) (hy : 0 ≤ y) (r : ℕ) :
   have h2 := (div_le_iff₀ hfact).mp h
   rwa [mul_comm]
 
-/-- **Higher overlap moments for the SK model (Talagrand Eq. (1.88)).**
-For `β < 1/2` and at the fixed point `q = 𝔼 tanh² (β √q z + h)`, for every `r`,
+/-- **Higher overlap moments for the SK model, uniformly in `β` (Talagrand Eq. (1.88)).**
+For `β² ≤ β₀² < 1/4` and at the fixed point `q = 𝔼 tanh² (β √q z + h)`, for every `r`,
 the `2r`-th moment of `R_{1,2} - q` satisfies `𝔼⟨(R_{1,2} - q)^{2r}⟩ ≤ K / N^r`,
-where `K = r! ((1 - 4β²)/4)^{-r} ((1 - 4β²)/2)^{-1/2}` is independent of `N`. -/
-theorem sk_overlap_moment_le_of_exp (β h q : ℝ)
-    (hfix : ∫ x : ℝ, Real.tanh (β * Real.sqrt q * x + h) ^ 2 ∂(gaussianReal 0 1) = q)
-    (hβ : 4 * β ^ 2 < 1) (r : ℕ) :
-    ∃ K : ℝ, 0 < K ∧ ∀ (N : ℕ) (_ : 0 < N),
+where `K = r! ((1 - 4β₀²)/4)^{-r} ((1 - 4β₀²)/2)^{-1/2}` depends on `β₀` and `r` only, not on
+`β`, `h`, `q` or `N`. -/
+theorem sk_overlap_moment_le_of_exp_unif (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (r : ℕ) :
+    ∃ K : ℝ, 0 < K ∧ ∀ (β h q : ℝ),
+      (∫ x : ℝ, Real.tanh (β * Real.sqrt q * x + h) ^ 2 ∂(gaussianReal 0 1) = q) →
+      β ^ 2 ≤ β₀ ^ 2 → ∀ (N : ℕ) (_ : 0 < N),
       ∫ g : FinPairs N → ℝ, ∫ σ : Fin 2 → (Fin N → ℤˣ),
           (((N : ℝ)⁻¹ * ((fun i => ((σ 0 i : ℤ) : ℝ)) ⬝ᵥ fun i => ((σ 1 i : ℤ) : ℝ))) - q) ^ (2 * r)
             ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted fun a =>
@@ -225,17 +226,21 @@ theorem sk_overlap_moment_le_of_exp (β h q : ℝ)
                 h * ∑ i, ((a i : ℤ) : ℝ))
           ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) ≤
         K / (N : ℝ) ^ r := by
-  set s : ℝ := (1 - 4 * β ^ 2) / 4 with hsdef
+  set s : ℝ := (1 - 4 * β₀ ^ 2) / 4 with hsdef
   have hs0 : 0 < s := by linarith
-  have h2s : 2 * s + 4 * β ^ 2 < 1 := by linarith
-  have h12s : 0 < 1 - 2 * s - 4 * β ^ 2 := by linarith
-  set C : ℝ := (Real.sqrt (1 - 2 * s - 4 * β ^ 2))⁻¹ with hCdef
+  have h12s₀ : 0 < 1 - 2 * s - 4 * β₀ ^ 2 := by linarith
+  set C : ℝ := (Real.sqrt (1 - 2 * s - 4 * β₀ ^ 2))⁻¹ with hCdef
   have hC0 : 0 < C := by positivity
   set K : ℝ := (Nat.factorial r : ℝ) * s⁻¹ ^ r * C with hKdef
   have hK0 : 0 < K := by positivity
-  refine ⟨K, hK0, fun N hN => ?_⟩
+  refine ⟨K, hK0, fun β h q hfix hββ N hN => ?_⟩
+  have h2s : 2 * s + 4 * β ^ 2 < 1 := by linarith
+  have h12s : 0 < 1 - 2 * s - 4 * β ^ 2 := by linarith
   have hN0 : (0 : ℝ) < N := by positivity
   have hconc := sk_overlap_concentration_exp hN β h q s hfix hs0.le h2s
+  have hCle : (Real.sqrt (1 - 2 * s - 4 * β ^ 2))⁻¹ ≤ C :=
+    inv_anti₀ (Real.sqrt_pos.2 h12s₀) (Real.sqrt_le_sqrt (by linarith))
+  replace hconc := hconc.trans hCle
   obtain ⟨Pg, hPg⟩ : ∃ Pg : Measure (FinPairs N → ℝ),
       Pg = Measure.pi fun _ : FinPairs N => gaussianReal 0 1 := ⟨_, rfl⟩
   have : IsProbabilityMeasure Pg := by rw [hPg]; infer_instance
@@ -310,5 +315,24 @@ theorem sk_overlap_moment_le_of_exp (β h q : ℝ)
     rw [mul_inv, mul_pow, hKdef]
     ring
   rw [heqK]
+
+/-- **Higher overlap moments for the SK model (Talagrand Eq. (1.88)).**
+For `β < 1/2` and at the fixed point `q = 𝔼 tanh² (β √q z + h)`, for every `r`,
+the `2r`-th moment of `R_{1,2} - q` satisfies `𝔼⟨(R_{1,2} - q)^{2r}⟩ ≤ K / N^r` with `K`
+independent of `N` (the case `β₀ = |β|` of `sk_overlap_moment_le_of_exp_unif`). -/
+theorem sk_overlap_moment_le_of_exp (β h q : ℝ)
+    (hfix : ∫ x : ℝ, Real.tanh (β * Real.sqrt q * x + h) ^ 2 ∂(gaussianReal 0 1) = q)
+    (hβ : 4 * β ^ 2 < 1) (r : ℕ) :
+    ∃ K : ℝ, 0 < K ∧ ∀ (N : ℕ) (_ : 0 < N),
+      ∫ g : FinPairs N → ℝ, ∫ σ : Fin 2 → (Fin N → ℤˣ),
+          (((N : ℝ)⁻¹ * ((fun i => ((σ 0 i : ℤ) : ℝ)) ⬝ᵥ fun i => ((σ 1 i : ℤ) : ℝ))) - q) ^ (2 * r)
+            ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted fun a =>
+              (Real.sqrt N)⁻¹ * β *
+                (∑ p : FinPairs N, g p * ((a p.val.1 : ℤ) : ℝ) * ((a p.val.2 : ℤ) : ℝ)) +
+                h * ∑ i, ((a i : ℤ) : ℝ))
+          ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) ≤
+        K / (N : ℝ) ^ r := by
+  obtain ⟨K, hK0, hK⟩ := sk_overlap_moment_le_of_exp_unif β hβ r
+  exact ⟨K, hK0, fun N hN => hK β h q hfix le_rfl N hN⟩
 
 end SpinGlasses
