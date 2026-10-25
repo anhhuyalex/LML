@@ -207,7 +207,6 @@ theorem integral_sk_pair_perturb_cavity_le (N : ℕ) (hN : 0 < N) (β h q : ℝ)
     simp only [Gm, A, L]
     rw [sum_sk_pairs_succ_cavity, Fin.sum_univ_castSucc]
     ring
-  have hmp := measurePreserving_sk_cavity_disorder N
   have hstepB : (∫ g : FinPairs (N + 1) → ℝ,
       Ff (fun p => g (⟨(p.val.1.castSucc, p.val.2.castSucc),
           Fin.castSucc_lt_castSucc_iff.mpr p.property⟩ : FinPairs (N + 1)),
@@ -216,10 +215,7 @@ theorem integral_sk_pair_perturb_cavity_le (N : ℕ) (hN : 0 < N) (β h q : ℝ)
         ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) =
       ∫ x, Ff x ∂((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
         (Measure.pi fun _ : Fin N => gaussianReal 0 1)) := by
-    have := integral_map (μ := Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)
-      hmp.measurable.aemeasurable hFm.aestronglyMeasurable
-    rw [hmp.map_eq] at this
-    exact this.symm
+    exact integral_comp_sk_cavity_disorder N Ff
   calc _ = ∫ g : FinPairs (N + 1) → ℝ,
       Ff (fun p => g (⟨(p.val.1.castSucc, p.val.2.castSucc),
           Fin.castSucc_lt_castSucc_iff.mpr p.property⟩ : FinPairs (N + 1)),

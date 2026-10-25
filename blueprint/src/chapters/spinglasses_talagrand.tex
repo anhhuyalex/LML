@@ -2,7 +2,7 @@
 
 This chapter formalizes Sections~1.1 through 1.6 of Michel Talagrand's \emph{Spin Glasses: A Challenge for Mathematicians} (Volume~I, Springer, 2010) and the first half of Section~1.7.
 Section~1.6, including Proposition~1.6.8 (the cavity free-energy increment), is proved without any smallness assumption on the model parameters.
-Of Section~1.7 Theorem~1.7.11 (the general Gaussian fluctuation principle) is formalized; the results that depend on it (Corollary~1.7.13, Lemmas~1.7.4--1.7.6, Theorem~1.7.1) are not yet formalized (Section~\ref{sec:sg-tal:fluct}).
+Of Section~1.7 Theorem~1.7.11 (the general Gaussian fluctuation principle) is formalized; Corollaries~1.7.13 and~1.7.15, Lemma~1.7.14, Lemma~1.7.5 and Eq.~(1.185) of Lemma~1.7.4 are formalized as well; Eq.~(1.186), Lemma~1.7.6 and Theorem~1.7.1 are not yet (Section~\ref{sec:sg-tal:fluct}).
 The mathematical narrative develops the high-temperature theory of the Sherrington--Kirkpatrick (SK) model:
 \begin{enumerate}
 \item The decoupled reference system, hypercube factorizations, exact first-moment calculations, and the first-moment upper bound on the free energy (Section~1.2).
@@ -2993,6 +2993,7 @@ Two things have to be shown:
 \item[G.] \emph{Fixed-point shift} (Section~\ref{sec:sg-tal:fixed-point-shift}; Lemma~1.7.5): $|q - q_-|\le 1/N$.  Fully proved.
 \item[H.] \emph{Corollary~1.7.13} (Section~\ref{sec:sg-tal:fluct-exp}; Eqs.~(1.206)--(1.207)): Theorem~1.7.11 for $U(x)=e^{\varepsilon\beta x}$ and $U(x)=xe^{\varepsilon\beta x}$, i.e.\ for the Gibbs average of the \emph{uncentered} exponential.  Fully proved, with constants uniform in $|\beta|\le\beta_0<1/2$.
 \item[I.] \emph{Lemma~1.7.14 and Corollary~1.7.15} (Section~\ref{sec:sg-tal:fluct-cavity-field}; Eqs.~(1.209)--(1.210)): the ratio $\langle\sinh(X+h)\rangle/\langle\cosh(X+h)\rangle$ is close to $\tanh$ of the thermal mean field, and the reaction term.  Fully proved.
+\item[J.] \emph{Lemma~1.7.4, Eq.~(1.185)} (Section~\ref{sec:sg-tal:fluct-last-spin}): $\langle\sigma_{N+1}\rangle$ is close to $\tanh$ of the cavity field built from the old Gibbs measure at $\beta_-$.  Fully proved; Eq.~(1.186) and the Gaussian structure of the cavity field (Lemma~1.7.6) are not.
 \end{enumerate}
 Parts~A--E are independent of the spin-glass model: Part~A is about Gaussian vectors, Parts~B--E about an arbitrary finite
 Gibbs measure carrying $N$ bounded observables (Part~E needs $\xi_i^2=1$).  Only the last step of Part~F uses the SK model, through the overlap moments of Section~1.4.  Part~G is the fixed-point stability under the cavity parameter shift $\beta_-=\beta\sqrt{1-1/N}$.  Parts~H and~I specialize Part~F to the exponentials that the cavity method produces; they use the SK model through Part~F and through the overlap moments of Section~1.4 directly (the intermediate, disorder-by-disorder bound of Part~F is reused, not just its statement).
@@ -4000,12 +4001,101 @@ Reduce to $|x|+|y|$ with the triangle inequality and apply convexity of $t\mapst
 \end{itemize}
 \end{remark}
 
+\subsection{Lemma~1.7.4, Eq.~(1.185): the last spin is a $\tanh$ of the cavity field}
+\label{sec:sg-tal:fluct-last-spin}
+
+\emph{Content.}  Let the full system have $N+1$ spins and coupling $\beta$.  Summing out the last spin (Proposition~1.6.1) writes $\langle\sigma_{N+1}\rangle=\langle\sinh L\rangle_-/\langle\cosh L\rangle_-$, where $\langle\cdot\rangle_-$ is the Gibbs measure of the first $N$ spins with the \emph{old} couplings at $\beta_-=\beta\sqrt{N/(N+1)}$ and $L(\rho)=\beta(N+1)^{-1/2}\sum_{i\le N}g_{i,N+1}\rho_i+h$ is linear in the new couplings $y_i=g_{i,N+1}$.
+Because $(\sqrt N)^{-1}\beta_-=(\sqrt{N+1})^{-1}\beta$, this is exactly the quotient $\langle\sinh(X+h)\rangle/\langle\cosh(X+h)\rangle$ of Corollary~\ref{thm:sg-tal:cor-1715-tanh} for the $N$-spin system at $\beta_-$, and the disorder of the $(N+1)$-spin system is the product of the old disorder and $y$ (Proposition~\ref{lem:sg-tal:disorder-split}).
+We index by $N+1$ rather than $N$ (the book's $N$ and $N-1$) to avoid subtraction of natural numbers.
+\emph{Uses:} Corollary~\ref{thm:sg-tal:cor-1715-tanh}, the cavity formula of Proposition~1.6.1.  \emph{Status:} fully proved.
+
+\begin{lemma}[The $\beta_-$ coefficient]
+\label{lem:sg-tal:beta-minus}
+  \lean{SpinGlasses.sk_beta_minus_coefficient,
+        SpinGlasses.dotProduct_sk_beta_minus}
+  \leanok
+\talsource{Section~1.7, proof of Lemma~1.7.4 (the identity $\beta_-/\sqrt{N-1}=\beta/\sqrt N$)}
+For $N\ge1$, $\beta\in\mathbb R$ and $\beta_-=\beta\sqrt{N/(N+1)}$: $N^{-1/2}\beta_-=(N+1)^{-1/2}\beta$; hence for all $y,a\in\mathbb R^N$, $\sum_iN^{-1/2}\beta_-a_iy_i=(N+1)^{-1/2}\beta\sum_iy_ia_i$.
+\end{lemma}
+\begin{proof}
+  \leanok
+$\sqrt{N/(N+1)}=\sqrt N/\sqrt{N+1}$, then cancel.
+\end{proof}
+
+\begin{lemma}[Cavity splitting of the SK energy]
+\label{lem:sg-tal:energy-cavity}
+  \uses{lem:sg-tal:beta-minus}
+  \lean{SpinGlasses.skGibbsEnergy_succ_cavity}
+  \leanok
+\talsource{Section~1.6, Eq.~(1.145) with the normalization of Section~1.7}
+For $N\ge1$, $\beta,h\in\mathbb R$, $g:\mathrm{Pairs}(N+1)\to\mathbb R$ and $\sigma\in\{\pm1\}^{N+1}$, the energy of the $(N+1)$-spin system equals
+$H_N^{(\beta_-,h)}(g|_{\mathrm{old}};\sigma|_{\le N})+\sigma_{N+1}\bigl(\sum_i N^{-1/2}\beta_-\sigma_iy_i+h\bigr)$ with $y_i=g_{i,N+1}$ and $g|_{\mathrm{old}}$ the couplings of the pairs inside $\{1,\dots,N\}$.
+\end{lemma}
+\begin{proof}
+  \leanok
+This is the algebraic splitting \texttt{sk\_cavity\_energy\_snoc} with coefficient $c=\beta/\sqrt{N+1}$, together with Lemma~\ref{lem:sg-tal:beta-minus} to identify $c$ with the coefficient of the $N$-spin energy at $\beta_-$.
+\end{proof}
+
+\begin{proposition}[Splitting of the SK disorder]
+\label{lem:sg-tal:disorder-split}
+  \lean{SpinGlasses.skCavityDisorderEquiv,
+        SpinGlasses.measurePreserving_skCavityDisorderEquiv,
+        SpinGlasses.measurePreserving_sk_cavity_disorder,
+        SpinGlasses.integral_comp_sk_cavity_disorder}
+  \leanok
+\talsource{Section~1.6, Eq.~(1.146) (independence of the old and the new couplings)}
+The map $g\mapsto(g|_{\mathrm{old}},y)$ with $y_i=g_{i,N+1}$ is a measurable equivalence from $\mathbb R^{\mathrm{Pairs}(N+1)}$ to $\mathbb R^{\mathrm{Pairs}(N)}\times\mathbb R^N$ carrying the product of standard Gaussians to the product of the two product Gaussians.  Consequently, for \emph{every} function $F$ of $(g_{\mathrm{old}},y)$ with values in a Banach space, $\int F(g|_{\mathrm{old}},y(g))\,d\gamma^{\mathrm{Pairs}(N+1)}=\int F\,d(\gamma^{\mathrm{Pairs}(N)}\otimes\gamma^N)$, with no measurability or integrability hypothesis.
+\end{proposition}
+\begin{proof}
+  \leanok
+The map is the composition of the reindexing along $\mathrm{Pairs}(N+1)\simeq\mathrm{Pairs}(N)\sqcup\{1,\dots,N\}$ and the splitting of a product over a disjoint union.  The statement about integrals is change of variables along a measure-preserving measurable equivalence.
+\end{proof}
+
+\begin{lemma}[Cavity formula for the last spin]
+\label{lem:sg-tal:last-spin-ratio}
+  \uses{lem:sg-tal:energy-cavity}
+  \lean{SpinGlasses.integral_last_spin_eq_sinh_div_cosh}
+  \leanok
+\talsource{Section~1.7, proof of Lemma~1.7.4 (the formula $\langle\sigma_N\rangle=\langle\mathrm{Av}\,\varepsilon\mathcal E\rangle_-/\langle\mathrm{Av}\,\mathcal E\rangle_-$)}
+For $N\ge1$ and every disorder $g$ of the $(N+1)$-spin system, $\langle\sigma_{N+1}\rangle=\langle\sinh(X+h)\rangle_-/\langle\cosh(X+h)\rangle_-$ with $X=\sum_iN^{-1/2}\beta_-y_i\rho_i$, $y_i=g_{i,N+1}$, and $\langle\cdot\rangle_-$ the Gibbs measure of the $N$-spin energy of Lemma~\ref{lem:sg-tal:energy-cavity}.
+\end{lemma}
+\begin{proof}
+  \leanok
+Rewrite the energy by Lemma~\ref{lem:sg-tal:energy-cavity} and apply the finite cavity identity \texttt{integral\_count\_tilted\_fin\_snoc\_cavity\_units} to $f(\sigma)=\sigma_{N+1}$: the numerator is $(e^L-e^{-L})/2=\sinh L$.
+\end{proof}
+
+\begin{theorem}[Lemma~1.7.4, Eq.~(1.185)]
+\label{thm:sg-tal:lemma-174-a}
+  \uses{lem:sg-tal:last-spin-ratio, lem:sg-tal:disorder-split, thm:sg-tal:cor-1715-tanh, lem:sg-tal:beta-minus}
+  \lean{SpinGlasses.sk_last_spin_tanh_approx}
+  \leanok
+\talsource{Lemma~1.7.4, Eq.~(1.185) (Eq.~(1.212) in its proof), for the system of $N+1$ spins}
+Let $\beta_0\ge0$ with $4\beta_0^2<1$ and $h\in\mathbb R$.  There is $K>0$ such that for all $|\beta|\le\beta_0$ and $N\ge1$, with $\beta_-=\beta\sqrt{N/(N+1)}$,
+\[
+\mathbb E\Bigl(\langle\sigma_{N+1}\rangle-\tanh\Bigl(\frac{\beta}{\sqrt{N+1}}\sum_{i\le N}g_{i,N+1}\langle\sigma_i\rangle_-+h\Bigr)\Bigr)^2\le\frac K{N+1},
+\]
+where $\langle\cdot\rangle$ is the Gibbs measure of the $(N+1)$-spin system with disorder $g$ and $\langle\cdot\rangle_-$ that of the first $N$ spins with the old couplings at $\beta_-$ (Lemma~\ref{lem:sg-tal:energy-cavity}).  $K$ depends only on $(\beta_0,h)$.
+\end{theorem}
+\begin{proof}
+  \leanok
+Pick a fixed point $q_-$ of the $N$-spin system at $\beta_-$ (it exists, Eq.~(1.74); the statement does not involve it) and note $|\beta_-|\le|\beta|\le\beta_0$.  By Lemma~\ref{lem:sg-tal:last-spin-ratio} and Lemma~\ref{lem:sg-tal:beta-minus} the integrand is $F(g|_{\mathrm{old}},y)$ for the squared difference $F$ of Theorem~\ref{thm:sg-tal:cor-1715-tanh} (with $k=1$) for the $N$-spin system at $\beta_-$.  By Proposition~\ref{lem:sg-tal:disorder-split} the left side is $\int F\,d(\gamma^{\mathrm{Pairs}(N)}\otimes\gamma^N)$, which, $F$ being nonnegative, is at most the iterated integral, hence at most $K_{1.7.15}/N\le2K_{1.7.15}/(N+1)$.
+\end{proof}
+
+\begin{remark}[Differences from the book in Lemma~1.7.4]
+\label{rem:sg-tal:dev-174}
+\begin{itemize}
+\item \emph{Indexing.}  The book states (1.185) for $N$ spins and applies (1.209) to the $(N-1)$-spin system; we write $N+1$ and $N$.  Constants are the same up to the factor $2$ from $1/N\le2/(N+1)$.
+\item \emph{No fixed point in the statement.}  The book's text speaks of the fixed point $q_-$ of the smaller system; the statement of (1.185) does not contain $q$ and neither does ours.  Lemma~\ref{lem:sg-tal:fixed-point-shift} (relating $q$ and $q_-$) is needed only in the next steps (1.186) and Lemma~1.7.6, where the fixed point of the \emph{full} system enters.
+\item \emph{Part of (1.185) only.}  The book's Lemma~1.7.4 also contains (1.186), $\mathbb E(\langle\sigma_1\rangle-\langle\sigma_1\rangle_-)^2\le K/N$, and the Gaussian structure of the cavity field (Lemma~1.7.6); these are not yet formalized.
+\end{itemize}
+\end{remark}
+
 \begin{remark}[What remains of Section~1.7]
 \label{rem:sg-tal:remaining-17}
 Of Section~1.7 the following are formalized: the general Gaussian fluctuation principle (Theorem~\ref{thm:sg-tal:general-fluct}), the fixed-point shift (Lemma~\ref{lem:sg-tal:fixed-point-shift}),
 Corollary~1.7.13 (Theorem~\ref{thm:sg-tal:cor-1713}), Lemma~1.7.14 (Lemma~\ref{lem:sg-tal:ratio}) and Corollary~1.7.15 (Theorems~\ref{thm:sg-tal:cor-1715-tanh} and~\ref{thm:sg-tal:cor-1715-reaction}).
-Not yet formalized, and for that reason not stated here as theorems, are Lemma~1.7.4 (the asymptotic Gaussianity of the cavity field: $\mathbb E(\langle\sigma_N\rangle-\tanh(\beta N^{-1/2}\sum_{i<N}g_{iN}\langle\sigma_i\rangle_-+h))^2\le K/N$, obtained by applying
-Eq.~(1.209) to the $(N-1)$-spin system at $\beta_-$ together with Lemma~\ref{lem:sg-tal:fixed-point-shift}), Lemma~1.7.6 (the cavity field as a disorder-measurable Gaussian) and Theorem~1.7.1 (the local magnetizations are asymptotically i.i.d.\ ).
-One gap between what is proved and what these applications need is already known: Eq.~(1.210) is stated before the final linear rewriting of the book (Remark~\ref{rem:sg-tal:dev-1715}).  The Corollaries are stated for the $N$-spin system with constants uniform in $|\beta|\le\beta_0<1/2$ (Remark~\ref{rem:sg-tal:dev-1713}), so the application to $N-1$ spins at $\beta_-$ is by relabeling $N$ and $\beta$.
+Also formalized is Eq.~(1.185) of Lemma~1.7.4 (Theorem~\ref{thm:sg-tal:lemma-174-a}), obtained by applying Eq.~(1.209) to the $N$-spin system at $\beta_-$ for the $(N+1)$-spin system.
+Not yet formalized, and for that reason not stated here as theorems, are Eq.~(1.186) of Lemma~1.7.4 ($\mathbb E(\langle\sigma_1\rangle-\langle\sigma_1\rangle_-)^2\le K/N$, which needs the site symmetry and the two-replica computation (1.213) and uses Lemma~\ref{lem:sg-tal:fixed-point-shift}), Lemma~1.7.6 (the cavity field as a disorder-measurable Gaussian) and Theorem~1.7.1 (the local magnetizations are asymptotically i.i.d.\ ).
+One gap between what is proved and what these applications need is already known: Eq.~(1.210) is stated before the final linear rewriting of the book (Remark~\ref{rem:sg-tal:dev-1715}).  The Corollaries are stated for the $N$-spin system with constants uniform in $|\beta|\le\beta_0<1/2$ (Remark~\ref{rem:sg-tal:dev-1713}), so the application to the $N$-spin system at $\beta_-$ is by relabeling $N$ and $\beta$ (done in Theorem~\ref{thm:sg-tal:lemma-174-a}).
 Nothing in Sections~1.1--1.6 depends on Section~1.7.
 \end{remark}

@@ -447,6 +447,7 @@ public import LeanMachineLearning.SpinGlasses.SKFixedPoint
 public import LeanMachineLearning.SpinGlasses.SKGaussianCorollaries
 public import LeanMachineLearning.SpinGlasses.SKGaussianFluctuation
 public import LeanMachineLearning.SpinGlasses.SKGuerraBound
+public import LeanMachineLearning.SpinGlasses.SKLastSpinApprox
 public import LeanMachineLearning.SpinGlasses.SKLatalaBase
 public import LeanMachineLearning.SpinGlasses.SKLatalaCompensated
 public import LeanMachineLearning.SpinGlasses.SKModel

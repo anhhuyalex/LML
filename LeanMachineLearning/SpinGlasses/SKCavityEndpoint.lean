@@ -85,7 +85,6 @@ theorem integral_sk_cavity_coupled_endpoint (N n : ℕ) (β h : ℝ)
         (fun τ hτ => abs_nonneg (f τ)) (Finset.mem_univ σ))
     exact Integrable.of_bound hFm.aestronglyMeasurable M (ae_of_all _ fun w => by
       simpa only [Real.norm_eq_abs] using hb w)
-  have hmap := (measurePreserving_sk_cavity_disorder N).map_eq
   have heq (g : FinPairs (N + 1) → ℝ) :
       F (fun p => g (⟨(p.val.1.castSucc, p.val.2.castSucc),
           Fin.castSucc_lt_castSucc_iff.mpr p.property⟩ : FinPairs (N + 1)),
@@ -107,8 +106,7 @@ theorem integral_sk_cavity_coupled_endpoint (N n : ℕ) (β h : ℝ)
   rw [← integral_prod F hFi]
   change (∫ w, F w ∂((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
     (Measure.pi fun _ : Fin N => gaussianReal 0 1))) = _
-  rw [← hmap, integral_map (measurePreserving_sk_cavity_disorder N).measurable.aemeasurable
-    hFm.aestronglyMeasurable]
+  rw [← integral_comp_sk_cavity_disorder N F]
   simp_rw [heq]
 
 end SpinGlasses
