@@ -134,6 +134,28 @@ theorem integral_spin_eq_zero_of_field_zero (N : ℕ) (β : ℝ) (g : FinPairs N
   simp only [Equiv.neg_apply, Pi.neg_apply, Units.val_neg, Int.cast_neg, integral_neg] at h
   linarith
 
+/-- **The fixed point of the cavity system** (Lemma 1.7.5 in the `(N+1)`-spin indexing).  For
+`0 ≤ β`, `4 β² < 1` and a fixed point `q` at `β`, the `N`-spin system at
+`β_- = β √(N/(N+1))` has a fixed point `q_-` with `|q - q_-| ≤ 1/(N+1)`. -/
+theorem exists_fixedPoint_cavity {β : ℝ} (h q : ℝ) (hβ0 : 0 ≤ β) (hβ4 : 4 * β ^ 2 < 1)
+    (hq : ∫ x : ℝ, Real.tanh (β * Real.sqrt q * x + h) ^ 2 ∂(gaussianReal 0 1) = q)
+    {N : ℕ} :
+    ∃ qm : ℝ, qm ∈ Set.Icc (0 : ℝ) 1 ∧
+      ∫ x : ℝ, Real.tanh (β * Real.sqrt ((N : ℝ) / (N + 1)) * Real.sqrt qm * x + h) ^ 2
+        ∂(gaussianReal 0 1) = qm ∧ |q - qm| ≤ 1 / ((N : ℝ) + 1) := by
+  obtain ⟨qm, hqmI, hqm⟩ := exists_fixedPoint (β * Real.sqrt ((N : ℝ) / (N + 1))) h
+  refine ⟨qm, hqmI, hqm.symm, ?_⟩
+  have := sk_fixed_point_shift_le (N := N + 1) (Nat.succ_pos N) β h q qm hβ0 hβ4 hq (by
+    rw [one_sub_inv_succ_eq_div]; exact hqm.symm)
+  simpa using this
+
+/-- A Gibbs mean of a spin of the SK system is measurable in the couplings. -/
+theorem measurable_integral_spin_skGibbsEnergy (N : ℕ) (β h : ℝ) (i : Fin N) :
+    Measurable fun g : FinPairs N → ℝ =>
+      ∫ σ : Fin N → ℤˣ, ((σ i : ℤ) : ℝ) ∂(Measure.count.tilted (skGibbsEnergy N β h g)) :=
+  measurable_integral_count_tilted (fun g a => skGibbsEnergy N β h g a)
+    (fun a => by unfold skGibbsEnergy; fun_prop) _
+
 /-- **The renormalization defect of the old magnetizations** (Eq. (1.189)).  With
 `R̄ = N⁻¹ ∑_i ⟨σ_i⟩_-²` the mean overlap of the `N`-spin system at `β_- = β √(N/(N+1))`, the
 quantity `q - (N/(N+1)) R̄` has a dominating integrable function `B` of the old couplings with
@@ -160,15 +182,11 @@ theorem sk_old_overlap_dev_bound (β₀ : ℝ) (hβ₀' : 4 * β₀ ^ 2 < 1) (h 
     calc β ^ 2 * ((N : ℝ) / (N + 1)) ≤ β ^ 2 * 1 :=
           mul_le_mul_of_nonneg_left ((div_le_one (by positivity)).mpr (by linarith)) (sq_nonneg _)
       _ ≤ β₀ ^ 2 := by rw [mul_one]; exact hβ2
-  obtain ⟨qm, hqmI, hqm⟩ := exists_fixedPoint (β * Real.sqrt ((N : ℝ) / (N + 1))) h
-  have hshift : |q - qm| ≤ 1 / ((N : ℝ) + 1) := by
-    have := sk_fixed_point_shift_le (N := N + 1) (Nat.succ_pos N) β h q qm hβ0 hβ4 hq (by
-      rw [one_sub_inv_succ_eq_div]; exact hqm.symm)
-    simpa using this
+  obtain ⟨qm, hqmI, hqm, hshift⟩ := exists_fixedPoint_cavity (N := N) h q hβ0 hβ4 hq
   have hOM : ∫ g, overlapMoment (fun (j : Fin N) (a : Fin N → ℤˣ) => ((a j : ℤ) : ℝ))
       (skGibbsEnergy N (β * Real.sqrt ((N : ℝ) / (N + 1))) h g) qm 1
       ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) ≤ K' / N := by
-    have := hK' _ h qm hqm.symm hbm2 N hN
+    have := hK' _ h qm hqm hbm2 N hN
     rw [pow_one] at this
     exact this
   have hint := integrable_overlapMoment_skGibbsEnergy N
@@ -358,9 +376,7 @@ theorem exists_sk_cavity_gaussian (β h : ℝ) {N : ℕ} (hN : 0 < N) :
     ⟨fun g i => _, fun _ _ => rfl⟩
   have hmeas : ∀ i, Measurable fun g => m g i := fun i => by
     simp_rw [hm]
-    exact measurable_integral_count_tilted
-      (fun g a => skGibbsEnergy N (β * Real.sqrt ((N : ℝ) / (N + 1))) h g a)
-      (fun a => by unfold skGibbsEnergy; fun_prop) _
+    exact measurable_integral_spin_skGibbsEnergy N _ h i
   obtain ⟨Z, hZ, hind, hlaw, hZi, hZint⟩ := exists_independent_gaussian_projection hN
     (measurePreserving_skCavityDisorderEquiv N) hmeas
   exact ⟨m, Z, hm, hmeas, hZ, hind, hlaw, hZi, hZint⟩
@@ -446,8 +462,7 @@ theorem sk_last_spin_gaussian_approx (β₀ : ℝ) (hβ₀ : 0 ≤ β₀) (hβ�
   have hXm : Measurable X := by
     rw [show X = fun g => ∫ σ, ((σ (Fin.last N) : ℤ) : ℝ)
       ∂(Measure.count.tilted (skGibbsEnergy (N + 1) β h g)) from funext hX]
-    exact measurable_integral_count_tilted (fun g a => skGibbsEnergy (N + 1) β h g a)
-      (fun a => by unfold skGibbsEnergy; fun_prop) _
+    exact measurable_integral_spin_skGibbsEnergy (N + 1) β h (Fin.last N)
   have hTm : Measurable T := by
     rw [show T = fun g => Real.tanh ((Real.sqrt ((N : ℝ) + 1))⁻¹ * β *
         ∑ i : Fin N, (skCavityDisorderEquiv N g).2 i * m (skCavityDisorderEquiv N g).1 i + h)
