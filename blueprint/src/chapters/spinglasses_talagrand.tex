@@ -865,7 +865,8 @@ The exponential is the sum of the nonnegative series $\sum_n y^n/n!$, and a sing
 \end{proof}
 
 \begin{theorem}[All even moments of the overlap (Eq.~(1.88))]\label{thm:sg-tal:overlap-moments-all}
-  \lean{SpinGlasses.sk_overlap_moment_le_of_exp}
+  \lean{SpinGlasses.sk_overlap_moment_le_of_exp,
+        SpinGlasses.sk_overlap_moment_le_of_exp_unif}
   \leanok
 \talsource{Eq.~(1.88)}
 Let $\beta,h\in\mathbb R$ with $4\beta^2<1$ and let $q$ satisfy $q=\mathbb{E}[\tanh^2(\beta\sqrt q\,z+h)]$. For every $r\in\mathbb N$ there is $K>0$ such that for every $N\ge1$, in the $N$-spin SK model at inverse temperature $\beta$ and field $h$,
@@ -874,10 +875,12 @@ Let $\beta,h\in\mathbb R$ with $4\beta^2<1$ and let $q$ satisfy $q=\mathbb{E}[\t
 K=r!\,s^{-r}\,(1-2s-4\beta^2)^{-1/2},\quad s=\frac{1-4\beta^2}{4},
 \]
 so that $K=r!\,\bigl(\tfrac{4}{1-4\beta^2}\bigr)^{r}\bigl(\tfrac{2}{1-4\beta^2}\bigr)^{1/2}$ does not depend on $N$ (it is the book's ``$K$ depends on $r$ and $\beta$ only'').
+\emph{Uniform version.}  Let $\beta_0$ satisfy $4\beta_0^2<1$ and $r\in\mathbb N$.  The same constant with $\beta$ replaced by $\beta_0$, $K_0=r!\,s_0^{-r}(1-2s_0-4\beta_0^2)^{-1/2}$, $s_0=\frac{1-4\beta_0^2}{4}$, works for \emph{every} $\beta$ with $\beta^2\le\beta_0^2$, every $h$, and every fixed point $q$ at $\beta$: $\nu\big((R_{1,2}-q)^{2r}\big)\le K_0/N^r$.
 \end{theorem}
 \begin{proof}
   \leanok
 Put $X=(R_{1,2}-q)^2\ge0$. Lemma~\ref{lem:sg-tal:pow-le-exp} with $y=sNX$ gives the pointwise bound $X^r\le r!\,(sN)^{-r}e^{sNX}$. Integrate against the Gibbs measure of two replicas and then against the disorder; the integral of the right-hand side is controlled by Theorem~\ref{thm:sg-tal:overlap-conc}: $\nu(\exp sN(R_{1,2}-q)^2)\le(1-2s-4\beta^2)^{-1/2}$, which applies because $2s+4\beta^2=(1+4\beta^2)/2<1$. Since $(R_{1,2}-q)^{2r}=X^r$ the claim follows.
+For the uniform version use $s_0$ in place of $s$: $2s_0+4\beta^2\le2s_0+4\beta_0^2<1$ so Theorem~\ref{thm:sg-tal:overlap-conc} still applies, and its bound $(1-2s_0-4\beta^2)^{-1/2}$ is at most $(1-2s_0-4\beta_0^2)^{-1/2}$ because $\beta^2\le\beta_0^2$; nothing else in the argument depends on $\beta$, $h$ or $q$.  The case $\beta_0=|\beta|$ is the first statement.
 \emph{Formalization note.} The statement is for the genuine $N$-spin system with the same normalization as Theorem~\ref{thm:sg-tal:overlap-conc}, not for the $(N+1)$-spin system with $\beta_+$ of Part~D of Section~\ref{sec:sg-tal:cavity}; the latter (Proposition~1.6.7, Theorem~\ref{thm:sg-tal:overlap-moments}) concerns the $(N+1)$-spin system and assumes the stronger smallness condition $16\beta^2e^{64\beta^2}\le\tfrac12$, whereas Section~\ref{sec:sg-tal:fluct} needs the $N$-spin system for every $4\beta^2<1$, which is why it uses this theorem.
 Formalized in \texttt{SpinGlasses/SKOverlapConcentration.lean}.
 \end{proof}
@@ -2991,7 +2994,7 @@ Two things have to be shown:
 \item[E.] \emph{Moments of the Gram entries} (Section~\ref{sec:sg-tal:fluct-gram}; Eq.~(1.201)): $\int T_{\ell\ell'}^{2k}\le4^{2k}\int(R_{1,2}-q)^{2k}$.  Fully proved.
 \item[F.] \emph{Theorem~1.7.11} (Section~\ref{sec:sg-tal:fluct-main}): D, E and the overlap moments of Section~1.4 (Eq.~(1.88)) give the theorem for the SK model.  Fully proved.
 \item[G.] \emph{Fixed-point shift} (Section~\ref{sec:sg-tal:fixed-point-shift}; Lemma~1.7.5): $|q - q_-|\le 1/N$.  Fully proved.
-\item[H.] \emph{Corollary~1.7.13} (Section~\ref{sec:sg-tal:fluct-exp}; Eqs.~(1.206)--(1.207)): Theorem~1.7.11 for $U(x)=e^{\varepsilon\beta x}$ and $U(x)=xe^{\varepsilon\beta x}$, i.e.\ for the Gibbs average of the \emph{uncentered} exponential.  Fully proved, for a fixed $\beta$.
+\item[H.] \emph{Corollary~1.7.13} (Section~\ref{sec:sg-tal:fluct-exp}; Eqs.~(1.206)--(1.207)): Theorem~1.7.11 for $U(x)=e^{\varepsilon\beta x}$ and $U(x)=xe^{\varepsilon\beta x}$, i.e.\ for the Gibbs average of the \emph{uncentered} exponential.  Fully proved, with constants uniform in $|\beta|\le\beta_0<1/2$.
 \item[I.] \emph{Lemma~1.7.14 and Corollary~1.7.15} (Section~\ref{sec:sg-tal:fluct-cavity-field}; Eqs.~(1.209)--(1.210)): the ratio $\langle\sinh(X+h)\rangle/\langle\cosh(X+h)\rangle$ is close to $\tanh$ of the thermal mean field, and the reaction term.  Fully proved.
 \end{enumerate}
 Parts~A--E are independent of the spin-glass model: Part~A is about Gaussian vectors, Parts~B--E about an arbitrary finite
@@ -3059,8 +3062,7 @@ The bound for the $j$-th derivative of $V^{(n)}$ is the bound for the $(j+n)$-th
 
 \begin{definition}[Products of derivatives, the covariance defect and the projection path]
 \label{def:sg-tal:projpath}
-  \lean{SpinGlasses.derivProd,
-        SpinGlasses.projGram,
+  \lean{SpinGlasses.projGram,
         SpinGlasses.projPath,
         SpinGlasses.projMeasure}
   \leanok
@@ -3068,7 +3070,7 @@ The bound for the $j$-th derivative of $V^{(n)}$ is the bound for the $(j+n)$-th
 Let $m,N\in\mathbb N$, $V:\mathbb R\to\mathbb R$ smooth, $u=(u_\ell)_{\ell\le m}$ with $u_\ell\in\mathbb R^N$, and $v\in\mathbb R$.
 For a multi-index $a\in\mathbb N^m$ and $x\in\mathbb R^m$ put
 \[
-F^{(a)}(x)=\prod_{\ell\le m}V^{(a_\ell)}(x_\ell)\quad(\texttt{derivProd}),\qquad
+F^{(a)}(x)=\prod_{\ell\le m}V^{(a_\ell)}(x_\ell)\quad(\text{written out in Lean as the product of iterated derivatives, with no separate definition}),\qquad
 T_{\ell k}=u_\ell\cdot u_k-v^2\delta_{\ell k}\quad(\texttt{projGram}).
 \]
 Let $(\xi,y)$ have law $\gamma_m\otimes\gamma_N$, $\gamma_n=\mathcal N(0,I_n)$ (\texttt{projMeasure}), and set
@@ -3085,17 +3087,20 @@ $T_{\ell\ell'}=N^{-1}\sum_i\dot\sigma^\ell_i\dot\sigma^{\ell'}_i$ for $\ell\ne\e
 \label{lem:sg-tal:derivprod}
   \lean{SpinGlasses.ExpTame.contDiff_derivProd,
         SpinGlasses.ExpTame.hasFDerivAt_derivProd,
-        SpinGlasses.ExpTame.abs_derivProd_le}
+        SpinGlasses.ExpTame.abs_derivProd_le,
+        SpinGlasses.ExpTame.exists_bound_upTo,
+        SpinGlasses.abs_derivProd_le_of_bound}
   \leanok
 \talsource{Eq.~(1.202)}
 Let $V$ be exponentially tame and $a\in\mathbb N^m$.  Then $F^{(a)}$ is $C^\infty$, its partial derivative in the direction $e_k$ is
 $\partial_kF^{(a)}=F^{(a+e_k)}$ (Eq.~(1.202): derivatives of the product act on one factor each), and there are $C,c\ge0$ with
 $|F^{(a)}(x)|\le C\exp\bigl(c\sum_{\ell}|x_\ell|\bigr)$ for all $x\in\mathbb R^m$.
+\emph{Quantitative form.}  If $|V^{(j)}(x)|\le C_je^{c|x|}$ for all $j\le J$ and all $x$, with $C_j,c\ge0$, and $a_\ell\le J$ for all $\ell$, then $|F^{(a)}(x)|\le\bigl(\prod_\ell C_{a_\ell}\bigr)\exp\bigl(mc\sum_\ell|x_\ell|\bigr)$.  For an exponentially tame $V$ the finitely many derivatives up to order $J$ always admit such $C_j$ and a common $c$ (take $c$ the sum of the rates).
 \end{lemma}
 \begin{proof}
   \leanok
 Smoothness and the derivative follow from the product rule for $\prod_\ell V^{(a_\ell)}(x_\ell)$, only the $k$-th factor depends on $x_k$.
-For the bound multiply the bounds $C_{a_\ell}e^{c_{a_\ell}|x_\ell|}$ of Lemma~\ref{lem:sg-tal:exptame-deriv} and use $c_{a_\ell}\le\sum_jc_{a_j}$.
+For the bound multiply the bounds $C_{a_\ell}e^{c|x_\ell|}$ of Lemma~\ref{lem:sg-tal:exptame-deriv} (with the common rate $c$) and use $|x_\ell|\le\sum_j|x_j|$ to get the exponent $mc\sum_j|x_j|$.
 \end{proof}
 
 \begin{theorem}[First derivative along the projection path]
@@ -3202,37 +3207,30 @@ the weights $1/m$.  For integrability, Lemma~\ref{lem:sg-tal:derivprod} bounds $
 the moment generating function with $b=\pm mc$.
 \end{proof}
 
-\begin{lemma}[A bound on the path functional uniform in $N$]
+\begin{lemma}[A bound on the path functional, uniform in $N$ and in the observable]
 \label{lem:sg-tal:projpath-bound}
   \uses{lem:sg-tal:projpath-mgf}
-  \lean{SpinGlasses.ExpTame.exists_abs_integral_derivProd_projPath_le,
+  \lean{SpinGlasses.abs_integral_derivProd_projPath_le,
         SpinGlasses.abs_dotProduct_le_of_self_le,
         SpinGlasses.abs_projGram_le,
-        SpinGlasses.ExpTame.exists_abs_projSum_le}
+        SpinGlasses.pairCount_le,
+        SpinGlasses.exists_abs_projSum_le_of_bound}
   \leanok
 \talsource{the bound $|\varphi^{(r)}(t)|\le KN^{-r/2}$ in the proof of Theorem~1.7.11, here without the Gibbs average}
-Let $V$ be exponentially tame, $m\ge1$, $a\in\mathbb N^m$, $B\ge0$.  There is $C\ge0$, depending only on $V,m,a,B$, such that for every
-$N$, all vectors $u_\ell\in\mathbb R^N$ with $u_\ell\cdot u_\ell\le B$, every $v$ with $v^2\le B$ and every $s\in\mathbb R$,
+Let $m\ge1$, $r\ge0$, $B\ge0$, and let $C_j\ge0$ ($j\le2r$) and $c\ge0$ be given.  There is $C\ge0$, depending only on $m,r,B,(C_j)_{j\le2r},c$ and \emph{not on $V$}, such that for every smooth $V$ with $|V^{(j)}(x)|\le C_je^{c|x|}$ ($j\le2r$), every $N$, all vectors $u_\ell\in\mathbb R^N$ with $u_\ell\cdot u_\ell\le B$, every $v$ with $v^2\le B$ and every $s\in\mathbb R$,
 \[
-\bigl|\mathbb E\,F^{(a)}(Z_s)\bigr|\le C.
+\bigl|\mathrm{projSum}_r(s)\bigr|\le C\sum_{p}\bigl|\mathrm{pairProd}(p)\bigr|,
 \]
-Moreover $|u_\ell\cdot u_k|\le B$ and $|T_{\ell k}|\le2B$, and for every $r$ there is $C_r\ge0$ (depending on $V,m,r,B$) such that, under the same
-hypotheses,
-\[
-\bigl|\mathrm{projSum}_r(s)\bigr|\le C_r\sum_{p}\bigl|\mathrm{pairProd}(p)\bigr|,
-\]
-the sum over lists of $r$ pairs.
+the sum over lists of $r$ pairs.  The single-multiindex ingredient is: if $|F^{(a)}(x)|\le C_0\exp(c'\sum_\ell|x_\ell|)$ then $|\mathbb E\,F^{(a)}(Z_s)|\le2C_0\exp(\frac{(mc')^2}{2}\max(B,0))$.  Moreover $|u_\ell\cdot u_k|\le B$ and $|T_{\ell k}|\le2B$.
 \end{lemma}
 \begin{proof}
   \leanok
-By Lemma~\ref{lem:sg-tal:derivprod} and Jensen's inequality, $|F^{(a)}(x)|\le C_0\frac1m\sum_\ell(e^{b x_\ell}+e^{-bx_\ell})$ with $b=mc$.  By
+By Jensen's inequality, $|F^{(a)}(x)|\le C_0\frac1m\sum_\ell(e^{b x_\ell}+e^{-bx_\ell})$ with $b=mc'$.  By
 Lemma~\ref{lem:sg-tal:projpath-mgf} each of the $2m$ expectations is $\exp(\frac{b^2}2(\cos^2s\,v^2+\sin^2s\,u_\ell\cdot u_\ell))\le\exp(b^2B/2)$, hence
 $|\mathbb E F^{(a)}(Z_s)|\le 2C_0\exp(b^2B/2)$, which depends on neither $N$ nor $s$.
 The bound $|u\cdot u'|\le B$ is $|u\cdot u'|\le\frac12(u\cdot u+u'\cdot u')$, and $|T_{\ell\ell}|\le2B$ since $0\le u_\ell\cdot u_\ell\le B$ and $0\le v^2\le B$.
-For the last claim take absolute values term by term and apply the first bound to each of the finitely many multiplicities $a=\mathrm{pairCount}(p)$.
-\emph{Why this replaces H\"older.}  The book obtains $|\varphi^{(r)}|\le KN^{-r/2}$ by bounding the product $T_{\ell_1\ell_1'}\cdots T_{\ell_r\ell_r'}F^{(\mathbf s)}$ with
-H\"older's inequality, using (1.196) for the factor $F^{(\mathbf s)}$.  Here the Gaussian factor is bounded by a constant independent of everything, so only the product of $T$'s
-remains to be estimated.
+For the last claim take absolute values term by term and apply the first bound to each of the finitely many multiplicities $a=\mathrm{pairCount}(p)$; each multiplicity is at most $2r$ (the total multiplicity of a list of $r$ pairs is $2r$), so only the derivatives of order $\le2r$ enter, with $C_0=\prod_\ell C_{a_\ell}$ and $c'=mc$ (Lemma~\ref{lem:sg-tal:derivprod}).  The resulting constant is the sum over the $(m^2)^r$ lists of $2\prod_\ell C_{\mathrm{pairCount}(p)_\ell}\exp(\frac{(m^2c)^2}2\max(B,0))$, which does not involve $V$.
+\emph{Design note.}  The book only needs a constant for one fixed $U$.  We keep the dependence on $V$ explicit through the bounds $C_j,c$ because Section~1.7 is applied to the families $U(x)=e^{\varepsilon\beta x}$, $xe^{\varepsilon\beta x}$ with $|\beta|\le\beta_0$ (Corollary~\ref{thm:sg-tal:cor-1713}), and the book's claim that the constants stay bounded as $\beta$ varies is exactly this uniformity.
 \end{proof}
 
 \begin{lemma}[Continuity and measurability of the path]
@@ -3447,10 +3445,12 @@ $\mathrm{projSum}_0$ has a single term, the empty list, so $\mathrm{projSum}_0(s
 (\texttt{integral\_fintype\_prod\_eq\_prod}).
 \end{proof}
 
+
 \begin{theorem}[The Taylor step of Theorem~1.7.11]
 \label{thm:sg-tal:gibbs-taylor}
   \uses{lem:sg-tal:taylor-vanishing, lem:sg-tal:gibbs-chain, lem:sg-tal:gibbs-endpoint}
-  \lean{SpinGlasses.ExpTame.gibbs_fluctuation_abs_le}
+  \lean{SpinGlasses.ExpTame.gibbs_fluctuation_abs_le,
+        SpinGlasses.exists_gibbs_fluctuation_abs_le}
   \leanok
 \talsource{proof of Theorem~1.7.11: $\varphi(1)$ is bounded by Taylor's formula from $\varphi^{(r)}(0)=0$ ($r<2k$) and $|\varphi^{(2k)}|\le KN^{-k}$}
 Let $V$ be exponentially tame, $m\ge1$, $v^2\le4$ and $\int V(vt)\,d\gamma_1(t)=0$.  There is $C\ge0$, depending only on $V$ and $m$ (not on $N$, on $\alpha$, on the energy $f$ or on the observables), such that for every Gibbs measure $\mu=G_f$ on a finite set $\alpha$ and observables $\xi_i:\alpha\to[-1,1]$,
@@ -3458,11 +3458,12 @@ Let $V$ be exponentially tame, $m\ge1$, $v^2\le4$ and $\int V(vt)\,d\gamma_1(t)=
 \Bigl|\mathbb E_y\Bigl(\int V\Bigl(\frac1{\sqrt N}\sum_{i\le N}y_i(\xi_i(a)-\langle\xi_i\rangle)\Bigr)d\mu(a)\Bigr)^m\Bigr|\le C\sum_{p}\int\bigl|\mathrm{pairProd}(T(u(\boldsymbol\sigma),v))(p)\bigr|\,d\mu^{\otimes m}(\boldsymbol\sigma),
 \]
 the sum over all $m^{2m}$ lists $p$ of $m$ pairs of replicas.
+\emph{Uniform form.}  $C$ depends on $V$ only through $m$ and through explicit bounds $|V^{(j)}(x)|\le C_je^{c|x|}$ for $j\le2m$: given $m,(C_j)_{j\le2m},c$ there is one $C$ that works for all exponentially tame $V$ obeying these bounds.
 \end{theorem}
 \begin{proof}
   \leanok
 Apply Lemma~\ref{lem:sg-tal:taylor-vanishing} with $n=m$ to the chain $Q_r$ of Lemma~\ref{lem:sg-tal:gibbs-chain}: (a) is the chain relation, (b) gives $Q_r(0)=0$ for $r<m$, and (c) gives $|Q_m|\le M$ with
-$M=C_0\sum_p\int|\mathrm{pairProd}|$, uniformly in $s$.  Hence $|Q_0(\pi/2)|\le M/(2^mm!)$, and $Q_0(\pi/2)$ is the left side by Lemma~\ref{lem:sg-tal:gibbs-endpoint}; take $C=C_0/(2^mm!)$.
+$M=C_0\sum_p\int|\mathrm{pairProd}|$, uniformly in $s$.  Hence $|Q_0(\pi/2)|\le M/(2^mm!)$, and $Q_0(\pi/2)$ is the left side by Lemma~\ref{lem:sg-tal:gibbs-endpoint}; take $C=C_0/(2^mm!)$.  Here $C_0$ is the constant of Lemma~\ref{lem:sg-tal:projpath-bound} with $r=m$ and $B=4$, which is why the dependence on $V$ is only through the bounds $C_j$, $c$.
 \emph{Comparison with the book.}  The book takes $m=2k$, obtains $|\varphi^{(2k)}|\le KN^{-k}$ by H\"older's inequality and gets the same factor $1/(2k)!$ from Taylor's formula.
 Here the sum over lists is kept and estimated in Part~E.
 \end{proof}
@@ -3627,7 +3628,7 @@ Formalized in \texttt{SpinGlasses/SKFixedPoint.lean}.
 
 \emph{Content.}  Theorem~\ref{thm:sg-tal:general-fluct} for the two functions that the cavity method actually needs,
 $U(x)=e^{\varepsilon\beta x}$ and $U(x)=x\,e^{\varepsilon\beta x}$, in the form in which they are used in Section~1.7.
-\emph{Uses:} Parts~A--F.  \emph{Status:} fully proved, for each fixed $\beta$ (the uniformity in $\beta\le\beta_0$ asserted by the book is \emph{not} formalized; see Remark~\ref{rem:sg-tal:dev-1713}).
+\emph{Uses:} Parts~A--F.  \emph{Status:} fully proved, with a constant $K$ that is uniform in $|\beta|\le\beta_0<1/2$ as in the book (Remark~\ref{rem:sg-tal:dev-1713}).
 
 \paragraph{Where the statement comes from.}
 The cavity method (Lemma~1.7.4) needs the \emph{whole} Gibbs average of $\exp(\varepsilon\beta N^{-1/2}\sum_iy_i\sigma_i)$, not of its centered version.
@@ -3644,15 +3645,22 @@ are the bookkeeping that makes it a formal statement.
         SpinGlasses.iterate_deriv_exp,
         SpinGlasses.expTame_exp,
         SpinGlasses.iterate_deriv_id_mul_exp,
-        SpinGlasses.expTame_id_mul_exp}
+        SpinGlasses.expTame_id_mul_exp,
+        SpinGlasses.abs_iterate_deriv_exp_le,
+        SpinGlasses.abs_iterate_deriv_id_mul_exp_le_abs,
+        SpinGlasses.abs_iterate_deriv_id_mul_exp_le}
   \leanok
 \talsource{``with $U(x)=\exp\varepsilon\beta x$'' and ``using now $U(x)=x\exp\varepsilon\beta x$'' in the proof of Corollary~1.7.13}
-For every $c\in\mathbb R$ the functions $x\mapsto e^{cx}$ and $x\mapsto xe^{cx}$ are exponentially tame (Definition~\ref{def:sg-tal:exptame}).
+For every $c\in\mathbb R$ the functions $x\mapsto e^{cx}$ and $x\mapsto xe^{cx}$ are exponentially tame (Definition~\ref{def:sg-tal:exptame}).  Moreover the bounds are uniform in the parameter: if $|c|\le B$ then for all $j$ and $x$
+\[
+\Bigl|\tfrac{d^j}{dx^j}e^{cx}\Bigr|\le B^je^{B|x|},\qquad
+\Bigl|\tfrac{d^j}{dx^j}\bigl(xe^{cx}\bigr)\Bigr|\le2\bigl(jB^{j-1}+B^j\bigr)e^{(B+1)|x|}.
+\]
 \end{lemma}
 \begin{proof}
   \leanok
 By induction on $j$, $\frac{d^j}{dx^j}e^{cx}=c^je^{cx}$ and $\frac{d^j}{dx^j}\bigl(xe^{cx}\bigr)=(jc^{j-1}+c^jx)e^{cx}$.  Since $cx\le|c||x|$ the first is bounded by $|c|^je^{|c||x|}$.
-For the second use $|x|\le e^{|x|}$ and $1\le e^{|x|}$, which give $|jc^{j-1}+c^jx|\le 2(j|c|^{j-1}+|c|^j)e^{|x|}$, hence a bound $Ce^{(|c|+1)|x|}$.
+For the second use $|x|\le e^{|x|}$ and $1\le e^{|x|}$, which give $|jc^{j-1}+c^jx|\le 2(j|c|^{j-1}+|c|^j)e^{|x|}$, hence a bound $Ce^{(|c|+1)|x|}$.  The uniform bounds follow because the right sides are increasing in $|c|$.
 Formalized in \texttt{SpinGlasses/GaussianProjectionPath.lean}, next to the definition of \texttt{ExpTame}.
 \end{proof}
 
@@ -3762,15 +3770,17 @@ Monotonicity of the inner integral (for $F\ge0$ dominated by an integrable funct
 
 \begin{lemma}[The master dominating kernel for Corollary~1.7.13]
 \label{lem:sg-tal:cor-kernel}
-  \uses{thm:sg-tal:general-fluct, lem:sg-tal:amgm-pairprod, lem:sg-tal:amgm-weighted, lem:sg-tal:ising-split, lem:sg-tal:thermal-factor-moment, lem:sg-tal:gibbs-pow-integrable, thm:sg-tal:overlap-moments-all}
-  \lean{SpinGlasses.sk_gaussian_fluctuation_upper_bound}
+  \uses{thm:sg-tal:general-fluct, thm:sg-tal:gibbs-taylor, lem:sg-tal:amgm-pairprod, lem:sg-tal:amgm-weighted, lem:sg-tal:ising-split, lem:sg-tal:thermal-factor-moment, lem:sg-tal:gibbs-pow-integrable, thm:sg-tal:overlap-moments-all}
+  \lean{SpinGlasses.sk_gaussian_fluctuation_upper_bound,
+        SpinGlasses.abs_integral_comp_mul_gaussianReal_le,
+        SpinGlasses.abs_iterate_deriv_sub_const_le}
   \leanok
 \talsource{the proof of Corollary~1.7.13: ``$\mathrm EA^{4k}\le K/N^{2k}$, $\mathrm EB^{4k}\le K^k$, hence $\mathrm E(AB)^{2k}\le K/N^k$''}
-Let $\beta,h,q$ be as in Theorem~\ref{thm:sg-tal:general-fluct}, $\varepsilon^2=1$, $k\ge1$ and $U$ exponentially tame.  Put, for the SK Gibbs measure $\langle\cdot\rangle=\langle\cdot\rangle_g$,
+Let $\beta_0$ satisfy $4\beta_0^2<1$, $k\ge1$, and let $C_j\ge0$ ($j\le8k$) and $c\ge0$ be given.  There are constants $C_2,M,K'>0$, depending only on $k,\beta_0,(C_j),c$, with the following property.  Let $\beta$ satisfy $\beta^2\le\beta_0^2$, $h\in\mathbb R$, $q$ the fixed point at $\beta$, $\varepsilon^2=1$, and let $U$ be exponentially tame with $|U^{(j)}(x)|\le C_je^{c|x|}$ for $j\le8k$.  Put, for the SK Gibbs measure $\langle\cdot\rangle=\langle\cdot\rangle_g$,
 \[
 A=\bigl\langle U(\dot S)\bigr\rangle-\mathbb E_\xi U(\xi\sqrt{1-q}),\qquad B=\exp\Bigl(\varepsilon\beta N^{-1/2}\sum_iy_i\langle\sigma_i\rangle\Bigr).
 \]
-There are constants $C_2,M,K'>0$ (depending on $k,U,\beta,h,q$) such that for every $N\ge1$ there exist functions $\mathrm{Up}(g,y)$ and $\mathrm{Bnd}(g)$ with
+Then for every $N\ge1$ there exist functions $\mathrm{Up}(g,y)$ and $\mathrm{Bnd}(g)$ with
 \begin{enumerate}
 \item $(AB)^{2k}\le\mathrm{Up}(g,y)$ pointwise;
 \item $\mathrm{Up}(g,\cdot)$ is integrable in $y$ and $\mathbb E_y\mathrm{Up}(g,\cdot)\le\mathrm{Bnd}(g)$;
@@ -3783,10 +3793,10 @@ Take $t=N^k$ in Lemma~\ref{lem:sg-tal:amgm-weighted} applied to $a=A^{2k}$, $b=B
 \[
 (AB)^{2k}\le\mathrm{Up}:=\tfrac12\bigl(N^kA^{4k}+N^{-k}B^{4k}\bigr).
 \]
-\emph{The $A$ term.}  The proof of Theorem~\ref{thm:sg-tal:general-fluct}, with $2k$ replaced by $4k$, bounds $\mathbb E_yA^{4k}\le C_2\,J_{2k}(g)$ \emph{for every disorder $g$}, where $J_{2k}(g)=\langle(R_{1,2}-q)^{2k}\rangle_g$ is the $2k$-th overlap moment.
-\emph{The $B$ term.}  $\mathbb E_yB^{4k}\le M:=e^{8k^2\beta^2}$ by Lemma~\ref{lem:sg-tal:thermal-factor-moment}, because $B^{4k}=\exp(4k\varepsilon\beta N^{-1/2}\sum y_i\langle\sigma_i\rangle)$ (Lemma~\ref{lem:sg-tal:ising-split}).
+\emph{The $A$ term.}  Put $v^2=1-q\in[0,1]$, $c_0=\mathbb E_\xi U(v\xi)$ and $V=U-c_0$, so that $A=\langle V(\dot S)\rangle$ and $\int V(vt)\,d\gamma=0$.  Since $|U|\le C_0e^{c|x|}$, $|c_0|\le2C_0e^{c^2v^2/2}\le K_0:=2C_0e^{c^2/2}$ (split $e^{c|vt|}\le e^{cvt}+e^{-cvt}$ and use the Gaussian MGF), hence $V$ obeys $|V^{(j)}(x)|\le(C_j+K_0)e^{c|x|}$ for $j\le8k$ (subtracting a constant changes only the order-zero derivative).  The uniform form of Theorem~\ref{thm:sg-tal:gibbs-taylor} with $m=4k$ therefore gives one constant $C$, independent of $U$, $\beta$, $h$ and $q$, with $\mathbb E_yA^{4k}\le C\sum_p\int|\mathrm{pairProd}|\,d\mu_g^{\otimes4k}$; as in the proof of Theorem~\ref{thm:sg-tal:general-fluct} (Lemma~\ref{lem:sg-tal:amgm-pairprod} and Eq.~(1.201)) this is at most $C_2J_{2k}(g)$ with $J_{2k}(g)=\langle(R_{1,2}-q)^{2k}\rangle_g$.
+\emph{The $B$ term.}  $\mathbb E_yB^{4k}\le e^{8k^2\beta^2}\le M:=e^{8k^2\beta_0^2}$ by Lemma~\ref{lem:sg-tal:thermal-factor-moment}, because $B^{4k}=\exp(4k\varepsilon\beta N^{-1/2}\sum y_i\langle\sigma_i\rangle)$ (Lemma~\ref{lem:sg-tal:ising-split}).
 Hence $\mathbb E_y\mathrm{Up}\le\mathrm{Bnd}(g):=\frac12(C_2N^kJ_{2k}(g)+N^{-k}M)$.  Integrability in $y$ is Lemma~\ref{lem:sg-tal:gibbs-pow-integrable} (for $A^{4k}$) and Lemma~\ref{lem:sg-tal:thermal-factor-moment} (for $B^{4k}$).
-Finally $\mathbb E_gJ_{2k}\le K'/N^{2k}$ by Theorem~\ref{thm:sg-tal:overlap-moments-all}, so $\mathbb E_g\mathrm{Bnd}\le\frac12(C_2K'N^{-k}+MN^{-k})$.  Formalized in \texttt{SpinGlasses/SKGaussianCorollaries.lean}.
+Finally $\mathbb E_gJ_{2k}\le K'/N^{2k}$ by the uniform form of Theorem~\ref{thm:sg-tal:overlap-moments-all} (with $K'=K_0(\beta_0,2k)$), so $\mathbb E_g\mathrm{Bnd}\le\frac12(C_2K'N^{-k}+MN^{-k})$.  Formalized in \texttt{SpinGlasses/SKGaussianCorollaries.lean}.
 \end{proof}
 
 \begin{theorem}[The Gaussian fluctuation principle with a multiplier]
@@ -3795,7 +3805,7 @@ Finally $\mathbb E_gJ_{2k}\le K'/N^{2k}$ by Theorem~\ref{thm:sg-tal:overlap-mome
   \lean{SpinGlasses.sk_gaussian_fluctuation_mul_exp}
   \leanok
 \talsource{the common core of Eqs.~(1.206) and~(1.207); the book proves them in parallel}
-Under the hypotheses of Lemma~\ref{lem:sg-tal:cor-kernel} there is $K>0$ with, for all $N\ge1$,
+Let $4\beta_0^2<1$, $k\ge1$, $C_j\ge0$ ($j\le8k$), $c\ge0$.  There is $K>0$, depending only on these data, such that for every $\beta$ with $\beta^2\le\beta_0^2$, every $h$, every fixed point $q$ at $\beta$, every $\varepsilon$ with $\varepsilon^2=1$, every exponentially tame $U$ with $|U^{(j)}(x)|\le C_je^{c|x|}$ ($j\le8k$) and every $N\ge1$,
 \[
 \mathbb E\Bigl(\Bigl(\bigl\langle U(\dot S)\bigr\rangle-\mathbb E_\xi U(\xi\sqrt{1-q})\Bigr)\exp\Bigl(\varepsilon\beta N^{-1/2}\sum_iy_i\langle\sigma_i\rangle\Bigr)\Bigr)^{2k}\le\frac K{N^k}.
 \]
@@ -3812,15 +3822,16 @@ Lemma~\ref{lem:sg-tal:double-dominated} with $F=(AB)^{2k}\ge0$ (an even power) a
         SpinGlasses.sk_gaussian_fluctuation_id_mul_exp}
   \leanok
 \talsource{Corollary~1.7.13, Eqs.~(1.206) and (1.207)}
-Let $4\beta^2<1$, $q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$, $\varepsilon=\pm1$ and $k\ge1$.  There is $K>0$ such that for all $N\ge1$, writing $\langle\cdot\rangle$ for the SK Gibbs measure and $\dot S=N^{-1/2}\sum_iy_i\dot\sigma_i$,
+Let $0\le\beta_0$ with $4\beta_0^2<1$ and $k\ge1$.  There is $K>0$, depending only on $\beta_0$ and $k$, such that for every $\beta$ with $|\beta|\le\beta_0$, every $h$, every fixed point $q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$, every $\varepsilon=\pm1$ and every $N\ge1$, writing $\langle\cdot\rangle$ for the SK Gibbs measure and $\dot S=N^{-1/2}\sum_iy_i\dot\sigma_i$,
 \begin{align*}
 &\mathbb E\Bigl(\Bigl\langle e^{\varepsilon\beta N^{-1/2}\sum_iy_i\sigma_i}\Bigr\rangle-e^{\beta^2(1-q)/2}\,e^{\varepsilon\beta N^{-1/2}\sum_iy_i\langle\sigma_i\rangle}\Bigr)^{2k}\le\frac K{N^k},\tag{1.206}\\
 &\mathbb E\Bigl(\Bigl\langle\dot S\,e^{\varepsilon\beta N^{-1/2}\sum_iy_i\sigma_i}\Bigr\rangle-\varepsilon\beta(1-q)\,e^{\beta^2(1-q)/2}\,e^{\varepsilon\beta N^{-1/2}\sum_iy_i\langle\sigma_i\rangle}\Bigr)^{2k}\le\frac K{N^k}.\tag{1.207}
 \end{align*}
+(The two inequalities have different constants $K$; the statement is for each.)  In particular $K$ does not depend on $\beta$, $h$ or $q$, which is the book's ``$K$ stays bounded with $\beta\le\beta_0$''.
 \end{theorem}
 \begin{proof}
   \leanok
-Apply Theorem~\ref{thm:sg-tal:mul-exp} with $U(x)=e^{\varepsilon\beta x}$, resp.\ $U(x)=xe^{\varepsilon\beta x}$ (tame by Lemma~\ref{lem:sg-tal:exptame-instances}).  By Lemma~\ref{lem:sg-tal:exp-gauss-averages}, $\mathbb E_\xi U(\xi\sqrt{1-q})$ equals $e^{\beta^2(1-q)/2}$, resp.\ $\varepsilon\beta(1-q)e^{\beta^2(1-q)/2}$.
+Apply Theorem~\ref{thm:sg-tal:mul-exp} with $U(x)=e^{\varepsilon\beta x}$, resp.\ $U(x)=xe^{\varepsilon\beta x}$, using the bounds of Lemma~\ref{lem:sg-tal:exptame-instances} with $B=\beta_0$ (so $C_j=\beta_0^j$, $c=\beta_0$, resp.\ $C_j=2(j\beta_0^{j-1}+\beta_0^j)$, $c=\beta_0+1$), which hold for all $|\beta|\le\beta_0$ since $|\varepsilon\beta|=|\beta|$.  By Lemma~\ref{lem:sg-tal:exp-gauss-averages}, $\mathbb E_\xi U(\xi\sqrt{1-q})$ equals $e^{\beta^2(1-q)/2}$, resp.\ $\varepsilon\beta(1-q)e^{\beta^2(1-q)/2}$.
 By Lemma~\ref{lem:sg-tal:ising-split} the Gibbs average $\langle e^{\varepsilon\beta N^{-1/2}\sum y_i\sigma_i}\rangle$ equals $\langle e^{\varepsilon\beta\dot S}\rangle\cdot B$ (resp.\ with the extra factor $\dot S$), so the difference in the statement is $\bigl(\langle U(\dot S)\rangle-\mathbb E_\xi U(\xi\sqrt{1-q})\bigr)B$, which is the quantity of Theorem~\ref{thm:sg-tal:mul-exp}.
 \end{proof}
 
@@ -3831,9 +3842,7 @@ By Lemma~\ref{lem:sg-tal:ising-split} the Gibbs average $\langle e^{\varepsilon\
   $\mathbb E(AB)^{2k}\le(\mathbb EA^{4k}\,\mathbb EB^{4k})^{1/2}$.  The formalization instead multiplies out \emph{pointwise}: $(AB)^{2k}\le\frac12(N^kA^{4k}+N^{-k}B^{4k})$, integrates first in $y$ and then in $g$, and so needs the
   \emph{disorder-by-disorder} bound $\mathbb E_yA^{4k}\le C_2J_{2k}(g)$ that is an intermediate step in the proof of Theorem~\ref{thm:sg-tal:general-fluct}, rather than its final statement.  The reason is that Cauchy--Schwarz for the product of two functions of $(g,y)$ would
   require carrying integrability of $A^{4k}$ and $B^{4k}$ on the product space; the pointwise inequality isolates the two factors, and each is integrated against the measure that suits it.  The resulting rate $N^{-k}$ is the same.
-\item \emph{$K$ is not shown uniform in $\beta\le\beta_0$.}  The book adds ``$K$ stays bounded with $\beta\le\beta_0$ \dots all the estimates are uniform over that range''.  Here $\beta$ (and with it $q$) is fixed in the statement, and the constants $C_2,K',M$ are produced for that $\beta$.
-  This is the one place where the formalization is weaker than the book.  It matters in Section~1.7 only when the corollary is applied to the $(N-1)$-spin system at $\beta_-=\beta\sqrt{1-1/N}$, whose parameter moves with $N$; the uniformity will have to be supplied there
-  (it is a statement about the dependence of the constants of Theorem~\ref{thm:sg-tal:overlap-moments-all} and Lemma~\ref{lem:sg-tal:projpath-bound} on $\beta$).
+\item \emph{Uniformity in $\beta\le\beta_0$.}  The book adds ``$K$ stays bounded with $\beta\le\beta_0$ \dots all the estimates are uniform over that range'' without proof.  Here the uniformity is built into the statements: the constants come from three places, each made explicit.  (i) The Taylor step (Theorem~\ref{thm:sg-tal:gibbs-taylor}) depends on the observable $U$ only through bounds $|U^{(j)}|\le C_je^{c|x|}$ on its derivatives, which for $e^{\varepsilon\beta x}$ and $xe^{\varepsilon\beta x}$ are monotone in $|\beta|$ (Lemma~\ref{lem:sg-tal:exptame-instances}).  (ii) The overlap moments (Theorem~\ref{thm:sg-tal:overlap-moments-all}) are bounded with $\beta_0$ in place of $\beta$.  (iii) $\mathbb E_yB^{4k}\le e^{8k^2\beta^2}\le e^{8k^2\beta_0^2}$.  The fixed point $q$ is a hypothesis, not a constant, and enters only through $q\in[0,1]$.  The constant is even uniform in $h$ for (1.206)--(1.207); for Corollary~1.7.15 it depends on $h$ through $\cosh h$.  This uniformity is what the application to the $(N-1)$-spin system at $\beta_-=\beta\sqrt{1-1/N}$ needs, since $\beta_-$ moves with $N$.
 \item \emph{The multiplier form.}  Both (1.206) and (1.207) are instances of one theorem for an arbitrary tame $U$; the book proves them in parallel.
 \item \emph{Integrability is proved.}  Lemma~\ref{lem:sg-tal:gibbs-pow-integrable} and the integrability in Lemma~\ref{lem:sg-tal:thermal-factor-moment} make explicit the integrability on which the book's expectations silently rely.
 \end{itemize}
@@ -3901,7 +3910,7 @@ For reals $u,h,D_1,D_2$:
   \lean{SpinGlasses.sk_cavity_field_tanh_approx}
   \leanok
 \talsource{Corollary~1.7.15, Eq.~(1.209)}
-Let $4\beta^2<1$, $q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$ and $k\ge1$.  There is $K>0$ with, for all $N\ge1$,
+Let $0\le\beta_0$ with $4\beta_0^2<1$, $h\in\mathbb R$ and $k\ge1$.  There is $K>0$, depending only on $\beta_0,h,k$, such that for every $\beta$ with $|\beta|\le\beta_0$, every fixed point $q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$ and all $N\ge1$,
 \[
 \mathbb E\Bigl(\frac{\langle\sinh(X+h)\rangle}{\langle\cosh(X+h)\rangle}-\tanh\Bigl(\frac\beta{\sqrt N}\sum_{i\le N}y_i\langle\sigma_i\rangle+h\Bigr)\Bigr)^{2k}\le\frac K{N^k},\qquad X=\frac\beta{\sqrt N}\sum_{i\le N}y_i\sigma_i .
 \]
@@ -3919,7 +3928,7 @@ Lemma~\ref{lem:sg-tal:ratio}(i) applies: $|A'|\le B'$, $B'\ge1>0$ and $B=\cosh(w
 \bigl|\tfrac{A'}{B'}-\tanh(w+h)\bigr|\le|A'-A|+|B'-B|\le2\cosh h\,(|D_1|+|D_{-1}|).
 \]
 Raise to the power $2k$ and use $(x+y)^{2k}\le2^{2k-1}(x^{2k}+y^{2k})$: the left side of the theorem is bounded by $(2\cosh h)^{2k}2^{2k-1}(D_1^{2k}+D_{-1}^{2k})$.  Each $D_{\pm1}^{2k}$ is dominated by the kernel $\mathrm{Up}_{\pm1}$ of Lemma~\ref{lem:sg-tal:cor-kernel} with $\varepsilon=\pm1$ and $U=e^{\pm\beta x}$
-(by Lemma~\ref{lem:sg-tal:ising-split}, $D_\varepsilon=(\langle e^{\varepsilon\beta\dot S}\rangle-E)B_\varepsilon$), so the claim follows by Lemma~\ref{lem:sg-tal:double-dominated} and the bounds on $\mathbb E_g\mathrm{Bnd}_{\pm1}$.
+(by Lemma~\ref{lem:sg-tal:ising-split}, $D_\varepsilon=(\langle e^{\varepsilon\beta\dot S}\rangle-E)B_\varepsilon$), so the claim follows by Lemma~\ref{lem:sg-tal:double-dominated} and the bounds on $\mathbb E_g\mathrm{Bnd}_{\pm1}$.  The constants of the two kernels (families $e^{\pm\beta x}$, $|\beta|\le\beta_0$) are those of Lemma~\ref{lem:sg-tal:cor-kernel} for $C_j=\beta_0^j$, $c=\beta_0$, so $K=(2\cosh h)^{2k}2^{2k-1}(A_++A_-)+1$, with $A_\pm=\frac12(C_2K'+M)$ the two kernel constants, does not depend on $\beta$ or $q$.
 \end{proof}
 
 \begin{theorem}[Corollary~1.7.15, Eq.~(1.210): the reaction term]
@@ -3928,7 +3937,7 @@ Raise to the power $2k$ and use $(x+y)^{2k}\le2^{2k-1}(x^{2k}+y^{2k})$: the left
   \lean{SpinGlasses.sk_cavity_field_reaction_approx}
   \leanok
 \talsource{Corollary~1.7.15, Eq.~(1.210), in the form displayed just before the last identity of its proof}
-With $\dot S=\frac1{\sqrt N}\sum_iy_i\dot\sigma_i$ and the other notation as in Theorem~\ref{thm:sg-tal:cor-1715-tanh}, there is $K>0$ with, for all $N\ge1$,
+With $\dot S=\frac1{\sqrt N}\sum_iy_i\dot\sigma_i$ and the other notation and quantifiers as in Theorem~\ref{thm:sg-tal:cor-1715-tanh} ($K$ depends only on $\beta_0,h,k$; $|\beta|\le\beta_0$ and $q$ a fixed point at $\beta$ are arbitrary),
 \[
 \mathbb E\Bigl(\frac{\langle\dot S\cosh(X+h)\rangle}{\langle\cosh(X+h)\rangle}-\beta(1-q)\,\frac{\langle\sinh(X+h)\rangle}{\langle\cosh(X+h)\rangle}\Bigr)^{2k}\le\frac K{N^k}.
 \]
@@ -3945,7 +3954,7 @@ using $B'\ge1$.  The proof of Theorem~\ref{thm:sg-tal:cor-1715-tanh} gives $|\fr
 \[
 \Bigl|\frac{A''}{B'}-\beta(1-q)\frac{A'}{B'}\Bigr|\le3\cosh h\,(|D_1'|+|D_{-1}'|+|D_1|+|D_{-1}|).
 \]
-Raising to the power $2k$ with $(x_1+x_2+x_3+x_4)^{2k}\le4^{2k-1}\sum x_i^{2k}$ and using the kernels of Lemma~\ref{lem:sg-tal:cor-kernel} for $U=e^{\pm\beta x}$ (the four $D$'s) and $U=xe^{\pm\beta x}$ (the primed ones) concludes as in Theorem~\ref{thm:sg-tal:cor-1715-tanh}.
+Raising to the power $2k$ with $(x_1+x_2+x_3+x_4)^{2k}\le4^{2k-1}\sum x_i^{2k}$ and using the kernels of Lemma~\ref{lem:sg-tal:cor-kernel} for $U=e^{\pm\beta x}$ (the unprimed $D$'s) and $U=xe^{\pm\beta x}$ (the primed ones) concludes as in Theorem~\ref{thm:sg-tal:cor-1715-tanh}, with the constants of Lemma~\ref{lem:sg-tal:exptame-instances} for $B=\beta_0$.
 \end{proof}
 
 \begin{lemma}[Convexity of even powers]
@@ -3972,7 +3981,7 @@ Reduce to $|x|+|y|$ with the triangle inequality and apply convexity of $t\mapst
   Theorem~\ref{thm:sg-tal:cor-1715-reaction} is the statement before that identity; the identity itself (linearity of the Gibbs average, $\langle\dot\sigma_i\cdot\rangle=\langle\sigma_i\cdot\rangle-\langle\sigma_i\rangle\langle\cdot\rangle$) is not yet formalized and will be done where it is used.
 \item \emph{Which ratio lemma.}  For (1.209) the book's Lemma~1.7.14 applies verbatim, and the requirement $B\ge1$ is met without the rescaling by $e^{\beta^2(1-q)/2}$ one might expect to need, because the comparison quotient has $B=\cosh(w+h)E\ge1$ (as $E\ge1$);
   the lower bound is only needed for the \emph{target} denominator.  For (1.210) the numerator is not dominated by the denominator, and the second form (ii) of the lemma is used, with the boundedness $|\beta(1-q)\tanh|\le1$ of the target.
-\item \emph{Constants and uniformity.}  As in Corollary~1.7.13, $K$ depends on $\beta$ and is not shown to be bounded for $\beta\le\beta_0$ (Remark~\ref{rem:sg-tal:dev-1713}).
+\item \emph{Constants and uniformity.}  As in Corollary~1.7.13, $K$ is uniform in $|\beta|\le\beta_0$ and in the fixed point $q$; it depends on $h$ through the factor $\cosh h$ coming from Lemma~\ref{lem:sg-tal:hyperbolic} (Remark~\ref{rem:sg-tal:dev-1713}).  Both statements are for a general number $N$ of spins and a general inverse temperature $\beta$ and are applied in Lemma~1.7.4 to the $(N-1)$-spin system at $\beta_-$, whose energy prefactor $\beta_-/\sqrt{N-1}$ equals $\beta/\sqrt N$.
 \end{itemize}
 \end{remark}
 
@@ -3982,7 +3991,6 @@ Of Section~1.7 the following are formalized: the general Gaussian fluctuation pr
 Corollary~1.7.13 (Theorem~\ref{thm:sg-tal:cor-1713}), Lemma~1.7.14 (Lemma~\ref{lem:sg-tal:ratio}) and Corollary~1.7.15 (Theorems~\ref{thm:sg-tal:cor-1715-tanh} and~\ref{thm:sg-tal:cor-1715-reaction}).
 Not yet formalized, and for that reason not stated here as theorems, are Lemma~1.7.4 (the asymptotic Gaussianity of the cavity field: $\mathbb E(\langle\sigma_N\rangle-\tanh(\beta N^{-1/2}\sum_{i<N}g_{iN}\langle\sigma_i\rangle_-+h))^2\le K/N$, obtained by applying
 Eq.~(1.209) to the $(N-1)$-spin system at $\beta_-$ together with Lemma~\ref{lem:sg-tal:fixed-point-shift}), Lemma~1.7.6 (the cavity field as a disorder-measurable Gaussian) and Theorem~1.7.1 (the local magnetizations are asymptotically i.i.d.\ ).
-Two gaps between what is proved and what these applications need are already known: (i) the constants in Corollaries~1.7.13 and~1.7.15 are proved only for a fixed $\beta$, while the application to the $(N-1)$-spin system at $\beta_-=\beta\sqrt{1-1/N}$ needs them uniform for $\beta\le\beta_0<1/2$ (Remark~\ref{rem:sg-tal:dev-1713});
-(ii) Eq.~(1.210) is stated before the final linear rewriting of the book (Remark~\ref{rem:sg-tal:dev-1715}).  The Corollaries are stated for the $N$-spin system; the application to $N-1$ spins is by relabeling $N$ and $\beta$.
+One gap between what is proved and what these applications need is already known: Eq.~(1.210) is stated before the final linear rewriting of the book (Remark~\ref{rem:sg-tal:dev-1715}).  The Corollaries are stated for the $N$-spin system with constants uniform in $|\beta|\le\beta_0<1/2$ (Remark~\ref{rem:sg-tal:dev-1713}), so the application to $N-1$ spins at $\beta_-$ is by relabeling $N$ and $\beta$.
 Nothing in Sections~1.1--1.6 depends on Section~1.7.
 \end{remark}

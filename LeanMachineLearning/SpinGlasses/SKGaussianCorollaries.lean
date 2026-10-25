@@ -99,7 +99,7 @@ theorem integrable_prod_derivProd_zero {m N : ℕ} (hm : 0 < m)
       (Measure.pi fun _ : Fin N => gaussianReal 0 1) := by
   have hint := hV.integrable_derivProd_projPath hm u 0 (Real.pi / 2) 0
   have hpath : (fun (w : (Fin m → ℝ) × (Fin N → ℝ)) =>
-      ∏ ℓ, deriv^[0 ℓ] V ((projPath u 0 (Real.pi / 2) w) ℓ)) =
+      ∏ ℓ, deriv^[(0 : Fin m → ℕ) ℓ] V (projPath u 0 (Real.pi / 2) w ℓ)) =
       fun w => ∏ l, V (u l ⬝ᵥ w.2) := by
     ext w
     simp only [projPath_zero_pi_div_two, Pi.zero_apply, Function.iterate_zero, id]
@@ -152,11 +152,13 @@ with multiplier.**
 Constructs an explicit integrable dominating function `Upper` pointwise bounding
 the $2k$-th moment
 of the fluctuation product, with double integral bounded by `((C₂ * K' + M) / 2) / N^k`. -/
-lemma sk_gaussian_fluctuation_upper_bound (β h q : ℝ)
-    (hfix : ∫ x : ℝ, Real.tanh (β * Real.sqrt q * x + h) ^ 2 ∂(gaussianReal 0 1) = q)
-    (hβ : 4 * β ^ 2 < 1) (ε : ℝ) (hε : ε ^ 2 = 1) {k : ℕ} (hk : 1 ≤ k)
-    {U : ℝ → ℝ} (hU : ExpTame U) :
+lemma sk_gaussian_fluctuation_upper_bound (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) {k : ℕ} (hk : 1 ≤ k)
+    (Cb : ℕ → ℝ) (cU : ℝ) (hCnn : ∀ j ≤ 2 * (2 * (2 * k)), 0 ≤ Cb j) (hcU : 0 ≤ cU) :
     ∃ C₂ M K' : ℝ, 0 ≤ C₂ ∧ 0 < M ∧ 0 < K' ∧
+      ∀ (β h q ε : ℝ) (U : ℝ → ℝ),
+      (∫ x : ℝ, Real.tanh (β * Real.sqrt q * x + h) ^ 2 ∂(gaussianReal 0 1) = q) →
+      β ^ 2 ≤ β₀ ^ 2 → ε ^ 2 = 1 → ExpTame U →
+      (∀ j ≤ 2 * (2 * (2 * k)), ∀ x, |deriv^[j] U x| ≤ Cb j * Real.exp (cU * |x|)) →
       ∀ N : ℕ, 0 < N →
         ∃ (Upper : (FinPairs N → ℝ) → (Fin N → ℝ) → ℝ)
           (Bnd : (FinPairs N → ℝ) → ℝ),
@@ -173,6 +175,18 @@ lemma sk_gaussian_fluctuation_upper_bound (β h q : ℝ)
           (Integrable Bnd (Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) ∧
           (∫ g, Bnd g ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) ≤
             ((C₂ * K' + M) / 2) / (N : ℝ) ^ k) := by
+  set K₀ : ℝ := 2 * Cb 0 * Real.exp (cU ^ 2 / 2) with hK₀def
+  have hCb0 : 0 ≤ Cb 0 := hCnn 0 (Nat.zero_le _)
+  have hK₀ : 0 ≤ K₀ := by positivity
+  obtain ⟨C, hC0, hCu⟩ := exists_gibbs_fluctuation_abs_le (m := 2 * (2 * k)) (by omega)
+    (Cb := fun j => Cb j + K₀) (c := cU) (fun j hj => by have := hCnn j hj; positivity) hcU
+  obtain ⟨K', hK'0, hK'u⟩ := sk_overlap_moment_le_of_exp_unif β₀ hβ₀ (2 * k)
+  set C₂ : ℝ := C * (((2 * (2 * k)) * (2 * (2 * k)) : ℝ) ^ (2 * (2 * k)) *
+    ((2 * (2 * k) : ℝ) * 4 ^ (2 * (2 * k)))) with hC₂
+  have hC₂0 : 0 ≤ C₂ := by positivity
+  set M : ℝ := Real.exp (8 * (k : ℝ) ^ 2 * β₀ ^ 2) with hM
+  have hM0 : 0 < M := Real.exp_pos _
+  refine ⟨C₂, M, K', hC₂0, hM0, hK'0, fun β h q ε U hfix hββ hε hU hbdU N hN => ?_⟩
   have hq := fixedPoint_mem_Icc hfix
   set v : ℝ := Real.sqrt (1 - q) with hvdef
   have hv : v ^ 2 = 1 - q := Real.sq_sqrt (by linarith [hq.2])
@@ -180,15 +194,14 @@ lemma sk_gaussian_fluctuation_upper_bound (β h q : ℝ)
   have hV : ExpTame (fun x => U x - c₀) := hU.sub_const c₀
   have hV0 : ∫ t, (fun x => U x - c₀) (v * t) ∂(gaussianReal 0 1) = 0 :=
     hU.integral_sub_const_mul_gaussianReal v
-  obtain ⟨C, hC0, hCb⟩ := hV.gibbs_fluctuation_abs_le (m := 2 * (2 * k)) (by omega) v
-    (by nlinarith [hq.1, hq.2]) hV0
-  obtain ⟨K', hK'0, hK'⟩ := sk_overlap_moment_le_of_exp β h q hfix hβ (2 * k)
-  set C₂ : ℝ := C * (((2 * (2 * k)) * (2 * (2 * k)) : ℝ) ^ (2 * (2 * k)) *
-    ((2 * (2 * k) : ℝ) * 4 ^ (2 * (2 * k)))) with hC₂
-  have hC₂0 : 0 ≤ C₂ := by positivity
-  set M : ℝ := Real.exp (8 * (k : ℝ) ^ 2 * β ^ 2) with hM
-  have hM0 : 0 < M := Real.exp_pos _
-  refine ⟨C₂, M, K', hC₂0, hM0, hK'0, fun N hN => ?_⟩
+  have hc₀K : |c₀| ≤ K₀ := by
+    refine (abs_integral_comp_mul_gaussianReal_le hCb0 hcU
+      (fun x => by simpa using hbdU 0 (Nat.zero_le _) x) v).trans ?_
+    exact mul_le_mul_of_nonneg_left (Real.exp_le_exp.2 (by nlinarith [sq_nonneg cU, hq.1]))
+      (by positivity)
+  have hbdV := abs_iterate_deriv_sub_const_le hc₀K hbdU hcU
+  have hCb := hCu (fun x => U x - c₀) hV hbdV v (by nlinarith [hq.1, hq.2]) hV0
+  have hK' := hK'u β h q hfix hββ
   have hNk : (0 : ℝ) < (N : ℝ) ^ k := by positivity
   set ξ : Fin N → (Fin N → ℤˣ) → ℝ := fun i a => ((a i : ℤ) : ℝ) with hξ
   have hξ_abs : ∀ i a, |ξ i a| ≤ 1 := fun i a => abs_units_cast_le_one (a i)
@@ -349,7 +362,8 @@ lemma sk_gaussian_fluctuation_upper_bound (β h q : ℝ)
           _ = (16 * (k : ℝ) ^ 2 * (ε ^ 2 * β ^ 2)) / 2 := by ring
           _ = (16 * (k : ℝ) ^ 2 * β ^ 2) / 2 := by rw [hε, one_mul]
           _ = 8 * (k : ℝ) ^ 2 * β ^ 2 := by ring
-      rwa [h_pow] at h_mom
+      rw [h_pow] at h_mom
+      exact h_mom.trans (Real.exp_le_exp.2 (mul_le_mul_of_nonneg_left hββ (by positivity)))
     have hB_integrable : Integrable (fun y => B y ^ (4 * k)) Q := by
       simp only [B, pow_exp_dotProduct_ising]
       exact integrable_exp_const_mul_dotProduct_gaussianReal _ _
@@ -379,11 +393,13 @@ lemma sk_gaussian_fluctuation_upper_bound (β h q : ℝ)
 
 /-- **The general Gaussian fluctuation principle with multiplier
 (generalizes (1.206) and (1.207)).** -/
-theorem sk_gaussian_fluctuation_mul_exp (β h q : ℝ)
-    (hfix : ∫ x : ℝ, Real.tanh (β * Real.sqrt q * x + h) ^ 2 ∂(gaussianReal 0 1) = q)
-    (hβ : 4 * β ^ 2 < 1) (ε : ℝ) (hε : ε ^ 2 = 1) {k : ℕ} (hk : 1 ≤ k)
-    {U : ℝ → ℝ} (hU : ExpTame U) :
-    ∃ K : ℝ, 0 < K ∧ ∀ N : ℕ, 0 < N →
+theorem sk_gaussian_fluctuation_mul_exp (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) {k : ℕ} (hk : 1 ≤ k)
+    (Cb : ℕ → ℝ) (cU : ℝ) (hCnn : ∀ j ≤ 2 * (2 * (2 * k)), 0 ≤ Cb j) (hcU : 0 ≤ cU) :
+    ∃ K : ℝ, 0 < K ∧ ∀ (β h q ε : ℝ) (U : ℝ → ℝ),
+      (∫ x : ℝ, Real.tanh (β * Real.sqrt q * x + h) ^ 2 ∂(gaussianReal 0 1) = q) →
+      β ^ 2 ≤ β₀ ^ 2 → ε ^ 2 = 1 → ExpTame U →
+      (∀ j ≤ 2 * (2 * (2 * k)), ∀ x, |deriv^[j] U x| ≤ Cb j * Real.exp (cU * |x|)) →
+      ∀ N : ℕ, 0 < N →
       ∫ g : FinPairs N → ℝ, ∫ y : Fin N → ℝ,
         (((∫ a, U ((fun i => (Real.sqrt N)⁻¹ *
               (((a i : ℤ) : ℝ) -
@@ -396,19 +412,22 @@ theorem sk_gaussian_fluctuation_mul_exp (β h q : ℝ)
         ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1)
       ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) ≤ K / (N : ℝ) ^ k := by
   obtain ⟨C₂, M, K', hC₂, hM, hK', h_bound⟩ :=
-    sk_gaussian_fluctuation_upper_bound β h q hfix hβ ε hε hk hU
-  refine ⟨(C₂ * K' + M) / 2 + 1, by positivity, fun N hN => ?_⟩
-  obtain ⟨Upper, Bnd, h_le, h_int_inner, h_upper_bnd, h_bnd_int, h_bnd_le⟩ := h_bound N hN
+    sk_gaussian_fluctuation_upper_bound β₀ hβ₀ hk Cb cU hCnn hcU
+  refine ⟨(C₂ * K' + M) / 2 + 1, by positivity,
+    fun β h q ε U hfix hββ hε hU hbdU N hN => ?_⟩
+  obtain ⟨Upper, Bnd, h_le, h_int_inner, h_upper_bnd, h_bnd_int, h_bnd_le⟩ :=
+    h_bound β h q ε U hfix hββ hε hU hbdU N hN
   refine (double_integral_le_of_dominated _ _ h_le
     (fun g y => Even.pow_nonneg ⟨k, by ring⟩ _) h_int_inner h_upper_bnd h_bnd_int h_bnd_le).trans ?_
   gcongr
   linarith
 
 /-- **Talagrand Corollary 1.7.13, Eq. (1.206): Exponential observable.** -/
-theorem sk_gaussian_fluctuation_exp (β h q : ℝ)
-    (hfix : ∫ x : ℝ, Real.tanh (β * Real.sqrt q * x + h) ^ 2 ∂(gaussianReal 0 1) = q)
-    (hβ : 4 * β ^ 2 < 1) (ε : ℝ) (hε : ε ^ 2 = 1) {k : ℕ} (hk : 1 ≤ k) :
-    ∃ K : ℝ, 0 < K ∧ ∀ N : ℕ, 0 < N →
+theorem sk_gaussian_fluctuation_exp (β₀ : ℝ) (hβ₀ : 0 ≤ β₀) (hβ₀' : 4 * β₀ ^ 2 < 1) {k : ℕ}
+    (hk : 1 ≤ k) :
+    ∃ K : ℝ, 0 < K ∧ ∀ (β h q ε : ℝ),
+      (∫ x : ℝ, Real.tanh (β * Real.sqrt q * x + h) ^ 2 ∂(gaussianReal 0 1) = q) →
+      |β| ≤ β₀ → ε ^ 2 = 1 → ∀ N : ℕ, 0 < N →
       ∫ g : FinPairs N → ℝ, ∫ y : Fin N → ℝ,
         ((∫ a, Real.exp ((fun i => (Real.sqrt N)⁻¹ * (ε * β * ((a i : ℤ) : ℝ))) ⬝ᵥ y)
             ∂(Measure.count.tilted (skGibbsEnergy N β h g))) -
@@ -418,10 +437,17 @@ theorem sk_gaussian_fluctuation_exp (β h q : ℝ)
                 ∂(Measure.count.tilted (skGibbsEnergy N β h g)))) ⬝ᵥ y)) ^ (2 * k)
           ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1)
         ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) ≤ K / (N : ℝ) ^ k := by
+  obtain ⟨K, hK0, hK⟩ := sk_gaussian_fluctuation_mul_exp β₀ hβ₀' hk (fun j => β₀ ^ j) β₀
+    (fun j _ => pow_nonneg hβ₀ j) hβ₀
+  refine ⟨K, hK0, fun β h q ε hfix hβabs hε N hN => ?_⟩
+  have hββ : β ^ 2 ≤ β₀ ^ 2 := by
+    rw [← sq_abs β]; exact pow_le_pow_left₀ (abs_nonneg _) hβabs 2
+  have hε1 : |ε| = 1 := (pow_eq_one_iff_of_nonneg (abs_nonneg ε) two_ne_zero).1 (by rw [sq_abs, hε])
   have hU : ExpTame (fun x => Real.exp (ε * β * x)) := expTame_exp (ε * β)
-  obtain ⟨K, hK0, hK⟩ := sk_gaussian_fluctuation_mul_exp β h q hfix hβ ε hε hk hU
-  refine ⟨K, hK0, fun N hN => ?_⟩
-  have h_bound := hK N hN
+  have hbd : ∀ j ≤ 2 * (2 * (2 * k)), ∀ x,
+      |deriv^[j] (fun x => Real.exp (ε * β * x)) x| ≤ β₀ ^ j * Real.exp (β₀ * |x|) :=
+    fun j _ x => abs_iterate_deriv_exp_le (by rw [abs_mul, hε1, one_mul]; exact hβabs) j x
+  have h_bound := hK β h q ε _ hfix hββ hε hU hbd N hN
   have hq := fixedPoint_mem_Icc hfix
   set v : ℝ := Real.sqrt (1 - q)
   have hv : v ^ 2 = 1 - q := Real.sq_sqrt (by linarith [hq.2])
@@ -457,10 +483,11 @@ theorem sk_gaussian_fluctuation_exp (β h q : ℝ)
   exact h_bound
 
 /-- **Talagrand Corollary 1.7.13, Eq. (1.207): Derivative/id-mul-exp observable.** -/
-theorem sk_gaussian_fluctuation_id_mul_exp (β h q : ℝ)
-    (hfix : ∫ x : ℝ, Real.tanh (β * Real.sqrt q * x + h) ^ 2 ∂(gaussianReal 0 1) = q)
-    (hβ : 4 * β ^ 2 < 1) (ε : ℝ) (hε : ε ^ 2 = 1) {k : ℕ} (hk : 1 ≤ k) :
-    ∃ K : ℝ, 0 < K ∧ ∀ N : ℕ, 0 < N →
+theorem sk_gaussian_fluctuation_id_mul_exp (β₀ : ℝ) (hβ₀ : 0 ≤ β₀) (hβ₀' : 4 * β₀ ^ 2 < 1)
+    {k : ℕ} (hk : 1 ≤ k) :
+    ∃ K : ℝ, 0 < K ∧ ∀ (β h q ε : ℝ),
+      (∫ x : ℝ, Real.tanh (β * Real.sqrt q * x + h) ^ 2 ∂(gaussianReal 0 1) = q) →
+      |β| ≤ β₀ → ε ^ 2 = 1 → ∀ N : ℕ, 0 < N →
       ∫ g : FinPairs N → ℝ, ∫ y : Fin N → ℝ,
         ((∫ a, ((fun i => (Real.sqrt N)⁻¹ *
               (((a i : ℤ) : ℝ) -
@@ -473,10 +500,19 @@ theorem sk_gaussian_fluctuation_id_mul_exp (β h q : ℝ)
                 ∂(Measure.count.tilted (skGibbsEnergy N β h g)))) ⬝ᵥ y)) ^ (2 * k)
           ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1)
         ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) ≤ K / (N : ℝ) ^ k := by
+  obtain ⟨K, hK0, hK⟩ := sk_gaussian_fluctuation_mul_exp β₀ hβ₀' hk
+    (fun j => 2 * ((j : ℝ) * β₀ ^ (j - 1) + β₀ ^ j)) (β₀ + 1) (fun j _ => by positivity)
+    (by positivity)
+  refine ⟨K, hK0, fun β h q ε hfix hβabs hε N hN => ?_⟩
+  have hββ : β ^ 2 ≤ β₀ ^ 2 := by
+    rw [← sq_abs β]; exact pow_le_pow_left₀ (abs_nonneg _) hβabs 2
+  have hε1 : |ε| = 1 := (pow_eq_one_iff_of_nonneg (abs_nonneg ε) two_ne_zero).1 (by rw [sq_abs, hε])
   have hU : ExpTame (fun x => x * Real.exp (ε * β * x)) := expTame_id_mul_exp (ε * β)
-  obtain ⟨K, hK0, hK⟩ := sk_gaussian_fluctuation_mul_exp β h q hfix hβ ε hε hk hU
-  refine ⟨K, hK0, fun N hN => ?_⟩
-  have h_bound := hK N hN
+  have hbd : ∀ j ≤ 2 * (2 * (2 * k)), ∀ x,
+      |deriv^[j] (fun x => x * Real.exp (ε * β * x)) x| ≤
+        2 * ((j : ℝ) * β₀ ^ (j - 1) + β₀ ^ j) * Real.exp ((β₀ + 1) * |x|) :=
+    fun j _ x => abs_iterate_deriv_id_mul_exp_le (by rw [abs_mul, hε1, one_mul]; exact hβabs) j x
+  have h_bound := hK β h q ε _ hfix hββ hε hU hbd N hN
   have hq := fixedPoint_mem_Icc hfix
   set v : ℝ := Real.sqrt (1 - q)
   have hv : v ^ 2 = 1 - q := Real.sq_sqrt (by linarith [hq.2])
@@ -555,10 +591,11 @@ lemma abs_id_mul_exp_cosh_sub_le (A'' Atgt D₁' D₂' h : ℝ)
   exact Real.abs_exp_mul_add_exp_neg_mul_div_two_le h D₁' D₂'
 
 /-- **Talagrand Corollary 1.7.15, Eq. (1.209): Cavity field tanh approximation.** -/
-theorem sk_cavity_field_tanh_approx (β h q : ℝ)
-    (hfix : ∫ x : ℝ, Real.tanh (β * Real.sqrt q * x + h) ^ 2 ∂(gaussianReal 0 1) = q)
-    (hβ : 4 * β ^ 2 < 1) {k : ℕ} (hk : 1 ≤ k) :
-    ∃ K : ℝ, 0 < K ∧ ∀ N : ℕ, 0 < N →
+theorem sk_cavity_field_tanh_approx (β₀ : ℝ) (hβ₀ : 0 ≤ β₀) (hβ₀' : 4 * β₀ ^ 2 < 1) (h : ℝ)
+    {k : ℕ} (hk : 1 ≤ k) :
+    ∃ K : ℝ, 0 < K ∧ ∀ (β q : ℝ),
+      (∫ x : ℝ, Real.tanh (β * Real.sqrt q * x + h) ^ 2 ∂(gaussianReal 0 1) = q) →
+      |β| ≤ β₀ → ∀ N : ℕ, 0 < N →
       ∫ g : FinPairs N → ℝ, ∫ y : Fin N → ℝ,
         (((∫ a, Real.sinh (((fun i => (Real.sqrt N)⁻¹ * (β * ((a i : ℤ) : ℝ))) ⬝ᵥ y) + h)
             ∂(Measure.count.tilted (skGibbsEnergy N β h g))) /
@@ -570,16 +607,14 @@ theorem sk_cavity_field_tanh_approx (β h q : ℝ)
                 ∂(Measure.count.tilted (skGibbsEnergy N β h g)))) ⬝ᵥ y) + h)) ^ (2 * k)
         ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1)
       ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) ≤ K / (N : ℝ) ^ k := by
-  have hU1 : ExpTame (fun x => Real.exp (1 * β * x)) := by
-    simp_rw [one_mul]; exact expTame_exp β
-  have hU2 : ExpTame (fun x => Real.exp ((-1) * β * x)) := by
-    simp_rw [neg_one_mul]; exact expTame_exp (-β)
   have hε1 : (1 : ℝ) ^ 2 = 1 := by norm_num
   have hε2 : (-1 : ℝ) ^ 2 = 1 := by norm_num
   obtain ⟨C₂_1, M_1, K'_1, hC₂_1, hM_1, hK'_1, h_bound1⟩ :=
-    sk_gaussian_fluctuation_upper_bound β h q hfix hβ 1 hε1 hk hU1
+    sk_gaussian_fluctuation_upper_bound β₀ hβ₀' hk (fun j => β₀ ^ j) β₀
+      (fun j _ => pow_nonneg hβ₀ j) hβ₀
   obtain ⟨C₂_2, M_2, K'_2, hC₂_2, hM_2, hK'_2, h_bound2⟩ :=
-    sk_gaussian_fluctuation_upper_bound β h q hfix hβ (-1) hε2 hk hU2
+    sk_gaussian_fluctuation_upper_bound β₀ hβ₀' hk (fun j => β₀ ^ j) β₀
+      (fun j _ => pow_nonneg hβ₀ j) hβ₀
   set C_k : ℝ := (2 * Real.cosh h) ^ (2 * k) * 2 ^ (2 * k - 1) with hC_k_def
   have hC_k_pos : 0 < C_k := by
     dsimp [C_k]
@@ -587,9 +622,24 @@ theorem sk_cavity_field_tanh_approx (β h q : ℝ)
     positivity
   set Bnd_const : ℝ := C_k * (((C₂_1 * K'_1 + M_1) / 2) + ((C₂_2 * K'_2 + M_2) / 2)) + 1
   have hBnd_const_pos : 0 < Bnd_const := by positivity
-  refine ⟨Bnd_const, hBnd_const_pos, fun N hN => ?_⟩
-  obtain ⟨Upper₁, Bnd₁, h_le1, h_int_inner1, h_upper_bnd1, h_bnd_int1, h_bnd_le1⟩ := h_bound1 N hN
-  obtain ⟨Upper₂, Bnd₂, h_le2, h_int_inner2, h_upper_bnd2, h_bnd_int2, h_bnd_le2⟩ := h_bound2 N hN
+  refine ⟨Bnd_const, hBnd_const_pos, fun β q hfix hβabs N hN => ?_⟩
+  have hββ : β ^ 2 ≤ β₀ ^ 2 := by
+    rw [← sq_abs β]; exact pow_le_pow_left₀ (abs_nonneg _) hβabs 2
+  have hβ : 4 * β ^ 2 < 1 := by linarith
+  have hU1 : ExpTame (fun x => Real.exp (1 * β * x)) := by
+    simp_rw [one_mul]; exact expTame_exp β
+  have hU2 : ExpTame (fun x => Real.exp ((-1) * β * x)) := by
+    simp_rw [neg_one_mul]; exact expTame_exp (-β)
+  have hbd1 : ∀ j ≤ 2 * (2 * (2 * k)), ∀ x,
+      |deriv^[j] (fun x => Real.exp (1 * β * x)) x| ≤ β₀ ^ j * Real.exp (β₀ * |x|) :=
+    fun j _ x => abs_iterate_deriv_exp_le (by simpa using hβabs) j x
+  have hbd2 : ∀ j ≤ 2 * (2 * (2 * k)), ∀ x,
+      |deriv^[j] (fun x => Real.exp ((-1) * β * x)) x| ≤ β₀ ^ j * Real.exp (β₀ * |x|) :=
+    fun j _ x => abs_iterate_deriv_exp_le (by simpa [abs_mul] using hβabs) j x
+  obtain ⟨Upper₁, Bnd₁, h_le1, h_int_inner1, h_upper_bnd1, h_bnd_int1, h_bnd_le1⟩ :=
+    h_bound1 β h q 1 _ hfix hββ hε1 hU1 hbd1 N hN
+  obtain ⟨Upper₂, Bnd₂, h_le2, h_int_inner2, h_upper_bnd2, h_bnd_int2, h_bnd_le2⟩ :=
+    h_bound2 β h q (-1) _ hfix hββ hε2 hU2 hbd2 N hN
   set P := Measure.pi fun _ : FinPairs N => gaussianReal 0 1
   set Q := Measure.pi fun _ : Fin N => gaussianReal 0 1
   set Upper := fun g y => C_k * (Upper₁ g y + Upper₂ g y)
@@ -748,10 +798,11 @@ theorem sk_cavity_field_tanh_approx (β h q : ℝ)
   linarith
 
 /-- **Talagrand Corollary 1.7.15, Eq. (1.210): Cavity field reaction term approximation.** -/
-theorem sk_cavity_field_reaction_approx (β h q : ℝ)
-    (hfix : ∫ x : ℝ, Real.tanh (β * Real.sqrt q * x + h) ^ 2 ∂(gaussianReal 0 1) = q)
-    (hβ : 4 * β ^ 2 < 1) {k : ℕ} (hk : 1 ≤ k) :
-    ∃ K : ℝ, 0 < K ∧ ∀ N : ℕ, 0 < N →
+theorem sk_cavity_field_reaction_approx (β₀ : ℝ) (hβ₀ : 0 ≤ β₀) (hβ₀' : 4 * β₀ ^ 2 < 1)
+    (h : ℝ) {k : ℕ} (hk : 1 ≤ k) :
+    ∃ K : ℝ, 0 < K ∧ ∀ (β q : ℝ),
+      (∫ x : ℝ, Real.tanh (β * Real.sqrt q * x + h) ^ 2 ∂(gaussianReal 0 1) = q) →
+      |β| ≤ β₀ → ∀ N : ℕ, 0 < N →
       ∫ g : FinPairs N → ℝ, ∫ y : Fin N → ℝ,
         (((∫ a, ((fun i => (Real.sqrt N)⁻¹ *
               (((a i : ℤ) : ℝ) -
@@ -767,24 +818,22 @@ theorem sk_cavity_field_reaction_approx (β h q : ℝ)
                 ∂(Measure.count.tilted (skGibbsEnergy N β h g))))) ^ (2 * k)
         ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1)
       ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) ≤ K / (N : ℝ) ^ k := by
-  have hU1' : ExpTame (fun x => x * Real.exp (1 * β * x)) := by
-    simp_rw [one_mul]; exact expTame_id_mul_exp β
-  have hU2' : ExpTame (fun x => x * Real.exp ((-1) * β * x)) := by
-    simp_rw [neg_one_mul]; exact expTame_id_mul_exp (-β)
-  have hU1 : ExpTame (fun x => Real.exp (1 * β * x)) := by
-    simp_rw [one_mul]; exact expTame_exp β
-  have hU2 : ExpTame (fun x => Real.exp ((-1) * β * x)) := by
-    simp_rw [neg_one_mul]; exact expTame_exp (-β)
   have hε1 : (1 : ℝ) ^ 2 = 1 := by norm_num
   have hε2 : (-1 : ℝ) ^ 2 = 1 := by norm_num
   obtain ⟨C₂_1', M_1', K'_1', hC₂_1', hM_1', hK'_1', h_bound1'⟩ :=
-    sk_gaussian_fluctuation_upper_bound β h q hfix hβ 1 hε1 hk hU1'
+    sk_gaussian_fluctuation_upper_bound β₀ hβ₀' hk
+      (fun j => 2 * ((j : ℝ) * β₀ ^ (j - 1) + β₀ ^ j)) (β₀ + 1) (fun j _ => by positivity)
+      (by positivity)
   obtain ⟨C₂_2', M_2', K'_2', hC₂_2', hM_2', hK'_2', h_bound2'⟩ :=
-    sk_gaussian_fluctuation_upper_bound β h q hfix hβ (-1) hε2 hk hU2'
+    sk_gaussian_fluctuation_upper_bound β₀ hβ₀' hk
+      (fun j => 2 * ((j : ℝ) * β₀ ^ (j - 1) + β₀ ^ j)) (β₀ + 1) (fun j _ => by positivity)
+      (by positivity)
   obtain ⟨C₂_1, M_1, K'_1, hC₂_1, hM_1, hK'_1, h_bound1⟩ :=
-    sk_gaussian_fluctuation_upper_bound β h q hfix hβ 1 hε1 hk hU1
+    sk_gaussian_fluctuation_upper_bound β₀ hβ₀' hk (fun j => β₀ ^ j) β₀
+      (fun j _ => pow_nonneg hβ₀ j) hβ₀
   obtain ⟨C₂_2, M_2, K'_2, hC₂_2, hM_2, hK'_2, h_bound2⟩ :=
-    sk_gaussian_fluctuation_upper_bound β h q hfix hβ (-1) hε2 hk hU2
+    sk_gaussian_fluctuation_upper_bound β₀ hβ₀' hk (fun j => β₀ ^ j) β₀
+      (fun j _ => pow_nonneg hβ₀ j) hβ₀
   set C_k : ℝ := (3 * Real.cosh h) ^ (2 * k) * 4 ^ (2 * k - 1) with hC_k_def
   have hC_k_pos : 0 < C_k := by
     dsimp [C_k]
@@ -793,13 +842,40 @@ theorem sk_cavity_field_reaction_approx (β h q : ℝ)
   set Bnd_const : ℝ := C_k * (((C₂_1' * K'_1' + M_1') / 2) + ((C₂_2' * K'_2' + M_2') / 2) +
     ((C₂_1 * K'_1 + M_1) / 2) + ((C₂_2 * K'_2 + M_2) / 2)) + 1
   have hBnd_const_pos : 0 < Bnd_const := by positivity
-  refine ⟨Bnd_const, hBnd_const_pos, fun N hN => ?_⟩
+  refine ⟨Bnd_const, hBnd_const_pos, fun β q hfix hβabs N hN => ?_⟩
+  have hββ : β ^ 2 ≤ β₀ ^ 2 := by
+    rw [← sq_abs β]; exact pow_le_pow_left₀ (abs_nonneg _) hβabs 2
+  have hβ : 4 * β ^ 2 < 1 := by linarith
+  have hU1' : ExpTame (fun x => x * Real.exp (1 * β * x)) := by
+    simp_rw [one_mul]; exact expTame_id_mul_exp β
+  have hU2' : ExpTame (fun x => x * Real.exp ((-1) * β * x)) := by
+    simp_rw [neg_one_mul]; exact expTame_id_mul_exp (-β)
+  have hU1 : ExpTame (fun x => Real.exp (1 * β * x)) := by
+    simp_rw [one_mul]; exact expTame_exp β
+  have hU2 : ExpTame (fun x => Real.exp ((-1) * β * x)) := by
+    simp_rw [neg_one_mul]; exact expTame_exp (-β)
+  have hbd1' : ∀ j ≤ 2 * (2 * (2 * k)), ∀ x,
+      |deriv^[j] (fun x => x * Real.exp (1 * β * x)) x| ≤
+        2 * ((j : ℝ) * β₀ ^ (j - 1) + β₀ ^ j) * Real.exp ((β₀ + 1) * |x|) :=
+    fun j _ x => abs_iterate_deriv_id_mul_exp_le (by simpa using hβabs) j x
+  have hbd2' : ∀ j ≤ 2 * (2 * (2 * k)), ∀ x,
+      |deriv^[j] (fun x => x * Real.exp ((-1) * β * x)) x| ≤
+        2 * ((j : ℝ) * β₀ ^ (j - 1) + β₀ ^ j) * Real.exp ((β₀ + 1) * |x|) :=
+    fun j _ x => abs_iterate_deriv_id_mul_exp_le (by simpa [abs_mul] using hβabs) j x
+  have hbd1 : ∀ j ≤ 2 * (2 * (2 * k)), ∀ x,
+      |deriv^[j] (fun x => Real.exp (1 * β * x)) x| ≤ β₀ ^ j * Real.exp (β₀ * |x|) :=
+    fun j _ x => abs_iterate_deriv_exp_le (by simpa using hβabs) j x
+  have hbd2 : ∀ j ≤ 2 * (2 * (2 * k)), ∀ x,
+      |deriv^[j] (fun x => Real.exp ((-1) * β * x)) x| ≤ β₀ ^ j * Real.exp (β₀ * |x|) :=
+    fun j _ x => abs_iterate_deriv_exp_le (by simpa [abs_mul] using hβabs) j x
   obtain ⟨Upper₁', Bnd₁', h_le1', h_int_inner1', h_upper_bnd1', h_bnd_int1', h_bnd_le1'⟩ :=
-    h_bound1' N hN
+    h_bound1' β h q 1 _ hfix hββ hε1 hU1' hbd1' N hN
   obtain ⟨Upper₂', Bnd₂', h_le2', h_int_inner2', h_upper_bnd2', h_bnd_int2', h_bnd_le2'⟩ :=
-    h_bound2' N hN
-  obtain ⟨Upper₁, Bnd₁, h_le1, h_int_inner1, h_upper_bnd1, h_bnd_int1, h_bnd_le1⟩ := h_bound1 N hN
-  obtain ⟨Upper₂, Bnd₂, h_le2, h_int_inner2, h_upper_bnd2, h_bnd_int2, h_bnd_le2⟩ := h_bound2 N hN
+    h_bound2' β h q (-1) _ hfix hββ hε2 hU2' hbd2' N hN
+  obtain ⟨Upper₁, Bnd₁, h_le1, h_int_inner1, h_upper_bnd1, h_bnd_int1, h_bnd_le1⟩ :=
+    h_bound1 β h q 1 _ hfix hββ hε1 hU1 hbd1 N hN
+  obtain ⟨Upper₂, Bnd₂, h_le2, h_int_inner2, h_upper_bnd2, h_bnd_int2, h_bnd_le2⟩ :=
+    h_bound2 β h q (-1) _ hfix hββ hε2 hU2 hbd2 N hN
   set P := Measure.pi fun _ : FinPairs N => gaussianReal 0 1
   set Q := Measure.pi fun _ : Fin N => gaussianReal 0 1
   set Upper := fun g y => C_k * ((Upper₁' g y + Upper₂' g y) + (Upper₁ g y + Upper₂ g y))

@@ -3605,7 +3605,6 @@ SpinGlasses.measurable_log_integral_cosh_count_tilted
 SpinGlasses.ExpTame
 SpinGlasses.ExpTame.deriv_tame
 SpinGlasses.ExpTame.iterate_deriv_tame
-SpinGlasses.derivProd
 SpinGlasses.projGram
 SpinGlasses.projPath
 SpinGlasses.projMeasure
@@ -3628,10 +3627,8 @@ SpinGlasses.integral_exp_mul_projPath
 SpinGlasses.exp_sum_le_avg_exp
 SpinGlasses.exp_abs_le_add
 SpinGlasses.ExpTame.integrable_derivProd_projPath
-SpinGlasses.ExpTame.exists_abs_integral_derivProd_projPath_le
 SpinGlasses.abs_dotProduct_le_of_self_le
 SpinGlasses.abs_projGram_le
-SpinGlasses.ExpTame.exists_abs_projSum_le
 SpinGlasses.continuous_projPath
 SpinGlasses.continuous_projPath_uncurry
 SpinGlasses.ExpTame.measurable_projSum
@@ -3747,3 +3744,15 @@ abs_div_sub_div_le_of_denom_ge
 SpinGlasses.sk_cavity_field_tanh_approx
 SpinGlasses.sk_cavity_field_reaction_approx
 add_pow_two_mul_le
+SpinGlasses.sk_overlap_moment_le_of_exp_unif
+SpinGlasses.ExpTame.exists_bound_upTo
+SpinGlasses.abs_derivProd_le_of_bound
+SpinGlasses.abs_integral_derivProd_projPath_le
+SpinGlasses.pairCount_le
+SpinGlasses.exists_abs_projSum_le_of_bound
+SpinGlasses.exists_gibbs_fluctuation_abs_le
+SpinGlasses.abs_iterate_deriv_exp_le
+SpinGlasses.abs_iterate_deriv_id_mul_exp_le_abs
+SpinGlasses.abs_iterate_deriv_id_mul_exp_le
+SpinGlasses.abs_integral_comp_mul_gaussianReal_le
+SpinGlasses.abs_iterate_deriv_sub_const_le
