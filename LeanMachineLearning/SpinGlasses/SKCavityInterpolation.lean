@@ -245,6 +245,38 @@ theorem sk_cavity_energy_coupled_eq (N : ℕ) (β h : ℝ)
   rw [sum_sk_pairs_succ_cavity]
   ring
 
+/-- The measurable equivalence splitting the disorder of the `(N+1)`-spin SK model into the
+couplings of the old pairs and the `N` couplings of the new spin. -/
+noncomputable def skCavityDisorderEquiv (N : ℕ) :
+    (FinPairs (N + 1) → ℝ) ≃ᵐ (FinPairs N → ℝ) × (Fin N → ℝ) :=
+  (MeasurableEquiv.arrowCongr' (finPairsSuccEquiv N).symm (MeasurableEquiv.refl ℝ)).trans
+    (MeasurableEquiv.sumPiEquivProdPi fun _ : FinPairs N ⊕ Fin N => ℝ)
+
+theorem skCavityDisorderEquiv_apply (N : ℕ) (g : FinPairs (N + 1) → ℝ) :
+    skCavityDisorderEquiv N g =
+      (fun p : FinPairs N => g ⟨(p.val.1.castSucc, p.val.2.castSucc),
+          Fin.castSucc_lt_castSucc_iff.mpr p.property⟩,
+        fun i : Fin N => g ⟨(i.castSucc, Fin.last N), Fin.castSucc_lt_last i⟩) := by
+  apply Prod.ext
+  · funext p
+    simp [skCavityDisorderEquiv, MeasurableEquiv.arrowCongr', Equiv.arrowCongr',
+      Equiv.arrowCongr, MeasurableEquiv.sumPiEquivProdPi, Equiv.sumPiEquivProdPi,
+      finPairsSuccEquiv]
+  · funext i
+    simp [skCavityDisorderEquiv, MeasurableEquiv.arrowCongr', Equiv.arrowCongr',
+      Equiv.arrowCongr, MeasurableEquiv.sumPiEquivProdPi, Equiv.sumPiEquivProdPi,
+      finPairsSuccEquiv]
+
+theorem measurePreserving_skCavityDisorderEquiv (N : ℕ) :
+    MeasurePreserving (skCavityDisorderEquiv N)
+      (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)
+      ((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
+        (Measure.pi fun _ : Fin N => gaussianReal 0 1)) :=
+  (measurePreserving_sumPiEquivProdPi (fun _ : FinPairs N ⊕ Fin N => gaussianReal 0 1)).comp
+    (measurePreserving_arrowCongr' (fun _ : FinPairs (N + 1) => gaussianReal 0 1)
+      (fun _ : FinPairs N ⊕ Fin N => gaussianReal 0 1) (finPairsSuccEquiv N).symm
+      (MeasurableEquiv.refl ℝ) (fun _ => MeasurePreserving.id _))
+
 /-- Independence of the old couplings and the new edges of an i.i.d. Gaussian SK disorder. -/
 theorem measurePreserving_sk_cavity_disorder (N : ℕ) :
     MeasurePreserving
@@ -255,29 +287,23 @@ theorem measurePreserving_sk_cavity_disorder (N : ℕ) :
       (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)
       ((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
         (Measure.pi fun _ : Fin N => gaussianReal 0 1)) := by
-  let e : (FinPairs (N + 1) → ℝ) ≃ᵐ (FinPairs N ⊕ Fin N → ℝ) :=
-    MeasurableEquiv.arrowCongr' (finPairsSuccEquiv N).symm (MeasurableEquiv.refl ℝ)
-  have hfirst : MeasurePreserving e
-      (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)
-      (Measure.pi fun _ : FinPairs N ⊕ Fin N => gaussianReal 0 1) := by
-    exact measurePreserving_arrowCongr'
-      (fun _ : FinPairs (N + 1) => gaussianReal 0 1)
-      (fun _ : FinPairs N ⊕ Fin N => gaussianReal 0 1)
-      (finPairsSuccEquiv N).symm (MeasurableEquiv.refl ℝ)
-      (fun _ => (MeasurePreserving.id _))
-  have hsecond := measurePreserving_sumPiEquivProdPi
-    (fun _ : FinPairs N ⊕ Fin N => gaussianReal 0 1)
-  have h := hsecond.comp hfirst
-  convert h using 1
+  convert measurePreserving_skCavityDisorderEquiv N using 1
   funext g
-  apply Prod.ext
-  · funext p
-    simp [e, MeasurableEquiv.arrowCongr', Equiv.arrowCongr', Equiv.arrowCongr,
-      MeasurableEquiv.sumPiEquivProdPi, Equiv.sumPiEquivProdPi,
-      finPairsSuccEquiv]
-  · funext i
-    simp [e, MeasurableEquiv.arrowCongr', Equiv.arrowCongr', Equiv.arrowCongr,
-      MeasurableEquiv.sumPiEquivProdPi, Equiv.sumPiEquivProdPi,
-      finPairsSuccEquiv]
+  exact (skCavityDisorderEquiv_apply N g).symm
+
+/-- **Integration over the split SK disorder.**  An integral over the `(N+1)`-spin disorder of a
+function of (old couplings, new edges) is the integral over the product of the two Gaussian
+disorders.  No measurability or integrability is needed since the split is an equivalence. -/
+theorem integral_comp_sk_cavity_disorder {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+    (N : ℕ) (F : (FinPairs N → ℝ) × (Fin N → ℝ) → E) :
+    ∫ g : FinPairs (N + 1) → ℝ,
+      F (fun p : FinPairs N => g ⟨(p.val.1.castSucc, p.val.2.castSucc),
+          Fin.castSucc_lt_castSucc_iff.mpr p.property⟩,
+        fun i : Fin N => g ⟨(i.castSucc, Fin.last N), Fin.castSucc_lt_last i⟩)
+        ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) =
+      ∫ w, F w ∂((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
+        (Measure.pi fun _ : Fin N => gaussianReal 0 1)) := by
+  have := (measurePreserving_skCavityDisorderEquiv N).integral_comp' F
+  simpa only [skCavityDisorderEquiv_apply] using this
 
 end SpinGlasses

@@ -145,3 +145,15 @@ theorem double_integral_le_of_dominated {α β : Type*} [MeasurableSpace α] [Me
     (integral_mono_of_nonneg (ae_of_all _ (hF0 x)) (hU x) (ae_of_all _ (hF x))).trans (hUB x)
   exact (integral_mono_of_nonneg (ae_of_all _ fun x => integral_nonneg (hF0 x)) hB
     (ae_of_all _ h_inner)).trans hBC
+
+/-- The integral of a nonnegative function over a product of s-finite measures is at most its
+iterated integral.  No integrability is needed: if the function is not integrable on the product,
+the left side is the junk value `0`. -/
+theorem integral_prod_le_integral_integral_of_nonneg {α β : Type*} [MeasurableSpace α]
+    [MeasurableSpace β] {μ : Measure α} {ν : Measure β} [SFinite μ] [SFinite ν]
+    {F : α × β → ℝ} (hF0 : ∀ w, 0 ≤ F w) :
+    ∫ w, F w ∂(μ.prod ν) ≤ ∫ x, ∫ y, F (x, y) ∂ν ∂μ := by
+  by_cases hint : Integrable F (μ.prod ν)
+  · exact (integral_prod F hint).le
+  · rw [integral_undef hint]
+    exact integral_nonneg fun x => integral_nonneg fun y => hF0 _
