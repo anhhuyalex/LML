@@ -9,6 +9,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.Pi
 public import LeanMachineLearning.ForMathlib.MeasureTheory.MeasurableSpace.Units
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.HypercubeProduct
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Hyperbolic
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteHyperbolic
 public import LeanMachineLearning.SpinGlasses.FreeEnergy
 public import Mathlib.Analysis.Calculus.ParametricIntegral
 public import Mathlib.MeasureTheory.Measure.Tilted
@@ -244,10 +245,8 @@ theorem abs_log_integral_cosh_count_tilted_le_sum_abs [Nonempty α]
     (A L : α → ℝ) :
     |Real.log (∫ a, Real.cosh (L a) ∂Measure.count.tilted A)| ≤ ∑ a, |L a| := by
   classical
-  have h_one : 1 ≤ ∫ a, Real.cosh (L a) ∂Measure.count.tilted A := by
-    rw [show (1 : ℝ) = ∫ _ : α, (1 : ℝ) ∂Measure.count.tilted A by simp]
-    exact integral_mono (integrable_const _) Integrable.of_finite fun a =>
-      Real.one_le_cosh (L a)
+  have h_one : 1 ≤ ∫ a, Real.cosh (L a) ∂Measure.count.tilted A :=
+    one_le_integral_cosh _ L
   rw [abs_of_nonneg (Real.log_nonneg h_one)]
   refine (Real.log_le_iff_le_exp (by positivity)).2 ?_
   have hpoint : ∀ a, Real.cosh (L a) ≤ Real.exp (∑ b, |L b|) := fun a => by
@@ -412,11 +411,7 @@ theorem abs_integral_prod_count_tilted_units_mul_le [Finite α] [Nonempty α] (A
   let _ := Fintype.ofFinite α
   rw [integral_prod_count_tilted_units_mul]
   rw [abs_div, abs_pow]
-  have hcosh : 1 ≤ ∫ a, Real.cosh (L a) ∂Measure.count.tilted A := by
-    have h1 : (1 : ℝ) = ∫ _ : α, (1 : ℝ) ∂Measure.count.tilted A := by
-      simp only [integral_const, probReal_univ, smul_eq_mul, mul_one]
-    rw [h1]
-    exact integral_mono (integrable_const _) Integrable.of_finite fun a => Real.one_le_cosh (L a)
+  have hcosh : 1 ≤ ∫ a, Real.cosh (L a) ∂Measure.count.tilted A := one_le_integral_cosh _ L
   have hden : 1 ≤ |∫ a, Real.cosh (L a) ∂Measure.count.tilted A| ^ 2 := by
     have : 1 ≤ |∫ a, Real.cosh (L a) ∂Measure.count.tilted A| := by
       rwa [abs_of_nonneg (by linarith)]

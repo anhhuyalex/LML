@@ -2,7 +2,7 @@
 
 This chapter formalizes Sections~1.1 through 1.6 of Michel Talagrand's \emph{Spin Glasses: A Challenge for Mathematicians} (Volume~I, Springer, 2010) and the first half of Section~1.7.
 Section~1.6, including Proposition~1.6.8 (the cavity free-energy increment), is proved without any smallness assumption on the model parameters.
-Of Section~1.7 Theorem~1.7.11 (the general Gaussian fluctuation principle) is formalized; Corollaries~1.7.13 and~1.7.15, Lemma~1.7.14, Lemma~1.7.5 and Eq.~(1.185) of Lemma~1.7.4 are formalized as well; Eq.~(1.186), Lemma~1.7.6 and Theorem~1.7.1 are not yet (Section~\ref{sec:sg-tal:fluct}).
+Of Section~1.7 Theorem~1.7.11 (the general Gaussian fluctuation principle) is formalized; Corollaries~1.7.13 and~1.7.15, Lemma~1.7.14, Lemma~1.7.5 and Lemma~1.7.4 are formalized as well; Lemma~1.7.6 and Theorem~1.7.1 are not yet (Section~\ref{sec:sg-tal:fluct}).
 The mathematical narrative develops the high-temperature theory of the Sherrington--Kirkpatrick (SK) model:
 \begin{enumerate}
 \item The decoupled reference system, hypercube factorizations, exact first-moment calculations, and the first-moment upper bound on the free energy (Section~1.2).
@@ -2993,7 +2993,8 @@ Two things have to be shown:
 \item[G.] \emph{Fixed-point shift} (Section~\ref{sec:sg-tal:fixed-point-shift}; Lemma~1.7.5): $|q - q_-|\le 1/N$.  Fully proved.
 \item[H.] \emph{Corollary~1.7.13} (Section~\ref{sec:sg-tal:fluct-exp}; Eqs.~(1.206)--(1.207)): Theorem~1.7.11 for $U(x)=e^{\varepsilon\beta x}$ and $U(x)=xe^{\varepsilon\beta x}$, i.e.\ for the Gibbs average of the \emph{uncentered} exponential.  Fully proved, with constants uniform in $|\beta|\le\beta_0<1/2$.
 \item[I.] \emph{Lemma~1.7.14 and Corollary~1.7.15} (Section~\ref{sec:sg-tal:fluct-cavity-field}; Eqs.~(1.209)--(1.210)): the ratio $\langle\sinh(X+h)\rangle/\langle\cosh(X+h)\rangle$ is close to $\tanh$ of the thermal mean field, and the reaction term.  Fully proved.
-\item[J.] \emph{Lemma~1.7.4, Eq.~(1.185)} (Section~\ref{sec:sg-tal:fluct-last-spin}): $\langle\sigma_{N+1}\rangle$ is close to $\tanh$ of the cavity field built from the old Gibbs measure at $\beta_-$.  Fully proved; Eq.~(1.186) and the Gaussian structure of the cavity field (Lemma~1.7.6) are not.
+\item[J.] \emph{Lemma~1.7.4, Eq.~(1.185)} (Section~\ref{sec:sg-tal:fluct-last-spin}): $\langle\sigma_{N+1}\rangle$ is close to $\tanh$ of the cavity field built from the old Gibbs measure at $\beta_-$.  Fully proved.
+\item[K.] \emph{Lemma~1.7.4, Eq.~(1.186)} (Section~\ref{sec:sg-tal:fluct-old-spin}): adding a spin moves an old magnetization by $O(N^{-1/2})$ in $L^2$.  Fully proved; the Gaussian structure of the cavity field (Lemma~1.7.6) is not.
 \end{enumerate}
 Parts~A--E are independent of the spin-glass model: Part~A is about Gaussian vectors, Parts~B--E about an arbitrary finite
 Gibbs measure carrying $N$ bounded observables (Part~E needs $\xi_i^2=1$).  Only the last step of Part~F uses the SK model, through the overlap moments of Section~1.4.  Part~G is the fixed-point stability under the cavity parameter shift $\beta_-=\beta\sqrt{1-1/N}$.  Parts~H and~I specialize Part~F to the exponentials that the cavity method produces; they use the SK model through Part~F and through the overlap moments of Section~1.4 directly (the intermediate, disorder-by-disorder bound of Part~F is reused, not just its statement).
@@ -4090,16 +4091,119 @@ Pick a fixed point $q_-$ of the $N$-spin system at $\beta_-$ (it exists, Eq.~(1.
 \begin{itemize}
 \item \emph{Indexing.}  The book states (1.185) for $N$ spins and applies (1.209) to the $(N-1)$-spin system; we write $N+1$ and $N$.  Constants are the same up to the factor $2^k$ from $1/N^k\le2^k/(N+1)^k$.  The $L^{2k}$ form is stated because Theorem~1.7.7 is an $L^{2k}$ statement.
 \item \emph{No fixed point in the statement.}  The book's text speaks of the fixed point $q_-$ of the smaller system; the statement of (1.185) does not contain $q$ and neither does ours.  Lemma~\ref{lem:sg-tal:fixed-point-shift} (relating $q$ and $q_-$) is needed only in the next steps (1.186) and Lemma~1.7.6, where the fixed point of the \emph{full} system enters.
-\item \emph{Part of (1.185) only.}  The book's Lemma~1.7.4 also contains (1.186), $\mathbb E(\langle\sigma_1\rangle-\langle\sigma_1\rangle_-)^2\le K/N$, and the Gaussian structure of the cavity field (Lemma~1.7.6); these are not yet formalized.
+\item \emph{Part of (1.185) only.}  The book's Lemma~1.7.4 also contains (1.186), proved in Theorem~\ref{thm:sg-tal:lemma-174-b}, and the Gaussian structure of the cavity field (Lemma~1.7.6), which is not yet formalized.
 \end{itemize}
 \end{remark}
+
+\subsection{Lemma~1.7.4, Eq.~(1.186): adding a spin barely moves an old magnetization}
+\label{sec:sg-tal:fluct-old-spin}
+
+\emph{Content.}  Eq.~(1.186) says $\mathbb E(\langle\sigma_i\rangle-\langle\sigma_i\rangle_-)^2\le K/N$ for an old site $i$.  We prove it for the $(N+1)$-spin system, $\beta_-=\beta\sqrt{N/(N+1)}$, in the following steps, following the book's proof of (1.213).
+By the cavity formula $\langle\sigma_i\rangle-\langle\sigma_i\rangle_-=\langle\dot\sigma_i\cosh L\rangle_-/\langle\cosh L\rangle_-$ with $\langle\cosh L\rangle_-\ge1$, so it suffices to bound $\mathbb E\langle\dot\sigma_i\cosh L\rangle_-^2$.
+Writing the square with two replicas, the Gaussian average over the new couplings $y$ is explicit (the replacement for the book's Eq.~(A.6)): $\mathbb E_y\cosh L(a)\cosh L(b)=\tfrac12\bigl(\cosh(2h)e^{B(1+R_{ab})}+e^{B(1-R_{ab})}\bigr)$ with $B=N(\beta/\sqrt{N+1})^2\le\beta^2$ and $R$ the overlap.
+This kernel is Lipschitz in $R$, the Gram entry $T=N^{-1}\sum_i\dot\sigma_i^1\dot\sigma_i^2$ has Gibbs mean zero (so the kernel may be centered at $q$), and $|T||R-q|\le\frac12(T^2+(R-q)^2)$, whose Gibbs average is bounded by the overlap moment through the Gram-moment bound of Part~E.
+This bounds the \emph{sum over the sites}; site symmetry of the disorder (Proposition~1.4.14) makes all sites equal.
+\emph{Uses:} Parts~E, G, J and Proposition~1.4.14.  \emph{Status:} fully proved.
+
+\begin{lemma}[Cavity formula for an old magnetization]
+\label{lem:sg-tal:old-spin-cavity}
+  \lean{SpinGlasses.integral_comp_castSucc_count_tilted_snoc,
+        SpinGlasses.integral_comp_castSucc_sub_integral,
+        SpinGlasses.sk_old_spin_deviation_eq}
+  \leanok
+\talsource{Section~1.7, proof of Lemma~1.7.4: ``$\langle\sigma_1\mathrm{Av}\,\mathcal E\rangle/\langle\mathrm{Av}\,\mathcal E\rangle-\langle\sigma_1\rangle$ is $\langle\sigma_1\rangle-\langle\sigma_1\rangle_-$ by the cavity method''}
+For any finite old system with energy $A$, last-spin field $L$ and observable $\varphi$ of the old spins, $\langle\varphi\rangle_{N+1}=\langle\varphi\cosh L\rangle_A/\langle\cosh L\rangle_A$, hence $\langle\varphi\rangle_{N+1}-\langle\varphi\rangle_A=\langle(\varphi-\langle\varphi\rangle_A)\cosh L\rangle_A/\langle\cosh L\rangle_A$.  For the SK system and $\varphi(\rho)=\rho_i$, $A$ is the energy at $\beta_-$ with the old couplings and $L(\rho)=\frac\beta{\sqrt{N+1}}\sum_jy_j\rho_j+h$.
+\end{lemma}
+\begin{proof}
+  \leanok
+Apply the finite cavity identity of Proposition~1.6.1 to $f(\sigma)=\varphi(\sigma|_{\le N})$: both values of the last spin give the same $\varphi(\rho)$, so the numerator is $\varphi(\rho)(e^L+e^{-L})/2=\varphi(\rho)\cosh L$.  For the SK system use the energy splitting of Lemma~\ref{lem:sg-tal:energy-cavity}.
+\end{proof}
+
+\begin{lemma}[Two replicas of the cavity field and a Lipschitz kernel]
+\label{lem:sg-tal:cavity-kernel}
+  \lean{cosh_mul_cosh_sum_mul_eq,
+        integrable_cosh_mul_cosh_sum_mul_gaussianReal,
+        integral_cosh_mul_cosh_sum_mul_gaussianReal,
+        Real.abs_exp_sub_exp_le_of_abs_le,
+        SpinGlasses.sum_sq_cavity_add,
+        SpinGlasses.sq_integral_gibbs_cosh,
+        SpinGlasses.integrable_sq_integral_gibbs_cosh,
+        SpinGlasses.integral_gibbs_cosh_sq,
+        SpinGlasses.integral_gibbs_cosh_sq_centered,
+        SpinGlasses.abs_cavityKernel_sub_le}
+  \leanok
+\talsource{Section~1.7, proof of (1.213): $\mathrm E\,\mathcal E_1\mathcal E_2$ and $\mathrm{Av}\,\mathcal E_1\mathcal E_2$, from (A.6)}
+Let $\mu$ be a Gibbs measure on a finite set carrying observables $\xi_i=\pm1$ ($i\le N$), $y$ a standard Gaussian vector, $L_y(a)=c\sum_jy_j\xi_j(a)+h$, and $S(a,b)=\sum_i\xi_i(a)\xi_i(b)$.  For any function $g$,
+\[
+\mathbb E_y\Bigl(\int g\cosh L_y\,d\mu\Bigr)^2=\iint g(a)g(b)\,\frac{\cosh(2h)e^{c^2(N+S)}+e^{c^2(N-S)}}2\,d\mu(a)\,d\mu(b).
+\]
+With $B=Nc^2$ and $R=S/N$ the kernel is $x\mapsto\frac12(\cosh(2h)e^{B(1+x)}+e^{B(1-x)})$ at $x=R(a,b)$, and for $|x|,|q|\le1$ it moves by at most $\frac12Be^{2B}(\cosh(2h)+1)\,|x-q|$.
+\end{lemma}
+\begin{proof}
+  \leanok
+Expand the square of the Gibbs average as a double sum, use $\cosh u\cosh v=\frac12(\cosh(u+v)+\cosh(u-v))$ and $\mathbb E\cosh(\sum c_ew_e+m)=\cosh m\,e^{\sum c_e^2/2}$ for independent standard Gaussians $w_e$, and $\xi_i^2=1$ to evaluate $\sum_i c^2(\xi_i(a)\pm\xi_i(b))^2/2=c^2(N\pm S)$.  The Lipschitz bound follows from $|e^u-e^v|\le e^M|u-v|$ for $|u|,|v|\le M$.
+\end{proof}
+
+\begin{theorem}[The sum over the sites of the cavity deviation]
+\label{thm:sg-tal:cavity-deviation-sum}
+  \uses{lem:sg-tal:cavity-kernel, thm:sg-tal:gram-moments}
+  \lean{SpinGlasses.sum_integral_gibbs_cosh_sq_le,
+        SpinGlasses.sum_sum_weight_mul_gram_eq_zero,
+        SpinGlasses.sum_weight_mul_sub_integral}
+  \leanok
+\talsource{Section~1.7, proof of (1.213): ``it suffices to show $|\mathrm E\langle\frac1N\sum_i\dot\sigma_i^1\dot\sigma_i^2f(R_{1,2})\rangle|\le K/N$''}
+In the setting of Lemma~\ref{lem:sg-tal:cavity-kernel}, for $q\in[0,1]$ and $\dot\xi_i=\xi_i-\langle\xi_i\rangle$,
+\[
+\sum_{i\le N}\mathbb E_y\Bigl(\int\dot\xi_i\cosh L_y\,d\mu\Bigr)^2\le N\Lambda\,\tfrac{17}2\,\mathbb E_\mu(R_{1,2}-q)^2,\qquad\Lambda=\tfrac12Be^{2B}(\cosh(2h)+1).
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+By Lemma~\ref{lem:sg-tal:cavity-kernel} the left side is $N\iint T(a,b)\,F(R(a,b))\,d\mu\,d\mu$ with $T=N^{-1}\sum_i\dot\xi_i(a)\dot\xi_i(b)$ and $F$ the kernel.  Since $\iint T\,d\mu\,d\mu=N^{-1}\sum_i\bigl(\int\dot\xi_i\,d\mu\bigr)^2=0$ one may replace $F(R)$ by $F(R)-F(q)$, which is at most $\Lambda|R-q|$.  Then $|T||R-q|\le\frac12(T^2+(R-q)^2)$, and $\iint T^2\le16\,\mathbb E(R-q)^2$ by Theorem~\ref{thm:sg-tal:gram-moments} (case $k=1$).
+\end{proof}
+
+\begin{lemma}[Site symmetry of the cavity deviation]
+\label{lem:sg-tal:cavity-site-symmetry}
+  \uses{thm:sg-tal:cavity-deviation-sum}
+  \lean{SpinGlasses.sum_sum_centered_comp_equiv,
+        SpinGlasses.integral_sum_sum_centered_perm,
+        SpinGlasses.sk_cavity_sq_eq_sum,
+        SpinGlasses.sk_cavity_weights_symmetric,
+        SpinGlasses.integrable_sk_cavity_sq,
+        SpinGlasses.integral_sk_cavity_sq_perm,
+        SpinGlasses.integral_sk_cavity_sq_le}
+  \leanok
+\talsource{Section~1.7, proof of Lemma~1.7.4: ``using symmetry between sites''}
+Let $S_i(g_{\mathrm{old}})=\mathbb E_y\langle\dot\sigma_i\cosh L_y\rangle_-^2$ for the $N$-spin SK system.  Then $S_i$ is a continuous function of the Gibbs weights (a double Gibbs sum), $\mathbb E S_i$ does not depend on $i$, and if $Nc^2\le\beta_0^2$ and $\mathbb E\langle(R-q)^2\rangle\le K'/N$ then $\mathbb E S_i\le\frac{17}2\Lambda_0K'/N$ with $\Lambda_0=\frac12\beta_0^2e^{2\beta_0^2}(\cosh(2h)+1)$.
+\end{lemma}
+\begin{proof}
+  \leanok
+Relabelling the sites by a permutation $\pi$ is a measure-preserving relabelling of the Gaussian couplings under which the Gibbs weights are relabelled (the same site-symmetric random Gibbs state as in the proof of Proposition~1.4.14); the bilinear functional $\sum_{a,b}v_av_b\dot\xi_i(a)\dot\xi_i(b)K(a,b)$ with a relabelling-invariant kernel $K$ is transformed into the same functional at the site $\pi(i)$.  Hence all $\mathbb E S_i$ agree; their sum is at most $N\Lambda_0\frac{17}2\mathbb E\langle(R-q)^2\rangle$ by Theorem~\ref{thm:sg-tal:cavity-deviation-sum}, and $B=Nc^2\le\beta_0^2$.
+\end{proof}
+
+\begin{theorem}[Lemma~1.7.4, Eq.~(1.186)]
+\label{thm:sg-tal:lemma-174-b}
+  \uses{lem:sg-tal:old-spin-cavity, lem:sg-tal:cavity-site-symmetry, lem:sg-tal:disorder-split, thm:sg-tal:overlap-moments-all}
+  \lean{SpinGlasses.sk_old_spin_cavity_approx}
+  \leanok
+\talsource{Lemma~1.7.4, Eq.~(1.186), for the system of $N+1$ spins}
+Let $4\beta_0^2<1$ and $h\in\mathbb R$.  There is $K>0$ such that for all $|\beta|\le\beta_0$, $N\ge1$ and every old site $i\le N$, with $\beta_-=\beta\sqrt{N/(N+1)}$,
+\[
+\mathbb E\bigl(\langle\sigma_i\rangle-\langle\sigma_i\rangle_-\bigr)^2\le\frac K{N+1},
+\]
+where $\langle\cdot\rangle$ is the Gibbs measure of the $(N+1)$-spin system and $\langle\cdot\rangle_-$ that of the first $N$ spins with the old couplings at $\beta_-$.  $K$ depends only on $(\beta_0,h)$.
+\end{theorem}
+\begin{proof}
+  \leanok
+Choose a fixed point $q$ of the $N$-spin system at $\beta_-$.  By Lemma~\ref{lem:sg-tal:old-spin-cavity} the integrand is $F(g_{\mathrm{old}},y)=\bigl(\langle\dot\sigma_i\cosh L\rangle_-/\langle\cosh L\rangle_-\bigr)^2\le\langle\dot\sigma_i\cosh L\rangle_-^2$ (as $\langle\cosh L\rangle_-\ge1$).  By Proposition~\ref{lem:sg-tal:disorder-split} and nonnegativity, the left side is at most $\mathbb E_{g_{\mathrm{old}}}\mathbb E_yF$, hence at most $\mathbb E S_i$, which is bounded in Lemma~\ref{lem:sg-tal:cavity-site-symmetry}, with $K'$ from the uniform overlap moment bound (Theorem~\ref{thm:sg-tal:overlap-moments-all}, $r=1$).  Finally $1/N\le2/(N+1)$.
+\end{proof}
 
 \begin{remark}[What remains of Section~1.7]
 \label{rem:sg-tal:remaining-17}
 Of Section~1.7 the following are formalized: the general Gaussian fluctuation principle (Theorem~\ref{thm:sg-tal:general-fluct}), the fixed-point shift (Lemma~\ref{lem:sg-tal:fixed-point-shift}),
 Corollary~1.7.13 (Theorem~\ref{thm:sg-tal:cor-1713}), Lemma~1.7.14 (Lemma~\ref{lem:sg-tal:ratio}) and Corollary~1.7.15 (Theorems~\ref{thm:sg-tal:cor-1715-tanh} and~\ref{thm:sg-tal:cor-1715-reaction}).
-Also formalized is Eq.~(1.185) of Lemma~1.7.4 (Theorem~\ref{thm:sg-tal:lemma-174-a}), obtained by applying Eq.~(1.209) to the $N$-spin system at $\beta_-$ for the $(N+1)$-spin system.
-Not yet formalized, and for that reason not stated here as theorems, are Eq.~(1.186) of Lemma~1.7.4 ($\mathbb E(\langle\sigma_1\rangle-\langle\sigma_1\rangle_-)^2\le K/N$, which needs the site symmetry and the two-replica computation (1.213) and uses Lemma~\ref{lem:sg-tal:fixed-point-shift}), Lemma~1.7.6 (the cavity field as a disorder-measurable Gaussian) and Theorem~1.7.1 (the local magnetizations are asymptotically i.i.d.\ ).
-One gap between what is proved and what these applications need is already known: Eq.~(1.210) is stated before the final linear rewriting of the book (Remark~\ref{rem:sg-tal:dev-1715}).  The Corollaries are stated for the $N$-spin system with constants uniform in $|\beta|\le\beta_0<1/2$ (Remark~\ref{rem:sg-tal:dev-1713}), so the application to the $N$-spin system at $\beta_-$ is by relabeling $N$ and $\beta$ (done in Theorem~\ref{thm:sg-tal:lemma-174-a}).
+Also formalized are Eq.~(1.185) of Lemma~1.7.4 (Theorem~\ref{thm:sg-tal:lemma-174-a}), obtained by applying Eq.~(1.209) to the $N$-spin system at $\beta_-$ for the $(N+1)$-spin system, and Eq.~(1.186) (Theorem~\ref{thm:sg-tal:lemma-174-b}).
+Not yet formalized, and for that reason not stated here as theorems, are Lemma~1.7.6 (the cavity field as a disorder-measurable Gaussian) and Theorem~1.7.1 (the local magnetizations are asymptotically i.i.d.\ ).
+One gap between what is proved and what these applications need is already known: Eq.~(1.210) is stated before the final linear rewriting of the book (Remark~\ref{rem:sg-tal:dev-1715}).  The Corollaries are stated for the $N$-spin system with constants uniform in $|\beta|\le\beta_0<1/2$ (Remark~\ref{rem:sg-tal:dev-1713}), so the application to the $N$-spin system at $\beta_-$ is by relabeling $N$ and $\beta$ (done in Theorems~\ref{thm:sg-tal:lemma-174-a} and~\ref{thm:sg-tal:lemma-174-b}).
 Nothing in Sections~1.1--1.6 depends on Section~1.7.
 \end{remark}

@@ -145,7 +145,8 @@ theorem integral_sk_cavity_sq_perm (i j : Fin N) :
       simp_rw [hact]
       exact Equiv.sum_comp π fun k => ((a k : ℤ) : ℝ) * ((a' k : ℤ) : ℝ)
     rw [hK, hK, hs]
-  have key := integral_sum_sum_centered_perm (P := Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
+  have key := integral_sum_sum_centered_perm
+    (P := Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
     (ξ := fun (k : Fin N) (a : Fin N → ℤˣ) => ((a k : ℤ) : ℝ)) (w := w) hwm
     (fun π => Equiv.arrowCongr π.symm (Equiv.refl ℤˣ)) hact K hKinv hsym (Equiv.swap i j) i
   simp only [Equiv.swap_apply_left] at key
@@ -219,5 +220,113 @@ theorem integral_sk_cavity_sq_le (hN : 0 < N) {β₀ : ℝ} (hB : (N : ℝ) * c 
   exact le_of_mul_le_mul_left this hN0
 
 end Symmetric
+
+/-- **Talagrand, Lemma 1.7.4, Eq. (1.186).**  For `4 β₀² < 1` and `h` there is `K` such that for all
+`|β| ≤ β₀`, `N ≥ 1` and every old site `i < N`,
+`𝔼 (⟨σ_i⟩ - ⟨σ_i⟩_-)² ≤ K / (N+1)`, where `⟨·⟩` is the Gibbs measure of the `(N+1)`-spin system and
+`⟨·⟩_-` that of the first `N` spins with the old couplings at `β_- = β √(N/(N+1))`.  The old
+couplings are the first component of `skCavityDisorderEquiv N g`. -/
+theorem sk_old_spin_cavity_approx (β₀ : ℝ) (hβ₀' : 4 * β₀ ^ 2 < 1) (h : ℝ) :
+    ∃ K : ℝ, 0 < K ∧ ∀ β : ℝ, |β| ≤ β₀ → ∀ N : ℕ, 0 < N → ∀ i : Fin N,
+      ∫ g : FinPairs (N + 1) → ℝ,
+        ((∫ σ : Fin (N + 1) → ℤˣ, ((σ i.castSucc : ℤ) : ℝ)
+            ∂(Measure.count.tilted (skGibbsEnergy (N + 1) β h g))) -
+          ∫ a, ((a i : ℤ) : ℝ) ∂(Measure.count.tilted (skGibbsEnergy N
+            (β * Real.sqrt ((N : ℝ) / (N + 1))) h (skCavityDisorderEquiv N g).1))) ^ 2
+          ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) ≤ K / ((N : ℝ) + 1) := by
+  obtain ⟨K', hK'0, hK'⟩ := sk_overlap_moment_le_of_exp_unif β₀ hβ₀' 1
+  set Λ₀ : ℝ := β₀ ^ 2 * Real.exp (2 * β₀ ^ 2) * (Real.cosh (2 * h) + 1) / 2 with hΛ₀
+  have hΛ₀0 : 0 ≤ Λ₀ := by
+    have := Real.cosh_pos (2 * h)
+    positivity
+  refine ⟨17 * Λ₀ * K' + 1, by positivity, fun β hβ N hN i => ?_⟩
+  have hN0 : (0 : ℝ) < N := Nat.cast_pos.mpr hN
+  have hs : Real.sqrt ((N : ℝ) / (N + 1)) ≤ 1 :=
+    Real.sqrt_le_one.mpr ((div_le_one (by positivity)).mpr (by linarith))
+  have hβm : |β * Real.sqrt ((N : ℝ) / (N + 1))| ≤ β₀ := by
+    rw [abs_mul, abs_of_nonneg (Real.sqrt_nonneg _)]
+    calc _ ≤ |β| * 1 := mul_le_mul_of_nonneg_left hs (abs_nonneg _)
+      _ ≤ β₀ := by rw [mul_one]; exact hβ
+  have hb2 : (β * Real.sqrt ((N : ℝ) / (N + 1))) ^ 2 ≤ β₀ ^ 2 := by
+    rw [← sq_abs]; exact pow_le_pow_left₀ (abs_nonneg _) hβm 2
+  have hB : (N : ℝ) * ((Real.sqrt ((N : ℝ) + 1))⁻¹ * β) ^ 2 ≤ β₀ ^ 2 := by
+    have hsq : ((Real.sqrt ((N : ℝ) + 1))⁻¹ * β) ^ 2 = β ^ 2 / ((N : ℝ) + 1) := by
+      rw [mul_pow, inv_pow, Real.sq_sqrt (by positivity)]; ring
+    rw [hsq]
+    have hβ2 : β ^ 2 ≤ β₀ ^ 2 := by
+      rw [← sq_abs]; exact pow_le_pow_left₀ (abs_nonneg _) hβ 2
+    calc (N : ℝ) * (β ^ 2 / ((N : ℝ) + 1)) = β ^ 2 * ((N : ℝ) / ((N : ℝ) + 1)) := by ring
+      _ ≤ β ^ 2 * 1 := mul_le_mul_of_nonneg_left
+          ((div_le_one (by positivity)).mpr (by linarith)) (sq_nonneg _)
+      _ ≤ β₀ ^ 2 := by rw [mul_one]; exact hβ2
+  obtain ⟨q, hqI, hq⟩ := exists_fixedPoint (β * Real.sqrt ((N : ℝ) / (N + 1))) h
+  have hOM : ∫ go, overlapMoment (fun (j : Fin N) (a : Fin N → ℤˣ) => ((a j : ℤ) : ℝ))
+      (skGibbsEnergy N (β * Real.sqrt ((N : ℝ) / (N + 1))) h go) q 1
+      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) ≤ K' / N := by
+    have := hK' _ h q hq.symm hb2 N hN
+    rw [pow_one] at this
+    exact this
+  -- the abstract objects
+  obtain ⟨S, hS⟩ : ∃ S : Fin N → (FinPairs N → ℝ) → ℝ, ∀ j go, S j go =
+      ∫ y : Fin N → ℝ, (∫ a, (((a j : ℤ) : ℝ) - ∫ a', ((a' j : ℤ) : ℝ) ∂(Measure.count.tilted
+          (skGibbsEnergy N (β * Real.sqrt ((N : ℝ) / (N + 1))) h go))) *
+        Real.cosh ((Real.sqrt ((N : ℝ) + 1))⁻¹ * β * ∑ l, y l * ((a l : ℤ) : ℝ) + h)
+          ∂(Measure.count.tilted (skGibbsEnergy N (β * Real.sqrt ((N : ℝ) / (N + 1))) h go))) ^ 2
+      ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1) := ⟨_, fun _ _ => rfl⟩
+  obtain ⟨w, hw⟩ : ∃ w : (FinPairs N → ℝ) → (Fin N → ℤˣ) → ℝ, ∀ go a, w go a =
+      Real.exp (skGibbsEnergy N (β * Real.sqrt ((N : ℝ) / (N + 1))) h go a) /
+        ∑ x, Real.exp (skGibbsEnergy N (β * Real.sqrt ((N : ℝ) / (N + 1))) h go x) :=
+    ⟨_, fun _ _ => rfl⟩
+  obtain ⟨K, hK⟩ : ∃ K : (Fin N → ℤˣ) → (Fin N → ℤˣ) → ℝ, ∀ a a', K a a' =
+      (Real.cosh (2 * h) * Real.exp (((Real.sqrt ((N : ℝ) + 1))⁻¹ * β) ^ 2 *
+          (N + ∑ l, ((a l : ℤ) : ℝ) * ((a' l : ℤ) : ℝ))) +
+        Real.exp (((Real.sqrt ((N : ℝ) + 1))⁻¹ * β) ^ 2 *
+          (N - ∑ l, ((a l : ℤ) : ℝ) * ((a' l : ℤ) : ℝ)))) / 2 := ⟨_, fun _ _ => rfl⟩
+  have hSle := integral_sk_cavity_sq_le (β * Real.sqrt ((N : ℝ) / (N + 1))) h
+    ((Real.sqrt ((N : ℝ) + 1))⁻¹ * β) S hS w hw K hK hN hB q hqI hOM i
+  -- transport to the product of the old and the new disorder
+  set P : Measure (FinPairs N → ℝ) := Measure.pi fun _ : FinPairs N => gaussianReal 0 1
+  set Q : Measure (Fin N → ℝ) := Measure.pi fun _ : Fin N => gaussianReal 0 1
+  let F : (FinPairs N → ℝ) × (Fin N → ℝ) → ℝ := fun v =>
+    ((∫ a, (((a i : ℤ) : ℝ) - ∫ a', ((a' i : ℤ) : ℝ) ∂(Measure.count.tilted (skGibbsEnergy N
+          (β * Real.sqrt ((N : ℝ) / (N + 1))) h v.1))) *
+        Real.cosh ((Real.sqrt ((N : ℝ) + 1))⁻¹ * β * ∑ j, v.2 j * ((a j : ℤ) : ℝ) + h)
+        ∂(Measure.count.tilted (skGibbsEnergy N
+          (β * Real.sqrt ((N : ℝ) / (N + 1))) h v.1))) /
+      ∫ a, Real.cosh ((Real.sqrt ((N : ℝ) + 1))⁻¹ * β * ∑ j, v.2 j * ((a j : ℤ) : ℝ) + h)
+        ∂(Measure.count.tilted (skGibbsEnergy N
+          (β * Real.sqrt ((N : ℝ) / (N + 1))) h v.1))) ^ 2
+  have hF0 : ∀ v, 0 ≤ F v := fun v => sq_nonneg _
+  have hFS : ∀ go, ∫ y, F (go, y) ∂Q ≤ S i go := fun go => by
+    rw [hS i go]
+    refine integral_mono_of_nonneg (ae_of_all _ fun y => hF0 _) ?_ (ae_of_all _ fun y => ?_)
+    · exact integrable_sq_integral_gibbs_cosh
+        (fun (j : Fin N) (a : Fin N → ℤˣ) => ((a j : ℤ) : ℝ))
+        (skGibbsEnergy N (β * Real.sqrt ((N : ℝ) / (N + 1))) h go)
+        ((Real.sqrt ((N : ℝ) + 1))⁻¹ * β) h
+        (fun a => ((a i : ℤ) : ℝ) - ∫ a', ((a' i : ℤ) : ℝ) ∂(Measure.count.tilted
+          (skGibbsEnergy N (β * Real.sqrt ((N : ℝ) / (N + 1))) h go)))
+    · exact sq_div_le_sq_of_one_le (one_le_integral_cosh _ _)
+  calc _ = ∫ g : FinPairs (N + 1) → ℝ, F (skCavityDisorderEquiv N g)
+        ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) := by
+        refine integral_congr_ae (ae_of_all _ fun g => ?_)
+        simp only [F]
+        rw [sk_old_spin_deviation_eq hN β h g i]
+    _ = ∫ v, F v ∂(P.prod Q) := (measurePreserving_skCavityDisorderEquiv N).integral_comp' F
+    _ ≤ ∫ go, ∫ y, F (go, y) ∂Q ∂P := integral_prod_le_integral_integral_of_nonneg hF0
+    _ ≤ ∫ go, S i go ∂P := integral_mono_of_nonneg
+        (ae_of_all _ fun go => integral_nonneg fun y => hF0 _)
+        (integrable_sk_cavity_sq _ h _ S hS w hw K hK i) (ae_of_all _ hFS)
+    _ ≤ Λ₀ * (17 / 2) * (K' / N) := by simpa only [hΛ₀, mul_assoc] using hSle
+    _ ≤ (17 * Λ₀ * K' + 1) / ((N : ℝ) + 1) := by
+        have h1 : K' / N ≤ 2 * K' / ((N : ℝ) + 1) := by
+          rw [div_le_div_iff₀ hN0 (by positivity)]
+          have hN1 : (1 : ℝ) ≤ N := by exact_mod_cast hN
+          nlinarith
+        calc Λ₀ * (17 / 2) * (K' / N) ≤ Λ₀ * (17 / 2) * (2 * K' / ((N : ℝ) + 1)) :=
+              mul_le_mul_of_nonneg_left h1 (by positivity)
+          _ = 17 * Λ₀ * K' / ((N : ℝ) + 1) := by ring
+          _ ≤ (17 * Λ₀ * K' + 1) / ((N : ℝ) + 1) :=
+              div_le_div_of_nonneg_right (by linarith) (by positivity)
 
 end SpinGlasses

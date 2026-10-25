@@ -69,11 +69,7 @@ theorem integral_prod_count_tilted_fin_snoc_cavity_units_le (N : ℕ)
     integral_nonneg fun p => by
       have := Real.cosh_pos (L p.1); have := Real.cosh_pos (L p.2); have := hg p.1 p.2
       positivity
-  have hcosh : 1 ≤ ∫ a, Real.cosh (L a) ∂Measure.count.tilted A := by
-    have h1 : (1 : ℝ) = ∫ _ : Fin N → ℤˣ, (1 : ℝ) ∂Measure.count.tilted A := by
-      simp only [integral_const, probReal_univ, smul_eq_mul, mul_one]
-    rw [h1]
-    exact integral_mono (integrable_const _) Integrable.of_finite fun a => Real.one_le_cosh (L a)
+  have hcosh : 1 ≤ ∫ a, Real.cosh (L a) ∂Measure.count.tilted A := one_le_integral_cosh _ L
   exact div_le_self hnum (by nlinarith)
 
 /-- Product formula for the two cavity `cosh` factors as a sum of two Gaussian `cosh` forms. -/
