@@ -133,43 +133,6 @@ theorem abs_integral_integral_le_of_forall_le {X Y : Type*} [MeasurableSpace X]
   simpa using norm_integral_le_of_norm_le_const (μ := μ) (f := fun x => ∫ y, F y ∂κ x)
     (C := M) (ae_of_all _ hin)
 
-/-- Integral of a nonnegative function dominated by a sum of two integrable functions. -/
-theorem integral_le_add_of_le {α : Type*} [MeasurableSpace α] (μ : Measure α)
-    {f g₁ g₂ : α → ℝ} (hf : ∀ x, 0 ≤ f x) (h_le : ∀ x, f x ≤ g₁ x + g₂ x)
-    (hg₁ : Integrable g₁ μ) (hg₂ : Integrable g₂ μ) :
-    ∫ x, f x ∂μ ≤ ∫ x, g₁ x ∂μ + ∫ x, g₂ x ∂μ := by
-  have h_int : Integrable (fun x => g₁ x + g₂ x) μ := hg₁.add hg₂
-  have h_mono := integral_mono_of_nonneg (ae_of_all _ hf) h_int (ae_of_all _ h_le)
-  rw [integral_add hg₁ hg₂] at h_mono
-  exact h_mono
-
-/-- Monotonicity of an iterated integral under a pointwise nonnegative domination. -/
-theorem double_integral_mono_of_nonneg {α β : Type*} [MeasurableSpace α] [MeasurableSpace β]
-    (μ : Measure α) (ν : Measure β)
-    {f g : α → β → ℝ} (hf : ∀ x y, 0 ≤ f x y) (h_le : ∀ x y, f x y ≤ g x y)
-    (h_int_inner : ∀ x, Integrable (g x) ν)
-    (h_int_outer : Integrable (fun x => ∫ y, g x y ∂ν) μ) :
-    ∫ x, ∫ y, f x y ∂ν ∂μ ≤ ∫ x, ∫ y, g x y ∂ν ∂μ := by
-  have h_inner : ∀ x, ∫ y, f x y ∂ν ≤ ∫ y, g x y ∂ν := fun x =>
-    integral_mono_of_nonneg (ae_of_all _ (hf x)) (h_int_inner x) (ae_of_all _ (h_le x))
-  have h_inner_nonneg : ∀ x, 0 ≤ ∫ y, f x y ∂ν := fun x =>
-    integral_nonneg (hf x)
-  exact integral_mono_of_nonneg (ae_of_all _ h_inner_nonneg) h_int_outer (ae_of_all _ h_inner)
-
-/-- Iterated integral of a nonnegative function dominated by a sum of two functions. -/
-theorem double_integral_le_add_of_le {α β : Type*} [MeasurableSpace α] [MeasurableSpace β]
-    (μ : Measure α) (ν : Measure β)
-    {f g₁ g₂ : α → β → ℝ} (hf : ∀ x y, 0 ≤ f x y) (h_le : ∀ x y, f x y ≤ g₁ x y + g₂ x y)
-    (hg₁ : ∀ x, Integrable (g₁ x) ν) (hg₂ : ∀ x, Integrable (g₂ x) ν)
-    (hG₁ : Integrable (fun x => ∫ y, g₁ x y ∂ν) μ)
-    (hG₂ : Integrable (fun x => ∫ y, g₂ x y ∂ν) μ) :
-    ∫ x, ∫ y, f x y ∂ν ∂μ ≤ ∫ x, ∫ y, g₁ x y ∂ν ∂μ + ∫ x, ∫ y, g₂ x y ∂ν ∂μ := by
-  have h_inner : ∀ x, ∫ y, f x y ∂ν ≤ (∫ y, g₁ x y ∂ν) + (∫ y, g₂ x y ∂ν) := fun x =>
-    integral_le_add_of_le ν (hf x) (h_le x) (hg₁ x) (hg₂ x)
-  have h_inner_nonneg : ∀ x, 0 ≤ ∫ y, f x y ∂ν := fun x =>
-    integral_nonneg (hf x)
-  exact integral_le_add_of_le μ h_inner_nonneg h_inner hG₁ hG₂
-
 /-- A nonnegative integrand `F` dominated pointwise by `Upper`, whose partial integrals are
 bounded by an integrable `Bnd` with `∫ Bnd ≤ C`, has iterated integral at most `C`. -/
 theorem double_integral_le_of_dominated {α β : Type*} [MeasurableSpace α] [MeasurableSpace β]
