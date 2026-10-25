@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Hyperbolic
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein
 public import Mathlib.MeasureTheory.Integral.Pi
 public import Mathlib.Probability.Distributions.Gaussian.Real
 
@@ -228,3 +229,80 @@ theorem integral_cosh_sum_mul_add_mul_gaussianReal {K : Type*} [Fintype K]
     rw [← Real.exp_add, hsum]
   rw [hv, Real.cosh_eq]
   ring
+
+/-- Gaussian integration by parts for the exponential: `𝔼[Z exp (c Z)] = c exp (c² / 2)` for
+`Z ~ 𝒩(0, 1)`. -/
+theorem integral_id_mul_exp_mul_gaussianReal_zero_one (c : ℝ) :
+    ∫ t, t * Real.exp (c * t) ∂(gaussianReal 0 1) = c * Real.exp (c ^ 2 / 2) := by
+  have hF : ∀ x, HasDerivAt (fun y => Real.exp (c * y)) (c * Real.exp (c * x)) x := fun x => by
+    have h := ((hasDerivAt_id' x).const_mul c).exp
+    convert h using 1
+    ring
+  have hxF : Integrable (fun x => x * Real.exp (c * x)) (gaussianReal 0 1) := by
+    refine Integrable.mono' (integrable_exp_mul_abs_gaussianReal (1 + |c|)) (by fun_prop)
+      (Filter.Eventually.of_forall fun x => ?_)
+    rw [norm_mul, Real.norm_eq_abs, Real.norm_eq_abs, abs_of_pos (Real.exp_pos _)]
+    calc |x| * Real.exp (c * x) ≤ Real.exp |x| * Real.exp (|c| * |x|) :=
+          mul_le_mul (by linarith [Real.add_one_le_exp |x|])
+            (Real.exp_le_exp.2 ((le_abs_self _).trans_eq (abs_mul c x)))
+            (Real.exp_pos _).le (Real.exp_pos _).le
+      _ = Real.exp ((1 + |c|) * |x|) := by rw [← Real.exp_add]; congr 1; ring
+  have hF' : Integrable (fun x => c * Real.exp (c * x)) (gaussianReal 0 1) :=
+    (integrable_exp_mul_gaussianReal (μ := 0) (v := 1) c).const_mul c
+  have h := integral_id_mul_gaussianReal_eq (v := 1) hF hxF hF'
+  simp only [NNReal.coe_one, one_mul] at h
+  rw [h, integral_const_mul, integral_exp_mul_gaussianReal_zero_one]
+
+/-- Integrability of `exp (u ⬝ y)` against i.i.d. standard Gaussians. -/
+theorem integrable_exp_dotProduct_gaussianReal {N : ℕ} (u : Fin N → ℝ) :
+    Integrable (fun y : Fin N → ℝ => Real.exp (u ⬝ᵥ y))
+      (Measure.pi fun _ : Fin N => gaussianReal 0 1) := by
+  have heq : (fun y : Fin N → ℝ => Real.exp (u ⬝ᵥ y)) =
+      fun y => Real.exp (∑ i, u i * y i) := by
+    ext y; simp [dotProduct]
+  rw [heq]
+  exact integrable_exp_sum_mul_gaussianReal u
+
+/-- Integrability of `exp (c * (u ⬝ y))` against i.i.d. standard Gaussians. -/
+theorem integrable_exp_const_mul_dotProduct_gaussianReal {N : ℕ} (c : ℝ) (u : Fin N → ℝ) :
+    Integrable (fun y : Fin N → ℝ => Real.exp (c * (u ⬝ᵥ y)))
+      (Measure.pi fun _ : Fin N => gaussianReal 0 1) := by
+  simpa only [smul_dotProduct, smul_eq_mul] using integrable_exp_dotProduct_gaussianReal (c • u)
+
+/-- `𝔼 exp (c N^{-1/2} ∑ mᵢ yᵢ) ≤ exp (c² / 2)` for `y` standard Gaussian and `|mᵢ| ≤ 1`. -/
+theorem integral_exp_sum_ising_moment_le {N : ℕ} (hN : 0 < N) (c : ℝ)
+    (m : Fin N → ℝ) (hm : ∀ i, |m i| ≤ 1) :
+    ∫ y : Fin N → ℝ, Real.exp (c * ((fun i => (Real.sqrt N)⁻¹ * m i) ⬝ᵥ y))
+      ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1) ≤
+    Real.exp (c ^ 2 / 2) := by
+  have heq : (fun y : Fin N → ℝ =>
+      Real.exp (c * ((fun i => (Real.sqrt N)⁻¹ * m i) ⬝ᵥ y))) =
+      fun y => Real.exp (∑ i : Fin N, (c * (Real.sqrt N)⁻¹ * m i) * y i) := by
+    ext y
+    simp only [dotProduct]
+    congr 1
+    rw [Finset.mul_sum]
+    refine Finset.sum_congr rfl fun i _ => by ring
+  rw [heq, integral_exp_sum_mul_gaussianReal]
+  have h_sq_le (i : Fin N) : (c * (Real.sqrt N)⁻¹ * m i) ^ 2 ≤ c ^ 2 / (N : ℝ) := by
+    have hN_pos : (0 : ℝ) < N := Nat.cast_pos.mpr hN
+    have hsqrt_sq : (Real.sqrt N) ^ 2 = (N : ℝ) := Real.sq_sqrt hN_pos.le
+    have hm_sq : (m i) ^ 2 ≤ 1 := by
+      calc (m i) ^ 2 = |m i| ^ 2 := (sq_abs (m i)).symm
+        _ ≤ 1 ^ 2 := by nlinarith [hm i, abs_nonneg (m i)]
+        _ = 1 := by norm_num
+    calc (c * (Real.sqrt N)⁻¹ * m i) ^ 2
+      _ = c ^ 2 * ((Real.sqrt N)⁻¹ ^ 2) * (m i) ^ 2 := by ring
+      _ = c ^ 2 * ((Real.sqrt N) ^ 2)⁻¹ * (m i) ^ 2 := by rw [inv_pow]
+      _ = (c ^ 2 / (N : ℝ)) * (m i) ^ 2 := by rw [hsqrt_sq]; ring
+      _ ≤ (c ^ 2 / (N : ℝ)) * 1 := mul_le_mul_of_nonneg_left hm_sq (by positivity)
+      _ = c ^ 2 / (N : ℝ) := mul_one _
+  have h_sum_le : ∑ i : Fin N, (c * (Real.sqrt N)⁻¹ * m i) ^ 2 / 2 ≤ c ^ 2 / 2 := by
+    have hN_pos : (0 : ℝ) < N := Nat.cast_pos.mpr hN
+    calc ∑ i : Fin N, (c * (Real.sqrt N)⁻¹ * m i) ^ 2 / 2
+      _ ≤ ∑ i : Fin N, (c ^ 2 / (N : ℝ)) / 2 :=
+        Finset.sum_le_sum fun i _ => div_le_div_of_nonneg_right (h_sq_le i) (by positivity)
+      _ = (N : ℝ) * ((c ^ 2 / (N : ℝ)) / 2) := by simp [Finset.sum_const]
+      _ = c ^ 2 / 2 := by
+        field_simp
+  exact Real.exp_le_exp_of_le h_sum_le

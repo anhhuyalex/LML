@@ -30,50 +30,6 @@ open MeasureTheory ProbabilityTheory Finset
 
 namespace SpinGlasses
 
-/-! ### Exponentially tame functions: shifts and Gaussian averages -/
-
-open scoped ContDiff in
-theorem ExpTame.sub_const {V : ℝ → ℝ} (hV : ExpTame V) (c₀ : ℝ) : ExpTame (fun x => V x - c₀) where
-  contDiff := hV.contDiff.sub contDiff_const
-  bound j := by
-    cases j with
-    | zero =>
-      obtain ⟨C, c, hC, hc, h⟩ := hV.bound 0
-      refine ⟨C + |c₀|, c, by positivity, hc, fun x => ?_⟩
-      have h1 : 1 ≤ Real.exp (c * |x|) := Real.one_le_exp (by positivity)
-      have h2 := h x
-      simp only [Function.iterate_zero, id] at h2 ⊢
-      calc |V x - c₀| ≤ |V x| + |c₀| := abs_sub _ _
-        _ ≤ C * Real.exp (c * |x|) + |c₀| * Real.exp (c * |x|) := by
-          gcongr
-          exact le_mul_of_one_le_right (abs_nonneg _) h1
-        _ = _ := by ring
-    | succ j =>
-      obtain ⟨C, c, hC, hc, h⟩ := hV.bound (j + 1)
-      refine ⟨C, c, hC, hc, fun x => ?_⟩
-      have hd : deriv (fun x => V x - c₀) = deriv V := by
-        funext y; exact deriv_sub_const c₀
-      rw [Function.iterate_succ_apply, hd, ← Function.iterate_succ_apply]
-      exact h x
-
-theorem ExpTame.integrable_comp_mul_gaussianReal {V : ℝ → ℝ} (hV : ExpTame V) (v : ℝ) :
-    Integrable (fun t => V (v * t)) (gaussianReal 0 1) := by
-  obtain ⟨C, c, hC, hc, h⟩ := hV.bound 0
-  refine ((integrable_exp_mul_abs_gaussianReal (c * |v|)).const_mul C).mono'
-    (hV.contDiff.continuous.comp (continuous_const.mul continuous_id)).aestronglyMeasurable
-    (ae_of_all _ fun t => ?_)
-  have := h (v * t)
-  simp only [Function.iterate_zero, id, abs_mul] at this
-  rw [Real.norm_eq_abs]
-  calc |V (v * t)| ≤ C * Real.exp (c * (|v| * |t|)) := this
-    _ = _ := by rw [mul_assoc]
-
-/-- Centering `U` at its Gaussian mean `∫ U(v t) dγ` gives a function with Gaussian mean zero. -/
-theorem ExpTame.integral_sub_const_mul_gaussianReal {V : ℝ → ℝ} (hV : ExpTame V) (v : ℝ) :
-    ∫ t, (V (v * t) - ∫ s, V (v * s) ∂(gaussianReal 0 1)) ∂(gaussianReal 0 1) = 0 := by
-  rw [integral_sub (hV.integrable_comp_mul_gaussianReal v) (integrable_const _)]
-  simp
-
 /-! ### Products of Gram entries -/
 
 theorem prod_abs_le_sum_pow {n : ℕ} (hn : 0 < n) (a : Fin n → ℝ) :

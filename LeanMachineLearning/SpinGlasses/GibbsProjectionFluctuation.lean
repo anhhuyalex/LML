@@ -204,8 +204,6 @@ theorem integral_projSum_centered_zero_eq_zero {m r : ℕ} (V : ℝ → ℝ) (hV
         (ξ i (σ l) - ∫ a, ξ i a ∂(Measure.count.tilted f))) v r 0
       ∂(Measure.pi fun _ : Fin m => Measure.count.tilted f) = 0 := by
   rw [integral_pi_count_tilted]
-
-
   have hterm : ∀ σ : Fin m → α,
       projSum V (fun l i => (Real.sqrt N)⁻¹ *
         (ξ i (σ l) - ∫ a, ξ i a ∂(Measure.count.tilted f))) v r 0 =

@@ -277,11 +277,11 @@ theorem abs_fixedPointMap_sub_le (h : ℝ) {w₁ w₂ : ℝ} (hw₁ : 0 ≤ w₁
     (convex_Icc (0 : ℝ) 1) (left_mem_Icc.mpr zero_le_one) (right_mem_Icc.mpr zero_le_one)
   simp only [Real.norm_eq_abs, sub_zero, abs_one, mul_one] at h_mvt
   have hg0 : g 0 = F w₁ := by
-    show F ((1 - 0) * w₁ + 0 * w₂) = F w₁
+    change F ((1 - 0) * w₁ + 0 * w₂) = F w₁
     have : (1 - 0 : ℝ) * w₁ + 0 * w₂ = w₁ := by ring
     rw [this]
   have hg1 : g 1 = F w₂ := by
-    show F ((1 - 1) * w₁ + 1 * w₂) = F w₂
+    change F ((1 - 1) * w₁ + 1 * w₂) = F w₂
     have : (1 - 1 : ℝ) * w₁ + 1 * w₂ = w₂ := by ring
     rw [this]
   rw [hg0, hg1] at h_mvt

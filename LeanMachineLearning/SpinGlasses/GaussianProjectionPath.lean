@@ -647,5 +647,171 @@ theorem ExpTame.integral_derivProd_projPath_zero_eq_zero (hV : ExpTame V) (hm : 
   rw [hj]
   exact hV0
 
+/-- Derivative of `y ↦ exp (c * y)`. -/
+theorem hasDerivAt_exp_mul (c x : ℝ) :
+    HasDerivAt (fun y => Real.exp (c * y)) (c * Real.exp (c * x)) x := by
+  have h := ((hasDerivAt_id' x).const_mul c).exp
+  convert h using 1
+  ring
+
+/-- Iterated derivatives of `y ↦ exp (c * y)`. -/
+theorem iterate_deriv_exp (c : ℝ) (j : ℕ) (x : ℝ) :
+    deriv^[j] (fun y => Real.exp (c * y)) x = c ^ j * Real.exp (c * x) := by
+  induction j generalizing x with
+  | zero => simp
+  | succ j ih =>
+    rw [Function.iterate_succ_apply']
+    have h_eq : deriv^[j] (fun y => Real.exp (c * y)) = fun y => c ^ j * Real.exp (c * y) := by
+      ext y; exact ih y
+    rw [h_eq]
+    have h1 := (hasDerivAt_exp_mul c x).const_mul (c ^ j)
+    have h : HasDerivAt (fun y => c ^ j * Real.exp (c * y)) (c ^ (j + 1) * Real.exp (c * x)) x := by
+      convert h1 using 1
+      ring
+    exact h.deriv
+
+/-- The exponential function `x ↦ exp(c * x)` is exponentially tame. -/
+theorem expTame_exp (c : ℝ) : ExpTame (fun x => Real.exp (c * x)) where
+  contDiff := Real.contDiff_exp.comp (contDiff_const.mul contDiff_id)
+  bound j := by
+    refine ⟨|c| ^ j, |c|, by positivity, by positivity, fun x => ?_⟩
+    rw [iterate_deriv_exp]
+    rw [abs_mul, abs_pow, Real.abs_exp]
+    have h_le : c * x ≤ |c| * |x| := by
+      calc c * x ≤ |c * x| := le_abs_self _
+        _ = |c| * |x| := abs_mul c x
+    exact mul_le_mul_of_nonneg_left (Real.exp_le_exp_of_le h_le) (by positivity)
+
+/-- Iterated derivatives of `y ↦ y * exp (c * y)`. -/
+theorem iterate_deriv_id_mul_exp (c : ℝ) (j : ℕ) (x : ℝ) :
+    deriv^[j] (fun y => y * Real.exp (c * y)) x =
+      ((j : ℝ) * c ^ (j - 1) + c ^ j * x) * Real.exp (c * x) := by
+  induction j generalizing x with
+  | zero => simp
+  | succ j ih =>
+    rw [Function.iterate_succ_apply']
+    have h_eq : deriv^[j] (fun y => y * Real.exp (c * y)) =
+        fun y => ((j : ℝ) * c ^ (j - 1) + c ^ j * y) * Real.exp (c * y) := by
+      ext y; exact ih y
+    rw [h_eq]
+    have h1 : HasDerivAt (fun y => (j : ℝ) * c ^ (j - 1) + c ^ j * y) (c ^ j) x := by
+      have h_lin := (hasDerivAt_id' x).const_mul (c ^ j)
+      have h_add := h_lin.const_add ((j : ℝ) * c ^ (j - 1))
+      convert h_add using 1
+      ring
+    have h2 := hasDerivAt_exp_mul c x
+    have h := h1.mul h2
+    change HasDerivAt (fun y => ((j : ℝ) * c ^ (j - 1) + c ^ j * y) * Real.exp (c * y)) _ x at h
+    rw [h.deriv]
+    simp only [Nat.succ_sub_one]
+    cases j with
+    | zero =>
+      simp only [Nat.zero_sub, pow_zero, CharP.cast_eq_zero, zero_mul, zero_add,
+        one_mul, pow_one]
+      ring
+    | succ m =>
+      simp only [Nat.succ_sub_one]
+      have h1 : c ^ (m + 1) = c ^ m * c := pow_succ c m
+      have h2 : c ^ (m + 1 + 1) = (c ^ m * c) * c := by
+        rw [pow_succ c (m + 1), pow_succ c m]
+      have h3 : (↑(m + 1 + 1) : ℝ) = (m : ℝ) + 2 := by push_cast; ring
+      have h4 : (↑(m + 1) : ℝ) = (m : ℝ) + 1 := by push_cast; ring
+      rw [h1, h2, h3, h4]
+      ring
+
+/-- The function `x ↦ x * exp(c * x)` is exponentially tame. -/
+theorem expTame_id_mul_exp (c : ℝ) : ExpTame (fun x => x * Real.exp (c * x)) where
+  contDiff := contDiff_id.mul (Real.contDiff_exp.comp (contDiff_const.mul contDiff_id))
+  bound j := by
+    refine ⟨2 * ((j : ℝ) * |c| ^ (j - 1) + |c| ^ j), |c| + 1,
+      by positivity, by positivity, fun x => ?_⟩
+    rw [iterate_deriv_id_mul_exp]
+    rw [abs_mul, Real.abs_exp]
+    have h_le1 : |(j : ℝ) * c ^ (j - 1) + c ^ j * x| ≤ (j : ℝ) * |c| ^ (j - 1) + |c| ^ j * |x| := by
+      calc |(j : ℝ) * c ^ (j - 1) + c ^ j * x|
+        _ ≤ |(j : ℝ) * c ^ (j - 1)| + |c ^ j * x| := abs_add_le _ _
+        _ = (j : ℝ) * |c| ^ (j - 1) + |c| ^ j * |x| := by
+          simp only [abs_mul, abs_pow]
+          rw [abs_of_nonneg (by positivity)]
+    have h_x_le : |x| ≤ Real.exp |x| := by
+      linarith [Real.add_one_le_exp |x|, abs_nonneg x]
+    have h_one_le : (1 : ℝ) ≤ Real.exp |x| := by
+      have := Real.exp_le_exp_of_le (abs_nonneg x)
+      rwa [Real.exp_zero] at this
+    have h_poly : (j : ℝ) * |c| ^ (j - 1) + |c| ^ j * |x| ≤
+        2 * ((j : ℝ) * |c| ^ (j - 1) + |c| ^ j) * Real.exp |x| := by
+      calc (j : ℝ) * |c| ^ (j - 1) + |c| ^ j * |x|
+        _ ≤ (j : ℝ) * |c| ^ (j - 1) * Real.exp |x| + |c| ^ j * Real.exp |x| := by
+          have h1 : (j : ℝ) * |c| ^ (j - 1) ≤ (j : ℝ) * |c| ^ (j - 1) * Real.exp |x| := by
+            calc (j : ℝ) * |c| ^ (j - 1) = (j : ℝ) * |c| ^ (j - 1) * 1 := by ring
+              _ ≤ (j : ℝ) * |c| ^ (j - 1) * Real.exp |x| :=
+                mul_le_mul_of_nonneg_left h_one_le (by positivity)
+          have h2 : |c| ^ j * |x| ≤ |c| ^ j * Real.exp |x| :=
+            mul_le_mul_of_nonneg_left h_x_le (by positivity)
+          linarith
+        _ = ((j : ℝ) * |c| ^ (j - 1) + |c| ^ j) * Real.exp |x| := by ring
+        _ ≤ ((j : ℝ) * |c| ^ (j - 1) + |c| ^ j) * Real.exp |x| +
+            ((j : ℝ) * |c| ^ (j - 1) + |c| ^ j) * Real.exp |x| :=
+          le_add_of_nonneg_right (by positivity)
+        _ = 2 * ((j : ℝ) * |c| ^ (j - 1) + |c| ^ j) * Real.exp |x| := by ring
+    have h_exp : Real.exp (c * x) ≤ Real.exp (|c| * |x|) := by
+      have : c * x ≤ |c| * |x| := (le_abs_self _).trans_eq (abs_mul c x)
+      exact Real.exp_le_exp_of_le this
+    have h_prod : Real.exp |x| * Real.exp (|c| * |x|) = Real.exp ((|c| + 1) * |x|) := by
+      rw [← Real.exp_add]
+      ring_nf
+    calc |(j : ℝ) * c ^ (j - 1) + c ^ j * x| * Real.exp (c * x)
+      _ ≤ ((j : ℝ) * |c| ^ (j - 1) + |c| ^ j * |x|) * Real.exp (|c| * |x|) :=
+        mul_le_mul h_le1 h_exp (by positivity) (by positivity)
+      _ ≤ (2 * ((j : ℝ) * |c| ^ (j - 1) + |c| ^ j) * Real.exp |x|) * Real.exp (|c| * |x|) :=
+        mul_le_mul_of_nonneg_right h_poly (by positivity)
+      _ = 2 * ((j : ℝ) * |c| ^ (j - 1) + |c| ^ j) * (Real.exp |x| * Real.exp (|c| * |x|)) := by ring
+      _ = 2 * ((j : ℝ) * |c| ^ (j - 1) + |c| ^ j) * Real.exp ((|c| + 1) * |x|) := by rw [h_prod]
+
+/-! ### Exponentially tame functions: shifts and Gaussian averages -/
+
+open scoped ContDiff in
+/-- Subtracting a constant preserves exponential tameness. -/
+theorem ExpTame.sub_const {V : ℝ → ℝ} (hV : ExpTame V) (c₀ : ℝ) : ExpTame (fun x => V x - c₀) where
+  contDiff := hV.contDiff.sub contDiff_const
+  bound j := by
+    cases j with
+    | zero =>
+      obtain ⟨C, c, hC, hc, h⟩ := hV.bound 0
+      refine ⟨C + |c₀|, c, by positivity, hc, fun x => ?_⟩
+      have h1 : 1 ≤ Real.exp (c * |x|) := Real.one_le_exp (by positivity)
+      have h2 := h x
+      simp only [Function.iterate_zero, id] at h2 ⊢
+      calc |V x - c₀| ≤ |V x| + |c₀| := abs_sub _ _
+        _ ≤ C * Real.exp (c * |x|) + |c₀| * Real.exp (c * |x|) := by
+          gcongr
+          exact le_mul_of_one_le_right (abs_nonneg _) h1
+        _ = _ := by ring
+    | succ j =>
+      obtain ⟨C, c, hC, hc, h⟩ := hV.bound (j + 1)
+      refine ⟨C, c, hC, hc, fun x => ?_⟩
+      have hd : deriv (fun x => V x - c₀) = deriv V := by
+        funext y; exact deriv_sub_const c₀
+      rw [Function.iterate_succ_apply, hd, ← Function.iterate_succ_apply]
+      exact h x
+
+/-- An exponentially tame function of a scaled standard Gaussian is integrable. -/
+theorem ExpTame.integrable_comp_mul_gaussianReal {V : ℝ → ℝ} (hV : ExpTame V) (v : ℝ) :
+    Integrable (fun t => V (v * t)) (gaussianReal 0 1) := by
+  obtain ⟨C, c, hC, hc, h⟩ := hV.bound 0
+  refine ((integrable_exp_mul_abs_gaussianReal (c * |v|)).const_mul C).mono'
+    (hV.contDiff.continuous.comp (continuous_const.mul continuous_id)).aestronglyMeasurable
+    (ae_of_all _ fun t => ?_)
+  have := h (v * t)
+  simp only [Function.iterate_zero, id, abs_mul] at this
+  rw [Real.norm_eq_abs]
+  calc |V (v * t)| ≤ C * Real.exp (c * (|v| * |t|)) := this
+    _ = _ := by rw [mul_assoc]
+
+/-- Centering `U` at its Gaussian mean `∫ U(v t) dγ` gives a function with Gaussian mean zero. -/
+theorem ExpTame.integral_sub_const_mul_gaussianReal {V : ℝ → ℝ} (hV : ExpTame V) (v : ℝ) :
+    ∫ t, (V (v * t) - ∫ s, V (v * s) ∂(gaussianReal 0 1)) ∂(gaussianReal 0 1) = 0 := by
+  rw [integral_sub (hV.integrable_comp_mul_gaussianReal v) (integrable_const _)]
+  simp
 
 end SpinGlasses

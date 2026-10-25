@@ -889,4 +889,15 @@ theorem sk_hasDerivAt_free_energy (H : (ι → ι → ℝ) → (ι → ℤˣ) �
 
 end SK
 
+/-- The mean of a `±1`-valued variable has absolute value at most `1`. -/
+theorem abs_integral_units_cast_le {α : Type*} [MeasurableSpace α] (μ : Measure α)
+    [IsProbabilityMeasure μ] (f : α → ℤˣ) :
+    |∫ x, ((f x : ℤ) : ℝ) ∂μ| ≤ 1 := by
+  refine abs_integral_le_integral_abs.trans ?_
+  have h_eq : ∀ x, |((f x : ℤ) : ℝ)| = 1 := fun x => by
+    obtain (h | h) := Int.units_eq_one_or (f x) <;> { simp [h] }
+  simp_rw [h_eq]
+  rw [integral_const]
+  simp only [Measure.real, measure_univ, ENNReal.toReal_one, one_smul, le_refl]
+
 end SpinGlasses

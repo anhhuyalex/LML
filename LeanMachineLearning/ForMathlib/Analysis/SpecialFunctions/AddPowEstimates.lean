@@ -134,3 +134,56 @@ theorem Real.HolderConjugate.succ_div_self {m : ℝ} (hm : 0 < m) :
 theorem Real.add_le_add_one_mul_exp {A B : ℝ} (hA : 0 ≤ A) (hB : 0 ≤ B) :
     A + B ≤ (A + 1) * Real.exp B := by
   nlinarith [mul_le_mul_of_nonneg_left (Real.one_le_exp hB) hA, Real.add_one_le_exp B]
+
+/-- Weighted AM-GM: `a * b ≤ (t a² + t⁻¹ b²) / 2` for `t > 0`. -/
+theorem mul_le_half_mul_add_inv_mul {t a b : ℝ} (ht : 0 < t) :
+    a * b ≤ (t * a ^ 2 + t⁻¹ * b ^ 2) / 2 := by
+  have hsq : 0 ≤ (t * a - b) ^ 2 := sq_nonneg _
+  have ht2 : 0 < 2 * t := by linarith
+  have : 0 ≤ (t * a - b) ^ 2 / (2 * t) := div_nonneg hsq ht2.le
+  calc a * b = (t * a ^ 2 + t⁻¹ * b ^ 2) / 2 - (t * a - b) ^ 2 / (2 * t) := by
+        field_simp; ring
+    _ ≤ (t * a ^ 2 + t⁻¹ * b ^ 2) / 2 := by linarith
+
+/-- `(x + y)^(2k) ≤ 2^(2k-1) (x^(2k) + y^(2k))`. -/
+theorem add_pow_two_mul_le {k : ℕ} (hk : 1 ≤ k) (x y : ℝ) :
+    (x + y) ^ (2 * k) ≤ 2 ^ (2 * k - 1) * (x ^ (2 * k) + y ^ (2 * k)) := by
+  have h_even : Even (2 * k) := ⟨k, by ring⟩
+  rw [← Even.pow_abs h_even (x + y)]
+  have h_le : |x + y| ≤ |x| + |y| := abs_add_le x y
+  have h_pow := pow_le_pow_left₀ (abs_nonneg _) h_le (2 * k)
+  refine h_pow.trans ?_
+  have h_add := add_pow_le_mul_pow_add_mul_pow (abs_nonneg x) (abs_nonneg y)
+    zero_lt_one (n := 2 * k) (by omega)
+  have h1 : (1 : ℝ) + 1 = 2 := by norm_num
+  have h2 : (1 : ℝ) + 1⁻¹ = 2 := by norm_num
+  rw [h1, h2] at h_add
+  rw [Even.pow_abs h_even x, Even.pow_abs h_even y] at h_add
+  linarith
+
+/-- `(x - y)^(2k) ≤ 2^(2k-1) (x^(2k) + y^(2k))`. -/
+theorem sub_pow_two_mul_le {k : ℕ} (hk : 1 ≤ k) (x y : ℝ) :
+    (x - y) ^ (2 * k) ≤ 2 ^ (2 * k - 1) * (x ^ (2 * k) + y ^ (2 * k)) := by
+  have h := add_pow_two_mul_le hk x (-y)
+  rw [show x + -y = x - y by ring] at h
+  have he : (-y) ^ (2 * k) = y ^ (2 * k) := Even.neg_pow ⟨k, by ring⟩ y
+  rwa [he] at h
+
+/-- `(x₁ + x₂ + x₃ + x₄)^(2k) ≤ 4^(2k-1) (x₁^(2k) + x₂^(2k) + x₃^(2k) + x₄^(2k))`. -/
+theorem add_pow_four_two_mul_le {k : ℕ} (hk : 1 ≤ k) (x₁ x₂ x₃ x₄ : ℝ) :
+    (x₁ + x₂ + x₃ + x₄) ^ (2 * k) ≤
+      4 ^ (2 * k - 1) * (x₁ ^ (2 * k) + x₂ ^ (2 * k) + x₃ ^ (2 * k) + x₄ ^ (2 * k)) := by
+  have h1 : (x₁ + x₂ + x₃ + x₄) = (x₁ + x₂) + (x₃ + x₄) := by ring
+  rw [h1]
+  refine (add_pow_two_mul_le hk (x₁ + x₂) (x₃ + x₄)).trans ?_
+  have h2 := add_pow_two_mul_le hk x₁ x₂
+  have h3 := add_pow_two_mul_le hk x₃ x₄
+  have h22 : (2 : ℝ) ^ (2 * k - 1) * 2 ^ (2 * k - 1) = 4 ^ (2 * k - 1) := by
+    rw [← mul_pow, show (2 : ℝ) * 2 = 4 by norm_num]
+  calc 2 ^ (2 * k - 1) * ((x₁ + x₂) ^ (2 * k) + (x₃ + x₄) ^ (2 * k))
+    _ ≤ 2 ^ (2 * k - 1) * (2 ^ (2 * k - 1) * (x₁ ^ (2 * k) + x₂ ^ (2 * k)) +
+        2 ^ (2 * k - 1) * (x₃ ^ (2 * k) + x₄ ^ (2 * k))) :=
+      mul_le_mul_of_nonneg_left (add_le_add h2 h3) (by positivity)
+    _ = (2 ^ (2 * k - 1) * 2 ^ (2 * k - 1)) *
+        (x₁ ^ (2 * k) + x₂ ^ (2 * k) + x₃ ^ (2 * k) + x₄ ^ (2 * k)) := by ring
+    _ = 4 ^ (2 * k - 1) * (x₁ ^ (2 * k) + x₂ ^ (2 * k) + x₃ ^ (2 * k) + x₄ ^ (2 * k)) := by rw [h22]

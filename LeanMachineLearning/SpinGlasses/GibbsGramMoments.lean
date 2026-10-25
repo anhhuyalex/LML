@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.SpinGlasses.GibbsProjectionBound
 public import Mathlib.Algebra.Order.Chebyshev
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.AddPowEstimates
 
 /-!
 # Moments of the Gram entries `T_{ℓ ℓ'}` (Talagrand, Eq. (1.201))
@@ -127,26 +128,6 @@ theorem integral_partialOverlap_sub_pow_le {m : ℕ} (f : α → ℝ) (q : ℝ) 
   exact integral_mono Integrable.of_finite Integrable.of_finite fun a =>
     partialOverlap_sub_pow_le ξ f q k a
 
-theorem four_pow_le (a b c d : ℝ) {k : ℕ} (hk : 1 ≤ k) :
-    (a + b + c + d) ^ (2 * k) ≤ 4 ^ (2 * k - 1) *
-      (a ^ (2 * k) + b ^ (2 * k) + c ^ (2 * k) + d ^ (2 * k)) := by
-  have h := pow_sum_le_card_mul_sum_pow (s := (Finset.univ : Finset (Fin 4)))
-    (f := ![|a|, |b|, |c|, |d|]) (fun i _ => by fin_cases i <;> simp) (2 * k - 1)
-  have e : 2 * k - 1 + 1 = 2 * k := by omega
-  rw [e] at h
-  simp only [Fin.sum_univ_four, Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.cons_val_two,
-    Matrix.cons_val_three, Finset.card_univ, Fintype.card_fin, Nat.cast_ofNat] at h
-  have hev : ∀ x : ℝ, |x| ^ (2 * k) = x ^ (2 * k) := fun x =>
-    (Even.pow_abs ⟨k, by ring⟩ x)
-  simp only [hev] at h
-  have hs : (a + b + c + d) ^ (2 * k) ≤ (|a| + |b| + |c| + |d|) ^ (2 * k) := by
-    rw [← hev (a + b + c + d)]
-    exact pow_le_pow_left₀ (abs_nonneg _) (by
-      calc |a + b + c + d| ≤ |a + b + c| + |d| := abs_add_le _ _
-        _ ≤ |a + b| + |c| + |d| := by gcongr; exact abs_add_le _ _
-        _ ≤ |a| + |b| + |c| + |d| := by gcongr; exact abs_add_le _ _) _
-  exact hs.trans (by simpa [hev] using h)
-
 section Ising
 
 variable (hξ2 : ∀ i a, ξ i a ^ 2 = 1)
@@ -237,7 +218,7 @@ theorem integral_projGram_pow_le (hN : 0 < N) {m : ℕ} (f : α → ℝ) (q v : 
       4 ^ (2 * k - 1) * (x1 σ ^ (2 * k) + x2 σ ^ (2 * k) + x3 σ ^ (2 * k) + x4 σ ^ (2 * k)) :=
     fun σ => by
       rw [projGram_centeredData_eq ξ hξ2 hN f σ q v hv ℓ ℓ']
-      have := four_pow_le (x1 σ) (-x2 σ) (-x3 σ) (x4 σ) hk
+      have := add_pow_four_two_mul_le hk (x1 σ) (-x2 σ) (-x3 σ) (x4 σ)
       rw [Even.neg_pow ⟨k, by ring⟩, Even.neg_pow ⟨k, by ring⟩] at this
       simpa [sub_eq_add_neg, add_assoc, x1, x2, x3, x4] using this
   have h1 : ∫ σ : Fin m → α, x1 σ ^ (2 * k) ∂(Measure.pi fun _ : Fin m => μ) ≤ J := by

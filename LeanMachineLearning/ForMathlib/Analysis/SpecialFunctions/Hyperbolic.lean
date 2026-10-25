@@ -61,6 +61,50 @@ theorem cosh_le_exp_abs (x : ℝ) : Real.cosh x ≤ Real.exp |x| := by
   · rw [abs_of_nonpos h]
     nlinarith [Real.exp_pos x, Real.exp_le_exp.2 (show x ≤ -x by linarith)]
 
+/-- `cosh (u + h)` in terms of exponentials of `±u`, `±h`. -/
+theorem cosh_add_eq_exp (u h : ℝ) :
+    Real.cosh (u + h) = (Real.exp h * Real.exp u + Real.exp (-h) * Real.exp (-u)) / 2 := by
+  rw [Real.cosh_eq, Real.exp_add, show -(u + h) = -h + -u by ring, Real.exp_add]
+  ring
+
+/-- `sinh (u + h)` in terms of exponentials of `±u`, `±h`. -/
+theorem sinh_add_eq_exp (u h : ℝ) :
+    Real.sinh (u + h) = (Real.exp h * Real.exp u - Real.exp (-h) * Real.exp (-u)) / 2 := by
+  rw [Real.sinh_eq, Real.exp_add, show -(u + h) = -h + -u by ring, Real.exp_add]
+  ring
+
+/-- `exp h ≤ 2 cosh h`. -/
+theorem exp_le_two_cosh (h : ℝ) : Real.exp h ≤ 2 * Real.cosh h := by
+  rw [Real.cosh_eq]; linarith [Real.exp_pos (-h)]
+
+/-- `exp (-h) ≤ 2 cosh h`. -/
+theorem exp_neg_le_two_cosh (h : ℝ) : Real.exp (-h) ≤ 2 * Real.cosh h := by
+  rw [Real.cosh_eq]; linarith [Real.exp_pos h]
+
+/-- `|(eʰ D₁ + e⁻ʰ D₂) / 2| ≤ cosh h (|D₁| + |D₂|)`. -/
+theorem abs_exp_mul_add_exp_neg_mul_div_two_le (h D₁ D₂ : ℝ) :
+    |(Real.exp h * D₁ + Real.exp (-h) * D₂) / 2| ≤ Real.cosh h * (|D₁| + |D₂|) := by
+  have h1 : |(Real.exp h * D₁ + Real.exp (-h) * D₂) / 2| ≤
+      (Real.exp h * |D₁| + Real.exp (-h) * |D₂|) / 2 := by
+    rw [abs_div, abs_of_pos (by norm_num : (0 : ℝ) < 2)]
+    refine div_le_div_of_nonneg_right ?_ (by norm_num)
+    calc |Real.exp h * D₁ + Real.exp (-h) * D₂|
+      _ ≤ |Real.exp h * D₁| + |Real.exp (-h) * D₂| := abs_add_le _ _
+      _ = Real.exp h * |D₁| + Real.exp (-h) * |D₂| := by
+        rw [abs_mul, abs_mul, abs_of_pos (Real.exp_pos _), abs_of_pos (Real.exp_pos _)]
+  refine h1.trans ?_
+  have he1 := exp_le_two_cosh h
+  have he2 := exp_neg_le_two_cosh h
+  calc (Real.exp h * |D₁| + Real.exp (-h) * |D₂|) / 2
+    _ ≤ (2 * Real.cosh h * |D₁| + 2 * Real.cosh h * |D₂|) / 2 := by gcongr
+    _ = Real.cosh h * (|D₁| + |D₂|) := by ring
+
+/-- `|(eʰ D₁ - e⁻ʰ D₂) / 2| ≤ cosh h (|D₁| + |D₂|)`. -/
+theorem abs_exp_mul_sub_exp_neg_mul_div_two_le (h D₁ D₂ : ℝ) :
+    |(Real.exp h * D₁ - Real.exp (-h) * D₂) / 2| ≤ Real.cosh h * (|D₁| + |D₂|) := by
+  have := abs_exp_mul_add_exp_neg_mul_div_two_le h D₁ (-D₂)
+  rwa [abs_neg, mul_neg, ← sub_eq_add_neg] at this
+
 end Real
 
 namespace SpinGlasses

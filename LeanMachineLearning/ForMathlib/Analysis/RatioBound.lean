@@ -38,18 +38,14 @@ theorem abs_div_sub_div_le {A A' B B' : ℝ} (hA' : |A'| ≤ B') (hB' : 0 < B') 
     rw [abs_div, abs_of_pos hB_pos]
   rw [h_id2, h_id3]
   have h_ratio : |A'| / B' ≤ 1 := (div_le_one₀ hB').mpr hA'
-  have h_div_le_self : ∀ x : ℝ, 0 ≤ x → x / B ≤ x := fun x hx => by
-    rw [div_le_iff₀ hB_pos]
-    calc x = x * 1 := (mul_one x).symm
-      _ ≤ x * B := mul_le_mul_of_nonneg_left hB hx
   have h_term1 : (|A'| / B') * (|B - B'| / B) ≤ |B - B'| := by
     calc (|A'| / B') * (|B - B'| / B)
       _ ≤ 1 * (|B - B'| / B) := mul_le_mul_of_nonneg_right h_ratio (by positivity)
       _ = |B - B'| / B := one_mul _
-      _ ≤ |B - B'| := h_div_le_self _ (abs_nonneg _)
+      _ ≤ |B - B'| := div_le_self (abs_nonneg _) hB
   have h_term2 : |A' - A| / B ≤ |A - A'| := by
     rw [abs_sub_comm A' A]
-    exact h_div_le_self _ (abs_nonneg _)
+    exact div_le_self (abs_nonneg _) hB
   linarith
 
 /-- A generalized ratio comparison bound:
