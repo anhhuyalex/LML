@@ -2,7 +2,7 @@
 
 This chapter formalizes Sections~1.1 through 1.6 of Michel Talagrand's \emph{Spin Glasses: A Challenge for Mathematicians} (Volume~I, Springer, 2010) and the first half of Section~1.7.
 Section~1.6, including Proposition~1.6.8 (the cavity free-energy increment), is proved without any smallness assumption on the model parameters.
-Of Section~1.7 Theorem~1.7.11 (the general Gaussian fluctuation principle) is formalized; Corollaries~1.7.13 and~1.7.15, Lemma~1.7.14, Lemma~1.7.5, Lemma~1.7.4 and Lemma~1.7.6 are formalized as well; Theorem~1.7.1 is not yet (Section~\ref{sec:sg-tal:fluct}).
+Of Section~1.7 Theorem~1.7.11 (the general Gaussian fluctuation principle) is formalized; Corollaries~1.7.13 and~1.7.15, Lemma~1.7.14, Lemma~1.7.5, Lemma~1.7.4, Lemma~1.7.6 and Theorem~1.7.1 are formalized as well (Section~\ref{sec:sg-tal:fluct}).
 The mathematical narrative develops the high-temperature theory of the Sherrington--Kirkpatrick (SK) model:
 \begin{enumerate}
 \item The decoupled reference system, hypercube factorizations, exact first-moment calculations, and the first-moment upper bound on the free energy (Section~1.2).
@@ -2996,6 +2996,7 @@ Two things have to be shown:
 \item[J.] \emph{Lemma~1.7.4, Eq.~(1.185)} (Section~\ref{sec:sg-tal:fluct-last-spin}): $\langle\sigma_{N+1}\rangle$ is close to $\tanh$ of the cavity field built from the old Gibbs measure at $\beta_-$.  Fully proved.
 \item[K.] \emph{Lemma~1.7.4, Eq.~(1.186)} (Section~\ref{sec:sg-tal:fluct-old-spin}): adding a spin moves an old magnetization by $O(N^{-1/2})$ in $L^2$.  Fully proved.
 \item[L.] \emph{Lemma~1.7.6} (Section~\ref{sec:sg-tal:fluct-gaussian-field}): the last spin is a $\tanh$ of $\beta\sqrt q\,z+h$ for a standard Gaussian $z$ that depends on all couplings but is independent of the couplings of the first $N$ spins.  Fully proved, with $K=K(\beta_0,h)$.
+\item[M.] \emph{Theorem~1.7.1} (Section~\ref{sec:sg-tal:fluct-iid}): for $n$ fixed the local magnetizations $\langle\sigma_i\rangle$, $i<n$, are within $K/N$ in $L^2$ of $\tanh(\beta z_i\sqrt q+h)$ for i.i.d.\ standard Gaussians $z_i$ that are functions of the couplings.  Fully proved, for $\beta\ge0$ and $N>n$.
 \end{enumerate}
 Parts~A--E are independent of the spin-glass model: Part~A is about Gaussian vectors, Parts~B--E about an arbitrary finite
 Gibbs measure carrying $N$ bounded observables (Part~E needs $\xi_i^2=1$).  Only the last step of Part~F uses the SK model, through the overlap moments of Section~1.4.  Part~G is the fixed-point stability under the cavity parameter shift $\beta_-=\beta\sqrt{1-1/N}$.  Parts~H and~I specialize Part~F to the exponentials that the cavity method produces; they use the SK model through Part~F and through the overlap moments of Section~1.4 directly (the intermediate, disorder-by-disorder bound of Part~F is reused, not just its statement).
@@ -4326,13 +4327,101 @@ For $h=0$: $q=0$ (Lemma~\ref{lem:sg-tal:fixed-point-lower}), $\langle\sigma_{N+1
 \end{itemize}
 \end{remark}
 
+\subsection{Theorem~1.7.1: the local magnetizations are asymptotically i.i.d.}
+\label{sec:sg-tal:fluct-iid}
+
+\emph{Content.}  Fix $n$.  Theorem~1.7.1 asserts that the first $n$ Gibbs means $\langle\sigma_i\rangle$ are close in $L^2$, up to $K/N$, to $\tanh(\beta z_i\sqrt q+h)$ for independent standard Gaussians $z_i$ that are functions of the couplings.
+We follow the book's induction on $n$, in the uniform form (1.190): $K=K(n,\beta_0)$ for all $0\le\beta\le\beta_0$ (uniformity is needed because the induction step applies the hypothesis at $\beta_-=\beta\sqrt{N/(N+1)}$, which moves with $N$).
+The step from $n$ to $n+1$ uses the system of $N+1$ spins:
+(i) apply the hypothesis to the first $N$ spins at $\beta_-$ (with a fixed point $q_-$ of that system); this gives Gaussians $z^-_i$ that are functions of the old couplings and Eq.~(1.191);
+(ii) replace $\beta_-\sqrt{q_-}$ by $\beta\sqrt q$ (bounded by $1/(N+1)$ through $|\sqrt a-\sqrt b|^2\le|a-b|$, Lemma~\ref{lem:sg-tal:fixed-point-shift} and $\beta-\beta_-\le\beta/(N+1)$) and $\langle\sigma_i\rangle_-$ by $\langle\sigma_i\rangle$ (Eq.~(1.186));
+(iii) append the new Gaussian of Lemma~1.7.6 for the last site; it is independent of the old couplings, hence of the $z^-_i$, so the vector has the i.i.d.\ law;
+(iv) exchange the last site with the new site $n$.
+\emph{The exchange must move the Gaussian vector as well:} if $\varphi$ is the measure-preserving relabelling of the couplings with $\langle\sigma_{\pi^{-1}i}\rangle_g=\langle\sigma_i\rangle_{\varphi g}$, the new vector is $z\circ\varphi$, whose law is unchanged and whose error terms are the same integrals transported by $\varphi$.  Exchanging only the expectations would not prove the theorem.
+\emph{Uses:} Parts~G, J, K, L and Proposition~1.4.14.  \emph{Status:} fully proved.
+
+\begin{lemma}[Appending an independent coordinate to an i.i.d.\ vector]
+\label{lem:sg-tal:append-coordinate}
+  \lean{measurePreserving_finSuccProd,
+        map_finSuccProd_symm_eq_pi,
+        SpinGlasses.integral_sq_coord_eq_one,
+        SpinGlasses.integrable_sq_coord}
+  \leanok
+\talsource{Section~1.7, proof of Theorem~1.7.1: ``$z$ is standard Gaussian and probabilistically independent of the r.v.s $(z_i)_{i\le n}$ \dots''}
+Let $\mu$ be a probability measure, $Y$ a random vector in $X^n$ with law $\mu^{\otimes n}$ and $W$ a random variable with law $\mu$, independent of $Y$.  Then $(Y,W)$ (the vector with $W$ appended as the last coordinate) has the law $\mu^{\otimes(n+1)}$.  If a vector has the i.i.d.\ standard Gaussian law, each coordinate has second moment $1$ and an integrable square.
+\end{lemma}
+\begin{proof}
+  \leanok
+The law of the pair is $\mu^{\otimes n}\otimes\mu$ by independence, and the measurable equivalence $(X^{n+1})\simeq X^n\times X$ (splitting off the last coordinate) carries $\mu^{\otimes(n+1)}$ to this product.  The coordinate statement is the marginal of a product measure and $\int x^2\,d\gamma=1$.
+\end{proof}
+
+\begin{lemma}[Site exchange for the Gibbs means]
+\label{lem:sg-tal:site-exchange}
+  \lean{SpinGlasses.exists_sk_site_exchange,
+        SpinGlasses.measurable_integral_spin_skGibbsEnergy,
+        SpinGlasses.exists_fixedPoint_cavity,
+        SpinGlasses.sq_cavity_param_le}
+  \leanok
+\talsource{Section~1.7, proof of Theorem~1.7.1: ``exchanging the sites $N$ and $n+1$'' and the estimate $(\beta_-\sqrt{q_-}-\beta\sqrt q)^2\le L/N$}
+(a) For every permutation $\pi$ of the sites of the $M$-spin SK system there is a measure-preserving map $\varphi$ of the couplings with $\langle\sigma_i\rangle_{\varphi g}=\langle\sigma_{\pi^{-1}(i)}\rangle_g$ for all $g,i$; Gibbs means of spins are measurable in the couplings.
+(b) For $0\le\beta$, $4\beta^2<1$ and a fixed point $q$ at $\beta$, the $N$-spin system at $\beta_-=\beta\sqrt{N/(N+1)}$ has a fixed point $q_-$ with $|q-q_-|\le\frac1{N+1}$, and then $(\beta_-\sqrt{q_-}-\beta\sqrt q)^2\le\frac1{N+1}$.
+\end{lemma}
+\begin{proof}
+  \leanok
+(a) The relabelling $g\mapsto g\circ\pi^{-1}$ of the pair couplings preserves the Gaussian product measure and relabels the Gibbs weights (Proposition~1.4.14); the Gibbs mean is then reindexed along the configuration relabelling.  (b) The first claim is Lemma~\ref{lem:sg-tal:fixed-point-shift} with $N+1$ for $N$.  For the second write $s=\sqrt{N/(N+1)}$: $\beta s\sqrt{q_-}-\beta\sqrt q=\beta s(\sqrt{q_-}-\sqrt q)+\beta(s-1)\sqrt q$, $(\sqrt{q_-}-\sqrt q)^2\le|q_--q|$, $0\le1-s\le\frac1{N+1}$ and $4\beta^2<1$.
+\end{proof}
+
+\begin{theorem}[Induction step for Theorem~1.7.1]
+\label{thm:sg-tal:theorem-171-step}
+  \uses{thm:sg-tal:lemma-174-b, thm:sg-tal:lemma-176, lem:sg-tal:append-coordinate, lem:sg-tal:site-exchange}
+  \lean{SpinGlasses.sk_local_magnetizations_step,
+        MeasureTheory.integral_sq_add_add_le,
+        MeasureTheory.integrable_sq_of_abs_le}
+  \leanok
+\talsource{Section~1.7, proof of Theorem~1.7.1 (induction step from $n$ to $n+1$)}
+Let $\beta_0\ge0$ with $4\beta_0^2<1$ and $h\in\mathbb R$.  Suppose that for $n$ there is $K_n$ such that for all $0\le\beta\le\beta_0$, every fixed point $q$ and every $N>n$ there is a measurable vector $z$ of the couplings with the i.i.d.\ standard Gaussian law and $\sum_{i<n}\mathbb E(\langle\sigma_i\rangle-\tanh(\beta z_i\sqrt q+h))^2\le K_n/N$.  Then the same holds for $n+1$ (and every $N>n+1$) with $K_{n+1}=3nK_{(1.186)}+6K_n+3n+K_{1.7.6}+1$.
+\end{theorem}
+\begin{proof}
+  \leanok
+Write the system size as $N+1$ with $N>n$.  Apply the hypothesis to the first $N$ spins at $\beta_-$ and a fixed point $q_-$ (Lemma~\ref{lem:sg-tal:site-exchange}(b)), take the Gaussian $z_{\mathrm{new}}$ of Theorem~\ref{thm:sg-tal:lemma-176} for the last spin, and form $z'=(z^-\circ\mathrm{old},z_{\mathrm{new}})$, which has the i.i.d.\ law by Lemma~\ref{lem:sg-tal:append-coordinate}.  Let $\pi$ swap the new site $n$ and the last site and $\varphi$ the measure-preserving map of Lemma~\ref{lem:sg-tal:site-exchange}(a); the claimed vector is $z=z'\circ\varphi$.  By change of variables along $\varphi$ each summand is the corresponding summand for $z'$ at the site $\pi(i)$.  For an old site $i<n$ split $\langle\sigma_i\rangle-\tanh(\beta\sqrt q\,z^-_i)$ into three pieces: $\langle\sigma_i\rangle-\langle\sigma_i\rangle_-$ (Theorem~\ref{thm:sg-tal:lemma-174-b}, $\le K/(N+1)$), $\langle\sigma_i\rangle_--\tanh(\beta_-\sqrt{q_-}z^-_i)$ (the hypothesis, summed over $i$ and transported from the old disorder to the full one), and $\tanh(\beta_-\sqrt{q_-}z^-_i)-\tanh(\beta\sqrt q\,z^-_i)$ (at most $(\beta_-\sqrt{q_-}-\beta\sqrt q)^2\mathbb E(z^-_i)^2\le\frac1{N+1}$, as $\tanh$ is $1$-Lipschitz).  Use $(a+b+c)^2\le3(a^2+b^2+c^2)$ and $\frac1N\le\frac2{N+1}$.  The last site is Theorem~\ref{thm:sg-tal:lemma-176}.
+\end{proof}
+
+\begin{theorem}[Theorem~1.7.1]
+\label{thm:sg-tal:theorem-171}
+  \uses{thm:sg-tal:theorem-171-step}
+  \lean{SpinGlasses.sk_local_magnetizations_uniform,
+        SpinGlasses.sk_local_magnetizations_gaussian}
+  \leanok
+\talsource{Theorem~1.7.1, Eq.~(1.183) and the induction hypothesis (1.190)}
+Let $\beta\ge0$ with $4\beta^2<1$, $h\in\mathbb R$, $n\in\mathbb N$ and $q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$.  There is $K>0$ depending only on $(n,\beta,h)$ such that for every $N>n$ there are measurable functions $z_1,\dots,z_n$ of the couplings $(g_{ij})_{i<j\le N}$, independent standard Gaussians, with
+\[
+\sum_{i<n}\mathbb E\bigl(\langle\sigma_i\rangle-\tanh(\beta z_i\sqrt q+h)\bigr)^2\le\frac KN.
+\]
+More precisely (uniform form (1.190)): for $\beta_0\ge0$ with $4\beta_0^2<1$ the constant can be chosen depending only on $(n,\beta_0,h)$, uniformly in $0\le\beta\le\beta_0$ and in the solution $q$.
+\end{theorem}
+\begin{proof}
+  \leanok
+Induction on $n$ using Theorem~\ref{thm:sg-tal:theorem-171-step}; for $n=0$ the sum is empty.  The independence and the marginals follow from the joint i.i.d.\ law.
+\end{proof}
+
+\begin{remark}[Differences from the book in Theorem~1.7.1]
+\label{rem:sg-tal:dev-171}
+\begin{itemize}
+\item \emph{Hypotheses.}  $\beta\ge0$ (the model is symmetric in the sign of $\beta$, but the fixed-point shift is stated for $\beta\ge0$) and $N>n$ (the book says ``any $N$''; for $N\le n$ there are fewer couplings than Gaussians required, e.g.\ no pair coupling for $N=1$, so the statement cannot hold literally).
+\item \emph{Independence is a joint-law statement.}  The Gaussians are given as one measurable vector with the law $\gamma^{\otimes n}$; independence and the marginals are corollaries.
+\item \emph{Site sets.}  The sites are $0,\dots,n-1$ (the book uses $1,\dots,n$).  The induction runs through the $(N+1)$-spin system with the new site exchanged with the last one, and the Gaussian vector is transported with the exchange (see the discussion above).
+\item \emph{Constants.}  $K$ is explicit in the induction: $K_{n+1}=3nK_{(1.186)}+6K_n+3n+K_{1.7.6}+1$, with $K_{(1.186)}$ and $K_{1.7.6}$ the constants of Theorems~\ref{thm:sg-tal:lemma-174-b} and~\ref{thm:sg-tal:lemma-176}.
+\end{itemize}
+\end{remark}
+
 \begin{remark}[What remains of Section~1.7]
 \label{rem:sg-tal:remaining-17}
 Of Section~1.7 the following are formalized: the general Gaussian fluctuation principle (Theorem~\ref{thm:sg-tal:general-fluct}), the fixed-point shift (Lemma~\ref{lem:sg-tal:fixed-point-shift}),
 Corollary~1.7.13 (Theorem~\ref{thm:sg-tal:cor-1713}), Lemma~1.7.14 (Lemma~\ref{lem:sg-tal:ratio}) and Corollary~1.7.15 (Theorems~\ref{thm:sg-tal:cor-1715-tanh} and~\ref{thm:sg-tal:cor-1715-reaction}).
 Also formalized are Eq.~(1.185) of Lemma~1.7.4 (Theorem~\ref{thm:sg-tal:lemma-174-a}), obtained by applying Eq.~(1.209) to the $N$-spin system at $\beta_-$ for the $(N+1)$-spin system, and Eq.~(1.186) (Theorem~\ref{thm:sg-tal:lemma-174-b}).
 Lemma~1.7.6 (the cavity field as a disorder-measurable Gaussian) is formalized as Theorem~\ref{thm:sg-tal:lemma-176}.
-Not yet formalized, and for that reason not stated here as a theorem, is Theorem~1.7.1 (the local magnetizations are asymptotically i.i.d.\ ); its induction step needs Eqs.~(1.185), (1.186) and Lemma~1.7.6, all proved here.
+Theorem~1.7.1 (the local magnetizations are asymptotically i.i.d.) is formalized as Theorem~\ref{thm:sg-tal:theorem-171}, by the book's induction from Eqs.~(1.185), (1.186) and Lemma~1.7.6.
+Section~1.7 is complete in this chapter except Theorem~1.7.7 (the TAP equations), which belongs to the next milestone.
 One gap between what is proved and what these applications need is already known: Eq.~(1.210) is stated before the final linear rewriting of the book (Remark~\ref{rem:sg-tal:dev-1715}).  The Corollaries are stated for the $N$-spin system with constants uniform in $|\beta|\le\beta_0<1/2$ (Remark~\ref{rem:sg-tal:dev-1713}), so the application to the $N$-spin system at $\beta_-$ is by relabeling $N$ and $\beta$ (done in Theorems~\ref{thm:sg-tal:lemma-174-a} and~\ref{thm:sg-tal:lemma-174-b}).
 Nothing in Sections~1.1--1.6 depends on Section~1.7.
 \end{remark}

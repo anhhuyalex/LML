@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Function.UnitVectorField
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SqSub
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.MapProdFiberLaw
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianGram
 public import LeanMachineLearning.SpinGlasses.SKFixedPointPositive
@@ -230,13 +231,9 @@ theorem sk_old_overlap_dev_bound (β₀ : ℝ) (hβ₀' : 4 * β₀ ^ 2 < 1) (h 
 theorem integrable_sq_sub_of_abs_le {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     [IsFiniteMeasure μ] {a b : Ω → ℝ} (ha : Measurable a) (hb : Measurable b)
     (ha1 : ∀ ω, |a ω| ≤ 1) (hb1 : ∀ ω, |b ω| ≤ 1) :
-    Integrable (fun ω => (a ω - b ω) ^ 2) μ := by
-  refine Integrable.of_bound (C := 4) ((ha.sub hb).pow_const 2).aestronglyMeasurable
-    (Filter.Eventually.of_forall fun ω => ?_)
-  rw [Real.norm_eq_abs, abs_of_nonneg (sq_nonneg _)]
-  have h1 := abs_le.mp (ha1 ω)
-  have h2 := abs_le.mp (hb1 ω)
-  nlinarith
+    Integrable (fun ω => (a ω - b ω) ^ 2) μ :=
+  integrable_sq_of_abs_le (ha.sub hb) (C := 2) fun ω =>
+    (abs_sub _ _).trans (by linarith [ha1 ω, hb1 ω])
 
 /-- The Gibbs mean of a spin is at most `1` in absolute value. -/
 theorem abs_integral_spin_le_one {N : ℕ} (f : (Fin N → ℤˣ) → ℝ) (i : Fin N) :
