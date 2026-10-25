@@ -156,8 +156,12 @@ entries vanishes, because every entry is linear in the centered replica data and
 theorem integral_pairProd_centered_eq_zero (f : α → ℝ) (v : ℝ) {m r : ℕ}
     (p : Fin r → Fin m × Fin m) (ℓ : Fin m) (hℓ : pairCount p ℓ = 1) :
     ∫ σ : Fin m → α,
-      pairProd (projGram (fun l i => (Real.sqrt N)⁻¹ *
-        (ξ i (σ l) - ∫ a, ξ i a ∂(Measure.count.tilted f))) v) p
+      (∏ i,
+        ((fun j => (Real.sqrt N)⁻¹ *
+          (ξ j (σ (p i).1) - ∫ a, ξ j a ∂(Measure.count.tilted f))) ⬝ᵥ
+        (fun j => (Real.sqrt N)⁻¹ *
+          (ξ j (σ (p i).2) - ∫ a, ξ j a ∂(Measure.count.tilted f))) -
+        if (p i).1 = (p i).2 then v ^ 2 else 0))
       ∂(Measure.pi fun _ : Fin m => Measure.count.tilted f) = 0 := by
   obtain ⟨n, rfl⟩ : ∃ n, m = n + 1 := Nat.exists_eq_succ_of_ne_zero (Fin.pos ℓ).ne'
   obtain ⟨i₀, ℓ', hne, hp, hrest⟩ := exists_of_pairCount_eq_one p ℓ hℓ
@@ -167,22 +171,28 @@ theorem integral_pairProd_centered_eq_zero (f : α → ℝ) (v : ℝ) {m r : ℕ
     (ξ j a - ∫ b, ξ j b ∂(Measure.count.tilted f))
   let H : (Fin (n + 1) → α) → ℝ := fun σ =>
     ∏ i ∈ Finset.univ.erase i₀,
-      projGram (fun l i => (Real.sqrt N)⁻¹ * (ξ i (σ l) - ∫ a, ξ i a ∂(Measure.count.tilted f)))
-        v (p i).1 (p i).2
+      ((fun j => (Real.sqrt N)⁻¹ *
+        (ξ j (σ (p i).1) - ∫ a, ξ j a ∂(Measure.count.tilted f))) ⬝ᵥ
+      (fun j => (Real.sqrt N)⁻¹ *
+        (ξ j (σ (p i).2) - ∫ a, ξ j a ∂(Measure.count.tilted f))) -
+      if (p i).1 = (p i).2 then v ^ 2 else 0)
   let c : Fin N → (Fin (n + 1) → α) → ℝ := fun j σ =>
     (Real.sqrt N)⁻¹ * (ξ j (σ ℓ') - ∫ a, ξ j a ∂(Measure.count.tilted f))
   have hmain : ∀ σ : Fin (n + 1) → α,
-      pairProd (projGram (fun l i => (Real.sqrt N)⁻¹ *
-        (ξ i (σ l) - ∫ a, ξ i a ∂(Measure.count.tilted f))) v) p =
+      (∏ i,
+        ((fun j => (Real.sqrt N)⁻¹ *
+          (ξ j (σ (p i).1) - ∫ a, ξ j a ∂(Measure.count.tilted f))) ⬝ᵥ
+        (fun j => (Real.sqrt N)⁻¹ *
+          (ξ j (σ (p i).2) - ∫ a, ξ j a ∂(Measure.count.tilted f))) -
+        if (p i).1 = (p i).2 then v ^ 2 else 0)) =
       H σ * ∑ j, z j (σ ℓ) * c j σ := fun σ => by
-    unfold pairProd
     rw [← Finset.mul_prod_erase Finset.univ _ (Finset.mem_univ i₀), mul_comm]
     congr 1
     rcases hp with hp | hp
     · rw [hp]
-      simp only [projGram, dotProduct, ite_eq_right (Ne.symm hne), sub_zero, z, c]
+      simp only [dotProduct, ite_eq_right (Ne.symm hne), sub_zero, z, c]
     · rw [hp]
-      simp only [projGram, dotProduct, ite_eq_right hne, sub_zero, z, c]
+      simp only [dotProduct, ite_eq_right hne, sub_zero, z, c]
       exact Finset.sum_congr rfl fun j _ => mul_comm _ _
   simp_rw [hmain]
   refine sum_prod_weight_mul_linear_eq_zero w ℓ z (fun j => sum_weight_mul_centered ξ f j) H c
@@ -190,7 +200,7 @@ theorem integral_pairProd_centered_eq_zero (f : α → ℝ) (v : ℝ) {m r : ℕ
   · simp only [H]
     refine Finset.prod_congr rfl fun i hi => ?_
     have hi' := hrest i (Finset.ne_of_mem_erase hi)
-    simp only [projGram, dotProduct, Function.update_of_ne hi'.1, Function.update_of_ne hi'.2]
+    simp only [dotProduct, Function.update_of_ne hi'.1, Function.update_of_ne hi'.2]
   · simp only [c, Function.update_of_ne hne]
 
 set_option linter.unusedFintypeInType false in
@@ -208,8 +218,12 @@ theorem integral_projSum_centered_zero_eq_zero {m r : ℕ} (V : ℝ → ℝ) (hV
       projSum V (fun l i => (Real.sqrt N)⁻¹ *
         (ξ i (σ l) - ∫ a, ξ i a ∂(Measure.count.tilted f))) v r 0 =
       ∑ p : Fin r → Fin m × Fin m,
-        pairProd (projGram (fun l i => (Real.sqrt N)⁻¹ *
-          (ξ i (σ l) - ∫ a, ξ i a ∂(Measure.count.tilted f))) v) p *
+        (∏ j,
+          ((fun i => (Real.sqrt N)⁻¹ *
+            (ξ i (σ (p j).1) - ∫ a, ξ i a ∂(Measure.count.tilted f))) ⬝ᵥ
+          (fun i => (Real.sqrt N)⁻¹ *
+            (ξ i (σ (p j).2) - ∫ a, ξ i a ∂(Measure.count.tilted f))) -
+          if (p j).1 = (p j).2 then v ^ 2 else 0)) *
         ∫ ξ' : Fin m → ℝ, ∏ ℓ, deriv^[(pairCount p) ℓ] V ((v * ξ' ℓ))
           ∂(Measure.pi fun _ : Fin m => gaussianReal 0 1) := fun σ => by
     unfold projSum
@@ -227,20 +241,32 @@ theorem integral_projSum_centered_zero_eq_zero {m r : ℕ} (V : ℝ → ℝ) (hV
     simp only [hI, mul_zero, Finset.sum_const_zero]
   · have hG : (∑ x : Fin m → α,
         (∏ r_1 : Fin m, Real.exp (f (x r_1)) / ∑ b : α, Real.exp (f b)) *
-          pairProd (projGram (fun l i => (Real.sqrt N)⁻¹ *
-            (ξ i (x l) - ∫ a, ξ i a ∂(Measure.count.tilted f))) v) p) = 0 := by
+          (∏ j,
+            ((fun i => (Real.sqrt N)⁻¹ *
+              (ξ i (x (p j).1) - ∫ a, ξ i a ∂(Measure.count.tilted f))) ⬝ᵥ
+            (fun i => (Real.sqrt N)⁻¹ *
+              (ξ i (x (p j).2) - ∫ a, ξ i a ∂(Measure.count.tilted f))) -
+            if (p j).1 = (p j).2 then v ^ 2 else 0))) = 0 := by
       have hz := integral_pairProd_centered_eq_zero ξ f v p ℓ h1
       rwa [integral_pi_count_tilted] at hz
     have heq : (∑ x : Fin m → α,
         (∏ r_1 : Fin m, Real.exp (f (x r_1)) / ∑ b : α, Real.exp (f b)) *
-          (pairProd (projGram (fun l i => (Real.sqrt N)⁻¹ *
-            (ξ i (x l) - ∫ a, ξ i a ∂(Measure.count.tilted f))) v) p *
+          ((∏ j,
+            ((fun i => (Real.sqrt N)⁻¹ *
+              (ξ i (x (p j).1) - ∫ a, ξ i a ∂(Measure.count.tilted f))) ⬝ᵥ
+            (fun i => (Real.sqrt N)⁻¹ *
+              (ξ i (x (p j).2) - ∫ a, ξ i a ∂(Measure.count.tilted f))) -
+            if (p j).1 = (p j).2 then v ^ 2 else 0)) *
             ∫ ξ' : Fin m → ℝ, ∏ ℓ, deriv^[(pairCount p) ℓ] V ((v * ξ' ℓ))
               ∂(Measure.pi fun _ : Fin m => gaussianReal 0 1))) =
         (∑ x : Fin m → α,
           (∏ r_1 : Fin m, Real.exp (f (x r_1)) / ∑ b : α, Real.exp (f b)) *
-            pairProd (projGram (fun l i => (Real.sqrt N)⁻¹ *
-              (ξ i (x l) - ∫ a, ξ i a ∂(Measure.count.tilted f))) v) p) *
+            (∏ j,
+              ((fun i => (Real.sqrt N)⁻¹ *
+                (ξ i (x (p j).1) - ∫ a, ξ i a ∂(Measure.count.tilted f))) ⬝ᵥ
+              (fun i => (Real.sqrt N)⁻¹ *
+                (ξ i (x (p j).2) - ∫ a, ξ i a ∂(Measure.count.tilted f))) -
+              if (p j).1 = (p j).2 then v ^ 2 else 0))) *
           ∫ ξ' : Fin m → ℝ, ∏ ℓ, deriv^[(pairCount p) ℓ] V ((v * ξ' ℓ))
             ∂(Measure.pi fun _ : Fin m => gaussianReal 0 1) := by
       rw [Finset.sum_mul]

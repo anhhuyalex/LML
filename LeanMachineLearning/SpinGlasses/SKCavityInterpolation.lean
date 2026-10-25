@@ -140,28 +140,28 @@ theorem integral_last_spin_cavity_field_mul (N : ℕ) (M β : ℝ) (hM : 0 ≤ M
   rw [hab] at hmain
   simpa only [a, b, Finset.mul_sum, mul_assoc, mul_left_comm, mul_comm] using hmain
 
-/-- Embed an old pair into the first `N` sites of the enlarged system. -/
-def oldPair (N : ℕ) (p : FinPairs N) : FinPairs (N + 1) :=
-  ⟨(p.val.1.castSucc, p.val.2.castSucc), Fin.castSucc_lt_castSucc_iff.mpr p.property⟩
-
-/-- The edge from site `i` to the new last site. -/
-def lastPair (N : ℕ) (i : Fin N) : FinPairs (N + 1) :=
-  ⟨(i.castSucc, Fin.last N), Fin.castSucc_lt_last i⟩
-
-private theorem oldPair_injective (N : ℕ) : Function.Injective (oldPair N) := by
+private theorem oldPair_injective (N : ℕ) : Function.Injective (fun p : FinPairs N =>
+    (⟨(p.val.1.castSucc, p.val.2.castSucc),
+      Fin.castSucc_lt_castSucc_iff.mpr p.property⟩ : FinPairs (N + 1))) := by
   intro p q h
   apply Subtype.ext
   exact Prod.ext (Fin.castSucc_injective N (congrArg (fun x => x.val.1) h))
     (Fin.castSucc_injective N (congrArg (fun x => x.val.2) h))
 
-private theorem lastPair_injective (N : ℕ) : Function.Injective (lastPair N) := by
+private theorem lastPair_injective (N : ℕ) : Function.Injective (fun i : Fin N =>
+    (⟨(i.castSucc, Fin.last N), Fin.castSucc_lt_last i⟩ : FinPairs (N + 1))) := by
   intro i j h
   exact Fin.castSucc_injective N (congrArg (fun x => x.val.1) h)
 
 /-- Every pair of sites in `Fin (N+1)` is either an old pair or an edge to the last site.
 This is the combinatorial split used for the disorder coordinates. -/
 noncomputable def finPairsSuccEquiv (N : ℕ) : FinPairs N ⊕ Fin N ≃ FinPairs (N + 1) :=
-  Equiv.ofBijective (Sum.elim (oldPair N) (lastPair N)) (by
+  Equiv.ofBijective (Sum.elim
+    (fun p : FinPairs N =>
+      (⟨(p.val.1.castSucc, p.val.2.castSucc),
+        Fin.castSucc_lt_castSucc_iff.mpr p.property⟩ : FinPairs (N + 1)))
+    (fun i : Fin N =>
+      (⟨(i.castSucc, Fin.last N), Fin.castSucc_lt_last i⟩ : FinPairs (N + 1)))) (by
     constructor
     · intro x y h
       cases x with
@@ -196,12 +196,14 @@ noncomputable def finPairsSuccEquiv (N : ℕ) : FinPairs N ⊕ Fin N ≃ FinPair
 theorem sum_finPairs_succ_cavity (N : ℕ) (g : FinPairs (N + 1) → ℝ)
     (s : Fin (N + 1) → ℝ) :
     (∑ p : FinPairs (N + 1), g p * s p.val.1 * s p.val.2) =
-      (∑ p : FinPairs N, g (oldPair N p) * s p.val.1.castSucc *
+      (∑ p : FinPairs N, g ⟨(p.val.1.castSucc, p.val.2.castSucc),
+          Fin.castSucc_lt_castSucc_iff.mpr p.property⟩ * s p.val.1.castSucc *
         s p.val.2.castSucc) +
-      s (Fin.last N) * ∑ i : Fin N, g (lastPair N i) * s i.castSucc := by
+      s (Fin.last N) * ∑ i : Fin N,
+        g ⟨(i.castSucc, Fin.last N), Fin.castSucc_lt_last i⟩ * s i.castSucc := by
   rw [← (finPairsSuccEquiv N).sum_comp]
   simp only [Fintype.sum_sum_type, finPairsSuccEquiv, Equiv.ofBijective_apply,
-    Sum.elim_inl, Sum.elim_inr, oldPair, lastPair]
+    Sum.elim_inl, Sum.elim_inr]
   rw [Finset.mul_sum]
   apply congrArg₂ (· + ·) rfl
   apply Finset.sum_congr rfl
@@ -214,10 +216,12 @@ theorem sum_sk_pairs_succ_cavity (N : ℕ) (g : FinPairs (N + 1) → ℝ)
     (∑ p : FinPairs (N + 1),
       g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) =
       (∑ p : FinPairs N,
-        g (oldPair N p) * (σ p.val.1.castSucc : ℝ) *
+        g ⟨(p.val.1.castSucc, p.val.2.castSucc),
+          Fin.castSucc_lt_castSucc_iff.mpr p.property⟩ * (σ p.val.1.castSucc : ℝ) *
           (σ p.val.2.castSucc : ℝ)) +
         (σ (Fin.last N) : ℝ) *
-          ∑ i : Fin N, g (lastPair N i) * (σ i.castSucc : ℝ) :=
+          ∑ i : Fin N, g ⟨(i.castSucc, Fin.last N), Fin.castSucc_lt_last i⟩ *
+            (σ i.castSucc : ℝ) :=
   sum_finPairs_succ_cavity N g fun i => (σ i : ℝ)
 
 /-- At the coupled endpoint the cavity interaction is exactly the full SK pair
@@ -227,10 +231,12 @@ theorem sk_cavity_energy_coupled_eq (N : ℕ) (β h : ℝ)
     (g : FinPairs (N + 1) → ℝ) (σ : Fin (N + 1) → ℤˣ) :
     (Real.sqrt (N + 1))⁻¹ * β *
         (∑ p : FinPairs N,
-          g (oldPair N p) * (σ p.val.1.castSucc : ℝ) *
+          g ⟨(p.val.1.castSucc, p.val.2.castSucc),
+            Fin.castSucc_lt_castSucc_iff.mpr p.property⟩ * (σ p.val.1.castSucc : ℝ) *
             (σ p.val.2.castSucc : ℝ)) +
       (Real.sqrt (N + 1))⁻¹ * β * (σ (Fin.last N) : ℝ) *
-        (∑ i : Fin N, g (lastPair N i) * (σ i.castSucc : ℝ)) +
+        (∑ i : Fin N, g ⟨(i.castSucc, Fin.last N), Fin.castSucc_lt_last i⟩ *
+          (σ i.castSucc : ℝ)) +
       h * ∑ i : Fin (N + 1), (σ i : ℝ) =
     (Real.sqrt (N + 1))⁻¹ * β *
         (∑ p : FinPairs (N + 1),
@@ -239,13 +245,13 @@ theorem sk_cavity_energy_coupled_eq (N : ℕ) (β h : ℝ)
   rw [sum_sk_pairs_succ_cavity]
   ring
 
-/-- Independence of the old couplings and the new edges of an i.i.d. Gaussian SK disorder.
-The two coordinate blocks are read through `oldPair` and `lastPair`, respectively. -/
+/-- Independence of the old couplings and the new edges of an i.i.d. Gaussian SK disorder. -/
 theorem measurePreserving_sk_cavity_disorder (N : ℕ) :
     MeasurePreserving
       (fun g : FinPairs (N + 1) → ℝ =>
-        (fun p : FinPairs N => g (oldPair N p),
-          fun i : Fin N => g (lastPair N i)))
+        (fun p : FinPairs N => g ⟨(p.val.1.castSucc, p.val.2.castSucc),
+            Fin.castSucc_lt_castSucc_iff.mpr p.property⟩,
+          fun i : Fin N => g ⟨(i.castSucc, Fin.last N), Fin.castSucc_lt_last i⟩))
       (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)
       ((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
         (Measure.pi fun _ : Fin N => gaussianReal 0 1)) := by

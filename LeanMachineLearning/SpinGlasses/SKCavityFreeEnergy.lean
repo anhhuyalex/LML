@@ -77,10 +77,13 @@ theorem sk_cavity_energy_snoc (N : ℕ) (c h : ℝ)
     c * (∑ p : FinPairs (N + 1),
       g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ) =
       (c * ∑ p : FinPairs N,
-        g (oldPair N p) * (σ p.val.1.castSucc : ℝ) * (σ p.val.2.castSucc : ℝ) +
+        g ⟨(p.val.1.castSucc, p.val.2.castSucc),
+          Fin.castSucc_lt_castSucc_iff.mpr p.property⟩ *
+          (σ p.val.1.castSucc : ℝ) * (σ p.val.2.castSucc : ℝ) +
         h * ∑ i : Fin N, (σ i.castSucc : ℝ)) +
       (σ (Fin.last N) : ℝ) *
-        (c * ∑ i : Fin N, g (lastPair N i) * (σ i.castSucc : ℝ) + h) := by
+        (c * ∑ i : Fin N,
+          g ⟨(i.castSucc, Fin.last N), Fin.castSucc_lt_last i⟩ * (σ i.castSucc : ℝ) + h) := by
   rw [sum_sk_pairs_succ_cavity, Fin.sum_univ_castSucc]
   ring
 
@@ -328,13 +331,19 @@ theorem sum_exp_sk_cavity_snoc (N : ℕ) (c h : ℝ)
         g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ))) =
       2 * ∑ ρ : Fin N → ℤˣ,
         Real.exp (c * (∑ p : FinPairs N,
-          g (oldPair N p) * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) + h * ∑ i, (ρ i : ℝ)) *
-          Real.cosh (c * ∑ i : Fin N, g (lastPair N i) * (ρ i : ℝ) + h) := by
+          g ⟨(p.val.1.castSucc, p.val.2.castSucc),
+            Fin.castSucc_lt_castSucc_iff.mpr p.property⟩ *
+            (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) + h * ∑ i, (ρ i : ℝ)) *
+          Real.cosh (c * ∑ i : Fin N,
+            g ⟨(i.castSucc, Fin.last N), Fin.castSucc_lt_last i⟩ * (ρ i : ℝ) + h) := by
   simp_rw [sk_cavity_energy_snoc N c h g]
   exact sum_exp_fin_snoc_cavity N
     (fun ρ => c * (∑ p : FinPairs N,
-      g (oldPair N p) * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) + h * ∑ i, (ρ i : ℝ))
-    (fun ρ => c * ∑ i : Fin N, g (lastPair N i) * (ρ i : ℝ) + h)
+      g ⟨(p.val.1.castSucc, p.val.2.castSucc),
+        Fin.castSucc_lt_castSucc_iff.mpr p.property⟩ *
+        (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) + h * ∑ i, (ρ i : ℝ))
+    (fun ρ => c * ∑ i : Fin N,
+      g ⟨(i.castSucc, Fin.last N), Fin.castSucc_lt_last i⟩ * (ρ i : ℝ) + h)
 
 /-- **Talagrand's Eq. (1.172), `β₊` form.**  For `N > 0`, set
 `β₊ = β √(1 + 1/N)`.  The left side is the `(N+1)`-spin partition function at
@@ -350,9 +359,12 @@ theorem sum_exp_sk_cavity_beta_plus (N : ℕ) (β h : ℝ) (hN : 0 < N)
       2 * ∑ ρ : Fin N → ℤˣ,
         Real.exp ((Real.sqrt (N : ℝ))⁻¹ * β *
           (∑ p : FinPairs N,
-            g (oldPair N p) * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) + h * ∑ i, (ρ i : ℝ)) *
+            g ⟨(p.val.1.castSucc, p.val.2.castSucc),
+              Fin.castSucc_lt_castSucc_iff.mpr p.property⟩ *
+              (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) + h * ∑ i, (ρ i : ℝ)) *
           Real.cosh ((Real.sqrt (N : ℝ))⁻¹ * β *
-            ∑ i : Fin N, g (lastPair N i) * (ρ i : ℝ) + h) := by
+            ∑ i : Fin N,
+              g ⟨(i.castSucc, Fin.last N), Fin.castSucc_lt_last i⟩ * (ρ i : ℝ) + h) := by
   rw [sk_beta_plus_coefficient N β hN]
   exact sum_exp_sk_cavity_snoc N ((Real.sqrt (N : ℝ))⁻¹ * β) h g
 
@@ -368,17 +380,25 @@ theorem log_sum_exp_sk_cavity_snoc (N : ℕ) (c h : ℝ)
       Real.log 2 +
       Real.log (∑ ρ : Fin N → ℤˣ,
         Real.exp (c * (∑ p : FinPairs N,
-          g (oldPair N p) * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) + h * ∑ i, (ρ i : ℝ))) +
+          g ⟨(p.val.1.castSucc, p.val.2.castSucc),
+            Fin.castSucc_lt_castSucc_iff.mpr p.property⟩ *
+            (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) + h * ∑ i, (ρ i : ℝ))) +
       Real.log (∫ ρ : Fin N → ℤˣ,
-        Real.cosh (c * ∑ i : Fin N, g (lastPair N i) * (ρ i : ℝ) + h)
+        Real.cosh (c * ∑ i : Fin N,
+          g ⟨(i.castSucc, Fin.last N), Fin.castSucc_lt_last i⟩ * (ρ i : ℝ) + h)
         ∂Measure.count.tilted (fun ρ =>
           c * (∑ p : FinPairs N,
-            g (oldPair N p) * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) + h * ∑ i, (ρ i : ℝ))) := by
+            g ⟨(p.val.1.castSucc, p.val.2.castSucc),
+              Fin.castSucc_lt_castSucc_iff.mpr p.property⟩ *
+              (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) + h * ∑ i, (ρ i : ℝ))) := by
   simp_rw [sk_cavity_energy_snoc N c h g]
   exact log_sum_exp_fin_snoc_cavity N
     (fun ρ => c * (∑ p : FinPairs N,
-      g (oldPair N p) * (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) + h * ∑ i, (ρ i : ℝ))
-    (fun ρ => c * ∑ i : Fin N, g (lastPair N i) * (ρ i : ℝ) + h)
+      g ⟨(p.val.1.castSucc, p.val.2.castSucc),
+        Fin.castSucc_lt_castSucc_iff.mpr p.property⟩ *
+        (ρ p.val.1 : ℝ) * (ρ p.val.2 : ℝ)) + h * ∑ i, (ρ i : ℝ))
+    (fun ρ => c * ∑ i : Fin N,
+      g ⟨(i.castSucc, Fin.last N), Fin.castSucc_lt_last i⟩ * (ρ i : ℝ) + h)
 
 /-- **Talagrand's Eq. (1.175), integrated expectation comparison.**  The expectation of the
 `(N+1)`-spin log partition function at coefficient `β / √N = β₊ / √(N+1)` equals the
@@ -446,7 +466,10 @@ theorem integral_log_partition_sk_cavity_split (N : ℕ) (β h : ℝ) :
   let μ_last := Measure.pi fun _ : Fin N => gaussianReal 0 1
   let c := (Real.sqrt (N : ℝ))⁻¹ * β
   let π : (FinPairs (N + 1) → ℝ) → (FinPairs N → ℝ) × (Fin N → ℝ) :=
-    fun g => (fun p => g (oldPair N p), fun i => g (lastPair N i))
+    fun g =>
+      (fun p => g ⟨(p.val.1.castSucc, p.val.2.castSucc),
+        Fin.castSucc_lt_castSucc_iff.mpr p.property⟩,
+      fun i => g ⟨(i.castSucc, Fin.last N), Fin.castSucc_lt_last i⟩)
   have hπ : MeasurePreserving π μ_all (μ_old.prod μ_last) :=
     measurePreserving_sk_cavity_disorder N
   let F_old : (FinPairs N → ℝ) → ℝ := fun g' =>

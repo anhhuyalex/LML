@@ -19,9 +19,8 @@ For a Gibbs measure `μ = count.tilted f` on a finite set `α` carrying `±1` ob
 `T` as a signed sum of four terms `R - q`, `A(σ_ℓ) - q`, `A(σ_ℓ') - q`, `B - q` with
 `A(a) = ∫ R(a, b) dμ(b)` and `B = ∫ A dμ`, and applies Jensen's inequality to each.
 
-## Main declarations
+## Main declaration
 
-* `SpinGlasses.overlapGibbs`: the overlap `R`.
 * `SpinGlasses.integral_projGram_pow_le`: the bound on the `2k`-th moment of `T_{ℓ ℓ'}`.
 
 ## References
@@ -42,9 +41,6 @@ attribute [local instance] Fintype.ofFinite
 variable {α : Type*} [Finite α] [Nonempty α] [MeasurableSpace α] [MeasurableSingletonClass α]
   {N : ℕ} (ξ : Fin N → α → ℝ)
 
-/-- The overlap `R(a, b) = N⁻¹ ∑_i ξ_i(a) ξ_i(b)`. -/
-noncomputable def overlapGibbs (a b : α) : ℝ := (N : ℝ)⁻¹ * ∑ i, ξ i a * ξ i b
-
 /-- **Jensen's inequality for even powers under a Gibbs measure.** -/
 theorem pow_integral_count_tilted_le (f h : α → ℝ) (k : ℕ) :
     (∫ a, h a ∂(Measure.count.tilted f)) ^ (2 * k) ≤
@@ -59,16 +55,15 @@ theorem pow_integral_count_tilted_le (f h : α → ℝ) (k : ℕ) :
 omit [Nonempty α] in
 /-- The partial average `A(a) = ∫ R(a, b) dμ(b) = N⁻¹ ∑_i ξ_i(a) ⟨ξ_i⟩`. -/
 theorem integral_overlapGibbs_right (f : α → ℝ) (a : α) :
-    ∫ b, overlapGibbs ξ a b ∂(Measure.count.tilted f) =
+    ∫ b, (N : ℝ)⁻¹ * ∑ i, ξ i a * ξ i b ∂(Measure.count.tilted f) =
       (N : ℝ)⁻¹ * ∑ i, ξ i a * ∫ b, ξ i b ∂(Measure.count.tilted f) := by
-  unfold overlapGibbs
   rw [integral_const_mul, integral_finsetSum _ fun i _ => Integrable.of_finite]
   congr 1
   exact Finset.sum_congr rfl fun i _ => integral_const_mul _ _
 
 /-- The partial overlap `A(a) = ∫ R(a, b) dμ(b)`. -/
 noncomputable def partialOverlap (f : α → ℝ) (a : α) : ℝ :=
-  ∫ b, overlapGibbs ξ a b ∂(Measure.count.tilted f)
+  ∫ b, (N : ℝ)⁻¹ * ∑ i, ξ i a * ξ i b ∂(Measure.count.tilted f)
 
 /-- The mean overlap `B = ∫ A dμ`. -/
 noncomputable def meanOverlap (f : α → ℝ) : ℝ :=
@@ -76,14 +71,16 @@ noncomputable def meanOverlap (f : α → ℝ) : ℝ :=
 
 /-- `E_{σ ~ μ^{⊗2}} (R(σ_0, σ_1) - q)^{2k}`: the `2k`-th moment of the centered overlap. -/
 noncomputable def overlapMoment (f : α → ℝ) (q : ℝ) (k : ℕ) : ℝ :=
-  ∫ τ : Fin 2 → α, (overlapGibbs ξ (τ 0) (τ 1) - q) ^ (2 * k)
+  ∫ τ : Fin 2 → α, ((N : ℝ)⁻¹ * ∑ i, ξ i (τ 0) * ξ i (τ 1) - q) ^ (2 * k)
     ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted f)
 
 omit [Nonempty α] in
 theorem overlapMoment_eq (f : α → ℝ) (q : ℝ) (k : ℕ) :
-    overlapMoment ξ f q k = ∫ a, ∫ b, (overlapGibbs ξ a b - q) ^ (2 * k)
+    overlapMoment ξ f q k =
+      ∫ a, ∫ b, ((N : ℝ)⁻¹ * ∑ i, ξ i a * ξ i b - q) ^ (2 * k)
       ∂(Measure.count.tilted f) ∂(Measure.count.tilted f) := by
-  have h2 := integral_pi_fin_two_count_tilted f (fun a b => (overlapGibbs ξ a b - q) ^ (2 * k))
+  have h2 := integral_pi_fin_two_count_tilted f
+    (fun a b => ((N : ℝ)⁻¹ * ∑ i, ξ i a * ξ i b - q) ^ (2 * k))
   unfold overlapMoment
   rw [h2, integral_count_tilted]
   refine Finset.sum_congr rfl fun a _ => ?_
@@ -97,8 +94,10 @@ theorem overlapMoment_nonneg (f : α → ℝ) (q : ℝ) (k : ℕ) : 0 ≤ overla
 /-- `A(a) - q = ∫ (R(a, b) - q) dμ(b)` and Jensen's inequality. -/
 theorem partialOverlap_sub_pow_le (f : α → ℝ) (q : ℝ) (k : ℕ) (a : α) :
     (partialOverlap ξ f a - q) ^ (2 * k) ≤
-      ∫ b, (overlapGibbs ξ a b - q) ^ (2 * k) ∂(Measure.count.tilted f) := by
-  have h : partialOverlap ξ f a - q = ∫ b, (overlapGibbs ξ a b - q) ∂(Measure.count.tilted f) := by
+      ∫ b, ((N : ℝ)⁻¹ * ∑ i, ξ i a * ξ i b - q) ^ (2 * k)
+        ∂(Measure.count.tilted f) := by
+  have h : partialOverlap ξ f a - q =
+      ∫ b, ((N : ℝ)⁻¹ * ∑ i, ξ i a * ξ i b - q) ∂(Measure.count.tilted f) := by
     rw [integral_sub Integrable.of_finite Integrable.of_finite]
     simp [partialOverlap]
   rw [h]
@@ -134,8 +133,8 @@ variable (hξ2 : ∀ i a, ξ i a ^ 2 = 1)
 
 omit [Finite α] [Nonempty α] [MeasurableSpace α] [MeasurableSingletonClass α] in
 include hξ2 in
-theorem overlapGibbs_self (hN : 0 < N) (a : α) : overlapGibbs ξ a a = 1 := by
-  unfold overlapGibbs
+theorem overlapGibbs_self (hN : 0 < N) (a : α) :
+    (N : ℝ)⁻¹ * ∑ i, ξ i a * ξ i a = 1 := by
   have : ∀ i, ξ i a * ξ i a = 1 := fun i => by rw [← sq]; exact hξ2 i a
   simp only [this, Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul, mul_one]
   have : (N : ℝ) ≠ 0 := by positivity
@@ -162,8 +161,10 @@ include hξ2 in
 `ℓ ≠ ℓ'` and `x₁ = 0` for `ℓ = ℓ'`. -/
 theorem projGram_centeredData_eq (hN : 0 < N) {m : ℕ} (f : α → ℝ) (σ : Fin m → α) (q v : ℝ)
     (hv : v ^ 2 = 1 - q) (ℓ ℓ' : Fin m) :
-    projGram (centeredData ξ f σ) v ℓ ℓ' =
-      (if ℓ = ℓ' then 0 else overlapGibbs ξ (σ ℓ) (σ ℓ') - q) -
+    (fun i => (Real.sqrt N)⁻¹ * (ξ i (σ ℓ) - ∫ a, ξ i a ∂(Measure.count.tilted f))) ⬝ᵥ
+      (fun i => (Real.sqrt N)⁻¹ * (ξ i (σ ℓ') - ∫ a, ξ i a ∂(Measure.count.tilted f))) -
+      (if ℓ = ℓ' then v ^ 2 else 0) =
+      (if ℓ = ℓ' then 0 else (N : ℝ)⁻¹ * ∑ i, ξ i (σ ℓ) * ξ i (σ ℓ') - q) -
         (partialOverlap ξ f (σ ℓ) - q) - (partialOverlap ξ f (σ ℓ') - q) +
           (meanOverlap ξ f - q) := by
   have hB := meanOverlap_eq ξ f
@@ -171,13 +172,16 @@ theorem projGram_centeredData_eq (hN : 0 < N) {m : ℕ} (f : α → ℝ) (σ : F
       (N : ℝ)⁻¹ * ∑ i, ξ i a * ∫ b, ξ i b ∂(Measure.count.tilted f) := fun a =>
     integral_overlapGibbs_right ξ f a
   set mu : Fin N → ℝ := fun i => ∫ b, ξ i b ∂(Measure.count.tilted f) with hmu
-  have hdot : centeredData ξ f σ ℓ ⬝ᵥ centeredData ξ f σ ℓ' =
-      overlapGibbs ξ (σ ℓ) (σ ℓ') - partialOverlap ξ f (σ ℓ) - partialOverlap ξ f (σ ℓ') +
-        meanOverlap ξ f := by
-    have e : ∀ i, centeredData ξ f σ ℓ i * centeredData ξ f σ ℓ' i =
+  have hdot :
+      (fun i => (Real.sqrt N)⁻¹ * (ξ i (σ ℓ) - ∫ a, ξ i a ∂(Measure.count.tilted f))) ⬝ᵥ
+        (fun i => (Real.sqrt N)⁻¹ * (ξ i (σ ℓ') - ∫ a, ξ i a ∂(Measure.count.tilted f))) =
+      (N : ℝ)⁻¹ * ∑ i, ξ i (σ ℓ) * ξ i (σ ℓ') - partialOverlap ξ f (σ ℓ) -
+        partialOverlap ξ f (σ ℓ') + meanOverlap ξ f := by
+    have e : ∀ i,
+        ((Real.sqrt N)⁻¹ * (ξ i (σ ℓ) - ∫ a, ξ i a ∂(Measure.count.tilted f))) *
+          ((Real.sqrt N)⁻¹ * (ξ i (σ ℓ') - ∫ a, ξ i a ∂(Measure.count.tilted f))) =
         (N : ℝ)⁻¹ * (ξ i (σ ℓ) * ξ i (σ ℓ')) - (N : ℝ)⁻¹ * (ξ i (σ ℓ) * mu i) -
           (N : ℝ)⁻¹ * (ξ i (σ ℓ') * mu i) + (N : ℝ)⁻¹ * mu i ^ 2 := fun i => by
-      unfold centeredData
       have : (Real.sqrt N)⁻¹ * (Real.sqrt N)⁻¹ = (N : ℝ)⁻¹ := by
         rw [← mul_inv, Real.mul_self_sqrt (Nat.cast_nonneg N)]
       calc _ = ((Real.sqrt N)⁻¹ * (Real.sqrt N)⁻¹) *
@@ -187,9 +191,6 @@ theorem projGram_centeredData_eq (hN : 0 < N) {m : ℕ} (f : α → ℝ) (σ : F
     simp_rw [e]
     rw [Finset.sum_add_distrib, Finset.sum_sub_distrib, Finset.sum_sub_distrib, ← Finset.mul_sum,
       ← Finset.mul_sum, ← Finset.mul_sum, ← Finset.mul_sum, hB, hA, hA]
-    unfold overlapGibbs
-    ring
-  unfold projGram
   rw [hdot]
   by_cases h : ℓ = ℓ'
   · subst h
@@ -203,18 +204,25 @@ include hξ2 in
 and any replicas `ℓ, ℓ'`, `∫ T_{ℓ ℓ'}^{2k} ∂μ^{⊗m} ≤ 4^{2k} ∫ (R(σ_0, σ_1) - q)^{2k} ∂μ^{⊗2}`. -/
 theorem integral_projGram_pow_le (hN : 0 < N) {m : ℕ} (f : α → ℝ) (q v : ℝ)
     (hv : v ^ 2 = 1 - q) {k : ℕ} (hk : 1 ≤ k) (ℓ ℓ' : Fin m) :
-    ∫ σ : Fin m → α, (projGram (centeredData ξ f σ) v ℓ ℓ') ^ (2 * k)
+    ∫ σ : Fin m → α,
+      ((fun i => (Real.sqrt N)⁻¹ * (ξ i (σ ℓ) - ∫ a, ξ i a ∂(Measure.count.tilted f))) ⬝ᵥ
+        (fun i => (Real.sqrt N)⁻¹ * (ξ i (σ ℓ') - ∫ a, ξ i a ∂(Measure.count.tilted f))) -
+        if ℓ = ℓ' then v ^ 2 else 0) ^ (2 * k)
       ∂(Measure.pi fun _ : Fin m => Measure.count.tilted f) ≤
         4 ^ (2 * k) * overlapMoment ξ f q k := by
   classical
   set J := overlapMoment ξ f q k with hJ
   set μ : Measure α := Measure.count.tilted f with hμ
   have hJ0 : 0 ≤ J := overlapMoment_nonneg ξ f q k
-  let x1 : (Fin m → α) → ℝ := fun σ => if ℓ = ℓ' then 0 else overlapGibbs ξ (σ ℓ) (σ ℓ') - q
+  let x1 : (Fin m → α) → ℝ := fun σ =>
+    if ℓ = ℓ' then 0 else (N : ℝ)⁻¹ * ∑ i, ξ i (σ ℓ) * ξ i (σ ℓ') - q
   let x2 : (Fin m → α) → ℝ := fun σ => partialOverlap ξ f (σ ℓ) - q
   let x3 : (Fin m → α) → ℝ := fun σ => partialOverlap ξ f (σ ℓ') - q
   let x4 : (Fin m → α) → ℝ := fun _ => meanOverlap ξ f - q
-  have hpt : ∀ σ, (projGram (centeredData ξ f σ) v ℓ ℓ') ^ (2 * k) ≤
+  have hpt : ∀ σ,
+      ((fun i => (Real.sqrt N)⁻¹ * (ξ i (σ ℓ) - ∫ a, ξ i a ∂(Measure.count.tilted f))) ⬝ᵥ
+        (fun i => (Real.sqrt N)⁻¹ * (ξ i (σ ℓ') - ∫ a, ξ i a ∂(Measure.count.tilted f))) -
+        if ℓ = ℓ' then v ^ 2 else 0) ^ (2 * k) ≤
       4 ^ (2 * k - 1) * (x1 σ ^ (2 * k) + x2 σ ^ (2 * k) + x3 σ ^ (2 * k) + x4 σ ^ (2 * k)) :=
     fun σ => by
       rw [projGram_centeredData_eq ξ hξ2 hN f σ q v hv ℓ ℓ']
@@ -227,7 +235,7 @@ theorem integral_projGram_pow_le (hN : 0 < N) {m : ℕ} (f : α → ℝ) (q v : 
       rw [zero_pow (by omega)]
       simpa using hJ0
     · have := integral_pi_count_tilted_pair (R := Fin m) h f
-        (fun a b => (overlapGibbs ξ a b - q) ^ (2 * k))
+        (fun a b => ((N : ℝ)⁻¹ * ∑ i, ξ i a * ξ i b - q) ^ (2 * k))
       simp only [x1, h, ite_false]
       rw [hμ, this]
       exact le_of_eq rfl
@@ -236,7 +244,10 @@ theorem integral_projGram_pow_le (hN : 0 < N) {m : ℕ} (f : α → ℝ) (q v : 
   have h4 : ∫ σ : Fin m → α, x4 σ ^ (2 * k) ∂(Measure.pi fun _ : Fin m => μ) ≤ J := by
     simp only [x4, integral_const, probReal_univ, one_smul]
     exact meanOverlap_sub_pow_le ξ f q k
-  calc ∫ σ : Fin m → α, (projGram (centeredData ξ f σ) v ℓ ℓ') ^ (2 * k)
+  calc ∫ σ : Fin m → α,
+      ((fun i => (Real.sqrt N)⁻¹ * (ξ i (σ ℓ) - ∫ a, ξ i a ∂(Measure.count.tilted f))) ⬝ᵥ
+        (fun i => (Real.sqrt N)⁻¹ * (ξ i (σ ℓ') - ∫ a, ξ i a ∂(Measure.count.tilted f))) -
+        if ℓ = ℓ' then v ^ 2 else 0) ^ (2 * k)
         ∂(Measure.pi fun _ : Fin m => μ)
       ≤ ∫ σ : Fin m → α, 4 ^ (2 * k - 1) *
           (x1 σ ^ (2 * k) + x2 σ ^ (2 * k) + x3 σ ^ (2 * k) + x4 σ ^ (2 * k))

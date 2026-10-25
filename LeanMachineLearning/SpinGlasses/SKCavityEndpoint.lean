@@ -87,7 +87,10 @@ theorem integral_sk_cavity_coupled_endpoint (N n : ℕ) (β h : ℝ)
       simpa only [Real.norm_eq_abs] using hb w)
   have hmap := (measurePreserving_sk_cavity_disorder N).map_eq
   have heq (g : FinPairs (N + 1) → ℝ) :
-      F (fun p => g (oldPair N p), fun i => g (lastPair N i)) =
+      F (fun p => g (⟨(p.val.1.castSucc, p.val.2.castSucc),
+          Fin.castSucc_lt_castSucc_iff.mpr p.property⟩ : FinPairs (N + 1)),
+        fun i => g (⟨(i.castSucc, Fin.last N),
+          Fin.castSucc_lt_last i⟩ : FinPairs (N + 1))) =
       ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ
         ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
           (fun a : Fin (N + 1) → ℤˣ =>

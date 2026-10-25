@@ -55,28 +55,56 @@ include hξ2 in
 theorem sum_integral_abs_pairProd_le (hN : 0 < N) (f : α → ℝ) (q v : ℝ) (hv : v ^ 2 = 1 - q)
     {k : ℕ} (hk : 1 ≤ k) :
     ∑ p : Fin (2 * k) → Fin (2 * k) × Fin (2 * k), ∫ σ : Fin (2 * k) → α,
-        |pairProd (projGram (centeredData ξ f σ) v) p|
+        |∏ i,
+          ((fun j => (Real.sqrt N)⁻¹ * (ξ j (σ (p i).1) -
+            ∫ a, ξ j a ∂(Measure.count.tilted f))) ⬝ᵥ
+          (fun j => (Real.sqrt N)⁻¹ * (ξ j (σ (p i).2) -
+            ∫ a, ξ j a ∂(Measure.count.tilted f))) -
+          if (p i).1 = (p i).2 then v ^ 2 else 0)|
           ∂(Measure.pi fun _ : Fin (2 * k) => Measure.count.tilted f) ≤
       ((2 * k) * (2 * k) : ℝ) ^ (2 * k) *
         ((2 * k : ℝ) * (4 ^ (2 * k) * overlapMoment ξ f q k)) := by
   have hn : 0 < 2 * k := by omega
   have hone : ∀ p : Fin (2 * k) → Fin (2 * k) × Fin (2 * k),
-      ∫ σ : Fin (2 * k) → α, |pairProd (projGram (centeredData ξ f σ) v) p|
+      ∫ σ : Fin (2 * k) → α,
+          |∏ i,
+            ((fun j => (Real.sqrt N)⁻¹ * (ξ j (σ (p i).1) -
+              ∫ a, ξ j a ∂(Measure.count.tilted f))) ⬝ᵥ
+            (fun j => (Real.sqrt N)⁻¹ * (ξ j (σ (p i).2) -
+              ∫ a, ξ j a ∂(Measure.count.tilted f))) -
+            if (p i).1 = (p i).2 then v ^ 2 else 0)|
           ∂(Measure.pi fun _ : Fin (2 * k) => Measure.count.tilted f) ≤
         (2 * k : ℝ) * (4 ^ (2 * k) * overlapMoment ξ f q k) := fun p => by
-    calc ∫ σ : Fin (2 * k) → α, |pairProd (projGram (centeredData ξ f σ) v) p|
+    calc ∫ σ : Fin (2 * k) → α,
+          |∏ i,
+            ((fun j => (Real.sqrt N)⁻¹ * (ξ j (σ (p i).1) -
+              ∫ a, ξ j a ∂(Measure.count.tilted f))) ⬝ᵥ
+            (fun j => (Real.sqrt N)⁻¹ * (ξ j (σ (p i).2) -
+              ∫ a, ξ j a ∂(Measure.count.tilted f))) -
+            if (p i).1 = (p i).2 then v ^ 2 else 0)|
           ∂(Measure.pi fun _ : Fin (2 * k) => Measure.count.tilted f)
         ≤ ∫ σ : Fin (2 * k) → α, ∑ j : Fin (2 * k),
-            (projGram (centeredData ξ f σ) v (p j).1 (p j).2) ^ (2 * k)
+            (((fun i => (Real.sqrt N)⁻¹ * (ξ i (σ (p j).1) -
+              ∫ a, ξ i a ∂(Measure.count.tilted f))) ⬝ᵥ
+            (fun i => (Real.sqrt N)⁻¹ * (ξ i (σ (p j).2) -
+              ∫ a, ξ i a ∂(Measure.count.tilted f))) -
+            if (p j).1 = (p j).2 then v ^ 2 else 0) ^ (2 * k))
             ∂(Measure.pi fun _ : Fin (2 * k) => Measure.count.tilted f) := by
           refine integral_mono Integrable.of_finite Integrable.of_finite fun σ => ?_
-          unfold pairProd
           rw [Finset.abs_prod]
-          refine (prod_abs_le_sum_pow hn (fun j => projGram (centeredData ξ f σ) v (p j).1
-            (p j).2)).trans (le_of_eq ?_)
+          refine (prod_abs_le_sum_pow hn (fun j =>
+            (fun i => (Real.sqrt N)⁻¹ * (ξ i (σ (p j).1) -
+              ∫ a, ξ i a ∂(Measure.count.tilted f))) ⬝ᵥ
+            (fun i => (Real.sqrt N)⁻¹ * (ξ i (σ (p j).2) -
+              ∫ a, ξ i a ∂(Measure.count.tilted f))) -
+            if (p j).1 = (p j).2 then v ^ 2 else 0)).trans (le_of_eq ?_)
           exact Finset.sum_congr rfl fun j _ => Even.pow_abs ⟨k, by ring⟩ _
       _ = ∑ j : Fin (2 * k), ∫ σ : Fin (2 * k) → α,
-            (projGram (centeredData ξ f σ) v (p j).1 (p j).2) ^ (2 * k)
+            (((fun i => (Real.sqrt N)⁻¹ * (ξ i (σ (p j).1) -
+              ∫ a, ξ i a ∂(Measure.count.tilted f))) ⬝ᵥ
+            (fun i => (Real.sqrt N)⁻¹ * (ξ i (σ (p j).2) -
+              ∫ a, ξ i a ∂(Measure.count.tilted f))) -
+            if (p j).1 = (p j).2 then v ^ 2 else 0) ^ (2 * k))
             ∂(Measure.pi fun _ : Fin (2 * k) => Measure.count.tilted f) :=
           integral_finsetSum _ fun j _ => Integrable.of_finite
       _ ≤ ∑ _j : Fin (2 * k), 4 ^ (2 * k) * overlapMoment ξ f q k :=
@@ -91,12 +119,7 @@ end Ising
 
 /-! ### The SK model -/
 
-/-- The Gibbs energy of the SK model with the pair disorder `g`. -/
-noncomputable def skGibbsEnergy (N : ℕ) (β h : ℝ) (g : FinPairs N → ℝ) (a : Fin N → ℤˣ) : ℝ :=
-  (Real.sqrt N)⁻¹ * β * (∑ p : FinPairs N, g p * ((a p.val.1 : ℤ) : ℝ) * ((a p.val.2 : ℤ) : ℝ)) +
-    h * ∑ i, ((a i : ℤ) : ℝ)
-
-
+set_option maxHeartbeats 0 in
 /-- **The general Gaussian fluctuation principle (Talagrand, Theorem 1.7.11).**  Let
 `4 β² < 1`, let `q = 𝔼 tanh²(β √q z + h)` and let `U` be exponentially tame.  Then for every `k ≥ 1`
 there is `K` such that for every `N ≥ 1`
@@ -108,8 +131,14 @@ theorem sk_general_gaussian_fluctuation (β h q : ℝ)
     ∃ K : ℝ, 0 < K ∧ ∀ N : ℕ, 0 < N →
       ∫ g : FinPairs N → ℝ, ∫ y : Fin N → ℝ,
         ((∫ a, U ((fun i => (Real.sqrt N)⁻¹ * (((a i : ℤ) : ℝ) -
-              ∫ b, ((b i : ℤ) : ℝ) ∂(Measure.count.tilted (skGibbsEnergy N β h g)))) ⬝ᵥ y)
-            ∂(Measure.count.tilted (skGibbsEnergy N β h g))) -
+              ∫ b, ((b i : ℤ) : ℝ) ∂(Measure.count.tilted (fun a : Fin N → ℤˣ =>
+                (Real.sqrt N)⁻¹ * β * (∑ p : FinPairs N,
+                  g p * ((a p.val.1 : ℤ) : ℝ) * ((a p.val.2 : ℤ) : ℝ)) +
+                h * ∑ j, ((a j : ℤ) : ℝ))))) ⬝ᵥ y)
+            ∂(Measure.count.tilted (fun a : Fin N → ℤˣ =>
+              (Real.sqrt N)⁻¹ * β * (∑ p : FinPairs N,
+                g p * ((a p.val.1 : ℤ) : ℝ) * ((a p.val.2 : ℤ) : ℝ)) +
+              h * ∑ j, ((a j : ℤ) : ℝ)))) -
           ∫ t, U (Real.sqrt (1 - q) * t) ∂(gaussianReal 0 1)) ^ (2 * k)
           ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1)
         ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) ≤ K / (N : ℝ) ^ k := by
@@ -132,21 +161,35 @@ theorem sk_general_gaussian_fluctuation (β h q : ℝ)
   have hξ_sq : ∀ i a, ξ i a ^ 2 = 1 := fun i a => units_cast_sq (a i)
   set P : Measure (FinPairs N → ℝ) := Measure.pi fun _ : FinPairs N => gaussianReal 0 1 with hP
   set J : (FinPairs N → ℝ) → ℝ := fun g =>
-    overlapMoment ξ (skGibbsEnergy N β h g) q k with hJ
+    overlapMoment ξ (fun a : Fin N → ℤˣ =>
+      (Real.sqrt N)⁻¹ * β * (∑ p : FinPairs N,
+        g p * ((a p.val.1 : ℤ) : ℝ) * ((a p.val.2 : ℤ) : ℝ)) +
+      h * ∑ i, ((a i : ℤ) : ℝ)) q k with hJ
   have hJint : Integrable J P := by
     refine integrable_integral_pi_count_tilted_det (R := Fin 2)
-      (g := fun a g => skGibbsEnergy N β h g a) (fun a => ?_)
-      (fun τ => (overlapGibbs ξ (τ 0) (τ 1) - q) ^ (2 * k))
-    unfold skGibbsEnergy
+      (g := fun a g =>
+        (Real.sqrt N)⁻¹ * β * (∑ p : FinPairs N,
+          g p * ((a p.val.1 : ℤ) : ℝ) * ((a p.val.2 : ℤ) : ℝ)) +
+        h * ∑ i, ((a i : ℤ) : ℝ)) (fun a => ?_)
+      (fun τ => ((N : ℝ)⁻¹ * ∑ i, ξ i (τ 0) * ξ i (τ 1) - q) ^ (2 * k))
     exact (by fun_prop : Measurable _).aemeasurable
   have hJmom : ∫ g, J g ∂P ≤ K' / (N : ℝ) ^ k := hK' N hN
   -- pointwise bound
   have hpt : ∀ g : FinPairs N → ℝ, ∫ y : Fin N → ℝ,
       ((∫ a, U ((fun i => (Real.sqrt N)⁻¹ * (((a i : ℤ) : ℝ) -
-            ∫ b, ((b i : ℤ) : ℝ) ∂(Measure.count.tilted (skGibbsEnergy N β h g)))) ⬝ᵥ y)
-          ∂(Measure.count.tilted (skGibbsEnergy N β h g))) - c₀) ^ (2 * k)
+            ∫ b, ((b i : ℤ) : ℝ) ∂(Measure.count.tilted (fun a : Fin N → ℤˣ =>
+              (Real.sqrt N)⁻¹ * β * (∑ p : FinPairs N,
+                g p * ((a p.val.1 : ℤ) : ℝ) * ((a p.val.2 : ℤ) : ℝ)) +
+              h * ∑ j, ((a j : ℤ) : ℝ))))) ⬝ᵥ y)
+          ∂(Measure.count.tilted (fun a : Fin N → ℤˣ =>
+            (Real.sqrt N)⁻¹ * β * (∑ p : FinPairs N,
+              g p * ((a p.val.1 : ℤ) : ℝ) * ((a p.val.2 : ℤ) : ℝ)) +
+            h * ∑ j, ((a j : ℤ) : ℝ)))) - c₀) ^ (2 * k)
         ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1) ≤ C₂ * J g := fun g => by
-    set f := skGibbsEnergy N β h g with hf
+    set f := fun a : Fin N → ℤˣ =>
+      (Real.sqrt N)⁻¹ * β * (∑ p : FinPairs N,
+        g p * ((a p.val.1 : ℤ) : ℝ) * ((a p.val.2 : ℤ) : ℝ)) +
+      h * ∑ i, ((a i : ℤ) : ℝ) with hf
     have hrew : ∀ y : Fin N → ℝ, ((∫ a, U ((fun i => (Real.sqrt N)⁻¹ * (((a i : ℤ) : ℝ) -
             ∫ b, ((b i : ℤ) : ℝ) ∂(Measure.count.tilted f))) ⬝ᵥ y) ∂(Measure.count.tilted f)) -
           c₀) = ∫ a, (U ((fun i => (Real.sqrt N)⁻¹ * (((a i : ℤ) : ℝ) -
@@ -162,8 +205,14 @@ theorem sk_general_gaussian_fluctuation (β h q : ℝ)
         hC0 |>.trans (le_of_eq (by simp only [hC₂, hJ]; ring)))
   have hnonneg : ∀ g : FinPairs N → ℝ, 0 ≤ ∫ y : Fin N → ℝ,
       ((∫ a, U ((fun i => (Real.sqrt N)⁻¹ * (((a i : ℤ) : ℝ) -
-            ∫ b, ((b i : ℤ) : ℝ) ∂(Measure.count.tilted (skGibbsEnergy N β h g)))) ⬝ᵥ y)
-          ∂(Measure.count.tilted (skGibbsEnergy N β h g))) - c₀) ^ (2 * k)
+            ∫ b, ((b i : ℤ) : ℝ) ∂(Measure.count.tilted (fun a : Fin N → ℤˣ =>
+              (Real.sqrt N)⁻¹ * β * (∑ p : FinPairs N,
+                g p * ((a p.val.1 : ℤ) : ℝ) * ((a p.val.2 : ℤ) : ℝ)) +
+              h * ∑ j, ((a j : ℤ) : ℝ))))) ⬝ᵥ y)
+          ∂(Measure.count.tilted (fun a : Fin N → ℤˣ =>
+            (Real.sqrt N)⁻¹ * β * (∑ p : FinPairs N,
+              g p * ((a p.val.1 : ℤ) : ℝ) * ((a p.val.2 : ℤ) : ℝ)) +
+            h * ∑ j, ((a j : ℤ) : ℝ)))) - c₀) ^ (2 * k)
         ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1) := fun g =>
     integral_nonneg fun y => Even.pow_nonneg ⟨k, by ring⟩ _
   calc _ ≤ ∫ g, C₂ * J g ∂P :=

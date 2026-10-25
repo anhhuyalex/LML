@@ -15,13 +15,12 @@ For a Gibbs measure `μ = count.tilted f` on a finite set `α` with observables 
 and `m` replicas, let `Q_r(s) = ∫ projSum V (u σ) v r s ∂μ^{⊗m}` where `u_ℓ i = N^{-1/2}
 (ξ_i(σ_ℓ) - ⟨ξ_i⟩)`.  Then `Q_r' = sin s cos s Q_{r+1}` (a finite sum of the derivative formula of
 `GaussianProjectionPath.lean`), `Q_r(0) = 0` for `r < m` (parity vanishing), and
-`|Q_m| ≤ C ∑_p ∫ |pairProd T p|` uniformly in `s`.  The fencing lemma
+`|Q_m| ≤ C ∑_p ∫ |∏ j, T (p j).1 (p j).2|` uniformly in `s`.  The fencing lemma
 `Real.abs_chain_zero_le_of_hasDerivAt` then gives `|Q_0(π/2)| ≤ C A / (2^m m!)`, and `Q_0(π/2)`
 is `𝔼_y (⟨V(N^{-1/2} ∑ y_i ξ̇_i)⟩)^m`.
 
 ## Main declarations
 
-* `SpinGlasses.centeredData`: the centered scaled replica data `u`.
 * `SpinGlasses.hasDerivAt_gibbsProjSum`: the derivative of the Gibbs-averaged path functional.
 * `SpinGlasses.gibbs_fluctuation_abs_le`: the bound on `|𝔼_y ⟨V(Ṡ)⟩^m|` by the Gibbs average of the
   products of Gram entries.
@@ -44,13 +43,10 @@ attribute [local instance] Fintype.ofFinite
 variable {α : Type*} [Finite α] [Nonempty α] [MeasurableSpace α] [MeasurableSingletonClass α]
   {N : ℕ} (ξ : Fin N → α → ℝ)
 
-/-- The centered scaled replica data `u_ℓ i = N^{-1/2} (ξ_i(σ_ℓ) - ⟨ξ_i⟩)`. -/
-noncomputable def centeredData {m : ℕ} (f : α → ℝ) (σ : Fin m → α) : Fin m → Fin N → ℝ :=
-  fun l i => (Real.sqrt N)⁻¹ * (ξ i (σ l) - ∫ a, ξ i a ∂(Measure.count.tilted f))
-
 /-- The Gibbs average over `m` replicas of the path functional `projSum`. -/
 noncomputable def gibbsProjSum {m : ℕ} (V : ℝ → ℝ) (f : α → ℝ) (v : ℝ) (r : ℕ) (s : ℝ) : ℝ :=
-  ∫ σ : Fin m → α, projSum V (centeredData ξ f σ) v r s
+  ∫ σ : Fin m → α, projSum V
+    (fun l i => (Real.sqrt N)⁻¹ * (ξ i (σ l) - ∫ a, ξ i a ∂(Measure.count.tilted f))) v r s
     ∂(Measure.pi fun _ : Fin m => Measure.count.tilted f)
 
 variable {m : ℕ} {V : ℝ → ℝ}
@@ -62,16 +58,24 @@ theorem hasDerivAt_gibbsProjSum (hV : ExpTame V) (f : α → ℝ) (v : ℝ) (r :
   classical
   have hfun : gibbsProjSum (m := m) ξ V f v r = fun s => ∑ σ : Fin m → α,
       (∏ i, Real.exp (f (σ i)) / ∑ b, Real.exp (f b)) *
-        projSum V (centeredData ξ f σ) v r s := by
+        projSum V
+          (fun l i => (Real.sqrt N)⁻¹ * (ξ i (σ l) - ∫ a, ξ i a ∂(Measure.count.tilted f)))
+          v r s := by
     funext s
     exact integral_pi_count_tilted f _
   rw [hfun]
   have h := HasDerivAt.fun_sum (u := Finset.univ)
     (A := fun (σ : Fin m → α) (s : ℝ) => (∏ i, Real.exp (f (σ i)) / ∑ b, Real.exp (f b)) *
-      projSum V (centeredData ξ f σ) v r s)
+      projSum V
+        (fun l i => (Real.sqrt N)⁻¹ * (ξ i (σ l) - ∫ a, ξ i a ∂(Measure.count.tilted f)))
+        v r s)
     (A' := fun σ => (∏ i, Real.exp (f (σ i)) / ∑ b, Real.exp (f b)) *
-      (Real.sin s * Real.cos s * projSum V (centeredData ξ f σ) v (r + 1) s))
-    (fun σ _ => (hV.hasDerivAt_projSum (centeredData ξ f σ) v r s).const_mul _)
+      (Real.sin s * Real.cos s * projSum V
+        (fun l i => (Real.sqrt N)⁻¹ * (ξ i (σ l) - ∫ a, ξ i a ∂(Measure.count.tilted f)))
+        v (r + 1) s))
+    (fun σ _ => (hV.hasDerivAt_projSum
+      (fun l i => (Real.sqrt N)⁻¹ * (ξ i (σ l) - ∫ a, ξ i a ∂(Measure.count.tilted f)))
+      v r s).const_mul _)
   refine h.congr_deriv ?_
   unfold gibbsProjSum
   rw [integral_pi_count_tilted, Finset.mul_sum]
@@ -84,7 +88,9 @@ theorem gibbsProjSum_zero_eq_zero (hV : ExpTame V) (hm : 0 < m) {r : ℕ} (hr : 
 
 /-- Coordinates of the centered data are at most `2 / √N` in absolute value, so `u_ℓ ⬝ u_ℓ ≤ 4`. -/
 theorem centeredData_dotProduct_le (hξ : ∀ i a, |ξ i a| ≤ 1) (f : α → ℝ) (σ : Fin m → α)
-    (l : Fin m) : centeredData ξ f σ l ⬝ᵥ centeredData ξ f σ l ≤ 4 := by
+    (l : Fin m) :
+    (fun i => (Real.sqrt N)⁻¹ * (ξ i (σ l) - ∫ a, ξ i a ∂(Measure.count.tilted f))) ⬝ᵥ
+      (fun i => (Real.sqrt N)⁻¹ * (ξ i (σ l) - ∫ a, ξ i a ∂(Measure.count.tilted f))) ≤ 4 := by
   have hmean : ∀ i, |∫ a, ξ i a ∂(Measure.count.tilted f)| ≤ 1 := fun i => by
     have := norm_integral_le_of_norm_le_const (μ := Measure.count.tilted f) (f := ξ i) (C := 1)
       (ae_of_all _ fun a => by simpa using hξ i a)
@@ -94,7 +100,6 @@ theorem centeredData_dotProduct_le (hξ : ∀ i a, |ξ i a| ≤ 1) (f : α → �
     have h2 := hmean i
     rw [abs_le] at h1 h2
     nlinarith
-  unfold centeredData
   simp only [dotProduct]
   have : ∀ i, (Real.sqrt N)⁻¹ * (ξ i (σ l) - ∫ a, ξ i a ∂(Measure.count.tilted f)) *
       ((Real.sqrt N)⁻¹ * (ξ i (σ l) - ∫ a, ξ i a ∂(Measure.count.tilted f))) =
@@ -113,21 +118,37 @@ theorem centeredData_dotProduct_le (hξ : ∀ i a, |ξ i a| ≤ 1) (f : α → �
 
 theorem abs_gibbsProjSum_le_of_bound {C : ℝ} {r : ℕ}
     (hC : ∀ (N' : ℕ) (u : Fin m → Fin N' → ℝ) (v s : ℝ), (∀ l, u l ⬝ᵥ u l ≤ 4) → v ^ 2 ≤ 4 →
-      |projSum V u v r s| ≤ C * ∑ p : Fin r → Fin m × Fin m, |pairProd (projGram u v) p|)
+      |projSum V u v r s| ≤
+        C * ∑ p : Fin r → Fin m × Fin m,
+          |∏ j, (u (p j).1 ⬝ᵥ u (p j).2 - if (p j).1 = (p j).2 then v ^ 2 else 0)|)
     (hξ : ∀ i a, |ξ i a| ≤ 1) (f : α → ℝ) (v : ℝ) (hv : v ^ 2 ≤ 4) (s : ℝ) :
     |gibbsProjSum (m := m) ξ V f v r s| ≤
       C * ∑ p : Fin r → Fin m × Fin m, ∫ σ : Fin m → α,
-        |pairProd (projGram (centeredData ξ f σ) v) p|
+        |∏ j,
+          ((fun i => (Real.sqrt N)⁻¹ * (ξ i (σ (p j).1) -
+            ∫ a, ξ i a ∂(Measure.count.tilted f))) ⬝ᵥ
+          (fun i => (Real.sqrt N)⁻¹ * (ξ i (σ (p j).2) -
+            ∫ a, ξ i a ∂(Measure.count.tilted f))) -
+          if (p j).1 = (p j).2 then v ^ 2 else 0)|
           ∂(Measure.pi fun _ : Fin m => Measure.count.tilted f) := by
   unfold gibbsProjSum
   refine (abs_integral_le_integral_abs).trans ?_
-  calc ∫ σ : Fin m → α, |projSum V (centeredData ξ f σ) v r s|
+  calc ∫ σ : Fin m → α, |projSum V
+        (fun l i => (Real.sqrt N)⁻¹ * (ξ i (σ l) - ∫ a, ξ i a ∂(Measure.count.tilted f)))
+        v r s|
         ∂(Measure.pi fun _ : Fin m => Measure.count.tilted f)
       ≤ ∫ σ : Fin m → α, C * ∑ p : Fin r → Fin m × Fin m,
-          |pairProd (projGram (centeredData ξ f σ) v) p|
+          |∏ j,
+            ((fun i => (Real.sqrt N)⁻¹ * (ξ i (σ (p j).1) -
+              ∫ a, ξ i a ∂(Measure.count.tilted f))) ⬝ᵥ
+            (fun i => (Real.sqrt N)⁻¹ * (ξ i (σ (p j).2) -
+              ∫ a, ξ i a ∂(Measure.count.tilted f))) -
+            if (p j).1 = (p j).2 then v ^ 2 else 0)|
           ∂(Measure.pi fun _ : Fin m => Measure.count.tilted f) :=
         integral_mono Integrable.of_finite Integrable.of_finite fun σ =>
-          hC N (centeredData ξ f σ) v s (centeredData_dotProduct_le ξ hξ f σ) hv
+          hC N
+            (fun l i => (Real.sqrt N)⁻¹ * (ξ i (σ l) - ∫ a, ξ i a ∂(Measure.count.tilted f)))
+            v s (centeredData_dotProduct_le ξ hξ f σ) hv
     _ = _ := by
         rw [integral_const_mul, integral_finsetSum _ fun p _ => Integrable.of_finite]
 
@@ -143,8 +164,11 @@ theorem integral_integral_swap_pi_count_tilted {Ω : Type*} [MeasurableSpace Ω]
   exact Finset.sum_congr rfl fun σ _ => (integral_const_mul _ _).symm
 
 theorem projSum_zero_index (u : Fin m → Fin N → ℝ) (v s : ℝ) :
-    projSum V u v 0 s = ∫ ω, ∏ l, V (projPath u v s ω l) ∂(projMeasure m N) := by
-  simp [projSum, pairProd, pairCount]
+    projSum V u v 0 s = ∫ ω, ∏ l, V
+      (Real.cos s * (v * ω.1 l) + Real.sin s * (u l ⬝ᵥ ω.2))
+      ∂((Measure.pi fun _ : Fin m => gaussianReal 0 1).prod
+        (Measure.pi fun _ : Fin N => gaussianReal 0 1)) := by
+  simp [projSum, pairCount]
 
 omit [Nonempty α] in
 /-- **The endpoint of the path is the `m`-th power of the Gibbs average.** -/
@@ -157,17 +181,26 @@ theorem gibbsProjSum_zero_index_pi_div_two (hV : ExpTame V) (hm : 0 < m) (f : α
   set c : α → Fin N → ℝ := fun a i => (Real.sqrt N)⁻¹ *
     (ξ i a - ∫ b, ξ i b ∂(Measure.count.tilted f)) with hc
   have hpath : ∀ (σ : Fin m → α) (ω : (Fin m → ℝ) × (Fin N → ℝ)) (l : Fin m),
-      projPath (centeredData ξ f σ) v (Real.pi / 2) ω l = c (σ l) ⬝ᵥ ω.2 := fun σ ω l => by
-    simp only [projPath, Real.cos_pi_div_two, Real.sin_pi_div_two, zero_mul, one_mul, zero_add]
+      Real.cos (Real.pi / 2) * (v * ω.1 l) + Real.sin (Real.pi / 2) *
+        ((fun i => (Real.sqrt N)⁻¹ *
+          (ξ i (σ l) - ∫ a, ξ i a ∂(Measure.count.tilted f))) ⬝ᵥ ω.2) =
+          c (σ l) ⬝ᵥ ω.2 := fun σ ω l => by
+    simp only [Real.cos_pi_div_two, Real.sin_pi_div_two, zero_mul, one_mul, zero_add]
     rfl
   have hint : ∀ σ : Fin m → α, Integrable
-      (fun ω : (Fin m → ℝ) × (Fin N → ℝ) => ∏ l, V (c (σ l) ⬝ᵥ ω.2)) (projMeasure m N) :=
+      (fun ω : (Fin m → ℝ) × (Fin N → ℝ) => ∏ l, V (c (σ l) ⬝ᵥ ω.2))
+      ((Measure.pi fun _ : Fin m => gaussianReal 0 1).prod
+        (Measure.pi fun _ : Fin N => gaussianReal 0 1)) :=
     fun σ => by
-      have := hV.integrable_derivProd_projPath hm (centeredData ξ f σ) v (Real.pi / 2) 0
+      have := hV.integrable_derivProd_projPath hm
+        (fun l i => (Real.sqrt N)⁻¹ * (ξ i (σ l) - ∫ a, ξ i a ∂(Measure.count.tilted f)))
+        v (Real.pi / 2) 0
       simpa [hpath] using this
   unfold gibbsProjSum
   simp_rw [projSum_zero_index, hpath]
-  rw [integral_integral_swap_pi_count_tilted (projMeasure m N) f
+  rw [integral_integral_swap_pi_count_tilted
+    ((Measure.pi fun _ : Fin m => gaussianReal 0 1).prod
+      (Measure.pi fun _ : Fin N => gaussianReal 0 1)) f
     (fun σ ω => ∏ l, V (c (σ l) ⬝ᵥ ω.2)) hint]
   have hprod : ∀ ω : (Fin m → ℝ) × (Fin N → ℝ),
       ∫ σ : Fin m → α, ∏ l, V (c (σ l) ⬝ᵥ ω.2)
@@ -200,7 +233,12 @@ theorem exists_gibbs_fluctuation_abs_le {m : ℕ} (hm : 0 < m) {Cb : ℕ → ℝ
           (ξ i a - ∫ b, ξ i b ∂(Measure.count.tilted f))) ⬝ᵥ y)
             ∂(Measure.count.tilted f)) ^ m ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1)| ≤
         C * ∑ p : Fin m → Fin m × Fin m, ∫ σ : Fin m → α,
-          |pairProd (projGram (centeredData ξ f σ) v) p|
+          |∏ j,
+            ((fun i => (Real.sqrt N)⁻¹ * (ξ i (σ (p j).1) -
+              ∫ a, ξ i a ∂(Measure.count.tilted f))) ⬝ᵥ
+            (fun i => (Real.sqrt N)⁻¹ * (ξ i (σ (p j).2) -
+              ∫ a, ξ i a ∂(Measure.count.tilted f))) -
+            if (p j).1 = (p j).2 then v ^ 2 else 0)|
             ∂(Measure.pi fun _ : Fin m => Measure.count.tilted f) := by
   obtain ⟨C₀, hC₀, hC⟩ := exists_abs_projSum_le_of_bound hm m 4 hCb hc
   refine ⟨C₀ / (2 ^ m * (Nat.factorial m : ℝ)), by positivity,
@@ -209,7 +247,12 @@ theorem exists_gibbs_fluctuation_abs_le {m : ℕ} (hm : 0 < m) {Cb : ℕ → ℝ
   have hchain := Real.abs_chain_zero_le_of_hasDerivAt (n := m)
     (Q := fun r s => gibbsProjSum (m := m) ξ V f v r s)
     (M := C₀ * ∑ p : Fin m → Fin m × Fin m, ∫ σ : Fin m → α,
-      |pairProd (projGram (centeredData ξ f σ) v) p|
+      |∏ j,
+        ((fun i => (Real.sqrt N)⁻¹ * (ξ i (σ (p j).1) -
+          ∫ a, ξ i a ∂(Measure.count.tilted f))) ⬝ᵥ
+        (fun i => (Real.sqrt N)⁻¹ * (ξ i (σ (p j).2) -
+          ∫ a, ξ i a ∂(Measure.count.tilted f))) -
+        if (p j).1 = (p j).2 then v ^ 2 else 0)|
         ∂(Measure.pi fun _ : Fin m => Measure.count.tilted f))
     (fun r s => hasDerivAt_gibbsProjSum ξ hV f v r s)
     (fun r hr => gibbsProjSum_zero_eq_zero ξ hV hm hr f v hV0)
@@ -231,7 +274,12 @@ theorem ExpTame.gibbs_fluctuation_abs_le {V : ℝ → ℝ} (hV : ExpTame V) {m :
           (ξ i a - ∫ b, ξ i b ∂(Measure.count.tilted f))) ⬝ᵥ y)
             ∂(Measure.count.tilted f)) ^ m ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1)| ≤
         C * ∑ p : Fin m → Fin m × Fin m, ∫ σ : Fin m → α,
-          |pairProd (projGram (centeredData ξ f σ) v) p|
+          |∏ j,
+            ((fun i => (Real.sqrt N)⁻¹ * (ξ i (σ (p j).1) -
+              ∫ a, ξ i a ∂(Measure.count.tilted f))) ⬝ᵥ
+            (fun i => (Real.sqrt N)⁻¹ * (ξ i (σ (p j).2) -
+              ∫ a, ξ i a ∂(Measure.count.tilted f))) -
+            if (p j).1 = (p j).2 then v ^ 2 else 0)|
             ∂(Measure.pi fun _ : Fin m => Measure.count.tilted f) := by
   obtain ⟨Cb, c, hCb, hc, hbd⟩ := hV.exists_bound_upTo (2 * m)
   obtain ⟨C, hC0, hC⟩ := exists_gibbs_fluctuation_abs_le hm (fun j _ => hCb j) hc

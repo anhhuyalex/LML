@@ -149,29 +149,22 @@ theorem ExpTame.abs_derivProd_le (hV : ExpTame V) (a : Fin m → ℕ) :
       Finset.single_le_sum (f := a) (fun _ _ => Nat.zero_le _) (Finset.mem_univ ℓ)⟩
 
 
-/-- The covariance defect `T l k = u l ⬝ u k - v² δ_{l k}` of the projection path. -/
-noncomputable def projGram {m N : ℕ} (u : Fin m → Fin N → ℝ) (v : ℝ) (l k : Fin m) : ℝ :=
-  u l ⬝ᵥ u k - if l = k then v ^ 2 else 0
-
-/-- The path point `cos s (v ξ) + sin s (u ⬝ y)` for `ω = (ξ, y)`. -/
-noncomputable def projPath {m N : ℕ} (u : Fin m → Fin N → ℝ) (v s : ℝ)
-    (ω : (Fin m → ℝ) × (Fin N → ℝ)) : Fin m → ℝ :=
-  fun l => Real.cos s * (v * ω.1 l) + Real.sin s * (u l ⬝ᵥ ω.2)
-
-
 variable {N : ℕ}
 
 /-- **Derivative of the Gaussian-projection path.**  For deterministic vectors `u l` and a scalar
 `v`, set `Z_s = cos s (v ξ) + sin s (u ⬝ y)` for independent standard Gaussian vectors `ξ`, `y`.
 The expectation of a product of derivatives of an exponentially tame `V` has derivative
-`sin t cos t ∑_{l,k} T_{l k} 𝔼 ∂_l ∂_k (...)(Z_t)`, where `T` is `projGram u v`. -/
+`sin t cos t ∑_{l,k} (u_l · u_k - v² δ_{lk}) 𝔼 ∂_l ∂_k (...)(Z_t)`. -/
 theorem ExpTame.hasDerivAt_integral_derivProd_projPath (hV : ExpTame V)
     (u : Fin m → Fin N → ℝ) (v : ℝ) (a : Fin m → ℕ) (t : ℝ) :
-    HasDerivAt (fun s => ∫ ω, ∏ ℓ, deriv^[a ℓ] V (projPath u v s ω ℓ)
+    HasDerivAt (fun s => ∫ ω, ∏ ℓ, deriv^[a ℓ] V
+        (Real.cos s * (v * ω.1 ℓ) + Real.sin s * (u ℓ ⬝ᵥ ω.2))
         ∂((Measure.pi fun _ : Fin m => gaussianReal 0 1).prod
           (Measure.pi fun _ : Fin N => gaussianReal 0 1)))
-      (Real.sin t * Real.cos t * ∑ l, ∑ k, projGram u v l k *
-        ∫ ω, ∏ ℓ, deriv^[(a + Pi.single l 1 + Pi.single k 1 : Fin m → ℕ) ℓ] V (projPath u v t ω ℓ)
+      (Real.sin t * Real.cos t * ∑ l, ∑ k,
+        (u l ⬝ᵥ u k - if l = k then v ^ 2 else 0) *
+        ∫ ω, ∏ ℓ, deriv^[(a + Pi.single l 1 + Pi.single k 1 : Fin m → ℕ) ℓ] V
+          (Real.cos t * (v * ω.1 ℓ) + Real.sin t * (u ℓ ⬝ᵥ ω.2))
           ∂((Measure.pi fun _ : Fin m => gaussianReal 0 1).prod
             (Measure.pi fun _ : Fin N => gaussianReal 0 1))) t := by
   classical
@@ -266,7 +259,7 @@ theorem ExpTame.hasDerivAt_integral_derivProd_projPath (hV : ExpTame V)
       (fun x : Fin m → ℝ => ∏ ℓ, deriv^[(a + Pi.single l 1 : Fin m → ℕ) ℓ] V (x ℓ)) :=
     funext fun y => hfd a l y
   rw [hYY, hXX]
-  simp only [projGram, hfd]
+  simp only [hfd]
   congr 1
 
 
@@ -277,10 +270,6 @@ variable {r : ℕ}
 /-- The multi-index counting how often each replica occurs in a list of `r` pairs. -/
 def pairCount (p : Fin r → Fin m × Fin m) : Fin m → ℕ := fun ℓ =>
   ∑ i, ((if (p i).1 = ℓ then 1 else 0) + (if (p i).2 = ℓ then 1 else 0))
-
-/-- The product `∏ i, T (p i).1 (p i).2` of matrix entries along a list of pairs. -/
-def pairProd (T : Fin m → Fin m → ℝ) (p : Fin r → Fin m × Fin m) : ℝ :=
-  ∏ i, T (p i).1 (p i).2
 
 theorem pairCount_cons (q : Fin m × Fin m) (p : Fin r → Fin m × Fin m) :
     pairCount (Fin.cons q p : Fin (r + 1) → Fin m × Fin m) =
@@ -293,8 +282,10 @@ theorem pairCount_cons (q : Fin m × Fin m) (p : Fin r → Fin m × Fin m) :
   ring
 
 theorem pairProd_cons (T : Fin m → Fin m → ℝ) (q : Fin m × Fin m) (p : Fin r → Fin m × Fin m) :
-    pairProd T (Fin.cons q p : Fin (r + 1) → Fin m × Fin m) = T q.1 q.2 * pairProd T p := by
-  simp [pairProd, Fin.prod_univ_succ]
+    (∏ i, T ((Fin.cons q p : Fin (r + 1) → Fin m × Fin m) i).1
+      ((Fin.cons q p : Fin (r + 1) → Fin m × Fin m) i).2) =
+        T q.1 q.2 * ∏ i, T (p i).1 (p i).2 := by
+  simp [Fin.prod_univ_succ]
 
 /-- The total multiplicity of all replicas across a list of `r` pairs is `2 * r`. -/
 theorem sum_pairCount (p : Fin r → Fin m × Fin m) :
@@ -335,8 +326,10 @@ theorem card_le_of_forall_two_le_pairCount (p : Fin r → Fin m × Fin m)
 /-- The path functional `s ↦ ∑_p ∏ T_{p} 𝔼 ∂^{count p} (…)(Z_s)`, i.e. `𝔼 (D^r F)(Z_s)` with
 `D = ∑ T_{l k} ∂_l ∂_k`. -/
 noncomputable def projSum (V : ℝ → ℝ) (u : Fin m → Fin N → ℝ) (v : ℝ) (r : ℕ) (s : ℝ) : ℝ :=
-  ∑ p : Fin r → Fin m × Fin m, pairProd (projGram u v) p *
-    ∫ ω, ∏ ℓ, deriv^[pairCount p ℓ] V (projPath u v s ω ℓ)
+  ∑ p : Fin r → Fin m × Fin m,
+    (∏ i, (u (p i).1 ⬝ᵥ u (p i).2 - if (p i).1 = (p i).2 then v ^ 2 else 0)) *
+    ∫ ω, ∏ ℓ, deriv^[pairCount p ℓ] V
+      (Real.cos s * (v * ω.1 ℓ) + Real.sin s * (u ℓ ⬝ᵥ ω.2))
       ∂((Measure.pi fun _ : Fin m => gaussianReal 0 1).prod
         (Measure.pi fun _ : Fin N => gaussianReal 0 1))
 
@@ -345,23 +338,29 @@ theorem ExpTame.hasDerivAt_projSum (hV : ExpTame V) (u : Fin m → Fin N → ℝ
     HasDerivAt (projSum V u v r) (Real.sin t * Real.cos t * projSum V u v (r + 1) t) t := by
   classical
   have h := HasDerivAt.fun_sum (u := Finset.univ)
-    (A := fun (p : Fin r → Fin m × Fin m) (s : ℝ) => pairProd (projGram u v) p *
-      ∫ ω, ∏ ℓ, deriv^[pairCount p ℓ] V (projPath u v s ω ℓ)
+    (A := fun (p : Fin r → Fin m × Fin m) (s : ℝ) =>
+      (∏ i, (u (p i).1 ⬝ᵥ u (p i).2 - if (p i).1 = (p i).2 then v ^ 2 else 0)) *
+      ∫ ω, ∏ ℓ, deriv^[pairCount p ℓ] V
+        (Real.cos s * (v * ω.1 ℓ) + Real.sin s * (u ℓ ⬝ᵥ ω.2))
         ∂((Measure.pi fun _ : Fin m => gaussianReal 0 1).prod
           (Measure.pi fun _ : Fin N => gaussianReal 0 1)))
-    (A' := fun (p : Fin r → Fin m × Fin m) => pairProd (projGram u v) p *
-      (Real.sin t * Real.cos t * ∑ l, ∑ k, projGram u v l k *
+    (A' := fun (p : Fin r → Fin m × Fin m) =>
+      (∏ i, (u (p i).1 ⬝ᵥ u (p i).2 - if (p i).1 = (p i).2 then v ^ 2 else 0)) *
+      (Real.sin t * Real.cos t * ∑ l, ∑ k,
+        (u l ⬝ᵥ u k - if l = k then v ^ 2 else 0) *
         ∫ ω, ∏ ℓ, deriv^[(pairCount p + Pi.single l 1 + Pi.single k 1 : Fin m → ℕ) ℓ] V
-            (projPath u v t ω ℓ)
+            (Real.cos t * (v * ω.1 ℓ) + Real.sin t * (u ℓ ⬝ᵥ ω.2))
           ∂((Measure.pi fun _ : Fin m => gaussianReal 0 1).prod
             (Measure.pi fun _ : Fin N => gaussianReal 0 1))))
     (fun p _ => (hV.hasDerivAt_integral_derivProd_projPath u v (pairCount p) t).const_mul
-      (pairProd (projGram u v) p))
+      (∏ i, (u (p i).1 ⬝ᵥ u (p i).2 - if (p i).1 = (p i).2 then v ^ 2 else 0)))
   unfold projSum
   refine h.congr_deriv ?_
   have hc := (Fin.consEquiv (fun _ : Fin (r + 1) => Fin m × Fin m)).sum_comp
-    (fun p' : Fin (r + 1) → Fin m × Fin m => pairProd (projGram u v) p' *
-      ∫ ω, ∏ ℓ, deriv^[pairCount p' ℓ] V (projPath u v t ω ℓ)
+    (fun p' : Fin (r + 1) → Fin m × Fin m =>
+      (∏ i, (u (p' i).1 ⬝ᵥ u (p' i).2 - if (p' i).1 = (p' i).2 then v ^ 2 else 0)) *
+      ∫ ω, ∏ ℓ, deriv^[pairCount p' ℓ] V
+        (Real.cos t * (v * ω.1 ℓ) + Real.sin t * (u ℓ ⬝ᵥ ω.2))
         ∂((Measure.pi fun _ : Fin m => gaussianReal 0 1).prod
           (Measure.pi fun _ : Fin N => gaussianReal 0 1)))
   rw [← hc]
@@ -373,7 +372,8 @@ theorem ExpTame.hasDerivAt_projSum (hV : ExpTame V) (u : Fin m → Fin N → ℝ
   refine Finset.sum_congr rfl fun k _ => Finset.sum_congr rfl fun p _ => ?_
   have hcons : (Fin.consEquiv (fun _ : Fin (r + 1) => Fin m × Fin m)) ((l, k), p) =
       Fin.cons (l, k) p := rfl
-  rw [hcons, pairProd_cons, pairCount_cons]
+  rw [hcons, pairProd_cons
+    (T := fun l k => u l ⬝ᵥ u k - if l = k then v ^ 2 else 0), pairCount_cons]
   ring
 
 end Lists
@@ -395,18 +395,14 @@ theorem exp_sum_le_avg_exp (hm : 0 < m) (a : Fin m → ℝ) :
   rwa [← Finset.mul_sum] at h
 
 
-/-- The Gaussian measure on pairs `(ξ, y)` used in the projection path. -/
-noncomputable abbrev projMeasure (m N : ℕ) : Measure ((Fin m → ℝ) × (Fin N → ℝ)) :=
-  (Measure.pi fun _ : Fin m => gaussianReal 0 1).prod (Measure.pi fun _ : Fin N => gaussianReal 0 1)
-
 theorem projPath_apply_exp (u : Fin m → Fin N → ℝ) (v s b : ℝ) (l : Fin m)
     (ω : (Fin m → ℝ) × (Fin N → ℝ)) :
-    Real.exp (b * projPath u v s ω l) =
+    Real.exp (b * (Real.cos s * (v * ω.1 l) + Real.sin s * (u l ⬝ᵥ ω.2))) =
       Real.exp (∑ e, (Pi.single l (b * (Real.cos s * v)) : Fin m → ℝ) e * ω.1 e) *
         Real.exp (∑ i, (b * Real.sin s * u l i) * ω.2 i) := by
   rw [← Real.exp_add]
   congr 1
-  simp only [projPath, Pi.single_apply, ite_mul, zero_mul, Finset.sum_ite_eq', Finset.mem_univ,
+  simp only [Pi.single_apply, ite_mul, zero_mul, Finset.sum_ite_eq', Finset.mem_univ,
     ite_true, dotProduct, Finset.mul_sum]
   rw [mul_add, Finset.mul_sum]
   congr 1
@@ -415,12 +411,17 @@ theorem projPath_apply_exp (u : Fin m → Fin N → ℝ) (v s b : ℝ) (l : Fin 
 
 
 theorem integrable_exp_mul_projPath (u : Fin m → Fin N → ℝ) (v s b : ℝ) (l : Fin m) :
-    Integrable (fun ω => Real.exp (b * projPath u v s ω l)) (projMeasure m N) := by
+    Integrable (fun ω => Real.exp
+      (b * (Real.cos s * (v * ω.1 l) + Real.sin s * (u l ⬝ᵥ ω.2))))
+      ((Measure.pi fun _ : Fin m => gaussianReal 0 1).prod
+        (Measure.pi fun _ : Fin N => gaussianReal 0 1)) := by
   simp_rw [projPath_apply_exp]
   exact integrable_exp_prod_mul_gaussianReal _ _
 
 theorem integral_exp_mul_projPath (u : Fin m → Fin N → ℝ) (v s b : ℝ) (l : Fin m) :
-    ∫ ω, Real.exp (b * projPath u v s ω l) ∂(projMeasure m N) =
+    ∫ ω, Real.exp (b * (Real.cos s * (v * ω.1 l) + Real.sin s * (u l ⬝ᵥ ω.2)))
+        ∂((Measure.pi fun _ : Fin m => gaussianReal 0 1).prod
+          (Measure.pi fun _ : Fin N => gaussianReal 0 1)) =
       Real.exp (b ^ 2 / 2 * ((Real.cos s * v) ^ 2 + Real.sin s ^ 2 * (u l ⬝ᵥ u l))) := by
   simp_rw [projPath_apply_exp]
   rw [integral_prod_mul (fun ξ : Fin m → ℝ => Real.exp (∑ e, (Pi.single l (b * (Real.cos s * v)) :
@@ -449,31 +450,40 @@ theorem abs_integral_derivProd_projPath_le {C₀ c : ℝ} (hm : 0 < m) (a : Fin 
     (hbd : ∀ y : Fin m → ℝ, |∏ ℓ, deriv^[a ℓ] V (y ℓ)| ≤ C₀ * Real.exp (c * ∑ l, |y l|)) :
     ∀ (N : ℕ) (u : Fin m → Fin N → ℝ) (v s : ℝ),
       (∀ l, u l ⬝ᵥ u l ≤ B) → v ^ 2 ≤ B →
-        |∫ ω, ∏ ℓ, deriv^[a ℓ] V (projPath u v s ω ℓ) ∂(projMeasure m N)| ≤
+        |∫ ω, ∏ ℓ, deriv^[a ℓ] V
+          (Real.cos s * (v * ω.1 ℓ) + Real.sin s * (u ℓ ⬝ᵥ ω.2))
+            ∂((Measure.pi fun _ : Fin m => gaussianReal 0 1).prod
+              (Measure.pi fun _ : Fin N => gaussianReal 0 1))| ≤
           2 * C₀ * Real.exp ((m * c) ^ 2 / 2 * max B 0) := by
   have hm' : (0 : ℝ) < m := by exact_mod_cast hm
   set B' : ℝ := max B 0 with hB'
   intro N u v s hu hv
   set b : ℝ := m * c with hb
   let G : (Fin m → ℝ) × (Fin N → ℝ) → ℝ := fun ω =>
-    C₀ * ((1 / (m : ℝ)) * ∑ l, (Real.exp (b * projPath u v s ω l) +
-      Real.exp (-b * projPath u v s ω l)))
-  have hGi : Integrable G (projMeasure m N) := by
+    C₀ * ((1 / (m : ℝ)) * ∑ l,
+      (Real.exp (b * (Real.cos s * (v * ω.1 l) + Real.sin s * (u l ⬝ᵥ ω.2))) +
+      Real.exp (-b * (Real.cos s * (v * ω.1 l) + Real.sin s * (u l ⬝ᵥ ω.2)))))
+  have hGi : Integrable G ((Measure.pi fun _ : Fin m => gaussianReal 0 1).prod
+      (Measure.pi fun _ : Fin N => gaussianReal 0 1)) := by
     refine Integrable.const_mul (Integrable.const_mul (integrable_finsetSum _ fun l _ => ?_) _) _
     exact (integrable_exp_mul_projPath u v s b l).add (integrable_exp_mul_projPath u v s (-b) l)
-  have hpt : ∀ ω, |∏ ℓ, deriv^[a ℓ] V (projPath u v s ω ℓ)| ≤ G ω := fun ω => by
+  have hpt : ∀ ω, |∏ ℓ, deriv^[a ℓ] V
+      (Real.cos s * (v * ω.1 ℓ) + Real.sin s * (u ℓ ⬝ᵥ ω.2))| ≤ G ω := fun ω => by
     refine (hbd _).trans ?_
     refine mul_le_mul_of_nonneg_left ?_ hC₀
-    have h1 := exp_sum_le_avg_exp hm (fun l => c * |projPath u v s ω l|)
+    have h1 := exp_sum_le_avg_exp hm
+      (fun l => c * |Real.cos s * (v * ω.1 l) + Real.sin s * (u l ⬝ᵥ ω.2)|)
     rw [← Finset.mul_sum] at h1
     refine (le_of_eq_of_le (by rw [Finset.mul_sum]) h1).trans ?_
     refine mul_le_mul_of_nonneg_left (Finset.sum_le_sum fun l _ => ?_) (by positivity)
-    have h2 := exp_abs_le_add (b * projPath u v s ω l)
+    have h2 := exp_abs_le_add
+      (b * (Real.cos s * (v * ω.1 l) + Real.sin s * (u l ⬝ᵥ ω.2)))
     rw [abs_mul, abs_of_nonneg (by positivity : 0 ≤ b)] at h2
     rw [← mul_assoc, ← hb, neg_mul]
     exact h2
   have hnorm := norm_integral_le_of_norm_le hGi
-    (f := fun ω => ∏ ℓ, deriv^[a ℓ] V (projPath u v s ω ℓ))
+    (f := fun ω => ∏ ℓ, deriv^[a ℓ] V
+      (Real.cos s * (v * ω.1 ℓ) + Real.sin s * (u ℓ ⬝ᵥ ω.2)))
     (ae_of_all _ fun ω => by simpa only [Real.norm_eq_abs] using hpt ω)
   rw [Real.norm_eq_abs] at hnorm
   refine hnorm.trans ?_
@@ -486,25 +496,41 @@ theorem abs_integral_derivProd_projPath_le {C₀ c : ℝ} (hm : 0 < m) (a : Fin 
           exact add_le_add (mul_le_mul_of_nonneg_left h1 (sq_nonneg _))
             (mul_le_mul_of_nonneg_left h2 (sq_nonneg _))
       _ = B' := by rw [← add_mul, Real.cos_sq_add_sin_sq, one_mul]
-  have hI : ∀ (b' : ℝ) (l : Fin m), ∫ ω, Real.exp (b' * projPath u v s ω l)
-      ∂(projMeasure m N) ≤ Real.exp (b' ^ 2 / 2 * B') := fun b' l => by
+  have hI : ∀ (b' : ℝ) (l : Fin m), ∫ ω,
+      Real.exp (b' * (Real.cos s * (v * ω.1 l) + Real.sin s * (u l ⬝ᵥ ω.2)))
+        ∂((Measure.pi fun _ : Fin m => gaussianReal 0 1).prod
+          (Measure.pi fun _ : Fin N => gaussianReal 0 1)) ≤
+      Real.exp (b' ^ 2 / 2 * B') := fun b' l => by
     rw [integral_exp_mul_projPath]
     exact Real.exp_le_exp.2 (mul_le_mul_of_nonneg_left (hvar l) (by positivity))
-  have hGint : ∫ ω, G ω ∂(projMeasure m N) = C₀ * ((1 / (m : ℝ)) * ∑ l,
-      ((∫ ω, Real.exp (b * projPath u v s ω l) ∂(projMeasure m N)) +
-        ∫ ω, Real.exp (-b * projPath u v s ω l) ∂(projMeasure m N))) := by
+  have hGint : ∫ ω, G ω
+      ∂((Measure.pi fun _ : Fin m => gaussianReal 0 1).prod
+        (Measure.pi fun _ : Fin N => gaussianReal 0 1)) =
+      C₀ * ((1 / (m : ℝ)) * ∑ l,
+      ((∫ ω, Real.exp (b * (Real.cos s * (v * ω.1 l) + Real.sin s * (u l ⬝ᵥ ω.2)))
+          ∂((Measure.pi fun _ : Fin m => gaussianReal 0 1).prod
+            (Measure.pi fun _ : Fin N => gaussianReal 0 1))) +
+        ∫ ω, Real.exp (-b * (Real.cos s * (v * ω.1 l) + Real.sin s * (u l ⬝ᵥ ω.2)))
+          ∂((Measure.pi fun _ : Fin m => gaussianReal 0 1).prod
+            (Measure.pi fun _ : Fin N => gaussianReal 0 1)))) := by
     simp only [G]
     rw [integral_const_mul, integral_const_mul]
     congr 2
     rw [integral_finsetSum (f := fun (l : Fin m) (ω : (Fin m → ℝ) × (Fin N → ℝ)) =>
-      Real.exp (b * projPath u v s ω l) + Real.exp (-b * projPath u v s ω l)) _ fun l _ =>
+      Real.exp (b * (Real.cos s * (v * ω.1 l) + Real.sin s * (u l ⬝ᵥ ω.2))) +
+        Real.exp (-b * (Real.cos s * (v * ω.1 l) + Real.sin s * (u l ⬝ᵥ ω.2)))) _ fun l _ =>
       (integrable_exp_mul_projPath u v s b l).add (integrable_exp_mul_projPath u v s (-b) l)]
     refine Finset.sum_congr rfl fun l _ => ?_
     exact integral_add (integrable_exp_mul_projPath u v s b l)
       (integrable_exp_mul_projPath u v s (-b) l)
   rw [hGint]
-  have hsum : ∑ l : Fin m, ((∫ ω, Real.exp (b * projPath u v s ω l) ∂(projMeasure m N)) +
-      ∫ ω, Real.exp (-b * projPath u v s ω l) ∂(projMeasure m N)) ≤
+  have hsum : ∑ l : Fin m,
+      ((∫ ω, Real.exp (b * (Real.cos s * (v * ω.1 l) + Real.sin s * (u l ⬝ᵥ ω.2)))
+          ∂((Measure.pi fun _ : Fin m => gaussianReal 0 1).prod
+            (Measure.pi fun _ : Fin N => gaussianReal 0 1))) +
+      ∫ ω, Real.exp (-b * (Real.cos s * (v * ω.1 l) + Real.sin s * (u l ⬝ᵥ ω.2)))
+          ∂((Measure.pi fun _ : Fin m => gaussianReal 0 1).prod
+            (Measure.pi fun _ : Fin N => gaussianReal 0 1))) ≤
       ∑ _l : Fin m, 2 * Real.exp (b ^ 2 / 2 * B') := by
     refine Finset.sum_le_sum fun l _ => ?_
     have := hI b l
@@ -523,9 +549,9 @@ theorem abs_integral_derivProd_projPath_le {C₀ c : ℝ} (hm : 0 < m) (a : Fin 
 
 theorem continuous_projPath_uncurry (v s : ℝ) :
     Continuous fun x : (Fin m → Fin N → ℝ) × ((Fin m → ℝ) × (Fin N → ℝ)) =>
-      projPath x.1 v s x.2 := by
+      fun l => Real.cos s * (v * x.2.1 l) + Real.sin s * (x.1 l ⬝ᵥ x.2.2) := by
   refine continuous_pi fun l => ?_
-  simp only [projPath, dotProduct]
+  simp only [dotProduct]
   fun_prop
 
 theorem ExpTame.measurable_projSum (hV : ExpTame V) (v s : ℝ) (r : ℕ) :
@@ -533,12 +559,15 @@ theorem ExpTame.measurable_projSum (hV : ExpTame V) (v s : ℝ) (r : ℕ) :
   unfold projSum
   refine Finset.measurable_sum _ fun p _ => Measurable.mul ?_ ?_
   · refine Finset.measurable_prod _ fun i _ => ?_
-    simp only [projGram, dotProduct]
+    simp only [dotProduct]
     fun_prop
   · have hc : Continuous fun x : (Fin m → Fin N → ℝ) × ((Fin m → ℝ) × (Fin N → ℝ)) =>
-        ∏ ℓ, deriv^[pairCount p ℓ] V (projPath x.1 v s x.2 ℓ) :=
+        ∏ ℓ, deriv^[pairCount p ℓ] V
+          (Real.cos s * (v * x.2.1 ℓ) + Real.sin s * (x.1 ℓ ⬝ᵥ x.2.2)) :=
       ((hV.contDiff_derivProd (pairCount p)).continuous).comp (continuous_projPath_uncurry v s)
-    exact (hc.stronglyMeasurable.integral_prod_right' (ν := projMeasure m N)).measurable
+    exact (hc.stronglyMeasurable.integral_prod_right'
+      (ν := (Measure.pi fun _ : Fin m => gaussianReal 0 1).prod
+        (Measure.pi fun _ : Fin N => gaussianReal 0 1))).measurable
 
 
 theorem abs_dotProduct_le_of_self_le {N : ℕ} {B : ℝ} (x y : Fin N → ℝ) (hx : x ⬝ᵥ x ≤ B)
@@ -552,8 +581,7 @@ theorem abs_dotProduct_le_of_self_le {N : ℕ} {B : ℝ} (x y : Fin N → ℝ) (
 
 theorem abs_projGram_le {N : ℕ} {B : ℝ} (u : Fin m → Fin N → ℝ) (v : ℝ)
     (hu : ∀ l, u l ⬝ᵥ u l ≤ B) (hv : v ^ 2 ≤ B) (hB : 0 ≤ B) (l k : Fin m) :
-    |projGram u v l k| ≤ 2 * B := by
-  unfold projGram
+    |u l ⬝ᵥ u k - if l = k then v ^ 2 else 0| ≤ 2 * B := by
   have h1 := abs_dotProduct_le_of_self_le (u l) (u k) (hu l) (hu k)
   by_cases h : l = k
   · simp only [h, ite_true]
@@ -577,7 +605,9 @@ theorem exists_abs_projSum_le_of_bound (hm : 0 < m) (r : ℕ) (B : ℝ) {Cb : �
     ∃ C : ℝ, 0 ≤ C ∧ ∀ (V : ℝ → ℝ),
       (∀ j ≤ 2 * r, ∀ x, |deriv^[j] V x| ≤ Cb j * Real.exp (c * |x|)) →
       ∀ (N : ℕ) (u : Fin m → Fin N → ℝ) (v s : ℝ), (∀ l, u l ⬝ᵥ u l ≤ B) → v ^ 2 ≤ B →
-        |projSum V u v r s| ≤ C * ∑ p : Fin r → Fin m × Fin m, |pairProd (projGram u v) p| := by
+        |projSum V u v r s| ≤
+          C * ∑ p : Fin r → Fin m × Fin m,
+            |∏ i, (u (p i).1 ⬝ᵥ u (p i).2 - if (p i).1 = (p i).2 then v ^ 2 else 0)| := by
   set K : (Fin r → Fin m × Fin m) → ℝ := fun p =>
     2 * (∏ ℓ, Cb (pairCount p ℓ)) * Real.exp ((m * (m * c)) ^ 2 / 2 * max B 0) with hK
   have hK0 : ∀ p, 0 ≤ K p := fun p => by
@@ -598,40 +628,53 @@ theorem exists_abs_projSum_le_of_bound (hm : 0 < m) (r : ℕ) (B : ℝ) {Cb : �
   exact hder.trans ((Finset.single_le_sum (f := K) (fun p _ => hK0 p) (Finset.mem_univ p)))
 
 theorem continuous_projPath (u : Fin m → Fin N → ℝ) (v s : ℝ) :
-    Continuous fun ω : (Fin m → ℝ) × (Fin N → ℝ) => projPath u v s ω := by
+    Continuous fun ω : (Fin m → ℝ) × (Fin N → ℝ) =>
+      fun l => Real.cos s * (v * ω.1 l) + Real.sin s * (u l ⬝ᵥ ω.2) := by
   refine continuous_pi fun l => ?_
-  simp only [projPath, dotProduct]
+  simp only [dotProduct]
   fun_prop
 
 @[simp] theorem projPath_zero (u : Fin m → Fin N → ℝ) (v : ℝ)
-    (ω : (Fin m → ℝ) × (Fin N → ℝ)) : projPath u v 0 ω = fun l => v * ω.1 l := by
+    (ω : (Fin m → ℝ) × (Fin N → ℝ)) :
+    (fun l => Real.cos 0 * (v * ω.1 l) + Real.sin 0 * (u l ⬝ᵥ ω.2)) =
+      fun l => v * ω.1 l := by
   funext l
-  simp [projPath]
+  simp
 
 theorem ExpTame.integrable_derivProd_projPath (hV : ExpTame V) (hm : 0 < m)
     (u : Fin m → Fin N → ℝ) (v s : ℝ) (a : Fin m → ℕ) :
-    Integrable (fun ω => ∏ ℓ, deriv^[a ℓ] V (projPath u v s ω ℓ)) (projMeasure m N) := by
+    Integrable (fun ω => ∏ ℓ, deriv^[a ℓ] V
+      (Real.cos s * (v * ω.1 ℓ) + Real.sin s * (u ℓ ⬝ᵥ ω.2)))
+      ((Measure.pi fun _ : Fin m => gaussianReal 0 1).prod
+        (Measure.pi fun _ : Fin N => gaussianReal 0 1)) := by
   obtain ⟨C₀, c, hC₀, hc, hbd⟩ := hV.abs_derivProd_le a
   set b : ℝ := m * c with hb
   let G : (Fin m → ℝ) × (Fin N → ℝ) → ℝ := fun ω =>
-    C₀ * ((1 / (m : ℝ)) * ∑ l, (Real.exp (b * projPath u v s ω l) +
-      Real.exp (-b * projPath u v s ω l)))
-  have hGi : Integrable G (projMeasure m N) := by
+    C₀ * ((1 / (m : ℝ)) * ∑ l,
+      (Real.exp (b * (Real.cos s * (v * ω.1 l) + Real.sin s * (u l ⬝ᵥ ω.2))) +
+      Real.exp (-b * (Real.cos s * (v * ω.1 l) + Real.sin s * (u l ⬝ᵥ ω.2)))))
+  have hGi : Integrable G ((Measure.pi fun _ : Fin m => gaussianReal 0 1).prod
+      (Measure.pi fun _ : Fin N => gaussianReal 0 1)) := by
     refine Integrable.const_mul (Integrable.const_mul (integrable_finsetSum _ fun l _ => ?_) _) _
     exact (integrable_exp_mul_projPath u v s b l).add (integrable_exp_mul_projPath u v s (-b) l)
-  have hpt : ∀ ω, |∏ ℓ, deriv^[a ℓ] V (projPath u v s ω ℓ)| ≤ G ω := fun ω => by
+  have hpt : ∀ ω, |∏ ℓ, deriv^[a ℓ] V
+      (Real.cos s * (v * ω.1 ℓ) + Real.sin s * (u ℓ ⬝ᵥ ω.2))| ≤ G ω := fun ω => by
     refine (hbd _).trans ?_
     refine mul_le_mul_of_nonneg_left ?_ hC₀
-    have h1 := exp_sum_le_avg_exp hm (fun l => c * |projPath u v s ω l|)
+    have h1 := exp_sum_le_avg_exp hm
+      (fun l => c * |Real.cos s * (v * ω.1 l) + Real.sin s * (u l ⬝ᵥ ω.2)|)
     rw [← Finset.mul_sum] at h1
     refine (le_of_eq_of_le (by rw [Finset.mul_sum]) h1).trans ?_
     refine mul_le_mul_of_nonneg_left (Finset.sum_le_sum fun l _ => ?_) (by positivity)
-    have h2 := exp_abs_le_add (b * projPath u v s ω l)
+    have h2 := exp_abs_le_add
+      (b * (Real.cos s * (v * ω.1 l) + Real.sin s * (u l ⬝ᵥ ω.2)))
     rw [abs_mul, abs_of_nonneg (by positivity : 0 ≤ b)] at h2
     rw [← mul_assoc, ← hb, neg_mul]
     exact h2
-  have hc_meas : AEStronglyMeasurable (fun ω => ∏ ℓ, deriv^[a ℓ] V (projPath u v s ω ℓ))
-      (projMeasure m N) :=
+  have hc_meas : AEStronglyMeasurable (fun ω => ∏ ℓ, deriv^[a ℓ] V
+      (Real.cos s * (v * ω.1 ℓ) + Real.sin s * (u ℓ ⬝ᵥ ω.2)))
+      ((Measure.pi fun _ : Fin m => gaussianReal 0 1).prod
+        (Measure.pi fun _ : Fin N => gaussianReal 0 1)) :=
     ((hV.contDiff_derivProd a).continuous.comp (continuous_projPath u v s)).aestronglyMeasurable
   exact hGi.mono' hc_meas (ae_of_all _ fun ω => by simpa only [Real.norm_eq_abs] using hpt ω)
 
@@ -641,12 +684,13 @@ theorem ExpTame.integrable_derivProd_scale_gaussian (hV : ExpTame V) (hm : 0 < m
       (Measure.pi fun _ : Fin m => gaussianReal 0 1) := by
   let u : Fin m → Fin 1 → ℝ := fun _ _ => 0
   have hI := hV.integrable_derivProd_projPath (N := 1) hm u v 0 a
-  have heq : (fun ω : (Fin m → ℝ) × (Fin 1 → ℝ) => ∏ ℓ, deriv^[a ℓ] V (projPath u v 0 ω ℓ)) =
+  have heq : (fun ω : (Fin m → ℝ) × (Fin 1 → ℝ) => ∏ ℓ, deriv^[a ℓ] V
+      (Real.cos 0 * (v * ω.1 ℓ) + Real.sin 0 * (u ℓ ⬝ᵥ ω.2))) =
       fun ω => ∏ ℓ, deriv^[a ℓ] V (v * ω.1 ℓ) := by
     funext ω
     congr 1
     funext l
-    simp [projPath]
+    simp
   rw [heq] at hI
   have hP : IsProbabilityMeasure (Measure.pi fun _ : Fin 1 => gaussianReal 0 1) := by infer_instance
   have h_int_y : (fun ξ : Fin m → ℝ => ∫ y : Fin 1 → ℝ,
@@ -665,10 +709,13 @@ theorem ExpTame.integrable_derivProd_scale_gaussian (hV : ExpTame V) (hm : 0 < m
   exact Integrable.mono' h_norm hc.aestronglyMeasurable (ae_of_all _ fun _ => le_rfl)
 
 theorem integral_derivProd_projPath_zero (u : Fin m → Fin N → ℝ) (v : ℝ) (a : Fin m → ℕ) :
-    ∫ ω, ∏ ℓ, deriv^[a ℓ] V (projPath u v 0 ω ℓ) ∂(projMeasure m N) =
+    ∫ ω, ∏ ℓ, deriv^[a ℓ] V
+        (Real.cos 0 * (v * ω.1 ℓ) + Real.sin 0 * (u ℓ ⬝ᵥ ω.2))
+        ∂((Measure.pi fun _ : Fin m => gaussianReal 0 1).prod
+          (Measure.pi fun _ : Fin N => gaussianReal 0 1)) =
       ∫ ξ : Fin m → ℝ, ∏ ℓ, deriv^[a ℓ] V (v * ξ ℓ)
         ∂(Measure.pi fun _ : Fin m => gaussianReal 0 1) := by
-  simp_rw [projPath_zero]
+  simp only [Real.cos_zero, Real.sin_zero, one_mul, zero_mul, add_zero]
   exact integral_prod_fun_fst_of_isProbabilityMeasure
     (Measure.pi fun _ : Fin m => gaussianReal 0 1)
     (Measure.pi fun _ : Fin N => gaussianReal 0 1)
@@ -677,7 +724,10 @@ theorem integral_derivProd_projPath_zero (u : Fin m → Fin N → ℝ) (v : ℝ)
 theorem ExpTame.integral_derivProd_projPath_zero_eq_zero (hV : ExpTame V) (hm : 0 < m)
     (u : Fin m → Fin N → ℝ) (v : ℝ) (a : Fin m → ℕ) (j : Fin m) (hj : a j = 0)
     (hV0 : ∫ t, V (v * t) ∂(gaussianReal 0 1) = 0) :
-    ∫ ω, ∏ ℓ, deriv^[a ℓ] V (projPath u v 0 ω ℓ) ∂(projMeasure m N) = 0 := by
+    ∫ ω, ∏ ℓ, deriv^[a ℓ] V
+        (Real.cos 0 * (v * ω.1 ℓ) + Real.sin 0 * (u ℓ ⬝ᵥ ω.2))
+        ∂((Measure.pi fun _ : Fin m => gaussianReal 0 1).prod
+          (Measure.pi fun _ : Fin N => gaussianReal 0 1)) = 0 := by
   rw [integral_derivProd_projPath_zero u v a]
   have hprod : (fun ξ : Fin m → ℝ => ∏ ℓ, deriv^[a ℓ] V (v * ξ ℓ)) =
       fun ξ => ∏ l : Fin m, deriv^[a l] V (v * ξ l) := by
