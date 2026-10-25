@@ -44,6 +44,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.ConditionalExpectatio
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.BorelSpace.MeasurableOfDist
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.Pi
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Function.LpSectionMeasurable
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Function.UnitVectorField
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ChebyshevAssociation
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ExpMoment
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteHyperbolic
@@ -65,6 +66,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.Empirical
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.InfinitePiCurryRestrict
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.LocallyFiniteKernel
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.MapPairInfinitePi
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.MapProdFiberLaw
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.NthLargestAtom
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.NthLargestAtomRank
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.NthLargestAtomRpow
@@ -445,10 +447,12 @@ public import LeanMachineLearning.SpinGlasses.SKCorrelationDecay
 public import LeanMachineLearning.SpinGlasses.SKDecoupled
 public import LeanMachineLearning.SpinGlasses.SKFirstMoment
 public import LeanMachineLearning.SpinGlasses.SKFixedPoint
+public import LeanMachineLearning.SpinGlasses.SKFixedPointPositive
 public import LeanMachineLearning.SpinGlasses.SKGaussianCorollaries
 public import LeanMachineLearning.SpinGlasses.SKGaussianFluctuation
 public import LeanMachineLearning.SpinGlasses.SKGuerraBound
 public import LeanMachineLearning.SpinGlasses.SKLastSpinApprox
+public import LeanMachineLearning.SpinGlasses.SKLastSpinGaussian
 public import LeanMachineLearning.SpinGlasses.SKLatalaBase
 public import LeanMachineLearning.SpinGlasses.SKLatalaCompensated
 public import LeanMachineLearning.SpinGlasses.SKModel

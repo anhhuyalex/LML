@@ -2,7 +2,7 @@
 
 This chapter formalizes Sections~1.1 through 1.6 of Michel Talagrand's \emph{Spin Glasses: A Challenge for Mathematicians} (Volume~I, Springer, 2010) and the first half of Section~1.7.
 Section~1.6, including Proposition~1.6.8 (the cavity free-energy increment), is proved without any smallness assumption on the model parameters.
-Of Section~1.7 Theorem~1.7.11 (the general Gaussian fluctuation principle) is formalized; Corollaries~1.7.13 and~1.7.15, Lemma~1.7.14, Lemma~1.7.5 and Lemma~1.7.4 are formalized as well; Lemma~1.7.6 and Theorem~1.7.1 are not yet (Section~\ref{sec:sg-tal:fluct}).
+Of Section~1.7 Theorem~1.7.11 (the general Gaussian fluctuation principle) is formalized; Corollaries~1.7.13 and~1.7.15, Lemma~1.7.14, Lemma~1.7.5, Lemma~1.7.4 and Lemma~1.7.6 are formalized as well; Theorem~1.7.1 is not yet (Section~\ref{sec:sg-tal:fluct}).
 The mathematical narrative develops the high-temperature theory of the Sherrington--Kirkpatrick (SK) model:
 \begin{enumerate}
 \item The decoupled reference system, hypercube factorizations, exact first-moment calculations, and the first-moment upper bound on the free energy (Section~1.2).
@@ -2994,7 +2994,8 @@ Two things have to be shown:
 \item[H.] \emph{Corollary~1.7.13} (Section~\ref{sec:sg-tal:fluct-exp}; Eqs.~(1.206)--(1.207)): Theorem~1.7.11 for $U(x)=e^{\varepsilon\beta x}$ and $U(x)=xe^{\varepsilon\beta x}$, i.e.\ for the Gibbs average of the \emph{uncentered} exponential.  Fully proved, with constants uniform in $|\beta|\le\beta_0<1/2$.
 \item[I.] \emph{Lemma~1.7.14 and Corollary~1.7.15} (Section~\ref{sec:sg-tal:fluct-cavity-field}; Eqs.~(1.209)--(1.210)): the ratio $\langle\sinh(X+h)\rangle/\langle\cosh(X+h)\rangle$ is close to $\tanh$ of the thermal mean field, and the reaction term.  Fully proved.
 \item[J.] \emph{Lemma~1.7.4, Eq.~(1.185)} (Section~\ref{sec:sg-tal:fluct-last-spin}): $\langle\sigma_{N+1}\rangle$ is close to $\tanh$ of the cavity field built from the old Gibbs measure at $\beta_-$.  Fully proved.
-\item[K.] \emph{Lemma~1.7.4, Eq.~(1.186)} (Section~\ref{sec:sg-tal:fluct-old-spin}): adding a spin moves an old magnetization by $O(N^{-1/2})$ in $L^2$.  Fully proved; the Gaussian structure of the cavity field (Lemma~1.7.6) is not.
+\item[K.] \emph{Lemma~1.7.4, Eq.~(1.186)} (Section~\ref{sec:sg-tal:fluct-old-spin}): adding a spin moves an old magnetization by $O(N^{-1/2})$ in $L^2$.  Fully proved.
+\item[L.] \emph{Lemma~1.7.6} (Section~\ref{sec:sg-tal:fluct-gaussian-field}): the last spin is a $\tanh$ of $\beta\sqrt q\,z+h$ for a standard Gaussian $z$ that depends on all couplings but is independent of the couplings of the first $N$ spins.  Fully proved, with $K=K(\beta_0,h)$.
 \end{enumerate}
 Parts~A--E are independent of the spin-glass model: Part~A is about Gaussian vectors, Parts~B--E about an arbitrary finite
 Gibbs measure carrying $N$ bounded observables (Part~E needs $\xi_i^2=1$).  Only the last step of Part~F uses the SK model, through the overlap moments of Section~1.4.  Part~G is the fixed-point stability under the cavity parameter shift $\beta_-=\beta\sqrt{1-1/N}$.  Parts~H and~I specialize Part~F to the exponentials that the cavity method produces; they use the SK model through Part~F and through the overlap moments of Section~1.4 directly (the intermediate, disorder-by-disorder bound of Part~F is reused, not just its statement).
@@ -4091,7 +4092,7 @@ Pick a fixed point $q_-$ of the $N$-spin system at $\beta_-$ (it exists, Eq.~(1.
 \begin{itemize}
 \item \emph{Indexing.}  The book states (1.185) for $N$ spins and applies (1.209) to the $(N-1)$-spin system; we write $N+1$ and $N$.  Constants are the same up to the factor $2^k$ from $1/N^k\le2^k/(N+1)^k$.  The $L^{2k}$ form is stated because Theorem~1.7.7 is an $L^{2k}$ statement.
 \item \emph{No fixed point in the statement.}  The book's text speaks of the fixed point $q_-$ of the smaller system; the statement of (1.185) does not contain $q$ and neither does ours.  Lemma~\ref{lem:sg-tal:fixed-point-shift} (relating $q$ and $q_-$) is needed only in the next steps (1.186) and Lemma~1.7.6, where the fixed point of the \emph{full} system enters.
-\item \emph{Part of (1.185) only.}  The book's Lemma~1.7.4 also contains (1.186), proved in Theorem~\ref{thm:sg-tal:lemma-174-b}, and the Gaussian structure of the cavity field (Lemma~1.7.6), which is not yet formalized.
+\item \emph{Part of (1.185) only.}  The book's Lemma~1.7.4 also contains (1.186), proved in Theorem~\ref{thm:sg-tal:lemma-174-b}, and the Gaussian structure of the cavity field (Lemma~1.7.6), proved in Theorem~\ref{thm:sg-tal:lemma-176}.
 \end{itemize}
 \end{remark}
 
@@ -4198,12 +4199,140 @@ where $\langle\cdot\rangle$ is the Gibbs measure of the $(N+1)$-spin system and 
 Choose a fixed point $q$ of the $N$-spin system at $\beta_-$.  By Lemma~\ref{lem:sg-tal:old-spin-cavity} the integrand is $F(g_{\mathrm{old}},y)=\bigl(\langle\dot\sigma_i\cosh L\rangle_-/\langle\cosh L\rangle_-\bigr)^2\le\langle\dot\sigma_i\cosh L\rangle_-^2$ (as $\langle\cosh L\rangle_-\ge1$).  By Proposition~\ref{lem:sg-tal:disorder-split} and nonnegativity, the left side is at most $\mathbb E_{g_{\mathrm{old}}}\mathbb E_yF$, hence at most $\mathbb E S_i$, which is bounded in Lemma~\ref{lem:sg-tal:cavity-site-symmetry}, with $K'$ from the uniform overlap moment bound (Theorem~\ref{thm:sg-tal:overlap-moments-all}, $r=1$).  Finally $1/N\le2/(N+1)$.
 \end{proof}
 
+\subsection{Lemma~1.7.6: the cavity field is a standard Gaussian independent of the old couplings}
+\label{sec:sg-tal:fluct-gaussian-field}
+
+\emph{Content.}  Lemma~1.7.6 asks for a standard Gaussian $z$ with $\mathbb E(\langle\sigma_{N+1}\rangle-\tanh(\beta z\sqrt q+h))^2\le K/(N+1)$, which is a function of all couplings of the $(N+1)$-spin system and is independent of the couplings among the first $N$ spins.
+Write $m_i=\langle\sigma_i\rangle_-$ for the old magnetizations, $A=\|m\|$, and $y_i=g_{i,N+1}$ for the new couplings.  The book's $z=A^{-1}\sum_iy_im_i$ is replaced by $z=u\cdot y$ with the unit vector $u=m/A$ (and $u=e_1$ where $A=0$), so no case split is needed.  The proof has four steps.
+(i) For fixed old couplings $z$ is a unit vector paired with an i.i.d.\ standard Gaussian vector, hence standard Gaussian; a function whose conditional law given the old couplings is a fixed law is independent of them (a general measure-theoretic lemma, not specific to spin glasses).
+(ii) Combine Eq.~(1.185) with $|\tanh x-\tanh y|\le|x-y|$; what is left is the $y$-average $\mathbb E_y(\beta(N+1)^{-1/2}m\cdot y-\beta\sqrt q\,z)^2=\beta^2(\sqrt q-A/\sqrt{N+1})^2$ (Eq.~(1.188)).
+(iii) For $h\ne0$ the fixed point is bounded below, so $(\sqrt q-a)^2\le(q-a^2)^2/q$ costs a constant that blows up as $h\to0$; this is the ``discontinuity'' the book mentions.
+(iv) The normalization trap of the book: $A^2/(N+1)=\frac N{N+1}\bar R$ where $\bar R=N^{-1}\sum_im_i^2=\langle R_{1,2}\rangle_-$ is the overlap of the \emph{$N$-spin} system, so $q-A^2/(N+1)=\frac N{N+1}(q-\bar R)+\frac q{N+1}$; the extra $\frac q{N+1}$ is harmless.  Then Jensen, the overlap moment at $q_-$ (Eq.~(1.88)) and the fixed-point shift (Lemma~1.7.5, Part~G) finish.
+For $h=0$ one has $q=0$ and $\langle\sigma_{N+1}\rangle=0$ by symmetry.
+\emph{Uses:} Parts~G, J and the overlap moments of Section~1.4.  \emph{Status:} fully proved.
+
+\begin{lemma}[Constant fibre law implies independence]
+\label{lem:sg-tal:fibre-independence}
+  \lean{MeasureTheory.Measure.map_prod_fst_eq_prod,
+        ProbabilityTheory.indepFun_fst_of_ae_map_eq,
+        ProbabilityTheory.indepFun_fst_comp_of_measurePreserving}
+  \leanok
+\talsource{Section~1.7, proof of Lemma~1.7.6: ``conditionally upon $(g_{ij})_{i<j\le N-1}$, the r.v.\ $z$ is standard Gaussian \dots\ therefore the r.v.\ $z$ is independent of the r.v.s $(g_{ij})_{i<j\le N-1}$''}
+Let $A,B$ be probability measures, $F:\alpha\times\beta\to\gamma$ measurable and $\lambda$ a probability measure such that, for $A$-almost every $a$, the law of $b\mapsto F(a,b)$ under $B$ is $\lambda$.  Then under $A\otimes B$ the pair $(a,F(a,b))$ has law $A\otimes\lambda$; consequently $F$ has law $\lambda$ and is independent of $a$.  The same holds for $F\circ e$ and $\mathrm{pr}_1\circ e$ under $P$ if $e$ carries $P$ to $A\otimes B$ measure-preservingly.
+\end{lemma}
+\begin{proof}
+  \leanok
+For a measurable set $s$, $(A\otimes B)\{(a,b):(a,F(a,b))\in s\}=\int B\{b:(a,F(a,b))\in s\}\,dA(a)=\int\lambda(s_a)\,dA(a)=(A\otimes\lambda)(s)$ by Tonelli and the hypothesis, where $s_a$ is the section of $s$ at $a$.  Independence is the factorization of the law of the pair (the product of the marginals), and the transported statement is the change of variables along $e$.
+\end{proof}
+
+\begin{lemma}[A standard Gaussian projection independent of the old couplings]
+\label{lem:sg-tal:gaussian-projection}
+  \uses{lem:sg-tal:fibre-independence, lem:sg-tal:disorder-split}
+  \lean{ProbabilityTheory.map_dotProduct_pi_gaussianReal,
+        ProbabilityTheory.map_dotProduct_pi_gaussianReal_of_dotProduct_self,
+        exists_measurable_unit_field,
+        SpinGlasses.exists_independent_gaussian_projection,
+        SpinGlasses.exists_sk_cavity_gaussian}
+  \leanok
+\talsource{Section~1.7, proof of Lemma~1.7.6: the definition $z=A^{-1}\sum_{i\le N-1}g_i\langle\sigma_i\rangle_-$ and Eq.~(1.188)}
+(a) For $\xi$ a vector of $N$ i.i.d.\ standard Gaussians and $a\in\mathbb R^N$, $a\cdot\xi\sim\mathcal N(0,a\cdot a)$; in particular a unit vector gives a standard Gaussian.
+(b) For $N\ge1$ and a measurable family of vectors $m(\omega)\in\mathbb R^N$ there is a measurable family of unit vectors $u(\omega)$ with $m=\sqrt{m\cdot m}\;u$.
+(c) Let $e$ carry $P$ to $P'\otimes\gamma^N$ measure-preservingly, with components $(\omega',y)$, and let $m$ be a measurable vector of $\omega'$.  Then there is a measurable $Z(\omega',y)=u(\omega')\cdot y$ such that $Z\circ e$ is a standard Gaussian independent of $\omega'$, and for all $c,t$ the map $y\mapsto(c\,m\cdot y-t\,Z)^2$ is integrable with integral $(c\sqrt{m\cdot m}-t)^2$.
+For the SK system $e=\mathrm{skCavityDisorderEquiv}$ and $m_i=\langle\sigma_i\rangle_-$ at $\beta_-=\beta\sqrt{N/(N+1)}$ with the old couplings.
+\end{lemma}
+\begin{proof}
+  \leanok
+(a) The linear form is a centered Gaussian (the product measure is the push of the standard Gaussian of $\mathbb R^N$) with variance $\mathbb E(a\cdot\xi)^2=a\cdot a$.  (b) Put $u=m/\|m\|$ where $m\ne0$ and $u=e_1$ otherwise; measurability follows from that of $\|m\|$ and of the set $\{\|m\|=0\}$.  (c) By (a) the fibre law of $y\mapsto u(\omega')\cdot y$ is $\mathcal N(0,1)$ for every $\omega'$; apply Lemma~\ref{lem:sg-tal:fibre-independence}.  Since $c\,m-t\,u=(c\|m\|-t)u$, the last claim is (a) again.
+\end{proof}
+
+\begin{lemma}[Lower bound for the fixed point when $h\ne0$]
+\label{lem:sg-tal:fixed-point-lower}
+  \lean{SpinGlasses.fixedPoint_lower_bound,
+        SpinGlasses.integral_tanh_affine_lower,
+        SpinGlasses.two_div_sub_div_sq_le_inv,
+        Real.tanh_add_tanh_sub,
+        Real.abs_tanh_sub_tanh_le,
+        Real.abs_tanh_le_abs,
+        SpinGlasses.integral_sq_gaussianReal_zero_one,
+        SpinGlasses.fixedPoint_eq_zero_of_field_zero}
+  \leanok
+\talsource{Section~1.7, proof of Lemma~1.7.6: ``we can and do assume $h\ne0$, for otherwise $q=0$'' and the division by $q$ in the last display (the book gives no lower bound)}
+Let $4\beta^2<1$ and $q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$.  If $h\ne0$ then $q\ge\bigl(\sinh(2|h|)/(\cosh2h+e^{1/2})\bigr)^2>0$, independently of $\beta$.  If $h=0$ then $q=0$.  Moreover $\tanh$ is $1$-Lipschitz.
+\end{lemma}
+\begin{proof}
+  \leanok
+Let $s=\beta\sqrt q$, so $s^2\le\beta^2\le1/4$.  For $h>0$, $\tanh(h+x)+\tanh(h-x)=2\sinh2h/(\cosh2h+\cosh2x)$; by the symmetry $z\mapsto-z$, $\mathbb E\tanh(sz+h)=\mathbb E\sinh2h/(\cosh2h+\cosh2sz)$.  The tangent line bound $1/y\ge2/D-y/D^2$ with $D=\cosh2h+e^{1/2}$ and $\mathbb E\cosh2sz=e^{2s^2}\le e^{1/2}$ give $\mathbb E\tanh(sz+h)\ge\sinh2h/D$.  For $h<0$ use oddness of $\tanh$.  Jensen gives $q=\mathbb E\tanh^2\ge(\mathbb E\tanh)^2$.  For $h=0$, $\tanh^2x\le x^2$ gives $q\le\beta^2q\le q/4$.  The Lipschitz bound is the mean value theorem with $\tanh'=1-\tanh^2\in[0,1]$.
+\end{proof}
+
+\begin{lemma}[The renormalization defect of the old magnetizations]
+\label{lem:sg-tal:old-overlap-defect}
+  \uses{thm:sg-tal:overlap-moments-all, lem:sg-tal:fixed-point-shift}
+  \lean{SpinGlasses.sk_old_overlap_dev_bound,
+        SpinGlasses.sq_sub_mul_le,
+        SpinGlasses.sq_meanOverlap_sub_le_overlapMoment}
+  \leanok
+\talsource{Section~1.7, proof of Lemma~1.7.6, Eq.~(1.189) (with the normalization $N/(N+1)$ made explicit)}
+Let $4\beta_0^2<1$, $0\le\beta\le\beta_0$, $q$ a fixed point at $\beta$, $N\ge1$, and let $\bar R=N^{-1}\sum_{i\le N}\langle\sigma_i\rangle_-^2$ be the mean overlap of the $N$-spin system at $\beta_-=\beta\sqrt{N/(N+1)}$.  There is an integrable function $B$ of the old couplings with $\bigl(q-\frac N{N+1}\bar R\bigr)^2\le B$ and $\mathbb E B\le K/(N+1)$, where $K$ depends on $(\beta_0,h)$ only.
+\end{lemma}
+\begin{proof}
+  \leanok
+Let $q_-$ be a fixed point at $\beta_-$; by Lemma~\ref{lem:sg-tal:fixed-point-shift} (with $N+1$ for $N$) $|q-q_-|\le\frac1{N+1}$.  For $\varepsilon=\frac1{N+1}$, $q-(1-\varepsilon)\bar R=(1-\varepsilon)(q-\bar R)+\varepsilon q$ and $(a+b)^2\le2a^2+2b^2$ twice give $(q-(1-\varepsilon)\bar R)^2\le4(\bar R-q_-)^2+6\varepsilon^2$.  Since replicas are independent, $\bar R-q_-=\mathbb E\langle R_{1,2}-q_-\rangle_-$, so Jensen gives $(\bar R-q_-)^2\le\langle(R_{1,2}-q_-)^2\rangle_-$, whose disorder average is at most $K'/N$ by the overlap moment of Section~1.4 (uniform in $|\beta|\le\beta_0$).  Take $B=4\langle(R_{1,2}-q_-)^2\rangle_-+6\varepsilon^2$; $1/N\le2/(N+1)$.
+\end{proof}
+
+\begin{theorem}[The cavity field against the renormalized Gaussian]
+\label{thm:sg-tal:cavity-gaussian-sub}
+  \uses{lem:sg-tal:gaussian-projection, lem:sg-tal:fixed-point-lower, lem:sg-tal:old-overlap-defect}
+  \lean{SpinGlasses.sk_cavity_tanh_gaussian_sub_le}
+  \leanok
+\talsource{Section~1.7, proof of Lemma~1.7.6: Eq.~(1.188) and the display after it}
+Let $4\beta_0^2<1$ and $h\ne0$.  There is $K>0$ (depending on $(\beta_0,h)$) such that for $0\le\beta\le\beta_0$, every fixed point $q$ at $\beta$, $N\ge1$, and every pair $(m,Z)$ as in Lemma~\ref{lem:sg-tal:gaussian-projection}(c) for the old magnetizations,
+\[
+\mathbb E\Bigl(\tanh\Bigl(\frac\beta{\sqrt{N+1}}\sum_{i\le N}y_im_i+h\Bigr)-\tanh(\beta\sqrt q\,Z+h)\Bigr)^2\le\frac K{N+1}.
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+By Proposition~\ref{lem:sg-tal:disorder-split} and nonnegativity, the left side is at most the iterated integral over $(g_{\mathrm{old}},y)$.  For fixed $g_{\mathrm{old}}$, $|\tanh x-\tanh y|\le|x-y|$ and Lemma~\ref{lem:sg-tal:gaussian-projection}(c) with $c=(N+1)^{-1/2}$, $t=\sqrt q$ bound the $y$-integral by $\beta^2(c\|m\|-\sqrt q)^2\le\beta^2(q-c^2\|m\|^2)^2/q$.  Here $c^2\|m\|^2=\frac N{N+1}\bar R$, so Lemma~\ref{lem:sg-tal:old-overlap-defect} bounds the integrand by $B$, and $q\ge q_{\min}(h)>0$ by Lemma~\ref{lem:sg-tal:fixed-point-lower}.  Hence the bound $\beta_0^2q_{\min}^{-1}K_B/(N+1)$.
+\end{proof}
+
+\begin{theorem}[Lemma~1.7.6]
+\label{thm:sg-tal:lemma-176}
+  \uses{thm:sg-tal:lemma-174-a, thm:sg-tal:cavity-gaussian-sub, lem:sg-tal:gaussian-projection, lem:sg-tal:fixed-point-lower}
+  \lean{SpinGlasses.sk_last_spin_gaussian_approx,
+        SpinGlasses.integral_spin_eq_zero_of_field_zero,
+        SpinGlasses.integrable_sq_sub_of_abs_le,
+        SpinGlasses.abs_integral_spin_le_one,
+        SpinGlasses.measurable_integral_count_tilted}
+  \leanok
+\talsource{Lemma~1.7.6, for the system of $N+1$ spins}
+Let $\beta_0\ge0$ with $4\beta_0^2<1$ and $h\in\mathbb R$.  There is $K>0$ (depending on $(\beta_0,h)$ only) such that for all $0\le\beta\le\beta_0$, every solution $q$ of $q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$ and all $N\ge1$ there is a measurable function $z$ of the couplings of the $(N+1)$-spin system such that $z$ is a standard Gaussian, $z$ is independent of the couplings $(g_{ij})_{i<j\le N}$ among the first $N$ spins, and
+\[
+\mathbb E\bigl(\langle\sigma_{N+1}\rangle-\tanh(\beta z\sqrt q+h)\bigr)^2\le\frac K{N+1}.
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+For $h=0$: $q=0$ (Lemma~\ref{lem:sg-tal:fixed-point-lower}), $\langle\sigma_{N+1}\rangle=0$ (the energy is even in the spins), and $z=Z\circ e$ from Lemma~\ref{lem:sg-tal:gaussian-projection} works.  For $h\ne0$ take $z=Z\circ e$ for the old magnetizations at $\beta_-$.  Write the integrand as $(X-W)^2$ with $X=\langle\sigma_{N+1}\rangle$, $W=\tanh(\beta\sqrt q\,z+h)$ and let $T$ be the $\tanh$ of Eq.~(1.185).  Then $(X-W)^2\le2(X-T)^2+2(T-W)^2$; all three functions are measurable and bounded (the Gibbs mean is a measurable function of the couplings, bounded by $1$), so the integrals add.  The first term is bounded by Theorem~\ref{thm:sg-tal:lemma-174-a} ($k=1$) and the second by Theorem~\ref{thm:sg-tal:cavity-gaussian-sub}.
+\end{proof}
+
+\begin{remark}[Differences from the book in Lemma~1.7.6]
+\label{rem:sg-tal:dev-176}
+\begin{itemize}
+\item \emph{Indexing and sign of $\beta$.}  We write $N+1$ spins and $N$ old ones; $\beta\ge0$, because the fixed-point shift (Lemma~\ref{lem:sg-tal:fixed-point-shift}) is stated for $\beta\ge0$ (the model is symmetric under $\beta\mapsto-\beta$).
+\item \emph{Uniformity.}  $K$ is uniform in $0\le\beta\le\beta_0$ and in the solution $q$, as the induction of Theorem~1.7.1 needs; it depends on $h$ and degenerates as $h\to0$, as the book says (here through $q_{\min}(h)=(\sinh|2h|/(\cosh2h+e^{1/2}))^2$).
+\item \emph{No case split on $A=0$.}  The renormalized Gaussian is $u\cdot y$ with a measurable unit vector $u$ (equal to $m/\|m\|$ when $m\ne0$) instead of $A^{-1}\sum_ig_i\langle\sigma_i\rangle_-$.
+\item \emph{Normalization.}  The book writes $A^2=N\langle R_{1,2}^-\rangle_-$ with $N$ replaced by $N-1$ in the overlap of the smaller system; we keep the factor $N/(N+1)$ explicit and absorb the remainder $q/(N+1)$.
+\item \emph{Lower bound for $q$.}  The book uses $1/q$ without comment; we prove $q\ge q_{\min}(h)>0$ explicitly.
+\end{itemize}
+\end{remark}
+
 \begin{remark}[What remains of Section~1.7]
 \label{rem:sg-tal:remaining-17}
 Of Section~1.7 the following are formalized: the general Gaussian fluctuation principle (Theorem~\ref{thm:sg-tal:general-fluct}), the fixed-point shift (Lemma~\ref{lem:sg-tal:fixed-point-shift}),
 Corollary~1.7.13 (Theorem~\ref{thm:sg-tal:cor-1713}), Lemma~1.7.14 (Lemma~\ref{lem:sg-tal:ratio}) and Corollary~1.7.15 (Theorems~\ref{thm:sg-tal:cor-1715-tanh} and~\ref{thm:sg-tal:cor-1715-reaction}).
 Also formalized are Eq.~(1.185) of Lemma~1.7.4 (Theorem~\ref{thm:sg-tal:lemma-174-a}), obtained by applying Eq.~(1.209) to the $N$-spin system at $\beta_-$ for the $(N+1)$-spin system, and Eq.~(1.186) (Theorem~\ref{thm:sg-tal:lemma-174-b}).
-Not yet formalized, and for that reason not stated here as theorems, are Lemma~1.7.6 (the cavity field as a disorder-measurable Gaussian) and Theorem~1.7.1 (the local magnetizations are asymptotically i.i.d.\ ).
+Lemma~1.7.6 (the cavity field as a disorder-measurable Gaussian) is formalized as Theorem~\ref{thm:sg-tal:lemma-176}.
+Not yet formalized, and for that reason not stated here as a theorem, is Theorem~1.7.1 (the local magnetizations are asymptotically i.i.d.\ ); its induction step needs Eqs.~(1.185), (1.186) and Lemma~1.7.6, all proved here.
 One gap between what is proved and what these applications need is already known: Eq.~(1.210) is stated before the final linear rewriting of the book (Remark~\ref{rem:sg-tal:dev-1715}).  The Corollaries are stated for the $N$-spin system with constants uniform in $|\beta|\le\beta_0<1/2$ (Remark~\ref{rem:sg-tal:dev-1713}), so the application to the $N$-spin system at $\beta_-$ is by relabeling $N$ and $\beta$ (done in Theorems~\ref{thm:sg-tal:lemma-174-a} and~\ref{thm:sg-tal:lemma-174-b}).
 Nothing in Sections~1.1--1.6 depends on Section~1.7.
 \end{remark}

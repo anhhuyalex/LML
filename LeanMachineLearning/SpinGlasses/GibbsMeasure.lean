@@ -173,6 +173,18 @@ theorem measurable_count_tilted [Finite α] {Ω : Type*} [MeasurableSpace Ω] (f
   · simp [ha]
 
 omit [Fintype α] in
+/-- **A Gibbs average is measurable in the disorder:** if the energies `f ω a` are measurable in
+`ω`, so is `ω ↦ ∫ φ d(count.tilted (f ω))` for every observable `φ`. -/
+theorem measurable_integral_count_tilted [Finite α] {Ω : Type*} [MeasurableSpace Ω]
+    (f : Ω → α → ℝ) (hf : ∀ a, Measurable fun ω => f ω a) (φ : α → ℝ) :
+    Measurable fun ω => ∫ a, φ a ∂(Measure.count.tilted (f ω)) := by
+  have := Fintype.ofFinite α
+  simp_rw [integral_count_tilted]
+  exact Finset.measurable_sum _ fun a _ =>
+    ((Real.measurable_exp.comp (hf a)).div
+      (Finset.measurable_sum _ fun b _ => Real.measurable_exp.comp (hf b))).mul_const _
+
+omit [Fintype α] in
 instance [Finite α] [Nonempty α] (f : α → ℝ) : IsProbabilityMeasure (Measure.count.tilted f) :=
   isProbabilityMeasure_tilted Integrable.of_finite
 

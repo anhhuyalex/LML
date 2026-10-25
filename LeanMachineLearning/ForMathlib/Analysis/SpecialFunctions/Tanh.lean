@@ -95,4 +95,19 @@ theorem abs_deriv_tanh_sq_le (x : ℝ) : |2 * Real.tanh x * (1 - Real.tanh x ^ 2
   rw [abs_mul, abs_mul, abs_of_pos (by norm_num : (0:ℝ) < 2), abs_of_nonneg hpos]
   nlinarith
 
+/-- **`tanh` is 1-Lipschitz:** `|tanh x - tanh y| ≤ |x - y|`. -/
+theorem abs_tanh_sub_tanh_le (x y : ℝ) : |Real.tanh x - Real.tanh y| ≤ |x - y| := by
+  have h := Convex.norm_image_sub_le_of_norm_hasDerivWithin_le (f := Real.tanh)
+    (f' := fun t => 1 - Real.tanh t ^ 2) (s := Set.univ) (C := 1)
+    (fun t _ => (hasDerivAt_tanh t).hasDerivWithinAt)
+    (fun t _ => by
+      rw [Real.norm_eq_abs, abs_of_nonneg (by linarith [Real.tanh_sq_lt_one t])]
+      nlinarith [sq_nonneg (Real.tanh t)])
+    convex_univ (Set.mem_univ y) (Set.mem_univ x)
+  simpa [Real.norm_eq_abs, abs_sub_comm] using h
+
+/-- `|tanh x| ≤ |x|`. -/
+theorem abs_tanh_le_abs (x : ℝ) : |Real.tanh x| ≤ |x| := by
+  simpa using abs_tanh_sub_tanh_le x 0
+
 end Real

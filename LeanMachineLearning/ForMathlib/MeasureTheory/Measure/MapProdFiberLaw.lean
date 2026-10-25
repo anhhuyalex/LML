@@ -28,7 +28,7 @@ variable {α β γ : Type*} [MeasurableSpace α] [MeasurableSpace β] [Measurabl
 
 /-- **Constant fibre law ⟹ product law.**  If, for `A`-a.e. `a`, the law of `b ↦ F (a, b)` under
 `B` is `lam`, then `(a, F (a, b))` has the law `A ⊗ lam` under `A ⊗ B`. -/
-theorem map_prod_fst_eq_prod (A : Measure α) (B : Measure β) [SFinite A] [SFinite B]
+theorem map_prod_fst_eq_prod (A : Measure α) (B : Measure β) [SFinite B]
     {lam : Measure γ} [SFinite lam] {F : α × β → γ} (hF : Measurable F)
     (h : ∀ᵐ a ∂A, B.map (fun b => F (a, b)) = lam) :
     (A.prod B).map (fun w => (w.1, F w)) = A.prod lam := by
@@ -68,10 +68,11 @@ theorem indepFun_fst_of_ae_map_eq (A : Measure α) (B : Measure β) [IsProbabili
 /-- **Transport along a measure preserving map.**  If `e : Ω → α × β` carries `P` to `A ⊗ B` and
 `b ↦ F (a, b)` has the law `lam` for a.e. `a`, then `F ∘ e` has law `lam` under `P` and is
 independent of the first component of `e`. -/
-theorem indepFun_fst_comp_of_measurePreserving {P : Measure Ω} [IsProbabilityMeasure P] {A : Measure α} {B : Measure β}
-    [IsProbabilityMeasure A] [IsProbabilityMeasure B] {lam : Measure γ}
-    [IsProbabilityMeasure lam] {e : Ω → α × β} (he : MeasurePreserving e P (A.prod B))
-    {F : α × β → γ} (hF : Measurable F) (h : ∀ᵐ a ∂A, B.map (fun b => F (a, b)) = lam) :
+theorem indepFun_fst_comp_of_measurePreserving {P : Measure Ω} [IsProbabilityMeasure P]
+    {A : Measure α} {B : Measure β} [IsProbabilityMeasure A] [IsProbabilityMeasure B]
+    {lam : Measure γ} [IsProbabilityMeasure lam] {e : Ω → α × β}
+    (he : MeasurePreserving e P (A.prod B)) {F : α × β → γ} (hF : Measurable F)
+    (h : ∀ᵐ a ∂A, B.map (fun b => F (a, b)) = lam) :
     IndepFun (fun ω => (e ω).1) (fun ω => F (e ω)) P ∧ P.map (fun ω => F (e ω)) = lam := by
   obtain ⟨hind, hlaw⟩ := indepFun_fst_of_ae_map_eq A B hF h
   have h1 : AEMeasurable (fun ω => (e ω).1) P := (measurable_fst.comp he.measurable).aemeasurable
