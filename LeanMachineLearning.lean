@@ -43,6 +43,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.ConditionalExpectatio
 public import LeanMachineLearning.ForMathlib.MeasureTheory.ConditionalExpectation.SequentialDecoupling
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.BorelSpace.MeasurableOfDist
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.Pi
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.PiSnoc
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Function.LpSectionMeasurable
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Function.UnitVectorField
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ChebyshevAssociation
@@ -455,6 +456,7 @@ public import LeanMachineLearning.SpinGlasses.SKLastSpinApprox
 public import LeanMachineLearning.SpinGlasses.SKLastSpinGaussian
 public import LeanMachineLearning.SpinGlasses.SKLatalaBase
 public import LeanMachineLearning.SpinGlasses.SKLatalaCompensated
+public import LeanMachineLearning.SpinGlasses.SKLocalMagnetizations
 public import LeanMachineLearning.SpinGlasses.SKModel
 public import LeanMachineLearning.SpinGlasses.SKOldSpinCavity
 public import LeanMachineLearning.SpinGlasses.SKOverlapConcentration
