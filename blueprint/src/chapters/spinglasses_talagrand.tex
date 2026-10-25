@@ -3882,6 +3882,8 @@ Since $\mathrm{Av}\,\mathcal E=\cosh(X+h)$ and $\mathrm{Av}\,\varepsilon\mathcal
         Real.abs_exp_mul_sub_exp_neg_mul_div_two_le,
         integral_sinh_add,
         integral_cosh_add,
+        integral_mul_sinh_add,
+        integral_mul_cosh_add,
         one_le_integral_cosh,
         abs_integral_sinh_le_integral_cosh,
         SpinGlasses.abs_sinh_cosh_diff_le,
@@ -3892,7 +3894,7 @@ Since $\mathrm{Av}\,\mathcal E=\cosh(X+h)$ and $\mathrm{Av}\,\varepsilon\mathcal
 \talsource{the identities ``$\mathrm{Av}\,\mathcal E=\mathrm{ch}$, $\mathrm{Av}\,\varepsilon\mathcal E=\mathrm{sh}$'' used in the proof of Corollary~1.7.15}
 For reals $u,h,D_1,D_2$:
 \begin{enumerate}
-\item $\cosh(u+h)=\frac12(e^he^u+e^{-h}e^{-u})$, $\sinh(u+h)=\frac12(e^he^u-e^{-h}e^{-u})$; for a probability measure on a finite set, $\int\cosh(u+h)=\frac12\bigl(e^h\!\int e^u+e^{-h}\!\int e^{-u}\bigr)$ and similarly for $\sinh$;
+\item $\cosh(u+h)=\frac12(e^he^u+e^{-h}e^{-u})$, $\sinh(u+h)=\frac12(e^he^u-e^{-h}e^{-u})$; for a probability measure on a finite set, $\int\cosh(u+h)=\frac12\bigl(e^h\!\int e^u+e^{-h}\!\int e^{-u}\bigr)$ and similarly for $\sinh$, and with any weight $\Psi$: $\int\Psi\cosh(u+h)=\frac12\bigl(e^h\!\int\Psi e^u+e^{-h}\!\int\Psi e^{-u}\bigr)$ (used with $\Psi=\dot S$ for Eq.~(1.210); the unweighted forms are the case $\Psi=1$);
 \item $1\le\int\cosh(u+h)$ and $|\int\sinh(u+h)|\le\int\cosh(u+h)$;
 \item $e^{\pm h}\le2\cosh h$ and $\bigl|\tfrac12(e^hD_1\pm e^{-h}D_2)\bigr|\le\cosh h\,(|D_1|+|D_2|)$;
 \item if $A'-A=\frac12(e^hD_1-e^{-h}D_2)$ and $B'-B=\frac12(e^hD_1+e^{-h}D_2)$ then $|A'-A|+|B'-B|\le2\cosh h\,(|D_1|+|D_2|)$;

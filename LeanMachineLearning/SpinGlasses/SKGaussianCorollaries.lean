@@ -292,10 +292,8 @@ lemma sk_gaussian_fluctuation_upper_bound (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 
       simp only [B, pow_exp_dotProduct_ising]
       exact integrable_exp_const_mul_dotProduct_gaussianReal _ _
     have hrew : ∀ y : Fin N → ℝ, A y =
-        ∫ a, (U ((fun i => (Real.sqrt N)⁻¹ * (((a i : ℤ) : ℝ) - m i)) ⬝ᵥ y) - c₀) ∂μ := fun y => by
-      dsimp [A]
-      rw [integral_sub Integrable.of_finite (integrable_const _)]
-      simp
+        ∫ a, (U ((fun i => (Real.sqrt N)⁻¹ * (((a i : ℤ) : ℝ) - m i)) ⬝ᵥ y) - c₀) ∂μ :=
+      fun y => sub_integral_count_tilted_eq f _ c₀
     have hA_integrable : Integrable (fun y => A y ^ (4 * k)) Q := by
       simp_rw [hrew]
       exact integrable_integral_gibbs_pow N (4 * k) (by omega) hV f m
@@ -318,10 +316,8 @@ lemma sk_gaussian_fluctuation_upper_bound (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 
     set B : (Fin N → ℝ) → ℝ := fun y =>
       Real.exp ((fun i => (Real.sqrt N)⁻¹ * (ε * β * m i)) ⬝ᵥ y)
     have hrew : ∀ y : Fin N → ℝ, A y =
-        ∫ a, (U ((fun i => (Real.sqrt N)⁻¹ * (((a i : ℤ) : ℝ) - m i)) ⬝ᵥ y) - c₀) ∂μ := fun y => by
-      dsimp [A]
-      rw [integral_sub Integrable.of_finite (integrable_const _)]
-      simp
+        ∫ a, (U ((fun i => (Real.sqrt N)⁻¹ * (((a i : ℤ) : ℝ) - m i)) ⬝ᵥ y) - c₀) ∂μ :=
+      fun y => sub_integral_count_tilted_eq f _ c₀
     have hA_int : ∫ y, A y ^ (4 * k) ∂Q ≤ C₂ * J g := by
       simp_rw [hrew]
       rw [show 4 * k = 2 * (2 * k) by ring]
@@ -1017,13 +1013,7 @@ theorem sk_cavity_field_reaction_approx (β₀ : ℝ) (hβ₀ : 0 ≤ β₀) (h�
         _ = 1 := by norm_num
     have h_diff_Atgt : A'' - Atgt = (Real.exp h * D₁' + Real.exp (-h) * D₂') / 2 := by
       dsimp [A'', Atgt, D₁', D₂']
-      have heq_cosh : ∀ a, Sdot a * Real.cosh (u a + h) =
-          (Real.exp h * (Sdot a * Real.exp (u a)) +
-            Real.exp (-h) * (Sdot a * Real.exp (-u a))) / 2 := by
-        intro a; rw [Real.cosh_add_eq_exp]; ring
-      simp_rw [heq_cosh]
-      rw [integral_div, integral_add Integrable.of_finite Integrable.of_finite,
-          integral_const_mul, integral_const_mul, Real.sinh_add_eq_exp wm h]
+      rw [integral_mul_cosh_add μ Sdot u h, Real.sinh_add_eq_exp wm h]
       ring
     have h_diff_B : B' - B = (Real.exp h * D₁ + Real.exp (-h) * D₂) / 2 := by
       dsimp [B', B, D₁, D₂]

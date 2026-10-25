@@ -20,18 +20,37 @@ For a probability measure on a finite measurable-singleton space, the integrals 
 
 open MeasureTheory
 
+/-- The integral of `Ψ * sinh (u + h)` against a finite probability measure. -/
+theorem integral_mul_sinh_add {α : Type*} [MeasurableSpace α] [MeasurableSingletonClass α]
+    (μ : Measure α) [IsProbabilityMeasure μ] [Finite α] (Ψ u : α → ℝ) (h : ℝ) :
+    ∫ a, Ψ a * Real.sinh (u a + h) ∂μ =
+      (Real.exp h * (∫ a, Ψ a * Real.exp (u a) ∂μ) -
+        Real.exp (-h) * (∫ a, Ψ a * Real.exp (-u a) ∂μ)) / 2 := by
+  have heq : (fun a => Ψ a * Real.sinh (u a + h)) = fun a =>
+      (Real.exp h * (Ψ a * Real.exp (u a)) - Real.exp (-h) * (Ψ a * Real.exp (-u a))) / 2 := by
+    ext a; rw [Real.sinh_add_eq_exp]; ring
+  rw [heq, integral_div, integral_sub Integrable.of_finite Integrable.of_finite,
+    integral_const_mul, integral_const_mul]
+
+/-- The integral of `Ψ * cosh (u + h)` against a finite probability measure. -/
+theorem integral_mul_cosh_add {α : Type*} [MeasurableSpace α] [MeasurableSingletonClass α]
+    (μ : Measure α) [IsProbabilityMeasure μ] [Finite α] (Ψ u : α → ℝ) (h : ℝ) :
+    ∫ a, Ψ a * Real.cosh (u a + h) ∂μ =
+      (Real.exp h * (∫ a, Ψ a * Real.exp (u a) ∂μ) +
+        Real.exp (-h) * (∫ a, Ψ a * Real.exp (-u a) ∂μ)) / 2 := by
+  have heq : (fun a => Ψ a * Real.cosh (u a + h)) = fun a =>
+      (Real.exp h * (Ψ a * Real.exp (u a)) + Real.exp (-h) * (Ψ a * Real.exp (-u a))) / 2 := by
+    ext a; rw [Real.cosh_add_eq_exp]; ring
+  rw [heq, integral_div, integral_add Integrable.of_finite Integrable.of_finite,
+    integral_const_mul, integral_const_mul]
+
 /-- The integral of `sinh (u + h)` against a finite probability measure. -/
 theorem integral_sinh_add {α : Type*} [MeasurableSpace α] [MeasurableSingletonClass α]
     (μ : Measure α) [IsProbabilityMeasure μ] [Finite α] (u : α → ℝ) (h : ℝ) :
     ∫ a, Real.sinh (u a + h) ∂μ =
       (Real.exp h * (∫ a, Real.exp (u a) ∂μ) -
         Real.exp (-h) * (∫ a, Real.exp (-u a) ∂μ)) / 2 := by
-  have heq : (fun a => Real.sinh (u a + h)) =
-      fun a => (Real.exp h * Real.exp (u a) - Real.exp (-h) * Real.exp (-u a)) / 2 := by
-    ext a; exact Real.sinh_add_eq_exp (u a) h
-  rw [heq, integral_div]
-  rw [integral_sub Integrable.of_finite Integrable.of_finite]
-  rw [integral_const_mul, integral_const_mul]
+  simpa using integral_mul_sinh_add μ (fun _ => 1) u h
 
 /-- The integral of `cosh (u + h)` against a finite probability measure. -/
 theorem integral_cosh_add {α : Type*} [MeasurableSpace α] [MeasurableSingletonClass α]
@@ -39,12 +58,7 @@ theorem integral_cosh_add {α : Type*} [MeasurableSpace α] [MeasurableSingleton
     ∫ a, Real.cosh (u a + h) ∂μ =
       (Real.exp h * (∫ a, Real.exp (u a) ∂μ) +
         Real.exp (-h) * (∫ a, Real.exp (-u a) ∂μ)) / 2 := by
-  have heq : (fun a => Real.cosh (u a + h)) =
-      fun a => (Real.exp h * Real.exp (u a) + Real.exp (-h) * Real.exp (-u a)) / 2 := by
-    ext a; exact Real.cosh_add_eq_exp (u a) h
-  rw [heq, integral_div]
-  rw [integral_add Integrable.of_finite Integrable.of_finite]
-  rw [integral_const_mul, integral_const_mul]
+  simpa using integral_mul_cosh_add μ (fun _ => 1) u h
 
 /-- `1 ≤ ∫ cosh u` against a finite probability measure. -/
 theorem one_le_integral_cosh {α : Type*} [MeasurableSpace α] [MeasurableSingletonClass α]
