@@ -1147,4 +1147,75 @@ theorem sk_cavity_field_reaction_approx (β₀ : ℝ) (hβ₀ : 0 ≤ β₀) (h�
   linarith
 end
 
+/-- Algebra behind the book form of (1.210): subtracting `c ∑ y_i m_i` turns `S_i / D` into
+`(S_i - m_i D) / D`. -/
+theorem reaction_form_alg {N : ℕ} (c b D sh : ℝ) (S m y : Fin N → ℝ) (hD : D ≠ 0) :
+    c * ∑ i, y i * (S i / D) - b * (sh / D) - c * ∑ i, y i * m i =
+      (c * ∑ i, y i * (S i - m i * D)) / D - b * (sh / D) := by
+  have h1 : ∀ i, y i * (S i / D) - y i * m i = y i * (S i - m i * D) / D := fun i => by
+    field_simp
+  have h2 : ∑ i, y i * (S i / D) - ∑ i, y i * m i = ∑ i, y i * (S i - m i * D) / D := by
+    rw [← Finset.sum_sub_distrib]; exact Finset.sum_congr rfl fun i _ => h1 i
+  rw [mul_div_assoc, Finset.sum_div, ← h2]; ring
+
+/-- **Gibbs covariance of a linear statistic.**  For a finite measure `μ` the `μ`-mean of
+`((c (ξ_i - ⟨ξ_i⟩))_i ⬝ᵥ y) · w` is `c ∑ y_i (⟨ξ_i w⟩ - ⟨ξ_i⟩⟨w⟩)`. -/
+theorem integral_dotProduct_centered_mul {α : Type*} [Finite α] [MeasurableSpace α]
+    [MeasurableSingletonClass α] {N : ℕ} (μ : Measure α) [IsFiniteMeasure μ]
+    (ξ : Fin N → α → ℝ) (c : ℝ) (y : Fin N → ℝ) (w : α → ℝ) :
+    ∫ a, ((fun i => c * (ξ i a - ∫ b, ξ i b ∂μ)) ⬝ᵥ y) * w a ∂μ =
+      c * ∑ i, y i * (∫ a, ξ i a * w a ∂μ - (∫ b, ξ i b ∂μ) * ∫ a, w a ∂μ) := by
+  have h1 : ∀ a, ((fun i => c * (ξ i a - ∫ b, ξ i b ∂μ)) ⬝ᵥ y) * w a =
+      ∑ i, c * y i * (ξ i a * w a - (∫ b, ξ i b ∂μ) * w a) := fun a => by
+    simp only [dotProduct, Finset.sum_mul]
+    exact Finset.sum_congr rfl fun i _ => by ring
+  simp_rw [h1]
+  rw [integral_finsetSum _ fun i _ => Integrable.of_finite, Finset.mul_sum]
+  refine Finset.sum_congr rfl fun i _ => ?_
+  rw [integral_const_mul, integral_sub Integrable.of_finite Integrable.of_finite,
+    integral_const_mul]
+  ring
+
+/-- **Talagrand (1.210), book form.**  The cavity reaction bound with the centred field written
+as `N^{-1/2} ∑ y_i (⟨σ_i cosh L⟩ / ⟨cosh L⟩ - ⟨σ_i⟩)`; it is
+`sk_cavity_field_reaction_approx` after expanding the Gibbs covariance. -/
+theorem sk_cavity_field_reaction_approx_book (β₀ : ℝ) (hβ₀ : 0 ≤ β₀) (hβ₀' : 4 * β₀ ^ 2 < 1)
+    (h : ℝ) {k : ℕ} (hk : 1 ≤ k) :
+    ∃ K : ℝ, 0 < K ∧ ∀ (β q : ℝ),
+      (∫ x : ℝ, Real.tanh (β * Real.sqrt q * x + h) ^ 2 ∂(gaussianReal 0 1) = q) →
+      |β| ≤ β₀ → ∀ N : ℕ, 0 < N →
+      ∫ g : FinPairs N → ℝ, ∫ y : Fin N → ℝ,
+        ((Real.sqrt N)⁻¹ * ∑ i : Fin N, y i *
+            ((∫ a, ((a i : ℤ) : ℝ) *
+                Real.cosh (((fun i => (Real.sqrt N)⁻¹ * (β * ((a i : ℤ) : ℝ))) ⬝ᵥ y) + h)
+                ∂(Measure.count.tilted (skGibbsEnergy N β h g))) /
+              (∫ a, Real.cosh (((fun i => (Real.sqrt N)⁻¹ * (β * ((a i : ℤ) : ℝ))) ⬝ᵥ y) + h)
+                ∂(Measure.count.tilted (skGibbsEnergy N β h g)))) -
+          β * (1 - q) *
+            ((∫ a, Real.sinh (((fun i => (Real.sqrt N)⁻¹ * (β * ((a i : ℤ) : ℝ))) ⬝ᵥ y) + h)
+                ∂(Measure.count.tilted (skGibbsEnergy N β h g))) /
+              (∫ a, Real.cosh (((fun i => (Real.sqrt N)⁻¹ * (β * ((a i : ℤ) : ℝ))) ⬝ᵥ y) + h)
+                ∂(Measure.count.tilted (skGibbsEnergy N β h g)))) -
+          (Real.sqrt N)⁻¹ * ∑ i : Fin N, y i *
+            ∫ b, ((b i : ℤ) : ℝ) ∂(Measure.count.tilted (skGibbsEnergy N β h g))) ^ (2 * k)
+        ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1)
+      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) ≤ K / (N : ℝ) ^ k := by
+  obtain ⟨K, hK0, hK⟩ := sk_cavity_field_reaction_approx β₀ hβ₀ hβ₀' h hk
+  refine ⟨K, hK0, fun β q hq hβ N hN => (le_of_eq ?_).trans (hK β q hq hβ N hN)⟩
+  refine integral_congr_ae (ae_of_all _ fun g => integral_congr_ae (ae_of_all _ fun y => ?_))
+  have hD : 1 ≤ ∫ a, Real.cosh (((fun i => (Real.sqrt N)⁻¹ * (β * ((a i : ℤ) : ℝ))) ⬝ᵥ y) + h)
+      ∂(Measure.count.tilted (skGibbsEnergy N β h g)) := one_le_integral_cosh _ _
+  have key := integral_dotProduct_centered_mul (Measure.count.tilted (skGibbsEnergy N β h g))
+    (fun (i : Fin N) (a : Fin N → ℤˣ) => ((a i : ℤ) : ℝ)) (Real.sqrt N)⁻¹ y
+    (fun a => Real.cosh (((fun i => (Real.sqrt N)⁻¹ * (β * ((a i : ℤ) : ℝ))) ⬝ᵥ y) + h))
+  beta_reduce at key
+  beta_reduce
+  rw [key]
+  congr 1
+  exact reaction_form_alg _ _ _ _ (fun i => ∫ a, ((a i : ℤ) : ℝ) *
+      Real.cosh (((fun i => (Real.sqrt N)⁻¹ * (β * ((a i : ℤ) : ℝ))) ⬝ᵥ y) + h)
+      ∂(Measure.count.tilted (skGibbsEnergy N β h g)))
+    (fun i => ∫ b, ((b i : ℤ) : ℝ) ∂(Measure.count.tilted (skGibbsEnergy N β h g))) y
+    (ne_of_gt (lt_of_lt_of_le one_pos hD))
+
 end SpinGlasses
