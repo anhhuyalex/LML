@@ -84,19 +84,9 @@ theorem cosh_mul_cosh_sk_cavity_eq (N : ℕ) (β h : ℝ) (σ τ : Fin N → ℤ
           2 * h) +
         Real.cosh (∑ i : Fin N, ((Real.sqrt (N : ℝ))⁻¹ * β * ((σ i : ℝ) + (-1) * (τ i : ℝ))) *
           w i + 0)) / 2 := by
-  rw [Real.cosh_mul_cosh]
-  have h1 : ∑ i : Fin N, ((Real.sqrt (N : ℝ))⁻¹ * β * ((σ i : ℝ) + 1 * (τ i : ℝ))) * w i =
-      (Real.sqrt (N : ℝ))⁻¹ * β * ∑ i : Fin N, w i * (σ i : ℝ) +
-        (Real.sqrt (N : ℝ))⁻¹ * β * ∑ i : Fin N, w i * (τ i : ℝ) := by
-    simp only [Finset.mul_sum, ← Finset.sum_add_distrib]
-    exact Finset.sum_congr rfl fun i _ => by ring
-  have h2 : ∑ i : Fin N, ((Real.sqrt (N : ℝ))⁻¹ * β * ((σ i : ℝ) + (-1) * (τ i : ℝ))) * w i =
-      (Real.sqrt (N : ℝ))⁻¹ * β * ∑ i : Fin N, w i * (σ i : ℝ) -
-        (Real.sqrt (N : ℝ))⁻¹ * β * ∑ i : Fin N, w i * (τ i : ℝ) := by
-    simp only [Finset.mul_sum, ← Finset.sum_sub_distrib]
-    exact Finset.sum_congr rfl fun i _ => by ring
-  rw [h1, h2]
-  congr 3 <;> ring_nf
+  rw [cosh_mul_cosh_sum_mul_eq ((Real.sqrt (N : ℝ))⁻¹ * β) h (fun i => (σ i : ℝ))
+    (fun i => (τ i : ℝ)) w]
+  simp only [one_mul, neg_mul, ← sub_eq_add_neg]
 
 /-- The two cavity `cosh` factors are Gaussian-integrable. -/
 theorem integrable_cosh_mul_cosh_sk_cavity (N : ℕ) (β h : ℝ) (σ τ : Fin N → ℤˣ) :
@@ -104,9 +94,8 @@ theorem integrable_cosh_mul_cosh_sk_cavity (N : ℕ) (β h : ℝ) (σ τ : Fin N
         Real.cosh ((Real.sqrt (N : ℝ))⁻¹ * β * ∑ i : Fin N, w i * (σ i : ℝ) + h) *
         Real.cosh ((Real.sqrt (N : ℝ))⁻¹ * β * ∑ i : Fin N, w i * (τ i : ℝ) + h))
       (Measure.pi fun _ : Fin N => gaussianReal 0 1) := by
-  simp_rw [cosh_mul_cosh_sk_cavity_eq]
-  exact ((integrable_cosh_sum_mul_gaussianReal _ _).add
-    (integrable_cosh_sum_mul_gaussianReal _ _)).div_const 2
+  exact integrable_cosh_mul_cosh_sum_mul_gaussianReal ((Real.sqrt (N : ℝ))⁻¹ * β) h
+    (fun i => (σ i : ℝ)) fun i => (τ i : ℝ)
 
 /-- Gaussian `cosh` product moment: `𝔼 cosh(x_σ + h) cosh(x_τ + h) ≤ cosh(2h) exp(2β²)` for
 the N-spin cavity field `x_σ = β N^{-1/2} ∑ gᵢ σᵢ`. -/

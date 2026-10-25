@@ -306,3 +306,44 @@ theorem integral_exp_sum_ising_moment_le {N : ℕ} (hN : 0 < N) (c : ℝ)
       _ = c ^ 2 / 2 := by
         field_simp
   exact Real.exp_le_exp_of_le h_sum_le
+
+/-- The product of two `cosh`s of linear forms in the same Gaussian vector `w`, with a common
+coefficient `c` and offset `h`, is the average of the `cosh` of the sum and of the difference. -/
+theorem cosh_mul_cosh_sum_mul_eq {E : Type*} [Fintype E] (c h : ℝ) (s t w : E → ℝ) :
+    Real.cosh (c * ∑ e, w e * s e + h) * Real.cosh (c * ∑ e, w e * t e + h) =
+      (Real.cosh (∑ e, (c * (s e + t e)) * w e + 2 * h) +
+        Real.cosh (∑ e, (c * (s e - t e)) * w e + 0)) / 2 := by
+  rw [Real.cosh_mul_cosh]
+  have h1 : ∑ e, (c * (s e + t e)) * w e = c * ∑ e, w e * s e + c * ∑ e, w e * t e := by
+    simp only [Finset.mul_sum, ← Finset.sum_add_distrib]
+    exact Finset.sum_congr rfl fun e _ => by ring
+  have h2 : ∑ e, (c * (s e - t e)) * w e = c * ∑ e, w e * s e - c * ∑ e, w e * t e := by
+    simp only [Finset.mul_sum, ← Finset.sum_sub_distrib]
+    exact Finset.sum_congr rfl fun e _ => by ring
+  rw [h1, h2]
+  congr 3 <;> ring_nf
+
+/-- Integrability of a product of two `cosh`s of linear forms in independent Gaussians. -/
+theorem integrable_cosh_mul_cosh_sum_mul_gaussianReal {E : Type*} [Fintype E] (c h : ℝ)
+    (s t : E → ℝ) :
+    Integrable (fun w : E → ℝ =>
+        Real.cosh (c * ∑ e, w e * s e + h) * Real.cosh (c * ∑ e, w e * t e + h))
+      (Measure.pi fun _ : E => gaussianReal 0 1) := by
+  simp_rw [cosh_mul_cosh_sum_mul_eq]
+  exact ((integrable_cosh_sum_mul_gaussianReal _ _).add
+    (integrable_cosh_sum_mul_gaussianReal _ _)).div_const 2
+
+/-- Gaussian second moment of two `cosh`s of linear forms:
+`𝔼 cosh (c ⟨w, s⟩ + h) cosh (c ⟨w, t⟩ + h)
+  = (cosh (2h) exp (c² ∑ (s+t)²/2) + exp (c² ∑ (s-t)²/2)) / 2`. -/
+theorem integral_cosh_mul_cosh_sum_mul_gaussianReal {E : Type*} [Fintype E] (c h : ℝ)
+    (s t : E → ℝ) :
+    ∫ w : E → ℝ, Real.cosh (c * ∑ e, w e * s e + h) * Real.cosh (c * ∑ e, w e * t e + h)
+      ∂(Measure.pi fun _ : E => gaussianReal 0 1) =
+      (Real.cosh (2 * h) * Real.exp (∑ e, (c * (s e + t e)) ^ 2 / 2) +
+        Real.exp (∑ e, (c * (s e - t e)) ^ 2 / 2)) / 2 := by
+  simp_rw [cosh_mul_cosh_sum_mul_eq]
+  rw [integral_div, integral_add (integrable_cosh_sum_mul_gaussianReal _ _)
+    (integrable_cosh_sum_mul_gaussianReal _ _), integral_cosh_sum_mul_gaussianReal,
+    integral_cosh_sum_mul_gaussianReal, Real.cosh_zero]
+  ring
