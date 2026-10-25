@@ -105,6 +105,26 @@ theorem abs_exp_mul_sub_exp_neg_mul_div_two_le (h D₁ D₂ : ℝ) :
   have := abs_exp_mul_add_exp_neg_mul_div_two_le h D₁ (-D₂)
   rwa [abs_neg, mul_neg, ← sub_eq_add_neg] at this
 
+/-- `exp` is `exp M`-Lipschitz on `[-M, M]`. -/
+theorem abs_exp_sub_exp_le_of_abs_le {u v M : ℝ} (hu : |u| ≤ M) (hv : |v| ≤ M) :
+    |Real.exp u - Real.exp v| ≤ Real.exp M * |u - v| := by
+  have key : ∀ {a b : ℝ}, b ≤ a → a ≤ M → Real.exp a - Real.exp b ≤ Real.exp M * (a - b) := by
+    intro a b hba haM
+    have h1 := Real.add_one_le_exp (-(a - b))
+    have h2 : Real.exp (-(a - b)) * Real.exp a = Real.exp b := by
+      rw [← Real.exp_add]; congr 1; ring
+    have h3 : Real.exp a * (1 - (a - b)) ≤ Real.exp b := by
+      rw [← h2]
+      nlinarith [Real.exp_pos a]
+    have h4 : Real.exp a ≤ Real.exp M := Real.exp_le_exp.2 haM
+    nlinarith [sub_nonneg.2 hba, Real.exp_pos a]
+  rcases le_total v u with h | h
+  · rw [abs_of_nonneg (sub_nonneg.2 (Real.exp_le_exp.2 h)), abs_of_nonneg (sub_nonneg.2 h)]
+    exact key h (le_trans (le_abs_self u) hu)
+  · rw [abs_of_nonpos (sub_nonpos.2 (Real.exp_le_exp.2 h)), abs_of_nonpos (sub_nonpos.2 h)]
+    have := key h (le_trans (le_abs_self v) hv)
+    linarith
+
 end Real
 
 namespace SpinGlasses

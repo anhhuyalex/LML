@@ -389,6 +389,52 @@ theorem integral_sq_centered_perm (hwm : ∀ a, Measurable fun ω => w ω a)
   simp_rw [sq_sum_comp_equiv act hact π u] at h
   exact h
 
+/-- Relabelling the sites by `π` in the bilinear functional
+`∑_{a,b} v_a v_b ξ̇_i(a) ξ̇_i(b) K(a, b)` of a probability vector `v`, with a kernel `K` invariant
+under the relabellings of the configurations. -/
+theorem sum_sum_centered_comp_equiv (act : Equiv.Perm (Fin N) → α ≃ α)
+    (hact : ∀ π i a, ξ i (act π a) = ξ (π i) a) (K : α → α → ℝ)
+    (hK : ∀ π a b, K (act π a) (act π b) = K a b) (π : Equiv.Perm (Fin N)) (i : Fin N)
+    (v : α → ℝ) :
+    ∑ a, ∑ b, v (act π.symm a) * v (act π.symm b) *
+        ((ξ i a - ∑ c, v (act π.symm c) * ξ i c) * (ξ i b - ∑ c, v (act π.symm c) * ξ i c)) *
+        K a b =
+      ∑ a, ∑ b, v a * v b * ((ξ (π i) a - ∑ c, v c * ξ (π i) c) *
+        (ξ (π i) b - ∑ c, v c * ξ (π i) c)) * K a b := by
+  have hσ : ∀ i a, ξ (π i) (act π.symm a) = ξ i a := fun i a => by
+    rw [hact π.symm]; simp
+  have hsumc : ∑ c, v (act π.symm c) * ξ i c = ∑ c, v c * ξ (π i) c := by
+    rw [← Equiv.sum_comp (act π.symm) (fun c => v c * ξ (π i) c)]
+    exact Finset.sum_congr rfl fun c _ => by rw [hσ]
+  rw [hsumc, ← Equiv.sum_comp (act π.symm) (fun a => ∑ b, v a * v b *
+    ((ξ (π i) a - ∑ c, v c * ξ (π i) c) * (ξ (π i) b - ∑ c, v c * ξ (π i) c)) * K a b)]
+  refine Finset.sum_congr rfl fun a _ => ?_
+  rw [← Equiv.sum_comp (act π.symm) (fun b => v (act π.symm a) * v b *
+    ((ξ (π i) (act π.symm a) - ∑ c, v c * ξ (π i) c) * (ξ (π i) b - ∑ c, v c * ξ (π i) c)) *
+    K (act π.symm a) b)]
+  refine Finset.sum_congr rfl fun b _ => ?_
+  rw [hσ, hσ, hK π.symm a b]
+
+/-- **Site symmetry of the bilinear centred functional.**  If the law of the random Gibbs weights is
+invariant under the relabellings `act π` of the configurations and the kernel `K` is invariant, then
+`𝔼 ∑_{a,b} w_a w_b ξ̇_i(a) ξ̇_i(b) K(a, b)` does not depend on the site `i`. -/
+theorem integral_sum_sum_centered_perm (hwm : ∀ a, Measurable fun ω => w ω a)
+    (act : Equiv.Perm (Fin N) → α ≃ α) (hact : ∀ π i a, ξ i (act π a) = ξ (π i) a)
+    (K : α → α → ℝ) (hK : ∀ π a b, K (act π a) (act π b) = K a b)
+    (hsym : ∀ π : Equiv.Perm (Fin N), ∃ φ : Ω → Ω, MeasurePreserving φ P P ∧
+      ∀ ω a, w (φ ω) a = w ω (act π a))
+    (π : Equiv.Perm (Fin N)) (i : Fin N) :
+    ∫ ω, ∑ a, ∑ b, w ω a * w ω b * ((ξ (π i) a - ∑ c, w ω c * ξ (π i) c) *
+        (ξ (π i) b - ∑ c, w ω c * ξ (π i) c)) * K a b ∂P =
+      ∫ ω, ∑ a, ∑ b, w ω a * w ω b * ((ξ i a - ∑ c, w ω c * ξ i c) *
+        (ξ i b - ∑ c, w ω c * ξ i c)) * K a b ∂P := by
+  have hc : Continuous fun v : α → ℝ => ∑ a, ∑ b, v a * v b * ((ξ i a - ∑ c, v c * ξ i c) *
+      (ξ i b - ∑ c, v c * ξ i c)) * K a b := by fun_prop
+  obtain ⟨φ, hφ, hφw⟩ := hsym π.symm
+  have h := integral_comp_weights_equiv hwm (act π.symm) hφ hφw hc
+  simp_rw [sum_sum_centered_comp_equiv act hact K hK π i] at h
+  exact h
+
 end Symmetry
 
 section Proposition
