@@ -3559,8 +3559,6 @@ SpinGlasses.pow_div_factorial_le_exp
 SpinGlasses.pow_le_factorial_mul_exp
 SpinGlasses.sk_overlap_moment_le_of_exp
 Real.abs_sub_add_half_le_of_exists_hasDerivAt
-SpinGlasses.oldPair
-SpinGlasses.lastPair
 SpinGlasses.integral_linear_form_prod_eq_zero
 SpinGlasses.integral_scalar_prod_eq_zero
 SpinGlasses.integral_linear_form_mul_prod
@@ -3605,15 +3603,11 @@ SpinGlasses.measurable_log_integral_cosh_count_tilted
 SpinGlasses.ExpTame
 SpinGlasses.ExpTame.deriv_tame
 SpinGlasses.ExpTame.iterate_deriv_tame
-SpinGlasses.projGram
-SpinGlasses.projPath
-SpinGlasses.projMeasure
 SpinGlasses.ExpTame.contDiff_derivProd
 SpinGlasses.ExpTame.hasFDerivAt_derivProd
 SpinGlasses.ExpTame.abs_derivProd_le
 SpinGlasses.ExpTame.hasDerivAt_integral_derivProd_projPath
 SpinGlasses.pairCount
-SpinGlasses.pairProd
 SpinGlasses.projSum
 SpinGlasses.pairCount_cons
 SpinGlasses.pairProd_cons

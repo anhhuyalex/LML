@@ -1278,9 +1278,7 @@ with the canonical $\mathrm{Fin.snoc}$ equivalence.
         SpinGlasses.sum_finPairs_succ_cavity,
         SpinGlasses.sum_sk_pairs_succ_cavity,
         SpinGlasses.sk_cavity_energy_coupled_eq,
-        SpinGlasses.measurePreserving_sk_cavity_disorder,
-        SpinGlasses.oldPair,
-        SpinGlasses.lastPair}
+        SpinGlasses.measurePreserving_sk_cavity_disorder}
   \leanok
 \talsource{Eqs.~(1.143)--(1.144)}
 For $N\ge0$, the pairs $i<j$ in $\mathrm{Fin}(N+1)$ are in bijection
@@ -1296,8 +1294,7 @@ $h\sum_i\sigma_i$. If all the $g_{ij}$ are independent
 standard Gaussians, the restriction $(g_{ij})_{i<j<N}$ and the new-edge family
 $(g_{iN})_{i<N}$ jointly have the product of their respective independent
 Gaussian laws (equality via a measure-preserving map).
-The embeddings of the old pairs and of the new edges into the pairs of $\mathrm{Fin}(N+1)$ are the
-definitions \texttt{oldPair} and \texttt{lastPair}.
+The embeddings of the old pairs and of the new edges into the pairs of $\mathrm{Fin}(N+1)$ are written out in Lean, with no separate definitions.
 \end{lemma}
 \begin{proof}
   \leanok
@@ -3062,20 +3059,16 @@ The bound for the $j$-th derivative of $V^{(n)}$ is the bound for the $(j+n)$-th
 
 \begin{definition}[Products of derivatives, the covariance defect and the projection path]
 \label{def:sg-tal:projpath}
-  \lean{SpinGlasses.projGram,
-        SpinGlasses.projPath,
-        SpinGlasses.projMeasure}
-  \leanok
 \talsource{notation of the proof of Theorem~1.7.11: $F^{(\mathbf s)}$ in Eq.~(1.202), the entries $T_{\ell,\ell'}$, and the path $\mathbf X_t$}
 Let $m,N\in\mathbb N$, $V:\mathbb R\to\mathbb R$ smooth, $u=(u_\ell)_{\ell\le m}$ with $u_\ell\in\mathbb R^N$, and $v\in\mathbb R$.
 For a multi-index $a\in\mathbb N^m$ and $x\in\mathbb R^m$ put
 \[
 F^{(a)}(x)=\prod_{\ell\le m}V^{(a_\ell)}(x_\ell)\quad(\text{written out in Lean as the product of iterated derivatives, with no separate definition}),\qquad
-T_{\ell k}=u_\ell\cdot u_k-v^2\delta_{\ell k}\quad(\texttt{projGram}).
+T_{\ell k}=u_\ell\cdot u_k-v^2\delta_{\ell k}\quad(\text{written out in Lean}).
 \]
-Let $(\xi,y)$ have law $\gamma_m\otimes\gamma_N$, $\gamma_n=\mathcal N(0,I_n)$ (\texttt{projMeasure}), and set
+Let $(\xi,y)$ have law $\gamma_m\otimes\gamma_N$, $\gamma_n=\mathcal N(0,I_n)$ (\text{written out in Lean as }\texttt{Measure.pi}\text{ and }\texttt{Measure.prod}), and set
 \[
-Z_s(\xi,y)_\ell=\cos s\,(v\xi_\ell)+\sin s\,(u_\ell\cdot y)\quad(\texttt{projPath}).
+Z_s(\xi,y)_\ell=\cos s\,(v\xi_\ell)+\sin s\,(u_\ell\cdot y)\quad(\text{written out in Lean}).
 \]
 Then $Z_0=(v\xi_\ell)_\ell$ has independent $\mathcal N(0,v^2)$ coordinates, $Z_{\pi/2}=(u_\ell\cdot y)_\ell$ has covariance $(u_\ell\cdot u_k)$, and
 $\mathbb E Z_{s,\ell}Z_{s,k}=\cos^2 s\,v^2\delta_{\ell k}+\sin^2 s\,u_\ell\cdot u_k$.
@@ -3130,7 +3123,6 @@ along the path $\sum_\ell|Z_{s,\ell}|\le\sum_\ell(|X_\ell|+|Y_\ell|)$ because $|
 \begin{definition}[Lists of pairs and the path functional]
 \label{def:sg-tal:projsum}
   \lean{SpinGlasses.pairCount,
-        SpinGlasses.pairProd,
         SpinGlasses.projSum}
   \leanok
 \talsource{the list $\ell_1,\ell_1',\dots,\ell_r,\ell_r'$ and the multi-index $\mathbf s$ above Eq.~(1.203)}

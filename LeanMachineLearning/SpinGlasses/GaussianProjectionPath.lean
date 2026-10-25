@@ -634,7 +634,7 @@ theorem continuous_projPath (u : Fin m → Fin N → ℝ) (v s : ℝ) :
   simp only [dotProduct]
   fun_prop
 
-@[simp] theorem projPath_zero (u : Fin m → Fin N → ℝ) (v : ℝ)
+theorem projPath_zero (u : Fin m → Fin N → ℝ) (v : ℝ)
     (ω : (Fin m → ℝ) × (Fin N → ℝ)) :
     (fun l => Real.cos 0 * (v * ω.1 l) + Real.sin 0 * (u l ⬝ᵥ ω.2)) =
       fun l => v * ω.1 l := by
