@@ -42,6 +42,14 @@ theorem sk_beta_minus_coefficient (N : ℕ) (β : ℝ) (hN : 0 < N) :
   have h2 : 0 < Real.sqrt ((N : ℝ) + 1) := Real.sqrt_pos.mpr (by positivity)
   field_simp
 
+/-- The parameter `1 - 1/(N+1)` of Lemma 1.7.5 for `N+1` spins is the ratio `N/(N+1)` of
+`β_- = β √(N/(N+1))`. -/
+theorem one_sub_inv_succ_eq_div (N : ℕ) :
+    1 - ((N + 1 : ℕ) : ℝ)⁻¹ = (N : ℝ) / ((N : ℝ) + 1) := by
+  push_cast
+  field_simp
+  ring
+
 /-- The cavity field of the old system at `β_-` in dot-product form: the linear form in the new
 couplings `y` with coefficient `(√N)⁻¹ β_-` is `β/√(N+1)` times `∑ y_i a_i`. -/
 theorem dotProduct_sk_beta_minus (N : ℕ) (β : ℝ) (hN : 0 < N) (y a : Fin N → ℝ) :
@@ -57,13 +65,13 @@ the cavity field, which is linear in the new couplings `y`. -/
 theorem skGibbsEnergy_succ_cavity {N : ℕ} (hN : 0 < N) (β h : ℝ) (g : FinPairs (N + 1) → ℝ)
     (σ : Fin (N + 1) → ℤˣ) :
     skGibbsEnergy (N + 1) β h g σ =
-      skGibbsEnergy N (β * Real.sqrt ((N : ℝ) / (N + 1))) h
-          (fun p : FinPairs N => g ⟨(p.val.1.castSucc, p.val.2.castSucc),
-            Fin.castSucc_lt_castSucc_iff.mpr p.property⟩) (fun i => σ i.castSucc) +
+      skGibbsEnergy N (β * Real.sqrt ((N : ℝ) / (N + 1))) h (skCavityDisorderEquiv N g).1
+          (fun i => σ i.castSucc) +
         ((σ (Fin.last N) : ℤ) : ℝ) *
           (((fun i => (Real.sqrt (N : ℝ))⁻¹ *
               (β * Real.sqrt ((N : ℝ) / (N + 1)) * ((σ i.castSucc : ℤ) : ℝ))) ⬝ᵥ
-            fun i : Fin N => g ⟨(i.castSucc, Fin.last N), Fin.castSucc_lt_last i⟩) + h) := by
+            (skCavityDisorderEquiv N g).2) + h) := by
+  simp only [skCavityDisorderEquiv_apply]
   rw [dotProduct_sk_beta_minus N β hN]
   have hc := sk_cavity_energy_snoc N ((Real.sqrt ((N : ℝ) + 1))⁻¹ * β) h g σ
   unfold skGibbsEnergy
@@ -74,28 +82,26 @@ theorem skGibbsEnergy_succ_cavity {N : ℕ} (hN : 0 < N) (β h : ℝ) (g : FinPa
 
 /-- **Cavity formula for the last spin.**  The Gibbs mean of the last spin of the `(N+1)`-spin
 system is the ratio `⟨sinh L⟩_- / ⟨cosh L⟩_-` over the old Gibbs measure at `β_-`, with
-`L ρ = (√N)⁻¹ β_- ∑ y_i ρ_i + h` and `y` the couplings of the last spin. -/
+`L ρ = (√N)⁻¹ β_- ∑ y_i ρ_i + h`, where `(g_old, y) = skCavityDisorderEquiv N g` splits the
+disorder into the old couplings and the couplings `y` of the last spin. -/
 theorem integral_last_spin_eq_sinh_div_cosh {N : ℕ} (hN : 0 < N) (β h : ℝ)
     (g : FinPairs (N + 1) → ℝ) :
     ∫ σ, ((σ (Fin.last N) : ℤ) : ℝ) ∂(Measure.count.tilted (skGibbsEnergy (N + 1) β h g)) =
       (∫ a, Real.sinh (((fun i => (Real.sqrt (N : ℝ))⁻¹ *
             (β * Real.sqrt ((N : ℝ) / (N + 1)) * ((a i : ℤ) : ℝ))) ⬝ᵥ
-          fun i : Fin N => g ⟨(i.castSucc, Fin.last N), Fin.castSucc_lt_last i⟩) + h)
+          (skCavityDisorderEquiv N g).2) + h)
         ∂(Measure.count.tilted (skGibbsEnergy N (β * Real.sqrt ((N : ℝ) / (N + 1))) h
-          (fun p : FinPairs N => g ⟨(p.val.1.castSucc, p.val.2.castSucc),
-            Fin.castSucc_lt_castSucc_iff.mpr p.property⟩)))) /
+          (skCavityDisorderEquiv N g).1))) /
       (∫ a, Real.cosh (((fun i => (Real.sqrt (N : ℝ))⁻¹ *
             (β * Real.sqrt ((N : ℝ) / (N + 1)) * ((a i : ℤ) : ℝ))) ⬝ᵥ
-          fun i : Fin N => g ⟨(i.castSucc, Fin.last N), Fin.castSucc_lt_last i⟩) + h)
+          (skCavityDisorderEquiv N g).2) + h)
         ∂(Measure.count.tilted (skGibbsEnergy N (β * Real.sqrt ((N : ℝ) / (N + 1))) h
-          (fun p : FinPairs N => g ⟨(p.val.1.castSucc, p.val.2.castSucc),
-            Fin.castSucc_lt_castSucc_iff.mpr p.property⟩)))) := by
+          (skCavityDisorderEquiv N g).1))) := by
   set A : (Fin N → ℤˣ) → ℝ := skGibbsEnergy N (β * Real.sqrt ((N : ℝ) / (N + 1))) h
-    (fun p : FinPairs N => g ⟨(p.val.1.castSucc, p.val.2.castSucc),
-      Fin.castSucc_lt_castSucc_iff.mpr p.property⟩) with hA
+    (skCavityDisorderEquiv N g).1 with hA
   set L : (Fin N → ℤˣ) → ℝ := fun ρ => ((fun i => (Real.sqrt (N : ℝ))⁻¹ *
       (β * Real.sqrt ((N : ℝ) / (N + 1)) * ((ρ i : ℤ) : ℝ))) ⬝ᵥ
-    fun i : Fin N => g ⟨(i.castSucc, Fin.last N), Fin.castSucc_lt_last i⟩) + h with hL
+    (skCavityDisorderEquiv N g).2) + h with hL
   have hE : skGibbsEnergy (N + 1) β h g = fun σ : Fin (N + 1) → ℤˣ =>
       A (fun i => σ i.castSucc) + ((σ (Fin.last N) : ℤ) : ℝ) * L (fun i => σ i.castSucc) :=
     funext (skGibbsEnergy_succ_cavity hN β h g)
@@ -105,24 +111,24 @@ theorem integral_last_spin_eq_sinh_div_cosh {N : ℕ} (hN : 0 < N) (β h : ℝ)
   simp only [Fin.snoc_last, Units.val_one, Units.val_neg, Int.cast_one, Int.cast_neg, one_mul,
     neg_one_mul, ← sub_eq_add_neg, Real.sinh_eq, hL]
 
-/-- **Talagrand, Lemma 1.7.4, Eq. (1.185).**  For `4 β₀² < 1` and `h` there is `K` such that for
-all `|β| ≤ β₀` and `N ≥ 1`,
-`𝔼 (⟨σ_{N+1}⟩ - tanh (β (N+1)^{-1/2} ∑_{i ≤ N} g_{i,N+1} ⟨σ_i⟩_- + h))² ≤ K / (N+1)`,
+/-- **Talagrand, Lemma 1.7.4, Eq. (1.185), in `L^{2k}`.**  For `4 β₀² < 1`, `h` and `k ≥ 1`
+there is `K` such that for all `|β| ≤ β₀` and `N ≥ 1`,
+`𝔼 (⟨σ_{N+1}⟩ - tanh (β (N+1)^{-1/2} ∑_{i ≤ N} g_{i,N+1} ⟨σ_i⟩_- + h))^{2k} ≤ K / (N+1)^k`,
 where `⟨·⟩_-` is the Gibbs measure of the first `N` spins with the old couplings at
-`β_- = β √(N/(N+1))`. -/
-theorem sk_last_spin_tanh_approx (β₀ : ℝ) (hβ₀ : 0 ≤ β₀) (hβ₀' : 4 * β₀ ^ 2 < 1) (h : ℝ) :
+`β_- = β √(N/(N+1))`, and `(g_old, y) = skCavityDisorderEquiv N g` (`y_i = g_{i,N+1}`). -/
+theorem sk_last_spin_tanh_approx_pow (β₀ : ℝ) (hβ₀ : 0 ≤ β₀) (hβ₀' : 4 * β₀ ^ 2 < 1) (h : ℝ)
+    {k : ℕ} (hk : 1 ≤ k) :
     ∃ K : ℝ, 0 < K ∧ ∀ β : ℝ, |β| ≤ β₀ → ∀ N : ℕ, 0 < N →
       ∫ g : FinPairs (N + 1) → ℝ,
         (∫ σ, ((σ (Fin.last N) : ℤ) : ℝ) ∂(Measure.count.tilted (skGibbsEnergy (N + 1) β h g)) -
           Real.tanh ((Real.sqrt ((N : ℝ) + 1))⁻¹ * β *
-            ∑ i : Fin N, g ⟨(i.castSucc, Fin.last N), Fin.castSucc_lt_last i⟩ *
+            ∑ i : Fin N, (skCavityDisorderEquiv N g).2 i *
               ∫ b, ((b i : ℤ) : ℝ) ∂(Measure.count.tilted
                 (skGibbsEnergy N (β * Real.sqrt ((N : ℝ) / (N + 1))) h
-                  (fun p : FinPairs N => g ⟨(p.val.1.castSucc, p.val.2.castSucc),
-                    Fin.castSucc_lt_castSucc_iff.mpr p.property⟩))) + h)) ^ 2
-          ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) ≤ K / ((N : ℝ) + 1) := by
-  obtain ⟨K, hK0, hK⟩ := sk_cavity_field_tanh_approx β₀ hβ₀ hβ₀' h (k := 1) le_rfl
-  refine ⟨2 * K, by positivity, fun β hβ N hN => ?_⟩
+                  (skCavityDisorderEquiv N g).1)) + h)) ^ (2 * k)
+          ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) ≤ K / ((N : ℝ) + 1) ^ k := by
+  obtain ⟨K, hK0, hK⟩ := sk_cavity_field_tanh_approx β₀ hβ₀ hβ₀' h hk
+  refine ⟨2 ^ k * K, by positivity, fun β hβ N hN => ?_⟩
   have hN0 : (0 : ℝ) < N := Nat.cast_pos.mpr hN
   have hs : Real.sqrt ((N : ℝ) / (N + 1)) ≤ 1 :=
     Real.sqrt_le_one.mpr ((div_le_one (by positivity)).mpr (by linarith))
@@ -145,22 +151,38 @@ theorem sk_last_spin_tanh_approx (β₀ : ℝ) (hβ₀ : 0 ≤ β₀) (hβ₀' :
           (β * Real.sqrt ((N : ℝ) / (N + 1)) *
             ∫ b, ((b i : ℤ) : ℝ)
               ∂(Measure.count.tilted (skGibbsEnergy N (β * Real.sqrt ((N : ℝ) / (N + 1))) h
-                w.1)))) ⬝ᵥ w.2) + h)) ^ (2 * 1)
-  have hF0 : ∀ w, 0 ≤ F w := fun w => Even.pow_nonneg ⟨1, by ring⟩ _
-  calc _ = ∫ g : FinPairs (N + 1) → ℝ,
-        F (fun p : FinPairs N => g ⟨(p.val.1.castSucc, p.val.2.castSucc),
-            Fin.castSucc_lt_castSucc_iff.mpr p.property⟩,
-          fun i : Fin N => g ⟨(i.castSucc, Fin.last N), Fin.castSucc_lt_last i⟩)
+                w.1)))) ⬝ᵥ w.2) + h)) ^ (2 * k)
+  have hF0 : ∀ w, 0 ≤ F w := fun w => Even.pow_nonneg ⟨k, by ring⟩ _
+  calc _ = ∫ g : FinPairs (N + 1) → ℝ, F (skCavityDisorderEquiv N g)
         ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) := by
         refine integral_congr_ae (ae_of_all _ fun g => ?_)
-        simp only [F, mul_one, integral_last_spin_eq_sinh_div_cosh hN β h g,
+        simp only [F, integral_last_spin_eq_sinh_div_cosh hN β h g,
           dotProduct_sk_beta_minus N β hN]
-    _ = ∫ w, F w ∂(P.prod Q) := integral_comp_sk_cavity_disorder N F
+    _ = ∫ w, F w ∂(P.prod Q) := (measurePreserving_skCavityDisorderEquiv N).integral_comp' F
     _ ≤ ∫ x, ∫ y, F (x, y) ∂Q ∂P := integral_prod_le_integral_integral_of_nonneg hF0
-    _ ≤ K / (N : ℝ) ^ 1 := by simpa only [F] using hKN
-    _ ≤ 2 * K / ((N : ℝ) + 1) := by
-        rw [pow_one, div_le_div_iff₀ hN0 (by positivity)]
+    _ ≤ K / (N : ℝ) ^ k := hKN
+    _ ≤ 2 ^ k * K / ((N : ℝ) + 1) ^ k := by
+        rw [div_le_div_iff₀ (by positivity) (by positivity)]
         have hN1 : (1 : ℝ) ≤ N := by exact_mod_cast hN
-        nlinarith
+        have h2 : ((N : ℝ) + 1) ^ k ≤ 2 ^ k * (N : ℝ) ^ k := by
+          rw [← mul_pow]; exact pow_le_pow_left₀ (by positivity) (by linarith) k
+        calc K * ((N : ℝ) + 1) ^ k ≤ K * (2 ^ k * (N : ℝ) ^ k) :=
+              mul_le_mul_of_nonneg_left h2 hK0.le
+          _ = 2 ^ k * K * (N : ℝ) ^ k := by ring
+
+/-- **Talagrand, Lemma 1.7.4, Eq. (1.185)** (the case `k = 1` of `sk_last_spin_tanh_approx_pow`):
+`𝔼 (⟨σ_{N+1}⟩ - tanh (β (N+1)^{-1/2} ∑ g_{i,N+1} ⟨σ_i⟩_- + h))² ≤ K / (N+1)`. -/
+theorem sk_last_spin_tanh_approx (β₀ : ℝ) (hβ₀ : 0 ≤ β₀) (hβ₀' : 4 * β₀ ^ 2 < 1) (h : ℝ) :
+    ∃ K : ℝ, 0 < K ∧ ∀ β : ℝ, |β| ≤ β₀ → ∀ N : ℕ, 0 < N →
+      ∫ g : FinPairs (N + 1) → ℝ,
+        (∫ σ, ((σ (Fin.last N) : ℤ) : ℝ) ∂(Measure.count.tilted (skGibbsEnergy (N + 1) β h g)) -
+          Real.tanh ((Real.sqrt ((N : ℝ) + 1))⁻¹ * β *
+            ∑ i : Fin N, (skCavityDisorderEquiv N g).2 i *
+              ∫ b, ((b i : ℤ) : ℝ) ∂(Measure.count.tilted
+                (skGibbsEnergy N (β * Real.sqrt ((N : ℝ) / (N + 1))) h
+                  (skCavityDisorderEquiv N g).1)) + h)) ^ 2
+          ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) ≤ K / ((N : ℝ) + 1) := by
+  obtain ⟨K, hK0, hK⟩ := sk_last_spin_tanh_approx_pow β₀ hβ₀ hβ₀' h (k := 1) le_rfl
+  exact ⟨K, hK0, fun β hβ N hN => by simpa using hK β hβ N hN⟩
 
 end SpinGlasses

@@ -4012,10 +4012,11 @@ We index by $N+1$ rather than $N$ (the book's $N$ and $N-1$) to avoid subtractio
 \begin{lemma}[The $\beta_-$ coefficient]
 \label{lem:sg-tal:beta-minus}
   \lean{SpinGlasses.sk_beta_minus_coefficient,
-        SpinGlasses.dotProduct_sk_beta_minus}
+        SpinGlasses.dotProduct_sk_beta_minus,
+        SpinGlasses.one_sub_inv_succ_eq_div}
   \leanok
 \talsource{Section~1.7, proof of Lemma~1.7.4 (the identity $\beta_-/\sqrt{N-1}=\beta/\sqrt N$)}
-For $N\ge1$, $\beta\in\mathbb R$ and $\beta_-=\beta\sqrt{N/(N+1)}$: $N^{-1/2}\beta_-=(N+1)^{-1/2}\beta$; hence for all $y,a\in\mathbb R^N$, $\sum_iN^{-1/2}\beta_-a_iy_i=(N+1)^{-1/2}\beta\sum_iy_ia_i$.
+For $N\ge1$, $\beta\in\mathbb R$ and $\beta_-=\beta\sqrt{N/(N+1)}$: $N^{-1/2}\beta_-=(N+1)^{-1/2}\beta$; hence for all $y,a\in\mathbb R^N$, $\sum_iN^{-1/2}\beta_-a_iy_i=(N+1)^{-1/2}\beta\sum_iy_ia_i$.  Also $1-\frac1{N+1}=\frac N{N+1}$, so $\beta_-=\beta\sqrt{1-1/(N+1)}$ is the parameter of Lemma~\ref{lem:sg-tal:fixed-point-shift} for $N+1$ spins.
 \end{lemma}
 \begin{proof}
   \leanok
@@ -4067,24 +4068,25 @@ Rewrite the energy by Lemma~\ref{lem:sg-tal:energy-cavity} and apply the finite 
 \begin{theorem}[Lemma~1.7.4, Eq.~(1.185)]
 \label{thm:sg-tal:lemma-174-a}
   \uses{lem:sg-tal:last-spin-ratio, lem:sg-tal:disorder-split, thm:sg-tal:cor-1715-tanh, lem:sg-tal:beta-minus}
-  \lean{SpinGlasses.sk_last_spin_tanh_approx}
+  \lean{SpinGlasses.sk_last_spin_tanh_approx_pow,
+        SpinGlasses.sk_last_spin_tanh_approx}
   \leanok
-\talsource{Lemma~1.7.4, Eq.~(1.185) (Eq.~(1.212) in its proof), for the system of $N+1$ spins}
-Let $\beta_0\ge0$ with $4\beta_0^2<1$ and $h\in\mathbb R$.  There is $K>0$ such that for all $|\beta|\le\beta_0$ and $N\ge1$, with $\beta_-=\beta\sqrt{N/(N+1)}$,
+\talsource{Lemma~1.7.4, Eq.~(1.185) (Eq.~(1.212) in its proof), for the system of $N+1$ spins; the $L^{2k}$ form is the one Theorem~1.7.7 needs}
+Let $\beta_0\ge0$ with $4\beta_0^2<1$, $h\in\mathbb R$ and $k\ge1$.  There is $K>0$ such that for all $|\beta|\le\beta_0$ and $N\ge1$, with $\beta_-=\beta\sqrt{N/(N+1)}$,
 \[
-\mathbb E\Bigl(\langle\sigma_{N+1}\rangle-\tanh\Bigl(\frac{\beta}{\sqrt{N+1}}\sum_{i\le N}g_{i,N+1}\langle\sigma_i\rangle_-+h\Bigr)\Bigr)^2\le\frac K{N+1},
+\mathbb E\Bigl(\langle\sigma_{N+1}\rangle-\tanh\Bigl(\frac{\beta}{\sqrt{N+1}}\sum_{i\le N}g_{i,N+1}\langle\sigma_i\rangle_-+h\Bigr)\Bigr)^{2k}\le\frac K{(N+1)^k},
 \]
-where $\langle\cdot\rangle$ is the Gibbs measure of the $(N+1)$-spin system with disorder $g$ and $\langle\cdot\rangle_-$ that of the first $N$ spins with the old couplings at $\beta_-$ (Lemma~\ref{lem:sg-tal:energy-cavity}).  $K$ depends only on $(\beta_0,h)$.
+where $\langle\cdot\rangle$ is the Gibbs measure of the $(N+1)$-spin system with disorder $g$ and $\langle\cdot\rangle_-$ that of the first $N$ spins with the old couplings at $\beta_-$ (Lemma~\ref{lem:sg-tal:energy-cavity}).  $K$ depends only on $(\beta_0,h,k)$.  The case $k=1$ is stated separately (Eq.~(1.185)).
 \end{theorem}
 \begin{proof}
   \leanok
-Pick a fixed point $q_-$ of the $N$-spin system at $\beta_-$ (it exists, Eq.~(1.74); the statement does not involve it) and note $|\beta_-|\le|\beta|\le\beta_0$.  By Lemma~\ref{lem:sg-tal:last-spin-ratio} and Lemma~\ref{lem:sg-tal:beta-minus} the integrand is $F(g|_{\mathrm{old}},y)$ for the squared difference $F$ of Theorem~\ref{thm:sg-tal:cor-1715-tanh} (with $k=1$) for the $N$-spin system at $\beta_-$.  By Proposition~\ref{lem:sg-tal:disorder-split} the left side is $\int F\,d(\gamma^{\mathrm{Pairs}(N)}\otimes\gamma^N)$, which, $F$ being nonnegative, is at most the iterated integral, hence at most $K_{1.7.15}/N\le2K_{1.7.15}/(N+1)$.
+Pick a fixed point $q_-$ of the $N$-spin system at $\beta_-$ (it exists, Eq.~(1.74); the statement does not involve it) and note $|\beta_-|\le|\beta|\le\beta_0$.  By Lemma~\ref{lem:sg-tal:last-spin-ratio} and Lemma~\ref{lem:sg-tal:beta-minus} the integrand is $F(g|_{\mathrm{old}},y)$ for the $2k$-th power difference $F$ of Theorem~\ref{thm:sg-tal:cor-1715-tanh} for the $N$-spin system at $\beta_-$.  By Proposition~\ref{lem:sg-tal:disorder-split} the left side is $\int F\,d(\gamma^{\mathrm{Pairs}(N)}\otimes\gamma^N)$, which, $F$ being nonnegative, is at most the iterated integral, hence at most $K_{1.7.15}/N^k\le2^kK_{1.7.15}/(N+1)^k$, because $N+1\le2N$.
 \end{proof}
 
 \begin{remark}[Differences from the book in Lemma~1.7.4]
 \label{rem:sg-tal:dev-174}
 \begin{itemize}
-\item \emph{Indexing.}  The book states (1.185) for $N$ spins and applies (1.209) to the $(N-1)$-spin system; we write $N+1$ and $N$.  Constants are the same up to the factor $2$ from $1/N\le2/(N+1)$.
+\item \emph{Indexing.}  The book states (1.185) for $N$ spins and applies (1.209) to the $(N-1)$-spin system; we write $N+1$ and $N$.  Constants are the same up to the factor $2^k$ from $1/N^k\le2^k/(N+1)^k$.  The $L^{2k}$ form is stated because Theorem~1.7.7 is an $L^{2k}$ statement.
 \item \emph{No fixed point in the statement.}  The book's text speaks of the fixed point $q_-$ of the smaller system; the statement of (1.185) does not contain $q$ and neither does ours.  Lemma~\ref{lem:sg-tal:fixed-point-shift} (relating $q$ and $q_-$) is needed only in the next steps (1.186) and Lemma~1.7.6, where the fixed point of the \emph{full} system enters.
 \item \emph{Part of (1.185) only.}  The book's Lemma~1.7.4 also contains (1.186), $\mathbb E(\langle\sigma_1\rangle-\langle\sigma_1\rangle_-)^2\le K/N$, and the Gaussian structure of the cavity field (Lemma~1.7.6); these are not yet formalized.
 \end{itemize}
