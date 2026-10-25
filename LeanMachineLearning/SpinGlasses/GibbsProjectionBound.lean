@@ -182,8 +182,44 @@ theorem gibbsProjSum_zero_index_pi_div_two (hV : ExpTame V) (hm : 0 < m) (f : α
 
 end Gibbs
 
-/-- **The Taylor step of Theorem 1.7.11.**  Let `V` be exponentially tame, `m ≥ 1` and `v² ≤ 4` with
-`∫ V(v t) dγ = 0`.  There is `C ≥ 0`, depending only on `V` and `m`, such that for every Gibbs
+/-- **The Taylor step of Theorem 1.7.11, uniformly over a family of observables.**  Let `m ≥ 1`
+and let `Cb`, `c` be explicit exponential bounds for the derivatives of order `≤ 2 m`.  There is
+`C ≥ 0`, depending only on `m`, `Cb`, `c`, such that for every exponentially tame `V` obeying these
+bounds, every `v² ≤ 4` with `∫ V(v t) dγ = 0`, every Gibbs measure `μ = count.tilted f` on a finite
+set `α` and observables `|ξ_i| ≤ 1`,
+`|𝔼_y (∫ V(N^{-1/2} ∑ y_i (ξ_i - ⟨ξ_i⟩)) dμ)^m| ≤ C ∑_p ∫ |∏_j T_{p_j}| dμ^{⊗m}`,
+the sum over lists `p` of `m` pairs of replicas. -/
+theorem exists_gibbs_fluctuation_abs_le {m : ℕ} (hm : 0 < m) {Cb : ℕ → ℝ} {c : ℝ}
+    (hCb : ∀ j ≤ 2 * m, 0 ≤ Cb j) (hc : 0 ≤ c) :
+    ∃ C : ℝ, 0 ≤ C ∧ ∀ (V : ℝ → ℝ), ExpTame V →
+      (∀ j ≤ 2 * m, ∀ x, |deriv^[j] V x| ≤ Cb j * Real.exp (c * |x|)) →
+      ∀ v : ℝ, v ^ 2 ≤ 4 → ∫ t, V (v * t) ∂(gaussianReal 0 1) = 0 →
+      ∀ (N : ℕ) (α : Type) [Fintype α] [Nonempty α] [MeasurableSpace α]
+      [MeasurableSingletonClass α] (ξ : Fin N → α → ℝ), (∀ i a, |ξ i a| ≤ 1) → ∀ f : α → ℝ,
+      |∫ y : Fin N → ℝ, (∫ a, V ((fun i => (Real.sqrt N)⁻¹ *
+          (ξ i a - ∫ b, ξ i b ∂(Measure.count.tilted f))) ⬝ᵥ y)
+            ∂(Measure.count.tilted f)) ^ m ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1)| ≤
+        C * ∑ p : Fin m → Fin m × Fin m, ∫ σ : Fin m → α,
+          |pairProd (projGram (centeredData ξ f σ) v) p|
+            ∂(Measure.pi fun _ : Fin m => Measure.count.tilted f) := by
+  obtain ⟨C₀, hC₀, hC⟩ := exists_abs_projSum_le_of_bound hm m 4 hCb hc
+  refine ⟨C₀ / (2 ^ m * (Nat.factorial m : ℝ)), by positivity,
+    fun V hV hbd v hv hV0 N α _ _ _ _ ξ hξ f => ?_⟩
+  rw [← gibbsProjSum_zero_index_pi_div_two ξ hV hm f v]
+  have hchain := Real.abs_chain_zero_le_of_hasDerivAt (n := m)
+    (Q := fun r s => gibbsProjSum (m := m) ξ V f v r s)
+    (M := C₀ * ∑ p : Fin m → Fin m × Fin m, ∫ σ : Fin m → α,
+      |pairProd (projGram (centeredData ξ f σ) v) p|
+        ∂(Measure.pi fun _ : Fin m => Measure.count.tilted f))
+    (fun r s => hasDerivAt_gibbsProjSum ξ hV f v r s)
+    (fun r hr => gibbsProjSum_zero_eq_zero ξ hV hm hr f v hV0)
+    (fun s _ => abs_gibbsProjSum_le_of_bound ξ
+      (fun N' u v' s' hu hv' => hC V hbd N' u v' s' hu hv') hξ f v hv s)
+  refine hchain.trans (le_of_eq ?_)
+  ring
+
+/-- **The Taylor step of Theorem 1.7.11.**  Let `V` be exponentially tame, `m ≥ 1` and `v² ≤ 4`
+with `∫ V(v t) dγ = 0`.  There is `C ≥ 0`, depending only on `V` and `m`, such that for every Gibbs
 measure `μ = count.tilted f` on a finite set `α` and observables `|ξ_i| ≤ 1`,
 `|𝔼_y (∫ V(N^{-1/2} ∑ y_i (ξ_i - ⟨ξ_i⟩)) dμ)^m| ≤ C ∑_p ∫ |∏_j T_{p_j}| dμ^{⊗m}`,
 the sum over lists `p` of `m` pairs of replicas. -/
@@ -197,19 +233,8 @@ theorem ExpTame.gibbs_fluctuation_abs_le {V : ℝ → ℝ} (hV : ExpTame V) {m :
         C * ∑ p : Fin m → Fin m × Fin m, ∫ σ : Fin m → α,
           |pairProd (projGram (centeredData ξ f σ) v) p|
             ∂(Measure.pi fun _ : Fin m => Measure.count.tilted f) := by
-  obtain ⟨C₀, hC₀, hC⟩ := hV.exists_abs_projSum_le hm m 4
-  refine ⟨C₀ / (2 ^ m * (Nat.factorial m : ℝ)), by positivity, fun N α _ _ _ _ ξ hξ f => ?_⟩
-  rw [← gibbsProjSum_zero_index_pi_div_two ξ hV hm f v]
-  have hchain := Real.abs_chain_zero_le_of_hasDerivAt (n := m)
-    (Q := fun r s => gibbsProjSum (m := m) ξ V f v r s)
-    (M := C₀ * ∑ p : Fin m → Fin m × Fin m, ∫ σ : Fin m → α,
-      |pairProd (projGram (centeredData ξ f σ) v) p|
-        ∂(Measure.pi fun _ : Fin m => Measure.count.tilted f))
-    (fun r s => hasDerivAt_gibbsProjSum ξ hV f v r s)
-    (fun r hr => gibbsProjSum_zero_eq_zero ξ hV hm hr f v hV0)
-    (fun s _ => abs_gibbsProjSum_le_of_bound ξ (fun N' u v' s' hu hv' => hC N' u v' s' hu hv')
-      hξ f v hv s)
-  refine hchain.trans (le_of_eq ?_)
-  ring
+  obtain ⟨Cb, c, hCb, hc, hbd⟩ := hV.exists_bound_upTo (2 * m)
+  obtain ⟨C, hC0, hC⟩ := exists_gibbs_fluctuation_abs_le hm (fun j _ => hCb j) hc
+  exact ⟨C, hC0, fun N α _ _ _ _ ξ hξ f => hC V hV hbd v hv hV0 N α ξ hξ f⟩
 
 end SpinGlasses

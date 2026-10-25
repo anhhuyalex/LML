@@ -20,11 +20,13 @@ Fix deterministic vectors `u l ∈ ℝ^N` (`l ∈ Fin m`) and a scalar `v`, and 
 Gaussian fluctuation principle of Talagrand's Theorem 1.7.11.
 
 For a smooth `V` all of whose derivatives grow at most exponentially (`ExpTame`) and a
-multi-index `a`, the products `∏ ℓ, deriv^[a ℓ] V (x ℓ)` (that is, `∏ ℓ, V^{(a ℓ)} (x ℓ)`) are closed under the
+multi-index `a`, the products `∏ ℓ, deriv^[a ℓ] V (x ℓ)` (that is, `∏ ℓ, V^{(a ℓ)} (x ℓ)`)
+are closed under the
 partial derivatives `∂_k` (`a ↦ a + e_k`).  Writing `T_{l k} = u l ⬝ u k - v² δ_{l k}`
 (`projGram`), Gaussian interpolation gives
 
-`(d/ds) 𝔼 ∏ ℓ, deriv^[a ℓ] V (Z_s ℓ) = sin s cos s ∑_{l,k} T_{l k} 𝔼 ∏ ℓ, deriv^[(a + e_l + e_k) ℓ] V (Z_s ℓ)`.
+`(d/ds) 𝔼 ∏ ℓ, deriv^[a ℓ] V (Z_s ℓ)
+  = sin s cos s ∑_{l,k} T_{l k} 𝔼 ∏ ℓ, deriv^[(a + e_l + e_k) ℓ] V (Z_s ℓ)`.
 
 Iterating, `projSum V u v r s` (a sum over lists of `r` pairs of the products of entries of `T`
 against `𝔼 ∏ ℓ, deriv^[pairCount p ℓ] V (Z_s ℓ)`) satisfies
@@ -80,7 +82,8 @@ theorem ExpTame.contDiff_derivProd (hV : ExpTame V) (a : Fin m → ℕ) :
 
 theorem ExpTame.hasFDerivAt_derivProd (hV : ExpTame V) (a : Fin m → ℕ) (x : Fin m → ℝ)
     (k : Fin m) :
-    fderiv ℝ (fun x : Fin m → ℝ => ∏ ℓ, deriv^[a ℓ] V (x ℓ)) x (Pi.single k 1) = ∏ ℓ, deriv^[(a + Pi.single k 1 : Fin m → ℕ) ℓ] V (x ℓ) := by
+    fderiv ℝ (fun x : Fin m → ℝ => ∏ ℓ, deriv^[a ℓ] V (x ℓ)) x (Pi.single k 1) =
+      ∏ ℓ, deriv^[(a + Pi.single k 1 : Fin m → ℕ) ℓ] V (x ℓ) := by
   classical
   have hd : ∀ ℓ, HasFDerivAt (fun y : Fin m → ℝ => deriv^[a ℓ] V (y ℓ))
       (deriv (deriv^[a ℓ] V) (x ℓ) • ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : Fin m => ℝ) ℓ)
@@ -115,7 +118,8 @@ theorem ExpTame.exists_bound_upTo (hV : ExpTame V) (J : ℕ) :
   exact mul_le_mul_of_nonneg_right (Finset.single_le_sum (f := cc) (fun i _ => hcc i)
     (Finset.mem_range.2 (Nat.lt_succ_of_le hj))) (abs_nonneg x)
 
-/-- The bound on `∏ ℓ, deriv^[a ℓ] V (y ℓ)` from explicit bounds on the derivatives of `V` up to order `J`. -/
+/-- The bound on `∏ ℓ, deriv^[a ℓ] V (y ℓ)` from explicit bounds on the derivatives of `V` up to
+order `J`. -/
 theorem abs_derivProd_le_of_bound {J : ℕ} {Cb : ℕ → ℝ} {c : ℝ} (hCb : ∀ j ≤ J, 0 ≤ Cb j)
     (hc : 0 ≤ c) (hbd : ∀ j ≤ J, ∀ x, |deriv^[j] V x| ≤ Cb j * Real.exp (c * |x|))
     (a : Fin m → ℕ) (ha : ∀ ℓ, a ℓ ≤ J) (y : Fin m → ℝ) :
@@ -137,7 +141,8 @@ theorem abs_derivProd_le_of_bound {J : ℕ} {Cb : ℕ → ℝ} {c : ℝ} (hCb : 
               ring
 
 theorem ExpTame.abs_derivProd_le (hV : ExpTame V) (a : Fin m → ℕ) :
-    ∃ C c : ℝ, 0 ≤ C ∧ 0 ≤ c ∧ ∀ y : Fin m → ℝ, |∏ ℓ, deriv^[a ℓ] V (y ℓ)| ≤ C * Real.exp (c * ∑ l, |y l|) := by
+    ∃ C c : ℝ, 0 ≤ C ∧ 0 ≤ c ∧
+      ∀ y : Fin m → ℝ, |∏ ℓ, deriv^[a ℓ] V (y ℓ)| ≤ C * Real.exp (c * ∑ l, |y l|) := by
   obtain ⟨Cb, c, hCb, hc, hbd⟩ := hV.exists_bound_upTo (∑ ℓ, a ℓ)
   exact ⟨∏ ℓ, Cb (a ℓ), m * c, Finset.prod_nonneg fun ℓ _ => hCb _, by positivity,
     abs_derivProd_le_of_bound (fun j _ => hCb j) hc hbd a fun ℓ =>
@@ -224,9 +229,11 @@ theorem ExpTame.hasDerivAt_integral_derivProd_projPath (hV : ExpTame V)
     by_cases h : l = k
     · subst h; simp [dotProduct_single, sq]
     · simp [h, dotProduct_single, Ne.symm h]
-  have hFc : ContDiff ℝ 2 (fun x : Fin m → ℝ => ∏ ℓ, deriv^[a ℓ] V (x ℓ)) := (hV.contDiff_derivProd a).of_le (by simp)
+  have hFc : ContDiff ℝ 2 (fun x : Fin m → ℝ => ∏ ℓ, deriv^[a ℓ] V (x ℓ)) :=
+    (hV.contDiff_derivProd a).of_le (by simp)
   have hfd : ∀ (b : Fin m → ℕ) (l : Fin m) (y : Fin m → ℝ),
-      fderiv ℝ (fun x : Fin m → ℝ => ∏ ℓ, deriv^[b ℓ] V (x ℓ)) y (Pi.single l 1) = ∏ ℓ, deriv^[(b + Pi.single l 1 : Fin m → ℕ) ℓ] V (y ℓ) :=
+      fderiv ℝ (fun x : Fin m → ℝ => ∏ ℓ, deriv^[b ℓ] V (x ℓ)) y (Pi.single l 1) =
+        ∏ ℓ, deriv^[(b + Pi.single l 1 : Fin m → ℕ) ℓ] V (y ℓ) :=
     fun b l y => hV.hasFDerivAt_derivProd b y l
   obtain ⟨C₀, c₀, hC₀, hc₀, hF0⟩ := hV.abs_derivProd_le a
   choose C₁ c₁ hC₁ hc₁ hF1 using fun l : Fin m => hV.abs_derivProd_le (a + Pi.single l 1)
@@ -234,7 +241,8 @@ theorem ExpTame.hasDerivAt_integral_derivProd_projPath (hV : ExpTame V)
     hV.abs_derivProd_le (a + Pi.single l 1 + Pi.single k 1)
   have hS : ∀ y : Fin m → ℝ, 0 ≤ ∑ l, |y l| := fun y => Finset.sum_nonneg fun _ _ => abs_nonneg _
   have h := hasDerivAt_integral_comp_trig (X := X) (Y := Y) (P := P) hXY hX hY h0
-    (F := (fun x : Fin m → ℝ => ∏ ℓ, deriv^[a ℓ] V (x ℓ))) hFc (C₀ := C₀) (c₀ := c₀) hF0 (D := C₁) (c₁ := ∑ l, c₁ l)
+    (F := (fun x : Fin m → ℝ => ∏ ℓ, deriv^[a ℓ] V (x ℓ))) hFc (C₀ := C₀) (c₀ := c₀) hF0
+    (D := C₁) (c₁ := ∑ l, c₁ l)
     (fun l y => by
       rw [hfd]
       exact (hF1 l y).trans (mul_le_mul_of_nonneg_left (Real.exp_le_exp.2
@@ -243,7 +251,8 @@ theorem ExpTame.hasDerivAt_integral_derivProd_projPath (hV : ExpTame V)
     (D2 := C₂) (c₂ := ∑ k, ∑ l, c₂ k l)
     (fun k l y => by
       have : (fun y => fderiv ℝ (fun x : Fin m → ℝ => ∏ ℓ, deriv^[a ℓ] V (x ℓ)) y (Pi.single l 1)) =
-          (fun x : Fin m → ℝ => ∏ ℓ, deriv^[(a + Pi.single l 1 : Fin m → ℕ) ℓ] V (x ℓ)) := funext fun y => hfd a l y
+          (fun x : Fin m → ℝ => ∏ ℓ, deriv^[(a + Pi.single l 1 : Fin m → ℕ) ℓ] V (x ℓ)) :=
+        funext fun y => hfd a l y
       rw [this, hfd]
       refine (hF2 k l y).trans (mul_le_mul_of_nonneg_left (Real.exp_le_exp.2
         (mul_le_mul_of_nonneg_right ?_ (hS y))) (hC₂ k l))
@@ -254,7 +263,8 @@ theorem ExpTame.hasDerivAt_integral_derivProd_projPath (hV : ExpTame V)
   congr 1
   refine Finset.sum_congr rfl fun l _ => Finset.sum_congr rfl fun k _ => ?_
   have e1 : (fun y => fderiv ℝ (fun x : Fin m → ℝ => ∏ ℓ, deriv^[a ℓ] V (x ℓ)) y (Pi.single l 1)) =
-      (fun x : Fin m → ℝ => ∏ ℓ, deriv^[(a + Pi.single l 1 : Fin m → ℕ) ℓ] V (x ℓ)) := funext fun y => hfd a l y
+      (fun x : Fin m → ℝ => ∏ ℓ, deriv^[(a + Pi.single l 1 : Fin m → ℕ) ℓ] V (x ℓ)) :=
+    funext fun y => hfd a l y
   rw [hYY, hXX]
   simp only [projGram, hfd]
   congr 1
@@ -341,7 +351,8 @@ theorem ExpTame.hasDerivAt_projSum (hV : ExpTame V) (u : Fin m → Fin N → ℝ
           (Measure.pi fun _ : Fin N => gaussianReal 0 1)))
     (A' := fun (p : Fin r → Fin m × Fin m) => pairProd (projGram u v) p *
       (Real.sin t * Real.cos t * ∑ l, ∑ k, projGram u v l k *
-        ∫ ω, ∏ ℓ, deriv^[(pairCount p + Pi.single l 1 + Pi.single k 1) ℓ] V (projPath u v t ω ℓ)
+        ∫ ω, ∏ ℓ, deriv^[(pairCount p + Pi.single l 1 + Pi.single k 1 : Fin m → ℕ) ℓ] V
+            (projPath u v t ω ℓ)
           ∂((Measure.pi fun _ : Fin m => gaussianReal 0 1).prod
             (Measure.pi fun _ : Fin N => gaussianReal 0 1))))
     (fun p _ => (hV.hasDerivAt_integral_derivProd_projPath u v (pairCount p) t).const_mul
@@ -461,7 +472,8 @@ theorem abs_integral_derivProd_projPath_le {C₀ c : ℝ} (hm : 0 < m) (a : Fin 
     rw [abs_mul, abs_of_nonneg (by positivity : 0 ≤ b)] at h2
     rw [← mul_assoc, ← hb, neg_mul]
     exact h2
-  have hnorm := norm_integral_le_of_norm_le hGi (f := fun ω => ∏ ℓ, deriv^[a ℓ] V (projPath u v s ω ℓ))
+  have hnorm := norm_integral_le_of_norm_le hGi
+    (f := fun ω => ∏ ℓ, deriv^[a ℓ] V (projPath u v s ω ℓ))
     (ae_of_all _ fun ω => by simpa only [Real.norm_eq_abs] using hpt ω)
   rw [Real.norm_eq_abs] at hnorm
   refine hnorm.trans ?_
@@ -702,17 +714,22 @@ theorem iterate_deriv_exp (c : ℝ) (j : ℕ) (x : ℝ) :
       ring
     exact h.deriv
 
+/-- Exponential bound on the derivatives of `x ↦ exp(c * x)`, uniform in `|c| ≤ B`. -/
+theorem abs_iterate_deriv_exp_le {c B : ℝ} (hc : |c| ≤ B) (j : ℕ) (x : ℝ) :
+    |deriv^[j] (fun y => Real.exp (c * y)) x| ≤ B ^ j * Real.exp (B * |x|) := by
+  rw [iterate_deriv_exp, abs_mul, abs_pow, Real.abs_exp]
+  have h_le : c * x ≤ B * |x| := by
+    calc c * x ≤ |c * x| := le_abs_self _
+      _ = |c| * |x| := abs_mul c x
+      _ ≤ B * |x| := mul_le_mul_of_nonneg_right hc (abs_nonneg x)
+  exact mul_le_mul (pow_le_pow_left₀ (abs_nonneg c) hc j) (Real.exp_le_exp_of_le h_le)
+    (Real.exp_pos _).le (pow_nonneg ((abs_nonneg c).trans hc) j)
+
 /-- The exponential function `x ↦ exp(c * x)` is exponentially tame. -/
 theorem expTame_exp (c : ℝ) : ExpTame (fun x => Real.exp (c * x)) where
   contDiff := Real.contDiff_exp.comp (contDiff_const.mul contDiff_id)
-  bound j := by
-    refine ⟨|c| ^ j, |c|, by positivity, by positivity, fun x => ?_⟩
-    rw [iterate_deriv_exp]
-    rw [abs_mul, abs_pow, Real.abs_exp]
-    have h_le : c * x ≤ |c| * |x| := by
-      calc c * x ≤ |c * x| := le_abs_self _
-        _ = |c| * |x| := abs_mul c x
-    exact mul_le_mul_of_nonneg_left (Real.exp_le_exp_of_le h_le) (by positivity)
+  bound j := ⟨|c| ^ j, |c|, by positivity, by positivity,
+    fun x => abs_iterate_deriv_exp_le le_rfl j x⟩
 
 /-- Iterated derivatives of `y ↦ y * exp (c * y)`. -/
 theorem iterate_deriv_id_mul_exp (c : ℝ) (j : ℕ) (x : ℝ) :
@@ -751,54 +768,71 @@ theorem iterate_deriv_id_mul_exp (c : ℝ) (j : ℕ) (x : ℝ) :
       rw [h1, h2, h3, h4]
       ring
 
+/-- Exponential bound on the derivatives of `x ↦ x * exp(c * x)` in terms of `|c|`. -/
+theorem abs_iterate_deriv_id_mul_exp_le_abs (c : ℝ) (j : ℕ) (x : ℝ) :
+    |deriv^[j] (fun y => y * Real.exp (c * y)) x| ≤
+      2 * ((j : ℝ) * |c| ^ (j - 1) + |c| ^ j) * Real.exp ((|c| + 1) * |x|) := by
+  rw [iterate_deriv_id_mul_exp]
+  rw [abs_mul, Real.abs_exp]
+  have h_le1 : |(j : ℝ) * c ^ (j - 1) + c ^ j * x| ≤ (j : ℝ) * |c| ^ (j - 1) + |c| ^ j * |x| := by
+    calc |(j : ℝ) * c ^ (j - 1) + c ^ j * x|
+      _ ≤ |(j : ℝ) * c ^ (j - 1)| + |c ^ j * x| := abs_add_le _ _
+      _ = (j : ℝ) * |c| ^ (j - 1) + |c| ^ j * |x| := by
+        simp only [abs_mul, abs_pow]
+        rw [abs_of_nonneg (by positivity)]
+  have h_x_le : |x| ≤ Real.exp |x| := by
+    linarith [Real.add_one_le_exp |x|, abs_nonneg x]
+  have h_one_le : (1 : ℝ) ≤ Real.exp |x| := by
+    have := Real.exp_le_exp_of_le (abs_nonneg x)
+    rwa [Real.exp_zero] at this
+  have h_poly : (j : ℝ) * |c| ^ (j - 1) + |c| ^ j * |x| ≤
+      2 * ((j : ℝ) * |c| ^ (j - 1) + |c| ^ j) * Real.exp |x| := by
+    calc (j : ℝ) * |c| ^ (j - 1) + |c| ^ j * |x|
+      _ ≤ (j : ℝ) * |c| ^ (j - 1) * Real.exp |x| + |c| ^ j * Real.exp |x| := by
+        have h1 : (j : ℝ) * |c| ^ (j - 1) ≤ (j : ℝ) * |c| ^ (j - 1) * Real.exp |x| := by
+          calc (j : ℝ) * |c| ^ (j - 1) = (j : ℝ) * |c| ^ (j - 1) * 1 := by ring
+            _ ≤ (j : ℝ) * |c| ^ (j - 1) * Real.exp |x| :=
+              mul_le_mul_of_nonneg_left h_one_le (by positivity)
+        have h2 : |c| ^ j * |x| ≤ |c| ^ j * Real.exp |x| :=
+          mul_le_mul_of_nonneg_left h_x_le (by positivity)
+        linarith
+      _ = ((j : ℝ) * |c| ^ (j - 1) + |c| ^ j) * Real.exp |x| := by ring
+      _ ≤ ((j : ℝ) * |c| ^ (j - 1) + |c| ^ j) * Real.exp |x| +
+          ((j : ℝ) * |c| ^ (j - 1) + |c| ^ j) * Real.exp |x| :=
+        le_add_of_nonneg_right (by positivity)
+      _ = 2 * ((j : ℝ) * |c| ^ (j - 1) + |c| ^ j) * Real.exp |x| := by ring
+  have h_exp : Real.exp (c * x) ≤ Real.exp (|c| * |x|) := by
+    have : c * x ≤ |c| * |x| := (le_abs_self _).trans_eq (abs_mul c x)
+    exact Real.exp_le_exp_of_le this
+  have h_prod : Real.exp |x| * Real.exp (|c| * |x|) = Real.exp ((|c| + 1) * |x|) := by
+    rw [← Real.exp_add]
+    ring_nf
+  calc |(j : ℝ) * c ^ (j - 1) + c ^ j * x| * Real.exp (c * x)
+    _ ≤ ((j : ℝ) * |c| ^ (j - 1) + |c| ^ j * |x|) * Real.exp (|c| * |x|) :=
+      mul_le_mul h_le1 h_exp (by positivity) (by positivity)
+    _ ≤ (2 * ((j : ℝ) * |c| ^ (j - 1) + |c| ^ j) * Real.exp |x|) * Real.exp (|c| * |x|) :=
+      mul_le_mul_of_nonneg_right h_poly (by positivity)
+    _ = 2 * ((j : ℝ) * |c| ^ (j - 1) + |c| ^ j) * (Real.exp |x| * Real.exp (|c| * |x|)) := by ring
+    _ = 2 * ((j : ℝ) * |c| ^ (j - 1) + |c| ^ j) * Real.exp ((|c| + 1) * |x|) := by rw [h_prod]
+
+/-- Exponential bound on the derivatives of `x ↦ x * exp(c * x)`, uniform in `|c| ≤ B`. -/
+theorem abs_iterate_deriv_id_mul_exp_le {c B : ℝ} (hc : |c| ≤ B) (j : ℕ) (x : ℝ) :
+    |deriv^[j] (fun y => y * Real.exp (c * y)) x| ≤
+      2 * ((j : ℝ) * B ^ (j - 1) + B ^ j) * Real.exp ((B + 1) * |x|) := by
+  refine (abs_iterate_deriv_id_mul_exp_le_abs c j x).trans ?_
+  have hB : 0 ≤ B := (abs_nonneg c).trans hc
+  refine mul_le_mul ?_ (Real.exp_le_exp.2 ?_) (Real.exp_pos _).le (by positivity)
+  · have h1 : |c| ^ (j - 1) ≤ B ^ (j - 1) := pow_le_pow_left₀ (abs_nonneg c) hc _
+    have h2 : |c| ^ j ≤ B ^ j := pow_le_pow_left₀ (abs_nonneg c) hc _
+    have : (0 : ℝ) ≤ j := Nat.cast_nonneg j
+    nlinarith [mul_le_mul_of_nonneg_left h1 this]
+  · exact mul_le_mul_of_nonneg_right (by linarith) (abs_nonneg x)
+
 /-- The function `x ↦ x * exp(c * x)` is exponentially tame. -/
 theorem expTame_id_mul_exp (c : ℝ) : ExpTame (fun x => x * Real.exp (c * x)) where
   contDiff := contDiff_id.mul (Real.contDiff_exp.comp (contDiff_const.mul contDiff_id))
-  bound j := by
-    refine ⟨2 * ((j : ℝ) * |c| ^ (j - 1) + |c| ^ j), |c| + 1,
-      by positivity, by positivity, fun x => ?_⟩
-    rw [iterate_deriv_id_mul_exp]
-    rw [abs_mul, Real.abs_exp]
-    have h_le1 : |(j : ℝ) * c ^ (j - 1) + c ^ j * x| ≤ (j : ℝ) * |c| ^ (j - 1) + |c| ^ j * |x| := by
-      calc |(j : ℝ) * c ^ (j - 1) + c ^ j * x|
-        _ ≤ |(j : ℝ) * c ^ (j - 1)| + |c ^ j * x| := abs_add_le _ _
-        _ = (j : ℝ) * |c| ^ (j - 1) + |c| ^ j * |x| := by
-          simp only [abs_mul, abs_pow]
-          rw [abs_of_nonneg (by positivity)]
-    have h_x_le : |x| ≤ Real.exp |x| := by
-      linarith [Real.add_one_le_exp |x|, abs_nonneg x]
-    have h_one_le : (1 : ℝ) ≤ Real.exp |x| := by
-      have := Real.exp_le_exp_of_le (abs_nonneg x)
-      rwa [Real.exp_zero] at this
-    have h_poly : (j : ℝ) * |c| ^ (j - 1) + |c| ^ j * |x| ≤
-        2 * ((j : ℝ) * |c| ^ (j - 1) + |c| ^ j) * Real.exp |x| := by
-      calc (j : ℝ) * |c| ^ (j - 1) + |c| ^ j * |x|
-        _ ≤ (j : ℝ) * |c| ^ (j - 1) * Real.exp |x| + |c| ^ j * Real.exp |x| := by
-          have h1 : (j : ℝ) * |c| ^ (j - 1) ≤ (j : ℝ) * |c| ^ (j - 1) * Real.exp |x| := by
-            calc (j : ℝ) * |c| ^ (j - 1) = (j : ℝ) * |c| ^ (j - 1) * 1 := by ring
-              _ ≤ (j : ℝ) * |c| ^ (j - 1) * Real.exp |x| :=
-                mul_le_mul_of_nonneg_left h_one_le (by positivity)
-          have h2 : |c| ^ j * |x| ≤ |c| ^ j * Real.exp |x| :=
-            mul_le_mul_of_nonneg_left h_x_le (by positivity)
-          linarith
-        _ = ((j : ℝ) * |c| ^ (j - 1) + |c| ^ j) * Real.exp |x| := by ring
-        _ ≤ ((j : ℝ) * |c| ^ (j - 1) + |c| ^ j) * Real.exp |x| +
-            ((j : ℝ) * |c| ^ (j - 1) + |c| ^ j) * Real.exp |x| :=
-          le_add_of_nonneg_right (by positivity)
-        _ = 2 * ((j : ℝ) * |c| ^ (j - 1) + |c| ^ j) * Real.exp |x| := by ring
-    have h_exp : Real.exp (c * x) ≤ Real.exp (|c| * |x|) := by
-      have : c * x ≤ |c| * |x| := (le_abs_self _).trans_eq (abs_mul c x)
-      exact Real.exp_le_exp_of_le this
-    have h_prod : Real.exp |x| * Real.exp (|c| * |x|) = Real.exp ((|c| + 1) * |x|) := by
-      rw [← Real.exp_add]
-      ring_nf
-    calc |(j : ℝ) * c ^ (j - 1) + c ^ j * x| * Real.exp (c * x)
-      _ ≤ ((j : ℝ) * |c| ^ (j - 1) + |c| ^ j * |x|) * Real.exp (|c| * |x|) :=
-        mul_le_mul h_le1 h_exp (by positivity) (by positivity)
-      _ ≤ (2 * ((j : ℝ) * |c| ^ (j - 1) + |c| ^ j) * Real.exp |x|) * Real.exp (|c| * |x|) :=
-        mul_le_mul_of_nonneg_right h_poly (by positivity)
-      _ = 2 * ((j : ℝ) * |c| ^ (j - 1) + |c| ^ j) * (Real.exp |x| * Real.exp (|c| * |x|)) := by ring
-      _ = 2 * ((j : ℝ) * |c| ^ (j - 1) + |c| ^ j) * Real.exp ((|c| + 1) * |x|) := by rw [h_prod]
+  bound j := ⟨2 * ((j : ℝ) * |c| ^ (j - 1) + |c| ^ j), |c| + 1,
+    by positivity, by positivity, fun x => abs_iterate_deriv_id_mul_exp_le_abs c j x⟩
 
 /-! ### Exponentially tame functions: shifts and Gaussian averages -/
 
@@ -845,5 +879,58 @@ theorem ExpTame.integral_sub_const_mul_gaussianReal {V : ℝ → ℝ} (hV : ExpT
     ∫ t, (V (v * t) - ∫ s, V (v * s) ∂(gaussianReal 0 1)) ∂(gaussianReal 0 1) = 0 := by
   rw [integral_sub (hV.integrable_comp_mul_gaussianReal v) (integrable_const _)]
   simp
+
+/-- The Gaussian mean of an exponentially bounded function of a scaled Gaussian is bounded,
+uniformly in the exponential bounds. -/
+theorem abs_integral_comp_mul_gaussianReal_le {U : ℝ → ℝ} {C₀ c : ℝ} (hC₀ : 0 ≤ C₀) (hc : 0 ≤ c)
+    (hU : ∀ x, |U x| ≤ C₀ * Real.exp (c * |x|)) (v : ℝ) :
+    |∫ t, U (v * t) ∂(gaussianReal 0 1)| ≤ 2 * C₀ * Real.exp (c ^ 2 * v ^ 2 / 2) := by
+  set b : ℝ := c * |v| with hb
+  have hint : ∀ w : ℝ, Integrable (fun t => Real.exp (w * t)) (gaussianReal 0 1) := fun w =>
+    integrable_exp_mul_gaussianReal (μ := 0) (v := 1) w
+  have hpt : ∀ t, ‖U (v * t)‖ ≤ C₀ * (Real.exp (b * t) + Real.exp (-b * t)) := fun t => by
+    rw [Real.norm_eq_abs]
+    refine (hU _).trans (mul_le_mul_of_nonneg_left ?_ hC₀)
+    have h2 := exp_abs_le_add (b * t)
+    rw [abs_mul, abs_of_nonneg (by positivity : 0 ≤ b)] at h2
+    rw [abs_mul, ← mul_assoc, ← hb, neg_mul]
+    exact h2
+  have hGi : Integrable (fun t => C₀ * (Real.exp (b * t) + Real.exp (-b * t)))
+      (gaussianReal 0 1) := ((hint b).add (hint (-b))).const_mul C₀
+  have hnorm := norm_integral_le_of_norm_le hGi (ae_of_all _ hpt)
+  rw [Real.norm_eq_abs] at hnorm
+  refine hnorm.trans (le_of_eq ?_)
+  have hb2 : b ^ 2 = c ^ 2 * v ^ 2 := by rw [hb, mul_pow, sq_abs]
+  rw [integral_const_mul, integral_add (hint b) (hint (-b)), integral_exp_mul_gaussianReal_zero_one,
+    integral_exp_mul_gaussianReal_zero_one, neg_sq, hb2]
+  ring
+
+/-- Subtracting a constant keeps explicit exponential bounds, at the price of adding the
+constant to the order-zero (and, for simplicity, every) coefficient. -/
+theorem abs_iterate_deriv_sub_const_le {V : ℝ → ℝ} {J : ℕ} {Cb : ℕ → ℝ} {c c₀ K₀ : ℝ}
+    (hK₀ : |c₀| ≤ K₀) (hbd : ∀ j ≤ J, ∀ x, |deriv^[j] V x| ≤ Cb j * Real.exp (c * |x|))
+    (hc : 0 ≤ c) :
+    ∀ j ≤ J, ∀ x, |deriv^[j] (fun y => V y - c₀) x| ≤ (Cb j + K₀) * Real.exp (c * |x|) := by
+  intro j hj x
+  have h1 : (1 : ℝ) ≤ Real.exp (c * |x|) := Real.one_le_exp (by positivity)
+  have hCb : 0 ≤ Cb j := by
+    have := (abs_nonneg _).trans (hbd j hj x)
+    exact nonneg_of_mul_nonneg_left this (Real.exp_pos _)
+  have hK : 0 ≤ K₀ := (abs_nonneg _).trans hK₀
+  cases j with
+  | zero =>
+    simp only [Function.iterate_zero, id] at *
+    calc |V x - c₀| ≤ |V x| + |c₀| := abs_sub _ _
+      _ ≤ Cb 0 * Real.exp (c * |x|) + K₀ * Real.exp (c * |x|) := by
+        gcongr
+        · exact hbd 0 hj x
+        · exact hK₀.trans (le_mul_of_one_le_right hK h1)
+      _ = _ := by ring
+  | succ j =>
+    have hd : deriv (fun y => V y - c₀) = deriv V := by
+      funext y; exact deriv_sub_const c₀
+    rw [Function.iterate_succ_apply, hd, ← Function.iterate_succ_apply]
+    refine (hbd (j + 1) hj x).trans ?_
+    exact mul_le_mul_of_nonneg_right (by linarith) (Real.exp_pos _).le
 
 end SpinGlasses
