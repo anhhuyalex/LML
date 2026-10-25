@@ -8,6 +8,7 @@ module
 public import LeanMachineLearning.SpinGlasses.GibbsMeasure
 public import LeanMachineLearning.SpinGlasses.SKReplicaSymmetricBound
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.HypercubeProduct
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteHyperbolic
 
 /-!
 # The finite Gibbs cavity identity
@@ -103,6 +104,39 @@ theorem integral_count_tilted_fin_snoc_cavity_units (N : ℕ)
   change ∫ x : (Fin N → ℤˣ) × ℤˣ, f (Fin.snoc x.1 x.2)
     ∂(Measure.count.tilted fun x => A x.1 + (x.2 : ℝ) * L x.1) = _
   exact integral_count_tilted_cavity_units A L fun ρ ε => f (Fin.snoc ρ ε)
+
+/-- **Cavity formula for an observable of the old spins.**  The Gibbs average of a function of the
+first `N` spins in the `(N+1)`-spin system with last-spin field `L` is the `cosh L`-weighted average
+over the old Gibbs measure, divided by `⟨cosh L⟩`.  For `φ = 1` it is trivial, for
+`φ ρ = ρ_i` it is the cavity formula for an old magnetization. -/
+theorem integral_comp_castSucc_count_tilted_snoc (N : ℕ) (A L : (Fin N → ℤˣ) → ℝ)
+    (φ : (Fin N → ℤˣ) → ℝ) :
+    ∫ σ : Fin (N + 1) → ℤˣ, φ (fun i => σ i.castSucc) ∂(Measure.count.tilted fun σ =>
+      A (fun i => σ i.castSucc) + (σ (Fin.last N) : ℝ) * L (fun i => σ i.castSucc)) =
+      (∫ ρ, φ ρ * Real.cosh (L ρ) ∂(Measure.count.tilted A)) /
+        ∫ ρ, Real.cosh (L ρ) ∂(Measure.count.tilted A) := by
+  rw [integral_count_tilted_fin_snoc_cavity_units N A L (fun σ => φ (fun i => σ i.castSucc))]
+  congr 1
+  refine integral_congr_ae (ae_of_all _ fun ρ => ?_)
+  simp only [Fin.snoc_castSucc, Real.cosh_eq]
+  ring
+
+/-- **The change of an old magnetization when a spin is added.**  In the `(N+1)`-spin system the
+Gibbs mean of an observable `φ` of the first `N` spins differs from its mean in the `N`-spin system
+by `⟨(φ - ⟨φ⟩) cosh L⟩ / ⟨cosh L⟩`, all averages being over the old Gibbs measure. -/
+theorem integral_comp_castSucc_sub_integral (N : ℕ) (A L : (Fin N → ℤˣ) → ℝ)
+    (φ : (Fin N → ℤˣ) → ℝ) :
+    (∫ σ : Fin (N + 1) → ℤˣ, φ (fun i => σ i.castSucc) ∂(Measure.count.tilted fun σ =>
+      A (fun i => σ i.castSucc) + (σ (Fin.last N) : ℝ) * L (fun i => σ i.castSucc))) -
+        ∫ ρ, φ ρ ∂(Measure.count.tilted A) =
+      (∫ ρ, (φ ρ - ∫ ρ', φ ρ' ∂(Measure.count.tilted A)) * Real.cosh (L ρ)
+        ∂(Measure.count.tilted A)) / ∫ ρ, Real.cosh (L ρ) ∂(Measure.count.tilted A) := by
+  rw [integral_comp_castSucc_count_tilted_snoc]
+  have hd : 0 < ∫ ρ, Real.cosh (L ρ) ∂(Measure.count.tilted A) :=
+    lt_of_lt_of_le one_pos (one_le_integral_cosh _ L)
+  simp only [sub_mul]
+  rw [integral_sub Integrable.of_finite Integrable.of_finite, integral_const_mul]
+  field_simp
 
 /-- **Covariance of the interacting last-spin cavity field.**  The field
 `ε β M^{-1/2} ∑ᵢ gᵢ ρᵢ` has covariance

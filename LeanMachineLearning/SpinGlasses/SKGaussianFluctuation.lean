@@ -35,6 +35,17 @@ noncomputable def skGibbsEnergy (N : ℕ) (β h : ℝ) (g : FinPairs N → ℝ) 
   (Real.sqrt N)⁻¹ * β * (∑ p : FinPairs N, g p * ((a p.val.1 : ℤ) : ℝ) * ((a p.val.2 : ℤ) : ℝ)) +
     h * ∑ i, ((a i : ℤ) : ℝ)
 
+/-- The overlap moment of the SK Gibbs measure is integrable in the disorder. -/
+theorem integrable_overlapMoment_skGibbsEnergy (N : ℕ) (β h q : ℝ) (k : ℕ) :
+    Integrable (fun g : FinPairs N → ℝ =>
+      overlapMoment (fun (i : Fin N) (a : Fin N → ℤˣ) => ((a i : ℤ) : ℝ))
+        (skGibbsEnergy N β h g) q k) (Measure.pi fun _ : FinPairs N => gaussianReal 0 1) := by
+  refine integrable_integral_pi_count_tilted_det (R := Fin 2)
+    (g := fun a g => skGibbsEnergy N β h g a) (fun a => ?_)
+    (fun τ => ((N : ℝ)⁻¹ * ∑ i, ((τ 0 i : ℤ) : ℝ) * ((τ 1 i : ℤ) : ℝ) - q) ^ (2 * k))
+  unfold skGibbsEnergy
+  exact (by fun_prop : Measurable _).aemeasurable
+
 /-- **The general Gaussian fluctuation principle (Talagrand, Theorem 1.7.11).**  Let
 `4 β² < 1`, let `q = 𝔼 tanh²(β √q z + h)` and let `U` be exponentially tame.  Then for every `k ≥ 1`
 there is `K` such that for every `N ≥ 1`
@@ -67,12 +78,7 @@ theorem sk_general_gaussian_fluctuation (β h q : ℝ)
   have hξ_sq : ∀ i a, ξ i a ^ 2 = 1 := fun i a => units_cast_sq (a i)
   set P : Measure (FinPairs N → ℝ) := Measure.pi fun _ : FinPairs N => gaussianReal 0 1 with hP
   set J : (FinPairs N → ℝ) → ℝ := fun g => overlapMoment ξ (skGibbsEnergy N β h g) q k with hJ
-  have hJint : Integrable J P := by
-    refine integrable_integral_pi_count_tilted_det (R := Fin 2)
-      (g := fun a g => skGibbsEnergy N β h g a) (fun a => ?_)
-      (fun τ => ((N : ℝ)⁻¹ * ∑ i, ξ i (τ 0) * ξ i (τ 1) - q) ^ (2 * k))
-    unfold skGibbsEnergy
-    exact (by fun_prop : Measurable _).aemeasurable
+  have hJint : Integrable J P := integrable_overlapMoment_skGibbsEnergy N β h q k
   have hJmom : ∫ g, J g ∂P ≤ K' / (N : ℝ) ^ k := hK' N hN
   -- for each disorder the Gibbs-side bound
   have hpt : ∀ g : FinPairs N → ℝ, ∫ y : Fin N → ℝ,

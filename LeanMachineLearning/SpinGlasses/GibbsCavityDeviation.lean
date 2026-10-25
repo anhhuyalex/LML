@@ -83,12 +83,10 @@ theorem abs_cavityKernel_sub_le {B : ℝ} (hB : 0 ≤ B) (h : ℝ) {x q : ℝ} (
 
 section Gibbs
 
-attribute [local instance] Fintype.ofFinite
-
-variable {α : Type*} [Finite α] [Nonempty α] [MeasurableSpace α] [MeasurableSingletonClass α]
+variable {α : Type*} [Fintype α] [Nonempty α] [MeasurableSpace α] [MeasurableSingletonClass α]
   {N : ℕ} (ξ : Fin N → α → ℝ)
 
-omit [Finite α] [Nonempty α] [MeasurableSpace α] [MeasurableSingletonClass α] in
+omit [Fintype α] [Nonempty α] [MeasurableSpace α] [MeasurableSingletonClass α] in
 /-- For `±1` observables, `∑ (c (ξ(a) ± ξ(b)))² / 2 = c² (N ± ∑ ξ(a) ξ(b))`. -/
 theorem sum_sq_cavity_add (hξ2 : ∀ i a, ξ i a ^ 2 = 1) (c : ℝ) (a b : α) (s : ℝ)
     (hs : s = 1 ∨ s = -1) :
@@ -117,6 +115,7 @@ theorem sq_integral_gibbs_cosh (f : α → ℝ) (c h : ℝ) (g : α → ℝ) (y 
   exact Finset.sum_congr rfl fun a _ => Finset.sum_congr rfl fun b _ => by ring
 
 omit [Nonempty α] in
+set_option linter.unusedFintypeInType false in
 /-- The Gaussian second moment of a Gibbs average of `g cosh L_y` is integrable. -/
 theorem integrable_sq_integral_gibbs_cosh (f : α → ℝ) (c h : ℝ) (g : α → ℝ) :
     Integrable (fun y : Fin N → ℝ => (∫ a, g a * Real.cosh (c * ∑ j, y j * ξ j a + h)
@@ -156,6 +155,22 @@ theorem integral_gibbs_cosh_sq (hξ2 : ∀ i a, ξ i a ^ 2 = 1) (f : α → ℝ)
   have e2 : ∑ j, (c * (ξ j a - ξ j b)) ^ 2 / 2 = c ^ 2 * (N - ∑ i, ξ i a * ξ i b) := by
     simpa [sub_eq_add_neg] using sum_sq_cavity_add ξ hξ2 c a b (-1) (Or.inr rfl)
   rw [e1, e2]
+
+omit [Nonempty α] in
+/-- **The centered cavity deviation, averaged over the field.**  The same double Gibbs sum with
+the centered observable `ξ̇_i = ξ_i - ⟨ξ_i⟩`, the mean being written as a weighted sum. -/
+theorem integral_gibbs_cosh_sq_centered (hξ2 : ∀ i a, ξ i a ^ 2 = 1) (f : α → ℝ) (c h : ℝ)
+    (i : Fin N) :
+    ∫ y : Fin N → ℝ, (∫ a, (ξ i a - ∫ b, ξ i b ∂(Measure.count.tilted f)) *
+        Real.cosh (c * ∑ j, y j * ξ j a + h) ∂(Measure.count.tilted f)) ^ 2
+      ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1) =
+      ∑ a, ∑ b, (Real.exp (f a) / ∑ x, Real.exp (f x)) * (Real.exp (f b) / ∑ x, Real.exp (f x)) *
+        ((ξ i a - ∑ x, (Real.exp (f x) / ∑ z, Real.exp (f z)) * ξ i x) *
+          (ξ i b - ∑ x, (Real.exp (f x) / ∑ z, Real.exp (f z)) * ξ i x)) *
+        ((Real.cosh (2 * h) * Real.exp (c ^ 2 * (N + ∑ i, ξ i a * ξ i b)) +
+          Real.exp (c ^ 2 * (N - ∑ i, ξ i a * ξ i b))) / 2) := by
+  rw [integral_gibbs_cosh_sq ξ hξ2 f c h (fun a => ξ i a - ∫ b, ξ i b ∂(Measure.count.tilted f)),
+    integral_count_tilted f (ξ i)]
 
 omit [MeasurableSpace α] [MeasurableSingletonClass α] in
 /-- Gibbs weights sum to one. -/
@@ -199,6 +214,7 @@ theorem sum_sum_weight_mul_gram_eq_zero (f : α → ℝ) :
     rw [hm]; exact sum_weight_mul_sub_integral ξ f i
   rw [← Finset.sum_mul, h0, zero_mul, mul_zero]
 
+set_option linter.unusedFintypeInType false in
 /-- **Sum over the sites of the cavity deviation (model-independent part of Eq. (1.186)).**  For
 `±1` observables `ξ_i` on a Gibbs measure `μ = count.tilted f`, a Gaussian vector `y` and a cavity
 field `L_y(a) = c ∑ y_j ξ_j(a) + h`,
