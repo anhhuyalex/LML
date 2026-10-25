@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Function.UnitVectorField
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SqrtSub
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SqSub
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.MapProdFiberLaw
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianGram
@@ -88,19 +89,6 @@ theorem exists_independent_gaussian_projection (hN : 0 < N)
 end Projection
 
 section Algebra
-
-/-- `(√q - a)² ≤ (q - a²)² / q` for `q > 0`, `a ≥ 0`, because
-`(q - a²)² = (√q - a)² (√q + a)²` and `(√q + a)² ≥ q`. -/
-theorem sq_sqrt_sub_le {q a : ℝ} (hq : 0 < q) (ha : 0 ≤ a) :
-    (Real.sqrt q - a) ^ 2 ≤ (q - a ^ 2) ^ 2 / q := by
-  have key : ∀ s : ℝ, 0 < s → (s - a) ^ 2 ≤ (s ^ 2 - a ^ 2) ^ 2 / s ^ 2 := fun s hs => by
-    rw [le_div_iff₀ (by positivity)]
-    have hid : (s ^ 2 - a ^ 2) ^ 2 - (s - a) ^ 2 * s ^ 2 = (s - a) ^ 2 * (a * (2 * s + a)) := by
-      ring
-    have : 0 ≤ (s - a) ^ 2 * (a * (2 * s + a)) := by positivity
-    linarith
-  have := key (Real.sqrt q) (Real.sqrt_pos.mpr hq)
-  rwa [Real.sq_sqrt hq.le] at this
 
 /-- **Recentering the overlap** with the fixed-point shift: if `|q - q_-| ≤ ε ≤ 1`, `q ∈ [0, 1]`
 then `(q - (1 - ε) R)² ≤ 4 (R - q_-)² + 6 ε²`. -/
@@ -326,7 +314,7 @@ theorem sk_cavity_tanh_gaussian_sub_le (β₀ : ℝ) (hβ₀' : 4 * β₀ ^ 2 < 
       _ ≤ β ^ 2 * ((q - (c * Real.sqrt (m g ⬝ᵥ m g)) ^ 2) ^ 2 / q) := by
           refine mul_le_mul_of_nonneg_left ?_ (sq_nonneg _)
           rw [← neg_sub, neg_sq]
-          exact sq_sqrt_sub_le hqpos ha0
+          exact Real.sq_sqrt_sub_le hqpos ha0
       _ ≤ β₀ ^ 2 * (B g / qmin) :=
           mul_le_mul hβ2 (div_le_div₀ hB0 hB' hqminpos hqle) (by positivity) (sq_nonneg _)
       _ = β₀ ^ 2 / qmin * B g := by ring

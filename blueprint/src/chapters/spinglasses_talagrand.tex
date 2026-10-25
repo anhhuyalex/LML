@@ -3978,6 +3978,34 @@ using $B'\ge1$.  The proof of Theorem~\ref{thm:sg-tal:cor-1715-tanh} gives $|\fr
 Raising to the power $2k$ with $(x_1+x_2+x_3+x_4)^{2k}\le4^{2k-1}\sum x_i^{2k}$ and using the kernels of Lemma~\ref{lem:sg-tal:cor-kernel} for $U=e^{\pm\beta x}$ (the unprimed $D$'s) and $U=xe^{\pm\beta x}$ (the primed ones) concludes as in Theorem~\ref{thm:sg-tal:cor-1715-tanh}, with the constants of Lemma~\ref{lem:sg-tal:exptame-instances} for $B=\beta_0$.
 \end{proof}
 
+\begin{lemma}[Gibbs covariance of a linear statistic]
+\label{lem:sg-tal:centered-linear}
+  \lean{SpinGlasses.integral_dotProduct_centered_mul, SpinGlasses.reaction_form_alg}
+  \leanok
+Let $\mu$ be a finite measure on a finite set, $\xi_i$ real functions, $w$ a real function, $c\in\mathbb R$ and $y\in\mathbb R^N$. Then
+$\int\bigl(\sum_ic\,(\xi_i-\langle\xi_i\rangle)y_i\bigr)\,w\,d\mu=c\sum_iy_i\bigl(\langle\xi_iw\rangle-\langle\xi_i\rangle\langle w\rangle\bigr)$, where $\langle f\rangle=\int f\,d\mu$.  Moreover, for $D\neq0$, $c\sum_iy_i\frac{S_i}{D}-b\frac{s}{D}-c\sum_iy_im_i=\frac{c\sum_iy_i(S_i-m_iD)}{D}-b\frac sD$.
+\end{lemma}
+\begin{proof}
+  \leanok
+Expand the dot product, use linearity of the integral over the finite sum, and $\int(\xi_iw-\langle\xi_i\rangle w)\,d\mu=\langle\xi_iw\rangle-\langle\xi_i\rangle\langle w\rangle$.  The second identity is the termwise identity $y_i(S_i/D)-y_im_i=y_i(S_i-m_iD)/D$ summed over $i$.
+\end{proof}
+
+\begin{theorem}[Corollary~1.7.15, Eq.~(1.210) in the book form]
+\label{thm:sg-tal:cor-1715-reaction-book}
+  \uses{thm:sg-tal:cor-1715-reaction, lem:sg-tal:centered-linear}
+  \lean{SpinGlasses.sk_cavity_field_reaction_approx_book}
+  \leanok
+\talsource{Corollary~1.7.15, Eq.~(1.210), last displayed form}
+With the notation of Theorem~\ref{thm:sg-tal:cor-1715-reaction} (so $K$ depends only on $\beta_0,h,k$),
+\[
+\mathbb E\Bigl(\frac1{\sqrt N}\sum_iy_i\frac{\langle\sigma_i\cosh(X+h)\rangle}{\langle\cosh(X+h)\rangle}-\beta(1-q)\frac{\langle\sinh(X+h)\rangle}{\langle\cosh(X+h)\rangle}-\frac1{\sqrt N}\sum_iy_i\langle\sigma_i\rangle\Bigr)^{2k}\le\frac K{N^k}.
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+Take $\xi_i=\sigma_i$, $w=\cosh(X+h)$, $c=N^{-1/2}$ in Lemma~\ref{lem:sg-tal:centered-linear}: the numerator $\langle\dot S\cosh(X+h)\rangle$ of Theorem~\ref{thm:sg-tal:cor-1715-reaction} equals $N^{-1/2}\sum_iy_i(\langle\sigma_iw\rangle-\langle\sigma_i\rangle\langle w\rangle)$.  Dividing by $\langle w\rangle\ge1$ gives the integrand of the present statement, pointwise, so the bound is that of Theorem~\ref{thm:sg-tal:cor-1715-reaction}.
+\end{proof}
+
 \begin{lemma}[Convexity of even powers]
 \label{lem:sg-tal:convex-power}
   \lean{add_pow_two_mul_le,

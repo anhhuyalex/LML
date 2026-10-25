@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.PiSnoc
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SqrtSub
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SqSub
 public import LeanMachineLearning.SpinGlasses.SKLastSpinGaussian
 public import LeanMachineLearning.SpinGlasses.SKSiteSymmetry
@@ -78,20 +79,7 @@ theorem sq_cavity_param_le {β q qm : ℝ} {N : ℕ} (hβ4 : 4 * β ^ 2 < 1)
   have hs2 : s ≤ 1 := by
     rw [hs, hx]; exact Real.sqrt_le_one.mpr (by linarith)
   have hd : (Real.sqrt qm - Real.sqrt q) ^ 2 ≤ ε := by
-    have h1 : (Real.sqrt qm - Real.sqrt q) ^ 2 ≤ |qm - q| := by
-      have hab : |Real.sqrt qm - Real.sqrt q| ≤ Real.sqrt qm + Real.sqrt q := by
-        rw [abs_le]
-        constructor <;> linarith [Real.sqrt_nonneg qm, Real.sqrt_nonneg q]
-      have heq : |qm - q| = |Real.sqrt qm - Real.sqrt q| * (Real.sqrt qm + Real.sqrt q) := by
-        rw [← abs_of_nonneg (add_nonneg (Real.sqrt_nonneg qm) (Real.sqrt_nonneg q)), ← abs_mul]
-        congr 1
-        have := Real.sq_sqrt hqm.1
-        have := Real.sq_sqrt hq.1
-        nlinarith
-      rw [heq, ← sq_abs]
-      calc |Real.sqrt qm - Real.sqrt q| ^ 2 =
-            |Real.sqrt qm - Real.sqrt q| * |Real.sqrt qm - Real.sqrt q| := sq _
-        _ ≤ _ := mul_le_mul_of_nonneg_left hab (abs_nonneg _)
+    have h1 := Real.sq_sqrt_sub_le_abs_sub hqm.1 hq.1
     calc _ ≤ |qm - q| := h1
       _ = |q - qm| := abs_sub_comm _ _
       _ ≤ ε := hshift

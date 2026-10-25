@@ -25,7 +25,7 @@ namespace SpinGlasses
 public section
 
 open MeasureTheory ProbabilityTheory
-open scoped BigOperators ContDiff
+open scoped BigOperators ContDiff Matrix
 
 attribute [local instance] Fintype.ofFinite
 
@@ -1145,7 +1145,6 @@ theorem sk_cavity_field_reaction_approx (β₀ : ℝ) (hβ₀ : 0 ≤ β₀) (h�
   dsimp [Bnd_const]
   gcongr
   linarith
-end
 
 /-- Algebra behind the book form of (1.210): subtracting `c ∑ y_i m_i` turns `S_i / D` into
 `(S_i - m_i D) / D`. -/
@@ -1218,4 +1217,6 @@ theorem sk_cavity_field_reaction_approx_book (β₀ : ℝ) (hβ₀ : 0 ≤ β₀
     (fun i => ∫ b, ((b i : ℤ) : ℝ) ∂(Measure.count.tilted (skGibbsEnergy N β h g))) y
     (ne_of_gt (lt_of_lt_of_le one_pos hD))
 
+
+end
 end SpinGlasses

@@ -18,6 +18,7 @@ public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Hyperboli
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.LogRpow
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SinCosChain
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SinCosEndpoint
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SqrtSub
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Tanh
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.TrigSquareParam
 public import LeanMachineLearning.ForMathlib.Analysis.Subadditive
