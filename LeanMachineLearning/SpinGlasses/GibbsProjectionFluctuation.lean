@@ -12,10 +12,10 @@ public import LeanMachineLearning.SpinGlasses.GibbsReplicaMarginal
 # The general Gibbs fluctuation principle (Talagrand, Theorem 1.7.11): Gibbs-side algebra
 
 This file contains the finite-sum and replica bookkeeping behind Theorem 1.7.11, independent of
-any model.  For a Gibbs measure `count.tilted f` on a finite configuration space carrying
-`N` bounded observables `ξ_i`, the centered scaled replica data
-`u_l i = (ξ_i(σ_l) - ⟨ξ_i⟩) / √N` has Gram entries
-`T_{l k} = N⁻¹ ∑_i ξ̇_i(σ_l) ξ̇_i(σ_k) - v² δ_{l k}` (`projGram`).
+any model.  For a Gibbs measure `count.tilted f` on a finite configuration space, a vector field
+`u : α → ℝ^N` (in the application `u a i = (ξ_i(a) - ⟨ξ_i⟩) / √N` for observables `ξ_i`) with Gibbs
+mean zero gives replica data `u(σ_l)` whose Gram entries are
+`T_{l k} = u(σ_l) ⬝ u(σ_k) - v² δ_{l k}`.
 
 ## Main declarations
 
@@ -127,151 +127,90 @@ end Parity
 section CenteredObservable
 
 variable {α : Type*} [Fintype α] [Nonempty α] [MeasurableSpace α] [MeasurableSingletonClass α]
-  {N : ℕ} (ξ : Fin N → α → ℝ)
+  {N : ℕ} (u : α → Fin N → ℝ)
 
-theorem sum_weight_mul_centered (f : α → ℝ) (j : Fin N) :
-    ∑ a, (Real.exp (f a) / ∑ b, Real.exp (f b)) *
-      ((Real.sqrt N)⁻¹ * (ξ j a - ∫ b, ξ j b ∂(Measure.count.tilted f))) = 0 := by
-  have hZ : 0 < ∑ b, Real.exp (f b) := Finset.sum_pos (fun _ _ => Real.exp_pos _)
-    Finset.univ_nonempty
-  have h1 : ∑ a, Real.exp (f a) / ∑ b, Real.exp (f b) = 1 := by
-    rw [← Finset.sum_div]; exact div_self hZ.ne'
-  have hM : ∫ a, ξ j a ∂(Measure.count.tilted f) =
-      ∑ a, (Real.exp (f a) / ∑ b, Real.exp (f b)) * ξ j a := by
-    rw [integral_fintype Integrable.of_finite]
-    refine Finset.sum_congr rfl fun a _ => by rw [real_count_tilted_singleton, smul_eq_mul]
-  set M := ∫ a, ξ j a ∂(Measure.count.tilted f)
-  set c : ℝ := (Real.sqrt N)⁻¹
-  have hterm : ∀ a, (Real.exp (f a) / ∑ b, Real.exp (f b)) * (c * (ξ j a - M)) =
-      c * ((Real.exp (f a) / ∑ b, Real.exp (f b)) * ξ j a) -
-        c * M * (Real.exp (f a) / ∑ b, Real.exp (f b)) := fun a => by ring
-  simp_rw [hterm]
-  rw [Finset.sum_sub_distrib, ← Finset.mul_sum, ← Finset.mul_sum, ← hM, h1]
-  ring
+set_option linter.unusedFintypeInType false in
+/-- The centered scaled observable `u a j = N^{-1/2} (ξ_j(a) - ⟨ξ_j⟩)` has Gibbs mean zero. -/
+theorem integral_centered_eq_zero (ξ : Fin N → α → ℝ) (f : α → ℝ)
+    (hu : ∀ a j, u a j = (Real.sqrt N)⁻¹ * (ξ j a - ∫ b, ξ j b ∂(Measure.count.tilted f)))
+    (j : Fin N) : ∫ a, u a j ∂(Measure.count.tilted f) = 0 := by
+  simp_rw [hu]
+  rw [integral_const_mul, integral_sub Integrable.of_finite (integrable_const _)]
+  simp
 
+omit [Nonempty α] in
+theorem sum_weight_mul_eq_zero (f : α → ℝ) {j : Fin N}
+    (hu : ∫ a, u a j ∂(Measure.count.tilted f) = 0) :
+    ∑ a, (Real.exp (f a) / ∑ b, Real.exp (f b)) * u a j = 0 := by
+  rw [integral_fintype Integrable.of_finite] at hu
+  rw [← hu]
+  exact Finset.sum_congr rfl fun a _ => by rw [real_count_tilted_singleton, smul_eq_mul]
+
+omit [Nonempty α] in
 set_option linter.unusedFintypeInType false in
 /-- **Parity vanishing (the replica-centering step of Theorem 1.7.11).**  If a replica occurs
 exactly once in a list of pairs, the Gibbs average of the product of the corresponding Gram
-entries vanishes, because every entry is linear in the centered replica data and `⟨ξ̇⟩ = 0`. -/
-theorem integral_pairProd_centered_eq_zero (f : α → ℝ) (v : ℝ) {m r : ℕ}
+entries vanishes, because every entry is linear in the replica data `u` and `⟨u⟩ = 0`. -/
+theorem integral_pairProd_centered_eq_zero (f : α → ℝ)
+    (hu : ∀ j, ∫ a, u a j ∂(Measure.count.tilted f) = 0) (v : ℝ) {m r : ℕ}
     (p : Fin r → Fin m × Fin m) (ℓ : Fin m) (hℓ : pairCount p ℓ = 1) :
     ∫ σ : Fin m → α,
-      (∏ i,
-        ((fun j => (Real.sqrt N)⁻¹ *
-          (ξ j (σ (p i).1) - ∫ a, ξ j a ∂(Measure.count.tilted f))) ⬝ᵥ
-        (fun j => (Real.sqrt N)⁻¹ *
-          (ξ j (σ (p i).2) - ∫ a, ξ j a ∂(Measure.count.tilted f))) -
-        if (p i).1 = (p i).2 then v ^ 2 else 0))
+      ∏ i, (u (σ (p i).1) ⬝ᵥ u (σ (p i).2) - if (p i).1 = (p i).2 then v ^ 2 else 0)
       ∂(Measure.pi fun _ : Fin m => Measure.count.tilted f) = 0 := by
   obtain ⟨n, rfl⟩ : ∃ n, m = n + 1 := Nat.exists_eq_succ_of_ne_zero (Fin.pos ℓ).ne'
   obtain ⟨i₀, ℓ', hne, hp, hrest⟩ := exists_of_pairCount_eq_one p ℓ hℓ
   rw [integral_pi_count_tilted]
-  set w : α → ℝ := fun a => Real.exp (f a) / ∑ b, Real.exp (f b)
-  let z : Fin N → α → ℝ := fun j a => (Real.sqrt N)⁻¹ *
-    (ξ j a - ∫ b, ξ j b ∂(Measure.count.tilted f))
   let H : (Fin (n + 1) → α) → ℝ := fun σ =>
     ∏ i ∈ Finset.univ.erase i₀,
-      ((fun j => (Real.sqrt N)⁻¹ *
-        (ξ j (σ (p i).1) - ∫ a, ξ j a ∂(Measure.count.tilted f))) ⬝ᵥ
-      (fun j => (Real.sqrt N)⁻¹ *
-        (ξ j (σ (p i).2) - ∫ a, ξ j a ∂(Measure.count.tilted f))) -
-      if (p i).1 = (p i).2 then v ^ 2 else 0)
-  let c : Fin N → (Fin (n + 1) → α) → ℝ := fun j σ =>
-    (Real.sqrt N)⁻¹ * (ξ j (σ ℓ') - ∫ a, ξ j a ∂(Measure.count.tilted f))
+      (u (σ (p i).1) ⬝ᵥ u (σ (p i).2) - if (p i).1 = (p i).2 then v ^ 2 else 0)
   have hmain : ∀ σ : Fin (n + 1) → α,
-      (∏ i,
-        ((fun j => (Real.sqrt N)⁻¹ *
-          (ξ j (σ (p i).1) - ∫ a, ξ j a ∂(Measure.count.tilted f))) ⬝ᵥ
-        (fun j => (Real.sqrt N)⁻¹ *
-          (ξ j (σ (p i).2) - ∫ a, ξ j a ∂(Measure.count.tilted f))) -
-        if (p i).1 = (p i).2 then v ^ 2 else 0)) =
-      H σ * ∑ j, z j (σ ℓ) * c j σ := fun σ => by
+      (∏ i, (u (σ (p i).1) ⬝ᵥ u (σ (p i).2) - if (p i).1 = (p i).2 then v ^ 2 else 0)) =
+      H σ * ∑ j, u (σ ℓ) j * u (σ ℓ') j := fun σ => by
     rw [← Finset.mul_prod_erase Finset.univ _ (Finset.mem_univ i₀), mul_comm]
     congr 1
     rcases hp with hp | hp
     · rw [hp]
-      simp only [dotProduct, ite_eq_right (Ne.symm hne), sub_zero, z, c]
+      simp only [dotProduct, ite_eq_right (Ne.symm hne), sub_zero]
     · rw [hp]
-      simp only [dotProduct, ite_eq_right hne, sub_zero, z, c]
+      simp only [dotProduct, ite_eq_right hne, sub_zero]
       exact Finset.sum_congr rfl fun j _ => mul_comm _ _
   simp_rw [hmain]
-  refine sum_prod_weight_mul_linear_eq_zero w ℓ z (fun j => sum_weight_mul_centered ξ f j) H c
+  refine sum_prod_weight_mul_linear_eq_zero (fun a => Real.exp (f a) / ∑ b, Real.exp (f b)) ℓ
+    (fun j a => u a j) (fun j => sum_weight_mul_eq_zero u f (hu j)) H (fun j σ => u (σ ℓ') j)
     (fun σ a => ?_) (fun j σ a => ?_)
-  · simp only [H]
-    refine Finset.prod_congr rfl fun i hi => ?_
+  · refine Finset.prod_congr rfl fun i hi => ?_
     have hi' := hrest i (Finset.ne_of_mem_erase hi)
     simp only [dotProduct, Function.update_of_ne hi'.1, Function.update_of_ne hi'.2]
-  · simp only [c, Function.update_of_ne hne]
+  · simp only [Function.update_of_ne hne]
 
+omit [Nonempty α] in
 set_option linter.unusedFintypeInType false in
 /-- At s = 0, the Gibbs average of the path functional vanishes for any `r < m`, by parity
 vanishing and Gaussian vanishing. -/
 theorem integral_projSum_centered_zero_eq_zero {m r : ℕ} (V : ℝ → ℝ) (hV : ExpTame V)
-    (hm : 0 < m) (hr : r < m) (f : α → ℝ) (v : ℝ)
+    (hm : 0 < m) (hr : r < m) (f : α → ℝ)
+    (hu : ∀ j, ∫ a, u a j ∂(Measure.count.tilted f) = 0) (v : ℝ)
     (hV0 : ∫ t, V (v * t) ∂(gaussianReal 0 1) = 0) :
-    ∫ σ : Fin m → α,
-      projSum V (fun l i => (Real.sqrt N)⁻¹ *
-        (ξ i (σ l) - ∫ a, ξ i a ∂(Measure.count.tilted f))) v r 0
+    ∫ σ : Fin m → α, projSum V (fun l => u (σ l)) v r 0
       ∂(Measure.pi fun _ : Fin m => Measure.count.tilted f) = 0 := by
-  rw [integral_pi_count_tilted]
-  have hterm : ∀ σ : Fin m → α,
-      projSum V (fun l i => (Real.sqrt N)⁻¹ *
-        (ξ i (σ l) - ∫ a, ξ i a ∂(Measure.count.tilted f))) v r 0 =
+  have hterm : ∀ σ : Fin m → α, projSum V (fun l => u (σ l)) v r 0 =
       ∑ p : Fin r → Fin m × Fin m,
-        (∏ j,
-          ((fun i => (Real.sqrt N)⁻¹ *
-            (ξ i (σ (p j).1) - ∫ a, ξ i a ∂(Measure.count.tilted f))) ⬝ᵥ
-          (fun i => (Real.sqrt N)⁻¹ *
-            (ξ i (σ (p j).2) - ∫ a, ξ i a ∂(Measure.count.tilted f))) -
-          if (p j).1 = (p j).2 then v ^ 2 else 0)) *
+        (∏ j, (u (σ (p j).1) ⬝ᵥ u (σ (p j).2) - if (p j).1 = (p j).2 then v ^ 2 else 0)) *
         ∫ ξ' : Fin m → ℝ, ∏ ℓ, deriv^[(pairCount p) ℓ] V ((v * ξ' ℓ))
           ∂(Measure.pi fun _ : Fin m => gaussianReal 0 1) := fun σ => by
     unfold projSum
     refine Finset.sum_congr rfl fun p _ => ?_
     rw [integral_derivProd_projPath_zero]
-  simp_rw [hterm, Finset.mul_sum]
-  rw [Finset.sum_comm]
+  simp_rw [hterm]
+  rw [integral_finsetSum _ fun p _ => Integrable.of_finite]
   refine Finset.sum_eq_zero fun p _ => ?_
+  rw [integral_mul_const]
   obtain ⟨ℓ, h0 | h1⟩ := exists_pairCount_le_one_of_lt p hr
-  · have hI : (∫ ξ' : Fin m → ℝ, ∏ ℓ, deriv^[(pairCount p) ℓ] V ((v * ξ' ℓ))
-        ∂(Measure.pi fun _ : Fin m => gaussianReal 0 1)) = 0 := by
-      have hz := hV.integral_derivProd_projPath_zero_eq_zero hm
-        (fun (_ : Fin m) (_ : Fin N) => (0 : ℝ)) v (pairCount p) ℓ h0 hV0
-      rwa [integral_derivProd_projPath_zero] at hz
-    simp only [hI, mul_zero, Finset.sum_const_zero]
-  · have hG : (∑ x : Fin m → α,
-        (∏ r_1 : Fin m, Real.exp (f (x r_1)) / ∑ b : α, Real.exp (f b)) *
-          (∏ j,
-            ((fun i => (Real.sqrt N)⁻¹ *
-              (ξ i (x (p j).1) - ∫ a, ξ i a ∂(Measure.count.tilted f))) ⬝ᵥ
-            (fun i => (Real.sqrt N)⁻¹ *
-              (ξ i (x (p j).2) - ∫ a, ξ i a ∂(Measure.count.tilted f))) -
-            if (p j).1 = (p j).2 then v ^ 2 else 0))) = 0 := by
-      have hz := integral_pairProd_centered_eq_zero ξ f v p ℓ h1
-      rwa [integral_pi_count_tilted] at hz
-    have heq : (∑ x : Fin m → α,
-        (∏ r_1 : Fin m, Real.exp (f (x r_1)) / ∑ b : α, Real.exp (f b)) *
-          ((∏ j,
-            ((fun i => (Real.sqrt N)⁻¹ *
-              (ξ i (x (p j).1) - ∫ a, ξ i a ∂(Measure.count.tilted f))) ⬝ᵥ
-            (fun i => (Real.sqrt N)⁻¹ *
-              (ξ i (x (p j).2) - ∫ a, ξ i a ∂(Measure.count.tilted f))) -
-            if (p j).1 = (p j).2 then v ^ 2 else 0)) *
-            ∫ ξ' : Fin m → ℝ, ∏ ℓ, deriv^[(pairCount p) ℓ] V ((v * ξ' ℓ))
-              ∂(Measure.pi fun _ : Fin m => gaussianReal 0 1))) =
-        (∑ x : Fin m → α,
-          (∏ r_1 : Fin m, Real.exp (f (x r_1)) / ∑ b : α, Real.exp (f b)) *
-            (∏ j,
-              ((fun i => (Real.sqrt N)⁻¹ *
-                (ξ i (x (p j).1) - ∫ a, ξ i a ∂(Measure.count.tilted f))) ⬝ᵥ
-              (fun i => (Real.sqrt N)⁻¹ *
-                (ξ i (x (p j).2) - ∫ a, ξ i a ∂(Measure.count.tilted f))) -
-              if (p j).1 = (p j).2 then v ^ 2 else 0))) *
-          ∫ ξ' : Fin m → ℝ, ∏ ℓ, deriv^[(pairCount p) ℓ] V ((v * ξ' ℓ))
-            ∂(Measure.pi fun _ : Fin m => gaussianReal 0 1) := by
-      rw [Finset.sum_mul]
-      refine Finset.sum_congr rfl fun x _ => by ring
-    rw [heq, hG, zero_mul]
+  · have hz := hV.integral_derivProd_projPath_zero_eq_zero hm
+      (fun (_ : Fin m) (_ : Fin N) => (0 : ℝ)) v (pairCount p) ℓ h0 hV0
+    rw [integral_derivProd_projPath_zero] at hz
+    rw [hz, mul_zero]
+  · rw [integral_pairProd_centered_eq_zero u f hu v p ℓ h1, zero_mul]
 
 end CenteredObservable
 

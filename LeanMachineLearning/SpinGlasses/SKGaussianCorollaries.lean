@@ -88,21 +88,18 @@ theorem integral_id_mul_exp_dotProduct_ising_eq (N : ℕ) (β ε : ℝ) (y m : F
       Real.exp ((fun i => (Real.sqrt N)⁻¹ * (ε * β * m i)) ⬝ᵥ y) := by
   simp_rw [← id_mul_exp_dotProduct_ising_split N β ε y _ m, integral_mul_const]
 
-theorem projPath_zero_pi_div_two {m N : ℕ} (u : Fin m → Fin N → ℝ)
-    (w : (Fin m → ℝ) × (Fin N → ℝ)) (l : Fin m) :
-    projPath u 0 (Real.pi / 2) w l = u l ⬝ᵥ w.2 := by
-  simp only [projPath, Real.cos_pi_div_two, Real.sin_pi_div_two, zero_mul, one_mul, zero_add]
-
 theorem integrable_prod_derivProd_zero {m N : ℕ} (hm : 0 < m)
     {V : ℝ → ℝ} (hV : ExpTame V) (u : Fin m → Fin N → ℝ) :
     Integrable (fun y : Fin N → ℝ => ∏ l, V (u l ⬝ᵥ y))
       (Measure.pi fun _ : Fin N => gaussianReal 0 1) := by
   have hint := hV.integrable_derivProd_projPath hm u 0 (Real.pi / 2) 0
   have hpath : (fun (w : (Fin m → ℝ) × (Fin N → ℝ)) =>
-      ∏ ℓ, deriv^[(0 : Fin m → ℕ) ℓ] V (projPath u 0 (Real.pi / 2) w ℓ)) =
+      ∏ ℓ, deriv^[(0 : Fin m → ℕ) ℓ] V (Real.cos (Real.pi / 2) * (0 * w.1 ℓ) +
+        Real.sin (Real.pi / 2) * (u ℓ ⬝ᵥ w.2))) =
       fun w => ∏ l, V (u l ⬝ᵥ w.2) := by
     ext w
-    simp only [projPath_zero_pi_div_two, Pi.zero_apply, Function.iterate_zero, id]
+    simp only [Real.cos_pi_div_two, Real.sin_pi_div_two, zero_mul, one_mul, zero_add,
+      Pi.zero_apply, Function.iterate_zero, id]
   rw [hpath] at hint
   exact hint.of_comp_snd (NeZero.ne _)
 
@@ -178,12 +175,11 @@ lemma sk_gaussian_fluctuation_upper_bound (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 
   set K₀ : ℝ := 2 * Cb 0 * Real.exp (cU ^ 2 / 2) with hK₀def
   have hCb0 : 0 ≤ Cb 0 := hCnn 0 (Nat.zero_le _)
   have hK₀ : 0 ≤ K₀ := by positivity
-  obtain ⟨C, hC0, hCu⟩ := exists_gibbs_fluctuation_abs_le (m := 2 * (2 * k)) (by omega)
+  obtain ⟨C, hC0, hC⟩ := exists_gibbs_fluctuation_pow_le (k := 2 * k) (by omega)
     (Cb := fun j => Cb j + K₀) (c := cU) (fun j hj => by have := hCnn j hj; positivity) hcU
   obtain ⟨K', hK'0, hK'u⟩ := sk_overlap_moment_le_of_exp_unif β₀ hβ₀ (2 * k)
-  set C₂ : ℝ := C * (((2 * (2 * k)) * (2 * (2 * k)) : ℝ) ^ (2 * (2 * k)) *
-    ((2 * (2 * k) : ℝ) * 4 ^ (2 * (2 * k)))) with hC₂
-  have hC₂0 : 0 ≤ C₂ := by positivity
+  set C₂ : ℝ := C with hC₂
+  have hC₂0 : 0 ≤ C₂ := hC0
   set M : ℝ := Real.exp (8 * (k : ℝ) ^ 2 * β₀ ^ 2) with hM
   have hM0 : 0 < M := Real.exp_pos _
   refine ⟨C₂, M, K', hC₂0, hM0, hK'0, fun β h q ε U hfix hββ hε hU hbdU N hN => ?_⟩
@@ -200,11 +196,9 @@ lemma sk_gaussian_fluctuation_upper_bound (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 
     exact mul_le_mul_of_nonneg_left (Real.exp_le_exp.2 (by nlinarith [sq_nonneg cU, hq.1]))
       (by positivity)
   have hbdV := abs_iterate_deriv_sub_const_le hc₀K hbdU hcU
-  have hCb := hCu (fun x => U x - c₀) hV hbdV v (by nlinarith [hq.1, hq.2]) hV0
   have hK' := hK'u β h q hfix hββ
   have hNk : (0 : ℝ) < (N : ℝ) ^ k := by positivity
   set ξ : Fin N → (Fin N → ℤˣ) → ℝ := fun i a => ((a i : ℤ) : ℝ) with hξ
-  have hξ_abs : ∀ i a, |ξ i a| ≤ 1 := fun i a => abs_units_cast_le_one (a i)
   have hξ_sq : ∀ i a, ξ i a ^ 2 = 1 := fun i a => units_cast_sq (a i)
   set P : Measure (FinPairs N → ℝ) := Measure.pi fun _ : FinPairs N => gaussianReal 0 1 with hP
   set Q : Measure (Fin N → ℝ) := Measure.pi fun _ : Fin N => gaussianReal 0 1 with hQ
@@ -330,24 +324,10 @@ lemma sk_gaussian_fluctuation_upper_bound (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 
       simp
     have hA_int : ∫ y, A y ^ (4 * k) ∂Q ≤ C₂ * J g := by
       simp_rw [hrew]
-      refine (le_abs_self _).trans ?_
-      have h4k : 4 * k = 2 * (2 * k) := by ring
-      have heq : |∫ y, (∫ a, U ((fun i => (Real.sqrt N)⁻¹ *
-              (((a i : ℤ) : ℝ) - m i)) ⬝ᵥ y) - c₀ ∂μ) ^ (4 * k) ∂Q| =
-          |∫ y, (∫ a, U ((fun i => (Real.sqrt N)⁻¹ *
-              (ξ i a - ∫ b, ξ i b ∂(Measure.count.tilted f))) ⬝ᵥ y) - c₀
-              ∂(Measure.count.tilted f)) ^ (2 * (2 * k))
-              ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1)| := by
-        rw [h4k]
-      rw [heq]
-      have h1 := hCb N (Fin N → ℤˣ) ξ hξ_abs f
-      have h2 := sum_integral_abs_pairProd_le (k := 2 * k) ξ hξ_sq hN f q v hv (by omega)
-      have h3 : C * ((2 * ↑(2 * k) * (2 * ↑(2 * k))) ^ (2 * (2 * k)) *
-          (2 * ↑(2 * k) * (4 ^ (2 * (2 * k)) * overlapMoment ξ f q (2 * k)))) = C₂ * J g := by
-        dsimp [C₂, J, f]
-        push_cast
-        ring
-      exact h1.trans (mul_le_mul_of_nonneg_left h2 hC0 |>.trans (le_of_eq h3))
+      rw [show 4 * k = 2 * (2 * k) by ring]
+      exact hC (fun x => U x - c₀) hV hbdV q v hq.1 hv hV0 N hN (Fin N → ℤˣ) ξ hξ_sq f
+        (fun a i => (Real.sqrt N)⁻¹ * (ξ i a - ∫ b, ξ i b ∂(Measure.count.tilted f)))
+        fun a j => rfl
     have hB_int : ∫ y, B y ^ (4 * k) ∂Q ≤ M := by
       have heq : (fun y => B y ^ (4 * k)) =
           fun y => Real.exp (4 * (k : ℝ) * (ε * β) * ((fun i => (Real.sqrt N)⁻¹ * m i) ⬝ᵥ y)) := by

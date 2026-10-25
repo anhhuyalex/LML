@@ -2992,13 +2992,13 @@ Two things have to be shown:
 \item[D.] \emph{The Taylor step for a Gibbs measure} (Section~\ref{sec:sg-tal:fluct-gibbs-taylor}): A, B and C combine to bound
   $\mathbb E_y\langle V(\dot S)\rangle^m$ by the Gibbs average of the products of Gram entries.  Fully proved.
 \item[E.] \emph{Moments of the Gram entries} (Section~\ref{sec:sg-tal:fluct-gram}; Eq.~(1.201)): $\int T_{\ell\ell'}^{2k}\le4^{2k}\int(R_{1,2}-q)^{2k}$.  Fully proved.
-\item[F.] \emph{Theorem~1.7.11} (Section~\ref{sec:sg-tal:fluct-main}): D, E and the overlap moments of Section~1.4 (Eq.~(1.88)) give the theorem for the SK model.  Fully proved.
+\item[F.] \emph{Theorem~1.7.11} (Section~\ref{sec:sg-tal:fluct-main}): D and E combine, for a fixed Gibbs measure, into a model-independent bound by the overlap moment $J_k$ (Theorem~\ref{thm:sg-tal:gibbs-fluct-core}); the overlap moments of Section~1.4 (Eq.~(1.88)) then give the theorem for the SK model.  Fully proved.
 \item[G.] \emph{Fixed-point shift} (Section~\ref{sec:sg-tal:fixed-point-shift}; Lemma~1.7.5): $|q - q_-|\le 1/N$.  Fully proved.
 \item[H.] \emph{Corollary~1.7.13} (Section~\ref{sec:sg-tal:fluct-exp}; Eqs.~(1.206)--(1.207)): Theorem~1.7.11 for $U(x)=e^{\varepsilon\beta x}$ and $U(x)=xe^{\varepsilon\beta x}$, i.e.\ for the Gibbs average of the \emph{uncentered} exponential.  Fully proved, with constants uniform in $|\beta|\le\beta_0<1/2$.
 \item[I.] \emph{Lemma~1.7.14 and Corollary~1.7.15} (Section~\ref{sec:sg-tal:fluct-cavity-field}; Eqs.~(1.209)--(1.210)): the ratio $\langle\sinh(X+h)\rangle/\langle\cosh(X+h)\rangle$ is close to $\tanh$ of the thermal mean field, and the reaction term.  Fully proved.
 \end{enumerate}
 Parts~A--E are independent of the spin-glass model: Part~A is about Gaussian vectors, Parts~B--E about an arbitrary finite
-Gibbs measure carrying $N$ bounded observables (Part~E needs $\xi_i^2=1$).  Only Part~F uses the SK model, through the overlap moments of Section~1.4.  Part~G is the fixed-point stability under the cavity parameter shift $\beta_-=\beta\sqrt{1-1/N}$.  Parts~H and~I specialize Part~F to the exponentials that the cavity method produces; they use the SK model through Part~F and through the overlap moments of Section~1.4 directly (the intermediate, disorder-by-disorder bound of Part~F is reused, not just its statement).
+Gibbs measure carrying $N$ bounded observables (Part~E needs $\xi_i^2=1$).  Only the last step of Part~F uses the SK model, through the overlap moments of Section~1.4.  Part~G is the fixed-point stability under the cavity parameter shift $\beta_-=\beta\sqrt{1-1/N}$.  Parts~H and~I specialize Part~F to the exponentials that the cavity method produces; they use the SK model through Part~F and through the overlap moments of Section~1.4 directly (the intermediate, disorder-by-disorder bound of Part~F is reused, not just its statement).
 
 \begin{remark}[Conventions and deviations from the book in Section~1.7]
 \label{rem:sg-tal:dev-17}
@@ -3021,8 +3021,8 @@ Gibbs measure carrying $N$ bounded observables (Part~E needs $\xi_i^2=1$).  Only
   ($q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$), and $\beta<1/2$ is stated as $4\beta^2<1$.
 \item \emph{Common $y$.}  All $2k$ replicas are projected on the \emph{same} Gaussian vector $y$; this is why the path functional
   involves the Gram entries $u_\ell\cdot u_{\ell'}$ and not independent vectors.
-\item \emph{Model independence.}  Parts~A--E are stated for arbitrary vectors $u_\ell\in\mathbb R^N$ and for an arbitrary finite
-  Gibbs measure with observables $\xi_i$, since only the SK overlap moments of Part~F use the model.  For the SK model $\xi_i(\boldsymbol\sigma)=\sigma_i$.
+\item \emph{Model independence.}  Parts~A--E and the core of Part~F are stated for arbitrary vectors $u_\ell\in\mathbb R^N$ and for an arbitrary finite
+  Gibbs measure (with a vector field $u$ of Gibbs mean zero in Parts~B--D, and with observables $\xi_i$ in Parts~E--F), since only the SK overlap moments of Part~F use the model.  For the SK model $\xi_i(\boldsymbol\sigma)=\sigma_i$.
 \item \emph{Crude constants.}  The constant $K$ is not tracked: the product of $2k$ Gram entries is bounded by the sum of their $2k$-th powers
   (Lemma~\ref{lem:sg-tal:amgm-pairprod}) and the four pieces of $T_{\ell\ell'}$ by convexity, which loses factors depending on $k$ only.
 \end{itemize}
@@ -3275,20 +3275,22 @@ product is zero (\texttt{integral\_pi\_prod\_eq\_zero\_of\_coord\_zero}).
 $\langle\xi_i\rangle=\int\xi_i\,d\mu$.  For $m$ replicas $\boldsymbol\sigma=(\sigma^1,\dots,\sigma^m)$ distributed according to $\mu^{\otimes m}$, take the \emph{centered scaled} data
 $u_{\ell i}=N^{-1/2}(\xi_i(\sigma^\ell)-\langle\xi_i\rangle)$, so that $T_{\ell k}=N^{-1}\sum_i\dot\xi_i(\sigma^\ell)\dot\xi_i(\sigma^k)-v^2\delta_{\ell k}$.
 We show that products of the $T_{\ell k}$ in which some replica occurs exactly once have Gibbs average zero, and conclude that $\langle\mathrm{projSum}_r(0)\rangle=0$ for $r<m$.
+The argument uses only that the replica data are $u(\sigma^\ell)$ for a vector field $u:\alpha\to\mathbb R^N$ with Gibbs mean zero, so the statements are made for an abstract such $u$; the centered scaled data above is the instance $u_i=N^{-1/2}(\xi_i-\langle\xi_i\rangle)$ (Lemma~\ref{lem:sg-tal:centered-mean}).
 For the SK model $\xi_i(\boldsymbol\sigma)=\sigma_i$, $\dot\xi_i=\dot\sigma_i$.
 \emph{Uses:} A.  \emph{Used by:} D.  \emph{Status:} fully proved.
 
 \begin{lemma}[The centered observables have Gibbs mean zero]
 \label{lem:sg-tal:centered-mean}
-  \lean{SpinGlasses.sum_weight_mul_centered}
+  \lean{SpinGlasses.integral_centered_eq_zero,
+        SpinGlasses.sum_weight_mul_eq_zero}
   \leanok
 \talsource{$\langle\dot\sigma_i\rangle=0$, used in the proof of Theorem~1.7.11}
-For every energy $f$ on a nonempty finite set $\alpha$ and every $j\le N$,
-$\sum_a\frac{e^{f(a)}}{\sum_be^{f(b)}}\,N^{-1/2}\bigl(\xi_j(a)-\langle\xi_j\rangle\bigr)=0$, where $\langle\xi_j\rangle=\sum_a\frac{e^{f(a)}}{\sum_be^{f(b)}}\xi_j(a)$.
+Let $f$ be an energy on a nonempty finite set $\alpha$ with Gibbs weights $w(a)=e^{f(a)}/\sum_be^{f(b)}$ and let $u:\alpha\to\mathbb R^N$.  (a) If $\int u_j\,d\mu=0$ then $\sum_aw(a)u_j(a)=0$.
+(b) For observables $\xi_j$ and $u_j=N^{-1/2}\bigl(\xi_j-\langle\xi_j\rangle\bigr)$, where $\langle\xi_j\rangle=\int\xi_j\,d\mu$, one has $\int u_j\,d\mu=0$.
 \end{lemma}
 \begin{proof}
   \leanok
-The Gibbs weights sum to $1$, so the sum is $N^{-1/2}(\langle\xi_j\rangle-\langle\xi_j\rangle)$.
+(a) A Gibbs integral over a finite set is the weighted sum.  (b) $\mu$ is a probability measure, so $\int u_j\,d\mu=N^{-1/2}(\langle\xi_j\rangle-\langle\xi_j\rangle)$.
 \end{proof}
 
 \begin{lemma}[A replica entering only linearly integrates to zero]
@@ -3329,8 +3331,8 @@ of that pair differs from $\ell$.
   \lean{SpinGlasses.integral_pairProd_centered_eq_zero}
   \leanok
 \talsource{proof of Theorem~1.7.11: ``when (1.205) holds no number $\ell\le2k$ can occur exactly once in the list''}
-Let $\mu=G_f$ be a Gibbs measure on a finite set $\alpha$, $\xi_i:\alpha\to\mathbb R$, $v\in\mathbb R$, $m,r\in\mathbb N$, and $p$ a list of $r$ pairs of replicas in $\{1,\dots,m\}$ in which some replica $\ell$ occurs exactly once.  With
-$u_{\ell i}(\boldsymbol\sigma)=N^{-1/2}(\xi_i(\sigma^\ell)-\langle\xi_i\rangle)$,
+Let $\mu=G_f$ be a Gibbs measure on a finite set $\alpha$, $u:\alpha\to\mathbb R^N$ with $\int u_j\,d\mu=0$ for all $j$ (for instance $u_j=N^{-1/2}(\xi_j-\langle\xi_j\rangle)$), $v\in\mathbb R$, $m,r\in\mathbb N$, and $p$ a list of $r$ pairs of replicas in $\{1,\dots,m\}$ in which some replica $\ell$ occurs exactly once.  With
+$u_\ell(\boldsymbol\sigma)=u(\sigma^\ell)$,
 \[
 \int\mathrm{pairProd}\bigl(T(u(\boldsymbol\sigma),v)\bigr)(p)\;d\mu^{\otimes m}(\boldsymbol\sigma)=0 .
 \]
@@ -3338,7 +3340,7 @@ $u_{\ell i}(\boldsymbol\sigma)=N^{-1/2}(\xi_i(\sigma^\ell)-\langle\xi_i\rangle)$
 \begin{proof}
   \leanok
 By Lemma~\ref{lem:sg-tal:occurs-once} the replica $\ell$ appears in exactly one factor $T_{\ell\ell'}$, $\ell'\ne\ell$, and there the term $-v^2\delta_{\ell\ell'}$ is absent, so the factor is the sum
-$\sum_iz_i(\sigma^\ell)c_i(\boldsymbol\sigma)$ with $z_i=N^{-1/2}\dot\xi_i$ and $c_i=N^{-1/2}\dot\xi_i(\sigma^{\ell'})$.  All other factors do not depend on $\sigma^\ell$.
+$\sum_iz_i(\sigma^\ell)c_i(\boldsymbol\sigma)$ with $z_i=u_i$ and $c_i=u_i(\sigma^{\ell'})$.  All other factors do not depend on $\sigma^\ell$.
 Writing the integral over $\mu^{\otimes m}$ as a finite sum with the product weights, Lemma~\ref{lem:sg-tal:linear-vanishing} with Lemma~\ref{lem:sg-tal:centered-mean} gives zero.
 \end{proof}
 
@@ -3348,7 +3350,7 @@ Writing the integral over $\mu^{\otimes m}$ as a finite sum with the product wei
   \lean{SpinGlasses.integral_projSum_centered_zero_eq_zero}
   \leanok
 \talsource{proof of Theorem~1.7.11: ``$\varphi^{(r)}(0)=0$ unless $r\ge2k$'', Eqs.~(1.204)--(1.205)}
-Let $V$ be exponentially tame, $\mu=G_f$ a Gibbs measure on a finite set $\alpha$ with observables $\xi_i$, $m\ge1$, $v\in\mathbb R$ with $\int V(vt)\,d\gamma_1(t)=0$ (for $v=\sqrt{1-q}$ this is
+Let $V$ be exponentially tame, $\mu=G_f$ a Gibbs measure on a finite set $\alpha$, $u:\alpha\to\mathbb R^N$ with Gibbs mean zero, $m\ge1$, $v\in\mathbb R$ with $\int V(vt)\,d\gamma_1(t)=0$ (for $v=\sqrt{1-q}$ this is
 $\mathbb E_\xi V(\xi\sqrt{1-q})=0$, Eq.~(1.199)), and $r<m$.  Then
 \[
 \int\mathrm{projSum}_r\bigl(u(\boldsymbol\sigma),v;\,s=0\bigr)\;d\mu^{\otimes m}(\boldsymbol\sigma)=0 .
@@ -3395,16 +3397,15 @@ is Taylor's formula for a function with $Q_0^{(r)}(0)=0$ for $r<n$ and $|Q_0^{(n
 \label{sec:sg-tal:fluct-gibbs-taylor}
 
 \emph{Content.}  We apply Lemma~\ref{lem:sg-tal:taylor-vanishing} to the Gibbs average $Q_r(s)=\int\mathrm{projSum}_r(s)\,d\mu^{\otimes m}$ of the path functionals of Part~A.
-\emph{Uses:} A, B, C.  \emph{Used by:} F.  \emph{Status:} fully proved.  The statements are model independent: $\mu=G_f$ is an arbitrary Gibbs measure on a finite set $\alpha$ with observables $|\xi_i|\le1$.
+\emph{Uses:} A, B, C.  \emph{Used by:} F.  \emph{Status:} fully proved.  The statements are model independent: $\mu=G_f$ is an arbitrary Gibbs measure on a finite set $\alpha$ and $u:\alpha\to\mathbb R^N$ an arbitrary vector field with Gibbs mean zero and $u\cdot u\le4$; for observables $|\xi_i|\le1$ the field $u_i=N^{-1/2}(\xi_i-\langle\xi_i\rangle)$ qualifies (Lemma~\ref{lem:sg-tal:gibbs-chain}(c)).
 
-\begin{definition}[Centered replica data and the Gibbs-averaged path functional]
+\begin{definition}[The Gibbs-averaged path functional]
 \label{def:sg-tal:gibbs-projsum}
-  \lean{SpinGlasses.centeredData,
-        SpinGlasses.gibbsProjSum}
+  \lean{SpinGlasses.gibbsProjSum}
   \leanok
 \talsource{notation $u_\ell=N^{-1/2}\dot{\boldsymbol\sigma}^\ell$ in the proof of Theorem~1.7.11}
-For $\boldsymbol\sigma=(\sigma^1,\dots,\sigma^m)\in\alpha^m$ put $u_{\ell i}(\boldsymbol\sigma)=N^{-1/2}(\xi_i(\sigma^\ell)-\langle\xi_i\rangle)$ (\texttt{centeredData}) and
-$Q_r(s)=\int\mathrm{projSum}_r\bigl(u(\boldsymbol\sigma),v;s\bigr)\,d\mu^{\otimes m}(\boldsymbol\sigma)$ (\texttt{gibbsProjSum}).
+For $\boldsymbol\sigma=(\sigma^1,\dots,\sigma^m)\in\alpha^m$ put $u_\ell(\boldsymbol\sigma)=u(\sigma^\ell)$ and
+$Q_r(s)=\int\mathrm{projSum}_r\bigl(u(\boldsymbol\sigma),v;s\bigr)\,d\mu^{\otimes m}(\boldsymbol\sigma)$ (\texttt{gibbsProjSum}).  In the application $u_i(a)=N^{-1/2}(\xi_i(a)-\langle\xi_i\rangle)$, the centered scaled data of Part~B.
 \end{definition}
 
 \begin{lemma}[The chain of Gibbs-averaged path functionals]
@@ -3412,12 +3413,12 @@ $Q_r(s)=\int\mathrm{projSum}_r\bigl(u(\boldsymbol\sigma),v;s\bigr)\,d\mu^{\otime
   \uses{thm:sg-tal:projsum-deriv, thm:sg-tal:projsum-vanish}
   \lean{SpinGlasses.hasDerivAt_gibbsProjSum,
         SpinGlasses.gibbsProjSum_zero_eq_zero,
-        SpinGlasses.centeredData_dotProduct_le,
+        SpinGlasses.dotProduct_centered_le,
         SpinGlasses.abs_gibbsProjSum_le_of_bound}
   \leanok
 \talsource{Eq.~(1.203) averaged over $\langle\cdot\rangle$, and the bound $|\varphi^{(r)}(t)|\le KN^{-r/2}$}
-Let $V$ be exponentially tame.  (a) $Q_r'(s)=\sin s\cos s\,Q_{r+1}(s)$ for all $r$ and $s$.  (b) If $m\ge1$, $\int V(vt)\,d\gamma_1(t)=0$ and $r<m$, then $Q_r(0)=0$.
-(c) If $|\xi_i|\le1$ then $u_\ell(\boldsymbol\sigma)\cdot u_\ell(\boldsymbol\sigma)\le4$ for all $\boldsymbol\sigma$, and if $v^2\le4$ and $C$ is a constant for which the bound of Lemma~\ref{lem:sg-tal:projpath-bound} holds with $B=4$,
+Let $V$ be exponentially tame.  (a) $Q_r'(s)=\sin s\cos s\,Q_{r+1}(s)$ for all $r$ and $s$.  (b) If $m\ge1$, $u$ has Gibbs mean zero, $\int V(vt)\,d\gamma_1(t)=0$ and $r<m$, then $Q_r(0)=0$.
+(c) If $|\xi_i|\le1$ and $u_i=N^{-1/2}(\xi_i-\langle\xi_i\rangle)$ then $u(a)\cdot u(a)\le4$ for all $a$; and if $u\cdot u\le4$, $v^2\le4$ and $C$ is a constant for which the bound of Lemma~\ref{lem:sg-tal:projpath-bound} holds with $B=4$,
 \[
 |Q_r(s)|\le C\sum_{p}\int\bigl|\mathrm{pairProd}\bigl(T(u(\boldsymbol\sigma),v)\bigr)(p)\bigr|\,d\mu^{\otimes m}(\boldsymbol\sigma)\qquad\text{for all }s,
 \]
@@ -3426,7 +3427,7 @@ the sum over lists of $r$ pairs.
 \begin{proof}
   \leanok
 The Gibbs average over $m$ replicas is a finite sum with weights $\prod_\ell e^{f(\sigma^\ell)}/Z$ (\texttt{integral\_pi\_count\_tilted}) that do not depend on $s$.  (a) is Theorem~\ref{thm:sg-tal:projsum-deriv} for each term; (b) is Theorem~\ref{thm:sg-tal:projsum-vanish}.
-(c): $|\xi_i-\langle\xi_i\rangle|\le2$ gives $u_\ell\cdot u_\ell\le N^{-1}\cdot N\cdot4$ (and $0$ for $N=0$); the bound follows from Lemma~\ref{lem:sg-tal:projpath-bound} applied to each $\boldsymbol\sigma$.
+(c): $|\xi_i-\langle\xi_i\rangle|\le2$ gives $u\cdot u\le N^{-1}\cdot N\cdot4$ (and $0$ for $N=0$); the bound follows from Lemma~\ref{lem:sg-tal:projpath-bound} applied to each $\boldsymbol\sigma$.
 \end{proof}
 
 \begin{lemma}[The endpoint $s=\pi/2$ is the $m$-th power of the Gibbs average]
@@ -3436,12 +3437,12 @@ The Gibbs average over $m$ replicas is a finite sum with weights $\prod_\ell e^{
         SpinGlasses.gibbsProjSum_zero_index_pi_div_two}
   \leanok
 \talsource{Eq.~(1.200): $\varphi(1)=\mathbb E\langle V(\dot S)\rangle^{2k}$}
-Let $V$ be exponentially tame, $m\ge1$.  Then $Q_0(\pi/2)=\mathbb E_y\bigl(\int V(N^{-1/2}\sum_iy_i(\xi_i(a)-\langle\xi_i\rangle))\,d\mu(a)\bigr)^m$, where $y\sim\gamma_N$.
+Let $V$ be exponentially tame, $m\ge1$.  Then $Q_0(\pi/2)=\mathbb E_y\bigl(\int V(u(a)\cdot y)\,d\mu(a)\bigr)^m$, where $y\sim\gamma_N$; for $u=N^{-1/2}(\xi-\langle\xi\rangle)$ this is $\mathbb E_y\bigl(\int V(N^{-1/2}\sum_iy_i(\xi_i(a)-\langle\xi_i\rangle))\,d\mu(a)\bigr)^m$.
 \end{lemma}
 \begin{proof}
   \leanok
 $\mathrm{projSum}_0$ has a single term, the empty list, so $\mathrm{projSum}_0(s)=\mathbb E\prod_\ell V(Z_{s,\ell})$.  At $s=\pi/2$, $Z_{s,\ell}=u_\ell\cdot y$ does not involve $\xi$.  Since the Gibbs average is a finite sum and each term is integrable
-(Lemma~\ref{lem:sg-tal:projpath-mgf}), it can be exchanged with the integral over $y$.  For fixed $y$ the replicas are independent, so the integral of the product $\prod_\ell V(c(\sigma^\ell)\cdot y)$ over $\mu^{\otimes m}$ is the product of the $m$ equal integrals
+(Lemma~\ref{lem:sg-tal:projpath-mgf}), it can be exchanged with the integral over $y$.  For fixed $y$ the replicas are independent, so the integral of the product $\prod_\ell V(u(\sigma^\ell)\cdot y)$ over $\mu^{\otimes m}$ is the product of the $m$ equal integrals
 (\texttt{integral\_fintype\_prod\_eq\_prod}).
 \end{proof}
 
@@ -3449,21 +3450,19 @@ $\mathrm{projSum}_0$ has a single term, the empty list, so $\mathrm{projSum}_0(s
 \begin{theorem}[The Taylor step of Theorem~1.7.11]
 \label{thm:sg-tal:gibbs-taylor}
   \uses{lem:sg-tal:taylor-vanishing, lem:sg-tal:gibbs-chain, lem:sg-tal:gibbs-endpoint}
-  \lean{SpinGlasses.ExpTame.gibbs_fluctuation_abs_le,
-        SpinGlasses.exists_gibbs_fluctuation_abs_le}
+  \lean{SpinGlasses.exists_gibbs_fluctuation_abs_le}
   \leanok
 \talsource{proof of Theorem~1.7.11: $\varphi(1)$ is bounded by Taylor's formula from $\varphi^{(r)}(0)=0$ ($r<2k$) and $|\varphi^{(2k)}|\le KN^{-k}$}
-Let $V$ be exponentially tame, $m\ge1$, $v^2\le4$ and $\int V(vt)\,d\gamma_1(t)=0$.  There is $C\ge0$, depending only on $V$ and $m$ (not on $N$, on $\alpha$, on the energy $f$ or on the observables), such that for every Gibbs measure $\mu=G_f$ on a finite set $\alpha$ and observables $\xi_i:\alpha\to[-1,1]$,
+Let $m\ge1$ and let $(C_j)_{j\le2m}$, $c\ge0$ be given.  There is $C\ge0$, depending only on $m,(C_j),c$ (not on $N$, on $\alpha$, on the energy $f$ or on the observables), such that for every exponentially tame $V$ with $|V^{(j)}(x)|\le C_je^{c|x|}$ ($j\le2m$), every $v^2\le4$ with $\int V(vt)\,d\gamma_1(t)=0$, every Gibbs measure $\mu=G_f$ on a finite set $\alpha$ and every $u:\alpha\to\mathbb R^N$ with $u\cdot u\le4$ and Gibbs mean zero,
 \[
-\Bigl|\mathbb E_y\Bigl(\int V\Bigl(\frac1{\sqrt N}\sum_{i\le N}y_i(\xi_i(a)-\langle\xi_i\rangle)\Bigr)d\mu(a)\Bigr)^m\Bigr|\le C\sum_{p}\int\bigl|\mathrm{pairProd}(T(u(\boldsymbol\sigma),v))(p)\bigr|\,d\mu^{\otimes m}(\boldsymbol\sigma),
+\Bigl|\mathbb E_y\Bigl(\int V\bigl(u(a)\cdot y\bigr)d\mu(a)\Bigr)^m\Bigr|\le C\sum_{p}\int\bigl|\mathrm{pairProd}(T(u(\boldsymbol\sigma),v))(p)\bigr|\,d\mu^{\otimes m}(\boldsymbol\sigma),
 \]
-the sum over all $m^{2m}$ lists $p$ of $m$ pairs of replicas.
-\emph{Uniform form.}  $C$ depends on $V$ only through $m$ and through explicit bounds $|V^{(j)}(x)|\le C_je^{c|x|}$ for $j\le2m$: given $m,(C_j)_{j\le2m},c$ there is one $C$ that works for all exponentially tame $V$ obeying these bounds.
+the sum over all $m^{2m}$ lists $p$ of $m$ pairs of replicas.  For observables $|\xi_i|\le1$ one takes $u=N^{-1/2}(\xi-\langle\xi\rangle)$, by Lemma~\ref{lem:sg-tal:centered-mean} and Lemma~\ref{lem:sg-tal:gibbs-chain}(c).
 \end{theorem}
 \begin{proof}
   \leanok
 Apply Lemma~\ref{lem:sg-tal:taylor-vanishing} with $n=m$ to the chain $Q_r$ of Lemma~\ref{lem:sg-tal:gibbs-chain}: (a) is the chain relation, (b) gives $Q_r(0)=0$ for $r<m$, and (c) gives $|Q_m|\le M$ with
-$M=C_0\sum_p\int|\mathrm{pairProd}|$, uniformly in $s$.  Hence $|Q_0(\pi/2)|\le M/(2^mm!)$, and $Q_0(\pi/2)$ is the left side by Lemma~\ref{lem:sg-tal:gibbs-endpoint}; take $C=C_0/(2^mm!)$.  Here $C_0$ is the constant of Lemma~\ref{lem:sg-tal:projpath-bound} with $r=m$ and $B=4$, which is why the dependence on $V$ is only through the bounds $C_j$, $c$.
+$M=C_0\sum_p\int|\mathrm{pairProd}|$, uniformly in $s$.  Hence $|Q_0(\pi/2)|\le M/(2^mm!)$, and $Q_0(\pi/2)$ is the left side by Lemma~\ref{lem:sg-tal:gibbs-endpoint}; take $C=C_0/(2^mm!)$.  Here $C_0$ is the constant of Lemma~\ref{lem:sg-tal:projpath-bound} with $r=m$ and $B=4$, which is why the dependence on $V$ is only through the bounds $C_j$, $c$ (for a single tame $V$ such bounds exist: \texttt{ExpTame.exists\_bound\_upTo}).
 \emph{Comparison with the book.}  The book takes $m=2k$, obtains $|\varphi^{(2k)}|\le KN^{-k}$ by H\"older's inequality and gets the same factor $1/(2k)!$ from Taylor's formula.
 Here the sum over lists is kept and estimated in Part~E.
 \end{proof}
@@ -3471,69 +3470,76 @@ Here the sum over lists is kept and estimated in Part~E.
 \subsection{Moments of the Gram entries (Eq.~(1.201))}
 \label{sec:sg-tal:fluct-gram}
 
-\emph{Content.}  Each entry $T_{\ell\ell'}=N^{-1}\sum_i\dot\xi_i(\sigma^\ell)\dot\xi_i(\sigma^{\ell'})-(1-q)\delta_{\ell\ell'}$ is a signed sum of four centered overlaps, and each has $2k$-th moment at most that of $R_{1,2}-q$ by Jensen's inequality.
+\emph{Content.}  Each entry $T_{\ell\ell'}=N^{-1}\sum_i\dot\xi_i(\sigma^\ell)\dot\xi_i(\sigma^{\ell'})-(1-q)\delta_{\ell\ell'}$ is the \emph{doubly centered} version of the centered overlap kernel $K=R-q$: $K(\sigma^\ell,\sigma^{\ell'})$ minus its two partial averages plus its total average.
+The proof has two independent parts.  Part~1 is a general fact about any kernel on any Gibbs measure on a finite set: double centering costs at most a factor $4^{2k}$ in the $2k$-th moment, by Jensen's inequality (Lemma~\ref{lem:sg-tal:double-centering}).  Part~2 is the algebraic identity that identifies $T_{\ell\ell'}$ with the doubly centered $R-q$ (Theorem~\ref{thm:sg-tal:gram-moments}); the partial and total averages are never given names of their own.
 \emph{Uses:} nothing from the other parts of this section (only the definition of $T$).  \emph{Used by:} F.  \emph{Status:} fully proved, for any Gibbs measure on a finite set carrying observables with $\xi_i^2=1$.
 
-\begin{definition}[Overlap and its partial averages]
+\begin{definition}[The overlap moment]
 \label{def:sg-tal:gibbs-overlap}
-  \lean{SpinGlasses.overlapGibbs,
-        SpinGlasses.partialOverlap,
-        SpinGlasses.meanOverlap,
-        SpinGlasses.overlapMoment}
+  \lean{SpinGlasses.overlapMoment}
   \leanok
 \talsource{notation of the proof of (1.201)}
-For $\xi_i^2=1$ put $R(a,b)=N^{-1}\sum_i\xi_i(a)\xi_i(b)$, $A(a)=\int R(a,b)\,d\mu(b)=N^{-1}\sum_i\xi_i(a)\langle\xi_i\rangle$, $B=\int A\,d\mu=N^{-1}\sum_i\langle\xi_i\rangle^2$ and
-$J_k=\int(R(\sigma^1,\sigma^2)-q)^{2k}\,d\mu^{\otimes2}$.
+For $\xi_i^2=1$ put $R(a,b)=N^{-1}\sum_i\xi_i(a)\xi_i(b)$ and $J_k=\int(R(\sigma^1,\sigma^2)-q)^{2k}\,d\mu^{\otimes2}$ (\texttt{overlapMoment}).
 \end{definition}
 
-\begin{lemma}[Jensen for even powers and the partial overlaps]
+\begin{lemma}[Jensen for even powers, pair marginals and the overlap moment]
 \label{lem:sg-tal:gibbs-jensen}
   \lean{SpinGlasses.pow_integral_count_tilted_le,
-        SpinGlasses.integral_overlapGibbs_right,
+        SpinGlasses.integral_pi_pair_count_tilted,
         SpinGlasses.overlapMoment_eq,
-        SpinGlasses.overlapMoment_nonneg,
-        SpinGlasses.partialOverlap_sub_pow_le,
-        SpinGlasses.meanOverlap_sub_pow_le,
-        SpinGlasses.integral_pi_comp_eval_count_tilted,
-        SpinGlasses.integral_partialOverlap_sub_pow_le}
+        SpinGlasses.integral_overlap_right}
   \leanok
 \talsource{``using Jensen's inequality (1.23) to average in $\boldsymbol\sigma^2$ outside the power $2r$''}
-For every probability measure $\mu=G_f$ on a finite set, $(\int h\,d\mu)^{2k}\le\int h^{2k}d\mu$.  Consequently $J_k\ge0$, $J_k=\iint(R(a,b)-q)^{2k}d\mu\,d\mu$, $(A(a)-q)^{2k}\le\int(R(a,b)-q)^{2k}d\mu(b)$, $(B-q)^{2k}\le J_k$, and for every replica $\ell$,
-$\int(A(\sigma^\ell)-q)^{2k}d\mu^{\otimes m}\le J_k$.
+For every probability measure $\mu=G_f$ on a finite set, $(\int h\,d\mu)^{2k}\le\int h^{2k}d\mu$.  For two distinct replicas $\ell\ne\ell'$ of $\mu^{\otimes m}$ and any $H$, $\int H(\sigma^\ell,\sigma^{\ell'})\,d\mu^{\otimes m}=\iint H(a,b)\,d\mu(a)\,d\mu(b)$.  For $K=R-q$ one has $J_k=\iint K(a,b)^{2k}\,d\mu\,d\mu$ and $\int R(a,b)\,d\mu(b)=N^{-1}\sum_i\xi_i(a)\langle\xi_i\rangle$.
 \end{lemma}
 \begin{proof}
   \leanok
-Jensen's inequality for the convex function $x\mapsto x^{2k}$ and the probability measure $\mu$.  $A(a)-q=\int(R(a,b)-q)\,d\mu(b)$ since $\mu$ is a probability measure, and likewise $B-q=\int(A-q)\,d\mu$; apply Jensen twice.  The marginal of one replica of $\mu^{\otimes m}$ is $\mu$.
+Jensen's inequality for the convex function $x\mapsto x^{2k}$ and the probability measure $\mu$.  The two-replica marginal is Lemma~\ref{lem:sg-tal:replica-marginal}; $\mu^{\otimes2}$ is the product measure, which gives the iterated integral.  The last formula is linearity of the integral.
+\end{proof}
+
+\begin{lemma}[Double centering costs a factor $4^{2k}$]
+\label{lem:sg-tal:double-centering}
+  \uses{lem:sg-tal:gibbs-jensen}
+  \lean{SpinGlasses.integral_pi_doubleCentered_pow_le,
+        add_pow_four_two_mul_le}
+  \leanok
+\talsource{the convexity step in the proof of (1.201)}
+Let $\mu=G_f$ be a Gibbs measure on a finite set $\alpha$, $K:\alpha^2\to\mathbb R$ any kernel, $k\ge1$, and $\ell,\ell'$ replicas of $\mu^{\otimes m}$.  Put
+\[
+T(\boldsymbol\sigma)=x_1-\int K(\sigma^\ell,b)\,d\mu(b)-\int K(\sigma^{\ell'},b)\,d\mu(b)+\iint K\,d\mu\,d\mu,\qquad x_1=\begin{cases}K(\sigma^\ell,\sigma^{\ell'})&\ell\ne\ell',\\0&\ell=\ell'.\end{cases}
+\]
+Then $\int T^{2k}\,d\mu^{\otimes m}\le4^{2k}\iint K(a,b)^{2k}\,d\mu(a)\,d\mu(b)$.
+\end{lemma}
+\begin{proof}
+  \leanok
+By convexity $(x_1-x_2-x_3+x_4)^{2k}\le4^{2k-1}(x_1^{2k}+x_2^{2k}+x_3^{2k}+x_4^{2k})$.  Put $J=\iint K^{2k}$.  By Jensen's inequality, $x_2^{2k}=(\int K(\sigma^\ell,b)\,d\mu(b))^{2k}\le\int K(\sigma^\ell,b)^{2k}d\mu(b)$, whose integral over $\mu^{\otimes m}$ is $J$ because the marginal of one replica is $\mu$; the same for $x_3$.  The constant $x_4$ satisfies $x_4^{2k}\le J$ by Jensen applied twice.  Finally $\int x_1^{2k}=J$ for $\ell\ne\ell'$ by the pair marginal formula, and $x_1=0$ for $\ell=\ell'$.  Sum: $4^{2k-1}\cdot4J=4^{2k}J$.
 \end{proof}
 
 \begin{theorem}[Moments of the Gram entries, Eq.~(1.201)]
 \label{thm:sg-tal:gram-moments}
-  \uses{lem:sg-tal:gibbs-jensen, def:sg-tal:gibbs-overlap}
-  \lean{SpinGlasses.overlapGibbs_self,
-        SpinGlasses.meanOverlap_eq,
-        SpinGlasses.projGram_centeredData_eq,
-        add_pow_four_two_mul_le,
+  \uses{lem:sg-tal:double-centering, lem:sg-tal:gibbs-jensen, def:sg-tal:gibbs-overlap}
+  \lean{SpinGlasses.overlap_self,
+        SpinGlasses.gram_centered_eq,
         SpinGlasses.integral_projGram_pow_le}
   \leanok
 \talsource{Eq.~(1.201): $\mathbb E\langle T_{\ell,\ell'}^{2r}\rangle\le K/N^r$, and the identity displayed after it}
-Let $\mu=G_f$ be a Gibbs measure on a finite set with observables satisfying $\xi_i^2=1$, $N\ge1$, $q\in\mathbb R$, $v^2=1-q$, $k\ge1$, and $m\ge1$ replicas.  For all replicas $\ell,\ell'$, with $T=T(u(\boldsymbol\sigma),v)$,
+Let $\mu=G_f$ be a Gibbs measure on a finite set with observables satisfying $\xi_i^2=1$, $u=N^{-1/2}(\xi-\langle\xi\rangle)$, $N\ge1$, $q\in\mathbb R$, $v^2=1-q$, $k\ge1$, and $m\ge1$ replicas.  For all replicas $\ell,\ell'$, with $T_{\ell\ell'}=u(\sigma^\ell)\cdot u(\sigma^{\ell'})-v^2\delta_{\ell\ell'}$ and $K=R-q$,
 \[
-\int T_{\ell\ell'}^{2k}\,d\mu^{\otimes m}\le4^{2k}J_k,\qquad
-T_{\ell\ell'}=x_1-(A(\sigma^\ell)-q)-(A(\sigma^{\ell'})-q)+(B-q),
+T_{\ell\ell'}=x_1-\int K(\sigma^\ell,b)\,d\mu(b)-\int K(\sigma^{\ell'},b)\,d\mu(b)+\iint K\,d\mu\,d\mu,\qquad
+\int T_{\ell\ell'}^{2k}\,d\mu^{\otimes m}\le4^{2k}J_k,
 \]
-where $x_1=R(\sigma^\ell,\sigma^{\ell'})-q$ for $\ell\ne\ell'$ and $x_1=0$ for $\ell=\ell'$.
+where $x_1=K(\sigma^\ell,\sigma^{\ell'})$ for $\ell\ne\ell'$ and $x_1=0$ for $\ell=\ell'$.  In the book's notation $\int K(a,b)\,d\mu(b)=A(a)-q$ with $A(a)=N^{-1}\sum_i\xi_i(a)\langle\xi_i\rangle$, and $\iint K=B-q$ with $B=N^{-1}\sum_i\langle\xi_i\rangle^2$.
 \end{theorem}
 \begin{proof}
   \leanok
-Expanding $(\xi_i(\sigma^\ell)-\langle\xi_i\rangle)(\xi_i(\sigma^{\ell'})-\langle\xi_i\rangle)$ gives $N^{-1}\sum_i\dot\xi_i(\sigma^\ell)\dot\xi_i(\sigma^{\ell'})=R(\sigma^\ell,\sigma^{\ell'})-A(\sigma^\ell)-A(\sigma^{\ell'})+B$.  For $\ell=\ell'$ use $R(a,a)=1$ (this is where $\xi_i^2=1$ enters) and $v^2=1-q$,
-which gives the book's identity $T_{\ell\ell}=-2(A-q)+(B-q)$; for $\ell\ne\ell'$ the constants $q$ cancel.  Then $(x_1-x_2-x_3+x_4)^{2k}\le4^{2k-1}(x_1^{2k}+x_2^{2k}+x_3^{2k}+x_4^{2k})$ (convexity), and by Lemma~\ref{lem:sg-tal:gibbs-jensen}
-and the two-replica marginal formula (Lemma~\ref{lem:sg-tal:replica-marginal}), each of the four integrals is at most $J_k$, which gives $4^{2k-1}\cdot4J_k=4^{2k}J_k$.
+Expanding $(\xi_i(\sigma^\ell)-\langle\xi_i\rangle)(\xi_i(\sigma^{\ell'})-\langle\xi_i\rangle)$ gives $N^{-1}\sum_i\dot\xi_i(\sigma^\ell)\dot\xi_i(\sigma^{\ell'})=R(\sigma^\ell,\sigma^{\ell'})-A(\sigma^\ell)-A(\sigma^{\ell'})+B$.  For $\ell=\ell'$ use $R(a,a)=1$ (this is where $\xi_i^2=1$ enters, \texttt{overlap\_self}) and $v^2=1-q$,
+which gives the book's identity $T_{\ell\ell}=-2(A-q)+(B-q)$; for $\ell\ne\ell'$ the constants $q$ cancel.  This is the identity.  The moment bound is Lemma~\ref{lem:sg-tal:double-centering} for the kernel $K=R-q$, together with $\iint K^{2k}=J_k$ (Lemma~\ref{lem:sg-tal:gibbs-jensen}).
 \end{proof}
 
 \subsection{Theorem~1.7.11}
 \label{sec:sg-tal:fluct-main}
 
-\emph{Content.}  The principle itself, for the SK model.  \emph{Uses:} A--E and Theorem~\ref{thm:sg-tal:overlap-moments-all}.
+\emph{Content.}  First the model-independent core (Theorem~\ref{thm:sg-tal:gibbs-fluct-core}): for a fixed Gibbs measure the fluctuation is bounded by a multiple of the overlap moment $J_k$.  Then the SK model, which enters only through the bound $\mathbb E_gJ_k(g)\le K'/N^k$ of Theorem~\ref{thm:sg-tal:overlap-moments-all}.  \emph{Uses:} A--E and Theorem~\ref{thm:sg-tal:overlap-moments-all}.
 \emph{Status:} fully proved.
 
 \begin{lemma}[Arithmetic--geometric mean for products of Gram entries]
@@ -3551,6 +3557,24 @@ For $a_1,\dots,a_n\in\mathbb R$ ($n\ge1$), $\prod_j|a_j|\le\sum_j|a_j|^n$.  Cons
   \leanok
 Let $j_0$ maximize $|a_j|$; then $\prod_j|a_j|\le|a_{j_0}|^n\le\sum_j|a_j|^n$ (this is cruder than the arithmetic--geometric mean inequality $\prod|a_j|\le\frac1n\sum|a_j|^n$ and loses the constant $n$ only).  A list of $2k$ pairs gives a product of $2k$ entries; integrate and use $|T|^{2k}=T^{2k}$ with Theorem~\ref{thm:sg-tal:gram-moments}
 on each of the $2k$ factors.  There are $((2k)^2)^{2k}$ lists.
+\end{proof}
+
+\begin{theorem}[The model-independent core of Theorem~1.7.11]
+\label{thm:sg-tal:gibbs-fluct-core}
+  \uses{thm:sg-tal:gibbs-taylor, thm:sg-tal:gram-moments, lem:sg-tal:amgm-pairprod}
+  \lean{SpinGlasses.sub_integral_count_tilted_eq,
+        SpinGlasses.exists_gibbs_fluctuation_pow_le}
+  \leanok
+\talsource{proof of Theorem~1.7.11, Eqs.~(1.200)--(1.205), before averaging over the disorder}
+Let $k\ge1$ and let $(C_j)_{j\le4k}$, $c\ge0$ be given.  There is $C\ge0$, depending only on $k,(C_j),c$, such that the following holds.  Let $V$ be exponentially tame with $|V^{(j)}(x)|\le C_je^{c|x|}$ ($j\le4k$), let $q\ge0$ and $v^2=1-q$ with $\int V(vt)\,d\gamma_1(t)=0$, let $\mu=G_f$ be a Gibbs measure on a finite set $\alpha$ with observables $\xi_i$ satisfying $\xi_i^2=1$, $N\ge1$, and $u=N^{-1/2}(\xi-\langle\xi\rangle)$.  Then
+\[
+\mathbb E_y\Bigl(\int V\bigl(u(a)\cdot y\bigr)\,d\mu(a)\Bigr)^{2k}\le C\,J_k .
+\]
+Moreover $\int g\,d\mu-c_0=\int(g-c_0)\,d\mu$ for a probability measure $\mu$ (used to pass from $U$ to $V=U-c_0$).
+\end{theorem}
+\begin{proof}
+  \leanok
+Theorem~\ref{thm:sg-tal:gibbs-taylor} with $m=2k$ applies: $v^2=1-q\le1\le4$, $|\xi_i|\le1$ because $\xi_i^2=1$, and $u$ has Gibbs mean zero and $u\cdot u\le4$ (Lemma~\ref{lem:sg-tal:centered-mean}, Lemma~\ref{lem:sg-tal:gibbs-chain}(c)).  It bounds the left side, which is $\le$ its absolute value, by $C_1\sum_p\int|\mathrm{pairProd}|\,d\mu^{\otimes2k}$, and Lemma~\ref{lem:sg-tal:amgm-pairprod} bounds the sum by $(2k)^{4k}\,2k\,4^{2k}J_k$.  Take $C=C_1(2k)^{4k}\,2k\,4^{2k}$.
 \end{proof}
 
 \begin{definition}[The SK Gibbs energy and the spin observables]
@@ -3582,15 +3606,15 @@ where $\mathbb E$ is the expectation over the disorder and over $y$, and $\mathb
 \begin{proof}
   \leanok
 Put $c=\mathbb E_\xi U(\xi\sqrt{1-q})$, $V=U-c$ and $v=\sqrt{1-q}$; $q\in[0,1]$ because it is the integral of $\tanh^2\in[0,1]$ (\texttt{fixedPoint\_mem\_Icc}), so $v^2=1-q\le4$.  The function $V$ is exponentially tame and $\int V(vt)\,d\gamma_1=0$ (Eq.~(1.199)), because $U(v\,\cdot\,)$ is integrable against a Gaussian.
-Fix the disorder $g$ and let $\mu_g$ be the Gibbs measure of $f_g$.  Since $\mu_g$ is a probability measure, $\langle U(\dot S)\rangle-c=\int V(\dot S)\,d\mu_g$, so by Theorem~\ref{thm:sg-tal:gibbs-taylor} with $m=2k$ (this is the book's steps (1.200)--(1.205) and Taylor's formula),
+Fix the disorder $g$ and let $\mu_g$ be the Gibbs measure of $f_g$.  Since $\mu_g$ is a probability measure, $\langle U(\dot S)\rangle-c=\int V(\dot S)\,d\mu_g$, so by Theorem~\ref{thm:sg-tal:gibbs-fluct-core} (this is the book's steps (1.200)--(1.205), Taylor's formula and (1.201)), with $C$ the constant for the explicit bounds of $V$ given by \texttt{ExpTame.exists\_bound\_upTo},
 \[
-0\le\mathbb E_y\bigl(\langle U(\dot S)\rangle-c\bigr)^{2k}\le C\sum_p\int|\mathrm{pairProd}|\,d\mu_g^{\otimes2k}\le C_2\,J_k(g),
+0\le\mathbb E_y\bigl(\langle U(\dot S)\rangle-c\bigr)^{2k}\le C\,J_k(g).
 \]
-with $C_2=C(2k)^{4k}\,2k\,4^{2k}$, by Lemma~\ref{lem:sg-tal:amgm-pairprod} (the book's bound $|\varphi^{(2k)}|\le KN^{-k}$ together with (1.201)).  The left side is nonnegative as an even power.  Integrating over $g$ and using
-$\mathbb E_gJ_k(g)\le K'/N^k$ (Theorem~\ref{thm:sg-tal:overlap-moments-all}; $J_k(g)$ is integrable in $g$ as a Gibbs average of a bounded function) gives the claim with $K=C_2K'+1$.
+The left side is nonnegative as an even power.  Integrating over $g$ and using
+$\mathbb E_gJ_k(g)\le K'/N^k$ (Theorem~\ref{thm:sg-tal:overlap-moments-all}; $J_k(g)$ is integrable in $g$ as a Gibbs average of a bounded function) gives the claim with $K=CK'+1$.
 \emph{Deviations from the book.}  (i) The interpolation is carried out in the angle $s$, with $t=\sin^2s$ never introduced: the chain relation $Q_r'=\sin s\cos s\,Q_{r+1}$ (Theorem~\ref{thm:sg-tal:projsum-deriv}) and the fencing lemma replace the formula $\varphi^{(r)}=2^{-r}\sum\mathbb E\langle T\cdots T\,F^{(\mathbf s)}\rangle$ and Taylor's theorem.  (ii) The Gaussian factor is bounded uniformly (Lemma~\ref{lem:sg-tal:projpath-bound}) instead of by H\"older's inequality, which is why $U$ is assumed exponentially tame rather than satisfying (1.196).
-(iii) The bound is deterministic in the Gibbs measure: for every disorder $g$, $\mathbb E_y(\cdot)^{2k}\le C_2J_k(g)$, and only the last step integrates over $g$.  (iv) The theorem is stated with the centered vector $(N^{-1/2}(\sigma_i-\langle\sigma_i\rangle))_i$ dotted with $y$.
-Formalized in \texttt{SpinGlasses/SKGaussianFluctuation.lean}, \texttt{GibbsGramMoments.lean} and \texttt{GibbsProjectionBound.lean}; the three \texttt{ExpTame} lemmas used here (shift by a constant, integrability, Gaussian mean zero) live in \texttt{GaussianProjectionPath.lean} with the definition of \texttt{ExpTame}.
+(iii) The bound is deterministic in the Gibbs measure and model independent (Theorem~\ref{thm:sg-tal:gibbs-fluct-core}): for every disorder $g$, $\mathbb E_y(\cdot)^{2k}\le C\,J_k(g)$, and only the last step integrates over $g$.  (iv) The theorem is stated with the centered vector $(N^{-1/2}(\sigma_i-\langle\sigma_i\rangle))_i$ dotted with $y$.
+Formalized in \texttt{SpinGlasses/SKGaussianFluctuation.lean}, \texttt{GibbsFluctuationMoment.lean} (the core), \texttt{GibbsGramMoments.lean} and \texttt{GibbsProjectionBound.lean}; the three \texttt{ExpTame} lemmas used here (shift by a constant, integrability, Gaussian mean zero) live in \texttt{GaussianProjectionPath.lean} with the definition of \texttt{ExpTame}.
 \end{proof}
 
 \subsection{Fixed-point shift under parameter perturbation (Lemma~1.7.5)}
@@ -3732,8 +3756,7 @@ With $c=4k\varepsilon\beta$ this gives $\mathbb E B^{4k}\le e^{8k^2\beta^2}$, th
 \begin{lemma}[Powers of a Gibbs average are integrable in the Gaussian variables]
 \label{lem:sg-tal:gibbs-pow-integrable}
   \uses{def:sg-tal:exptame, lem:sg-tal:projpath-mgf}
-  \lean{SpinGlasses.projPath_zero_pi_div_two,
-        SpinGlasses.integrable_prod_derivProd_zero,
+  \lean{SpinGlasses.integrable_prod_derivProd_zero,
         SpinGlasses.integrable_integral_gibbs_pow}
   \leanok
 \talsource{no counterpart in the book, which treats the integrability of the quantities in Corollary~1.7.13 as obvious}

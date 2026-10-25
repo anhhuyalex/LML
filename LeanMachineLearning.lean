@@ -383,6 +383,7 @@ public import LeanMachineLearning.SpinGlasses.GaussianIBPCountable
 public import LeanMachineLearning.SpinGlasses.GaussianInterpolationConditional
 public import LeanMachineLearning.SpinGlasses.GaussianInterpolationReplica
 public import LeanMachineLearning.SpinGlasses.GaussianProjectionPath
+public import LeanMachineLearning.SpinGlasses.GibbsFluctuationMoment
 public import LeanMachineLearning.SpinGlasses.GibbsGramMoments
 public import LeanMachineLearning.SpinGlasses.GibbsMeasure
 public import LeanMachineLearning.SpinGlasses.GibbsMeasureNested
