@@ -4885,10 +4885,10 @@ By site symmetry (swaps of sites, \texttt{sk\_replica\_site\_perm}) $\nu(a_ka_l)
 
 \begin{lemma}[Endpoint pair covariance and coincidences]
 \label{lem:sg-tal:endpoint-pair-cov}
-  \lean{SpinGlasses.sk_cavity_coincidences,
+  \lean{SpinGlasses.skCavityCoincidences,
         SpinGlasses.sk_cavity_coincidences_le_two,
-        SpinGlasses.sk_cavity_b_unscaled,
-        SpinGlasses.sk_cavity_b_coef,
+        SpinGlasses.skCavityBUnscaled,
+        SpinGlasses.skCavityBCoef,
         SpinGlasses.sk_cavity_b_unscaled_eq,
         SpinGlasses.sk_cavity_decoupled_endpoint_pair_cov}
   \leanok
@@ -4927,9 +4927,9 @@ Differentiate along the cavity path via \texttt{hasDerivAt\_integral\_sk\_cavity
 \begin{theorem}[The $3\times3$ AT matrix, universal eigenvectors, and eigenvalues]
 \label{thm:sg-tal:at-matrix}
   \uses{thm:sg-tal:lemma-182}
-  \lean{SpinGlasses.sk_at_matrix,
-        SpinGlasses.sk_at_eigenvector_one,
-        SpinGlasses.sk_at_eigenvector_two,
+  \lean{SpinGlasses.skAtMatrix,
+        SpinGlasses.skAtEigenvectorOne,
+        SpinGlasses.skAtEigenvectorTwo,
         SpinGlasses.sk_at_matrix_transpose_mulVec_one,
         SpinGlasses.sk_at_matrix_transpose_mulVec_two,
         SpinGlasses.sk_at_eigenvalue_one_eq,
@@ -4956,7 +4956,7 @@ Direct linear algebra on $\mathrm{Matrix}(\mathrm{Fin}\,3)(\mathrm{Fin}\,3)\,\ma
 \begin{theorem}[The $3\times3$ AT covariance equations and decoupled solutions]
 \label{thm:sg-tal:at-covariance-equations}
   \uses{thm:sg-tal:at-matrix}
-  \lean{SpinGlasses.sk_at_source,
+  \lean{SpinGlasses.skAtSource,
         SpinGlasses.sk_at_source_dot_eigenvector_one,
         SpinGlasses.sk_at_source_dot_eigenvector_two,
         SpinGlasses.sk_at_covariance_equations_iff,

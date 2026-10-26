@@ -40,7 +40,7 @@ namespace SpinGlasses
 
 /-- Coincidence count of a replica pair `j` with the pair `{x, y}` of old replicas. -/
 def skCavityReplicaPairCoincidences {n : ℕ} (x y : Fin n) (j : SKCavityReplicaPair n) : ℕ :=
-  sk_cavity_coincidences (some (some x)) (some (some y))
+  skCavityCoincidences (some (some x)) (some (some y))
     (skCavityReplicaPairMap j).1 (skCavityReplicaPairMap j).2
 
 /-- **Talagrand, Lemma 1.8.2, Eq. (1.230): cavity derivative of a pair covariance.**
@@ -85,7 +85,7 @@ theorem sk_cavity_deriv_zero_pair (N n : ℕ) (β q h : ℝ)
         ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) =
       ∑ j : SKCavityReplicaPair n,
         skCavityReplicaPairWeight n j *
-          (sk_cavity_b_coef β q qhat (skCavityReplicaPairCoincidences x y j) *
+          (skCavityBCoef β q qhat (skCavityReplicaPairCoincidences x y j) *
             ∫ g', ∫ ρ : Option (Option (Fin n)) → Fin N → ℤˣ,
               F (fun r => ρ (so r)) *
                 ((N + 1 : ℝ)⁻¹ *
@@ -114,7 +114,7 @@ theorem sk_cavity_deriv_zero_pair (N n : ℕ) (β q h : ℝ)
           (E (π / 2) g' ω))
         ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
         ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) =
-      sk_cavity_b_unscaled q qhat (sk_cavity_coincidences (so x) (so y) a b) *
+      skCavityBUnscaled q qhat (skCavityCoincidences (so x) (so y) a b) *
         ∫ g', ∫ ρ : Option (Option (Fin n)) → Fin N → ℤˣ, Gab a b ρ
           ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted
             (fun r : Fin N → ℤˣ =>
@@ -151,12 +151,12 @@ theorem sk_cavity_deriv_zero_pair (N n : ℕ) (β q h : ℝ)
   have hj := hT (skCavityReplicaPairMap j).1 (skCavityReplicaPairMap j).2 hne
   dsimp [Gj]
   rw [hj]
-  simp only [sk_cavity_b_coef, skCavityReplicaPairCoincidences, Gab]
+  simp only [skCavityBCoef, skCavityReplicaPairCoincidences, Gab]
   have hmul : ∀ (X : ℝ),
-      sk_cavity_b_unscaled q qhat (sk_cavity_coincidences (so x) (so y)
+      skCavityBUnscaled q qhat (skCavityCoincidences (so x) (so y)
         (skCavityReplicaPairMap j).1 (skCavityReplicaPairMap j).2) *
         (β ^ 2 * X) =
-      β ^ 2 * sk_cavity_b_unscaled q qhat (sk_cavity_coincidences (so x) (so y)
+      β ^ 2 * skCavityBUnscaled q qhat (skCavityCoincidences (so x) (so y)
         (skCavityReplicaPairMap j).1 (skCavityReplicaPairMap j).2) * X := fun X => by ring
   have hint : (∫ g', ∫ ρ : Option (Option (Fin n)) → Fin N → ℤˣ,
         F (fun r => ρ (so r)) *
@@ -203,37 +203,37 @@ theorem sk_cavity_deriv_zero_pair (N n : ℕ) (β q h : ℝ)
 `[b(2),              -4 b(1),              3 b(0)             ]`
 `[b(1),  b(2) - 2 b(1) - 3 b(0),        6 b(0) - 3 b(1)       ]`
 `[b(0),        4 b(1) - 8 b(0),   b(2) - 8 b(1) + 10 b(0)     ]` -/
-def sk_at_matrix (b2 b1 b0 : ℝ) : Matrix (Fin 3) (Fin 3) ℝ :=
+def skAtMatrix (b2 b1 b0 : ℝ) : Matrix (Fin 3) (Fin 3) ℝ :=
   ![![b2, -4 * b1, 3 * b0],
     ![b1, b2 - 2 * b1 - 3 * b0, 6 * b0 - 3 * b1],
     ![b0, 4 * b1 - 8 * b0, b2 - 8 * b1 + 10 * b0]]
 
 /-- The first eigenvector of the transposed AT matrix: `(1, -2, 1)`. -/
-def sk_at_eigenvector_one : Fin 3 → ℝ :=
+def skAtEigenvectorOne : Fin 3 → ℝ :=
   ![1, -2, 1]
 
 /-- The second eigenvector of the transposed AT matrix: `(1, -4, 3)`. -/
-def sk_at_eigenvector_two : Fin 3 → ℝ :=
+def skAtEigenvectorTwo : Fin 3 → ℝ :=
   ![1, -4, 3]
 
 /-- **Talagrand, Eq. (1.235): universal eigenvector `(1, -2, 1)` of the transposed AT matrix.**
 For any coefficients `b(2), b(1), b(0)`, `(1, -2, 1)` is an eigenvector of
-`(sk_at_matrix b2 b1 b0)ᵀ` with eigenvalue `λ₁ = b(2) - 2 b(1) + b(0)`. -/
+`(skAtMatrix b2 b1 b0)ᵀ` with eigenvalue `λ₁ = b(2) - 2 b(1) + b(0)`. -/
 theorem sk_at_matrix_transpose_mulVec_one (b2 b1 b0 : ℝ) :
-    (sk_at_matrix b2 b1 b0)ᵀ *ᵥ sk_at_eigenvector_one =
-      (b2 - 2 * b1 + b0) • sk_at_eigenvector_one := by
+    (skAtMatrix b2 b1 b0)ᵀ *ᵥ skAtEigenvectorOne =
+      (b2 - 2 * b1 + b0) • skAtEigenvectorOne := by
   ext i
   fin_cases i
-  · change (∑ j : Fin 3, (sk_at_matrix b2 b1 b0)ᵀ 0 j * sk_at_eigenvector_one j) = _
+  · change (∑ j : Fin 3, (skAtMatrix b2 b1 b0)ᵀ 0 j * skAtEigenvectorOne j) = _
     rw [Fin.sum_univ_three]
     change b2 * 1 + b1 * (-2) + b0 * 1 = (b2 - 2 * b1 + b0) * 1
     ring
-  · change (∑ j : Fin 3, (sk_at_matrix b2 b1 b0)ᵀ 1 j * sk_at_eigenvector_one j) = _
+  · change (∑ j : Fin 3, (skAtMatrix b2 b1 b0)ᵀ 1 j * skAtEigenvectorOne j) = _
     rw [Fin.sum_univ_three]
     change (-4 * b1) * 1 + (b2 - 2 * b1 - 3 * b0) * (-2) + (4 * b1 - 8 * b0) * 1 =
         (b2 - 2 * b1 + b0) * (-2)
     ring
-  · change (∑ j : Fin 3, (sk_at_matrix b2 b1 b0)ᵀ 2 j * sk_at_eigenvector_one j) = _
+  · change (∑ j : Fin 3, (skAtMatrix b2 b1 b0)ᵀ 2 j * skAtEigenvectorOne j) = _
     rw [Fin.sum_univ_three]
     change (3 * b0) * 1 + (6 * b0 - 3 * b1) * (-2) + (b2 - 8 * b1 + 10 * b0) * 1 =
         (b2 - 2 * b1 + b0) * 1
@@ -241,22 +241,22 @@ theorem sk_at_matrix_transpose_mulVec_one (b2 b1 b0 : ℝ) :
 
 /-- **Talagrand, Eq. (1.236): universal eigenvector `(1, -4, 3)` of the transposed AT matrix.**
 For any coefficients `b(2), b(1), b(0)`, `(1, -4, 3)` is an eigenvector of
-`(sk_at_matrix b2 b1 b0)ᵀ` with eigenvalue `λ₂ = b(2) - 4 b(1) + 3 b(0)`. -/
+`(skAtMatrix b2 b1 b0)ᵀ` with eigenvalue `λ₂ = b(2) - 4 b(1) + 3 b(0)`. -/
 theorem sk_at_matrix_transpose_mulVec_two (b2 b1 b0 : ℝ) :
-    (sk_at_matrix b2 b1 b0)ᵀ *ᵥ sk_at_eigenvector_two =
-      (b2 - 4 * b1 + 3 * b0) • sk_at_eigenvector_two := by
+    (skAtMatrix b2 b1 b0)ᵀ *ᵥ skAtEigenvectorTwo =
+      (b2 - 4 * b1 + 3 * b0) • skAtEigenvectorTwo := by
   ext i
   fin_cases i
-  · change (∑ j : Fin 3, (sk_at_matrix b2 b1 b0)ᵀ 0 j * sk_at_eigenvector_two j) = _
+  · change (∑ j : Fin 3, (skAtMatrix b2 b1 b0)ᵀ 0 j * skAtEigenvectorTwo j) = _
     rw [Fin.sum_univ_three]
     change b2 * 1 + b1 * (-4) + b0 * 3 = (b2 - 4 * b1 + 3 * b0) * 1
     ring
-  · change (∑ j : Fin 3, (sk_at_matrix b2 b1 b0)ᵀ 1 j * sk_at_eigenvector_two j) = _
+  · change (∑ j : Fin 3, (skAtMatrix b2 b1 b0)ᵀ 1 j * skAtEigenvectorTwo j) = _
     rw [Fin.sum_univ_three]
     change (-4 * b1) * 1 + (b2 - 2 * b1 - 3 * b0) * (-4) + (4 * b1 - 8 * b0) * 3 =
         (b2 - 4 * b1 + 3 * b0) * (-4)
     ring
-  · change (∑ j : Fin 3, (sk_at_matrix b2 b1 b0)ᵀ 2 j * sk_at_eigenvector_two j) = _
+  · change (∑ j : Fin 3, (skAtMatrix b2 b1 b0)ᵀ 2 j * skAtEigenvectorTwo j) = _
     rw [Fin.sum_univ_three]
     change (3 * b0) * 1 + (6 * b0 - 3 * b1) * (-4) + (b2 - 8 * b1 + 10 * b0) * 3 =
         (b2 - 4 * b1 + 3 * b0) * 3
@@ -265,62 +265,62 @@ theorem sk_at_matrix_transpose_mulVec_two (b2 b1 b0 : ℝ) :
 /-- The first eigenvalue `λ₁ = b(2) - 2 b(1) + b(0)` expressed in terms of `(β, q, q̂)`:
 `λ₁ = β² (1 - 2 q + q̂)`. -/
 theorem sk_at_eigenvalue_one_eq (β q qhat : ℝ) :
-    sk_cavity_b_coef β q qhat 2 - 2 * sk_cavity_b_coef β q qhat 1 +
-      sk_cavity_b_coef β q qhat 0 =
+    skCavityBCoef β q qhat 2 - 2 * skCavityBCoef β q qhat 1 +
+      skCavityBCoef β q qhat 0 =
     β ^ 2 * (1 - 2 * q + qhat) := by
-  dsimp [sk_cavity_b_coef, sk_cavity_b_unscaled]
+  dsimp [skCavityBCoef, skCavityBUnscaled]
   ring
 
 /-- The second eigenvalue `λ₂ = b(2) - 4 b(1) + 3 b(0)` expressed in terms of `(β, q, q̂)`:
 `λ₂ = β² (1 - 4 q + 3 q̂)`. -/
 theorem sk_at_eigenvalue_two_eq (β q qhat : ℝ) :
-    sk_cavity_b_coef β q qhat 2 - 4 * sk_cavity_b_coef β q qhat 1 +
-      3 * sk_cavity_b_coef β q qhat 0 =
+    skCavityBCoef β q qhat 2 - 4 * skCavityBCoef β q qhat 1 +
+      3 * skCavityBCoef β q qhat 0 =
     β ^ 2 * (1 - 4 * q + 3 * qhat) := by
-  dsimp [sk_cavity_b_coef, sk_cavity_b_unscaled]
+  dsimp [skCavityBCoef, skCavityBUnscaled]
   ring
 
 /-- The first row linear form of the AT matrix system (Eq. 1.231):
 `b(2) U - 4 b(1) V + 3 b(0) W`. -/
-def sk_at_row_zero (b2 b1 b0 U V W : ℝ) : ℝ :=
+def skAtRowZero (b2 b1 b0 U V W : ℝ) : ℝ :=
   b2 * U - 4 * b1 * V + 3 * b0 * W
 
 /-- The second row linear form of the AT matrix system (Eq. 1.232):
 `b(1) U + (b(2) - 2 b(1) - 3 b(0)) V + (6 b(0) - 3 b(1)) W`. -/
-def sk_at_row_one (b2 b1 b0 U V W : ℝ) : ℝ :=
+def skAtRowOne (b2 b1 b0 U V W : ℝ) : ℝ :=
   b1 * U + (b2 - 2 * b1 - 3 * b0) * V + (6 * b0 - 3 * b1) * W
 
 /-- The third row linear form of the AT matrix system (Eq. 1.233):
 `b(0) U + (4 b(1) - 8 b(0)) V + (b(2) - 8 b(1) + 10 b(0)) W`. -/
-def sk_at_row_two (b2 b1 b0 U V W : ℝ) : ℝ :=
+def skAtRowTwo (b2 b1 b0 U V W : ℝ) : ℝ :=
   b0 * U + (4 * b1 - 8 * b0) * V + (b2 - 8 * b1 + 10 * b0) * W
 
 theorem sk_at_matrix_mulVec_zero (b2 b1 b0 : ℝ) (v : Fin 3 → ℝ) :
-    (sk_at_matrix b2 b1 b0 *ᵥ v) 0 = sk_at_row_zero b2 b1 b0 (v 0) (v 1) (v 2) := by
-  change (∑ j : Fin 3, sk_at_matrix b2 b1 b0 0 j * v j) = _
+    (skAtMatrix b2 b1 b0 *ᵥ v) 0 = skAtRowZero b2 b1 b0 (v 0) (v 1) (v 2) := by
+  change (∑ j : Fin 3, skAtMatrix b2 b1 b0 0 j * v j) = _
   rw [Fin.sum_univ_three]
   change b2 * v 0 + (-4 * b1) * v 1 + (3 * b0) * v 2 = _
-  dsimp [sk_at_row_zero]
+  dsimp [skAtRowZero]
   ring
 
 theorem sk_at_matrix_mulVec_one (b2 b1 b0 : ℝ) (v : Fin 3 → ℝ) :
-    (sk_at_matrix b2 b1 b0 *ᵥ v) 1 = sk_at_row_one b2 b1 b0 (v 0) (v 1) (v 2) := by
-  change (∑ j : Fin 3, sk_at_matrix b2 b1 b0 1 j * v j) = _
+    (skAtMatrix b2 b1 b0 *ᵥ v) 1 = skAtRowOne b2 b1 b0 (v 0) (v 1) (v 2) := by
+  change (∑ j : Fin 3, skAtMatrix b2 b1 b0 1 j * v j) = _
   rw [Fin.sum_univ_three]
   rfl
 
 theorem sk_at_matrix_mulVec_two (b2 b1 b0 : ℝ) (v : Fin 3 → ℝ) :
-    (sk_at_matrix b2 b1 b0 *ᵥ v) 2 = sk_at_row_two b2 b1 b0 (v 0) (v 1) (v 2) := by
-  change (∑ j : Fin 3, sk_at_matrix b2 b1 b0 2 j * v j) = _
+    (skAtMatrix b2 b1 b0 *ᵥ v) 2 = skAtRowTwo b2 b1 b0 (v 0) (v 1) (v 2) := by
+  change (∑ j : Fin 3, skAtMatrix b2 b1 b0 2 j * v j) = _
   rw [Fin.sum_univ_three]
   rfl
 
-/-- The rows of `sk_at_matrix` applied to `v = ![U, V, W]` match the three linear forms. -/
+/-- The rows of `skAtMatrix` applied to `v = ![U, V, W]` match the three linear forms. -/
 theorem sk_at_matrix_mulVec_eq (b2 b1 b0 U V W : ℝ) :
-    sk_at_matrix b2 b1 b0 *ᵥ ![U, V, W] =
-      ![sk_at_row_zero b2 b1 b0 U V W,
-        sk_at_row_one b2 b1 b0 U V W,
-        sk_at_row_two b2 b1 b0 U V W] := by
+    skAtMatrix b2 b1 b0 *ᵥ ![U, V, W] =
+      ![skAtRowZero b2 b1 b0 U V W,
+        skAtRowOne b2 b1 b0 U V W,
+        skAtRowTwo b2 b1 b0 U V W] := by
   ext i
   fin_cases i
   · exact sk_at_matrix_mulVec_zero b2 b1 b0 ![U, V, W]
@@ -329,23 +329,23 @@ theorem sk_at_matrix_mulVec_eq (b2 b1 b0 U V W : ℝ) :
 
 /-- The inhomogeneous source vector of the AT cavity system (Eqs. 1.231–1.233):
 `S = (1/M) * (1 - q², q - q², q̂ - q²)ᵀ`. -/
-noncomputable def sk_at_source (q qhat M : ℝ) : Fin 3 → ℝ :=
+noncomputable def skAtSource (q qhat M : ℝ) : Fin 3 → ℝ :=
   ![ (1 - q ^ 2) / M, (q - q ^ 2) / M, (qhat - q ^ 2) / M ]
 
 /-- The first eigenvector `(1, -2, 1)` projects the source vector to `(1 - 2q + q̂) / M`. -/
 theorem sk_at_source_dot_eigenvector_one (q qhat M : ℝ) :
-    sk_at_eigenvector_one ⬝ᵥ sk_at_source q qhat M =
+    skAtEigenvectorOne ⬝ᵥ skAtSource q qhat M =
       (1 - 2 * q + qhat) / M := by
-  change ∑ i : Fin 3, sk_at_eigenvector_one i * sk_at_source q qhat M i = _
+  change ∑ i : Fin 3, skAtEigenvectorOne i * skAtSource q qhat M i = _
   rw [Fin.sum_univ_three]
   change 1 * ((1 - q ^ 2) / M) + (-2) * ((q - q ^ 2) / M) + 1 * ((qhat - q ^ 2) / M) = _
   ring
 
 /-- The second eigenvector `(1, -4, 3)` projects the source vector to `(1 - 4q + 3q̂) / M`. -/
 theorem sk_at_source_dot_eigenvector_two (q qhat M : ℝ) :
-    sk_at_eigenvector_two ⬝ᵥ sk_at_source q qhat M =
+    skAtEigenvectorTwo ⬝ᵥ skAtSource q qhat M =
       (1 - 4 * q + 3 * qhat) / M := by
-  change ∑ i : Fin 3, sk_at_eigenvector_two i * sk_at_source q qhat M i = _
+  change ∑ i : Fin 3, skAtEigenvectorTwo i * skAtSource q qhat M i = _
   rw [Fin.sum_univ_three]
   change 1 * ((1 - q ^ 2) / M) + (-4) * ((q - q ^ 2) / M) + 3 * ((qhat - q ^ 2) / M) = _
   ring
@@ -358,16 +358,16 @@ The component equations for `(U, V, W) = (v 0, v 1, v 2)`:
 are equivalent to the matrix-vector equation `v = S + M *ᵥ v + R`. -/
 theorem sk_at_covariance_equations_iff (b2 b1 b0 q qhat M : ℝ)
     (v R : Fin 3 → ℝ) :
-    (v = sk_at_source q qhat M + sk_at_matrix b2 b1 b0 *ᵥ v + R) ↔
-      (v 0 = (1 - q ^ 2) / M + sk_at_row_zero b2 b1 b0 (v 0) (v 1) (v 2) + R 0 ∧
-       v 1 = (q - q ^ 2) / M + sk_at_row_one b2 b1 b0 (v 0) (v 1) (v 2) + R 1 ∧
-       v 2 = (qhat - q ^ 2) / M + sk_at_row_two b2 b1 b0 (v 0) (v 1) (v 2) + R 2) := by
+    (v = skAtSource q qhat M + skAtMatrix b2 b1 b0 *ᵥ v + R) ↔
+      (v 0 = (1 - q ^ 2) / M + skAtRowZero b2 b1 b0 (v 0) (v 1) (v 2) + R 0 ∧
+       v 1 = (q - q ^ 2) / M + skAtRowOne b2 b1 b0 (v 0) (v 1) (v 2) + R 1 ∧
+       v 2 = (qhat - q ^ 2) / M + skAtRowTwo b2 b1 b0 (v 0) (v 1) (v 2) + R 2) := by
   constructor
   · intro h
-    have h0 : v 0 = (sk_at_source q qhat M + sk_at_matrix b2 b1 b0 *ᵥ v + R) 0 := congr_fun h 0
-    have h1 : v 1 = (sk_at_source q qhat M + sk_at_matrix b2 b1 b0 *ᵥ v + R) 1 := congr_fun h 1
-    have h2 : v 2 = (sk_at_source q qhat M + sk_at_matrix b2 b1 b0 *ᵥ v + R) 2 := congr_fun h 2
-    dsimp [sk_at_source] at h0 h1 h2
+    have h0 : v 0 = (skAtSource q qhat M + skAtMatrix b2 b1 b0 *ᵥ v + R) 0 := congr_fun h 0
+    have h1 : v 1 = (skAtSource q qhat M + skAtMatrix b2 b1 b0 *ᵥ v + R) 1 := congr_fun h 1
+    have h2 : v 2 = (skAtSource q qhat M + skAtMatrix b2 b1 b0 *ᵥ v + R) 2 := congr_fun h 2
+    dsimp [skAtSource] at h0 h1 h2
     rw [sk_at_matrix_mulVec_zero] at h0
     rw [sk_at_matrix_mulVec_one] at h1
     rw [sk_at_matrix_mulVec_two] at h2
@@ -376,13 +376,13 @@ theorem sk_at_covariance_equations_iff (b2 b1 b0 q qhat M : ℝ)
     ext i
     fin_cases i
     · have hzero := sk_at_matrix_mulVec_zero b2 b1 b0 v
-      dsimp [sk_at_source]
+      dsimp [skAtSource]
       linear_combination h0 - hzero
     · have hone := sk_at_matrix_mulVec_one b2 b1 b0 v
-      dsimp [sk_at_source]
+      dsimp [skAtSource]
       linear_combination h1 - hone
     · have htwo := sk_at_matrix_mulVec_two b2 b1 b0 v
-      dsimp [sk_at_source]
+      dsimp [skAtSource]
       linear_combination h2 - htwo
 
 /-- **Eigenvector decoupling for the first mode `U - 2V + W`:**
@@ -390,31 +390,31 @@ Taking the inner product of `v = S + M *ᵥ v + R` with the transposed eigenvect
 yields an uncoupled scalar equation with eigenvalue `λ₁ = b(2) - 2 b(1) + b(0)`. -/
 theorem sk_at_system_dot_eigenvector_one (b2 b1 b0 q qhat M : ℝ)
     (v R : Fin 3 → ℝ)
-    (hsys : v = sk_at_source q qhat M + sk_at_matrix b2 b1 b0 *ᵥ v + R) :
-    (sk_at_eigenvector_one ⬝ᵥ v) =
+    (hsys : v = skAtSource q qhat M + skAtMatrix b2 b1 b0 *ᵥ v + R) :
+    (skAtEigenvectorOne ⬝ᵥ v) =
       (1 - 2 * q + qhat) / M +
-        (b2 - 2 * b1 + b0) * (sk_at_eigenvector_one ⬝ᵥ v) +
-        (sk_at_eigenvector_one ⬝ᵥ R) := by
-  have h0 : v 0 = (sk_at_source q qhat M + sk_at_matrix b2 b1 b0 *ᵥ v + R) 0 :=
+        (b2 - 2 * b1 + b0) * (skAtEigenvectorOne ⬝ᵥ v) +
+        (skAtEigenvectorOne ⬝ᵥ R) := by
+  have h0 : v 0 = (skAtSource q qhat M + skAtMatrix b2 b1 b0 *ᵥ v + R) 0 :=
     congr_fun hsys 0
-  have h1 : v 1 = (sk_at_source q qhat M + sk_at_matrix b2 b1 b0 *ᵥ v + R) 1 :=
+  have h1 : v 1 = (skAtSource q qhat M + skAtMatrix b2 b1 b0 *ᵥ v + R) 1 :=
     congr_fun hsys 1
-  have h2 : v 2 = (sk_at_source q qhat M + sk_at_matrix b2 b1 b0 *ᵥ v + R) 2 :=
+  have h2 : v 2 = (skAtSource q qhat M + skAtMatrix b2 b1 b0 *ᵥ v + R) 2 :=
     congr_fun hsys 2
-  dsimp [sk_at_source] at h0 h1 h2
+  dsimp [skAtSource] at h0 h1 h2
   rw [sk_at_matrix_mulVec_zero] at h0
   rw [sk_at_matrix_mulVec_one] at h1
   rw [sk_at_matrix_mulVec_two] at h2
-  dsimp [sk_at_row_zero] at h0
-  dsimp [sk_at_row_one] at h1
-  dsimp [sk_at_row_two] at h2
-  have hdotv : sk_at_eigenvector_one ⬝ᵥ v = v 0 - 2 * v 1 + v 2 := by
-    change ∑ i : Fin 3, sk_at_eigenvector_one i * v i = _
+  dsimp [skAtRowZero] at h0
+  dsimp [skAtRowOne] at h1
+  dsimp [skAtRowTwo] at h2
+  have hdotv : skAtEigenvectorOne ⬝ᵥ v = v 0 - 2 * v 1 + v 2 := by
+    change ∑ i : Fin 3, skAtEigenvectorOne i * v i = _
     rw [Fin.sum_univ_three]
     change 1 * v 0 + (-2) * v 1 + 1 * v 2 = _
     ring
-  have hdotR : sk_at_eigenvector_one ⬝ᵥ R = R 0 - 2 * R 1 + R 2 := by
-    change ∑ i : Fin 3, sk_at_eigenvector_one i * R i = _
+  have hdotR : skAtEigenvectorOne ⬝ᵥ R = R 0 - 2 * R 1 + R 2 := by
+    change ∑ i : Fin 3, skAtEigenvectorOne i * R i = _
     rw [Fin.sum_univ_three]
     change 1 * R 0 + (-2) * R 1 + 1 * R 2 = _
     ring
@@ -426,31 +426,31 @@ Taking the inner product of `v = S + M *ᵥ v + R` with the transposed eigenvect
 yields an uncoupled scalar equation with eigenvalue `λ₂ = b(2) - 4 b(1) + 3 b(0)`. -/
 theorem sk_at_system_dot_eigenvector_two (b2 b1 b0 q qhat M : ℝ)
     (v R : Fin 3 → ℝ)
-    (hsys : v = sk_at_source q qhat M + sk_at_matrix b2 b1 b0 *ᵥ v + R) :
-    (sk_at_eigenvector_two ⬝ᵥ v) =
+    (hsys : v = skAtSource q qhat M + skAtMatrix b2 b1 b0 *ᵥ v + R) :
+    (skAtEigenvectorTwo ⬝ᵥ v) =
       (1 - 4 * q + 3 * qhat) / M +
-        (b2 - 4 * b1 + 3 * b0) * (sk_at_eigenvector_two ⬝ᵥ v) +
-        (sk_at_eigenvector_two ⬝ᵥ R) := by
-  have h0 : v 0 = (sk_at_source q qhat M + sk_at_matrix b2 b1 b0 *ᵥ v + R) 0 :=
+        (b2 - 4 * b1 + 3 * b0) * (skAtEigenvectorTwo ⬝ᵥ v) +
+        (skAtEigenvectorTwo ⬝ᵥ R) := by
+  have h0 : v 0 = (skAtSource q qhat M + skAtMatrix b2 b1 b0 *ᵥ v + R) 0 :=
     congr_fun hsys 0
-  have h1 : v 1 = (sk_at_source q qhat M + sk_at_matrix b2 b1 b0 *ᵥ v + R) 1 :=
+  have h1 : v 1 = (skAtSource q qhat M + skAtMatrix b2 b1 b0 *ᵥ v + R) 1 :=
     congr_fun hsys 1
-  have h2 : v 2 = (sk_at_source q qhat M + sk_at_matrix b2 b1 b0 *ᵥ v + R) 2 :=
+  have h2 : v 2 = (skAtSource q qhat M + skAtMatrix b2 b1 b0 *ᵥ v + R) 2 :=
     congr_fun hsys 2
-  dsimp [sk_at_source] at h0 h1 h2
+  dsimp [skAtSource] at h0 h1 h2
   rw [sk_at_matrix_mulVec_zero] at h0
   rw [sk_at_matrix_mulVec_one] at h1
   rw [sk_at_matrix_mulVec_two] at h2
-  dsimp [sk_at_row_zero] at h0
-  dsimp [sk_at_row_one] at h1
-  dsimp [sk_at_row_two] at h2
-  have hdotv : sk_at_eigenvector_two ⬝ᵥ v = v 0 - 4 * v 1 + 3 * v 2 := by
-    change ∑ i : Fin 3, sk_at_eigenvector_two i * v i = _
+  dsimp [skAtRowZero] at h0
+  dsimp [skAtRowOne] at h1
+  dsimp [skAtRowTwo] at h2
+  have hdotv : skAtEigenvectorTwo ⬝ᵥ v = v 0 - 4 * v 1 + 3 * v 2 := by
+    change ∑ i : Fin 3, skAtEigenvectorTwo i * v i = _
     rw [Fin.sum_univ_three]
     change 1 * v 0 + (-4) * v 1 + 3 * v 2 = _
     ring
-  have hdotR : sk_at_eigenvector_two ⬝ᵥ R = R 0 - 4 * R 1 + 3 * R 2 := by
-    change ∑ i : Fin 3, sk_at_eigenvector_two i * R i = _
+  have hdotR : skAtEigenvectorTwo ⬝ᵥ R = R 0 - 4 * R 1 + 3 * R 2 := by
+    change ∑ i : Fin 3, skAtEigenvectorTwo i * R i = _
     rw [Fin.sum_univ_three]
     change 1 * R 0 + (-4) * R 1 + 3 * R 2 = _
     ring
@@ -462,16 +462,16 @@ When `λ₁ = b(2) - 2 b(1) + b(0) ≠ 1`, the decoupled combination satisfies:
 `(U - 2V + W) - (1 - 2q + q̂) / (M * (1 - λ₁)) = (v₁ ⬝ᵥ R) / (1 - λ₁)`. -/
 theorem sk_at_system_solve_one (b2 b1 b0 q qhat M : ℝ)
     (v R : Fin 3 → ℝ)
-    (hsys : v = sk_at_source q qhat M + sk_at_matrix b2 b1 b0 *ᵥ v + R)
+    (hsys : v = skAtSource q qhat M + skAtMatrix b2 b1 b0 *ᵥ v + R)
     (hlam1 : b2 - 2 * b1 + b0 ≠ 1) :
-    (sk_at_eigenvector_one ⬝ᵥ v) -
+    (skAtEigenvectorOne ⬝ᵥ v) -
       (1 - 2 * q + qhat) / (M * (1 - (b2 - 2 * b1 + b0))) =
-        (sk_at_eigenvector_one ⬝ᵥ R) / (1 - (b2 - 2 * b1 + b0)) := by
+        (skAtEigenvectorOne ⬝ᵥ R) / (1 - (b2 - 2 * b1 + b0)) := by
   have hmode := sk_at_system_dot_eigenvector_one b2 b1 b0 q qhat M v R hsys
   have hsub : 1 - (b2 - 2 * b1 + b0) ≠ 0 := sub_ne_zero.mpr (Ne.symm hlam1)
-  set Y := sk_at_eigenvector_one ⬝ᵥ v
+  set Y := skAtEigenvectorOne ⬝ᵥ v
   set S₁ := (1 - 2 * q + qhat) / M
-  set R₁ := sk_at_eigenvector_one ⬝ᵥ R
+  set R₁ := skAtEigenvectorOne ⬝ᵥ R
   set lam1 := b2 - 2 * b1 + b0
   have heq : (1 - lam1) * Y = S₁ + R₁ := by linarith [hmode]
   have hY : Y = (S₁ + R₁) / (1 - lam1) := by
@@ -486,16 +486,16 @@ When `λ₂ = b(2) - 4 b(1) + 3 b(0) ≠ 1`, the decoupled combination satisfies
 `(U - 4V + 3W) - (1 - 4q + 3q̂) / (M * (1 - λ₂)) = (v₂ ⬝ᵥ R) / (1 - λ₂)`. -/
 theorem sk_at_system_solve_two (b2 b1 b0 q qhat M : ℝ)
     (v R : Fin 3 → ℝ)
-    (hsys : v = sk_at_source q qhat M + sk_at_matrix b2 b1 b0 *ᵥ v + R)
+    (hsys : v = skAtSource q qhat M + skAtMatrix b2 b1 b0 *ᵥ v + R)
     (hlam2 : b2 - 4 * b1 + 3 * b0 ≠ 1) :
-    (sk_at_eigenvector_two ⬝ᵥ v) -
+    (skAtEigenvectorTwo ⬝ᵥ v) -
       (1 - 4 * q + 3 * qhat) / (M * (1 - (b2 - 4 * b1 + 3 * b0))) =
-        (sk_at_eigenvector_two ⬝ᵥ R) / (1 - (b2 - 4 * b1 + 3 * b0)) := by
+        (skAtEigenvectorTwo ⬝ᵥ R) / (1 - (b2 - 4 * b1 + 3 * b0)) := by
   have hmode := sk_at_system_dot_eigenvector_two b2 b1 b0 q qhat M v R hsys
   have hsub : 1 - (b2 - 4 * b1 + 3 * b0) ≠ 0 := sub_ne_zero.mpr (Ne.symm hlam2)
-  set Y := sk_at_eigenvector_two ⬝ᵥ v
+  set Y := skAtEigenvectorTwo ⬝ᵥ v
   set S₂ := (1 - 4 * q + 3 * qhat) / M
-  set R₂ := sk_at_eigenvector_two ⬝ᵥ R
+  set R₂ := skAtEigenvectorTwo ⬝ᵥ R
   set lam2 := b2 - 4 * b1 + 3 * b0
   have heq : (1 - lam2) * Y = S₂ + R₂ := by linarith [hmode]
   have hY : Y = (S₂ + R₂) / (1 - lam2) := by
@@ -508,19 +508,19 @@ theorem sk_at_system_solve_two (b2 b1 b0 q qhat M : ℝ)
 /-- The first eigenvalue `b(2) - 2 b(1) + b(0)` in the solution matches `β² (1 - 2q + q̂)`. -/
 theorem sk_at_system_solve_one_beta (β q qhat M : ℝ)
     (v R : Fin 3 → ℝ)
-    (hsys : v = sk_at_source q qhat M +
-      sk_at_matrix (sk_cavity_b_coef β q qhat 2) (sk_cavity_b_coef β q qhat 1)
-        (sk_cavity_b_coef β q qhat 0) *ᵥ v + R)
+    (hsys : v = skAtSource q qhat M +
+      skAtMatrix (skCavityBCoef β q qhat 2) (skCavityBCoef β q qhat 1)
+        (skCavityBCoef β q qhat 0) *ᵥ v + R)
     (hlam1 : β ^ 2 * (1 - 2 * q + qhat) ≠ 1) :
-    4 * (sk_at_eigenvector_one ⬝ᵥ v) -
+    4 * (skAtEigenvectorOne ⬝ᵥ v) -
       4 * (1 - 2 * q + qhat) / (M * (1 - β ^ 2 * (1 - 2 * q + qhat))) =
-        4 * (sk_at_eigenvector_one ⬝ᵥ R) / (1 - β ^ 2 * (1 - 2 * q + qhat)) := by
-  have hlam1' : sk_cavity_b_coef β q qhat 2 - 2 * sk_cavity_b_coef β q qhat 1 +
-      sk_cavity_b_coef β q qhat 0 ≠ 1 := by
+        4 * (skAtEigenvectorOne ⬝ᵥ R) / (1 - β ^ 2 * (1 - 2 * q + qhat)) := by
+  have hlam1' : skCavityBCoef β q qhat 2 - 2 * skCavityBCoef β q qhat 1 +
+      skCavityBCoef β q qhat 0 ≠ 1 := by
     rw [sk_at_eigenvalue_one_eq]
     exact hlam1
-  have hsol := sk_at_system_solve_one (sk_cavity_b_coef β q qhat 2)
-    (sk_cavity_b_coef β q qhat 1) (sk_cavity_b_coef β q qhat 0) q qhat M v R hsys hlam1'
+  have hsol := sk_at_system_solve_one (skCavityBCoef β q qhat 2)
+    (skCavityBCoef β q qhat 1) (skCavityBCoef β q qhat 0) q qhat M v R hsys hlam1'
   rw [sk_at_eigenvalue_one_eq] at hsol
   linear_combination 4 * hsol
 

@@ -137,15 +137,15 @@ theorem sk_cavity_decoupled_endpoint_quartic (N : ℕ) (β q h : ℝ) {R : Type*
   exact sk_cavity_decoupled_endpoint_replicas N β q h I F
 
 /-- Number of coincidences between two replica pairs `{x, y}` and `{a, b}`. -/
-def sk_cavity_coincidences {R : Type*} [DecidableEq R] (x y a b : R) : ℕ :=
+def skCavityCoincidences {R : Type*} [DecidableEq R] (x y a b : R) : ℕ :=
   (if x = a then 1 else 0) + (if x = b then 1 else 0) +
     (if y = a then 1 else 0) + (if y = b then 1 else 0)
 
 /-- For distinct pairs `x ≠ y` and `a ≠ b`, there are at most two coincidences. -/
 theorem sk_cavity_coincidences_le_two {R : Type*} [DecidableEq R] {x y a b : R}
     (_hxy : x ≠ y) (hab : a ≠ b) :
-    sk_cavity_coincidences x y a b ≤ 2 := by
-  dsimp [sk_cavity_coincidences]
+    skCavityCoincidences x y a b ≤ 2 := by
+  dsimp [skCavityCoincidences]
   have hxa : (if x = a then 1 else 0) + (if x = b then 1 else 0) ≤ 1 := by
     by_cases h : x = a <;> by_cases h' : x = b <;> simp [h, h', hab, hab.symm]
   have hya : (if y = a then 1 else 0) + (if y = b then 1 else 0) ≤ 1 := by
@@ -154,16 +154,16 @@ theorem sk_cavity_coincidences_le_two {R : Type*} [DecidableEq R] {x y a b : R}
 
 /-- The unscaled coefficient `b(c)` of Lemma 1.8.2 before multiplying by `β²`.
 `1 - q²` for `c = 2`, `q - q²` for `c = 1`, `q̂ - q²` for `c = 0`. -/
-def sk_cavity_b_unscaled (q qhat : ℝ) (c : ℕ) : ℝ :=
+def skCavityBUnscaled (q qhat : ℝ) (c : ℕ) : ℝ :=
   if c = 2 then 1 - q ^ 2
   else if c = 1 then q - q ^ 2
   else qhat - q ^ 2
 
 /-- Scaled coefficient `b(c) = β² b_unscaled(c)`. -/
-def sk_cavity_b_coef (β q qhat : ℝ) (c : ℕ) : ℝ :=
-  β ^ 2 * sk_cavity_b_unscaled q qhat c
+def skCavityBCoef (β q qhat : ℝ) (c : ℕ) : ℝ :=
+  β ^ 2 * skCavityBUnscaled q qhat c
 
-/-- The unscaled coefficient `sk_cavity_b_unscaled` matches the difference of decoupled moments
+/-- The unscaled coefficient `skCavityBUnscaled` matches the difference of decoupled moments
 `𝔼 tanh^{4 - 2c} Y - q²` for any `c ≤ 2`. -/
 theorem sk_cavity_b_unscaled_eq (β q h : ℝ)
     (hfix : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂(gaussianReal 0 1) = q)
@@ -171,8 +171,8 @@ theorem sk_cavity_b_unscaled_eq (β q h : ℝ)
     (hqhat : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 4 ∂(gaussianReal 0 1) = qhat)
     (c : ℕ) (hc : c ≤ 2) :
     (∫ z : ℝ, Real.tanh (β * z * Real.sqrt q + h) ^ (4 - 2 * c) ∂(gaussianReal 0 1)) - q ^ 2 =
-      sk_cavity_b_unscaled q qhat c := by
-  dsimp [sk_cavity_b_unscaled]
+      skCavityBUnscaled q qhat c := by
+  dsimp [skCavityBUnscaled]
   interval_cases c
   · have h0 : 4 - 2 * 0 = 4 := by norm_num
     rw [h0, integral_tanh_pow_mul_z_sqrt_eq, hqhat]
@@ -213,7 +213,7 @@ theorem sk_cavity_decoupled_endpoint_pair_cov (N : ℕ) (β q h : ℝ)
           ∂(Measure.pi fun _ : R => Measure.count.tilted (E (π / 2) g' ω))
         ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
       ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) =
-    sk_cavity_b_unscaled q qhat (sk_cavity_coincidences x y a b) *
+    skCavityBUnscaled q qhat (skCavityCoincidences x y a b) *
       ∫ g', ∫ ρ : R → Fin N → ℤˣ, F ρ
         ∂(Measure.pi fun _ : R => Measure.count.tilted
           (fun r : Fin N → ℤˣ =>
@@ -253,7 +253,7 @@ theorem sk_cavity_decoupled_endpoint_pair_cov (N : ℕ) (β q h : ℝ)
         ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
         ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) =
       (∫ z, Real.tanh (β * z * Real.sqrt q + h) ^
-        (4 - 2 * sk_cavity_coincidences x y a b) ∂(gaussianReal 0 1)) *
+        (4 - 2 * skCavityCoincidences x y a b) ∂(gaussianReal 0 1)) *
         ∫ g', ∫ ρ : R → Fin N → ℤˣ, F ρ
           ∂(Measure.pi fun _ : R => Measure.count.tilted
             (fun r : Fin N → ℤˣ =>
@@ -270,7 +270,7 @@ theorem sk_cavity_decoupled_endpoint_pair_cov (N : ℕ) (β q h : ℝ)
     have key := sk_cavity_decoupled_endpoint_quartic N β q h hxy hab F
     have hco : (4 - 2 * ((if x = a then 1 else 0) + (if x = b then 1 else 0) +
         (if y = a then 1 else 0) + (if y = b then 1 else 0))) =
-        4 - 2 * sk_cavity_coincidences x y a b := rfl
+        4 - 2 * skCavityCoincidences x y a b := rfl
     rw [hco] at key
     exact key
   have hF' : ∀ σ : R → Fin (N + 1) → ℤˣ,
@@ -304,12 +304,12 @@ theorem sk_cavity_decoupled_endpoint_pair_cov (N : ℕ) (β q h : ℝ)
               (∑ p : FinPairs N, g' p * (r p.val.1 : ℝ) * (r p.val.2 : ℝ)) +
             h * ∑ i : Fin N, (r i : ℝ)))
         ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
-  have hc : sk_cavity_coincidences x y a b ≤ 2 := sk_cavity_coincidences_le_two hxy hab
-  have hdiff := sk_cavity_b_unscaled_eq β q h hfix qhat hqhat (sk_cavity_coincidences x y a b) hc
-  calc (∫ z, Real.tanh (β * z * Real.sqrt q + h) ^ (4 - 2 * sk_cavity_coincidences x y a b)
+  have hc : skCavityCoincidences x y a b ≤ 2 := sk_cavity_coincidences_le_two hxy hab
+  have hdiff := sk_cavity_b_unscaled_eq β q h hfix qhat hqhat (skCavityCoincidences x y a b) hc
+  calc (∫ z, Real.tanh (β * z * Real.sqrt q + h) ^ (4 - 2 * skCavityCoincidences x y a b)
           ∂(gaussianReal 0 1)) * O + -q * (q * O) =
-      ((∫ z, Real.tanh (β * z * Real.sqrt q + h) ^ (4 - 2 * sk_cavity_coincidences x y a b)
+      ((∫ z, Real.tanh (β * z * Real.sqrt q + h) ^ (4 - 2 * skCavityCoincidences x y a b)
           ∂(gaussianReal 0 1)) - q ^ 2) * O := by ring
-    _ = sk_cavity_b_unscaled q qhat (sk_cavity_coincidences x y a b) * O := by rw [hdiff]
+    _ = skCavityBUnscaled q qhat (skCavityCoincidences x y a b) * O := by rw [hdiff]
 
 end SpinGlasses
