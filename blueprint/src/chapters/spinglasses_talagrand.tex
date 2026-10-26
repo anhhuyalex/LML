@@ -4501,6 +4501,63 @@ Let $\beta_-=\beta\sqrt{N/(N+1)}$ and let $q_-$ be a fixed point at $\beta_-$ wi
 \end{itemize}
 \end{remark}
 
+\begin{lemma}[Exchangeability of the TAP defects]
+\label{lem:sg-tal:tap-exchange}
+  \lean{SpinGlasses.symCoupling_comp_pairPerm,
+        SpinGlasses.tap_defect_comp_pairPerm,
+        SpinGlasses.sum_symCoupling_last,
+        SpinGlasses.integral_spin_comp_pairPerm,
+        SpinGlasses.gibbsWeight_comp_pairPerm,
+        MeasureTheory.integral_comp_eq_of_perm_equivariant}
+  \leanok
+\talsource{Corollary~1.7.8, proof: ``by (1.193) and symmetry between sites''}
+Let $g_{ij}=g_{ji}$ be the symmetric extension of the couplings $(g_{ij})_{i<j}$ ($g_{ii}=0$) and, in the $M$-spin SK system, $\Delta_i=\langle\sigma_i\rangle-\tanh\bigl(c\sum_jg_{ij}\langle\sigma_j\rangle+h-b\langle\sigma_i\rangle\bigr)$ for fixed reals $c,b$.  For a permutation $\pi$ of the sites let $g^\pi$ be the couplings $g\circ(\mathrm{pairPerm}\,\pi)^{-1}$ (the pair $\{i,j\}$ is sent to the sorted pair $\{\pi i,\pi j\}$).  Then (a) $\langle\sigma_i\rangle_{g^\pi}=\langle\sigma_{\pi^{-1}i}\rangle_g$; (b) $(g^\pi)_{ij}=g_{\pi^{-1}i,\pi^{-1}j}$; (c) $\Delta_i(g^\pi)=\Delta_{\pi^{-1}i}(g)$.  Consequently, since $g\mapsto g^\pi$ preserves the Gaussian law, $\mathbb E\,G(\Delta_i)$ does not depend on $i$ for every measurable $G$ (generally: if every permutation of the index set is implemented by a measure preserving map $\varphi$ with $F_i\circ\varphi=F_{\pi i}$ then $\int G(F_i)$ does not depend on $i$).  Finally the symmetric field at the last site is $\sum_jg_{{\rm last},j}m_j=\sum_{i<N}y_im_i$ with $y_i$ the coupling of the pair $(i,N)$.
+\end{lemma}
+\begin{proof}
+  \leanok
+(a) The Gibbs weight of $\sigma$ under $g^\pi$ is the weight of $\sigma\circ\pi$ under $g$ (Proposition~1.4.14: the pair sum is relabelled by Lemma on $\mathrm{pairPerm}$, the field term is invariant), and the spin sum is reindexed along $\pi$.  (b) Case split on $i<j$, $i=j$, $j<i$ and on the order of $\pi^{-1}i,\pi^{-1}j$; the sorting of a pair is the identity on an ordered pair.  (c) Combine (a), (b) and reindex $\sum_j$ by $\pi^{-1}$.  The exchangeability statement follows by taking the swap of $i$ and $j$ and the change of variables $\int G(F_j(\varphi\omega))\,dP=\int G(F_j)\,dP$.  The last claim is $\mathrm{Fin.sum\_univ\_castSucc}$ and $g_{\rm last,last}=0$.
+\end{proof}
+
+\begin{lemma}[The expectation of a maximum from high moments]
+\label{lem:sg-tal:max-moment}
+  \lean{integral_sup'_abs_le,
+        integral_sup'_abs_le_rpow,
+        rpow_neg_div_le_of_inv_le,
+        le_add_pow_div}
+  \leanok
+\talsource{Corollary~1.7.8, proof: ``$\mathbb E(\max|\Delta_i|)^{2k}\le\sum_i\mathbb E\Delta_i^{2k}$ ... so $\mathbb E\max|\Delta_i|\le K N^{-(1/2-1/2k)}$''}
+Let $\Delta_1,\dots,\Delta_M$ be random variables with $\Delta_i^{2k}$ integrable.  (a) For every $a>0$, $\mathbb E\max_i|\Delta_i|\le a+a^{-(2k-1)}\sum_i\mathbb E\Delta_i^{2k}$.  (b) If $\mathbb E\Delta_i^{2k}\le K/M^k$ for all $i$, then $\mathbb E\max_i|\Delta_i|\le(1+K)M^{-(k-1)/(2k)}$.  (c) If $M\ge1$ and $\frac1{2k}\le\varepsilon$ then $M^{-(k-1)/(2k)}\le M^{-(1/2-\varepsilon)}$.
+\end{lemma}
+\begin{proof}
+  \leanok
+(a) For $x\ge0$ and $a>0$ one has $x\le a+x^{2k}/a^{2k-1}$ (trivial if $x\le a$; otherwise $x^{2k}\ge x\,a^{2k-1}$), and $|\Delta_i|^{2k}\le\sum_j\Delta_j^{2k}$; integrate.  This replaces the Lyapunov step of the book.  (b) Take $a=M^{-(k-1)/(2k)}$, so that $a^{2k}=M^{1-k}$; then $\sum_i\mathbb E\Delta_i^{2k}\le KM^{1-k}=Ka^{2k}$ and the bound of (a) is $a+Ka$.  (c) The exponent $-\frac{k-1}{2k}=-\frac12+\frac1{2k}\le-\frac12+\varepsilon$.
+\end{proof}
+
+\begin{theorem}[Corollary~1.7.8, Eq.~(1.194): the TAP equations at all sites]
+\label{cor:sg-tal:corollary-178}
+  \uses{thm:sg-tal:theorem-177, lem:sg-tal:tap-exchange, lem:sg-tal:max-moment}
+  \lean{SpinGlasses.sk_tap_uniform}
+  \leanok
+\talsource{Corollary~1.7.8, Eq.~(1.194)}
+Let $4\beta_0^2<1$, $h\in\mathbb R$ and $\varepsilon>0$.  There is $K=K(\beta_0,h,\varepsilon)>0$ such that for every $0\le\beta\le\beta_0$, every fixed point $q$ and every $N\ge1$, in the $(N+1)$-spin SK system with Gibbs mean $\langle\cdot\rangle$ and symmetric couplings $g_{ij}$,
+\[
+\mathbb E\max_{i\le N+1}\Bigl|\langle\sigma_i\rangle-\tanh\Bigl(\frac\beta{\sqrt{N+1}}\sum_{j\ne i}g_{ij}\langle\sigma_j\rangle+h-\beta^2(1-q)\langle\sigma_i\rangle\Bigr)\Bigr|\le\frac K{(N+1)^{1/2-\varepsilon}}.
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+Choose $k\ge1$ with $\frac1{2k}\le\varepsilon$ and let $K_k$ be the constant of Theorem~\ref{thm:sg-tal:theorem-177}.  The defect $\Delta_{\rm last}$ is the quantity of that theorem (the last claim of Lemma~\ref{lem:sg-tal:tap-exchange}), so $\mathbb E\Delta_{\rm last}^{2k}\le K_k/(N+1)^k$, and by exchangeability the same holds for every $\Delta_i$.  Each $\Delta_i$ is measurable and bounded by $2$, so Lemma~\ref{lem:sg-tal:max-moment}(b),(c) gives the claim with $K=1+K_k$.
+\end{proof}
+
+\begin{remark}[Differences from the book in Corollary~1.7.8]
+\label{rem:sg-tal:dev-178}
+\begin{itemize}
+\item \emph{Indexing and hypotheses} as in Remark~\ref{rem:sg-tal:dev-177}: $N+1$ spins, $0\le\beta\le\beta_0$, any fixed point $q$.  The sum over $j\ne i$ is written as a sum over all $j$ with $g_{ii}=0$.
+\item \emph{No Lyapunov inequality.}  The book passes from $\mathbb E\max^{2k}$ to $\mathbb E\max$ by Jensen; the formalization uses the pointwise bound $x\le a+x^{2k}/a^{2k-1}$ with a tuned $a$, which gives the same exponent with the constant $1+K$.
+\item \emph{Symmetric couplings.}  Only the couplings $g_{ij}$ with $i<j$ are stored; $g_{ij}$ for $i>j$ is $g_{ji}$.
+\end{itemize}
+\end{remark}
+
 \begin{remark}[What remains of Section~1.7]
 \label{rem:sg-tal:remaining-17}
 Of Section~1.7 the following are formalized: the general Gaussian fluctuation principle (Theorem~\ref{thm:sg-tal:general-fluct}), the fixed-point shift (Lemma~\ref{lem:sg-tal:fixed-point-shift}),
@@ -4509,7 +4566,7 @@ Also formalized are Eq.~(1.185) of Lemma~1.7.4 (Theorem~\ref{thm:sg-tal:lemma-17
 Lemma~1.7.6 (the cavity field as a disorder-measurable Gaussian) is formalized as Theorem~\ref{thm:sg-tal:lemma-176}.
 Theorem~1.7.1 (the local magnetizations are asymptotically i.i.d.) is formalized as Theorem~\ref{thm:sg-tal:theorem-171}, by the book's induction from Eqs.~(1.185), (1.186) and Lemma~1.7.6.
 Theorem~1.7.7 (the TAP equations, in the $(N+1)$-spin indexing) is formalized as Theorem~\ref{thm:sg-tal:theorem-177}.
-Only Corollary~1.7.8 (all sites at once) remains in Section~1.7.
+Corollary~1.7.8 (all sites at once) is formalized as Theorem~\ref{cor:sg-tal:corollary-178}; Section~1.7 is therefore complete in this chapter.
 Eq.~(1.210) is available in the book form (Theorem~\ref{thm:sg-tal:cor-1715-reaction-book}).  The Corollaries are stated for the $N$-spin system with constants uniform in $|\beta|\le\beta_0<1/2$ (Remark~\ref{rem:sg-tal:dev-1713}), so the application to the $N$-spin system at $\beta_-$ is by relabeling $N$ and $\beta$ (done in Theorems~\ref{thm:sg-tal:lemma-174-a} and~\ref{thm:sg-tal:lemma-174-b}).
 Nothing in Sections~1.1--1.6 depends on Section~1.7.
 \end{remark}

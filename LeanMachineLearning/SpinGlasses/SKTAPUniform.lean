@@ -92,11 +92,13 @@ theorem tap_defect_comp_pairPerm (β h c b : ℝ) (G : (FinPairs M → ℝ) → 
 
 /-- **The symmetric field at the last site** is the field of the last-spin couplings
 `y_i = (skCavityDisorderEquiv N g).2 i`. -/
-theorem sum_symCoupling_last {N : ℕ} (G : (FinPairs (N + 1) → ℝ) → Fin (N + 1) → Fin (N + 1) → ℝ)
+theorem sum_symCoupling_last {N : ℕ}
+    (G : (FinPairs (N + 1) → ℝ) → Fin (N + 1) → Fin (N + 1) → ℝ)
     (hG : ∀ g i j, G g i j = if hij : i < j then g ⟨(i, j), hij⟩
       else if hji : j < i then g ⟨(j, i), hji⟩ else 0)
     (m : Fin (N + 1) → ℝ) (g : FinPairs (N + 1) → ℝ) :
-    ∑ j, G g (Fin.last N) j * m j = ∑ i : Fin N, (skCavityDisorderEquiv N g).2 i * m i.castSucc := by
+    ∑ j, G g (Fin.last N) j * m j =
+      ∑ i : Fin N, (skCavityDisorderEquiv N g).2 i * m i.castSucc := by
   rw [Fin.sum_univ_castSucc, hG g (Fin.last N) (Fin.last N)]
   simp only [lt_irrefl, ↓reduceDIte, zero_mul, add_zero, skCavityDisorderEquiv_apply]
   refine Finset.sum_congr rfl fun i _ => ?_
@@ -107,7 +109,8 @@ theorem sum_symCoupling_last {N : ℕ} (G : (FinPairs (N + 1) → ℝ) → Fin (
 `4 β₀² < 1`, `h` and `ε > 0` there is `K = K(β₀, h, ε)` such that for all `0 ≤ β ≤ β₀`, every fixed
 point `q` and `N ≥ 1`, in the `(N+1)`-spin SK system with the symmetric couplings `g_{ij}` (`g_{ij}`
 for `i < j`, `g_{ji}` for `j < i`, `0` on the diagonal) and Gibbs mean `⟨·⟩`,
-`𝔼 max_i |⟨σ_i⟩ - tanh (β (N+1)^{-1/2} ∑_j g_{ij} ⟨σ_j⟩ + h - β² (1-q) ⟨σ_i⟩)| ≤ K / (N+1)^{1/2-ε}`. -/
+`𝔼 max_i |⟨σ_i⟩ - tanh (β (N+1)^{-1/2} ∑_j g_{ij} ⟨σ_j⟩ + h - β² (1-q) ⟨σ_i⟩)|
+  ≤ K / (N+1)^{1/2-ε}`. -/
 theorem sk_tap_uniform (β₀ : ℝ) (hβ₀ : 0 ≤ β₀) (hβ₀' : 4 * β₀ ^ 2 < 1) (h : ℝ) {ε : ℝ}
     (hε : 0 < ε) :
     ∃ K : ℝ, 0 < K ∧ ∀ β : ℝ, 0 ≤ β → β ≤ β₀ → ∀ q : ℝ,
@@ -172,7 +175,8 @@ theorem sk_tap_uniform (β₀ : ℝ) (hβ₀ : 0 ≤ β₀) (hβ₀' : 4 * β₀
   have hlast : ∫ g, Δ (Fin.last N) g ^ (2 * k) ∂P ≤ K / ((N : ℝ) + 1) ^ k := by
     refine le_trans (le_of_eq (integral_congr_ae (ae_of_all _ fun g => ?_)))
       (hK β hβ0 hββ₀ q hq N hN)
-    show (m g (Fin.last N) - Real.tanh (_ * ∑ j, G g (Fin.last N) j * m g j + h - _)) ^ (2 * k) = _
+    change (m g (Fin.last N) -
+      Real.tanh (_ * ∑ j, G g (Fin.last N) j * m g j + h - _)) ^ (2 * k) = _
     rw [sum_symCoupling_last G hG (m g) g]
   have hmom : ∀ i, ∫ g, Δ i g ^ (2 * k) ∂P ≤ K / (Fintype.card (Fin (N + 1)) : ℝ) ^ k :=
     fun i => by
@@ -187,6 +191,7 @@ theorem sk_tap_uniform (β₀ : ℝ) (hβ₀ : 0 ≤ β₀) (hβ₀' : 4 * β₀
   rw [Fintype.card_fin, Nat.cast_succ] at h2 ⊢
   calc _ ≤ (1 + K) * ((N : ℝ) + 1) ^ (-(1 / 2 - ε)) := by gcongr
     _ = _ := by
-        rw [Real.rpow_neg (by positivity), div_eq_mul_inv]
+        rw [Real.rpow_neg (by positivity)]
+        exact (div_eq_mul_inv _ _).symm
 
 end SpinGlasses

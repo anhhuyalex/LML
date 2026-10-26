@@ -3827,3 +3827,14 @@ SpinGlasses.abs_tap_coef_le
 SpinGlasses.integrable_pow_tap_field
 MeasureTheory.integral_pow_le_of_abs_le_add_add
 SpinGlasses.sk_tap_equation
+SpinGlasses.symCoupling_comp_pairPerm
+SpinGlasses.tap_defect_comp_pairPerm
+SpinGlasses.sum_symCoupling_last
+SpinGlasses.integral_spin_comp_pairPerm
+SpinGlasses.gibbsWeight_comp_pairPerm
+MeasureTheory.integral_comp_eq_of_perm_equivariant
+integral_sup'_abs_le
+integral_sup'_abs_le_rpow
+rpow_neg_div_le_of_inv_le
+le_add_pow_div
+SpinGlasses.sk_tap_uniform

@@ -264,8 +264,6 @@ theorem integral_comp_le_of_covariance_le
     (hF2 : ∀ k l y, |fderiv ℝ (fun y => fderiv ℝ F y (Pi.single l 1)) y (Pi.single k 1)| ≤
       D2 k l * Real.exp (c₂ * ∑ l, |y l|)) :
     ∫ ω, F (fun l => X l ω) ∂P ≤ ∫ ω, F (fun l => Y l ω) ∂P := by
-  classical
-  have hP := hXY.isProbabilityMeasure
   have hd := fun s => hasDerivAt_integral_comp_trig hXY hX hY h0 hF hF0 hF1 hF2 s
   have hmono := monotoneOn_of_deriv_nonneg (convex_Icc 0 (π / 2))
     (fun s _ => (hd s).differentiableAt.continuousAt.continuousWithinAt)
@@ -535,7 +533,6 @@ theorem integral_log_sum_exp_le_of_covariance_le [Nonempty κ]
     ∫ ω, Real.log (∑ a, Real.exp (Y a ω + h a)) ∂P ≤
       ∫ ω, Real.log (∑ a, Real.exp (X a ω + h a)) ∂P := by
   classical
-  have hP := hXY.isProbabilityMeasure
   have hF : ContDiff ℝ 2 (fun y : κ → ℝ => -Real.log (∑ a, Real.exp (y a + h a))) :=
     (ContDiff.log (ContDiff.sum fun a _ => ((contDiff_apply ℝ ℝ a).add contDiff_const).exp)
       fun y => (sum_exp_add_pos h y).ne').neg

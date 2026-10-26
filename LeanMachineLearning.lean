@@ -475,6 +475,7 @@ public import LeanMachineLearning.SpinGlasses.SKSmartPath
 public import LeanMachineLearning.SpinGlasses.SKSmartPathProfile
 public import LeanMachineLearning.SpinGlasses.SKSpinDecorrelation
 public import LeanMachineLearning.SpinGlasses.SKTAPEquation
+public import LeanMachineLearning.SpinGlasses.SKTAPUniform
 public import LeanMachineLearning.SpinGlasses.ThermodynamicLimit
 public import LeanMachineLearning.Tactic.EqLift
 public import LeanMachineLearning.Tactic.EqLift.ForMathlib.Kernel
