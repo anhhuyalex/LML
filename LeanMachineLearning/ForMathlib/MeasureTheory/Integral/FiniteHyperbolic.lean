@@ -77,3 +77,23 @@ theorem abs_integral_sinh_le_integral_cosh {α : Type*} [MeasurableSpace α]
   refine abs_integral_le_integral_abs.trans ?_
   exact integral_mono Integrable.of_finite Integrable.of_finite
     (fun a => Real.abs_sinh_le_cosh (u a))
+
+/-- `|∫ φ w| ≤ C ∫ w` for a nonnegative weight `w` and `|φ| ≤ C`, finite space. -/
+theorem abs_integral_mul_le_mul_integral {α : Type*} [MeasurableSpace α]
+    [MeasurableSingletonClass α] (μ : Measure α) [IsProbabilityMeasure μ] [Finite α]
+    (φ w : α → ℝ) (hw : ∀ a, 0 ≤ w a) {C : ℝ} (hφ : ∀ a, |φ a| ≤ C) :
+    |∫ a, φ a * w a ∂μ| ≤ C * ∫ a, w a ∂μ := by
+  rw [← integral_const_mul]
+  refine abs_integral_le_integral_abs.trans (integral_mono Integrable.of_finite
+    Integrable.of_finite fun a => ?_)
+  rw [abs_mul, abs_of_nonneg (hw a)]
+  exact mul_le_mul_of_nonneg_right (hφ a) (hw a)
+
+/-- `|⟨φ cosh u⟩ / ⟨cosh u⟩| ≤ C` when `|φ| ≤ C`. -/
+theorem abs_integral_mul_cosh_div_le {α : Type*} [MeasurableSpace α]
+    [MeasurableSingletonClass α] (μ : Measure α) [IsProbabilityMeasure μ] [Finite α]
+    (φ u : α → ℝ) {C : ℝ} (hφ : ∀ a, |φ a| ≤ C) :
+    |(∫ a, φ a * Real.cosh (u a) ∂μ) / ∫ a, Real.cosh (u a) ∂μ| ≤ C := by
+  have hD : 0 < ∫ a, Real.cosh (u a) ∂μ := lt_of_lt_of_le one_pos (one_le_integral_cosh μ u)
+  rw [abs_div, abs_of_pos hD, div_le_iff₀ hD]
+  exact abs_integral_mul_le_mul_integral μ φ _ (fun a => (Real.cosh_pos _).le) hφ

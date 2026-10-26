@@ -31,6 +31,7 @@ The proof has three steps.
 @[expose] public section
 
 open MeasureTheory ProbabilityTheory
+open scoped Matrix
 
 namespace SpinGlasses
 
@@ -70,6 +71,41 @@ theorem sk_old_spin_deviation_eq {N : ℕ} (hN : 0 < N) (β h : ℝ) (g : FinPai
       rw [skGibbsEnergy_succ_cavity hN β h g σ, dotProduct_sk_beta_minus N β hN]
   rw [hE]
   exact integral_comp_castSucc_sub_integral N A L (fun ρ => ((ρ i : ℤ) : ℝ))
+
+/-- **Cavity formula for an old magnetization, ratio form.**  In the `(N+1)`-spin SK system
+`⟨σ_i⟩ = ⟨σ_i cosh L⟩_- / ⟨cosh L⟩_-` with `L ρ = (√N)⁻¹ β_- (ρ ⬝ᵥ y) + h`, in the same shape as
+`integral_last_spin_eq_sinh_div_cosh`. -/
+theorem integral_old_spin_eq_mul_cosh_div {N : ℕ} (hN : 0 < N) (β h : ℝ)
+    (g : FinPairs (N + 1) → ℝ) (i : Fin N) :
+    ∫ σ : Fin (N + 1) → ℤˣ, ((σ i.castSucc : ℤ) : ℝ)
+        ∂(Measure.count.tilted (skGibbsEnergy (N + 1) β h g)) =
+      (∫ a, ((a i : ℤ) : ℝ) * Real.cosh (((fun j => (Real.sqrt (N : ℝ))⁻¹ *
+            (β * Real.sqrt ((N : ℝ) / (N + 1)) * ((a j : ℤ) : ℝ))) ⬝ᵥ
+          (skCavityDisorderEquiv N g).2) + h)
+        ∂(Measure.count.tilted (skGibbsEnergy N (β * Real.sqrt ((N : ℝ) / (N + 1))) h
+          (skCavityDisorderEquiv N g).1))) /
+      (∫ a, Real.cosh (((fun j => (Real.sqrt (N : ℝ))⁻¹ *
+            (β * Real.sqrt ((N : ℝ) / (N + 1)) * ((a j : ℤ) : ℝ))) ⬝ᵥ
+          (skCavityDisorderEquiv N g).2) + h)
+        ∂(Measure.count.tilted (skGibbsEnergy N (β * Real.sqrt ((N : ℝ) / (N + 1))) h
+          (skCavityDisorderEquiv N g).1))) := by
+  have key := sk_old_spin_deviation_eq hN β h g i
+  simp only [← dotProduct_sk_beta_minus N β hN] at key
+  set A := skGibbsEnergy N (β * Real.sqrt ((N : ℝ) / (N + 1))) h (skCavityDisorderEquiv N g).1
+  set m := ∫ a, ((a i : ℤ) : ℝ) ∂(Measure.count.tilted A)
+  set L : (Fin N → ℤˣ) → ℝ := fun a => ((fun j => (Real.sqrt (N : ℝ))⁻¹ *
+    (β * Real.sqrt ((N : ℝ) / (N + 1)) * ((a j : ℤ) : ℝ))) ⬝ᵥ (skCavityDisorderEquiv N g).2) + h
+  have hD : 0 < ∫ a, Real.cosh (L a) ∂(Measure.count.tilted A) :=
+    lt_of_lt_of_le one_pos (one_le_integral_cosh _ L)
+  have hnum : ∫ a, (((a i : ℤ) : ℝ) - m) * Real.cosh (L a) ∂(Measure.count.tilted A) =
+      (∫ a, ((a i : ℤ) : ℝ) * Real.cosh (L a) ∂(Measure.count.tilted A)) -
+        m * ∫ a, Real.cosh (L a) ∂(Measure.count.tilted A) := by
+    simp only [sub_mul]
+    rw [integral_sub Integrable.of_finite Integrable.of_finite, integral_const_mul]
+  rw [hnum] at key
+  rw [eq_div_iff hD.ne']
+  rw [eq_div_iff hD.ne'] at key
+  linarith
 
 section Symmetric
 

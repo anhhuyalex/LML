@@ -4442,6 +4442,65 @@ Induction on $n$ using Theorem~\ref{thm:sg-tal:theorem-171-step}; for $n=0$ the 
 \end{itemize}
 \end{remark}
 
+\begin{lemma}[Cavity formula for an old magnetization, ratio form]
+\label{lem:sg-tal:old-spin-ratio}
+  \lean{SpinGlasses.integral_old_spin_eq_mul_cosh_div}
+  \leanok
+\talsource{Section~1.7, proof of Theorem~1.7.7: ``$\langle\sigma_i\rangle=\langle\sigma_i\cosh L\rangle_-/\langle\cosh L\rangle_-$''}
+In the $(N+1)$-spin SK system, with $(g_{\rm old},y)$ the splitting of the couplings, $\beta_-=\beta\sqrt{N/(N+1)}$ and $L(\rho)=N^{-1/2}\beta_-\sum_jy_j\rho_j+h$, for every old site $i$
+\[
+\langle\sigma_i\rangle=\frac{\langle\sigma_i\cosh L\rangle_-}{\langle\cosh L\rangle_-}.
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+By the cavity formula for an old magnetization, $\langle\sigma_i\rangle-\langle\sigma_i\rangle_-=\langle(\sigma_i-\langle\sigma_i\rangle_-)\cosh L\rangle_-/\langle\cosh L\rangle_-$; expand the numerator as $\langle\sigma_i\cosh L\rangle_--\langle\sigma_i\rangle_-\langle\cosh L\rangle_-$ and use $\langle\cosh L\rangle_-\ge1>0$.
+\end{proof}
+
+\begin{lemma}[Algebra and domination for the TAP equation]
+\label{lem:sg-tal:tap-algebra}
+  \lean{SpinGlasses.abs_sub_tanh_tap_le,
+        SpinGlasses.abs_tap_coef_le,
+        SpinGlasses.integrable_pow_tap_field,
+        MeasureTheory.integral_pow_le_of_abs_le_add_add}
+  \leanok
+\talsource{Section~1.7, proof of Theorem~1.7.7 (steps 3 and 4)}
+(a) If $c\sqrt N=b$ and $|s|\le1$, then for all reals $q,q_-,\beta,h$ and vectors $y,m,f$,
+$|s-\tanh(c\sum y_if_i+h-\beta^2(1-q)s)|\le|s-\tanh(c\sum y_im_i+h)|+|b|\,|X|+|\beta^2(1-q)-b^2(1-q_-)|$, where $X=N^{-1/2}\sum y_if_i-b(1-q_-)s-N^{-1/2}\sum y_im_i$.
+(b) If $4\beta^2<1$, $q,q_-\in[0,1]$ and $|q-q_-|\le\frac1{N+1}$ then $|\beta^2(1-q)-\beta^2\frac N{N+1}(1-q_-)|\le\frac1{N+1}$.
+(c) If $|f_i|,|m_i|,|s|,|b|\le1$ (all measurable in the disorder and in $y$), then $X^{2k}$ is integrable for the product of any probability measure with $\gamma^{\otimes N}$.
+(d) If $|\Delta|\le a+b+c$ pointwise and $a^{2k},b^{2k},c^{2k}$ are integrable, then $\int\Delta^{2k}\le2^{2k-1}\int a^{2k}+2^{2k-1}(2^{2k-1}\int b^{2k}+2^{2k-1}\int c^{2k})$.
+\end{lemma}
+\begin{proof}
+  \leanok
+(a) $|\tanh u-\tanh v|\le|u-v|$ and $(c\sum y_im_i+h)-(c\sum y_if_i+h-\beta^2(1-q)s)=-bX+(\beta^2(1-q)-b^2(1-q_-))s$.  (b) Write the difference as $(\beta^2-b^2)(1-q)+b^2(q_--q)$ with $b^2=\beta^2\frac N{N+1}$, $\beta^2-b^2=\frac{\beta^2}{N+1}\le\frac1{4(N+1)}$ and $b^2\le\frac14$.  (c) $|X|\le2N^{-1/2}\sum|y_i|+1$ and the $2k$-th power of the right side is integrable because each $y_i$ is in every $L^p$.  (d) Two applications of $(x+y)^{2k}\le2^{2k-1}(x^{2k}+y^{2k})$.
+\end{proof}
+
+\begin{theorem}[Theorem~1.7.7, Eq.~(1.193): the TAP equations]
+\label{thm:sg-tal:theorem-177}
+  \uses{lem:sg-tal:old-spin-ratio, lem:sg-tal:tap-algebra, thm:sg-tal:lemma-174-a, thm:sg-tal:cor-1715-reaction-book, lem:sg-tal:fixed-point-shift, lem:sg-tal:site-exchange}
+  \lean{SpinGlasses.sk_tap_equation}
+  \leanok
+\talsource{Theorem~1.7.7, Eq.~(1.193), proof at source text lines 3152--3190}
+Let $4\beta_0^2<1$, $h\in\mathbb R$ and $k\ge1$.  There is $K=K(\beta_0,h,k)>0$ such that for every $0\le\beta\le\beta_0$, every fixed point $q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$ and every $N\ge1$, in the $(N+1)$-spin SK system with Gibbs mean $\langle\cdot\rangle$ and last-spin couplings $g_i$ ($i\le N$),
+\[
+\mathbb E\Bigl(\langle\sigma_{N+1}\rangle-\tanh\Bigl(\frac\beta{\sqrt{N+1}}\sum_{i\le N}g_i\langle\sigma_i\rangle+h-\beta^2(1-q)\langle\sigma_{N+1}\rangle\Bigr)\Bigr)^{2k}\le\frac K{(N+1)^k}.
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+Let $\beta_-=\beta\sqrt{N/(N+1)}$ and let $q_-$ be a fixed point at $\beta_-$ with $|q-q_-|\le\frac1{N+1}$ (Lemma~\ref{lem:sg-tal:fixed-point-shift}, as in Lemma~\ref{lem:sg-tal:site-exchange}(b)).  By the cavity formulas $\langle\sigma_{N+1}\rangle=\langle\sinh L\rangle_-/\langle\cosh L\rangle_-=:s$ and $\langle\sigma_i\rangle=f_i:=\langle\sigma_i\cosh L\rangle_-/\langle\cosh L\rangle_-$ (Lemma~\ref{lem:sg-tal:old-spin-ratio}).  Put $m_i=\langle\sigma_i\rangle_-$.  Let $U=s-\tanh(\frac\beta{\sqrt{N+1}}\sum g_im_i+h)$, which satisfies $\mathbb EU^{2k}\le K_1/(N+1)^k$ by Theorem~\ref{thm:sg-tal:lemma-174-a} (its $2k$-version), and let $X$ be the integrand of Eq.~(1.210) in the book form (Theorem~\ref{thm:sg-tal:cor-1715-reaction-book}) for the $N$-spin system at $\beta_-$, $q_-$, so $\mathbb EX^{2k}\le K_2/N^k$.  Since $\beta/\sqrt{N+1}=\beta_-/\sqrt N$, Lemma~\ref{lem:sg-tal:tap-algebra}(a),(b) give pointwise $|\Delta|\le|U|+\beta_0|X|+\frac1{N+1}$ for the quantity $\Delta$ inside the expectation.  Lemma~\ref{lem:sg-tal:tap-algebra}(c),(d) give $\mathbb E\Delta^{2k}\le2^{2k-1}K_1(N+1)^{-k}+2^{2k-1}\bigl(2^{2k-1}\beta_0^{2k}K_2N^{-k}+2^{2k-1}(N+1)^{-2k}\bigr)$, and $N^{-k}\le2^k(N+1)^{-k}$.
+\end{proof}
+
+\begin{remark}[Differences from the book in Theorem~1.7.7]
+\label{rem:sg-tal:dev-177}
+\begin{itemize}
+\item \emph{Indexing.}  The system has $N+1$ spins and the last spin is the one singled out (the book writes $N$ and $N-1$); the sites are $0,\dots,N$ and $g_i$ is the coupling of the pair $(i,N)$.
+\item \emph{Hypotheses.}  $0\le\beta\le\beta_0$ with $4\beta_0^2<1$ (the book: $\beta<1/2$), with $K$ depending only on $\beta_0,h,k$, and $q$ an arbitrary fixed point (no uniqueness is used).
+\item \emph{Gibbs means.}  Both $\langle\sigma_i\rangle$ and $\langle\sigma_{N+1}\rangle$ are means in the $(N+1)$-spin system, as in the book; their cavity expressions are the ratios of Lemma~\ref{lem:sg-tal:old-spin-ratio}.
+\end{itemize}
+\end{remark}
+
 \begin{remark}[What remains of Section~1.7]
 \label{rem:sg-tal:remaining-17}
 Of Section~1.7 the following are formalized: the general Gaussian fluctuation principle (Theorem~\ref{thm:sg-tal:general-fluct}), the fixed-point shift (Lemma~\ref{lem:sg-tal:fixed-point-shift}),
@@ -4449,7 +4508,8 @@ Corollary~1.7.13 (Theorem~\ref{thm:sg-tal:cor-1713}), Lemma~1.7.14 (Lemma~\ref{l
 Also formalized are Eq.~(1.185) of Lemma~1.7.4 (Theorem~\ref{thm:sg-tal:lemma-174-a}), obtained by applying Eq.~(1.209) to the $N$-spin system at $\beta_-$ for the $(N+1)$-spin system, and Eq.~(1.186) (Theorem~\ref{thm:sg-tal:lemma-174-b}).
 Lemma~1.7.6 (the cavity field as a disorder-measurable Gaussian) is formalized as Theorem~\ref{thm:sg-tal:lemma-176}.
 Theorem~1.7.1 (the local magnetizations are asymptotically i.i.d.) is formalized as Theorem~\ref{thm:sg-tal:theorem-171}, by the book's induction from Eqs.~(1.185), (1.186) and Lemma~1.7.6.
-Section~1.7 is complete in this chapter except Theorem~1.7.7 (the TAP equations), which belongs to the next milestone.
-One gap between what is proved and what these applications need is already known: Eq.~(1.210) is stated before the final linear rewriting of the book (Remark~\ref{rem:sg-tal:dev-1715}).  The Corollaries are stated for the $N$-spin system with constants uniform in $|\beta|\le\beta_0<1/2$ (Remark~\ref{rem:sg-tal:dev-1713}), so the application to the $N$-spin system at $\beta_-$ is by relabeling $N$ and $\beta$ (done in Theorems~\ref{thm:sg-tal:lemma-174-a} and~\ref{thm:sg-tal:lemma-174-b}).
+Theorem~1.7.7 (the TAP equations, in the $(N+1)$-spin indexing) is formalized as Theorem~\ref{thm:sg-tal:theorem-177}.
+Only Corollary~1.7.8 (all sites at once) remains in Section~1.7.
+Eq.~(1.210) is available in the book form (Theorem~\ref{thm:sg-tal:cor-1715-reaction-book}).  The Corollaries are stated for the $N$-spin system with constants uniform in $|\beta|\le\beta_0<1/2$ (Remark~\ref{rem:sg-tal:dev-1713}), so the application to the $N$-spin system at $\beta_-$ is by relabeling $N$ and $\beta$ (done in Theorems~\ref{thm:sg-tal:lemma-174-a} and~\ref{thm:sg-tal:lemma-174-b}).
 Nothing in Sections~1.1--1.6 depends on Section~1.7.
 \end{remark}

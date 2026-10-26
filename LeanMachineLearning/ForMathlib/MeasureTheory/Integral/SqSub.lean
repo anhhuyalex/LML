@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.AddPowEstimates
 public import Mathlib.MeasureTheory.Integral.Bochner.Basic
 public import Mathlib.MeasureTheory.Integral.IntegrableOn
 
@@ -56,5 +57,38 @@ theorem integral_sq_add_add_le {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Mea
     _ = _ := by
         rw [integral_add hab (hc.const_mul 3), integral_add (ha.const_mul 3) (hb.const_mul 3),
           integral_const_mul, integral_const_mul, integral_const_mul]
+
+/-- **Three-term triangle inequality in `L^{2k}`:** if `|Δ| ≤ a + b + c` pointwise and
+`a^{2k}, b^{2k}, c^{2k}` are integrable then
+`∫ Δ^{2k} ≤ 2^{2k-1} ∫ a^{2k} + 2^{2k-1} (2^{2k-1} ∫ b^{2k} + 2^{2k-1} ∫ c^{2k})`. -/
+theorem integral_pow_le_of_abs_le_add_add {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Measure Ω}
+    {k : ℕ} (hk : 1 ≤ k) {Δ a b c : Ω → ℝ} (hΔ : ∀ ω, |Δ ω| ≤ a ω + b ω + c ω)
+    (ha : Integrable (fun ω => a ω ^ (2 * k)) μ) (hb : Integrable (fun ω => b ω ^ (2 * k)) μ)
+    (hc : Integrable (fun ω => c ω ^ (2 * k)) μ) :
+    ∫ ω, Δ ω ^ (2 * k) ∂μ ≤ 2 ^ (2 * k - 1) * ∫ ω, a ω ^ (2 * k) ∂μ +
+      2 ^ (2 * k - 1) * (2 ^ (2 * k - 1) * ∫ ω, b ω ^ (2 * k) ∂μ +
+        2 ^ (2 * k - 1) * ∫ ω, c ω ^ (2 * k) ∂μ) := by
+  have hbc : Integrable (fun ω => 2 ^ (2 * k - 1) * b ω ^ (2 * k) +
+      2 ^ (2 * k - 1) * c ω ^ (2 * k)) μ := (hb.const_mul _).add (hc.const_mul _)
+  have hint : Integrable (fun ω => 2 ^ (2 * k - 1) * a ω ^ (2 * k) +
+      2 ^ (2 * k - 1) * (2 ^ (2 * k - 1) * b ω ^ (2 * k) +
+        2 ^ (2 * k - 1) * c ω ^ (2 * k))) μ :=
+    (ha.const_mul _).add (hbc.const_mul _)
+  have he : Even (2 * k) := ⟨k, by ring⟩
+  calc ∫ ω, Δ ω ^ (2 * k) ∂μ ≤ _ :=
+        integral_mono_of_nonneg (Filter.Eventually.of_forall fun ω => he.pow_nonneg _) hint
+          (Filter.Eventually.of_forall fun ω => by
+            beta_reduce
+            rw [← he.pow_abs]
+            refine (pow_le_pow_left₀ (abs_nonneg _) (hΔ ω) _).trans ?_
+            rw [add_assoc]
+            refine (add_pow_two_mul_le hk _ _).trans ?_
+            have := add_pow_two_mul_le hk (b ω) (c ω)
+            nlinarith [pow_pos (two_pos : (0:ℝ) < 2) (2 * k - 1), this,
+              he.pow_nonneg (a ω)])
+    _ = _ := by
+        rw [integral_add (ha.const_mul _) (hbc.const_mul _), integral_const_mul,
+          integral_const_mul, integral_add (hb.const_mul _) (hc.const_mul _),
+          integral_const_mul, integral_const_mul]
 
 end MeasureTheory
