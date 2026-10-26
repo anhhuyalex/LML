@@ -8,6 +8,7 @@ module
 public import LeanMachineLearning.SpinGlasses.SKRectangularDerivative
 public import LeanMachineLearning.SpinGlasses.SKOverlapContraction
 public import LeanMachineLearning.SpinGlasses.SKOverlapConcentration
+public import LeanMachineLearning.SpinGlasses.SKFixedPoint
 
 /-!
 # The second moment of the rectangular overlap (Talagrand's Proposition 1.8.5)
@@ -396,45 +397,303 @@ theorem second_moment_assembly {X Pa Pf Z0 Z1 M lam c2 e1 e2 e3 e4 : ℝ} (hM : 
     le_trans (mul_le_mul_of_nonneg_left h34 (abs_nonneg _)) hfin
   linarith
 
-/-- **Proposition 1.8.5, with explicit error terms (before choosing the constants).**  Let
-`M = N + 1`, `c₂ = q̂ - 2q + 1` and `λ = β² c₂`.  If `𝔼⟨(R_{1,2} - q)²⟩ ≤ K₁ / M` and
-`𝔼⟨(R_{1,2} - q)⁴⟩ ≤ K₂ / M²` then `ν(rect²)` differs from `4 c₂ / (M (1 - λ))` by at most
-`4/3 (e₁ + e₂/4 + e₃/(2M) + 4/M² + e₄/M)`, where the `e_i` are the error terms of Eq. (1.216),
-Eq. (1.215) for `rect⁻²`, the size of `ν(rect²)`, and Eq. (1.215) for `a_N²`. -/
-theorem sk_rect_second_moment_aux (N : ℕ) (β q h K₁ K₂ : ℝ) (hβ : 4 * β ^ 2 < 1)
-    (hK₁ : 0 ≤ K₁) (hK₂ : 0 ≤ K₂)
-    (hfix : ∫ x : ℝ, Real.tanh (β * Real.sqrt q * x + h) ^ 2 ∂(gaussianReal 0 1) = q) :
-    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
-    let c₂ : ℝ := (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 4 ∂(gaussianReal 0 1)) -
-      2 * q + 1
-    (∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ,
+/-- Integrability of a power of `tanh (w z + h)` under the standard Gaussian. -/
+theorem integrable_tanh_pow_gaussian (w h : ℝ) (k : ℕ) :
+    Integrable (fun z : ℝ => Real.tanh (w * z + h) ^ k) (gaussianReal 0 1) := by
+  refine Integrable.of_bound ?_ 1 (ae_of_all _ fun z => ?_)
+  · exact ((Real.continuous_tanh.comp (by fun_prop)).pow k).aestronglyMeasurable
+  · rw [Real.norm_eq_abs, abs_pow]
+    exact pow_le_one₀ (abs_nonneg _) (Real.abs_tanh_lt_one _).le
+
+/-- The Almeida-Thouless quantity `1 - 2 q + q̂ = 𝔼 (1 - tanh² Y)²` lies in `[0, 1]`. -/
+theorem tanh_fourth_sub_two_add_one_mem_Icc (w h : ℝ) :
+    (∫ z : ℝ, Real.tanh (w * z + h) ^ 4 ∂(gaussianReal 0 1)) -
+      2 * (∫ z : ℝ, Real.tanh (w * z + h) ^ 2 ∂(gaussianReal 0 1)) + 1 ∈ Set.Icc (0 : ℝ) 1 := by
+  have h2 := integrable_tanh_pow_gaussian w h 2
+  have h4 := integrable_tanh_pow_gaussian w h 4
+  have key : (∫ z : ℝ, Real.tanh (w * z + h) ^ 4 ∂(gaussianReal 0 1)) -
+      2 * (∫ z : ℝ, Real.tanh (w * z + h) ^ 2 ∂(gaussianReal 0 1)) + 1 =
+      ∫ z : ℝ, (1 - Real.tanh (w * z + h) ^ 2) ^ 2 ∂(gaussianReal 0 1) := by
+    have e : ∀ z : ℝ, (1 - Real.tanh (w * z + h) ^ 2) ^ 2 =
+        (Real.tanh (w * z + h) ^ 4 - 2 * Real.tanh (w * z + h) ^ 2) + 1 := fun z => by ring
+    simp_rw [e]
+    have hi : Integrable (fun z : ℝ => Real.tanh (w * z + h) ^ 4 -
+        2 * Real.tanh (w * z + h) ^ 2) (gaussianReal 0 1) := h4.sub (h2.const_mul 2)
+    rw [integral_add hi (integrable_const _), integral_sub h4 (h2.const_mul 2),
+      integral_const_mul]
+    simp
+  rw [key]
+  have hb : ∀ z : ℝ, 0 ≤ (1 - Real.tanh (w * z + h) ^ 2) ^ 2 ∧
+      (1 - Real.tanh (w * z + h) ^ 2) ^ 2 ≤ 1 := fun z => by
+    have h0 : 0 ≤ Real.tanh (w * z + h) ^ 2 := sq_nonneg _
+    have h1 : Real.tanh (w * z + h) ^ 2 ≤ 1 := by
+      have := Real.abs_tanh_lt_one (w * z + h)
+      nlinarith [abs_nonneg (Real.tanh (w * z + h)), sq_abs (Real.tanh (w * z + h))]
+    exact ⟨sq_nonneg _, by nlinarith⟩
+  refine ⟨integral_nonneg fun z => (hb z).1, ?_⟩
+  calc _ ≤ ∫ z : ℝ, (1 : ℝ) ∂(gaussianReal 0 1) :=
+        integral_mono_of_nonneg (ae_of_all _ fun z => (hb z).1) (integrable_const _)
+          (ae_of_all _ fun z => (hb z).2)
+    _ = 1 := by simp
+
+/-- **Calculus of an `n`-replica SK average.**  An average `ν` of observables of `n` replicas,
+`ν Φ = 𝔼 ⟨Φ⟩`, is additive, homogeneous, monotone and normalized. -/
+theorem sk_replica_avg_calculus (N n : ℕ) (β h : ℝ)
+    (ν : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
+    (hν : ∀ Φ, ν Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, Φ σ
+      ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+        (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ))
+      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) :
+    (∀ Φ Ψ : (Fin n → Fin (N + 1) → ℤˣ) → ℝ, ν (fun σ => Φ σ + Ψ σ) = ν Φ + ν Ψ) ∧
+    (∀ (c : ℝ) (Φ : (Fin n → Fin (N + 1) → ℤˣ) → ℝ), ν (fun σ => c * Φ σ) = c * ν Φ) ∧
+    (∀ Φ Ψ : (Fin n → Fin (N + 1) → ℤˣ) → ℝ, (∀ σ, Φ σ ≤ Ψ σ) → ν Φ ≤ ν Ψ) ∧
+    (∀ c : ℝ, ν (fun _ => c) = c) := by
+  refine ⟨fun Φ Ψ => ?_, fun c Φ => ?_, fun Φ Ψ hΦΨ => ?_, fun c => ?_⟩
+  · simp only [hν]
+    have e1 : ∀ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, (Φ σ + Ψ σ)
+        ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+          (Real.sqrt (N + 1))⁻¹ * β *
+            (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+          h * ∑ i : Fin (N + 1), (a i : ℝ)) =
+        (∫ σ : Fin n → Fin (N + 1) → ℤˣ, Φ σ
+          ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+            (Real.sqrt (N + 1))⁻¹ * β *
+              (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+            h * ∑ i : Fin (N + 1), (a i : ℝ))) +
+        ∫ σ : Fin n → Fin (N + 1) → ℤˣ, Ψ σ
+          ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+            (Real.sqrt (N + 1))⁻¹ * β *
+              (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+            h * ∑ i : Fin (N + 1), (a i : ℝ)) := fun g =>
+      integral_add Integrable.of_finite Integrable.of_finite
+    simp_rw [e1]
+    exact integral_add (integrable_integral_sk_replica N n β h Φ)
+      (integrable_integral_sk_replica N n β h Ψ)
+  · simp only [hν, integral_const_mul]
+  · rw [hν, hν]
+    exact integral_integral_sk_replica_mono N n β h hΦΨ
+  · simp [hν]
+
+/-- **The linear relations between the second moments** used in Proposition 1.8.5:
+with `a = (ε₁ - ε₂)(ε₃ - ε₄)` the last-site factor, `rect = rect⁻ + a/M`, `f* = rect⁻ · a`,
+one has `ν(rect²) = ν(a rect)`, `ν(a rect) = ν(f*) + ν(a²)/M` and
+`ν((rect⁻)²) = ν(rect²) (1 - 2/M) + ν(a²)/M²`; moreover `0 ≤ ν(a²) ≤ 16`. -/
+theorem sk_rect_nu_structure (N : ℕ) (β h : ℝ)
+    (ν : ((Fin 4 → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
+    (hν : ∀ Φ, ν Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin 4 → Fin (N + 1) → ℤˣ, Φ σ
+      ∂(Measure.pi fun _ : Fin 4 => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+        (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ))
+      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) :
+    let aL : (Fin 4 → Fin (N + 1) → ℤˣ) → ℝ := fun σ =>
+      (((σ 0 (Fin.last N) : ℤˣ) : ℝ) - ((σ 1 (Fin.last N) : ℤˣ) : ℝ)) *
+        (((σ 2 (Fin.last N) : ℤˣ) : ℝ) - ((σ 3 (Fin.last N) : ℤˣ) : ℝ))
+    let rect : (Fin 4 → Fin (N + 1) → ℤˣ) → ℝ := fun σ =>
+      (N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ) - (σ 1 i : ℝ)) ⬝ᵥ
+        fun i : Fin (N + 1) => (σ 2 i : ℝ) - (σ 3 i : ℝ))
+    let Fo : (Fin 4 → Fin N → ℤˣ) → ℝ := fun ρ =>
+      (N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (ρ 0 i : ℝ) - (ρ 1 i : ℝ)) ⬝ᵥ
+        fun i : Fin N => (ρ 2 i : ℝ) - (ρ 3 i : ℝ))
+    let rectm : (Fin 4 → Fin (N + 1) → ℤˣ) → ℝ := fun σ => Fo (fun r i => σ r i.castSucc)
+    let fstar : (Fin 4 → Fin (N + 1) → ℤˣ) → ℝ := fun σ =>
+      Fo (fun r i => σ r i.castSucc) *
+        ((((σ 0 (Fin.last N) : ℤˣ) : ℝ) - ((σ 1 (Fin.last N) : ℤˣ) : ℝ)) *
+          (((σ 2 (Fin.last N) : ℤˣ) : ℝ) - ((σ 3 (Fin.last N) : ℤˣ) : ℝ)))
+    ν (fun σ => rect σ ^ 2) = ν (fun σ => aL σ * rect σ) ∧
+    ν (fun σ => aL σ * rect σ) = ν fstar + (1 / ((N : ℝ) + 1)) * ν (fun σ => aL σ ^ 2) ∧
+    ν (fun σ => rectm σ ^ 2) = ν (fun σ => rect σ ^ 2) -
+      2 / ((N : ℝ) + 1) * ν (fun σ => rect σ ^ 2) +
+      1 / ((N : ℝ) + 1) ^ 2 * ν (fun σ => aL σ ^ 2) ∧
+    0 ≤ ν (fun σ => rect σ ^ 2) ∧ 0 ≤ ν (fun σ => aL σ ^ 2) ∧ ν (fun σ => aL σ ^ 2) ≤ 16 := by
+  intro aL rect Fo rectm fstar
+  obtain ⟨hνadd, hνsmul, hνmono, hνconst⟩ := sk_replica_avg_calculus N 4 β h ν hν
+  have hI1 : ∀ σ, rect σ = rectm σ + aL σ / ((N : ℝ) + 1) := fun σ => by
+    simp only [rect, rectm, Fo, aL, dotProduct, Fin.sum_univ_castSucc]
+    ring
+  have hI2 : ∀ σ, aL σ * rect σ = fstar σ + (1 / ((N : ℝ) + 1)) * aL σ ^ 2 := fun σ => by
+    rw [hI1]
+    simp only [fstar, rectm, aL]
+    ring
+  have hI3 : ∀ σ, rectm σ ^ 2 = rect σ ^ 2 + (-(2 / ((N : ℝ) + 1))) * (aL σ * rect σ) +
+      (1 / ((N : ℝ) + 1) ^ 2) * aL σ ^ 2 := fun σ => by
+    have hM0 : (N : ℝ) + 1 ≠ 0 := Nat.cast_add_one_ne_zero N
+    have : rectm σ = rect σ - aL σ / ((N : ℝ) + 1) := by rw [hI1]; ring
+    rw [this]
+    field_simp
+    ring
+  have hε : ∀ (σ : Fin 4 → Fin (N + 1) → ℤˣ) (r : Fin 4),
+      |((σ r (Fin.last N) : ℤˣ) : ℝ)| ≤ 1 := fun σ r => abs_units_cast_le_one _
+  have haL : ∀ σ, aL σ ^ 2 ≤ 16 := fun σ => by
+    have h1 : |((σ 0 (Fin.last N) : ℤˣ) : ℝ) - ((σ 1 (Fin.last N) : ℤˣ) : ℝ)| ≤ 2 :=
+      (abs_sub _ _).trans (by linarith only [hε σ 0, hε σ 1])
+    have h2 : |((σ 2 (Fin.last N) : ℤˣ) : ℝ) - ((σ 3 (Fin.last N) : ℤˣ) : ℝ)| ≤ 2 :=
+      (abs_sub _ _).trans (by linarith only [hε σ 2, hε σ 3])
+    have h3 : |aL σ| ≤ 4 := by
+      simp only [aL, abs_mul]
+      nlinarith only [h1, h2, abs_nonneg (((σ 0 (Fin.last N) : ℤˣ) : ℝ) -
+        ((σ 1 (Fin.last N) : ℤˣ) : ℝ)),
+        abs_nonneg (((σ 2 (Fin.last N) : ℤˣ) : ℝ) - ((σ 3 (Fin.last N) : ℤˣ) : ℝ))]
+    nlinarith only [h3, sq_abs (aL σ), abs_nonneg (aL σ)]
+  have hν0 : ∀ Φ : (Fin 4 → Fin (N + 1) → ℤˣ) → ℝ, (∀ σ, 0 ≤ Φ σ) → 0 ≤ ν Φ := fun Φ hΦ => by
+    have := hνmono (fun _ => 0) Φ (fun σ => by simpa using hΦ σ)
+    rwa [hνconst] at this
+  have hS1 : ν (fun σ => rect σ ^ 2) = ν (fun σ => aL σ * rect σ) := by
+    rw [hν, hν]
+    exact sk_rect_sq_eq_last_site N β h
+  refine ⟨hS1, ?_, ?_, hν0 _ fun σ => sq_nonneg _, hν0 _ fun σ => sq_nonneg _, ?_⟩
+  · rw [← hνsmul, ← hνadd]
+    exact congrArg ν (funext hI2)
+  · have : ν (fun σ => rectm σ ^ 2) = ν (fun σ => rect σ ^ 2) +
+        (-(2 / ((N : ℝ) + 1))) * ν (fun σ => aL σ * rect σ) +
+        (1 / ((N : ℝ) + 1) ^ 2) * ν (fun σ => aL σ ^ 2) := by
+      rw [← hνsmul, ← hνsmul, ← hνadd, ← hνadd]
+      exact congrArg ν (funext hI3)
+    rw [this, ← hS1]
+    ring
+  · have := hνmono (fun σ => aL σ ^ 2) (fun _ => 16) haL
+    rwa [hνconst] at this
+
+/-- **Size of the second moments** (before Hölder): if `𝔼⟨(R_{1,2} - q)²⟩ ≤ K₁/M` and
+`𝔼⟨(R_{1,2} - q)⁴⟩ ≤ K₂/M²` then `ν(rect²) ≤ 16 K₁/M`, `ν((rect⁻)²) ≤ (16 K₁ + 16)/M`,
+`ν(f*²) ≤ (512 K₁ + 512)/M` and `ν((rect⁻)⁴) ≤ (2048 K₂ + 2048)/M²`. -/
+theorem sk_rect_nu_bounds (N : ℕ) (β h q K₁ K₂ : ℝ) (hK₁ : 0 ≤ K₁)
+    (ν : ((Fin 4 → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
+    (hν : ∀ Φ, ν Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin 4 → Fin (N + 1) → ℤˣ, Φ σ
+      ∂(Measure.pi fun _ : Fin 4 => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+        (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ))
+      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    (hD2 : (∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ,
         ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
           fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) ^ 2
-        ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted (Esk g))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) ≤ K₁ / ((N : ℝ) + 1) →
-    (∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ,
+        ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+          (Real.sqrt (N + 1))⁻¹ * β *
+            (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+          h * ∑ i : Fin (N + 1), (a i : ℝ))
+      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) ≤ K₁ / ((N : ℝ) + 1))
+    (hD4 : (∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ,
         ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
           fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) ^ 4
-        ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted (Esk g))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) ≤ K₂ / ((N : ℝ) + 1) ^ 2 →
-    |(∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin 4 → Fin (N + 1) → ℤˣ,
-        ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ) - (σ 1 i : ℝ)) ⬝ᵥ
-          fun i : Fin (N + 1) => (σ 2 i : ℝ) - (σ 3 i : ℝ))) ^ 2
-        ∂(Measure.pi fun _ : Fin 4 => Measure.count.tilted (Esk g))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) -
-      4 * c₂ / (((N : ℝ) + 1) * (1 - β ^ 2 * c₂))| ≤
-    4 / 3 * (2304 * β ^ 4 * Real.exp (256 * β ^ 2) *
-        (Real.sqrt ((512 * K₁ + 512) / ((N : ℝ) + 1)) * Real.sqrt (K₂ / ((N : ℝ) + 1) ^ 2)) +
-      32 * β ^ 2 * Real.exp (144 * β ^ 2) *
-        (Real.sqrt ((2048 * K₂ + 2048) / ((N : ℝ) + 1) ^ 2) *
-          Real.sqrt (K₁ / ((N : ℝ) + 1))) / 4 +
-      16 * K₁ / ((N : ℝ) + 1) / (2 * ((N : ℝ) + 1)) + 4 / ((N : ℝ) + 1) ^ 2 +
-      32 * β ^ 2 * Real.exp (144 * β ^ 2) * 16 *
-        ((K₁ + 1) / (2 * Real.sqrt ((N : ℝ) + 1))) / ((N : ℝ) + 1)) := by
-  intro Esk c₂
-  sorry
+        ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+          (Real.sqrt (N + 1))⁻¹ * β *
+            (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+          h * ∑ i : Fin (N + 1), (a i : ℝ))
+      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) ≤ K₂ / ((N : ℝ) + 1) ^ 2) :
+    let aL : (Fin 4 → Fin (N + 1) → ℤˣ) → ℝ := fun σ =>
+      (((σ 0 (Fin.last N) : ℤˣ) : ℝ) - ((σ 1 (Fin.last N) : ℤˣ) : ℝ)) *
+        (((σ 2 (Fin.last N) : ℤˣ) : ℝ) - ((σ 3 (Fin.last N) : ℤˣ) : ℝ))
+    let rect : (Fin 4 → Fin (N + 1) → ℤˣ) → ℝ := fun σ =>
+      (N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ) - (σ 1 i : ℝ)) ⬝ᵥ
+        fun i : Fin (N + 1) => (σ 2 i : ℝ) - (σ 3 i : ℝ))
+    let Fo : (Fin 4 → Fin N → ℤˣ) → ℝ := fun ρ =>
+      (N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (ρ 0 i : ℝ) - (ρ 1 i : ℝ)) ⬝ᵥ
+        fun i : Fin N => (ρ 2 i : ℝ) - (ρ 3 i : ℝ))
+    let rectm : (Fin 4 → Fin (N + 1) → ℤˣ) → ℝ := fun σ => Fo (fun r i => σ r i.castSucc)
+    let fstar : (Fin 4 → Fin (N + 1) → ℤˣ) → ℝ := fun σ =>
+      Fo (fun r i => σ r i.castSucc) *
+        ((((σ 0 (Fin.last N) : ℤˣ) : ℝ) - ((σ 1 (Fin.last N) : ℤˣ) : ℝ)) *
+          (((σ 2 (Fin.last N) : ℤˣ) : ℝ) - ((σ 3 (Fin.last N) : ℤˣ) : ℝ)))
+    ν (fun σ => rect σ ^ 2) ≤ 16 * K₁ / ((N : ℝ) + 1) ∧
+    ν (fun σ => rectm σ ^ 2) ≤ (16 * K₁ + 16) / ((N : ℝ) + 1) ∧
+    ν (fun σ => fstar σ ^ 2) ≤ (512 * K₁ + 512) / ((N : ℝ) + 1) ∧
+    ν (fun σ => (rectm σ ^ 2) ^ 2) ≤ (2048 * K₂ + 2048) / ((N : ℝ) + 1) ^ 2 := by
+  intro aL rect Fo rectm fstar
+  obtain ⟨hνadd, hνsmul, hνmono, hνconst⟩ := sk_replica_avg_calculus N 4 β h ν hν
+  obtain ⟨-, -, hS7, hXnn, hPa0, hPa16⟩ := sk_rect_nu_structure N β h ν hν
+  have hM1 : 1 ≤ (N : ℝ) + 1 := by linarith only [(Nat.cast_nonneg N : (0 : ℝ) ≤ N)]
+  have hM0 : 0 < (N : ℝ) + 1 := by linarith only [hM1]
+  have hI1 : ∀ σ, rect σ = rectm σ + aL σ / ((N : ℝ) + 1) := fun σ => by
+    simp only [rect, rectm, Fo, aL, dotProduct, Fin.sum_univ_castSucc]
+    ring
+  have haL : ∀ σ, aL σ ^ 2 ≤ 16 := fun σ => by
+    have hε : ∀ r : Fin 4, |((σ r (Fin.last N) : ℤˣ) : ℝ)| ≤ 1 := fun r =>
+      abs_units_cast_le_one _
+    have h1 : |((σ 0 (Fin.last N) : ℤˣ) : ℝ) - ((σ 1 (Fin.last N) : ℤˣ) : ℝ)| ≤ 2 :=
+      (abs_sub _ _).trans (by linarith only [hε 0, hε 1])
+    have h2 : |((σ 2 (Fin.last N) : ℤˣ) : ℝ) - ((σ 3 (Fin.last N) : ℤˣ) : ℝ)| ≤ 2 :=
+      (abs_sub _ _).trans (by linarith only [hε 2, hε 3])
+    have h3 : |aL σ| ≤ 4 := by
+      simp only [aL, abs_mul]
+      nlinarith only [h1, h2, abs_nonneg (((σ 0 (Fin.last N) : ℤˣ) : ℝ) -
+        ((σ 1 (Fin.last N) : ℤˣ) : ℝ)),
+        abs_nonneg (((σ 2 (Fin.last N) : ℤˣ) : ℝ) - ((σ 3 (Fin.last N) : ℤˣ) : ℝ))]
+    nlinarith only [h3, sq_abs (aL σ), abs_nonneg (aL σ)]
+  have hX2 : ν (fun σ => rect σ ^ 2) ≤ 16 * K₁ / ((N : ℝ) + 1) := by
+    have hm := sk_rect_moment_le N β h q 2 4 (fun u₁ u₂ u₃ u₄ => by
+      have := rect_sq_le u₁ u₂ u₃ u₄
+      linarith only [this])
+    rw [hν]
+    refine hm.trans ?_
+    calc _ ≤ 4 * 4 * (K₁ / ((N : ℝ) + 1)) := mul_le_mul_of_nonneg_left hD2 (by norm_num)
+      _ = _ := by ring
+  have hX4 : ν (fun σ => rect σ ^ 4) ≤ 256 * K₂ / ((N : ℝ) + 1) ^ 2 := by
+    have hm := sk_rect_moment_le N β h q 4 64 (fun u₁ u₂ u₃ u₄ => by
+      have := rect_pow_four_le u₁ u₂ u₃ u₄
+      linarith only [this])
+    rw [hν]
+    refine hm.trans ?_
+    calc _ ≤ 4 * 64 * (K₂ / ((N : ℝ) + 1) ^ 2) := mul_le_mul_of_nonneg_left hD4 (by norm_num)
+      _ = _ := by ring
+  have hZ1 : ν (fun σ => rectm σ ^ 2) ≤ (16 * K₁ + 16) / ((N : ℝ) + 1) := by
+    rw [hS7]
+    have h1 : 1 / ((N : ℝ) + 1) ^ 2 * ν (fun σ => aL σ ^ 2) ≤ 16 / ((N : ℝ) + 1) := by
+      have : 1 / ((N : ℝ) + 1) ^ 2 ≤ 1 / ((N : ℝ) + 1) :=
+        one_div_le_one_div_of_le hM0 (by nlinarith only [hM1])
+      calc _ ≤ 1 / ((N : ℝ) + 1) ^ 2 * 16 := mul_le_mul_of_nonneg_left hPa16 (by positivity)
+        _ ≤ 1 / ((N : ℝ) + 1) * 16 := mul_le_mul_of_nonneg_right this (by norm_num)
+        _ = _ := by ring
+    have h2 : 0 ≤ 2 / ((N : ℝ) + 1) * ν (fun σ => rect σ ^ 2) := by positivity
+    calc _ ≤ ν (fun σ => rect σ ^ 2) + 16 / ((N : ℝ) + 1) := by linarith only [h1, h2]
+      _ ≤ 16 * K₁ / ((N : ℝ) + 1) + 16 / ((N : ℝ) + 1) := by linarith only [hX2]
+      _ = _ := by ring
+  refine ⟨hX2, hZ1, ?_, ?_⟩
+  · have hpt : ∀ σ, fstar σ ^ 2 ≤ 16 * rectm σ ^ 2 := fun σ => by
+      have : fstar σ ^ 2 = rectm σ ^ 2 * aL σ ^ 2 := by simp only [fstar, rectm, aL]; ring
+      rw [this]
+      nlinarith only [haL σ, sq_nonneg (rectm σ)]
+    calc _ ≤ ν (fun σ => 16 * rectm σ ^ 2) := hνmono _ _ hpt
+      _ = 16 * ν (fun σ => rectm σ ^ 2) := hνsmul _ _
+      _ ≤ 16 * ((16 * K₁ + 16) / ((N : ℝ) + 1)) :=
+        mul_le_mul_of_nonneg_left hZ1 (by norm_num)
+      _ ≤ _ := by
+        rw [← mul_div_assoc]
+        exact div_le_div_of_nonneg_right (by linarith only [hK₁]) hM0.le
+  · have hpt : ∀ σ, (rectm σ ^ 2) ^ 2 ≤
+        8 * rect σ ^ 4 + 2048 / ((N : ℝ) + 1) ^ 4 := fun σ => by
+      have h1 : rectm σ = rect σ - aL σ / ((N : ℝ) + 1) := by rw [hI1]; ring
+      have h2 : (aL σ / ((N : ℝ) + 1)) ^ 4 ≤ 256 / ((N : ℝ) + 1) ^ 4 := by
+        rw [div_pow]
+        refine div_le_div_of_nonneg_right ?_ (by positivity)
+        have := haL σ
+        nlinarith only [this, sq_nonneg (aL σ)]
+      have h3 : ∀ a b : ℝ, (a - b) ^ 4 ≤ 8 * (a ^ 4 + b ^ 4) := fun a b => by
+        have hu : (a - b) ^ 2 ≤ 2 * (a ^ 2 + b ^ 2) := by nlinarith only [sq_nonneg (a + b)]
+        have hv : (a ^ 2 + b ^ 2) ^ 2 ≤ 2 * (a ^ 4 + b ^ 4) := by
+          nlinarith only [sq_nonneg (a ^ 2 - b ^ 2)]
+        calc (a - b) ^ 4 = ((a - b) ^ 2) ^ 2 := by ring
+          _ ≤ (2 * (a ^ 2 + b ^ 2)) ^ 2 := pow_le_pow_left₀ (sq_nonneg _) hu 2
+          _ = 4 * (a ^ 2 + b ^ 2) ^ 2 := by ring
+          _ ≤ 8 * (a ^ 4 + b ^ 4) := by linarith only [hv]
+      rw [h1]
+      calc ((rect σ - aL σ / ((N : ℝ) + 1)) ^ 2) ^ 2 =
+          (rect σ - aL σ / ((N : ℝ) + 1)) ^ 4 := by ring
+        _ ≤ 8 * (rect σ ^ 4 + (aL σ / ((N : ℝ) + 1)) ^ 4) := h3 _ _
+        _ ≤ 8 * (rect σ ^ 4 + 256 / ((N : ℝ) + 1) ^ 4) := by linarith only [h2]
+        _ = _ := by ring
+    calc _ ≤ ν (fun σ => 8 * rect σ ^ 4 + 2048 / ((N : ℝ) + 1) ^ 4) := hνmono _ _ hpt
+      _ = 8 * ν (fun σ => rect σ ^ 4) + 2048 / ((N : ℝ) + 1) ^ 4 := by
+        rw [← hνsmul, ← hνconst (2048 / ((N : ℝ) + 1) ^ 4), ← hνadd]
+      _ ≤ 8 * (256 * K₂ / ((N : ℝ) + 1) ^ 2) + 2048 / ((N : ℝ) + 1) ^ 4 := by
+        linarith only [hX4]
+      _ ≤ _ := by
+        have : 2048 / ((N : ℝ) + 1) ^ 4 ≤ 2048 / ((N : ℝ) + 1) ^ 2 :=
+          div_le_div_of_nonneg_left (by norm_num) (by positivity) (by nlinarith only [hM1])
+        calc _ ≤ 8 * (256 * K₂ / ((N : ℝ) + 1) ^ 2) + 2048 / ((N : ℝ) + 1) ^ 2 := by
+              linarith only [this]
+          _ = _ := by ring
 
 end SpinGlasses
