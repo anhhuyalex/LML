@@ -18,8 +18,8 @@ endpoint of the first derivative (Eq. (1.151)).  The first-order estimate (1.215
 
 The second derivative is the first-derivative formula applied to the `(n+2)`-replica observable
 `f · (replica kernel combination)`; the replicas `Option (Option (Fin n))` are identified with
-`Fin (n + 2)` by `finSuccEquiv`.  The Hölder step bounds the average of `|f| |R_{ab} - q| |R_{cd} - q|`
-by `sk_replica_holder_dev_dev`.
+`Fin (n + 2)` by `finSuccEquiv`.  The Hölder step bounds the average of
+`|f| |R_{ab} - q| |R_{cd} - q|` by `sk_replica_holder_dev_dev`.
 -/
 
 @[expose] public section
@@ -311,5 +311,65 @@ theorem sk_cavity_nu_sub_nu_zero_sub_deriv_le (N n : ℕ) (β q h : ℝ)
         ring
     _ ≤ Kb / 4 := h2
     _ = _ := by rw [hKb]; ring
+
+/-- **Talagrand's Eq. (1.216) with `τ₁ = τ₂ = 2`.**  For an observable `f` of `n` replicas,
+`|ν(f) - ν₀(f) - ν₀'(f)| ≤ K(n, β) ν(f²)^{1/2} ν((R_{1,2} - q)⁴)^{1/2}`,
+where `ν` is the `(N+1)`-spin SK average (the coupled endpoint of the cavity path), `ν₀` the
+decoupled endpoint (angle `π/2`) and `ν₀'(f)` the value there of the first derivative (Eq. (1.151),
+with the truncated overlap `R⁻`).  The constant is `4 n² (n+2)² β⁴ exp (4 (n+4)² β²)`. -/
+theorem sk_cavity_nu_sub_nu_zero_sub_deriv_le_two (N n : ℕ) (β q h : ℝ)
+    (hq : q ∈ Set.Icc (0 : ℝ) 1) (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) :
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
+      (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs N,
+            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
+        (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
+      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
+        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
+      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
+      (Real.sqrt (N + 1))⁻¹ * β *
+        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+      h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let K : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ := fun a b =>
+      β ^ 2 * (a (Fin.last N) : ℝ) * (b (Fin.last N) : ℝ) *
+        ((N + 1 : ℝ)⁻¹ *
+          ((fun i : Fin N => (a i.castSucc : ℝ)) ⬝ᵥ fun i : Fin N => (b i.castSucc : ℝ)) - q)
+    |(∫ g, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ
+        ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (Esk g))
+        ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) -
+      (∫ g', ∫ ω : (Fin N → ℝ) × ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ
+        ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (E (π / 2) g' ω))
+        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+        ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) -
+      (∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
+        ∫ τ : Option (Option (Fin n)) → Fin (N + 1) → ℤˣ,
+          f (fun r => τ (some (some r))) *
+            ((∑ p : Fin n × Fin n with p.1 < p.2,
+                K (τ (some (some p.1))) (τ (some (some p.2)))) -
+              (n : ℝ) * ∑ r : Fin n, K (τ (some (some r))) (τ (some none)) +
+              (n : ℝ) * ((n : ℝ) + 1) / 2 * K (τ (some none)) (τ none))
+        ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted
+          (E (π / 2) g' ω))
+        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+        ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1))| ≤
+    4 * (n : ℝ) ^ 2 * ((n : ℝ) + 2) ^ 2 * β ^ 4 * Real.exp (4 * ((n : ℝ) + 4) ^ 2 * β ^ 2) *
+      (Real.sqrt (∫ g, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ ^ 2
+          ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (Esk g))
+        ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) *
+      Real.sqrt (∫ g, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ,
+          ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
+            fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) ^ 4
+          ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted (Esk g))
+        ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))) := by
+  intro B E Esk K
+  have := sk_cavity_nu_sub_nu_zero_sub_deriv_le N n β q h hq f Real.HolderConjugate.two_two
+  have e4 : ∀ x : ℝ, |x| ^ (2 * (2 : ℝ)) = x ^ 4 := fun x => by
+    rw [show (2 * (2 : ℝ)) = ((4 : ℕ) : ℝ) by norm_num, Real.rpow_natCast]
+    exact Even.pow_abs ⟨2, rfl⟩ x
+  simp only [Real.rpow_two, sq_abs, e4, ← Real.sqrt_eq_rpow] at this
+  exact this
 
 end SpinGlasses

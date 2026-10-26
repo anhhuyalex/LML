@@ -8,6 +8,10 @@ module
 public import Mathlib.Algebra.BigOperators.Sym
 public import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
 public import Mathlib.Basic.Real.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Piecewise
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
 
 /-!
 # Symmetric off-diagonal finite sums
@@ -54,3 +58,29 @@ theorem filter_offDiag_lt {ι : Type*} [Fintype ι] [LinearOrder ι] :
   simp only [Finset.mem_filter, Finset.mem_offDiag, Finset.mem_univ, true_and,
     and_iff_right_iff_imp]
   exact fun h => h.ne
+
+/-- **Ordered half of a symmetrized double sum.**  The sum over strictly ordered pairs of
+`X a b + X b a` is the full double sum of `X` minus its diagonal. -/
+theorem sum_filter_lt_add_swap {ι : Type*} [Fintype ι] [LinearOrder ι] (X : ι → ι → ℝ) :
+    ∑ p : ι × ι with p.1 < p.2, (X p.1 p.2 + X p.2 p.1) =
+      (∑ a, ∑ b, X a b) - ∑ a, X a a := by
+  classical
+  have h := sum_sum_offDiag_eq_two_sum_lt (fun a b => X a b + X b a) (fun a b => add_comm _ _)
+  have e1 : ∀ a, (∑ b, if a = b then 0 else X a b + X b a) =
+      (∑ b, X a b) + (∑ b, X b a) - 2 * X a a := fun a => by
+    have hs : ∀ b, (X a b + X b a) =
+        (if a = b then 0 else X a b + X b a) + (if a = b then X a b + X b a else 0) := fun b => by
+      split_ifs <;> simp
+    have h1 : (∑ b, (X a b + X b a)) = (∑ b, if a = b then 0 else X a b + X b a) +
+        (X a a + X a a) := by
+      rw [Finset.sum_congr rfl fun b _ => hs b, Finset.sum_add_distrib,
+        Finset.sum_ite_eq]
+      simp
+    rw [Finset.sum_add_distrib] at h1
+    linarith
+  have h2 : (∑ a, ∑ b, if a = b then 0 else X a b + X b a) =
+      2 * ((∑ a, ∑ b, X a b) - ∑ a, X a a) := by
+    simp only [e1, Finset.sum_sub_distrib, Finset.sum_add_distrib, ← Finset.mul_sum]
+    rw [Finset.sum_comm (f := fun a b => X b a)]
+    ring
+  linarith

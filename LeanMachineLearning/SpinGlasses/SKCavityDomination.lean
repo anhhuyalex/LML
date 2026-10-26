@@ -86,6 +86,28 @@ theorem integral_nested_gibbs_finset_sum {Ω₀ Ω : Type*} [MeasurableSpace Ω�
   rw [integral_finsetSum _ fun j _ => (h3 j).const_mul (c j)]
   exact Finset.sum_congr rfl fun j _ => integral_const_mul _ _
 
+/-- **Linearity of a two-level replica average.**  The disorder average of the Gibbs average of a
+finite combination of observables is the combination of the averages. -/
+theorem integral_gibbs_finset_sum {Ω₀ : Type*} [MeasurableSpace Ω₀] (P₀ : Measure Ω₀)
+    [IsProbabilityMeasure P₀] {R α ι : Type*} [Fintype R] [Finite α] [Nonempty α]
+    [MeasurableSpace α] [MeasurableSingletonClass α] (E : Ω₀ → α → ℝ)
+    (hE : ∀ a, Measurable (fun η => E η a)) (s : Finset ι) (c : ι → ℝ) (G : ι → (R → α) → ℝ) :
+    ∫ η, ∫ τ, ∑ j ∈ s, c j * G j τ ∂(Measure.pi fun _ : R => Measure.count.tilted (E η)) ∂P₀ =
+      ∑ j ∈ s, c j * ∫ η, ∫ τ, G j τ
+        ∂(Measure.pi fun _ : R => Measure.count.tilted (E η)) ∂P₀ := by
+  have h3 (j : ι) : Integrable (fun η => ∫ τ, G j τ
+      ∂(Measure.pi fun _ : R => Measure.count.tilted (E η))) P₀ :=
+    integrable_integral_pi_count_tilted_det (g := fun (a : α) (η : Ω₀) => E η a)
+      (fun a => (hE a).aemeasurable) (G j)
+  have e1 (η : Ω₀) : ∫ τ, ∑ j ∈ s, c j * G j τ
+        ∂(Measure.pi fun _ : R => Measure.count.tilted (E η)) =
+      ∑ j ∈ s, c j * ∫ τ, G j τ ∂(Measure.pi fun _ : R => Measure.count.tilted (E η)) := by
+    rw [integral_finsetSum _ fun j _ => Integrable.of_finite.const_mul (c j)]
+    exact Finset.sum_congr rfl fun j _ => integral_const_mul _ _
+  simp_rw [e1]
+  rw [integral_finsetSum _ fun j _ => (h3 j).const_mul (c j)]
+  exact Finset.sum_congr rfl fun j _ => integral_const_mul _ _
+
 /-- **Talagrand's Eq. (1.155)**, for an arbitrary base disorder: the derivative of the cavity
 path is bounded by `4 n² β²` times the path average of a nonnegative observable. -/
 theorem abs_cavity_outer_book_derivative_le

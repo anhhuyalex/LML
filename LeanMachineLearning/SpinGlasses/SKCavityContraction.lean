@@ -222,4 +222,43 @@ theorem sk_cavity_nu_sub_nu_zero_le_of_abs_le (N n : ℕ) (β q h : ℝ)
   simp only [A, dev]
   ring
 
+/-- **Talagrand's Eq. (1.215) with `τ₁ = τ₂ = 2`** (Cauchy-Schwarz):
+`|ν(f) - ν₀(f)| ≤ 2 n² β² exp (4 (n+2)² β²) ν(f²)^{1/2} ν((R_{1,2} - q)²)^{1/2}`. -/
+theorem sk_cavity_nu_sub_nu_zero_le_two (N n : ℕ) (β q h : ℝ) (hq : q ∈ Set.Icc (0 : ℝ) 1)
+    (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) :
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
+      (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs N,
+            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
+        (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
+      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
+        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
+      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
+      (Real.sqrt (N + 1))⁻¹ * β *
+        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+      h * ∑ i : Fin (N + 1), (a i : ℝ)
+    |(∫ g, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ
+        ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (Esk g))
+        ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) -
+      (∫ g', ∫ ω : (Fin N → ℝ) × ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ
+        ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (E (π / 2) g' ω))
+        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+        ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1))| ≤
+    2 * (n : ℝ) ^ 2 * β ^ 2 * Real.exp (4 * ((n : ℝ) + 2) ^ 2 * β ^ 2) *
+      (Real.sqrt (∫ g, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ ^ 2
+          ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (Esk g))
+        ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) *
+      Real.sqrt (∫ g, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ,
+          ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
+            fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) ^ 2
+          ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted (Esk g))
+        ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))) := by
+  intro B E Esk
+  have := sk_cavity_nu_sub_nu_zero_le N n β q h hq f Real.HolderConjugate.two_two
+  simp only [Real.rpow_two, sq_abs, ← Real.sqrt_eq_rpow] at this
+  exact this
+
 end SpinGlasses
