@@ -63,7 +63,8 @@ theorem exists_independent_gaussian_projection (hN : 0 < N)
       ∀ (c t : ℝ) (ω' : Ω'), ∫ y : Fin N → ℝ, (c * (m ω' ⬝ᵥ y) - t * Z (ω', y)) ^ 2
         ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1) =
           (c * Real.sqrt (m ω' ⬝ᵥ m ω') - t) ^ 2 := by
-  obtain ⟨u, hu, hu1, hmu⟩ := exists_measurable_unit_field hN hm
+  haveI : Nonempty (Fin N) := ⟨⟨0, hN⟩⟩
+  obtain ⟨u, hu, hu1, hmu⟩ := exists_measurable_unit_field hm
   have hZ : Measurable fun w : Ω' × (Fin N → ℝ) => u w.1 ⬝ᵥ w.2 := by
     simp only [dotProduct]
     exact Finset.measurable_sum _ fun i _ =>

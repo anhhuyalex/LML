@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.SpinGlasses.SKCavityParameters
 public import LeanMachineLearning.SpinGlasses.SKOldSpinCavity
 public import LeanMachineLearning.SpinGlasses.SKLastSpinGaussian
 
@@ -113,47 +114,6 @@ theorem integrable_pow_tap_field {Ω₀ : Type*} [MeasurableSpace Ω₀] (P : Me
     _ ≤ (|(Real.sqrt N)⁻¹ * ∑ i, w.2 i * F w i| + |b * s w|) +
         |(Real.sqrt N)⁻¹ * ∑ i, w.2 i * m w i| := by gcongr; exact abs_sub _ _
     _ ≤ _ := by linarith
-
-/-- **Replacing `β_-², q_-` by `β², q` costs `1/(N+1)`:** for `4 β² < 1`, `q, q_- ∈ [0, 1]` and
-`|q - q_-| ≤ 1/(N+1)`, `|β²(1-q) - (β √(N/(N+1)))² (1-q_-)| ≤ 1/(N+1)`. -/
-theorem abs_tap_coef_le {N : ℕ} {β q qm : ℝ} (hβ4 : 4 * β ^ 2 < 1) (hq : q ∈ Set.Icc (0 : ℝ) 1)
-    (hshift : |q - qm| ≤ 1 / ((N : ℝ) + 1)) :
-    |β ^ 2 * (1 - q) - (β * Real.sqrt ((N : ℝ) / (N + 1))) ^ 2 * (1 - qm)| ≤
-      1 / ((N : ℝ) + 1) := by
-  have hN1 : (0 : ℝ) < (N : ℝ) + 1 := by positivity
-  have hsq : (β * Real.sqrt ((N : ℝ) / (N + 1))) ^ 2 = β ^ 2 * ((N : ℝ) / (N + 1)) := by
-    rw [mul_pow, Real.sq_sqrt (by positivity)]
-  have hdiff : β ^ 2 - β ^ 2 * ((N : ℝ) / (N + 1)) = β ^ 2 / ((N : ℝ) + 1) := by
-    field_simp; ring
-  have hsh := abs_le.mp hshift
-  set ε : ℝ := 1 / ((N : ℝ) + 1) with hε
-  have hε0 : 0 < ε := by positivity
-  have hb0 : 0 ≤ β ^ 2 / ((N : ℝ) + 1) := by positivity
-  have hb1 : β ^ 2 / ((N : ℝ) + 1) ≤ ε / 4 := by
-    have h14 : β ^ 2 ≤ 1 / 4 := by linarith
-    calc β ^ 2 / ((N : ℝ) + 1) ≤ (1 / 4) / ((N : ℝ) + 1) :=
-          div_le_div_of_nonneg_right h14 hN1.le
-      _ = ε / 4 := by rw [hε]; field_simp
-  have hbm : β ^ 2 * ((N : ℝ) / (N + 1)) ≤ 1 / 4 := by
-    have : (N : ℝ) / (N + 1) ≤ 1 := (div_le_one hN1).mpr (by linarith)
-    nlinarith [sq_nonneg β]
-  have hbm0 : 0 ≤ β ^ 2 * ((N : ℝ) / (N + 1)) := by positivity
-  rw [hsq, abs_le]
-  have e : β ^ 2 * (1 - q) - β ^ 2 * ((N : ℝ) / (N + 1)) * (1 - qm) =
-      (β ^ 2 / ((N : ℝ) + 1)) * (1 - q) + β ^ 2 * ((N : ℝ) / (N + 1)) * (qm - q) := by
-    rw [← hdiff]; ring
-  rw [e]
-  obtain ⟨hq0, hq1⟩ := hq
-  set a := β ^ 2 / ((N : ℝ) + 1) with ha
-  set b := β ^ 2 * ((N : ℝ) / (N + 1)) with hb
-  have h1 : 0 ≤ a * (1 - q) := mul_nonneg hb0 (sub_nonneg.mpr hq1)
-  have h2 : a * (1 - q) ≤ a := by nlinarith [mul_nonneg hb0 hq0]
-  have h3 : b * (qm - q) ≤ b * ε := mul_le_mul_of_nonneg_left (by linarith) hbm0
-  have h4 : -(b * ε) ≤ b * (qm - q) := by
-    have := mul_le_mul_of_nonneg_left (show -ε ≤ qm - q by linarith) hbm0
-    linarith
-  have h5 : b * ε ≤ ε / 4 := by nlinarith
-  constructor <;> linarith
 
 /-- **Talagrand, Theorem 1.7.7, Eq. (1.193): the TAP equations with the Onsager reaction term, in
 `L^{2k}`.**  For `4 β₀² < 1`, `h` and `k ≥ 1` there is `K = K(β₀, h, k)` such that for all

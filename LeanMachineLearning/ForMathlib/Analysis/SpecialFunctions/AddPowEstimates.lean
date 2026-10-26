@@ -18,6 +18,8 @@ public import Mathlib.Analysis.Complex.ExponentialBounds
   `(a + b)^n ≤ (1 + θ)^(n-1) a^n + (1 + θ⁻¹)^(n-1) b^n`.
 * `pow_add_sub_pow_sub_le`: for an odd exponent the symmetric difference of `a ± x` is controlled
   by `n x (|a| + x)^(n-1)`.
+* `prod_abs_le_sum_pow`: the crude arithmetic-geometric inequality `∏ |a_j| ≤ ∑ |a_j|^n` for `n`
+  numbers.
 -/
 
 @[expose] public section
@@ -190,3 +192,14 @@ theorem div_pow_le_two_pow_mul_div_succ_pow {N : ℕ} (hN : 0 < N) (k : ℕ) {K 
     rw [← mul_pow]; exact pow_le_pow_left₀ (by positivity) (by linarith) k
   calc K * ((N : ℝ) + 1) ^ k ≤ K * (2 ^ k * (N : ℝ) ^ k) := mul_le_mul_of_nonneg_left h2 hK
     _ = 2 ^ k * K * (N : ℝ) ^ k := by ring
+
+/-- Crude arithmetic-geometric mean inequality: the product of `n = |s|` absolute values is at most
+the sum of their `n`-th powers (each factor is at most the largest one). -/
+theorem prod_abs_le_sum_pow {ι : Type*} (s : Finset ι) (hs : s.Nonempty) (a : ι → ℝ) :
+    ∏ j ∈ s, |a j| ≤ ∑ j ∈ s, |a j| ^ s.card := by
+  obtain ⟨j₀, hj₀s, hj₀⟩ := Finset.exists_max_image s (fun j => |a j|) hs
+  calc ∏ j ∈ s, |a j| ≤ ∏ _j ∈ s, |a j₀| :=
+        Finset.prod_le_prod (fun j _ => abs_nonneg _) fun j hj => hj₀ j hj
+    _ = |a j₀| ^ s.card := by simp
+    _ ≤ ∑ j ∈ s, |a j| ^ s.card :=
+        Finset.single_le_sum (f := fun j => |a j| ^ s.card) (fun j _ => by positivity) hj₀s

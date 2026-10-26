@@ -9,6 +9,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.Pi
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.PiSnoc
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SqrtSub
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SqSub
+public import LeanMachineLearning.SpinGlasses.SKCavityParameters
 public import LeanMachineLearning.SpinGlasses.SKLastSpinGaussian
 public import LeanMachineLearning.SpinGlasses.SKSiteSymmetry
 
@@ -65,56 +66,6 @@ theorem exists_sk_site_exchange (M : ℕ) (β h : ℝ) (π : Equiv.Perm (Fin M))
             ∂(Measure.count.tilted (skGibbsEnergy M β h g)) :=
   ⟨fun g => g ∘ (pairPerm π).symm, measurePreserving_comp_pairPerm (gaussianReal 0 1) π,
     integral_spin_comp_pairPerm M β h π⟩
-
-/-- A real-analytic estimate for the passage from `(β_-, q_-)` to `(β, q)`:
-`(β_- √q_- - β √q)² ≤ 1/(N+1)` when `|q - q_-| ≤ 1/(N+1)`, `β_- = β √(N/(N+1))` and
-`4 β² < 1`. -/
-theorem sq_cavity_param_le {β q qm : ℝ} {N : ℕ} (hβ4 : 4 * β ^ 2 < 1)
-    (hq : q ∈ Set.Icc (0 : ℝ) 1) (hqm : qm ∈ Set.Icc (0 : ℝ) 1)
-    (hshift : |q - qm| ≤ 1 / ((N : ℝ) + 1)) :
-    (β * Real.sqrt ((N : ℝ) / (N + 1)) * Real.sqrt qm - β * Real.sqrt q) ^ 2 ≤
-      1 / ((N : ℝ) + 1) := by
-  set ε : ℝ := 1 / ((N : ℝ) + 1) with hε
-  have hN1 : (0 : ℝ) < (N : ℝ) + 1 := by positivity
-  have hε0 : 0 < ε := by positivity
-  have hε1 : ε ≤ 1 := by rw [hε, div_le_one hN1]; linarith [(Nat.cast_nonneg N : (0 : ℝ) ≤ N)]
-  set s : ℝ := Real.sqrt ((N : ℝ) / (N + 1)) with hs
-  have hs0 : 0 ≤ s := Real.sqrt_nonneg _
-  have hx : (N : ℝ) / (N + 1) = 1 - ε := by rw [hε]; field_simp; ring
-  have hs1 : 1 - ε ≤ s := by
-    rw [hs, hx]
-    have h0 : 0 ≤ 1 - ε := by linarith
-    calc 1 - ε = Real.sqrt ((1 - ε) ^ 2) := (Real.sqrt_sq h0).symm
-      _ ≤ Real.sqrt (1 - ε) := Real.sqrt_le_sqrt (by nlinarith)
-  have hs2 : s ≤ 1 := by
-    rw [hs, hx]; exact Real.sqrt_le_one.mpr (by linarith)
-  have hd : (Real.sqrt qm - Real.sqrt q) ^ 2 ≤ ε := by
-    have h1 := Real.sq_sqrt_sub_le_abs_sub hqm.1 hq.1
-    calc _ ≤ |qm - q| := h1
-      _ = |q - qm| := abs_sub_comm _ _
-      _ ≤ ε := hshift
-  have hsq : Real.sqrt q ≤ 1 := Real.sqrt_le_one.mpr hq.2
-  have hsq0 : 0 ≤ Real.sqrt q := Real.sqrt_nonneg _
-  have hdec : β * s * Real.sqrt qm - β * Real.sqrt q =
-      β * s * (Real.sqrt qm - Real.sqrt q) + β * ((s - 1) * Real.sqrt q) := by ring
-  have hb2 : β ^ 2 ≤ 1 / 4 := by linarith
-  have he2 : ((s - 1) * Real.sqrt q) ^ 2 ≤ ε := by
-    rw [mul_pow]
-    have : (s - 1) ^ 2 ≤ ε := by nlinarith
-    have : Real.sqrt q ^ 2 ≤ 1 := by nlinarith
-    nlinarith [sq_nonneg (s - 1), sq_nonneg (Real.sqrt q)]
-  rw [hdec]
-  have h1 : (β * s * (Real.sqrt qm - Real.sqrt q)) ^ 2 ≤ β ^ 2 * ε := by
-    have hs2' : s ^ 2 ≤ 1 := by nlinarith
-    have h1a : s ^ 2 * (Real.sqrt qm - Real.sqrt q) ^ 2 ≤ ε :=
-      (mul_le_of_le_one_left (sq_nonneg _) hs2').trans hd
-    calc (β * s * (Real.sqrt qm - Real.sqrt q)) ^ 2 =
-          β ^ 2 * (s ^ 2 * (Real.sqrt qm - Real.sqrt q) ^ 2) := by ring
-      _ ≤ β ^ 2 * ε := mul_le_mul_of_nonneg_left h1a (sq_nonneg β)
-  have h2 : (β * ((s - 1) * Real.sqrt q)) ^ 2 ≤ β ^ 2 * ε := by
-    rw [mul_pow]; exact mul_le_mul_of_nonneg_left he2 (sq_nonneg β)
-  have h3 : β ^ 2 * ε ≤ ε / 4 := by nlinarith
-  nlinarith [sq_nonneg (β * s * (Real.sqrt qm - Real.sqrt q) - β * ((s - 1) * Real.sqrt q))]
 
 /-- Every coordinate of a vector with the i.i.d. standard Gaussian law has second moment `1`. -/
 theorem integral_sq_coord_eq_one {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω} {n : ℕ}

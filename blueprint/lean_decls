@@ -3666,7 +3666,7 @@ SpinGlasses.overlapMoment
 SpinGlasses.pow_integral_count_tilted_le
 SpinGlasses.overlapMoment_eq
 SpinGlasses.integral_projGram_pow_le
-SpinGlasses.prod_abs_le_sum_pow
+prod_abs_le_sum_pow
 SpinGlasses.sum_integral_abs_pairProd_le
 SpinGlasses.skGibbsEnergy
 SpinGlasses.abs_units_cast_le_one

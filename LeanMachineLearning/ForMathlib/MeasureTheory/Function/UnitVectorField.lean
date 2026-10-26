@@ -11,8 +11,8 @@ public import Mathlib.Analysis.SpecialFunctions.Pow.NNReal
 /-!
 # Normalizing a measurable vector field without a case split
 
-A measurable family `m : Ω → (Fin N → ℝ)` has a measurable *unit* direction field `u` with
-`m ω = ‖m ω‖ • u ω`, where `‖m ω‖ = √(m ω ⬝ᵥ m ω)`; where `m ω = 0` the direction is the first
+A measurable family `m : Ω → (ι → ℝ)` over a nonempty finite index type `ι` has a measurable
+*unit* direction field `u` with `m ω = ‖m ω‖ • u ω`, where `‖m ω‖ = √(m ω ⬝ᵥ m ω)`; where `m ω = 0` the direction is a fixed
 basis vector.  This removes the case split `A = 0` / `A ≠ 0` in Talagrand's renormalization
 `z = A⁻¹ ∑ g_i ⟨σ_i⟩_-` (Lemma 1.7.6).
 -/
@@ -22,11 +22,12 @@ basis vector.  This removes the case split `A = 0` / `A ≠ 0` in Talagrand's re
 open MeasureTheory
 open scoped Matrix
 
-/-- **A measurable unit direction field.**  For `N > 0` and a measurable vector field `m` there is
-a measurable `u` with `u ω ⬝ᵥ u ω = 1` and `m ω = √(m ω ⬝ᵥ m ω) • u ω`. -/
-theorem exists_measurable_unit_field {Ω : Type*} [MeasurableSpace Ω] {N : ℕ} (hN : 0 < N)
-    {m : Ω → Fin N → ℝ} (hm : ∀ i, Measurable fun ω => m ω i) :
-    ∃ u : Ω → Fin N → ℝ, (∀ i, Measurable fun ω => u ω i) ∧ (∀ ω, u ω ⬝ᵥ u ω = 1) ∧
+/-- **A measurable unit direction field.**  For a nonempty finite index type `ι` and a measurable
+vector field `m` there is a measurable `u` with `u ω ⬝ᵥ u ω = 1` and
+`m ω = √(m ω ⬝ᵥ m ω) • u ω`. -/
+theorem exists_measurable_unit_field {Ω ι : Type*} [MeasurableSpace Ω] [Fintype ι] [Nonempty ι]
+    {m : Ω → ι → ℝ} (hm : ∀ i, Measurable fun ω => m ω i) :
+    ∃ u : Ω → ι → ℝ, (∀ i, Measurable fun ω => u ω i) ∧ (∀ ω, u ω ⬝ᵥ u ω = 1) ∧
       ∀ ω, m ω = Real.sqrt (m ω ⬝ᵥ m ω) • u ω := by
   classical
   set A : Ω → ℝ := fun ω => Real.sqrt (m ω ⬝ᵥ m ω) with hA
@@ -36,7 +37,7 @@ theorem exists_measurable_unit_field {Ω : Type*} [MeasurableSpace Ω] {N : ℕ}
     exact Finset.measurable_sum _ fun i _ => (hm i).mul (hm i)
   have hAsq : ∀ ω, A ω ^ 2 = m ω ⬝ᵥ m ω := fun ω =>
     Real.sq_sqrt (Finset.sum_nonneg fun i _ => mul_self_nonneg _)
-  let e0 : Fin N → ℝ := Pi.single ⟨0, hN⟩ 1
+  let e0 : ι → ℝ := Pi.single (Classical.arbitrary ι) 1
   refine ⟨fun ω => if A ω = 0 then e0 else (A ω)⁻¹ • m ω, fun i => ?_, fun ω => ?_, fun ω => ?_⟩
   · have hset : MeasurableSet {ω | A ω = 0} := hAm (measurableSet_singleton 0)
     have key : (fun ω => (if A ω = 0 then e0 else (A ω)⁻¹ • m ω) i) =

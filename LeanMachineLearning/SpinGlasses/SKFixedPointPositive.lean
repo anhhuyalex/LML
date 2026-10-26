@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Hyperbolic
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Tanh
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ParametrizedL2
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiExp
 public import LeanMachineLearning.SpinGlasses.SKFixedPoint
@@ -19,7 +20,7 @@ For `4 β² < 1`, every solution `q` of `q = 𝔼 tanh²(β √q z + h)` with `h
 `h → 0`; here it is explicit and independent of `β`.
 
 The proof symmetrizes `z ↦ -z`: `tanh (h + x) + tanh (h - x) = 2 sinh 2h / (cosh 2h + cosh 2x)`
-(`Real.tanh_add_tanh_sub`), bounds `1/y ≥ 2/D - y/D²` (tangent line) and integrates with
+(`Real.tanh_add_tanh_sub`, in `Tanh.lean`), bounds `1/y ≥ 2/D - y/D²` (tangent line) and integrates with
 `𝔼 cosh (2 s z) = e^{2 s²} ≤ e^{1/2}`; then `q = 𝔼 tanh² ≥ (𝔼 tanh)²` (Jensen).
 
 ## References
@@ -30,29 +31,6 @@ The proof symmetrizes `z ↦ -z`: `tanh (h + x) + tanh (h - x) = 2 sinh 2h / (co
 @[expose] public section
 
 open MeasureTheory ProbabilityTheory
-
-namespace Real
-
-/-- `tanh (h + x) + tanh (h - x) = 2 sinh (2 h) / (cosh (2 h) + cosh (2 x))`. -/
-theorem tanh_add_tanh_sub (h x : ℝ) :
-    Real.tanh (h + x) + Real.tanh (h - x) =
-      2 * Real.sinh (2 * h) / (Real.cosh (2 * h) + Real.cosh (2 * x)) := by
-  have h1 := Real.cosh_pos (h + x)
-  have h2 := Real.cosh_pos (h - x)
-  have hsum : Real.sinh (h + x) * Real.cosh (h - x) + Real.cosh (h + x) * Real.sinh (h - x) =
-      Real.sinh (2 * h) := by
-    rw [← Real.sinh_add]; ring_nf
-  have hprod : Real.cosh (h + x) * Real.cosh (h - x) =
-      (Real.cosh (2 * h) + Real.cosh (2 * x)) / 2 := by
-    rw [Real.cosh_mul_cosh]; ring_nf
-  have hc : 0 < Real.cosh (2 * h) + Real.cosh (2 * x) := by
-    have := Real.cosh_pos (2 * h); have := Real.cosh_pos (2 * x); linarith
-  rw [Real.tanh_eq_sinh_div_cosh, Real.tanh_eq_sinh_div_cosh, div_add_div _ _ h1.ne' h2.ne',
-    show Real.sinh (h + x) * Real.cosh (h - x) + Real.cosh (h + x) * Real.sinh (h - x) =
-      Real.sinh (2 * h) from hsum, hprod]
-  field_simp
-
-end Real
 
 namespace SpinGlasses
 

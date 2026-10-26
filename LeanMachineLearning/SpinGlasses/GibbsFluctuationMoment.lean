@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.AddPowEstimates
 public import LeanMachineLearning.SpinGlasses.GibbsGramMoments
 
 /-!
@@ -40,18 +41,6 @@ open MeasureTheory ProbabilityTheory Finset
 
 namespace SpinGlasses
 
-/-- Crude arithmetic-geometric mean inequality: `∏ |a_j| ≤ ∑ |a_j|^n` for `n` numbers. -/
-theorem prod_abs_le_sum_pow {n : ℕ} (hn : 0 < n) (a : Fin n → ℝ) :
-    ∏ j, |a j| ≤ ∑ j, |a j| ^ n := by
-  obtain ⟨j₀, -, hj₀⟩ := Finset.exists_max_image (Finset.univ : Finset (Fin n)) (fun j => |a j|)
-    ⟨⟨0, hn⟩, Finset.mem_univ _⟩
-  calc ∏ j, |a j| ≤ ∏ _j : Fin n, |a j₀| :=
-        Finset.prod_le_prod₀ (fun j _ => abs_nonneg _) fun j _ => hj₀ j (Finset.mem_univ j)
-    _ = |a j₀| ^ n := by simp
-    _ ≤ ∑ j, |a j| ^ n :=
-        Finset.single_le_sum (f := fun j => |a j| ^ n) (fun j _ => by positivity)
-          (Finset.mem_univ j₀)
-
 section Ising
 
 attribute [local instance] Fintype.ofFinite
@@ -80,10 +69,12 @@ theorem sum_integral_abs_pairProd_le (hξ2 : ∀ i a, ξ i a ^ 2 = 1) (hN : 0 < 
             ∂(Measure.pi fun _ : Fin (2 * k) => Measure.count.tilted f) := by
           refine integral_mono Integrable.of_finite Integrable.of_finite fun σ => ?_
           rw [Finset.abs_prod]
-          refine (prod_abs_le_sum_pow hn (fun j =>
+          refine (prod_abs_le_sum_pow Finset.univ ⟨⟨0, hn⟩, Finset.mem_univ _⟩ (fun j =>
             u (σ (p j).1) ⬝ᵥ u (σ (p j).2) - if (p j).1 = (p j).2 then v ^ 2 else 0)).trans
             (le_of_eq ?_)
-          exact Finset.sum_congr rfl fun j _ => Even.pow_abs ⟨k, by ring⟩ _
+          refine Finset.sum_congr rfl fun j _ => ?_
+          rw [Finset.card_univ, Fintype.card_fin]
+          exact Even.pow_abs ⟨k, by ring⟩ _
       _ = ∑ j : Fin (2 * k), ∫ σ : Fin (2 * k) → α,
             (u (σ (p j).1) ⬝ᵥ u (σ (p j).2) - if (p j).1 = (p j).2 then v ^ 2 else 0) ^ (2 * k)
             ∂(Measure.pi fun _ : Fin (2 * k) => Measure.count.tilted f) :=
