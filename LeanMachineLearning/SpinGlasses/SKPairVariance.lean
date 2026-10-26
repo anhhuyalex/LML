@@ -33,14 +33,8 @@ theorem sk_replica_avg_sum (N n : ℕ) (β h : ℝ)
         h * ∑ i : Fin (N + 1), (a i : ℝ))
       ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
     {ι : Type*} (s : Finset ι) (c : ι → ℝ) (Φ : ι → (Fin n → Fin (N + 1) → ℤˣ) → ℝ) :
-    ν (fun σ => ∑ j ∈ s, c j * Φ j σ) = ∑ j ∈ s, c j * ν (Φ j) := by
-  have hEg (a : Fin (N + 1) → ℤˣ) : Measurable (fun g : FinPairs (N + 1) → ℝ =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)) := by fun_prop
-  simp only [hν]
-  exact integral_gibbs_finset_sum (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)
-    (R := Fin n) _ hEg s c Φ
+    ν (fun σ => ∑ j ∈ s, c j * Φ j σ) = ∑ j ∈ s, c j * ν (Φ j) :=
+  sk_replica_avg_finset_sum N n β h ν hν s c Φ
 
 /-- **Diagonal and off-diagonal parts of `ν(rect²)`** (Corollary 1.8.6): with
 `a_k = (σ¹_k - σ²_k)(σ³_k - σ⁴_k)`, `rect = M⁻¹ ∑_k a_k` and `M = N + 1`,

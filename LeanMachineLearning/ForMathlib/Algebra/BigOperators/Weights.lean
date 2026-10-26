@@ -99,4 +99,14 @@ theorem abs_sum_sum_mul_le {w : α → ℝ} (hw : ∀ a, 0 ≤ w a) (c : α → 
     (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun a' _ => by
       rw [abs_mul, abs_of_nonneg (mul_nonneg (hw a) (hw a'))]))
 
+/-- Bounding a scaled inner product against variables bounded by 1. -/
+theorem abs_mul_sum_mul_le_mul_sum_abs (c : ℝ) (hc : 0 ≤ c)
+    (x : α → ℝ) (a : α → ℝ) (ha : ∀ i, |a i| ≤ 1) :
+    |c * ∑ i, x i * a i| ≤ c * ∑ i, |x i| := by
+  rw [abs_mul, abs_of_nonneg hc]
+  refine mul_le_mul_of_nonneg_left ((Finset.abs_sum_le_sum_abs _ _).trans
+    (Finset.sum_le_sum fun i _ => ?_)) hc
+  rw [abs_mul]
+  exact mul_le_of_le_one_right (abs_nonneg _) (ha i)
+
 end Weights

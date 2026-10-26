@@ -450,6 +450,7 @@ public import LeanMachineLearning.SpinGlasses.SKCavityInterpolation
 public import LeanMachineLearning.SpinGlasses.SKCavityOuterBound
 public import LeanMachineLearning.SpinGlasses.SKCavityOuterDerivative
 public import LeanMachineLearning.SpinGlasses.SKCavityOverlap
+public import LeanMachineLearning.SpinGlasses.SKCavityParameters
 public import LeanMachineLearning.SpinGlasses.SKCavityTaylor
 public import LeanMachineLearning.SpinGlasses.SKCorrelationDecay
 public import LeanMachineLearning.SpinGlasses.SKDecoupled

@@ -8,6 +8,7 @@ module
 public import LeanMachineLearning.SpinGlasses.SKCavityParameters
 public import LeanMachineLearning.SpinGlasses.SKOldSpinCavity
 public import LeanMachineLearning.SpinGlasses.SKLastSpinGaussian
+public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.Weights
 
 /-!
 # The TAP equations with the Onsager reaction term (Talagrand, Theorem 1.7.7, Eq. (1.193))
@@ -73,7 +74,7 @@ theorem abs_sub_tanh_tap_le {N : ℕ} (c bm β q qm s h : ℝ) (hs : |s| ≤ 1) 
 /-- The integrand of (1.210) has integrable even powers: it is dominated by
 `(2 N^{-1/2} ∑ |yᵢ| + 1)^{2k}` when `|fᵢ|, |mᵢ|, |s|, |b| ≤ 1`. -/
 theorem integrable_pow_tap_field {Ω₀ : Type*} [MeasurableSpace Ω₀] (P : Measure Ω₀)
-    [IsProbabilityMeasure P] {N : ℕ} (hN : 0 < N) (b : ℝ) (hb : |b| ≤ 1)
+    [IsProbabilityMeasure P] {N : ℕ} (_hN : 0 < N) (b : ℝ) (hb : |b| ≤ 1)
     (F m : Ω₀ × (Fin N → ℝ) → Fin N → ℝ) (s : Ω₀ × (Fin N → ℝ) → ℝ)
     (hF : ∀ i, Measurable fun w => F w i) (hm : ∀ i, Measurable fun w => m w i)
     (hs : Measurable s) (hF1 : ∀ w i, |F w i| ≤ 1) (hm1 : ∀ w i, |m w i| ≤ 1)
@@ -86,14 +87,7 @@ theorem integrable_pow_tap_field {Ω₀ : Type*} [MeasurableSpace Ω₀] (P : Me
       (2 * (Real.sqrt N)⁻¹ * ∑ i, |w.2 i| + 1) ^ (2 * k)) (P.prod Q) :=
     (measurePreserving_snd (μ := P) (ν := Q)).integrable_comp_of_integrable
       (integrable_even_pow_const_mul_sum_abs_add (ι := Fin N) (2 * (Real.sqrt N)⁻¹) 1 k (by omega))
-  have hN0 : (0 : ℝ) < Real.sqrt N := Real.sqrt_pos.mpr (Nat.cast_pos.mpr hN)
-  have hsum : ∀ (G : Ω₀ × (Fin N → ℝ) → Fin N → ℝ), (∀ w i, |G w i| ≤ 1) → ∀ w,
-      |(Real.sqrt N)⁻¹ * ∑ i, w.2 i * G w i| ≤ (Real.sqrt N)⁻¹ * ∑ i, |w.2 i| := fun G hG w => by
-    rw [abs_mul, abs_of_pos (inv_pos.mpr hN0)]
-    refine mul_le_mul_of_nonneg_left ((Finset.abs_sum_le_sum_abs _ _).trans
-      (Finset.sum_le_sum fun i _ => ?_)) (inv_pos.mpr hN0).le
-    rw [abs_mul]
-    exact mul_le_of_le_one_right (abs_nonneg _) (hG w i)
+  have hpos : 0 ≤ (Real.sqrt N)⁻¹ := inv_nonneg.mpr (Real.sqrt_nonneg _)
   have hmeas : Measurable fun w : Ω₀ × (Fin N → ℝ) =>
       (Real.sqrt N)⁻¹ * ∑ i, w.2 i * F w i - b * s w - (Real.sqrt N)⁻¹ * ∑ i, w.2 i * m w i := by
     refine ((measurable_const.mul (Finset.measurable_sum _ fun i _ =>
@@ -103,12 +97,11 @@ theorem integrable_pow_tap_field {Ω₀ : Type*} [MeasurableSpace Ω₀] (P : Me
   refine hdom.mono' (hmeas.pow_const _).aestronglyMeasurable (ae_of_all _ fun w => ?_)
   rw [Real.norm_eq_abs, abs_pow]
   refine pow_le_pow_left₀ (abs_nonneg _) ?_ _
-  have h1 := hsum F hF1 w
-  have h2 := hsum m hm1 w
+  have h1 := Weights.abs_mul_sum_mul_le_mul_sum_abs (Real.sqrt N)⁻¹ hpos (w.2) (F w) (hF1 w)
+  have h2 := Weights.abs_mul_sum_mul_le_mul_sum_abs (Real.sqrt N)⁻¹ hpos (w.2) (m w) (hm1 w)
   have h3 : |b * s w| ≤ 1 := by
     rw [abs_mul]
     exact (mul_le_mul hb (hs1 w) (abs_nonneg _) zero_le_one).trans_eq (one_mul 1)
-  have h4 : (Real.sqrt N)⁻¹ * ∑ i, |w.2 i| = (Real.sqrt N)⁻¹ * ∑ i, |w.2 i| := rfl
   calc _ ≤ |(Real.sqrt N)⁻¹ * ∑ i, w.2 i * F w i - b * s w| +
         |(Real.sqrt N)⁻¹ * ∑ i, w.2 i * m w i| := abs_sub _ _
     _ ≤ (|(Real.sqrt N)⁻¹ * ∑ i, w.2 i * F w i| + |b * s w|) +

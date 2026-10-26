@@ -115,11 +115,20 @@ theorem continuous_tanh_sq_affine (w h : ℝ) :
 
 /-- `z ↦ tanh²(w * z + h)` is integrable against the standard Gaussian. -/
 theorem integrable_tanh_sq_affine (w h : ℝ) :
-    Integrable (fun z : ℝ => Real.tanh (w * z + h) ^ 2) (gaussianReal 0 1) := by
-  refine (integrable_const (1 : ℝ)).mono' (continuous_tanh_sq_affine w h).aestronglyMeasurable ?_
-  refine Eventually.of_forall fun z => ?_
-  rw [Real.norm_eq_abs, abs_of_nonneg (sq_nonneg _)]
-  exact (Real.tanh_sq_lt_one _).le
+    Integrable (fun z : ℝ => Real.tanh (w * z + h) ^ 2) (gaussianReal 0 1) :=
+  MeasureTheory.integrable_tanh_sq' (fun z => w * z + h) (by fun_prop)
+
+/-- Permutation symmetry of powers of `tanh (β z √q + h)` vs `tanh (β √q z + h)`. -/
+@[simp] theorem integral_tanh_pow_mul_z_sqrt_eq (β q h : ℝ) (k : ℕ) :
+    (∫ z : ℝ, Real.tanh (β * z * Real.sqrt q + h) ^ k ∂(gaussianReal 0 1)) =
+      ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ k ∂(gaussianReal 0 1) := by
+  congr 1; ext z; congr 2; ring
+
+/-- Permutation symmetry of `log (cosh (β z √q + h))` vs `log (cosh (β √q z + h))`. -/
+@[simp] theorem integral_log_cosh_mul_z_sqrt_eq (β q h : ℝ) :
+    (∫ z : ℝ, Real.log (Real.cosh (β * z * Real.sqrt q + h)) ∂(gaussianReal 0 1)) =
+      ∫ z : ℝ, Real.log (Real.cosh (β * Real.sqrt q * z + h)) ∂(gaussianReal 0 1) := by
+  congr 1; ext z; congr 2; ring
 
 /-- The first derivative of the integrand `z ↦ 2 tanh(w z + h) (1 - tanh²(w z + h))` is
 continuous. -/

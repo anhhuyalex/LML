@@ -402,57 +402,121 @@ theorem second_moment_assembly {X Pa Pf Z0 Z1 M lam c2 e1 e2 e3 e4 : ℝ} (hM : 
 
 /-- Integrability of a power of `tanh (w z + h)` under the standard Gaussian. -/
 theorem integrable_tanh_pow_gaussian (w h : ℝ) (k : ℕ) :
-    Integrable (fun z : ℝ => Real.tanh (w * z + h) ^ k) (gaussianReal 0 1) := by
-  refine Integrable.of_bound ?_ 1 (ae_of_all _ fun z => ?_)
-  · exact ((Real.continuous_tanh.comp (by fun_prop)).pow k).aestronglyMeasurable
-  · rw [Real.norm_eq_abs, abs_pow]
-    exact pow_le_one₀ (abs_nonneg _) (Real.abs_tanh_lt_one _).le
+    Integrable (fun z : ℝ => Real.tanh (w * z + h) ^ k) (gaussianReal 0 1) :=
+  MeasureTheory.integrable_tanh_pow (fun z => w * z + h) (by fun_prop) k
 
 /-- The Almeida-Thouless quantity `1 - 2 q + q̂ = 𝔼 (1 - tanh² Y)²` lies in `[0, 1]`. -/
 theorem tanh_fourth_sub_two_add_one_mem_Icc (w h : ℝ) :
     (∫ z : ℝ, Real.tanh (w * z + h) ^ 4 ∂(gaussianReal 0 1)) -
-      2 * (∫ z : ℝ, Real.tanh (w * z + h) ^ 2 ∂(gaussianReal 0 1)) + 1 ∈ Set.Icc (0 : ℝ) 1 := by
-  have h2 := integrable_tanh_pow_gaussian w h 2
-  have h4 := integrable_tanh_pow_gaussian w h 4
-  have key : (∫ z : ℝ, Real.tanh (w * z + h) ^ 4 ∂(gaussianReal 0 1)) -
-      2 * (∫ z : ℝ, Real.tanh (w * z + h) ^ 2 ∂(gaussianReal 0 1)) + 1 =
-      ∫ z : ℝ, (1 - Real.tanh (w * z + h) ^ 2) ^ 2 ∂(gaussianReal 0 1) := by
-    have e : ∀ z : ℝ, (1 - Real.tanh (w * z + h) ^ 2) ^ 2 =
-        (Real.tanh (w * z + h) ^ 4 - 2 * Real.tanh (w * z + h) ^ 2) + 1 := fun z => by ring
-    simp_rw [e]
-    have hi : Integrable (fun z : ℝ => Real.tanh (w * z + h) ^ 4 -
-        2 * Real.tanh (w * z + h) ^ 2) (gaussianReal 0 1) := h4.sub (h2.const_mul 2)
-    rw [integral_add hi (integrable_const _), integral_sub h4 (h2.const_mul 2),
-      integral_const_mul]
-    simp
-  rw [key]
-  have hb : ∀ z : ℝ, 0 ≤ (1 - Real.tanh (w * z + h) ^ 2) ^ 2 ∧
-      (1 - Real.tanh (w * z + h) ^ 2) ^ 2 ≤ 1 := fun z => by
-    have h0 : 0 ≤ Real.tanh (w * z + h) ^ 2 := sq_nonneg _
-    have h1 : Real.tanh (w * z + h) ^ 2 ≤ 1 := by
-      have := Real.abs_tanh_lt_one (w * z + h)
-      nlinarith [abs_nonneg (Real.tanh (w * z + h)), sq_abs (Real.tanh (w * z + h))]
-    exact ⟨sq_nonneg _, by nlinarith⟩
-  refine ⟨integral_nonneg fun z => (hb z).1, ?_⟩
-  calc _ ≤ ∫ z : ℝ, (1 : ℝ) ∂(gaussianReal 0 1) :=
-        integral_mono_of_nonneg (ae_of_all _ fun z => (hb z).1) (integrable_const _)
-          (ae_of_all _ fun z => (hb z).2)
-    _ = 1 := by simp
+      2 * (∫ z : ℝ, Real.tanh (w * z + h) ^ 2 ∂(gaussianReal 0 1)) + 1 ∈ Set.Icc (0 : ℝ) 1 :=
+  probability_tanh_fourth_sub_two_add_one_mem_Icc (fun z => w * z + h) (by fun_prop)
+
+/-- Generic four-variable rectangle bound: `((x₀ - x₁)(x₂ - x₃))² ≤ 16` for `|x_i| ≤ 1`. -/
+theorem sq_rect_le_of_abs_le_one {x₀ x₁ x₂ x₃ : ℝ}
+    (h0 : |x₀| ≤ 1) (h1 : |x₁| ≤ 1) (h2 : |x₂| ≤ 1) (h3 : |x₃| ≤ 1) :
+    ((x₀ - x₁) * (x₂ - x₃)) ^ 2 ≤ 16 := by
+  have hd1 : |x₀ - x₁| ≤ 2 := (abs_sub x₀ x₁).trans (by linarith)
+  have hd2 : |x₂ - x₃| ≤ 2 := (abs_sub x₂ x₃).trans (by linarith)
+  have hp : |(x₀ - x₁) * (x₂ - x₃)| ≤ 4 := by
+    rw [abs_mul]
+    nlinarith [abs_nonneg (x₀ - x₁), abs_nonneg (x₂ - x₃)]
+  nlinarith [sq_abs ((x₀ - x₁) * (x₂ - x₃)), abs_nonneg ((x₀ - x₁) * (x₂ - x₃))]
 
 /-- `((ε₁ - ε₂)(ε₃ - ε₄))² ≤ 16` for four signs. -/
 theorem sq_sign_rect_le (u₀ u₁ u₂ u₃ : ℤˣ) :
-    ((((u₀ : ℤ) : ℝ) - ((u₁ : ℤ) : ℝ)) * (((u₂ : ℤ) : ℝ) - ((u₃ : ℤ) : ℝ))) ^ 2 ≤ 16 := by
-  have h1 : |((u₀ : ℤ) : ℝ) - ((u₁ : ℤ) : ℝ)| ≤ 2 :=
-    (abs_sub _ _).trans (by linarith only [abs_units_cast_le_one u₀, abs_units_cast_le_one u₁])
-  have h2 : |((u₂ : ℤ) : ℝ) - ((u₃ : ℤ) : ℝ)| ≤ 2 :=
-    (abs_sub _ _).trans (by linarith only [abs_units_cast_le_one u₂, abs_units_cast_le_one u₃])
-  have h3 : |(((u₀ : ℤ) : ℝ) - ((u₁ : ℤ) : ℝ)) * (((u₂ : ℤ) : ℝ) - ((u₃ : ℤ) : ℝ))| ≤ 4 := by
-    rw [abs_mul]
-    nlinarith only [h1, h2, abs_nonneg (((u₀ : ℤ) : ℝ) - ((u₁ : ℤ) : ℝ)),
-      abs_nonneg (((u₂ : ℤ) : ℝ) - ((u₃ : ℤ) : ℝ))]
-  nlinarith only [h3, sq_abs ((((u₀ : ℤ) : ℝ) - ((u₁ : ℤ) : ℝ)) *
-    (((u₂ : ℤ) : ℝ) - ((u₃ : ℤ) : ℝ))), abs_nonneg ((((u₀ : ℤ) : ℝ) - ((u₁ : ℤ) : ℝ)) *
-    (((u₂ : ℤ) : ℝ) - ((u₃ : ℤ) : ℝ)))]
+    ((((u₀ : ℤ) : ℝ) - ((u₁ : ℤ) : ℝ)) * (((u₂ : ℤ) : ℝ) - ((u₃ : ℤ) : ℝ))) ^ 2 ≤ 16 :=
+  sq_rect_le_of_abs_le_one (abs_units_cast_le_one u₀) (abs_units_cast_le_one u₁)
+    (abs_units_cast_le_one u₂) (abs_units_cast_le_one u₃)
+
+/-- An `n`-replica SK average is additive. -/
+theorem sk_replica_avg_add (N n : ℕ) (β h : ℝ)
+    (ν : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
+    (hν : ∀ Φ, ν Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, Φ σ
+      ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+        (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ))
+      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    (Φ Ψ : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) :
+    ν (fun σ => Φ σ + Ψ σ) = ν Φ + ν Ψ := by
+  simp only [hν]
+  have e1 : ∀ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, (Φ σ + Ψ σ)
+      ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+        (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ)) =
+      (∫ σ : Fin n → Fin (N + 1) → ℤˣ, Φ σ
+        ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+          (Real.sqrt (N + 1))⁻¹ * β *
+            (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+          h * ∑ i : Fin (N + 1), (a i : ℝ))) +
+      ∫ σ : Fin n → Fin (N + 1) → ℤˣ, Ψ σ
+        ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+          (Real.sqrt (N + 1))⁻¹ * β *
+            (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+          h * ∑ i : Fin (N + 1), (a i : ℝ)) := fun g =>
+    integral_add Integrable.of_finite Integrable.of_finite
+  simp_rw [e1]
+  exact integral_add (integrable_integral_sk_replica N n β h Φ)
+    (integrable_integral_sk_replica N n β h Ψ)
+
+/-- An `n`-replica SK average is homogeneous. -/
+theorem sk_replica_avg_smul (N n : ℕ) (β h : ℝ)
+    (ν : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
+    (hν : ∀ Φ, ν Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, Φ σ
+      ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+        (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ))
+      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    (c : ℝ) (Φ : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) :
+    ν (fun σ => c * Φ σ) = c * ν Φ := by
+  simp only [hν, integral_const_mul]
+
+/-- An `n`-replica SK average is monotone. -/
+theorem sk_replica_avg_mono (N n : ℕ) (β h : ℝ)
+    (ν : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
+    (hν : ∀ Φ, ν Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, Φ σ
+      ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+        (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ))
+      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    (Φ Ψ : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) (hΦΨ : ∀ σ, Φ σ ≤ Ψ σ) :
+    ν Φ ≤ ν Ψ := by
+  rw [hν, hν]
+  exact integral_integral_sk_replica_mono N n β h hΦΨ
+
+/-- An `n`-replica SK average is normalized. -/
+theorem sk_replica_avg_const (N n : ℕ) (β h : ℝ)
+    (ν : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
+    (hν : ∀ Φ, ν Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, Φ σ
+      ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+        (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ))
+      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    (c : ℝ) : ν (fun _ => c) = c := by
+  simp [hν]
+
+/-- Finite combinations commute with an `n`-replica SK average. -/
+theorem sk_replica_avg_finset_sum (N n : ℕ) (β h : ℝ)
+    (ν : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
+    (hν : ∀ Φ, ν Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, Φ σ
+      ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+        (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ))
+      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    {ι : Type*} (s : Finset ι) (c : ι → ℝ) (Φ : ι → (Fin n → Fin (N + 1) → ℤˣ) → ℝ) :
+    ν (fun σ => ∑ j ∈ s, c j * Φ j σ) = ∑ j ∈ s, c j * ν (Φ j) := by
+  have hEg (a : Fin (N + 1) → ℤˣ) : Measurable (fun g : FinPairs (N + 1) → ℝ =>
+      (Real.sqrt (N + 1))⁻¹ * β *
+        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+      h * ∑ i : Fin (N + 1), (a i : ℝ)) := by fun_prop
+  simp only [hν]
+  exact integral_gibbs_finset_sum (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)
+    (R := Fin n) _ hEg s c Φ
 
 /-- **Calculus of an `n`-replica SK average.**  An average `ν` of observables of `n` replicas,
 `ν Φ = 𝔼 ⟨Φ⟩`, is additive, homogeneous, monotone and normalized. -/
@@ -467,32 +531,11 @@ theorem sk_replica_avg_calculus (N n : ℕ) (β h : ℝ)
     (∀ Φ Ψ : (Fin n → Fin (N + 1) → ℤˣ) → ℝ, ν (fun σ => Φ σ + Ψ σ) = ν Φ + ν Ψ) ∧
     (∀ (c : ℝ) (Φ : (Fin n → Fin (N + 1) → ℤˣ) → ℝ), ν (fun σ => c * Φ σ) = c * ν Φ) ∧
     (∀ Φ Ψ : (Fin n → Fin (N + 1) → ℤˣ) → ℝ, (∀ σ, Φ σ ≤ Ψ σ) → ν Φ ≤ ν Ψ) ∧
-    (∀ c : ℝ, ν (fun _ => c) = c) := by
-  refine ⟨fun Φ Ψ => ?_, fun c Φ => ?_, fun Φ Ψ hΦΨ => ?_, fun c => ?_⟩
-  · simp only [hν]
-    have e1 : ∀ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, (Φ σ + Ψ σ)
-        ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-          (Real.sqrt (N + 1))⁻¹ * β *
-            (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-          h * ∑ i : Fin (N + 1), (a i : ℝ)) =
-        (∫ σ : Fin n → Fin (N + 1) → ℤˣ, Φ σ
-          ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-            (Real.sqrt (N + 1))⁻¹ * β *
-              (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-            h * ∑ i : Fin (N + 1), (a i : ℝ))) +
-        ∫ σ : Fin n → Fin (N + 1) → ℤˣ, Ψ σ
-          ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-            (Real.sqrt (N + 1))⁻¹ * β *
-              (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-            h * ∑ i : Fin (N + 1), (a i : ℝ)) := fun g =>
-      integral_add Integrable.of_finite Integrable.of_finite
-    simp_rw [e1]
-    exact integral_add (integrable_integral_sk_replica N n β h Φ)
-      (integrable_integral_sk_replica N n β h Ψ)
-  · simp only [hν, integral_const_mul]
-  · rw [hν, hν]
-    exact integral_integral_sk_replica_mono N n β h hΦΨ
-  · simp [hν]
+    (∀ c : ℝ, ν (fun _ => c) = c) :=
+  ⟨sk_replica_avg_add N n β h ν hν,
+   sk_replica_avg_smul N n β h ν hν,
+   sk_replica_avg_mono N n β h ν hν,
+   sk_replica_avg_const N n β h ν hν⟩
 
 /-- **The linear relations between the second moments** used in Proposition 1.8.5:
 with `a = (ε₁ - ε₂)(ε₃ - ε₄)` the last-site factor, `rect = rect⁻ + a/M`, `f* = rect⁻ · a`,
@@ -753,16 +796,11 @@ theorem sk_rect_nu_decoupled (N : ℕ) (β h q : ℝ)
             ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) := by
   intro aL Fo rectm fstar c₂ Esk
   have hq : q ∈ Set.Icc (0 : ℝ) 1 := fixedPoint_mem_Icc hfix
-  have hperm : ∀ k : ℕ, (∫ z : ℝ, Real.tanh (β * z * Real.sqrt q + h) ^ k ∂(gaussianReal 0 1)) =
-      ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ k ∂(gaussianReal 0 1) := fun k => by
-    congr 1
-    ext z
-    rw [mul_right_comm]
   have hfixz : ∫ z : ℝ, Real.tanh (β * z * Real.sqrt q + h) ^ 2 ∂(gaussianReal 0 1) = q := by
-    rw [hperm, hfix]
+    rw [integral_tanh_pow_mul_z_sqrt_eq, hfix]
   have hc₂z : (∫ z : ℝ, Real.tanh (β * z * Real.sqrt q + h) ^ 4 ∂(gaussianReal 0 1)) -
       2 * q + 1 = c₂ := by
-    rw [hperm]
+    rw [integral_tanh_pow_mul_z_sqrt_eq]
   let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
     (Real.sqrt (N + 1))⁻¹ * β *
         (∑ p : FinPairs N, g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +

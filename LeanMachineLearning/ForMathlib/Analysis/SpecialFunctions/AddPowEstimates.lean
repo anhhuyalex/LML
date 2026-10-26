@@ -199,7 +199,7 @@ theorem prod_abs_le_sum_pow {ι : Type*} (s : Finset ι) (hs : s.Nonempty) (a : 
     ∏ j ∈ s, |a j| ≤ ∑ j ∈ s, |a j| ^ s.card := by
   obtain ⟨j₀, hj₀s, hj₀⟩ := Finset.exists_max_image s (fun j => |a j|) hs
   calc ∏ j ∈ s, |a j| ≤ ∏ _j ∈ s, |a j₀| :=
-        Finset.prod_le_prod (fun j _ => abs_nonneg _) fun j hj => hj₀ j hj
+        Finset.prod_le_prod₀ (fun _ _ => abs_nonneg _) fun j hj => hj₀ j hj
     _ = |a j₀| ^ s.card := by simp
     _ ≤ ∑ j ∈ s, |a j| ^ s.card :=
         Finset.single_le_sum (f := fun j => |a j| ^ s.card) (fun j _ => by positivity) hj₀s

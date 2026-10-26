@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.AddPowEstimates
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Tanh
 public import Mathlib.MeasureTheory.Integral.Bochner.Basic
 public import Mathlib.MeasureTheory.Integral.IntegrableOn
 
@@ -44,6 +45,22 @@ theorem integrable_sq_of_abs_le {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Me
     [IsFiniteMeasure μ] {f : Ω → ℝ} (hf : Measurable f) {C : ℝ} (hC : ∀ ω, |f ω| ≤ C) :
     Integrable (fun ω => f ω ^ 2) μ :=
   integrable_pow_of_abs_le hf 2 hC
+
+/-- Powers of `tanh ∘ Y` are integrable for any finite measure and
+almost-everywhere measurable `Y`. -/
+theorem integrable_tanh_pow {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Measure Ω}
+    [IsFiniteMeasure μ] (Y : Ω → ℝ) (hY : AEMeasurable Y μ) (k : ℕ) :
+    Integrable (fun ω => Real.tanh (Y ω) ^ k) μ := by
+  refine Integrable.of_bound ?_ 1 (Filter.Eventually.of_forall fun ω => ?_)
+  · exact ((continuous_pow k).comp Real.continuous_tanh).aestronglyMeasurable.comp_aemeasurable hY
+  · rw [Real.norm_eq_abs, abs_pow]
+    exact pow_le_one₀ (abs_nonneg _) (Real.abs_tanh_lt_one (Y ω)).le
+
+/-- `tanh² ∘ Y` is integrable for any finite measure and almost-everywhere measurable `Y`. -/
+theorem integrable_tanh_sq' {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Measure Ω}
+    [IsFiniteMeasure μ] (Y : Ω → ℝ) (hY : AEMeasurable Y μ) :
+    Integrable (fun ω => Real.tanh (Y ω) ^ 2) μ :=
+  integrable_tanh_pow Y hY 2
 
 /-- **Three-term triangle inequality in `L²`:**
 `∫ (a + b + c)² ≤ 3 ∫ a² + 3 ∫ b² + 3 ∫ c²` for square-integrable `a, b, c`. -/

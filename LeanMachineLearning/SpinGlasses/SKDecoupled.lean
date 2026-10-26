@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.HypercubeProduct
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Tanh
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SqSub
 public import LeanMachineLearning.SpinGlasses.Basic
 public import LeanMachineLearning.SpinGlasses.GibbsMeasure
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
@@ -61,15 +62,39 @@ namespace SpinGlasses
 measurable random variable `Y`. -/
 lemma integrable_tanh_sq {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω}
     [IsProbabilityMeasure P] (Y : Ω → ℝ) (hY : AEMeasurable Y P) :
-    Integrable (fun ω => Real.tanh (Y ω) ^ 2) P := by
-  refine Integrable.of_bound ?_ 1 ?_
-  · exact ((continuous_pow 2).comp Real.continuous_tanh).aestronglyMeasurable.comp_aemeasurable hY
-  · refine ae_of_all _ fun ω => ?_
-    rw [Real.norm_eq_abs, abs_sq]
-    have h0 : 0 ≤ |Real.tanh (Y ω)| := abs_nonneg _
-    have h1 : |Real.tanh (Y ω)| ≤ 1 := (Real.abs_tanh_lt_one (Y ω)).le
-    rw [← sq_abs]
-    nlinarith
+    Integrable (fun ω => Real.tanh (Y ω) ^ 2) P :=
+  MeasureTheory.integrable_tanh_sq' Y hY
+
+/-- For any random variable `Y` under a probability measure,
+`∫ tanh⁴(Y) - 2 ∫ tanh²(Y) + 1 = ∫ (1 - tanh²(Y))² ∈ [0, 1]`. -/
+theorem probability_tanh_fourth_sub_two_add_one_mem_Icc {Ω : Type*} [MeasurableSpace Ω]
+    {P : Measure Ω} [IsProbabilityMeasure P] (Y : Ω → ℝ) (hY : AEMeasurable Y P) :
+    (∫ ω, Real.tanh (Y ω) ^ 4 ∂P) - 2 * (∫ ω, Real.tanh (Y ω) ^ 2 ∂P) + 1 ∈ Set.Icc (0 : ℝ) 1 := by
+  have h2 := integrable_tanh_sq Y hY
+  have h4 := MeasureTheory.integrable_tanh_pow Y hY 4
+  have key : (∫ ω, Real.tanh (Y ω) ^ 4 ∂P) - 2 * (∫ ω, Real.tanh (Y ω) ^ 2 ∂P) + 1 =
+      ∫ ω, (1 - Real.tanh (Y ω) ^ 2) ^ 2 ∂P := by
+    have e : ∀ ω, (1 - Real.tanh (Y ω) ^ 2) ^ 2 =
+        (Real.tanh (Y ω) ^ 4 - 2 * Real.tanh (Y ω) ^ 2) + 1 := fun ω => by ring
+    simp_rw [e]
+    have hi : Integrable (fun ω => Real.tanh (Y ω) ^ 4 -
+        2 * Real.tanh (Y ω) ^ 2) P := h4.sub (h2.const_mul 2)
+    rw [integral_add hi (integrable_const _), integral_sub h4 (h2.const_mul 2),
+      integral_const_mul]
+    simp
+  rw [key]
+  have hb : ∀ ω, 0 ≤ (1 - Real.tanh (Y ω) ^ 2) ^ 2 ∧
+      (1 - Real.tanh (Y ω) ^ 2) ^ 2 ≤ 1 := fun ω => by
+    have h0 : 0 ≤ Real.tanh (Y ω) ^ 2 := sq_nonneg _
+    have h1 : Real.tanh (Y ω) ^ 2 ≤ 1 := by
+      have := Real.abs_tanh_lt_one (Y ω)
+      nlinarith [abs_nonneg (Real.tanh (Y ω)), sq_abs (Real.tanh (Y ω))]
+    exact ⟨sq_nonneg _, by nlinarith⟩
+  refine ⟨integral_nonneg fun ω => (hb ω).1, ?_⟩
+  calc _ ≤ ∫ ω, (1 : ℝ) ∂P :=
+        integral_mono_of_nonneg (ae_of_all _ fun ω => (hb ω).1) (integrable_const _)
+          (ae_of_all _ fun ω => (hb ω).2)
+    _ = 1 := by simp
 
 variable {ι : Type*} [Fintype ι]
 
