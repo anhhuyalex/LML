@@ -4953,8 +4953,42 @@ Then:
 Direct linear algebra on $\mathrm{Matrix}(\mathrm{Fin}\,3)(\mathrm{Fin}\,3)\,\mathbb R$ by coordinate expansion, followed by arithmetic using $b(c) = \beta^2(\mathbb E\tanh^{4-2c}Y - q^2)$ and $q = \mathbb E\tanh^2 Y, \hat{q} = \mathbb E\tanh^4 Y$.
 \end{proof}
 
+\begin{theorem}[The $3\times3$ AT covariance equations and decoupled solutions]
+\label{thm:sg-tal:at-covariance-equations}
+  \uses{thm:sg-tal:at-matrix}
+  \lean{SpinGlasses.sk_at_source,
+        SpinGlasses.sk_at_source_dot_eigenvector_one,
+        SpinGlasses.sk_at_source_dot_eigenvector_two,
+        SpinGlasses.sk_at_covariance_equations_iff,
+        SpinGlasses.sk_at_system_dot_eigenvector_one,
+        SpinGlasses.sk_at_system_dot_eigenvector_two,
+        SpinGlasses.sk_at_system_solve_one,
+        SpinGlasses.sk_at_system_solve_two,
+        SpinGlasses.sk_at_system_solve_one_beta}
+  \leanok
+\talsource{Section~1.8, Eqs.~(1.231)--(1.236)}
+Let $\mathbf{v} = (U, V, W)^T$ and $\mathbf{S} = \frac{1}{M}(1 - q^2, q - q^2, \hat{q} - q^2)^T$.
+The three covariance equations of Talagrand (1.231)--(1.233):
+\begin{align*}
+U &= \frac{1 - q^2}{M} + b(2) U - 4 b(1) V + 3 b(0) W + \mathcal{R}_0, \\
+V &= \frac{q - q^2}{M} + b(1) U + (b(2) - 2 b(1) - 3 b(0)) V + (6 b(0) - 3 b(1)) W + \mathcal{R}_1, \\
+W &= \frac{\hat{q} - q^2}{M} + b(0) U + (4 b(1) - 8 b(0)) V + (b(2) - 8 b(1) + 10 b(0)) W + \mathcal{R}_2,
+\end{align*}
+are equivalent to the vector system $\mathbf{v} = \mathbf{S} + M \mathbf{v} + \boldsymbol{\mathcal{R}}$.
+Projecting along the transposed universal eigenvectors $\mathbf{v}_1 = (1, -2, 1)^T$ and $\mathbf{v}_2 = (1, -4, 3)^T$ decouples the modes with eigenvalues $\lambda_1 = \beta^2(1 - 2q + \hat{q})$ and $\lambda_2 = \beta^2(1 - 4q + 3\hat{q})$. When $\lambda_1, \lambda_2 \ne 1$, the exact solutions are:
+\begin{align*}
+(U - 2 V + W) - \frac{1 - 2q + \hat{q}}{M (1 - \lambda_1)} &= \frac{\mathbf{v}_1^T \boldsymbol{\mathcal{R}}}{1 - \lambda_1}, \\
+(U - 4 V + 3 W) - \frac{1 - 4q + 3\hat{q}}{M (1 - \lambda_2)} &= \frac{\mathbf{v}_2^T \boldsymbol{\mathcal{R}}}{1 - \lambda_2}.
+\end{align*}
+In particular, multiplying the first solution by $4$ recovers the leading term $4 (1 - 2q + \hat{q}) / (M (1 - \lambda_1))$ of Proposition~1.8.5.
+\end{theorem}
+\begin{proof}
+  \leanok
+Follows by algebraic projection using the universal eigenvectors $\mathbf{v}_1$ and $\mathbf{v}_2$, the eigenvalue formulas, and fraction cancellation.
+\end{proof}
+
 \begin{remark}[What remains of Section~1.8]
 \label{rem:sg-tal:remaining-18}
-Proved here: Proposition~1.8.1 (Eqs.~(1.215), (1.216)), Lemma~1.8.4 (Theorem~\ref{thm:sg-tal:lemma-184}), Proposition~1.8.5 (Theorem~\ref{thm:sg-tal:prop-185}), Corollary~1.8.6 (Theorem~\ref{cor:sg-tal:corollary-186}), General Lemma~1.8.2 (Eq.~(1.230), Theorem~\ref{thm:sg-tal:lemma-182}), and the $3\times3$ AT matrix system (Eqs.~(1.231)--(1.236), Theorem~\ref{thm:sg-tal:at-matrix}).
+Proved here: Proposition~1.8.1 (Eqs.~(1.215), (1.216)), Lemma~1.8.4 (Theorem~\ref{thm:sg-tal:lemma-184}), Proposition~1.8.5 (Theorem~\ref{thm:sg-tal:prop-185}), Corollary~1.8.6 (Theorem~\ref{cor:sg-tal:corollary-186}), General Lemma~1.8.2 (Eq.~(1.230), Theorem~\ref{thm:sg-tal:lemma-182}), the $3\times3$ AT matrix system (Eqs.~(1.231)--(1.236), Theorem~\ref{thm:sg-tal:at-matrix}), and the decoupled covariance equations (Theorem~\ref{thm:sg-tal:at-covariance-equations}).
 Not formalized: Propositions~1.8.7--1.8.11 (the orthogonal basis $T_{\ell\ell'},T_\ell,T$) and Theorem~1.8.12 (the final formula for $U,V,W$ and the AT-line statement).
 \end{remark}
