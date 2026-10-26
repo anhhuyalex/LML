@@ -34,6 +34,24 @@ open MeasureTheory ProbabilityTheory
 
 namespace SpinGlasses
 
+/-- **Site exchange for Gibbs means, explicit form.**  Relabelling the couplings by
+`g ∘ (pairPerm π).symm` relabels the Gibbs means of the spins: `⟨σ_i⟩_{g ∘ (pairPerm π).symm} =
+⟨σ_{π⁻¹ i}⟩_g`. -/
+theorem integral_spin_comp_pairPerm (M : ℕ) (β h : ℝ) (π : Equiv.Perm (Fin M))
+    (g : FinPairs M → ℝ) (i : Fin M) :
+    ∫ σ : Fin M → ℤˣ, ((σ i : ℤ) : ℝ)
+        ∂(Measure.count.tilted (skGibbsEnergy M β h (g ∘ (pairPerm π).symm))) =
+      ∫ σ : Fin M → ℤˣ, ((σ (π.symm i) : ℤ) : ℝ)
+        ∂(Measure.count.tilted (skGibbsEnergy M β h g)) := by
+  rw [integral_count_tilted, integral_count_tilted]
+  simp_rw [gibbsWeight_comp_pairPerm β h π (skGibbsEnergy M β h) (fun _ _ => rfl) g]
+  have := Equiv.sum_comp (Equiv.arrowCongr π.symm (Equiv.refl ℤˣ))
+    (fun τ : Fin M → ℤˣ => Real.exp (skGibbsEnergy M β h g τ) /
+      (∑ b, Real.exp (skGibbsEnergy M β h g b)) * ((τ (π.symm i) : ℤ) : ℝ))
+  rw [← this]
+  refine Finset.sum_congr rfl fun σ _ => ?_
+  simp
+
 /-- **Site exchange for Gibbs means.**  For every relabelling `π` of the sites there is a measure
 preserving map `φ` of the couplings with `⟨σ_i⟩_{φ g} = ⟨σ_{π⁻¹ i}⟩_g`. -/
 theorem exists_sk_site_exchange (M : ℕ) (β h : ℝ) (π : Equiv.Perm (Fin M)) :
@@ -43,18 +61,9 @@ theorem exists_sk_site_exchange (M : ℕ) (β h : ℝ) (π : Equiv.Perm (Fin M))
       ∀ (g : FinPairs M → ℝ) (i : Fin M),
         ∫ σ : Fin M → ℤˣ, ((σ i : ℤ) : ℝ) ∂(Measure.count.tilted (skGibbsEnergy M β h (φ g))) =
           ∫ σ : Fin M → ℤˣ, ((σ (π.symm i) : ℤ) : ℝ)
-            ∂(Measure.count.tilted (skGibbsEnergy M β h g)) := by
-  obtain ⟨φ, hφ, hw⟩ := exists_measurePreserving_sk_gibbsWeight β h π (skGibbsEnergy M β h)
-    (fun _ _ => rfl)
-  refine ⟨φ, hφ, fun g i => ?_⟩
-  rw [integral_count_tilted, integral_count_tilted]
-  simp_rw [hw g]
-  have := Equiv.sum_comp (Equiv.arrowCongr π.symm (Equiv.refl ℤˣ))
-    (fun τ : Fin M → ℤˣ => Real.exp (skGibbsEnergy M β h g τ) /
-      (∑ b, Real.exp (skGibbsEnergy M β h g b)) * ((τ (π.symm i) : ℤ) : ℝ))
-  rw [← this]
-  refine Finset.sum_congr rfl fun σ _ => ?_
-  simp
+            ∂(Measure.count.tilted (skGibbsEnergy M β h g)) :=
+  ⟨fun g => g ∘ (pairPerm π).symm, measurePreserving_comp_pairPerm (gaussianReal 0 1) π,
+    integral_spin_comp_pairPerm M β h π⟩
 
 /-- A real-analytic estimate for the passage from `(β_-, q_-)` to `(β, q)`:
 `(β_- √q_- - β √q)² ≤ 1/(N+1)` when `|q - q_-| ≤ 1/(N+1)`, `β_- = β √(N/(N+1))` and

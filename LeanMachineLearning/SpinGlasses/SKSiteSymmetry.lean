@@ -83,24 +83,18 @@ theorem measurePreserving_comp_pairPerm (μ : Measure ℝ) [SigmaFinite μ]
   ext g a
   simp [MeasurableEquiv.coe_piCongrLeft, Equiv.piCongrLeft_apply_eq_cast]
 
-/-- **The Gibbs weights of the SK model are site-symmetric in law.**  For every permutation `π` of
-the sites there is a measure-preserving relabelling `φ` of the Gaussian couplings under which the
-Gibbs weight of the relabelled configuration is the weight of the original one:
-`G_{φ g}(σ) = G_g(σ ∘ π)`.  Here the energy `E g a` is the SK Hamiltonian with pair couplings `g`
-and external field `h`; the configuration relabelling is `Equiv.arrowCongr π.symm (Equiv.refl _)`,
-`σ ↦ σ ∘ π`. -/
-theorem exists_measurePreserving_sk_gibbsWeight (β h : ℝ) (π : Equiv.Perm (Fin N))
+/-- **Relabelling the couplings relabels the Gibbs weights.**  With the SK energy `E` (pair
+couplings `g`, external field `h`), the Gibbs weight of `σ` under the relabelled couplings
+`g ∘ (pairPerm π).symm` is the weight of `σ ∘ π` under `g`: `G_{g ∘ (pairPerm π).symm}(σ) =
+G_g(σ ∘ π)`; the configuration relabelling is `Equiv.arrowCongr π.symm (Equiv.refl _)`. -/
+theorem gibbsWeight_comp_pairPerm (β h : ℝ) (π : Equiv.Perm (Fin N))
     (E : (FinPairs N → ℝ) → (Fin N → ℤˣ) → ℝ)
     (hE : ∀ g a, E g a = (Real.sqrt N)⁻¹ * β *
       (∑ p : FinPairs N, g p * ((a p.val.1 : ℤ) : ℝ) * ((a p.val.2 : ℤ) : ℝ)) +
-        h * ∑ i, ((a i : ℤ) : ℝ)) :
-    ∃ φ : (FinPairs N → ℝ) → (FinPairs N → ℝ),
-      MeasurePreserving φ (Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
-        (Measure.pi fun _ : FinPairs N => gaussianReal 0 1) ∧
-      ∀ g σ, Real.exp (E (φ g) σ) / ∑ b, Real.exp (E (φ g) b) =
-        Real.exp (E g (Equiv.arrowCongr π.symm (Equiv.refl _) σ)) / ∑ b, Real.exp (E g b) := by
-  refine ⟨fun g => g ∘ (pairPerm π).symm,
-    measurePreserving_comp_pairPerm (gaussianReal 0 1) π, fun g σ => ?_⟩
+        h * ∑ i, ((a i : ℤ) : ℝ))
+    (g : FinPairs N → ℝ) (σ : Fin N → ℤˣ) :
+    Real.exp (E (g ∘ (pairPerm π).symm) σ) / ∑ b, Real.exp (E (g ∘ (pairPerm π).symm) b) =
+      Real.exp (E g (Equiv.arrowCongr π.symm (Equiv.refl _) σ)) / ∑ b, Real.exp (E g b) := by
   have hact : ∀ τ : Fin N → ℤˣ, Equiv.arrowCongr π.symm (Equiv.refl (ℤˣ)) τ = τ ∘ π := fun τ => by
     ext i; simp
   have hEc : ∀ τ : Fin N → ℤˣ, E (g ∘ (pairPerm π).symm) τ = E g (τ ∘ π) := fun τ => by
@@ -115,5 +109,22 @@ theorem exists_measurePreserving_sk_gibbsWeight (β h : ℝ) (π : Equiv.Perm (F
   have := Equiv.sum_comp (Equiv.arrowCongr π.symm (Equiv.refl (ℤˣ))) fun b => Real.exp (E g b)
   simp only [hact] at this
   exact this
+
+/-- **The Gibbs weights of the SK model are site-symmetric in law.**  For every permutation `π` of
+the sites there is a measure-preserving relabelling `φ` of the Gaussian couplings under which the
+Gibbs weight of the relabelled configuration is the weight of the original one
+(`gibbsWeight_comp_pairPerm`, with `φ g = g ∘ (pairPerm π).symm`). -/
+theorem exists_measurePreserving_sk_gibbsWeight (β h : ℝ) (π : Equiv.Perm (Fin N))
+    (E : (FinPairs N → ℝ) → (Fin N → ℤˣ) → ℝ)
+    (hE : ∀ g a, E g a = (Real.sqrt N)⁻¹ * β *
+      (∑ p : FinPairs N, g p * ((a p.val.1 : ℤ) : ℝ) * ((a p.val.2 : ℤ) : ℝ)) +
+        h * ∑ i, ((a i : ℤ) : ℝ)) :
+    ∃ φ : (FinPairs N → ℝ) → (FinPairs N → ℝ),
+      MeasurePreserving φ (Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
+        (Measure.pi fun _ : FinPairs N => gaussianReal 0 1) ∧
+      ∀ g σ, Real.exp (E (φ g) σ) / ∑ b, Real.exp (E (φ g) b) =
+        Real.exp (E g (Equiv.arrowCongr π.symm (Equiv.refl _) σ)) / ∑ b, Real.exp (E g b) :=
+  ⟨fun g => g ∘ (pairPerm π).symm, measurePreserving_comp_pairPerm (gaussianReal 0 1) π,
+    gibbsWeight_comp_pairPerm β h π E hE⟩
 
 end SpinGlasses

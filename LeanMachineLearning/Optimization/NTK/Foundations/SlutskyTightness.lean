@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.MeasurePreservingSymmetry
 public import Mathlib.MeasureTheory.Measure.TightNormed
 public import Mathlib.Probability.Distributions.Gaussian.Multivariate
 public import Mathlib.Probability.Independence.InfinitePi
@@ -216,17 +217,6 @@ theorem exists_forall_measure_norm_gt_le_of_isTightMeasureSet_map
     _ = (μ i).map (X i) {x : E | R < ‖x‖} :=
         (Measure.map_apply_of_aemeasurable (hX i) hopen).symm
     _ ≤ ε := (le_iSup₂ (f := fun ν (_ : ν ∈ S) => ν {x : E | R < ‖x‖}) _ (hmem i)).trans hR.le
-
-/-- Integral of a function composed with a measure-preserving map. Unlike
-`MeasurePreserving.integral_comp` this needs no measurable embedding, which coordinate projections
-are not. -/
-theorem MeasurePreserving.integral_comp_of_aestronglyMeasurable {α β E : Type*}
-    [MeasurableSpace α] [MeasurableSpace β] {μ : Measure α} {ν : Measure β}
-    [NormedAddCommGroup E] [NormedSpace ℝ E] {f : α → β} (hf : MeasurePreserving f μ ν)
-    {g : β → E} (hg : AEStronglyMeasurable g ν) : ∫ x, g (f x) ∂μ = ∫ y, g y ∂ν :=
-  calc ∫ x, g (f x) ∂μ = ∫ y, g y ∂(Measure.map f μ) :=
-        (integral_map hf.measurable.aemeasurable (by rwa [hf.map_eq])).symm
-    _ = ∫ y, g y ∂ν := by rw [hf.map_eq]
 
 /-- **Markov's inequality in high-probability form.** A nonnegative measurable integrable function
 whose integral is at most `τ * δ` is at most `τ` with probability at least `1 - δ`. -/

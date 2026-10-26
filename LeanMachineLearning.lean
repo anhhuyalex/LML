@@ -54,9 +54,11 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IntegrableOf
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedBound
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedHolder
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.JensenLog
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.MeasurePreservingSymmetry
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ParametrizedL2
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SignedToReal
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SqSub
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SupMoment
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.TsumNonneg
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measurable
 public import LeanMachineLearning.ForMathlib.MeasureTheory.MeasurableSpace.Embedding
