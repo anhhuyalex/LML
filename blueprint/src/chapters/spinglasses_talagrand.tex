@@ -280,7 +280,51 @@ F_N(\beta)\longrightarrow \sup_{N\ge1}F_N(\beta)\qquad(N\to\infty).
 \end{theorem}
 \begin{proof}
   \leanok
-By Guerra--Toninelli cavity interpolation splitting a system of size $N+M$ into two independent subsystems of sizes $N$ and $M$; superadditivity of $N F_N$ and Fekete's lemma give the limit (the SK covariance is $N\xi(R)$ with $\xi(x)=\beta^2x^2$, which is convex).
+We first prove the abstract superadditivity statement.  Work on the product probability space carrying three independent disorders of sizes $N+M$, $N$, and $M$.  Index the two fields by pairs $a=(\rho,\tau)\in\Sigma_N\times\Sigma_M$, and set
+\[
+ X_a=H_{N+M}(\rho\frown\tau),\qquad
+ Y_a=H_N(\rho)+H_M(\tau).
+\]
+The three fields are jointly Gaussian on this product space; $X$ and $Y$ are centered and have zero cross-covariance.  For $b=(\rho',\tau')$, write
+\[
+ r=R_N(\rho,\rho'),\qquad s=R_M(\tau,\tau').
+\]
+The overlap of concatenated configurations is
+\[
+ R_{N+M}(\rho\frown\tau,\rho'\frown\tau')=
+ \frac{Nr+Ms}{N+M}.
+\]
+Consequently the covariance identities are
+\[
+ \operatorname{Cov}(X_a,X_b)=(N+M)\xi\!\left(\frac{Nr+Ms}{N+M}\right),
+ \qquad
+ \operatorname{Cov}(Y_a,Y_b)=N\xi(r)+M\xi(s).
+\]
+Here $r,s\in[-1,1]$, so convexity of $\xi$ gives $\operatorname{Cov}(X_a,X_b)\leq\operatorname{Cov}(Y_a,Y_b)$.  On the diagonal $r=s=1$, hence the two variances agree.  The Gaussian comparison theorem (Theorem~\ref{thm:sg:comparison}), with zero bias, now yields
+\[
+ \mathbb E\log\sum_{\rho,\tau}e^{H_N(\rho)+H_M(\tau)}
+ \leq
+ \mathbb E\log\sum_{\rho,\tau}e^{H_{N+M}(\rho\frown\tau)}.
+\]
+The left partition function factorizes as $Z_NZ_M$, while concatenation is a bijection
+$\Sigma_N\times\Sigma_M\simeq\Sigma_{N+M}$ on the right.  Since the log-partition functions are integrable Gaussian finite sums, integrating with respect to the product measure gives
+\[
+ u_N+u_M\leq u_{N+M},\qquad u_K:=\mathbb E\log Z_K.
+\]
+
+It remains to justify the boundedness hypothesis in Fekete's lemma, rather than assuming it.  Jensen's inequality and the Gaussian moment-generating formula give, for every $K\geq1$,
+\[
+ u_K\leq \log\mathbb E Z_K
+ =\log\sum_{\sigma\in\Sigma_K}\exp\!\left(\frac{\operatorname{Var}(H_K(\sigma))}{2}\right)
+ =K\left(\log2+\frac{\xi(1)}2\right),
+\]
+because $|\Sigma_K|=2^K$ and $\operatorname{Var}(H_K(\sigma))=K\xi(1)$.  Thus $u_K/K$ is bounded above.  With $u_0=0$, Fekete's lemma (Lemma~\ref{lem:sg:fekete}) proves
+\[
+ \frac{u_K}{K}\longrightarrow\sup_{K\geq1}\frac{u_K}{K}.
+\]
+Finally, for the full-matrix SK Hamiltonian the covariance is $N R^2$.  Replacing $H_N$ by $\beta H_N$ replaces $\xi(x)=x^2$ by $\beta^2x^2$, still convex on $[-1,1]$, so the preceding abstract result is precisely the displayed convergence of $F_N(\beta)$.
+
+For the conceptual role of these steps and their later uses, see Remark~\ref{rem:sg:gt-intuition}.
 Formalized in \texttt{SpinGlasses/GuerraToninelli.lean}.
 \end{proof}
 

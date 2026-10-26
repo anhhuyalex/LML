@@ -38,24 +38,31 @@ theorem hasDerivAt_sin_sq (s : ℝ) :
   convert (hasDerivAt_sin s).pow 2 using 1
   ring
 
-/-- A derivative bounded above by `K sin s cos s` on `[0, π/2]` bounds the increment by `K / 2`. -/
-theorem sub_le_half_of_deriv_le {φ φ' : ℝ → ℝ} (hd : ∀ s, HasDerivAt φ (φ' s) s) {K : ℝ}
-    (hK : ∀ s ∈ Icc 0 (π / 2), φ' s ≤ K * (sin s * cos s)) : φ (π / 2) - φ 0 ≤ K / 2 := by
+/-- A derivative bounded above by `K sin s cos s` on `[a, b]` bounds the increment from `a` to `b`
+by `K (sin² b - sin² a) / 2`. -/
+theorem sub_le_of_deriv_le_Icc {φ φ' : ℝ → ℝ} (hd : ∀ s, HasDerivAt φ (φ' s) s) {K a b : ℝ}
+    (hab : a ≤ b) (hK : ∀ s ∈ Icc a b, φ' s ≤ K * (sin s * cos s)) :
+    φ b - φ a ≤ K / 2 * (sin b ^ 2 - sin a ^ 2) := by
   have hF : ∀ s, HasDerivAt (fun x => φ x - K / 2 * sin x ^ 2)
       (φ' s - K * (sin s * cos s)) s := fun s => by
     convert (hd s).sub ((hasDerivAt_sin_sq s).const_mul (K / 2)) using 1
     ring
-  have hanti : AntitoneOn (fun x => φ x - K / 2 * sin x ^ 2) (Icc 0 (π / 2)) :=
-    antitoneOn_of_deriv_nonpos (convex_Icc 0 (π / 2))
+  have hanti : AntitoneOn (fun x => φ x - K / 2 * sin x ^ 2) (Icc a b) :=
+    antitoneOn_of_deriv_nonpos (convex_Icc a b)
       (fun s _ => (hF s).continuousAt.continuousWithinAt)
       (fun s _ => (hF s).differentiableAt.differentiableWithinAt) fun s hs => by
         rw [interior_Icc] at hs
         rw [(hF s).deriv]
         linarith [hK s ⟨hs.1.le, hs.2.le⟩]
-  have := hanti ⟨le_rfl, by linarith [pi_pos]⟩ ⟨by linarith [pi_pos], le_rfl⟩
-    (by linarith [pi_pos])
-  simp only [sin_zero, sin_pi_div_two] at this
+  have := hanti ⟨le_rfl, hab⟩ ⟨hab, le_rfl⟩ hab
+  simp only at this
   linarith
+
+/-- A derivative bounded above by `K sin s cos s` on `[0, π/2]` bounds the increment by `K / 2`. -/
+theorem sub_le_half_of_deriv_le {φ φ' : ℝ → ℝ} (hd : ∀ s, HasDerivAt φ (φ' s) s) {K : ℝ}
+    (hK : ∀ s ∈ Icc 0 (π / 2), φ' s ≤ K * (sin s * cos s)) : φ (π / 2) - φ 0 ≤ K / 2 := by
+  have := sub_le_of_deriv_le_Icc hd (by positivity : (0 : ℝ) ≤ π / 2) hK
+  simpa using this
 
 /-- A derivative bounded below by `-K sin s cos s` on `[0, π/2]` bounds the increment below by
 `-K / 2`. -/
@@ -86,6 +93,30 @@ theorem abs_sub_le_half_of_exists_hasDerivAt {φ : ℝ → ℝ} {K : ℝ}
   have := mul_le_mul_of_nonneg_left (hDb s hs) (mul_nonneg hsin hcos)
   linarith
 
+/-- Interval form of `abs_sub_le_half_of_exists_hasDerivAt`: for `0 ≤ a ≤ b ≤ π/2`,
+`|φ b - φ a| ≤ K (sin² b - sin² a) / 2`. -/
+theorem abs_sub_le_of_exists_hasDerivAt_Icc {φ : ℝ → ℝ} {K a b : ℝ}
+    (hd : ∀ s, ∃ D, HasDerivAt φ (sin s * cos s * D) s ∧ (s ∈ Icc 0 (π / 2) → |D| ≤ K))
+    (ha : 0 ≤ a) (hab : a ≤ b) (hb : b ≤ π / 2) :
+    |φ b - φ a| ≤ K / 2 * (sin b ^ 2 - sin a ^ 2) := by
+  choose D hDd hDb using hd
+  have hmem : ∀ s ∈ Icc a b, s ∈ Icc 0 (π / 2) := fun s hs =>
+    ⟨ha.trans hs.1, hs.2.trans hb⟩
+  have hsc : ∀ s ∈ Icc a b, 0 ≤ sin s * cos s := fun s hs => by
+    have hs' := hmem s hs
+    exact mul_nonneg (sin_nonneg_of_nonneg_of_le_pi hs'.1 (hs'.2.trans (by linarith [pi_pos])))
+      (cos_nonneg_of_mem_Icc ⟨by linarith [hs'.1, pi_pos], hs'.2⟩)
+  have hup : ∀ s ∈ Icc a b, sin s * cos s * D s ≤ K * (sin s * cos s) := fun s hs => by
+    have := mul_le_mul_of_nonneg_left (abs_le.1 (hDb s (hmem s hs))).2 (hsc s hs)
+    linarith
+  have hlo : ∀ s ∈ Icc a b, -(K * (sin s * cos s)) ≤ sin s * cos s * D s := fun s hs => by
+    have := mul_le_mul_of_nonneg_left (abs_le.1 (hDb s (hmem s hs))).1 (hsc s hs)
+    linarith
+  refine abs_le.2 ⟨?_, sub_le_of_deriv_le_Icc hDd hab hup⟩
+  have := sub_le_of_deriv_le_Icc (φ := fun s => -φ s) (φ' := fun s => -(sin s * cos s * D s))
+    (fun s => (hDd s).neg) (K := K) hab fun s hs => by linarith [hlo s hs]
+  linarith
+
 /-- If `φ' = sin s cos s D` with `|D - C| ≤ K` on `[0, π/2]`, then
 `|φ (π / 2) - φ 0 - C / 2| ≤ K / 2`. -/
 theorem abs_sub_sub_half_le_of_exists_hasDerivAt {φ : ℝ → ℝ} {C K : ℝ}
@@ -104,6 +135,22 @@ theorem abs_sub_sub_half_le_of_exists_hasDerivAt {φ : ℝ → ℝ} {C K : ℝ}
   simp only [sin_zero, sq, mul_zero, sin_pi_div_two, mul_one, sub_zero] at key
   rw [sub_right_comm] at key
   exact key
+
+/-- **Second-order expansion along the trigonometric path.** If `Ψ' = sin s cos s G` and
+`G' = sin s cos s D` with `|D| ≤ K` on `[0, π/2]`, then
+`|Ψ (π/2) - Ψ 0 - G (π/2) / 2| ≤ K / 4`. -/
+theorem abs_sub_sub_half_le_of_second_order {Ψ G : ℝ → ℝ} {K : ℝ} (hK : 0 ≤ K)
+    (hΨ : ∀ s, HasDerivAt Ψ (sin s * cos s * G s) s)
+    (hG : ∀ s, ∃ D, HasDerivAt G (sin s * cos s * D) s ∧ (s ∈ Icc 0 (π / 2) → |D| ≤ K)) :
+    |Ψ (π / 2) - Ψ 0 - G (π / 2) / 2| ≤ K / 4 := by
+  have key := abs_sub_sub_half_le_of_exists_hasDerivAt (φ := Ψ) (C := G (π / 2)) (K := K / 2)
+    fun s => ⟨G s, hΨ s, fun hs => by
+      have h := abs_sub_le_of_exists_hasDerivAt_Icc hG hs.1 hs.2 le_rfl
+      rw [abs_sub_comm]
+      refine h.trans ?_
+      simp only [sin_pi_div_two]
+      nlinarith [sq_nonneg (sin s)]⟩
+  linarith
 
 /-- Reversed-endpoint form of `abs_sub_sub_half_le_of_exists_hasDerivAt`:
 `|φ 0 - φ (π / 2) + C / 2| ≤ K / 2`. -/

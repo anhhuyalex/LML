@@ -437,6 +437,7 @@ public import LeanMachineLearning.SpinGlasses.SKCavityCoshEstimate
 public import LeanMachineLearning.SpinGlasses.SKCavityDecoupled
 public import LeanMachineLearning.SpinGlasses.SKCavityDecoupledEndpoint
 public import LeanMachineLearning.SpinGlasses.SKCavityDerivative
+public import LeanMachineLearning.SpinGlasses.SKCavityDerivativeBound
 public import LeanMachineLearning.SpinGlasses.SKCavityDomination
 public import LeanMachineLearning.SpinGlasses.SKCavityEndpoint
 public import LeanMachineLearning.SpinGlasses.SKCavityFreeEnergy

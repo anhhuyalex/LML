@@ -5,6 +5,8 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.Pi
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.MeasurePreservingSymmetry
 public import LeanMachineLearning.SpinGlasses.GaussianIBP
 
 /-!
@@ -55,6 +57,15 @@ theorem integral_pi_count_tilted_reindex {R R' : Type*} [Finite α] [Fintype R] 
     (Finset.sum_congr rfl fun σ _ => ?_)
   congr 1
   exact Equiv.prod_comp e (fun r' => Real.exp (f (σ r')) / ∑ b, Real.exp (f b))
+
+/-- **Marginal along an injection of the replicas.** An observable of the replicas `ρ r`
+(`ρ : R → R'` injective) has the same average under `R'` independent replicas as under `R`. -/
+theorem integral_pi_count_tilted_comp_injective {R R' : Type*} [Finite α] [Nonempty α] [Fintype R]
+    [Fintype R'] {ρ : R → R'} (hρ : Function.Injective ρ) (f : α → ℝ) (G : (R → α) → ℝ) :
+    ∫ τ : R' → α, G (fun r => τ (ρ r)) ∂(Measure.pi fun _ : R' => Measure.count.tilted f) =
+      ∫ σ : R → α, G σ ∂(Measure.pi fun _ : R => Measure.count.tilted f) := by
+  exact (measurePreserving_pi_comp_injective (Measure.count.tilted f)
+    hρ).integral_comp_of_aestronglyMeasurable Integrable.of_finite.aestronglyMeasurable
 
 /-- **Two-replica marginal.** A function of two distinct replicas of an `R`-replica Gibbs average
 has the same average as under two independent replicas. -/

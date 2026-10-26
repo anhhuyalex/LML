@@ -1307,6 +1307,16 @@ its Gaussian law and covariance function $\xi$, and the SK covariance $N R^2$ is
 is exactly the convexity of $\xi$ on $[-1,1]$; Theorem~\ref{thm:sg:superadd} holds for any convex $\xi$.
 \end{remark}
 
+\begin{remark}[Why Guerra--Toninelli supplies the thermodynamic limit]\label{rem:sg:gt-intuition}
+The point of \texttt{SpinGlasses.integral\_log\_sum\_exp\_add\_le} is that it turns a \emph{local} covariance fact into a \emph{global} statement across system sizes.  Split an $(N+M)$-spin configuration into blocks of sizes $N$ and $M$.  The overlap of the concatenated configurations is the corresponding convex combination of the two block overlaps.  Convexity of $\xi$ therefore compares the covariance of the $(N+M)$-spin Hamiltonian with that of the independent sum of the two block Hamiltonians.  The Gaussian comparison theorem (Theorem~\ref{thm:sg:comparison}) converts exactly this covariance comparison into
+\[
+  \mathbb E\log Z_N+\mathbb E\log Z_M\leq\mathbb E\log Z_{N+M}.
+\]
+Thus the extensive quantity $u_N=\mathbb E\log Z_N$ cannot lose free energy when two systems are joined.  Jensen's inequality and the Gaussian moment generating function give the matching linear upper bound on $u_N$, and Fekete's lemma (Lemma~\ref{lem:sg:fekete}) then says that the intensive quantity $u_N/N$ has a genuine limit, rather than merely convergent subsequences.
+
+In Lean this separation is deliberate: the abstract theorem \texttt{SpinGlasses.tendsto\_free\_energy} uses only the Gaussian law, covariance identity, the preceding superadditivity theorem, the upper bound, and Fekete; \texttt{SpinGlasses.sk\_tendsto\_free\_energy} is then just its specialization through the already-proved SK covariance $N R^2$.  This limit supplies the otherwise-open \texttt{h\_lim} input for the zero-temperature theorem (Theorem~\ref{thm:sg:zerotemp}), yielding convergence of the normalized ground-state energy, and for the theorem that passes finite-volume temperature monotonicity to the limit.  It also lets the Aizenman--Sims--Starr scheme replace the finite-volume free energies by their common limiting value when it compares that value with cavity increments (Section~\ref{sec:sg:ass}).
+\end{remark}
+
 \section{Concentration of the free energy}\label{sec:sg:fe-conc}
 
 This section proves Panchenko's Theorem~1.2 (the Gaussian concentration of the free energy) and its consequence Eq.~(1.42)

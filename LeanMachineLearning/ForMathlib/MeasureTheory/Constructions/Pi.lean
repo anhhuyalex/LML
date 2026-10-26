@@ -66,4 +66,42 @@ theorem integral_pi_fin_two {α : Type*} [MeasurableSpace α] [MeasurableSinglet
     ∫ σ, g (σ 0) (σ 1) ∂(Measure.pi fun _ : Fin 2 => μ) = ∫ x, ∫ y, g x y ∂μ ∂μ :=
   integral_pi_fin_two_of_integrable μ Integrable.of_finite
 
+/-- **Marginal of an i.i.d. vector along an injection of the index set:** restricting a vector
+with the i.i.d. law `μ` indexed by `R'` to the coordinates `ρ r` (`ρ` injective) gives the i.i.d.
+law indexed by `R`. -/
+theorem measurePreserving_pi_comp_injective {R R' X : Type*} [Fintype R] [Fintype R']
+    [MeasurableSpace X] (μ : Measure X) [IsProbabilityMeasure μ] {ρ : R → R'}
+    (hρ : Function.Injective ρ) :
+    MeasurePreserving (fun (τ : R' → X) (r : R) => τ (ρ r)) (Measure.pi fun _ : R' => μ)
+      (Measure.pi fun _ : R => μ) := by
+  classical
+  refine ⟨by fun_prop, ?_⟩
+  refine (Measure.pi_eq (μ := fun _ : R => μ)
+    (μ' := Measure.map _ (Measure.pi fun _ : R' => μ)) fun s hs => ?_).symm
+  rw [Measure.map_apply (by fun_prop) (MeasurableSet.univ_pi hs)]
+  have hpre : (fun (τ : R' → X) (r : R) => τ (ρ r)) ⁻¹' (Set.univ.pi s) =
+      Set.univ.pi (Function.extend ρ s (fun _ => Set.univ)) := by
+    ext τ
+    simp only [Set.mem_preimage, Set.mem_pi, Set.mem_univ, true_implies]
+    constructor
+    · intro h r'
+      by_cases hr : ∃ r, ρ r = r'
+      · obtain ⟨r, rfl⟩ := hr
+        rw [hρ.extend_apply]
+        exact h r
+      · rw [Function.extend_apply' _ _ _ hr]
+        trivial
+    · intro h r
+      have := h (ρ r)
+      rwa [hρ.extend_apply] at this
+  rw [hpre, Measure.pi_pi]
+  have hone : ∀ r' ∉ Finset.univ.image ρ,
+      μ (Function.extend ρ s (fun _ => Set.univ) r') = 1 := by
+    intro r' hr
+    rw [Function.extend_apply' _ _ _ (by simpa using hr)]
+    simp
+  rw [← Finset.prod_subset (Finset.subset_univ (Finset.univ.image ρ)) (fun x _ hx => hone x hx),
+    Finset.prod_image (fun a _ b _ h => hρ h)]
+  simp [hρ.extend_apply]
+
 end MeasureTheory

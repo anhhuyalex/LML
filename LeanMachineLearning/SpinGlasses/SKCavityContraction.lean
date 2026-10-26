@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKCavityHolder
+public import LeanMachineLearning.SpinGlasses.SKCavityDerivativeBound
 public import LeanMachineLearning.SpinGlasses.SKCavityDecoupledEndpoint
 public import LeanMachineLearning.SpinGlasses.SKCavityFreeEnergy
 
@@ -22,41 +22,6 @@ open MeasureTheory ProbabilityTheory Finset
 open scoped BigOperators Real Matrix
 
 namespace SpinGlasses
-
-/-- Pointwise bound of the angle combination of the cavity derivative by the overlap deviations:
-the combination with the covariance kernel `β² ε ε' (q - R⁻)` is at most `2 β²` times the
-weighted sum of `|R - q|` over the three replica families. -/
-theorem abs_sk_cavity_angle_combination_le (N n : ℕ) (β q : ℝ)
-    (τ : Option (Option (Fin n)) → Fin (N + 1) → ℤˣ) :
-    let U : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ := fun a b =>
-      β ^ 2 * (a (Fin.last N) : ℝ) * (b (Fin.last N) : ℝ) *
-        (q - (N + 1 : ℝ)⁻¹ *
-          ((fun i : Fin N => (a i.castSucc : ℝ)) ⬝ᵥ fun i : Fin N => (b i.castSucc : ℝ)))
-    let dev : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ := fun x y =>
-      |(N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (x i : ℝ)) ⬝ᵥ
-        fun i : Fin (N + 1) => (y i : ℝ)) - q|
-    |2 * (∑ s : Fin n × Fin n with s.1 < s.2, U (τ (some (some s.1))) (τ (some (some s.2)))) -
-        2 * (n : ℝ) * ∑ s : Fin n, U (τ (some (some s))) (τ (some none)) +
-        (n : ℝ) * ((n : ℝ) + 1) * U (τ (some none)) (τ none)| ≤
-      2 * β ^ 2 * ((∑ s : Fin n × Fin n with s.1 < s.2,
-            dev (τ (some (some s.1))) (τ (some (some s.2)))) +
-          (n : ℝ) * ∑ s : Fin n, dev (τ (some (some s))) (τ (some none)) +
-          (n : ℝ) * ((n : ℝ) + 1) / 2 * dev (τ (some none)) (τ none)) := by
-  intro U dev
-  have hU : ∀ a b, U a b = -(β ^ 2 * (a (Fin.last N) : ℝ) * (b (Fin.last N) : ℝ) *
-      ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (a i : ℝ)) ⬝ᵥ
-        fun i : Fin (N + 1) => (b i : ℝ)) - q)) + β ^ 2 / (N + 1 : ℝ) := fun a b => by
-    rw [sk_cavity_kernel_full_eq]
-    simp only [U]
-    ring
-  have h := abs_two_sum_lt_combination_le n U
-    (fun a b => β ^ 2 * (a (Fin.last N) : ℝ) * (b (Fin.last N) : ℝ) *
-      ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (a i : ℝ)) ⬝ᵥ
-        fun i : Fin (N + 1) => (b i : ℝ)) - q)) (β ^ 2 / (N + 1 : ℝ)) hU τ
-  simp only [abs_sk_cavity_kernel_full, ← Finset.mul_sum] at h
-  refine h.trans (le_of_eq ?_)
-  simp only [dev]
-  ring
 
 /-- **Talagrand's Proposition 1.6.5 (Eq. (1.156))**, with the constant `exp (4 (n + 2)² β²)`
 (the terms of Eq. (1.152) are averages over `n + 2` replicas, to which Lemma 1.6.4 applies with
@@ -123,34 +88,11 @@ theorem sk_cavity_nu_sub_nu_zero_le (N n : ℕ) (β q h : ℝ) (hq : q ∈ Set.I
         |D| ≤ 4 * (n : ℝ) ^ 2 * β ^ 2 * Real.exp (4 * ((n : ℝ) + 2) ^ 2 * β ^ 2) * X) := by
     intro s
     refine ⟨_, hasDerivAt_integral_sk_cavity_path_angle_offDiag N n β q h hq f s, fun hs => ?_⟩
-    have hs' := Real.arccos_sqrt_cos_sq hs.1 hs.2
-    have hWnn : ∀ τ, 0 ≤ Wsum τ := fun τ => by
-      simp only [Wsum, dev]
-      positivity
-    have hcard : (Fintype.card (Option (Option (Fin n))) : ℝ) = n + 2 := by
-      simp only [Fintype.card_option, Fintype.card_fin]
-      push_cast
-      ring
-    have key := sk_cavity_path_square_le_exp_mul_replicas N β q h hq
-      (R := Option (Option (Fin n))) (fun τ => |f fun s => τ (some (some s))| * Wsum τ)
-      (fun τ => mul_nonneg (abs_nonneg _) (hWnn τ)) (Real.cos s ^ 2)
-      ⟨sq_nonneg _, by nlinarith [Real.cos_sq_le_one s]⟩
-    simp only [hs', hcard] at key
     have hW := sk_nested_holder_sum N n β h f hpr q
-    refine le_trans (abs_integral_nested_gibbs_le P₀ P (E s) (hEm s)
-      (H := fun τ => 2 * β ^ 2 * (|f fun s => τ (some (some s))| * Wsum τ)) ?_) ?_
-    · intro τ
-      rw [abs_mul]
-      have h1 := abs_sk_cavity_angle_combination_le N n β q τ
-      calc _ ≤ |f fun s => τ (some (some s))| * (2 * β ^ 2 * Wsum τ) :=
-            mul_le_mul_of_nonneg_left h1 (abs_nonneg _)
-        _ = _ := by ring
-    · simp only [integral_const_mul]
-      calc _ ≤ 2 * β ^ 2 * (Real.exp (4 * ((n : ℝ) + 2) ^ 2 * β ^ 2) *
-            (2 * (n : ℝ) ^ 2 * X)) := by
-            refine mul_le_mul_of_nonneg_left ((key.trans ?_)) (by positivity)
-            exact mul_le_mul_of_nonneg_left hW (Real.exp_pos _).le
-        _ = _ := by ring
+    refine (abs_sk_cavity_angle_derivative_le N n β q h hq f hs).trans ?_
+    calc _ ≤ 2 * β ^ 2 * Real.exp (4 * ((n : ℝ) + 2) ^ 2 * β ^ 2) * (2 * (n : ℝ) ^ 2 * X) :=
+          mul_le_mul_of_nonneg_left hW (by positivity)
+      _ = _ := by ring
   have hmain := Real.abs_sub_le_half_of_exists_hasDerivAt hd
   have hzero : Φ 0 = ∫ g, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ
         ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (Esk g))
