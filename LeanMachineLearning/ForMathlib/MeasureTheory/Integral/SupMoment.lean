@@ -21,6 +21,16 @@ Lyapunov's inequality: for `x ≥ 0` and `a > 0`, `x ≤ a + x^{2k} / a^{2k-1}`,
 
 open MeasureTheory
 
+/-- Any `ε > 0` dominates `1 / (2 k)` for some `k ≥ 1`. -/
+theorem exists_nat_one_le_one_div_two_mul_le {ε : ℝ} (hε : 0 < ε) :
+    ∃ k : ℕ, 1 ≤ k ∧ 1 / (2 * (k : ℝ)) ≤ ε := by
+  refine ⟨⌈1 / (2 * ε)⌉₊ + 1, by omega, ?_⟩
+  have h1 : 1 / (2 * ε) ≤ ((⌈1 / (2 * ε)⌉₊ + 1 : ℕ) : ℝ) := by
+    push_cast; linarith [Nat.le_ceil (1 / (2 * ε))]
+  rw [div_le_iff₀ (by positivity)]
+  rw [div_le_iff₀ (by positivity)] at h1
+  nlinarith
+
 /-- For `x ≥ 0`, `a > 0`: `x ≤ a + x^{2k} / a^{2k-1}` (Markov-type pointwise bound). -/
 theorem le_add_pow_div {x a : ℝ} (hx : 0 ≤ x) (ha : 0 < a) {k : ℕ} (hk : 1 ≤ k) :
     x ≤ a + x ^ (2 * k) / a ^ (2 * k - 1) := by

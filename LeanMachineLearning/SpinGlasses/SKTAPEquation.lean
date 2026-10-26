@@ -84,7 +84,7 @@ theorem integrable_pow_tap_field {Ω₀ : Type*} [MeasurableSpace Ω₀] (P : Me
   have hdom : Integrable (fun w : Ω₀ × (Fin N → ℝ) =>
       (2 * (Real.sqrt N)⁻¹ * ∑ i, |w.2 i| + 1) ^ (2 * k)) (P.prod Q) :=
     (measurePreserving_snd (μ := P) (ν := Q)).integrable_comp_of_integrable
-      (integrable_even_pow_const_mul_sum_abs_add (n := N) (2 * (Real.sqrt N)⁻¹) 1 k (by omega))
+      (integrable_even_pow_const_mul_sum_abs_add (ι := Fin N) (2 * (Real.sqrt N)⁻¹) 1 k (by omega))
   have hN0 : (0 : ℝ) < Real.sqrt N := Real.sqrt_pos.mpr (Nat.cast_pos.mpr hN)
   have hsum : ∀ (G : Ω₀ × (Fin N → ℝ) → Fin N → ℝ), (∀ w i, |G w i| ≤ 1) → ∀ w,
       |(Real.sqrt N)⁻¹ * ∑ i, w.2 i * G w i| ≤ (Real.sqrt N)⁻¹ * ∑ i, |w.2 i| := fun G hG w => by
@@ -154,14 +154,6 @@ theorem abs_tap_coef_le {N : ℕ} {β q qm : ℝ} (hβ4 : 4 * β ^ 2 < 1) (hq : 
     linarith
   have h5 : b * ε ≤ ε / 4 := by nlinarith
   constructor <;> linarith
-
-/-- A Gibbs mean of a spin has absolute value at most `1`. -/
-theorem abs_integral_spin_count_tilted_le {N : ℕ} (f : (Fin N → ℤˣ) → ℝ) (i : Fin N) :
-    |∫ a, ((a i : ℤ) : ℝ) ∂(Measure.count.tilted f)| ≤ 1 := by
-  have := norm_integral_le_of_norm_le_const (μ := Measure.count.tilted f)
-    (f := fun a : Fin N → ℤˣ => ((a i : ℤ) : ℝ)) (C := 1)
-    (ae_of_all _ fun a => by simpa [Real.norm_eq_abs] using abs_units_cast_le_one (a i))
-  simpa [Real.norm_eq_abs] using this
 
 /-- **Talagrand, Theorem 1.7.7, Eq. (1.193): the TAP equations with the Onsager reaction term, in
 `L^{2k}`.**  For `4 β₀² < 1`, `h` and `k ≥ 1` there is `K = K(β₀, h, k)` such that for all
@@ -237,13 +229,10 @@ theorem sk_tap_equation (β₀ : ℝ) (hβ₀ : 0 ≤ β₀) (hβ₀' : 4 * β�
       measurable_const.mul (Real.continuous_cosh.measurable.comp (hL a))).div hcosh_m
   have hmW : ∀ i, Measurable fun w => mW w i := fun i =>
     measurable_integral_count_tilted_dep Aw hA _ fun a => measurable_const
-  have hs1' : ∀ w, |sW w| ≤ 1 := fun w => by
-    simp only [sW]
-    rw [abs_div, abs_of_pos (hD w), div_le_one (hD w)]
-    exact abs_integral_sinh_le_integral_cosh _ _
+  have hs1' : ∀ w, |sW w| ≤ 1 := fun w => abs_integral_sinh_div_integral_cosh_le _ _
   have hF1 : ∀ w i, |FW w i| ≤ 1 := fun w i =>
     abs_integral_mul_cosh_div_le _ _ _ fun a => abs_units_cast_le_one (a i)
-  have hm1 : ∀ w i, |mW w i| ≤ 1 := fun w i => abs_integral_spin_count_tilted_le _ i
+  have hm1 : ∀ w i, |mW w i| ≤ 1 := fun w i => abs_integral_spin_le_one _ i
   have hβ₀1 : β₀ ≤ 1 := by nlinarith
   have hb1 : |bm * (1 - qm)| ≤ 1 := by
     rw [abs_mul, abs_of_nonneg (by linarith [hqmI.2] : 0 ≤ 1 - qm)]
@@ -267,13 +256,12 @@ theorem sk_tap_equation (β₀ : ℝ) (hβ₀ : 0 ≤ β₀) (hβ₀' : 4 * β�
     refine hsW.sub (Real.continuous_tanh.measurable.comp ?_)
     exact (measurable_const.mul (Finset.measurable_sum _ fun i _ =>
       ((measurable_pi_apply i).comp measurable_snd).mul (hmW i))).add_const _
-  have hU_int : Integrable (fun w => |Uf w| ^ (2 * k)) (P.prod Q) := by
-    refine Integrable.of_bound ((continuous_abs.measurable.comp hUmeas).pow_const
-      _).aestronglyMeasurable (2 ^ (2 * k)) (ae_of_all _ fun w => ?_)
-    rw [Real.norm_eq_abs, abs_pow, abs_abs]
-    refine pow_le_pow_left₀ (abs_nonneg _) ?_ _
-    exact (abs_sub _ _).trans
-      (by linarith [hs1' w, (Real.abs_tanh_lt_one (c * ∑ i, w.2 i * mW w i + h)).le])
+  have hU_int : Integrable (fun w => |Uf w| ^ (2 * k)) (P.prod Q) :=
+    integrable_pow_of_abs_le (f := fun w => |Uf w|)
+      (continuous_abs.measurable.comp hUmeas) (2 * k) (C := 2) fun w => by
+      rw [abs_abs]
+      exact (abs_sub _ _).trans
+        (by linarith [hs1' w, (Real.abs_tanh_lt_one (c * ∑ i, w.2 i * mW w i + h)).le])
   have hc : c * Real.sqrt N = bm := by
     have := sk_beta_minus_coefficient N β hN
     have hsN : 0 < Real.sqrt (N : ℝ) := Real.sqrt_pos.mpr hN0
@@ -322,13 +310,8 @@ theorem sk_tap_equation (β₀ : ℝ) (hβ₀ : 0 ≤ β₀) (hβ₀' : 4 * β�
   rw [hDle]
   have hT : (0 : ℝ) < ((N : ℝ) + 1) ^ k := by positivity
   have hN1' : (1 : ℝ) ≤ N := by exact_mod_cast hN
-  have hXN : K2 / (N : ℝ) ^ k ≤ 2 ^ k * K2 / ((N : ℝ) + 1) ^ k := by
-    rw [div_le_div_iff₀ (by positivity) hT]
-    have h2 : ((N : ℝ) + 1) ^ k ≤ 2 ^ k * (N : ℝ) ^ k := by
-      rw [← mul_pow]; exact pow_le_pow_left₀ (by positivity) (by linarith) k
-    calc K2 * ((N : ℝ) + 1) ^ k ≤ K2 * (2 ^ k * (N : ℝ) ^ k) :=
-          mul_le_mul_of_nonneg_left h2 hK20.le
-      _ = 2 ^ k * K2 * (N : ℝ) ^ k := by ring
+  have hXN : K2 / (N : ℝ) ^ k ≤ 2 ^ k * K2 / ((N : ℝ) + 1) ^ k :=
+    div_pow_le_two_pow_mul_div_succ_pow hN k hK20.le
   have hconst : ((1 : ℝ) / ((N : ℝ) + 1)) ^ (2 * k) ≤ 1 / ((N : ℝ) + 1) ^ k := by
     rw [one_div, inv_pow, one_div]
     refine inv_anti₀ hT ?_

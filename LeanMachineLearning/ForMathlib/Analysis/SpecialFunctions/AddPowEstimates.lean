@@ -179,3 +179,14 @@ theorem add_pow_four_two_mul_le {k : ℕ} (hk : 1 ≤ k) (x₁ x₂ x₃ x₄ : 
     _ = (2 ^ (2 * k - 1) * 2 ^ (2 * k - 1)) *
         (x₁ ^ (2 * k) + x₂ ^ (2 * k) + x₃ ^ (2 * k) + x₄ ^ (2 * k)) := by ring
     _ = 4 ^ (2 * k - 1) * (x₁ ^ (2 * k) + x₂ ^ (2 * k) + x₃ ^ (2 * k) + x₄ ^ (2 * k)) := by rw [h22]
+
+/-- Passing from `N` to `N + 1` costs at most a factor `2 ^ k`:
+`K / N ^ k ≤ 2 ^ k * K / (N + 1) ^ k` for `N ≥ 1` and `K ≥ 0`. -/
+theorem div_pow_le_two_pow_mul_div_succ_pow {N : ℕ} (hN : 0 < N) (k : ℕ) {K : ℝ} (hK : 0 ≤ K) :
+    K / (N : ℝ) ^ k ≤ 2 ^ k * K / ((N : ℝ) + 1) ^ k := by
+  have hN1 : (1 : ℝ) ≤ N := by exact_mod_cast hN
+  rw [div_le_div_iff₀ (by positivity) (by positivity)]
+  have h2 : ((N : ℝ) + 1) ^ k ≤ 2 ^ k * (N : ℝ) ^ k := by
+    rw [← mul_pow]; exact pow_le_pow_left₀ (by positivity) (by linarith) k
+  calc K * ((N : ℝ) + 1) ^ k ≤ K * (2 ^ k * (N : ℝ) ^ k) := mul_le_mul_of_nonneg_left h2 hK
+    _ = 2 ^ k * K * (N : ℝ) ^ k := by ring

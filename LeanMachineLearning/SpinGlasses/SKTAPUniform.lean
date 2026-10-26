@@ -128,13 +128,7 @@ theorem sk_tap_uniform (β₀ : ℝ) (hβ₀ : 0 ≤ β₀) (hβ₀' : 4 * β₀
               ∂(Measure.count.tilted (skGibbsEnergy (N + 1) β h g)))|)
           ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) ≤
         K / ((N : ℝ) + 1) ^ (1 / 2 - ε) := by
-  obtain ⟨k, hk, hεk⟩ : ∃ k : ℕ, 1 ≤ k ∧ 1 / (2 * (k : ℝ)) ≤ ε := by
-    refine ⟨⌈1 / (2 * ε)⌉₊ + 1, by omega, ?_⟩
-    have h1 : 1 / (2 * ε) ≤ ((⌈1 / (2 * ε)⌉₊ + 1 : ℕ) : ℝ) := by
-      push_cast; linarith [Nat.le_ceil (1 / (2 * ε))]
-    rw [div_le_iff₀ (by positivity)]
-    rw [div_le_iff₀ (by positivity)] at h1
-    nlinarith
+  obtain ⟨k, hk, hεk⟩ := exists_nat_one_le_one_div_two_mul_le hε
   obtain ⟨K, hK0, hK⟩ := sk_tap_equation β₀ hβ₀ hβ₀' h hk
   refine ⟨1 + K, by positivity, fun β hβ0 hββ₀ q hq N hN => ?_⟩
   set P : Measure (FinPairs (N + 1) → ℝ) := Measure.pi fun _ => gaussianReal 0 1 with hP
@@ -158,15 +152,12 @@ theorem sk_tap_uniform (β₀ : ℝ) (hβ₀ : 0 ≤ β₀) (hβ₀' : 4 * β₀
       (Finset.measurable_sum _ fun j _ => (hG_meas i j).mul (hm_meas j))).add_const h).sub
       (measurable_const.mul (hm_meas i))))
   have hbdd : ∀ i g, |Δ i g| ≤ 2 := fun i g => by
-    have h1 : |m g i| ≤ 1 := abs_integral_spin_count_tilted_le _ i
+    have h1 : |m g i| ≤ 1 := abs_integral_spin_le_one _ i
     have h2 := (Real.abs_tanh_lt_one ((Real.sqrt ((N : ℝ) + 1))⁻¹ * β * ∑ j, G g i j * m g j + h -
       β ^ 2 * (1 - q) * m g i)).le
     exact (abs_sub _ _).trans (by linarith)
   have hint : ∀ i, Integrable (fun g => Δ i g ^ (2 * k)) P := fun i =>
-    Integrable.of_bound ((hmeas i).pow_const _).aestronglyMeasurable (2 ^ (2 * k))
-      (ae_of_all _ fun g => by
-        rw [Real.norm_eq_abs, abs_pow]
-        exact pow_le_pow_left₀ (abs_nonneg _) (hbdd i g) _)
+    integrable_pow_of_abs_le (hmeas i) (2 * k) (hbdd i)
   have hsymm : ∀ π : Equiv.Perm (Fin (N + 1)), ∃ φ : (FinPairs (N + 1) → ℝ) → _,
       MeasurePreserving φ P P ∧ ∀ i g, Δ i (φ g) = Δ (π i) g := fun π =>
     ⟨fun g => g ∘ (pairPerm π.symm).symm, measurePreserving_comp_pairPerm (gaussianReal 0 1) π.symm,

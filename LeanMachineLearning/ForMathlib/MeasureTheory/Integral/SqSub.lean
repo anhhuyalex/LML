@@ -30,14 +30,20 @@ theorem integral_sq_sub {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Measure Ω
     funext fun ω => by ring, integral_add h1 hg, integral_sub hf (hfg.const_mul 2),
     integral_const_mul]
 
+/-- Every power of a bounded measurable function is integrable for a finite measure. -/
+theorem integrable_pow_of_abs_le {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Measure Ω}
+    [IsFiniteMeasure μ] {f : Ω → ℝ} (hf : Measurable f) (n : ℕ) {C : ℝ}
+    (hC : ∀ ω, |f ω| ≤ C) : Integrable (fun ω => f ω ^ n) μ :=
+  Integrable.of_bound (hf.pow_const n).aestronglyMeasurable (C ^ n)
+    (Filter.Eventually.of_forall fun ω => by
+      rw [Real.norm_eq_abs, abs_pow]
+      exact pow_le_pow_left₀ (abs_nonneg _) (hC ω) n)
+
 /-- The square of a bounded measurable function is integrable for a finite measure. -/
 theorem integrable_sq_of_abs_le {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Measure Ω}
     [IsFiniteMeasure μ] {f : Ω → ℝ} (hf : Measurable f) {C : ℝ} (hC : ∀ ω, |f ω| ≤ C) :
-    Integrable (fun ω => f ω ^ 2) μ := by
-  refine Integrable.of_bound (hf.pow_const 2).aestronglyMeasurable (C ^ 2)
-    (Filter.Eventually.of_forall fun ω => ?_)
-  rw [Real.norm_eq_abs, abs_of_nonneg (sq_nonneg _)]
-  exact sq_le_sq' (abs_le.mp (hC ω)).1 (abs_le.mp (hC ω)).2
+    Integrable (fun ω => f ω ^ 2) μ :=
+  integrable_pow_of_abs_le hf 2 hC
 
 /-- **Three-term triangle inequality in `L²`:**
 `∫ (a + b + c)² ≤ 3 ∫ a² + 3 ∫ b² + 3 ∫ c²` for square-integrable `a, b, c`. -/

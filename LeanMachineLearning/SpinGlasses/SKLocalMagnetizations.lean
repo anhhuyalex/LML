@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.Pi
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.PiSnoc
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SqrtSub
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SqSub
@@ -120,10 +121,8 @@ theorem integral_sq_coord_eq_one {Ω : Type*} [MeasurableSpace Ω] {P : Measure 
     {z : Ω → Fin n → ℝ} (hz : Measurable z)
     (hl : P.map z = Measure.pi fun _ : Fin n => gaussianReal 0 1) (i : Fin n) :
     ∫ ω, z ω i ^ 2 ∂P = 1 := by
-  have h1 : P.map (fun ω => z ω i) = gaussianReal 0 1 := by
-    rw [show (fun ω => z ω i) = (fun x : Fin n → ℝ => x i) ∘ z from rfl,
-      ← Measure.map_map (measurable_pi_apply i) hz, hl]
-    exact (measurePreserving_eval (fun _ : Fin n => gaussianReal 0 1) i).map_eq
+  have h1 : P.map (fun ω => z ω i) = gaussianReal 0 1 :=
+    Measure.map_apply_eq_of_map_eq_pi (μ := fun _ : Fin n => gaussianReal 0 1) hz hl i
   have hm : Measurable fun ω => z ω i := (measurable_pi_apply i).comp hz
   rw [← integral_sq_gaussianReal_zero_one, ← h1, integral_map hm.aemeasurable (by fun_prop)]
 
@@ -378,9 +377,7 @@ theorem sk_local_magnetizations_step (β₀ : ℝ) (hβ₀ : 0 ≤ β₀) (hβ�
           ring
       _ ≤ _ := by linarith
   have hKnN : Kn / N ≤ 2 * Kn / ((N : ℝ) + 1) := by
-    rw [div_le_div_iff₀ hN0 hN1]
-    have hN1' : (1 : ℝ) ≤ N := by exact_mod_cast hNpos
-    nlinarith
+    simpa using div_pow_le_two_pow_mul_div_succ_pow hNpos 1 hKn
   calc _ ≤ (n * (3 * (Kb / ((N : ℝ) + 1))) + 3 * (Kn / N) + n * (3 * (1 / ((N : ℝ) + 1)))) +
         Kc / ((N : ℝ) + 1) := add_le_add hsum_old hlast
     _ ≤ (n * (3 * (Kb / ((N : ℝ) + 1))) + 3 * (2 * Kn / ((N : ℝ) + 1)) +
@@ -442,10 +439,8 @@ theorem sk_local_magnetizations_gaussian (β : ℝ) (hβ0 : 0 ≤ β) (hβ : 4 *
   refine ⟨K, hK0, fun N hN => ?_⟩
   obtain ⟨z, hz, hl, hs⟩ := hK β hβ0 le_rfl q hq N hN
   have hmarg : ∀ i : Fin n, (Measure.pi fun _ : FinPairs N => gaussianReal 0 1).map
-      (fun g => z g i) = gaussianReal 0 1 := fun i => by
-    rw [show (fun g => z g i) = (fun x : Fin n → ℝ => x i) ∘ z from rfl,
-      ← Measure.map_map (measurable_pi_apply i) hz, hl]
-    exact (measurePreserving_eval (fun _ : Fin n => gaussianReal 0 1) i).map_eq
+      (fun g => z g i) = gaussianReal 0 1 := fun i =>
+    Measure.map_apply_eq_of_map_eq_pi (μ := fun _ : Fin n => gaussianReal 0 1) hz hl i
   refine ⟨z, hz, ?_, hmarg, hs⟩
   rw [iIndepFun_iff_map_fun_eq_pi_map (f := fun (i : Fin n) (g : FinPairs N → ℝ) => z g i)
     (fun i => ((measurable_pi_apply i).comp hz).aemeasurable)]

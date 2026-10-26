@@ -16,6 +16,16 @@ open MeasureTheory
 
 namespace MeasureTheory
 
+/-- **Coordinate marginal of a product law:** if `z` has the product law `Measure.pi μ`, then its
+`i`-th coordinate has law `μ i`. -/
+theorem Measure.map_apply_eq_of_map_eq_pi {Ω ι : Type*} [MeasurableSpace Ω] [Fintype ι]
+    {X : ι → Type*} [∀ i, MeasurableSpace (X i)] {P : Measure Ω} {μ : ∀ i, Measure (X i)}
+    [∀ i, IsProbabilityMeasure (μ i)] {z : Ω → ∀ i, X i} (hz : Measurable z)
+    (hl : P.map z = Measure.pi μ) (i : ι) : P.map (fun ω => z ω i) = μ i := by
+  rw [show (fun ω => z ω i) = (fun x : ∀ i, X i => x i) ∘ z from rfl,
+    ← Measure.map_map (measurable_pi_apply i) hz, hl]
+  exact (measurePreserving_eval μ i).map_eq
+
 /-- A triple of coordinates of an i.i.d. vector `Fin 3 → α` is a product measure. -/
 theorem measurePreserving_finThreeArrow {α : Type*} {m : MeasurableSpace α} (μ : Measure α)
     [SigmaFinite μ] :

@@ -89,6 +89,14 @@ theorem abs_integral_mul_le_mul_integral {α : Type*} [MeasurableSpace α]
   rw [abs_mul, abs_of_nonneg (hw a)]
   exact mul_le_mul_of_nonneg_right (hφ a) (hw a)
 
+/-- `|⟨sinh u⟩ / ⟨cosh u⟩| ≤ 1`. -/
+theorem abs_integral_sinh_div_integral_cosh_le {α : Type*} [MeasurableSpace α]
+    [MeasurableSingletonClass α] (μ : Measure α) [IsProbabilityMeasure μ] [Finite α]
+    (u : α → ℝ) : |(∫ a, Real.sinh (u a) ∂μ) / ∫ a, Real.cosh (u a) ∂μ| ≤ 1 := by
+  have hD : 0 < ∫ a, Real.cosh (u a) ∂μ := lt_of_lt_of_le one_pos (one_le_integral_cosh μ u)
+  rw [abs_div, abs_of_pos hD, div_le_one hD]
+  exact abs_integral_sinh_le_integral_cosh μ u
+
 /-- `|⟨φ cosh u⟩ / ⟨cosh u⟩| ≤ C` when `|φ| ≤ C`. -/
 theorem abs_integral_mul_cosh_div_le {α : Type*} [MeasurableSpace α]
     [MeasurableSingletonClass α] (μ : Measure α) [IsProbabilityMeasure μ] [Finite α]

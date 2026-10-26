@@ -349,22 +349,22 @@ theorem integral_cosh_mul_cosh_sum_mul_gaussianReal {E : Type*} [Fintype E] (c h
   ring
 
 /-- A coordinate of an i.i.d. standard Gaussian vector lies in every `L^p`. -/
-theorem memLp_coord_pi_gaussianReal {n : ℕ} (i : Fin n) (p : NNReal) :
-    MemLp (fun y : Fin n → ℝ => y i) p (Measure.pi fun _ : Fin n => gaussianReal 0 1) :=
+theorem memLp_coord_pi_gaussianReal {ι : Type*} [Fintype ι] (i : ι) (p : NNReal) :
+    MemLp (fun y : ι → ℝ => y i) p (Measure.pi fun _ : ι => gaussianReal 0 1) :=
   (memLp_id_gaussianReal (μ := 0) (v := 1) p).comp_measurePreserving
-    (measurePreserving_eval (fun _ : Fin n => gaussianReal 0 1) i)
+    (measurePreserving_eval (fun _ : ι => gaussianReal 0 1) i)
 
 /-- An even power of an affine function of `∑ |yᵢ|` is integrable under the i.i.d. standard
 Gaussian law. -/
-theorem integrable_even_pow_const_mul_sum_abs_add {n : ℕ} (c d : ℝ) (k : ℕ) (hk : k ≠ 0) :
-    Integrable (fun y : Fin n → ℝ => (c * ∑ i, |y i| + d) ^ (2 * k))
-      (Measure.pi fun _ : Fin n => gaussianReal 0 1) := by
-  have hs : MemLp (fun y : Fin n → ℝ => ∑ i, |y i|) ((2 * k : ℕ) : NNReal)
-      (Measure.pi fun _ : Fin n => gaussianReal 0 1) :=
-    by
-      have := memLp_finsetSum' (Finset.univ : Finset (Fin n))
-        (fun i _ => (memLp_coord_pi_gaussianReal i ((2 * k : ℕ) : NNReal)).norm)
-      simpa [Finset.sum_fn, Real.norm_eq_abs] using this
+theorem integrable_even_pow_const_mul_sum_abs_add {ι : Type*} [Fintype ι] (c d : ℝ) (k : ℕ)
+    (hk : k ≠ 0) :
+    Integrable (fun y : ι → ℝ => (c * ∑ i, |y i| + d) ^ (2 * k))
+      (Measure.pi fun _ : ι => gaussianReal 0 1) := by
+  have hs : MemLp (fun y : ι → ℝ => ∑ i, |y i|) ((2 * k : ℕ) : NNReal)
+      (Measure.pi fun _ : ι => gaussianReal 0 1) := by
+    have := memLp_finsetSum' (Finset.univ : Finset ι)
+      (fun i _ => (memLp_coord_pi_gaussianReal i ((2 * k : ℕ) : NNReal)).norm)
+    simpa [Finset.sum_fn, Real.norm_eq_abs] using this
   have h1 := (hs.const_mul c).add (memLp_const d)
   have h2 := h1.integrable_norm_pow (by positivity : 2 * k ≠ 0)
   have he : Even (2 * k) := ⟨k, by ring⟩

@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.SpinGlasses.SKGaussianCorollaries
 public import LeanMachineLearning.SpinGlasses.SKCavityFreeEnergy
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.AddPowEstimates
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedBound
 
 /-!
@@ -161,14 +162,7 @@ theorem sk_last_spin_tanh_approx_pow (β₀ : ℝ) (hβ₀ : 0 ≤ β₀) (hβ�
     _ = ∫ w, F w ∂(P.prod Q) := (measurePreserving_skCavityDisorderEquiv N).integral_comp' F
     _ ≤ ∫ x, ∫ y, F (x, y) ∂Q ∂P := integral_prod_le_integral_integral_of_nonneg hF0
     _ ≤ K / (N : ℝ) ^ k := hKN
-    _ ≤ 2 ^ k * K / ((N : ℝ) + 1) ^ k := by
-        rw [div_le_div_iff₀ (by positivity) (by positivity)]
-        have hN1 : (1 : ℝ) ≤ N := by exact_mod_cast hN
-        have h2 : ((N : ℝ) + 1) ^ k ≤ 2 ^ k * (N : ℝ) ^ k := by
-          rw [← mul_pow]; exact pow_le_pow_left₀ (by positivity) (by linarith) k
-        calc K * ((N : ℝ) + 1) ^ k ≤ K * (2 ^ k * (N : ℝ) ^ k) :=
-              mul_le_mul_of_nonneg_left h2 hK0.le
-          _ = 2 ^ k * K * (N : ℝ) ^ k := by ring
+    _ ≤ 2 ^ k * K / ((N : ℝ) + 1) ^ k := div_pow_le_two_pow_mul_div_succ_pow hN k hK0.le
 
 /-- **Talagrand, Lemma 1.7.4, Eq. (1.185)** (the case `k = 1` of `sk_last_spin_tanh_approx_pow`):
 `𝔼 (⟨σ_{N+1}⟩ - tanh (β (N+1)^{-1/2} ∑ g_{i,N+1} ⟨σ_i⟩_- + h))² ≤ K / (N+1)`. -/

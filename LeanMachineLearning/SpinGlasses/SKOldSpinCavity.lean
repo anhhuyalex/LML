@@ -356,9 +356,7 @@ theorem sk_old_spin_cavity_approx (β₀ : ℝ) (hβ₀' : 4 * β₀ ^ 2 < 1) (h
     _ ≤ Λ₀ * (17 / 2) * (K' / N) := by simpa only [hΛ₀, mul_assoc] using hSle
     _ ≤ (17 * Λ₀ * K' + 1) / ((N : ℝ) + 1) := by
         have h1 : K' / N ≤ 2 * K' / ((N : ℝ) + 1) := by
-          rw [div_le_div_iff₀ hN0 (by positivity)]
-          have hN1 : (1 : ℝ) ≤ N := by exact_mod_cast hN
-          nlinarith
+          simpa using div_pow_le_two_pow_mul_div_succ_pow hN 1 hK'0.le
         calc Λ₀ * (17 / 2) * (K' / N) ≤ Λ₀ * (17 / 2) * (2 * K' / ((N : ℝ) + 1)) :=
               mul_le_mul_of_nonneg_left h1 (by positivity)
           _ = 17 * Λ₀ * K' / ((N : ℝ) + 1) := by ring
