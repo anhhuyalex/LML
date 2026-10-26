@@ -45,23 +45,10 @@ theorem symCoupling_comp_pairPerm (G : (FinPairs M → ℝ) → Fin M → Fin M 
       else if hji : j < i then g ⟨(j, i), hji⟩ else 0)
     (π : Equiv.Perm (Fin M)) (g : FinPairs M → ℝ) (i j : Fin M) :
     G (g ∘ (pairPerm π).symm) i j = G g (π.symm i) (π.symm j) := by
-  rw [hG, hG]
-  rcases lt_trichotomy i j with hij | rfl | hji
-  · have hne : π.symm i ≠ π.symm j := π.symm.injective.ne hij.ne
-    simp only [hij, ↓reduceDIte]
-    rcases lt_or_gt_of_ne hne with h | h
-    · simp only [h, ↓reduceDIte]
-      simp [pairPerm, min_eq_left h.le, max_eq_right h.le]
-    · simp only [not_lt.mpr h.le, h, ↓reduceDIte]
-      simp [pairPerm, min_eq_right h.le, max_eq_left h.le]
-  · simp
-  · have hne : π.symm j ≠ π.symm i := π.symm.injective.ne hji.ne
-    simp only [not_lt.mpr hji.le, hji, ↓reduceDIte]
-    rcases lt_or_gt_of_ne hne with h | h
-    · simp only [not_lt.mpr h.le, h, ↓reduceDIte]
-      simp [pairPerm, min_eq_left h.le, max_eq_right h.le]
-    · simp only [h, ↓reduceDIte]
-      simp [pairPerm, min_eq_right h.le, max_eq_left h.le]
+  have hG_eq : G = skSymmCoupling := by
+    ext g' a b; rw [hG]; rfl
+  subst hG_eq
+  exact skSymmCoupling_comp_pairPerm π g i j
 
 /-- **The TAP defect is equivariant under the relabelling of the sites.**  For the symmetric
 coupling field `G` (see `symCoupling_comp_pairPerm`),

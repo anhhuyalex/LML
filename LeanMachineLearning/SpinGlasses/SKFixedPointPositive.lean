@@ -20,8 +20,8 @@ For `4 β² < 1`, every solution `q` of `q = 𝔼 tanh²(β √q z + h)` with `h
 `h → 0`; here it is explicit and independent of `β`.
 
 The proof symmetrizes `z ↦ -z`: `tanh (h + x) + tanh (h - x) = 2 sinh 2h / (cosh 2h + cosh 2x)`
-(`Real.tanh_add_tanh_sub`, in `Tanh.lean`), bounds `1/y ≥ 2/D - y/D²` (tangent line) and integrates with
-`𝔼 cosh (2 s z) = e^{2 s²} ≤ e^{1/2}`; then `q = 𝔼 tanh² ≥ (𝔼 tanh)²` (Jensen).
+(`Real.tanh_add_tanh_sub`, in `Tanh.lean`), bounds `1/y ≥ 2/D - y/D²` (tangent line)
+and integrates with `𝔼 cosh (2 s z) = e^{2 s²} ≤ e^{1/2}`; then `q = 𝔼 tanh² ≥ (𝔼 tanh)²` (Jensen).
 
 ## References
 

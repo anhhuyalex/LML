@@ -438,6 +438,7 @@ public import LeanMachineLearning.SpinGlasses.SKCavityCoshEstimate
 public import LeanMachineLearning.SpinGlasses.SKCavityDecoupled
 public import LeanMachineLearning.SpinGlasses.SKCavityDecoupledEndpoint
 public import LeanMachineLearning.SpinGlasses.SKCavityDecoupledMonomials
+public import LeanMachineLearning.SpinGlasses.SKCavityCovariance
 public import LeanMachineLearning.SpinGlasses.SKCavityDerivative
 public import LeanMachineLearning.SpinGlasses.SKCavityDerivativeBound
 public import LeanMachineLearning.SpinGlasses.SKCavityDomination

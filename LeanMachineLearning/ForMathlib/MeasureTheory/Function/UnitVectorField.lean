@@ -12,9 +12,9 @@ public import Mathlib.Analysis.SpecialFunctions.Pow.NNReal
 # Normalizing a measurable vector field without a case split
 
 A measurable family `m : Ω → (ι → ℝ)` over a nonempty finite index type `ι` has a measurable
-*unit* direction field `u` with `m ω = ‖m ω‖ • u ω`, where `‖m ω‖ = √(m ω ⬝ᵥ m ω)`; where `m ω = 0` the direction is a fixed
-basis vector.  This removes the case split `A = 0` / `A ≠ 0` in Talagrand's renormalization
-`z = A⁻¹ ∑ g_i ⟨σ_i⟩_-` (Lemma 1.7.6).
+*unit* direction field `u` with `m ω = ‖m ω‖ • u ω`, where `‖m ω‖ = √(m ω ⬝ᵥ m ω)`;
+where `m ω = 0` the direction is a fixed basis vector.  This removes the case split
+`A = 0` / `A ≠ 0` in Talagrand's renormalization `z = A⁻¹ ∑ g_i ⟨σ_i⟩_-` (Lemma 1.7.6).
 -/
 
 @[expose] public section

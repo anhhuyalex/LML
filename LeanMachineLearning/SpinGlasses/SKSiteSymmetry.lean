@@ -83,6 +83,43 @@ theorem measurePreserving_comp_pairPerm (μ : Measure ℝ) [SigmaFinite μ]
   ext g a
   simp [MeasurableEquiv.coe_piCongrLeft, Equiv.piCongrLeft_apply_eq_cast]
 
+/-- **The symmetric coupling field.**  The symmetric extension of the couplings
+`g : FinPairs N → ℝ`: `g_{ij}` for `i < j`, `g_{ji}` for `j < i`, and `0` on the diagonal. -/
+def skSymmCoupling (g : FinPairs N → ℝ) (i j : Fin N) : ℝ :=
+  if hij : i < j then g ⟨(i, j), hij⟩
+  else if hji : j < i then g ⟨(j, i), hji⟩ else 0
+
+/-- The symmetric coupling field is symmetric in its site arguments. -/
+theorem skSymmCoupling_comm (g : FinPairs N → ℝ) (i j : Fin N) :
+    skSymmCoupling g i j = skSymmCoupling g j i := by
+  dsimp [skSymmCoupling]
+  rcases lt_trichotomy i j with h | rfl | h
+  · simp [h, not_lt.mpr h.le]
+  · simp
+  · simp [h, not_lt.mpr h.le]
+
+/-- **The symmetric coupling field under a relabelling of the sites.** -/
+theorem skSymmCoupling_comp_pairPerm (π : Equiv.Perm (Fin N)) (g : FinPairs N → ℝ)
+    (i j : Fin N) :
+    skSymmCoupling (g ∘ (pairPerm π).symm) i j = skSymmCoupling g (π.symm i) (π.symm j) := by
+  dsimp [skSymmCoupling]
+  rcases lt_trichotomy i j with hij | rfl | hji
+  · have hne : π.symm i ≠ π.symm j := π.symm.injective.ne hij.ne
+    simp only [hij, ↓reduceDIte]
+    rcases lt_or_gt_of_ne hne with h | h
+    · simp only [h, ↓reduceDIte]
+      simp [pairPerm, min_eq_left h.le, max_eq_right h.le]
+    · simp only [not_lt.mpr h.le, h, ↓reduceDIte]
+      simp [pairPerm, min_eq_right h.le, max_eq_left h.le]
+  · simp
+  · have hne : π.symm j ≠ π.symm i := π.symm.injective.ne hji.ne
+    simp only [not_lt.mpr hji.le, hji, ↓reduceDIte]
+    rcases lt_or_gt_of_ne hne with h | h
+    · simp only [not_lt.mpr h.le, h, ↓reduceDIte]
+      simp [pairPerm, min_eq_left h.le, max_eq_right h.le]
+    · simp only [h, ↓reduceDIte]
+      simp [pairPerm, min_eq_right h.le, max_eq_left h.le]
+
 /-- **Relabelling the couplings relabels the Gibbs weights.**  With the SK energy `E` (pair
 couplings `g`, external field `h`), the Gibbs weight of `σ` under the relabelled couplings
 `g ∘ (pairPerm π).symm` is the weight of `σ ∘ π` under `g`: `G_{g ∘ (pairPerm π).symm}(σ) =
