@@ -116,7 +116,7 @@ theorem continuous_tanh_sq_affine (w h : ℝ) :
 /-- `z ↦ tanh²(w * z + h)` is integrable against the standard Gaussian. -/
 theorem integrable_tanh_sq_affine (w h : ℝ) :
     Integrable (fun z : ℝ => Real.tanh (w * z + h) ^ 2) (gaussianReal 0 1) :=
-  MeasureTheory.integrable_tanh_sq' (fun z => w * z + h) (by fun_prop)
+  MeasureTheory.integrable_tanh_sq (fun z => w * z + h) (by fun_prop)
 
 /-- Permutation symmetry of powers of `tanh (β z √q + h)` vs `tanh (β √q z + h)`. -/
 @[simp] theorem integral_tanh_pow_mul_z_sqrt_eq (β q h : ℝ) (k : ℕ) :

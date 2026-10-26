@@ -63,7 +63,7 @@ measurable random variable `Y`. -/
 lemma integrable_tanh_sq {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω}
     [IsProbabilityMeasure P] (Y : Ω → ℝ) (hY : AEMeasurable Y P) :
     Integrable (fun ω => Real.tanh (Y ω) ^ 2) P :=
-  MeasureTheory.integrable_tanh_sq' Y hY
+  MeasureTheory.integrable_tanh_sq Y hY
 
 /-- For any random variable `Y` under a probability measure,
 `∫ tanh⁴(Y) - 2 ∫ tanh²(Y) + 1 = ∫ (1 - tanh²(Y))² ∈ [0, 1]`. -/

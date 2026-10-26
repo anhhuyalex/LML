@@ -23,19 +23,6 @@ open scoped BigOperators Real Matrix
 
 namespace SpinGlasses
 
-/-- Finite combinations commute with an `n`-replica SK average. -/
-theorem sk_replica_avg_sum (N n : ℕ) (β h : ℝ)
-    (ν : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
-    (hν : ∀ Φ, ν Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, Φ σ
-      ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
-    {ι : Type*} (s : Finset ι) (c : ι → ℝ) (Φ : ι → (Fin n → Fin (N + 1) → ℤˣ) → ℝ) :
-    ν (fun σ => ∑ j ∈ s, c j * Φ j σ) = ∑ j ∈ s, c j * ν (Φ j) :=
-  sk_replica_avg_finset_sum N n β h ν hν s c Φ
-
 /-- **Diagonal and off-diagonal parts of `ν(rect²)`** (Corollary 1.8.6): with
 `a_k = (σ¹_k - σ²_k)(σ³_k - σ⁴_k)`, `rect = M⁻¹ ∑_k a_k` and `M = N + 1`,
 `ν(rect²) = ν(a_N²)/M + (M-1)/M · ν(a_i a_j)` for any two distinct sites `i ≠ j`. -/
@@ -92,7 +79,8 @@ theorem sk_rect_sq_eq_diag_add_offdiag (N : ℕ) (β h : ℝ)
     rw [hr, mul_pow, ← Finset.mul_sum, Fintype.sum_prod_type, sq (∑ k, a k σ),
       Finset.sum_mul_sum]
     simp only [inv_pow, one_div]
-  have hsum := sk_replica_avg_sum N 4 β h ν hν (Finset.univ : Finset (Fin (N + 1) × Fin (N + 1)))
+  have hsum := sk_replica_avg_finset_sum N 4 β h ν hν
+    (Finset.univ : Finset (Fin (N + 1) × Fin (N + 1)))
     (fun _ => 1 / ((N : ℝ) + 1) ^ 2) (fun p σ => a p.1 σ * a p.2 σ)
   rw [show (fun σ => rect σ ^ 2) = fun σ => ∑ p ∈ (Finset.univ : Finset (Fin (N + 1) ×
       Fin (N + 1))), (1 / ((N : ℝ) + 1) ^ 2) * (a p.1 σ * a p.2 σ) from funext hrect, hsum,

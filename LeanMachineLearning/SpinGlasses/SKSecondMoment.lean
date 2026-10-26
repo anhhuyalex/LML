@@ -400,11 +400,6 @@ theorem second_moment_assembly {X Pa Pf Z0 Z1 M lam c2 e1 e2 e3 e4 : ℝ} (hM : 
     le_trans (mul_le_mul_of_nonneg_left h34 (abs_nonneg _)) hfin
   linarith
 
-/-- Integrability of a power of `tanh (w z + h)` under the standard Gaussian. -/
-theorem integrable_tanh_pow_gaussian (w h : ℝ) (k : ℕ) :
-    Integrable (fun z : ℝ => Real.tanh (w * z + h) ^ k) (gaussianReal 0 1) :=
-  MeasureTheory.integrable_tanh_pow (fun z => w * z + h) (by fun_prop) k
-
 /-- The Almeida-Thouless quantity `1 - 2 q + q̂ = 𝔼 (1 - tanh² Y)²` lies in `[0, 1]`. -/
 theorem tanh_fourth_sub_two_add_one_mem_Icc (w h : ℝ) :
     (∫ z : ℝ, Real.tanh (w * z + h) ^ 4 ∂(gaussianReal 0 1)) -

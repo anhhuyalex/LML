@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.SpinGlasses.SKCavityDecoupledMonomials
 public import LeanMachineLearning.SpinGlasses.SKCavityTaylor
+public import LeanMachineLearning.SpinGlasses.SKCavityReplicaPairs
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.OffDiag
 
 /-!
@@ -261,43 +262,20 @@ theorem sk_cavity_deriv_zero_rect (N n : ℕ) (β q h : ℝ)
     exact sk_cavity_decoupled_rect_monomial N β q h hfix (x₁ := so i₁) (x₂ := so i₂)
       (y₁ := so j₁) (y₂ := so j₂) hab (by simpa [so] using h13) (by simpa [so] using h14)
       (by simpa [so] using h23) (by simpa [so] using h24) (Gab a b)
-  let ι := FinPairs n ⊕ (Fin n ⊕ Unit)
-  let pr : ι → Option (Option (Fin n)) × Option (Option (Fin n)) := fun j =>
-    match j with
-    | Sum.inl s => (some (some s.val.1), some (some s.val.2))
-    | Sum.inr (Sum.inl s) => (some (some s), some none)
-    | Sum.inr (Sum.inr _) => (some none, none)
-  let cwS : ι → ℝ := fun j =>
-    match j with
-    | Sum.inl _ => 1
-    | Sum.inr (Sum.inl _) => -(n : ℝ)
-    | Sum.inr (Sum.inr _) => (n : ℝ) * ((n : ℝ) + 1) / 2
-  have hpairs : ∀ j, (pr j).1 ≠ (pr j).2 := by
-    rintro (s | s | s)
-    · have := s.property
-      simp only [pr, ne_eq, Option.some.injEq]
-      exact this.ne
-    · simp [pr]
-    · simp [pr]
-  let Gj : ι → (Option (Option (Fin n)) → Fin (N + 1) → ℤˣ) → ℝ := fun j τ =>
-    f (fun r => τ (so r)) * K (τ (pr j).1) (τ (pr j).2)
+  let Gj : SKCavityReplicaPair n → (Option (Option (Fin n)) → Fin (N + 1) → ℤˣ) → ℝ := fun j τ =>
+    f (fun r => τ (so r)) * K (τ (skCavityReplicaPairMap j).1) (τ (skCavityReplicaPairMap j).2)
   have hS : ∀ τ : Option (Option (Fin n)) → Fin (N + 1) → ℤˣ,
       f (fun r => τ (some (some r))) *
           ((∑ p : Fin n × Fin n with p.1 < p.2,
               K (τ (some (some p.1))) (τ (some (some p.2)))) -
             (n : ℝ) * ∑ r : Fin n, K (τ (some (some r))) (τ (some none)) +
             (n : ℝ) * ((n : ℝ) + 1) / 2 * K (τ (some none)) (τ none)) =
-        ∑ j, cwS j * Gj j τ := fun τ => by
-    simp only [ι, Gj, cwS, pr, so, Fintype.sum_sum_type, Finset.univ_unique,
-      Finset.sum_singleton, ← Finset.mul_sum]
-    rw [sum_filter_lt_eq_sum_subtype fun s : Fin n × Fin n =>
-      K (τ (some (some s.1))) (τ (some (some s.2)))]
-    simp only [mul_add, mul_sub]
-    ring
+        ∑ j, skCavityReplicaPairWeight n j * Gj j τ := fun τ =>
+    sk_cavity_signed_pair_mul_sum K τ (f (fun r => τ (so r)))
   simp_rw [hS]
   rw [integral_nested_gibbs_finset_sum (Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
     ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)) (E (π / 2)) hEm
-    Finset.univ cwS Gj]
+    Finset.univ (skCavityReplicaPairWeight n) Gj]
   let ϑi : Fin n → ℝ := fun r => (if i₁ = r then 1 else 0) - (if i₂ = r then 1 else 0)
   let ϑj : Fin n → ℝ := fun r => (if j₁ = r then 1 else 0) - (if j₂ = r then 1 else 0)
   let W : Fin n → Fin n → ℝ := fun a b => ∫ g', ∫ ρ : Fin n → Fin N → ℤˣ,
@@ -352,7 +330,7 @@ theorem sk_cavity_deriv_zero_rect (N n : ℕ) (β q h : ℝ)
         ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
         ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) =
       c2 * (ϑi p.1.1 * ϑj p.1.2 + ϑi p.1.2 * ϑj p.1.1) * W p.1.1 p.1.2 := fun p => by
-    have := hT (some (some p.1.1)) (some (some p.1.2)) (hpairs (Sum.inl p))
+    have := hT (some (some p.1.1)) (some (some p.1.2)) (skCavityReplicaPair_ne (Sum.inl p))
     refine this.trans ?_
     rw [hDx, hDy, hW]
     have h0 := hϑ p.1.1
@@ -364,7 +342,7 @@ theorem sk_cavity_deriv_zero_rect (N n : ℕ) (β q h : ℝ)
           (E (π / 2) g' ω))
         ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
         ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) = 0 := fun r => by
-    have := hT (some (some r)) (some none) (hpairs (Sum.inr (Sum.inl r)))
+    have := hT (some (some r)) (some none) (skCavityReplicaPair_ne (Sum.inr (Sum.inl r)))
     refine this.trans ?_
     have hx : ((((if so i₁ = some (some r) then 1 else 0) +
           (if so i₁ = some none then 1 else 0) : ℕ) : ℝ) -
@@ -388,11 +366,11 @@ theorem sk_cavity_deriv_zero_rect (N n : ℕ) (β q h : ℝ)
           (E (π / 2) g' ω))
         ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
         ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) = 0 := by
-    have := hT (some none) none (hpairs (Sum.inr (Sum.inr ())))
+    have := hT (some none) none (skCavityReplicaPair_ne (Sum.inr (Sum.inr ())))
     refine this.trans ?_
     simp [so]
-  simp only [ι, cwS, Fintype.sum_sum_type, Finset.univ_unique, hT2, hT3, mul_zero,
-    Finset.sum_const_zero, add_zero]
+  simp only [skCavityReplicaPairWeight, Fintype.sum_sum_type, Finset.univ_unique, hT2, hT3,
+    mul_zero, Finset.sum_const_zero, add_zero]
   rw [Finset.sum_congr rfl fun p _ => by rw [one_mul, hT1 p]]
   -- the four-term combination of the old-system averages
   let Eold : (FinPairs N → ℝ) → (Fin N → ℤˣ) → ℝ := fun g' r =>

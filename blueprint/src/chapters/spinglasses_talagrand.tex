@@ -4635,9 +4635,9 @@ The quantity $1-2q+\hat q=\mathbb E(1-\tanh^2Y)^2=\mathbb E\,\mathrm{ch}^{-4}Y$ 
 \item[A.] \emph{Proposition~1.8.1}: Eq.~(1.215) and Eq.~(1.216).  Fully proved.
 \item[B.] \emph{Lemmas~1.8.2 and~1.8.4}: the rectangular combination, Lemma~1.8.4.  Fully proved.
 \item[C.] \emph{Proposition~1.8.5 and Corollary~1.8.6}.  Fully proved.
-\item[D.] \emph{General Lemma~1.8.2 (Eq.~1.230) and the $3\times3$ AT matrix system (Eqs.~1.231--1.236)}.  Fully proved.
+\item[D.] \emph{General Lemma~1.8.2 (Eq.~1.230) and the $3\times3$ AT matrix algebra (Eqs.~1.234--1.236)}.  Fully proved.
 \end{enumerate}
-Propositions~1.8.7--1.8.11 and Theorem~1.8.12 (the orthogonal basis $T_{\ell,\ell'}, T_\ell, T$ and the AT line) are the next milestone.
+Still open: the three covariance equations (1.231)--(1.233), followed by Propositions~1.8.7--1.8.11 and Theorem~1.8.12.
 
 \begin{remark}[Differences from the book in Section~1.8]
 \label{rem:sg-tal:dev-18}
@@ -4758,7 +4758,7 @@ Write $\Psi(s)=\nu_s(f)$.  By Eq.~(1.151) $\Psi'=\sin s\cos s\,G$ with $G(s)$ th
 \label{lem:sg-tal:rect-algebra}
   \lean{SpinGlasses.rect_coeff,
         SpinGlasses.tanh_fourth_sub_two_add_one_mem_Icc,
-        SpinGlasses.integrable_tanh_pow_gaussian,
+        MeasureTheory.integrable_tanh_pow,
         sum_filter_lt_add_swap}
   \leanok
 \talsource{Section~1.8, Lemma~1.8.4: the coefficient $b(2)-2b(1)+b(0)$, and the remark $1-2q+\hat q=\mathbb E\,\mathrm{ch}^{-4}Y$}
@@ -4864,7 +4864,7 @@ Put $X=\nu(\mathrm{rect}^2)$, $P_f=\nu(f^*)$, $P_a=\nu(a_N^2)$, $Z_0=\nu_0((\mat
 \begin{theorem}[Corollary~1.8.6, Eq.~(1.244)]
 \label{cor:sg-tal:corollary-186}
   \uses{thm:sg-tal:prop-185, lem:sg-tal:rect-comparisons, lem:sg-tal:replica-marginals}
-  \lean{SpinGlasses.sk_replica_avg_sum,
+  \lean{SpinGlasses.sk_replica_avg_finset_sum,
         SpinGlasses.sk_rect_sq_eq_diag_add_offdiag,
         SpinGlasses.sk_nu_a_prod_eq_cov_sq,
         SpinGlasses.pair_variance_arith,

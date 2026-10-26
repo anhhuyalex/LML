@@ -57,10 +57,16 @@ theorem integrable_tanh_pow {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Measur
     exact pow_le_one₀ (abs_nonneg _) (Real.abs_tanh_lt_one (Y ω)).le
 
 /-- `tanh² ∘ Y` is integrable for any finite measure and almost-everywhere measurable `Y`. -/
-theorem integrable_tanh_sq' {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Measure Ω}
+theorem integrable_tanh_sq {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Measure Ω}
     [IsFiniteMeasure μ] (Y : Ω → ℝ) (hY : AEMeasurable Y μ) :
     Integrable (fun ω => Real.tanh (Y ω) ^ 2) μ :=
   integrable_tanh_pow Y hY 2
+
+@[deprecated integrable_tanh_sq (since := "2026-10-26")]
+theorem integrable_tanh_sq' {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Measure Ω}
+    [IsFiniteMeasure μ] (Y : Ω → ℝ) (hY : AEMeasurable Y μ) :
+    Integrable (fun ω => Real.tanh (Y ω) ^ 2) μ :=
+  integrable_tanh_sq Y hY
 
 /-- **Three-term triangle inequality in `L²`:**
 `∫ (a + b + c)² ≤ 3 ∫ a² + 3 ∫ b² + 3 ∫ c²` for square-integrable `a, b, c`. -/

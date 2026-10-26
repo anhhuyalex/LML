@@ -3860,7 +3860,7 @@ SpinGlasses.sk_cavity_decoupled_endpoint_quartic
 exists_finset_prod_eq_quartic
 SpinGlasses.rect_coeff
 SpinGlasses.tanh_fourth_sub_two_add_one_mem_Icc
-SpinGlasses.integrable_tanh_pow_gaussian
+MeasureTheory.integrable_tanh_pow
 sum_filter_lt_add_swap
 SpinGlasses.sk_cavity_decoupled_rect_monomial
 SpinGlasses.sk_cavity_deriv_zero_rect
@@ -3881,7 +3881,7 @@ SpinGlasses.second_moment_assembly
 SpinGlasses.rect_error_arith
 SpinGlasses.sk_rect_second_moment_aux
 SpinGlasses.sk_rect_second_moment
-SpinGlasses.sk_replica_avg_sum
+SpinGlasses.sk_replica_avg_finset_sum
 SpinGlasses.sk_rect_sq_eq_diag_add_offdiag
 SpinGlasses.sk_nu_a_prod_eq_cov_sq
 SpinGlasses.pair_variance_arith
