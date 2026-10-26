@@ -60,12 +60,52 @@ theorem integral_pi_count_tilted_reindex {R R' : Type*} [Finite α] [Fintype R] 
 
 /-- **Marginal along an injection of the replicas.** An observable of the replicas `ρ r`
 (`ρ : R → R'` injective) has the same average under `R'` independent replicas as under `R`. -/
-theorem integral_pi_count_tilted_comp_injective {R R' : Type*} [Finite α] [Nonempty α] [Fintype R]
-    [Fintype R'] {ρ : R → R'} (hρ : Function.Injective ρ) (f : α → ℝ) (G : (R → α) → ℝ) :
+theorem integral_pi_count_tilted_comp_injective {R R' : Type*} [Finite α] [Nonempty α]
+    [Fintype R] [Fintype R'] {ρ : R → R'} (hρ : Function.Injective ρ) (f : α → ℝ)
+    (G : (R → α) → ℝ) :
     ∫ τ : R' → α, G (fun r => τ (ρ r)) ∂(Measure.pi fun _ : R' => Measure.count.tilted f) =
       ∫ σ : R → α, G σ ∂(Measure.pi fun _ : R => Measure.count.tilted f) := by
   exact (measurePreserving_pi_comp_injective (Measure.count.tilted f)
     hρ).integral_comp_of_aestronglyMeasurable Integrable.of_finite.aestronglyMeasurable
+
+/-- **Independence of two blocks of an i.i.d. vector:** a product of a function of the first `m`
+coordinates and a function of the last `n` coordinates integrates to the product of the
+integrals. -/
+theorem integral_pi_fin_add_mul {X : Type*} [MeasurableSpace X] [Finite X]
+    [MeasurableSingletonClass X] (μ : Measure X) [IsProbabilityMeasure μ] (m n : ℕ)
+    (F : (Fin m → X) → ℝ) (G : (Fin n → X) → ℝ) :
+    ∫ σ : Fin (m + n) → X, F (fun i => σ (Fin.castAdd n i)) * G (fun j => σ (Fin.natAdd m j))
+        ∂(Measure.pi fun _ : Fin (m + n) => μ) =
+      (∫ a : Fin m → X, F a ∂(Measure.pi fun _ : Fin m => μ)) *
+        ∫ b : Fin n → X, G b ∂(Measure.pi fun _ : Fin n => μ) := by
+  let e : Fin m ⊕ Fin n ≃ Fin (m + n) := finSumFinEquiv
+  have h1 := measurePreserving_piCongrLeft (fun _ : Fin (m + n) => μ) e
+  have h2 := measurePreserving_sumPiEquivProdPi (X := fun _ : Fin m ⊕ Fin n => X)
+    (fun _ => μ)
+  have hH : ∀ x : Fin m ⊕ Fin n → X,
+      F (fun i => (MeasurableEquiv.piCongrLeft (fun _ => X) e x) (Fin.castAdd n i)) *
+        G (fun j => (MeasurableEquiv.piCongrLeft (fun _ => X) e x) (Fin.natAdd m j)) =
+      F (fun i => x (Sum.inl i)) * G (fun j => x (Sum.inr j)) := fun x => by
+    have hl : ∀ i, (MeasurableEquiv.piCongrLeft (fun _ => X) e x) (Fin.castAdd n i) =
+        x (Sum.inl i) := fun i => by
+      have := Equiv.piCongrLeft_apply_apply (fun _ => X) e x (Sum.inl i)
+      rw [finSumFinEquiv_apply_left] at this
+      exact this
+    have hr : ∀ j, (MeasurableEquiv.piCongrLeft (fun _ => X) e x) (Fin.natAdd m j) =
+        x (Sum.inr j) := fun j => by
+      have := Equiv.piCongrLeft_apply_apply (fun _ => X) e x (Sum.inr j)
+      rw [finSumFinEquiv_apply_right] at this
+      exact this
+    simp only [hl, hr]
+  rw [← h1.integral_comp_of_aestronglyMeasurable
+    (g := fun σ : Fin (m + n) → X => F (fun i => σ (Fin.castAdd n i)) *
+      G (fun j => σ (Fin.natAdd m j))) Integrable.of_finite.aestronglyMeasurable]
+  simp only [hH]
+  have h3 := h2.integral_comp_of_aestronglyMeasurable
+    (g := fun p : (Fin m → X) × (Fin n → X) => F p.1 * G p.2)
+    Integrable.of_finite.aestronglyMeasurable
+  rw [integral_prod_mul] at h3
+  exact h3
 
 /-- **Two-replica marginal.** A function of two distinct replicas of an `R`-replica Gibbs average
 has the same average as under two independent replicas. -/
@@ -119,5 +159,53 @@ theorem integral_pi_count_tilted_pair {R : Type*} [Finite α] [Nonempty α] [Fin
                 rw [h1, h2]
           _ = w p.1 * w p.2 * H p.1 p.2 := by rw [← Finset.sum_mul, hfiber]
     _ = _ := by rw [Fintype.sum_prod_type]
+
+
+/-- **Four replicas and a covariance:** for the Gibbs measure of an energy `A`, the average over
+four independent replicas of `(σ¹_i - σ²_i)(σ¹_j - σ²_j)(σ³_i - σ⁴_i)(σ³_j - σ⁴_j)` is
+`4 (⟨σ_i σ_j⟩ - ⟨σ_i⟩⟨σ_j⟩)²` (the identity behind Corollary 1.8.6). -/
+theorem integral_four_replicas_cov_sq {M : ℕ} (A : (Fin M → ℤˣ) → ℝ) (i j : Fin M) :
+    ∫ τ : Fin 4 → Fin M → ℤˣ,
+        ((((τ 0 i : ℤˣ) : ℝ) - ((τ 1 i : ℤˣ) : ℝ)) * (((τ 0 j : ℤˣ) : ℝ) - ((τ 1 j : ℤˣ) : ℝ))) *
+          ((((τ 2 i : ℤˣ) : ℝ) - ((τ 3 i : ℤˣ) : ℝ)) *
+            (((τ 2 j : ℤˣ) : ℝ) - ((τ 3 j : ℤˣ) : ℝ)))
+        ∂(Measure.pi fun _ : Fin 4 => Measure.count.tilted A) =
+      4 * ((∫ x : Fin M → ℤˣ, ((x i : ℤˣ) : ℝ) * ((x j : ℤˣ) : ℝ) ∂(Measure.count.tilted A)) -
+        (∫ x : Fin M → ℤˣ, ((x i : ℤˣ) : ℝ) ∂(Measure.count.tilted A)) *
+          ∫ x : Fin M → ℤˣ, ((x j : ℤˣ) : ℝ) ∂(Measure.count.tilted A)) ^ 2 := by
+  set μ : Measure (Fin M → ℤˣ) := Measure.count.tilted A with hμ
+  let b : (Fin 2 → Fin M → ℤˣ) → ℝ := fun ρ =>
+    (((ρ 0 i : ℤˣ) : ℝ) - ((ρ 1 i : ℤˣ) : ℝ)) * (((ρ 0 j : ℤˣ) : ℝ) - ((ρ 1 j : ℤˣ) : ℝ))
+  have h4 := integral_pi_fin_add_mul μ 2 2 b b
+  have hb : ∫ ρ : Fin 2 → Fin M → ℤˣ, b ρ ∂(Measure.pi fun _ : Fin 2 => μ) =
+      2 * ((∫ x : Fin M → ℤˣ, ((x i : ℤˣ) : ℝ) * ((x j : ℤˣ) : ℝ) ∂μ) -
+        (∫ x : Fin M → ℤˣ, ((x i : ℤˣ) : ℝ) ∂μ) * ∫ x : Fin M → ℤˣ, ((x j : ℤˣ) : ℝ) ∂μ) := by
+    let Θ : (Fin M → ℤˣ) → (Fin M → ℤˣ) → ℝ := fun x y =>
+      (((x i : ℤˣ) : ℝ) - ((y i : ℤˣ) : ℝ)) * (((x j : ℤˣ) : ℝ) - ((y j : ℤˣ) : ℝ))
+    have hbΘ : ∫ ρ : Fin 2 → Fin M → ℤˣ, b ρ ∂(Measure.pi fun _ : Fin 2 => μ) =
+        ∫ ρ : Fin 2 → Fin M → ℤˣ, Θ (ρ 0) (ρ 1) ∂(Measure.pi fun _ : Fin 2 => μ) := rfl
+    rw [hbΘ, integral_pi_fin_two]
+    have hm1 : ∫ y : Fin M → ℤˣ, (1 : ℝ) ∂μ = 1 := by simp [hμ]
+    have e : ∀ x, ∫ y, Θ x y ∂μ = (((x i : ℤˣ) : ℝ) * ((x j : ℤˣ) : ℝ)) -
+        ((x i : ℤˣ) : ℝ) * (∫ y : Fin M → ℤˣ, ((y j : ℤˣ) : ℝ) ∂μ) -
+        ((x j : ℤˣ) : ℝ) * (∫ y : Fin M → ℤˣ, ((y i : ℤˣ) : ℝ) ∂μ) +
+        ∫ y : Fin M → ℤˣ, ((y i : ℤˣ) : ℝ) * ((y j : ℤˣ) : ℝ) ∂μ := fun x => by
+      have : (fun y => Θ x y) = fun y => (((x i : ℤˣ) : ℝ) * ((x j : ℤˣ) : ℝ)) * 1 -
+          ((x i : ℤˣ) : ℝ) * ((y j : ℤˣ) : ℝ) - ((x j : ℤˣ) : ℝ) * ((y i : ℤˣ) : ℝ) +
+          ((y i : ℤˣ) : ℝ) * ((y j : ℤˣ) : ℝ) := funext fun y => by simp only [Θ]; ring
+      rw [this, integral_add (Integrable.of_finite) Integrable.of_finite,
+        integral_sub Integrable.of_finite Integrable.of_finite,
+        integral_sub Integrable.of_finite Integrable.of_finite, integral_const_mul,
+        integral_const_mul, integral_const_mul, hm1]
+      ring
+    simp only [e]
+    rw [integral_add Integrable.of_finite Integrable.of_finite,
+      integral_sub Integrable.of_finite Integrable.of_finite,
+      integral_sub Integrable.of_finite Integrable.of_finite, integral_mul_const,
+      integral_mul_const]
+    simp only [integral_const, probReal_univ, one_smul]
+    ring
+  rw [hb] at h4
+  exact h4.trans (by ring)
 
 end SpinGlasses

@@ -3,6 +3,7 @@ module  -- shake: keep-all --deprecated_module: ignore
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.HypercubeProduct
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.OffDiag
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.PiFinSucc
+public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.QuarticSignProd
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.Weights
 public import LeanMachineLearning.ForMathlib.Analysis.Asymptotics.Theta
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.Gradient.Basic
@@ -436,6 +437,7 @@ public import LeanMachineLearning.SpinGlasses.SKCavityContraction
 public import LeanMachineLearning.SpinGlasses.SKCavityCoshEstimate
 public import LeanMachineLearning.SpinGlasses.SKCavityDecoupled
 public import LeanMachineLearning.SpinGlasses.SKCavityDecoupledEndpoint
+public import LeanMachineLearning.SpinGlasses.SKCavityDecoupledMonomials
 public import LeanMachineLearning.SpinGlasses.SKCavityDerivative
 public import LeanMachineLearning.SpinGlasses.SKCavityDerivativeBound
 public import LeanMachineLearning.SpinGlasses.SKCavityDomination
@@ -448,6 +450,7 @@ public import LeanMachineLearning.SpinGlasses.SKCavityInterpolation
 public import LeanMachineLearning.SpinGlasses.SKCavityOuterBound
 public import LeanMachineLearning.SpinGlasses.SKCavityOuterDerivative
 public import LeanMachineLearning.SpinGlasses.SKCavityOverlap
+public import LeanMachineLearning.SpinGlasses.SKCavityTaylor
 public import LeanMachineLearning.SpinGlasses.SKCorrelationDecay
 public import LeanMachineLearning.SpinGlasses.SKDecoupled
 public import LeanMachineLearning.SpinGlasses.SKFirstMoment
@@ -469,8 +472,11 @@ public import LeanMachineLearning.SpinGlasses.SKOverlapMoments
 public import LeanMachineLearning.SpinGlasses.SKPairPerturbCavity
 public import LeanMachineLearning.SpinGlasses.SKPairPerturbEstimate
 public import LeanMachineLearning.SpinGlasses.SKPairPerturbGaussian
+public import LeanMachineLearning.SpinGlasses.SKPairVariance
 public import LeanMachineLearning.SpinGlasses.SKRandomProjectionCLT
+public import LeanMachineLearning.SpinGlasses.SKRectangularDerivative
 public import LeanMachineLearning.SpinGlasses.SKReplicaSymmetricBound
+public import LeanMachineLearning.SpinGlasses.SKSecondMoment
 public import LeanMachineLearning.SpinGlasses.SKSiteSymmetry
 public import LeanMachineLearning.SpinGlasses.SKSmartPath
 public import LeanMachineLearning.SpinGlasses.SKSmartPathProfile

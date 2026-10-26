@@ -11,6 +11,7 @@ The mathematical narrative develops the high-temperature theory of the Sherringt
 \item Spin decorrelation, asymptotic product measures on finite spin marginals, and high-dimensional random projections (Sections~1.4--1.5).
 \item The cavity method: splitting off the last spin, interpolating the new couplings against an independent Gaussian field, concentration of the overlap around $q$ with all its moments, and the free-energy increment $(N+1)p_{N+1}-Np_N$ (Section~1.6).
 \item The Gaussian fluctuation principle: the Gaussian interpolation between the centered projections $N^{-1/2}\sum_i y_i\dot\sigma_i$ of the Gibbs state and independent Gaussians of variance $1-q$, the parity argument that makes the first $2k-1$ derivatives vanish at the start of the path, and the moment bounds that make the $2k$-th derivative $O(N^{-k})$ (Section~1.7).
+\item Second moment computations (Section~1.8): the second-order expansion of the cavity path (Proposition~1.8.1), the rectangular combination at the decoupled endpoint (Lemma~1.8.4), and the asymptotic second moment of the rectangular overlap and the variance of the truncated spin correlation (Proposition~1.8.5, Corollary~1.8.6), with explicit $O(N^{-3/2})$ errors.
 \end{enumerate}
 
 \medskip\noindent\textbf{Source tags.}
@@ -4613,4 +4614,274 @@ Theorem~1.7.7 (the TAP equations, in the $(N+1)$-spin indexing) is formalized as
 Corollary~1.7.8 (all sites at once) is formalized as Theorem~\ref{cor:sg-tal:corollary-178}; Section~1.7 is therefore complete in this chapter.
 Eq.~(1.210) is available in the book form (Theorem~\ref{thm:sg-tal:cor-1715-reaction-book}).  The Corollaries are stated for the $N$-spin system with constants uniform in $|\beta|\le\beta_0<1/2$ (Remark~\ref{rem:sg-tal:dev-1713}), so the application to the $N$-spin system at $\beta_-$ is by relabeling $N$ and $\beta$ (done in Theorems~\ref{thm:sg-tal:lemma-174-a} and~\ref{thm:sg-tal:lemma-174-b}).
 Nothing in Sections~1.1--1.6 depends on Section~1.7.
+\end{remark}
+
+\section{Second moment computations and the Almeida--Thouless line (Talagrand Section~1.8)}
+\label{sec:sg-tal:second-moment}
+
+\paragraph{The idea.}
+Theorem~1.4.1 gives $\nu((R_{1,2}-q)^2)\le K/N$ for $\beta<1/2$, and Section~1.8 computes the limit of $N\nu((R_{1,2}-q)^2)$.
+Write $\nu_t$ for the average along the cavity path of Section~1.6, so that $\nu_1=\nu$ is the SK average of the $(N+1)$-spin system and $\nu_0$ is the decoupled average in which the last spin has the field $\beta z\sqrt q+h$.
+The method has three steps.
+\begin{enumerate}
+\item[(i)] \emph{Expansion along the path} (Proposition~1.8.1): $\nu(f)=\nu_0(f)+\nu_0'(f)+\text{error}$, where the first derivative is Eq.~(1.151), the error is controlled by a Hoelder product of $\nu(|f|^{\tau_1})^{1/\tau_1}$ and a power of $\nu(|R_{1,2}-q|)$, and the second derivative is the first-derivative formula applied to the observable $f\cdot(\text{replica kernel combination})$ on $n+2$ replicas.
+\item[(ii)] \emph{Algebra at the decoupled endpoint} (Lemmas~1.8.2 and~1.8.4): by Lemma~1.6.2 the last spins decouple, so $\nu_0$ of a product of last spins is a power of $\mathbb E\tanh Y$ times an average over the old spins.  For the rectangle $(\varepsilon_1-\varepsilon_2)(\varepsilon_3-\varepsilon_4)$ this produces the factor $\beta^2(1-2q+\hat q)$, where $\hat q=\mathbb E\tanh^4Y$.
+\item[(iii)] \emph{A closed linear equation} (Proposition~1.8.5 and Corollary~1.8.6): site symmetry turns $\nu((\text{rectangle})^2)$ into a last-site quantity, (i) and (ii) express it through itself with coefficient $\lambda=\beta^2(1-2q+\hat q)<1$, and one solves for it.
+\end{enumerate}
+The quantity $1-2q+\hat q=\mathbb E(1-\tanh^2Y)^2=\mathbb E\,\mathrm{ch}^{-4}Y$ governs the Almeida--Thouless line $\beta^2\mathbb E\,\mathrm{ch}^{-4}Y=1$.
+
+\paragraph{How the section is organized.}
+\begin{enumerate}
+\item[A.] \emph{Proposition~1.8.1}: Eq.~(1.215) and Eq.~(1.216).  Fully proved.
+\item[B.] \emph{Lemmas~1.8.2 and~1.8.4}: only the rectangular combination, Lemma~1.8.4, is formalized (it is all that Section~1.8.5 uses).  Fully proved.
+\item[C.] \emph{Proposition~1.8.5 and Corollary~1.8.6}.  Fully proved.
+\end{enumerate}
+Propositions~1.8.7--1.8.11 and Theorem~1.8.12 (the full $3\times3$ system and the AT line) are not formalized.
+
+\begin{remark}[Differences from the book in Section~1.8]
+\label{rem:sg-tal:dev-18}
+\begin{itemize}
+\item \emph{Indexing.}  The system has $N+1$ spins, the singled-out spin is the last one, and $M=N+1$ replaces the book's $N$.  The truncated overlap is $R^-_{\ell\ell'}=M^{-1}\sum_{i<N}\sigma^\ell_i\sigma^{\ell'}_i$, so that $R=R^-+\varepsilon\varepsilon'/M$ exactly (the book normalizes $R^-$ by $N-1$ and absorbs the difference into $\mathcal R$).
+\item \emph{Hoelder pairs.}  In Eq.~(1.215) all pairs $(\tau_1,\tau_2)$ with $\tau_1<\infty$ are proved, and $(\infty,1)$ separately; in Eq.~(1.216) all conjugate pairs $(p,r)$ are proved with $\nu(|R_{1,2}-q|^{2r})$ on the right, and only $(2,2)$ is used.  The deviations in the Hoelder products are $R-q$ with the full overlap, not $R^--q$; the passage $R^-\to R$ costs $1/M$ and is absorbed in the explicit constants.
+\item \emph{No $\mathcal R$ notation.}  The error terms of the book's $\mathcal R$ and $O(3)$ are explicit: for $|\beta|\le\beta_0$ with $4\beta_0^2<1$ they are bounded by $K/M^{3/2}$ with $K$ depending only on $\beta_0$ and $h$.
+\item \emph{Second-order expansion.}  Instead of the integral Taylor formula in $t=\cos^2s$ the formalization uses the angle $s$ and the fencing lemma \texttt{abs\_sub\_sub\_half\_le\_of\_second\_order}, which needs no continuity of $\nu_t'$ at the endpoints.  The constant in Eq.~(1.216) is $4n^2(n+2)^2\beta^4e^{4(n+4)^2\beta^2}$.
+\item \emph{Fixed point.}  $q$ is a hypothesis $q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$ (any fixed point), as in the rest of the chapter.
+\item \emph{The AT quantity.}  It is written $1-2q+\hat q=\mathbb E\tanh^4Y-2q+1$; that this equals $\mathbb E\,\mathrm{ch}^{-4}Y$ is not stated in Lean, only $0\le1-2q+\hat q\le1$ (Lemma~\ref{lem:sg-tal:rect-algebra}(c)), which gives $\lambda\le\beta^2<1/4$.
+\item \emph{Corollary~1.8.6} is stated for two distinct sites $i\ne j$ of the $(N+1)$-spin system; the book's $\sigma_1,\sigma_2$ are two sites, and by symmetry the value does not depend on the pair.
+\end{itemize}
+\end{remark}
+
+\subsection{Part A: Proposition~1.8.1}
+
+\begin{lemma}[Replica marginals and block independence]
+\label{lem:sg-tal:replica-marginals}
+  \lean{MeasureTheory.measurePreserving_pi_comp_injective,
+        SpinGlasses.integral_pi_count_tilted_comp_injective,
+        SpinGlasses.integral_pi_fin_add_mul,
+        SpinGlasses.integral_four_replicas_cov_sq,
+        SpinGlasses.integral_gibbs_finset_sum}
+  \leanok
+\talsource{Section~1.8, proofs of Proposition~1.8.1 (``Hoelder's inequality'') and of Corollary~1.8.6 (independence of the replica pairs)}
+(a) If $X=(X_{r'})_{r'\in R'}$ is i.i.d.\ with law $\mu$ and $\rho:R\to R'$ is injective then $(X_{\rho(r)})_{r\in R}$ is i.i.d.\ with law $\mu$; hence a function of $n$ of $n'$ replicas of a finite Gibbs measure has the same average as under $n$ replicas.  (b) For $m,n\ge0$ and i.i.d.\ coordinates, $\mathbb E\,F(X_1,\dots,X_m)G(X_{m+1},\dots,X_{m+n})=\mathbb EF\cdot\mathbb EG$.  (c) For the Gibbs measure $\mu_A\propto e^A$ of any energy $A$ on $\{-1,1\}^M$ and any two sites $i,j$, the average over four replicas of $(\sigma^1_i-\sigma^2_i)(\sigma^1_j-\sigma^2_j)(\sigma^3_i-\sigma^4_i)(\sigma^3_j-\sigma^4_j)$ is $4(\langle\sigma_i\sigma_j\rangle-\langle\sigma_i\rangle\langle\sigma_j\rangle)^2$.  (d) The disorder average of the Gibbs average of a finite combination of observables is the combination of the averages.
+\end{lemma}
+\begin{proof}
+  \leanok
+(a) Check the product-set formula for the law of the restriction (\texttt{Measure.pi\_eq}): the preimage of $\prod_rs_r$ is $\prod_{r'}s'_{r'}$ with $s'_{\rho(r)}=s_r$ and $s'_{r'}=\mathrm{univ}$ off the range.  (b) Identify $\{-1,1\}^{m+n}$ with a product through the sum-type equivalence and apply Fubini.  (c) By (b) the average is $(\mathbb E_{\mu\otimes\mu}(x_i-y_i)(x_j-y_j))^2$ and the inner average is $2(\langle\sigma_i\sigma_j\rangle-\langle\sigma_i\rangle\langle\sigma_j\rangle)$.  (d) Linearity of the integral over a finite space and of the outer integral, with integrability from boundedness.
+\end{proof}
+
+\begin{lemma}[Two calculus facts along the angle path]
+\label{lem:sg-tal:second-order-calculus}
+  \lean{Real.sub_le_of_deriv_le_Icc,
+        Real.abs_sub_le_of_exists_hasDerivAt_Icc,
+        Real.abs_sub_sub_half_le_of_second_order}
+  \leanok
+\talsource{Section~1.8, proof of Proposition~1.8.1: $|\nu(f)-\nu_0(f)-\nu_0'(f)|\le\sup_t|\nu_t''(f)|$}
+(a) If $\varphi'=\sin s\cos s\,D$ with $|D|\le K$ on $[0,\pi/2]$ and $0\le a\le b\le\pi/2$, then $|\varphi(b)-\varphi(a)|\le\frac K2(\sin^2b-\sin^2a)$.  (b) If $\Psi'=\sin s\cos s\,G$ and $G'=\sin s\cos s\,D$ with $|D|\le K$ on $[0,\pi/2]$ then $|\Psi(\pi/2)-\Psi(0)-\frac12G(\pi/2)|\le K/4$.
+\end{lemma}
+\begin{proof}
+  \leanok
+(a) $\varphi-\frac K2\sin^2$ is non-increasing on $[a,b]$ and $\varphi+\frac K2\sin^2$ is non-decreasing, because the derivative of $\sin^2$ is $2\sin s\cos s\ge0$.  (b) By (a) with $b=\pi/2$, $|G(s)-G(\pi/2)|\le\frac K2\cos^2s\le\frac K2$ for $s\in[0,\pi/2]$; apply the one-derivative form of the fencing lemma to $\Psi$ with $C=G(\pi/2)$.
+\end{proof}
+
+\begin{lemma}[The replica pairs of Eq.~(1.152) and Hoelder with two deviations]
+\label{lem:sg-tal:replica-holder}
+  \lean{SpinGlasses.exists_replica_pair_weights,
+        SpinGlasses.sk_replica_holder,
+        SpinGlasses.sk_replica_holder_dev_dev,
+        SpinGlasses.abs_sk_cavity_angle_derivative_le}
+  \leanok
+\talsource{Section~1.8, proof of Proposition~1.8.1: ``bound $\nu_t'(f)$ using (1.151), (1.154) and Hoelder's inequality''; iteration for $\nu_t''$}
+Fix $n$.  (a) The three families of replica pairs in Eq.~(1.152) (the pairs $\ell<\ell'\le n$ with weight $1$, the pairs $(\ell,n+1)$ with weight $n$ and the pair $(n+1,n+2)$ with weight $n(n+1)/2$) form a finite weighted list: there are an index type, nonnegative weights $c_j$ with $\sum_jc_j=2n^2$ and pairs $(a_j,b_j)$ of distinct replicas such that every sum $\sum_{\ell<\ell'}D(\tau_\ell,\tau_{\ell'})+n\sum_\ell D(\tau_\ell,\tau_{n+1})+\frac{n(n+1)}2D(\tau_{n+1},\tau_{n+2})$ equals $\sum_jc_jD(\tau_{a_j},\tau_{b_j})$.  (b) For any set $R$ of replicas, nonnegative observables $A,B$ of $R$ and conjugate $p,r$: $\nu(AB)\le\nu(A^p)^{1/p}\nu(B^r)^{1/r}$.  (c) If $f$ is an observable of $n$ replicas, $\rho:\{1,\dots,n\}\to R$ is injective and $a\ne b$, $c\ne d$ are replicas, then $\nu(|f(\sigma_\rho)|\,|R_{ab}-q|\,|R_{cd}-q|)\le\nu(|f|^p)^{1/p}\,\nu(|R_{1,2}-q|^{2r})^{1/r}$.  (d) For $s\in[0,\pi/2]$ the angle derivative of Eq.~(1.151) satisfies $|\ldots|\le2\beta^2e^{4(n+2)^2\beta^2}\,\nu(|f|\,W)$, where $W=\sum_jc_j|R_{a_jb_j}-q|$.
+\end{lemma}
+\begin{proof}
+  \leanok
+(a) Take the index type $\mathrm{FinPairs}\,n\oplus(\mathrm{Fin}\,n\oplus\mathrm{Unit})$ and match the three sums.  (b) Hoelder for the iterated average (\texttt{integral\_integral\_mul\_le\_Lp\_mul\_Lq}); the measurability of the inner averages is Lemma~\ref{lem:sg-tal:replica-marginals}(d)'s companion \texttt{measurable\_integral\_pi\_count\_tilted}.  (c) Apply (b) with $A=|f\circ\rho|$, $B=|R_{ab}-q||R_{cd}-q|$.  By Lemma~\ref{lem:sg-tal:replica-marginals}(a) $\nu(A^p)=\nu(|f|^p)$.  Since $(xy)^r\le\frac12(x^{2r}+y^{2r})$, $\nu(B^r)\le\frac12(\nu(|R_{ab}-q|^{2r})+\nu(|R_{cd}-q|^{2r}))$ and each term is a two-replica average (\texttt{integral\_pi\_count\_tilted\_pair}).  (d) The bound $|U|\le2\beta^2W$ for the kernel combination (Lemma~1.6.3's algebra) and the domination of Lemma~1.6.4 for the nonnegative observable $|f|W$ on $n+2$ replicas.
+\end{proof}
+
+\begin{theorem}[Proposition~1.8.1, Eq.~(1.215): first order]
+\label{thm:sg-tal:prop-181-first}
+  \uses{lem:sg-tal:replica-holder}
+  \lean{SpinGlasses.sk_cavity_nu_sub_nu_zero_le,
+        SpinGlasses.sk_cavity_nu_sub_nu_zero_le_two,
+        SpinGlasses.sk_cavity_nu_sub_nu_zero_le_of_abs_le}
+  \leanok
+\talsource{Proposition~1.8.1, Eq.~(1.215); the case $\tau_1=\tau_2=2$ and $\tau_1=\infty,\ \tau_2=1$}
+Let $q\in[0,1]$, $f$ an observable of $n$ replicas of the $(N+1)$-spin system, $\nu$ the SK average and $\nu_0$ the decoupled average (cavity path at angle $\pi/2$).  For conjugate exponents $p,r$,
+\[
+|\nu(f)-\nu_0(f)|\le2n^2\beta^2e^{4(n+2)^2\beta^2}\,\nu(|f|^p)^{1/p}\,\nu(|R_{1,2}-q|^r)^{1/r},
+\]
+in particular $\le2n^2\beta^2e^{4(n+2)^2\beta^2}\nu(f^2)^{1/2}\nu((R_{1,2}-q)^2)^{1/2}$ and, if $|f|\le M_f$, $\le2n^2\beta^2e^{4(n+2)^2\beta^2}M_f\,\nu(|R_{1,2}-q|)$.
+\end{theorem}
+\begin{proof}
+  \leanok
+Integrate the bound of Lemma~\ref{lem:sg-tal:replica-holder}(d) along $[0,\pi/2]$ (fencing lemma), use $\nu_{s=0}=\nu$ and apply Lemma~\ref{lem:sg-tal:replica-holder}(b) with $\sum c_j=2n^2$; for $\tau_1=\infty$ bound $|f|\le M_f$ pointwise.
+\end{proof}
+
+\begin{theorem}[Proposition~1.8.1, Eq.~(1.216): second order]
+\label{thm:sg-tal:prop-181-second}
+  \uses{lem:sg-tal:second-order-calculus, lem:sg-tal:replica-holder, thm:sg-tal:prop-181-first}
+  \lean{SpinGlasses.integral_abs_lifted_mul_dev_le,
+        SpinGlasses.sk_cavity_nu_sub_nu_zero_sub_deriv_le,
+        SpinGlasses.sk_cavity_nu_sub_nu_zero_sub_deriv_le_two}
+  \leanok
+\talsource{Proposition~1.8.1, Eq.~(1.216)}
+With the notation of Theorem~\ref{thm:sg-tal:prop-181-first} let $\nu_0'(f)=\nu_0\bigl(f\cdot(\sum_{\ell<\ell'}K_{\ell\ell'}-n\sum_\ell K_{\ell,n+1}+\frac{n(n+1)}2K_{n+1,n+2})\bigr)$ with $K_{\ell\ell'}=\beta^2\varepsilon_\ell\varepsilon_{\ell'}(R^-_{\ell\ell'}-q)$ (Eq.~(1.151) at the decoupled endpoint).  For conjugate $p,r$,
+\[
+|\nu(f)-\nu_0(f)-\nu_0'(f)|\le4n^2(n+2)^2\beta^4e^{4(n+4)^2\beta^2}\,\nu(|f|^p)^{1/p}\,\nu(|R_{1,2}-q|^{2r})^{1/r},
+\]
+in particular for $p=r=2$ with $\nu(f^2)^{1/2}\nu((R_{1,2}-q)^4)^{1/2}$.
+\end{theorem}
+\begin{proof}
+  \leanok
+Write $\Psi(s)=\nu_s(f)$.  By Eq.~(1.151) $\Psi'=\sin s\cos s\,G$ with $G(s)$ the angle form of $\nu_s'(f)$, which is the $(n+2)$-replica average of $F_2=f\cdot(\text{kernel combination})$ (the replicas $\{1,\dots,n,n+1,n+2\}$ identified with $\mathrm{Fin}(n+2)$ by an equivalence).  Applying Eq.~(1.151) again to $F_2$ gives $G'=\sin s\cos s\,D$ with $D$ the $(n+4)$-replica average of $F_2\cdot(\text{kernel combination})$.  By Lemma~\ref{lem:sg-tal:replica-holder}(d) for $F_2$, $|D|\le2\beta^2e^{4(n+4)^2\beta^2}\nu(|F_2|W)$, and $|F_2|\le2\beta^2|f|\sum_jc_j|R-q|$ (Lemma~\ref{lem:sg-tal:replica-holder}(a)), so by Lemma~\ref{lem:sg-tal:replica-holder}(c) summed over the $2n^2\cdot2(n+2)^2$ pairs of pairs, $|D|\le16n^2(n+2)^2\beta^4e^{4(n+4)^2\beta^2}\nu(|f|^p)^{1/p}\nu(|R-q|^{2r})^{1/r}$.  Lemma~\ref{lem:sg-tal:second-order-calculus}(b) gives the claim with $\Psi(0)=\nu(f)$, $\Psi(\pi/2)=\nu_0(f)$ and $\nu_0'(f)=-\frac12G(\pi/2)$ (the sign and the factor from $dt/ds=-2\sin s\cos s$, and $K^-$ differs from the kernel of Eq.~(1.151) by a constant that cancels because the weights sum to $0$).
+\end{proof}
+
+\subsection{Part B: Lemma~1.8.4}
+
+\begin{lemma}[The decoupled average of sign monomials]
+\label{lem:sg-tal:decoupled-monomials}
+  \uses{lem:sg-tal:replica-marginals}
+  \lean{SpinGlasses.sk_cavity_decoupled_endpoint_replicas,
+        SpinGlasses.sk_cavity_decoupled_endpoint_quartic,
+        exists_finset_prod_eq_quartic}
+  \leanok
+\talsource{Section~1.8, proof of Lemma~1.8.2: ``by Lemma~1.6.2''}
+(a) Lemma~1.6.2 holds for an arbitrary finite set $R$ of replicas: $\nu_0(f^-\prod_{r\in I}\varepsilon_r)=\mathbb E\tanh^{|I|}Y\cdot\nu_0^-(f^-)$ for every observable $f^-$ of the old spins.  (b) If $x\ne y$ and $a\ne b$ are replicas then $\varepsilon_x\varepsilon_y\varepsilon_a\varepsilon_b=\prod_{r\in I}\varepsilon_r$ for a set $I$ with $|I|=4-2c$, where $c$ is the number of coincidences among $x,y,a,b$; hence $\nu_0(f^-\varepsilon_x\varepsilon_y\varepsilon_a\varepsilon_b)=\mathbb E\tanh^{4-2c}Y\cdot\nu_0^-(f^-)$.
+\end{lemma}
+\begin{proof}
+  \leanok
+(a) Reindex the replicas by $\mathrm{Fin}(|R|)$ (\texttt{integral\_pi\_count\_tilted\_reindex}) and use Lemma~1.6.2 for $\mathrm{Fin}\,n$.  (b) Case split on the possible coincidences ($x=a$, $x=b$, $y=a$, $y=b$; seven consistent cases) using $\varepsilon^2=1$.
+\end{proof}
+
+\begin{lemma}[Algebra of the rectangle]
+\label{lem:sg-tal:rect-algebra}
+  \lean{SpinGlasses.rect_coeff,
+        SpinGlasses.tanh_fourth_sub_two_add_one_mem_Icc,
+        SpinGlasses.integrable_tanh_pow_gaussian,
+        sum_filter_lt_add_swap}
+  \leanok
+\talsource{Section~1.8, Lemma~1.8.4: the coefficient $b(2)-2b(1)+b(0)$, and the remark $1-2q+\hat q=\mathbb E\,\mathrm{ch}^{-4}Y$}
+(a) Let $m_0,m_2,m_4$ be reals, $x_1,x_2,y_1,y_2$ replicas and $a\ne b$.  With $\delta_u=1_{u=a}+1_{u=b}\in\{0,1\}$ one has
+$\sum_{u,v}\pm m_{4-2(\delta_{x_u}+\delta_{y_v})}=(m_0-2m_2+m_4)(\delta_{x_1}-\delta_{x_2})(\delta_{y_1}-\delta_{y_2})$ (signs $+,-,-,+$).  (b) For every $X:\iota\times\iota\to\mathbb R$ on a finite linear order, $\sum_{a<b}(X_{ab}+X_{ba})=\sum_{a,b}X_{ab}-\sum_aX_{aa}$.  (c) For $w,h\in\mathbb R$: $\mathbb E\tanh^4(wz+h)-2\mathbb E\tanh^2(wz+h)+1=\mathbb E(1-\tanh^2(wz+h))^2\in[0,1]$.
+\end{lemma}
+\begin{proof}
+  \leanok
+(a) $m_{4-2k}$ with $k=\delta+\delta'\in\{0,1,2\}$ equals $m_4-(\delta+\delta')(m_4-m_2)+\delta\delta'(m_4-2m_2+m_0)$ for $\delta,\delta'\in\{0,1\}$ (check the three values); since $\sum_u\pm1=0$ only the last term survives.  (b) The off-diagonal symmetric sum is twice the ordered half.  (c) Expand the square and use $0\le1-\tanh^2\le1$.
+\end{proof}
+
+\begin{theorem}[Lemma~1.8.4, Eq.~(1.237): the rectangular combination]
+\label{thm:sg-tal:lemma-184}
+  \uses{lem:sg-tal:decoupled-monomials, lem:sg-tal:rect-algebra, thm:sg-tal:prop-181-second}
+  \lean{SpinGlasses.sk_cavity_decoupled_rect_monomial,
+        SpinGlasses.sk_cavity_deriv_zero_rect}
+  \leanok
+\talsource{Lemma~1.8.4, Eq.~(1.237)}
+Let $q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$, $\hat q=\mathbb E\tanh^4(\beta\sqrt q\,z+h)$, and let $i_1,i_2$ be replicas distinct from the replicas $j_1,j_2$ among $n$ replicas.  For every observable $f^-$ of the first $N$ spins of the $n$ replicas, with $f=f^-\cdot(\varepsilon_{i_1}-\varepsilon_{i_2})(\varepsilon_{j_1}-\varepsilon_{j_2})$,
+\[
+\nu_0'(f)=\beta^2(1-2q+\hat q)\,\nu_0^-\bigl(f^-\,(R^-_{i_1j_1}-R^-_{i_1j_2}-R^-_{i_2j_1}+R^-_{i_2j_2})\bigr),
+\]
+with $\nu_0'$ as in Theorem~\ref{thm:sg-tal:prop-181-second}.
+\end{theorem}
+\begin{proof}
+  \leanok
+Expand $\nu_0'(f)$ over the pairs $(a,b)$ of the $n+2$ replicas and over the four monomials $\pm\varepsilon_x\varepsilon_y$.  By Lemma~\ref{lem:sg-tal:decoupled-monomials}(b), $\nu_0(f^-\varepsilon_x\varepsilon_y\,\varepsilon_a\varepsilon_b(R^-_{ab}-q))=m_{|I|}\nu_0^-(f^-(R^-_{ab}-q))$, and by Lemma~\ref{lem:sg-tal:rect-algebra}(a) the sum over $(x,y)$ has coefficient $(1-2q+\hat q)(\vartheta_i(a)+\vartheta_i(b))(\vartheta_j(a)+\vartheta_j(b))$ with $\vartheta_i(r)=1_{r=i_1}-1_{r=i_2}$.  Since $\vartheta_i\vartheta_j=0$ and $\vartheta$ vanishes on the two extra replicas, only $\vartheta_i(a)\vartheta_j(b)+\vartheta_i(b)\vartheta_j(a)$ with $a,b\le n$ survives; the sum over $a<b$ is then $\sum_{a,b}\vartheta_i(a)\vartheta_j(b)(\cdot)$ (Lemma~\ref{lem:sg-tal:rect-algebra}(b)), which is the four-term combination.  The constants $-q$ cancel since $1-1-1+1=0$.
+\end{proof}
+
+\begin{lemma}[Decoupled values for the rectangle]
+\label{lem:sg-tal:rect-decoupled}
+  \uses{lem:sg-tal:decoupled-monomials}
+  \lean{SpinGlasses.sk_cavity_decoupled_rect_zero,
+        SpinGlasses.sk_cavity_decoupled_rect_sq}
+  \leanok
+\talsource{Section~1.8, proof of Proposition~1.8.5: $\nu_0(f^*)=0$ and Eq.~(1.242)}
+With four replicas: (a) $\nu_0(f^-(\varepsilon_1-\varepsilon_2)(\varepsilon_3-\varepsilon_4))=0$ for every observable $f^-$ of the old spins; (b) $\nu_0(((\varepsilon_1-\varepsilon_2)(\varepsilon_3-\varepsilon_4))^2)=4(1-2q+\hat q)$.
+\end{lemma}
+\begin{proof}
+  \leanok
+(a) The four monomials $\varepsilon_x\varepsilon_y$ each have decoupled average $q\,\nu_0^-(f^-)$ and the signs sum to $0$.  (b) $((\varepsilon_1-\varepsilon_2)(\varepsilon_3-\varepsilon_4))^2=4(1-\varepsilon_1\varepsilon_2)(1-\varepsilon_3\varepsilon_4)$ has decoupled average $4(1-q-q+\hat q)$.
+\end{proof}
+
+\subsection{Part C: Proposition~1.8.5 and Corollary~1.8.6}
+
+\begin{lemma}[Bookkeeping for $\nu(\mathrm{rect}^2)$]
+\label{lem:sg-tal:rect-structure}
+  \uses{lem:sg-tal:replica-marginals}
+  \lean{SpinGlasses.sk_rect_sq_eq_last_site,
+        SpinGlasses.sk_replica_avg_calculus,
+        SpinGlasses.sk_rect_nu_structure,
+        SpinGlasses.rect_sq_le,
+        SpinGlasses.rect_pow_four_le,
+        SpinGlasses.sk_rect_moment_le,
+        SpinGlasses.sq_sign_rect_le,
+        SpinGlasses.sk_rect_nu_bounds,
+        SpinGlasses.sk_dev_moment_le,
+        SpinGlasses.sk_abs_dev_le}
+  \leanok
+\talsource{Section~1.8, proof of Proposition~1.8.5, Eqs.~(1.239)--(1.242) and the estimates $\nu(|R^--q|^k)=O(k)$}
+Let $a_i=(\sigma^1_i-\sigma^2_i)(\sigma^3_i-\sigma^4_i)$, $\mathrm{rect}=R_{13}-R_{14}-R_{23}+R_{24}=M^{-1}\sum_ia_i$ and $\mathrm{rect}^-=\mathrm{rect}-a_N/M$.  Then (a) $\nu(\mathrm{rect}^2)=\nu(a_N\,\mathrm{rect})$ (site symmetry); (b) $\nu(a_N\mathrm{rect})=\nu(f^*)+\nu(a_N^2)/M$ with $f^*=a_N\mathrm{rect}^-$, and $\nu((\mathrm{rect}^-)^2)=\nu(\mathrm{rect}^2)(1-2/M)+\nu(a_N^2)/M^2$; (c) $0\le\nu(a_N^2)\le16$.  If $\nu((R_{1,2}-q)^2)\le K_1/M$ and $\nu((R_{1,2}-q)^4)\le K_2/M^2$ then (d) $\nu(\mathrm{rect}^2)\le16K_1/M$, $\nu((\mathrm{rect}^-)^2)\le(16K_1+16)/M$, $\nu(f^{*2})\le(512K_1+512)/M$ and $\nu((\mathrm{rect}^-)^4)\le(2048K_2+2048)/M^2$; and $\nu(|R_{1,2}-q|)\le(K_1+1)/(2\sqrt M)$.  (e) Both hypotheses of (d) hold with $K_1,K_2$ depending only on $\beta_0$, uniformly in $|\beta|\le\beta_0<1/2$ (Eq.~(1.88)).
+\end{lemma}
+\begin{proof}
+  \leanok
+(a) Swapping sites $i$ and $N$ preserves $\mathrm{rect}$ and exchanges $a_i$ and $a_N$ (\texttt{sk\_replica\_site\_perm}); average over $i$.  (b) $\mathrm{rect}=\mathrm{rect}^-+a_N/M$ pointwise; expand.  (c) $|a_N|\le4$.  (d) $\mathrm{rect}=\sum\pm(R_{ab}-q)$ over four pairs of replicas, $(u_1-u_2-u_3+u_4)^m\le4^{m-1}\sum u_k^m$ for $m=2,4$ and each pair has the same average (Lemma~\ref{lem:sg-tal:replica-marginals}(a)); then $(x-y)^4\le8(x^4+y^4)$ and $|a_N|\le4$.  For the last claim $|x|\le\frac{\sqrt M}2x^2+\frac1{2\sqrt M}$.  (e) Eq.~(1.88) as in Theorem~\ref{thm:sg-tal:overlap-moments-all}.
+\end{proof}
+
+\begin{lemma}[The decoupled comparisons for the rectangle]
+\label{lem:sg-tal:rect-comparisons}
+  \uses{thm:sg-tal:prop-181-first, thm:sg-tal:prop-181-second, thm:sg-tal:lemma-184, lem:sg-tal:rect-decoupled, lem:sg-tal:rect-structure}
+  \lean{SpinGlasses.sk_rect_nu_decoupled}
+  \leanok
+\talsource{Section~1.8, proof of Proposition~1.8.5: the applications of (1.216), (1.237) and (1.215)}
+Let $c_2=1-2q+\hat q$, $\mathrm{rect}^-$ and $f^*$ as above.  There is a decoupled average $\nu_0$ such that
+(a) $|\nu(f^*)-\beta^2c_2\,\nu_0((\mathrm{rect}^-)^2)|\le2304\beta^4e^{256\beta^2}\nu(f^{*2})^{1/2}\nu((R_{1,2}-q)^4)^{1/2}$,
+(b) $|\nu((\mathrm{rect}^-)^2)-\nu_0((\mathrm{rect}^-)^2)|\le32\beta^2e^{144\beta^2}\nu((\mathrm{rect}^-)^4)^{1/2}\nu((R_{1,2}-q)^2)^{1/2}$,
+(c) $|\nu(a_N^2)-4c_2|\le512\beta^2e^{144\beta^2}\nu(|R_{1,2}-q|)$.
+\end{lemma}
+\begin{proof}
+  \leanok
+(a) Eq.~(1.216) with $n=4$, $p=r=2$ and $f=f^*=\mathrm{rect}^-\cdot(\varepsilon_1-\varepsilon_2)(\varepsilon_3-\varepsilon_4)$; $\nu_0(f^*)=0$ by Lemma~\ref{lem:sg-tal:rect-decoupled}(a) and $\nu_0'(f^*)=\beta^2c_2\nu_0((\mathrm{rect}^-)^2)$ by Lemma~1.8.4 (Theorem~\ref{thm:sg-tal:lemma-184}) since $\mathrm{rect}^-=R^-_{13}-R^-_{14}-R^-_{23}+R^-_{24}$.  (b) Eq.~(1.215) with $\tau_1=\tau_2=2$ for $(\mathrm{rect}^-)^2$.  (c) Eq.~(1.215) with $\tau_1=\infty$, $|a_N^2|\le16$, and Lemma~\ref{lem:sg-tal:rect-decoupled}(b).
+\end{proof}
+
+\begin{theorem}[Proposition~1.8.5, Eq.~(1.238)]
+\label{thm:sg-tal:prop-185}
+  \uses{lem:sg-tal:rect-structure, lem:sg-tal:rect-comparisons}
+  \lean{SpinGlasses.second_moment_assembly,
+        SpinGlasses.rect_error_arith,
+        SpinGlasses.sk_rect_second_moment_aux,
+        SpinGlasses.sk_rect_second_moment}
+  \leanok
+\talsource{Proposition~1.8.5, Eq.~(1.238)}
+Let $4\beta_0^2<1$ and $h\in\mathbb R$.  There is $K>0$ such that for $|\beta|\le\beta_0$, every fixed point $q$ and every $N$, in the $(N+1)$-spin system with $M=N+1$, $c_2=\mathbb E\tanh^4(\beta\sqrt q\,z+h)-2q+1$,
+\[
+\Bigl|\nu\Bigl(\Bigl(\tfrac{(\boldsymbol\sigma^1-\boldsymbol\sigma^2)\cdot(\boldsymbol\sigma^3-\boldsymbol\sigma^4)}{M}\Bigr)^2\Bigr)-\frac{4c_2}{M(1-\beta^2c_2)}\Bigr|\le\frac K{M^{3/2}}.
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+Put $X=\nu(\mathrm{rect}^2)$, $P_f=\nu(f^*)$, $P_a=\nu(a_N^2)$, $Z_0=\nu_0((\mathrm{rect}^-)^2)$, $Z_1=\nu((\mathrm{rect}^-)^2)$ and $\lambda=\beta^2c_2\in[0,\frac14]$ (Lemma~\ref{lem:sg-tal:rect-algebra}(c)).  Lemma~\ref{lem:sg-tal:rect-structure}(a)--(b) give $X=P_f+P_a/M$ and $Z_1=X-2X/M+P_a/M^2$; Lemma~\ref{lem:sg-tal:rect-comparisons} gives $P_f\approx\lambda Z_0$, $Z_0\approx Z_1$ and $P_a\approx4c_2$ with the errors $e_1,e_2,e_4$, and $|X|\le e_3$ by Lemma~\ref{lem:sg-tal:rect-structure}(d).  Solving, $(1-\lambda)X=(P_f-\lambda Z_0)+\lambda(Z_0-Z_1)-2\lambda X/M+\lambda P_a/M^2+P_a/M$, so $|X-\frac{4c_2}{M(1-\lambda)}|\le\frac43(e_1+\frac{e_2}4+\frac{e_3}{2M}+\frac4{M^2}+\frac{e_4}M)$ since $1-\lambda\ge\frac34$.  With $\sqrt M=s$ the bounds of Lemma~\ref{lem:sg-tal:rect-structure}(d),(e) make every term at most a constant times $s^{-3}$ (e.g.\ $e_1\le c\sqrt{(512K_1+512)/M}\sqrt{K_2/M^2}$).
+\end{proof}
+
+\begin{theorem}[Corollary~1.8.6, Eq.~(1.244)]
+\label{cor:sg-tal:corollary-186}
+  \uses{thm:sg-tal:prop-185, lem:sg-tal:rect-comparisons, lem:sg-tal:replica-marginals}
+  \lean{SpinGlasses.sk_replica_avg_sum,
+        SpinGlasses.sk_rect_sq_eq_diag_add_offdiag,
+        SpinGlasses.sk_nu_a_prod_eq_cov_sq,
+        SpinGlasses.pair_variance_arith,
+        SpinGlasses.sk_truncated_pair_variance}
+  \leanok
+\talsource{Corollary~1.8.6, Eq.~(1.244)}
+Let $4\beta_0^2<1$ and $h\in\mathbb R$.  There is $K>0$ such that for $|\beta|\le\beta_0$, every fixed point $q$, every $N$ and any two distinct sites $i\ne j$ of the $(N+1)$-spin system, with $M=N+1$ and $c_2$ as above,
+\[
+\Bigl|\mathbb E\bigl(\langle\sigma_i\sigma_j\rangle-\langle\sigma_i\rangle\langle\sigma_j\rangle\bigr)^2-\frac{\beta^2c_2^2}{M(1-\beta^2c_2)}\Bigr|\le\frac K{M^{3/2}}.
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+By site symmetry (swaps of sites, \texttt{sk\_replica\_site\_perm}) $\nu(a_ka_l)$ depends only on whether $k=l$, so $\nu(\mathrm{rect}^2)=M^{-2}\sum_{k,l}\nu(a_ka_l)=\nu(a_N^2)/M+\frac{M-1}M\nu(a_ia_j)$.  By Lemma~\ref{lem:sg-tal:replica-marginals}(c), $\nu(a_ia_j)=4V$ with $V=\mathbb E(\langle\sigma_i\sigma_j\rangle-\langle\sigma_i\rangle\langle\sigma_j\rangle)^2$.  Solving, $V=(M\nu(\mathrm{rect}^2)-\nu(a_N^2))/(4(M-1))$.  Insert $\nu(\mathrm{rect}^2)=\frac{4c_2}{M(1-\lambda)}+O(M^{-3/2})$ (Theorem~\ref{thm:sg-tal:prop-185}) and $\nu(a_N^2)=4c_2+O(M^{-1/2})$ (Lemma~\ref{lem:sg-tal:rect-comparisons}(c) with Lemma~\ref{lem:sg-tal:rect-structure}(d)): the main term is $\frac{c_2\lambda}{(1-\lambda)M}$ and the elementary estimate \texttt{pair\_variance\_arith} bounds the remainder by $\frac2{3M^2}+\frac E2+\frac e{2M}$.
+\end{proof}
+
+\begin{remark}[What remains of Section~1.8]
+\label{rem:sg-tal:remaining-18}
+Proved here: Proposition~1.8.1 (Eqs.~(1.215), (1.216)), Lemma~1.8.4 (Theorem~\ref{thm:sg-tal:lemma-184}), Proposition~1.8.5 (Theorem~\ref{thm:sg-tal:prop-185}) and Corollary~1.8.6 (Theorem~\ref{cor:sg-tal:corollary-186}).
+Not formalized: the general counting Lemma~1.8.2 (Eq.~(1.230)) and the $3\times3$ system (1.231)--(1.236); Propositions~1.8.7--1.8.11 (the basis $T_{\ell\ell'},T_\ell,T$) and Theorem~1.8.12 (the final formula for $U,V,W$ and the AT-line statement).
 \end{remark}
