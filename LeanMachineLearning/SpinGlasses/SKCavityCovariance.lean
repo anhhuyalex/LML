@@ -53,7 +53,7 @@ def skCavityReplicaPairMap {n : ℕ} (j : SKCavityReplicaPair n) :
   | Sum.inr (Sum.inr _) => (some none, none)
 
 /-- The weights of the three replica families in Eq. (1.152). -/
-def skCavityReplicaPairWeight (n : ℕ) (j : SKCavityReplicaPair n) : ℝ :=
+noncomputable def skCavityReplicaPairWeight (n : ℕ) (j : SKCavityReplicaPair n) : ℝ :=
   match j with
   | Sum.inl _ => 1
   | Sum.inr (Sum.inl _) => -(n : ℝ)
@@ -77,7 +77,8 @@ def skCavityReplicaPairCoincidences {n : ℕ} (x y : Fin n) (j : SKCavityReplica
 /-- **Talagrand, Lemma 1.8.2, Eq. (1.230): cavity derivative of a pair covariance.**
 At the decoupled endpoint `t = 0` (`s = π/2`), the cavity path derivative of
 `((ε_x ε_y - q) f⁻)` on `n` replicas for distinct `x ≠ y` is the weighted sum of
-`b(c) ν₀(f⁻ (R⁻_{a, b} - q))` over the three replica families, where `c` is the coincidence count. -/
+`b(c) ν₀(f⁻ (R⁻_{a, b} - q))` over the three replica families, where `c` is the
+coincidence count. -/
 theorem sk_cavity_deriv_zero_pair (N n : ℕ) (β q h : ℝ)
     (hfix : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂(gaussianReal 0 1) = q)
     (qhat : ℝ)
@@ -227,7 +228,8 @@ theorem sk_cavity_deriv_zero_pair (N n : ℕ) (β q h : ℝ)
           (F (fun r => ρ (so r)) *
             (((N + 1 : ℝ)⁻¹ *
                 ((fun i : Fin N => (ρ (skCavityReplicaPairMap j).1 i : ℝ)) ⬝ᵥ
-                  fun i : Fin N => (ρ (skCavityReplicaPairMap j).2 i : ℝ)) - q))) := fun ρ => by ring
+                  fun i : Fin N => (ρ (skCavityReplicaPairMap j).2 i : ℝ)) - q))) :=
+          fun ρ => by ring
     simp_rw [hpt]
     simp_rw [integral_const_mul]
   rw [hint]
@@ -251,26 +253,50 @@ def sk_at_eigenvector_two : Fin 3 → ℝ :=
   ![1, -4, 3]
 
 /-- **Talagrand, Eq. (1.235): universal eigenvector `(1, -2, 1)` of the transposed AT matrix.**
-For any coefficients `b(2), b(1), b(0)`, `(1, -2, 1)` is an eigenvector of `(sk_at_matrix b2 b1 b0)ᵀ`
-with eigenvalue `λ₁ = b(2) - 2 b(1) + b(0)`. -/
+For any coefficients `b(2), b(1), b(0)`, `(1, -2, 1)` is an eigenvector of
+`(sk_at_matrix b2 b1 b0)ᵀ` with eigenvalue `λ₁ = b(2) - 2 b(1) + b(0)`. -/
 theorem sk_at_matrix_transpose_mulVec_one (b2 b1 b0 : ℝ) :
     (sk_at_matrix b2 b1 b0)ᵀ *ᵥ sk_at_eigenvector_one =
       (b2 - 2 * b1 + b0) • sk_at_eigenvector_one := by
   ext i
-  fin_cases i <;>
-    (simp [sk_at_matrix, sk_at_eigenvector_one, Matrix.mulVec, Matrix.dotProduct,
-       Matrix.transpose_apply, Fin.sum_univ_three]; ring)
+  fin_cases i
+  · change (∑ j : Fin 3, (sk_at_matrix b2 b1 b0)ᵀ 0 j * sk_at_eigenvector_one j) = _
+    rw [Fin.sum_univ_three]
+    change b2 * 1 + b1 * (-2) + b0 * 1 = (b2 - 2 * b1 + b0) * 1
+    ring
+  · change (∑ j : Fin 3, (sk_at_matrix b2 b1 b0)ᵀ 1 j * sk_at_eigenvector_one j) = _
+    rw [Fin.sum_univ_three]
+    change (-4 * b1) * 1 + (b2 - 2 * b1 - 3 * b0) * (-2) + (4 * b1 - 8 * b0) * 1 =
+        (b2 - 2 * b1 + b0) * (-2)
+    ring
+  · change (∑ j : Fin 3, (sk_at_matrix b2 b1 b0)ᵀ 2 j * sk_at_eigenvector_one j) = _
+    rw [Fin.sum_univ_three]
+    change (3 * b0) * 1 + (6 * b0 - 3 * b1) * (-2) + (b2 - 8 * b1 + 10 * b0) * 1 =
+        (b2 - 2 * b1 + b0) * 1
+    ring
 
 /-- **Talagrand, Eq. (1.236): universal eigenvector `(1, -4, 3)` of the transposed AT matrix.**
-For any coefficients `b(2), b(1), b(0)`, `(1, -4, 3)` is an eigenvector of `(sk_at_matrix b2 b1 b0)ᵀ`
-with eigenvalue `λ₂ = b(2) - 4 b(1) + 3 b(0)`. -/
+For any coefficients `b(2), b(1), b(0)`, `(1, -4, 3)` is an eigenvector of
+`(sk_at_matrix b2 b1 b0)ᵀ` with eigenvalue `λ₂ = b(2) - 4 b(1) + 3 b(0)`. -/
 theorem sk_at_matrix_transpose_mulVec_two (b2 b1 b0 : ℝ) :
     (sk_at_matrix b2 b1 b0)ᵀ *ᵥ sk_at_eigenvector_two =
       (b2 - 4 * b1 + 3 * b0) • sk_at_eigenvector_two := by
   ext i
-  fin_cases i <;>
-    (simp [sk_at_matrix, sk_at_eigenvector_two, Matrix.mulVec, Matrix.dotProduct,
-       Matrix.transpose_apply, Fin.sum_univ_three]; ring)
+  fin_cases i
+  · change (∑ j : Fin 3, (sk_at_matrix b2 b1 b0)ᵀ 0 j * sk_at_eigenvector_two j) = _
+    rw [Fin.sum_univ_three]
+    change b2 * 1 + b1 * (-4) + b0 * 3 = (b2 - 4 * b1 + 3 * b0) * 1
+    ring
+  · change (∑ j : Fin 3, (sk_at_matrix b2 b1 b0)ᵀ 1 j * sk_at_eigenvector_two j) = _
+    rw [Fin.sum_univ_three]
+    change (-4 * b1) * 1 + (b2 - 2 * b1 - 3 * b0) * (-4) + (4 * b1 - 8 * b0) * 3 =
+        (b2 - 4 * b1 + 3 * b0) * (-4)
+    ring
+  · change (∑ j : Fin 3, (sk_at_matrix b2 b1 b0)ᵀ 2 j * sk_at_eigenvector_two j) = _
+    rw [Fin.sum_univ_three]
+    change (3 * b0) * 1 + (6 * b0 - 3 * b1) * (-4) + (b2 - 8 * b1 + 10 * b0) * 3 =
+        (b2 - 4 * b1 + 3 * b0) * 3
+    ring
 
 /-- The first eigenvalue `λ₁ = b(2) - 2 b(1) + b(0)` expressed in terms of `(β, q, q̂)`:
 `λ₁ = β² (1 - 2 q + q̂)`. -/
