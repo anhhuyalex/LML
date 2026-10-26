@@ -62,49 +62,6 @@ theorem abs_sk_cavity_angle_combination_le (N n : ℕ) (β q : ℝ)
   simp only [dev]
   ring
 
-/-- **The replica pairs of Eq. (1.152) as a weighted list.**  For every function `D` of two
-configurations, the three replica families `∑_{ℓ<ℓ'≤n}`, `n ∑_{ℓ≤n}` and `n(n+1)/2` (one pair of
-extra replicas) are a finite sum `∑_j c_j D(τ a_j, τ b_j)` with `c_j ≥ 0`, `a_j ≠ b_j` and
-`∑ c_j = 2 n²`. -/
-theorem exists_replica_pair_weights (n : ℕ) :
-    ∃ (ι : Type) (_ : Fintype ι) (pr : ι → Option (Option (Fin n)) × Option (Option (Fin n)))
-      (cw : ι → ℝ), (∀ j, (pr j).1 ≠ (pr j).2) ∧ (∀ j, 0 ≤ cw j) ∧
-      ∑ j, cw j = 2 * (n : ℝ) ^ 2 ∧
-      ∀ {α : Type} (D : α → α → ℝ) (τ : Option (Option (Fin n)) → α),
-        (∑ s : Fin n × Fin n with s.1 < s.2, D (τ (some (some s.1))) (τ (some (some s.2)))) +
-          (n : ℝ) * ∑ s : Fin n, D (τ (some (some s))) (τ (some none)) +
-          (n : ℝ) * ((n : ℝ) + 1) / 2 * D (τ (some none)) (τ none) =
-        ∑ j, cw j * D (τ (pr j).1) (τ (pr j).2) := by
-  let ι := FinPairs n ⊕ (Fin n ⊕ Unit)
-  let pr : ι → Option (Option (Fin n)) × Option (Option (Fin n)) := fun j =>
-    match j with
-    | Sum.inl s => (some (some s.val.1), some (some s.val.2))
-    | Sum.inr (Sum.inl s) => (some (some s), some none)
-    | Sum.inr (Sum.inr _) => (some none, none)
-  let cw : ι → ℝ := fun j =>
-    match j with
-    | Sum.inl _ => 1
-    | Sum.inr (Sum.inl _) => (n : ℝ)
-    | Sum.inr (Sum.inr _) => (n : ℝ) * ((n : ℝ) + 1) / 2
-  refine ⟨ι, inferInstance, pr, cw, ?_, ?_, ?_, ?_⟩
-  · rintro (s | s | s)
-    · have := s.property
-      simp only [pr, ne_eq, Option.some.injEq]
-      exact this.ne
-    · simp [pr]
-    · simp [pr]
-  · rintro (s | s | s) <;> simp only [cw] <;> positivity
-  · simp only [ι, cw, Fintype.sum_sum_type, Finset.sum_const, Finset.card_univ, card_finPairs,
-      Fintype.card_fin, nsmul_eq_mul, mul_one, Nat.cast_choose_two,
-      Finset.univ_unique, Finset.card_singleton, Nat.cast_one]
-    ring
-  · intro α D τ
-    simp only [ι, cw, pr, Fintype.sum_sum_type, Finset.univ_unique, Finset.sum_singleton,
-      one_mul, ← Finset.mul_sum]
-    rw [sum_filter_lt_eq_sum_subtype fun s : Fin n × Fin n =>
-      D (τ (some (some s.1))) (τ (some (some s.2)))]
-    ring
-
 /-- **Pointwise bound for the angle derivative of the cavity path.**  For `s ∈ [0, π/2]` the angle
 derivative integrand of Eq. (1.151) (kernel `U = β² ε ε' (q - R⁻)` with weights `2`, `-2 n`,
 `n (n+1)`) is at most `2 β² exp (4 (n+2)² β²)` times the coupled average of `|f| · W`, where `W` is
