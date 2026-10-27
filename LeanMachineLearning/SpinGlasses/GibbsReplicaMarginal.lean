@@ -114,51 +114,11 @@ theorem integral_pi_count_tilted_pair {R : Type*} [Finite α] [Nonempty α] [Fin
     (f : α → ℝ) (H : α → α → ℝ) :
     ∫ τ : R → α, H (τ a) (τ b) ∂(Measure.pi fun _ : R => Measure.count.tilted f) =
       ∫ σ : Fin 2 → α, H (σ 0) (σ 1) ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted f) := by
-  classical
-  have := Fintype.ofFinite α
-  rw [integral_pi_count_tilted, integral_pi_fin_two_count_tilted]
-  set w : α → ℝ := fun x => Real.exp (f x) / ∑ b, Real.exp (f b) with hw
-  have hw1 : ∑ x, w x = 1 := by
-    simp only [hw, ← Finset.sum_div]
-    exact div_self (Finset.sum_pos (fun x _ => Real.exp_pos _) Finset.univ_nonempty).ne'
-  have hfiber (p : α × α) :
-      ∑ τ ∈ Finset.univ.filter (fun τ : R → α => (τ a, τ b) = p), ∏ r, w (τ r) = w p.1 * w p.2 := by
-    have hset : Finset.univ.filter (fun τ : R → α => (τ a, τ b) = p) =
-        Fintype.piFinset fun r =>
-          if r = a then {p.1} else if r = b then {p.2} else Finset.univ := by
-      ext τ
-      simp only [Finset.mem_filter, Finset.mem_univ, true_and, Fintype.mem_piFinset, Prod.ext_iff]
-      constructor
-      · rintro ⟨h1, h2⟩ r
-        by_cases hra : r = a
-        · simp [hra, h1]
-        · by_cases hrb : r = b
-          · subst hrb
-            simp [Ne.symm hab, h2]
-          · simp [hra, hrb]
-      · intro h
-        refine ⟨?_, ?_⟩
-        · simpa using h a
-        · simpa [hab.symm] using h b
-    rw [hset, ← Finset.prod_univ_sum]
-    rw [Fintype.prod_eq_mul a b hab]
-    · simp [hab.symm]
-    · intro r hr
-      simp [hr.1, hr.2, hw1]
-  calc _ = ∑ p : α × α, ∑ τ ∈ Finset.univ.filter (fun τ : R → α => (τ a, τ b) = p),
-        (∏ r, w (τ r)) * H (τ a) (τ b) :=
-        (Finset.sum_fiberwise Finset.univ (fun τ : R → α => (τ a, τ b))
-          fun τ => (∏ r, w (τ r)) * H (τ a) (τ b)).symm
-    _ = ∑ p : α × α, w p.1 * w p.2 * H p.1 p.2 := by
-        refine Finset.sum_congr rfl fun p _ => ?_
-        calc _ = ∑ τ ∈ Finset.univ.filter (fun τ : R → α => (τ a, τ b) = p),
-              (∏ r, w (τ r)) * H p.1 p.2 :=
-              Finset.sum_congr rfl fun τ hτ => by
-                obtain ⟨h1, h2⟩ := Prod.ext_iff.1 (Finset.mem_filter.1 hτ).2
-                simp only at h1 h2
-                rw [h1, h2]
-          _ = w p.1 * w p.2 * H p.1 p.2 := by rw [← Finset.sum_mul, hfiber]
-    _ = _ := by rw [Fintype.sum_prod_type]
+  have hρ : Function.Injective (![a, b] : Fin 2 → R) := by
+    intro u v huv
+    fin_cases u <;> fin_cases v <;> simp_all [Ne.symm hab]
+  simpa using integral_pi_count_tilted_comp_injective hρ f
+    (fun σ : Fin 2 → α => H (σ 0) (σ 1))
 
 
 /-- **Four replicas and a covariance:** for the Gibbs measure of an energy `A`, the average over

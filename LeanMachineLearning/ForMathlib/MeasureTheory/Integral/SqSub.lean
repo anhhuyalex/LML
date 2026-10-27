@@ -62,11 +62,34 @@ theorem integrable_tanh_sq {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Measure
     Integrable (fun ω => Real.tanh (Y ω) ^ 2) μ :=
   integrable_tanh_pow Y hY 2
 
-@[deprecated integrable_tanh_sq (since := "2026-10-26")]
-theorem integrable_tanh_sq' {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Measure Ω}
+/-- `𝔼 tanh⁴ Y ≤ 𝔼 tanh² Y` for any finite measure. -/
+theorem integral_tanh_pow_four_le_sq {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Measure Ω}
     [IsFiniteMeasure μ] (Y : Ω → ℝ) (hY : AEMeasurable Y μ) :
-    Integrable (fun ω => Real.tanh (Y ω) ^ 2) μ :=
-  integrable_tanh_sq Y hY
+    ∫ ω, Real.tanh (Y ω) ^ 4 ∂μ ≤ ∫ ω, Real.tanh (Y ω) ^ 2 ∂μ := by
+  refine integral_mono (integrable_tanh_pow Y hY 4) (integrable_tanh_pow Y hY 2) fun ω => ?_
+  have h0 : 0 ≤ Real.tanh (Y ω) ^ 2 := sq_nonneg _
+  have h1 : Real.tanh (Y ω) ^ 2 ≤ 1 := by
+    have := Real.abs_tanh_lt_one (Y ω)
+    nlinarith [abs_nonneg (Real.tanh (Y ω)), sq_abs (Real.tanh (Y ω))]
+  nlinarith
+
+/-- **Reciprocal-cosh identity:** `𝔼 tanh⁴ Y - 2 𝔼 tanh² Y + μ(univ) = 𝔼 (cosh Y)⁻⁴` for any finite
+measure. -/
+theorem integral_tanh_pow_four_sub_two_mul_add_eq {Ω : Type*} {mΩ : MeasurableSpace Ω}
+    {μ : Measure Ω} [IsFiniteMeasure μ] (Y : Ω → ℝ) (hY : AEMeasurable Y μ) :
+    (∫ ω, Real.tanh (Y ω) ^ 4 ∂μ) - 2 * (∫ ω, Real.tanh (Y ω) ^ 2 ∂μ) + μ.real Set.univ =
+      ∫ ω, ((Real.cosh (Y ω))⁻¹) ^ 4 ∂μ := by
+  have h2 := integrable_tanh_pow Y hY 2
+  have h4 := integrable_tanh_pow Y hY 4
+  have e : ∀ ω, ((Real.cosh (Y ω))⁻¹) ^ 4 =
+      (Real.tanh (Y ω) ^ 4 - 2 * Real.tanh (Y ω) ^ 2) + 1 := fun ω => by
+    have := Real.one_sub_tanh_sq_eq_inv_cosh_sq (Y ω)
+    calc ((Real.cosh (Y ω))⁻¹) ^ 4 = (((Real.cosh (Y ω))⁻¹) ^ 2) ^ 2 := by ring
+      _ = _ := by rw [← this]; ring
+  simp_rw [e]
+  rw [integral_add (h4.sub (h2.const_mul 2)) (integrable_const _),
+    integral_sub h4 (h2.const_mul 2), integral_const_mul]
+  simp
 
 /-- **Three-term triangle inequality in `L²`:**
 `∫ (a + b + c)² ≤ 3 ∫ a² + 3 ∫ b² + 3 ∫ c²` for square-integrable `a, b, c`. -/

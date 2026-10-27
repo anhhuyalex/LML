@@ -352,6 +352,29 @@ section Moments
 
 variable (N : ℕ) (β h q : ℝ)
 
+/-- **Marginal of an `m`-replica SK average along an injection of the replicas.** -/
+theorem sk_nu_marginal_inj {k m : ℕ}
+    (νk : ((Fin k → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
+    (hνk : ∀ Φ, νk Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin k → Fin (N + 1) → ℤˣ, Φ σ
+      ∂(Measure.pi fun _ : Fin k => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+        (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ))
+      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    (νm : ((Fin m → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
+    (hνm : ∀ Φ, νm Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin m → Fin (N + 1) → ℤˣ, Φ σ
+      ∂(Measure.pi fun _ : Fin m => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+        (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ))
+      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    {ρ : Fin k → Fin m} (hρ : Function.Injective ρ)
+    (Φ : (Fin k → Fin (N + 1) → ℤˣ) → ℝ) :
+    νm (fun σ => Φ (fun r => σ (ρ r))) = νk Φ := by
+  rw [hνm, hνk]
+  refine integral_congr_ae (ae_of_all _ fun g => ?_)
+  exact integral_pi_count_tilted_comp_injective hρ _ Φ
+
 /-- **Two-replica marginal of an `m`-replica SK average:** a function of two distinct replicas
 `x ≠ y` has the same average as under two replicas. -/
 theorem sk_nu_pair_marginal (m : ℕ)
@@ -371,9 +394,11 @@ theorem sk_nu_pair_marginal (m : ℕ)
       ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
     {x y : Fin m} (hxy : x ≠ y) (H : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ) :
     ν (fun σ => H (σ x) (σ y)) = ν₂ (fun σ => H (σ 0) (σ 1)) := by
-  rw [hν, hν₂]
-  refine integral_congr_ae (ae_of_all _ fun g => ?_)
-  exact integral_pi_count_tilted_pair hxy _ (fun a b => H a b)
+  have hρ : Function.Injective (![x, y] : Fin 2 → Fin m) := by
+    intro u v huv
+    fin_cases u <;> fin_cases v <;> simp_all [Ne.symm hxy]
+  simpa using sk_nu_marginal_inj N β h ν₂ hν₂ ν hν hρ
+    (fun σ : Fin 2 → Fin (N + 1) → ℤˣ => H (σ 0) (σ 1))
 
 /-- `|ν(Z)| ≤ ν(|Z|)` for an `m`-replica SK average. -/
 theorem sk_nu_abs_le (m : ℕ)
@@ -780,36 +805,6 @@ section Classes
 
 variable (N : ℕ) (β h q : ℝ)
 
-/-- **Marginal of an `m`-replica SK average along an injection of the replicas.** -/
-theorem sk_nu_marginal_inj {k m : ℕ}
-    (νk : ((Fin k → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
-    (hνk : ∀ Φ, νk Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin k → Fin (N + 1) → ℤˣ, Φ σ
-      ∂(Measure.pi fun _ : Fin k => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
-    (νm : ((Fin m → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
-    (hνm : ∀ Φ, νm Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin m → Fin (N + 1) → ℤˣ, Φ σ
-      ∂(Measure.pi fun _ : Fin m => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
-    {ρ : Fin k → Fin m} (hρ : Function.Injective ρ)
-    (Φ : (Fin k → Fin (N + 1) → ℤˣ) → ℝ) :
-    νm (fun σ => Φ (fun r => σ (ρ r))) = νk Φ := by
-  rw [hνm, hνk]
-  refine integral_congr_ae (ae_of_all _ fun g => ?_)
-  exact integral_pi_count_tilted_comp_injective hρ _ Φ
-
-/-- The overlap `(N+1)⁻¹ σ^a · σ^b` is symmetric in the two replicas. -/
-theorem overlap_comm {n : ℕ} (σ : Fin n → Fin (N + 1) → ℤˣ) (a b : Fin n) :
-    (N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ a i : ℝ)) ⬝ᵥ fun i : Fin (N + 1) => (σ b i : ℝ)) =
-      (N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ b i : ℝ)) ⬝ᵥ
-        fun i : Fin (N + 1) => (σ a i : ℝ)) := by
-  rw [dotProduct_comm]
-
 /-- **Classes of products of two overlaps (one shared replica).** -/
 theorem sk_nu_class_one {m : ℕ}
     (ν₃ : ((Fin 3 → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
@@ -977,7 +972,7 @@ theorem sk_nu_overlap_class {m : ℕ} {R : Type*} [DecidableEq R]
       (N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ (e u) i : ℝ)) ⬝ᵥ
           fun i : Fin (N + 1) => (σ (e v) i : ℝ)) =
       (N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ (e v) i : ℝ)) ⬝ᵥ
-          fun i : Fin (N + 1) => (σ (e u) i : ℝ)) := fun u v σ => overlap_comm N σ (e u) (e v)
+          fun i : Fin (N + 1) => (σ (e u) i : ℝ)) := fun u v σ => by rw [dotProduct_comm]
   split_ifs with c1 c2
   · rcases c1 with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
     · exact two p₁ p₂ hp
@@ -1007,18 +1002,6 @@ theorem sk_nu_overlap_class {m : ℕ} {R : Type*} [DecidableEq R]
 end Classes
 
 section Bounds
-
-/-- `(X - δ)² ≤ 2 X² + 2 δ²`. -/
-theorem sub_sq_le_two_mul (X δ : ℝ) : (X - δ) ^ 2 ≤ 2 * X ^ 2 + 2 * δ ^ 2 := by
-  nlinarith only [sq_nonneg (X + δ)]
-
-/-- `(X - δ)⁴ ≤ 8 X⁴ + 8 δ⁴`. -/
-theorem sub_pow_four_le (X δ : ℝ) : (X - δ) ^ 4 ≤ 8 * X ^ 4 + 8 * δ ^ 4 := by
-  have h1 := sub_sq_le_two_mul X δ
-  have h2 : 0 ≤ (X - δ) ^ 2 := sq_nonneg _
-  have h3 : (X - δ) ^ 4 = ((X - δ) ^ 2) ^ 2 := by ring
-  rw [h3]
-  nlinarith only [h1, h2, sq_nonneg (X ^ 2 - δ ^ 2), sq_nonneg (X ^ 2), sq_nonneg (δ ^ 2)]
 
 /-- `(x y)² ≤ (x⁴ + y⁴)/2`. -/
 theorem mul_sq_le_half_pow_four (x y : ℝ) : (x * y) ^ 2 ≤ (x ^ 4 + y ^ 4) / 2 := by
@@ -1086,7 +1069,8 @@ theorem sk_row_Vf_bound (n : ℕ)
       have := abs_le.1 hxy1
       nlinarith [hq.1, hq.2]
     rw [e1, mul_pow]
-    have := sub_sq_le_two_mul X δ
+    have := sub_pow_two_mul_le (k := 1) le_rfl X δ
+    norm_num at this
     have hp := mul_le_mul_of_nonneg_left hs (sq_nonneg (X - δ))
     have e8 : 8 / ((N : ℝ) + 1) ^ 2 = 8 * (1 / ((N : ℝ) + 1) ^ 2) := by ring
     linarith only [hp, this, hδ1, e8]
@@ -1163,8 +1147,9 @@ theorem sk_row_Gb_bound (m : ℕ)
       simp only [hY, hδ', dotProduct, Fin.sum_univ_castSucc]; ring
     rw [e1, e2]
     have h1 := mul_sq_le_half_pow_four (X - δ) (Y - δ')
-    have h2 := sub_pow_four_le X δ
-    have h3 := sub_pow_four_le Y δ'
+    have h2 := sub_pow_two_mul_le (k := 2) (by norm_num) X δ
+    have h3 := sub_pow_two_mul_le (k := 2) (by norm_num) Y δ'
+    norm_num at h2 h3
     have h4 := hdelta σ p₁ p₂
     have h5 := hdelta σ r₁ r₂
     have e8 : 8 / ((N : ℝ) + 1) ^ 4 = 8 * (1 / ((N : ℝ) + 1) ^ 4) := by ring
@@ -1189,7 +1174,7 @@ theorem sk_row_sum_aux (n : ℕ) (b : ℕ → ℝ) (x y a c : Fin n) (U V W : �
               some (some a) = (skCavityReplicaPairMap j).2 ∨
               some (some c) = (skCavityReplicaPairMap j).1 ∨
               some (some c) = (skCavityReplicaPairMap j).2 then V else W)) =
-    ∑ p : Fin n × Fin n with p.1 < p.2, 
+    ∑ p : Fin n × Fin n with p.1 < p.2,
       (b (skCavityCoincidences (some (some x)) (some (some y)) (some (some p.1)) (some (some p.2)))
         *
         (if (some (some a) = some (some p.1) ∧ some (some c) = some (some p.2)) ∨
@@ -1201,7 +1186,7 @@ theorem sk_row_sum_aux (n : ℕ) (b : ℕ → ℝ) (x y a c : Fin n) (U V W : �
         (if (some (some a) = some (some r) ∧ some (some c) = some none) ∨
             (some (some a) = some none ∧ some (some c) = some (some r)) then U
           else if some (some a) = some (some r) ∨ some (some a) = some none ∨
-              some (some c) = some (some r) ∨ some (some c) = some none then V else W)) 
+              some (some c) = some (some r) ∨ some (some c) = some none then V else W))
     + n * (n + 1) / 2 * (b (skCavityCoincidences (some (some x)) (some (some y)) (some none) none) *
         (if (some (some a) = some none ∧ some (some c) = none) ∨
             (some (some a) = none ∧ some (some c) = some none) then U
@@ -1218,7 +1203,7 @@ theorem sk_row_sum_aux (n : ℕ) (b : ℕ → ℝ) (x y a c : Fin n) (U V W : �
 
 /-- First row of the AT matrix: the signed three-family sum for the pair `(1,2)` against `(1,2)`. -/
 theorem sk_row_sum_zero (b : ℕ → ℝ) (U V W : ℝ) :
-    ∑ p : Fin 4 × Fin 4 with p.1 < p.2, 
+    ∑ p : Fin 4 × Fin 4 with p.1 < p.2,
       (b (skCavityCoincidences (some (some (0:Fin 4))) (some (some 1)) (some (some p.1)) (some
         (some p.2))) *
         (if (some (some (0:Fin 4)) = some (some p.1) ∧ some (some (1:Fin 4)) = some (some p.2)) ∨
@@ -1234,7 +1219,7 @@ theorem sk_row_sum_zero (b : ℕ → ℝ) (U V W : ℝ) :
             (some (some (0:Fin 4)) = some none ∧ some (some (1:Fin 4)) = some (some r)) then U
           else if some (some (0:Fin 4)) = some (some r) ∨ some (some (0:Fin 4)) = some none ∨
               some (some (1:Fin 4)) = some (some r) ∨ some (some (1:Fin 4)) = some none then V else
-                W)) 
+                W))
     + (4:ℕ) * ((4:ℕ) + 1) / 2 * (b (skCavityCoincidences (some (some (0:Fin 4))) (some (some 1))
       (some none) none) *
         (if (some (some (0:Fin 4)) = some none ∧ some (some (1:Fin 4)) = none) ∨
@@ -1247,7 +1232,7 @@ theorem sk_row_sum_zero (b : ℕ → ℝ) (U V W : ℝ) :
 
 /-- Second row of the AT matrix: pair `(1,2)` against `(1,3)`. -/
 theorem sk_row_sum_one (b : ℕ → ℝ) (U V W : ℝ) :
-    ∑ p : Fin 4 × Fin 4 with p.1 < p.2, 
+    ∑ p : Fin 4 × Fin 4 with p.1 < p.2,
       (b (skCavityCoincidences (some (some (0:Fin 4))) (some (some 1)) (some (some p.1)) (some
         (some p.2))) *
         (if (some (some (0:Fin 4)) = some (some p.1) ∧ some (some (2:Fin 4)) = some (some p.2)) ∨
@@ -1263,7 +1248,7 @@ theorem sk_row_sum_one (b : ℕ → ℝ) (U V W : ℝ) :
             (some (some (0:Fin 4)) = some none ∧ some (some (2:Fin 4)) = some (some r)) then U
           else if some (some (0:Fin 4)) = some (some r) ∨ some (some (0:Fin 4)) = some none ∨
               some (some (2:Fin 4)) = some (some r) ∨ some (some (2:Fin 4)) = some none then V else
-                W)) 
+                W))
     + (4:ℕ) * ((4:ℕ) + 1) / 2 * (b (skCavityCoincidences (some (some (0:Fin 4))) (some (some 1))
       (some none) none) *
         (if (some (some (0:Fin 4)) = some none ∧ some (some (2:Fin 4)) = none) ∨
@@ -1276,7 +1261,7 @@ theorem sk_row_sum_one (b : ℕ → ℝ) (U V W : ℝ) :
 
 /-- Third row of the AT matrix: pair `(1,2)` against `(3,4)`. -/
 theorem sk_row_sum_two (b : ℕ → ℝ) (U V W : ℝ) :
-    ∑ p : Fin 4 × Fin 4 with p.1 < p.2, 
+    ∑ p : Fin 4 × Fin 4 with p.1 < p.2,
       (b (skCavityCoincidences (some (some (0:Fin 4))) (some (some 1)) (some (some p.1)) (some
         (some p.2))) *
         (if (some (some (2:Fin 4)) = some (some p.1) ∧ some (some (3:Fin 4)) = some (some p.2)) ∨
@@ -1292,7 +1277,7 @@ theorem sk_row_sum_two (b : ℕ → ℝ) (U V W : ℝ) :
             (some (some (2:Fin 4)) = some none ∧ some (some (3:Fin 4)) = some (some r)) then U
           else if some (some (2:Fin 4)) = some (some r) ∨ some (some (2:Fin 4)) = some none ∨
               some (some (3:Fin 4)) = some (some r) ∨ some (some (3:Fin 4)) = some none then V else
-                W)) 
+                W))
     + (4:ℕ) * ((4:ℕ) + 1) / 2 * (b (skCavityCoincidences (some (some (0:Fin 4))) (some (some 1))
       (some none) none) *
         (if (some (some (2:Fin 4)) = some none ∧ some (some (3:Fin 4)) = none) ∨

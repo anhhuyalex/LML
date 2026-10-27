@@ -37,7 +37,7 @@ proved by coordinates: both `⟨T_{12}²⟩` and the six-replica average
 
 @[expose] public section
 
-open MeasureTheory Finset
+open MeasureTheory ProbabilityTheory Finset
 open scoped BigOperators
 
 namespace SpinGlasses
@@ -55,17 +55,8 @@ theorem integral_dev_mul_dev (i j : Fin M) :
       ∂(Measure.count.tilted A) =
     (∫ x : Fin M → ℤˣ, ((x i : ℤˣ) : ℝ) * ((x j : ℤˣ) : ℝ) ∂(Measure.count.tilted A)) -
       b i * b j := by
-  set μ : Measure (Fin M → ℤˣ) := Measure.count.tilted A with hμ
-  have e : ∀ x : Fin M → ℤˣ, (((x i : ℤˣ) : ℝ) - b i) * (((x j : ℤˣ) : ℝ) - b j) =
-      ((x i : ℤˣ) : ℝ) * ((x j : ℤˣ) : ℝ) - b j * ((x i : ℤˣ) : ℝ) -
-        b i * ((x j : ℤˣ) : ℝ) + b i * b j := fun x => by ring
-  simp_rw [e]
-  rw [integral_add Integrable.of_finite Integrable.of_finite,
-    integral_sub Integrable.of_finite Integrable.of_finite,
-    integral_sub Integrable.of_finite Integrable.of_finite, integral_const_mul,
-    integral_const_mul, ← hb i, ← hb j]
-  simp only [integral_const, probReal_univ, one_smul]
-  ring
+  rw [hb i, hb j]
+  exact covariance_eq_sub MemLp.of_discrete MemLp.of_discrete
 
 include hb in
 /-- **Two replicas deviating from the Gibbs mean:**
@@ -95,13 +86,6 @@ theorem integral_dev_pair_sq (i j : Fin M) :
   rw [integral_mul_const, ← hK]
   ring
 
-/-- A function of two distinct replicas among three has the two-replica iterated average. -/
-theorem integral_fin_three_pair {a c : Fin 3} (hac : a ≠ c) (H : (Fin M → ℤˣ) → (Fin M → ℤˣ) → ℝ) :
-    ∫ τ : Fin 3 → Fin M → ℤˣ, H (τ a) (τ c)
-        ∂(Measure.pi fun _ : Fin 3 => Measure.count.tilted A) =
-      ∫ x, ∫ y, H x y ∂(Measure.count.tilted A) ∂(Measure.count.tilted A) := by
-  rw [integral_pi_count_tilted_pair hac, integral_pi_fin_two]
-
 include hb in
 /-- **Three replicas and a covariance:** `⟨(σ¹_i - σ²_i)(σ¹_j - σ³_j)⟩ = ⟨σ_iσ_j⟩ - b_i b_j`. -/
 theorem integral_three_replicas_cov (i j : Fin M) :
@@ -120,17 +104,21 @@ theorem integral_three_replicas_cov (i j : Fin M) :
   rw [integral_add Integrable.of_finite Integrable.of_finite,
     integral_sub Integrable.of_finite Integrable.of_finite,
     integral_sub Integrable.of_finite Integrable.of_finite]
+  have key : ∀ (a c : Fin 3), a ≠ c → ∀ H : (Fin M → ℤˣ) → (Fin M → ℤˣ) → ℝ,
+      ∫ τ : Fin 3 → Fin M → ℤˣ, H (τ a) (τ c) ∂(Measure.pi fun _ : Fin 3 => μ) =
+        ∫ x, ∫ y, H x y ∂μ ∂μ := fun a c hac H =>
+    (integral_pi_count_tilted_pair hac _ H).trans (integral_pi_fin_two _ H)
   have hprod : ∀ (u v : (Fin M → ℤˣ) → ℝ), ∫ x, ∫ y, u x * v y ∂μ ∂μ =
       (∫ x, u x ∂μ) * ∫ y, v y ∂μ := fun u v => by
     simp_rw [integral_const_mul]
     rw [integral_mul_const]
-  have t1 := integral_fin_three_pair A (a := 0) (c := 1) (by decide)
+  have t1 := key 0 1 (by decide)
     (fun x _ => ((x i : ℤˣ) : ℝ) * ((x j : ℤˣ) : ℝ))
-  have t2 := integral_fin_three_pair A (a := 0) (c := 2) (by decide)
+  have t2 := key 0 2 (by decide)
     (fun x y => ((x i : ℤˣ) : ℝ) * ((y j : ℤˣ) : ℝ))
-  have t3 := integral_fin_three_pair A (a := 1) (c := 0) (by decide)
+  have t3 := key 1 0 (by decide)
     (fun x y => ((x i : ℤˣ) : ℝ) * ((y j : ℤˣ) : ℝ))
-  have t4 := integral_fin_three_pair A (a := 1) (c := 2) (by decide)
+  have t4 := key 1 2 (by decide)
     (fun x y => ((x i : ℤˣ) : ℝ) * ((y j : ℤˣ) : ℝ))
   rw [t1, t2, t3, t4, hprod, ← hb i, ← hb j]
   simp only [integral_const, probReal_univ, one_smul]

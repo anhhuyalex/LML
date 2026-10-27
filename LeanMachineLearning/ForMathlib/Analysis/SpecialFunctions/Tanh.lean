@@ -130,4 +130,11 @@ theorem tanh_add_tanh_sub (h x : ℝ) :
       Real.sinh (2 * h) from hsum, hprod]
   field_simp
 
+/-- `1 - tanh² y = (cosh y)⁻²`. -/
+theorem one_sub_tanh_sq_eq_inv_cosh_sq (y : ℝ) : 1 - Real.tanh y ^ 2 = ((Real.cosh y)⁻¹) ^ 2 := by
+  have hc : Real.cosh y ≠ 0 := (Real.cosh_pos y).ne'
+  rw [Real.tanh_eq_sinh_div_cosh]
+  field_simp
+  nlinarith [Real.cosh_sq y]
+
 end Real

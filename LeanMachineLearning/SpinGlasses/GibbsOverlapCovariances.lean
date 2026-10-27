@@ -93,11 +93,6 @@ theorem integral_overlap_prod {M : ℕ} {Ω : Type*} [MeasurableSpace Ω] [Finit
     integral_const_mul, integral_const_mul, hA, hB u, hB v]
   simp only [integral_const, probReal_univ, one_smul]
 
-/-- `(∑ b_i²)² = ∑_{ij} b_i² b_j²`, in the form used for the overlap covariances. -/
-theorem sq_sum_sq_eq {M : ℕ} (b : Fin M → ℝ) :
-    (∑ i, b i * b i) * (∑ j, b j * b j) = ∑ i, ∑ j, b i * b i * (b j * b j) :=
-  Finset.sum_mul_sum _ _ _ _
-
 section Covariances
 
 variable {M : ℕ} (A : (Fin M → ℤˣ) → ℝ) (q : ℝ) (b : Fin M → ℝ)
@@ -138,7 +133,8 @@ theorem integral_overlap_sq_eq :
     rw [← hb i] at this
     exact this
   simp only [e1, e2]
-  have hsq := sq_sum_sq_eq b
+  have hsq : (∑ i, b i * b i) * (∑ j, b j * b j) = ∑ i, ∑ j, b i * b i * (b j * b j) :=
+    Finset.sum_mul_sum _ _ _ _
   have hsplit : ∑ i, ∑ j, m i j * m i j = ∑ i, ∑ j, (m i j - b i * b j) * (m i j - b i * b j) +
       2 * ∑ i, ∑ j, (m i j - b i * b j) * (b i * b j) + ∑ i, ∑ j, b i * b i * (b j * b j) := by
     have : ∀ i j, m i j * m i j = (m i j - b i * b j) * (m i j - b i * b j) +
@@ -185,7 +181,8 @@ theorem integral_overlap_mul_overlap_eq :
     rw [← hb j, hone] at this
     simpa using this
   simp only [e1, e2, e3]
-  have hsq := sq_sum_sq_eq b
+  have hsq : (∑ i, b i * b i) * (∑ j, b j * b j) = ∑ i, ∑ j, b i * b i * (b j * b j) :=
+    Finset.sum_mul_sum _ _ _ _
   have hsplit : ∑ i, ∑ j, m i j * b i * b j = ∑ i, ∑ j, (m i j - b i * b j) * (b i * b j) +
       ∑ i, ∑ j, b i * b i * (b j * b j) := by
     have : ∀ i j, m i j * b i * b j = (m i j - b i * b j) * (b i * b j) +
@@ -231,7 +228,8 @@ theorem integral_overlap_mul_overlap_disjoint_eq :
     rw [← hb j, hone] at this
     simpa using this
   simp only [e1, e2, e3]
-  have hsq := sq_sum_sq_eq b
+  have hsq : (∑ i, b i * b i) * (∑ j, b j * b j) = ∑ i, ∑ j, b i * b i * (b j * b j) :=
+    Finset.sum_mul_sum _ _ _ _
   rw [← hsq]
   ring
 

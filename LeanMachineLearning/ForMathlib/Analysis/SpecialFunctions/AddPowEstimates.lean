@@ -163,6 +163,12 @@ theorem add_pow_two_mul_le {k : ℕ} (hk : 1 ≤ k) (x y : ℝ) :
   rw [Even.pow_abs h_even x, Even.pow_abs h_even y] at h_add
   linarith
 
+/-- `(x - y)^(2k) ≤ 2^(2k-1) (x^(2k) + y^(2k))`. -/
+theorem sub_pow_two_mul_le {k : ℕ} (hk : 1 ≤ k) (x y : ℝ) :
+    (x - y) ^ (2 * k) ≤ 2 ^ (2 * k - 1) * (x ^ (2 * k) + y ^ (2 * k)) := by
+  have h := add_pow_two_mul_le hk x (-y)
+  rwa [Even.neg_pow ⟨k, by ring⟩, ← sub_eq_add_neg] at h
+
 /-- `(x₁ + x₂ + x₃ + x₄)^(2k) ≤ 4^(2k-1) (x₁^(2k) + x₂^(2k) + x₃^(2k) + x₄^(2k))`. -/
 theorem add_pow_four_two_mul_le {k : ℕ} (hk : 1 ≤ k) (x₁ x₂ x₃ x₄ : ℝ) :
     (x₁ + x₂ + x₃ + x₄) ^ (2 * k) ≤

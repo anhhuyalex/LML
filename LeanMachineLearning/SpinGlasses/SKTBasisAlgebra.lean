@@ -12,17 +12,21 @@ public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Tanh
 /-!
 # Algebra of the `T`-basis (Talagrand, Section 1.8, Eqs. (1.245)-(1.265))
 
-The pure algebra behind Propositions 1.8.7-1.8.12, with no measure theory:
+The algebra and elementary Gaussian-integral facts behind Propositions 1.8.7-1.8.12:
 
 * `sk_cavity_coincidences_sub_eq`: the difference of two coincidence coefficients of pairs
   `{i₁, k}` and `{i₂, k}` against a pair `{a, b}` (the computation of `c(ℓ, ℓ')` in the proof of
   Lemma 1.8.9);
+* `sk_cavity_deriv_zero_sub_third`: Lemma 1.8.9 in sum form;
 * `sk_at_deriv_coef_split`: Eq. (1.253) turned into Eq. (1.254) when `f⁻` does not depend on the
-  third replica;
-* the coefficients of `ν(T²)`, `A²`, `B²` in Eq. (1.264);
-* `integral_tanh_fourth_le`, `sk_at_one_sub_beta_sq_mul_ge`: `q̂ ≤ q` and
+  third replica (the replica-independence substitution itself is not carried out; the covariance
+  system of `SKCovarianceRows.lean` replaces it);
+* the coefficients of `ν(T²)`, `A²`, `B²` in Eq. (1.264) (`sk_t_coeff_T_sq`, `sk_t_coeff_B_sq`);
+* `qhat_le_of_fixedPoint`, `three_quarters_le_one_sub_beta_sq_mul`: `q̂ ≤ q` and
   `1 - β²(1 - 4q + 3q̂) ≥ 3/4`;
-* `sub_dotProduct_decomp`: the decomposition (1.246), `R_{ℓℓ'} - q = T_{ℓℓ'} + T_ℓ + T_ℓ' + T`.
+* `dotProduct_div_sub_decomp`: the decomposition (1.246),
+  `R_{ℓℓ'} - q = T_{ℓℓ'} + T_ℓ + T_ℓ' + T`;
+* `one_sub_two_mul_add_qhat_eq`: `1 - 2q + q̂ = 𝔼 ch⁻⁴(β √q z + h)`.
 
 ## References
 
@@ -83,17 +87,6 @@ theorem sk_t_coeff_B_sq (β q qhat : ℝ) :
       2 * β ^ 2 * (2 * q + q ^ 2 - 3 * qhat) := by
   dsimp [skCavityBCoef, skCavityBUnscaled]
   ring
-
-/-- `tanh⁴ ≤ tanh²`, so `q̂ ≤ q`: the fourth moment is at most the second moment. -/
-theorem integral_tanh_pow_four_le_sq {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω}
-    [IsProbabilityMeasure P] (Y : Ω → ℝ) (hY : AEMeasurable Y P) :
-    ∫ ω, Real.tanh (Y ω) ^ 4 ∂P ≤ ∫ ω, Real.tanh (Y ω) ^ 2 ∂P := by
-  refine integral_mono (integrable_tanh_pow Y hY 4) (integrable_tanh_pow Y hY 2) fun ω => ?_
-  have h0 : 0 ≤ Real.tanh (Y ω) ^ 2 := sq_nonneg _
-  have h1 : Real.tanh (Y ω) ^ 2 ≤ 1 := by
-    have := Real.abs_tanh_lt_one (Y ω)
-    nlinarith [abs_nonneg (Real.tanh (Y ω)), sq_abs (Real.tanh (Y ω))]
-  nlinarith
 
 /-- For the fixed point `q` and `q̂ = 𝔼 tanh⁴ Y`, one has `q̂ ≤ q`. -/
 theorem qhat_le_of_fixedPoint (β q h qhat : ℝ)
@@ -211,43 +204,15 @@ theorem sk_cavity_deriv_zero_sub_third (N n : ℕ) (β q h : ℝ)
   simp only [e, skCavityReplicaPairCoincidences, so] at hc ⊢
   rw [hc, mul_assoc]
 
-/-- `1 - tanh² y = (cosh y)⁻²`. -/
-theorem one_sub_tanh_sq_eq (y : ℝ) : 1 - Real.tanh y ^ 2 = ((Real.cosh y)⁻¹) ^ 2 := by
-  have hc : Real.cosh y ≠ 0 := (Real.cosh_pos y).ne'
-  rw [Real.tanh_eq_sinh_div_cosh]
-  have := Real.cosh_sq y
-  field_simp
-  nlinarith [Real.cosh_sq y]
-
-/-- **The Almeida-Thouless quantity:** for any random variable `Y` under a probability measure,
-`𝔼 tanh⁴ Y - 2 𝔼 tanh² Y + 1 = 𝔼 (cosh Y)⁻⁴` (Talagrand's `1 - 2q + q̂ = 𝔼 ch⁻⁴(β z √q + h)`). -/
-theorem integral_tanh_fourth_sub_two_add_one_eq {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω}
-    [IsProbabilityMeasure P] (Y : Ω → ℝ) (hY : AEMeasurable Y P) :
-    (∫ ω, Real.tanh (Y ω) ^ 4 ∂P) - 2 * (∫ ω, Real.tanh (Y ω) ^ 2 ∂P) + 1 =
-      ∫ ω, ((Real.cosh (Y ω))⁻¹) ^ 4 ∂P := by
-  have h2 := integrable_tanh_pow Y hY 2
-  have h4 := integrable_tanh_pow Y hY 4
-  have e : ∀ ω, ((Real.cosh (Y ω))⁻¹) ^ 4 =
-      (Real.tanh (Y ω) ^ 4 - 2 * Real.tanh (Y ω) ^ 2) + 1 := fun ω => by
-    have := one_sub_tanh_sq_eq (Y ω)
-    calc ((Real.cosh (Y ω))⁻¹) ^ 4 = (((Real.cosh (Y ω))⁻¹) ^ 2) ^ 2 := by ring
-      _ = _ := by rw [← this]; ring
-  simp_rw [e]
-  have hi : Integrable (fun ω => Real.tanh (Y ω) ^ 4 - 2 * Real.tanh (Y ω) ^ 2) P :=
-    h4.sub (h2.const_mul 2)
-  rw [integral_add hi (integrable_const _), integral_sub h4 (h2.const_mul 2),
-    integral_const_mul]
-  simp
-
 /-- `1 - 2q + q̂ = 𝔼 ch⁻⁴(β √q z + h)` for the fixed point `q` and `q̂ = 𝔼 tanh⁴`. -/
 theorem one_sub_two_mul_add_qhat_eq (β q h qhat : ℝ)
     (hfix : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂(gaussianReal 0 1) = q)
     (hqhat : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 4 ∂(gaussianReal 0 1) = qhat) :
     1 - 2 * q + qhat =
       ∫ z : ℝ, ((Real.cosh (β * Real.sqrt q * z + h))⁻¹) ^ 4 ∂(gaussianReal 0 1) := by
-  have := integral_tanh_fourth_sub_two_add_one_eq (P := gaussianReal 0 1)
+  have := integral_tanh_pow_four_sub_two_mul_add_eq (μ := gaussianReal 0 1)
     (fun z : ℝ => β * Real.sqrt q * z + h) (by fun_prop)
   rw [hfix, hqhat] at this
-  linarith
+  simpa using this
 
 end SpinGlasses
