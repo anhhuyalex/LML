@@ -57,7 +57,6 @@ lemma klDiv_finsetSum_smul_le [∀ i, IsFiniteMeasure (μ i)]
     [∀ i, IsFiniteMeasure (ν i)] (s : Finset ι) (c : ι → ℝ≥0) :
     klDiv (∑ i ∈ s, (c i : ℝ≥0∞) • μ i) (∑ i ∈ s, (c i : ℝ≥0∞) • ν i)
       ≤ ∑ i ∈ s, (c i : ℝ≥0∞) * klDiv (μ i) (ν i) := by
-  classical
   -- the index set, with the discrete measurable structure
   let _ : MeasurableSpace s := ⊤
   have : MeasurableSingletonClass s := ⟨fun _ ↦ trivial⟩

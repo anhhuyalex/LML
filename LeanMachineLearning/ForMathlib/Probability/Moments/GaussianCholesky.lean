@@ -59,7 +59,6 @@ theorem map_cholInf_comp_equiv {A : ℕ → ℕ → ℝ}
         (fun c (l : ℕ) => ∑ k ∈ range (e l + 1), cholInf A (e l) k * c k) =
       (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).map
         (fun c (l : ℕ) => ∑ k ∈ range (l + 1), cholInf (fun a b => A (e a) (e b)) l k * c k) := by
-  classical
   set ν := Measure.infinitePi fun _ : ℕ => gaussianReal 0 1 with hν
   have hA' := posSemidef_comp hA e
   refine IsProjectiveLimit.unique (P := fun I => (ν.map fun c (l : ℕ) =>

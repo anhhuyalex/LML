@@ -103,7 +103,6 @@ theorem rankedMark_eq_of_unique {l : ℕ} {μ : Measure (ℝ × Γ)} {b : Γ}
 /-- The ranked mark is a measurable function of the counting measure. -/
 theorem measurable_rankedMark [MeasurableSingletonClass Γ] (l : ℕ) :
     Measurable (rankedMark (Γ := Γ) l) := by
-  classical
   have hmem : ∀ n : ℕ, MeasurableSet {μ : Measure (ℝ × Γ) |
       n ∈ {n | ∃ b : Γ, Encodable.encode b = n ∧ IsRankedMark l b μ}} := fun n => by
     have : {μ : Measure (ℝ × Γ) | n ∈ {n | ∃ b : Γ, Encodable.encode b = n ∧
@@ -183,7 +182,6 @@ theorem isRankedMark_sum_dirac_iff_encard (l : ℕ) (b : Γ) :
 /-- A finite set of points above `t` stays at a positive distance above `t`. -/
 theorem exists_gap_above {t : ℝ} {L : Set Q} (hL : L.Finite) (h : ∀ r ∈ L, t < x r) :
     ∃ ε : ℝ, 0 < ε ∧ ∀ r ∈ L, t + ε ≤ x r := by
-  classical
   by_cases hne : L.Nonempty
   · obtain ⟨r₀, hr₀, hmin⟩ := Finset.exists_min_image hL.toFinset x (by simpa using hne)
     refine ⟨x r₀ - t, sub_pos.2 (h r₀ (by simpa using hr₀)), fun r hr => ?_⟩
@@ -194,7 +192,6 @@ theorem exists_gap_above {t : ℝ} {L : Set Q} (hL : L.Finite) (h : ∀ r ∈ L,
 /-- The points below `t` stay at a positive distance below `t`. -/
 theorem exists_gap_below {t : ℝ} (ht : 0 < t) (hfin : ∀ s, 0 < s → {r | s ≤ x r}.Finite) :
     ∃ δ : ℝ, 0 < δ ∧ ∀ r, x r < t → x r ≤ t - δ := by
-  classical
   set M := {r | t / 2 ≤ x r ∧ x r < t} with hMdef
   have hM : M.Finite := (hfin (t / 2) (by linarith)).subset fun r hr => hr.1
   by_cases hne : M.Nonempty
@@ -219,7 +216,6 @@ theorem isRankedMark_sum_dirac_iff (hpos : ∀ q, 0 < x q) (hinj : Function.Inje
     (hfin : ∀ s, 0 < s → {r | s ≤ x r}.Finite) (q₀ : Q) (b : Γ) :
     IsRankedMark {r | x q₀ < x r}.ncard b (Measure.sum fun q => Measure.dirac (x q, a q)) ↔
       b = a q₀ := by
-  classical
   rw [isRankedMark_sum_dirac_iff_encard]
   set t := x q₀ with ht
   set L := {r | t < x r} with hLdef

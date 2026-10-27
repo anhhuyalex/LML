@@ -485,7 +485,6 @@ lemma condDistrib_prod_of_forall_condDistrib_cond [Countable Ω'] [IsFiniteMeasu
       · fun_prop
       · exact (measurableSet_singleton _).preimage (by fun_prop)
       simp only [Set.preimage_ofPred_eq]
-      classical
       have h_le : ∫⁻ a, (κ (X a, Z a)) {a_1 | Z a = b} ∂μ ≤
           ∫⁻ a, {a' | Z a' = b}.indicator (fun _ ↦ κ.bound) a ∂μ := by
         gcongr with a
@@ -536,7 +535,6 @@ lemma condDistrib_prod_of_forall_condDistrib_cond [Countable Ω'] [IsFiniteMeasu
     · exact hs.inter ((measurableSet_singleton _).preimage (by fun_prop))
     rw [lintegral_cond, ← mul_assoc, ENNReal.mul_inv_cancel hb (by simp), one_mul]
     simp only [Set.preimage_inter, Set.preimage_ofPred_eq, Kernel.coe_comap, Function.comp_apply]
-    classical
     have h_eq : (fun a ↦ κ (X a, Z a) (Prod.mk (X a, Z a) ⁻¹' s ∩ {a_1 | Z a = b})) =
         {a | Z a = b}.indicator
           (fun a ↦ κ (X a, b) (Prod.mk (X a, b) ⁻¹' s ∩ {a_1 | Z a = b})) := by

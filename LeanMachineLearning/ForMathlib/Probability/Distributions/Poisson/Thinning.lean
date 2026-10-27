@@ -226,7 +226,6 @@ theorem poisson_mul_multinomial_eq_prod_poisson {ι : Type*} [Fintype ι]
         ENNReal.ofNNReal (Nat.multinomial Finset.univ m) *
         Finset.univ.prod (fun i => ENNReal.ofNNReal (p i) ^ m i) =
       Finset.univ.prod (fun i => Po(r * p i) ({m i} : Set ℕ)) := by
-  classical
   simp only [poissonMeasure_singleton]
   push_cast
   rw [← ENNReal.ofReal_natCast]

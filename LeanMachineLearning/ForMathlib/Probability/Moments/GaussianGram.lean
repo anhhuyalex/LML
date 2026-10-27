@@ -52,7 +52,6 @@ theorem map_eq_of_integral_mul_eq {X : A → Ω → ℝ} {Y : A → Ω' → ℝ}
     (hcov : ∀ a b, ∫ ω, X a ω * X b ω ∂P = ∫ ω, Y a ω * Y b ω ∂Q) :
     P.map (fun ω a => X a ω) = Q.map (fun ω a => Y a ω) := by
   have := Fintype.ofFinite A
-  classical
   have hP := hX.isProbabilityMeasure
   have hQ := hY.isProbabilityMeasure
   rw [map_eq_map_multivariateGaussian hX hX0, map_eq_map_multivariateGaussian hY hY0]
@@ -245,7 +244,6 @@ theorem map_pi_gaussianReal_scale_eq_prod_linear_combo
       ((Measure.pi fun _ : ι => gaussianReal 0 1).prod
         (Measure.pi fun _ : ι => gaussianReal 0 1)).map
           (fun q i => a * q.1 i + b * q.2 i) := by
-  classical
   let δ : ι → ι → ℝ := fun i j => if i = j then 1 else 0
   let X : ι → (ι → ℝ) → ℝ := fun i ξ => (fun j => c * δ i j) ⬝ᵥ ξ
   have hX : HasGaussianLaw (fun ξ i => X i ξ)

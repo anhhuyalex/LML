@@ -147,7 +147,6 @@ theorem condExp_finset_prod_comp_eq_prod_condExp {T E ι : Type*} [mE : Measurab
         μ[fun ω => f i (s (l i) ω) | ⨆ c ∈ K, mE.comap (s c)]) :
     μ[fun ω => ∏ i ∈ t, f i (s (l i) ω) | ⨆ c ∈ K, mE.comap (s c)] =ᵐ[μ]
       fun ω => ∏ i ∈ t, μ[fun ω' => f i (s (l i) ω') | ⨆ c ∈ K, mE.comap (s c)] ω := by
-  classical
   let e : Fin t.card → ι := fun k => (t.equivFin.symm k : ι)
   have he_mem : ∀ k, e k ∈ t := fun k => (t.equivFin.symm k).2
   have he_inj : Function.Injective e := fun k k' h => t.equivFin.symm.injective (Subtype.ext h)

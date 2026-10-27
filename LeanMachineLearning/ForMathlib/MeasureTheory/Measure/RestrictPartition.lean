@@ -78,7 +78,6 @@ theorem exists_probabilityMeasure_family_sum_smul_eq {ι : Type*} [Countable ι]
     ∃ ν : ι → Measure α, (∀ i, IsProbabilityMeasure (ν i)) ∧
       (∀ i, μ (A i) ≠ 0 → ν i = μ[|A i]) ∧
       (Measure.sum fun i => ((μ (A i)).toNNReal : ℝ≥0∞) • ν i) = μ := by
-  classical
   have hcond : ∀ i, μ (A i) ≠ 0 → IsProbabilityMeasure μ[|A i] := fun i h0 =>
     cond_isProbabilityMeasure_of_finite h0 (hfin i)
   refine ⟨fun i => if μ (A i) = 0 then ν₀ else μ[|A i], fun i => ?_, fun i h0 => by simp [h0], ?_⟩

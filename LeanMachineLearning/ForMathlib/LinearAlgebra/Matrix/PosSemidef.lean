@@ -73,7 +73,6 @@ positive semidefiniteness of all finite principal submatrices. -/
 theorem posSemidef_comp {A : ℕ → ℕ → ℝ}
     (hA : ∀ k : ℕ, (Matrix.of fun l l' : Fin k => A l l').PosSemidef) (f : ℕ → ℕ) (k : ℕ) :
     (Matrix.of fun l l' : Fin k => A (f l) (f l')).PosSemidef := by
-  classical
   set N := (Finset.univ.sup fun l : Fin k => f l) + 1 with hN
   have hlt : ∀ l : Fin k, f l < N := fun l =>
     Nat.lt_succ_of_le (Finset.le_sup (f := fun l : Fin k => f l) (Finset.mem_univ l))

@@ -37,7 +37,6 @@ theorem finite_superlevel_of_summable {α : Type*} {u : α → ℝ}
 theorem ncard_superlevel_lt_of_lt {α : Type*} {u : α → ℝ}
     (hfin : ∀ a, {b | u a ≤ u b}.Finite) {a b : α} (hab : u a < u b) :
     {c | u b < u c}.ncard < {c | u a < u c}.ncard := by
-  classical
   have hsubset : {c | u b < u c} ⊂ {c | u a < u c} := by
     refine Set.ssubset_iff_subset_ne.mpr ⟨fun c hc => hab.trans hc, ?_⟩
     intro heq
@@ -64,7 +63,6 @@ theorem surjective_ncard_superlevel_lt {α : Type*} [Infinite α] {u : α → �
     (hu : Function.Injective u)
     (hfin : ∀ a, {b | u a ≤ u b}.Finite) :
     Function.Surjective fun a => {b | u a < u b}.ncard := by
-  classical
   let rank := fun a => {b | u a < u b}.ncard
   have hrank : Function.Injective rank := injective_ncard_superlevel_lt hu hfin
   have hdown : ∀ a : α, ∀ k < rank a, ∃ b, rank b = k := by
@@ -123,7 +121,6 @@ theorem nthLargestAtom_sum_dirac_rank {α : Type*} (u : α → ℝ)
     (a : α) :
     nthLargestAtom {b | u a < u b}.ncard
       (Measure.sum fun b : α => Measure.dirac (u b)) = ENNReal.ofReal (u a) := by
-  classical
   let M : Measure ℝ := Measure.sum fun b : α => Measure.dirac (u b)
   let n := {b | u a < u b}.ncard
   have hfin (b : α) : {c | u b ≤ u c}.Finite :=

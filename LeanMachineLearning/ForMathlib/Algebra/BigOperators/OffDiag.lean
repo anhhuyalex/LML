@@ -31,7 +31,6 @@ replica type. -/
 theorem sum_sum_offDiag_eq_two_sum_lt {ι : Type*} [Fintype ι] [LinearOrder ι]
     (U : ι → ι → ℝ) (hU : ∀ a b, U a b = U b a) :
     (∑ a, ∑ b, if a = b then 0 else U a b) = 2 * ∑ p : ι × ι with p.1 < p.2, U p.1 p.2 := by
-  classical
   rw [← Finset.sum_product' (f := fun a b => if a = b then 0 else U a b), Finset.univ_product_univ]
   have hpt (p : ι × ι) : (if p.1 = p.2 then 0 else U p.1 p.2) =
       (if p.1 < p.2 then U p.1 p.2 else 0) + (if p.2 < p.1 then U p.1 p.2 else 0) := by
@@ -64,7 +63,6 @@ theorem filter_offDiag_lt {ι : Type*} [Fintype ι] [LinearOrder ι] :
 theorem sum_filter_lt_add_swap {ι : Type*} [Fintype ι] [LinearOrder ι] (X : ι → ι → ℝ) :
     ∑ p : ι × ι with p.1 < p.2, (X p.1 p.2 + X p.2 p.1) =
       (∑ a, ∑ b, X a b) - ∑ a, X a a := by
-  classical
   have h := sum_sum_offDiag_eq_two_sum_lt (fun a b => X a b + X b a) (fun a b => add_comm _ _)
   have e1 : ∀ a, (∑ b, if a = b then 0 else X a b + X b a) =
       (∑ b, X a b) + (∑ b, X b a) - 2 * X a a := fun a => by
