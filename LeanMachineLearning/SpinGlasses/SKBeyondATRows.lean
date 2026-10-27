@@ -439,8 +439,8 @@ theorem sk_cov_row_bound_three (N : ℕ) (β q h : ℝ)
   have hs1 : 1 ≤ Real.sqrt ((N : ℝ) + 1) := by rw [Real.one_le_sqrt]; exact hM1
   obtain ⟨m, hm⟩ : ∃ m : ℝ, m = (Real.sqrt ((N : ℝ) + 1))⁻¹ := ⟨_, rfl⟩
   rw [← hm] at hE
-  have hm0 : 0 ≤ m := inv_nonneg.2 (Real.sqrt_nonneg _)
-  have hm1 : m ≤ 1 := inv_le_one_of_one_le₀ hs1
+  have hm0 : 0 ≤ m := by rw [hm]; exact inv_nonneg.2 (Real.sqrt_nonneg _)
+  have hm1 : m ≤ 1 := by rw [hm]; exact inv_le_one_of_one_le₀ hs1
   have hm2 : m ^ 2 = (N + 1 : ℝ)⁻¹ := by rw [hm, inv_pow, Real.sq_sqrt hM0.le]
   have hm3 : (N + 1 : ℝ)⁻¹ ^ 3 ≤ m ^ 3 := by
     rw [← hm2, ← pow_mul]
@@ -542,7 +542,7 @@ theorem sk_cov_row_bound_three (N : ℕ) (β q h : ℝ)
   have hX : 2 * Dabs / ((N : ℝ) + 1) + 1 / ((N : ℝ) + 1) ^ 2 ≤ 3 * (Δ + m ^ 3) := by
     have e2 : 2 * Dabs / ((N : ℝ) + 1) = 2 * ((N + 1 : ℝ)⁻¹ * Dabs) := by
       rw [div_eq_mul_inv]; ring
-    linarith only [e2, hDabP, hm4]
+    linarith only [e2, hDabP, hm4, hΔ0]
   have hL : (N + 1 : ℝ)⁻¹ * (4 * ((4 : ℕ) : ℝ) ^ 2 * β ^ 2 *
       Real.exp (4 * (((4 : ℕ) : ℝ) + 2) ^ 2 * β ^ 2) * Dabs) ≤
       4 * ((4 : ℕ) : ℝ) ^ 2 * β ^ 2 * Real.exp (4 * (((4 : ℕ) : ℝ) + 2) ^ 2 * β ^ 2) *
@@ -559,7 +559,7 @@ theorem sk_cov_row_bound_three (N : ℕ) (β q h : ℝ)
       (4 * (Δ + m ^ 3)) + 3 * (Δ + m ^ 3)) := by
     gcongr
   norm_num at hL h1 ⊢
-  sorry
+  linarith only [h1, hL]
 
 end RowThree
 

@@ -69,6 +69,25 @@ theorem indicator_lower_bound_of_cubic {Ω : Type*} (ν : (Ω → ℝ) → ℝ)
             hsmul 8 (fun ω => if δ / 2 ≤ |X ω| then (1 : ℝ) else 0)]
   linarith
 
+/-- The centered overlap of two replicas of an `N + 1`-spin system is at most `2` in absolute
+value when `|q| ≤ 1`. -/
+theorem abs_overlap_sub_le_two {N : ℕ} {q : ℝ} (hq : |q| ≤ 1)
+    (σ : Fin 2 → Fin (N + 1) → ℤˣ) :
+    |(N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
+      fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q| ≤ 2 := by
+  have hM : (0 : ℝ) < N + 1 := by positivity
+  have hdot : |(fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ fun i : Fin (N + 1) => (σ 1 i : ℝ)| ≤
+      N + 1 := by
+    refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
+    simp only [abs_mul, abs_units_cast_eq_one, mul_one, Finset.sum_const, Finset.card_univ,
+      Fintype.card_fin, nsmul_eq_mul]
+    simp
+  have hR : |(N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
+      fun i : Fin (N + 1) => (σ 1 i : ℝ))| ≤ 1 := by
+    rw [abs_mul, abs_inv, abs_of_pos hM, inv_mul_le_iff₀ hM]
+    linarith
+  exact (abs_sub _ _).trans (by linarith)
+
 /-- **Eq. (1.271) for the SK model.**  On the `N + 1`-spin system with two replicas, if
 `δ ν((R₁₂ - q)²) ≤ ν(|R₁₂ - q|³)` (the first inequality of (1.269)) and `|q| ≤ 1`, then
 `ν(1{|R₁₂ - q| ≥ δ/2}) ≥ (δ/16) ν((R₁₂ - q)²)`. -/
@@ -91,26 +110,15 @@ theorem sk_indicator_lower_bound_of_cubic (N : ℕ) (β h q δ : ℝ) (hq : |q| 
   refine indicator_lower_bound_of_cubic ν (sk_replica_avg_add N 2 β h ν hν)
     (sk_replica_avg_smul N 2 β h ν hν) (fun f g hfg => sk_replica_avg_mono N 2 β h ν hν f g hfg)
     (fun σ => (N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
-      fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) (fun σ => ?_) hδ hcubic
-  have hM : (0 : ℝ) < N + 1 := by positivity
-  have hdot : |(fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ fun i : Fin (N + 1) => (σ 1 i : ℝ)| ≤
-      N + 1 := by
-    refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
-    simp only [abs_mul, abs_units_cast_eq_one, mul_one, Finset.sum_const, Finset.card_univ,
-      Fintype.card_fin, nsmul_eq_mul]
-    simp
-  have hR : |(N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
-      fun i : Fin (N + 1) => (σ 1 i : ℝ))| ≤ 1 := by
-    rw [abs_mul, abs_inv, abs_of_pos hM, inv_mul_le_iff₀ hM]
-    linarith
-  exact (abs_sub _ _).trans (by linarith)
+      fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) (fun σ => abs_overlap_sub_le_two hq σ) hδ hcubic
 
 /-- **Proposition 1.9.2 from Lemma 1.9.4.**  Let `S₂ M = ν((R-q)²)`, `S₃ M = ν(|R-q|³)` and `T M`
 be the rectangular second moment on the `M`-spin system.  Suppose
 
 * `0 ≤ T M` and `T M = (4/M) a/(1 - β² a) + R₁ M` with `a > 0` and `β² a > 1`
   (the identity (1.275) beyond the AT line);
-* `S₂ M = A M + R₂ M` with `0 ≤ A M ≤ K/M` (the identity (1.276), `A = A² + 2B² + C²`);
+* `S₂ M = A M + R₂ M` with `A M ≤ K/M` (the identity (1.276), `A = A² + 2B² + C²`; beyond the
+  AT line `A` may be negative, only the upper bound is used);
 * `|R_i M| ≤ K (M^{-3/2} + S₃ M)` (the remainder bound (1.277));
 * `0 ≤ S₃ M ≤ 2 S₂ M` (as `|R-q| ≤ 2`).
 
@@ -121,7 +129,7 @@ theorem exists_cubic_lower_bounds {β a K : ℝ} (ha : 0 < a) (hβa : 1 < β ^ 2
     (hT0 : ∀ M, 1 ≤ M → 0 ≤ T M)
     (hT : ∀ M, 1 ≤ M → T M = 4 / (M : ℝ) * (a / (1 - β ^ 2 * a)) + R₁ M)
     (hS₂ : ∀ M, 1 ≤ M → S₂ M = A M + R₂ M)
-    (hA : ∀ M, 1 ≤ M → 0 ≤ A M ∧ A M ≤ K / M)
+    (hA : ∀ M, 1 ≤ M → A M ≤ K / M)
     (hR₁ : ∀ M, 1 ≤ M → |R₁ M| ≤ K * ((Real.sqrt M)⁻¹ ^ 3 + S₃ M))
     (hR₂ : ∀ M, 1 ≤ M → |R₂ M| ≤ K * ((Real.sqrt M)⁻¹ ^ 3 + S₃ M))
     (hS₃ : ∀ M, 1 ≤ M → 0 ≤ S₃ M ∧ S₃ M ≤ 2 * S₂ M) :
@@ -173,7 +181,7 @@ theorem exists_cubic_lower_bounds {β a K : ℝ} (ha : 0 < a) (hβa : 1 < β ^ 2
     rw [div_le_iff₀ hMpos, show 2 * K / c * S₃ M * M = (2 * K * S₃ M * M) / c by ring,
       le_div_iff₀ hcpos]
     linarith
-  obtain ⟨hA0, hA1⟩ := hA M hM1
+  have hA1 := hA M hM1
   have hR2 := hR₂ M hM1
   have hS2 := hS₂ M hM1
   have hS2le : S₂ M ≤ K' * S₃ M := by

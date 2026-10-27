@@ -1570,16 +1570,13 @@ theorem sk_cov_row_bound (N : ℕ) (β q h : ℝ)
   norm_num
   gcongr
 
-/-- **The covariance system (Talagrand Eqs. (1.231)-(1.233)) with explicit errors.**  Let
+/-- **The covariance system (Talagrand Eqs. (1.231)-(1.233)) from a bound on each row.**  Let
 `U = 𝔼⟨(R₁₂ - q)²⟩`, `V = 𝔼⟨(R₁₂ - q)(R₁₃ - q)⟩`, `W = 𝔼⟨(R₁₂ - q)(R₃₄ - q)⟩` for the
-`(N+1)`-spin system. If `𝔼⟨(R₁₂ - q)²⟩ ≤ K₁/M` and `𝔼⟨(R₁₂ - q)⁴⟩ ≤ K₂/M²`, there is a
+`(N+1)`-spin system. If every row of the cavity expansion (`sk_cov_row_bound`, or its beyond-AT form
+`sk_cov_row_bound_three`) is bounded by `E`, there is a
 remainder `R` with `|R_i| ≤ E` such that `(U, V, W) = S + A (U, V, W) + R`, where `S` is the source
 `skAtSource` and `A` the AT matrix `skAtMatrix`. -/
-theorem sk_cov_system (N : ℕ) (β q h : ℝ)
-    (hfix : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂(gaussianReal 0 1) = q)
-    (qhat : ℝ)
-    (hqhat : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 4 ∂(gaussianReal 0 1) = qhat)
-    (hqhat01 : qhat ∈ Set.Icc (0 : ℝ) 1) (K₁ K₂ : ℝ) (hK₁ : 0 ≤ K₁) (hK₂ : 0 ≤ K₂)
+theorem sk_cov_system_of_row (N : ℕ) (β q h qhat : ℝ)
     (e : Option (Option (Fin 4)) ≃ Fin (4 + 2))
     (ν₂ : ((Fin 2 → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
     (hν₂ : ∀ Φ, ν₂ Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, Φ σ
@@ -1609,19 +1606,19 @@ theorem sk_cov_system (N : ℕ) (β q h : ℝ)
           (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
         h * ∑ i : Fin (N + 1), (a i : ℝ))
       ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
-    (hD2 : ν₂ (fun σ => ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
-          fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) ^ 2) ≤ K₁ / ((N : ℝ) + 1))
-    (hD4 : ν₂ (fun σ => ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
-          fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) ^ 4) ≤ K₂ / ((N : ℝ) + 1) ^ 2)
     (E : ℝ)
-    (hE : E = 2304 * β ^ 4 * Real.exp (256 * β ^ 2) *
-        (Real.sqrt ((8 * K₁ + 8) / ((N : ℝ) + 1)) * Real.sqrt (K₂ / ((N : ℝ) + 1) ^ 2)) +
-      32 * β ^ 2 * (72 * β ^ 2 * Real.exp (256 * β ^ 2) *
-          (Real.sqrt ((8 * K₂ + 8) / ((N : ℝ) + 1) ^ 2) * Real.sqrt (K₁ / ((N : ℝ) + 1))) +
-        (2 * ((K₁ + 1) / (2 * Real.sqrt ((N : ℝ) + 1))) / ((N : ℝ) + 1) +
-          1 / ((N : ℝ) + 1) ^ 2)) +
-      (N + 1 : ℝ)⁻¹ * (64 * β ^ 2 * Real.exp (144 * β ^ 2) *
-        ((K₁ + 1) / (2 * Real.sqrt ((N : ℝ) + 1))))) :
+    (hrow : ∀ {a c : Fin 4}, a ≠ c →
+    |ν₄ (fun σ => ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
+          fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) *
+        ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ a i : ℝ)) ⬝ᵥ
+          fun i : Fin (N + 1) => (σ c i : ℝ)) - q)) -
+      (N + 1 : ℝ)⁻¹ * skCavityBUnscaled q qhat (skCavityCoincidences (0 : Fin 4) 1 a c) -
+      ∑ j : SKCavityReplicaPair 4, skCavityReplicaPairWeight 4 j *
+        (skCavityBCoef β q qhat (skCavityReplicaPairCoincidences (0 : Fin 4) 1 j) *
+          ν₆ (fun τ => ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (τ (e (some (some a))) i : ℝ)) ⬝ᵥ
+              fun i : Fin (N + 1) => (τ (e (some (some c))) i : ℝ)) - q) *
+            ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (τ (e (skCavityReplicaPairMap j).1) i : ℝ)) ⬝ᵥ
+              fun i : Fin (N + 1) => (τ (e (skCavityReplicaPairMap j).2) i : ℝ)) - q)))| ≤ E) :
     ∃ R : Fin 3 → ℝ,
       (![ν₂ (fun σ => ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
           fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) * ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0
@@ -1715,9 +1712,6 @@ theorem sk_cov_system (N : ℕ) (β q h : ℝ)
       (r₂ := (skCavityReplicaPairMap j).2)
       (fun h' => hac (Option.some.inj (Option.some.inj h'))) (skCavityReplicaPair_ne j)
     rw [this]
-  have hrow : ∀ {a c : Fin 4}, a ≠ c → _ := fun {a c} hac =>
-    sk_cov_row_bound N β q h hfix qhat hqhat hqhat01 K₁ K₂ hK₁ hK₂ e ν₂ hν₂ ν₄ hν₄ ν₆ hν₆
-      hD2 hD4 hac E hE
   have r0 := hrow (a := 0) (c := 1) (by decide)
   have r1 := hrow (a := 0) (c := 2) (by decide)
   have r2 := hrow (a := 2) (c := 3) (by decide)
@@ -1809,6 +1803,91 @@ theorem sk_cov_system (N : ℕ) (β q h : ℝ)
         skAtRowTwo]
       rw [inv_mul_eq_div] at r2
       exact r2
+
+/-- **The covariance system (Talagrand Eqs. (1.231)-(1.233)) with explicit errors.**  Let
+`U = 𝔼⟨(R₁₂ - q)²⟩`, `V = 𝔼⟨(R₁₂ - q)(R₁₃ - q)⟩`, `W = 𝔼⟨(R₁₂ - q)(R₃₄ - q)⟩` for the
+`(N+1)`-spin system. If `𝔼⟨(R₁₂ - q)²⟩ ≤ K₁/M` and `𝔼⟨(R₁₂ - q)⁴⟩ ≤ K₂/M²`, there is a
+remainder `R` with `|R_i| ≤ E` such that `(U, V, W) = S + A (U, V, W) + R`, where `S` is the source
+`skAtSource` and `A` the AT matrix `skAtMatrix`. -/
+theorem sk_cov_system (N : ℕ) (β q h : ℝ)
+    (hfix : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂(gaussianReal 0 1) = q)
+    (qhat : ℝ)
+    (hqhat : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 4 ∂(gaussianReal 0 1) = qhat)
+    (hqhat01 : qhat ∈ Set.Icc (0 : ℝ) 1) (K₁ K₂ : ℝ) (hK₁ : 0 ≤ K₁) (hK₂ : 0 ≤ K₂)
+    (e : Option (Option (Fin 4)) ≃ Fin (4 + 2))
+    (ν₂ : ((Fin 2 → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
+    (hν₂ : ∀ Φ, ν₂ Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, Φ σ
+      ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+        (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ))
+      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    (ν₃ : ((Fin 3 → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
+    (hν₃ : ∀ Φ, ν₃ Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin 3 → Fin (N + 1) → ℤˣ, Φ σ
+      ∂(Measure.pi fun _ : Fin 3 => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+        (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ))
+      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    (ν₄ : ((Fin 4 → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
+    (hν₄ : ∀ Φ, ν₄ Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin 4 → Fin (N + 1) → ℤˣ, Φ σ
+      ∂(Measure.pi fun _ : Fin 4 => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+        (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ))
+      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    (ν₆ : ((Fin (4 + 2) → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
+    (hν₆ : ∀ Φ, ν₆ Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin (4 + 2) → Fin (N + 1) → ℤˣ, Φ σ
+      ∂(Measure.pi fun _ : Fin (4 + 2) => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+        (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ))
+      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    (hD2 : ν₂ (fun σ => ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
+          fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) ^ 2) ≤ K₁ / ((N : ℝ) + 1))
+    (hD4 : ν₂ (fun σ => ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
+          fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) ^ 4) ≤ K₂ / ((N : ℝ) + 1) ^ 2)
+    (E : ℝ)
+    (hE : E = 2304 * β ^ 4 * Real.exp (256 * β ^ 2) *
+        (Real.sqrt ((8 * K₁ + 8) / ((N : ℝ) + 1)) * Real.sqrt (K₂ / ((N : ℝ) + 1) ^ 2)) +
+      32 * β ^ 2 * (72 * β ^ 2 * Real.exp (256 * β ^ 2) *
+          (Real.sqrt ((8 * K₂ + 8) / ((N : ℝ) + 1) ^ 2) * Real.sqrt (K₁ / ((N : ℝ) + 1))) +
+        (2 * ((K₁ + 1) / (2 * Real.sqrt ((N : ℝ) + 1))) / ((N : ℝ) + 1) +
+          1 / ((N : ℝ) + 1) ^ 2)) +
+      (N + 1 : ℝ)⁻¹ * (64 * β ^ 2 * Real.exp (144 * β ^ 2) *
+        ((K₁ + 1) / (2 * Real.sqrt ((N : ℝ) + 1))))) :
+    ∃ R : Fin 3 → ℝ,
+      (![ν₂ (fun σ => ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
+          fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) * ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0
+            i : ℝ)) ⬝ᵥ
+          fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q)),
+         ν₃ (fun σ => ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
+          fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) * ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0
+            i : ℝ)) ⬝ᵥ
+          fun i : Fin (N + 1) => (σ 2 i : ℝ)) - q)),
+         ν₄ (fun σ => ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
+          fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) * ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 2
+            i : ℝ)) ⬝ᵥ
+          fun i : Fin (N + 1) => (σ 3 i : ℝ)) - q))] =
+        skAtSource q qhat ((N : ℝ) + 1) +
+          skAtMatrix (skCavityBCoef β q qhat 2) (skCavityBCoef β q qhat 1)
+            (skCavityBCoef β q qhat 0) *ᵥ
+          ![ν₂ (fun σ => ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
+          fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) * ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0
+            i : ℝ)) ⬝ᵥ
+          fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q)),
+            ν₃ (fun σ => ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
+          fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) * ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0
+            i : ℝ)) ⬝ᵥ
+          fun i : Fin (N + 1) => (σ 2 i : ℝ)) - q)),
+            ν₄ (fun σ => ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
+          fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) * ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 2
+            i : ℝ)) ⬝ᵥ
+          fun i : Fin (N + 1) => (σ 3 i : ℝ)) - q))] + R) ∧
+      ∀ i, |R i| ≤ E := by
+  exact sk_cov_system_of_row N β q h qhat e ν₂ hν₂ ν₃ hν₃ ν₄ hν₄ ν₆ hν₆ E
+    fun {a c} hac => sk_cov_row_bound N β q h hfix qhat hqhat hqhat01 K₁ K₂ hK₁ hK₂ e ν₂ hν₂ ν₄ hν₄
+      ν₆ hν₆ hD2 hD4 hac E hE
 
 end RowBound
 
