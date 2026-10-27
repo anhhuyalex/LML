@@ -81,8 +81,8 @@ theorem hasLaw_cascadeSubtreeData [IsProbabilityMeasure P]
     (D : (Σ p : ℕ, Fin p → ℕ) → Ω → 𝒟) (hDm : ∀ v, Measurable (D v)) (hD : iIndepFun D P)
     (𝔡 : ℕ → Measure 𝒟) (hDlaw : ∀ v, HasLaw (D v) (𝔡 v.1) P) (n : ℕ) :
     HasLaw (fun ω (v : Σ p : ℕ, Fin p → ℕ) => D ⟨v.1 + 1, Fin.cons n v.2⟩ ω)
-      (Measure.infinitePi fun v : Σ p : ℕ, Fin p → ℕ => 𝔡 (v.1 + 1)) P := by
-  exact HasLaw.infinitePi (fun v => hDm _) (hD.precomp (cascadeChildVertex_injective n))
+      (Measure.infinitePi fun v : Σ p : ℕ, Fin p → ℕ => 𝔡 (v.1 + 1)) P :=
+  HasLaw.infinitePi (fun v => hDm _) (hD.precomp (cascadeChildVertex_injective n))
     fun v => hDlaw _
 
 /-- Joint law of the root data and the vector of subtree data. -/

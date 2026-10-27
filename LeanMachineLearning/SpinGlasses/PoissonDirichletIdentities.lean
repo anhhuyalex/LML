@@ -242,8 +242,8 @@ theorem gaussian_inputs_infinitePi_active
       (μ := fun _ : ℕ => fun _ : ℕ => gaussianReal 0 1)
       (X := fun _ _ x => x) (by fun_prop)
   have hi : iIndepFun (fun a g => Y (ι a) g) μ := hY.precomp hι
-  have hYlaw (p : ℕ × ℕ) : HasLaw (Y p) (gaussianReal 0 1) μ := by
-    exact hasLaw_eval_infinitePi_infinitePi (fun _ _ => gaussianReal 0 1) p.1 p.2
+  have hYlaw (p : ℕ × ℕ) : HasLaw (Y p) (gaussianReal 0 1) μ :=
+    hasLaw_eval_infinitePi_infinitePi (fun _ _ => gaussianReal 0 1) p.1 p.2
   have hlaw (a : α) : HasLaw (fun g => Y (ι a) g) (gaussianReal 0 1) μ :=
     hYlaw (ι a)
   dsimp

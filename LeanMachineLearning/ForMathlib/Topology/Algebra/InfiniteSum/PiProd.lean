@@ -261,8 +261,8 @@ theorem tsum_prod_option_some {w : α → ℝ} (hw0 : ∀ a, 0 ≤ w a)
       ∑' σ : J → α, (∏ j, w (σ j)) * Φ σ := by
   let e : (Option J → α) ≃ α × (J → α) := Equiv.piOptionEquivProd
   let F : (J → α) → ℝ := fun σ => (∏ j, w (σ j)) * Φ σ
-  have hFnorm : Summable fun σ => ‖F σ‖ := by
-    exact hΦ.abs.congr (fun σ => (Real.norm_eq_abs _).symm)
+  have hFnorm : Summable fun σ => ‖F σ‖ :=
+    hΦ.abs.congr (fun σ => (Real.norm_eq_abs _).symm)
   have hs : Summable (fun p : α × (J → α) => w p.1 * F p.2) :=
     summable_mul_of_summable_norm
       (by simpa only [Real.norm_eq_abs, abs_of_nonneg (hw0 _)] using hws) hFnorm

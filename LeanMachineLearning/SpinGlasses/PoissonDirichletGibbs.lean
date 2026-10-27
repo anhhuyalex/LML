@@ -253,12 +253,12 @@ theorem integral_gaussian_weighted_abs_eq
   have hlaw (a : α) : HasLaw (fun g : ℕ → ℕ → ℝ => g (iota a).1 (iota a).2)
       (gaussianReal 0 1) μ :=
     hasLaw_eval_infinitePi_infinitePi (fun _ _ => gaussianReal 0 1) (iota a).1 (iota a).2
-  have hgauss : Integrable (fun x : ℝ => |x|) (gaussianReal 0 1) := by
-    exact ((memLp_id_gaussianReal' (μ := 0) (v := 1) 1 (by simp)).integrable
+  have hgauss : Integrable (fun x : ℝ => |x|) (gaussianReal 0 1) :=
+    ((memLp_id_gaussianReal' (μ := 0) (v := 1) 1 (by simp)).integrable
       (by simp)).abs
   have hint (a : α) : Integrable
-      (fun g : ℕ → ℕ → ℝ => u a * |g (iota a).1 (iota a).2|) μ := by
-    exact ((hlaw a).integrable_comp hgauss).const_mul _
+      (fun g : ℕ → ℕ → ℝ => u a * |g (iota a).1 (iota a).2|) μ :=
+    ((hlaw a).integrable_comp hgauss).const_mul _
   have heq (a : α) :
       (∫ g : ℕ → ℕ → ℝ, u a * |g (iota a).1 (iota a).2| ∂μ) =
       u a * ∫ x : ℝ, |x| ∂gaussianReal 0 1 := by
@@ -373,8 +373,8 @@ theorem integral_abs_gaussian_gibbs_replica_untilted_le
     ring
   have hleft : Integrable (fun g : ℕ → ℕ → ℝ =>
       |∑' σ : J → α, (∏ j, w (σ j)) *
-        (Φ σ * g (iota (σ r₀)).1 (iota (σ r₀)).2)|) μ := by
-    exact (integrable_gaussian_gibbs_replica_untilted u hu0 hu iota r₀ Φ M hΦ).abs
+        (Φ σ * g (iota (σ r₀)).1 (iota (σ r₀)).2)|) μ :=
+    (integrable_gaussian_gibbs_replica_untilted u hu0 hu iota r₀ Φ M hΦ).abs
   have hright : Integrable (fun g : ℕ → ℕ → ℝ =>
       M / (∑' a, u a) * ∑' a, u a * |g (iota a).1 (iota a).2|) μ :=
     hmass.2.const_mul _
@@ -494,8 +494,8 @@ theorem measurable_tsum_guarded_replica
     exact MeasurableSet.iInter fun j => measurableSet_lt measurable_const
       ((hN (σ j).1).comp measurable_fst)
   have hprod : Measurable fun zg : S × T => ∏ j, w zg (σ j) / (
-      ∑' p : ℕ × ℕ, if p.2 < N zg.1 p.1 then w zg p else 0) := by
-    exact Finset.measurable_prod _ fun j _ => (hw (σ j)).div hden
+      ∑' p : ℕ × ℕ, if p.2 < N zg.1 p.1 then w zg p else 0) :=
+    Finset.measurable_prod _ fun j _ => (hw (σ j)).div hden
   exact (hprod.mul (hF σ)).ite hguard measurable_const
 
 /-- Finiteness of a guarded `ENNReal` series of nonnegative parts is a measurable event, for
@@ -686,8 +686,8 @@ theorem gaussian_gibbs_replica_guard_integrable_and_bound
   let _ : Nonempty α := by obtain ⟨p, hp'⟩ := hn; exact ⟨⟨p, hp'⟩⟩
   let u : α → ℝ := fun p => (z p.1.1).2 p.1.2
   have hu (p : α) : 0 < u p := hp p.1 p.2
-  have hsum : Summable u := by
-    exact (summable_subtype_guard_iff (fun p : ℕ × ℕ => p.2 < (z p.1).1)
+  have hsum : Summable u :=
+    (summable_subtype_guard_iff (fun p : ℕ × ℕ => p.2 < (z p.1).1)
       (fun p : ℕ × ℕ => (z p.1).2 p.2)).2 hs
   let μ : Measure (ℕ → ℕ → ℝ) :=
     Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1
@@ -738,8 +738,8 @@ theorem integral_gaussian_gibbs_replica_guard_untilted_eq_zero
   let _ : Nonempty α := by obtain ⟨p, hp'⟩ := hn; exact ⟨⟨p, hp'⟩⟩
   let u : α → ℝ := fun p => (z p.1.1).2 p.1.2
   have hu (p : α) : 0 < u p := hp p.1 p.2
-  have hsum : Summable u := by
-    exact (summable_subtype_guard_iff (fun p : ℕ × ℕ => p.2 < (z p.1).1)
+  have hsum : Summable u :=
+    (summable_subtype_guard_iff (fun p : ℕ × ℕ => p.2 < (z p.1).1)
       (fun p : ℕ × ℕ => (z p.1).2 p.2)).2 hs
   have hΦα : ∀ σ : J → α, |Φ (fun j => (σ j).1)| ≤ M := fun σ => hΦ _
   rw [show (fun g : ℕ → ℕ → ℝ =>
@@ -1143,8 +1143,8 @@ theorem integral_gibbs_tilt_eq
         (∏ i, ((B' (σ i).1.1 ω).2 (σ i).1.2).1 /
           ∑' p : {p : ℕ × ℕ // p.2 < (B' p.1 ω).1}, ((B' p.1.1 ω).2 p.1.2).1) *
           (f (fun i j => if σ i = σ j then 1 else 0) *
-            ∏ i, ((B' (σ i).1.1 ω).2 (σ i).1.2).2 ^ k i) ∂P := by
-  exact (identDistrib_gibbs_tilt hζ t ν' r' hBm' hB' hlaw' hμ' n k hf).integral_eq
+            ∏ i, ((B' (σ i).1.1 ω).2 (σ i).1.2).2 ^ k i) ∂P :=
+  (identDistrib_gibbs_tilt hζ t ν' r' hBm' hB' hlaw' hμ' n k hf).integral_eq
 /-- The Gaussian-marked Gibbs series with one centered mark is integrable even
 at nonzero tilt. The un-tilted bound comes from the independent split blocks;
 Lemma 2.3 transports it to the tilted process as equality in distribution. -/

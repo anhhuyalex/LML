@@ -173,8 +173,8 @@ theorem condExp_prod_comp_eq_prod_condExp_of_exchangeable [StandardBorelSpace E]
     (hlK : ∀ i ∈ t, l i ∉ K) (f : ι → E → ℝ) (hf : ∀ i, Measurable (f i))
     (hfb : ∀ i, ∃ C, ∀ x, |f i x| ≤ C) :
     P[fun ω => ∏ i ∈ t, f i (s (l i) ω) | ⨆ k ∈ K, mE.comap (s k)] =ᵐ[P]
-      fun ω => ∏ i ∈ t, P[fun ω' => f i (s (l i) ω') | ⨆ k ∈ K, mE.comap (s k)] ω := by
-  exact condExp_finset_prod_comp_eq_prod_condExp hs K t l hl hlK f hf hfb
+      fun ω => ∏ i ∈ t, P[fun ω' => f i (s (l i) ω') | ⨆ k ∈ K, mE.comap (s k)] ω :=
+  condExp_finset_prod_comp_eq_prod_condExp hs K t l hl hlK f hf hfb
     fun i hi K' hKK' hn => (condExp_comp_ae_eq_condExp_compl hs hexch (hK.mono hKK') hn (hf i)
       (hfb i)).trans (condExp_comp_ae_eq_condExp_compl hs hexch hK (hlK i hi) (hf i) (hfb i)).symm
 

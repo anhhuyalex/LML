@@ -233,8 +233,8 @@ theorem map_poissonDirichletWeight_simplex_compl_eq_zero_of_blocks
         (fun n l => (B n ω).2 l)))) (𝕍)ᶜ = 0 := by
   have hm : Measurable (fun ω k => poissonDirichletWeight k
       (poissonCountingMeasure (fun n => (B n ω).1)
-        (fun n l => (B n ω).2 l))) := by
-    exact (measurable_pi_iff.2 measurable_poissonDirichletWeight).comp
+        (fun n l => (B n ω).2 l))) :=
+    (measurable_pi_iff.2 measurable_poissonDirichletWeight).comp
       (measurable_poissonCountingMeasure_of_blocks hBm (fun ω => rfl))
   rw [Measure.map_apply hm isClosed_poissonDirichletSimplex.measurableSet.compl]
   exact ae_poissonDirichletWeight_mem_simplex_of_blocks

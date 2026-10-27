@@ -95,7 +95,7 @@ theorem qhat_le_of_fixedPoint (β q h qhat : ℝ)
     qhat ≤ q := by
   calc qhat = ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 4 ∂(gaussianReal 0 1) := hqhat.symm
     _ ≤ ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂(gaussianReal 0 1) :=
-        integral_tanh_pow_four_le_sq (P := gaussianReal 0 1)
+        integral_tanh_pow_four_le_sq (μ := gaussianReal 0 1)
           (fun z : ℝ => β * Real.sqrt q * z + h) (by fun_prop)
     _ = q := hfix
 
@@ -213,6 +213,7 @@ theorem one_sub_two_mul_add_qhat_eq (β q h qhat : ℝ)
   have := integral_tanh_pow_four_sub_two_mul_add_eq (μ := gaussianReal 0 1)
     (fun z : ℝ => β * Real.sqrt q * z + h) (by fun_prop)
   rw [hfix, hqhat] at this
-  simpa using this
+  simp only [probReal_univ] at this
+  linarith
 
 end SpinGlasses

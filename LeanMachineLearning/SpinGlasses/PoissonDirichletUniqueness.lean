@@ -261,8 +261,8 @@ theorem poissonDirichletSimplex_tail (x : 𝕍) :
   · intro i j hij
     exact x.2.2.1 (Nat.add_le_add_right hij 1)
   · have hsum : (∑' j, ENNReal.ofReal (x.1 (j + 1))) ≤
-        ∑' j, ENNReal.ofReal (x.1 j) := by
-      exact (ENNReal.summable
+        ∑' j, ENNReal.ofReal (x.1 j) :=
+      (ENNReal.summable
         (f := fun j : ℕ => ENNReal.ofReal (x.1 (j + 1)))).tsum_le_tsum_of_inj
         (fun j : ℕ => j + 1) (fun i j hij => Nat.add_right_cancel hij)
         (fun _ _ => zero_le) (fun _ => le_rfl) ENNReal.summable
@@ -339,8 +339,8 @@ theorem poissonDirichletPowerSumAlgebra_separatesPoints :
 /-- Stone--Weierstrass for an arbitrary point-separating algebra on `V`. -/
 theorem poissonDirichlet_stoneWeierstrass
     (A : Subalgebra ℝ C(𝕍, ℝ))
-    (hsep : A.SeparatesPoints) : A.topologicalClosure = ⊤ := by
-  exact ContinuousMap.subalgebra_topologicalClosure_eq_top_of_separatesPoints A hsep
+    (hsep : A.SeparatesPoints) : A.topologicalClosure = ⊤ :=
+  ContinuousMap.subalgebra_topologicalClosure_eq_top_of_separatesPoints A hsep
 
 /-- Polynomial expressions in higher power sums are uniformly dense in
 continuous functions on the compact decreasing subprobability simplex. -/

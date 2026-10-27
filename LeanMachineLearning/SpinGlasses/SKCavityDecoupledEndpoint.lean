@@ -87,8 +87,8 @@ theorem sk_cavity_decoupled_endpoint (N n : ℕ) (β q h : ℝ) (I : Finset (Fin
   simp_rw [hpt, integral_mul_const]
   have hz : ∫ ω : (Fin N → ℝ) × ℝ, Real.tanh (β * ω.2 * Real.sqrt q + h) ^ I.card
       ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)) =
-      ∫ z, Real.tanh (β * z * Real.sqrt q + h) ^ I.card ∂(gaussianReal 0 1) := by
-    exact integral_prod_fun_snd_of_isProbabilityMeasure
+      ∫ z, Real.tanh (β * z * Real.sqrt q + h) ^ I.card ∂(gaussianReal 0 1) :=
+    integral_prod_fun_snd_of_isProbabilityMeasure
       (Measure.pi fun _ : Fin N => gaussianReal 0 1) (gaussianReal 0 1)
       fun z => Real.tanh (β * z * Real.sqrt q + h) ^ I.card
   simp_rw [hz]

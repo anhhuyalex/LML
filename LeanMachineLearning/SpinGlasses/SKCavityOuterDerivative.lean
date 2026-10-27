@@ -110,8 +110,8 @@ theorem hasDerivAt_integral_cavity_outer
     intro s
     have hm : Measurable (fun x : Ω₀ × ((Fin N → ℝ) × ℝ) =>
         ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ
-          ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (E s x.1 x.2))) := by
-      exact measurable_integral_pi_count_tilted (hEm s) fun _ => measurable_const
+          ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (E s x.1 x.2))) :=
+      measurable_integral_pi_count_tilted (hEm s) fun _ => measurable_const
     exact hm.stronglyMeasurable.integral_prod_right'.aestronglyMeasurable
   have hDm : AEStronglyMeasurable (D t) P₀ := by
     have hm : Measurable (fun x : Ω₀ × ((Fin N → ℝ) × ℝ) =>
@@ -123,8 +123,8 @@ theorem hasDerivAt_integral_cavity_outer
               (n : ℝ) * U (τ (some none)) (τ (some none)) +
               (n : ℝ) * ((n : ℝ) + 1) * U (τ (some none)) (τ none))
           ∂(Measure.pi fun _ : Option (Option (Fin n)) =>
-            Measure.count.tilted (E t x.1 x.2))) := by
-      exact measurable_integral_pi_count_tilted (hEm t) fun _ => measurable_const
+            Measure.count.tilted (E t x.1 x.2))) :=
+      measurable_integral_pi_count_tilted (hEm t) fun _ => measurable_const
     refine (stronglyMeasurable_const.mul ?_).aestronglyMeasurable
     exact hm.stronglyMeasurable.integral_prod_right'
   have hFi : Integrable (F t) P₀ := by

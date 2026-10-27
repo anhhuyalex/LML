@@ -37,8 +37,8 @@ theorem HasDerivAt.comp_arccos_sqrt_of_sin_cos {φ : ℝ → ℝ} {D t : ℝ}
   have hsqrt_sq : (Real.sqrt t) ^ 2 = t := Real.sq_sqrt ht0.le
   have hsqrt_ne_neg_one : Real.sqrt t ≠ -1 := (neg_one_lt_zero.trans_le (Real.sqrt_nonneg t)).ne'
   have hinner : HasDerivAt (fun u => Real.arccos (Real.sqrt u))
-      (-(1 / Real.sqrt (1 - (Real.sqrt t) ^ 2)) * (1 / (2 * Real.sqrt t))) t := by
-    exact (Real.hasDerivAt_arccos hsqrt_ne_neg_one hsqrt_lt_one.ne).comp t
+      (-(1 / Real.sqrt (1 - (Real.sqrt t) ^ 2)) * (1 / (2 * Real.sqrt t))) t :=
+    (Real.hasDerivAt_arccos hsqrt_ne_neg_one hsqrt_lt_one.ne).comp t
       (Real.hasDerivAt_sqrt ht0.ne')
   refine hφ.comp t hinner |>.congr_deriv ?_
   rw [Real.cos_arccos (by linarith [Real.sqrt_nonneg t]) hsqrt_lt_one.le, Real.sin_arccos, hsqrt_sq]

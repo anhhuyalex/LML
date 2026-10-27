@@ -82,8 +82,8 @@ theorem eLpNorm_one_mul_exp_le {X Z : Ω → ℝ} (hZ : HasGaussianLaw Z P) (hZ0
   have h := eLpNorm_smul_le_mul_eLpNorm (μ := P) (p := 2) (q := 2) (r := 1) hE.1 hX.1
     (hpqr := ⟨by simp [ENNReal.inv_two_add_inv_two]⟩)
   calc eLpNorm (fun ω => X ω * Real.exp (Z ω)) 1 P
-      ≤ eLpNorm X 2 P * eLpNorm (fun ω => Real.exp (Z ω)) 2 P := by
-        exact h
+      ≤ eLpNorm X 2 P * eLpNorm (fun ω => Real.exp (Z ω)) 2 P :=
+        h
     _ ≤ ENNReal.ofReal (√a) * ENNReal.ofReal (Real.exp v) := mul_le_mul' hXn hEn
     _ = ENNReal.ofReal (√a * Real.exp v) := (ENNReal.ofReal_mul (Real.sqrt_nonneg _)).symm
 

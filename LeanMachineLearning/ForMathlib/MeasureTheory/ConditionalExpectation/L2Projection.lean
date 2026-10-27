@@ -74,8 +74,8 @@ theorem integral_condExp_mul_condExp_of_le (hm₁₂ : m₁ ≤ m₂) (hm₂ : m
   have h2 : MemLp (μ[f | m₂]) 2 μ := hf.condExp (by norm_num)
   have h3 : ∀ᵐ ω ∂μ, μ[μ[f | m₂] | m₁] ω = μ[f | m₁] ω := condExp_condExp_of_le hm₁₂ hm₂
   calc ∫ ω, μ[f | m₁] ω * μ[f | m₂] ω ∂μ
-      = ∫ ω, μ[f | m₁] ω * μ[μ[f | m₂] | m₁] ω ∂μ := by
-        exact (integral_mul_condExp_of_stronglyMeasurable (hm₁₂.trans hm₂)
+      = ∫ ω, μ[f | m₁] ω * μ[μ[f | m₂] | m₁] ω ∂μ :=
+        (integral_mul_condExp_of_stronglyMeasurable (hm₁₂.trans hm₂)
           stronglyMeasurable_condExp (h1.integrable_mul h2) (h2.integrable (by norm_num))).symm
     _ = ∫ ω, μ[f | m₁] ω ^ 2 ∂μ := by
         refine integral_congr_ae (h3.mono fun ω hω => ?_)

@@ -41,9 +41,8 @@ theorem integral_T1_sq {M : ℕ} (A : (Fin M → ℤˣ) → ℝ) (b : Fin M → 
   set μ : Measure (Fin M → ℤˣ) := Measure.count.tilted A with hμ
   have hone : ∀ f : (Fin M → ℤˣ) → ℝ,
       ∫ τ : Fin 1 → Fin M → ℤˣ, f (τ 0) ∂(Measure.pi fun _ : Fin 1 => μ) = ∫ x, f x ∂μ :=
-    fun f => by
-    have := integral_fintype_prod_eq_prod (μ := fun _ : Fin 1 => μ) (fun _ => f)
-    simpa [Fin.prod_univ_one] using this
+    fun f => MeasureTheory.integral_comp_eval (i := (0 : Fin 1))
+      Integrable.of_finite.aestronglyMeasurable
   have hexp : ∀ τ : Fin 1 → Fin M → ℤˣ,
       ((M : ℝ)⁻¹ * ∑ i, (((τ 0 i : ℤˣ) : ℝ) - b i) * b i) ^ 2 =
         ((M : ℝ)⁻¹) ^ 2 * ∑ i, ∑ j, (b i * b j) *

@@ -634,8 +634,8 @@ theorem integrable_integral_log_integral_cosh_count_tilted
   change Integrable (fun η => ∫ ω, F η ω ∂P) P₀
   let B : Ω → ℝ := fun ω => ∑ a, |L ω a|
   have hB : Integrable B P := integrable_finsetSum _ fun a _ => (hLint a).abs
-  have hFm (η : Ω₀) : Measurable (F η) := by
-    exact measurable_log_integral_cosh_count_tilted (fun _ => measurable_const) hL
+  have hFm (η : Ω₀) : Measurable (F η) :=
+    measurable_log_integral_cosh_count_tilted (fun _ => measurable_const) hL
   have hinner (η : Ω₀) : Integrable (F η) P := by
     refine Integrable.mono' hB (hFm η).aestronglyMeasurable
       (ae_of_all _ fun ω => ?_)

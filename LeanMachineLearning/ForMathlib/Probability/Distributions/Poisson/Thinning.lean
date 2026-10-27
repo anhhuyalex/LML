@@ -88,8 +88,8 @@ private noncomputable def wordFiberFirstEquiv {ι : Type*} [DecidableEq ι]
       Σ a : {a : ι // 0 < m a}, {x : WordFiber (n + 1) m // x.1 0 = a.1} := by
     refine Equiv.ofBijective (fun z => ⟨⟨z.1, ?_⟩, z.2⟩) ?_
     · have hx := z.2.1.2 z.1
-      have hzero : (List.ofFn z.2.1.1).count z.1 ≠ 0 := by
-        exact Nat.ne_of_gt (List.count_pos_iff.mpr (List.mem_ofFn.mpr ⟨0, z.2.2⟩))
+      have hzero : (List.ofFn z.2.1.1).count z.1 ≠ 0 :=
+        Nat.ne_of_gt (List.count_pos_iff.mpr (List.mem_ofFn.mpr ⟨0, z.2.2⟩))
       omega
     constructor
     · intro x y h

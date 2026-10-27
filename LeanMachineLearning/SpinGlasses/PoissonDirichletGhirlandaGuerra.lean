@@ -55,8 +55,8 @@ theorem integral_gaussian_gibbs_replica_guard_tilt_ibp
   let _ : Nonempty α := by obtain ⟨p, hp'⟩ := hn; exact ⟨⟨p, hp'⟩⟩
   let u : α → ℝ := fun p => (z p.1.1).2 p.1.2
   have hu (p : α) : 0 < u p := hp p.1 p.2
-  have hsum : Summable u := by
-    exact (summable_subtype_guard_iff (fun p : ℕ × ℕ => p.2 < (z p.1).1)
+  have hsum : Summable u :=
+    (summable_subtype_guard_iff (fun p : ℕ × ℕ => p.2 < (z p.1).1)
       (fun p : ℕ × ℕ => (z p.1).2 p.2)).2 hs
   have hΦα : ∀ σ : J → α, |Φ (fun j => (σ j).1)| ≤ M := fun σ => hΦ _
   let μ : Measure (ℕ → ℕ → ℝ) :=
@@ -100,8 +100,8 @@ theorem ae_summable_active_gaussian_tilt
   let μ : Measure (ℕ → ℕ → ℝ) :=
     Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1
   have hlaw (a : α) : HasLaw (fun g : ℕ → ℕ → ℝ => g (iota a).1 (iota a).2)
-      (gaussianReal 0 1) μ := by
-    exact hasLaw_eval_infinitePi_infinitePi (fun _ _ => gaussianReal 0 1) (iota a).1 (iota a).2
+      (gaussianReal 0 1) μ :=
+    hasLaw_eval_infinitePi_infinitePi (fun _ _ => gaussianReal 0 1) (iota a).1 (iota a).2
   have h := ae_summable_and_integrable_tsum_mul_exp (P := μ)
     (X := fun _ _ => (1 : ℝ))
     (Z := fun a g => t * g (iota a).1 (iota a).2) (G := u)
@@ -190,8 +190,8 @@ theorem gaussian_gibbs_tilt_correction_integrable_and_bound
   let _ : Nonempty α := by obtain ⟨p, h⟩ := hn; exact ⟨⟨p, h⟩⟩
   let u : α → ℝ := fun p => (z p.1.1).2 p.1.2
   have hu (p : α) : 0 < u p := hp p.1 p.2
-  have hsum : Summable u := by
-    exact (summable_subtype_guard_iff (fun p : ℕ × ℕ => p.2 < (z p.1).1)
+  have hsum : Summable u :=
+    (summable_subtype_guard_iff (fun p : ℕ × ℕ => p.2 < (z p.1).1)
       (fun p : ℕ × ℕ => (z p.1).2 p.2)).2 hs
   let μ : Measure (ℕ → ℕ → ℝ) :=
     Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1
@@ -378,8 +378,8 @@ theorem measurableSet_gaussian_gibbs_tilt_summable (t : ℝ) :
     MeasurableSet {zg : (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℕ → ℝ) |
       ∑' p : ℕ × ℕ, ENNReal.ofReal
         (if p.2 < (zg.1 p.1).1 then
-          (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) else 0) < ∞} := by
-  exact measurableSet_tsum_ofReal_guarded_lt_top
+          (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) else 0) < ∞} :=
+  measurableSet_tsum_ofReal_guarded_lt_top
     (Ω := (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℕ → ℝ)) (fun zg m => (zg.1 m).1)
     (fun m => by fun_prop)
     (fun zg p => (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2)) (fun p => by fun_prop)
@@ -405,8 +405,8 @@ theorem ae_gaussian_gibbs_tilt_summable_prod (t : ℝ)
   let α := {p : ℕ × ℕ // p.2 < (z p.1).1}
   let u : α → ℝ := fun p => (z p.1.1).2 p.1.2
   have hu (p : α) : 0 ≤ u p := (hp p.1 p.2).le
-  have hus : Summable u := by
-    exact (summable_subtype_guard_iff (fun p : ℕ × ℕ => p.2 < (z p.1).1)
+  have hus : Summable u :=
+    (summable_subtype_guard_iff (fun p : ℕ × ℕ => p.2 < (z p.1).1)
       (fun p : ℕ × ℕ => (z p.1).2 p.2)).2 hs
   filter_upwards [ae_summable_active_gaussian_tilt u hu hus Subtype.val t] with g hg
   have ht' : Summable (fun p : ℕ × ℕ =>
@@ -469,8 +469,8 @@ theorem integrable_gaussian_gibbs_tilt_bounded_prod
       · exact le_refl 0
     have hsum := summable_of_tsum_ofReal_lt_top hnonneg ht
     have hsactive : Summable (fun p : {p : ℕ × ℕ // p.2 < (zg.1 p.1).1} =>
-        (zg.1 p.1.1).2 p.1.2 * Real.exp (t * zg.2 p.1.1 p.1.2)) := by
-      exact (summable_subtype_guard_iff (fun p : ℕ × ℕ => p.2 < (zg.1 p.1).1)
+        (zg.1 p.1.1).2 p.1.2 * Real.exp (t * zg.2 p.1.1 p.1.2)) :=
+      (summable_subtype_guard_iff (fun p : ℕ × ℕ => p.2 < (zg.1 p.1).1)
         (fun p : ℕ × ℕ =>
           (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2))).2 hsum
     exact abs_gaussian_gibbs_tilt_guard_le t zg.1 zg.2 hn hp hsactive F M hF

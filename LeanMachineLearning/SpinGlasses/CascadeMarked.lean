@@ -46,8 +46,8 @@ theorem lintegral_ranked_independent_marks
   have hinner (n : ℕ) : Measurable (fun x => ∫⁻ t, g x t ∂τ) :=
     hg.lintegral_prod_right'
   rw [lintegral_tsum (fun n => (hgn n).aemeasurable)]
-  rw [lintegral_tsum (fun n => by
-    exact ((hinner n).comp (hUmn n)).aemeasurable)]
+  rw [lintegral_tsum (fun n =>
+    ((hinner n).comp (hUmn n)).aemeasurable)]
   congr 1
   ext n
   have hpair : HasLaw (fun ω => (U ω n, T ω n))

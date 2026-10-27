@@ -118,8 +118,8 @@ theorem map_pi_gaussianReal_sk_beta_plus (N : ℕ) (β : ℝ) (hN : 0 < N) :
       ((Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1).prod
         (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)).map
           (fun q p => (Real.sqrt (N + 1 : ℝ))⁻¹ * β * q.1 p +
-            β * (Real.sqrt ((N : ℝ) * (N + 1)))⁻¹ * q.2 p) := by
-  exact ProbabilityTheory.map_pi_gaussianReal_scale_eq_prod_linear_combo
+            β * (Real.sqrt ((N : ℝ) * (N + 1)))⁻¹ * q.2 p) :=
+  ProbabilityTheory.map_pi_gaussianReal_scale_eq_prod_linear_combo
     ((Real.sqrt (N + 1 : ℝ))⁻¹ * β)
     (β * (Real.sqrt ((N : ℝ) * (N + 1)))⁻¹)
     ((Real.sqrt (N : ℝ))⁻¹ * β) (sk_beta_plus_variance N β hN).symm
@@ -179,8 +179,8 @@ theorem log_partition_sk_pair_perturb (N : ℕ) (a b h : ℝ)
             g' p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ))
           ∂Measure.count.tilted (fun σ =>
             a * (∑ p : FinPairs (N + 1),
-              g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ))) := by
-  exact log_sum_exp_add_eq_log_sum_exp_add_log_integral_exp
+              g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ))) :=
+  log_sum_exp_add_eq_log_sum_exp_add_log_integral_exp
     (fun σ : Fin (N + 1) → ℤˣ =>
       a * (∑ p : FinPairs (N + 1),
         g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) + h * ∑ i, (σ i : ℝ))
@@ -729,8 +729,8 @@ theorem sk_cavity_free_energy_increment_le_of_estimates (N : ℕ) (β h q : ℝ)
             h * ∑ i, (σ i : ℝ)))
         ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) -
       (Real.log 2 + β ^ 2 / 4 * (1 - q) ^ 2 + log_cosh)| ≤
-    K * (1 / (N : ℝ) + ν) := by
-  exact cavity_free_energy_increment_le_of_estimates N β h q hN log_cosh _ _ ν K1 K2 K3 K
+    K * (1 / (N : ℝ) + ν) :=
+  cavity_free_energy_increment_le_of_estimates N β h q hN log_cosh _ _ ν K1 K2 K3 K
     (sk_free_energy_increment_eq N β h hN) h_cosh h_perturb hK1 hK2 hν
 
 /-- The explicit error coefficients in the SK cavity increment are dominated by the single

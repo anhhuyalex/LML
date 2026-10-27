@@ -110,8 +110,8 @@ theorem tsum_option_fin_replica_eq
       e τ = τ ∘ finSuccEquivLast := rfl
   calc
     _ = ∑' σ : Fin (n + 1) → α,
-          (∏ o, w ((e.symm σ) o)) * Φ (e.symm σ) := by
-      exact (Equiv.tsum_eq e.symm
+          (∏ o, w ((e.symm σ) o)) * Φ (e.symm σ) :=
+      (Equiv.tsum_eq e.symm
         (fun τ => (∏ o, w (τ o)) * Φ τ)).symm
     _ = _ := by
       apply tsum_congr

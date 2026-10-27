@@ -34,8 +34,8 @@ variable {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω}
 theorem iIndepFun_cascadeVertexBlocks
     (B : (Σ p : ℕ, Fin p → ℕ) → ℕ → Ω → ℕ × (ℕ → ℝ))
     (hB : iIndepFun (fun vk : (Σ p : ℕ, Fin p → ℕ) × ℕ => B vk.1 vk.2) P)
-    (v : Σ p : ℕ, Fin p → ℕ) : iIndepFun (B v) P := by
-  exact hB.precomp (g := fun k => (v, k)) (by
+    (v : Σ p : ℕ, Fin p → ℕ) : iIndepFun (B v) P :=
+  hB.precomp (g := fun k => (v, k)) (by
     intro k l h
     exact congrArg Prod.snd h)
 

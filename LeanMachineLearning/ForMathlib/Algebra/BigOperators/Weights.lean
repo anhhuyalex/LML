@@ -92,6 +92,16 @@ theorem abs_sum_mul_le_sum_mul_abs {w c : α → ℝ} (hw : ∀ a, 0 ≤ w a) :
   (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun a _ => by
     rw [abs_mul, abs_of_nonneg (hw a)])
 
+/-- **Signed weighted sum:** if `|z i| ≤ E` then `|∑ w i z i| ≤ (∑ |w i|) E`, for arbitrary real
+weights. -/
+theorem abs_weighted_sum_le {ι : Type*} [Fintype ι] (w z : ι → ℝ) {E : ℝ}
+    (hz : ∀ i, |z i| ≤ E) : |∑ i, w i * z i| ≤ (∑ i, |w i|) * E := by
+  refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
+  rw [Finset.sum_mul]
+  exact Finset.sum_le_sum fun i _ => by
+    rw [abs_mul]
+    exact mul_le_mul_of_nonneg_left (hz i) (abs_nonneg _)
+
 /-- The same for a weighted average over two independent replicas. -/
 theorem abs_sum_sum_mul_le {w : α → ℝ} (hw : ∀ a, 0 ≤ w a) (c : α → α → ℝ) :
     |∑ a, ∑ a', w a * w a' * c a a'| ≤ ∑ a, ∑ a', w a * w a' * |c a a'| :=

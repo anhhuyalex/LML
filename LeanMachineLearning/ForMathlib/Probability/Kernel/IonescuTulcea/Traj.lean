@@ -94,8 +94,8 @@ lemma hasLaw_Iic_of_forall_hasCondDistrib {Y : (n : ℕ) → Ω → X n} (h0 : H
     (h_condDistrib : ∀ n, HasCondDistrib (Y (n + 1)) (fun ω ↦ fun i : Iic n ↦ Y i ω) (κ n) P)
     (n : ℕ) :
     HasLaw (fun ω (i : Iic n) ↦ Y i ω)
-      ((partialTraj κ 0 n) ∘ₘ (μ₀.map (MeasurableEquiv.piUnique _).symm)) P := by
-  exact hasLaw_Iic_of_forall_hasCondDistrib' (N := n) h0 (fun n _ ↦ h_condDistrib n) le_rfl
+      ((partialTraj κ 0 n) ∘ₘ (μ₀.map (MeasurableEquiv.piUnique _).symm)) P :=
+  hasLaw_Iic_of_forall_hasCondDistrib' (N := n) h0 (fun n _ ↦ h_condDistrib n) le_rfl
 
 omit [IsProbabilityMeasure μ₀] in
 lemma trajMeasure_map_frestrictLe (n : ℕ) :

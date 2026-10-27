@@ -59,8 +59,8 @@ theorem fixedPointMap_mem_Icc (β h x : ℝ) :
     ∫ z : ℝ, Real.tanh (β * Real.sqrt x * z + h) ^ 2 ∂(gaussianReal 0 1) ∈ Icc (0 : ℝ) 1 := by
   refine ⟨integral_nonneg fun z => sq_nonneg _, ?_⟩
   calc ∫ z : ℝ, Real.tanh (β * Real.sqrt x * z + h) ^ 2 ∂(gaussianReal 0 1)
-      ≤ ∫ z : ℝ, (1 : ℝ) ∂(gaussianReal 0 1) := by
-        exact integral_mono (integrable_tanh_sq _ (by fun_prop)) (integrable_const _)
+      ≤ ∫ z : ℝ, (1 : ℝ) ∂(gaussianReal 0 1) :=
+        integral_mono (integrable_tanh_sq _ (by fun_prop)) (integrable_const _)
           fun z => (Real.tanh_sq_lt_one _).le
     _ = 1 := by simp
 

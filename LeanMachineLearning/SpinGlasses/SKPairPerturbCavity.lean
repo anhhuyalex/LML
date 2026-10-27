@@ -89,8 +89,8 @@ theorem integrable_cosh_mul_cosh_sk_cavity (N : ℕ) (β h : ℝ) (σ τ : Fin N
     Integrable (fun w : Fin N → ℝ =>
         Real.cosh ((Real.sqrt (N : ℝ))⁻¹ * β * ∑ i : Fin N, w i * (σ i : ℝ) + h) *
         Real.cosh ((Real.sqrt (N : ℝ))⁻¹ * β * ∑ i : Fin N, w i * (τ i : ℝ) + h))
-      (Measure.pi fun _ : Fin N => gaussianReal 0 1) := by
-  exact integrable_cosh_mul_cosh_sum_mul_gaussianReal ((Real.sqrt (N : ℝ))⁻¹ * β) h
+      (Measure.pi fun _ : Fin N => gaussianReal 0 1) :=
+  integrable_cosh_mul_cosh_sum_mul_gaussianReal ((Real.sqrt (N : ℝ))⁻¹ * β) h
     (fun i => (σ i : ℝ)) fun i => (τ i : ℝ)
 
 /-- Gaussian `cosh` product moment: `𝔼 cosh(x_σ + h) cosh(x_τ + h) ≤ cosh(2h) exp(2β²)` for
@@ -199,8 +199,8 @@ theorem integral_sk_pair_perturb_cavity_le (N : ℕ) (hN : 0 < N) (β h q : ℝ)
           Fin.castSucc_lt_last i⟩ : FinPairs (N + 1)))
         ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) =
       ∫ x, Ff x ∂((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
-        (Measure.pi fun _ : Fin N => gaussianReal 0 1)) := by
-    exact integral_comp_sk_cavity_disorder N Ff
+        (Measure.pi fun _ : Fin N => gaussianReal 0 1)) :=
+    integral_comp_sk_cavity_disorder N Ff
   calc _ = ∫ g : FinPairs (N + 1) → ℝ,
       Ff (fun p => g (⟨(p.val.1.castSucc, p.val.2.castSucc),
           Fin.castSucc_lt_castSucc_iff.mpr p.property⟩ : FinPairs (N + 1)),

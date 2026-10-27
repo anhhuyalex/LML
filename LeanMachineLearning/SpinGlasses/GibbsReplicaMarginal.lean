@@ -64,8 +64,8 @@ theorem integral_pi_count_tilted_comp_injective {R R' : Type*} [Finite α] [None
     [Fintype R] [Fintype R'] {ρ : R → R'} (hρ : Function.Injective ρ) (f : α → ℝ)
     (G : (R → α) → ℝ) :
     ∫ τ : R' → α, G (fun r => τ (ρ r)) ∂(Measure.pi fun _ : R' => Measure.count.tilted f) =
-      ∫ σ : R → α, G σ ∂(Measure.pi fun _ : R => Measure.count.tilted f) := by
-  exact (measurePreserving_pi_comp_injective (Measure.count.tilted f)
+      ∫ σ : R → α, G σ ∂(Measure.pi fun _ : R => Measure.count.tilted f) :=
+  (measurePreserving_pi_comp_injective (Measure.count.tilted f)
     hρ).integral_comp_of_aestronglyMeasurable Integrable.of_finite.aestronglyMeasurable
 
 /-- **Independence of two blocks of an i.i.d. vector:** a product of a function of the first `m`

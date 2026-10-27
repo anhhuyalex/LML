@@ -532,8 +532,8 @@ theorem ae_poissonDirichlet_gaussian_normalized_mass_one
     with ω ⟨hn, hp, hs⟩
   let _ : Nonempty {p : ℕ × ℕ // p.2 < (B p.1 ω).1} := hn
   have hpos : 0 < ∑' b : {p : ℕ × ℕ // p.2 < (B p.1 ω).1},
-      ((B b.1.1 ω).2 b.1.2).1 := by
-    exact hs.tsum_pos (fun a => (hp a).le) (Classical.choice hn)
+      ((B b.1.1 ω).2 b.1.2).1 :=
+    hs.tsum_pos (fun a => (hp a).le) (Classical.choice hn)
       (hp (Classical.choice hn))
   exact tsum_div_tsum_eq_one hpos
 

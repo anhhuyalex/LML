@@ -68,28 +68,33 @@ theorem integral_tanh_pow_four_le_sq {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ
     ∫ ω, Real.tanh (Y ω) ^ 4 ∂μ ≤ ∫ ω, Real.tanh (Y ω) ^ 2 ∂μ := by
   refine integral_mono (integrable_tanh_pow Y hY 4) (integrable_tanh_pow Y hY 2) fun ω => ?_
   have h0 : 0 ≤ Real.tanh (Y ω) ^ 2 := sq_nonneg _
-  have h1 : Real.tanh (Y ω) ^ 2 ≤ 1 := by
-    have := Real.abs_tanh_lt_one (Y ω)
-    nlinarith [abs_nonneg (Real.tanh (Y ω)), sq_abs (Real.tanh (Y ω))]
-  nlinarith
+  nlinarith [(Real.tanh_sq_lt_one (Y ω)).le]
 
-/-- **Reciprocal-cosh identity:** `𝔼 tanh⁴ Y - 2 𝔼 tanh² Y + μ(univ) = 𝔼 (cosh Y)⁻⁴` for any finite
-measure. -/
+/-- **Quartic expansion:** if `X²` and `X⁴` are integrable for a finite measure `μ`, then
+`𝔼 X⁴ - 2 𝔼 X² + μ(univ) = 𝔼 (1 - X²)²`. -/
+theorem integral_pow_four_sub_two_mul_add_eq {Ω : Type*} {mΩ : MeasurableSpace Ω}
+    {μ : Measure Ω} [IsFiniteMeasure μ] {X : Ω → ℝ} (h2 : Integrable (fun ω => X ω ^ 2) μ)
+    (h4 : Integrable (fun ω => X ω ^ 4) μ) :
+    (∫ ω, X ω ^ 4 ∂μ) - 2 * (∫ ω, X ω ^ 2 ∂μ) + μ.real Set.univ =
+      ∫ ω, (1 - X ω ^ 2) ^ 2 ∂μ := by
+  have e : ∀ ω, (1 - X ω ^ 2) ^ 2 = (X ω ^ 4 - 2 * X ω ^ 2) + 1 := fun ω => by ring
+  simp_rw [e]
+  have hi : Integrable (fun ω => X ω ^ 4 - 2 * X ω ^ 2) μ := h4.sub (h2.const_mul 2)
+  rw [integral_add hi (integrable_const _), integral_sub h4 (h2.const_mul 2),
+    integral_const_mul]
+  simp
+
+/-- **Reciprocal-cosh identity:** `𝔼 tanh⁴ Y - 2 𝔼 tanh² Y + μ(univ) = 𝔼 (cosh Y)⁻⁴` for any
+finite measure. -/
 theorem integral_tanh_pow_four_sub_two_mul_add_eq {Ω : Type*} {mΩ : MeasurableSpace Ω}
     {μ : Measure Ω} [IsFiniteMeasure μ] (Y : Ω → ℝ) (hY : AEMeasurable Y μ) :
     (∫ ω, Real.tanh (Y ω) ^ 4 ∂μ) - 2 * (∫ ω, Real.tanh (Y ω) ^ 2 ∂μ) + μ.real Set.univ =
       ∫ ω, ((Real.cosh (Y ω))⁻¹) ^ 4 ∂μ := by
-  have h2 := integrable_tanh_pow Y hY 2
-  have h4 := integrable_tanh_pow Y hY 4
-  have e : ∀ ω, ((Real.cosh (Y ω))⁻¹) ^ 4 =
-      (Real.tanh (Y ω) ^ 4 - 2 * Real.tanh (Y ω) ^ 2) + 1 := fun ω => by
-    have := Real.one_sub_tanh_sq_eq_inv_cosh_sq (Y ω)
-    calc ((Real.cosh (Y ω))⁻¹) ^ 4 = (((Real.cosh (Y ω))⁻¹) ^ 2) ^ 2 := by ring
-      _ = _ := by rw [← this]; ring
-  simp_rw [e]
-  rw [integral_add (h4.sub (h2.const_mul 2)) (integrable_const _),
-    integral_sub h4 (h2.const_mul 2), integral_const_mul]
-  simp
+  rw [integral_pow_four_sub_two_mul_add_eq (integrable_tanh_pow Y hY 2)
+    (integrable_tanh_pow Y hY 4)]
+  refine integral_congr_ae (Filter.Eventually.of_forall fun ω => ?_)
+  simp only [Real.one_sub_tanh_sq_eq_inv_cosh_sq]
+  ring
 
 /-- **Three-term triangle inequality in `L²`:**
 `∫ (a + b + c)² ≤ 3 ∫ a² + 3 ∫ b² + 3 ∫ c²` for square-integrable `a, b, c`. -/

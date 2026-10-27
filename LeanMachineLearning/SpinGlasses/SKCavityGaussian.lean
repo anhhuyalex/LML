@@ -639,14 +639,14 @@ theorem abs_integral_sk_cavity_signed_overlap_le (N : ℕ) (β h q s : ℝ) (hN 
   let F : (Fin N → ℤˣ) → (Fin N → ℤˣ) → (Fin N → ℝ) × ℝ → ℝ := fun σ τ ω =>
     |Real.sinh (L σ ω)| * |Real.sinh (L τ ω)|
   let C := Real.cosh (2 * h) * Real.exp (2 * β ^ 2)
-  have hF_int : ∀ σ τ, Integrable (F σ τ) P := fun σ τ => by
-    exact integrable_abs_sinh_mul_sinh_sk_cavity N β q s h σ τ
-  have hF_le : ∀ σ τ, (∫ ω, F σ τ ω ∂P) ≤ C := fun σ τ => by
-    exact integral_abs_sinh_mul_sinh_sk_cavity_le N hN β q s h hq σ τ
+  have hF_int : ∀ σ τ, Integrable (F σ τ) P := fun σ τ =>
+    integrable_abs_sinh_mul_sinh_sk_cavity N β q s h σ τ
+  have hF_le : ∀ σ τ, (∫ ω, F σ τ ω ∂P) ≤ C := fun σ τ =>
+    integral_abs_sinh_mul_sinh_sk_cavity_le N hN β q s h hq σ τ
   have h_rhs_int : Integrable (fun ω => ∫ p : (Fin N → ℤˣ) × (Fin N → ℤˣ),
       |g p.1 p.2| * F p.1 p.2 ω
-      ∂((Measure.count.tilted A).prod (Measure.count.tilted A))) P := by
-    exact integrable_integral_prod_count_tilted P A
+      ∂((Measure.count.tilted A).prod (Measure.count.tilted A))) P :=
+    integrable_integral_prod_count_tilted P A
       (fun σ τ ω => |g σ τ| * F σ τ ω) fun σ τ => (hF_int σ τ).const_mul _
   have h_point (ω : (Fin N → ℝ) × ℝ) :
       |∫ p : ((Fin N → ℤˣ) × ℤˣ) × ((Fin N → ℤˣ) × ℤˣ),
@@ -714,11 +714,11 @@ theorem abs_integral_integral_sk_cavity_signed_overlap_le
     ∂((Measure.count.tilted (A η)).prod (Measure.count.tilted (A η)))
   let K := β ^ 2 * (Real.cosh (2 * h) * Real.exp (2 * β ^ 2))
   change |∫ η, J η ∂P₀| ≤ K * ∫ η, R η ∂P₀
-  have hRint : Integrable R P₀ := by
-    exact integrable_integral_prod_count_tilted_det P₀ hA fun σ τ =>
+  have hRint : Integrable R P₀ :=
+    integrable_integral_prod_count_tilted_det P₀ hA fun σ τ =>
       |(N : ℝ)⁻¹ * ∑ i, (σ i : ℝ) * (τ i : ℝ) - q|
-  have hJR (η : Ω₀) : |J η| ≤ K * R η := by
-    exact abs_integral_sk_cavity_signed_overlap_le N β h q s hN hq (A η)
+  have hJR (η : Ω₀) : |J η| ≤ K * R η :=
+    abs_integral_sk_cavity_signed_overlap_le N β h q s hN hq (A η)
   exact abs_integral_le_const_mul_integral P₀ hRint hJR
 
 /-- **Covariance bracket identity for the cavity cosh derivative (Talagrand Eq. 1.178).**

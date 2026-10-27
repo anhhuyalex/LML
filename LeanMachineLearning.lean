@@ -391,6 +391,7 @@ public import LeanMachineLearning.SpinGlasses.GaussianInterpolationConditional
 public import LeanMachineLearning.SpinGlasses.GaussianInterpolationReplica
 public import LeanMachineLearning.SpinGlasses.GaussianProjectionPath
 public import LeanMachineLearning.SpinGlasses.GibbsCavityDeviation
+public import LeanMachineLearning.SpinGlasses.GibbsCentering
 public import LeanMachineLearning.SpinGlasses.GibbsFluctuationMoment
 public import LeanMachineLearning.SpinGlasses.GibbsGramMoments
 public import LeanMachineLearning.SpinGlasses.GibbsMeanTrick
@@ -400,6 +401,7 @@ public import LeanMachineLearning.SpinGlasses.GibbsOverlapCovariances
 public import LeanMachineLearning.SpinGlasses.GibbsProjectionBound
 public import LeanMachineLearning.SpinGlasses.GibbsProjectionFluctuation
 public import LeanMachineLearning.SpinGlasses.GibbsReplicaMarginal
+public import LeanMachineLearning.SpinGlasses.GibbsTBasisOrthogonality
 public import LeanMachineLearning.SpinGlasses.GuerraToninelli
 public import LeanMachineLearning.SpinGlasses.MixedPSpin
 public import LeanMachineLearning.SpinGlasses.OverlapExchangeability

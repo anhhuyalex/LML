@@ -100,8 +100,8 @@ theorem abs_cavity_conditional_derivative_le (N n : ℕ) (β q : ℝ)
               (a (Fin.last N) : ℝ) *
                 ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
             Real.sin t * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + A a))| ≤
-        M * C := by
-    exact abs_integral_pi_count_tilted_le _ hφ
+        M * C :=
+    abs_integral_pi_count_tilted_le _ hφ
   have hm : AEStronglyMeasurable (fun ω : (Fin N → ℝ) × ℝ =>
       ∫ τ : Option (Option (Fin n)) → Fin (N + 1) → ℤˣ,
         f (fun r => τ (some (some r))) *

@@ -417,8 +417,8 @@ theorem ghirlanda_guerra_poissonDirichlet_ranked
               (poissonCountingMeasure (fun m => (B m ω).1)
                 (fun m l => ((B m ω).2 l).1))) *
               (f (fun i l => if σ i = σ l then 1 else 0) *
-                if σ r₀ = σ j then 1 else 0) ∂P) / n := by
-          exact (eq_div_iff hn).2 (by simpa only [mul_comm] using h)
+                if σ r₀ = σ j then 1 else 0) ∂P) / n :=
+          (eq_div_iff hn).2 (by simpa only [mul_comm] using h)
     _ = _ := by ring
 
 /-- The joint ranked-weight law of an arbitrary unmarked Poisson block construction
@@ -534,8 +534,8 @@ theorem poissonDirichlet_expected_weight_sq_eq_one_sub_zeta_of_blocks
   let _ : IsProbabilityMeasure Q := hQ
   have hid := identDistrib_poissonDirichlet_weights_of_unmarked_blocks
     ν r hBm hB hlaw hμ ν' r' hBm' hB' hlaw' hμ'
-  have hseries : Measurable (fun w : ℕ → ℝ => ∑' k, w k ^ 2) := by
-    exact Measurable.tsum fun k => by
+  have hseries : Measurable (fun w : ℕ → ℝ => ∑' k, w k ^ 2) :=
+    Measurable.tsum fun k => by
       exact (measurable_pi_apply k).pow_const 2
   have heq := (hid.comp hseries).integral_eq
   exact heq.trans (poissonDirichlet_ranked_expected_weight_sq_eq_one_sub_zeta
@@ -653,8 +653,8 @@ theorem ghirlanda_guerra_poissonDirichlet_of_blocks
               (poissonCountingMeasure (fun m => (B m ω).1)
                 (fun m l => (B m ω).2 l))) *
               (f (fun i l => if σ i = σ l then 1 else 0) *
-                if σ r₀ = σ j then 1 else 0) ∂P) / n := by
-          exact (eq_div_iff hn).2 (by simpa only [mul_comm] using h)
+                if σ r₀ = σ j then 1 else 0) ∂P) / n :=
+          (eq_div_iff hn).2 (by simpa only [mul_comm] using h)
     _ = _ := by ring
 
 end SpinGlasses

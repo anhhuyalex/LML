@@ -433,15 +433,10 @@ theorem abs_mul_sub_sub_le (X Y d₁ d₂ c : ℝ) (h₁ : |d₁| ≤ c) (h₂ :
         gcongr
     _ = _ := by ring
 
-/-- `|M⁻¹ (u v)| ≤ M⁻¹` for two signs. -/
+/-- `|M⁻¹ (u v)| ≤ M⁻¹` for two signs (in fact an equality). -/
 theorem abs_inv_mul_sign_le (M : ℝ) (hM : 0 < M) (u v : ℤˣ) :
     |M⁻¹ * (((u : ℤ) : ℝ) * ((v : ℤ) : ℝ))| ≤ M⁻¹ := by
-  rw [abs_mul, abs_of_pos (inv_pos.2 hM), abs_mul]
-  have a1 := abs_units_cast_le_one u
-  have a2 := abs_units_cast_le_one v
-  have : |((u : ℤ) : ℝ)| * |((v : ℤ) : ℝ)| ≤ 1 := by
-    nlinarith [abs_nonneg ((u : ℤ) : ℝ)]
-  nlinarith [inv_pos.2 hM]
+  simp only [abs_mul, abs_units_cast_eq_one, mul_one, abs_of_pos (inv_pos.2 hM), le_refl]
 
 /-- **From `R⁻` to `R` in a product of two overlaps** (Eq. (1.219)-(1.223)): since
 `R_{pq} = R⁻_{pq} + ε_pε_q/M`, replacing `R⁻` by `R` in `ν((R_{pq} - q)(R_{rs} - q))` costs at most
@@ -760,15 +755,10 @@ theorem sk_row_equation (N n : ℕ) (β q h : ℝ)
   have hmid : |∑ j : SKCavityReplicaPair n, skCavityReplicaPairWeight n j *
         (skCavityBCoef β q qhat (skCavityReplicaPairCoincidences x y j) * (OO j - Vj j))| ≤
       (∑ j : SKCavityReplicaPair n, |skCavityReplicaPairWeight n j|) * β ^ 2 * Eb := by
-    refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
-    rw [Finset.sum_mul, Finset.sum_mul]
-    refine Finset.sum_le_sum fun j _ => ?_
-    rw [abs_mul, abs_mul]
-    have hbj := hbu (skCavityReplicaPairCoincidences x y j)
-    have hjj := hj j
-    have hEb0 : 0 ≤ Eb := (abs_nonneg _).trans hjj
-    calc _ ≤ |skCavityReplicaPairWeight n j| * (β ^ 2 * Eb) := by gcongr
-      _ = _ := by ring
+    rw [mul_assoc]
+    refine Weights.abs_weighted_sum_le _ _ fun j => ?_
+    rw [abs_mul]
+    exact mul_le_mul (hbu _) (hj j) (abs_nonneg _) (sq_nonneg β)
   have hT' : |ν (fun σ => Fab (fun r i => σ r i.castSucc) *
         (((σ x (Fin.last N) : ℤˣ) : ℝ) * ((σ y (Fin.last N) : ℤˣ) : ℝ) - q)) -
       ∑ j : SKCavityReplicaPair n, skCavityReplicaPairWeight n j *
@@ -1054,20 +1044,11 @@ theorem sk_row_Vf_bound (n : ℕ)
     have e1 : (N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ a i.castSucc : ℝ)) ⬝ᵥ
           fun i : Fin N => (σ b i.castSucc : ℝ)) - q = X - δ := by
       simp only [hX, hδ, dotProduct, Fin.sum_univ_castSucc]; ring
-    have hδ1 : δ ^ 2 ≤ 1 / (N + 1) ^ 2 := by
-      have := abs_inv_mul_sign_le (N + 1 : ℝ) hM0 (σ a (Fin.last N)) (σ b (Fin.last N))
-      have h2 : δ ^ 2 ≤ ((N + 1 : ℝ)⁻¹) ^ 2 := by
-        rw [← sq_abs δ]
-        exact pow_le_pow_left₀ (abs_nonneg _) this 2
-      calc δ ^ 2 ≤ ((N + 1 : ℝ)⁻¹) ^ 2 := h2
-        _ = 1 / (N + 1) ^ 2 := by rw [inv_pow, one_div]
+    have hδ1 : δ ^ 2 = 1 / (N + 1) ^ 2 := by
+      simp only [hδ, mul_pow, units_cast_sq, mul_one, inv_pow, one_div]
     have hs : (((σ x (Fin.last N) : ℤˣ) : ℝ) * ((σ y (Fin.last N) : ℤˣ) : ℝ) - q) ^ 2 ≤ 4 := by
-      have hx := abs_units_cast_le_one (σ x (Fin.last N))
-      have hy := abs_units_cast_le_one (σ y (Fin.last N))
-      have hxy1 : |((σ x (Fin.last N) : ℤˣ) : ℝ) * ((σ y (Fin.last N) : ℤˣ) : ℝ)| ≤ 1 := by
-        rw [abs_mul]; nlinarith [abs_nonneg ((σ x (Fin.last N) : ℤˣ) : ℝ)]
-      have := abs_le.1 hxy1
-      nlinarith [hq.1, hq.2]
+      simpa only [sq_abs, show (2 : ℝ) ^ 2 = 4 by norm_num] using
+        pow_le_pow_left₀ (abs_nonneg _) (abs_units_cast_mul_sub_le_two _ _ hq) 2
     rw [e1, mul_pow]
     have := sub_pow_two_mul_le (k := 1) le_rfl X δ
     norm_num at this
@@ -1113,15 +1094,11 @@ theorem sk_row_Gb_bound (m : ℕ)
       (fun u v => ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (u i : ℝ)) ⬝ᵥ
           fun i : Fin (N + 1) => (v i : ℝ)) - q) ^ 4)
   have hdelta : ∀ (σ : Fin m → Fin (N + 1) → ℤˣ) (u v : Fin m),
-      ((N + 1 : ℝ)⁻¹ * (((σ u (Fin.last N) : ℤˣ) : ℝ) * ((σ v (Fin.last N) : ℤˣ) : ℝ))) ^ 4 ≤
+      ((N + 1 : ℝ)⁻¹ * (((σ u (Fin.last N) : ℤˣ) : ℝ) * ((σ v (Fin.last N) : ℤˣ) : ℝ))) ^ 4 =
         1 / (N + 1) ^ 4 := fun σ u v => by
-    have := abs_inv_mul_sign_le (N + 1 : ℝ) hM0 (σ u (Fin.last N)) (σ v (Fin.last N))
-    have h2 : ((N + 1 : ℝ)⁻¹ * (((σ u (Fin.last N) : ℤˣ) : ℝ) * ((σ v (Fin.last N) : ℤˣ) : ℝ))) ^ 4
-        ≤ ((N + 1 : ℝ)⁻¹) ^ 4 := by
-      have h4 := pow_le_pow_left₀ (abs_nonneg _) this 4
-      rwa [Even.pow_abs ⟨2, rfl⟩] at h4
-    calc _ ≤ ((N + 1 : ℝ)⁻¹) ^ 4 := h2
-      _ = 1 / (N + 1) ^ 4 := by rw [inv_pow, one_div]
+    have h4 : ∀ w : ℤˣ, ((w : ℤ) : ℝ) ^ 4 = 1 := fun w => by
+      rw [show 4 = 2 * 2 from rfl, pow_mul, units_cast_sq, one_pow]
+    simp only [mul_pow, h4, mul_one, inv_pow, one_div]
   have hpt : ∀ σ : Fin m → Fin (N + 1) → ℤˣ,
       (((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ p₁ i.castSucc : ℝ)) ⬝ᵥ
           fun i : Fin N => (σ p₂ i.castSucc : ℝ)) - q) *
@@ -1720,14 +1697,16 @@ theorem frac_sub_half (c₂ d D₁ D₂ M n : ℝ) (hM : M ≠ 0) (hD₁ : D₁ 
   field_simp
 
 
+/-- `|x / D| ≤ b / δ` if `|x| ≤ b` and `0 < δ ≤ |D|`; the denominator may be negative. -/
+theorem abs_div_le_div_of_le_abs {x D b δ : ℝ} (hδ : 0 < δ) (hD : δ ≤ |D|) (hx : |x| ≤ b) :
+    |x / D| ≤ b / δ := by
+  rw [abs_div]
+  exact div_le_div₀ ((abs_nonneg _).trans hx) hx hδ hD
+
 /-- `|x / D| ≤ (4/3) b` if `D ≥ 3/4` and `|x| ≤ b`. -/
 theorem abs_div_le_four_thirds {x D b : ℝ} (hD : 3 / 4 ≤ D) (hx : |x| ≤ b) :
-    |x / D| ≤ 4 / 3 * b := by
-  have hD0 : 0 < D := by linarith
-  have hb : 0 ≤ b := (abs_nonneg _).trans hx
-  rw [abs_div, abs_of_pos hD0, div_le_iff₀ hD0]
-  nlinarith only [hx, hD, hb]
-
+    |x / D| ≤ 4 / 3 * b :=
+  (abs_div_le_div_of_le_abs (by norm_num) (hD.trans (le_abs_self D)) hx).trans_eq (by ring)
 
 /-- The error bookkeeping of the covariance system: with `a = ρ₁/D₁`, `b' = (ρ₁/D₁ - ρ₂/D₂)/2`
 and `w = (b₀ a + g b' + R₂)/D₂`, `D_i ≥ 3/4`, `|R_i| ≤ E`, `|b₀| ≤ 1/4`, `|g| ≤ 3/2`, one has
@@ -1739,12 +1718,17 @@ theorem at_error_bound {a b' w D₁ D₂ b₀ g R₀ R₁ R₂ E : ℝ} (hD₁ :
     (hw : w = (b₀ * a + g * b' + R₂) / D₂) :
     |a| ≤ 16 / 3 * E ∧ |b'| ≤ 8 * E ∧ |w| ≤ 20 * E := by
   have hE : 0 ≤ E := (abs_nonneg _).trans hR₀
+  have hR : ∀ i : Fin 3, |![R₀, R₁, R₂] i| ≤ E := fun i => by fin_cases i <;> assumption
   have hρ1 : |R₀ - 2 * R₁ + R₂| ≤ 4 * E := by
-    have := abs_le.1 hR₀; have := abs_le.1 hR₁; have := abs_le.1 hR₂
-    rw [abs_le]; constructor <;> linarith
+    have h := Weights.abs_weighted_sum_le ![1, -2, 1] _ hR
+    simp only [Fin.sum_univ_three] at h
+    norm_num at h
+    convert h using 2
   have hρ2 : |R₀ - 4 * R₁ + 3 * R₂| ≤ 8 * E := by
-    have := abs_le.1 hR₀; have := abs_le.1 hR₁; have := abs_le.1 hR₂
-    rw [abs_le]; constructor <;> linarith
+    have h := Weights.abs_weighted_sum_le ![1, -4, 3] _ hR
+    simp only [Fin.sum_univ_three] at h
+    norm_num at h
+    convert h using 2
   have hα' : |a| ≤ 16 / 3 * E := by
     rw [ha]; exact (abs_div_le_four_thirds hD₁ hρ1).trans (by linarith)
   have hB' : |b'| ≤ 8 * E := by

@@ -130,8 +130,8 @@ end Real
 namespace SpinGlasses
 
 /-- Twice the hyperbolic cosine is bounded by twice the exponential of the absolute value. -/
-theorem two_cosh_le_exp_abs_mul (x : ℝ) : 2 * Real.cosh x ≤ 2 * Real.exp |x| := by
-  exact mul_le_mul_of_nonneg_left (Real.cosh_le_exp_abs x) (by norm_num)
+theorem two_cosh_le_exp_abs_mul (x : ℝ) : 2 * Real.cosh x ≤ 2 * Real.exp |x| :=
+  mul_le_mul_of_nonneg_left (Real.cosh_le_exp_abs x) (by norm_num)
 
 /-- The reciprocal of twice the hyperbolic cosine is bounded by `exp |x|`. -/
 theorem inv_two_cosh_le_exp_abs_mul (x : ℝ) :

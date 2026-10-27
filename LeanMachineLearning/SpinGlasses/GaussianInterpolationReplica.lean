@@ -603,8 +603,8 @@ theorem hasDerivAt_integral_conditional_of_deriv_bound
     (hF : Integrable (F t) P₀)
     (hderiv : ∀ η s, HasDerivAt (fun u => F u η) (D s η) s)
     (M : ℝ) (hbound : ∀ η s, |D s η| ≤ M) :
-    HasDerivAt (fun s => ∫ η, F s η ∂P₀) (∫ η, D t η ∂P₀) t := by
-  exact (hasDerivAt_integral_of_dominated_loc_of_deriv_le
+    HasDerivAt (fun s => ∫ η, F s η ∂P₀) (∫ η, D t η ∂P₀) t :=
+  (hasDerivAt_integral_of_dominated_loc_of_deriv_le
     (μ := P₀) (x₀ := t) (F := F) (F' := D)
     Filter.univ_mem (Eventually.of_forall hFm) hF hDm
     (bound := fun _ => M)

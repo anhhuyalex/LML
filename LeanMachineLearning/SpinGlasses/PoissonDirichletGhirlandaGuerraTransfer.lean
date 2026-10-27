@@ -166,8 +166,8 @@ theorem measurableSet_gaussian_gibbs_tilt_mark_summable (t c : ℝ) :
       (∑' p : ℕ × ℕ, ENNReal.ofReal
         (if p.2 < (zg.1 p.1).1 then
           (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) *
-            abs (zg.2 p.1 p.2 - c) else 0)) < ⊤} := by
-  exact measurableSet_tsum_ofReal_guarded_lt_top
+            abs (zg.2 p.1 p.2 - c) else 0)) < ⊤} :=
+  measurableSet_tsum_ofReal_guarded_lt_top
     (Ω := (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℕ → ℝ)) (fun zg m => (zg.1 m).1)
     (fun m => by fun_prop)
     (fun zg p => (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) *
@@ -195,8 +195,8 @@ theorem ae_gaussian_gibbs_tilt_mark_summable_prod (t c : ℝ)
   let α := {p : ℕ × ℕ // p.2 < (z p.1).1}
   let u : α → ℝ := fun p => (z p.1.1).2 p.1.2
   have hu (p : α) : 0 ≤ u p := (hp p.1 p.2).le
-  have hus : Summable u := by
-    exact (summable_subtype_guard_iff (fun p : ℕ × ℕ => p.2 < (z p.1).1)
+  have hus : Summable u :=
+    (summable_subtype_guard_iff (fun p : ℕ × ℕ => p.2 < (z p.1).1)
       (fun p : ℕ × ℕ => (z p.1).2 p.2)).2 hs
   filter_upwards [ae_summable_gaussian_tilted_mark u hu hus Subtype.val t c] with g hg
   have ht' : Summable (fun p : ℕ × ℕ =>
@@ -414,8 +414,8 @@ theorem ae_gaussian_gibbs_tilt_mark_centering_prod
     split_ifs with h
     · exact (mul_pos (hp p h) (Real.exp_pos _)).le
     · exact le_refl 0
-  have hus : Summable u := by
-    exact (summable_subtype_guard_iff (fun p : ℕ × ℕ => p.2 < (zg.1 p.1).1)
+  have hus : Summable u :=
+    (summable_subtype_guard_iff (fun p : ℕ × ℕ => p.2 < (zg.1 p.1).1)
       (fun p : ℕ × ℕ =>
         (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2))).2 ht0
   have hm0 : Summable (fun p : ℕ × ℕ =>
@@ -427,8 +427,8 @@ theorem ae_gaussian_gibbs_tilt_mark_centering_prod
     · exact mul_nonneg (mul_pos (hp p h) (Real.exp_pos _)).le (abs_nonneg _)
     · exact le_refl 0
   have hms : Summable (fun a : α =>
-      u a * |zg.2 a.1.1 a.1.2 - c|) := by
-    exact (summable_subtype_guard_iff (fun p : ℕ × ℕ => p.2 < (zg.1 p.1).1)
+      u a * |zg.2 a.1.1 a.1.2 - c|) :=
+    (summable_subtype_guard_iff (fun p : ℕ × ℕ => p.2 < (zg.1 p.1).1)
       (fun p : ℕ × ℕ =>
         (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) *
           |zg.2 p.1 p.2 - c|)).2 hm0

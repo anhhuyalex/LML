@@ -72,24 +72,13 @@ theorem probability_tanh_fourth_sub_two_add_one_mem_Icc {Ω : Type*} [Measurable
     (∫ ω, Real.tanh (Y ω) ^ 4 ∂P) - 2 * (∫ ω, Real.tanh (Y ω) ^ 2 ∂P) + 1 ∈ Set.Icc (0 : ℝ) 1 := by
   have h2 := integrable_tanh_sq Y hY
   have h4 := MeasureTheory.integrable_tanh_pow Y hY 4
-  have key : (∫ ω, Real.tanh (Y ω) ^ 4 ∂P) - 2 * (∫ ω, Real.tanh (Y ω) ^ 2 ∂P) + 1 =
-      ∫ ω, (1 - Real.tanh (Y ω) ^ 2) ^ 2 ∂P := by
-    have e : ∀ ω, (1 - Real.tanh (Y ω) ^ 2) ^ 2 =
-        (Real.tanh (Y ω) ^ 4 - 2 * Real.tanh (Y ω) ^ 2) + 1 := fun ω => by ring
-    simp_rw [e]
-    have hi : Integrable (fun ω => Real.tanh (Y ω) ^ 4 -
-        2 * Real.tanh (Y ω) ^ 2) P := h4.sub (h2.const_mul 2)
-    rw [integral_add hi (integrable_const _), integral_sub h4 (h2.const_mul 2),
-      integral_const_mul]
-    simp
+  have key := MeasureTheory.integral_pow_four_sub_two_mul_add_eq (μ := P) h2 h4
+  simp only [probReal_univ] at key
   rw [key]
   have hb : ∀ ω, 0 ≤ (1 - Real.tanh (Y ω) ^ 2) ^ 2 ∧
       (1 - Real.tanh (Y ω) ^ 2) ^ 2 ≤ 1 := fun ω => by
     have h0 : 0 ≤ Real.tanh (Y ω) ^ 2 := sq_nonneg _
-    have h1 : Real.tanh (Y ω) ^ 2 ≤ 1 := by
-      have := Real.abs_tanh_lt_one (Y ω)
-      nlinarith [abs_nonneg (Real.tanh (Y ω)), sq_abs (Real.tanh (Y ω))]
-    exact ⟨sq_nonneg _, by nlinarith⟩
+    exact ⟨sq_nonneg _, by nlinarith [(Real.tanh_sq_lt_one (Y ω)).le]⟩
   refine ⟨integral_nonneg fun ω => (hb ω).1, ?_⟩
   calc _ ≤ ∫ ω, (1 : ℝ) ∂P :=
         integral_mono_of_nonneg (ae_of_all _ fun ω => (hb ω).1) (integrable_const _)
@@ -234,8 +223,8 @@ theorem decoupled_replica_overlap_eq [Nonempty ι]
   · have h_each : ∀ j : ι, ∫ ω, Real.tanh (Y j ω) ^ 2 ∂P = ∫ ω, Real.tanh (Y j₀ ω) ^ 2 ∂P := by
       intro j
       have hid : IdentDistrib (fun ω => Real.tanh (Y j ω) ^ 2)
-          (fun ω => Real.tanh (Y j₀ ω) ^ 2) P P := by
-        exact (h_law j).comp ((continuous_pow 2).comp Real.continuous_tanh).measurable
+          (fun ω => Real.tanh (Y j₀ ω) ^ 2) P P :=
+        (h_law j).comp ((continuous_pow 2).comp Real.continuous_tanh).measurable
       exact hid.integral_eq
     simp_rw [h_each, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
     rw [← mul_assoc, inv_mul_cancel₀ hN, one_mul]
