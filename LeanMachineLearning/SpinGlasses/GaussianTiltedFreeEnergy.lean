@@ -146,19 +146,20 @@ theorem measureReal_ge_half_of_le_integral {X : Ω → ℝ} (hX : Measurable X)
   linarith
 
 /-- **Concentration transfers a samplewise bound on the event of a non-negligible Gibbs mass to the
-mean.**  Let `A`, `B` be integrable with tails `ℙ(s ≤ |A - 𝔼 A|), ℙ(s ≤ |B - 𝔼 B|) ≤ c`, let
+mean.**  Let `A`, `B` have tails `ℙ(sA ≤ |A - 𝔼 A|) ≤ cA`, `ℙ(sB ≤ |B - 𝔼 B|) ≤ cB`, let
 `X ∈ [0, 1]` have mean at least `e > 0`, and suppose `m ≤ A - B` whenever `X ≥ e / 2`.  If
-`2 c < e / 2` then `m - 2 s < 𝔼 A - 𝔼 B`. -/
+`cA + cB < e / 2` then `m - (sA + sB) < 𝔼 A - 𝔼 B`.  No integrability of `A`, `B` is used: the
+argument is a union bound on the event `{X ≥ e / 2}`. -/
 theorem lt_integral_sub_of_tail {A B X : Ω → ℝ} (hX : Measurable X)
-    (hX01 : ∀ ω, 0 ≤ X ω ∧ X ω ≤ 1) {e m s c : ℝ} (he : 0 ≤ e) (hXe : e ≤ ∫ ω, X ω ∂P)
-    (hAB : ∀ ω, e / 2 ≤ X ω → m ≤ A ω - B ω)
-    (hcA : P.real {ω | s ≤ |A ω - ∫ ω', A ω' ∂P|} ≤ c)
-    (hcB : P.real {ω | s ≤ |B ω - ∫ ω', B ω' ∂P|} ≤ c) (hc : 2 * c < e / 2) :
-    m - 2 * s < ∫ ω, A ω ∂P - ∫ ω, B ω ∂P := by
+    (hX01 : ∀ ω, 0 ≤ X ω ∧ X ω ≤ 1) {e m sA sB cA cB : ℝ} (he : 0 ≤ e)
+    (hXe : e ≤ ∫ ω, X ω ∂P) (hAB : ∀ ω, e / 2 ≤ X ω → m ≤ A ω - B ω)
+    (hcA : P.real {ω | sA ≤ |A ω - ∫ ω', A ω' ∂P|} ≤ cA)
+    (hcB : P.real {ω | sB ≤ |B ω - ∫ ω', B ω' ∂P|} ≤ cB) (hc : cA + cB < e / 2) :
+    m - (sA + sB) < ∫ ω, A ω ∂P - ∫ ω, B ω ∂P := by
   have hE := measureReal_ge_half_of_le_integral hX hX01 he hXe
   by_contra hcon
-  have hsub : {ω | e / 2 ≤ X ω} ⊆ {ω | s ≤ |A ω - ∫ ω', A ω' ∂P|} ∪
-      {ω | s ≤ |B ω - ∫ ω', B ω' ∂P|} := fun ω hω => by
+  have hsub : {ω | e / 2 ≤ X ω} ⊆ {ω | sA ≤ |A ω - ∫ ω', A ω' ∂P|} ∪
+      {ω | sB ≤ |B ω - ∫ ω', B ω' ∂P|} := fun ω hω => by
     by_contra hn
     simp only [Set.mem_union, Set.mem_ofPred_eq, not_or, not_le] at hn
     have h1 := hAB ω hω
@@ -264,34 +265,35 @@ end Convex
 
 section Mass
 
-variable {α κ : Type*} [Fintype α] [Nonempty α] [Fintype κ] (a : α → κ → ℝ) (d : α → ℝ)
+variable {Ω α : Type*} [Fintype α] (F : Ω → α → ℝ)
 
-omit [Nonempty α] in
-/-- The Gibbs mass of a set `T` is a measurable function of the disorder. -/
-theorem measurable_gibbs_mass (T : Finset α) :
-    Measurable (fun g : κ → ℝ => (∑ x ∈ T, Real.exp (a x ⬝ᵥ g + d x)) /
-      ∑ y, Real.exp (a y ⬝ᵥ g + d y)) := by
-  fun_prop
+/-- The Gibbs mass of a set `T` for a random finite energy `F` is a measurable function of the
+randomness as soon as every coordinate `ω ↦ F ω x` is. -/
+theorem measurable_gibbs_mass [MeasurableSpace Ω] (hF : ∀ x, Measurable fun ω => F ω x)
+    (T : Finset α) :
+    Measurable (fun ω => (∑ x ∈ T, Real.exp (F ω x)) / ∑ y, Real.exp (F ω y)) :=
+  (Finset.measurable_sum _ fun x _ => (hF x).exp).div (Finset.measurable_sum _ fun y _ =>
+    (hF y).exp)
 
 /-- The Gibbs mass of a set `T` lies in `[0, 1]`. -/
-theorem gibbs_mass_mem_Icc (T : Finset α) (g : κ → ℝ) :
-    0 ≤ (∑ x ∈ T, Real.exp (a x ⬝ᵥ g + d x)) / ∑ y, Real.exp (a y ⬝ᵥ g + d y) ∧
-      (∑ x ∈ T, Real.exp (a x ⬝ᵥ g + d x)) / ∑ y, Real.exp (a y ⬝ᵥ g + d y) ≤ 1 := by
-  have hZ : 0 < ∑ y, Real.exp (a y ⬝ᵥ g + d y) :=
+theorem gibbs_mass_mem_Icc [Nonempty α] (T : Finset α) (ω : Ω) :
+    0 ≤ (∑ x ∈ T, Real.exp (F ω x)) / ∑ y, Real.exp (F ω y) ∧
+      (∑ x ∈ T, Real.exp (F ω x)) / ∑ y, Real.exp (F ω y) ≤ 1 := by
+  have hZ : 0 < ∑ y, Real.exp (F ω y) :=
     Finset.sum_pos (fun x _ => Real.exp_pos _) Finset.univ_nonempty
   refine ⟨div_nonneg (Finset.sum_nonneg fun x _ => (Real.exp_pos _).le) hZ.le, ?_⟩
   rw [div_le_one hZ]
   exact Finset.sum_le_sum_of_subset_of_nonneg (Finset.subset_univ T)
     fun x _ _ => (Real.exp_pos _).le
 
-/-- The Gibbs mass of a set `T` is integrable against the Gaussian disorder. -/
-theorem integrable_gibbs_mass (T : Finset α) :
-    Integrable (fun g : κ → ℝ => (∑ x ∈ T, Real.exp (a x ⬝ᵥ g + d x)) /
-      ∑ y, Real.exp (a y ⬝ᵥ g + d y)) (Measure.pi fun _ : κ => gaussianReal 0 1) :=
-  Integrable.of_bound (measurable_gibbs_mass a d T).aestronglyMeasurable 1
-    (ae_of_all _ fun g => by
-      rw [Real.norm_eq_abs, abs_of_nonneg (gibbs_mass_mem_Icc a d T g).1]
-      exact (gibbs_mass_mem_Icc a d T g).2)
+/-- The Gibbs mass of a set `T` is integrable against any finite measure. -/
+theorem integrable_gibbs_mass [Nonempty α] [MeasurableSpace Ω] {P : Measure Ω} [IsFiniteMeasure P]
+    (hF : ∀ x, Measurable fun ω => F ω x) (T : Finset α) :
+    Integrable (fun ω => (∑ x ∈ T, Real.exp (F ω x)) / ∑ y, Real.exp (F ω y)) P :=
+  Integrable.of_bound (measurable_gibbs_mass F hF T).aestronglyMeasurable 1
+    (ae_of_all _ fun ω => by
+      rw [Real.norm_eq_abs, abs_of_nonneg (gibbs_mass_mem_Icc F T ω).1]
+      exact (gibbs_mass_mem_Icc F T ω).2)
 
 end Mass
 

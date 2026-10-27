@@ -318,7 +318,8 @@ theorem skCoupledFreeEnergy_gt (M : ℕ) (hM : 0 < M) (β h lam x δ' : ℝ) (h�
     rw [he]
     field_simp
     ring
-  have hc : 2 * (2 * Real.exp (-(lam ^ 2 * δ' ^ 2 / (2048 * β ^ 2)) * M)) < e / 2 := by
+  have hc : 2 * Real.exp (-(lam ^ 2 * δ' ^ 2 / (2048 * β ^ 2)) * M) +
+      2 * Real.exp (-(lam ^ 2 * δ' ^ 2 / (2048 * β ^ 2)) * M) < e / 2 := by
     rw [he2, lt_div_iff₀ (by positivity)]
     nlinarith [hsmall₁]
   have hAB : ∀ g, e / 2 ≤ (∑ y ∈ T, Real.exp (a y ⬝ᵥ g + d y)) /
@@ -335,7 +336,8 @@ theorem skCoupledFreeEnergy_gt (M : ℕ) (hM : 0 < M) (β h lam x δ' : ℝ) (h�
   have key := lt_integral_sub_of_tail (P := P)
     (A := fun g => Real.log (skCoupledPartition M β h lam g))
     (B := fun g => Real.log (skCoupledPartition M β h 0 g))
-    (measurable_gibbs_mass a d T) (gibbs_mass_mem_Icc a d T) he0.le hmass' hAB hcA hcB hc
+    (measurable_gibbs_mass (fun g y => a y ⬝ᵥ g + d y) (fun y => by fun_prop) T)
+    (gibbs_mass_mem_Icc (fun g y => a y ⬝ᵥ g + d y) T) he0.le hmass' hAB hcA hcB hc
   have hlog : -(|lam| * δ' / 8) * M ≤ Real.log (e / 2) := by
     rw [he2]
     calc -(|lam| * δ' / 8) * M = Real.log (Real.exp (-(|lam| * δ' / 8) * M)) :=
@@ -354,8 +356,10 @@ theorem integrable_skCoupled_mass (M : ℕ) (β h : ℝ)
         ∑ y : (Fin M → ℤˣ) × (Fin M → ℤˣ),
           Real.exp (skGibbsEnergy M β h g y.1 + skGibbsEnergy M β h g y.2))
       (Measure.pi fun _ : FinPairs M => gaussianReal 0 1) := by
-  obtain ⟨a, d, b, hE, -, -, -⟩ := exists_sk_coupled_data M β h
-  simpa only [hE] using integrable_gibbs_mass a d T
+  refine integrable_gibbs_mass (fun g y => skGibbsEnergy M β h g y.1 + skGibbsEnergy M β h g y.2)
+    (fun y => ?_) T
+  unfold skGibbsEnergy
+  fun_prop
 
 end SK
 
