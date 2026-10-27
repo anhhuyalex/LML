@@ -69,12 +69,10 @@ theorem indicator_lower_bound_of_cubic {Ω : Type*} (ν : (Ω → ℝ) → ℝ)
             hsmul 8 (fun ω => if δ / 2 ≤ |X ω| then (1 : ℝ) else 0)]
   linarith
 
-/-- The centered overlap of two replicas of an `N + 1`-spin system is at most `2` in absolute
-value when `|q| ≤ 1`. -/
-theorem abs_overlap_sub_le_two {N : ℕ} {q : ℝ} (hq : |q| ≤ 1)
-    (σ : Fin 2 → Fin (N + 1) → ℤˣ) :
+/-- The overlap of two replicas of an `N + 1`-spin system has modulus at most `1`. -/
+theorem abs_overlap_le_one {N : ℕ} (σ : Fin 2 → Fin (N + 1) → ℤˣ) :
     |(N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
-      fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q| ≤ 2 := by
+      fun i : Fin (N + 1) => (σ 1 i : ℝ))| ≤ 1 := by
   have hM : (0 : ℝ) < N + 1 := by positivity
   have hdot : |(fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ fun i : Fin (N + 1) => (σ 1 i : ℝ)| ≤
       N + 1 := by
@@ -82,11 +80,16 @@ theorem abs_overlap_sub_le_two {N : ℕ} {q : ℝ} (hq : |q| ≤ 1)
     simp only [abs_mul, abs_units_cast_eq_one, mul_one, Finset.sum_const, Finset.card_univ,
       Fintype.card_fin, nsmul_eq_mul]
     simp
-  have hR : |(N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
-      fun i : Fin (N + 1) => (σ 1 i : ℝ))| ≤ 1 := by
-    rw [abs_mul, abs_inv, abs_of_pos hM, inv_mul_le_iff₀ hM]
-    linarith
-  exact (abs_sub _ _).trans (by linarith)
+  rw [abs_mul, abs_inv, abs_of_pos hM, inv_mul_le_iff₀ hM]
+  linarith
+
+/-- The centered overlap of two replicas of an `N + 1`-spin system is at most `2` in absolute
+value when `|q| ≤ 1`. -/
+theorem abs_overlap_sub_le_two {N : ℕ} {q : ℝ} (hq : |q| ≤ 1)
+    (σ : Fin 2 → Fin (N + 1) → ℤˣ) :
+    |(N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
+      fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q| ≤ 2 :=
+  (abs_sub _ _).trans (by linarith [abs_overlap_le_one σ])
 
 /-- **Eq. (1.271) for the SK model.**  On the `N + 1`-spin system with two replicas, if
 `δ ν((R₁₂ - q)²) ≤ ν(|R₁₂ - q|³)` (the first inequality of (1.269)) and `|q| ≤ 1`, then

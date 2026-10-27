@@ -259,6 +259,29 @@ theorem integral_tanh_core_lt {w : ℝ} (hw : w ≠ 0) (h : ℝ) :
     exact integral_congr_ae (Filter.Eventually.of_forall hpt)
   linarith
 
+/-- `𝔼 [f''(wz+h)] = 2 - 8 𝔼 tanh² + 6 𝔼 tanh⁴` for `f = tanh²`, i.e.
+`f'' = 2 (1 - tanh²)(1 - 3 tanh²)`. -/
+theorem integral_tanh_sq_second_deriv_eq {w h a b : ℝ}
+    (ha : ∫ z : ℝ, Real.tanh (w * z + h) ^ 2 ∂(gaussianReal 0 1) = a)
+    (hb : ∫ z : ℝ, Real.tanh (w * z + h) ^ 4 ∂(gaussianReal 0 1) = b) :
+    ∫ z : ℝ, 2 * (1 - Real.tanh (w * z + h) ^ 2) * (1 - 3 * Real.tanh (w * z + h) ^ 2)
+      ∂(gaussianReal 0 1) = 2 - 8 * a + 6 * b := by
+  have h2 := integrable_tanh_sq_affine w h
+  have h4 : Integrable (fun z : ℝ => Real.tanh (w * z + h) ^ 4) (gaussianReal 0 1) :=
+    (integrable_const (1 : ℝ)).mono' (by have := Real.continuous_tanh; fun_prop)
+      (Filter.Eventually.of_forall fun z => by
+        rw [Real.norm_eq_abs, abs_pow]
+        exact pow_le_one₀ (abs_nonneg _) (by
+          rw [← sq_le_one_iff_abs_le_one]; exact (Real.tanh_sq_lt_one _).le))
+  have e : ∀ z : ℝ, 2 * (1 - Real.tanh (w * z + h) ^ 2) * (1 - 3 * Real.tanh (w * z + h) ^ 2) =
+      2 - 8 * Real.tanh (w * z + h) ^ 2 + 6 * Real.tanh (w * z + h) ^ 4 := fun z => by ring
+  simp_rw [e]
+  have hi1 : Integrable (fun z : ℝ => 2 - 8 * Real.tanh (w * z + h) ^ 2) (gaussianReal 0 1) :=
+    (integrable_const (2 : ℝ)).sub (h2.const_mul 8)
+  rw [integral_add hi1 (h4.const_mul 6), integral_sub (integrable_const (2 : ℝ))
+    (h2.const_mul 8), integral_const_mul, integral_const_mul, ha, hb]
+  simp
+
 /-- **Lemma 1.9.3 (Talagrand), the fixed-point form.**  If `q > 0` is a solution of
 `q = 𝔼 tanh²(β √q z + h)` and `q̂ = 𝔼 tanh⁴(β √q z + h)`, then `β² (1 - 4 q + 3 q̂) < 1`.
 (For `h = 0` the fixed point `q = 0` is excluded by `0 < q`; for `h ≠ 0` every solution is
@@ -272,27 +295,7 @@ theorem sk_beta_sq_mul_one_sub_four_add_three_lt_one {β h q qhat : ℝ} (hq : 0
   have hw : β * Real.sqrt q ≠ 0 := mul_ne_zero hβ (Real.sqrt_pos.2 hq).ne'
   have hcore := integral_tanh_core_lt hw h
   rw [integral_tanh_sq_deriv_mul_id_eq h (β * Real.sqrt q), hfix] at hcore
-  have hint : ∫ z : ℝ, 2 * (1 - Real.tanh (β * Real.sqrt q * z + h) ^ 2) *
-      (1 - 3 * Real.tanh (β * Real.sqrt q * z + h) ^ 2) ∂(gaussianReal 0 1) =
-      2 - 8 * q + 6 * qhat := by
-    have h2 := integrable_tanh_sq_affine (β * Real.sqrt q) h
-    have h4 : Integrable (fun z : ℝ => Real.tanh (β * Real.sqrt q * z + h) ^ 4)
-        (gaussianReal 0 1) :=
-      (integrable_const (1 : ℝ)).mono' (by have := Real.continuous_tanh; fun_prop)
-        (Filter.Eventually.of_forall fun z => by
-          rw [Real.norm_eq_abs, abs_pow]
-          exact pow_le_one₀ (abs_nonneg _) (by
-            rw [← sq_le_one_iff_abs_le_one]; exact (Real.tanh_sq_lt_one _).le))
-    have e : ∀ z : ℝ, 2 * (1 - Real.tanh (β * Real.sqrt q * z + h) ^ 2) *
-        (1 - 3 * Real.tanh (β * Real.sqrt q * z + h) ^ 2) =
-        2 - 8 * Real.tanh (β * Real.sqrt q * z + h) ^ 2 +
-          6 * Real.tanh (β * Real.sqrt q * z + h) ^ 4 := fun z => by ring
-    simp_rw [e]
-    have hi1 : Integrable (fun z : ℝ => 2 - 8 * Real.tanh (β * Real.sqrt q * z + h) ^ 2)
-        (gaussianReal 0 1) := (integrable_const (2 : ℝ)).sub (h2.const_mul 8)
-    rw [integral_add hi1 (h4.const_mul 6), integral_sub (integrable_const (2 : ℝ))
-      (h2.const_mul 8), integral_const_mul, integral_const_mul, hfix, hqhat]
-    simp
+  have hint := integral_tanh_sq_second_deriv_eq hfix hqhat
   rw [hint] at hcore
   have hsq : (β * Real.sqrt q) ^ 2 = β ^ 2 * q := by
     rw [mul_pow, Real.sq_sqrt hq.le]
