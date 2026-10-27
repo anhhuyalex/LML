@@ -538,7 +538,12 @@ $(z_i)$, the cavity-field part of Guerra's path satisfies
 \end{lemma}
 \begin{proof}
   \leanok
-This is the covariance of two linear forms in an iid standard Gaussian vector.
+Expand the product and use that $\mathbb{E}[z_iz_j]=\delta_{ij}$ for independent standard Gaussians:
+\[
+\mathbb{E}\Big[\beta^2 q\sum_{i,j}\sigma_i\tau_j\,z_iz_j\Big]
+=\beta^2 q\sum_{i,j}\sigma_i\tau_j\,\delta_{ij}=\beta^2 q\sum_i\sigma_i\tau_i .
+\]
+For Ising spins this is $\beta^2 q\,N\,R(\sigma,\tau)$, where $R(\sigma,\tau)=N^{-1}\sum_i\sigma_i\tau_i$ is the overlap.
 The Lean statement is deliberately for arbitrary finite real vectors, not only hypercube spins,
 so it is reusable for relaxed and spherical spin models.  Formalized in
 \texttt{SpinGlasses/SKReplicaSymmetricBound.lean}.
@@ -564,10 +569,24 @@ disorder gives
 \end{lemma}
 \begin{proof}
   \leanok
-The general Lean theorem is the covariance of two normalized linear forms in an iid Gaussian
-vector; the SK theorem instantiates its coefficients with the pair products of the two spin
-configurations.  A separate finite combinatorial lemma rewrites the unordered pair sum as half
-the square of the overlap minus its diagonal, yielding the displayed SK covariance exactly.
+Two steps.
+
+\emph{Step 1 (orthogonality of the $g_{ij}$).} Since $\mathbb{E}[g_{ij}g_{kl}]=1$ if $(i,j)=(k,l)$ and $0$ otherwise,
+\[
+\mathbb{E}\Big[\frac{\beta^2}{N}\sum_{i<j}\sum_{k<l} g_{ij}g_{kl}\,\sigma_i\sigma_j\tau_k\tau_l\Big]
+=\frac{\beta^2}{N}\sum_{i<j}\sigma_i\sigma_j\tau_i\tau_j .
+\]
+This is the general Lean theorem (covariance of two normalized linear forms in an iid Gaussian vector), instantiated with the coefficients $\sigma_i\sigma_j$ and $\tau_i\tau_j$.
+
+\emph{Step 2 (pair sum $=$ half the square minus the diagonal).} Put $a_i=\sigma_i\tau_i\in\{\pm1\}$. Then $\sigma_i\sigma_j\tau_i\tau_j=a_ia_j$ and
+\[
+\sum_{i<j}a_ia_j=\frac12\Big(\big(\textstyle\sum_i a_i\big)^2-\sum_i a_i^2\Big)
+=\frac12\big((N R(\sigma,\tau))^2-N\big),
+\]
+because $\sum_ia_i=N R(\sigma,\tau)$ and $a_i^2=1$. Hence the covariance equals
+\[
+\frac{\beta^2}{2N}\big(N^2R^2-N\big)=\frac{N\beta^2}{2}\Big(R(\sigma,\tau)^2-\frac1N\Big).
+\]
 Formalized in \texttt{SpinGlasses/SKReplicaSymmetricBound.lean}.
 \end{proof}
 
@@ -593,9 +612,14 @@ Then their normalized half-difference is exactly
 \end{lemma}
 \begin{proof}
   \leanok
-The concrete theorem first invokes the already-formalized pair and cavity covariance calculations.
-It then reuses the general algebraic bridge, substituting
-$\sigma\mathbin{\cdot}\tau=N R(\sigma,\tau)$ and completing the square.
+The two covariances are those of Lemmas~\ref{lem:sg-tal:pair-covariance} and~\ref{lem:sg-tal:decoupled-covariance} with $\sigma\mathbin{\cdot}\tau=N R$, $R=R(\sigma,\tau)$. Subtract and complete the square in $R$:
+\begin{align*}
+C-D&=\frac{N\beta^2}{2}\Big(R^2-\frac1N\Big)-\beta^2 q\,N R
+=\frac{N\beta^2}{2}\Big(R^2-2qR-\frac1N\Big)\\
+&=\frac{N\beta^2}{2}\Big((R-q)^2-q^2-\frac1N\Big),
+\end{align*}
+using $R^2-2qR=(R-q)^2-q^2$. Dividing by $2N$ gives $\frac{C-D}{2N}=\frac{\beta^2}{4}\big((R-q)^2-q^2-\frac1N\big)$.
+The two special values used later are $R=1$ (a configuration with itself), where this equals $\frac{\beta^2}{4}\big((1-q)^2-q^2-\frac1N\big)$, and a general overlap $R=R_{1,2}$ of two replicas.
 Two elementary facts are used throughout the covariance computations and are stated as separate lemmas: a linear form $\sum_k g_k a_k$ equals the dot product $a\cdot g$, and $(\sqrt n)^{-1}(\sqrt n)^{-1}=n^{-1}$ for $n\ge0$ (this is how the factor $N^{-1/2}$ in the Hamiltonian squares to the $1/N$ of the covariance).
 \end{proof}
 
@@ -620,9 +644,35 @@ derivative
 \end{lemma}
 \begin{proof}
   \leanok
-The formal theorem invokes the existing Gaussian integration-by-parts derivative theorem for the
-trigonometric path and substitutes the covariance hypothesis pointwise.  It deliberately applies
-to arbitrary finite Gaussian fields, so the SK covariance calculation is only one specialization.
+Write $C(\sigma,\tau)=\operatorname{Cov}(X_\sigma,X_\tau)$, $D(\sigma,\tau)=\operatorname{Cov}(Y_\sigma,Y_\tau)$, $V=D-C$, and along the path
+\[
+W_\sigma(s)=\cos s\,X_\sigma+\sin s\,Y_\sigma+h_\sigma,\quad
+W'_\sigma(s)=-\sin s\,X_\sigma+\cos s\,Y_\sigma,\quad
+w_\sigma=\frac{e^{W_\sigma}}{\sum_\tau e^{W_\tau}},
+\]
+so that $Z_s=\sum_\sigma e^{W_\sigma}$ and $\langle f\rangle_s=\sum_\sigma w_\sigma f(\sigma)$.
+
+\emph{Step 1 (chain rule for fixed disorder).} $\frac{d}{ds}\log Z_s=\sum_\sigma w_\sigma W'_\sigma$.
+Differentiation under $\mathbb{E}$ is justified by Lemma~\ref{lem:sg-tal:path-derivative} (the integrand has exponential growth), so $\frac{d}{ds}\mathbb{E}\log Z_s=\sum_\sigma\mathbb{E}[w_\sigma W'_\sigma]$.
+
+\emph{Step 2 (Gaussian integration by parts).} $W'_\sigma$ and $W_\tau-h_\tau$ are centered and jointly Gaussian, so for a smooth function $G$ of the vector $(W_\tau)_\tau$ of moderate growth, $\mathbb{E}[W'_\sigma G]=\sum_\tau\mathbb{E}[W'_\sigma W_\tau]\,\mathbb{E}[\partial_\tau G]$. Since $X$ and $Y$ are independent,
+\[
+\mathbb{E}[W'_\sigma W_\tau]=-\sin s\cos s\,C(\sigma,\tau)+\cos s\sin s\,D(\sigma,\tau)=\sin s\cos s\;V(\sigma,\tau).
+\]
+Apply this to $G=w_\sigma$, for which $\partial_\tau w_\sigma=w_\sigma(\delta_{\sigma\tau}-w_\tau)$.
+
+\emph{Step 3 (sum over $\sigma$).}
+\[
+\frac{d}{ds}\mathbb{E}\log Z_s=\sin s\cos s\sum_{\sigma,\tau}V(\sigma,\tau)\,\mathbb{E}\big[w_\sigma\delta_{\sigma\tau}-w_\sigma w_\tau\big]
+=\sin s\cos s\Big(\mathbb{E}\langle V(\sigma,\sigma)\rangle_s-\mathbb{E}\langle V(\sigma^1,\sigma^2)\rangle_s\Big),
+\]
+where $\langle f(\sigma^1,\sigma^2)\rangle_s=\sum_{\sigma^1,\sigma^2}w_{\sigma^1}w_{\sigma^2}f(\sigma^1,\sigma^2)$ is the average over two independent replicas.
+
+\emph{Step 4 (insert the hypothesis).} $V=-(C-D)$, so by hypothesis $V(\sigma,\tau)=-\frac{N\beta^2}{2}\big((r-q)^2-q^2-\frac1N\big)$ with $r=r(\sigma,\tau)$. For $r(\sigma,\sigma)=1$ and $r=r(\sigma^1,\sigma^2)$ the terms $-q^2-\frac1N$ cancel in the difference:
+\[
+V(\sigma,\sigma)-V(\sigma^1,\sigma^2)=\frac{N\beta^2}{2}\Big((r(\sigma^1,\sigma^2)-q)^2-(1-q)^2\Big).
+\]
+Dividing by $N$ (the normalization of $\varphi$) gives the displayed derivative. The lemma applies to arbitrary finite Gaussian fields, so the SK covariance calculation is only one specialization.
 The SK instance (Theorem~\ref{thm:sg-tal:smart-path-deriv}) is obtained by realizing the pair field and the cavity field as a jointly Gaussian pair.
 \end{proof}
 
@@ -643,9 +693,13 @@ then
 \end{lemma}
 \begin{proof}
   \leanok
-The formal proof applies Mathlib's monotonicity theorem to
-$\phi(s)+\frac{\beta^2}{4}(1-q)^2\sin^2 s$ on $[0,\pi/2]$.
-The derivative is $\frac{\beta^2}{2}\sin s\cos s\,A(s)$, which is nonnegative.
+Put $\psi(s)=\phi(s)+\frac{\beta^2}{4}(1-q)^2\sin^2 s$. Since $\frac{d}{ds}\sin^2 s=2\sin s\cos s$,
+\[
+\psi'(s)=\frac{\beta^2}{2}\sin s\cos s\,\big(A(s)-(1-q)^2\big)+\frac{\beta^2}{2}(1-q)^2\sin s\cos s
+=\frac{\beta^2}{2}\sin s\cos s\,A(s)\ \ge 0
+\]
+on $[0,\pi/2]$, where $\sin s\cos s\ge0$ and $A\ge0$. So $\psi$ is monotone on $[0,\pi/2]$ (Mathlib's \texttt{monotoneOn\_of\_deriv\_nonneg}), hence $\psi(0)\le\psi(\pi/2)$, i.e.\ $\phi(0)\le\phi(\pi/2)+\frac{\beta^2}{4}(1-q)^2$ because $\sin^2 0=0$, $\sin^2\frac\pi2=1$.
+Equivalently, integrating $\phi'(s)\le\frac{\beta^2}{2}(1-q)^2\sin s\cos s$ over $[0,\pi/2]$ and using $\int_0^{\pi/2}\sin s\cos s\,ds=\frac12$ gives the same bound; the trick $\psi$ avoids integrating.
 \end{proof}
 
 
@@ -658,12 +712,16 @@ Let $N\ge1$, $\beta,h\in\mathbb R$, $q\ge0$. The function $\varphi(s) = N^{-1}\m
 \[
 \varphi'(s) = \frac{\beta^2}{2}\sin s\cos s\,\Big(A(s) - (1 - q)^2\Big),\qquad A(s)=\mathbb{E}\big[\langle (R_{1,2} - q)^2 \rangle_s\big]\ge0,
 \]
-and $\varphi(0)$ is the SK free energy $p_N(\beta,h)$, $\varphi(\pi/2)=\log 2+\mathbb{E}[\log\cosh(\beta z\sqrt q+h)]$. In particular $\varphi'(s) \le \frac{\beta^2}{2}\sin s\cos s\,(1 - q)^2$ for all $s \in [0, \pi/2]$.
+and $\varphi(0)$ is the SK free energy $p_N(\beta,h)$, $\varphi(\pi/2)=\log 2+\mathbb{E}[\log\cosh(\beta z\sqrt q+h)]$. In particular $\varphi'(s) \ge -\frac{\beta^2}{2}\sin s\cos s\,(1 - q)^2$ for all $s \in [0, \pi/2]$.
 \end{theorem}
 \begin{proof}
   \leanok
 By Gaussian integration by parts along the path $\cos s\,X+\sin s\,Y+h$ the derivative is $\frac{\sin s\cos s}{N}\,\big(\mathbb{E}[\langle V(\sigma,\sigma)\rangle_s] - \mathbb{E}[\langle V(\sigma^1,\sigma^2)\rangle_s]\big)$ with $V=\mathbb{E}[YY]-\mathbb{E}[XX]$ (Lemma~\ref{lem:sg-tal:trig-smart-path-derivative}).
-Substituting the expressions from Lemma~\ref{lem:sg-tal:path-covariance-algebra}, the $-q^2 - 1/N$ terms cancel, leaving the displayed formula. The book's form of this statement in the variable $t=\cos^2 s$ is recorded in Remark~\ref{rem:sg-tal:book-path}.
+For the SK fields, Lemma~\ref{lem:sg-tal:path-covariance-algebra} gives $V(\sigma,\tau)=-\frac{N\beta^2}{2}\big((R(\sigma,\tau)-q)^2-q^2-\frac1N\big)$. Hence $V(\sigma,\sigma)=-\frac{N\beta^2}{2}\big((1-q)^2-q^2-\frac1N\big)$, the terms $-q^2-1/N$ cancel in the difference, and
+\[
+\varphi'(s)=\frac{\sin s\cos s}{N}\cdot\frac{N\beta^2}{2}\,\mathbb{E}\big\langle (R_{1,2}-q)^2-(1-q)^2\big\rangle_s,
+\]
+which is the displayed formula, since $\mathbb{E}\langle(1-q)^2\rangle_s=(1-q)^2$ ($\langle\cdot\rangle_s$ is a probability measure). The term $A(s)\ge0$ is the Gibbs average of a square. The book's form of this statement in the variable $t=\cos^2 s$ is recorded in Remark~\ref{rem:sg-tal:book-path}.
 Formalized in \texttt{SpinGlasses/SKSmartPathProfile.lean}.
 \end{proof}
 
@@ -685,10 +743,34 @@ where $z \sim \mathcal{N}(0, 1)$.
 \end{theorem}
 \begin{proof}
 \leanok
-In Lean the interpolation runs along the trigonometric path $s\mapsto\cos s\,X+\sin s\,Y+h$, $s\in[0,\pi/2]$, with $X$ the SK field and $Y$ the cavity field on the product space of the two independent disorders (jointly Gaussian by
-\texttt{HasGaussianLaw.sumElim\_prod\_of\_independent}, which allows different index types for the two fields). By Lemma~\ref{lem:sg-tal:trig-smart-path-derivative} the derivative of
-$\varphi(s)=N^{-1}\mathbb{E}[\log Z_s]$ is $\frac{\beta^2}{2}\sin s\cos s\,(A(s)-(1-q)^2)$ with $A(s)=\mathbb{E}[\langle (R_{1,2}-q)^2\rangle_s]\ge0$ (the expectation of a square under a product of two probability measures), so Lemma~\ref{lem:sg-tal:trig-rs-endpoint} gives
-$\varphi(0)\le\varphi(\pi/2)+\frac{\beta^2}{4}(1-q)^2$. At $s=0$ one has the SK free energy $p_N(\beta,h)$; at $s=\pi/2$ the system is decoupled with field $Y_i=\beta z_i\sqrt q+h$, so $\varphi(\pi/2)=\log 2+\mathbb{E}[\log\cosh(\beta z\sqrt q+h)]$ by Theorem~\ref{thm:sg-tal:decoupled-partition}.
+The idea: compare the SK free energy ($s=0$) with the decoupled free energy ($s=\pi/2$), whose value is explicit, by showing that the free energy changes along the path by at most $\frac{\beta^2}{4}(1-q)^2$. In Lean the path is $s\mapsto\cos s\,X+\sin s\,Y+h$, $s\in[0,\pi/2]$, with $X_\sigma=\frac{\beta}{\sqrt N}\sum_{i<j}g_{ij}\sigma_i\sigma_j$ the SK field and $Y_\sigma=\beta\sqrt q\sum_iz_i\sigma_i$ the cavity field, on the product space of the two independent disorders (jointly Gaussian by
+\texttt{HasGaussianLaw.sumElim\_prod\_of\_independent}, which allows different index types for the two fields). Write $\varphi(s)=N^{-1}\mathbb{E}[\log Z_s]$, $Z_s=\sum_\sigma\exp(-H_s(\sigma))$, and $R_{1,2}=N^{-1}\sum_i\sigma^1_i\sigma^2_i$.
+
+\emph{Step 1: covariances.} For Ising configurations $\sigma,\tau$ with overlap $R=R(\sigma,\tau)$,
+\[
+\mathbb{E}[X_\sigma X_\tau]=\frac{N\beta^2}{2}\Big(R^2-\frac1N\Big)\quad(\text{Lemma~\ref{lem:sg-tal:pair-covariance}}),\qquad
+\mathbb{E}[Y_\sigma Y_\tau]=\beta^2 q\,N R\quad(\text{Lemma~\ref{lem:sg-tal:decoupled-covariance}}).
+\]
+
+\emph{Step 2: the derivative.} Gaussian integration by parts (Lemma~\ref{lem:sg-tal:trig-smart-path-derivative}) turns $\varphi'(s)$ into
+$\sin s\cos s\,N^{-1}\big(\mathbb{E}\langle V(\sigma,\sigma)\rangle_s-\mathbb{E}\langle V(\sigma^1,\sigma^2)\rangle_s\big)$ with $V=\mathbb{E}[YY]-\mathbb{E}[XX]$. By Step 1,
+$V(\sigma,\tau)=-\frac{N\beta^2}{2}\big((R(\sigma,\tau)-q)^2-q^2-\frac1N\big)$ (Lemma~\ref{lem:sg-tal:path-covariance-algebra}); the terms $-q^2-\frac1N$ cancel between $V(\sigma,\sigma)$ ($R=1$) and $V(\sigma^1,\sigma^2)$, so
+\[
+\varphi'(s)=\frac{\beta^2}{2}\sin s\cos s\,\Big(A(s)-(1-q)^2\Big),\qquad A(s)=\mathbb{E}\big\langle(R_{1,2}-q)^2\big\rangle_s\ge0 .
+\]
+$A(s)\ge0$ because it is the expectation of a Gibbs average of a square (a probability measure, the product of two copies of the Gibbs measure). This is the point of the smart path: the unknown overlap enters only through the nonnegative term $A(s)$.
+
+\emph{Step 3: discard the unknown term.} Since $A(s)\ge0$ and $\sin s\cos s\ge0$ on $[0,\pi/2]$, Step 2 gives the lower bound $\varphi'(s)\ge-\frac{\beta^2}{2}(1-q)^2\sin s\cos s$. Integrating over $[0,\pi/2]$, with $\int_0^{\pi/2}\sin s\cos s\,ds=\frac12$, gives $\varphi(\pi/2)-\varphi(0)\ge-\frac{\beta^2}{4}(1-q)^2$, i.e.
+\[
+\varphi(0)\le\varphi(\pi/2)+\frac{\beta^2}{4}(1-q)^2 .
+\]
+Lean avoids the integral (Lemma~\ref{lem:sg-tal:trig-rs-endpoint}): the function $\psi(s)=\varphi(s)+\frac{\beta^2}{4}(1-q)^2\sin^2 s$ has $\psi'(s)=\frac{\beta^2}{2}\sin s\cos s\,A(s)\ge0$, so it is monotone and $\psi(0)\le\psi(\pi/2)$. The bound is explicit because $\varphi(\pi/2)$ and the correction $\frac{\beta^2}{4}(1-q)^2$ are explicit. What is thrown away is exactly $\int_0^{\pi/2}\frac{\beta^2}{2}\sin s\cos s\,A(s)\,ds\ge0$, which is small when the overlap $R_{1,2}$ concentrates near $q$; this is why the best choice of $q$ is the solution of the self-consistency equation (Remark~\ref{rem:sg-tal:fixed-point-scope}).
+
+\emph{Step 4: the endpoints.} At $s=0$, $\varphi(0)=p_N(\beta,h)$. At $s=\pi/2$ the Hamiltonian is $-H(\sigma)=\sum_i\sigma_iY_i$ with $Y_i=\beta\sqrt q\,z_i+h$, so $Z=\prod_i\big(e^{Y_i}+e^{-Y_i}\big)=\prod_i2\cosh Y_i$ (Theorem~\ref{thm:sg-tal:decoupled-partition}) and
+\[
+\varphi(\pi/2)=\frac1N\sum_{i\le N}\mathbb{E}\big[\log2+\log\cosh(\beta\sqrt q\,z_i+h)\big]=\log2+\mathbb{E}\log\cosh(\beta z\sqrt q+h),
+\]
+the $z_i$ being identically distributed. Inserting these values into the inequality of Step 3 gives the theorem.
 Formalized in \texttt{SpinGlasses/SKGuerraBound.lean} (the free energy profile along the path is \texttt{SKSmartPathProfile.lean}).
 \end{proof}
 
