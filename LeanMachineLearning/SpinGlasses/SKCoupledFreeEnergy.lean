@@ -224,35 +224,11 @@ theorem convexOn_skCoupledFreeEnergy (M : ℕ) (β h : ℝ) :
     funext s
     simp only [skCoupledFreeEnergy, skCoupledPartition_eq hE hb]
   rw [hfun]
-  refine ⟨convex_univ, fun s _ t _ θ₁ θ₂ h₁ h₂ h12 => ?_⟩
-  have := hc.2 (Set.mem_univ s) (Set.mem_univ t) h₁ h₂ h12
-  simp only [smul_eq_mul] at this ⊢
-  have hM : 0 ≤ (M : ℝ)⁻¹ := inv_nonneg.2 (Nat.cast_nonneg M)
-  have h2 := mul_le_mul_of_nonneg_left (sub_le_sub_right this
-    (∫ g : FinPairs M → ℝ, Real.log (∑ x, Real.exp (a x ⬝ᵥ g + d x + 0 * b x))
-        ∂(Measure.pi fun _ : FinPairs M => gaussianReal 0 1))) hM
-  have h3 : θ₁ * ((M : ℝ)⁻¹ * ((∫ g : FinPairs M → ℝ,
-      Real.log (∑ x, Real.exp (a x ⬝ᵥ g + d x + s * b x))
-        ∂(Measure.pi fun _ : FinPairs M => gaussianReal 0 1)) -
-      ∫ g : FinPairs M → ℝ, Real.log (∑ x, Real.exp (a x ⬝ᵥ g + d x + 0 * b x))
-        ∂(Measure.pi fun _ : FinPairs M => gaussianReal 0 1))) +
-      θ₂ * ((M : ℝ)⁻¹ * ((∫ g : FinPairs M → ℝ,
-      Real.log (∑ x, Real.exp (a x ⬝ᵥ g + d x + t * b x))
-        ∂(Measure.pi fun _ : FinPairs M => gaussianReal 0 1)) -
-      ∫ g : FinPairs M → ℝ, Real.log (∑ x, Real.exp (a x ⬝ᵥ g + d x + 0 * b x))
-        ∂(Measure.pi fun _ : FinPairs M => gaussianReal 0 1))) =
-      (M : ℝ)⁻¹ * ((θ₁ * (∫ g : FinPairs M → ℝ,
-      Real.log (∑ x, Real.exp (a x ⬝ᵥ g + d x + s * b x))
-        ∂(Measure.pi fun _ : FinPairs M => gaussianReal 0 1)) +
-      θ₂ * (∫ g : FinPairs M → ℝ,
-      Real.log (∑ x, Real.exp (a x ⬝ᵥ g + d x + t * b x))
-        ∂(Measure.pi fun _ : FinPairs M => gaussianReal 0 1))) -
-      ∫ g : FinPairs M → ℝ, Real.log (∑ x, Real.exp (a x ⬝ᵥ g + d x + 0 * b x))
-        ∂(Measure.pi fun _ : FinPairs M => gaussianReal 0 1)) := by
-    have : θ₂ = 1 - θ₁ := by linarith
-    subst this
-    ring
-  linarith
+  simpa only [smul_eq_mul, sub_eq_add_neg, Pi.add_apply] using
+    ConvexOn.smul (c := (M : ℝ)⁻¹) (inv_nonneg.2 (Nat.cast_nonneg M))
+      (hc.add_const (-(∫ g : FinPairs M → ℝ,
+        Real.log (∑ x, Real.exp (a x ⬝ᵥ g + d x + 0 * b x))
+          ∂(Measure.pi fun _ : FinPairs M => gaussianReal 0 1))))
 
 /-- The coupled partition function is positive. -/
 theorem skCoupledPartition_pos (M : ℕ) (β h lam : ℝ) (g : FinPairs M → ℝ) :
