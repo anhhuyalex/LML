@@ -9,6 +9,7 @@ public import LeanMachineLearning.SpinGlasses.SKCavityDecoupledMonomials
 public import LeanMachineLearning.SpinGlasses.SKCavityTaylor
 public import LeanMachineLearning.SpinGlasses.SKCavityReplicaPairs
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.OffDiag
+public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.LeftEigenProjection
 
 /-!
 # Cavity covariance equations and the AT matrix (Talagrand, Lemma 1.8.2 & Eqs. 1.230–1.236)
@@ -531,31 +532,10 @@ theorem sk_at_system_dot_eigenvector_one (b2 b1 b0 q qhat M : ℝ)
       (1 - 2 * q + qhat) / M +
         (b2 - 2 * b1 + b0) * (skAtEigenvectorOne ⬝ᵥ v) +
         (skAtEigenvectorOne ⬝ᵥ R) := by
-  have h0 : v 0 = (skAtSource q qhat M + skAtMatrix b2 b1 b0 *ᵥ v + R) 0 :=
-    congr_fun hsys 0
-  have h1 : v 1 = (skAtSource q qhat M + skAtMatrix b2 b1 b0 *ᵥ v + R) 1 :=
-    congr_fun hsys 1
-  have h2 : v 2 = (skAtSource q qhat M + skAtMatrix b2 b1 b0 *ᵥ v + R) 2 :=
-    congr_fun hsys 2
-  dsimp [skAtSource] at h0 h1 h2
-  rw [sk_at_matrix_mulVec_zero] at h0
-  rw [sk_at_matrix_mulVec_one] at h1
-  rw [sk_at_matrix_mulVec_two] at h2
-  dsimp [skAtRowZero] at h0
-  dsimp [skAtRowOne] at h1
-  dsimp [skAtRowTwo] at h2
-  have hdotv : skAtEigenvectorOne ⬝ᵥ v = v 0 - 2 * v 1 + v 2 := by
-    change ∑ i : Fin 3, skAtEigenvectorOne i * v i = _
-    rw [Fin.sum_univ_three]
-    change 1 * v 0 + (-2) * v 1 + 1 * v 2 = _
-    ring
-  have hdotR : skAtEigenvectorOne ⬝ᵥ R = R 0 - 2 * R 1 + R 2 := by
-    change ∑ i : Fin 3, skAtEigenvectorOne i * R i = _
-    rw [Fin.sum_univ_three]
-    change 1 * R 0 + (-2) * R 1 + 1 * R 2 = _
-    ring
-  rw [hdotv, hdotR]
-  linear_combination h0 - 2 * h1 + h2
+  have h := Matrix.dotProduct_system_of_transpose_eigenvector _ skAtEigenvectorOne v _ R _
+    (sk_at_matrix_transpose_mulVec_one b2 b1 b0) hsys
+  rw [sk_at_source_dot_eigenvector_one] at h
+  exact h
 
 /-- **Eigenvector decoupling for the second mode `U - 4V + 3W`:**
 Taking the inner product of `v = S + M *ᵥ v + R` with the transposed eigenvector `v₂ = (1, -4, 3)`
@@ -567,31 +547,10 @@ theorem sk_at_system_dot_eigenvector_two (b2 b1 b0 q qhat M : ℝ)
       (1 - 4 * q + 3 * qhat) / M +
         (b2 - 4 * b1 + 3 * b0) * (skAtEigenvectorTwo ⬝ᵥ v) +
         (skAtEigenvectorTwo ⬝ᵥ R) := by
-  have h0 : v 0 = (skAtSource q qhat M + skAtMatrix b2 b1 b0 *ᵥ v + R) 0 :=
-    congr_fun hsys 0
-  have h1 : v 1 = (skAtSource q qhat M + skAtMatrix b2 b1 b0 *ᵥ v + R) 1 :=
-    congr_fun hsys 1
-  have h2 : v 2 = (skAtSource q qhat M + skAtMatrix b2 b1 b0 *ᵥ v + R) 2 :=
-    congr_fun hsys 2
-  dsimp [skAtSource] at h0 h1 h2
-  rw [sk_at_matrix_mulVec_zero] at h0
-  rw [sk_at_matrix_mulVec_one] at h1
-  rw [sk_at_matrix_mulVec_two] at h2
-  dsimp [skAtRowZero] at h0
-  dsimp [skAtRowOne] at h1
-  dsimp [skAtRowTwo] at h2
-  have hdotv : skAtEigenvectorTwo ⬝ᵥ v = v 0 - 4 * v 1 + 3 * v 2 := by
-    change ∑ i : Fin 3, skAtEigenvectorTwo i * v i = _
-    rw [Fin.sum_univ_three]
-    change 1 * v 0 + (-4) * v 1 + 3 * v 2 = _
-    ring
-  have hdotR : skAtEigenvectorTwo ⬝ᵥ R = R 0 - 4 * R 1 + 3 * R 2 := by
-    change ∑ i : Fin 3, skAtEigenvectorTwo i * R i = _
-    rw [Fin.sum_univ_three]
-    change 1 * R 0 + (-4) * R 1 + 3 * R 2 = _
-    ring
-  rw [hdotv, hdotR]
-  linear_combination h0 - 4 * h1 + 3 * h2
+  have h := Matrix.dotProduct_system_of_transpose_eigenvector _ skAtEigenvectorTwo v _ R _
+    (sk_at_matrix_transpose_mulVec_two b2 b1 b0) hsys
+  rw [sk_at_source_dot_eigenvector_two] at h
+  exact h
 
 /-- **Closed-form evaluation of the first decoupled mode `U - 2V + W`:**
 When `λ₁ = b(2) - 2 b(1) + b(0) ≠ 1`, the decoupled combination satisfies:

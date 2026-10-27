@@ -1948,6 +1948,66 @@ theorem at_error_bound {a b' w D₁ D₂ b₀ g R₀ R₁ R₂ E : ℝ} (hD₁ :
   rw [hw]; exact (abs_div_le_four_thirds hD₂ hnumW).trans (by linarith)
 
 
+/-- **Exact reconstruction of the covariance system (shared by the high-temperature and the
+beyond-AT solvers).**  If `U, V, W` solve the three covariance equations with errors `R₀, R₁, R₂`
+and `D₁ = 1 - β² c₂`, `D₂ = 1 - β² d` are nonzero, then with `A2 = c₂/(M D₁)`,
+`B2 = (q - q̂)/(M D₁ D₂)` and `C2` as in `sk_at_scalar_solution`, the deviations of
+`U - 2V + W`, `V - W` and `W` from `A2`, `B2`, `C2` are given exactly by the displayed fractions of
+the errors.  No size assumption on `D₁`, `D₂` and no bound on the errors enter. -/
+theorem sk_at_exact_errors {β q qhat M U V W R₀ R₁ R₂ c₂ d D₁ D₂ A2 B2 C2 : ℝ} (hM : M ≠ 0)
+    (hc₂ : c₂ = 1 - 2 * q + qhat) (hd : d = 1 - 4 * q + 3 * qhat)
+    (hD₁ : D₁ = 1 - β ^ 2 * c₂) (hD₂ : D₂ = 1 - β ^ 2 * d) (hD₁0 : D₁ ≠ 0) (hD₂0 : D₂ ≠ 0)
+    (hA2 : A2 = c₂ / (M * D₁)) (hB2 : B2 = (q - qhat) / (M * D₁ * D₂))
+    (hC2 : C2 = ((qhat - q ^ 2) / M + β ^ 2 * (qhat - q ^ 2) * A2 +
+      2 * β ^ 2 * (2 * q + q ^ 2 - 3 * qhat) * B2) / D₂)
+    (h₀ : U = (1 - q ^ 2) / M + (β ^ 2 * (1 - q ^ 2) * U - 4 * (β ^ 2 * (q - q ^ 2)) * V +
+      3 * (β ^ 2 * (qhat - q ^ 2)) * W) + R₀)
+    (h₁ : V = (q - q ^ 2) / M + (β ^ 2 * (q - q ^ 2) * U +
+      (β ^ 2 * (1 - q ^ 2) - 2 * (β ^ 2 * (q - q ^ 2)) - 3 * (β ^ 2 * (qhat - q ^ 2))) * V +
+      (6 * (β ^ 2 * (qhat - q ^ 2)) - 3 * (β ^ 2 * (q - q ^ 2))) * W) + R₁)
+    (h₂ : W = (qhat - q ^ 2) / M + (β ^ 2 * (qhat - q ^ 2) * U +
+      (4 * (β ^ 2 * (q - q ^ 2)) - 8 * (β ^ 2 * (qhat - q ^ 2))) * V +
+      (β ^ 2 * (1 - q ^ 2) - 8 * (β ^ 2 * (q - q ^ 2)) + 10 * (β ^ 2 * (qhat - q ^ 2))) * W) +
+      R₂) :
+    (U - 2 * V + W) - A2 = (R₀ - 2 * R₁ + R₂) / D₁ ∧
+      (V - W) - B2 = ((R₀ - 2 * R₁ + R₂) / D₁ - (R₀ - 4 * R₁ + 3 * R₂) / D₂) / 2 ∧
+      W - C2 = (β ^ 2 * (qhat - q ^ 2) * ((U - 2 * V + W) - A2) +
+        2 * β ^ 2 * (2 * q + q ^ 2 - 3 * qhat) * ((V - W) - B2) + R₂) / D₂ := by
+  have div_sol : ∀ {D x y ρ : ℝ}, D ≠ 0 → D * x = y + ρ → x - y / D = ρ / D :=
+    fun {D x y ρ} hD h' => by field_simp; linarith
+  have e1 : D₁ * (U - 2 * V + W) = c₂ / M + (R₀ - 2 * R₁ + R₂) := by
+    rw [hD₁, hc₂]
+    linear_combination h₀ - 2 * h₁ + h₂
+  have e2 : D₂ * (U - 4 * V + 3 * W) = d / M + (R₀ - 4 * R₁ + 3 * R₂) := by
+    rw [hD₂, hd]
+    linear_combination h₀ - 4 * h₁ + 3 * h₂
+  have e3 : D₂ * W = (qhat - q ^ 2) / M + β ^ 2 * (qhat - q ^ 2) * (U - 2 * V + W) +
+      2 * β ^ 2 * (2 * q + q ^ 2 - 3 * qhat) * (V - W) + R₂ := by
+    rw [hD₂, hd]
+    linear_combination h₂
+  have hαA : (U - 2 * V + W) - A2 = (R₀ - 2 * R₁ + R₂) / D₁ := by
+    have := div_sol hD₁0 e1
+    rwa [div_div, ← hA2] at this
+  have hγA : (U - 4 * V + 3 * W) - d / (M * D₂) = (R₀ - 4 * R₁ + 3 * R₂) / D₂ := by
+    have := div_sol hD₂0 e2
+    rwa [div_div] at this
+  have hB2' : (A2 - d / (M * D₂)) / 2 = B2 := by
+    have hnum : c₂ * D₂ - d * D₁ = 2 * (q - qhat) := by
+      rw [hD₁, hD₂, hc₂, hd]; ring
+    have := frac_sub_half c₂ d D₁ D₂ M (2 * (q - qhat)) hM hD₁0 hD₂0 hnum
+    rw [hA2, this, hB2]
+    field_simp
+  have hBB : (V - W) - B2 = ((R₀ - 2 * R₁ + R₂) / D₁ - (R₀ - 4 * R₁ + 3 * R₂) / D₂) / 2 := by
+    rw [← hB2']
+    linarith only [hαA, hγA]
+  refine ⟨hαA, hBB, ?_⟩
+  have := div_sol (D := D₂) (x := W) (y := (qhat - q ^ 2) / M +
+    β ^ 2 * (qhat - q ^ 2) * A2 + 2 * β ^ 2 * (2 * q + q ^ 2 - 3 * qhat) * B2)
+    (ρ := β ^ 2 * (qhat - q ^ 2) * ((U - 2 * V + W) - A2) +
+      2 * β ^ 2 * (2 * q + q ^ 2 - 3 * qhat) * ((V - W) - B2) + R₂) hD₂0
+    (by linear_combination e3)
+  rwa [← hC2] at this
+
 /-- **Solving the covariance system (the algebra of Theorem 1.8.12).**  Let
 `U = (1 - q²)/M + b(2) U - 4 b(1) V + 3 b(0) W + R₀`, ... be the three covariance equations with
 `b(c) = β² (𝔼 tanh^{4-2c} - q²)`, `|R_i| ≤ E`, `4 β² < 1`, `0 ≤ q̂ ≤ q ≤ 1`.
@@ -1989,47 +2049,12 @@ theorem sk_at_scalar_solution (β q qhat M U V W R₀ R₁ R₂ E : ℝ) (hM : 0
     nlinarith only [hb2, hb0, hq0, hq1, hqh0, hqhq]
   have hD₁0 : 0 < D₁ := by linarith
   have hD₂0 : 0 < D₂ := by linarith
-  have div_sol : ∀ {D x y ρ : ℝ}, D ≠ 0 → D * x = y + ρ → x - y / D = ρ / D :=
-    fun {D x y ρ} hD h' => by field_simp; linarith
+  obtain ⟨hαA, hBB, hWC⟩ := sk_at_exact_errors (β := β) (q := q) (qhat := qhat) (M := M)
+    (hM.ne') rfl rfl rfl rfl hD₁0.ne' hD₂0.ne' rfl rfl rfl h₀ h₁ h₂
   set α : ℝ := U - 2 * V + W with hα
-  set γ : ℝ := U - 4 * V + 3 * W with hγ
   set B : ℝ := V - W with hB
-  have e1 : D₁ * α = c₂ / M + (R₀ - 2 * R₁ + R₂) := by
-    change (1 - β ^ 2 * (1 - 2 * q + qhat)) * (U - 2 * V + W) = (1 - 2 * q + qhat) / M +
-      (R₀ - 2 * R₁ + R₂)
-    linear_combination h₀ - 2 * h₁ + h₂
-  have e2 : D₂ * γ = d / M + (R₀ - 4 * R₁ + 3 * R₂) := by
-    change (1 - β ^ 2 * (1 - 4 * q + 3 * qhat)) * (U - 4 * V + 3 * W) = (1 - 4 * q + 3 * qhat) / M +
-      (R₀ - 4 * R₁ + 3 * R₂)
-    linear_combination h₀ - 4 * h₁ + 3 * h₂
   set b0 : ℝ := β ^ 2 * (qhat - q ^ 2) with hb0def
   set g : ℝ := 2 * β ^ 2 * (2 * q + q ^ 2 - 3 * qhat) with hg
-  have e3 : D₂ * W = (qhat - q ^ 2) / M + b0 * α + g * B + R₂ := by
-    change (1 - β ^ 2 * (1 - 4 * q + 3 * qhat)) * W = (qhat - q ^ 2) / M +
-      β ^ 2 * (qhat - q ^ 2) * (U - 2 * V + W) +
-      2 * β ^ 2 * (2 * q + q ^ 2 - 3 * qhat) * (V - W) + R₂
-    linear_combination h₂
-  have hαA : α - A2 = (R₀ - 2 * R₁ + R₂) / D₁ := by
-    have := div_sol hD₁0.ne' e1
-    simpa [A2, div_div] using this
-  have hγA : γ - d / (M * D₂) = (R₀ - 4 * R₁ + 3 * R₂) / D₂ := by
-    have := div_sol hD₂0.ne' e2
-    simpa [div_div] using this
-  have hαγ : α - γ = 2 * B := by simp only [hα, hγ, hB]; ring
-  have hB2 : (A2 - d / (M * D₂)) / 2 = B2 := by
-    have hnum : c₂ * D₂ - d * D₁ = 2 * (q - qhat) := by
-      simp only [D₁, D₂, c₂, d]; ring
-    have := frac_sub_half c₂ d D₁ D₂ M (2 * (q - qhat)) hM.ne' hD₁0.ne' hD₂0.ne' hnum
-    rw [show A2 = c₂ / (M * D₁) from rfl, this]
-    simp only [B2]
-    field_simp
-  have hBB : B - B2 = ((R₀ - 2 * R₁ + R₂) / D₁ - (R₀ - 4 * R₁ + 3 * R₂) / D₂) / 2 := by
-    rw [← hB2]
-    linarith only [hαγ, hαA, hγA]
-  have hWC : W - C2 = (b0 * (α - A2) + g * (B - B2) + R₂) / D₂ := by
-    have := div_sol (D := D₂) (x := W) (y := (qhat - q ^ 2) / M + b0 * A2 + g * B2)
-      (ρ := b0 * (α - A2) + g * (B - B2) + R₂) hD₂0.ne' (by linear_combination e3)
-    simpa [C2, hb0def, hg] using this
   have hb0' : |b0| ≤ 1 / 4 := by
     rw [hb0def, abs_mul, abs_of_nonneg hb0]
     have : |qhat - q ^ 2| ≤ 1 := by
