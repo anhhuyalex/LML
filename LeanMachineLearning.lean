@@ -391,6 +391,7 @@ public import LeanMachineLearning.SpinGlasses.GaussianIBPCountable
 public import LeanMachineLearning.SpinGlasses.GaussianInterpolationConditional
 public import LeanMachineLearning.SpinGlasses.GaussianInterpolationReplica
 public import LeanMachineLearning.SpinGlasses.GaussianProjectionPath
+public import LeanMachineLearning.SpinGlasses.GaussianTiltedFreeEnergy
 public import LeanMachineLearning.SpinGlasses.GibbsCavityDeviation
 public import LeanMachineLearning.SpinGlasses.GibbsCentering
 public import LeanMachineLearning.SpinGlasses.GibbsFluctuationMoment
@@ -467,6 +468,7 @@ public import LeanMachineLearning.SpinGlasses.SKCavityReplicaPairs
 public import LeanMachineLearning.SpinGlasses.SKCavityTaylor
 public import LeanMachineLearning.SpinGlasses.SKCorrelationDecay
 public import LeanMachineLearning.SpinGlasses.SKCoupledFreeEnergy
+public import LeanMachineLearning.SpinGlasses.SKCoupledSeparation
 public import LeanMachineLearning.SpinGlasses.SKCovarianceAsymptotics
 public import LeanMachineLearning.SpinGlasses.SKCovarianceRows
 public import LeanMachineLearning.SpinGlasses.SKDecoupled

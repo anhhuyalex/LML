@@ -59,6 +59,31 @@ theorem log_sum_sum_exp_coupled_sub {α : Type*} [Fintype α] [Nonempty α] [Mea
     field_simp
   rw [hint, hZ2, Real.log_div hA.ne' (pow_pos hZ 2).ne']
 
+/-- **The Gibbs mass of a set of pairs is a two-replica probability.**  For the energy `f x + f y`
+of two independent copies, the Gibbs mass of `{(x, y) : C x y}` is the probability, for two
+independent replicas of the Gibbs measure of `f`, that `C (σ 0) (σ 1)` holds. -/
+theorem sum_filter_exp_pair_div {α : Type*} [Fintype α] [Nonempty α] [MeasurableSpace α]
+    [MeasurableSingletonClass α] (f : α → ℝ) (C : α → α → Prop) [∀ x y, Decidable (C x y)] :
+    (∑ y ∈ Finset.univ.filter (fun y : α × α => C y.1 y.2), Real.exp (f y.1 + f y.2)) /
+        ∑ y : α × α, Real.exp (f y.1 + f y.2) =
+      ∫ σ : Fin 2 → α, (if C (σ 0) (σ 1) then (1 : ℝ) else 0)
+        ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted f) := by
+  have hZ : 0 < ∑ b, Real.exp (f b) := Finset.sum_pos (fun b _ => Real.exp_pos _)
+    Finset.univ_nonempty
+  rw [integral_pi_fin_two_count_tilted f (fun x y => if C x y then (1 : ℝ) else 0),
+    Finset.sum_filter, Fintype.sum_prod_type, Finset.sum_div]
+  have hZ2 : ∑ y : α × α, Real.exp (f y.1 + f y.2) = (∑ b, Real.exp (f b)) ^ 2 := by
+    rw [Fintype.sum_prod_type, sq, Finset.sum_mul_sum]
+    simp only [Real.exp_add]
+  rw [hZ2]
+  refine Finset.sum_congr rfl fun x _ => ?_
+  rw [Finset.sum_div]
+  refine Finset.sum_congr rfl fun y _ => ?_
+  by_cases hC : C x y
+  · simp only [hC, ↓reduceIte, mul_one, Real.exp_add]
+    field_simp
+  · simp [hC]
+
 section SK
 
 /-- **The coupled partition function** `Z_{N,λ}` of two SK systems with the same disorder `g`
@@ -247,12 +272,11 @@ theorem skCoupledOverlapMean_zero_nonneg (M : ℕ) (β h : ℝ) :
       ∑ i, (∑ σ : Fin M → ℤˣ, ((σ i : ℤ) : ℝ) * Real.exp (skGibbsEnergy M β h g σ)) ^ 2 := by
     simp only [zero_mul, add_zero, Real.exp_add, sq, Finset.sum_mul_sum]
     simp_rw [Finset.sum_mul]
-    trace_state
-    rw [Finset.sum_comm]
+    conv_rhs => rw [Finset.sum_comm]
     refine Finset.sum_congr rfl fun σ _ => ?_
-    rw [Finset.sum_comm]
-    refine Finset.sum_congr rfl fun i _ => ?_
+    conv_rhs => rw [Finset.sum_comm]
     refine Finset.sum_congr rfl fun τ _ => ?_
+    refine Finset.sum_congr rfl fun i _ => ?_
     ring
   rw [e]
   exact Finset.sum_nonneg fun i _ => sq_nonneg _
@@ -269,6 +293,93 @@ theorem measureReal_abs_sub_integral_log_skCoupledPartition_ge_le (M : ℕ) (β 
   obtain ⟨a, d, b, hE, hb, -, hv⟩ := exists_sk_coupled_data M β h
   have := measureReal_abs_sub_integral_log_sum_exp_tilt_ge_le a d b hv lam hy
   simpa only [skCoupledPartition_eq hE hb] using this
+
+/-- **Core of Proposition 1.9.7: a non-negligible Gibbs tail forces a lower bound on `ψ_M(λ)`.**
+Let `T` be a set of pairs of configurations on which `λ ∑ᵢ σ¹ᵢ σ²ᵢ ≥ λ M x + |λ| M δ'`, carrying
+averaged two-replica Gibbs mass at least `δ' / (2 M)`.  If `M` is so large that
+`16 M exp (-(λ² δ'² / (2048 β²)) M) < δ'` (concentration beats the polynomial mass) and
+`exp (-(|λ| δ' / 8) M) ≤ δ' / (4 M)` (the entropy term `M⁻¹ log` is negligible), then
+`ψ_M(λ) > λ x + (3/4) |λ| δ'`. -/
+theorem skCoupledFreeEnergy_gt (M : ℕ) (hM : 0 < M) (β h lam x δ' : ℝ) (hβ : β ≠ 0)
+    (hlam : lam ≠ 0) (hδ : 0 < δ') (T : Finset ((Fin M → ℤˣ) × (Fin M → ℤˣ)))
+    (hT : ∀ y ∈ T, lam * M * x + |lam| * M * δ' ≤
+      lam * ∑ i, ((y.1 i : ℤ) : ℝ) * ((y.2 i : ℤ) : ℝ))
+    (hmass : δ' / (2 * M) ≤ ∫ g : FinPairs M → ℝ,
+      (∑ y ∈ T, Real.exp (skGibbsEnergy M β h g y.1 + skGibbsEnergy M β h g y.2)) /
+        (∑ y : (Fin M → ℤˣ) × (Fin M → ℤˣ),
+          Real.exp (skGibbsEnergy M β h g y.1 + skGibbsEnergy M β h g y.2))
+        ∂(Measure.pi fun _ : FinPairs M => gaussianReal 0 1))
+    (hsmall₁ : 16 * M * Real.exp (-(lam ^ 2 * δ' ^ 2 / (2048 * β ^ 2)) * M) < δ')
+    (hsmall₂ : Real.exp (-(|lam| * δ' / 8) * M) ≤ δ' / (4 * M)) :
+    lam * x + 3 / 4 * |lam| * δ' < skCoupledFreeEnergy M β h lam := by
+  obtain ⟨a, d, b, hE, hb, -, hv⟩ := exists_sk_coupled_data M β h
+  have hM' : (0 : ℝ) < M := Nat.cast_pos.2 hM
+  have hlam' : 0 < |lam| := abs_pos.2 hlam
+  set P : Measure (FinPairs M → ℝ) := Measure.pi fun _ : FinPairs M => gaussianReal 0 1 with hP
+  set e : ℝ := δ' / (2 * M) with he
+  have he0 : 0 < e := by positivity
+  have hmass' : e ≤ ∫ g, (∑ y ∈ T, Real.exp (a y ⬝ᵥ g + d y)) /
+      (∑ y, Real.exp (a y ⬝ᵥ g + d y)) ∂P := by simpa only [hE] using hmass
+  have hTne : T.Nonempty := by
+    by_contra hne
+    rw [Finset.not_nonempty_iff_eq_empty] at hne
+    subst hne
+    simp only [Finset.sum_empty, zero_div, integral_zero] at hmass'
+    linarith
+  set s : ℝ := M * |lam| * δ' / 16 with hs
+  have hs0 : 0 < s := by positivity
+  have hexp : -s ^ 2 / (4 * (2 * β ^ 2 * M)) = -(lam ^ 2 * δ' ^ 2 / (2048 * β ^ 2)) * M := by
+    have hs2 : s ^ 2 = M ^ 2 * lam ^ 2 * δ' ^ 2 / 256 := by
+      rw [hs, div_pow, mul_pow, mul_pow, sq_abs]
+      norm_num
+    rw [hs2]
+    field_simp
+    ring
+  have hcA := measureReal_abs_sub_integral_log_skCoupledPartition_ge_le M β h lam hs0.le
+  have hcB := measureReal_abs_sub_integral_log_skCoupledPartition_ge_le M β h 0 hs0.le
+  rw [hexp] at hcA hcB
+  have he2 : e / 2 = δ' / (4 * M) := by
+    rw [he]
+    field_simp
+    ring
+  have hc : 2 * (2 * Real.exp (-(lam ^ 2 * δ' ^ 2 / (2048 * β ^ 2)) * M)) < e / 2 := by
+    rw [he2, lt_div_iff₀ (by positivity)]
+    nlinarith [hsmall₁]
+  have hAB : ∀ g, e / 2 ≤ (∑ y ∈ T, Real.exp (a y ⬝ᵥ g + d y)) /
+      (∑ y, Real.exp (a y ⬝ᵥ g + d y)) → lam * M * x + |lam| * M * δ' + Real.log (e / 2) ≤
+      Real.log (skCoupledPartition M β h lam g) - Real.log (skCoupledPartition M β h 0 g) :=
+    fun g hg => by
+    have h1 := log_sum_exp_add_mul_sub_ge (fun y => a y ⬝ᵥ g + d y) b lam
+      (lam * M * x + |lam| * M * δ') T hTne (fun y hy => by rw [hb y]; exact hT y hy)
+    have h2 : Real.log (e / 2) ≤ Real.log ((∑ y ∈ T, Real.exp (a y ⬝ᵥ g + d y)) /
+        (∑ y, Real.exp (a y ⬝ᵥ g + d y))) := Real.log_le_log (by positivity) hg
+    rw [skCoupledPartition_eq hE hb, skCoupledPartition_eq hE hb]
+    simp only [zero_mul, add_zero]
+    linarith
+  have key := lt_integral_sub_of_tail (P := P)
+    (A := fun g => Real.log (skCoupledPartition M β h lam g))
+    (B := fun g => Real.log (skCoupledPartition M β h 0 g))
+    (measurable_gibbs_mass a d T) (gibbs_mass_mem_Icc a d T) he0.le hmass' hAB hcA hcB hc
+  have hlog : -(|lam| * δ' / 8) * M ≤ Real.log (e / 2) := by
+    rw [he2]
+    calc -(|lam| * δ' / 8) * M = Real.log (Real.exp (-(|lam| * δ' / 8) * M)) :=
+          (Real.log_exp _).symm
+      _ ≤ _ := Real.log_le_log (Real.exp_pos _) hsmall₂
+  unfold skCoupledFreeEnergy
+  rw [← div_eq_inv_mul, lt_div_iff₀ hM']
+  rw [hs] at key
+  nlinarith [key, hlog]
+
+/-- The Gibbs mass of a set of pairs of configurations is integrable against the disorder. -/
+theorem integrable_skCoupled_mass (M : ℕ) (β h : ℝ)
+    (T : Finset ((Fin M → ℤˣ) × (Fin M → ℤˣ))) :
+    Integrable (fun g : FinPairs M → ℝ =>
+      (∑ y ∈ T, Real.exp (skGibbsEnergy M β h g y.1 + skGibbsEnergy M β h g y.2)) /
+        ∑ y : (Fin M → ℤˣ) × (Fin M → ℤˣ),
+          Real.exp (skGibbsEnergy M β h g y.1 + skGibbsEnergy M β h g y.2))
+      (Measure.pi fun _ : FinPairs M => gaussianReal 0 1) := by
+  obtain ⟨a, d, b, hE, -, -, -⟩ := exists_sk_coupled_data M β h
+  simpa only [hE] using integrable_gibbs_mass a d T
 
 end SK
 
