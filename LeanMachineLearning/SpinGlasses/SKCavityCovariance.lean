@@ -43,6 +43,238 @@ def skCavityReplicaPairCoincidences {n : ℕ} (x y : Fin n) (j : SKCavityReplica
   skCavityCoincidences (some (some x)) (some (some y))
     (skCavityReplicaPairMap j).1 (skCavityReplicaPairMap j).2
 
+/-- **Decoupled average of a combination of pair covariance monomials.**  The linear combination
+`∑_m c_m (ε_{x m} ε_{y m} - q)` of pair covariances against `ε_a ε_b` and a function `F` of the
+old coordinates averages, at the decoupled endpoint, to `∑_m c_m b(coinc_m)` times the average of
+`F`, where `coinc_m` counts the coincidences of `{x m, y m}` with `{a, b}`. -/
+theorem sk_cavity_decoupled_endpoint_pair_cov_combo (N : ℕ) (β q h : ℝ)
+    (hfix : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂(gaussianReal 0 1) = q)
+    (qhat : ℝ)
+    (hqhat : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 4 ∂(gaussianReal 0 1) = qhat)
+    {R ι : Type*} [Fintype R] [DecidableEq R] [Fintype ι] (c : ι → ℝ) {x y : ι → R}
+    (hxy : ∀ m, x m ≠ y m) {a b : R} (hab : a ≠ b)
+    (F : (R → Fin N → ℤˣ) → ℝ) :
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
+      (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs N,
+            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
+        (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
+      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
+        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
+      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
+    (∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
+        ∫ σ : R → Fin (N + 1) → ℤˣ,
+          F (fun r i => σ r i.castSucc) *
+            ((∑ m, c m * (((σ (x m) (Fin.last N) : ℤˣ) : ℝ) *
+                ((σ (y m) (Fin.last N) : ℤˣ) : ℝ) - q)) *
+              (((σ a (Fin.last N) : ℤˣ) : ℝ) * ((σ b (Fin.last N) : ℤˣ) : ℝ)))
+          ∂(Measure.pi fun _ : R => Measure.count.tilted (E (π / 2) g' ω))
+        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) =
+    (∑ m, c m * skCavityBUnscaled q qhat (skCavityCoincidences (x m) (y m) a b)) *
+      ∫ g', ∫ ρ : R → Fin N → ℤˣ, F ρ
+        ∂(Measure.pi fun _ : R => Measure.count.tilted
+          (fun r : Fin N → ℤˣ =>
+            (Real.sqrt (N + 1))⁻¹ * β *
+              (∑ p : FinPairs N, g' p * (r p.val.1 : ℝ) * (r p.val.2 : ℝ)) +
+            h * ∑ i : Fin N, (r i : ℝ)))
+      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) := by
+  intro B E
+  have hEm (a : Fin (N + 1) → ℤˣ) :
+      Measurable (fun x : (FinPairs N → ℝ) × ((Fin N → ℝ) × ℝ) => E (π / 2) x.1 x.2 a) := by
+    dsimp [E, B]
+    fun_prop
+  let Gm : ι → (R → Fin (N + 1) → ℤˣ) → ℝ := fun m σ =>
+    F (fun r i => σ r i.castSucc) *
+      ((((σ (x m) (Fin.last N) : ℤˣ) : ℝ) * ((σ (y m) (Fin.last N) : ℤˣ) : ℝ) - q) *
+        (((σ a (Fin.last N) : ℤˣ) : ℝ) * ((σ b (Fin.last N) : ℤˣ) : ℝ)))
+  have hpt : ∀ σ : R → Fin (N + 1) → ℤˣ,
+      F (fun r i => σ r i.castSucc) *
+        ((∑ m, c m * (((σ (x m) (Fin.last N) : ℤˣ) : ℝ) *
+            ((σ (y m) (Fin.last N) : ℤˣ) : ℝ) - q)) *
+          (((σ a (Fin.last N) : ℤˣ) : ℝ) * ((σ b (Fin.last N) : ℤˣ) : ℝ))) =
+        ∑ m ∈ Finset.univ, c m * Gm m σ := fun σ => by
+    simp only [Gm, Finset.mul_sum, Finset.sum_mul]
+    refine Finset.sum_congr rfl fun m _ => ?_
+    ring
+  simp_rw [hpt]
+  rw [integral_nested_gibbs_finset_sum (Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
+    ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)) (E (π / 2)) hEm
+    Finset.univ c Gm, Finset.sum_mul]
+  refine Finset.sum_congr rfl fun m _ => ?_
+  rw [mul_assoc]
+  congr 1
+  exact sk_cavity_decoupled_endpoint_pair_cov N β q h hfix qhat hqhat (hxy m) hab F
+
+/-- **Talagrand, Lemma 1.8.2, Eq. (1.230), for a combination of pair covariances.**
+At the decoupled endpoint `t = 0` (`s = π/2`), the cavity path derivative of
+`(∑_m c_m (ε_{x m} ε_{y m} - q)) f⁻` on `n` replicas, with `x m ≠ y m`, is the weighted sum over
+the three replica families of `(∑_m c_m b(coinc_m)) ν₀(f⁻ (R⁻_{a, b} - q))`, where `coinc_m` is
+the number of coincidences of `{x m, y m}` with the family pair `{a, b}`.  Differences of pair
+covariances (Lemma 1.8.9) and single pair covariances (Lemma 1.8.2) are special cases. -/
+theorem sk_cavity_deriv_zero_pair_combo (N n : ℕ) (β q h : ℝ)
+    (hfix : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂(gaussianReal 0 1) = q)
+    (qhat : ℝ)
+    (hqhat : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 4 ∂(gaussianReal 0 1) = qhat)
+    {ι : Type*} [Fintype ι] (c : ι → ℝ) {x y : ι → Fin n} (hxy : ∀ m, x m ≠ y m)
+    (F : (Fin n → Fin N → ℤˣ) → ℝ) :
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
+      (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs N,
+            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
+        (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
+      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
+        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
+      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
+    let so : Fin n → Option (Option (Fin n)) := fun r => some (some r)
+    let f : (Option (Option (Fin n)) → Fin (N + 1) → ℤˣ) → ℝ := fun τ =>
+      F (fun r i => τ (so r) i.castSucc) *
+        ∑ m, c m * ((((τ (so (x m)) (Fin.last N) : ℤˣ) : ℝ) *
+          ((τ (so (y m)) (Fin.last N) : ℤˣ) : ℝ)) - q)
+    let K : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ := fun a b =>
+      β ^ 2 * (a (Fin.last N) : ℝ) * (b (Fin.last N) : ℝ) *
+        ((N + 1 : ℝ)⁻¹ *
+          ((fun i : Fin N => (a i.castSucc : ℝ)) ⬝ᵥ fun i : Fin N => (b i.castSucc : ℝ)) - q)
+    (∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
+        ∫ τ : Option (Option (Fin n)) → Fin (N + 1) → ℤˣ,
+          f τ *
+            ((∑ p : Fin n × Fin n with p.1 < p.2,
+                K (τ (so p.1)) (τ (so p.2))) -
+              (n : ℝ) * ∑ r : Fin n, K (τ (so r)) (τ (some none)) +
+              (n : ℝ) * ((n : ℝ) + 1) / 2 * K (τ (some none)) (τ none))
+        ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted
+          (E (π / 2) g' ω))
+        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+        ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) =
+      ∑ j : SKCavityReplicaPair n,
+        skCavityReplicaPairWeight n j *
+          ((∑ m, c m * skCavityBCoef β q qhat
+              (skCavityReplicaPairCoincidences (x m) (y m) j)) *
+            ∫ g', ∫ ρ : Option (Option (Fin n)) → Fin N → ℤˣ,
+              F (fun r => ρ (so r)) *
+                ((N + 1 : ℝ)⁻¹ *
+                  ((fun i : Fin N => (ρ (skCavityReplicaPairMap j).1 i : ℝ)) ⬝ᵥ
+                    fun i : Fin N => (ρ (skCavityReplicaPairMap j).2 i : ℝ)) - q)
+              ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted
+                (fun r : Fin N → ℤˣ =>
+                  (Real.sqrt (N + 1))⁻¹ * β *
+                    (∑ p : FinPairs N, g' p * (r p.val.1 : ℝ) * (r p.val.2 : ℝ)) +
+                  h * ∑ i : Fin N, (r i : ℝ)))
+              ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) := by
+  intro B E so f K
+  have hEm (a : Fin (N + 1) → ℤˣ) :
+      Measurable (fun x : (FinPairs N → ℝ) × ((Fin N → ℝ) × ℝ) => E (π / 2) x.1 x.2 a) := by
+    dsimp [E, B]
+    fun_prop
+  let Gab : Option (Option (Fin n)) → Option (Option (Fin n)) →
+      (Option (Option (Fin n)) → Fin N → ℤˣ) → ℝ := fun a b ρ =>
+    F (fun r => ρ (so r)) * (β ^ 2 * ((N + 1 : ℝ)⁻¹ *
+      ((fun i : Fin N => (ρ a i : ℝ)) ⬝ᵥ fun i : Fin N => (ρ b i : ℝ)) - q))
+  have hT : ∀ a b : Option (Option (Fin n)), a ≠ b →
+      (∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
+        ∫ τ : Option (Option (Fin n)) → Fin (N + 1) → ℤˣ,
+          f τ * K (τ a) (τ b)
+        ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted
+          (E (π / 2) g' ω))
+        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+        ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) =
+      (∑ m, c m * skCavityBUnscaled q qhat
+          (skCavityCoincidences (so (x m)) (so (y m)) a b)) *
+        ∫ g', ∫ ρ : Option (Option (Fin n)) → Fin N → ℤˣ, Gab a b ρ
+          ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted
+            (fun r : Fin N → ℤˣ =>
+              (Real.sqrt (N + 1))⁻¹ * β *
+                (∑ p : FinPairs N, g' p * (r p.val.1 : ℝ) * (r p.val.2 : ℝ)) +
+              h * ∑ i : Fin N, (r i : ℝ)))
+          ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) := fun a b hab => by
+    have hpt : ∀ τ : Option (Option (Fin n)) → Fin (N + 1) → ℤˣ,
+        f τ * K (τ a) (τ b) =
+          Gab a b (fun r i => τ r i.castSucc) *
+            ((∑ m, c m * (((τ (so (x m)) (Fin.last N) : ℤˣ) : ℝ) *
+                ((τ (so (y m)) (Fin.last N) : ℤˣ) : ℝ) - q)) *
+              (((τ a (Fin.last N) : ℤˣ) : ℝ) * ((τ b (Fin.last N) : ℤˣ) : ℝ))) := fun τ => by
+      simp only [f, K, Gab]
+      ring
+    simp_rw [hpt]
+    have hso : ∀ m, so (x m) ≠ so (y m) := fun m h =>
+      hxy m (Option.some.inj (Option.some.inj h))
+    exact sk_cavity_decoupled_endpoint_pair_cov_combo N β q h hfix qhat hqhat c
+      (x := fun m => so (x m)) (y := fun m => so (y m)) hso hab (Gab a b)
+  let Gj : SKCavityReplicaPair n → (Option (Option (Fin n)) → Fin (N + 1) → ℤˣ) → ℝ := fun j τ =>
+    f τ * K (τ (skCavityReplicaPairMap j).1) (τ (skCavityReplicaPairMap j).2)
+  have hS : ∀ τ : Option (Option (Fin n)) → Fin (N + 1) → ℤˣ,
+      f τ *
+          ((∑ p : Fin n × Fin n with p.1 < p.2,
+              K (τ (so p.1)) (τ (so p.2))) -
+            (n : ℝ) * ∑ r : Fin n, K (τ (so r)) (τ (some none)) +
+            (n : ℝ) * ((n : ℝ) + 1) / 2 * K (τ (some none)) (τ none)) =
+        ∑ j, skCavityReplicaPairWeight n j * Gj j τ := fun τ =>
+    sk_cavity_signed_pair_mul_sum K τ (f τ)
+  simp_rw [hS]
+  rw [integral_nested_gibbs_finset_sum (Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
+    ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)) (E (π / 2)) hEm
+    Finset.univ (skCavityReplicaPairWeight n) Gj]
+  refine Finset.sum_congr rfl fun j _ => ?_
+  have hne := skCavityReplicaPair_ne j
+  have hj := hT (skCavityReplicaPairMap j).1 (skCavityReplicaPairMap j).2 hne
+  dsimp [Gj]
+  rw [hj]
+  have hsum : (∑ m, c m * skCavityBCoef β q qhat
+      (skCavityReplicaPairCoincidences (x m) (y m) j)) =
+      β ^ 2 * ∑ m, c m * skCavityBUnscaled q qhat
+        (skCavityCoincidences (so (x m)) (so (y m))
+          (skCavityReplicaPairMap j).1 (skCavityReplicaPairMap j).2) := by
+    rw [Finset.mul_sum]
+    refine Finset.sum_congr rfl fun m _ => ?_
+    simp only [skCavityBCoef, skCavityReplicaPairCoincidences, so]
+    ring
+  rw [hsum]
+  simp only [Gab]
+  have hint : (∫ g', ∫ ρ : Option (Option (Fin n)) → Fin N → ℤˣ,
+        F (fun r => ρ (so r)) *
+          (β ^ 2 *
+            (((N + 1 : ℝ)⁻¹ *
+                ((fun i : Fin N => (ρ (skCavityReplicaPairMap j).1 i : ℝ)) ⬝ᵥ
+                  fun i : Fin N => (ρ (skCavityReplicaPairMap j).2 i : ℝ)) - q)))
+        ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted
+          (fun r : Fin N → ℤˣ =>
+            (Real.sqrt (N + 1))⁻¹ * β *
+              (∑ p : FinPairs N, g' p * (r p.val.1 : ℝ) * (r p.val.2 : ℝ)) +
+            h * ∑ i : Fin N, (r i : ℝ)))
+        ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) =
+      β ^ 2 *
+        ∫ g', ∫ ρ : Option (Option (Fin n)) → Fin N → ℤˣ,
+          F (fun r => ρ (so r)) *
+            (((N + 1 : ℝ)⁻¹ *
+                ((fun i : Fin N => (ρ (skCavityReplicaPairMap j).1 i : ℝ)) ⬝ᵥ
+                  fun i : Fin N => (ρ (skCavityReplicaPairMap j).2 i : ℝ)) - q))
+          ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted
+            (fun r : Fin N → ℤˣ =>
+              (Real.sqrt (N + 1))⁻¹ * β *
+                (∑ p : FinPairs N, g' p * (r p.val.1 : ℝ) * (r p.val.2 : ℝ)) +
+              h * ∑ i : Fin N, (r i : ℝ)))
+          ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) := by
+    have hpt : ∀ ρ : Option (Option (Fin n)) → Fin N → ℤˣ,
+        F (fun r => ρ (so r)) *
+          (β ^ 2 *
+            (((N + 1 : ℝ)⁻¹ *
+                ((fun i : Fin N => (ρ (skCavityReplicaPairMap j).1 i : ℝ)) ⬝ᵥ
+                  fun i : Fin N => (ρ (skCavityReplicaPairMap j).2 i : ℝ)) - q))) =
+        β ^ 2 *
+          (F (fun r => ρ (so r)) *
+            (((N + 1 : ℝ)⁻¹ *
+                ((fun i : Fin N => (ρ (skCavityReplicaPairMap j).1 i : ℝ)) ⬝ᵥ
+                  fun i : Fin N => (ρ (skCavityReplicaPairMap j).2 i : ℝ)) - q))) :=
+          fun ρ => by ring
+    simp_rw [hpt]
+    simp_rw [integral_const_mul]
+  rw [hint]
+  ring
+
 /-- **Talagrand, Lemma 1.8.2, Eq. (1.230): cavity derivative of a pair covariance.**
 At the decoupled endpoint `t = 0` (`s = π/2`), the cavity path derivative of
 `((ε_x ε_y - q) f⁻)` on `n` replicas for distinct `x ≠ y` is the weighted sum of
@@ -98,106 +330,10 @@ theorem sk_cavity_deriv_zero_pair (N n : ℕ) (β q h : ℝ)
                   h * ∑ i : Fin N, (r i : ℝ)))
               ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) := by
   intro B E so f K
-  have hEm (a : Fin (N + 1) → ℤˣ) :
-      Measurable (fun x : (FinPairs N → ℝ) × ((Fin N → ℝ) × ℝ) => E (π / 2) x.1 x.2 a) := by
-    dsimp [E, B]
-    fun_prop
-  let Gab : Option (Option (Fin n)) → Option (Option (Fin n)) →
-      (Option (Option (Fin n)) → Fin N → ℤˣ) → ℝ := fun a b ρ =>
-    F (fun r => ρ (so r)) * (β ^ 2 * ((N + 1 : ℝ)⁻¹ *
-      ((fun i : Fin N => (ρ a i : ℝ)) ⬝ᵥ fun i : Fin N => (ρ b i : ℝ)) - q))
-  have hT : ∀ a b : Option (Option (Fin n)), a ≠ b →
-      (∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
-        ∫ τ : Option (Option (Fin n)) → Fin (N + 1) → ℤˣ,
-          f τ * K (τ a) (τ b)
-        ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted
-          (E (π / 2) g' ω))
-        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
-        ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) =
-      skCavityBUnscaled q qhat (skCavityCoincidences (so x) (so y) a b) *
-        ∫ g', ∫ ρ : Option (Option (Fin n)) → Fin N → ℤˣ, Gab a b ρ
-          ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted
-            (fun r : Fin N → ℤˣ =>
-              (Real.sqrt (N + 1))⁻¹ * β *
-                (∑ p : FinPairs N, g' p * (r p.val.1 : ℝ) * (r p.val.2 : ℝ)) +
-              h * ∑ i : Fin N, (r i : ℝ)))
-          ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) := fun a b hab => by
-    have hpt : ∀ τ : Option (Option (Fin n)) → Fin (N + 1) → ℤˣ,
-        f τ * K (τ a) (τ b) =
-          Gab a b (fun r i => τ r i.castSucc) *
-            ((((τ (so x) (Fin.last N) : ℤˣ) : ℝ) * ((τ (so y) (Fin.last N) : ℤˣ) : ℝ) - q) *
-              (((τ a (Fin.last N) : ℤˣ) : ℝ) * ((τ b (Fin.last N) : ℤˣ) : ℝ))) := fun τ => by
-      simp only [f, K, Gab]
-      ring
-    simp_rw [hpt]
-    have hso : so x ≠ so y := fun h => hxy (Option.some.inj (Option.some.inj h))
-    exact sk_cavity_decoupled_endpoint_pair_cov N β q h hfix qhat hqhat hso hab (Gab a b)
-  let Gj : SKCavityReplicaPair n → (Option (Option (Fin n)) → Fin (N + 1) → ℤˣ) → ℝ := fun j τ =>
-    f τ * K (τ (skCavityReplicaPairMap j).1) (τ (skCavityReplicaPairMap j).2)
-  have hS : ∀ τ : Option (Option (Fin n)) → Fin (N + 1) → ℤˣ,
-      f τ *
-          ((∑ p : Fin n × Fin n with p.1 < p.2,
-              K (τ (so p.1)) (τ (so p.2))) -
-            (n : ℝ) * ∑ r : Fin n, K (τ (so r)) (τ (some none)) +
-            (n : ℝ) * ((n : ℝ) + 1) / 2 * K (τ (some none)) (τ none)) =
-        ∑ j, skCavityReplicaPairWeight n j * Gj j τ := fun τ =>
-    sk_cavity_signed_pair_mul_sum K τ (f τ)
-  simp_rw [hS]
-  rw [integral_nested_gibbs_finset_sum (Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
-    ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)) (E (π / 2)) hEm
-    Finset.univ (skCavityReplicaPairWeight n) Gj]
-  refine Finset.sum_congr rfl fun j _ => ?_
-  have hne := skCavityReplicaPair_ne j
-  have hj := hT (skCavityReplicaPairMap j).1 (skCavityReplicaPairMap j).2 hne
-  dsimp [Gj]
-  rw [hj]
-  simp only [skCavityBCoef, skCavityReplicaPairCoincidences, Gab]
-  have hmul : ∀ (X : ℝ),
-      skCavityBUnscaled q qhat (skCavityCoincidences (so x) (so y)
-        (skCavityReplicaPairMap j).1 (skCavityReplicaPairMap j).2) *
-        (β ^ 2 * X) =
-      β ^ 2 * skCavityBUnscaled q qhat (skCavityCoincidences (so x) (so y)
-        (skCavityReplicaPairMap j).1 (skCavityReplicaPairMap j).2) * X := fun X => by ring
-  have hint : (∫ g', ∫ ρ : Option (Option (Fin n)) → Fin N → ℤˣ,
-        F (fun r => ρ (so r)) *
-          (β ^ 2 *
-            (((N + 1 : ℝ)⁻¹ *
-                ((fun i : Fin N => (ρ (skCavityReplicaPairMap j).1 i : ℝ)) ⬝ᵥ
-                  fun i : Fin N => (ρ (skCavityReplicaPairMap j).2 i : ℝ)) - q)))
-        ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted
-          (fun r : Fin N → ℤˣ =>
-            (Real.sqrt (N + 1))⁻¹ * β *
-              (∑ p : FinPairs N, g' p * (r p.val.1 : ℝ) * (r p.val.2 : ℝ)) +
-            h * ∑ i : Fin N, (r i : ℝ)))
-        ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) =
-      β ^ 2 *
-        ∫ g', ∫ ρ : Option (Option (Fin n)) → Fin N → ℤˣ,
-          F (fun r => ρ (so r)) *
-            (((N + 1 : ℝ)⁻¹ *
-                ((fun i : Fin N => (ρ (skCavityReplicaPairMap j).1 i : ℝ)) ⬝ᵥ
-                  fun i : Fin N => (ρ (skCavityReplicaPairMap j).2 i : ℝ)) - q))
-          ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted
-            (fun r : Fin N → ℤˣ =>
-              (Real.sqrt (N + 1))⁻¹ * β *
-                (∑ p : FinPairs N, g' p * (r p.val.1 : ℝ) * (r p.val.2 : ℝ)) +
-              h * ∑ i : Fin N, (r i : ℝ)))
-          ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) := by
-    have hpt : ∀ ρ : Option (Option (Fin n)) → Fin N → ℤˣ,
-        F (fun r => ρ (so r)) *
-          (β ^ 2 *
-            (((N + 1 : ℝ)⁻¹ *
-                ((fun i : Fin N => (ρ (skCavityReplicaPairMap j).1 i : ℝ)) ⬝ᵥ
-                  fun i : Fin N => (ρ (skCavityReplicaPairMap j).2 i : ℝ)) - q))) =
-        β ^ 2 *
-          (F (fun r => ρ (so r)) *
-            (((N + 1 : ℝ)⁻¹ *
-                ((fun i : Fin N => (ρ (skCavityReplicaPairMap j).1 i : ℝ)) ⬝ᵥ
-                  fun i : Fin N => (ρ (skCavityReplicaPairMap j).2 i : ℝ)) - q))) :=
-          fun ρ => by ring
-    simp_rw [hpt]
-    simp_rw [integral_const_mul]
-  rw [hint]
-  ring
+  have h1 := sk_cavity_deriv_zero_pair_combo N n β q h hfix qhat hqhat (ι := Unit)
+    (fun _ => 1) (x := fun _ => x) (y := fun _ => y) (fun _ => hxy) F
+  simp only [Finset.univ_unique, Finset.sum_singleton, one_mul] at h1
+  exact h1
 
 /-- The 3×3 matrix of the cavity covariance system (Talagrand Eq. 1.234):
 `[b(2),              -4 b(1),              3 b(0)             ]`

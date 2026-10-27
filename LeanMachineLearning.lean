@@ -393,8 +393,10 @@ public import LeanMachineLearning.SpinGlasses.GaussianProjectionPath
 public import LeanMachineLearning.SpinGlasses.GibbsCavityDeviation
 public import LeanMachineLearning.SpinGlasses.GibbsFluctuationMoment
 public import LeanMachineLearning.SpinGlasses.GibbsGramMoments
+public import LeanMachineLearning.SpinGlasses.GibbsMeanTrick
 public import LeanMachineLearning.SpinGlasses.GibbsMeasure
 public import LeanMachineLearning.SpinGlasses.GibbsMeasureNested
+public import LeanMachineLearning.SpinGlasses.GibbsOverlapCovariances
 public import LeanMachineLearning.SpinGlasses.GibbsProjectionBound
 public import LeanMachineLearning.SpinGlasses.GibbsProjectionFluctuation
 public import LeanMachineLearning.SpinGlasses.GibbsReplicaMarginal
@@ -455,6 +457,8 @@ public import LeanMachineLearning.SpinGlasses.SKCavityParameters
 public import LeanMachineLearning.SpinGlasses.SKCavityReplicaPairs
 public import LeanMachineLearning.SpinGlasses.SKCavityTaylor
 public import LeanMachineLearning.SpinGlasses.SKCorrelationDecay
+public import LeanMachineLearning.SpinGlasses.SKCovarianceAsymptotics
+public import LeanMachineLearning.SpinGlasses.SKCovarianceRows
 public import LeanMachineLearning.SpinGlasses.SKDecoupled
 public import LeanMachineLearning.SpinGlasses.SKFirstMoment
 public import LeanMachineLearning.SpinGlasses.SKFixedPoint
@@ -486,6 +490,9 @@ public import LeanMachineLearning.SpinGlasses.SKSmartPathProfile
 public import LeanMachineLearning.SpinGlasses.SKSpinDecorrelation
 public import LeanMachineLearning.SpinGlasses.SKTAPEquation
 public import LeanMachineLearning.SpinGlasses.SKTAPUniform
+public import LeanMachineLearning.SpinGlasses.SKTBasisAlgebra
+public import LeanMachineLearning.SpinGlasses.SKTBasisAsymptotics
+public import LeanMachineLearning.SpinGlasses.SKTBasisSecondMoment
 public import LeanMachineLearning.SpinGlasses.ThermodynamicLimit
 public import LeanMachineLearning.Tactic.EqLift
 public import LeanMachineLearning.Tactic.EqLift.ForMathlib.Kernel

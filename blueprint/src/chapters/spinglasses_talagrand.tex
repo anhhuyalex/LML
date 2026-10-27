@@ -4987,8 +4987,256 @@ In particular, multiplying the first solution by $4$ recovers the leading term $
 Follows by algebraic projection using the universal eigenvectors $\mathbf{v}_1$ and $\mathbf{v}_2$, the eigenvalue formulas, and fraction cancellation.
 \end{proof}
 
+\subsection{Part E: Combinations of pair covariances, Lemma~1.8.9 and the algebra of the $T$-basis}
+
+\emph{Status.}  Proved here (all \texttt{sorry}-free): the linear-combination form of
+Lemma~1.8.2, the sum form of Lemma~1.8.9 (Eq.~(1.253)), and the pure algebra needed for
+Propositions~1.8.7--1.8.12 (coefficients of Eq.~(1.264), $\hat q\le q$, the decomposition (1.246)).
+The Gibbs-mean trick for $T_{1,2}^2$ is also proved (Theorem~\ref{thm:sg-tal:gibbs-mean-trick}).
+Proposition~1.8.7 (Theorem~\ref{thm:sg-tal:prop-187}) and the exact $T$-basis form of the overlap covariances (Theorem~\ref{thm:sg-tal:overlap-covariances-T}, which contains Proposition~1.8.8 and Eq.~(1.257)) are proved.
+Propositions~1.8.10, 1.8.11 and Theorem~1.8.12 are proved in Part~F by deriving and solving the covariance system.
+
+\begin{theorem}[Lemma~1.8.2 for a linear combination of pair covariances]
+\label{thm:sg-tal:lemma-182-combo}
+  \uses{thm:sg-tal:lemma-182}
+  \lean{SpinGlasses.sk_cavity_decoupled_endpoint_pair_cov_combo,
+        SpinGlasses.sk_cavity_deriv_zero_pair_combo}
+  \leanok
+\talsource{Section~1.8, Lemma~1.8.2, Eq.~(1.230); used in Lemma~1.8.9}
+Let $\iota$ be a finite index set, $c:\iota\to\mathbb R$, and $x_m\ne y_m$ replicas in
+$\mathrm{Fin}\,n$ for $m\in\iota$.  Let $F$ be a function of the old spins.  The cavity path
+derivative at the decoupled endpoint of
+$F\sum_m c_m(\varepsilon_{x_m}\varepsilon_{y_m}-q)$ is the sum over the three replica families $j=(a,b)$
+of Eq.~(1.152), with the weights $w_j$, of
+$\bigl(\sum_m c_m\, b(\mathrm{coinc}_m(j))\bigr)\,\nu_0\bigl(F\,(R^-_{ab}-q)\bigr)$, where
+$\mathrm{coinc}_m(j)=|\{x_m,y_m\}\cap\{a,b\}|$ and $b(c)=\beta^2(\mathbb E\tanh^{4-2c}Y-q^2)$.
+Lemma~1.8.2 is the case of one term with $c=1$.
+\end{theorem}
+\begin{proof}
+  \leanok
+The endpoint identity (Lemma~\ref{lem:sg-tal:endpoint-pair-cov}) is linear in the pair
+covariance, so the combination is handled by the finite-sum linearity of the three-level replica
+average; the proof of Lemma~1.8.2 then goes through with the coefficient replaced by
+$\sum_m c_m b(\mathrm{coinc}_m(j))$.
+\end{proof}
+
+\begin{lemma}[The coefficients $c(\ell,\ell')$ of Lemma~1.8.9]
+\label{lem:sg-tal:coincidences-sub}
+  \lean{SpinGlasses.sk_cavity_coincidences_sub_eq}
+  \leanok
+\talsource{Section~1.8, proof of Lemma~1.8.9}
+Let $i_1,i_2,k$ be distinct, $a\ne b$, and let $B:\mathbb N\to\mathbb R$.  With
+$\vartheta(r)=1_{r=i_1}-1_{r=i_2}$ one has
+$B(\mathrm{coinc}(i_1,k;a,b))-B(\mathrm{coinc}(i_2,k;a,b))=(\vartheta(a)+\vartheta(b))\cdot
+\begin{cases}B(2)-B(1)&k\in\{a,b\},\\ B(1)-B(0)&\text{otherwise.}\end{cases}$
+\end{lemma}
+\begin{proof}
+  \leanok
+Finite case distinction on the equalities among $i_1,i_2,k,a,b$.
+\end{proof}
+
+\begin{theorem}[Lemma~1.8.9, Eq.~(1.253), as a sum over the replica families]
+\label{thm:sg-tal:lemma-189}
+  \uses{thm:sg-tal:lemma-182-combo, lem:sg-tal:coincidences-sub}
+  \lean{SpinGlasses.sk_cavity_deriv_zero_sub_third}
+  \leanok
+\talsource{Section~1.8, Lemma~1.8.9, Eq.~(1.253)}
+For distinct replicas $i_1,i_2,k$ and a function $F$ of the old spins, the cavity path derivative at
+the decoupled endpoint of $F(\varepsilon_{i_1}-\varepsilon_{i_2})\varepsilon_k$ equals
+$\sum_j w_j(\vartheta(a_j)+\vartheta(b_j))\,d_j\,\nu_0\bigl(F(R^-_{a_jb_j}-q)\bigr)$, where
+$d_j=b(2)-b(1)$ if $k\in\{a_j,b_j\}$ and $b(1)-b(0)$ otherwise.  Regrouping the sum by the
+position of the pair gives the book's form (1.253); this regrouping is not yet formalized.
+\end{theorem}
+\begin{proof}
+  \leanok
+Apply Theorem~\ref{thm:sg-tal:lemma-182-combo} with the two terms $(i_1,k)$ and $(i_2,k)$ and
+coefficients $1,-1$ (the constants $-q$ cancel), then Lemma~\ref{lem:sg-tal:coincidences-sub}.
+\end{proof}
+
+\begin{lemma}[Algebra of the $T$-basis]
+\label{lem:sg-tal:t-basis-algebra}
+  \lean{SpinGlasses.sk_at_deriv_coef_split,
+        SpinGlasses.sk_t_coeff_T_sq,
+        SpinGlasses.sk_t_coeff_B_sq,
+        SpinGlasses.integral_tanh_pow_four_le_sq,
+        SpinGlasses.qhat_le_of_fixedPoint,
+        SpinGlasses.three_quarters_le_one_sub_beta_sq_mul,
+        SpinGlasses.dotProduct_div_sub_decomp}
+  \leanok
+\talsource{Section~1.8, Eqs.~(1.246), (1.254), (1.260), (1.264)}
+(a) If the term of replica $3$ equals the term of replica $n+1$, then
+$(b(2)-b(1))S_3+(b(1)-b(0))\bigl(\sum_{4\le\ell\le n}S_\ell-nS_{n+1}\bigr)=(b(2)-4b(1)+3b(0))S_3
++(b(1)-b(0))\sum_{4\le\ell\le n}(S_\ell-S_{n+1})$ (from (1.253) to (1.254)).
+(b) $b(2)+4b(1)+b(0)-4(2b(1)+2b(0))+10b(0)=\beta^2(1-4q+3\hat q)$ and
+$4b(1)+2b(0)-4(2b(0))=2\beta^2(2q+q^2-3\hat q)$ (the coefficients in (1.264)).
+(c) $\hat q\le q$ for the fixed point $q=\mathbb E\tanh^2Y$, $\hat q=\mathbb E\tanh^4Y$, and
+$4\beta^2<1$, $0\le q$ imply $1-\beta^2(1-4q+3\hat q)\ge 3/4$.
+(d) For vectors $x,y,\mathbf b$ and $N\ne0$,
+$x\cdot y/N-q=T_{xy}+T_x+T_y+T$ with $T_{xy}=(x-\mathbf b)\cdot(y-\mathbf b)/N$,
+$T_x=(x-\mathbf b)\cdot\mathbf b/N$, $T=\mathbf b\cdot\mathbf b/N-q$ (Eq.~(1.246)).
+\end{lemma}
+\begin{proof}
+  \leanok
+(a), (b), (d) are polynomial identities (\texttt{ring}); (c) uses $\tanh^4\le\tanh^2$ and
+monotonicity of the integral.
+\end{proof}
+
+\begin{theorem}[The Gibbs-mean trick for $T_{12}^2$ (proof of Proposition~1.8.7)]
+\label{thm:sg-tal:gibbs-mean-trick}
+  \lean{SpinGlasses.integral_dev_mul_dev,
+        SpinGlasses.integral_dev_pair_sq,
+        SpinGlasses.integral_fin_three_pair,
+        SpinGlasses.integral_three_replicas_cov,
+        SpinGlasses.integral_six_replicas_cov_sq,
+        SpinGlasses.integral_dev_dot_sq_eq_six_replicas,
+        SpinGlasses.integral_disorder_dev_dot_sq_eq_six_replicas}
+  \leanok
+\talsource{Section~1.8, proof of Proposition~1.8.7 (the technique ``replace each occurrence of $\mathbf b$ by a replica never used before'')}
+Let $\mu$ be a Gibbs measure on $\{\pm1\}^M$ (the tilt of the counting measure by any energy $A$), $b_i=\langle\sigma_i\rangle$ and $C_{ij}=\langle\sigma_i\sigma_j\rangle-b_ib_j$.  Then
+\[
+\Bigl\langle\Bigl(\tfrac1M\sum_i(\sigma^1_i-b_i)(\sigma^2_i-b_i)\Bigr)^2\Bigr\rangle
+=\frac1{M^2}\sum_{i,j}C_{ij}^2=
+\Bigl\langle\tfrac1M(\boldsymbol\sigma^1-\boldsymbol\sigma^2)\cdot(\boldsymbol\sigma^4-\boldsymbol\sigma^5)\;
+\tfrac1M(\boldsymbol\sigma^1-\boldsymbol\sigma^3)\cdot(\boldsymbol\sigma^4-\boldsymbol\sigma^6)\Bigr\rangle,
+\]
+the left side over two independent replicas and the right side over six.  The left side is the Gibbs average of $T_{1,2}^2$ of Eq.~(1.245).  The same identity holds after averaging over any disorder $\eta$ with energies $E_\eta$ and means $b_\eta$.  The right side has the shape of Proposition~1.8.5 (with $f=R_{1,4}-R_{1,6}-R_{3,4}+R_{3,6}$ after relabelling), which is what the remaining proof of Proposition~1.8.7 will use.
+\end{theorem}
+\begin{proof}
+  \leanok
+Both sides reduce, after expanding the squares of the sums over sites, to $M^{-2}\sum_{i,j}C_{ij}^2$.  For two replicas the average factorizes (Fubini for two coordinates) into $C_{ij}\cdot C_{ij}$.  For six replicas, the integrand is a product of a function of replicas $1,2,3$ and the same function of replicas $4,5,6$, so it factorizes by independence of the two blocks of an i.i.d.\ vector; each block is $\langle(\sigma^1_i-\sigma^2_i)(\sigma^1_j-\sigma^3_j)\rangle=\langle\sigma_i\sigma_j\rangle-b_ib_j$ by expanding into four terms of at most two replicas each.
+\end{proof}
+
+\begin{theorem}[Proposition~1.8.7: the second moment of $T_{1,2}$]
+\label{thm:sg-tal:prop-187}
+  \uses{thm:sg-tal:prop-185, thm:sg-tal:gibbs-mean-trick}
+  \lean{SpinGlasses.integral_rect_sq_eq_four_mul_dev_dot_sq,
+        SpinGlasses.sk_dev_pair_second_moment}
+  \leanok
+\talsource{Section~1.8, Proposition~1.8.7, Eqs.~(1.247)--(1.248)}
+Let $4\beta_0^2<1$ and $h\in\mathbb R$.  There is $K>0$ such that for $|\beta|\le\beta_0$, every fixed point $q$ of Eq.~(1.74) and every $N$, with $M=N+1$, $\mathbf b=\langle\boldsymbol\sigma\rangle$ the Gibbs mean of the $(N+1)$-spin SK system and $T_{1,2}=(\boldsymbol\sigma^1-\mathbf b)\cdot(\boldsymbol\sigma^2-\mathbf b)/M$,
+\[
+\Bigl|\nu(T_{1,2}^2)-\frac{1-2q+\hat q}{M\,(1-\beta^2(1-2q+\hat q))}\Bigr|\le \frac{K}{M^{3/2}}.
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+The book repeats the proof of Proposition~1.8.5 with six replicas.  Here it is a corollary of Proposition~1.8.5: for every Gibbs measure, $\langle((\boldsymbol\sigma^1-\boldsymbol\sigma^2)\cdot(\boldsymbol\sigma^3-\boldsymbol\sigma^4)/M)^2\rangle=4\langle T_{1,2}^2\rangle$ exactly, because both sides equal $4M^{-2}\sum_{i,j}C_{ij}^2$ (the cross terms of $\mathrm{rect}=T_{13}-T_{14}-T_{23}+T_{24}$ vanish and the four squares agree).  Average over the disorder and divide Proposition~1.8.5 by $4$.
+\end{proof}
+
+\begin{theorem}[The overlap covariances in the $T$-basis, exact form]
+\label{thm:sg-tal:overlap-covariances-T}
+  \lean{SpinGlasses.integral_overlap_sq_eq,
+        SpinGlasses.integral_overlap_mul_overlap_eq,
+        SpinGlasses.integral_overlap_mul_overlap_disjoint_eq}
+  \leanok
+\talsource{Section~1.8, Eq.~(1.246) and the last step of Theorem~1.8.12}
+Let $\mu$ be a Gibbs measure on $\{\pm1\}^M$ with moments $m_{ij}=\langle\sigma_i\sigma_j\rangle$, means $b_i=\langle\sigma_i\rangle$, $C_{ij}=m_{ij}-b_ib_j$ and $q\in\mathbb R$.  For independent replicas, with $R_{\ell\ell'}=M^{-1}\sum_i\sigma^\ell_i\sigma^{\ell'}_i$,
+\begin{align*}
+\langle(R_{12}-q)^2\rangle&=a+2B+c,\\
+\langle(R_{12}-q)(R_{13}-q)\rangle&=B+c,\\
+\langle(R_{12}-q)(R_{34}-q)\rangle&=c,
+\end{align*}
+where $a=M^{-2}\sum_{ij}C_{ij}^2=\langle T_{1,2}^2\rangle$, $B=M^{-2}\sum_{ij}C_{ij}b_ib_j=\langle T_1^2\rangle$ and $c=(M^{-1}\sum_ib_i^2-q)^2=T^2$.
+\end{theorem}
+\begin{proof}
+  \leanok
+Expand the products of overlaps in coordinates; independent replicas make each monomial factor into moments $m_{ij}$, $b_i$ (average of a product over an i.i.d.\ vector), and $m_{ij}^2=C_{ij}^2+2C_{ij}b_ib_j+b_i^2b_j^2$.  This is the exact content of the vanishing cross terms $\nu(T_{12}T_{\ell\ell'})=\nu(T_{12}T_\ell)=\nu(T_{12}T)=0$ (Proposition~1.8.8) and $\nu(T_1T_2)=\nu(T_1T)=0$ (Eq.~(1.257)).
+\end{proof}
+
+\subsection{Part F: The covariance system and Theorem~1.8.12}
+
+\emph{Status.}  Proved (all \texttt{sorry}-free).  The book reaches Theorem~1.8.12 through the
+orthogonal basis $T_{\ell\ell'},T_\ell,T$ and four cavity expansions (Propositions~1.8.7, 1.8.10,
+1.8.11).  Here the three covariances $U,V,W$ are obtained from one cavity expansion of
+$\nu\bigl((R_{12}-q)(R_{ab}-q)\bigr)$ for the three pairs $(a,b)\in\{(1,2),(1,3),(3,4)\}$, i.e.\ the
+system (1.231)--(1.233) is derived with explicit errors and solved with the algebra of Part~D and
+Part~E; the values of $\nu(T_{1,2}^2)$, $\nu(T_1^2)$, $\nu(T^2)$ are then read off from the exact
+$T$-basis identities of Theorem~\ref{thm:sg-tal:overlap-covariances-T}.
+
+\begin{theorem}[One row of the cavity expansion: Taylor step, comparison and last-site term]
+\label{thm:sg-tal:row-expansion}
+  \uses{thm:sg-tal:lemma-182-combo}
+  \lean{SpinGlasses.sk_overlap_mul_eq_last_site_of_perm,
+        SpinGlasses.sk_cavity_decoupled_pair_zero,
+        SpinGlasses.sk_pair_taylor,
+        SpinGlasses.sk_row_structure,
+        SpinGlasses.sk_old_spin_compare,
+        SpinGlasses.sk_row_last_site,
+        SpinGlasses.sk_row_conv}
+  \leanok
+\talsource{Section~1.8, proofs of Propositions~1.8.5 and 1.8.11, Eqs.~(1.215)--(1.223)}
+Let $x\ne y$ and $a\ne b$ be replicas of an $n$-replica $(N+1)$-spin system, $M=N+1$, $\varepsilon$ the
+last spin and $R^-_{ab}=M^{-1}\sum_{i\le N}\sigma^a_i\sigma^b_i$.  Then:
+(a) $\nu((R_{xy}-q)(R_{ab}-q))=\nu\bigl((R^-_{ab}-q)(\varepsilon_x\varepsilon_y-q)\bigr)+M^{-1}\nu\bigl((\varepsilon_x\varepsilon_y-q)\varepsilon_a\varepsilon_b\bigr)$ (site symmetry);
+(b) $\nu_0\bigl(F(\varepsilon_x\varepsilon_y-q)\bigr)=0$ and, by Eq.~(1.216) with Lemma~1.8.2, $\nu(F(\varepsilon_x\varepsilon_y-q))$ differs from $\sum_j w_j\,b(c_j)\,\mathbb E\langle F(R^-_j-q)\rangle_{\mathrm{old}}$ by at most $4n^2(n+2)^2\beta^4e^{4(n+4)^2\beta^2}\,\nu(f^2)^{1/2}\nu((R_{1,2}-q)^4)^{1/2}$;
+(c) for an observable $G$ of the first $N$ spins, $|\nu(G)-\mathbb E\langle G\rangle_{\mathrm{old}}|\le 2m^2\beta^2e^{4(m+2)^2\beta^2}\nu(G^2)^{1/2}\nu((R_{1,2}-q)^2)^{1/2}$ (Eq.~(1.215));
+(d) $|\nu((\varepsilon_x\varepsilon_y-q)\varepsilon_a\varepsilon_b)-b_0(c)|\le 4n^2\beta^2e^{4(n+2)^2\beta^2}\nu(|R_{1,2}-q|)$;
+(e) replacing $R^-$ by $R$ in $\nu((R^-_{pq}-q)(R^-_{rs}-q))$ costs at most $2\nu(|R_{1,2}-q|)/M+M^{-2}$.
+\end{theorem}
+\begin{proof}
+  \leanok
+(a) is the site-symmetry argument of Proposition~1.8.5 for an arbitrary site-symmetric factor and the exact split $R_{ab}=R^-_{ab}+\varepsilon_a\varepsilon_b/M$; (b) combines the decoupled endpoint (Lemma~1.6.2) with the second-order expansion of Proposition~1.8.1; (c) and (d) are Eq.~(1.215) with the Cauchy--Schwarz and the sup-norm H\"older pairs; (e) expands the product $(X-\delta)(Y-\delta')$ with $|\delta|,|\delta'|\le 1/M$.
+\end{proof}
+
+\begin{theorem}[The covariance system (1.231)--(1.233) with explicit errors]
+\label{thm:sg-tal:cov-system}
+  \uses{thm:sg-tal:row-expansion, thm:sg-tal:at-covariance-equations}
+  \lean{SpinGlasses.sk_row_equation,
+        SpinGlasses.sk_nu_overlap_class,
+        SpinGlasses.sk_row_sum_zero_j,
+        SpinGlasses.sk_row_sum_one_j,
+        SpinGlasses.sk_row_sum_two_j,
+        SpinGlasses.sk_cov_row_bound,
+        SpinGlasses.sk_cov_system}
+  \leanok
+\talsource{Section~1.8, Eqs.~(1.231)--(1.236)}
+Let $4\beta^2<1$, $q$ the fixed point, $\mathbb E\langle(R_{12}-q)^2\rangle\le K_1/M$ and $\mathbb E\langle(R_{12}-q)^4\rangle\le K_2/M^2$.  Let $U,V,W$ be $\nu((R_{12}-q)^2)$, $\nu((R_{12}-q)(R_{13}-q))$, $\nu((R_{12}-q)(R_{34}-q))$.  Then there is a remainder $\mathbf R\in\mathbb R^3$ with $|R_i|\le E=O(M^{-3/2})$ (explicit in $\beta,K_1,K_2,M$) such that $(U,V,W)^T=\mathbf S+\mathcal M\,(U,V,W)^T+\mathbf R$, where $\mathbf S=M^{-1}(1-q^2,q-q^2,\hat q-q^2)^T$ and $\mathcal M$ is the matrix of Eq.~(1.234).
+\end{theorem}
+\begin{proof}
+  \leanok
+Apply Theorem~\ref{thm:sg-tal:row-expansion} with $(x,y)=(1,2)$ and $(a,b)=(1,2),(1,3),(3,4)$.  Every term $\nu_{n+2}((R_{ab}-q)(R_j-q))$ of the sum over the replica families $j$ equals $U$, $V$ or $W$ according to whether the pairs $\{a,b\}$, $\{a_j,b_j\}$ coincide, share one replica or are disjoint (marginal of an i.i.d.\ replica vector along an injection).  Summing the signed weights over the $11$ families for $n=4$ gives the three rows of $\mathcal M$ (a finite computation, checked by \texttt{simp}).
+\end{proof}
+
+\begin{theorem}[Theorem~1.8.12, Eq.~(1.265)]
+\label{thm:sg-tal:thm-1812}
+  \uses{thm:sg-tal:cov-system}
+  \lean{SpinGlasses.sk_at_scalar_solution,
+        SpinGlasses.cov_error_arith,
+        SpinGlasses.sk_overlap_covariances_nu,
+        SpinGlasses.sk_overlap_covariances}
+  \leanok
+\talsource{Section~1.8, Theorem~1.8.12, Eqs.~(1.248), (1.256), (1.262), (1.265)}
+Let $4\beta_0^2<1$.  There is $K$ such that for $|\beta|\le\beta_0$, $q$ the fixed point, $\hat q=\mathbb E\tanh^4(\beta\sqrt q z+h)$ and all $N$, with $M=N+1$, $c=1-2q+\hat q$, $d=1-4q+3\hat q$, $D_1=1-\beta^2c$, $D_2=1-\beta^2d$,
+\begin{align*}
+A^2&=\frac{c}{MD_1},\qquad B^2=\frac{q-\hat q}{MD_1D_2},\qquad
+C^2=\frac1{D_2}\Bigl(\frac{\hat q-q^2}{M}+\beta^2(\hat q-q^2)A^2+2\beta^2(2q+q^2-3\hat q)B^2\Bigr),\\
+&\bigl|\nu((R_{12}-q)^2)-(A^2+2B^2+C^2)\bigr|,\ \bigl|\nu((R_{12}-q)(R_{13}-q))-(B^2+C^2)\bigr|,\ \bigl|\nu((R_{12}-q)(R_{34}-q))-C^2\bigr|\ \le\ \frac K{M^{3/2}}.
+\end{align*}
+\end{theorem}
+\begin{proof}
+  \leanok
+Theorem~\ref{thm:sg-tal:cov-system} gives the system with errors $|R_i|\le E$.  Projecting on $(1,-2,1)$ and $(1,-4,3)$ (Eqs.~(1.235), (1.236)) decouples $U-2V+W$ and $U-4V+3W$; the third equation, after substituting $U=\alpha+2B+W$, $V=B+W$ with $\alpha=U-2V+W$, $B=V-W$, reads $(1-\beta^2d)W=(\hat q-q^2)/M+\beta^2(\hat q-q^2)\alpha+2\beta^2(2q+q^2-3\hat q)B+R_2$.  All denominators are $\ge3/4$ because $4\beta^2<1$ and $\hat q\le q$, and the errors are bounded by $44E$.
+\end{proof}
+
+\begin{theorem}[Propositions~1.8.10 and 1.8.11: second moments of $T_1$ and $T$]
+\label{thm:sg-tal:prop-18-10-11}
+  \uses{thm:sg-tal:thm-1812, thm:sg-tal:overlap-covariances-T}
+  \lean{SpinGlasses.integral_T1_sq,
+        SpinGlasses.overlap_eq_sum,
+        SpinGlasses.sk_T_basis_second_moments}
+  \leanok
+\talsource{Section~1.8, Propositions~1.8.10 and 1.8.11, Eqs.~(1.255)--(1.256), (1.261)--(1.262)}
+With $T_1=(\boldsymbol\sigma^1-\mathbf b)\cdot\mathbf b/M$ and $T=\mathbf b\cdot\mathbf b/M-q$ ($\mathbf b=\langle\boldsymbol\sigma\rangle$) and the notation of Theorem~\ref{thm:sg-tal:thm-1812}, $|\nu(T_1^2)-B^2|\le 2K/M^{3/2}$ and $|\nu(T^2)-C^2|\le 2K/M^{3/2}$.
+\end{theorem}
+\begin{proof}
+  \leanok
+For every Gibbs measure $\langle T_1^2\rangle=V_G-W_G$ and $T^2=W_G$ (Theorem~\ref{thm:sg-tal:overlap-covariances-T} and $\langle T_1^2\rangle=M^{-2}\sum_{ij}C_{ij}b_ib_j$).  Average over the disorder and apply Theorem~\ref{thm:sg-tal:thm-1812}.
+\end{proof}
+
 \begin{remark}[What remains of Section~1.8]
 \label{rem:sg-tal:remaining-18}
 Proved here: Proposition~1.8.1 (Eqs.~(1.215), (1.216)), Lemma~1.8.4 (Theorem~\ref{thm:sg-tal:lemma-184}), Proposition~1.8.5 (Theorem~\ref{thm:sg-tal:prop-185}), Corollary~1.8.6 (Theorem~\ref{cor:sg-tal:corollary-186}), General Lemma~1.8.2 (Eq.~(1.230), Theorem~\ref{thm:sg-tal:lemma-182}), the $3\times3$ AT matrix system (Eqs.~(1.231)--(1.236), Theorem~\ref{thm:sg-tal:at-matrix}), and the decoupled covariance equations (Theorem~\ref{thm:sg-tal:at-covariance-equations}).
-Not formalized: Propositions~1.8.7--1.8.11 (the orthogonal basis $T_{\ell\ell'},T_\ell,T$) and Theorem~1.8.12 (the final formula for $U,V,W$ and the AT-line statement).
+Part~E adds the combination form of Lemma~1.8.2, the sum form of Lemma~1.8.9 and the algebra of the $T$-basis.
+Part~F adds the derivation of the covariance system (1.231)--(1.233) with explicit errors, Theorem~1.8.12 and Propositions~1.8.10, 1.8.11.
+Not formalized: the regrouping of the sum form of Lemma~1.8.9 into the book's (1.253)--(1.254), which is not needed because the covariance system is used instead of the six-replica proofs of Propositions~1.8.8 and 1.8.10 (their conclusions are proved in exact form); the book's $O(3)$ is an explicit $K/M^{3/2}$.
 \end{remark}
