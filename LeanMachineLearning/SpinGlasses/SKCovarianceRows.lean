@@ -564,6 +564,224 @@ replicas of `n` replicas and `e` a numbering of the `n + 2` replicas of the cavi
 `ν((R_{xy} - q)(R_{ab} - q))` differs from
 `M⁻¹ b(c) + ∑_j w_j β² b(c_j) ν_{n+2}((R_{ab} - q)(R_{j} - q))`, `M = N + 1`, by at most the sum of
 the Taylor error (Eq. (1.216)), the `ν₀ → ν` error (Eq. (1.215)) for the `∑_j`, the cost of
+`R⁻ → R`, and the last-site error (Eq. (1.215) again).  The Taylor error and the `ν₀ → ν` error
+are hypotheses `hT`, `hH` with bounds `ET`, `EH`: the high-temperature theorem `sk_row_equation`
+supplies them from second and fourth moments, the beyond-AT version from third moments. -/
+theorem sk_row_equation_of_bounds (N n : ℕ) (β q h : ℝ)
+    (hfix : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂(gaussianReal 0 1) = q)
+    (qhat : ℝ)
+    (hqhat : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 4 ∂(gaussianReal 0 1) = qhat)
+    (hqhat01 : qhat ∈ Set.Icc (0 : ℝ) 1)
+    {x y a b : Fin n} (hxy : x ≠ y) (hab : a ≠ b)
+    (e : Option (Option (Fin n)) ≃ Fin (n + 2))
+    (ν : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
+    (hν : ∀ Φ, ν Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, Φ σ
+      ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+        (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ))
+      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    (νm : ((Fin (n + 2) → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
+    (hνm : ∀ Φ, νm Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin (n + 2) → Fin (N + 1) → ℤˣ, Φ σ
+      ∂(Measure.pi fun _ : Fin (n + 2) => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+        (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ))
+      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    (ν₂ : ((Fin 2 → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
+    (hν₂ : ∀ Φ, ν₂ Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, Φ σ
+      ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+        (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ))
+      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    (ET EH Dabs : ℝ)
+    (hT : |ν (fun σ => (((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ a i.castSucc : ℝ)) ⬝ᵥ
+          fun i : Fin N => (σ b i.castSucc : ℝ)) - q) *
+        (((σ x (Fin.last N) : ℤˣ) : ℝ) * ((σ y (Fin.last N) : ℤˣ) : ℝ) - q))) -
+      ∑ j : SKCavityReplicaPair n, skCavityReplicaPairWeight n j *
+        (skCavityBCoef β q qhat (skCavityReplicaPairCoincidences x y j) *
+          ∫ g', ∫ ρ : Option (Option (Fin n)) → Fin N → ℤˣ,
+              ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (ρ (some (some a)) i : ℝ)) ⬝ᵥ
+                  fun i : Fin N => (ρ (some (some b)) i : ℝ)) - q) *
+                ((N + 1 : ℝ)⁻¹ *
+                  ((fun i : Fin N => (ρ (skCavityReplicaPairMap j).1 i : ℝ)) ⬝ᵥ
+                    fun i : Fin N => (ρ (skCavityReplicaPairMap j).2 i : ℝ)) - q)
+              ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted
+                (fun r : Fin N → ℤˣ =>
+                  (Real.sqrt (N + 1))⁻¹ * β *
+                    (∑ p : FinPairs N, g' p * (r p.val.1 : ℝ) * (r p.val.2 : ℝ)) +
+                  h * ∑ i : Fin N, (r i : ℝ)))
+              ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1))| ≤ ET)
+    (hH : ∀ j : SKCavityReplicaPair n,
+      |νm (fun σ => (((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ (e (some (some a))) i.castSucc : ℝ)) ⬝ᵥ
+          fun i : Fin N => (σ (e (some (some b))) i.castSucc : ℝ)) - q) *
+        ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ (e (skCavityReplicaPairMap j).1) i.castSucc : ℝ)) ⬝ᵥ
+          fun i : Fin N => (σ (e (skCavityReplicaPairMap j).2) i.castSucc : ℝ)) - q))) -
+        ∫ g', ∫ ρ' : Fin (n + 2) → Fin N → ℤˣ,
+          ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (ρ' (e (some (some a))) i : ℝ)) ⬝ᵥ
+              fun i : Fin N => (ρ' (e (some (some b))) i : ℝ)) - q) *
+            ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (ρ' (e (skCavityReplicaPairMap j).1) i : ℝ)) ⬝ᵥ
+              fun i : Fin N => (ρ' (e (skCavityReplicaPairMap j).2) i : ℝ)) - q)
+          ∂(Measure.pi fun _ : Fin (n + 2) => Measure.count.tilted
+            (fun r : Fin N → ℤˣ =>
+              (Real.sqrt (N + 1))⁻¹ * β *
+                (∑ p : FinPairs N, g' p * (r p.val.1 : ℝ) * (r p.val.2 : ℝ)) +
+              h * ∑ i : Fin N, (r i : ℝ)))
+          ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)| ≤ EH)
+    (hDabs : Dabs = ν₂ (fun σ => |(N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
+        fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q|)) :
+    |ν (fun σ => ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ x i : ℝ)) ⬝ᵥ
+          fun i : Fin (N + 1) => (σ y i : ℝ)) - q) *
+        ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ a i : ℝ)) ⬝ᵥ
+          fun i : Fin (N + 1) => (σ b i : ℝ)) - q)) -
+      (N + 1 : ℝ)⁻¹ * skCavityBUnscaled q qhat (skCavityCoincidences x y a b) -
+      ∑ j : SKCavityReplicaPair n, skCavityReplicaPairWeight n j *
+        (skCavityBCoef β q qhat (skCavityReplicaPairCoincidences x y j) *
+          νm (fun τ => ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (τ (e (some (some a))) i : ℝ)) ⬝ᵥ
+              fun i : Fin (N + 1) => (τ (e (some (some b))) i : ℝ)) - q) *
+            ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (τ (e (skCavityReplicaPairMap j).1) i : ℝ)) ⬝ᵥ
+              fun i : Fin (N + 1) => (τ (e (skCavityReplicaPairMap j).2) i : ℝ)) - q)))| ≤
+    ET + (∑ j : SKCavityReplicaPair n, |skCavityReplicaPairWeight n j|) * β ^ 2 *
+        (EH + (2 * Dabs / ((N : ℝ) + 1) + 1 / ((N : ℝ) + 1) ^ 2)) +
+      (N + 1 : ℝ)⁻¹ * (4 * (n : ℝ) ^ 2 * β ^ 2 * Real.exp (4 * ((n : ℝ) + 2) ^ 2 * β ^ 2) * Dabs)
+        := by
+  have hq : q ∈ Set.Icc (0 : ℝ) 1 := fixedPoint_mem_Icc hfix
+  have hM0 : (0 : ℝ) < N + 1 := by positivity
+  let Fab : (Fin n → Fin N → ℤˣ) → ℝ := fun ρ => (N + 1 : ℝ)⁻¹ *
+    ((fun i : Fin N => (ρ a i : ℝ)) ⬝ᵥ fun i : Fin N => (ρ b i : ℝ)) - q
+  have S1 := sk_row_structure N n β h q ν hν x y a b
+  have hDabs' : Dabs = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ,
+      |(N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
+        fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q|
+      ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+        (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ))
+      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) := by
+    rw [hDabs, hν₂]
+  have K := sk_row_last_site N n β q h hfix qhat hqhat hxy hab ν hν Dabs hDabs'
+  have hso : ∀ r r' : Fin n, r ≠ r' → e (some (some r)) ≠ e (some (some r')) :=
+    fun r r' hr he => hr (Option.some.inj (Option.some.inj (e.injective he)))
+  have hj : ∀ j : SKCavityReplicaPair n,
+      |(∫ g', ∫ ρ : Option (Option (Fin n)) → Fin N → ℤˣ,
+              Fab (fun r => ρ (some (some r))) *
+                ((N + 1 : ℝ)⁻¹ *
+                  ((fun i : Fin N => (ρ (skCavityReplicaPairMap j).1 i : ℝ)) ⬝ᵥ
+                    fun i : Fin N => (ρ (skCavityReplicaPairMap j).2 i : ℝ)) - q)
+              ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted
+                (fun r : Fin N → ℤˣ =>
+                  (Real.sqrt (N + 1))⁻¹ * β *
+                    (∑ p : FinPairs N, g' p * (r p.val.1 : ℝ) * (r p.val.2 : ℝ)) +
+                  h * ∑ i : Fin N, (r i : ℝ)))
+              ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) -
+        νm (fun τ => ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (τ (e (some (some a))) i : ℝ)) ⬝ᵥ
+              fun i : Fin (N + 1) => (τ (e (some (some b))) i : ℝ)) - q) *
+            ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (τ (e (skCavityReplicaPairMap j).1) i : ℝ)) ⬝ᵥ
+              fun i : Fin (N + 1) => (τ (e (skCavityReplicaPairMap j).2) i : ℝ)) - q))| ≤
+      EH + (2 * Dabs / ((N : ℝ) + 1) + 1 / ((N : ℝ) + 1) ^ 2) := fun j => by
+    let G6 : (Fin (n + 2) → Fin N → ℤˣ) → ℝ := fun ρ' =>
+      Fab (fun r => ρ' (e (some (some r)))) *
+        ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (ρ' (e (skCavityReplicaPairMap j).1) i : ℝ)) ⬝ᵥ
+          fun i : Fin N => (ρ' (e (skCavityReplicaPairMap j).2) i : ℝ)) - q)
+    have hre : (∫ g', ∫ ρ : Option (Option (Fin n)) → Fin N → ℤˣ,
+              Fab (fun r => ρ (some (some r))) *
+                ((N + 1 : ℝ)⁻¹ *
+                  ((fun i : Fin N => (ρ (skCavityReplicaPairMap j).1 i : ℝ)) ⬝ᵥ
+                    fun i : Fin N => (ρ (skCavityReplicaPairMap j).2 i : ℝ)) - q)
+              ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted
+                (fun r : Fin N → ℤˣ =>
+                  (Real.sqrt (N + 1))⁻¹ * β *
+                    (∑ p : FinPairs N, g' p * (r p.val.1 : ℝ) * (r p.val.2 : ℝ)) +
+                  h * ∑ i : Fin N, (r i : ℝ)))
+              ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) =
+        ∫ g', ∫ ρ' : Fin (n + 2) → Fin N → ℤˣ, G6 ρ'
+          ∂(Measure.pi fun _ : Fin (n + 2) => Measure.count.tilted
+            (fun r : Fin N → ℤˣ =>
+              (Real.sqrt (N + 1))⁻¹ * β *
+                (∑ p : FinPairs N, g' p * (r p.val.1 : ℝ) * (r p.val.2 : ℝ)) +
+              h * ∑ i : Fin N, (r i : ℝ)))
+          ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) := by
+      refine integral_congr_ae (ae_of_all _ fun g' => ?_)
+      exact integral_pi_count_tilted_reindex e _ (fun ρ : Option (Option (Fin n)) → Fin N → ℤˣ =>
+        Fab (fun r => ρ (some (some r))) *
+          ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (ρ (skCavityReplicaPairMap j).1 i : ℝ)) ⬝ᵥ
+            fun i : Fin N => (ρ (skCavityReplicaPairMap j).2 i : ℝ)) - q))
+    have Cv := sk_row_conv N β h q (n + 2) νm hνm ν₂ hν₂ (hso a b hab)
+      (fun he => skCavityReplicaPair_ne j (e.injective he))
+    rw [← hDabs] at Cv
+    rw [hre]
+    have H2 : |νm (fun σ => G6 (fun r i => σ r i.castSucc)) - ∫ g', ∫ ρ' : Fin (n + 2) → Fin N → ℤˣ,
+        G6 ρ' ∂(Measure.pi fun _ : Fin (n + 2) => Measure.count.tilted
+            (fun r : Fin N → ℤˣ =>
+              (Real.sqrt (N + 1))⁻¹ * β *
+                (∑ p : FinPairs N, g' p * (r p.val.1 : ℝ) * (r p.val.2 : ℝ)) +
+              h * ∑ i : Fin N, (r i : ℝ)))
+          ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)| ≤ EH := hH j
+    rw [abs_sub_comm] at H2
+    refine (abs_sub_le _ (νm (fun σ => G6 (fun r i => σ r i.castSucc))) _).trans ?_
+    gcongr
+  have hbu : ∀ c : ℕ, |skCavityBCoef β q qhat c| ≤ β ^ 2 := fun c => by
+    unfold skCavityBCoef
+    rw [abs_mul, abs_of_nonneg (sq_nonneg β)]
+    exact mul_le_of_le_one_right (sq_nonneg β) (abs_skCavityBUnscaled_le hq hqhat01 c)
+  set Eb : ℝ := EH + (2 * Dabs / ((N : ℝ) + 1) + 1 / ((N : ℝ) + 1) ^ 2) with hEb
+  set OO : SKCavityReplicaPair n → ℝ := fun j =>
+    ∫ g', ∫ ρ : Option (Option (Fin n)) → Fin N → ℤˣ,
+              Fab (fun r => ρ (some (some r))) *
+                ((N + 1 : ℝ)⁻¹ *
+                  ((fun i : Fin N => (ρ (skCavityReplicaPairMap j).1 i : ℝ)) ⬝ᵥ
+                    fun i : Fin N => (ρ (skCavityReplicaPairMap j).2 i : ℝ)) - q)
+              ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted
+                (fun r : Fin N → ℤˣ =>
+                  (Real.sqrt (N + 1))⁻¹ * β *
+                    (∑ p : FinPairs N, g' p * (r p.val.1 : ℝ) * (r p.val.2 : ℝ)) +
+                  h * ∑ i : Fin N, (r i : ℝ))) ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
+    with hOO
+  set Vj : SKCavityReplicaPair n → ℝ := fun j =>
+    νm (fun τ => ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (τ (e (some (some a))) i : ℝ)) ⬝ᵥ
+              fun i : Fin (N + 1) => (τ (e (some (some b))) i : ℝ)) - q) *
+            ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (τ (e (skCavityReplicaPairMap j).1) i : ℝ)) ⬝ᵥ
+              fun i : Fin (N + 1) => (τ (e (skCavityReplicaPairMap j).2) i : ℝ)) - q)) with hVj
+  have hmid : |∑ j : SKCavityReplicaPair n, skCavityReplicaPairWeight n j *
+        (skCavityBCoef β q qhat (skCavityReplicaPairCoincidences x y j) * (OO j - Vj j))| ≤
+      (∑ j : SKCavityReplicaPair n, |skCavityReplicaPairWeight n j|) * β ^ 2 * Eb := by
+    rw [mul_assoc]
+    refine Weights.abs_weighted_sum_le _ _ fun j => ?_
+    rw [abs_mul]
+    exact mul_le_mul (hbu _) (hj j) (abs_nonneg _) (sq_nonneg β)
+  have hT' : |ν (fun σ => Fab (fun r i => σ r i.castSucc) *
+        (((σ x (Fin.last N) : ℤˣ) : ℝ) * ((σ y (Fin.last N) : ℤˣ) : ℝ) - q)) -
+      ∑ j : SKCavityReplicaPair n, skCavityReplicaPairWeight n j *
+        (skCavityBCoef β q qhat (skCavityReplicaPairCoincidences x y j) * OO j)| ≤
+      ET := hT
+  have hsplit : ∑ j : SKCavityReplicaPair n, skCavityReplicaPairWeight n j *
+        (skCavityBCoef β q qhat (skCavityReplicaPairCoincidences x y j) * OO j) -
+      ∑ j : SKCavityReplicaPair n, skCavityReplicaPairWeight n j *
+        (skCavityBCoef β q qhat (skCavityReplicaPairCoincidences x y j) * Vj j) =
+      ∑ j : SKCavityReplicaPair n, skCavityReplicaPairWeight n j *
+        (skCavityBCoef β q qhat (skCavityReplicaPairCoincidences x y j) * (OO j - Vj j)) := by
+    rw [← Finset.sum_sub_distrib]
+    refine Finset.sum_congr rfl fun j _ => ?_
+    ring
+  have hK : |ν (fun σ => (((σ x (Fin.last N) : ℤˣ) : ℝ) * ((σ y (Fin.last N) : ℤˣ) : ℝ) - q) *
+        (((σ a (Fin.last N) : ℤˣ) : ℝ) * ((σ b (Fin.last N) : ℤˣ) : ℝ))) -
+      skCavityBUnscaled q qhat (skCavityCoincidences x y a b)| ≤
+      4 * (n : ℝ) ^ 2 * β ^ 2 * Real.exp (4 * ((n : ℝ) + 2) ^ 2 * β ^ 2) * Dabs := K
+  rw [S1]
+  have hmid' : |(∑ j : SKCavityReplicaPair n, skCavityReplicaPairWeight n j *
+        (skCavityBCoef β q qhat (skCavityReplicaPairCoincidences x y j) * OO j)) -
+      ∑ j : SKCavityReplicaPair n, skCavityReplicaPairWeight n j *
+        (skCavityBCoef β q qhat (skCavityReplicaPairCoincidences x y j) * Vj j)| ≤
+      (∑ j : SKCavityReplicaPair n, |skCavityReplicaPairWeight n j|) * β ^ 2 * Eb := by
+    rw [hsplit]; exact hmid
+  exact abs_row_combine rfl rfl (inv_nonneg.2 hM0.le) hT' hmid' hK
+
+/-- **One row of the cavity covariance system (explicit error).**  Let `x ≠ y`, `a ≠ b` be
+replicas of `n` replicas and `e` a numbering of the `n + 2` replicas of the cavity formula.  Then
+`ν((R_{xy} - q)(R_{ab} - q))` differs from
+`M⁻¹ b(c) + ∑_j w_j β² b(c_j) ν_{n+2}((R_{ab} - q)(R_{j} - q))`, `M = N + 1`, by at most the sum of
+the Taylor error (Eq. (1.216)), the `ν₀ → ν` error (Eq. (1.215)) for the `∑_j`, the cost of
 `R⁻ → R`, and the last-site error (Eq. (1.215) again).  The quantities `Vf`, `Gb`, `Dtwo`, `Dfour`,
 `Dabs` are bounds for the second moments that enter. -/
 theorem sk_row_equation (N n : ℕ) (β q h : ℝ)
@@ -641,26 +859,17 @@ theorem sk_row_equation (N n : ℕ) (β q h : ℝ)
       (N + 1 : ℝ)⁻¹ * (4 * (n : ℝ) ^ 2 * β ^ 2 * Real.exp (4 * ((n : ℝ) + 2) ^ 2 * β ^ 2) * Dabs)
         := by
   have hq : q ∈ Set.Icc (0 : ℝ) 1 := fixedPoint_mem_Icc hfix
-  have hM0 : (0 : ℝ) < N + 1 := by positivity
   let Fab : (Fin n → Fin N → ℤˣ) → ℝ := fun ρ => (N + 1 : ℝ)⁻¹ *
     ((fun i : Fin N => (ρ a i : ℝ)) ⬝ᵥ fun i : Fin N => (ρ b i : ℝ)) - q
-  have S1 := sk_row_structure N n β h q ν hν x y a b
   have T := sk_pair_taylor N n β q h hfix qhat hqhat hxy Fab ν hν Dfour hDfour
-  have hDabs' : Dabs = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ,
-      |(N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
-        fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q|
-      ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) := by
-    rw [hDabs, hν₂]
-  have K := sk_row_last_site N n β q h hfix qhat hqhat hxy hab ν hν Dabs hDabs'
-  have hso : ∀ r r' : Fin n, r ≠ r' → e (some (some r)) ≠ e (some (some r')) :=
-    fun r r' hr he => hr (Option.some.inj (Option.some.inj (e.injective he)))
-  have hj : ∀ j : SKCavityReplicaPair n,
-      |(∫ g', ∫ ρ : Option (Option (Fin n)) → Fin N → ℤˣ,
-              Fab (fun r => ρ (some (some r))) *
+  have hT : |ν (fun σ => (((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ a i.castSucc : ℝ)) ⬝ᵥ
+          fun i : Fin N => (σ b i.castSucc : ℝ)) - q) *
+        (((σ x (Fin.last N) : ℤˣ) : ℝ) * ((σ y (Fin.last N) : ℤˣ) : ℝ) - q))) -
+      ∑ j : SKCavityReplicaPair n, skCavityReplicaPairWeight n j *
+        (skCavityBCoef β q qhat (skCavityReplicaPairCoincidences x y j) *
+          ∫ g', ∫ ρ : Option (Option (Fin n)) → Fin N → ℤˣ,
+              ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (ρ (some (some a)) i : ℝ)) ⬝ᵥ
+                  fun i : Fin N => (ρ (some (some b)) i : ℝ)) - q) *
                 ((N + 1 : ℝ)⁻¹ *
                   ((fun i : Fin N => (ρ (skCavityReplicaPairMap j).1 i : ℝ)) ⬝ᵥ
                     fun i : Fin N => (ρ (skCavityReplicaPairMap j).2 i : ℝ)) - q)
@@ -669,125 +878,41 @@ theorem sk_row_equation (N n : ℕ) (β q h : ℝ)
                   (Real.sqrt (N + 1))⁻¹ * β *
                     (∑ p : FinPairs N, g' p * (r p.val.1 : ℝ) * (r p.val.2 : ℝ)) +
                   h * ∑ i : Fin N, (r i : ℝ)))
-              ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) -
-        νm (fun τ => ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (τ (e (some (some a))) i : ℝ)) ⬝ᵥ
-              fun i : Fin (N + 1) => (τ (e (some (some b))) i : ℝ)) - q) *
-            ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (τ (e (skCavityReplicaPairMap j).1) i : ℝ)) ⬝ᵥ
-              fun i : Fin (N + 1) => (τ (e (skCavityReplicaPairMap j).2) i : ℝ)) - q))| ≤
-      2 * ((n : ℝ) + 2) ^ 2 * β ^ 2 * Real.exp (4 * (((n + 2 : ℕ) : ℝ) + 2) ^ 2 * β ^ 2) *
-            (Real.sqrt Gb * Real.sqrt Dtwo) +
-          (2 * Dabs / ((N : ℝ) + 1) + 1 / ((N : ℝ) + 1) ^ 2) := fun j => by
-    let G6 : (Fin (n + 2) → Fin N → ℤˣ) → ℝ := fun ρ' =>
-      Fab (fun r => ρ' (e (some (some r)))) *
-        ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (ρ' (e (skCavityReplicaPairMap j).1) i : ℝ)) ⬝ᵥ
-          fun i : Fin N => (ρ' (e (skCavityReplicaPairMap j).2) i : ℝ)) - q)
-    have hre : (∫ g', ∫ ρ : Option (Option (Fin n)) → Fin N → ℤˣ,
-              Fab (fun r => ρ (some (some r))) *
-                ((N + 1 : ℝ)⁻¹ *
-                  ((fun i : Fin N => (ρ (skCavityReplicaPairMap j).1 i : ℝ)) ⬝ᵥ
-                    fun i : Fin N => (ρ (skCavityReplicaPairMap j).2 i : ℝ)) - q)
-              ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted
-                (fun r : Fin N → ℤˣ =>
-                  (Real.sqrt (N + 1))⁻¹ * β *
-                    (∑ p : FinPairs N, g' p * (r p.val.1 : ℝ) * (r p.val.2 : ℝ)) +
-                  h * ∑ i : Fin N, (r i : ℝ)))
-              ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) =
-        ∫ g', ∫ ρ' : Fin (n + 2) → Fin N → ℤˣ, G6 ρ'
+              ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1))| ≤
+      4 * (n : ℝ) ^ 2 * ((n : ℝ) + 2) ^ 2 * β ^ 4 * Real.exp (4 * ((n : ℝ) + 4) ^ 2 * β ^ 2) *
+        (Real.sqrt Vf * Real.sqrt Dfour) := by
+    refine T.trans ?_
+    gcongr
+  have hH : ∀ j : SKCavityReplicaPair n,
+      |νm (fun σ => (((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ (e (some (some a))) i.castSucc : ℝ)) ⬝ᵥ
+          fun i : Fin N => (σ (e (some (some b))) i.castSucc : ℝ)) - q) *
+        ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ (e (skCavityReplicaPairMap j).1) i.castSucc : ℝ)) ⬝ᵥ
+          fun i : Fin N => (σ (e (skCavityReplicaPairMap j).2) i.castSucc : ℝ)) - q))) -
+        ∫ g', ∫ ρ' : Fin (n + 2) → Fin N → ℤˣ,
+          ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (ρ' (e (some (some a))) i : ℝ)) ⬝ᵥ
+              fun i : Fin N => (ρ' (e (some (some b))) i : ℝ)) - q) *
+            ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (ρ' (e (skCavityReplicaPairMap j).1) i : ℝ)) ⬝ᵥ
+              fun i : Fin N => (ρ' (e (skCavityReplicaPairMap j).2) i : ℝ)) - q)
           ∂(Measure.pi fun _ : Fin (n + 2) => Measure.count.tilted
             (fun r : Fin N → ℤˣ =>
               (Real.sqrt (N + 1))⁻¹ * β *
                 (∑ p : FinPairs N, g' p * (r p.val.1 : ℝ) * (r p.val.2 : ℝ)) +
               h * ∑ i : Fin N, (r i : ℝ)))
-          ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) := by
-      refine integral_congr_ae (ae_of_all _ fun g' => ?_)
-      exact integral_pi_count_tilted_reindex e _ (fun ρ : Option (Option (Fin n)) → Fin N → ℤˣ =>
-        Fab (fun r => ρ (some (some r))) *
-          ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (ρ (skCavityReplicaPairMap j).1 i : ℝ)) ⬝ᵥ
-            fun i : Fin N => (ρ (skCavityReplicaPairMap j).2 i : ℝ)) - q))
+          ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)| ≤
+      2 * ((n : ℝ) + 2) ^ 2 * β ^ 2 * Real.exp (4 * (((n + 2 : ℕ) : ℝ) + 2) ^ 2 * β ^ 2) *
+            (Real.sqrt Gb * Real.sqrt Dtwo) := fun j => by
+    let G6 : (Fin (n + 2) → Fin N → ℤˣ) → ℝ := fun ρ' =>
+      Fab (fun r => ρ' (e (some (some r)))) *
+        ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (ρ' (e (skCavityReplicaPairMap j).1) i : ℝ)) ⬝ᵥ
+          fun i : Fin N => (ρ' (e (skCavityReplicaPairMap j).2) i : ℝ)) - q)
     have H := sk_old_spin_compare N (n + 2) β q h hfix G6 νm hνm Dtwo hDtwo
-    have Cv := sk_row_conv N β h q (n + 2) νm hνm ν₂ hν₂ (hso a b hab)
-      (fun he => skCavityReplicaPair_ne j (e.injective he))
-    rw [← hDabs] at Cv
-    rw [hre]
     have hsq : Real.sqrt (νm (fun σ => G6 (fun r i => σ r i.castSucc) ^ 2)) ≤ Real.sqrt Gb :=
       Real.sqrt_le_sqrt (hGb j)
-    have hCH : 0 ≤ 2 * ((n + 2 : ℕ) : ℝ) ^ 2 * β ^ 2 *
-        Real.exp (4 * (((n + 2 : ℕ) : ℝ) + 2) ^ 2 * β ^ 2) := by positivity
-    have H2 : |νm (fun σ => G6 (fun r i => σ r i.castSucc)) - ∫ g', ∫ ρ' : Fin (n + 2) → Fin N → ℤˣ,
-        G6 ρ' ∂(Measure.pi fun _ : Fin (n + 2) => Measure.count.tilted
-            (fun r : Fin N → ℤˣ =>
-              (Real.sqrt (N + 1))⁻¹ * β *
-                (∑ p : FinPairs N, g' p * (r p.val.1 : ℝ) * (r p.val.2 : ℝ)) +
-              h * ∑ i : Fin N, (r i : ℝ)))
-          ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)| ≤
-        2 * ((n : ℝ) + 2) ^ 2 * β ^ 2 * Real.exp (4 * (((n + 2 : ℕ) : ℝ) + 2) ^ 2 * β ^ 2) *
-            (Real.sqrt Gb * Real.sqrt Dtwo) := by
-      refine H.trans ?_
-      push_cast
-      gcongr
-    rw [abs_sub_comm] at H2
-    refine (abs_sub_le _ (νm (fun σ => G6 (fun r i => σ r i.castSucc))) _).trans ?_
+    refine H.trans ?_
+    push_cast
     gcongr
-  have hbu : ∀ c : ℕ, |skCavityBCoef β q qhat c| ≤ β ^ 2 := fun c => by
-    unfold skCavityBCoef
-    rw [abs_mul, abs_of_nonneg (sq_nonneg β)]
-    exact mul_le_of_le_one_right (sq_nonneg β) (abs_skCavityBUnscaled_le hq hqhat01 c)
-  set Eb : ℝ := 2 * ((n : ℝ) + 2) ^ 2 * β ^ 2 * Real.exp (4 * (((n + 2 : ℕ) : ℝ) + 2) ^ 2 * β ^ 2) *
-            (Real.sqrt Gb * Real.sqrt Dtwo) +
-          (2 * Dabs / ((N : ℝ) + 1) + 1 / ((N : ℝ) + 1) ^ 2) with hEb
-  set OO : SKCavityReplicaPair n → ℝ := fun j =>
-    ∫ g', ∫ ρ : Option (Option (Fin n)) → Fin N → ℤˣ,
-              Fab (fun r => ρ (some (some r))) *
-                ((N + 1 : ℝ)⁻¹ *
-                  ((fun i : Fin N => (ρ (skCavityReplicaPairMap j).1 i : ℝ)) ⬝ᵥ
-                    fun i : Fin N => (ρ (skCavityReplicaPairMap j).2 i : ℝ)) - q)
-              ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted
-                (fun r : Fin N → ℤˣ =>
-                  (Real.sqrt (N + 1))⁻¹ * β *
-                    (∑ p : FinPairs N, g' p * (r p.val.1 : ℝ) * (r p.val.2 : ℝ)) +
-                  h * ∑ i : Fin N, (r i : ℝ))) ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
-    with hOO
-  set Vj : SKCavityReplicaPair n → ℝ := fun j =>
-    νm (fun τ => ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (τ (e (some (some a))) i : ℝ)) ⬝ᵥ
-              fun i : Fin (N + 1) => (τ (e (some (some b))) i : ℝ)) - q) *
-            ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (τ (e (skCavityReplicaPairMap j).1) i : ℝ)) ⬝ᵥ
-              fun i : Fin (N + 1) => (τ (e (skCavityReplicaPairMap j).2) i : ℝ)) - q)) with hVj
-  have hmid : |∑ j : SKCavityReplicaPair n, skCavityReplicaPairWeight n j *
-        (skCavityBCoef β q qhat (skCavityReplicaPairCoincidences x y j) * (OO j - Vj j))| ≤
-      (∑ j : SKCavityReplicaPair n, |skCavityReplicaPairWeight n j|) * β ^ 2 * Eb := by
-    rw [mul_assoc]
-    refine Weights.abs_weighted_sum_le _ _ fun j => ?_
-    rw [abs_mul]
-    exact mul_le_mul (hbu _) (hj j) (abs_nonneg _) (sq_nonneg β)
-  have hT' : |ν (fun σ => Fab (fun r i => σ r i.castSucc) *
-        (((σ x (Fin.last N) : ℤˣ) : ℝ) * ((σ y (Fin.last N) : ℤˣ) : ℝ) - q)) -
-      ∑ j : SKCavityReplicaPair n, skCavityReplicaPairWeight n j *
-        (skCavityBCoef β q qhat (skCavityReplicaPairCoincidences x y j) * OO j)| ≤
-      4 * (n : ℝ) ^ 2 * ((n : ℝ) + 2) ^ 2 * β ^ 4 * Real.exp (4 * ((n : ℝ) + 4) ^ 2 * β ^ 2) *
-        (Real.sqrt Vf * Real.sqrt Dfour) := by
-    refine T.trans ?_
-    gcongr
-  have hsplit : ∑ j : SKCavityReplicaPair n, skCavityReplicaPairWeight n j *
-        (skCavityBCoef β q qhat (skCavityReplicaPairCoincidences x y j) * OO j) -
-      ∑ j : SKCavityReplicaPair n, skCavityReplicaPairWeight n j *
-        (skCavityBCoef β q qhat (skCavityReplicaPairCoincidences x y j) * Vj j) =
-      ∑ j : SKCavityReplicaPair n, skCavityReplicaPairWeight n j *
-        (skCavityBCoef β q qhat (skCavityReplicaPairCoincidences x y j) * (OO j - Vj j)) := by
-    rw [← Finset.sum_sub_distrib]
-    refine Finset.sum_congr rfl fun j _ => ?_
-    ring
-  have hK : |ν (fun σ => (((σ x (Fin.last N) : ℤˣ) : ℝ) * ((σ y (Fin.last N) : ℤˣ) : ℝ) - q) *
-        (((σ a (Fin.last N) : ℤˣ) : ℝ) * ((σ b (Fin.last N) : ℤˣ) : ℝ))) -
-      skCavityBUnscaled q qhat (skCavityCoincidences x y a b)| ≤
-      4 * (n : ℝ) ^ 2 * β ^ 2 * Real.exp (4 * ((n : ℝ) + 2) ^ 2 * β ^ 2) * Dabs := K
-  rw [S1]
-  have hmid' : |(∑ j : SKCavityReplicaPair n, skCavityReplicaPairWeight n j *
-        (skCavityBCoef β q qhat (skCavityReplicaPairCoincidences x y j) * OO j)) -
-      ∑ j : SKCavityReplicaPair n, skCavityReplicaPairWeight n j *
-        (skCavityBCoef β q qhat (skCavityReplicaPairCoincidences x y j) * Vj j)| ≤
-      (∑ j : SKCavityReplicaPair n, |skCavityReplicaPairWeight n j|) * β ^ 2 * Eb := by
-    rw [hsplit]; exact hmid
-  exact abs_row_combine rfl rfl (inv_nonneg.2 hM0.le) hT' hmid' hK
+  exact sk_row_equation_of_bounds N n β q h hfix qhat hqhat hqhat01 hxy hab e ν hν νm hνm ν₂ hν₂
+    _ _ Dabs hT hH hDabs
 
 end Row
 
