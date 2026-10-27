@@ -496,7 +496,7 @@ Section~1.3 introduces Guerra's smart path interpolation between the fully inter
 \begin{itemize}
 \item \emph{Parametrization of the path.} Definition~\ref{def:sg-tal:smart-path} uses the trigonometric path $\cos s\,X+\sin s\,Y+h$, $s\in[0,\pi/2]$, with $s=0$ the SK model and $s=\pi/2$ the decoupled model, whereas the book uses $\sqrt t\,X+\sqrt{1-t}\,Y+h$ with $t=1$ the SK end; they are related by $t=\cos^2 s$ and all derivative formulas carry the factor $\sin s\cos s$ instead of the book's $dt$ (Remark~\ref{rem:sg-tal:book-path}).
 \item \emph{Joint Gaussian space.} The pair disorder $g$ and the site disorder $z$ are realized on the product space $(\mathrm{FinPairs}\,N\to\mathbb R)\times(\mathrm{Fin}\,N\to\mathbb R)$ with the product measure; joint Gaussianity of $(X_\sigma,Y_\sigma)_\sigma$ is proved from independence (\texttt{HasGaussianLaw.sumElim\_prod\_of\_independent}).
-\item \emph{The fixed point $q$: a definition in the book, a hypothesis in Lean.} In the book, $q$ is \emph{the} solution of $q=\mathbb{E}[\tanh^2(\beta z\sqrt q+h)]$ (Eq.~(1.74)), so statements such as ``$p_N\le\operatorname{SK}(\beta,h)$'' refer to one specific number. In Lean every theorem that uses $q$ (Theorem~\ref{thm:sg-tal:overlap-conc}, Theorem~\ref{thm:sg-tal:alr}, and the helper lemmas of Section~\ref{sec:sg-tal:latala-alr}) quantifies over an arbitrary real number $q$ together with the hypothesis \texttt{hfix} : $\mathbb{E}[\tanh^2(\beta\sqrt q\,z+h)]=q$. The existence of such a $q\in[0,1]$ is proved (Theorem~\ref{thm:sg-tal:fixed-point}); uniqueness is not. See Remark~\ref{rem:sg-tal:fixed-point-scope} for the intuition, the reasons, and the consequences. Guerra's bound itself (Theorem~\ref{thm:sg-tal:guerra-rs-bound}) holds for every $q\ge0$ and needs no fixed-point hypothesis.
+\item \emph{The fixed point $q$: a definition in the book, a hypothesis in Lean.} In the book, $q$ is \emph{the} solution of $q=\mathbb{E}[\tanh^2(\beta z\sqrt q+h)]$ (Eq.~(1.74)), so statements such as ``$p_N\le\operatorname{SK}(\beta,h)$'' refer to one specific number. In Lean every theorem that uses $q$ (Theorem~\ref{thm:sg-tal:overlap-conc}, Theorem~\ref{thm:sg-tal:alr}, and the helper lemmas of Section~\ref{sec:sg-tal:latala-alr}) quantifies over an arbitrary real number $q$ together with the hypothesis \texttt{hfix} : $\mathbb{E}[\tanh^2(\beta\sqrt q\,z+h)]=q$. The existence of such a $q\in[0,1]$ is proved (Theorem~\ref{thm:sg-tal:fixed-point}); uniqueness is proved only for $h\ne0$ (Theorem~\ref{thm:sg-tal:fixed-point-unique}), and the theorems of these sections do not use it. See Remark~\ref{rem:sg-tal:fixed-point-scope} for the intuition, the reasons, and the consequences. Guerra's bound itself (Theorem~\ref{thm:sg-tal:guerra-rs-bound}) holds for every $q\ge0$ and needs no fixed-point hypothesis.
 \end{itemize}
 \end{remark}
 
@@ -711,6 +711,42 @@ Continuity follows from dominated convergence (the integrand is bounded by $1$ a
 Formalized in \texttt{SpinGlasses/SKFixedPoint.lean}.
 \end{proof}
 
+\begin{theorem}[Uniqueness of the solution of the self-consistency equation, $h\ne0$]\label{thm:sg-tal:fixed-point-unique}
+  \uses{thm:sg-tal:fixed-point, thm:sg-tal:residual}
+  \lean{SpinGlasses.fixedPoint_unique,
+        SpinGlasses.existsUnique_fixedPoint}
+  \leanok
+\talsource{Eq.~(1.74) and Proposition~1.3.8, for a deterministic field $h\ne0$ (so $\mathbb{E}h^2>0$)}
+Let $\beta\in\mathbb R$ and $h\ne0$. If $q,r$ are solutions of $x=\mathbb{E}[\tanh^2(\beta z\sqrt x+h)]$, then $q=r$. Consequently there is exactly one $q\in[0,1]$ with
+$q=\mathbb{E}[\tanh^2(\beta z\sqrt q+h)]$.
+\end{theorem}
+\begin{proof}
+  \leanok
+Every solution is positive, because $\mathbb{E}\tanh^2(wz+h)>0$ for $h\ne0$. At a solution $x$ one has $\Phi(x)/x=1$, where $\Phi(x)=\mathbb{E}[\tanh^2(\beta z\sqrt x+h)]$, and
+$x\mapsto\Phi(x)/x$ is strictly decreasing on $(0,\infty)$ (Theorem~\ref{thm:sg-tal:residual}, the case of $\tanh$ of Proposition~A.14.1), hence injective, so $q=r$. Existence in $[0,1]$ is
+Theorem~\ref{thm:sg-tal:fixed-point}. The argument uses neither $\beta<1$ nor the residual bound, and it does not identify the solution with a minimizer of $\operatorname{RS}$ (Remark~\ref{rem:sg-tal:fixed-point-scope}).
+Formalized in \texttt{SpinGlasses/SKFixedPointResidual.lean}.
+\end{proof}
+
+\begin{theorem}[Guerra's bound at the unique solution, $h\ne0$]\label{thm:sg-tal:guerra-rs-bound-unique}
+  \uses{thm:sg-tal:guerra-rs-bound, thm:sg-tal:fixed-point-unique}
+  \lean{SpinGlasses.existsUnique_fixedPoint_replica_symmetric_upper_bound}
+  \leanok
+\talsource{Theorem~1.3.7 in the book's form $p_N(\beta,h)\le\operatorname{SK}(\beta,h)=\operatorname{RS}(q)$ with $q$ the solution of Eq.~(1.74), together with Proposition~1.3.8}
+Let $\beta\in\mathbb R$ and $h\ne0$. There is exactly one $q\in[0,1]$ such that $q=\mathbb{E}[\tanh^2(\beta z\sqrt q+h)]$ and, for every $N\ge1$,
+\[
+p_N(\beta,h)\le \log 2+\mathbb{E}[\log\cosh(\beta z\sqrt q+h)]+\tfrac{\beta^2}{4}(1-q)^2=\operatorname{RS}(q).
+\]
+Thus $\operatorname{SK}(\beta,h):=\operatorname{RS}(q)$ is well defined for $h\ne0$ and bounds every $p_N(\beta,h)$.
+\end{theorem}
+\begin{proof}
+  \leanok
+Take the solution $q\in[0,1]$ of Theorem~\ref{thm:sg-tal:fixed-point-unique}; since $q\ge0$, Theorem~\ref{thm:sg-tal:guerra-rs-bound} applies. Any other $q'$ with the first property is a
+solution of (1.74), hence equals $q$. For $h=0$ this packaging is not available: there can be two solutions (Remark~\ref{rem:sg-tal:fixed-point-scope}). Theorem~\ref{thm:sg-tal:guerra-rs-bound} itself, for
+every $q\ge0$, is unaffected.
+Formalized in \texttt{SpinGlasses/SKGuerraBoundUnique.lean}.
+\end{proof}
+
 \begin{remark}[Scope of the fixed-point results: intuition, context, reasons and consequences]\label{rem:sg-tal:fixed-point-scope}
 \talsource{Eqs.~(1.74)--(1.76), Proposition~1.3.8}
 \emph{Context and intuition.} Guerra's bound (Theorem~\ref{thm:sg-tal:guerra-rs-bound}) is valid for every parameter $q\ge0$:
@@ -723,11 +759,11 @@ The parameter $q$ plays the role of a guessed overlap of two replicas. The bound
 \]
 so the optimal $q$ is exactly a solution of (1.74). This also has a physical meaning: at the fixed point the decoupled model has expected overlap exactly $q$ (Theorem~\ref{thm:sg-tal:decoupled-overlap}), which is the reason the decoupled endpoint of the interpolation is the right comparison system. Proposition~1.3.8 then shows that the solution is unique when $\mathbb{E}[h^2]>0$ (Latala--Guerra, hard proof in the book's Appendix A.14), and for $\beta<1$ there is a short argument: with $f=\tanh^2$ one has $f''=2(1-t^2)(1-3t^2)\le2$ for $t=\tanh y$, so $\psi'\le\beta^2<1$, $\psi(x)-x$ is strictly decreasing and has at most one zero. From then on the book writes $q$ for this unique number and $\operatorname{SK}(\beta,h):=\operatorname{RS}(q)$.
 
-\emph{What is formalized.} Only Theorem~\ref{thm:sg-tal:fixed-point}: a solution of (1.74) exists. \emph{What is not formalized:} (a) the derivative formula (1.75) for $x>0$ and hence the identity $\operatorname{RS}'(q)=\frac{\beta^2}{2}(q-\psi(q))$; (b) the consequence that some minimizer of $\operatorname{RS}$ over $q\ge0$ is a fixed point (a minimizer at $q=0$ forces $h=0$, in which case $0$ is itself a fixed point); (c) the bound $\psi'\le\beta^2$ and uniqueness of the fixed point for $\beta<1$; (d) the full Latala--Guerra monotonicity of Proposition~1.3.8. Note that ``every fixed point minimizes $\operatorname{RS}$'' is false in general (for $h=0$ and $\beta>1$ there are two fixed points), so the correct formal statement of (b) is about \emph{some} minimizer.
+\emph{What is formalized.} Theorem~\ref{thm:sg-tal:fixed-point}: a solution of (1.74) exists; and, for $h\ne0$, the solution is unique (Theorem~\ref{thm:sg-tal:fixed-point-unique}, from the strict decrease of $\Phi(x)/x$, Proposition~A.14.1 for $\tanh$), and Guerra's bound is stated at this unique solution (Theorem~\ref{thm:sg-tal:guerra-rs-bound-unique}). \emph{What is not formalized:} (a) the derivative formula (1.75) for $x>0$ and hence the identity $\operatorname{RS}'(q)=\frac{\beta^2}{2}(q-\psi(q))$; (b) the consequence that some minimizer of $\operatorname{RS}$ over $q\ge0$ is a fixed point (a minimizer at $q=0$ forces $h=0$, in which case $0$ is itself a fixed point); (c) the bound $\psi'\le\beta^2$ and uniqueness of the fixed point for $\beta<1$ when $h=0$ (for $h\ne0$ uniqueness holds for every $\beta$ by the route above); (d) the full Latala--Guerra monotonicity of Proposition~1.3.8. Note that ``every fixed point minimizes $\operatorname{RS}$'' is false in general (for $h=0$ and $\beta>1$ there are two fixed points), so the correct formal statement of (b) is about \emph{some} minimizer.
 
 \emph{Why this was left out.} None of the later arguments uses minimality or uniqueness. Lata\l{}a's argument (Section~1.4) uses only the identity $q=\mathbb{E}[\tanh^2(\beta z\sqrt q+h)]$: through the decoupled overlap (Eq.~(1.104), $\nu_0(\sigma^1_i\sigma^2_i)=q$) it makes the decoupled model's overlap concentrate at $q$ (Proposition~\ref{prop:sg-tal:base-case}), and the smart-path derivative needs only the generic $q$ of Guerra's bound. Items (a)--(c) additionally need a differentiation-under-the-integral argument in the variance parameter $x$, with the $\sqrt x$ singularity at $x=0$ (handled by continuity, as the derivative is only needed for $x>0$), and (d) is a long separate argument that the book itself calls ``not really of importance''. The effort was therefore spent on the overlap concentration and the ALR formula.
 
-\emph{Impact on the Lean code.} (i) Every Lean theorem that involves $q$ carries the hypothesis \texttt{hfix} and quantifies over all solutions; this is at least as strong as the book's statement, which is about one particular solution, and the theorems are not vacuous because Theorem~\ref{thm:sg-tal:fixed-point} produces a solution. (ii) For $\beta<1$ (hence in the whole regime $\beta^2<1/4$ where Theorems~\ref{thm:sg-tal:overlap-conc} and~\ref{thm:sg-tal:alr} are proved) the solution is unique in the book, so Lean's ``for every solution'' is the book's statement; but Lean does not prove this uniqueness. (iii) Consequently the limit in Theorem~\ref{thm:sg-tal:alr} is stated as $\operatorname{RS}(q)$ for the supplied $q$, and the Lean development does not define a function $(\beta,h)\mapsto\operatorname{SK}(\beta,h)$ or prove that the limit is independent of the choice of $q$. (iv) Nothing here affects the correctness of the proved statements; it only means that the identification ``$q$ is the minimizer of Guerra's bound, hence canonical'' lives in this blueprint text and not in Lean.
+\emph{Impact on the Lean code.} (i) Every Lean theorem that involves $q$ carries the hypothesis \texttt{hfix} and quantifies over all solutions; this is at least as strong as the book's statement, which is about one particular solution, and the theorems are not vacuous because Theorem~\ref{thm:sg-tal:fixed-point} produces a solution. (ii) For $\beta<1$ (hence in the whole regime $\beta^2<1/4$ where Theorems~\ref{thm:sg-tal:overlap-conc} and~\ref{thm:sg-tal:alr} are proved) the solution is unique in the book, so Lean's ``for every solution'' is the book's statement; Lean proves this uniqueness for $h\ne0$ (Theorem~\ref{thm:sg-tal:fixed-point-unique}) but not for $h=0$. (iii) Consequently the limit in Theorem~\ref{thm:sg-tal:alr} is stated as $\operatorname{RS}(q)$ for the supplied $q$, and the Lean development does not define a function $(\beta,h)\mapsto\operatorname{SK}(\beta,h)$ or state that the limit is independent of the choice of $q$ (for $h\ne0$ this independence is a consequence of Theorem~\ref{thm:sg-tal:fixed-point-unique}). (iv) Nothing here affects the correctness of the proved statements; it only means that the identification ``$q$ is the minimizer of Guerra's bound, hence canonical'' lives in this blueprint text and not in Lean.
 \end{remark}
 
 \section{Lata\l{}a's Overlap Concentration and the ALR Formula (Talagrand Section~1.4)}\label{sec:sg-tal:latala-alr}
@@ -951,7 +987,7 @@ By Theorem~\ref{thm:sg-tal:guerra-rs-bound} (profile lemma) $\varphi'(s)=\frac{\
 Since $0\le A(s)\le K'/N$ on $[0,\pi/2]$ by Theorem~\ref{thm:sg-tal:overlap-conc}, the functions $\varphi(s)+\frac{\beta^2}{4}(1-q)^2\sin^2 s$ (nondecreasing) and $\varphi(s)+\frac{\beta^2}{4}((1-q)^2-K'/N)\sin^2 s$ (nonincreasing) give $\varphi(0)\le\varphi(\pi/2)+\frac{\beta^2}{4}(1-q)^2$ and $\varphi(0)\ge\varphi(\pi/2)+\frac{\beta^2}{4}((1-q)^2-K'/N)$, i.e.\ the claim.
 \emph{Formalization note.} This is done by monotonicity instead of integrating the derivative (same bound, no integrability to check).
 As in Theorem~\ref{thm:sg-tal:overlap-conc}, $q$ is a hypothesis (fixed-point equation) and $\beta<1/2$ is stated as $\beta^2<1/4$.
-\emph{Not formalized:} the identification of the solution $q$ with the minimizer of Guerra's bound and the uniqueness of the fixed point for $\beta<1$; the thermodynamic limit of the Guerra--Toninelli theorem is stated there for the full-matrix disorder without field, while the limit here is derived directly from the $O(1/N)$ bound for the pair disorder with field.
+\emph{Not formalized:} the identification of the solution $q$ with the minimizer of Guerra's bound and the uniqueness of the fixed point for $\beta<1$ and $h=0$ (it is proved for $h\ne0$, Theorem~\ref{thm:sg-tal:fixed-point-unique}); the thermodynamic limit of the Guerra--Toninelli theorem is stated there for the full-matrix disorder without field, while the limit here is derived directly from the $O(1/N)$ bound for the pair disorder with field.
 Formalized in \texttt{SpinGlasses/SKAizenmanLebowitzRuelle.lean}.
 \end{proof}
 
@@ -989,9 +1025,9 @@ The book gives no formal statement in Section~1.5 (``we shall never need a forma
 
 \item \emph{The earlier outline of this section is not formalized.} Before Milestone T5 this section contained a sketch based on the conditional exponential moment $\langle\exp(t\,\mathbf g\cdot(\sigma-\langle\sigma\rangle)/\sqrt N)\rangle\to\exp(t^2(1-q)/2)$ and a second-order Taylor argument. That sketch is not the argument of Talagrand's Section~1.5 (which compares $U$ and $V$ through Gaussian pairs), it was never a statement of the book, and it has been replaced by Theorem~\ref{thm:sg-tal:random-projection}. The exponential-moment convergence is not proved.
 
-\item \emph{Hypotheses.} As in Section~\ref{sec:sg-tal:latala-alr}, the fixed point $q$ is a hypothesis (the equation $q=\mathbb{E}[\tanh^2(\beta\sqrt q\,z+h)]$ is assumed, and only the existence of a solution is proved), because Lean does not prove the uniqueness of the solution that makes ``the'' $q$ of the book well defined. The condition $\beta<1/2$ is stated as $\beta^2<1/4$, which is the same condition for $\beta\ge0$ and is the form in which the overlap bound is proved (it also allows $\beta<0$). The abstract results of this section need only $|q|\le1$ (for Proposition~\ref{prop:sg-tal:spin-decorr}) or $0\le q\le\rho$ (for Theorem~\ref{thm:sg-tal:random-projection}); the SK corollaries use $q\in[0,1]$ from the fixed-point equation.
+\item \emph{Hypotheses.} As in Section~\ref{sec:sg-tal:latala-alr}, the fixed point $q$ is a hypothesis (the equation $q=\mathbb{E}[\tanh^2(\beta\sqrt q\,z+h)]$ is assumed, and only the existence of a solution is proved), because these results do not use the uniqueness of the solution that makes ``the'' $q$ of the book well defined (uniqueness is proved for $h\ne0$ in Theorem~\ref{thm:sg-tal:fixed-point-unique}). The condition $\beta<1/2$ is stated as $\beta^2<1/4$, which is the same condition for $\beta\ge0$ and is the form in which the overlap bound is proved (it also allows $\beta<0$). The abstract results of this section need only $|q|\le1$ (for Proposition~\ref{prop:sg-tal:spin-decorr}) or $0\le q\le\rho$ (for Theorem~\ref{thm:sg-tal:random-projection}); the SK corollaries use $q\in[0,1]$ from the fixed-point equation.
 
-\item \emph{Not formalized.} Models with non-Ising spins: Proposition~\ref{prop:sg-tal:spin-decorr} and the abstract part of Theorem~\ref{thm:sg-tal:random-projection} are stated for $[-1,1]$-valued observables, respectively for arbitrary vectors in $\mathbb{R}^N$ with an arbitrary self-overlap $\rho$, but Theorem~\ref{thm:sg-tal:asymp-product} uses $\sigma_i^2=1$ (the Walsh expansion of cylinders) and no non-Ising SK-type model is instantiated. Also not formalized is the uniqueness of the fixed point (Eq.~(1.88) for all even moments is Theorem~\ref{thm:sg-tal:overlap-moments-all}).
+\item \emph{Not formalized.} Models with non-Ising spins: Proposition~\ref{prop:sg-tal:spin-decorr} and the abstract part of Theorem~\ref{thm:sg-tal:random-projection} are stated for $[-1,1]$-valued observables, respectively for arbitrary vectors in $\mathbb{R}^N$ with an arbitrary self-overlap $\rho$, but Theorem~\ref{thm:sg-tal:asymp-product} uses $\sigma_i^2=1$ (the Walsh expansion of cylinders) and no non-Ising SK-type model is instantiated. Also not formalized is the uniqueness of the fixed point for $h=0$ (Eq.~(1.88) for all even moments is Theorem~\ref{thm:sg-tal:overlap-moments-all}).
 \end{itemize}
 \end{remark}
 
@@ -5343,14 +5379,13 @@ $\psi_{N+1}$ near $\lambda=0$ is an explicit hypothesis, and the conclusion is t
 (via the model-independent Theorem~\ref{thm:sg-tal:convex-kink}).
 Not formalized: the existence of $\lim_N\psi_N(\lambda)$, which the book defers to another reference (finite-size convexity and concentration do not
 give it); Proposition~1.9.5 at $h=0$ (the zero fixed point coexists with the selected positive one, so the global residual
-bound fails at $x=0$); and Proposition~A.14.1 for general $\varphi$.
+bound fails at $x=0$). Proposition~A.14.1 for general $\varphi$ is Theorem~\ref{thm:sg-tal:latala-guerra} (under explicit regularity at $0$), and the solution of (1.74) is unique for $h\ne0$ (Theorem~\ref{thm:sg-tal:fixed-point-unique}).
 
 \begin{theorem}[Lemma~1.9.3: $\beta^2(1-4q+3\hat q)<1$]
 \label{thm:sg-tal:lemma-193}
+  \uses{thm:sg-tal:latala-guerra}
   \lean{SpinGlasses.sk_beta_sq_mul_one_sub_four_add_three_lt_one,
         SpinGlasses.integral_tanh_core_lt,
-        SpinGlasses.integral_odd_comp_affine_nonneg,
-        SpinGlasses.tanh_mul_sub_neg,
         SpinGlasses.integral_tanh_sq_deriv_mul_id_eq,
         ProbabilityTheory.integral_gaussianReal_add_const_eq}
   \leanok
@@ -5361,7 +5396,7 @@ and $\hat q=\mathbb E\tanh^4(\beta\sqrt q\,z+h)$.  Then $\beta^2(1-4q+3\hat q)<1
 \begin{proof}
   \leanok
 Put $w=\beta\sqrt q$ (the case $\beta=0$ is trivial), $Y=wz+h$, $\varphi=\tanh$.
-\emph{Key inequality:} $w\,\mathbb E[2\varphi(Y)\varphi'(Y)z]<2\,\mathbb E\varphi(Y)^2$.  This is
+\emph{Key inequality} (the case $\varphi=\tanh$ of Theorem~\ref{thm:sg-tal:latala-guerra}(a); its proof is recalled here): $w\,\mathbb E[2\varphi(Y)\varphi'(Y)z]<2\,\mathbb E\varphi(Y)^2$.  This is
 $x^2\Psi'(x)<0$ for $\Psi(x)=\mathbb E\varphi(\sqrt xz+h)^2/x$ at $x=w^2$, in the proof of Proposition~A.14.1:
 write $wz=Y-h$, so that the difference equals $2\,\mathbb E[\varphi(Y)(Y\varphi'(Y)-\varphi(Y))]-2h\,\mathbb E[\varphi\varphi'(Y)]$.
 The first term is negative, since $\psi(y)=y\varphi'(y)-\varphi(y)$ satisfies $\varphi(y)\psi(y)<0$ for $y\ne0$
@@ -5510,9 +5545,38 @@ Theorem~\ref{thm:sg-tal:lemma-194}, $S_2=\nu((R_{1,2}-q)^2)$, $S_3=\nu(|R_{1,2}-
 because $|R_{1,2}-q|\le2$.  Here $a>0$ follows from $\beta^2a>1$.
 \end{proof}
 
+\begin{theorem}[Proposition~A.14.1 (Latala--Guerra lemma), general $\varphi$]
+\label{thm:sg-tal:latala-guerra}
+  \lean{SpinGlasses.integral_odd_comp_affine_nonneg,
+        SpinGlasses.mul_mul_deriv_sub_self_neg,
+        SpinGlasses.deriv_mem_Icc,
+        SpinGlasses.integral_mul_deriv_mul_id_lt,
+        SpinGlasses.hasDerivAt_integral_sq_comp_affine,
+        SpinGlasses.strictAntiOn_integral_sq_comp_sqrt_div,
+        SpinGlasses.tendsto_integral_sq_comp_sqrt_div_atTop}
+  \leanok
+\talsource{Appendix A.14, Proposition~A.14.1 (used for Proposition~1.3.8 and Lemma~1.9.3)}
+Let $\varphi:\mathbb R\to\mathbb R$ be bounded, increasing and odd, and assume the regularity that the book uses implicitly: $\varphi$ is $C^1$ on all of $\mathbb R$ and $\varphi'$ is
+differentiable at every $y>0$ with $\varphi''(y)<0$. Let $z$ be standard Gaussian, $h,s\in\mathbb R$ with $s\ne0$ or $h\ne0$, and $\Psi(x)=\mathbb{E}[\varphi(s\sqrt x\,z+h)^2]/x$.
+Then (a) for $w\ne0$ and $Y=wz+h$, $w\,\mathbb{E}[\varphi(Y)\varphi'(Y)z]<\mathbb{E}[\varphi(Y)^2]$; (b) $\Psi$ is strictly decreasing on $(0,\infty)$; (c) $\Psi(x)\to0$ as $x\to\infty$
+(this needs only boundedness of $\varphi$).
+\end{theorem}
+\begin{proof}
+  \leanok
+Regularity at $0$ is an extra hypothesis on purpose: the odd extension of $\sqrt y/(1+\sqrt y)$ is bounded, increasing and concave on $(0,\infty)$ but has no derivative at $0$, so the book's
+statement needs a reading at $0$. From $\varphi''<0$ on $(0,\infty)$ and $\varphi'\ge0$ (monotonicity) one gets that $\varphi'$ is strictly decreasing on $[0,\infty)$, hence $0<\varphi'\le\varphi'(0)$ there; $\varphi'$ is even, so
+$0\le\varphi'\le\varphi'(0)$ on $\mathbb R$, and $\varphi(y)>0$ for $y>0$. The function $\psi(y)=y\varphi'(y)-\varphi(y)$ has $\psi(0)=0$ and $\psi'(y)=y\varphi''(y)<0$ for $y>0$, so $\varphi(y)\psi(y)<0$ for $y\ne0$ (by oddness for $y<0$).
+Writing $wz=Y-h$, $w\,\varphi\varphi'(Y)z-\varphi(Y)^2=\varphi(Y)\psi(Y)-h\,\varphi(Y)\varphi'(Y)$; the first term has negative expectation, and the second is nonpositive because
+$h\,\mathbb{E}[g(wz+h)]\ge0$ for $g=\varphi\varphi'$, which is bounded, continuous, odd and nonnegative on $[0,\infty)$: shifting the Gaussian and averaging $u$ and $-u$ gives the integrand
+$g(wu)\sinh(hu/w)e^{-h^2/(2w^2)}\cdot h$ of the book, which is nonnegative. This gives (a). Dominated by $2B\varphi'(0)|z|$, differentiation under the integral gives
+$\frac{d}{dw}\mathbb{E}\varphi(wz+h)^2=\mathbb{E}[2\varphi\varphi'(wz+h)z]$; with $w=s\sqrt x$ and (a) one gets $x\Psi'(x)\cdot x<0$, i.e.\ (b) (for $s=0$, $\Psi(x)=\varphi(h)^2/x$ with $\varphi(h)\ne0$). For (c),
+$0\le\mathbb{E}\varphi^2\le B^2$.
+Formalized in \texttt{SpinGlasses/LatalaGuerra.lean}. The book's statement allows a random $h$ and conditions on it; the Lean statement has a deterministic $h$.
+\end{proof}
+
 \begin{theorem}[Proposition~A.14.1 for $\tanh$, and the fixed-point residual]
 \label{thm:sg-tal:residual}
-  \uses{thm:sg-tal:lemma-193}
+  \uses{thm:sg-tal:lemma-193, thm:sg-tal:latala-guerra}
   \lean{SpinGlasses.hasDerivAt_fixedPointMap_sqrt,
         SpinGlasses.fixedPointMap_pos,
         SpinGlasses.x_mul_deriv_fixedPointMap_lt,
@@ -5530,7 +5594,7 @@ for all $x\in[0,1]$.
   \leanok
 $\Phi(x)=H(\beta\sqrt x)$ with $H(w)=\mathbb E\tanh^2(wz+h)$ and $H'(w)=w\,\mathbb E[2(1-\tanh^2)(1-3\tanh^2)]$ (Stein), so the chain rule gives $\Phi'$.
 The key inequality $w\,\mathbb E[2\tanh(1-\tanh^2)z]<2\mathbb E\tanh^2$ of Lemma~1.9.3 (proved at every $w\ne0$) gives $x\Phi'<\Phi$ (and $\Phi>0$ handles
-$\beta=0$); hence $(\Phi/x)'<0$.  Residual: near $q$ use $(x-\Phi)'(q)=1-\beta^2(1-4q+3\hat q)>0$ (Lemma~1.9.3); for $x\ge q+\varepsilon$, $x-\Phi(x)=x(1-\Phi/x)\ge q\,c_1$ by
+$\beta=0$); hence $(\Phi/x)'<0$. In Lean the strict decrease of $\Phi/x$ is the case $\varphi=\tanh$, $s=\beta$ of Theorem~\ref{thm:sg-tal:latala-guerra}(b) (with the hypotheses checked for $\tanh$: $\tanh'=1-\tanh^2$, $\tanh''=-2\tanh(1-\tanh^2)<0$ on $(0,\infty)$). Residual: near $q$ use $(x-\Phi)'(q)=1-\beta^2(1-4q+3\hat q)>0$ (Lemma~1.9.3); for $x\ge q+\varepsilon$, $x-\Phi(x)=x(1-\Phi/x)\ge q\,c_1$ by
 monotonicity of $\Phi/x$; for $\delta_0\le x\le q-\varepsilon$ likewise; for $x<\delta_0$ use continuity of $\Phi$ at $0$ and $\Phi(0)=\tanh^2h>0$.
 \end{proof}
 
@@ -5703,7 +5767,7 @@ The functions $\psi_{N+1}$ are convex with derivative $\mathbb E\langle R_{1,2}\
 \item \emph{Indexing.} $M$ is the number of spins of the system, as in Section~1.8.  The book's $N$-dependence $K/N$ is $K/M$.
 \item \emph{Averages.} The conclusions of the deduction are stated for sequences of real numbers, and the indicator bound for an abstract average.  No measure of the form $\nu$ is constructed.
 \item \emph{History: what Lemma~1.9.4 required.} Theorems~\ref{thm:sg-tal:cov-system} and~\ref{thm:sg-tal:thm-1812} carry the hypotheses $4\beta^2<1$ and the moment bounds $K_1/M$, $K_2/M^2$ (they enter through $\exp(c\beta^2)$ Hoelder factors and the Cauchy--Schwarz errors $\sqrt{K_1/M}\sqrt{K_2/M^2}$).  Beyond the AT line these moment bounds are false in general, so those errors are re-bounded by $\nu(|R_{1,2}-q|^3)$ using the Hoelder pairs $(3,3/2)$ and $(3/2,3)$ of the book (Theorem~\ref{thm:sg-tal:holder-three}).  The high-temperature theorems are unchanged; the cubic versions share their row equation (\texttt{sk\_row\_equation\_of\_bounds}) and covariance system (\texttt{sk\_cov\_system\_of\_row}).
-\item \emph{Lemma~1.9.3} is proved for a fixed point $q>0$.  The hypothesis $q>0$ is automatic for $h\ne0$ (as $\mathbb E\tanh^2>0$) but is a genuine selection of the fixed point for $h=0$, where $q=0$ always solves the equation and the strict inequality fails for $\beta\ge1$.  The derivative $\Phi'$ is not formed: the inequality $x\Phi'(x)-\Phi(x)<0$ of Proposition~A.14.1 is proved directly at $x=\beta^2q$, so Proposition~A.14.1 itself (for general $\varphi$ and the vanishing at infinity) is not formalized.
+\item \emph{Lemma~1.9.3} is proved for a fixed point $q>0$.  The hypothesis $q>0$ is automatic for $h\ne0$ (as $\mathbb E\tanh^2>0$) but is a genuine selection of the fixed point for $h=0$, where $q=0$ always solves the equation and the strict inequality fails for $\beta\ge1$.  The derivative $\Phi'$ is not formed: the inequality $x\Phi'(x)-\Phi(x)<0$ of Proposition~A.14.1 is proved directly at $x=\beta^2q$, Proposition~A.14.1 for general $\varphi$, including the vanishing at infinity, is Theorem~\ref{thm:sg-tal:latala-guerra}, under the explicit regularity hypotheses stated there.
 \item \emph{Coupled free energy.} $\psi_M$, $Z_{M,\lambda}$ and $m_M$ are defined for the explicit SK energy with the coupling written as
 $\lambda\sum_i\sigma_i\tau_i=\lambda MR_{1,2}$, so no normalisation by $M$ appears in $Z_{M,\lambda}$.  The concentration constant is $K=8\beta^2$
 from the variance bound $2\beta^2M$ (the book's $K$ is unspecified); the separation bound proved is $3\delta'/4>\delta'/2$.  Proposition~1.9.7 inherits

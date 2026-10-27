@@ -87,24 +87,35 @@ theorem x_mul_deriv_fixedPointMap_lt {h : ℝ} (hh : h ≠ 0) (β : ℝ) {x : �
       rw [← mul_assoc, hsq]; ring
     linarith only [key, e2]
 
-/-- **`Φ(x)/x` is strictly decreasing on `(0, ∞)`** (`h ≠ 0`; Proposition A.14.1 for `tanh`). -/
+/-- **`Φ(x)/x` is strictly decreasing on `(0, ∞)`** (`h ≠ 0`; Proposition A.14.1 for `tanh`, the
+case `φ = tanh`, `s = β` of `strictAntiOn_integral_sq_comp_sqrt_div`). -/
 theorem strictAntiOn_fixedPointMap_div {h : ℝ} (hh : h ≠ 0) (β : ℝ) :
     StrictAntiOn (fun y : ℝ =>
-      (∫ z : ℝ, Real.tanh (β * Real.sqrt y * z + h) ^ 2 ∂(gaussianReal 0 1)) / y) (Ioi 0) := by
-  have hd : ∀ y ∈ Ioi (0 : ℝ), HasDerivAt (fun y : ℝ =>
-      (∫ z : ℝ, Real.tanh (β * Real.sqrt y * z + h) ^ 2 ∂(gaussianReal 0 1)) / y)
-      (((β ^ 2 * ∫ z : ℝ, (1 - Real.tanh (β * Real.sqrt y * z + h) ^ 2) *
-        (1 - 3 * Real.tanh (β * Real.sqrt y * z + h) ^ 2) ∂(gaussianReal 0 1)) * y -
-        (∫ z : ℝ, Real.tanh (β * Real.sqrt y * z + h) ^ 2 ∂(gaussianReal 0 1)) * 1) / y ^ 2) y :=
-    fun y hy => (hasDerivAt_fixedPointMap_sqrt β h hy).div (hasDerivAt_id y) (ne_of_gt hy)
-  refine strictAntiOn_of_deriv_neg (convex_Ioi 0)
-    (fun y hy => (hd y hy).continuousAt.continuousWithinAt) fun y hy => ?_
-  rw [interior_Ioi] at hy
-  rw [(hd y hy).deriv]
-  have := x_mul_deriv_fixedPointMap_lt hh β hy
-  have hy2 : 0 < y ^ 2 := by have : (0 : ℝ) < y := hy; positivity
-  apply div_neg_of_neg_of_pos _ hy2
-  nlinarith only [this]
+      (∫ z : ℝ, Real.tanh (β * Real.sqrt y * z + h) ^ 2 ∂(gaussianReal 0 1)) / y) (Ioi 0) :=
+  strictAntiOn_integral_sq_comp_sqrt_div contDiff_one_tanh Real.tanh_neg monotone_tanh
+    (fun y => (Real.abs_tanh_lt_one y).le) (fun y _ => hasDerivAt_deriv_tanh y)
+    (fun _ hy => neg_two_mul_tanh_mul_lt_zero hy) β h (Or.inr hh)
+
+/-- **Uniqueness of the replica-symmetric overlap for `h ≠ 0`** (Talagrand, around Eq. 1.74 and
+Proposition 1.3.8): two solutions of `q = 𝔼 tanh²(β √q z + h)` coincide.  Both are positive by
+`fixedPointMap_pos`, and `Φ(x)/x` is strictly decreasing with value `1` at each of them. -/
+theorem fixedPoint_unique {β h q r : ℝ} (hh : h ≠ 0)
+    (hq : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂(gaussianReal 0 1) = q)
+    (hr : ∫ z : ℝ, Real.tanh (β * Real.sqrt r * z + h) ^ 2 ∂(gaussianReal 0 1) = r) :
+    q = r := by
+  have hq0 : 0 < q := hq ▸ fixedPointMap_pos hh (β * Real.sqrt q)
+  have hr0 : 0 < r := hr ▸ fixedPointMap_pos hh (β * Real.sqrt r)
+  apply (strictAntiOn_fixedPointMap_div hh β).injOn hq0 hr0
+  dsimp only
+  rw [hq, hr, div_self hq0.ne', div_self hr0.ne']
+
+/-- **Existence and uniqueness of the fixed point (Eq. 1.74) for `h ≠ 0`:** there is exactly one
+`q ∈ [0, 1]` with `q = 𝔼 tanh²(β √q z + h)`. -/
+theorem existsUnique_fixedPoint (β : ℝ) {h : ℝ} (hh : h ≠ 0) :
+    ∃! q : ℝ, q ∈ Icc (0 : ℝ) 1 ∧
+      ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂(gaussianReal 0 1) = q := by
+  obtain ⟨q, hq, hqe⟩ := exists_fixedPoint β h
+  exact ⟨q, ⟨hq, hqe.symm⟩, fun r hr => fixedPoint_unique hh hr.2 hqe.symm⟩
 
 /-- **Linear lower bound for the fixed-point residual** (`h ≠ 0`; Talagrand, proof of
 Proposition 1.9.5): if `q` is a fixed point of `Φ(x) = 𝔼 tanh²(β √x z + h)` and

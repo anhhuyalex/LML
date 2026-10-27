@@ -408,6 +408,7 @@ public import LeanMachineLearning.SpinGlasses.GibbsProjectionFluctuation
 public import LeanMachineLearning.SpinGlasses.GibbsReplicaMarginal
 public import LeanMachineLearning.SpinGlasses.GibbsTBasisOrthogonality
 public import LeanMachineLearning.SpinGlasses.GuerraToninelli
+public import LeanMachineLearning.SpinGlasses.LatalaGuerra
 public import LeanMachineLearning.SpinGlasses.MixedPSpin
 public import LeanMachineLearning.SpinGlasses.OverlapExchangeability
 public import LeanMachineLearning.SpinGlasses.PoissonDirichlet
@@ -483,6 +484,7 @@ public import LeanMachineLearning.SpinGlasses.SKFixedPointResidual
 public import LeanMachineLearning.SpinGlasses.SKGaussianCorollaries
 public import LeanMachineLearning.SpinGlasses.SKGaussianFluctuation
 public import LeanMachineLearning.SpinGlasses.SKGuerraBound
+public import LeanMachineLearning.SpinGlasses.SKGuerraBoundUnique
 public import LeanMachineLearning.SpinGlasses.SKLastSpinApprox
 public import LeanMachineLearning.SpinGlasses.SKLastSpinGaussian
 public import LeanMachineLearning.SpinGlasses.SKLatalaBase
