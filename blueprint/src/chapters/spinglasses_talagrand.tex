@@ -4993,7 +4993,7 @@ Follows by algebraic projection using the universal eigenvectors $\mathbf{v}_1$ 
 Lemma~1.8.2, the sum form of Lemma~1.8.9 (Eq.~(1.253)), and the pure algebra needed for
 Propositions~1.8.7--1.8.12 (coefficients of Eq.~(1.264), $\hat q\le q$, the decomposition (1.246)).
 The Gibbs-mean trick for $T_{1,2}^2$ is also proved (Theorem~\ref{thm:sg-tal:gibbs-mean-trick}).
-Proposition~1.8.7 (Theorem~\ref{thm:sg-tal:prop-187}) and the exact $T$-basis form of the overlap covariances (Theorem~\ref{thm:sg-tal:overlap-covariances-T}, which contains Proposition~1.8.8 and Eq.~(1.257)) are proved.
+Proposition~1.8.7 (Theorem~\ref{thm:sg-tal:prop-187}) and the exact $T$-basis form of the overlap covariances (Theorem~\ref{thm:sg-tal:overlap-covariances-T}) and the separate zero identities of Proposition~1.8.8 and Eq.~(1.257) (Theorem~\ref{thm:sg-tal:T-orthogonality}) are proved.
 Propositions~1.8.10, 1.8.11 and Theorem~1.8.12 are proved in Part~F by deriving and solving the covariance system.
 
 \begin{theorem}[Lemma~1.8.2 for a linear combination of pair covariances]
@@ -5058,7 +5058,7 @@ coefficients $1,-1$ (the constants $-q$ cancel), then Lemma~\ref{lem:sg-tal:coin
   \lean{SpinGlasses.sk_at_deriv_coef_split,
         SpinGlasses.sk_t_coeff_T_sq,
         SpinGlasses.sk_t_coeff_B_sq,
-        SpinGlasses.integral_tanh_pow_four_le_sq,
+        MeasureTheory.integral_tanh_pow_four_le_sq,
         SpinGlasses.qhat_le_of_fixedPoint,
         SpinGlasses.three_quarters_le_one_sub_beta_sq_mul,
         SpinGlasses.dotProduct_div_sub_decomp}
@@ -5085,7 +5085,6 @@ monotonicity of the integral.
 \label{thm:sg-tal:gibbs-mean-trick}
   \lean{SpinGlasses.integral_dev_mul_dev,
         SpinGlasses.integral_dev_pair_sq,
-        SpinGlasses.integral_fin_three_pair,
         SpinGlasses.integral_three_replicas_cov,
         SpinGlasses.integral_six_replicas_cov_sq,
         SpinGlasses.integral_dev_dot_sq_eq_six_replicas,
@@ -5140,7 +5139,30 @@ where $a=M^{-2}\sum_{ij}C_{ij}^2=\langle T_{1,2}^2\rangle$, $B=M^{-2}\sum_{ij}C_
 \end{theorem}
 \begin{proof}
   \leanok
-Expand the products of overlaps in coordinates; independent replicas make each monomial factor into moments $m_{ij}$, $b_i$ (average of a product over an i.i.d.\ vector), and $m_{ij}^2=C_{ij}^2+2C_{ij}b_ib_j+b_i^2b_j^2$.  This is the exact content of the vanishing cross terms $\nu(T_{12}T_{\ell\ell'})=\nu(T_{12}T_\ell)=\nu(T_{12}T)=0$ (Proposition~1.8.8) and $\nu(T_1T_2)=\nu(T_1T)=0$ (Eq.~(1.257)).
+Expand the products of overlaps in coordinates; independent replicas make each monomial factor into moments $m_{ij}$, $b_i$ (average of a product over an i.i.d.\ vector), and $m_{ij}^2=C_{ij}^2+2C_{ij}b_ib_j+b_i^2b_j^2$.  The aggregate identities are equivalent to the vanishing cross terms of Proposition~1.8.8 and Eq.~(1.257), which are proved separately, one by one, in Theorem~\ref{thm:sg-tal:T-orthogonality}.
+\end{proof}
+
+\begin{theorem}[Orthogonality of the $T$-basis (Proposition~1.8.8 and Eq.~(1.257))]
+\label{thm:sg-tal:T-orthogonality}
+  \lean{SpinGlasses.sum_prod_weight_mul_linear_eq_zero,
+        SpinGlasses.integral_pi_centered_replica_eq_zero,
+        SpinGlasses.integral_spin_sub_mean,
+        SpinGlasses.integral_dev_dot_dev_mul_eq_zero,
+        SpinGlasses.integral_dev_dot_mean_mul_eq_zero,
+        SpinGlasses.integral_T_pair_mul_T_pair_of_share,
+        SpinGlasses.integral_T_pair_mul_T_pair_of_disjoint,
+        SpinGlasses.integral_T_pair_mul_T_one,
+        SpinGlasses.integral_T_pair_mul_const,
+        SpinGlasses.integral_T_one_mul_T_one,
+        SpinGlasses.integral_T_one_mul_const}
+  \leanok
+\talsource{Section~1.8, Proposition~1.8.8 and Eq.~(1.257)}
+Let $\mu$ be a Gibbs measure on $\{\pm1\}^M$ with mean $\mathbf b$, and let $\boldsymbol\sigma^1,\boldsymbol\sigma^2,\dots$ be independent replicas.  Put $T_{st}=M^{-1}(\boldsymbol\sigma^s-\mathbf b)\cdot(\boldsymbol\sigma^t-\mathbf b)$, $T_s=M^{-1}(\boldsymbol\sigma^s-\mathbf b)\cdot\mathbf b$ and let $T$ be any constant (the book's $T=M^{-1}\mathbf b\cdot\mathbf b-q$ does not depend on the replicas).  Then
+$\langle T_{st}T_{su}\rangle=\langle T_{st}T_{uv}\rangle=\langle T_{st}T_u\rangle=\langle T_{st}T\rangle=0$ for $t\notin\{s,u,v\}$, and $\langle T_sT_t\rangle=\langle T_sT\rangle=0$ for $s\ne t$.
+\end{theorem}
+\begin{proof}
+  \leanok
+In each product some replica occurs in one factor only (replica $t$ in the first group, replica $s$ in the second), and $\sigma^t-\mathbf b$ has Gibbs mean zero.  For independent replicas, $\langle H\cdot\sum_j z_j(\sigma^\ell)c_j\rangle=0$ whenever $\langle z_j\rangle=0$ and $H,c_j$ do not depend on $\sigma^\ell$ (sum over $\sigma^\ell$ first); this is the same mechanism as the parity vanishing in the proof of Theorem~1.7.11.
 \end{proof}
 
 \subsection{Part F: The covariance system and Theorem~1.8.12}
