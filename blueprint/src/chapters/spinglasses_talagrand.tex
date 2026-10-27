@@ -5667,13 +5667,15 @@ $\psi_M'(-\lambda)\le\psi_M'(0)=x_M$ (monotone derivative), respectively $\psi_M
   \lean{not_differentiableAt_of_convexOn_tendsto_of_derivative_gap}
   \leanok
 \talsource{Section~1.9, the convexity argument in the proof of Theorem~1.9.6}
-Let $r>0$, $c>0$, and let $f_n:\mathbb R\to\mathbb R$ be convex on $(-r,r)$ and differentiable there with derivative $f_n'$.  Suppose $f_n(x)\to g(x)$
-for every $x\in(-r,r)$, and that for every $\lambda\in(0,r)$ there is $n_0(\lambda)$ with $f_n'(\lambda)-f_n'(-\lambda)>c$ for all $n\ge n_0(\lambda)$.
-Then $g$ is not differentiable at $0$.  No uniformity of $n_0$ in $\lambda$, and no convergence of $f_n'$, is assumed.
+Let $r>0$, $c>0$, let $l$ be a nontrivial filter on an index type $I$ (for example $n\to\infty$ on $\mathbb N$), and let $f_i:\mathbb R\to\mathbb R$ ($i\in I$)
+be convex on $(-r,r)$ and differentiable there with derivative $f_i'$.  Suppose $f_i(x)\to g(x)$ along $l$
+for every $x\in(-r,r)$, and that for every $\lambda\in(0,r)$ one has $f_i'(\lambda)-f_i'(-\lambda)\ge c$ for $l$-eventually all $i$.
+Then $g$ is not differentiable at $0$.  No uniformity of the threshold in $\lambda$, and no convergence of $f_i'$, is assumed; the strict
+inequality $>c$ of Proposition~1.9.7 is more than needed.
 \end{theorem}
 \begin{proof}
   \leanok
-Convexity gives $f_n'(\lambda)\le(f_n(2\lambda)-f_n(\lambda))/\lambda$ and $f_n'(-\lambda)\ge(f_n(-\lambda)-f_n(-2\lambda))/\lambda$ for each $n$.  For fixed
+Fix $0<\lambda<r/2$, so that $\pm\lambda,\pm2\lambda\in(-r,r)$.  Convexity gives $f_i'(\lambda)\le(f_i(2\lambda)-f_i(\lambda))/\lambda$ and $f_i'(-\lambda)\ge(f_i(-\lambda)-f_i(-2\lambda))/\lambda$ for each $i$.  For this
 $\lambda$ the right-hand sides converge to the same secant slopes of $g$, so the difference of these slopes of $g$ is $\ge c$.  If $g$ had derivative $d$ at $0$,
 then $|g(x)-g(0)-dx|\le\tfrac c8|x|$ for $|x|\le2\lambda$ and $\lambda$ small, and the two slopes lie within $3c/8$ of $d$ each, so their difference is $\le3c/4<c$, a contradiction.
 \end{proof}
@@ -5703,6 +5705,6 @@ The functions $\psi_{N+1}$ are convex with derivative $\mathbb E\langle R_{1,2}\
 $\lambda\sum_i\sigma_i\tau_i=\lambda MR_{1,2}$, so no normalisation by $M$ appears in $Z_{M,\lambda}$.  The concentration constant is $K=8\beta^2$
 from the variance bound $2\beta^2M$ (the book's $K$ is unspecified); the separation bound proved is $3\delta'/4>\delta'/2$.  Proposition~1.9.7 inherits
 $h\ne0$ from Proposition~1.9.5; the threshold $N_0$ depends on $\lambda$ (the size conditions degenerate as $\lambda\to0$), as in the book.
-\item \emph{Theorem~1.9.6.} The existence of $\psi(\lambda)=\lim_N\psi_N(\lambda)$ is a hypothesis (pointwise on a neighbourhood of $0$), not a theorem.  No claim is made that the limit exists or that it is finite for the SK model; the formalized statement is the implication ``limit exists $\Rightarrow$ not differentiable at $0$''.  The corner (the one-sided derivatives $\psi'(0\pm)$) is not constructed.
+\item \emph{Theorem~1.9.6.} Convergence of $\psi_N(\lambda)$ to a finite real-valued function $\psi$, pointwise on a neighbourhood of $0$, is assumed; its existence is not proved. the formalized statement is the implication ``limit exists $\Rightarrow$ not differentiable at $0$''.  The corner (the one-sided derivatives $\psi'(0\pm)$) is not constructed.
 \end{itemize}
 \end{remark}

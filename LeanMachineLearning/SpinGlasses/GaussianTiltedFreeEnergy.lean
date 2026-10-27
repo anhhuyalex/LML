@@ -181,22 +181,11 @@ theorem convexOn_integral_log_sum_exp_tilt :
     ConvexOn ℝ Set.univ (fun s => ∫ g : κ → ℝ,
       Real.log (∑ x, Real.exp (a x ⬝ᵥ g + d x + s * b x))
         ∂(Measure.pi fun _ : κ => gaussianReal 0 1)) := by
-  have hint : ∀ s : ℝ, Integrable (fun g : κ → ℝ =>
-      Real.log (∑ x, Real.exp (a x ⬝ᵥ g + d x + s * b x)))
-      (Measure.pi fun _ : κ => gaussianReal 0 1) := fun s => by
+  refine integral_convexOn_of_integrand_ae convex_univ ?_ ?_
+  · exact Filter.Eventually.of_forall fun g =>
+      convexOn_log_sum_exp_add_mul (fun x => a x ⬝ᵥ g + d x) b
+  · intro s _
     simpa only [add_assoc] using integrable_log_sum_exp_linear_gaussian a (fun x => d x + s * b x)
-  refine ⟨convex_univ, fun s _ t _ θ₁ θ₂ h₁ h₂ h12 => ?_⟩
-  have hpt : ∀ g : κ → ℝ, Real.log (∑ x, Real.exp (a x ⬝ᵥ g + d x + (θ₁ • s + θ₂ • t) * b x)) ≤
-      θ₁ * Real.log (∑ x, Real.exp (a x ⬝ᵥ g + d x + s * b x)) +
-        θ₂ * Real.log (∑ x, Real.exp (a x ⬝ᵥ g + d x + t * b x)) := fun g => by
-    simpa only [smul_eq_mul] using (convexOn_log_sum_exp_add_mul (fun x => a x ⬝ᵥ g + d x) b).2
-      (Set.mem_univ s) (Set.mem_univ t) h₁ h₂ h12
-  have hmono := integral_mono (hint (θ₁ • s + θ₂ • t))
-    (((hint s).const_mul θ₁).add ((hint t).const_mul θ₂)) hpt
-  simp only [Pi.add_apply] at hmono
-  rw [integral_add ((hint s).const_mul θ₁) ((hint t).const_mul θ₂), integral_const_mul,
-    integral_const_mul] at hmono
-  simpa only [smul_eq_mul] using hmono
 
 /-- **Derivative of the mean log-partition function in the tilt:** `(d/ds) 𝔼 log Z(s) = 𝔼 ⟨b⟩_s`,
 where `⟨·⟩_s` is the Gibbs average of the energy `a x ⬝ᵥ g + d x + s b x`.  This is

@@ -181,7 +181,7 @@ theorem exists_abs_sub_le_mul_abs_sub_fixedPointMap {β h q qhat : ℝ} (hh : h 
   obtain ⟨hx0, hx1⟩ := hx
   have hxq : |x - q| ≤ 1 := by rw [abs_le]; constructor <;> linarith
   have habs : 0 ≤ |x - Φ x| := abs_nonneg _
-  show |x - q| ≤ K * |x - Φ x|
+  change |x - q| ≤ K * |x - Φ x|
   have hcoef : ∀ c : ℝ, 0 ≤ c → c ≤ K → |x - q| ≤ c * |x - Φ x| → |x - q| ≤ K * |x - Φ x| :=
     fun c _ hcK h => h.trans (mul_le_mul_of_nonneg_right hcK habs)
   rcases lt_or_ge |x - q| ε' with h1 | h1

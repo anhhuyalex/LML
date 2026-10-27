@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.SpinGlasses.SKArbitraryCenter
 public import LeanMachineLearning.SpinGlasses.SKCoupledFreeEnergy
+public import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
 
 /-!
 # Instability of the overlap beyond the AT line (Talagrand, Proposition 1.9.7)
@@ -36,17 +37,12 @@ namespace SpinGlasses
 /-- Polynomial factors are beaten by exponentials: `M e^{-κ M} < ε` for all large `M`. -/
 theorem exists_nat_forall_mul_exp_neg_lt {κ ε : ℝ} (hκ : 0 < κ) (hε : 0 < ε) :
     ∃ M₀ : ℕ, ∀ M : ℕ, M₀ ≤ M → (M : ℝ) * Real.exp (-κ * M) < ε := by
-  obtain ⟨M₀, hM₀⟩ := exists_nat_gt (2 / (κ ^ 2 * ε))
-  refine ⟨M₀, fun M hM => ?_⟩
-  have hMgt : 2 / (κ ^ 2 * ε) < (M : ℝ) := lt_of_lt_of_le hM₀ (Nat.cast_le.2 hM)
-  have hM0 : 0 < (M : ℝ) := lt_of_le_of_lt (by positivity) hMgt
-  rw [div_lt_iff₀ (by positivity)] at hMgt
-  have hx : 0 ≤ κ * M := by positivity
-  have h2 : (κ * M) ^ 2 / 2 < Real.exp (κ * M) := by
-    nlinarith [Real.quadratic_le_exp_of_nonneg hx]
-  rw [neg_mul, Real.exp_neg, ← div_eq_mul_inv, div_lt_iff₀ (Real.exp_pos _)]
-  have h3 : (M : ℝ) < ε * ((κ * M) ^ 2 / 2) := by nlinarith [mul_pos hM0 hM0]
-  exact h3.trans (mul_lt_mul_of_pos_left h2 hε)
+  have h : Filter.Tendsto (fun M : ℕ => (M : ℝ) * Real.exp (-κ * M)) Filter.atTop (nhds 0) := by
+    simpa only [Real.rpow_one, Function.comp_def] using
+      (tendsto_rpow_mul_exp_neg_mul_atTop_nhds_zero 1 κ hκ).comp
+        (tendsto_natCast_atTop_atTop :
+          Filter.Tendsto (fun n : ℕ => (n : ℝ)) Filter.atTop Filter.atTop)
+  exact Filter.eventually_atTop.1 (h.eventually (gt_mem_nhds hε))
 
 /-- The SK energy of `N + 1` spins in the explicit form used by Proposition 1.9.5. -/
 theorem skGibbsEnergy_succ_eq (N : ℕ) (β h : ℝ) (g : FinPairs (N + 1) → ℝ) :

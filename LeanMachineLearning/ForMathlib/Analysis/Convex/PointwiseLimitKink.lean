@@ -12,10 +12,11 @@ public import Mathlib.Analysis.Convex.Deriv
 
 A pointwise limit of differentiable convex functions can have a corner.  This file proves the
 quantitative form used in [Talagrand, Spin Glasses I, Theorem 1.9.6]: if the convex functions
-`f n` converge pointwise to `f` near `0`, and there is a fixed `c > 0` such that for every small
-`λ > 0` the derivative gap `(f n)'(λ) - (f n)'(-λ)` exceeds `c` for all large `n` (the threshold may
-depend on `λ`; no uniformity in `λ` and no convergence of the derivatives is assumed), then `f`
-is not differentiable at `0`.
+`f i` converge pointwise to `g` near `0` along a nontrivial filter (a sequence, a subsequence or a
+net), and there is a fixed `c > 0` such that for every small `λ > 0` the derivative gap
+`(f i)'(λ) - (f i)'(-λ)` is at least `c` eventually (the threshold may depend on `λ`; no
+uniformity in `λ` and no convergence of the derivatives is assumed), then `g` is not
+differentiable at `0`.
 
 The proof compares derivatives with secant slopes on `[λ, 2λ]` and `[-2λ, -λ]`, which converge
 to the corresponding secant slopes of `f`; differentiability of `f` at `0` forces both slopes to
@@ -33,16 +34,17 @@ open Set Filter
 open scoped Topology
 
 /-- **Pointwise limits of convex functions with a derivative gap are not differentiable.**
-Let `f n` be convex and differentiable on `(-r, r)` with derivative `f' n`, and suppose `f n`
-converges pointwise to `f` on `(-r, r)`.  If there is `c > 0` such that for every `λ ∈ (0, r)`
-the gap `f' n λ - f' n (-λ)` is eventually (in `n`) larger than `c`, then `f` is not
-differentiable at `0`. -/
+Let `f i` be convex and differentiable on `(-r, r)` with derivative `f' i`, and suppose `f i`
+converges to `g` pointwise on `(-r, r)` along a nontrivial filter `l`.  If there is `c > 0` such
+that for every `λ ∈ (0, r)` the gap `f' i λ - f' i (-λ)` is eventually (along `l`) at least `c`,
+then `g` is not differentiable at `0`. -/
 theorem not_differentiableAt_of_convexOn_tendsto_of_derivative_gap
-    {f : ℕ → ℝ → ℝ} {f' : ℕ → ℝ → ℝ} {g : ℝ → ℝ} {r c : ℝ} (hr : 0 < r) (hc : 0 < c)
-    (hconv : ∀ n, ConvexOn ℝ (Ioo (-r) r) (f n))
-    (hderiv : ∀ n, ∀ x ∈ Ioo (-r) r, HasDerivAt (f n) (f' n x) x)
-    (hlim : ∀ x ∈ Ioo (-r) r, Tendsto (fun n => f n x) atTop (𝓝 (g x)))
-    (hgap : ∀ lam ∈ Ioo 0 r, ∀ᶠ n in atTop, c < f' n lam - f' n (-lam)) :
+    {ι : Type*} {l : Filter ι} [l.NeBot] {f f' : ι → ℝ → ℝ} {g : ℝ → ℝ} {r c : ℝ}
+    (hr : 0 < r) (hc : 0 < c)
+    (hconv : ∀ i, ConvexOn ℝ (Ioo (-r) r) (f i))
+    (hderiv : ∀ i, ∀ x ∈ Ioo (-r) r, HasDerivAt (f i) (f' i x) x)
+    (hlim : ∀ x ∈ Ioo (-r) r, Tendsto (fun i => f i x) l (𝓝 (g x)))
+    (hgap : ∀ lam ∈ Ioo 0 r, ∀ᶠ i in l, c ≤ f' i lam - f' i (-lam)) :
     ¬ DifferentiableAt ℝ g 0 := by
   intro hg
   have hd := hg.hasDerivAt
@@ -63,26 +65,26 @@ theorem not_differentiableAt_of_convexOn_tendsto_of_derivative_gap
     have := hball (y := x) (by rw [Real.dist_eq, sub_zero]; linarith)
     simpa [Real.norm_eq_abs, smul_eq_mul, mul_comm] using this
   set d := deriv g 0
-  have hA : ∀ n, f' n lam ≤ (f n (2 * lam) - f n lam) / lam := by
-    intro n
-    have := (hconv n).le_slope_of_hasDerivAt (x := lam) (y := 2 * lam)
+  have hA : ∀ i, f' i lam ≤ (f i (2 * lam) - f i lam) / lam := by
+    intro i
+    have := (hconv i).le_slope_of_hasDerivAt (x := lam) (y := 2 * lam)
       (hmem lam (by rw [abs_of_pos hl0]; linarith)) (hmem (2 * lam)
         (by rw [abs_of_pos (by positivity)])) (by linarith)
-      (hderiv n lam (hmem lam (by rw [abs_of_pos hl0]; linarith)))
+      (hderiv i lam (hmem lam (by rw [abs_of_pos hl0]; linarith)))
     rw [slope_def_field] at this
     have e : 2 * lam - lam = lam := by ring
     rwa [e] at this
-  have hB : ∀ n, (f n (-lam) - f n (-(2 * lam))) / lam ≤ f' n (-lam) := by
-    intro n
-    have := (hconv n).slope_le_of_hasDerivAt (x := -(2 * lam)) (y := -lam)
+  have hB : ∀ i, (f i (-lam) - f i (-(2 * lam))) / lam ≤ f' i (-lam) := by
+    intro i
+    have := (hconv i).slope_le_of_hasDerivAt (x := -(2 * lam)) (y := -lam)
       (hmem _ (by rw [abs_neg, abs_of_pos (by positivity)]))
       (hmem _ (by rw [abs_neg, abs_of_pos hl0]; linarith)) (by linarith)
-      (hderiv n (-lam) (hmem _ (by rw [abs_neg, abs_of_pos hl0]; linarith)))
+      (hderiv i (-lam) (hmem _ (by rw [abs_neg, abs_of_pos hl0]; linarith)))
     rw [slope_def_field] at this
     have e : -lam - -(2 * lam) = lam := by ring
     rwa [e] at this
-  have hT : Tendsto (fun n => (f n (2 * lam) - f n lam) / lam -
-      (f n (-lam) - f n (-(2 * lam))) / lam) atTop
+  have hT : Tendsto (fun i => (f i (2 * lam) - f i lam) / lam -
+      (f i (-lam) - f i (-(2 * lam))) / lam) l
       (𝓝 ((g (2 * lam) - g lam) / lam - (g (-lam) - g (-(2 * lam))) / lam)) := by
     have h1 := hlim (2 * lam) (hmem _ (by rw [abs_of_pos (by positivity)]))
     have h2 := hlim lam (hmem _ (by rw [abs_of_pos hl0]; linarith))
@@ -91,8 +93,8 @@ theorem not_differentiableAt_of_convexOn_tendsto_of_derivative_gap
     exact ((h1.sub h2).div_const lam).sub ((h3.sub h4).div_const lam)
   have hge : c ≤ (g (2 * lam) - g lam) / lam - (g (-lam) - g (-(2 * lam))) / lam := by
     refine ge_of_tendsto hT ?_
-    filter_upwards [hgap lam ⟨hl0, by linarith⟩] with n hn
-    linarith [hA n, hB n]
+    filter_upwards [hgap lam ⟨hl0, by linarith⟩] with i hi
+    linarith [hA i, hB i]
   have e1 := hest (2 * lam) (by rw [abs_of_pos (by positivity)])
   have e2 := hest lam (by rw [abs_of_pos hl0]; linarith)
   have e3 := hest (-lam) (by rw [abs_neg, abs_of_pos hl0]; linarith)
