@@ -36,6 +36,7 @@ public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.R
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.CholeskyInfinite
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.GramProjector
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.Householder
+public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.LeftEigenProjection
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.LeftRightInverse
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.MulTranspose
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.OrthogonalDiagonalization
