@@ -436,6 +436,7 @@ public import LeanMachineLearning.SpinGlasses.PoissonProcessPartition
 public import LeanMachineLearning.SpinGlasses.PoissonProcessTransform
 public import LeanMachineLearning.SpinGlasses.SKAizenmanLebowitzRuelle
 public import LeanMachineLearning.SpinGlasses.SKAsymptoticProduct
+public import LeanMachineLearning.SpinGlasses.SKBeyondATLowerBound
 public import LeanMachineLearning.SpinGlasses.SKCavityBounds
 public import LeanMachineLearning.SpinGlasses.SKCavityContraction
 public import LeanMachineLearning.SpinGlasses.SKCavityCoshEstimate

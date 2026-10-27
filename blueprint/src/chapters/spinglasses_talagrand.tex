@@ -12,6 +12,7 @@ The mathematical narrative develops the high-temperature theory of the Sherringt
 \item The cavity method: splitting off the last spin, interpolating the new couplings against an independent Gaussian field, concentration of the overlap around $q$ with all its moments, and the free-energy increment $(N+1)p_{N+1}-Np_N$ (Section~1.6).
 \item The Gaussian fluctuation principle: the Gaussian interpolation between the centered projections $N^{-1/2}\sum_i y_i\dot\sigma_i$ of the Gibbs state and independent Gaussians of variance $1-q$, the parity argument that makes the first $2k-1$ derivatives vanish at the start of the path, and the moment bounds that make the $2k$-th derivative $O(N^{-k})$ (Section~1.7).
 \item Second moment computations (Section~1.8): the second-order expansion of the cavity path (Proposition~1.8.1), the rectangular combination at the decoupled endpoint (Lemma~1.8.4), and the asymptotic second moment of the rectangular overlap and the variance of the truncated spin correlation (Proposition~1.8.5, Corollary~1.8.6), with explicit $O(N^{-3/2})$ errors.
+\item Beyond the Almeida--Thouless line (Section~1.9): only the real-variable deduction of Proposition~1.9.2 from Lemma~1.9.4 is formalized (Section~\ref{sec:sg-tal:beyond-at}); Lemma~1.9.4 itself is not.
 \end{enumerate}
 
 \medskip\noindent\textbf{Source tags.}
@@ -4637,7 +4638,7 @@ The quantity $1-2q+\hat q=\mathbb E(1-\tanh^2Y)^2=\mathbb E\,\mathrm{ch}^{-4}Y$ 
 \item[C.] \emph{Proposition~1.8.5 and Corollary~1.8.6}.  Fully proved.
 \item[D.] \emph{General Lemma~1.8.2 (Eq.~1.230) and the $3\times3$ AT matrix algebra (Eqs.~1.234--1.236)}.  Fully proved.
 \end{enumerate}
-Still open: the three covariance equations (1.231)--(1.233), followed by Propositions~1.8.7--1.8.11 and Theorem~1.8.12.
+Parts E and F below add the combinations of pair covariances, Lemma~1.8.9, the covariance system (1.231)--(1.233), the $T$-basis orthogonality, Propositions~1.8.7--1.8.11 and Theorem~1.8.12; all are proved.
 
 \begin{remark}[Differences from the book in Section~1.8]
 \label{rem:sg-tal:dev-18}
@@ -5045,12 +5046,69 @@ For distinct replicas $i_1,i_2,k$ and a function $F$ of the old spins, the cavit
 the decoupled endpoint of $F(\varepsilon_{i_1}-\varepsilon_{i_2})\varepsilon_k$ equals
 $\sum_j w_j(\vartheta(a_j)+\vartheta(b_j))\,d_j\,\nu_0\bigl(F(R^-_{a_jb_j}-q)\bigr)$, where
 $d_j=b(2)-b(1)$ if $k\in\{a_j,b_j\}$ and $b(1)-b(0)$ otherwise.  Regrouping the sum by the
-position of the pair gives the book's form (1.253); this regrouping is not yet formalized.
+position of the pair gives the book's form (1.253), which is Theorem~\ref{thm:sg-tal:lemma-189-displayed}.
 \end{theorem}
 \begin{proof}
   \leanok
 Apply Theorem~\ref{thm:sg-tal:lemma-182-combo} with the two terms $(i_1,k)$ and $(i_2,k)$ and
 coefficients $1,-1$ (the constants $-q$ cancel), then Lemma~\ref{lem:sg-tal:coincidences-sub}.
+\end{proof}
+
+\begin{lemma}[Regrouping the replica families of Lemma~1.8.9, and moving one replica]
+\label{lem:sg-tal:regroup-189}
+  \lean{SpinGlasses.sum_eq_three_add_sum_filter,
+        SpinGlasses.card_filter_ne_three,
+        SpinGlasses.sk_cavity_replica_pair_sum_sub_third,
+        SpinGlasses.integral_pi_count_tilted_replace_replica}
+  \leanok
+\talsource{Section~1.8, proof of Lemma~1.8.9, computation of $c(\ell,\ell')$, and the last sentence of the proof}
+Let $i_1,i_2,k$ be distinct elements of $\{1,\dots,n\}$ and $s=\{\ell:\ell\notin\{i_1,i_2,k\}\}$, so that
+$|s|+3=n$.  (a) For a symmetric kernel $J$ on $n+2$ replicas, the sum over the three families of
+Eq.~(1.152) (weights $1$, $-n$, $n(n+1)/2$) of $w_j(\vartheta(a_j)+\vartheta(b_j))\,d_j\,J(a_j,b_j)$,
+with $\vartheta=1_{i_1}-1_{i_2}$, $d_j=b(2)-b(1)$ if $k\in\{a_j,b_j\}$ and $b(1)-b(0)$ otherwise, equals
+$(b(2)-b(1))\bigl(J(i_1,k)-J(i_2,k)\bigr)+(b(1)-b(0))\Bigl(\sum_{\ell\in s}\bigl(J(i_1,\ell)-J(i_2,\ell)\bigr)
+-n\bigl(J(i_1,n+1)-J(i_2,n+1)\bigr)\Bigr)$.
+(b) If $F$ does not depend on replica $k$, $i\ne k$, and $x_0$ is a replica outside the range of
+an injection $e$ of the $n$ replicas, then the Gibbs average of $F\cdot K(\sigma_i,\sigma_k)$ equals that of
+$F\cdot K(\sigma_i,\sigma_{x_0})$ (the replica $k$ may be moved to a fresh replica).
+\end{lemma}
+\begin{proof}
+  \leanok
+(a) Write the family sum as the ordered-pair sum, the sum over $r$ of the pairs $(r,n+1)$ and the
+pair $(n+1,n+2)$ (Eq.~(1.152) reindexing).  The last term vanishes since $\vartheta(n+1)=\vartheta(n+2)=0$;
+the old--extra sum evaluates $\sum_r\vartheta(r)(\cdots)$ at $r=i_1,i_2$; for the old--old pairs
+use that $J$ is symmetric to write the ordered half as the full double sum minus its diagonal, and
+evaluate $\sum_a\vartheta(a)\sum_c d(a,c)J(a,c)$ at $a=i_1,i_2$ after splitting $c\in\{i_1,i_2,k\}\cup s$.
+(b) Both averages equal the average over the $n$ replicas of $F\cdot K(\sigma_i,\sigma_k)$, by the marginal
+along the injections $e$ and $e$ with the value at $k$ replaced by $x_0$.
+\end{proof}
+
+\begin{theorem}[Lemma~1.8.9, Eqs.~(1.253) and (1.254), displayed form]
+\label{thm:sg-tal:lemma-189-displayed}
+  \uses{thm:sg-tal:lemma-189, lem:sg-tal:regroup-189, lem:sg-tal:t-basis-algebra}
+  \lean{SpinGlasses.sk_cavity_deriv_zero_sub_third_displayed,
+        SpinGlasses.sk_cavity_deriv_zero_sub_third_of_indep}
+  \leanok
+\talsource{Section~1.8, Lemma~1.8.9, Eqs.~(1.253) and (1.254)}
+Let $i_1,i_2,k$ be distinct replicas of $n$ replicas (the book's $1,2,3$), $F$ a function of the old spins, and
+$J(x,y)=\nu_0\bigl(F\cdot(R^-_{xy}-q)\bigr)$ (the decoupled averages of Lemma~1.8.2, with
+$R^-_{xy}=M^{-1}\sum_{i\le N}\sigma^x_i\sigma^y_i$).
+(a) The cavity derivative at the decoupled endpoint satisfies
+$$\nu_0'\bigl((\varepsilon_{i_1}-\varepsilon_{i_2})\varepsilon_kF\bigr)=(b(2)-b(1))\,\nu_0\bigl(F(R^-_{i_1k}-R^-_{i_2k})\bigr)
++(b(1)-b(0))\Bigl(\sum_{\ell\notin\{i_1,i_2,k\}}\nu_0\bigl(F(R^-_{i_1\ell}-R^-_{i_2\ell})\bigr)
+-n\,\nu_0\bigl(F(R^-_{i_1,n+1}-R^-_{i_2,n+1})\bigr)\Bigr).$$
+(b) If moreover $F$ does not depend on replica $k$, this equals
+$$\beta^2(1-4q+3\hat q)\,\nu_0\bigl(F(R^-_{i_1k}-R^-_{i_2k})\bigr)+\beta^2(q-\hat q)\sum_{\ell\notin\{i_1,i_2,k\}}
+\nu_0\bigl(F(R^-_{i_1\ell}-R^-_{i_2\ell}-R^-_{i_1,n+1}+R^-_{i_2,n+1})\bigr).$$
+In Lean the derivative is the explicit cavity-path integral of Eq.~(1.152), and $J$ is given by its
+defining integral.
+\end{theorem}
+\begin{proof}
+  \leanok
+(a) is Theorem~\ref{thm:sg-tal:lemma-189} followed by the regrouping of Lemma~\ref{lem:sg-tal:regroup-189}(a)
+($J$ is symmetric because the dot product is).  (b): by Lemma~\ref{lem:sg-tal:regroup-189}(b),
+$J(i,k)=J(i,n+1)$ for $i\in\{i_1,i_2\}$; apply Lemma~\ref{lem:sg-tal:t-basis-algebra}(a) and the identities
+$b(2)-4b(1)+3b(0)=\beta^2(1-4q+3\hat q)$, $b(1)-b(0)=\beta^2(q-\hat q)$.
 \end{proof}
 
 \begin{lemma}[Algebra of the $T$-basis]
@@ -5260,5 +5318,72 @@ For every Gibbs measure $\langle T_1^2\rangle=V_G-W_G$ and $T^2=W_G$ (Theorem~\r
 Proved here: Proposition~1.8.1 (Eqs.~(1.215), (1.216)), Lemma~1.8.4 (Theorem~\ref{thm:sg-tal:lemma-184}), Proposition~1.8.5 (Theorem~\ref{thm:sg-tal:prop-185}), Corollary~1.8.6 (Theorem~\ref{cor:sg-tal:corollary-186}), General Lemma~1.8.2 (Eq.~(1.230), Theorem~\ref{thm:sg-tal:lemma-182}), the $3\times3$ AT matrix system (Eqs.~(1.231)--(1.236), Theorem~\ref{thm:sg-tal:at-matrix}), and the decoupled covariance equations (Theorem~\ref{thm:sg-tal:at-covariance-equations}).
 Part~E adds the combination form of Lemma~1.8.2, the sum form of Lemma~1.8.9 and the algebra of the $T$-basis.
 Part~F adds the derivation of the covariance system (1.231)--(1.233) with explicit errors, Theorem~1.8.12 and Propositions~1.8.10, 1.8.11.
-Not formalized: the regrouping of the sum form of Lemma~1.8.9 into the book's (1.253)--(1.254), which is not needed because the covariance system is used instead of the six-replica proofs of Propositions~1.8.8 and 1.8.10 (their conclusions are proved in exact form); the book's $O(3)$ is an explicit $K/M^{3/2}$.
+Lemma~1.8.9 is also proved in the book's displayed form (1.253)--(1.254) (Theorem~\ref{thm:sg-tal:lemma-189-displayed}), although the covariance system is used instead of the six-replica proofs of Propositions~1.8.8 and 1.8.10 (their conclusions are proved in exact form).
+Not formalized: the book's $O(3)$ remainder is an explicit $K/M^{3/2}$ only under $4\beta^2<1$; the version with the remainder $K(M^{-3/2}+\nu(|R_{1,2}-q|^3))$ needed beyond the AT line is not formalized (Section~\ref{sec:sg-tal:beyond-at}).
+\end{remark}
+
+\section{Beyond the Almeida--Thouless line (Talagrand Section~1.9)}
+\label{sec:sg-tal:beyond-at}
+
+\paragraph{Status.}
+Section~1.9 is only started.  Proved here is the real-variable half of Proposition~1.9.2:
+Lemma~1.9.4 is taken as a \emph{hypothesis} and the lower bounds (1.269) and (1.271) are deduced
+from it.  Not formalized: Lemma~1.9.4 itself (it needs the cavity expansions of Section~1.8 with the
+remainder $K(M^{-3/2}+\nu(|R_{1,2}-q|^3))$ instead of the moment bounds
+$\nu((R_{1,2}-q)^2)\le K_1/M$, $\nu((R_{1,2}-q)^4)\le K_2/M^2$ and $4\beta^2<1$ on which every theorem of
+Section~1.8 above is built); Lemma~1.9.3 (it needs Proposition~A.14.1, that $x\mapsto\mathbb E\tanh^2(\beta z\sqrt x+h)/x$
+is decreasing); Proposition~1.9.5 and the coupled free energy (Proposition~1.9.7, Theorem~1.9.6).
+So the concrete statement ``beyond the AT line, $\nu(|R_{1,2}-q|^3)\ge\delta\nu((R_{1,2}-q)^2)\ge\delta^2/M$''
+for the SK model is \emph{not} yet proved; Theorem~\ref{thm:sg-tal:beyond-at-deduction} is its deduction from Lemma~1.9.4.
+
+\begin{lemma}[Eqs.~(1.270) and (1.271)]
+\label{lem:sg-tal:indicator-lower-bound}
+  \lean{SpinGlasses.cubic_le_add_indicator,
+        SpinGlasses.indicator_lower_bound_of_cubic,
+        SpinGlasses.sk_indicator_lower_bound_of_cubic}
+  \leanok
+\talsource{Section~1.9, Eqs.~(1.270) and (1.271)}
+(a) For $|x|\le2$ and $\delta>0$: $|x|^3\le\frac\delta2x^2+8\cdot\mathbf 1_{\{|x|\ge\delta/2\}}$.
+(b) Let $\nu$ be an average (additive, homogeneous, monotone) on functions on a set $\Omega$ and $|X|\le2$.
+If $\delta\,\nu(X^2)\le\nu(|X|^3)$ then $\nu(\mathbf 1_{\{|X|\ge\delta/2\}})\ge\frac\delta{16}\nu(X^2)$.
+(c) For the two-replica SK average on $N+1$ spins, $|q|\le1$, $X=R_{1,2}-q$, this is the statement
+$\delta\,\nu((R_{1,2}-q)^2)\le\nu(|R_{1,2}-q|^3)\Rightarrow\nu(\mathbf 1_{\{|R_{1,2}-q|\ge\delta/2\}})\ge\frac\delta{16}\nu((R_{1,2}-q)^2)$.
+\end{lemma}
+\begin{proof}
+  \leanok
+(a) Split $|x|<\delta/2$ (then $|x|^3\le\frac\delta2x^2$) and $|x|\ge\delta/2$ (then $|x|^3\le8$).  (b) Apply (a) pointwise,
+use monotonicity and linearity, and rearrange.  (c) $|R_{1,2}|\le1$ and the SK average is additive, homogeneous and
+monotone (Section~1.8, Part~E).
+\end{proof}
+
+\begin{theorem}[Proposition~1.9.2 from Lemma~1.9.4 (conditional)]
+\label{thm:sg-tal:beyond-at-deduction}
+  \uses{lem:sg-tal:indicator-lower-bound}
+  \lean{SpinGlasses.exists_cubic_lower_bounds}
+  \leanok
+\talsource{Section~1.9, proof of Proposition~1.9.2 from Lemma~1.9.4, Eqs.~(1.275)--(1.278)}
+Let $a>0$, $\beta^2a>1$ (in the book $a=1-2q+\hat q=\mathbb E\,\mathrm{ch}^{-4}Y$, which is positive, and $\beta^2a>1$ is (1.266)),
+$K>0$, and for $M\ge1$ let $S_2,S_3,T,A,R_1,R_2$ be real numbers with:
+$T\ge0$ and $T=\frac4M\frac a{1-\beta^2a}+R_1$ (Eq.~(1.275)); $S_2=A+R_2$ with $0\le A\le K/M$ (Eq.~(1.276));
+$|R_i|\le K(M^{-3/2}+S_3)$ (Eq.~(1.277)); $0\le S_3\le2S_2$.
+Then there are $\delta>0$ and $M_0$ such that for all $M\ge M_0$: $\delta S_2\le S_3$ and $S_2\ge\delta/M$; hence
+$S_3\ge\delta S_2\ge\delta^2/M$ (Eq.~(1.269)).  Here $S_2=\nu((R_{1,2}-q)^2)$, $S_3=\nu(|R_{1,2}-q|^3)$, $T$ is the
+rectangular second moment and $A=A^2+2B^2+C^2$.
+\end{theorem}
+\begin{proof}
+  \leanok
+Since $\beta^2a>1$ the leading term of $T$ equals $-c/M$ with $c=4a/(\beta^2a-1)>0$, so $T\ge0$ forces
+$R_1\ge c/M$ and therefore $K(M^{-3/2}+S_3)\ge c/M$.  For $\sqrt M\ge2K/c$ one has $KM^{-3/2}\le c/(2M)$, hence
+$S_3\ge c/(2KM)$ (Eq.~(1.278)).  Then $S_2\le K/M+K(M^{-3/2}+S_3)\le K'S_3$ with $K'=2K^2/c+2K$, and
+$S_2\ge S_3/2\ge c/(4KM)$.  Take $\delta=\min(1/K',c/(4K))$.
+\end{proof}
+
+\begin{remark}[Deviations and the open items of Section~1.9]
+\label{rem:sg-tal:dev-19}
+\begin{itemize}
+\item \emph{Indexing.} $M$ is the number of spins of the system, as in Section~1.8.  The book's $N$-dependence $K/N$ is $K/M$.
+\item \emph{Averages.} The conclusions of the deduction are stated for sequences of real numbers, and the indicator bound for an abstract average.  No measure of the form $\nu$ is constructed.
+\item \emph{What Lemma~1.9.4 requires.} Theorems~\ref{thm:sg-tal:cov-system} and~\ref{thm:sg-tal:thm-1812} carry the hypotheses $4\beta^2<1$ and the moment bounds $K_1/M$, $K_2/M^2$ (they enter through $\exp(c\beta^2)$ Hoelder factors and the Cauchy--Schwarz errors $\sqrt{K_1/M}\sqrt{K_2/M^2}$).  Beyond the AT line these moment bounds are false in general, so those errors have to be re-bounded by $\nu(|R_{1,2}-q|^3)$ using the Hoelder pairs $(3,3/2)$ and $(3/2,3)$ of the book.
+\item \emph{Lemma~1.9.3} is the statement $\beta^2(1-4q+3\hat q)<1$ for all $\beta,h$; the book proves it from the monotonicity of $\Phi(x)/x$ (Proposition~A.14.1) and $\Phi'(q)=\beta^2(1-4q+3\hat q)$; neither is formalized, and at $h=0$, $q=0$ the strict inequality needs separate treatment.
+\end{itemize}
 \end{remark}

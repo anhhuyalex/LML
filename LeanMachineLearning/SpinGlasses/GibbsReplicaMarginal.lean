@@ -120,6 +120,39 @@ theorem integral_pi_count_tilted_pair {R : Type*} [Finite α] [Nonempty α] [Fin
   simpa using integral_pi_count_tilted_comp_injective hρ f
     (fun σ : Fin 2 → α => H (σ 0) (σ 1))
 
+/-- **Moving one replica to a fresh one.** If `F` does not depend on the replica `k`, then the
+average of `F · K(σ_i, σ_k)` equals that of `F · K(σ_i, σ_{x₀})`, where `x₀` is a replica outside
+the range of the injection `e` and `i ≠ k`. -/
+theorem integral_pi_count_tilted_replace_replica {R R' : Type*} [Finite α] [Nonempty α]
+    [Finite R] [Fintype R'] [DecidableEq R] {e : R → R'} (he : Function.Injective e) {x₀ : R'}
+    (hx₀ : ∀ r, e r ≠ x₀) {i k : R} (hik : i ≠ k) (f : α → ℝ) (F : (R → α) → ℝ)
+    (hF : ∀ σ x, F (Function.update σ k x) = F σ) (K : α → α → ℝ) :
+    ∫ τ : R' → α, F (fun r => τ (e r)) * K (τ (e i)) (τ (e k))
+        ∂(Measure.pi fun _ : R' => Measure.count.tilted f) =
+      ∫ τ : R' → α, F (fun r => τ (e r)) * K (τ (e i)) (τ x₀)
+        ∂(Measure.pi fun _ : R' => Measure.count.tilted f) := by
+  have := Fintype.ofFinite R
+  have he' : Function.Injective (Function.update e k x₀) := by
+    intro r r' h
+    by_cases hr : r = k <;> by_cases hr' : r' = k
+    · rw [hr, hr']
+    · subst hr
+      simp only [Function.update_self, Function.update_of_ne hr'] at h
+      exact absurd h.symm (hx₀ r')
+    · subst hr'
+      simp only [Function.update_self, Function.update_of_ne hr] at h
+      exact absurd h (hx₀ r)
+    · simp only [Function.update_of_ne hr, Function.update_of_ne hr'] at h
+      exact he h
+  have h1 := integral_pi_count_tilted_comp_injective he f
+    (fun σ : R → α => F σ * K (σ i) (σ k))
+  have h2 := integral_pi_count_tilted_comp_injective he' f
+    (fun σ : R → α => F σ * K (σ i) (σ k))
+  refine h1.trans (h2.symm.trans (integral_congr_ae (Filter.Eventually.of_forall fun τ => ?_)))
+  have hc : (fun r => τ (Function.update e k x₀ r)) =
+      Function.update (fun r => τ (e r)) k (τ x₀) := Function.comp_update τ e k x₀
+  simp only [hc, hF, Function.update_self, Function.update_of_ne hik]
+
 
 /-- **Four replicas and a covariance:** for the Gibbs measure of an energy `A`, the average over
 four independent replicas of `(σ¹_i - σ²_i)(σ¹_j - σ²_j)(σ³_i - σ⁴_i)(σ³_j - σ⁴_j)` is

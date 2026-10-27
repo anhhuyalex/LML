@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.SpinGlasses.SKCavityCovariance
+public import LeanMachineLearning.SpinGlasses.GibbsReplicaMarginal
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SqSub
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Tanh
 
@@ -17,10 +18,13 @@ The algebra and elementary Gaussian-integral facts behind Propositions 1.8.7-1.8
 * `sk_cavity_coincidences_sub_eq`: the difference of two coincidence coefficients of pairs
   `{i₁, k}` and `{i₂, k}` against a pair `{a, b}` (the computation of `c(ℓ, ℓ')` in the proof of
   Lemma 1.8.9);
-* `sk_cavity_deriv_zero_sub_third`: Lemma 1.8.9 in sum form;
-* `sk_at_deriv_coef_split`: Eq. (1.253) turned into Eq. (1.254) when `f⁻` does not depend on the
-  third replica (the replica-independence substitution itself is not carried out; the covariance
-  system of `SKCovarianceRows.lean` replaces it);
+* `sk_cavity_deriv_zero_sub_third`: Lemma 1.8.9 in sum form over the replica families;
+* `sk_cavity_replica_pair_sum_sub_third`: the regrouping of that sum into the book's right-hand
+  side, and `sk_cavity_deriv_zero_sub_third_displayed`: Eq. (1.253);
+* `sk_at_deriv_coef_split`: the algebra from Eq. (1.253) to Eq. (1.254), and
+  `sk_cavity_deriv_zero_sub_third_of_indep`: Eq. (1.254) when `f⁻` does not depend on the third
+  replica (the replica `k` is moved to the extra replica by
+  `integral_pi_count_tilted_replace_replica`);
 * the coefficients of `ν(T²)`, `A²`, `B²` in Eq. (1.264) (`sk_t_coeff_T_sq`, `sk_t_coeff_B_sq`);
 * `qhat_le_of_fixedPoint`, `three_quarters_le_one_sub_beta_sq_mul`: `q̂ ≤ q` and
   `1 - β²(1 - 4q + 3q̂) ≥ 3/4`;
@@ -35,7 +39,7 @@ The algebra and elementary Gaussian-integral facts behind Propositions 1.8.7-1.8
 
 @[expose] public section
 
-open MeasureTheory ProbabilityTheory
+open MeasureTheory ProbabilityTheory Finset
 open scoped BigOperators Real
 
 namespace SpinGlasses
@@ -54,6 +58,126 @@ theorem sk_cavity_coincidences_sub_eq {R : Type*} [DecidableEq R] (B : ℕ → �
   by_cases ha1 : i₁ = a <;> by_cases hb1 : i₁ = b <;> by_cases ha2 : i₂ = a <;>
     by_cases hb2 : i₂ = b <;> by_cases hka : k = a <;> by_cases hkb : k = b <;>
     simp_all [eq_comm]
+
+/-- Every replica is `i₁`, `i₂`, `k` or one of the other replicas. -/
+theorem univ_eq_insert_three_filter {n : ℕ} {i₁ i₂ k : Fin n} (h12 : i₁ ≠ i₂) (h1k : i₁ ≠ k)
+    (h2k : i₂ ≠ k) :
+    (Finset.univ : Finset (Fin n)) =
+      insert i₁ (insert i₂ (insert k (Finset.univ.filter fun l => l ≠ i₁ ∧ l ≠ i₂ ∧ l ≠ k))) := by
+  ext l
+  by_cases a : l = i₁ <;> by_cases b : l = i₂ <;> by_cases c : l = k <;> simp [*]
+
+/-- A sum over `Fin n` splits into the three distinguished replicas and the remaining ones. -/
+theorem sum_eq_three_add_sum_filter {n : ℕ} {i₁ i₂ k : Fin n} (h12 : i₁ ≠ i₂) (h1k : i₁ ≠ k)
+    (h2k : i₂ ≠ k) (g : Fin n → ℝ) :
+    ∑ l, g l = g i₁ + g i₂ + g k + ∑ l ∈ Finset.univ.filter (fun l => l ≠ i₁ ∧ l ≠ i₂ ∧ l ≠ k), g l
+      := by
+  generalize hs : Finset.univ.filter (fun l => l ≠ i₁ ∧ l ≠ i₂ ∧ l ≠ k) = s
+  have hU : (Finset.univ : Finset (Fin n)) = insert i₁ (insert i₂ (insert k s)) := by
+    rw [← hs]; exact univ_eq_insert_three_filter h12 h1k h2k
+  rw [hU, Finset.sum_insert, Finset.sum_insert, Finset.sum_insert]
+  · ring
+  all_goals simp [← hs, h12, h1k, h2k, h12.symm, h1k.symm, h2k.symm]
+
+
+/-- **Regrouping the replica-family sum of Lemma 1.8.9.**  For a symmetric kernel `J`, the sum over
+the three families of Eq. (1.152), with the signed coincidence coefficients of
+`(ε_{i₁} - ε_{i₂}) ε_k`, is the book's right-hand side of Eq. (1.253): the pair `{i₁, k}` against
+`{i₂, k}` with coefficient `b(2) - b(1)`, and the replicas `ℓ ∉ {i₁, i₂, k}` and the extra replica
+with coefficient `b(1) - b(0)`. -/
+theorem sk_cavity_replica_pair_sum_sub_third {n : ℕ} (b : ℕ → ℝ) {i₁ i₂ k : Fin n}
+    (h12 : i₁ ≠ i₂) (h1k : i₁ ≠ k) (h2k : i₂ ≠ k)
+    (J : Option (Option (Fin n)) → Option (Option (Fin n)) → ℝ) (hJ : ∀ x y, J x y = J y x) :
+    ∑ j : SKCavityReplicaPair n,
+      skCavityReplicaPairWeight n j *
+        ((((if some (some i₁) = (skCavityReplicaPairMap j).1 then (1 : ℝ) else 0) +
+              (if some (some i₁) = (skCavityReplicaPairMap j).2 then 1 else 0)) -
+            ((if some (some i₂) = (skCavityReplicaPairMap j).1 then (1 : ℝ) else 0) +
+              (if some (some i₂) = (skCavityReplicaPairMap j).2 then 1 else 0))) *
+          (if some (some k) = (skCavityReplicaPairMap j).1 ∨
+              some (some k) = (skCavityReplicaPairMap j).2 then b 2 - b 1 else b 1 - b 0) *
+          J (skCavityReplicaPairMap j).1 (skCavityReplicaPairMap j).2) =
+      (b 2 - b 1) * (J (some (some i₁)) (some (some k)) - J (some (some i₂)) (some (some k))) +
+        (b 1 - b 0) *
+          (∑ l ∈ Finset.univ.filter (fun l => l ≠ i₁ ∧ l ≠ i₂ ∧ l ≠ k),
+              (J (some (some i₁)) (some (some l)) - J (some (some i₂)) (some (some l))) -
+            (n : ℝ) * (J (some (some i₁)) (some none) - J (some (some i₂)) (some none))) := by
+  set D : Option (Option (Fin n)) → Option (Option (Fin n)) → ℝ := fun x y =>
+    ((((if some (some i₁) = x then (1 : ℝ) else 0) + (if some (some i₁) = y then 1 else 0)) -
+      ((if some (some i₂) = x then (1 : ℝ) else 0) + (if some (some i₂) = y then 1 else 0))) *
+      (if some (some k) = x ∨ some (some k) = y then b 2 - b 1 else b 1 - b 0) * J x y) with hD
+  set ϑ : Fin n → ℝ := fun a => (if i₁ = a then 1 else 0) - (if i₂ = a then 1 else 0) with hϑ
+  set cc : Fin n → Fin n → ℝ := fun a c => if k = a ∨ k = c then b 2 - b 1 else b 1 - b 0
+    with hcc
+  set X : Fin n → Fin n → ℝ := fun a c => ϑ a * (cc a c * J (some (some a)) (some (some c)))
+    with hXdef
+  have hsum := sk_cavity_signed_pair_sum D id
+  have hX : ∀ a c : Fin n, D (some (some a)) (some (some c)) = X a c + X c a := fun a c => by
+    simp only [hD, hXdef, hϑ, hcc, Option.some.injEq, hJ (some (some c)) (some (some a)),
+      or_comm (a := k = c) (b := k = a)]
+    ring
+  have hϑsum : ∀ g : Fin n → ℝ, ∑ r, ϑ r * g r = g i₁ - g i₂ := fun g => by
+    simp [hϑ, sub_mul, Finset.sum_sub_distrib]
+  have hG : ∀ i : Fin n, i ≠ k → ∑ c, cc i c * J (some (some i)) (some (some c)) =
+      (b 1 - b 0) * ∑ c, J (some (some i)) (some (some c)) +
+        (b 2 - 2 * b 1 + b 0) * J (some (some i)) (some (some k)) := fun i hik => by
+    have : ∀ c, cc i c * J (some (some i)) (some (some c)) =
+        (b 1 - b 0) * J (some (some i)) (some (some c)) +
+          (b 2 - 2 * b 1 + b 0) * (if c = k then J (some (some i)) (some (some c)) else 0) :=
+      fun c => by
+        by_cases hc : c = k
+        · subst hc; simp [hcc]; ring
+        · simp [hcc, hik.symm, Ne.symm hc, hc]
+    rw [Finset.sum_congr rfl fun c _ => this c, Finset.sum_add_distrib, ← Finset.mul_sum,
+      ← Finset.mul_sum, Finset.sum_ite_eq']
+    simp
+  have hA : ∑ p : Fin n × Fin n with p.1 < p.2,
+      D (id (some (some p.1))) (id (some (some p.2))) = (∑ a, ∑ c, X a c) - ∑ a, X a a := by
+    rw [← sum_filter_lt_add_swap X]
+    exact Finset.sum_congr rfl fun p _ => hX p.1 p.2
+  have hAA : (∑ a, ∑ c, X a c) - ∑ a, X a a =
+      (b 2 - b 1) * (J (some (some i₁)) (some (some k)) - J (some (some i₂)) (some (some k))) +
+        (b 1 - b 0) * ∑ l ∈ Finset.univ.filter (fun l => l ≠ i₁ ∧ l ≠ i₂ ∧ l ≠ k),
+          (J (some (some i₁)) (some (some l)) - J (some (some i₂)) (some (some l))) := by
+    have e1 : ∑ a, ∑ c, X a c = ∑ a, ϑ a * ∑ c, cc a c * J (some (some a)) (some (some c)) :=
+      Finset.sum_congr rfl fun a _ => by simp only [hXdef, Finset.mul_sum]
+    have e2 : ∑ a, X a a = (b 1 - b 0) * (J (some (some i₁)) (some (some i₁)) -
+        J (some (some i₂)) (some (some i₂))) := by
+      have : ∀ a, X a a = ϑ a * ((b 1 - b 0) * J (some (some a)) (some (some a))) := fun a => by
+        by_cases ha : ϑ a = 0
+        · simp [hXdef, ha]
+        · have : a = i₁ ∨ a = i₂ := by
+            by_contra hh
+            push Not at hh
+            exact ha (by simp [hϑ, Ne.symm hh.1, Ne.symm hh.2])
+          rcases this with rfl | rfl
+          · simp [hXdef, hcc, Ne.symm h1k]
+          · simp [hXdef, hcc, Ne.symm h2k]
+      rw [Finset.sum_congr rfl fun a _ => this a, hϑsum (fun a =>
+        (b 1 - b 0) * J (some (some a)) (some (some a)))]
+      ring
+    rw [e1, hϑsum (fun a => ∑ c, cc a c * J (some (some a)) (some (some c))), e2,
+      hG i₁ h1k, hG i₂ h2k, sum_eq_three_add_sum_filter h12 h1k h2k (fun c => J _ (some (some c))),
+      sum_eq_three_add_sum_filter h12 h1k h2k (fun c => J (some (some i₂)) (some (some c))),
+      hJ (some (some i₂)) (some (some i₁))]
+    simp only [Finset.sum_sub_distrib]
+    ring
+  have hB : ∑ r, D (id (some (some r))) (id (some none)) =
+      (b 1 - b 0) * (J (some (some i₁)) (some none) - J (some (some i₂)) (some none)) := by
+    have : ∀ r, D (id (some (some r))) (id (some none)) = ϑ r *
+        ((if k = r then b 2 - b 1 else b 1 - b 0) * J (some (some r)) (some none)) := fun r => by
+      simp [hD, hϑ, mul_assoc]
+    rw [Finset.sum_congr rfl fun r _ => this r, hϑsum (fun r =>
+      (if k = r then b 2 - b 1 else b 1 - b 0) * J (some (some r)) (some none))]
+    simp [Ne.symm h1k, Ne.symm h2k]
+    ring
+  have hC : D (id (some none)) (id none) = 0 := by simp [hD]
+  calc _ = ∑ j : SKCavityReplicaPair n, skCavityReplicaPairWeight n j *
+        D (id (skCavityReplicaPairMap j).1) (id (skCavityReplicaPairMap j).2) := rfl
+    _ = _ := by
+      rw [← hsum, hA, hAA, hB, hC]
+      ring
+
 
 /-- **From Eq. (1.253) to Eq. (1.254).**  If the observable does not depend on the third replica,
 the term of replica `3` equals the term of replica `n + 1`, and the book's coefficients
@@ -203,6 +327,142 @@ theorem sk_cavity_deriv_zero_sub_third (N n : ℕ) (β q h : ℝ)
   have e : ∀ u v : ℝ, 1 * u + -1 * v = u - v := fun u v => by ring
   simp only [e, skCavityReplicaPairCoincidences, so] at hc ⊢
   rw [hc, mul_assoc]
+
+/-- **A pair of replicas outside `i₁, i₂, k` leaves `k`.**  The replicas other than `i₁, i₂, k`
+number `n - 3`. -/
+theorem card_filter_ne_three {n : ℕ} {i₁ i₂ k : Fin n} (h12 : i₁ ≠ i₂) (h1k : i₁ ≠ k)
+    (h2k : i₂ ≠ k) :
+    (Finset.univ.filter fun l => l ≠ i₁ ∧ l ≠ i₂ ∧ l ≠ k).card + 3 = n := by
+  have := sum_eq_three_add_sum_filter h12 h1k h2k fun _ => (1 : ℝ)
+  simp only [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul, mul_one] at this
+  exact_mod_cast (by linarith : ((Finset.univ.filter fun l => l ≠ i₁ ∧ l ≠ i₂ ∧ l ≠ k).card : ℝ) +
+    3 = n)
+
+/-- **Talagrand, Lemma 1.8.9, Eq. (1.253).**  For distinct replicas `i₁, i₂, k` of `n` replicas
+(the book's `1, 2, 3`) and a function `F` of the old coordinates, the cavity derivative at the
+decoupled endpoint of `F (ε_{i₁} - ε_{i₂}) ε_k` is
+`(b(2) - b(1)) ν₀(F (R⁻_{i₁ k} - R⁻_{i₂ k}))` plus `b(1) - b(0)` times the sum over the replicas
+`ℓ ∉ {i₁, i₂, k}` (the book's `4 ≤ ℓ ≤ n`) of `ν₀(F (R⁻_{i₁ ℓ} - R⁻_{i₂ ℓ}))`, minus `n` times
+`ν₀(F (R⁻_{i₁ n+1} - R⁻_{i₂ n+1}))`.  Here `J x y` is the decoupled average
+`ν₀(F (R⁻_{x y} - q))` of Lemma 1.8.2 (given by `hJ`), and the `q` cancels in each difference. -/
+theorem sk_cavity_deriv_zero_sub_third_displayed (N n : ℕ) (β q h : ℝ)
+    (hfix : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂(gaussianReal 0 1) = q)
+    (qhat : ℝ)
+    (hqhat : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 4 ∂(gaussianReal 0 1) = qhat)
+    {i₁ i₂ k : Fin n} (h12 : i₁ ≠ i₂) (h1k : i₁ ≠ k) (h2k : i₂ ≠ k)
+    (F : (Fin n → Fin N → ℤˣ) → ℝ)
+    (J : Option (Option (Fin n)) → Option (Option (Fin n)) → ℝ)
+    (hJ : ∀ x y, J x y =
+      ∫ g', ∫ ρ : Option (Option (Fin n)) → Fin N → ℤˣ,
+        F (fun r => ρ (some (some r))) *
+          ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (ρ x i : ℝ)) ⬝ᵥ fun i : Fin N => (ρ y i : ℝ)) - q)
+        ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted
+          (fun r : Fin N → ℤˣ =>
+            (Real.sqrt (N + 1))⁻¹ * β *
+              (∑ p : FinPairs N, g' p * (r p.val.1 : ℝ) * (r p.val.2 : ℝ)) +
+            h * ∑ i : Fin N, (r i : ℝ)))
+        ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) :
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
+      (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs N,
+            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
+        (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
+      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
+        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
+      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
+    let so : Fin n → Option (Option (Fin n)) := fun r => some (some r)
+    let f : (Option (Option (Fin n)) → Fin (N + 1) → ℤˣ) → ℝ := fun τ =>
+      F (fun r i => τ (so r) i.castSucc) *
+        ((((τ (so i₁) (Fin.last N) : ℤˣ) : ℝ) - ((τ (so i₂) (Fin.last N) : ℤˣ) : ℝ)) *
+          ((τ (so k) (Fin.last N) : ℤˣ) : ℝ))
+    let K : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ := fun a b =>
+      β ^ 2 * (a (Fin.last N) : ℝ) * (b (Fin.last N) : ℝ) *
+        ((N + 1 : ℝ)⁻¹ *
+          ((fun i : Fin N => (a i.castSucc : ℝ)) ⬝ᵥ fun i : Fin N => (b i.castSucc : ℝ)) - q)
+    (∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
+        ∫ τ : Option (Option (Fin n)) → Fin (N + 1) → ℤˣ,
+          f τ *
+            ((∑ p : Fin n × Fin n with p.1 < p.2,
+                K (τ (so p.1)) (τ (so p.2))) -
+              (n : ℝ) * ∑ r : Fin n, K (τ (so r)) (τ (some none)) +
+              (n : ℝ) * ((n : ℝ) + 1) / 2 * K (τ (some none)) (τ none))
+        ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted
+          (E (π / 2) g' ω))
+        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+        ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) =
+      (skCavityBCoef β q qhat 2 - skCavityBCoef β q qhat 1) *
+          (J (some (some i₁)) (some (some k)) - J (some (some i₂)) (some (some k))) +
+        (skCavityBCoef β q qhat 1 - skCavityBCoef β q qhat 0) *
+          (∑ l ∈ Finset.univ.filter (fun l => l ≠ i₁ ∧ l ≠ i₂ ∧ l ≠ k),
+              (J (some (some i₁)) (some (some l)) - J (some (some i₂)) (some (some l))) -
+            (n : ℝ) * (J (some (some i₁)) (some none) - J (some (some i₂)) (some none))) := by
+  intro B E so f K
+  have hsymm : ∀ x y, J x y = J y x := fun x y => by
+    rw [hJ, hJ]
+    refine integral_congr_ae (Filter.Eventually.of_forall fun g' => ?_)
+    refine integral_congr_ae (Filter.Eventually.of_forall fun ρ => ?_)
+    beta_reduce
+    rw [dotProduct_comm]
+  refine (sk_cavity_deriv_zero_sub_third N n β q h hfix qhat hqhat h12 h1k h2k F).trans ?_
+  rw [← sk_cavity_replica_pair_sum_sub_third (skCavityBCoef β q qhat) h12 h1k h2k J hsymm]
+  exact Finset.sum_congr rfl fun j _ => by rw [hJ]
+
+/-- **Talagrand, Lemma 1.8.9, Eq. (1.254).**  If `F` does not depend on the replica `k` (the
+book's third replica), the replica `k` and the extra replica `n + 1` give the same average, and
+Eq. (1.253) regroups into `(b(2) - 4 b(1) + 3 b(0)) ν₀(F (R⁻_{i₁ k} - R⁻_{i₂ k}))` plus
+`(b(1) - b(0))` times the sum over `ℓ ∉ {i₁, i₂, k}` of
+`ν₀(F (R⁻_{i₁ ℓ} - R⁻_{i₂ ℓ} - R⁻_{i₁ n+1} + R⁻_{i₂ n+1}))`, which in terms of `β, q, q̂` is
+`β²(1 - 4q + 3q̂)` and `β²(q - q̂)`.  The hypotheses on `J` are those of
+`sk_cavity_deriv_zero_sub_third_displayed`, with `hF` stating that `F` is unchanged when the
+`k`-th replica is replaced; the fixed-point equations are not needed for this regrouping. -/
+theorem sk_cavity_deriv_zero_sub_third_of_indep (N n : ℕ) (β q h : ℝ)
+    (qhat : ℝ)
+    {i₁ i₂ k : Fin n} (h12 : i₁ ≠ i₂) (h1k : i₁ ≠ k) (h2k : i₂ ≠ k)
+    (F : (Fin n → Fin N → ℤˣ) → ℝ)
+    (hF : ∀ (ρ : Fin n → Fin N → ℤˣ) x, F (Function.update ρ k x) = F ρ)
+    (J : Option (Option (Fin n)) → Option (Option (Fin n)) → ℝ)
+    (hJ : ∀ x y, J x y =
+      ∫ g', ∫ ρ : Option (Option (Fin n)) → Fin N → ℤˣ,
+        F (fun r => ρ (some (some r))) *
+          ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (ρ x i : ℝ)) ⬝ᵥ fun i : Fin N => (ρ y i : ℝ)) - q)
+        ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted
+          (fun r : Fin N → ℤˣ =>
+            (Real.sqrt (N + 1))⁻¹ * β *
+              (∑ p : FinPairs N, g' p * (r p.val.1 : ℝ) * (r p.val.2 : ℝ)) +
+            h * ∑ i : Fin N, (r i : ℝ)))
+        ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) :
+    (skCavityBCoef β q qhat 2 - skCavityBCoef β q qhat 1) *
+          (J (some (some i₁)) (some (some k)) - J (some (some i₂)) (some (some k))) +
+        (skCavityBCoef β q qhat 1 - skCavityBCoef β q qhat 0) *
+          (∑ l ∈ Finset.univ.filter (fun l => l ≠ i₁ ∧ l ≠ i₂ ∧ l ≠ k),
+              (J (some (some i₁)) (some (some l)) - J (some (some i₂)) (some (some l))) -
+            (n : ℝ) * (J (some (some i₁)) (some none) - J (some (some i₂)) (some none))) =
+      β ^ 2 * (1 - 4 * q + 3 * qhat) *
+          (J (some (some i₁)) (some (some k)) - J (some (some i₂)) (some (some k))) +
+        β ^ 2 * (q - qhat) *
+          ∑ l ∈ Finset.univ.filter (fun l => l ≠ i₁ ∧ l ≠ i₂ ∧ l ≠ k),
+            (J (some (some i₁)) (some (some l)) - J (some (some i₂)) (some (some l)) -
+              (J (some (some i₁)) (some none) - J (some (some i₂)) (some none))) := by
+  have hswap : ∀ i, i ≠ k → J (some (some i)) (some (some k)) = J (some (some i)) (some none) :=
+    fun i hik => by
+    rw [hJ, hJ]
+    refine integral_congr_ae (Filter.Eventually.of_forall fun g' => ?_)
+    exact integral_pi_count_tilted_replace_replica (e := fun r : Fin n => some (some r))
+      (fun r r' hr => Option.some.inj (Option.some.inj hr)) (x₀ := some none)
+      (fun r => by simp) hik _ F hF
+      (fun x y => (N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (x i : ℝ)) ⬝ᵥ fun i : Fin N => (y i : ℝ)) - q)
+  rw [sk_at_deriv_coef_split _ n (card_filter_ne_three h12 h1k h2k) _ _ _
+    (J (some (some i₁)) (some (some k)) - J (some (some i₂)) (some (some k)))
+    (J (some (some i₁)) (some none) - J (some (some i₂)) (some none))
+    (fun l => J (some (some i₁)) (some (some l)) - J (some (some i₂)) (some (some l)))
+    (by rw [hswap i₁ h1k, hswap i₂ h2k])]
+  have e1 := sk_at_eigenvalue_two_eq β q qhat
+  have e2 : skCavityBCoef β q qhat 1 - skCavityBCoef β q qhat 0 = β ^ 2 * (q - qhat) := by
+    dsimp [skCavityBCoef, skCavityBUnscaled]
+    ring
+  rw [e1, e2]
 
 /-- `1 - 2q + q̂ = 𝔼 ch⁻⁴(β √q z + h)` for the fixed point `q` and `q̂ = 𝔼 tanh⁴`. -/
 theorem one_sub_two_mul_add_qhat_eq (β q h qhat : ℝ)
