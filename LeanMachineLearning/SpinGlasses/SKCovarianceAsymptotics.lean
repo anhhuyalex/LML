@@ -28,6 +28,7 @@ The proof derives the covariance system (1.231)-(1.233) from the cavity expansio
 
 open MeasureTheory ProbabilityTheory Finset
 open scoped BigOperators Real Matrix
+open Matrix (atRowZero atRowOne atRowTwo)
 
 namespace SpinGlasses
 
@@ -251,7 +252,7 @@ theorem sk_overlap_covariances_nu (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (h 
     (skCavityBCoef β q qhat 1) (skCavityBCoef β q qhat 0) q qhat ((N : ℝ) + 1) _ R).1 hv
   obtain ⟨e0, e1, e2⟩ := hiff
   simp only [Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.cons_val_two, Matrix.head_cons,
-    Matrix.tail_cons, skAtRowZero, skAtRowOne, skAtRowTwo, skCavityBCoef, bu2, bu1, bu0] at e0 e1 e2
+    Matrix.tail_cons, atRowZero, atRowOne, atRowTwo, skCavityBCoef, bu2, bu1, bu0] at e0 e1 e2
   set U := ν₂ (fun σ => ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
           fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) *
         ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ

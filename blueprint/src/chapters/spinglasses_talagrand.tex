@@ -4928,16 +4928,16 @@ Differentiate along the cavity path via \texttt{hasDerivAt\_integral\_sk\_cavity
 \begin{theorem}[The $3\times3$ AT matrix, universal eigenvectors, and eigenvalues]
 \label{thm:sg-tal:at-matrix}
   \uses{thm:sg-tal:lemma-182}
-  \lean{SpinGlasses.skAtMatrix,
-        SpinGlasses.skAtEigenvectorOne,
-        SpinGlasses.skAtEigenvectorTwo,
-        SpinGlasses.sk_at_matrix_transpose_mulVec_one,
-        SpinGlasses.sk_at_matrix_transpose_mulVec_two,
+  \lean{Matrix.atMatrix,
+        Matrix.atEigenvectorOne,
+        Matrix.atEigenvectorTwo,
+        Matrix.atMatrix_transpose_mulVec_one,
+        Matrix.atMatrix_transpose_mulVec_two,
         SpinGlasses.sk_at_eigenvalue_one_eq,
         SpinGlasses.sk_at_eigenvalue_two_eq}
   \leanok
 \talsource{Section~1.8, Eqs.~(1.231)--(1.236)}
-Let $M = \mathrm{sk\_at\_matrix}(b(2), b(1), b(0))$ be the matrix of Eq.~(1.234):
+Let $b(2), b(1), b(0)$ be elements of any commutative ring $K$ (in the application $K = \mathbb R$) and let $M$ be the matrix of Eq.~(1.234):
 \[
 M = \begin{pmatrix}
 b(2) & -4 b(1) & 3 b(0) \\
@@ -4951,7 +4951,7 @@ Then:
 \end{theorem}
 \begin{proof}
   \leanok
-Direct linear algebra on $\mathrm{Matrix}(\mathrm{Fin}\,3)(\mathrm{Fin}\,3)\,\mathbb R$ by coordinate expansion, followed by arithmetic using $b(c) = \beta^2(\mathbb E\tanh^{4-2c}Y - q^2)$ and $q = \mathbb E\tanh^2 Y, \hat{q} = \mathbb E\tanh^4 Y$.
+The two eigenvector identities are polynomial identities in $b(2), b(1), b(0)$, proved by coordinate expansion over an arbitrary commutative ring (module \texttt{ReplicaMatrix3x3}, which does not mention spin glasses).  Only the expressions of the eigenvalues in $(\beta, q, \hat q)$ use the specific values $b(c) = \beta^2(\mathbb E\tanh^{4-2c}Y - q^2)$ and $q = \mathbb E\tanh^2 Y, \hat{q} = \mathbb E\tanh^4 Y$.
 \end{proof}
 
 \begin{theorem}[The $3\times3$ AT covariance equations and decoupled solutions]

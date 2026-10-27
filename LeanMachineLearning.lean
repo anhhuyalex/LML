@@ -42,6 +42,7 @@ public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.MulTranspose
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.OrthogonalDiagonalization
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.OrthogonalProjection
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.PosSemidef
+public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.ReplicaMatrix3x3
 public import LeanMachineLearning.ForMathlib.MeasureTheory.ConditionalExpectation.IdentDistrib
 public import LeanMachineLearning.ForMathlib.MeasureTheory.ConditionalExpectation.L2Projection
 public import LeanMachineLearning.ForMathlib.MeasureTheory.ConditionalExpectation.SequentialDecoupling

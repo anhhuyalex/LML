@@ -24,6 +24,7 @@ the `(N+1)`-spin system.
 
 open MeasureTheory ProbabilityTheory Finset
 open scoped BigOperators Real Matrix
+open Matrix (atMatrix atRowZero atRowOne atRowTwo)
 
 namespace SpinGlasses
 
@@ -1434,10 +1435,10 @@ end RowSums
 /-- The vector equation `v = S + A v + R` holds for the remainder defined by the three scalar
 equations. -/
 theorem sk_at_vec_eq (U V W q qhat M b2 b1 b0 : ℝ) :
-    ![U, V, W] = skAtSource q qhat M + skAtMatrix b2 b1 b0 *ᵥ ![U, V, W] +
-      ![U - (1 - q ^ 2) / M - skAtRowZero b2 b1 b0 U V W,
-        V - (q - q ^ 2) / M - skAtRowOne b2 b1 b0 U V W,
-        W - (qhat - q ^ 2) / M - skAtRowTwo b2 b1 b0 U V W] := by
+    ![U, V, W] = skAtSource q qhat M + atMatrix b2 b1 b0 *ᵥ ![U, V, W] +
+      ![U - (1 - q ^ 2) / M - atRowZero b2 b1 b0 U V W,
+        V - (q - q ^ 2) / M - atRowOne b2 b1 b0 U V W,
+        W - (qhat - q ^ 2) / M - atRowTwo b2 b1 b0 U V W] := by
   rw [sk_at_covariance_equations_iff]
   simp only [Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.cons_val_two, Matrix.head_cons,
     Matrix.tail_cons]
@@ -1572,7 +1573,7 @@ theorem sk_cov_row_bound (N : ℕ) (β q h : ℝ)
 `(N+1)`-spin system. If every row of the cavity expansion (`sk_cov_row_bound`, or its beyond-AT form
 `sk_cov_row_bound_three`) is bounded by `E`, there is a
 remainder `R` with `|R_i| ≤ E` such that `(U, V, W) = S + A (U, V, W) + R`, where `S` is the source
-`skAtSource` and `A` the AT matrix `skAtMatrix`. -/
+`skAtSource` and `A` the AT matrix `atMatrix`. -/
 theorem sk_cov_system_of_row (N : ℕ) (β q h qhat : ℝ)
     (e : Option (Option (Fin 4)) ≃ Fin (4 + 2))
     (ν₂ : ((Fin 2 → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
@@ -1630,7 +1631,7 @@ theorem sk_cov_system_of_row (N : ℕ) (β q h qhat : ℝ)
             i : ℝ)) ⬝ᵥ
           fun i : Fin (N + 1) => (σ 3 i : ℝ)) - q))] =
         skAtSource q qhat ((N : ℝ) + 1) +
-          skAtMatrix (skCavityBCoef β q qhat 2) (skCavityBCoef β q qhat 1)
+          atMatrix (skCavityBCoef β q qhat 2) (skCavityBCoef β q qhat 1)
             (skCavityBCoef β q qhat 0) *ᵥ
           ![ν₂ (fun σ => ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
           fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) * ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0
@@ -1737,7 +1738,7 @@ theorem sk_cov_system_of_row (N : ℕ) (β q h qhat : ℝ)
           fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) * ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0
             i : ℝ)) ⬝ᵥ
           fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q)) - (1 - q ^ 2) / ((N : ℝ) + 1) -
-        skAtRowZero (skCavityBCoef β q qhat 2) (skCavityBCoef β q qhat 1)
+        atRowZero (skCavityBCoef β q qhat 2) (skCavityBCoef β q qhat 1)
           (skCavityBCoef β q qhat 0) (ν₂ (fun σ => ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i
             : ℝ)) ⬝ᵥ
           fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) * ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0
@@ -1755,7 +1756,7 @@ theorem sk_cov_system_of_row (N : ℕ) (β q h qhat : ℝ)
           fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) * ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0
             i : ℝ)) ⬝ᵥ
           fun i : Fin (N + 1) => (σ 2 i : ℝ)) - q)) - (q - q ^ 2) / ((N : ℝ) + 1) -
-        skAtRowOne (skCavityBCoef β q qhat 2) (skCavityBCoef β q qhat 1)
+        atRowOne (skCavityBCoef β q qhat 2) (skCavityBCoef β q qhat 1)
           (skCavityBCoef β q qhat 0) (ν₂ (fun σ => ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i
             : ℝ)) ⬝ᵥ
           fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) * ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0
@@ -1773,7 +1774,7 @@ theorem sk_cov_system_of_row (N : ℕ) (β q h qhat : ℝ)
           fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) * ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 2
             i : ℝ)) ⬝ᵥ
           fun i : Fin (N + 1) => (σ 3 i : ℝ)) - q)) - (qhat - q ^ 2) / ((N : ℝ) + 1) -
-        skAtRowTwo (skCavityBCoef β q qhat 2) (skCavityBCoef β q qhat 1)
+        atRowTwo (skCavityBCoef β q qhat 2) (skCavityBCoef β q qhat 1)
           (skCavityBCoef β q qhat 0) (ν₂ (fun σ => ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i
             : ℝ)) ⬝ᵥ
           fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) * ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0
@@ -1790,14 +1791,14 @@ theorem sk_cov_system_of_row (N : ℕ) (β q h qhat : ℝ)
   · exact sk_at_vec_eq _ _ _ q qhat _ _ _ _
   · intro i
     fin_cases i
-    · simp only [Fin.zero_eta, Matrix.cons_val_zero, skAtRowZero]
+    · simp only [Fin.zero_eta, Matrix.cons_val_zero, atRowZero]
       rw [inv_mul_eq_div] at r0
       exact r0
-    · simp only [Fin.mk_one, Matrix.cons_val_one, skAtRowOne]
+    · simp only [Fin.mk_one, Matrix.cons_val_one, atRowOne]
       rw [inv_mul_eq_div] at r1
       exact r1
     · simp only [Fin.reduceFinMk, Matrix.cons_val_two, Matrix.tail_cons, Matrix.head_cons,
-        skAtRowTwo]
+        atRowTwo]
       rw [inv_mul_eq_div] at r2
       exact r2
 
@@ -1805,7 +1806,7 @@ theorem sk_cov_system_of_row (N : ℕ) (β q h qhat : ℝ)
 `U = 𝔼⟨(R₁₂ - q)²⟩`, `V = 𝔼⟨(R₁₂ - q)(R₁₃ - q)⟩`, `W = 𝔼⟨(R₁₂ - q)(R₃₄ - q)⟩` for the
 `(N+1)`-spin system. If `𝔼⟨(R₁₂ - q)²⟩ ≤ K₁/M` and `𝔼⟨(R₁₂ - q)⁴⟩ ≤ K₂/M²`, there is a
 remainder `R` with `|R_i| ≤ E` such that `(U, V, W) = S + A (U, V, W) + R`, where `S` is the source
-`skAtSource` and `A` the AT matrix `skAtMatrix`. -/
+`skAtSource` and `A` the AT matrix `atMatrix`. -/
 theorem sk_cov_system (N : ℕ) (β q h : ℝ)
     (hfix : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂(gaussianReal 0 1) = q)
     (qhat : ℝ)
@@ -1867,7 +1868,7 @@ theorem sk_cov_system (N : ℕ) (β q h : ℝ)
             i : ℝ)) ⬝ᵥ
           fun i : Fin (N + 1) => (σ 3 i : ℝ)) - q))] =
         skAtSource q qhat ((N : ℝ) + 1) +
-          skAtMatrix (skCavityBCoef β q qhat 2) (skCavityBCoef β q qhat 1)
+          atMatrix (skCavityBCoef β q qhat 2) (skCavityBCoef β q qhat 1)
             (skCavityBCoef β q qhat 0) *ᵥ
           ![ν₂ (fun σ => ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
           fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) * ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0

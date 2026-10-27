@@ -30,6 +30,7 @@ where `E = K(β, h) (ν(|R_{1,2} - q|³) + M^{-3/2})` is Eq. (1.277).
 
 open MeasureTheory ProbabilityTheory Finset
 open scoped BigOperators Real Matrix
+open Matrix (atRowZero atRowOne atRowTwo)
 
 namespace SpinGlasses
 
@@ -202,7 +203,7 @@ theorem sk_lemma_194 (N : ℕ) (β q h qhat δ : ℝ)
     (skCavityBCoef β q qhat 1) (skCavityBCoef β q qhat 0) q qhat ((N : ℝ) + 1) _ R).1 hv
   obtain ⟨e0, e1, e2⟩ := hiff
   simp only [Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.cons_val_two, Matrix.head_cons,
-    Matrix.tail_cons, skAtRowZero, skAtRowOne, skAtRowTwo, skCavityBCoef, bu2, bu1, bu0] at e0 e1 e2
+    Matrix.tail_cons, atRowZero, atRowOne, atRowTwo, skCavityBCoef, bu2, bu1, bu0] at e0 e1 e2
   have key := sk_at_scalar_solution_of_abs β q qhat ((N : ℝ) + 1)
     (ν₂ (fun σ => ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
           fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) *
