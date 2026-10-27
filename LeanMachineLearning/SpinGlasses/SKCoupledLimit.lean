@@ -54,3 +54,5 @@ theorem sk_coupled_limit_not_differentiableAt (β h q qhat : ℝ) (hh : h ≠ 0)
   obtain ⟨N₀, hN₀⟩ := hsep lam hlam.1
   filter_upwards [eventually_ge_atTop N₀] with N hN
   exact hN₀ N hN
+
+end SpinGlasses
