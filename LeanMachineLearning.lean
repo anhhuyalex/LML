@@ -90,6 +90,7 @@ public import LeanMachineLearning.ForMathlib.Probability.ConditionalProbability
 public import LeanMachineLearning.ForMathlib.Probability.ConditionallyIID
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Gaussian.ExpSq
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Gaussian.ExponentialTilt
+public import LeanMachineLearning.ForMathlib.Probability.Distributions.Gaussian.Shift
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Poisson.SumCountable
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Poisson.Thinning
 public import LeanMachineLearning.ForMathlib.Probability.EmpiricalConvergence
@@ -487,6 +488,7 @@ public import LeanMachineLearning.SpinGlasses.SKRandomProjectionCLT
 public import LeanMachineLearning.SpinGlasses.SKRectangularDerivative
 public import LeanMachineLearning.SpinGlasses.SKReplicaSymmetricBound
 public import LeanMachineLearning.SpinGlasses.SKSecondMoment
+public import LeanMachineLearning.SpinGlasses.SKSecondaryContraction
 public import LeanMachineLearning.SpinGlasses.SKSiteSymmetry
 public import LeanMachineLearning.SpinGlasses.SKSmartPath
 public import LeanMachineLearning.SpinGlasses.SKSmartPathProfile

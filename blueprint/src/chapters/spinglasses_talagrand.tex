@@ -5326,15 +5326,43 @@ Not formalized: the book's $O(3)$ remainder is an explicit $K/M^{3/2}$ only unde
 \label{sec:sg-tal:beyond-at}
 
 \paragraph{Status.}
-Section~1.9 is only started.  Proved here is the real-variable half of Proposition~1.9.2:
-Lemma~1.9.4 is taken as a \emph{hypothesis} and the lower bounds (1.269) and (1.271) are deduced
-from it.  Not formalized: Lemma~1.9.4 itself (it needs the cavity expansions of Section~1.8 with the
+Section~1.9 is only started.  Proved here: Lemma~1.9.3 for a fixed point $q>0$ (Theorem~\ref{thm:sg-tal:lemma-193}),
+and the real-variable half of Proposition~1.9.2: Lemma~1.9.4 is taken as a \emph{hypothesis} and the lower
+bounds (1.269) and (1.271) are deduced from it.  Not formalized: Lemma~1.9.4 itself (it needs the cavity expansions of Section~1.8 with the
 remainder $K(M^{-3/2}+\nu(|R_{1,2}-q|^3))$ instead of the moment bounds
 $\nu((R_{1,2}-q)^2)\le K_1/M$, $\nu((R_{1,2}-q)^4)\le K_2/M^2$ and $4\beta^2<1$ on which every theorem of
-Section~1.8 above is built); Lemma~1.9.3 (it needs Proposition~A.14.1, that $x\mapsto\mathbb E\tanh^2(\beta z\sqrt x+h)/x$
-is decreasing); Proposition~1.9.5 and the coupled free energy (Proposition~1.9.7, Theorem~1.9.6).
+Section~1.8 above is built); Proposition~1.9.5 and the coupled free energy (Proposition~1.9.7, Theorem~1.9.6).
 So the concrete statement ``beyond the AT line, $\nu(|R_{1,2}-q|^3)\ge\delta\nu((R_{1,2}-q)^2)\ge\delta^2/M$''
 for the SK model is \emph{not} yet proved; Theorem~\ref{thm:sg-tal:beyond-at-deduction} is its deduction from Lemma~1.9.4.
+
+\begin{theorem}[Lemma~1.9.3: $\beta^2(1-4q+3\hat q)<1$]
+\label{thm:sg-tal:lemma-193}
+  \lean{SpinGlasses.sk_beta_sq_mul_one_sub_four_add_three_lt_one,
+        SpinGlasses.integral_tanh_core_lt,
+        SpinGlasses.integral_odd_comp_affine_nonneg,
+        SpinGlasses.tanh_mul_sub_neg,
+        SpinGlasses.integral_tanh_sq_deriv_mul_id_eq,
+        ProbabilityTheory.integral_gaussianReal_add_const_eq}
+  \leanok
+\talsource{Section~1.9, Lemma~1.9.3, Eqs.~(1.272)--(1.274), and Appendix A.14, Proposition~A.14.1}
+Let $\beta,h\in\mathbb R$ and let $q>0$ satisfy $q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$ with $z\sim N(0,1)$,
+and $\hat q=\mathbb E\tanh^4(\beta\sqrt q\,z+h)$.  Then $\beta^2(1-4q+3\hat q)<1$.
+\end{theorem}
+\begin{proof}
+  \leanok
+Put $w=\beta\sqrt q$ (the case $\beta=0$ is trivial), $Y=wz+h$, $\varphi=\tanh$.
+\emph{Key inequality:} $w\,\mathbb E[2\varphi(Y)\varphi'(Y)z]<2\,\mathbb E\varphi(Y)^2$.  This is
+$x^2\Psi'(x)<0$ for $\Psi(x)=\mathbb E\varphi(\sqrt xz+h)^2/x$ at $x=w^2$, in the proof of Proposition~A.14.1:
+write $wz=Y-h$, so that the difference equals $2\,\mathbb E[\varphi(Y)(Y\varphi'(Y)-\varphi(Y))]-2h\,\mathbb E[\varphi\varphi'(Y)]$.
+The first term is negative, since $\psi(y)=y\varphi'(y)-\varphi(y)$ satisfies $\varphi(y)\psi(y)<0$ for $y\ne0$
+(equivalently $2y<\sinh2y$ for $y>0$, and oddness) and $Y\ne0$ almost surely.  The second satisfies
+$h\,\mathbb E[g(Y)]\ge0$ for the odd function $g=\varphi\varphi'$, which is $\ge0$ on $[0,\infty)$:
+shifting the Gaussian by $a=h/w$ (a change of density by $e^{au-a^2/2}$) and symmetrizing $u\mapsto-u$
+gives $h\,\mathbb E[g(Y)]=e^{-a^2/2}\,\mathbb E[h\,g(wu)\sinh(au)]$ and $h\,g(wu)\sinh(hu/w)\ge0$.
+\emph{Gaussian integration by parts} (Stein's lemma) turns the left-hand side into
+$w^2\,\mathbb E[2(1-\varphi^2)(1-3\varphi^2)]=2w^2(1-4q+3\hat q)$, using $\mathbb E\varphi^2=q$, $\mathbb E\varphi^4=\hat q$.
+Hence $\beta^2q(1-4q+3\hat q)<q$, and one divides by $q>0$.
+\end{proof}
 
 \begin{lemma}[Eqs.~(1.270) and (1.271)]
 \label{lem:sg-tal:indicator-lower-bound}
@@ -5384,6 +5412,6 @@ $S_2\ge S_3/2\ge c/(4KM)$.  Take $\delta=\min(1/K',c/(4K))$.
 \item \emph{Indexing.} $M$ is the number of spins of the system, as in Section~1.8.  The book's $N$-dependence $K/N$ is $K/M$.
 \item \emph{Averages.} The conclusions of the deduction are stated for sequences of real numbers, and the indicator bound for an abstract average.  No measure of the form $\nu$ is constructed.
 \item \emph{What Lemma~1.9.4 requires.} Theorems~\ref{thm:sg-tal:cov-system} and~\ref{thm:sg-tal:thm-1812} carry the hypotheses $4\beta^2<1$ and the moment bounds $K_1/M$, $K_2/M^2$ (they enter through $\exp(c\beta^2)$ Hoelder factors and the Cauchy--Schwarz errors $\sqrt{K_1/M}\sqrt{K_2/M^2}$).  Beyond the AT line these moment bounds are false in general, so those errors have to be re-bounded by $\nu(|R_{1,2}-q|^3)$ using the Hoelder pairs $(3,3/2)$ and $(3/2,3)$ of the book.
-\item \emph{Lemma~1.9.3} is the statement $\beta^2(1-4q+3\hat q)<1$ for all $\beta,h$; the book proves it from the monotonicity of $\Phi(x)/x$ (Proposition~A.14.1) and $\Phi'(q)=\beta^2(1-4q+3\hat q)$; neither is formalized, and at $h=0$, $q=0$ the strict inequality needs separate treatment.
+\item \emph{Lemma~1.9.3} is proved for a fixed point $q>0$.  The hypothesis $q>0$ is automatic for $h\ne0$ (as $\mathbb E\tanh^2>0$) but is a genuine selection of the fixed point for $h=0$, where $q=0$ always solves the equation and the strict inequality fails for $\beta\ge1$.  The derivative $\Phi'$ is not formed: the inequality $x\Phi'(x)-\Phi(x)<0$ of Proposition~A.14.1 is proved directly at $x=\beta^2q$, so Proposition~A.14.1 itself (for general $\varphi$ and the vanishing at infinity) is not formalized.
 \end{itemize}
 \end{remark}

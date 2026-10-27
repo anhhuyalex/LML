@@ -144,6 +144,44 @@ theorem continuous_tanh_second_deriv_affine (w h : ℝ) :
   ((continuous_const.sub (continuous_tanh_sq_affine w h)).const_mul 2).mul
     (continuous_const.sub ((continuous_tanh_sq_affine w h).const_mul 3))
 
+/-- **Stein's lemma for the derivative of `tanh²`:**
+`𝔼 [2 tanh(wz+h)(1 - tanh²(wz+h)) z] = w 𝔼 [2 (1 - tanh²)(1 - 3 tanh²)]`. -/
+theorem integral_tanh_sq_deriv_mul_id_eq (h w : ℝ) :
+    ∫ z : ℝ, 2 * Real.tanh (w * z + h) * (1 - Real.tanh (w * z + h) ^ 2) * z
+        ∂(gaussianReal 0 1) =
+      w * ∫ z : ℝ, 2 * (1 - Real.tanh (w * z + h) ^ 2) * (1 - 3 * Real.tanh (w * z + h) ^ 2)
+        ∂(gaussianReal 0 1) := by
+  have hF_deriv : ∀ z : ℝ, HasDerivAt (fun y => 2 * Real.tanh (w * y + h) *
+      (1 - Real.tanh (w * y + h) ^ 2))
+      (w * (2 * (1 - Real.tanh (w * z + h) ^ 2) * (1 - 3 * Real.tanh (w * z + h) ^ 2))) z := by
+    intro z
+    have h_lin : HasDerivAt (fun y => w * y + h) w z := by
+      simpa using ((hasDerivAt_id' z).const_mul w).add_const h
+    have h_comp := (Real.hasDerivAt_tanh_sq_deriv (w * z + h)).comp z h_lin
+    convert h_comp using 1
+    · rfl
+    · ring
+  have hxF : Integrable (fun z : ℝ => z * (2 * Real.tanh (w * z + h) *
+      (1 - Real.tanh (w * z + h) ^ 2))) (gaussianReal 0 1) := by
+    refine (integrable_abs_id_gaussianReal.const_mul 2).mono' ?_ ?_
+    · exact (continuous_id'.mul (continuous_tanh_deriv_affine w h)).aestronglyMeasurable
+    · refine Eventually.of_forall fun z => ?_
+      rw [Real.norm_eq_abs, abs_mul, mul_comm]
+      exact mul_le_mul_of_nonneg_right (Real.abs_deriv_tanh_sq_le _) (abs_nonneg _)
+  have hF' : Integrable (fun z : ℝ => w * (2 * (1 - Real.tanh (w * z + h) ^ 2) *
+      (1 - 3 * Real.tanh (w * z + h) ^ 2))) (gaussianReal 0 1) := by
+    refine (integrable_const (2 * |w|)).mono' ?_ ?_
+    · exact (continuous_const.mul (continuous_tanh_second_deriv_affine w h)).aestronglyMeasurable
+    · refine Eventually.of_forall fun z => ?_
+      rw [Real.norm_eq_abs, abs_mul, mul_comm]
+      exact mul_le_mul_of_nonneg_right (Real.abs_tanh_sq_second_deriv_le _) (abs_nonneg _)
+  have h_ibp := integral_id_mul_gaussianReal_eq (v := 1) hF_deriv hxF hF'
+  simp only [NNReal.coe_one, one_mul] at h_ibp
+  have h_comm : (fun z => 2 * Real.tanh (w * z + h) * (1 - Real.tanh (w * z + h) ^ 2) * z) =
+      fun z => z * (2 * Real.tanh (w * z + h) * (1 - Real.tanh (w * z + h) ^ 2)) := by
+    ext z; ring
+  rw [h_comm, h_ibp, ← integral_const_mul]
+
 /-- **Parameter derivative of the fixed-point map via Stein's lemma:**
 $$\frac{d}{dw} \mathbb{E}\tanh^2(w z + h) = w \mathbb{E}[f''(w z + h)],$$
 where $f(x) = \tanh^2 x$ and $f''(x) = 2 (1 - \tanh^2 x)(1 - 3 \tanh^2 x)$. -/
@@ -170,41 +208,7 @@ theorem hasDerivAt_fixedPointMap_param (h : ℝ) (w : ℝ) :
     · have h_lin : HasDerivAt (fun v => v * z + h) z v := by
         simpa using ((hasDerivAt_id' v).mul_const z).add_const h
       exact (Real.hasDerivAt_tanh_sq (v * z + h)).comp v h_lin
-  have h_stein : ∫ z : ℝ, 2 * Real.tanh (w * z + h) * (1 - Real.tanh (w * z + h) ^ 2) * z
-        ∂(gaussianReal 0 1) =
-      w * ∫ z : ℝ, 2 * (1 - Real.tanh (w * z + h) ^ 2) * (1 - 3 * Real.tanh (w * z + h) ^ 2)
-        ∂(gaussianReal 0 1) := by
-    have hF_deriv : ∀ z : ℝ, HasDerivAt (fun y => 2 * Real.tanh (w * y + h) *
-        (1 - Real.tanh (w * y + h) ^ 2))
-        (w * (2 * (1 - Real.tanh (w * z + h) ^ 2) * (1 - 3 * Real.tanh (w * z + h) ^ 2))) z := by
-      intro z
-      have h_lin : HasDerivAt (fun y => w * y + h) w z := by
-        simpa using ((hasDerivAt_id' z).const_mul w).add_const h
-      have h_comp := (Real.hasDerivAt_tanh_sq_deriv (w * z + h)).comp z h_lin
-      convert h_comp using 1
-      · rfl
-      · ring
-    have hxF : Integrable (fun z : ℝ => z * (2 * Real.tanh (w * z + h) *
-        (1 - Real.tanh (w * z + h) ^ 2))) (gaussianReal 0 1) := by
-      refine (integrable_abs_id_gaussianReal.const_mul 2).mono' ?_ ?_
-      · exact (continuous_id'.mul (continuous_tanh_deriv_affine w h)).aestronglyMeasurable
-      · refine Eventually.of_forall fun z => ?_
-        rw [Real.norm_eq_abs, abs_mul, mul_comm]
-        exact mul_le_mul_of_nonneg_right (Real.abs_deriv_tanh_sq_le _) (abs_nonneg _)
-    have hF' : Integrable (fun z : ℝ => w * (2 * (1 - Real.tanh (w * z + h) ^ 2) *
-        (1 - 3 * Real.tanh (w * z + h) ^ 2))) (gaussianReal 0 1) := by
-      refine (integrable_const (2 * |w|)).mono' ?_ ?_
-      · exact (continuous_const.mul (continuous_tanh_second_deriv_affine w h)).aestronglyMeasurable
-      · refine Eventually.of_forall fun z => ?_
-        rw [Real.norm_eq_abs, abs_mul, mul_comm]
-        exact mul_le_mul_of_nonneg_right (Real.abs_tanh_sq_second_deriv_le _) (abs_nonneg _)
-    have h_ibp := integral_id_mul_gaussianReal_eq (v := 1) hF_deriv hxF hF'
-    simp only [NNReal.coe_one, one_mul] at h_ibp
-    have h_comm : (fun z => 2 * Real.tanh (w * z + h) * (1 - Real.tanh (w * z + h) ^ 2) * z) =
-        fun z => z * (2 * Real.tanh (w * z + h) * (1 - Real.tanh (w * z + h) ^ 2)) := by
-      ext z; ring
-    rw [h_comm, h_ibp, ← integral_const_mul]
-  rwa [h_stein] at h_diff
+  rwa [integral_tanh_sq_deriv_mul_id_eq h w] at h_diff
 
 /-- The parameter derivative $|H'(w)|$ is bounded by $2 |w|$. -/
 theorem abs_deriv_fixedPointMap_param_le (h : ℝ) (w : ℝ) :
