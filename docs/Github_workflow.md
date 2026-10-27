@@ -6,7 +6,7 @@ This document explains how the CI/CD pipeline works for the LML fork and what to
 
 ## Overview
 
-The workflow lives at `.github/workflows/blueprint.yml` and runs on every push to `main` and every PR targeting `main`. It builds the Lean library, runs linters, generates three documentation outputs, and deploys them to GitHub Pages.
+The workflow lives at `.github/workflows/build.yml` and runs on every push to `main`, every PR targeting `main`, and manual dispatch. It builds the Lean library, runs linters, generates documentation and the leanviz visualization, and deploys the assembled website to GitHub Pages on pushes only.
 
 Monitor runs at: https://github.com/anhhuyalex/LML/actions
 
@@ -22,6 +22,7 @@ The live site is at: https://anhhuyalex.github.io/LML/
 | Tutorial docs (Verso) | `/tutorial/` | `LMLTutorial/` via `scripts/build_docs.sh` | push + PR |
 | Exposition (interactive theorem browser) | `/exposition/` | `LeanMachineLearning/exposition` tool + Lean source | push only |
 | API docs | `/docs/` | `leanprover-community/docgen-action` | push + PR |
+| Leanviz declaration browser | `/leanviz/?p=lml#/` | compiled project via `scripts/build_leanviz.sh` | push + PR + manual |
 
 The exposition step is skipped on PRs to save build time — you only get it after merging to `main`.
 
@@ -35,7 +36,8 @@ The exposition step is skipped on PRs to save build time — you only get it aft
 4. **Clone exposition tool** — clones `LeanMachineLearning/exposition` (controlled by `LEAN_EXPOSITION_REPO` / `LEAN_EXPOSITION_REF` env vars at the top of the workflow).
 5. **Run exposition** — runs the exposition binary against your compiled Lean source to produce the interactive HTML.
 6. **docgen-action** — generates API documentation.
-7. **Deploy** — uploads `home_page/` as a GitHub Pages artifact and deploys it.
+7. **Build and validate leanviz** — sets up .NET 10, builds pinned reader/generator sources in a temporary directory, generates `home_page/leanviz/`, and checks the bundle and browser rendering. This also runs on PRs and manual dispatch; failures fail the workflow.
+8. **Deploy** — on pushes, uploads all of `home_page/` as one GitHub Pages artifact and deploys it, including leanviz alongside the other documentation.
 
 ---
 
@@ -101,6 +103,52 @@ The workflow always clones the latest `main` of the upstream exposition tool (se
 ## Local development and preview
 
 None of the tools in this stack have hot-reload. Iteration speed depends on what you are editing.
+
+### Leanviz declaration browser
+
+The published browser is at https://anhhuyalex.github.io/LML/leanviz/?p=lml#/
+(or `/LML/leanviz/?p=lml#/` on the repository's configured Pages host). Its map,
+declaration pages, source links, project-only search and dependency navigation read
+the existing compiled project and its imported dependencies. Generation does not
+run Tenet's independent proof checker: the manifest has no check report and the
+frontend displays **Not re-checked**. Lean's normal build and lint checks still run.
+
+Requirements: .NET 10 SDK, the project's Lean toolchain through `elan`/`lake`, Git,
+Python 3, and Chrome or Chromium (`CHROME=/path/to/chrome` overrides detection).
+Network access is needed to fetch the pinned tool sources and restore .NET builds.
+The workflow uses the browser already installed on the Ubuntu runner.
+
+From the LML checkout:
+
+```bash
+lake build LeanMachineLearning LMLTutorial
+bash scripts/build_leanviz.sh
+python3 -m http.server 8787 --directory home_page
+# Open http://localhost:8787/leanviz/?p=lml#/
+```
+
+The helper fetches leanviz at
+`1f80be49d0a8ee2210d62a86989f15035abcd083` and the Tenet reader at
+`0ea5f0680505858c05484b605bb902961c9c33c4`. Both revisions are pinned in the
+helper; .NET setup is pinned in the workflow. Tenet's assemblies are built from
+source because this leanviz revision references local reader DLLs. Tool checkouts
+and build intermediates live under `RUNNER_TEMP` (or `TMPDIR`/`/tmp` locally) and
+are removed when the helper exits. Generated files stay under the ignored
+`home_page/leanviz/` directory; rerunning replaces only that subtree.
+
+Validation runs upstream's `check_bundle.py`, `check_page.py`, and `check_ui.py`,
+plus `scripts/check_leanviz.py` checks for LML modules, the current Lean version,
+and source links pinned to this checkout. The browser tests serve the assembled
+website under `/leanviz/`, exercise project-only search and an LML theorem's
+statement and dependency graph, and verify the repository, revision and source
+lines. The helper normalizes SSH origin URLs for generated source links without
+changing Git configuration. In Actions it uses `GITHUB_REPOSITORY`, so forks point
+to their own sources.
+
+When updating either tool pin or LML's Lean version, rerun the full helper before
+merging. After the first push deployment, open the published URL and verify the
+map, an LML declaration, and its source link. PRs and manual runs validate but do
+not deploy the website.
 
 ### Blueprint prose (`verso_blueprint/LMLBlueprint/`)
 

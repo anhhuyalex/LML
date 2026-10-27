@@ -144,7 +144,7 @@ theorem measurable_integral_spin_skGibbsEnergy (N : ℕ) (β h : ℝ) (i : Fin N
     Measurable fun g : FinPairs N → ℝ =>
       ∫ σ : Fin N → ℤˣ, ((σ i : ℤ) : ℝ) ∂(Measure.count.tilted (skGibbsEnergy N β h g)) :=
   measurable_integral_count_tilted (fun g a => skGibbsEnergy N β h g a)
-    (fun a => by unfold skGibbsEnergy; fun_prop) _
+    (measurable_skGibbsEnergy N β h) _
 
 /-- **The renormalization defect of the old magnetizations** (Eq. (1.189)).  With
 `R̄ = N⁻¹ ∑_i ⟨σ_i⟩_-²` the mean overlap of the `N`-spin system at `β_- = β √(N/(N+1))`, the
@@ -223,15 +223,6 @@ theorem integrable_sq_sub_of_abs_le {Ω : Type*} [MeasurableSpace Ω] {μ : Meas
     Integrable (fun ω => (a ω - b ω) ^ 2) μ :=
   integrable_sq_of_abs_le (ha.sub hb) (C := 2) fun ω =>
     (abs_sub _ _).trans (by linarith [ha1 ω, hb1 ω])
-
-/-- The Gibbs mean of a spin is at most `1` in absolute value. -/
-theorem abs_integral_spin_le_one {N : ℕ} (f : (Fin N → ℤˣ) → ℝ) (i : Fin N) :
-    |∫ σ : Fin N → ℤˣ, ((σ i : ℤ) : ℝ) ∂(Measure.count.tilted f)| ≤ 1 := by
-  have := norm_integral_le_of_norm_le_const (μ := Measure.count.tilted f) (C := 1)
-    (f := fun σ : Fin N → ℤˣ => ((σ i : ℤ) : ℝ))
-    (Filter.Eventually.of_forall fun σ => by
-      rw [Real.norm_eq_abs]; exact abs_units_cast_le_one _)
-  simpa [probReal_univ] using this
 
 /-- **The cavity field against the renormalized Gaussian** (Eq. (1.188) and what follows).
 For `h ≠ 0`, if `m` is the vector of old magnetizations `⟨σ_i⟩_-` and `Z` is a projection with

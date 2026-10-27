@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.SpinGlasses.GibbsProjectionBound
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.GramKernel
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ParametrizedL2
 public import Mathlib.Algebra.Order.Chebyshev
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.AddPowEstimates
@@ -170,6 +171,22 @@ theorem integral_overlap_right (f : α → ℝ) (a : α) :
   congr 1
   exact Finset.sum_congr rfl fun i _ => integral_const_mul _ _
 
+/-- The doubly integrated centered overlap kernel is the centered mean overlap
+`∬ (R(a, b) - q) dμ dμ = N⁻¹ ∑_i ⟨ξ_i⟩² - q`. -/
+theorem integral_integral_overlap (f : α → ℝ) (q : ℝ) :
+    ∫ a, ∫ b, ((N : ℝ)⁻¹ * ∑ i, ξ i a * ξ i b - q) ∂(Measure.count.tilted f)
+        ∂(Measure.count.tilted f) =
+      (N : ℝ)⁻¹ * ∑ i, (∫ a, ξ i a ∂(Measure.count.tilted f)) ^ 2 - q := by
+  set μ : Measure α := Measure.count.tilted f with hμ
+  have hin : ∀ a, ∫ b, ((N : ℝ)⁻¹ * ∑ i, ξ i a * ξ i b - q) ∂μ =
+      (N : ℝ)⁻¹ * ∫ b, ∑ i, ξ i a * ξ i b ∂μ - q := fun a => by
+    rw [integral_sub Integrable.of_finite Integrable.of_finite, integral_const_mul]
+    simp
+  simp_rw [hin]
+  rw [integral_sub Integrable.of_finite Integrable.of_finite, integral_const_mul,
+    integral_integral_finset_sum_mul μ Finset.univ ξ fun i _ => Integrable.of_finite]
+  simp
+
 /-- **Jensen for the mean overlap:** `(N⁻¹ ∑_i ⟨ξ_i⟩² - q)² ≤ E (R_{1,2} - q)²`.  The left side is
 the squared deviation of the replica-averaged overlap `⟨R_{1,2}⟩ = N⁻¹ ∑_i ⟨ξ_i⟩²` from `q`. -/
 theorem sq_meanOverlap_sub_le_overlapMoment (f : α → ℝ) (q : ℝ) :
@@ -179,17 +196,9 @@ theorem sq_meanOverlap_sub_le_overlapMoment (f : α → ℝ) (q : ℝ) :
   have : IsProbabilityMeasure μ := by rw [hμ]; infer_instance
   obtain ⟨K, hK⟩ : ∃ K : α → α → ℝ, ∀ a b, K a b = (N : ℝ)⁻¹ * ∑ i, ξ i a * ξ i b - q :=
     ⟨_, fun _ _ => rfl⟩
-  have hin : ∀ a, ∫ b, K a b ∂μ = (N : ℝ)⁻¹ * ∑ i, ξ i a * ∫ b, ξ i b ∂μ - q := fun a => by
+  have hout : ∫ a, ∫ b, K a b ∂μ ∂μ = (N : ℝ)⁻¹ * ∑ i, (∫ a, ξ i a ∂μ) ^ 2 - q := by
     simp_rw [hK]
-    rw [integral_sub Integrable.of_finite Integrable.of_finite, integral_overlap_right]
-    simp [hμ]
-  have hout : ∫ a, ∫ b, K a b ∂μ ∂μ =
-      (N : ℝ)⁻¹ * ∑ i, (∫ a, ξ i a ∂μ) ^ 2 - q := by
-    simp_rw [hin]
-    rw [integral_sub Integrable.of_finite Integrable.of_finite, integral_const_mul,
-      integral_finsetSum _ fun i _ => Integrable.of_finite]
-    simp_rw [integral_mul_const]
-    simp [sq]
+    exact integral_integral_overlap ξ f q
   rw [overlapMoment_eq ξ f q 1 K hK, ← hout]
   calc (∫ a, ∫ b, K a b ∂μ ∂μ) ^ 2 ≤ ∫ a, (∫ b, K a b ∂μ) ^ 2 ∂μ :=
         sq_integral_le_integral_sq (measurable_of_finite _) Integrable.of_finite
@@ -227,12 +236,8 @@ theorem gram_centered_eq (hξ2 : ∀ i a, ξ i a ^ 2 = 1) (hN : 0 < N) (f : α �
     simp only [integral_const, probReal_univ, one_smul]
     rfl
   have hB : ∫ a, ∫ b, K a b ∂μ ∂μ = (N : ℝ)⁻¹ * ∑ i, mu i * mu i - q := by
-    simp_rw [hA]
-    rw [integral_sub Integrable.of_finite (integrable_const _), integral_const_mul,
-      integral_finsetSum _ fun i _ => Integrable.of_finite]
-    simp only [integral_const, probReal_univ, one_smul]
-    congr 2
-    exact Finset.sum_congr rfl fun i _ => integral_mul_const _ _
+    simp_rw [hK, ← sq]
+    exact integral_integral_overlap ξ f q
   have hdot : u (σ ℓ) ⬝ᵥ u (σ ℓ') = (N : ℝ)⁻¹ * ∑ i, ξ i (σ ℓ) * ξ i (σ ℓ') -
       (N : ℝ)⁻¹ * ∑ i, ξ i (σ ℓ) * mu i - (N : ℝ)⁻¹ * ∑ i, ξ i (σ ℓ') * mu i +
         (N : ℝ)⁻¹ * ∑ i, mu i * mu i := by

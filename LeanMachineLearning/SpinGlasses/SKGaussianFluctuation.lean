@@ -35,16 +35,21 @@ noncomputable def skGibbsEnergy (N : ℕ) (β h : ℝ) (g : FinPairs N → ℝ) 
   (Real.sqrt N)⁻¹ * β * (∑ p : FinPairs N, g p * ((a p.val.1 : ℤ) : ℝ) * ((a p.val.2 : ℤ) : ℝ)) +
     h * ∑ i, ((a i : ℤ) : ℝ)
 
+/-- The SK energy of a fixed configuration is measurable in the disorder. -/
+theorem measurable_skGibbsEnergy (N : ℕ) (β h : ℝ) (a : Fin N → ℤˣ) :
+    Measurable fun g : FinPairs N → ℝ => skGibbsEnergy N β h g a := by
+  unfold skGibbsEnergy
+  fun_prop
+
 /-- The overlap moment of the SK Gibbs measure is integrable in the disorder. -/
 theorem integrable_overlapMoment_skGibbsEnergy (N : ℕ) (β h q : ℝ) (k : ℕ) :
     Integrable (fun g : FinPairs N → ℝ =>
       overlapMoment (fun (i : Fin N) (a : Fin N → ℤˣ) => ((a i : ℤ) : ℝ))
         (skGibbsEnergy N β h g) q k) (Measure.pi fun _ : FinPairs N => gaussianReal 0 1) := by
   refine integrable_integral_pi_count_tilted_det (R := Fin 2)
-    (g := fun a g => skGibbsEnergy N β h g a) (fun a => ?_)
+    (g := fun a g => skGibbsEnergy N β h g a)
+    (fun a => (measurable_skGibbsEnergy N β h a).aemeasurable)
     (fun τ => ((N : ℝ)⁻¹ * ∑ i, ((τ 0 i : ℤ) : ℝ) * ((τ 1 i : ℤ) : ℝ) - q) ^ (2 * k))
-  unfold skGibbsEnergy
-  exact (by fun_prop : Measurable _).aemeasurable
 
 /-- **The general Gaussian fluctuation principle (Talagrand, Theorem 1.7.11).**  Let
 `4 β² < 1`, let `q = 𝔼 tanh²(β √q z + h)` and let `U` be exponentially tame.  Then for every `k ≥ 1`

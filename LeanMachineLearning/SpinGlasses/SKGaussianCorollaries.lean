@@ -206,10 +206,9 @@ lemma sk_gaussian_fluctuation_upper_bound (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 
     overlapMoment ξ (skGibbsEnergy N β h g) q (2 * k) with hJ
   have hJint : Integrable J P := by
     refine integrable_integral_pi_count_tilted_det (P := P) (R := Fin 2)
-      (g := fun a g => skGibbsEnergy N β h g a) (fun a => ?_)
+      (g := fun a g => skGibbsEnergy N β h g a)
+      (fun a => (measurable_skGibbsEnergy N β h a).aemeasurable)
       (fun τ => ((N : ℝ)⁻¹ * ∑ i, ξ i (τ 0) * ξ i (τ 1) - q) ^ (2 * (2 * k)))
-    unfold skGibbsEnergy
-    exact (by fun_prop : Measurable _).aemeasurable
   have hJmom : ∫ g, J g ∂P ≤ K' / ((N : ℝ) ^ k) ^ 2 := by
     have h1 := hK' N hN
     have h2 : ((N : ℝ) ^ (2 * k)) = ((N : ℝ) ^ k) ^ 2 := by

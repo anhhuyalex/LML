@@ -206,6 +206,15 @@ theorem norm_integral_count_tilted_le [Nonempty α] (f g : α → ℝ) :
     exact Finset.single_le_sum (f := fun b => |g b|) (fun _ _ => abs_nonneg _) (mem_univ a)
   · simp
 
+/-- The Gibbs mean of a spin is at most `1` in absolute value. -/
+theorem abs_integral_spin_le_one {N : ℕ} (f : (Fin N → ℤˣ) → ℝ) (i : Fin N) :
+    |∫ σ : Fin N → ℤˣ, ((σ i : ℤ) : ℝ) ∂(Measure.count.tilted f)| ≤ 1 := by
+  have := norm_integral_le_of_norm_le_const (μ := Measure.count.tilted f) (C := 1)
+    (f := fun σ : Fin N → ℤˣ => ((σ i : ℤ) : ℝ))
+    (Filter.Eventually.of_forall fun σ => by
+      rw [Real.norm_eq_abs]; exact abs_units_cast_le_one _)
+  simpa [probReal_univ] using this
+
 omit [MeasurableSpace α] [MeasurableSingletonClass α] in
 /-- A weighted partition sum with positive weights is positive. -/
 theorem sum_exp_mul_pos [Nonempty α] (f F : α → ℝ) (hF : ∀ a, 0 < F a) :

@@ -356,9 +356,10 @@ theorem integrable_skCoupled_mass (M : ℕ) (β h : ℝ)
         ∑ y : (Fin M → ℤˣ) × (Fin M → ℤˣ),
           Real.exp (skGibbsEnergy M β h g y.1 + skGibbsEnergy M β h g y.2))
       (Measure.pi fun _ : FinPairs M => gaussianReal 0 1) := by
-  obtain ⟨a, d, b, hE, -, -, -⟩ := exists_sk_coupled_data M β h
-  simpa only [hE] using
-    integrable_gibbs_mass (fun g y => a y ⬝ᵥ g + d y) (fun y => by fun_prop) T
+  integrable_gibbs_mass
+    (fun g (y : (Fin M → ℤˣ) × (Fin M → ℤˣ)) =>
+      skGibbsEnergy M β h g y.1 + skGibbsEnergy M β h g y.2)
+    (fun y => (measurable_skGibbsEnergy M β h y.1).add (measurable_skGibbsEnergy M β h y.2)) T
 
 end SK
 

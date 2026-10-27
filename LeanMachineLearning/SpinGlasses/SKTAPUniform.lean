@@ -37,59 +37,40 @@ namespace SpinGlasses
 
 variable {M : ℕ}
 
-/-- **The symmetric coupling field under a relabelling of the sites.**  If `G g i j` is the
-symmetric extension of the couplings (`g_{ij}` for `i < j`, `g_{ji}` for `j < i`, `0` on the
-diagonal), then `G (g ∘ (pairPerm π).symm) i j = G g (π⁻¹ i) (π⁻¹ j)`. -/
-theorem symCoupling_comp_pairPerm (G : (FinPairs M → ℝ) → Fin M → Fin M → ℝ)
-    (hG : ∀ g i j, G g i j = if hij : i < j then g ⟨(i, j), hij⟩
-      else if hji : j < i then g ⟨(j, i), hji⟩ else 0)
-    (π : Equiv.Perm (Fin M)) (g : FinPairs M → ℝ) (i j : Fin M) :
-    G (g ∘ (pairPerm π).symm) i j = G g (π.symm i) (π.symm j) := by
-  have hG_eq : G = skSymmCoupling := by
-    ext g' a b; rw [hG]; rfl
-  subst hG_eq
-  exact skSymmCoupling_comp_pairPerm π g i j
-
 /-- **The TAP defect is equivariant under the relabelling of the sites.**  For the symmetric
-coupling field `G` (see `symCoupling_comp_pairPerm`),
+coupling field `skSymmCoupling` (see `skSymmCoupling_comp_pairPerm`),
 `Δ_i (g ∘ (pairPerm π).symm) = Δ_{π⁻¹ i} g`, where
-`Δ_i g = ⟨σ_i⟩ - tanh (c ∑_j G g i j ⟨σ_j⟩ + h - b ⟨σ_i⟩)` and `⟨·⟩` is the Gibbs mean of the
-`M`-spin system with couplings `g`. -/
-theorem tap_defect_comp_pairPerm (β h c b : ℝ) (G : (FinPairs M → ℝ) → Fin M → Fin M → ℝ)
-    (hG : ∀ g i j, G g i j = if hij : i < j then g ⟨(i, j), hij⟩
-      else if hji : j < i then g ⟨(j, i), hji⟩ else 0)
+`Δ_i g = ⟨σ_i⟩ - tanh (c ∑_j skSymmCoupling g i j ⟨σ_j⟩ + h - b ⟨σ_i⟩)` and `⟨·⟩` is the Gibbs
+mean of the `M`-spin system with couplings `g`. -/
+theorem tap_defect_comp_pairPerm (β h c b : ℝ)
     (π : Equiv.Perm (Fin M)) (g : FinPairs M → ℝ) (i : Fin M) :
     ∫ σ : Fin M → ℤˣ, ((σ i : ℤ) : ℝ)
           ∂(Measure.count.tilted (skGibbsEnergy M β h (g ∘ (pairPerm π).symm))) -
-        Real.tanh (c * ∑ j, G (g ∘ (pairPerm π).symm) i j *
+        Real.tanh (c * ∑ j, skSymmCoupling (g ∘ (pairPerm π).symm) i j *
             (∫ σ : Fin M → ℤˣ, ((σ j : ℤ) : ℝ)
               ∂(Measure.count.tilted (skGibbsEnergy M β h (g ∘ (pairPerm π).symm)))) + h -
           b * ∫ σ : Fin M → ℤˣ, ((σ i : ℤ) : ℝ)
             ∂(Measure.count.tilted (skGibbsEnergy M β h (g ∘ (pairPerm π).symm)))) =
       ∫ σ : Fin M → ℤˣ, ((σ (π.symm i) : ℤ) : ℝ)
           ∂(Measure.count.tilted (skGibbsEnergy M β h g)) -
-        Real.tanh (c * ∑ j, G g (π.symm i) j *
+        Real.tanh (c * ∑ j, skSymmCoupling g (π.symm i) j *
             (∫ σ : Fin M → ℤˣ, ((σ j : ℤ) : ℝ)
               ∂(Measure.count.tilted (skGibbsEnergy M β h g))) + h -
           b * ∫ σ : Fin M → ℤˣ, ((σ (π.symm i) : ℤ) : ℝ)
             ∂(Measure.count.tilted (skGibbsEnergy M β h g))) := by
-  simp only [integral_spin_comp_pairPerm M β h π g, symCoupling_comp_pairPerm G hG π g]
-  rw [Equiv.sum_comp π.symm (fun j => G g (π.symm i) j *
+  simp only [integral_spin_comp_pairPerm M β h π g, skSymmCoupling_comp_pairPerm π g]
+  rw [Equiv.sum_comp π.symm (fun j => skSymmCoupling g (π.symm i) j *
     ∫ σ : Fin M → ℤˣ, ((σ j : ℤ) : ℝ) ∂(Measure.count.tilted (skGibbsEnergy M β h g)))]
 
 /-- **The symmetric field at the last site** is the field of the last-spin couplings
 `y_i = (skCavityDisorderEquiv N g).2 i`. -/
-theorem sum_symCoupling_last {N : ℕ}
-    (G : (FinPairs (N + 1) → ℝ) → Fin (N + 1) → Fin (N + 1) → ℝ)
-    (hG : ∀ g i j, G g i j = if hij : i < j then g ⟨(i, j), hij⟩
-      else if hji : j < i then g ⟨(j, i), hji⟩ else 0)
-    (m : Fin (N + 1) → ℝ) (g : FinPairs (N + 1) → ℝ) :
-    ∑ j, G g (Fin.last N) j * m j =
+theorem sum_skSymmCoupling_last {N : ℕ} (m : Fin (N + 1) → ℝ) (g : FinPairs (N + 1) → ℝ) :
+    ∑ j, skSymmCoupling g (Fin.last N) j * m j =
       ∑ i : Fin N, (skCavityDisorderEquiv N g).2 i * m i.castSucc := by
-  rw [Fin.sum_univ_castSucc, hG g (Fin.last N) (Fin.last N)]
-  simp only [lt_irrefl, ↓reduceDIte, zero_mul, add_zero, skCavityDisorderEquiv_apply]
+  rw [Fin.sum_univ_castSucc]
+  simp only [skSymmCoupling, lt_irrefl, ↓reduceDIte, zero_mul, add_zero,
+    skCavityDisorderEquiv_apply]
   refine Finset.sum_congr rfl fun i _ => ?_
-  rw [hG]
   simp only [not_lt.mpr (Fin.castSucc_lt_last i).le, Fin.castSucc_lt_last i, ↓reduceDIte]
 
 /-- **Talagrand, Corollary 1.7.8, Eq. (1.194): the TAP equations hold at all sites.**  For
@@ -119,19 +100,15 @@ theorem sk_tap_uniform (β₀ : ℝ) (hβ₀ : 0 ≤ β₀) (hβ₀' : 4 * β₀
   obtain ⟨K, hK0, hK⟩ := sk_tap_equation β₀ hβ₀ hβ₀' h hk
   refine ⟨1 + K, by positivity, fun β hβ0 hββ₀ q hq N hN => ?_⟩
   set P : Measure (FinPairs (N + 1) → ℝ) := Measure.pi fun _ => gaussianReal 0 1 with hP
-  let G : (FinPairs (N + 1) → ℝ) → Fin (N + 1) → Fin (N + 1) → ℝ := fun g i j =>
-    if hij : i < j then g ⟨(i, j), hij⟩ else if hji : j < i then g ⟨(j, i), hji⟩ else 0
-  have hG : ∀ g i j, G g i j = if hij : i < j then g ⟨(i, j), hij⟩
-      else if hji : j < i then g ⟨(j, i), hji⟩ else 0 := fun _ _ _ => rfl
   let m : (FinPairs (N + 1) → ℝ) → Fin (N + 1) → ℝ := fun g j =>
     ∫ σ : Fin (N + 1) → ℤˣ, ((σ j : ℤ) : ℝ) ∂(Measure.count.tilted (skGibbsEnergy (N + 1) β h g))
   let Δ : Fin (N + 1) → (FinPairs (N + 1) → ℝ) → ℝ := fun i g =>
-    m g i - Real.tanh ((Real.sqrt ((N : ℝ) + 1))⁻¹ * β * ∑ j, G g i j * m g j + h -
+    m g i - Real.tanh ((Real.sqrt ((N : ℝ) + 1))⁻¹ * β * ∑ j, skSymmCoupling g i j * m g j + h -
       β ^ 2 * (1 - q) * m g i)
   have hm_meas : ∀ j, Measurable fun g => m g j := fun j =>
     measurable_integral_spin_skGibbsEnergy (N + 1) β h j
-  have hG_meas : ∀ i j, Measurable fun g => G g i j := fun i j => by
-    simp only [G]
+  have hG_meas : ∀ i j, Measurable fun g => skSymmCoupling g i j := fun i j => by
+    simp only [skSymmCoupling]
     split_ifs
     exacts [measurable_pi_apply _, measurable_pi_apply _, measurable_const]
   have hmeas : ∀ i, Measurable (Δ i) := fun i =>
@@ -140,8 +117,8 @@ theorem sk_tap_uniform (β₀ : ℝ) (hβ₀ : 0 ≤ β₀) (hβ₀' : 4 * β₀
       (measurable_const.mul (hm_meas i))))
   have hbdd : ∀ i g, |Δ i g| ≤ 2 := fun i g => by
     have h1 : |m g i| ≤ 1 := abs_integral_spin_le_one _ i
-    have h2 := (Real.abs_tanh_lt_one ((Real.sqrt ((N : ℝ) + 1))⁻¹ * β * ∑ j, G g i j * m g j + h -
-      β ^ 2 * (1 - q) * m g i)).le
+    have h2 := (Real.abs_tanh_lt_one ((Real.sqrt ((N : ℝ) + 1))⁻¹ * β *
+      ∑ j, skSymmCoupling g i j * m g j + h - β ^ 2 * (1 - q) * m g i)).le
     exact (abs_sub _ _).trans (by linarith)
   have hint : ∀ i, Integrable (fun g => Δ i g ^ (2 * k)) P := fun i =>
     integrable_pow_of_abs_le (hmeas i) (2 * k) (hbdd i)
@@ -149,13 +126,13 @@ theorem sk_tap_uniform (β₀ : ℝ) (hβ₀ : 0 ≤ β₀) (hβ₀' : 4 * β₀
       MeasurePreserving φ P P ∧ ∀ i g, Δ i (φ g) = Δ (π i) g := fun π =>
     ⟨fun g => g ∘ (pairPerm π.symm).symm, measurePreserving_comp_pairPerm (gaussianReal 0 1) π.symm,
       fun i g => tap_defect_comp_pairPerm β h ((Real.sqrt ((N : ℝ) + 1))⁻¹ * β)
-        (β ^ 2 * (1 - q)) G hG π.symm g i⟩
+        (β ^ 2 * (1 - q)) π.symm g i⟩
   have hlast : ∫ g, Δ (Fin.last N) g ^ (2 * k) ∂P ≤ K / ((N : ℝ) + 1) ^ k := by
     refine le_trans (le_of_eq (integral_congr_ae (ae_of_all _ fun g => ?_)))
       (hK β hβ0 hββ₀ q hq N hN)
     change (m g (Fin.last N) -
-      Real.tanh (_ * ∑ j, G g (Fin.last N) j * m g j + h - _)) ^ (2 * k) = _
-    rw [sum_symCoupling_last G hG (m g) g]
+      Real.tanh (_ * ∑ j, skSymmCoupling g (Fin.last N) j * m g j + h - _)) ^ (2 * k) = _
+    rw [sum_skSymmCoupling_last (m g) g]
   have hmom : ∀ i, ∫ g, Δ i g ^ (2 * k) ∂P ≤ K / (Fintype.card (Fin (N + 1)) : ℝ) ^ k :=
     fun i => by
       rw [integral_comp_eq_of_perm_equivariant Δ hmeas (G := fun x => x ^ (2 * k))

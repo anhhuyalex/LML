@@ -54,6 +54,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Function.UnitVectorFi
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ChebyshevAssociation
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ExpMoment
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteHyperbolic
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.GramKernel
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IntegrableOfBound
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedBound
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedHolder
