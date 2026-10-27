@@ -5281,6 +5281,8 @@ Apply Theorem~\ref{thm:sg-tal:row-expansion} with $(x,y)=(1,2)$ and $(a,b)=(1,2)
 \label{thm:sg-tal:thm-1812}
   \uses{thm:sg-tal:cov-system}
   \lean{SpinGlasses.sk_at_scalar_solution,
+        SpinGlasses.sk_at_exact_errors,
+        Matrix.dotProduct_system_of_transpose_eigenvector,
         SpinGlasses.cov_error_arith,
         SpinGlasses.sk_overlap_covariances_nu,
         SpinGlasses.sk_overlap_covariances}
@@ -5296,6 +5298,7 @@ C^2=\frac1{D_2}\Bigl(\frac{\hat q-q^2}{M}+\beta^2(\hat q-q^2)A^2+2\beta^2(2q+q^2
 \begin{proof}
   \leanok
 Theorem~\ref{thm:sg-tal:cov-system} gives the system with errors $|R_i|\le E$.  Projecting on $(1,-2,1)$ and $(1,-4,3)$ (Eqs.~(1.235), (1.236)) decouples $U-2V+W$ and $U-4V+3W$; the third equation, after substituting $U=\alpha+2B+W$, $V=B+W$ with $\alpha=U-2V+W$, $B=V-W$, reads $(1-\beta^2d)W=(\hat q-q^2)/M+\beta^2(\hat q-q^2)\alpha+2\beta^2(2q+q^2-3\hat q)B+R_2$.  All denominators are $\ge3/4$ because $4\beta^2<1$ and $\hat q\le q$, and the errors are bounded by $44E$.
+The exact part of this algebra (the three displayed fractions for the deviations of $\alpha$, $B$ and $W$ from $A^2$, $B^2$, $C^2$, valid whenever $D_1,D_2\ne0$) is the lemma \texttt{sk\_at\_exact\_errors}, which is shared with the solver beyond the AT line (Theorem~\ref{thm:sg-tal:lemma-194}); the projection on a left eigenvector is the ring-generic \texttt{Matrix.dotProduct\_system\_of\_transpose\_eigenvector}.  Only the size estimates differ between the two solvers.
 \end{proof}
 
 \begin{theorem}[Propositions~1.8.10 and 1.8.11: second moments of $T_1$ and $T$]
