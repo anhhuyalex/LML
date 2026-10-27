@@ -99,9 +99,9 @@ theorem sk_abs_mean_overlap_sub_le (N : ℕ) (β h x : ℝ)
     rw [this]
   rwa [h2] at h1
 
-/-- **Proposition 1.9.5(a), Eq. (1.279)** (nonzero field).  Let `h ≠ 0` and let `q` be a fixed point of
-`q = 𝔼 tanh²(β √q z + h)`, `q̂ = 𝔼 tanh⁴(β √q z + h)`.  There is `K`, depending only on `β, h`
-(not on `N` or `x`), such that for every `N` and every center `x ≥ 0`,
+/-- **Proposition 1.9.5(a), Eq. (1.279)** (nonzero field).  Let `h ≠ 0` and let `q` be a fixed
+point of `q = 𝔼 tanh²(β √q z + h)`, `q̂ = 𝔼 tanh⁴(β √q z + h)`.  There is `K`, depending only
+on `β, h` (not on `N` or `x`), such that for every `N` and every center `x ≥ 0`,
 `|x - q| ≤ K ν(|R₁₂ - x|)` for the `(N+1)`-spin SK average. -/
 theorem sk_overlap_center_bound (β h q qhat : ℝ) (hh : h ≠ 0)
     (hfix : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂(gaussianReal 0 1) = q)
@@ -174,8 +174,8 @@ theorem sk_overlap_center_bound (β h q qhat : ℝ) (hh : h ≠ 0)
       _ ≤ (1 + K₁) * _ := by nlinarith only [mul_le_mul_of_nonneg_left hmon hK₁0.le]
 
 /-- **Proposition 1.9.5(b), Eq. (1.280)** (nonzero field, beyond the AT line).  Let `h ≠ 0`, `q` a
-fixed point, `q̂ = 𝔼 tanh⁴`, and `β² (1 - 2q + q̂) > 1`.  There are `δ' > 0` and `N₀`, independent of
-`x`, such that for every `N ≥ N₀` and every center `x ≥ 0`,
+fixed point, `q̂ = 𝔼 tanh⁴`, and `β² (1 - 2q + q̂) > 1`.  There are `δ' > 0` and `N₀`,
+independent of `x`, such that for every `N ≥ N₀` and every center `x ≥ 0`,
 `ν(1{|R₁₂ - x| ≥ δ'}) ≥ δ'/(N+1)` for the `(N+1)`-spin SK average. -/
 theorem sk_overlap_center_indicator (β h q qhat : ℝ) (hh : h ≠ 0)
     (hfix : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂(gaussianReal 0 1) = q)
@@ -208,7 +208,8 @@ theorem sk_overlap_center_indicator (β h q qhat : ℝ) (hh : h ≠ 0)
   have l4 : δ' ≤ δ ^ 2 / 16 :=
     (min_le_right _ _).trans ((min_le_right _ _).trans ((min_le_right _ _).trans (min_le_left _ _)))
   have l5 : δ' ≤ c₀ / 6 :=
-    (min_le_right _ _).trans ((min_le_right _ _).trans ((min_le_right _ _).trans (min_le_right _ _)))
+    (min_le_right _ _).trans
+      ((min_le_right _ _).trans ((min_le_right _ _).trans (min_le_right _ _)))
   refine ⟨δ', hδ'0, N₁, fun N hN ν₂ hν₂ x hx => ?_⟩
   obtain ⟨hadd, hsmul, hmono, hconst⟩ := sk_replica_avg_calculus N 2 β h ν₂ hν₂
   have hM0 : (0 : ℝ) < (N : ℝ) + 1 := by positivity

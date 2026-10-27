@@ -436,6 +436,7 @@ public import LeanMachineLearning.SpinGlasses.PoissonProcessIndepMarks
 public import LeanMachineLearning.SpinGlasses.PoissonProcessPartition
 public import LeanMachineLearning.SpinGlasses.PoissonProcessTransform
 public import LeanMachineLearning.SpinGlasses.SKAizenmanLebowitzRuelle
+public import LeanMachineLearning.SpinGlasses.SKArbitraryCenter
 public import LeanMachineLearning.SpinGlasses.SKAsymptoticProduct
 public import LeanMachineLearning.SpinGlasses.SKBeyondATCovariance
 public import LeanMachineLearning.SpinGlasses.SKBeyondATLowerBound
@@ -465,12 +466,14 @@ public import LeanMachineLearning.SpinGlasses.SKCavityParameters
 public import LeanMachineLearning.SpinGlasses.SKCavityReplicaPairs
 public import LeanMachineLearning.SpinGlasses.SKCavityTaylor
 public import LeanMachineLearning.SpinGlasses.SKCorrelationDecay
+public import LeanMachineLearning.SpinGlasses.SKCoupledFreeEnergy
 public import LeanMachineLearning.SpinGlasses.SKCovarianceAsymptotics
 public import LeanMachineLearning.SpinGlasses.SKCovarianceRows
 public import LeanMachineLearning.SpinGlasses.SKDecoupled
 public import LeanMachineLearning.SpinGlasses.SKFirstMoment
 public import LeanMachineLearning.SpinGlasses.SKFixedPoint
 public import LeanMachineLearning.SpinGlasses.SKFixedPointPositive
+public import LeanMachineLearning.SpinGlasses.SKFixedPointResidual
 public import LeanMachineLearning.SpinGlasses.SKGaussianCorollaries
 public import LeanMachineLearning.SpinGlasses.SKGaussianFluctuation
 public import LeanMachineLearning.SpinGlasses.SKGuerraBound
