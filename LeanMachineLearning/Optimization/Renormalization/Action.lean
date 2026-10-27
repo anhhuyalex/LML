@@ -170,7 +170,6 @@ scoped notation "⟪" O "⟫ᵍ[" K "]" => gaussianExpectation K O
 private lemma posDef_quadraticAction_lower_bound {ι : Type*} [Fintype ι]
     (P : Matrix ι ι ℝ) (hP : P.PosDef) :
     ∃ c : ℝ, 0 < c ∧ ∀ v : EuclideanSpace ℝ ι, c * ‖v‖ ^ 2 ≤ dotProduct v (P *ᵥ v) := by
-  classical
   by_cases h : ∃ v : EuclideanSpace ℝ ι, v ≠ 0
   · -- There is a nonzero vector: the unit sphere is nonempty and we minimize on it.
     rcases h with ⟨v₀, hv₀⟩
@@ -271,7 +270,6 @@ private lemma map_toEuclideanCLM_volume {ι : Type*} [Fintype ι] [DecidableEq �
     (M : Matrix ι ι ℝ) (hM : M.det ≠ 0) :
     Measure.map (fun x : EuclideanSpace ℝ ι => toEuclideanCLM (𝕜 := ℝ) M x) volume =
       ENNReal.ofReal (|(M.det)⁻¹|) • volume := by
-  classical
   have hvol_pi : Measure.map (fun x : ι → ℝ => WithLp.toLp 2 x) (volume : Measure (ι → ℝ)) =
       (volume : Measure (EuclideanSpace ℝ ι)) :=
     (PiLp.volume_preserving_toLp ι).map_eq
@@ -306,7 +304,6 @@ private lemma integral_comp_toEuclideanCLM {ι : Type*} [Fintype ι] [DecidableE
     (f : EuclideanSpace ℝ ι → G) (hf : Continuous f) :
     (∫ y : EuclideanSpace ℝ ι, f (toEuclideanCLM (𝕜 := ℝ) M y) ∂volume) =
       (|(M.det)⁻¹| : ℝ) • ∫ z : EuclideanSpace ℝ ι, f z ∂volume := by
-  classical
   calc
     (∫ y : EuclideanSpace ℝ ι, f (toEuclideanCLM (𝕜 := ℝ) M y) ∂volume)
         = ∫ z : EuclideanSpace ℝ ι, f z
@@ -327,7 +324,6 @@ private lemma quadraticAction_eq_half_normSq {ι : Type*} [Fintype ι] [Decidabl
     (A : Matrix ι ι ℝ) (hA : A.PosSemidef) (z : EuclideanSpace ℝ ι) :
     quadraticAction A z =
       (1 / 2 : ℝ) * ‖toEuclideanCLM (𝕜 := ℝ) (CFC.sqrt A) z‖ ^ 2 := by
-  classical
   have hL : IsSelfAdjoint (toEuclideanCLM (𝕜 := ℝ) (CFC.sqrt A)) :=
     (CFC.sqrt_nonneg A).isSelfAdjoint.map (toEuclideanCLM (𝕜 := ℝ))
   have hadj :
@@ -383,7 +379,6 @@ private lemma normSq_toEuclideanCLM {ι : Type*} [Fintype ι] [DecidableEq ι]
 private lemma normSq_sqrt_inv {ι : Type*} [Fintype ι] [DecidableEq ι]
     (A : Matrix ι ι ℝ) (hA : A.PosDef) (t : EuclideanSpace ℝ ι) :
     ‖toEuclideanCLM (𝕜 := ℝ) ((CFC.sqrt A)⁻¹) t‖ ^ 2 = t ⬝ᵥ (A⁻¹) *ᵥ t := by
-  classical
   have hT_nonneg : 0 ≤ (CFC.sqrt A)⁻¹ := by
     simpa using (Matrix.PosSemidef.inv (CFC.sqrt_nonneg A)).nonneg
   have hT_selfadj : IsSelfAdjoint (toEuclideanCLM (𝕜 := ℝ) ((CFC.sqrt A)⁻¹)) :=
@@ -414,7 +409,6 @@ private lemma gaussianConstant {ι : Type*} [Fintype ι] [DecidableEq ι]
     (A : Matrix ι ι ℝ) (hA : A.PosDef) :
     Real.sqrt ((2 * Real.pi) ^ Fintype.card ι / A.det) =
       (|(CFC.sqrt A).det⁻¹| : ℝ) * (Real.pi / (1 / 2 : ℝ)) ^ (Fintype.card ι / 2 : ℝ) := by
-  classical
   have hL_sq := det_sqrt_sq A hA
   have hA_det_pos : 0 < A.det := hA.det_pos
   have hL_abs : |(CFC.sqrt A).det| = Real.sqrt (A.det) := by
@@ -444,7 +438,6 @@ private lemma fourierIntegral_exp_neg_quadraticAction {ι : Type*} [Fintype ι] 
         Complex.exp (Complex.I * ⟪z, t⟫) * Real.exp (-(quadraticAction A z)) ∂volume) =
       Real.sqrt ((2 * Real.pi) ^ Fintype.card ι / A.det) •
         Complex.exp (-(quadraticAction A⁻¹ t)) := by
-  classical
   let L : Matrix ι ι ℝ := CFC.sqrt A
   let T : EuclideanSpace ℝ ι →L[ℝ] EuclideanSpace ℝ ι := toEuclideanCLM (𝕜 := ℝ) (L⁻¹)
   let w : EuclideanSpace ℝ ι := T t
@@ -594,7 +587,6 @@ private lemma gaussianIntegral_exp_neg_quadraticAction_of_posDef {ι : Type*} [F
     [DecidableEq ι] (A : Matrix ι ι ℝ) (hA : A.PosDef) :
     (∫ z : EuclideanSpace ℝ ι, Real.exp (-(quadraticAction A z)) ∂volume) =
       Real.sqrt ((2 * Real.pi) ^ Fintype.card ι / A.det) := by
-  classical
   have hL_sq := det_sqrt_sq A hA
   have hL_det_ne : (CFC.sqrt A).det ≠ 0 := by
     intro hzero
@@ -765,7 +757,6 @@ private lemma charFun_quadraticAction_measure {ι : Type uI} [Fintype ι] [Decid
     (K : Matrix ι ι ℝ) (hK : K.PosDef) (t : EuclideanSpace ℝ ι) :
     charFun (Action.measure (volume : Measure (EuclideanSpace ℝ ι)) (quadraticAction K⁻¹)) t =
       Complex.exp (-(quadraticAction K t)) := by
-  classical
   -- Expanding `Action.measure` and `charFun`, the characteristic function is the normalized
   -- Fourier integral of the unnormalized Gaussian kernel.
   rw [Action.measure, deform, charFun_apply, MeasureTheory.integral_tilted]

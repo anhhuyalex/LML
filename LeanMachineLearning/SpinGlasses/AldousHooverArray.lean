@@ -64,7 +64,6 @@ theorem identDistrib_map_of_separately_exchangeable [IsFiniteMeasure P]
       IdentDistrib (fun ω (p : ℕ × ℕ) => s (e₁ p.1, e₂ p.2) ω) (fun ω p => s p ω) P P)
     {ι₁ ι₂ : ℕ → ℕ} (h₁ : Injective ι₁) (h₂ : Injective ι₂) :
     IdentDistrib (fun ω (p : ℕ × ℕ) => s (ι₁ p.1, ι₂ p.2) ω) (fun ω p => s p ω) P P := by
-  classical
   have hm : AEMeasurable (fun ω (p : ℕ × ℕ) => s (ι₁ p.1, ι₂ p.2) ω) P :=
     (measurable_pi_iff.2 fun p : ℕ × ℕ => hs (ι₁ p.1, ι₂ p.2)).aemeasurable
   refine (identDistrib_iff_forall_finset_identDistrib
@@ -576,7 +575,6 @@ theorem exists_aldousHoover_representation_separately [IsProbabilityMeasure P]
         (((volume : Measure I).prod ((Measure.infinitePi fun _ : ℕ => (volume : Measure I)).prod
           (Measure.infinitePi fun _ : ℕ => (volume : Measure I)))).prod
           (Measure.infinitePi fun _ : ℕ × ℕ => (volume : Measure I))) := by
-  classical
   obtain ⟨κ, hκ0, hκ1⟩ : ∃ κ : ℕ → ℕ → ℕ, (∀ a, κ a 0 = 2 * a + 1) ∧ ∀ a m, κ a (m + 1) = 2 * m :=
     ⟨fun a n => Nat.casesOn n (2 * a + 1) fun m => 2 * m, fun _ => rfl, fun _ _ => rfl⟩
   obtain ⟨S, hS⟩ : ∃ S : ℕ → Ω → ℕ × ℕ → E, ∀ a ω p, S a ω p = s (κ a p.1, 2 * p.2) ω :=

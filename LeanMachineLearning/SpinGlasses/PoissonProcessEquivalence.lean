@@ -105,7 +105,6 @@ theorem poissonCountingMeasure_restrict_partition
     (hA : ∀ n, MeasurableSet (A n)) (n : ℕ) :
     (poissonCountingMeasure N X).restrict (A n) =
       ∑ l ∈ Finset.range (N n), Measure.dirac (X n l) := by
-  classical
   ext t ht
   rw [Measure.restrict_apply ht, poissonCountingMeasure_apply N X (ht.inter (hA n)),
     tsum_eq_single n, Measure.finsetSum_apply]

@@ -34,7 +34,6 @@ theorem chebyshev_linear_weighted (n : ℕ) (hn : 0 < n) (y : Fin n → ℝ) {ε
     (Measure.pi fun _ : Fin n => gaussianReal 0 1)
       {a | ε ≤ |(n : ℝ)⁻¹ * ∑ j : Fin n, a j * y j|} ≤
       ENNReal.ofReal ((∑ j, y j ^ 2) / ((n : ℝ) ^ 2 * ε ^ 2)) := by
-  classical
   let μ : Measure (Fin n → ℝ) := Measure.pi fun _ : Fin n => gaussianReal 0 1
   let g : Fin n → ℝ → ℝ := fun j x => x * y j
   have hg : ∀ j, MemLp (g j) 2 (gaussianReal 0 1) := fun j =>

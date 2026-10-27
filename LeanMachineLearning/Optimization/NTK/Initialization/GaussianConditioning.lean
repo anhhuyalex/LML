@@ -58,7 +58,6 @@ theorem gaussianInit_measure_le_lintegral_of_section
         P, Matrix.of V * (1 - P)) ∈ E} ≤
       ∫⁻ V, B (Matrix.of V * P) ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
           gaussianReal 0 1) := by
-  classical
   have hX : Measurable (fun V : Fin n → Fin p → ℝ => Matrix.of V * P) := by
     refine Measurable.of_eval fun i => Measurable.of_eval fun j => ?_
     simp only [Matrix.mul_apply, Matrix.of_apply]
@@ -112,7 +111,6 @@ theorem gaussianInit_linearForm_chebyshev (n p : ℕ) (u : Fin n → ℝ) (c : F
     (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
         gaussianReal 0 1) {W | ε ≤ |u ⬝ᵥ (Matrix.of W *ᵥ c)|} ≤
       ENNReal.ofReal ((u ⬝ᵥ u) * (c ⬝ᵥ c) / ε ^ 2) := by
-  classical
   have hmem := memLp_linearForm_gaussianInit u c
   have h := meas_ge_le_variance_div_sq hmem hε
   have hmean : (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1)[fun W :
@@ -139,7 +137,6 @@ lemma traceForm_section_le (n p : ℕ) (Q A : Matrix (Fin p) (Fin p) ℝ)
         gaussianReal 0 1) {V | ε ≤ |∑ i, ∑ j, B₀ i j *
           (((Matrix.of V * Q) * A * (Matrix.of V * Q)ᵀ) i j) - B₀.trace * (Q * A * Q).trace|} ≤
       ENNReal.ofReal (2 * (∑ i, ∑ j, B₀ i j ^ 2) * (∑ k, ∑ l, A k l ^ 2) / ε ^ 2) := by
-  classical
   have hmat : ∀ V : Fin n → Fin p → ℝ,
       ((Matrix.of V * Q) * A * (Matrix.of V * Q)ᵀ) =
         Matrix.of V * (Q * A * Q) * (Matrix.of V)ᵀ := by
@@ -175,7 +172,6 @@ theorem conditional_traceForm_chebyshev
       (2 * (∑ i, ∑ j, B (Matrix.of q.2 * P q.1, q.1) i j ^ 2) * (∑ k, ∑ l, A q.1 k l ^ 2) /
         ε ^ 2)) ∂(μ.prod (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
           gaussianReal 0 1)) := by
-  classical
   have hOf : Measurable
       (fun q : Ω × (Fin n → Fin p → ℝ) => (Matrix.of q.2 : Matrix (Fin n) (Fin p) ℝ)) :=
     measurable_snd
@@ -352,7 +348,6 @@ lemma linearForm_section_le (n p : ℕ) (Q : Matrix (Fin p) (Fin p) ℝ)
     (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
         gaussianReal 0 1) {V | ε ≤ |u₀ ⬝ᵥ ((Matrix.of V * Q) *ᵥ b)|} ≤
       ENNReal.ofReal ((u₀ ⬝ᵥ u₀) * (b ⬝ᵥ b) / ε ^ 2) := by
-  classical
   simp_rw [← Matrix.mulVec_mulVec]
   refine (gaussianInit_linearForm_chebyshev n p u₀ (Q *ᵥ b) hε).trans ?_
   refine ENNReal.ofReal_le_ofReal ?_
@@ -377,7 +372,6 @@ theorem conditional_linearForm_chebyshev
       ((u (Matrix.of q.2 * P q.1, q.1) ⬝ᵥ u (Matrix.of q.2 * P q.1, q.1)) *
       (b q.1 ⬝ᵥ b q.1) / ε ^ 2)) ∂(μ.prod (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p =>
           gaussianReal 0 1)) := by
-  classical
   have hOf : Measurable
       (fun q : Ω × (Fin n → Fin p → ℝ) => (Matrix.of q.2 : Matrix (Fin n) (Fin p) ℝ)) :=
     measurable_snd

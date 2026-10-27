@@ -399,7 +399,6 @@ theorem tsum_poissonBlocks_active_eq_tsum_guard
       ∑' σ : J → ℕ × ℕ,
         if h : ∀ j, (σ j).2 < N (σ j).1 then
           f (fun j => ⟨σ j, h j⟩) else 0 := by
-  classical
   exact tsum_pi_subtype_eq_tsum_ite (J := J)
     (s := {p : ℕ × ℕ | p.2 < N p.1}) f
 
@@ -422,7 +421,6 @@ theorem gaussian_gibbs_tilt_guard_eq_active
         ∑' a : {p : ℕ × ℕ // p.2 < (z p.1).1},
           (z a.1.1).2 a.1.2 * Real.exp (t * g a.1.1 a.1.2)) *
         F (fun j => (σ j).1) := by
-  classical
   let α := {p : ℕ × ℕ // p.2 < (z p.1).1}
   have hden : (∑' a : α,
       (z a.1.1).2 a.1.2 * Real.exp (t * g a.1.1 a.1.2)) =
@@ -480,7 +478,6 @@ theorem measurable_tsum_guarded_replica
           (∏ j, w zg (σ j) / ∑' p : ℕ × ℕ,
             if p.2 < N zg.1 p.1 then w zg p else 0) * F zg σ
         else 0 := by
-  classical
   have hden : Measurable fun zg : S × T =>
       ∑' p : ℕ × ℕ, if p.2 < N zg.1 p.1 then w zg p else 0 := by
     apply Measurable.tsum
@@ -522,7 +519,6 @@ theorem measurable_gaussian_gibbs_replica_guard_of_index
               if p.2 < (zg.1 p.1).1 then (zg.1 p.1).2 p.2 else 0) *
             (Φ σ * zg.2 (σ r₀).1 (σ r₀).2)
         else 0 := by
-  classical
   apply measurable_tsum_guarded_replica
     (S := ℕ → ℕ × (ℕ → ℝ)) (T := ℕ → ℕ → ℝ)
     (N := fun z m => (z m).1)
@@ -551,7 +547,6 @@ theorem measurable_gaussian_gibbs_replica_guard
             (f (fun i j => if σ i = σ j then 1 else 0) *
               zg.2 (σ r₀).1 (σ r₀).2)
         else 0 := by
-  classical
   apply measurable_tsum_guarded_replica
     (S := ℕ → ℕ × (ℕ → ℝ)) (T := ℕ → ℕ → ℝ)
     (N := fun z m => (z m).1)
@@ -575,7 +570,6 @@ theorem measurableSet_gaussian_gibbs_environment :
       (∀ p : ℕ × ℕ, p.2 < (z p.1).1 → 0 < (z p.1).2 p.2) ∧
       (∑' p : ℕ × ℕ,
         ENNReal.ofReal (if p.2 < (z p.1).1 then (z p.1).2 p.2 else 0)) < ∞} := by
-  classical
   have hN : MeasurableSet {z : ℕ → ℕ × (ℕ → ℝ) |
       Nonempty {p : ℕ × ℕ // p.2 < (z p.1).1}} := by
     have h : MeasurableSet {z : ℕ → ℕ × (ℕ → ℝ) |
@@ -681,7 +675,6 @@ theorem gaussian_gibbs_replica_guard_integrable_and_bound
         else 0
     Integrable H μ ∧
       (∫ g, |H g| ∂μ) ≤ M * ∫ x : ℝ, |x| ∂gaussianReal 0 1 := by
-  classical
   let α := {p : ℕ × ℕ // p.2 < (z p.1).1}
   let _ : Nonempty α := by obtain ⟨p, hp'⟩ := hn; exact ⟨⟨p, hp'⟩⟩
   let u : α → ℝ := fun p => (z p.1.1).2 p.1.2
@@ -733,7 +726,6 @@ theorem integral_gaussian_gibbs_replica_guard_untilted_eq_zero
               if p.2 < (z p.1).1 then (z p.1).2 p.2 else 0) *
             (Φ σ * g (σ r₀).1 (σ r₀).2)
         else 0 ∂μ = 0 := by
-  classical
   let α := {p : ℕ × ℕ // p.2 < (z p.1).1}
   let _ : Nonempty α := by obtain ⟨p, hp'⟩ := hn; exact ⟨⟨p, hp'⟩⟩
   let u : α → ℝ := fun p => (z p.1.1).2 p.1.2
@@ -1166,7 +1158,6 @@ theorem integrable_gibbs_tilt_centered_mark
           ((B p.1.1 ω).2 p.1.2).1 * Real.exp (t * ((B p.1.1 ω).2 p.1.2).2)) *
         (f (fun i j => if σ i = σ j then 1 else 0) *
           (((B (σ r₀).1.1 ω).2 (σ r₀).1.2).2 - t * ζ))) P := by
-  classical
   let ν' : ℕ → Measure (ℝ × ℝ) := fun m => (ν m).prod (gaussianReal 0 1)
   let k : Fin n → ℕ := fun i => if i = r₀ then 1 else 0
   obtain ⟨M, hM⟩ := exists_bound_index_overlap_observable

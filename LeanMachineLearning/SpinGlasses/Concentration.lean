@@ -193,7 +193,6 @@ theorem hasDerivAt_integral_exp_mul_log_sum_exp_trig
         (t * ∑ a, Real.exp (Real.cos s * g₁ a ω + Real.sin s * g₂ a ω + h a) /
           (∑ b, Real.exp (Real.cos s * g₁ b ω + Real.sin s * g₂ b ω + h b)) *
           (-Real.sin s * g₁ a ω + Real.cos s * g₂ a ω)) ∂P) s := by
-  classical
   have hmean : ∀ k, ∫ ω, Sum.elim g₁ g₂ k ω ∂P = 0 := by
     rintro (a | a)
     exacts [h₁ a, h₂ a]

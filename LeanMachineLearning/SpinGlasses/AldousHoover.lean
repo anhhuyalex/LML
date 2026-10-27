@@ -70,7 +70,6 @@ theorem identDistrib_map_of_weakly_exchangeable [IsFiniteMeasure P] (hs : ∀ c,
     (hexch : ∀ e : ℕ ≃ ℕ, IdentDistrib (fun ω c => s (Sym2.map e c) ω) (fun ω c => s c ω) P P)
     {ι : ℕ → ℕ} (hι : Injective ι) :
     IdentDistrib (fun ω c => s (Sym2.map ι c) ω) (fun ω c => s c ω) P P := by
-  classical
   have hm : ∀ ι : ℕ → ℕ, AEMeasurable (fun ω (c : Sym2 ℕ) => s (c.map ι) ω) P := fun ι =>
     (measurable_pi_iff.2 fun c : Sym2 ℕ => hs (c.map ι)).aemeasurable
   refine (identDistrib_iff_forall_finset_identDistrib (X := fun (c : Sym2 ℕ) ω => s (c.map ι) ω)
@@ -597,7 +596,6 @@ theorem exists_aldousHoover_representation [IsProbabilityMeasure P] [StandardBor
           else f (η.1.1, η.1.2 p.1, η.1.2 p.2, η.2 s(p.1, p.2))) P
         (((volume : Measure I).prod (Measure.infinitePi fun _ : ℕ => (volume : Measure I))).prod
           (Measure.infinitePi fun _ : Sym2 ℕ => (volume : Measure I))) := by
-  classical
   obtain ⟨κ, hκ0, hκ1⟩ : ∃ κ : ℕ → ℕ → ℕ, (∀ a, κ a 0 = 2 * a + 1) ∧ ∀ a m, κ a (m + 1) = 2 * m :=
     ⟨fun a n => Nat.casesOn n (2 * a + 1) fun m => 2 * m, fun _ => rfl, fun _ _ => rfl⟩
   obtain ⟨S, hS⟩ : ∃ S : ℕ → Ω → Sym2 ℕ → E, ∀ a ω c, S a ω c = s (Sym2.map (κ a) c) ω :=
@@ -784,7 +782,6 @@ theorem identDistrib_aldousHoover_comp_equiv {g : I × I → E} {f : I × I × I
         (Measure.infinitePi fun _ : Sym2 ℕ => (volume : Measure I)))
       (((volume : Measure I).prod (Measure.infinitePi fun _ : ℕ => (volume : Measure I))).prod
         (Measure.infinitePi fun _ : Sym2 ℕ => (volume : Measure I))) := by
-  classical
   have hTm : Measurable T := measurable_pi_iff.2 fun p => by
     simp_rw [hT]
     by_cases h : p.1 = p.2

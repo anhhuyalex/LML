@@ -32,7 +32,6 @@ theorem integral_pi_count_tilted_decoupled_spin {α : Type*} [Finite α]
       ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
         fun x : α × ℤˣ => A x.1 + ((x.2 : ℤˣ) : ℝ) * Y) =
       Real.tanh Y ^ I.card * ∫ ρ, F ρ ∂(Measure.pi fun _ : Fin n => Measure.count.tilted A) := by
-  classical
   have := Fintype.ofFinite α
   rw [integral_pi_count_tilted, integral_pi_count_tilted]
   set ZA : ℝ := ∑ a, Real.exp (A a) with hZA

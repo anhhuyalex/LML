@@ -385,7 +385,6 @@ theorem integral_pi_option_count_tilted [Finite α] [Fintype R] (f : α → ℝ)
       ∫ σ, ∫ a, g σ a ∂(Measure.count.tilted f)
         ∂(Measure.pi fun _ : R => Measure.count.tilted f) := by
   have := Fintype.ofFinite α
-  classical
   have hmp := Measure.pi_map_piOptionEquivProd (β := fun _ : Option R => α)
     (fun _ : Option R => Measure.count.tilted f)
   rw [← hmp, integral_map (MeasurableEquiv.measurable _).aemeasurable
@@ -407,7 +406,6 @@ theorem integral_gibbs_replica_average_gaussian_option [Finite α] [Nonempty α]
           Fintype.card R * C (τ (some r₀)) (τ none))
         ∂(Measure.pi fun _ : Option R => Measure.count.tilted fun a => y a ω + h a) ∂P := by
   have := Fintype.ofFinite α
-  classical
   rw [integral_gibbs_replica_average_gaussian x y hxy hx hy C hC h r₀ Φ]
   refine integral_congr_ae (ae_of_all _ fun ω => ?_)
   symm
@@ -430,7 +428,6 @@ theorem integral_gibbs_average_gaussian [Finite α] [Nonempty α] (x y : α → 
         ∂((Measure.count.tilted fun a => y a ω + h a).prod
           (Measure.count.tilted fun a => y a ω + h a)) ∂P := by
   have := Fintype.ofFinite α
-  classical
   have h1 := integral_gibbs_replica_average_gaussian (R := Unit) x y hxy hx hy C hC h ()
     (fun _ => 1)
   have e1 : ∀ ω, ∫ σ : Unit → α, (1 : ℝ) * x (σ ()) ω

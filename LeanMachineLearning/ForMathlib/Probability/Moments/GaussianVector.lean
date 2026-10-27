@@ -59,7 +59,6 @@ theorem map_toLp_eq_multivariateGaussian {X : κ → Ω → ℝ}
     (hX : HasGaussianLaw (fun ω k => X k ω) P) (hmean : ∀ k, ∫ ω, X k ω ∂P = 0) :
     P.map (fun ω => WithLp.toLp 2 (X · ω)) =
       multivariateGaussian 0 (Matrix.of fun i j => cov[X i, X j; P]) := by
-  classical
   have hP := hX.isProbabilityMeasure
   have hmem : ∀ i, MemLp (X i) 2 P := fun i => (hX.eval i).memLp_two
   have hS := posSemidef_covariance_matrix hX
@@ -356,7 +355,6 @@ end Aux
 theorem IsGaussianProcess.hasGaussianLaw_pi {S : Type*} [Finite S] {X : S → Ω → ℝ}
     (hX : IsGaussianProcess X P) : HasGaussianLaw (fun ω s => X s ω) P := by
   have := Fintype.ofFinite S
-  classical
   let L : (Finset.univ (α := S) → ℝ) →L[ℝ] (S → ℝ) :=
     ContinuousLinearMap.pi fun s => ContinuousLinearMap.proj ⟨s, Finset.mem_univ s⟩
   exact (hX.hasGaussianLaw Finset.univ).map_fun L

@@ -225,7 +225,6 @@ theorem integral_traceForm_sq_gaussianInit (n p : ℕ) (B : Matrix (Fin n) (Fin 
         ∂(Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) =
       (B.trace * A.trace) ^ 2 + (∑ i, ∑ j, B i j * B j i) * ∑ k, ∑ l, A k l * A l k +
         (∑ i, ∑ j, B i j ^ 2) * ∑ k, ∑ l, A k l ^ 2 := by
-  classical
   set C : Matrix (Fin n × Fin p) (Fin n × Fin p) ℝ :=
     Matrix.of fun x y => B x.1 y.1 * A x.2 y.2 with hC
   have hq : ∀ W : Fin n → Fin p → ℝ,
@@ -262,7 +261,6 @@ theorem memLp_traceForm_gaussianInit (n p : ℕ) (B : Matrix (Fin n) (Fin n) ℝ
     MemLp (fun W : Fin n → Fin p → ℝ =>
       ∑ i, ∑ j, B i j * ((Matrix.of W * A * (Matrix.of W)ᵀ) i j)) 2
       (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1) := by
-  classical
   have hz : MemLp (fun z : EuclideanSpace ℝ (Fin n × Fin p) =>
       ∑ x : Fin n × Fin p, ∑ y : Fin n × Fin p,
         (B x.1 y.1 * A x.2 y.2) * (z x * z y)) 2
@@ -283,7 +281,6 @@ theorem gaussianInit_traceForm_chebyshev (n p : ℕ) (B : Matrix (Fin n) (Fin n)
       {W | ε ≤ |∑ i, ∑ j, B i j * ((Matrix.of W * A * (Matrix.of W)ᵀ) i j) -
         B.trace * A.trace|} ≤
       ENNReal.ofReal (2 * (∑ i, ∑ j, B i j ^ 2) * (∑ k, ∑ l, A k l ^ 2) / ε ^ 2) := by
-  classical
   have hmem := memLp_traceForm_gaussianInit n p B A
   have hmean := integral_traceForm_gaussianInit n p B A
   have h := meas_ge_le_variance_div_sq hmem hε

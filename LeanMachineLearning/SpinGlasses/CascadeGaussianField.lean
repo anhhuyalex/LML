@@ -88,7 +88,6 @@ variable {σ} {g : (Fin r → ℕ) → ((Σ p : ℕ, Fin p → ℕ) → ℕ → 
 include hg in
 /-- The leaf field `g(α) = ∑ᵢ σᵢ ℓ(α|ᵢ, αᵢ)` is a Gaussian process. -/
 theorem isGaussianProcess_leafField : IsGaussianProcess g μΛ := by
-  classical
   refine (isGaussianProcess_labelArray).of_isGaussianProcess fun α => ?_
   refine ⟨Finset.univ.image fun i : Fin r => (⟨i, Fin.take i i.isLt.le α⟩, α i),
     ∑ i : Fin r, σ i • ContinuousLinearMap.proj
@@ -115,7 +114,6 @@ include hg in
 theorem integral_leafField_mul (α β : Fin r → ℕ) :
     ∫ ℓ, g α ℓ * g β ℓ ∂μΛ =
       ∑ i : Fin r, if i.val < (prefixOverlap α β).val then σ i ^ 2 else 0 := by
-  classical
   have hlaw := hasLaw_labelArray
   have hint : ∀ c c' : (Σ p : ℕ, Fin p → ℕ) × ℕ, Integrable (fun ℓ :
       (Σ p : ℕ, Fin p → ℕ) → ℕ → ℝ => ℓ c.1 c.2 * ℓ c'.1 c'.2) μΛ := fun c c' =>

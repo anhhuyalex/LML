@@ -109,7 +109,6 @@ theorem map_prod_replica_active_eq_ranked {ζ : ℝ} (hζ0 : 0 < ζ) (hζ1 : ζ 
         (Measure.infinitePi fun _ : ℕ => τ)).map
       (fun p i => ∑' m : Fin (n i) → ℕ, Θ i (fun l => (nthLargestAtom (m l)
         (poissonCountingMeasure (fun k => (p.1 k).1) (fun k l => (p.1 k).2 l)), p.2 (m l)))) := by
-  classical
   have hgood := ae_infinitePi_blocks_good hζ0 hζ1 nu rate hmu
   have hL : Measurable fun p : (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℕ → T) => fun i : ι =>
       ∑' q : Fin (n i) → {q : ℕ × ℕ // q.2 < (p.1 q.1).1}, Θ i (fun l =>

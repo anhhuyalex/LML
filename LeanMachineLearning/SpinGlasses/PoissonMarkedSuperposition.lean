@@ -43,7 +43,6 @@ theorem marked_intensity_eq [Countable Γ] {e : ℝ} (he : 0 < e)
     (Measure.sum fun p : Γ × ℕ => (rate p.2 : ℝ≥0∞) •
         (nu p.2).map (fun x : ℝ => (x * w p.1, p.1))) =
       Measure.sum fun k => (rate k : ℝ≥0∞) • ((nu k).map fun x : ℝ => x * c).prod Λ := by
-  classical
   have hmeasf : ∀ γ : Γ, Measurable fun x : ℝ => (x * w γ, γ) := fun γ => by fun_prop
   have hL : (Measure.sum fun p : Γ × ℕ => (rate p.2 : ℝ≥0∞) •
         (nu p.2).map (fun x : ℝ => (x * w p.1, p.1))) =
@@ -105,7 +104,6 @@ theorem identDistrib_marked_superposition [Countable Γ] [Nonempty Γ]
         (fun k l => ((ω' k).1.2 l * c, (ω' k).2 l)))
       P₀ (Measure.infinitePi fun k => (Po(rate k).prod
         (Measure.infinitePi fun _ : ℕ => nu k)).prod (Measure.infinitePi fun _ : ℕ => Λ)) := by
-  classical
   have : Infinite (Γ × ℕ) := inferInstance
   obtain ⟨ι⟩ : Nonempty (ℕ ≃ Γ × ℕ) := nonempty_equiv_of_countable
   -- the combined blocks of the actual construction, indexed by `ℕ`

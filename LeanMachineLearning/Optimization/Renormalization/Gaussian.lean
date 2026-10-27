@@ -920,7 +920,6 @@ private lemma cumulantTransform_pair_eq_pairWeight_covariance {Ω ι : Type*}
     {B : Finset ι} (hBcard : B.card = 2) :
     Finpartition.cumulantTransform (blockMoment ν Z) B =
       pairWeight (fun k l : ι ↦ covariance (Z k) (Z l) ν) B := by
-  classical
   -- First reduce the two-element block to an explicit unordered pair.
   have h_pair_decomp : ∃ i j : ι, i ≠ j ∧ B = ({i, j} : Finset ι) := by
     simpa using (Finset.card_eq_two.mp hBcard)
@@ -985,7 +984,6 @@ restricted to a block of indices. -/
 private lemma sum_subtype_eq_sum_ite {α R : Type*} [Fintype α] [DecidableEq α]
     [AddCommMonoid R] (s : Finset α) (f : s → R) :
     (∑ x : s, f x) = ∑ x : α, if hx : x ∈ s then f ⟨x, hx⟩ else 0 := by
-  classical
   calc
     (∑ x : s, f x) = ∑ x ∈ s, (if hx : x ∈ s then f ⟨x, hx⟩ else 0) := by
       rw [← Finset.sum_attach s
@@ -1455,7 +1453,6 @@ private lemma sum_erase_preimage {α : Type*} [DecidableEq α] (s A : Finset α)
     (∑ j ∈ (A.preimage (Function.Embedding.subtype (· ∈ s))
           (by intro x _hx y _hy h; exact Subtype.ext h)).erase (⟨a, hA ha⟩ : {x : α // x ∈ s}),
       w a j.1) = ∑ b ∈ A.erase a, w a b := by
-  classical
   let φ : {x : α // x ∈ s} ↪ α := Function.Embedding.subtype (· ∈ s)
   refine Finset.sum_bij (fun j hj => (j : α)) ?_ ?_ ?_ ?_
   · intro j hj
@@ -1490,7 +1487,6 @@ private lemma pairWeight_preimage {α : Type*} [DecidableEq α] (s : Finset α)
       (A.preimage (Function.Embedding.subtype (· ∈ s))
         (by intro x _hx y _hy h; exact Subtype.ext h)) =
     pairWeight w A := by
-  classical
   let φ : {x : α // x ∈ s} ↪ α := Function.Embedding.subtype (· ∈ s)
   unfold pairWeight
   congr 1
@@ -1564,7 +1560,6 @@ private lemma pairingSum_subtype_weight {α : Type*} [DecidableEq α] (s : Finse
       (pairWeight (fun k l : {x : α // x ∈ s} ↦ w k.1 l.1))
       (Finset.univ : Finset {x : α // x ∈ s}) =
     Finpartition.pairingSum (pairWeight w) s := by
-  classical
   let e : Finpartition.Pairing s ≃ Finpartition.Pairing (Finset.univ : Finset s) :=
     pairingSubtypeEquiv s
   let φ : {x : α // x ∈ s} ↪ α := Function.Embedding.subtype (· ∈ s)
@@ -1634,7 +1629,6 @@ private lemma isserlis_centered_jointGaussian_finset {Ω ι : Type*} [Measurable
     (_h_integrability : Integrable (fun ω ↦ ∏ k ∈ s, Z k ω) ν) :
     ∫ ω, ∏ k ∈ s, Z k ω ∂ν =
       wick (fun k l ↦ covariance (Z k) (Z l) ν) s := by
-  classical
   let C : ι → ι → ℝ := fun k l ↦ covariance (Z k) (Z l) ν
   -- Step 1: analytic Gaussian input.  From the Cramér-Wold hypothesis `h_joint`,
   -- the finite vector `(Z k)_{k : ι}` is jointly Gaussian.  Since `h_centered`
@@ -1918,7 +1912,6 @@ transform recovers that block weight, which vanishes at `s` because `s.card ≠ 
 theorem cumulantTransform_wick_eq_zero (C : ι → ι → ℝ) (_hC : ∀ i j, C i j = C j i)
     {s : Finset ι} (hs : s.card ≠ 2) :
     Finpartition.cumulantTransform (wick C) s = 0 := by
-  classical
   let K : Finset ι → ℝ := pairWeight C
   have h_wick_partition :
       Finpartition.partitionTransform (fun B : Finset ι ↦ if B.card = 2 then K B else 0) =
@@ -1991,7 +1984,6 @@ private lemma cumulantTransform_const_coordinate_eq_zero {Ω : Type*} [Measurabl
     (hs : 1 < Fintype.card ι) (Y : ι → Ω → ℝ) (i : ι) (c : ℝ) :
     Finpartition.cumulantTransform (blockMoment μ (Function.update Y i (fun _ => c)))
       (Finset.univ : Finset ι) = 0 := by
-  classical
   let U : ι → Ω → ℝ := Function.update Y i (fun _ => c)
   apply cumulantTransform_eq_zero_of_split (blockMoment μ U) ({i} : Finset ι)
   · simp
@@ -2098,7 +2090,6 @@ lemma cumulantTransform_blockMoment_add_const {Ω : Type*} [MeasurableSpace Ω]
     Finpartition.cumulantTransform (blockMoment μ (fun i x ↦ X i x + c i))
         (Finset.univ : Finset ι) =
       Finpartition.cumulantTransform (blockMoment μ X) (Finset.univ : Finset ι) := by
-  classical
   -- The family obtained by adding the constants indexed by `S` to `X`.
   let XS : Finset ι → ι → Ω → ℝ := fun S j x => X j x + (if j ∈ S then c j else 0)
   -- Adding one constant at a time preserves the cumulant transform on `univ`: the block moments
@@ -2192,7 +2183,6 @@ theorem jointCumulant_centered_dual_eq_zero (μ : Measure E)
     [ProbabilityTheory.IsGaussian μ] {n : ℕ} (hn : n ≠ 2)
     (L : Fin n → StrongDual ℝ E) :
     jointCumulant μ (fun i ↦ centeredDual μ (L i)) = 0 := by
-  classical
   let C : Fin n → Fin n → ℝ := fun i j ↦ dualCovariance μ (L i) (L j)
   have h_blocks : blockMoment μ (fun i ↦ centeredDual μ (L i)) = wick C := by
     funext B

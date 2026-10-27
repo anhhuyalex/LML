@@ -141,7 +141,6 @@ theorem integral_sq_sub_le (hN : 0 < N) (x : α → Fin N → ℝ) {w : α → �
           ∂(gaussianReal 0 1)) ^ 2 ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1) ≤
       2 * (2 * M1 ^ 2 + M0 * M2) * (∑ a, ∑ a', w a * w a' *
           |(N : ℝ)⁻¹ * (x a ⬝ᵥ x a') - q| + ∑ a, w a * |(N : ℝ)⁻¹ * (x a ⬝ᵥ x a) - ρ|) := by
-  classical
   have hfc : Continuous f := hf.continuous
   have hM0 : 0 ≤ M0 := (abs_nonneg _).trans (h0 0)
   have hNpos : (0 : ℝ) < N := Nat.cast_pos.2 hN

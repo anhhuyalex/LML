@@ -33,7 +33,6 @@ theorem gibbs_old_replica_self_overlap
       ∑ j ∈ (Finset.univ : Finset J).erase r₀,
         ∑' σ : J → α, (∏ k, w (σ k)) *
           (Φ σ * if σ r₀ = σ j then 1 else 0) := by
-  classical
   have hbase := summable_prod_pi (J := J) (f := fun _ => w)
     (fun _ a => hw a) (fun _ => hs)
   have hbound (F : (J → α) → ℝ) (hF : ∀ σ, |F σ| ≤ M) :
@@ -103,7 +102,6 @@ theorem tsum_option_fin_replica_eq
       (∏ o, w (τ o)) * Φ τ) =
       ∑' σ : Fin (n + 1) → α,
         (∏ j, w (σ j)) * Φ (σ ∘ finSuccEquivLast.symm) := by
-  classical
   let e : (Option (Fin n) → α) ≃ (Fin (n + 1) → α) :=
     Equiv.arrowCongr finSuccEquivLast.symm (Equiv.refl α)
   have he (τ : Option (Fin n) → α) :

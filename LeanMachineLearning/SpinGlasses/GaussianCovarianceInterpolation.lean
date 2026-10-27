@@ -93,7 +93,6 @@ theorem hasDerivAt_integral_comp_trig
       (Real.sin t * Real.cos t * ∑ l, ∑ k, ((∫ ω, Y l ω * Y k ω ∂P) - ∫ ω, X l ω * X k ω ∂P) *
         ∫ ω, fderiv ℝ (fun y => fderiv ℝ F y (Pi.single l 1))
           (fun m => Real.cos t * X m ω + Real.sin t * Y m ω) (Pi.single k 1) ∂P) t := by
-  classical
   have hP := hXY.isProbabilityMeasure
   have hFd : Differentiable ℝ F := hF.differentiable (by norm_num)
   have hFc : Continuous F := hFd.continuous
@@ -212,7 +211,6 @@ theorem abs_integral_comp_sub_le
       D2 k l) :
     |∫ ω, F (fun l => Y l ω) ∂P - ∫ ω, F (fun l => X l ω) ∂P| ≤
       (1 / 2) * ∑ l, ∑ k, |(∫ ω, Y l ω * Y k ω ∂P) - ∫ ω, X l ω * X k ω ∂P| * D2 k l := by
-  classical
   have hP := hXY.isProbabilityMeasure
   have hd := fun s => hasDerivAt_integral_comp_trig hXY hX hY h0 hF
     (C₀ := B) (c₀ := 0) (fun y => by simpa using hF0 y) (D := D) (c₁ := 0)
@@ -303,7 +301,6 @@ theorem abs_integral_dotProduct_sub_le (a : κ → K → ℝ) (a' : κ → K' �
     |∫ ξ', F (fun l => a' l ⬝ᵥ ξ') ∂(Measure.pi fun _ : K' => gaussianReal 0 1) -
         ∫ ξ, F (fun l => a l ⬝ᵥ ξ) ∂(Measure.pi fun _ : K => gaussianReal 0 1)| ≤
       (1 / 2) * ∑ l, ∑ k, |a' l ⬝ᵥ a' k - a l ⬝ᵥ a k| * D2 k l := by
-  classical
   -- both vectors are linear forms of one standard Gaussian vector on `K ⊕ K'`
   set P : Measure (K ⊕ K' → ℝ) := Measure.pi fun _ => gaussianReal 0 1 with hP
   obtain ⟨a1, ha1⟩ : ∃ a1 : κ → K ⊕ K' → ℝ, ∀ l, a1 l = Sum.elim (a l) fun _ => 0 :=

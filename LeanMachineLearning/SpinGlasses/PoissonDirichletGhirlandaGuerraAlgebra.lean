@@ -40,7 +40,6 @@ theorem gaussian_ibp_overlap_correction_marginal
           (∑' τ : Option J → α, (∏ o, w (τ o)) *
             (Φ (fun j => τ (some j)) *
               (if τ (some r₀) = τ none then 1 else 0)))) := by
-  classical
   let A : (Option J → α) → ℝ := fun τ =>
     (∏ o, w (τ o)) *
       (Φ (fun j => τ (some j)) *

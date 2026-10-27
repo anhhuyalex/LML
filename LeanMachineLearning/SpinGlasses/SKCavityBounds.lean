@@ -159,7 +159,6 @@ theorem replica_covariance_combination_cancel_diagonal
           (∑ r : R, U (τ (some (some r))) (τ (some none))) +
         (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) *
           U (τ (some none)) (τ none) := by
-  classical
   have hs (r : R) :
       (∑ r' : R, U (τ (some (some r))) (τ (some (some r')))) =
         C + ∑ r' : R, if r = r' then 0 else

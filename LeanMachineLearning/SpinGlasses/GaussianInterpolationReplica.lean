@@ -192,7 +192,6 @@ theorem hasDerivAt_integral_replica_path_moving [Finite α] [Nonempty α] [Finty
         ∂(Measure.pi fun _ : R => Measure.count.tilted (f t ω)) +
         ∫ σ, Ψ' t σ ∂(Measure.pi fun _ : R => Measure.count.tilted (f t ω))) ∂μ) t := by
   have := Fintype.ofFinite α
-  classical
   have htS : t ∈ S := mem_of_mem_nhds hS
   have hM0 : 0 ≤ M := (abs_nonneg _).trans (hM t htS (fun _ => Classical.arbitrary α))
   have hM'0 : 0 ≤ M' := (abs_nonneg _).trans (hM' t htS (fun _ => Classical.arbitrary α))
@@ -382,7 +381,6 @@ theorem integral_replica_trig_key
         ∂(Measure.pi fun _ : Option (Option R) =>
           Measure.count.tilted fun a => Real.cos t * X a ω + Real.sin t * Y a ω + h a) ∂P := by
   have := Fintype.ofFinite α
-  classical
   have hP := hXY.isProbabilityMeasure
   have hXi : ∀ a, Integrable (X a) P := fun a => (hXY.eval (Sum.inl a)).integrable
   have hYi : ∀ a, Integrable (Y a) P := fun a => (hXY.eval (Sum.inr a)).integrable
@@ -728,7 +726,6 @@ theorem integrable_replica_derivative_term {g χ : α → Ω → ℝ}
         ∫ a, χ a ω ∂(Measure.count.tilted fun a => g a ω))
       ∂(Measure.pi fun _ : R => Measure.count.tilted fun a => g a ω)) P := by
   have := Fintype.ofFinite α
-  classical
   have hM : 0 ≤ M := (abs_nonneg _).trans (hΨ (fun _ => Classical.arbitrary α))
   have hmeas := aemeasurable_integral_pi_count_tilted (R := R) (g := fun ω a => g a ω)
     (Θ := fun ω σ => Ψ σ * (∑ r, χ (σ r) ω - Fintype.card R *
@@ -787,7 +784,6 @@ theorem hasDerivAt_integral_replica_trig_moving
         ∫ ω, ∫ σ, Φ' t σ ∂(Measure.pi fun _ : R =>
           Measure.count.tilted fun a => Real.cos t * X a ω + Real.sin t * Y a ω + h a) ∂P) t := by
   have := Fintype.ofFinite α
-  classical
   have hP := hXY.isProbabilityMeasure
   have hXi : ∀ a, Integrable (X a) P := fun a => (hXY.eval (Sum.inl a)).integrable
   have hYi : ∀ a, Integrable (Y a) P := fun a => (hXY.eval (Sum.inr a)).integrable

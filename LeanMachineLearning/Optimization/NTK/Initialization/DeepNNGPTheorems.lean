@@ -362,7 +362,6 @@ theorem deepPreactivation_succ_deviation_tendsto
             φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) ℓ α j) *
             φ (deepPreactivation d m n φ X (fun k => if h : k < L then w ⟨k, h⟩ else 0) ℓ β j))|})
       Filter.atTop (nhds 0) := by
-  classical
   obtain ⟨L', rfl⟩ : ∃ L', L = L' + 1 := ⟨L - 1, by omega⟩
   set ν₀ : Measure (ℕ → ℕ → ℝ) := Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ =>
     gaussianReal 0 1 with hν₀

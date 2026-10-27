@@ -129,7 +129,6 @@ theorem tsum_fresh_replica_overlap_reindex
     ∑' σ : Fin (n + 1) → α, (∏ j, w (σ j)) *
       (f (fun i j => if σ (Fin.castSucc i) = σ (Fin.castSucc j) then 1 else 0) *
         if σ (Fin.castSucc r₀) = σ (Fin.last n) then 1 else 0) := by
-  classical
   rw [tsum_option_fin_replica_eq n w]
   apply tsum_congr
   intro σ

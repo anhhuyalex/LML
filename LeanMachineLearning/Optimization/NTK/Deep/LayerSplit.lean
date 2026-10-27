@@ -121,7 +121,6 @@ theorem indepFun_layer_zeroLayer {d : ℕ} (i₀ : Fin d) :
       ((Measure.pi fun _ : Fin d =>
           Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ => gaussianReal 0 1).prod
               (Measure.infinitePi fun _ : ℕ => gaussianReal 0 1)) := by
-  classical
   set L : Measure (ℕ → ℕ → ℝ) := Measure.infinitePi fun _ : ℕ =>
     Measure.infinitePi fun _ : ℕ => gaussianReal 0 1 with hL
   have hind : iIndepFun (fun (i : Fin d) (w : Fin d → ℕ → ℕ → ℝ) => w i)

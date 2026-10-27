@@ -136,7 +136,6 @@ theorem tendsto_measure_conditional_activationProduct
         ∫ z : EuclideanSpace ℝ (Fin m), φ (z.ofLp α) * φ (z.ofLp β)
           ∂multivariateGaussian 0 (K n q)|})
       Filter.atTop (nhds 0) := by
-  classical
   obtain ⟨a0⟩ := nonempty_of_isProbabilityMeasure ν
   let Gf : Matrix (Fin m) (Fin m) ℝ → ℝ := fun K' =>
     ∫ z : EuclideanSpace ℝ (Fin m), φ (z.ofLp α) * φ (z.ofLp β) ∂multivariateGaussian 0 K'
@@ -259,7 +258,6 @@ theorem chebyshev_centeredSquare_weighted (n : ℕ) (hn : 0 < n) (y : Fin n → 
       {a | ε ≤ |(n : ℝ)⁻¹ * ∑ j : Fin n, (a j ^ 2 - 1) * y j|} ≤
       ENNReal.ofReal ((ProbabilityTheory.variance (fun x : ℝ => x ^ 2 - 1) (gaussianReal 0 1)) * (∑
           j, y j ^ 2) / ((n : ℝ) ^ 2 * ε ^ 2)) := by
-  classical
   let μ : Measure (Fin n → ℝ) := Measure.pi fun _ : Fin n => gaussianReal 0 1
   let g : Fin n → ℝ → ℝ := fun j x => (x ^ 2 - 1) * y j
   have hg : ∀ j, MemLp (g j) 2 (gaussianReal 0 1) := fun j =>

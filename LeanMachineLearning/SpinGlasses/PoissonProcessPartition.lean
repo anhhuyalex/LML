@@ -55,7 +55,6 @@ theorem exists_identDistrib_restrict_poissonCountingMeasure {P : Measure Ω}
       IdentDistrib (fun ω => (fun m => M ω (A m), fun m => (M ω).restrict (A m)))
         (fun q : ℕ → ℕ × (ℕ → S) => (fun m => (((q m).1 : ℕ) : ℝ≥0∞),
           fun m => ∑ l ∈ Finset.range (q m).1, Measure.dirac ((q m).2 l))) P P' := by
-  classical
   obtain rfl : M = fun ω => poissonCountingMeasure
     (fun n => (B n ω).1) (fun n l => (B n ω).2 l) := funext hM
   obtain ⟨ν', hprob, hcond, hint⟩ :=

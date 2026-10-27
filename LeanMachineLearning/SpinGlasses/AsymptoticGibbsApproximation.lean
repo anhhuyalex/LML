@@ -478,7 +478,6 @@ theorem integral_pow_sum_mul_comp_eq [IsProbabilityMeasure P]
       ∑ j : Fin k → ι, (∏ l, w (j l)) *
         ∫ x : EuclideanSpace ℝ (Fin k), ∏ l, ψ (x.ofLp l) ∂(multivariateGaussian 0
           (Matrix.of fun l l' => ∫ ω, g (j l) ω * g (j l') ω ∂P)) := by
-  classical
   have hM : 0 ≤ M := (abs_nonneg _).trans (hψ 0)
   have hprod : ∀ y : Fin k → ℝ, |∏ l, ψ (y l)| ≤ M ^ k := fun y => by
     rw [Finset.abs_prod]

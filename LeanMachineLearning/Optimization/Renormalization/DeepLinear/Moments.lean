@@ -281,7 +281,6 @@ private lemma oneLayerOutputLaw_eq_pi_gaussianReal {dIn dOut : ℕ} (Cw : ℝ≥
     oneLayerOutputLaw (ι := Fin dIn) (κ := Fin dOut) Cw x =
       Measure.pi (fun _ : Fin dOut =>
         gaussianReal 0 (Cw * NeuralNetwork.normalizedEnergyNNReal x)) := by
-  classical
   let s : ℝ := (Cw : ℝ) * NeuralNetwork.normalizedEnergy x
   have hs : 0 ≤ s := by
     dsimp [s]
@@ -483,7 +482,6 @@ private lemma integral_stdGaussian_monomial_eq_wick {κ : Type uJ} [Fintype κ] 
     (m : ℕ) (a : Fin (2 * m) → κ) :
     ∫ x : EuclideanSpace ℝ κ, (∏ r : Fin (2 * m), x (a r)) ∂stdGaussian (EuclideanSpace ℝ κ) =
       pairingTensor a := by
-  classical
   have hS : (1 : Matrix κ κ ℝ).PosSemidef := Matrix.PosSemidef.one
   have hWick := Renormalization.integral_prod_multivariateGaussian_centered_eq_wick
     (m := (0 : EuclideanSpace ℝ κ)) (S := (1 : Matrix κ κ ℝ)) (hS := hS) (index := a)
@@ -513,7 +511,6 @@ private lemma integral_pi_stdGaussian_monomial_eq_pairingTensor {κ : Type uJ} [
     [DecidableEq κ] (m : ℕ) (a : Fin (2 * m) → κ) :
     ∫ z, (∏ r, z (a r)) ∂Measure.pi (fun _ : κ => gaussianReal 0 1) =
       pairingTensor a := by
-  classical
   have hφ_meas : AEMeasurable (fun u : κ → ℝ => WithLp.toLp 2 u)
       (Measure.pi (fun _ : κ => gaussianReal 0 1)) := by
     fun_prop
@@ -548,7 +545,6 @@ private lemma integral_prod_pi_gaussianReal_eq_pairingTensor
     (a : Fin (2 * m) → κ) :
     ∫ z, (∏ r, z (a r)) ∂Measure.pi (fun _ : κ => gaussianReal 0 v) =
       pairingTensor a * (v : ℝ) ^ m := by
-  classical
   -- Step 1: reduce to the standard Gaussian (v = 1) by rescaling each coordinate.
   have hscale_pi : Measure.pi (fun _ : κ => gaussianReal 0 v) =
       (Measure.pi (fun _ : κ => gaussianReal 0 1)).map
@@ -672,7 +668,6 @@ private lemma integrable_monomial_outputLaw_even {dIn dOut : ℕ}
     (Cw : ℝ≥0) (x : Fin dIn → ℝ) (m : ℕ) (a : Fin (2 * m) → Fin dOut) :
     Integrable (fun z => ∏ r, z (a r))
       ((MLPShape.output : MLPShape dIn dOut).deepLinearOutputLaw Cw x) := by
-  classical
   by_cases hm : m = 0
   · subst m
     have hIsProb : IsProbabilityMeasure
@@ -804,7 +799,6 @@ private lemma integrable_pow_preactivation {ι κ : Type*} [Fintype ι] [Fintype
     (Cw : ℝ≥0) (p : ℕ) (j : κ) (x : ι → ℝ) :
     Integrable (fun q : LayerParams ι κ => |(DenseLayer.ofParams q).preactivation x j| ^ p)
       (layerGaussianInit (hyperparams Cw) ι κ) := by
-  classical
   by_cases hp0 : p = 0
   · subst p
     simp
@@ -974,7 +968,6 @@ private lemma deepLinearOutputLaw_hidden_eq_bind {dIn k dOut : ℕ}
     (MLPShape.hidden tail : MLPShape dIn dOut).deepLinearOutputLaw Cw x =
       (oneLayerOutputLaw (ι := Fin dIn) (κ := Fin k) Cw x).bind
         (fun y => tail.deepLinearOutputLaw Cw y) := by
-  classical
   let μ : Measure (LayerParams (Fin dIn) (Fin k)) :=
     layerGaussianInit (hyperparams Cw) (Fin dIn) (Fin k)
   let ν : Measure tail.Params := tail.gaussianInit (tail.deepLinearHyperparams Cw)
@@ -1061,7 +1054,6 @@ private lemma integral_monomial_deepLinearOutputLaw_bind {dIn k dOut : ℕ}
       ∫ y : Fin k → ℝ,
         (∫ z, (∏ r, z (a r)) ∂tail.deepLinearOutputLaw Cw y)
           ∂oneLayerOutputLaw (ι := Fin dIn) (κ := Fin k) Cw x := by
-  classical
   let μ : Measure (Fin k → ℝ) := oneLayerOutputLaw (ι := Fin dIn) (κ := Fin k) Cw x
   have htower := integral_bind_of_integrable μ (fun y => tail.deepLinearOutputLaw Cw y)
     (measurable_deepLinearOutputLaw_kernel tail Cw) (F := fun z => ∏ r, z (a r)) hInt
@@ -1106,7 +1098,6 @@ private lemma integral_pairingTensor_correlatorAmplitude_oneLayer {dIn k dOut : 
           ∂oneLayerOutputLaw (ι := Fin dIn) (κ := Fin k) Cw x =
       pairingTensor a *
         correlatorAmplitude Cw (NeuralNetwork.normalizedEnergy x) m (k :: widths) := by
-  classical
   let c : ℝ :=
     pairingTensor a * hiddenWidthCorrection m widths * (Cw : ℝ) ^ ((widths.length + 1) * m)
   have hfactor : ∀ y : Fin k → ℝ,
@@ -1205,7 +1196,6 @@ private lemma jointMoment_outputLaw_hidden_even_of_tail {dIn k dOut : ℕ}
           (MLPShape.hidden tail : MLPShape dIn dOut).hiddenWidths) ∧
     Integrable (fun z => ∏ r, z (a r))
       ((MLPShape.hidden tail : MLPShape dIn dOut).deepLinearOutputLaw Cw x) := by
-  classical
   have hHiddenWidths :
       (MLPShape.hidden tail : MLPShape dIn dOut).hiddenWidths = k :: tail.hiddenWidths :=
     hidden_hiddenWidths_cons tail
@@ -1680,7 +1670,6 @@ theorem jointMoment_outputLaw_even {dIn dOut : ℕ} (S : MLPShape dIn dOut)
 /-- The Wick pairing sum for the constant output-index map is the even Gaussian coefficient. -/
 private lemma pairingTensor_const {κ : Type uJ} [DecidableEq κ] (m : ℕ) (j : κ) :
     pairingTensor (fun _ : Fin (2 * m) => j) = gaussianEvenCoeff m := by
-  classical
   have hWick := integral_prod_pi_gaussianReal_eq_pairingTensor
     (κ := Fin 1) (v := 1) m (fun _ : Fin (2 * m) => (0 : Fin 1))
   have hL : ∫ z, (∏ r : Fin (2 * m), z (0 : Fin 1))
@@ -2373,7 +2362,6 @@ private lemma deepLinearBatchLaw_hidden_eq_bind {A : Type uA} {dIn k dOut : ℕ}
     (MLPShape.hidden tail : MLPShape dIn dOut).deepLinearBatchLaw Cw D =
       (oneLayerBatchLaw (ι := Fin dIn) (κ := Fin k) Cw D).bind
         (fun y => tail.deepLinearBatchLaw Cw y) := by
-  classical
   let μ₁ : Measure (LayerParams (Fin dIn) (Fin k)) :=
     layerGaussianInit (hyperparams Cw) (Fin dIn) (Fin k)
   let ν : Measure tail.Params := tail.gaussianInit (tail.deepLinearHyperparams Cw)

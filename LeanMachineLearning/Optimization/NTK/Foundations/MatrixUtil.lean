@@ -318,7 +318,6 @@ theorem allOnes_hadamard {m n α : Type*} [MulOneClass α] (A : Matrix m n α) :
 /-- The unscaled Gram matrix `M * Mᵀ` formed by vector dot products is positive semidefinite. -/
 theorem gram_posSemidef {m n : Type*} [Finite m] [Fintype n] (M : Matrix m n ℝ) :
     (Matrix.of fun α β => M α ⬝ᵥ M β).PosSemidef := by
-  classical
   have h_eq : (Matrix.of fun α β => M α ⬝ᵥ M β) = M * Mᵀ := by
     ext α β
     simp [Matrix.mul_apply, dotProduct]

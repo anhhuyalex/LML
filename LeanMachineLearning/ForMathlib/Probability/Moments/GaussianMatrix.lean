@@ -168,6 +168,7 @@ theorem integral_gaussianMatrix_bilinear_mul_bilinear (u x : ι → ℝ) (v y : 
     ∫ G : ι → κ → ℝ, (u ⬝ᵥ (Matrix.of G *ᵥ v)) * (x ⬝ᵥ (Matrix.of G *ᵥ y))
         ∂(Measure.pi fun _ : ι => Measure.pi fun _ : κ => gaussianReal 0 1) =
       (u ⬝ᵥ x) * (v ⬝ᵥ y) := by
+  classical
   have hpair : ∀ (u : ι → ℝ) (v : κ → ℝ) (G : ι → κ → ℝ), u ⬝ᵥ (Matrix.of G *ᵥ v) =
       (fun q : ι × κ => G q.1 q.2) ⬝ᵥ (fun q => u q.1 * v q.2) := fun u v G => by
     simp only [dotProduct, mulVec, Matrix.of_apply, Fintype.sum_prod_type, Finset.mul_sum]

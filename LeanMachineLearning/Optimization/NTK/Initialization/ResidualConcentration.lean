@@ -115,7 +115,6 @@ theorem tendsto_residualQuadForm (μ : Measure Ω) [IsProbabilityMeasure μ] (ρ
         ((1 - gramProjector (Φ n (Ψ n ω).1)) * A n (Ψ n ω).1 *
           (1 - gramProjector (Φ n (Ψ n ω).1))).trace)|})
       atTop (nhds 0) := by
-  classical
   obtain ⟨Bu, cu, hBu, hBuc⟩ := hcu
   obtain ⟨Bv, cv, hBv, hBvc⟩ := hcv
   obtain ⟨BA, cA, hBA, hBAc⟩ := hcA
@@ -216,7 +215,6 @@ theorem tendsto_residualLinearForm (μ : Measure Ω) [IsProbabilityMeasure μ] (
           ((Matrix.of (Ψ n ω).2 * (1 - gramProjector (Φ n (Ψ n ω).1))) *ᵥ
             b n (Ψ n ω).1))|})
       atTop (nhds 0) := by
-  classical
   obtain ⟨Bu, cu, hBu, hBuc⟩ := hcu
   obtain ⟨Bb, cb, hBb, hBbc⟩ := hcb
   set bq : ∀ n : ℕ, Z × (Fin n → Fin n → ℝ) → ℝ := fun n q =>

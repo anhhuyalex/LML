@@ -52,7 +52,6 @@ theorem integral_poissonDirichlet_gaussian_tilt_ibp_blocks
         (f (fun i j => if τ (some i) = τ (some j) then 1 else 0) *
           (∑ j : Fin n, t * (if τ (some r₀) = τ (some j) then 1 else 0) -
             n * t * (if τ (some r₀) = τ none then 1 else 0))) ∂P := by
-  classical
   let Z : Ω → ℕ → ℕ × (ℕ → ℝ) :=
     fun ω m => ((B m ω).1, fun l => ((B m ω).2 l).1)
   let G : Ω → ℕ → ℕ → ℝ := fun ω m l => ((B m ω).2 l).2

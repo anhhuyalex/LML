@@ -33,7 +33,6 @@ theorem partition_overlap_indicator_eq {I K α : Type*} [Fintype I]
     (∏ i : I, ∏ j : I, if b i = b j then
       (if σ i = σ j then (1 : ℝ) else 0) else 1) =
       if ∀ i j, b i = b j → σ i = σ j then 1 else 0 := by
-  classical
   by_cases h : ∀ i j, b i = b j → σ i = σ j
   · have hterm (i j : I) :
         (if b i = b j then (if σ i = σ j then (1 : ℝ) else 0) else 1) = 1 := by
@@ -62,7 +61,6 @@ theorem tsum_partition_overlap_eq_powerSums {I K α : Type*}
       (∏ i : I, ∏ j : I, if b i = b j then
         (if σ i = σ j then (1 : ℝ) else 0) else 1)) =
       ∏ m : K, ∑' a, w a ^ Fintype.card {i : I // b i = m} := by
-  classical
   simp_rw [partition_overlap_indicator_eq b]
   exact tsum_prod_pi_fiber_eq b hb hw0 hws
 
@@ -155,7 +153,6 @@ theorem measurable_partition_overlap_observable {I K : Type*}
     [Fintype I] [DecidableEq K] (b : I → K) :
     Measurable (fun R : I → I → ℝ =>
       ∏ i : I, ∏ j : I, if b i = b j then R i j else 1) := by
-  classical
   refine Finset.measurable_prod _ fun i _ => Finset.measurable_prod _ fun j _ => ?_
   split_ifs <;> fun_prop
 
@@ -169,7 +166,6 @@ theorem partition_overlap_merge_as_fiber {I K α : Type*} [Fintype I]
       (if σ r = σ l then 1 else 0) =
     if ∀ i j, (if b i = b l then b r else b i) =
       (if b j = b l then b r else b j) → σ i = σ j then 1 else 0 := by
-  classical
   rw [partition_overlap_merge_indicator]
   congr 1
   apply propext
@@ -212,7 +208,6 @@ theorem card_partition_fresh_fiber {I K : Type*} [Fintype I]
     [DecidableEq K] (b : I → K) (r : I) (m : K) :
     Fintype.card {o : Option I // o.elim (b r) b = m} =
       Fintype.card {i : I // b i = m} + if b r = m then 1 else 0 := by
-  classical
   simp only [Fintype.card_subtype, Finset.card_eq_sum_ones, Finset.sum_filter]
   simp only [Fintype.sum_option, Option.elim]
   exact add_comm _ _

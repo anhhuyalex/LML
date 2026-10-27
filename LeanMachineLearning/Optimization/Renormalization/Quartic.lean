@@ -429,7 +429,6 @@ theorem quartic_wick_sum_eq_three_quarticContraction
     (∑ q : Fin 4 → ι, A.coeff q *
       wick (fun r s : Fin 4 ↦ K (q r) (q s)) Finset.univ) =
         3 * A.quarticContraction K := by
-  classical
   -- The second and third pairing sums are reindexed to the first by the transpositions
   -- `(1 2)` and `(1 3)` of the four slots, using `A.coeff_perm`.
   have hT2 :
@@ -501,7 +500,6 @@ private lemma two_external_wick_sum_eq_three_twelve_contractions
           (Sum.elim (fun t : Fin 2 ↦ if t = 0 then i else j) q s)) Finset.univ) =
         3 * (K i j * A.quarticContraction K) +
           12 * A.twoPointContraction K i j := by
-  classical
   let ext : Fin 2 → ι := fun t ↦ if t = 0 then i else j
   have hC : ∀ q : Fin 4 → ι, ∀ r s : Sum (Fin 2) (Fin 4),
       K (Sum.elim ext q r) (Sum.elim ext q s) =
@@ -915,7 +913,6 @@ private lemma external_partner_wick_sum (A : QuarticCoupling ι) (K : Matrix ι 
           Finset (Sum (Fin 4) (Fin 4)))) =
       3 * (K (index m) (index n) * A.quarticContraction K) +
         12 * A.twoPointContraction K (index m) (index n) := by
-  classical
   have hWick : ∀ q : Fin 4 → ι,
       wick (fun r s : Sum (Fin 4) (Fin 4) ↦ K (Sum.elim index q r) (Sum.elim index q s))
           ({Sum.inl m, Sum.inl n, Sum.inr 0, Sum.inr 1, Sum.inr 2, Sum.inr 3} :
@@ -1036,7 +1033,6 @@ private lemma vertex_partner_wick_sum_zero (A : QuarticCoupling ι) (K : Matrix 
         K (index 1) (index 3) * A.twoPointContraction K (index 0) (index 2) +
         K (index 2) (index 3) * A.twoPointContraction K (index 0) (index 1)) +
       6 * A.fourPointContraction K index := by
-  classical
   let C (q : Fin 4 → ι) : Sum (Fin 4) (Fin 4) → Sum (Fin 4) (Fin 4) → ℝ := fun r s ↦
     K (Sum.elim index q r) (Sum.elim index q s)
   have hC : ∀ q : Fin 4 → ι, ∀ r s : Sum (Fin 4) (Fin 4), C q r s = C q s r := by
@@ -1274,7 +1270,6 @@ private lemma vertex_partner_wick_sum (A : QuarticCoupling ι) (K : Matrix ι ι
         K (index 1) (index 3) * A.twoPointContraction K (index 0) (index 2) +
         K (index 2) (index 3) * A.twoPointContraction K (index 0) (index 1)) +
       6 * A.fourPointContraction K index := by
-  classical
   fin_cases a
   · have hR : ((Finset.univ : Finset (Sum (Fin 4) (Fin 4))).erase (Sum.inl 0)).erase (Sum.inr 0) =
         ({Sum.inl 1, Sum.inl 2, Sum.inl 3, Sum.inr 1, Sum.inr 2, Sum.inr 3} :
@@ -1471,7 +1466,6 @@ private lemma four_external_wick_sum (A : QuarticCoupling ι) (K : Matrix ι ι 
             K (index 1) (index 3) * A.twoPointContraction K (index 0) (index 2) +
             K (index 2) (index 3) * A.twoPointContraction K (index 0) (index 1)) +
         24 * A.fourPointContraction K index := by
-  classical
   let U : Finset (Sum (Fin 4) (Fin 4)) :=
     (Finset.univ : Finset (Sum (Fin 4) (Fin 4))).erase (Sum.inl 0)
   let C (q : Fin 4 → ι) : Sum (Fin 4) (Fin 4) → Sum (Fin 4) (Fin 4) → ℝ := fun r s ↦

@@ -196,7 +196,6 @@ theorem integral_truncated_gibbs_replica_average_gaussian [DecidableEq α] [Fint
           ∑ b ∈ A, G b * Real.exp (y b ω) else 0) *
         (Φ (fun r => τ (some r)) * (∑ r, C (τ (some r₀)) (τ (some r)) -
           Fintype.card R * C (τ (some r₀)) (τ none))) ∂P := by
-  classical
   let _ : MeasurableSpace α := ⊤
   have : MeasurableSingletonClass α := ⟨fun _ => MeasurableSpace.measurableSet_top⟩
   have : Nonempty A := hA.to_subtype

@@ -137,7 +137,6 @@ theorem tsum_normalized_masses_eq_ranked
       (∏ i, poissonDirichletWeight (σ i)
         (Measure.sum fun a : α => Measure.dirac (u a))) *
       F (fun i j => if σ i = σ j then 1 else 0) := by
-  classical
   obtain ⟨e, hw⟩ := exists_equiv_poissonDirichletWeight_sum_dirac u hu hpos hs
   let E : (J → α) ≃ (J → ℕ) := Equiv.arrowCongr (Equiv.refl J) e
   rw [← E.tsum_eq (fun σ : J → ℕ =>
@@ -494,7 +493,6 @@ theorem measurable_ranked_replica_series
     Measurable (fun w : ℕ → ℝ =>
       ∑' σ : J → ℕ, (∏ i, w (σ i)) *
         F (fun i j => if σ i = σ j then 1 else 0)) := by
-  classical
   apply Measurable.tsum
   intro σ
   have hp : Measurable (fun w : ℕ → ℝ => ∏ i, w (σ i)) := by fun_prop
@@ -508,7 +506,6 @@ theorem measurable_ranked_fresh_replica_series
       ∑' τ : Option J → ℕ, (∏ i, w (τ i)) *
         (F (fun i j => if τ (some i) = τ (some j) then 1 else 0) *
           if τ (some r₀) = τ none then 1 else 0)) := by
-  classical
   apply Measurable.tsum
   intro τ
   have hp : Measurable (fun w : ℕ → ℝ => ∏ i, w (τ i)) := by fun_prop

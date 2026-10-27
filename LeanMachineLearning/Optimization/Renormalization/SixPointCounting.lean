@@ -32,7 +32,6 @@ namespace Renormalization
 -- The `(4,2)`-partition of `Fin 6` whose two-element block is `B`.
 private noncomputable def pairPartition (B : Finset (Fin 6)) (hB : B.card = 2) :
     Finpartition (Finset.univ : Finset (Fin 6)) := by
-  classical
   have hdisj :
       (↑({B, Finset.univ \ B} : Finset (Finset (Fin 6))) : Set (Finset (Fin 6))).PairwiseDisjoint
         id := by
@@ -124,7 +123,6 @@ terms in equation `eq:C6` of `docs/Renormalization.md`.
 -/
 theorem card_fourTwoPartition_fin_six :
     fourTwoPartitions.card = 15 := by
-  classical
   have hbij : ((Finset.univ : Finset (Fin 6)).powersetCard 2).card = fourTwoPartitions.card := by
     apply Finset.card_bij (fun B hB => pairPartition B (Finset.mem_powersetCard.mp hB).2)
     · intro B hB

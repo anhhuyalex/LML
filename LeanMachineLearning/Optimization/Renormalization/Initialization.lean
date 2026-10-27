@@ -216,7 +216,6 @@ with the second projection preserves it under the independent outer product.  Se
 theorem iIndepFun_bias_layerGaussianInit (p : InitHyperparams) (ι : Type u) (κ : Type v)
     [Fintype ι] [Fintype κ] :
     iIndepFun (fun j (q : LayerParams ι κ) => q.2 j) (layerGaussianInit p ι κ) := by
-  classical
   let X : κ → (κ → ℝ) → ℝ := fun j b => b j
   let f : LayerParams ι κ → κ → ℝ := Prod.snd
   have hf : AEMeasurable f (layerGaussianInit p ι κ) := measurable_snd.aemeasurable
@@ -241,7 +240,6 @@ theorem iIndepFun_weight_layerGaussianInit (p : InitHyperparams) (ι : Type u) (
     [Fintype ι] [Fintype κ] :
     iIndepFun (fun ji : κ × ι => fun q : LayerParams ι κ => q.1 ji.1 ji.2)
       (layerGaussianInit p ι κ) := by
-  classical
   -- 1. The flattened product measure, transported to `gaussianWeightLaw` by currying.
   let G : Measure ℝ := gaussianReal 0 (scaledWeightVariance p ι)
   let μ₀ : Measure (κ × ι → ℝ) := Measure.pi fun _ : κ × ι => G
@@ -290,7 +288,6 @@ product-measure theorem.  See
 theorem indepFun_weight_bias_layerGaussianInit (p : InitHyperparams) (ι : Type u) (κ : Type v)
     [Fintype ι] [Fintype κ] :
     IndepFun (fun q : LayerParams ι κ => q.1) (fun q => q.2) (layerGaussianInit p ι κ) := by
-  classical
   simpa [layerGaussianInit] using
     (ProbabilityTheory.indepFun_prod (μ := gaussianWeightLaw p ι κ) (ν := gaussianBiasLaw p κ)
       (X := id) (Y := id) measurable_id measurable_id)
@@ -315,7 +312,6 @@ theorem iIndepFun_layerCoordinate_layerGaussianInit (p : InitHyperparams)
     (ι : Type u) (κ : Type v) [Fintype ι] [Fintype κ] :
     iIndepFun (fun c : LayerCoordinate ι κ => layerCoordinate c)
       (layerGaussianInit p ι κ) := by
-  classical
   let μ : Measure (LayerParams ι κ) := layerGaussianInit p ι κ
   let W : LayerParams ι κ → (κ × ι → ℝ) := fun q ji => q.1 ji.1 ji.2
   let B : LayerParams ι κ → (κ → ℝ) := fun q j => q.2 j
@@ -417,7 +413,6 @@ theorem covariance_bias_layerGaussianInit (p : InitHyperparams) (ι : Type u) (�
     [Fintype ι] [Fintype κ] [DecidableEq κ] (j j' : κ) :
     cov[fun q : LayerParams ι κ => q.2 j, fun q => q.2 j'; layerGaussianInit p ι κ] =
       if j = j' then p.biasVariance else 0 := by
-  classical
   by_cases hjj : j = j'
   · subst j'
     let X : LayerParams ι κ → ℝ := fun q => q.2 j
@@ -459,7 +454,6 @@ theorem covariance_weight_layerGaussianInit (p : InitHyperparams) (ι : Type u) 
     (j j' : κ) (i i' : ι) :
     cov[fun q : LayerParams ι κ => q.1 j i, fun q => q.1 j' i'; layerGaussianInit p ι κ] =
       if j = j' ∧ i = i' then scaledWeightVariance p ι else 0 := by
-  classical
   by_cases hjj : j = j' ∧ i = i'
   · rcases hjj with ⟨rfl, rfl⟩
     let X : LayerParams ι κ → ℝ := fun q => q.1 j i
@@ -507,7 +501,6 @@ theorem covariance_weight_bias_layerGaussianInit (p : InitHyperparams)
     (jW : κ) (i : ι) (jB : κ) :
     cov[fun q : LayerParams ι κ => q.1 jW i,
       fun q => q.2 jB; layerGaussianInit p ι κ] = 0 := by
-  classical
   let X : LayerParams ι κ → ℝ := fun q => q.1 jW i
   let Y : LayerParams ι κ → ℝ := fun q => q.2 jB
   have hX : AEMeasurable X (layerGaussianInit p ι κ) :=

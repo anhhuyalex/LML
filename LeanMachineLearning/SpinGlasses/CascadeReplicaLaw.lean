@@ -293,7 +293,6 @@ theorem identDistrib_cascadeReplicaSum_tilt_succ {Ω : Type*} [MeasurableSpace �
       (fun ω x => cascadeReplicaSum (r + 1) (Pm x)
         (fun l i => tiltTest (t * σ i) (ζ i) (a x l i)) (fun v => D v ω))
       (fun ω x => cascadeReplicaSum (r + 1) (Pm x) (a x) (fun v => D v ω)) P P := by
-  classical
   have h𝔡p : ∀ p, IsProbabilityMeasure (𝔡 p) := inferInstance
   -- the vectors of subtree quantities, untilted and tilted
   obtain ⟨Vm, hVm⟩ : ∃ Vm : ((Σ p : ℕ, Fin p → ℕ) → (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℝ)) →

@@ -251,7 +251,6 @@ theorem gaussian_inputs_infinitePi_active
       (isGaussianProcess_of_iIndepFun_gaussianReal hi hlaw) t,
     (fun a => integral_gaussianReal_coordinate hlaw a),
     (fun a => integral_gaussianReal_coordinate_sq hlaw a), ?_⟩
-  classical
   exact fun a b => integral_gaussianReal_coordinate_mul_scaled hi hlaw a b t
 
 /-- Finiteness of the ENNReal sum of positive masses implies summability of the

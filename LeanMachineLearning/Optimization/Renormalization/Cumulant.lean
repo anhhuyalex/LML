@@ -69,7 +69,6 @@ block `C : Finset B` becomes `C.map φ`.  Both round-trips are the standard
 coverage.  Used by `cumulantTransform_subtype` to reindex the cumulant sum. -/
 def finpartitionSubtypeEquiv [DecidableEq ι] (B : Finset ι) :
     Finpartition B ≃ Finpartition (Finset.univ : Finset B) := by
-  classical
   -- The injective subtype embedding `φ : B ↪ ι` moves blocks between the two worlds.
   let φ : B ↪ ι := Function.Embedding.subtype (fun x : ι ↦ x ∈ B)
   -- Forward: each part `A ⊆ B` is sent to its subtype preimage `{x : B | x.1 ∈ A}`.
@@ -177,7 +176,6 @@ private lemma finpartitionSubtypeEquiv_summand [DecidableEq ι] {R : Type*} [Com
       (finpartitionSubtypeEquiv B P).cumulantCoefficient *
         (finpartitionSubtypeEquiv B P).blockProduct
           (fun s : Finset B ↦ f (s.map (Function.Embedding.subtype (· ∈ B)))) := by
-  classical
   let φ : B ↪ ι := Function.Embedding.subtype (fun x : ι ↦ x ∈ B)
   let pre : Finset ι → Finset B := fun A ↦ A.preimage φ φ.injective.injOn
   have h_parts : (finpartitionSubtypeEquiv B P).parts = P.parts.image pre := rfl
@@ -312,7 +310,6 @@ theorem jointMoment_eq_sum_partition_jointCumulant [Fintype ι] [DecidableEq ι]
 /-- A nonempty subset of a singleton is the singleton itself. -/
 private lemma singleton_part_eq {α : Type*} {x : α} {B : Finset α}
     (hB_sub : B ⊆ ({x} : Finset α)) (hB_ne : B ≠ ∅) : B = {x} := by
-  classical
   apply le_antisymm hB_sub
   intro z hz
   rw [Finset.mem_singleton.mp hz]
@@ -323,7 +320,6 @@ private lemma singleton_part_eq {α : Type*} {x : α} {B : Finset α}
 /-- The parts of any partition of a singleton are exactly the singleton of that singleton. -/
 private lemma singleton_parts_eq {α : Type*} [DecidableEq α] {x : α}
     (P : Finpartition ({x} : Finset α)) : P.parts = {{x}} := by
-  classical
   ext B
   constructor
   · intro hB
@@ -345,7 +341,6 @@ lemma sum_Finpartition_singleton {α : Type*} [DecidableEq α] (x : α)
     {R : Type*} [AddCommMonoid R]
     (f : Finpartition ({x} : Finset α) → R) :
     ∑ P, f P = f ⊤ := by
-  classical
   rw [Fintype.sum_eq_single ⊤]
   · intro P hP
     exfalso
@@ -358,7 +353,6 @@ lemma sum_Finpartition_singleton {α : Type*} [DecidableEq α] (x : α)
 Informal proof: The top partition has 1 block, so the formula `(-1)^(1-1) * (1-1)!` gives 1. -/
 lemma cumulantCoefficient_top {α : Type*} [DecidableEq α] {s : Finset α} (hs : s.Nonempty) :
     (Finpartition.cumulantCoefficient (⊤ : Finpartition s) : ℝ) = 1 := by
-  classical
   dsimp [Finpartition.cumulantCoefficient]
   rw [Finpartition.top_parts_eq_singleton (Finset.nonempty_iff_ne_empty.mp hs)]
   simp
@@ -372,7 +366,6 @@ lemma blockProduct_top {α : Type*} [DecidableEq α] {s : Finset α} (hs : s.Non
     {R : Type*} [CommMonoid R]
     (f : Finset α → R) :
     (⊤ : Finpartition s).blockProduct f = f s := by
-  classical
   dsimp [Finpartition.blockProduct]
   rw [Finpartition.top_parts_eq_singleton (Finset.nonempty_iff_ne_empty.mp hs)]
   simp
@@ -400,7 +393,6 @@ subset of `{x, y}` different from the full set, hence a singleton, and distinct 
 disjoint); in the second case the full block covers everything and no other block can exist. -/
 private lemma pair_part_eq_bot_or_top {α : Type*} [DecidableEq α] {x y : α} (hxy : x ≠ y)
     (P : Finpartition ({x, y} : Finset α)) : P = ⊥ ∨ P = ⊤ := by
-  classical
   have hx_mem : x ∈ ({x, y} : Finset α) := by simp
   have hy_mem : y ∈ ({x, y} : Finset α) := by simp
   have hpx_sub : P.part x ⊆ ({x, y} : Finset α) := P.le (P.part_mem.2 hx_mem)
@@ -533,7 +525,6 @@ lemma sum_Finpartition_pair {α : Type*} [DecidableEq α] (x y : α) (hxy : x �
     {R : Type*} [AddCommMonoid R]
     (f : Finpartition ({x, y} : Finset α) → R) :
     ∑ P, f P = f ⊤ + f ⊥ := by
-  classical
   have huniv : (Finset.univ : Finset (Finpartition ({x, y} : Finset α))) = {⊥, ⊤} := by
     ext P
     constructor
@@ -570,7 +561,6 @@ Informal proof: The discrete partition has 2 blocks, so the formula `(-1)^(2-1) 
 `-1`. -/
 lemma cumulantCoefficient_bot_pair {α : Type*} [DecidableEq α] (x y : α) (hxy : x ≠ y) :
     (Finpartition.cumulantCoefficient (⊥ : Finpartition ({x, y} : Finset α)) : ℝ) = -1 := by
-  classical
   dsimp [Finpartition.cumulantCoefficient]
   rw [Finset.card_map]
   simp [hxy]
@@ -584,7 +574,6 @@ lemma blockProduct_bot_pair {α : Type*} [DecidableEq α] (x y : α) (hxy : x �
     {R : Type*} [CommMonoid R]
     (f : Finset α → R) :
     (⊥ : Finpartition ({x, y} : Finset α)).blockProduct f = f {x} * f {y} := by
-  classical
   dsimp [Finpartition.blockProduct]
   rw [Finset.prod_map]
   exact Finset.prod_pair hxy
@@ -624,7 +613,6 @@ The complementary block is `univ \ {0, a}`.  The definition is total in `a` (no 
 needed); for `a = 1, 2, 3` this is one of the three pairings of the four positions, which are the
 only pairings that survive in `cumulantTransform_fin_four_of_singleton_vanish`. -/
 private def finFourPairing (a : Fin 4) : Finpartition (Finset.univ : Finset (Fin 4)) := by
-  classical
   refine Finpartition.ofExistsUnique (s := Finset.univ)
     ({{(0 : Fin 4), a}, Finset.univ \ ({(0 : Fin 4), a} : Finset (Fin 4))} :
       Finset (Finset (Fin 4))) ?_ ?_ ?_
@@ -1086,7 +1074,6 @@ lemma cumulantTransform_equiv [Fintype ι] [DecidableEq ι] [Fintype κ] [Decida
     (e : ι ≃ κ) (f : Finset ι → R) :
     Finpartition.cumulantTransform (fun s : Finset κ ↦ f (s.map e.symm.toEmbedding)) Finset.univ =
       Finpartition.cumulantTransform f Finset.univ := by
-  classical
   let h : Finset κ → R := fun s ↦ f (s.map e.symm.toEmbedding)
   have hround : ∀ B : Finset ι, (B.map e.toEmbedding).map e.symm.toEmbedding = B := by
     intro B
@@ -1142,7 +1129,6 @@ lemma blockProduct_add [Fintype ι] [DecidableEq ι] {R : Type*} [CommRing R]
     (h_add : ∀ s, f s = if i ∈ s then g s + h s else g s)
     (h_id : ∀ s, i ∉ s → h s = g s) :
     P.blockProduct f = P.blockProduct g + P.blockProduct h := by
-  classical
   let a : Finset ι := P.part i
   have ha_mem : a ∈ P.parts := P.part_mem.2 (Finset.mem_univ i)
   have hi_mem_a : i ∈ a := P.mem_part (Finset.mem_univ i)
@@ -1178,7 +1164,6 @@ lemma cumulantTransform_add [Fintype ι] [DecidableEq ι] {R : Type*} [CommRing 
     Finpartition.cumulantTransform f Finset.univ =
       Finpartition.cumulantTransform g Finset.univ +
         Finpartition.cumulantTransform h Finset.univ := by
-  classical
   by_cases huniv : (Finset.univ : Finset ι) = ∅
   · simp [Finpartition.cumulantTransform, huniv]
   · simp only [Finpartition.cumulantTransform, ite_eq_right huniv]
@@ -1302,7 +1287,6 @@ lemma blockProduct_smul [Fintype ι] [DecidableEq ι] {R : Type*} [CommRing R]
     (P : Finpartition (Finset.univ : Finset ι)) (f : Finset ι → R) (c : R) (i : ι) :
     P.blockProduct (fun s => if i ∈ s then c * f s else f s) =
       c * P.blockProduct f := by
-  classical
   let a : Finset ι := P.part i
   have ha_mem : a ∈ P.parts := P.part_mem.2 (Finset.mem_univ i)
   have hi_mem_a : i ∈ a := P.mem_part (Finset.mem_univ i)
@@ -1742,7 +1726,6 @@ private lemma split_cumulantTransform_mul_empty [DecidableEq ι] {R : Type*} [Co
     (f : Finset ι → R) (A : Finset ι) (h_factor : ∀ s, f s = f (s ∩ A) * f (s \ A))
     (u : Finset ι) (hu : u ⊆ A) :
     f ∅ * Finpartition.cumulantTransform f u = Finpartition.cumulantTransform f u := by
-  classical
   by_cases hu_empty : u = ∅
   · simp [Finpartition.cumulantTransform, hu_empty]
   · simp only [Finpartition.cumulantTransform, ite_eq_right hu_empty]
@@ -2315,7 +2298,6 @@ lemma maxOfPart_injective (P : Finpartition (Finset.univ : Finset (Fin n))) :
 /-- The part of `P` whose maximum is `v`, for `v` the maximum of some part. -/
 noncomputable def partOfMax (P : Finpartition (Finset.univ : Finset (Fin n))) (v : Fin n) :
     Finset (Fin n) := by
-  classical
   by_cases hv : v ∈ (P.parts.attach.image (maxOfPart P))
   · exact (Classical.choose (Finset.mem_image.mp hv)).1
   · exact ∅
@@ -2423,7 +2405,6 @@ lemma sortedParts_injective (P : Finpartition (Finset.univ : Finset (Fin n))) :
 /-- Every part of `P` appears among the sorted parts. -/
 lemma sortedParts_surj (P : Finpartition (Finset.univ : Finset (Fin n))) :
     ∀ A ∈ P.parts, ∃ m : Fin (P.parts.card), sortedParts P m = A := by
-  classical
   intro A hA
   let v : Fin n := maxOfPart P ⟨A, hA⟩
   have hv : v ∈ (P.parts.attach.image (maxOfPart P)) :=

@@ -90,7 +90,6 @@ theorem ae_poissonDirichlet_gaussian_tilt_centering_series
             ((B a.1.1 ω).2 a.1.2).1 *
               Real.exp (t * ((B a.1.1 ω).2 a.1.2).2)) *
         f (fun i j => if σ i = σ j then 1 else 0)) := by
-  classical
   let Z : Ω → ℕ → ℕ × (ℕ → ℝ) :=
     fun ω m => ((B m ω).1, fun l => ((B m ω).2 l).1)
   let G : Ω → ℕ → ℕ → ℝ := fun ω m l => ((B m ω).2 l).2
@@ -330,7 +329,6 @@ theorem integral_poissonDirichlet_gaussian_unit_tilt_mark
           ∑' a : {p : ℕ × ℕ // p.2 < (B p.1 ω).1},
             ((B a.1.1 ω).2 a.1.2).1) *
           f (fun i j => if σ i = σ j then 1 else 0) ∂P := by
-  classical
   let k : Fin n → ℕ := fun i => if i = r₀ then 1 else 0
   let ν' : ℕ → Measure (ℝ × ℝ) := fun m => (ν m).prod (gaussianReal 0 1)
   have hzero := integral_gaussian_gibbs_replica_guard_blocks_eq_zero

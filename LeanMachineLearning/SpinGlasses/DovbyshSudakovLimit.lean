@@ -334,7 +334,6 @@ theorem ae_integrable_section_of_ae_exists_tendsto (hτ : Measurable τ)
         τ (m.1.1, m.1.2 0, m.2 (Sum.inl i), m.2 (Sum.inr (0, i))) *
           τ (m.1.1, m.1.2 0, m.2 (Sum.inl i), m.2 (Sum.inr (0, i)))) atTop (𝓝 c)) :
     ∀ᵐ q ∂(ν.prod ν), Integrable (fun p : X × X => τ (q.1, q.2, p.1, p.2) ^ 2) (ν.prod ν) := by
-  classical
   have hτ2 : Measurable fun y : (X × X) × (X × X) => τ (y.1.1, y.1.2, y.2.1, y.2.2) ^ 2 :=
     (hτ.comp (by fun_prop)).pow_const 2
   set Gd : Set (X × X) := {q | Integrable (fun p : X × X => τ (q.1, q.2, p.1, p.2) ^ 2)

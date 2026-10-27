@@ -83,7 +83,6 @@ def Pairing (s : Finset α) :=
   {P : Finpartition s // ∀ B ∈ P.parts, B.card = 2}
 
 noncomputable instance {s : Finset α} : Fintype (Pairing s) := by
-  classical
   exact Fintype.subtype
     (Finset.univ.filter fun P : Finpartition s ↦ ∀ B ∈ P.parts, B.card = 2) (by
     intro P
@@ -450,7 +449,6 @@ omit [DecidableEq α] in
 @[simp]
 lemma finsetOrderIso_symm_apply (e : α ≃ β) (B : Finset α) :
     e.symm.finsetOrderIso (e.finsetOrderIso B) = B := by
-  classical
   change e.symm.finsetCongr (e.finsetCongr B) = B
   simp [Equiv.finsetCongr_apply, Finset.map_map]
 
@@ -458,7 +456,6 @@ omit [DecidableEq α] in
 @[simp]
 lemma finsetOrderIso_apply_symm (e : α ≃ β) (B : Finset β) :
     e.finsetOrderIso (e.symm.finsetOrderIso B) = B := by
-  classical
   change e.finsetCongr (e.symm.finsetCongr B) = B
   simp [Equiv.finsetCongr_apply, Finset.map_map]
 
@@ -831,7 +828,6 @@ lemma top_parts_eq_singleton {s : Finset α} (hs : s ≠ ∅) :
 /-- The indiscrete partition `⊤` is the unique partition with a single block. -/
 private lemma Finpartition.eq_top_iff_card_parts_eq_one {s : Finset α} (T : Finpartition s)
     (hs : s ≠ ∅) : T = ⊤ ↔ T.parts.card = 1 := by
-  classical
   have hpartsT : (⊤ : Finpartition s).parts = {s} := top_parts_eq_singleton hs
   constructor
   · intro h
@@ -856,7 +852,6 @@ private lemma cumulantCoefficient_sum_coarser [CommRing R] (s : Finset α) (a : 
       ∑ D ∈ T.parts.filter (fun D => a ∉ D),
         cumulantCoefficient (T.restrict (Finset.sdiff_subset : s \ D ⊆ s)) =
       if T = ⊤ then (1 : R) else 0 := by
-  classical
   have hs : s ≠ ∅ := Finset.nonempty_iff_ne_empty.1 ⟨a, ha⟩
   by_cases hT : T = ⊤
   · -- `T = ⊤`: single block `s`, no block avoids `a`, and `c (⊤) = 1`
@@ -931,7 +926,6 @@ private lemma sum_block_cumulant [CommRing R] (f : Finset α → R) (s : Finset 
     cumulantTransform f s +
       ∑ B ∈ s.powerset.filter (fun B => a ∈ B ∧ B ≠ s),
         cumulantTransform f B * f (s \ B) = f s := by
-  classical
   let t : Finset (Finset α) := s.powerset.filter (fun B => a ∈ B ∧ B ≠ s)
   have hs : s ≠ ∅ := Finset.nonempty_iff_ne_empty.1 ⟨a, ha⟩
   have hK (u : Finset α) (hu : u ≠ ∅) :
@@ -1091,7 +1085,6 @@ private lemma sum_block_cumulant [CommRing R] (f : Finset α → R) (s : Finset 
 /-- The partition transform of the empty set is the empty product `1`. -/
 private lemma partitionTransform_empty [CommSemiring R] (g : Finset α → R) :
     partitionTransform g ∅ = 1 := by
-  classical
   have hbot : (∅ : Finset α) = ⊥ := rfl
   rw [hbot]
   have hparts : (default : Finpartition (⊥ : Finset α)).parts = ∅ := by simp
@@ -1111,7 +1104,6 @@ private lemma partitionTransform_cumulantTransform_rec [CommRing R] (f : Finset 
       cumulantTransform f s +
         ∑ B ∈ s.powerset.filter (fun B => a ∈ B ∧ B ≠ s),
           cumulantTransform f B * partitionTransform (cumulantTransform f) (s \ B) := by
-  classical
   let t : Finset (Finset α) := s.powerset.filter (fun B => a ∈ B)
   have hstep1 :
       partitionTransform (cumulantTransform f) s =
@@ -1194,7 +1186,6 @@ blueprint records this as the partition-inversion theorem in
 private theorem partitionTransform_cumulantTransform_of_nonempty_mobius [CommRing R]
     (f : Finset α → R) {s : Finset α} (hs : s ≠ ∅) :
     partitionTransform (cumulantTransform f) s = f s := by
-  classical
   -- strong induction on the cardinality of the carrier `s`
   have hP : ∀ n, ∀ s, s.card = n → s ≠ ∅ → partitionTransform (cumulantTransform f) s = f s :=
     fun n => Nat.strong_induction_on n (by
@@ -1378,7 +1369,6 @@ https://link.springer.com/article/10.1007/BF01899123) -/
 theorem cumulantTransform_partitionTransform [CommRing R] (f : Finset α → R)
     (hf : f ∅ = 0) :
     cumulantTransform (partitionTransform f) = f := by
-  classical
   refine partitionTransform_injective_of_empty
     (f := cumulantTransform (partitionTransform f)) (g := f) ?_ hf ?_
   · simp [cumulantTransform]
@@ -2306,7 +2296,6 @@ private lemma sum_cumulant_by_trace {R : Type*} [CommRing R] (f : Finset α → 
         ∑ T ∈ Finset.univ.filter (fun T : Finpartition (A ∪ B) =>
             T.restrict (Finset.subset_union_left) = π ∧ T.restrict (Finset.subset_union_right) = σ),
           cumulantCoefficient T * T.blockProduct f := by
-  classical
   calc
     (∑ T : Finpartition (A ∪ B), cumulantCoefficient T * T.blockProduct f)
         = ∑ π : Finpartition A, ∑ σ : Finpartition B,
@@ -2334,7 +2323,6 @@ private lemma sum_traceFiber_eq_sum_matching {R : Type*} [CommRing R] (hAB : Dis
         T.restrict (Finset.subset_union_left) = π ∧ T.restrict (Finset.subset_union_right) = σ),
       cumulantCoefficient T * T.blockProduct f) =
       ∑ M : Matching π σ, cumulantCoefficient (M.glue hAB) * (M.glue hAB).blockProduct f := by
-  classical
   -- `Finset.sum_bij` with `T ↦ traceFiberToMatching π σ hAB T ...`; injectivity and surjectivity
   -- are the two round-trip lemmas, and the summand equality is round-trip 1 applied to `T`.
   apply Finset.sum_bij (fun T hT =>
@@ -2410,7 +2398,6 @@ lemma cumulantTransform_eq_sum_matchings_by_trace {R : Type*} [CommRing R]
         (∑ M : Matching π σ,
           ((-1 : R) ^ (π.parts.card + σ.parts.card - M.size - 1) *
             ((π.parts.card + σ.parts.card - M.size - 1).factorial : R))) := by
-  classical
   calc
     cumulantTransform f (A ∪ B) =
         ∑ T : Finpartition (A ∪ B), cumulantCoefficient T * T.blockProduct f := by

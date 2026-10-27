@@ -118,7 +118,6 @@ theorem integral_sumSq_pow_stdGaussian (m n : ℕ) :
 private lemma normalized_chiSquare_product_algebra (m n : ℕ) (hn : 0 < n) :
     ((n : ℝ)⁻¹) ^ m * (∏ s ∈ Finset.range m, ((n : ℝ) + 2 * s)) =
       widthMomentFactor m n := by
-  classical
   have hn_ne : (n : ℝ) ≠ 0 := by exact_mod_cast (Nat.ne_of_gt hn)
   unfold widthMomentFactor
   calc
@@ -180,7 +179,6 @@ private lemma normalizedEnergy_comp_smul_equiv (c : ℝ) {ι κ : Type*} [Fintyp
     (e : κ ≃ ι) (g : ι → ℝ) :
     NeuralNetwork.normalizedEnergy (fun j : κ => c * g (e j)) =
       c ^ 2 * NeuralNetwork.normalizedEnergy g := by
-  classical
   unfold NeuralNetwork.normalizedEnergy
   have hcard : (Fintype.card κ : ℝ) = (Fintype.card ι : ℝ) := by
     exact_mod_cast Fintype.card_congr e
@@ -224,7 +222,6 @@ private lemma oneLayerOutputLaw_eq_map_stdGaussian
         (fun g : Fin (Fintype.card κ) → ℝ => fun j : κ =>
           Real.sqrt ((Cw : ℝ) * NeuralNetwork.normalizedEnergy x) * g (Fintype.equivFin κ j))
         ((Measure.pi fun _ : Fin (Fintype.card κ) => gaussianReal 0 1)) := by
-  classical
   let s : ℝ := (Cw : ℝ) * NeuralNetwork.normalizedEnergy x
   have hs : 0 ≤ s := by
     dsimp [s]
@@ -528,7 +525,6 @@ theorem integral_normalizedEnergy_pow_oneLayerOutputLaw_eq_scaled_stdGaussian
       ((Cw : ℝ) * NeuralNetwork.normalizedEnergy x) ^ m *
         ∫ g : Fin (Fintype.card κ) → ℝ, NeuralNetwork.normalizedEnergy g ^ m
           ∂(Measure.pi fun _ : Fin (Fintype.card κ) => gaussianReal 0 1) := by
-  classical
   let s : ℝ := (Cw : ℝ) * NeuralNetwork.normalizedEnergy x
   have hs : 0 ≤ s := by
     dsimp [s]

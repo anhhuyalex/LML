@@ -266,7 +266,6 @@ when the base Gibbs weights themselves depend on an outer random parameter. -/
 theorem abs_log_integral_cosh_count_tilted_le_sum_abs [Nonempty α]
     (A L : α → ℝ) :
     |Real.log (∫ a, Real.cosh (L a) ∂Measure.count.tilted A)| ≤ ∑ a, |L a| := by
-  classical
   have h_one : 1 ≤ ∫ a, Real.cosh (L a) ∂Measure.count.tilted A :=
     one_le_integral_cosh _ L
   rw [abs_of_nonneg (Real.log_nonneg h_one)]

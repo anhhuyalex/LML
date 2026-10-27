@@ -770,7 +770,6 @@ theorem map_evalBatch_layerGaussianInit [Fintype ι] [Fintype κ] [Fintype A] [D
     Measure.map (fun q : LayerParams ι κ => fun j => batchToEuclidean (batchPreactivation q s) j)
         (layerGaussianInit p ι κ) =
       Measure.pi (fun _ : κ => multivariateGaussian 0 (layerCovariance p s)) := by
-  classical
   let ρW : Measure (ι → ℝ) := Measure.pi (fun _ : ι => gaussianReal 0 (scaledWeightVariance p ι))
   let νB : Measure ℝ := gaussianReal 0 p.biasVariance
   let rowLaw : κ → Measure ((ι → ℝ) × ℝ) := fun _ => ρW.prod νB

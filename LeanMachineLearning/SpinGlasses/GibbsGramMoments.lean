@@ -76,7 +76,6 @@ theorem integral_pi_doubleCentered_pow_le {m : ℕ} (f : α → ℝ) (K : α →
     ∫ σ : Fin m → α, T σ ^ (2 * k) ∂(Measure.pi fun _ : Fin m => Measure.count.tilted f) ≤
       4 ^ (2 * k) * ∫ a, ∫ b, K a b ^ (2 * k) ∂(Measure.count.tilted f)
         ∂(Measure.count.tilted f) := by
-  classical
   set μ : Measure α := Measure.count.tilted f with hμ
   set J := ∫ a, ∫ b, K a b ^ (2 * k) ∂μ ∂μ with hJ
   have hJ0 : 0 ≤ J :=

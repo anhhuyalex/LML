@@ -86,7 +86,6 @@ theorem identDistrib_replica_point_tilt {ζ : ℝ} (hζ0 : 0 < ζ) (hζ1 : ζ < 
       ((Measure.infinitePi fun k => Po(rate k).prod (Measure.infinitePi fun _ : ℕ => nu k)).prod
         (Measure.infinitePi fun _ : ℕ => Measure.infinitePi fun _ : ℕ =>
           (gaussianReal 0 1).prod κ)) := by
-  classical
   set m : Measure (ℝ × S) := (gaussianReal 0 1).prod κ with hm
   set 𝓑 := Measure.infinitePi fun k => Po(rate k).prod (Measure.infinitePi fun _ : ℕ => nu k)
     with h𝓑

@@ -858,7 +858,6 @@ end RewardByCount
 lemma sum_pullCount_mul [Fintype 𝓐] [Semiring R] (ω : Ω) (f : 𝓐 → R) (t : ℕ) :
     ∑ a, pullCount A a t ω * f a = ∑ s ∈ range t, f (A s ω) := by
   unfold pullCount
-  classical
   simp_rw [card_eq_sum_ones]
   push_cast
   simp_rw [sum_mul, one_mul]

@@ -76,7 +76,6 @@ theorem exists_sk_smart_path_fields {N : ℕ} (hN : 0 < N) (β q : ℝ) (hq : 0 
         -((N : ℝ) * β ^ 2 / 2) * ((((N : ℝ)⁻¹ *
           ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ fun i => ((τ i : ℤ) : ℝ))) - q) ^ 2 -
           (q ^ 2 + (N : ℝ)⁻¹)) := by
-  classical
   have : Nonempty (Fin N) := ⟨⟨0, hN⟩⟩
   obtain ⟨Pg, hPg⟩ : ∃ Pg : Measure (FinPairs N → ℝ),
       Pg = Measure.pi fun _ : FinPairs N => gaussianReal 0 1 := ⟨_, rfl⟩

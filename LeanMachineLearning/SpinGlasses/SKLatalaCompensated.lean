@@ -53,7 +53,6 @@ theorem replica_decoupling_comb_nonneg (f : α → ℝ) (A U : α → α → ℝ
           ∂(Measure.pi fun _ : Option (Option (Fin 2)) => Measure.count.tilted f) +
       8 * κ * ∫ σ : Fin 2 → α, A (σ 0) (σ 1) * Real.exp (u * A (σ 0) (σ 1))
           ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted f) := by
-  classical
   set μ : Measure α := Measure.count.tilted f with hμ
   set Φ : (Fin 2 → α) → ℝ := fun σ => Real.exp (u * A (σ 0) (σ 1)) with hΦ
   -- the integrand is `-κ (2 A₁₂ - 4 A₁₃ - 4 A₂₃ + 6 A₃₄) Φ`
@@ -155,7 +154,6 @@ theorem monotoneOn_compensated_functional
           ∂(Measure.pi fun _ : Fin 2 =>
             Measure.count.tilted fun a => Real.cos s * X a ω + Real.sin s * Y a ω + h a) ∂P)
       (Set.Icc 0 (Real.pi / 2)) := by
-  classical
   have hP := hXY.isProbabilityMeasure
   obtain ⟨K, hK⟩ : ∃ K, ∀ σ τ, A σ τ ≤ K :=
     (Set.finite_range fun p : α × α => A p.1 p.2).bddAbove.imp fun K hK σ τ => hK ⟨(σ, τ), rfl⟩
@@ -271,7 +269,6 @@ theorem sk_compensated_path_le_decoupled {N : ℕ} (hN : 0 < N) (β h q lam : �
           ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted fun a =>
             β * Real.sqrt q * (∑ i, z i * ((a i : ℤ) : ℝ)) + h * ∑ i, ((a i : ℤ) : ℝ))
         ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1) := by
-  classical
   have : Nonempty (Fin N) := ⟨⟨0, hN⟩⟩
   obtain ⟨Pg, hPg⟩ : ∃ Pg : Measure (FinPairs N → ℝ),
       Pg = Measure.pi fun _ : FinPairs N => gaussianReal 0 1 := ⟨_, rfl⟩

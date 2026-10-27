@@ -189,7 +189,6 @@ theorem lintegral_cascadeGibbsAt_zero {Ω : Type*} [MeasurableSpace Ω] {P : Mea
     (hψ : Measurable ψ) :
     ∫⁻ ω, replicaGibbsAt r n σ 0 F l₀ i₀ ψ 0 (u ω) (lab ω) ∂P =
       (∫⁻ y, ψ y ∂gaussianReal 0 1) * ∫⁻ ω, replicaGibbs r n σ 0 F (u ω) (lab ω) ∂P := by
-  classical
   have h𝔡p : ∀ p, IsProbabilityMeasure (𝔡 p) := fun p => by rw [h𝔡 p]; infer_instance
   obtain ⟨-, hLlaw, hind⟩ := hasLaw_indepFun_fst_snd_of_iIndepFun D hDm hD
     (fun v => Measure.infinitePi fun k =>

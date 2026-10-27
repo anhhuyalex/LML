@@ -253,8 +253,7 @@ lemma Kernel.prodMkLeft_ae_eq_iff [MeasurableSpace.CountableOrCountablyGenerated
     κ.prodMkLeft γ =ᵐ[μ] η.prodMkLeft γ ↔ κ =ᵐ[μ.snd] η := by
   rw [Measure.snd, Filter.EventuallyEq, Filter.EventuallyEq, ae_map_iff (by fun_prop)]
   · simp
-  · classical
-    exact Kernel.measurableSet_eq κ η
+  · exact Kernel.measurableSet_eq κ η
 
 lemma Kernel.prodMkRight_ae_eq_iff [MeasurableSpace.CountableOrCountablyGenerated α β]
     {κ η : Kernel α β} [IsFiniteKernel κ] [IsFiniteKernel η]
@@ -262,8 +261,7 @@ lemma Kernel.prodMkRight_ae_eq_iff [MeasurableSpace.CountableOrCountablyGenerate
     κ.prodMkRight γ =ᵐ[μ] η.prodMkRight γ ↔ κ =ᵐ[μ.fst] η := by
   rw [Measure.fst, Filter.EventuallyEq, Filter.EventuallyEq, ae_map_iff (by fun_prop)]
   · simp
-  · classical
-    exact Kernel.measurableSet_eq κ η
+  · exact Kernel.measurableSet_eq κ η
 
 omit [StandardBorelSpace Ω'] [Nonempty Ω'] in
 lemma condIndepFun_of_exists_condDistrib_prod_ae_eq_prodMkRight

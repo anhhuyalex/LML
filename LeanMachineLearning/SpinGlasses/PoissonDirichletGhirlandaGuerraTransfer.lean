@@ -33,7 +33,6 @@ theorem gaussian_gibbs_mark_centering_identity
     (∑' σ : J → α, (∏ j, w (σ j)) * (Φ σ * x σ)) =
       (∑' σ : J → α, (∏ j, w (σ j)) * (Φ σ * (x σ - c))) +
         c * ∑' σ : J → α, (∏ j, w (σ j)) * Φ σ := by
-  classical
   have hbase := summable_prod_pi (J := J) (f := fun _ => w) (fun _ a => hw a)
     (fun _ => hs)
   have hbound : Summable (fun σ : J → α => (∏ j, w (σ j)) * Φ σ) := by
@@ -222,7 +221,6 @@ theorem measurable_gaussian_gibbs_tilt_centered_guard
               (zg.1 p.1).2 p.2 * Real.exp (t * zg.2 p.1 p.2) else 0) *
             (Φ σ * (zg.2 (σ r₀).1 (σ r₀).2 - c))
         else 0 := by
-  classical
   apply measurable_tsum_guarded_replica
     (N := fun z : ℕ → ℕ × (ℕ → ℝ) => fun m => (z m).1)
     (w := fun (zg : (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → ℕ → ℝ)) p =>
@@ -304,7 +302,6 @@ theorem integrable_gaussian_gibbs_tilt_centered_guard_prod
             (f (fun i j => if σ i = σ j then 1 else 0) *
               (zg.2 (σ r₀).1 (σ r₀).2 - t * ζ))
         else 0) ((P.map Z).prod μ) := by
-  classical
   let Z : Ω → ℕ → ℕ × (ℕ → ℝ) :=
     fun ω m => ((B m ω).1, fun l => ((B m ω).2 l).1)
   let G : Ω → ℕ → ℕ → ℝ := fun ω m l => ((B m ω).2 l).2
@@ -496,7 +493,6 @@ theorem integrable_gaussian_gibbs_tilt_mark_guard_prod
             (f (fun i j => if σ i = σ j then 1 else 0) *
               zg.2 (σ r₀).1 (σ r₀).2)
         else 0) ((P.map Z).prod μ) := by
-  classical
   let Z : Ω → ℕ → ℕ × (ℕ → ℝ) :=
     fun ω m => ((B m ω).1, fun l => ((B m ω).2 l).1)
   let μ : Measure (ℕ → ℕ → ℝ) :=
@@ -644,7 +640,6 @@ theorem integral_poissonDirichlet_gaussian_tilt_ibp_prod
               (if τ (some r₀) = τ (some j) then 1 else 0) -
               n * t * (if τ (some r₀) = τ none then 1 else 0)))
       else 0 ∂ρ.prod μ := by
-  classical
   let Z : Ω → ℕ → ℕ × (ℕ → ℝ) :=
     fun ω m => ((B m ω).1, fun l => ((B m ω).2 l).1)
   let ρ : Measure (ℕ → ℕ × (ℕ → ℝ)) := P.map Z

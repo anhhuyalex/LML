@@ -84,7 +84,6 @@ theorem ExpTame.hasFDerivAt_derivProd (hV : ExpTame V) (a : Fin m → ℕ) (x : 
     (k : Fin m) :
     fderiv ℝ (fun x : Fin m → ℝ => ∏ ℓ, deriv^[a ℓ] V (x ℓ)) x (Pi.single k 1) =
       ∏ ℓ, deriv^[(a + Pi.single k 1 : Fin m → ℕ) ℓ] V (x ℓ) := by
-  classical
   have hd : ∀ ℓ, HasFDerivAt (fun y : Fin m → ℝ => deriv^[a ℓ] V (y ℓ))
       (deriv (deriv^[a ℓ] V) (x ℓ) • ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : Fin m => ℝ) ℓ)
       x := fun ℓ => by
@@ -167,7 +166,6 @@ theorem ExpTame.hasDerivAt_integral_derivProd_projPath (hV : ExpTame V)
           (Real.cos t * (v * ω.1 ℓ) + Real.sin t * (u ℓ ⬝ᵥ ω.2))
           ∂((Measure.pi fun _ : Fin m => gaussianReal 0 1).prod
             (Measure.pi fun _ : Fin N => gaussianReal 0 1))) t := by
-  classical
   set P : Measure ((Fin m → ℝ) × (Fin N → ℝ)) := (Measure.pi fun _ : Fin m => gaussianReal 0 1).prod
     (Measure.pi fun _ : Fin N => gaussianReal 0 1) with hP
   let X : Fin m → (Fin m → ℝ) × (Fin N → ℝ) → ℝ := fun l ω => v * ω.1 l
@@ -290,7 +288,6 @@ theorem pairProd_cons (T : Fin m → Fin m → ℝ) (q : Fin m × Fin m) (p : Fi
 /-- The total multiplicity of all replicas across a list of `r` pairs is `2 * r`. -/
 theorem sum_pairCount (p : Fin r → Fin m × Fin m) :
     ∑ ℓ : Fin m, pairCount p ℓ = 2 * r := by
-  classical
   unfold pairCount
   rw [sum_comm]
   have h (i : Fin r) : (∑ ℓ : Fin m, ((if (p i).1 = ℓ then 1 else 0) +
@@ -336,7 +333,6 @@ noncomputable def projSum (V : ℝ → ℝ) (u : Fin m → Fin N → ℝ) (v : �
 theorem ExpTame.hasDerivAt_projSum (hV : ExpTame V) (u : Fin m → Fin N → ℝ) (v : ℝ) (r : ℕ)
     (t : ℝ) :
     HasDerivAt (projSum V u v r) (Real.sin t * Real.cos t * projSum V u v (r + 1) t) t := by
-  classical
   have h := HasDerivAt.fun_sum (u := Finset.univ)
     (A := fun (p : Fin r → Fin m × Fin m) (s : ℝ) =>
       (∏ i, (u (p i).1 ⬝ᵥ u (p i).2 - if (p i).1 = (p i).2 then v ^ 2 else 0)) *

@@ -82,7 +82,6 @@ theorem exists_sk_smart_path_profile {N : ℕ} (hN : 0 < N) (β h q : ℝ) (hq :
             h * ∑ i, ((a i : ℤ) : ℝ))
           ∂((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
             (Measure.pi fun _ : Fin N => gaussianReal 0 1)) := by
-  classical
   have : Nonempty (Fin N) := ⟨⟨0, hN⟩⟩
   obtain ⟨Pg, hPg⟩ : ∃ Pg : Measure (FinPairs N → ℝ),
       Pg = Measure.pi fun _ : FinPairs N => gaussianReal 0 1 := ⟨_, rfl⟩

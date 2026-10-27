@@ -43,7 +43,6 @@ theorem gaussian_ibp_option_replica_marginal
     {M : ℝ} (hΦ : ∀ σ, |Φ σ| ≤ M) :
     (∑' τ : Option R → α, (∏ o, w (τ o)) * Φ (fun r => τ (some r))) =
       ∑' σ : R → α, (∏ r, w (σ r)) * Φ σ := by
-  classical
   have hbound : Summable (fun σ : R → α =>
       (∏ r, w (σ r)) * |Φ σ|) := by
     have hs := summable_prod_pi (J := R) (f := fun _ => w) (fun _ a => hw0 a)

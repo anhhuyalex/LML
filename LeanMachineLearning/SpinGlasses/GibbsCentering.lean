@@ -46,7 +46,6 @@ theorem sum_prod_weight_mul_linear_eq_zero {α : Type*} [Fintype α] {n N : ℕ}
     (hH : ∀ σ a, H (Function.update σ ℓ a) = H σ)
     (hc : ∀ j σ a, c j (Function.update σ ℓ a) = c j σ) :
     ∑ σ : Fin (n + 1) → α, (∏ r, w (σ r)) * (H σ * ∑ j, z j (σ ℓ) * c j σ) = 0 := by
-  classical
   rw [← (Fin.insertNthEquiv (fun _ => α) ℓ).sum_comp, Fintype.sum_prod_type_right]
   refine Finset.sum_eq_zero fun σ' _ => ?_
   rcases isEmpty_or_nonempty α with hα | ⟨⟨x₀⟩⟩

@@ -253,7 +253,6 @@ theorem sk_increment_bounds {β : ℝ} (hβ : 0 < β) {N : ℕ} (hN : 0 < N) :
         ∫ G, Real.log (∑ σ, Real.exp (β * H N G σ)) ∂𝒢[N] ∧
       (∫ G, Real.log (∑ ρ, Real.exp (β * H (N + 1) G ρ)) ∂𝒢[N + 1]) -
         ∫ G, Real.log (∑ σ, Real.exp (β * H N G σ)) ∂𝒢[N] ≤ Real.log 2 + β ^ 2 := by
-  classical
   obtain ⟨f, wt, z, y, R, hf, hwt, hz, hy, hR⟩ := sk_setup β N
   obtain ⟨-, hw0, hw1, -⟩ := sk_gibbsWeight f wt hf hwt
   obtain ⟨hzm, hzg, hz0, hzcov⟩ := sk_cavity_z hN z R hz hR
@@ -355,7 +354,6 @@ theorem abs_increment_sub_integral_overlap_le {β : ℝ} (hβ : 0 < β) {ε : �
         |((∫ G, Real.log (∑ ρ, Real.exp (β * H (N + 1) G ρ)) ∂𝒢[N + 1]) -
             ∫ G, Real.log (∑ σ, Real.exp (β * H N G σ)) ∂𝒢[N]) -
           ∫ u, (Gz u - Gy u) ∂(γ[Fin N × Fin N])| ≤ ε := by
-  classical
   obtain ⟨az, ay, pz, py, haz, hay, h13⟩ := exists_gram_approx_free_energy.{0, 0}
     (2 * β ^ 2).toNNReal (β ^ 2).toNNReal hε
   refine ⟨az, ay, pz, py, haz, hay, fun N hN f wt R Gz Gy hf hwt hR hGz hGy => ?_⟩

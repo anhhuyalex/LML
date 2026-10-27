@@ -151,7 +151,6 @@ theorem tsum_pi_fiberwise {ι κ Y : Type*} [Fintype ι] [Fintype κ] [Decidable
       ∏ q : κ, ∑' γ : {l // f l = q} → Y,
         (if ∀ a b : {l // f l = q}, C a.1 b.1 (γ a) (γ b) then 1 else 0) *
           ∏ a : {l // f l = q}, F a.1 (γ a) := by
-  classical
   let e : (ι → Y) ≃ ((q : κ) → {l // f l = q} → Y) :=
     Equiv.piCongrFiberwise (f := f) fun q => Equiv.refl _
   rw [← e.symm.tsum_eq]
@@ -400,7 +399,6 @@ theorem sum_replicaSum_tilt_pattern (r n : ℕ) (σ ζ : ℕ → ℝ) (t : ℝ)
           ENNReal.ofReal (Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab (α l) i)) *
           ∏ i : Fin r, a l i (leafLabel lab (α l) i - t * σ i * ζ i))) *
           g fun l l' => prefixOverlap (α l) (α l') := by
-  classical
   set c : ℝ≥0∞ := ENNReal.ofReal (Real.exp (-(t ^ 2 / 2 * ∑ i : Fin r, σ i ^ 2 * ζ i))) with hc
   set W : Fin n → (Fin r → ℕ) → ℝ≥0∞ := fun l α => cascadeBranchWeight u α *
     ENNReal.ofReal (Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab α i)) *
@@ -478,7 +476,6 @@ theorem replicaGibbs_eq_div (r n : ℕ) (σ ζ : ℕ → ℝ) (t : ℝ)
           (fun _ i => tiltTest (t * σ i) (ζ i) (fun _ => 1)) u lab) /
       ∑ P : Fin n → Fin n → Fin (r + 1), replicaSum r (fun l l' => (P l l').val)
           (fun _ i => tiltTest (t * σ i) (ζ i) (fun _ => 1)) u lab := by
-  classical
   set c : ℝ≥0∞ := ENNReal.ofReal (Real.exp (-(t ^ 2 / 2 * ∑ i : Fin r, σ i ^ 2 * ζ i))) with hc
   have hc0 : c ≠ 0 := by simp [hc, Real.exp_pos]
   have hct : c ≠ ∞ := ENNReal.ofReal_ne_top
@@ -541,7 +538,6 @@ theorem replicaGibbsAt_eq_div (r n : ℕ) (σ ζ : ℕ → ℝ) (t : ℝ)
             (if l = l₀ ∧ i = i₀.val then ψ else fun _ => 1)) u lab) /
       ∑ P : Fin n → Fin n → Fin (r + 1), replicaSum r (fun l l' => (P l l').val)
           (fun _ i => tiltTest (t * σ i) (ζ i) (fun _ => 1)) u lab := by
-  classical
   set c : ℝ≥0∞ := ENNReal.ofReal (Real.exp (-(t ^ 2 / 2 * ∑ i : Fin r, σ i ^ 2 * ζ i))) with hc
   have hc0 : c ≠ 0 := by simp [hc, Real.exp_pos]
   have hct : c ≠ ∞ := ENNReal.ofReal_ne_top

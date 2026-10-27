@@ -387,7 +387,6 @@ theorem integral_cascade_ibp (hζ0 : ∀ p, 0 < ζ p) (hζ1 : ∀ p, ζ p < 1)
         ((F fun l l' => prefixOverlap (τ (some l)) (τ (some l'))).toReal *
           (∑ k : Fin n, Q (prefixOverlap (τ (some l₀)) (τ (some k))) -
             n * Q (prefixOverlap (τ (some l₀)) (τ none)))) ∂P := by
-  classical
   obtain ⟨g, hg⟩ : ∃ g : (Fin r → ℕ) → ((Σ p : ℕ, Fin p → ℕ) → ℕ → ℝ) → ℝ, ∀ α ℓ,
       g α ℓ = ∑ i : Fin r, σ i * ℓ ⟨i, Fin.take i i.isLt.le α⟩ (α i) := ⟨_, fun _ _ => rfl⟩
   obtain ⟨G, hG⟩ : ∃ G : ((Σ p : ℕ, Fin p → ℕ) → ℕ → ℕ × (ℕ → ℝ)) → (Fin r → ℕ) → ℝ, ∀ b α,

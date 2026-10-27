@@ -609,7 +609,6 @@ private lemma sixPoint_even_partitions_card_three :
       ∀ B ∈ P.parts, Even B.card)).filter (fun P => P.parts.card = 3) =
       Finset.univ.filter (fun P : Finpartition (Finset.univ : Finset (Fin 6)) =>
         ∀ B ∈ P.parts, B.card = 2) := by
-  classical
   ext P
   simp only [Finset.mem_filter, Finset.mem_univ, true_and]
   constructor
@@ -661,7 +660,6 @@ private lemma sixPoint_sum_pairing_eq {Ω : Type uΩ} [MeasurableSpace Ω]
     (∑ P ∈ Finset.univ.filter
         (fun P : Finpartition (Finset.univ : Finset (Fin 6)) => ∀ B ∈ P.parts, B.card = 2),
       P.blockProduct (blockCumulant μ X)) = sixPointPairingCumulantSum μ X := by
-  classical
   unfold sixPointPairingCumulantSum Finpartition.pairingSum
   refine Finset.sum_bij
     (fun P hp => (⟨P, (Finset.mem_filter.mp hp).2⟩ :
@@ -685,7 +683,6 @@ theorem jointMoment_six_eq_connected_decomposition
     (hodd : ∀ B : Finset (Fin 6), Odd B.card → blockCumulant μ X B = 0) :
     jointMoment μ X = jointCumulant μ X + sixPointFourTwoCumulantSum μ X +
       sixPointPairingCumulantSum μ X := by
-  classical
   -- Step 1: `jointMoment` as the sum over all partitions.
   have hsum : jointMoment μ X =
       ∑ P : Finpartition (Finset.univ : Finset (Fin 6)), P.blockProduct (blockCumulant μ X) := by
@@ -842,7 +839,6 @@ private lemma card_pairing_erase {α : Type*} [DecidableEq α] (s : Finset α) (
 -- The empty set has exactly one pairing.
 private lemma card_pairing_empty {α : Type*} [DecidableEq α] :
     Fintype.card (Finpartition.Pairing (∅ : Finset α)) = 1 := by
-  classical
   -- `Finpartition ∅` is a singleton (Mathlib's `Unique` instance), and its unique element is
   -- the empty partition whose parts are `∅`, so the pairing predicate holds vacuously.
   have : Unique (Finpartition (∅ : Finset α)) := by

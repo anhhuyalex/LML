@@ -56,7 +56,6 @@ omit [Nonempty α] in
 theorem hasDerivAt_gibbsProjSum (hV : ExpTame V) (f : α → ℝ) (v : ℝ) (r : ℕ) (s : ℝ) :
     HasDerivAt (gibbsProjSum (m := m) u V f v r)
       (Real.sin s * Real.cos s * gibbsProjSum (m := m) u V f v (r + 1) s) s := by
-  classical
   have hfun : gibbsProjSum (m := m) u V f v r = fun s => ∑ σ : Fin m → α,
       (∏ i, Real.exp (f (σ i)) / ∑ b, Real.exp (f b)) * projSum V (fun l => u (σ l)) v r s := by
     funext s
@@ -136,7 +135,6 @@ theorem integral_integral_swap_pi_count_tilted {Ω : Type*} [MeasurableSpace Ω]
     (f : α → ℝ) (G : (Fin m → α) → Ω → ℝ) (hG : ∀ σ, Integrable (G σ) P) :
     ∫ σ, ∫ ω, G σ ω ∂P ∂(Measure.pi fun _ : Fin m => Measure.count.tilted f) =
       ∫ ω, ∫ σ, G σ ω ∂(Measure.pi fun _ : Fin m => Measure.count.tilted f) ∂P := by
-  classical
   simp_rw [integral_pi_count_tilted f]
   rw [integral_finsetSum _ fun σ _ => (hG σ).const_mul _]
   exact Finset.sum_congr rfl fun σ _ => (integral_const_mul _ _).symm
@@ -154,7 +152,6 @@ theorem gibbsProjSum_zero_index_pi_div_two (hV : ExpTame V) (hm : 0 < m) (f : α
     gibbsProjSum (m := m) u V f v 0 (Real.pi / 2) =
       ∫ y : Fin N → ℝ, (∫ a, V (u a ⬝ᵥ y) ∂(Measure.count.tilted f)) ^ m
         ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1) := by
-  classical
   have hpath : ∀ (σ : Fin m → α) (ω : (Fin m → ℝ) × (Fin N → ℝ)) (l : Fin m),
       Real.cos (Real.pi / 2) * (v * ω.1 l) + Real.sin (Real.pi / 2) * (u (σ l) ⬝ᵥ ω.2) =
         u (σ l) ⬝ᵥ ω.2 := fun σ ω l => by

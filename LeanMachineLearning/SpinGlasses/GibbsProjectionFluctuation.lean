@@ -47,7 +47,6 @@ theorem exists_of_pairCount_eq_one (p : Fin r → Fin m × Fin m) (ℓ : Fin m)
     (h : pairCount p ℓ = 1) :
     ∃ (i₀ : Fin r) (ℓ' : Fin m), ℓ' ≠ ℓ ∧ (p i₀ = (ℓ, ℓ') ∨ p i₀ = (ℓ', ℓ)) ∧
       ∀ i, i ≠ i₀ → (p i).1 ≠ ℓ ∧ (p i).2 ≠ ℓ := by
-  classical
   set t : Fin r → ℕ := fun i => (if (p i).1 = ℓ then 1 else 0) + (if (p i).2 = ℓ then 1 else 0)
     with ht
   have hsum : ∑ i, t i = 1 := h

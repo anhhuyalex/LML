@@ -45,7 +45,6 @@ theorem tsum_pi_prod_fin {n : ℕ} {Y : Fin n → Type*} (h : ∀ i, Y i → ℝ
 functions is the product of the sums. -/
 theorem tsum_pi_prod {Q : Type*} [Fintype Q] {Y : Q → Type*} (h : ∀ q, Y q → ℝ≥0∞) :
     ∑' y : (∀ q, Y q), ∏ q, h q (y q) = ∏ q, ∑' z, h q z := by
-  classical
   let e := Fintype.equivFin Q
   have key := tsum_pi_prod_fin (fun i : Fin (Fintype.card Q) => h (e.symm i))
   have h1 := (Equiv.piCongrLeft' Y e).symm.tsum_eq (fun y : (∀ q, Y q) => ∏ q, h q (y q))

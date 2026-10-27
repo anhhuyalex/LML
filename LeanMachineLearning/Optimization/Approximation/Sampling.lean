@@ -440,7 +440,6 @@ theorem maureySampling
     ∫ ω, ‖X - (1 / k : ℝ) • ∑ i, Vᵢ i ω‖ ^ 2 ∂μ_prob ≤
       (∫ ω, ‖V ω‖ ^ 2 ∂μ_prob) / k := by
   intro X
-  classical
   let Y : Fin k → Ω → H := fun i => Vᵢ i - fun _ => X
   /-
   Step 1: rewrite the target using the centered variables `Y i = Vᵢ i - X`.
@@ -1396,7 +1395,6 @@ noncomputable def totalMass (μ : SignedMeasure W) : ℝ := (μ.totalVariation S
 lemma totalMass_eq_add (μ : SignedMeasure W) :
     totalMass μ = (μ.toJordanDecomposition.posPart Set.univ).toReal
       + (μ.toJordanDecomposition.negPart Set.univ).toReal := by
-  classical
   have h := μ.toJordanDecomposition.posPart_finite
   have h' := μ.toJordanDecomposition.negPart_finite
   rw [totalMass, SignedMeasure.totalVariation, Measure.add_apply,

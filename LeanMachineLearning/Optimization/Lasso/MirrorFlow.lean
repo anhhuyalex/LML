@@ -1192,7 +1192,6 @@ theorem pos_trajectory_matVec_uniform_bound
     ∃ C : ℝ, 0 < C ∧
       ∀ ε : ℝ, 0 < ε → ε ≤ 1 → ∀ t : ℝ,
         0 ≤ t → ‖matVec M (posEffectiveParameter (u ε) t)‖ ≤ C := by
-  classical
   obtain ⟨y, hy⟩ := hdata.r_mem_span
   let a := coordinateSquare α
   let K := (1 / 2 : ℝ) * inner ℝ a (matVec M a) + |inner ℝ r a|
@@ -2201,7 +2200,6 @@ theorem pos_trajectory_uniform_bound
     -- for general `lambda`) bounds `\widetilde L` along the trajectory; completing the square
     -- (`quadraticLoss_complete_square`) bounds `ℓ` from below, so `lambda * ⟨1, x⟩` -- and
     -- hence `‖x‖ ≤ ⟨1, x⟩` -- is controlled.
-    classical
     obtain ⟨y, hy⟩ := hdata.r_mem_span
     let a := coordinateSquare α
     have ha_inner_nonneg : 0 ≤ inner ℝ (ones : EuclideanSpace ℝ ι) a := by

@@ -329,7 +329,6 @@ theorem ghirlandaGuerra_overlap_gt (j : Fin r) (n : ℕ) (f : (Fin n → Fin n �
       (1 - ζ j) * ∫ ω, gibbs0 n f ω ∂P +
         ∑ l ∈ Finset.univ.erase l₀, ∫ ω, gibbs0 n (fun P => f P *
           if j.val < (P l₀ l).val then 1 else 0) ω ∂P := by
-  classical
   obtain ⟨σ, hσ⟩ : ∃ σ : ℕ → ℝ, ∀ i, σ i = if i = j.val then 1 else 0 :=
     ⟨fun i => if i = j.val then 1 else 0, fun _ => rfl⟩
   obtain ⟨gibbs, hgibbs⟩ : ∃ gibbs : (m : ℕ) → ℝ → ((Fin m → Fin m → Fin (r + 1)) → ℝ) →
@@ -370,7 +369,6 @@ theorem ghirlandaGuerra_overlap_gt (j : Fin r) (n : ℕ) (f : (Fin n → Fin n �
 include hζ0 hζ1 hmono hmu h𝔡 hDm hD hDlaw hu hlab hgibbs0 in
 /-- The Gibbs average of the constant function `1` is `1`, for any number of replicas. -/
 theorem integral_gibbs0_one (m : ℕ) : ∫ ω, gibbs0 m (fun _ => 1) ω ∂P = 1 := by
-  classical
   have h := ae_cascadeWeights_good r ζ 0 nu rate 𝔡 D u lab hζ0 hζ1 hmono hmu h𝔡 hDm hD hDlaw hu
     hlab 0
   have e : ∀ᵐ ω ∂P, gibbs0 m (fun _ => 1) ω = 1 := by
@@ -464,7 +462,6 @@ theorem integral_gibbs0_apply {m : ℕ} (g : (Fin m → Fin m → Fin (r + 1)) �
     ∫ ω, gibbs0 m (fun P => g P * ψ (P a b)) ω ∂P =
       ψ 0 * ∫ ω, gibbs0 m g ω ∂P + ∑ j : Fin r, (ψ j.succ - ψ j.castSucc) *
         ∫ ω, gibbs0 m (fun P => g P * if j.val < (P a b).val then 1 else 0) ω ∂P := by
-  classical
   obtain ⟨c, hc0, hc1⟩ : ∃ c : Option (Fin r) → ℝ, c none = ψ 0 ∧
       ∀ j, c (some j) = ψ j.succ - ψ j.castSucc :=
     ⟨fun o => Option.elim o (ψ 0) fun j => ψ j.succ - ψ j.castSucc, rfl, fun _ => rfl⟩
@@ -497,7 +494,6 @@ theorem ghirlandaGuerra_nonneg (ψ : Fin (r + 1) → ℝ) (n : ℕ)
         ψ (P l₀.castSucc (Fin.last n))) ω ∂P =
       (∫ ω, gibbs0 n f ω ∂P) * ∫ ω, gibbs0 2 (fun P => ψ (P 0 1)) ω ∂P +
         ∑ l ∈ Finset.univ.erase l₀, ∫ ω, gibbs0 n (fun P => f P * ψ (P l₀ l)) ω ∂P := by
-  classical
   have hn : 0 < n := Fin.pos l₀
   have hA := integral_gibbs0_apply r ζ nu rate 𝔡 D u lab gibbs0 hζ0 hζ1 hmono hmu h𝔡 hDm hD hDlaw
     hu hlab hgibbs0 (m := n + 1) (fun P => f (fun l l' => P l.castSucc l'.castSucc))
@@ -638,7 +634,6 @@ replicas is exactly the level `p` is `ζ_p - ζ_{p-1}`, with the conventions `ζ
 theorem integral_gibbs0_overlap_eq (p : Fin (r + 1)) :
     ∫ ω, gibbs0 2 (fun P => if P 0 1 = p then 1 else 0) ω ∂P =
       (if p.val < r then ζ p.val else 1) - (if p.val = 0 then 0 else ζ (p.val - 1)) := by
-  classical
   rw [integral_gibbs0_overlap_apply r ζ nu rate 𝔡 D u lab gibbs0 hζ0 hζ1 hmono hmu h𝔡 hDm hD
     hDlaw hu hlab hgibbs0 (fun v => if v = p then 1 else 0)]
   have hA : ∑ j : Fin r, ((if j.succ = p then (1 : ℝ) else 0) * (1 - ζ j)) =
@@ -697,7 +692,6 @@ the variances `σᵢ²`), `E⟨Q(σ¹ ∧ σ²)⟩ = ∑ᵢ σᵢ² (1 - ζᵢ) 
 theorem integral_gibbs0_overlap_mean (σ : ℕ → ℝ) (Q : Fin (r + 1) → ℝ)
     (hQ : ∀ m, Q m = ∑ i : Fin r, if i.val < m.val then σ i ^ 2 else 0) :
     ∫ ω, gibbs0 2 (fun P => Q (P 0 1)) ω ∂P = ∑ j : Fin r, σ j ^ 2 * (1 - ζ j) := by
-  classical
   rw [integral_gibbs0_overlap_apply r ζ nu rate 𝔡 D u lab gibbs0 hζ0 hζ1 hmono hmu h𝔡 hDm hD
     hDlaw hu hlab hgibbs0 Q]
   have h0 : Q 0 = 0 := by simp [hQ]

@@ -50,7 +50,6 @@ theorem integral_gaussian_gibbs_replica_guard_tilt_ibp
               Fintype.card J * t *
                 (if τ (some r₀) = τ none then 1 else 0)))
       else 0 ∂μ := by
-  classical
   let α := {p : ℕ × ℕ // p.2 < (z p.1).1}
   let _ : Nonempty α := by obtain ⟨p, hp'⟩ := hn; exact ⟨⟨p, hp'⟩⟩
   let u : α → ℝ := fun p => (z p.1.1).2 p.1.2
