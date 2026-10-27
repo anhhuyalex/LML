@@ -777,13 +777,10 @@ theorem sk_row_equation_of_bounds (N n : ℕ) (β q h : ℝ)
     rw [hsplit]; exact hmid
   exact abs_row_combine rfl rfl (inv_nonneg.2 hM0.le) hT' hmid' hK
 
-/-- **One row of the cavity covariance system (explicit error).**  Let `x ≠ y`, `a ≠ b` be
-replicas of `n` replicas and `e` a numbering of the `n + 2` replicas of the cavity formula.  Then
-`ν((R_{xy} - q)(R_{ab} - q))` differs from
-`M⁻¹ b(c) + ∑_j w_j β² b(c_j) ν_{n+2}((R_{ab} - q)(R_{j} - q))`, `M = N + 1`, by at most the sum of
-the Taylor error (Eq. (1.216)), the `ν₀ → ν` error (Eq. (1.215)) for the `∑_j`, the cost of
-`R⁻ → R`, and the last-site error (Eq. (1.215) again).  The quantities `Vf`, `Gb`, `Dtwo`, `Dfour`,
-`Dabs` are bounds for the second moments that enter. -/
+/-- **One row of the cavity covariance system, high-temperature form** (`τ₁ = τ₂ = 2` in
+Eqs. (1.215), (1.216)): `sk_row_equation_of_bounds` with the Taylor and `ν₀ → ν` errors bounded
+by Cauchy-Schwarz.  The quantities `Vf`, `Gb`, `Dtwo`, `Dfour`, `Dabs` are bounds for the second
+moments that enter. -/
 theorem sk_row_equation (N n : ℕ) (β q h : ℝ)
     (hfix : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂(gaussianReal 0 1) = q)
     (qhat : ℝ)

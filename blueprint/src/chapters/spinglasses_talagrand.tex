@@ -12,7 +12,7 @@ The mathematical narrative develops the high-temperature theory of the Sherringt
 \item The cavity method: splitting off the last spin, interpolating the new couplings against an independent Gaussian field, concentration of the overlap around $q$ with all its moments, and the free-energy increment $(N+1)p_{N+1}-Np_N$ (Section~1.6).
 \item The Gaussian fluctuation principle: the Gaussian interpolation between the centered projections $N^{-1/2}\sum_i y_i\dot\sigma_i$ of the Gibbs state and independent Gaussians of variance $1-q$, the parity argument that makes the first $2k-1$ derivatives vanish at the start of the path, and the moment bounds that make the $2k$-th derivative $O(N^{-k})$ (Section~1.7).
 \item Second moment computations (Section~1.8): the second-order expansion of the cavity path (Proposition~1.8.1), the rectangular combination at the decoupled endpoint (Lemma~1.8.4), and the asymptotic second moment of the rectangular overlap and the variance of the truncated spin correlation (Proposition~1.8.5, Corollary~1.8.6), with explicit $O(N^{-3/2})$ errors.
-\item Beyond the Almeida--Thouless line (Section~1.9): only the real-variable deduction of Proposition~1.9.2 from Lemma~1.9.4 is formalized (Section~\ref{sec:sg-tal:beyond-at}); Lemma~1.9.4 itself is not.
+\item Beyond the Almeida--Thouless line (Section~1.9): Lemmas~1.9.3 and~1.9.4 and Proposition~1.9.2 are formalized for the SK model (Section~\ref{sec:sg-tal:beyond-at}); Proposition~1.9.5 and the coupled free energy (Theorem~1.9.6, Proposition~1.9.7) are not.
 \end{enumerate}
 
 \medskip\noindent\textbf{Source tags.}
@@ -5319,21 +5319,21 @@ Proved here: Proposition~1.8.1 (Eqs.~(1.215), (1.216)), Lemma~1.8.4 (Theorem~\re
 Part~E adds the combination form of Lemma~1.8.2, the sum form of Lemma~1.8.9 and the algebra of the $T$-basis.
 Part~F adds the derivation of the covariance system (1.231)--(1.233) with explicit errors, Theorem~1.8.12 and Propositions~1.8.10, 1.8.11.
 Lemma~1.8.9 is also proved in the book's displayed form (1.253)--(1.254) (Theorem~\ref{thm:sg-tal:lemma-189-displayed}), although the covariance system is used instead of the six-replica proofs of Propositions~1.8.8 and 1.8.10 (their conclusions are proved in exact form).
-Not formalized: the book's $O(3)$ remainder is an explicit $K/M^{3/2}$ only under $4\beta^2<1$; the version with the remainder $K(M^{-3/2}+\nu(|R_{1,2}-q|^3))$ needed beyond the AT line is not formalized (Section~\ref{sec:sg-tal:beyond-at}).
+Not formalized: the book's $O(3)$ remainder is an explicit $K/M^{3/2}$ only under $4\beta^2<1$; the version with the remainder $K(M^{-3/2}+\nu(|R_{1,2}-q|^3))$ needed beyond the AT line is a separate development, valid for every $\beta$ (Section~\ref{sec:sg-tal:beyond-at}, Theorem~\ref{thm:sg-tal:lemma-194}).
 \end{remark}
 
 \section{Beyond the Almeida--Thouless line (Talagrand Section~1.9)}
 \label{sec:sg-tal:beyond-at}
 
 \paragraph{Status.}
-Section~1.9 is only started.  Proved here: Lemma~1.9.3 for a fixed point $q>0$ (Theorem~\ref{thm:sg-tal:lemma-193}),
-and the real-variable half of Proposition~1.9.2: Lemma~1.9.4 is taken as a \emph{hypothesis} and the lower
-bounds (1.269) and (1.271) are deduced from it.  Not formalized: Lemma~1.9.4 itself (it needs the cavity expansions of Section~1.8 with the
-remainder $K(M^{-3/2}+\nu(|R_{1,2}-q|^3))$ instead of the moment bounds
-$\nu((R_{1,2}-q)^2)\le K_1/M$, $\nu((R_{1,2}-q)^4)\le K_2/M^2$ and $4\beta^2<1$ on which every theorem of
-Section~1.8 above is built); Proposition~1.9.5 and the coupled free energy (Proposition~1.9.7, Theorem~1.9.6).
-So the concrete statement ``beyond the AT line, $\nu(|R_{1,2}-q|^3)\ge\delta\nu((R_{1,2}-q)^2)\ge\delta^2/M$''
-for the SK model is \emph{not} yet proved; Theorem~\ref{thm:sg-tal:beyond-at-deduction} is its deduction from Lemma~1.9.4.
+Section~1.9 is partly formalized.  Proved here, with no condition $4\beta^2<1$ and no moment bound on $R_{1,2}-q$:
+Lemma~1.9.3 for a fixed point $q>0$ (Theorem~\ref{thm:sg-tal:lemma-193}); the cavity expansions of Section~1.8 with the
+cubic remainder $K(M^{-3/2}+\nu(|R_{1,2}-q|^3))$ (Theorems~\ref{thm:sg-tal:holder-three}, \ref{thm:sg-tal:row-three});
+Lemma~1.9.4 for the SK model (Theorem~\ref{thm:sg-tal:lemma-194}); and the concrete Proposition~1.9.2 for the SK model
+(Theorem~\ref{thm:sg-tal:prop-192}).  The real-variable deduction (Theorem~\ref{thm:sg-tal:beyond-at-deduction}) is the last
+step of the latter.  Not formalized: Proposition~1.9.5 (it needs the $x$-derivative $\Phi'(q)<1$ and a global lower
+bound for $|x-\Phi(x)|$), and the coupled free energy (Proposition~1.9.7, Theorem~1.9.6, whose limit
+$\lim_N\psi_N(\lambda)$ is deferred by the book to another reference and would have to be a hypothesis).
 
 \begin{theorem}[Lemma~1.9.3: $\beta^2(1-4q+3\hat q)<1$]
 \label{thm:sg-tal:lemma-193}
@@ -5392,7 +5392,7 @@ monotone (Section~1.8, Part~E).
 \talsource{Section~1.9, proof of Proposition~1.9.2 from Lemma~1.9.4, Eqs.~(1.275)--(1.278)}
 Let $a>0$, $\beta^2a>1$ (in the book $a=1-2q+\hat q=\mathbb E\,\mathrm{ch}^{-4}Y$, which is positive, and $\beta^2a>1$ is (1.266)),
 $K>0$, and for $M\ge1$ let $S_2,S_3,T,A,R_1,R_2$ be real numbers with:
-$T\ge0$ and $T=\frac4M\frac a{1-\beta^2a}+R_1$ (Eq.~(1.275)); $S_2=A+R_2$ with $0\le A\le K/M$ (Eq.~(1.276));
+$T\ge0$ and $T=\frac4M\frac a{1-\beta^2a}+R_1$ (Eq.~(1.275)); $S_2=A+R_2$ with $A\le K/M$ (Eq.~(1.276); beyond the AT line $A=A^2+2B^2+C^2$ may be negative, only the upper bound is used);
 $|R_i|\le K(M^{-3/2}+S_3)$ (Eq.~(1.277)); $0\le S_3\le2S_2$.
 Then there are $\delta>0$ and $M_0$ such that for all $M\ge M_0$: $\delta S_2\le S_3$ and $S_2\ge\delta/M$; hence
 $S_3\ge\delta S_2\ge\delta^2/M$ (Eq.~(1.269)).  Here $S_2=\nu((R_{1,2}-q)^2)$, $S_3=\nu(|R_{1,2}-q|^3)$, $T$ is the
@@ -5406,12 +5406,106 @@ $S_3\ge c/(2KM)$ (Eq.~(1.278)).  Then $S_2\le K/M+K(M^{-3/2}+S_3)\le K'S_3$ with
 $S_2\ge S_3/2\ge c/(4KM)$.  Take $\delta=\min(1/K',c/(4K))$.
 \end{proof}
 
+\begin{theorem}[The two H\"older steps with exponents $(3,3/2)$ and $(3/2,3)$]
+\label{thm:sg-tal:holder-three}
+  \lean{SpinGlasses.sk_pair_taylor_three,
+        SpinGlasses.sk_old_spin_compare_three,
+        SpinGlasses.sk_row_Vf_three,
+        SpinGlasses.sk_row_Gb_three,
+        SpinGlasses.sk_inv_mul_abs_le_cube,
+        SpinGlasses.rpow_mul_rpow_le_of_le,
+        SpinGlasses.mul_sq_le_cube_third}
+  \leanok
+\talsource{Section~1.8, Proposition~1.8.1, Eqs.~(1.215), (1.216), used with $\tau_1=3,\tau_2=3/2$ and $\tau_1=3/2,\tau_2=3$ in the proof of Lemma~1.9.4}
+Let $\beta,h\in\mathbb R$, $q$ a fixed point, $\hat q=\mathbb E\tanh^4(\beta\sqrt qz+h)$, $M=N+1$, $\Delta=\nu(|R_{1,2}-q|^3)$.
+(a) For $x\ne y$, an observable $F$ of the old spins and $f=F\,(\varepsilon_x\varepsilon_y-q)$, the second-order Taylor
+error of Eq.~(1.216) is at most $4n^2(n+2)^2\beta^4e^{4(n+4)^2\beta^2}\,\nu(|f|^3)^{1/3}\Delta^{2/3}$.
+(b) For an observable $G$ of the old spins of $m$ replicas, $|\nu(G)-\mathbb E\langle G\rangle_{\rm old}|\le 2m^2\beta^2e^{4(m+2)^2\beta^2}\nu(|G|^{3/2})^{2/3}\Delta^{1/3}$.
+(c) For $f=(R^-_{ab}-q)(\varepsilon_x\varepsilon_y-q)$ one has $\nu(|f|^3)\le32\Delta+32/M^3$; for a product of two truncated overlaps,
+$\nu(|G|^{3/2})\le4\Delta+4/M^3$; and $M^{-1}\nu(|R_{1,2}-q|)\le\Delta/3+\frac23M^{-3/2}$.
+(d) If $A\le cD'$, $D\le D'$, $c\ge1$ and $s+t=1$, then $A^sD^t\le cD'$.
+\end{theorem}
+\begin{proof}
+  \leanok
+(a), (b) are the second- and first-order cavity estimates of Section~1.6--1.8 (they carry general conjugate exponents $p,r$)
+with $(p,r)=(3,3/2)$ resp.\ $(3/2,3)$; the exponent $2r=3$ in (a) is why the same $\Delta$ appears.
+(c) $R^-_{ab}-q=(R_{ab}-q)-\varepsilon_a\varepsilon_b/M$, $|\varepsilon_x\varepsilon_y-q|\le2$, $(x+y)^3\le4(x^3+y^3)$,
+$(uv)^{3/2}\le(u^3+v^3)/2$ and the marginal of $\nu$ on two distinct replicas; the last bound is Young's inequality
+$tm^2\le t^3/3+2m^3/3$ with $m=M^{-1/2}$.  (d) is $A^sD^t\le c^sD'^s D'^t=c^sD'$.
+\end{proof}
+
+\begin{theorem}[One row of the covariance system, and the system, with the cubic remainder]
+\label{thm:sg-tal:row-three}
+  \uses{thm:sg-tal:holder-three}
+  \lean{SpinGlasses.sk_row_equation_of_bounds,
+        SpinGlasses.sk_cov_row_bound_three,
+        SpinGlasses.sk_cov_system_of_row}
+  \leanok
+\talsource{Section~1.9, proof of Lemma~1.9.4: ``all the computations there are done modulo an error term as in (1.277)''; Eqs.~(1.231)--(1.233)}
+Let $\beta,h\in\mathbb R$ be arbitrary, $q$ a fixed point, $\hat q=\mathbb E\tanh^4(\beta\sqrt qz+h)$, $M=N+1$,
+$\Delta=\nu(|R_{1,2}-q|^3)$ and $E=K(\beta)(\Delta+M^{-3/2})$, with $K(\beta)=2304\cdot32\,\beta^4e^{256\beta^2}+32\beta^2(288\,\beta^2e^{256\beta^2}+3)+64\beta^2e^{144\beta^2}$.
+For $a\ne c$ among four replicas, $\nu_4((R_{12}-q)(R_{ac}-q))$ differs from $M^{-1}b(c)+\sum_jw_jb(c_j)\nu_6((R_{ac}-q)(R_j-q))$ by at most $E$; and
+if every row is bounded by $E$ then $(U,V,W)=S+A(U,V,W)+R$ with $|R_i|\le E$, where $U,V,W$ are the covariances of Eqs.~(1.231)--(1.233).
+\end{theorem}
+\begin{proof}
+  \leanok
+The row equation of Theorem~\ref{thm:sg-tal:cov-system} is split into a core (the Taylor error and the $\nu_0\to\nu$ error enter as hypotheses
+with bounds $E_T$, $E_H$) and its high-temperature instance; the cubic instance inserts Theorem~\ref{thm:sg-tal:holder-three}.
+The remaining terms ($R^-\to R$, the last-site error) are $\le3(\Delta+M^{-3/2})$ and $\Delta+M^{-3/2}$ times constants.
+\end{proof}
+
+\begin{theorem}[Lemma~1.9.4 for the SK model: Eqs.~(1.275)--(1.277)]
+\label{thm:sg-tal:lemma-194}
+  \uses{thm:sg-tal:row-three, thm:sg-tal:lemma-193}
+  \lean{SpinGlasses.sk_lemma_194,
+        SpinGlasses.sk_beyond_at_remainders,
+        SpinGlasses.sk_rect_nu_eq,
+        SpinGlasses.sk_at_scalar_solution_of_abs,
+        SpinGlasses.at_error_bound_of_abs,
+        SpinGlasses.abs_at_leading_le,
+        SpinGlasses.sk_cov_row_bound_three}
+  \leanok
+\talsource{Section~1.9, Lemma~1.9.4, Eqs.~(1.275)--(1.277)}
+Let $q>0$ be a fixed point of $q=\mathbb E\tanh^2(\beta\sqrt qz+h)$, $\hat q=\mathbb E\tanh^4(\beta\sqrt qz+h)$, $c_2=1-2q+\hat q$ and assume
+$\beta^2c_2>1$ (Eq.~(1.266)).  There is $K$, depending only on $\beta$ and $\delta=\min(\beta^2c_2-1,\,1-\beta^2(1-4q+3\hat q))>0$, such that for every $N$, with $M=N+1$ and $\Delta=\nu(|R_{1,2}-q|^3)$:
+$\nu\bigl(((\sigma^1-\sigma^2)\cdot(\sigma^3-\sigma^4)/M)^2\bigr)=\frac4M\frac{c_2}{1-\beta^2c_2}+\mathcal R_1$,
+$\nu((R_{1,2}-q)^2)=A+\mathcal R_2$ with $A=A^2+2B^2+C^2$ of Eqs.~(1.248), (1.256), (1.262), $|A|\le K/M$,
+and $|\mathcal R_i|\le K(M^{-3/2}+\Delta)$.  No condition $4\beta^2<1$ and no moment bound on $R_{1,2}-q$ is used.
+\end{theorem}
+\begin{proof}
+  \leanok
+Theorem~\ref{thm:sg-tal:row-three} gives the system (1.231)--(1.233) with $|R_i|\le E$.  The rectangular second moment is exactly
+$4(U-2V+W)$ since $(\sigma^1-\sigma^2)\cdot(\sigma^3-\sigma^4)/M=(R_{13}-q)-(R_{14}-q)-(R_{23}-q)+(R_{24}-q)$, and
+$D_1(U-2V+W)=c_2/M+(R_0-2R_1+R_2)$ with $D_1=1-\beta^2c_2$.  The denominators $D_1<0$ and $D_2=1-\beta^2(1-4q+3\hat q)>0$ (Lemma~1.9.3,
+Theorem~\ref{thm:sg-tal:lemma-193}) satisfy $|D_i|\ge\delta$, so one divides;
+the errors are multiplied by constants depending on $\beta,\delta$ only (the analogue of Theorem~\ref{thm:sg-tal:thm-1812} with $|D_i|\ge\delta$ instead of $D_i\ge3/4$).
+\end{proof}
+
+\begin{theorem}[Proposition~1.9.2 for the SK model]
+\label{thm:sg-tal:prop-192}
+  \uses{thm:sg-tal:lemma-194, thm:sg-tal:beyond-at-deduction}
+  \lean{SpinGlasses.sk_proposition_192,
+        SpinGlasses.abs_overlap_sub_le_two}
+  \leanok
+\talsource{Section~1.9, Proposition~1.9.2, Eq.~(1.269)}
+Let $q>0$ be a fixed point and $\hat q=\mathbb E\tanh^4(\beta\sqrt qz+h)$ with $\beta^2(1-2q+\hat q)>1$.  There are $\delta>0$ and $N_0$ such that for all
+$N\ge N_0$ the $(N+1)$-spin SK system satisfies $\nu(|R_{1,2}-q|^3)\ge\delta\,\nu((R_{1,2}-q)^2)$ and $\nu((R_{1,2}-q)^2)\ge\delta/(N+1)$; hence
+$\nu(|R_{1,2}-q|^3)\ge\delta\nu((R_{1,2}-q)^2)\ge\delta^2/(N+1)$, which is (1.269).  By Lemma~\ref{lem:sg-tal:indicator-lower-bound}, the set
+$\{|R_{1,2}-q|\ge\delta/2\}$ has $\nu$-measure at least $\delta^2/(16(N+1))$ (Eq.~(1.271)).
+\end{theorem}
+\begin{proof}
+  \leanok
+Apply Theorem~\ref{thm:sg-tal:beyond-at-deduction} with $a=c_2$, $T=$ the rectangular second moment, $R_1,R_2$ the remainders of
+Theorem~\ref{thm:sg-tal:lemma-194}, $S_2=\nu((R_{1,2}-q)^2)$, $S_3=\nu(|R_{1,2}-q|^3)$; $T\ge0$ is the average of a square and $S_3\le2S_2$
+because $|R_{1,2}-q|\le2$.  Here $a>0$ follows from $\beta^2a>1$.
+\end{proof}
+
 \begin{remark}[Deviations and the open items of Section~1.9]
 \label{rem:sg-tal:dev-19}
 \begin{itemize}
 \item \emph{Indexing.} $M$ is the number of spins of the system, as in Section~1.8.  The book's $N$-dependence $K/N$ is $K/M$.
 \item \emph{Averages.} The conclusions of the deduction are stated for sequences of real numbers, and the indicator bound for an abstract average.  No measure of the form $\nu$ is constructed.
-\item \emph{What Lemma~1.9.4 requires.} Theorems~\ref{thm:sg-tal:cov-system} and~\ref{thm:sg-tal:thm-1812} carry the hypotheses $4\beta^2<1$ and the moment bounds $K_1/M$, $K_2/M^2$ (they enter through $\exp(c\beta^2)$ Hoelder factors and the Cauchy--Schwarz errors $\sqrt{K_1/M}\sqrt{K_2/M^2}$).  Beyond the AT line these moment bounds are false in general, so those errors have to be re-bounded by $\nu(|R_{1,2}-q|^3)$ using the Hoelder pairs $(3,3/2)$ and $(3/2,3)$ of the book.
+\item \emph{History: what Lemma~1.9.4 required.} Theorems~\ref{thm:sg-tal:cov-system} and~\ref{thm:sg-tal:thm-1812} carry the hypotheses $4\beta^2<1$ and the moment bounds $K_1/M$, $K_2/M^2$ (they enter through $\exp(c\beta^2)$ Hoelder factors and the Cauchy--Schwarz errors $\sqrt{K_1/M}\sqrt{K_2/M^2}$).  Beyond the AT line these moment bounds are false in general, so those errors are re-bounded by $\nu(|R_{1,2}-q|^3)$ using the Hoelder pairs $(3,3/2)$ and $(3/2,3)$ of the book (Theorem~\ref{thm:sg-tal:holder-three}).  The high-temperature theorems are unchanged; the cubic versions share their row equation (\texttt{sk\_row\_equation\_of\_bounds}) and covariance system (\texttt{sk\_cov\_system\_of\_row}).
 \item \emph{Lemma~1.9.3} is proved for a fixed point $q>0$.  The hypothesis $q>0$ is automatic for $h\ne0$ (as $\mathbb E\tanh^2>0$) but is a genuine selection of the fixed point for $h=0$, where $q=0$ always solves the equation and the strict inequality fails for $\beta\ge1$.  The derivative $\Phi'$ is not formed: the inequality $x\Phi'(x)-\Phi(x)<0$ of Proposition~A.14.1 is proved directly at $x=\beta^2q$, so Proposition~A.14.1 itself (for general $\varphi$ and the vanishing at infinity) is not formalized.
 \end{itemize}
 \end{remark}
