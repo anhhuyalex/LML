@@ -1920,17 +1920,8 @@ theorem at_error_bound {a b' w D₁ D₂ b₀ g R₀ R₁ R₂ E : ℝ} (hD₁ :
     (hw : w = (b₀ * a + g * b' + R₂) / D₂) :
     |a| ≤ 16 / 3 * E ∧ |b'| ≤ 8 * E ∧ |w| ≤ 20 * E := by
   have hE : 0 ≤ E := (abs_nonneg _).trans hR₀
-  have hR : ∀ i : Fin 3, |![R₀, R₁, R₂] i| ≤ E := fun i => by fin_cases i <;> assumption
-  have hρ1 : |R₀ - 2 * R₁ + R₂| ≤ 4 * E := by
-    have h := Weights.abs_weighted_sum_le ![1, -2, 1] _ hR
-    simp only [Fin.sum_univ_three] at h
-    norm_num at h
-    convert h using 2
-  have hρ2 : |R₀ - 4 * R₁ + 3 * R₂| ≤ 8 * E := by
-    have h := Weights.abs_weighted_sum_le ![1, -4, 3] _ hR
-    simp only [Fin.sum_univ_three] at h
-    norm_num at h
-    convert h using 2
+  have hρ1 := Matrix.abs_atEigenvectorOne_dot_le hR₀ hR₁ hR₂
+  have hρ2 := Matrix.abs_atEigenvectorTwo_dot_le hR₀ hR₁ hR₂
   have hα' : |a| ≤ 16 / 3 * E := by
     rw [ha]; exact (abs_div_le_four_thirds hD₁ hρ1).trans (by linarith)
   have hB' : |b'| ≤ 8 * E := by

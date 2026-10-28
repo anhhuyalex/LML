@@ -22,7 +22,7 @@ open MeasureTheory
 /-- **The mean of a Gram kernel:**
 `∬ ∑_{i ∈ s} f_i(a) f_i(b) dμ(b) dμ(a) = ∑_{i ∈ s} (∫ f_i dμ)²`. -/
 theorem integral_integral_finset_sum_mul {α ι : Type*} [MeasurableSpace α] (μ : Measure α)
-    [IsProbabilityMeasure μ] (s : Finset ι) (f : ι → α → ℝ) (hf : ∀ i ∈ s, Integrable (f i) μ) :
+    (s : Finset ι) (f : ι → α → ℝ) (hf : ∀ i ∈ s, Integrable (f i) μ) :
     ∫ a, ∫ b, ∑ i ∈ s, f i a * f i b ∂μ ∂μ = ∑ i ∈ s, (∫ a, f i a ∂μ) ^ 2 := by
   have hin : ∀ a, ∫ b, ∑ i ∈ s, f i a * f i b ∂μ = ∑ i ∈ s, f i a * ∫ b, f i b ∂μ := fun a => by
     rw [integral_finsetSum _ fun i hi => (hf i hi).const_mul _]

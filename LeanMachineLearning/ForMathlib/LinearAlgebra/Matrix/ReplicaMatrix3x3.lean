@@ -10,6 +10,8 @@ public import Mathlib.Data.Fin.VecNotation
 public import Mathlib.Algebra.BigOperators.Fin
 public import Mathlib.Tactic.FinCases
 public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Algebra.Order.Ring.Abs
 
 /-!
 # The `3 × 3` replica matrix and its universal left eigenvectors
@@ -30,6 +32,8 @@ probabilistic setting.
 * `Matrix.atMatrix`, `Matrix.atEigenvectorOne`, `Matrix.atEigenvectorTwo`
 * `Matrix.atMatrix_transpose_mulVec_one`, `Matrix.atMatrix_transpose_mulVec_two`
 * `Matrix.atRowZero`, `Matrix.atRowOne`, `Matrix.atRowTwo`, `Matrix.atMatrix_mulVec_eq`
+* `Matrix.abs_atEigenvectorOne_dot_le`, `Matrix.abs_atEigenvectorTwo_dot_le`: the `ℓ¹` norms
+  `4`, `8` of the eigenvectors bound the projections of a remainder vector
 -/
 
 @[expose] public section
@@ -147,5 +151,20 @@ theorem atMatrix_mulVec_eq (b2 b1 b0 U V W : K) :
   · exact atMatrix_mulVec_zero b2 b1 b0 ![U, V, W]
   · exact atMatrix_mulVec_one b2 b1 b0 ![U, V, W]
   · exact atMatrix_mulVec_two b2 b1 b0 ![U, V, W]
+
+/-- A remainder `(R₀, R₁, R₂)` with entries at most `E` has projection on the eigenvector
+`(1, -2, 1)` at most `4 E` (its `ℓ¹` norm times `E`). -/
+theorem abs_atEigenvectorOne_dot_le {L : Type*} [CommRing L] [LinearOrder L] [IsStrictOrderedRing L]
+    {R₀ R₁ R₂ E : L} (h₀ : |R₀| ≤ E) (h₁ : |R₁| ≤ E)
+    (h₂ : |R₂| ≤ E) : |R₀ - 2 * R₁ + R₂| ≤ 4 * E := by
+  rw [abs_le] at *
+  constructor <;> linarith [h₀.1, h₀.2, h₁.1, h₁.2, h₂.1, h₂.2]
+
+/-- The same for the eigenvector `(1, -4, 3)`, with `ℓ¹` norm `8`. -/
+theorem abs_atEigenvectorTwo_dot_le {L : Type*} [CommRing L] [LinearOrder L] [IsStrictOrderedRing L]
+    {R₀ R₁ R₂ E : L} (h₀ : |R₀| ≤ E) (h₁ : |R₁| ≤ E)
+    (h₂ : |R₂| ≤ E) : |R₀ - 4 * R₁ + 3 * R₂| ≤ 8 * E := by
+  rw [abs_le] at *
+  constructor <;> linarith [h₀.1, h₀.2, h₁.1, h₁.2, h₂.1, h₂.2]
 
 end Matrix

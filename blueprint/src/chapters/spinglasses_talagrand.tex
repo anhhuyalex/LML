@@ -25,7 +25,7 @@ The Hamiltonian with inverse temperature $\beta \in \mathbb{R}$ and external fie
 -H_N(\sigma) = \frac{\beta}{\sqrt{N}} \sum_{1 \le i < j \le N} g_{ij} \sigma_i \sigma_j + h \sum_{i \le N} \sigma_i,
 \]
 where the disorder $(g_{ij})_{1 \le i < j \le N}$ consists of $\binom{N}{2} = \frac{N(N-1)}{2}$ independent standard Gaussian variables $\mathcal{N}(0, 1)$ indexed by $\mathrm{FinPairs}\,N = \{p \in \mathrm{Fin}\,N \times \mathrm{Fin}\,N \mid p.1 < p.2\}$.
-The partition function is $Z_N(\beta) = \sum_\sigma \exp(-H_N(\sigma))$, the expected free energy is $p_N(\beta) = N^{-1}\mathbb{E}[\log Z_N(\beta)]$, $\langle\cdot\rangle$ denotes the Gibbs average (for several replicas, the product of independent copies), $\nu(\cdot)=\mathbb{E}[\langle\cdot\rangle]$ its average over the disorder, and the overlap of two configurations is $R_{1,2} = R(\sigma^1, \sigma^2) = N^{-1}\sum_{i \le N} \sigma_i^1 \sigma_i^2$.
+The partition function is $Z_N(\beta) = \sum_\sigma \exp(-H_N(\sigma))$, the expected free energy is $p_N(\beta) = N^{-1}\mathbb{E}[\log Z_N(\beta)]$, $\langle\cdot\rangle$ denotes the Gibbs average (for several replicas, the product of independent copies), $\nu(\cdot)=\mathbb{E}[\langle\cdot\rangle]$ its average over the disorder (Remark~\ref{rem:sg-tal:nu-notation}), and the overlap of two configurations is $R_{1,2} = R(\sigma^1, \sigma^2) = N^{-1}\sum_{i \le N} \sigma_i^1 \sigma_i^2$.
 
 \section{The SK Hamiltonian and Foundations (Talagrand Section~1.1)}\label{sec:sg-tal:foundations}
 
@@ -850,7 +850,36 @@ so the optimal $q$ is exactly a solution of (1.74). This also has a physical mea
 
 \section{Lata\l{}a's Overlap Concentration and the ALR Formula (Talagrand Section~1.4)}\label{sec:sg-tal:latala-alr}
 
-Section~1.4 proves R.~Lata\l{}a's exponential overlap concentration theorem and establishes the Aizenman--Lebowitz--Ruelle (ALR) high-temperature free energy formula.
+Section~1.4 proves R.~Lata\l{}a's exponential overlap concentration theorem and establishes the Aizenman--Lebowitz--Ruelle (ALR) high-temperature free energy formula. Throughout the section the symbol $\nu$ (and $\nu_s$, $\nu_{\mathrm{SK}}$, $\nu_{\mathrm{dec}}$) denotes a \emph{disorder-averaged Gibbs average over several replicas}; it is explained in Remark~\ref{rem:sg-tal:nu-notation}, and each statement below that uses it points back there.
+
+\begin{remark}[The notation $\nu$, $\nu_s$, $\nu_{\mathrm{SK}}$, $\nu_{\mathrm{dec}}$]\label{rem:sg-tal:nu-notation}
+\talsource{notation of Chapter~1; the path averages $\nu_t$ of Sections~1.3--1.4}
+The symbol $\nu$ is Talagrand's name for the quantity one actually computes when studying the overlap. It is built in three layers.
+
+\emph{(1) Gibbs average.} Fix the disorder $\omega$ (the Gaussian couplings $g$, and for interpolating systems also the cavity variables $z$). The Gibbs measure on $\Sigma_N=\{-1,1\}^N$ is $G_\omega(\sigma)=e^{-H_\omega(\sigma)}/Z_\omega$, and $\langle f\rangle=\sum_\sigma G_\omega(\sigma)f(\sigma)$. For $n$ \emph{replicas} (``real replicas'': $n$ independent configurations drawn from the \emph{same} $G_\omega$) put
+\[
+\langle f(\sigma^1,\dots,\sigma^n)\rangle=\sum_{\sigma^1,\dots,\sigma^n}G_\omega(\sigma^1)\cdots G_\omega(\sigma^n)\,f(\sigma^1,\dots,\sigma^n).
+\]
+For example $\langle R_{1,2}\rangle=\sum_{\sigma^1,\sigma^2}G_\omega(\sigma^1)G_\omega(\sigma^2)\,N^{-1}\sum_i\sigma^1_i\sigma^2_i$ is the mean overlap of two independent samples of the same random Gibbs measure.
+
+\emph{(2) Average over the disorder.}
+\[
+\nu(f)=\mathbb{E}\big[\langle f\rangle\big]=\mathbb{E}\Big[\sum_{\sigma^1,\dots,\sigma^n}G_\omega(\sigma^1)\cdots G_\omega(\sigma^n)f(\sigma^1,\dots,\sigma^n)\Big].
+\]
+The expectation is taken \emph{outside} the product of the Gibbs weights, so all replicas see the same disorder. This is why $\nu(f(\sigma^1,\sigma^2))$ is in general not the product of two single-replica averages: $\nu(R_{1,2})=\mathbb{E}\big[N^{-1}\sum_i\langle\sigma_i\rangle^2\big]$, not $N^{-1}\sum_i(\mathbb{E}\langle\sigma_i\rangle)^2$. The number $n$ of replicas is read off from the arguments of $f$; the statements of this section use $n=2$, with the overlap $R_{1,2}=N^{-1}\sum_i\sigma^1_i\sigma^2_i$.
+
+\emph{(3) Which system.} A subscript or a word says which Hamiltonian $H_\omega$ is meant:
+\begin{itemize}
+\item $\nu$ with no subscript, and $\nu_{\mathrm{SK}}$: the SK model with field $h$, $-H(\sigma)=\frac{\beta}{\sqrt N}\sum_{i<j}g_{ij}\sigma_i\sigma_j+h\sum_i\sigma_i$.
+\item $\nu_{\mathrm{dec}}$: the decoupled model with independent spins in the random fields $\beta\sqrt q\,z_i+h$, $z_i$ standard Gaussian, i.e.\ the endpoint $s=\pi/2$ of the smart path (Definition~\ref{def:sg-tal:smart-path}).
+\item $\nu_s$, $s\in[0,\pi/2]$: the smart path at angle $s$, with energy $\cos s\,\frac{\beta}{\sqrt N}\sum_{i<j}g_{ij}\sigma_i\sigma_j+\sin s\,\beta\sqrt q\sum_iz_i\sigma_i+h\sum_i\sigma_i$ and the expectation over both $g$ and $z$. So $\nu_0=\nu_{\mathrm{SK}}$ and $\nu_{\pi/2}=\nu_{\mathrm{dec}}$. In the book's variable $t=\cos^2 s$ this is the average written $\nu_t$ (Remark~\ref{rem:sg-tal:book-path}); the book's $\nu_t$ with $t=1$ is the SK end.
+\end{itemize}
+Warning: in the cavity method (Sections~\ref{sec:sg-tal:cavity} and later) $\nu_t$ and $\nu_0$ denote averages along a different interpolation, between the $(N+1)$-spin system and a decoupled last spin; they are not the objects of this section.
+
+\emph{Lean form.} The sentence ``$\nu(\exp sN(R_{1,2}-q)^2)\le\dots$'' is the iterated integral of Theorem~\ref{thm:sg-tal:overlap-conc}: the outer integral is over the Gaussian couplings $g$ (the expectation $\mathbb{E}$), and the inner integral is over \texttt{Fin 2 $\to$ (Fin N $\to$ units of $\mathbb{Z}$)} with respect to the product of two copies of the Gibbs measure (\texttt{Measure.count.tilted} of the energy, taken twice, \texttt{Measure.pi}). No separate Lean definition of $\nu$ exists: each statement writes the two integrals out.
+
+\emph{Why $\nu$.} The overlap $R_{1,2}$ is a statistic of two replicas, and the claim that it concentrates around $q$ (bounds of the form $\nu((R_{1,2}-q)^2)\le K/N$) says that two independent samples from the same random Gibbs measure have overlap close to the constant $q$, with high probability over both the samples and the disorder. The cavity method and the Gaussian fluctuation principle in the later sections are likewise formulated with such $\nu$-averages.
+\end{remark}
 
 \begin{remark}[Deviations from the book in Section~1.4]\label{rem:sg-tal:dev-14}
 Every statement below is proved in Lean, but several proofs differ from Talagrand's, and a few statements are weaker or reorganized.
@@ -860,7 +889,7 @@ Every statement below is proved in Lean, but several proofs differ from Talagran
 \item \emph{Lemma~1.4.5 by Chebyshev's inequality.} The book expands the exponential in a series, applies H\"older's inequality and uses replica symmetry. Lean applies Chebyshev's association inequality $\int a\int b\le\int ab$ for similarly ordered functions to $a=A$, $b=e^{uA}$, separately for each realization of the disorder. Lemma~1.4.5 is not stated on its own as an inequality between $\nu_t$-averages.
 \item \emph{Corollary~1.4.7: direction and generality.} The compensated functional is nondecreasing in the trigonometric parameter $s$, equivalently non-increasing in the book's $t=\cos^2 s$. It is proved abstractly for any nonnegative symmetric overlap function $A$ with constant diagonal and $U=-\kappa(A-c)$, and then specialized to $A=(R_{1,2}-q)^2$.
 \item \emph{Proposition~1.4.8.} The one-dimensional inequality $(\cosh u+q\sinh u)e^{-qu}\le e^{u^2/2}$ is obtained from Hoeffding's lemma (Mathlib) applied to an explicit two-point law, not from a direct calculus argument. The randomization $u\sim\mathcal N(0,2\lambda/N)$ is carried out as a Fubini exchange with a standard Gaussian, valid because the overlap is bounded.
-\item \emph{Theorem~1.4.1 and the moment bounds.} The exponential bound is proved for the SK endpoint. The uniform bound $\nu_s((R_{1,2}-q)^2)\le K/N$ (Eqs.~(1.89), (1.103)) is derived from the compensated inequality and $e^x\ge1+x$ with an explicit constant. Eq.~(1.88) for all even moments of the $N$-spin overlap is derived from the exponential bound by the elementary inequality $x^r\le r!\,e^x$ (Theorem~\ref{thm:sg-tal:overlap-moments-all}).
+\item \emph{Theorem~1.4.1 and the moment bounds.} The exponential bound is proved for the SK endpoint. The uniform bound $\nu_s((R_{1,2}-q)^2)\le K/N$ (Eqs.~(1.89), (1.103); notation Remark~\ref{rem:sg-tal:nu-notation}) is derived from the compensated inequality and $e^x\ge1+x$ with an explicit constant. Eq.~(1.88) for all even moments of the $N$-spin overlap is derived from the exponential bound by the elementary inequality $x^r\le r!\,e^x$ (Theorem~\ref{thm:sg-tal:overlap-moments-all}).
 \item \emph{Theorem~1.4.10 by monotonicity.} Instead of integrating $\varphi'$ over $[0,\pi/2]$, Lean shows that $\varphi+c\sin^2$ is monotone for two choices of $c$ (using $0\le A\le K/N$), which gives the same two-sided $O(1/N)$ bound without any integrability check. The convergence $p_N\to\operatorname{SK}(\beta,h)$ is derived from this bound directly for the pair disorder with field, not from the thermodynamic limit of Theorem~1.3.9.
 \item \emph{Hypotheses.} $q$ is a hypothesis (fixed-point equation), and the book's $\beta<1/2$ is stated as $\beta^2<1/4$.
 \end{itemize}
@@ -940,7 +969,7 @@ SK form (Corollary~1.4.7 in the endpoint version used for Theorem~1.4.1): for $N
 \[
 \nu_{\mathrm{SK}}\big(\exp sN(R_{1,2}-q)^2\big) \le \nu_{\mathrm{dec}}\big(\exp (s+2\beta^2) N (R_{1,2}-q)^2\big),
 \]
-where $\nu_{\mathrm{SK}}$ is the disorder-averaged two-replica Gibbs average of the SK model with field $h$ and $\nu_{\mathrm{dec}}$ that of the decoupled model with fields $\beta\sqrt q\, z_i + h$.
+where (notation of Remark~\ref{rem:sg-tal:nu-notation}) $\nu_{\mathrm{SK}}$ is the disorder-averaged two-replica Gibbs average of the SK model with field $h$ and $\nu_{\mathrm{dec}}$ that of the decoupled model with fields $\beta\sqrt q\, z_i + h$.
 Path form: for $\lambda\ge2\beta^2$ and $s\in[0,\pi/2]$, the average of $\exp\big(N(\lambda-2\beta^2\cos^2 s)(R_{1,2}-q)^2\big)$ under the smart-path Gibbs measure at time $s$ is at most $\nu_{\mathrm{dec}}(\exp \lambda N (R_{1,2}-q)^2)$.
 \end{corollary}
 \begin{proof}
@@ -990,7 +1019,7 @@ Formalized in \texttt{SpinGlasses/SKLatalaBase.lean}.
         SpinGlasses.sk_path_expected_sq_overlap_le}
   \leanok
 \talsource{Theorem~1.4.1, Eq.~(1.87); moment bounds, Eqs.~(1.89) and (1.103)}
-Let $N\ge1$, $\beta,h\in\mathbb R$ and let $q=\mathbb{E}[\tanh^2(\beta\sqrt q\,z+h)]$.
+Let $N\ge1$, $\beta,h\in\mathbb R$ and let $q=\mathbb{E}[\tanh^2(\beta\sqrt q\,z+h)]$. Here $\nu(f)=\mathbb{E}\langle f\rangle$ is the disorder average of the two-replica Gibbs average and $\nu_s$ that along the smart path (see Remark~\ref{rem:sg-tal:nu-notation}).
 For $s\ge0$ with $2s+4\beta^2<1$ (Theorem~1.4.1):
 \[
 \nu\left(\exp s N (R_{1,2} - q)^2\right) \le \frac{1}{\sqrt{1 - 2s - 4\beta^2}} .
@@ -1033,7 +1062,7 @@ The exponential is the sum of the nonnegative series $\sum_n y^n/n!$, and a sing
         SpinGlasses.sk_overlap_moment_le_of_exp_unif}
   \leanok
 \talsource{Eq.~(1.88)}
-Let $\beta,h\in\mathbb R$ with $4\beta^2<1$ and let $q$ satisfy $q=\mathbb{E}[\tanh^2(\beta\sqrt q\,z+h)]$. For every $r\in\mathbb N$ there is $K>0$ such that for every $N\ge1$, in the $N$-spin SK model at inverse temperature $\beta$ and field $h$,
+Let $\beta,h\in\mathbb R$ with $4\beta^2<1$ and let $q$ satisfy $q=\mathbb{E}[\tanh^2(\beta\sqrt q\,z+h)]$. For every $r\in\mathbb N$ there is $K>0$ such that for every $N\ge1$, in the $N$-spin SK model at inverse temperature $\beta$ and field $h$ (with $\nu$ as in Remark~\ref{rem:sg-tal:nu-notation}: disorder average of the two-replica Gibbs average),
 \[
 \nu\big((R_{1,2}-q)^{2r}\big)=\mathbb{E}\big\langle(R_{1,2}-q)^{2r}\big\rangle\le\frac{K}{N^{r}},\qquad
 K=r!\,s^{-r}\,(1-2s-4\beta^2)^{-1/2},\quad s=\frac{1-4\beta^2}{4},
@@ -1065,7 +1094,7 @@ Consequently $p_N(\beta,h)\to \log2+\mathbb{E}[\log\cosh(\beta z\sqrt q+h)]+\fra
 \begin{proof}
 \leanok
 Let $\varphi(s)=N^{-1}\mathbb{E}[\log Z_s]$ along the trigonometric smart path.
-By Theorem~\ref{thm:sg-tal:guerra-rs-bound} (profile lemma) $\varphi'(s)=\frac{\beta^2}{2}\sin s\cos s\,(A(s)-(1-q)^2)$ with $A(s)=\nu_s((R_{1,2}-q)^2)\ge0$, $\varphi(0)=p_N$ and $\varphi(\pi/2)=\log 2+\mathbb{E}[\log\cosh(\beta z\sqrt q+h)]$.
+By Theorem~\ref{thm:sg-tal:guerra-rs-bound} (profile lemma) $\varphi'(s)=\frac{\beta^2}{2}\sin s\cos s\,(A(s)-(1-q)^2)$ with $A(s)=\nu_s((R_{1,2}-q)^2)\ge0$ (the smart-path average of Remark~\ref{rem:sg-tal:nu-notation}), $\varphi(0)=p_N$ and $\varphi(\pi/2)=\log 2+\mathbb{E}[\log\cosh(\beta z\sqrt q+h)]$.
 Since $0\le A(s)\le K'/N$ on $[0,\pi/2]$ by Theorem~\ref{thm:sg-tal:overlap-conc}, the functions $\varphi(s)+\frac{\beta^2}{4}(1-q)^2\sin^2 s$ (nondecreasing) and $\varphi(s)+\frac{\beta^2}{4}((1-q)^2-K'/N)\sin^2 s$ (nonincreasing) give $\varphi(0)\le\varphi(\pi/2)+\frac{\beta^2}{4}(1-q)^2$ and $\varphi(0)\ge\varphi(\pi/2)+\frac{\beta^2}{4}((1-q)^2-K'/N)$, i.e.\ the claim.
 \emph{Formalization note.} This is done by monotonicity instead of integrating the derivative (same bound, no integrability to check).
 As in Theorem~\ref{thm:sg-tal:overlap-conc}, $q$ is a hypothesis (fixed-point equation) and $\beta<1/2$ is stated as $\beta^2<1/4$.
@@ -3680,6 +3709,8 @@ By convexity $(x_1-x_2-x_3+x_4)^{2k}\le4^{2k-1}(x_1^{2k}+x_2^{2k}+x_3^{2k}+x_4^{
   \uses{lem:sg-tal:double-centering, lem:sg-tal:gibbs-jensen, def:sg-tal:gibbs-overlap}
   \lean{SpinGlasses.overlap_self,
         SpinGlasses.gram_centered_eq,
+        SpinGlasses.integral_integral_overlap,
+        integral_integral_finset_sum_mul,
         SpinGlasses.integral_projGram_pow_le}
   \leanok
 \talsource{Eq.~(1.201): $\mathbb E\langle T_{\ell,\ell'}^{2r}\rangle\le K/N^r$, and the identity displayed after it}
@@ -3740,6 +3771,7 @@ Theorem~\ref{thm:sg-tal:gibbs-taylor} with $m=2k$ applies: $v^2=1-q\le1\le4$, $|
 \begin{definition}[The SK Gibbs energy and the spin observables]
 \label{def:sg-tal:sk-gibbs-energy}
   \lean{SpinGlasses.skGibbsEnergy,
+        SpinGlasses.measurable_skGibbsEnergy,
         SpinGlasses.abs_units_cast_le_one,
         SpinGlasses.units_cast_sq}
   \leanok
@@ -4462,6 +4494,8 @@ Let $s=\beta\sqrt q$, so $s^2\le\beta^2\le1/4$.  For $h>0$, $\tanh(h+x)+\tanh(h-
   \uses{thm:sg-tal:overlap-moments-all, lem:sg-tal:fixed-point-shift}
   \lean{SpinGlasses.sk_old_overlap_dev_bound,
         SpinGlasses.sq_sub_mul_le,
+        SpinGlasses.integral_integral_overlap,
+        integral_integral_finset_sum_mul,
         SpinGlasses.sq_meanOverlap_sub_le_overlapMoment}
   \leanok
 \talsource{Section~1.7, proof of Lemma~1.7.6, Eq.~(1.189) (with the normalization $N/(N+1)$ made explicit)}
@@ -4667,9 +4701,9 @@ Let $\beta_-=\beta\sqrt{N/(N+1)}$ and let $q_-$ be a fixed point at $\beta_-$ wi
 
 \begin{lemma}[Exchangeability of the TAP defects]
 \label{lem:sg-tal:tap-exchange}
-  \lean{SpinGlasses.symCoupling_comp_pairPerm,
+  \lean{SpinGlasses.skSymmCoupling_comp_pairPerm,
         SpinGlasses.tap_defect_comp_pairPerm,
-        SpinGlasses.sum_symCoupling_last,
+        SpinGlasses.sum_skSymmCoupling_last,
         SpinGlasses.integral_spin_comp_pairPerm,
         SpinGlasses.gibbsWeight_comp_pairPerm,
         MeasureTheory.integral_comp_eq_of_perm_equivariant}
@@ -5468,6 +5502,11 @@ bound fails at $x=0$). Proposition~A.14.1 for general $\varphi$ is Theorem~\ref{
   \uses{thm:sg-tal:latala-guerra}
   \lean{SpinGlasses.sk_beta_sq_mul_one_sub_four_add_three_lt_one,
         SpinGlasses.integral_tanh_core_lt,
+        Real.deriv_tanh_eq,
+        Real.contDiff_one_tanh,
+        Real.monotone_tanh,
+        Real.hasDerivAt_deriv_tanh,
+        Real.neg_two_mul_tanh_mul_lt_zero,
         SpinGlasses.integral_tanh_sq_deriv_mul_id_eq,
         ProbabilityTheory.integral_gaussianReal_add_const_eq}
   \leanok
@@ -5540,8 +5579,8 @@ $S_2\ge S_3/2\ge c/(4KM)$.  Take $\delta=\min(1/K',c/(4K))$.
         SpinGlasses.sk_row_Vf_three,
         SpinGlasses.sk_row_Gb_three,
         SpinGlasses.sk_inv_mul_abs_le_cube,
-        SpinGlasses.rpow_mul_rpow_le_of_le,
-        SpinGlasses.mul_sq_le_cube_third}
+        rpow_mul_rpow_le_of_le,
+        mul_sq_le_cube_third}
   \leanok
 \talsource{Section~1.8, Proposition~1.8.1, Eqs.~(1.215), (1.216), used with $\tau_1=3,\tau_2=3/2$ and $\tau_1=3/2,\tau_2=3$ in the proof of Lemma~1.9.4}
 Let $\beta,h\in\mathbb R$, $q$ a fixed point, $\hat q=\mathbb E\tanh^4(\beta\sqrt qz+h)$, $M=N+1$, $\Delta=\nu(|R_{1,2}-q|^3)$.
@@ -5589,6 +5628,8 @@ The remaining terms ($R^-\to R$, the last-site error) are $\le3(\Delta+M^{-3/2})
         SpinGlasses.sk_rect_nu_eq,
         SpinGlasses.sk_at_scalar_solution_of_abs,
         SpinGlasses.at_error_bound_of_abs,
+        Matrix.abs_atEigenvectorOne_dot_le,
+        Matrix.abs_atEigenvectorTwo_dot_le,
         SpinGlasses.abs_at_leading_le,
         SpinGlasses.sk_cov_row_bound_three}
   \leanok

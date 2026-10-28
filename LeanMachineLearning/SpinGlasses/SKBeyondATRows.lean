@@ -28,50 +28,6 @@ open scoped BigOperators Real Matrix
 
 namespace SpinGlasses
 
-section Arithmetic
-
-/-- Weighted AM-GM in the form used for all remainders: if `A ≤ c D'` and `D ≤ D'` then
-`A^s D^t ≤ c D'` for `s + t = 1`, `c ≥ 1`. -/
-theorem rpow_mul_rpow_le_of_le {A D D' c s t : ℝ} (hs : 0 ≤ s) (ht : 0 ≤ t) (hst : s + t = 1)
-    (hA : 0 ≤ A) (hAD : A ≤ c * D') (hD : 0 ≤ D) (hDD : D ≤ D') (hc : 1 ≤ c) :
-    A ^ s * D ^ t ≤ c * D' := by
-  have hD' : 0 ≤ D' := hD.trans hDD
-  have hc0 : 0 ≤ c := by linarith
-  calc A ^ s * D ^ t ≤ (c * D') ^ s * D' ^ t := by
-        gcongr
-    _ = c ^ s * (D' ^ s * D' ^ t) := by rw [Real.mul_rpow hc0 hD']; ring
-    _ = c ^ s * D' := by
-        rw [← Real.rpow_add' hD' (by rw [hst]; norm_num), hst, Real.rpow_one]
-    _ ≤ c * D' := by
-        gcongr
-        calc c ^ s ≤ c ^ (1 : ℝ) := Real.rpow_le_rpow_of_exponent_le hc (by linarith)
-          _ = c := Real.rpow_one c
-
-/-- `t m² ≤ t³/3 + 2 m³/3` for `t, m ≥ 0` (Young's inequality with exponents `3`, `3/2`). -/
-theorem mul_sq_le_cube_third {t m : ℝ} (ht : 0 ≤ t) (hm : 0 ≤ m) :
-    t * m ^ 2 ≤ t ^ 3 / 3 + 2 * m ^ 3 / 3 := by
-  nlinarith only [mul_nonneg (sq_nonneg (t - m)) (add_nonneg ht (mul_nonneg (by norm_num : (0 : ℝ)
-    ≤ 2) hm))]
-
-/-- `(x + y)³ ≤ 4 (x³ + y³)` for `x, y ≥ 0`. -/
-theorem add_pow_three_le {x y : ℝ} (hx : 0 ≤ x) (hy : 0 ≤ y) :
-    (x + y) ^ 3 ≤ 4 * (x ^ 3 + y ^ 3) := by
-  nlinarith only [mul_nonneg (sq_nonneg (x - y)) (add_nonneg hx hy)]
-
-/-- `(u v)^{3/2} ≤ (u³ + v³)/2` for `u, v ≥ 0`. -/
-theorem mul_rpow_three_halves_le {u v : ℝ} (hu : 0 ≤ u) (hv : 0 ≤ v) :
-    (u * v) ^ (3 / 2 : ℝ) ≤ (u ^ 3 + v ^ 3) / 2 := by
-  have e : ∀ w : ℝ, 0 ≤ w → (w ^ (3 / 2 : ℝ)) ^ 2 = w ^ 3 := fun w hw => by
-    rw [← Real.rpow_natCast, ← Real.rpow_mul hw]
-    norm_num
-  rw [Real.mul_rpow hu hv]
-  nlinarith only [sq_nonneg (u ^ (3 / 2 : ℝ) - v ^ (3 / 2 : ℝ)), e u hu, e v hv]
-
-/-- `|x|^{(3 : ℝ)} = |x|^3`. -/
-theorem abs_rpow_three (x : ℝ) : |x| ^ (3 : ℝ) = |x| ^ 3 := Real.rpow_natCast |x| 3
-
-end Arithmetic
-
 section Holder
 
 /-- **The second-order Taylor step with exponents `(3, 3/2)`** (Eq. (1.216) of Proposition 1.8.1

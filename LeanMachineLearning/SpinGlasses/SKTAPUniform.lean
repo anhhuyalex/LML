@@ -107,7 +107,8 @@ theorem sk_tap_uniform (β₀ : ℝ) (hβ₀ : 0 ≤ β₀) (hβ₀' : 4 * β₀
       β ^ 2 * (1 - q) * m g i)
   have hm_meas : ∀ j, Measurable fun g => m g j := fun j =>
     measurable_integral_spin_skGibbsEnergy (N + 1) β h j
-  have hG_meas : ∀ i j, Measurable fun g => skSymmCoupling g i j := fun i j => by
+  have hG_meas : ∀ i j,
+      Measurable fun g : FinPairs (N + 1) → ℝ => skSymmCoupling g i j := fun i j => by
     simp only [skSymmCoupling]
     split_ifs
     exacts [measurable_pi_apply _, measurable_pi_apply _, measurable_const]

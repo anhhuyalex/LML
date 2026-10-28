@@ -5,7 +5,9 @@ Authors: LML Contributors
 -/
 module
 
+public import Mathlib.Analysis.Calculus.ContDiff.Deriv
 public import Mathlib.Analysis.Calculus.Deriv.Basic
+public import Mathlib.Analysis.Calculus.Deriv.MeanValue
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Hyperbolic
 
@@ -136,5 +138,36 @@ theorem one_sub_tanh_sq_eq_inv_cosh_sq (y : ℝ) : 1 - Real.tanh y ^ 2 = ((Real.
   rw [Real.tanh_eq_sinh_div_cosh]
   field_simp
   nlinarith [Real.cosh_sq y]
+
+/-- `tanh' = 1 - tanh²`. -/
+theorem deriv_tanh_eq : deriv Real.tanh = fun y => 1 - Real.tanh y ^ 2 :=
+  funext fun y => (Real.hasDerivAt_tanh y).deriv
+
+/-- `tanh` is globally `C¹`. -/
+theorem contDiff_one_tanh : ContDiff ℝ 1 Real.tanh :=
+  contDiff_one_iff_deriv.2 ⟨fun y => (Real.hasDerivAt_tanh y).differentiableAt, by
+    rw [deriv_tanh_eq]; have := Real.continuous_tanh; fun_prop⟩
+
+/-- `tanh` is increasing. -/
+theorem monotone_tanh : Monotone Real.tanh :=
+  monotone_of_deriv_nonneg (fun y => (Real.hasDerivAt_tanh y).differentiableAt) fun y => by
+    rw [deriv_tanh_eq]; linarith [Real.tanh_sq_lt_one y]
+
+/-- `tanh'' y = -2 tanh y (1 - tanh² y)`. -/
+theorem hasDerivAt_deriv_tanh (y : ℝ) :
+    HasDerivAt (deriv Real.tanh) (-(2 * Real.tanh y * (1 - Real.tanh y ^ 2))) y := by
+  rw [deriv_tanh_eq]
+  have hsub := (hasDerivAt_const y (1 : ℝ)).sub (Real.hasDerivAt_tanh_sq y)
+  rw [zero_sub] at hsub
+  exact hsub
+
+/-- `tanh'' < 0` on `(0, ∞)`. -/
+theorem neg_two_mul_tanh_mul_lt_zero {y : ℝ} (hy : 0 < y) :
+    -(2 * Real.tanh y * (1 - Real.tanh y ^ 2)) < 0 := by
+  have ht : 0 < Real.tanh y := by
+    rw [Real.tanh_eq_sinh_div_cosh]
+    exact div_pos (Real.sinh_pos_iff.2 hy) (Real.cosh_pos y)
+  have := Real.tanh_sq_lt_one y
+  nlinarith only [ht, this]
 
 end Real

@@ -99,7 +99,7 @@ def main(tools: pathlib.Path, repository: str) -> None:
                 route = urllib.parse.quote(name, safe="")
                 # Assert the search result navigated to the expected declaration before reloading its deep link.
                 require(page.value("location.hash") == f"#/i/{declaration['i']}", "Search opened the wrong declaration")
-                page.visit(base + f"/?p=lml#/d/{route}", "!!document.querySelector('#graph svg a')")
+                page.visit(base + f"/?p=lml#/d/{route}", "document.querySelectorAll('#graph svg a').length > 1")
                 require(page.value("document.querySelector('h1').textContent") == name,
                         "Declaration page has the wrong title")
                 require(page.value("!!document.querySelector('.theorem, pre')"), "Statement did not render")
@@ -109,7 +109,8 @@ def main(tools: pathlib.Path, repository: str) -> None:
                 require(expected_source in sources, "Declaration source link has the wrong repository, revision or lines")
                 require("Not re-checked" in page.value("document.querySelector('#foot').textContent"),
                         "Footer must disclose that independent checking was not run")
-                require(not page.problems(), "Browser reported errors on the LML declaration")
+                problems = page.problems()
+                require(not problems, f"Browser reported errors on the LML declaration: {problems}")
                 print(f"LML search, statement, dependency graph and source link passed: {name}", flush=True)
             finally:
                 page.close()

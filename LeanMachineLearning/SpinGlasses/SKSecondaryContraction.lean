@@ -37,37 +37,6 @@ open MeasureTheory ProbabilityTheory
 
 namespace SpinGlasses
 
-/-- `tanh' = 1 - tanh²`. -/
-theorem deriv_tanh_eq : deriv Real.tanh = fun y => 1 - Real.tanh y ^ 2 :=
-  funext fun y => (Real.hasDerivAt_tanh y).deriv
-
-/-- `tanh` is globally `C¹`. -/
-theorem contDiff_one_tanh : ContDiff ℝ 1 Real.tanh :=
-  contDiff_one_iff_deriv.2 ⟨fun y => (Real.hasDerivAt_tanh y).differentiableAt, by
-    rw [deriv_tanh_eq]; have := Real.continuous_tanh; fun_prop⟩
-
-/-- `tanh` is increasing. -/
-theorem monotone_tanh : Monotone Real.tanh :=
-  monotone_of_deriv_nonneg (fun y => (Real.hasDerivAt_tanh y).differentiableAt) fun y => by
-    rw [deriv_tanh_eq]; linarith [Real.tanh_sq_lt_one y]
-
-/-- `tanh'' y = -2 tanh y (1 - tanh² y)`. -/
-theorem hasDerivAt_deriv_tanh (y : ℝ) :
-    HasDerivAt (deriv Real.tanh) (-(2 * Real.tanh y * (1 - Real.tanh y ^ 2))) y := by
-  rw [deriv_tanh_eq]
-  have hsub := (hasDerivAt_const y (1 : ℝ)).sub (Real.hasDerivAt_tanh_sq y)
-  rw [zero_sub] at hsub
-  exact hsub
-
-/-- `tanh'' < 0` on `(0, ∞)`. -/
-theorem neg_two_mul_tanh_mul_lt_zero {y : ℝ} (hy : 0 < y) :
-    -(2 * Real.tanh y * (1 - Real.tanh y ^ 2)) < 0 := by
-  have ht : 0 < Real.tanh y := by
-    rw [Real.tanh_eq_sinh_div_cosh]
-    exact div_pos (Real.sinh_pos_iff.2 hy) (Real.cosh_pos y)
-  have := Real.tanh_sq_lt_one y
-  nlinarith only [ht, this]
-
 /-- **The key inequality of Proposition A.14.1 for `tanh`:**
 `w · 𝔼[2 tanh Y (1 - tanh² Y) z] < 2 𝔼 tanh² Y` for `Y = w z + h`, `w ≠ 0`.
 (This is `x² Ψ'(x) < 0` for `Ψ(x) = 𝔼 tanh²(√x z + h)/x`; it is the case `φ = tanh` of
@@ -75,10 +44,10 @@ theorem neg_two_mul_tanh_mul_lt_zero {y : ℝ} (hy : 0 < y) :
 theorem integral_tanh_core_lt {w : ℝ} (hw : w ≠ 0) (h : ℝ) :
     w * ∫ z : ℝ, 2 * Real.tanh (w * z + h) * (1 - Real.tanh (w * z + h) ^ 2) * z
         ∂(gaussianReal 0 1) < 2 * ∫ z : ℝ, Real.tanh (w * z + h) ^ 2 ∂(gaussianReal 0 1) := by
-  have key := integral_mul_deriv_mul_id_lt contDiff_one_tanh Real.tanh_neg monotone_tanh
-    (fun y => (Real.abs_tanh_lt_one y).le) (fun y _ => hasDerivAt_deriv_tanh y)
-    (fun y hy => neg_two_mul_tanh_mul_lt_zero hy) hw h
-  rw [deriv_tanh_eq] at key
+  have key := integral_mul_deriv_mul_id_lt Real.contDiff_one_tanh Real.tanh_neg Real.monotone_tanh
+    (fun y => (Real.abs_tanh_lt_one y).le) (fun y _ => Real.hasDerivAt_deriv_tanh y)
+    (fun y hy => Real.neg_two_mul_tanh_mul_lt_zero hy) hw h
+  rw [Real.deriv_tanh_eq] at key
   have e : ∫ z : ℝ, 2 * Real.tanh (w * z + h) * (1 - Real.tanh (w * z + h) ^ 2) * z
       ∂(gaussianReal 0 1) = 2 * ∫ z : ℝ, Real.tanh (w * z + h) *
         (1 - Real.tanh (w * z + h) ^ 2) * z ∂(gaussianReal 0 1) := by

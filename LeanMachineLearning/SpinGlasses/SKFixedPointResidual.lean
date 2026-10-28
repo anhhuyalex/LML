@@ -92,9 +92,9 @@ case `φ = tanh`, `s = β` of `strictAntiOn_integral_sq_comp_sqrt_div`). -/
 theorem strictAntiOn_fixedPointMap_div {h : ℝ} (hh : h ≠ 0) (β : ℝ) :
     StrictAntiOn (fun y : ℝ =>
       (∫ z : ℝ, Real.tanh (β * Real.sqrt y * z + h) ^ 2 ∂(gaussianReal 0 1)) / y) (Ioi 0) :=
-  strictAntiOn_integral_sq_comp_sqrt_div contDiff_one_tanh Real.tanh_neg monotone_tanh
-    (fun y => (Real.abs_tanh_lt_one y).le) (fun y _ => hasDerivAt_deriv_tanh y)
-    (fun _ hy => neg_two_mul_tanh_mul_lt_zero hy) β h (Or.inr hh)
+  strictAntiOn_integral_sq_comp_sqrt_div Real.contDiff_one_tanh Real.tanh_neg Real.monotone_tanh
+    (fun y => (Real.abs_tanh_lt_one y).le) (fun y _ => Real.hasDerivAt_deriv_tanh y)
+    (fun _ hy => Real.neg_two_mul_tanh_mul_lt_zero hy) β h (Or.inr hh)
 
 /-- **Uniqueness of the replica-symmetric overlap for `h ≠ 0`** (Talagrand, around Eq. 1.74 and
 Proposition 1.3.8): two solutions of `q = 𝔼 tanh²(β √q z + h)` coincide.  Both are positive by
