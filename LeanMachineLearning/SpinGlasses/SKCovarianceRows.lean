@@ -40,6 +40,35 @@ variable (N n : ℕ) (β h q : ℝ)
     ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
 
 include hν in
+/-- **Symmetry between sites (Talagrand, Eq. (1.309)), for an arbitrary one-site observable.**
+If `H` is invariant under relabelling the sites, the site average of a one-site observable `ξ`
+of the spins of the `n` replicas, multiplied by `H`, has the same average as the last site. -/
+theorem sk_replica_avg_site_mean (ξ : (Fin n → ℤˣ) → ℝ) (H : (Fin n → Fin (N + 1) → ℤˣ) → ℝ)
+    (hH : ∀ (pm : Equiv.Perm (Fin (N + 1))) σ, H (fun r i => σ r (pm i)) = H σ) :
+    ν (fun σ => ((N + 1 : ℝ)⁻¹ * ∑ s : Fin (N + 1), ξ (fun r => σ r s)) * H σ) =
+      ν (fun σ => ξ (fun r => σ r (Fin.last N)) * H σ) := by
+  obtain ⟨-, hsmul, -, -⟩ := sk_replica_avg_calculus N n β h ν hν
+  have hs : ∀ s : Fin (N + 1), ν (fun σ => ξ (fun r => σ r s) * H σ) =
+      ν (fun σ => ξ (fun r => σ r (Fin.last N)) * H σ) := fun s => by
+    have key := sk_replica_site_perm (R := Fin n) N β h (Equiv.swap s (Fin.last N))
+      (fun σ : Fin n → Fin (N + 1) → ℤˣ => ξ (fun r => σ r (Fin.last N)) * H σ)
+    simp only [hH, Equiv.swap_apply_right] at key
+    rw [hν, hν]
+    exact key
+  have hsum := sk_replica_avg_finset_sum N n β h ν hν (Finset.univ : Finset (Fin (N + 1)))
+    (fun _ => (1 : ℝ)) (fun s σ => ξ (fun r => σ r s) * H σ)
+  simp only [one_mul] at hsum
+  have h1 : (fun σ : Fin n → Fin (N + 1) → ℤˣ =>
+      ((N + 1 : ℝ)⁻¹ * ∑ s : Fin (N + 1), ξ (fun r => σ r s)) * H σ) =
+      fun σ => (N + 1 : ℝ)⁻¹ * ∑ s : Fin (N + 1), ξ (fun r => σ r s) * H σ := by
+    funext σ
+    rw [mul_assoc, Finset.sum_mul]
+  rw [h1, sk_replica_avg_smul N n β h ν hν, hsum]
+  simp only [hs, sum_const, card_univ, Fintype.card_fin, nsmul_eq_mul]
+  push_cast
+  field_simp
+
+include hν in
 /-- **Site symmetry for a product of an overlap with a site-symmetric observable** (Eq. (1.240)
 in its general form): if `Ψ` is invariant under permutations of the sites, then
 `ν((R_{xy} - q) Ψ) = ν((ε_xε_y - q) Ψ)` where `ε` is the last spin. -/
@@ -49,38 +78,18 @@ theorem sk_overlap_mul_eq_last_site_of_perm (x y : Fin n)
     ν (fun σ => ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ x i : ℝ)) ⬝ᵥ
         fun i : Fin (N + 1) => (σ y i : ℝ)) - q) * Ψ σ) =
       ν (fun σ => (((σ x (Fin.last N) : ℤˣ) : ℝ) * ((σ y (Fin.last N) : ℤˣ) : ℝ) - q) * Ψ σ) := by
-  let Θ : Fin (N + 1) → (Fin n → Fin (N + 1) → ℤˣ) → ℝ := fun i σ =>
-    (((σ x i : ℤˣ) : ℝ) * ((σ y i : ℤˣ) : ℝ) - q) * Ψ σ
-  have hsite : ∀ i, ν (Θ i) = ν (Θ (Fin.last N)) := fun i => by
-    have h1 := sk_replica_site_perm (R := Fin n) N β h (Equiv.swap i (Fin.last N))
-      (fun σ => Θ (Fin.last N) σ)
-    have h2 : ∀ σ : Fin n → Fin (N + 1) → ℤˣ,
-        Θ (Fin.last N) (fun r j => σ r (Equiv.swap i (Fin.last N) j)) = Θ i σ := fun σ => by
-      simp only [Θ, hΨ, Equiv.swap_apply_right]
-    simp only [h2] at h1
-    rw [hν, hν]
-    exact h1
-  have hpt : ∀ σ, ∑ i, Θ i σ = ((N + 1 : ℕ) : ℝ) *
-      (((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ x i : ℝ)) ⬝ᵥ
-        fun i : Fin (N + 1) => (σ y i : ℝ)) - q) * Ψ σ) := fun σ => by
-    have hM : ((N + 1 : ℕ) : ℝ) ≠ 0 := Nat.cast_ne_zero.2 (Nat.succ_ne_zero N)
-    simp only [Θ, ← Finset.sum_mul, Finset.sum_sub_distrib, Finset.sum_const, Finset.card_univ,
-      Fintype.card_fin, nsmul_eq_mul, dotProduct]
+  have key := sk_replica_avg_site_mean N n β h ν hν
+    (fun c : Fin n → ℤˣ => ((c x : ℤˣ) : ℝ) * ((c y : ℤˣ) : ℝ) - q) Ψ hΨ
+  have hpt : ∀ σ : Fin n → Fin (N + 1) → ℤˣ,
+      (N + 1 : ℝ)⁻¹ * ∑ s : Fin (N + 1), (((σ x s : ℤˣ) : ℝ) * ((σ y s : ℤˣ) : ℝ) - q) =
+        (N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ x i : ℝ)) ⬝ᵥ
+          fun i : Fin (N + 1) => (σ y i : ℝ)) - q := fun σ => by
+    have hM : (N + 1 : ℝ) ≠ 0 := by positivity
+    simp only [Finset.sum_sub_distrib, Finset.sum_const, Finset.card_univ, Fintype.card_fin,
+      nsmul_eq_mul, dotProduct]
     push_cast
     field_simp
-  have hlin : ν (fun σ => ∑ i ∈ Finset.univ, (1 : ℝ) * Θ i σ) =
-      ∑ i ∈ Finset.univ, 1 * ν (Θ i) := sk_replica_avg_finset_sum N n β h ν hν _ _ _
-  have hlin2 : ν (fun σ => ∑ i, Θ i σ) = ∑ i, ν (Θ i) := by
-    simpa using hlin
-  have hlin3 : ν (fun σ => ∑ i, Θ i σ) = ((N + 1 : ℕ) : ℝ) *
-      ν (fun σ => ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ x i : ℝ)) ⬝ᵥ
-        fun i : Fin (N + 1) => (σ y i : ℝ)) - q) * Ψ σ) := by
-    simp only [hpt]
-    exact sk_replica_avg_smul N n β h ν hν _ _
-  have hfin : ∑ i, ν (Θ i) = ((N + 1 : ℕ) : ℝ) * ν (Θ (Fin.last N)) := by
-    simp only [hsite, Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
-  have hN : ((N + 1 : ℕ) : ℝ) ≠ 0 := Nat.cast_ne_zero.2 (Nat.succ_ne_zero N)
-  exact mul_left_cancel₀ hN (hlin3.symm.trans (hlin2.trans hfin))
+  simpa only [hpt] using key
 
 end SiteSymmetry
 
