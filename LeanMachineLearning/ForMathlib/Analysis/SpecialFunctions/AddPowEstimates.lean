@@ -23,6 +23,8 @@ public import Mathlib.Analysis.Complex.ExponentialBounds
 * `rpow_mul_rpow_le_of_le`, `mul_sq_le_cube_third`, `add_pow_three_le`,
   `mul_rpow_three_halves_le`: weighted AM-GM and the cubic Young-type inequalities with exponents
   `3` and `3/2`.
+* `Real.pow_le_factorial_mul_exp`: `y^r ≤ r! exp y` for `y ≥ 0` (a one-line form of
+  `Real.pow_div_factorial_le_exp`, used to bound moments by exponential moments).
 -/
 
 @[expose] public section
@@ -252,3 +254,10 @@ theorem mul_rpow_three_halves_le {u v : ℝ} (hu : 0 ≤ u) (hv : 0 ≤ v) :
 
 /-- `|x|^{(3 : ℝ)} = |x|^3`. -/
 theorem abs_rpow_three (x : ℝ) : |x| ^ (3 : ℝ) = |x| ^ 3 := Real.rpow_natCast |x| 3
+
+/-- **Powers are dominated by the exponential:** `y^r ≤ r! exp y` for `y ≥ 0`. -/
+theorem Real.pow_le_factorial_mul_exp {y : ℝ} (hy : 0 ≤ y) (r : ℕ) :
+    y ^ r ≤ (Nat.factorial r : ℝ) * Real.exp y := by
+  have := (div_le_iff₀ (by positivity : (0 : ℝ) < Nat.factorial r)).1
+    (Real.pow_div_factorial_le_exp y hy r)
+  rwa [mul_comm] at this

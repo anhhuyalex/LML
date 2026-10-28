@@ -120,54 +120,21 @@ theorem exists_sk_coupled_data (M : ℕ) (β h : ℝ) :
       (∀ x g, skGibbsEnergy M β h g x.1 + skGibbsEnergy M β h g x.2 = a x ⬝ᵥ g + d x) ∧
       (∀ x, b x = ∑ i, ((x.1 i : ℤ) : ℝ) * ((x.2 i : ℤ) : ℝ)) ∧
       (∀ x, |b x| ≤ M) ∧ ∀ x, a x ⬝ᵥ a x ≤ 2 * β ^ 2 * M := by
-  refine ⟨fun x p => (Real.sqrt M)⁻¹ * β * (((x.1 p.val.1 : ℤ) : ℝ) * ((x.1 p.val.2 : ℤ) : ℝ) +
-      ((x.2 p.val.1 : ℤ) : ℝ) * ((x.2 p.val.2 : ℤ) : ℝ)),
-    fun x => h * (∑ i, ((x.1 i : ℤ) : ℝ) + ∑ i, ((x.2 i : ℤ) : ℝ)),
+  obtain ⟨a, ha, hv⟩ := exists_sk_linear_data M β h
+  refine ⟨fun x => a x.1 + a x.2, fun x => h * (∑ i, ((x.1 i : ℤ) : ℝ) + ∑ i, ((x.2 i : ℤ) : ℝ)),
     fun x => ∑ i, ((x.1 i : ℤ) : ℝ) * ((x.2 i : ℤ) : ℝ), fun x g => ?_, fun x => rfl,
     fun x => ?_, fun x => ?_⟩
-  · have e : ∀ u : Fin M → ℤˣ, ∑ i : FinPairs M, (Real.sqrt M)⁻¹ * β *
-        (g i * ((u i.val.1 : ℤ) : ℝ) * ((u i.val.2 : ℤ) : ℝ)) =
-        ∑ i : FinPairs M, (Real.sqrt M)⁻¹ * β * (((u i.val.1 : ℤ) : ℝ) *
-          ((u i.val.2 : ℤ) : ℝ)) * g i := fun u =>
-      Finset.sum_congr rfl fun i _ => by ring
-    simp only [skGibbsEnergy, dotProduct, Finset.mul_sum, mul_add, add_mul]
-    rw [e x.1, e x.2, Finset.sum_add_distrib]
+  · rw [ha, ha, add_dotProduct]
     ring
   · refine (Finset.abs_sum_le_sum_abs _ _).trans_eq ?_
     simp only [abs_mul, abs_units_cast_eq_one, mul_one, Finset.sum_const, Finset.card_univ,
       Fintype.card_fin, nsmul_eq_mul, mul_one]
-  · rcases Nat.eq_zero_or_pos M with rfl | hM
-    · simp [dotProduct]
-    have hc : ((Real.sqrt M)⁻¹ * β) ^ 2 = β ^ 2 / M := by
-      rw [mul_pow, inv_pow, Real.sq_sqrt (Nat.cast_nonneg M)]
-      ring
-    obtain ⟨A, hA⟩ : ∃ A : FinPairs M → ℝ, ∀ p, A p = ((x.1 p.val.1 : ℤ) : ℝ) *
-        ((x.1 p.val.2 : ℤ) : ℝ) + ((x.2 p.val.1 : ℤ) : ℝ) * ((x.2 p.val.2 : ℤ) : ℝ) :=
-      ⟨_, fun _ => rfl⟩
-    simp only [dotProduct, ← hA]
-    have hterm : ∀ p : FinPairs M, ((Real.sqrt M)⁻¹ * β * A p) * ((Real.sqrt M)⁻¹ * β * A p) ≤
-        4 * (β ^ 2 / M) := fun p => by
-      have h1 : |((x.1 p.val.1 : ℤ) : ℝ) * ((x.1 p.val.2 : ℤ) : ℝ)| = 1 := by
-        rw [abs_mul, abs_units_cast_eq_one, abs_units_cast_eq_one, mul_one]
-      have h2 : |((x.2 p.val.1 : ℤ) : ℝ) * ((x.2 p.val.2 : ℤ) : ℝ)| = 1 := by
-        rw [abs_mul, abs_units_cast_eq_one, abs_units_cast_eq_one, mul_one]
-      have h3 : |A p| ≤ 2 := by
-        rw [hA]
-        linarith [abs_add_le (((x.1 p.val.1 : ℤ) : ℝ) * ((x.1 p.val.2 : ℤ) : ℝ))
-          (((x.2 p.val.1 : ℤ) : ℝ) * ((x.2 p.val.2 : ℤ) : ℝ))]
-      have h4 : A p * A p ≤ 4 := by
-        nlinarith [sq_abs (A p), abs_nonneg (A p)]
-      have hβM : 0 ≤ β ^ 2 / M := by positivity
-      calc ((Real.sqrt M)⁻¹ * β * A p) * ((Real.sqrt M)⁻¹ * β * A p)
-          = ((Real.sqrt M)⁻¹ * β) ^ 2 * (A p * A p) := by ring
-        _ ≤ (β ^ 2 / M) * 4 := by rw [hc]; exact mul_le_mul_of_nonneg_left h4 hβM
-        _ = 4 * (β ^ 2 / M) := by ring
-    refine (Finset.sum_le_sum fun p _ => hterm p).trans ?_
-    rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul, card_finPairs, Nat.cast_choose_two]
-    have hM' : (0 : ℝ) < M := Nat.cast_pos.2 hM
-    rw [show (4 : ℝ) * (β ^ 2 / M) = 4 * β ^ 2 / M from by ring]
-    rw [mul_div_assoc', div_le_iff₀ hM']
-    nlinarith [sq_nonneg β, mul_nonneg (sq_nonneg β) hM'.le]
+  · have h1 := hv x.1
+    have h2 := hv x.2
+    have h3 : 0 ≤ (a x.1 - a x.2) ⬝ᵥ (a x.1 - a x.2) := dotProduct_self_star_nonneg _
+    simp only [add_dotProduct, dotProduct_add, sub_dotProduct, dotProduct_sub,
+      dotProduct_comm (a x.2) (a x.1)] at h3 ⊢
+    nlinarith
 
 /-- The coupled partition function is the partition function of the Gaussian field `a x ⬝ᵥ g`
 on pairs of configurations, tilted by `λ b`. -/

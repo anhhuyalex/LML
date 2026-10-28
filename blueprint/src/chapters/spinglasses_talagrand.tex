@@ -1042,19 +1042,15 @@ From $e^x\ge1+x$ (packaged as the general inequality $1+c\,\mathbb{E}[X]\le\math
 Formalized in \texttt{SpinGlasses/SKOverlapConcentration.lean}.
 \end{proof}
 
-\begin{lemma}[Two pointwise inequalities for the exponential]\label{lem:sg-tal:pow-le-exp}
-  \lean{SpinGlasses.pow_div_factorial_le_exp,
-        SpinGlasses.pow_le_factorial_mul_exp}
+\begin{lemma}[A pointwise inequality for the exponential]\label{lem:sg-tal:pow-le-exp}
+  \lean{Real.pow_le_factorial_mul_exp}
   \leanok
 \talsource{no counterpart in the book (the elementary step behind Eq.~(1.88))}
-For every real $y\ge0$ and every $r\in\mathbb N$,
-\[
-\frac{y^r}{r!}\le e^y,\qquad y^r\le r!\,e^y .
-\]
+For every real $y\ge0$ and every $r\in\mathbb N$, $y^r\le r!\,e^y$.
 \end{lemma}
 \begin{proof}
   \leanok
-The exponential is the sum of the nonnegative series $\sum_n y^n/n!$, and a single term of a series with nonnegative terms is at most its sum.
+A single term $y^r/r!$ of the series $\sum_n y^n/n!=e^y$ with nonnegative terms is at most its sum (Mathlib's \texttt{Real.pow\_div\_factorial\_le\_exp}).
 \end{proof}
 
 \begin{theorem}[All even moments of the overlap (Eq.~(1.88))]\label{thm:sg-tal:overlap-moments-all}

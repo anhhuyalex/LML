@@ -212,6 +212,24 @@ theorem hasDerivAt_integral_log_sum_exp_tilt (t : ℝ) :
   exact h
 
 omit [MeasurableSpace α] [MeasurableSingletonClass α] in
+/-- **The tilted log-partition function is sub-Gaussian:** if `a x ⬝ᵥ a x ≤ v` for all `x` then
+`log Z(s) - 𝔼 log Z(s)` is sub-Gaussian with parameter `2 v`.  This is
+`hasSubgaussianMGF_log_sum_exp` for the linear Gaussian field `x ↦ a x ⬝ᵥ g`. -/
+theorem hasSubgaussianMGF_log_sum_exp_tilt {v : ℝ} (hv : ∀ x, a x ⬝ᵥ a x ≤ v) (s : ℝ) :
+    HasSubgaussianMGF (fun g => Real.log (∑ x, Real.exp (a x ⬝ᵥ g + d x + s * b x)) -
+      ∫ g', Real.log (∑ x, Real.exp (a x ⬝ᵥ g' + d x + s * b x))
+        ∂(Measure.pi fun _ : κ => gaussianReal 0 1)) (2 * v.toNNReal)
+      (Measure.pi fun _ : κ => gaussianReal 0 1) := by
+  have := hasSubgaussianMGF_log_sum_exp (g := fun x (g : κ → ℝ) => a x ⬝ᵥ g)
+    (P := Measure.pi fun _ : κ => gaussianReal 0 1) (hasGaussianLaw_dotProduct_family a)
+    (fun x => by fun_prop) (fun x => integral_dotProduct_pi_gaussianReal (a x)) (v := v)
+    (fun x => by
+      rw [show (fun g : κ → ℝ => (a x ⬝ᵥ g) ^ 2) = fun g => (a x ⬝ᵥ g) * (a x ⬝ᵥ g) from
+        funext fun g => sq _, integral_dotProduct_mul_dotProduct_pi_gaussianReal]
+      exact hv x) (fun x => d x + s * b x)
+  simpa only [add_assoc] using this
+
+omit [MeasurableSpace α] [MeasurableSingletonClass α] in
 /-- **Gaussian concentration of the tilted log-partition function:** if
 `a x ⬝ᵥ a x ≤ v` for all `x` then
 `ℙ(y ≤ |log Z(s) - 𝔼 log Z(s)|) ≤ 2 exp (-y² / (4 v))`. -/
@@ -222,15 +240,13 @@ theorem measureReal_abs_sub_integral_log_sum_exp_tilt_ge_le {v : ℝ} (hv : ∀ 
         ∫ g', Real.log (∑ x, Real.exp (a x ⬝ᵥ g' + d x + s * b x))
           ∂(Measure.pi fun _ : κ => gaussianReal 0 1)|} ≤
       2 * Real.exp (-y ^ 2 / (4 * v)) := by
-  have hg := hasGaussianLaw_dotProduct_family a
-  have := measureReal_abs_sub_integral_ge_le_of_log_sum_exp (g := fun x (g : κ → ℝ) => a x ⬝ᵥ g)
-    (P := Measure.pi fun _ : κ => gaussianReal 0 1) hg (fun x => by fun_prop)
-    (fun x => integral_dotProduct_pi_gaussianReal (a x)) (v := v)
-    (fun x => by
-      rw [show (fun g : κ → ℝ => (a x ⬝ᵥ g) ^ 2) = fun g => (a x ⬝ᵥ g) * (a x ⬝ᵥ g) from
-        funext fun g => sq _, integral_dotProduct_mul_dotProduct_pi_gaussianReal]
-      exact hv x) (fun x => d x + s * b x) hy
-  simpa only [add_assoc] using this
+  obtain ⟨x₀⟩ := ‹Nonempty α›
+  have hv0 : 0 ≤ v := (dotProduct_self_star_nonneg (a x₀)).trans (hv x₀)
+  have hc : 2 * ((2 * v.toNNReal : NNReal) : ℝ) = 4 * v := by
+    push_cast
+    rw [Real.coe_toNNReal _ hv0]
+    ring
+  simpa only [hc] using (hasSubgaussianMGF_log_sum_exp_tilt a d b hv s).measureReal_abs_ge_le hy
 
 end GaussianTilt
 

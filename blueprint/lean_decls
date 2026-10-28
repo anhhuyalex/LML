@@ -3555,8 +3555,7 @@ SpinGlasses.hasFDerivAt_sum_exp_add
 SpinGlasses.sum_abs_cos_mul_add_sin_mul_le
 SpinGlasses.abs_ite_one_sub_le_one
 Real.add_le_add_one_mul_exp
-SpinGlasses.pow_div_factorial_le_exp
-SpinGlasses.pow_le_factorial_mul_exp
+Real.pow_le_factorial_mul_exp
 SpinGlasses.sk_overlap_moment_le_of_exp
 Real.abs_sub_add_half_le_of_exists_hasDerivAt
 SpinGlasses.integral_linear_form_prod_eq_zero
@@ -3888,7 +3887,6 @@ SpinGlasses.pair_variance_arith
 SpinGlasses.sk_truncated_pair_variance
 SpinGlasses.skSymmCoupling
 SpinGlasses.skSymmCoupling_comm
-SpinGlasses.skSymmCoupling_comp_pairPerm
 SpinGlasses.skCavityCoincidences
 SpinGlasses.sk_cavity_coincidences_le_two
 SpinGlasses.skCavityBUnscaled

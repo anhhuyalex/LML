@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.SpinGlasses.GibbsFluctuationMoment
 public import LeanMachineLearning.SpinGlasses.SKOverlapConcentration
+public import LeanMachineLearning.SpinGlasses.SKFirstMoment
 public import LeanMachineLearning.SpinGlasses.SKFixedPoint
 
 /-!
@@ -40,6 +41,41 @@ theorem measurable_skGibbsEnergy (N : ℕ) (β h : ℝ) (a : Fin N → ℤˣ) :
     Measurable fun g : FinPairs N → ℝ => skGibbsEnergy N β h g a := by
   unfold skGibbsEnergy
   fun_prop
+
+/-- **The SK energy is a linear form of the disorder.**  There are coefficient vectors `a σ` with
+`skGibbsEnergy N β h g σ = a σ ⬝ᵥ g + h ∑ᵢ σᵢ` and `a σ ⬝ᵥ a σ ≤ β² N / 2` (the exact value is
+`β² (N - 1) / 2`: the variance of the pair field of a fixed configuration). -/
+theorem exists_sk_linear_data (N : ℕ) (β h : ℝ) :
+    ∃ a : (Fin N → ℤˣ) → FinPairs N → ℝ,
+      (∀ σ g, skGibbsEnergy N β h g σ = a σ ⬝ᵥ g + h * ∑ i, ((σ i : ℤ) : ℝ)) ∧
+      ∀ σ, a σ ⬝ᵥ a σ ≤ β ^ 2 * N / 2 := by
+  refine ⟨fun σ p => (Real.sqrt N)⁻¹ * β * (((σ p.val.1 : ℤ) : ℝ) * ((σ p.val.2 : ℤ) : ℝ)),
+    fun σ g => ?_, fun σ => ?_⟩
+  · simp only [skGibbsEnergy, dotProduct, Finset.mul_sum]
+    congr 1
+    exact Finset.sum_congr rfl fun p _ => by ring
+  · rcases Nat.eq_zero_or_pos N with rfl | hN
+    · simp [dotProduct]
+    have hc : ((Real.sqrt N)⁻¹ * β) ^ 2 = β ^ 2 / N := by
+      rw [mul_pow, inv_pow, Real.sq_sqrt (Nat.cast_nonneg N)]
+      ring
+    have hterm : ∀ p : FinPairs N, ((Real.sqrt N)⁻¹ * β * (((σ p.val.1 : ℤ) : ℝ) *
+        ((σ p.val.2 : ℤ) : ℝ))) * ((Real.sqrt N)⁻¹ * β * (((σ p.val.1 : ℤ) : ℝ) *
+        ((σ p.val.2 : ℤ) : ℝ))) = β ^ 2 / N := fun p => by
+      have h1 : (((σ p.val.1 : ℤ) : ℝ) * ((σ p.val.2 : ℤ) : ℝ)) *
+          (((σ p.val.1 : ℤ) : ℝ) * ((σ p.val.2 : ℤ) : ℝ)) = 1 := by
+        have := units_cast_sq (σ p.val.1)
+        have := units_cast_sq (σ p.val.2)
+        nlinarith [units_cast_sq (σ p.val.1), units_cast_sq (σ p.val.2)]
+      calc _ = ((Real.sqrt N)⁻¹ * β) ^ 2 * ((((σ p.val.1 : ℤ) : ℝ) * ((σ p.val.2 : ℤ) : ℝ)) *
+            (((σ p.val.1 : ℤ) : ℝ) * ((σ p.val.2 : ℤ) : ℝ))) := by ring
+        _ = β ^ 2 / N := by rw [h1, hc, mul_one]
+    simp only [dotProduct, hterm, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
+    rw [cast_card_finPairs]
+    have hN0 : (0 : ℝ) < N := Nat.cast_pos.2 hN
+    rw [show (N : ℝ) * ((N : ℝ) - 1) / 2 * (β ^ 2 / N) = β ^ 2 * ((N : ℝ) - 1) / 2 by
+      field_simp]
+    nlinarith [sq_nonneg β]
 
 /-- The overlap moment of the SK Gibbs measure is integrable in the disorder. -/
 theorem integrable_overlapMoment_skGibbsEnergy (N : ℕ) (β h q : ℝ) (k : ℕ) :

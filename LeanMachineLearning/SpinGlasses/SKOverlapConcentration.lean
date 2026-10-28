@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.AddPowEstimates
 public import LeanMachineLearning.SpinGlasses.SKLatalaBase
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ExpMoment
 public import LeanMachineLearning.SpinGlasses.SKLatalaCompensated
@@ -189,26 +190,6 @@ theorem sk_path_expected_sq_overlap_le {N : ℕ} (hN : 0 < N) (β h q : ℝ)
   rw [le_div_iff₀ (by positivity)]
   nlinarith [mul_le_mul_of_nonneg_right ha0 (mul_nonneg hNpos.le hnn)]
 
-/-- Pointwise inequality `y^r / r! ≤ exp y` for `y ≥ 0`. -/
-theorem pow_div_factorial_le_exp (y : ℝ) (hy : 0 ≤ y) (r : ℕ) :
-    y ^ r / (Nat.factorial r : ℝ) ≤ Real.exp y := by
-  rw [Real.exp_eq_exp_ℝ]
-  have hsum : HasSum (fun n => y ^ n / (Nat.factorial n : ℝ)) (NormedSpace.exp y) :=
-    NormedSpace.expSeries_div_hasSum_exp y
-  have hterm_nonneg : ∀ n, 0 ≤ y ^ n / (Nat.factorial n : ℝ) := fun n => by positivity
-  have h_single : y ^ r / (Nat.factorial r : ℝ) = ∑ i ∈ {r}, y ^ i / (Nat.factorial i : ℝ) := by
-    simp
-  rw [h_single]
-  exact sum_le_hasSum {r} (fun n _ => hterm_nonneg n) hsum
-
-/-- Pointwise inequality `y^r ≤ r! exp y` for `y ≥ 0`. -/
-theorem pow_le_factorial_mul_exp (y : ℝ) (hy : 0 ≤ y) (r : ℕ) :
-    y ^ r ≤ (Nat.factorial r : ℝ) * Real.exp y := by
-  have h := pow_div_factorial_le_exp y hy r
-  have hfact : 0 < (Nat.factorial r : ℝ) := by positivity
-  have h2 := (div_le_iff₀ hfact).mp h
-  rwa [mul_comm]
-
 /-- **Higher overlap moments for the SK model, uniformly in `β` (Talagrand Eq. (1.88)).**
 For `β² ≤ β₀² < 1/4` and at the fixed point `q = 𝔼 tanh² (β √q z + h)`, for every `r`,
 the `2r`-th moment of `R_{1,2} - q` satisfies `𝔼⟨(R_{1,2} - q)^{2r}⟩ ≤ K / N^r`,
@@ -265,7 +246,7 @@ theorem sk_overlap_moment_le_of_exp_unif (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 <
       (Nat.factorial r : ℝ) * (s * (N : ℝ))⁻¹ ^ r * Real.exp (((N : ℝ) * s) * X σ) := fun σ => by
     have hXnonneg : 0 ≤ X σ := by rw [hX]; positivity
     have hnonneg : 0 ≤ ((N : ℝ) * s) * X σ := by positivity
-    have hpow := pow_le_factorial_mul_exp (((N : ℝ) * s) * X σ) hnonneg r
+    have hpow := Real.pow_le_factorial_mul_exp hnonneg r
     have heq : (((N : ℝ) * s) * X σ) ^ r = (s * (N : ℝ)) ^ r * (X σ) ^ r := by
       rw [mul_pow, mul_comm (N : ℝ) s]
     rw [heq] at hpow
