@@ -1215,30 +1215,82 @@ The first bound is the compensated comparison of the path with the decoupled sys
 Formalized in \texttt{SpinGlasses/SKPathOverlapMoments.lean}. The endpoint version at $t=0$ is Theorem~\ref{thm:sg-tal:overlap-moments-all}; the second moment along the path was already used in Theorem~\ref{thm:sg-tal:alr}.
 \end{proof}
 
-\begin{theorem}[The induction on the degree in Theorem~1.4.11 (abstract form)]\label{thm:sg-tal:clt-induction}
-  \lean{SpinGlasses.clt_induction, SpinGlasses.abs_sub_ref_le_of_ode, SpinGlasses.hasDerivAt_clt_ref,
-        ProbabilityTheory.eq_zero_of_odd_of_rec}
+\begin{theorem}[Centered moments along the smart path with the moving center $\mathrm{SK}(s)$ (Eqs.~(1.124)--(1.126))]\label{thm:sg-tal:centered-profile}
+  \lean{SpinGlasses.exists_sk_smart_path_profile_centered,
+        SpinGlasses.sum_choose_mul_deriv_pow_zero,
+        SpinGlasses.integrable_smart_path_free_energy_sub_pow,
+        SpinGlasses.measurable_smart_path_free_energy}
   \leanok
-\talsource{Theorem~1.4.11, Eqs.~(1.109), (1.121)}
-Let $\varepsilon>0$ (in the application $\varepsilon=N^{-1/2}$), let $a:\mathbb N\to\mathbb R$ satisfy $a(0)=1$, $a(1)=0$, $a(k+2)=(k+1)a(k)$ (the Gaussian moments), and let $b:\mathbb R\to\mathbb R$ satisfy $b'(s)=B\sin s\cos s$.
-Let $\psi_k:\mathbb R\to\mathbb R$ with $\psi_0\equiv1$ be such that for every $m\ge1$:
-(i) for every $s$ there is $D$ with $\psi_m'(s)=\sin s\cos s\,\big(\tfrac{m(m-1)}2\varepsilon^2B\,\psi_{m-2}(s)+D\big)$, and $|D|\le C_{\rm rem}(m)\varepsilon^{m+1}$ if $s\in[0,\pi/2]$;
-(ii) $|\psi_m(\pi/2)-\varepsilon^ma(m)b(\pi/2)^{\lfloor m/2\rfloor}|\le C_{\rm dec}(m)\varepsilon^{m+1}$.
-If $C(0)\ge0$ and $C_{\rm dec}(m)+\tfrac12C_{\rm rem}(m)+\tfrac{m(m-1)}4|B|\,C(m-2)\le C(m)$ for $m\ge1$, then for every $k$ and every $s\in[0,\pi/2]$,
-\[
-\big|\psi_k(s)-\varepsilon^ka(k)\,b(s)^{\lfloor k/2\rfloor}\big|\le C(k)\,\varepsilon^{k+1}.
-\]
+\talsource{Proof of Theorem~1.4.11, Eqs.~(1.124)--(1.126)}
+Let $N>0$, $0\le q\le1$, $A_s$ the free energy of the smart path, $Q_s=\langle(R_{1,2}-q)^2\rangle_s$, $V_s=A_s-\mathrm{SK}(s)$ with $\mathrm{SK}(s)=\log 2+\mathbb E\log\cosh Y+\frac{\beta^2}4(1-q)^2\cos^2s$. Then $s\mapsto\mathbb E V_s^k$ has at every $t$ the derivative
+$\frac{\beta^2}2\sin t\cos t\big(\mathbb E[kV^{k-1}(Q-(1-q)^2)-N^{-1}k(k-1)V^{k-2}(Q-q^2-N^{-1})]+k(1-q)^2\,\mathbb E V^{k-1}\big)$;
+its value at $s=0$ is the $k$-th moment of $A_N-\mathrm{RS}(q)$ in the SK model and at $s=\pi/2$ that of the decoupled system.
 \end{theorem}
 \begin{proof}
   \leanok
-Strong induction on $k$. For fixed $m\ge1$ put $\Phi=\psi_m-\varepsilon^ma(m)b^{\lfloor m/2\rfloor}$. The reference term has derivative $\sin s\cos s\cdot\frac{m(m-1)}2\varepsilon^2B\cdot\varepsilon^{m-2}a(m-2)b^{\lfloor(m-2)/2\rfloor}$ (for even $m=2j+2$ this is $a(2j+2)=(2j+1)a(2j)$; for odd $m$ both sides vanish), so $\Phi'=\sin s\cos s\,(D+\tfrac{m(m-1)}2\varepsilon^2B(\psi_{m-2}-\text{ref}_{m-2}))$. By the induction hypothesis the bracket is at most $(C_{\rm rem}(m)+\tfrac{m(m-1)}2|B|C(m-2))\varepsilon^{m+1}=:K$ in modulus on $[0,\pi/2]$, so $|\Phi(\pi/2)-\Phi(s)|\le\frac K2(\sin^2\frac\pi2-\sin^2s)\le K/2$ (\texttt{Real.abs\_sub\_le\_of\_exists\_hasDerivAt\_Icc}) and $|\Phi(s)|\le|\Phi(\pi/2)|+K/2$. The case $m=1$ uses $\psi_0=\mathrm{ref}_0$.
-Formalized in \texttt{SpinGlasses/SKSmartPathCLT.lean}. This is a \emph{conditional} statement: hypotheses (i) and (ii) are not proved for the SK model; see the following remark.
+Eq.~(1.125) (Theorem~\ref{thm:sg-tal:profile-comp}) with the fixed center $a_0=\mathrm{SK}(t)$ gives $\partial_t\varphi(t,a_0)$. Write $(A_s-\mathrm{SK}(s))^k=\sum_i\binom ki z(s)^i(A_s-a_0)^{k-i}$ with $z(s)=a_0-\mathrm{SK}(s)$, $z(t)=0$; at $s=t$ only the terms $i=0,1$ have a nonzero derivative, and $z'(t)=\frac{\beta^2}2(1-q)^2\sin t\cos t=-\mathrm{SK}'(t)$ (\texttt{sum\_choose\_mul\_deriv\_pow\_zero}). Integrability of all powers is Lemma~1.4.12 along the path (\texttt{integrable\_smart\_path\_free\_energy\_sub\_pow}).
+Formalized in \texttt{SpinGlasses/SKCenteredPathMoments.lean}.
 \end{proof}
 
-\begin{remark}[Status of Theorem~1.4.11 (the central limit theorem for the free energy)]\label{rem:sg-tal:free-energy-clt-status}
+\begin{theorem}[The differential equation of the centered moments, Eq.~(1.120)]\label{thm:sg-tal:centered-ode}
+  \lean{SpinGlasses.exists_sk_centered_path_ode,
+        SpinGlasses.abs_integral_pow_mul_le,
+        SpinGlasses.abs_remainder_combination_le,
+        SpinGlasses.abs_integral_overlap_sq_le_four,
+        SpinGlasses.sq_integral_overlap_sq_le,
+        SpinGlasses.aemeasurable_gibbs_overlap_sq,
+        SpinGlasses.integral_gibbs_overlap_sq_sq_le,
+        SpinGlasses.integral_comb_sub_sub_add,
+        ProbabilityTheory.abs_integral_mul_le_weighted_add,
+        ProbabilityTheory.abs_integral_mul_le_of_integral_sq_le}
+  \leanok
+\talsource{Proof of Theorem~1.4.11, $\psi'(t)=\mathrm I+\mathrm{II}$ and $\mathrm{II}=O(k+1)$}
+Let $\beta^2<1/4$, $q=\mathbb E\tanh^2(\beta\sqrt q z+h)$ and $\psi_k(s)=\mathbb E(A_N(s)-\mathrm{SK}(s))^k$. There are constants $K_m$, depending only on $\beta$, such that for every $N>0$: $\psi_0=1$; for $m\ge1$ and every $s$ there is $D$ with $\psi_m'(s)=\sin s\cos s\big(\frac{m(m-1)}2N^{-1}\beta^2q^2\psi_{m-2}(s)+D\big)$ and $|D|\le K_mN^{-(m+1)/2}$ if $s\in[0,\pi/2]$; $\psi_k(0)$ is the $k$-th moment of $A_N-\mathrm{rsFunctional}$ in the SK model and $\psi_k(\pi/2)$ that of $N^{-1}\sum_i(\log\cosh Y_i-\mathbb E\log\cosh Y)$.
+\end{theorem}
+\begin{proof}
+  \leanok
+By Theorem~\ref{thm:sg-tal:centered-profile}, the $(1-q)^2$ terms cancel and the derivative is $\frac{\beta^2}2\sin s\cos s\,[m\,\mathbb E V^{m-1}Q-\frac{m(m-1)}N\mathbb E V^{m-2}Q+\frac{m(m-1)}N(q^2+\frac1N)\mathbb E V^{m-2}]$; the $q^2$ term is $\mathrm I$. For $\mathrm{II}$: $|\mathbb E V^{m-1}Q|\le(\mathbb E V^{2(m-1)})^{1/2}(\mathbb E Q^2)^{1/2}$ (Cauchy--Schwarz with explicit scales), $\mathbb E V^{2j}\le K_{2j}N^{-j}$ (Lemma~1.4.12 and Theorem~1.4.10 along the path, \texttt{integral\_pow\_abs\_smart\_path\_V\_le}) and $\mathbb E Q^2\le\mathbb E\langle(R_{1,2}-q)^4\rangle\le C/N^2$ (Jensen for the Gibbs measure and Theorem~\ref{thm:sg-tal:path-overlap-moments}, $r=2$). The other two terms carry an extra factor $N^{-1}$.
+Formalized in \texttt{SpinGlasses/SKCenteredPathODE.lean}.
+\end{proof}
+
+\begin{theorem}[Moments of an i.i.d.\ centered sum (Eq.~(1.122))]\label{thm:sg-tal:iid-moments}
+  \lean{ProbabilityTheory.iid_sum_moment_expansion,
+        ProbabilityTheory.abs_integral_pow_avg_sub_le,
+        ProbabilityTheory.integral_pow_sum_pi_succ,
+        ProbabilityTheory.integrable_pow_sum_pi,
+        ProbabilityTheory.pow_succ_sub_pow_sub_mul_le,
+        ProbabilityTheory.exists_abs_cancellation_le,
+        ProbabilityTheory.abs_le_of_abs_sub_le_sqrt_pow}
+  \leanok
+\talsource{Proof of Theorem~1.4.11, Eq.~(1.122)}
+Let $\nu$ be a probability measure on $\mathbb R$, $f$ with all powers integrable and $\int f\,d\nu=0$, $\sigma^2=\int f^2d\nu$, and $a(0)=1$, $a(1)=0$, $a(k+2)=(k+1)a(k)$. For every $m\ge1$ there is $C$ such that for all $N>0$: $\big|\int(N^{-1}\sum_{i\le N}f(y_i))^m\,d\nu^{\otimes N}-N^{-m/2}a(m)\sigma^{2\lfloor m/2\rfloor}\big|\le CN^{-(m+1)/2}$.
+\end{theorem}
+\begin{proof}
+  \leanok
+Splitting off the first coordinate, $M_k(n+1)=\sum_j\binom kj\mu_jM_{k-j}(n)$ with $\mu_j=\int f^jd\nu$, $\mu_0=1$, $\mu_1=0$. Induct on $k$: the increment of $e_k(n)=M_k(n)-a(k)\sigma^{2\lfloor k/2\rfloor}n^{\lfloor k/2\rfloor}$ is $\binom k2\sigma^2e_{k-2}(n)+\sum_{j\ge3}\binom kj\mu_jM_{k-j}(n)+\Theta_n$, where the leading terms cancel in $\Theta_n$ because $\binom{2m}2a(2m-2)=m\,a(2m)$ and what is left is the Taylor remainder of $n\mapsto n^m$ ($0\le(u+1)^p-u^p-pu^{p-1}\le p(p-1)(u+1)^{p-2}$). All increments are $O((n+1)^{(k-3)/2})$, and summing gives $e_k(n)=O((n+1)^{(k-1)/2})$.
+Formalized in \texttt{ForMathlib/Probability/Moments/IidSumMoments.lean} and \texttt{IidSumExpansion.lean}.
+\end{proof}
+
+\begin{theorem}[Central limit theorem for the SK free energy (Theorem~1.4.11, Eq.~(1.109))]\label{thm:sg-tal:free-energy-clt}
+  \lean{SpinGlasses.sk_free_energy_clt, SpinGlasses.clt_induction, SpinGlasses.abs_sub_ref_le_of_ode,
+        SpinGlasses.exists_clt_const, SpinGlasses.hasDerivAt_clt_ref,
+        ProbabilityTheory.eq_zero_of_odd_of_rec,
+        ProbabilityTheory.integral_pow_add_two_gaussianReal}
+  \leanok
+\talsource{Theorem~1.4.11, Eq.~(1.109); Lemma~1.4.12}
+Let $\beta^2<1/4$, let the field $h$ be deterministic, $q=\mathbb E\tanh^2(\beta\sqrt qz+h)$, $Y=\beta\sqrt qz+h$, $a(k)=\mathbb E g^k$ and $b=\mathbb E(\log\cosh Y)^2-(\mathbb E\log\cosh Y)^2-\frac{\beta^2q^2}2$. For every $k$ there is $C$ such that for all $N>0$,
+$$\Big|\mathbb E\Big(\frac1N\log Z_N(\beta,h)-\mathrm{SK}(\beta,h)\Big)^k-\frac{a(k)\,b^{\lfloor k/2\rfloor}}{N^{k/2}}\Big|\le\frac{C}{N^{(k+1)/2}},$$
+where $\mathrm{SK}(\beta,h)=\mathrm{rsFunctional}(\beta,h,q)$.
+\end{theorem}
+\begin{proof}
+  \leanok
+Along the path let $b(s)=\mathrm{Var}(\log\cosh Y)-\frac{\beta^2q^2}2\cos^2s$, so $b'=\beta^2q^2\sin s\cos s$. By Theorem~\ref{thm:sg-tal:centered-ode} the moments $\psi_m$ satisfy $\psi_m'=\sin s\cos s(\frac{m(m-1)}{2N}\beta^2q^2\psi_{m-2}+D_m)$ with $|D_m|\le K_mN^{-(m+1)/2}$; at $s=\pi/2$ they are the moments of an i.i.d.\ centered average and Theorem~\ref{thm:sg-tal:iid-moments} gives the endpoint estimate with $b(\pi/2)=\mathrm{Var}(\log\cosh Y)$. The abstract induction \texttt{clt\_induction} (strong induction on $k$, integrating from $\pi/2$ to $s$ by \texttt{Real.abs\_sub\_le\_of\_exists\_hasDerivAt\_Icc}) concludes for all $s\in[0,\pi/2]$ with constants given by the recursion of \texttt{exists\_clt\_const}, which depends only on $\beta$, $q$ and the constants above; take $s=0$. The case $k=1$ is Theorem~\ref{thm:sg-tal:alr} (centered at $\mathrm{SK}$).
+Formalized in \texttt{SpinGlasses/SKFreeEnergyCLT.lean}.
+\end{proof}
+
+\begin{remark}[Scope of Theorem~1.4.11 in Lean]\label{rem:sg-tal:free-energy-clt-status}
 \talsource{Theorem~1.4.11, Eq.~(1.109); source lines 1660--1895}
-Theorem~1.4.11 states that $\mathbb{E}(A_N-\mathrm{SK}(\beta,h))^k=N^{-k/2}a(k)\,b^{k/2}+O(N^{-(k+1)/2})$ for $\beta<1/2$. \emph{Not formalized.} Available: the first-moment case (Theorem~\ref{thm:sg-tal:alr}), the order-$N^{-k/2}$ size of all moments about the mean (Theorem~\ref{thm:sg-tal:free-energy-moments}), the derivative of $t\mapsto\mathbb{E}(A_t-a)^k$ along the smart path for a \emph{fixed} center $a$, Eq.~(1.125) (Theorem~\ref{thm:sg-tal:profile-comp}), the fourth overlap moment along the whole path (Theorem~\ref{thm:sg-tal:path-overlap-moments}), and the induction on the degree in abstract form (Theorem~\ref{thm:sg-tal:clt-induction}). Still missing, in order: (i) the derivative of $\psi_k(s)=\mathbb{E}(A_s-\mathrm{SK}(s))^k$ with the \emph{moving} center $\mathrm{SK}(s)$ (the terms with the derivative of the center cancel against the $(1-q)^2$ term of Eq.~(1.125)); (ii) the estimate $\mathrm{II}=O(k+1)$ of the book, by Cauchy--Schwarz with the fourth overlap moment (available) and the moments of $V(s)=A_s-\mathrm{SK}(s)$ along the path, Eq.~(1.118) (needs Lemma~1.4.12 and Theorem~1.4.10 along the whole path; the sub-Gaussian moment bound along the path, \texttt{integral\_pow\_abs\_smart\_path\_V\_le}, is proved); (iii) the i.i.d.\ moment lemma at the decoupled endpoint, Eq.~(1.122), with an $O(N^{-(k+1)/2})$ rate; (iv) the identification of the sequence $a(k)$ and of the path variance $b(s)=\mathrm{Var}(\log\cosh(\beta\sqrt qz+h))-\frac{\beta^2q^2}{2}\cos^2s$ in the abstract induction; (v) the change from the angle to the book's linear $t$ (not needed if one keeps the angle). The random Gaussian field of the book is also not formalized.
-An earlier version of this chapter listed a theorem \texttt{sk\_free\_energy\_clt} as proved; it took (i)--(iii) as hypotheses, its hypotheses were inconsistent at $\beta=h=q=0$, and it has been removed.
+Theorem~1.4.11 is proved for a \emph{deterministic} field $h$, which is the case $c=0$ of the book's Gaussian field $h_i=cy_i+d$ (the book uses the Gaussian hypothesis only through Lemma~1.4.12, and notes that it can be weakened). Not formalized: the random Gaussian field ($c\ne0$), for which $q$, $\mathbb E\log\cosh Y$ and the path field also average over $h$, so that the fixed-point, profile and overlap-moment results of this chapter would need random-field versions. The change from the angle to the book's linear $t$ is not needed. The book states that Theorem~1.4.11 ``will not be used in the sequel''; its method (the a priori estimate for $V(s)$, the induction on $k$ and the i.i.d.\ base case) is reused in Theorem~2.5.3, and the abstract induction and the i.i.d.\ moment theorem are stated generally for that purpose.
 \end{remark}
 
 \section{Spin Decorrelation, Asymptotic Product Measures and Projections (Talagrand Sections~1.4--1.5)}\label{sec:sg-tal:decorrelation}

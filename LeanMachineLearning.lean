@@ -136,6 +136,8 @@ public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianSeries
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianSeriesLaw
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianVector
+public import LeanMachineLearning.ForMathlib.Probability.Moments.IidSumExpansion
+public import LeanMachineLearning.ForMathlib.Probability.Moments.IidSumMoments
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SecondMoment
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SubExponential
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SubGaussian
@@ -473,6 +475,8 @@ public import LeanMachineLearning.SpinGlasses.SKCavityOverlap
 public import LeanMachineLearning.SpinGlasses.SKCavityParameters
 public import LeanMachineLearning.SpinGlasses.SKCavityReplicaPairs
 public import LeanMachineLearning.SpinGlasses.SKCavityTaylor
+public import LeanMachineLearning.SpinGlasses.SKCenteredPathMoments
+public import LeanMachineLearning.SpinGlasses.SKCenteredPathODE
 public import LeanMachineLearning.SpinGlasses.SKCorrelationDecay
 public import LeanMachineLearning.SpinGlasses.SKCoupledFreeEnergy
 public import LeanMachineLearning.SpinGlasses.SKCoupledLimit
@@ -485,6 +489,7 @@ public import LeanMachineLearning.SpinGlasses.SKFixedPoint
 public import LeanMachineLearning.SpinGlasses.SKFixedPointPositive
 public import LeanMachineLearning.SpinGlasses.SKFixedPointRS
 public import LeanMachineLearning.SpinGlasses.SKFixedPointResidual
+public import LeanMachineLearning.SpinGlasses.SKFreeEnergyCLT
 public import LeanMachineLearning.SpinGlasses.SKFreeEnergyMoments
 public import LeanMachineLearning.SpinGlasses.SKGaussianCorollaries
 public import LeanMachineLearning.SpinGlasses.SKGaussianFluctuation
