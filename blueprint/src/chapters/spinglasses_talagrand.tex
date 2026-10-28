@@ -1215,19 +1215,31 @@ The first bound is the compensated comparison of the path with the decoupled sys
 Formalized in \texttt{SpinGlasses/SKPathOverlapMoments.lean}. The endpoint version at $t=0$ is Theorem~\ref{thm:sg-tal:overlap-moments-all}; the second moment along the path was already used in Theorem~\ref{thm:sg-tal:alr}.
 \end{proof}
 
-\begin{theorem}[Central limit theorem for the SK free energy (Theorem~1.4.11, Eq.~(1.109))]\label{thm:sg-tal:free-energy-clt}
-\lean{SpinGlasses.sk_free_energy_clt}
-\leanok
-\talsource{Theorem~1.4.11, Eq.~(1.109); Lemma~1.4.12}
-For $\beta^2 < 1/4$ and a fixed point $q$ of the replica-symmetric equation, the normalized free energy $A_N = N^{-1} \log Z_N(\beta, h)$ of the SK model satisfies the quantitative central limit theorem for all moments $k \ge 0$:
-$$|\mathbb{E}(A_N - \mathrm{SK}(\beta, h))^k - N^{-k/2} a(k) b^{k/2}| \le C_k N^{-(k+1)/2},$$
-where $a(k) = (k-1)!!$ for even $k$, $0$ for odd $k$, $b = \mathrm{Var}(\log\cosh(\beta \sqrt{q} z + h)) - \frac{\beta^2 q^2}{2}$, and $C_k$ is the explicit constant \texttt{skCLTConst}.
+\begin{theorem}[The induction on the degree in Theorem~1.4.11 (abstract form)]\label{thm:sg-tal:clt-induction}
+  \lean{SpinGlasses.clt_induction, SpinGlasses.abs_sub_ref_le_of_ode, SpinGlasses.hasDerivAt_clt_ref,
+        SpinGlasses.eq_zero_of_odd_of_rec}
+  \leanok
+\talsource{Theorem~1.4.11, Eqs.~(1.109), (1.121)}
+Let $\varepsilon>0$ (in the application $\varepsilon=N^{-1/2}$), let $a:\mathbb N\to\mathbb R$ satisfy $a(0)=1$, $a(1)=0$, $a(k+2)=(k+1)a(k)$ (the Gaussian moments), and let $b:\mathbb R\to\mathbb R$ satisfy $b'(s)=B\sin s\cos s$.
+Let $\psi_k:\mathbb R\to\mathbb R$ with $\psi_0\equiv1$ be such that for every $m\ge1$:
+(i) for every $s$ there is $D$ with $\psi_m'(s)=\sin s\cos s\,\big(\tfrac{m(m-1)}2\varepsilon^2B\,\psi_{m-2}(s)+D\big)$, and $|D|\le C_{\rm rem}(m)\varepsilon^{m+1}$ if $s\in[0,\pi/2]$;
+(ii) $|\psi_m(\pi/2)-\varepsilon^ma(m)b(\pi/2)^{\lfloor m/2\rfloor}|\le C_{\rm dec}(m)\varepsilon^{m+1}$.
+If $C(0)\ge0$ and $C_{\rm dec}(m)+\tfrac12C_{\rm rem}(m)+\tfrac{m(m-1)}4|B|\,C(m-2)\le C(m)$ for $m\ge1$, then for every $k$ and every $s\in[0,\pi/2]$,
+\[
+\big|\psi_k(s)-\varepsilon^ka(k)\,b(s)^{\lfloor k/2\rfloor}\big|\le C(k)\,\varepsilon^{k+1}.
+\]
 \end{theorem}
 \begin{proof}
-\leanok
-By induction on $k$. The base cases $k = 0$ and $k = 1$ are \texttt{sk\_clt\_zero} and \texttt{sk\_clt\_one} (the endpoint bound of Lemma~1.4.12, \texttt{sk\_free\_energy\_sub\_rs\_le}). For $k \ge 2$, the induction step \texttt{sk\_clt\_induction\_step} integrates the moment ODE along the trigonometric smart path $s \mapsto \cos s \cdot X + \sin s \cdot Y + h$ from the decoupled endpoint $s = \pi/2$ down to $s = 0$ using \texttt{sk\_clt\_ode\_step} and \texttt{hasDerivAt\_clt\_ref}.
-Formalized in \texttt{SpinGlasses/SKSmartPathCLT.lean}.
+  \leanok
+Strong induction on $k$. For fixed $m\ge1$ put $\Phi=\psi_m-\varepsilon^ma(m)b^{\lfloor m/2\rfloor}$. The reference term has derivative $\sin s\cos s\cdot\frac{m(m-1)}2\varepsilon^2B\cdot\varepsilon^{m-2}a(m-2)b^{\lfloor(m-2)/2\rfloor}$ (for even $m=2j+2$ this is $a(2j+2)=(2j+1)a(2j)$; for odd $m$ both sides vanish), so $\Phi'=\sin s\cos s\,(D+\tfrac{m(m-1)}2\varepsilon^2B(\psi_{m-2}-\text{ref}_{m-2}))$. By the induction hypothesis the bracket is at most $(C_{\rm rem}(m)+\tfrac{m(m-1)}2|B|C(m-2))\varepsilon^{m+1}=:K$ in modulus on $[0,\pi/2]$, so $|\Phi(\pi/2)-\Phi(s)|\le\frac K2(\sin^2\frac\pi2-\sin^2s)\le K/2$ (\texttt{Real.abs\_sub\_le\_of\_exists\_hasDerivAt\_Icc}) and $|\Phi(s)|\le|\Phi(\pi/2)|+K/2$. The case $m=1$ uses $\psi_0=\mathrm{ref}_0$.
+Formalized in \texttt{SpinGlasses/SKSmartPathCLT.lean}. This is a \emph{conditional} statement: hypotheses (i) and (ii) are not proved for the SK model; see the following remark.
 \end{proof}
+
+\begin{remark}[Status of Theorem~1.4.11 (the central limit theorem for the free energy)]\label{rem:sg-tal:free-energy-clt-status}
+\talsource{Theorem~1.4.11, Eq.~(1.109); source lines 1660--1895}
+Theorem~1.4.11 states that $\mathbb{E}(A_N-\mathrm{SK}(\beta,h))^k=N^{-k/2}a(k)\,b^{k/2}+O(N^{-(k+1)/2})$ for $\beta<1/2$. \emph{Not formalized.} Available: the first-moment case (Theorem~\ref{thm:sg-tal:alr}), the order-$N^{-k/2}$ size of all moments about the mean (Theorem~\ref{thm:sg-tal:free-energy-moments}), the derivative of $t\mapsto\mathbb{E}(A_t-a)^k$ along the smart path for a \emph{fixed} center $a$, Eq.~(1.125) (Theorem~\ref{thm:sg-tal:profile-comp}), the fourth overlap moment along the whole path (Theorem~\ref{thm:sg-tal:path-overlap-moments}), and the induction on the degree in abstract form (Theorem~\ref{thm:sg-tal:clt-induction}). Still missing, in order: (i) the derivative of $\psi_k(s)=\mathbb{E}(A_s-\mathrm{SK}(s))^k$ with the \emph{moving} center $\mathrm{SK}(s)$ (the terms with the derivative of the center cancel against the $(1-q)^2$ term of Eq.~(1.125)); (ii) the estimate $\mathrm{II}=O(k+1)$ of the book, by Cauchy--Schwarz with the fourth overlap moment (available) and the moments of $V(s)=A_s-\mathrm{SK}(s)$ along the path, Eq.~(1.118) (needs Lemma~1.4.12 and Theorem~1.4.10 along the whole path; the sub-Gaussian moment bound along the path, \texttt{integral\_pow\_abs\_smart\_path\_V\_le}, is proved); (iii) the i.i.d.\ moment lemma at the decoupled endpoint, Eq.~(1.122), with an $O(N^{-(k+1)/2})$ rate; (iv) the identification of the sequence $a(k)$ and of the path variance $b(s)=\mathrm{Var}(\log\cosh(\beta\sqrt qz+h))-\frac{\beta^2q^2}{2}\cos^2s$ in the abstract induction; (v) the change from the angle to the book's linear $t$ (not needed if one keeps the angle). The random Gaussian field of the book is also not formalized.
+An earlier version of this chapter listed a theorem \texttt{sk\_free\_energy\_clt} as proved; it took (i)--(iii) as hypotheses, its hypotheses were inconsistent at $\beta=h=q=0$, and it has been removed.
+\end{remark}
 
 \section{Spin Decorrelation, Asymptotic Product Measures and Projections (Talagrand Sections~1.4--1.5)}\label{sec:sg-tal:decorrelation}
 
@@ -6035,64 +6047,14 @@ $$\Sigma(\{\ell_1, \ell_2\}, \{\ell_3, \ell_4\}) = A^2 \mathbf{1}_{\{\ell_1, \el
 \lean{SpinGlasses.skOverlapCov}
 \leanok
 \talsource{Section~1.10, above Eq.~(1.298)}
-For any finite set of replicas and pairs $p_1, p_2$ of cardinality $2$, \texttt{skOverlapCov} computes the asymptotic covariance: $A^2 + 2B^2 + C^2$ on the diagonal, $B^2 + C^2$ when sharing one replica, and $C^2$ when disjoint.
+For pairs $p_1,p_2$ of replicas, \texttt{skOverlapCov} is the combinatorial formula $A^2\mathbf 1_{p_1=p_2}+B^2|p_1\cap p_2|+C^2$; it equals $A^2+2B^2+C^2$ on the diagonal and $C^2$ for disjoint pairs (\texttt{skOverlapCov\_self}, \texttt{skOverlapCov\_disjoint}). It is only a formula: it is not yet connected to the covariance of the overlaps.
 \end{theorem}
 \begin{proof}
 \leanok
 Formalized in \texttt{SpinGlasses/SKOverlapCLT.lean}.
 \end{proof}
 
-\begin{theorem}[Cavity step for multi-replica overlaps (Lemma~1.10.2)]\label{thm:sg-tal:overlap-cavity-step}
-\lean{SpinGlasses.sk_overlap_cavity_step}
-\leanok
-\talsource{Section~1.10, Lemma~1.10.2}
-The cavity contribution of adding a site to a multi-replica expectation separates into the $T$-basis components up to an explicit $O(M^{-1/2})$ remainder.
-\end{theorem}
-\begin{proof}
-\leanok
-Formalized in \texttt{SpinGlasses/SKOverlapCLT.lean}.
-\end{proof}
-
-\begin{theorem}[Four-spin difference evaluation (Corollary~1.10.3)]\label{thm:sg-tal:overlap-four-spin}
-\lean{SpinGlasses.sk_overlap_four_spin_step}
-\leanok
-\talsource{Section~1.10, Corollary~1.10.3}
-Expectations of four-spin differences $(\varepsilon_1 - \varepsilon_2)(\varepsilon_3 - \varepsilon_4) f_-$ under the disorder-averaged Gibbs measure reduce to the $T$-basis limits up to $O(M^{-1/2})$.
-\end{theorem}
-\begin{proof}
-\leanok
-Formalized in \texttt{SpinGlasses/SKOverlapCLT.lean}.
-\end{proof}
-
-\begin{theorem}[First-order multi-replica overlap expansion (Eq.~(1.298))]\label{thm:sg-tal:overlap-first-order}
-\lean{SpinGlasses.sk_overlap_clt_first_order}
-\leanok
-\talsource{Section~1.10, Eq.~(1.298)}
-For any monomial $f$ of degree $k$ in the centered overlaps $R_{\ell,\ell'} - q$, $\nu(f) = \nu_0(f) + O(N^{-(k+1)/2})$, where $\nu_0$ is the Gaussian evaluation against $\Sigma$.
-\end{theorem}
-\begin{proof}
-\leanok
-Formalized in \texttt{SpinGlasses/SKOverlapCLT.lean}.
-\end{proof}
-
-\begin{theorem}[Second-order multi-replica overlap expansion (Eq.~(1.299))]\label{thm:sg-tal:overlap-second-order}
-\lean{SpinGlasses.sk_overlap_clt_second_order}
-\leanok
-\talsource{Section~1.10, Eq.~(1.299)}
-For any monomial $f$ of degree $k$ in the centered overlaps, $\nu(f) = \nu_0(f) + \nu_{00}(f) + O(N^{-(k+2)/2})$.
-\end{theorem}
-\begin{proof}
-\leanok
-Formalized in \texttt{SpinGlasses/SKOverlapCLT.lean}.
-\end{proof}
-
-\begin{theorem}[Central limit theorem for the overlaps (Theorem~1.10.1)]\label{thm:sg-tal:overlap-clt}
-\lean{SpinGlasses.sk_overlap_clt}
-\leanok
-\talsource{Section~1.10, Theorem~1.10.1}
-For $\beta < 1/2$, any linear combination $X = \sum c_{\ell\ell'} \sqrt{N}(R_{\ell\ell'} - q)$ of centered rescaled overlaps satisfies the quantitative Gaussian moment bounds $|\nu(X^k) - a(k) (\sigma_X^2)^{k/2}| \le C_k N^{-1/2}$, where $a(k) = (k-1)!!$ for even $k$ and $0$ for odd $k$.
-\end{theorem}
-\begin{proof}
-\leanok
-Formalized in \texttt{SpinGlasses/SKOverlapCLT.lean}.
-\end{proof}
+\begin{remark}[Status of Section~1.10]\label{rem:sg-tal:overlap-clt-status}
+\talsource{Section~1.10, Lemma~1.10.2, Corollary~1.10.3, Eqs.~(1.298), (1.299), Theorem~1.10.1}
+\emph{Not formalized.} Lemma~1.10.2, Corollary~1.10.3, the expansions (1.298) and (1.299) and Theorem~1.10.1 (a joint statement on mixed moments of the $T$-basis, not a scalar statement) are open. Earlier versions of this chapter listed theorems with these names as proved; their Lean statements were vacuous (an existential remainder chosen to be zero, or a hypothesis returned as the conclusion), so they have been removed. A faithful statement needs the cavity expectation $\nu_0$ of the book (a decoupled cavity average, not a Gaussian limit), the $T$-basis objects of Section~1.8 and replicas indexed independently of the number of sites. The cavity derivative lemmas of Section~1.8 (\texttt{sk\_cavity\_deriv\_zero\_pair}, \texttt{sk\_cavity\_deriv\_zero\_rect}), the replica-pair sums and the coincidence classification are the intended tools.
+\end{remark}

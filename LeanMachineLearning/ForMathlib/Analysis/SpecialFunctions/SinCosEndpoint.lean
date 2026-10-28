@@ -38,6 +38,12 @@ theorem hasDerivAt_sin_sq (s : ℝ) :
   convert (hasDerivAt_sin s).pow 2 using 1
   ring
 
+/-- Derivative of `cos x ^ 2` is `-(2 sin s cos s)`. -/
+theorem hasDerivAt_cos_sq (s : ℝ) :
+    HasDerivAt (fun x => cos x ^ 2) (-(2 * sin s * cos s)) s := by
+  convert (hasDerivAt_cos s).pow 2 using 1
+  ring
+
 /-- A derivative bounded above by `K sin s cos s` on `[a, b]` bounds the increment from `a` to `b`
 by `K (sin² b - sin² a) / 2`. -/
 theorem sub_le_of_deriv_le_Icc {φ φ' : ℝ → ℝ} (hd : ∀ s, HasDerivAt φ (φ' s) s) {K a b : ℝ}

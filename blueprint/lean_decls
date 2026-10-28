@@ -3279,7 +3279,6 @@ SpinGlasses.sk_path_expected_sq_overlap_le
 SpinGlasses.ge_endpoint_of_trig_square_deriv
 SpinGlasses.exists_sk_smart_path_profile
 SpinGlasses.sk_free_energy_sub_rs_le
-SpinGlasses.sk_free_energy_clt
 SpinGlasses.tendsto_sk_free_energy_of_lt
 Weights.sum_mul_const_of_sum_eq_one
 Weights.sq_sum_mul_eq
@@ -4139,8 +4138,7 @@ SpinGlasses.exists_sk_smart_path_profile_pow
 SpinGlasses.sk_path_expected_exp_overlap_le
 SpinGlasses.sk_path_expected_pow_overlap_le
 SpinGlasses.skOverlapCov
-SpinGlasses.sk_overlap_cavity_step
-SpinGlasses.sk_overlap_four_spin_step
-SpinGlasses.sk_overlap_clt_first_order
-SpinGlasses.sk_overlap_clt_second_order
-SpinGlasses.sk_overlap_clt
+SpinGlasses.clt_induction
+SpinGlasses.abs_sub_ref_le_of_ode
+SpinGlasses.hasDerivAt_clt_ref
+SpinGlasses.eq_zero_of_odd_of_rec

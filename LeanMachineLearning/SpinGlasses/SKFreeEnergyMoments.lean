@@ -296,19 +296,10 @@ noncomputable def skPathRS (β h q s : ℝ) : ℝ :=
 theorem hasDerivAt_skPathRS (β h q s : ℝ) :
     HasDerivAt (skPathRS β h q)
       (-(β ^ 2 / 2 * (1 - q) ^ 2 * Real.sin s * Real.cos s)) s := by
-  have hcos : HasDerivAt (fun x => Real.cos x ^ 2) (-2 * Real.sin s * Real.cos s) s := by
-    convert (Real.hasDerivAt_cos s).pow 2 using 1
-    ring
-  have hderiv := (hcos.const_mul (β ^ 2 / 4 * (1 - q) ^ 2)).const_add
-    (Real.log 2 + ∫ x : ℝ, Real.log (Real.cosh (β * Real.sqrt q * x + h)) ∂(gaussianReal 0 1))
-  have e : (fun x => Real.log 2 +
-      ∫ y : ℝ, Real.log (Real.cosh (β * Real.sqrt q * y + h)) ∂(gaussianReal 0 1) +
-      β ^ 2 / 4 * (1 - q) ^ 2 * Real.cos x ^ 2) = skPathRS β h q := rfl
-  rw [e] at hderiv
-  have ed : β ^ 2 / 4 * (1 - q) ^ 2 * (-2 * Real.sin s * Real.cos s) =
-      -(β ^ 2 / 2 * (1 - q) ^ 2 * Real.sin s * Real.cos s) := by ring
-  rw [ed] at hderiv
-  exact hderiv
+  refine (((Real.hasDerivAt_cos_sq s).const_mul (β ^ 2 / 4 * (1 - q) ^ 2)).const_add
+    (Real.log 2 + ∫ x : ℝ, Real.log (Real.cosh (β * Real.sqrt q * x + h))
+      ∂(gaussianReal 0 1))).congr_deriv ?_
+  ring
 
 /-- **Deterministic bound on the expected smart path free energy.**
 For `β² < 1/4`, a fixed point `q`, and `s ∈ [0, π/2]`, the expected smart path free energy

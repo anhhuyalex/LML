@@ -195,21 +195,15 @@ theorem deriv_fixedPointMap_sqrt_le (β h x : ℝ) :
         (1 - 3 * Real.tanh (β * Real.sqrt x * z + h) ^ 2) ∂(gaussianReal 0 1) ≤ β ^ 2 := by
   have hle : ∫ z : ℝ, (1 - Real.tanh (β * Real.sqrt x * z + h) ^ 2) *
       (1 - 3 * Real.tanh (β * Real.sqrt x * z + h) ^ 2) ∂(gaussianReal 0 1) ≤ 1 := by
-    have hint : Integrable (fun z : ℝ => (1 - Real.tanh (β * Real.sqrt x * z + h) ^ 2) *
-        (1 - 3 * Real.tanh (β * Real.sqrt x * z + h) ^ 2)) (gaussianReal 0 1) := by
-      refine (integrable_const (1 : ℝ)).mono' ?_ (Eventually.of_forall fun z => ?_)
-      · exact ((continuous_const.sub (continuous_tanh_sq_affine _ h)).mul
-          (continuous_const.sub ((continuous_tanh_sq_affine _ h).const_mul 3))).aestronglyMeasurable
-      · have h0 : 0 ≤ Real.tanh (β * Real.sqrt x * z + h) ^ 2 := sq_nonneg _
-        have h1 := Real.tanh_sq_lt_one (β * Real.sqrt x * z + h)
-        rw [Real.norm_eq_abs, abs_le]
-        constructor <;> nlinarith
-    calc _ ≤ ∫ z : ℝ, (1 : ℝ) ∂(gaussianReal 0 1) := by
-          refine integral_mono hint (integrable_const _) fun z => ?_
-          have h0 : 0 ≤ Real.tanh (β * Real.sqrt x * z + h) ^ 2 := sq_nonneg _
-          have h1 := Real.tanh_sq_lt_one (β * Real.sqrt x * z + h)
-          nlinarith
-      _ = 1 := by simp
+    have hb := norm_integral_le_of_norm_le_const (μ := gaussianReal 0 1) (C := 2)
+      (f := fun z : ℝ => 2 * (1 - Real.tanh (β * Real.sqrt x * z + h) ^ 2) *
+        (1 - 3 * Real.tanh (β * Real.sqrt x * z + h) ^ 2))
+      (ae_of_all _ fun z => by
+        rw [Real.norm_eq_abs]
+        exact Real.abs_tanh_sq_second_deriv_le _)
+    rw [integral_two_mul_tanh_sq_second_deriv, probReal_univ, mul_one, Real.norm_eq_abs,
+      abs_le] at hb
+    linarith [hb.2]
   nlinarith [sq_nonneg β]
 
 /-- **Uniqueness of the fixed point for `|β| < 1`, every `h`** (Talagrand, Proposition 1.3.8, the

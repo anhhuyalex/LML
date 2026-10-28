@@ -42,8 +42,8 @@ covariance difference is `D l k = -c (S l k - q² - n)` with `S l l = (1 - q)²`
 summing to one, then
 `∑_{l,k} D l k (n² W'' w_l w_k + n W' w_l (1[l = k] - w_k)) =
   c n W' (Q - (1 - q)²) - c n² W'' (Q - q² - n)` with `Q = ∑_{l,k} w_l w_k S l k`. -/
-theorem sum_hessian_comp_eq {κ : Type*} [Fintype κ] [DecidableEq κ] (w : κ → ℝ)
-    (hw : ∑ l, w l = 1) (S D : κ → κ → ℝ) (c q n a₁ a₂ : ℝ)
+theorem sum_hessian_comp_eq {K κ : Type*} [CommRing K] [Fintype κ] [DecidableEq κ] (w : κ → K)
+    (hw : ∑ l, w l = 1) (S D : κ → κ → K) (c q n a₁ a₂ : K)
     (hD : ∀ l k, D l k = -c * (S l k - q ^ 2 - n)) (hS : ∀ l, S l l = (1 - q) ^ 2) :
     ∑ l, ∑ k, D l k * (n ^ 2 * a₂ * w l * w k + n * a₁ * (w l * ((if l = k then 1 else 0) - w k)))
       = c * n * a₁ * ((∑ l, ∑ k, w l * w k * S l k) - (1 - q) ^ 2) -
@@ -53,22 +53,15 @@ theorem sum_hessian_comp_eq {κ : Type*} [Fintype κ] [DecidableEq κ] (w : κ �
   have e1 : ∑ l, ∑ k, w l * w k * (S l k - q ^ 2 - n) =
       (∑ l, ∑ k, w l * w k * S l k) - q ^ 2 - n := by
     simp only [mul_sub, Finset.sum_sub_distrib]
-    have : ∑ l, ∑ k, w l * w k * q ^ 2 = q ^ 2 := by
-      simp only [← Finset.sum_mul]; rw [hww, one_mul]
-    have h2 : ∑ l, ∑ k, w l * w k * n = n := by
-      simp only [← Finset.sum_mul]; rw [hww, one_mul]
-    rw [this, h2]
-  have e2 : ∑ l, ∑ k, w l * (if l = k then (1 : ℝ) else 0) * (S l k - q ^ 2 - n) =
+    simp only [← Finset.sum_mul, hww, one_mul]
+  have e2 : ∑ l, ∑ k, w l * (if l = k then (1 : K) else 0) * (S l k - q ^ 2 - n) =
       (1 - q) ^ 2 - q ^ 2 - n := by
-    have : ∀ l, ∑ k, w l * (if l = k then (1 : ℝ) else 0) * (S l k - q ^ 2 - n) =
-        w l * ((1 - q) ^ 2 - q ^ 2 - n) := fun l => by
-      simp [Finset.sum_ite_eq, hS l]
-    simp only [this, ← Finset.sum_mul]
-    rw [hw, one_mul]
+    simp only [mul_ite, ite_mul, mul_one, mul_zero, zero_mul, Finset.sum_ite_eq,
+      Finset.mem_univ, ite_true, hS, ← Finset.sum_mul, hw, one_mul]
   have key : ∀ l k, D l k * (n ^ 2 * a₂ * w l * w k +
       n * a₁ * (w l * ((if l = k then 1 else 0) - w k))) =
       -c * n ^ 2 * a₂ * (w l * w k * (S l k - q ^ 2 - n)) +
-      (-c * n * a₁) * (w l * (if l = k then (1 : ℝ) else 0) * (S l k - q ^ 2 - n) -
+      (-c * n * a₁) * (w l * (if l = k then (1 : K) else 0) * (S l k - q ^ 2 - n) -
         w l * w k * (S l k - q ^ 2 - n)) := fun l k => by
     rw [hD]; ring
   simp only [key, Finset.sum_add_distrib, ← Finset.mul_sum, Finset.sum_sub_distrib, e1, e2]

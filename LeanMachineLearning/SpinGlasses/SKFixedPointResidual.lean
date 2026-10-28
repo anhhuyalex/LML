@@ -35,6 +35,15 @@ theorem hasDerivAt_comp_mul_sqrt {F : ℝ → ℝ} {β J x : ℝ} (hx : 0 < x)
   have hs : Real.sqrt x ≠ 0 := (Real.sqrt_pos.2 hx).ne'
   field_simp
 
+/-- The factor `2` of the second derivative of `tanh²` comes out of the Gaussian average. -/
+theorem integral_two_mul_tanh_sq_second_deriv (w h : ℝ) :
+    ∫ z : ℝ, 2 * (1 - Real.tanh (w * z + h) ^ 2) * (1 - 3 * Real.tanh (w * z + h) ^ 2)
+        ∂(gaussianReal 0 1) =
+      2 * ∫ z : ℝ, (1 - Real.tanh (w * z + h) ^ 2) * (1 - 3 * Real.tanh (w * z + h) ^ 2)
+        ∂(gaussianReal 0 1) := by
+  rw [← integral_const_mul]
+  exact integral_congr_ae (ae_of_all _ fun z => by ring)
+
 /-- `x`-derivative of `Φ(x) = 𝔼 tanh²(β √x z + h)` for `x > 0`:
 `Φ'(x) = β² 𝔼[(1 - tanh²)(1 - 3 tanh²)]`. -/
 theorem hasDerivAt_fixedPointMap_sqrt (β h : ℝ) {x : ℝ} (hx : 0 < x) :
@@ -42,14 +51,8 @@ theorem hasDerivAt_fixedPointMap_sqrt (β h : ℝ) {x : ℝ} (hx : 0 < x) :
       (fun y : ℝ => ∫ z : ℝ, Real.tanh (β * Real.sqrt y * z + h) ^ 2 ∂(gaussianReal 0 1))
       (β ^ 2 * ∫ z : ℝ, (1 - Real.tanh (β * Real.sqrt x * z + h) ^ 2) *
         (1 - 3 * Real.tanh (β * Real.sqrt x * z + h) ^ 2) ∂(gaussianReal 0 1)) x := by
-  have e : ∫ z : ℝ, 2 * (1 - Real.tanh (β * Real.sqrt x * z + h) ^ 2) *
-      (1 - 3 * Real.tanh (β * Real.sqrt x * z + h) ^ 2) ∂(gaussianReal 0 1) =
-      2 * ∫ z : ℝ, (1 - Real.tanh (β * Real.sqrt x * z + h) ^ 2) *
-        (1 - 3 * Real.tanh (β * Real.sqrt x * z + h) ^ 2) ∂(gaussianReal 0 1) := by
-    rw [← integral_const_mul]
-    exact integral_congr_ae (ae_of_all _ fun z => by ring)
   have h1 := hasDerivAt_fixedPointMap_param h (β * Real.sqrt x)
-  rw [e] at h1
+  rw [integral_two_mul_tanh_sq_second_deriv] at h1
   refine (hasDerivAt_comp_mul_sqrt hx h1).congr_deriv ?_
   ring
 
