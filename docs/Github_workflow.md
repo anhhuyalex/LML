@@ -146,6 +146,10 @@ lines. The helper normalizes SSH origin URLs for generated source links without
 changing Git configuration. In Actions it uses `GITHUB_REPOSITORY`, so forks point
 to their own sources.
 
+The project search check also forces a reload during search. The viewer can reload
+when its service worker activates, so the check restores a cleared query and waits
+for the result again rather than assuming the first rendered page will stay loaded.
+
 When updating either tool pin or LML's Lean version, rerun the full helper before
 merging. After the first push deployment, open the published URL and verify the
 map, an LML declaration, and its source link. PRs and manual runs validate but do

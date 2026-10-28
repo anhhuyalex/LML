@@ -25,6 +25,66 @@ def require(condition, message: str) -> None:
         raise AssertionError(message)
 
 
+def check_declaration_page(page, base: str, module_name: str, declaration: dict,
+                           repository: str, revision: str) -> None:
+    page.visit(base + "/?p=lml#/", "!!document.querySelector('#q') && !!document.querySelector('.tab')")
+    name = declaration["n"]
+    encoded_name = json.dumps(name)
+    # Lowercase selects the pinned frontend's case-insensitive search mode.
+    encoded_query = json.dumps(name.lower())
+    expected_hash = f"#/i/{declaration['i']}"
+    attempt = f"""(() => {{
+        const hash = {json.dumps(expected_hash)};
+        if (location.hash === hash && document.querySelector('h1')?.textContent === {encoded_name}
+                && document.querySelectorAll('#graph svg a').length > 1) {{
+            return {{opened: true, hash: location.hash}};
+        }}
+        const query = document.querySelector('#q');
+        const scope = document.querySelector('#scope');
+        if (!query || !scope || !document.querySelector('.tab')) return {{ready: false}};
+        const scopeChanged = !scope.checked;
+        if (scopeChanged) {{ scope.checked = true; scope.dispatchEvent(new Event('change')); }}
+        if (query.value !== {encoded_query} || scopeChanged) {{
+            query.value = {encoded_query}; query.dispatchEvent(new Event('input'));
+        }}
+        const result = [...document.querySelectorAll('#results a')]
+            .find(a => a.querySelector('.nm')?.textContent === {encoded_name});
+        if (result) {{
+            result.click();
+            return {{opened: true, hash: location.hash}};
+        }}
+        return {{ready: true, query: query.value,
+            results: [...document.querySelectorAll('#results .nm')].slice(0, 5).map(a => a.textContent)}};
+    }})()"""
+    # A fresh service worker can reload the home page after it renders. Reapply the
+    # query when cleared, without restarting the frontend's debounce on every poll.
+    # Finding and clicking the result together also avoids a reload between those actions.
+    deadline = time.monotonic() + 60
+    state = None
+    while time.monotonic() < deadline:
+        state = page.value(attempt)
+        if state and state.get("opened"):
+            require(state["hash"] == expected_hash, f"Search opened the wrong declaration: {state}")
+            break
+        time.sleep(0.25)
+    else:
+        raise AssertionError(f"Search did not find {name}; last state: {state}; browser errors: {page.problems()}")
+
+    route = urllib.parse.quote(name, safe="")
+    page.visit(base + f"/?p=lml#/d/{route}", "document.querySelectorAll('#graph svg a').length > 1")
+    require(page.value("document.querySelector('h1').textContent") == name,
+            "Declaration page has the wrong title")
+    require(page.value("!!document.querySelector('.theorem, pre')"), "Statement did not render")
+    expected_source = (f"{repository}/blob/{revision}/{module_name.replace('.', '/')}.lean"
+                       f"#L{declaration['l'][0]}-L{declaration['l'][1]}")
+    sources = page.value("[...document.querySelectorAll('#main p.sub a')].map(a => a.href)")
+    require(expected_source in sources, "Declaration source link has the wrong repository, revision or lines")
+    require("Not re-checked" in page.value("document.querySelector('#foot').textContent"),
+            "Footer must disclose that independent checking was not run")
+    problems = page.problems()
+    require(not problems, f"Browser reported errors on the LML declaration: {problems}")
+
+
 def main(tools: pathlib.Path, repository: str) -> None:
     project = pathlib.Path(__file__).resolve().parent.parent
     site = project / "home_page" / "leanviz"
@@ -79,43 +139,29 @@ def main(tools: pathlib.Path, repository: str) -> None:
         try:
             for check in ("check_page.py", "check_ui.py"):
                 subprocess.run([sys.executable, str(tools / "tests" / check), base], check=True)
-            page = Page()
-            try:
-                page.visit(base + "/?p=lml#/", "!!document.querySelector('#q') && !!document.querySelector('.tab')")
-                name = declaration["n"]
-                encoded_name = json.dumps(name)
-                # Lowercase selects the pinned frontend's case-insensitive search mode.
-                encoded_query = json.dumps(name.lower())
-                page.value(f"""(() => {{
-                    const scope = document.querySelector('#scope');
-                    if (!scope.checked) {{ scope.checked = true; scope.dispatchEvent(new Event('change')); }}
-                    const query = document.querySelector('#q');
-                    query.value = {encoded_query}; query.dispatchEvent(new Event('input'));
-                }})()""")
-                result = f"[...document.querySelectorAll('#results a')].find(a => a.querySelector('.nm')?.textContent === {encoded_name})"
-                deadline = time.monotonic() + 60
-                while not page.value(f"!!({result})"):
-                    require(time.monotonic() < deadline, f"Search did not find {name}")
-                    time.sleep(0.25)
-                page.value(f"({result}).click()")
-                route = urllib.parse.quote(name, safe="")
-                # Assert the search result navigated to the expected declaration before reloading its deep link.
-                require(page.value("location.hash") == f"#/i/{declaration['i']}", "Search opened the wrong declaration")
-                page.visit(base + f"/?p=lml#/d/{route}", "document.querySelectorAll('#graph svg a').length > 1")
-                require(page.value("document.querySelector('h1').textContent") == name,
-                        "Declaration page has the wrong title")
-                require(page.value("!!document.querySelector('.theorem, pre')"), "Statement did not render")
-                expected_source = (f"{repository}/blob/{revision}/{module_name.replace('.', '/')}.lean"
-                                   f"#L{declaration['l'][0]}-L{declaration['l'][1]}")
-                sources = page.value("[...document.querySelectorAll('#main p.sub a')].map(a => a.href)")
-                require(expected_source in sources, "Declaration source link has the wrong repository, revision or lines")
-                require("Not re-checked" in page.value("document.querySelector('#foot').textContent"),
-                        "Footer must disclose that independent checking was not run")
-                problems = page.problems()
-                require(not problems, f"Browser reported errors on the LML declaration: {problems}")
-                print(f"LML search, statement, dependency graph and source link passed: {name}", flush=True)
-            finally:
-                page.close()
+            for reload_during_search in (False, True):
+                page = Page()
+                try:
+                    if reload_during_search:
+                        # Reproduce the service-worker timing deterministically: clear the
+                        # first query by reloading, even when the worker activates quickly.
+                        page.ws.send("Page.addScriptToEvaluateOnNewDocument", {"source": """
+                            document.addEventListener('input', (event) => {
+                                if (event.target.id === 'q' && !sessionStorage.getItem('leanviz-search-reload')) {
+                                    sessionStorage.setItem('leanviz-search-reload', 'yes');
+                                    location.reload();
+                                }
+                            }, true);
+                        """})
+                    check_declaration_page(page, base, module_name, declaration, repository, revision)
+                    if reload_during_search:
+                        require(page.value("sessionStorage.getItem('leanviz-search-reload')") == "yes",
+                                "Search reload regression did not exercise a reload")
+                    scenario = "reload during search" if reload_during_search else "initial load"
+                    print(f"LML search, statement, dependency graph and source link passed ({scenario}): "
+                          f"{declaration['n']}", flush=True)
+                finally:
+                    page.close()
         finally:
             server.shutdown()
             thread.join()
