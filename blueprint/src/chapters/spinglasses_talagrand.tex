@@ -6310,6 +6310,53 @@ $b(1)-b(0)=\beta^2(q-\widehat q)$. The sums of the four or two positive error co
 bound the respective remainders.
 \end{proof}
 
+\begin{remark}[Deviations from Talagrand in the higher-order cavity results]
+\label{rem:sg-tal:dev-110-cavity}
+\talsource{Section~1.10, Eqs.~(1.296)--(1.302); random-field convention after Eq.~(1.61)}
+The preceding statements have the following precise relationship to the source.
+\begin{enumerate}
+\item \emph{Field and temperature hypotheses.}
+The Lean results fix a deterministic external field $h$. Talagrand's standing convention
+after (1.61) also permits i.i.d. random external fields; that extension is not supplied here.
+We assume $4\beta^2<1$, which agrees with the book's high-temperature range for
+nonnegative $\beta$ and also permits signed $\beta$ with $|\beta|<1/2$.
+The fixed-point equation is an explicit hypothesis, not a newly defined choice of $q$.
+\item \emph{Size and normalization.}
+The source's number of sites is $m=N+1$ in Lean. Both $R$ and $R^-$ use denominator $m$;
+the latter sums only over the first $N$ sites. The old-spin Hamiltonian retains coupling
+$\beta/\sqrt m$, as in (1.144); it is not silently replaced by the $N$-site model at
+the same temperature. The statements also cover $N=0$.
+\item \emph{Errors and uniformity.}
+The source's $O(k+1)$ and $O(k+2)$ become explicit absolute bounds
+$C m^{-(k+1)/2}$ and $C m^{-(k+2)/2}$. Positive constants are chosen before $N$,
+the replica labels in the product, and the bounded factor when present.
+For linear combinations, the finite coefficient families are fixed before the constants;
+there is no claim uniform in unbounded coefficients or coefficients depending on $N$.
+\item \emph{Indices and observables.}
+The pair and corollary results permit arbitrary distinguished labels rather than only
+the displayed labels $1,2,3,4$. Summand index types may depend on the factor;
+signed coefficients, repeated pairs, and empty sums/products are allowed.
+The rectangle identity even permits its two column labels to coincide, when both sides vanish.
+For (1.302), independence of the distinguished third replica is stated as invariance of
+$f^-$ under replacing that replica by any configuration. This retains the source hypothesis
+and also admits observables whose apparent dependence cancels algebraically.
+\item \emph{Proof and representation.}
+The common source notation $\nu$ is implemented using the original replica type and
+an explicit type with two extra replicas. The local kernel $J_{ab}=\nu(f^-D^-_{ab})$
+is an actual Gibbs integral, not an assumed covariance model.
+We distribute finite linear combinations once in a generic linear-functional lemma.
+The rectangular coefficient calculation subtracts the existing third-replica regroupings
+instead of repeating the coincidence case enumeration of Lemma~1.8.4.
+These are changes of proof organization, with the source coefficients unchanged.
+\item \emph{Remaining scope.}
+The separate moment and Taylor estimates above currently expose products of individual
+$D^-_{ab}$ and an arbitrary bounded factor, rather than the source's entire class of
+products of linear combinations. The pair expansion and both corollary formulas do expose
+that larger class. No proof of (1.305), Propositions~1.10.4--1.10.5, or Theorem~1.10.1
+is asserted by these cavity results. The status below records these open obligations.
+\end{enumerate}
+\end{remark}
+
 \begin{remark}[Status of Section~1.10]\label{rem:sg-tal:overlap-clt-status}
 \talsource{Section~1.10, Lemma~1.10.2, Corollary~1.10.3, Eqs.~(1.298), (1.299), Theorem~1.10.1}
 The product estimates and expansions (1.298)--(1.299) are proved above for

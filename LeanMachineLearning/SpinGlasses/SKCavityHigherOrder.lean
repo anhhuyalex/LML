@@ -180,6 +180,125 @@ theorem sk_cavity_prod_sq_le (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (k : ℕ
         (M ^ 2 * k * C) / ((N : ℝ) + 1) ^ k by ring]
       exact div_le_div_of_nonneg_right (by linarith) (by positivity)
 
+/-- **Eqs. (1.298)--(1.299) from an observable's second-moment bound.** The constant
+is chosen before the size and the observable. This separates the analytic Taylor estimate
+from the representation used to prove the observable's moment scale. -/
+theorem sk_cavity_expansion_of_sq_le (β h q : ℝ) (hβ : 4 * β ^ 2 < 1)
+    (hfix : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂gaussianReal 0 1 = q)
+    (n k : ℕ) (H : ℝ) (hH : 0 ≤ H) :
+    ∃ C : ℝ, 0 < C ∧ ∀ (N : ℕ) (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ),
+    (∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ ^ 2
+      ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+        (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+          h * ∑ i : Fin (N + 1), (a i : ℝ))
+      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) ≤
+        H / ((N : ℝ) + 1) ^ k →
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
+      (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs N,
+            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
+        (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
+      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
+        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
+      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
+      (Real.sqrt (N + 1))⁻¹ * β *
+        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+      h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let J : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ := fun a b =>
+      β ^ 2 * (a (Fin.last N) : ℝ) * (b (Fin.last N) : ℝ) *
+        ((N + 1 : ℝ)⁻¹ *
+          ((fun i : Fin N => (a i.castSucc : ℝ)) ⬝ᵥ fun i : Fin N => (b i.castSucc : ℝ)) - q)
+    |(∫ g, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ
+        ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (Esk g))
+        ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) -
+      (∫ g', ∫ ω : (Fin N → ℝ) × ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ
+        ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (E (π / 2) g' ω))
+        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+        ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1))| ≤
+      C / ((N : ℝ) + 1) ^ (((k + 1 : ℕ) : ℝ) / 2) ∧
+    |(∫ g, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ
+        ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (Esk g))
+        ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) -
+      (∫ g', ∫ ω : (Fin N → ℝ) × ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ
+        ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (E (π / 2) g' ω))
+        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+        ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) -
+      (∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
+        ∫ τ : Option (Option (Fin n)) → Fin (N + 1) → ℤˣ,
+          f (fun r => τ (some (some r))) *
+            ((∑ p : Fin n × Fin n with p.1 < p.2,
+                J (τ (some (some p.1))) (τ (some (some p.2)))) -
+              (n : ℝ) * ∑ r : Fin n, J (τ (some (some r))) (τ (some none)) +
+              (n : ℝ) * ((n : ℝ) + 1) / 2 * J (τ (some none)) (τ none))
+        ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted
+          (E (π / 2) g' ω))
+        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+        ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1))| ≤
+      C / ((N : ℝ) + 1) ^ (((k + 2 : ℕ) : ℝ) / 2) := by
+  obtain ⟨A, hA0, hA⟩ := sk_dev_moment_le β hβ 1
+  obtain ⟨B₄, hB₄0, hB₄⟩ := sk_dev_moment_le β hβ 2
+  let c₁ := 2 * (n : ℝ) ^ 2 * β ^ 2 * Real.exp (4 * ((n : ℝ) + 2) ^ 2 * β ^ 2)
+  let c₂ := 4 * (n : ℝ) ^ 2 * ((n : ℝ) + 2) ^ 2 * β ^ 4 *
+    Real.exp (4 * ((n : ℝ) + 4) ^ 2 * β ^ 2)
+  let C₁ := c₁ * Real.sqrt H * Real.sqrt A
+  let C₂ := c₂ * Real.sqrt H * Real.sqrt B₄
+  have hc₁ : 0 ≤ c₁ := by positivity
+  have hc₂ : 0 ≤ c₂ := by positivity
+  have hC₁ : 0 ≤ C₁ := by positivity
+  have hC₂ : 0 ≤ C₂ := by positivity
+  refine ⟨C₁ + C₂ + 1, by positivity, ?_⟩
+  intro N f hf B E Esk J
+  have hs (a : ℝ) (ha : 0 ≤ a) (j : ℕ) :
+      Real.sqrt (a / ((N : ℝ) + 1) ^ j) =
+        Real.sqrt a / Real.sqrt ((N : ℝ) + 1) ^ j := by
+    rw [Real.sqrt_div ha]
+    congr 1
+    rw [Real.sqrt_eq_rpow, ← Real.rpow_natCast_mul (by positivity),
+      mul_comm (j : ℝ), Real.rpow_mul_natCast (by positivity), ← Real.sqrt_eq_rpow]
+  have hp := Real.sqrt_le_sqrt hf
+  rw [hs H hH k] at hp
+  have ha := Real.sqrt_le_sqrt (hA β h q hfix le_rfl N)
+  rw [hs A hA0.le 1] at ha
+  have hb := Real.sqrt_le_sqrt (hB₄ β h q hfix le_rfl N)
+  rw [hs B₄ hB₄0.le 2] at hb
+  have h₁ := sk_cavity_nu_sub_nu_zero_le N n β q h (fixedPoint_mem_Icc hfix)
+    f Real.HolderConjugate.two_two
+  simp only [Real.rpow_two, sq_abs, ← Real.sqrt_eq_rpow] at h₁
+  have h₂ := sk_cavity_nu_sub_nu_zero_sub_deriv_le_two N n β q h
+    (fixedPoint_mem_Icc hfix) f
+  have hd (j : ℕ) : ((N : ℝ) + 1) ^ (((k + j : ℕ) : ℝ) / 2) =
+      Real.sqrt ((N : ℝ) + 1) ^ (k + j) := by
+    rw [Real.rpow_div_two_eq_sqrt _ (by positivity), Real.rpow_natCast]
+  constructor
+  · refine h₁.trans ?_
+    calc
+      _ ≤ c₁ * ((Real.sqrt H / Real.sqrt ((N : ℝ) + 1) ^ k) *
+          (Real.sqrt A / Real.sqrt ((N : ℝ) + 1) ^ 1)) :=
+        mul_le_mul_of_nonneg_left
+          (mul_le_mul hp ha (Real.sqrt_nonneg _) (by positivity)) hc₁
+      _ = C₁ / ((N : ℝ) + 1) ^ (((k + 1 : ℕ) : ℝ) / 2) := by
+        rw [hd 1, pow_add]
+        dsimp [C₁]
+        ring
+      _ ≤ (C₁ + C₂ + 1) / ((N : ℝ) + 1) ^ (((k + 1 : ℕ) : ℝ) / 2) :=
+        div_le_div_of_nonneg_right (by linarith) (by positivity)
+  · refine h₂.trans ?_
+    calc
+      _ ≤ c₂ * ((Real.sqrt H / Real.sqrt ((N : ℝ) + 1) ^ k) *
+          (Real.sqrt B₄ / Real.sqrt ((N : ℝ) + 1) ^ 2)) :=
+        mul_le_mul_of_nonneg_left
+          (mul_le_mul hp hb (Real.sqrt_nonneg _) (by positivity)) hc₂
+      _ = C₂ / ((N : ℝ) + 1) ^ (((k + 2 : ℕ) : ℝ) / 2) := by
+        rw [hd 2, pow_add]
+        dsimp [C₂]
+        ring
+      _ ≤ (C₁ + C₂ + 1) / ((N : ℝ) + 1) ^ (((k + 2 : ℕ) : ℝ) / 2) :=
+        div_le_div_of_nonneg_right (by linarith) (by positivity)
+
 /-- **Eqs. (1.298)--(1.299) for products of truncated centered overlaps.** The bounded
 factor may depend on every spin, including the last. The same positive constant works for
 both errors and is chosen before the system size, replica pairs and bounded factor.
@@ -239,65 +358,10 @@ theorem sk_cavity_prod_expansion (β h q : ℝ) (hβ : 4 * β ^ 2 < 1)
         ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1))| ≤
       C / ((N : ℝ) + 1) ^ (((k + 2 : ℕ) : ℝ) / 2) := by
   obtain ⟨H, hH0, hH⟩ := sk_cavity_prod_sq_le β hβ k M
-  obtain ⟨A, hA0, hA⟩ := sk_dev_moment_le β hβ 1
-  obtain ⟨B₄, hB₄0, hB₄⟩ := sk_dev_moment_le β hβ 2
-  let c₁ := 2 * (n : ℝ) ^ 2 * β ^ 2 * Real.exp (4 * ((n : ℝ) + 2) ^ 2 * β ^ 2)
-  let c₂ := 4 * (n : ℝ) ^ 2 * ((n : ℝ) + 2) ^ 2 * β ^ 4 *
-    Real.exp (4 * ((n : ℝ) + 4) ^ 2 * β ^ 2)
-  let C₁ := c₁ * Real.sqrt H * Real.sqrt A
-  let C₂ := c₂ * Real.sqrt H * Real.sqrt B₄
-  have hc₁ : 0 ≤ c₁ := by positivity
-  have hc₂ : 0 ≤ c₂ := by positivity
-  have hC₁ : 0 ≤ C₁ := by positivity
-  have hC₂ : 0 ≤ C₂ := by positivity
-  refine ⟨C₁ + C₂ + 1, by positivity, ?_⟩
+  obtain ⟨C, hC0, hC⟩ := sk_cavity_expansion_of_sq_le β h q hβ hfix n k H hH0.le
+  refine ⟨C, hC0, ?_⟩
   intro N x y hxy W hW B E Esk J f
-  have hs (a : ℝ) (ha : 0 ≤ a) (j : ℕ) :
-      Real.sqrt (a / ((N : ℝ) + 1) ^ j) =
-        Real.sqrt a / Real.sqrt ((N : ℝ) + 1) ^ j := by
-    rw [Real.sqrt_div ha]
-    congr 1
-    rw [Real.sqrt_eq_rpow, ← Real.rpow_natCast_mul (by positivity),
-      mul_comm (j : ℝ), Real.rpow_mul_natCast (by positivity), ← Real.sqrt_eq_rpow]
-  have hp := Real.sqrt_le_sqrt (hH β h q hfix le_rfl N n x y hxy W hW)
-  rw [hs H hH0.le k] at hp
-  have ha := Real.sqrt_le_sqrt (hA β h q hfix le_rfl N)
-  rw [hs A hA0.le 1] at ha
-  have hb := Real.sqrt_le_sqrt (hB₄ β h q hfix le_rfl N)
-  rw [hs B₄ hB₄0.le 2] at hb
-  have h₁ := sk_cavity_nu_sub_nu_zero_le N n β q h (fixedPoint_mem_Icc hfix)
-    f Real.HolderConjugate.two_two
-  simp only [Real.rpow_two, sq_abs, ← Real.sqrt_eq_rpow] at h₁
-  have h₂ := sk_cavity_nu_sub_nu_zero_sub_deriv_le_two N n β q h
-    (fixedPoint_mem_Icc hfix) f
-  have hd (j : ℕ) : ((N : ℝ) + 1) ^ (((k + j : ℕ) : ℝ) / 2) =
-      Real.sqrt ((N : ℝ) + 1) ^ (k + j) := by
-    rw [Real.rpow_div_two_eq_sqrt _ (by positivity), Real.rpow_natCast]
-  constructor
-  · refine h₁.trans ?_
-    calc
-      _ ≤ c₁ * ((Real.sqrt H / Real.sqrt ((N : ℝ) + 1) ^ k) *
-          (Real.sqrt A / Real.sqrt ((N : ℝ) + 1) ^ 1)) :=
-        mul_le_mul_of_nonneg_left
-          (mul_le_mul hp ha (Real.sqrt_nonneg _) (by positivity)) hc₁
-      _ = C₁ / ((N : ℝ) + 1) ^ (((k + 1 : ℕ) : ℝ) / 2) := by
-        rw [hd 1, pow_add]
-        dsimp [C₁]
-        ring
-      _ ≤ (C₁ + C₂ + 1) / ((N : ℝ) + 1) ^ (((k + 1 : ℕ) : ℝ) / 2) :=
-        div_le_div_of_nonneg_right (by linarith) (by positivity)
-  · refine h₂.trans ?_
-    calc
-      _ ≤ c₂ * ((Real.sqrt H / Real.sqrt ((N : ℝ) + 1) ^ k) *
-          (Real.sqrt B₄ / Real.sqrt ((N : ℝ) + 1) ^ 2)) :=
-        mul_le_mul_of_nonneg_left
-          (mul_le_mul hp hb (Real.sqrt_nonneg _) (by positivity)) hc₂
-      _ = C₂ / ((N : ℝ) + 1) ^ (((k + 2 : ℕ) : ℝ) / 2) := by
-        rw [hd 2, pow_add]
-        dsimp [C₂]
-        ring
-      _ ≤ (C₁ + C₂ + 1) / ((N : ℝ) + 1) ^ (((k + 2 : ℕ) : ℝ) / 2) :=
-        div_le_div_of_nonneg_right (by linarith) (by positivity)
+  exact hC N f (hH β h q hfix le_rfl N n x y hxy W hW)
 
 /-- **Eq. (1.298) evaluated on the old spins.** The old system retains the coefficient
 `β / sqrt (N+1)`, exactly as at the decoupled endpoint; there is no change of temperature. -/
