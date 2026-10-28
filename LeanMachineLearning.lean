@@ -513,6 +513,7 @@ public import LeanMachineLearning.SpinGlasses.SKLocalMagnetizations
 public import LeanMachineLearning.SpinGlasses.SKModel
 public import LeanMachineLearning.SpinGlasses.SKOldSpinCavity
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLT
+public import LeanMachineLearning.SpinGlasses.SKOverlapCLTStep
 public import LeanMachineLearning.SpinGlasses.SKOverlapConcentration
 public import LeanMachineLearning.SpinGlasses.SKOverlapContraction
 public import LeanMachineLearning.SpinGlasses.SKOverlapMoments

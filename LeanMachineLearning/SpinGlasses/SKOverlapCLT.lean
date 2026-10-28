@@ -21,8 +21,11 @@ file contains only that covariance function, as a combinatorial formula.
 individual truncated centered overlaps with a bounded factor; `SKCavityHigherOrderPair.lean`
 proves Lemma 1.10.2 for pure products. `SKCavityHigherOrderLinear.lean` extends that lemma to
 products of finite linear combinations. `SKCavityHigherOrderCorollary.lean` proves both formulas
-of Corollary 1.10.3, retaining independence from the third replica in Eq. (1.302). The
-mixed-moment induction of Theorem 1.10.1 remains open.
+of Corollary 1.10.3, retaining independence from the third replica in Eq. (1.302).
+`FreshReplicas.lean` (in `ForMathlib`) proves the replica-mean substitution (1.305), and
+`SKOverlapCLTStep.lean` proves the last-site expansion (1.309)-(1.311) with its `O(k+1)`
+remainder. The evaluation of the term I (1.312) and the induction of Propositions 1.10.4, 1.10.5
+and Theorem 1.10.1 remain open.
 
 An earlier version of this file declared statements with those names; they
 were vacuous (an existential remainder chosen to be zero, or a hypothesis returned as the

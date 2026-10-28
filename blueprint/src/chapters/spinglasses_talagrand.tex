@@ -6476,19 +6476,138 @@ No proof of Propositions~1.10.4--1.10.5 or Theorem~1.10.1 is asserted. The statu
 \end{enumerate}
 \end{remark}
 
+\subsection{The induction for the mixed $T$-moments: the last-site step}
+
+The proof of Propositions~1.10.4--1.10.5 and Theorem~1.10.1 repeats one step: write a product
+of overlap factors as a function on $n'$ replicas (Eq.~(1.305), proved above), use symmetry
+between sites to move one factor to the last site (Eq.~(1.309)), and expand the remaining
+factors in their last-site parts (Eqs.~(1.310)--(1.311)). The following results prove this
+step once, for an arbitrary finite family of factors, each a finite linear combination
+$U_j=\sum_x c_{jx}(R_{a_{jx}b_{jx}}-q)$ of centered overlaps with $a_{jx}\neq b_{jx}$.
+Write $m=N+1$, $U_j^-=\sum_x c_{jx}(R^-_{a_{jx}b_{jx}}-q)$ with $R^-$ the overlap over the
+first $N$ sites normalized by $m$, and $e_j=\sum_x c_{jx}\varepsilon_{a_{jx}}\varepsilon_{b_{jx}}$
+with the last spins $\varepsilon$. Then $U_j=U_j^-+e_j/m$.
+
+\begin{lemma}[Symmetry between sites, general one-site observable]
+\label{lem:sg-tal:site-mean}
+\lean{SpinGlasses.sk_replica_avg_site_mean, SpinGlasses.sk_overlap_mul_eq_last_site_of_perm}
+\leanok
+\talsource{Eq.~(1.309); Eq.~(1.240)}
+Let $\nu$ be the $n$-replica SK average $\nu(\Phi)=\mathbb E\langle\Phi\rangle$ of the
+$(N+1)$-spin system, $\xi$ a function of the $n$ spins at one site, and $H$ a function of the
+replica configuration that is invariant under every permutation of the sites. Then
+\[
+ \nu\Big(\Big(\frac1m\sum_{s\le N}\xi(\sigma_{\cdot,s})\Big)H\Big)
+ =\nu\big(\xi(\sigma_{\cdot,\mathrm{last}})\,H\big).
+\]
+The earlier statement for $\xi=\varepsilon_x\varepsilon_y-q$ is now a corollary.
+\end{lemma}
+\begin{proof}
+\leanok
+For each site $s$ the transposition of $s$ and the last site carries the term of site $s$
+to the last site and leaves $H$ unchanged. The disorder average is invariant under
+relabelling the sites (\texttt{sk\_replica\_site\_perm}). Sum over $s$ by linearity.
+\end{proof}
+
+\begin{lemma}[Second moment of a product over a subset of factors]
+\label{lem:sg-tal:lincomb-sq-finset}
+\lean{SpinGlasses.sk_cavity_lincomb_sq_le_finset}
+\leanok
+\talsource{Eq.~(1.297)}
+Let $\beta_0$ satisfy $4\beta_0^2<1$, $\kappa$ an index type, $s\subseteq\kappa$ finite, $M\in\mathbb R$,
+and fix coefficient families $c_{jx}$. There is $K>0$ such that, for $\beta^2\le\beta_0^2$,
+$q$ the fixed point, all $N$, all labels $a_{jx}\neq b_{jx}$ and every $W$ with $|W|\le M$,
+\[
+ \nu\Big(\big(W\prod_{j\in s}U^-_j\big)^2\Big)\le K/(N+1)^{|s|}.
+\]
+\end{lemma}
+\begin{proof}
+\leanok
+Reindex $s$ by $\{1,\dots,|s|\}$ and apply the case already proved
+(Lemma~\ref{lem:sg-tal:cavity-higher-moments} and its linear-combination form).
+\end{proof}
+
+\begin{theorem}[Last-site expansion of a product of overlap factors]
+\label{thm:sg-tal:last-site-step}
+\lean{SpinGlasses.sk_overlap_step_identity, SpinGlasses.sk_nu_sq_le,
+      SpinGlasses.sk_overlap_step_remainder_le, SpinGlasses.sk_overlap_step_expansion}
+\leanok
+\uses{lem:sg-tal:site-mean, lem:sg-tal:lincomb-sq-finset}
+\talsource{Eqs.~(1.309)--(1.311) and the bound $\nu(|W|)=O(k+1)$ after them}
+With the notation above, let $4\beta_0^2<1$, fix finite families of coefficients $c_{jx}$ for
+$j\in\kappa$ ($|\kappa|=k'$) and a bound $M_\xi$. There is $C>0$ such that for
+$\beta^2\le\beta_0^2$, $q$ the fixed point, all $N$, all labels with $a_{jx}\neq b_{jx}$ and
+every one-site observable $\xi$ with $|\xi|\le M_\xi$:
+\[
+\Big|\nu\Big(\Big(\frac1m\sum_{s\le N}\xi_s\Big)\prod_{j\in\kappa}U_j\Big)
+ -\nu\Big(\xi_{\mathrm{last}}\prod_jU_j^-\Big)
+ -\frac1m\sum_{u\in\kappa}\nu\Big(\xi_{\mathrm{last}}\,e_u\prod_{j\ne u}U_j^-\Big)\Big|
+ \le \frac{C}{m^{(k'+2)/2}} .
+\]
+The proof uses an exact identity: the left side equals the first two terms plus the sum over
+subsets $t\subseteq\kappa$ with $|t|\ge2$ of
+$m^{-|t|}\nu(\xi_{\mathrm{last}}\prod_{i\in t}e_i\prod_{j\notin t}U_j^-)$
+(\texttt{sk\_overlap\_step\_identity}, from the symmetry lemma and the exact product expansion
+\texttt{Finset.prod\_add\_eq\_prod\_add\_single\_add\_rest}). Each such term is bounded by
+Cauchy-Schwarz (\texttt{sk\_nu\_sq\_le}) and the previous lemma, because
+$\xi_{\mathrm{last}}\prod_{i\in t}e_i$ is a bounded factor, and $m^{-|t|}m^{-(k'-|t|)/2}\le m^{-(k'+2)/2}$.
+\end{theorem}
+\begin{proof}
+\leanok
+As described. In the source, with $k=k'+1$ factors in total, this is the error $O(k+1)$ of
+Eq.~(1.310); the leading factor of the source product has been separated as $\xi$. The
+hypothesis $\sum_x c_{0x}=0$ on the leading factor, needed to identify
+$U_0$ with $m^{-1}\sum_s\xi_s$ (no stray $q$), is checked where the step is applied.
+\end{proof}
+
+\begin{remark}[Statements of Propositions~1.10.4, 1.10.5 and Theorem~1.10.1 (planned, not proved)]
+\label{rem:sg-tal:overlap-clt-statements}
+\talsource{Propositions~1.10.4, 1.10.5, Theorem~1.10.1, Eqs.~(1.290), (1.303), (1.314)}
+These are the statements the induction is to prove; none is asserted as formalized.
+Fix $n\ge2$ and let $D_n=\{(\ell,\ell'):\ell<\ell'\le n\}\sqcup\{1,\dots,n\}\sqcup\{*\}$ index the
+three kinds of variables $T_{\ell,\ell'}$, $T_\ell$, $T$. Let $V$ be a finite set of factors
+with kind map $d:V\to D_n$ and put $k=|V|$ and $k_x=|d^{-1}(x)|$. This enumerated form
+is equivalent to the multi-index form of (1.290): take $V$ to be the disjoint union of
+$\{1,\dots,k(x)\}$ over $x\in D_n$.
+Let $4\beta_0^2<1$, $h\in\mathbb R$; for $|\beta|\le\beta_0$, $q$ the fixed point
+$q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$, $\hat q=\mathbb E\tanh^4(\beta\sqrt q\,z+h)$,
+and $b_i=\langle\sigma_i\rangle$ the Gibbs mean, set
+\[
+T_{\ell,\ell'}=\tfrac1m\sum_i(\sigma^\ell_i-b_i)(\sigma^{\ell'}_i-b_i),\quad
+T_\ell=\tfrac1m\sum_i(\sigma^\ell_i-b_i)b_i,\quad T=\tfrac1m\sum_ib_i^2-q,
+\]
+and let $A^2,B^2,C^2$ be the quantities of Theorem~\ref{thm:sg-tal:thm-1812}.
+With $a(j)=\mathbb E g^j$ ($g$ standard Gaussian), $s_x=A,B,C$ for $x$ of kind pair, single, global:
+\begin{itemize}
+\item \emph{Proposition 1.10.4 (1.303).} Splitting $V=V_1\sqcup V_2$ into the pair-type factors and the rest,
+ there is $K$ independent of $N$ with
+ $\big|\nu(\prod_{v\in V}T_{d(v)})-\prod_{x\ \mathrm{pair}}a(k_x)A^{k_x}\,\nu(\prod_{v\in V_2}T_{d(v)})\big|\le K\,m^{-(k+1)/2}$.
+\item \emph{Proposition 1.10.5 (1.314).} If no factor is of pair type, the same with
+ $\prod_{x\ \mathrm{single}}a(k_x)B^{k_x}\,\nu(T^{k_*})$.
+\item \emph{Theorem 1.10.1 (1.290).} $\big|\nu(\prod_{v\in V}T_{d(v)})-\prod_{x\in D_n}a(k_x)s_x^{k_x}\big|\le K\,m^{-(k+1)/2}$.
+\end{itemize}
+Here $K$ depends on $n$, $V$, $d$, $\beta_0$, $h$ and not on $N$ or $\beta$. The nonzero
+denominators $1-\beta^2(1-2q+\hat q)$ and $1-\beta^2(1-4q+3\hat q)$ are bounded below by $3/4$
+(\texttt{three\_quarters\_le\_one\_sub\_beta\_sq\_mul}).
+\end{remark}
+
 \begin{remark}[Status of Section~1.10]\label{rem:sg-tal:overlap-clt-status}
-\talsource{Section~1.10, Lemma~1.10.2, Corollary~1.10.3, Eqs.~(1.298), (1.299), Theorem~1.10.1}
-The product estimates and expansions (1.298)--(1.299) are proved above for
-products of finite linear combinations of truncated centered overlaps with an arbitrary
-bounded factor. The separate moment and Taylor bounds and the pair expansion all cover
-this full finite product class.
-Lemma~1.10.2 and both formulas of Corollary~1.10.3 are proved for products
-of finite linear combinations, as explained above. The joint mixed-moment induction
-of Theorem~1.10.1 and Propositions~1.10.4--1.10.5 remain open.
-The exact fresh-replica substitution (1.305) is proved above in enumerated-factor form;
-the last-site product expansion (1.310)--(1.311) and recurrence (1.313) are still open.
-The last is a joint mixed-moment statement for the $T$-basis, not a scalar CLT.
-Earlier vacuous declarations have been removed; the estimates above use the actual
-cavity expectations and derivative, and constants chosen before the number of sites.
+\talsource{Section~1.10, Lemma~1.10.2, Corollary~1.10.3, Eqs.~(1.298)--(1.311), Theorem~1.10.1}
+\emph{Proved:} the product estimates and expansions (1.298)--(1.299) for products of finite
+linear combinations of truncated centered overlaps with an arbitrary bounded factor;
+Lemma~1.10.2; both formulas of Corollary~1.10.3; the exact fresh-replica substitution (1.305)
+in enumerated-factor form; symmetry between sites for a general one-site observable (1.309);
+and the last-site expansion (1.310)--(1.311) with its explicit $O(k+1)$ remainder
+(Theorem~\ref{thm:sg-tal:last-site-step}).
+\emph{Not proved:} the evaluation of the term I (1.312), which combines the last-site expansion
+with $\nu_0$-factorization (Lemma~1.6.2, in Lean the decoupled rectangular monomial
+\texttt{sk\_cavity\_decoupled\_rect\_monomial}, whose $1-2q+\hat q$ coefficient is exactly what (1.312) needs)
+and (1.298) with $k-2$ factors; the application of (1.301) to the factors $U^-_v$
+(a reindexing of the replicas $\mathrm{Fin}\,n\sqcup(J\sqcup J)\simeq\mathrm{Fin}\,n'$ and of the
+factors by $\mathrm{Fin}\,k$); the recursion (1.313) and the induction of Proposition~1.10.4;
+the hard step (1.319) of Proposition~1.10.5; and Theorem~1.10.1 itself.
+The planned statements are in Remark~\ref{rem:sg-tal:overlap-clt-statements}; they are not
+asserted as formalized. The earlier vacuous declarations were removed and the estimates above use
+the actual cavity expectations and derivative, with constants chosen before the number of sites.
 The nearly-Gaussian Gibbs corollaries (1.291)--(1.295) are also open.
 \end{remark}
