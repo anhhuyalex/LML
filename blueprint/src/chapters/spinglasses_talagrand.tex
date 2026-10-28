@@ -731,7 +731,7 @@ Formalized in \texttt{SpinGlasses/SKSmartPathProfile.lean}.
         SpinGlasses.hasGaussianLaw_const_mul_sum_family,
         SpinGlasses.sk_pair_sum_eq_dotProduct,
         SpinGlasses.exists_sk_smart_path_fields,
-        SpinGlasses.integrable_log_cosh_affine_gaussianReal,
+        ProbabilityTheory.integrable_log_cosh_affine_gaussianReal,
         SpinGlasses.sk_replica_symmetric_upper_bound}
   \leanok
 \talsource{Theorem~1.3.7, Eq.~(1.73), proved from Eqs.~(1.65)--(1.69)}
@@ -1217,7 +1217,8 @@ Formalized in \texttt{SpinGlasses/SKPathOverlapMoments.lean}. The endpoint versi
 
 \begin{theorem}[Centered moments along the smart path with the moving center $\mathrm{SK}(s)$ (Eqs.~(1.124)--(1.126))]\label{thm:sg-tal:centered-profile}
   \lean{SpinGlasses.exists_sk_smart_path_profile_centered,
-        SpinGlasses.sum_choose_mul_deriv_pow_zero,
+        Finset.sum_choose_mul_deriv_pow_zero,
+        MeasureTheory.integrable_sub_pow_of_integrable_abs_pow,
         SpinGlasses.integrable_smart_path_free_energy_sub_pow,
         SpinGlasses.measurable_smart_path_free_energy}
   \leanok
@@ -1234,13 +1235,13 @@ Formalized in \texttt{SpinGlasses/SKCenteredPathMoments.lean}.
 
 \begin{theorem}[The differential equation of the centered moments, Eq.~(1.120)]\label{thm:sg-tal:centered-ode}
   \lean{SpinGlasses.exists_sk_centered_path_ode,
-        SpinGlasses.abs_integral_pow_mul_le,
+        ProbabilityTheory.abs_integral_pow_mul_le,
         SpinGlasses.abs_remainder_combination_le,
         SpinGlasses.abs_integral_overlap_sq_le_four,
         SpinGlasses.sq_integral_overlap_sq_le,
         SpinGlasses.aemeasurable_gibbs_overlap_sq,
         SpinGlasses.integral_gibbs_overlap_sq_sq_le,
-        SpinGlasses.integral_comb_sub_sub_add,
+        SpinGlasses.integral_sq_integral_pi_count_tilted_le,
         ProbabilityTheory.abs_integral_mul_le_weighted_add,
         ProbabilityTheory.abs_integral_mul_le_of_integral_sq_le}
   \leanok
@@ -1263,7 +1264,7 @@ Formalized in \texttt{SpinGlasses/SKCenteredPathODE.lean}.
         ProbabilityTheory.abs_le_of_abs_sub_le_sqrt_pow}
   \leanok
 \talsource{Proof of Theorem~1.4.11, Eq.~(1.122)}
-Let $\nu$ be a probability measure on $\mathbb R$, $f$ with all powers integrable and $\int f\,d\nu=0$, $\sigma^2=\int f^2d\nu$, and $a(0)=1$, $a(1)=0$, $a(k+2)=(k+1)a(k)$. For every $m\ge1$ there is $C$ such that for all $N>0$: $\big|\int(N^{-1}\sum_{i\le N}f(y_i))^m\,d\nu^{\otimes N}-N^{-m/2}a(m)\sigma^{2\lfloor m/2\rfloor}\big|\le CN^{-(m+1)/2}$.
+Let $\nu$ be a probability measure on a measurable space $\Omega$, $f:\Omega\to\mathbb R$ with all powers integrable and $\int f\,d\nu=0$, $\sigma^2=\int f^2d\nu$, and $a(0)=1$, $a(1)=0$, $a(k+2)=(k+1)a(k)$. For every $m\ge1$ there is $C$ such that for all $N>0$: $\big|\int(N^{-1}\sum_{i\le N}f(y_i))^m\,d\nu^{\otimes N}-N^{-m/2}a(m)\sigma^{2\lfloor m/2\rfloor}\big|\le CN^{-(m+1)/2}$.
 \end{theorem}
 \begin{proof}
   \leanok
@@ -1274,7 +1275,8 @@ Formalized in \texttt{ForMathlib/Probability/Moments/IidSumMoments.lean} and \te
 \begin{theorem}[Central limit theorem for the SK free energy (Theorem~1.4.11, Eq.~(1.109))]\label{thm:sg-tal:free-energy-clt}
   \lean{SpinGlasses.sk_free_energy_clt, SpinGlasses.clt_induction, SpinGlasses.abs_sub_ref_le_of_ode,
         SpinGlasses.exists_clt_const, SpinGlasses.hasDerivAt_clt_ref,
-        ProbabilityTheory.eq_zero_of_odd_of_rec,
+        Nat.eq_zero_of_odd_of_two_step_mul,
+        ProbabilityTheory.integrable_pow_log_cosh_affine_gaussianReal,
         ProbabilityTheory.integral_pow_add_two_gaussianReal}
   \leanok
 \talsource{Theorem~1.4.11, Eq.~(1.109); Lemma~1.4.12}

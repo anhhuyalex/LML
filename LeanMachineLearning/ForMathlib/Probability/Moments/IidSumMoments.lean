@@ -14,8 +14,9 @@ public import Mathlib.Analysis.SpecialFunctions.Pow.Real
 /-!
 # Moments of a sum of i.i.d. variables: the recurrence in the number of summands
 
-Let `ν` be a probability measure on `ℝ` and `f : ℝ → ℝ` with all powers `f^j` `ν`-integrable.
-For the product measure `ν^{⊗n}` on `Fin n → ℝ` put `S_n(y) = ∑ᵢ f (yᵢ)`.
+Let `ν` be a probability measure on a measurable space `Ω` and `f : Ω → ℝ` with all powers
+`f^j` `ν`-integrable.
+For the product measure `ν^{⊗n}` on `Fin n → Ω` put `S_n(y) = ∑ᵢ f (yᵢ)`.
 Splitting off the first coordinate (`measurePreserving_piFinSuccAbove`) gives
 
 `𝔼 S_{n+1}^k = ∑_{j ≤ k} C(k, j) (∫ f^j dν) 𝔼 S_n^{k-j}`.
@@ -39,19 +40,20 @@ open MeasureTheory Finset
 
 namespace ProbabilityTheory
 
-variable {ν : Measure ℝ} [IsProbabilityMeasure ν] {f : ℝ → ℝ}
+variable {Ω : Type*} [MeasurableSpace Ω]
+  {ν : Measure Ω} [IsProbabilityMeasure ν] {f : Ω → ℝ}
 
 /-- Every power of the i.i.d. sum `S_n` is integrable. -/
 theorem integrable_pow_sum_pi (hint : ∀ j, Integrable (fun x => f x ^ j) ν)
     (n k : ℕ) :
-    Integrable (fun y : Fin n → ℝ => (∑ i, f (y i)) ^ k) (Measure.pi fun _ : Fin n => ν) := by
+    Integrable (fun y : Fin n → Ω => (∑ i, f (y i)) ^ k) (Measure.pi fun _ : Fin n => ν) := by
   induction n generalizing k with
   | zero => simp
   | succ n ih =>
     have hmp := measurePreserving_piFinSuccAbove (fun _ : Fin (n + 1) => ν) 0
-    have hcomp : (fun y : Fin (n + 1) → ℝ => (∑ i, f (y i)) ^ k) =
-        (fun p : ℝ × (Fin n → ℝ) => (f p.1 + ∑ i, f (p.2 i)) ^ k) ∘
-          (MeasurableEquiv.piFinSuccAbove (fun _ : Fin (n + 1) => ℝ) 0) := by
+    have hcomp : (fun y : Fin (n + 1) → Ω => (∑ i, f (y i)) ^ k) =
+        (fun p : Ω × (Fin n → Ω) => (f p.1 + ∑ i, f (p.2 i)) ^ k) ∘
+          (MeasurableEquiv.piFinSuccAbove (fun _ : Fin (n + 1) => Ω) 0) := by
       funext y
       simp [Fin.sum_univ_succ, MeasurableEquiv.piFinSuccAbove_apply]
       rfl
@@ -64,24 +66,24 @@ theorem integrable_pow_sum_pi (hint : ∀ j, Integrable (fun x => f x ^ j) ν)
 `𝔼 S_{n+1}^k = ∑_{j ≤ k} C(k, j) (∫ f^j dν) 𝔼 S_n^{k-j}`. -/
 theorem integral_pow_sum_pi_succ (hint : ∀ j, Integrable (fun x => f x ^ j) ν)
     (n k : ℕ) :
-    ∫ y : Fin (n + 1) → ℝ, (∑ i, f (y i)) ^ k ∂(Measure.pi fun _ : Fin (n + 1) => ν) =
+    ∫ y : Fin (n + 1) → Ω, (∑ i, f (y i)) ^ k ∂(Measure.pi fun _ : Fin (n + 1) => ν) =
       ∑ j ∈ range (k + 1), (k.choose j : ℝ) * (∫ x, f x ^ j ∂ν) *
-        ∫ y : Fin n → ℝ, (∑ i, f (y i)) ^ (k - j) ∂(Measure.pi fun _ : Fin n => ν) := by
+        ∫ y : Fin n → Ω, (∑ i, f (y i)) ^ (k - j) ∂(Measure.pi fun _ : Fin n => ν) := by
   have hmp := measurePreserving_piFinSuccAbove (fun _ : Fin (n + 1) => ν) 0
-  have hcomp : (fun y : Fin (n + 1) → ℝ => (∑ i, f (y i)) ^ k) =
-      (fun p : ℝ × (Fin n → ℝ) => (f p.1 + ∑ i, f (p.2 i)) ^ k) ∘
-        (MeasurableEquiv.piFinSuccAbove (fun _ : Fin (n + 1) => ℝ) 0) := by
+  have hcomp : (fun y : Fin (n + 1) → Ω => (∑ i, f (y i)) ^ k) =
+      (fun p : Ω × (Fin n → Ω) => (f p.1 + ∑ i, f (p.2 i)) ^ k) ∘
+        (MeasurableEquiv.piFinSuccAbove (fun _ : Fin (n + 1) => Ω) 0) := by
     funext y
     simp [Fin.sum_univ_succ, MeasurableEquiv.piFinSuccAbove_apply]
     rfl
   rw [hcomp]
-  refine (hmp.integral_comp' (fun p : ℝ × (Fin n → ℝ) => (f p.1 + ∑ i, f (p.2 i)) ^ k)).trans ?_
+  refine (hmp.integral_comp' (fun p : Ω × (Fin n → Ω) => (f p.1 + ∑ i, f (p.2 i)) ^ k)).trans ?_
   simp_rw [add_pow]
   rw [integral_finsetSum _ fun j _ =>
     (((hint j).mul_prod (integrable_pow_sum_pi hint n (k - j))).mul_const _)]
   refine Finset.sum_congr rfl fun j _ => ?_
   rw [integral_mul_const, integral_prod_mul (fun x => f x ^ j)
-    (fun y : Fin n → ℝ => (∑ i, f (y i)) ^ (k - j))]
+    (fun y : Fin n → Ω => (∑ i, f (y i)) ^ (k - j))]
   ring
 
 end ProbabilityTheory

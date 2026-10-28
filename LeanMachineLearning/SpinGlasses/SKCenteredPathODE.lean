@@ -20,7 +20,7 @@ the derivative splits as `ψ_m' = sin s cos s ((m (m - 1) / 2) N⁻¹ β² q² �
 
 ## Main declarations
 
-* `SpinGlasses.abs_integral_pow_mul_le`: Cauchy-Schwarz for `∫ V^p Q` from moment bounds.
+* `ProbabilityTheory.abs_integral_pow_mul_le`: Cauchy-Schwarz for `∫ V^p Q` from moment bounds.
 * `SpinGlasses.exists_sk_centered_path_ode`: the differential equation with remainder.
 
 ## References
@@ -34,32 +34,6 @@ open MeasureTheory ProbabilityTheory Finset
 open scoped BigOperators Real Matrix
 
 namespace SpinGlasses
-
-/-- **Cauchy-Schwarz for a power of a centered variable against a bounded variable.**  If
-`𝔼 V^{2p} ≤ K ε^{2p}` and `𝔼 Q² ≤ C ε⁴`, then `|𝔼 V^p Q| ≤ √(K C) ε^{p+2}`. -/
-theorem abs_integral_pow_mul_le {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω}
-    [IsFiniteMeasure P] {V Q : Ω → ℝ} (hV : Measurable V) (hQ : AEStronglyMeasurable Q P)
-    {ε K C : ℝ} (hε : 0 < ε) (hK : 0 < K) (hC : 0 < C) {p : ℕ}
-    (hVi : Integrable (fun ω => V ω ^ (2 * p)) P) (hVb : ∫ ω, V ω ^ (2 * p) ∂P ≤ K * ε ^ (2 * p))
-    {B : ℝ} (hQb : ∀ ω, |Q ω| ≤ B) (hQ2 : ∫ ω, Q ω ^ 2 ∂P ≤ C * ε ^ 4) :
-    |∫ ω, V ω ^ p * Q ω ∂P| ≤ Real.sqrt (K * C) * ε ^ (p + 2) := by
-  have hX : MemLp (fun ω => V ω ^ p) 2 P := by
-    refine (memLp_two_iff_integrable_sq (hV.pow_const p).aestronglyMeasurable).2 ?_
-    simpa only [← pow_mul, mul_comm] using hVi
-  have hY : MemLp Q 2 P := MemLp.of_bound hQ B (ae_of_all _ fun ω => by
-    rw [Real.norm_eq_abs]; exact hQb ω)
-  have h := abs_integral_mul_le_of_integral_sq_le hX hY (α := Real.sqrt K * ε ^ p)
-    (γ := Real.sqrt C * ε ^ 2) (by positivity) (by positivity)
-    (by
-      simp only [← pow_mul, mul_comm p 2] at hVb ⊢
-      rw [mul_pow, Real.sq_sqrt hK.le, ← pow_mul, mul_comm 2 p]
-      simpa only [mul_comm p 2, ← pow_mul] using hVb)
-    (by
-      rw [mul_pow, Real.sq_sqrt hC.le, ← pow_mul]
-      exact hQ2)
-  refine h.trans (le_of_eq ?_)
-  rw [Real.sqrt_mul hK.le]
-  ring
 
 /-- The squared overlap deviation `(R_{1,2} - q)²` of two replicas is at most `4`, so its mean
 under any probability measure on pairs of configurations is at most `4` in modulus. -/
@@ -92,11 +66,13 @@ theorem sq_integral_overlap_sq_le {N : ℕ} (q : ℝ)
       ∂ν) ^ 2 ≤ ∫ σ : Fin 2 → (Fin N → ℤˣ),
       (((N : ℝ)⁻¹ * ((fun i => ((σ 0 i : ℤ) : ℝ)) ⬝ᵥ fun i => ((σ 1 i : ℤ) : ℝ))) - q) ^ (2 * 2)
       ∂ν := by
-  have := (Even.convexOn_pow even_two (𝕜 := ℝ)).map_integral_le (μ := ν)
-    (f := fun σ : Fin 2 → (Fin N → ℤˣ) => (((N : ℝ)⁻¹ * ((fun i => ((σ 0 i : ℤ) : ℝ)) ⬝ᵥ
-      fun i => ((σ 1 i : ℤ) : ℝ))) - q) ^ 2) (continuous_pow 2).continuousOn isClosed_univ
-    (ae_of_all _ fun _ => Set.mem_univ _) Integrable.of_finite Integrable.of_finite
-  simpa only [Function.comp, ← pow_mul] using this
+  convert sq_integral_le_integral_sq (μX := ν)
+      (g := fun σ : Fin 2 → (Fin N → ℤˣ) => (((N : ℝ)⁻¹ *
+        ((fun i => ((σ 0 i : ℤ) : ℝ)) ⬝ᵥ fun i => ((σ 1 i : ℤ) : ℝ))) - q) ^ 2)
+      (measurable_of_finite _) Integrable.of_finite using 1
+  congr 1
+  funext σ
+  ring
 
 /-- The Gibbs average `⟨(R_{1,2} - q)²⟩_s` along the smart path is a measurable function of the
 disorder, for any family of energies `E a` that are measurable in the disorder. -/
@@ -108,31 +84,25 @@ theorem aemeasurable_gibbs_overlap_sq {N : ℕ} (q : ℝ) {Ω : Type*} [Measurab
   aemeasurable_integral_pi_count_tilted (R := Fin 2) (g := fun ω a => E a ω)
     (fun a => (hE a).aemeasurable) fun _ => aemeasurable_const
 
-/-- **Second moment of the Gibbs overlap average:** `𝔼 ⟨(R_{1,2} - q)²⟩² ≤ 𝔼 ⟨(R_{1,2} - q)⁴⟩`
-for the disorder measure `P = Pg ⊗ Pz` and energies measurable in the disorder. -/
-theorem integral_gibbs_overlap_sq_sq_le {N : ℕ} (hN : 0 < N) (q : ℝ)
-    (hq : q ∈ Set.Icc (0 : ℝ) 1) {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω}
-    [IsFiniteMeasure P] {E : (Fin N → ℤˣ) → Ω → ℝ} (hE : ∀ a, Measurable (E a)) :
+/-- Jensen for the squared overlap deviation, averaged over arbitrary finite disorder.
+No system-size or fixed-point range assumption is needed for this finite-state inequality. -/
+theorem integral_gibbs_overlap_sq_sq_le {N : ℕ} (q : ℝ) {Ω : Type*} [MeasurableSpace Ω]
+    {P : Measure Ω} [IsFiniteMeasure P] {E : (Fin N → ℤˣ) → Ω → ℝ}
+    (hE : ∀ a, AEMeasurable (E a) P) :
     ∫ ω, (∫ σ : Fin 2 → (Fin N → ℤˣ),
       (((N : ℝ)⁻¹ * ((fun i => ((σ 0 i : ℤ) : ℝ)) ⬝ᵥ fun i => ((σ 1 i : ℤ) : ℝ))) - q) ^ 2
       ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted fun b => E b ω)) ^ 2 ∂P ≤
     ∫ ω, ∫ σ : Fin 2 → (Fin N → ℤˣ),
       (((N : ℝ)⁻¹ * ((fun i => ((σ 0 i : ℤ) : ℝ)) ⬝ᵥ fun i => ((σ 1 i : ℤ) : ℝ))) - q) ^ (2 * 2)
       ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted fun b => E b ω) ∂P := by
-  have : Nonempty (Fin N → ℤˣ) := ⟨fun _ => 1⟩
-  have : Nonempty (Fin N) := ⟨⟨0, hN⟩⟩
-  refine integral_mono_ae ?_ ?_ (ae_of_all _ fun ω => sq_integral_overlap_sq_le q _)
-  · refine Integrable.of_bound (C := 16)
-      ((aemeasurable_gibbs_overlap_sq q hE).pow_const 2).aestronglyMeasurable ?_
-    refine ae_of_all _ fun ω => ?_
-    have h4 := abs_integral_overlap_sq_le_four hN q hq
-      (Measure.pi fun _ : Fin 2 => Measure.count.tilted fun b => E b ω)
-    rw [Real.norm_eq_abs, abs_pow]
-    nlinarith [h4, abs_nonneg (∫ σ : Fin 2 → (Fin N → ℤˣ),
-      (((N : ℝ)⁻¹ * ((fun i => ((σ 0 i : ℤ) : ℝ)) ⬝ᵥ fun i => ((σ 1 i : ℤ) : ℝ))) - q) ^ 2
-      ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted fun b => E b ω))]
-  · exact integrable_integral_pi_count_tilted_det (R := Fin 2) (P := P) (g := fun a ω => E a ω)
-      (fun a => (hE a).aemeasurable) _
+  convert integral_sq_integral_pi_count_tilted_le (R := Fin 2) hE
+    (fun σ : Fin 2 → (Fin N → ℤˣ) =>
+      (((N : ℝ)⁻¹ * ((fun i => ((σ 0 i : ℤ) : ℝ)) ⬝ᵥ fun i => ((σ 1 i : ℤ) : ℝ))) - q) ^ 2) using 1
+  congr 1
+  funext ω
+  congr 1
+  funext σ
+  ring
 
 /-- **Bookkeeping of the three remainder terms** (Talagrand, `II = O(k + 1)`): with `0 < ε ≤ 1`,
 `|T₁| ≤ c₁ ε^{m+1}` and, for `m ≥ 2`, `|T₂| ≤ c₂ ε^m` and `|T₃| ≤ c₃ ε^{m-2}`, the combination
@@ -191,21 +161,6 @@ theorem abs_remainder_combination_le {ε b T₁ T₂ T₃ c₁ c₂ c₃ : ℝ} 
         (m : ℝ) * ((m : ℝ) - 1) * c₂ * ε ^ (m + 1) + (m : ℝ) * ((m : ℝ) - 1) * c₃ * ε ^ (m + 1)) :=
           mul_le_mul_of_nonneg_left hsum (abs_nonneg b)
       _ = _ := by ring
-
-/-- Linearity of the integral for a four-term combination `a f - b g - c h + d k`. -/
-theorem integral_comb_sub_sub_add {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
-    {f g h k : Ω → ℝ} (hf : Integrable f μ) (hg : Integrable g μ) (hh : Integrable h μ)
-    (hk : Integrable k μ) (a b c d : ℝ) :
-    ∫ ω, (a * f ω - b * g ω - c * h ω + d * k ω) ∂μ =
-      a * ∫ ω, f ω ∂μ - b * ∫ ω, g ω ∂μ - c * ∫ ω, h ω ∂μ + d * ∫ ω, k ω ∂μ := by
-  have h1 : Integrable (fun ω => a * f ω) μ := hf.const_mul a
-  have h2 : Integrable (fun ω => b * g ω) μ := hg.const_mul b
-  have h3 : Integrable (fun ω => c * h ω) μ := hh.const_mul c
-  have h4 : Integrable (fun ω => d * k ω) μ := hk.const_mul d
-  have h12 : Integrable (fun ω => a * f ω - b * g ω) μ := h1.sub h2
-  have h123 : Integrable (fun ω => a * f ω - b * g ω - c * h ω) μ := h12.sub h3
-  rw [integral_add h123 h4, integral_sub h12 h3, integral_sub h1 h2, integral_const_mul,
-    integral_const_mul, integral_const_mul, integral_const_mul]
 
 /-- **The differential equation of the centered moments along the smart path** (Talagrand,
 Eq. (1.120)).  Let `β² < 1/4`, `q` a fixed point, `ψ_k(s) = 𝔼 (A_N(s) - SK(s))^k`.  There are
@@ -293,6 +248,8 @@ theorem exists_sk_centered_path_ode (β h q : ℝ)
     have hQb : ∀ ω, |Q s ω| ≤ 4 := fun ω => by
       rw [hQ]
       exact abs_integral_overlap_sq_le_four hN q hq1 _
+    have hQL2 : MemLp (Q s) 2 P := MemLp.of_bound hQm.aestronglyMeasurable 4
+      (ae_of_all _ fun ω => by rw [Real.norm_eq_abs]; exact hQb ω)
     -- the integrals of the three terms
     set V : (FinPairs N → ℝ) × (Fin N → ℝ) → ℝ := fun ω => A s ω - skPathRS β h q s with hV_def
     have hVm : Measurable V := hAm.sub_const _
@@ -328,8 +285,19 @@ theorem exists_sk_centered_path_ode (β h q : ℝ)
             simp only [hV_def]
             ring
         simp_rw [e]
-        exact integral_comb_sub_sub_add (hQV (m - 1)) (hint _ (m - 1)) (hQV (m - 2))
-          (hint _ (m - 2)) _ _ _ _
+        have i1 := (hQV (m - 1)).const_mul (m : ℝ)
+        have i2 := (hint (skPathRS β h q s) (m - 1)).const_mul ((m : ℝ) * (1 - q) ^ 2)
+        have i3 := (hQV (m - 2)).const_mul ((N : ℝ)⁻¹ * ((m : ℝ) * ((m : ℝ) - 1)))
+        have i4 := (hint (skPathRS β h q s) (m - 2)).const_mul
+          ((N : ℝ)⁻¹ * ((m : ℝ) * ((m : ℝ) - 1)) * (q ^ 2 + (N : ℝ)⁻¹))
+        rw [integral_add (f := fun ω => (m : ℝ) * (V ω ^ (m - 1) * Q s ω) -
+            (m : ℝ) * (1 - q) ^ 2 * V ω ^ (m - 1) -
+            (N : ℝ)⁻¹ * ((m : ℝ) * ((m : ℝ) - 1)) * (V ω ^ (m - 2) * Q s ω))
+            ((i1.sub i2).sub i3) i4,
+          integral_sub (f := fun ω => (m : ℝ) * (V ω ^ (m - 1) * Q s ω) -
+            (m : ℝ) * (1 - q) ^ 2 * V ω ^ (m - 1)) (i1.sub i2) i3,
+          integral_sub i1 i2]
+        simp only [integral_const_mul, hT0, hT1, hT2, hT3]
       rw [hI]
       have e0 : ∫ ω, (A s ω - skPathRS β h q s) ^ (m - 1) ∂P = T0 := rfl
       have e3 : ∫ ω, (A s ω - skPathRS β h q s) ^ (m - 2) ∂P = T3 := rfl
@@ -357,20 +325,21 @@ theorem exists_sk_centered_path_ode (β h q : ℝ)
               Real.cos s * F ω.1 b + Real.sin s * G ω.2 b + h * ∑ i, ((b i : ℤ) : ℝ))) ^ 2
             ∂P := by simp only [hQ]
         rw [e]
-        refine (integral_gibbs_overlap_sq_sq_le hN q hq1 (P := P) (E := fun b ω =>
-          Real.cos s * F ω.1 b + Real.sin s * G ω.2 b + h * ∑ i, ((b i : ℤ) : ℝ)) hEm).trans ?_
+        refine (integral_gibbs_overlap_sq_sq_le q (P := P) (E := fun b ω =>
+          Real.cos s * F ω.1 b + Real.sin s * G ω.2 b + h * ∑ i, ((b i : ℤ) : ℝ))
+          (fun a => (hEm a).aemeasurable)).trans ?_
         have hpo := sk_path_expected_pow_overlap_le hN β h q hfix hβ 2 hs
         simp only [hF, hG]
         refine hpo.trans (le_of_eq ?_)
         rw [hC4_def, hε4]
         field_simp
       have hT1 : |T1| ≤ Real.sqrt (Kv (2 * (m - 1)) * C4) * ε ^ (m + 1) := by
-        have := abs_integral_pow_mul_le hVm hQm.aestronglyMeasurable hε (hKv (2 * (m - 1))) hC4
-          (p := m - 1) (hint _ _) (hVsq (m - 1)) hQb hQ2
+        have := abs_integral_pow_mul_le hVm.aestronglyMeasurable hQL2 hε (hKv (2 * (m - 1))) hC4
+          (p := m - 1) (hint _ _) (hVsq (m - 1)) hQ2
         rwa [show m - 1 + 2 = m + 1 by omega] at this
       have hT2 : 2 ≤ m → |T2| ≤ Real.sqrt (Kv (2 * (m - 2)) * C4) * ε ^ m := fun hm2 => by
-        have := abs_integral_pow_mul_le hVm hQm.aestronglyMeasurable hε (hKv (2 * (m - 2))) hC4
-          (p := m - 2) (hint _ _) (hVsq (m - 2)) hQb hQ2
+        have := abs_integral_pow_mul_le hVm.aestronglyMeasurable hQL2 hε (hKv (2 * (m - 2))) hC4
+          (p := m - 2) (hint _ _) (hVsq (m - 2)) hQ2
         rwa [show m - 2 + 2 = m by omega] at this
       have hT3 : 2 ≤ m → |T3| ≤ Kv (m - 2) * ε ^ (m - 2) := fun _ => by
         calc |T3| ≤ ∫ ω, |V ω ^ (m - 2)| ∂P := abs_integral_le_integral_abs

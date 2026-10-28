@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.AddPowEstimates
 public import Mathlib.MeasureTheory.Integral.Bochner.Basic
 public import Mathlib.Probability.Moments.Variance
 public import Mathlib.LinearAlgebra.Matrix.Trace
@@ -76,16 +77,8 @@ theorem abs_integral_mul_le_weighted_add {X Y : Ω → ℝ} (hX : MemLp X 2 μ) 
     (hYi.const_mul l⁻¹), ← integral_div]
   refine (abs_integral_le_integral_abs).trans (integral_mono hXY.abs
     (((hXi.const_mul l).add (hYi.const_mul l⁻¹)).div_const 2) fun ω => ?_)
-  have h1 : (l * X ω - Y ω) ^ 2 / l = l * X ω ^ 2 + l⁻¹ * Y ω ^ 2 - 2 * (X ω * Y ω) := by
-    field_simp
-    ring
-  have h2 : 0 ≤ (l * X ω - Y ω) ^ 2 / l := by positivity
-  have h3 : (l * X ω + Y ω) ^ 2 / l = l * X ω ^ 2 + l⁻¹ * Y ω ^ 2 + 2 * (X ω * Y ω) := by
-    field_simp
-    ring
-  have h4 : 0 ≤ (l * X ω + Y ω) ^ 2 / l := by positivity
-  rw [abs_le]
-  constructor <;> linarith
+  simpa only [abs_mul, sq_abs] using
+    (mul_le_half_mul_add_inv_mul (a := |X ω|) (b := |Y ω|) hl)
 
 /-- AM-GM for square-integrable variables: `E[X Y] ≤ (E[X²] + E[Y²]) / 2`. -/
 theorem integral_mul_le_half_add {X Y : Ω → ℝ} (hX : MemLp X 2 μ) (hY : MemLp Y 2 μ) :
@@ -105,5 +98,29 @@ theorem abs_integral_mul_le_of_integral_sq_le {X Y : Ω → ℝ} (hX : MemLp X 2
   have h3 : γ / α * α ^ 2 = α * γ := by field_simp
   have h4 : (γ / α)⁻¹ * γ ^ 2 = α * γ := by field_simp
   linarith
+
+/-- A mixed-power Cauchy-Schwarz bound on an arbitrary measure: an order-`2p` moment for
+`V` and an `L²` bound of order `ε⁴` for `Q` give order `ε^(p+2)` for `∫ V^p Q`. -/
+theorem abs_integral_pow_mul_le {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω}
+    {V Q : Ω → ℝ} (hV : AEStronglyMeasurable V P) (hQ : MemLp Q 2 P)
+    {ε K C : ℝ} (hε : 0 < ε) (hK : 0 < K) (hC : 0 < C) {p : ℕ}
+    (hVi : Integrable (fun ω => V ω ^ (2 * p)) P) (hVb : ∫ ω, V ω ^ (2 * p) ∂P ≤ K * ε ^ (2 * p))
+    (hQ2 : ∫ ω, Q ω ^ 2 ∂P ≤ C * ε ^ 4) :
+    |∫ ω, V ω ^ p * Q ω ∂P| ≤ Real.sqrt (K * C) * ε ^ (p + 2) := by
+  have hX : MemLp (fun ω => V ω ^ p) 2 P := by
+    refine (memLp_two_iff_integrable_sq (hV.pow p)).2 ?_
+    simpa only [Pi.pow_apply, ← pow_mul, mul_comm] using hVi
+  have h := abs_integral_mul_le_of_integral_sq_le hX hQ (α := Real.sqrt K * ε ^ p)
+    (γ := Real.sqrt C * ε ^ 2) (by positivity) (by positivity)
+    (by
+      simp only [← pow_mul, mul_comm p 2] at hVb ⊢
+      rw [mul_pow, Real.sq_sqrt hK.le, ← pow_mul, mul_comm 2 p]
+      simpa only [mul_comm p 2, ← pow_mul] using hVb)
+    (by
+      rw [mul_pow, Real.sq_sqrt hC.le, ← pow_mul]
+      exact hQ2)
+  refine h.trans (le_of_eq ?_)
+  rw [Real.sqrt_mul hK.le]
+  ring
 
 end ProbabilityTheory

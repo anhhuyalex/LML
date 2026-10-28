@@ -5,7 +5,9 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Data.Nat.Recurrence
 public import LeanMachineLearning.ForMathlib.Probability.Moments.IidSumMoments
+public import Mathlib.Topology.MetricSpace.Pseudo.Basic
 public import Mathlib.Analysis.SpecialFunctions.Sqrt
 public import Mathlib.Tactic.Positivity
 
@@ -15,7 +17,7 @@ public import Mathlib.Tactic.Positivity
 Three analytic ingredients of the proof that the `k`-th moment of a centered i.i.d. sum is the
 Gaussian one up to a relative error `n^{-1/2}`:
 
-* `ProbabilityTheory.eq_zero_of_odd_of_rec`: a sequence `a` with `a 1 = 0` and
+* `Nat.eq_zero_of_odd_of_two_step_mul`: a sequence `a` with `a 1 = 0` and
   `a (k + 2) = (k + 1) a k` (the Gaussian moments) vanishes at odd indices;
 * `ProbabilityTheory.pow_succ_sub_pow_sub_mul_le`: `0 ≤ (u + 1)^p - u^p - p u^{p-1} ≤
   p (p - 1) (u + 1)^{p-2}` for `u ≥ 0` (second order Taylor remainder of `u ↦ u^p`);
@@ -36,14 +38,6 @@ namespace ProbabilityTheory
 /-- `1 ≤ √(n + 1)`. -/
 theorem one_le_sqrt_natCast_add_one (n : ℕ) : 1 ≤ Real.sqrt ((n : ℝ) + 1) :=
   Real.one_le_sqrt.2 (by linarith [Nat.cast_nonneg (α := ℝ) n])
-
-/-- A sequence with `a 1 = 0` and `a (k + 2) = (k + 1) a k` vanishes at odd indices. -/
-theorem eq_zero_of_odd_of_rec {a : ℕ → ℝ} (ha1 : a 1 = 0) (ha : ∀ k, a (k + 2) = (k + 1) * a k)
-    {k : ℕ} (hk : Odd k) : a k = 0 := by
-  obtain ⟨m, rfl⟩ := hk
-  induction m with
-  | zero => simpa using ha1
-  | succ m ih => rw [show 2 * (m + 1) + 1 = (2 * m + 1) + 2 by ring, ha, ih, mul_zero]
 
 /-- **Second order Taylor remainder of a power:** for `u ≥ 0` and `p ≥ 0`,
 `0 ≤ (u + 1)^{p+2} - u^{p+2} - (p + 2) u^{p+1} ≤ (p + 2) (p + 1) (u + 1)^p`. -/
@@ -81,25 +75,19 @@ theorem pow_succ_sub_pow_sub_mul_le {u : ℝ} (hu : 0 ≤ u) (p : ℕ) :
 theorem abs_le_of_abs_sub_le_sqrt_pow {e : ℕ → ℝ} (he0 : e 0 = 0) {c : ℝ} (hc : 0 ≤ c) {p : ℕ}
     (h : ∀ n : ℕ, |e (n + 1) - e n| ≤ c * Real.sqrt ((n : ℝ) + 1) ^ p) (n : ℕ) :
     |e n| ≤ c * Real.sqrt ((n : ℝ) + 1) ^ (p + 2) := by
-  have key : ∀ n : ℕ, |e n| ≤ (n : ℝ) * (c * Real.sqrt ((n : ℝ) + 1) ^ p) := by
-    intro n
-    induction n with
-    | zero => simp [he0]
-    | succ n ih =>
-      have hmono : Real.sqrt ((n : ℝ) + 1) ^ p ≤ Real.sqrt (((n + 1 : ℕ) : ℝ) + 1) ^ p :=
-        pow_le_pow_left₀ (Real.sqrt_nonneg _)
-          (Real.sqrt_le_sqrt (by push_cast; linarith)) p
-      calc |e (n + 1)| = |e n + (e (n + 1) - e n)| := by ring_nf
-        _ ≤ |e n| + |e (n + 1) - e n| := abs_add_le _ _
-        _ ≤ (n : ℝ) * (c * Real.sqrt ((n : ℝ) + 1) ^ p) + c * Real.sqrt ((n : ℝ) + 1) ^ p :=
-            add_le_add ih (h n)
-        _ ≤ ((n + 1 : ℕ) : ℝ) * (c * Real.sqrt (((n + 1 : ℕ) : ℝ) + 1) ^ p) := by
-            push_cast
-            have h1 := mul_le_mul_of_nonneg_left hmono hc
-            have h2 := mul_le_mul_of_nonneg_left h1 (Nat.cast_nonneg (α := ℝ) n)
-            push_cast at h1 h2
-            nlinarith [h1, h2]
-  refine (key n).trans ?_
+  have key : |e n| ≤ (n : ℝ) * (c * Real.sqrt ((n : ℝ) + 1) ^ p) := by
+    have hstep : ∀ {k : ℕ}, k < n → dist (e k) (e (k + 1)) ≤
+        c * Real.sqrt ((n : ℝ) + 1) ^ p := fun {k} hk => by
+      have hkn : (k : ℝ) ≤ n := by exact_mod_cast hk.le
+      have hb : |e (k + 1) - e k| ≤ c * Real.sqrt ((n : ℝ) + 1) ^ p :=
+        (h k).trans (mul_le_mul_of_nonneg_left
+        (pow_le_pow_left₀ (Real.sqrt_nonneg _) (Real.sqrt_le_sqrt (by linarith)) p) hc)
+      simpa only [Real.dist_eq, abs_sub_comm] using hb
+    simpa only [he0, dist_zero_left, Real.norm_eq_abs, Finset.sum_const,
+      Finset.card_range, nsmul_eq_mul] using
+      dist_le_range_sum_of_dist_le
+        (d := fun _ => c * Real.sqrt ((n : ℝ) + 1) ^ p) n hstep
+  refine key.trans ?_
   have hs : Real.sqrt ((n : ℝ) + 1) ^ 2 = (n : ℝ) + 1 := Real.sq_sqrt (by positivity)
   rw [pow_add, hs]
   have : (n : ℝ) * (c * Real.sqrt ((n : ℝ) + 1) ^ p) ≤ ((n : ℝ) + 1) *
@@ -171,8 +159,8 @@ theorem exists_abs_cancellation_le {a : ℕ → ℝ} (ha1 : a 1 = 0) (ha : ∀ k
               ((p + 2 : ℝ) * (p + 1 : ℝ)))
           nlinarith [this]
   · refine ⟨0, le_rfl, fun n => ?_⟩
-    have h1 : a (2 * m + 1) = 0 := eq_zero_of_odd_of_rec ha1 ha ⟨m, rfl⟩
-    have h2 : a (2 * m + 1 - 2) = 0 := eq_zero_of_odd_of_rec ha1 ha ⟨m - 1, by omega⟩
+    have h1 : a (2 * m + 1) = 0 := Nat.eq_zero_of_odd_of_two_step_mul ha1 ha ⟨m, rfl⟩
+    have h2 : a (2 * m + 1 - 2) = 0 := Nat.eq_zero_of_odd_of_two_step_mul ha1 ha ⟨m - 1, by omega⟩
     rw [h1, h2]
     simp
 
@@ -188,7 +176,8 @@ theorem natCast_pow_div_two_le_sqrt_pow (n j : ℕ) :
 
 section Main
 
-variable {ν : Measure ℝ} [IsProbabilityMeasure ν] {f : ℝ → ℝ}
+variable {Ω : Type*} [MeasurableSpace Ω]
+  {ν : Measure Ω} [IsProbabilityMeasure ν] {f : Ω → ℝ}
 
 /-- **Moment expansion of an i.i.d. centered sum** (Talagrand, Eq. (1.122)).  Let `f` be centered
 under `ν` with all powers integrable, and let `a` satisfy `a 0 = 1`, `a 1 = 0`,
@@ -199,11 +188,11 @@ theorem iid_sum_moment_expansion (hint : ∀ j, Integrable (fun x => f x ^ j) ν
     (h0 : ∫ x, f x ∂ν = 0) {a : ℕ → ℝ} (ha0 : a 0 = 1) (ha1 : a 1 = 0)
     (ha : ∀ k, a (k + 2) = (k + 1) * a k) (k : ℕ) :
     ∃ C : ℝ, 0 ≤ C ∧ ∀ n : ℕ,
-      |∫ y : Fin n → ℝ, (∑ i, f (y i)) ^ k ∂(Measure.pi fun _ : Fin n => ν) -
+      |∫ y : Fin n → Ω, (∑ i, f (y i)) ^ k ∂(Measure.pi fun _ : Fin n => ν) -
         a k * (∫ x, f x ^ 2 ∂ν) ^ (k / 2) * (n : ℝ) ^ (k / 2)| ≤
       C * Real.sqrt ((n : ℝ) + 1) ^ (k - 1) := by
   obtain ⟨M, hM⟩ : ∃ M : ℕ → ℕ → ℝ, ∀ n j, M n j =
-      ∫ y : Fin n → ℝ, (∑ i, f (y i)) ^ j ∂(Measure.pi fun _ : Fin n => ν) := ⟨_, fun _ _ => rfl⟩
+      ∫ y : Fin n → Ω, (∑ i, f (y i)) ^ j ∂(Measure.pi fun _ : Fin n => ν) := ⟨_, fun _ _ => rfl⟩
   obtain ⟨μ, hμ⟩ : ∃ μ : ℕ → ℝ, ∀ j, μ j = ∫ x, f x ^ j ∂ν := ⟨_, fun _ => rfl⟩
   simp only [← hM, ← hμ]
   have hμ0 : μ 0 = 1 := by simp [hμ]
@@ -346,7 +335,7 @@ theorem abs_integral_pow_avg_sub_le (hint : ∀ j, Integrable (fun x => f x ^ j)
     (h0 : ∫ x, f x ∂ν = 0) {a : ℕ → ℝ} (ha0 : a 0 = 1) (ha1 : a 1 = 0)
     (ha : ∀ k, a (k + 2) = (k + 1) * a k) {m : ℕ} (hm : 1 ≤ m) :
     ∃ C : ℝ, 0 ≤ C ∧ ∀ N : ℕ, 0 < N →
-      |∫ y : Fin N → ℝ, ((N : ℝ)⁻¹ * ∑ i, f (y i)) ^ m ∂(Measure.pi fun _ : Fin N => ν) -
+      |∫ y : Fin N → Ω, ((N : ℝ)⁻¹ * ∑ i, f (y i)) ^ m ∂(Measure.pi fun _ : Fin N => ν) -
         ((Real.sqrt N)⁻¹) ^ m * a m * (∫ x, f x ^ 2 ∂ν) ^ (m / 2)| ≤
       C * ((Real.sqrt N)⁻¹) ^ (m + 1) := by
   obtain ⟨C, hC0, hC⟩ := iid_sum_moment_expansion hint h0 ha0 ha1 ha m
@@ -355,10 +344,9 @@ theorem abs_integral_pow_avg_sub_le (hint : ∀ j, Integrable (fun x => f x ^ j)
   have hsN : 0 < Real.sqrt N := Real.sqrt_pos.2 hNpos
   set ε : ℝ := (Real.sqrt N)⁻¹ with hε
   have hε2 : ε ^ 2 = (N : ℝ)⁻¹ := by rw [hε, inv_pow, Real.sq_sqrt hNpos.le]
-  have hεpos : 0 < ε := inv_pos.2 hsN
   -- pull the scalar out of the integral
-  have e1 : ∫ y : Fin N → ℝ, ((N : ℝ)⁻¹ * ∑ i, f (y i)) ^ m ∂(Measure.pi fun _ : Fin N => ν) =
-      ((N : ℝ)⁻¹) ^ m * ∫ y : Fin N → ℝ, (∑ i, f (y i)) ^ m ∂(Measure.pi fun _ : Fin N => ν) := by
+  have e1 : ∫ y : Fin N → Ω, ((N : ℝ)⁻¹ * ∑ i, f (y i)) ^ m ∂(Measure.pi fun _ : Fin N => ν) =
+      ((N : ℝ)⁻¹) ^ m * ∫ y : Fin N → Ω, (∑ i, f (y i)) ^ m ∂(Measure.pi fun _ : Fin N => ν) := by
     simp_rw [mul_pow]
     exact integral_const_mul _ _
   -- the reference term, parity by parity
@@ -372,14 +360,13 @@ theorem abs_integral_pow_avg_sub_le (hint : ∀ j, Integrable (fun x => f x ^ j)
       calc ((N : ℝ)⁻¹) ^ j * a (2 * j) * (∫ x, f x ^ 2 ∂ν) ^ j = a (2 * j) *
             (∫ x, f x ^ 2 ∂ν) ^ j * ((N : ℝ)⁻¹) ^ j := by ring
         _ = _ := by rw [← this]; ring
-    · rw [eq_zero_of_odd_of_rec ha1 ha ⟨j, rfl⟩]
+    · rw [Nat.eq_zero_of_odd_of_two_step_mul ha1 ha ⟨j, rfl⟩]
       simp
   rw [e1, e2, ← mul_sub, abs_mul, abs_of_nonneg (by positivity : 0 ≤ ((N : ℝ)⁻¹) ^ m)]
   have hs : Real.sqrt ((N : ℝ) + 1) ≤ Real.sqrt 2 * Real.sqrt N := by
     have h1N : (1 : ℝ) ≤ N := Nat.one_le_cast.2 hN
     rw [← Real.sqrt_mul (by norm_num)]
     exact Real.sqrt_le_sqrt (by linarith)
-  have hb := hC N
   have hpow : Real.sqrt ((N : ℝ) + 1) ^ (m - 1) ≤
       Real.sqrt 2 ^ (m - 1) * Real.sqrt N ^ (m - 1) := by
     rw [← mul_pow]
@@ -391,7 +378,7 @@ theorem abs_integral_pow_avg_sub_le (hint : ∀ j, Integrable (fun x => f x ^ j)
     calc ε ^ (m + 1) * ε ^ (m - 1) * Real.sqrt N ^ (m - 1)
         = ε ^ (m + 1) * (ε ^ (m - 1) * Real.sqrt N ^ (m - 1)) := by ring
       _ = _ := by rw [this, mul_one]
-  calc ((N : ℝ)⁻¹) ^ m * |∫ y : Fin N → ℝ, (∑ i, f (y i)) ^ m ∂(Measure.pi fun _ : Fin N => ν) -
+  calc ((N : ℝ)⁻¹) ^ m * |∫ y : Fin N → Ω, (∑ i, f (y i)) ^ m ∂(Measure.pi fun _ : Fin N => ν) -
         a m * (∫ x, f x ^ 2 ∂ν) ^ (m / 2) * (N : ℝ) ^ (m / 2)|
       ≤ ((N : ℝ)⁻¹) ^ m * (C * Real.sqrt ((N : ℝ) + 1) ^ (m - 1)) :=
         mul_le_mul_of_nonneg_left (hC N) (by positivity)

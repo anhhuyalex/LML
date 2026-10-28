@@ -5,7 +5,9 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.AddPowEstimates
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Hyperbolic
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Tanh
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein
 public import Mathlib.MeasureTheory.Integral.Pi
 public import Mathlib.Probability.Distributions.Gaussian.Real
@@ -31,6 +33,32 @@ Both come with their integrability statements.  The one-dimensional case is
 
 open MeasureTheory ProbabilityTheory
 open scoped BigOperators
+
+namespace ProbabilityTheory
+
+/-- Every power of `log cosh (a x + b)` is integrable against the standard Gaussian. -/
+theorem integrable_pow_log_cosh_affine_gaussianReal (a b : ℝ) (j : ℕ) :
+    Integrable (fun x : ℝ => Real.log (Real.cosh (a * x + b)) ^ j) (gaussianReal 0 1) := by
+  have hx : Integrable (fun x : ℝ => |x| ^ j) (gaussianReal 0 1) := by
+    simpa only [abs_pow] using (integrable_pow_gaussianReal 0 1 j).abs
+  have hcont : Continuous fun x : ℝ => Real.log (Real.cosh (a * x + b)) :=
+    (Real.continuous_cosh.comp (by fun_prop : Continuous fun x : ℝ => a * x + b)).log
+      fun x => (Real.cosh_pos _).ne'
+  refine Integrable.mono' (((hx.const_mul (|a| ^ j)).add (integrable_const (|b| ^ j))).const_mul
+    (2 ^ (j - 1))) (hcont.pow j).aestronglyMeasurable (Filter.Eventually.of_forall fun x => ?_)
+  have h0 := Real.log_cosh_nonneg (a * x + b)
+  have h1 := Real.log_cosh_le_abs (a * x + b)
+  rw [Real.norm_eq_abs, abs_of_nonneg (pow_nonneg h0 j)]
+  refine (pow_le_pow_left₀ h0 h1 j).trans ?_
+  have := abs_add_pow_le (a * x) b j
+  simpa only [Pi.add_apply, abs_mul, mul_pow] using this
+
+/-- The first-power specialization of affine Gaussian `log cosh` integrability. -/
+theorem integrable_log_cosh_affine_gaussianReal (a b : ℝ) :
+    Integrable (fun x : ℝ => Real.log (Real.cosh (a * x + b))) (gaussianReal 0 1) := by
+  simpa only [pow_one] using integrable_pow_log_cosh_affine_gaussianReal a b 1
+
+end ProbabilityTheory
 
 /-- Moment generating function of a standard Gaussian `𝒩(0, 1)`. -/
 theorem integral_exp_mul_gaussianReal_zero_one (t : ℝ) :

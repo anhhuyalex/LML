@@ -22,13 +22,10 @@ This file proves that induction in an abstract form.  The scale is a number `ε 
 in the application), `a` is any sequence with `a 0 = 1`, `a 1 = 0` and `a (k + 2) = (k + 1) a k`
 (the Gaussian moments), and `b` is a function with `b' = B sin cos` (the path variance).
 
-**What is not done here.**  The three analytic inputs of the induction are *hypotheses* of
-`SpinGlasses.clt_induction`: the differential equation with remainder of the centered moments, and
-the estimate at the decoupled endpoint.  Proving them for the SK model is the content of
-Theorem 1.4.11 that is still open (see the status remark in the blueprint).  The proved ingredients
-are the nonlinear interpolation (`SpinGlasses/SKSmartPathProfileComp.lean`), the overlap moments
-along the path (`SpinGlasses/SKPathOverlapMoments.lean`) and the first moment
-(`SpinGlasses.sk_free_energy_sub_rs_le`).
+The differential equation with remainder and the decoupled endpoint estimate are hypotheses
+of this abstract induction. For the SK model with deterministic field they are constructed in
+`SKCenteredPathMoments.lean`, `SKCenteredPathODE.lean` and `IidSumExpansion.lean`, and assembled
+in `SKFreeEnergyCLT.lean`. The random Gaussian external-field extension remains open.
 
 ## Main declarations
 
@@ -69,13 +66,13 @@ theorem hasDerivAt_clt_ref (ha1 : a 1 = 0) (ha : ∀ k, a (k + 2) = (k + 1) * a 
     rw [ha (2 * j)]
     push_cast
     ring
-  · have h1 := eq_zero_of_odd_of_rec ha1 ha hodd
+  · have h1 := Nat.eq_zero_of_odd_of_two_step_mul ha1 ha hodd
     simp only [h1, mul_zero, zero_mul]
     rcases hodd with ⟨m, rfl⟩
     rcases m with _ | m
     · simpa using hasDerivAt_const s (0 : ℝ)
     · rw [show 2 * (m + 1) + 1 - 2 = 2 * m + 1 by omega,
-        eq_zero_of_odd_of_rec ha1 ha ⟨m, rfl⟩]
+        Nat.eq_zero_of_odd_of_two_step_mul ha1 ha ⟨m, rfl⟩]
       simpa using hasDerivAt_const s (0 : ℝ)
 
 /-- **One step of the induction.**  Let `ψ` satisfy, for every `s`, `ψ' = sin s cos s (c ε² B ψₚ(s)
@@ -138,18 +135,18 @@ theorem abs_sub_ref_le_of_ode (hε : 0 < ε) (ha1 : a 1 = 0) (ha : ∀ k, a (k +
 /-- **Constants for the induction on the degree:** for any `B` and any sequences `C_rem`, `C_dec`
 there is a sequence `C` with `C 0 = 0` and
 `C_dec m + C_rem m / 2 + (m (m - 1) / 4) |B| C (m - 2) ≤ C m` for all `m ≥ 1` (a recursion
-with two initial values, defined by `Nat.rec` on pairs). -/
+with two initial values, defined by `Nat.twoStepInduction`). -/
 theorem exists_clt_const (B : ℝ) (C_rem C_dec : ℕ → ℝ) :
     ∃ C : ℕ → ℝ, C 0 = 0 ∧ ∀ m, 1 ≤ m →
       C_dec m + C_rem m / 2 + (m : ℝ) * (m - 1) / 4 * |B| * C (m - 2) ≤ C m := by
   let u : ℕ → ℝ := fun m => C_dec m + C_rem m / 2
   let w : ℕ → ℝ := fun m => (m : ℝ) * (m - 1) / 4 * |B|
-  let F : ℕ → ℝ × ℝ := fun k => Nat.rec (0, u 1 + w 1 * 0)
-    (fun k p => (p.2, u (k + 2) + w (k + 2) * p.1)) k
-  refine ⟨fun k => (F k).1, rfl, fun m hm => ?_⟩
+  let C : ℕ → ℝ := Nat.twoStepInduction 0 (u 1)
+    (fun k a _ => u (k + 2) + w (k + 2) * a)
+  refine ⟨C, rfl, fun m hm => ?_⟩
   rcases m with _ | _ | k
   · omega
-  · simp [F, u, w]
+  · simp [C, u, w, Nat.twoStepInduction]
   · exact le_of_eq rfl
 
 /-- **The induction on the degree.**  Let `ε > 0`, `a 0 = 1`, `a 1 = 0`, `a (k + 2) = (k + 1) a k`,

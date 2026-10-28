@@ -21,6 +21,19 @@ For real functions `f`, `g` with `f²`, `g²` and `f g` integrable,
 
 namespace MeasureTheory
 
+/-- A measurable function whose centered `m`-th power is integrable has integrable `m`-th power
+about every other center. -/
+theorem integrable_sub_pow_of_integrable_abs_pow {Ω : Type*} [MeasurableSpace Ω]
+    {P : Measure Ω} [IsFiniteMeasure P] {X : Ω → ℝ} (hX : Measurable X) {c : ℝ} {m : ℕ}
+    (h : Integrable (fun ω => |X ω - c| ^ m) P) (a : ℝ) :
+    Integrable (fun ω => (X ω - a) ^ m) P := by
+  refine ((h.add (integrable_const (|c - a| ^ m))).const_mul (2 ^ (m - 1))).mono'
+    ((hX.sub_const a).pow_const m).aestronglyMeasurable (Filter.Eventually.of_forall fun ω => ?_)
+  rw [Real.norm_eq_abs, abs_pow]
+  have := abs_add_pow_le (X ω - c) (c - a) m
+  rwa [sub_add_sub_cancel] at this
+
+
 /-- The integral of a squared difference expands as `∫ f² - 2 ∫ f g + ∫ g²`. -/
 theorem integral_sq_sub {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Measure Ω} {f g : Ω → ℝ}
     (hf : Integrable (fun ω => f ω ^ 2) μ) (hg : Integrable (fun ω => g ω ^ 2) μ)

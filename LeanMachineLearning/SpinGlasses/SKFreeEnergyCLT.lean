@@ -45,23 +45,6 @@ open scoped BigOperators Real Matrix
 
 namespace SpinGlasses
 
-/-- Every power of `log cosh (a x + b)` is integrable against the standard Gaussian. -/
-theorem integrable_pow_log_cosh_affine_gaussianReal (a b : ℝ) (j : ℕ) :
-    Integrable (fun x : ℝ => Real.log (Real.cosh (a * x + b)) ^ j) (gaussianReal 0 1) := by
-  have hx : Integrable (fun x : ℝ => |x| ^ j) (gaussianReal 0 1) := by
-    simpa only [abs_pow] using (integrable_pow_gaussianReal 0 1 j).abs
-  have hcont : Continuous fun x : ℝ => Real.log (Real.cosh (a * x + b)) :=
-    (Real.continuous_cosh.comp (by fun_prop : Continuous fun x : ℝ => a * x + b)).log
-      fun x => (Real.cosh_pos _).ne'
-  refine Integrable.mono' (((hx.const_mul (|a| ^ j)).add (integrable_const (|b| ^ j))).const_mul
-    (2 ^ (j - 1))) (hcont.pow j).aestronglyMeasurable (Filter.Eventually.of_forall fun x => ?_)
-  have h0 := Real.log_cosh_nonneg (a * x + b)
-  have h1 := Real.log_cosh_le_abs (a * x + b)
-  rw [Real.norm_eq_abs, abs_of_nonneg (pow_nonneg h0 j)]
-  refine (pow_le_pow_left₀ h0 h1 j).trans ?_
-  have := abs_add_pow_le (a * x) b j
-  simpa only [Pi.add_apply, abs_mul, mul_pow] using this
-
 /-- **Theorem 1.4.11 of Talagrand (Spin Glasses, Vol. I), Eq. (1.109): the central limit theorem
 for the free energy** of the SK model with deterministic field.  For `β² < 1/4` and `q` with
 `q = 𝔼 tanh² (β √q z + h)`, every `k` has a constant `C` such that for all `N > 0`,
@@ -92,28 +75,20 @@ theorem sk_free_energy_clt (β h q : ℝ)
   have ha1 : a 1 = 0 := by simp [ha_def, integral_id_gaussianReal]
   have ha : ∀ k, a (k + 2) = (k + 1) * a k := fun k => integral_pow_add_two_gaussianReal k
   -- the centered variable
-  have hint : ∀ j, Integrable (fun x => (L x - c0) ^ j) (gaussianReal 0 1) := fun j => by
-    refine Integrable.mono' (((hLi j).add (integrable_const (|c0| ^ j))).const_mul (2 ^ (j - 1)))
-      ((hLm.sub_const c0).pow_const j).aestronglyMeasurable
-      (Filter.Eventually.of_forall fun x => ?_)
-    have h0 : 0 ≤ L x := Real.log_cosh_nonneg _
-    rw [Real.norm_eq_abs, ← abs_pow]
-    have := abs_add_pow_le (L x) (-c0) j
-    rw [← sub_eq_add_neg, abs_neg, abs_of_nonneg h0] at this
-    simpa only [Pi.add_apply, abs_pow, abs_of_nonneg h0] using this
+  have hint : ∀ j, Integrable (fun x => (L x - c0) ^ j) (gaussianReal 0 1) := fun j =>
+    integrable_sub_pow_of_integrable_abs_pow hLm (c := 0)
+      (by simpa only [sub_zero, abs_pow] using (hLi j).abs) c0
   have h1 : Integrable L (gaussianReal 0 1) := by simpa using hLi 1
   have h0 : ∫ x, (L x - c0) ∂(gaussianReal 0 1) = 0 := by
     rw [integral_sub h1 (integrable_const c0), integral_const, probReal_univ, one_smul, ← hc0,
       sub_self]
   have hσ : ∫ x, (L x - c0) ^ 2 ∂(gaussianReal 0 1) = V0 := by
-    have e : ∀ x, (L x - c0) ^ 2 = L x ^ 2 - 2 * c0 * L x + c0 ^ 2 := fun x => by ring
-    have i1 : Integrable (fun x => L x ^ 2 - 2 * c0 * L x) (gaussianReal 0 1) :=
-      (hLi 2).sub (h1.const_mul _)
-    simp_rw [e]
-    rw [integral_add (f := fun x => L x ^ 2 - 2 * c0 * L x) (g := fun _ => c0 ^ 2) i1
-      (integrable_const _), integral_sub (hLi 2) (h1.const_mul _), integral_const_mul,
-      integral_const, probReal_univ, one_smul, ← hc0, hV0]
-    ring
+    have hL2 : MemLp L 2 (gaussianReal 0 1) :=
+      (memLp_two_iff_integrable_sq hLm.aestronglyMeasurable).2 (hLi 2)
+    change (∫ x, (L x - ∫ y, L y ∂(gaussianReal 0 1)) ^ 2 ∂(gaussianReal 0 1)) =
+      (∫ x, L x ^ 2 ∂(gaussianReal 0 1)) - (∫ x, L x ∂(gaussianReal 0 1)) ^ 2
+    rw [← variance_eq_integral hL2.aemeasurable, variance_eq_sub hL2]
+    rfl
   obtain ⟨K, hK⟩ := exists_sk_centered_path_ode β h q hfix hβ
   have hex : ∀ m : ℕ, 1 ≤ m → ∃ C : ℝ, 0 ≤ C ∧ ∀ N : ℕ, 0 < N →
       |∫ y : Fin N → ℝ, ((N : ℝ)⁻¹ * ∑ i, (L (y i) - c0)) ^ m

@@ -5,6 +5,8 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.Binomial
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SqSub
 public import LeanMachineLearning.SpinGlasses.SKFreeEnergyMoments
 public import LeanMachineLearning.SpinGlasses.SKSmartPathProfileComp
 
@@ -20,7 +22,7 @@ survive in the derivative at `s = t`.
 
 ## Main declarations
 
-* `SpinGlasses.sum_choose_mul_deriv_pow_zero`: the evaluation of the resulting binomial sum.
+* `Finset.sum_choose_mul_deriv_pow_zero`: the evaluation of the resulting binomial sum.
 * `SpinGlasses.exists_sk_smart_path_profile_centered`: the derivative of
   `s ↦ 𝔼 V(s)^k` along the path, with both endpoints.
 
@@ -35,37 +37,6 @@ open MeasureTheory ProbabilityTheory Finset
 open scoped BigOperators Real Matrix
 
 namespace SpinGlasses
-
-/-- **The binomial sum behind a moving center.**  If `z (t) = 0` and `z' (t) = u`, the derivative
-at `t` of `∑ᵢ C(k, i) z(s)^i f_{k-i}(s)` is
-`∑ᵢ C(k, i) (i · 0^{i-1} · u · f_{k-i} + 0^i · g_{k-i}) = k u f_{k-1} + g_k`
-(only the terms `i = 0, 1` are nonzero). -/
-theorem sum_choose_mul_deriv_pow_zero (k : ℕ) (u : ℝ) (f g : ℕ → ℝ) :
-    ∑ i ∈ range (k + 1), (k.choose i : ℝ) *
-        ((i : ℝ) * 0 ^ (i - 1) * u * f (k - i) + 0 ^ i * g (k - i)) =
-      k * u * f (k - 1) + g k := by
-  rcases k with _ | k
-  · simp
-  · rw [Finset.sum_range_succ', Finset.sum_range_succ']
-    have h2 : ∀ i ∈ range k, ((k + 1).choose (i + 1 + 1) : ℝ) *
-        (((i + 1 + 1 : ℕ) : ℝ) * 0 ^ (i + 1 + 1 - 1) * u * f (k + 1 - (i + 1 + 1)) +
-          0 ^ (i + 1 + 1) * g (k + 1 - (i + 1 + 1))) = 0 := fun i _ => by
-      simp
-    rw [Finset.sum_eq_zero h2]
-    simp [Nat.choose_one_right]
-    ring
-
-/-- A measurable function whose centered `m`-th power is integrable has integrable `m`-th power
-about every other center. -/
-theorem integrable_sub_pow_of_integrable_abs_pow {Ω : Type*} [MeasurableSpace Ω]
-    {P : Measure Ω} [IsFiniteMeasure P] {X : Ω → ℝ} (hX : Measurable X) {c : ℝ} {m : ℕ}
-    (h : Integrable (fun ω => |X ω - c| ^ m) P) (a : ℝ) :
-    Integrable (fun ω => (X ω - a) ^ m) P := by
-  refine ((h.add (integrable_const (|c - a| ^ m))).const_mul (2 ^ (m - 1))).mono'
-    ((hX.sub_const a).pow_const m).aestronglyMeasurable (Filter.Eventually.of_forall fun ω => ?_)
-  rw [Real.norm_eq_abs, abs_pow]
-  have := abs_add_pow_le (X ω - c) (c - a) m
-  rwa [sub_add_sub_cancel] at this
 
 /-- The free energy `A_s` of the smart path is a measurable function of the disorder. -/
 theorem measurable_smart_path_free_energy {N : ℕ} (β h q : ℝ)

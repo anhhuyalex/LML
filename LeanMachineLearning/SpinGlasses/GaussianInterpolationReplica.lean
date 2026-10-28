@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ParametrizedL2
 public import LeanMachineLearning.SpinGlasses.GaussianIBP
 public import LeanMachineLearning.SpinGlasses.GaussianComparison
 
@@ -335,6 +336,31 @@ theorem integrable_integral_pi_count_tilted_det [Finite α] [Nonempty α] [Finty
     (g := fun ω a => g a ω) (Θ := fun _ σ => Θ σ) hg (fun _ => aemeasurable_const)
     |>.aestronglyMeasurable) M (ae_of_all _ fun ω => by
       rw [Real.norm_eq_abs]; exact abs_integral_pi_count_tilted_le _ hM)
+
+/-- **Integrated Jensen for a finite random Gibbs state.** The squared mean of any
+deterministic replica observable is bounded in expectation by its second moment. -/
+theorem integral_sq_integral_pi_count_tilted_le {α R Ω : Type*} [Finite α] [Nonempty α]
+    [MeasurableSpace α] [MeasurableSingletonClass α] [Fintype R] [MeasurableSpace Ω]
+    {P : Measure Ω} [IsFiniteMeasure P] {E : α → Ω → ℝ}
+    (hE : ∀ a, AEMeasurable (E a) P) (Φ : (R → α) → ℝ) :
+    ∫ ω, (∫ σ : R → α, Φ σ ∂(Measure.pi fun _ : R =>
+      Measure.count.tilted fun a => E a ω)) ^ 2 ∂P ≤
+    ∫ ω, ∫ σ : R → α, Φ σ ^ 2 ∂(Measure.pi fun _ : R =>
+      Measure.count.tilted fun a => E a ω) ∂P := by
+  have hm : AEMeasurable (fun ω => ∫ σ : R → α, Φ σ ∂(Measure.pi fun _ : R =>
+      Measure.count.tilted fun a => E a ω)) P :=
+    aemeasurable_integral_pi_count_tilted (R := R) (g := fun ω a => E a ω)
+      hE (fun _ => aemeasurable_const)
+  have hi := integrable_integral_pi_count_tilted_det (R := R) (P := P)
+    (g := E) hE (fun σ => Φ σ ^ 2)
+  have hpt : ∀ ω, (∫ σ : R → α, Φ σ ∂(Measure.pi fun _ : R =>
+      Measure.count.tilted fun a => E a ω)) ^ 2 ≤
+      ∫ σ : R → α, Φ σ ^ 2 ∂(Measure.pi fun _ : R =>
+        Measure.count.tilted fun a => E a ω) := fun ω =>
+    sq_integral_le_integral_sq (measurable_of_finite Φ) Integrable.of_finite
+  refine integral_mono_ae (hi.mono' (hm.pow_const 2).aestronglyMeasurable
+    (ae_of_all _ fun ω => ?_)) hi (ae_of_all _ hpt)
+  simpa only [Real.norm_eq_abs, abs_sq] using hpt ω
 
 /-- **Marginalizing an extra replica.** A function of `n + 1` replicas that does not depend on the
 last one has the same average as the `n`-replica function. -/

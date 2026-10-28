@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiExp
 public import LeanMachineLearning.SpinGlasses.SKSmartPath
 public import LeanMachineLearning.SpinGlasses.GaussianInterpolationReplica
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.Pi
@@ -22,7 +23,7 @@ Aizenman–Lebowitz–Ruelle formula (Theorem 1.4.10).
 
 ## Main declarations
 
-* `SpinGlasses.integrable_log_cosh_affine_gaussianReal`.
+* `ProbabilityTheory.integrable_log_cosh_affine_gaussianReal`.
 * `SpinGlasses.exists_sk_smart_path_profile`.
 
 ## References
@@ -36,20 +37,6 @@ open MeasureTheory ProbabilityTheory Finset
 open scoped BigOperators Real Matrix
 
 namespace SpinGlasses
-
-/-- `log cosh` of an affine function of a standard Gaussian is integrable
-(`0 ≤ log cosh y ≤ |y|`). -/
-theorem integrable_log_cosh_affine_gaussianReal (a b : ℝ) :
-    Integrable (fun x : ℝ => Real.log (Real.cosh (a * x + b))) (gaussianReal 0 1) := by
-  have hid : Integrable (fun x : ℝ => x) (gaussianReal 0 1) := IsGaussian.integrable_id
-  refine Integrable.mono' ((hid.norm.const_mul |a|).add (integrable_const |b|))
-    (Real.continuous_cosh.comp (by fun_prop : Continuous fun x : ℝ => a * x + b)
-      |>.log (fun x => (Real.cosh_pos _).ne')).aestronglyMeasurable
-    (ae_of_all _ fun x => ?_)
-  rw [Real.norm_eq_abs, abs_of_nonneg (Real.log_cosh_nonneg _)]
-  refine (Real.log_cosh_le_abs _).trans ?_
-  calc |a * x + b| ≤ |a * x| + |b| := abs_add_le _ _
-    _ = |a| * ‖x‖ + |b| := by rw [abs_mul, Real.norm_eq_abs]
 
 /-- **The SK smart-path profile.**  For `N > 0`, `q ≥ 0` there are functions `φ` (the normalized
 free energy along the smart path) and `A` (the expected squared overlap along the smart path)
