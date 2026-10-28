@@ -13,12 +13,16 @@ public import Mathlib.Basic.Real.Basic
 # The covariance function of the overlap fluctuations (Talagrand, Section 1.10)
 
 For `β < 1/2` the fluctuations of the replica overlaps `X_{ℓ,ℓ'} = √N (R_{ℓ,ℓ'} - q)` are
-asymptotically Gaussian (Talagrand, Theorem 1.10.1, Eqs. (1.298)-(1.299)); the limiting covariance
+asymptotically Gaussian (Talagrand, Theorem 1.10.1, Eq. (1.290)); the limiting covariance
 of two pairs of replicas is determined by the `T`-basis limits `(A², B², C²)` of Section 1.8.  This
 file contains only that covariance function, as a combinatorial formula.
 
-**What is not done.**  Lemma 1.10.2, Corollary 1.10.3, Eqs. (1.298)-(1.299) and Theorem 1.10.1 are
-not formalized.  An earlier version of this file declared statements with those names; they
+**Preparation.** `SKCavityHigherOrder.lean` proves Eqs. (1.298)-(1.299) for products of
+individual truncated centered overlaps with a bounded factor; `SKCavityHigherOrderPair.lean`
+proves Lemma 1.10.2 for pure products. Products of arbitrary finite linear combinations,
+Corollary 1.10.3 and the mixed-moment induction of Theorem 1.10.1 remain open.
+
+An earlier version of this file declared statements with those names; they
 were vacuous (an existential remainder chosen to be zero, or a hypothesis returned as the
 conclusion) and have been removed.  A faithful statement needs the cavity expectation `ν₀` of
 the book (a decoupled cavity average), the `T`-basis objects of Section 1.8, and replicas indexed

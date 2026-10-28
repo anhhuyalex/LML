@@ -468,6 +468,8 @@ public import LeanMachineLearning.SpinGlasses.SKCavityDomination
 public import LeanMachineLearning.SpinGlasses.SKCavityEndpoint
 public import LeanMachineLearning.SpinGlasses.SKCavityFreeEnergy
 public import LeanMachineLearning.SpinGlasses.SKCavityGaussian
+public import LeanMachineLearning.SpinGlasses.SKCavityHigherOrder
+public import LeanMachineLearning.SpinGlasses.SKCavityHigherOrderPair
 public import LeanMachineLearning.SpinGlasses.SKCavityHolder
 public import LeanMachineLearning.SpinGlasses.SKCavityIncrement
 public import LeanMachineLearning.SpinGlasses.SKCavityInterpolation

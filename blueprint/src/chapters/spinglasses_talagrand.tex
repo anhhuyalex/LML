@@ -1,6 +1,6 @@
 \chapter{The Sherrington--Kirkpatrick Model at High Temperature: The Talagrand Theory}\label{chap:sg-talagrand}
 
-This chapter formalizes Sections~1.1 through 1.6 of Michel Talagrand's \emph{Spin Glasses: A Challenge for Mathematicians} (Volume~I, Springer, 2010) and the first half of Section~1.7.
+This chapter develops Sections~1.1 through 1.9 of Michel Talagrand's \emph{Spin Glasses: A Challenge for Mathematicians} (Volume~I, Springer, 2010), with the scope qualifications below, and begins the higher-order cavity preparation of Section~1.10.
 Section~1.6, including Proposition~1.6.8 (the cavity free-energy increment), is proved without any smallness assumption on the model parameters.
 Of Section~1.7 Theorem~1.7.11 (the general Gaussian fluctuation principle) is formalized; Corollaries~1.7.13 and~1.7.15, Lemma~1.7.14, Lemma~1.7.5, Lemma~1.7.4, Lemma~1.7.6 and Theorem~1.7.1 are formalized as well (Section~\ref{sec:sg-tal:fluct}).
 The mathematical narrative develops the high-temperature theory of the Sherrington--Kirkpatrick (SK) model:
@@ -13,6 +13,10 @@ The mathematical narrative develops the high-temperature theory of the Sherringt
 \item The Gaussian fluctuation principle: the Gaussian interpolation between the centered projections $N^{-1/2}\sum_i y_i\dot\sigma_i$ of the Gibbs state and independent Gaussians of variance $1-q$, the parity argument that makes the first $2k-1$ derivatives vanish at the start of the path, and the moment bounds that make the $2k$-th derivative $O(N^{-k})$ (Section~1.7).
 \item Second moment computations (Section~1.8): the second-order expansion of the cavity path (Proposition~1.8.1), the rectangular combination at the decoupled endpoint (Lemma~1.8.4), and the asymptotic second moment of the rectangular overlap and the variance of the truncated spin correlation (Proposition~1.8.5, Corollary~1.8.6), with explicit $O(N^{-3/2})$ errors.
 \item Beyond the Almeida--Thouless line (Section~1.9): Lemmas~1.9.3 and~1.9.4, Proposition~1.9.2 and Proposition~1.9.5 (nonzero field) are formalized for the SK model (Section~\ref{sec:sg-tal:beyond-at}); the coupled free energy and Proposition~1.9.7 (derivative separation) are formalized for the SK model with $h\ne0$, while Theorem~1.9.6 (non-differentiability of the limit) is formalized only conditionally on the existence of the limit as a hypothesis (Theorem~\ref{thm:sg-tal:thm-196}).
+\item Higher overlap moments (Section~1.10): the product cavity expansions (1.298)--(1.299)
+and Lemma~1.10.2 are proved for products of individual truncated centered overlaps
+(Section~\ref{sec:sg-tal:overlap-clt}); Corollary~1.10.3 and the joint $T$-basis
+mixed-moment theorem remain open.
 \end{enumerate}
 
 \medskip\noindent\textbf{Source tags.}
@@ -6108,7 +6112,113 @@ For pairs $p_1,p_2$ of replicas, \texttt{skOverlapCov} is the combinatorial form
 Formalized in \texttt{SpinGlasses/SKOverlapCLT.lean}.
 \end{proof}
 
+\subsection{Higher-order cavity errors}
+
+The following preparation is proved for a deterministic external field. Write $m=N+1$
+for the number of sites, $R^-_{xy}=m^{-1}\sum_{i<N}\sigma_i^x\sigma_i^y$,
+and $D^-_{xy}=R^-_{xy}-q$. The old-spin Gibbs measure retains the coefficient
+$\beta/\sqrt m$, rather than changing the inverse temperature. The endpoints $\nu$
+and $\nu_0$ and the derivative $\nu'_0$ are the cavity averages from
+Section~\ref{sec:sg-tal:second-moment}.
+
+\begin{lemma}[Truncated overlap moments and products]\label{lem:sg-tal:cavity-higher-moments}
+\lean{SpinGlasses.sk_cavity_dev_even_moment_le, SpinGlasses.sk_cavity_prod_sq_le}
+\leanok
+\talsource{Eqs.~(1.296)--(1.297)}
+Fix $\beta_0\in\mathbb R$ with $4\beta_0^2<1$ and $r\in\mathbb N$.
+There is $K_r>0$, independent of $N,\beta,h,q$ and of the finite replica type,
+such that, whenever $\beta^2\le\beta_0^2$ and
+$q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$, every pair $x\ne y$ satisfies
+\[
+  \nu((D^-_{xy})^{2r})\le K_r/m^r.
+\]
+For each $k\in\mathbb N$ and $M\in\mathbb R$ there is also $H>0$, independent
+of $N,\beta,h,q$, the replica count and the replica labels, such that
+\[
+ f=W\prod_{j=1}^k D^-_{a_jb_j},\quad |W|\le M,\quad a_j\ne b_j
+ \quad\Longrightarrow\quad \nu(f^2)\le H/m^k.
+\]
+The pairs may repeat or share indices. The bounded factor $W$ can depend on the last spins.
+\end{lemma}
+\begin{proof}
+\leanok
+Use the exact last-spin split and $|\varepsilon_x\varepsilon_y|=1$ to bound
+$(D^-_{xy})^{2r}$ by $2^{2r-1}((R_{xy}-q)^{2r}+m^{-2r})$.
+The uniform high-temperature overlap moments and $m^{-2r}\le m^{-r}$ give the first claim.
+For a nonempty product, the existing finite-product inequality
+$\prod_j|u_j|\le\sum_j|u_j|^k$, applied to $u_j=(D^-_{a_jb_j})^2$,
+reduces the second claim to $2k$-th moments. The empty product is handled separately.
+No independence of the factors is assumed.
+\end{proof}
+
+\begin{theorem}[Higher-order cavity expansions]\label{thm:sg-tal:cavity-higher-expansion}
+\lean{SpinGlasses.sk_cavity_prod_expansion, SpinGlasses.sk_cavity_prod_old_spin_compare}
+\leanok
+\uses{lem:sg-tal:cavity-higher-moments}
+\talsource{Eqs.~(1.298)--(1.299)}
+Fix deterministic $\beta,h,q\in\mathbb R$ with $4\beta^2<1$ and
+$q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$, a replica count $n$, a degree $k$,
+and a bound $M\in\mathbb R$. There is $C>0$, chosen before $N$, the distinct
+pairs $a_j\ne b_j$ and the bounded factor $W$, such that, for the above $f$,
+\[
+ |\nu(f)-\nu_0(f)|\le \frac C{m^{(k+1)/2}},\qquad
+ |\nu(f)-\nu_0(f)-\nu'_0(f)|\le \frac C{m^{(k+2)/2}}.
+\]
+For a pure product of $k$ such factors, evaluating $\nu_0$ on the old spins
+gives the same first bound with the actual old-spin Gibbs average in place of $\nu_0$.
+\end{theorem}
+\begin{proof}
+\leanok
+Apply the existing first- and second-order cavity bounds with both Holder exponents equal
+to two. The preceding lemma bounds $\nu(f^2)^{1/2}$ by $\sqrt H\,m^{-k/2}$;
+the full overlap second and fourth moments supply the additional factors
+$m^{-1/2}$ and $m^{-1}$. Enlarge the constants to obtain one positive $C$.
+For the old-spin form, use the exact decoupled endpoint identity with no last-spin factors.
+\end{proof}
+
+\begin{lemma}[Higher-order pair expansion]\label{lem:sg-tal:cavity-higher-pair}
+\lean{SpinGlasses.sk_cavity_pair_prod_expansion}
+\leanok
+\uses{thm:sg-tal:cavity-higher-expansion}
+\talsource{Lemma~1.10.2, Eq.~(1.300)}
+Fix deterministic $\beta,h,q\in\mathbb R$ with $4\beta^2<1$ and
+$q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$, and set
+$\widehat q=\mathbb E\tanh^4(\beta\sqrt q\,z+h)$.
+For fixed $n,k\in\mathbb N$ and $x\ne y$ among the first $n$ replicas,
+there is $C>0$, chosen before $N$ and the pairs defining
+$f^-=\prod_{j=1}^k D^-_{a_jb_j}$ with $a_j\ne b_j$, such that
+\[
+\left|\nu\bigl((\varepsilon_x\varepsilon_y-q)f^-\bigr)
+ -\sum_{\ell<\ell'\le n} b(c_{\ell\ell';xy})\nu(f^-D^-_{\ell\ell'})
+ +n\sum_{\ell\le n}b(c_{\ell,n+1;xy})\nu(f^-D^-_{\ell,n+1})
+ -\frac{n(n+1)}2 b(0)\nu(f^-D^-_{n+1,n+2})\right|
+ \le \frac C{m^{(k+2)/2}}.
+\]
+Here $c_{ab;xy}=|\{a,b\}\cap\{x,y\}|$ and
+$b(2)=\beta^2(1-q^2)$, $b(1)=\beta^2(q-q^2)$,
+$b(0)=\beta^2(\widehat q-q^2)$.
+The right-hand averages are full Gibbs averages with two additional replicas.
+\end{lemma}
+\begin{proof}
+\leanok
+The decoupled expectation is zero by the fixed-point equation and independence of the last
+spins. Evaluate the decoupled derivative by the proved pair formula of Section~1.8.
+Each resulting old-spin observable is a product of $k+1$ centered overlaps; apply the
+old-spin comparison above to replace its average by the full average with error
+$C_1m^{-(k+2)/2}$. Reindex the two additional replicas and sum these errors using
+\texttt{Weights.abs\_weighted\_sum\_le}. A valid uniform constant is
+$C_0+C_1\sum_j|w_jb(c_j)|$, where $w_j$ are the three signed replica-family weights.
+\end{proof}
+
 \begin{remark}[Status of Section~1.10]\label{rem:sg-tal:overlap-clt-status}
 \talsource{Section~1.10, Lemma~1.10.2, Corollary~1.10.3, Eqs.~(1.298), (1.299), Theorem~1.10.1}
-\emph{Not formalized.} Lemma~1.10.2, Corollary~1.10.3, the expansions (1.298) and (1.299) and Theorem~1.10.1 (a joint statement on mixed moments of the $T$-basis, not a scalar statement) are open. Earlier versions of this chapter listed theorems with these names as proved; their Lean statements were vacuous (an existential remainder chosen to be zero, or a hypothesis returned as the conclusion), so they have been removed. A faithful statement needs the cavity expectation $\nu_0$ of the book (a decoupled cavity average, not a Gaussian limit), the $T$-basis objects of Section~1.8 and replicas indexed independently of the number of sites. The cavity derivative lemmas of Section~1.8 (\texttt{sk\_cavity\_deriv\_zero\_pair}, \texttt{sk\_cavity\_deriv\_zero\_rect}), the replica-pair sums and the coincidence classification are the intended tools.
+The product estimates and expansions (1.298)--(1.299) are proved above for
+products of individual truncated centered overlaps with an arbitrary bounded factor.
+The extension to products of arbitrary finite linear combinations is not yet exposed.
+Lemma~1.10.2 is proved above for pure products. Corollary~1.10.3 and
+Theorem~1.10.1 remain open at this stage.
+The last is a joint mixed-moment statement for the $T$-basis, not a scalar CLT.
+Earlier vacuous declarations have been removed; the estimates above use the actual
+cavity expectations and derivative, and constants chosen before the number of sites.
+The nearly-Gaussian Gibbs corollaries (1.291)--(1.295) are also open.
 \end{remark}
