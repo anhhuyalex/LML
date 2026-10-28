@@ -179,6 +179,51 @@ theorem sk_cavity_replica_pair_sum_sub_third {n : ℕ} (b : ℕ → ℝ) {i₁ i
       ring
 
 
+/-- The rectangular signed pair coefficients collapse against every symmetric kernel.
+This is the algebra shared by Eqs. (1.237) and (1.301), independent of the Gibbs measure. -/
+theorem sk_cavity_replica_pair_sum_rect {n : ℕ} (b : ℕ → ℝ)
+    {i₁ i₂ j₁ j₂ : Fin n} (h12 : i₁ ≠ i₂)
+    (h13 : i₁ ≠ j₁) (h14 : i₁ ≠ j₂) (h23 : i₂ ≠ j₁) (h24 : i₂ ≠ j₂)
+    (J : Option (Option (Fin n)) → Option (Option (Fin n)) → ℝ)
+    (hJ : ∀ x y, J x y = J y x) :
+    ∑ p : SKCavityReplicaPair n, skCavityReplicaPairWeight n p *
+      ((b (skCavityReplicaPairCoincidences i₁ j₁ p) -
+          b (skCavityReplicaPairCoincidences i₂ j₁ p) -
+          (b (skCavityReplicaPairCoincidences i₁ j₂ p) -
+            b (skCavityReplicaPairCoincidences i₂ j₂ p))) *
+        J (skCavityReplicaPairMap p).1 (skCavityReplicaPairMap p).2) =
+      (b 2 - 2 * b 1 + b 0) *
+        (J (some (some i₁)) (some (some j₁)) - J (some (some i₂)) (some (some j₁)) -
+          (J (some (some i₁)) (some (some j₂)) - J (some (some i₂)) (some (some j₂)))) := by
+  let D : Fin n → ℝ := fun l =>
+    J (some (some i₁)) (some (some l)) - J (some (some i₂)) (some (some l))
+  have hs (k : Fin n) (h1k : i₁ ≠ k) (h2k : i₂ ≠ k) :
+      (∑ p : SKCavityReplicaPair n, skCavityReplicaPairWeight n p *
+        ((b (skCavityReplicaPairCoincidences i₁ k p) -
+          b (skCavityReplicaPairCoincidences i₂ k p)) *
+          J (skCavityReplicaPairMap p).1 (skCavityReplicaPairMap p).2)) =
+      (b 2 - b 1) * D k + (b 1 - b 0) *
+        ((∑ l ∈ Finset.univ.filter (fun l => l ≠ i₁ ∧ l ≠ i₂ ∧ l ≠ k), D l) -
+          (n : ℝ) * (J (some (some i₁)) (some none) - J (some (some i₂)) (some none))) := by
+    refine Eq.trans ?_ (sk_cavity_replica_pair_sum_sub_third b h12 h1k h2k J hJ)
+    refine Finset.sum_congr rfl fun p _ => ?_
+    simp only [skCavityReplicaPairCoincidences]
+    rw [sk_cavity_coincidences_sub_eq b
+      (i₁ := some (some i₁)) (i₂ := some (some i₂)) (k := some (some k))
+      (by simpa only [ne_eq, Option.some.injEq] using h12)
+      (by simpa only [ne_eq, Option.some.injEq] using h1k)
+      (by simpa only [ne_eq, Option.some.injEq] using h2k)
+      (skCavityReplicaPair_ne p)]
+  have he : (∑ l ∈ Finset.univ.filter (fun l => l ≠ i₁ ∧ l ≠ i₂ ∧ l ≠ j₁), D l) -
+      (∑ l ∈ Finset.univ.filter (fun l => l ≠ i₁ ∧ l ≠ i₂ ∧ l ≠ j₂), D l) = D j₂ - D j₁ := by
+    linarith [sum_eq_three_add_sum_filter h12 h13 h23 D,
+      sum_eq_three_add_sum_filter h12 h14 h24 D]
+  simp only [sub_mul, mul_sub, Finset.sum_sub_distrib] at hs ⊢
+  have h1 := hs j₁ h13 h23
+  have h2 := hs j₂ h14 h24
+  dsimp only [D] at h1 h2 he
+  linear_combination h1 - h2 + (b 1 - b 0) * he
+
 /-- **From Eq. (1.253) to Eq. (1.254).**  If the observable does not depend on the third replica,
 the term of replica `3` equals the term of replica `n + 1`, and the book's coefficients
 `b(2) - b(1)` and `b(1) - b(0)` regroup into `b(2) - 4 b(1) + 3 b(0)` and `b(1) - b(0)`.

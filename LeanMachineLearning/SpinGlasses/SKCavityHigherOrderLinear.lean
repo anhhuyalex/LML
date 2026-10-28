@@ -64,7 +64,7 @@ theorem sk_cavity_pair_lincomb_expansion (β h q : ℝ) (hβ : 4 * β ^ 2 < 1)
   have hE (σ : Fin (N + 1) → ℤˣ) : Measurable (fun g => E g σ) := by
     dsimp [E]
     fun_prop
-  have hadd {R : Type*} [Fintype R] (f g : (R → Fin (N + 1) → ℤˣ) → ℝ) :
+  have hadd {R : Type} [Fintype R] (f g : (R → Fin (N + 1) → ℤˣ) → ℝ) :
       (∫ w, ∫ σ, (f σ + g σ)
         ∂(Measure.pi fun _ : R => Measure.count.tilted (E w))
         ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) =
@@ -91,13 +91,13 @@ theorem sk_cavity_pair_lincomb_expansion (β h q : ℝ) (hβ : 4 * β ^ 2 < 1)
         intro f g
         dsimp only [ν, ν₂, Pi.add_apply]
         simp only [add_mul]
-        simp_rw [hadd, Finset.mul_add, Finset.sum_add_distrib]
+        simp only [hadd, mul_add, Finset.sum_add_distrib]
         ring
       map_smul' := by
         intro t f
         dsimp only [ν, ν₂, Pi.smul_apply]
         simp only [smul_eq_mul, RingHom.id_apply, mul_assoc, integral_const_mul]
-        simp only [Finset.mul_sum, mul_sub]
+        simp only [mul_sub, Finset.mul_sum]
         congr 1
         exact Finset.sum_congr rfl fun j _ => by ring }
   have hp (t : ∀ j, ι j) :
@@ -110,6 +110,7 @@ theorem sk_cavity_pair_lincomb_expansion (β h q : ℝ) (hβ : 4 * β ^ 2 < 1)
   have ht := L.abs_apply_prod_sum_le c (fun j i ρ =>
     (N + 1 : ℝ)⁻¹ * ((fun v : Fin N => (ρ (a j i) v : ℝ)) ⬝ᵥ
       fun v : Fin N => (ρ (b j i) v : ℝ)) - q) hp
+  simp only [← mul_assoc]
   change |L F| ≤ _
   calc
     _ ≤ (∏ j, ∑ i, |c j i|) * (C / ((N : ℝ) + 1) ^ (((k + 2 : ℕ) : ℝ) / 2)) := ht
