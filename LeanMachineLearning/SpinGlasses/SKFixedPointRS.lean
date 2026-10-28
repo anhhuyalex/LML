@@ -50,17 +50,12 @@ theorem hasDerivAt_integral_log_cosh_sqrt (β h : ℝ) {x : ℝ} (hx : 0 < x) :
         ∂(gaussianReal 0 1))
       (β ^ 2 / 2 * ∫ z : ℝ, (1 - Real.tanh (β * Real.sqrt x * z + h) ^ 2) ∂(gaussianReal 0 1))
       x := by
-  have h1 := hasDerivAt_integral_comp_affine_gaussianReal (f := fun y => Real.log (Real.cosh y))
-    (f' := Real.tanh) (f'' := fun y => 1 - Real.tanh y ^ 2) Real.hasDerivAt_log_cosh
+  exact hasDerivAt_comp_mul_sqrt hx (hasDerivAt_integral_comp_affine_gaussianReal
+    (f := fun y => Real.log (Real.cosh y)) (f' := Real.tanh)
+    (f'' := fun y => 1 - Real.tanh y ^ 2) Real.hasDerivAt_log_cosh
     Real.hasDerivAt_tanh (by have := Real.continuous_tanh; fun_prop)
     (fun y => (Real.abs_tanh_lt_one y).le) Real.abs_one_sub_tanh_sq_le h (β * Real.sqrt x)
-    (integrable_log_cosh_affine_gaussianReal _ _)
-  have h2 : HasDerivAt (fun y : ℝ => β * Real.sqrt y) (β * (1 / (2 * Real.sqrt x))) x :=
-    (Real.hasDerivAt_sqrt hx.ne').const_mul β
-  refine (h1.comp x h2).congr_deriv ?_
-  have hs : Real.sqrt x ≠ 0 := (Real.sqrt_pos.2 hx).ne'
-  generalize (∫ z : ℝ, (1 - Real.tanh (β * Real.sqrt x * z + h) ^ 2) ∂(gaussianReal 0 1)) = I
-  field_simp
+    (integrable_log_cosh_affine_gaussianReal _ _))
 
 /-- **The derivative of the replica-symmetric functional:** for `x > 0`,
 `RS'(x) = (β² / 2) (x - 𝔼 tanh² (β √x z + h))` (Talagrand, after Eq. (1.75)). -/
@@ -124,11 +119,7 @@ theorem fixedPoint_of_isMinOn_rsFunctional {β h q : ℝ} (hβ : β ≠ 0) (hq :
     set Φ : ℝ → ℝ := fun y => ∫ z : ℝ, Real.tanh (β * Real.sqrt y * z + h) ^ 2 ∂(gaussianReal 0 1)
       with hΦ
     have hΦ0 : Φ 0 = Real.tanh h ^ 2 := by simp [hΦ]
-    have hc : 0 < Real.tanh h ^ 2 := by
-      have : Real.tanh h ≠ 0 := by
-        rw [Real.tanh_eq_sinh_div_cosh]
-        exact div_ne_zero (fun h0 => hh (Real.sinh_eq_zero.1 h0)) (Real.cosh_pos h).ne'
-      positivity
+    have hc : 0 < Real.tanh h ^ 2 := by simpa using fixedPointMap_pos hh (0 : ℝ)
     have hev : ∀ᶠ y in 𝓝 (0 : ℝ), Real.tanh h ^ 2 / 2 < Φ y :=
       (continuous_fixedPointMap β h).continuousAt.eventually
         (lt_mem_nhds (a := Real.tanh h ^ 2 / 2) (b := Φ 0) (by rw [hΦ0]; linarith))

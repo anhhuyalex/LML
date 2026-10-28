@@ -164,8 +164,8 @@ theorem clt_induction (hε : 0 < ε) (ha0 : a 0 = 1) (ha1 : a 1 = 0)
   induction k using Nat.strong_induction_on generalizing s with
   | _ k ih =>
     rcases Nat.eq_zero_or_pos k with rfl | hk
-    · simp [hψ0, ha0, hC0, hε.le]
-      positivity
+    · rw [hψ0, ha0, pow_zero, one_mul, Nat.zero_div, pow_zero, mul_one, sub_self, abs_zero]
+      exact mul_nonneg hC0 (by positivity)
     · have hprev : ∀ s ∈ Icc 0 (π / 2),
           |ψ (k - 2) s - ε ^ (k - 2) * a (k - 2) * b s ^ ((k - 2) / 2)| ≤
             C (k - 2) * ε ^ (k - 1) := fun s hs => by

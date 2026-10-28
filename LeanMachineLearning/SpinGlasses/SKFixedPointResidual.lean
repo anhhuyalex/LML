@@ -25,6 +25,16 @@ open MeasureTheory ProbabilityTheory Set
 
 namespace SpinGlasses
 
+/-- **Chain rule for the square-root parametrization:** if `F' (w) = w J` at `w = β √x` then
+`(d/dx) F (β √x) = (β² / 2) J` for `x > 0`.  Both `x ↦ 𝔼 tanh² (β √x z + h)` and
+`x ↦ 𝔼 log cosh (β √x z + h)` are differentiated through this. -/
+theorem hasDerivAt_comp_mul_sqrt {F : ℝ → ℝ} {β J x : ℝ} (hx : 0 < x)
+    (hF : HasDerivAt F ((β * Real.sqrt x) * J) (β * Real.sqrt x)) :
+    HasDerivAt (fun y => F (β * Real.sqrt y)) (β ^ 2 / 2 * J) x := by
+  refine (hF.comp x ((Real.hasDerivAt_sqrt hx.ne').const_mul β)).congr_deriv ?_
+  have hs : Real.sqrt x ≠ 0 := (Real.sqrt_pos.2 hx).ne'
+  field_simp
+
 /-- `x`-derivative of `Φ(x) = 𝔼 tanh²(β √x z + h)` for `x > 0`:
 `Φ'(x) = β² 𝔼[(1 - tanh²)(1 - 3 tanh²)]`. -/
 theorem hasDerivAt_fixedPointMap_sqrt (β h : ℝ) {x : ℝ} (hx : 0 < x) :
@@ -32,22 +42,16 @@ theorem hasDerivAt_fixedPointMap_sqrt (β h : ℝ) {x : ℝ} (hx : 0 < x) :
       (fun y : ℝ => ∫ z : ℝ, Real.tanh (β * Real.sqrt y * z + h) ^ 2 ∂(gaussianReal 0 1))
       (β ^ 2 * ∫ z : ℝ, (1 - Real.tanh (β * Real.sqrt x * z + h) ^ 2) *
         (1 - 3 * Real.tanh (β * Real.sqrt x * z + h) ^ 2) ∂(gaussianReal 0 1)) x := by
-  have h1 := hasDerivAt_fixedPointMap_param h (β * Real.sqrt x)
-  have h2 : HasDerivAt (fun y : ℝ => β * Real.sqrt y) (β * (1 / (2 * Real.sqrt x))) x :=
-    (Real.hasDerivAt_sqrt hx.ne').const_mul β
-  have h3 := h1.comp x h2
-  have hs : Real.sqrt x ≠ 0 := (Real.sqrt_pos.2 hx).ne'
   have e : ∫ z : ℝ, 2 * (1 - Real.tanh (β * Real.sqrt x * z + h) ^ 2) *
       (1 - 3 * Real.tanh (β * Real.sqrt x * z + h) ^ 2) ∂(gaussianReal 0 1) =
       2 * ∫ z : ℝ, (1 - Real.tanh (β * Real.sqrt x * z + h) ^ 2) *
         (1 - 3 * Real.tanh (β * Real.sqrt x * z + h) ^ 2) ∂(gaussianReal 0 1) := by
     rw [← integral_const_mul]
     exact integral_congr_ae (ae_of_all _ fun z => by ring)
-  rw [e] at h3
-  refine h3.congr_deriv ?_
-  generalize (∫ z : ℝ, (1 - Real.tanh (β * Real.sqrt x * z + h) ^ 2) *
-    (1 - 3 * Real.tanh (β * Real.sqrt x * z + h) ^ 2) ∂(gaussianReal 0 1)) = I
-  field_simp
+  have h1 := hasDerivAt_fixedPointMap_param h (β * Real.sqrt x)
+  rw [e] at h1
+  refine (hasDerivAt_comp_mul_sqrt hx h1).congr_deriv ?_
+  ring
 
 /-- For `h ≠ 0`, `𝔼 tanh²(w z + h) > 0`. -/
 theorem fixedPointMap_pos {h : ℝ} (hh : h ≠ 0) (w : ℝ) :

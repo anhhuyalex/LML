@@ -31,6 +31,31 @@ namespace ProbabilityTheory
 
 variable {f f' f'' : ℝ → ℝ} {C₁ C₂ : ℝ}
 
+/-- **Derivative in the scale of an affine average:** if `f' ` is a bounded continuous derivative of
+`f`, `|z|` is `μ`-integrable and `f(w z + h)` is integrable, then
+`(d/dw) ∫ f(w z + h) dμ = ∫ f'(w z + h) z dμ`. -/
+theorem hasDerivAt_integral_comp_mul_add {μ : Measure ℝ} (hf : ∀ y, HasDerivAt f (f' y) y)
+    (hf'c : Continuous f') (hC₁ : ∀ y, |f' y| ≤ C₁) (hz : Integrable (fun z : ℝ => |z|) μ)
+    (h w : ℝ) (hint : Integrable (fun z => f (w * z + h)) μ) :
+    HasDerivAt (fun v => ∫ z, f (v * z + h) ∂μ) (∫ z, f' (w * z + h) * z ∂μ) w := by
+  have hfc : Continuous f := continuous_iff_continuousAt.2 fun y => (hf y).continuousAt
+  refine (hasDerivAt_integral_of_dominated_loc_of_deriv_le (s := univ)
+    (F := fun v z => f (v * z + h)) (F' := fun v z => f' (v * z + h) * z)
+    univ_mem
+    (Eventually.of_forall fun v =>
+      (hfc.comp (by fun_prop : Continuous fun z : ℝ => v * z + h)).aestronglyMeasurable)
+    hint
+    ((hf'c.comp (by fun_prop : Continuous fun z : ℝ => w * z + h)).mul
+      continuous_id').aestronglyMeasurable
+    (bound := fun z => C₁ * |z|)
+    (ae_of_all _ fun z v _ => ?_) (hz.const_mul C₁)
+    (ae_of_all _ fun z v _ => ?_)).2
+  · rw [Real.norm_eq_abs, abs_mul]
+    exact mul_le_mul_of_nonneg_right (hC₁ _) (abs_nonneg _)
+  · have hl : HasDerivAt (fun v : ℝ => v * z + h) z v := by
+      simpa using ((hasDerivAt_id' v).mul_const z).add_const h
+    exact (hf (v * z + h)).comp v hl
+
 /-- **Stein's lemma for an affine Gaussian argument:** if `f'` has a bounded continuous derivative
 `f''` and is itself bounded, then `𝔼 [f'(w z + h) z] = w 𝔼 f''(w z + h)` for `z ~ N(0,1)`. -/
 theorem integral_deriv_comp_affine_mul_id_gaussianReal (hf' : ∀ y, HasDerivAt f' (f'' y) y)
@@ -69,27 +94,10 @@ theorem hasDerivAt_integral_comp_affine_gaussianReal (hf : ∀ y, HasDerivAt f (
     (hint : Integrable (fun z => f (w * z + h)) (gaussianReal 0 1)) :
     HasDerivAt (fun v => ∫ z, f (v * z + h) ∂(gaussianReal 0 1))
       (w * ∫ z, f'' (w * z + h) ∂(gaussianReal 0 1)) w := by
-  have hfc : Continuous f := continuous_iff_continuousAt.2 fun y => (hf y).continuousAt
   have hf'c : Continuous f' := continuous_iff_continuousAt.2 fun y => (hf' y).continuousAt
-  have h_diff : HasDerivAt (fun v => ∫ z, f (v * z + h) ∂(gaussianReal 0 1))
-      (∫ z, f' (w * z + h) * z ∂(gaussianReal 0 1)) w := by
-    refine (hasDerivAt_integral_of_dominated_loc_of_deriv_le (s := univ)
-      (F := fun v z => f (v * z + h)) (F' := fun v z => f' (v * z + h) * z)
-      univ_mem
-      (Eventually.of_forall fun v =>
-        (hfc.comp (by fun_prop : Continuous fun z : ℝ => v * z + h)).aestronglyMeasurable)
-      hint
-      ((hf'c.comp (by fun_prop : Continuous fun z : ℝ => w * z + h)).mul
-        continuous_id').aestronglyMeasurable
-      (bound := fun z => C₁ * |z|)
-      (ae_of_all _ fun z v _ => ?_)
-      ((IsGaussian.integrable_id (μ := gaussianReal 0 1)).norm.const_mul C₁)
-      (ae_of_all _ fun z v _ => ?_)).2
-    · rw [Real.norm_eq_abs, abs_mul]
-      exact mul_le_mul_of_nonneg_right (hC₁ _) (abs_nonneg _)
-    · have hl : HasDerivAt (fun v : ℝ => v * z + h) z v := by
-        simpa using ((hasDerivAt_id' v).mul_const z).add_const h
-      exact (hf (v * z + h)).comp v hl
+  have h_diff := hasDerivAt_integral_comp_mul_add hf hf'c hC₁
+    (by simpa only [Real.norm_eq_abs, id] using
+      (IsGaussian.integrable_id (μ := gaussianReal 0 1)).norm) h w hint
   rwa [integral_deriv_comp_affine_mul_id_gaussianReal hf' hf''c hC₁ hC₂ h w] at h_diff
 
 end ProbabilityTheory

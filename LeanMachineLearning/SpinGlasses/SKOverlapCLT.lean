@@ -6,7 +6,8 @@ Authors: LML Contributors
 module
 
 public import Mathlib.Data.Finset.Card
-public import Mathlib.Data.Real.Basic
+public import Mathlib.Tactic.Ring
+public import Mathlib.Basic.Real.Basic
 
 /-!
 # The covariance function of the overlap fluctuations (Talagrand, Section 1.10)
@@ -51,7 +52,7 @@ def skOverlapCov (A2 B2 C2 : ℝ) {R : Type*} [DecidableEq R] (p₁ p₂ : Finse
 @[simp] theorem skOverlapCov_self {R : Type*} [DecidableEq R] (A2 B2 C2 : ℝ)
     {p : Finset R} (hp : p.card = 2) :
     skOverlapCov A2 B2 C2 p p = A2 + 2 * B2 + C2 := by
-  simp only [skOverlapCov, if_pos rfl, Finset.inter_self, hp]
+  simp only [skOverlapCov, Finset.inter_self, hp, ↓reduceIte]
   push_cast
   ring
 
@@ -64,7 +65,7 @@ def skOverlapCov (A2 B2 C2 : ℝ) {R : Type*} [DecidableEq R] (p₁ p₂ : Finse
       rw [Finset.disjoint_iff_inter_eq_empty.mp hdisj, Finset.card_empty]
     rw [Finset.inter_self, hp1] at this
     norm_num at this
-  simp only [skOverlapCov, if_neg hne]
+  simp only [skOverlapCov, hne, ↓reduceIte]
   rw [Finset.disjoint_iff_inter_eq_empty.mp hdisj, Finset.card_empty]
   push_cast
   ring

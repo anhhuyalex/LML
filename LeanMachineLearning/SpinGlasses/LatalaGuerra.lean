@@ -170,12 +170,6 @@ theorem deriv_mem_Icc (hc1 : ContDiff ℝ 1 φ) (hodd : ∀ y, φ (-y) = -φ y) 
     exact (strictAntiOn_deriv_Ici hc1 hφ₂ hneg).antitoneOn self_mem_Ici
       (show -y ∈ Ici (0 : ℝ) from by simp only [mem_Ici]; linarith) (by linarith)
 
-/-- `φ(0) = 0` for an odd function. -/
-theorem apply_zero_of_odd (hodd : ∀ y, φ (-y) = -φ y) : φ 0 = 0 := by
-  have := hodd 0
-  rw [neg_zero] at this
-  linarith
-
 /-- `φ > 0` on `(0, ∞)` for an increasing odd `φ` with `φ'' < 0` on `(0, ∞)`. -/
 theorem apply_pos_of_pos (hc1 : ContDiff ℝ 1 φ) (hodd : ∀ y, φ (-y) = -φ y) (hm : Monotone φ)
     (hφ₂ : ∀ y, 0 < y → HasDerivAt (deriv φ) (φ₂ y) y) (hneg : ∀ y, 0 < y → φ₂ y < 0) {y : ℝ}
@@ -185,7 +179,7 @@ theorem apply_pos_of_pos (hc1 : ContDiff ℝ 1 φ) (hodd : ∀ y, φ (-y) = -φ 
       rw [interior_Ici] at hx
       exact deriv_pos_of_nonneg hc1 hm hφ₂ hneg (le_of_lt hx)
   have := h self_mem_Ici (show y ∈ Ici (0 : ℝ) from hy.le) hy
-  rwa [apply_zero_of_odd hodd] at this
+  rwa [Function.Odd.map_zero hodd] at this
 
 /-- `φ ≠ 0` away from zero. -/
 theorem apply_ne_zero (hc1 : ContDiff ℝ 1 φ) (hodd : ∀ y, φ (-y) = -φ y) (hm : Monotone φ)
@@ -214,7 +208,7 @@ theorem mul_deriv_sub_self_neg (hc1 : ContDiff ℝ 1 φ) (hodd : ∀ y, φ (-y) 
     rw [(hd x hx).deriv]
     exact mul_neg_of_pos_of_neg hx (hneg x hx)
   have := h self_mem_Ici (show y ∈ Ici (0 : ℝ) from hy.le) hy
-  simpa [apply_zero_of_odd hodd] using this
+  simpa [Function.Odd.map_zero hodd] using this
 
 /-- **The sign computation of Proposition A.14.1:** `φ(y) (y φ'(y) - φ(y)) < 0` for `y ≠ 0`. -/
 theorem mul_mul_deriv_sub_self_neg (hc1 : ContDiff ℝ 1 φ) (hodd : ∀ y, φ (-y) = -φ y)
@@ -252,7 +246,7 @@ theorem integral_mul_deriv_nonneg_aux (hc1 : ContDiff ℝ 1 φ) (hodd : ∀ y, �
   · simp only [hodd, deriv_neg_eq_of_odd hodd]; ring
   · have h0 : 0 ≤ φ y := by
       have := hm hy
-      rwa [apply_zero_of_odd hodd] at this
+      rwa [Function.Odd.map_zero hodd] at this
     exact mul_nonneg h0 (deriv_mem_Icc hc1 hodd hm hφ₂ hneg y).1
 
 /-- **The key inequality of Proposition A.14.1:** for `w ≠ 0` and `Y = w z + h`,
@@ -350,32 +344,20 @@ theorem hasDerivAt_integral_sq_comp_affine (hc1 : ContDiff ℝ 1 φ) (hodd : ∀
   have hB0 : 0 ≤ B := (abs_nonneg _).trans (hB 0)
   have hφc : Continuous φ := hc1.continuous
   have hφ'c : Continuous (deriv φ) := hc1.continuous_deriv le_rfl
-  have hsq : ∀ v : ℝ, Continuous fun z : ℝ => φ (v * z + h) ^ 2 := fun v => by fun_prop
-  refine (hasDerivAt_integral_of_dominated_loc_of_deriv_le (s := univ)
-    (F := fun v z => φ (v * z + h) ^ 2)
-    (F' := fun v z => 2 * (φ (v * z + h) * deriv φ (v * z + h)) * z)
-    univ_mem (Filter.Eventually.of_forall fun v => (hsq v).aestronglyMeasurable)
-    ((integrable_const (B ^ 2)).mono' (hsq w).aestronglyMeasurable
+  have hf : ∀ y, HasDerivAt (fun y => φ y ^ 2) (2 * (φ y * deriv φ y)) y := fun y => by
+    refine (((hc1.differentiable one_ne_zero) y).hasDerivAt.pow 2).congr_deriv ?_
+    push_cast
+    ring
+  refine hasDerivAt_integral_comp_mul_add (C₁ := 2 * (B * deriv φ 0)) hf (by fun_prop) (fun y => ?_)
+    integrable_abs_id_gaussianReal h w ((integrable_const (B ^ 2)).mono'
+      (by fun_prop : Continuous fun z : ℝ => φ (w * z + h) ^ 2).aestronglyMeasurable
       (Filter.Eventually.of_forall fun z => by
         rw [Real.norm_eq_abs, abs_pow]
         exact pow_le_pow_left₀ (abs_nonneg _) (hB _) 2))
-    (by fun_prop : Continuous fun z : ℝ =>
-      2 * (φ (w * z + h) * deriv φ (w * z + h)) * z).aestronglyMeasurable
-    (bound := fun z => 2 * (B * deriv φ 0) * |z|) (ae_of_all _ fun z v _ => ?_)
-    (integrable_abs_id_gaussianReal.const_mul (2 * (B * deriv φ 0)))
-    (ae_of_all _ fun z v _ => ?_)).2
-  · have h1 := deriv_mem_Icc hc1 hodd hm hφ₂ hneg (v * z + h)
-    rw [Real.norm_eq_abs, abs_mul, abs_mul, abs_mul, abs_of_nonneg h1.1,
-      abs_of_pos (by norm_num : (0 : ℝ) < 2)]
-    have := mul_le_mul (hB (v * z + h)) h1.2 h1.1 hB0
-    nlinarith only [this, abs_nonneg z]
-  · have h_lin : HasDerivAt (fun v => v * z + h) z v := by
-      simpa using ((hasDerivAt_id' v).mul_const z).add_const h
-    have h1 : HasDerivAt (fun v => φ (v * z + h)) (deriv φ (v * z + h) * z) v :=
-      ((hc1.differentiable one_ne_zero) (v * z + h)).hasDerivAt.comp v h_lin
-    refine (h1.pow 2).congr_deriv ?_
-    push_cast
-    ring
+  have h1 := deriv_mem_Icc hc1 hodd hm hφ₂ hneg y
+  rw [abs_mul, abs_mul, abs_of_nonneg h1.1, abs_of_pos (by norm_num : (0 : ℝ) < 2)]
+  have := mul_le_mul (hB y) h1.2 h1.1 hB0
+  nlinarith only [this]
 
 /-- **Proposition A.14.1 (Latała–Guerra lemma).** Let `φ` be globally `C¹`, bounded, increasing
 and odd, with `φ'' < 0` on `(0, ∞)`.  If `s ≠ 0` or `h ≠ 0`, then
