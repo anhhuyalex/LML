@@ -231,6 +231,17 @@ theorem decoupled_replica_overlap_eq [Nonempty ι]
   · intro j _hj
     exact integrable_tanh_sq (Y j) (h_law j).aemeasurable_fst
 
+/-- **The logarithm of the decoupled partition function:**
+`log ∑_σ exp (∑ᵢ σᵢ Yᵢ) = |ι| log 2 + ∑ᵢ log cosh Yᵢ`. -/
+theorem log_decoupled_partition_function_eq [DecidableEq ι] (Y : ι → ℝ) :
+    Real.log (∑ σ : ι → ℤˣ, Real.exp (∑ i, ((σ i : ℤ) : ℝ) * Y i)) =
+      (Fintype.card ι : ℝ) * Real.log 2 + ∑ i, Real.log (Real.cosh (Y i)) := by
+  rw [decoupled_partition_function_eq Y]
+  have h_prod_pos : 0 < ∏ i, Real.cosh (Y i) := Finset.prod_pos fun i _ => Real.cosh_pos (Y i)
+  rw [Real.log_mul (by positivity) h_prod_pos.ne', Real.log_pow]
+  congr 1
+  exact Real.log_prod (fun i _ => (Real.cosh_pos _).ne')
+
 /-- **Decoupled Expected Free Energy (Eq. 1.33):**
 The expected free energy of the non-interacting model equals `log 2 + 𝔼 log cosh(Y)`. -/
 theorem decoupled_free_energy_eq [DecidableEq ι] [Nonempty ι]
@@ -242,17 +253,7 @@ theorem decoupled_free_energy_eq [DecidableEq ι] [Nonempty ι]
         ∫ ω, Real.log (∑ σ : ι → ℤˣ, Real.exp (∑ i, ((σ i : ℤ) : ℝ) * Y i ω)) ∂P =
       Real.log 2 + ∫ ω, Real.log (Real.cosh (Y j₀ ω)) ∂P := by
   have hN : (Fintype.card ι : ℝ) ≠ 0 := Nat.cast_ne_zero.2 Fintype.card_ne_zero
-  have h_part (ω : Ω) : Real.log (∑ σ : ι → ℤˣ, Real.exp (∑ i, ((σ i : ℤ) : ℝ) * Y i ω)) =
-      (Fintype.card ι : ℝ) * Real.log 2 + ∑ i, Real.log (Real.cosh (Y i ω)) := by
-    rw [decoupled_partition_function_eq (fun i => Y i ω)]
-    have h_prod_pos : 0 < ∏ i, Real.cosh (Y i ω) := by
-      apply Finset.prod_pos
-      intro i _hi
-      exact Real.cosh_pos (Y i ω)
-    rw [Real.log_mul (by positivity) (ne_of_gt h_prod_pos)]
-    rw [Real.log_pow]
-    congr 1
-    exact Real.log_prod (fun i _hi => ne_of_gt (Real.cosh_pos _))
+  have h_part (ω : Ω) := log_decoupled_partition_function_eq (fun i => Y i ω)
   simp_rw [h_part]
   have h_meas : Measurable (fun x : ℝ => Real.log (Real.cosh x)) :=
     (Real.continuous_cosh.log (fun x => ne_of_gt (Real.cosh_pos x))).measurable

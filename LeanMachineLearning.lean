@@ -394,6 +394,7 @@ public import LeanMachineLearning.SpinGlasses.GaussianCovarianceInterpolation
 public import LeanMachineLearning.SpinGlasses.GaussianIBP
 public import LeanMachineLearning.SpinGlasses.GaussianIBPCountable
 public import LeanMachineLearning.SpinGlasses.GaussianInterpolationConditional
+public import LeanMachineLearning.SpinGlasses.GaussianInterpolationNonlinear
 public import LeanMachineLearning.SpinGlasses.GaussianInterpolationReplica
 public import LeanMachineLearning.SpinGlasses.GaussianProjectionPath
 public import LeanMachineLearning.SpinGlasses.GaussianTiltedFreeEnergy
@@ -511,6 +512,7 @@ public import LeanMachineLearning.SpinGlasses.SKSecondaryContraction
 public import LeanMachineLearning.SpinGlasses.SKSiteSymmetry
 public import LeanMachineLearning.SpinGlasses.SKSmartPath
 public import LeanMachineLearning.SpinGlasses.SKSmartPathProfile
+public import LeanMachineLearning.SpinGlasses.SKSmartPathProfileComp
 public import LeanMachineLearning.SpinGlasses.SKSpinDecorrelation
 public import LeanMachineLearning.SpinGlasses.SKTAPEquation
 public import LeanMachineLearning.SpinGlasses.SKTAPUniform

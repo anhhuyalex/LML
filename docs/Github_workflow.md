@@ -112,6 +112,7 @@ declaration pages, source links, project-only search and dependency navigation r
 the existing compiled project and its imported dependencies. Generation does not
 run Tenet's independent proof checker: the manifest has no check report and the
 frontend displays **Not re-checked**. Lean's normal build and lint checks still run.
+Use lowercase name queries for case-insensitive search.
 
 Requirements: .NET 10 SDK, the project's Lean toolchain through `elan`/`lake`, Git,
 Python 3, and Chrome or Chromium (`CHROME=/path/to/chrome` overrides detection).

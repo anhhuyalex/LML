@@ -84,11 +84,13 @@ def main(tools: pathlib.Path, repository: str) -> None:
                 page.visit(base + "/?p=lml#/", "!!document.querySelector('#q') && !!document.querySelector('.tab')")
                 name = declaration["n"]
                 encoded_name = json.dumps(name)
+                # Lowercase selects the pinned frontend's case-insensitive search mode.
+                encoded_query = json.dumps(name.lower())
                 page.value(f"""(() => {{
                     const scope = document.querySelector('#scope');
                     if (!scope.checked) {{ scope.checked = true; scope.dispatchEvent(new Event('change')); }}
                     const query = document.querySelector('#q');
-                    query.value = {encoded_name}; query.dispatchEvent(new Event('input'));
+                    query.value = {encoded_query}; query.dispatchEvent(new Event('input'));
                 }})()""")
                 result = f"[...document.querySelectorAll('#results a')].find(a => a.querySelector('.nm')?.textContent === {encoded_name})"
                 deadline = time.monotonic() + 60

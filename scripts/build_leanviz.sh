@@ -55,11 +55,23 @@ mkdir -p "$SITE_DIR"
 cp -R "$TOOLS_DIR/leanviz/site/." "$SITE_DIR/"
 cp "$TOOLS_DIR/leanviz/LICENSE" "$SITE_DIR/LICENSE"
 LEANVIZ_DLL="$TOOLS_DIR/leanviz/generator/bin/Release/net10.0/leanviz.dll"
-# The reader asks Git for origin to construct source links. Override it for this process only,
-# including when a local checkout uses an SSH remote; leave the checkout's config untouched.
-GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=remote.origin.url GIT_CONFIG_VALUE_0="$PROJECT_REPO" \
-  lake env dotnet "$LEANVIZ_DLL" "$PROJECT_ROOT" \
-    --out "$SITE_DIR/data" --slug lml --title "Lean Machine Learning" --repo "$PROJECT_REPO"
+lake env dotnet "$LEANVIZ_DLL" "$PROJECT_ROOT" \
+  --out "$SITE_DIR/data" --slug lml --title "Lean Machine Learning" --repo "$PROJECT_REPO"
+
+# The pinned generator uses `git remote get-url`, which may return SSH URLs (including
+# through insteadOf rules). Use the explicit web URL for the project's source links.
+# The revision still comes from the compiled checkout; no Git configuration is changed.
+python3 - "$SITE_DIR/data/lml/manifest.json" "$PROJECT_REPO" <<'PY'
+import json
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+manifest = json.loads(path.read_text())
+library = next(lib for lib in manifest["libraries"] if not lib["prefixes"])
+library["url"] = sys.argv[2]
+path.write_text(json.dumps(manifest, indent=2) + "\n")
+PY
 
 python3 "$TOOLS_DIR/leanviz/tests/check_bundle.py" "$SITE_DIR/data"
 python3 scripts/check_leanviz.py "$TOOLS_DIR/leanviz" "$PROJECT_REPO"
