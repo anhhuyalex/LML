@@ -51,7 +51,7 @@ finite configuration space `α` with variance bounded by `v`, the free energy
 `F = log ∑ₐ exp (g a + bias a)` has concentrated moments:
 `(√N)^k 𝔼 |N⁻¹ F - N⁻¹ 𝔼 F|^k ≤ 2 k! exp (v / N)`. -/
 theorem integral_pow_abs_sub_integral_log_sum_exp_le {α Ω : Type*} [Fintype α] [Nonempty α]
-    [MeasurableSpace Ω] {P : Measure Ω} [IsProbabilityMeasure P]
+    [MeasurableSpace Ω] {P : Measure Ω}
     {g : α → Ω → ℝ} (hg : HasGaussianLaw (fun ω a => g a ω) P)
     (hm : ∀ a, Measurable (g a)) (h0 : ∀ a, ∫ ω, g a ω ∂P = 0)
     {v : ℝ} (hv : ∀ a, ∫ ω, g a ω ^ 2 ∂P ≤ v) (bias : α → ℝ)
@@ -140,78 +140,36 @@ theorem integral_pow_abs_free_energy_sub_le (β h : ℝ) (k : ℕ) {N : ℕ} (hN
   exact hkey
 
 /-- **Variance bound for the smart path field of a fixed configuration.**
-`𝔼 (cos s F_σ + sin s G_σ)² ≤ (3/2) β² N` uniformly in `s`. -/
+`𝔼 (cos s F_σ + sin s G_σ)² ≤ β² N` uniformly in `s`, for the independent jointly Gaussian
+fields `F` (the SK couplings) and `G` (the cavity field) of `exists_sk_smart_path_fields`. -/
 theorem integral_smart_path_field_sq_le {N : ℕ} (hN : 0 < N) (β q : ℝ)
     (hq : 0 ≤ q) (hq1 : q ≤ 1) (s : ℝ) (σ : Fin N → ℤˣ)
+    {P : Measure ((FinPairs N → ℝ) × (Fin N → ℝ))}
+    (hP : P = (Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
+      (Measure.pi fun _ : Fin N => gaussianReal 0 1))
     (F : (FinPairs N → ℝ) → (Fin N → ℤˣ) → ℝ)
     (G : (Fin N → ℝ) → (Fin N → ℤˣ) → ℝ)
     (hF : ∀ g σ, F g σ = (Real.sqrt N)⁻¹ * β *
       ∑ p : FinPairs N, g p * ((σ p.val.1 : ℤ) : ℝ) * ((σ p.val.2 : ℤ) : ℝ))
-    (hG : ∀ z σ, G z σ = β * Real.sqrt q * ∑ i, z i * ((σ i : ℤ) : ℝ)) :
-    ∫ ω : (FinPairs N → ℝ) × (Fin N → ℝ),
-      (Real.cos s * F ω.1 σ + Real.sin s * G ω.2 σ) ^ 2
-      ∂((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
-        (Measure.pi fun _ : Fin N => gaussianReal 0 1)) ≤ 3 / 2 * β ^ 2 * N := by
-  have : Nonempty (Fin N → ℤˣ) := ⟨fun _ => 1⟩
+    (hG : ∀ z σ, G z σ = β * Real.sqrt q * ∑ i, z i * ((σ i : ℤ) : ℝ))
+    (hXY : HasGaussianLaw (fun (ω : (FinPairs N → ℝ) × (Fin N → ℝ))
+        (t : (Fin N → ℤˣ) ⊕ (Fin N → ℤˣ)) =>
+      Sum.elim (fun σ (ω : (FinPairs N → ℝ) × (Fin N → ℝ)) => F ω.1 σ)
+        (fun σ ω => G ω.2 σ) t ω) P)
+    (h0 : ∀ σ τ, ∫ ω, F ω.1 σ * G ω.2 τ ∂P = 0) :
+    ∫ ω, (Real.cos s * F ω.1 σ + Real.sin s * G ω.2 σ) ^ 2 ∂P ≤ β ^ 2 * N := by
   have : Nonempty (Fin N) := ⟨⟨0, hN⟩⟩
+  have hlin := integral_lincomb_mul_lincomb hXY h0 (Real.cos s) (Real.sin s)
+    (Real.cos s) (Real.sin s) σ σ
+  refine le_of_eq_of_le (by simpa only [sq] using hlin) ?_
+  subst hP
   set Pg : Measure (FinPairs N → ℝ) := Measure.pi fun _ => gaussianReal 0 1
   set Pz : Measure (Fin N → ℝ) := Measure.pi fun _ => gaussianReal 0 1
   set P := Pg.prod Pz
   have : IsProbabilityMeasure Pg := inferInstance
   have : IsProbabilityMeasure Pz := inferInstance
-  set a : FinPairs N → ℝ := fun p =>
-    (Real.sqrt N)⁻¹ * β * (((σ p.val.1 : ℤ) : ℝ) * ((σ p.val.2 : ℤ) : ℝ))
-  set b : Fin N → ℝ := fun i => β * Real.sqrt q * ((σ i : ℤ) : ℝ)
-  have heF : ∀ g, F g σ = a ⬝ᵥ g := fun g => by
-    rw [hF]; simp only [dotProduct, a, Finset.mul_sum]
-    exact Finset.sum_congr rfl fun p _ => by ring
-  have heG : ∀ z, G z σ = b ⬝ᵥ z := fun z => by
-    rw [hG]; simp only [dotProduct, b, Finset.mul_sum]
-    exact Finset.sum_congr rfl fun i _ => by ring
-  have hF_int : Integrable (fun g => (a ⬝ᵥ g) * (a ⬝ᵥ g)) Pg :=
-    integrable_dotProduct_mul_dotProduct_pi_gaussianReal a a
-  have hG_int : Integrable (fun z => (b ⬝ᵥ z) * (b ⬝ᵥ z)) Pz :=
-    integrable_dotProduct_mul_dotProduct_pi_gaussianReal b b
-  have hF_intP : Integrable (fun ω : (FinPairs N → ℝ) × (Fin N → ℝ) => (F ω.1 σ) ^ 2) P := by
-    simp_rw [heF, sq]
-    exact hF_int.comp_fst Pz
-  have hG_intP : Integrable (fun ω : (FinPairs N → ℝ) × (Fin N → ℝ) => (G ω.2 σ) ^ 2) P := by
-    simp_rw [heG, sq]
-    exact hG_int.comp_snd Pg
-  have hFG_intP : Integrable (fun ω : (FinPairs N → ℝ) × (Fin N → ℝ) =>
-      F ω.1 σ * G ω.2 σ) P := by
-    simp_rw [heF, heG]
-    exact ((memLp_dotProduct_pi_gaussianReal a).comp_fst Pz).integrable_mul
-      ((memLp_dotProduct_pi_gaussianReal b).comp_snd Pg)
-  have hf1 : Integrable (fun ω : (FinPairs N → ℝ) × (Fin N → ℝ) =>
-      Real.cos s ^ 2 * F ω.1 σ ^ 2) P := hF_intP.const_mul _
-  have hf2 : Integrable (fun ω : (FinPairs N → ℝ) × (Fin N → ℝ) =>
-      Real.sin s ^ 2 * G ω.2 σ ^ 2) P := hG_intP.const_mul _
-  have hf3 : Integrable (fun ω : (FinPairs N → ℝ) × (Fin N → ℝ) =>
-      2 * Real.cos s * Real.sin s * (F ω.1 σ * G ω.2 σ)) P := hFG_intP.const_mul _
-  have hf23 : Integrable (fun ω : (FinPairs N → ℝ) × (Fin N → ℝ) =>
-      Real.sin s ^ 2 * G ω.2 σ ^ 2 + 2 * Real.cos s * Real.sin s * (F ω.1 σ * G ω.2 σ)) P :=
-    hf2.add hf3
-  change ∫ ω, (Real.cos s * F ω.1 σ + Real.sin s * G ω.2 σ) ^ 2 ∂P ≤ 3 / 2 * β ^ 2 * N
-  have e : ∀ ω : (FinPairs N → ℝ) × (Fin N → ℝ),
-      (Real.cos s * F ω.1 σ + Real.sin s * G ω.2 σ) ^ 2 =
-        Real.cos s ^ 2 * F ω.1 σ ^ 2 +
-          (Real.sin s ^ 2 * G ω.2 σ ^ 2 + 2 * Real.cos s * Real.sin s * (F ω.1 σ * G ω.2 σ)) :=
-    fun ω => by ring
-  simp_rw [e]
-  rw [integral_add hf1 hf23, integral_add hf2 hf3,
-    integral_const_mul, integral_const_mul, integral_const_mul]
-  have h0 : ∫ ω : (FinPairs N → ℝ) × (Fin N → ℝ), F ω.1 σ * G ω.2 σ ∂P = 0 := by
-    rw [integral_prod_mul (fun g => F g σ) (fun z => G z σ)]
-    have : ∫ z, G z σ ∂Pz = 0 := by
-      simp_rw [heG]
-      exact integral_dotProduct_pi_gaussianReal b
-    rw [this, mul_zero]
-  rw [h0, mul_zero, add_zero]
-  have hF_sq : ∫ ω, (F ω.1 σ) ^ 2 ∂P ≤ β ^ 2 * N / 2 := by
-    rw [integral_fun_fst (fun g => (F g σ) ^ 2), probReal_univ, one_smul]
-    have eF : (fun g => (F g σ) ^ 2) = fun g => (F g σ) * (F g σ) := by ext; ring
-    rw [eF]
+  have hF_sq : ∫ ω, F ω.1 σ * F ω.1 σ ∂P ≤ β ^ 2 * N / 2 := by
+    rw [integral_fun_fst (fun g => F g σ * F g σ), probReal_univ, one_smul]
     simp_rw [hF]
     rw [integral_sk_pair_field_mul_eq_overlap hN β σ σ]
     have h1 : (((N : ℝ)⁻¹ * ((fun i => ((σ i : ℤ) : ℝ)) ⬝ᵥ fun i => ((σ i : ℤ) : ℝ))) ^ 2 -
@@ -229,10 +187,8 @@ theorem integral_smart_path_field_sq_le {N : ℕ} (hN : 0 < N) (β q : ℝ)
     calc (N : ℝ) * β ^ 2 / 2 * (1 - (N : ℝ)⁻¹)
         ≤ (N : ℝ) * β ^ 2 / 2 * 1 := mul_le_mul_of_nonneg_left hle1 hpos
       _ = β ^ 2 * N / 2 := by ring
-  have hG_sq : ∫ ω, (G ω.2 σ) ^ 2 ∂P ≤ β ^ 2 * N := by
-    rw [integral_fun_snd (fun z => (G z σ) ^ 2), probReal_univ, one_smul]
-    have eG : (fun z => (G z σ) ^ 2) = fun z => (G z σ) * (G z σ) := by ext; ring
-    rw [eG]
+  have hG_sq : ∫ ω, G ω.2 σ * G ω.2 σ ∂P ≤ β ^ 2 * N := by
+    rw [integral_fun_snd (fun z => G z σ * G z σ), probReal_univ, one_smul]
     simp_rw [hG]
     rw [integral_decoupled_gaussian_field_mul β q hq
       (fun i => ((σ i : ℤ) : ℝ)) (fun i => ((σ i : ℤ) : ℝ))]
@@ -253,18 +209,15 @@ theorem integral_smart_path_field_sq_le {N : ℕ} (hN : 0 < N) (β q : ℝ)
     calc β ^ 2 * q * N = β ^ 2 * (q * N) := by ring
       _ ≤ β ^ 2 * (1 * N) := mul_le_mul_of_nonneg_left hqN hbeta
       _ = β ^ 2 * N := by ring
-  have hc1 := Real.cos_sq_le_one s
-  have hc2 := Real.sin_sq_le_one s
-  have hcos_nonneg : 0 ≤ Real.cos s ^ 2 := sq_nonneg _
-  have hsin_nonneg : 0 ≤ Real.sin s ^ 2 := sq_nonneg _
-  calc Real.cos s ^ 2 * (∫ ω, (F ω.1 σ) ^ 2 ∂P) + Real.sin s ^ 2 * (∫ ω, (G ω.2 σ) ^ 2 ∂P)
-      ≤ 1 * (β ^ 2 * N / 2) + 1 * (β ^ 2 * N) := by
-        refine add_le_add ?_ ?_
-        · exact (mul_le_mul_of_nonneg_left hF_sq hcos_nonneg).trans
-            (mul_le_mul_of_nonneg_right hc1 (by positivity))
-        · exact (mul_le_mul_of_nonneg_left hG_sq hsin_nonneg).trans
-            (mul_le_mul_of_nonneg_right hc2 (by positivity))
-    _ = 3 / 2 * β ^ 2 * N := by ring
+  calc Real.cos s * Real.cos s * (∫ ω, F ω.1 σ * F ω.1 σ ∂P) +
+        Real.sin s * Real.sin s * (∫ ω, G ω.2 σ * G ω.2 σ ∂P)
+      ≤ Real.cos s * Real.cos s * (β ^ 2 * N) + Real.sin s * Real.sin s * (β ^ 2 * N) := by
+        refine add_le_add (mul_le_mul_of_nonneg_left (hF_sq.trans ?_) (mul_self_nonneg _))
+          (mul_le_mul_of_nonneg_left hG_sq (mul_self_nonneg _))
+        have : 0 ≤ β ^ 2 * N := by positivity
+        linarith
+    _ = β ^ 2 * N := by
+        rw [← add_mul, ← sq, ← sq, add_comm, Real.sin_sq_add_cos_sq, one_mul]
 
 /-- **Lemma 1.4.12 along the smart path (Talagrand, Eq. (1.113) along the path).**
 The free energy `A_N(s) = N⁻¹ log Z_N(s)` along the smart path has moments of every order `k`
@@ -290,15 +243,6 @@ theorem integral_pow_abs_smart_path_free_energy_sub_le {N : ℕ} (hN : 0 < N) (�
   have : Nonempty (Fin N) := ⟨⟨0, hN⟩⟩
   obtain ⟨F, G, hF, hG, hFm, hGm, hXG', hX0, hY0, h0, -⟩ :=
     exists_sk_smart_path_fields hN β q hq (P := P) rfl
-  set a : (Fin N → ℤˣ) → FinPairs N → ℝ := fun σ p =>
-    (Real.sqrt N)⁻¹ * β * (((σ p.val.1 : ℤ) : ℝ) * ((σ p.val.2 : ℤ) : ℝ))
-  set b : (Fin N → ℤˣ) → Fin N → ℝ := fun σ i => β * Real.sqrt q * ((σ i : ℤ) : ℝ)
-  have heF : ∀ g σ, F g σ = a σ ⬝ᵥ g := fun g σ => by
-    rw [hF]; simp only [dotProduct, a, Finset.mul_sum]
-    exact Finset.sum_congr rfl fun p _ => by ring
-  have heG : ∀ z σ, G z σ = b σ ⬝ᵥ z := fun z σ => by
-    rw [hG]; simp only [dotProduct, b, Finset.mul_sum]
-    exact Finset.sum_congr rfl fun i _ => by ring
   set g : (Fin N → ℤˣ) → ((FinPairs N → ℝ) × (Fin N → ℝ)) → ℝ :=
     fun σ ω => Real.cos s * F ω.1 σ + Real.sin s * G ω.2 σ
   have hg : HasGaussianLaw (fun ω σ => g σ ω) P := hXG'.cos_sin_combination s
@@ -311,20 +255,12 @@ theorem integral_pow_abs_smart_path_free_energy_sub_le {N : ℕ} (hN : 0 < N) (�
       simp only [g, hF, hG]
     rw [e]
     fun_prop
-  have hg0 : ∀ σ, ∫ ω, g σ ω ∂P = 0 := fun σ => by
-    simp only [g]
-    have hintF : Integrable (fun ω : (FinPairs N → ℝ) × (Fin N → ℝ) => Real.cos s * F ω.1 σ) P := by
-      simp_rw [heF]
-      exact ((memLp_dotProduct_pi_gaussianReal (a σ)).comp_fst _ |>.integrable
-        one_le_two).const_mul _
-    have hintG : Integrable (fun ω : (FinPairs N → ℝ) × (Fin N → ℝ) => Real.sin s * G ω.2 σ) P := by
-      simp_rw [heG]
-      exact ((memLp_dotProduct_pi_gaussianReal (b σ)).comp_snd _ |>.integrable
-        one_le_two).const_mul _
-    rw [integral_add hintF hintG, integral_const_mul, integral_const_mul, hX0 σ, hY0 σ,
-      mul_zero, mul_zero, add_zero]
+  have hg0 : ∀ σ, ∫ ω, g σ ω ∂P = 0 := fun σ =>
+    integral_lincomb_eq_zero hX0 hY0 (fun a => (hXG'.eval (Sum.inl a)).integrable)
+      (fun a => (hXG'.eval (Sum.inr a)).integrable) (Real.cos s) (Real.sin s) σ
   have hv : ∀ σ, ∫ ω, g σ ω ^ 2 ∂P ≤ 3 / 2 * β ^ 2 * N := fun σ =>
-    integral_smart_path_field_sq_le hN β q hq hq1 s σ F G hF hG
+    (integral_smart_path_field_sq_le hN β q hq hq1 s σ rfl F G hF hG hXG' h0).trans
+      (by nlinarith [sq_nonneg β, Nat.cast_nonneg (α := ℝ) N])
   have hkey := integral_pow_abs_sub_integral_log_sum_exp_le hg hm hg0 hv
     (fun σ => h * ∑ i, ((σ i : ℤ) : ℝ)) k hN
   have heq : ∀ ω, (∑ σ : Fin N → ℤˣ, Real.exp (g σ ω + h * ∑ i, ((σ i : ℤ) : ℝ))) =
@@ -447,33 +383,6 @@ theorem sk_smart_path_free_energy_sub_rs_le {N : ℕ} (hN : 0 < N) (β h q : ℝ
   calc K / 2 * (Real.sin (Real.pi / 2) ^ 2 - Real.sin s ^ 2)
       ≤ K / 2 * 1 := mul_le_mul_of_nonneg_left hsin hK_nonneg
     _ = β ^ 2 / 4 * K1 / N := by ring
-
-/-- **Deterministic bound on the expected SK free energy (endpoint `s = 0`).**
-For `β² < 1/4` and a fixed point `q`, the expected SK free energy `p_N` satisfies
-`|p_N - rsFunctional β h q| ≤ (β² / 4) * K₁ / N`. -/
-theorem sk_free_energy_sub_rs_le {N : ℕ} (hN : 0 < N) (β h q : ℝ)
-    (hfix : ∫ x : ℝ, Real.tanh (β * Real.sqrt q * x + h) ^ 2 ∂(gaussianReal 0 1) = q)
-    (hβ : β ^ 2 < 1 / 4) {φ A : ℝ → ℝ}
-    (hpi : φ (Real.pi / 2) = Real.log 2 +
-      ∫ x : ℝ, Real.log (Real.cosh (β * Real.sqrt q * x + h)) ∂(gaussianReal 0 1))
-    (hderiv : ∀ t, HasDerivAt φ (β ^ 2 / 2 * Real.sin t * Real.cos t * (A t - (1 - q) ^ 2)) t)
-    (hA : ∀ t ∈ Set.Icc 0 (Real.pi / 2),
-      A t = ∫ ω : (FinPairs N → ℝ) × (Fin N → ℝ), ∫ σ : Fin 2 → (Fin N → ℤˣ),
-        (((N : ℝ)⁻¹ * ((fun i => ((σ 0 i : ℤ) : ℝ)) ⬝ᵥ fun i => ((σ 1 i : ℤ) : ℝ))) - q) ^ 2
-        ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted fun a =>
-          Real.cos t * ((Real.sqrt N)⁻¹ * β *
-            ∑ p : FinPairs N, ω.1 p * ((a p.val.1 : ℤ) : ℝ) * ((a p.val.2 : ℤ) : ℝ)) +
-          Real.sin t * (β * Real.sqrt q * ∑ i, ω.2 i * ((a i : ℤ) : ℝ)) +
-          h * ∑ i, ((a i : ℤ) : ℝ))
-        ∂((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
-          (Measure.pi fun _ : Fin N => gaussianReal 0 1))) :
-    let K1 : ℝ := (Real.sqrt (1 / 2 - 2 * β ^ 2))⁻¹ / (1 / 4 - β ^ 2)
-    |φ 0 - rsFunctional β h q| ≤ β ^ 2 / 4 * K1 / N := by
-  intro K1
-  have hs : (0 : ℝ) ∈ Set.Icc 0 (Real.pi / 2) := ⟨le_rfl, by positivity⟩
-  have h := sk_smart_path_free_energy_sub_rs_le hN β h q hfix hβ hs hpi hderiv hA
-  rw [skPathRS_zero] at h
-  exact h
 
 /-- **Moments of the smart-path free energy around the RS value.**
 For `β² < 1/4`, a fixed point `q`, and `s ∈ [0, π/2]`,

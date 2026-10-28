@@ -190,14 +190,6 @@ theorem HasSubgaussianMGF.integral_exp_abs_mul_le {X : Ω → ℝ} {c : ℝ≥0}
   rw [neg_sq] at h2
   linarith
 
-/-- A sub-Gaussian variable is integrable. -/
-theorem HasSubgaussianMGF.integrable_of_measurable {X : Ω → ℝ} {c : ℝ≥0}
-    (h : HasSubgaussianMGF X c μ) (hX : Measurable X) : Integrable X μ := by
-  refine ((h.integral_exp_abs_mul_le hX 1).1).mono' hX.aestronglyMeasurable
-    (Filter.Eventually.of_forall fun ω => ?_)
-  rw [Real.norm_eq_abs, one_mul]
-  linarith [Real.add_one_le_exp |X ω|, abs_nonneg (X ω)]
-
 /-- `cosh X` is integrable for a sub-Gaussian `X`. -/
 theorem HasSubgaussianMGF.integrable_two_cosh {X : Ω → ℝ} {c : ℝ≥0}
     (h : HasSubgaussianMGF X c μ) :

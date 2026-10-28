@@ -1690,7 +1690,7 @@ $T_a(x)=\max(\min(x,e^a),e^{-a})$. A random variable $X$ is \emph{sub-Gaussian w
 
 \begin{lemma}[Exponential moments of $|X|$]\label{lem:sg:absmoment}
   \lean{ProbabilityTheory.HasGaussianLaw.hasSubgaussianMGF_of_integral_sq_le, ProbabilityTheory.HasSubgaussianMGF.integral_exp_abs_mul_le,
-        ProbabilityTheory.HasSubgaussianMGF.integrable_of_measurable, ProbabilityTheory.HasSubgaussianMGF.integrable_two_cosh,
+        ProbabilityTheory.HasSubgaussianMGF.integrable_two_cosh,
         ProbabilityTheory.HasSubgaussianMGF.integral_two_cosh_le, ProbabilityTheory.HasSubgaussianMGF.integral_exp_le}
   \leanok
 Let $X$ be measurable and sub-Gaussian with parameter $c$. Then for every $t\in\mathbb R$, $e^{t|X|}$ is integrable and $\mathbb E[e^{t|X|}]\le2e^{ct^2/2}$; $X$ and

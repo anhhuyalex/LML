@@ -595,7 +595,7 @@ theorem zero_le_integral_log_sum_mul_exp
     0 ≤ ∫ ω, Real.log (∑ i, w i * Real.exp (g i ω)) ∂P := by
   have hlog := integrable_log_sum_mul_comp (φ := Real.exp) (A := 1) (B := 1)
     hw0 hw1 hm hsub Real.continuous_exp Real.exp_pos exp_le_exp_abs_mul inv_exp_le_exp_abs_mul
-  have hgi : ∀ i, Integrable (g i) P := fun i => (hsub i).integrable_of_measurable (hm i)
+  have hgi : ∀ i, Integrable (g i) P := fun i => (hsub i).integrable
   have hlin : Integrable (fun ω => ∑ i, w i * g i ω) P :=
     integrable_finsetSum _ fun i _ => (hgi i).const_mul _
   have hmono := integral_mono hlin hlog fun ω => by
