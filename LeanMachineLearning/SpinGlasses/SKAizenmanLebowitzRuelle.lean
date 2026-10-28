@@ -53,7 +53,7 @@ theorem sk_free_energy_sub_rs_le {N : ℕ} (hN : 0 < N) (β h q : ℝ)
         β ^ 2 / 4 * (1 - q) ^ 2)| ≤
     β ^ 2 / 4 * (((Real.sqrt (1 / 2 - 2 * β ^ 2))⁻¹ - 1) / ((1 / 4 - β ^ 2) * N)) := by
   have hq : 0 ≤ q := hfix ▸ integral_nonneg fun x => sq_nonneg _
-  obtain ⟨φ, A, h0, hpi, hderiv, hAnn, hAexp⟩ := exists_sk_smart_path_profile hN β h q hq
+  obtain ⟨φ, A, h0, hpi, hderiv, hAnn, hAexp, _⟩ := exists_sk_smart_path_profile hN β h q hq
   have hB : ∀ s ∈ Set.Icc 0 (Real.pi / 2),
       A s ≤ ((Real.sqrt (1 / 2 - 2 * β ^ 2))⁻¹ - 1) / ((1 / 4 - β ^ 2) * N) := fun s hs => by
     rw [hAexp s]

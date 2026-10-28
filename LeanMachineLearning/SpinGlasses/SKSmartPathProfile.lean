@@ -67,7 +67,7 @@ theorem exists_sk_smart_path_profile {N : ℕ} (hN : 0 < N) (β h q : ℝ) (hq :
         ∫ x : ℝ, Real.log (Real.cosh (β * Real.sqrt q * x + h)) ∂(gaussianReal 0 1) ∧
       (∀ t, HasDerivAt φ (β ^ 2 / 2 * Real.sin t * Real.cos t * (A t - (1 - q) ^ 2)) t) ∧
       (∀ t, 0 ≤ A t) ∧
-      ∀ t, A t = ∫ ω : (FinPairs N → ℝ) × (Fin N → ℝ), ∫ σ : Fin 2 → (Fin N → ℤˣ),
+      (∀ t, A t = ∫ ω : (FinPairs N → ℝ) × (Fin N → ℝ), ∫ σ : Fin 2 → (Fin N → ℤˣ),
           (((N : ℝ)⁻¹ * ((fun i => ((σ 0 i : ℤ) : ℝ)) ⬝ᵥ fun i => ((σ 1 i : ℤ) : ℝ))) - q) ^ 2
           ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted fun a =>
             Real.cos t * ((Real.sqrt N)⁻¹ * β *
@@ -75,7 +75,15 @@ theorem exists_sk_smart_path_profile {N : ℕ} (hN : 0 < N) (β h q : ℝ) (hq :
             Real.sin t * (β * Real.sqrt q * ∑ i, ω.2 i * ((a i : ℤ) : ℝ)) +
             h * ∑ i, ((a i : ℤ) : ℝ))
           ∂((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
-            (Measure.pi fun _ : Fin N => gaussianReal 0 1)) := by
+            (Measure.pi fun _ : Fin N => gaussianReal 0 1))) ∧
+      ∀ s, φ s = (N : ℝ)⁻¹ * ∫ ω : (FinPairs N → ℝ) × (Fin N → ℝ),
+        Real.log (∑ σ : Fin N → ℤˣ,
+          Real.exp (Real.cos s * ((Real.sqrt N)⁻¹ * β *
+            ∑ p : FinPairs N, ω.1 p * ((σ p.val.1 : ℤ) : ℝ) * ((σ p.val.2 : ℤ) : ℝ)) +
+            Real.sin s * (β * Real.sqrt q * ∑ i, ω.2 i * ((σ i : ℤ) : ℝ)) +
+            h * ∑ i, ((σ i : ℤ) : ℝ)))
+        ∂((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
+          (Measure.pi fun _ : Fin N => gaussianReal 0 1)) := by
   have : Nonempty (Fin N) := ⟨⟨0, hN⟩⟩
   obtain ⟨Pg, hPg⟩ : ∃ Pg : Measure (FinPairs N → ℝ),
       Pg = Measure.pi fun _ : FinPairs N => gaussianReal 0 1 := ⟨_, rfl⟩
@@ -200,10 +208,13 @@ theorem exists_sk_smart_path_profile {N : ℕ} (hN : 0 < N) (β h q : ℝ) (hq :
     rw [integral_map (measurable_pi_apply j₀).aemeasurable]
     exact ((Real.continuous_cosh.comp (by fun_prop : Continuous fun x : ℝ =>
       β * Real.sqrt q * x + h)).log fun x => (Real.cosh_pos _).ne').aestronglyMeasurable
-  refine ⟨φ, A, ?_, hpi, hderiv', hAnn, fun t => ?_⟩
+  refine ⟨φ, A, ?_, hpi, hderiv', hAnn, (fun t => ?_), fun s => ?_⟩
   · rw [← h0e]
   · rw [hA t]
     subst hPg hPz
     simp only [hF, hG, hr]
+  · rw [hφ s]
+    subst hPg hPz
+    simp only [hF, hG]
 
 end SpinGlasses

@@ -6,6 +6,7 @@ Authors: Rémy Degenne
 module
 
 public import Mathlib.Probability.Moments.SubGaussian
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.AddPowEstimates
 
 /-! # Lemmas about sub-Gaussian random variables
 -/
@@ -230,6 +231,30 @@ theorem HasSubgaussianMGF.integral_exp_le {X : Ω → ℝ} {c : ℝ≥0}
   have := h.mgf_le 1
   rw [mgf] at this
   simpa using this
+
+/-- **Moment bounds for sub-Gaussian variables.** For `X` sub-Gaussian with parameter `c`,
+any exponent `k` and any scale parameter `w > 0`: `w^k 𝔼 |X|^k ≤ 2 k! exp (c w² / 2)`. -/
+theorem HasSubgaussianMGF.integral_pow_abs_le {X : Ω → ℝ} {c : ℝ≥0}
+    (h : HasSubgaussianMGF X c μ) (hX : Measurable X) (k : ℕ) {w : ℝ} (hw : 0 < w) :
+    Integrable (fun ω => |X ω| ^ k) μ ∧
+      w ^ k * ∫ ω, |X ω| ^ k ∂μ ≤ 2 * Nat.factorial k * Real.exp (c * w ^ 2 / 2) := by
+  obtain ⟨hint, hexp⟩ := h.integral_exp_abs_mul_le hX w
+  have hpt : ∀ ω, w ^ k * |X ω| ^ k ≤ (Nat.factorial k : ℝ) * Real.exp (w * |X ω|) := fun ω => by
+    rw [← mul_pow]
+    exact Real.pow_le_factorial_mul_exp (mul_nonneg hw.le (abs_nonneg _)) k
+  have hmeas : Measurable fun ω => |X ω| ^ k :=
+    (continuous_abs.measurable.comp hX).pow_const k
+  have hint' : Integrable (fun ω => w ^ k * |X ω| ^ k) μ :=
+    Integrable.mono' (hint.const_mul (Nat.factorial k : ℝ))
+      (hmeas.const_mul _).aestronglyMeasurable
+      (Filter.Eventually.of_forall fun ω => by
+        rw [Real.norm_eq_abs, abs_of_nonneg (by positivity)]
+        exact hpt ω)
+  refine ⟨by simpa [mul_assoc, hw.ne'] using hint'.const_mul ((w ^ k)⁻¹), ?_⟩
+  rw [← integral_const_mul]
+  refine (integral_mono hint' (hint.const_mul (Nat.factorial k : ℝ)) hpt).trans ?_
+  rw [integral_const_mul]
+  nlinarith [Nat.cast_nonneg (α := ℝ) (Nat.factorial k)]
 
 end Moments
 

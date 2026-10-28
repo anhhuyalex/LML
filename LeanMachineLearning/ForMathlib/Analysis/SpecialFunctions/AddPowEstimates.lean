@@ -57,6 +57,14 @@ theorem add_pow_le_mul_pow_add_mul_pow {a b θ : ℝ} (ha : 0 ≤ a) (hb : 0 ≤
   field_simp
   ring_nf
 
+/-- **Power of absolute sum bounded by sum of powers:**
+`|x + y|^n ≤ 2^(n-1) (|x|^n + |y|^n)`. -/
+theorem abs_add_pow_le (x y : ℝ) (n : ℕ) :
+    |x + y| ^ n ≤ 2 ^ (n - 1) * (|x| ^ n + |y| ^ n) :=
+  (pow_le_pow_left₀ (abs_nonneg _) (abs_add_le x y) n).trans
+    (add_pow_le (abs_nonneg x) (abs_nonneg y) n)
+
+
 /-- For an odd exponent `n` and `x ≥ 0`, half the difference `(a + x)^n - (a - x)^n` is
 nonnegative and at most `n x (|a| + x)^(n-1)`. -/
 theorem pow_add_sub_pow_sub_le {n : ℕ} (hn : Odd n) (a : ℝ) {x : ℝ} (hx : 0 ≤ x) :

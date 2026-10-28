@@ -1215,10 +1215,19 @@ The first bound is the compensated comparison of the path with the decoupled sys
 Formalized in \texttt{SpinGlasses/SKPathOverlapMoments.lean}. The endpoint version at $t=0$ is Theorem~\ref{thm:sg-tal:overlap-moments-all}; the second moment along the path was already used in Theorem~\ref{thm:sg-tal:alr}.
 \end{proof}
 
-\begin{remark}[Status of Theorem~1.4.11 (the central limit theorem for the free energy)]\label{rem:sg-tal:free-energy-clt-status}
-\talsource{Theorem~1.4.11, Eq.~(1.109); source lines 1660--1895}
-Theorem~1.4.11 states that $\mathbb{E}(A_N-\mathrm{SK}(\beta,h))^k=N^{-k/2}a(k)\,b^{k/2}+O(N^{-(k+1)/2})$ for $\beta<1/2$. \emph{Not formalized.} Available: the first-moment case (Theorem~\ref{thm:sg-tal:alr}), the order-$N^{-k/2}$ size of all moments about the mean (Theorem~\ref{thm:sg-tal:free-energy-moments}), the derivative of $t\mapsto\mathbb{E}(A_t-a)^k$ along the smart path, Eq.~(1.125) (Theorem~\ref{thm:sg-tal:profile-comp}), and the fourth overlap moment along the whole path (Theorem~\ref{thm:sg-tal:path-overlap-moments}). Still missing: (i) the estimate $\mathrm{II}=O(k+1)$ of the book: after the shift $a=\mathrm{SK}(t)$ the derivative splits as $\mathrm{I}+\mathrm{II}$ (with $\mathrm{I}=-\frac{\beta^2q^2}{4}\frac{k(k-1)}{N}\mathbb{E}V(t)^{k-2}$ the leading term), and $\mathrm{II}$ is bounded by Cauchy--Schwarz using the fourth overlap moment (available) together with the moments of $V(t)=A(t)-\mathrm{SK}(t)$ along the path, Eq.~(1.118), which needs Lemma~1.4.12 and Theorem~1.4.10 along the whole path (only the endpoints are formalized); (ii) the change from the angle $t$ to the book's linear $t$ and the integration of Eq.~(1.121) with the endpoint $t=0$; (iii) the i.i.d.\ moment lemma at the decoupled endpoint, Eq.~(1.122); (iv) the induction on $k$. The random Gaussian field of the book is also not formalized.
-\end{remark}
+\begin{theorem}[Central limit theorem for the SK free energy (Theorem~1.4.11, Eq.~(1.109))]\label{thm:sg-tal:free-energy-clt}
+\lean{SpinGlasses.sk_free_energy_clt}
+\leanok
+\talsource{Theorem~1.4.11, Eq.~(1.109); Lemma~1.4.12}
+For $\beta^2 < 1/4$ and a fixed point $q$ of the replica-symmetric equation, the normalized free energy $A_N = N^{-1} \log Z_N(\beta, h)$ of the SK model satisfies the quantitative central limit theorem for all moments $k \ge 0$:
+$$|\mathbb{E}(A_N - \mathrm{SK}(\beta, h))^k - N^{-k/2} a(k) b^{k/2}| \le C_k N^{-(k+1)/2},$$
+where $a(k) = (k-1)!!$ for even $k$, $0$ for odd $k$, $b = \mathrm{Var}(\log\cosh(\beta \sqrt{q} z + h)) - \frac{\beta^2 q^2}{2}$, and $C_k$ is the explicit constant \texttt{skCLTConst}.
+\end{theorem}
+\begin{proof}
+\leanok
+By induction on $k$. The base cases $k = 0$ and $k = 1$ are \texttt{sk\_clt\_zero} and \texttt{sk\_clt\_one} (the endpoint bound of Lemma~1.4.12, \texttt{sk\_free\_energy\_sub\_rs\_le}). For $k \ge 2$, the induction step \texttt{sk\_clt\_induction\_step} integrates the moment ODE along the trigonometric smart path $s \mapsto \cos s \cdot X + \sin s \cdot Y + h$ from the decoupled endpoint $s = \pi/2$ down to $s = 0$ using \texttt{sk\_clt\_ode\_step} and \texttt{hasDerivAt\_clt\_ref}.
+Formalized in \texttt{SpinGlasses/SKSmartPathCLT.lean}.
+\end{proof}
 
 \section{Spin Decorrelation, Asymptotic Product Measures and Projections (Talagrand Sections~1.4--1.5)}\label{sec:sg-tal:decorrelation}
 
@@ -6016,3 +6025,74 @@ $h\ne0$ from Proposition~1.9.5; the threshold $N_0$ depends on $\lambda$ (the si
 \item \emph{Theorem~1.9.6.} Convergence of $\psi_N(\lambda)$ to a finite real-valued function $\psi$, pointwise on a neighbourhood of $0$, is assumed; its existence is not proved. the formalized statement is the implication ``limit exists $\Rightarrow$ not differentiable at $0$''.  The corner (the one-sided derivatives $\psi'(0\pm)$) is not constructed.
 \end{itemize}
 \end{remark}
+
+\section{Central Limit Theorem for the Overlaps (Talagrand Section~1.10)}\label{sec:sg-tal:overlap-clt}
+
+Section~1.10 of Talagrand establishes the quantitative central limit theorem for the fluctuations of the replica overlaps $X_{\ell,\ell'} = \sqrt{N}(R_{\ell,\ell'} - q)$ in the high-temperature regime $\beta < 1/2$. The asymptotic covariance matrix is determined by the $T$-basis limits $(A^2, B^2, C^2)$ computed in Section~1.8 (Theorem~\ref{thm:sg-tal:thm-1812}):
+$$\Sigma(\{\ell_1, \ell_2\}, \{\ell_3, \ell_4\}) = A^2 \mathbf{1}_{\{\ell_1, \ell_2\} = \{\ell_3, \ell_4\}} + B^2 |\{\ell_1, \ell_2\} \cap \{\ell_3, \ell_4\}| + C^2.$$
+
+\begin{theorem}[Overlap covariance function]\label{thm:sg-tal:overlap-cov}
+\lean{SpinGlasses.skOverlapCov}
+\leanok
+\talsource{Section~1.10, above Eq.~(1.298)}
+For any finite set of replicas and pairs $p_1, p_2$ of cardinality $2$, \texttt{skOverlapCov} computes the asymptotic covariance: $A^2 + 2B^2 + C^2$ on the diagonal, $B^2 + C^2$ when sharing one replica, and $C^2$ when disjoint.
+\end{theorem}
+\begin{proof}
+\leanok
+Formalized in \texttt{SpinGlasses/SKOverlapCLT.lean}.
+\end{proof}
+
+\begin{theorem}[Cavity step for multi-replica overlaps (Lemma~1.10.2)]\label{thm:sg-tal:overlap-cavity-step}
+\lean{SpinGlasses.sk_overlap_cavity_step}
+\leanok
+\talsource{Section~1.10, Lemma~1.10.2}
+The cavity contribution of adding a site to a multi-replica expectation separates into the $T$-basis components up to an explicit $O(M^{-1/2})$ remainder.
+\end{theorem}
+\begin{proof}
+\leanok
+Formalized in \texttt{SpinGlasses/SKOverlapCLT.lean}.
+\end{proof}
+
+\begin{theorem}[Four-spin difference evaluation (Corollary~1.10.3)]\label{thm:sg-tal:overlap-four-spin}
+\lean{SpinGlasses.sk_overlap_four_spin_step}
+\leanok
+\talsource{Section~1.10, Corollary~1.10.3}
+Expectations of four-spin differences $(\varepsilon_1 - \varepsilon_2)(\varepsilon_3 - \varepsilon_4) f_-$ under the disorder-averaged Gibbs measure reduce to the $T$-basis limits up to $O(M^{-1/2})$.
+\end{theorem}
+\begin{proof}
+\leanok
+Formalized in \texttt{SpinGlasses/SKOverlapCLT.lean}.
+\end{proof}
+
+\begin{theorem}[First-order multi-replica overlap expansion (Eq.~(1.298))]\label{thm:sg-tal:overlap-first-order}
+\lean{SpinGlasses.sk_overlap_clt_first_order}
+\leanok
+\talsource{Section~1.10, Eq.~(1.298)}
+For any monomial $f$ of degree $k$ in the centered overlaps $R_{\ell,\ell'} - q$, $\nu(f) = \nu_0(f) + O(N^{-(k+1)/2})$, where $\nu_0$ is the Gaussian evaluation against $\Sigma$.
+\end{theorem}
+\begin{proof}
+\leanok
+Formalized in \texttt{SpinGlasses/SKOverlapCLT.lean}.
+\end{proof}
+
+\begin{theorem}[Second-order multi-replica overlap expansion (Eq.~(1.299))]\label{thm:sg-tal:overlap-second-order}
+\lean{SpinGlasses.sk_overlap_clt_second_order}
+\leanok
+\talsource{Section~1.10, Eq.~(1.299)}
+For any monomial $f$ of degree $k$ in the centered overlaps, $\nu(f) = \nu_0(f) + \nu_{00}(f) + O(N^{-(k+2)/2})$.
+\end{theorem}
+\begin{proof}
+\leanok
+Formalized in \texttt{SpinGlasses/SKOverlapCLT.lean}.
+\end{proof}
+
+\begin{theorem}[Central limit theorem for the overlaps (Theorem~1.10.1)]\label{thm:sg-tal:overlap-clt}
+\lean{SpinGlasses.sk_overlap_clt}
+\leanok
+\talsource{Section~1.10, Theorem~1.10.1}
+For $\beta < 1/2$, any linear combination $X = \sum c_{\ell\ell'} \sqrt{N}(R_{\ell\ell'} - q)$ of centered rescaled overlaps satisfies the quantitative Gaussian moment bounds $|\nu(X^k) - a(k) (\sigma_X^2)^{k/2}| \le C_k N^{-1/2}$, where $a(k) = (k-1)!!$ for even $k$ and $0$ for odd $k$.
+\end{theorem}
+\begin{proof}
+\leanok
+Formalized in \texttt{SpinGlasses/SKOverlapCLT.lean}.
+\end{proof}

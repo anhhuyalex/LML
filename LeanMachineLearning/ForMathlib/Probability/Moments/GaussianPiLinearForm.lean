@@ -74,4 +74,11 @@ theorem memLp_dotProduct_pi_gaussianReal (a : κ → ℝ) :
   simp only [Function.comp_def, dotProduct_eq_inner a]
   exact (innerSL ℝ (WithLp.toLp 2 a)).comp_memLp' IsGaussian.memLp_two_id
 
+/-- Product of two linear forms of i.i.d. standard Gaussians is integrable. -/
+theorem integrable_dotProduct_mul_dotProduct_pi_gaussianReal (a b : κ → ℝ) :
+    Integrable (fun g : κ → ℝ => (a ⬝ᵥ g) * (b ⬝ᵥ g))
+      (Measure.pi fun _ : κ => gaussianReal 0 1) :=
+  (memLp_dotProduct_pi_gaussianReal a).integrable_mul (memLp_dotProduct_pi_gaussianReal b)
+
 end ProbabilityTheory
+

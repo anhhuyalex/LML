@@ -494,4 +494,20 @@ theorem HasGaussianLaw.mul {Ω κ : Type*} {mΩ : MeasurableSpace Ω}
     HasGaussianLaw (fun ω k => c k * X k ω) P :=
   hX.reindex_mul id c
 
+/-- A linear combination `cos s · X + sin s · Y` of two jointly Gaussian blocks has Gaussian law. -/
+theorem HasGaussianLaw.cos_sin_combination {Ω κ : Type*} {mΩ : MeasurableSpace Ω}
+    {P : Measure Ω} [Finite κ] {X Y : κ → Ω → ℝ}
+    (hXY : HasGaussianLaw (fun ω s => Sum.elim (fun k (ω : Ω) => X k ω) (fun k ω => Y k ω) s ω) P)
+    (s : ℝ) :
+    HasGaussianLaw (fun ω k => Real.cos s * X k ω + Real.sin s * Y k ω) P := by
+  let _ := Fintype.ofFinite κ
+  let L : (κ ⊕ κ → ℝ) →L[ℝ] (κ → ℝ) := ContinuousLinearMap.pi fun k =>
+    ((ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : κ ⊕ κ => ℝ) (Sum.inl k)).smulRight
+      (Real.cos s)) +
+    ((ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : κ ⊕ κ => ℝ) (Sum.inr k)).smulRight
+      (Real.sin s))
+  convert hXY.map_fun L using 1
+  ext ω k
+  simp [L, mul_comm]
+
 end ProbabilityTheory

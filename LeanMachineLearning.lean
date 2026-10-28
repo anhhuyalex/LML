@@ -497,6 +497,7 @@ public import LeanMachineLearning.SpinGlasses.SKLatalaCompensated
 public import LeanMachineLearning.SpinGlasses.SKLocalMagnetizations
 public import LeanMachineLearning.SpinGlasses.SKModel
 public import LeanMachineLearning.SpinGlasses.SKOldSpinCavity
+public import LeanMachineLearning.SpinGlasses.SKOverlapCLT
 public import LeanMachineLearning.SpinGlasses.SKOverlapConcentration
 public import LeanMachineLearning.SpinGlasses.SKOverlapContraction
 public import LeanMachineLearning.SpinGlasses.SKOverlapMoments
@@ -512,6 +513,7 @@ public import LeanMachineLearning.SpinGlasses.SKSecondMoment
 public import LeanMachineLearning.SpinGlasses.SKSecondaryContraction
 public import LeanMachineLearning.SpinGlasses.SKSiteSymmetry
 public import LeanMachineLearning.SpinGlasses.SKSmartPath
+public import LeanMachineLearning.SpinGlasses.SKSmartPathCLT
 public import LeanMachineLearning.SpinGlasses.SKSmartPathProfile
 public import LeanMachineLearning.SpinGlasses.SKSmartPathProfileComp
 public import LeanMachineLearning.SpinGlasses.SKSpinDecorrelation
