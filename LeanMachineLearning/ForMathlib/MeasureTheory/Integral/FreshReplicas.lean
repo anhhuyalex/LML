@@ -108,7 +108,8 @@ theorem integral_replica_centered_products {R P S G I X : Type*}
       c * ∑ i, (v (ρ (d s)) i - b i) * b i := by
     simp only [K, Sum.elim_inr, Sum.elim_inl]
     simp only [integral_const_mul, integral_finsetSum _ (fun _ _ => Integrable.of_finite),
-      hb, integral_mul_const, integral_sub (integrable_const _) Integrable.of_finite, integral_const,
+      hb, integral_mul_const, integral_sub (integrable_const _) Integrable.of_finite,
+      integral_const,
       probReal_univ, one_smul]
   have hglobal (g : G) : (∫ x, ∫ y, K (.inr (.inr g)) ρ x y ∂μ ∂μ) =
       (c * ∑ i, b i * b i) - q := by

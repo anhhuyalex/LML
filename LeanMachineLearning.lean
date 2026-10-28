@@ -57,6 +57,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Function.UnitVectorFi
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ChebyshevAssociation
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ExpMoment
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteHyperbolic
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FreshReplicas
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.GramKernel
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IntegrableOfBound
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedBound
@@ -472,6 +473,7 @@ public import LeanMachineLearning.SpinGlasses.SKCavityGaussian
 public import LeanMachineLearning.SpinGlasses.SKCavityHigherOrder
 public import LeanMachineLearning.SpinGlasses.SKCavityHigherOrderCorollary
 public import LeanMachineLearning.SpinGlasses.SKCavityHigherOrderLinear
+public import LeanMachineLearning.SpinGlasses.SKCavityHigherOrderMoments
 public import LeanMachineLearning.SpinGlasses.SKCavityHigherOrderPair
 public import LeanMachineLearning.SpinGlasses.SKCavityHolder
 public import LeanMachineLearning.SpinGlasses.SKCavityIncrement
