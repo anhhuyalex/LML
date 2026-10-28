@@ -113,24 +113,25 @@ theorem sum_freeEnergyCompHessian_eq {N : ℕ} (hN : 0 < N) (β q : ℝ) (W : �
   simp only [hQ, mul_assoc]
   field_simp
 
-/-- **Eq. (1.125) for the SK smart path.**  For `N > 0`, `q ≥ 0` and `W` of class `C²` with `W`,
-`W'`, `W''` of exponential growth there are the SK pair field `F` and cavity field `G` and a
-function `ψ`, `ψ s = 𝔼 W (N⁻¹ log Z_s)` for the smart-path partition function `Z_s`, such that
-`ψ 0` is the expectation of `W (A_N)` for the SK model, `ψ (π/2)` that of `W` at the decoupled free
-energy `log 2 + N⁻¹ ∑ᵢ log cosh (β √q zᵢ + h)`, and
+/-- **Eq. (1.125) for the SK smart path.**  For `N > 0` and `q ≥ 0` there are the SK pair field `F`
+and the cavity field `G` such that, for every `C²` function `W` with `W`, `W'`, `W''` of
+exponential growth, the function `ψ s = 𝔼 W (N⁻¹ log Z_s)` (`Z_s` the smart-path partition
+function) has `ψ 0` the expectation of `W (A_N)` for the SK model, `ψ (π/2)` that of `W` at the
+decoupled free energy `log 2 + N⁻¹ ∑ᵢ log cosh (β √q zᵢ + h)`, and
 `ψ' t = (β²/2) sin t cos t 𝔼 [W'(A_t) (Q_t - (1-q)²) - N⁻¹ W''(A_t) (Q_t - q² - N⁻¹)]` where
-`Q_t = ⟨(R_{1,2} - q)²⟩_t`.  For `W = id` the second term vanishes
+`Q_t = ⟨(R_{1,2} - q)²⟩_t`.  The fields do not depend on `W`, so several test functions can be
+combined (`exists_sk_smart_path_profile_pow`).  For `W = id` the second term vanishes
 (`exists_sk_smart_path_profile`). -/
-theorem exists_sk_smart_path_profile_comp {N : ℕ} (hN : 0 < N) (β h q : ℝ) (hq : 0 ≤ q)
-    {W : ℝ → ℝ} (hW : ContDiff ℝ 2 W) {C₀ c₀ C₁ c₁ C₂ c₂ : ℝ}
-    (hW0 : ∀ x, |W x| ≤ C₀ * Real.exp (c₀ * |x|))
-    (hW1 : ∀ x, |deriv W x| ≤ C₁ * Real.exp (c₁ * |x|))
-    (hW2 : ∀ x, |deriv (deriv W) x| ≤ C₂ * Real.exp (c₂ * |x|)) :
-    ∃ (F : (FinPairs N → ℝ) → (Fin N → ℤˣ) → ℝ) (G : (Fin N → ℝ) → (Fin N → ℤˣ) → ℝ)
-      (ψ : ℝ → ℝ),
+theorem exists_sk_smart_path_profile_comp {N : ℕ} (hN : 0 < N) (β h q : ℝ) (hq : 0 ≤ q) :
+    ∃ (F : (FinPairs N → ℝ) → (Fin N → ℤˣ) → ℝ) (G : (Fin N → ℝ) → (Fin N → ℤˣ) → ℝ),
       (∀ g σ, F g σ = (Real.sqrt N)⁻¹ * β *
         ∑ p : FinPairs N, g p * ((σ p.val.1 : ℤ) : ℝ) * ((σ p.val.2 : ℤ) : ℝ)) ∧
       (∀ z σ, G z σ = β * Real.sqrt q * ∑ i, z i * ((σ i : ℤ) : ℝ)) ∧
+      ∀ {W : ℝ → ℝ}, ContDiff ℝ 2 W → ∀ {C₀ c₀ C₁ c₁ C₂ c₂ : ℝ},
+      (∀ x, |W x| ≤ C₀ * Real.exp (c₀ * |x|)) →
+      (∀ x, |deriv W x| ≤ C₁ * Real.exp (c₁ * |x|)) →
+      (∀ x, |deriv (deriv W) x| ≤ C₂ * Real.exp (c₂ * |x|)) →
+      ∃ ψ : ℝ → ℝ,
       (∀ s, ψ s = ∫ ω : (FinPairs N → ℝ) × (Fin N → ℝ), W ((N : ℝ)⁻¹ *
         Real.log (∑ σ : Fin N → ℤˣ, Real.exp (Real.cos s * F ω.1 σ + Real.sin s * G ω.2 σ +
           h * ∑ i, ((σ i : ℤ) : ℝ))))
@@ -172,10 +173,11 @@ theorem exists_sk_smart_path_profile_comp {N : ℕ} (hN : 0 < N) (β h q : ℝ) 
   have : IsProbabilityMeasure Pz := by rw [hPz]; infer_instance
   obtain ⟨F, G, hF, hG, hFm, hGm, hXG', hX0, hY0, h0, hCov'⟩ :=
     exists_sk_smart_path_fields hN β q hq (P := Pg.prod Pz) (by rw [hPg, hPz])
+  refine ⟨F, G, hF, hG, fun {W} hW {C₀ c₀ C₁ c₁ C₂ c₂} hW0 hW1 hW2 => ?_⟩
   obtain ⟨ψ, hψ⟩ : ∃ ψ : ℝ → ℝ, ∀ s, ψ s = ∫ ω, W ((N : ℝ)⁻¹ *
       Real.log (∑ σ : Fin N → ℤˣ, Real.exp (Real.cos s * F ω.1 σ + Real.sin s * G ω.2 σ +
         h * ∑ i, ((σ i : ℤ) : ℝ)))) ∂(Pg.prod Pz) := ⟨_, fun _ => rfl⟩
-  refine ⟨F, G, ψ, hF, hG, ?_, ?_, ?_, ?_⟩
+  refine ⟨ψ, ?_, ?_, ?_, ?_⟩
   · intro s
     rw [hψ s, hPg, hPz]
   · rw [hψ]
@@ -275,11 +277,11 @@ Gibbs average of the squared overlap, `ψ(t) = 𝔼 (A_t - a)^k` has the derivat
 `(β²/2) sin t cos t 𝔼 [k (A_t - a)^{k-1} (Q_t - (1-q)²) -
   N⁻¹ k (k-1) (A_t - a)^{k-2} (Q_t - q² - N⁻¹)]`,
 with `ψ 0` the `k`-th moment of `A_N - a` in the SK model and `ψ (π/2)` that of the decoupled
-system. -/
-theorem exists_sk_smart_path_profile_pow {N : ℕ} (hN : 0 < N) (β h q : ℝ) (hq : 0 ≤ q) (a : ℝ)
-    (k : ℕ) :
+system.  The fields and the functions `A`, `Q` do not depend on `a` and `k`, so moments of
+different degrees and centers can be combined. -/
+theorem exists_sk_smart_path_profile_pow {N : ℕ} (hN : 0 < N) (β h q : ℝ) (hq : 0 ≤ q) :
     ∃ (F : (FinPairs N → ℝ) → (Fin N → ℤˣ) → ℝ) (G : (Fin N → ℝ) → (Fin N → ℤˣ) → ℝ)
-      (ψ : ℝ → ℝ) (A Q : ℝ → (FinPairs N → ℝ) × (Fin N → ℝ) → ℝ),
+      (A Q : ℝ → (FinPairs N → ℝ) × (Fin N → ℝ) → ℝ),
       (∀ g σ, F g σ = (Real.sqrt N)⁻¹ * β *
         ∑ p : FinPairs N, g p * ((σ p.val.1 : ℤ) : ℝ) * ((σ p.val.2 : ℤ) : ℝ)) ∧
       (∀ z σ, G z σ = β * Real.sqrt q * ∑ i, z i * ((σ i : ℤ) : ℝ)) ∧
@@ -289,24 +291,29 @@ theorem exists_sk_smart_path_profile_pow {N : ℕ} (hN : 0 < N) (β h q : ℝ) (
         (((N : ℝ)⁻¹ * ((fun i => ((σ 0 i : ℤ) : ℝ)) ⬝ᵥ fun i => ((σ 1 i : ℤ) : ℝ))) - q) ^ 2
         ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted fun b =>
           Real.cos t * F ω.1 b + Real.sin t * G ω.2 b + h * ∑ i, ((b i : ℤ) : ℝ))) ∧
-      (∀ s, ψ s = ∫ ω, (A s ω - a) ^ k
+      ∀ (a : ℝ) (k : ℕ),
+      (∫ ω, (A 0 ω - a) ^ k
         ∂((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
-          (Measure.pi fun _ : Fin N => gaussianReal 0 1))) ∧
-      ψ 0 = ∫ g : FinPairs N → ℝ, ((N : ℝ)⁻¹ * Real.log (∑ σ : Fin N → ℤˣ,
-        Real.exp (F g σ + h * ∑ i, ((σ i : ℤ) : ℝ))) - a) ^ k
-        ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) ∧
-      ψ (Real.pi / 2) = ∫ z : Fin N → ℝ, (Real.log 2 + (N : ℝ)⁻¹ * ∑ i,
-        Real.log (Real.cosh (β * Real.sqrt q * z i + h)) - a) ^ k
-        ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1) ∧
-      ∀ t, HasDerivAt ψ (β ^ 2 / 2 * Real.sin t * Real.cos t *
+          (Measure.pi fun _ : Fin N => gaussianReal 0 1)) =
+        ∫ g : FinPairs N → ℝ, ((N : ℝ)⁻¹ * Real.log (∑ σ : Fin N → ℤˣ,
+          Real.exp (F g σ + h * ∑ i, ((σ i : ℤ) : ℝ))) - a) ^ k
+          ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) ∧
+      (∫ ω, (A (Real.pi / 2) ω - a) ^ k
+        ∂((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
+          (Measure.pi fun _ : Fin N => gaussianReal 0 1)) =
+        ∫ z : Fin N → ℝ, (Real.log 2 + (N : ℝ)⁻¹ * ∑ i,
+          Real.log (Real.cosh (β * Real.sqrt q * z i + h)) - a) ^ k
+          ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1)) ∧
+      ∀ t, HasDerivAt (fun s => ∫ ω, (A s ω - a) ^ k
+        ∂((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
+          (Measure.pi fun _ : Fin N => gaussianReal 0 1)))
+        (β ^ 2 / 2 * Real.sin t * Real.cos t *
         ∫ ω, (((k : ℝ) * (A t ω - a) ^ (k - 1)) * (Q t ω - (1 - q) ^ 2) -
           (N : ℝ)⁻¹ * ((k : ℝ) * ((k - 1 : ℕ) : ℝ) * (A t ω - a) ^ (k - 1 - 1)) *
             (Q t ω - q ^ 2 - (N : ℝ)⁻¹))
         ∂((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
           (Measure.pi fun _ : Fin N => gaussianReal 0 1))) t := by
-  obtain ⟨hW, hW0, hW1, hW2⟩ := sub_pow_growth a k
-  obtain ⟨F, G, ψ, hF, hG, hψ, h0, hπ, hder⟩ := exists_sk_smart_path_profile_comp hN β h q hq
-    hW hW0 hW1 hW2
+  obtain ⟨F, G, hF, hG, hprof⟩ := exists_sk_smart_path_profile_comp hN β h q hq
   obtain ⟨A, hA⟩ : ∃ A : ℝ → (FinPairs N → ℝ) × (Fin N → ℝ) → ℝ, ∀ t ω, A t ω =
       (N : ℝ)⁻¹ * Real.log (∑ σ : Fin N → ℤˣ, Real.exp (Real.cos t * F ω.1 σ +
         Real.sin t * G ω.2 σ + h * ∑ i, ((σ i : ℤ) : ℝ))) := ⟨_, fun _ _ => rfl⟩
@@ -316,14 +323,25 @@ theorem exists_sk_smart_path_profile_pow {N : ℕ} (hN : 0 < N) (β h q : ℝ) (
         ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted fun b =>
           Real.cos t * F ω.1 b + Real.sin t * G ω.2 b + h * ∑ i, ((b i : ℤ) : ℝ)) :=
     ⟨_, fun _ _ => rfl⟩
-  refine ⟨F, G, ψ, A, Q, hF, hG, hA, hQ, ?_, h0, hπ, fun t => ?_⟩
-  · intro s
+  refine ⟨F, G, A, Q, hF, hG, hA, hQ, fun a k => ?_⟩
+  obtain ⟨hW, hW0, hW1, hW2⟩ := sub_pow_growth a k
+  obtain ⟨ψ, hψ, h0, hπ, hder⟩ := hprof hW hW0 hW1 hW2
+  have hψA : ψ = fun s => ∫ ω, (A s ω - a) ^ k
+      ∂((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
+        (Measure.pi fun _ : Fin N => gaussianReal 0 1)) := by
+    funext s
     rw [hψ s]
     simp only [hA]
+  refine ⟨?_, ?_, fun t => ?_⟩
+  · rw [← h0]
+    exact (congrFun hψA 0).symm
+  · rw [← hπ]
+    exact (congrFun hψA (Real.pi / 2)).symm
   · have := hder t
     simp only [deriv_deriv_sub_pow] at this
     simp only [deriv_sub_pow] at this
-    simp only [hA, hQ]
+    rw [hψA] at this
+    simp only [hA, hQ] at this ⊢
     exact this
 
 end SpinGlasses

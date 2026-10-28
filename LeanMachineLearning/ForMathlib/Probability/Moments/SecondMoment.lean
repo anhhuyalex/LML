@@ -17,7 +17,10 @@ For a random vector `x : Ω → p → ℝ` with square-integrable coordinates an
 
 * `ProbabilityTheory.integral_dotProduct_mulVec_self`: `E[xᵀ S x] = Tr (S Γ)`;
 * `ProbabilityTheory.integral_dotProduct_mul_dotProduct`: `E[(x ⬝ a)(x ⬝ b)] = a ⬝ Γ b`;
-* `ProbabilityTheory.integral_mul_le_half_add`: AM-GM, `E[X Y] ≤ (E[X²] + E[Y²]) / 2`.
+* `ProbabilityTheory.abs_integral_mul_le_weighted_add`: weighted AM-GM,
+  `|E[X Y]| ≤ (l E[X²] + l⁻¹ E[Y²]) / 2`;
+* `ProbabilityTheory.integral_mul_le_half_add`: AM-GM, `E[X Y] ≤ (E[X²] + E[Y²]) / 2`;
+* `ProbabilityTheory.abs_integral_mul_le_of_integral_sq_le`: Cauchy-Schwarz with explicit scales.
 
 They reduce every bilinear second-moment computation to the coordinate covariances (used for the
 double-descent risk decompositions and for Gaussian matrix forms).
@@ -61,13 +64,46 @@ theorem integral_dotProduct_mul_dotProduct (x : Ω → p → ℝ) (hx : ∀ j, M
   simp_rw [hpt] at h
   rw [h, Matrix.vecMulVec_mul, Matrix.trace_vecMulVec, Matrix.dotProduct_mulVec, dotProduct_comm]
 
+/-- Weighted AM-GM for square-integrable variables:
+`|E[X Y]| ≤ (l E[X²] + l⁻¹ E[Y²]) / 2` for every `l > 0`. -/
+theorem abs_integral_mul_le_weighted_add {X Y : Ω → ℝ} (hX : MemLp X 2 μ) (hY : MemLp Y 2 μ)
+    {l : ℝ} (hl : 0 < l) :
+    |∫ ω, X ω * Y ω ∂μ| ≤ (l * ∫ ω, X ω ^ 2 ∂μ + l⁻¹ * ∫ ω, Y ω ^ 2 ∂μ) / 2 := by
+  have hXi := hX.integrable_sq
+  have hYi := hY.integrable_sq
+  have hXY := hX.integrable_mul hY
+  rw [← integral_const_mul, ← integral_const_mul, ← integral_add (hXi.const_mul l)
+    (hYi.const_mul l⁻¹), ← integral_div]
+  refine (abs_integral_le_integral_abs).trans (integral_mono hXY.abs
+    (((hXi.const_mul l).add (hYi.const_mul l⁻¹)).div_const 2) fun ω => ?_)
+  have h1 : (l * X ω - Y ω) ^ 2 / l = l * X ω ^ 2 + l⁻¹ * Y ω ^ 2 - 2 * (X ω * Y ω) := by
+    field_simp
+    ring
+  have h2 : 0 ≤ (l * X ω - Y ω) ^ 2 / l := by positivity
+  have h3 : (l * X ω + Y ω) ^ 2 / l = l * X ω ^ 2 + l⁻¹ * Y ω ^ 2 + 2 * (X ω * Y ω) := by
+    field_simp
+    ring
+  have h4 : 0 ≤ (l * X ω + Y ω) ^ 2 / l := by positivity
+  rw [abs_le]
+  constructor <;> linarith
+
 /-- AM-GM for square-integrable variables: `E[X Y] ≤ (E[X²] + E[Y²]) / 2`. -/
 theorem integral_mul_le_half_add {X Y : Ω → ℝ} (hX : MemLp X 2 μ) (hY : MemLp Y 2 μ) :
     ∫ ω, X ω * Y ω ∂μ ≤ (∫ ω, X ω ^ 2 ∂μ + ∫ ω, Y ω ^ 2 ∂μ) / 2 := by
-  have hXi := hX.integrable_sq
-  have hYi := hY.integrable_sq
-  rw [← integral_add hXi hYi, ← integral_div]
-  exact integral_mono (hX.integrable_mul hY) ((hXi.add hYi).div_const 2)
-    fun ω => by nlinarith [sq_nonneg (X ω - Y ω)]
+  simpa using (le_abs_self _).trans (abs_integral_mul_le_weighted_add hX hY one_pos)
+
+/-- **Cauchy-Schwarz with explicit scales:** if `E[X²] ≤ α²` and `E[Y²] ≤ γ²` with `α, γ > 0`,
+then `|E[X Y]| ≤ α γ`. -/
+theorem abs_integral_mul_le_of_integral_sq_le {X Y : Ω → ℝ} (hX : MemLp X 2 μ) (hY : MemLp Y 2 μ)
+    {α γ : ℝ} (hα : 0 < α) (hγ : 0 < γ) (hXb : ∫ ω, X ω ^ 2 ∂μ ≤ α ^ 2)
+    (hYb : ∫ ω, Y ω ^ 2 ∂μ ≤ γ ^ 2) : |∫ ω, X ω * Y ω ∂μ| ≤ α * γ := by
+  refine (abs_integral_mul_le_weighted_add hX hY (div_pos hγ hα)).trans ?_
+  have h1 : γ / α * ∫ ω, X ω ^ 2 ∂μ ≤ γ / α * α ^ 2 :=
+    mul_le_mul_of_nonneg_left hXb (div_pos hγ hα).le
+  have h2 : (γ / α)⁻¹ * ∫ ω, Y ω ^ 2 ∂μ ≤ (γ / α)⁻¹ * γ ^ 2 :=
+    mul_le_mul_of_nonneg_left hYb (inv_pos.2 (div_pos hγ hα)).le
+  have h3 : γ / α * α ^ 2 = α * γ := by field_simp
+  have h4 : (γ / α)⁻¹ * γ ^ 2 = α * γ := by field_simp
+  linarith
 
 end ProbabilityTheory
