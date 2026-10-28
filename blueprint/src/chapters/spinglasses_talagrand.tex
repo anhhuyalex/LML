@@ -1165,9 +1165,59 @@ By Lemma~\ref{lem:sg-tal:sk-linear-data} the free energy $\log Z_N=\log\sum_\sig
 Formalized in \texttt{SpinGlasses/SKFreeEnergyMoments.lean}; the shared sub-Gaussian statement for a Gaussian field tilted by a deterministic observable (also used for the tail bound in Section~\ref{sec:sg-tal:beyond-at}) is \texttt{SpinGlasses.hasSubgaussianMGF\_log\_sum\_exp\_tilt}.
 \end{proof}
 
+\begin{theorem}[A smooth function of the free energy along the smart path (Eq.~(1.125))]\label{thm:sg-tal:profile-comp}
+  \lean{SpinGlasses.freeEnergyCompHessian,
+        SpinGlasses.fderiv_comp_log_sum_exp_single,
+        SpinGlasses.fderiv_fderiv_comp_log_sum_exp_single,
+        SpinGlasses.abs_hessian_comp_log_sum_exp_le,
+        SpinGlasses.integrable_freeEnergyCompHessian,
+        SpinGlasses.hasDerivAt_integral_comp_log_sum_exp_trig,
+        SpinGlasses.hasDerivAt_integral_comp_log_sum_exp_trig_integral,
+        SpinGlasses.sum_hessian_comp_eq,
+        SpinGlasses.sum_freeEnergyCompHessian_eq,
+        SpinGlasses.exists_sk_smart_path_profile_comp,
+        SpinGlasses.sub_pow_growth,
+        SpinGlasses.exists_sk_smart_path_profile_pow}
+  \leanok
+\talsource{Eq.~(1.125), proof of Theorem~1.4.11}
+Let $N\ge1$, $q\ge0$, $A_t=N^{-1}\log\sum_\sigma\exp(\cos t\,X_\sigma+\sin t\,Y_\sigma+h\sum_i\sigma_i)$ be the free energy along the smart path (SK pair field $X$, cavity field $Y$), $Q_t=\langle(R_{1,2}-q)^2\rangle_t$ and $W$ a $C^2$ function such that $W,W',W''$ have at most exponential growth. Then $\psi(t)=\mathbb{E}\,W(A_t)$ is differentiable and
+\[
+\psi'(t)=\frac{\beta^2}{2}\sin t\cos t\;\mathbb{E}\Big[W'(A_t)\big(Q_t-(1-q)^2\big)-\frac1N\,W''(A_t)\big(Q_t-q^2-\tfrac1N\big)\Big],
+\]
+with $\psi(0)=\mathbb{E}\,W(A_N)$ (SK model) and $\psi(\pi/2)=\mathbb{E}\,W\big(\log2+N^{-1}\sum_i\log\cosh(\beta\sqrt q\,z_i+h)\big)$ (decoupled model). For $W(x)=(x-a)^k$ this reads
+\[
+\psi'(t)=\frac{\beta^2}{2}\sin t\cos t\;\mathbb{E}\Big[k(A_t-a)^{k-1}\big(Q_t-(1-q)^2\big)-\frac{k(k-1)}N(A_t-a)^{k-2}\big(Q_t-q^2-\tfrac1N\big)\Big].
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+Put $L(y)=\log\sum_\sigma e^{y_\sigma+h_\sigma}$, $n=N^{-1}$ and $F_W(y)=W(nL(y))$. With the Gibbs weights $w_\sigma$, $\partial_lF_W=nW'(nL)w_l$ and
+$\partial_k\partial_lF_W=n^2W''(nL)w_lw_k+nW'(nL)w_l(\mathbf 1_{l=k}-w_k)=:H_{lk}$ (\texttt{freeEnergyCompHessian}); the bound $|H_{lk}|\le C e^{c\|y\|_1}$ follows from $|L(y)|\le|L(0)|+\|y\|_1$ and the growth of $W',W''$. The generic Gaussian interpolation formula (\texttt{hasDerivAt\_integral\_comp\_trig}, Gaussian integration by parts) gives $\psi'(t)=\sin t\cos t\,\sum_{l,k}(\mathbb{E}Y_lY_k-\mathbb{E}X_lX_k)\,\mathbb{E}H_{lk}$; the entries are integrable, so the expectation can be moved outside the sum. By the covariance computation of the smart path (Eq.~(1.64)), $\mathbb{E}Y_\sigma Y_\tau-\mathbb{E}X_\sigma X_\tau=-\frac{N\beta^2}{2}\big((R(\sigma,\tau)-q)^2-q^2-\frac1N\big)$, and since $R(\sigma,\sigma)=1$ and $\sum_\sigma w_\sigma=1$ the double sum equals $\frac{\beta^2}{2}\big[W'(A)(Q-(1-q)^2)-\frac1NW''(A)(Q-q^2-\frac1N)\big]$ (\texttt{sum\_hessian\_comp\_eq}). The endpoints use $\cos0=1,\sin0=0$ and, at $\pi/2$, the factorization $\log Z=N\log2+\sum_i\log\cosh(\beta\sqrt q z_i+h)$ of the decoupled system (\texttt{log\_decoupled\_partition\_function\_eq}). For $W(x)=(x-a)^k$ the growth bounds follow from $y^m\le m!e^y$ (\texttt{sub\_pow\_growth}).
+\emph{Remarks.} For $W=\mathrm{id}$ the second term vanishes and this is the profile used for Theorem~\ref{thm:sg-tal:alr}; that profile is proved by a different route (Gaussian integration by parts on Gibbs averages), which does not apply to nonlinear $W$. The book writes the path with $t\mapsto\sin^2t$; the formula above is in the angle, and the conversion is a change of variable that is not yet done.
+Formalized in \texttt{SpinGlasses/GaussianInterpolationNonlinear.lean} (generic) and \texttt{SpinGlasses/SKSmartPathProfileComp.lean} (SK).
+\end{proof}
+
+\begin{theorem}[Even overlap moments along the whole smart path (Eqs.~(1.88), (1.103))]\label{thm:sg-tal:path-overlap-moments}
+  \lean{SpinGlasses.sk_path_expected_exp_overlap_le,
+        SpinGlasses.sk_path_expected_pow_overlap_le}
+  \leanok
+\talsource{Eqs.~(1.88), (1.103); the fourth moment is used in Eq.~(1.121)}
+Let $\beta^2<1/4$, $q=\mathbb{E}\tanh^2(\beta\sqrt q\,z+h)$ and $t\in[0,\pi/2]$. With $a_t=\frac14+\beta^2-2\beta^2\cos^2t\ge\frac14-\beta^2$,
+\[
+\nu_t\big(\exp(N a_t(R_{1,2}-q)^2)\big)\le(\tfrac12-2\beta^2)^{-1/2},\qquad
+\nu_t\big((R_{1,2}-q)^{2r}\big)\le \frac{r!\,(\frac12-2\beta^2)^{-1/2}}{(\frac14-\beta^2)^r\,N^r}\quad(r\in\mathbb N).
+\]
+In particular the fourth moment ($r=2$) is at most $K/N^2$ uniformly in $t$.
+\end{theorem}
+\begin{proof}
+  \leanok
+The first bound is the compensated comparison of the path with the decoupled system (\texttt{sk\_compensated\_path\_le\_decoupled}) followed by the decoupled base case (Proposition~1.4.8) with $\lambda=\frac14+\beta^2$. For the second, $y^r\le r!e^y$ with $y=Na_tX$, $X=(R_{1,2}-q)^2$, gives $X^r\le r!(Na_t)^{-r}e^{Na_tX}\le r!\,((\frac14-\beta^2)N)^{-r}e^{Na_tX}$; integrate.
+Formalized in \texttt{SpinGlasses/SKPathOverlapMoments.lean}. The endpoint version at $t=0$ is Theorem~\ref{thm:sg-tal:overlap-moments-all}; the second moment along the path was already used in Theorem~\ref{thm:sg-tal:alr}.
+\end{proof}
+
 \begin{remark}[Status of Theorem~1.4.11 (the central limit theorem for the free energy)]\label{rem:sg-tal:free-energy-clt-status}
 \talsource{Theorem~1.4.11, Eq.~(1.109); source lines 1660--1895}
-Theorem~1.4.11 states that $\mathbb{E}(A_N-\mathrm{SK}(\beta,h))^k=N^{-k/2}a(k)\,b^{k/2}+O(N^{-(k+1)/2})$ for $\beta<1/2$. \emph{Not formalized.} What is available: the first-moment case (Theorem~\ref{thm:sg-tal:alr}), the order-$N^{-k/2}$ size of all moments about the mean (Theorem~\ref{thm:sg-tal:free-energy-moments}), and the smart-path profile for $\mathbb{E}A(t)$ (\texttt{exists\_sk\_smart\_path\_profile}). What is missing: (i) the derivative of $t\mapsto\mathbb{E}\,(A(t)-a)^k$ along the smart path, i.e.\ Eq.~(1.125), whose new term $N^{-2}\mathbb{E}\big(\langle\cdot\rangle W''(A)\big)$ needs a Gaussian integration by parts for a non-linear function of $\log Z$; (ii) the fourth moment of the overlap along the whole path; (iii) the i.i.d.\ moment lemma at $t=0$; (iv) the induction on $k$.
+Theorem~1.4.11 states that $\mathbb{E}(A_N-\mathrm{SK}(\beta,h))^k=N^{-k/2}a(k)\,b^{k/2}+O(N^{-(k+1)/2})$ for $\beta<1/2$. \emph{Not formalized.} Available: the first-moment case (Theorem~\ref{thm:sg-tal:alr}), the order-$N^{-k/2}$ size of all moments about the mean (Theorem~\ref{thm:sg-tal:free-energy-moments}), the derivative of $t\mapsto\mathbb{E}(A_t-a)^k$ along the smart path, Eq.~(1.125) (Theorem~\ref{thm:sg-tal:profile-comp}), and the fourth overlap moment along the whole path (Theorem~\ref{thm:sg-tal:path-overlap-moments}). Still missing: (i) the estimate $\mathrm{II}=O(k+1)$ of the book: after the shift $a=\mathrm{SK}(t)$ the derivative splits as $\mathrm{I}+\mathrm{II}$ (with $\mathrm{I}=-\frac{\beta^2q^2}{4}\frac{k(k-1)}{N}\mathbb{E}V(t)^{k-2}$ the leading term), and $\mathrm{II}$ is bounded by Cauchy--Schwarz using the fourth overlap moment (available) together with the moments of $V(t)=A(t)-\mathrm{SK}(t)$ along the path, Eq.~(1.118), which needs Lemma~1.4.12 and Theorem~1.4.10 along the whole path (only the endpoints are formalized); (ii) the change from the angle $t$ to the book's linear $t$ and the integration of Eq.~(1.121) with the endpoint $t=0$; (iii) the i.i.d.\ moment lemma at the decoupled endpoint, Eq.~(1.122); (iv) the induction on $k$. The random Gaussian field of the book is also not formalized.
 \end{remark}
 
 \section{Spin Decorrelation, Asymptotic Product Measures and Projections (Talagrand Sections~1.4--1.5)}\label{sec:sg-tal:decorrelation}

@@ -223,4 +223,114 @@ theorem exists_sk_smart_path_profile_comp {N : ℕ} (hN : 0 < N) (β h q : ℝ) 
     rw [integral_congr_ae (ae_of_all _ hpt), integral_const_mul]
     ring
 
+/-- `|x - a|^m ≤ m! exp |a| exp |x|`: powers have exponential growth. -/
+theorem abs_sub_pow_le (a x : ℝ) (m : ℕ) :
+    |x - a| ^ m ≤ (Nat.factorial m : ℝ) * Real.exp |a| * Real.exp (1 * |x|) := by
+  calc |x - a| ^ m ≤ (Nat.factorial m : ℝ) * Real.exp |x - a| :=
+        Real.pow_le_factorial_mul_exp (abs_nonneg _) m
+    _ ≤ (Nat.factorial m : ℝ) * (Real.exp |a| * Real.exp |x|) := by
+        refine mul_le_mul_of_nonneg_left ?_ (Nat.cast_nonneg _)
+        rw [← Real.exp_add]
+        refine Real.exp_le_exp.2 ?_
+        calc |x - a| = |x + -a| := by rw [sub_eq_add_neg]
+          _ ≤ |x| + |-a| := abs_add_le _ _
+          _ = |a| + |x| := by rw [abs_neg]; ring
+    _ = _ := by rw [one_mul]; ring
+
+/-- The first derivative of `x ↦ (x - a)^k`. -/
+theorem deriv_sub_pow (a : ℝ) (k : ℕ) :
+    deriv (fun x : ℝ => (x - a) ^ k) = fun x => (k : ℝ) * (x - a) ^ (k - 1) := by
+  funext x
+  simp
+
+/-- The second derivative of `x ↦ (x - a)^k`. -/
+theorem deriv_deriv_sub_pow (a : ℝ) (k : ℕ) :
+    deriv (deriv fun x : ℝ => (x - a) ^ k) =
+      fun x => (k : ℝ) * ((k - 1 : ℕ) : ℝ) * (x - a) ^ (k - 1 - 1) := by
+  rw [deriv_sub_pow]
+  funext x
+  simp [mul_assoc]
+
+/-- `x ↦ (x - a)^k` is smooth with the exponential-growth bounds required by
+`exists_sk_smart_path_profile_comp`. -/
+theorem sub_pow_growth (a : ℝ) (k : ℕ) :
+    ContDiff ℝ 2 (fun x : ℝ => (x - a) ^ k) ∧
+    (∀ x, |(x - a) ^ k| ≤ ((Nat.factorial k : ℝ) * Real.exp |a|) * Real.exp (1 * |x|)) ∧
+    (∀ x, |deriv (fun x : ℝ => (x - a) ^ k) x| ≤
+      ((k : ℝ) * (Nat.factorial (k - 1) : ℝ) * Real.exp |a|) * Real.exp (1 * |x|)) ∧
+    (∀ x, |deriv (deriv fun x : ℝ => (x - a) ^ k) x| ≤
+      ((k : ℝ) * ((k - 1 : ℕ) : ℝ) * (Nat.factorial (k - 1 - 1) : ℝ) * Real.exp |a|) *
+        Real.exp (1 * |x|)) := by
+  refine ⟨by fun_prop, fun x => ?_, fun x => ?_, fun x => ?_⟩
+  · rw [abs_pow, mul_assoc]
+    simpa [mul_assoc] using abs_sub_pow_le a x k
+  · rw [deriv_sub_pow, abs_mul, abs_pow, Nat.abs_cast]
+    have := abs_sub_pow_le a x (k - 1)
+    calc (k : ℝ) * |x - a| ^ (k - 1) ≤ (k : ℝ) * ((Nat.factorial (k - 1) : ℝ) * Real.exp |a| *
+          Real.exp (1 * |x|)) := mul_le_mul_of_nonneg_left this (Nat.cast_nonneg _)
+      _ = _ := by ring
+  · rw [deriv_deriv_sub_pow, abs_mul, abs_mul, abs_pow, Nat.abs_cast, Nat.abs_cast]
+    have := abs_sub_pow_le a x (k - 1 - 1)
+    calc (k : ℝ) * ((k - 1 : ℕ) : ℝ) * |x - a| ^ (k - 1 - 1) ≤ (k : ℝ) * ((k - 1 : ℕ) : ℝ) *
+          ((Nat.factorial (k - 1 - 1) : ℝ) * Real.exp |a| * Real.exp (1 * |x|)) :=
+        mul_le_mul_of_nonneg_left this (by positivity)
+      _ = _ := by ring
+
+/-- **Eq. (1.125) for `W(x) = (x - a)^k`** (Talagrand, proof of Theorem 1.4.11).  With
+`A_t(ω) = N⁻¹ log Z_t(ω)` the free energy of the smart path and `Q_t(ω) = ⟨(R_{1,2} - q)²⟩_t` the
+Gibbs average of the squared overlap, `ψ(t) = 𝔼 (A_t - a)^k` has the derivative
+`(β²/2) sin t cos t 𝔼 [k (A_t - a)^{k-1} (Q_t - (1-q)²) -
+  N⁻¹ k (k-1) (A_t - a)^{k-2} (Q_t - q² - N⁻¹)]`,
+with `ψ 0` the `k`-th moment of `A_N - a` in the SK model and `ψ (π/2)` that of the decoupled
+system. -/
+theorem exists_sk_smart_path_profile_pow {N : ℕ} (hN : 0 < N) (β h q : ℝ) (hq : 0 ≤ q) (a : ℝ)
+    (k : ℕ) :
+    ∃ (F : (FinPairs N → ℝ) → (Fin N → ℤˣ) → ℝ) (G : (Fin N → ℝ) → (Fin N → ℤˣ) → ℝ)
+      (ψ : ℝ → ℝ) (A Q : ℝ → (FinPairs N → ℝ) × (Fin N → ℝ) → ℝ),
+      (∀ g σ, F g σ = (Real.sqrt N)⁻¹ * β *
+        ∑ p : FinPairs N, g p * ((σ p.val.1 : ℤ) : ℝ) * ((σ p.val.2 : ℤ) : ℝ)) ∧
+      (∀ z σ, G z σ = β * Real.sqrt q * ∑ i, z i * ((σ i : ℤ) : ℝ)) ∧
+      (∀ t ω, A t ω = (N : ℝ)⁻¹ * Real.log (∑ σ : Fin N → ℤˣ,
+        Real.exp (Real.cos t * F ω.1 σ + Real.sin t * G ω.2 σ + h * ∑ i, ((σ i : ℤ) : ℝ)))) ∧
+      (∀ t ω, Q t ω = ∫ σ : Fin 2 → (Fin N → ℤˣ),
+        (((N : ℝ)⁻¹ * ((fun i => ((σ 0 i : ℤ) : ℝ)) ⬝ᵥ fun i => ((σ 1 i : ℤ) : ℝ))) - q) ^ 2
+        ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted fun b =>
+          Real.cos t * F ω.1 b + Real.sin t * G ω.2 b + h * ∑ i, ((b i : ℤ) : ℝ))) ∧
+      (∀ s, ψ s = ∫ ω, (A s ω - a) ^ k
+        ∂((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
+          (Measure.pi fun _ : Fin N => gaussianReal 0 1))) ∧
+      ψ 0 = ∫ g : FinPairs N → ℝ, ((N : ℝ)⁻¹ * Real.log (∑ σ : Fin N → ℤˣ,
+        Real.exp (F g σ + h * ∑ i, ((σ i : ℤ) : ℝ))) - a) ^ k
+        ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) ∧
+      ψ (Real.pi / 2) = ∫ z : Fin N → ℝ, (Real.log 2 + (N : ℝ)⁻¹ * ∑ i,
+        Real.log (Real.cosh (β * Real.sqrt q * z i + h)) - a) ^ k
+        ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1) ∧
+      ∀ t, HasDerivAt ψ (β ^ 2 / 2 * Real.sin t * Real.cos t *
+        ∫ ω, (((k : ℝ) * (A t ω - a) ^ (k - 1)) * (Q t ω - (1 - q) ^ 2) -
+          (N : ℝ)⁻¹ * ((k : ℝ) * ((k - 1 : ℕ) : ℝ) * (A t ω - a) ^ (k - 1 - 1)) *
+            (Q t ω - q ^ 2 - (N : ℝ)⁻¹))
+        ∂((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
+          (Measure.pi fun _ : Fin N => gaussianReal 0 1))) t := by
+  obtain ⟨hW, hW0, hW1, hW2⟩ := sub_pow_growth a k
+  obtain ⟨F, G, ψ, hF, hG, hψ, h0, hπ, hder⟩ := exists_sk_smart_path_profile_comp hN β h q hq
+    hW hW0 hW1 hW2
+  obtain ⟨A, hA⟩ : ∃ A : ℝ → (FinPairs N → ℝ) × (Fin N → ℝ) → ℝ, ∀ t ω, A t ω =
+      (N : ℝ)⁻¹ * Real.log (∑ σ : Fin N → ℤˣ, Real.exp (Real.cos t * F ω.1 σ +
+        Real.sin t * G ω.2 σ + h * ∑ i, ((σ i : ℤ) : ℝ))) := ⟨_, fun _ _ => rfl⟩
+  obtain ⟨Q, hQ⟩ : ∃ Q : ℝ → (FinPairs N → ℝ) × (Fin N → ℝ) → ℝ, ∀ t ω, Q t ω =
+      ∫ σ : Fin 2 → (Fin N → ℤˣ),
+        (((N : ℝ)⁻¹ * ((fun i => ((σ 0 i : ℤ) : ℝ)) ⬝ᵥ fun i => ((σ 1 i : ℤ) : ℝ))) - q) ^ 2
+        ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted fun b =>
+          Real.cos t * F ω.1 b + Real.sin t * G ω.2 b + h * ∑ i, ((b i : ℤ) : ℝ)) :=
+    ⟨_, fun _ _ => rfl⟩
+  refine ⟨F, G, ψ, A, Q, hF, hG, hA, hQ, ?_, h0, hπ, fun t => ?_⟩
+  · intro s
+    rw [hψ s]
+    simp only [hA]
+  · have := hder t
+    simp only [deriv_deriv_sub_pow] at this
+    simp only [deriv_sub_pow] at this
+    simp only [hA, hQ]
+    exact this
+
 end SpinGlasses

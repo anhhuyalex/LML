@@ -504,6 +504,7 @@ public import LeanMachineLearning.SpinGlasses.SKPairPerturbCavity
 public import LeanMachineLearning.SpinGlasses.SKPairPerturbEstimate
 public import LeanMachineLearning.SpinGlasses.SKPairPerturbGaussian
 public import LeanMachineLearning.SpinGlasses.SKPairVariance
+public import LeanMachineLearning.SpinGlasses.SKPathOverlapMoments
 public import LeanMachineLearning.SpinGlasses.SKRandomProjectionCLT
 public import LeanMachineLearning.SpinGlasses.SKRectangularDerivative
 public import LeanMachineLearning.SpinGlasses.SKReplicaSymmetricBound
