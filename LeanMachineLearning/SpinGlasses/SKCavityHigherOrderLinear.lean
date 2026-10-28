@@ -105,7 +105,8 @@ theorem sk_cavity_pair_lincomb_expansion (β h q : ℝ) (hβ : 4 * β ^ 2 < 1)
         ((fun i : Fin N => (ρ (a j (t j)) i : ℝ)) ⬝ᵥ
           fun i : Fin N => (ρ (b j (t j)) i : ℝ)) - q))| ≤
         C / ((N : ℝ) + 1) ^ (((k + 2 : ℕ) : ℝ) / 2) := by
-    simpa only [L, w, mul_assoc] using hC N (fun j => a j (t j))
+    simpa only [L, LinearMap.coe_mk, AddHom.coe_mk, ν, ν₂, E, w, mul_assoc] using
+      hC N (fun j => a j (t j))
       (fun j => b j (t j)) (fun j => hab j (t j))
   have ht := L.abs_apply_prod_sum_le c (fun j i ρ =>
     (N + 1 : ℝ)⁻¹ * ((fun v : Fin N => (ρ (a j i) v : ℝ)) ⬝ᵥ

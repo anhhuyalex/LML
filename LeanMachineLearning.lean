@@ -35,6 +35,7 @@ public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.C
 public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.DataProcessing
 public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.MapSequence
 public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.Restrict
+public import LeanMachineLearning.ForMathlib.LinearAlgebra.FiniteProductBound
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.CholeskyInfinite
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.GramProjector
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.Householder
@@ -469,6 +470,8 @@ public import LeanMachineLearning.SpinGlasses.SKCavityEndpoint
 public import LeanMachineLearning.SpinGlasses.SKCavityFreeEnergy
 public import LeanMachineLearning.SpinGlasses.SKCavityGaussian
 public import LeanMachineLearning.SpinGlasses.SKCavityHigherOrder
+public import LeanMachineLearning.SpinGlasses.SKCavityHigherOrderCorollary
+public import LeanMachineLearning.SpinGlasses.SKCavityHigherOrderLinear
 public import LeanMachineLearning.SpinGlasses.SKCavityHigherOrderPair
 public import LeanMachineLearning.SpinGlasses.SKCavityHolder
 public import LeanMachineLearning.SpinGlasses.SKCavityIncrement

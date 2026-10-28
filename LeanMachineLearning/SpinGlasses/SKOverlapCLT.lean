@@ -19,8 +19,10 @@ file contains only that covariance function, as a combinatorial formula.
 
 **Preparation.** `SKCavityHigherOrder.lean` proves Eqs. (1.298)-(1.299) for products of
 individual truncated centered overlaps with a bounded factor; `SKCavityHigherOrderPair.lean`
-proves Lemma 1.10.2 for pure products. Products of arbitrary finite linear combinations,
-Corollary 1.10.3 and the mixed-moment induction of Theorem 1.10.1 remain open.
+proves Lemma 1.10.2 for pure products. `SKCavityHigherOrderLinear.lean` extends that lemma to
+products of finite linear combinations. `SKCavityHigherOrderCorollary.lean` proves both formulas
+of Corollary 1.10.3, retaining independence from the third replica in Eq. (1.302). The
+mixed-moment induction of Theorem 1.10.1 remains open.
 
 An earlier version of this file declared statements with those names; they
 were vacuous (an existential remainder chosen to be zero, or a hypothesis returned as the

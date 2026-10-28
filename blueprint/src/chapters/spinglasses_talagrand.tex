@@ -14,9 +14,9 @@ The mathematical narrative develops the high-temperature theory of the Sherringt
 \item Second moment computations (Section~1.8): the second-order expansion of the cavity path (Proposition~1.8.1), the rectangular combination at the decoupled endpoint (Lemma~1.8.4), and the asymptotic second moment of the rectangular overlap and the variance of the truncated spin correlation (Proposition~1.8.5, Corollary~1.8.6), with explicit $O(N^{-3/2})$ errors.
 \item Beyond the Almeida--Thouless line (Section~1.9): Lemmas~1.9.3 and~1.9.4, Proposition~1.9.2 and Proposition~1.9.5 (nonzero field) are formalized for the SK model (Section~\ref{sec:sg-tal:beyond-at}); the coupled free energy and Proposition~1.9.7 (derivative separation) are formalized for the SK model with $h\ne0$, while Theorem~1.9.6 (non-differentiability of the limit) is formalized only conditionally on the existence of the limit as a hypothesis (Theorem~\ref{thm:sg-tal:thm-196}).
 \item Higher overlap moments (Section~1.10): the product cavity expansions (1.298)--(1.299)
-and Lemma~1.10.2 are proved for products of individual truncated centered overlaps
-(Section~\ref{sec:sg-tal:overlap-clt}); Corollary~1.10.3 and the joint $T$-basis
-mixed-moment theorem remain open.
+are proved for products of individual truncated centered overlaps; Lemma~1.10.2 and both
+formulas of Corollary~1.10.3 hold for products of finite linear combinations
+(Section~\ref{sec:sg-tal:overlap-clt}). The joint $T$-basis mixed-moment theorem remains open.
 \end{enumerate}
 
 \medskip\noindent\textbf{Source tags.}
@@ -6210,13 +6210,115 @@ $C_1m^{-(k+2)/2}$. Reindex the two additional replicas and sum these errors usin
 $C_0+C_1\sum_j|w_jb(c_j)|$, where $w_j$ are the three signed replica-family weights.
 \end{proof}
 
+\subsection{Finite linear combinations and Corollary~1.10.3}
+
+The following extension and both displayed formulas of Corollary~1.10.3 are proved.
+They use the full Gibbs averages, rather than assuming an error identity for a Gaussian model.
+
+\begin{lemma}[A linear functional on products of sums]\label{lem:sg-tal:finite-product-bound}
+\lean{LinearMap.abs_apply_prod_sum_le}
+\leanok
+\talsource{Finite multilinearity underlying the paragraph after Eq.~(1.300)}
+Let $\Omega$ be any type, $I$ a finite factor index set, and $I_j$ a finite summand
+index set for each $j\in I$. Let $L:\mathbb R^\Omega\to\mathbb R$ be linear,
+$c_{ji}\in\mathbb R$, $f_{ji}:\Omega\to\mathbb R$, and $E\in\mathbb R$.
+If $|L(\prod_j f_{j,t_j})|\le E$ for every choice $t_j\in I_j$, then
+\[
+ \left|L\left(\prod_j\sum_{i\in I_j}c_{ji}f_{ji}\right)\right|
+ \le \left(\prod_j\sum_{i\in I_j}|c_{ji}|\right) E.
+\]
+No positivity or independence is required; the index sets may be empty.
+\end{lemma}
+\begin{proof}
+\leanok
+Distribute the product using Mathlib's finite product-of-sums identity,
+apply linearity, and use the existing signed weighted-sum bound.
+The sum of absolute product coefficients is the product of the sums of absolute coefficients.
+\end{proof}
+
+\begin{lemma}[Lemma~1.10.2 for products of linear combinations]
+\label{lem:sg-tal:cavity-higher-linear}
+\lean{SpinGlasses.sk_cavity_pair_lincomb_expansion}
+\leanok
+\uses{lem:sg-tal:finite-product-bound, lem:sg-tal:cavity-higher-pair}
+\talsource{Paragraph following Eq.~(1.300)}
+Fix deterministic $\beta,h,q\in\mathbb R$ with $4\beta^2<1$ and
+$q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$, and set
+$\widehat q=\mathbb E\tanh^4(\beta\sqrt q\,z+h)$.
+Fix $n,k\in\mathbb N$, $x\ne y$ among the first $n$ replicas, finite sets $I_j$
+and coefficients $c_{ji}\in\mathbb R$ for $1\le j\le k$.
+The conclusion of Lemma~\ref{lem:sg-tal:cavity-higher-pair} holds for
+\[
+ f^-=\prod_{j=1}^k\sum_{i\in I_j}c_{ji}D^-_{a_{ji}b_{ji}},\qquad a_{ji}\ne b_{ji},
+\]
+with one positive error constant chosen before $N$ and all the replica labels $a_{ji},b_{ji}$.
+The error is $C m^{-(k+2)/2}$, where $m=N+1$.
+\end{lemma}
+\begin{proof}
+\leanok
+The difference between the two sides of (1.300) is a linear functional of the old-spin
+observable $f^-$. Linearity of the finite Gibbs averages is valid for every observable;
+the disorder integrability follows from the existing deterministic-observable Gibbs API.
+Apply Lemma~\ref{lem:sg-tal:finite-product-bound} to the monomial bound.
+If $C_0$ is the monomial constant, $1+C_0\prod_j\sum_i|c_{ji}|$ is a valid positive constant.
+\end{proof}
+
+\begin{corollary}[Rectangular and third-replica formulas]
+\label{cor:sg-tal:cavity-higher-rect-third}
+\lean{SpinGlasses.sk_cavity_rect_lincomb_expansion,
+SpinGlasses.sk_cavity_sub_third_lincomb_expansion,
+SpinGlasses.sk_cavity_replica_pair_sum_rect}
+\leanok
+\uses{lem:sg-tal:cavity-higher-linear}
+\talsource{Corollary~1.10.3, Eqs.~(1.301)--(1.302)}
+Under the same deterministic-field, fixed-point and high-temperature assumptions, let $f^-$
+be the above product of $k$ finite linear combinations with fixed coefficients.
+For four distinct replica labels $1,2,3,4$ there is $C>0$, independent of $N$ and the
+labels in $f^-$, such that
+\[
+ \left|\nu((\varepsilon_1-\varepsilon_2)(\varepsilon_3-\varepsilon_4)f^-)
+ -\beta^2(1-2q+\widehat q)
+   \nu((D^-_{13}-D^-_{14}-D^-_{23}+D^-_{24})f^-)\right|
+ \le C m^{-(k+2)/2}.
+\]
+For three distinct labels $1,2,3$, assume in addition that $f^-$ is unchanged when the
+third replica is replaced by any configuration. There is $C'>0$, chosen before $N$,
+such that the absolute difference between $\nu((\varepsilon_1-\varepsilon_2)\varepsilon_3f^-)$
+and
+\[
+ \beta^2(1-4q+3\widehat q)\nu((D^-_{13}-D^-_{23})f^-)
+ +\beta^2(q-\widehat q)\sum_{\ell\notin\{1,2,3\}}
+   \nu((D^-_{1\ell}-D^-_{2\ell}-D^-_{1,n+1}+D^-_{2,n+1})f^-)
+\]
+is at most $C'm^{-(k+2)/2}$. Here the finite sum is over the other original replicas.
+All averages are full $m$-spin Gibbs averages; replicas are added when needed.
+In Lean the right-hand expectations are written using the local kernel
+$J_{ab}=\nu(f^-D^-_{ab})$ on the $n+2$ replicas. Linearity gives the displayed formulas.
+\end{corollary}
+\begin{proof}
+\leanok
+Subtract four applications of the pair expansion for the rectangle, and two for the
+third-replica difference. The exact coincidence algebra and signed replica-family sum
+from Section~1.8 apply to the symmetric full-Gibbs kernel $J$.
+The new rectangular identity works for every symmetric kernel and every real coefficient
+function $b$, with no probabilistic assumptions. It follows by subtracting two instances
+of the existing third-replica regrouping and splitting the two filtered sums.
+For the second formula, Gibbs replica replacement and the stated independence hypothesis
+give $J_{i3}=J_{i,n+1}$ for $i=1,2$. The existing coefficient split then yields
+$b(2)-4b(1)+3b(0)=\beta^2(1-4q+3\widehat q)$ and
+$b(1)-b(0)=\beta^2(q-\widehat q)$. The sums of the four or two positive error constants
+bound the respective remainders.
+\end{proof}
+
 \begin{remark}[Status of Section~1.10]\label{rem:sg-tal:overlap-clt-status}
 \talsource{Section~1.10, Lemma~1.10.2, Corollary~1.10.3, Eqs.~(1.298), (1.299), Theorem~1.10.1}
 The product estimates and expansions (1.298)--(1.299) are proved above for
 products of individual truncated centered overlaps with an arbitrary bounded factor.
-The extension to products of arbitrary finite linear combinations is not yet exposed.
-Lemma~1.10.2 is proved above for pure products. Corollary~1.10.3 and
-Theorem~1.10.1 remain open at this stage.
+The full product-class extension of the separate Taylor and second-moment estimates
+is not yet exposed; the linear-combination extension of the pair expansion is proved above.
+Lemma~1.10.2 and both formulas of Corollary~1.10.3 are proved for products
+of finite linear combinations, as explained above. The joint mixed-moment induction
+of Theorem~1.10.1 and Propositions~1.10.4--1.10.5 remain open.
 The last is a joint mixed-moment statement for the $T$-basis, not a scalar CLT.
 Earlier vacuous declarations have been removed; the estimates above use the actual
 cavity expectations and derivative, and constants chosen before the number of sites.
