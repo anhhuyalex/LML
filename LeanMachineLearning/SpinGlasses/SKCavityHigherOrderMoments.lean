@@ -84,4 +84,70 @@ theorem sk_cavity_lincomb_sq_le (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (k : 
     _ = ((∏ j, ∑ i, |c j i|) ^ 2 * K) / ((N : ℝ) + 1) ^ k := by ring
     _ ≤ _ := div_le_div_of_nonneg_right (by linarith) (by positivity)
 
+/-- **Eqs. (1.298)--(1.299) for the full finite-linear-combination product class.** The bounded
+factor may depend on every spin, including the last. The same positive constant works for
+both errors and is chosen before the system size, replica pairs and bounded factor.
+The derivative is the actual decoupled cavity derivative with its signed replica sum. -/
+theorem sk_cavity_lincomb_expansion (β h q : ℝ) (hβ : 4 * β ^ 2 < 1)
+    (hfix : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂gaussianReal 0 1 = q)
+    (n k : ℕ) (M : ℝ)
+    {ι : Fin k → Type*} [∀ j, Fintype (ι j)] (c : ∀ j, ι j → ℝ) :
+    ∃ C : ℝ, 0 < C ∧ ∀ (N : ℕ) (a b : ∀ j, ι j → Fin n),
+      (∀ j i, a j i ≠ b j i) →
+    ∀ W : (Fin n → Fin (N + 1) → ℤˣ) → ℝ, (∀ σ, |W σ| ≤ M) →
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
+      (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs N,
+            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
+        (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
+      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
+        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
+      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
+      (Real.sqrt (N + 1))⁻¹ * β *
+        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+      h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let J : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ := fun a b =>
+      β ^ 2 * (a (Fin.last N) : ℝ) * (b (Fin.last N) : ℝ) *
+        ((N + 1 : ℝ)⁻¹ *
+          ((fun i : Fin N => (a i.castSucc : ℝ)) ⬝ᵥ fun i : Fin N => (b i.castSucc : ℝ)) - q)
+    let f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ := fun σ =>
+      W σ * ∏ j : Fin k, ∑ i : ι j, c j i * ((N + 1 : ℝ)⁻¹ *
+        ((fun v : Fin N => (σ (a j i) v.castSucc : ℝ)) ⬝ᵥ
+          fun v : Fin N => (σ (b j i) v.castSucc : ℝ)) - q)
+    |(∫ g, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ
+        ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (Esk g))
+        ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) -
+      (∫ g', ∫ ω : (Fin N → ℝ) × ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ
+        ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (E (π / 2) g' ω))
+        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+        ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1))| ≤
+      C / ((N : ℝ) + 1) ^ (((k + 1 : ℕ) : ℝ) / 2) ∧
+    |(∫ g, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ
+        ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (Esk g))
+        ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) -
+      (∫ g', ∫ ω : (Fin N → ℝ) × ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ
+        ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (E (π / 2) g' ω))
+        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+        ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) -
+      (∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
+        ∫ τ : Option (Option (Fin n)) → Fin (N + 1) → ℤˣ,
+          f (fun r => τ (some (some r))) *
+            ((∑ p : Fin n × Fin n with p.1 < p.2,
+                J (τ (some (some p.1))) (τ (some (some p.2)))) -
+              (n : ℝ) * ∑ r : Fin n, J (τ (some (some r))) (τ (some none)) +
+              (n : ℝ) * ((n : ℝ) + 1) / 2 * J (τ (some none)) (τ none))
+        ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted
+          (E (π / 2) g' ω))
+        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+        ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1))| ≤
+      C / ((N : ℝ) + 1) ^ (((k + 2 : ℕ) : ℝ) / 2) := by
+  obtain ⟨H, hH0, hH⟩ := sk_cavity_lincomb_sq_le β hβ k M c
+  obtain ⟨C, hC0, hC⟩ := sk_cavity_expansion_of_sq_le β h q hβ hfix n k H hH0.le
+  refine ⟨C, hC0, ?_⟩
+  intro N a b hab W hW B E Esk J f
+  exact hC N f (hH β h q hfix le_rfl N n a b hab W hW)
+
 end SpinGlasses

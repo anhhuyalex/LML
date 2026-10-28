@@ -6152,7 +6152,8 @@ No independence of the factors is assumed.
 \end{proof}
 
 \begin{theorem}[Higher-order cavity expansions]\label{thm:sg-tal:cavity-higher-expansion}
-\lean{SpinGlasses.sk_cavity_prod_expansion, SpinGlasses.sk_cavity_prod_old_spin_compare}
+\lean{SpinGlasses.sk_cavity_expansion_of_sq_le, SpinGlasses.sk_cavity_prod_expansion,
+SpinGlasses.sk_cavity_prod_old_spin_compare}
 \leanok
 \uses{lem:sg-tal:cavity-higher-moments}
 \talsource{Eqs.~(1.298)--(1.299)}
@@ -6173,6 +6174,8 @@ Apply the existing first- and second-order cavity bounds with both Holder expone
 to two. The preceding lemma bounds $\nu(f^2)^{1/2}$ by $\sqrt H\,m^{-k/2}$;
 the full overlap second and fourth moments supply the additional factors
 $m^{-1/2}$ and $m^{-1}$. Enlarge the constants to obtain one positive $C$.
+The analytic bound is exposed for any observable with $\nu(f^2)\le H/m^k$;
+the monomial and linear-combination results use this shared statement.
 For the old-spin form, use the exact decoupled endpoint identity with no last-spin factors.
 \end{proof}
 
@@ -6234,6 +6237,54 @@ No positivity or independence is required; the index sets may be empty.
 Distribute the product using Mathlib's finite product-of-sums identity,
 apply linearity, and use the existing signed weighted-sum bound.
 The sum of absolute product coefficients is the product of the sums of absolute coefficients.
+\end{proof}
+
+\begin{lemma}[Square bounds under finite multilinearity]
+\label{lem:sg-tal:finite-product-square-bound}
+\lean{LinearMap.apply_sq_sum_le, LinearMap.apply_sq_prod_sum_le}
+\leanok
+\talsource{Finite multilinearity and positivity underlying Eq.~(1.297)}
+Let $L:\mathbb R^\Omega\to\mathbb R$ be linear and monotone for the pointwise order.
+With the finite families $c_{ji},f_{ji}$ of Lemma~\ref{lem:sg-tal:finite-product-bound},
+if $L((\prod_j f_{j,t_j})^2)\le E$ for every selection $t$, then
+\[
+ L\left(\left(\prod_j\sum_i c_{ji}f_{ji}\right)^2\right)
+ \le \left(\prod_j\sum_i|c_{ji}|\right)^2 E.
+\]
+The one-sum version is also proved. The coefficients need not be nonnegative.
+\end{lemma}
+\begin{proof}
+\leanok
+Positivity and $\pm2uv\le u^2+v^2$ give $|L(uv)|\le E$ whenever
+$L(u^2),L(v^2)\le E$. Expand the square of the finite sum and bound its signed
+cross terms. Distributing the finite product gives the product version.
+\end{proof}
+
+\begin{theorem}[Moment and Taylor bounds for the full product class]
+\label{thm:sg-tal:cavity-higher-linear-moments}
+\lean{SpinGlasses.sk_cavity_lincomb_sq_le, SpinGlasses.sk_cavity_lincomb_expansion}
+\leanok
+\uses{lem:sg-tal:finite-product-square-bound, lem:sg-tal:cavity-higher-moments,
+thm:sg-tal:cavity-higher-expansion}
+\talsource{Eqs.~(1.297)--(1.299), functions of order $k$}
+For fixed finite coefficient families, let
+\[
+ f=W\prod_{j=1}^k\sum_{i\in I_j}c_{ji}D^-_{a_{ji}b_{ji}},
+ \qquad |W|\le M,\quad a_{ji}\ne b_{ji}.
+\]
+The second-moment estimate $\nu(f^2)\le H/m^k$ holds with $H>0$ chosen
+before the size, replica count and labels, and $W$, uniformly for
+$\beta^2\le\beta_0^2$, $4\beta_0^2<1$, and all deterministic $h$ and fixed points $q$.
+For fixed $\beta,h,q,n$, the two Taylor estimates of
+Theorem~\ref{thm:sg-tal:cavity-higher-expansion} hold for this $f$, with one
+positive constant before $N$, the labels and $W$.
+\end{theorem}
+\begin{proof}
+\leanok
+Use the positive linear functional $L(g)=\nu(W^2g)$ and the monomial square bounds.
+If $H_0$ is the monomial constant, $1+H_0(\prod_j\sum_i|c_{ji}|)^2$ is a valid
+positive square-bound constant. Apply the shared observable-general Taylor theorem.
+The factor $W$ may depend on the last spins; no extra independence is imposed.
 \end{proof}
 
 \begin{lemma}[Lemma~1.10.2 for products of linear combinations]
@@ -6349,10 +6400,9 @@ The rectangular coefficient calculation subtracts the existing third-replica reg
 instead of repeating the coincidence case enumeration of Lemma~1.8.4.
 These are changes of proof organization, with the source coefficients unchanged.
 \item \emph{Remaining scope.}
-The separate moment and Taylor estimates above currently expose products of individual
-$D^-_{ab}$ and an arbitrary bounded factor, rather than the source's entire class of
-products of linear combinations. The pair expansion and both corollary formulas do expose
-that larger class. No proof of (1.305), Propositions~1.10.4--1.10.5, or Theorem~1.10.1
+The moment and Taylor estimates, pair expansion and both corollary formulas now expose
+the source's full class of finite products of linear combinations. The bounded factor
+in the moment and Taylor estimates may have any fixed bound $M$, rather than only $4$. No proof of (1.305), Propositions~1.10.4--1.10.5, or Theorem~1.10.1
 is asserted by these cavity results. The status below records these open obligations.
 \end{enumerate}
 \end{remark}
@@ -6360,9 +6410,9 @@ is asserted by these cavity results. The status below records these open obligat
 \begin{remark}[Status of Section~1.10]\label{rem:sg-tal:overlap-clt-status}
 \talsource{Section~1.10, Lemma~1.10.2, Corollary~1.10.3, Eqs.~(1.298), (1.299), Theorem~1.10.1}
 The product estimates and expansions (1.298)--(1.299) are proved above for
-products of individual truncated centered overlaps with an arbitrary bounded factor.
-The full product-class extension of the separate Taylor and second-moment estimates
-is not yet exposed; the linear-combination extension of the pair expansion is proved above.
+products of finite linear combinations of truncated centered overlaps with an arbitrary
+bounded factor. The separate moment and Taylor bounds and the pair expansion all cover
+this full finite product class.
 Lemma~1.10.2 and both formulas of Corollary~1.10.3 are proved for products
 of finite linear combinations, as explained above. The joint mixed-moment induction
 of Theorem~1.10.1 and Propositions~1.10.4--1.10.5 remain open.

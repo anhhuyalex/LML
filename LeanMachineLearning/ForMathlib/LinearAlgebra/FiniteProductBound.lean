@@ -60,7 +60,7 @@ theorem apply_sq_sum_le {Ω I : Type*} [Fintype I] (L : (Ω → ℝ) →ₗ[ℝ]
         _ ≤ L ((fun ω => f i ω ^ 2) + (fun ω => f j ω ^ 2)) :=
           hmono _ _ fun ω => by
             change 2 * (f i ω * f j ω) ≤ f i ω ^ 2 + f j ω ^ 2
-            nlinarith only [sq_nonneg (f i ω - f j ω)]
+            simpa only [mul_assoc] using two_mul_le_add_sq (f i ω) (f j ω)
         _ = _ := L.map_add _ _
     have hn : -2 * L (fun ω => f i ω * f j ω) ≤
         L (fun ω => f i ω ^ 2) + L (fun ω => f j ω ^ 2) := by
@@ -69,7 +69,8 @@ theorem apply_sq_sum_le {Ω I : Type*} [Fintype I] (L : (Ω → ℝ) →ₗ[ℝ]
         _ ≤ L ((fun ω => f i ω ^ 2) + (fun ω => f j ω ^ 2)) :=
           hmono _ _ fun ω => by
             change -2 * (f i ω * f j ω) ≤ f i ω ^ 2 + f j ω ^ 2
-            nlinarith only [sq_nonneg (f i ω + f j ω)]
+            simpa only [neg_mul, mul_neg, neg_sq, mul_assoc] using
+              two_mul_le_add_sq (-f i ω) (f j ω)
         _ = _ := L.map_add _ _
     exact abs_le.mpr ⟨by linarith [h i, h j], by linarith [h i, h j]⟩
   have he : (fun ω => (∑ i, c i * f i ω) ^ 2) =
