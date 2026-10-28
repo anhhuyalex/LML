@@ -120,6 +120,18 @@ theorem integral_id_mul_gaussianReal_eq (v : ℝ≥0) {F F' : ℝ → ℝ}
   ring_nf
 
 
+/-- **The moment recurrence of the standard Gaussian:** `𝔼 g^{k+2} = (k + 1) 𝔼 g^k`, from
+Stein's lemma with `F (x) = x^{k+1}`. -/
+theorem integral_pow_add_two_gaussianReal (k : ℕ) :
+    ∫ x : ℝ, x ^ (k + 2) ∂(gaussianReal 0 1) =
+      (k + 1 : ℝ) * ∫ x : ℝ, x ^ k ∂(gaussianReal 0 1) := by
+  have h := integral_id_mul_gaussianReal_eq 1 (F := fun x : ℝ => x ^ (k + 1))
+    (F' := fun x => (k + 1 : ℝ) * x ^ k) (fun x => by simpa using hasDerivAt_pow (k + 1) x)
+    (by simpa [pow_succ'] using integrable_pow_gaussianReal 0 1 (k + 2))
+    ((integrable_pow_gaussianReal 0 1 k).const_mul _)
+  simp only [NNReal.coe_one, one_mul, integral_const_mul] at h
+  simpa [pow_succ'] using h
+
 section Growth
 
 variable {ι κ : Type*} [Fintype ι] [DecidableEq ι] [Fintype κ]

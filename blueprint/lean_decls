@@ -4141,4 +4141,4 @@ SpinGlasses.skOverlapCov
 SpinGlasses.clt_induction
 SpinGlasses.abs_sub_ref_le_of_ode
 SpinGlasses.hasDerivAt_clt_ref
-SpinGlasses.eq_zero_of_odd_of_rec
+ProbabilityTheory.eq_zero_of_odd_of_rec

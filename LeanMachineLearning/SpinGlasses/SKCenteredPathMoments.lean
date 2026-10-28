@@ -103,7 +103,8 @@ theorem integrable_smart_path_free_energy_sub_pow {N : ℕ} (hN : 0 < N) (β h q
       ((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
         (Measure.pi fun _ : Fin N => gaussianReal 0 1)) := by
   have h1 := (integral_pow_abs_smart_path_free_energy_sub_le hN β h q hq hq1 s m).1
-  refine integrable_sub_pow_of_integrable_abs_pow (measurable_smart_path_free_energy β h q hF hG hA s)
+  refine integrable_sub_pow_of_integrable_abs_pow
+    (measurable_smart_path_free_energy β h q hF hG hA s)
     (c := ∫ ω', A s ω' ∂((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
       (Measure.pi fun _ : Fin N => gaussianReal 0 1))) ?_ a
   convert h1 using 3

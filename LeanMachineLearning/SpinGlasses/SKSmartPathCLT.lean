@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SinCosEndpoint
+public import LeanMachineLearning.ForMathlib.Probability.Moments.IidSumExpansion
 
 /-!
 # The induction on the degree for the moment expansion of the free energy
@@ -31,6 +32,7 @@ along the path (`SpinGlasses/SKPathOverlapMoments.lean`) and the first moment
 
 ## Main declarations
 
+* `SpinGlasses.exists_clt_const`: constants dominating the recursion of the induction.
 * `SpinGlasses.hasDerivAt_clt_ref`: the derivative of the reference term `ε^k a(k) b(s)^{k/2}`.
 * `SpinGlasses.abs_sub_ref_le_of_ode`: one step of the induction, from `π/2` to every `s`.
 * `SpinGlasses.clt_induction`: the induction on `k`, with bounds for all `s ∈ [0, π/2]`.
@@ -42,20 +44,12 @@ along the path (`SpinGlasses/SKPathOverlapMoments.lean`) and the first moment
 
 @[expose] public section
 
-open Set
+open Set ProbabilityTheory
 open scoped Real
 
 namespace SpinGlasses
 
 variable {ε B : ℝ} {a : ℕ → ℝ} {b : ℝ → ℝ}
-
-/-- A sequence with `a 1 = 0` and `a (k + 2) = (k + 1) a k` vanishes at odd indices. -/
-theorem eq_zero_of_odd_of_rec (ha1 : a 1 = 0) (ha : ∀ k, a (k + 2) = (k + 1) * a k) {k : ℕ}
-    (hk : Odd k) : a k = 0 := by
-  obtain ⟨m, rfl⟩ := hk
-  induction m with
-  | zero => simpa using ha1
-  | succ m ih => rw [show 2 * (m + 1) + 1 = (2 * m + 1) + 2 by ring, ha, ih, mul_zero]
 
 /-- **The derivative of the reference term of the moment expansion.**  If `b' = B sin cos`, then
 for `k ≥ 1` the function `s ↦ ε^k a(k) b(s)^{k/2}` (natural division) has derivative
@@ -140,6 +134,23 @@ theorem abs_sub_ref_le_of_ode (hε : 0 < ε) (ha1 : a 1 = 0) (ha : ∀ k, a (k +
   calc _ ≤ C_dec * ε ^ (m + 1) + K / 2 * 1 :=
         h1.trans (add_le_add hdec (hdiff.trans (mul_le_mul_of_nonneg_left hsin (by positivity))))
     _ = _ := by rw [hK]; ring
+
+/-- **Constants for the induction on the degree:** for any `B` and any sequences `C_rem`, `C_dec`
+there is a sequence `C` with `C 0 = 0` and
+`C_dec m + C_rem m / 2 + (m (m - 1) / 4) |B| C (m - 2) ≤ C m` for all `m ≥ 1` (a recursion
+with two initial values, defined by `Nat.rec` on pairs). -/
+theorem exists_clt_const (B : ℝ) (C_rem C_dec : ℕ → ℝ) :
+    ∃ C : ℕ → ℝ, C 0 = 0 ∧ ∀ m, 1 ≤ m →
+      C_dec m + C_rem m / 2 + (m : ℝ) * (m - 1) / 4 * |B| * C (m - 2) ≤ C m := by
+  let u : ℕ → ℝ := fun m => C_dec m + C_rem m / 2
+  let w : ℕ → ℝ := fun m => (m : ℝ) * (m - 1) / 4 * |B|
+  let F : ℕ → ℝ × ℝ := fun k => Nat.rec (0, u 1 + w 1 * 0)
+    (fun k p => (p.2, u (k + 2) + w (k + 2) * p.1)) k
+  refine ⟨fun k => (F k).1, rfl, fun m hm => ?_⟩
+  rcases m with _ | _ | k
+  · omega
+  · simp [F, u, w]
+  · exact le_of_eq rfl
 
 /-- **The induction on the degree.**  Let `ε > 0`, `a 0 = 1`, `a 1 = 0`, `a (k + 2) = (k + 1) a k`,
 `b' = B sin cos`, and let `ψ k` be real functions with `ψ 0 = 1` such that for every `m ≥ 1`
