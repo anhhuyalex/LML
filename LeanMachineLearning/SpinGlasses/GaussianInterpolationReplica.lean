@@ -553,10 +553,6 @@ theorem integral_replica_trig_key
     rw [integral_sub (integrable_finsetSum _ fun _ _ => Integrable.of_finite)
       (Integrable.of_finite.const_mul _), integral_finsetSum _ fun _ _ => Integrable.of_finite,
       integral_const_mul]
-  have hdet : ∀ Θ : (Option (Option R) → α) → ℝ, Integrable (fun ω => ∫ ν, Θ ν
-      ∂(Measure.pi fun _ : Option (Option R) => μt ω)) P := fun Θ => by
-    simp only [hμt]
-    exact integrable_integral_pi_count_tilted_det (g := fun a ω => y a ω + h a) hg Θ
   calc ∑ r₀, ∫ ω, ∫ ν, G1 r₀ ν ∂(Measure.pi fun _ : Option (Option R) => μt ω) ∂P -
         Fintype.card R * ∫ ω, ∫ ν, G2 ν ∂(Measure.pi fun _ : Option (Option R) => μt ω) ∂P
       = ∫ ω, (∑ r₀, ∫ ν, G1 r₀ ν ∂(Measure.pi fun _ : Option (Option R) => μt ω) -

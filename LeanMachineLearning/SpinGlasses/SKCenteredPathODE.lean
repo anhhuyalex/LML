@@ -49,13 +49,13 @@ theorem abs_integral_overlap_sq_le_four {N : ℕ} (hN : 0 < N) (q : ℝ)
     simpa only [Fintype.card_fin] using abs_card_inv_mul_dotProduct_sub_le_two
       (fun i : Fin N => ((σ 0 i : ℤ) : ℝ)) (fun i : Fin N => ((σ 1 i : ℤ) : ℝ))
       (fun i => abs_units_cast_le_one _) (fun i => abs_units_cast_le_one _) q hq
-  have := norm_integral_le_of_norm_le_const (μ := ν) (C := 4)
-    (f := fun σ : Fin 2 → (Fin N → ℤˣ) => (((N : ℝ)⁻¹ * ((fun i => ((σ 0 i : ℤ) : ℝ)) ⬝ᵥ
-      fun i => ((σ 1 i : ℤ) : ℝ))) - q) ^ 2) (ae_of_all _ fun σ => by
-        rw [Real.norm_eq_abs, abs_pow]
-        nlinarith [hf0 σ, abs_nonneg ((N : ℝ)⁻¹ * ((fun i => ((σ 0 i : ℤ) : ℝ)) ⬝ᵥ
-          fun i => ((σ 1 i : ℤ) : ℝ)) - q)])
-  simpa [probReal_univ] using this
+  have key : ∀ R : (Fin 2 → (Fin N → ℤˣ)) → ℝ, (∀ σ, |R σ| ≤ 2) → |∫ σ, R σ ^ 2 ∂ν| ≤ 4 :=
+    fun R hR => by
+      simpa [probReal_univ] using norm_integral_le_of_norm_le_const (μ := ν) (C := 4)
+        (f := fun σ => R σ ^ 2) (ae_of_all _ fun σ => by
+          rw [Real.norm_eq_abs, abs_pow]
+          nlinarith [hR σ, abs_nonneg (R σ)])
+  exact key _ hf0
 
 /-- **Jensen for a Gibbs average of the squared overlap deviation:**
 `⟨(R_{1,2} - q)²⟩² ≤ ⟨(R_{1,2} - q)⁴⟩` for a probability measure on pairs of configurations. -/

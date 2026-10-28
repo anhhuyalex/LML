@@ -55,16 +55,8 @@ theorem sk_cavity_lincomb_sq_le (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (k : 
       ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)
   obtain ⟨hadd, hsmul, hmono, -⟩ := sk_replica_avg_calculus N n β h ν (fun _ => rfl)
   let L : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) →ₗ[ℝ] ℝ :=
-    { toFun := fun f => ν (fun σ => W σ ^ 2 * f σ)
-      map_add' := by
-        intro f g
-        simp only [Pi.add_apply, mul_add]
-        exact hadd _ _
-      map_smul' := by
-        intro r f
-        simp only [Pi.smul_apply, smul_eq_mul, RingHom.id_apply]
-        simpa only [mul_left_comm (W _ ^ 2) r] using
-          hsmul r (fun σ => W σ ^ 2 * f σ) }
+    ({ toFun := ν, map_add' := hadd, map_smul' := hsmul } :
+      ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) →ₗ[ℝ] ℝ) ∘ₗ LinearMap.mulLeft ℝ fun σ => W σ ^ 2
   have hL : ∀ f g, (∀ σ, f σ ≤ g σ) → L f ≤ L g := fun f g hfg =>
     hmono _ _ fun σ => mul_le_mul_of_nonneg_left (hfg σ) (sq_nonneg _)
   let D : ∀ j, ι j → (Fin n → Fin (N + 1) → ℤˣ) → ℝ := fun j i σ =>
@@ -72,7 +64,8 @@ theorem sk_cavity_lincomb_sq_le (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (k : 
       fun v : Fin N => (σ (b j i) v.castSucc : ℝ)) - q
   have hp (t : ∀ j, ι j) : L (fun σ => (∏ j, D j (t j) σ) ^ 2) ≤
       K / ((N : ℝ) + 1) ^ k := by
-    simpa only [L, LinearMap.coe_mk, AddHom.coe_mk, ν, D, mul_pow] using
+    change ν (fun σ => W σ ^ 2 * (∏ j, D j (t j) σ) ^ 2) ≤ _
+    simpa only [ν, D, mul_pow] using
       hK β h q hfix hb N n (fun j => a j (t j)) (fun j => b j (t j))
         (fun j => hab j (t j)) W hW
   have ht := L.apply_sq_prod_sum_le hL c D hp

@@ -23,6 +23,8 @@ public import Mathlib.Analysis.Complex.ExponentialBounds
 * `rpow_mul_rpow_le_of_le`, `mul_sq_le_cube_third`, `add_pow_three_le`,
   `mul_rpow_three_halves_le`: weighted AM-GM and the cubic Young-type inequalities with exponents
   `3` and `3/2`.
+* `pow_succ_sub_pow_sub_mul_le`: the second order Taylor remainder of a power,
+  `0 ≤ (u+1)^{p+2} - u^{p+2} - (p+2) u^{p+1} ≤ (p+2)(p+1)(u+1)^p` for `u ≥ 0`.
 * `Real.pow_le_factorial_mul_exp`: `y^r ≤ r! exp y` for `y ≥ 0` (a one-line form of
   `Real.pow_div_factorial_le_exp`, used to bound moments by exponential moments).
 -/
@@ -269,3 +271,34 @@ theorem Real.pow_le_factorial_mul_exp {y : ℝ} (hy : 0 ≤ y) (r : ℕ) :
   have := (div_le_iff₀ (by positivity : (0 : ℝ) < Nat.factorial r)).1
     (Real.pow_div_factorial_le_exp y hy r)
   rwa [mul_comm] at this
+
+/-- **Second order Taylor remainder of a power:** for `u ≥ 0` and `p ≥ 0`,
+`0 ≤ (u + 1)^{p+2} - u^{p+2} - (p + 2) u^{p+1} ≤ (p + 2) (p + 1) (u + 1)^p`. -/
+theorem pow_succ_sub_pow_sub_mul_le {u : ℝ} (hu : 0 ≤ u) (p : ℕ) :
+    0 ≤ (u + 1) ^ (p + 2) - u ^ (p + 2) - (p + 2 : ℝ) * u ^ (p + 1) ∧
+      (u + 1) ^ (p + 2) - u ^ (p + 2) - (p + 2 : ℝ) * u ^ (p + 1) ≤
+        (p + 2 : ℝ) * (p + 1 : ℝ) * (u + 1) ^ p := by
+  induction p with
+  | zero => constructor <;> simp <;> nlinarith
+  | succ p ih =>
+    obtain ⟨h0, h1⟩ := ih
+    have e : (u + 1) ^ (p + 1 + 2) - u ^ (p + 1 + 2) - ((p + 1 : ℕ) + 2 : ℝ) * u ^ (p + 1 + 1) =
+        (u + 1) * ((u + 1) ^ (p + 2) - u ^ (p + 2) - (p + 2 : ℝ) * u ^ (p + 1)) +
+          (p + 2 : ℝ) * u ^ (p + 1) := by
+      push_cast
+      ring
+    rw [e]
+    have hu1 : 0 ≤ u + 1 := by linarith
+    have hup : u ^ (p + 1) ≤ (u + 1) ^ (p + 1) := pow_le_pow_left₀ hu (by linarith) _
+    refine ⟨by positivity, ?_⟩
+    calc (u + 1) * ((u + 1) ^ (p + 2) - u ^ (p + 2) - (p + 2 : ℝ) * u ^ (p + 1)) +
+          (p + 2 : ℝ) * u ^ (p + 1)
+        ≤ (u + 1) * ((p + 2 : ℝ) * (p + 1 : ℝ) * (u + 1) ^ p) + (p + 2 : ℝ) * (u + 1) ^ (p + 1) :=
+          add_le_add (mul_le_mul_of_nonneg_left h1 hu1)
+            (mul_le_mul_of_nonneg_left hup (by positivity))
+      _ ≤ ((p + 1 : ℕ) + 2 : ℝ) * ((p + 1 : ℕ) + 1 : ℝ) * (u + 1) ^ (p + 1) := by
+          push_cast
+          have key : (u + 1) * ((p + 2 : ℝ) * (p + 1 : ℝ) * (u + 1) ^ p) =
+              (p + 2 : ℝ) * (p + 1 : ℝ) * (u + 1) ^ (p + 1) := by ring
+          rw [key]
+          nlinarith [mul_nonneg (by positivity : (0 : ℝ) ≤ p + 2) (pow_nonneg hu1 (p + 1))]

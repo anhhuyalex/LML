@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.AddPowEstimates
 public import LeanMachineLearning.ForMathlib.Data.Nat.Recurrence
 public import LeanMachineLearning.ForMathlib.Probability.Moments.IidSumMoments
 public import Mathlib.Analysis.SpecialFunctions.Sqrt
@@ -14,13 +15,12 @@ public import Mathlib.Topology.MetricSpace.Pseudo.Basic
 /-!
 # Elementary estimates for the moment expansion of an i.i.d. sum
 
-Three analytic ingredients of the proof that the `k`-th moment of a centered i.i.d. sum is the
-Gaussian one up to a relative error `n^{-1/2}`:
+Analytic ingredients of the proof that the `k`-th moment of a centered i.i.d. sum is the Gaussian
+one up to a relative error `n^{-1/2}` (the second order Taylor remainder of `u ↦ u^p`,
+`pow_succ_sub_pow_sub_mul_le`, is in `AddPowEstimates`):
 
 * `Nat.eq_zero_of_odd_of_two_step_mul`: a sequence `a` with `a 1 = 0` and
   `a (k + 2) = (k + 1) a k` (the Gaussian moments) vanishes at odd indices;
-* `ProbabilityTheory.pow_succ_sub_pow_sub_mul_le`: `0 ≤ (u + 1)^p - u^p - p u^{p-1} ≤
-  p (p - 1) (u + 1)^{p-2}` for `u ≥ 0` (second order Taylor remainder of `u ↦ u^p`);
 * `ProbabilityTheory.abs_le_of_abs_sub_le_sqrt_pow`: if `e 0 = 0` and the increments of `e` are at
   most `c (√(n + 1))^p`, then `|e n| ≤ c (√(n + 1))^{p+2}`.
 
@@ -38,37 +38,6 @@ namespace ProbabilityTheory
 /-- `1 ≤ √(n + 1)`. -/
 theorem one_le_sqrt_natCast_add_one (n : ℕ) : 1 ≤ Real.sqrt ((n : ℝ) + 1) :=
   Real.one_le_sqrt.2 (by linarith [Nat.cast_nonneg (α := ℝ) n])
-
-/-- **Second order Taylor remainder of a power:** for `u ≥ 0` and `p ≥ 0`,
-`0 ≤ (u + 1)^{p+2} - u^{p+2} - (p + 2) u^{p+1} ≤ (p + 2) (p + 1) (u + 1)^p`. -/
-theorem pow_succ_sub_pow_sub_mul_le {u : ℝ} (hu : 0 ≤ u) (p : ℕ) :
-    0 ≤ (u + 1) ^ (p + 2) - u ^ (p + 2) - (p + 2 : ℝ) * u ^ (p + 1) ∧
-      (u + 1) ^ (p + 2) - u ^ (p + 2) - (p + 2 : ℝ) * u ^ (p + 1) ≤
-        (p + 2 : ℝ) * (p + 1 : ℝ) * (u + 1) ^ p := by
-  induction p with
-  | zero => constructor <;> simp <;> nlinarith
-  | succ p ih =>
-    obtain ⟨h0, h1⟩ := ih
-    have e : (u + 1) ^ (p + 1 + 2) - u ^ (p + 1 + 2) - ((p + 1 : ℕ) + 2 : ℝ) * u ^ (p + 1 + 1) =
-        (u + 1) * ((u + 1) ^ (p + 2) - u ^ (p + 2) - (p + 2 : ℝ) * u ^ (p + 1)) +
-          (p + 2 : ℝ) * u ^ (p + 1) := by
-      push_cast
-      ring
-    rw [e]
-    have hu1 : 0 ≤ u + 1 := by linarith
-    have hup : u ^ (p + 1) ≤ (u + 1) ^ (p + 1) := pow_le_pow_left₀ hu (by linarith) _
-    refine ⟨by positivity, ?_⟩
-    calc (u + 1) * ((u + 1) ^ (p + 2) - u ^ (p + 2) - (p + 2 : ℝ) * u ^ (p + 1)) +
-          (p + 2 : ℝ) * u ^ (p + 1)
-        ≤ (u + 1) * ((p + 2 : ℝ) * (p + 1 : ℝ) * (u + 1) ^ p) + (p + 2 : ℝ) * (u + 1) ^ (p + 1) :=
-          add_le_add (mul_le_mul_of_nonneg_left h1 hu1)
-            (mul_le_mul_of_nonneg_left hup (by positivity))
-      _ ≤ ((p + 1 : ℕ) + 2 : ℝ) * ((p + 1 : ℕ) + 1 : ℝ) * (u + 1) ^ (p + 1) := by
-          push_cast
-          have key : (u + 1) * ((p + 2 : ℝ) * (p + 1 : ℝ) * (u + 1) ^ p) =
-              (p + 2 : ℝ) * (p + 1 : ℝ) * (u + 1) ^ (p + 1) := by ring
-          rw [key]
-          nlinarith [mul_nonneg (by positivity : (0 : ℝ) ≤ p + 2) (pow_nonneg hu1 (p + 1))]
 
 /-- **Summation of increments of order `√(n+1)^p`:** if `e 0 = 0` and
 `|e (n + 1) - e n| ≤ c (√(n + 1))^p` for all `n`, then `|e n| ≤ c (√(n + 1))^{p+2}`. -/
@@ -117,10 +86,7 @@ theorem exists_abs_cancellation_le {a : ℕ → ℝ} (ha1 : a 1 = 0) (ha : ∀ k
     have e3 : (2 * p + 2) / 2 = p + 1 := by omega
     have e4 : 2 * (p + 2) - 3 = 2 * p + 1 := by omega
     have hch : ((2 * (p + 2)).choose 2 : ℝ) = (p + 2 : ℝ) * (2 * (p : ℝ) + 3) := by
-      have : (2 * (p + 2)).choose 2 = (p + 2) * (2 * p + 3) := by
-        rw [Nat.choose_two_right, show 2 * (p + 2) - 1 = 2 * p + 3 by omega]
-        exact Nat.div_eq_of_eq_mul_left (by norm_num) (by ring)
-      rw [this]
+      rw [Nat.cast_choose_two]
       push_cast
       ring
     have hak : a (2 * (p + 2)) = (2 * (p : ℝ) + 3) * a (2 * p + 2) := by

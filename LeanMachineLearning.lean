@@ -4,6 +4,7 @@ public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.Binomial
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.HypercubeProduct
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.OffDiag
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.PiFinSucc
+public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.ProductExpansion
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.QuarticSignProd
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.Weights
 public import LeanMachineLearning.ForMathlib.Analysis.Asymptotics.Theta
