@@ -7,9 +7,9 @@ module
 
 public import LeanMachineLearning.ForMathlib.Data.Nat.Recurrence
 public import LeanMachineLearning.ForMathlib.Probability.Moments.IidSumMoments
-public import Mathlib.Topology.MetricSpace.Pseudo.Basic
 public import Mathlib.Analysis.SpecialFunctions.Sqrt
 public import Mathlib.Tactic.Positivity
+public import Mathlib.Topology.MetricSpace.Pseudo.Basic
 
 /-!
 # Elementary estimates for the moment expansion of an i.i.d. sum
@@ -81,7 +81,7 @@ theorem abs_le_of_abs_sub_le_sqrt_pow {e : ℕ → ℝ} (he0 : e 0 = 0) {c : ℝ
       have hkn : (k : ℝ) ≤ n := by exact_mod_cast hk.le
       have hb : |e (k + 1) - e k| ≤ c * Real.sqrt ((n : ℝ) + 1) ^ p :=
         (h k).trans (mul_le_mul_of_nonneg_left
-        (pow_le_pow_left₀ (Real.sqrt_nonneg _) (Real.sqrt_le_sqrt (by linarith)) p) hc)
+          (pow_le_pow_left₀ (Real.sqrt_nonneg _) (Real.sqrt_le_sqrt (by linarith)) p) hc)
       simpa only [Real.dist_eq, abs_sub_comm] using hb
     simpa only [he0, dist_zero_left, Real.norm_eq_abs, Finset.sum_const,
       Finset.card_range, nsmul_eq_mul] using

@@ -297,7 +297,7 @@ theorem exists_sk_centered_path_ode (β h q : ℝ)
           integral_sub (f := fun ω => (m : ℝ) * (V ω ^ (m - 1) * Q s ω) -
             (m : ℝ) * (1 - q) ^ 2 * V ω ^ (m - 1)) (i1.sub i2) i3,
           integral_sub i1 i2]
-        simp only [integral_const_mul, hT0, hT1, hT2, hT3]
+        simp only [integral_const_mul, hT0, hT1, hT2, hT3, hV_def]
       rw [hI]
       have e0 : ∫ ω, (A s ω - skPathRS β h q s) ^ (m - 1) ∂P = T0 := rfl
       have e3 : ∫ ω, (A s ω - skPathRS β h q s) ^ (m - 2) ∂P = T3 := rfl
