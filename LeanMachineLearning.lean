@@ -124,6 +124,7 @@ public import LeanMachineLearning.ForMathlib.Probability.Kernel.KernelSub
 public import LeanMachineLearning.ForMathlib.Probability.Kernel.MeasurableSpace
 public import LeanMachineLearning.ForMathlib.Probability.Kernel.Sigma
 public import LeanMachineLearning.ForMathlib.Probability.Moments.DiscreteLyapunov
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianAffineDerivative
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianCholesky
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianContinuity
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianExp
@@ -481,7 +482,9 @@ public import LeanMachineLearning.SpinGlasses.SKDecoupled
 public import LeanMachineLearning.SpinGlasses.SKFirstMoment
 public import LeanMachineLearning.SpinGlasses.SKFixedPoint
 public import LeanMachineLearning.SpinGlasses.SKFixedPointPositive
+public import LeanMachineLearning.SpinGlasses.SKFixedPointRS
 public import LeanMachineLearning.SpinGlasses.SKFixedPointResidual
+public import LeanMachineLearning.SpinGlasses.SKFreeEnergyMoments
 public import LeanMachineLearning.SpinGlasses.SKGaussianCorollaries
 public import LeanMachineLearning.SpinGlasses.SKGaussianFluctuation
 public import LeanMachineLearning.SpinGlasses.SKGuerraBound

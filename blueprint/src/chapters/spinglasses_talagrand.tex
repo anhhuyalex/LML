@@ -829,6 +829,39 @@ every $q\ge0$, is unaffected.
 Formalized in \texttt{SpinGlasses/SKGuerraBoundUnique.lean}.
 \end{proof}
 
+\begin{theorem}[Critical points of the replica-symmetric functional (Eqs.~(1.74)--(1.76), Proposition~1.3.8)]\label{thm:sg-tal:rs-critical}
+  \uses{thm:sg-tal:fixed-point, thm:sg-tal:fixed-point-unique}
+  \lean{ProbabilityTheory.integral_deriv_comp_affine_mul_id_gaussianReal,
+        ProbabilityTheory.hasDerivAt_integral_comp_affine_gaussianReal,
+        SpinGlasses.rsFunctional,
+        SpinGlasses.hasDerivAt_integral_log_cosh_sqrt,
+        SpinGlasses.hasDerivAt_rsFunctional,
+        SpinGlasses.continuousOn_rsFunctional,
+        SpinGlasses.fixedPoint_of_isMinOn_rsFunctional,
+        SpinGlasses.exists_fixedPoint_isMinOn_rsFunctional,
+        SpinGlasses.deriv_fixedPointMap_sqrt_le,
+        SpinGlasses.fixedPoint_unique_of_abs_lt_one,
+        SpinGlasses.fixedPoint_unique_of_pos}
+  \leanok
+\talsource{Eqs.~(1.74)--(1.76) and Proposition~1.3.8}
+Let $\beta,h\in\mathbb R$, $\Phi(x)=\mathbb{E}\tanh^2(\beta\sqrt x\,z+h)$ and $\operatorname{RS}(y)=\log2+\mathbb{E}\log\cosh(\beta\sqrt y\,z+h)+\frac{\beta^2}{4}(1-y)^2$ for $y\ge0$ ($z$ standard Gaussian).
+\begin{enumerate}
+\item (Eq.~(1.75)) If $f$ has bounded continuous derivatives $f',f''$ and $f(wz+h)$ is integrable, then $\frac{d}{dw}\mathbb{E}f(wz+h)=w\,\mathbb{E}f''(wz+h)$; hence for $x>0$, $\frac{d}{dx}\mathbb{E}\log\cosh(\beta\sqrt x\,z+h)=\frac{\beta^2}{2}\mathbb{E}(1-\tanh^2(\beta\sqrt x\,z+h))$ and $\operatorname{RS}'(x)=\frac{\beta^2}{2}(x-\Phi(x))$.
+\item If $\beta\ne0$ and $q\ge0$ minimizes $\operatorname{RS}$ on $[0,\infty)$, then $q=\Phi(q)$. For every $\beta,h$ a minimizer which is a solution of $q=\Phi(q)$ exists.
+\item If $|\beta|<1$, then $q=\Phi(q)$, $r=\Phi(r)$ with $q,r\ge0$ imply $q=r$ (for every $h$, including $h=0$).
+\item If $\beta\ne0$ or $h\ne0$ and $q,r>0$ both solve (1.74), then $q=r$.
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+  \leanok
+(1) Stein's lemma for the bounded function $f'$ gives $\mathbb{E}[f'(wz+h)z]=w\,\mathbb{E}f''(wz+h)$; differentiation under the integral sign (dominated by $C|z|$) gives the derivative in $w$, and the chain rule with $w=\beta\sqrt x$, $\frac{dw}{dx}=\frac{\beta}{2\sqrt x}$ gives (1.75). For $f=\log\cosh$, $f'=\tanh$, $f''=1-\tanh^2$ and $\mathbb{E}(1-\tanh^2)=1-\Phi$; adding the derivative $-\frac{\beta^2}{2}(1-x)$ of the quadratic term gives $\operatorname{RS}'$. The same lemma now also gives the parameter derivative of $\Phi$ used in the proof of Proposition~1.9.5 (it replaces a copy specialized to $\tanh^2$).
+(2) If $q>0$ the minimum is interior, so $\operatorname{RS}'(q)=0$, i.e.\ $q=\Phi(q)$ since $\beta\ne0$. If $q=0$ and $h=0$ then $\Phi(0)=\tanh^2 0=0$. If $q=0$ and $h\ne0$, then $\Phi(0)=\tanh^2h>0$ and $\Phi$ is continuous, so $\operatorname{RS}'(x)<0$ on some $(0,\delta)$; as $\operatorname{RS}$ is continuous on $[0,\delta]$ (dominated convergence) it is strictly decreasing there, contradicting minimality at $0$. For existence: $\operatorname{RS}(y)\ge\log2+\frac{\beta^2}{4}(1-y)^2$ because $\log\cosh\ge0$, so $\operatorname{RS}(y)\ge\operatorname{RS}(1)$ for $y\ge R=1+\sqrt{4(\operatorname{RS}(1)-\log2)/\beta^2}$; a minimizer on the compact $[0,R]$ is a global minimizer and is a solution by the first part. For $\beta=0$, $\operatorname{RS}$ is constant and any solution of (1.74) (Theorem~\ref{thm:sg-tal:fixed-point}) works.
+(3) For $x>0$, $\Phi'(x)=\beta^2\mathbb{E}[(1-t)(1-3t)]$ with $t=\tanh^2\in[0,1)$ and $(1-t)(1-3t)=1-4t+3t^2\le1$, so $(\Phi(x)-x)'\le\beta^2-1<0$ on $(0,\infty)$, and $\Phi(x)-x$ is continuous on $[0,\infty)$, hence strictly decreasing; it vanishes at both $q$ and $r$.
+(4) $\Phi(x)/x$ is strictly decreasing on $(0,\infty)$ if $\beta\ne0$ or $h\ne0$ (Proposition~A.14.1 for $\tanh$) and equals $1$ at both points. Theorem~\ref{thm:sg-tal:fixed-point-unique} is the case $h\ne0$ (where positivity is automatic).
+\emph{Formalization notes.} $\operatorname{RS}$ is a definition (\texttt{rsFunctional}) because it is differentiated, minimized and bounded in several statements; Guerra's bound (Theorem~\ref{thm:sg-tal:guerra-rs-bound}) keeps its written-out form. The claim ``every fixed point minimizes $\operatorname{RS}$'' is false (for $h=0$, $\beta>1$ there are two fixed points, and $\beta=0$ makes every point a minimizer), so the formal statement is that every minimizer is a fixed point when $\beta\ne0$, and that a minimizing fixed point exists. Not claimed: that for $h\ne0$ the unique fixed point is the unique minimizer of $\operatorname{RS}$ (this needs the minimizer to be unique, which is not proved).
+Formalized in \texttt{ForMathlib/Probability/Moments/GaussianAffineDerivative.lean}, \texttt{SpinGlasses/SKFixedPointRS.lean} and \texttt{SpinGlasses/SKFixedPointResidual.lean}.
+\end{proof}
+
 \begin{remark}[Scope of the fixed-point results: intuition, context, reasons and consequences]\label{rem:sg-tal:fixed-point-scope}
 \talsource{Eqs.~(1.74)--(1.76), Proposition~1.3.8}
 \emph{Context and intuition.} Guerra's bound (Theorem~\ref{thm:sg-tal:guerra-rs-bound}) is valid for every parameter $q\ge0$:
@@ -841,11 +874,11 @@ The parameter $q$ plays the role of a guessed overlap of two replicas. The bound
 \]
 so the optimal $q$ is exactly a solution of (1.74). This also has a physical meaning: at the fixed point the decoupled model has expected overlap exactly $q$ (Theorem~\ref{thm:sg-tal:decoupled-overlap}), which is the reason the decoupled endpoint of the interpolation is the right comparison system. Proposition~1.3.8 then shows that the solution is unique when $\mathbb{E}[h^2]>0$ (Latala--Guerra, hard proof in the book's Appendix A.14), and for $\beta<1$ there is a short argument: with $f=\tanh^2$ one has $f''=2(1-t^2)(1-3t^2)\le2$ for $t=\tanh y$, so $\psi'\le\beta^2<1$, $\psi(x)-x$ is strictly decreasing and has at most one zero. From then on the book writes $q$ for this unique number and $\operatorname{SK}(\beta,h):=\operatorname{RS}(q)$.
 
-\emph{What is formalized.} Theorem~\ref{thm:sg-tal:fixed-point}: a solution of (1.74) exists; and, for $h\ne0$, the solution is unique (Theorem~\ref{thm:sg-tal:fixed-point-unique}, from the strict decrease of $\Phi(x)/x$, Proposition~A.14.1 for $\tanh$), and Guerra's bound is stated at this unique solution (Theorem~\ref{thm:sg-tal:guerra-rs-bound-unique}). \emph{What is not formalized:} (a) the derivative formula (1.75) for $x>0$ and hence the identity $\operatorname{RS}'(q)=\frac{\beta^2}{2}(q-\psi(q))$; (b) the consequence that some minimizer of $\operatorname{RS}$ over $q\ge0$ is a fixed point (a minimizer at $q=0$ forces $h=0$, in which case $0$ is itself a fixed point); (c) the bound $\psi'\le\beta^2$ and uniqueness of the fixed point for $\beta<1$ when $h=0$ (for $h\ne0$ uniqueness holds for every $\beta$ by the route above); (d) the full Latala--Guerra monotonicity of Proposition~1.3.8. Note that ``every fixed point minimizes $\operatorname{RS}$'' is false in general (for $h=0$ and $\beta>1$ there are two fixed points), so the correct formal statement of (b) is about \emph{some} minimizer.
+\emph{What is formalized.} Theorem~\ref{thm:sg-tal:fixed-point}: a solution of (1.74) exists; and, for $h\ne0$, the solution is unique (Theorem~\ref{thm:sg-tal:fixed-point-unique}, from the strict decrease of $\Phi(x)/x$, Proposition~A.14.1 for $\tanh$), and Guerra's bound is stated at this unique solution (Theorem~\ref{thm:sg-tal:guerra-rs-bound-unique}). \emph{Also formalized} (Theorem~\ref{thm:sg-tal:rs-critical}): (a) the derivative formula (1.75) for $x>0$ and the identity $\operatorname{RS}'(x)=\frac{\beta^2}{2}(x-\psi(x))$; (b) a minimizer of $\operatorname{RS}$ over $q\ge0$ is a fixed point when $\beta\ne0$, and a minimizing fixed point always exists; (c) the bound $\psi'\le\beta^2$ and uniqueness of the fixed point for $|\beta|<1$, including $h=0$; (d) uniqueness of positive fixed points whenever $\beta\ne0$ or $h\ne0$. \emph{What is not formalized:} that for $h\ne0$ the unique fixed point is the unique minimizer of $\operatorname{RS}$ (the minimizer need not be unique a priori). Note that ``every fixed point minimizes $\operatorname{RS}$'' is false in general (for $h=0$ and $\beta>1$ there are two fixed points), so the correct formal statement of (b) is about \emph{some} minimizer.
 
-\emph{Why this was left out.} None of the later arguments uses minimality or uniqueness. Lata\l{}a's argument (Section~1.4) uses only the identity $q=\mathbb{E}[\tanh^2(\beta z\sqrt q+h)]$: through the decoupled overlap (Eq.~(1.104), $\nu_0(\sigma^1_i\sigma^2_i)=q$) it makes the decoupled model's overlap concentrate at $q$ (Proposition~\ref{prop:sg-tal:base-case}), and the smart-path derivative needs only the generic $q$ of Guerra's bound. Items (a)--(c) additionally need a differentiation-under-the-integral argument in the variance parameter $x$, with the $\sqrt x$ singularity at $x=0$ (handled by continuity, as the derivative is only needed for $x>0$), and (d) is a long separate argument that the book itself calls ``not really of importance''. The effort was therefore spent on the overlap concentration and the ALR formula.
+\emph{Why this was originally left out.} None of the later arguments uses minimality or uniqueness. Lata\l{}a's argument (Section~1.4) uses only the identity $q=\mathbb{E}[\tanh^2(\beta z\sqrt q+h)]$: through the decoupled overlap (Eq.~(1.104), $\nu_0(\sigma^1_i\sigma^2_i)=q$) it makes the decoupled model's overlap concentrate at $q$ (Proposition~\ref{prop:sg-tal:base-case}), and the smart-path derivative needs only the generic $q$ of Guerra's bound. Items (a)--(c) additionally need a differentiation-under-the-integral argument in the variance parameter $x$, with the $\sqrt x$ singularity at $x=0$ (handled by continuity, as the derivative is only needed for $x>0$), and (d) is a long separate argument that the book itself calls ``not really of importance''. The effort was therefore spent on the overlap concentration and the ALR formula.
 
-\emph{Impact on the Lean code.} (i) Every Lean theorem that involves $q$ carries the hypothesis \texttt{hfix} and quantifies over all solutions; this is at least as strong as the book's statement, which is about one particular solution, and the theorems are not vacuous because Theorem~\ref{thm:sg-tal:fixed-point} produces a solution. (ii) For $\beta<1$ (hence in the whole regime $\beta^2<1/4$ where Theorems~\ref{thm:sg-tal:overlap-conc} and~\ref{thm:sg-tal:alr} are proved) the solution is unique in the book, so Lean's ``for every solution'' is the book's statement; Lean proves this uniqueness for $h\ne0$ (Theorem~\ref{thm:sg-tal:fixed-point-unique}) but not for $h=0$. (iii) Consequently the limit in Theorem~\ref{thm:sg-tal:alr} is stated as $\operatorname{RS}(q)$ for the supplied $q$, and the Lean development does not define a function $(\beta,h)\mapsto\operatorname{SK}(\beta,h)$ or state that the limit is independent of the choice of $q$ (for $h\ne0$ this independence is a consequence of Theorem~\ref{thm:sg-tal:fixed-point-unique}). (iv) Nothing here affects the correctness of the proved statements; it only means that the identification ``$q$ is the minimizer of Guerra's bound, hence canonical'' lives in this blueprint text and not in Lean.
+\emph{Impact on the Lean code.} (i) Every Lean theorem that involves $q$ carries the hypothesis \texttt{hfix} and quantifies over all solutions; this is at least as strong as the book's statement, which is about one particular solution, and the theorems are not vacuous because Theorem~\ref{thm:sg-tal:fixed-point} produces a solution. (ii) For $\beta<1$ (hence in the whole regime $\beta^2<1/4$ where Theorems~\ref{thm:sg-tal:overlap-conc} and~\ref{thm:sg-tal:alr} are proved) the solution is unique in the book, so Lean's ``for every solution'' is the book's statement; Lean proves this uniqueness for $h\ne0$ (Theorem~\ref{thm:sg-tal:fixed-point-unique}) and, for $|\beta|<1$, also for $h=0$ (Theorem~\ref{thm:sg-tal:rs-critical}). (iii) Consequently the limit in Theorem~\ref{thm:sg-tal:alr} is stated as $\operatorname{RS}(q)$ for the supplied $q$, and the Lean development does not define a function $(\beta,h)\mapsto\operatorname{SK}(\beta,h)$ or state that the limit is independent of the choice of $q$ (for $h\ne0$ this independence is a consequence of Theorem~\ref{thm:sg-tal:fixed-point-unique}). (iv) Nothing here affects the correctness of the proved statements; it only means that the identification ``$q$ is the minimizer of Guerra's bound, hence canonical'' lives in this blueprint text and not in Lean.
 \end{remark}
 
 \section{Lata\l{}a's Overlap Concentration and the ALR Formula (Talagrand Section~1.4)}\label{sec:sg-tal:latala-alr}
@@ -1097,6 +1130,45 @@ As in Theorem~\ref{thm:sg-tal:overlap-conc}, $q$ is a hypothesis (fixed-point eq
 \emph{Not formalized:} the identification of the solution $q$ with the minimizer of Guerra's bound and the uniqueness of the fixed point for $\beta<1$ and $h=0$ (it is proved for $h\ne0$, Theorem~\ref{thm:sg-tal:fixed-point-unique}); the thermodynamic limit of the Guerra--Toninelli theorem is stated there for the full-matrix disorder without field, while the limit here is derived directly from the $O(1/N)$ bound for the pair disorder with field.
 Formalized in \texttt{SpinGlasses/SKAizenmanLebowitzRuelle.lean}.
 \end{proof}
+
+\begin{lemma}[The SK energy is a linear form of the disorder]\label{lem:sg-tal:sk-linear-data}
+  \lean{SpinGlasses.exists_sk_linear_data}
+  \leanok
+\talsource{implicit in Eq.~(1.113); no displayed counterpart}
+For every $N\ge1$ and $\beta,h\in\mathbb R$ there are coefficient vectors $a(\sigma)\in\mathbb R^{\{i<j\}}$, $\sigma\in\{-1,1\}^N$, such that for every disorder $g=(g_{ij})_{i<j}$
+\[
+-H_N(\sigma)=\beta N^{-1/2}\sum_{i<j}g_{ij}\sigma_i\sigma_j+h\sum_i\sigma_i=\langle a(\sigma),g\rangle+h\sum_i\sigma_i,\qquad \langle a(\sigma),a(\sigma)\rangle\le \tfrac12\beta^2N ,
+\]
+the exact value of the squared norm being $\beta^2(N-1)/2$, the variance of the pair field at $\sigma$.
+\end{lemma}
+\begin{proof}
+  \leanok
+Take $a(\sigma)_{ij}=\beta N^{-1/2}\sigma_i\sigma_j$. Every coordinate squares to $\beta^2/N$ because $\sigma_i^2=\sigma_j^2=1$, and there are $N(N-1)/2$ pairs.
+This replaces a hand-written computation of the same kind that was inside the two-replica data of Section~\ref{sec:sg-tal:beyond-at}; that statement (\texttt{exists\_sk\_coupled\_data}) is now derived from this lemma with $a(\sigma,\tau)=a(\sigma)+a(\tau)$ and $\langle a+a',a+a'\rangle\le2(\langle a,a\rangle+\langle a',a'\rangle)$.
+\end{proof}
+
+\begin{theorem}[Moments of the free energy fluctuation (Lemma~1.4.12, Eq.~(1.113))]\label{thm:sg-tal:free-energy-moments}
+  \lean{SpinGlasses.hasSubgaussianMGF_log_sum_exp_tilt,
+        SpinGlasses.integral_pow_abs_free_energy_sub_le}
+  \leanok
+\talsource{Lemma~1.4.12, Eq.~(1.113)}
+Let $\beta,h\in\mathbb R$, $k\in\mathbb N$, $N\ge1$, $A_N=N^{-1}\log Z_N$ and $p_N=\mathbb{E}A_N$ for the $N$-spin SK model with deterministic field $h$ (disorder $g_{ij}$, $i<j$, i.i.d.\ standard Gaussian). Then $|A_N-p_N|^k$ is integrable and
+\[
+\sqrt N^{\,k}\;\mathbb{E}\,|A_N-p_N|^k\;\le\;2\,k!\,e^{\beta^2/2},\qquad\text{i.e.}\qquad \mathbb{E}\,|A_N-p_N|^k\le \frac{K_k}{N^{k/2}},\ K_k=2k!\,e^{\beta^2/2}.
+\]
+The constant depends only on $k$ and $|\beta|$, not on $h$ or $N$.
+\end{theorem}
+\begin{proof}
+  \leanok
+By Lemma~\ref{lem:sg-tal:sk-linear-data} the free energy $\log Z_N=\log\sum_\sigma\exp(\langle a(\sigma),g\rangle+h\sum_i\sigma_i)$ is the log-partition function of a centered Gaussian field of variance at most $v=\beta^2N/2$. The Gaussian concentration engine (\texttt{hasSubgaussianMGF\_log\_sum\_exp}, the symmetrization argument of Panchenko's Theorem~1.2) says that $\log Z_N-\mathbb{E}\log Z_N$ is sub-Gaussian with parameter $2v=\beta^2N$, hence $\mathbb{E}\exp(t|\log Z_N-\mathbb{E}\log Z_N|)\le2\exp(\beta^2Nt^2/2)$; for $t=N^{-1/2}$ this is at most $2e^{\beta^2/2}$. Now $\sqrt N\,|A_N-p_N|=N^{-1/2}|\log Z_N-\mathbb{E}\log Z_N|$ and $y^k\le k!\,e^y$ for $y\ge0$ (Lemma~\ref{lem:sg-tal:pow-le-exp}), so $\sqrt N^{\,k}|A_N-p_N|^k\le k!\,\exp(N^{-1/2}|\log Z_N-\mathbb{E}\log Z_N|)$; integrate.
+\emph{Deviation from the book.} The book proves (1.113) by integrating its tail bound (1.114) against $kt^{k-1}\,dt$; we bound the exponential moment instead, which gives the same $N^{-k/2}$ scaling with the explicit constant $2k!e^{\beta^2/2}$, and avoids a Gamma-function integral. Only the deterministic field ($c=0$ in the book's notation $h_i=cy_i+d$) is formalized; the Gaussian random field is not.
+Formalized in \texttt{SpinGlasses/SKFreeEnergyMoments.lean}; the shared sub-Gaussian statement for a Gaussian field tilted by a deterministic observable (also used for the tail bound in Section~\ref{sec:sg-tal:beyond-at}) is \texttt{SpinGlasses.hasSubgaussianMGF\_log\_sum\_exp\_tilt}.
+\end{proof}
+
+\begin{remark}[Status of Theorem~1.4.11 (the central limit theorem for the free energy)]\label{rem:sg-tal:free-energy-clt-status}
+\talsource{Theorem~1.4.11, Eq.~(1.109); source lines 1660--1895}
+Theorem~1.4.11 states that $\mathbb{E}(A_N-\mathrm{SK}(\beta,h))^k=N^{-k/2}a(k)\,b^{k/2}+O(N^{-(k+1)/2})$ for $\beta<1/2$. \emph{Not formalized.} What is available: the first-moment case (Theorem~\ref{thm:sg-tal:alr}), the order-$N^{-k/2}$ size of all moments about the mean (Theorem~\ref{thm:sg-tal:free-energy-moments}), and the smart-path profile for $\mathbb{E}A(t)$ (\texttt{exists\_sk\_smart\_path\_profile}). What is missing: (i) the derivative of $t\mapsto\mathbb{E}\,(A(t)-a)^k$ along the smart path, i.e.\ Eq.~(1.125), whose new term $N^{-2}\mathbb{E}\big(\langle\cdot\rangle W''(A)\big)$ needs a Gaussian integration by parts for a non-linear function of $\log Z$; (ii) the fourth moment of the overlap along the whole path; (iii) the i.i.d.\ moment lemma at $t=0$; (iv) the induction on $k$.
+\end{remark}
 
 \section{Spin Decorrelation, Asymptotic Product Measures and Projections (Talagrand Sections~1.4--1.5)}\label{sec:sg-tal:decorrelation}
 

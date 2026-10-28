@@ -8,6 +8,7 @@ module
 public import Mathlib.Analysis.Calculus.ContDiff.Deriv
 public import Mathlib.Analysis.Calculus.Deriv.Basic
 public import Mathlib.Analysis.Calculus.Deriv.MeanValue
+public import Mathlib.Analysis.SpecialFunctions.Log.Deriv
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Hyperbolic
 
@@ -47,6 +48,29 @@ theorem hasDerivAt_tanh (x : ℝ) : HasDerivAt Real.tanh (1 - Real.tanh x ^ 2) x
     field_simp
     rw [(Real.cosh_sq_sub_sinh_sq x).symm]
   rwa [h_id] at h
+
+/-- The derivative of `x ↦ log (cosh x)` is `tanh x`. -/
+theorem hasDerivAt_log_cosh (x : ℝ) :
+    HasDerivAt (fun y => Real.log (Real.cosh y)) (Real.tanh x) x := by
+  have h := (Real.hasDerivAt_cosh x).log (Real.cosh_pos x).ne'
+  rwa [← Real.tanh_eq_sinh_div_cosh] at h
+
+/-- `0 ≤ log (cosh x)`. -/
+theorem log_cosh_nonneg (x : ℝ) : 0 ≤ Real.log (Real.cosh x) :=
+  Real.log_nonneg (Real.one_le_cosh x)
+
+/-- `log (cosh x) ≤ |x|`. -/
+theorem log_cosh_le_abs (x : ℝ) : Real.log (Real.cosh x) ≤ |x| := by
+  rw [← Real.cosh_abs x]
+  refine (Real.log_le_log (Real.cosh_pos _) ?_).trans_eq (Real.log_exp _)
+  rw [Real.cosh_eq]
+  have := Real.exp_le_exp.2 (neg_le_self (abs_nonneg x))
+  linarith
+
+/-- `0 ≤ 1 - tanh² x ≤ 1`, the second derivative of `log cosh`. -/
+theorem abs_one_sub_tanh_sq_le (x : ℝ) : |1 - Real.tanh x ^ 2| ≤ 1 := by
+  rw [abs_of_nonneg (by linarith [Real.tanh_sq_lt_one x])]
+  linarith [sq_nonneg (Real.tanh x)]
 
 /-- The derivative of `x ↦ tanh² x` is `2 tanh x (1 - tanh² x)`. -/
 theorem hasDerivAt_tanh_sq (x : ℝ) :

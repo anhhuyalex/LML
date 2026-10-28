@@ -87,27 +87,43 @@ theorem x_mul_deriv_fixedPointMap_lt {h : ℝ} (hh : h ≠ 0) (β : ℝ) {x : �
       rw [← mul_assoc, hsq]; ring
     linarith only [key, e2]
 
-/-- **`Φ(x)/x` is strictly decreasing on `(0, ∞)`** (`h ≠ 0`; Proposition A.14.1 for `tanh`, the
-case `φ = tanh`, `s = β` of `strictAntiOn_integral_sq_comp_sqrt_div`). -/
-theorem strictAntiOn_fixedPointMap_div {h : ℝ} (hh : h ≠ 0) (β : ℝ) :
+/-- **`Φ(x)/x` is strictly decreasing on `(0, ∞)`** (`β ≠ 0` or `h ≠ 0`; Proposition A.14.1 for
+`tanh`, the case `φ = tanh`, `s = β` of `strictAntiOn_integral_sq_comp_sqrt_div`). -/
+theorem strictAntiOn_fixedPointMap_div' {h β : ℝ} (hβh : β ≠ 0 ∨ h ≠ 0) :
     StrictAntiOn (fun y : ℝ =>
       (∫ z : ℝ, Real.tanh (β * Real.sqrt y * z + h) ^ 2 ∂(gaussianReal 0 1)) / y) (Ioi 0) :=
   strictAntiOn_integral_sq_comp_sqrt_div Real.contDiff_one_tanh Real.tanh_neg Real.monotone_tanh
     (fun y => (Real.abs_tanh_lt_one y).le) (fun y _ => Real.hasDerivAt_deriv_tanh y)
-    (fun _ hy => Real.neg_two_mul_tanh_mul_lt_zero hy) β h (Or.inr hh)
+    (fun _ hy => Real.neg_two_mul_tanh_mul_lt_zero hy) β h hβh
 
-/-- **Uniqueness of the replica-symmetric overlap for `h ≠ 0`** (Talagrand, around Eq. 1.74 and
-Proposition 1.3.8): two solutions of `q = 𝔼 tanh²(β √q z + h)` coincide.  Both are positive by
-`fixedPointMap_pos`, and `Φ(x)/x` is strictly decreasing with value `1` at each of them. -/
-theorem fixedPoint_unique {β h q r : ℝ} (hh : h ≠ 0)
+/-- The case `h ≠ 0` of `strictAntiOn_fixedPointMap_div'`. -/
+theorem strictAntiOn_fixedPointMap_div {h : ℝ} (hh : h ≠ 0) (β : ℝ) :
+    StrictAntiOn (fun y : ℝ =>
+      (∫ z : ℝ, Real.tanh (β * Real.sqrt y * z + h) ^ 2 ∂(gaussianReal 0 1)) / y) (Ioi 0) :=
+  strictAntiOn_fixedPointMap_div' (Or.inr hh)
+
+/-- **Uniqueness of the positive replica-symmetric overlap** (Talagrand, around Eq. 1.74 and
+Proposition 1.3.8): if `β ≠ 0` or `h ≠ 0`, two *positive* solutions of
+`q = 𝔼 tanh²(β √q z + h)` coincide, since `Φ(x)/x` is strictly decreasing with value `1` at each of
+them.  (For `h = 0` and `|β| > 1` there are two solutions, `0` and a positive one; the hypothesis
+`0 < q` excludes the trivial one.) -/
+theorem fixedPoint_unique_of_pos {β h q r : ℝ} (hβh : β ≠ 0 ∨ h ≠ 0) (hq0 : 0 < q) (hr0 : 0 < r)
     (hq : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂(gaussianReal 0 1) = q)
     (hr : ∫ z : ℝ, Real.tanh (β * Real.sqrt r * z + h) ^ 2 ∂(gaussianReal 0 1) = r) :
     q = r := by
-  have hq0 : 0 < q := hq ▸ fixedPointMap_pos hh (β * Real.sqrt q)
-  have hr0 : 0 < r := hr ▸ fixedPointMap_pos hh (β * Real.sqrt r)
-  apply (strictAntiOn_fixedPointMap_div hh β).injOn hq0 hr0
+  apply (strictAntiOn_fixedPointMap_div' hβh).injOn hq0 hr0
   dsimp only
   rw [hq, hr, div_self hq0.ne', div_self hr0.ne']
+
+/-- **Uniqueness of the replica-symmetric overlap for `h ≠ 0`** (Talagrand, around Eq. 1.74 and
+Proposition 1.3.8): two solutions of `q = 𝔼 tanh²(β √q z + h)` coincide, since both are positive
+(`fixedPointMap_pos`). -/
+theorem fixedPoint_unique {β h q r : ℝ} (hh : h ≠ 0)
+    (hq : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂(gaussianReal 0 1) = q)
+    (hr : ∫ z : ℝ, Real.tanh (β * Real.sqrt r * z + h) ^ 2 ∂(gaussianReal 0 1) = r) :
+    q = r :=
+  fixedPoint_unique_of_pos (Or.inr hh) (hq ▸ fixedPointMap_pos hh (β * Real.sqrt q))
+    (hr ▸ fixedPointMap_pos hh (β * Real.sqrt r)) hq hr
 
 /-- **Existence and uniqueness of the fixed point (Eq. 1.74) for `h ≠ 0`:** there is exactly one
 `q ∈ [0, 1]` with `q = 𝔼 tanh²(β √q z + h)`. -/

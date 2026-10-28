@@ -41,19 +41,13 @@ namespace SpinGlasses
 (`0 ≤ log cosh y ≤ |y|`). -/
 theorem integrable_log_cosh_affine_gaussianReal (a b : ℝ) :
     Integrable (fun x : ℝ => Real.log (Real.cosh (a * x + b))) (gaussianReal 0 1) := by
-  have hle (y : ℝ) : Real.log (Real.cosh y) ≤ |y| := by
-    rw [← Real.cosh_abs y]
-    refine (Real.log_le_log (Real.cosh_pos _) ?_).trans_eq (Real.log_exp _)
-    rw [Real.cosh_eq]
-    have := Real.exp_le_exp.2 (neg_le_self (abs_nonneg y))
-    linarith
   have hid : Integrable (fun x : ℝ => x) (gaussianReal 0 1) := IsGaussian.integrable_id
   refine Integrable.mono' ((hid.norm.const_mul |a|).add (integrable_const |b|))
     (Real.continuous_cosh.comp (by fun_prop : Continuous fun x : ℝ => a * x + b)
       |>.log (fun x => (Real.cosh_pos _).ne')).aestronglyMeasurable
     (ae_of_all _ fun x => ?_)
-  rw [Real.norm_eq_abs, abs_of_nonneg (Real.log_nonneg (Real.one_le_cosh _))]
-  refine (hle _).trans ?_
+  rw [Real.norm_eq_abs, abs_of_nonneg (Real.log_cosh_nonneg _)]
+  refine (Real.log_cosh_le_abs _).trans ?_
   calc |a * x + b| ≤ |a * x| + |b| := abs_add_le _ _
     _ = |a| * ‖x‖ + |b| := by rw [abs_mul, Real.norm_eq_abs]
 
