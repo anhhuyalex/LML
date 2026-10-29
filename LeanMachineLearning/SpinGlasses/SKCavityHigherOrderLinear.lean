@@ -72,12 +72,10 @@ theorem sk_cavity_pair_lincomb_expansion (β h q : ℝ) (hβ : 4 * β ^ 2 < 1)
         ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) +
       (∫ w, ∫ σ, g σ ∂(Measure.pi fun _ : R => Measure.count.tilted (E w))
         ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) := by
-    simp_rw [integral_add Integrable.of_finite Integrable.of_finite]
-    exact integral_add
-      (integrable_integral_pi_count_tilted_det (g := fun σ w => E w σ)
-        (fun σ => (hE σ).aemeasurable) f)
-      (integrable_integral_pi_count_tilted_det (g := fun σ w => E w σ)
-        (fun σ => (hE σ).aemeasurable) g)
+    simpa only [Fin.sum_univ_two, Matrix.cons_val_zero, Matrix.cons_val_one, one_mul] using
+      integral_gibbs_finset_sum
+        (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) E hE
+        (Finset.univ : Finset (Fin 2)) (fun _ => 1) ![f, g]
   let w : SKCavityReplicaPair n → ℝ := fun j => skCavityReplicaPairWeight n j *
     skCavityBCoef β q qhat (skCavityReplicaPairCoincidences x y j)
   let L : ((Fin n → Fin N → ℤˣ) → ℝ) →ₗ[ℝ] ℝ :=

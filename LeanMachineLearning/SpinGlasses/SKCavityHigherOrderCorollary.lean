@@ -240,9 +240,9 @@ theorem sk_cavity_sub_third_lincomb_expansion (β h q : ℝ) (hβ : 4 * β ^ 2 <
       F (fun l i => Function.update σ r z l i.castSucc) = F (fun l i => σ l i.castSucc) := by
     have hu : (fun (l : Fin n) (i : Fin N) => Function.update σ r z l i.castSucc) =
         Function.update (fun (l : Fin n) (i : Fin N) => σ l i.castSucc) r
-          (fun i : Fin N => z i.castSucc) := by
-      funext l i
-      by_cases hl : l = r <;> simp [hl]
+          (fun i : Fin N => z i.castSucc) :=
+      Function.comp_update
+        (fun a : Fin (N + 1) → ℤˣ => fun i : Fin N => a i.castSucc) σ r z
     rw [hu]
     exact hF _ _
   have hswap (i : Fin n) (hir : i ≠ r) :

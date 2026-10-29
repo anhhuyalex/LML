@@ -42,7 +42,7 @@ theorem sk_cavity_lincomb_sq_le_finset (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1
     ∃ K : ℝ, 0 < K ∧ ∀ (β h q : ℝ),
       (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂gaussianReal 0 1 = q) →
       β ^ 2 ≤ β₀ ^ 2 → ∀ (N n : ℕ) (a b : ∀ j, ι j → Fin n),
-      (∀ j i, a j i ≠ b j i) → ∀ W : (Fin n → Fin (N + 1) → ℤˣ) → ℝ,
+      (∀ j ∈ s, ∀ i, a j i ≠ b j i) → ∀ W : (Fin n → Fin (N + 1) → ℤˣ) → ℝ,
       (∀ σ, |W σ| ≤ M) →
       ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ,
           (W σ * ∏ j ∈ s, ∑ i : ι j, c j i * ((N + 1 : ℝ)⁻¹ *
@@ -63,7 +63,7 @@ theorem sk_cavity_lincomb_sq_le_finset (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1
     exact (Equiv.prod_comp e.symm fun x : s => G x.1).symm
   simp only [hprod]
   exact hK β h q hfix hb N n (fun i x => a (e.symm i).1 x) (fun i x => b (e.symm i).1 x)
-    (fun i x => hab _ x) W hW
+    (fun i x => hab _ (e.symm i).2 x) W hW
 
 /-- **The exact last-site expansion (Eqs. (1.309)-(1.311)).** Let `ν` be an `n`-replica SK
 average, `ξ` an observable of one site, and `U_j = U_j⁻ + e_j / (N+1)` symmetric factors. Then
@@ -127,12 +127,106 @@ theorem sk_nu_sq_le (N n : ℕ) (β h : ℝ)
       ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
     (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) : ν f ^ 2 ≤ ν (fun σ => f σ ^ 2) := by
   obtain ⟨hadd, hsmul, hmono, hconst⟩ := sk_replica_avg_calculus N n β h ν hν
-  have h0 := hmono (fun _ => 0) (fun σ => (f σ - ν f) ^ 2) fun σ => sq_nonneg _
-  have e : (fun σ => (f σ - ν f) ^ 2) =
-      fun σ => (f σ ^ 2 + (-2 * ν f) * f σ) + ν f ^ 2 := by
-    funext σ; ring
-  rw [hconst, e, hadd, hadd, hsmul, hconst] at h0
-  nlinarith [h0]
+  exact LinearMap.sq_apply_le_apply_sq
+    ⟨⟨ν, hadd⟩, hsmul⟩ hmono (hconst 1) f
+
+/-- **Absolute moments of last-site corrections.** Sum all terms with at least `d`
+corrections. A correction contributes one inverse site count, while each remaining overlap
+factor contributes one inverse square root. This gives the explicit scale
+`(N+1)^(-(card κ + d)/2)`, with a constant chosen before the size and bounded observable.
+The cases `d = 1` and `d = 2` give product comparison and the remainder in Eq. (1.310). -/
+theorem sk_overlap_correction_sum_le (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) {κ : Type*} [Fintype κ]
+    [DecidableEq κ] {ι : κ → Type*} [∀ j, Fintype (ι j)] (c : ∀ j, ι j → ℝ) (M : ℝ) (d : ℕ) :
+    ∃ C : ℝ, 0 < C ∧ ∀ (β h q : ℝ),
+      (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂gaussianReal 0 1 = q) →
+      β ^ 2 ≤ β₀ ^ 2 → ∀ (N n : ℕ) (a b : ∀ j, ι j → Fin n), (∀ j i, a j i ≠ b j i) →
+      ∀ (ν : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
+        (_ : ∀ Φ, ν Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, Φ σ
+          ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+            (Real.sqrt (N + 1))⁻¹ * β *
+              (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+            h * ∑ i : Fin (N + 1), (a i : ℝ))
+          ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+        (Um e : κ → (Fin n → Fin (N + 1) → ℤˣ) → ℝ),
+      (∀ j σ, Um j σ = ∑ i : ι j, c j i * ((N + 1 : ℝ)⁻¹ *
+        ((fun v : Fin N => (σ (a j i) v.castSucc : ℝ)) ⬝ᵥ
+          fun v : Fin N => (σ (b j i) v.castSucc : ℝ)) - q)) →
+      (∀ j σ, e j σ = ∑ i : ι j, c j i *
+        ((σ (a j i) (Fin.last N) : ℝ) * (σ (b j i) (Fin.last N) : ℝ))) →
+      ∀ W : (Fin n → Fin (N + 1) → ℤˣ) → ℝ, (∀ σ, |W σ| ≤ M) →
+      ∑ t ∈ (Finset.univ : Finset κ).powerset with d ≤ t.card, ((N + 1 : ℝ)⁻¹) ^ t.card *
+        ν (fun σ => |W σ *
+          ((∏ i ∈ t, e i σ) * ∏ j ∈ Finset.univ \ t, Um j σ)|) ≤
+      C / ((N : ℝ) + 1) ^ (((Fintype.card κ + d : ℕ) : ℝ) / 2) := by
+  set Mt : Finset κ → ℝ := fun t => |M| * ∏ i ∈ t, ∑ x : ι i, |c i x| with hMt
+  choose K hK0 hK using fun t : Finset κ =>
+    sk_cavity_lincomb_sq_le_finset β₀ hβ₀ (Finset.univ \ t) (Mt t) c
+  refine ⟨∑ t : Finset κ, Real.sqrt (K t) + 1, by positivity, ?_⟩
+  intro β h q hfix hb N n a b hab ν hν Um e hUm he W hW
+  have hx : (1 : ℝ) ≤ (N : ℝ) + 1 := by linarith [(Nat.cast_nonneg N : (0 : ℝ) ≤ N)]
+  set s : ℝ := Real.sqrt ((N : ℝ) + 1) with hs
+  have hs1 : 1 ≤ s := by rw [hs]; exact Real.one_le_sqrt.2 hx
+  have hs2 : s ^ 2 = (N : ℝ) + 1 := Real.sq_sqrt (by linarith)
+  have hrp : ∀ m : ℕ, ((N : ℝ) + 1) ^ ((m : ℝ) / 2) = s ^ m := fun m => by
+    rw [Real.rpow_div_two_eq_sqrt _ (by linarith), Real.rpow_natCast]
+  rw [hrp]
+  have hterm : ∀ t ∈ ((Finset.univ : Finset κ).powerset.filter fun t => d ≤ t.card),
+      ((N + 1 : ℝ)⁻¹) ^ t.card * ν (fun σ => |W σ *
+          ((∏ i ∈ t, e i σ) * ∏ j ∈ Finset.univ \ t, Um j σ)|) ≤
+        Real.sqrt (K t) / s ^ (Fintype.card κ + d) := by
+    intro t ht
+    have ht2 : d ≤ t.card := (Finset.mem_filter.1 ht).2
+    have htk : t.card ≤ Fintype.card κ := by simpa using Finset.card_le_univ t
+    set V : (Fin n → Fin (N + 1) → ℤˣ) → ℝ := fun σ =>
+      W σ * ∏ i ∈ t, e i σ with hV
+    have hVb : ∀ σ, |V σ| ≤ Mt t := fun σ => by
+      rw [hV, hMt, abs_mul, abs_prod]
+      refine mul_le_mul ((hW σ).trans (le_abs_self _)) (Finset.prod_le_prod₀
+        (fun _ _ => abs_nonneg _) fun i _ => ?_) (Finset.prod_nonneg fun _ _ => abs_nonneg _)
+        (abs_nonneg _)
+      rw [he]
+      refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun x _ => ?_)
+      rw [abs_mul, abs_mul]
+      exact mul_le_of_le_one_right (abs_nonneg _) ((mul_le_mul (abs_units_cast_le_one _)
+        (abs_units_cast_le_one _) (abs_nonneg _) zero_le_one).trans_eq (one_mul 1))
+    set f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ := fun σ =>
+      V σ * ∏ j ∈ Finset.univ \ t, Um j σ with hf
+    have hfeq : (fun σ => |W σ *
+        ((∏ i ∈ t, e i σ) * ∏ j ∈ Finset.univ \ t, Um j σ)|) =
+        (fun σ => |f σ|) := funext fun σ => by
+      congr 1
+      simp only [hf, hV, mul_assoc]
+    have hν2 : ν (fun σ => f σ ^ 2) ≤ K t / ((N : ℝ) + 1) ^ (Fintype.card κ - t.card) := by
+      rw [hν]
+      have := hK t β h q hfix hb N n a b (fun j _ i => hab j i) V hVb
+      rw [Finset.card_univ_sdiff] at this
+      simpa only [hf, hUm] using this
+    have hs3 : Real.sqrt (K t / ((N : ℝ) + 1) ^ (Fintype.card κ - t.card)) =
+        Real.sqrt (K t) / s ^ (Fintype.card κ - t.card) := by
+      rw [Real.sqrt_div (hK0 t).le, Real.sqrt_pow_nat (by positivity)]
+    have hnu : ν (fun σ => |f σ|) ≤ Real.sqrt (K t) / s ^ (Fintype.card κ - t.card) := by
+      have hsq := sk_nu_sq_le N n β h ν hν (fun σ => |f σ|)
+      simp only [sq_abs] at hsq
+      refine (Real.le_sqrt_of_sq_le hsq).trans ?_
+      rw [← hs3]
+      exact Real.sqrt_le_sqrt hν2
+    rw [hfeq]
+    calc _ ≤ ((N + 1 : ℝ)⁻¹) ^ t.card * (Real.sqrt (K t) / s ^ (Fintype.card κ - t.card)) :=
+          mul_le_mul_of_nonneg_left hnu (by positivity)
+      _ = Real.sqrt (K t) / s ^ (2 * t.card + (Fintype.card κ - t.card)) := by
+          rw [← hs2, inv_pow, ← pow_mul, pow_add]
+          field_simp
+      _ ≤ Real.sqrt (K t) / s ^ (Fintype.card κ + d) :=
+          div_le_div_of_nonneg_left (Real.sqrt_nonneg _) (by positivity)
+            (pow_le_pow_right₀ hs1 (by omega))
+  calc _ ≤ ∑ t ∈ (Finset.univ : Finset κ).powerset with d ≤ t.card,
+        Real.sqrt (K t) / s ^ (Fintype.card κ + d) := Finset.sum_le_sum hterm
+    _ ≤ ∑ t : Finset κ, Real.sqrt (K t) / s ^ (Fintype.card κ + d) :=
+        Finset.sum_le_sum_of_subset_of_nonneg (fun t _ => Finset.mem_univ t)
+          (fun t _ _ => by positivity)
+    _ = (∑ t : Finset κ, Real.sqrt (K t)) / s ^ (Fintype.card κ + d) := by
+        rw [Finset.sum_div]
+    _ ≤ _ := div_le_div_of_nonneg_right (by linarith) (by positivity)
 
 /-- **The remainder of the last-site expansion is `O(k + 1)` (Eq. (1.310)).** With `k'`
 factors `U_j⁻ = ∑_x c_{jx} (R⁻_{a_{jx} b_{jx}} - q)` and last-site parts
@@ -162,78 +256,20 @@ theorem sk_overlap_step_remainder_le (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) 
         ν (fun σ => ξ (fun r => σ r (Fin.last N)) *
           ((∏ i ∈ t, e i σ) * ∏ j ∈ Finset.univ \ t, Um j σ))| ≤
       C / ((N : ℝ) + 1) ^ (((Fintype.card κ + 2 : ℕ) : ℝ) / 2) := by
-  set Mt : Finset κ → ℝ := fun t => |Mξ| * ∏ i ∈ t, ∑ x : ι i, |c i x| with hMt
-  choose K hK0 hK using fun t : Finset κ =>
-    sk_cavity_lincomb_sq_le_finset β₀ hβ₀ (Finset.univ \ t) (Mt t) c
-  refine ⟨∑ t : Finset κ, Real.sqrt (K t) + 1, by positivity, ?_⟩
+  obtain ⟨C, hC0, hC⟩ := sk_overlap_correction_sum_le β₀ hβ₀ c Mξ 2
+  refine ⟨C, hC0, ?_⟩
   intro β h q hfix hb N n a b hab ν hν Um e hUm he ξ hξ
-  have hx : (1 : ℝ) ≤ (N : ℝ) + 1 := by linarith [(Nat.cast_nonneg N : (0 : ℝ) ≤ N)]
-  set s : ℝ := Real.sqrt ((N : ℝ) + 1) with hs
-  have hs1 : 1 ≤ s := by rw [hs]; exact Real.one_le_sqrt.2 hx
-  have hs2 : s ^ 2 = (N : ℝ) + 1 := Real.sq_sqrt (by linarith)
-  have hrp : ∀ m : ℕ, ((N : ℝ) + 1) ^ ((m : ℝ) / 2) = s ^ m := fun m => by
-    rw [Real.rpow_div_two_eq_sqrt _ (by linarith), Real.rpow_natCast]
-  rw [hrp]
-  have hterm : ∀ t ∈ ((Finset.univ : Finset κ).powerset.filter fun t => 2 ≤ t.card),
-      |((N + 1 : ℝ)⁻¹) ^ t.card * ν (fun σ => ξ (fun r => σ r (Fin.last N)) *
-          ((∏ i ∈ t, e i σ) * ∏ j ∈ Finset.univ \ t, Um j σ))| ≤
-        Real.sqrt (K t) / s ^ (Fintype.card κ + 2) := by
-    intro t ht
-    have ht2 : 2 ≤ t.card := (Finset.mem_filter.1 ht).2
-    have htk : t.card ≤ Fintype.card κ := by simpa using Finset.card_le_univ t
-    set W : (Fin n → Fin (N + 1) → ℤˣ) → ℝ := fun σ =>
-      ξ (fun r => σ r (Fin.last N)) * ∏ i ∈ t, e i σ with hW
-    have hWb : ∀ σ, |W σ| ≤ Mt t := fun σ => by
-      rw [hW, hMt, abs_mul, abs_prod]
-      refine mul_le_mul ((hξ _).trans (le_abs_self _)) (Finset.prod_le_prod₀
-        (fun _ _ => abs_nonneg _) fun i _ => ?_) (Finset.prod_nonneg fun _ _ => abs_nonneg _)
-        (abs_nonneg _)
-      rw [he]
-      refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun x _ => ?_)
-      rw [abs_mul, abs_mul]
-      exact mul_le_of_le_one_right (abs_nonneg _) ((mul_le_mul (abs_units_cast_le_one _)
-        (abs_units_cast_le_one _) (abs_nonneg _) zero_le_one).trans_eq (one_mul 1))
-    set f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ := fun σ =>
-      W σ * ∏ j ∈ Finset.univ \ t, Um j σ with hf
-    have hfeq : (fun σ => ξ (fun r => σ r (Fin.last N)) *
-        ((∏ i ∈ t, e i σ) * ∏ j ∈ Finset.univ \ t, Um j σ)) = f := funext fun σ => by
-      simp only [hf, hW, mul_assoc]
-    have hν2 : ν (fun σ => f σ ^ 2) ≤ K t / ((N : ℝ) + 1) ^ (Fintype.card κ - t.card) := by
-      rw [hν]
-      have := hK t β h q hfix hb N n a b hab W hWb
-      rw [Finset.card_univ_sdiff] at this
-      simpa only [hf, hUm] using this
-    have hs3 : Real.sqrt (K t / ((N : ℝ) + 1) ^ (Fintype.card κ - t.card)) =
-        Real.sqrt (K t) / s ^ (Fintype.card κ - t.card) := by
-      have hpw : ((N : ℝ) + 1) ^ (Fintype.card κ - t.card) =
-          (s ^ (Fintype.card κ - t.card)) ^ 2 := by
-        rw [← pow_mul, mul_comm, pow_mul, hs2]
-      rw [Real.sqrt_div (hK0 t).le, hpw, Real.sqrt_sq (by positivity)]
-    have hnu : |ν f| ≤ Real.sqrt (K t) / s ^ (Fintype.card κ - t.card) := by
-      refine (Real.abs_le_sqrt (sk_nu_sq_le N n β h ν hν f)).trans ?_
-      rw [← hs3]
-      exact Real.sqrt_le_sqrt hν2
-    rw [hfeq, abs_mul, abs_pow, abs_of_pos (inv_pos.2 (by linarith : (0 : ℝ) < (N : ℝ) + 1))]
-    calc _ ≤ ((N + 1 : ℝ)⁻¹) ^ t.card * (Real.sqrt (K t) / s ^ (Fintype.card κ - t.card)) :=
-          mul_le_mul_of_nonneg_left hnu (by positivity)
-      _ = Real.sqrt (K t) / s ^ (2 * t.card + (Fintype.card κ - t.card)) := by
-          rw [← hs2, inv_pow, ← pow_mul, pow_add]
-          field_simp
-      _ ≤ Real.sqrt (K t) / s ^ (Fintype.card κ + 2) :=
-          div_le_div_of_nonneg_left (Real.sqrt_nonneg _) (by positivity)
-            (pow_le_pow_right₀ hs1 (by omega))
-  calc _ ≤ ∑ t ∈ (Finset.univ : Finset κ).powerset with 2 ≤ t.card, |((N + 1 : ℝ)⁻¹) ^ t.card *
-        ν (fun σ => ξ (fun r => σ r (Fin.last N)) *
-          ((∏ i ∈ t, e i σ) * ∏ j ∈ Finset.univ \ t, Um j σ))| :=
-        Finset.abs_sum_le_sum_abs _ _
+  obtain ⟨hadd, hsmul, hmono, -⟩ := sk_replica_avg_calculus N n β h ν hν
+  let L : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) →ₗ[ℝ] ℝ := ⟨⟨ν, hadd⟩, hsmul⟩
+  calc
     _ ≤ ∑ t ∈ (Finset.univ : Finset κ).powerset with 2 ≤ t.card,
-        Real.sqrt (K t) / s ^ (Fintype.card κ + 2) := Finset.sum_le_sum hterm
-    _ ≤ ∑ t : Finset κ, Real.sqrt (K t) / s ^ (Fintype.card κ + 2) :=
-        Finset.sum_le_sum_of_subset_of_nonneg (fun t _ => Finset.mem_univ t)
-          (fun t _ _ => by positivity)
-    _ = (∑ t : Finset κ, Real.sqrt (K t)) / s ^ (Fintype.card κ + 2) := by
-        rw [Finset.sum_div]
-    _ ≤ _ := div_le_div_of_nonneg_right (by linarith) (by positivity)
+        ((N + 1 : ℝ)⁻¹) ^ t.card * ν (fun σ => |ξ (fun r => σ r (Fin.last N)) *
+          ((∏ i ∈ t, e i σ) * ∏ j ∈ Finset.univ \ t, Um j σ)|) := by
+      refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun t _ => ?_)
+      rw [abs_mul, abs_of_nonneg (by positivity : 0 ≤ ((N + 1 : ℝ)⁻¹) ^ t.card)]
+      exact mul_le_mul_of_nonneg_left (L.abs_apply_le_apply_abs hmono _) (by positivity)
+    _ ≤ _ := hC β h q hfix hb N n a b hab ν hν Um e hUm he
+      (fun σ => ξ (fun r => σ r (Fin.last N))) (fun σ => hξ _)
 
 /-- **The last-site expansion of a product of overlap factors (Eqs. (1.309)-(1.311)).**
 Let `ξ` be a one-site observable with `|ξ| ≤ Mξ` and `U_j = ∑_x c_{jx} (R_{a_{jx} b_{jx}} - q)`

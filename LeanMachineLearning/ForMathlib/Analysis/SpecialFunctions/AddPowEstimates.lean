@@ -31,6 +31,13 @@ public import Mathlib.Analysis.Complex.ExponentialBounds
 
 @[expose] public section
 
+/-- Square roots commute with natural powers on the nonnegative reals. -/
+theorem Real.sqrt_pow_nat {x : ℝ} (hx : 0 ≤ x) (n : ℕ) :
+    Real.sqrt (x ^ n) = Real.sqrt x ^ n := by
+  apply (sq_eq_sq₀ (Real.sqrt_nonneg _) (pow_nonneg (Real.sqrt_nonneg _) n)).mp
+  rw [Real.sq_sqrt (pow_nonneg hx n), ← pow_mul, Nat.mul_comm n 2, pow_mul,
+    Real.sq_sqrt hx]
+
 /-- **Weighted power inequality.** For `a, b ≥ 0`, `θ > 0` and `n ≥ 1`,
 `(a + b)^n ≤ (1 + θ)^(n-1) a^n + (1 + θ⁻¹)^(n-1) b^n`. Convexity of `t ↦ t^n` applied with the
 weights `1/(1+θ)` and `θ/(1+θ)`; `θ = 1` recovers `add_pow_le`. -/

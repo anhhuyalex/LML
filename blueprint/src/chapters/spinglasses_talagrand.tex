@@ -6260,6 +6260,48 @@ $L(u^2),L(v^2)\le E$. Expand the square of the finite sum and bound its signed
 cross terms. Distributing the finite product gives the product version.
 \end{proof}
 
+\begin{lemma}[Positive-functional estimates and square-root scaling]
+\label{lem:sg-tal:positive-functional-square}
+\lean{LinearMap.abs_apply_le_apply_abs, LinearMap.sq_apply_le_apply_sq,
+Real.sqrt_pow_nat}
+\leanok
+\talsource{Elementary inequalities used in Eqs.~(1.297)--(1.299) and (1.310)}
+Let $L:\mathbb R^X\to\mathbb R$ be a monotone real linear functional. Then
+$|L(f)|\le L(|f|)$. If $L(1)=1$, then $L(f)^2\le L(f^2)$.
+For $x\ge0$ and $j\in\mathbb N$, $\sqrt{x^j}=(\sqrt{x})^j$.
+\end{lemma}
+\begin{proof}
+\leanok
+Apply monotonicity to $f$ and $-f$ for the first estimate, and to $(f-L(f))^2$
+for the second. The square-root identity follows by comparing nonnegative squares.
+\end{proof}
+
+\begin{lemma}[Uniform Taylor errors and arbitrary finite replica indices]
+\label{lem:sg-tal:cavity-uniform-finite}
+\lean{SpinGlasses.sk_cavity_expansion_of_sq_le_uniform,
+SpinGlasses.sk_cavity_lincomb_first_order_finset}
+\leanok
+\uses{lem:sg-tal:cavity-higher-moments, thm:sg-tal:prop-181-second}
+\talsource{Eqs.~(1.298)--(1.299), including the uniform temperature range}
+Fix $4\beta_0^2<1$, $n,k\in\mathbb N$ and $H\ge0$. There is $C>0$, chosen before
+$\beta,h,q,N,f$, such that for $\beta^2\le\beta_0^2$, $q$ the fixed point, and
+$\nu(f^2)\le H/(N+1)^k$, both Taylor errors are bounded by
+$C/(N+1)^{(k+1)/2}$ and $C/(N+1)^{(k+2)/2}$ respectively.
+For the first-order comparison, the replica type may be any fixed finite type $R$ and
+the product may run over a finite set $s$ of factors. If
+$f=W\prod_{j\in s}\sum_i c_{ji}(R^-_{a_{ji}b_{ji}}-q)$ with $|W|\le M$ and
+$a_{ji}\ne b_{ji}$ for $j\in s$, there is one positive constant, before all the model
+parameters and labels, bounding $|\nu(f)-\nu_0(f)|$ by $C/(N+1)^{(|s|+1)/2}$.
+The finite type $R$, coefficient families, $s$ and $M$ are fixed before this constant.
+\end{lemma}
+\begin{proof}
+\leanok
+Use the uniform overlap moments at $\beta_0$ and bound the explicit nonnegative Taylor
+coefficients by their values at $\beta_0^2$. The previous fixed-parameter result is its
+specialization. For arbitrary $R$, reindex once by $R\simeq\mathrm{Fin}(|R|)$ using
+the existing Gibbs replica equivalence, and apply the subset square-moment bound.
+\end{proof}
+
 \begin{theorem}[Moment and Taylor bounds for the full product class]
 \label{thm:sg-tal:cavity-higher-linear-moments}
 \lean{SpinGlasses.sk_cavity_lincomb_sq_le, SpinGlasses.sk_cavity_lincomb_expansion}
@@ -6377,6 +6419,9 @@ and let $R,J$ be finite types. For any kernels $K_j:X^R\times X\times X\to\mathb
    \left(\int_X\int_X K_j(\rho,x,y)\,d\mu(y)d\mu(x)\right)d\mu^{\otimes R}(\rho).
 \]
 The two copies of $J$ give disjoint fresh labels; factors may share original labels in $R$.
+The block-splitting identity also holds on an arbitrary sigma-finite measurable space,
+assuming the joint block observable is integrable; only the finite-space applications
+use automatic integrability.
 The split into two independent blocks is also exposed for an arbitrary integrand.
 \end{lemma}
 \begin{proof}
@@ -6516,7 +6561,8 @@ relabelling the sites (\texttt{sk\_replica\_site\_perm}). Sum over $s$ by linear
 \talsource{Eq.~(1.297)}
 Let $\beta_0$ satisfy $4\beta_0^2<1$, $\kappa$ an index type, $s\subseteq\kappa$ finite, $M\in\mathbb R$,
 and fix coefficient families $c_{jx}$. There is $K>0$ such that, for $\beta^2\le\beta_0^2$,
-$q$ the fixed point, all $N$, all labels $a_{jx}\neq b_{jx}$ and every $W$ with $|W|\le M$,
+$q$ the fixed point, all $N$, all labels with $a_{jx}\neq b_{jx}$ for $j\in s$,
+and every $W$ with $|W|\le M$,
 \[
  \nu\Big(\big(W\prod_{j\in s}U^-_j\big)^2\Big)\le K/(N+1)^{|s|}.
 \]
@@ -6527,12 +6573,38 @@ Reindex $s$ by $\{1,\dots,|s|\}$ and apply the case already proved
 (Lemma~\ref{lem:sg-tal:cavity-higher-moments} and its linear-combination form).
 \end{proof}
 
+\begin{lemma}[Absolute moments of last-site corrections]
+\label{lem:sg-tal:correction-absolute-moments}
+\lean{SpinGlasses.sk_overlap_correction_sum_le}
+\leanok
+\uses{lem:sg-tal:lincomb-sq-finset, lem:sg-tal:positive-functional-square}
+\talsource{Eq.~(1.310), bound on the remainder monomials; replacement before Eq.~(1.313)}
+Fix $4\beta_0^2<1$, coefficient families $c_{jx}$, a bound $M$, and $d\in\mathbb N$.
+There is $C>0$, chosen before $\beta,h,q,N$, the replica labels and $W$, such that
+for $\beta^2\le\beta_0^2$, deterministic $h$, fixed point $q$, system size $m=N+1$,
+distinct labels within each overlap, and observable $W$ with $|W|\le M$,
+\[
+ \sum_{\substack{t\subseteq\kappa\\|t|\ge d}}m^{-|t|}
+ \nu\left(\left|W\prod_{i\in t}e_i\prod_{j\notin t}U_j^-\right|\right)
+ \le C m^{-(|\kappa|+d)/2}.
+\]
+The bounded factor may depend on every spin. Empty families and thresholds larger than
+$|\kappa|$ are included.
+\end{lemma}
+\begin{proof}
+\leanok
+Absorb $W\prod_{i\in t}e_i$ into the bounded factor in the square-moment estimate for
+the remaining $|\kappa|-|t|$ overlaps. Apply Jensen to the absolute value to bound its
+first moment. Each term has scale $m^{-|t|}m^{-(|\kappa|-|t|)/2}$, which is at most
+$m^{-(|\kappa|+d)/2}$. Sum finitely many constants before choosing $N$.
+\end{proof}
+
 \begin{theorem}[Last-site expansion of a product of overlap factors]
 \label{thm:sg-tal:last-site-step}
 \lean{SpinGlasses.sk_overlap_step_identity, SpinGlasses.sk_nu_sq_le,
       SpinGlasses.sk_overlap_step_remainder_le, SpinGlasses.sk_overlap_step_expansion}
 \leanok
-\uses{lem:sg-tal:site-mean, lem:sg-tal:lincomb-sq-finset}
+\uses{lem:sg-tal:site-mean, lem:sg-tal:correction-absolute-moments}
 \talsource{Eqs.~(1.309)--(1.311) and the bound $\nu(|W|)=O(k+1)$ after them}
 With the notation above, let $4\beta_0^2<1$, fix finite families of coefficients $c_{jx}$ for
 $j\in\kappa$ ($|\kappa|=k'$) and a bound $M_\xi$. There is $C>0$ such that for
@@ -6556,8 +6628,224 @@ $\xi_{\mathrm{last}}\prod_{i\in t}e_i$ is a bounded factor, and $m^{-|t|}m^{-(k'
 \leanok
 As described. In the source, with $k=k'+1$ factors in total, this is the error $O(k+1)$ of
 Eq.~(1.310); the leading factor of the source product has been separated as $\xi$. The
-hypothesis $\sum_x c_{0x}=0$ on the leading factor, needed to identify
-$U_0$ with $m^{-1}\sum_s\xi_s$ (no stray $q$), is checked where the step is applied.
+choice $\xi_s=e_{0,s}-q\sum_x c_{0x}$ identifies the leading factor
+$U_0$ with $m^{-1}\sum_s\xi_s$. For the pair and single factor classes the coefficient
+sum is zero, so $\xi_s=e_{0,s}$; for a global factor, $\xi_s=e_{0,s}-q$.
+\end{proof}
+
+\begin{lemma}[Replacing truncated products by full products]
+\label{lem:sg-tal:product-truncation-comparison}
+\lean{Finset.prod_add_sub_prod_eq_sum_nonempty,
+SpinGlasses.sk_overlap_prod_sub_truncated_le}
+\leanok
+\uses{lem:sg-tal:correction-absolute-moments}
+\talsource{Replacement of $U^-(v)$ by $U(v)$ immediately before Eq.~(1.313)}
+Under the same high-temperature and fixed-point assumptions, fix the finite coefficient
+families and a bound $M$. There is $C>0$, chosen before $N$, the replica labels and $W$,
+such that for $k$ factors and $|W|\le M$,
+\[
+ \nu\left(\left|W\left(\prod_j U_j-\prod_j U_j^-\right)\right|\right)
+ \le C (N+1)^{-(k+1)/2}.
+\]
+This holds uniformly for $\beta^2\le\beta_0^2$, $4\beta_0^2<1$, all deterministic
+$h$ and fixed points $q$. The factors are finite linear combinations of centered
+overlaps with distinct labels within each overlap, and $W$ may depend on every spin.
+\end{lemma}
+\begin{proof}
+\leanok
+Over a commutative ring the difference $\prod_j(u_j+v_j)-\prod_j u_j$ is exactly the
+sum over nonempty subsets $t$ of $\prod_{i\in t}v_i\prod_{j\notin t}u_j$.
+Apply this with $u_j=U_j^-$ and $v_j=e_j/(N+1)$, use the triangle inequality and
+positivity of $\nu$, and apply the preceding estimate with $d=1$. The higher-order
+remainder in the last-site step is the case $d=2$ of the same estimate.
+\end{proof}
+
+\begin{lemma}[Decoupled rectangular contraction against a finite pair combination]
+\label{lem:sg-tal:rectangular-linear-contraction}
+\lean{SpinGlasses.sk_cavity_decoupled_rect_lincomb}
+\leanok
+\talsource{Decoupled-factor computation in the proof of Eq.~(1.312)}
+Let $R,I$ be finite types, $c_i\in\mathbb R$, and $a_i\ne b_i$ labels in $R$.
+Let $x_1,x_2$ each differ from $y_1,y_2$, let $G$ be any observable of the old spins,
+and assume $q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$ for deterministic $\beta,h$.
+Write $a=1-2q+\widehat q$ and
+\[
+ D_x(u,v)=\mathbf1_{x_1=u}+\mathbf1_{x_1=v}
+             -\mathbf1_{x_2=u}-\mathbf1_{x_2=v},
+\]
+and define $D_y$ analogously. Then
+\[
+ \nu_0\left(G(\varepsilon_{x_1}-\varepsilon_{x_2})
+                 (\varepsilon_{y_1}-\varepsilon_{y_2})
+                 \sum_{i\in I}c_i\varepsilon_{a_i}\varepsilon_{b_i}\right)
+ = a\left(\sum_{i\in I}c_i D_x(a_i,b_i)D_y(a_i,b_i)\right)\nu_{\rm old}(G).
+\]
+Here $\widehat q=\mathbb E\tanh^4(\beta\sqrt q\,z+h)$ and $\nu_{\rm old}$ retains
+the coupling $\beta/\sqrt{N+1}$. No high-temperature assumption is needed for this
+exact identity. The fresh-factor specialization and its multiplicity form are given below.
+\end{lemma}
+\begin{proof}
+\leanok
+Distribute the finite linear combination by the existing nested-Gibbs linearity theorem,
+apply the rectangular monomial identity to each summand, and factor the common old-spin
+average and $1-2q+\widehat q$. No quartic-moment enumeration is repeated.
+\end{proof}
+
+\begin{lemma}[Fresh-factor specialization of the decoupled contraction]
+\label{lem:sg-tal:fresh-factor-contraction}
+\lean{SpinGlasses.sk_cavity_decoupled_fresh_factor}
+\leanok
+\uses{lem:sg-tal:rectangular-linear-contraction}
+\talsource{The coefficient and zero computations preceding Eq.~(1.312)}
+Let $R,J$ be finite types and let the replica labels be $R\sqcup(J\sqcup J)$.
+Write $j^0,j^1$ for the two fresh labels of $j\in J$. Fix $x\ne y$ in $R$ and
+$p\ne u$ in $J$. Put $e_0=(\varepsilon_x-\varepsilon_{p^0})
+(\varepsilon_y-\varepsilon_{p^1})$ and let
+\[
+ e_u=(L?(\varepsilon_a-\varepsilon_{u^0}):\varepsilon_{u^0})
+     (S?(\varepsilon_b-\varepsilon_{u^1}):\varepsilon_{u^1}),
+\]
+where $L,S$ are Boolean flags and $a\ne b$ is required only if both flags are true.
+Assume $q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$ and put
+$\alpha=1-2q+\mathbb E\tanh^4(\beta\sqrt q\,z+h)$. For every old-spin observable $G$,
+\[
+ \nu_0(G e_0 e_u)=\alpha\,\delta_u\,\nu_{\rm old}(G),\qquad
+ \delta_u=\begin{cases}
+ \mathbf1_{x=a,\,y=b}+\mathbf1_{x=b,\,y=a},&L=S=\mathrm{true},\\
+ 0,&\text{otherwise}.
+ \end{cases}
+\]
+There is no high-temperature restriction for this exact identity. The cases
+$(L,S)=(\mathrm{true},\mathrm{true})$, $(\mathrm{true},\mathrm{false})$ and
+$(\mathrm{false},\mathrm{false})$ are the source pair, single and global factors.
+\end{lemma}
+\begin{proof}
+\leanok
+Expand $e_u$ into at most four spin pairs, apply the preceding linear-combination
+contraction, and simplify only its incidence coefficients using the disjoint sum labels.
+The sixteen-term spin-moment expansion is not repeated.
+\end{proof}
+
+\begin{theorem}[Quantitative contractions and the finite pairing sum for term I]
+\label{thm:sg-tal:term-I-pairing-sum}
+\lean{SpinGlasses.sk_cavity_fresh_factor_product_compare,
+SpinGlasses.sk_cavity_fresh_term_sum_compare}
+\leanok
+\uses{lem:sg-tal:cavity-uniform-finite, lem:sg-tal:fresh-factor-contraction}
+\talsource{First two lines of the evaluation of I preceding Eq.~(1.312)}
+Fix $4\beta_0^2<1$, finite replica types, coefficient families and a finite collection
+of products $G_i$ of $k$ truncated centered overlap factors. Each factor may be a finite
+linear combination, with distinct labels within each constituent overlap. Fix a leading
+pair $e_0$ and other factors $e_i$ with different fresh labels and coefficients $\delta_i$
+as above. There is $C>0$, chosen before $\beta,h,q,N$ and the replica labels, such that
+for $\beta^2\le\beta_0^2$ and $q$ the fixed point, with $m=N+1$,
+\[
+ |\nu(G_i e_0 e_i)-\alpha\delta_i\nu(G_i)|\le C_i m^{-(k+1)/2},
+\]
+and, for the finite sum over $i$,
+\[
+ \left|\frac1m\sum_i\nu(G_i e_0 e_i)
+       -\frac{\alpha}{m}\sum_i\delta_i\nu(G_i)\right|
+ \le C m^{-(k+3)/2}.
+\]
+The products $G_i$ may use different finite subsets of the same coefficient family,
+provided their factor counts are all $k$. Here $k$ counts factors after deleting the
+leading and contracted factors; for a nonempty source sum the total is $k+2$. The second
+estimate therefore has precisely the source error $O(k_{\rm source}+1)$. Empty sums are
+included directly and do not require a subtraction of two from a smaller factor count.
+\end{theorem}
+\begin{proof}
+\leanok
+The spin weight $|e_0e_i|$ is at most $16$. Use the uniform first-order comparison for
+that weight and for weight $1$. The exact decoupled contraction evaluates the weighted
+endpoint; the unweighted endpoint is the old-spin average. Since $|\alpha|\le1$ and
+$|\delta_i|\le2$, their errors are bounded by $C_{16}+2C_1$.
+Sum these errors and multiply by $1/m$, using
+$m^{(k+3)/2}=m\,m^{(k+1)/2}$. No asymptotic expansion is assumed as an input.
+\end{proof}
+
+\begin{lemma}[Deleted fresh products with equal conditional factors]
+\label{lem:sg-tal:fresh-deletion-equality}
+\lean{Finset.prod_erase_eq_of_eq, MeasureTheory.integral_pi_finset_prod_fresh_pairs,
+MeasureTheory.integral_pi_prod_fresh_pairs_erase_eq,
+MeasureTheory.integral_fresh_overlap_prod_erase_eq}
+\leanok
+\uses{lem:sg-tal:fresh-pair-product}
+\talsource{Equality of the surviving expectations and counting, immediately before Eq.~(1.312)}
+On a finite probability space $(X,\mu)$, let $R,J$ be finite, $s\subseteq J$, and
+$K_j:X^R\times X\times X\to\mathbb R$. Fresh-pair factorization also holds for
+$\prod_{j\in s}K_j$ in the full fresh replica space indexed by $J$: unused replicas
+integrate to one. If $u,w\in s$ and
+\[
+ \int\!\int K_u(\rho,x,y)\,d\mu(x)d\mu(y)
+ =\int\!\int K_w(\rho,x,y)\,d\mu(x)d\mu(y)\quad\text{for all }\rho,
+\]
+the expectations of the products with $u$ and $w$ respectively deleted are equal.
+For the overlap kernels with Boolean flags $L_j,S_j$, it suffices that the flags agree
+at $u,w$ and their original labels agree wherever the corresponding flag is true.
+The vector observable, scaling and centering parameter are arbitrary.
+\end{lemma}
+\begin{proof}
+\leanok
+Apply fresh-pair factorization to the family whose unused factors are $1$. Products
+with two equal factors give the same result when either is deleted: expand both using
+the product with both factors deleted. This works in any commutative monoid, including
+when factors vanish, and uses no division. Apply it pointwise to the conditional averages.
+The overlap-kernel specialization follows by equality of those kernels.
+\end{proof}
+
+\begin{theorem}[The multiplicity form of term I]
+\label{thm:sg-tal:term-I-multiplicity}
+\lean{Finset.sum_centered_pairs_eq_fresh_overlap, SpinGlasses.sk_cavity_term_I_multiplicity}
+\leanok
+\uses{thm:sg-tal:term-I-pairing-sum, lem:sg-tal:fresh-deletion-equality}
+\talsource{Eq.~(1.312)}
+Let $R$ be a finite linearly ordered replica type and $J$ a finite factor type with
+distinguished $p\in J$. Fix Boolean flags $L_j,S_j$ with $L_p=S_p=1$.
+For each $j$ with $L_j=S_j=1$, assume $a_j<b_j$ in $R$.
+Fix $4\beta_0^2<1$. There is $C>0$, chosen before $\beta,h,q,N,a,b$, such that the
+following holds for deterministic $h$, $\beta^2\le\beta_0^2$, and
+$q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$. Put $m=N+1$ and
+$\alpha=1-2q+\mathbb E\tanh^4(\beta\sqrt q\,z+h)$.
+Use the full $m$-spin SK average $\nu$ on the replica type $R\sqcup(J\sqcup J)$;
+write $j_L,j_R$ for the two fresh labels of factor $j$. Define
+\[
+ d_j^L(v)=\begin{cases}\sigma_v^{a_j}-\sigma_v^{j_L}&L_j=1,\\
+                          \sigma_v^{j_L}&L_j=0,\end{cases}
+ \qquad
+ d_j^S(v)=\begin{cases}\sigma_v^{b_j}-\sigma_v^{j_R}&S_j=1,\\
+                          \sigma_v^{j_R}&S_j=0,\end{cases}
+\]
+\[
+ U_j^-=m^{-1}\sum_{v<N}d_j^L(v)d_j^S(v)
+            -\mathbf1_{L_j=S_j=0}q,\qquad
+ e_j=d_j^L(N)d_j^S(N),\qquad
+ G_u=\prod_{j\in J\setminus\{p,u\}}U_j^-.
+\]
+Let $M=\{u\in J:L_u=S_u=1,\ a_u=a_p,\ b_u=b_p\}$ and choose $u_0\in J$,
+requiring $u_0\in M\setminus\{p\}$ whenever that set is nonempty. Then
+\[
+ \left|m^{-1}\sum_{u\ne p}\nu(G_u e_p e_u)
+       -\frac{\alpha}{m}(|M|-1)\nu(G_{u_0})\right|
+ \le \frac{C}{m^{(|J|+1)/2}}.
+\]
+The leading factor belongs to $M$. Thus $|M|-1$ is exactly the number of other
+matching pairs, including zero; no second matching factor is assumed to exist.
+\end{theorem}
+\begin{proof}
+\leanok
+Expand each flagged overlap factor once into the four centered pair terms indexed by
+$\{0,1\}^2$. The coefficient in each coordinate is $2i-1$ when its flag is true
+and $i$ otherwise. Their product gives the four coefficients. The centering terms
+cancel unless both flags are false. This identity is valid over any commutative ring,
+for any finite coordinate type and observable, and is formalized separately from SK.
+Apply the finite pairing-sum theorem to the $|J|-2$ remaining factors for each $u\ne p$.
+The ordered-pair hypotheses exclude the reversed match, leaving precisely the
+indicator of $u\in M\setminus\{p\}$. The deleted-product identity makes every surviving
+expectation equal to $\nu(G_{u_0})$, even when a conditional factor vanishes.
+Use a filtered sum and the sum of a constant to count the class. If it is empty,
+the filtered sum and multiplicity both vanish. The case $|J|=1$ also has an empty
+pairing sum; weakening the denominator exponent gives the stated uniform bound.
 \end{proof}
 
 \begin{remark}[Statements of Propositions~1.10.4, 1.10.5 and Theorem~1.10.1 (planned, not proved)]
@@ -6592,17 +6880,20 @@ denominators $1-\beta^2(1-2q+\hat q)$ and $1-\beta^2(1-4q+3\hat q)$ are bounded 
 \end{remark}
 
 \begin{remark}[Status of Section~1.10]\label{rem:sg-tal:overlap-clt-status}
-\talsource{Section~1.10, Lemma~1.10.2, Corollary~1.10.3, Eqs.~(1.298)--(1.311), Theorem~1.10.1}
+\talsource{Section~1.10, Lemma~1.10.2, Corollary~1.10.3, Eqs.~(1.298)--(1.312), Theorem~1.10.1}
 \emph{Proved:} the product estimates and expansions (1.298)--(1.299) for products of finite
 linear combinations of truncated centered overlaps with an arbitrary bounded factor;
 Lemma~1.10.2; both formulas of Corollary~1.10.3; the exact fresh-replica substitution (1.305)
 in enumerated-factor form; symmetry between sites for a general one-site observable (1.309);
 and the last-site expansion (1.310)--(1.311) with its explicit $O(k+1)$ remainder
-(Theorem~\ref{thm:sg-tal:last-site-step}).
-\emph{Not proved:} the evaluation of the term I (1.312), which combines the last-site expansion
-with $\nu_0$-factorization (Lemma~1.6.2, in Lean the decoupled rectangular monomial
-\texttt{sk\_cavity\_decoupled\_rect\_monomial}, whose $1-2q+\hat q$ coefficient is exactly what (1.312) needs)
-and (1.298) with $k-2$ factors; the application of (1.301) to the factors $U^-_v$
+(Theorem~\ref{thm:sg-tal:last-site-step}). The absolute correction-moment estimate and
+the truncated-to-full product comparison before (1.313) are also proved, as is the
+linear-combination form of the exact rectangular contraction used in (1.312). Its fresh
+factor coefficients, the quantitative individual contractions and finite pairing sum,
+and the identity of matching deleted fresh-product expectations are proved above.
+The explicit flagged-factor representation and counting now give the common-moment
+multiplicity form of (1.312), Theorem~\ref{thm:sg-tal:term-I-multiplicity}.
+\emph{Not proved:} the application of (1.301) to the factors $U^-_v$
 (a reindexing of the replicas $\mathrm{Fin}\,n\sqcup(J\sqcup J)\simeq\mathrm{Fin}\,n'$ and of the
 factors by $\mathrm{Fin}\,k$); the recursion (1.313) and the induction of Proposition~1.10.4;
 the hard step (1.319) of Proposition~1.10.5; and Theorem~1.10.1 itself.

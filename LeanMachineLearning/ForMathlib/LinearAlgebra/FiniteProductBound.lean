@@ -24,6 +24,36 @@ open scoped BigOperators
 
 namespace LinearMap
 
+/-- A positive linear functional is dominated by its value on the pointwise absolute value. -/
+theorem abs_apply_le_apply_abs {Ω : Type*} (L : (Ω → ℝ) →ₗ[ℝ] ℝ)
+    (hmono : ∀ f g : Ω → ℝ, (∀ x, f x ≤ g x) → L f ≤ L g) (f : Ω → ℝ) :
+    |L f| ≤ L (fun x => |f x|) := by
+  refine abs_le.mpr ⟨?_, hmono _ _ fun x => le_abs_self (f x)⟩
+  have hn := hmono (-f) (fun x => |f x|) fun x => neg_le_abs (f x)
+  rw [map_neg] at hn
+  linarith only [hn]
+
+/-- Jensen's square inequality for a normalized positive linear functional.
+Neither a measure nor finiteness of the underlying space is needed. -/
+theorem sq_apply_le_apply_sq {Ω : Type*} (L : (Ω → ℝ) →ₗ[ℝ] ℝ)
+    (hmono : ∀ f g : Ω → ℝ, (∀ x, f x ≤ g x) → L f ≤ L g)
+    (h1 : L (fun _ => 1) = 1) (f : Ω → ℝ) :
+    (L f) ^ 2 ≤ L (fun x => f x ^ 2) := by
+  have hc (c : ℝ) : L (fun _ => c) = c := by
+    calc
+      _ = L (c • (fun _ => (1 : ℝ))) := by congr 1; funext x; simp
+      _ = c * L (fun _ => 1) := L.map_smul c _
+      _ = c := by rw [h1, mul_one]
+  have hp := hmono (fun _ => 0) (fun x => (f x - L f) ^ 2) (fun _ => sq_nonneg _)
+  have he : (fun x => (f x - L f) ^ 2) =
+      (fun x => f x ^ 2) + (-2 * L f) • f + (fun _ => (L f) ^ 2) := by
+    funext x
+    simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+    ring
+  rw [hc 0, he, map_add, map_add, map_smul, hc] at hp
+  change 0 ≤ L (fun x => f x ^ 2) + (-2 * L f) * L f + (L f) ^ 2 at hp
+  nlinarith only [hp]
+
 /-- A uniform monomial bound extends to products of finite linear combinations. No
 independence, positivity of the coefficients, or nonemptiness of the index types is needed. -/
 theorem abs_apply_prod_sum_le {Ω J : Type*} [Fintype J]

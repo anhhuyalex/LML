@@ -473,6 +473,7 @@ public import LeanMachineLearning.SpinGlasses.SKCavityFreeEnergy
 public import LeanMachineLearning.SpinGlasses.SKCavityGaussian
 public import LeanMachineLearning.SpinGlasses.SKCavityHigherOrder
 public import LeanMachineLearning.SpinGlasses.SKCavityHigherOrderCorollary
+public import LeanMachineLearning.SpinGlasses.SKCavityHigherOrderFinite
 public import LeanMachineLearning.SpinGlasses.SKCavityHigherOrderLinear
 public import LeanMachineLearning.SpinGlasses.SKCavityHigherOrderMoments
 public import LeanMachineLearning.SpinGlasses.SKCavityHigherOrderPair
@@ -513,7 +514,12 @@ public import LeanMachineLearning.SpinGlasses.SKLocalMagnetizations
 public import LeanMachineLearning.SpinGlasses.SKModel
 public import LeanMachineLearning.SpinGlasses.SKOldSpinCavity
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLT
+public import LeanMachineLearning.SpinGlasses.SKOverlapCLTComparison
+public import LeanMachineLearning.SpinGlasses.SKOverlapCLTContractions
+public import LeanMachineLearning.SpinGlasses.SKOverlapCLTFreshContractions
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLTStep
+public import LeanMachineLearning.SpinGlasses.SKOverlapCLTTermI
+public import LeanMachineLearning.SpinGlasses.SKOverlapCLTTermIMultiplicity
 public import LeanMachineLearning.SpinGlasses.SKOverlapConcentration
 public import LeanMachineLearning.SpinGlasses.SKOverlapContraction
 public import LeanMachineLearning.SpinGlasses.SKOverlapMoments
