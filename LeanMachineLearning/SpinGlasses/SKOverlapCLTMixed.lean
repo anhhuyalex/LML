@@ -270,7 +270,7 @@ theorem sk_T_mixed_gaussian_moment_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2
   have hx : (0 : ℝ) < (N : ℝ) + 1 := by positivity
   have hGP : |GP| ≤ MP / ((N : ℝ) + 1) ^ (((∑ κ, cP κ : ℕ) : ℝ) / 2) := by
     refine (abs_prod_integral_pow_scaled_gaussianReal_le cP (Real.sqrt_nonneg _)).trans ?_
-    have := Real.sqrt_div_pow_le (by positivity) hA0 hA12 (∑ κ, cP κ)
+    have := Real.sqrt_div_pow_le (x := (N : ℝ) + 1) (by positivity) hA0 hA12 (∑ κ, cP κ)
     calc (∏ κ, ((cP κ)! : ℝ)) * Real.sqrt (α / (1 - β ^ 2 * α) / (N + 1 : ℝ)) ^ (∑ κ, cP κ)
         ≤ (∏ κ, ((cP κ)! : ℝ)) * (Real.sqrt 12 ^ (∑ κ, cP κ) /
           ((N : ℝ) + 1) ^ (((∑ κ, cP κ : ℕ) : ℝ) / 2)) :=
@@ -278,7 +278,7 @@ theorem sk_T_mixed_gaussian_moment_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2
       _ = _ := by simp only [MP]; ring
   have hGS : |GS| ≤ MS / ((N : ℝ) + 1) ^ (((∑ k, cS k : ℕ) : ℝ) / 2) := by
     refine (abs_prod_integral_pow_scaled_gaussianReal_le cS (Real.sqrt_nonneg _)).trans ?_
-    have := Real.sqrt_div_pow_le (v := B2) (by positivity) hB0
+    have := Real.sqrt_div_pow_le (x := (N : ℝ) + 1) (v := B2) (by positivity) hB0
       (show B2 ≤ 12 by linarith) (∑ k, cS k)
     calc (∏ k, ((cS k)! : ℝ)) * Real.sqrt (B2 / (N + 1 : ℝ)) ^ (∑ k, cS k)
         ≤ (∏ k, ((cS k)! : ℝ)) * (Real.sqrt 12 ^ (∑ k, cS k) /

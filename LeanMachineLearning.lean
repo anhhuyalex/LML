@@ -36,6 +36,7 @@ public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.C
 public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.DataProcessing
 public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.MapSequence
 public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.Restrict
+public import LeanMachineLearning.ForMathlib.LinearAlgebra.DotProductCentering
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.FiniteProductBound
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.CholeskyInfinite
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.GramProjector
@@ -67,6 +68,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.JensenLog
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.MeasurePreservingSymmetry
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ParametrizedL2
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ReplicaIntegrateOut
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ReplicaOverlaps
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SignedToReal
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SqSub
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SupMoment
@@ -521,6 +523,7 @@ public import LeanMachineLearning.SpinGlasses.SKOldSpinCavity
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLT
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLTComparison
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLTContractions
+public import LeanMachineLearning.SpinGlasses.SKOverlapCLTCovarianceForm
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLTFreshContractions
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLTFreshMoments
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLTGlobalClassify
@@ -571,6 +574,7 @@ public import LeanMachineLearning.SpinGlasses.SKTAPEquation
 public import LeanMachineLearning.SpinGlasses.SKTAPUniform
 public import LeanMachineLearning.SpinGlasses.SKTBasisAlgebra
 public import LeanMachineLearning.SpinGlasses.SKTBasisAsymptotics
+public import LeanMachineLearning.SpinGlasses.SKTBasisCoefficients
 public import LeanMachineLearning.SpinGlasses.SKTBasisSecondMoment
 public import LeanMachineLearning.SpinGlasses.ThermodynamicLimit
 public import LeanMachineLearning.Tactic.EqLift

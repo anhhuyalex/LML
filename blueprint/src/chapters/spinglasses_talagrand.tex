@@ -7047,7 +7047,9 @@ $K_{s,p}+|w(s,p)|\,|B|K_{D(s,p)}+1$, before $\theta,N$.
 
 \begin{theorem}[Gaussian class-product reference for a two-factor recurrence]
 \label{thm:sg-tal:gaussian-class-reference}
-\lean{ProbabilityTheory.exists_gaussian_class_moment_error}
+\lean{ProbabilityTheory.exists_gaussian_class_moment_error,
+ProbabilityTheory.exists_finset_gaussian_class_moment_error,
+ProbabilityTheory.integral_pow_sqrt_mul_gaussianReal}
 \leanok
 \talsource{The reference identity in the induction of Propositions~1.10.4--1.10.5}
 Let $P$ select factors of a type $J$, let $\mathrm{label}:J\to\iota$ be a class label with $\iota$ finite,
@@ -7394,7 +7396,8 @@ $T_{xy}T_xT_yT^{m-2}$, evaluated by Theorem~\ref{thm:sg-tal:global-moments}.
 
 \begin{theorem}[The coefficients of Eq.~(1.328)]
 \label{thm:sg-tal:global-counting}
-\lean{SpinGlasses.sk_count_plain, SpinGlasses.sk_count_touched, SpinGlasses.sk_count_blocks}
+\lean{SpinGlasses.sk_count_plain, SpinGlasses.sk_count_touched, SpinGlasses.sk_count_blocks,
+SpinGlasses.blockPartner_involutive, SpinGlasses.blockPartner_ne_self}
 \leanok
 \talsource{Section~1.10, the end of the proof of Theorem~1.10.1}
 Let $x\ne y$ be replicas among $n$, let $\mathrm{pt}$ be a fixed-point free involution of the replicas
