@@ -152,4 +152,89 @@ theorem sk_T_multiindex_gaussian_moment_uniform (β₀ : ℝ) (hβ₀ : 4 * β�
   rw [hν] at h
   exact h
 
+/-- **Talagrand (1.291).** Normalized mixed moments have error at most `C / sqrt (N+1)`;
+the Gaussian reference variances here are independent of system size. -/
+theorem sk_T_multiindex_gaussian_moment_normalized_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
+    {R : Type*} [Fintype R] [LinearOrder R] [Nonempty R]
+    (kP : R × R → ℕ) (kS : R → ℕ) (kG : ℕ)
+    (hord : ∀ p, 0 < kP p → p.1 < p.2) :
+    ∃ C : ℝ, 0 < C ∧ ∀ (β h q : ℝ),
+      (∫ t : ℝ, Real.tanh (β * Real.sqrt q * t + h) ^ 2 ∂gaussianReal 0 1 = q) →
+      β ^ 2 ≤ β₀ ^ 2 → ∀ N : ℕ,
+    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g σ =>
+      (Real.sqrt (N + 1))⁻¹ * β *
+        (∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
+      h * ∑ i : Fin (N + 1), (σ i : ℝ)
+    let bmean : (FinPairs (N + 1) → ℝ) → Fin (N + 1) → ℝ := fun g i =>
+      ∫ σ : Fin (N + 1) → ℤˣ, (σ i : ℝ) ∂(Measure.count.tilted (E g))
+    let TP := fun (p : R × R) g (ρ : R → Fin (N + 1) → ℤˣ) =>
+      (N + 1 : ℝ)⁻¹ * ∑ i, ((ρ p.1 i : ℝ) - bmean g i) *
+        ((ρ p.2 i : ℝ) - bmean g i)
+    let TS := fun (r : R) g (ρ : R → Fin (N + 1) → ℤˣ) =>
+      (N + 1 : ℝ)⁻¹ * ∑ i, ((ρ r i : ℝ) - bmean g i) * bmean g i
+    let TG := fun g => (N + 1 : ℝ)⁻¹ * ∑ i, bmean g i * bmean g i - q
+    let νT : ℝ := ∫ g, ∫ ρ : R → Fin (N + 1) → ℤˣ,
+      (∏ p, TP p g ρ ^ kP p) * (∏ r, TS r g ρ ^ kS r) * TG g ^ kG
+        ∂(Measure.pi fun _ : R => Measure.count.tilted (E g))
+        ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)
+    let qh : ℝ := ∫ t : ℝ, Real.tanh (β * t * Real.sqrt q + h) ^ 4 ∂gaussianReal 0 1
+    let α : ℝ := qh - 2 * q + 1
+    let D : ℝ := 1 - β ^ 2 * (1 - 4 * q + 3 * qh)
+    let A2 : ℝ := α / (1 - β ^ 2 * α)
+    let B2 : ℝ := (q - qh) * (1 + β ^ 2 * A2) / D
+    let C2 : ℝ := ((qh - q ^ 2) + β ^ 2 * (qh - q ^ 2) * A2 +
+      2 * β ^ 2 * (2 * q + q ^ 2 - 3 * qh) * B2) / D
+    |((N : ℝ) + 1) ^ ((((∑ p, kP p) + (∑ r, kS r) + kG : ℕ) : ℝ) / 2) * νT -
+      (∏ p, ∫ x : ℝ, (Real.sqrt A2 * x) ^ kP p ∂gaussianReal 0 1) *
+      (∏ r, ∫ x : ℝ, (Real.sqrt B2 * x) ^ kS r ∂gaussianReal 0 1) *
+      (∫ x : ℝ, (Real.sqrt C2 * x) ^ kG ∂gaussianReal 0 1)| ≤
+        C / Real.sqrt ((N : ℝ) + 1) := by
+  obtain ⟨C, hC0, hC⟩ := sk_T_multiindex_gaussian_moment_uniform β₀ hβ₀ kP kS kG hord
+  refine ⟨C, hC0, fun β h q hfix hb N => ?_⟩
+  intro E bmean TP TS TG νT qh α D A2 B2 C2
+  have hαeq : 1 - 2 * q + qh = α := by dsimp only [α]; ring
+  have hα := tanh_fourth_sub_two_mul_add_one_mem_Icc_of_fixedPoint hfix
+  have hp := one_sub_mul_div_bounds (sq_nonneg β)
+    (show β ^ 2 ≤ (1 / 4 : ℝ) by linarith) hα (by norm_num : (1 / 4 : ℝ) < 1)
+  have hD1 : 1 - β ^ 2 * (1 - 2 * q + qh) ≠ 0 := by
+    rw [hαeq]
+    have hd : (0 : ℝ) < 1 - β ^ 2 * α := by linarith [hp.1]
+    exact hd.ne'
+  have hA : α / ((N + 1 : ℝ) * (1 - β ^ 2 * α)) = A2 / (N + 1 : ℝ) := by
+    simpa only [hαeq] using sk_T_pair_variance_eq β q qh (N + 1 : ℝ)
+  have hB : (q - qh) / ((N + 1 : ℝ) * (1 - β ^ 2 * α) * D) =
+      B2 / (N + 1 : ℝ) := by
+    simpa only [hαeq] using sk_T_single_variance_eq β q qh (N + 1 : ℝ) hD1
+  have hG : ((qh - q ^ 2) / (N + 1 : ℝ) + β ^ 2 * (qh - q ^ 2) *
+      (α / ((N + 1 : ℝ) * (1 - β ^ 2 * α))) +
+      2 * β ^ 2 * (2 * q + q ^ 2 - 3 * qh) *
+        ((q - qh) / ((N + 1 : ℝ) * (1 - β ^ 2 * α) * D))) / D =
+          C2 / (N + 1 : ℝ) := by
+    simpa only [hαeq] using sk_T_global_variance_eq β q qh (N + 1 : ℝ) hD1
+  have h0 := hC β h q hfix hb N
+  dsimp only at h0
+  rw [hG, hB, hA] at h0
+  let G : ℝ := (∏ p, ∫ x : ℝ, (Real.sqrt A2 * x) ^ kP p ∂gaussianReal 0 1) *
+    (∏ r, ∫ x : ℝ, (Real.sqrt B2 * x) ^ kS r ∂gaussianReal 0 1) *
+      (∫ x : ℝ, (Real.sqrt C2 * x) ^ kG ∂gaussianReal 0 1)
+  have hm : (0 : ℝ) < (N : ℝ) + 1 := by positivity
+  have hmoment (v : ℝ) (n : ℕ) :
+      (∫ x : ℝ, (Real.sqrt (v / (N + 1 : ℝ)) * x) ^ n ∂gaussianReal 0 1) =
+        (∫ x : ℝ, (Real.sqrt v * x) ^ n ∂gaussianReal 0 1) /
+          Real.sqrt (N + 1 : ℝ) ^ n := by
+    simp_rw [Real.sqrt_div' v hm.le, div_mul_eq_mul_div, div_pow, integral_div]
+  have href :
+      (∏ p, ∫ x : ℝ, (Real.sqrt (A2 / (N + 1 : ℝ)) * x) ^ kP p ∂gaussianReal 0 1) *
+      (∏ r, ∫ x : ℝ, (Real.sqrt (B2 / (N + 1 : ℝ)) * x) ^ kS r ∂gaussianReal 0 1) *
+      (∫ x : ℝ, (Real.sqrt (C2 / (N + 1 : ℝ)) * x) ^ kG ∂gaussianReal 0 1) =
+        G / ((N : ℝ) + 1) ^ ((((∑ p, kP p) + (∑ r, kS r) + kG : ℕ) : ℝ) / 2) := by
+    simp_rw [hmoment]
+    rw [Finset.prod_div_distrib, Finset.prod_div_distrib,
+      Finset.prod_pow_eq_pow_sum, Finset.prod_pow_eq_pow_sum,
+      div_mul_div_comm, div_mul_div_comm, ← pow_add, ← pow_add]
+    rw [Real.rpow_div_two_eq_sqrt _ hm.le, Real.rpow_natCast]
+  rw [href] at h0
+  apply abs_normalized_moment_sub_le hm
+  simpa only [Nat.cast_add, Nat.cast_one, add_div] using h0
+
 end SpinGlasses

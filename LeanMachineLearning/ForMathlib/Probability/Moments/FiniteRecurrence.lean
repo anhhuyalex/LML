@@ -10,6 +10,7 @@ public import Mathlib.Algebra.BigOperators.GroupWithZero.Finset
 public import Mathlib.Data.Finset.Card
 public import Mathlib.Tactic.Positivity
 public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.FieldSimp
 
 /-!
 # Uniform error propagation through a two-factor moment recurrence
@@ -24,6 +25,21 @@ its degree-dependent scale. This abstracts the three moment inductions in Talagr
 open scoped BigOperators
 
 namespace ProbabilityTheory
+
+/-- Rescaling a degree-dependent moment error leaves an inverse-square-root error.
+The degree parameter may be any real number, and the scale may be any positive real. -/
+theorem abs_normalized_moment_sub_le {m r X G C : ℝ} (hm : 0 < m)
+    (h : |X - G / m ^ r| ≤ C / m ^ (r + 1 / 2)) :
+    |m ^ r * X - G| ≤ C / Real.sqrt m := by
+  have hp : 0 < m ^ r := Real.rpow_pos_of_pos hm r
+  have hs : m ^ (r + 1 / 2) = m ^ r * Real.sqrt m := by
+    rw [Real.rpow_add hm, ← Real.sqrt_eq_rpow]
+  have he : m ^ r * X - G = m ^ r * (X - G / m ^ r) := by
+    field_simp
+  rw [he, abs_mul, abs_of_pos hp]
+  calc m ^ r * |X - G / m ^ r| ≤ m ^ r * (C / m ^ (r + 1 / 2)) :=
+      mul_le_mul_of_nonneg_left h hp.le
+    _ = C / Real.sqrt m := by rw [hs]; field_simp
 
 /-- A product of class moments satisfies the same two-factor recurrence as each class.
 The class index set is any finite set, and the coefficient may depend on the class.
