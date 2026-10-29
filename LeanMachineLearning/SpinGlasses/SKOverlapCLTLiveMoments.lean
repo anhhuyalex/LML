@@ -33,13 +33,7 @@ theorem integrable_integral_pi_count_tilted_of_bound {Ω α R : Type*} [Measurab
     (Φ : Ω → (R → α) → ℝ) (hΦ : ∀ σ, Measurable fun ω => Φ ω σ) (M : ℝ)
     (hM : ∀ ω σ, |Φ ω σ| ≤ M) :
     Integrable (fun ω => ∫ σ, Φ ω σ ∂(Measure.pi fun _ : R => Measure.count.tilted (f ω))) μ := by
-  have hmeas : Measurable fun ω =>
-      ∫ σ, Φ ω σ ∂(Measure.pi fun _ : R => Measure.count.tilted (f ω)) := by
-    simp_rw [integral_pi_count_tilted]
-    exact Finset.measurable_sum _ fun σ _ =>
-      (Finset.measurable_prod _ fun r _ =>
-        (Real.measurable_exp.comp (hf (σ r))).div
-          (Finset.measurable_sum _ fun b _ => Real.measurable_exp.comp (hf b))).mul (hΦ σ)
+  have hmeas := measurable_integral_pi_count_tilted hf hΦ
   refine Integrable.of_bound hmeas.aestronglyMeasurable M (ae_of_all _ fun ω => ?_)
   have := norm_integral_le_of_norm_le_const
     (μ := Measure.pi fun _ : R => Measure.count.tilted (f ω)) (C := M)

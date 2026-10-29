@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.ForMathlib.Probability.Moments.FiniteRecurrence
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein
+public import LeanMachineLearning.ForMathlib.Data.Nat.Recurrence
 
 /-!
 # Gaussian class-product reference for a two-factor moment recurrence
@@ -37,14 +38,12 @@ theorem integral_pow_add_two_scaled_gaussianReal (s : ℝ) (n : ℕ) :
 /-- Scaled Gaussian moments of odd order vanish. -/
 theorem integral_pow_scaled_gaussianReal_of_odd (s : ℝ) {m : ℕ} (hm : Odd m) :
     ∫ x : ℝ, (s * x) ^ m ∂(gaussianReal 0 1) = 0 := by
-  obtain ⟨k, rfl⟩ := hm
-  induction k with
-  | zero =>
-    simp only [mul_zero, zero_add, pow_one]
+  apply Nat.eq_zero_of_odd_of_two_step_mul
+    (a := fun n => ∫ x : ℝ, (s * x) ^ n ∂gaussianReal 0 1)
+    (c := fun n => (n + 1 : ℝ) * s ^ 2) ?_ ?_ hm
+  · simp only [pow_one]
     rw [integral_const_mul, integral_id_gaussianReal, mul_zero]
-  | succ k ih =>
-    have e : 2 * (k + 1) + 1 = (2 * k + 1) + 2 := by ring
-    rw [e, integral_pow_add_two_scaled_gaussianReal, ih, mul_zero]
+  · exact integral_pow_add_two_scaled_gaussianReal s
 
 /-- **Gaussian reference for a two-factor recurrence.** Let `P` select the factors that
 carry a class `label`. Suppose that for every selected `p`, every partner `u` of the same

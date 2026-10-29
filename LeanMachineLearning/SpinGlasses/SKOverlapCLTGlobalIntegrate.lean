@@ -159,9 +159,8 @@ theorem overlap_T_expansion {I : Type*} [Fintype I] (c q : ℝ) (u w b : I → �
     ((c * ∑ i, u i * w i) - q) =
       (c * ∑ i, (u i - b i) * (w i - b i)) + (c * ∑ i, (u i - b i) * b i) +
         (c * ∑ i, (w i - b i) * b i) + ((c * ∑ i, b i * b i) - q) := by
-  have hcomm : ∑ i, b i * w i = ∑ i, w i * b i := Finset.sum_congr rfl fun i _ => mul_comm _ _
-  simp only [sub_mul, mul_sub, Finset.sum_sub_distrib, hcomm]
-  ring
+  simpa only [div_eq_mul_inv, inv_inv, dotProduct, Pi.sub_apply, mul_comm] using
+    dotProduct_div_sub_decomp c⁻¹ q u w b
 
 /-- Facts about a block `{x, x'}` of a family of pairwise disjoint blocks. -/
 theorem block_facts {V R : Type*} {ca da : V → R}

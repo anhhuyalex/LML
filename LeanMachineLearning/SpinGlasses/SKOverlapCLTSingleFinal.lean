@@ -70,14 +70,11 @@ theorem rpow_card_erase_erase {J : Type*} [Fintype J] [DecidableEq J] (p u₀ : 
         ((((((Finset.univ : Finset J).erase p).erase u₀).card + 1 : ℕ) : ℝ) / 2) := by
   have hmem0 : u₀ ∈ (Finset.univ : Finset J).erase p :=
     Finset.mem_erase.mpr ⟨hu₀p, Finset.mem_univ u₀⟩
-  have hcardd : (((Finset.univ : Finset J).erase p).erase u₀).card + 3 = Fintype.card J + 1 := by
-    rw [Finset.card_erase_of_mem hmem0, Finset.card_erase_of_mem (Finset.mem_univ p),
-      Finset.card_univ]
-    have h2 : 2 ≤ Fintype.card J := by
-      have := Finset.card_le_card (show ({p, u₀} : Finset J) ⊆ Finset.univ from
-        Finset.subset_univ _)
-      rw [Finset.card_pair (Ne.symm hu₀p)] at this
-      simpa using this
+  have hcardd : (((Finset.univ : Finset J).erase p).erase u₀).card + 3 =
+      Fintype.card J + 1 := by
+    have h1 := Finset.card_erase_add_one (Finset.mem_univ p)
+    have h2 := Finset.card_erase_add_one hmem0
+    simp only [Finset.card_univ] at h1
     omega
   have hexp : ((Fintype.card J + 1 : ℕ) : ℝ) / 2 =
       1 + (((((Finset.univ : Finset J).erase p).erase u₀).card + 1 : ℕ) : ℝ) / 2 := by
@@ -333,11 +330,10 @@ theorem sk_T_single_recurrence_finset_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ 
 /-- Dividing a recurrence by a denominator bounded below by `3/4`. -/
 theorem div_recurrence_step (X Y D n K : ℝ) (hD : 3 / 4 ≤ D) (h : |D * X - n * Y| ≤ K) :
     |X - n / D * Y| ≤ 4 / 3 * K := by
-  have hDpos : 0 < D := by linarith
-  have e : X - n / D * Y = (D * X - n * Y) / D := by
-    field_simp
-  rw [e, abs_div, abs_of_pos hDpos, div_le_iff₀ hDpos]
-  nlinarith [abs_nonneg (D * X - n * Y)]
+  have hD0 : D ≠ 0 := by linarith
+  have he : X - n / D * Y = (D * X - n * Y) / D := by field_simp
+  rw [he]
+  exact abs_div_le_four_thirds hD h
 
 /-- The coefficients of Eq. (1.320) are bounded: `0 ≤ q - q̂ ≤ 1`, the denominator is at least
 `3/4`, `0 ≤ α ≤ 1`, and the variance coefficient `B²` lies in `[0, 2]`. -/

@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLTSingleRecurrence
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLTLiveMoments
+public import Mathlib.Data.Sym.Sym2.Order
 
 /-!
 # The evaluation of the term II (Talagrand, Eq. (1.319))
@@ -130,26 +131,9 @@ theorem sum_sub_card_mul_le {ι : Type*} [DecidableEq ι] (L M : Finset ι) (hML
 /-- Unordered pairs given by `(min, max)` are equal iff they agree up to swapping. -/
 theorem minmax_pair_eq_iff {α : Type*} [LinearOrder α] {x y x' y' : α} :
     (min x y, max x y) = (min x' y', max x' y') ↔ (x = x' ∧ y = y') ∨ (x = y' ∧ y = x') := by
-  constructor
-  · intro h
-    rw [Prod.mk.injEq] at h
-    obtain ⟨h1, h2⟩ := h
-    rcases le_total x y with hxy | hxy <;> rcases le_total x' y' with hxy' | hxy'
-    · rw [min_eq_left hxy, min_eq_left hxy'] at h1
-      rw [max_eq_right hxy, max_eq_right hxy'] at h2
-      exact Or.inl ⟨h1, h2⟩
-    · rw [min_eq_left hxy, min_eq_right hxy'] at h1
-      rw [max_eq_right hxy, max_eq_left hxy'] at h2
-      exact Or.inr ⟨h1, h2⟩
-    · rw [min_eq_right hxy, min_eq_left hxy'] at h1
-      rw [max_eq_left hxy, max_eq_right hxy'] at h2
-      exact Or.inr ⟨h2, h1⟩
-    · rw [min_eq_right hxy, min_eq_right hxy'] at h1
-      rw [max_eq_left hxy, max_eq_left hxy'] at h2
-      exact Or.inl ⟨h2, h1⟩
-  · rintro (⟨rfl, rfl⟩ | ⟨rfl, rfl⟩)
-    · rfl
-    · rw [min_comm, max_comm]
+  rw [Prod.mk.injEq]
+  exact (Sym2.inf_eq_inf_and_sup_eq_sup
+    (s := s(x, y)) (t := s(x', y'))).trans Sym2.eq_iff
 
 /-- **Unmatched replicas contribute `O(k+1)` to the term II.** The full increment against the
 full product of the other fresh factors, for a replica `ℓ` that is not the last fresh replica of
