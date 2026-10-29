@@ -55,7 +55,7 @@ theorem blockPartner_involutive : Function.Involutive (blockPartner e) := by
 theorem blockPartner_ne_self (r : R) : blockPartner e r ≠ r := by
   intro h
   have hs : Sum.swap (e.symm r) = e.symm r := by
-    simpa only [Equiv.symm_apply_apply] using congrArg e.symm h
+    simpa only [blockPartner, Equiv.symm_apply_apply] using congrArg e.symm h
   have hswap : ∀ s : V ⊕ V, Sum.swap s ≠ s := by
     intro s
     cases s <;> simp

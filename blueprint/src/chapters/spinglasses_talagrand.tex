@@ -7436,7 +7436,7 @@ and Theorem~\ref{thm:sg-tal:global-counting} sums the three coefficients of (1.3
 
 \begin{theorem}[The Gaussian law of $T$]
 \label{thm:sg-tal:global-gaussian}
-\lean{SpinGlasses.sk_T_global_gaussian_moment_uniform, SpinGlasses.global_coefficient_facts}
+\lean{SpinGlasses.sk_T_global_gaussian_moment_uniform, SpinGlasses.global_coefficient_facts, SpinGlasses.sk_T_global_variance_nonneg}
 \leanok
 \uses{thm:sg-tal:global-recurrence, thm:sg-tal:gaussian-class-reference}
 \talsource{Theorem~1.10.1 for the factors $T$, Eq.~(1.262)}
@@ -7476,8 +7476,68 @@ Peel the pair factors with Proposition~1.10.4, the single factors with Propositi
 remaining factors, and use Theorem~\ref{thm:sg-tal:global-gaussian} for the global ones. The three
 errors are combined with $|\prod_k\mathbb E(\sigma g)^{n_k}|\le\prod_k n_k!\;\sigma^{\sum n_k}$ and
 $\sigma^n\le(\sqrt{12})^n(N+1)^{-n/2}$ for $\sigma^2=c_0/(N+1)$, $0\le c_0\le12$; the exponents add up
-to $(|s|+1)/2$ because $|s|=m_{\rm pair}+m_{\rm single}+m_*$. The identification of $A^2,B^2,C^2$
-with the covariance constants of Theorem~\ref{thm:sg-tal:thm-1812} is not formalized here.
+to $(|s|+1)/2$ because $|s|=m_{\rm pair}+m_{\rm single}+m_*$. The normalization-aware identification with the covariance constants of
+Theorem~\ref{thm:sg-tal:thm-1812} is proved in Lemma~\ref{lem:sg-tal:variance-identification}.
+\end{proof}
+
+
+\begin{lemma}[Identification with the Section 1.8 covariance constants]
+\label{lem:sg-tal:variance-identification}
+\lean{SpinGlasses.sk_T_pair_variance_eq, SpinGlasses.sk_T_single_variance_eq,
+SpinGlasses.sk_T_global_variance_eq,
+SpinGlasses.sk_T_mixed_gaussian_moment_covariance_uniform}
+\leanok
+\uses{thm:sg-tal:thm-1812, thm:sg-tal:thm-1101}
+\talsource{Eqs.~(1.248), (1.256), (1.262), and Theorem~1.10.1}
+Write $m=N+1$, $\alpha=1-2q+\hat q$, $D_1=1-\beta^2\alpha$,
+$D_2=1-\beta^2(1-4q+3\hat q)$ and suppose $D_1\ne0$.
+Set $a=\alpha/D_1$, $b=(q-\hat q)(1+\beta^2a)/D_2$ and
+$c=((\hat q-q^2)(1+\beta^2a)+2\beta^2(2q+q^2-3\hat q)b)/D_2$.
+The size-dependent variances of Section~1.8 satisfy
+\[
+ A_N^2=\frac{a}{m},\qquad B_N^2=\frac{b}{m},\qquad C_N^2=\frac{c}{m}.
+\]
+Here $A_N^2=\alpha/(mD_1)$, $B_N^2=(q-\hat q)/(mD_1D_2)$ and
+$C_N^2=((\hat q-q^2)/m+\beta^2(\hat q-q^2)A_N^2
++2\beta^2(2q+q^2-3\hat q)B_N^2)/D_2$.
+For $4\beta_0^2<1$, $\beta^2\le\beta_0^2$ and the fixed point $q$,
+the denominators are positive. The enumerated mixed-moment theorem is consequently
+proved with reference variances exactly $A_N^2,B_N^2,C_N^2$, and the same constant
+chosen before $\beta,h,q,N$.
+\end{lemma}
+\begin{proof}
+\leanok
+The pair identity is division by a product. The single identity uses
+$1+\beta^2\alpha/(1-\beta^2\alpha)=1/D_1$. Substitution into the global formula
+proves the third identity. Rewrite the three variances in the existing mixed-moment
+theorem; no additional induction or asymptotic uniqueness argument is needed.
+\end{proof}
+
+\begin{lemma}[Centering by the Gibbs mean overlap]
+\label{lem:sg-tal:gibbs-centered-overlap}
+\lean{MeasureTheory.integral_pi_overlap_eq_mean_sq,
+MeasureTheory.integral_pi_overlap_centered_decomp, dotProduct_sub_mean_decomp}
+\leanok
+\talsource{Eq.~(1.295)}
+Let $\mu$ be a probability measure on a finite space $X$, let $I,R$ be finite index
+sets, let $v:X\to\mathbb R^I$ and $b_i=\int v_i\,d\mu$, and let $\rho\sim\mu^R$.
+For any scale $d\in\mathbb R$, distinct reference replicas $r,s\in R$, and any $x,y\in R$,
+\[
+ d\sum_i v_i(\rho^x)v_i(\rho^y)
+ -\mathbb E_{\tau\sim\mu^R}\,d\sum_i v_i(\tau^r)v_i(\tau^s)
+ =d\sum_i(v_i(\rho^x)-b_i)(v_i(\rho^y)-b_i)
+  +d\sum_i(v_i(\rho^x)-b_i)b_i+d\sum_i(v_i(\rho^y)-b_i)b_i.
+\]
+For the Gibbs measure, coordinate spins and $d=1/(N+1)$, this is
+$R_{xy}-\langle R_{rs}\rangle=T_{xy}+T_x+T_y$.
+The identity is exact at each disorder realization; it has no temperature or
+external-field restriction. The quantitative Gibbs fluctuation estimates
+(1.293)--(1.294) are not established by this identity alone.
+\end{lemma}
+\begin{proof}
+\leanok
+The two distinct reference replicas are independent, so their mean overlap is
+$d\sum_i b_i^2$. Subtract that quantity in the common finite-vector centering identity.
 \end{proof}
 
 \begin{remark}[Statements of Propositions~1.10.4, 1.10.5 and Theorem~1.10.1]
@@ -7534,8 +7594,8 @@ Selected-subset fresh identities and the generic finite moment induction are als
 Proposition~1.10.4 is proved in enumerated form
 (Theorem~\ref{thm:sg-tal:prop-1104}) from the Gaussian class-product reference
 (Theorem~\ref{thm:sg-tal:gaussian-class-reference}). Its leading term is stated with the
-variance $A^2=(1-2q+\hat q)/(1-\beta^2(1-2q+\hat q))$; the identification of this $A^2$ with the
-limit constant of Theorem~\ref{thm:sg-tal:thm-1812} is not formalized, and the unselected factors
+variance $A^2=(1-2q+\hat q)/(1-\beta^2(1-2q+\hat q))$; the size-dependent covariance is $A^2/(N+1)$ by
+Lemma~\ref{lem:sg-tal:variance-identification}, and the unselected factors
 keep their actual moment, as in the book.
 \emph{Proved toward Proposition~1.10.5:} the decoupled contraction of a leading single factor
 (Theorem~\ref{thm:sg-tal:single-contraction}).
@@ -7551,8 +7611,10 @@ The global stage is proved: the recurrence (1.325)--(1.328) for $\mathbb E\,T^k$
 (Theorem~\ref{thm:sg-tal:global-recurrence}), the Gaussian law of $T$
 (Theorem~\ref{thm:sg-tal:global-gaussian}), and Theorem~1.10.1 in enumerated form
 (Theorem~\ref{thm:sg-tal:thm-1101}).
-\emph{Not proved:} the identification of the constants $A^2,B^2,C^2$ with those of
-Theorem~\ref{thm:sg-tal:thm-1812}; the multi-index restatement is the enumerated form with
-$V$ the disjoint union of the index sets; the nearly-Gaussian Gibbs corollaries (1.291)--(1.295)
-are also open.
+The covariance-constant identification is proved in
+Lemma~\ref{lem:sg-tal:variance-identification}; the centered-overlap identity (1.295)
+is proved in Lemma~\ref{lem:sg-tal:gibbs-centered-overlap}.
+\emph{Not proved:} the multi-index restatement (take $V$ to be the disjoint union
+of the multiplicity index sets), the normalized moment and Gibbs fluctuation estimates
+(1.291)--(1.294), or a separate weak-convergence statement.
 \end{remark}

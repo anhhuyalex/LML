@@ -66,28 +66,32 @@ theorem integral_pi_overlap_block (μ : Measure α) [IsProbabilityMeasure μ]
     integral_const_mul, integral_finsetSum _ (fun _ _ => Integrable.of_finite)]
   simp only [integral_mul_const, hb, integral_const, probReal_univ, smul_eq_mul, one_mul]
 
+omit [DecidableEq R] in
 /-- Independent replicas have mean overlap equal to the squared mean vector. -/
 theorem integral_pi_overlap_eq_mean_sq (μ : Measure α) [IsProbabilityMeasure μ]
     (v : α → I → ℝ) (b : I → ℝ) (hb : ∀ i, ∫ t, v t i ∂μ = b i)
     (c : ℝ) {x y : R} (hxy : x ≠ y) :
     (∫ ρ, c * ∑ i, v (ρ x) i * v (ρ y) i ∂(Measure.pi fun _ : R => μ)) =
       c * ∑ i, b i * b i := by
+  classical
   have hm := integral_pi_overlap_block μ v b hb c 0 hxy
     (fun _ => 1) (fun _ _ => rfl) (fun _ _ => rfl)
   simpa only [one_mul, sub_zero, integral_const, probReal_univ, one_smul] using hm
 
+omit [DecidableEq R] in
 /-- **Talagrand (1.295).** Subtracting the Gibbs mean overlap leaves the centered pair
 and the two single-replica terms, with no global term. This identity is model independent. -/
 theorem integral_pi_overlap_centered_decomp (μ : Measure α) [IsProbabilityMeasure μ]
     (v : α → I → ℝ) (b : I → ℝ) (hb : ∀ i, ∫ t, v t i ∂μ = b i)
-    (c : ℝ) {x y : R} (hxy : x ≠ y) (ρ : R → α) :
+    (c : ℝ) {r s : R} (hrs : r ≠ s) (x y : R) (ρ : R → α) :
     (c * ∑ i, v (ρ x) i * v (ρ y) i) -
-        (∫ τ, c * ∑ i, v (τ x) i * v (τ y) i ∂(Measure.pi fun _ : R => μ)) =
+        (∫ τ, c * ∑ i, v (τ r) i * v (τ s) i ∂(Measure.pi fun _ : R => μ)) =
       (c * ∑ i, (v (ρ x) i - b i) * (v (ρ y) i - b i)) +
         (c * ∑ i, (v (ρ x) i - b i) * b i) +
         (c * ∑ i, (v (ρ y) i - b i) * b i) := by
-  rw [integral_pi_overlap_eq_mean_sq μ v b hb c hxy]
-  simpa only [dotProduct, Pi.sub_apply] using dotProduct_sub_mean_decomp c (v (ρ x)) (v (ρ y)) b
+  rw [integral_pi_overlap_eq_mean_sq μ v b hb c hrs]
+  simpa only [dotProduct, Pi.sub_apply] using
+    dotProduct_sub_mean_decomp c (v (ρ x)) (v (ρ y)) b
 
 /-- **A factor centered in an absent replica integrates to zero.** -/
 theorem integral_pi_centered_replica (μ : Measure α) [IsProbabilityMeasure μ]
@@ -121,6 +125,7 @@ theorem integral_pi_prod_overlap_blocks (μ : Measure α) [IsProbabilityMeasure 
     (hZd : ∀ u ∈ W, ∀ ρ s, Z (Function.update ρ (da u) s) = Z ρ) :
     ∫ ρ, Z ρ * ∏ u ∈ W, ov ρ (ca u) (da u) ∂(Measure.pi fun _ : R => μ) =
       (∫ ρ, Z ρ ∂(Measure.pi fun _ : R => μ)) * Tg ^ W.card := by
+  classical
   have hcc : ∀ u w, u ≠ w → ca u ≠ ca w := fun u w h hh =>
     h (Sum.inl_injective (hinj (by simpa using hh)))
   have hdd : ∀ u w, u ≠ w → da u ≠ da w := fun u w h hh =>
@@ -244,6 +249,7 @@ theorem integral_pi_blocks_one_touched (μ : Measure α) [IsProbabilityMeasure �
     (hy : ∀ u, y ≠ ca u ∧ y ≠ da u) :
     ∫ ρ, Y ρ * ∏ u, ov ρ (ca u) (da u) ∂(Measure.pi fun _ : R => μ) =
       (∫ ρ, Y ρ * (A x ρ + Tg) ∂(Measure.pi fun _ : R => μ)) * Tg ^ (Fintype.card V - 1) := by
+  classical
   obtain ⟨hxx', hfac⟩ := block_facts hinj hx0
   have hy0 := hy u0
   have hyx' : x' ≠ y := by
@@ -292,6 +298,7 @@ theorem integral_pi_blocks_same (μ : Measure α) [IsProbabilityMeasure μ]
     (u0 : V) (hx0 : (ca u0 = x ∧ da u0 = y) ∨ (ca u0 = y ∧ da u0 = x)) :
     ∫ ρ, Y ρ * ∏ u, ov ρ (ca u) (da u) ∂(Measure.pi fun _ : R => μ) =
       (∫ ρ, Y ρ * ov ρ x y ∂(Measure.pi fun _ : R => μ)) * Tg ^ (Fintype.card V - 1) := by
+  classical
   obtain ⟨hxx', hfac⟩ := block_facts hinj hx0
   have hov0 : ∀ ρ, ov ρ (ca u0) (da u0) = ov ρ x y := fun ρ => by
     rcases hx0 with ⟨h1, h2⟩ | ⟨h1, h2⟩
@@ -332,6 +339,7 @@ theorem integral_pi_blocks_two_touched (μ : Measure α) [IsProbabilityMeasure �
     ∫ ρ, Y ρ * ∏ u, ov ρ (ca u) (da u) ∂(Measure.pi fun _ : R => μ) =
       (∫ ρ, Y ρ * ((A x ρ + Tg) * (A y ρ + Tg)) ∂(Measure.pi fun _ : R => μ)) *
         Tg ^ (Fintype.card V - 2) := by
+  classical
   obtain ⟨hxx', hfx⟩ := block_facts hinj hx0
   obtain ⟨hyy', hfy⟩ := block_facts hinj hy0
   obtain ⟨hcc, hdd, hcd⟩ := sum_elim_injective_facts hinj
@@ -433,6 +441,7 @@ theorem integral_pi_two_replica_orthogonality (μ : Measure α) [IsProbabilityMe
     (∫ ρ, A x ρ * A y ρ ∂(Measure.pi fun _ : R => μ)) = 0 ∧
     (∫ ρ, A x ρ ^ 2 * A y ρ ∂(Measure.pi fun _ : R => μ)) = 0 ∧
     (∫ ρ, A x ρ * A y ρ ^ 2 ∂(Measure.pi fun _ : R => μ)) = 0 := by
+  classical
   have hAx : ∀ ρ s r, r ≠ x → A x (Function.update ρ r s) = A x ρ := fun ρ s r h => by
     rw [hA, hA, Function.update_of_ne h.symm]
   have hcomm : ∀ (ρ : R → α) (z : R), A z ρ = c * ∑ i, b i * (v (ρ z) i - b i) := fun ρ z => by
@@ -554,6 +563,7 @@ theorem integral_pi_overlap_blocks_untouched (μ : Measure α) [IsProbabilityMea
     (hx : ∀ u, x ≠ ca u ∧ x ≠ da u) (hy : ∀ u, y ≠ ca u ∧ y ≠ da u) :
     ∫ ρ, ov ρ x y * ∏ u, ov ρ (ca u) (da u) ∂(Measure.pi fun _ : R => μ) =
       Tg ^ (Fintype.card V + 1) := by
+  classical
   rw [integral_pi_blocks_untouched μ v b hb c q ov hov Tg hTg ca da hinj (fun ρ => ov ρ x y)
     (fun ρ s r hx hy => ov_update_of_ne v c q ov hov ρ s hx.symm hy.symm) hx hy,
     (integral_pi_two_replica_overlap_moments μ v b hb c q ov hov Tg hTg A hA P hP hxy).1]
@@ -576,6 +586,7 @@ theorem integral_pi_overlap_blocks_one_touched (μ : Measure α) [IsProbabilityM
     (hy : ∀ u, y ≠ ca u ∧ y ≠ da u) :
     ∫ ρ, ov ρ x y * ∏ u, ov ρ (ca u) (da u) ∂(Measure.pi fun _ : R => μ) =
       ((∫ ρ, A x ρ ^ 2 ∂(Measure.pi fun _ : R => μ)) + Tg ^ 2) * Tg ^ (Fintype.card V - 1) := by
+  classical
   rw [integral_pi_blocks_one_touched μ v b hb c q ov hov Tg hTg A hA ca da hinj (fun ρ => ov ρ x y)
     (fun ρ s r hx hy => ov_update_of_ne v c q ov hov ρ s hx.symm hy.symm) u0 x' hx0 hy,
     (integral_pi_two_replica_overlap_moments μ v b hb c q ov hov Tg hTg A hA P hP hxy).2.1]
@@ -599,6 +610,7 @@ theorem integral_pi_overlap_blocks_same (μ : Measure α) [IsProbabilityMeasure 
         (∫ ρ, A x ρ ^ 2 ∂(Measure.pi fun _ : R => μ)) +
         (∫ ρ, A y ρ ^ 2 ∂(Measure.pi fun _ : R => μ)) + Tg ^ 2) *
         Tg ^ (Fintype.card V - 1) := by
+  classical
   rw [integral_pi_blocks_same μ v b hb c q ov hov Tg hTg ca da hinj (fun ρ => ov ρ x y)
     (fun ρ s r hx hy => ov_update_of_ne v c q ov hov ρ s hx.symm hy.symm) u0 hx0,
     (integral_pi_two_replica_overlap_moments μ v b hb c q ov hov Tg hTg A hA P hP hxy).2.2.1]
@@ -624,6 +636,7 @@ theorem integral_pi_overlap_blocks_two_touched (μ : Measure α) [IsProbabilityM
         (∫ ρ, A y ρ ^ 2 ∂(Measure.pi fun _ : R => μ))) +
         ∫ ρ, P x y ρ * A x ρ * A y ρ ∂(Measure.pi fun _ : R => μ)) *
         Tg ^ (Fintype.card V - 2) := by
+  classical
   rw [integral_pi_blocks_two_touched μ v b hb c q ov hov Tg hTg A hA ca da hinj (fun ρ => ov ρ x y)
     (fun ρ s r hx hy => ov_update_of_ne v c q ov hov ρ s hx.symm hy.symm) u0 u1 hu01 x' y' hx0 hy0,
     (integral_pi_two_replica_overlap_moments μ v b hb c q ov hov Tg hTg A hA P hP hxy).2.2.2]
