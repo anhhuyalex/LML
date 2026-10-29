@@ -39,7 +39,7 @@ theorem sk_mixed_T_moment_eq_fresh (N : ℕ) (β h q : ℝ)
         ((∏ p : P, (N + 1 : ℝ)⁻¹ * ∑ i,
           ((ρ (a p) i : ℝ) - b g i) * ((ρ (a' p) i : ℝ) - b g i)) *
         ∏ s : S, (N + 1 : ℝ)⁻¹ * ∑ i, ((ρ (d s) i : ℝ) - b g i) * b g i) *
-        ∏ _v : G, ((N + 1 : ℝ)⁻¹ * ∑ i, b g i * b g i) - q
+        (∏ _v : G, (((N + 1 : ℝ)⁻¹ * ∑ i, b g i * b g i) - q))
         ∂(Measure.pi fun _ : R => Measure.count.tilted (E g))
         ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) =
       ∫ g, ∫ σ : R ⊕ (J ⊕ J) → Fin (N + 1) → ℤˣ,
@@ -49,9 +49,9 @@ theorem sk_mixed_T_moment_eq_fresh (N : ℕ) (β h q : ℝ)
         ∏ s : S, (N + 1 : ℝ)⁻¹ * ∑ i,
           ((σ (.inl (d s)) i : ℝ) - (σ (.inr (.inl (.inr (.inl s)))) i : ℝ)) *
             (σ (.inr (.inr (.inr (.inl s)))) i : ℝ)) *
-        ∏ v : G, ((N + 1 : ℝ)⁻¹ * ∑ i,
+        (∏ v : G, (((N + 1 : ℝ)⁻¹ * ∑ i,
           (σ (.inr (.inl (.inr (.inr v)))) i : ℝ) *
-            (σ (.inr (.inr (.inr (.inr v)))) i : ℝ)) - q
+            (σ (.inr (.inr (.inr (.inr v)))) i : ℝ)) - q))
         ∂(Measure.pi fun _ : R ⊕ (J ⊕ J) => Measure.count.tilted (E g))
         ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) := by
   intro J E b

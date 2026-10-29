@@ -26,15 +26,15 @@ namespace SpinGlasses
 
 /-- **Corollary 1.10.3, Eq. (1.301).** The rectangular combination for a product of
 `k` finite linear combinations, with explicit error of order `k + 2`. -/
-theorem sk_cavity_rect_lincomb_expansion (β h q : ℝ) (hβ : 4 * β ^ 2 < 1)
-    (hfix : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂gaussianReal 0 1 = q)
-    (qhat : ℝ)
-    (hqhat : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 4 ∂gaussianReal 0 1 = qhat)
+theorem sk_cavity_rect_lincomb_expansion_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
     (n k : ℕ)
     {i₁ i₂ j₁ j₂ : Fin n} (h12 : i₁ ≠ i₂)
     (h13 : i₁ ≠ j₁) (h14 : i₁ ≠ j₂) (h23 : i₂ ≠ j₁) (h24 : i₂ ≠ j₂)
     {ι : Fin k → Type*} [∀ j, Fintype (ι j)] (c : ∀ j, ι j → ℝ) :
-    ∃ C : ℝ, 0 < C ∧ ∀ (N : ℕ) (a b : ∀ j, ι j → Fin n), (∀ j i, a j i ≠ b j i) →
+    ∃ C : ℝ, 0 < C ∧ ∀ (β h q qhat : ℝ),
+      (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂gaussianReal 0 1 = q) →
+      (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 4 ∂gaussianReal 0 1 = qhat) →
+      β ^ 2 ≤ β₀ ^ 2 → ∀ (N : ℕ) (a b : ∀ j, ι j → Fin n), (∀ j i, a j i ≠ b j i) →
     let F : (Fin n → Fin N → ℤˣ) → ℝ := fun ρ => ∏ j : Fin k, ∑ i : ι j,
       c j i * ((N + 1 : ℝ)⁻¹ * ((fun v : Fin N => (ρ (a j i) v : ℝ)) ⬝ᵥ
         fun v : Fin N => (ρ (b j i) v : ℝ)) - q)
@@ -59,12 +59,12 @@ theorem sk_cavity_rect_lincomb_expansion (β h q : ℝ) (hβ : 4 * β ^ 2 < 1)
             (N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ i₂ i.castSucc : ℝ)) ⬝ᵥ
               fun i : Fin N => (σ j₂ i.castSucc : ℝ))))| ≤
       C / ((N : ℝ) + 1) ^ (((k + 2 : ℕ) : ℝ) / 2) := by
-  obtain ⟨C₀, hC₀p, hC₀⟩ := sk_cavity_pair_lincomb_expansion β h q hβ hfix qhat hqhat n k h13 c
-  obtain ⟨C₁, hC₁p, hC₁⟩ := sk_cavity_pair_lincomb_expansion β h q hβ hfix qhat hqhat n k h23 c
-  obtain ⟨C₂, hC₂p, hC₂⟩ := sk_cavity_pair_lincomb_expansion β h q hβ hfix qhat hqhat n k h14 c
-  obtain ⟨C₃, hC₃p, hC₃⟩ := sk_cavity_pair_lincomb_expansion β h q hβ hfix qhat hqhat n k h24 c
+  obtain ⟨C₀, hC₀p, hC₀⟩ := sk_cavity_pair_lincomb_expansion_uniform β₀ hβ₀ n k h13 c
+  obtain ⟨C₁, hC₁p, hC₁⟩ := sk_cavity_pair_lincomb_expansion_uniform β₀ hβ₀ n k h23 c
+  obtain ⟨C₂, hC₂p, hC₂⟩ := sk_cavity_pair_lincomb_expansion_uniform β₀ hβ₀ n k h14 c
+  obtain ⟨C₃, hC₃p, hC₃⟩ := sk_cavity_pair_lincomb_expansion_uniform β₀ hβ₀ n k h24 c
   refine ⟨C₀ + C₁ + C₂ + C₃, by positivity, ?_⟩
-  intro N a b hab F E ν
+  intro β h q qhat hfix hqhat hβle N a b hab F E ν
   let ν₂ : ((Option (Option (Fin n)) → Fin (N + 1) → ℤˣ) → ℝ) → ℝ := fun f =>
       ∫ g, ∫ σ, f σ
         ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted (E g))
@@ -81,10 +81,10 @@ theorem sk_cavity_rect_lincomb_expansion (β h q : ℝ) (hβ : 4 * β ^ 2 < 1)
     skCavityReplicaPairWeight n p *
       (skCavityBCoef β q qhat (skCavityReplicaPairCoincidences x y p) *
         J (skCavityReplicaPairMap p).1 (skCavityReplicaPairMap p).2)
-  have h₀ := hC₀ N a b hab
-  have h₁ := hC₁ N a b hab
-  have h₂ := hC₂ N a b hab
-  have h₃ := hC₃ N a b hab
+  have h₀ := hC₀ β h q qhat hfix hqhat hβle N a b hab
+  have h₁ := hC₁ β h q qhat hfix hqhat hβle N a b hab
+  have h₂ := hC₂ β h q qhat hfix hqhat hβle N a b hab
+  have h₃ := hC₃ β h q qhat hfix hqhat hβle N a b hab
   change |P i₁ j₁ - B i₁ j₁| ≤ _ at h₀
   change |P i₂ j₁ - B i₂ j₁| ≤ _ at h₁
   change |P i₁ j₂ - B i₁ j₂| ≤ _ at h₂
@@ -174,17 +174,55 @@ theorem sk_cavity_rect_lincomb_expansion (β h q : ℝ) (hβ : 4 * β ^ 2 < 1)
       add_le_add (add_le_add (add_le_add h₀ h₁) h₂) h₃
     _ = _ := by ring
 
-/-- **Corollary 1.10.3, Eq. (1.302).** If the product is unchanged when the distinguished
-third replica is replaced, the third-replica and extra-replica terms regroup into the
-book's two coefficients. The independence condition is imposed on the actual observable. -/
-theorem sk_cavity_sub_third_lincomb_expansion (β h q : ℝ) (hβ : 4 * β ^ 2 < 1)
+/-- **The rectangular corollary with fixed model parameters.** The proof
+specializes the uniform estimate without repeating its replica algebra. -/
+theorem sk_cavity_rect_lincomb_expansion (β h q : ℝ) (hβ : 4 * β ^ 2 < 1)
     (hfix : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂gaussianReal 0 1 = q)
     (qhat : ℝ)
     (hqhat : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 4 ∂gaussianReal 0 1 = qhat)
     (n k : ℕ)
-    {i₁ i₂ r : Fin n} (h12 : i₁ ≠ i₂) (h1r : i₁ ≠ r) (h2r : i₂ ≠ r)
+    {i₁ i₂ j₁ j₂ : Fin n} (h12 : i₁ ≠ i₂)
+    (h13 : i₁ ≠ j₁) (h14 : i₁ ≠ j₂) (h23 : i₂ ≠ j₁) (h24 : i₂ ≠ j₂)
     {ι : Fin k → Type*} [∀ j, Fintype (ι j)] (c : ∀ j, ι j → ℝ) :
     ∃ C : ℝ, 0 < C ∧ ∀ (N : ℕ) (a b : ∀ j, ι j → Fin n), (∀ j i, a j i ≠ b j i) →
+    let F : (Fin n → Fin N → ℤˣ) → ℝ := fun ρ => ∏ j : Fin k, ∑ i : ι j,
+      c j i * ((N + 1 : ℝ)⁻¹ * ((fun v : Fin N => (ρ (a j i) v : ℝ)) ⬝ᵥ
+        fun v : Fin N => (ρ (b j i) v : ℝ)) - q)
+    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g σ =>
+      (Real.sqrt (N + 1))⁻¹ * β *
+        (∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
+        h * ∑ i : Fin (N + 1), (σ i : ℝ)
+    let ν : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) → ℝ := fun f =>
+      ∫ g, ∫ σ, f σ ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (E g))
+        ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)
+    |ν (fun σ => F (fun r i => σ r i.castSucc) *
+        (((σ i₁ (Fin.last N) : ℝ) - (σ i₂ (Fin.last N) : ℝ)) *
+          ((σ j₁ (Fin.last N) : ℝ) - (σ j₂ (Fin.last N) : ℝ)))) -
+      β ^ 2 * (1 - 2 * q + qhat) *
+        ν (fun σ => F (fun r i => σ r i.castSucc) *
+          ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ i₁ i.castSucc : ℝ)) ⬝ᵥ
+              fun i : Fin N => (σ j₁ i.castSucc : ℝ)) -
+            (N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ i₂ i.castSucc : ℝ)) ⬝ᵥ
+              fun i : Fin N => (σ j₁ i.castSucc : ℝ)) -
+            (N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ i₁ i.castSucc : ℝ)) ⬝ᵥ
+              fun i : Fin N => (σ j₂ i.castSucc : ℝ)) +
+            (N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ i₂ i.castSucc : ℝ)) ⬝ᵥ
+              fun i : Fin N => (σ j₂ i.castSucc : ℝ))))| ≤
+      C / ((N : ℝ) + 1) ^ (((k + 2 : ℕ) : ℝ) / 2) := by
+  obtain ⟨C, hC0, hC⟩ := sk_cavity_rect_lincomb_expansion_uniform β hβ n k h12 h13 h14 h23 h24 c
+  exact ⟨C, hC0, hC β h q qhat hfix hqhat le_rfl⟩
+
+/-- **Corollary 1.10.3, Eq. (1.302).** If the product is unchanged when the distinguished
+third replica is replaced, the third-replica and extra-replica terms regroup into the
+book's two coefficients. The independence condition is imposed on the actual observable. -/
+theorem sk_cavity_sub_third_lincomb_expansion_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
+    (n k : ℕ)
+    {i₁ i₂ r : Fin n} (h12 : i₁ ≠ i₂) (h1r : i₁ ≠ r) (h2r : i₂ ≠ r)
+    {ι : Fin k → Type*} [∀ j, Fintype (ι j)] (c : ∀ j, ι j → ℝ) :
+    ∃ C : ℝ, 0 < C ∧ ∀ (β h q qhat : ℝ),
+      (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂gaussianReal 0 1 = q) →
+      (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 4 ∂gaussianReal 0 1 = qhat) →
+      β ^ 2 ≤ β₀ ^ 2 → ∀ (N : ℕ) (a b : ∀ j, ι j → Fin n), (∀ j i, a j i ≠ b j i) →
     let F : (Fin n → Fin N → ℤˣ) → ℝ := fun ρ => ∏ j : Fin k, ∑ i : ι j,
       c j i * ((N + 1 : ℝ)⁻¹ * ((fun v : Fin N => (ρ (a j i) v : ℝ)) ⬝ᵥ
         fun v : Fin N => (ρ (b j i) v : ℝ)) - q)
@@ -214,10 +252,10 @@ theorem sk_cavity_sub_third_lincomb_expansion (β h q : ℝ) (hβ : 4 * β ^ 2 <
           (J (some (some i₁)) (some (some l)) - J (some (some i₂)) (some (some l)) -
             (J (some (some i₁)) (some none) - J (some (some i₂)) (some none))))| ≤
       C / ((N : ℝ) + 1) ^ (((k + 2 : ℕ) : ℝ) / 2) := by
-  obtain ⟨C₁, hC₁p, hC₁⟩ := sk_cavity_pair_lincomb_expansion β h q hβ hfix qhat hqhat n k h1r c
-  obtain ⟨C₂, hC₂p, hC₂⟩ := sk_cavity_pair_lincomb_expansion β h q hβ hfix qhat hqhat n k h2r c
+  obtain ⟨C₁, hC₁p, hC₁⟩ := sk_cavity_pair_lincomb_expansion_uniform β₀ hβ₀ n k h1r c
+  obtain ⟨C₂, hC₂p, hC₂⟩ := sk_cavity_pair_lincomb_expansion_uniform β₀ hβ₀ n k h2r c
   refine ⟨C₁ + C₂, by positivity, ?_⟩
-  intro N a b hab F E ν ν₂ J hF
+  intro β h q qhat hfix hqhat hβle N a b hab F E ν ν₂ J hF
   let A : Fin n → (Fin n → Fin (N + 1) → ℤˣ) → ℝ := fun x σ =>
     F (fun l i => σ l i.castSucc) *
       ((σ x (Fin.last N) : ℝ) * (σ r (Fin.last N) : ℝ) - q)
@@ -226,8 +264,8 @@ theorem sk_cavity_sub_third_lincomb_expansion (β h q : ℝ) (hβ : 4 * β ^ 2 <
     skCavityReplicaPairWeight n p *
       (skCavityBCoef β q qhat (skCavityReplicaPairCoincidences x r p) *
         J (skCavityReplicaPairMap p).1 (skCavityReplicaPairMap p).2)
-  have h₁ := hC₁ N a b hab
-  have h₂ := hC₂ N a b hab
+  have h₁ := hC₁ β h q qhat hfix hqhat hβle N a b hab
+  have h₂ := hC₂ β h q qhat hfix hqhat hβle N a b hab
   change |P i₁ - B i₁| ≤ _ at h₁
   change |P i₂ - B i₂| ≤ _ at h₂
   obtain ⟨hadd, hsmul, -, -⟩ := sk_replica_avg_calculus N n β h ν (fun _ => rfl)
@@ -312,5 +350,48 @@ theorem sk_cavity_sub_third_lincomb_expansion (β h q : ℝ) (hβ : 4 * β ^ 2 <
     _ ≤ C₁ / ((N : ℝ) + 1) ^ (((k + 2 : ℕ) : ℝ) / 2) +
         C₂ / ((N : ℝ) + 1) ^ (((k + 2 : ℕ) : ℝ) / 2) := add_le_add h₁ h₂
     _ = _ := by ring
+
+/-- **The third-replica corollary with fixed model parameters.** The proof
+specializes the uniform estimate without repeating its replica algebra. -/
+theorem sk_cavity_sub_third_lincomb_expansion (β h q : ℝ) (hβ : 4 * β ^ 2 < 1)
+    (hfix : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂gaussianReal 0 1 = q)
+    (qhat : ℝ)
+    (hqhat : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 4 ∂gaussianReal 0 1 = qhat)
+    (n k : ℕ)
+    {i₁ i₂ r : Fin n} (h12 : i₁ ≠ i₂) (h1r : i₁ ≠ r) (h2r : i₂ ≠ r)
+    {ι : Fin k → Type*} [∀ j, Fintype (ι j)] (c : ∀ j, ι j → ℝ) :
+    ∃ C : ℝ, 0 < C ∧ ∀ (N : ℕ) (a b : ∀ j, ι j → Fin n), (∀ j i, a j i ≠ b j i) →
+    let F : (Fin n → Fin N → ℤˣ) → ℝ := fun ρ => ∏ j : Fin k, ∑ i : ι j,
+      c j i * ((N + 1 : ℝ)⁻¹ * ((fun v : Fin N => (ρ (a j i) v : ℝ)) ⬝ᵥ
+        fun v : Fin N => (ρ (b j i) v : ℝ)) - q)
+    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g σ =>
+      (Real.sqrt (N + 1))⁻¹ * β *
+        (∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
+        h * ∑ i : Fin (N + 1), (σ i : ℝ)
+    let ν : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) → ℝ := fun f =>
+      ∫ g, ∫ σ, f σ ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (E g))
+        ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)
+    let ν₂ : ((Option (Option (Fin n)) → Fin (N + 1) → ℤˣ) → ℝ) → ℝ := fun f =>
+      ∫ g, ∫ σ, f σ
+        ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted (E g))
+        ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)
+    let J : Option (Option (Fin n)) → Option (Option (Fin n)) → ℝ := fun x y =>
+      ν₂ (fun σ => F (fun r i => σ (some (some r)) i.castSucc) *
+        ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ x i.castSucc : ℝ)) ⬝ᵥ
+          fun i : Fin N => (σ y i.castSucc : ℝ)) - q))
+    (∀ (ρ : Fin n → Fin N → ℤˣ) z, F (Function.update ρ r z) = F ρ) →
+    |ν (fun σ => F (fun l i => σ l i.castSucc) *
+        (((σ i₁ (Fin.last N) : ℝ) - (σ i₂ (Fin.last N) : ℝ)) *
+          (σ r (Fin.last N) : ℝ))) -
+      (β ^ 2 * (1 - 4 * q + 3 * qhat) *
+        (J (some (some i₁)) (some (some r)) - J (some (some i₂)) (some (some r))) +
+      β ^ 2 * (q - qhat) *
+        ∑ l ∈ Finset.univ.filter (fun l => l ≠ i₁ ∧ l ≠ i₂ ∧ l ≠ r),
+          (J (some (some i₁)) (some (some l)) - J (some (some i₂)) (some (some l)) -
+            (J (some (some i₁)) (some none) - J (some (some i₂)) (some none))))| ≤
+      C / ((N : ℝ) + 1) ^ (((k + 2 : ℕ) : ℝ) / 2) := by
+  obtain ⟨C, hC0, hC⟩ := sk_cavity_sub_third_lincomb_expansion_uniform β hβ n k h12 h1r h2r c
+  exact ⟨C, hC0, hC β h q qhat hfix hqhat le_rfl⟩
+
 
 end SpinGlasses

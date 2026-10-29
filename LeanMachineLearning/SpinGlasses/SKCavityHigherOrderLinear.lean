@@ -26,13 +26,13 @@ namespace SpinGlasses
 /-- **Lemma 1.10.2 for products of finite linear combinations.** The coefficient loss is
 independent of `N`. Only the monomial pair expansion is probabilistic; the extension uses
 `LinearMap.abs_apply_prod_sum_le`. -/
-theorem sk_cavity_pair_lincomb_expansion (β h q : ℝ) (hβ : 4 * β ^ 2 < 1)
-    (hfix : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂gaussianReal 0 1 = q)
-    (qhat : ℝ)
-    (hqhat : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 4 ∂gaussianReal 0 1 = qhat)
+theorem sk_cavity_pair_lincomb_expansion_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
     (n k : ℕ) {x y : Fin n} (hxy : x ≠ y)
     {ι : Fin k → Type*} [∀ j, Fintype (ι j)] (c : ∀ j, ι j → ℝ) :
-    ∃ C : ℝ, 0 < C ∧ ∀ (N : ℕ) (a b : ∀ j, ι j → Fin n), (∀ j i, a j i ≠ b j i) →
+    ∃ C : ℝ, 0 < C ∧ ∀ (β h q qhat : ℝ),
+      (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂gaussianReal 0 1 = q) →
+      (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 4 ∂gaussianReal 0 1 = qhat) →
+      β ^ 2 ≤ β₀ ^ 2 → ∀ (N : ℕ) (a b : ∀ j, ι j → Fin n), (∀ j i, a j i ≠ b j i) →
     let F : (Fin n → Fin N → ℤˣ) → ℝ := fun ρ => ∏ j : Fin k, ∑ i : ι j,
       c j i * ((N + 1 : ℝ)⁻¹ * ((fun v : Fin N => (ρ (a j i) v : ℝ)) ⬝ᵥ
         fun v : Fin N => (ρ (b j i) v : ℝ)) - q)
@@ -56,11 +56,11 @@ theorem sk_cavity_pair_lincomb_expansion (β h q : ℝ) (hβ : 4 * β ^ 2 < 1)
               ((fun i : Fin N => (σ (skCavityReplicaPairMap j).1 i.castSucc : ℝ)) ⬝ᵥ
                 fun i : Fin N => (σ (skCavityReplicaPairMap j).2 i.castSucc : ℝ)) - q)))| ≤
       C / ((N : ℝ) + 1) ^ (((k + 2 : ℕ) : ℝ) / 2) := by
-  obtain ⟨C, hC0, hC⟩ := sk_cavity_pair_prod_expansion β h q hβ hfix qhat hqhat n k hxy
+  obtain ⟨C, hC0, hC⟩ := sk_cavity_pair_prod_expansion_uniform β₀ hβ₀ n k hxy
   have hc : 0 ≤ ∏ j, ∑ i, |c j i| :=
     Finset.prod_nonneg fun j _ => Finset.sum_nonneg fun i _ => abs_nonneg _
   refine ⟨(∏ j, ∑ i, |c j i|) * C + 1, by positivity, ?_⟩
-  intro N a b hab F E ν ν₂
+  intro β h q qhat hfix hqhat hb N a b hab F E ν ν₂
   have hE (σ : Fin (N + 1) → ℤˣ) : Measurable (fun g => E g σ) := by
     dsimp [E]
     fun_prop
@@ -104,7 +104,7 @@ theorem sk_cavity_pair_lincomb_expansion (β h q : ℝ) (hβ : 4 * β ^ 2 < 1)
           fun i : Fin N => (ρ (b j (t j)) i : ℝ)) - q))| ≤
         C / ((N : ℝ) + 1) ^ (((k + 2 : ℕ) : ℝ) / 2) := by
     simpa only [L, LinearMap.coe_mk, AddHom.coe_mk, ν, ν₂, E, w, mul_assoc] using
-      hC N (fun j => a j (t j))
+      hC β h q qhat hfix hqhat hb N (fun j => a j (t j))
       (fun j => b j (t j)) (fun j => hab j (t j))
   have ht := L.abs_apply_prod_sum_le c (fun j i ρ =>
     (N + 1 : ℝ)⁻¹ * ((fun v : Fin N => (ρ (a j i) v : ℝ)) ⬝ᵥ
@@ -116,5 +116,40 @@ theorem sk_cavity_pair_lincomb_expansion (β h q : ℝ) (hβ : 4 * β ^ 2 < 1)
     _ = ((∏ j, ∑ i, |c j i|) * C) /
         ((N : ℝ) + 1) ^ (((k + 2 : ℕ) : ℝ) / 2) := by ring
     _ ≤ _ := div_le_div_of_nonneg_right (by linarith) (by positivity)
+
+/-- **Lemma 1.10.2 for fixed model parameters and finite linear combinations.**
+The analytic and algebraic proof is shared with the uniform theorem. -/
+theorem sk_cavity_pair_lincomb_expansion (β h q : ℝ) (hβ : 4 * β ^ 2 < 1)
+    (hfix : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂gaussianReal 0 1 = q)
+    (qhat : ℝ)
+    (hqhat : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 4 ∂gaussianReal 0 1 = qhat)
+    (n k : ℕ) {x y : Fin n} (hxy : x ≠ y)
+    {ι : Fin k → Type*} [∀ j, Fintype (ι j)] (c : ∀ j, ι j → ℝ) :
+    ∃ C : ℝ, 0 < C ∧ ∀ (N : ℕ) (a b : ∀ j, ι j → Fin n), (∀ j i, a j i ≠ b j i) →
+    let F : (Fin n → Fin N → ℤˣ) → ℝ := fun ρ => ∏ j : Fin k, ∑ i : ι j,
+      c j i * ((N + 1 : ℝ)⁻¹ * ((fun v : Fin N => (ρ (a j i) v : ℝ)) ⬝ᵥ
+        fun v : Fin N => (ρ (b j i) v : ℝ)) - q)
+    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g σ =>
+      (Real.sqrt (N + 1))⁻¹ * β *
+        (∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
+        h * ∑ i : Fin (N + 1), (σ i : ℝ)
+    let ν : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) → ℝ := fun f =>
+      ∫ g, ∫ σ, f σ ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (E g))
+        ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)
+    let ν₂ : ((Option (Option (Fin n)) → Fin (N + 1) → ℤˣ) → ℝ) → ℝ := fun f =>
+      ∫ g, ∫ σ, f σ
+        ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted (E g))
+        ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)
+    |ν (fun σ => F (fun r i => σ r i.castSucc) *
+        ((σ x (Fin.last N) : ℝ) * (σ y (Fin.last N) : ℝ) - q)) -
+      ∑ j : SKCavityReplicaPair n, skCavityReplicaPairWeight n j *
+        (skCavityBCoef β q qhat (skCavityReplicaPairCoincidences x y j) *
+          ν₂ (fun σ => F (fun r i => σ (some (some r)) i.castSucc) *
+            ((N + 1 : ℝ)⁻¹ *
+              ((fun i : Fin N => (σ (skCavityReplicaPairMap j).1 i.castSucc : ℝ)) ⬝ᵥ
+                fun i : Fin N => (σ (skCavityReplicaPairMap j).2 i.castSucc : ℝ)) - q)))| ≤
+      C / ((N : ℝ) + 1) ^ (((k + 2 : ℕ) : ℝ) / 2) := by
+  obtain ⟨C, hC0, hC⟩ := sk_cavity_pair_lincomb_expansion_uniform β hβ n k hxy c
+  exact ⟨C, hC0, hC β h q qhat hfix hqhat le_rfl⟩
 
 end SpinGlasses

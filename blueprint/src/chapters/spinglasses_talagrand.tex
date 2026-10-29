@@ -6433,8 +6433,10 @@ and
 \]
 is at most $C'm^{-(k+2)/2}$. Here the finite sum is over the other original replicas.
 All averages are full $m$-spin Gibbs averages; replicas are added when needed.
-In Lean the right-hand expectations are written using the local kernel
-$J_{ab}=\nu(f^-D^-_{ab})$ on the $n+2$ replicas. Linearity gives the displayed formulas.
+The rectangular conclusion is stated on the original replica space: the two auxiliary
+replicas are removed by the existing Gibbs marginal theorem. The third-replica formula
+still uses the local kernel $J_{ab}=\nu(f^-D^-_{ab})$ on the enlarged replica space.
+Linearity gives the displayed formulas.
 \end{corollary}
 \begin{proof}
 \leanok
@@ -6481,7 +6483,7 @@ Mathlib's finite-product integral factorization twice. Finiteness supplies integ
 
 \begin{theorem}[Mixed-product Gibbs-mean substitution, enumerated form]
 \label{thm:sg-tal:T-product-fresh}
-\lean{MeasureTheory.integral_replica_centered_products}
+\lean{MeasureTheory.integral_replica_centered_products, SpinGlasses.sk_mixed_T_moment_eq_fresh}
 \leanok
 \uses{lem:sg-tal:fresh-pair-product}
 \talsource{Eq.~(1.305), the three definitions of $U(v)$ preceding it}
@@ -6510,7 +6512,9 @@ Then the exact identity
 \]
 holds. In the SK application take $X=\{-1,1\}^{N+1}$, $v_i(x)=x_i$,
 $c=(N+1)^{-1}$ and $\mu$ the Gibbs measure at the fixed disorder.
-Repeated original labels and empty factor types are permitted.
+Repeated original labels and empty factor types are permitted. The SK theorem also
+exports this equality after the disorder integral, with the actual disorder-dependent
+Gibbs means on the left and a deterministic fresh-replica integrand on the right.
 \end{theorem}
 \begin{proof}
 \leanok
@@ -6896,6 +6900,55 @@ the filtered sum and multiplicity both vanish. The case $|J|=1$ also has an empt
 pairing sum; weakening the denominator exponent gives the stated uniform bound.
 \end{proof}
 
+\begin{theorem}[The pair-factor feedback and recurrence]
+\label{thm:sg-tal:pair-factor-recurrence}
+\lean{SpinGlasses.sk_cavity_fresh_pair_feedback, SpinGlasses.sk_cavity_fresh_pair_recurrence,
+SpinGlasses.flagged_pair_ne}
+\leanok
+\uses{thm:sg-tal:term-I-multiplicity, thm:sg-tal:last-site-step,
+cor:sg-tal:cavity-higher-rect-third, lem:sg-tal:product-truncation-comparison}
+\talsource{Application of Eq.~(1.301) immediately after Eq.~(1.312); Eq.~(1.313)}
+Fix deterministic $\beta,h,q$ with $4\beta^2<1$ and
+$q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$, finite $R,J$, and all the flags, ordered
+original pairs and distinguished factor $p$ of
+Theorem~\ref{thm:sg-tal:term-I-multiplicity}. Let $m=N+1$ and use its notation
+$U_j^-,e_j,M,\alpha$. Put
+\[
+ U_j=m^{-1}\sum_{v\le N}d_j^L(v)d_j^S(v)-\mathbf1_{L_j=S_j=0}q,
+ \quad V=\nu\left(\prod_{j\in J}U_j\right),\quad
+ H=\nu\left(\prod_{j\ne p}U_j^-\,e_p\right).
+\]
+There is $C_1>0$, chosen before $N$, such that
+\[
+ |H-\beta^2\alpha\,\nu(\prod_{j\in J}U_j^-)|
+ \le C_1m^{-(|J|+1)/2}.
+\]
+Choose $u_0\in J$ in $M\setminus\{p\}$ whenever that set is nonempty.
+There is $C>0$, chosen before $N$, such that
+\[
+ \left|(1-\beta^2\alpha)V-
+   \frac{\alpha}{m}(|M|-1)\nu\left(\prod_{j\in J\setminus\{p,u_0\}}U_j\right)\right|
+ \le C m^{-(|J|+1)/2}.
+\]
+The recurrence uses full factors on both sides, including when there is no other match.
+These two statements fix the model parameters before their constants; uniformity in a
+temperature interval is not asserted by these declarations.
+\end{theorem}
+\begin{proof}
+\leanok
+Transport $R\sqcup(J\sqcup J)$ to $\mathrm{Fin}$ once by the existing Gibbs reindexing
+theorem and enumerate $J\setminus\{p\}$ by its existing finite equivalence. The generic
+four-term flagged-factor identity supplies the centered-overlap representation.
+Apply the rectangular corollary, then transport back. Its overlap rectangle is exactly
+$U_p^-$ and the remaining product has $|J|-1$ factors, proving the feedback estimate.
+Combine it with the last-site expansion and the multiplicity theorem. Replace the
+degree-$|J|$ truncated product by its full product, with error $Cm^{-(|J|+1)/2}$.
+The deleted product has $|J|-2$ factors and hence comparison error
+$Cm^{-(|J|-1)/2}$; its additional factor $m^{-1}$ restores the required error order.
+When $|M|-1=0$, that entire contribution is zero and no second factor is needed.
+The five errors are added explicitly; the recurrence is not an assumed input.
+\end{proof}
+
 \begin{remark}[Statements of Propositions~1.10.4, 1.10.5 and Theorem~1.10.1 (planned, not proved)]
 \label{rem:sg-tal:overlap-clt-statements}
 \talsource{Propositions~1.10.4, 1.10.5, Theorem~1.10.1, Eqs.~(1.290), (1.303), (1.314)}
@@ -6941,9 +6994,11 @@ factor coefficients, the quantitative individual contractions and finite pairing
 and the identity of matching deleted fresh-product expectations are proved above.
 The explicit flagged-factor representation and counting now give the common-moment
 multiplicity form of (1.312), Theorem~\ref{thm:sg-tal:term-I-multiplicity}.
-\emph{Not proved:} the application of (1.301) to the factors $U^-_v$
-(a reindexing of the replicas $\mathrm{Fin}\,n\sqcup(J\sqcup J)\simeq\mathrm{Fin}\,n'$ and of the
-factors by $\mathrm{Fin}\,k$); the recursion (1.313) and the induction of Proposition~1.10.4;
+The disorder-averaged identity (1.305), the application of (1.301) to the explicit
+fresh factors, and (1.313) with fixed model parameters are now proved in
+Theorem~\ref{thm:sg-tal:pair-factor-recurrence}.
+\emph{Not proved:} a temperature-uniform strengthening of that recurrence and
+the induction of Proposition~1.10.4;
 the hard step (1.319) of Proposition~1.10.5; and Theorem~1.10.1 itself.
 The planned statements are in Remark~\ref{rem:sg-tal:overlap-clt-statements}; they are not
 asserted as formalized. The earlier vacuous declarations were removed and the estimates above use
