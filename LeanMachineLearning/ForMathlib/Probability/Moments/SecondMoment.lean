@@ -10,6 +10,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SqSub
 public import Mathlib.MeasureTheory.Integral.Bochner.Basic
 public import Mathlib.Probability.Moments.Variance
 public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.Algebra.Order.BigOperators.Ring.Finset
 
 /-!
 # Second moments of a square-integrable random vector
@@ -37,6 +38,25 @@ namespace ProbabilityTheory
 
 open MeasureTheory
 open scoped Matrix
+
+/-- The square integral of a finite sum is bounded by the number of terms times
+the sum of their square integrals. No probability or independence assumption is needed. -/
+theorem integral_sq_fintype_sum_le {Ω I : Type*} [MeasurableSpace Ω] [Fintype I]
+    {μ : Measure Ω} {X : I → Ω → ℝ} (hX : ∀ i, MemLp (X i) 2 μ) :
+    (∫ ω, (∑ i, X i ω) ^ 2 ∂μ) ≤
+      (Fintype.card I : ℝ) * ∑ i, ∫ ω, X i ω ^ 2 ∂μ := by
+  have hs : MemLp (fun ω => ∑ i, X i ω) 2 μ :=
+    memLp_finsetSum Finset.univ (fun i _ => hX i)
+  calc
+    (∫ ω, (∑ i, X i ω) ^ 2 ∂μ) ≤
+        ∫ ω, (Fintype.card I : ℝ) * ∑ i, X i ω ^ 2 ∂μ := by
+      refine integral_mono hs.integrable_sq
+        ((integrable_finsetSum Finset.univ fun i _ => (hX i).integrable_sq).const_mul _) ?_
+      intro ω
+      simpa using Finset.sum_mul_sq_le_sq_mul_sq Finset.univ
+        (fun _ : I => (1 : ℝ)) (fun i => X i ω)
+    _ = _ := by
+      rw [integral_const_mul, integral_finsetSum _ fun i _ => (hX i).integrable_sq]
 
 /-- If the first two moments approximate those of a constant, the mean-square error is small.
 No sign hypotheses on the target or the stated error bounds are needed. -/

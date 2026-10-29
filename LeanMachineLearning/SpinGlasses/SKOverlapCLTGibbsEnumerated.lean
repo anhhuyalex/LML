@@ -72,8 +72,9 @@ theorem sk_T_enumerated_gibbs_moments_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ 
     obtain ⟨j, hj⟩ := Finset.card_pos.mp hp
     have hd := (Finset.mem_filter.mp hj).2
     by_cases hs : S j = true
-    · have he : (a j, b j) = p := Sum.inl.inj
-        (show (.inl (a j, b j) : D) = .inl p from by simpa [d, hs] using hd)
+    · change (if S j then Sum.inl (a j, b j) else Sum.inr (a j)) = Sum.inl p at hd
+      rw [ite_eq_left hs] at hd
+      have he : (a j, b j) = p := Sum.inl.inj hd
       simpa only [← he] using hord j hs
     · simp [d, hs] at hd
   have hfiber (F : D → ℝ) : (∏ j, F (d j)) = ∏ κ, F κ ^ c κ := by
