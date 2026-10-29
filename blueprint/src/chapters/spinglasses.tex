@@ -327,8 +327,8 @@ $G_\beta(a)=e^{\beta H(a)}/Z(\beta)$ is the exponential tilt of the counting mea
 $\langle g\rangle_\beta=\int g\,dG_\beta$.
 
 \begin{lemma}[Gibbs averages]\label{lem:sg:gibbsavg}
-  \lean{SpinGlasses.integral_count_eq_sum, SpinGlasses.mgf_count, SpinGlasses.integral_count_tilted,
-        SpinGlasses.real_count_tilted_singleton, SpinGlasses.norm_integral_count_tilted_le}
+  \lean{MeasureTheory.integral_count_eq_sum, MeasureTheory.mgf_count, MeasureTheory.integral_count_tilted,
+        MeasureTheory.real_count_tilted_singleton, MeasureTheory.norm_integral_count_tilted_le}
   \leanok
 (1) $Z(\beta)=\sum_ae^{\beta H(a)}$ is the moment-generating function of $H$ for the counting measure.
 (2) $\langle g\rangle_\beta=\sum_a\frac{e^{\beta H(a)}}{Z(\beta)}\,g(a)$ and $G_\beta(\{a\})=e^{\beta H(a)}/Z(\beta)$.
@@ -873,7 +873,7 @@ Remark~\ref{rem:sg:finiteconfig}), $(x,y)=(x(a),y(a))_{a\in\alpha}$ is a centere
 $y+h$ and $\langle\Phi\rangle$ its $R$-replica average (Definition~\ref{def:sg:gibbs-yh}, Definition~\ref{def:sg:replica-average}).
 
 \begin{lemma}[Calculus of replica averages]\label{lem:sg:replicacalc}
-  \lean{SpinGlasses.integral_pi_count_tilted, SpinGlasses.differentiable_gibbsWeight,
+  \lean{MeasureTheory.integral_pi_count_tilted, SpinGlasses.differentiable_gibbsWeight,
         SpinGlasses.differentiable_replicaAverage, SpinGlasses.hasDerivAt_prod_gibbsWeight,
         SpinGlasses.fderiv_integral_pi_count_tilted, SpinGlasses.sum_sum_mul_integral_eq,
         SpinGlasses.abs_integral_pi_count_tilted_le, SpinGlasses.abs_integral_pi_count_tilted_mul_eval_le,
@@ -2184,7 +2184,7 @@ the compact cube $[-1,1]^{\mathbb N\times\mathbb N}$ (Tychonoff).
 \end{proof}
 
 \begin{theorem}[The annealed overlap array is a symmetric Gram-type exchangeable array, Panchenko Eq.~(1.74)]\label{thm:sg:annealed-gram}
-  \lean{SpinGlasses.annealed_gram_array, SpinGlasses.sk_annealed_gram_array, SpinGlasses.measurable_count_tilted}
+  \lean{SpinGlasses.annealed_gram_array, SpinGlasses.sk_annealed_gram_array, MeasureTheory.measurable_count_tilted}
   \leanok
   \uses{lem:sg:mixture, lem:sg:gram-psd, lem:sg:gram-compact}
 Let $(\Omega,P)$ be a probability space and $\omega\mapsto\nu_\omega$ a measurable family of probability measures on a measurable space $\alpha$. Let $c:\alpha\times\alpha\to\mathbb R$ be measurable,

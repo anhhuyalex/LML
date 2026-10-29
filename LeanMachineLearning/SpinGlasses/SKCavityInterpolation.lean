@@ -19,7 +19,7 @@ measure: an energy on `α × ℤˣ` is written directly as `A a + ε * L a`, and
 `Measure.count.tilted`.
 
 The reusable finite-fibre calculation is
-`SpinGlasses.integral_count_tilted_fiber` in `GibbsMeasure.lean`.  The theorem below is its Ising
+`MeasureTheory.integral_count_tilted_fiber` in `GibbsMeasure.lean`.  The theorem below is its Ising
 specialization, where summing the last spin produces `cosh`.  For the random cavity path, the
 Gaussian replica derivative is already supplied by
 `SpinGlasses.hasDerivAt_integral_replica_trig` in `GaussianInterpolationReplica.lean`; the later

@@ -143,38 +143,6 @@ section Path
 
 variable {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
 
-omit [MeasurableSpace α] [MeasurableSingletonClass α] in
-/-- The Gibbs weight of a state depends measurably on a random energy. -/
-theorem aemeasurable_gibbsWeight [Fintype α] {g : Ω → α → ℝ}
-    (hg : ∀ a, AEMeasurable (fun ω => g ω a) μ) (a : α) :
-    AEMeasurable (fun ω => Real.exp (g ω a) / ∑ b, Real.exp (g ω b)) μ := by
-  simp_rw [div_eq_mul_inv]
-  exact (hg a).exp.mul (Finset.aemeasurable_fun_sum _ fun b _ => (hg b).exp).inv
-
-/-- A replica average of a random observable against the Gibbs measure of a random energy is
-measurable in the disorder. -/
-theorem aemeasurable_integral_pi_count_tilted [Finite α] [Fintype R] {g : Ω → α → ℝ}
-    (hg : ∀ a, AEMeasurable (fun ω => g ω a) μ) {Θ : Ω → (R → α) → ℝ}
-    (hΘ : ∀ σ, AEMeasurable (fun ω => Θ ω σ) μ) :
-    AEMeasurable (fun ω => ∫ σ, Θ ω σ ∂(Measure.pi fun _ : R => Measure.count.tilted (g ω))) μ := by
-  have := Fintype.ofFinite α
-  classical
-  simp_rw [integral_pi_count_tilted]
-  refine Finset.aemeasurable_fun_sum _ fun σ _ => ?_
-  exact (Finset.aemeasurable_fun_prod _ fun r _ => aemeasurable_gibbsWeight hg (σ r)).mul (hΘ σ)
-
-/-- The measurable version of `aemeasurable_integral_pi_count_tilted`. -/
-theorem measurable_integral_pi_count_tilted [Finite α] [Fintype R] {g : Ω → α → ℝ}
-    (hg : ∀ a, Measurable fun ω => g ω a) {Θ : Ω → (R → α) → ℝ}
-    (hΘ : ∀ σ, Measurable fun ω => Θ ω σ) :
-    Measurable fun ω => ∫ σ, Θ ω σ ∂(Measure.pi fun _ : R => Measure.count.tilted (g ω)) := by
-  have := Fintype.ofFinite α
-  classical
-  simp_rw [integral_pi_count_tilted]
-  exact Finset.measurable_fun_sum _ fun σ _ =>
-    (Finset.measurable_fun_prod _ fun r _ =>
-      (hg (σ r)).exp.div (Finset.measurable_fun_sum _ fun a _ => (hg a).exp)).mul (hΘ σ)
-
 /-- **Differentiation of the expected replica average of a moving observable along a path of
 random energies**, by dominated differentiation under the integral. -/
 theorem hasDerivAt_integral_replica_path_moving [Finite α] [Nonempty α] [Fintype R]

@@ -936,8 +936,8 @@ Every statement below is proved in Lean, but several proofs differ from Talagran
   \lean{SpinGlasses.abs_neg_sin_mul_add_cos_mul_le_sum,
         SpinGlasses.hasDerivAt_integral_pi_count_tilted_path,
         SpinGlasses.hasDerivAt_integral_pi_count_tilted_path_moving,
-        SpinGlasses.aemeasurable_gibbsWeight,
-        SpinGlasses.aemeasurable_integral_pi_count_tilted,
+        MeasureTheory.aemeasurable_gibbsWeight,
+        MeasureTheory.aemeasurable_integral_pi_count_tilted,
         SpinGlasses.hasDerivAt_integral_replica_path_moving,
         SpinGlasses.hasDerivAt_integral_replica_path,
         SpinGlasses.integrable_integral_pi_count_tilted_mul_eval,
@@ -1427,7 +1427,7 @@ Formalized in \texttt{SpinGlasses/SKSiteSymmetry.lean} and \texttt{SpinGlasses/S
         MeasureTheory.one_add_mul_integral_integral_le,
         MeasureTheory.integral_pi_fin_two_of_integrable,
         MeasureTheory.integral_pi_fin_two,
-        SpinGlasses.integral_pi_fin_two_count_tilted,
+        MeasureTheory.integral_pi_fin_two_count_tilted,
         SpinGlasses.sk_expected_sq_overlap_le_weights,
         SpinGlasses.sk_correlation_decay_le}
   \leanok
@@ -1632,8 +1632,8 @@ elementary deterministic bounds on the truncated overlap.  \emph{Uses:} nothing 
 
 \begin{theorem}[Finite-fibre Gibbs disintegration and cavity identity]
 \label{thm:sg-tal:cavity-finite}
-  \lean{SpinGlasses.integral_count_tilted_fiber,
-        SpinGlasses.integral_count_tilted_equiv,
+  \lean{MeasureTheory.integral_count_tilted_fiber,
+        MeasureTheory.integral_count_tilted_equiv,
         SpinGlasses.integral_count_tilted_cavity_units,
         SpinGlasses.integral_count_tilted_fin_snoc_cavity_units}
   \leanok
@@ -2248,7 +2248,7 @@ Measurability follows from the finite Gibbs-average measurability lemma.
 \begin{lemma}[Averaging a conditional cavity derivative]
 \label{lem:sg-tal:cavity-outer-derivative}
   \lean{SpinGlasses.hasDerivAt_integral_cavity_outer,
-        SpinGlasses.measurable_integral_pi_count_tilted}
+        MeasureTheory.measurable_integral_pi_count_tilted}
   \leanok
 \talsource{Lemma~1.6.3, Eq.~(1.151) (outer averaging step)}
 Let $P_0$ be any probability law for independent base disorder, and let
@@ -4726,7 +4726,7 @@ By Proposition~\ref{lem:sg-tal:disorder-split} and nonnegativity, the left side 
         SpinGlasses.integral_spin_eq_zero_of_field_zero,
         SpinGlasses.integrable_sq_sub_of_abs_le,
         SpinGlasses.abs_integral_spin_le_one,
-        SpinGlasses.measurable_integral_count_tilted}
+        MeasureTheory.measurable_integral_count_tilted}
   \leanok
 \talsource{Lemma~1.7.6, for the system of $N+1$ spins}
 Let $\beta_0\ge0$ with $4\beta_0^2<1$ and $h\in\mathbb R$.  There is $K>0$ (depending on $(\beta_0,h)$ only) such that for all $0\le\beta\le\beta_0$, every solution $q$ of $q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$ and all $N\ge1$ there is a measurable function $z$ of the couplings of the $(N+1)$-spin system such that $z$ is a standard Gaussian, $z$ is independent of the couplings $(g_{ij})_{i<j\le N}$ among the first $N$ spins, and
@@ -7226,11 +7226,50 @@ $|q-\hat q|\le1$ follow from $0\le\hat q\le q\le1$. The difference of the two in
 $\mathrm J_{a_p,p'}-\mathrm J_{p,p'}$ equals $\nu(\prod_jV_j)$ by marginalizing the two extra replicas.
 \end{proof}
 
+\begin{lemma}[Shared integration calculus for finite tilted replica averages]
+\label{lem:sg-tal:finite-tilted-calculus}
+\lean{MeasureTheory.memLp_integral_pi_count_tilted_of_dominated,
+MeasureTheory.memLp_integral_pi_count_tilted_of_bound,
+MeasureTheory.integrable_integral_pi_count_tilted_of_bound,
+MeasureTheory.integral_integral_pi_count_tilted_finset_sum,
+MeasureTheory.integral_integral_pi_count_tilted_add}
+\leanok
+\talsource{no separate counterpart in the book (integration preparation for the finite expansions and Eq.~(1.292))}
+Let $(\Omega,\mu)$ be any measure space, $X$ a finite nonempty measurable configuration
+space with measurable singletons, and $R$ a finite replica set, possibly empty.
+Suppose $f(\omega,a)$ is an energy and $\Phi(\omega,\rho)$ an observable, both a.e.
+measurable in $\omega$ for each fixed configuration or replica configuration. Put
+\[
+ A(\omega)=\int\Phi(\omega,\rho)\,
+ d\bigl(\operatorname{count}.\operatorname{tilted}(f(\omega,\cdot))\bigr)^{\otimes R}(\rho).
+\]
+For any $p\in[0,\infty]$, if $B\in L^p(\mu)$ and
+$|\Phi(\omega,\rho)|\le B(\omega)$ for every $\rho$ and a.e. $\omega$, then
+$A\in L^p(\mu)$. The measure $\mu$ need not be finite for this assertion.
+In particular, for finite $\mu$ and a constant envelope, $A$ belongs to every $L^p$.
+Finite sums of such bounded observables can be integrated termwise over replicas
+and then over the disorder; the corresponding additivity formula is also proved.
+There is no Gaussian, SK, temperature, field or fixed-point assumption here.
+\end{lemma}
+\begin{proof}
+\leanok
+The finite Gibbs weights and product weights are measurable in the parameter, hence
+so is the finite weighted average. Each tilted measure is a probability measure, so
+$|A(\omega)|\le B(\omega)$. Apply the standard domination criterion for $L^p$ membership.
+For the constant-envelope specialization, a constant belongs to every $L^p$ on a
+finite measure space. Integrability now justifies the two finite-sum interchanges
+and the additivity identity.
+These statements and their finite weighted-sum foundations live in the shared
+\texttt{ForMathlib} layer, in the \texttt{MeasureTheory} namespace. The SK applications
+use them directly; no additional Gibbs-measure definition or compatibility alias
+is introduced. This reorganizes the proof library without changing a source formula.
+\end{proof}
+
 \begin{theorem}[Expansion of products of T-sums with live replicas]
 \label{thm:sg-tal:live-T-expansion}
-\lean{SpinGlasses.sk_live_T_family_meas_bound, SpinGlasses.sk_live_T_expansion_exact, SpinGlasses.sk_live_T_expansion_uniform, SpinGlasses.sk_live_T_drop_pair_terms_uniform, SpinGlasses.sk_live_T_square_factor_uniform, SpinGlasses.integrable_integral_pi_count_tilted_of_bound, SpinGlasses.integral_integral_pi_count_tilted_finset_sum}
+\lean{SpinGlasses.sk_live_T_family_meas_bound, SpinGlasses.sk_live_T_expansion_exact, SpinGlasses.sk_live_T_expansion_uniform, SpinGlasses.sk_live_T_drop_pair_terms_uniform, SpinGlasses.sk_live_T_square_factor_uniform}
 \leanok
-\uses{thm:sg-tal:prop-1104}
+\uses{thm:sg-tal:prop-1104, lem:sg-tal:finite-tilted-calculus}
 \talsource{Proposition~1.10.5, Eqs.~(1.324) and the discussion after it}
 Let $K$ be a finite set of factors, $M$ a finite set of term indices, and $T(l,s;x,y)$ the
 $T$-basis variable with flags $l,s\in\{0,1\}$ and live replica labels $x,y$ (pair if both flags
@@ -7605,7 +7644,7 @@ $\operatorname{Var}(V)\le\mathbb E(V-g)^2$.
 \label{lem:sg-tal:gibbs-moment-integrability}
 \lean{SpinGlasses.sk_T_multiindex_memLp}
 \leanok
-\uses{thm:sg-tal:live-T-expansion}
+\uses{thm:sg-tal:live-T-expansion, lem:sg-tal:finite-tilted-calculus}
 \talsource{no counterpart in the book (integrability preparation for Eqs.~(1.292)--(1.294))}
 For any system size $m=N+1$, parameters $\beta,h\in\mathbb R$, finite replica set $R$
 (which may be empty), and exponents $k_P:R\times R\to\mathbb N$, $k_S:R\to\mathbb N$,
@@ -7625,7 +7664,7 @@ in this integrability assertion.
 \leanok
 Enumerate repeated factors by a finite sigma type and use the existing measurable,
 bounded live-replica product theorem with one summand per factor. Gibbs averaging
-preserves the uniform bound. Apply the bounded-function $L^p$ lemma. A single factor
+preserves the uniform bound. Apply Lemma~\ref{lem:sg-tal:finite-tilted-calculus}. A single factor
 can use its own replica as its unused second label, so no nonempty-replica hypothesis
 is needed.
 \end{proof}
@@ -7662,8 +7701,9 @@ Gaussian couplings. There are $K_1,K_2,K>0$, chosen before $\beta,h,q,N$, such t
  \mathbb E(V_N-\mathbb E V_N)^2\le\frac K{\sqrt m}.
 \]
 These are disorder fluctuations of a conditional moment. The global $T$ factor
-is absent, as in (1.292). The expansion to arbitrary polynomials of centered
-$R_{xy}-\langle R_{12}\rangle$, and a separate weak-convergence theorem, remain open.
+is absent, as in (1.292). The centered-overlap polynomial consequences are proved
+in Theorem~\ref{thm:sg-tal:centered-overlap-polynomial}; no separate weak-convergence
+theorem is asserted.
 \end{theorem}
 \begin{proof}
 \leanok
@@ -7703,6 +7743,140 @@ separately in Theorem~\ref{thm:sg-tal:gibbs-moment-fluctuations}.
 \leanok
 The two distinct reference replicas are independent, so their mean overlap is
 $d\sum_i b_i^2$. Subtract that quantity in the common finite-vector centering identity.
+\end{proof}
+
+\begin{lemma}[A square-integral bound for a finite sum]
+\label{lem:sg-tal:finite-sum-square}
+\lean{ProbabilityTheory.integral_sq_fintype_sum_le}
+\leanok
+\talsource{no separate counterpart in the book (the finite expansion after Eq.~(1.295))}
+For any measure $\mu$, finite index set $I$, and $X_i\in L^2(\mu)$,
+\[
+ \int\left(\sum_{i\in I}X_i\right)^2d\mu
+ \le |I|\sum_{i\in I}\int X_i^2d\mu.
+\]
+No independence, positivity or probability normalization is required.
+\end{lemma}
+\begin{proof}
+\leanok
+Apply finite Cauchy--Schwarz with one coefficient vector equal to $1$, then integrate.
+Square integrability justifies linearity and monotonicity of the integrals.
+\end{proof}
+
+\begin{theorem}[Conditional moments of products of finite linear combinations]
+\label{thm:sg-tal:gibbs-polynomial-moments}
+\lean{SpinGlasses.sk_T_enumerated_gibbs_moments_uniform,
+SpinGlasses.sk_T_lincomb_gibbs_moments_uniform}
+\leanok
+\uses{thm:sg-tal:gibbs-moment-fluctuations, lem:sg-tal:finite-sum-square}
+\talsource{the expansion of (1.292) used after Eq.~(1.295)}
+Let $R$ be a nonempty finite ordered replica set and let $K,M$ be finite sets.
+Fix coefficients $\gamma_{jm}\in\mathbb R$, flags $S_{jm}$ and labels $x_{jm},y_{jm}\in R$,
+with $x_{jm}<y_{jm}$ whenever $S_{jm}$ selects a pair factor. Put
+\[
+ F_j=\sum_{m\in M}\gamma_{jm}
+ \begin{cases}T_{x_{jm},y_{jm}}&S_{jm}\text{ selects a pair},\\
+ T_{x_{jm}}&\text{otherwise}.
+ \end{cases}
+\]
+Assume $4\beta_0^2<1$, $\beta^2\le\beta_0^2$, deterministic field $h$ and the fixed-point
+equation for $q$. Write $m_0=N+1$, and let $(U_{xy})_{x<y},(U_x)_x$ be independent centered
+Gaussians of variances $a,b$ from Lemma~\ref{lem:sg-tal:variance-identification}.
+Replace the $T$-factors in $F_j$ by these $U$-factors to obtain $H_j$. Set
+\[
+ V_N=m_0^{|K|/2}\left\langle\prod_jF_j\right\rangle,\qquad
+ G_* =\mathbb E\prod_jH_j.
+\]
+There is $C>0$, chosen after the finite data and $\beta_0$ but before $\beta,h,q,N$, with
+\[
+ V_N\in L^2,\qquad |\mathbb EV_N-G_*|\le C/\sqrt{m_0},\qquad
+ \mathbb E(V_N-G_*)^2\le C/\sqrt{m_0}.
+\]
+Repeated labels, signed coefficients and empty products or summand sets are allowed.
+The enumerated-monomial interface is also exported. The Gaussian reference is an
+explicit integral over independent coordinates indexed by $(R\times R)\sqcup R$;
+only the coordinates with $x<y$ are used for pair factors.
+\end{theorem}
+\begin{proof}
+\leanok
+Group repeated factors by their pair or single label, using the finite fiberwise product
+identity. The preceding monomial theorem and product-Gaussian integration give the
+error estimate for every assignment $f:K\to M$.
+Expand each product of sums using the same finite algebra identity on the Gibbs and
+Gaussian sides. Integrability of Gaussian monomials follows by regrouping repeated
+coordinates into powers and applying product integrability. Sum the first-moment
+errors by the triangle inequality; apply Lemma~\ref{lem:sg-tal:finite-sum-square} to
+the weighted mean-square errors. The constants may depend on the fixed coefficients;
+there is no bound uniform over unbounded or size-dependent coefficients.
+\end{proof}
+
+\begin{theorem}[The centered Gaussian overlap reference and its covariance]
+\label{thm:sg-tal:centered-overlap-gaussian}
+\lean{SpinGlasses.gaussian_overlap_reference, SpinGlasses.gaussian_overlap_covariance_of_lt,
+SpinGlasses.sk_centered_overlap_gaussian_reference}
+\leanok
+\uses{lem:sg-tal:variance-identification}
+\talsource{the Gaussian family and covariance description after Eq.~(1.295)}
+For a finite ordered replica set $R$, independent standard Gaussian coordinates
+$z\in\mathbb R^{(R\times R)\sqcup R}$, and $a,b\ge0$, put
+\[
+ g_{xy}(z)=\sqrt a\,z_{(x,y)}+\sqrt b\,z_x+\sqrt b\,z_y.
+\]
+This is a jointly Gaussian centered family. For ordered distinct pairs $p,q$,
+\[
+ \mathbb E g_p g_q=\begin{cases}
+ a+2b&p=q,\\
+ b&p\ne q\text{ and the pairs share an endpoint},\\
+ 0&\text{the pairs are disjoint}.
+ \end{cases}
+\]
+For deterministic-field SK, $4\beta^2<1$ and the fixed-point equation, the theorem
+is also specialized to the actual size-independent coefficients $a=mA_N^2$,
+$b=mB_N^2$. The generic result requires no SK hypothesis; its fuller formula permits
+repeated endpoints and counts each of the four possible endpoint coincidences.
+\end{theorem}
+\begin{proof}
+\leanok
+Write each $g_p$ as a linear form with coefficient vector supported on its pair coordinate
+and its two endpoint coordinates. Reuse the joint Gaussian law, zero mean and Gram-matrix
+covariance formulas for finite families of linear forms. For ordered distinct pairs,
+the coincidence formula gives the three cases. Existing fixed-point coefficient bounds
+prove nonnegativity of the SK coefficients, so no new variance-sign argument is needed.
+\end{proof}
+
+\begin{theorem}[Conditional polynomial moments of centered overlaps]
+\label{thm:sg-tal:centered-overlap-polynomial}
+\lean{SpinGlasses.sk_centered_overlap_gibbs_moments_uniform}
+\leanok
+\uses{lem:sg-tal:gibbs-centered-overlap, thm:sg-tal:gibbs-polynomial-moments,
+thm:sg-tal:centered-overlap-gaussian}
+\talsource{the two displayed estimates for $W$ after Eq.~(1.295)}
+Let $R$ be a finite ordered replica set with distinct reference labels $r,s$, and let
+$K$ be a finite set with labels $x_j<y_j$; repeated factors are allowed. Assume
+$4\beta_0^2<1$, $\beta^2\le\beta_0^2$, deterministic field $h$ and the fixed-point
+condition for $q$. For $m=N+1$, set
+\[
+ \bar q=\langle R_{rs}\rangle,\qquad
+ W_N=m^{|K|/2}\left\langle\prod_{j\in K}(R_{x_j,y_j}-\bar q)\right\rangle,\qquad
+ G_* =\mathbb E\prod_{j\in K}g_{x_j,y_j},
+\]
+where $g$ is the size-independent Gaussian family of the preceding theorem.
+There is $C>0$, chosen before $\beta,h,q,N$, such that
+\[
+ W_N\in L^2,\quad |\mathbb EW_N-G_*|\le C/\sqrt m,\quad
+ \mathbb E(W_N-G_*)^2\le C/\sqrt m,\quad
+ \mathbb E(W_N-\mathbb EW_N)^2\le C/\sqrt m.
+\]
+These are quantitative moment and disorder-fluctuation statements. They do not
+assert a separate weak-convergence or almost-sure-in-disorder theorem.
+\end{theorem}
+\begin{proof}
+\leanok
+Equation~(1.295) writes every factor as $T_{xy}+T_x+T_y$. Apply the polynomial theorem
+with three summands and coefficients $1$. The same three-term expansion on the
+Gaussian side gives the displayed reference. The variance is at most the mean-square
+distance to that deterministic reference. Both sides use one common disorder in their
+conditional Gibbs averages; no new replica or cavity induction is required.
 \end{proof}
 
 \begin{remark}[Source comparison for the overlap moment results]
@@ -7756,15 +7930,19 @@ any finite coupling measure, including empty replica types, without a fixed poin
 or temperature restriction. It does not assert the Gaussian approximation under
 such a general coupling law. The conditional moment contains no global $T$ factor,
 as in (1.292).
-\item \emph{Exact centering and the unfinished source consequence.}
+\item \emph{Exact centering and the source consequence.}
 Equation~(1.295) is proved for any finite probability space, vector observable and
 real scale, with any two distinct reference replicas $r,s$, rather than only for
 SK spins and the labels $1,2$. The observed labels $x,y$ may coincide in this exact
 identity; the Gaussian pair-moment estimates still require $x<y$.
 The source next expands centered-overlap products and identifies the Gaussian family
 $g_{xy}=U_{xy}+U_x+U_y$. The general polynomial moment approximation, its disorder
-variance estimate, and the covariance description of this family have not yet been
-exported as Lean theorems here. The exact identity alone does not complete that step.
+variance estimate and its explicit Gaussian reference are now proved in
+Theorems~\ref{thm:sg-tal:centered-overlap-polynomial} and
+\ref{thm:sg-tal:centered-overlap-gaussian}. The stronger mean-square bound is retained.
+The independent-coordinate implementation includes both orientations in $R\times R$,
+but the SK approximation only uses $x<y$. It does not identify the two Gaussian
+pair coordinates $U_{xy}$ and $U_{yx}$ as one variable.
 Likewise, the moment estimates are not a separate weak-convergence theorem or an
 almost-sure-in-disorder convergence assertion. These open items are not hidden by
 the source's informal phrase ``for the typical disorder''.
@@ -7852,6 +8030,9 @@ variance-error APIs are shared in Lemma~\ref{lem:sg-tal:disjoint-block-variance-
 The concrete conditional Gibbs moment estimates (1.292)--(1.294), including a stronger
 mean-square approximation to their deterministic Gaussian reference, are proved in
 Theorem~\ref{thm:sg-tal:gibbs-moment-fluctuations}.
-\emph{Not proved:} the general polynomial consequences for centered overlaps or a
-separate weak-convergence statement.
+The general centered-overlap polynomial moment, mean-square and disorder-variance
+estimates are proved in Theorem~\ref{thm:sg-tal:centered-overlap-polynomial}; the
+Gaussian reference and covariance cases are proved in
+Theorem~\ref{thm:sg-tal:centered-overlap-gaussian}.
+\emph{Not proved:} a separate weak-convergence statement or the random-field extension.
 \end{remark}

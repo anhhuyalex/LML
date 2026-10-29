@@ -28,7 +28,7 @@ namespace SpinGlasses
 Gaussian reference. Coefficients and labels are fixed before the uniform constants. -/
 theorem sk_T_lincomb_gibbs_moments_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
     {R : Type u} [Fintype R] [LinearOrder R] [Nonempty R]
-    {K : Type v} [Fintype K] [DecidableEq K] {M : Type w} [Fintype M]
+    {K : Type v} [Fintype K] {M : Type w} [Fintype M]
     (S : K → M → Bool) (a b : K → M → R) (γ : K → M → ℝ)
     (hord : ∀ j m, S j m = true → a j m < b j m) :
     ∃ C : ℝ, 0 < C ∧ ∀ (β h q : ℝ),
@@ -62,6 +62,7 @@ theorem sk_T_lincomb_gibbs_moments_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2
     β₀ hβ₀ (fun j => S j (f j)) (fun j => a j (f j)) (fun j => b j (f j))
       (fun j => hord j (f j))
   let c : (K → M) → ℝ := fun f => ∏ j, γ j (f j)
+  classical
   let CM : ℝ := ∑ f, |c f| * C f
   let CS : ℝ := (Fintype.card (K → M) : ℝ) * ∑ f, c f ^ 2 * C f
   have hCM : 0 ≤ CM := sum_nonneg fun f _ => mul_nonneg (abs_nonneg _) (hCpos f).le
@@ -84,13 +85,15 @@ theorem sk_T_lincomb_gibbs_moments_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2
       |(∫ g, X f g ∂P) - Gf f| ≤ C f / Real.sqrt ((N : ℝ) + 1) ∧
       (∫ g, (X f g - Gf f) ^ 2 ∂P) ≤ C f / Real.sqrt ((N : ℝ) + 1) :=
     hCs f β h q hfix hb N
+  have hexp (F : K → M → ℝ) : (∏ j, ∑ m, γ j m * F j m) =
+      ∑ f : I, c f * ∏ j, F j (f j) := by
+    rw [prod_univ_sum (fun _ => univ), Fintype.piFinset_univ]
+    exact sum_congr rfl fun _ _ => prod_mul_distrib
   have hV : V = fun g => ∑ f : I, c f * X f g := by
     funext g
     have he (ρ : R → Fin (N + 1) → ℤˣ) :
         (∏ j, ∑ m, γ j m * T j m g ρ) =
-          ∑ f : I, c f * ∏ j, T j (f j) g ρ := by
-      rw [prod_univ_sum (fun _ => univ), Fintype.piFinset_univ]
-      exact sum_congr rfl fun f _ => prod_mul_distrib
+          ∑ f : I, c f * ∏ j, T j (f j) g ρ := hexp (fun j m => T j m g ρ)
     dsimp only [V]
     simp_rw [he]
     rw [integral_finsetSum _ fun _ _ => Integrable.of_finite, mul_sum]
@@ -111,14 +114,13 @@ theorem sk_T_lincomb_gibbs_moments_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2
       intro j _
       cases hs : S j (f j) <;> simp [Z, d, σ, hs]
     simp_rw [he]
-    apply Integrable.fintype_prod
+    refine Integrable.fintype_prod (f := fun κ (x : ℝ) => (σ κ * x) ^ n κ)
+      (μ := fun _ : D => gaussianReal 0 1) ?_
     intro κ
     simpa only [mul_pow] using (integrable_pow_gaussianReal 0 1 (n κ)).const_mul (σ κ ^ n κ)
   have hG : G = ∑ f : I, c f * Gf f := by
     have he (z : D → ℝ) : (∏ j, ∑ m, γ j m * Z j m z) =
-        ∑ f : I, c f * ∏ j, Z j (f j) z := by
-      rw [prod_univ_sum (fun _ => univ), Fintype.piFinset_univ]
-      exact sum_congr rfl fun f _ => prod_mul_distrib
+        ∑ f : I, c f * ∏ j, Z j (f j) z := hexp (fun j m => Z j m z)
     change (∫ z, ∏ j, ∑ m, γ j m * Z j m z ∂Q) = _
     simp_rw [he]
     rw [integral_finsetSum _ fun f _ => (hGi f).const_mul _]
@@ -140,10 +142,11 @@ theorem sk_T_lincomb_gibbs_moments_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2
     calc
       |∑ f : I, c f * ((∫ g, X f g ∂P) - Gf f)| ≤
           ∑ f : I, |c f| * |(∫ g, X f g ∂P) - Gf f| := by
-        simpa only [abs_mul] using abs_sum_le_sum_abs _ _
+        simpa only [abs_mul] using abs_sum_le_sum_abs
+          (fun f : I => c f * ((∫ g, X f g ∂P) - Gf f)) univ
       _ ≤ ∑ f : I, |c f| * (C f / Real.sqrt ((N : ℝ) + 1)) :=
         sum_le_sum fun f _ => mul_le_mul_of_nonneg_left (hf f).2.1 (abs_nonneg _)
-      _ = _ := by simp only [CM, mul_div_assoc, sum_div]
+      _ = _ := by simp only [CM, I, mul_div_assoc, sum_div]
   have hmse : (∫ g, (V g - G) ^ 2 ∂P) ≤ CS / Real.sqrt ((N : ℝ) + 1) := by
     simp_rw [hsub]
     refine (integral_sq_fintype_sum_le hY).trans ?_
@@ -154,7 +157,7 @@ theorem sk_T_lincomb_gibbs_moments_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2
             (C f / Real.sqrt ((N : ℝ) + 1)) := by
         gcongr with f
         exact (hf f).2.2
-      _ = _ := by simp only [CS, mul_div_assoc, sum_div]
+      _ = _ := by simp only [CS, I, mul_div_assoc, sum_div]
   refine ⟨hX, hmean.trans ?_, hmse.trans ?_⟩
   · exact div_le_div_of_nonneg_right (by dsimp only [CM, CS] at hCM hCS ⊢; linarith)
       (Real.sqrt_nonneg _)

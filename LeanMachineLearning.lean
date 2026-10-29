@@ -59,6 +59,8 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Function.UnitVectorFi
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ChebyshevAssociation
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ExpMoment
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteHyperbolic
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteReplicaTilted
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteTilted
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FreshReplicas
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.GramKernel
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IntegrableOfBound
@@ -410,6 +412,7 @@ public import LeanMachineLearning.SpinGlasses.GaussianIBPCountable
 public import LeanMachineLearning.SpinGlasses.GaussianInterpolationConditional
 public import LeanMachineLearning.SpinGlasses.GaussianInterpolationNonlinear
 public import LeanMachineLearning.SpinGlasses.GaussianInterpolationReplica
+public import LeanMachineLearning.SpinGlasses.GaussianOverlapCovariance
 public import LeanMachineLearning.SpinGlasses.GaussianProjectionPath
 public import LeanMachineLearning.SpinGlasses.GaussianTiltedFreeEnergy
 public import LeanMachineLearning.SpinGlasses.GibbsCavityDeviation
@@ -493,6 +496,7 @@ public import LeanMachineLearning.SpinGlasses.SKCavityOverlap
 public import LeanMachineLearning.SpinGlasses.SKCavityParameters
 public import LeanMachineLearning.SpinGlasses.SKCavityReplicaPairs
 public import LeanMachineLearning.SpinGlasses.SKCavityTaylor
+public import LeanMachineLearning.SpinGlasses.SKCenteredOverlapGibbsMoments
 public import LeanMachineLearning.SpinGlasses.SKCenteredPathMoments
 public import LeanMachineLearning.SpinGlasses.SKCenteredPathODE
 public import LeanMachineLearning.SpinGlasses.SKCorrelationDecay
@@ -528,6 +532,7 @@ public import LeanMachineLearning.SpinGlasses.SKOverlapCLTFreshContractions
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLTFreshMoments
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLTGibbsEnumerated
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLTGibbsMoments
+public import LeanMachineLearning.SpinGlasses.SKOverlapCLTGibbsPolynomials
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLTGlobalClassify
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLTGlobalCounting
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLTGlobalFeedback

@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteReplicaTilted
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLTPairGaussian
 
 /-!
@@ -12,8 +13,9 @@ public import LeanMachineLearning.SpinGlasses.SKOverlapCLTPairGaussian
 
 The mixed T-moments of Talagrand, Section 1.10, integrate a product of Gibbs-mean dependent
 factors over the replicas and then over the disorder. To expand a product of sums of such factors
-into monomials one needs to interchange the disorder integral with a finite sum. This file proves
-the required integrability for bounded integrands that are measurable in the disorder.
+into monomials one needs to interchange the disorder integral with a finite sum. The generic
+finite-tilted integration calculus supplies this step; the model-specific measurable bounds
+are proved once and reused by the exact expansion and later conditional moments.
 -/
 
 @[expose] public section
@@ -23,43 +25,10 @@ open scoped BigOperators Real
 
 namespace SpinGlasses
 
-/-- **A bounded replica average is integrable in the disorder.** If the energies and the
-observable are measurable in the disorder `ω` and the observable is bounded, then
-`ω ↦ ∫ Φ ω d(count.tilted (f ω))^{⊗R}` is integrable for a finite measure. -/
-theorem integrable_integral_pi_count_tilted_of_bound {Ω α R : Type*} [MeasurableSpace Ω]
-    {μ : Measure Ω} [IsFiniteMeasure μ] [Fintype α] [Nonempty α] [Fintype R]
-    [MeasurableSpace α] [MeasurableSingletonClass α]
-    (f : Ω → α → ℝ) (hf : ∀ a, Measurable fun ω => f ω a)
-    (Φ : Ω → (R → α) → ℝ) (hΦ : ∀ σ, Measurable fun ω => Φ ω σ) (M : ℝ)
-    (hM : ∀ ω σ, |Φ ω σ| ≤ M) :
-    Integrable (fun ω => ∫ σ, Φ ω σ ∂(Measure.pi fun _ : R => Measure.count.tilted (f ω))) μ := by
-  have hmeas := measurable_integral_pi_count_tilted hf hΦ
-  refine Integrable.of_bound hmeas.aestronglyMeasurable M (ae_of_all _ fun ω => ?_)
-  have := norm_integral_le_of_norm_le_const
-    (μ := Measure.pi fun _ : R => Measure.count.tilted (f ω)) (C := M)
-    (f := fun σ => Φ ω σ) (ae_of_all _ fun σ => by rw [Real.norm_eq_abs]; exact hM ω σ)
-  simpa [probReal_univ] using this
-
-/-- **A finite sum of bounded replica averages can be integrated termwise in the disorder.** -/
-theorem integral_integral_pi_count_tilted_finset_sum {Ω α R ι : Type*} [MeasurableSpace Ω]
-    {μ : Measure Ω} [IsFiniteMeasure μ] [Fintype α] [Nonempty α] [Fintype R]
-    [MeasurableSpace α] [MeasurableSingletonClass α]
-    (f : Ω → α → ℝ) (hf : ∀ a, Measurable fun ω => f ω a) (t : Finset ι)
-    (Φ : ι → Ω → (R → α) → ℝ) (hΦ : ∀ i σ, Measurable fun ω => Φ i ω σ) (M : ℝ)
-    (hM : ∀ i ω σ, |Φ i ω σ| ≤ M) :
-    ∫ ω, ∫ σ, ∑ i ∈ t, Φ i ω σ ∂(Measure.pi fun _ : R => Measure.count.tilted (f ω)) ∂μ =
-      ∑ i ∈ t, ∫ ω, ∫ σ, Φ i ω σ ∂(Measure.pi fun _ : R => Measure.count.tilted (f ω)) ∂μ := by
-  have hint : ∀ ω, ∀ i ∈ t, Integrable (fun σ => Φ i ω σ)
-      (Measure.pi fun _ : R => Measure.count.tilted (f ω)) := fun ω i _ => Integrable.of_finite
-  simp_rw [integral_finsetSum t (hint _)]
-  exact integral_finsetSum t fun i _ =>
-    integrable_integral_pi_count_tilted_of_bound f hf (Φ i) (hΦ i) M (hM i)
-
-/-- **Exact monomial expansion.** A product over factors `k` of finite sums of T-terms with
-live replica labels is the sum over monomials `f : K → M` of `∏ γ` times the monomial's
-disorder- and replica-averaged product. No hypothesis on the parameters is needed. -/
-theorem sk_live_T_expansion_exact (N : ℕ) (β h q : ℝ)
-    {R : Type*} [Fintype R] {K M : Type*} [Fintype K] [DecidableEq K] [Fintype M]
+/-- **Measurability and boundedness of a product of `T`-sums.** For every choice of data, the
+integrand `∏_k ∑_m γ k m T(l,s;x,y)` is measurable in the disorder and uniformly bounded. -/
+theorem sk_live_T_family_meas_bound (N : ℕ) (β h q : ℝ)
+    {R : Type*} {K M : Type*} [Fintype K] [Fintype M]
     (l s : K → M → Bool) (x y : K → M → R) (γ : K → M → ℝ) :
     let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g σ =>
       (Real.sqrt (N + 1))⁻¹ * β *
@@ -72,14 +41,10 @@ theorem sk_live_T_expansion_exact (N : ℕ) (β h q : ℝ)
       ((N + 1 : ℝ)⁻¹ * ∑ i,
         (if l then (ρ x i : ℝ) - bmean g i else bmean g i) *
         (if s then (ρ y i : ℝ) - bmean g i else bmean g i)) - (if l || s then 0 else q)
-    (∫ g, ∫ ρ : R → Fin (N + 1) → ℤˣ,
-        ∏ k, ∑ m, γ k m * Tp (l k m) (s k m) (x k m) (y k m) g ρ
-        ∂(Measure.pi fun _ : R => Measure.count.tilted (E g))
-        ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) =
-      ∑ f : K → M, (∏ k, γ k (f k)) * ∫ g, ∫ ρ : R → Fin (N + 1) → ℤˣ,
-        ∏ k, Tp (l k (f k)) (s k (f k)) (x k (f k)) (y k (f k)) g ρ
-        ∂(Measure.pi fun _ : R => Measure.count.tilted (E g))
-        ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) := by
+    (∀ ρ : R → Fin (N + 1) → ℤˣ, Measurable fun g : FinPairs (N + 1) → ℝ =>
+      ∏ k, ∑ m, γ k m * Tp (l k m) (s k m) (x k m) (y k m) g ρ) ∧
+    ∃ Mb : ℝ, ∀ g (ρ : R → Fin (N + 1) → ℤˣ),
+      |∏ k, ∑ m, γ k m * Tp (l k m) (s k m) (x k m) (y k m) g ρ| ≤ Mb := by
   intro E bmean Tp
   have hmeasE : ∀ σ, Measurable fun g : FinPairs (N + 1) → ℝ => E g σ := fun σ => by
     dsimp only [E]
@@ -128,33 +93,33 @@ theorem sk_live_T_expansion_exact (N : ℕ) (β h q : ℝ)
     dsimp only [Tp]
     refine (abs_sub _ _).trans (add_le_add hsum ?_)
     split_ifs <;> simp
-  have hexp : ∀ g ρ, ∏ k, ∑ m, γ k m * Tp (l k m) (s k m) (x k m) (y k m) g ρ =
-      ∑ f : K → M, (∏ k, γ k (f k)) * ∏ k, Tp (l k (f k)) (s k (f k)) (x k (f k)) (y k (f k)) g ρ :=
-    fun g ρ => by
-    rw [Finset.prod_univ_sum (fun _ => Finset.univ), Fintype.piFinset_univ]
-    exact Finset.sum_congr rfl fun f _ => Finset.prod_mul_distrib
-  have hint := integral_integral_pi_count_tilted_finset_sum
-    (μ := Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)
-    (R := R) (fun g σ => E g σ) hmeasE (Finset.univ : Finset (K → M))
-    (fun f g ρ => (∏ k, γ k (f k)) *
-      ∏ k, Tp (l k (f k)) (s k (f k)) (x k (f k)) (y k (f k)) g ρ)
-    (fun f ρ => measurable_const.mul
-      (Finset.measurable_prod _ fun k _ => hTp_meas _ _ _ _ ρ))
-    ((∑ f : K → M, |∏ k, γ k (f k)|) * (4 + |q|) ^ Fintype.card K)
-    (fun f g ρ => by
-      rw [abs_mul]
-      have h1 : |∏ k, Tp (l k (f k)) (s k (f k)) (x k (f k)) (y k (f k)) g ρ| ≤
-          (4 + |q|) ^ Fintype.card K := by
-        rw [Finset.abs_prod]
-        calc ∏ k, |Tp (l k (f k)) (s k (f k)) (x k (f k)) (y k (f k)) g ρ|
-            ≤ ∏ _k : K, (4 + |q|) :=
-              Finset.prod_le_prod₀ (fun k _ => abs_nonneg _) fun k _ => hTp_bound _ _ _ _ g ρ
-          _ = _ := by rw [Finset.prod_const, Finset.card_univ]
-      have h2 : |∏ k, γ k (f k)| ≤ ∑ f : K → M, |∏ k, γ k (f k)| :=
-        Finset.single_le_sum (f := fun f : K → M => |∏ k, γ k (f k)|)
-          (fun f _ => abs_nonneg _) (Finset.mem_univ f)
-      exact mul_le_mul h2 h1 (abs_nonneg _) (Finset.sum_nonneg fun f _ => abs_nonneg _))
-  have hLHS : (∫ g, ∫ ρ : R → Fin (N + 1) → ℤˣ,
+  refine ⟨fun ρ => Finset.measurable_prod _ fun k _ => Finset.measurable_sum _ fun m _ =>
+    measurable_const.mul (hTp_meas _ _ _ _ ρ),
+    ∏ k, ∑ m, |γ k m| * (4 + |q|), fun g ρ => ?_⟩
+  rw [Finset.abs_prod]
+  refine Finset.prod_le_prod₀ (fun k _ => abs_nonneg _) fun k _ => ?_
+  exact (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun m _ => by
+    rw [abs_mul]
+    exact mul_le_mul_of_nonneg_left (hTp_bound _ _ _ _ g ρ) (abs_nonneg _))
+
+/-- **Exact monomial expansion.** A product over factors `k` of finite sums of T-terms with
+live replica labels is the sum over monomials `f : K → M` of `∏ γ` times the monomial's
+disorder- and replica-averaged product. No hypothesis on the parameters is needed. -/
+theorem sk_live_T_expansion_exact (N : ℕ) (β h q : ℝ)
+    {R : Type*} [Fintype R] {K M : Type*} [Fintype K] [DecidableEq K] [Fintype M]
+    (l s : K → M → Bool) (x y : K → M → R) (γ : K → M → ℝ) :
+    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g σ =>
+      (Real.sqrt (N + 1))⁻¹ * β *
+        (∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
+      h * ∑ i : Fin (N + 1), (σ i : ℝ)
+    let bmean : (FinPairs (N + 1) → ℝ) → Fin (N + 1) → ℝ := fun g i =>
+      ∫ σ : Fin (N + 1) → ℤˣ, (σ i : ℝ) ∂(Measure.count.tilted (E g))
+    let Tp : Bool → Bool → R → R → (FinPairs (N + 1) → ℝ) →
+        (R → Fin (N + 1) → ℤˣ) → ℝ := fun l s x y g ρ =>
+      ((N + 1 : ℝ)⁻¹ * ∑ i,
+        (if l then (ρ x i : ℝ) - bmean g i else bmean g i) *
+        (if s then (ρ y i : ℝ) - bmean g i else bmean g i)) - (if l || s then 0 else q)
+    (∫ g, ∫ ρ : R → Fin (N + 1) → ℤˣ,
         ∏ k, ∑ m, γ k m * Tp (l k m) (s k m) (x k m) (y k m) g ρ
         ∂(Measure.pi fun _ : R => Measure.count.tilted (E g))
         ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) =
@@ -162,11 +127,45 @@ theorem sk_live_T_expansion_exact (N : ℕ) (β h q : ℝ)
         ∏ k, Tp (l k (f k)) (s k (f k)) (x k (f k)) (y k (f k)) g ρ
         ∂(Measure.pi fun _ : R => Measure.count.tilted (E g))
         ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) := by
+  intro E bmean Tp
+  have hE : ∀ σ, Measurable fun g : FinPairs (N + 1) → ℝ => E g σ := fun σ => by
+    dsimp only [E]
+    fun_prop
+  have hmono (f : K → M) : Integrable (fun g =>
+      ∫ ρ : R → Fin (N + 1) → ℤˣ,
+        ∏ k, Tp (l k (f k)) (s k (f k)) (x k (f k)) (y k (f k)) g ρ
+        ∂(Measure.pi fun _ : R => Measure.count.tilted (E g)))
+      (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) := by
+    have hg := sk_live_T_family_meas_bound N β h q (R := R) (K := K) (M := Unit)
+      (fun k _ => l k (f k)) (fun k _ => s k (f k))
+      (fun k _ => x k (f k)) (fun k _ => y k (f k)) (fun _ _ => 1)
+    have hg' :
+        (∀ ρ : R → Fin (N + 1) → ℤˣ, Measurable fun g =>
+          ∏ k, Tp (l k (f k)) (s k (f k)) (x k (f k)) (y k (f k)) g ρ) ∧
+        ∃ B : ℝ, ∀ g (ρ : R → Fin (N + 1) → ℤˣ),
+          |∏ k, Tp (l k (f k)) (s k (f k)) (x k (f k)) (y k (f k)) g ρ| ≤ B := by
+      simpa only [Fintype.sum_unique, one_mul] using hg
+    obtain ⟨hm, B, hB⟩ := hg'
+    exact integrable_integral_pi_count_tilted_of_bound E hE _ hm B hB
+  have hexp (g : FinPairs (N + 1) → ℝ) (ρ : R → Fin (N + 1) → ℤˣ) :
+      (∏ k, ∑ m, γ k m * Tp (l k m) (s k m) (x k m) (y k m) g ρ) =
+        ∑ f : K → M, (∏ k, γ k (f k)) *
+          ∏ k, Tp (l k (f k)) (s k (f k)) (x k (f k)) (y k (f k)) g ρ := by
+    rw [Finset.prod_univ_sum (fun _ => Finset.univ), Fintype.piFinset_univ]
+    exact Finset.sum_congr rfl fun _ _ => Finset.prod_mul_distrib
+  have hinner (g : FinPairs (N + 1) → ℝ) :
+      (∫ ρ : R → Fin (N + 1) → ℤˣ,
+        ∏ k, ∑ m, γ k m * Tp (l k m) (s k m) (x k m) (y k m) g ρ
+        ∂(Measure.pi fun _ : R => Measure.count.tilted (E g))) =
+      ∑ f : K → M, (∏ k, γ k (f k)) * ∫ ρ : R → Fin (N + 1) → ℤˣ,
+        ∏ k, Tp (l k (f k)) (s k (f k)) (x k (f k)) (y k (f k)) g ρ
+        ∂(Measure.pi fun _ : R => Measure.count.tilted (E g)) := by
     simp_rw [hexp]
-    rw [hint]
-    refine Finset.sum_congr rfl fun f _ => ?_
+    rw [integral_finsetSum _ fun _ _ => Integrable.of_finite]
     simp_rw [integral_const_mul]
-  exact hLHS
+  simp_rw [hinner]
+  rw [integral_finsetSum _ fun f _ => (hmono f).const_mul _]
+  simp_rw [integral_const_mul]
 
 /-- **The T-reduction.** A product over factors `k` of finite sums `∑_m γ k m * T(l,s;x,y)` of
 T-terms with live replica labels is, up to `O(k+1)`, the sum over monomials `f : K → M` of
@@ -1025,99 +1024,6 @@ theorem sum_spec_eq_sign_overlap {R : Type*} (N : ℕ) (q : ℝ) (b : Fin (N + 1
   refine Finset.sum_congr rfl fun i _ => ?_
   simp only [ite_mul, zero_mul, Finset.sum_ite_eq', Finset.mem_univ, ite_true, Bool.or_self,
     sub_zero]
-
-/-- **Measurability and boundedness of a product of `T`-sums.** For every choice of data, the
-integrand `∏_k ∑_m γ k m T(l,s;x,y)` is measurable in the disorder and uniformly bounded. -/
-theorem sk_live_T_family_meas_bound (N : ℕ) (β h q : ℝ)
-    {R : Type*} {K M : Type*} [Fintype K] [Fintype M]
-    (l s : K → M → Bool) (x y : K → M → R) (γ : K → M → ℝ) :
-    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g σ =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (σ i : ℝ)
-    let bmean : (FinPairs (N + 1) → ℝ) → Fin (N + 1) → ℝ := fun g i =>
-      ∫ σ : Fin (N + 1) → ℤˣ, (σ i : ℝ) ∂(Measure.count.tilted (E g))
-    let Tp : Bool → Bool → R → R → (FinPairs (N + 1) → ℝ) →
-        (R → Fin (N + 1) → ℤˣ) → ℝ := fun l s x y g ρ =>
-      ((N + 1 : ℝ)⁻¹ * ∑ i,
-        (if l then (ρ x i : ℝ) - bmean g i else bmean g i) *
-        (if s then (ρ y i : ℝ) - bmean g i else bmean g i)) - (if l || s then 0 else q)
-    (∀ ρ : R → Fin (N + 1) → ℤˣ, Measurable fun g : FinPairs (N + 1) → ℝ =>
-      ∏ k, ∑ m, γ k m * Tp (l k m) (s k m) (x k m) (y k m) g ρ) ∧
-    ∃ Mb : ℝ, ∀ g (ρ : R → Fin (N + 1) → ℤˣ),
-      |∏ k, ∑ m, γ k m * Tp (l k m) (s k m) (x k m) (y k m) g ρ| ≤ Mb := by
-  intro E bmean Tp
-  have hmeasE : ∀ σ, Measurable fun g : FinPairs (N + 1) → ℝ => E g σ := fun σ => by
-    dsimp only [E]
-    fun_prop
-  have hbm : ∀ i, Measurable fun g : FinPairs (N + 1) → ℝ => bmean g i := fun i =>
-    measurable_integral_count_tilted (fun g σ => E g σ) hmeasE (fun σ => (σ i : ℝ))
-  have hTp_meas : ∀ l s x y (ρ : R → Fin (N + 1) → ℤˣ),
-      Measurable fun g : FinPairs (N + 1) → ℝ => Tp l s x y g ρ := fun l s x y ρ => by
-    dsimp only [Tp]
-    refine Measurable.sub ?_ measurable_const
-    refine measurable_const.mul (Finset.measurable_sum _ fun i _ => ?_)
-    refine Measurable.mul ?_ ?_
-    · cases l
-      · simpa using hbm i
-      · simp only [ite_true]
-        exact measurable_const.sub (hbm i)
-    · cases s
-      · simpa using hbm i
-      · simp only [ite_true]
-        exact measurable_const.sub (hbm i)
-  have hb1 : ∀ g i, |bmean g i| ≤ 1 := fun g i => abs_integral_spin_le_one (E g) i
-  have hTp_bound : ∀ l s x y g (ρ : R → Fin (N + 1) → ℤˣ), |Tp l s x y g ρ| ≤ 4 + |q| :=
-    fun l s x y g ρ => by
-    have hside : ∀ (c : Bool) (z : R) i, |(if c then (ρ z i : ℝ) - bmean g i else bmean g i)| ≤ 2 :=
-      fun c z i => by
-      cases c
-      · exact (hb1 g i).trans (by norm_num)
-      · exact (abs_sub _ _).trans (add_le_add (abs_units_cast_le_one _) (hb1 g i)) |>.trans
-          (by norm_num)
-    have hsum : |(N + 1 : ℝ)⁻¹ * ∑ i,
-        (if l then (ρ x i : ℝ) - bmean g i else bmean g i) *
-        (if s then (ρ y i : ℝ) - bmean g i else bmean g i)| ≤ 4 := by
-      rw [abs_mul, abs_of_nonneg (by positivity : (0 : ℝ) ≤ (N + 1 : ℝ)⁻¹)]
-      have : |∑ i, (if l then (ρ x i : ℝ) - bmean g i else bmean g i) *
-          (if s then (ρ y i : ℝ) - bmean g i else bmean g i)| ≤ ∑ _i : Fin (N + 1), (4 : ℝ) :=
-        (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun i _ => by
-          rw [abs_mul]
-          exact (mul_le_mul (hside l x i) (hside s y i) (abs_nonneg _) (by norm_num)).trans
-            (by norm_num))
-      rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul] at this
-      calc (N + 1 : ℝ)⁻¹ * _ ≤ (N + 1 : ℝ)⁻¹ * (((N + 1 : ℕ) : ℝ) * 4) :=
-            mul_le_mul_of_nonneg_left this (by positivity)
-        _ = 4 := by
-          push_cast
-          field_simp
-    dsimp only [Tp]
-    refine (abs_sub _ _).trans (add_le_add hsum ?_)
-    split_ifs <;> simp
-  refine ⟨fun ρ => Finset.measurable_prod _ fun k _ => Finset.measurable_sum _ fun m _ =>
-    measurable_const.mul (hTp_meas _ _ _ _ ρ),
-    ∏ k, ∑ m, |γ k m| * (4 + |q|), fun g ρ => ?_⟩
-  rw [Finset.abs_prod]
-  refine Finset.prod_le_prod₀ (fun k _ => abs_nonneg _) fun k _ => ?_
-  exact (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun m _ => by
-    rw [abs_mul]
-    exact mul_le_mul_of_nonneg_left (hTp_bound _ _ _ _ g ρ) (abs_nonneg _))
-
-/-- **Additivity of the bounded replica average in the disorder.** -/
-theorem integral_integral_pi_count_tilted_add {Ω α R : Type*} [MeasurableSpace Ω]
-    {μ : Measure Ω} [IsFiniteMeasure μ] [Fintype α] [Nonempty α] [Fintype R]
-    [MeasurableSpace α] [MeasurableSingletonClass α]
-    (f : Ω → α → ℝ) (hf : ∀ a, Measurable fun ω => f ω a) (Φ Ψ : Ω → (R → α) → ℝ)
-    (hΦ : ∀ σ, Measurable fun ω => Φ ω σ) (hΨ : ∀ σ, Measurable fun ω => Ψ ω σ)
-    (M : ℝ) (hMΦ : ∀ ω σ, |Φ ω σ| ≤ M) (hMΨ : ∀ ω σ, |Ψ ω σ| ≤ M) :
-    ∫ ω, ∫ σ, (Φ ω σ + Ψ ω σ) ∂(Measure.pi fun _ : R => Measure.count.tilted (f ω)) ∂μ =
-      (∫ ω, ∫ σ, Φ ω σ ∂(Measure.pi fun _ : R => Measure.count.tilted (f ω)) ∂μ) +
-      ∫ ω, ∫ σ, Ψ ω σ ∂(Measure.pi fun _ : R => Measure.count.tilted (f ω)) ∂μ := by
-  have := integral_integral_pi_count_tilted_finset_sum (μ := μ) (R := R) f hf
-    (Finset.univ : Finset Bool) (fun i ω σ => if i then Φ ω σ else Ψ ω σ)
-    (fun i σ => by cases i <;> simp [hΦ σ, hΨ σ]) M
-    (fun i ω σ => by cases i <;> simp [hMΦ ω σ, hMΨ ω σ])
-  simpa [Fintype.sum_bool, add_comm] using this
 
 /-- **Two special `T`-sum factors times a product of ordinary ones.** The first special factor
 is pair-only; the pair labels of the special factors and of the rest are pairwise distinct

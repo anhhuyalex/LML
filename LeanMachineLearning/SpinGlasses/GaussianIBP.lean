@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianVector
 public import LeanMachineLearning.SpinGlasses.GibbsMeasure
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteReplicaTilted
 
 /-!
 # Gaussian integration by parts for the Gibbs measure
@@ -20,7 +21,7 @@ input is Mathlib's `HasGaussianLaw` for the vector `(x, y)`.
 
 ## Main declarations
 
-* `SpinGlasses.integral_pi_count_tilted`: the `R`-replica average as an explicit finite sum.
+* `MeasureTheory.integral_pi_count_tilted`: the `R`-replica average as an explicit finite sum.
 * `SpinGlasses.fderiv_integral_pi_count_tilted_add`: the derivative of a replica average with
   respect to the energy `y(ρ)`, `∂_ρ ⟨Ψ⟩ = ⟨(∑ᵣ 1[σʳ = ρ] - n G(ρ)) Ψ⟩`.
 * `SpinGlasses.integral_gibbs_replica_average_gaussian`: the replica covariance formula
@@ -49,18 +50,6 @@ open scoped Matrix Topology
 namespace SpinGlasses
 
 variable {α R : Type*} [MeasurableSpace α] [MeasurableSingletonClass α]
-
-/-- **Replica average as an explicit sum:** under the `R`-fold product of the Gibbs measure
-`count.tilted f`, `∫ Ψ = ∑_σ (∏_r exp (f (σ r)) / Z) Ψ(σ)`. -/
-theorem integral_pi_count_tilted [Fintype α] [Fintype R] [DecidableEq R] (f : α → ℝ)
-    (Ψ : (R → α) → ℝ) :
-    ∫ σ, Ψ σ ∂(Measure.pi fun _ : R => Measure.count.tilted f) =
-      ∑ σ : R → α, (∏ r, Real.exp (f (σ r)) / ∑ b, Real.exp (f b)) * Ψ σ := by
-  rw [integral_fintype Integrable.of_finite]
-  refine Finset.sum_congr rfl fun σ _ => ?_
-  rw [Measure.real, Measure.pi_singleton, ENNReal.toReal_prod, smul_eq_mul]
-  congr 1
-  exact Finset.prod_congr rfl fun r _ => real_count_tilted_singleton f (σ r)
 
 omit [MeasurableSpace α] [MeasurableSingletonClass α] in
 /-- The Gibbs weight vector `a ↦ exp (f a) / ∑ b, exp (f b)` depends smoothly on `f`. -/

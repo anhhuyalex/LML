@@ -76,13 +76,8 @@ theorem sk_T_multiindex_memLp (N : ℕ) (β h : ℝ)
   have hE : ∀ σ, Measurable fun g : FinPairs (N + 1) → ℝ => E g σ := fun σ => by
     dsimp only [E]
     fun_prop
-  have hmeas := measurable_integral_pi_count_tilted hE hH
-  apply MemLp.of_bound hmeas.aestronglyMeasurable B
-  refine ae_of_all _ fun g => ?_
-  have hi := norm_integral_le_of_norm_le_const
-    (μ := Measure.pi fun _ : R => Measure.count.tilted (E g)) (C := B)
-    (f := H g) (ae_of_all _ fun ρ => by rw [Real.norm_eq_abs]; exact hB g ρ)
-  simpa only [probReal_univ, mul_one] using hi
+  exact memLp_integral_pi_count_tilted_of_bound p E (fun σ => (hE σ).aemeasurable)
+    H (fun ρ => (hH ρ).aemeasurable) B (ae_of_all _ hB)
 
 /-- First two disorder moments of the normalized conditional Gibbs moment, as used
 in Talagrand (1.293). The second estimate uses disjoint copies, not doubled powers. -/
