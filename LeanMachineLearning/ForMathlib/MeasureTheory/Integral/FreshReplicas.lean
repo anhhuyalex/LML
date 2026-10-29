@@ -41,6 +41,21 @@ theorem integral_pi_sum_type {R S X : Type*} [Fintype R] [Fintype S]
     hF.aestronglyMeasurable
   exact hi.trans (integral_prod _ hF)
 
+/-- Functions of two disjoint replica blocks have a factorized average. Only a.e.
+strong measurability is needed; integrability and a finite configuration space are not. -/
+theorem integral_pi_sum_mul {R S X : Type*} [Fintype R] [Fintype S]
+    [MeasurableSpace X] (μ : Measure X) [SigmaFinite μ]
+    (F : (R → X) → ℝ) (G : (S → X) → ℝ)
+    (hF : AEStronglyMeasurable F (Measure.pi fun _ : R => μ))
+    (hG : AEStronglyMeasurable G (Measure.pi fun _ : S => μ)) :
+    (∫ σ : R ⊕ S → X, F (fun r => σ (.inl r)) * G (fun s => σ (.inr s))
+      ∂(Measure.pi fun _ => μ)) =
+      (∫ ρ : R → X, F ρ ∂(Measure.pi fun _ => μ)) *
+        ∫ τ : S → X, G τ ∂(Measure.pi fun _ => μ) := by
+  have he := measurePreserving_sumPiEquivProdPi (X := fun _ : R ⊕ S => X) (fun _ => μ)
+  exact (he.integral_comp_of_aestronglyMeasurable
+    (hF.comp_fst.mul hG.comp_snd)).trans (integral_prod_mul F G)
+
 /-- Integrating a distinct fresh pair for every factor replaces each factor by its
 pair average, even when all factors depend on shared original replicas. -/
 theorem integral_pi_prod_fresh_pairs {R J X : Type*} [Fintype R] [Fintype J]

@@ -22,6 +22,7 @@ For a random vector `x : Ω → p → ℝ` with square-integrable coordinates an
   `|E[X Y]| ≤ (l E[X²] + l⁻¹ E[Y²]) / 2`;
 * `ProbabilityTheory.integral_mul_le_half_add`: AM-GM, `E[X Y] ≤ (E[X²] + E[Y²]) / 2`;
 * `ProbabilityTheory.abs_integral_mul_le_of_integral_sq_le`: Cauchy-Schwarz with explicit scales.
+* `ProbabilityTheory.variance_le_of_moment_errors`: control of variance from two moment errors.
 
 They reduce every bilinear second-moment computation to the coordinate covariances (used for the
 double-descent risk decompositions and for Gaussian matrix forms).
@@ -33,6 +34,22 @@ namespace ProbabilityTheory
 
 open MeasureTheory
 open scoped Matrix
+
+/-- If the first two moments approximate those of a constant, the variance is small.
+No sign hypotheses on the target or the stated error bounds are needed. -/
+theorem variance_le_of_moment_errors {Ω : Type*} [MeasurableSpace Ω]
+    {μ : Measure Ω} [IsProbabilityMeasure μ] {X : Ω → ℝ} (hX : MemLp X 2 μ)
+    {G ε₁ ε₂ : ℝ} (h₁ : |(∫ ω, X ω ∂μ) - G| ≤ ε₁)
+    (h₂ : |(∫ ω, X ω ^ 2 ∂μ) - G ^ 2| ≤ ε₂) :
+    variance X μ ≤ ε₂ + 2 * |G| * ε₁ := by
+  have hc : |2 * G * ((∫ ω, X ω ∂μ) - G)| ≤ 2 * |G| * ε₁ := by
+    rw [abs_mul, abs_mul, abs_of_nonneg (by norm_num : (0 : ℝ) ≤ 2)]
+    exact mul_le_mul_of_nonneg_left h₁ (by positivity)
+  have hsecond := (le_abs_self _).trans h₂
+  have hcross := (abs_le.mp hc).1
+  rw [variance_eq_sub hX]
+  change (∫ ω, X ω ^ 2 ∂μ) - (∫ ω, X ω ∂μ) ^ 2 ≤ ε₂ + 2 * |G| * ε₁
+  nlinarith only [hsecond, hcross, sq_nonneg ((∫ ω, X ω ∂μ) - G)]
 
 variable {Ω p : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [Fintype p]
 

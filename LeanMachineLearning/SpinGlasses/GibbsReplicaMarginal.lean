@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.Pi
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.MeasurePreservingSymmetry
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FreshReplicas
 public import LeanMachineLearning.SpinGlasses.GaussianIBP
 
 /-!
@@ -68,11 +69,10 @@ theorem integral_pi_count_tilted_comp_injective {R R' : Type*} [Finite α] [None
   (measurePreserving_pi_comp_injective (Measure.count.tilted f)
     hρ).integral_comp_of_aestronglyMeasurable Integrable.of_finite.aestronglyMeasurable
 
-/-- **Independence of two blocks of an i.i.d. vector:** a product of a function of the first `m`
-coordinates and a function of the last `n` coordinates integrates to the product of the
-integrals. -/
+/-- A product of functions of the first `m` and last `n` coordinates factorizes under
+a finite product measure. Normalization of the coordinate measure is not required. -/
 theorem integral_pi_fin_add_mul {X : Type*} [MeasurableSpace X] [Finite X]
-    [MeasurableSingletonClass X] (μ : Measure X) [IsProbabilityMeasure μ] (m n : ℕ)
+    [MeasurableSingletonClass X] (μ : Measure X) [IsFiniteMeasure μ] (m n : ℕ)
     (F : (Fin m → X) → ℝ) (G : (Fin n → X) → ℝ) :
     ∫ σ : Fin (m + n) → X, F (fun i => σ (Fin.castAdd n i)) * G (fun j => σ (Fin.natAdd m j))
         ∂(Measure.pi fun _ : Fin (m + n) => μ) =
@@ -80,8 +80,6 @@ theorem integral_pi_fin_add_mul {X : Type*} [MeasurableSpace X] [Finite X]
         ∫ b : Fin n → X, G b ∂(Measure.pi fun _ : Fin n => μ) := by
   let e : Fin m ⊕ Fin n ≃ Fin (m + n) := finSumFinEquiv
   have h1 := measurePreserving_piCongrLeft (fun _ : Fin (m + n) => μ) e
-  have h2 := measurePreserving_sumPiEquivProdPi (X := fun _ : Fin m ⊕ Fin n => X)
-    (fun _ => μ)
   have hH : ∀ x : Fin m ⊕ Fin n → X,
       F (fun i => (MeasurableEquiv.piCongrLeft (fun _ => X) e x) (Fin.castAdd n i)) *
         G (fun j => (MeasurableEquiv.piCongrLeft (fun _ => X) e x) (Fin.natAdd m j)) =
@@ -101,11 +99,8 @@ theorem integral_pi_fin_add_mul {X : Type*} [MeasurableSpace X] [Finite X]
     (g := fun σ : Fin (m + n) → X => F (fun i => σ (Fin.castAdd n i)) *
       G (fun j => σ (Fin.natAdd m j))) Integrable.of_finite.aestronglyMeasurable]
   simp only [hH]
-  have h3 := h2.integral_comp_of_aestronglyMeasurable
-    (g := fun p : (Fin m → X) × (Fin n → X) => F p.1 * G p.2)
+  exact integral_pi_sum_mul μ F G Integrable.of_finite.aestronglyMeasurable
     Integrable.of_finite.aestronglyMeasurable
-  rw [integral_prod_mul] at h3
-  exact h3
 
 /-- **Two-replica marginal.** A function of two distinct replicas of an `R`-replica Gibbs average
 has the same average as under two independent replicas. -/

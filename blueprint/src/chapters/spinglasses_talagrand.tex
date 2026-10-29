@@ -7516,6 +7516,86 @@ proves the third identity. Rewrite the three variances in the existing mixed-mom
 theorem; no additional induction or asymptotic uniqueness argument is needed.
 \end{proof}
 
+
+\begin{theorem}[Multi-index moments and their normalization]
+\label{thm:sg-tal:multiindex-normalized}
+\lean{SpinGlasses.sk_T_multiindex_gaussian_moment_uniform,
+SpinGlasses.sk_T_multiindex_gaussian_moment_normalized_uniform,
+ProbabilityTheory.abs_normalized_moment_sub_le}
+\leanok
+\uses{thm:sg-tal:thm-1101, lem:sg-tal:variance-identification}
+\talsource{Theorem~1.10.1, Eqs.~(1.290)--(1.291)}
+Let $R$ be a nonempty finite ordered replica set. Fix exponents
+$k_P:R\times R\to\mathbb N$, $k_S:R\to\mathbb N$, $k_G\in\mathbb N$, with
+$k_P(x,y)=0$ unless $x<y$, and set $k_1=\sum_p k_P(p)$,
+$k_2=\sum_r k_S(r)$, $k=k_1+k_2+k_G$. Assume $4\beta_0^2<1$,
+$\beta^2\le\beta_0^2$, a deterministic field $h\in\mathbb R$, and
+$q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$, $z$ standard Gaussian.
+Use the actual Gibbs-mean factors $T_p,T_r,T$ defined above and put
+\[
+ M_N=\nu\left(\prod_{p\in R\times R}T_p^{k_P(p)}
+                    \prod_{r\in R}T_r^{k_S(r)}T^{k_G}\right),\qquad m=N+1.
+\]
+Let $a,b,c$ be the size-independent variance coefficients in
+Lemma~\ref{lem:sg-tal:variance-identification}. Define
+\[
+ G_m=\prod_p\mathbb E(\sqrt{a/m}\,z)^{k_P(p)}
+        \prod_r\mathbb E(\sqrt{b/m}\,z)^{k_S(r)}
+        \mathbb E(\sqrt{c/m}\,z)^{k_G},\qquad
+ G_*=\prod_p\mathbb E(\sqrt a\,z)^{k_P(p)}
+        \prod_r\mathbb E(\sqrt b\,z)^{k_S(r)}
+        \mathbb E(\sqrt c\,z)^{k_G}.
+\]
+There is $K>0$, chosen before $\beta,h,q,N$, such that for every size
+\[
+ |M_N-G_m|\le\frac{K}{m^{(k+1)/2}},\qquad
+ |m^{k/2}M_N-G_*|\le\frac{K}{\sqrt m}.
+\]
+These statements include zero multiplicities and the empty product. They are moment
+estimates; no separate weak-convergence or conditional Gibbs fluctuation assertion is
+part of this theorem.
+\end{theorem}
+\begin{proof}
+\leanok
+Take the factor set to be the disjoint union, over pair, single and global labels,
+of a copy of $\operatorname{Fin}(k_x)$ for each label $x$. Mathlib's sigma-product and
+cardinality identities identify its observable, class counts and total degree.
+Apply the enumerated theorem with the Section~1.8 variances. The variance identities
+then give $G_m=G_*/m^{k/2}$. Multiply the error bound by $m^{k/2}$, using $m>0$.
+The generic rescaling lemma allows any positive real scale and any real degree parameter.
+\end{proof}
+
+\begin{lemma}[Shared preparation for conditional Gibbs moment variances]
+\label{lem:sg-tal:disjoint-block-variance-preparation}
+\lean{MeasureTheory.integral_pi_sum_mul, ProbabilityTheory.variance_le_of_moment_errors,
+SpinGlasses.integral_pi_fin_add_mul}
+\leanok
+\talsource{The independent-block step preceding Eq.~(1.293)}
+For finite disjoint replica types $R,S$ and a sigma-finite measure $\mu$, let
+$F$ on $X^R$ and $G$ on $X^S$ be a.e. strongly measurable. Then
+\[
+ \int_{X^{R\sqcup S}}F(\rho|_R)G(\rho|_S)\,d\mu^{R\sqcup S}
+ =\left(\int F\,d\mu^R\right)\left(\int G\,d\mu^S\right).
+\]
+No integrability assumption beyond the stated measurability is required for this
+identity of totalized Bochner integrals. The older $\operatorname{Fin}(r+s)$ interface
+specializes this identity and now needs only a finite measure.
+On any probability space, if $V\in L^2$ and a deterministic $g\in\mathbb R$ satisfies
+$|\mathbb E V-g|\le e_1$ and $|\mathbb E V^2-g^2|\le e_2$, then
+\[
+ \operatorname{Var}(V)\le e_2+2|g|e_1.
+\]
+The concrete SK two-block moment specialization and its integrability estimates are
+still needed to conclude (1.293)--(1.294).
+\end{lemma}
+\begin{proof}
+\leanok
+Transport the product measure through the sum/product equivalence and use Mathlib's
+product-integral factorization. For the variance estimate, use
+$\operatorname{Var}(V)=\mathbb E V^2-(\mathbb E V)^2$ and drop the nonnegative term
+$(\mathbb E V-g)^2$ after expanding about $g$.
+\end{proof}
+
 \begin{lemma}[Centering by the Gibbs mean overlap]
 \label{lem:sg-tal:gibbs-centered-overlap}
 \lean{MeasureTheory.integral_pi_overlap_eq_mean_sq,
@@ -7617,7 +7697,9 @@ The global stage is proved: the recurrence (1.325)--(1.328) for $\mathbb E\,T^k$
 The covariance-constant identification is proved in
 Lemma~\ref{lem:sg-tal:variance-identification}; the centered-overlap identity (1.295)
 is proved in Lemma~\ref{lem:sg-tal:gibbs-centered-overlap}.
-\emph{Not proved:} the multi-index restatement (take $V$ to be the disjoint union
-of the multiplicity index sets), the normalized moment and Gibbs fluctuation estimates
-(1.291)--(1.294), or a separate weak-convergence statement.
+The multi-index restatement and normalized moment estimate (1.290)--(1.291) are
+proved in Theorem~\ref{thm:sg-tal:multiindex-normalized}. The independent-block and
+variance-error APIs are shared in Lemma~\ref{lem:sg-tal:disjoint-block-variance-preparation}.
+\emph{Not proved:} the concrete conditional Gibbs fluctuation estimates
+(1.293)--(1.294), their centered-overlap consequences, or a separate weak-convergence statement.
 \end{remark}
