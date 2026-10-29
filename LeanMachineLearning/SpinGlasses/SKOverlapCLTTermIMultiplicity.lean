@@ -23,13 +23,6 @@ open scoped BigOperators Real Matrix
 
 namespace SpinGlasses
 
-private theorem flagged_pair_ne {R J : Type*} (a b : R) (j : J) (L S : Bool)
-    (hab : L = true → S = true → a ≠ b) (i : Bool × Bool) :
-    (if L && i.1 then (Sum.inl a : R ⊕ (J ⊕ J)) else .inr (.inl j)) ≠
-      (if S && i.2 then .inl b else .inr (.inr j)) := by
-  rcases i with ⟨i, k⟩
-  cases L <;> cases S <;> cases i <;> cases k <;> simp_all
-
 private theorem ordered_class_indicator {R : Type*} [LinearOrder R]
     (x y a b : R) (L S : Bool) (hxy : x < y)
     (hab : L = true → S = true → a < b) :

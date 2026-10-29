@@ -494,12 +494,12 @@ theorem sk_row_conv (m : ℕ)
             fun i : Fin N => (σ p₂ i.castSucc : ℝ)) - q) =
         X σ - (N + 1 : ℝ)⁻¹ *
           (((σ p₁ (Fin.last N) : ℤˣ) : ℝ) * ((σ p₂ (Fin.last N) : ℤˣ) : ℝ)) := by
-      simp only [X, dotProduct, Fin.sum_univ_castSucc]; ring
+      simp only [X]; rw [sk_overlap_succ_eq_cavity]; ring
     have e2 : ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ r₁ i.castSucc : ℝ)) ⬝ᵥ
             fun i : Fin N => (σ r₂ i.castSucc : ℝ)) - q) =
         Y σ - (N + 1 : ℝ)⁻¹ *
           (((σ r₁ (Fin.last N) : ℤˣ) : ℝ) * ((σ r₂ (Fin.last N) : ℤˣ) : ℝ)) := by
-      simp only [Y, dotProduct, Fin.sum_univ_castSucc]; ring
+      simp only [Y]; rw [sk_overlap_succ_eq_cavity]; ring
     rw [e1, e2, neg_one_mul, ← sub_eq_add_neg]
     exact abs_mul_sub_sub_le _ _ _ _ c (abs_inv_mul_sign_le _ hM0 _ _)
       (abs_inv_mul_sign_le _ hM0 _ _)
@@ -1175,7 +1175,7 @@ theorem sk_row_Vf_bound (n : ℕ)
       with hδ
     have e1 : (N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ a i.castSucc : ℝ)) ⬝ᵥ
           fun i : Fin N => (σ b i.castSucc : ℝ)) - q = X - δ := by
-      simp only [hX, hδ, dotProduct, Fin.sum_univ_castSucc]; ring
+      rw [hX, hδ, sk_overlap_succ_eq_cavity]; ring
     have hδ1 : δ ^ 2 = 1 / (N + 1) ^ 2 := by
       simp only [hδ, mul_pow, units_cast_sq, mul_one, inv_pow, one_div]
     have hs : (((σ x (Fin.last N) : ℤˣ) : ℝ) * ((σ y (Fin.last N) : ℤˣ) : ℝ) - q) ^ 2 ≤ 4 := by
@@ -1250,10 +1250,10 @@ theorem sk_row_Gb_bound (m : ℕ)
       with hδ'
     have e1 : (N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ p₁ i.castSucc : ℝ)) ⬝ᵥ
           fun i : Fin N => (σ p₂ i.castSucc : ℝ)) - q = X - δ := by
-      simp only [hX, hδ, dotProduct, Fin.sum_univ_castSucc]; ring
+      rw [hX, hδ, sk_overlap_succ_eq_cavity]; ring
     have e2 : (N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ r₁ i.castSucc : ℝ)) ⬝ᵥ
           fun i : Fin N => (σ r₂ i.castSucc : ℝ)) - q = Y - δ' := by
-      simp only [hY, hδ', dotProduct, Fin.sum_univ_castSucc]; ring
+      rw [hY, hδ', sk_overlap_succ_eq_cavity]; ring
     rw [e1, e2]
     have h1 := mul_sq_le_half_pow_four (X - δ) (Y - δ')
     have h2 := sub_pow_two_mul_le (k := 2) (by norm_num) X δ

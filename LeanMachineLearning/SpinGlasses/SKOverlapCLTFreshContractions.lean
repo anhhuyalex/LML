@@ -48,6 +48,17 @@ private theorem fresh_rect_incidence {R J : Type*} [DecidableEq R] [DecidableEq 
     by_cases hya : y = a <;> by_cases hyb : y = b <;>
     simp_all [Fintype.sum_prod_type, A, B, c]
 
+/-- **The two flagged replicas of a factor are distinct.** For the four Boolean-flagged choices
+of a pair of replicas in a fresh-replica expansion (original label `a`, `b` when the flag is on,
+the fresh replica of `j` otherwise), the two replicas never coincide. This is the distinctness
+hypothesis `a ≠ b` of Eq. (1.297) for the rewritten factor. -/
+theorem flagged_pair_ne {R J : Type*} (a b : R) (j : J) (L S : Bool)
+    (hab : L = true → S = true → a ≠ b) (i : Bool × Bool) :
+    (if L && i.1 then (Sum.inl a : R ⊕ (J ⊕ J)) else .inr (.inl j)) ≠
+      (if S && i.2 then .inl b else .inr (.inr j)) := by
+  rcases i with ⟨i, k⟩
+  cases L <;> cases S <;> cases i <;> cases k <;> simp_all
+
 /-- **The decoupled coefficient in Eq. (1.312), for all three factor classes.**
 The Boolean pair `(true,true)` represents a pair factor, `(true,false)` a single factor,
 and `(false,false)` a global factor. Only the pair case can survive, and only when its
@@ -101,9 +112,7 @@ theorem sk_cavity_decoupled_fresh_factor (N : ℕ) (β q h : ℝ)
   let c : Bool × Bool → ℝ := fun i =>
     (if L then if i.1 then 1 else -1 else if i.1 then 1 else 0) *
     (if S then if i.2 then 1 else -1 else if i.2 then 1 else 0)
-  have hpair (i : Bool × Bool) : A i ≠ bb i := by
-    rcases i with ⟨i, j⟩
-    cases L <;> cases S <;> cases i <;> cases j <;> simp_all [A, bb]
+  have hpair (i : Bool × Bool) : A i ≠ bb i := flagged_pair_ne a b u L S hab i
   have hpoint (ε : R ⊕ (J ⊕ J) → ℤˣ) :
       eu ε = ∑ i : Bool × Bool, c i * ((ε (A i) : ℝ) * (ε (bb i) : ℝ)) := by
     cases L <;> cases S <;> simp [Fintype.sum_prod_type, A, bb, c, eu] <;> ring

@@ -197,7 +197,7 @@ theorem sk_row_Vf_three (n : ℕ)
       with hδ
     have e1 : (N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ a i.castSucc : ℝ)) ⬝ᵥ
           fun i : Fin N => (σ b i.castSucc : ℝ)) - q = X - δ := by
-      simp only [hX, hδ, dotProduct, Fin.sum_univ_castSucc]; ring
+      rw [hX, hδ, sk_overlap_succ_eq_cavity]; ring
     have hs : |((σ x (Fin.last N) : ℤˣ) : ℝ) * ((σ y (Fin.last N) : ℤˣ) : ℝ) - q| ^ 3 ≤ 8 := by
       calc _ ≤ (2 : ℝ) ^ 3 :=
             pow_le_pow_left₀ (abs_nonneg _) (abs_units_cast_mul_sub_le_two _ _ hq) 3
@@ -266,10 +266,10 @@ theorem sk_row_Gb_three (m : ℕ)
       with hδ'
     have e1 : (N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ p₁ i.castSucc : ℝ)) ⬝ᵥ
           fun i : Fin N => (σ p₂ i.castSucc : ℝ)) - q = X - δ := by
-      simp only [hX, hδ, dotProduct, Fin.sum_univ_castSucc]; ring
+      rw [hX, hδ, sk_overlap_succ_eq_cavity]; ring
     have e2 : (N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ r₁ i.castSucc : ℝ)) ⬝ᵥ
           fun i : Fin N => (σ r₂ i.castSucc : ℝ)) - q = Y - δ' := by
-      simp only [hY, hδ', dotProduct, Fin.sum_univ_castSucc]; ring
+      rw [hY, hδ', sk_overlap_succ_eq_cavity]; ring
     rw [e1, e2, abs_mul]
     have h1 := mul_rpow_three_halves_le (abs_nonneg (X - δ)) (abs_nonneg (Y - δ'))
     have h2 := abs_sub_pow_three_le (X := X) (δ := δ) (c := (N + 1 : ℝ)⁻¹)

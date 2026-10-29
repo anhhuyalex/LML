@@ -6093,7 +6093,55 @@ $\lambda\sum_i\sigma_i\tau_i=\lambda MR_{1,2}$, so no normalisation by $M$ appea
 from the variance bound $2\beta^2M$ (the book's $K$ is unspecified); the separation bound proved is $3\delta'/4>\delta'/2$.  Proposition~1.9.7 inherits
 $h\ne0$ from Proposition~1.9.5; the threshold $N_0$ depends on $\lambda$ (the size conditions degenerate as $\lambda\to0$), as in the book.
 \item \emph{Theorem~1.9.6.} Convergence of $\psi_N(\lambda)$ to a finite real-valued function $\psi$, pointwise on a neighbourhood of $0$, is assumed; its existence is not proved. the formalized statement is the implication ``limit exists $\Rightarrow$ not differentiable at $0$''.  The corner (the one-sided derivatives $\psi'(0\pm)$) is not constructed.
+\item \emph{Research Problem~1.9.1} (the pointwise-in-$N$ bound $\nu(|R_{1,2}-q|)>\delta$ beyond the AT line, Eq.~(1.268)) is an open problem of the book, not a theorem; it is recorded in Remark~\ref{rem:sg-tal:research-191} and is not part of the formalization targets.
 \end{itemize}
+\end{remark}
+
+\begin{remark}[Research Problem~1.9.1 is an open problem, not a theorem]
+\label{rem:sg-tal:research-191}
+\talsource{Research Problem~1.9.1, Eqs.~(1.266)--(1.268); source lines 3848--3870}
+This remark records a statement that Talagrand marks as an \emph{open problem} (``Level~2''). It is not a theorem of the book, it has no Lean declaration, and it is deliberately not stated as a \texttt{theorem} environment, so that it cannot be mistaken for a result that is proved or planned.
+
+\emph{The setting.} Let $q$ be the solution of Eq.~(1.74), $\widehat q=\mathbb E\tanh^4 Y$ and $Y=\beta z\sqrt q+h$. ``Beyond the AT line'' means Eq.~(1.266),
+\[
+\beta^2(1-2q+\widehat q)=\beta^2\,\mathbb E\,\frac1{\cosh^4 Y}>1 .
+\]
+The book announces that it will prove \emph{much later} that under~(1.266) the left-hand side of Eq.~(1.171) is bounded below independently of $N$, and hence that for some $\delta>0$ independent of $N$,
+\[
+\frac1N\sum_{M\le N}\nu_M\bigl(|R_{1,2}-q|\bigr)>\delta>0 \qquad(1.267).
+\]
+That later proof is not part of this formalization.
+
+\emph{The problem.} Prove the pointwise-in-$N$ strengthening: beyond the AT line, for \emph{every} $N$ (not only on average over $M\le N$),
+\[
+\nu\bigl(|R_{1,2}-q|\bigr)>\delta \qquad(1.268).
+\]
+Talagrand states that (1.268) can be deduced from (1.267), with considerable work, in many cases, for instance when the external field terms $h_i$ in $\sum_{i\le N}h_i\sigma_i$ are i.i.d.\ Gaussian with non-zero variance, but that it is not known how to prove (1.268) for a constant field $h_i=h\ne0$, which is the case treated in this chapter.
+
+\emph{Relation to what is formalized.} Nothing here proves (1.268). The results of this section are of a different kind. Proposition~1.9.2 gives only the lower bound $\nu(|R_{1,2}-q|^3)\ge\delta\,\nu((R_{1,2}-q)^2)\ge\delta^2/N$ for large $N$, which tends to $0$. Proposition~1.9.5 (for $h\ne0$) and Proposition~1.9.7 give lower bounds on $\nu(\mathbf 1_{\{|R_{1,2}-x|\ge\delta'\}})$ for all centers $x\ge0$ and for large $N$, and the resulting gap in $\psi_N'$. These are exactly the facts the book proves and uses for Theorem~1.9.6, and they are weaker than~(1.268), which asks for a bound on the first absolute moment around $q$ itself, uniform in the system size.
+\end{remark}
+
+\begin{remark}[Existence of the coupled limit $\lim_N\psi_N(\lambda)$ (first half of Theorem~1.9.6): context, importance and plan]
+\label{rem:sg-tal:coupled-limit-existence}
+\talsource{Theorem~1.9.6 and the paragraph after it, Eqs.~(1.283)--(1.286); source lines 4037--4045; reference~[76]}
+\emph{Not formalized.} Theorem~\ref{thm:sg-tal:thm-196} is an implication ``if $\psi_N(\lambda)$ converges pointwise near $0$ then the limit is not differentiable at $0$''; the convergence is a hypothesis. This remark explains what is missing, why the book does not prove it, how much it matters, and how it could be proved.
+
+\emph{Context.} Two copies of the SK system, with the same disorder $g$ and field $h$, are coupled by the term $\lambda N R_{1,2}$ (Eq.~(1.283)); the coupled free energy is $\psi_N(\lambda)=\frac1N\mathbb E\log\langle\exp\lambda NR_{1,2}\rangle$ (Eq.~(1.286)). It is convex with $\psi_N'(\lambda)=\mathbb E\langle R_{1,2}\rangle_\lambda$. The physical content of Theorem~1.9.6 is that, beyond the Almeida--Thouless line, an arbitrarily small coupling $\lambda$ changes the mean overlap by at least $\delta'/2$: the replica-symmetric solution, in which $R_{1,2}$ concentrates at one value $q$, is unstable. Proposition~1.9.7 proves this for every large finite $N$ (Theorem~\ref{thm:sg-tal:prop-197}). To state the result as a property of a \emph{function} $\psi$ one needs a limit; Talagrand then deduces non-differentiability of $\psi$ at $0$ from convexity and Griffiths' lemma (Theorem~\ref{thm:sg-tal:convex-kink}, which is formalized).
+
+\emph{What the book does.} Talagrand writes that the existence of $\lim_N\psi_N(\lambda)$ ``is only a side story'' which ``requires significant work'', and refers to Guerra and Toninelli [76] for a proof. That reference is F.~Guerra and F.~L.~Toninelli, \emph{The infinite volume limit in generalized mean field disordered models}, Markov Process. Related Fields 9 (2003), 195--207, arXiv:cond-mat/0208579, which extends their interpolation proof of the existence of the SK limit (Theorem~1.3.9, already formalized as \texttt{GuerraToninelli.lean}) to several replicas coupled through functions of their mutual overlaps. The book proves nothing about it, so the Lean theorem keeps the convergence as an explicit hypothesis, which is faithful to the book.
+
+\emph{Is it important to formalize?} Low to moderate. (i) The mathematical content the book calls ``important'' (the instability, and non-differentiability of any limit) is already proved: for every large $N$ by Proposition~1.9.7, and for any pointwise limit by Theorem~\ref{thm:sg-tal:thm-196}. (ii) No later result of the volume uses the existence of the limit. (iii) What is lost without it is only the literal first sentence of Theorem~1.9.6, ``$\psi(\lambda)$ exists for all $\beta,h$''; this is the reason the milestone box for Section~1.9 stays unticked. (iv) The cost is high: it is a research-paper proof, not a corollary of results here. It should be done after Section~1.10 and Hanen's theorem, and only on an explicit scope decision.
+
+\emph{Cheap partial result that avoids the limit (not yet formalized).} Each $\psi_N$ is convex with $\psi_N(0)=0$ and $|\psi_N'|\le1$ (because $|R_{1,2}|\le1$), hence the family is equi-Lipschitz on compact sets. By the Arzela--Ascoli theorem every subsequence has a further subsequence converging locally uniformly to a convex function, and the filter-generalized kink theorem (Theorem~\ref{thm:sg-tal:convex-kink}) applied along that subsequence shows that \emph{every} subsequential limit is non-differentiable at $0$. In particular the sequence $\psi_N$ cannot converge to a function that is differentiable at $0$. This uses only existing results and compactness, and is the natural unconditional substitute for the existence of the limit.
+
+\emph{General approach to the existence proof (Guerra--Toninelli).} Write $p_N(\lambda)=\frac1N\mathbb E\log Z_{N,\lambda}$, so that $\psi_N(\lambda)=p_N(\lambda)-p_N(0)$ and $p_N(0)=2\cdot\frac1N\mathbb E\log Z_N$ has a limit by Theorem~1.3.9. It remains to show that $p_N(\lambda)$ converges.
+\begin{enumerate}
+\item \emph{A priori bounds.} $-2|h|-|\lambda|\le p_N(\lambda)\le 2\log2+2|h|+|\lambda|+\beta^2$, by one configuration for the lower bound and Jensen with Gaussian exponential moments for the upper bound.
+\item \emph{Interpolation.} Split $N=n+m$ and compare the glued system with two independent blocks of sizes $n$ and $m$ along the trigonometric (cosine/sine) Gaussian interpolation path used throughout this chapter. The derivative is $\sin t\cos t\,\mathbb E\langle D(a,a)-D(a,b)\rangle_t$ with $D=\mathrm{Cov}(\text{blocks})-\mathrm{Cov}(\text{glued})$ on pair configurations. For a single SK system $D(a,a)=0$ and $D(a,b)$ has a sign, which gives superadditivity and Fekete's lemma. For coupled replicas this fails: $D(a,a)=\beta^2\bigl(c\,(r^1(a)-r^2(a))^2-2\bigr)$ depends on the internal overlaps $r^1,r^2$ of the two blocks (with $c=nm/N$), and explicit four-site examples have either sign for the integrand. A direct superadditivity proof is therefore not available.
+\item \emph{Restriction to overlap cells (the Guerra--Toninelli idea).} Partition pair configurations into finitely many cells in which the internal overlap is fixed up to a width $\eta$, with the number of cells bounded independently of $N$. On a pair of matching cells $|r^1-r^2|\le\eta$, so the diagonal defect is at most $\beta^2c\eta^2$ and the comparison holds up to an explicit error. This needs restricted partition sums, a rule for gluing block cells into a global cell, and a recombination over cells. One must not replace the expectation of the random maximum over cells by the maximum of the expectations; concentration of the restricted log-partition functions controls this.
+\item \emph{Approximate superadditivity and the limit.} The outcome is $p_{n+m}\ge\frac{n}{n+m}p_n+\frac{m}{n+m}p_m-\varepsilon(\eta)-o(1)$ with $\varepsilon(\eta)\to0$; a Fekete-type lemma for approximately superadditive sequences (de~Bruijn--Erd\H{o}s type) then yields convergence. A geometric subsequence of sizes is not enough: the limit must be proved for every $N$.
+\end{enumerate}
+Step~2 shows why the closure draft's proposal of an unrestricted comparison was withdrawn: it had the sign reversed and ignored the dependence of the diagonal on the self-overlap (see the closure review in the repository documents). The Gaussian estimates of Step~1 and the interpolation derivative are already available (\texttt{hasDerivAt\_integral\_log\_sum\_exp\_trig} and the Gaussian-comparison file); the new work is Steps~3 and~4.
 \end{remark}
 
 \section{Central Limit Theorem for the Overlaps (Talagrand Section~1.10)}\label{sec:sg-tal:overlap-clt}
