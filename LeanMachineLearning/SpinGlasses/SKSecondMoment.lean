@@ -406,6 +406,15 @@ theorem tanh_fourth_sub_two_add_one_mem_Icc (w h : ℝ) :
       2 * (∫ z : ℝ, Real.tanh (w * z + h) ^ 2 ∂(gaussianReal 0 1)) + 1 ∈ Set.Icc (0 : ℝ) 1 :=
   probability_tanh_fourth_sub_two_add_one_mem_Icc (fun z => w * z + h) (by fun_prop)
 
+/-- At a fixed point `q` of (1.74), the Almeida-Thouless quantity
+`𝔼 tanh⁴ (β z √q + h) - 2 q + 1 = 1 - 2q + q̂` lies in `[0, 1]`. -/
+theorem tanh_fourth_sub_two_mul_add_one_mem_Icc_of_fixedPoint {β q h : ℝ}
+    (hfix : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂(gaussianReal 0 1) = q) :
+    (∫ z : ℝ, Real.tanh (β * z * Real.sqrt q + h) ^ 4 ∂(gaussianReal 0 1)) - 2 * q + 1 ∈
+      Set.Icc (0 : ℝ) 1 := by
+  have := tanh_fourth_sub_two_add_one_mem_Icc (β * Real.sqrt q) h
+  rwa [hfix, ← integral_tanh_pow_mul_z_sqrt_eq β q h 4] at this
+
 /-- Generic four-variable rectangle bound: `((x₀ - x₁)(x₂ - x₃))² ≤ 16` for `|x_i| ≤ 1`. -/
 theorem sq_rect_le_of_abs_le_one {x₀ x₁ x₂ x₃ : ℝ}
     (h0 : |x₀| ≤ 1) (h1 : |x₁| ≤ 1) (h2 : |x₂| ≤ 1) (h3 : |x₃| ≤ 1) :

@@ -7,6 +7,7 @@ module
 
 public import Mathlib.Analysis.Convex.Mul
 public import Mathlib.Algebra.Order.Ring.Abs
+public import Mathlib.Algebra.BigOperators.Field
 public import Mathlib.Analysis.SpecialFunctions.Pow.Real
 public import Mathlib.Basic.Real.ConjExponents
 public import Mathlib.Analysis.Complex.ExponentialBounds
@@ -27,6 +28,8 @@ public import Mathlib.Analysis.Complex.ExponentialBounds
   `0 ≤ (u+1)^{p+2} - u^{p+2} - (p+2) u^{p+1} ≤ (p+2)(p+1)(u+1)^p` for `u ≥ 0`.
 * `Real.pow_le_factorial_mul_exp`: `y^r ≤ r! exp y` for `y ≥ 0` (a one-line form of
   `Real.pow_div_factorial_le_exp`, used to bound moments by exponential moments).
+* `abs_inv_succ_mul_sum_sub_le`: a sum of `m` errors of order `(N+1)^(-(k+1)/2)`, multiplied by
+  `(N+1)⁻¹`, has order `(N+1)^(-(k+3)/2)`.
 -/
 
 @[expose] public section
@@ -309,3 +312,27 @@ theorem pow_succ_sub_pow_sub_mul_le {u : ℝ} (hu : 0 ≤ u) (p : ℕ) :
               (p + 2 : ℝ) * (p + 1 : ℝ) * (u + 1) ^ (p + 1) := by ring
           rw [key]
           nlinarith [mul_nonneg (by positivity : (0 : ℝ) ≤ p + 2) (pow_nonneg hu1 (p + 1))]
+
+/-- Averaging errors of order `(N+1)^(-(k+1)/2)` over a finite index set and multiplying by
+`(N+1)⁻¹` gives an error of order `(N+1)^(-(k+3)/2)`, with the summed constants. -/
+theorem abs_inv_succ_mul_sum_sub_le {U : Type*} [Fintype U] (X Y C : U → ℝ) (k N : ℕ)
+    (h : ∀ i, |X i - Y i| ≤ C i / ((N : ℝ) + 1) ^ (((k + 1 : ℕ) : ℝ) / 2)) :
+    |(N + 1 : ℝ)⁻¹ * (∑ i, X i) - (N + 1 : ℝ)⁻¹ * ∑ i, Y i| ≤
+      (∑ i, C i) / ((N : ℝ) + 1) ^ (((k + 3 : ℕ) : ℝ) / 2) := by
+  have hrpow : ((N : ℝ) + 1) ^ (((k + 3 : ℕ) : ℝ) / 2) =
+      ((N : ℝ) + 1) * ((N : ℝ) + 1) ^ (((k + 1 : ℕ) : ℝ) / 2) := by
+    rw [show (((k + 3 : ℕ) : ℝ) / 2) = 1 + (((k + 1 : ℕ) : ℝ) / 2) by push_cast; ring,
+      Real.rpow_add (by positivity), Real.rpow_one]
+  have he : (N + 1 : ℝ)⁻¹ * (∑ i, X i) - (N + 1 : ℝ)⁻¹ * ∑ i, Y i =
+      (N + 1 : ℝ)⁻¹ * ∑ i, (X i - Y i) := by
+    rw [Finset.sum_sub_distrib, mul_sub]
+  rw [he, abs_mul, abs_of_nonneg (by positivity : 0 ≤ (N + 1 : ℝ)⁻¹)]
+  calc
+    _ ≤ (N + 1 : ℝ)⁻¹ * ∑ i : U, |X i - Y i| :=
+      mul_le_mul_of_nonneg_left (Finset.abs_sum_le_sum_abs _ _) (by positivity)
+    _ ≤ (N + 1 : ℝ)⁻¹ * ∑ i : U, C i / ((N : ℝ) + 1) ^ (((k + 1 : ℕ) : ℝ) / 2) :=
+      mul_le_mul_of_nonneg_left (Finset.sum_le_sum fun i _ => h i) (by positivity)
+    _ = _ := by
+      rw [← Finset.sum_div, hrpow]
+      simp only [div_eq_mul_inv, mul_inv_rev]
+      ring

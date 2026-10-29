@@ -269,11 +269,7 @@ theorem sk_cavity_fresh_pair_recurrence_uniform (β₀ : ℝ) (hβ₀ : 4 * β�
     simpa only [one_mul, Pi.sub_apply, Fintype.card_coe, Λ, LinearMap.coe_mk,
       AddHom.coe_mk] using hd
   have hα : |α| ≤ 1 := by
-    have hfixz : ∫ t : ℝ, Real.tanh (β * t * Real.sqrt q + h) ^ 2
-        ∂gaussianReal 0 1 = q := by rw [integral_tanh_pow_mul_z_sqrt_eq, hfix]
-    have hh := probability_tanh_fourth_sub_two_add_one_mem_Icc
-      (P := gaussianReal 0 1) (fun t : ℝ => β * t * Real.sqrt q + h) (by fun_prop)
-    rw [hfixz] at hh
+    have hh := tanh_fourth_sub_two_mul_add_one_mem_Icc_of_fixedPoint hfix
     exact abs_le.mpr ⟨by linarith only [hh.1], hh.2⟩
   have hcoef : |β ^ 2 * α * (Fm - F)| ≤ β₀ ^ 2 * C₃ / d := by
     have hβα : β ^ 2 * |α| ≤ β₀ ^ 2 :=

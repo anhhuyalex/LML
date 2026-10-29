@@ -24,8 +24,9 @@ products of finite linear combinations. `SKCavityHigherOrderCorollary.lean` prov
 of Corollary 1.10.3, retaining independence from the third replica in Eq. (1.302).
 `FreshReplicas.lean` (in `ForMathlib`) proves the replica-mean substitution (1.305), and
 `SKOverlapCLTStep.lean` proves the last-site expansion (1.309)-(1.311) with its `O(k+1)`
-remainder. The evaluation of the term I (1.312) and the induction of Propositions 1.10.4, 1.10.5
-and Theorem 1.10.1 remain open.
+remainder; `SKOverlapCLTTermIMultiplicity.lean` evaluates the term I (1.312),
+`SKOverlapCLTPairMoments.lean` proves (1.313) and `SKOverlapCLTPairGaussian.lean` proves
+Proposition 1.10.4. Propositions 1.10.5 and Theorem 1.10.1 remain open.
 
 An earlier version of this file declared statements with those names; they
 were vacuous (an existential remainder chosen to be zero, or a hypothesis returned as the

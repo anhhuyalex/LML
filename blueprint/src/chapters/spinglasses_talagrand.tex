@@ -7045,10 +7045,446 @@ One may choose the new constant as
 $K_{s,p}+|w(s,p)|\,|B|K_{D(s,p)}+1$, before $\theta,N$.
 \end{proof}
 
-\begin{remark}[Statements of Propositions~1.10.4, 1.10.5 and Theorem~1.10.1 (planned, not proved)]
+\begin{theorem}[Gaussian class-product reference for a two-factor recurrence]
+\label{thm:sg-tal:gaussian-class-reference}
+\lean{ProbabilityTheory.exists_gaussian_class_moment_error}
+\leanok
+\talsource{The reference identity in the induction of Propositions~1.10.4--1.10.5}
+Let $P$ select factors of a type $J$, let $\mathrm{label}:J\to\iota$ be a class label with $\iota$ finite,
+and let $F_\theta(N,s)$ be real for finite $s\subseteq J$ and parameters $\theta$ in a prescribed
+domain, with $0\le c_\theta\le B$. For every $p\in s$ with $P(p)$ and every $u\in s$ that is,
+when the class of $p$ in $s$ has another member, one of those members, assume a constant
+$K\ge0$, chosen before $\theta,N$, with
+\[
+ \Big|F_\theta(N,s)-\frac{(m-1)\,c_\theta}{N+1}F_\theta(N,(s\setminus\{p\})\setminus\{u\})\Big|
+ \le\frac{K}{(N+1)^{(|s|+1)/2}},
+\]
+where $m$ is the number of selected factors of $s$ with the label of $p$. Then for every finite $s$
+there is $K_s>0$, chosen before $\theta,N$, with
+\[
+ \Big|F_\theta(N,s)-\prod_{k\in\iota}\mathbb E\big(\sqrt{c_\theta/(N+1)}\,g\big)^{m_k(s)}
+ \cdot F_\theta\big(N,\{j\in s:\neg P(j)\}\big)\Big|\le\frac{K_s}{(N+1)^{(|s|+1)/2}},
+\]
+where $g$ is a standard Gaussian and $m_k(s)$ the number of selected factors of label $k$.
+\end{theorem}
+\begin{proof}
+\leanok
+The Gaussian moments $f(n)=\mathbb E(sg)^n$ satisfy $f(0)=1$, $f(1)=0$ and
+$f(n+2)=(n+1)s^2f(n)$ by Gaussian integration by parts. A product over classes of such moments
+then satisfies the same two-factor recurrence with the multiplicity $m-1$, because deleting two
+members of one class lowers only that class size by two and singleton classes vanish. The
+reference $G=\prod_kf(m_k)\,F(\{\neg P\})$ agrees with $F$ on sets without selected factors and
+satisfies the recurrence exactly. Apply Theorem~\ref{thm:sg-tal:finite-moment-induction}.
+\end{proof}
+
+\begin{theorem}[Proposition 1.10.4, enumerated form]
+\label{thm:sg-tal:prop-1104}
+\lean{SpinGlasses.sk_T_pair_gaussian_moment_uniform, SpinGlasses.sk_T_pair_odd_class_moment_uniform, ProbabilityTheory.integral_pow_scaled_gaussianReal_of_odd}
+\leanok
+\uses{thm:sg-tal:gaussian-class-reference, thm:sg-tal:pair-factor-recurrence}
+\talsource{Proposition~1.10.4, Eq.~(1.303)}
+Let $4\beta_0^2<1$, $R$ a finite linearly ordered set of replica labels and $J$ a type of factors
+$j$ carrying flags $L_j,S_j\in\{0,1\}$ and labels $a_j,b_j\in R$, with $a_j<b_j$ when both flags
+are set (pair factor). Let $T_j=\frac1{N+1}\sum_iX_iY_i-q\,[L_j=S_j=0]$ be the $T$-basis variable, where
+$X_i=\sigma^{a_j}_i-b_i$ if $L_j=1$ and $X_i=b_i$ otherwise, $Y_i$ likewise with $S_j$ and $b_j$, and
+$b_i=\langle\sigma_i\rangle$ is the actual Gibbs mean at the sampled disorder. For a finite set $s$ of
+factors there is $C>0$, chosen before $\beta,h,q,N$, such that for $\beta^2\le\beta_0^2$, $q$ the
+fixed point of (1.74), every $N$, and $A^2=(1-2q+\hat q)/(1-\beta^2(1-2q+\hat q))$,
+\[
+ \Big|\nu\Big(\prod_{j\in s}T_j\Big)-\prod_{(x,y)\in R^2}\mathbb E\Big(\tfrac{A}{\sqrt{N+1}}g\Big)^{m_{xy}(s)}
+ \cdot\nu\Big(\prod_{j\in s,\ \text{not a pair factor}}T_j\Big)\Big|\le\frac{C}{(N+1)^{(|s|+1)/2}},
+\]
+where $m_{xy}(s)$ is the number of pair factors of $s$ with labels $(x,y)$. The Gaussian moment
+equals $a(m)A^m(N+1)^{-m/2}$, vanishes for odd $m$ and satisfies $a(m)=(m-1)a(m-2)$.
+In particular, if some ordered pair label occurs an odd number of times among the pair factors of
+$s$ (\texttt{sk\_T\_pair\_odd\_class\_moment\_uniform}, with the odd scaled Gaussian moments
+\texttt{integral\_pow\_scaled\_gaussianReal\_of\_odd}), then $|\nu(\prod_{j\in s}T_j)|\le C(N+1)^{-(|s|+1)/2}$.
+\end{theorem}
+\begin{proof}
+\leanok
+The pair recurrence (1.313) on finite factor sets is divided by
+$1-\beta^2(1-2q+\hat q)\ge3/4$ (here $0\le1-2q+\hat q\le1$ and $\beta^2<1/4$), giving the coefficient
+$A^2/(N+1)$ bounded by $4/3$. Apply Theorem~\ref{thm:sg-tal:gaussian-class-reference} with
+$P$ the pair flag and label $(a_j,b_j)$.
+\end{proof}
+
+\begin{theorem}[Decoupled contraction of a leading single factor]
+\label{thm:sg-tal:single-contraction}
+\lean{SpinGlasses.sk_cavity_decoupled_single_monomial, SpinGlasses.sk_cavity_decoupled_single_lincomb, SpinGlasses.sk_cavity_decoupled_fresh_single}
+\leanok
+\talsource{Proposition~1.10.5, the evaluation of $\nu_0(\varepsilon(1)\varepsilon(v))=q-\hat q$ behind (1.316)}
+Let $x_1,x_2,y$ be replicas with $x_1\ne y\ne x_2$, and $(a_i,b_i)_i$ finitely many pairs with
+$a_i\ne b_i$ and $y\notin\{a_i,b_i\}$. For an arbitrary observable $G$ of the old spins, the
+decoupled endpoint average of
+$G\,(\varepsilon_{x_1}-\varepsilon_{x_2})\,\varepsilon_y\sum_ic_i\varepsilon_{a_i}\varepsilon_{b_i}$
+equals
+\[
+ (q-\hat q)\sum_ic_i\big(\#(\{x_1\}\cap\{a_i,b_i\})-\#(\{x_2\}\cap\{a_i,b_i\})\big)
+ \cdot\nu_0(G),\qquad \hat q=\mathbb E\tanh^4(\beta\sqrt q\,z+h).
+\]
+Here $q$ is the fixed point of (1.74). This is the single-type analogue of the coefficient
+$1-2q+\hat q$ of the rectangular factor.
+For fresh flagged partner factors (the form used in the replica substitution (1.305)) the
+leading factor $(\varepsilon_x-\varepsilon_{p})\varepsilon_{p'}$ against a flagged partner with
+flags $(L,S)$ and labels $(a,b)$ has coefficient
+$(q-\hat q)\big([L\wedge\neg S][x=a]+[S\wedge\neg L][x=b]\big)$: only a single partner
+with the same label survives.
+\end{theorem}
+\begin{proof}
+\leanok
+Expand $(\varepsilon_{x_1}-\varepsilon_{x_2})$; each term is a decoupled average of four last
+spins, equal to $\mathbb E\tanh^{4-2c}$ with $c$ the number of coincidences. Since $y\notin\{a,b\}$ the
+exponent is $4$ or $2$, and the difference of the two terms is $(q-\hat q)$ times the signed
+membership. The linear combination follows from linearity of the nested Gibbs average.
+\end{proof}
+
+\begin{theorem}[Quantitative contractions and multiplicity for a leading single factor]
+\label{thm:sg-tal:single-term-I}
+\lean{SpinGlasses.sk_cavity_prod_contraction_compare, SpinGlasses.sk_cavity_fresh_single_product_compare, SpinGlasses.sk_cavity_fresh_single_term_sum_compare, SpinGlasses.sk_cavity_single_term_I_multiplicity}
+\leanok
+\uses{thm:sg-tal:single-contraction, thm:sg-tal:term-I-multiplicity}
+\talsource{Proposition~1.10.5, Eq.~(1.316)}
+Let $4\beta_0^2<1$. Let $J$ be a finite set of factors with flags $(L_j,S_j)\in
+\{(1,1),(1,0),(0,0)\}$ (pair, single, global), labels $a_j,b_j$ with $a_j\ne b_j$ for pairs, and let
+$p$ be a single factor. With $d=q-\hat q$, $\hat q=\mathbb E\tanh^4(\beta\sqrt q\,z+h)$, and
+$\mathrm{cls}$ the set of single factors with the label of $p$, there is $C>0$, chosen before
+$\beta,h,q,N$ and all labels, such that for $\beta^2\le\beta_0^2$, $q$ the fixed point of (1.74), and
+$u_0\in\mathrm{cls}\setminus\{p\}$ when this set is nonempty,
+\[
+ \Big|\tfrac1{N+1}\sum_{u\ne p}\nu\big(U_p^{\mathrm{last}}U_u^{\mathrm{last}}\!\!\prod_{j\ne p,u}U_j^-\big)
+ -\tfrac{d\,(|\mathrm{cls}|-1)}{N+1}\,\nu\Big(\prod_{j\ne p,u_0}U_j^-\Big)\Big|
+ \le\frac{C}{(N+1)^{(|J|+1)/2}}.
+\]
+Here $U_j^-$ are the truncated centered overlaps of the fresh factors and $U^{\mathrm{last}}$ the
+last-site factors, as in Theorem~\ref{thm:sg-tal:term-I-multiplicity}. The generic comparison
+\texttt{sk\_cavity\_prod\_contraction\_compare} (a bounded last-site factor with an exact
+decoupled contraction) is shared with the pair case.
+\end{theorem}
+\begin{proof}
+\leanok
+Compare the full average with the decoupled one by Eq.~(1.298) for the product with and without
+the last-site factor; the exact contraction is Theorem~\ref{thm:sg-tal:single-contraction}. Sum over
+partners $u$, using that errors of order $(N+1)^{-(k+1)/2}$ averaged with $(N+1)^{-1}$ have order
+$(N+1)^{-(k+3)/2}$. Only singles with the label of $p$ contribute, with coefficient $d$; the matching
+deleted products have equal expectation by the replica symmetry of the fresh factors.
+\end{proof}
+
+\begin{theorem}[Single-factor feedback, Eqs.~(1.317)--(1.318)]
+\label{thm:sg-tal:single-feedback}
+\lean{SpinGlasses.sk_cavity_fresh_single_feedback_uniform}
+\leanok
+\uses{thm:sg-tal:pair-factor-recurrence, thm:sg-tal:single-term-I}
+\talsource{Proposition~1.10.5, Eqs.~(1.317), (1.318); Corollary~1.10.3, Eq.~(1.302)}
+Let $4\beta_0^2<1$, and let $J$ be a finite set of fresh factors with flags $(L_j,S_j)$ and labels
+$a_j,b_j$, with $a_j\ne b_j$ for pairs, and $p$ a single factor ($L_p=1$, $S_p=0$). Let
+$Q=R\sqcup(J\sqcup J)$ be the replica space, $V_j$ the truncated fresh-overlap kernels, and
+$F=\prod_{j\ne p}V_j$, which does not depend on the last fresh replica $p'$ of $p$.
+There is $C>0$, chosen before $\beta,h,q,N$, such that for $\beta^2\le\beta_0^2$ and $q$ the
+fixed point of (1.74),
+\[
+ \Big|\nu\big(F\,(\varepsilon_{a_p}-\varepsilon_{p})\varepsilon_{p'}\big)
+ -\beta^2(1-4q+3\hat q)\,(\mathrm J_{a_p,p'}-\mathrm J_{p,p'})
+ -\beta^2(q-\hat q)\sum_\ell\big(\mathrm J_{a_p,\ell}-\mathrm J_{p,\ell}-\mathrm J_{a_p,*}+\mathrm J_{p,*}\big)\Big|
+ \le\frac{C}{(N+1)^{(|J|+1)/2}},
+\]
+where $\mathrm J_{x,y}=\nu_2\big(F\,(R^-_{x,y}-q)\big)$ is computed with two extra replicas
+$*$ and one more, and $\ell$ ranges over $Q\setminus\{a_p,p,p'\}$.
+\end{theorem}
+\begin{proof}
+\leanok
+Transport $Q$ and the two extra replicas to $\mathrm{Fin}$ by the Gibbs reindexing theorem and
+apply Corollary~1.10.3 (1.302) in its uniform form. The independence hypothesis holds because the
+labels of the other factors are distinct from $p'$ for $j\ne p$. The sum over $\ell$ is transported
+back by the equivalence.
+\end{proof}
+
+\begin{theorem}[Single-factor recurrence with the term II, Eq.~(1.320) before (1.319)]
+\label{thm:sg-tal:single-recurrence}
+\lean{SpinGlasses.sk_cavity_fresh_single_recurrence_uniform, SpinGlasses.abs_sub_integral_tanh_fourth_le_one_of_fixedPoint, SpinGlasses.abs_one_sub_four_mul_add_three_mul_le}
+\leanok
+\uses{thm:sg-tal:last-site-step, thm:sg-tal:single-term-I, thm:sg-tal:single-feedback}
+\talsource{Proposition~1.10.5, Eqs.~(1.315)--(1.320)}
+In the setting of Theorem~\ref{thm:sg-tal:single-term-I}, with $p$ a single factor, $\mathrm{cls}$ the
+singles with the label of $p$, $u_0\in\mathrm{cls}\setminus\{p\}$, $\hat q=\mathbb E\tanh^4$ and
+$\mathrm{II}$ the sum over replicas of Theorem~\ref{thm:sg-tal:single-feedback}, there is $C>0$,
+chosen before $\beta,h,q,N$, such that
+\[
+ \Big|\big(1-\beta^2(1-4q+3\hat q)\big)\,\nu\Big(\prod_{j\in J}U_j\Big)
+ -\frac{(q-\hat q)(|\mathrm{cls}|-1)}{N+1}\,\nu\Big(\prod_{j\ne p,u_0}U_j\Big)
+ -\beta^2(q-\hat q)\,\mathrm{II}\Big|\le\frac{C}{(N+1)^{(|J|+1)/2}}.
+\]
+\end{theorem}
+\begin{proof}
+\leanok
+Add the errors of the last-site expansion (1.310), the feedback (1.317), the multiplicity count
+(1.316) and the truncated-to-full comparisons. The coefficients $|1-4q+3\hat q|\le3$ and
+$|q-\hat q|\le1$ follow from $0\le\hat q\le q\le1$. The difference of the two increments
+$\mathrm J_{a_p,p'}-\mathrm J_{p,p'}$ equals $\nu(\prod_jV_j)$ by marginalizing the two extra replicas.
+\end{proof}
+
+\begin{theorem}[Expansion of products of T-sums with live replicas]
+\label{thm:sg-tal:live-T-expansion}
+\lean{SpinGlasses.sk_live_T_expansion_exact, SpinGlasses.sk_live_T_expansion_uniform, SpinGlasses.sk_live_T_drop_pair_terms_uniform, SpinGlasses.sk_live_T_square_factor_uniform, SpinGlasses.integrable_integral_pi_count_tilted_of_bound, SpinGlasses.integral_integral_pi_count_tilted_finset_sum}
+\leanok
+\uses{thm:sg-tal:prop-1104}
+\talsource{Proposition~1.10.5, Eqs.~(1.324) and the discussion after it}
+Let $K$ be a finite set of factors, $M$ a finite set of term indices, and $T(l,s;x,y)$ the
+$T$-basis variable with flags $l,s\in\{0,1\}$ and live replica labels $x,y$ (pair if both flags
+are set, single if one, global if none). For coefficients $\gamma_{k,m}$ the exact identity
+$\nu(\prod_k\sum_m\gamma_{k,m}T_{k,m})=\sum_{f:K\to M}\prod_k\gamma_{k,f(k)}\,\nu(\prod_kT_{k,f(k)})$
+holds, and each monomial is within $C(N+1)^{-(|K|+1)/2}$ of its Gaussian reference
+(Proposition~1.10.4), with $C$ chosen before $\beta,h,q,N$. Consequently:
+(i) if the pair labels of different factors are pairwise distinct, all pair terms may be
+dropped at the cost of $O(k+1)$; (ii) if moreover a square $T(1,1;u,v)^2$ multiplies the product
+and no other pair label equals $\{u,v\}$, then the product equals $\frac{A^2}{N+1}$ times
+the product with the pair terms dropped, up to $O(k+1)$, where $A^2=\alpha/(1-\beta^2\alpha)$.
+\end{theorem}
+\begin{proof}
+\leanok
+Expand the product by distributivity; the interchange of the disorder integral with the finite
+sum uses the boundedness and measurability in the disorder of the $T$-factors. Apply
+Proposition~\ref{thm:sg-tal:prop-1104} to each monomial. A monomial with a pair factor whose label is
+unique has a class of size one, whose Gaussian moment vanishes; a monomial whose only repeated
+label is $\{u,v\}$, occurring twice, has the second Gaussian moment $A^2/(N+1)$.
+\end{proof}
+
+\begin{theorem}[The increment against products of overlap polynomials]
+\label{thm:sg-tal:increment-products}
+\lean{SpinGlasses.sk_live_inc_unmatched_uniform, SpinGlasses.sk_live_inc_matched_uniform, SpinGlasses.sk_live_sp_two_special_uniform, SpinGlasses.sk_live_sp_pair_only_uniform, SpinGlasses.sk_live_sp_drop_pair_uniform, SpinGlasses.sk_live_sp_square_uniform, SpinGlasses.sum_flag_T_factor_eq_overlap, SpinGlasses.sum_sign_overlap_eq_pair_T}
+\leanok
+\uses{thm:sg-tal:live-T-expansion}
+\talsource{Proposition~1.10.5, the proof of (1.319): which terms of the expansion of $\prod U(v)$ can be matched}
+Let $4\beta_0^2<1$ and let $\mathrm{Inc}=\sum_{i_1,i_2}s_{i_1}s_{i_2}(R_{X_{i_1},Y_{i_2}}-q)$ be an increment
+(signs $s_{\pm}=\pm1$) and $U_b=\sum_ic_{b,i}(R_{A_{b,i},B_{b,i}}-q)$ finitely many overlap polynomials
+on live replicas, with $A_{b,i}\ne B_{b,i}$ and $X_{i_1}\ne Y_{i_2}$. (i) If the unordered pair labels of
+the increment, and those of the factors with nonzero coefficient, are pairwise different across
+different factors, then $|\nu(\mathrm{Inc}\prod_bU_b)|\le C(N+1)^{-(|B|+2)/2}$. (ii) If a further
+factor $U_u=\sum_ic^u_i(R_{A^u_i,B^u_i}-q)$ shares exactly one pair label with $\mathrm{Inc}$ (that of
+the term $i=(1,1)$, where $c^u_{(1,1)}=1$ and the labels agree) and all other pair labels are distinct,
+then
+\[
+ \nu\Big(\mathrm{Inc}\,U_u\prod_bU_b\Big)=\frac{A^2}{N+1}\,\nu\Big(\prod_bU_b\Big)+O\big((N+1)^{-(|B|+3)/2}\big),
+ \quad A^2=\frac{1-2q+\hat q}{1-\beta^2(1-2q+\hat q)},
+\]
+with $C$ chosen before $\beta,h,q,N$ (here $\nu$ is the average over live replicas, with the
+Gibbs mean $b$ of the sampled disorder).
+\end{theorem}
+\begin{proof}
+\leanok
+By (1.246), $R_{xy}-q=\sum_{l,s}T(l,s;x,y)$ pointwise, and the increment equals its pair form (all single and global
+terms cancel because the signs sum to zero). Expand by Theorem~\ref{thm:sg-tal:live-T-expansion}. In (i)
+the increment is a pair-only factor with a unique label, hence each monomial has an odd class. In (ii)
+write $\mathrm{Inc}=T_1+\mathrm{Inc}'$, $U_u=T_1+Q_u$ with $T_1=T(1,1;X_{(1,1)},Y_{(1,1)})$;
+then $\mathrm{Inc}\,U_u=T_1^2+\mathrm{Inc}'U_u+T_1Q_u$, the last two are $O(k+1)$ by (i)-type counting
+and $T_1^2$ is handled by the squared-factor part of Theorem~\ref{thm:sg-tal:live-T-expansion}, followed by
+dropping the pair terms of the remaining factors.
+\end{proof}
+
+\begin{theorem}[The hard step (1.319): evaluation of the term II]
+\label{thm:sg-tal:single-II}
+\lean{SpinGlasses.sk_cavity_single_II_eval_uniform, SpinGlasses.sk_single_Y_conv_all_uniform, SpinGlasses.sk_single_Xfull_unmatched_all_uniform, SpinGlasses.sk_single_Xfull_matched_all_uniform, SpinGlasses.sk_inc_prod_full_trunc_uniform, SpinGlasses.sk_fresh_prod_full_trunc_uniform, SpinGlasses.sk_fresh_prod_erase_symm}
+\leanok
+\uses{thm:sg-tal:increment-products, thm:sg-tal:single-feedback, thm:sg-tal:single-recurrence}
+\talsource{Proposition~1.10.5, Eq.~(1.319)}
+In the setting of Theorem~\ref{thm:sg-tal:single-recurrence}, all factors being single or global
+($S_j=0$), let $\mathrm{II}=\sum_\ell\big(\mathrm J_{a_p,\ell}-\mathrm J_{p,\ell}-\mathrm J_{a_p,*}+\mathrm J_{p,*}\big)$
+be the sum of Theorem~\ref{thm:sg-tal:single-feedback} and $u_0\in\mathrm{cls}\setminus\{p\}$. There is $C>0$,
+chosen before $\beta,h,q,N$, with
+\[
+ \Big|\mathrm{II}-(|\mathrm{cls}|-1)\,\frac{A^2}{N+1}\,\nu\Big(\prod_{j\ne p,u_0}V_j\Big)\Big|
+ \le\frac{C}{(N+1)^{(|J|+1)/2}},\qquad A^2=\frac{1-2q+\hat q}{1-\beta^2(1-2q+\hat q)}.
+\]
+\end{theorem}
+\begin{proof}
+\leanok
+Each summand is converted from the truncated increment and product to the full ones, up to $O(k+1)$,
+by adding the increment as one more factor of the truncated-to-full comparison. A replica $\ell$ that is
+not the last fresh replica of a single factor with the label of $p$ contributes $O(k+1)$, and each
+$\ell=$ last fresh replica of such a factor $u$ contributes $\frac{A^2}{N+1}\nu(\prod_{j\ne p,u}U_j)$
+(Theorem~\ref{thm:sg-tal:increment-products}). The $|\mathrm{cls}|-1$ matched products are equal
+by replica symmetry, and are compared with the truncated product once more.
+\end{proof}
+
+\begin{theorem}[Proposition 1.10.5, enumerated form]
+\label{thm:sg-tal:prop-1105}
+\lean{SpinGlasses.sk_T_single_gaussian_moment_uniform, SpinGlasses.sk_T_single_recurrence_uniform, SpinGlasses.sk_T_single_recurrence_finset_uniform, SpinGlasses.sk_cavity_fresh_single_recurrence_final_uniform, SpinGlasses.single_coeff_facts}
+\leanok
+\uses{thm:sg-tal:single-II, thm:sg-tal:single-recurrence, thm:sg-tal:gaussian-class-reference}
+\talsource{Proposition~1.10.5, Eqs.~(1.314), (1.320)}
+Let $4\beta_0^2<1$, and let $J$ be a type of factors with flags $(L_j,S_j)$, $S_j=0$ (single if $L_j=1$,
+global otherwise), and replica labels $a_j\in R$. For every finite set $s$ of factors there is $C>0$,
+chosen before $\beta,h,q,N$, such that for $\beta^2\le\beta_0^2$, $q$ the fixed point of (1.74) and all $N$,
+\[
+ \Big|\nu\Big(\prod_{j\in s}T_j\Big)-\prod_{k\in R}\mathbb E\Big(\tfrac{B}{\sqrt{N+1}}\,g\Big)^{m_k(s)}
+ \nu\Big(\prod_{j\in s,\ \text{global}}T_j\Big)\Big|\le\frac{C}{(N+1)^{(|s|+1)/2}},
+\]
+where $m_k(s)$ is the number of single factors of $s$ with label $k$ and
+$B^2=\dfrac{(q-\hat q)(1+\beta^2A^2)}{1-\beta^2(1-4q+3\hat q)}$, $A^2=\dfrac{1-2q+\hat q}{1-\beta^2(1-2q+\hat q)}$.
+\end{theorem}
+\begin{proof}
+\leanok
+The recurrence with the term II (Theorem~\ref{thm:sg-tal:single-recurrence}) and the evaluation (1.319)
+(Theorem~\ref{thm:sg-tal:single-II}) give (1.320) for the fresh-factor products. Eq.~(1.305)
+converts it to $T$-moments, and the subtype transport to an arbitrary finite factor set. Division by
+$1-\beta^2(1-4q+3\hat q)\ge3/4$ gives the recurrence with coefficient $B^2/(N+1)$, and
+Theorem~\ref{thm:sg-tal:gaussian-class-reference} gives the Gaussian reference.
+\end{proof}
+
+\begin{theorem}[Exact integration of replicas not shared with the other factors]
+\label{thm:sg-tal:replica-integrate-out}
+\lean{MeasureTheory.integral_pi_integrate_out_replica, SpinGlasses.integral_pi_overlap_pendant, SpinGlasses.integral_pi_overlap_block, SpinGlasses.integral_pi_prod_overlap_blocks, SpinGlasses.integral_pi_centered_replica}
+\leanok
+\talsource{Section~1.10, the computation after Eq.~(1.328)}
+Let $\mu$ be a probability measure on a finite set, $\rho=(\rho_r)_{r\in R}$ an i.i.d.\ family with law
+$\mu$, and let $v:\alpha\to\mathbb R^I$ have mean $b$. If $Z(\rho)$ does not depend on the
+coordinate $\rho_d$, then $\mathbb E[Z\,\Phi(\rho,\rho_d)]=\mathbb E[Z\,\mathbb E_t\Phi(\rho,t)]$ when
+$\Phi$ does not depend on $\rho_d$ either. Consequently, for $x\ne d$ and $Z$ independent of $\rho_d$,
+$\mathbb E[Z(R_{xd}-q)]=\mathbb E[Z(\tfrac1N\sum_i v(\rho_x)_ib_i-q)]$; if $Z$ is independent of
+both $\rho_x$ and $\rho_d$ then $\mathbb E[Z(R_{xd}-q)]=\mathbb E[Z]\,T$ with
+$T=\tfrac1N\sum_ib_i^2-q$; a factor that is centered in an absent replica has mean zero; and
+for pairwise disjoint blocks $\{c_u,d_u\}$, $u\in W$, absent from $Z$, one has
+$\mathbb E[Z\prod_{u\in W}(R_{c_ud_u}-q)]=\mathbb E[Z]\,T^{|W|}$.
+\end{theorem}
+\begin{proof}
+\leanok
+Sum over the configurations and split the coordinate $d$ with the equivalence
+\texttt{Equiv.piSplitAt}; the weights of the remaining coordinates factor out and the weights of
+the split coordinate add up to one. The block formula is a finite induction over $W$.
+\end{proof}
+
+\begin{theorem}[The moments $\mathbb E\,T_x^2T^j$, $\mathbb E\,T_{xy}^2T^j$ and $\mathbb E\,T_{xy}T_xT_yT^j$]
+\label{thm:sg-tal:global-moments}
+\lean{SpinGlasses.sk_T_single_square_moment_uniform, SpinGlasses.sk_T_pair_square_moment_uniform, SpinGlasses.sk_T_pair_two_singles_moment_uniform}
+\leanok
+\uses{thm:sg-tal:prop-1105, thm:sg-tal:prop-1104}
+\talsource{Propositions~1.10.4 and 1.10.5, applied in the proof of Theorem~1.10.1}
+Let $4\beta_0^2<1$, $j\in\mathbb N$, $x\ne y$ replicas. There is $C>0$, chosen before
+$\beta,h,q,N$, such that for $\beta^2\le\beta_0^2$ and the fixed point $q$,
+$|\nu(T_x^2T^j)-\tfrac{B^2}{N+1}\nu(T^j)|\le C(N+1)^{-(j+3)/2}$,
+$|\nu(T_{xy}^2T^j)-\tfrac{A^2}{N+1}\nu(T^j)|\le C(N+1)^{-(j+3)/2}$ and
+$|\nu(T_{xy}T_xT_yT^j)|\le C(N+1)^{-(j+4)/2}$, where $\nu(T^j)=\mathbb E\,T^j$.
+\end{theorem}
+\begin{proof}
+\leanok
+Apply Proposition~1.10.5 to two single factors with the label $x$ and $j$ global factors, and
+Proposition~1.10.4 to one squared pair, or to one pair with an odd class size.
+\end{proof}
+
+\begin{theorem}[The overlap against a product of blocks]
+\label{thm:sg-tal:blocks-classification}
+\lean{SpinGlasses.sk_overlap_blocks_uniform, SpinGlasses.sk_overlap_blocks_untouched_exact, SpinGlasses.sk_overlap_blocks_one_touched_uniform, SpinGlasses.sk_overlap_blocks_same_uniform, SpinGlasses.sk_overlap_blocks_two_touched_uniform}
+\leanok
+\uses{thm:sg-tal:replica-integrate-out, thm:sg-tal:global-moments}
+\talsource{Section~1.10, the computation of $\nu((R_{\ell\ell'}-q)f)$ after Eq.~(1.328)}
+Let $\{c_u,d_u\}_{u\in U}$ be pairwise disjoint blocks of replicas, $m=|U|$, and $x\ne y$ replicas.
+Let $t$ be the number of members of $\{x,y\}$ lying in a block and $e=1$ if $\{x,y\}$ is a block, $0$
+otherwise. Then there is $C>0$, chosen before $\beta,h,q,N$, with
+\[
+ \Big|\nu\Big((R_{xy}-q)\prod_{u\in U}(R_{c_ud_u}-q)\Big)-\nu(T^{m+1})-\frac{tB^2+eA^2}{N+1}\,\nu(T^{m-1})\Big|\le\frac{C}{(N+1)^{(m+2)/2}}.
+\]
+\end{theorem}
+\begin{proof}
+\leanok
+Integrate out the replicas that occur in no other factor (Theorem~\ref{thm:sg-tal:replica-integrate-out}):
+blocks not meeting $\{x,y\}$ become $T$, a partner of $x$ becomes the mean, so the average is a polynomial in $T$,
+$T_x$, $T_y$, $T_{xy}$ in which all mixed terms with a replica entering once vanish exactly.
+The surviving monomials are $T^{m+1}$, $T_x^2T^{m-1}$, $T_y^2T^{m-1}$, $T_{xy}^2T^{m-1}$ and
+$T_{xy}T_xT_yT^{m-2}$, evaluated by Theorem~\ref{thm:sg-tal:global-moments}.
+\end{proof}
+
+\begin{theorem}[The coefficients of Eq.~(1.328)]
+\label{thm:sg-tal:global-counting}
+\lean{SpinGlasses.sk_count_plain, SpinGlasses.sk_count_touched, SpinGlasses.sk_count_blocks}
+\leanok
+\talsource{Section~1.10, the end of the proof of Theorem~1.10.1}
+Let $x\ne y$ be replicas among $n$, let $\mathrm{pt}$ be a fixed-point free involution of the replicas
+outside $\{x,y\}$, and $b:\mathbb N\to\mathbb R$. Let $W_j$ be the weights $1,-n,n(n+1)/2$ of the three
+families of pairs in Eq.~(1.152) and $c_j$ the number of coincidences of the pair $j$ with $\{x,y\}$.
+Then $\sum_jW_jb(c_j)=b(2)-4b(1)+3b(0)$; the same sum weighted by the number of members of the pair
+outside $\{x,y\}$ equals $(n-2)(2b(1)-3b(0))$; and weighted by the indicator of $\{r,\mathrm{pt}\,r\}$
+equals $\tfrac{n-2}2\,b(0)$.
+\end{theorem}
+\begin{proof}
+\leanok
+Write $b(c)=b_0+(b_1-b_0)(u_r+u_s)+(b_2-2b_1+b_0)u_ru_s$ with $u$ the indicator of $\{x,y\}$ for a
+pair of distinct replicas, sum the off-diagonal double sum, and use $\sum u=2$, $u^2=u$.
+\end{proof}
+
+\begin{theorem}[The recurrence for $\mathbb E\,T^k$, Eqs.~(1.325)--(1.328)]
+\label{thm:sg-tal:global-recurrence}
+\lean{SpinGlasses.sk_T_global_recurrence_uniform, SpinGlasses.sk_T_global_recurrence_clean, SpinGlasses.sk_global_step_uniform, SpinGlasses.sk_global_feedback_uniform, SpinGlasses.sk_global_trunc_to_full_uniform, SpinGlasses.sk_global_feedback_eval_uniform, SpinGlasses.sk_global_termI_uniform, SpinGlasses.sk_global_termI_term_uniform, SpinGlasses.sk_global_blocks_moment}
+\leanok
+\uses{thm:sg-tal:last-site-step, thm:sg-tal:blocks-classification, thm:sg-tal:global-counting}
+\talsource{Theorem~1.10.1, Eqs.~(1.325)--(1.328)}
+Let $4\beta_0^2<1$ and $k\ge1$. There is $C>0$, chosen before $\beta,h,q,N$, such that for
+$\beta^2\le\beta_0^2$, $q$ the fixed point of (1.74) and all $N$, with $\nu_j=\mathbb E\,T^j$,
+\[
+ \Big|\big(1-\beta^2(1-4q+3\hat q)\big)\nu_k-\frac{k-1}{N+1}\,E_0\,\nu_{k-2}\Big|\le\frac{C}{(N+1)^{(k+1)/2}},
+\]
+where $E_0=(\hat q-q^2)(1+\beta^2A^2)+2\beta^2(2q+q^2-3\hat q)B^2$, with $A^2,B^2$ as in
+Propositions~1.10.4 and 1.10.5.
+\end{theorem}
+\begin{proof}
+\leanok
+Take $2k$ replicas in $k$ blocks and a leading block $p$. The last-site expansion with the one-site
+observable $\varepsilon^x\varepsilon^y-q$ gives (1.325). The term I is $(k-1)(\hat q-q^2)\nu_{k-2}/(N+1)$
+(1.326): each summand contracts $(\varepsilon^x\varepsilon^y-q)\varepsilon^a\varepsilon^b$ over four distinct
+replicas to $\hat q-q^2$. The term II is the sum of Lemma~1.10.2 over the signed pair families; each
+average is converted to full overlaps and classified by Theorem~\ref{thm:sg-tal:blocks-classification},
+and Theorem~\ref{thm:sg-tal:global-counting} sums the three coefficients of (1.328).
+\end{proof}
+
+\begin{theorem}[The Gaussian law of $T$]
+\label{thm:sg-tal:global-gaussian}
+\lean{SpinGlasses.sk_T_global_gaussian_moment_uniform, SpinGlasses.global_coefficient_facts}
+\leanok
+\uses{thm:sg-tal:global-recurrence, thm:sg-tal:gaussian-class-reference}
+\talsource{Theorem~1.10.1 for the factors $T$, Eq.~(1.262)}
+Let $4\beta_0^2<1$ and $k\ge0$. There is $K>0$, chosen before $\beta,h,q,N$, such that for
+$\beta^2\le\beta_0^2$ and the fixed point $q$,
+$|\mathbb E\,T^k-\mathbb E(\tfrac{C}{\sqrt{N+1}}g)^k|\le K(N+1)^{-(k+1)/2}$, where
+$C^2=E_0/(1-\beta^2(1-4q+3\hat q))$ is the solution of the relation between $C^2$, $A^2$ and $B^2$.
+\end{theorem}
+\begin{proof}
+\leanok
+The recurrence of Theorem~\ref{thm:sg-tal:global-recurrence} divided by $1-\beta^2(1-4q+3\hat q)\ge3/4$
+is the two-factor recurrence of the Gaussian class engine with one class. The variance coefficient
+is bounded by $12$ and is nonnegative: otherwise the recurrence for $k=2$ and $\mathbb E\,T^2\ge0$
+would give $E_0\ge -K/\sqrt{N+1}$ for all $N$.
+\end{proof}
+
+\begin{theorem}[Theorem 1.10.1, enumerated form]
+\label{thm:sg-tal:thm-1101}
+\lean{SpinGlasses.sk_T_mixed_gaussian_moment_uniform, SpinGlasses.sk_T_single_gaussian_moment_on}
+\leanok
+\uses{thm:sg-tal:prop-1104, thm:sg-tal:prop-1105, thm:sg-tal:global-gaussian}
+\talsource{Theorem~1.10.1, Eq.~(1.290)}
+Let $4\beta_0^2<1$, and let $s$ be a finite set of factors of pair, single and global type, with
+replica labels, the single factors normalized as $(L,S)=(1,0)$. There is $C>0$, chosen before
+$\beta,h,q,N$, such that for $\beta^2\le\beta_0^2$, $q$ the fixed point of (1.74) and all $N$,
+\[
+ \Big|\nu\Big(\prod_{j\in s}T_j\Big)-\prod_{\kappa}\mathbb E\Big(\tfrac{A}{\sqrt{N+1}}g\Big)^{m_\kappa}
+ \prod_{k}\mathbb E\Big(\tfrac{B}{\sqrt{N+1}}g\Big)^{m_k}\;
+ \mathbb E\Big(\tfrac{C}{\sqrt{N+1}}g\Big)^{m_*}\Big|\le\frac{C'}{(N+1)^{(|s|+1)/2}},
+\]
+where $\kappa$ runs over the ordered pairs of replica labels, $k$ over the replica labels,
+and $m_\kappa,m_k,m_*$ are the numbers of pair, single and global factors in the corresponding class.
+\end{theorem}
+\begin{proof}
+\leanok
+Peel the pair factors with Proposition~1.10.4, the single factors with Proposition~1.10.5 applied to the
+remaining factors, and use Theorem~\ref{thm:sg-tal:global-gaussian} for the global ones. The three
+errors are combined with $|\prod_k\mathbb E(\sigma g)^{n_k}|\le\prod_k n_k!\;\sigma^{\sum n_k}$ and
+$\sigma^n\le(\sqrt{12})^n(N+1)^{-n/2}$ for $\sigma^2=c_0/(N+1)$, $0\le c_0\le12$; the exponents add up
+to $(|s|+1)/2$ because $|s|=m_{\rm pair}+m_{\rm single}+m_*$. The identification of $A^2,B^2,C^2$
+with the covariance constants of Theorem~\ref{thm:sg-tal:thm-1812} is not formalized here.
+\end{proof}
+
+\begin{remark}[Statements of Propositions~1.10.4, 1.10.5 and Theorem~1.10.1]
 \label{rem:sg-tal:overlap-clt-statements}
 \talsource{Propositions~1.10.4, 1.10.5, Theorem~1.10.1, Eqs.~(1.290), (1.303), (1.314)}
-These are the statements the induction is to prove; none is asserted as formalized.
+These are the statements of Section~1.10; Propositions~1.10.4, 1.10.5 and Theorem~1.10.1 are proved in
+enumerated form (Theorems~\ref{thm:sg-tal:prop-1104}, \ref{thm:sg-tal:prop-1105}, \ref{thm:sg-tal:thm-1101}).
 Fix $n\ge2$ and let $D_n=\{(\ell,\ell'):\ell<\ell'\le n\}\sqcup\{1,\dots,n\}\sqcup\{*\}$ index the
 three kinds of variables $T_{\ell,\ell'}$, $T_\ell$, $T$. Let $V$ be a finite set of factors
 with kind map $d:V\to D_n$ and put $k=|V|$ and $k_x=|d^{-1}(x)|$. This enumerated form
@@ -7095,11 +7531,28 @@ The disorder-averaged identity (1.305), the application of (1.301) to the explic
 fresh factors, and (1.313) uniformly in the high-temperature range are now proved in
 Theorem~\ref{thm:sg-tal:pair-factor-recurrence}, including the actual T-moment form.
 Selected-subset fresh identities and the generic finite moment induction are also proved.
-\emph{Not proved:} the Gaussian reference algebra and SK specialization completing
-Proposition~1.10.4;
-the hard step (1.319) of Proposition~1.10.5; and Theorem~1.10.1 itself.
-The planned statements are in Remark~\ref{rem:sg-tal:overlap-clt-statements}; they are not
-asserted as formalized. The earlier vacuous declarations were removed and the estimates above use
-the actual cavity expectations and derivative, with constants chosen before the number of sites.
-The nearly-Gaussian Gibbs corollaries (1.291)--(1.295) are also open.
+Proposition~1.10.4 is proved in enumerated form
+(Theorem~\ref{thm:sg-tal:prop-1104}) from the Gaussian class-product reference
+(Theorem~\ref{thm:sg-tal:gaussian-class-reference}). Its leading term is stated with the
+variance $A^2=(1-2q+\hat q)/(1-\beta^2(1-2q+\hat q))$; the identification of this $A^2$ with the
+limit constant of Theorem~\ref{thm:sg-tal:thm-1812} is not formalized, and the unselected factors
+keep their actual moment, as in the book.
+\emph{Proved toward Proposition~1.10.5:} the decoupled contraction of a leading single factor
+(Theorem~\ref{thm:sg-tal:single-contraction}).
+The single-type version of the term I, Eq.~(1.316), including its multiplicity count, is proved
+(Theorem~\ref{thm:sg-tal:single-term-I}).
+The single-type feedback (1.317)--(1.318) is proved
+(Theorem~\ref{thm:sg-tal:single-feedback}).
+The recurrence (1.320) with the term II still explicit is proved
+(Theorem~\ref{thm:sg-tal:single-recurrence}).
+The hard step (1.319) is proved (Theorem~\ref{thm:sg-tal:single-II}).
+Proposition~1.10.5 is proved in enumerated form (Theorem~\ref{thm:sg-tal:prop-1105}).
+The global stage is proved: the recurrence (1.325)--(1.328) for $\mathbb E\,T^k$
+(Theorem~\ref{thm:sg-tal:global-recurrence}), the Gaussian law of $T$
+(Theorem~\ref{thm:sg-tal:global-gaussian}), and Theorem~1.10.1 in enumerated form
+(Theorem~\ref{thm:sg-tal:thm-1101}).
+\emph{Not proved:} the identification of the constants $A^2,B^2,C^2$ with those of
+Theorem~\ref{thm:sg-tal:thm-1812}; the multi-index restatement is the enumerated form with
+$V$ the disjoint union of the index sets; the nearly-Gaussian Gibbs corollaries (1.291)--(1.295)
+are also open.
 \end{remark}

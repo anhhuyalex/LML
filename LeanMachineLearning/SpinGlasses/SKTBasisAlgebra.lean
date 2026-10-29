@@ -268,6 +268,29 @@ theorem qhat_le_of_fixedPoint (β q h qhat : ℝ)
           (fun z : ℝ => β * Real.sqrt q * z + h) (by fun_prop)
     _ = q := hfix
 
+/-- At a fixed point, `0 ≤ q - q̂ ≤ 1` for `q̂ = 𝔼 tanh⁴ (β z √q + h)`; this is the coefficient
+size of the single-factor contraction. -/
+theorem abs_sub_integral_tanh_fourth_le_one_of_fixedPoint {β q h : ℝ}
+    (hfix : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂(gaussianReal 0 1) = q) :
+    |q - ∫ z : ℝ, Real.tanh (β * z * Real.sqrt q + h) ^ 4 ∂(gaussianReal 0 1)| ≤ 1 := by
+  have h1 := fixedPoint_mem_Icc hfix
+  have h2 := qhat_le_of_fixedPoint β q h _ hfix rfl
+  have h3 : 0 ≤ ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 4 ∂(gaussianReal 0 1) :=
+    integral_nonneg fun t => by positivity
+  rw [integral_tanh_pow_mul_z_sqrt_eq]
+  exact abs_le.mpr ⟨by linarith [h1.1, h1.2], by linarith [h1.1, h1.2]⟩
+
+/-- At a fixed point, `|1 - 4 q + 3 q̂| ≤ 3`. -/
+theorem abs_one_sub_four_mul_add_three_mul_le {β q h : ℝ}
+    (hfix : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂(gaussianReal 0 1) = q) :
+    |1 - 4 * q + 3 * ∫ z : ℝ, Real.tanh (β * z * Real.sqrt q + h) ^ 4 ∂(gaussianReal 0 1)| ≤ 3 := by
+  have h1 := fixedPoint_mem_Icc hfix
+  have h2 := qhat_le_of_fixedPoint β q h _ hfix rfl
+  have h3 : 0 ≤ ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 4 ∂(gaussianReal 0 1) :=
+    integral_nonneg fun t => by positivity
+  rw [integral_tanh_pow_mul_z_sqrt_eq]
+  exact abs_le.mpr ⟨by linarith [h1.1, h1.2], by linarith [h1.1, h1.2]⟩
+
 /-- **The denominator of Propositions 1.8.10 and 1.8.11.**  For `4 β² < 1`, `0 ≤ q` and
 `q̂ ≤ q`: `1 - β² (1 - 4 q + 3 q̂) ≥ 3/4`. -/
 theorem three_quarters_le_one_sub_beta_sq_mul {β q qhat : ℝ} (hβ : 4 * β ^ 2 < 1) (hq : 0 ≤ q)
