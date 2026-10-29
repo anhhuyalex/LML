@@ -5552,7 +5552,7 @@ Expand the products of overlaps in coordinates; independent replicas make each m
 \begin{theorem}[Orthogonality of the $T$-basis (Proposition~1.8.8 and Eq.~(1.257))]
 \label{thm:sg-tal:T-orthogonality}
   \lean{SpinGlasses.sum_prod_weight_mul_linear_eq_zero,
-        SpinGlasses.integral_pi_centered_replica_eq_zero,
+        MeasureTheory.integral_pi_centered_replica_eq_zero,
         SpinGlasses.integral_spin_sub_mean,
         SpinGlasses.integral_dev_dot_dev_mul_eq_zero,
         SpinGlasses.integral_dev_dot_mean_mul_eq_zero,
@@ -7332,7 +7332,7 @@ Theorem~\ref{thm:sg-tal:gaussian-class-reference} gives the Gaussian reference.
 
 \begin{theorem}[Exact integration of replicas not shared with the other factors]
 \label{thm:sg-tal:replica-integrate-out}
-\lean{MeasureTheory.integral_pi_integrate_out_replica, SpinGlasses.integral_pi_overlap_pendant, SpinGlasses.integral_pi_overlap_block, SpinGlasses.integral_pi_prod_overlap_blocks, SpinGlasses.integral_pi_centered_replica}
+\lean{MeasureTheory.integral_pi_integrate_out_replica, MeasureTheory.integral_pi_overlap_pendant, MeasureTheory.integral_pi_overlap_block, MeasureTheory.integral_pi_prod_overlap_blocks, MeasureTheory.integral_pi_centered_replica}
 \leanok
 \talsource{Section~1.10, the computation after Eq.~(1.328)}
 Let $\mu$ be a probability measure on a finite set, $\rho=(\rho_r)_{r\in R}$ an i.i.d.\ family with law

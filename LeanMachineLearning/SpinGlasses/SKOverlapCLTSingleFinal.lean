@@ -355,14 +355,11 @@ theorem single_coeff_facts (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (β h q : 
   have hd : |q - qh| ≤ 1 := abs_sub_integral_tanh_fourth_le_one_of_fixedPoint hfix
   have hden : 3 / 4 ≤ 1 - β ^ 2 * (1 - 4 * q + 3 * qh) :=
     three_quarters_le_one_sub_beta_sq_mul hβ4 hq hqh
-  have hDα : 3 / 4 ≤ 1 - β ^ 2 * α := by
-    have h2 : β ^ 2 * α ≤ β ^ 2 * 1 := mul_le_mul_of_nonneg_left hα.2 (sq_nonneg _)
-    linarith
-  have hDαpos : 0 < 1 - β ^ 2 * α := by linarith
-  have hA : 0 ≤ α / (1 - β ^ 2 * α) ∧ α / (1 - β ^ 2 * α) ≤ 4 / 3 := by
-    refine ⟨div_nonneg hα.1 hDαpos.le, ?_⟩
-    rw [div_le_iff₀ hDαpos]
-    nlinarith
+  have hpair := one_sub_mul_div_bounds (sq_nonneg β)
+    (show β ^ 2 ≤ (1 / 4 : ℝ) by linarith) hα (by norm_num : (1 / 4 : ℝ) < 1)
+  norm_num only at hpair
+  have hDα := hpair.1
+  have hA := hpair.2
   have hdpos : 0 ≤ q - qh := by linarith
   have hd1 : q - qh ≤ 1 := (le_abs_self _).trans hd
   have hDpos : 0 < 1 - β ^ 2 * (1 - 4 * q + 3 * qh) := by linarith

@@ -9,6 +9,7 @@ public import LeanMachineLearning.SpinGlasses.SKCavityCovariance
 public import LeanMachineLearning.SpinGlasses.GibbsReplicaMarginal
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SqSub
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Tanh
+public import LeanMachineLearning.ForMathlib.LinearAlgebra.DotProductCentering
 
 /-!
 # Algebra of the `T`-basis (Talagrand, Section 1.8, Eqs. (1.245)-(1.265))
@@ -306,12 +307,7 @@ theorem three_quarters_le_one_sub_beta_sq_mul {β q qhat : ℝ} (hβ : 4 * β ^ 
 theorem dotProduct_div_sub_decomp {ι : Type*} [Fintype ι] (N q : ℝ) (x y b : ι → ℝ) :
     x ⬝ᵥ y / N - q = (x - b) ⬝ᵥ (y - b) / N + (x - b) ⬝ᵥ b / N + (y - b) ⬝ᵥ b / N +
       (b ⬝ᵥ b / N - q) := by
-  have : x ⬝ᵥ y = (x - b) ⬝ᵥ (y - b) + (x - b) ⬝ᵥ b + (y - b) ⬝ᵥ b + b ⬝ᵥ b := by
-    simp only [sub_dotProduct, dotProduct_sub]
-    rw [dotProduct_comm b y]
-    ring
-  rw [this]
-  ring
+  simpa only [div_eq_mul_inv, mul_comm] using dotProduct_centering N⁻¹ q x y b
 
 /-- **Talagrand, Lemma 1.8.9, first form (Eq. 1.253), as a sum over the replica families.**
 For distinct replicas `i₁, i₂, k` of `n` replicas and a function `F` of the old coordinates, the

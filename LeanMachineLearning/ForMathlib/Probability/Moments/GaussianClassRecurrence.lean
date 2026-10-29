@@ -101,7 +101,8 @@ theorem exists_gaussian_class_moment_error
     (fun s p _ _ => hu₀ s p)
     (fun s p hp hP => hF s p (u₀ s p) hp hP (hmem s p hp) (hu₀ s p)) s
   refine ⟨K, hK0, fun θ hθ N => ?_⟩
-  simpa only [← integral_pow_sqrt_mul_gaussianReal
-    (div_nonneg (hc0 θ hθ) (by positivity))] using hK θ hθ N
+  have hv : 0 ≤ c θ / (N + 1 : ℝ) := div_nonneg (hc0 θ hθ) (by positivity)
+  simp_rw [integral_pow_sqrt_mul_gaussianReal hv]
+  exact hK θ hθ N
 
 end ProbabilityTheory

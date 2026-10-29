@@ -43,13 +43,11 @@ theorem global_coefficient_facts (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (β 
   have hqh0 : 0 ≤ qh := integral_nonneg fun t => by positivity
   have hα : 0 ≤ α ∧ α ≤ 1 := tanh_fourth_sub_two_mul_add_one_mem_Icc_of_fixedPoint hfix
   have hβ4 : β ^ 2 ≤ 1 / 4 := by linarith
-  have hDα : 3 / 4 ≤ 1 - β ^ 2 * α := by
-    have h2 : β ^ 2 * α ≤ β ^ 2 * 1 := mul_le_mul_of_nonneg_left hα.2 (sq_nonneg _)
-    linarith
-  have hA : 0 ≤ α / (1 - β ^ 2 * α) ∧ α / (1 - β ^ 2 * α) ≤ 4 / 3 := by
-    refine ⟨div_nonneg hα.1 (by linarith), ?_⟩
-    rw [div_le_iff₀ (by linarith)]
-    nlinarith
+  have hpair := one_sub_mul_div_bounds (sq_nonneg β)
+    (show β ^ 2 ≤ (1 / 4 : ℝ) by linarith) hα (by norm_num : (1 / 4 : ℝ) < 1)
+  norm_num only at hpair
+  have hDα := hpair.1
+  have hA := hpair.2
   have hqq : |qh - q ^ 2| ≤ 2 := by
     rw [abs_le]
     constructor <;> nlinarith [hq.1, hq.2]
