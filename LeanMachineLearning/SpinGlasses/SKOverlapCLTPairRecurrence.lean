@@ -41,23 +41,12 @@ theorem sk_cavity_fresh_pair_recurrence (β h q : ℝ) (hβ : 4 * β ^ 2 < 1)
       (Real.sqrt (N + 1))⁻¹ * β *
         (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
       h * ∑ i : Fin (N + 1), (a i : ℝ)
-    let V : J → ((R ⊕ (J ⊕ J)) → Fin N → ℤˣ) → ℝ := fun j ρ =>
-      ((N + 1 : ℝ)⁻¹ * ∑ v : Fin N,
-        (if L j then (ρ (.inl (a j)) v : ℝ) - (ρ (.inr (.inl j)) v : ℝ)
-          else (ρ (.inr (.inl j)) v : ℝ)) *
-        (if S j then (ρ (.inl (b j)) v : ℝ) - (ρ (.inr (.inr j)) v : ℝ)
-          else (ρ (.inr (.inr j)) v : ℝ))) - (if L j || S j then 0 else q)
     let U : J → ((R ⊕ (J ⊕ J)) → Fin (N + 1) → ℤˣ) → ℝ := fun j ρ =>
       ((N + 1 : ℝ)⁻¹ * ∑ v : Fin (N + 1),
         (if L j then (ρ (.inl (a j)) v : ℝ) - (ρ (.inr (.inl j)) v : ℝ)
           else (ρ (.inr (.inl j)) v : ℝ)) *
         (if S j then (ρ (.inl (b j)) v : ℝ) - (ρ (.inr (.inr j)) v : ℝ)
           else (ρ (.inr (.inr j)) v : ℝ))) - (if L j || S j then 0 else q)
-    let ep : J → (R ⊕ (J ⊕ J) → ℤˣ) → ℝ := fun j ε =>
-      (if L j then (ε (.inl (a j)) : ℝ) - (ε (.inr (.inl j)) : ℝ)
-        else (ε (.inr (.inl j)) : ℝ)) *
-      (if S j then (ε (.inl (b j)) : ℝ) - (ε (.inr (.inr j)) : ℝ)
-        else (ε (.inr (.inr j)) : ℝ))
     let ν : (((R ⊕ (J ⊕ J)) → Fin (N + 1) → ℤˣ) → ℝ) → ℝ := fun f =>
       ∫ g, ∫ σ, f σ
         ∂(Measure.pi fun _ : R ⊕ (J ⊕ J) => Measure.count.tilted (Esk g))
@@ -94,7 +83,18 @@ theorem sk_cavity_fresh_pair_recurrence (β h q : ℝ) (hβ : 4 * β ^ 2 < 1)
     sk_overlap_prod_sub_truncated_le β hβ (fun j : del => c j) 1
   refine ⟨C₀ + C₁ + C₂ + β ^ 2 * |α| * C₃ + |α| * ((cls.card - 1 : ℕ) : ℝ) * C₄,
     by positivity, ?_⟩
-  intro N Esk V U ep ν α' cls'
+  intro N Esk U ν α' cls'
+  let V : J → ((R ⊕ (J ⊕ J)) → Fin N → ℤˣ) → ℝ := fun j ρ =>
+      ((N + 1 : ℝ)⁻¹ * ∑ v : Fin N,
+        (if L j then (ρ (.inl (a j)) v : ℝ) - (ρ (.inr (.inl j)) v : ℝ)
+          else (ρ (.inr (.inl j)) v : ℝ)) *
+        (if S j then (ρ (.inl (b j)) v : ℝ) - (ρ (.inr (.inr j)) v : ℝ)
+          else (ρ (.inr (.inr j)) v : ℝ))) - (if L j || S j then 0 else q)
+  let ep : J → (R ⊕ (J ⊕ J) → ℤˣ) → ℝ := fun j ε =>
+      (if L j then (ε (.inl (a j)) : ℝ) - (ε (.inr (.inl j)) : ℝ)
+        else (ε (.inr (.inl j)) : ℝ)) *
+      (if S j then (ε (.inl (b j)) : ℝ) - (ε (.inr (.inr j)) : ℝ)
+        else (ε (.inr (.inr j)) : ℝ))
   have hAB (j : J) (i : Bool × Bool) : e (A j i) ≠ e (B j i) :=
     e.injective.ne (flagged_pair_ne (a j) (b j) j (L j) (S j)
       (fun hL hS => ne_of_lt (hord j hL hS)) i)
@@ -137,7 +137,7 @@ theorem sk_cavity_fresh_pair_recurrence (β h q : ℝ) (hβ : 4 * β ^ 2 < 1)
     Finset.prod_coe_sort base H
   have hpe (u : base) (H : J → ℝ) :
       (∏ j ∈ (Finset.univ : Finset base).erase u, H j) = ∏ j ∈ base.erase (u : J), H j := by
-    apply Finset.prod_bij (fun j _ => (j : J))
+    apply Finset.prod_bij (fun (j : base) _ => (j : J))
     · intro j hj
       exact Finset.mem_erase.mpr
         ⟨fun heq => (Finset.ne_of_mem_erase hj) (Subtype.ext heq), j.2⟩
@@ -184,5 +184,146 @@ theorem sk_cavity_fresh_pair_recurrence (β h q : ℝ) (hβ : 4 * β ^ 2 < 1)
     (fun j : del => Uf j) (fun j : del => Um j) (fun j : del => ee j)
     (fun j σ => hU j σ) (fun j σ => hV j σ) (fun j σ => he j σ)
     (fun _ => 1) (fun _ => by norm_num)
+
+  let d : ℝ := ((N : ℝ) + 1) ^ (((Fintype.card J + 1 : ℕ) : ℝ) / 2)
+  let F : ℝ := ν (fun σ => ∏ j, U j σ)
+  let Fm : ℝ := ν (fun σ => ∏ j, V j (fun r v => σ r v.castSucc))
+  let D : ℝ := ν (fun σ => ∏ j ∈ del, U j σ)
+  let Dm : ℝ := ν (fun σ => ∏ j ∈ del, V j (fun r v => σ r v.castSucc))
+  let Lead : ℝ := ν (fun σ => (∏ j ∈ base, V j (fun r v => σ r v.castSucc)) *
+    ep p (fun r => σ r (Fin.last N)))
+  let I : ℝ := (N + 1 : ℝ)⁻¹ * ∑ u ∈ base,
+    ν (fun σ => (∏ j ∈ base.erase u, V j (fun r v => σ r v.castSucc)) *
+      (ep p (fun r => σ r (Fin.last N)) * ep u (fun r => σ r (Fin.last N))))
+  let w : ℝ := (α / (N + 1 : ℝ)) * ((cls.card - 1 : ℕ) : ℝ)
+  have hdegree : Fintype.card base + 2 = Fintype.card J + 1 := by
+    have hpos : 0 < Fintype.card J := Fintype.card_pos_iff.mpr ⟨p⟩
+    simp only [Fintype.card_coe, base, Finset.card_erase_of_mem (Finset.mem_univ p),
+      Finset.card_univ]
+    omega
+  have hsite (σ : Fin (Fintype.card Q) → Fin (N + 1) → ℤˣ) :
+      (N + 1 : ℝ)⁻¹ * ∑ s : Fin (N + 1), ξ (fun r => σ r s) = Uf p σ := by
+    simp only [ξ, ep, Uf, U, hLp, hSp, ite_true, Bool.true_or, sub_zero]
+  have hfull_fun :
+      (fun σ : Fin (Fintype.card Q) → Fin (N + 1) → ℤˣ =>
+        Uf p σ * ∏ j : base, Uf j σ) = (fun σ => ∏ j, Uf j σ) := by
+    funext σ
+    rw [hp (fun j => Uf j σ)]
+    exact Finset.mul_prod_erase Finset.univ (fun j => Uf j σ) (Finset.mem_univ p)
+  have hlead_fun :
+      (fun σ : Fin (Fintype.card Q) → Fin (N + 1) → ℤˣ =>
+        ξ (fun r => σ r (Fin.last N)) * ∏ j : base, Um j σ) =
+      (fun σ => (∏ j ∈ base, V j (fun r v => σ (e r) v.castSucc)) *
+        ep p (fun r => σ (e r) (Fin.last N))) := by
+    funext σ
+    rw [hp (fun j => Um j σ)]
+    exact mul_comm _ _
+  have hpair_fun (u : base) :
+      (fun σ : Fin (Fintype.card Q) → Fin (N + 1) → ℤˣ =>
+        ξ (fun r => σ r (Fin.last N)) *
+          (ee u σ * ∏ j ∈ (Finset.univ : Finset base).erase u, Um j σ)) =
+      (fun σ => (∏ j ∈ base.erase (u : J), V j (fun r v => σ (e r) v.castSucc)) *
+        (ep p (fun r => σ (e r) (Fin.last N)) *
+          ep u (fun r => σ (e r) (Fin.last N)))) := by
+    funext σ
+    dsimp only [ξ, ee]
+    rw [hpe u (fun j => Um j σ)]
+    ring
+  simp_rw [hsite] at hs
+  rw [hfull_fun, hlead_fun, hdegree] at hs
+  simp_rw [hpair_fun] at hs
+  have hs' : |F - (Lead + I)| ≤ C₀ / d := by
+    dsimp only [F, Lead, I, d]
+    rw [← Finset.sum_coe_sort base]
+    simp_rw [havg]
+    exact hs
+  have hf' : |Lead - β ^ 2 * α * Fm| ≤ C₁ / d := hf
+  have ht' : |I - w * Dm| ≤ C₂ / d := ht
+  have hc' : |F - Fm| ≤ C₃ / d := by
+    dsimp only [F, Fm]
+    rw [havg, havg]
+    change |Λ (fun σ => ∏ j, Uf j σ) - Λ (fun σ => ∏ j, Um j σ)| ≤ _
+    rw [← map_sub]
+    refine (Λ.abs_apply_le_apply_abs hmono _).trans ?_
+    simpa only [one_mul, Pi.sub_apply, Λ, LinearMap.coe_mk, AddHom.coe_mk, d] using hc
+  have hdfun :
+      (fun σ : Fin (Fintype.card Q) → Fin (N + 1) → ℤˣ =>
+        ∏ j : del, Uf j σ) = (fun σ => ∏ j ∈ del, U j (fun r => σ (e r))) := by
+    funext σ
+    exact Finset.prod_coe_sort del (fun j => Uf j σ)
+  have hdmfun :
+      (fun σ : Fin (Fintype.card Q) → Fin (N + 1) → ℤˣ =>
+        ∏ j : del, Um j σ) =
+      (fun σ => ∏ j ∈ del, V j (fun r v => σ (e r) v.castSucc)) := by
+    funext σ
+    exact Finset.prod_coe_sort del (fun j => Um j σ)
+  have hd' : |D - Dm| ≤
+      C₄ / ((N : ℝ) + 1) ^ (((del.card + 1 : ℕ) : ℝ) / 2) := by
+    dsimp only [D, Dm]
+    rw [havg, havg, ← hdfun, ← hdmfun]
+    change |Λ (fun σ => ∏ j : del, Uf j σ) -
+      Λ (fun σ => ∏ j : del, Um j σ)| ≤ _
+    rw [← map_sub]
+    refine (Λ.abs_apply_le_apply_abs hmono _).trans ?_
+    simpa only [one_mul, Pi.sub_apply, Fintype.card_coe, Λ, LinearMap.coe_mk,
+      AddHom.coe_mk] using hd
+  have hcoef : |β ^ 2 * α * (Fm - F)| ≤ β ^ 2 * |α| * C₃ / d := by
+    rw [abs_mul, abs_mul, abs_of_nonneg (sq_nonneg β), abs_sub_comm]
+    exact (mul_le_mul_of_nonneg_left hc' (by positivity)).trans_eq (by ring)
+  have hw : |w * (Dm - D)| ≤ |α| * ((cls.card - 1 : ℕ) : ℝ) * C₄ / d := by
+    by_cases hz : cls.card - 1 = 0
+    · simp only [w, hz, Nat.cast_zero, mul_zero, zero_mul, abs_zero, zero_div, le_refl]
+    have hpcls : p ∈ cls := by
+      simp only [cls, Finset.mem_filter, Finset.mem_univ, hLp, hSp,
+        and_self, eq_self]
+    have hcpos : 1 < cls.card := by
+      have : 0 < cls.card := Finset.card_pos.mpr ⟨p, hpcls⟩
+      omega
+    have hne : (cls.erase p).Nonempty := by
+      apply Finset.card_pos.mp
+      rw [Finset.card_erase_of_mem hpcls]
+      omega
+    have hu : u₀ ∈ base := by
+      exact Finset.mem_erase.mpr
+        ⟨(Finset.mem_erase.mp (href hne)).1, Finset.mem_univ u₀⟩
+    have hnat : Fintype.card J = del.card + 2 := by
+      have hbcard : base.card = Fintype.card J - 1 := by
+        simp only [base, Finset.card_erase_of_mem (Finset.mem_univ p), Finset.card_univ]
+      have hdcard : del.card = base.card - 1 := Finset.card_erase_of_mem hu
+      have hle := Finset.card_le_univ cls
+      omega
+    have hdscale : d = (N + 1 : ℝ) *
+        ((N : ℝ) + 1) ^ (((del.card + 1 : ℕ) : ℝ) / 2) := by
+      dsimp only [d]
+      have hexp : ((Fintype.card J + 1 : ℕ) : ℝ) / 2 =
+          1 + ((del.card + 1 : ℕ) : ℝ) / 2 := by rw [hnat]; push_cast; ring
+      rw [hexp, Real.rpow_add (by positivity), Real.rpow_one]
+    have hwp : |w| = |α| * ((cls.card - 1 : ℕ) : ℝ) / (N + 1 : ℝ) := by
+      dsimp only [w]
+      rw [abs_mul, abs_div, abs_of_nonneg (by positivity : (0 : ℝ) ≤ N + 1),
+        abs_of_nonneg (Nat.cast_nonneg (α := ℝ) (cls.card - 1))]
+      ring
+    rw [abs_mul, hwp, abs_sub_comm]
+    refine (mul_le_mul_of_nonneg_left hd' (by positivity)).trans_eq ?_
+    rw [hdscale, div_mul_div_comm]
+  change |(1 - β ^ 2 * α) * F - w * D| ≤ _
+  calc
+    _ = |(((F - (Lead + I)) + (Lead - β ^ 2 * α * Fm)) + (I - w * Dm) +
+        β ^ 2 * α * (Fm - F)) + w * (Dm - D)| := congrArg abs (by ring)
+    _ ≤ |F - (Lead + I)| + |Lead - β ^ 2 * α * Fm| + |I - w * Dm| +
+        |β ^ 2 * α * (Fm - F)| + |w * (Dm - D)| := by
+      have h1 := abs_add_le
+        (((F - (Lead + I)) + (Lead - β ^ 2 * α * Fm)) + (I - w * Dm) +
+          β ^ 2 * α * (Fm - F)) (w * (Dm - D))
+      have h2 := abs_add_le
+        (((F - (Lead + I)) + (Lead - β ^ 2 * α * Fm)) + (I - w * Dm))
+        (β ^ 2 * α * (Fm - F))
+      have h3 := abs_add_le ((F - (Lead + I)) + (Lead - β ^ 2 * α * Fm)) (I - w * Dm)
+      have h4 := abs_add_le (F - (Lead + I)) (Lead - β ^ 2 * α * Fm)
+      linarith only [h1, h2, h3, h4]
+    _ ≤ C₀ / d + C₁ / d + C₂ / d + β ^ 2 * |α| * C₃ / d +
+        |α| * ((cls.card - 1 : ℕ) : ℝ) * C₄ / d :=
+      add_le_add (add_le_add (add_le_add (add_le_add hs' hf') ht') hcoef) hw
+    _ = _ := by ring
 
 end SpinGlasses
