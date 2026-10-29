@@ -6623,9 +6623,11 @@ the source's full class of finite products of linear combinations. The bounded f
 in the moment and Taylor estimates may have any fixed bound $M$, rather than only $4$. Equation~(1.305) is proved in the enumerated-factor form above, for a general finite
 probability space and vector observable. Fresh replicas are indexed by disjoint sum types
 rather than by ordered integers larger than $n$. Grouping the enumerated factors into
-multi-index powers and reindexing to a single $\operatorname{Fin}(n')$ are not additional
-probabilistic assumptions; their downstream application is still to be implemented.
-No proof of Propositions~1.10.4--1.10.5 or Theorem~1.10.1 is asserted. The status below records these open obligations.
+multi-index powers is now implemented in Theorem~\ref{thm:sg-tal:multiindex-normalized};
+the use of sum types does not introduce an additional probabilistic assumption.
+Propositions~1.10.4--1.10.5 and Theorem~1.10.1 are proved below. The later moment
+results and their remaining scope differences are compared with the source in
+Remark~\ref{rem:sg-tal:dev-110-moments}; the final status remark records the open items.
 \end{enumerate}
 \end{remark}
 
@@ -7604,6 +7606,7 @@ $\operatorname{Var}(V)\le\mathbb E(V-g)^2$.
 \lean{SpinGlasses.sk_T_multiindex_memLp}
 \leanok
 \uses{thm:sg-tal:live-T-expansion}
+\talsource{no counterpart in the book (integrability preparation for Eqs.~(1.292)--(1.294))}
 For any system size $m=N+1$, parameters $\beta,h\in\mathbb R$, finite replica set $R$
 (which may be empty), and exponents $k_P:R\times R\to\mathbb N$, $k_S:R\to\mathbb N$,
 let
@@ -7702,6 +7705,72 @@ The two distinct reference replicas are independent, so their mean overlap is
 $d\sum_i b_i^2$. Subtract that quantity in the common finite-vector centering identity.
 \end{proof}
 
+\begin{remark}[Source comparison for the overlap moment results]
+\label{rem:sg-tal:dev-110-moments}
+\talsource{Theorem~1.10.1, Eqs.~(1.290)--(1.295), and the subsequent centered-overlap discussion}
+The preceding moment statements differ from the source in the following ways.
+These qualifications apply also to the assertions marked as proved in the status
+remark below.
+\begin{enumerate}
+\item \emph{Model scope.}
+The SK moment estimates use a deterministic field $h$. The random-field convention
+after (1.61) is not covered. The source assumes $\beta<1/2$ with nonnegative inverse
+temperature; Lean assumes $4\beta_0^2<1$ and $\beta^2\le\beta_0^2$, allowing signed
+$\beta$ with $|\beta|<1/2$. The fixed-point equation for $q$ is an explicit hypothesis.
+The field restriction is a restriction of scope; signed temperature is an extension.
+\item \emph{Site count and variance normalization.}
+The source's site count is $m=N+1$ in these statements, including the one-site case
+$N=0$. The quantities $A_N^2,B_N^2,C_N^2$ contain the factor $1/m$, whereas the
+normalized Gaussian variances $a=mA_N^2$, $b=mB_N^2$, $c=mC_N^2$ do not depend on $m$.
+Lemma~\ref{lem:sg-tal:variance-identification} proves these equalities; no covariance
+formula is changed by the renaming. Products of one-dimensional Gaussian moments
+represent independent coordinates, not repeated powers of a single shared Gaussian.
+The source notation $O(k+1)$ means a bound $K m^{-(k+1)/2}$ here; its $O(1)$ in
+(1.291)--(1.294) means $K/\sqrt m$, not a nonvanishing bounded error.
+\item \emph{Indices and uniform constants.}
+The source labels replicas by $1,\ldots,n$ and uses powers of distinct unordered
+pairs. Lean permits any nonempty finite linearly ordered replica type, requiring
+positive pair multiplicities only for $x<y$. The earlier enumerated version is
+regrouped into these powers by finite sigma types, with zero multiplicities and
+empty products included. Constants may depend on the fixed replica type and
+multiplicities and on $\beta_0$; they are chosen before $\beta,h,q,N$.
+This makes the uniformity in the deterministic field and in the temperature range
+explicit. No uniformity over all degrees or replica counts is asserted.
+\item \emph{The square of a conditional moment.}
+The source's labels $n+1,\ldots,2n$ become a second disjoint copy of the replica
+type, equipped with a lexicographic block order. Both blocks use the same disorder
+and hence the same Gibbs measure and magnetizations. Only the replicas are sampled
+independently conditional on that disorder. Pair exponents on cross-block pairs
+are zero. This is the source's replica argument for (1.293), expressed by a generic
+product-integral identity; neither independent disorder copies nor doubling powers
+on the original labels would compute the required conditional square.
+\item \emph{A stronger conclusion and reusable preparation.}
+In addition to (1.293)--(1.294),
+Theorem~\ref{thm:sg-tal:gibbs-moment-fluctuations} bounds
+$\mathbb E(V_N-G_*)^2$ by $K/\sqrt m$, where $G_*$ is deterministic.
+This is a strengthening obtained from the same first two moment estimates,
+using the generic probability-space inequality
+$\mathbb E(V-g)^2\le e_2+2|g|e_1$; it is not an additional cavity estimate.
+The auxiliary $L^p$ theorem is stronger in scope than the application: it works for
+any finite coupling measure, including empty replica types, without a fixed point
+or temperature restriction. It does not assert the Gaussian approximation under
+such a general coupling law. The conditional moment contains no global $T$ factor,
+as in (1.292).
+\item \emph{Exact centering and the unfinished source consequence.}
+Equation~(1.295) is proved for any finite probability space, vector observable and
+real scale, with any two distinct reference replicas $r,s$, rather than only for
+SK spins and the labels $1,2$. The observed labels $x,y$ may coincide in this exact
+identity; the Gaussian pair-moment estimates still require $x<y$.
+The source next expands centered-overlap products and identifies the Gaussian family
+$g_{xy}=U_{xy}+U_x+U_y$. The general polynomial moment approximation, its disorder
+variance estimate, and the covariance description of this family have not yet been
+exported as Lean theorems here. The exact identity alone does not complete that step.
+Likewise, the moment estimates are not a separate weak-convergence theorem or an
+almost-sure-in-disorder convergence assertion. These open items are not hidden by
+the source's informal phrase ``for the typical disorder''.
+\end{enumerate}
+\end{remark}
+
 \begin{remark}[Statements of Propositions~1.10.4, 1.10.5 and Theorem~1.10.1]
 \label{rem:sg-tal:overlap-clt-statements}
 \talsource{Propositions~1.10.4, 1.10.5, Theorem~1.10.1, Eqs.~(1.290), (1.303), (1.314)}
@@ -7712,7 +7781,7 @@ three kinds of variables $T_{\ell,\ell'}$, $T_\ell$, $T$. Let $V$ be a finite se
 with kind map $d:V\to D_n$ and put $k=|V|$ and $k_x=|d^{-1}(x)|$. This enumerated form
 is equivalent to the multi-index form of (1.290): take $V$ to be the disjoint union of
 $\{1,\dots,k(x)\}$ over $x\in D_n$.
-Let $4\beta_0^2<1$, $h\in\mathbb R$; for $|\beta|\le\beta_0$, $q$ the fixed point
+Let $4\beta_0^2<1$, $h\in\mathbb R$; for $\beta^2\le\beta_0^2$, $q$ the fixed point
 $q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$, $\hat q=\mathbb E\tanh^4(\beta\sqrt q\,z+h)$,
 and $b_i=\langle\sigma_i\rangle$ the Gibbs mean, set
 \[
@@ -7729,7 +7798,8 @@ With $a(j)=\mathbb E g^j$ ($g$ standard Gaussian), $s_x=A,B,C$ for $x$ of kind p
  $\prod_{x\ \mathrm{single}}a(k_x)B^{k_x}\,\nu(T^{k_*})$.
 \item \emph{Theorem 1.10.1 (1.290).} $\big|\nu(\prod_{v\in V}T_{d(v)})-\prod_{x\in D_n}a(k_x)s_x^{k_x}\big|\le K\,m^{-(k+1)/2}$.
 \end{itemize}
-Here $K$ depends on $n$, $V$, $d$, $\beta_0$, $h$ and not on $N$ or $\beta$. The nonzero
+Here $K$ may depend on $n$, $V$, $d$ and $\beta_0$, and is chosen before
+$\beta,h,q,N$. The nonzero
 denominators $1-\beta^2(1-2q+\hat q)$ and $1-\beta^2(1-4q+3\hat q)$ are bounded below by $3/4$.
 For the first use $1-2q+\hat q\le1$ and $\beta^2<1/4$; the second is the direct conclusion of
 \texttt{three\_quarters\_le\_one\_sub\_beta\_sq\_mul}.
