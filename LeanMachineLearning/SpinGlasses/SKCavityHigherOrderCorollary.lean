@@ -45,27 +45,34 @@ theorem sk_cavity_rect_lincomb_expansion (β h q : ℝ) (hβ : 4 * β ^ 2 < 1)
     let ν : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) → ℝ := fun f =>
       ∫ g, ∫ σ, f σ ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (E g))
         ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)
-    let ν₂ : ((Option (Option (Fin n)) → Fin (N + 1) → ℤˣ) → ℝ) → ℝ := fun f =>
-      ∫ g, ∫ σ, f σ
-        ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted (E g))
-        ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)
-    let J : Option (Option (Fin n)) → Option (Option (Fin n)) → ℝ := fun x y =>
-      ν₂ (fun σ => F (fun r i => σ (some (some r)) i.castSucc) *
-        ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ x i.castSucc : ℝ)) ⬝ᵥ
-          fun i : Fin N => (σ y i.castSucc : ℝ)) - q))
     |ν (fun σ => F (fun r i => σ r i.castSucc) *
         (((σ i₁ (Fin.last N) : ℝ) - (σ i₂ (Fin.last N) : ℝ)) *
           ((σ j₁ (Fin.last N) : ℝ) - (σ j₂ (Fin.last N) : ℝ)))) -
       β ^ 2 * (1 - 2 * q + qhat) *
-        (J (some (some i₁)) (some (some j₁)) - J (some (some i₂)) (some (some j₁)) -
-          (J (some (some i₁)) (some (some j₂)) - J (some (some i₂)) (some (some j₂))))| ≤
+        ν (fun σ => F (fun r i => σ r i.castSucc) *
+          ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ i₁ i.castSucc : ℝ)) ⬝ᵥ
+              fun i : Fin N => (σ j₁ i.castSucc : ℝ)) -
+            (N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ i₂ i.castSucc : ℝ)) ⬝ᵥ
+              fun i : Fin N => (σ j₁ i.castSucc : ℝ)) -
+            (N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ i₁ i.castSucc : ℝ)) ⬝ᵥ
+              fun i : Fin N => (σ j₂ i.castSucc : ℝ)) +
+            (N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ i₂ i.castSucc : ℝ)) ⬝ᵥ
+              fun i : Fin N => (σ j₂ i.castSucc : ℝ))))| ≤
       C / ((N : ℝ) + 1) ^ (((k + 2 : ℕ) : ℝ) / 2) := by
   obtain ⟨C₀, hC₀p, hC₀⟩ := sk_cavity_pair_lincomb_expansion β h q hβ hfix qhat hqhat n k h13 c
   obtain ⟨C₁, hC₁p, hC₁⟩ := sk_cavity_pair_lincomb_expansion β h q hβ hfix qhat hqhat n k h23 c
   obtain ⟨C₂, hC₂p, hC₂⟩ := sk_cavity_pair_lincomb_expansion β h q hβ hfix qhat hqhat n k h14 c
   obtain ⟨C₃, hC₃p, hC₃⟩ := sk_cavity_pair_lincomb_expansion β h q hβ hfix qhat hqhat n k h24 c
   refine ⟨C₀ + C₁ + C₂ + C₃, by positivity, ?_⟩
-  intro N a b hab F E ν ν₂ J
+  intro N a b hab F E ν
+  let ν₂ : ((Option (Option (Fin n)) → Fin (N + 1) → ℤˣ) → ℝ) → ℝ := fun f =>
+      ∫ g, ∫ σ, f σ
+        ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted (E g))
+        ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)
+  let J : Option (Option (Fin n)) → Option (Option (Fin n)) → ℝ := fun x y =>
+      ν₂ (fun σ => F (fun r i => σ (some (some r)) i.castSucc) *
+        ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ x i.castSucc : ℝ)) ⬝ᵥ
+          fun i : Fin N => (σ y i.castSucc : ℝ)) - q))
   let A : Fin n → Fin n → (Fin n → Fin (N + 1) → ℤˣ) → ℝ := fun x y σ =>
     F (fun r i => σ r i.castSucc) *
       ((σ x (Fin.last N) : ℝ) * (σ y (Fin.last N) : ℝ) - q)
@@ -122,7 +129,37 @@ theorem sk_cavity_rect_lincomb_expansion (β h q : ℝ) (hβ : 4 * β ^ 2 < 1)
     have h2 := abs_sub (w - x) y
     have h3 := abs_sub w x
     linarith only [h1, h2, h3]
-  rw [hl, ← hb]
+  have hJ (x y : Fin n) : J (some (some x)) (some (some y)) =
+      ν (fun σ => F (fun r i => σ r i.castSucc) *
+        ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ x i.castSucc : ℝ)) ⬝ᵥ
+          fun i : Fin N => (σ y i.castSucc : ℝ)) - q)) := by
+    dsimp only [J, ν₂, ν]
+    apply integral_congr_ae (ae_of_all _ fun g => ?_)
+    exact integral_pi_option_option_count_tilted_marginal (R := Fin n) (E g)
+      (fun σ : Fin n → Fin (N + 1) → ℤˣ => F (fun r i => σ r i.castSucc) *
+        ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ x i.castSucc : ℝ)) ⬝ᵥ
+          fun i : Fin N => (σ y i.castSucc : ℝ)) - q))
+  have hback : J (some (some i₁)) (some (some j₁)) -
+      J (some (some i₂)) (some (some j₁)) -
+        (J (some (some i₁)) (some (some j₂)) -
+          J (some (some i₂)) (some (some j₂))) =
+      ν (fun σ => F (fun r i => σ r i.castSucc) *
+        ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ i₁ i.castSucc : ℝ)) ⬝ᵥ
+            fun i : Fin N => (σ j₁ i.castSucc : ℝ)) -
+          (N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ i₂ i.castSucc : ℝ)) ⬝ᵥ
+            fun i : Fin N => (σ j₁ i.castSucc : ℝ)) -
+          (N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ i₁ i.castSucc : ℝ)) ⬝ᵥ
+            fun i : Fin N => (σ j₂ i.castSucc : ℝ)) +
+          (N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ i₂ i.castSucc : ℝ)) ⬝ᵥ
+            fun i : Fin N => (σ j₂ i.castSucc : ℝ)))) := by
+    simp only [hJ]
+    change Λ _ - Λ _ - (Λ _ - Λ _) = Λ _
+    rw [← map_sub, ← map_sub, ← map_sub]
+    congr 1
+    funext σ
+    simp only [Pi.sub_apply]
+    ring
+  rw [hl, ← hback, ← hb]
   calc
     _ = |(P i₁ j₁ - B i₁ j₁) - (P i₂ j₁ - B i₂ j₁) -
         (P i₁ j₂ - B i₁ j₂) + (P i₂ j₂ - B i₂ j₂)| := congrArg abs (by ring)
