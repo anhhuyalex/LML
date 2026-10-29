@@ -27,7 +27,7 @@ namespace SpinGlasses
 observable are measurable in the disorder `ω` and the observable is bounded, then
 `ω ↦ ∫ Φ ω d(count.tilted (f ω))^{⊗R}` is integrable for a finite measure. -/
 theorem integrable_integral_pi_count_tilted_of_bound {Ω α R : Type*} [MeasurableSpace Ω]
-    {μ : Measure Ω} [IsFiniteMeasure μ] [Fintype α] [Nonempty α] [Fintype R] [DecidableEq R]
+    {μ : Measure Ω} [IsFiniteMeasure μ] [Fintype α] [Nonempty α] [Fintype R]
     [MeasurableSpace α] [MeasurableSingletonClass α]
     (f : Ω → α → ℝ) (hf : ∀ a, Measurable fun ω => f ω a)
     (Φ : Ω → (R → α) → ℝ) (hΦ : ∀ σ, Measurable fun ω => Φ ω σ) (M : ℝ)
@@ -42,7 +42,7 @@ theorem integrable_integral_pi_count_tilted_of_bound {Ω α R : Type*} [Measurab
 
 /-- **A finite sum of bounded replica averages can be integrated termwise in the disorder.** -/
 theorem integral_integral_pi_count_tilted_finset_sum {Ω α R ι : Type*} [MeasurableSpace Ω]
-    {μ : Measure Ω} [IsFiniteMeasure μ] [Fintype α] [Nonempty α] [Fintype R] [DecidableEq R]
+    {μ : Measure Ω} [IsFiniteMeasure μ] [Fintype α] [Nonempty α] [Fintype R]
     [MeasurableSpace α] [MeasurableSingletonClass α]
     (f : Ω → α → ℝ) (hf : ∀ a, Measurable fun ω => f ω a) (t : Finset ι)
     (Φ : ι → Ω → (R → α) → ℝ) (hΦ : ∀ i σ, Measurable fun ω => Φ i ω σ) (M : ℝ)
@@ -59,7 +59,7 @@ theorem integral_integral_pi_count_tilted_finset_sum {Ω α R ι : Type*} [Measu
 live replica labels is the sum over monomials `f : K → M` of `∏ γ` times the monomial's
 disorder- and replica-averaged product. No hypothesis on the parameters is needed. -/
 theorem sk_live_T_expansion_exact (N : ℕ) (β h q : ℝ)
-    {R : Type*} [Fintype R] [DecidableEq R] {K M : Type*} [Fintype K] [DecidableEq K] [Fintype M]
+    {R : Type*} [Fintype R] {K M : Type*} [Fintype K] [DecidableEq K] [Fintype M]
     (l s : K → M → Bool) (x y : K → M → R) (γ : K → M → ℝ) :
     let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g σ =>
       (Real.sqrt (N + 1))⁻¹ * β *
@@ -1105,7 +1105,7 @@ theorem sk_live_T_family_meas_bound (N : ℕ) (β h q : ℝ)
 
 /-- **Additivity of the bounded replica average in the disorder.** -/
 theorem integral_integral_pi_count_tilted_add {Ω α R : Type*} [MeasurableSpace Ω]
-    {μ : Measure Ω} [IsFiniteMeasure μ] [Fintype α] [Nonempty α] [Fintype R] [DecidableEq R]
+    {μ : Measure Ω} [IsFiniteMeasure μ] [Fintype α] [Nonempty α] [Fintype R]
     [MeasurableSpace α] [MeasurableSingletonClass α]
     (f : Ω → α → ℝ) (hf : ∀ a, Measurable fun ω => f ω a) (Φ Ψ : Ω → (R → α) → ℝ)
     (hΦ : ∀ σ, Measurable fun ω => Φ ω σ) (hΨ : ∀ σ, Measurable fun ω => Ψ ω σ)
