@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.ForMathlib.Probability.Moments.FiniteRecurrence
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianClassMoments
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein
 public import LeanMachineLearning.ForMathlib.Data.Nat.Recurrence
 
@@ -45,6 +45,21 @@ theorem integral_pow_scaled_gaussianReal_of_odd (s : ℝ) {m : ℕ} (hm : Odd m)
     rw [integral_const_mul, integral_id_gaussianReal, mul_zero]
   · exact integral_pow_add_two_scaled_gaussianReal s
 
+/-- The square-root and variance-power presentations of a Gaussian moment agree.
+Odd moments vanish, so the integer division in the variance power causes no loss. -/
+theorem integral_pow_sqrt_mul_gaussianReal {v : ℝ} (hv : 0 ≤ v) (n : ℕ) :
+    (∫ x : ℝ, (Real.sqrt v * x) ^ n ∂gaussianReal 0 1) =
+      (∫ x : ℝ, x ^ n ∂gaussianReal 0 1) * v ^ (n / 2) := by
+  rcases Nat.even_or_odd n with he | ho
+  · obtain ⟨k, rfl⟩ := he
+    simp only [mul_pow, integral_const_mul]
+    rw [show (k + k) / 2 = k by omega, show k + k = 2 * k by omega,
+      pow_mul, Real.sq_sqrt hv, mul_comm]
+  · rw [integral_pow_scaled_gaussianReal_of_odd _ ho]
+    have hz := integral_pow_scaled_gaussianReal_of_odd (1 : ℝ) ho
+    simp only [one_mul] at hz
+    rw [hz, zero_mul]
+
 /-- **Gaussian reference for a two-factor recurrence.** Let `P` select the factors that
 carry a class `label`. Suppose that for every selected `p`, every partner `u` of the same
 class (whenever one exists) and every parameter the moment `F s` equals
@@ -69,81 +84,24 @@ theorem exists_gaussian_class_moment_error
             (s.filter fun j => P j ∧ label j = k).card ∂(gaussianReal 0 1)) *
         F θ N (s.filter fun j => ¬P j)| ≤
         K / (N + 1 : ℝ) ^ (((s.card + 1 : ℕ) : ℝ) / 2) := by
-  classical
   let cls : Finset J → J → Finset J := fun s p => s.filter fun j => P j ∧ label j = label p
   let u₀ : Finset J → J → J := fun s p =>
     if h : (cls s p).erase p |>.Nonempty then h.choose else p
   have hu₀ : ∀ s p, ((cls s p).erase p).Nonempty → u₀ s p ∈ (cls s p).erase p := fun s p h => by
     simp only [u₀, dite_eq_left h]
     exact h.choose_spec
-  let f : Θ → ℕ → ℕ → ℝ := fun θ N n =>
-    ∫ x : ℝ, (Real.sqrt (c θ / (N + 1 : ℝ)) * x) ^ n ∂(gaussianReal 0 1)
-  let G : Θ → ℕ → Finset J → ℝ := fun θ N s =>
-    (∏ k : ι, f θ N (s.filter fun j => P j ∧ label j = k).card) *
-      F θ N (s.filter fun j => ¬P j)
-  refine ProbabilityTheory.exists_finset_moment_error_of_two_factor_recurrence P valid F G c B hc
-    (fun s p => (s.erase p).erase (u₀ s p)) (fun s p => (((cls s p).card - 1 : ℕ) : ℝ))
-    ?_ ?_ ?_ ?_
-  · intro s p hp hP
+  have hmem : ∀ s p, p ∈ s → u₀ s p ∈ s := by
+    intro s p hp
     by_cases hne : ((cls s p).erase p).Nonempty
-    · right
-      have hu := hu₀ s p hne
-      have hus : u₀ s p ∈ s.erase p :=
-        Finset.mem_erase.mpr ⟨(Finset.mem_erase.mp hu).1,
-          (Finset.mem_filter.mp (Finset.mem_erase.mp hu).2).1⟩
-      rw [Finset.card_erase_of_mem hus, Finset.card_erase_of_mem hp]
-      have := Finset.card_pos.mpr (⟨p, hp⟩ : s.Nonempty)
-      have h2 := Finset.card_pos.mpr (⟨u₀ s p, hus⟩ : (s.erase p).Nonempty)
-      rw [Finset.card_erase_of_mem hp] at h2
-      omega
-    · left
-      have he : (cls s p).erase p = ∅ := Finset.not_nonempty_iff_eq_empty.mp hne
-      have hpc : p ∈ cls s p := Finset.mem_filter.mpr ⟨hp, hP, rfl⟩
-      have h1 := Finset.card_erase_add_one hpc
-      rw [he, Finset.card_empty] at h1
-      have : (cls s p).card - 1 = 0 := by omega
-      simp only [this, Nat.cast_zero]
-  · intro s hs θ _ N
-    have hfilt : (s.filter fun j => ¬P j) = s := Finset.filter_true_of_mem hs
-    have hz : ∀ k, (s.filter fun j => P j ∧ label j = k) = ∅ := fun k =>
-      Finset.filter_false_of_mem fun j hj h => hs j hj h.1
-    simp only [G, f, hfilt, hz, Finset.card_empty, pow_zero, integral_const, probReal_univ,
-      smul_eq_mul, mul_one, Finset.prod_const_one, one_mul]
-  · intro s p hps hP θ hθ N
-    have hz0 := hc0 θ hθ
-    have hzN : 0 ≤ c θ / (N + 1 : ℝ) := div_nonneg hz0 (by positivity)
-    have hfirst : ∀ _ : ι, f θ N 1 = 0 := fun _ => by
-      simp only [f, pow_one]
-      rw [integral_const_mul, integral_id_gaussianReal, mul_zero]
-    have hrec : ∀ (_ : ι) (n : ℕ), f θ N (n + 2) = ((n + 1 : ℕ) : ℝ) * (c θ / (N + 1 : ℝ)) *
-        f θ N n := fun _ n => by
-      simp only [f]
-      rw [integral_pow_add_two_scaled_gaussianReal, Real.sq_sqrt hzN]
-      push_cast
-      ring
-    have hPu : P (u₀ s p) := by
-      by_cases hne : ((cls s p).erase p).Nonempty
-      · exact (Finset.mem_filter.mp (Finset.mem_erase.mp (hu₀ s p hne)).2).2.1
-      · simp only [u₀, dite_eq_right hne]
-        exact hP
-    have key := prod_class_moments_erase_pair (A := ℝ) s (Finset.univ : Finset ι) P label
-      (fun _ n => f θ N n) (fun _ => c θ / (N + 1 : ℝ)) hfirst hrec hps hP
-      (Finset.mem_univ _) (hu₀ s p)
-    have hfilt : ((s.erase p).erase (u₀ s p)).filter (fun j => ¬P j) =
-        s.filter fun j => ¬P j := by
-      rw [Finset.filter_erase, Finset.filter_erase,
-        Finset.erase_eq_of_notMem (a := p) (by simp [hP]),
-        Finset.erase_eq_of_notMem (a := u₀ s p) (by simp [hPu])]
-    simp only [G]
-    rw [key, hfilt]
-    ring
-  · intro s p hps hP
-    have hu : ((cls s p).erase p).Nonempty → u₀ s p ∈ (cls s p).erase p := hu₀ s p
-    have hmem : u₀ s p ∈ s := by
-      by_cases hne : ((cls s p).erase p).Nonempty
-      · exact (Finset.mem_filter.mp (Finset.mem_erase.mp (hu hne)).2).1
-      · simp only [u₀, dite_eq_right hne]
-        exact hps
-    exact hF s p (u₀ s p) hps hP hmem hu
+    · exact (Finset.mem_filter.mp (Finset.mem_erase.mp (hu₀ s p hne)).2).1
+    · simp only [u₀, dite_eq_right hne]
+      exact hp
+  intro s
+  obtain ⟨K, hK0, hK⟩ := exists_finset_gaussian_class_moment_error P label valid F c B hc u₀
+    (fun s p _ _ => hu₀ s p)
+    (fun s p hp hP => hF s p (u₀ s p) hp hP (hmem s p hp) (hu₀ s p)) s
+  refine ⟨K, hK0, fun θ hθ N => ?_⟩
+  simpa only [← integral_pow_sqrt_mul_gaussianReal
+    (div_nonneg (hc0 θ hθ) (by positivity))] using hK θ hθ N
 
 end ProbabilityTheory

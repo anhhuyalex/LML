@@ -34,6 +34,20 @@ theorem abs_div_le_four_thirds {K : Type*} [Field K] [LinearOrder K]
     |x / D| ≤ 4 / 3 * b :=
   (abs_div_le_div_of_le_abs (by norm_num) (hD.trans (le_abs_self D)) hx).trans_eq (by ring)
 
+/-- A contraction coefficient in `[0,r]`, with `r<1`, gives a positive denominator
+and a uniform bound for `a/(1-κ*a)` whenever `a` belongs to `[0,1]`. -/
+theorem one_sub_mul_div_bounds {K : Type*} [Field K] [LinearOrder K]
+    [IsStrictOrderedRing K] {κ a r : K} (hκ0 : 0 ≤ κ) (hκr : κ ≤ r)
+    (ha : a ∈ Set.Icc (0 : K) 1) (hr : r < 1) :
+    1 - r ≤ 1 - κ * a ∧ 0 ≤ a / (1 - κ * a) ∧ a / (1 - κ * a) ≤ 1 / (1 - r) := by
+  have hd : 1 - r ≤ 1 - κ * a := by
+    nlinarith [mul_le_mul_of_nonneg_left ha.2 hκ0]
+  have hp : 0 < 1 - r := by linarith
+  have hD : 0 < 1 - κ * a := hp.trans_le hd
+  refine ⟨hd, div_nonneg ha.1 hD.le, ?_⟩
+  exact (div_le_div_of_nonneg_left ha.1 hp hd).trans
+    (div_le_div_of_nonneg_right ha.2 hp.le)
+
 /-- **Talagrand Lemma 1.7.14 (Ratio comparison lemma).**
 If `|A'| ≤ B'`, `0 < B'` and `1 ≤ B`, then `|A' / B' - A / B| ≤ |A - A'| + |B - B'|`. -/
 theorem abs_div_sub_div_le {A A' B B' : ℝ} (hA' : |A'| ≤ B') (hB' : 0 < B') (hB : 1 ≤ B) :

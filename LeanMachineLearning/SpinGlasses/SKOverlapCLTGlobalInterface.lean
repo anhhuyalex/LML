@@ -25,10 +25,10 @@ open scoped BigOperators
 
 namespace SpinGlasses
 
-variable {V : Type*} {n : ℕ} (e : V ⊕ V ≃ Fin n) (p : V)
+variable {V R : Type*} (e : V ⊕ V ≃ R) (p : V)
 
 /-- A replica lies in a remaining block iff it is not in the leading block. -/
-theorem exists_block_iff (r : Fin n) :
+theorem exists_block_iff (r : R) :
     (∃ u : {u // u ≠ p}, r = e (.inl u.1) ∨ r = e (.inr u.1)) ↔
       ¬(r = e (.inl p) ∨ r = e (.inr p)) := by
   constructor
@@ -44,20 +44,32 @@ theorem exists_block_iff (r : Fin n) :
     · exact ⟨⟨u, fun hu => h (Or.inr (by rw [hu]))⟩, Or.inr rfl⟩
 
 /-- The partner of a replica in its block. -/
-def blockPartner (r : Fin n) : Fin n := e (Sum.swap (e.symm r))
+def blockPartner (r : R) : R := e (Sum.swap (e.symm r))
+
+/-- Swapping the two copies of an arbitrary index type twice is the identity. -/
+theorem blockPartner_involutive : Function.Involutive (blockPartner e) := by
+  intro r
+  simp [blockPartner]
+
+/-- The two disjoint copies ensure that the partner map has no fixed points. -/
+theorem blockPartner_ne_self (r : R) : blockPartner e r ≠ r := by
+  intro h
+  have hs : Sum.swap (e.symm r) = e.symm r := by
+    simpa only [Equiv.symm_apply_apply] using congrArg e.symm h
+  have hswap : ∀ s : V ⊕ V, Sum.swap s ≠ s := by
+    intro s
+    cases s <;> simp
+  exact hswap _ hs
 
 /-- The partner map is an involution without fixed points on the remaining blocks. -/
-theorem blockPartner_spec (r : Fin n) (h1 : r ≠ e (.inl p)) (h2 : r ≠ e (.inr p)) :
+theorem blockPartner_spec (r : R) (h1 : r ≠ e (.inl p)) (h2 : r ≠ e (.inr p)) :
     blockPartner e r ≠ r ∧ blockPartner e r ≠ e (.inl p) ∧ blockPartner e r ≠ e (.inr p) ∧
       blockPartner e (blockPartner e r) = r := by
   obtain ⟨s, rfl⟩ := e.surjective r
   have hs1 : s ≠ .inl p := fun h => h1 (by rw [h])
   have hs2 : s ≠ .inr p := fun h => h2 (by rw [h])
-  refine ⟨?_, ?_, ?_, by simp [blockPartner]⟩
+  refine ⟨blockPartner_ne_self e _, ?_, ?_, blockPartner_involutive e _⟩
   all_goals simp only [blockPartner, Equiv.symm_apply_apply]
-  · intro h
-    have := e.injective h
-    rcases s with u | u <;> simp at this
   · intro h
     have := e.injective h
     rcases s with u | u
@@ -73,7 +85,7 @@ theorem blockPartner_spec (r : Fin n) (h1 : r ≠ e (.inl p)) (h2 : r ≠ e (.in
 
 /-- Two replicas form a remaining block iff the first is outside the leading block and the second
 is its partner. -/
-theorem exists_block_pair_iff (r s : Fin n) :
+theorem exists_block_pair_iff (r s : R) :
     (∃ u : {u // u ≠ p}, (r = e (.inl u.1) ∧ s = e (.inr u.1)) ∨
         (r = e (.inr u.1) ∧ s = e (.inl u.1))) ↔
       (r ≠ e (.inl p) ∧ r ≠ e (.inr p) ∧ s = blockPartner e r) := by

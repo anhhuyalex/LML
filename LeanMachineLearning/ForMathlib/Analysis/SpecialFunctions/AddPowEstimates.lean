@@ -41,6 +41,16 @@ theorem Real.sqrt_pow_nat {x : ℝ} (hx : 0 ≤ x) (n : ℕ) :
   rw [Real.sq_sqrt (pow_nonneg hx n), ← pow_mul, Nat.mul_comm n 2, pow_mul,
     Real.sq_sqrt hx]
 
+/-- A uniform variance bound controls all powers of its square root at any positive scale. -/
+theorem Real.sqrt_div_pow_le {x v B : ℝ} (hx : 0 < x) (hv : 0 ≤ v) (hB : v ≤ B)
+    (n : ℕ) : Real.sqrt (v / x) ^ n ≤ Real.sqrt B ^ n / x ^ ((n : ℝ) / 2) := by
+  rw [Real.sqrt_div hv, div_pow]
+  have he : Real.sqrt x ^ n = x ^ ((n : ℝ) / 2) := by
+    rw [Real.rpow_div_two_eq_sqrt _ hx.le, Real.rpow_natCast]
+  rw [he]
+  exact div_le_div_of_nonneg_right
+    (pow_le_pow_left₀ (Real.sqrt_nonneg _) (Real.sqrt_le_sqrt hB) n) (by positivity)
+
 /-- **Weighted power inequality.** For `a, b ≥ 0`, `θ > 0` and `n ≥ 1`,
 `(a + b)^n ≤ (1 + θ)^(n-1) a^n + (1 + θ⁻¹)^(n-1) b^n`. Convexity of `t ↦ t^n` applied with the
 weights `1/(1+θ)` and `θ/(1+θ)`; `θ = 1` recovers `add_pow_le`. -/

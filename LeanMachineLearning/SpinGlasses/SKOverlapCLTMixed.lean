@@ -25,20 +25,6 @@ open scoped BigOperators Real Nat
 
 namespace SpinGlasses
 
-/-- `σ^n ≤ (√12)^n / (N+1)^(n/2)` for `σ² = c₀/(N+1)` with `0 ≤ c₀ ≤ 12`. -/
-theorem sqrt_div_succ_pow_le {c₀ : ℝ} (h0 : 0 ≤ c₀) (h12 : c₀ ≤ 12) (N n : ℕ) :
-    Real.sqrt (c₀ / (N + 1 : ℝ)) ^ n ≤ Real.sqrt 12 ^ n / ((N : ℝ) + 1) ^ ((n : ℝ) / 2) := by
-  have hN : (0 : ℝ) < (N : ℝ) + 1 := by positivity
-  have hs : Real.sqrt (c₀ / (N + 1 : ℝ)) = Real.sqrt c₀ / ((N : ℝ) + 1) ^ ((1 : ℝ) / 2) := by
-    rw [Real.sqrt_div h0, Real.sqrt_eq_rpow ((N : ℝ) + 1)]
-  have hp : (((N : ℝ) + 1) ^ ((1 : ℝ) / 2)) ^ n = ((N : ℝ) + 1) ^ ((n : ℝ) / 2) := by
-    rw [← Real.rpow_natCast, ← Real.rpow_mul hN.le]
-    congr 1
-    ring
-  rw [hs, div_pow, hp]
-  exact div_le_div_of_nonneg_right (pow_le_pow_left₀ (Real.sqrt_nonneg _)
-    (Real.sqrt_le_sqrt h12) n) (by positivity)
-
 /-- **Error propagation for a factorisation into three classes.** -/
 theorem abs_sub_prod_le_of_three {X Y Z GP GS GG e₁ e₂ e₃ : ℝ} (h1 : |X - GP * Y| ≤ e₁)
     (h2 : |Y - GS * Z| ≤ e₂) (h3 : |Z - GG| ≤ e₃) :
@@ -284,7 +270,7 @@ theorem sk_T_mixed_gaussian_moment_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2
   have hx : (0 : ℝ) < (N : ℝ) + 1 := by positivity
   have hGP : |GP| ≤ MP / ((N : ℝ) + 1) ^ (((∑ κ, cP κ : ℕ) : ℝ) / 2) := by
     refine (abs_prod_integral_pow_scaled_gaussianReal_le cP (Real.sqrt_nonneg _)).trans ?_
-    have := sqrt_div_succ_pow_le hA0 hA12 N (∑ κ, cP κ)
+    have := Real.sqrt_div_pow_le (by positivity) hA0 hA12 (∑ κ, cP κ)
     calc (∏ κ, ((cP κ)! : ℝ)) * Real.sqrt (α / (1 - β ^ 2 * α) / (N + 1 : ℝ)) ^ (∑ κ, cP κ)
         ≤ (∏ κ, ((cP κ)! : ℝ)) * (Real.sqrt 12 ^ (∑ κ, cP κ) /
           ((N : ℝ) + 1) ^ (((∑ κ, cP κ : ℕ) : ℝ) / 2)) :=
@@ -292,7 +278,8 @@ theorem sk_T_mixed_gaussian_moment_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2
       _ = _ := by simp only [MP]; ring
   have hGS : |GS| ≤ MS / ((N : ℝ) + 1) ^ (((∑ k, cS k : ℕ) : ℝ) / 2) := by
     refine (abs_prod_integral_pow_scaled_gaussianReal_le cS (Real.sqrt_nonneg _)).trans ?_
-    have := sqrt_div_succ_pow_le (c₀ := B2) hB0 (by linarith) N (∑ k, cS k)
+    have := Real.sqrt_div_pow_le (v := B2) (by positivity) hB0
+      (show B2 ≤ 12 by linarith) (∑ k, cS k)
     calc (∏ k, ((cS k)! : ℝ)) * Real.sqrt (B2 / (N + 1 : ℝ)) ^ (∑ k, cS k)
         ≤ (∏ k, ((cS k)! : ℝ)) * (Real.sqrt 12 ^ (∑ k, cS k) /
           ((N : ℝ) + 1) ^ (((∑ k, cS k : ℕ) : ℝ) / 2)) :=

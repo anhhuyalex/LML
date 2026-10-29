@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLTGlobalRecurrence
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianClassRecurrence
+public import Mathlib.Analysis.SpecificLimits.Basic
 
 /-!
 # The Gaussian law of `T` (Talagrand, Theorem 1.10.1, the factors `T`)
@@ -112,6 +113,58 @@ theorem sk_T_global_recurrence_clean (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
   rw [e]
   exact h1
 
+/-- The global Gaussian variance is nonnegative, including degenerate parameter choices.
+The proof uses the degree-two recurrence and positivity of actual second moments. -/
+theorem sk_T_global_variance_nonneg (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (β h q : ℝ)
+    (hfix : ∫ t : ℝ, Real.tanh (β * Real.sqrt q * t + h) ^ 2 ∂gaussianReal 0 1 = q)
+    (hb : β ^ 2 ≤ β₀ ^ 2) :
+    let qh : ℝ := ∫ t : ℝ, Real.tanh (β * t * Real.sqrt q + h) ^ 4 ∂gaussianReal 0 1
+    let α : ℝ := qh - 2 * q + 1
+    let D : ℝ := 1 - β ^ 2 * (1 - 4 * q + 3 * qh)
+    let B2 : ℝ := (q - qh) * (1 + β ^ 2 * (α / (1 - β ^ 2 * α))) / D
+    let E0 : ℝ := (qh - q ^ 2) + β ^ 2 * (qh - q ^ 2) * (α / (1 - β ^ 2 * α)) +
+      2 * β ^ 2 * (2 * q + q ^ 2 - 3 * qh) * B2
+    0 ≤ E0 / D := by
+  intro qh α D B2 E0
+  obtain ⟨C, -, hC⟩ := sk_T_global_recurrence_clean β₀ hβ₀ (V := Fin 2) (0 : Fin 2)
+  have hD : 0 < D := by
+    have hd := (global_coefficient_facts β₀ hβ₀ β h q hfix hb).1
+    linarith
+  have hbound : ∀ N : ℕ, -(C / Real.sqrt ((N : ℝ) + 1)) ≤ E0 := by
+    intro N
+    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g σ =>
+      (Real.sqrt (N + 1))⁻¹ * β *
+        (∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
+        h * ∑ i : Fin (N + 1), (σ i : ℝ)
+    let b : (FinPairs (N + 1) → ℝ) → Fin (N + 1) → ℝ := fun g i =>
+      ∫ σ : Fin (N + 1) → ℤˣ, (σ i : ℝ) ∂(Measure.count.tilted (E g))
+    let T : (FinPairs (N + 1) → ℝ) → ℝ := fun g =>
+      (N + 1 : ℝ)⁻¹ * ∑ i, b g i * b g i - q
+    have ht := hC β h q hfix hb N
+    change |D * (∫ g, T g ^ 2 ∂(Measure.pi fun _ : FinPairs (N + 1) =>
+      gaussianReal 0 1)) - ((2 - 1 : ℕ) : ℝ) * (E0 / (N + 1 : ℝ)) *
+        (∫ g, T g ^ (2 - 2) ∂(Measure.pi fun _ : FinPairs (N + 1) =>
+          gaussianReal 0 1))| ≤ C / ((N : ℝ) + 1) ^ (((2 + 1 : ℕ) : ℝ) / 2) at ht
+    norm_num only [pow_zero, integral_const, probReal_univ, one_smul, mul_one] at ht
+    have hpos : 0 ≤ D * (∫ g, T g ^ 2 ∂(Measure.pi fun _ : FinPairs (N + 1) =>
+        gaussianReal 0 1)) := mul_nonneg hD.le (integral_nonneg fun _ => sq_nonneg _)
+    have hN : (0 : ℝ) < (N : ℝ) + 1 := by positivity
+    have hrpow : ((N : ℝ) + 1) ^ (3 / 2 : ℝ) =
+        ((N : ℝ) + 1) * Real.sqrt ((N : ℝ) + 1) := by
+      rw [show (3 / 2 : ℝ) = 1 + 1 / 2 by norm_num, Real.rpow_add hN,
+        Real.rpow_one, Real.sqrt_eq_rpow]
+    rw [hrpow] at ht
+    have he : -(C / (((N : ℝ) + 1) * Real.sqrt ((N : ℝ) + 1))) ≤
+        E0 / (N + 1 : ℝ) := by linarith [(abs_le.mp ht).2]
+    have hh := mul_le_mul_of_nonneg_left he hN.le
+    convert hh using 1 <;> field_simp
+  have hn : Filter.Tendsto (fun N : ℕ => (N : ℝ) + 1) Filter.atTop Filter.atTop :=
+    tendsto_natCast_atTop_atTop.atTop_add tendsto_const_nhds
+  have hz : Filter.Tendsto (fun N : ℕ => C / Real.sqrt ((N : ℝ) + 1)) Filter.atTop (nhds 0) :=
+    (Real.tendsto_sqrt_atTop.comp hn).const_div_atTop C
+  have hE : -(0 : ℝ) ≤ E0 := le_of_tendsto hz.neg (Filter.Eventually.of_forall hbound)
+  exact div_nonneg (by simpa only [neg_zero] using hE) hD.le
+
 /-- **`𝔼 T^k` is a Gaussian moment** (Theorem 1.10.1 for the factors `T` alone). -/
 theorem sk_T_global_gaussian_moment_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (k : ℕ) :
     ∃ K : ℝ, 0 < K ∧ ∀ (β h q : ℝ),
@@ -163,56 +216,8 @@ theorem sk_T_global_gaussian_moment_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 
   have hcoef : ∀ θ, valid θ → |cf θ| ≤ 12 := fun θ hθ => by
     have := global_coefficient_facts β₀ hβ₀ θ.1 θ.2.1 θ.2.2 hθ.1 hθ.2
     exact this.2
-  have hc0 : ∀ θ, valid θ → 0 ≤ cf θ := by
-    obtain ⟨C2, hC20, hC2⟩ := sk_T_global_recurrence_clean β₀ hβ₀ (V := Fin 2) (0 : Fin 2)
-    intro θ hθ
-    by_contra hneg
-    push Not at hneg
-    obtain ⟨hD, -⟩ := global_coefficient_facts β₀ hβ₀ θ.1 θ.2.1 θ.2.2 hθ.1 hθ.2
-    have hDθ : 3 / 4 ≤ Dθ θ := hD
-    have hE0 : Enum θ < 0 := by
-      have : Enum θ / Dθ θ < 0 := hneg
-      exact (div_neg_iff.mp this).elim (fun h => absurd h.2 (by linarith)) (fun h => h.1)
-    obtain ⟨N, hN⟩ := exists_nat_gt ((C2 / (-Enum θ)) ^ 2)
-    have h := hC2 θ.1 θ.2.1 θ.2.2 hθ.1 hθ.2 N
-    rw [Fintype.card_fin] at h
-    have h' : |Dθ θ * (∫ g, Tθ θ N g ^ 2 ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
-        - ((2 - 1 : ℕ) : ℝ) * (Enum θ / (N + 1 : ℝ)) *
-          (∫ g, Tθ θ N g ^ (2 - 2) ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))| ≤
-        C2 / ((N : ℝ) + 1) ^ (((2 + 1 : ℕ) : ℝ) / 2) := h
-    have hν2 : 0 ≤ ∫ g, Tθ θ N g ^ 2 ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) :=
-      integral_nonneg fun g => sq_nonneg _
-    have hν0 : (∫ g, Tθ θ N g ^ (2 - 2) ∂(Measure.pi fun _ : FinPairs (N + 1) =>
-        gaussianReal 0 1)) = 1 := by simp
-    have h21 : ((2 - 1 : ℕ) : ℝ) = 1 := by norm_num
-    rw [hν0, h21] at h'
-    have hlow := (abs_le.mp h').2
-    have hpos : 0 ≤ Dθ θ * (∫ g, Tθ θ N g ^ 2 ∂(Measure.pi fun _ : FinPairs (N + 1) =>
-        gaussianReal 0 1)) := mul_nonneg (by linarith) hν2
-    have hN1 : (0 : ℝ) < (N : ℝ) + 1 := by positivity
-    have hrpow : ((N : ℝ) + 1) ^ (((2 + 1 : ℕ) : ℝ) / 2) = ((N : ℝ) + 1) *
-        Real.sqrt ((N : ℝ) + 1) := by
-      rw [show (((2 + 1 : ℕ) : ℝ) / 2) = 1 + 1 / 2 by norm_num, Real.rpow_add hN1, Real.rpow_one,
-        Real.sqrt_eq_rpow]
-    rw [hrpow] at hlow
-    have hsq : 0 < Real.sqrt ((N : ℝ) + 1) := Real.sqrt_pos.mpr hN1
-    have hEN : -(C2 / (((N : ℝ) + 1) * Real.sqrt ((N : ℝ) + 1))) ≤ Enum θ / (N + 1 : ℝ) := by
-      linarith
-    have hE : -(C2 / Real.sqrt ((N : ℝ) + 1)) ≤ Enum θ := by
-      have := mul_le_mul_of_nonneg_left hEN hN1.le
-      calc -(C2 / Real.sqrt ((N : ℝ) + 1)) = ((N : ℝ) + 1) *
-            (-(C2 / (((N : ℝ) + 1) * Real.sqrt ((N : ℝ) + 1)))) := by
-            field_simp
-        _ ≤ ((N : ℝ) + 1) * (Enum θ / (N + 1 : ℝ)) := this
-        _ = Enum θ := by field_simp
-    have hr : C2 / (-Enum θ) < Real.sqrt ((N : ℝ) + 1) := by
-      refine Real.lt_sqrt_of_sq_lt ?_
-      linarith
-    have : C2 / Real.sqrt ((N : ℝ) + 1) < -Enum θ := by
-      rw [div_lt_iff₀ hsq]
-      rw [div_lt_iff₀ (by linarith)] at hr
-      linarith
-    linarith
+  have hc0 : ∀ θ, valid θ → 0 ≤ cf θ := fun θ hθ =>
+    sk_T_global_variance_nonneg β₀ hβ₀ θ.1 θ.2.1 θ.2.2 hθ.1 hθ.2
   have hF : ∀ (s : Finset ℕ) (p u : ℕ), p ∈ s → True → u ∈ s →
       (((s.filter fun j => True ∧ () = ()).erase p).Nonempty →
         u ∈ (s.filter fun j => True ∧ () = ()).erase p) →
