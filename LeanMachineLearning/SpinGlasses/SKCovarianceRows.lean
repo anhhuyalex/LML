@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Analysis.RatioBound
 public import LeanMachineLearning.SpinGlasses.SKSecondMoment
 public import LeanMachineLearning.SpinGlasses.SKCavityCovariance
 public import LeanMachineLearning.SpinGlasses.GibbsOverlapCovariances
@@ -92,60 +93,6 @@ theorem sk_overlap_mul_eq_last_site_of_perm (x y : Fin n)
   simpa only [hpt] using key
 
 end SiteSymmetry
-
-/-- **The decoupled average of a centered pair monomial vanishes:** for `x ≠ y`,
-`ν₀(F (ε_xε_y - q)) = 0` when `𝔼 tanh² Y = q` (the first term of Eq. (1.216)). -/
-theorem sk_cavity_decoupled_pair_zero (N : ℕ) (β q h : ℝ)
-    (hfix : ∫ z : ℝ, Real.tanh (β * z * Real.sqrt q + h) ^ 2 ∂(gaussianReal 0 1) = q)
-    {R : Type*} [Fintype R] {x y : R} (hxy : x ≠ y)
-    (F : (R → Fin N → ℤˣ) → ℝ) :
-    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs N,
-            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ)
-    let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
-        (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
-      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
-        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
-      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
-    (∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
-        ∫ σ : R → Fin (N + 1) → ℤˣ,
-          F (fun r i => σ r i.castSucc) *
-            (((σ x (Fin.last N) : ℤˣ) : ℝ) * ((σ y (Fin.last N) : ℤˣ) : ℝ) - q)
-          ∂(Measure.pi fun _ : R => Measure.count.tilted (E (π / 2) g' ω))
-        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
-      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) = 0 := by
-  classical
-  intro B E
-  have hEm (a : Fin (N + 1) → ℤˣ) :
-      Measurable (fun x : (FinPairs N → ℝ) × ((Fin N → ℝ) × ℝ) => E (π / 2) x.1 x.2 a) := by
-    dsimp [E, B]
-    fun_prop
-  let Gj : Bool → (R → Fin (N + 1) → ℤˣ) → ℝ := fun u σ =>
-    if u then F (fun r i => σ r i.castSucc) *
-        (((σ x (Fin.last N) : ℤˣ) : ℝ) * ((σ y (Fin.last N) : ℤˣ) : ℝ))
-    else F (fun r i => σ r i.castSucc)
-  let cw : Bool → ℝ := fun u => if u then 1 else -q
-  have hpt : ∀ σ : R → Fin (N + 1) → ℤˣ,
-      F (fun r i => σ r i.castSucc) *
-        (((σ x (Fin.last N) : ℤˣ) : ℝ) * ((σ y (Fin.last N) : ℤˣ) : ℝ) - q) =
-      ∑ u ∈ Finset.univ, cw u * Gj u σ := fun σ => by
-    simp only [Fintype.sum_bool, cw, Gj, ite_true, ite_false, Bool.false_eq_true]
-    ring
-  simp_rw [hpt]
-  rw [integral_nested_gibbs_finset_sum (Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
-    ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)) (E (π / 2)) hEm
-    Finset.univ cw Gj]
-  have h1 := sk_cavity_decoupled_endpoint_replicas N β q h ({x, y} : Finset R) F
-  have h0 := sk_cavity_decoupled_endpoint_replicas N β q h (∅ : Finset R) F
-  rw [Finset.card_pair hxy, hfix] at h1
-  simp only [Finset.prod_pair hxy] at h1
-  simp only [Finset.prod_empty, mul_one, Finset.card_empty, pow_zero, integral_const,
-    probReal_univ, one_smul, one_mul] at h0
-  simp only [Fintype.sum_bool, cw, Gj, ite_true, ite_false, Bool.false_eq_true]
-  rw [h1, h0]
-  ring
 
 /-- **The Taylor step for a pair covariance** (Eq. (1.216) with Lemma 1.8.2): for `x ≠ y`, an
 observable `F` of the old spins and `f = F (ε_xε_y - q)`,
@@ -543,17 +490,6 @@ theorem sk_row_conv (m : ℕ)
         ring
 
 end Moments
-
-/-- The unscaled coefficients `b(c)` of Lemma 1.8.2 are bounded by `1` when `q, q̂ ∈ [0, 1]`. -/
-theorem abs_skCavityBUnscaled_le {q qhat : ℝ} (hq : q ∈ Set.Icc (0 : ℝ) 1)
-    (hqhat : qhat ∈ Set.Icc (0 : ℝ) 1) (c : ℕ) : |skCavityBUnscaled q qhat c| ≤ 1 := by
-  obtain ⟨hq0, hq1⟩ := hq
-  obtain ⟨hh0, hh1⟩ := hqhat
-  unfold skCavityBUnscaled
-  split_ifs
-  · rw [abs_le]; constructor <;> nlinarith
-  · rw [abs_le]; constructor <;> nlinarith
-  · rw [abs_le]; constructor <;> nlinarith
 
 /-- Triangle inequality for the three pieces of a row. -/
 theorem abs_row_combine {W κ SV fab SOO kν bu c E₁ E₂ E₃ : ℝ} (hW : W = fab + c * kν)
@@ -1908,16 +1844,11 @@ theorem frac_sub_half (c₂ d D₁ D₂ M n : ℝ) (hM : M ≠ 0) (hD₁ : D₁ 
   field_simp
 
 
-/-- `|x / D| ≤ b / δ` if `|x| ≤ b` and `0 < δ ≤ |D|`; the denominator may be negative. -/
-theorem abs_div_le_div_of_le_abs {x D b δ : ℝ} (hδ : 0 < δ) (hD : δ ≤ |D|) (hx : |x| ≤ b) :
-    |x / D| ≤ b / δ := by
-  rw [abs_div]
-  exact div_le_div₀ ((abs_nonneg _).trans hx) hx hδ hD
+/-- Compatibility name for the generic absolute quotient bound. -/
+alias abs_div_le_div_of_le_abs := _root_.abs_div_le_div_of_le_abs
 
-/-- `|x / D| ≤ (4/3) b` if `D ≥ 3/4` and `|x| ≤ b`. -/
-theorem abs_div_le_four_thirds {x D b : ℝ} (hD : 3 / 4 ≤ D) (hx : |x| ≤ b) :
-    |x / D| ≤ 4 / 3 * b :=
-  (abs_div_le_div_of_le_abs (by norm_num) (hD.trans (le_abs_self D)) hx).trans_eq (by ring)
+/-- Compatibility name for the generic `3/4` denominator bound. -/
+alias abs_div_le_four_thirds := _root_.abs_div_le_four_thirds
 
 /-- The error bookkeeping of the covariance system: with `a = ρ₁/D₁`, `b' = (ρ₁/D₁ - ρ₂/D₂)/2`
 and `w = (b₀ a + g b' + R₂)/D₂`, `D_i ≥ 3/4`, `|R_i| ≤ E`, `|b₀| ≤ 1/4`, `|g| ≤ 3/2`, one has

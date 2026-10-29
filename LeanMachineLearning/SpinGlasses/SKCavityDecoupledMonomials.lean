@@ -159,6 +159,17 @@ def skCavityBUnscaled (q qhat : ℝ) (c : ℕ) : ℝ :=
   else if c = 1 then q - q ^ 2
   else qhat - q ^ 2
 
+/-- The unscaled coefficients `b(c)` of Lemma 1.8.2 are bounded by `1` when `q, q̂ ∈ [0, 1]`. -/
+theorem abs_skCavityBUnscaled_le {q qhat : ℝ} (hq : q ∈ Set.Icc (0 : ℝ) 1)
+    (hqhat : qhat ∈ Set.Icc (0 : ℝ) 1) (c : ℕ) : |skCavityBUnscaled q qhat c| ≤ 1 := by
+  obtain ⟨hq0, hq1⟩ := hq
+  obtain ⟨hh0, hh1⟩ := hqhat
+  unfold skCavityBUnscaled
+  split_ifs
+  · rw [abs_le]; constructor <;> nlinarith
+  · rw [abs_le]; constructor <;> nlinarith
+  · rw [abs_le]; constructor <;> nlinarith
+
 /-- Scaled coefficient `b(c) = β² b_unscaled(c)`. -/
 def skCavityBCoef (β q qhat : ℝ) (c : ℕ) : ℝ :=
   β ^ 2 * skCavityBUnscaled q qhat c
@@ -311,5 +322,59 @@ theorem sk_cavity_decoupled_endpoint_pair_cov (N : ℕ) (β q h : ℝ)
       ((∫ z, Real.tanh (β * z * Real.sqrt q + h) ^ (4 - 2 * skCavityCoincidences x y a b)
           ∂(gaussianReal 0 1)) - q ^ 2) * O := by ring
     _ = skCavityBUnscaled q qhat (skCavityCoincidences x y a b) * O := by rw [hdiff]
+
+/-- **The decoupled average of a centered pair monomial vanishes:** for `x ≠ y`,
+`ν₀(F (ε_xε_y - q)) = 0` when `𝔼 tanh² Y = q` (the first term of Eq. (1.216)). -/
+theorem sk_cavity_decoupled_pair_zero (N : ℕ) (β q h : ℝ)
+    (hfix : ∫ z : ℝ, Real.tanh (β * z * Real.sqrt q + h) ^ 2 ∂(gaussianReal 0 1) = q)
+    {R : Type*} [Fintype R] {x y : R} (hxy : x ≠ y)
+    (F : (R → Fin N → ℤˣ) → ℝ) :
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
+      (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs N,
+            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
+        (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
+      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
+        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
+      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
+    (∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
+        ∫ σ : R → Fin (N + 1) → ℤˣ,
+          F (fun r i => σ r i.castSucc) *
+            (((σ x (Fin.last N) : ℤˣ) : ℝ) * ((σ y (Fin.last N) : ℤˣ) : ℝ) - q)
+          ∂(Measure.pi fun _ : R => Measure.count.tilted (E (π / 2) g' ω))
+        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) = 0 := by
+  classical
+  intro B E
+  have hEm (a : Fin (N + 1) → ℤˣ) :
+      Measurable (fun x : (FinPairs N → ℝ) × ((Fin N → ℝ) × ℝ) => E (π / 2) x.1 x.2 a) := by
+    dsimp [E, B]
+    fun_prop
+  let Gj : Bool → (R → Fin (N + 1) → ℤˣ) → ℝ := fun u σ =>
+    if u then F (fun r i => σ r i.castSucc) *
+        (((σ x (Fin.last N) : ℤˣ) : ℝ) * ((σ y (Fin.last N) : ℤˣ) : ℝ))
+    else F (fun r i => σ r i.castSucc)
+  let cw : Bool → ℝ := fun u => if u then 1 else -q
+  have hpt : ∀ σ : R → Fin (N + 1) → ℤˣ,
+      F (fun r i => σ r i.castSucc) *
+        (((σ x (Fin.last N) : ℤˣ) : ℝ) * ((σ y (Fin.last N) : ℤˣ) : ℝ) - q) =
+      ∑ u ∈ Finset.univ, cw u * Gj u σ := fun σ => by
+    simp only [Fintype.sum_bool, cw, Gj, ite_true, ite_false, Bool.false_eq_true]
+    ring
+  simp_rw [hpt]
+  rw [integral_nested_gibbs_finset_sum (Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
+    ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)) (E (π / 2)) hEm
+    Finset.univ cw Gj]
+  have h1 := sk_cavity_decoupled_endpoint_replicas N β q h ({x, y} : Finset R) F
+  have h0 := sk_cavity_decoupled_endpoint_replicas N β q h (∅ : Finset R) F
+  rw [Finset.card_pair hxy, hfix] at h1
+  simp only [Finset.prod_pair hxy] at h1
+  simp only [Finset.prod_empty, mul_one, Finset.card_empty, pow_zero, integral_const,
+    probReal_univ, one_smul, one_mul] at h0
+  simp only [Fintype.sum_bool, cw, Gj, ite_true, ite_false, Bool.false_eq_true]
+  rw [h1, h0]
+  ring
 
 end SpinGlasses

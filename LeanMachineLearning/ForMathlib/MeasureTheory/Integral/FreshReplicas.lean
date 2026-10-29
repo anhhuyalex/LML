@@ -82,6 +82,56 @@ theorem integral_pi_finset_prod_fresh_pairs {R J X : Type*} [Fintype R] [Fintype
     by_cases hj : j ∈ s <;> simp [hj]
   simpa only [havg, hprod] using hh
 
+/-- The double average of a flagged overlap kernel replaces both fresh observations
+by their common mean. The two fixed vectors are arbitrary; no replica labels are needed. -/
+theorem integral_flagged_overlap_eq {I X : Type*} [Fintype I] [Finite X]
+    [MeasurableSpace X] [MeasurableSingletonClass X]
+    (μ : Measure X) [IsProbabilityMeasure μ] (v : X → I → ℝ) (b : I → ℝ)
+    (hb : ∀ i, ∫ x, v x i ∂μ = b i) (c q : ℝ) (u w : I → ℝ) (L S : Bool) :
+    (∫ x, ∫ y, (c * ∑ i,
+      (if L then u i - v x i else v x i) * (if S then w i - v y i else v y i)) -
+        (if L || S then 0 else q) ∂μ ∂μ) =
+      (c * ∑ i, (if L then u i - b i else b i) * (if S then w i - b i else b i)) -
+        (if L || S then 0 else q) := by
+  cases L <;> cases S <;>
+    simp only [Bool.false_or, Bool.true_or, Bool.false_eq_true, ite_true, ite_false, sub_zero,
+      integral_sub Integrable.of_finite Integrable.of_finite, integral_const_mul,
+      integral_finsetSum _ (fun _ _ => Integrable.of_finite), integral_mul_const,
+      hb, integral_const, probReal_univ, one_smul]
+
+/-- **Fresh-mean substitution on any finite subset of flagged factors.** The fresh
+replica family stays fixed when factors are deleted. This is useful for moment induction
+on subsets and does not require rebuilding an enumeration after every deletion. -/
+theorem integral_finset_prod_flagged_fresh_eq {R J I X : Type*}
+    [Fintype R] [Fintype J] [Fintype I] [Finite X]
+    [MeasurableSpace X] [MeasurableSingletonClass X]
+    (μ : Measure X) [IsProbabilityMeasure μ] (v : X → I → ℝ) (b : I → ℝ)
+    (hb : ∀ i, ∫ x, v x i ∂μ = b i) (c q : ℝ)
+    (a a' : J → R) (L S : J → Bool) (s : Finset J) :
+    (∫ σ : R ⊕ (J ⊕ J) → X, ∏ j ∈ s,
+      ((c * ∑ i,
+        (if L j then v (σ (.inl (a j))) i - v (σ (.inr (.inl j))) i
+          else v (σ (.inr (.inl j))) i) *
+        (if S j then v (σ (.inl (a' j))) i - v (σ (.inr (.inr j))) i
+          else v (σ (.inr (.inr j))) i)) - (if L j || S j then 0 else q))
+      ∂(Measure.pi fun _ => μ)) =
+      ∫ ρ : R → X, ∏ j ∈ s,
+        ((c * ∑ i, (if L j then v (ρ (a j)) i - b i else b i) *
+          (if S j then v (ρ (a' j)) i - b i else b i)) -
+            (if L j || S j then 0 else q)) ∂(Measure.pi fun _ => μ) := by
+  let K : J → (R → X) → X → X → ℝ := fun j ρ x y =>
+    (c * ∑ i, (if L j then v (ρ (a j)) i - v x i else v x i) *
+      (if S j then v (ρ (a' j)) i - v y i else v y i)) -
+        (if L j || S j then 0 else q)
+  change (∫ σ : R ⊕ (J ⊕ J) → X, ∏ j ∈ s,
+    K j (fun r => σ (.inl r)) (σ (.inr (.inl j))) (σ (.inr (.inr j)))
+    ∂(Measure.pi fun _ => μ)) = _
+  rw [integral_pi_finset_prod_fresh_pairs μ s K]
+  apply integral_congr_ae (ae_of_all _ fun ρ => ?_)
+  apply Finset.prod_congr rfl
+  intro j _
+  exact integral_flagged_overlap_eq μ v b hb c q (v (ρ (a j))) (v (ρ (a' j))) (L j) (S j)
+
 /-- If two fresh-pair factors have the same conditional average, deleting either has
 the same expectation. This identifies the surviving moments in Talagrand's Eq. (1.312)
 without constructing replica permutations. -/
@@ -175,23 +225,17 @@ theorem integral_replica_centered_products {R P S G I X : Type*}
   apply integral_congr_ae (ae_of_all _ fun ρ => ?_)
   have hpair (p : P) : (∫ x, ∫ y, K (.inl p) ρ x y ∂μ ∂μ) =
       c * ∑ i, (v (ρ (a p)) i - b i) * (v (ρ (a' p)) i - b i) := by
-    simp only [K, Sum.elim_inl]
-    simp only [integral_const_mul, integral_finsetSum _ (fun _ _ => Integrable.of_finite),
-      integral_sub (integrable_const _) Integrable.of_finite, integral_const,
-      probReal_univ, one_smul, integral_mul_const, hb]
+    simpa only [K, Sum.elim_inl, ite_true, Bool.true_or, sub_zero] using
+      integral_flagged_overlap_eq μ v b hb c q (v (ρ (a p))) (v (ρ (a' p))) true true
   have hone (s : S) : (∫ x, ∫ y, K (.inr (.inl s)) ρ x y ∂μ ∂μ) =
       c * ∑ i, (v (ρ (d s)) i - b i) * b i := by
-    simp only [K, Sum.elim_inr, Sum.elim_inl]
-    simp only [integral_const_mul, integral_finsetSum _ (fun _ _ => Integrable.of_finite),
-      hb, integral_mul_const, integral_sub (integrable_const _) Integrable.of_finite,
-      integral_const,
-      probReal_univ, one_smul]
+    simpa only [K, Sum.elim_inr, Sum.elim_inl, Bool.false_eq_true, ite_true, ite_false,
+      Bool.true_or, sub_zero] using
+      integral_flagged_overlap_eq μ v b hb c q (v (ρ (d s))) (fun _ => 0) true false
   have hglobal (g : G) : (∫ x, ∫ y, K (.inr (.inr g)) ρ x y ∂μ ∂μ) =
       (c * ∑ i, b i * b i) - q := by
-    simp only [K, Sum.elim_inr]
-    simp only [integral_sub Integrable.of_finite (integrable_const _),
-      integral_const_mul, integral_finsetSum _ (fun _ _ => Integrable.of_finite),
-      hb, integral_mul_const, integral_const, probReal_univ, one_smul]
+    simpa only [K, Sum.elim_inr, Bool.false_eq_true, ite_false, Bool.false_or] using
+      integral_flagged_overlap_eq μ v b hb c q (fun _ => 0) (fun _ => 0) false false
   simp only [J, Fintype.prod_sum_type, hpair, hone, hglobal]
   ring
 

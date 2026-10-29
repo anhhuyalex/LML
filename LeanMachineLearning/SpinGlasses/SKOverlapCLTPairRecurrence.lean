@@ -24,8 +24,9 @@ open scoped BigOperators Real Matrix
 namespace SpinGlasses
 
 /-- **Eq. (1.313), for the actual enumerated fresh-factor products.** The selected factor
-is a pair factor and the multiplicity counts its other ordered-pair matches. Constants
-are chosen before the site count; the model parameters and finite factor data are fixed. -/
+is a pair factor; the multiplicity counts its other ordered-pair matches. The finite
+factor data are fixed, while the constant precedes the model parameters throughout the
+high-temperature range and precedes the site count. -/
 theorem sk_cavity_fresh_pair_recurrence_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
     {R J : Type*} [Fintype R] [LinearOrder R] [Fintype J] [DecidableEq J]
     (L S : J → Bool) (p : J) (hLp : L p = true) (hSp : S p = true)

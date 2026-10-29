@@ -20,6 +20,20 @@ if `|A'| ≤ B'`, `0 < B'` and `1 ≤ B`, then `|A' / B' - A / B| ≤ |A - A'| +
 
 @[expose] public section
 
+/-- A numerator bound and a positive lower bound on the absolute denominator bound a
+quotient. The denominator itself may be negative. -/
+theorem abs_div_le_div_of_le_abs {K : Type*} [Field K] [LinearOrder K]
+    [IsStrictOrderedRing K] {x D b δ : K}
+    (hδ : 0 < δ) (hD : δ ≤ |D|) (hx : |x| ≤ b) : |x / D| ≤ b / δ := by
+  rw [abs_div]
+  exact div_le_div₀ ((abs_nonneg _).trans hx) hx hδ hD
+
+/-- Dividing by a coefficient bounded below by `3/4` costs at most a factor `4/3`. -/
+theorem abs_div_le_four_thirds {K : Type*} [Field K] [LinearOrder K]
+    [IsStrictOrderedRing K] {x D b : K} (hD : 3 / 4 ≤ D) (hx : |x| ≤ b) :
+    |x / D| ≤ 4 / 3 * b :=
+  (abs_div_le_div_of_le_abs (by norm_num) (hD.trans (le_abs_self D)) hx).trans_eq (by ring)
+
 /-- **Talagrand Lemma 1.7.14 (Ratio comparison lemma).**
 If `|A'| ≤ B'`, `0 < B'` and `1 ≤ B`, then `|A' / B' - A / B| ≤ |A - A'| + |B - B'|`. -/
 theorem abs_div_sub_div_le {A A' B B' : ℝ} (hA' : |A'| ≤ B') (hB' : 0 < B') (hB : 1 ≤ B) :

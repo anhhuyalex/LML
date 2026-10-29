@@ -6201,7 +6201,8 @@ No independence of the factors is assumed.
 
 \begin{theorem}[Higher-order cavity expansions]\label{thm:sg-tal:cavity-higher-expansion}
 \lean{SpinGlasses.sk_cavity_expansion_of_sq_le, SpinGlasses.sk_cavity_prod_expansion,
-SpinGlasses.sk_cavity_prod_old_spin_compare}
+SpinGlasses.sk_cavity_prod_old_spin_compare, SpinGlasses.sk_cavity_prod_expansion_uniform,
+SpinGlasses.sk_cavity_prod_old_spin_compare_uniform}
 \leanok
 \uses{lem:sg-tal:cavity-higher-moments}
 \talsource{Eqs.~(1.298)--(1.299)}
@@ -6227,8 +6228,24 @@ the monomial and linear-combination results use this shared statement.
 For the old-spin form, use the exact decoupled endpoint identity with no last-spin factors.
 \end{proof}
 
+\begin{remark}[Uniformity of the higher-order expansion chain]
+\lean{SpinGlasses.abs_skCavityBUnscaled_le}
+\leanok
+\talsource{Eqs.~(1.298)--(1.302), constants independent of the system size}
+The monomial Taylor bounds, their old-spin comparison, Lemma~1.10.2, its finite
+linear-combination extension and both higher-order corollaries below admit the following
+stronger quantifier order. Fix $4\beta_0^2<1$, the replica and factor counts, coefficients
+and distinguished labels. One positive constant works for every deterministic $h$, every
+$\beta^2\le\beta_0^2$, every $q$ satisfying the fixed-point equation, the corresponding
+$\widehat q$, and every $N$. The original fixed-parameter declarations specialize these
+uniform results. In the signed pair sum the existing bound
+$|b_{\rm unscaled}(r)|\le1$ gives
+$\sum_j|w_j b_j|\le\beta_0^2\sum_j|w_j|$, so its error coefficient is chosen before
+$\beta,h,q,\widehat q$. No uniformity in unbounded coefficient families is asserted.
+\end{remark}
+
 \begin{lemma}[Higher-order pair expansion]\label{lem:sg-tal:cavity-higher-pair}
-\lean{SpinGlasses.sk_cavity_pair_prod_expansion}
+\lean{SpinGlasses.sk_cavity_pair_prod_expansion, SpinGlasses.sk_cavity_pair_prod_expansion_uniform}
 \leanok
 \uses{thm:sg-tal:cavity-higher-expansion}
 \talsource{Lemma~1.10.2, Eq.~(1.300)}
@@ -6379,7 +6396,8 @@ The factor $W$ may depend on the last spins; no extra independence is imposed.
 
 \begin{lemma}[Lemma~1.10.2 for products of linear combinations]
 \label{lem:sg-tal:cavity-higher-linear}
-\lean{SpinGlasses.sk_cavity_pair_lincomb_expansion}
+\lean{SpinGlasses.sk_cavity_pair_lincomb_expansion,
+SpinGlasses.sk_cavity_pair_lincomb_expansion_uniform}
 \leanok
 \uses{lem:sg-tal:finite-product-bound, lem:sg-tal:cavity-higher-pair}
 \talsource{Paragraph following Eq.~(1.300)}
@@ -6408,7 +6426,8 @@ If $C_0$ is the monomial constant, $1+C_0\prod_j\sum_i|c_{ji}|$ is a valid posit
 \label{cor:sg-tal:cavity-higher-rect-third}
 \lean{SpinGlasses.sk_cavity_rect_lincomb_expansion,
 SpinGlasses.sk_cavity_sub_third_lincomb_expansion,
-SpinGlasses.sk_cavity_replica_pair_sum_rect}
+SpinGlasses.sk_cavity_replica_pair_sum_rect, SpinGlasses.sk_cavity_rect_lincomb_expansion_uniform,
+SpinGlasses.sk_cavity_sub_third_lincomb_expansion_uniform}
 \leanok
 \uses{lem:sg-tal:cavity-higher-linear}
 \talsource{Corollary~1.10.3, Eqs.~(1.301)--(1.302)}
@@ -6521,6 +6540,43 @@ Gibbs means on the left and a deterministic fresh-replica integrand on the right
 Apply the preceding lemma with the three displayed kernels. Each fresh-pair average
 is the corresponding $T_p,T_s$, or $T$, by finite-sum linearity and the definition of $b$.
 The identity holds at each disorder realization and therefore also after disorder averaging.
+\end{proof}
+
+\begin{lemma}[Fresh-mean substitution on selected factor subsets]
+\label{lem:sg-tal:flagged-fresh-subsets}
+\lean{MeasureTheory.integral_flagged_overlap_eq,
+MeasureTheory.integral_finset_prod_flagged_fresh_eq,
+SpinGlasses.sk_flagged_T_moment_eq_fresh}
+\leanok
+\uses{lem:sg-tal:fresh-pair-product}
+\talsource{Eq.~(1.305), also for the products remaining after factor deletions}
+Let $(X,\mu)$ be a finite probability space with measurable singletons, let $I,R,J$
+be finite types, and let $v:X\to\mathbb R^I$ with mean $b_i=\int v_i\,d\mu$.
+Fix $c,q\in\mathbb R$, labels $a_j,a'_j\in R$ and Boolean flags $L_j,S_j$.
+For $\rho\in X^R$ define
+\[
+ K_j(\rho,x,y)=c\sum_i
+  \begin{cases}v_i(\rho_{a_j})-v_i(x)&L_j=1,\\v_i(x)&L_j=0\end{cases}
+  \begin{cases}v_i(\rho_{a'_j})-v_i(y)&S_j=1,\\v_i(y)&S_j=0\end{cases}
+  -\mathbf1_{L_j=S_j=0}q.
+\]
+Let $T_j(\rho)$ be the same expression with $v_i(x),v_i(y)$ replaced by $b_i$.
+For every $s\subseteq J$, assigning a fresh pair $x_j,y_j$ to every $j\in J$ gives
+\[
+ \int_{X^{R\sqcup(J\sqcup J)}}\prod_{j\in s}K_j(\rho,x_j,y_j)\,d\mu^{\otimes}
+ =\int_{X^R}\prod_{j\in s}T_j(\rho)\,d\mu^{\otimes R}.
+\]
+The fresh family stays fixed when $s$ is replaced by an erased subset.
+For the SK Gibbs measure at each disorder realization, the same identity holds after
+averaging over the disorder. It needs no fixed point or high-temperature assumption.
+\end{lemma}
+\begin{proof}
+\leanok
+The existing selected-family factorization reduces the claim to a double average of one
+kernel. Finite-sum linearity replaces its two independent observations by their means;
+the four flag cases share this one calculation. The same calculation now also supplies
+the pair, single and global cases in the full-family identity, without repeating three
+integral manipulations. Unused fresh replicas integrate to one.
 \end{proof}
 
 \begin{remark}[Deviations from Talagrand in the higher-order cavity results]
@@ -6903,36 +6959,40 @@ pairing sum; weakening the denominator exponent gives the stated uniform bound.
 \begin{theorem}[The pair-factor feedback and recurrence]
 \label{thm:sg-tal:pair-factor-recurrence}
 \lean{SpinGlasses.sk_cavity_fresh_pair_feedback, SpinGlasses.sk_cavity_fresh_pair_recurrence,
-SpinGlasses.flagged_pair_ne}
+SpinGlasses.flagged_pair_ne, SpinGlasses.sk_cavity_fresh_pair_feedback_uniform,
+SpinGlasses.sk_cavity_fresh_pair_recurrence_uniform, SpinGlasses.sk_T_pair_recurrence_uniform}
 \leanok
-\uses{thm:sg-tal:term-I-multiplicity, thm:sg-tal:last-site-step,
+\uses{lem:sg-tal:flagged-fresh-subsets, thm:sg-tal:term-I-multiplicity, thm:sg-tal:last-site-step,
 cor:sg-tal:cavity-higher-rect-third, lem:sg-tal:product-truncation-comparison}
 \talsource{Application of Eq.~(1.301) immediately after Eq.~(1.312); Eq.~(1.313)}
-Fix deterministic $\beta,h,q$ with $4\beta^2<1$ and
-$q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$, finite $R,J$, and all the flags, ordered
-original pairs and distinguished factor $p$ of
-Theorem~\ref{thm:sg-tal:term-I-multiplicity}. Let $m=N+1$ and use its notation
-$U_j^-,e_j,M,\alpha$. Put
+Fix $4\beta_0^2<1$, finite $R,J$, and all the flags, ordered original pairs and
+distinguished factor $p$ of Theorem~\ref{thm:sg-tal:term-I-multiplicity}.
+The following constants work for all deterministic $\beta,h,q$ with
+$\beta^2\le\beta_0^2$ and $q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$.
+Let $m=N+1$ and use the notation $U_j^-,e_j,M,\alpha$ there. Put
 \[
  U_j=m^{-1}\sum_{v\le N}d_j^L(v)d_j^S(v)-\mathbf1_{L_j=S_j=0}q,
  \quad V=\nu\left(\prod_{j\in J}U_j\right),\quad
  H=\nu\left(\prod_{j\ne p}U_j^-\,e_p\right).
 \]
-There is $C_1>0$, chosen before $N$, such that
+There is $C_1>0$, chosen before $\beta,h,q,N$, such that
 \[
  |H-\beta^2\alpha\,\nu(\prod_{j\in J}U_j^-)|
  \le C_1m^{-(|J|+1)/2}.
 \]
 Choose $u_0\in J$ in $M\setminus\{p\}$ whenever that set is nonempty.
-There is $C>0$, chosen before $N$, such that
+There is $C>0$, chosen before $\beta,h,q,N$, such that
 \[
  \left|(1-\beta^2\alpha)V-
    \frac{\alpha}{m}(|M|-1)\nu\left(\prod_{j\in J\setminus\{p,u_0\}}U_j\right)\right|
  \le C m^{-(|J|+1)/2}.
 \]
 The recurrence uses full factors on both sides, including when there is no other match.
-These two statements fix the model parameters before their constants; uniformity in a
-temperature interval is not asserted by these declarations.
+The constants are uniform over the stated temperature range. By
+Lemma~\ref{lem:sg-tal:flagged-fresh-subsets}, replacing both displayed fresh-product
+moments by their actual Gibbs-mean T-moments gives the same recurrence. This
+T-moment version is exported separately and does not assume the Gibbs means are
+independent of the disorder.
 \end{theorem}
 \begin{proof}
 \leanok
@@ -6947,6 +7007,42 @@ The deleted product has $|J|-2$ factors and hence comparison error
 $Cm^{-(|J|-1)/2}$; its additional factor $m^{-1}$ restores the required error order.
 When $|M|-1=0$, that entire contribution is zero and no second factor is needed.
 The five errors are added explicitly; the recurrence is not an assumed input.
+\end{proof}
+
+\begin{theorem}[Uniform induction for a two-factor moment recurrence]
+\label{thm:sg-tal:finite-moment-induction}
+\lean{ProbabilityTheory.exists_finset_moment_error_of_two_factor_recurrence}
+\leanok
+\talsource{The induction scheme of Propositions~1.10.4--1.10.5 and Theorem~1.10.1}
+Let $P$ be a property on a type $J$, and let $F_\theta(N,s),G_\theta(N,s)$
+be real families for finite $s\subseteq J$ and parameters $\theta$ in a prescribed domain.
+Assume $|c_\theta|\le B$. For every $p\in s$ with $P(p)$ fix $w(s,p)\in\mathbb R$
+and a finite $D(s,p)$ such that either $w(s,p)=0$ or $|D(s,p)|+2=|s|$.
+Suppose $F=G$ on sets containing no selected factor, and
+\[
+ G_\theta(N,s)=\frac{w(s,p)c_\theta}{N+1}G_\theta(N,D(s,p)).
+\]
+Assume for each such $s,p$ there is $K_{s,p}\ge0$, chosen before $\theta,N$, with
+\[
+ \left|F_\theta(N,s)-\frac{w(s,p)c_\theta}{N+1}F_\theta(N,D(s,p))\right|
+ \le\frac{K_{s,p}}{(N+1)^{(|s|+1)/2}}.
+\]
+Then for every finite $s$ there is $K_s>0$, chosen before $\theta,N$, with
+\[
+ |F_\theta(N,s)-G_\theta(N,s)|\le\frac{K_s}{(N+1)^{(|s|+1)/2}}.
+\]
+This is an abstract induction theorem. The Gaussian reference identity and the SK
+specializations required for Propositions~1.10.4--1.10.5 are not asserted here.
+\end{theorem}
+\begin{proof}
+\leanok
+Induct strongly on $|s|$. If no factor is selected the difference is zero.
+A zero weight reduces the claim to the supplied recurrence remainder, without any
+hypothesis on the deleted set. Otherwise apply the induction hypothesis to $D(s,p)$,
+multiply by the bounded coefficient and $(N+1)^{-1}$, and add the remainder.
+The identity $(|s|+1)/2=1+(|D(s,p)|+1)/2$ gives exactly the required error scale.
+One may choose the new constant as
+$K_{s,p}+|w(s,p)|\,|B|K_{D(s,p)}+1$, before $\theta,N$.
 \end{proof}
 
 \begin{remark}[Statements of Propositions~1.10.4, 1.10.5 and Theorem~1.10.1 (planned, not proved)]
@@ -6976,8 +7072,9 @@ With $a(j)=\mathbb E g^j$ ($g$ standard Gaussian), $s_x=A,B,C$ for $x$ of kind p
 \item \emph{Theorem 1.10.1 (1.290).} $\big|\nu(\prod_{v\in V}T_{d(v)})-\prod_{x\in D_n}a(k_x)s_x^{k_x}\big|\le K\,m^{-(k+1)/2}$.
 \end{itemize}
 Here $K$ depends on $n$, $V$, $d$, $\beta_0$, $h$ and not on $N$ or $\beta$. The nonzero
-denominators $1-\beta^2(1-2q+\hat q)$ and $1-\beta^2(1-4q+3\hat q)$ are bounded below by $3/4$
-(\texttt{three\_quarters\_le\_one\_sub\_beta\_sq\_mul}).
+denominators $1-\beta^2(1-2q+\hat q)$ and $1-\beta^2(1-4q+3\hat q)$ are bounded below by $3/4$.
+For the first use $1-2q+\hat q\le1$ and $\beta^2<1/4$; the second is the direct conclusion of
+\texttt{three\_quarters\_le\_one\_sub\_beta\_sq\_mul}.
 \end{remark}
 
 \begin{remark}[Status of Section~1.10]\label{rem:sg-tal:overlap-clt-status}
@@ -6995,10 +7092,11 @@ and the identity of matching deleted fresh-product expectations are proved above
 The explicit flagged-factor representation and counting now give the common-moment
 multiplicity form of (1.312), Theorem~\ref{thm:sg-tal:term-I-multiplicity}.
 The disorder-averaged identity (1.305), the application of (1.301) to the explicit
-fresh factors, and (1.313) with fixed model parameters are now proved in
-Theorem~\ref{thm:sg-tal:pair-factor-recurrence}.
-\emph{Not proved:} a temperature-uniform strengthening of that recurrence and
-the induction of Proposition~1.10.4;
+fresh factors, and (1.313) uniformly in the high-temperature range are now proved in
+Theorem~\ref{thm:sg-tal:pair-factor-recurrence}, including the actual T-moment form.
+Selected-subset fresh identities and the generic finite moment induction are also proved.
+\emph{Not proved:} the Gaussian reference algebra and SK specialization completing
+Proposition~1.10.4;
 the hard step (1.319) of Proposition~1.10.5; and Theorem~1.10.1 itself.
 The planned statements are in Remark~\ref{rem:sg-tal:overlap-clt-statements}; they are not
 asserted as formalized. The earlier vacuous declarations were removed and the estimates above use

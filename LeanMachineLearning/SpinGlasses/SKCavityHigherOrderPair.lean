@@ -6,7 +6,6 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.SpinGlasses.SKCavityHigherOrder
-public import LeanMachineLearning.SpinGlasses.SKCovarianceRows
 public import LeanMachineLearning.SpinGlasses.SKTBasisAlgebra
 
 /-!

@@ -24,8 +24,8 @@ open scoped BigOperators Real Matrix
 namespace SpinGlasses
 
 /-- **The leading rectangular term immediately before Eq. (1.313).** All factors are
-explicit fresh-overlap kernels. The positive error constant precedes the site count;
-model parameters and original labels are fixed in this version. -/
+explicit fresh-overlap kernels. The constant precedes the model parameters and site count
+on the high-temperature range; the original factor labels are fixed. -/
 theorem sk_cavity_fresh_pair_feedback_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
     {R J : Type*} [Fintype R] [LinearOrder R] [Fintype J] [DecidableEq J]
     (L S : J → Bool) (p : J) (hLp : L p = true) (hSp : S p = true)

@@ -129,6 +129,7 @@ public import LeanMachineLearning.ForMathlib.Probability.Kernel.KernelSub
 public import LeanMachineLearning.ForMathlib.Probability.Kernel.MeasurableSpace
 public import LeanMachineLearning.ForMathlib.Probability.Kernel.Sigma
 public import LeanMachineLearning.ForMathlib.Probability.Moments.DiscreteLyapunov
+public import LeanMachineLearning.ForMathlib.Probability.Moments.FiniteRecurrence
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianAffineDerivative
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianCholesky
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianContinuity
@@ -519,6 +520,7 @@ public import LeanMachineLearning.SpinGlasses.SKOverlapCLTContractions
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLTFreshContractions
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLTFreshMoments
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLTPairFeedback
+public import LeanMachineLearning.SpinGlasses.SKOverlapCLTPairMoments
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLTPairRecurrence
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLTStep
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLTTermI

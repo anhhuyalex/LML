@@ -61,4 +61,39 @@ theorem sk_mixed_T_moment_eq_fresh (N : ℕ) (β h q : ℝ)
     (fun (σ : Fin (N + 1) → ℤˣ) (i : Fin (N + 1)) => (σ i : ℝ))
     (b g) (fun _ => rfl) (N + 1 : ℝ)⁻¹ q a a' d).symm
 
+
+/-- **The disorder-averaged identity (1.305) on any selected factor subset.** Boolean
+flags encode pair, single and global T-factors. The surrounding fresh replica family
+stays fixed when factors are deleted, as needed by the moment recurrence. -/
+theorem sk_flagged_T_moment_eq_fresh (N : ℕ) (β h q : ℝ)
+    {R J : Type*} [Fintype R] [Fintype J]
+    (a a' : J → R) (L S : J → Bool) (s : Finset J) :
+    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g σ =>
+      (Real.sqrt (N + 1))⁻¹ * β *
+        (∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
+      h * ∑ i : Fin (N + 1), (σ i : ℝ)
+    let b : (FinPairs (N + 1) → ℝ) → Fin (N + 1) → ℝ := fun g i =>
+      ∫ σ : Fin (N + 1) → ℤˣ, (σ i : ℝ) ∂(Measure.count.tilted (E g))
+    (∫ g, ∫ ρ : R → Fin (N + 1) → ℤˣ, ∏ j ∈ s,
+      (((N + 1 : ℝ)⁻¹ * ∑ i,
+        (if L j then (ρ (a j) i : ℝ) - b g i else b g i) *
+        (if S j then (ρ (a' j) i : ℝ) - b g i else b g i)) -
+        (if L j || S j then 0 else q))
+      ∂(Measure.pi fun _ : R => Measure.count.tilted (E g))
+      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) =
+      ∫ g, ∫ σ : R ⊕ (J ⊕ J) → Fin (N + 1) → ℤˣ, ∏ j ∈ s,
+        (((N + 1 : ℝ)⁻¹ * ∑ i,
+          (if L j then (σ (.inl (a j)) i : ℝ) - (σ (.inr (.inl j)) i : ℝ)
+            else (σ (.inr (.inl j)) i : ℝ)) *
+          (if S j then (σ (.inl (a' j)) i : ℝ) - (σ (.inr (.inr j)) i : ℝ)
+            else (σ (.inr (.inr j)) i : ℝ))) - (if L j || S j then 0 else q))
+        ∂(Measure.pi fun _ : R ⊕ (J ⊕ J) => Measure.count.tilted (E g))
+        ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) := by
+  intro E b
+  apply integral_congr_ae (ae_of_all _ fun g => ?_)
+  exact (MeasureTheory.integral_finset_prod_flagged_fresh_eq
+    (R := R) (J := J) (Measure.count.tilted (E g))
+    (fun (σ : Fin (N + 1) → ℤˣ) (i : Fin (N + 1)) => (σ i : ℝ))
+    (b g) (fun _ => rfl) (N + 1 : ℝ)⁻¹ q a a' L S s).symm
+
 end SpinGlasses
