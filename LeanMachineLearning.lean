@@ -538,6 +538,7 @@ public import LeanMachineLearning.SpinGlasses.SKOverlapCLTGlobalStep
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLTGlobalTermI
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLTLiveMoments
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLTMixed
+public import LeanMachineLearning.SpinGlasses.SKOverlapCLTMultiIndex
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLTPairFeedback
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLTPairGaussian
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLTPairMoments
