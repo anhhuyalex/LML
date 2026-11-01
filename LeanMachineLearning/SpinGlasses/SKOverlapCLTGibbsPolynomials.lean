@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteProduct
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLTGibbsEnumerated
 
 /-!
@@ -85,46 +86,28 @@ theorem sk_T_lincomb_gibbs_moments_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2
       |(∫ g, X f g ∂P) - Gf f| ≤ C f / Real.sqrt ((N : ℝ) + 1) ∧
       (∫ g, (X f g - Gf f) ^ 2 ∂P) ≤ C f / Real.sqrt ((N : ℝ) + 1) :=
     hCs f β h q hfix hb N
-  have hexp (F : K → M → ℝ) : (∏ j, ∑ m, γ j m * F j m) =
-      ∑ f : I, c f * ∏ j, F j (f j) := by
-    rw [prod_univ_sum (fun _ => univ), Fintype.piFinset_univ]
-    exact sum_congr rfl fun _ _ => prod_mul_distrib
   have hV : V = fun g => ∑ f : I, c f * X f g := by
     funext g
-    have he (ρ : R → Fin (N + 1) → ℤˣ) :
-        (∏ j, ∑ m, γ j m * T j m g ρ) =
-          ∑ f : I, c f * ∏ j, T j (f j) g ρ := hexp (fun j m => T j m g ρ)
     dsimp only [V]
-    simp_rw [he]
-    rw [integral_finsetSum _ fun _ _ => Integrable.of_finite, mul_sum]
+    rw [integral_prod_sum (Measure.pi fun _ : R => Measure.count.tilted (E g))
+      γ (fun j m ρ => T j m g ρ) (fun _ => Integrable.of_finite), mul_sum]
     apply sum_congr rfl
     intro f _
-    rw [integral_const_mul]
-    dsimp only [X]
+    dsimp only [c, X]
     ring
   have hGi (f : I) : Integrable (fun z : D → ℝ => ∏ j, Z j (f j) z) Q := by
     let d : K → D := fun j =>
       if S j (f j) then .inl (a j (f j), b j (f j)) else .inr (a j (f j))
-    let n : D → ℕ := fun κ => (univ.filter fun j => d j = κ).card
-    have he (z : D → ℝ) : (∏ j, Z j (f j) z) = ∏ κ, (σ κ * z κ) ^ n κ := by
-      have hh := (prod_fiberwise' (univ : Finset K) d (fun κ => σ κ * z κ)).symm
-      simp only [prod_const] at hh
-      rw [← hh]
-      apply prod_congr rfl
-      intro j _
+    have hZ (j : K) (z : D → ℝ) : Z j (f j) z = σ (d j) * z (d j) := by
       cases hs : S j (f j) <;> simp [Z, d, σ, hs]
-    simp_rw [he]
-    refine Integrable.fintype_prod (f := fun κ (x : ℝ) => (σ κ * x) ^ n κ)
-      (μ := fun _ : D => gaussianReal 0 1) ?_
+    simp_rw [hZ]
+    refine integrable_prod_pi (fun _ => gaussianReal 0 1) d (fun κ x => σ κ * x) ?_
     intro κ
-    simpa only [mul_pow] using (integrable_pow_gaussianReal 0 1 (n κ)).const_mul (σ κ ^ n κ)
+    let n := (univ.filter fun j => d j = κ).card
+    simpa only [mul_pow] using (integrable_pow_gaussianReal 0 1 n).const_mul (σ κ ^ n)
   have hG : G = ∑ f : I, c f * Gf f := by
-    have he (z : D → ℝ) : (∏ j, ∑ m, γ j m * Z j m z) =
-        ∑ f : I, c f * ∏ j, Z j (f j) z := hexp (fun j m => Z j m z)
     change (∫ z, ∏ j, ∑ m, γ j m * Z j m z ∂Q) = _
-    simp_rw [he]
-    rw [integral_finsetSum _ fun f _ => (hGi f).const_mul _]
-    simp only [integral_const_mul, Gf]
+    exact integral_prod_sum Q γ Z fun f => (hGi f).const_mul _
   have hX : MemLp V 2 P := by
     rw [hV]
     exact memLp_finsetSum univ fun f _ => (hf f).1.const_mul _

@@ -26,8 +26,7 @@ namespace SpinGlasses
 theorem sk_T_pair_variance_eq (β q qhat m : ℝ) :
     (1 - 2 * q + qhat) / (m * (1 - β ^ 2 * (1 - 2 * q + qhat))) =
       ((1 - 2 * q + qhat) / (1 - β ^ 2 * (1 - 2 * q + qhat))) / m := by
-  simp only [div_eq_mul_inv, mul_inv_rev]
-  ring
+  exact div_mul_eq_div_div_swap ..
 
 /-- The single variance agrees with the coefficient obtained from the single recurrence.
 Only the pair denominator must be nonzero; no nonzero scale or second denominator is needed. -/
@@ -41,11 +40,7 @@ theorem sk_T_single_variance_eq (β q qhat m : ℝ)
   have he : 1 + β ^ 2 * ((1 - 2 * q + qhat) /
       (1 - β ^ 2 * (1 - 2 * q + qhat))) =
         (1 - β ^ 2 * (1 - 2 * q + qhat))⁻¹ := by
-    generalize ha : 1 - 2 * q + qhat = a at *
-    generalize hd : 1 - β ^ 2 * a = d at *
-    field_simp
-    rw [← hd]
-    ring
+    rw [← mul_div_assoc, one_add_div hD, sub_add_cancel, one_div]
   rw [he]
   simp only [div_eq_mul_inv, mul_inv_rev]
   ring

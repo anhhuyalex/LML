@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Probability.Moments.SecondMoment
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLTGibbsPolynomials
 public import LeanMachineLearning.SpinGlasses.GaussianOverlapCovariance
 
@@ -139,13 +140,8 @@ theorem sk_centered_overlap_gibbs_moments_uniform (β₀ : ℝ) (hβ₀ : 4 * β
     rw [hsum]
     rfl
   rw [← hW, hG] at hs
-  have hv : variance W P ≤ C / Real.sqrt ((N : ℝ) + 1) := by
-    calc
-      variance W P = variance (fun g => W g - G) P :=
-        (variance_sub_const hs.1.aestronglyMeasurable G).symm
-      _ ≤ ∫ g, (W g - G) ^ 2 ∂P :=
-        variance_le_expectation_sq (hs.1.sub (memLp_const G)).aestronglyMeasurable
-      _ ≤ _ := hs.2.2
+  have hv : variance W P ≤ C / Real.sqrt ((N : ℝ) + 1) :=
+    (variance_le_integral_sub_const_sq hs.1 G).trans hs.2.2
   refine ⟨hs.1, hs.2.1, hs.2.2, ?_⟩
   simpa only [variance_eq_integral hs.1.aemeasurable] using hv
 

@@ -59,6 +59,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Function.UnitVectorFi
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ChebyshevAssociation
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ExpMoment
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteHyperbolic
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteProduct
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteReplicaTilted
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteTilted
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FreshReplicas

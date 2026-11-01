@@ -32,8 +32,8 @@ by `ProbabilityTheory.integral_tilted_mul_self`.
 
 ## Main declarations
 
-* `MeasureTheory.integral_count_tilted`, `MeasureTheory.real_count_tilted_singleton`: the Gibbs average
-  `⟨g⟩ = ∑ₐ G(a) g(a)` and the Gibbs weight `G(a) = exp (β H a) / Z(β)`.
+* `MeasureTheory.integral_count_tilted`, `MeasureTheory.real_count_tilted_singleton`:
+  the Gibbs average `⟨g⟩ = ∑ₐ G(a) g(a)` and the Gibbs weight `G(a) = exp (β H a) / Z(β)`.
 * `SpinGlasses.hasDerivAt_log_sum_exp`: `(d/dβ) log Z(β) = ⟨H⟩`.
 * `SpinGlasses.hasDerivAt_integral_log_sum_exp`: for a random energy with integrable coordinates,
   `(d/dβ) 𝔼 log Z(β) = 𝔼 ⟨H⟩` for `β > 0`, by dominated differentiation under the integral.

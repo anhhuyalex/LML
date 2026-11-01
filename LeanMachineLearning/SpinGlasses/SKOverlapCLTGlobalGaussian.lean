@@ -185,7 +185,6 @@ theorem sk_T_global_gaussian_moment_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 
     |(∫ g, Tg g ^ k ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) -
       ∫ x : ℝ, (Real.sqrt (E0 / D / (N + 1 : ℝ)) * x) ^ k ∂gaussianReal 0 1| ≤
       K / ((N : ℝ) + 1) ^ (((k + 1 : ℕ) : ℝ) / 2) := by
-  classical
   let valid : ℝ × ℝ × ℝ → Prop := fun θ =>
     (∫ t : ℝ, Real.tanh (θ.1 * Real.sqrt θ.2.2 * t + θ.2.1) ^ 2 ∂gaussianReal 0 1 = θ.2.2) ∧
       θ.1 ^ 2 ≤ β₀ ^ 2

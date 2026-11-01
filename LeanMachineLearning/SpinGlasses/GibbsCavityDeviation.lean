@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.SpinGlasses.GibbsGramMoments
 public import LeanMachineLearning.SpinGlasses.SKSpinDecorrelation
+public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.Weights
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiExp
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Hyperbolic
 
@@ -175,18 +176,14 @@ theorem integral_gibbs_cosh_sq_centered (hξ2 : ∀ i a, ξ i a ^ 2 = 1) (f : α
 omit [MeasurableSpace α] [MeasurableSingletonClass α] in
 /-- Gibbs weights sum to one. -/
 theorem sum_exp_div_sum_exp (f : α → ℝ) : ∑ a, Real.exp (f a) / ∑ b, Real.exp (f b) = 1 := by
-  rw [← Finset.sum_div]
-  exact div_self (Finset.sum_pos (fun _ _ => Real.exp_pos _) Finset.univ_nonempty).ne'
+  simpa only [add_zero] using sum_gibbsWeight f (fun _ => 0)
 
 /-- The Gibbs average of the centered observable `ξ_i - ⟨ξ_i⟩` vanishes. -/
 theorem sum_weight_mul_sub_integral (f : α → ℝ) (i : Fin N) :
     ∑ a, (Real.exp (f a) / ∑ x, Real.exp (f x)) *
       (ξ i a - ∫ b, ξ i b ∂(Measure.count.tilted f)) = 0 := by
-  have hm : ∫ b, ξ i b ∂(Measure.count.tilted f) =
-      ∑ a, (Real.exp (f a) / ∑ x, Real.exp (f x)) * ξ i a := integral_count_tilted f _
-  simp_rw [mul_sub]
-  rw [Finset.sum_sub_distrib, ← Finset.sum_mul, sum_exp_div_sum_exp, one_mul, ← hm]
-  exact sub_self _
+  rw [integral_count_tilted]
+  exact Weights.sum_mul_sub_avg (sum_exp_div_sum_exp f) _
 
 /-- **The Gram entry has Gibbs mean zero:** `∑_{a,b} w_a w_b N⁻¹ ∑_i ξ̇_i(a) ξ̇_i(b) = 0`. -/
 theorem sum_sum_weight_mul_gram_eq_zero (f : α → ℝ) :

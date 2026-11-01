@@ -911,6 +911,23 @@ theorem sk_single_Xfull_matched_all_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 
   have := Finset.single_le_sum (f := C) (fun u _ => (hC0 u).le) (Finset.mem_univ ⟨u, h1, h2, h3⟩)
   linarith
 
+/-- **Assembling the term II with a signed coefficient.** Per-replica approximations,
+the matched value `c D` and the replacement of `D` by `D'` give the value
+`|M| c D'` of the sum, with an explicit error bounded in terms of `|c|`. -/
+theorem sum_sub_card_mul_le_signed {ι : Type*} [DecidableEq ι] (L M : Finset ι) (hML : M ⊆ L)
+    (Y X : ι → ℝ) (c D D' e δ : ℝ) (hYX : ∀ ℓ ∈ L, |Y ℓ - X ℓ| ≤ e)
+    (hun : ∀ ℓ ∈ L, ℓ ∉ M → |X ℓ| ≤ e) (hma : ∀ ℓ ∈ M, |X ℓ - c * D| ≤ e)
+    (hD : |D - D'| ≤ δ) :
+    |∑ ℓ ∈ L, Y ℓ - (M.card : ℝ) * (c * D')| ≤ 2 * L.card * e + M.card * (|c| * δ) := by
+  have h1 := sum_sub_card_mul_le L M hML Y X c D e hYX hun hma
+  have h2 : |(M.card : ℝ) * (c * D) - (M.card : ℝ) * (c * D')| ≤ M.card * (|c| * δ) := by
+    rw [← mul_sub, ← mul_sub, abs_mul, abs_mul, abs_of_nonneg (Nat.cast_nonneg _)]
+    exact mul_le_mul_of_nonneg_left
+      (mul_le_mul_of_nonneg_left hD (abs_nonneg c)) (Nat.cast_nonneg _)
+  calc _ = |(∑ ℓ ∈ L, Y ℓ - (M.card : ℝ) * (c * D)) +
+        ((M.card : ℝ) * (c * D) - (M.card : ℝ) * (c * D'))| := congrArg abs (by ring)
+    _ ≤ _ := (abs_add_le _ _).trans (add_le_add h1 h2)
+
 /-- **Assembling the term II.** Pure bookkeeping for the hard step (1.319): per-replica
 approximations, the matched value `c D` and the replacement of `D` by `D'` give the value
 `|M| c D'` of the sum, with an explicit error. -/
@@ -919,14 +936,8 @@ theorem sum_sub_card_mul_le' {ι : Type*} [DecidableEq ι] (L M : Finset ι) (hM
     (hun : ∀ ℓ ∈ L, ℓ ∉ M → |X ℓ| ≤ e) (hma : ∀ ℓ ∈ M, |X ℓ - c * D| ≤ e)
     (hD : |D - D'| ≤ δ) :
     |∑ ℓ ∈ L, Y ℓ - (M.card : ℝ) * (c * D')| ≤ 2 * L.card * e + M.card * (c * δ) := by
-  have h1 := sum_sub_card_mul_le L M hML Y X c D e hYX hun hma
-  have h2 : |(M.card : ℝ) * (c * D) - (M.card : ℝ) * (c * D')| ≤ M.card * (c * δ) := by
-    rw [← mul_sub, ← mul_sub, abs_mul, abs_mul, abs_of_nonneg (Nat.cast_nonneg _),
-      abs_of_nonneg hc]
-    exact mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_left hD hc) (Nat.cast_nonneg _)
-  calc _ = |(∑ ℓ ∈ L, Y ℓ - (M.card : ℝ) * (c * D)) +
-        ((M.card : ℝ) * (c * D) - (M.card : ℝ) * (c * D'))| := congrArg abs (by ring)
-    _ ≤ _ := (abs_add_le _ _).trans (add_le_add h1 h2)
+  have := sum_sub_card_mul_le_signed L M hML Y X c D D' e δ hYX hun hma hD
+  rwa [abs_of_nonneg hc] at this
 
 /-- The final numerical estimate of the hard step (1.319). -/
 theorem final_arith_term_II (l m E C1 c N' Dd κ : ℝ) (hm : 0 ≤ m)

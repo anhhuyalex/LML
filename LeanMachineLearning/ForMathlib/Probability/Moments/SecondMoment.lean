@@ -39,24 +39,45 @@ namespace ProbabilityTheory
 open MeasureTheory
 open scoped Matrix
 
+/-- The square integral of a weighted finite sum is bounded by the sum of absolute weights
+times the weighted sum of square integrals. No probability or independence assumption is needed. -/
+theorem integral_sq_weighted_sum_le {Ω I : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (s : Finset I) (c : I → ℝ) (X : I → Ω → ℝ) (hX : ∀ i ∈ s, MemLp (X i) 2 μ) :
+    (∫ ω, (∑ i ∈ s, c i * X i ω) ^ 2 ∂μ) ≤
+      (∑ i ∈ s, |c i|) * ∑ i ∈ s, |c i| * ∫ ω, X i ω ^ 2 ∂μ := by
+  have hs : MemLp (fun ω => ∑ i ∈ s, c i * X i ω) 2 μ :=
+    memLp_finsetSum s fun i hi => (hX i hi).const_mul _
+  calc
+    (∫ ω, (∑ i ∈ s, c i * X i ω) ^ 2 ∂μ) ≤
+        ∫ ω, (∑ i ∈ s, |c i|) * ∑ i ∈ s, |c i| * X i ω ^ 2 ∂μ := by
+      refine integral_mono hs.integrable_sq
+        ((integrable_finsetSum s fun i hi => (hX i hi).integrable_sq.const_mul _).const_mul _)
+        (fun ω => ?_)
+      apply Finset.sum_sq_le_sum_mul_sum_of_sq_le_mul s
+        (fun i _ => abs_nonneg (c i)) (fun i _ => mul_nonneg (abs_nonneg _) (sq_nonneg _))
+      intro i _
+      apply le_of_eq
+      rw [mul_pow, ← mul_assoc, ← sq, sq_abs]
+    _ = _ := by
+      rw [integral_const_mul, integral_finsetSum s fun i hi =>
+        (hX i hi).integrable_sq.const_mul _]
+      simp_rw [integral_const_mul]
+
+/-- The square integral of a finite sum over a `Finset` is bounded by the number of terms times
+the sum of their square integrals. No probability or independence assumption is needed. -/
+theorem integral_sq_finset_sum_le {Ω I : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (s : Finset I) (X : I → Ω → ℝ) (hX : ∀ i ∈ s, MemLp (X i) 2 μ) :
+    (∫ ω, (∑ i ∈ s, X i ω) ^ 2 ∂μ) ≤
+      (s.card : ℝ) * ∑ i ∈ s, ∫ ω, X i ω ^ 2 ∂μ := by
+  simpa using integral_sq_weighted_sum_le s (fun _ => 1) X hX
+
 /-- The square integral of a finite sum is bounded by the number of terms times
 the sum of their square integrals. No probability or independence assumption is needed. -/
 theorem integral_sq_fintype_sum_le {Ω I : Type*} [MeasurableSpace Ω] [Fintype I]
     {μ : Measure Ω} {X : I → Ω → ℝ} (hX : ∀ i, MemLp (X i) 2 μ) :
     (∫ ω, (∑ i, X i ω) ^ 2 ∂μ) ≤
       (Fintype.card I : ℝ) * ∑ i, ∫ ω, X i ω ^ 2 ∂μ := by
-  have hs : MemLp (fun ω => ∑ i, X i ω) 2 μ :=
-    memLp_finsetSum Finset.univ (fun i _ => hX i)
-  calc
-    (∫ ω, (∑ i, X i ω) ^ 2 ∂μ) ≤
-        ∫ ω, (Fintype.card I : ℝ) * ∑ i, X i ω ^ 2 ∂μ := by
-      refine integral_mono hs.integrable_sq
-        ((integrable_finsetSum Finset.univ fun i _ => (hX i).integrable_sq).const_mul _) ?_
-      intro ω
-      simpa using Finset.sum_mul_sq_le_sq_mul_sq Finset.univ
-        (fun _ : I => (1 : ℝ)) (fun i => X i ω)
-    _ = _ := by
-      rw [integral_const_mul, integral_finsetSum _ fun i _ => (hX i).integrable_sq]
+  simpa using integral_sq_finset_sum_le Finset.univ X (fun i _ => hX i)
 
 /-- If the first two moments approximate those of a constant, the mean-square error is small.
 No sign hypotheses on the target or the stated error bounds are needed. -/
@@ -76,17 +97,23 @@ theorem integral_sub_const_sq_le_of_moment_errors {Ω : Type*} [MeasurableSpace 
   rw [he]
   nlinarith only [hsecond, hcross]
 
+/-- The variance of `X` is bounded by the mean-square distance to any constant `G`. -/
+theorem variance_le_integral_sub_const_sq {Ω : Type*} [MeasurableSpace Ω]
+    {μ : Measure Ω} [IsProbabilityMeasure μ] {X : Ω → ℝ} (hX : MemLp X 2 μ) (G : ℝ) :
+    variance X μ ≤ ∫ ω, (X ω - G) ^ 2 ∂μ := by
+  calc variance X μ = variance (fun ω => X ω - G) μ :=
+        (variance_sub_const hX.aestronglyMeasurable G).symm
+    _ ≤ ∫ ω, (X ω - G) ^ 2 ∂μ :=
+        variance_le_expectation_sq (hX.sub (memLp_const G)).aestronglyMeasurable
+
 /-- The variance bound follows from the stronger mean-square approximation to a constant. -/
 theorem variance_le_of_moment_errors {Ω : Type*} [MeasurableSpace Ω]
     {μ : Measure Ω} [IsProbabilityMeasure μ] {X : Ω → ℝ} (hX : MemLp X 2 μ)
     {G ε₁ ε₂ : ℝ} (h₁ : |(∫ ω, X ω ∂μ) - G| ≤ ε₁)
     (h₂ : |(∫ ω, X ω ^ 2 ∂μ) - G ^ 2| ≤ ε₂) :
-    variance X μ ≤ ε₂ + 2 * |G| * ε₁ := by
-  calc variance X μ = variance (fun ω => X ω - G) μ :=
-        (variance_sub_const hX.aestronglyMeasurable G).symm
-    _ ≤ ∫ ω, (X ω - G) ^ 2 ∂μ :=
-        variance_le_expectation_sq (hX.sub (memLp_const G)).aestronglyMeasurable
-    _ ≤ ε₂ + 2 * |G| * ε₁ := integral_sub_const_sq_le_of_moment_errors hX h₁ h₂
+    variance X μ ≤ ε₂ + 2 * |G| * ε₁ :=
+  (variance_le_integral_sub_const_sq hX G).trans
+    (integral_sub_const_sq_le_of_moment_errors hX h₁ h₂)
 
 variable {Ω p : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [Fintype p]
 

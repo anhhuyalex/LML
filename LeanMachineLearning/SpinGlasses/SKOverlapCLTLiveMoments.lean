@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteProduct
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteReplicaTilted
 public import LeanMachineLearning.SpinGlasses.SKOverlapCLTPairGaussian
 
@@ -147,22 +148,14 @@ theorem sk_live_T_expansion_exact (N : ℕ) (β h q : ℝ)
       simpa only [Fintype.sum_unique, one_mul] using hg
     obtain ⟨hm, B, hB⟩ := hg'
     exact integrable_integral_pi_count_tilted_of_bound E hE _ hm B hB
-  have hexp (g : FinPairs (N + 1) → ℝ) (ρ : R → Fin (N + 1) → ℤˣ) :
-      (∏ k, ∑ m, γ k m * Tp (l k m) (s k m) (x k m) (y k m) g ρ) =
-        ∑ f : K → M, (∏ k, γ k (f k)) *
-          ∏ k, Tp (l k (f k)) (s k (f k)) (x k (f k)) (y k (f k)) g ρ := by
-    rw [Finset.prod_univ_sum (fun _ => Finset.univ), Fintype.piFinset_univ]
-    exact Finset.sum_congr rfl fun _ _ => Finset.prod_mul_distrib
   have hinner (g : FinPairs (N + 1) → ℝ) :
       (∫ ρ : R → Fin (N + 1) → ℤˣ,
         ∏ k, ∑ m, γ k m * Tp (l k m) (s k m) (x k m) (y k m) g ρ
         ∂(Measure.pi fun _ : R => Measure.count.tilted (E g))) =
       ∑ f : K → M, (∏ k, γ k (f k)) * ∫ ρ : R → Fin (N + 1) → ℤˣ,
         ∏ k, Tp (l k (f k)) (s k (f k)) (x k (f k)) (y k (f k)) g ρ
-        ∂(Measure.pi fun _ : R => Measure.count.tilted (E g)) := by
-    simp_rw [hexp]
-    rw [integral_finsetSum _ fun _ _ => Integrable.of_finite]
-    simp_rw [integral_const_mul]
+        ∂(Measure.pi fun _ : R => Measure.count.tilted (E g)) :=
+    integral_prod_sum _ _ _ fun _ => Integrable.of_finite
   simp_rw [hinner]
   rw [integral_finsetSum _ fun f _ => (hmono f).const_mul _]
   simp_rw [integral_const_mul]
