@@ -21,6 +21,7 @@ The live site is at: https://anhhuyalex.github.io/LML/
 | Landing page | `/` | `home_page/index.html` | push + PR |
 | Tutorial docs (Verso) | `/tutorial/` | `LMLTutorial/` via `scripts/build_docs.sh` | push + PR |
 | Exposition (interactive theorem browser) | `/exposition/` | `LeanMachineLearning/exposition` tool + Lean source | push only |
+| Repository statistics | `/exposition/stats/` | Referee's collected data via `scripts/build_stats.py` | full site on push; example tests on PR + manual |
 | API docs | `/docs/` | `leanprover-community/docgen-action` | push + PR |
 | Leanviz declaration browser | `/leanviz/?p=lml#/` | compiled project via `scripts/build_leanviz.sh` | push + PR + manual |
 
@@ -32,12 +33,13 @@ The exposition step is skipped on PRs to save build time — you only get it aft
 
 1. **Free disk space** — deletes Android SDK (~12 GB) to make room for Mathlib's `.olean` cache.
 2. **Build and lint** (`leanprover/lean-action`) — compiles the library, runs all linters, and checks that `LeanMachineLearning.lean` is up to date via `mk_all`.
-3. **Build Verso docs** (`scripts/build_docs.sh`) — builds the tutorial using `lake exe tutorial`.
-4. **Clone exposition tool** — clones `LeanMachineLearning/exposition` (controlled by `LEAN_EXPOSITION_REPO` / `LEAN_EXPOSITION_REF` env vars at the top of the workflow).
-5. **Run exposition** — runs the exposition binary against your compiled Lean source to produce the interactive HTML.
-6. **docgen-action** — generates API documentation.
+3. **Build exposition** — on pushes, the pinned Referee action collects declarations, maintains its provenance ledger, compares the previous build, and renders the site.
+4. **Build Verso docs** (`scripts/build_docs.sh`) — builds the tutorial using `lake exe tutorial`.
+5. **Build API docs and blueprint** — `docgen-action` generates the documentation; pushes also refresh LML's own API pages.
+6. **Assemble exposition and Stats** — copy Referee's site, then use its collected-data output to add the Stats page and navigation. This does not run another Lean extraction.
 7. **Build and validate leanviz** — sets up .NET 10, builds pinned reader/generator sources in a temporary directory, generates `home_page/leanviz/`, and checks the bundle and browser rendering. This also runs on PRs and manual dispatch; failures fail the workflow.
-8. **Deploy** — on pushes, uploads all of `home_page/` as one GitHub Pages artifact and deploys it, including leanviz alongside the other documentation.
+8. **Validate Stats** — test a small example on every run, and the full assembled Stats site on pushes. Checks include desktop and phone browser interactions.
+9. **Deploy** — on pushes, upload all of `home_page/` as one GitHub Pages artifact and deploy it.
 
 ---
 
@@ -72,18 +74,18 @@ The upstream repo's `home_page/index.html` is a redirect to `leanmachinelearning
 
 ### Hardcoded fork URLs
 
-Two places in the repo reference the fork's GitHub URL directly. If the repo is ever renamed or transferred, both must be updated:
+If the repository is renamed or transferred, update its public website URL:
 
-- `.github/workflows/blueprint.yml` lines 79–80: `--repo-url` and `--site-url` flags passed to the exposition binary.
+- `.github/workflows/build.yml`: the Referee action's `site-url`. Stats source URLs derive from `GITHUB_REPOSITORY`.
 - `verso_blueprint/Main.lean` lines 16–17: `sourceLink` and `issueLink` values used in the blueprint HTML.
 
 ### GitHub Pages must be set to "GitHub Actions" source
 
 In the fork's settings (`Settings → Pages → Source`), the source must be set to **GitHub Actions**, not a branch. If it is set to a branch, the deploy step will succeed but the site will not update.
 
-### Exposition tool version is pinned to `LeanMachineLearning/exposition@main`
+### The exposition action and binary are pinned separately
 
-The workflow always clones the latest `main` of the upstream exposition tool (see `LEAN_EXPOSITION_REF: main` at the top of the workflow). If the upstream tool introduces a breaking change, the build may fail. To pin to a specific commit, change `LEAN_EXPOSITION_REF` to a commit SHA.
+The workflow uses action commit `4f43fed3fa5a6f55ef6daf848f5a1b9dd348b0cf` and explicitly selects binary release `v4.34.0-rc2-7`, matching Lean `v4.34.0-rc2`. Both are required: a commit SHA alone makes the action download the latest binary release. The Stats reader supports this release's collected-data format **16**. When changing versions, check the reader, declaration links, and sidebar markup together.
 
 ---
 

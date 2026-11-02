@@ -61,17 +61,17 @@ jobs:
       # three repositories and then drifted apart. It now lives in the action, which is tested in
       # its own repository.
       #
-      # Pinned to a tag rather than left floating: the tag names the Lean toolchain the binary was
-      # built for (`v4.34.0-rc2` here, matching this project's lean-toolchain), and the action
-      # takes its binary from the release of the same tag by default.
+      # Pin the action source and binary release separately: a SHA action ref otherwise selects
+      # the latest release. The statistics reader is tested against this release's format 16.
       - name: Build the referee site
         id: referee
         if: github.event_name == 'push'
-        uses: LeanMachineLearning/exposition@v4.34.0-rc2-7
+        uses: LeanMachineLearning/exposition@4f43fed3fa5a6f55ef6daf848f5a1b9dd348b0cf # v4.34.0-rc2-7
         with:
+          version: v4.34.0-rc2-7
           root: LeanMachineLearning
           exclude-lib: LMLTutorial
-          site-url: https://leanmachinelearning.org/LML/exposition
+          site-url: https://anhhuyalex.github.io/LML/exposition
           # An editorial claim, not a derived fact: it says whoever publishes this site vouches for
           # Mathlib and everything under it. Drop it and every upstream package counts as unaudited.
           trust: mathlib
@@ -133,6 +133,14 @@ jobs:
           mkdir -p home_page/exposition
           cp -r "${{ steps.referee.outputs.site }}/." home_page/exposition/
 
+      - name: Add exposition statistics
+        if: github.event_name == 'push'
+        env:
+          REFEREE_DATA: ${{ steps.referee.outputs.data }}
+        run: |
+          python3 scripts/build_stats.py --data "$REFEREE_DATA" \
+            --repository "https://github.com/$GITHUB_REPOSITORY"
+
       - name: Set up .NET for leanviz
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
@@ -142,7 +150,19 @@ jobs:
       - name: Build and validate leanviz
         run: bash scripts/build_leanviz.sh
 
-      - name: "Upload website (API documentation, leanviz and home page)"
+      # Small examples run on every event. Pushes also check the assembled full Stats page.
+      - name: Validate exposition statistics
+        env:
+          BUILD_FULL_STATS: ${{ github.event_name == 'push' }}
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          if [[ "$BUILD_FULL_STATS" == true ]]; then
+            python3 scripts/check_stats.py --site home_page/exposition
+          else
+            python3 scripts/check_stats.py
+          fi
+
+      - name: "Upload website (API documentation, exposition, Stats, leanviz and home page)"
         if: github.event_name == 'push'
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:

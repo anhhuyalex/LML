@@ -1,0 +1,37 @@
+.lml-stats { --stats-accent: #3978c6; }
+[data-theme="dark"] .lml-stats { --stats-accent: #79b7ff; }
+.lml-stats section { min-width: 0; }
+#stats-controls, #stats-list-controls, #stats-pagination {
+  display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; margin: 1rem 0;
+}
+.lml-stats label { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.lml-stats button, .lml-stats select, .lml-stats input {
+  font: inherit; color: inherit; background-color: transparent; border: 1px solid #888;
+  border-radius: .3rem; padding: .5rem; min-height: 44px; max-width: 100%;
+}
+.lml-stats select option { color: #181818; background: #fff; }
+.lml-stats button { cursor: pointer; }
+.lml-stats button:disabled { cursor: default; opacity: .55; }
+.lml-stats :focus-visible { outline: 3px solid var(--stats-accent); outline-offset: 3px; }
+#stats-chart { overflow-x: auto; padding: .4rem; }
+.stats-bars { display: grid; gap: .3rem; align-items: stretch; }
+.stats-bar { display: flex; flex-direction: column; align-items: stretch; padding: .25rem !important; }
+.stats-bar[aria-pressed="true"] { outline: 3px solid var(--stats-accent); outline-offset: 0; }
+.stats-column { height: 200px; display: flex; align-items: flex-end; }
+.stats-fill { display: block; width: 100%; background: var(--stats-accent); min-height: 0; }
+.stats-bar:not(:disabled) .stats-fill { min-height: 2px; }
+.stats-bar-label, .stats-bar-count { font-size: .8rem; overflow-wrap: anywhere; }
+#stats-x-label { text-align: center; }
+.stats-table-scroll { overflow-x: auto; }
+.lml-stats table { border-collapse: collapse; width: 100%; }
+.lml-stats th, .lml-stats td { text-align: left; padding: .6rem; border-bottom: 1px solid #8886; }
+#stats-declarations td { overflow-wrap: anywhere; min-width: 6rem; vertical-align: top; }
+#stats-declarations td:first-child { min-width: 12rem; }
+.stats-links a { display: block; padding: .4rem 0; }
+#stats-pagination button { min-width: 90px; }
+#stats-error { border: 2px solid #b33; padding: 1rem; }
+@media (max-width: 600px) {
+  #stats-controls label, #stats-list-controls label { width: 100%; }
+  #stats-controls select { width: 100%; }
+  #stats-search { width: 100%; box-sizing: border-box; }
+}
