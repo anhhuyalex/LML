@@ -85,6 +85,40 @@ def check_declaration_page(page, base: str, module_name: str, declaration: dict,
     require(not problems, f"Browser reported errors on the LML declaration: {problems}")
 
 
+def check_map_layout(page, base: str) -> None:
+    page.visit(base + "/?p=lml#/map", "!!document.querySelector('.treemap a rect')")
+    # A tiny second area leaves an undersized pooled tile in the pinned viewer.
+    # Exercise real bundle counts too; desktop and phone use different SVG scales.
+    skewed = [{"n": "Large.Core", "s": 0, "c": 100000, "i": []},
+              {"n": "Small.Core", "s": 100000, "c": 1000, "i": []}]
+    for label, modules in (("project map", None), ("skewed map", skewed)):
+        probe = f"""(() => {{
+            if (!document.querySelector('.treemap a rect')) return null;
+            const modules = {json.dumps(modules)};
+            if (modules) {{ S.modules = modules; mapMetric = 'name'; pageMap(); }}
+            const links = [...document.querySelectorAll('.treemap a')];
+            return {{small: links.map(a => {{
+                const r = a.getBoundingClientRect();
+                return {{href: a.getAttribute('href'), width: r.width, height: r.height}};
+            }}).filter(r => r.width > 0 && r.height > 0 && (r.width < 12 || r.height < 12)),
+                drawn: links.filter(a => a.dataset.tip).map(a => a.dataset.tip.split('|')[0]),
+                listed: [...document.querySelectorAll('#main ul.list a.nm')].map(a => a.textContent.trim())}};
+        }})()"""
+        deadline = time.monotonic() + 60
+        state = None
+        while state is None and time.monotonic() < deadline:
+            state = page.value(probe)
+            if state is None:
+                time.sleep(0.25)
+        require(state is not None, f"{label} did not render")
+        require(not state["small"], f"{label} has undersized rendered links: {state['small']}")
+        if modules:
+            require(set(state["drawn"] + state["listed"]) == {"Large", "Small"},
+                    "Pooling hid a map area from both the map and its navigation list")
+            require("Small" in state["listed"], "The tiny area must remain in the navigation list")
+        print(f"{label}: rendered targets fit and small areas remain reachable", flush=True)
+
+
 def main(tools: pathlib.Path, repository: str) -> None:
     project = pathlib.Path(__file__).resolve().parent.parent
     site = project / "home_page" / "leanviz"
@@ -139,6 +173,12 @@ def main(tools: pathlib.Path, repository: str) -> None:
         try:
             for check in ("check_page.py", "check_ui.py"):
                 subprocess.run([sys.executable, str(tools / "tests" / check), base], check=True)
+            for width in (1280, 390):
+                page = Page(width=width, height=880)
+                try:
+                    check_map_layout(page, base)
+                finally:
+                    page.close()
             for reload_during_search in (False, True):
                 page = Page()
                 try:

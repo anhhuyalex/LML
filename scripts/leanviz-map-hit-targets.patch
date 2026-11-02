@@ -1,0 +1,26 @@
+diff --git a/site/app.js b/site/app.js
+--- a/site/app.js
++++ b/site/app.js
+@@ -2285,7 +2285,11 @@ async function pageMap(prefix = '') {
+   }
+   const kids = [...node.children.values()].sort((a, b) => b.count - a.count);
+   const W = 1000, H = 560;
+-  const MIN = 9; // a box thinner than this cannot be hit with a mouse, let alone read
++  // Pool by rendered pixels, since the SVG shrinks on narrow screens.
++  const main = $('#main'), mainStyle = getComputedStyle(main);
++  const mapWidth = main.clientWidth - parseFloat(mainStyle.paddingLeft)
++    - parseFloat(mainStyle.paddingRight) - 2; // the SVG's border
++  const MIN = Math.max(9, 16 * W / Math.max(1, mapWidth));
+ 
+   // Lay everything out once to find out how much of it is too small to draw, then redraw with the remainder
+   // pooled into one box. Mathlib.Analysis has 44 parts and every one is legible; a namespace with 300 children
+@@ -2354,6 +2358,9 @@ async function pageMap(prefix = '') {
+   const box = (b) => {
+     const k = b.k;
+     if (k.pool) {
++      // A dominant area can leave even the pooled box too small. Its parts
++      // remain reachable in the list below, without an unhittable SVG link.
++      if (tooSmall(b)) return '';
+       return `<a href="#smaller"><title>${k.pool} smaller parts, ${fmt(k.count)} declarations between them</title>
+         <rect class="pool" x="${b.x + 1}" y="${b.y + 1}" width="${Math.max(0, b.w - 2)}" height="${Math.max(0, b.h - 2)}"></rect>
+         ${b.w > 70 && b.h > 24 ? `<text x="${b.x + 8}" y="${b.y + 19}">${k.pool} smaller</text>
