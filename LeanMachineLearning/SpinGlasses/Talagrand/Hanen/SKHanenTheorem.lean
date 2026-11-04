@@ -12,12 +12,13 @@ public import LeanMachineLearning.Optimization.Renormalization.Gaussian
 /-!
 # Hanen's Theorem (Talagrand, Theorem 1.11.1, Eq. (1.329))
 
-This module proves Hanen's Theorem on the non-Gaussian limit of the two-spin overlap fluctuation:
+This module states Hanen's Theorem on the non-Gaussian limit of the two-spin overlap fluctuation:
 for $\beta < 1/2$,
 $$\mathbb E(\langle \sigma_1 \sigma_2 \rangle - \langle \sigma_1 \rangle \langle \sigma_2 \rangle)^k
 = a(k) \left( \frac{\beta^2}{(N+1)(1 - \beta^2(1 - 2q + \hat q))} \right)^{k/2}
 (\mathbb E \operatorname{ch}^{-2k} Y)^2 + O((N+1)^{-(k+1)/2}),$$
 where $a(k) = \mathbb E g^k$ ($a(k) = (k-1)!!$ for $k$ even, $0$ for $k$ odd).
+The odd and even estimates are currently placeholders; the parity assembly depends on them.
 
 ## Main declaration
 

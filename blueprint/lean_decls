@@ -4424,3 +4424,4 @@ SpinGlasses.inv_add_beta_sq_mul_A_sq_eq
 SpinGlasses.four_mul_pow_mul_two_inv_pow
 SpinGlasses.integral_two_mul_replicas_cov_pow
 SpinGlasses.cov_pow_eq_two_inv_pow_mul_integral
+SpinGlasses.sk_covariance_pow_site_perm

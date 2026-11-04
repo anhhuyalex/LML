@@ -8080,7 +8080,8 @@ are proved. \textbf{Corollary~1.11.6}
 using these two lemmas, Corollary~\ref{cor:sg-tal:eta-coupled-bound}) and \textbf{Corollary~1.11.7}
 (pairing bound for overlaps with centering within $L/(N+1)$ of $q$,
 Corollary~\ref{cor:sg-tal:eta-overlap-shifted-bound}) are proved. The Gibbs covariance-power
-representation (Lemma~\ref{lem:sg-tal:hanen-cov-powers}) is also proved.
+representation (Lemma~\ref{lem:sg-tal:hanen-cov-powers}) and its site-permutation
+invariance (Lemma~\ref{lem:sg-tal:hanen-cov-site-symmetry}) are also proved.
 \textbf{H3 base case $m=0$}: \texttt{HanenPairing} as fixed-point-free involutions and the
 base case $m=0$ of Theorem~1.11.9 (\texttt{sk\_hanen\_pairing\_derivative\_zero}) are proved;
 the hyperbolic identity $\alpha = \mathbb E\operatorname{ch}^{-4} Y$
@@ -8260,6 +8261,20 @@ $2k$ independent replicas of the product of spin differences:
 For $k=1$, expand the product of differences and integrate out each replica using independence.
 For general $k$, factorize the product measure $\mu^{\otimes 2k}$ into $k$ independent pairs
 using \texttt{integral\_pi\_fin\_add\_mul} and induct on $k$.
+\end{proof}
+
+\begin{lemma}[Site symmetry of covariance moments]\label{lem:sg-tal:hanen-cov-site-symmetry}
+\lean{SpinGlasses.sk_covariance_pow_site_perm}
+\leanok
+For any $N,k\in\mathbb N$, deterministic $\beta,h\in\mathbb R$, sites $i,j$ in the
+$(N+1)$-spin SK model, and permutation $\pi$ of its sites, the disorder averages of
+$\operatorname{Cov}_{G}(\sigma_i,\sigma_j)^k$ and
+$\operatorname{Cov}_{G}(\sigma_{\pi i},\sigma_{\pi j})^k$ agree.
+\end{lemma}
+\begin{proof}
+\leanok
+Use Lemma~\ref{lem:sg-tal:hanen-cov-powers} at each disorder realization and apply
+site symmetry to the resulting arbitrary $2k$-replica observable.
 \end{proof}
 
 \begin{theorem}[Combinatorial pairing formula for the cavity derivative]\label{thm:sg-tal:hanen-pairing-derivative}
