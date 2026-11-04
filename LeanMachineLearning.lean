@@ -19,6 +19,7 @@ public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.Ultramet
 public import LeanMachineLearning.ForMathlib.Analysis.RatioBound
 public import LeanMachineLearning.ForMathlib.Analysis.RpowTsum
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.AddPowEstimates
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.EvenMomentShift
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Hyperbolic
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.LogRpow
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SinCosChain

@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKSecondMoment
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.EvenMomentShift
 
 /-!
 # Higher-order cavity errors (Talagrand, Section 1.10)
@@ -108,20 +109,68 @@ theorem sk_cavity_dev_even_moment_le (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) 
       mul_le_mul_of_nonneg_left (add_le_add hm hs) (by positivity)
     _ = _ := by ring
 
-/-- **Eq. (1.297), squared form.** A bounded factor times a product of `k` truncated
-centered overlaps has second moment at most `K / (N+1)^k`. Replica pairs may repeat and
-share indices; only the two indices within each pair must be distinct. -/
-theorem sk_cavity_prod_sq_le (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (k : ℕ)
-    (M : ℝ) :
-    ∃ K : ℝ, 0 < K ∧ ∀ (β h q : ℝ),
+/-- A change of centering by `L / (N+1)` preserves the even-moment scale. -/
+theorem sk_cavity_dev_even_moment_shift_le (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (k : ℕ) (hk : 1 ≤ k)
+    (L : ℝ) (hL : 0 ≤ L) :
+    ∃ K : ℝ, 0 < K ∧ ∀ (β h q q' : ℝ),
+      (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂gaussianReal 0 1 = q) →
+      β ^ 2 ≤ β₀ ^ 2 → ∀ (N n : ℕ) (x y : Fin n), x ≠ y →
+      |q - q'| ≤ L / ((N : ℝ) + 1) →
+      ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ,
+          ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ x i.castSucc : ℝ)) ⬝ᵥ
+            fun i : Fin N => (σ y i.castSucc : ℝ)) - q') ^ (2 * k)
+          ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+            (Real.sqrt (N + 1))⁻¹ * β *
+              (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+              h * ∑ i : Fin (N + 1), (a i : ℝ))
+        ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) ≤
+        K / ((N : ℝ) + 1) ^ k := by
+  obtain ⟨C, hC, hbound⟩ := sk_cavity_dev_even_moment_le β₀ hβ₀ k
+  refine ⟨(2 : ℝ) ^ (2 * k - 1) * (C + L ^ (2 * k)), by positivity, ?_⟩
+  intro β h q q' hfix hb N n x y hxy hshift
+  let ν : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) → ℝ := fun f =>
+    ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ
+      ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+        (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+          h * ∑ i : Fin (N + 1), (a i : ℝ))
+      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)
+  let E : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) →ₗ[ℝ] ℝ :=
+    { toFun := ν
+      map_add' := sk_replica_avg_add N n β h ν (fun _ => rfl)
+      map_smul' := sk_replica_avg_smul N n β h ν (fun _ => rfl) }
+  let f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ := fun σ =>
+    ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ x i.castSucc : ℝ)) ⬝ᵥ
+      fun i : Fin N => (σ y i.castSucc : ℝ)) - q)
+  have hm : ∀ f g, (∀ σ, f σ ≤ g σ) → E f ≤ E g :=
+    sk_replica_avg_mono N n β h ν (fun _ => rfl)
+  have hE1 : E (fun _ => 1) = 1 := sk_replica_avg_const N n β h ν (fun _ => rfl) 1
+  have hf : E (fun σ => f σ ^ (2 * k)) ≤ C / ((N : ℝ) + 1) ^ k :=
+    hbound β h q hfix hb N x y hxy
+  have ht := positive_linear_even_moment_add_le E hm hE1 f k hk ((N : ℝ) + 1) C L (q - q')
+    (by exact le_add_of_nonneg_left (Nat.cast_nonneg N)) hL hf hshift
+  convert ht using 1
+  change ν _ = ν _
+  congr 1
+  funext σ
+  dsimp only [f]
+  congr 1
+  ring
+
+
+/-- The squared product estimate is stable when the common centering shifts by
+at most `L / (N+1)`. Pairs may share indices; only the endpoints in each pair differ. -/
+theorem sk_cavity_prod_sq_shift_le (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (k : ℕ)
+    (M L : ℝ) (hL : 0 ≤ L) :
+    ∃ K : ℝ, 0 < K ∧ ∀ (β h q q' : ℝ),
       (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂gaussianReal 0 1 = q) →
       β ^ 2 ≤ β₀ ^ 2 → ∀ (N n : ℕ) (x y : Fin k → Fin n),
-      (∀ j, x j ≠ y j) → ∀ W : (Fin n → Fin (N + 1) → ℤˣ) → ℝ,
+      (∀ j, x j ≠ y j) → |q - q'| ≤ L / ((N : ℝ) + 1) → ∀ W : (Fin n → Fin (N + 1) → ℤˣ) → ℝ,
       (∀ σ, |W σ| ≤ M) →
       ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ,
           (W σ * ∏ j : Fin k, ((N + 1 : ℝ)⁻¹ *
             ((fun i : Fin N => (σ (x j) i.castSucc : ℝ)) ⬝ᵥ
-              fun i : Fin N => (σ (y j) i.castSucc : ℝ)) - q)) ^ 2
+              fun i : Fin N => (σ (y j) i.castSucc : ℝ)) - q')) ^ 2
           ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
             (Real.sqrt (N + 1))⁻¹ * β *
               (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
@@ -130,19 +179,19 @@ theorem sk_cavity_prod_sq_le (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (k : ℕ
         K / ((N : ℝ) + 1) ^ k := by
   by_cases hk : k = 0
   · subst k
-    refine ⟨M ^ 2 + 1, by positivity, fun β h q _ _ N n x y _ W hW => ?_⟩
+    refine ⟨M ^ 2 + 1, by positivity, fun β h q q' _ _ N n x y _ _ W hW => ?_⟩
     simp only [Fin.prod_univ_zero, mul_one, pow_zero, div_one]
     have hpt (σ : Fin n → Fin (N + 1) → ℤˣ) : W σ ^ 2 ≤ M ^ 2 + 1 := by
       have := pow_le_pow_left₀ (abs_nonneg _) (hW σ) 2
       rw [sq_abs] at this
       linarith
     exact (integral_integral_sk_replica_mono N n β h hpt).trans_eq (by simp)
-  obtain ⟨C, hC0, hC⟩ := sk_cavity_dev_even_moment_le β₀ hβ₀ k
+  obtain ⟨C, hC0, hC⟩ := sk_cavity_dev_even_moment_shift_le β₀ hβ₀ k (Nat.pos_of_ne_zero hk) L hL
   refine ⟨M ^ 2 * k * C + 1, by positivity, ?_⟩
-  intro β h q hfix hb N n x y hxy W hW
+  intro β h q q' hfix hb N n x y hxy hshift W hW
   let D : Fin k → (Fin n → Fin (N + 1) → ℤˣ) → ℝ := fun j σ =>
     (N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ (x j) i.castSucc : ℝ)) ⬝ᵥ
-      fun i : Fin N => (σ (y j) i.castSucc : ℝ)) - q
+      fun i : Fin N => (σ (y j) i.castSucc : ℝ)) - q'
   let ν : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) → ℝ := fun F =>
     ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, F σ
       ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
@@ -173,12 +222,38 @@ theorem sk_cavity_prod_sq_le (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (k : ℕ
         (fun _ => rfl) Finset.univ (fun _ : Fin k => 1) (fun j σ => D j σ ^ (2 * k))
     _ ≤ M ^ 2 * ∑ _j : Fin k, C / ((N : ℝ) + 1) ^ k := by
       apply mul_le_mul_of_nonneg_left _ (sq_nonneg _)
-      exact Finset.sum_le_sum fun j _ => hC β h q hfix hb N (x j) (y j) (hxy j)
+      exact Finset.sum_le_sum fun j _ => hC β h q q' hfix hb N n (x j) (y j) (hxy j) hshift
     _ ≤ (M ^ 2 * k * C + 1) / ((N : ℝ) + 1) ^ k := by
       simp only [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
       rw [show M ^ 2 * ((k : ℝ) * (C / ((N : ℝ) + 1) ^ k)) =
         (M ^ 2 * k * C) / ((N : ℝ) + 1) ^ k by ring]
       exact div_le_div_of_nonneg_right (by linarith) (by positivity)
+
+
+/-- **Eq. (1.297), squared form.** A bounded factor times a product of `k` truncated
+centered overlaps has second moment at most `K / (N+1)^k`. Replica pairs may repeat and
+share indices; only the two indices within each pair must be distinct. -/
+theorem sk_cavity_prod_sq_le (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (k : ℕ)
+    (M : ℝ) :
+    ∃ K : ℝ, 0 < K ∧ ∀ (β h q : ℝ),
+      (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂gaussianReal 0 1 = q) →
+      β ^ 2 ≤ β₀ ^ 2 → ∀ (N n : ℕ) (x y : Fin k → Fin n),
+      (∀ j, x j ≠ y j) → ∀ W : (Fin n → Fin (N + 1) → ℤˣ) → ℝ,
+      (∀ σ, |W σ| ≤ M) →
+      ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ,
+          (W σ * ∏ j : Fin k, ((N + 1 : ℝ)⁻¹ *
+            ((fun i : Fin N => (σ (x j) i.castSucc : ℝ)) ⬝ᵥ
+              fun i : Fin N => (σ (y j) i.castSucc : ℝ)) - q)) ^ 2
+          ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+            (Real.sqrt (N + 1))⁻¹ * β *
+              (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+              h * ∑ i : Fin (N + 1), (a i : ℝ))
+        ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) ≤
+        K / ((N : ℝ) + 1) ^ k := by
+  obtain ⟨K, hK, hbound⟩ := sk_cavity_prod_sq_shift_le β₀ hβ₀ k M 0 (le_refl 0)
+  refine ⟨K, hK, ?_⟩
+  intro β h q hfix hb N n x y hxy W hW
+  exact hbound β h q q hfix hb N n x y hxy (by simp) W hW
 
 /-- **Uniform Eqs. (1.298)--(1.299) from an observable's second-moment bound.**
 Choose the constant before the temperature, field, fixed point, size and observable.

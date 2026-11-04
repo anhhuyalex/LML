@@ -8078,13 +8078,16 @@ $m$-th derivative at $u=0$ when $2m+r<|V|$, Lemma~\ref{lem:sg-tal:cavity-deriv-z
 are proved. \textbf{Corollary~1.11.6}
 (Taylor expansion of $u\mapsto\nu_u(\eta_V\varepsilon_J\hat f f^-)$
 using these two lemmas, Corollary~\ref{cor:sg-tal:eta-coupled-bound}) and \textbf{Corollary~1.11.7}
-(pairing bound for overlaps, Corollary~\ref{cor:sg-tal:eta-overlap-shifted-bound}) are proved.
+(pairing bound for overlaps with centering within $L/(N+1)$ of $q$,
+Corollary~\ref{cor:sg-tal:eta-overlap-shifted-bound}) are proved. The Gibbs covariance-power
+representation (Lemma~\ref{lem:sg-tal:hanen-cov-powers}) is also proved.
 \textbf{H3 base case $m=0$}: \texttt{HanenPairing} as fixed-point-free involutions and the
 base case $m=0$ of Theorem~1.11.9 (\texttt{sk\_hanen\_pairing\_derivative\_zero}) are proved;
 the hyperbolic identity $\alpha = \mathbb E\operatorname{ch}^{-4} Y$
 (\texttt{alpha\_eq\_integral\_inv\_cosh\_four}) and standard Gaussian moments
 (\texttt{gaussian\_moment\_odd}, \texttt{gaussian\_moment\_even}) are verified.
 In progress: induction for H3, H4 (Propositions~1.11.10--1.11.11) and H5 (Hanen's Theorem~1.11.1).
+Five proof placeholders remain in these results, including both parity cases of H5.
 The roadmap for Section~1.11 is structured into steps H0--H5:
 \begin{enumerate}
 \item \emph{H0: Blueprint statements.} Mathematical statements for Lemma~1.11.3,
@@ -8207,18 +8210,20 @@ Let $g=f^-\eta_V\varepsilon_J\hat f$ and $\phi(u)=\nu_u(g)$, so $\phi(1)=\nu(g)$
 \end{proof}
 
 \begin{corollary}[Pairing bound for shifted overlaps]\label{cor:sg-tal:eta-overlap-shifted-bound}
-\lean{SpinGlasses.sk_eta_overlap_shifted_bound}
+\lean{SpinGlasses.sk_eta_overlap_shifted_bound, SpinGlasses.sk_eta_overlap_arbitrary_shift_bound}
 \leanok
 \uses{cor:sg-tal:eta-coupled-bound}
 \talsource{Corollary~1.11.7, Eq.~(1.336)}
-For $|V| = 2p$ and $m$ truncated centered overlaps,
+For $|V| = 2p$, distinct overlap endpoints, disjoint replica pairs across $V$,
+and $|q-q'| \le L/(N+1)$ with $L \ge 0$ fixed,
 \[
-\Bigl|\nu\Bigl(\eta_V \prod_{u \le m} (R^-_{\ell(u), \ell'(u)} - q)\Bigr)\Bigr| \le \frac{K(p, m, n, \beta_0)}{(N+1)^{(p+m)/2}}.
+\Bigl|\nu\Bigl(\eta_V \prod_{u \le m} (R^-_{\ell(u), \ell'(u)} - q')\Bigr)\Bigr| \le \frac{K(p, m, n, \beta_0,L)}{(N+1)^{(p+m)/2}}.
 \]
 \end{corollary}
 \begin{proof}
 \leanok
-Apply Corollary~\ref{cor:sg-tal:eta-coupled-bound} with $s = 2p$, $r = 0$, $J = \emptyset$, $\hat f = 1$ and $F = \prod_{u \le m} (R^-_{\ell(u), \ell'(u)} - q)$, giving bound $K_1 (N+1)^{-p/2} \nu(F^2)^{1/2}$. By Eq.~(1.297) (\texttt{sk\_cavity\_prod\_sq\_le}), $\nu(F^2) \le K_2 (N+1)^{-m}$, so $\nu(F^2)^{1/2} \le K_2^{1/2} (N+1)^{-m/2}$. Combining the exponents gives $(N+1)^{-(p+m)/2}$.
+Apply Corollary~\ref{cor:sg-tal:eta-coupled-bound} with $s = 2p$, $r = 0$, $J = \emptyset$, $\hat f = 1$ and $F = \prod_{u \le m} (R^-_{\ell(u), \ell'(u)} - q')$, giving bound $K_1 (N+1)^{-p/2} \nu(F^2)^{1/2}$. The bound of Eq.~(1.297) is stable under the stated change of centering
+(\texttt{sk\_cavity\_prod\_sq\_shift\_le}), so $\nu(F^2) \le K_2 (N+1)^{-m}$, so $\nu(F^2)^{1/2} \le K_2^{1/2} (N+1)^{-m/2}$. Combining the exponents gives $(N+1)^{-(p+m)/2}$.
 \end{proof}
 
 \begin{lemma}[Rectangular sum identities]\label{lem:sg-tal:hanen-rect-diff}
