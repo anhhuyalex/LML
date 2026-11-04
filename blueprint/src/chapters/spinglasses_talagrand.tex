@@ -8122,12 +8122,13 @@ Then there exists $K(s, n, \beta_0)$ such that for all $\beta^2 \le \beta_0^2$ a
 \end{corollary}
 
 \begin{lemma}[Rectangular sum identities]\label{lem:sg-tal:hanen-rect-diff}
-\lean{SpinGlasses.rectDiff_overlap_sub_q_eq_rectDiff_T}
+\lean{SpinGlasses.rect_overlap_sub_q_eq_rect_T}
 \leanok
 \talsource{Eqs.~(1.345), (1.348)}
 For any four replica indices $(2u-1, 2u)$ and $(2v-1, 2v)$, the single-type $T_\ell$
 and global $T$ components cancel identically in the rectangular combination $U_J$:
-$U_J = \operatorname{rectDiff} (R - q) = \operatorname{rectDiff} T$.
+$(R_{2u-1,2v-1} - q) - (R_{2u-1,2v} - q) - (R_{2u,2v-1} - q) + (R_{2u,2v} - q)
+= T_{2u-1,2v-1} - T_{2u-1,2v} - T_{2u,2v-1} + T_{2u,2v}$.
 Furthermore, the full rectangular sum splits as $U_J = U_J^- + (N+1)^{-1} \eta_J$.
 \end{lemma}
 
