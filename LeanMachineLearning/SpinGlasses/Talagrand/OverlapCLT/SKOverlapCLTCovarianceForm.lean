@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTMixed
-public import LeanMachineLearning.SpinGlasses.SKTBasisCoefficients
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.SKOverlapCLTMixed
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKTBasisCoefficients
 
 /-!
 # The overlap moment theorem with the Section 1.8 covariance constants

@@ -7,7 +7,7 @@ module
 
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteProduct
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteReplicaTilted
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTPairGaussian
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Pair.SKOverlapCLTPairGaussian
 
 /-!
 # Live-replica T-moments: integrability and linearity in the disorder

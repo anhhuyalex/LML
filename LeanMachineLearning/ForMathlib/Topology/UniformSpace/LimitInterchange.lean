@@ -18,7 +18,7 @@ then in a complete space `L i` converges (along `p`) to some `ℓ`, and `A x` co
 the same `ℓ`.  Unlike `TendstoUniformly.tendsto_of_eventually_tendsto`, the limit `ℓ` of `L` is not
 assumed: it is produced, since `dist (L i) (L j) ≤ ε i + ε j` makes `L` Cauchy.
 
-In `SpinGlasses/ThermodynamicLimit.lean`, `i` is the inverse temperature `β → ∞`, `x` the system
+In `SpinGlasses/Panchenko/Foundations/ThermodynamicLimit.lean`, `i` is the inverse temperature `β → ∞`, `x` the system
 size `N → ∞`, `F β N = F_N(β) / β` the normalized free energy, `A N` the normalized ground-state
 energy and `ε β = log 2 / β`.
 -/

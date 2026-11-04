@@ -7,7 +7,7 @@ module
 
 public import Mathlib.Data.Fintype.BigOperators
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.OffDiag
-public import LeanMachineLearning.SpinGlasses.SKFirstMoment
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKFirstMoment
 
 /-!
 # The Canonical Three-Family Replica Pairs of the Cavity Path

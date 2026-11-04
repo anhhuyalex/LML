@@ -5,7 +5,7 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.PoissonDirichletUniquenessMoments
+public import LeanMachineLearning.SpinGlasses.Panchenko.PoissonDirichlet.Uniqueness.PoissonDirichletUniquenessMoments
 public import LeanMachineLearning.ForMathlib.Topology.Algebra.InfiniteSum.PiProd
 
 /-!

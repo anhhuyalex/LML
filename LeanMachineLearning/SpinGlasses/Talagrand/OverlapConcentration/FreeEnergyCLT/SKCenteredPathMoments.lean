@@ -7,8 +7,8 @@ module
 
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.Binomial
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SqSub
-public import LeanMachineLearning.SpinGlasses.SKFreeEnergyMoments
-public import LeanMachineLearning.SpinGlasses.SKSmartPathProfileComp
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapConcentration.FreeEnergyCLT.SKFreeEnergyMoments
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapConcentration.FreeEnergyCLT.SKSmartPathProfileComp
 
 /-!
 # Centered moments of the free energy along the smart path (Talagrand, proof of Theorem 1.4.11)

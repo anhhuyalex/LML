@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTPairMoments
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Pair.SKOverlapCLTPairMoments
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianClassRecurrence
 
 /-!

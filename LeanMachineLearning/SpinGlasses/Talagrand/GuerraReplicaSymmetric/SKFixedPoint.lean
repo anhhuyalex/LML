@@ -9,7 +9,7 @@ public import Mathlib.Analysis.Calculus.MeanValue
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Tanh
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianAffineDerivative
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein
-public import LeanMachineLearning.SpinGlasses.SKDecoupled
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKDecoupled
 
 /-!
 # The replica-symmetric fixed-point equation of the SK model

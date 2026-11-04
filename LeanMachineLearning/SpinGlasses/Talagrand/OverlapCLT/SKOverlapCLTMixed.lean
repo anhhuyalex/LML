@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTGlobalGaussian
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Global.SKOverlapCLTGlobalGaussian
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianMomentBound
 
 /-!

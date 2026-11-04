@@ -30,7 +30,7 @@ A centered Gaussian vector is determined in law by its covariance matrix
   `a₁ r ⬝ᵥ a₁ s + a₂ r ⬝ᵥ a₂ s`.
 
 This is how a Gaussian Hamiltonian is rewritten as a sum of independent Gaussian pieces *in law*
-without any change of variables on the disorder (see `SpinGlasses/AizenmanSimsStarr.lean`).
+without any change of variables on the disorder (see `SpinGlasses/Panchenko/AizenmanSimsStarr/AizenmanSimsStarr.lean`).
 -/
 
 @[expose] public section

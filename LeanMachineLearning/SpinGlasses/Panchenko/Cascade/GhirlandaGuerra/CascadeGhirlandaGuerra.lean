@@ -5,7 +5,7 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.CascadeIdentities
+public import LeanMachineLearning.SpinGlasses.Panchenko.Cascade.GhirlandaGuerra.CascadeIdentities
 
 /-!
 # The Gibbs series of the Ruelle cascade as a linear functional

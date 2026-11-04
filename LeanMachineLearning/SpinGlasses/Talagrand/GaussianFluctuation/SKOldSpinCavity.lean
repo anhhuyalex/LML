@@ -5,10 +5,10 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKLastSpinApprox
-public import LeanMachineLearning.SpinGlasses.GibbsCavityDeviation
-public import LeanMachineLearning.SpinGlasses.SKCorrelationDecay
-public import LeanMachineLearning.SpinGlasses.SKOverlapConcentration
+public import LeanMachineLearning.SpinGlasses.Talagrand.GaussianFluctuation.SKLastSpinApprox
+public import LeanMachineLearning.SpinGlasses.Talagrand.GaussianFluctuation.GibbsCavityDeviation
+public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKCorrelationDecay
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapConcentration.SKOverlapConcentration
 
 /-!
 # Adding a spin barely moves an old magnetization (Talagrand, Lemma 1.7.4, Eq. (1.186))

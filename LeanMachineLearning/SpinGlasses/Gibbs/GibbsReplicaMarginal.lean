@@ -8,7 +8,7 @@ module
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.Pi
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.MeasurePreservingSymmetry
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FreshReplicas
-public import LeanMachineLearning.SpinGlasses.GaussianIBP
+public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianIBP
 
 /-!
 # Reindexing and marginals of replica Gibbs averages

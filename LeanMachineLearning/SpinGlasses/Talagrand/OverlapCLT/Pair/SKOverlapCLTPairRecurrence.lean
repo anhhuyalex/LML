@@ -5,9 +5,9 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTPairFeedback
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTTermIMultiplicity
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTComparison
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Pair.SKOverlapCLTPairFeedback
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Contractions.SKOverlapCLTTermIMultiplicity
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Contractions.SKOverlapCLTComparison
 
 /-!
 # The pair-factor recurrence of Talagrand, Eq. (1.313)

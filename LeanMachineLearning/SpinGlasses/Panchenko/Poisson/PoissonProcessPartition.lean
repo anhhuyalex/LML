@@ -5,7 +5,7 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.PoissonProcessEquivalence
+public import LeanMachineLearning.SpinGlasses.Panchenko.Poisson.PoissonProcessEquivalence
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.RestrictPartition
 
 /-!

@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTGlobalIntegrate
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTSingleFinal
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Global.SKOverlapCLTGlobalIntegrate
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Single.SKOverlapCLTSingleFinal
 
 /-!
 # The mixed moments needed in the global stage of Theorem 1.10.1

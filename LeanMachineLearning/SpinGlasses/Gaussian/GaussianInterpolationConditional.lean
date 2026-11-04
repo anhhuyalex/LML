@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.GaussianInterpolationReplica
+public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianInterpolationReplica
 
 /-!
 # Replica derivative averaged over independent base disorder

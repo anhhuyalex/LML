@@ -5,8 +5,8 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.PoissonDirichletTalagrand
-public import LeanMachineLearning.SpinGlasses.PoissonDirichletRanked
+public import LeanMachineLearning.SpinGlasses.Panchenko.PoissonDirichlet.Uniqueness.PoissonDirichletTalagrand
+public import LeanMachineLearning.SpinGlasses.Panchenko.PoissonDirichlet.PoissonDirichletRanked
 
 /-!
 # Uniqueness of the Poisson-Dirichlet law from the Ghirlanda-Guerra identities

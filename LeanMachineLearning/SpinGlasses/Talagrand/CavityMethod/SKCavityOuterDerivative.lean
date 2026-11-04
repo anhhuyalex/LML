@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKCavityOuterBound
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityOuterBound
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.TrigSquareParam
 
 /-!

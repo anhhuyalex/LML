@@ -5,11 +5,11 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.GibbsMeasureNested
-public import LeanMachineLearning.SpinGlasses.SKCavityGaussian
-public import LeanMachineLearning.SpinGlasses.SKCavityInterpolation
-public import LeanMachineLearning.SpinGlasses.SKCavityCoshEstimate
-public import LeanMachineLearning.SpinGlasses.SKCavityFreeEnergy
+public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsMeasureNested
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityGaussian
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityInterpolation
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityCoshEstimate
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityFreeEnergy
 
 /-!
 # The last cavity step of the pair-perturbation estimate (Talagrand Eq. 1.182)

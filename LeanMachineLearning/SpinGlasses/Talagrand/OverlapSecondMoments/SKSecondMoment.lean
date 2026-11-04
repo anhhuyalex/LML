@@ -5,10 +5,10 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKRectangularDerivative
-public import LeanMachineLearning.SpinGlasses.SKOverlapContraction
-public import LeanMachineLearning.SpinGlasses.SKOverlapConcentration
-public import LeanMachineLearning.SpinGlasses.SKFixedPoint
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKRectangularDerivative
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKOverlapContraction
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapConcentration.SKOverlapConcentration
+public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKFixedPoint
 
 /-!
 # The second moment of the rectangular overlap (Talagrand's Proposition 1.8.5)

@@ -6,8 +6,8 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ParametrizedL2
-public import LeanMachineLearning.SpinGlasses.GaussianIBP
-public import LeanMachineLearning.SpinGlasses.GaussianComparison
+public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianIBP
+public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianComparison
 
 /-!
 # Derivative of replica averages along a Gaussian interpolation

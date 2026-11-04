@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.GibbsReplicaMarginal
+public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsReplicaMarginal
 
 /-!
 # Centering one replica of an i.i.d. Gibbs sample

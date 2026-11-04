@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTSingleRecurrence
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTLiveMoments
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Single.SKOverlapCLTSingleRecurrence
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.GibbsMoments.SKOverlapCLTLiveMoments
 public import Mathlib.Data.Sym.Sym2.Order
 
 /-!

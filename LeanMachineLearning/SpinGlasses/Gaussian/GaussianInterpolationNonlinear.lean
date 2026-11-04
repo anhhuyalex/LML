@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.GaussianCovarianceInterpolation
+public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianCovarianceInterpolation
 
 /-!
 # Gaussian interpolation for a smooth function of the free energy

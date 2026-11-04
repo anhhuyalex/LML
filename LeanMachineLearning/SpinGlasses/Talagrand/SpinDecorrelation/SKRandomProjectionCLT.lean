@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.GaussianCovarianceInterpolation
-public import LeanMachineLearning.SpinGlasses.SKCorrelationDecay
+public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianCovarianceInterpolation
+public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKCorrelationDecay
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ParametrizedL2
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SqSub
 

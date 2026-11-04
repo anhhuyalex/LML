@@ -6,8 +6,8 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SecondMoment
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTGibbsPolynomials
-public import LeanMachineLearning.SpinGlasses.GaussianOverlapCovariance
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.GibbsMoments.SKOverlapCLTGibbsPolynomials
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.GaussianOverlapCovariance
 
 /-!
 # Conditional polynomial moments of Gibbs-centered overlaps

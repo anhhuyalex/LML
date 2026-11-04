@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKCovarianceAsymptotics
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKCovarianceAsymptotics
 
 /-!
 # The second moments of `T₁` and `T` (Talagrand, Propositions 1.8.10 and 1.8.11)

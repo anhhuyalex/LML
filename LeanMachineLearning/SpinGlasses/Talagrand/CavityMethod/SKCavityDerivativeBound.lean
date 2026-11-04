@@ -5,9 +5,9 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKCavityHolder
-public import LeanMachineLearning.SpinGlasses.SKCavityDecoupledEndpoint
-public import LeanMachineLearning.SpinGlasses.SKCavityFreeEnergy
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityHolder
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityDecoupledEndpoint
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityFreeEnergy
 
 /-!
 # A pointwise bound for the angle derivative of the cavity path

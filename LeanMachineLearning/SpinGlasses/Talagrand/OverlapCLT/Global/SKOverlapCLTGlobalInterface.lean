@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTGlobalCounting
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTGlobalTermI
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Global.SKOverlapCLTGlobalCounting
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Global.SKOverlapCLTGlobalTermI
 
 /-!
 # Bookkeeping of the block structure for the global recurrence

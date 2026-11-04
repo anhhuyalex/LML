@@ -5,7 +5,7 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.PoissonDirichletGhirlandaGuerraTransfer
+public import LeanMachineLearning.SpinGlasses.Panchenko.PoissonDirichlet.GhirlandaGuerra.PoissonDirichletGhirlandaGuerraTransfer
 
 /-!
 # Marginalizing the extra Poisson-Dirichlet replica

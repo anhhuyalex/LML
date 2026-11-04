@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKCavityCovariance
-public import LeanMachineLearning.SpinGlasses.GibbsReplicaMarginal
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKCavityCovariance
+public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsReplicaMarginal
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SqSub
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Tanh
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.DotProductCentering

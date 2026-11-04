@@ -6,7 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.Data.Sym.Sym2
-public import LeanMachineLearning.SpinGlasses.DeFinetti
+public import LeanMachineLearning.SpinGlasses.Panchenko.AldousHoover.DeFinetti
 
 /-!
 # Weakly exchangeable arrays and the Aldous–Hoover theorem (Panchenko §1.4)

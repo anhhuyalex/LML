@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.GaussianInterpolationReplica
-public import LeanMachineLearning.SpinGlasses.SKSmartPath
+public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianInterpolationReplica
+public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKSmartPath
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.Pi
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ChebyshevAssociation
 

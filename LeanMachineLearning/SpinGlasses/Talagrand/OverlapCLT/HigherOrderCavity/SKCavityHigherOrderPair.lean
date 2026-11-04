@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKCavityHigherOrder
-public import LeanMachineLearning.SpinGlasses.SKTBasisAlgebra
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.HigherOrderCavity.SKCavityHigherOrder
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKTBasisAlgebra
 
 /-!
 # The higher-order pair expansion (Talagrand's Lemma 1.10.2)

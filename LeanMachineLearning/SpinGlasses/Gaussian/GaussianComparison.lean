@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.GaussianIBP
+public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianIBP
 
 /-!
 # Gaussian interpolation for the free energy
@@ -17,7 +17,7 @@ by parts for the Gibbs measure (Lemma 1.1).  This file proves that derivative fo
 comparison inequality `𝔼 log ∑ₐ exp (Y(a) + h(a)) ≤ 𝔼 log ∑ₐ exp (X(a) + h(a))`, the smooth form of
 Slepian's inequality behind the Guerra–Toninelli superadditivity ([Panchenko, 2013, §1.3]), is
 `SpinGlasses.integral_log_sum_exp_le_of_covariance_le` in
-`SpinGlasses/GaussianCovarianceInterpolation.lean`, a special case of Slepian's lemma for a general
+`SpinGlasses/Gaussian/GaussianCovarianceInterpolation.lean`, a special case of Slepian's lemma for a general
 test function (`SpinGlasses.integral_comp_le_of_covariance_le`).  No definitions are introduced.
 
 ## Main declarations

@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTGlobalFeedback
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Global.SKOverlapCLTGlobalFeedback
 
 /-!
 # The recurrence for the global factors (Talagrand, proof of Theorem 1.10.1)

@@ -5,10 +5,10 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.GaussianTiltedFreeEnergy
-public import LeanMachineLearning.SpinGlasses.GibbsMeasure
-public import LeanMachineLearning.SpinGlasses.SKFirstMoment
-public import LeanMachineLearning.SpinGlasses.SKGaussianFluctuation
+public import LeanMachineLearning.SpinGlasses.Talagrand.BeyondATLine.GaussianTiltedFreeEnergy
+public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsMeasure
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKFirstMoment
+public import LeanMachineLearning.SpinGlasses.Talagrand.GaussianFluctuation.SKGaussianFluctuation
 
 /-!
 # The coupled free energy (Talagrand, Eqs. (1.283)--(1.286))

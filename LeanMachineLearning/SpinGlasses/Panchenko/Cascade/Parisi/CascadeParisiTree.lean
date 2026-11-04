@@ -5,8 +5,8 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.CascadeData
-public import LeanMachineLearning.SpinGlasses.CascadeParisiStep
+public import LeanMachineLearning.SpinGlasses.Panchenko.Cascade.Tree.CascadeData
+public import LeanMachineLearning.SpinGlasses.Panchenko.Cascade.Parisi.CascadeParisiStep
 
 /-!
 # The marked partition sum of a Ruelle cascade

@@ -5,7 +5,7 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.PoissonProcessTransform
+public import LeanMachineLearning.SpinGlasses.Panchenko.Poisson.PoissonProcessTransform
 
 /-!
 # Independent second marks of Poisson blocks

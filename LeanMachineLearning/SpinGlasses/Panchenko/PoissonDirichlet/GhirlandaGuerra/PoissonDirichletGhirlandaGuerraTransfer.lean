@@ -5,7 +5,7 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.PoissonDirichletGhirlandaGuerra
+public import LeanMachineLearning.SpinGlasses.Panchenko.PoissonDirichlet.GhirlandaGuerra.PoissonDirichletGhirlandaGuerra
 
 /-!
 # Transferring marked Gaussian integration by parts to Poisson blocks

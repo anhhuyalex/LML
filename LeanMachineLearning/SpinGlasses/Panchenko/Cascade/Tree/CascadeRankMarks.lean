@@ -5,7 +5,7 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.PoissonDirichletRankedMarkedLaw
+public import LeanMachineLearning.SpinGlasses.Panchenko.PoissonDirichlet.PoissonDirichletRankedMarkedLaw
 
 /-!
 # Replica sums over ranked atoms with rank-indexed marks

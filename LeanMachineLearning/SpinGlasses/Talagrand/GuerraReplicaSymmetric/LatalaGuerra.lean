@@ -6,7 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Gaussian.Shift
-public import LeanMachineLearning.SpinGlasses.SKFixedPoint
+public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKFixedPoint
 
 /-!
 # The Latała–Guerra lemma (Talagrand, Appendix A.14, Proposition A.14.1)

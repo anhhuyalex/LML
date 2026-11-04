@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKBeyondATRows
+public import LeanMachineLearning.SpinGlasses.Talagrand.BeyondATLine.SKBeyondATRows
 
 /-!
 # Solving the covariance system beyond the Almeida--Thouless line

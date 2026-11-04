@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKOverlapConcentration
-public import LeanMachineLearning.SpinGlasses.SKGuerraBound
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapConcentration.SKOverlapConcentration
+public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKGuerraBound
 
 /-!
 # The Aizenman–Lebowitz–Ruelle formula (Talagrand, Theorem 1.4.10)

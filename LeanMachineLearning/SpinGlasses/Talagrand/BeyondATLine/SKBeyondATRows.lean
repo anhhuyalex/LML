@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKCovarianceRows
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKCovarianceRows
 
 /-!
 # The cavity estimates with a third-moment remainder (Talagrand, Lemma 1.9.4)

@@ -17,7 +17,7 @@ Gaussian coordinates, `g p : κ p → ℝ`, i.e. `g ∼ infinitePi fun p => pi f
 For coefficient vectors `a p : κ p → ℝ` with `∑ₚ ‖a p‖ < ∞`, the Gaussian series
 `H_a(g) = ∑ₚ a p ⬝ᵥ g p` converges absolutely almost surely and in `L¹`, is centered, and has
 covariance `𝔼[H_a H_b] = ∑ₚ a p ⬝ᵥ b p`.  The mixed `p`-spin Hamiltonians of
-`SpinGlasses/MixedPSpin.lean` are of this form, with `κ p = (Fin p → ι)`.
+`SpinGlasses/Panchenko/Foundations/MixedPSpin.lean` are of this form, with `κ p = (Fin p → ι)`.
 
 ## Main declarations
 

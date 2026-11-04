@@ -5,8 +5,8 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.CascadeMarked
-public import LeanMachineLearning.SpinGlasses.PoissonDirichlet
+public import LeanMachineLearning.SpinGlasses.Panchenko.Cascade.Tree.CascadeMarked
+public import LeanMachineLearning.SpinGlasses.Panchenko.PoissonDirichlet.PoissonDirichlet
 
 /-!
 # Fractional moments of the ranked marked sum

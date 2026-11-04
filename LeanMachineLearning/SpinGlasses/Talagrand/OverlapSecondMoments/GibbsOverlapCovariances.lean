@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.GibbsMeanTrick
-public import LeanMachineLearning.SpinGlasses.GibbsReplicaMarginal
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.GibbsMeanTrick
+public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsReplicaMarginal
 
 /-!
 # The overlap covariances in the `T`-basis (Talagrand, Eq. (1.246) and Theorem 1.8.12)

@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKBeyondATSolve
-public import LeanMachineLearning.SpinGlasses.SKTBasisAlgebra
+public import LeanMachineLearning.SpinGlasses.Talagrand.BeyondATLine.SKBeyondATSolve
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKTBasisAlgebra
 
 /-!
 # Lemma 1.9.4 for the SK model

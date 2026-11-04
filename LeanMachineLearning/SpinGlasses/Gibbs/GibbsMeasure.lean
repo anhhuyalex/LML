@@ -10,7 +10,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.MeasurableSpace.Units
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.HypercubeProduct
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Hyperbolic
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteHyperbolic
-public import LeanMachineLearning.SpinGlasses.FreeEnergy
+public import LeanMachineLearning.SpinGlasses.Panchenko.Foundations.FreeEnergy
 public import Mathlib.Analysis.Calculus.ParametricIntegral
 public import Mathlib.MeasureTheory.Measure.Tilted
 public import Mathlib.Probability.Moments.MGFAnalytic

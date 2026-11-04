@@ -5,7 +5,7 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.CascadeParisiMoment
+public import LeanMachineLearning.SpinGlasses.Panchenko.Cascade.Parisi.CascadeParisiMoment
 
 /-!
 # The law of the Parisi partition sum

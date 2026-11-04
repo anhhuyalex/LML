@@ -6,9 +6,9 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.Analysis.RatioBound
-public import LeanMachineLearning.SpinGlasses.SKSecondMoment
-public import LeanMachineLearning.SpinGlasses.SKCavityCovariance
-public import LeanMachineLearning.SpinGlasses.GibbsOverlapCovariances
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKSecondMoment
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKCavityCovariance
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.GibbsOverlapCovariances
 
 /-!
 # One row of the cavity covariance system (Talagrand, Eqs. (1.231)-(1.233))

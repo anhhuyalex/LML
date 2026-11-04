@@ -5,7 +5,7 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.PoissonDirichletInvariance
+public import LeanMachineLearning.SpinGlasses.Panchenko.PoissonDirichlet.PoissonDirichletInvariance
 
 /-!
 # Gaussian Bolthausen--Sznitman invariance with an extra independent mark

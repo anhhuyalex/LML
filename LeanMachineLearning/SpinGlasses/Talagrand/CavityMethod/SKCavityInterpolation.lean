@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.GibbsMeasure
-public import LeanMachineLearning.SpinGlasses.SKReplicaSymmetricBound
+public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsMeasure
+public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKReplicaSymmetricBound
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.HypercubeProduct
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteHyperbolic
 

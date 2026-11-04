@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.GibbsProjectionBound
+public import LeanMachineLearning.SpinGlasses.Talagrand.GaussianFluctuation.GibbsProjectionBound
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.GramKernel
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ParametrizedL2
 public import Mathlib.Algebra.Order.Chebyshev

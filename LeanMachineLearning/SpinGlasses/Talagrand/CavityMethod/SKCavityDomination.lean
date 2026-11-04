@@ -5,9 +5,9 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKCavityOuterDerivative
-public import LeanMachineLearning.SpinGlasses.SKCavityEndpoint
-public import LeanMachineLearning.SpinGlasses.GibbsReplicaMarginal
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityOuterDerivative
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityEndpoint
+public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsReplicaMarginal
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.GronwallBackward
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedBound
 

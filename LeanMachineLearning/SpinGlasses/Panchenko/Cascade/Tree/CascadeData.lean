@@ -5,7 +5,7 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.CascadeMoment
+public import LeanMachineLearning.SpinGlasses.Panchenko.Cascade.Parisi.CascadeMoment
 public import LeanMachineLearning.ForMathlib.Probability.Independence.IndepInfinitePi
 
 /-!

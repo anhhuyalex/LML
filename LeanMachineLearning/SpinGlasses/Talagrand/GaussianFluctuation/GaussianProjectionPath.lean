@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.GaussianCovarianceInterpolation
+public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianCovarianceInterpolation
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedBound
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiExp
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.PiUpdate

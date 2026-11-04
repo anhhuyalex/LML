@@ -7,9 +7,9 @@ module
 
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.OffDiag
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiLinearForm
-public import LeanMachineLearning.SpinGlasses.SKDecoupled
-public import LeanMachineLearning.SpinGlasses.SKFirstMoment
-public import LeanMachineLearning.SpinGlasses.GaussianComparison
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKDecoupled
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKFirstMoment
+public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianComparison
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SinCosEndpoint
 import Mathlib.Algebra.BigOperators.Sym
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv

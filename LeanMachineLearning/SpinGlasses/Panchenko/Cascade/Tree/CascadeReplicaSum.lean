@@ -5,7 +5,7 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.CascadeTree
+public import LeanMachineLearning.SpinGlasses.Panchenko.Cascade.Tree.CascadeTree
 public import LeanMachineLearning.ForMathlib.Topology.Algebra.InfiniteSum.PiProdENNReal
 
 /-!

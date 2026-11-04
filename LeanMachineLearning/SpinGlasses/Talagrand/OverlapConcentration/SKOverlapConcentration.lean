@@ -6,9 +6,9 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.AddPowEstimates
-public import LeanMachineLearning.SpinGlasses.SKLatalaBase
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapConcentration.SKLatalaBase
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ExpMoment
-public import LeanMachineLearning.SpinGlasses.SKLatalaCompensated
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapConcentration.SKLatalaCompensated
 public import Mathlib.Analysis.Normed.Algebra.Exponential
 public import Mathlib.Topology.Algebra.InfiniteSum.Order
 

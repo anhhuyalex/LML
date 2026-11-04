@@ -5,9 +5,9 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKCavityDerivativeBound
-public import LeanMachineLearning.SpinGlasses.SKCavityDecoupledEndpoint
-public import LeanMachineLearning.SpinGlasses.SKCavityFreeEnergy
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityDerivativeBound
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityDecoupledEndpoint
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityFreeEnergy
 
 /-!
 # Cavity interpolation bound (Talagrand's Proposition 1.6.5)

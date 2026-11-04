@@ -7,8 +7,8 @@ module
 
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Function.LpSectionMeasurable
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.ProbabilityMeasureLimit
-public import LeanMachineLearning.SpinGlasses.DovbyshSudakov
-public import LeanMachineLearning.SpinGlasses.OverlapExchangeability
+public import LeanMachineLearning.SpinGlasses.Panchenko.DovbyshSudakov.DovbyshSudakov
+public import LeanMachineLearning.SpinGlasses.Panchenko.AsymptoticGibbs.OverlapExchangeability
 public import Mathlib.MeasureTheory.Function.SpecialFunctions.Inner
 public import Mathlib.MeasureTheory.Measure.SeparableMeasure
 public import Mathlib.Probability.Distributions.Gaussian.Real

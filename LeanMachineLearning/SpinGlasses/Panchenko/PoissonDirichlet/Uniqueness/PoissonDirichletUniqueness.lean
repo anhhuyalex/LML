@@ -5,7 +5,7 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.PoissonDirichletRanked
+public import LeanMachineLearning.SpinGlasses.Panchenko.PoissonDirichlet.PoissonDirichletRanked
 public import Mathlib.Topology.Order.Compact
 public import Mathlib.Topology.Algebra.InfiniteSum.ENNReal
 public import Mathlib.Analysis.SpecialFunctions.Pow.Continuity

@@ -5,9 +5,9 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKCavityDecoupledMonomials
-public import LeanMachineLearning.SpinGlasses.SKCavityTaylor
-public import LeanMachineLearning.SpinGlasses.SKCavityReplicaPairs
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKCavityDecoupledMonomials
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKCavityTaylor
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKCavityReplicaPairs
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.OffDiag
 
 /-!

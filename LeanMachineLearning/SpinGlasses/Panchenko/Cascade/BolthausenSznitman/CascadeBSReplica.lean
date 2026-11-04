@@ -5,10 +5,10 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.CascadeBS
-public import LeanMachineLearning.SpinGlasses.CascadeRankMarks
-public import LeanMachineLearning.SpinGlasses.PoissonDirichletInvariance
-public import LeanMachineLearning.SpinGlasses.PoissonDirichletIdentities
+public import LeanMachineLearning.SpinGlasses.Panchenko.Cascade.BolthausenSznitman.CascadeBS
+public import LeanMachineLearning.SpinGlasses.Panchenko.Cascade.Tree.CascadeRankMarks
+public import LeanMachineLearning.SpinGlasses.Panchenko.PoissonDirichlet.PoissonDirichletInvariance
+public import LeanMachineLearning.SpinGlasses.Panchenko.PoissonDirichlet.PoissonDirichletIdentities
 
 /-!
 # Replica sums under the Gaussian Bolthausen--Sznitman transformation, with an extra mark

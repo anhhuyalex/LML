@@ -6,8 +6,8 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.AddPowEstimates
-public import LeanMachineLearning.SpinGlasses.Concentration
-public import LeanMachineLearning.SpinGlasses.GaussianComparison
+public import LeanMachineLearning.SpinGlasses.Panchenko.Foundations.Concentration
+public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianComparison
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianVector
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianGram
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SinCosEndpoint

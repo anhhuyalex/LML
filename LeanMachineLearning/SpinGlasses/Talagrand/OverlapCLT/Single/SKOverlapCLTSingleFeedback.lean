@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTPairFeedback
-public import LeanMachineLearning.SpinGlasses.SKCavityHigherOrderCorollary
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Pair.SKOverlapCLTPairFeedback
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.HigherOrderCavity.SKCavityHigherOrderCorollary
 
 /-!
 # The single-factor feedback (1.317)-(1.318) for fresh factors

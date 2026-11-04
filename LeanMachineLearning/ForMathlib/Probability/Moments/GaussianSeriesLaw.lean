@@ -19,7 +19,7 @@ Let `g p`, `p ∈ ℕ`, be independent vectors with i.i.d. standard Gaussian coo
 `H_a ∼ 𝒩(0, ∑ₚ ‖a p‖²)`, and finitely many such series form a Gaussian vector.  (The partial sums
 are sums of independent Gaussians; the series is their almost sure limit, and the characteristic
 function passes to the limit by dominated convergence.)  This is the missing input that makes the
-mixed `p`-spin Hamiltonian of `SpinGlasses/MixedPSpin.lean` a Gaussian process.
+mixed `p`-spin Hamiltonian of `SpinGlasses/Panchenko/Foundations/MixedPSpin.lean` a Gaussian process.
 
 ## Main declarations
 

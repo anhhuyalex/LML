@@ -5,9 +5,9 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKCovarianceRows
-public import LeanMachineLearning.SpinGlasses.SKCavityHigherOrderMoments
-public import LeanMachineLearning.SpinGlasses.SKCavityOverlap
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKCovarianceRows
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.HigherOrderCavity.SKCavityHigherOrderMoments
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityOverlap
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.ProductExpansion
 
 /-!

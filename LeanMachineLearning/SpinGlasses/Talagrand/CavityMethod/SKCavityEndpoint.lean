@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKCavityGaussian
-public import LeanMachineLearning.SpinGlasses.GaussianInterpolationReplica
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityGaussian
+public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianInterpolationReplica
 
 /-!
 # The coupled endpoint of the cavity path

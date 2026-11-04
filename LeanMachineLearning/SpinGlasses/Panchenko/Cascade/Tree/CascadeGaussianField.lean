@@ -5,9 +5,9 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.CascadeReplicaSum
-public import LeanMachineLearning.SpinGlasses.PoissonDirichletIdentities
-public import LeanMachineLearning.SpinGlasses.GaussianIBPCountable
+public import LeanMachineLearning.SpinGlasses.Panchenko.Cascade.Tree.CascadeReplicaSum
+public import LeanMachineLearning.SpinGlasses.Panchenko.PoissonDirichlet.PoissonDirichletIdentities
+public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianIBPCountable
 
 /-!
 # The Gaussian field of a Ruelle cascade

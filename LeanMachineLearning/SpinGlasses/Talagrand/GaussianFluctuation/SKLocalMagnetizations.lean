@@ -9,9 +9,9 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.Pi
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.PiSnoc
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SqrtSub
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SqSub
-public import LeanMachineLearning.SpinGlasses.SKCavityParameters
-public import LeanMachineLearning.SpinGlasses.SKLastSpinGaussian
-public import LeanMachineLearning.SpinGlasses.SKSiteSymmetry
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityParameters
+public import LeanMachineLearning.SpinGlasses.Talagrand.GaussianFluctuation.SKLastSpinGaussian
+public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKSiteSymmetry
 
 /-!
 # The local magnetizations are asymptotically i.i.d. (Talagrand, Theorem 1.7.1)

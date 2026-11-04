@@ -5,10 +5,10 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.GibbsFluctuationMoment
-public import LeanMachineLearning.SpinGlasses.SKOverlapConcentration
-public import LeanMachineLearning.SpinGlasses.SKFirstMoment
-public import LeanMachineLearning.SpinGlasses.SKFixedPoint
+public import LeanMachineLearning.SpinGlasses.Talagrand.GaussianFluctuation.GibbsFluctuationMoment
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapConcentration.SKOverlapConcentration
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKFirstMoment
+public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKFixedPoint
 
 /-!
 # The general Gaussian fluctuation principle for the SK model (Talagrand, Theorem 1.7.11)

@@ -5,7 +5,7 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.PoissonProcess
+public import LeanMachineLearning.SpinGlasses.Panchenko.Poisson.PoissonProcess
 public import LeanMachineLearning.ForMathlib.Probability.InfinitePiZip
 public import Mathlib.Probability.Kernel.Basic
 

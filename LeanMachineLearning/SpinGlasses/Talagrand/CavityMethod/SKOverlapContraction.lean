@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKCavityContraction
-public import LeanMachineLearning.SpinGlasses.SKCorrelationDecay
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityContraction
+public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKCorrelationDecay
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.AddPowEstimates
 
 /-!

@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTFreshContractions
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Contractions.SKOverlapCLTFreshContractions
 
 /-!
 # Decoupled contractions of a leading single factor (Proposition 1.10.5, Eq. (1.316))

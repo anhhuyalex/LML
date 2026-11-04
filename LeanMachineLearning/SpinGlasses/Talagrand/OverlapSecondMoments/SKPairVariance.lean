@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKSecondMoment
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKSecondMoment
 
 /-!
 # The variance of the truncated spin correlation (Talagrand's Corollary 1.8.6)

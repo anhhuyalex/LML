@@ -5,7 +5,7 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.PoissonDirichletGhirlandaGuerraFinish
+public import LeanMachineLearning.SpinGlasses.Panchenko.PoissonDirichlet.GhirlandaGuerra.PoissonDirichletGhirlandaGuerraFinish
 
 /-!
 # Expected Gaussian overlap correction on Poisson-Dirichlet blocks

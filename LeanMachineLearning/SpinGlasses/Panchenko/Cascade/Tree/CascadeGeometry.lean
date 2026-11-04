@@ -6,7 +6,7 @@ Authors: LML contributors
 module
 
 public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.UltrametricEmbed
-public import LeanMachineLearning.SpinGlasses.CascadeTree
+public import LeanMachineLearning.SpinGlasses.Panchenko.Cascade.Tree.CascadeTree
 public import Mathlib.Analysis.InnerProductSpace.Orthonormal
 
 /-!

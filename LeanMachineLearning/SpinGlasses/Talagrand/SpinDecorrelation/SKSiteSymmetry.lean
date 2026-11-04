@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKFirstMoment
-public import LeanMachineLearning.SpinGlasses.SKSpinDecorrelation
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKFirstMoment
+public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKSpinDecorrelation
 
 /-!
 # Symmetry between the sites of the Sherrington-Kirkpatrick model

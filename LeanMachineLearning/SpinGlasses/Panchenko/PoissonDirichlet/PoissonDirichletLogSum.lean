@@ -6,7 +6,7 @@ Authors: LML contributors
 module
 
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.LogRpow
-public import LeanMachineLearning.SpinGlasses.PoissonDirichletTransform
+public import LeanMachineLearning.SpinGlasses.Panchenko.PoissonDirichlet.PoissonDirichletTransform
 
 /-!
 # The logarithm of the total mass of the ζ-Poisson process

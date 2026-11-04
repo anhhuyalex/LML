@@ -5,9 +5,9 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.LatalaGuerra
+public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.LatalaGuerra
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Tanh
-public import LeanMachineLearning.SpinGlasses.SKFixedPoint
+public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKFixedPoint
 
 /-!
 # Lemma 1.9.3: the secondary denominator `1 - β²(1 - 4q + 3q̂)` is positive (Talagrand, Section 1.9)

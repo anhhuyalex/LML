@@ -5,9 +5,9 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.CascadeInvariance
-public import LeanMachineLearning.SpinGlasses.GaussianIBPCountable
-public import LeanMachineLearning.SpinGlasses.PoissonDirichletIdentities
+public import LeanMachineLearning.SpinGlasses.Panchenko.Cascade.BolthausenSznitman.CascadeInvariance
+public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianIBPCountable
+public import LeanMachineLearning.SpinGlasses.Panchenko.PoissonDirichlet.PoissonDirichletIdentities
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SignedToReal
 
 /-!

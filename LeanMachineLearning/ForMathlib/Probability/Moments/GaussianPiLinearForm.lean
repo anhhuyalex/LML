@@ -18,7 +18,7 @@ For `g` with i.i.d. `𝒩(0, 1)` coordinates indexed by a finite type `κ`
 covariance `𝔼[(a ⬝ᵥ g)(b ⬝ᵥ g)] = a ⬝ᵥ b`.  This is the covariance of `stdGaussian`
 (`covarianceBilin_stdGaussian`) transported along
 `pi_gaussianReal_eq_map_stdGaussian`.  It is the Gaussian-field covariance used for the pure
-`p`-spin Hamiltonians of `SpinGlasses/MixedPSpin.lean`, with `κ = (Fin p → ι)`.
+`p`-spin Hamiltonians of `SpinGlasses/Panchenko/Foundations/MixedPSpin.lean`, with `κ = (Fin p → ι)`.
 -/
 
 @[expose] public section

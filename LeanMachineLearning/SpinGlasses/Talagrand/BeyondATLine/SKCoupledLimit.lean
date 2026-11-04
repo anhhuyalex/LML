@@ -6,7 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.PointwiseLimitKink
-public import LeanMachineLearning.SpinGlasses.SKCoupledSeparation
+public import LeanMachineLearning.SpinGlasses.Talagrand.BeyondATLine.SKCoupledSeparation
 
 /-!
 # Conditional form of Talagrand's Theorem 1.9.6

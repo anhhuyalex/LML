@@ -5,11 +5,11 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.GaussianInterpolationReplica
-public import LeanMachineLearning.SpinGlasses.SKDecoupled
-public import LeanMachineLearning.SpinGlasses.SKFixedPoint
-public import LeanMachineLearning.SpinGlasses.SKLatalaCompensated
-public import LeanMachineLearning.SpinGlasses.SKFirstMoment
+public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianInterpolationReplica
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKDecoupled
+public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKFixedPoint
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapConcentration.SKLatalaCompensated
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKFirstMoment
 public import LeanMachineLearning.ForMathlib.Probability.Moments.TwoPointHoeffding
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Gaussian.ExpSq
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein

@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKOverlapContraction
-public import LeanMachineLearning.SpinGlasses.SKCavityDomination
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKOverlapContraction
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityDomination
 
 /-!
 # Higher moments of the overlap (Talagrand's Proposition 1.6.7)

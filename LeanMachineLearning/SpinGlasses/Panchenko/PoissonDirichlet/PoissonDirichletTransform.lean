@@ -5,8 +5,8 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.PoissonDirichlet
-public import LeanMachineLearning.SpinGlasses.PoissonProcessTransform
+public import LeanMachineLearning.SpinGlasses.Panchenko.PoissonDirichlet.PoissonDirichlet
+public import LeanMachineLearning.SpinGlasses.Panchenko.Poisson.PoissonProcessTransform
 public import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
 
 /-!

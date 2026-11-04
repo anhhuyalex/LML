@@ -74,7 +74,7 @@ By independence of the $g_{ij}$, the expectation is $\frac{\beta^2}{N} \sum_{i <
 Using $\sum_{i < j} x_i x_j = \frac{1}{2}((\sum_i x_i)^2 - \sum_i x_i^2)$ with $x_i = \sigma_i^1 \sigma_i^2$ (so $x_i^2 = 1$ and $\sum x_i = N R_{1,2}$),
 the sum equals $\frac{1}{2}(N^2 R_{1,2}^2 - N) = \frac{N^2}{2}(R_{1,2}^2 - 1/N)$.
 Multiplying by $\beta^2 / N$ gives $\frac{N\beta^2}{2}(R_{1,2}^2 - 1/N)$.
-Formalized in \texttt{SpinGlasses/SKReplicaSymmetricBound.lean}.
+Formalized in \texttt{SpinGlasses/Talagrand/GuerraReplicaSymmetric/SKReplicaSymmetricBound.lean}.
 \end{proof}
 
 \begin{lemma}[Derivative of a Gaussian expectation along the trigonometric path]\label{lem:sg-tal:path-derivative}
@@ -104,7 +104,7 @@ and $|z_s(l)|\le\|(X,Y)\|_1\le e^{\|(X,Y)\|_1}$. Hence $|\sum_lz_s(l)\partial_lF
 \]
 Gaussian integration by parts (Eq.~(A.17), Theorem~\ref{thm:sg:steinvec}) applied to the function $\partial_lF$ gives $\mathbb{E}[z_s(l)\,\partial_lF(Z_s)]=\sum_k\mathbb{E}[z_s(l)Z_s(k)]\,\mathbb{E}\,\partial_k\partial_lF(Z_s)$.
 Summing over $l$ gives the formula. The growth bounds on $\partial_lF$ and $\partial_k\partial_lF$ are what the integration by parts needs, to see that all expectations exist.
-Formalized in \texttt{SpinGlasses/GaussianCovarianceInterpolation.lean}.
+Formalized in \texttt{SpinGlasses/Gaussian/GaussianCovarianceInterpolation.lean}.
 \end{proof}
 
 \begin{theorem}[Slepian's lemma]\label{thm:sg-tal:slepian}
@@ -193,7 +193,7 @@ because $\varphi'(\xi)\ge0$ and $t-s>0$. So $\varphi$ is non-decreasing on $[0,\
 \mathbb{E}F(X)\le\mathbb{E}F(Y).
 \]
 In words: if the mixed second derivatives of $F$ are nonnegative, then $F$ is ``supermodular'', it rewards coordinates that move together, so a vector whose coordinates are more strongly correlated (larger $B$ against $A$, same variances) has the larger expectation of $F$.
-Formalized in \texttt{SpinGlasses/GaussianCovarianceInterpolation.lean}.
+Formalized in \texttt{SpinGlasses/Gaussian/GaussianCovarianceInterpolation.lean}.
 \end{proof}
 
 \begin{theorem}[Gaussian comparison for the free energy]\label{thm:sg-tal:slepian-lse}
@@ -234,7 +234,7 @@ $\mathbb{E}\log\sum_ae^{Y_a+h_a}\le\mathbb{E}\log\sum_ae^{X_a+h_a}$.
 \emph{Sanity check.} Let $\alpha=\{1,2\}$, $X_1,X_2$ independent standard Gaussians and $Y_1=Y_2=Z$ standard Gaussian, with $Z$ independent of $X$. The hypotheses hold ($A=I$, $B=\begin{psmallmatrix}1&1\\1&1\end{psmallmatrix}$, so $B-A\ge0$ entrywise with zero diagonal). The left side is $\mathbb{E}[Z]+\log(e^{h_1}+e^{h_2})=\log(e^{h_1}+e^{h_2})$ and the right side
 is $\mathbb{E}\log(e^{X_1+h_1}+e^{X_2+h_2})$, which is at least $\log(e^{h_1}+e^{h_2})$ by Jensen's inequality for the convex function $x\mapsto\log\sum_ae^{x_a+h_a}$ and $\mathbb{E}X=0$. This agrees with the theorem.
 This is the form of Slepian's lemma used in the Guerra--Toninelli theorem (Theorem~\ref{thm:sg-tal:gt}).
-Formalized in \texttt{SpinGlasses/GaussianCovarianceInterpolation.lean}.
+Formalized in \texttt{SpinGlasses/Gaussian/GaussianCovarianceInterpolation.lean}.
 \end{proof}
 
 \begin{remark}[Comparison with the book's Proposition~1.3.3]\label{rem:sg-tal:slepian-compare}
@@ -267,7 +267,7 @@ with independent standard Gaussian disorder $g$. For $F_N=N^{-1}\log\sum_\sigma 
 \begin{proof}
   \leanok
 The free energy $F_N$ is a Lipschitz function of the Gaussian disorder (the variance of $H$ at every hypercube point is $N\sum_p\beta_p^2$), so it is sub-Gaussian with variance proxy $2\sum_p\beta_p^2/N$ by the Gaussian concentration inequality for log-sum-exp; both tails give the displayed bound.
-Formalized in \texttt{SpinGlasses/Concentration.lean}.
+Formalized in \texttt{SpinGlasses/Panchenko/Foundations/Concentration.lean}.
 \end{proof}
 
 \begin{theorem}[The thermodynamic limit: Guerra--Toninelli theorem]\label{thm:sg-tal:gt}
@@ -331,7 +331,7 @@ because $|\Sigma_K|=2^K$ and $\operatorname{Var}(H_K(\sigma))=K\xi(1)$.  Thus $u
 Finally, for the full-matrix SK Hamiltonian the covariance is $N R^2$.  Replacing $H_N$ by $\beta H_N$ replaces $\xi(x)=x^2$ by $\beta^2x^2$, still convex on $[-1,1]$, so the preceding abstract result is precisely the displayed convergence of $F_N(\beta)$.
 
 For the conceptual role of these steps and their later uses, see Remark~\ref{rem:sg:gt-intuition}.
-Formalized in \texttt{SpinGlasses/GuerraToninelli.lean}.
+Formalized in \texttt{SpinGlasses/Panchenko/Foundations/GuerraToninelli.lean}.
 \end{proof}
 
 \section{Decoupled Systems, Hypercube Factorization and First Moments (Talagrand Section~1.2)}\label{sec:sg-tal:decoupled}
@@ -401,7 +401,7 @@ and, if the $Y_i$ are random variables with the same law and $\log\cosh Y_{i_0}$
 Apply Lemma~\ref{lem:sg-tal:hypercube-prod} with $a(i, \pm 1) = \exp(\pm Y_i)$ and use $\exp(Y) + \exp(-Y) = 2\cosh Y$ and $\exp(Y) - \exp(-Y) = 2\sinh Y$.
 For the single-spin sum take $a(j,s)=s\,e^{sY_j}$ and $a(i,s)=e^{sY_i}$ for $i\ne j$; the ratio of the two sums is $\tanh Y_j$.
 The integrability of $\tanh^2(Y)$ for any a.e.\ measurable $Y$ (it is bounded by $1$) is recorded separately because every expectation below uses it.
-Formalized in \texttt{SpinGlasses/SKDecoupled.lean}.
+Formalized in \texttt{SpinGlasses/Talagrand/DecoupledSystems/SKDecoupled.lean}.
 \end{proof}
 
 \begin{theorem}[Overlaps of the decoupled model]\label{thm:sg-tal:decoupled-overlap}
@@ -424,7 +424,7 @@ which for $Y_j=\beta z_j\sqrt q+h$ is the right-hand side $\mathbb{E}[\tanh^2(\b
   \leanok
 Linearity of the integral over the product of the two (identical) Gibbs measures reduces the first claim to the single-site identity $\langle\sigma^1_j\sigma^2_j\rangle_0=\langle\sigma_j\rangle_0^2=\tanh^2Y_j$ of Theorem~\ref{thm:sg-tal:decoupled-partition}.
 The second claim is linearity of the expectation together with $\mathbb{E}[\tanh^2Y_j]=\mathbb{E}[\tanh^2Y_{j_0}]$, which follows from identical distribution.
-Formalized in \texttt{SpinGlasses/SKDecoupled.lean}.
+Formalized in \texttt{SpinGlasses/Talagrand/DecoupledSystems/SKDecoupled.lean}.
 \end{proof}
 
 \begin{theorem}[Exact first moment of the SK partition function]\label{thm:sg-tal:first-moment}
@@ -452,7 +452,7 @@ which yields the exact normalized log-moment (Talagrand Exercise~1.2.3, Eq.~(1.2
   \leanok
 For each configuration $\sigma$, the Gaussian linear combination $\sum_{i<j} \frac{\beta}{\sqrt{N}} g_{ij} \sigma_i \sigma_j$ has variance $\sum_{i<j} \frac{\beta^2}{N} = \binom{N}{2}\frac{\beta^2}{N} = N \frac{\beta^2}{4}(1 - \frac{1}{N})$, independent of $\sigma$.
 Integrating out the Gaussian disorder factors the sum into $(2\cosh h)^N \exp(N \frac{\beta^2}{4}(1 - 1/N))$.
-Formalized in \texttt{SpinGlasses/SKFirstMoment.lean}.
+Formalized in \texttt{SpinGlasses/Talagrand/DecoupledSystems/SKFirstMoment.lean}.
 \end{proof}
 
 \begin{theorem}[First-moment Jensen upper bound on the free energy]\label{thm:sg-tal:first-moment-bound}
@@ -468,7 +468,7 @@ p_N(\beta, h) \le \frac{1}{N} \log \mathbb{E}[Z_N] = \frac{\beta^2}{4}\left(1 - 
 \begin{proof}
   \leanok
 $p_N(\beta, h) = N^{-1}\mathbb{E}[\log Z_N] \le N^{-1}\log \mathbb{E}[Z_N]$, and apply Theorem~\ref{thm:sg-tal:first-moment}.
-Formalized in \texttt{SpinGlasses/SKFirstMoment.lean}.
+Formalized in \texttt{SpinGlasses/Talagrand/DecoupledSystems/SKFirstMoment.lean}.
 \end{proof}
 
 \begin{theorem}[Temperature derivative of the expected free energy]\label{thm:sg-tal:beta-derivative}
@@ -488,7 +488,7 @@ Let $N\ge1$, $h\in\mathbb R$, $u_\sigma(g)=N^{-1/2}\sum_{i<j}g_{ij}\sigma_i\sigm
   \leanok
 Differentiating $b \mapsto \log \sum_\sigma \exp(b\, u_\sigma(g) + C_\sigma)$ yields the Gibbs average.
 Dominated differentiation under the integral applies via the integrable bound $B(g) = (\sqrt{N})^{-1}\sum_{i<j} |g_{ij}|$.
-Formalized in \texttt{SpinGlasses/SKFirstMoment.lean}.
+Formalized in \texttt{SpinGlasses/Talagrand/DecoupledSystems/SKFirstMoment.lean}.
 \emph{Not formalized:} the evaluation $\frac1N\mathbb{E}[\langle u_\sigma\rangle]=\frac{\beta}{2}(1-\mathbb{E}[\langle R_{1,2}^2\rangle])$ by Gaussian integration by parts; see Remark~\ref{rem:sg-tal:dev-12}.
 \end{proof}
 
@@ -550,7 +550,7 @@ Expand the product and use that $\mathbb{E}[z_iz_j]=\delta_{ij}$ for independent
 For Ising spins this is $\beta^2 q\,N\,R(\sigma,\tau)$, where $R(\sigma,\tau)=N^{-1}\sum_i\sigma_i\tau_i$ is the overlap.
 The Lean statement is deliberately for arbitrary finite real vectors, not only hypercube spins,
 so it is reusable for relaxed and spherical spin models.  Formalized in
-\texttt{SpinGlasses/SKReplicaSymmetricBound.lean}.
+\texttt{SpinGlasses/Talagrand/GuerraReplicaSymmetric/SKReplicaSymmetricBound.lean}.
 \end{proof}
 
 \begin{lemma}[Pair-indexed Gaussian covariance]\label{lem:sg-tal:pair-covariance}
@@ -591,7 +591,7 @@ because $\sum_ia_i=N R(\sigma,\tau)$ and $a_i^2=1$. Hence the covariance equals
 \[
 \frac{\beta^2}{2N}\big(N^2R^2-N\big)=\frac{N\beta^2}{2}\Big(R(\sigma,\tau)^2-\frac1N\Big).
 \]
-Formalized in \texttt{SpinGlasses/SKReplicaSymmetricBound.lean}.
+Formalized in \texttt{SpinGlasses/Talagrand/GuerraReplicaSymmetric/SKReplicaSymmetricBound.lean}.
 \end{proof}
 
 \begin{lemma}[Algebraic assembly of the smart-path covariance difference]
@@ -726,7 +726,7 @@ For the SK fields, Lemma~\ref{lem:sg-tal:path-covariance-algebra} gives $V(\sigm
 \varphi'(s)=\frac{\sin s\cos s}{N}\cdot\frac{N\beta^2}{2}\,\mathbb{E}\big\langle (R_{1,2}-q)^2-(1-q)^2\big\rangle_s,
 \]
 which is the displayed formula, since $\mathbb{E}\langle(1-q)^2\rangle_s=(1-q)^2$ ($\langle\cdot\rangle_s$ is a probability measure). The term $A(s)\ge0$ is the Gibbs average of a square. The book's form of this statement in the variable $t=\cos^2 s$ is recorded in Remark~\ref{rem:sg-tal:book-path}.
-Formalized in \texttt{SpinGlasses/SKSmartPathProfile.lean}.
+Formalized in \texttt{SpinGlasses/Talagrand/GuerraReplicaSymmetric/SKSmartPathProfile.lean}.
 \end{proof}
 
 \begin{theorem}[Guerra's replica-symmetric upper bound]\label{thm:sg-tal:guerra-rs-bound}
@@ -775,7 +775,7 @@ Lean avoids the integral (Lemma~\ref{lem:sg-tal:trig-rs-endpoint}): the function
 \varphi(\pi/2)=\frac1N\sum_{i\le N}\mathbb{E}\big[\log2+\log\cosh(\beta\sqrt q\,z_i+h)\big]=\log2+\mathbb{E}\log\cosh(\beta z\sqrt q+h),
 \]
 the $z_i$ being identically distributed. Inserting these values into the inequality of Step 3 gives the theorem.
-Formalized in \texttt{SpinGlasses/SKGuerraBound.lean} (the free energy profile along the path is \texttt{SKSmartPathProfile.lean}).
+Formalized in \texttt{SpinGlasses/Talagrand/GuerraReplicaSymmetric/SKGuerraBound.lean} (the free energy profile along the path is \texttt{SKSmartPathProfile.lean}).
 \end{proof}
 
 \begin{theorem}[Existence of a solution of the self-consistency equation]\label{thm:sg-tal:fixed-point}
@@ -794,7 +794,7 @@ q=\mathbb{E}[\tanh^2(\beta z\sqrt q+h)]\qquad\text{(Eq.~(1.74))}.
 \begin{proof}
   \leanok
 Continuity follows from dominated convergence (the integrand is bounded by $1$ and continuous in $x$ for each $z$), and $0\le\tanh^2\le1$ gives the range. The function $\psi(x)-x$ is $\ge0$ at $x=0$ and $\le0$ at $x=1$, so the intermediate value theorem gives a zero in $[0,1]$.
-Formalized in \texttt{SpinGlasses/SKFixedPoint.lean}.
+Formalized in \texttt{SpinGlasses/Talagrand/GuerraReplicaSymmetric/SKFixedPoint.lean}.
 \end{proof}
 
 \begin{theorem}[Uniqueness of the solution of the self-consistency equation, $h\ne0$]\label{thm:sg-tal:fixed-point-unique}
@@ -811,7 +811,7 @@ $q=\mathbb{E}[\tanh^2(\beta z\sqrt q+h)]$.
 Every solution is positive, because $\mathbb{E}\tanh^2(wz+h)>0$ for $h\ne0$. At a solution $x$ one has $\Phi(x)/x=1$, where $\Phi(x)=\mathbb{E}[\tanh^2(\beta z\sqrt x+h)]$, and
 $x\mapsto\Phi(x)/x$ is strictly decreasing on $(0,\infty)$ (Theorem~\ref{thm:sg-tal:residual}, the case of $\tanh$ of Proposition~A.14.1), hence injective, so $q=r$. Existence in $[0,1]$ is
 Theorem~\ref{thm:sg-tal:fixed-point}. The argument uses neither $\beta<1$ nor the residual bound, and it does not identify the solution with a minimizer of $\operatorname{RS}$ (Remark~\ref{rem:sg-tal:fixed-point-scope}).
-Formalized in \texttt{SpinGlasses/SKFixedPointResidual.lean}.
+Formalized in \texttt{SpinGlasses/Talagrand/GuerraReplicaSymmetric/SKFixedPointResidual.lean}.
 \end{proof}
 
 \begin{theorem}[Guerra's bound at the unique solution, $h\ne0$]\label{thm:sg-tal:guerra-rs-bound-unique}
@@ -830,7 +830,7 @@ Thus $\operatorname{SK}(\beta,h):=\operatorname{RS}(q)$ is well defined for $h\n
 Take the solution $q\in[0,1]$ of Theorem~\ref{thm:sg-tal:fixed-point-unique}; since $q\ge0$, Theorem~\ref{thm:sg-tal:guerra-rs-bound} applies. Any other $q'$ with the first property is a
 solution of (1.74), hence equals $q$. For $h=0$ this packaging is not available: there can be two solutions (Remark~\ref{rem:sg-tal:fixed-point-scope}). Theorem~\ref{thm:sg-tal:guerra-rs-bound} itself, for
 every $q\ge0$, is unaffected.
-Formalized in \texttt{SpinGlasses/SKGuerraBoundUnique.lean}.
+Formalized in \texttt{SpinGlasses/Talagrand/GuerraReplicaSymmetric/SKGuerraBoundUnique.lean}.
 \end{proof}
 
 \begin{theorem}[Critical points of the replica-symmetric functional (Eqs.~(1.74)--(1.76), Proposition~1.3.8)]\label{thm:sg-tal:rs-critical}
@@ -863,7 +863,7 @@ Let $\beta,h\in\mathbb R$, $\Phi(x)=\mathbb{E}\tanh^2(\beta\sqrt x\,z+h)$ and $\
 (3) For $x>0$, $\Phi'(x)=\beta^2\mathbb{E}[(1-t)(1-3t)]$ with $t=\tanh^2\in[0,1)$ and $(1-t)(1-3t)=1-4t+3t^2\le1$, so $(\Phi(x)-x)'\le\beta^2-1<0$ on $(0,\infty)$, and $\Phi(x)-x$ is continuous on $[0,\infty)$, hence strictly decreasing; it vanishes at both $q$ and $r$.
 (4) $\Phi(x)/x$ is strictly decreasing on $(0,\infty)$ if $\beta\ne0$ or $h\ne0$ (Proposition~A.14.1 for $\tanh$) and equals $1$ at both points. Theorem~\ref{thm:sg-tal:fixed-point-unique} is the case $h\ne0$ (where positivity is automatic).
 \emph{Formalization notes.} $\operatorname{RS}$ is a definition (\texttt{rsFunctional}) because it is differentiated, minimized and bounded in several statements; Guerra's bound (Theorem~\ref{thm:sg-tal:guerra-rs-bound}) keeps its written-out form. The claim ``every fixed point minimizes $\operatorname{RS}$'' is false (for $h=0$, $\beta>1$ there are two fixed points, and $\beta=0$ makes every point a minimizer), so the formal statement is that every minimizer is a fixed point when $\beta\ne0$, and that a minimizing fixed point exists. Not claimed: that for $h\ne0$ the unique fixed point is the unique minimizer of $\operatorname{RS}$ (this needs the minimizer to be unique, which is not proved).
-Formalized in \texttt{ForMathlib/Probability/Moments/GaussianAffineDerivative.lean}, \texttt{SpinGlasses/SKFixedPointRS.lean} and \texttt{SpinGlasses/SKFixedPointResidual.lean}.
+Formalized in \texttt{ForMathlib/Probability/Moments/GaussianAffineDerivative.lean}, \texttt{SpinGlasses/Talagrand/GuerraReplicaSymmetric/SKFixedPointRS.lean} and \texttt{SpinGlasses/Talagrand/GuerraReplicaSymmetric/SKFixedPointResidual.lean}.
 \end{proof}
 
 \begin{remark}[Scope of the fixed-point results: intuition, context, reasons and consequences]\label{rem:sg-tal:fixed-point-scope}
@@ -966,7 +966,7 @@ Differentiate the replica average $\prod_\ell w(\sigma^\ell)/Z^n$ along the path
 This gives $\mathbb{E}[\langle\Phi(\sum_\ell u'(\sigma^\ell) - n\langle u'\rangle)\rangle]$ with $u'=-\sin s\,X+\cos s\,Y$.
 Two Gaussian integrations by parts (\texttt{integral\_gibbs\_replica\_average\_gaussian\_option}, applied to $X$ and to $Y$) turn this into the displayed covariance combination, with $\mathbb{E}[X Y] = 0$ killing the cross terms; the extra replicas $n+1,n+2$ appear exactly as in Panchenko's Eq.~(1.29), and a marginalization lemma removes the replicas on which the observable does not depend.
 In the parametrization $t = \cos^2 s$ (with $t=1$ the SK end) this is Talagrand's Eq.~(1.90); Eq.~(1.97) for $n=2$ is the specialization used in the proof of Lemma~\ref{lem:sg-tal:replica-decoupling}.
-Formalized in \texttt{SpinGlasses/GaussianInterpolationReplica.lean}.
+Formalized in \texttt{SpinGlasses/Gaussian/GaussianInterpolationReplica.lean}.
 \end{proof}
 
 \begin{lemma}[Replica decoupling]\label{lem:sg-tal:replica-decoupling}
@@ -990,7 +990,7 @@ The Lean proof is shorter and works pointwise in the disorder: since $U$ is $-\k
 The terms with $A_{13}, A_{23}$ are integrals of nonnegative functions; the term with $A_{34}$ factors by independence of the replicas $3,4$ from $1,2$ into $\langle\Phi\rangle\langle A\rangle$, and Chebyshev's association inequality (for two similarly ordered functions, $\int a\int b\le\int ab$; here $a=A$ and $b=e^{uA}$ with $u\ge0$) gives $\langle A\rangle\langle e^{uA}\rangle\le\langle A e^{uA}\rangle$.
 Hence the combination is at least $\kappa(6\langle\Phi A\rangle - 6\langle\Phi\rangle\langle A\rangle)\ge0$.
 \emph{Formalization note.} Lemma~1.4.5 is not stated on its own as an inequality between $\nu_t$-averages; only the combination above (Lemma~1.4.2 for $n=2$ plus the moving-observable term), which is what Corollary~\ref{cor:sg-tal:compensated-mono} uses, is a Lean statement.
-Formalized in \texttt{SpinGlasses/SKLatalaCompensated.lean} (Chebyshev's inequality in \texttt{ForMathlib/MeasureTheory/Integral/ChebyshevAssociation.lean}).
+Formalized in \texttt{SpinGlasses/Talagrand/OverlapConcentration/SKLatalaCompensated.lean} (Chebyshev's inequality in \texttt{ForMathlib/MeasureTheory/Integral/ChebyshevAssociation.lean}).
 \end{proof}
 
 \begin{corollary}[Compensated functional monotonicity]\label{cor:sg-tal:compensated-mono}
@@ -1046,7 +1046,7 @@ $\langle\exp(u\sum_i(\sigma^1_i\sigma^2_i-q))\rangle=\prod_i e^{-uq}(\cosh u+\ta
 \emph{Step 4 (Gaussian linearization).} For $X=N(R_{1,2}-q)$ one has $\mathbb{E}[\langle e^{uX}\rangle]\le e^{Nu^2/2}$ for all $u$; writing $e^{\theta X^2/2}=\mathbb{E}_g[e^{\sqrt\theta\, g X}]$ with $g\sim\mathcal N(0,1)$, exchanging expectations (Fubini; $X$ is bounded) and using the bound with $u=\sqrt\theta g$ gives $\mathbb{E}[\langle e^{\theta X^2/2}\rangle]\le\mathbb{E}_g[e^{N\theta g^2/2}]=(1-N\theta)^{-1/2}$.
 With $\theta=2\lambda/N$ this is the claim.
 \emph{Formalization note.} The fixed-point equation is a hypothesis; only existence of a solution is formalized (Theorem~\ref{thm:sg-tal:fixed-point}, Remark~\ref{rem:sg-tal:fixed-point-scope}).
-Formalized in \texttt{SpinGlasses/SKLatalaBase.lean}.
+Formalized in \texttt{SpinGlasses/Talagrand/OverlapConcentration/SKLatalaBase.lean}.
 \end{proof}
 
 \begin{theorem}[Exponential overlap concentration]\label{thm:sg-tal:overlap-conc}
@@ -1076,7 +1076,7 @@ From $e^x\ge1+x$ (packaged as the general inequality $1+c\,\mathbb{E}[X]\le\math
 \emph{Formalization notes.} (i) The fixed-point equation $q=\mathbb{E}[\tanh^2(\beta\sqrt q\,z+h)]$ is a hypothesis of both statements; only the existence of a solution is proved (Theorem~\ref{thm:sg-tal:fixed-point}).
 (ii) The book's assumption $\beta<1/2$ is stated as $\beta^2<1/4$ (in the first claim it is implied by $2s+4\beta^2<1$ with $s\ge0$).
 (iii) Eq.~(1.88), the bound on all even moments, is a consequence of the exponential bound and is proved separately as Theorem~\ref{thm:sg-tal:overlap-moments-all}; the constant there is $r!\,s^{-r}(\cdot)^{-1/2}$ rather than the book's $(Kk/N)^k$.
-Formalized in \texttt{SpinGlasses/SKOverlapConcentration.lean}.
+Formalized in \texttt{SpinGlasses/Talagrand/OverlapConcentration/SKOverlapConcentration.lean}.
 \end{proof}
 
 \begin{lemma}[A pointwise inequality for the exponential]\label{lem:sg-tal:pow-le-exp}
@@ -1108,7 +1108,7 @@ so that $K=r!\,\bigl(\tfrac{4}{1-4\beta^2}\bigr)^{r}\bigl(\tfrac{2}{1-4\beta^2}\
 Put $X=(R_{1,2}-q)^2\ge0$. Lemma~\ref{lem:sg-tal:pow-le-exp} with $y=sNX$ gives the pointwise bound $X^r\le r!\,(sN)^{-r}e^{sNX}$. Integrate against the Gibbs measure of two replicas and then against the disorder; the integral of the right-hand side is controlled by Theorem~\ref{thm:sg-tal:overlap-conc}: $\nu(\exp sN(R_{1,2}-q)^2)\le(1-2s-4\beta^2)^{-1/2}$, which applies because $2s+4\beta^2=(1+4\beta^2)/2<1$. Since $(R_{1,2}-q)^{2r}=X^r$ the claim follows.
 For the uniform version use $s_0$ in place of $s$: $2s_0+4\beta^2\le2s_0+4\beta_0^2<1$ so Theorem~\ref{thm:sg-tal:overlap-conc} still applies, and its bound $(1-2s_0-4\beta^2)^{-1/2}$ is at most $(1-2s_0-4\beta_0^2)^{-1/2}$ because $\beta^2\le\beta_0^2$; nothing else in the argument depends on $\beta$, $h$ or $q$.  The case $\beta_0=|\beta|$ is the first statement.
 \emph{Formalization note.} The statement is for the genuine $N$-spin system with the same normalization as Theorem~\ref{thm:sg-tal:overlap-conc}, not for the $(N+1)$-spin system with $\beta_+$ of Part~D of Section~\ref{sec:sg-tal:cavity}; the latter (Proposition~1.6.7, Theorem~\ref{thm:sg-tal:overlap-moments}) concerns the $(N+1)$-spin system and assumes the stronger smallness condition $16\beta^2e^{64\beta^2}\le\tfrac12$, whereas Section~\ref{sec:sg-tal:fluct} needs the $N$-spin system for every $4\beta^2<1$, which is why it uses this theorem.
-Formalized in \texttt{SpinGlasses/SKOverlapConcentration.lean}.
+Formalized in \texttt{SpinGlasses/Talagrand/OverlapConcentration/SKOverlapConcentration.lean}.
 \end{proof}
 
 \begin{theorem}[The Aizenman--Lebowitz--Ruelle high-temperature free energy formula]\label{thm:sg-tal:alr}
@@ -1132,7 +1132,7 @@ Since $0\le A(s)\le K'/N$ on $[0,\pi/2]$ by Theorem~\ref{thm:sg-tal:overlap-conc
 \emph{Formalization note.} This is done by monotonicity instead of integrating the derivative (same bound, no integrability to check).
 As in Theorem~\ref{thm:sg-tal:overlap-conc}, $q$ is a hypothesis (fixed-point equation) and $\beta<1/2$ is stated as $\beta^2<1/4$.
 \emph{Not formalized:} the identification of the solution $q$ with the minimizer of Guerra's bound and the uniqueness of the fixed point for $\beta<1$ and $h=0$ (it is proved for $h\ne0$, Theorem~\ref{thm:sg-tal:fixed-point-unique}); the thermodynamic limit of the Guerra--Toninelli theorem is stated there for the full-matrix disorder without field, while the limit here is derived directly from the $O(1/N)$ bound for the pair disorder with field.
-Formalized in \texttt{SpinGlasses/SKAizenmanLebowitzRuelle.lean}.
+Formalized in \texttt{SpinGlasses/Talagrand/OverlapConcentration/SKAizenmanLebowitzRuelle.lean}.
 \end{proof}
 
 \begin{lemma}[The SK energy is a linear form of the disorder]\label{lem:sg-tal:sk-linear-data}
@@ -1166,7 +1166,7 @@ The constant depends only on $k$ and $|\beta|$, not on $h$ or $N$.
   \leanok
 By Lemma~\ref{lem:sg-tal:sk-linear-data} the free energy $\log Z_N=\log\sum_\sigma\exp(\langle a(\sigma),g\rangle+h\sum_i\sigma_i)$ is the log-partition function of a centered Gaussian field of variance at most $v=\beta^2N/2$. The Gaussian concentration engine (\texttt{hasSubgaussianMGF\_log\_sum\_exp}, the symmetrization argument of Panchenko's Theorem~1.2) says that $\log Z_N-\mathbb{E}\log Z_N$ is sub-Gaussian with parameter $2v=\beta^2N$, hence $\mathbb{E}\exp(t|\log Z_N-\mathbb{E}\log Z_N|)\le2\exp(\beta^2Nt^2/2)$; for $t=N^{-1/2}$ this is at most $2e^{\beta^2/2}$. Now $\sqrt N\,|A_N-p_N|=N^{-1/2}|\log Z_N-\mathbb{E}\log Z_N|$ and $y^k\le k!\,e^y$ for $y\ge0$ (Lemma~\ref{lem:sg-tal:pow-le-exp}), so $\sqrt N^{\,k}|A_N-p_N|^k\le k!\,\exp(N^{-1/2}|\log Z_N-\mathbb{E}\log Z_N|)$; integrate.
 \emph{Deviation from the book.} The book proves (1.113) by integrating its tail bound (1.114) against $kt^{k-1}\,dt$; we bound the exponential moment instead, which gives the same $N^{-k/2}$ scaling with the explicit constant $2k!e^{\beta^2/2}$, and avoids a Gamma-function integral. Only the deterministic field ($c=0$ in the book's notation $h_i=cy_i+d$) is formalized; the Gaussian random field is not.
-Formalized in \texttt{SpinGlasses/SKFreeEnergyMoments.lean}; the shared sub-Gaussian statement for a Gaussian field tilted by a deterministic observable (also used for the tail bound in Section~\ref{sec:sg-tal:beyond-at}) is \texttt{SpinGlasses.hasSubgaussianMGF\_log\_sum\_exp\_tilt}.
+Formalized in \texttt{SpinGlasses/Talagrand/OverlapConcentration/FreeEnergyCLT/SKFreeEnergyMoments.lean}; the shared sub-Gaussian statement for a Gaussian field tilted by a deterministic observable (also used for the tail bound in Section~\ref{sec:sg-tal:beyond-at}) is \texttt{SpinGlasses.hasSubgaussianMGF\_log\_sum\_exp\_tilt}.
 \end{proof}
 
 \begin{theorem}[A smooth function of the free energy along the smart path (Eq.~(1.125))]\label{thm:sg-tal:profile-comp}
@@ -1198,7 +1198,7 @@ with $\psi(0)=\mathbb{E}\,W(A_N)$ (SK model) and $\psi(\pi/2)=\mathbb{E}\,W\big(
 Put $L(y)=\log\sum_\sigma e^{y_\sigma+h_\sigma}$, $n=N^{-1}$ and $F_W(y)=W(nL(y))$. With the Gibbs weights $w_\sigma$, $\partial_lF_W=nW'(nL)w_l$ and
 $\partial_k\partial_lF_W=n^2W''(nL)w_lw_k+nW'(nL)w_l(\mathbf 1_{l=k}-w_k)=:H_{lk}$ (\texttt{freeEnergyCompHessian}); the bound $|H_{lk}|\le C e^{c\|y\|_1}$ follows from $|L(y)|\le|L(0)|+\|y\|_1$ and the growth of $W',W''$. The generic Gaussian interpolation formula (\texttt{hasDerivAt\_integral\_comp\_trig}, Gaussian integration by parts) gives $\psi'(t)=\sin t\cos t\,\sum_{l,k}(\mathbb{E}Y_lY_k-\mathbb{E}X_lX_k)\,\mathbb{E}H_{lk}$; the entries are integrable, so the expectation can be moved outside the sum. By the covariance computation of the smart path (Eq.~(1.64)), $\mathbb{E}Y_\sigma Y_\tau-\mathbb{E}X_\sigma X_\tau=-\frac{N\beta^2}{2}\big((R(\sigma,\tau)-q)^2-q^2-\frac1N\big)$, and since $R(\sigma,\sigma)=1$ and $\sum_\sigma w_\sigma=1$ the double sum equals $\frac{\beta^2}{2}\big[W'(A)(Q-(1-q)^2)-\frac1NW''(A)(Q-q^2-\frac1N)\big]$ (\texttt{sum\_hessian\_comp\_eq}). The endpoints use $\cos0=1,\sin0=0$ and, at $\pi/2$, the factorization $\log Z=N\log2+\sum_i\log\cosh(\beta\sqrt q z_i+h)$ of the decoupled system (\texttt{log\_decoupled\_partition\_function\_eq}). For $W(x)=(x-a)^k$ the growth bounds follow from $y^m\le m!e^y$ (\texttt{sub\_pow\_growth}).
 \emph{Remarks.} For $W=\mathrm{id}$ the second term vanishes and this is the profile used for Theorem~\ref{thm:sg-tal:alr}; that profile is proved by a different route (Gaussian integration by parts on Gibbs averages), which does not apply to nonlinear $W$. The book writes the path with $t\mapsto\sin^2t$; the formula above is in the angle, and the conversion is a change of variable that is not yet done.
-Formalized in \texttt{SpinGlasses/GaussianInterpolationNonlinear.lean} (generic) and \texttt{SpinGlasses/SKSmartPathProfileComp.lean} (SK).
+Formalized in \texttt{SpinGlasses/Gaussian/GaussianInterpolationNonlinear.lean} (generic) and \texttt{SpinGlasses/Talagrand/OverlapConcentration/FreeEnergyCLT/SKSmartPathProfileComp.lean} (SK).
 \end{proof}
 
 \begin{theorem}[Even overlap moments along the whole smart path (Eqs.~(1.88), (1.103))]\label{thm:sg-tal:path-overlap-moments}
@@ -1216,7 +1216,7 @@ In particular the fourth moment ($r=2$) is at most $K/N^2$ uniformly in $t$.
 \begin{proof}
   \leanok
 The first bound is the compensated comparison of the path with the decoupled system (\texttt{sk\_compensated\_path\_le\_decoupled}) followed by the decoupled base case (Proposition~1.4.8) with $\lambda=\frac14+\beta^2$. For the second, $y^r\le r!e^y$ with $y=Na_tX$, $X=(R_{1,2}-q)^2$, gives $X^r\le r!(Na_t)^{-r}e^{Na_tX}\le r!\,((\frac14-\beta^2)N)^{-r}e^{Na_tX}$; integrate.
-Formalized in \texttt{SpinGlasses/SKPathOverlapMoments.lean}. The endpoint version at $t=0$ is Theorem~\ref{thm:sg-tal:overlap-moments-all}; the second moment along the path was already used in Theorem~\ref{thm:sg-tal:alr}.
+Formalized in \texttt{SpinGlasses/Talagrand/OverlapConcentration/SKPathOverlapMoments.lean}. The endpoint version at $t=0$ is Theorem~\ref{thm:sg-tal:overlap-moments-all}; the second moment along the path was already used in Theorem~\ref{thm:sg-tal:alr}.
 \end{proof}
 
 \begin{theorem}[Centered moments along the smart path with the moving center $\mathrm{SK}(s)$ (Eqs.~(1.124)--(1.126))]\label{thm:sg-tal:centered-profile}
@@ -1234,7 +1234,7 @@ its value at $s=0$ is the $k$-th moment of $A_N-\mathrm{RS}(q)$ in the SK model 
 \begin{proof}
   \leanok
 Eq.~(1.125) (Theorem~\ref{thm:sg-tal:profile-comp}) with the fixed center $a_0=\mathrm{SK}(t)$ gives $\partial_t\varphi(t,a_0)$. Write $(A_s-\mathrm{SK}(s))^k=\sum_i\binom ki z(s)^i(A_s-a_0)^{k-i}$ with $z(s)=a_0-\mathrm{SK}(s)$, $z(t)=0$; at $s=t$ only the terms $i=0,1$ have a nonzero derivative, and $z'(t)=\frac{\beta^2}2(1-q)^2\sin t\cos t=-\mathrm{SK}'(t)$ (\texttt{sum\_choose\_mul\_deriv\_pow\_zero}). Integrability of all powers is Lemma~1.4.12 along the path (\texttt{integrable\_smart\_path\_free\_energy\_sub\_pow}).
-Formalized in \texttt{SpinGlasses/SKCenteredPathMoments.lean}.
+Formalized in \texttt{SpinGlasses/Talagrand/OverlapConcentration/FreeEnergyCLT/SKCenteredPathMoments.lean}.
 \end{proof}
 
 \begin{theorem}[The differential equation of the centered moments, Eq.~(1.120)]\label{thm:sg-tal:centered-ode}
@@ -1255,7 +1255,7 @@ Let $\beta^2<1/4$, $q=\mathbb E\tanh^2(\beta\sqrt q z+h)$ and $\psi_k(s)=\mathbb
 \begin{proof}
   \leanok
 By Theorem~\ref{thm:sg-tal:centered-profile}, the $(1-q)^2$ terms cancel and the derivative is $\frac{\beta^2}2\sin s\cos s\,[m\,\mathbb E V^{m-1}Q-\frac{m(m-1)}N\mathbb E V^{m-2}Q+\frac{m(m-1)}N(q^2+\frac1N)\mathbb E V^{m-2}]$; the $q^2$ term is $\mathrm I$. For $\mathrm{II}$: $|\mathbb E V^{m-1}Q|\le(\mathbb E V^{2(m-1)})^{1/2}(\mathbb E Q^2)^{1/2}$ (Cauchy--Schwarz with explicit scales), $\mathbb E V^{2j}\le K_{2j}N^{-j}$ (Lemma~1.4.12 and Theorem~1.4.10 along the path, \texttt{integral\_pow\_abs\_smart\_path\_V\_le}) and $\mathbb E Q^2\le\mathbb E\langle(R_{1,2}-q)^4\rangle\le C/N^2$ (Jensen for the Gibbs measure and Theorem~\ref{thm:sg-tal:path-overlap-moments}, $r=2$). The other two terms carry an extra factor $N^{-1}$.
-Formalized in \texttt{SpinGlasses/SKCenteredPathODE.lean}.
+Formalized in \texttt{SpinGlasses/Talagrand/OverlapConcentration/FreeEnergyCLT/SKCenteredPathODE.lean}.
 \end{proof}
 
 \begin{theorem}[Moments of an i.i.d.\ centered sum (Eq.~(1.122))]\label{thm:sg-tal:iid-moments}
@@ -1291,7 +1291,7 @@ where $\mathrm{SK}(\beta,h)=\mathrm{rsFunctional}(\beta,h,q)$.
 \begin{proof}
   \leanok
 Along the path let $b(s)=\mathrm{Var}(\log\cosh Y)-\frac{\beta^2q^2}2\cos^2s$, so $b'=\beta^2q^2\sin s\cos s$. By Theorem~\ref{thm:sg-tal:centered-ode} the moments $\psi_m$ satisfy $\psi_m'=\sin s\cos s(\frac{m(m-1)}{2N}\beta^2q^2\psi_{m-2}+D_m)$ with $|D_m|\le K_mN^{-(m+1)/2}$; at $s=\pi/2$ they are the moments of an i.i.d.\ centered average and Theorem~\ref{thm:sg-tal:iid-moments} gives the endpoint estimate with $b(\pi/2)=\mathrm{Var}(\log\cosh Y)$. The abstract induction \texttt{clt\_induction} (strong induction on $k$, integrating from $\pi/2$ to $s$ by \texttt{Real.abs\_sub\_le\_of\_exists\_hasDerivAt\_Icc}) concludes for all $s\in[0,\pi/2]$ with constants given by the recursion of \texttt{exists\_clt\_const}, which depends only on $\beta$, $q$ and the constants above; take $s=0$. The case $k=1$ is Theorem~\ref{thm:sg-tal:alr} (centered at $\mathrm{SK}$).
-Formalized in \texttt{SpinGlasses/SKFreeEnergyCLT.lean}.
+Formalized in \texttt{SpinGlasses/Talagrand/OverlapConcentration/FreeEnergyCLT/SKFreeEnergyCLT.lean}.
 \end{proof}
 
 \begin{remark}[Scope of Theorem~1.4.11 in Lean]\label{rem:sg-tal:free-energy-clt-status}
@@ -1373,7 +1373,7 @@ where $\langle(R_{1,2}-q)^2\rangle=\sum_{a,b}w_aw_b(R(a,b)-q)^2$.
 \emph{Step 3 (Lipschitz bound).} For $|x|,|y|\le1$, $|x^k-y^k|\le k|x-y|$, and $|ab|\le2a^2+b^2/8$ with $a=R_{1,2}-q$, $b=\dot\xi^1\cdot\dot\xi^2/N$ bounds the left side by $kN^{k+1}\big(2\langle(R_{1,2}-q)^2\rangle+\tfrac18\langle b^2\rangle\big)$.
 \emph{Step 4 (four replicas).} By direct expansion, $b=(R_{1,2}-q)-\langle R_{1,3}-q\rangle_3-\langle R_{3,2}-q\rangle_3+\langle R_{3,4}-q\rangle_{3,4}$, where the subscripts name the averaged replicas. Hence $b^2\le 4\sum$ of the squares of the four terms and, by Jensen's inequality for each averaged replica, $\langle b^2\rangle\le16\langle(R_{1,2}-q)^2\rangle$.
 Combining the steps gives $kN^{k+1}(2+2)\langle(R_{1,2}-q)^2\rangle$.
-Formalized in \texttt{SpinGlasses/SKSpinDecorrelation.lean}.
+Formalized in \texttt{SpinGlasses/Talagrand/SpinDecorrelation/SKSpinDecorrelation.lean}.
 \end{proof}
 
 \begin{proposition}[Spin decorrelation from overlap concentration]\label{prop:sg-tal:spin-decorr}
@@ -1402,7 +1402,7 @@ with $K(0)=0$, $K(p+1)=8p(p+1)^{p+1}+2K(p)$. The same holds with $\prod_{l\le p}
 \emph{Step 1 (one centered site).} Let $u_0,\dots,u_k$ be distinct sites and $T(u)=\mathbb{E}\langle\dot\xi_{u_0}\xi_{u_1}\cdots\xi_{u_k}\rangle^2$. By site symmetry $T(\pi\circ u)=T(u)$ for every permutation $\pi$ (the squared correlation is a continuous functional of the weights, and the weights of $\varphi_\pi(\omega)$ are those of $\omega$ relabelled). Any two tuples of distinct sites differ by a permutation, so $T$ is constant on the $N(N-1)\cdots(N-k)$ injective tuples. Integrating Lemma~\ref{lem:sg-tal:decorr-det} over the disorder and dropping the non-injective tuples ($T\ge0$) gives $N(N-1)\cdots(N-k)\,T(u)\le4kN^{k+1}\nu((R_{1,2}-q)^2)$. With $N^{k+1}\le(k+1)^{k+1}N(N-1)\cdots(N-k)$ (each factor $N-i$ is at least $N/(k+1)$) we get $T(u)\le4k(k+1)^{k+1}\nu((R_{1,2}-q)^2)$.
 \emph{Step 2 (induction on $p$).} Write $\langle\xi_{u_0}\cdots\xi_{u_k}\rangle-\prod_{l}\langle\xi_{u_l}\rangle=\langle\dot\xi_{u_0}\xi_{u_1}\cdots\xi_{u_k}\rangle+\langle\xi_{u_0}\rangle\big(\langle\xi_{u_1}\cdots\xi_{u_k}\rangle-\prod_{l\ge1}\langle\xi_{u_l}\rangle\big)$. Since $|\langle\xi_{u_0}\rangle|\le1$ and $(x+y)^2\le2x^2+2y^2$, the induction gives the constant $2\cdot4k(k+1)^{k+1}+2K(k)=K(k+1)$.
 \emph{Step 3 (sets).} Enumerate $S$ and use that $\prod_{i\in S}f(i)=\prod_{l\le|S|}f(u_l)$.
-Formalized in \texttt{SpinGlasses/SKSpinDecorrelation.lean}.
+Formalized in \texttt{SpinGlasses/Talagrand/SpinDecorrelation/SKSpinDecorrelation.lean}.
 \end{proof}
 
 \begin{lemma}[Site symmetry of the SK model]\label{lem:sg-tal:sk-site-sym}
@@ -1419,7 +1419,7 @@ Let $N\ge1$ and $\beta,h\in\mathbb R$. The Gibbs weights $G_g(\sigma)=\exp(-H_N(
 \begin{proof}
 \leanok
 The map $\{i<j\}\mapsto\{\pi(i),\pi(j)\}$, sorted, is a permutation of $\mathrm{FinPairs}\,N$ (its inverse is the same construction for $\pi^{-1}$). Reindexing the sum over pairs by this permutation gives $\sum_{i<j}g_{ij}\sigma_{\pi(i)}\sigma_{\pi(j)}=\sum_{i<j}g_{\tau^{-1}(ij)}\sigma_i\sigma_j$, so $H_N(\sigma\circ\pi)$ for the couplings $g$ is $H_N(\sigma)$ for the relabelled couplings $\varphi_\pi(g)=g\circ\tau^{-1}$; the field term $h\sum_i\sigma_{\pi(i)}$ is invariant, and so is the partition function. A coordinate permutation preserves a product of identical measures.
-Formalized in \texttt{SpinGlasses/SKSiteSymmetry.lean} and \texttt{SpinGlasses/SKCorrelationDecay.lean}.
+Formalized in \texttt{SpinGlasses/Talagrand/SpinDecorrelation/SKSiteSymmetry.lean} and \texttt{SpinGlasses/Talagrand/SpinDecorrelation/SKCorrelationDecay.lean}.
 \end{proof}
 
 \begin{theorem}[Decay of truncated spin correlations in the SK model]\label{thm:sg-tal:sk-correlation-decay}
@@ -1441,7 +1441,7 @@ and in particular $\nu((R_{1,2}-q)^2)\le K_{\mathrm{ov}}/N$ for the SK Gibbs mea
 \begin{proof}
 \leanok
 Theorem~\ref{thm:sg-tal:overlap-conc} with $s=1/4-\beta^2$ gives $\nu(\exp(sN(R_{1,2}-q)^2))\le(1/2-2\beta^2)^{-1/2}$, and $e^x\ge1+x$ (for the two averages) gives $1+sN\nu((R_{1,2}-q)^2)\le(1/2-2\beta^2)^{-1/2}$. Apply Proposition~\ref{prop:sg-tal:spin-decorr}, whose hypotheses are Lemma~\ref{lem:sg-tal:sk-site-sym}, with $q\in[0,1]$ (fixed point of a $[0,1]$-valued map). Two replicas of the Gibbs measure integrate as the double sum $\sum_{\sigma,\tau}G(\sigma)G(\tau)(\cdot)$.
-Formalized in \texttt{SpinGlasses/SKOverlapConcentration.lean} and \texttt{SpinGlasses/SKCorrelationDecay.lean}.
+Formalized in \texttt{SpinGlasses/Talagrand/OverlapConcentration/SKOverlapConcentration.lean} and \texttt{SpinGlasses/Talagrand/SpinDecorrelation/SKCorrelationDecay.lean}.
 \end{proof}
 
 \begin{lemma}[Walsh expansion of cylinders]\label{lem:sg-tal:walsh}
@@ -1461,7 +1461,7 @@ G(A_\eta)-\mu_n(\{\eta\})=2^{-n}\sum_{I\subseteq[n]}\eta_I\Big(\Big\langle\prod_
 \begin{proof}
 \leanok
 For signs $x,e$ one has $1+xe\in\{0,2\}$ with $1+xe=2$ iff $x=e$, so $\mathbf 1\{\xi=\eta\}=2^{-n}\prod_i(1+\xi_i\eta_i)=2^{-n}\sum_I\eta_I\xi_I$ (Eq.~(1.134)); averaging gives the first identity (the density $\prod_i(1+\eta_i\langle\xi_i\rangle)$ expands in the same way). The second claim is the Cauchy--Schwarz inequality twice: over the $2^n$ values of $\eta$, and over the $2^n$ subsets $I$ (using $\eta_I^2=1$).
-Formalized in \texttt{SpinGlasses/SKAsymptoticProduct.lean}.
+Formalized in \texttt{SpinGlasses/Talagrand/SpinDecorrelation/SKAsymptoticProduct.lean}.
 \end{proof}
 
 \begin{theorem}[Gibbs measure is asymptotically product on finite marginals]\label{thm:sg-tal:asymp-product}
@@ -1478,7 +1478,7 @@ More generally, for any site-symmetric random Gibbs state with $\{-1,1\}$-valued
 \begin{proof}
 \leanok
 By Lemma~\ref{lem:sg-tal:walsh} the squared total variation distance is at most $2^n\sum_{I\subseteq[n]}(\langle\sigma_I\rangle-\prod_{i\in I}\langle\sigma_i\rangle)^2$. Take expectations and apply Proposition~\ref{prop:sg-tal:spin-decorr} to each of the $2^n$ sets $I$ ($K$ is nondecreasing), then Theorem~\ref{thm:sg-tal:sk-correlation-decay}.
-Formalized in \texttt{SpinGlasses/SKAsymptoticProduct.lean}.
+Formalized in \texttt{SpinGlasses/Talagrand/SpinDecorrelation/SKAsymptoticProduct.lean}.
 \end{proof}
 
 \begin{lemma}[Gaussian interpolation for smooth functionals]\label{lem:sg-tal:gaussian-interp}
@@ -1514,7 +1514,7 @@ Realize the two vectors as independent centered Gaussian vectors $X=(a_l\cdot\xi
 \frac d{ds}\mathbb{E}F(Z_s)=\sin s\cos s\sum_{l,k}(B_{lk}-A_{lk})\,\mathbb{E}\,\partial_k\partial_lF(Z_s).
 \]
 The derivative is at most $\sin s\cos s\sum|B_{lk}-A_{lk}|D_{kl}$ in absolute value; since $\varphi\pm\frac K2\sin^2$ is monotone, $|\varphi(\pi/2)-\varphi(0)|\le K/2$ (the same calculus step as in Theorem~\ref{thm:sg-tal:alr}). For the second claim apply this to $F(y)=f(y_0)f(y_1)$ whose partial derivatives are $f'(y_0)f(y_1)$, $f(y_0)f'(y_1)$ and second partials $f''f$, $f'f'$, $ff''$.
-Formalized in \texttt{SpinGlasses/GaussianCovarianceInterpolation.lean} and \texttt{ForMathlib/Analysis/SpecialFunctions/SinCosEndpoint.lean}.
+Formalized in \texttt{SpinGlasses/Gaussian/GaussianCovarianceInterpolation.lean} and \texttt{ForMathlib/Analysis/SpecialFunctions/SinCosEndpoint.lean}.
 \end{proof}
 
 \begin{theorem}[A kind of central limit theorem for a finite Gibbs state]\label{thm:sg-tal:random-projection}
@@ -1545,7 +1545,7 @@ For the SK model with $\beta^2<1/4$ and $q=\mathbb{E}[\tanh^2(\beta\sqrt q\,z+h)
 \leanok
 Expand $(U-V)^2=U^2-2UV+V^2$. Each of $\mathbb{E}U^2=\sum_{a,a'}w_aw_{a'}\mathbb{E}f(\frac{\mathbf g\cdot x_a}{\sqrt N})f(\frac{\mathbf g\cdot x_{a'}}{\sqrt N})$, $\mathbb{E}UV$ and $\mathbb{E}V^2$ is an expectation $\mathbb{E}f(u_1\cdot\mathbf g+u_2\cdot\boldsymbol\xi)f(v_1\cdot\mathbf g+v_2\cdot\boldsymbol\xi)$ with $\boldsymbol\xi\sim\mathcal N(0,I_2)$ (for $UV$ and $V^2$ the average over $\xi$ is written as an integral over the coordinates of $\boldsymbol\xi$ by Fubini). The reference value is $T=\mathbb{E}f(z\sqrt q+\xi\sqrt{\rho-q})f(z\sqrt q+\xi'\sqrt{\rho-q})$, the Gaussian integral for the Gram matrix $\left(\begin{smallmatrix}\rho&q\\q&\rho\end{smallmatrix}\right)$. By Lemma~\ref{lem:sg-tal:gaussian-interp} each term differs from $T$ by $M_1^2|u\cdot v-q|+\frac{M_0M_2}2(|u\cdot u-\rho|+|v\cdot v-\rho|)$, where $u\cdot v=u_1\cdot v_1+u_2\cdot v_2$. The covariances are overlaps: $x_a\cdot x_{a'}/N$ for $U^2$, $\sum_{a'}w_{a'}x_a\cdot x_{a'}/N$ for $UV$, and $\|\mathbf b\|^2/N=\sum_{a,a'}w_aw_{a'}x_a\cdot x_{a'}/N$ for $V^2$, and the noise adds $\rho-q$ to the variance of the second factor. Since $\mathbb{E}(U-V)^2=(\mathbb{E}U^2-T)-2(\mathbb{E}UV-T)+(\mathbb{E}V^2-T)$, the three bounds sum to the claim. For the SK model $\|\sigma\|^2/N=1$, and by the Cauchy--Schwarz inequality for the weights, $\mathbb{E}\sum w_aw_{a'}|R-q|\le(\nu((R_{1,2}-q)^2))^{1/2}\le\sqrt{K_{\mathrm{ov}}/N}$ (Theorem~\ref{thm:sg-tal:sk-correlation-decay}).
 \emph{Formalization note.} The bound is linear, not quadratic, in the overlap deviation, so the rate is $N^{-1/2}$; $f$ must be $C^2$ with $f,f',f''$ bounded. The identification of the barycenter vector with the magnetizations $(\langle\sigma_i\rangle)_i$ is used in the SK statement.
-Formalized in \texttt{SpinGlasses/SKRandomProjectionCLT.lean}.
+Formalized in \texttt{SpinGlasses/Talagrand/SpinDecorrelation/SKRandomProjectionCLT.lean}.
 \end{proof}
 
 \section{The cavity method (Talagrand Section~1.6)}
@@ -4003,7 +4003,7 @@ The left side is nonnegative as an even power.  Integrating over $g$ and using
 $\mathbb E_gJ_k(g)\le K'/N^k$ (Theorem~\ref{thm:sg-tal:overlap-moments-all}; $J_k(g)$ is integrable in $g$ as a Gibbs average of a bounded function) gives the claim with $K=CK'+1$.
 \emph{Deviations from the book.}  (i) The interpolation is carried out in the angle $s$, with $t=\sin^2s$ never introduced: the chain relation $Q_r'=\sin s\cos s\,Q_{r+1}$ (Theorem~\ref{thm:sg-tal:projsum-deriv}) and the fencing lemma replace the formula $\varphi^{(r)}=2^{-r}\sum\mathbb E\langle T\cdots T\,F^{(\mathbf s)}\rangle$ and Taylor's theorem.  (ii) The Gaussian factor is bounded uniformly (Lemma~\ref{lem:sg-tal:projpath-bound}) instead of by H\"older's inequality, which is why $U$ is assumed exponentially tame rather than satisfying (1.196).
 (iii) The bound is deterministic in the Gibbs measure and model independent (Theorem~\ref{thm:sg-tal:gibbs-fluct-core}): for every disorder $g$, $\mathbb E_y(\cdot)^{2k}\le C\,J_k(g)$, and only the last step integrates over $g$.  (iv) The theorem is stated with the centered vector $(N^{-1/2}(\sigma_i-\langle\sigma_i\rangle))_i$ dotted with $y$.
-Formalized in \texttt{SpinGlasses/SKGaussianFluctuation.lean}, \texttt{GibbsFluctuationMoment.lean} (the core), \texttt{GibbsGramMoments.lean} and \texttt{GibbsProjectionBound.lean}; the three \texttt{ExpTame} lemmas used here (shift by a constant, integrability, Gaussian mean zero) live in \texttt{GaussianProjectionPath.lean} with the definition of \texttt{ExpTame}.
+Formalized in \texttt{SpinGlasses/Talagrand/GaussianFluctuation/SKGaussianFluctuation.lean}, \texttt{GibbsFluctuationMoment.lean} (the core), \texttt{GibbsGramMoments.lean} and \texttt{GibbsProjectionBound.lean}; the three \texttt{ExpTame} lemmas used here (shift by a constant, integrability, Gaussian mean zero) live in \texttt{GaussianProjectionPath.lean} with the definition of \texttt{ExpTame}.
 \end{proof}
 
 \subsection{Fixed-point shift under parameter perturbation (Lemma~1.7.5)}
@@ -4033,7 +4033,7 @@ Since $q = F(\beta\sqrt q)$ and $q_- = F(\beta_-\sqrt{q_-})$,
 |q - q_-| \le 2|\beta^2 q - \beta_-^2 q_-| \le 2(\beta^2 - \beta_-^2)q + 2\beta_-^2|q - q_-| \le \frac{2\beta^2}{N} + 2\beta^2|q - q_-|.
 \]
 Since $4\beta^2 < 1$, $1 - 2\beta^2 > 1/2 \ge 2\beta^2$, which yields $|q - q_-| \le \frac{2\beta^2}{1 - 2\beta^2}\frac{1}{N} \le \frac{1}{N}$.
-Formalized in \texttt{SpinGlasses/SKFixedPoint.lean}.
+Formalized in \texttt{SpinGlasses/Talagrand/GuerraReplicaSymmetric/SKFixedPoint.lean}.
 \end{proof}
 
 \subsection{Corollary~1.7.13: the exponential observables}
@@ -4074,7 +4074,7 @@ For every $c\in\mathbb R$ the functions $x\mapsto e^{cx}$ and $x\mapsto xe^{cx}$
   \leanok
 By induction on $j$, $\frac{d^j}{dx^j}e^{cx}=c^je^{cx}$ and $\frac{d^j}{dx^j}\bigl(xe^{cx}\bigr)=(jc^{j-1}+c^jx)e^{cx}$.  Since $cx\le|c||x|$ the first is bounded by $|c|^je^{|c||x|}$.
 For the second use $|x|\le e^{|x|}$ and $1\le e^{|x|}$, which give $|jc^{j-1}+c^jx|\le 2(j|c|^{j-1}+|c|^j)e^{|x|}$, hence a bound $Ce^{(|c|+1)|x|}$.  The uniform bounds follow because the right sides are increasing in $|c|$.
-Formalized in \texttt{SpinGlasses/GaussianProjectionPath.lean}, next to the definition of \texttt{ExpTame}.
+Formalized in \texttt{SpinGlasses/Talagrand/GaussianFluctuation/GaussianProjectionPath.lean}, next to the definition of \texttt{ExpTame}.
 \end{proof}
 
 \begin{lemma}[Gaussian averages of the two observables]
@@ -4095,7 +4095,7 @@ In particular, for $\varepsilon^2=1$ and $v^2=1-q$: $\mathbb E\,e^{\varepsilon\b
   \leanok
 The first identity is the moment generating function of $\mathcal N(0,1)$ (Appendix (A.6)).  For the second, Gaussian integration by parts $\mathbb E[\xi F(\xi)]=\mathbb E[F'(\xi)]$ (Stein's lemma, \texttt{integral\_id\_mul\_gaussianReal\_eq}) with $F(x)=e^{cvx}$,
 $F'(x)=cv\,e^{cvx}$, followed by the first identity.  The integrability hypotheses of Stein's lemma are the domination $|x|e^{cvx}\le e^{(1+|cv|)|x|}$ and the integrability of $e^{w|x|}$ against a Gaussian.
-Formalized in \texttt{ForMathlib/Probability/Moments/GaussianPiExp.lean} (the unscaled identities) and \texttt{SpinGlasses/SKGaussianCorollaries.lean} (the rescaling by $v$).
+Formalized in \texttt{ForMathlib/Probability/Moments/GaussianPiExp.lean} (the unscaled identities) and \texttt{SpinGlasses/Talagrand/GaussianFluctuation/SKGaussianCorollaries.lean} (the rescaling by $v$).
 \end{proof}
 
 \begin{lemma}[Splitting off the thermal mean]
@@ -4119,7 +4119,7 @@ and $B^n=\exp\bigl(n\varepsilon\beta N^{-1/2}\sum_iy_im_i\bigr)$.
   \leanok
 Pointwise in $a$, $a_i=(a_i-m_i)+m_i$ so the exponent splits as a sum and the exponential of a sum is the product of exponentials; $B$ does not depend on $a$ and comes out of the integral.
 The last identity is $(e^x)^n=e^{nx}$ and linearity of the dot product.
-Formalized in \texttt{SpinGlasses/SKGaussianCorollaries.lean}.
+Formalized in \texttt{SpinGlasses/Talagrand/GaussianFluctuation/SKGaussianCorollaries.lean}.
 \end{proof}
 
 \begin{lemma}[Moments of the thermal factor $B$]
@@ -4208,7 +4208,7 @@ Take $t=N^k$ in Lemma~\ref{lem:sg-tal:amgm-weighted} applied to $a=A^{2k}$, $b=B
 \emph{The $A$ term.}  Put $v^2=1-q\in[0,1]$, $c_0=\mathbb E_\xi U(v\xi)$ and $V=U-c_0$, so that $A=\langle V(\dot S)\rangle$ and $\int V(vt)\,d\gamma=0$.  Since $|U|\le C_0e^{c|x|}$, $|c_0|\le2C_0e^{c^2v^2/2}\le K_0:=2C_0e^{c^2/2}$ (split $e^{c|vt|}\le e^{cvt}+e^{-cvt}$ and use the Gaussian MGF), hence $V$ obeys $|V^{(j)}(x)|\le(C_j+K_0)e^{c|x|}$ for $j\le8k$ (subtracting a constant changes only the order-zero derivative).  The uniform form of Theorem~\ref{thm:sg-tal:gibbs-taylor} with $m=4k$ therefore gives one constant $C$, independent of $U$, $\beta$, $h$ and $q$, with $\mathbb E_yA^{4k}\le C\sum_p\int|\mathrm{pairProd}|\,d\mu_g^{\otimes4k}$; as in the proof of Theorem~\ref{thm:sg-tal:general-fluct} (Lemma~\ref{lem:sg-tal:amgm-pairprod} and Eq.~(1.201)) this is at most $C_2J_{2k}(g)$ with $J_{2k}(g)=\langle(R_{1,2}-q)^{2k}\rangle_g$.
 \emph{The $B$ term.}  $\mathbb E_yB^{4k}\le e^{8k^2\beta^2}\le M:=e^{8k^2\beta_0^2}$ by Lemma~\ref{lem:sg-tal:thermal-factor-moment}, because $B^{4k}=\exp(4k\varepsilon\beta N^{-1/2}\sum y_i\langle\sigma_i\rangle)$ (Lemma~\ref{lem:sg-tal:ising-split}).
 Hence $\mathbb E_y\mathrm{Up}\le\mathrm{Bnd}(g):=\frac12(C_2N^kJ_{2k}(g)+N^{-k}M)$.  Integrability in $y$ is Lemma~\ref{lem:sg-tal:gibbs-pow-integrable} (for $A^{4k}$) and Lemma~\ref{lem:sg-tal:thermal-factor-moment} (for $B^{4k}$).
-Finally $\mathbb E_gJ_{2k}\le K'/N^{2k}$ by the uniform form of Theorem~\ref{thm:sg-tal:overlap-moments-all} (with $K'=K_0(\beta_0,2k)$), so $\mathbb E_g\mathrm{Bnd}\le\frac12(C_2K'N^{-k}+MN^{-k})$.  Formalized in \texttt{SpinGlasses/SKGaussianCorollaries.lean}.
+Finally $\mathbb E_gJ_{2k}\le K'/N^{2k}$ by the uniform form of Theorem~\ref{thm:sg-tal:overlap-moments-all} (with $K'=K_0(\beta_0,2k)$), so $\mathbb E_g\mathrm{Bnd}\le\frac12(C_2K'N^{-k}+MN^{-k})$.  Formalized in \texttt{SpinGlasses/Talagrand/GaussianFluctuation/SKGaussianCorollaries.lean}.
 \end{proof}
 
 \begin{theorem}[The Gaussian fluctuation principle with a multiplier]
@@ -5891,7 +5891,7 @@ $h\,\mathbb{E}[g(wz+h)]\ge0$ for $g=\varphi\varphi'$, which is bounded, continuo
 $g(wu)\sinh(hu/w)e^{-h^2/(2w^2)}\cdot h$ of the book, which is nonnegative. This gives (a). Dominated by $2B\varphi'(0)|z|$, differentiation under the integral gives
 $\frac{d}{dw}\mathbb{E}\varphi(wz+h)^2=\mathbb{E}[2\varphi\varphi'(wz+h)z]$; with $w=s\sqrt x$ and (a) one gets $x\Psi'(x)\cdot x<0$, i.e.\ (b) (for $s=0$, $\Psi(x)=\varphi(h)^2/x$ with $\varphi(h)\ne0$). For (c),
 $0\le\mathbb{E}\varphi^2\le B^2$.
-Formalized in \texttt{SpinGlasses/LatalaGuerra.lean}. The book's statement allows a random $h$ and conditions on it; the Lean statement has a deterministic $h$.
+Formalized in \texttt{SpinGlasses/Talagrand/GuerraReplicaSymmetric/LatalaGuerra.lean}. The book's statement allows a random $h$ and conditions on it; the Lean statement has a deterministic $h$.
 \end{proof}
 
 \begin{theorem}[Proposition~A.14.1 for $\tanh$, and the fixed-point residual]
@@ -6157,7 +6157,7 @@ For pairs $p_1,p_2$ of replicas, \texttt{skOverlapCov} is the combinatorial form
 \end{theorem}
 \begin{proof}
 \leanok
-Formalized in \texttt{SpinGlasses/SKOverlapCLT.lean}.
+Formalized in \texttt{SpinGlasses/Talagrand/OverlapCLT/SKOverlapCLT.lean}.
 \end{proof}
 
 \subsection{Higher-order cavity errors}

@@ -8,7 +8,7 @@ module
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Order.MeasurableArg
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianGram
 public import LeanMachineLearning.SpinGlasses.Basic
-public import LeanMachineLearning.SpinGlasses.SKModel
+public import LeanMachineLearning.SpinGlasses.Panchenko.Foundations.SKModel
 public import Mathlib.Analysis.SpecialFunctions.Log.Basic
 public import Mathlib.MeasureTheory.Integral.Bochner.Basic
 

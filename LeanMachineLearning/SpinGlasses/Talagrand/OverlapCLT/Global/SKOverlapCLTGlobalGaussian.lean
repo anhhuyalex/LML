@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTGlobalRecurrence
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Global.SKOverlapCLTGlobalRecurrence
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianClassRecurrence
 public import Mathlib.Analysis.SpecificLimits.Basic
 

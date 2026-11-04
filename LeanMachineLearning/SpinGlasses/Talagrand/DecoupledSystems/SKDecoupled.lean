@@ -9,7 +9,7 @@ public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.HypercubeProdu
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Tanh
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SqSub
 public import LeanMachineLearning.SpinGlasses.Basic
-public import LeanMachineLearning.SpinGlasses.GibbsMeasure
+public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsMeasure
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 public import Mathlib.Probability.IdentDistrib
 

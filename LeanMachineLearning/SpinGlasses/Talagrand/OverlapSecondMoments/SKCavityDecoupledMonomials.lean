@@ -6,10 +6,10 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.QuarticSignProd
-public import LeanMachineLearning.SpinGlasses.SKCavityDecoupledEndpoint
-public import LeanMachineLearning.SpinGlasses.GibbsReplicaMarginal
-public import LeanMachineLearning.SpinGlasses.SKCavityDomination
-public import LeanMachineLearning.SpinGlasses.SKFixedPoint
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityDecoupledEndpoint
+public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsReplicaMarginal
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityDomination
+public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKFixedPoint
 
 /-!
 # Decoupled endpoint for an arbitrary set of replicas, and sign monomials

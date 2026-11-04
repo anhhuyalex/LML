@@ -11,8 +11,8 @@ public import Mathlib.MeasureTheory.Measure.GiryMonad
 public import LeanMachineLearning.ForMathlib.Analysis.RpowTsum
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.NthLargestAtom
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.RestrictPartition
-public import LeanMachineLearning.SpinGlasses.PoissonProcessEquivalence
-public import LeanMachineLearning.SpinGlasses.PoissonProcessPartition
+public import LeanMachineLearning.SpinGlasses.Panchenko.Poisson.PoissonProcessEquivalence
+public import LeanMachineLearning.SpinGlasses.Panchenko.Poisson.PoissonProcessPartition
 
 /-!
 # The Poisson–Dirichlet intensity

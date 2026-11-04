@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.AldousHoover
-public import LeanMachineLearning.SpinGlasses.OverlapExchangeability
+public import LeanMachineLearning.SpinGlasses.Panchenko.AldousHoover.AldousHoover
+public import LeanMachineLearning.SpinGlasses.Panchenko.AsymptoticGibbs.OverlapExchangeability
 
 /-!
 # The Aldous–Hoover representation of curried symmetric arrays and of Gram-type laws

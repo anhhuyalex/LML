@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.AizenmanSimsStarr
-public import LeanMachineLearning.SpinGlasses.AsymptoticGibbsApproximation
+public import LeanMachineLearning.SpinGlasses.Panchenko.AizenmanSimsStarr.AizenmanSimsStarr
+public import LeanMachineLearning.SpinGlasses.Panchenko.AizenmanSimsStarr.AsymptoticGibbsApproximation
 
 /-!
 # The Aizenman–Sims–Starr increment: bounds and Gram-matrix approximation
@@ -17,7 +17,7 @@ The increment `A_N = 𝔼 log Z_{N+1} - 𝔼 log Z_N` of the Sherrington–Kirkp
 auxiliary Hamiltonian `H'(σ) = (√(N+1))⁻¹ σ ⬝ (u σ)` and the cavity fields `z`, `y` are centered
 Gaussian families with covariances `2 β² a_N R(σ, τ)` and `β² a_N R(σ, τ)²`, `a_N = N/(N+1)`,
 `R(σ, τ) = N⁻¹ σ ⬝ τ` ([Panchenko, 2013, Eq. (1.59)]).  Two consequences, obtained from the abstract
-estimates of `SpinGlasses/AsymptoticGibbsApproximation.lean`:
+estimates of `SpinGlasses/Panchenko/AizenmanSimsStarr/AsymptoticGibbsApproximation.lean`:
 
 * `SpinGlasses.sk_increment_bounds`: the *a priori* bounds
   `log 2 - β²/2 ≤ A_N ≤ log 2 + β²` (Jensen), which remove the boundedness hypotheses from the

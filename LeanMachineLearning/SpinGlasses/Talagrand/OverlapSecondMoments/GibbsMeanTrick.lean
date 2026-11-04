@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.GibbsReplicaMarginal
+public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsReplicaMarginal
 
 /-!
 # The Gibbs-mean trick (Talagrand, proof of Proposition 1.8.7)

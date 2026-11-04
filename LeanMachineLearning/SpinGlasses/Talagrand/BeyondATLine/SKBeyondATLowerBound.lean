@@ -6,7 +6,7 @@ Authors: LML Contributors
 module
 
 public import Mathlib.Analysis.SpecialFunctions.Pow.Real
-public import LeanMachineLearning.SpinGlasses.SKSecondMoment
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKSecondMoment
 
 /-!
 # Beyond the AT line: the deduction of Proposition 1.9.2 from Lemma 1.9.4 (Talagrand, Section 1.9)

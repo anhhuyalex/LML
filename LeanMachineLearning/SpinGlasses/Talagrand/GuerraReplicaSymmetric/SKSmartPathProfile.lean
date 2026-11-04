@@ -6,8 +6,8 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiExp
-public import LeanMachineLearning.SpinGlasses.SKSmartPath
-public import LeanMachineLearning.SpinGlasses.GaussianInterpolationReplica
+public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKSmartPath
+public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianInterpolationReplica
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.Pi
 
 /-!

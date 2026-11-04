@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.GibbsMeasure
-public import LeanMachineLearning.SpinGlasses.GaussianInterpolationReplica
+public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsMeasure
+public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianInterpolationReplica
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedBound
 
 /-!

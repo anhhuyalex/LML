@@ -7,8 +7,8 @@ module
 
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.MeasurePreservingSymmetry
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SupMoment
-public import LeanMachineLearning.SpinGlasses.SKLocalMagnetizations
-public import LeanMachineLearning.SpinGlasses.SKTAPEquation
+public import LeanMachineLearning.SpinGlasses.Talagrand.GaussianFluctuation.SKLocalMagnetizations
+public import LeanMachineLearning.SpinGlasses.Talagrand.GaussianFluctuation.SKTAPEquation
 
 /-!
 # The TAP equations hold at all sites simultaneously (Talagrand, Corollary 1.7.8)

@@ -7,7 +7,7 @@ module
 
 public import LeanMachineLearning.ForMathlib.Analysis.Cesaro
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianGram
-public import LeanMachineLearning.SpinGlasses.Concentration
+public import LeanMachineLearning.SpinGlasses.Panchenko.Foundations.Concentration
 
 /-!
 # The Aizenman–Sims–Starr scheme

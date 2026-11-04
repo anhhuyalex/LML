@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKCavityDerivative
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityDerivative
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.OffDiag
 
 /-!

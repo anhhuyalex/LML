@@ -6,7 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteProduct
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTGibbsEnumerated
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.GibbsMoments.SKOverlapCLTGibbsEnumerated
 
 /-!
 # Conditional moments of products of finite linear combinations

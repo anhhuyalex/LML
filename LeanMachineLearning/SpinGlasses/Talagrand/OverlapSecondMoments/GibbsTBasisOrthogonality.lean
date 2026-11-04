@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.GibbsCentering
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.GibbsCentering
 
 /-!
 # Orthogonality of the `T`-basis (Talagrand, Proposition 1.8.8 and Eq. (1.257))

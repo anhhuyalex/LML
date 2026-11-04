@@ -6,8 +6,8 @@ Authors: LML contributors
 module
 
 public import LeanMachineLearning.Optimization.NTK.Foundations.Concentration
-public import LeanMachineLearning.SpinGlasses.PoissonDirichletInvariance
-public import LeanMachineLearning.SpinGlasses.GaussianIBPCountable
+public import LeanMachineLearning.SpinGlasses.Panchenko.PoissonDirichlet.PoissonDirichletInvariance
+public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianIBPCountable
 
 /-!
 # Block-indexed replicas of Poisson counting measures

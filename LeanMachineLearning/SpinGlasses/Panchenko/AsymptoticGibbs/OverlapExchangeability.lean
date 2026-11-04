@@ -8,7 +8,7 @@ module
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.PosSemidef
 public import LeanMachineLearning.ForMathlib.Probability.ExchangeableMixture
 public import LeanMachineLearning.SpinGlasses.Basic
-public import LeanMachineLearning.SpinGlasses.GibbsMeasure
+public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsMeasure
 public import Mathlib.MeasureTheory.Constructions.BorelSpace.Real
 public import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
 public import Mathlib.Topology.Compactness.Compact

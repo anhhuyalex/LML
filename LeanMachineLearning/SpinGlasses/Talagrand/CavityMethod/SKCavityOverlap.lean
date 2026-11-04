@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKCavityInterpolation
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityInterpolation
 
 /-!
 # Truncated overlaps for the SK cavity

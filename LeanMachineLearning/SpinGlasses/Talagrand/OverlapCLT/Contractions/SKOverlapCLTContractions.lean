@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKRectangularDerivative
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKRectangularDerivative
 
 /-!
 # Decoupled contractions for the mixed-overlap recurrence

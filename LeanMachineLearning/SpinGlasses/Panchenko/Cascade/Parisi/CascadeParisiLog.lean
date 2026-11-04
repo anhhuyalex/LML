@@ -5,7 +5,7 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.CascadeParisiLaw
+public import LeanMachineLearning.SpinGlasses.Panchenko.Cascade.Parisi.CascadeParisiLaw
 
 /-!
 # Theorem 2.9 for the Ruelle probability cascade

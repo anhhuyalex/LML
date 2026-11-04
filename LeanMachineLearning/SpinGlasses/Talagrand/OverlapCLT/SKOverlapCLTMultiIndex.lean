@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTCovarianceForm
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.SKOverlapCLTCovarianceForm
 public import Mathlib.Data.Fintype.BigOperators
 public import Mathlib.Data.Finset.Sigma
 

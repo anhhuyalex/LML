@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKCorrelationDecay
+public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKCorrelationDecay
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.HypercubeProduct
 public import Mathlib.Algebra.Order.Chebyshev
 

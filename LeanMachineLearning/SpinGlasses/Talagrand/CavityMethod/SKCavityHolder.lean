@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKCavityDomination
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityDomination
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedHolder
 
 /-!

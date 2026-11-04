@@ -5,9 +5,9 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTSingleFeedback
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTSingleTermI
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTComparison
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Single.SKOverlapCLTSingleFeedback
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Single.SKOverlapCLTSingleTermI
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Contractions.SKOverlapCLTComparison
 
 /-!
 # The single-factor recurrence with the term II, Eqs. (1.316)-(1.320)

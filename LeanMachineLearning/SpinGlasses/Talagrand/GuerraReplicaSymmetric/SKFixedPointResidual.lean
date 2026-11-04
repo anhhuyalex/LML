@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKSecondaryContraction
+public import LeanMachineLearning.SpinGlasses.Talagrand.BeyondATLine.SKSecondaryContraction
 
 /-!
 # The fixed-point residual `|x - Φ(x)|` (Talagrand, proof of Proposition 1.9.5)

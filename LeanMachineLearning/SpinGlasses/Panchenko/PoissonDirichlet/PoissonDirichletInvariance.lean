@@ -5,13 +5,13 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.PoissonDirichletTransform
+public import LeanMachineLearning.SpinGlasses.Panchenko.PoissonDirichlet.PoissonDirichletTransform
 public import Mathlib.Probability.Distributions.Gaussian.Real
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Gaussian.ExponentialTilt
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.RestrictPartition
 public import LeanMachineLearning.ForMathlib.Probability.IdentDistribReplica
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SignedToReal
-public import LeanMachineLearning.SpinGlasses.PoissonDirichletLogSum
+public import LeanMachineLearning.SpinGlasses.Panchenko.PoissonDirichlet.PoissonDirichletLogSum
 
 /-!
 # Gaussian marks for Poisson–Dirichlet invariance

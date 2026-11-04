@@ -5,8 +5,8 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.CascadeGhirlandaGuerra
-public import LeanMachineLearning.SpinGlasses.PoissonDirichletPower
+public import LeanMachineLearning.SpinGlasses.Panchenko.Cascade.GhirlandaGuerra.CascadeGhirlandaGuerra
+public import LeanMachineLearning.SpinGlasses.Panchenko.PoissonDirichlet.PoissonDirichletPower
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.NthLargestAtomRpow
 
 /-!

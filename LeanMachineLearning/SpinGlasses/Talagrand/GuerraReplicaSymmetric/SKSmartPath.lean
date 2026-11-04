@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKReplicaSymmetricBound
+public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKReplicaSymmetricBound
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianGram
 
 /-!

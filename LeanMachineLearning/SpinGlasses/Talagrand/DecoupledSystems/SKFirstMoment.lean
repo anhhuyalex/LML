@@ -19,10 +19,10 @@ public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.HypercubeProdu
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.JensenLog
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiExp
 public import LeanMachineLearning.SpinGlasses.Basic
-public import LeanMachineLearning.SpinGlasses.GibbsMeasure
-public import LeanMachineLearning.SpinGlasses.SKModel
-public import LeanMachineLearning.SpinGlasses.SKDecoupled
-public import LeanMachineLearning.SpinGlasses.GaussianIBP
+public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsMeasure
+public import LeanMachineLearning.SpinGlasses.Panchenko.Foundations.SKModel
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKDecoupled
+public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianIBP
 
 /-!
 # First Moment of the Partition Function & Temperature Derivative in the SK Model

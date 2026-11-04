@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKCavityEndpoint
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityEndpoint
 
 /-!
 # Conditional Gaussian derivative for the cavity path

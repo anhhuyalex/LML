@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKFixedPointResidual
-public import LeanMachineLearning.SpinGlasses.SKGuerraBound
+public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKFixedPointResidual
+public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKGuerraBound
 
 /-!
 # Guerra's bound at *the* solution of the self-consistency equation (Talagrand, Section 1.3)

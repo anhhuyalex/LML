@@ -6,7 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.AddPowEstimates
-public import LeanMachineLearning.SpinGlasses.GibbsGramMoments
+public import LeanMachineLearning.SpinGlasses.Talagrand.GaussianFluctuation.GibbsGramMoments
 
 /-!
 # The model-independent core of Theorem 1.7.11

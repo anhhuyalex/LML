@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKCavityHigherOrderLinear
-public import LeanMachineLearning.SpinGlasses.SKTBasisAlgebra
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.HigherOrderCavity.SKCavityHigherOrderLinear
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKTBasisAlgebra
 
 /-!
 # Higher-order rectangular and third-replica expansions

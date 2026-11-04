@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKGaussianFluctuation
+public import LeanMachineLearning.SpinGlasses.Talagrand.GaussianFluctuation.SKGaussianFluctuation
 public import LeanMachineLearning.ForMathlib.Analysis.RatioBound
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiExp
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein

@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKFixedPointResidual
-public import LeanMachineLearning.SpinGlasses.SKSmartPathProfile
+public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKFixedPointResidual
+public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKSmartPathProfile
 
 /-!
 # The replica-symmetric functional and its critical points (Talagrand, Proposition 1.3.8)

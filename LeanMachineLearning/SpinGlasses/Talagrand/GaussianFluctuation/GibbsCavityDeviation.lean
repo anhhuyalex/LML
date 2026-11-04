@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.GibbsGramMoments
-public import LeanMachineLearning.SpinGlasses.SKSpinDecorrelation
+public import LeanMachineLearning.SpinGlasses.Talagrand.GaussianFluctuation.GibbsGramMoments
+public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKSpinDecorrelation
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.Weights
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiExp
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Hyperbolic

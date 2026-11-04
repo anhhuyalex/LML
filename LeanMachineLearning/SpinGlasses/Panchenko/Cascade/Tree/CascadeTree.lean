@@ -5,7 +5,7 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.PoissonDirichlet
+public import LeanMachineLearning.SpinGlasses.Panchenko.PoissonDirichlet.PoissonDirichlet
 public import Mathlib.Data.Fin.Tuple.Take
 public import Mathlib.Data.Nat.Find
 

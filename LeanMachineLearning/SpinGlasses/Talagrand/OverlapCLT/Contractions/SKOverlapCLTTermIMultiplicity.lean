@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTTermI
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Contractions.SKOverlapCLTTermI
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FreshReplicas
 
 /-!

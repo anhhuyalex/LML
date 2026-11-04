@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTComparison
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTGlobalClassify
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Contractions.SKOverlapCLTComparison
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Global.SKOverlapCLTGlobalClassify
 
 /-!
 # The last-site expansion for the global factors (Talagrand, Eq. (1.325))

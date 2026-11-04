@@ -8,8 +8,8 @@ module
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SecondMoment
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SubGaussianSymmetrization
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianVector
-public import LeanMachineLearning.SpinGlasses.GaussianComparison
-public import LeanMachineLearning.SpinGlasses.MixedPSpin
+public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianComparison
+public import LeanMachineLearning.SpinGlasses.Panchenko.Foundations.MixedPSpin
 
 /-!
 # Concentration of the free energy

@@ -7,7 +7,7 @@ module
 
 public import LeanMachineLearning.ForMathlib.Probability.Moments.DiscreteLyapunov
 public import LeanMachineLearning.ForMathlib.Topology.UniformSpace.LimitInterchange
-public import LeanMachineLearning.SpinGlasses.FreeEnergy
+public import LeanMachineLearning.SpinGlasses.Panchenko.Foundations.FreeEnergy
 public import Mathlib.Topology.Order.OrderClosed
 
 /-!
@@ -30,7 +30,7 @@ energy `F_N(β) = N⁻¹ 𝔼 log Z(β)` ([Panchenko, 2013, §1.1]):
 
 The existence of the limit `F_N(β) → F(β)` is the hypothesis `h_lim` of these results.  It is
 discharged, for the SK model and for the mixed `p`-spin models with even `p` and `p = 1`, by the
-Guerra–Toninelli superadditivity of `SpinGlasses/GuerraToninelli.lean`
+Guerra–Toninelli superadditivity of `SpinGlasses/Panchenko/Foundations/GuerraToninelli.lean`
 (`SpinGlasses.sk_tendsto_free_energy`, `SpinGlasses.mixedPSpin_tendsto_free_energy`).
 
 No definition is introduced.  The same layering as in `FreeEnergy.lean` is used: a deterministic

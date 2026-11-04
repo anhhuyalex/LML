@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKCenteredPathODE
-public import LeanMachineLearning.SpinGlasses.SKSmartPathCLT
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapConcentration.FreeEnergyCLT.SKCenteredPathODE
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapConcentration.FreeEnergyCLT.SKSmartPathCLT
 public import LeanMachineLearning.ForMathlib.Probability.Moments.IidSumExpansion
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein
 

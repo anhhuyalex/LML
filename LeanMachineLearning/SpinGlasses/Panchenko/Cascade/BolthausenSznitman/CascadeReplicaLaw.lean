@@ -5,9 +5,9 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.CascadeReplicaSum
-public import LeanMachineLearning.SpinGlasses.CascadeBSReplica
-public import LeanMachineLearning.SpinGlasses.CascadeParisiLaw
+public import LeanMachineLearning.SpinGlasses.Panchenko.Cascade.Tree.CascadeReplicaSum
+public import LeanMachineLearning.SpinGlasses.Panchenko.Cascade.BolthausenSznitman.CascadeBSReplica
+public import LeanMachineLearning.SpinGlasses.Panchenko.Cascade.Parisi.CascadeParisiLaw
 
 /-!
 # Bolthausen--Sznitman invariance of the replica sums of a Ruelle cascade

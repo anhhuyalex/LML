@@ -5,8 +5,8 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.CascadeFiniteness
-public import LeanMachineLearning.SpinGlasses.PoissonDirichletTransform
+public import LeanMachineLearning.SpinGlasses.Panchenko.Cascade.Tree.CascadeFiniteness
+public import LeanMachineLearning.SpinGlasses.Panchenko.PoissonDirichlet.PoissonDirichletTransform
 
 /-!
 # Independently marked ranked Poisson cascade roots

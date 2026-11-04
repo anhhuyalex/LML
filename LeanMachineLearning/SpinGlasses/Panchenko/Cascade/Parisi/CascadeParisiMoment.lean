@@ -5,7 +5,7 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.CascadeParisiTree
+public import LeanMachineLearning.SpinGlasses.Panchenko.Cascade.Parisi.CascadeParisiTree
 
 /-!
 # Moments of the marked partition sum

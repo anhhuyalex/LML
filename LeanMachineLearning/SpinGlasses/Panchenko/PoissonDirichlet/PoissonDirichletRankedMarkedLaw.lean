@@ -5,8 +5,8 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.CascadeMarked
-public import LeanMachineLearning.SpinGlasses.PoissonDirichletMarkedLaw
+public import LeanMachineLearning.SpinGlasses.Panchenko.Cascade.Tree.CascadeMarked
+public import LeanMachineLearning.SpinGlasses.Panchenko.PoissonDirichlet.PoissonDirichletMarkedLaw
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.InfinitePiCurryRestrict
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.MapPairInfinitePi
 public import LeanMachineLearning.ForMathlib.Probability.InfinitePiZip

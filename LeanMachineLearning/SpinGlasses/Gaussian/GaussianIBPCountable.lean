@@ -7,12 +7,12 @@ module
 
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianExp
 public import LeanMachineLearning.ForMathlib.Topology.Algebra.InfiniteSum.PiProd
-public import LeanMachineLearning.SpinGlasses.GaussianIBP
+public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianIBP
 
 /-!
 # Gaussian integration by parts for a countable configuration space
 
-This file extends the replica covariance formula of `SpinGlasses/GaussianIBP.lean` to a
+This file extends the replica covariance formula of `SpinGlasses/Gaussian/GaussianIBP.lean` to a
 **countable** configuration space `α` ([Panchenko, 2013, Lemma 1.2, Eqs. (1.30)--(1.35)]).  The
 reference weights `G : α → ℝ` are positive and summable, `(x, y)` is a centered Gaussian process
 with uniformly bounded variances, and the Gibbs weights are

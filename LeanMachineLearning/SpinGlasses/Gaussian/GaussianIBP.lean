@@ -6,7 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianVector
-public import LeanMachineLearning.SpinGlasses.GibbsMeasure
+public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsMeasure
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteReplicaTilted
 
 /-!

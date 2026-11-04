@@ -5,9 +5,9 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTGlobalInterface
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTComparison
-public import LeanMachineLearning.SpinGlasses.GibbsReplicaMarginal
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Global.SKOverlapCLTGlobalInterface
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Contractions.SKOverlapCLTComparison
+public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsReplicaMarginal
 
 /-!
 # The feedback term of the global recurrence (Talagrand, Eqs. (1.327)-(1.328))

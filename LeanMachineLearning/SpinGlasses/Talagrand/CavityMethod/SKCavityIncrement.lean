@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKPairPerturbEstimate
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKPairPerturbEstimate
 
 /-!
 # Talagrand's Proposition 1.6.8: the cavity free-energy increment

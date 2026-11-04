@@ -6,7 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.TsumNonneg
-public import LeanMachineLearning.SpinGlasses.AsymptoticGibbsApproximation
+public import LeanMachineLearning.SpinGlasses.Panchenko.AizenmanSimsStarr.AsymptoticGibbsApproximation
 
 /-!
 # Gram-matrix approximation for countably many atoms (Panchenko, Theorem 1.3)

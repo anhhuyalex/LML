@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKCavityBounds
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityBounds
 
 /-!
 # Bounded cavity replica derivative

@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKCavityContraction
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityContraction
 
 /-!
 # Second-order expansion along the cavity path (Talagrand's Proposition 1.8.1, Eq. (1.216))

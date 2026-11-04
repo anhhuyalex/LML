@@ -5,9 +5,9 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.Concentration
-public import LeanMachineLearning.SpinGlasses.FreeEnergy
-public import LeanMachineLearning.SpinGlasses.GibbsMeasure
+public import LeanMachineLearning.SpinGlasses.Panchenko.Foundations.Concentration
+public import LeanMachineLearning.SpinGlasses.Panchenko.Foundations.FreeEnergy
+public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsMeasure
 
 /-!
 # Free energy of a Gaussian field tilted by a deterministic observable

@@ -5,7 +5,7 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.PoissonDirichletUniqueness
+public import LeanMachineLearning.SpinGlasses.Panchenko.PoissonDirichlet.Uniqueness.PoissonDirichletUniqueness
 public import Mathlib.MeasureTheory.Measure.HasOuterApproxClosed
 
 /-!

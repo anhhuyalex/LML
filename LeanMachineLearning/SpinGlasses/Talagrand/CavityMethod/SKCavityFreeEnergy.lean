@@ -5,12 +5,12 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKCavityInterpolation
-public import LeanMachineLearning.SpinGlasses.SKCavityGaussian
-public import LeanMachineLearning.SpinGlasses.FreeEnergy
-public import LeanMachineLearning.SpinGlasses.GaussianComparison
-public import LeanMachineLearning.SpinGlasses.GaussianInterpolationReplica
-public import LeanMachineLearning.SpinGlasses.SKFirstMoment
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityInterpolation
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityGaussian
+public import LeanMachineLearning.SpinGlasses.Panchenko.Foundations.FreeEnergy
+public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianComparison
+public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianInterpolationReplica
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKFirstMoment
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianGram
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedBound
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SinCosEndpoint

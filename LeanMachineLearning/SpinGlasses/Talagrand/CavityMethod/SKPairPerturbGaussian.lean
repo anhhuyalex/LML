@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKCavityGaussian
-public import LeanMachineLearning.SpinGlasses.SKReplicaSymmetricBound
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityGaussian
+public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKReplicaSymmetricBound
 
 /-!
 # Gaussian inputs for the pair-perturbation interpolation (Talagrand Eq. 1.182)

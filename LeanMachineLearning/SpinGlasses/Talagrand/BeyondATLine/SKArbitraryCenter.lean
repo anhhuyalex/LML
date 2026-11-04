@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKFixedPointResidual
-public import LeanMachineLearning.SpinGlasses.SKBeyondATProposition
+public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKFixedPointResidual
+public import LeanMachineLearning.SpinGlasses.Talagrand.BeyondATLine.SKBeyondATProposition
 
 /-!
 # Overlap bounds around an arbitrary center (Talagrand, Proposition 1.9.5(a))

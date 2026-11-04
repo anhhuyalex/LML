@@ -10,9 +10,9 @@ public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SqrtSub
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SqSub
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.MapProdFiberLaw
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianGram
-public import LeanMachineLearning.SpinGlasses.SKFixedPointPositive
-public import LeanMachineLearning.SpinGlasses.SKLastSpinApprox
-public import LeanMachineLearning.SpinGlasses.SKOldSpinCavity
+public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKFixedPointPositive
+public import LeanMachineLearning.SpinGlasses.Talagrand.GaussianFluctuation.SKLastSpinApprox
+public import LeanMachineLearning.SpinGlasses.Talagrand.GaussianFluctuation.SKOldSpinCavity
 
 /-!
 # The last spin is a function of an independent standard Gaussian (Talagrand, Lemma 1.7.6)

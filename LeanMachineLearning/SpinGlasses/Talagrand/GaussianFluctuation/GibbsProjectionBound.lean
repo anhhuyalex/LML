@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.GibbsProjectionFluctuation
+public import LeanMachineLearning.SpinGlasses.Talagrand.GaussianFluctuation.GibbsProjectionFluctuation
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SinCosChain
 
 /-!

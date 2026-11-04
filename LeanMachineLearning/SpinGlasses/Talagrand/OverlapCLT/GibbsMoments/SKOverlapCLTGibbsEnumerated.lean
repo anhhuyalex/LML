@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTGibbsMoments
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.GibbsMoments.SKOverlapCLTGibbsMoments
 public import Mathlib.Algebra.Order.BigOperators.Ring.Finset
 
 /-!

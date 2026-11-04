@@ -5,9 +5,9 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTGlobalStep
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTTermI
-public import LeanMachineLearning.SpinGlasses.SKCavityCovariance
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Global.SKOverlapCLTGlobalStep
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Contractions.SKOverlapCLTTermI
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKCavityCovariance
 
 /-!
 # Term I for the global factors (Talagrand, Eq. (1.326))

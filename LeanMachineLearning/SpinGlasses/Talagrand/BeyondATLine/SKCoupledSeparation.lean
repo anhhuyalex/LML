@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKArbitraryCenter
-public import LeanMachineLearning.SpinGlasses.SKCoupledFreeEnergy
+public import LeanMachineLearning.SpinGlasses.Talagrand.BeyondATLine.SKArbitraryCenter
+public import LeanMachineLearning.SpinGlasses.Talagrand.BeyondATLine.SKCoupledFreeEnergy
 public import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
 
 /-!

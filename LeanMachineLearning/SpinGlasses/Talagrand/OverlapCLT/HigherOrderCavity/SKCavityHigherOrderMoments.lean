@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKCavityHigherOrder
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.HigherOrderCavity.SKCavityHigherOrder
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.FiniteProductBound
 
 /-!

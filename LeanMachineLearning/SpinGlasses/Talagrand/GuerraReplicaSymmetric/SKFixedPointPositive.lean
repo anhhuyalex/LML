@@ -9,7 +9,7 @@ public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Hyperboli
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Tanh
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ParametrizedL2
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiExp
-public import LeanMachineLearning.SpinGlasses.SKFixedPoint
+public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKFixedPoint
 
 /-!
 # The fixed point of the SK equation is bounded away from zero when `h ≠ 0`

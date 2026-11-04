@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKSmartPathProfile
+public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKSmartPathProfile
 
 /-!
 # Guerra's replica-symmetric upper bound for the SK free energy

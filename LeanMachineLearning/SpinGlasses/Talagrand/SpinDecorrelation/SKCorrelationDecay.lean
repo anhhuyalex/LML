@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKSiteSymmetry
-public import LeanMachineLearning.SpinGlasses.SKOverlapConcentration
+public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKSiteSymmetry
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapConcentration.SKOverlapConcentration
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.Pi
 
 /-!

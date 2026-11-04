@@ -29,7 +29,7 @@ Architecture-independent facts about a matrix `G : ι → κ → ℝ` with i.i.d
    (`hasGaussianLaw_bilinear_family`).
 
 They serve both the NTK initialization (`Optimization/NTK/Initialization`) and the Sherrington–
-Kirkpatrick Hamiltonian (`SpinGlasses/SKModel.lean`).
+Kirkpatrick Hamiltonian (`SpinGlasses/Panchenko/Foundations/SKModel.lean`).
 -/
 
 @[expose] public section

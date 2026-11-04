@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.GibbsMeanTrick
-public import LeanMachineLearning.SpinGlasses.SKSecondMoment
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.GibbsMeanTrick
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKSecondMoment
 
 /-!
 # The second moment of `T_{1,2}` (Talagrand, Proposition 1.8.7)

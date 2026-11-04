@@ -5,9 +5,9 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.GaussianProjectionPath
-public import LeanMachineLearning.SpinGlasses.GibbsCentering
-public import LeanMachineLearning.SpinGlasses.GibbsReplicaMarginal
+public import LeanMachineLearning.SpinGlasses.Talagrand.GaussianFluctuation.GaussianProjectionPath
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.GibbsCentering
+public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsReplicaMarginal
 
 /-!
 # The general Gibbs fluctuation principle (Talagrand, Theorem 1.7.11): Gibbs-side algebra

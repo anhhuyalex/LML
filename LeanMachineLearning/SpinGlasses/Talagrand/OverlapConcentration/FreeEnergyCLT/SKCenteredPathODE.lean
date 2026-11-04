@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKCenteredPathMoments
-public import LeanMachineLearning.SpinGlasses.SKPathOverlapMoments
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapConcentration.FreeEnergyCLT.SKCenteredPathMoments
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapConcentration.SKPathOverlapMoments
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SecondMoment
 
 /-!

@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKCavityHigherOrderFinite
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTFreshContractions
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.HigherOrderCavity.SKCavityHigherOrderFinite
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Contractions.SKOverlapCLTFreshContractions
 
 /-!
 # Quantitative fresh-factor contractions for term I

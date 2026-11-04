@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTPairRecurrence
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTFreshMoments
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Pair.SKOverlapCLTPairRecurrence
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Contractions.SKOverlapCLTFreshMoments
 
 /-!
 # Pair-factor recurrence for the actual Gibbs-mean T-moments

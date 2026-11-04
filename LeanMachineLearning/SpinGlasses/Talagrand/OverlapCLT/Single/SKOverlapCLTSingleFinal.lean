@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTSingleII
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Single.SKOverlapCLTSingleII
 
 /-!
 # The single-factor recurrence (1.320) and Proposition 1.10.5

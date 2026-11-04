@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTGlobalMoments
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Global.SKOverlapCLTGlobalMoments
 
 /-!
 # The overlap against a product of blocks (Theorem 1.10.1, the computation after Eq. (1.328))

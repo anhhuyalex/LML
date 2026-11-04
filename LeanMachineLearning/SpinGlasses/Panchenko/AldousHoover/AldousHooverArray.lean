@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.AldousHoover
+public import LeanMachineLearning.SpinGlasses.Panchenko.AldousHoover.AldousHoover
 
 /-!
 # Separately exchangeable arrays and the Aldous–Hoover theorem (Panchenko §1.4, Theorem 1.4)

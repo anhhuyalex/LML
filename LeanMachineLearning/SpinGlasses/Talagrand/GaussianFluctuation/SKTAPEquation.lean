@@ -5,9 +5,9 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKCavityParameters
-public import LeanMachineLearning.SpinGlasses.SKOldSpinCavity
-public import LeanMachineLearning.SpinGlasses.SKLastSpinGaussian
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityParameters
+public import LeanMachineLearning.SpinGlasses.Talagrand.GaussianFluctuation.SKOldSpinCavity
+public import LeanMachineLearning.SpinGlasses.Talagrand.GaussianFluctuation.SKLastSpinGaussian
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.Weights
 
 /-!

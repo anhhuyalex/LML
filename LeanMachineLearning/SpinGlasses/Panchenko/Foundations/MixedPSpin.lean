@@ -9,8 +9,8 @@ public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiLinea
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianSeries
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianSeriesLaw
 public import LeanMachineLearning.SpinGlasses.Basic
-public import LeanMachineLearning.SpinGlasses.FreeEnergy
-public import LeanMachineLearning.SpinGlasses.GibbsMeasure
+public import LeanMachineLearning.SpinGlasses.Panchenko.Foundations.FreeEnergy
+public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsMeasure
 public import Mathlib.Analysis.SpecificLimits.Basic
 
 /-!

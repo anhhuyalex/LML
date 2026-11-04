@@ -5,8 +5,8 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.CascadeGibbsReal
-public import LeanMachineLearning.SpinGlasses.CascadeGaussianField
+public import LeanMachineLearning.SpinGlasses.Panchenko.Cascade.Tree.CascadeGibbsReal
+public import LeanMachineLearning.SpinGlasses.Panchenko.Cascade.Tree.CascadeGaussianField
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SignedToReal
 public import LeanMachineLearning.ForMathlib.Probability.Independence.IntegralIndepFun
 public import LeanMachineLearning.ForMathlib.Probability.Independence.IndepFstSndInfinitePi

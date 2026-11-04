@@ -5,8 +5,8 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.PoissonDirichletIdentities
-public import LeanMachineLearning.SpinGlasses.PoissonProcessIndepMarks
+public import LeanMachineLearning.SpinGlasses.Panchenko.PoissonDirichlet.PoissonDirichletIdentities
+public import LeanMachineLearning.SpinGlasses.Panchenko.Poisson.PoissonProcessIndepMarks
 
 /-!
 # Lemma 2.3 as a statement about Gibbs measures on block indices

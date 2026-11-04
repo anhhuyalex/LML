@@ -5,9 +5,9 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKBeyondATCovariance
-public import LeanMachineLearning.SpinGlasses.SKBeyondATLowerBound
-public import LeanMachineLearning.SpinGlasses.SKSecondaryContraction
+public import LeanMachineLearning.SpinGlasses.Talagrand.BeyondATLine.SKBeyondATCovariance
+public import LeanMachineLearning.SpinGlasses.Talagrand.BeyondATLine.SKBeyondATLowerBound
+public import LeanMachineLearning.SpinGlasses.Talagrand.BeyondATLine.SKSecondaryContraction
 
 /-!
 # Proposition 1.9.2 for the SK model (Talagrand, Section 1.9)

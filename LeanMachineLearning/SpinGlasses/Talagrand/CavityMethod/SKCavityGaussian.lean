@@ -9,9 +9,9 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedBoun
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianGram
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiExp
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Hyperbolic
-public import LeanMachineLearning.SpinGlasses.SKCavityOverlap
-public import LeanMachineLearning.SpinGlasses.SKSmartPath
-public import LeanMachineLearning.SpinGlasses.PoissonDirichletIdentities
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityOverlap
+public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKSmartPath
+public import LeanMachineLearning.SpinGlasses.Panchenko.PoissonDirichlet.PoissonDirichletIdentities
 
 /-!
 # Gaussian inputs for the last-spin cavity interpolation

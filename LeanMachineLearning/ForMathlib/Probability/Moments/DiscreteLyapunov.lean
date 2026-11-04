@@ -18,8 +18,8 @@ log-moment-generating function
 (`monotoneOn_inv_mul_log_sum_mul_exp_sub_log_sum`).  With `p = w / ∑ w` it is
 `β ↦ β⁻¹ log 𝔼_p exp (β f) = log ‖exp f‖_{L^β(p)}`, and the claim is the power-mean inequality
 `(𝔼_p z)^q ≤ 𝔼_p z^q` for `z = exp (β₁ f)` and `q = β₂ / β₁ ≥ 1`.  The uniform case `w ≡ 1` is the
-Gibbs monotonicity used for the SK model (`SpinGlasses/ThermodynamicLimit.lean`); general weights
-cover reference measures such as the weights `G` of `SpinGlasses/GaussianIBP.lean`.
+Gibbs monotonicity used for the SK model (`SpinGlasses/Panchenko/Foundations/ThermodynamicLimit.lean`); general weights
+cover reference measures such as the weights `G` of `SpinGlasses/Gaussian/GaussianIBP.lean`.
 -/
 
 @[expose] public section

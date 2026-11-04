@@ -5,11 +5,11 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.AldousHooverArray
-public import LeanMachineLearning.SpinGlasses.AldousHooverOverlap
-public import LeanMachineLearning.SpinGlasses.DovbyshSudakovGaussian
-public import LeanMachineLearning.SpinGlasses.DovbyshSudakovLimit
-public import LeanMachineLearning.SpinGlasses.OverlapExchangeability
+public import LeanMachineLearning.SpinGlasses.Panchenko.AldousHoover.AldousHooverArray
+public import LeanMachineLearning.SpinGlasses.Panchenko.AldousHoover.AldousHooverOverlap
+public import LeanMachineLearning.SpinGlasses.Panchenko.DovbyshSudakov.DovbyshSudakovGaussian
+public import LeanMachineLearning.SpinGlasses.Panchenko.DovbyshSudakov.DovbyshSudakovLimit
+public import LeanMachineLearning.SpinGlasses.Panchenko.AsymptoticGibbs.OverlapExchangeability
 
 /-!
 # The Dovbysh–Sudakov representation (Panchenko §1.5, Theorem 1.7)

@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKSmartPathProfile
-public import LeanMachineLearning.SpinGlasses.GaussianInterpolationNonlinear
+public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKSmartPathProfile
+public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianInterpolationNonlinear
 
 /-!
 # A smooth function of the free energy along the SK smart path (Talagrand, Eq. (1.125))

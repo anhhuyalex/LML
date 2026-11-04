@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKGaussianCorollaries
-public import LeanMachineLearning.SpinGlasses.SKCavityFreeEnergy
+public import LeanMachineLearning.SpinGlasses.Talagrand.GaussianFluctuation.SKGaussianCorollaries
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityFreeEnergy
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.AddPowEstimates
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedBound
 

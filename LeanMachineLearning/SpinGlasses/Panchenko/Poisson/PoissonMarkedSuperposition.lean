@@ -5,9 +5,9 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.PoissonDirichletPower
-public import LeanMachineLearning.SpinGlasses.PoissonProcessEquivalence
-public import LeanMachineLearning.SpinGlasses.PoissonProcessTransform
+public import LeanMachineLearning.SpinGlasses.Panchenko.PoissonDirichlet.PoissonDirichletPower
+public import LeanMachineLearning.SpinGlasses.Panchenko.Poisson.PoissonProcessEquivalence
+public import LeanMachineLearning.SpinGlasses.Panchenko.Poisson.PoissonProcessTransform
 public import LeanMachineLearning.ForMathlib.Probability.InfinitePiZip
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.RankedMark
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.NthLargestAtomRpow

@@ -5,14 +5,14 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKPairPerturbGaussian
-public import LeanMachineLearning.SpinGlasses.GibbsMeasureNested
-public import LeanMachineLearning.SpinGlasses.GaussianInterpolationConditional
-public import LeanMachineLearning.SpinGlasses.SKCavityFreeEnergy
-public import LeanMachineLearning.SpinGlasses.SKCavityCoshEstimate
-public import LeanMachineLearning.SpinGlasses.SKCavityBounds
-public import LeanMachineLearning.SpinGlasses.SKCavityDomination
-public import LeanMachineLearning.SpinGlasses.SKPairPerturbCavity
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKPairPerturbGaussian
+public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsMeasureNested
+public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianInterpolationConditional
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityFreeEnergy
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityCoshEstimate
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityBounds
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityDomination
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKPairPerturbCavity
 
 /-!
 # The pair-perturbation estimate (Talagrand Eq. 1.182)

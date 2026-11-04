@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.SKOverlapCLTMultiIndex
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.SKOverlapCLTMultiIndex
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SecondMoment
 public import Mathlib.Data.Sum.Order
 
