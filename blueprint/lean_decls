@@ -4399,3 +4399,4 @@ SpinGlasses.skCavityPathMean_zero_vanishing
 SpinGlasses.iteratedDerivWithin_skCavityPathMean_zero_vanishing
 SpinGlasses.skCavityPathMean_one
 SpinGlasses.abs_sk_eta_taylor_le
+SpinGlasses.sk_eta_overlap_shifted_bound

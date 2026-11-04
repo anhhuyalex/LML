@@ -10,7 +10,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPathVanishi
 public import Mathlib.Analysis.Calculus.Taylor
 
 /-!
-# Taylor bound for spin-difference observables (Talagrand, Corollary 1.11.6, Eq. (1.335))
+# Taylor bound for spin-difference observables (Talagrand, Corollaries 1.11.6, 1.11.7)
 
 If `V` has `s` pairs, `|V* ∩ J| ≤ r`, then the first `a - 1` derivatives of `u ↦ ν_u(η_V ε_J f̂ f⁻)`
 vanish at `u = 0` (Lemma 1.11.5), where `a = ⌈(s - r)/2⌉`, so Taylor's formula with Lagrange
@@ -21,6 +21,7 @@ remainder and Lemma 1.11.3 bound the coupled value `ν_1 = ν`:
 
 * `SpinGlasses.skCavityPathMean_one`: `ν_1` is the `(N+1)`-spin SK average.
 * `SpinGlasses.abs_sk_eta_taylor_le`: Corollary 1.11.6.
+* `SpinGlasses.sk_eta_overlap_shifted_bound`: Corollary 1.11.7.
 -/
 
 @[expose] public section
@@ -114,7 +115,8 @@ theorem abs_sk_eta_taylor_le (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (n s r :
     have hJ : |∏ j ∈ J, ((σ j (Fin.last N) : ℤˣ) : ℝ)| = 1 := by
       rw [Finset.abs_prod]; simp [hε]
     have hsq : G σ ^ 2 = (∏ w : Fin s, (((σ (pairMap w).1 (Fin.last N) : ℤˣ) : ℝ) -
-        ((σ (pairMap w).2 (Fin.last N) : ℤˣ) : ℝ))) ^ 2 * (∏ j ∈ J, ((σ j (Fin.last N) : ℤˣ) : ℝ)) ^ 2 *
+        ((σ (pairMap w).2 (Fin.last N) : ℤˣ) : ℝ))) ^ 2 *
+        (∏ j ∈ J, ((σ j (Fin.last N) : ℤˣ) : ℝ)) ^ 2 *
         (F (fun k i => σ k i.castSucc) * fhat (fun k => σ k (Fin.last N))) ^ 2 := by
       simp only [hG]; ring
     rw [hsq, ← sq_abs (∏ j ∈ J, ((σ j (Fin.last N) : ℤˣ) : ℝ)), hJ, ← sq_abs (∏ w : Fin s, _)]
@@ -186,5 +188,102 @@ theorem abs_sk_eta_taylor_le (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (n s r :
   calc _ ≤ _ := key
     _ = (K0 * 2 ^ s) / ((N : ℝ) + 1) ^ ((a : ℝ) / 2) * Real.sqrt S := by ring
     _ ≤ _ := by gcongr; linarith
+
+/-- **Talagrand's Corollary 1.11.7 (Eq. (1.336)).** Pairing bound for shifted overlaps:
+for `s = 2p` spin differences and `m` truncated centered overlaps, the expectation is
+bounded by `K / (N + 1)^{(p + m)/2}`, uniformly in `β² ≤ β₀² < 1/4`. -/
+theorem sk_eta_overlap_shifted_bound (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (n p m : ℕ) :
+    ∃ K : ℝ, 0 < K ∧ ∀ (β h q : ℝ),
+      (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂gaussianReal 0 1 = q) →
+      β ^ 2 ≤ β₀ ^ 2 → ∀ (N : ℕ) (pairMap : Fin (2 * p) → Fin n × Fin n)
+      (_ : ∀ u v : Fin (2 * p), u ≠ v →
+        (pairMap u).1 ≠ (pairMap v).1 ∧ (pairMap u).1 ≠ (pairMap v).2 ∧
+        (pairMap u).2 ≠ (pairMap v).1 ∧ (pairMap u).2 ≠ (pairMap v).2)
+      (x y : Fin m → Fin n) (_ : ∀ j, x j ≠ y j),
+      |∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ,
+          (∏ w : Fin (2 * p), (((σ (pairMap w).1 (Fin.last N) : ℤˣ) : ℝ) -
+            ((σ (pairMap w).2 (Fin.last N) : ℤˣ) : ℝ))) *
+          ∏ j : Fin m, (((N + 1 : ℝ)⁻¹ *
+            (fun i : Fin N => (σ (x j) i.castSucc : ℝ)) ⬝ᵥ
+              (fun i : Fin N => (σ (y j) i.castSucc : ℝ))) - q)
+          ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+            (Real.sqrt (N + 1))⁻¹ * β *
+              (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+              h * ∑ i : Fin (N + 1), (a i : ℝ))
+        ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)| ≤
+      K / ((N : ℝ) + 1) ^ ((((p + m : ℕ) : ℝ)) / 2) := by
+  obtain ⟨K1, hK1pos, hK1⟩ := abs_sk_eta_taylor_le β₀ hβ₀ n (2 * p) 0
+  obtain ⟨K2, hK2pos, hK2⟩ := sk_cavity_prod_sq_le β₀ hβ₀ m 1
+  refine ⟨K1 * (Real.sqrt K2 + 1), by positivity, ?_⟩
+  intro β h q hfix hβ N pairMap hdisj x y hxy
+  have ha_eq : (2 * p - 0 + 1) / 2 = p := by omega
+  have hT := hK1 β h q hfix hβ N pairMap hdisj ∅ (by simp)
+    (fun ρ => ∏ j : Fin m, (((N + 1 : ℝ)⁻¹ *
+      (fun i : Fin N => (ρ (x j) i : ℝ)) ⬝ᵥ (fun i : Fin N => (ρ (y j) i : ℝ))) - q))
+    (fun _ => 1) (by intros; rfl)
+  simp only [Finset.prod_empty, mul_one] at hT
+  have hM : (∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ,
+      (∏ j : Fin m, (((N + 1 : ℝ)⁻¹ *
+        (fun i : Fin N => (σ (x j) i.castSucc : ℝ)) ⬝ᵥ
+          (fun i : Fin N => (σ (y j) i.castSucc : ℝ))) - q)) ^ 2
+      ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+        (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+          h * ∑ i : Fin (N + 1), (a i : ℝ))
+      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) ≤ K2 / ((N : ℝ) + 1) ^ m := by
+    have hW : ∀ (σ : Fin n → Fin (N + 1) → ℤˣ), |(1 : ℝ)| ≤ 1 := by simp
+    have hkey := hK2 β h q hfix hβ N n x y hxy (fun _ => 1) hW
+    simpa using hkey
+  have hN1 : 0 ≤ (N : ℝ) + 1 := by positivity
+  have hsqrtM : Real.sqrt (∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ,
+      (∏ j : Fin m, (((N + 1 : ℝ)⁻¹ *
+        (fun i : Fin N => (σ (x j) i.castSucc : ℝ)) ⬝ᵥ
+          (fun i : Fin N => (σ (y j) i.castSucc : ℝ))) - q)) ^ 2
+      ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+        (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+          h * ∑ i : Fin (N + 1), (a i : ℝ))
+      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) ≤
+      Real.sqrt K2 / ((N : ℝ) + 1) ^ ((m : ℝ) / 2) := by
+    refine (Real.sqrt_le_sqrt hM).trans ?_
+    rw [Real.sqrt_div (by positivity)]
+    have : Real.sqrt (((N : ℝ) + 1) ^ m) = ((N : ℝ) + 1) ^ ((m : ℝ) / 2) := by
+      rw [Real.sqrt_eq_rpow, ← Real.rpow_natCast, ← Real.rpow_mul hN1]
+      congr 1
+      ring
+    rw [this]
+  have hpow_add : ((N : ℝ) + 1) ^ (((p : ℕ) : ℝ) / 2) * ((N : ℝ) + 1) ^ (((m : ℕ) : ℝ) / 2) =
+      ((N : ℝ) + 1) ^ ((((p + m : ℕ) : ℝ)) / 2) := by
+    rw [← Real.rpow_add (by positivity)]
+    congr 1
+    push_cast
+    ring
+  rw [ha_eq] at hT
+  have hcomm : (fun σ : Fin n → Fin (N + 1) → ℤˣ =>
+      (∏ j : Fin m, (((N + 1 : ℝ)⁻¹ *
+        (fun i : Fin N => (σ (x j) i.castSucc : ℝ)) ⬝ᵥ
+          (fun i : Fin N => (σ (y j) i.castSucc : ℝ))) - q)) *
+      ∏ w : Fin (2 * p), (((σ (pairMap w).1 (Fin.last N) : ℤˣ) : ℝ) -
+        ((σ (pairMap w).2 (Fin.last N) : ℤˣ) : ℝ))) =
+      fun σ => (∏ w : Fin (2 * p), (((σ (pairMap w).1 (Fin.last N) : ℤˣ) : ℝ) -
+        ((σ (pairMap w).2 (Fin.last N) : ℤˣ) : ℝ))) *
+      ∏ j : Fin m, (((N + 1 : ℝ)⁻¹ *
+        (fun i : Fin N => (σ (x j) i.castSucc : ℝ)) ⬝ᵥ
+          (fun i : Fin N => (σ (y j) i.castSucc : ℝ))) - q) := by
+    funext σ
+    ring
+  rw [hcomm] at hT
+  refine hT.trans ?_
+  have hdiv : K1 / ((N : ℝ) + 1) ^ ((p : ℝ) / 2) *
+      (Real.sqrt K2 / ((N : ℝ) + 1) ^ ((m : ℝ) / 2)) =
+      (K1 * Real.sqrt K2) / ((N : ℝ) + 1) ^ ((((p + m : ℕ) : ℝ)) / 2) := by
+    rw [div_mul_div_comm, hpow_add]
+  calc _ ≤ K1 / ((N : ℝ) + 1) ^ ((p : ℝ) / 2) *
+          (Real.sqrt K2 / ((N : ℝ) + 1) ^ ((m : ℝ) / 2)) :=
+        mul_le_mul_of_nonneg_left hsqrtM (by positivity)
+    _ = (K1 * Real.sqrt K2) / ((N : ℝ) + 1) ^ ((((p + m : ℕ) : ℝ)) / 2) := hdiv
+    _ ≤ K1 * (Real.sqrt K2 + 1) / ((N : ℝ) + 1) ^ ((((p + m : ℕ) : ℝ)) / 2) := by
+      gcongr
+      linarith
 
 end SpinGlasses

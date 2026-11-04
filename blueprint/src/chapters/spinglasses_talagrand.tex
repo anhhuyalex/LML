@@ -8075,7 +8075,7 @@ signed sum of products of $m$ factors $\beta^2\varepsilon_a\varepsilon_b(R^-_{ab
 $K(N+1)^{-m/2}\nu(f^2)^{1/2}$ of the $m$-th derivative, uniformly on $[0,1]$,
 Lemma~\ref{lem:sg-tal:cavity-iterated-deriv-bound}) and \textbf{Lemma~1.11.5} (vanishing of the
 $m$-th derivative at $u=0$ when $2m+r<|V|$, Lemma~\ref{lem:sg-tal:cavity-deriv-zero-vanishing})
-are proved. \textbf{Corollary~1.11.6} (Taylor expansion of $u\mapsto\nu_u(\eta_V\varepsilon_J\hat f f^-)$ using these two lemmas, Corollary~\ref{cor:sg-tal:eta-coupled-bound}) is proved. Not yet proved: Corollary~1.11.7 (shifted overlaps), H3
+are proved. \textbf{Corollary~1.11.6} (Taylor expansion of $u\mapsto\nu_u(\eta_V\varepsilon_J\hat f f^-)$ using these two lemmas, Corollary~\ref{cor:sg-tal:eta-coupled-bound}) and \textbf{Corollary~1.11.7} (pairing bound for overlaps, Corollary~\ref{cor:sg-tal:eta-overlap-shifted-bound}) are proved. Not yet proved: H3
 (pairing representation, Theorem~1.11.9), H4 (Propositions~1.11.10--1.11.11) and H5
 (Hanen's Theorem~1.11.1).
 The roadmap for Section~1.11 is structured into steps H0--H5:
@@ -8200,13 +8200,19 @@ Let $g=f^-\eta_V\varepsilon_J\hat f$ and $\phi(u)=\nu_u(g)$, so $\phi(1)=\nu(g)$
 \end{proof}
 
 \begin{corollary}[Pairing bound for shifted overlaps]\label{cor:sg-tal:eta-overlap-shifted-bound}
-% The current declaration does not contain the spin-difference product or shifted overlaps.
+\lean{SpinGlasses.sk_eta_overlap_shifted_bound}
+\leanok
+\uses{cor:sg-tal:eta-coupled-bound}
 \talsource{Corollary~1.11.7, Eq.~(1.336)}
-For $|V| = 2p$ and any $m$ shifted overlaps,
+For $|V| = 2p$ and $m$ truncated centered overlaps,
 \[
-|\nu(\eta_V \prod_{u \le m} (R_{\ell(u), \ell'(u)} - q'))| \le \frac{K(p, m, n, \beta_0)}{(N+1)^{(2p+m)/2}}.
+\Bigl|\nu\Bigl(\eta_V \prod_{u \le m} (R^-_{\ell(u), \ell'(u)} - q)\Bigr)\Bigr| \le \frac{K(p, m, n, \beta_0)}{(N+1)^{(p+m)/2}}.
 \]
 \end{corollary}
+\begin{proof}
+\leanok
+Apply Corollary~\ref{cor:sg-tal:eta-coupled-bound} with $s = 2p$, $r = 0$, $J = \emptyset$, $\hat f = 1$ and $F = \prod_{u \le m} (R^-_{\ell(u), \ell'(u)} - q)$, giving bound $K_1 (N+1)^{-p/2} \nu(F^2)^{1/2}$. By Eq.~(1.297) (\texttt{sk\_cavity\_prod\_sq\_le}), $\nu(F^2) \le K_2 (N+1)^{-m}$, so $\nu(F^2)^{1/2} \le K_2^{1/2} (N+1)^{-m/2}$. Combining the exponents gives $(N+1)^{-(p+m)/2}$.
+\end{proof}
 
 \begin{lemma}[Rectangular sum identities]\label{lem:sg-tal:hanen-rect-diff}
 \lean{SpinGlasses.rect_overlap_sub_q_eq_rect_T, SpinGlasses.rect_overlap_eq_truncated_add_spin}
