@@ -154,7 +154,8 @@ theorem hasDerivAt_deriv_skCavityPathMean (N n : ℕ) (β q h t : ℝ)
     let e' : Option (Option (Fin (n + 2))) ≃ Fin ((n + 2) + 2) :=
       by simpa [Fintype.card_option, Nat.add_assoc] using
         (Fintype.equivFin (Option (Option (Fin (n + 2)))))
-    let g := fun (τ : Fin (n + 2) → Fin (N + 1) → ℤˣ) => skCavityPathDerivKernel N n β q f (fun i => τ (e i))
+    let g := fun (τ : Fin (n + 2) → Fin (N + 1) → ℤˣ) =>
+      skCavityPathDerivKernel N n β q f (fun i => τ (e i))
     HasDerivAt (deriv (skCavityPathMean N n β q h · f))
       (skCavityPathMean N ((n + 2) + 2) β q h t
         (fun τ => skCavityPathDerivKernel N (n + 2) β q g (fun i => τ (e' i)))) t := by
@@ -162,7 +163,8 @@ theorem hasDerivAt_deriv_skCavityPathMean (N n : ℕ) (β q h t : ℝ)
   let e : Option (Option (Fin n)) ≃ Fin (n + 2) :=
     by simpa [Fintype.card_option, Nat.add_assoc] using
       (Fintype.equivFin (Option (Option (Fin n))))
-  let g := fun (τ : Fin (n + 2) → Fin (N + 1) → ℤˣ) => skCavityPathDerivKernel N n β q f (fun i => τ (e i))
+  let g := fun (τ : Fin (n + 2) → Fin (N + 1) → ℤˣ) =>
+    skCavityPathDerivKernel N n β q f (fun i => τ (e i))
   have heq : deriv (skCavityPathMean N n β q h · f) =ᶠ[nhds t]
       (fun u => skCavityPathMean N (n + 2) β q h u g) := by
     filter_upwards [isOpen_Ioo.mem_nhds ht] with u hu
