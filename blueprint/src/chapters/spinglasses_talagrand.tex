@@ -8036,3 +8036,143 @@ Gaussian reference and covariance cases are proved in
 Theorem~\ref{thm:sg-tal:centered-overlap-gaussian}.
 \emph{Not proved:} a separate weak-convergence statement or the random-field extension.
 \end{remark}
+
+\section{Non-Gaussian Behavior: Hanen's Theorem (Talagrand Section~1.11)}\label{sec:sg-tal:hanen}
+
+Section~1.11 of Talagrand presents a striking contrast to the central limit theorems
+of Section~1.10: for $\beta < 1/2$, the simple two-site covariance
+$\langle \sigma_1 \sigma_2 \rangle - \langle \sigma_1 \rangle \langle \sigma_2 \rangle$
+does \emph{not} exhibit Gaussian fluctuations in the thermodynamic limit.
+Instead of converging to $a(k) D^k$, its moments satisfy Eq.~(1.329):
+\[
+\mathbb E(\langle \sigma_1 \sigma_2 \rangle - \langle \sigma_1 \rangle \langle \sigma_2 \rangle)^k
+= a(k) \left( \frac{\beta^2}{N(1 - \beta^2(1 - 2q + \hat q))} \right)^{k/2} (\mathbb E \operatorname{ch}^{-2k} Y)^2
++ O(k+1),
+\]
+corresponding in law to the non-Gaussian product
+\[
+\sqrt{N} (\langle \sigma_1 \sigma_2 \rangle - \langle \sigma_1 \rangle \langle \sigma_2 \rangle)
+\stackrel{\mathcal D}{\longrightarrow}
+\frac{\beta}{\sqrt{1 - \beta^2(1 - 2q + \hat q)}} \, g \, \frac{1}{\operatorname{ch}^2 Y_1} \frac{1}{\operatorname{ch}^2 Y_2},
+\]
+where $g, Y_1, Y_2$ are independent.
+The proof expands $t \mapsto \nu_t(\eta_V f^-)$ by Taylor's formula around the cavity decoupled
+endpoint $t = 0$, evaluating the leading nonvanishing derivative by pairing combinatorics
+and reducing to the overlap CLT for pair variables (Proposition~1.10.4).
+
+\begin{remark}[Status of Section~1.11]\label{rem:sg-tal:hanen-status}
+\talsource{Section~1.11, Lemmas~1.11.3--1.11.8, Theorem~1.11.9, Propositions~1.11.10--1.11.11, Theorem~1.11.1}
+\emph{Under construction:} The prerequisite overlap CLT for deterministic external fields
+(Theorem~1.10.1 and Propositions~1.10.4, 1.10.5) is fully proved and sorry-free.
+The roadmap for Section~1.11 is structured into steps H0--H5:
+\begin{enumerate}
+\item \emph{H0: Blueprint statements.} Mathematical statements for Lemma~1.11.3,
+Corollary~1.11.6, Theorem~1.11.9, Propositions~1.11.10--1.11.11 and Theorem~1.11.1
+with explicit constants quantified before $N$ and uniform in $\beta \le \beta_0 < 1/2$.
+\item \emph{H1: Iterated cavity derivatives (Lemma~1.11.3).} Uniform bounds on the $m$-th derivative
+$|\nu_t^{(m)}(f)| \le K(m, n) N^{-m/2} \nu(f^2)^{1/2}$ via induction on an abstract replica space.
+\item \emph{H2: Vanishing lemmas (Lemmas~1.11.4, 1.11.5, Corollary~1.11.6).} Decoupled factorization
+and vanishing of lower-order derivatives $\nu_0^{(m)}(\eta_V \varepsilon_J \hat f f^-) = 0$ for $2m + r < s$.
+\item \emph{H3: Pairing representation (Lemma~1.11.8, Theorem~1.11.9).} Combinatorial pairing formula
+for the $m$-th derivative $\nu_0^{(m)}$ expressed through rectangular sums $U_J^-$.
+\item \emph{H4: Rectangular evaluation (Propositions~1.11.10, 1.11.11).} Asymptotic evaluation of
+$\nu(\eta_V \hat f \prod U_J^-)$ and $\nu(\eta_V \prod U_J)$ using Proposition~1.10.4.
+\item \emph{H5: Hanen's Theorem (Theorem~1.11.1).} Assembling the moment formula (1.329).
+\end{enumerate}
+\end{remark}
+
+\begin{lemma}[Iterated cavity derivatives]\label{lem:sg-tal:cavity-iterated-deriv-bound}
+\talsource{Lemma~1.11.3, Eq.~(1.334)}
+Let $4\beta_0^2 < 1$, $n, m \in \mathbb N$, and let $f$ be an observable on $n$ replicas of $N+1$ spins.
+There exists a constant $K(m, n, \beta_0)$ such that for all $\beta^2 \le \beta_0^2$, all $h, q$ with
+$q = \mathbb E \tanh^2(\beta \sqrt{q} z + h)$, all $N \ge 1$ and all $t \in [0, 1]$:
+\[
+|\nu_t^{(m)}(f)| \le \frac{K(m, n, \beta_0)}{(N+1)^{m/2}} \, \nu(f^2)^{1/2}.
+\]
+\end{lemma}
+
+\begin{lemma}[Decoupled vanishing of spin differences]\label{lem:sg-tal:decoupled-eta-vanishing}
+\talsource{Lemma~1.11.4}
+Let $V$ and $J$ be finite sets of replica indices with $V^* = \bigcup_{v \in V} \{2v-1, 2v\}$.
+If $|V^* \cap J| < |V|$ and $\hat f$ depends only on $(\varepsilon_\ell)_{\ell \notin V^*}$, then
+\[
+\nu_0(\eta_V \varepsilon_J \hat f) = 0,
+\]
+where $\eta_V = \prod_{v \in V} (\varepsilon_{2v-1} - \varepsilon_{2v})$ and $\varepsilon_J = \prod_{\ell \in J} \varepsilon_\ell$.
+\end{lemma}
+
+\begin{lemma}[Vanishing of lower cavity derivatives at decoupled endpoint]\label{lem:sg-tal:cavity-deriv-zero-vanishing}
+\talsource{Lemma~1.11.5}
+Let $r, s, m \in \mathbb N$, $|V| = s$, $|V^* \cap J| \le r$, and let $\hat f$ be a function of $(\varepsilon_\ell)_{\ell \notin V^*}$
+and $f^-$ a function of the first $N$ spins.
+If $2m + r < s$, then
+\[
+\nu_0^{(m)}(\eta_V \varepsilon_J \hat f f^-) = 0.
+\]
+\end{lemma}
+
+\begin{corollary}[Taylor bound on spin-difference observables]\label{cor:sg-tal:eta-coupled-bound}
+\talsource{Corollary~1.11.6, Eq.~(1.335)}
+Let $|V| = s$, $|V^* \cap J| \le r$, with $\eta_V, \varepsilon_J, \hat f$ functions on $n$ replicas.
+Let $a = (s - r + 1)/2$ if $s - r$ is odd, and $a = (s - r)/2$ if $s - r$ is even.
+Then there exists $K(s, n, \beta_0)$ such that for all $\beta^2 \le \beta_0^2$ and $N \ge 1$:
+\[
+|\nu(\eta_V \varepsilon_J \hat f f^-)| \le \frac{K(s, n, \beta_0)}{(N+1)^{a/2}} \, \nu((\hat f f^-)^2)^{1/2}.
+\]
+\end{corollary}
+
+\begin{lemma}[Rectangular sum identities]\label{lem:sg-tal:hanen-rect-diff}
+\lean{SpinGlasses.rectDiff_overlap_sub_q_eq_rectDiff_T}
+\leanok
+\talsource{Eqs.~(1.345), (1.348)}
+For any four replica indices $(2u-1, 2u)$ and $(2v-1, 2v)$, the single-type $T_\ell$
+and global $T$ components cancel identically in the rectangular combination $U_J$:
+$U_J = \operatorname{rectDiff} (R - q) = \operatorname{rectDiff} T$.
+Furthermore, the full rectangular sum splits as $U_J = U_J^- + (N+1)^{-1} \eta_J$.
+\end{lemma}
+
+\begin{theorem}[Combinatorial pairing formula for the cavity derivative]\label{thm:sg-tal:hanen-pairing-derivative}
+\talsource{Theorem~1.11.9, Eq.~(1.337)}
+Let $|V| = 2m$, $\hat f$ depend only on $(\varepsilon_\ell)_{\ell \notin V^*}$, and $f^-$ be a function of the first $N$ spins.
+Then
+\[
+\nu_0^{(m)}(\eta_V \hat f f^-) = \beta^{2m} m! \sum_{\mathcal I} \mathbb E\left( \langle \hat f \rangle_0 \frac{1}{\operatorname{ch}^{4m} Y} \right)
+\nu_0\left( f^- \prod_{J \in \mathcal I} U_J^- \right),
+\]
+where the sum ranges over all partitions $\mathcal I$ of $V$ into 2-element sets $J = \{u, v\}$, and
+$U_J^- = R^-_{2u-1, 2v-1} - R^-_{2u-1, 2v} - R^-_{2u, 2v-1} + R^-_{2u, 2v}$.
+\end{theorem}
+
+\begin{proposition}[Evaluation of rectangular products]\label{prop:sg-tal:hanen-truncated-rect-eval}
+\talsource{Proposition~1.11.10, Eq.~(1.341)}
+Let $|V| = 2m$ and let $\mathcal I$ be a partition of $V$ into pairs.
+Let $\hat f$ depend only on $(\varepsilon_\ell)_{\ell \notin V^*}$.
+There exists $K(m, n, \beta_0)$ such that for all $\beta^2 \le \beta_0^2$ and $N \ge 1$:
+\[
+\left| \nu\left( \eta_V \hat f \prod_{J \in \mathcal I} U_J^- \right) - \mathbb E\left( \langle \hat f \rangle_0 \frac{1}{\operatorname{ch}^{4m} Y} \right) (4 \beta^2 A^2)^m \right|
+\le \frac{K(m, n, \beta_0)}{(N+1)^{(2m+1)/2}}.
+\]
+\end{proposition}
+
+\begin{proposition}[Evaluation of full rectangular products]\label{prop:sg-tal:hanen-full-rect-eval}
+\talsource{Proposition~1.11.11, Eq.~(1.347)}
+Let $|V| = 2p$ and let $\mathcal I$ be a partition of $V$ into pairs.
+There exists $K(p, \beta_0)$ such that for all $\beta^2 \le \beta_0^2$ and $N \ge 1$:
+\[
+\left| \nu\left( \eta_V \prod_{J \in \mathcal I} U_J \right) - \left( 4 \left( \frac{1}{N+1} + \beta^2 A^2 \right) \right)^p \mathbb E \frac{1}{\operatorname{ch}^{4p} Y} \right|
+\le \frac{K(p, \beta_0)}{(N+1)^{(2p+1)/2}}.
+\]
+\end{proposition}
+
+\begin{theorem}[Hanen's Theorem]\label{thm:sg-tal:hanen-theorem}
+\talsource{Theorem~1.11.1, Eq.~(1.329)}
+Let $4\beta_0^2 < 1$ and $k \in \mathbb N$.
+There exists a constant $K(k, \beta_0)$ such that for all $\beta^2 \le \beta_0^2$, deterministic $h \in \mathbb R$,
+$q = \mathbb E \tanh^2(\beta \sqrt{q} z + h)$, $\hat q = \mathbb E \tanh^4(\beta \sqrt{q} z + h)$, and all $N \ge 1$:
+\[
+\left| \mathbb E(\langle \sigma_1 \sigma_2 \rangle - \langle \sigma_1 \rangle \langle \sigma_2 \rangle)^k
+- a(k) \left( \frac{\beta^2}{(N+1)(1 - \beta^2(1 - 2q + \hat q))} \right)^{k/2} (\mathbb E \operatorname{ch}^{-2k} Y)^2 \right|
+\le \frac{K(k, \beta_0)}{(N+1)^{(k+1)/2}},
+\]
+where $a(k) = \mathbb E g^k$ ($a(k) = (k-1)!!$ for $k$ even, $0$ for $k$ odd), and $Y = \beta z \sqrt{q} + h$.
+\end{theorem}

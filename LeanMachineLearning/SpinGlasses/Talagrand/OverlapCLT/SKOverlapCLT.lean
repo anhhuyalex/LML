@@ -26,7 +26,8 @@ of Corollary 1.10.3, retaining independence from the third replica in Eq. (1.302
 `SKOverlapCLTStep.lean` proves the last-site expansion (1.309)-(1.311) with its `O(k+1)`
 remainder; `SKOverlapCLTTermIMultiplicity.lean` evaluates the term I (1.312),
 `SKOverlapCLTPairMoments.lean` proves (1.313) and `SKOverlapCLTPairGaussian.lean` proves
-Proposition 1.10.4. Propositions 1.10.5 and Theorem 1.10.1 remain open.
+Proposition 1.10.4. Proposition 1.10.5 is proved in `SKOverlapCLTSingleFinal.lean`, and
+Theorem 1.10.1 is proved in `SKOverlapCLTMixed.lean` and `SKOverlapCLTMultiIndex.lean`.
 
 An earlier version of this file declared statements with those names; they
 were vacuous (an existential remainder chosen to be zero, or a hypothesis returned as the
