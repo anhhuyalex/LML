@@ -56,6 +56,13 @@ check compressed data and bad inputs, test histogram membership and totals,
 and exercise bar choices, keyboard selection, search, pagination, shared links,
 browser back navigation and documentation links at 1280px and 390px.
 
+A separate GitHub job runs these checks from a fresh checkout before the Lean
+build starts. It catches files present only on a developer's machine. In
+particular, the example data builder is `example.py`: `fixture.py` would match
+this repository's `fix*` ignore rule and could be omitted from a commit.
+The checks also launch both command-line scripts from another directory without
+user-installed Python packages or `PYTHONPATH` supplying missing imports.
+
 ## Add another statistic
 
 - `reader.py` is the only part that understands Referee's collected-data format

@@ -3,12 +3,15 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 import pathlib
+import subprocess
+import sys
 import tempfile
 import unittest
 
 from build_stats import build
-from .fixture import REPOSITORY, REVISION, make_fixture
+from .example import REPOSITORY, REVISION, make_fixture
 from .metrics import reuse
 from .reader import authored, catalog, decode
 from .render import PageParts, add_navigation
@@ -96,6 +99,21 @@ class StatsChecks(unittest.TestCase):
             self.assertEqual(bundle["metrics"][0]["values"]["A"], 4)
             for path in self.site.rglob("*.html"):
                 self.assertEqual(len(PageParts(path.read_text()).stats), 1)
+
+    def test_command_entrypoints_outside_repository(self):
+        # CI invokes the scripts directly. Package imports must work without a caller's
+        # PYTHONPATH, current directory, or cached modules accidentally supplying files.
+        scripts = pathlib.Path(__file__).resolve().parent.parent
+        environment = {key: value for key, value in os.environ.items()
+                       if key not in ("PYTHONPATH", "PYTHONHOME")}
+        for command in ("build_stats.py", "check_stats.py"):
+            with self.subTest(command=command):
+                completed = subprocess.run(
+                    [sys.executable, "-B", "-E", "-s", str(scripts / command), "--help"],
+                    cwd=self.temp.name, env=environment, capture_output=True, text=True,
+                )
+                self.assertEqual(completed.returncode, 0, completed.stderr)
+                self.assertIn("usage:", completed.stdout)
 
 
 if __name__ == "__main__":

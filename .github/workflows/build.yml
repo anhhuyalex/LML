@@ -24,7 +24,23 @@ permissions:
   actions: read           # Read the previous run's artifact, for the referee revision diff
 
 jobs:
+  check_website_stats:
+    runs-on: ubuntu-latest
+    name: Check Stats from a clean checkout
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Run before the expensive Lean build. A fresh checkout catches missing or ignored
+      # Python modules and frontend assets that can accidentally pass local tests.
+      - name: Test Stats calculations, site assembly and browser interactions
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: python3 scripts/check_stats.py
+
   build_project:
+    needs: check_website_stats
     runs-on: ubuntu-latest
     name: Build project
     steps:

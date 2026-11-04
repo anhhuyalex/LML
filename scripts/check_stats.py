@@ -18,7 +18,7 @@ import time
 
 from build_stats import build
 from website_stats.browser import Page
-from website_stats.fixture import REPOSITORY, REVISION, make_fixture
+from website_stats.example import REPOSITORY, REVISION, make_fixture
 from website_stats.reader import local_target, require
 from website_stats.render import PageParts
 

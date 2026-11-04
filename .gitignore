@@ -1,5 +1,7 @@
 ## macOS
 .DS_Store
+## Python build and validation scripts
+__pycache__/
 ## Lake
 .lake/
 .cache/*

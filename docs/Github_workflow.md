@@ -31,6 +31,8 @@ The exposition step is skipped on PRs to save build time — you only get it aft
 
 ## Build pipeline, step by step
 
+Before the main build, a separate **Check Stats from a clean checkout** job runs the statistics calculations, small-example website assembly, and desktop/phone browser checks. The main build waits for it to pass. This catches missing Python modules and frontend assets before spending time compiling Lean.
+
 1. **Free disk space** — deletes Android SDK (~12 GB) to make room for Mathlib's `.olean` cache.
 2. **Build and lint** (`leanprover/lean-action`) — compiles the library, runs all linters, and checks that `LeanMachineLearning.lean` is up to date via `mk_all`.
 3. **Build exposition** — on pushes, the pinned Referee action collects declarations, maintains its provenance ledger, compares the previous build, and renders the site.
