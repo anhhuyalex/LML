@@ -8089,6 +8089,18 @@ $\nu(\eta_V \hat f \prod U_J^-)$ and $\nu(\eta_V \prod U_J)$ using Proposition~1
 \end{enumerate}
 \end{remark}
 
+\begin{lemma}[Interior cavity derivatives with fresh replicas]
+\label{lem:sg-tal:hanen-interior-derivatives}
+\lean{SpinGlasses.hasDerivAt_skCavityPathMean_fin_step, SpinGlasses.hasDerivAt_deriv_skCavityPathMean}
+\leanok
+For $q \in [0,1]$ and $u \in (0,1)$, the cavity path average of any observable on
+$n$ replicas has a derivative equal to the path average of the first-derivative
+kernel, with its two fresh replicas reindexed by $\operatorname{Fin}(n+2)$.
+The derivative of that derivative is the corresponding path average obtained by
+applying the same kernel construction again, now on $n+4$ replicas. This result
+does not assert endpoint derivatives or bounds on higher derivatives.
+\end{lemma}
+
 \begin{lemma}[Iterated cavity derivatives]\label{lem:sg-tal:cavity-iterated-deriv-bound}
 % The currently named Lean theorem bounds a coupled overlap product, not this derivative.
 \talsource{Lemma~1.11.3, Eq.~(1.334)}
