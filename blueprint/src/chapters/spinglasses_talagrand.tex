@@ -8232,6 +8232,31 @@ $(R_{2u-1,2v-1} - q) - (R_{2u-1,2v} - q) - (R_{2u,2v-1} - q) + (R_{2u,2v} - q)
 Furthermore, the full rectangular sum splits as $U_J = U_J^- + (N+1)^{-1} \eta_J$.
 \end{lemma}
 
+\begin{lemma}[Multi-replica representation of covariance powers]\label{lem:sg-tal:hanen-cov-powers}
+\lean{SpinGlasses.integral_two_replicas_cov, SpinGlasses.integral_two_mul_replicas_cov_pow, SpinGlasses.cov_pow_eq_two_inv_pow_mul_integral}
+\leanok
+\talsource{Eq.~(1.349)}
+For any Gibbs measure $\mu$ on $\{-1, 1\}^M$ and any two sites $i, j$, the covariance is
+represented by two independent replicas as
+\[
+\langle \sigma_i \sigma_j \rangle - \langle \sigma_i \rangle \langle \sigma_j \rangle =
+\frac{1}{2} \int (\rho_0(i) - \rho_1(i))(\rho_0(j) - \rho_1(j)) \, d\mu^{\otimes 2}(\rho),
+\]
+and for every $k \in \mathbb N$, its $k$-th power equals $2^{-k}$ times the average over
+$2k$ independent replicas of the product of spin differences:
+\[
+(\langle \sigma_i \sigma_j \rangle - \langle \sigma_i \rangle \langle \sigma_j \rangle)^k =
+2^{-k} \int \prod_{w < k} (\rho_{2w}(i) - \rho_{2w+1}(i))(\rho_{2w}(j) - \rho_{2w+1}(j))
+\, d\mu^{\otimes 2k}(\rho).
+\]
+\end{lemma}
+\begin{proof}
+\leanok
+For $k=1$, expand the product of differences and integrate out each replica using independence.
+For general $k$, factorize the product measure $\mu^{\otimes 2k}$ into $k$ independent pairs
+using \texttt{integral\_pi\_fin\_add\_mul} and induct on $k$.
+\end{proof}
+
 \begin{theorem}[Combinatorial pairing formula for the cavity derivative]\label{thm:sg-tal:hanen-pairing-derivative}
 \lean{SpinGlasses.sk_hanen_pairing_derivative_zero}
 \leanok

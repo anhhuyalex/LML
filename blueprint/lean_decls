@@ -3839,6 +3839,7 @@ SpinGlasses.sk_tap_uniform
 MeasureTheory.measurePreserving_pi_comp_injective
 SpinGlasses.integral_pi_count_tilted_comp_injective
 SpinGlasses.integral_pi_fin_add_mul
+SpinGlasses.integral_two_replicas_cov
 SpinGlasses.integral_four_replicas_cov_sq
 SpinGlasses.integral_gibbs_finset_sum
 Real.sub_le_of_deriv_le_Icc
@@ -4415,3 +4416,7 @@ SpinGlasses.finPair0_ne_finPair1_of_ne
 SpinGlasses.alpha_eq_integral_inv_cosh_four
 SpinGlasses.gaussian_moment_odd
 SpinGlasses.gaussian_moment_even
+SpinGlasses.inv_add_beta_sq_mul_A_sq_eq
+SpinGlasses.four_mul_pow_mul_two_inv_pow
+SpinGlasses.integral_two_mul_replicas_cov_pow
+SpinGlasses.cov_pow_eq_two_inv_pow_mul_integral

@@ -9,6 +9,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.Pi
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.MeasurePreservingSymmetry
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FreshReplicas
 public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianIBP
+public import Mathlib.Algebra.BigOperators.Fin
 
 /-!
 # Reindexing and marginals of replica Gibbs averages
@@ -149,6 +150,44 @@ theorem integral_pi_count_tilted_replace_replica {R R' : Type*} [Finite α] [Non
   simp only [hc, hF, Function.update_self, Function.update_of_ne hik]
 
 
+/-- **Two replicas and a covariance:** for the Gibbs measure of an energy `A`, the average over
+two independent replicas of `(σ¹_i - σ²_i)(σ¹_j - σ²_j)` is `2 (⟨σ_i σ_j⟩ - ⟨σ_i⟩⟨σ_j⟩)`. -/
+theorem integral_two_replicas_cov {M : ℕ} (A : (Fin M → ℤˣ) → ℝ) (i j : Fin M) :
+    ∫ ρ : Fin 2 → Fin M → ℤˣ,
+        (((ρ 0 i : ℤˣ) : ℝ) - ((ρ 1 i : ℤˣ) : ℝ)) * (((ρ 0 j : ℤˣ) : ℝ) - ((ρ 1 j : ℤˣ) : ℝ))
+        ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted A) =
+      2 * ((∫ x : Fin M → ℤˣ, ((x i : ℤˣ) : ℝ) * ((x j : ℤˣ) : ℝ) ∂(Measure.count.tilted A)) -
+        (∫ x : Fin M → ℤˣ, ((x i : ℤˣ) : ℝ) ∂(Measure.count.tilted A)) *
+          ∫ x : Fin M → ℤˣ, ((x j : ℤˣ) : ℝ) ∂(Measure.count.tilted A)) := by
+  set μ : Measure (Fin M → ℤˣ) := Measure.count.tilted A with hμ
+  let Θ : (Fin M → ℤˣ) → (Fin M → ℤˣ) → ℝ := fun x y =>
+    (((x i : ℤˣ) : ℝ) - ((y i : ℤˣ) : ℝ)) * (((x j : ℤˣ) : ℝ) - ((y j : ℤˣ) : ℝ))
+  have hbΘ : ∫ ρ : Fin 2 → Fin M → ℤˣ,
+      (((ρ 0 i : ℤˣ) : ℝ) - ((ρ 1 i : ℤˣ) : ℝ)) * (((ρ 0 j : ℤˣ) : ℝ) - ((ρ 1 j : ℤˣ) : ℝ))
+      ∂(Measure.pi fun _ : Fin 2 => μ) =
+      ∫ ρ : Fin 2 → Fin M → ℤˣ, Θ (ρ 0) (ρ 1) ∂(Measure.pi fun _ : Fin 2 => μ) := rfl
+  rw [hbΘ, integral_pi_fin_two]
+  have hm1 : ∫ y : Fin M → ℤˣ, (1 : ℝ) ∂μ = 1 := by simp [hμ]
+  have e : ∀ x, ∫ y, Θ x y ∂μ = (((x i : ℤˣ) : ℝ) * ((x j : ℤˣ) : ℝ)) -
+      ((x i : ℤˣ) : ℝ) * (∫ y : Fin M → ℤˣ, ((y j : ℤˣ) : ℝ) ∂μ) -
+      ((x j : ℤˣ) : ℝ) * (∫ y : Fin M → ℤˣ, ((y i : ℤˣ) : ℝ) ∂μ) +
+      ∫ y : Fin M → ℤˣ, ((y i : ℤˣ) : ℝ) * ((y j : ℤˣ) : ℝ) ∂μ := fun x => by
+    have : (fun y => Θ x y) = fun y => (((x i : ℤˣ) : ℝ) * ((x j : ℤˣ) : ℝ)) * 1 -
+        ((x i : ℤˣ) : ℝ) * ((y j : ℤˣ) : ℝ) - ((x j : ℤˣ) : ℝ) * ((y i : ℤˣ) : ℝ) +
+        ((y i : ℤˣ) : ℝ) * ((y j : ℤˣ) : ℝ) := funext fun y => by simp only [Θ]; ring
+    rw [this, integral_add Integrable.of_finite Integrable.of_finite,
+      integral_sub Integrable.of_finite Integrable.of_finite,
+      integral_sub Integrable.of_finite Integrable.of_finite, integral_const_mul,
+      integral_const_mul, integral_const_mul, hm1]
+    ring
+  simp only [e]
+  rw [integral_add Integrable.of_finite Integrable.of_finite,
+    integral_sub Integrable.of_finite Integrable.of_finite,
+    integral_sub Integrable.of_finite Integrable.of_finite, integral_mul_const,
+    integral_mul_const]
+  simp only [integral_const, probReal_univ, one_smul]
+  ring
+
 /-- **Four replicas and a covariance:** for the Gibbs measure of an energy `A`, the average over
 four independent replicas of `(σ¹_i - σ²_i)(σ¹_j - σ²_j)(σ³_i - σ⁴_i)(σ³_j - σ⁴_j)` is
 `4 (⟨σ_i σ_j⟩ - ⟨σ_i⟩⟨σ_j⟩)²` (the identity behind Corollary 1.8.6). -/
@@ -165,35 +204,97 @@ theorem integral_four_replicas_cov_sq {M : ℕ} (A : (Fin M → ℤˣ) → ℝ) 
   let b : (Fin 2 → Fin M → ℤˣ) → ℝ := fun ρ =>
     (((ρ 0 i : ℤˣ) : ℝ) - ((ρ 1 i : ℤˣ) : ℝ)) * (((ρ 0 j : ℤˣ) : ℝ) - ((ρ 1 j : ℤˣ) : ℝ))
   have h4 := integral_pi_fin_add_mul μ 2 2 b b
-  have hb : ∫ ρ : Fin 2 → Fin M → ℤˣ, b ρ ∂(Measure.pi fun _ : Fin 2 => μ) =
-      2 * ((∫ x : Fin M → ℤˣ, ((x i : ℤˣ) : ℝ) * ((x j : ℤˣ) : ℝ) ∂μ) -
-        (∫ x : Fin M → ℤˣ, ((x i : ℤˣ) : ℝ) ∂μ) * ∫ x : Fin M → ℤˣ, ((x j : ℤˣ) : ℝ) ∂μ) := by
-    let Θ : (Fin M → ℤˣ) → (Fin M → ℤˣ) → ℝ := fun x y =>
-      (((x i : ℤˣ) : ℝ) - ((y i : ℤˣ) : ℝ)) * (((x j : ℤˣ) : ℝ) - ((y j : ℤˣ) : ℝ))
-    have hbΘ : ∫ ρ : Fin 2 → Fin M → ℤˣ, b ρ ∂(Measure.pi fun _ : Fin 2 => μ) =
-        ∫ ρ : Fin 2 → Fin M → ℤˣ, Θ (ρ 0) (ρ 1) ∂(Measure.pi fun _ : Fin 2 => μ) := rfl
-    rw [hbΘ, integral_pi_fin_two]
-    have hm1 : ∫ y : Fin M → ℤˣ, (1 : ℝ) ∂μ = 1 := by simp [hμ]
-    have e : ∀ x, ∫ y, Θ x y ∂μ = (((x i : ℤˣ) : ℝ) * ((x j : ℤˣ) : ℝ)) -
-        ((x i : ℤˣ) : ℝ) * (∫ y : Fin M → ℤˣ, ((y j : ℤˣ) : ℝ) ∂μ) -
-        ((x j : ℤˣ) : ℝ) * (∫ y : Fin M → ℤˣ, ((y i : ℤˣ) : ℝ) ∂μ) +
-        ∫ y : Fin M → ℤˣ, ((y i : ℤˣ) : ℝ) * ((y j : ℤˣ) : ℝ) ∂μ := fun x => by
-      have : (fun y => Θ x y) = fun y => (((x i : ℤˣ) : ℝ) * ((x j : ℤˣ) : ℝ)) * 1 -
-          ((x i : ℤˣ) : ℝ) * ((y j : ℤˣ) : ℝ) - ((x j : ℤˣ) : ℝ) * ((y i : ℤˣ) : ℝ) +
-          ((y i : ℤˣ) : ℝ) * ((y j : ℤˣ) : ℝ) := funext fun y => by simp only [Θ]; ring
-      rw [this, integral_add (Integrable.of_finite) Integrable.of_finite,
-        integral_sub Integrable.of_finite Integrable.of_finite,
-        integral_sub Integrable.of_finite Integrable.of_finite, integral_const_mul,
-        integral_const_mul, integral_const_mul, hm1]
-      ring
-    simp only [e]
-    rw [integral_add Integrable.of_finite Integrable.of_finite,
-      integral_sub Integrable.of_finite Integrable.of_finite,
-      integral_sub Integrable.of_finite Integrable.of_finite, integral_mul_const,
-      integral_mul_const]
-    simp only [integral_const, probReal_univ, one_smul]
+  have hb := integral_two_replicas_cov A i j
+  refine h4.trans ?_
+  rw [hb]
+  ring
+
+/-- **2k replicas and a covariance power (Talagrand Eq. (1.349)):** for the Gibbs measure of an
+energy `A`, the average over $2k$ independent replicas of
+$\prod_{w < k} (\sigma^{2w}_i - \sigma^{2w+1}_i)(\sigma^{2w}_j - \sigma^{2w+1}_j)$
+is $(2 (\langle \sigma_i \sigma_j \rangle - \langle \sigma_i \rangle \langle \sigma_j \rangle))^k$.
+-/
+theorem integral_two_mul_replicas_cov_pow {M : ℕ} (A : (Fin M → ℤˣ) → ℝ)
+    (k : ℕ) (i j : Fin M) :
+    ∫ ρ : Fin (2 * k) → Fin M → ℤˣ,
+        (∏ w : Fin k,
+          (((ρ ⟨2 * w.val, by omega⟩ i : ℤˣ) : ℝ) - ((ρ ⟨2 * w.val + 1, by omega⟩ i : ℤˣ) : ℝ)) *
+          (((ρ ⟨2 * w.val, by omega⟩ j : ℤˣ) : ℝ) - ((ρ ⟨2 * w.val + 1, by omega⟩ j : ℤˣ) : ℝ)))
+        ∂(Measure.pi fun _ : Fin (2 * k) => Measure.count.tilted A) =
+      (2 * ((∫ x : Fin M → ℤˣ, ((x i : ℤˣ) : ℝ) * ((x j : ℤˣ) : ℝ) ∂(Measure.count.tilted A)) -
+        (∫ x : Fin M → ℤˣ, ((x i : ℤˣ) : ℝ) ∂(Measure.count.tilted A)) *
+          ∫ x : Fin M → ℤˣ, ((x j : ℤˣ) : ℝ) ∂(Measure.count.tilted A))) ^ k := by
+  set μ : Measure (Fin M → ℤˣ) := Measure.count.tilted A with hμ
+  let Cov : ℝ := 2 * ((∫ x : Fin M → ℤˣ, ((x i : ℤˣ) : ℝ) * ((x j : ℤˣ) : ℝ) ∂μ) -
+    (∫ x : Fin M → ℤˣ, ((x i : ℤˣ) : ℝ) ∂μ) * ∫ x : Fin M → ℤˣ, ((x j : ℤˣ) : ℝ) ∂μ)
+  induction k with
+  | zero =>
+    simp only [Nat.mul_zero, pow_zero]
+    have : (fun ρ : Fin 0 → Fin M → ℤˣ =>
+        ∏ w : Fin 0,
+          (((ρ ⟨2 * w.val, by omega⟩ i : ℤˣ) : ℝ) - ((ρ ⟨2 * w.val + 1, by omega⟩ i : ℤˣ) : ℝ)) *
+          (((ρ ⟨2 * w.val, by omega⟩ j : ℤˣ) : ℝ) - ((ρ ⟨2 * w.val + 1, by omega⟩ j : ℤˣ) : ℝ))) =
+        fun _ => 1 := funext fun ρ => by simp
+    rw [this, integral_const, probReal_univ, one_smul]
+  | succ k ih =>
+    let b : (Fin 2 → Fin M → ℤˣ) → ℝ := fun ρ =>
+      (((ρ 0 i : ℤˣ) : ℝ) - ((ρ 1 i : ℤˣ) : ℝ)) * (((ρ 0 j : ℤˣ) : ℝ) - ((ρ 1 j : ℤˣ) : ℝ))
+    let F : (Fin (2 * k) → Fin M → ℤˣ) → ℝ := fun ρ =>
+      ∏ w : Fin k,
+        (((ρ ⟨2 * w.val, by omega⟩ i : ℤˣ) : ℝ) - ((ρ ⟨2 * w.val + 1, by omega⟩ i : ℤˣ) : ℝ)) *
+        (((ρ ⟨2 * w.val, by omega⟩ j : ℤˣ) : ℝ) - ((ρ ⟨2 * w.val + 1, by omega⟩ j : ℤˣ) : ℝ))
+    have h_nat0 : (⟨2 * k, by omega⟩ : Fin (2 * k + 2)) =
+        Fin.natAdd (2 * k) 0 := by ext; simp [Fin.natAdd]
+    have h_nat1 : (⟨2 * k + 1, by omega⟩ : Fin (2 * k + 2)) =
+        Fin.natAdd (2 * k) 1 := by ext; simp [Fin.natAdd]
+    have hprod (ρ : Fin (2 * k + 2) → Fin M → ℤˣ) :
+        (∏ w : Fin (k + 1),
+          (((ρ ⟨2 * w.val, by omega⟩ i : ℤˣ) : ℝ) - ((ρ ⟨2 * w.val + 1, by omega⟩ i : ℤˣ) : ℝ)) *
+          (((ρ ⟨2 * w.val, by omega⟩ j : ℤˣ) : ℝ) - ((ρ ⟨2 * w.val + 1, by omega⟩ j : ℤˣ) : ℝ))) =
+        F (fun a => ρ (Fin.castAdd 2 a)) * b (fun c => ρ (Fin.natAdd (2 * k) c)) := by
+      rw [Fin.prod_univ_castSucc]
+      have hb : (((ρ ⟨2 * (Fin.last k).val, by omega⟩ i : ℤˣ) : ℝ) -
+            ((ρ ⟨2 * (Fin.last k).val + 1, by omega⟩ i : ℤˣ) : ℝ)) *
+          (((ρ ⟨2 * (Fin.last k).val, by omega⟩ j : ℤˣ) : ℝ) -
+            ((ρ ⟨2 * (Fin.last k).val + 1, by omega⟩ j : ℤˣ) : ℝ)) =
+          b (fun c => ρ (Fin.natAdd (2 * k) c)) := by
+        change (((ρ ⟨2 * k, by omega⟩ i : ℤˣ) : ℝ) - ((ρ ⟨2 * k + 1, by omega⟩ i : ℤˣ) : ℝ)) *
+          (((ρ ⟨2 * k, by omega⟩ j : ℤˣ) : ℝ) - ((ρ ⟨2 * k + 1, by omega⟩ j : ℤˣ) : ℝ)) =
+          b (fun c => ρ (Fin.natAdd (2 * k) c))
+        dsimp [b]
+        simp_rw [h_nat0, h_nat1]
+      rw [hb]
+      rfl
+    have hstep := integral_pi_fin_add_mul μ (2 * k) 2 F b
+    change (∫ ρ : Fin (2 * k + 2) → Fin M → ℤˣ,
+        (∏ w : Fin (k + 1),
+          (((ρ ⟨2 * w.val, by omega⟩ i : ℤˣ) : ℝ) - ((ρ ⟨2 * w.val + 1, by omega⟩ i : ℤˣ) : ℝ)) *
+          (((ρ ⟨2 * w.val, by omega⟩ j : ℤˣ) : ℝ) - ((ρ ⟨2 * w.val + 1, by omega⟩ j : ℤˣ) : ℝ)))
+        ∂(Measure.pi fun _ : Fin (2 * k + 2) => μ)) = _
+    simp_rw [hprod]
+    rw [hstep, ih]
+    have hb : ∫ ρ : Fin 2 → Fin M → ℤˣ, b ρ ∂(Measure.pi fun _ : Fin 2 => μ) = Cov := by
+      exact integral_two_replicas_cov A i j
+    rw [hb]
     ring
-  rw [hb] at h4
-  exact h4.trans (by ring)
+
+/-- **Covariance power as a 2k-replica average (Talagrand Eq. (1.349)):**
+$(\langle \sigma_i \sigma_j \rangle - \langle \sigma_i \rangle \langle \sigma_j \rangle)^k$
+equals $2^{-k}$ times the average over $2k$ independent replicas of
+$\prod_{w < k} (\sigma^{2w}_i - \sigma^{2w+1}_i)(\sigma^{2w}_j - \sigma^{2w+1}_j)$. -/
+theorem cov_pow_eq_two_inv_pow_mul_integral {M : ℕ} (A : (Fin M → ℤˣ) → ℝ) (k : ℕ)
+    (i j : Fin M) :
+    ((∫ x : Fin M → ℤˣ, ((x i : ℤˣ) : ℝ) * ((x j : ℤˣ) : ℝ) ∂(Measure.count.tilted A)) -
+      (∫ x : Fin M → ℤˣ, ((x i : ℤˣ) : ℝ) ∂(Measure.count.tilted A)) *
+        ∫ x : Fin M → ℤˣ, ((x j : ℤˣ) : ℝ) ∂(Measure.count.tilted A)) ^ k =
+    (2 : ℝ)⁻¹ ^ k *
+      ∫ ρ : Fin (2 * k) → Fin M → ℤˣ,
+        (∏ w : Fin k,
+          (((ρ ⟨2 * w.val, by omega⟩ i : ℤˣ) : ℝ) - ((ρ ⟨2 * w.val + 1, by omega⟩ i : ℤˣ) : ℝ)) *
+          (((ρ ⟨2 * w.val, by omega⟩ j : ℤˣ) : ℝ) - ((ρ ⟨2 * w.val + 1, by omega⟩ j : ℤˣ) : ℝ)))
+        ∂(Measure.pi fun _ : Fin (2 * k) => Measure.count.tilted A) := by
+  rw [integral_two_mul_replicas_cov_pow A k i j]
+  rw [mul_pow, ← mul_assoc, ← mul_pow]
+  norm_num
 
 end SpinGlasses

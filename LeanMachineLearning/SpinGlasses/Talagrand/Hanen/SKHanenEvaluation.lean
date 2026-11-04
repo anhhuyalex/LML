@@ -114,8 +114,13 @@ theorem sk_hanen_truncated_rect_eval (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) 
     ∃ K : ℝ, 0 < K ∧ ∀ (β h q : ℝ),
       (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂gaussianReal 0 1 = q) →
       β ^ 2 ≤ β₀ ^ 2 → ∀ (N : ℕ)
-      (x y : Fin (2 * m) → Fin n) (_ : ∀ j, x j ≠ y j)
-      (fhat : (Fin n → ℤˣ) → ℝ) (_ : ∀ ε, |fhat ε| ≤ 1),
+      (x y : Fin (2 * m) → Fin n) (hxy : ∀ j, x j ≠ y j)
+      (hxydisj : ∀ u v : Fin (2 * m), u ≠ v →
+        x u ≠ x v ∧ x u ≠ y v ∧ y u ≠ x v ∧ y u ≠ y v)
+      (fhat : (Fin n → ℤˣ) → ℝ) (hfbound : ∀ ε, |fhat ε| ≤ 1)
+      (hfhat : ∀ (ε : Fin n → ℤˣ) (i : Fin n) (t : ℤˣ),
+        i ∈ (Finset.univ : Finset (Fin (2 * m))).biUnion (fun j => {x j, y j}) →
+        fhat (Function.update ε i t) = fhat ε),
       let α : ℝ := (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 4
         ∂gaussianReal 0 1) - 2 * q + 1
       let A_sq : ℝ := α / (1 - β ^ 2 * α)
@@ -153,7 +158,7 @@ theorem sk_hanen_truncated_rect_eval (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) 
   obtain ⟨K1, hK1pos, hK1⟩ := abs_sk_eta_taylor_le β₀ hβ₀ n (2 * m) 0
   obtain ⟨K2, hK2pos, hK2⟩ := sk_cavity_prod_sq_le β₀ hβ₀ m 1
   refine ⟨K1 * (Real.sqrt K2 + 1) + (4 * β₀ ^ 2 * 4) ^ m + 1, by positivity, ?_⟩
-  intro β h q hfix hβ N x y hxy fhat hfbound α A_sq
+  intro β h q hfix hβ N x y hxy hxydisj fhat hfbound hfhat α A_sq
   sorry
 
 /-- **Talagrand's Proposition 1.11.11 (Eq. (1.347)).** Evaluation of full rectangular products:
@@ -165,7 +170,9 @@ theorem sk_hanen_full_rect_eval (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (p n 
     ∃ K : ℝ, 0 < K ∧ ∀ (β h q : ℝ),
       (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂gaussianReal 0 1 = q) →
       β ^ 2 ≤ β₀ ^ 2 → ∀ (N : ℕ)
-      (x y : Fin (2 * p) → Fin n) (_ : ∀ j, x j ≠ y j),
+      (x y : Fin (2 * p) → Fin n) (hxy : ∀ j, x j ≠ y j)
+      (hxydisj : ∀ u v : Fin (2 * p), u ≠ v →
+        x u ≠ x v ∧ x u ≠ y v ∧ y u ≠ x v ∧ y u ≠ y v),
       let α : ℝ := (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 4
         ∂gaussianReal 0 1) - 2 * q + 1
       let A_sq : ℝ := α / (1 - β ^ 2 * α)
