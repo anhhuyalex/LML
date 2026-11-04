@@ -145,6 +145,5 @@ theorem skCavityPathMean_zero_tuple_eval (N m n : ℕ) (β q h : ℝ)
           fun s : ℤˣ => (s : ℝ) * (β * z * Real.sqrt q + h))) *
         ((Real.cosh (β * z * Real.sqrt q + h))⁻¹) ^ (4 * m)) := by ring
   simp_rw [hcomm, integral_const_mul]
-  ring
 
 end SpinGlasses

@@ -190,7 +190,6 @@ theorem sk_cavity_deriv_zero_vanishing_of_missing_pair {α κ : Type*} [Finite �
       ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
         fun s : ℤˣ => ((s : ℤˣ) : ℝ) * Y)) = 0 by
     rw [hH, mul_zero]
-  let Jpairs : Finset (Fin n) := Finset.univ.biUnion (fun j => {(p j).1, (p j).2})
   obtain ⟨hp1_not, hp2_not⟩ := hmiss
   obtain ⟨hp1_J, hp1_pairs⟩ := Finset.notMem_union.mp hp1_not
   obtain ⟨hp2_J, hp2_pairs⟩ := Finset.notMem_union.mp hp2_not

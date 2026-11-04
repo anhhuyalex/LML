@@ -8094,7 +8094,11 @@ the hyperbolic identity $\alpha = \mathbb E\operatorname{ch}^{-4} Y$
 The Hanen involutions and weighted rectangular products are linked to the existing
 finite-partition/Wick library (Lemma~\ref{lem:sg-tal:hanen-pairing-bridge}), and the
 pairing count needed for H5 is proved (Lemma~\ref{lem:sg-tal:hanen-pairing-count}).
-The exact derivative identity of H3 remains open.
+The exact support of surviving critical endpoint terms, their signed spin contraction,
+and the weighted $m!$ ordering identity are proved
+(Lemmas~\ref{lem:sg-tal:hanen-critical-survival}--\ref{lem:sg-tal:hanen-pairing-orderings}).
+Reindexing the actual iterated derivative into these ordered blocks remains open;
+the exact derivative identity of H3 is not yet proved.
 The odd case of H5 is proved (Theorem~\ref{thm:sg-tal:hanen-odd}), using the endpoint
 derivative bounds and Taylor expansion. The common Taylor expansion for either parity
 (Lemma~\ref{lem:sg-tal:hanen-leading-taylor}) is proved and retains the leading coefficient
@@ -8432,6 +8436,61 @@ Every finite set of size $2m$ has $(2m)!/(2^m m!)$ pair partitions. In particula
 The generic theorem is proved by the existing weighted pairing recursion with
 constant weight one; it is independent of any order or probability measure.
 The integral identity for the even Gaussian moment $a(2m)$ was proved previously.
+\end{lemma}
+
+\begin{lemma}[Exact support at the critical order]\label{lem:sg-tal:hanen-critical-survival}
+\lean{MeasureTheory.integral_pi_mul_pair_of_invariant, exists_equiv_of_pairwiseDisjoint_of_hits, SpinGlasses.sk_cavity_deriv_zero_vanishing_of_missing_pair, SpinGlasses.skCavityPathMean_zero_vanishing_of_missing_pair, SpinGlasses.skCavityPathMean_zero_critical_survival}
+\leanok
+\uses{lem:sg-tal:decoupled-eta-vanishing,thm:sg-tal:cavity-decoupled}
+\talsource{Theorem~1.11.9, Eq.~(1.339)}
+Let $\eta_V$ use $2m$ disjoint replica pairs, let $F$ depend only on the old spins,
+and let $\hat f$ be invariant under updates at all replicas in $V^*$.
+For any $m$ derivative pairs $(a_j,b_j)$, a nonzero decoupled average
+\[
+ \nu_0\left(F\eta_V\prod_{j<m}\varepsilon_{a_j}\varepsilon_{b_j}\hat f\right)
+\]
+induces a bijection from $V$ to the $2m$ individual derivative positions:
+exactly one endpoint lies in each spin-difference pair. All endpoint values are
+distinct and none lies outside $V^*$.
+The generic counting lemma applies to any disjoint family of sets hit by an
+equally large finite list, even when the ambient set is infinite.
+The cancellation criterion is stronger than a cardinality estimate: if any one
+pair is missed by all extra spin factors, the average is zero. The older
+cardinality-based vanishing theorem specializes this proof.
+\end{lemma}
+
+\begin{lemma}[Evaluation of a surviving spin factor]\label{lem:sg-tal:hanen-spin-contraction}
+\lean{SpinGlasses.integral_count_tilted_spin_eq_tanh, SpinGlasses.integral_spin_diff_mul_left_of_invariant, SpinGlasses.integral_spin_diff_mul_selected_of_invariant, SpinGlasses.integral_spin_diff_prod_selected, SpinGlasses.integral_spin_diff_prod_endpoint, SpinGlasses.skCavityPathMean_zero_tuple_eval}
+\leanok
+\uses{lem:sg-tal:hanen-critical-survival}
+\talsource{Theorem~1.11.9, the spin evaluation between Eqs.~(1.339) and (1.340)}
+Suppose the spin-difference pairs also have distinct endpoints within each pair.
+Given an endpoint bijection and a choice of first or second endpoint in every
+pair, write $s_v=1$ for a first endpoint and $s_v=-1$ for a second endpoint.
+For the independent last spins with energy $\varepsilon Y$ and any $\hat f$
+invariant under updates at these pairs,
+\[
+ \left\langle\eta_V\prod_{j<m}\varepsilon_{a_j}\varepsilon_{b_j}\hat f\right\rangle_0
+ =\left(\prod_{v\in V}s_v\right)\operatorname{ch}^{-4m}Y\langle\hat f\rangle_0.
+\]
+The formal result works for arbitrary finite replica labels and an arbitrary
+finite set of disjoint pairs. After including $F$ and disorder averaging, the
+same signed Gaussian spin factor multiplies the old-system average of $F$;
+the old replicas share one old disorder. No fixed-point or high-temperature
+hypothesis is needed for these exact decoupled identities.
+\end{lemma}
+
+\begin{lemma}[The weighted ordering factor]\label{lem:sg-tal:hanen-pairing-orderings}
+\lean{Finpartition.pairingSum_orderings}
+\leanok
+\uses{lem:sg-tal:hanen-pairing-bridge}
+\talsource{Theorem~1.11.9, the ordering factor in Eq.~(1.337)}
+For a finite set of size $2m$ and block weights in any commutative semiring,
+summing the weighted product over all pairings and all bijective orderings of
+their $m$ blocks gives $m!$ times the usual weighted pairing sum. The proof
+uses the existing finite-equivalence cardinality theorem. This counts block
+orderings; identifying the surviving iterated-kernel choices with those
+orderings remains required for Theorem~1.11.9.
 \end{lemma}
 
 \begin{theorem}[Odd moments in Hanen's Theorem]\label{thm:sg-tal:hanen-odd}
