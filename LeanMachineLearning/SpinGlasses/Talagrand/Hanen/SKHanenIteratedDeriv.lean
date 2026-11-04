@@ -8,6 +8,7 @@ module
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenVanishing
 public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsReplicaMarginal
 public import Mathlib.Analysis.Calculus.IteratedDeriv.Lemmas
+public import LeanMachineLearning.ForMathlib.Analysis.Calculus.IntervalDerivative
 public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityOuterDerivative
 public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityDomination
 public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityContraction
@@ -193,7 +194,8 @@ theorem iteratedDeriv_skCavityPathMean (N m : ℕ) (β q h : ℝ) (hq : q ∈ Se
     (n : ℕ) (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ)
     (u : ℝ) (hu : u ∈ Set.Ioo (0 : ℝ) 1) :
     iteratedDeriv m (fun t => skCavityPathMean N n β q h t f) u =
-      skCavityPathMean N (skCavityIterReplicaCount m n) β q h u (skCavityIterKernel N β q m n f) := by
+      skCavityPathMean N (skCavityIterReplicaCount m n) β q h u
+        (skCavityIterKernel N β q m n f) := by
   induction m generalizing n f with
   | zero => rfl
   | succ m ih =>
@@ -209,6 +211,73 @@ theorem iteratedDeriv_skCavityPathMean (N m : ℕ) (β q h : ℝ) (hq : q ∈ Se
       exact (hasDerivAt_skCavityPathMean_fin_step N n β q h t hq ht f).deriv
     rw [heq.iteratedDeriv_eq m, ih (n + 2) g]
     rfl
+
+/-- The first derivative formula extends to the closed interval, including its endpoints. -/
+theorem hasDerivWithinAt_skCavityPathMean_fin_step (N n : ℕ) (β q h : ℝ)
+    (hq : q ∈ Set.Icc (0 : ℝ) 1)
+    (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) (u : ℝ) (hu : u ∈ Set.Icc (0 : ℝ) 1) :
+    let e : Option (Option (Fin n)) ≃ Fin (n + 2) := by
+      simpa [Fintype.card_option, Nat.add_assoc] using
+        (Fintype.equivFin (Option (Option (Fin n))))
+    HasDerivWithinAt (skCavityPathMean N n β q h · f)
+      (skCavityPathMean N (n + 2) β q h u
+        (fun τ => skCavityPathDerivKernel N n β q f (fun i => τ (e i)))) (Set.Icc 0 1) u := by
+  dsimp only
+  let e : Option (Option (Fin n)) ≃ Fin (n + 2) := by
+    simpa [Fintype.card_option, Nat.add_assoc] using
+      (Fintype.equivFin (Option (Option (Fin n))))
+  let g := fun (τ : Fin (n + 2) → Fin (N + 1) → ℤˣ) =>
+    skCavityPathDerivKernel N n β q f (fun i => τ (e i))
+  apply hasDerivWithinAt_Icc_of_continuous_derivative (by norm_num)
+    (skCavityPathMean N n β q h · f) (skCavityPathMean N (n + 2) β q h · g)
+    (continuous_skCavityPathMean N n β q h hq f)
+    (continuous_skCavityPathMean N (n + 2) β q h hq g) ?_ u hu
+  exact fun t ht => hasDerivAt_skCavityPathMean_fin_step N n β q h t hq ht f
+
+/-- All derivatives within the closed interval are means of the iterated cavity kernel. -/
+theorem iteratedDerivWithin_skCavityPathMean (N m : ℕ) (β q h : ℝ) (hq : q ∈ Set.Icc (0 : ℝ) 1)
+    (n : ℕ) (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ)
+    (u : ℝ) (hu : u ∈ Set.Icc (0 : ℝ) 1) :
+    iteratedDerivWithin m (fun t => skCavityPathMean N n β q h t f) (Set.Icc 0 1) u =
+      skCavityPathMean N (skCavityIterReplicaCount m n) β q h u
+        (skCavityIterKernel N β q m n f) := by
+  induction m generalizing n f with
+  | zero => rfl
+  | succ m ih =>
+    rw [iteratedDerivWithin_succ']
+    let e : Option (Option (Fin n)) ≃ Fin (n + 2) := by
+      simpa [Fintype.card_option, Nat.add_assoc] using
+        (Fintype.equivFin (Option (Option (Fin n))))
+    let g := fun (τ : Fin (n + 2) → Fin (N + 1) → ℤˣ) =>
+      skCavityPathDerivKernel N n β q f (fun i => τ (e i))
+    have heq : Set.EqOn (derivWithin (fun t => skCavityPathMean N n β q h t f)
+        (Set.Icc 0 1)) (fun t => skCavityPathMean N (n + 2) β q h t g) (Set.Icc 0 1) := by
+      intro t ht
+      exact (hasDerivWithinAt_skCavityPathMean_fin_step N n β q h hq f t ht).derivWithin
+        (uniqueDiffOn_Icc_zero_one t ht)
+    calc
+      _ = iteratedDerivWithin m (fun t => skCavityPathMean N (n + 2) β q h t g)
+            (Set.Icc 0 1) u := iteratedDerivWithin_congr heq hu
+      _ = _ := ih (n + 2) g
+
+/-- The cavity path is smooth to every finite order on the closed interval. -/
+theorem contDiffOn_skCavityPathMean (N n : ℕ) (β q h : ℝ) (hq : q ∈ Set.Icc (0 : ℝ) 1)
+    (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) :
+    ∀ k : ℕ, ContDiffOn ℝ k (fun t => skCavityPathMean N n β q h t f) (Set.Icc 0 1) := by
+  intro k
+  apply contDiffOn_of_differentiableOn_deriv (n := k)
+  intro m _
+  have heq : Set.EqOn
+      (iteratedDerivWithin m (fun t => skCavityPathMean N n β q h t f) (Set.Icc 0 1))
+      (fun t => skCavityPathMean N (skCavityIterReplicaCount m n) β q h t
+        (skCavityIterKernel N β q m n f)) (Set.Icc 0 1) := by
+    intro t ht
+    exact iteratedDerivWithin_skCavityPathMean N m β q h hq n f t ht
+  apply DifferentiableOn.congr ?_ heq
+  intro t ht
+  exact (hasDerivWithinAt_skCavityPathMean_fin_step N (skCavityIterReplicaCount m n) β q h hq
+    (skCavityIterKernel N β q m n f) t ht).differentiableWithinAt
+
 
 /-- The second cavity derivative on the open interval, obtained by applying the
 reindexed first-derivative formula twice. -/

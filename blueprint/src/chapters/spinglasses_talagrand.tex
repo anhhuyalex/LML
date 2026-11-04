@@ -8089,16 +8089,17 @@ $\nu(\eta_V \hat f \prod U_J^-)$ and $\nu(\eta_V \prod U_J)$ using Proposition~1
 \end{enumerate}
 \end{remark}
 
-\begin{lemma}[Interior cavity derivatives with fresh replicas]
+\begin{lemma}[Cavity derivatives with fresh replicas]
 \label{lem:sg-tal:hanen-interior-derivatives}
-\lean{SpinGlasses.hasDerivAt_skCavityPathMean_fin_step, SpinGlasses.hasDerivAt_deriv_skCavityPathMean, SpinGlasses.iteratedDeriv_skCavityPathMean}
+\lean{SpinGlasses.hasDerivAt_skCavityPathMean_fin_step, SpinGlasses.hasDerivAt_deriv_skCavityPathMean, SpinGlasses.iteratedDeriv_skCavityPathMean, SpinGlasses.iteratedDerivWithin_skCavityPathMean, SpinGlasses.contDiffOn_skCavityPathMean}
 \leanok
 For $q \in [0,1]$ and $u \in (0,1)$, the cavity path average of any observable on
 $n$ replicas has a derivative equal to the path average of the first-derivative
 kernel, with its two fresh replicas reindexed by $\operatorname{Fin}(n+2)$.
-For every natural number $m$, the $m$-th interior derivative is the corresponding
-path average of the iterated kernel, on $n+2m$ replicas. This result does not assert
-endpoint derivatives or bounds on higher derivatives.
+For every natural number $m$, the $m$-th derivative within $[0,1]$ is the
+corresponding path average of the iterated kernel, on $n+2m$ replicas. The path
+is smooth to every finite order on $[0,1]$. These results do not yet assert the
+quantitative bounds on higher derivatives.
 \end{lemma}
 
 \begin{lemma}[Iterated cavity derivatives]\label{lem:sg-tal:cavity-iterated-deriv-bound}
