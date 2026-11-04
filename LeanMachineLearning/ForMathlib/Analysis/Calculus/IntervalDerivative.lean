@@ -16,7 +16,7 @@ open scoped Topology
 
 /-- A continuous interior derivative formula extends to both ends of a closed interval. -/
 theorem hasDerivWithinAt_Icc_of_continuous_derivative {E : Type*}
-    [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+    [NormedAddCommGroup E] [NormedSpace ℝ E]
     {a b : ℝ} (hab : a < b) (F G : ℝ → E)
     (hF : Continuous F) (hG : Continuous G)
     (hd : ∀ x ∈ Ioo a b, HasDerivAt F (G x) x) :
