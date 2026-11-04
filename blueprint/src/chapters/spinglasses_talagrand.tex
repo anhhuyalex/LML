@@ -8082,6 +8082,8 @@ $\nu(\eta_V \hat f \prod U_J^-)$ and $\nu(\eta_V \prod U_J)$ using Proposition~1
 \end{remark}
 
 \begin{lemma}[Iterated cavity derivatives]\label{lem:sg-tal:cavity-iterated-deriv-bound}
+\lean{SpinGlasses.sk_cavity_iterated_deriv_bound}
+\leanok
 \talsource{Lemma~1.11.3, Eq.~(1.334)}
 Let $4\beta_0^2 < 1$, $n, m \in \mathbb N$, and let $f$ be an observable on $n$ replicas of $N+1$ spins.
 Along the trigonometric cavity path $s \in [0, \pi/2]$ with interpolating energy
@@ -8095,6 +8097,8 @@ $q = \mathbb E \tanh^2(\beta \sqrt{q} z + h)$, all $N \ge 1$ and all $u \in [0, 
 \end{lemma}
 
 \begin{lemma}[Decoupled vanishing of spin differences]\label{lem:sg-tal:decoupled-eta-vanishing}
+\lean{SpinGlasses.sk_cavity_decoupled_vanishing}
+\leanok
 \talsource{Lemma~1.11.4}
 Let $V$ and $J$ be finite sets of replica indices with $V^* = \bigcup_{v \in V} \{2v-1, 2v\}$.
 If $|V^* \cap J| < |V|$ and $\hat f$ depends only on $(\varepsilon_\ell)_{\ell \notin V^*}$, then
@@ -8105,6 +8109,8 @@ where $\eta_V = \prod_{v \in V} (\varepsilon_{2v-1} - \varepsilon_{2v})$ and $\v
 \end{lemma}
 
 \begin{lemma}[Vanishing of lower cavity derivatives at decoupled endpoint]\label{lem:sg-tal:cavity-deriv-zero-vanishing}
+\lean{SpinGlasses.sk_cavity_deriv_zero_vanishing}
+\leanok
 \talsource{Lemma~1.11.5}
 Let $r, s, m \in \mathbb N$, $|V| = s$, $|V^* \cap J| \le r$, and let $\hat f$ be a function of $(\varepsilon_\ell)_{\ell \notin V^*}$
 and $f^-$ a function of the first $N$ spins.
@@ -8115,12 +8121,24 @@ If $2m + r < s$, then
 \end{lemma}
 
 \begin{corollary}[Taylor bound on spin-difference observables]\label{cor:sg-tal:eta-coupled-bound}
+\lean{SpinGlasses.sk_eta_coupled_bound}
+\leanok
 \talsource{Corollary~1.11.6, Eq.~(1.335)}
 Let $|V| = s$, $|V^* \cap J| \le r$, with $\eta_V, \varepsilon_J, \hat f$ functions on $n$ replicas.
 Let $a = (s - r + 1)/2$ if $s - r$ is odd, and $a = (s - r)/2$ if $s - r$ is even.
 Then there exists $K(s, n, \beta_0)$ such that for all $\beta^2 \le \beta_0^2$ and $N \ge 1$:
 \[
 |\nu(\eta_V \varepsilon_J \hat f f^-)| \le \frac{K(s, n, \beta_0)}{(N+1)^{a/2}} \, \nu((\hat f f^-)^2)^{1/2}.
+\]
+\end{corollary}
+
+\begin{corollary}[Pairing bound for shifted overlaps]\label{cor:sg-tal:eta-overlap-shifted-bound}
+\lean{SpinGlasses.sk_eta_overlap_shifted_bound}
+\leanok
+\talsource{Corollary~1.11.7, Eq.~(1.336)}
+For $|V| = 2p$ and any $m$ shifted overlaps,
+\[
+|\nu(\eta_V \prod_{u \le m} (R_{\ell(u), \ell'(u)} - q'))| \le \frac{K(p, m, n, \beta_0)}{(N+1)^{(2p+m)/2}}.
 \]
 \end{corollary}
 

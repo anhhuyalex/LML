@@ -21,6 +21,43 @@ open MeasureTheory Finset
 
 namespace SpinGlasses
 
+/-- **Decoupled product factorization.** For the energy `A a + ε Y` on `α × ℤˣ`, any product of an
+`α`-observable and a `ℤˣ`-observable factorizes under the decoupled replica measure into the product
+of their individual averages. -/
+theorem integral_pi_count_tilted_decoupled_prod {α : Type*} [Finite α]
+    [MeasurableSpace α] [MeasurableSingletonClass α] {n : ℕ}
+    (A : α → ℝ) (Y : ℝ) (F : (Fin n → α) → ℝ) (H : (Fin n → ℤˣ) → ℝ) :
+    ∫ σ : Fin n → α × ℤˣ, F (fun r => (σ r).1) * H (fun r => (σ r).2)
+      ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
+        fun x : α × ℤˣ => A x.1 + ((x.2 : ℤˣ) : ℝ) * Y) =
+      (∫ a : Fin n → α, F a ∂(Measure.pi fun _ : Fin n => Measure.count.tilted A)) *
+      (∫ ε : Fin n → ℤˣ, H ε ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
+        fun s : ℤˣ => ((s : ℤˣ) : ℝ) * Y)) := by
+  have := Fintype.ofFinite α
+  rw [integral_pi_count_tilted, integral_pi_count_tilted, integral_pi_count_tilted]
+  set ZA : ℝ := ∑ a, Real.exp (A a) with hZA
+  set c : ℝ := Real.exp Y + Real.exp (-Y) with hc
+  have hc0 : 0 < c := by positivity
+  have hZ : (∑ x : α × ℤˣ, Real.exp (A x.1 + ((x.2 : ℤˣ) : ℝ) * Y)) = ZA * c := by
+    rw [Fintype.sum_prod_type]
+    simp_rw [sum_units_int, Real.exp_add, ← mul_add, ← Finset.sum_mul]
+    simp [hc, hZA]
+  have hc_sum : (∑ s : ℤˣ, Real.exp (((s : ℤˣ) : ℝ) * Y)) = c := by
+    rw [sum_units_int]
+    simp [hc]
+  simp_rw [hZ, hc_sum]
+  let e := Equiv.arrowProdEquivProdArrow (Fin n) (fun _ => α) fun _ => ℤˣ
+  rw [← e.symm.sum_comp, Fintype.sum_prod_type]
+  have hw (a : Fin n → α) (ε : Fin n → ℤˣ) :
+      (∏ r, Real.exp (A (e.symm (a, ε) r).1 + (((e.symm (a, ε) r).2 : ℤˣ) : ℝ) * Y) / (ZA * c)) *
+        (F (fun r => (e.symm (a, ε) r).1) * H (fun r => (e.symm (a, ε) r).2)) =
+      ((∏ r, Real.exp (A (a r)) / ZA) * F a) *
+        ((∏ r, Real.exp (((ε r : ℤˣ) : ℝ) * Y) / c) * H ε) := by
+    simp only [e, Equiv.arrowProdEquivProdArrow_symm_apply]
+    simp_rw [Real.exp_add, mul_div_mul_comm, Finset.prod_mul_distrib]
+    ring
+  simp_rw [hw, ← Finset.sum_mul_sum]
+
 /-- **Decoupled last spin.** For the energy `A a + ε Y` on `α × ℤˣ`, an observable that is a
 function of the `α`-coordinates times the product of the last spins over `I` has replica average
 `(tanh Y)^|I|` times the average of the `α`-observable under the energy `A`. -/
@@ -32,35 +69,25 @@ theorem integral_pi_count_tilted_decoupled_spin {α : Type*} [Finite α]
       ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
         fun x : α × ℤˣ => A x.1 + ((x.2 : ℤˣ) : ℝ) * Y) =
       Real.tanh Y ^ I.card * ∫ ρ, F ρ ∂(Measure.pi fun _ : Fin n => Measure.count.tilted A) := by
-  have := Fintype.ofFinite α
-  rw [integral_pi_count_tilted, integral_pi_count_tilted]
-  set ZA : ℝ := ∑ a, Real.exp (A a) with hZA
+  rw [integral_pi_count_tilted_decoupled_prod A Y F (fun ε => ∏ r ∈ I, (((ε r : ℤˣ) : ℝ)))]
+  rw [mul_comm]
+  congr 1
+  rw [integral_pi_count_tilted]
   set c : ℝ := Real.exp Y + Real.exp (-Y) with hc
   have hc0 : 0 < c := by positivity
-  have hZ : (∑ x : α × ℤˣ, Real.exp (A x.1 + ((x.2 : ℤˣ) : ℝ) * Y)) = ZA * c := by
-    rw [Fintype.sum_prod_type]
-    simp_rw [sum_units_int, Real.exp_add, ← mul_add, ← Finset.sum_mul]
-    simp [hc, hZA]
-  simp_rw [hZ]
-  let e := Equiv.arrowProdEquivProdArrow (Fin n) (fun _ => α) fun _ => ℤˣ
-  rw [← e.symm.sum_comp, Fintype.sum_prod_type]
-  have hw (a : Fin n → α) (ε : Fin n → ℤˣ) :
-      (∏ r, Real.exp (A (e.symm (a, ε) r).1 + (((e.symm (a, ε) r).2 : ℤˣ) : ℝ) * Y) / (ZA * c)) *
-        (F (fun r => (e.symm (a, ε) r).1) * ∏ r ∈ I, (((e.symm (a, ε) r).2 : ℤˣ) : ℝ)) =
-      ((∏ r, Real.exp (A (a r)) / ZA) * F a) *
-        ((∏ r, Real.exp ((ε r : ℝ) * Y) / c) * ∏ r ∈ I, ((ε r : ℤˣ) : ℝ)) := by
-    simp only [e, Equiv.arrowProdEquivProdArrow_symm_apply]
-    simp_rw [Real.exp_add, mul_div_mul_comm, Finset.prod_mul_distrib]
-    ring
-  simp_rw [hw, ← Finset.sum_mul_sum]
-  rw [mul_comm (Real.tanh Y ^ I.card)]
-  congr 1
-  have hε : ∀ ε : Fin n → ℤˣ, (∏ r, Real.exp ((ε r : ℝ) * Y) / c) * ∏ r ∈ I, ((ε r : ℤˣ) : ℝ) =
-      ∏ r, (Real.exp ((ε r : ℝ) * Y) / c * if r ∈ I then ((ε r : ℤˣ) : ℝ) else 1) := fun ε => by
+  have hc_sum : (∑ s : ℤˣ, Real.exp (((s : ℤˣ) : ℝ) * Y)) = c := by
+    rw [sum_units_int]
+    simp [hc]
+  simp_rw [hc_sum]
+  have hε : ∀ ε : Fin n → ℤˣ, (∏ r, Real.exp (((ε r : ℤˣ) : ℝ) * Y) / c) *
+      ∏ r ∈ I, (((ε r : ℤˣ) : ℝ)) =
+      ∏ r, (Real.exp (((ε r : ℤˣ) : ℝ) * Y) / c *
+        if r ∈ I then (((ε r : ℤˣ) : ℝ)) else 1) := fun ε => by
     rw [Finset.prod_mul_distrib, Finset.prod_ite_mem, Finset.univ_inter]
   simp_rw [hε]
   rw [hypercube_sum_prod_eq_prod_add
-    (fun (r : Fin n) (s : ℤˣ) => Real.exp ((s : ℝ) * Y) / c * if r ∈ I then ((s : ℤˣ) : ℝ) else 1)]
+    (fun (r : Fin n) (s : ℤˣ) => Real.exp (((s : ℤˣ) : ℝ) * Y) / c *
+      if r ∈ I then (((s : ℤˣ) : ℝ)) else 1)]
   have htanh : Real.tanh Y = (Real.exp Y - Real.exp (-Y)) / c := by
     rw [hc, Real.tanh_eq]
   have hr : ∀ r : Fin n, (Real.exp (((1 : ℤˣ) : ℝ) * Y) / c *
