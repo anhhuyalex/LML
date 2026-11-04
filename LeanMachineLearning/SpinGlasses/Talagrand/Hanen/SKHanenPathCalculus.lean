@@ -65,6 +65,17 @@ theorem skCavityPathMean_finset_sum (N n : ℕ) (β q h u : ℝ) {ι : Type*} (s
     (R := Fin n) (skCavityPathEnergy N β q h u) (measurable_skCavityPathEnergy N β q h u)
     s c G
 
+/-- Marginalizing unused replicas preserves the cavity-path average at every path parameter. -/
+theorem skCavityPathMean_comp_injective (N : ℕ) (β q h u : ℝ) {n R : ℕ}
+    {ι : Fin n → Fin R} (hι : Function.Injective ι)
+    (F : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) :
+    skCavityPathMean N R β q h u (fun σ => F (fun r => σ (ι r))) =
+      skCavityPathMean N n β q h u F := by
+  simp only [skCavityPathMean_eq]
+  apply integral_congr_ae (ae_of_all _ fun _ => ?_)
+  apply integral_congr_ae (ae_of_all _ fun _ => ?_)
+  exact integral_pi_count_tilted_comp_injective hι _ F
+
 /-- Domination passes through the cavity-path average. -/
 theorem abs_skCavityPathMean_le (N n : ℕ) (β q h u : ℝ)
     {G H : (Fin n → Fin (N + 1) → ℤˣ) → ℝ} (hGH : ∀ σ, |G σ| ≤ H σ) :
