@@ -8,6 +8,7 @@ module
 public import Mathlib.LinearAlgebra.Pi
 public import Mathlib.Algebra.Order.BigOperators.Ring.Finset
 public import Mathlib.Tactic.Linarith
+public import Mathlib.Algebra.QuadraticDiscriminant
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.Weights
 
 /-!
@@ -53,6 +54,27 @@ theorem sq_apply_le_apply_sq {Ω : Type*} (L : (Ω → ℝ) →ₗ[ℝ] ℝ)
   rw [hc 0, he, map_add, map_add, map_smul, hc] at hp
   change 0 ≤ L (fun x => f x ^ 2) + (-2 * L f) * L f + (L f) ^ 2 at hp
   nlinarith only [hp]
+
+/-- **Cauchy-Schwarz for a positive linear functional:** `L(f g)² ≤ L(f²) L(g²)`.
+Neither a measure nor normalization is needed. -/
+theorem apply_mul_sq_le {Ω : Type*} (L : (Ω → ℝ) →ₗ[ℝ] ℝ)
+    (hmono : ∀ f g : Ω → ℝ, (∀ x, f x ≤ g x) → L f ≤ L g) (f g : Ω → ℝ) :
+    (L fun x => f x * g x) ^ 2 ≤ (L fun x => f x ^ 2) * L fun x => g x ^ 2 := by
+  have hnn : ∀ c : ℝ, 0 ≤ (L fun x => f x ^ 2) * (c * c) + 2 * (L fun x => f x * g x) * c +
+      L fun x => g x ^ 2 := fun c => by
+    have hp := hmono (fun _ => 0) (fun x => (c * f x + g x) ^ 2) fun x => sq_nonneg _
+    have he : (fun x => (c * f x + g x) ^ 2) = (c * c) • (fun x => f x ^ 2) +
+        (2 * c) • (fun x => f x * g x) + (fun x => g x ^ 2) := by
+      funext x
+      simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+      ring
+    have h0 : L (fun _ : Ω => (0 : ℝ)) = 0 := L.map_zero
+    rw [h0, he, map_add, map_add, map_smul, map_smul] at hp
+    simp only [smul_eq_mul] at hp
+    linarith only [hp]
+  have hd := discrim_le_zero hnn
+  simp only [discrim] at hd
+  nlinarith only [hd]
 
 /-- A uniform monomial bound extends to products of finite linear combinations. No
 independence, positivity of the coefficients, or nonemptiness of the index types is needed. -/

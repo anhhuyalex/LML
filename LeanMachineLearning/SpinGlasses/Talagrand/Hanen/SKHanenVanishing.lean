@@ -164,14 +164,14 @@ theorem card_inter_biUnion_union_pairs_lt {α β : Type*} [DecidableEq β]
   omega
 
 /-- Decoupled vanishing for products with extra spin-pair factors:
-For any set of replica pairs `V` with `card V = s`, and any index set `J` with
-`card (V* ∩ J) ≤ r`, if `2 * m + r < s`, then the decoupled expectation of any product formed by
-`F` (depending only on the first `N` spins), `η_V`, `ε_J`, `m` pairs of derivative spins, and
-`f̂` (independent of `V*`), vanishes identically. This is a step towards Lemma 1.11.5;
+For any finite label set `V` (of any type) of replica pairs with `card V = s`, and any index
+set `J` with `card (V* ∩ J) ≤ r`, if `2 * m + r < s`, then the decoupled expectation of any
+product formed by `F` (depending only on the first `N` spins), `η_V`, `ε_J`, `m` pairs of
+derivative spins, and `f̂` (independent of `V*`), vanishes identically. This is a step towards Lemma 1.11.5;
 the identification with the iterated cavity derivative is not part of this statement. -/
-theorem sk_cavity_deriv_zero_vanishing {α : Type*} [Finite α]
+theorem sk_cavity_deriv_zero_vanishing {α κ : Type*} [Finite α]
     [MeasurableSpace α] [MeasurableSingletonClass α] {n : ℕ}
-    (A : α → ℝ) (Y : ℝ) (V : Finset (Fin n)) (pairMap : Fin n → Fin n × Fin n)
+    (A : α → ℝ) (Y : ℝ) (V : Finset κ) (pairMap : κ → Fin n × Fin n)
     (hdisj : ∀ u ∈ V, ∀ v ∈ V, u ≠ v →
       (pairMap u).1 ≠ (pairMap v).1 ∧ (pairMap u).1 ≠ (pairMap v).2 ∧
       (pairMap u).2 ≠ (pairMap v).1 ∧ (pairMap u).2 ≠ (pairMap v).2)
@@ -190,6 +190,7 @@ theorem sk_cavity_deriv_zero_vanishing {α : Type*} [Finite α]
         fhat (fun r => (σ r).2)
       ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
         fun x : α × ℤˣ => A x.1 + ((x.2 : ℤˣ) : ℝ) * Y) = 0 := by
+  classical
   have heq : (fun σ : Fin n → α × ℤˣ => F (fun r => (σ r).1) *
       (∏ w ∈ V, ((((σ (pairMap w).1).2 : ℤˣ) : ℝ) - (((σ (pairMap w).2).2 : ℤˣ) : ℝ))) *
       (∏ j ∈ J, (((σ j).2 : ℤˣ) : ℝ)) *
@@ -324,9 +325,9 @@ theorem sk_cavity_deriv_zero_vanishing {α : Type*} [Finite α]
       rfl G hG_p1 hG_p2
 
 /-- Decoupled vanishing for a spin-difference product and a product of spins. -/
-theorem sk_cavity_decoupled_vanishing {α : Type*} [Finite α]
+theorem sk_cavity_decoupled_vanishing {α κ : Type*} [Finite α]
     [MeasurableSpace α] [MeasurableSingletonClass α] {n : ℕ}
-    (A : α → ℝ) (Y : ℝ) (V : Finset (Fin n)) (pairMap : Fin n → Fin n × Fin n)
+    (A : α → ℝ) (Y : ℝ) (V : Finset κ) (pairMap : κ → Fin n × Fin n)
     (hdisj : ∀ u ∈ V, ∀ v ∈ V, u ≠ v →
       (pairMap u).1 ≠ (pairMap v).1 ∧ (pairMap u).1 ≠ (pairMap v).2 ∧
       (pairMap u).2 ≠ (pairMap v).1 ∧ (pairMap u).2 ≠ (pairMap v).2)

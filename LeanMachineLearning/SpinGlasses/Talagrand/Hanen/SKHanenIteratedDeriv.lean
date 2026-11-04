@@ -154,28 +154,37 @@ theorem continuous_skCavityPathMean (N n : ℕ) (β q h : ℝ) (hq : q ∈ Set.I
     (hasDerivAt_integral_sk_cavity_path_angle_offDiag N n β q h hq f s).continuousAt
   exact hcont.comp (Real.continuous_arccos.comp Real.continuous_sqrt)
 
+/-- The explicit reindexing of the `n` old replicas and the two fresh replicas
+`some none`, `none` of the cavity derivative by `Fin (n + 2)`: `none ↦ 0`, `some none ↦ 1`,
+`some (some r) ↦ r + 2`. -/
+def skCavityReplicaEquiv (n : ℕ) : Option (Option (Fin n)) ≃ Fin (n + 2) :=
+  ((finSuccEquiv (n + 1)).trans (Equiv.optionCongr (finSuccEquiv n))).symm
+
+@[simp] theorem skCavityReplicaEquiv_some_some {n : ℕ} (r : Fin n) :
+    skCavityReplicaEquiv n (some (some r)) = r.succ.succ := by
+  rfl
+
+/-- The cavity derivative observable `skCavityPathDerivKernel`, with its `n + 2` replicas
+reindexed by `Fin (n + 2)` (`skCavityReplicaEquiv`), so that it can be differentiated again. -/
+noncomputable def skCavityPathStep (N : ℕ) (β q : ℝ) (n : ℕ)
+    (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) : (Fin (n + 2) → Fin (N + 1) → ℤˣ) → ℝ :=
+  fun τ => skCavityPathDerivKernel N n β q f (fun i => τ (skCavityReplicaEquiv n i))
+
 /-- The cavity derivative is another cavity-path mean, with two fresh replicas reindexed
 by `Fin (n + 2)`. This gives an iterable first-derivative step on the open interval. -/
 theorem hasDerivAt_skCavityPathMean_fin_step (N n : ℕ) (β q h t : ℝ)
     (hq : q ∈ Set.Icc (0 : ℝ) 1) (ht : t ∈ Set.Ioo (0 : ℝ) 1)
     (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) :
-    let e : Option (Option (Fin n)) ≃ Fin (n + 2) :=
-      by simpa [Fintype.card_option, Nat.add_assoc] using
-        (Fintype.equivFin (Option (Option (Fin n))))
     HasDerivAt (skCavityPathMean N n β q h · f)
       (skCavityPathMean N (n + 2) β q h t
-        (fun τ => skCavityPathDerivKernel N n β q f (fun i => τ (e i)))) t := by
-  dsimp only
-  let e : Option (Option (Fin n)) ≃ Fin (n + 2) :=
-    by simpa [Fintype.card_option, Nat.add_assoc] using
-        (Fintype.equivFin (Option (Option (Fin n))))
+        (skCavityPathStep N β q n f)) t := by
   apply (hasDerivAt_skCavityPathMean N n β q h t hq ht f).congr_deriv
   dsimp only [skCavityPathMean]
   congr 1
   funext g
   congr 1
   funext ω
-  apply integral_pi_count_tilted_reindex e
+  apply integral_pi_count_tilted_reindex (skCavityReplicaEquiv n)
 
 /-- Replica count after iterating the two-fresh-replica cavity derivative. -/
 def skCavityIterReplicaCount : ℕ → ℕ → ℕ
@@ -194,11 +203,8 @@ noncomputable def skCavityIterKernel (N : ℕ) (β q : ℝ) :
       ((Fin (skCavityIterReplicaCount m n) → Fin (N + 1) → ℤˣ) → ℝ)
   | 0, _, f => f
   | m + 1, n, f =>
-    let e : Option (Option (Fin n)) ≃ Fin (n + 2) := by
-      simpa [Fintype.card_option, Nat.add_assoc] using
-        (Fintype.equivFin (Option (Option (Fin n))))
     skCavityIterKernel N β q m (n + 2)
-      (fun τ => skCavityPathDerivKernel N n β q f (fun i => τ (e i)))
+      (skCavityPathStep N β q n f)
 
 /-- All interior derivatives are cavity means of the corresponding iterated kernel. -/
 theorem iteratedDeriv_skCavityPathMean (N m : ℕ) (β q h : ℝ) (hq : q ∈ Set.Icc (0 : ℝ) 1)
@@ -211,11 +217,7 @@ theorem iteratedDeriv_skCavityPathMean (N m : ℕ) (β q h : ℝ) (hq : q ∈ Se
   | zero => rfl
   | succ m ih =>
     rw [iteratedDeriv_succ']
-    let e : Option (Option (Fin n)) ≃ Fin (n + 2) := by
-      simpa [Fintype.card_option, Nat.add_assoc] using
-        (Fintype.equivFin (Option (Option (Fin n))))
-    let g := fun (τ : Fin (n + 2) → Fin (N + 1) → ℤˣ) =>
-      skCavityPathDerivKernel N n β q f (fun i => τ (e i))
+    let g := skCavityPathStep N β q n f
     have heq : deriv (fun t => skCavityPathMean N n β q h t f) =ᶠ[nhds u]
         (fun t => skCavityPathMean N (n + 2) β q h t g) := by
       filter_upwards [isOpen_Ioo.mem_nhds hu] with t ht
@@ -227,18 +229,10 @@ theorem iteratedDeriv_skCavityPathMean (N m : ℕ) (β q h : ℝ) (hq : q ∈ Se
 theorem hasDerivWithinAt_skCavityPathMean_fin_step (N n : ℕ) (β q h : ℝ)
     (hq : q ∈ Set.Icc (0 : ℝ) 1)
     (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) (u : ℝ) (hu : u ∈ Set.Icc (0 : ℝ) 1) :
-    let e : Option (Option (Fin n)) ≃ Fin (n + 2) := by
-      simpa [Fintype.card_option, Nat.add_assoc] using
-        (Fintype.equivFin (Option (Option (Fin n))))
     HasDerivWithinAt (skCavityPathMean N n β q h · f)
       (skCavityPathMean N (n + 2) β q h u
-        (fun τ => skCavityPathDerivKernel N n β q f (fun i => τ (e i)))) (Set.Icc 0 1) u := by
-  dsimp only
-  let e : Option (Option (Fin n)) ≃ Fin (n + 2) := by
-    simpa [Fintype.card_option, Nat.add_assoc] using
-      (Fintype.equivFin (Option (Option (Fin n))))
-  let g := fun (τ : Fin (n + 2) → Fin (N + 1) → ℤˣ) =>
-    skCavityPathDerivKernel N n β q f (fun i => τ (e i))
+        (skCavityPathStep N β q n f)) (Set.Icc 0 1) u := by
+  let g := skCavityPathStep N β q n f
   apply hasDerivWithinAt_Icc_of_continuous_derivative (by norm_num)
     (skCavityPathMean N n β q h · f) (skCavityPathMean N (n + 2) β q h · g)
     (continuous_skCavityPathMean N n β q h hq f)
@@ -256,11 +250,7 @@ theorem iteratedDerivWithin_skCavityPathMean (N m : ℕ) (β q h : ℝ) (hq : q 
   | zero => rfl
   | succ m ih =>
     rw [iteratedDerivWithin_succ']
-    let e : Option (Option (Fin n)) ≃ Fin (n + 2) := by
-      simpa [Fintype.card_option, Nat.add_assoc] using
-        (Fintype.equivFin (Option (Option (Fin n))))
-    let g := fun (τ : Fin (n + 2) → Fin (N + 1) → ℤˣ) =>
-      skCavityPathDerivKernel N n β q f (fun i => τ (e i))
+    let g := skCavityPathStep N β q n f
     have heq : Set.EqOn (derivWithin (fun t => skCavityPathMean N n β q h t f)
         (Set.Icc 0 1)) (fun t => skCavityPathMean N (n + 2) β q h t g) (Set.Icc 0 1) := by
       intro t ht
@@ -295,23 +285,11 @@ reindexed first-derivative formula twice. -/
 theorem hasDerivAt_deriv_skCavityPathMean (N n : ℕ) (β q h t : ℝ)
     (hq : q ∈ Set.Icc (0 : ℝ) 1) (ht : t ∈ Set.Ioo (0 : ℝ) 1)
     (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) :
-    let e : Option (Option (Fin n)) ≃ Fin (n + 2) :=
-      by simpa [Fintype.card_option, Nat.add_assoc] using
-        (Fintype.equivFin (Option (Option (Fin n))))
-    let e' : Option (Option (Fin (n + 2))) ≃ Fin ((n + 2) + 2) :=
-      by simpa [Fintype.card_option, Nat.add_assoc] using
-        (Fintype.equivFin (Option (Option (Fin (n + 2)))))
-    let g := fun (τ : Fin (n + 2) → Fin (N + 1) → ℤˣ) =>
-      skCavityPathDerivKernel N n β q f (fun i => τ (e i))
+    let g := skCavityPathStep N β q n f
     HasDerivAt (deriv (skCavityPathMean N n β q h · f))
       (skCavityPathMean N ((n + 2) + 2) β q h t
-        (fun τ => skCavityPathDerivKernel N (n + 2) β q g (fun i => τ (e' i)))) t := by
-  dsimp only
-  let e : Option (Option (Fin n)) ≃ Fin (n + 2) :=
-    by simpa [Fintype.card_option, Nat.add_assoc] using
-      (Fintype.equivFin (Option (Option (Fin n))))
-  let g := fun (τ : Fin (n + 2) → Fin (N + 1) → ℤˣ) =>
-    skCavityPathDerivKernel N n β q f (fun i => τ (e i))
+        (skCavityPathStep N β q (n + 2) g)) t := by
+  let g := skCavityPathStep N β q n f
   have heq : deriv (skCavityPathMean N n β q h · f) =ᶠ[nhds t]
       (fun u => skCavityPathMean N (n + 2) β q h u g) := by
     filter_upwards [isOpen_Ioo.mem_nhds ht] with u hu
