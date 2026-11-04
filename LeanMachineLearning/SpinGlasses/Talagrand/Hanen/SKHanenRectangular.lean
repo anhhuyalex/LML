@@ -42,17 +42,17 @@ theorem rect_sub (f g : α → α → β) (x₁ x₂ y₁ y₂ : α) :
   abel
 
 /-- If `f(x, y)` depends only on the first coordinate `x`, the rectangular difference vanishes. -/
-theorem rect_of_fst (g : α → β) (x₁ x₂ y₁ y₂ : α) :
+theorem rect_of_fst (g : α → β) (x₁ x₂ : α) :
     g x₁ - g x₂ - g x₁ + g x₂ = 0 := by
   abel
 
 /-- If `f(x, y)` depends only on the second coordinate `y`, the rectangular difference vanishes. -/
-theorem rect_of_snd (g : α → β) (x₁ x₂ y₁ y₂ : α) :
+theorem rect_of_snd (g : α → β) (y₁ y₂ : α) :
     g y₁ - g y₁ - g y₂ + g y₂ = 0 := by
   abel
 
 /-- If `f(x, y)` is a constant `c`, the rectangular difference vanishes. -/
-theorem rect_const (c : β) (x₁ x₂ y₁ y₂ : α) :
+theorem rect_const (c : β) :
     c - c - c + c = 0 := by
   abel
 
@@ -61,7 +61,6 @@ theorem rect_comm (f : α → α → β) (hf : ∀ x y, f x y = f y x) (x₁ x�
     f x₁ y₁ - f x₂ y₁ - f x₁ y₂ + f x₂ y₂ =
       f y₁ x₁ - f y₁ x₂ - f y₂ x₁ + f y₂ x₂ := by
   rw [hf x₁ y₁, hf x₂ y₁, hf x₁ y₂, hf x₂ y₂]
-  abel
 
 /-- Product factorization of last-spin differences:
 `(ε x₁ * ε y₁) - (ε x₂ * ε y₁) - (ε x₁ * ε y₂) + (ε x₂ * ε y₂) = (ε x₁ - ε x₂) * (ε y₁ - ε y₂)`. -/
