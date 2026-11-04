@@ -189,21 +189,25 @@ theorem abs_sk_eta_taylor_le (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (n s r :
     _ = (K0 * 2 ^ s) / ((N : ℝ) + 1) ^ ((a : ℝ) / 2) * Real.sqrt S := by ring
     _ ≤ _ := by gcongr; linarith
 
-/-- Corollary 1.11.7 with centering `q'` at distance at most `L / (N+1)` from
-the fixed point `q`. The constant is uniform in the system size and in the shift. -/
-theorem sk_eta_overlap_arbitrary_shift_bound (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
-    (n p m : ℕ) (L : ℝ) (hL : 0 ≤ L) :
+/-- A product of truncated overlaps with shifted centering, spin differences of either
+parity, and an additional spin monomial controlled by `r` touched replicas. -/
+theorem sk_eta_trunc_overlap_spin_bound (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
+    (n s r m : ℕ) (L : ℝ) (hL : 0 ≤ L) :
     ∃ K : ℝ, 0 < K ∧ ∀ (β h q q' : ℝ),
       (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂gaussianReal 0 1 = q) →
-      β ^ 2 ≤ β₀ ^ 2 → ∀ (N : ℕ) (pairMap : Fin (2 * p) → Fin n × Fin n)
-      (_ : ∀ u v : Fin (2 * p), u ≠ v →
+      β ^ 2 ≤ β₀ ^ 2 → ∀ (N : ℕ) (pairMap : Fin s → Fin n × Fin n)
+      (_ : ∀ u v : Fin s, u ≠ v →
         (pairMap u).1 ≠ (pairMap v).1 ∧ (pairMap u).1 ≠ (pairMap v).2 ∧
         (pairMap u).2 ≠ (pairMap v).1 ∧ (pairMap u).2 ≠ (pairMap v).2)
+      (J : Finset (Fin n))
+      (_ : ((Finset.univ : Finset (Fin s)).biUnion
+        (fun v => {(pairMap v).1, (pairMap v).2}) ∩ J).card ≤ r)
       (x y : Fin m → Fin n) (_ : ∀ j, x j ≠ y j)
       (_ : |q - q'| ≤ L / ((N : ℝ) + 1)),
       |∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ,
-          (∏ w : Fin (2 * p), (((σ (pairMap w).1 (Fin.last N) : ℤˣ) : ℝ) -
+          (∏ w : Fin s, (((σ (pairMap w).1 (Fin.last N) : ℤˣ) : ℝ) -
             ((σ (pairMap w).2 (Fin.last N) : ℤˣ) : ℝ))) *
+          (∏ j ∈ J, (σ j (Fin.last N) : ℝ)) *
           ∏ j : Fin m, (((N + 1 : ℝ)⁻¹ *
             (fun i : Fin N => (σ (x j) i.castSucc : ℝ)) ⬝ᵥ
               (fun i : Fin N => (σ (y j) i.castSucc : ℝ))) - q')
@@ -212,17 +216,16 @@ theorem sk_eta_overlap_arbitrary_shift_bound (β₀ : ℝ) (hβ₀ : 4 * β₀ ^
               (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
               h * ∑ i : Fin (N + 1), (a i : ℝ))
         ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)| ≤
-      K / ((N : ℝ) + 1) ^ ((((p + m : ℕ) : ℝ)) / 2) := by
-  obtain ⟨K1, hK1pos, hK1⟩ := abs_sk_eta_taylor_le β₀ hβ₀ n (2 * p) 0
+      K / ((N : ℝ) + 1) ^ (((((s - r + 1) / 2 + m : ℕ) : ℝ)) / 2) := by
+  obtain ⟨K1, hK1pos, hK1⟩ := abs_sk_eta_taylor_le β₀ hβ₀ n s r
   obtain ⟨K2, hK2pos, hK2⟩ := sk_cavity_prod_sq_shift_le β₀ hβ₀ m 1 L hL
   refine ⟨K1 * (Real.sqrt K2 + 1), by positivity, ?_⟩
-  intro β h q q' hfix hβ N pairMap hdisj x y hxy hshift
-  have ha_eq : (2 * p - 0 + 1) / 2 = p := by omega
-  have hT := hK1 β h q hfix hβ N pairMap hdisj ∅ (by simp)
+  intro β h q q' hfix hβ N pairMap hdisj J hcard x y hxy hshift
+  have hT := hK1 β h q hfix hβ N pairMap hdisj J hcard
     (fun ρ => ∏ j : Fin m, (((N + 1 : ℝ)⁻¹ *
       (fun i : Fin N => (ρ (x j) i : ℝ)) ⬝ᵥ (fun i : Fin N => (ρ (y j) i : ℝ))) - q'))
     (fun _ => 1) (by intros; rfl)
-  simp only [Finset.prod_empty, mul_one] at hT
+  simp only [mul_one] at hT
   have hM : (∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ,
       (∏ j : Fin m, (((N + 1 : ℝ)⁻¹ *
         (fun i : Fin N => (σ (x j) i.castSucc : ℝ)) ⬝ᵥ
@@ -253,21 +256,23 @@ theorem sk_eta_overlap_arbitrary_shift_bound (β₀ : ℝ) (hβ₀ : 4 * β₀ ^
       congr 1
       ring
     rw [this]
-  have hpow_add : ((N : ℝ) + 1) ^ (((p : ℕ) : ℝ) / 2) * ((N : ℝ) + 1) ^ (((m : ℕ) : ℝ) / 2) =
-      ((N : ℝ) + 1) ^ ((((p + m : ℕ) : ℝ)) / 2) := by
+  have hpow_add : ((N : ℝ) + 1) ^ ((((s - r + 1) / 2 : ℕ) : ℝ) / 2) *
+      ((N : ℝ) + 1) ^ (((m : ℕ) : ℝ) / 2) =
+      ((N : ℝ) + 1) ^ (((((s - r + 1) / 2 + m : ℕ) : ℝ)) / 2) := by
     rw [← Real.rpow_add (by positivity)]
     congr 1
     push_cast
     ring
-  rw [ha_eq] at hT
   have hcomm : (fun σ : Fin n → Fin (N + 1) → ℤˣ =>
       (∏ j : Fin m, (((N + 1 : ℝ)⁻¹ *
         (fun i : Fin N => (σ (x j) i.castSucc : ℝ)) ⬝ᵥ
           (fun i : Fin N => (σ (y j) i.castSucc : ℝ))) - q')) *
-      ∏ w : Fin (2 * p), (((σ (pairMap w).1 (Fin.last N) : ℤˣ) : ℝ) -
-        ((σ (pairMap w).2 (Fin.last N) : ℤˣ) : ℝ))) =
-      fun σ => (∏ w : Fin (2 * p), (((σ (pairMap w).1 (Fin.last N) : ℤˣ) : ℝ) -
+      (∏ w : Fin s, (((σ (pairMap w).1 (Fin.last N) : ℤˣ) : ℝ) -
         ((σ (pairMap w).2 (Fin.last N) : ℤˣ) : ℝ))) *
+      (∏ j ∈ J, (σ j (Fin.last N) : ℝ))) =
+      fun σ => (∏ w : Fin s, (((σ (pairMap w).1 (Fin.last N) : ℤˣ) : ℝ) -
+        ((σ (pairMap w).2 (Fin.last N) : ℤˣ) : ℝ))) *
+      (∏ j ∈ J, (σ j (Fin.last N) : ℝ)) *
       ∏ j : Fin m, (((N + 1 : ℝ)⁻¹ *
         (fun i : Fin N => (σ (x j) i.castSucc : ℝ)) ⬝ᵥ
           (fun i : Fin N => (σ (y j) i.castSucc : ℝ))) - q') := by
@@ -275,17 +280,49 @@ theorem sk_eta_overlap_arbitrary_shift_bound (β₀ : ℝ) (hβ₀ : 4 * β₀ ^
     ring
   rw [hcomm] at hT
   refine hT.trans ?_
-  have hdiv : K1 / ((N : ℝ) + 1) ^ ((p : ℝ) / 2) *
+  have hdiv : K1 / ((N : ℝ) + 1) ^ ((((s - r + 1) / 2 : ℕ) : ℝ) / 2) *
       (Real.sqrt K2 / ((N : ℝ) + 1) ^ ((m : ℝ) / 2)) =
-      (K1 * Real.sqrt K2) / ((N : ℝ) + 1) ^ ((((p + m : ℕ) : ℝ)) / 2) := by
+      (K1 * Real.sqrt K2) / ((N : ℝ) + 1) ^ (((((s - r + 1) / 2 + m : ℕ) : ℝ)) / 2) := by
     rw [div_mul_div_comm, hpow_add]
-  calc _ ≤ K1 / ((N : ℝ) + 1) ^ ((p : ℝ) / 2) *
+  calc _ ≤ K1 / ((N : ℝ) + 1) ^ ((((s - r + 1) / 2 : ℕ) : ℝ) / 2) *
           (Real.sqrt K2 / ((N : ℝ) + 1) ^ ((m : ℝ) / 2)) :=
         mul_le_mul_of_nonneg_left hsqrtM (by positivity)
-    _ = (K1 * Real.sqrt K2) / ((N : ℝ) + 1) ^ ((((p + m : ℕ) : ℝ)) / 2) := hdiv
-    _ ≤ K1 * (Real.sqrt K2 + 1) / ((N : ℝ) + 1) ^ ((((p + m : ℕ) : ℝ)) / 2) := by
+    _ = (K1 * Real.sqrt K2) / ((N : ℝ) + 1) ^ (((((s - r + 1) / 2 + m : ℕ) : ℝ)) / 2) := hdiv
+    _ ≤ K1 * (Real.sqrt K2 + 1) / ((N : ℝ) + 1) ^ (((((s - r + 1) / 2 + m : ℕ) : ℝ)) / 2) := by
       gcongr
       linarith
+
+
+/-- Corollary 1.11.7 with centering `q'` at distance at most `L / (N+1)` from
+the fixed point `q`. The constant is uniform in the system size and in the shift. -/
+theorem sk_eta_overlap_arbitrary_shift_bound (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
+    (n p m : ℕ) (L : ℝ) (hL : 0 ≤ L) :
+    ∃ K : ℝ, 0 < K ∧ ∀ (β h q q' : ℝ),
+      (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂gaussianReal 0 1 = q) →
+      β ^ 2 ≤ β₀ ^ 2 → ∀ (N : ℕ) (pairMap : Fin (2 * p) → Fin n × Fin n)
+      (_ : ∀ u v : Fin (2 * p), u ≠ v →
+        (pairMap u).1 ≠ (pairMap v).1 ∧ (pairMap u).1 ≠ (pairMap v).2 ∧
+        (pairMap u).2 ≠ (pairMap v).1 ∧ (pairMap u).2 ≠ (pairMap v).2)
+      (x y : Fin m → Fin n) (_ : ∀ j, x j ≠ y j)
+      (_ : |q - q'| ≤ L / ((N : ℝ) + 1)),
+      |∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ,
+          (∏ w : Fin (2 * p), (((σ (pairMap w).1 (Fin.last N) : ℤˣ) : ℝ) -
+            ((σ (pairMap w).2 (Fin.last N) : ℤˣ) : ℝ))) *
+          ∏ j : Fin m, (((N + 1 : ℝ)⁻¹ *
+            (fun i : Fin N => (σ (x j) i.castSucc : ℝ)) ⬝ᵥ
+              (fun i : Fin N => (σ (y j) i.castSucc : ℝ))) - q')
+          ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
+            (Real.sqrt (N + 1))⁻¹ * β *
+              (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
+              h * ∑ i : Fin (N + 1), (a i : ℝ))
+        ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)| ≤
+      K / ((N : ℝ) + 1) ^ ((((p + m : ℕ) : ℝ)) / 2) := by
+  obtain ⟨K, hK, hbound⟩ := sk_eta_trunc_overlap_spin_bound β₀ hβ₀ n (2 * p) 0 m L hL
+  refine ⟨K, hK, ?_⟩
+  intro β h q q' hfix hβ N pairMap hdisj x y hxy hshift
+  have hp : (2 * p - 0 + 1) / 2 = p := by omega
+  have key := hbound β h q q' hfix hβ N pairMap hdisj ∅ (by simp) x y hxy hshift
+  simpa only [Finset.prod_empty, mul_one, hp] using key
 
 
 /-- **Talagrand's Corollary 1.11.7 (Eq. (1.336)).** Pairing bound for shifted overlaps:
