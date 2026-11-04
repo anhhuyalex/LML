@@ -111,6 +111,44 @@ theorem skCavityPathMean_zero_mul (N n : ℕ) (β q h : ℝ)
   exact integral_const_mul _ _
 
 
+/-- At the decoupled endpoint, a spin-difference product vanishes if one pair is
+missed by all extra spin factors, including at the critical derivative order. -/
+theorem skCavityPathMean_zero_vanishing_of_missing_pair (N R : ℕ) (β q h : ℝ) {κ : Type*}
+    (V : Finset κ) (pairMap : κ → Fin R × Fin R)
+    (hdisj : ∀ u ∈ V, ∀ v ∈ V, u ≠ v →
+      (pairMap u).1 ≠ (pairMap v).1 ∧ (pairMap u).1 ≠ (pairMap v).2 ∧
+      (pairMap u).2 ≠ (pairMap v).1 ∧ (pairMap u).2 ≠ (pairMap v).2)
+    (J : Finset (Fin R)) {m : ℕ} (p : Fin m → Fin R × Fin R)
+    (v : κ) (hv : v ∈ V)
+    (hmiss : (pairMap v).1 ∉ J ∪ univ.biUnion (fun j => {(p j).1, (p j).2}) ∧
+      (pairMap v).2 ∉ J ∪ univ.biUnion (fun j => {(p j).1, (p j).2}))
+    (F : (Fin R → Fin N → ℤˣ) → ℝ) (fhat : (Fin R → ℤˣ) → ℝ)
+    (hfhat : ∀ (ε : Fin R → ℤˣ) (i : Fin R) (t : ℤˣ),
+      i ∈ V.biUnion (fun v => {(pairMap v).1, (pairMap v).2}) →
+      fhat (Function.update ε i t) = fhat ε) :
+    skCavityPathMean N R β q h 0 (fun σ => F (fun r i => σ r i.castSucc) *
+      (∏ w ∈ V, (((σ (pairMap w).1 (Fin.last N) : ℤˣ) : ℝ) -
+        ((σ (pairMap w).2 (Fin.last N) : ℤˣ) : ℝ))) *
+      (∏ j ∈ J, ((σ j (Fin.last N) : ℤˣ) : ℝ)) *
+      (∏ j : Fin m, ((σ (p j).1 (Fin.last N) : ℤˣ) : ℝ) * ((σ (p j).2 (Fin.last N) : ℤˣ) : ℝ)) *
+      fhat (fun r => σ r (Fin.last N))) = 0 := by
+  rw [skCavityPathMean_eq]
+  have h0 : ∀ (g' : FinPairs N → ℝ) (ω : (Fin N → ℝ) × ℝ),
+      ∫ σ : Fin R → Fin (N + 1) → ℤˣ, F (fun r i => σ r i.castSucc) *
+        (∏ w ∈ V, (((σ (pairMap w).1 (Fin.last N) : ℤˣ) : ℝ) -
+          ((σ (pairMap w).2 (Fin.last N) : ℤˣ) : ℝ))) *
+        (∏ j ∈ J, ((σ j (Fin.last N) : ℤˣ) : ℝ)) *
+        (∏ j : Fin m, ((σ (p j).1 (Fin.last N) : ℤˣ) : ℝ) *
+          ((σ (p j).2 (Fin.last N) : ℤˣ) : ℝ)) * fhat (fun r => σ r (Fin.last N))
+        ∂(Measure.pi fun _ : Fin R => Measure.count.tilted (skCavityPathEnergy N β q h 0 g' ω))
+        = 0 := fun g' ω => by
+    rw [integral_skCavityPath_zero_decoupled]
+    simp only [Fin.snoc_castSucc, Fin.snoc_last]
+    exact sk_cavity_deriv_zero_vanishing_of_missing_pair
+      (skCavityOldEnergy N β h g') (β * ω.2 * Real.sqrt q + h)
+      V pairMap hdisj J p v hv hmiss F fhat hfhat
+  simp only [h0, integral_zero]
+
 /-- **Vanishing at the decoupled endpoint, replica form** (Talagrand, Lemmas 1.11.4, 1.11.5).
 Let `F` be an observable of the old spins, `η_V = ∏_{w ∈ V} (ε_{a_w} - ε_{b_w})` a product of
 spin differences over pairwise disjoint replica pairs, `ε_J` a product of last spins, `m` further
@@ -134,21 +172,13 @@ theorem skCavityPathMean_zero_vanishing (N R : ℕ) (β q h : ℝ) {κ : Type*}
       (∏ j ∈ J, ((σ j (Fin.last N) : ℤˣ) : ℝ)) *
       (∏ j : Fin m, ((σ (p j).1 (Fin.last N) : ℤˣ) : ℝ) * ((σ (p j).2 (Fin.last N) : ℤˣ) : ℝ)) *
       fhat (fun r => σ r (Fin.last N))) = 0 := by
-  rw [skCavityPathMean_eq]
-  have h0 : ∀ (g' : FinPairs N → ℝ) (ω : (Fin N → ℝ) × ℝ),
-      ∫ σ : Fin R → Fin (N + 1) → ℤˣ, F (fun r i => σ r i.castSucc) *
-        (∏ w ∈ V, (((σ (pairMap w).1 (Fin.last N) : ℤˣ) : ℝ) -
-          ((σ (pairMap w).2 (Fin.last N) : ℤˣ) : ℝ))) *
-        (∏ j ∈ J, ((σ j (Fin.last N) : ℤˣ) : ℝ)) *
-        (∏ j : Fin m, ((σ (p j).1 (Fin.last N) : ℤˣ) : ℝ) *
-          ((σ (p j).2 (Fin.last N) : ℤˣ) : ℝ)) * fhat (fun r => σ r (Fin.last N))
-        ∂(Measure.pi fun _ : Fin R => Measure.count.tilted (skCavityPathEnergy N β q h 0 g' ω))
-        = 0 := fun g' ω => by
-    rw [integral_skCavityPath_zero_decoupled]
-    simp only [Fin.snoc_castSucc, Fin.snoc_last]
-    exact sk_cavity_deriv_zero_vanishing (skCavityOldEnergy N β h g') (β * ω.2 * Real.sqrt q + h)
-      V pairMap hdisj J p hcard hr F fhat hfhat
-  simp only [h0, integral_zero]
+  let Jpairs : Finset (Fin R) := univ.biUnion (fun j => {(p j).1, (p j).2})
+  have hcard_union := card_inter_biUnion_union_pairs_lt V
+    (fun v => {(pairMap v).1, (pairMap v).2}) J p hcard hr
+  obtain ⟨v, hv, hp1, hp2⟩ := exists_pair_disjoint_of_card_lt V pairMap
+    (J ∪ Jpairs) hdisj hcard_union
+  exact skCavityPathMean_zero_vanishing_of_missing_pair N R β q h V pairMap hdisj J p
+    v hv ⟨hp1, hp2⟩ F fhat hfhat
 
 /-- **Talagrand's Lemma 1.11.5.**  The `m`-th derivative of `u ↦ ν_u(g)` at the decoupled
 endpoint `u = 0` vanishes for `g = F(old spins) · η_V · ε_J · f̂(last spins)` when

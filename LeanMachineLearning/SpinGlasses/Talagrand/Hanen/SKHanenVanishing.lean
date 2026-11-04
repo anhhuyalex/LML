@@ -12,6 +12,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKC
 public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsReplicaMarginal
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FreshReplicas
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.PiUpdate
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.CoordinatePair
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteTilted
 public import Mathlib.Data.Finset.Card
 public import Mathlib.Data.Finset.Union
@@ -30,7 +31,7 @@ endpoint of the cavity path:
 * General vanishing of coordinate differences under product measures
   (`integral_spin_diff_eq_zero_of_indep`).
 * Decoupled vanishing for spin-difference products, including extra spin-pair factors.
-  The connection to the derivatives in Talagrand's Lemma 1.11.5 remains open.
+  The derivative version is proved in `SKHanenPathVanishing.lean`.
 -/
 
 @[expose] public section
@@ -81,38 +82,12 @@ theorem integral_spin_diff_eq_zero_of_indep {ι : Type*} [Fintype ι] [Decidable
     (hx : ∀ σ t, G (Function.update σ x t) = G σ)
     (hy : ∀ σ t, G (Function.update σ y t) = G σ) :
     ∫ σ, (f_x (σ x) - f_y (σ y)) * G σ ∂Measure.pi μ = 0 := by
-  have hG_int : Integrable (fun σ => (f_x (σ x) - f_y (σ y)) * G σ) (Measure.pi μ) :=
-    Integrable.of_finite
-  rw [integral_pi_eq_integral_update μ x hG_int]
-  have h_inner (σ : ∀ i, X i) :
-      (∫ t, (f_x (Function.update σ x t x) - f_y (Function.update σ x t y)) *
-        G (Function.update σ x t) ∂μ x) =
-      ((∫ t, f_x t ∂μ x) - f_y (σ y)) * G σ := by
-    have hup_x (t : X x) : Function.update σ x t x = t := Function.update_self x t σ
-    have hup_y (t : X x) : Function.update σ x t y = σ y :=
-      Function.update_of_ne (Ne.symm hxy) t σ
-    have hup_G (t : X x) : G (Function.update σ x t) = G σ := hx σ t
-    simp_rw [hup_x, hup_y, hup_G, sub_mul]
-    rw [integral_sub Integrable.of_finite Integrable.of_finite]
-    rw [integral_mul_const]
-    rw [integral_const, probReal_univ, one_smul]
-  simp_rw [h_inner]
-  have hG_int' : Integrable (fun σ => ((∫ t, f_x t ∂μ x) - f_y (σ y)) * G σ) (Measure.pi μ) :=
-    Integrable.of_finite
-  rw [integral_pi_eq_integral_update μ y hG_int']
-  have h_inner_y (σ : ∀ i, X i) :
-      (∫ s, ((∫ t, f_x t ∂μ x) - f_y (Function.update σ y s y)) *
-        G (Function.update σ y s) ∂μ y) = 0 := by
-    have hup_y (s : X y) : Function.update σ y s y = s := Function.update_self y s σ
-    have hup_G (s : X y) : G (Function.update σ y s) = G σ := hy σ s
-    simp_rw [hup_y, hup_G, sub_mul]
-    rw [integral_sub Integrable.of_finite Integrable.of_finite]
-    rw [integral_const, probReal_univ, one_smul]
-    rw [integral_mul_const]
-    rw [h_mean]
-    ring
-  simp_rw [h_inner_y]
-  exact integral_zero (α := ∀ i, X i) (G := ℝ)
+  rw [integral_pi_mul_pair_of_invariant μ x y hxy (fun a b => f_x a - f_y b) G hx hy]
+  have hm : (∫ a, ∫ b, f_x a - f_y b ∂μ y ∂μ x) =
+      (∫ a, f_x a ∂μ x) - ∫ b, f_y b ∂μ y := by
+    simp_rw [integral_sub Integrable.of_finite Integrable.of_finite,
+      integral_const, probReal_univ, one_smul]
+  rw [hm, h_mean, sub_self, zero_mul]
 
 /-- Specialized pigeonhole principle for replica pairs: if `V* ∩ J` has cardinality strictly
 less than `V.card`, there exists `v ∈ V` whose pair `pairMap v = (p₁, p₂)` has both elements
@@ -163,21 +138,19 @@ theorem card_inter_biUnion_union_pairs_lt {α β : Type*} [DecidableEq β]
         (fun j => {(p j).1, (p j).2}) 2 (fun _ _ => card_insert_le _ _)
   omega
 
-/-- Decoupled vanishing for products with extra spin-pair factors:
-For any finite label set `V` (of any type) of replica pairs with `card V = s`, and any index
-set `J` with `card (V* ∩ J) ≤ r`, if `2 * m + r < s`, then the decoupled expectation of any
-product formed by `F` (depending only on the first `N` spins), `η_V`, `ε_J`, `m` pairs of
-derivative spins, and `f̂` (independent of `V*`), vanishes identically. This is a step towards Lemma 1.11.5;
-the identification with the iterated cavity derivative is not part of this statement. -/
-theorem sk_cavity_deriv_zero_vanishing {α κ : Type*} [Finite α]
+/-- A decoupled spin-difference product vanishes if one pair is missed by all extra spin
+factors. This exact support criterion also applies at the critical derivative order,
+where the numerical cardinality criterion is insufficient. -/
+theorem sk_cavity_deriv_zero_vanishing_of_missing_pair {α κ : Type*} [Finite α]
     [MeasurableSpace α] [MeasurableSingletonClass α] {n : ℕ}
     (A : α → ℝ) (Y : ℝ) (V : Finset κ) (pairMap : κ → Fin n × Fin n)
     (hdisj : ∀ u ∈ V, ∀ v ∈ V, u ≠ v →
       (pairMap u).1 ≠ (pairMap v).1 ∧ (pairMap u).1 ≠ (pairMap v).2 ∧
       (pairMap u).2 ≠ (pairMap v).1 ∧ (pairMap u).2 ≠ (pairMap v).2)
-    (J : Finset (Fin n)) {m r : ℕ} (p : Fin m → Fin n × Fin n)
-    (hcard : (V.biUnion (fun v => {(pairMap v).1, (pairMap v).2}) ∩ J).card ≤ r)
-    (hr : 2 * m + r < V.card)
+    (J : Finset (Fin n)) {m : ℕ} (p : Fin m → Fin n × Fin n)
+    (v : κ) (hv : v ∈ V)
+    (hmiss : (pairMap v).1 ∉ J ∪ univ.biUnion (fun j => {(p j).1, (p j).2}) ∧
+      (pairMap v).2 ∉ J ∪ univ.biUnion (fun j => {(p j).1, (p j).2}))
     (F : (Fin n → α) → ℝ)
     (fhat : (Fin n → ℤˣ) → ℝ)
     (hfhat : ∀ (ε : Fin n → ℤˣ) (i : Fin n) (t : ℤˣ),
@@ -218,10 +191,7 @@ theorem sk_cavity_deriv_zero_vanishing {α κ : Type*} [Finite α]
         fun s : ℤˣ => ((s : ℤˣ) : ℝ) * Y)) = 0 by
     rw [hH, mul_zero]
   let Jpairs : Finset (Fin n) := Finset.univ.biUnion (fun j => {(p j).1, (p j).2})
-  have hcard_union := card_inter_biUnion_union_pairs_lt V
-    (fun v => {(pairMap v).1, (pairMap v).2}) J p hcard hr
-  obtain ⟨v, hv, hp1_not, hp2_not⟩ := exists_pair_disjoint_of_card_lt V pairMap
-    (J ∪ Jpairs) hdisj hcard_union
+  obtain ⟨hp1_not, hp2_not⟩ := hmiss
   obtain ⟨hp1_J, hp1_pairs⟩ := Finset.notMem_union.mp hp1_not
   obtain ⟨hp2_J, hp2_pairs⟩ := Finset.notMem_union.mp hp2_not
   set p1 := (pairMap v).1
@@ -323,6 +293,41 @@ theorem sk_cavity_deriv_zero_vanishing {α κ : Type*} [Finite α]
       p1 p2 h12
       (fun s => ((s : ℤˣ) : ℝ)) (fun s => ((s : ℤˣ) : ℝ))
       rfl G hG_p1 hG_p2
+
+/-- Decoupled vanishing for products with extra spin-pair factors:
+For any finite label set `V` (of any type) of replica pairs with `card V = s`, and any index
+set `J` with `card (V* ∩ J) ≤ r`, if `2 * m + r < s`, then the decoupled expectation of any
+product formed by `F` (depending only on the first `N` spins), `η_V`, `ε_J`, `m` pairs of
+derivative spins, and `f̂` (independent of `V*`), vanishes identically. This is a step towards Lemma 1.11.5;
+the identification with the iterated cavity derivative is not part of this statement. -/
+theorem sk_cavity_deriv_zero_vanishing {α κ : Type*} [Finite α]
+    [MeasurableSpace α] [MeasurableSingletonClass α] {n : ℕ}
+    (A : α → ℝ) (Y : ℝ) (V : Finset κ) (pairMap : κ → Fin n × Fin n)
+    (hdisj : ∀ u ∈ V, ∀ v ∈ V, u ≠ v →
+      (pairMap u).1 ≠ (pairMap v).1 ∧ (pairMap u).1 ≠ (pairMap v).2 ∧
+      (pairMap u).2 ≠ (pairMap v).1 ∧ (pairMap u).2 ≠ (pairMap v).2)
+    (J : Finset (Fin n)) {m r : ℕ} (p : Fin m → Fin n × Fin n)
+    (hcard : (V.biUnion (fun v => {(pairMap v).1, (pairMap v).2}) ∩ J).card ≤ r)
+    (hr : 2 * m + r < V.card)
+    (F : (Fin n → α) → ℝ)
+    (fhat : (Fin n → ℤˣ) → ℝ)
+    (hfhat : ∀ (ε : Fin n → ℤˣ) (i : Fin n) (t : ℤˣ),
+      i ∈ V.biUnion (fun v => {(pairMap v).1, (pairMap v).2}) →
+      fhat (Function.update ε i t) = fhat ε) :
+    ∫ σ : Fin n → α × ℤˣ, F (fun r => (σ r).1) *
+        (∏ w ∈ V, ((((σ (pairMap w).1).2 : ℤˣ) : ℝ) - (((σ (pairMap w).2).2 : ℤˣ) : ℝ))) *
+        (∏ j ∈ J, (((σ j).2 : ℤˣ) : ℝ)) *
+        (∏ j : Fin m, (((σ (p j).1).2 : ℤˣ) : ℝ) * (((σ (p j).2).2 : ℤˣ) : ℝ)) *
+        fhat (fun r => (σ r).2)
+      ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
+        fun x : α × ℤˣ => A x.1 + ((x.2 : ℤˣ) : ℝ) * Y) = 0 := by
+  let Jpairs : Finset (Fin n) := univ.biUnion (fun j => {(p j).1, (p j).2})
+  have hcard_union := card_inter_biUnion_union_pairs_lt V
+    (fun v => {(pairMap v).1, (pairMap v).2}) J p hcard hr
+  obtain ⟨v, hv, hp1, hp2⟩ := exists_pair_disjoint_of_card_lt V pairMap
+    (J ∪ Jpairs) hdisj hcard_union
+  exact sk_cavity_deriv_zero_vanishing_of_missing_pair A Y V pairMap hdisj J p
+    v hv ⟨hp1, hp2⟩ F fhat hfhat
 
 /-- Decoupled vanishing for a spin-difference product and a product of spins. -/
 theorem sk_cavity_decoupled_vanishing {α κ : Type*} [Finite α]
