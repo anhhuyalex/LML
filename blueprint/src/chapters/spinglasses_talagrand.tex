@@ -8102,6 +8102,15 @@ is smooth to every finite order on $[0,1]$. These results do not yet assert the
 quantitative bounds on higher derivatives.
 \end{lemma}
 
+\begin{lemma}[Weighted cavity replica pairs]\label{lem:sg-tal:hanen-pair-weights}
+\lean{SpinGlasses.skCavityPathDerivKernel_eq_pair_sum, SpinGlasses.sum_abs_skCavityReplicaPairWeight}
+\leanok
+The first cavity derivative kernel is a signed sum over the three canonical
+families of distinct replica pairs. The sum of the absolute values of their
+coefficients is $2n^2$. This is a one-step identity and weight bound; it is not
+yet an expansion or quantitative estimate for the iterated kernel.
+\end{lemma}
+
 \begin{lemma}[Iterated cavity derivatives]\label{lem:sg-tal:cavity-iterated-deriv-bound}
 % The currently named Lean theorem bounds a coupled overlap product, not this derivative.
 \talsource{Lemma~1.11.3, Eq.~(1.334)}
