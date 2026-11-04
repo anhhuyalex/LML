@@ -21,7 +21,7 @@ where the sum ranges over all pairings $P$ of $V$ into 2-element blocks.
 * `SpinGlasses.HanenPairing`: a pairing on `Fin (2 * m)` represented as a fixed-point-free
   involution.
 * `SpinGlasses.skCavityRectTrunc`: the truncated rectangular difference $U_J^-$.
-* `SpinGlasses.skCavityPairingRectProd`: the product of rectangular differences $\prod_{J ∈ P} U_J^-$.
+* `SpinGlasses.skCavityPairingRectProd`: product of rectangular differences $\prod_{J ∈ P} U_J^-$.
 * `SpinGlasses.sk_hanen_pairing_derivative`: Theorem 1.11.9.
 -/
 
@@ -33,12 +33,17 @@ open scoped BigOperators Real Matrix
 namespace SpinGlasses
 
 /-- A pairing on `Fin (2 * m)` is a fixed-point-free involution. -/
-structure HanenPairing (m : ℕ) where
+@[ext, nolint docBlame] structure HanenPairing (m : ℕ) where
+  /-- The partner involution matching each replica to its paired replica. -/
   partner : Fin (2 * m) → Fin (2 * m)
+  /-- The partner map is an involution ($P^2 = \mathrm{id}$). -/
   involutive : ∀ i, partner (partner i) = i
+  /-- No replica is paired with itself. -/
   no_fixed_point : ∀ i, partner i ≠ i
 
-instance (m : ℕ) : Fintype (HanenPairing m) := by
+attribute [nolint docBlame] HanenPairing.partner
+
+noncomputable instance (m : ℕ) : Fintype (HanenPairing m) := by
   refine Fintype.ofInjective (fun P => P.partner) fun P Q h => ?_
   cases P; cases Q; congr
 
@@ -55,7 +60,7 @@ instance : Unique (HanenPairing 0) where
     exact x.elim0
 
 /-- Truncated rectangular difference $U_J^-$ for two replica pairs. -/
-def skCavityRectTrunc (N n m : ℕ) (q : ℝ)
+noncomputable def skCavityRectTrunc (N n m : ℕ) (q : ℝ)
     (pairMap : Fin (2 * m) → Fin n × Fin n) (u v : Fin (2 * m))
     (ρ : Fin n → Fin N → ℤˣ) : ℝ :=
   let x1 := (pairMap u).1
@@ -75,15 +80,13 @@ theorem skCavityRectTrunc_comm (N n m : ℕ) (q : ℝ)
   dsimp only [skCavityRectTrunc]
   have hdot (a b : Fin n) :
       ((fun i => (ρ a i : ℝ)) ⬝ᵥ (fun i => (ρ b i : ℝ))) =
-      ((fun i => (ρ b i : ℝ)) ⬝ᵥ (fun i => (ρ a i : ℝ))) := by
-    simp only [Matrix.dotProduct]
-    exact Finset.sum_congr rfl fun i _ => mul_comm _ _
+      ((fun i => (ρ b i : ℝ)) ⬝ᵥ (fun i => (ρ a i : ℝ))) := dotProduct_comm _ _
   rw [hdot (pairMap u).1 (pairMap v).1, hdot (pairMap u).2 (pairMap v).1,
       hdot (pairMap u).1 (pairMap v).2, hdot (pairMap u).2 (pairMap v).2]
   ring
 
 /-- The product of truncated rectangular differences over the pairs of a pairing $P$. -/
-def skCavityPairingRectProd (N n m : ℕ) (q : ℝ)
+noncomputable def skCavityPairingRectProd (N n m : ℕ) (q : ℝ)
     (pairMap : Fin (2 * m) → Fin n × Fin n) (P : HanenPairing m)
     (ρ : Fin n → Fin N → ℤˣ) : ℝ :=
   ∏ i ∈ (Finset.univ : Finset (Fin (2 * m))).filter (fun i => i < P.partner i),
@@ -141,29 +144,23 @@ theorem sk_hanen_pairing_derivative_zero (N n : ℕ) (β q h : ℝ)
       (skCavityOldEnergy N β h g') (β * ω.2 * Real.sqrt q + h) F fhat
     simp only [Fin.snoc_castSucc, Fin.snoc_last]
     rw [hprod, mul_comm]
-  simp_rw [hinner]
-  have hz (g' : FinPairs N → ℝ) :
-      (∫ ω : (Fin N → ℝ) × ℝ,
-          (∫ ε : Fin n → ℤˣ, fhat ε
-            ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
-              fun s : ℤˣ => ((s : ℤˣ) : ℝ) * (β * ω.2 * Real.sqrt q + h))) *
-          ∫ ρ : Fin n → Fin N → ℤˣ, F ρ
-            ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
-              (skCavityOldEnergy N β h g'))
+  simp_rw [hinner, integral_mul_const]
+  have hz : (∫ ω : (Fin N → ℝ) × ℝ,
+        ∫ ε : Fin n → ℤˣ, fhat ε
+          ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
+            fun s : ℤˣ => ((s : ℤˣ) : ℝ) * (β * ω.2 * Real.sqrt q + h))
         ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))) =
-      (∫ z : ℝ, ∫ ε : Fin n → ℤˣ, fhat ε
+      ∫ z : ℝ, ∫ ε : Fin n → ℤˣ, fhat ε
         ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
           fun s : ℤˣ => ((s : ℤˣ) : ℝ) * (β * z * Real.sqrt q + h))
-        ∂gaussianReal 0 1) *
-      ∫ ρ : Fin n → Fin N → ℤˣ, F ρ
+        ∂gaussianReal 0 1 :=
+    integral_prod_fun_snd_of_isProbabilityMeasure
+      (Measure.pi fun _ : Fin N => gaussianReal 0 1) (gaussianReal 0 1)
+      (fun z : ℝ => ∫ ε : Fin n → ℤˣ, fhat ε
         ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
-          (skCavityOldEnergy N β h g')) := by
-    rw [integral_mul_const]
-    congr 1
-    exact integral_prod_fun_snd_of_isProbabilityMeasure
-      (Measure.pi fun _ : Fin N => gaussianReal 0 1) (gaussianReal 0 1) _
+          fun s : ℤˣ => ((s : ℤˣ) : ℝ) * (β * z * Real.sqrt q + h)))
   simp_rw [hz]
-  rw [integral_const_mul]
+  exact integral_const_mul _ _
 
 /-- **Talagrand's Theorem 1.11.9 (Eq. (1.337)).** Combinatorial pairing formula for the cavity
 derivative: for `|V| = 2m`, the `m`-th cavity derivative at `u = 0` evaluates to

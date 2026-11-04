@@ -8075,9 +8075,16 @@ signed sum of products of $m$ factors $\beta^2\varepsilon_a\varepsilon_b(R^-_{ab
 $K(N+1)^{-m/2}\nu(f^2)^{1/2}$ of the $m$-th derivative, uniformly on $[0,1]$,
 Lemma~\ref{lem:sg-tal:cavity-iterated-deriv-bound}) and \textbf{Lemma~1.11.5} (vanishing of the
 $m$-th derivative at $u=0$ when $2m+r<|V|$, Lemma~\ref{lem:sg-tal:cavity-deriv-zero-vanishing})
-are proved. \textbf{Corollary~1.11.6} (Taylor expansion of $u\mapsto\nu_u(\eta_V\varepsilon_J\hat f f^-)$ using these two lemmas, Corollary~\ref{cor:sg-tal:eta-coupled-bound}) and \textbf{Corollary~1.11.7} (pairing bound for overlaps, Corollary~\ref{cor:sg-tal:eta-overlap-shifted-bound}) are proved. Not yet proved: H3
-(pairing representation, Theorem~1.11.9), H4 (Propositions~1.11.10--1.11.11) and H5
-(Hanen's Theorem~1.11.1).
+are proved. \textbf{Corollary~1.11.6}
+(Taylor expansion of $u\mapsto\nu_u(\eta_V\varepsilon_J\hat f f^-)$
+using these two lemmas, Corollary~\ref{cor:sg-tal:eta-coupled-bound}) and \textbf{Corollary~1.11.7}
+(pairing bound for overlaps, Corollary~\ref{cor:sg-tal:eta-overlap-shifted-bound}) are proved.
+\textbf{H3 base case $m=0$}: \texttt{HanenPairing} as fixed-point-free involutions and the
+base case $m=0$ of Theorem~1.11.9 (\texttt{sk\_hanen\_pairing\_derivative\_zero}) are proved;
+the hyperbolic identity $\alpha = \mathbb E\operatorname{ch}^{-4} Y$
+(\texttt{alpha\_eq\_integral\_inv\_cosh\_four}) and standard Gaussian moments
+(\texttt{gaussian\_moment\_odd}, \texttt{gaussian\_moment\_even}) are verified.
+In progress: induction for H3, H4 (Propositions~1.11.10--1.11.11) and H5 (Hanen's Theorem~1.11.1).
 The roadmap for Section~1.11 is structured into steps H0--H5:
 \begin{enumerate}
 \item \emph{H0: Blueprint statements.} Mathematical statements for Lemma~1.11.3,
@@ -8226,6 +8233,8 @@ Furthermore, the full rectangular sum splits as $U_J = U_J^- + (N+1)^{-1} \eta_J
 \end{lemma}
 
 \begin{theorem}[Combinatorial pairing formula for the cavity derivative]\label{thm:sg-tal:hanen-pairing-derivative}
+\lean{SpinGlasses.sk_hanen_pairing_derivative_zero}
+\leanok
 \talsource{Theorem~1.11.9, Eq.~(1.337)}
 Let $|V| = 2m$, $\hat f$ depend only on $(\varepsilon_\ell)_{\ell \notin V^*}$, and $f^-$ be a function of the first $N$ spins.
 Then
@@ -8235,6 +8244,7 @@ Then
 \]
 where the sum ranges over all partitions $\mathcal I$ of $V$ into 2-element sets $J = \{u, v\}$, and
 $U_J^- = R^-_{2u-1, 2v-1} - R^-_{2u-1, 2v} - R^-_{2u, 2v-1} + R^-_{2u, 2v}$.
+For $m=0$, this base case evaluates the decoupled average and factors as the last-spin expectation times the $N$-spin expectation (\texttt{sk\_hanen\_pairing\_derivative\_zero}).
 \end{theorem}
 
 \begin{proposition}[Evaluation of rectangular products]\label{prop:sg-tal:hanen-truncated-rect-eval}
