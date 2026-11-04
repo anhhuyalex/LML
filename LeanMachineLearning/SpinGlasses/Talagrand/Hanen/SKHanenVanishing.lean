@@ -298,8 +298,8 @@ theorem sk_cavity_deriv_zero_vanishing_of_missing_pair {α κ : Type*} [Finite �
 For any finite label set `V` (of any type) of replica pairs with `card V = s`, and any index
 set `J` with `card (V* ∩ J) ≤ r`, if `2 * m + r < s`, then the decoupled expectation of any
 product formed by `F` (depending only on the first `N` spins), `η_V`, `ε_J`, `m` pairs of
-derivative spins, and `f̂` (independent of `V*`), vanishes identically. This is a step towards Lemma 1.11.5;
-the identification with the iterated cavity derivative is not part of this statement. -/
+derivative spins, and `f̂` (independent of `V*`), vanishes identically. The derivative version
+is proved in `SKHanenPathVanishing.lean`. -/
 theorem sk_cavity_deriv_zero_vanishing {α κ : Type*} [Finite α]
     [MeasurableSpace α] [MeasurableSingletonClass α] {n : ℕ}
     (A : α → ℝ) (Y : ℝ) (V : Finset κ) (pairMap : κ → Fin n × Fin n)

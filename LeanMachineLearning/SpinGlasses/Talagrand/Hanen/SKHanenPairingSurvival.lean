@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPathVanishing
+public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenSpinContraction
 public import LeanMachineLearning.ForMathlib.Data.Fintype.DisjointTransversal
 
 /-!
@@ -85,5 +86,65 @@ theorem skCavityPathMean_zero_critical_survival (N m n : ℕ) (β q h : ℝ)
       ∅ p v (mem_univ _) ⟨hp1, hp2⟩ F fhat hfhat
     exact hnonzero (by simpa only [prod_empty, mul_one] using hz)
   exact exists_equiv_of_pairwiseDisjoint_of_hits S endpoint (by simp [mul_comm]) hd hhit
+
+/-- Evaluate an admissible surviving endpoint term, including the old-spin observable.
+The old replicas continue to share one disorder. No fixed-point or temperature hypothesis
+is needed for this exact identity at the decoupled endpoint. -/
+theorem skCavityPathMean_zero_tuple_eval (N m n : ℕ) (β q h : ℝ)
+    (pairMap : Fin (2 * m) → Fin n × Fin n)
+    (hxy : ∀ v, (pairMap v).1 ≠ (pairMap v).2)
+    (hdisj : ∀ u v : Fin (2 * m), u ≠ v →
+      (pairMap u).1 ≠ (pairMap v).1 ∧ (pairMap u).1 ≠ (pairMap v).2 ∧
+      (pairMap u).2 ≠ (pairMap v).1 ∧ (pairMap u).2 ≠ (pairMap v).2)
+    (p : Fin m → Fin n × Fin n) (e : Fin (2 * m) ≃ Fin m × Bool)
+    (b : Fin (2 * m) → Bool)
+    (he : ∀ v, (if (e v).2 then (p (e v).1).1 else (p (e v).1).2) =
+      if b v then (pairMap v).1 else (pairMap v).2)
+    (F : (Fin n → Fin N → ℤˣ) → ℝ) (fhat : (Fin n → ℤˣ) → ℝ)
+    (hfhat : ∀ (ε : Fin n → ℤˣ) (i : Fin n) (t : ℤˣ),
+      i ∈ (univ : Finset (Fin (2 * m))).biUnion
+        (fun v => {(pairMap v).1, (pairMap v).2}) →
+      fhat (Function.update ε i t) = fhat ε) :
+    skCavityPathMean N n β q h 0 (fun σ => F (fun r i => σ r i.castSucc) *
+      (∏ w : Fin (2 * m), ((σ (pairMap w).1 (Fin.last N) : ℝ) -
+        (σ (pairMap w).2 (Fin.last N) : ℝ))) *
+      (∏ j : Fin m, (σ (p j).1 (Fin.last N) : ℝ) * (σ (p j).2 (Fin.last N) : ℝ)) *
+      fhat (fun r => σ r (Fin.last N))) =
+      (∏ v : Fin (2 * m), if b v then (1 : ℝ) else -1) *
+      (∫ z : ℝ, (∫ ε : Fin n → ℤˣ, fhat ε
+          ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
+            fun s : ℤˣ => (s : ℝ) * (β * z * Real.sqrt q + h))) *
+        ((Real.cosh (β * z * Real.sqrt q + h))⁻¹) ^ (4 * m) ∂gaussianReal 0 1) *
+      (∫ g' : FinPairs N → ℝ, ∫ ρ : Fin n → Fin N → ℤˣ, F ρ
+        ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (skCavityOldEnergy N β h g'))
+        ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) := by
+  let H : (Fin n → ℤˣ) → ℝ := fun ε =>
+    (∏ w : Fin (2 * m), ((ε (pairMap w).1 : ℝ) - (ε (pairMap w).2 : ℝ))) *
+      (∏ j : Fin m, (ε (p j).1 : ℝ) * (ε (p j).2 : ℝ)) * fhat ε
+  have hfun : (fun σ : Fin n → Fin (N + 1) → ℤˣ => F (fun r i => σ r i.castSucc) *
+      (∏ w : Fin (2 * m), ((σ (pairMap w).1 (Fin.last N) : ℝ) -
+        (σ (pairMap w).2 (Fin.last N) : ℝ))) *
+      (∏ j : Fin m, (σ (p j).1 (Fin.last N) : ℝ) * (σ (p j).2 (Fin.last N) : ℝ)) *
+      fhat (fun r => σ r (Fin.last N))) =
+      fun σ => F (fun r i => σ r i.castSucc) * H (fun r => σ r (Fin.last N)) := by
+    funext σ
+    dsimp only [H]
+    ring
+  rw [hfun, skCavityPathMean_zero_mul]
+  dsimp only [H]
+  have hsp (Y : ℝ) := integral_spin_diff_prod_endpoint Y m pairMap hxy hdisj p e b he
+    fhat hfhat
+  simp_rw [hsp]
+  have hcomm (z : ℝ) :
+      (∏ v : Fin (2 * m), if b v then (1 : ℝ) else -1) *
+        ((Real.cosh (β * z * Real.sqrt q + h))⁻¹) ^ (4 * m) *
+        (∫ ε : Fin n → ℤˣ, fhat ε ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
+          fun s : ℤˣ => (s : ℝ) * (β * z * Real.sqrt q + h))) =
+      (∏ v : Fin (2 * m), if b v then (1 : ℝ) else -1) *
+        ((∫ ε : Fin n → ℤˣ, fhat ε ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
+          fun s : ℤˣ => (s : ℝ) * (β * z * Real.sqrt q + h))) *
+        ((Real.cosh (β * z * Real.sqrt q + h))⁻¹) ^ (4 * m)) := by ring
+  simp_rw [hcomm, integral_const_mul]
+  ring
 
 end SpinGlasses
