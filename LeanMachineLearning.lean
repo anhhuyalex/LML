@@ -2,6 +2,7 @@ module  -- shake: keep-all --deprecated_module: ignore
 
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.Binomial
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.HypercubeProduct
+public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.InvolutiveProduct
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.OffDiag
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.PiFinSucc
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.ProductExpansion
@@ -513,6 +514,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.S
 public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKSmartPath
 public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKSmartPathProfile
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenEvaluation
+public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenFullOverlapBound
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenIterBound
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenIterStructure
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenIteratedDeriv
