@@ -8064,13 +8064,19 @@ and reducing to the overlap CLT for pair variables (Proposition~1.10.4).
 \talsource{Section~1.11, Lemmas~1.11.3--1.11.8, Theorem~1.11.9, Propositions~1.11.10--1.11.11, Theorem~1.11.1}
 \emph{Under construction:} The prerequisite overlap CLT for deterministic external fields
 (Theorem~1.10.1 and Propositions~1.10.4, 1.10.5) is fully proved and sorry-free.
+H0 (blueprint statements) and algebraic rectangular identities (Lemma~1.11.8 / Eqs.~(1.345), (1.348))
+are proved in \texttt{SKHanenRectangular.lean}.
+Lemma~1.11.4 (\texttt{sk_cavity_decoupled_vanishing}) is genuinely proved in \texttt{SKHanenVanishing.lean}.
+The iterated derivatives engine H1 (Lemma~1.11.3), H2 (Lemma~1.11.5, Corollaries~1.11.6--1.11.7),
+H3 (pairing representation, Theorem~1.11.9), H4 (rectangular evaluation, Propositions~1.11.10--1.11.11),
+and H5 (Hanen's Theorem~1.11.1) are currently under active development.
 The roadmap for Section~1.11 is structured into steps H0--H5:
 \begin{enumerate}
 \item \emph{H0: Blueprint statements.} Mathematical statements for Lemma~1.11.3,
 Corollary~1.11.6, Theorem~1.11.9, Propositions~1.11.10--1.11.11 and Theorem~1.11.1
 with explicit constants quantified before $N$ and uniform in $\beta \le \beta_0 < 1/2$.
 \item \emph{H1: Iterated cavity derivatives (Lemma~1.11.3).} Uniform bounds on the $m$-th derivative
-$|\nu_t^{(m)}(f)| \le K(m, n) N^{-m/2} \nu(f^2)^{1/2}$ via induction on an abstract replica space.
+$|\nu_u^{(m)}(f)| \le K(m, n) N^{-m/2} \nu(f^2)^{1/2}$ via induction on an abstract replica space.
 \item \emph{H2: Vanishing lemmas (Lemmas~1.11.4, 1.11.5, Corollary~1.11.6).} Decoupled factorization
 and vanishing of lower-order derivatives $\nu_0^{(m)}(\eta_V \varepsilon_J \hat f f^-) = 0$ for $2m + r < s$.
 \item \emph{H3: Pairing representation (Lemma~1.11.8, Theorem~1.11.9).} Combinatorial pairing formula
@@ -8082,8 +8088,6 @@ $\nu(\eta_V \hat f \prod U_J^-)$ and $\nu(\eta_V \prod U_J)$ using Proposition~1
 \end{remark}
 
 \begin{lemma}[Iterated cavity derivatives]\label{lem:sg-tal:cavity-iterated-deriv-bound}
-\lean{SpinGlasses.sk_cavity_iterated_deriv_bound}
-\leanok
 \talsource{Lemma~1.11.3, Eq.~(1.334)}
 Let $4\beta_0^2 < 1$, $n, m \in \mathbb N$, and let $f$ be an observable on $n$ replicas of $N+1$ spins.
 Along the trigonometric cavity path $s \in [0, \pi/2]$ with interpolating energy
@@ -8109,8 +8113,6 @@ where $\eta_V = \prod_{v \in V} (\varepsilon_{2v-1} - \varepsilon_{2v})$ and $\v
 \end{lemma}
 
 \begin{lemma}[Vanishing of lower cavity derivatives at decoupled endpoint]\label{lem:sg-tal:cavity-deriv-zero-vanishing}
-\lean{SpinGlasses.sk_cavity_deriv_zero_vanishing}
-\leanok
 \talsource{Lemma~1.11.5}
 Let $r, s, m \in \mathbb N$, $|V| = s$, $|V^* \cap J| \le r$, and let $\hat f$ be a function of $(\varepsilon_\ell)_{\ell \notin V^*}$
 and $f^-$ a function of the first $N$ spins.
@@ -8121,8 +8123,6 @@ If $2m + r < s$, then
 \end{lemma}
 
 \begin{corollary}[Taylor bound on spin-difference observables]\label{cor:sg-tal:eta-coupled-bound}
-\lean{SpinGlasses.sk_eta_coupled_bound}
-\leanok
 \talsource{Corollary~1.11.6, Eq.~(1.335)}
 Let $|V| = s$, $|V^* \cap J| \le r$, with $\eta_V, \varepsilon_J, \hat f$ functions on $n$ replicas.
 Let $a = (s - r + 1)/2$ if $s - r$ is odd, and $a = (s - r)/2$ if $s - r$ is even.
@@ -8133,8 +8133,6 @@ Then there exists $K(s, n, \beta_0)$ such that for all $\beta^2 \le \beta_0^2$ a
 \end{corollary}
 
 \begin{corollary}[Pairing bound for shifted overlaps]\label{cor:sg-tal:eta-overlap-shifted-bound}
-\lean{SpinGlasses.sk_eta_overlap_shifted_bound}
-\leanok
 \talsource{Corollary~1.11.7, Eq.~(1.336)}
 For $|V| = 2p$ and any $m$ shifted overlaps,
 \[

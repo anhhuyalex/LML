@@ -12,11 +12,13 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKC
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.HigherOrderCavity.SKCavityHigherOrderMoments
 
 /-!
-# Iterated cavity derivatives and Taylor bounds (Talagrand Lemmas 1.11.3, 1.11.5, Corollaries 1.11.6, 1.11.7)
+# Iterated cavity derivatives and Taylor bounds
+(Talagrand Lemmas 1.11.3, 1.11.5, Corollaries 1.11.6, 1.11.7)
 
 This module formalizes the quantitative differential calculus along the cavity path:
 * **Lemma 1.11.3** (`sk_cavity_iterated_deriv_bound`): the $m$-th derivative along the cavity path
-  $u \mapsto \nu_u(f)$ satisfies $|\nu_u^{(m)}(f)| \le K(m, n, \beta_0) (N+1)^{-m/2} \nu(f^2)^{1/2}$.
+  $u \mapsto \nu_u(f)$ satisfies
+  $|\nu_u^{(m)}(f)| \le K(m, n, \beta_0) (N+1)^{-m/2} \nu(f^2)^{1/2}$.
 * **Lemma 1.11.5** (`sk_cavity_deriv_zero_vanishing`): at the decoupled endpoint $u = 0$,
   $\nu_0^{(m)}(\eta_V \varepsilon_J \hat{f} f^-) = 0$ whenever $2m + r < s$.
 * **Corollary 1.11.6** (`sk_eta_coupled_bound`): Taylor expansion with Lagrange remainder yields
