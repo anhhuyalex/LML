@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenRectangular
+public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPairingBasic
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPathVanishing
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenTaylor
 
@@ -31,73 +31,6 @@ open MeasureTheory ProbabilityTheory Finset
 open scoped BigOperators Real Matrix
 
 namespace SpinGlasses
-
-/-- A pairing on `Fin (2 * m)` is a fixed-point-free involution. -/
-@[ext, nolint docBlame] structure HanenPairing (m : ℕ) where
-  /-- The partner involution matching each replica to its paired replica. -/
-  partner : Fin (2 * m) → Fin (2 * m)
-  /-- The partner map is an involution ($P^2 = \mathrm{id}$). -/
-  involutive : ∀ i, partner (partner i) = i
-  /-- No replica is paired with itself. -/
-  no_fixed_point : ∀ i, partner i ≠ i
-
-attribute [nolint docBlame] HanenPairing.partner
-
-noncomputable instance (m : ℕ) : Fintype (HanenPairing m) := by
-  refine Fintype.ofInjective (fun P => P.partner) fun P Q h => ?_
-  cases P; cases Q; congr
-
-/-- The unique empty pairing on `Fin 0`. -/
-def hanenPairingZero : HanenPairing 0 where
-  partner := fun x => x.elim0
-  involutive := fun x => x.elim0
-  no_fixed_point := fun x => x.elim0
-
-instance : Unique (HanenPairing 0) where
-  default := hanenPairingZero
-  uniq := fun P => by
-    ext x
-    exact x.elim0
-
-/-- Truncated rectangular difference $U_J^-$ for two replica pairs. -/
-noncomputable def skCavityRectTrunc (N n m : ℕ) (q : ℝ)
-    (pairMap : Fin (2 * m) → Fin n × Fin n) (u v : Fin (2 * m))
-    (ρ : Fin n → Fin N → ℤˣ) : ℝ :=
-  let x1 := (pairMap u).1
-  let x2 := (pairMap u).2
-  let y1 := (pairMap v).1
-  let y2 := (pairMap v).2
-  ((N + 1 : ℝ)⁻¹ * ((fun i => (ρ x1 i : ℝ)) ⬝ᵥ (fun i => (ρ y1 i : ℝ))) - q) -
-  ((N + 1 : ℝ)⁻¹ * ((fun i => (ρ x2 i : ℝ)) ⬝ᵥ (fun i => (ρ y1 i : ℝ))) - q) -
-  ((N + 1 : ℝ)⁻¹ * ((fun i => (ρ x1 i : ℝ)) ⬝ᵥ (fun i => (ρ y2 i : ℝ))) - q) +
-  ((N + 1 : ℝ)⁻¹ * ((fun i => (ρ x2 i : ℝ)) ⬝ᵥ (fun i => (ρ y2 i : ℝ))) - q)
-
-/-- Symmetry of $U_{\{u, v\}}^-$ under swapping $u$ and $v$. -/
-theorem skCavityRectTrunc_comm (N n m : ℕ) (q : ℝ)
-    (pairMap : Fin (2 * m) → Fin n × Fin n) (u v : Fin (2 * m))
-    (ρ : Fin n → Fin N → ℤˣ) :
-    skCavityRectTrunc N n m q pairMap u v ρ = skCavityRectTrunc N n m q pairMap v u ρ := by
-  dsimp only [skCavityRectTrunc]
-  have hdot (a b : Fin n) :
-      ((fun i => (ρ a i : ℝ)) ⬝ᵥ (fun i => (ρ b i : ℝ))) =
-      ((fun i => (ρ b i : ℝ)) ⬝ᵥ (fun i => (ρ a i : ℝ))) := dotProduct_comm _ _
-  rw [hdot (pairMap u).1 (pairMap v).1, hdot (pairMap u).2 (pairMap v).1,
-      hdot (pairMap u).1 (pairMap v).2, hdot (pairMap u).2 (pairMap v).2]
-  ring
-
-/-- The product of truncated rectangular differences over the pairs of a pairing $P$. -/
-noncomputable def skCavityPairingRectProd (N n m : ℕ) (q : ℝ)
-    (pairMap : Fin (2 * m) → Fin n × Fin n) (P : HanenPairing m)
-    (ρ : Fin n → Fin N → ℤˣ) : ℝ :=
-  ∏ i ∈ (Finset.univ : Finset (Fin (2 * m))).filter (fun i => i < P.partner i),
-    skCavityRectTrunc N n m q pairMap i (P.partner i) ρ
-
-/-- At $m = 0$, the rectangular product is the empty product, which equals 1. -/
-@[simp] theorem skCavityPairingRectProd_zero (N n : ℕ) (q : ℝ)
-    (pairMap : Fin 0 → Fin n × Fin n) (P : HanenPairing 0)
-    (ρ : Fin n → Fin N → ℤˣ) :
-    skCavityPairingRectProd N n 0 q pairMap P ρ = 1 := by
-  simp [skCavityPairingRectProd]
 
 /-- **Talagrand's Theorem 1.11.9 (Eq. (1.337)), base case $m = 0$.**
 At $m = 0$, the 0-th cavity derivative at $u = 0$ is the decoupled average, which factors

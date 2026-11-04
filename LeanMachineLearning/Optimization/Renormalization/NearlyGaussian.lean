@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.Renormalization.Action
+public import LeanMachineLearning.Optimization.Renormalization.PairingCardinality
 public import LeanMachineLearning.Optimization.Renormalization.Quartic
 public import LeanMachineLearning.Optimization.Renormalization.EvenCoupling
 public import Mathlib.MeasureTheory.Measure.CharacteristicFunction.Basic
@@ -819,94 +820,10 @@ Informal proof: choose the partner of position zero in five ways.  Pair the leas
 position in three ways, after which the last pair is forced, giving `5 * 3 * 1 = 15`.  Source:
 the fifteen pairing terms displayed in equation `eq:C6` of `docs/Renormalization.md`.
 -/
--- A pairing of `s` is determined by the partner of a chosen element `a ∈ s` together with a
--- pairing of the residual set, so the number of pairings satisfies the erase recursion.
-private lemma card_pairing_erase {α : Type*} [DecidableEq α] (s : Finset α) (a : α) (ha : a ∈ s) :
-    Fintype.card (Finpartition.Pairing s) =
-      ∑ b ∈ s.erase a, Fintype.card (Finpartition.Pairing ((s.erase a).erase b)) := by
-  calc
-    Fintype.card (Finpartition.Pairing s)
-        = Fintype.card (Σ b : {b : α // b ∈ s.erase a},
-            Finpartition.Pairing ((s.erase a).erase b.1)) := by
-          exact Fintype.card_congr (Finpartition.Pairing.eraseEquiv s a ha)
-    _ = ∑ b : {b : α // b ∈ s.erase a},
-          Fintype.card (Finpartition.Pairing ((s.erase a).erase b.1)) := by
-          rw [Fintype.card_sigma]
-    _ = ∑ b ∈ s.erase a, Fintype.card (Finpartition.Pairing ((s.erase a).erase b)) := by
-          rw [Finset.sum_coe_sort (s.erase a)
-            (fun b : α => Fintype.card (Finpartition.Pairing ((s.erase a).erase b)))]
-
--- The empty set has exactly one pairing.
-private lemma card_pairing_empty {α : Type*} [DecidableEq α] :
-    Fintype.card (Finpartition.Pairing (∅ : Finset α)) = 1 := by
-  -- `Finpartition ∅` is a singleton (Mathlib's `Unique` instance), and its unique element is
-  -- the empty partition whose parts are `∅`, so the pairing predicate holds vacuously.
-  have : Unique (Finpartition (∅ : Finset α)) := by
-    change Unique (Finpartition (⊥ : Finset α))
-    infer_instance
-  refine Fintype.card_eq_one_iff.mpr ⟨⟨default, ?_⟩, ?_⟩
-  · intro B hB
-    have h_bot : (default : Finpartition (∅ : Finset α)) = ⊥ := Subsingleton.elim _ _
-    rw [h_bot] at hB
-    simp at hB
-  · intro y
-    apply Subtype.ext
-    exact Subsingleton.elim _ _
-
--- A two-element set has exactly one pairing.
-private lemma card_pairing_two {α : Type*} [DecidableEq α] {s : Finset α} (hs : s.card = 2) :
-    Fintype.card (Finpartition.Pairing s) = 1 := by
-  rcases Finset.card_eq_two.mp hs with ⟨a, b, hab, hs_eq⟩
-  rw [hs_eq]
-  rw [card_pairing_erase ({a, b} : Finset α) a (by simp)]
-  have h1 : ({a, b} : Finset α).erase a = {b} := by
-    simp [hab]
-  rw [h1, Finset.sum_singleton]
-  have h2 : ({b} : Finset α).erase b = ∅ := by
-    simp
-  rw [h2]
-  exact card_pairing_empty
-
--- A four-element set has `3` pairings: three choices for the partner of a fixed element.
-private lemma card_pairing_four {α : Type*} [DecidableEq α] {s : Finset α} (hs : s.card = 4) :
-    Fintype.card (Finpartition.Pairing s) = 3 := by
-  have hs_pos : 0 < s.card := hs.symm ▸ by decide
-  rcases Finset.card_pos.mp hs_pos with ⟨a, ha⟩
-  rw [card_pairing_erase s a ha]
-  have h_sum : (∑ b ∈ s.erase a, Fintype.card (Finpartition.Pairing ((s.erase a).erase b))) =
-               (∑ b ∈ s.erase a, (1 : ℕ)) := by
-    apply Finset.sum_congr rfl
-    intro b hb
-    have h1 : (s.erase a).card = s.card - 1 := Finset.card_erase_of_mem ha
-    have h2 : ((s.erase a).erase b).card = (s.erase a).card - 1 := Finset.card_erase_of_mem hb
-    exact card_pairing_two (by omega)
-  rw [h_sum, Finset.sum_const, nsmul_eq_mul]
-  have h1 : (s.erase a).card = s.card - 1 := Finset.card_erase_of_mem ha
-  rw [h1, hs]
-  norm_num
-
--- A six-element set has `15` pairings: five choices for the partner of a fixed element, then
--- `3` pairings of the residual four-element set.
-private lemma card_pairing_six {α : Type*} [DecidableEq α] {s : Finset α} (hs : s.card = 6) :
-    Fintype.card (Finpartition.Pairing s) = 15 := by
-  have hs_pos : 0 < s.card := hs.symm ▸ by decide
-  rcases Finset.card_pos.mp hs_pos with ⟨a, ha⟩
-  rw [card_pairing_erase s a ha]
-  have h_sum : (∑ b ∈ s.erase a, Fintype.card (Finpartition.Pairing ((s.erase a).erase b))) =
-               (∑ b ∈ s.erase a, (3 : ℕ)) := by
-    apply Finset.sum_congr rfl
-    intro b hb
-    have h1 : (s.erase a).card = s.card - 1 := Finset.card_erase_of_mem ha
-    have h2 : ((s.erase a).erase b).card = (s.erase a).card - 1 := Finset.card_erase_of_mem hb
-    exact card_pairing_four (by omega)
-  rw [h_sum, Finset.sum_const, nsmul_eq_mul]
-  have h1 : (s.erase a).card = s.card - 1 := Finset.card_erase_of_mem ha
-  rw [h1, hs]
-  norm_num
-
 theorem card_pairing_fin_six :
     Fintype.card (Finpartition.Pairing (Finset.univ : Finset (Fin 6))) = 15 := by
-  exact card_pairing_six (by simp)
+  rw [Finpartition.Pairing.card_eq_factorial_div 3 _ (by simp)]
+  norm_num
 
 -- `card_fourTwoPartition_fin_six` (there are fifteen `(4,2)` partitions of six labelled
 -- positions) has moved to `SixPointCounting.lean`: its `native_decide` proof is expensive to

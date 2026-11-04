@@ -340,6 +340,9 @@ public import LeanMachineLearning.Optimization.Renormalization.Learning
 public import LeanMachineLearning.Optimization.Renormalization.MLPInitialization
 public import LeanMachineLearning.Optimization.Renormalization.NearlyGaussian
 public import LeanMachineLearning.Optimization.Renormalization.Network
+public import LeanMachineLearning.Optimization.Renormalization.PairingCardinality
+public import LeanMachineLearning.Optimization.Renormalization.PairingInvolution
+public import LeanMachineLearning.Optimization.Renormalization.PairingWick
 public import LeanMachineLearning.Optimization.Renormalization.ParameterizedMLP
 public import LeanMachineLearning.Optimization.Renormalization.Perturbation
 public import LeanMachineLearning.Optimization.Renormalization.Quartic
@@ -523,6 +526,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenIterStructu
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenIteratedDeriv
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenOddProduct
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPairing
+public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPairingBasic
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPathCalculus
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPathVanishing
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenProductTaylor

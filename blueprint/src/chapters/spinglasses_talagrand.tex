@@ -8064,8 +8064,10 @@ and reducing to the overlap CLT for pair variables (Proposition~1.10.4).
 \talsource{Section~1.11, Lemmas~1.11.3--1.11.8, Theorem~1.11.9, Propositions~1.11.10--1.11.11, Theorem~1.11.1}
 \emph{Under construction:} The prerequisite overlap CLT for deterministic external fields
 (Theorem~1.10.1 and Propositions~1.10.4, 1.10.5) is fully proved and sorry-free.
-H0 (blueprint statements) and algebraic rectangular identities (Lemma~1.11.8 / Eqs.~(1.345), (1.348))
-are proved in \texttt{SKHanenRectangular.lean}.
+H0 (blueprint statements) is in place; the algebraic rectangular identities
+(Eqs.~(1.345), (1.348)) are proved in \texttt{SKHanenRectangular.lean}.
+Lemma~1.11.8 is the restriction of the derivative sum in Eq.~(1.336),
+which remains part of H3; it is not one of these algebraic identities.
 Lemma~1.11.4 (with $\hat f$ and extra spin-pair factors) is proved by
 \texttt{sk\_cavity\_deriv\_zero\_vanishing}. The iterated cavity derivatives are proved:
 all derivatives of $u\mapsto\nu_u(f)$ exist on $[0,1]$ and equal the path average of an explicit
@@ -8089,6 +8091,10 @@ base case $m=0$ of Theorem~1.11.9 (\texttt{sk\_hanen\_pairing\_derivative\_zero}
 the hyperbolic identity $\alpha = \mathbb E\operatorname{ch}^{-4} Y$
 (\texttt{alpha\_eq\_integral\_inv\_cosh\_four}) and standard Gaussian moments
 (\texttt{gaussian\_moment\_odd}, \texttt{gaussian\_moment\_even}) are verified.
+The Hanen involutions and weighted rectangular products are linked to the existing
+finite-partition/Wick library (Lemma~\ref{lem:sg-tal:hanen-pairing-bridge}), and the
+pairing count needed for H5 is proved (Lemma~\ref{lem:sg-tal:hanen-pairing-count}).
+The exact derivative identity of H3 remains open.
 The odd case of H5 is proved (Theorem~\ref{thm:sg-tal:hanen-odd}), using the endpoint
 derivative bounds and Taylor expansion. The common Taylor expansion for either parity
 (Lemma~\ref{lem:sg-tal:hanen-leading-taylor}) is proved and retains the leading coefficient
@@ -8395,6 +8401,38 @@ The uniform $(s+1)$-st derivative estimate bounds the remainder at the same orde
 The analytic coefficient-isolation lemma works for functions into any real normed
 vector space and accepts separate bounds for the other coefficients.
 \end{proof}
+
+\begin{lemma}[Pairing representations and weighted products]\label{lem:sg-tal:hanen-pairing-bridge}
+\lean{Finpartition.Pairing.partner_partner, Finpartition.Pairing.ofInvolution, Finpartition.Pairing.part_ofInvolution, Finpartition.Pairing.partner_ofInvolution, Finpartition.Pairing.equivInvolution, Finpartition.Pairing.blockProduct_ofInvolution, SpinGlasses.HanenPairing.equivFinpartition, SpinGlasses.HanenPairing.part_equivFinpartition, SpinGlasses.HanenPairing.blockProduct_equivFinpartition, SpinGlasses.skCavityPairingRectProd_eq_blockProduct, SpinGlasses.sum_skCavityPairingRectProd_eq_wick}
+\leanok
+\talsource{Theorem~1.11.9, the pair partitions in Eqs.~(1.337)--(1.340)}
+For every finite type $A$, pair partitions of $A$ are equivalent to fixed-point-free
+involutions $p:A\to A$, with blocks $\{a,p(a)\}$. If $A$ is linearly ordered and
+$w$ takes values in any commutative monoid, the product of its block weights is
+\[
+ \prod_{a<p(a)}w(\{a,p(a)\}).
+\]
+For $A=\{0,\ldots,2m-1\}$ this identifies the public Hanen pairing type with the
+existing finite-partition pairing type. Applying the unordered pair weight to
+the symmetric rectangular kernel $U^-_{uv}$ gives exactly
+$\prod_{J\in\mathcal I}U^-_J$. Hence the sum of rectangular products over Hanen
+pairings equals the existing Wick sum of that kernel. This is a combinatorial
+identification; it does not evaluate the cavity derivative in Eq.~(1.337).
+\end{lemma}
+
+\begin{lemma}[The number of Hanen pairings]\label{lem:sg-tal:hanen-pairing-count}
+\lean{Finpartition.Pairing.card_empty, Finpartition.Pairing.card_erase, Finpartition.Pairing.card_mul_two_pow_mul_factorial, Finpartition.Pairing.card_eq_factorial_div, SpinGlasses.HanenPairing.card}
+\leanok
+\uses{lem:sg-tal:hanen-pairing-bridge}
+\talsource{Proof of Theorem~1.11.1, the pairing count after Eq.~(1.358)}
+Every finite set of size $2m$ has $(2m)!/(2^m m!)$ pair partitions. In particular,
+\[
+ |\operatorname{HanenPairing}(m)|=\frac{(2m)!}{2^m m!}=a(2m).
+\]
+The generic theorem is proved by the existing weighted pairing recursion with
+constant weight one; it is independent of any order or probability measure.
+The integral identity for the even Gaussian moment $a(2m)$ was proved previously.
+\end{lemma}
 
 \begin{theorem}[Odd moments in Hanen's Theorem]\label{thm:sg-tal:hanen-odd}
 \lean{SpinGlasses.sk_hanen_theorem_odd, SpinGlasses.sk_hanen_odd_spin_product_bound, SpinGlasses.sk_hanen_endpoint_derivative_bound}
