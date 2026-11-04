@@ -126,41 +126,8 @@ theorem sk_hanen_pairing_derivative_zero (N n : ℕ) (β q h : ℝ)
   simp only [pow_zero, Nat.factorial_zero, Nat.cast_one, one_mul, mul_zero,
     inv_one, mul_one, skCavityPairingRectProd_zero]
   rw [Fintype.sum_unique]
-  rw [skCavityPathMean_eq]
   simp only [Fin.prod_univ_zero, mul_one]
-  have hinner (g' : FinPairs N → ℝ) (ω : (Fin N → ℝ) × ℝ) :
-      (∫ σ : Fin n → Fin (N + 1) → ℤˣ,
-          F (fun k i => σ k i.castSucc) * fhat (fun k => σ k (Fin.last N))
-        ∂(Measure.pi fun _ : Fin n =>
-          Measure.count.tilted (skCavityPathEnergy N β q h 0 g' ω))) =
-      (∫ ε : Fin n → ℤˣ, fhat ε
-        ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
-          fun s : ℤˣ => ((s : ℤˣ) : ℝ) * (β * ω.2 * Real.sqrt q + h))) *
-      ∫ ρ : Fin n → Fin N → ℤˣ, F ρ
-        ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
-          (skCavityOldEnergy N β h g')) := by
-    rw [integral_skCavityPath_zero_decoupled]
-    have hprod := integral_pi_count_tilted_decoupled_prod
-      (skCavityOldEnergy N β h g') (β * ω.2 * Real.sqrt q + h) F fhat
-    simp only [Fin.snoc_castSucc, Fin.snoc_last]
-    rw [hprod, mul_comm]
-  simp_rw [hinner, integral_mul_const]
-  have hz : (∫ ω : (Fin N → ℝ) × ℝ,
-        ∫ ε : Fin n → ℤˣ, fhat ε
-          ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
-            fun s : ℤˣ => ((s : ℤˣ) : ℝ) * (β * ω.2 * Real.sqrt q + h))
-        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))) =
-      ∫ z : ℝ, ∫ ε : Fin n → ℤˣ, fhat ε
-        ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
-          fun s : ℤˣ => ((s : ℤˣ) : ℝ) * (β * z * Real.sqrt q + h))
-        ∂gaussianReal 0 1 :=
-    integral_prod_fun_snd_of_isProbabilityMeasure
-      (Measure.pi fun _ : Fin N => gaussianReal 0 1) (gaussianReal 0 1)
-      (fun z : ℝ => ∫ ε : Fin n → ℤˣ, fhat ε
-        ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
-          fun s : ℤˣ => ((s : ℤˣ) : ℝ) * (β * z * Real.sqrt q + h)))
-  simp_rw [hz]
-  exact integral_const_mul _ _
+  exact skCavityPathMean_zero_mul N n β q h F fhat
 
 /-- **Talagrand's Theorem 1.11.9 (Eq. (1.337)).** Combinatorial pairing formula for the cavity
 derivative: for `|V| = 2m`, the `m`-th cavity derivative at `u = 0` evaluates to

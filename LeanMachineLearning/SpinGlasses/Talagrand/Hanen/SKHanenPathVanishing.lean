@@ -63,6 +63,54 @@ theorem integral_skCavityPath_zero_decoupled (N R : ℕ) (β q h : ℝ) (g' : Fi
   rw [hE]
   simp only [he]
 
+/-- At the decoupled endpoint, old-spin and last-spin observables factor after averaging
+over their independent disorders. The old replicas still share the same old disorder. -/
+theorem skCavityPathMean_zero_mul (N n : ℕ) (β q h : ℝ)
+    (F : (Fin n → Fin N → ℤˣ) → ℝ) (fhat : (Fin n → ℤˣ) → ℝ) :
+    skCavityPathMean N n β q h 0 (fun σ =>
+      F (fun k i => σ k i.castSucc) * fhat (fun k => σ k (Fin.last N))) =
+      (∫ z : ℝ, ∫ ε : Fin n → ℤˣ, fhat ε
+        ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
+          fun s : ℤˣ => (s : ℝ) * (β * z * Real.sqrt q + h)) ∂gaussianReal 0 1) *
+      (∫ g' : FinPairs N → ℝ, ∫ ρ : Fin n → Fin N → ℤˣ, F ρ
+        ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (skCavityOldEnergy N β h g'))
+        ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) := by
+  rw [skCavityPathMean_eq]
+  have hinner (g' : FinPairs N → ℝ) (ω : (Fin N → ℝ) × ℝ) :
+      (∫ σ : Fin n → Fin (N + 1) → ℤˣ,
+          F (fun k i => σ k i.castSucc) * fhat (fun k => σ k (Fin.last N))
+        ∂(Measure.pi fun _ : Fin n =>
+          Measure.count.tilted (skCavityPathEnergy N β q h 0 g' ω))) =
+      (∫ ε : Fin n → ℤˣ, fhat ε
+        ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
+          fun s : ℤˣ => ((s : ℤˣ) : ℝ) * (β * ω.2 * Real.sqrt q + h))) *
+      ∫ ρ : Fin n → Fin N → ℤˣ, F ρ
+        ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
+          (skCavityOldEnergy N β h g')) := by
+    rw [integral_skCavityPath_zero_decoupled]
+    have hprod := integral_pi_count_tilted_decoupled_prod
+      (skCavityOldEnergy N β h g') (β * ω.2 * Real.sqrt q + h) F fhat
+    simp only [Fin.snoc_castSucc, Fin.snoc_last]
+    rw [hprod, mul_comm]
+  simp_rw [hinner, integral_mul_const]
+  have hz : (∫ ω : (Fin N → ℝ) × ℝ,
+        ∫ ε : Fin n → ℤˣ, fhat ε
+          ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
+            fun s : ℤˣ => ((s : ℤˣ) : ℝ) * (β * ω.2 * Real.sqrt q + h))
+        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))) =
+      ∫ z : ℝ, ∫ ε : Fin n → ℤˣ, fhat ε
+        ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
+          fun s : ℤˣ => ((s : ℤˣ) : ℝ) * (β * z * Real.sqrt q + h))
+        ∂gaussianReal 0 1 :=
+    integral_prod_fun_snd_of_isProbabilityMeasure
+      (Measure.pi fun _ : Fin N => gaussianReal 0 1) (gaussianReal 0 1)
+      (fun z : ℝ => ∫ ε : Fin n → ℤˣ, fhat ε
+        ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
+          fun s : ℤˣ => ((s : ℤˣ) : ℝ) * (β * z * Real.sqrt q + h)))
+  simp_rw [hz]
+  exact integral_const_mul _ _
+
+
 /-- **Vanishing at the decoupled endpoint, replica form** (Talagrand, Lemmas 1.11.4, 1.11.5).
 Let `F` be an observable of the old spins, `η_V = ∏_{w ∈ V} (ε_{a_w} - ε_{b_w})` a product of
 spin differences over pairwise disjoint replica pairs, `ε_J` a product of last spins, `m` further

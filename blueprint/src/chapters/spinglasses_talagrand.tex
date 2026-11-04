@@ -8079,7 +8079,9 @@ are proved. \textbf{Corollary~1.11.6}
 (Taylor expansion of $u\mapsto\nu_u(\eta_V\varepsilon_J\hat f f^-)$
 using these two lemmas, Corollary~\ref{cor:sg-tal:eta-coupled-bound}) and \textbf{Corollary~1.11.7}
 (pairing bound for overlaps with centering within $L/(N+1)$ of $q$,
-Corollary~\ref{cor:sg-tal:eta-overlap-shifted-bound}) are proved. The Gibbs covariance-power
+Corollary~\ref{cor:sg-tal:eta-overlap-shifted-bound}) are proved. The full-overlap version
+for either parity, Corollary~\ref{cor:sg-tal:eta-full-overlap-shifted-bound}, and its
+reduced-system application, Lemma~\ref{lem:sg-tal:hanen-reduced-system}, are also proved. The Gibbs covariance-power
 representation (Lemma~\ref{lem:sg-tal:hanen-cov-powers}) and its site-permutation
 invariance (Lemma~\ref{lem:sg-tal:hanen-cov-site-symmetry}) are also proved.
 \textbf{H3 base case $m=0$}: \texttt{HanenPairing} as fixed-point-free involutions and the
@@ -8225,6 +8227,54 @@ and $|q-q'| \le L/(N+1)$ with $L \ge 0$ fixed,
 \leanok
 Apply Corollary~\ref{cor:sg-tal:eta-coupled-bound} with $s = 2p$, $r = 0$, $J = \emptyset$, $\hat f = 1$ and $F = \prod_{u \le m} (R^-_{\ell(u), \ell'(u)} - q')$, giving bound $K_1 (N+1)^{-p/2} \nu(F^2)^{1/2}$. The bound of Eq.~(1.297) is stable under the stated change of centering
 (\texttt{sk\_cavity\_prod\_sq\_shift\_le}), so $\nu(F^2) \le K_2 (N+1)^{-m}$, so $\nu(F^2)^{1/2} \le K_2^{1/2} (N+1)^{-m/2}$. Combining the exponents gives $(N+1)^{-(p+m)/2}$.
+\end{proof}
+
+\begin{corollary}[Full-overlap bound with shifted centering]\label{cor:sg-tal:eta-full-overlap-shifted-bound}
+\lean{SpinGlasses.sk_eta_full_overlap_shift_bound, SpinGlasses.sk_eta_trunc_overlap_spin_bound, Finset.exists_prod_eq_prod_of_mul_self_eq_one, Finset.exists_pair_prod_eq_prod_of_mul_self_eq_one}
+\leanok
+\uses{cor:sg-tal:eta-coupled-bound,cor:sg-tal:eta-overlap-shifted-bound}
+\talsource{Corollary~1.11.7}
+Fix $n,s,m\in\mathbb N$, $L\ge0$ and $4\beta_0^2<1$. For $s$ disjoint replica
+pairs defining $\eta_V$, full overlaps with distinct endpoints, a fixed point
+$q=\mathbb E\tanh^2(\beta\sqrt q Z+h)$, $\beta^2\le\beta_0^2$, and
+$|q-q'|\le L/(N+1)$, put $b=\lceil s/2\rceil$. There exists
+$K=K(n,s,m,L,\beta_0)>0$, chosen before $N,\beta,h,q,q'$, such that
+\[
+\left|\nu\left(\eta_V\prod_{r<m}(R_{x_r,y_r}-q')\right)\right|
+\le \frac{K}{(N+1)^{(b+m)/2}}.
+\]
+This includes odd $s$ and full overlaps; the preceding result concerns even $s$ and truncated overlaps.
+\end{corollary}
+\begin{proof}
+\leanok
+Expand each overlap into its truncated part plus its last-spin contribution.
+For a subset $I$ of corrections, cancel repeated spin factors using their involutive property.
+The resulting spin monomial involves at most $2|I|$ replicas. Apply the Taylor estimate with
+$r=2|I|$ and the shifted truncated product moment bound. The prefactor $(N+1)^{-|I|}$
+compensates for the lost vanishing order; summing the finitely many terms proves the claim.
+\end{proof}
+
+\begin{lemma}[Decoupled factorization and reduced-system bound]\label{lem:sg-tal:hanen-reduced-system}
+\lean{SpinGlasses.skCavityPathMean_zero_mul, SpinGlasses.exists_fixedPoint_cavity_of_sq_lt, SpinGlasses.sk_hanen_reduced_overlap_bound, ProbabilityTheory.integral_gaussianReal_abs_mul}
+\leanok
+\uses{cor:sg-tal:eta-full-overlap-shifted-bound}
+\talsource{Eqs.~(1.353)--(1.357)}
+At $u=0$, an old-spin observable and a last-spin observable factor after averaging over
+their independent disorders; all old replicas share the same old disorder.
+For any signed $\beta$ with $4\beta^2<1$, the reduced inverse temperature
+$\beta_- = \beta\sqrt{(N+1)/(N+2)}$ has a fixed point $q_-$ with
+$|q-q_-|\le1/(N+2)$. Consequently the preceding corollary applies to the
+$(N+1)$-spin old system while retaining the original $(N+2)^{-1}$ overlap normalization:
+its spin-difference/product expectation is bounded by $K(N+2)^{-(b+m)/2}$,
+with $K$ uniform in the size, field, and $\beta^2\le\beta_0^2$.
+\end{lemma}
+\begin{proof}
+\leanok
+Use the finite tilted product factorization. Gaussian reflection handles either sign of
+$\beta$ in the existing fixed-point shift estimate. The identity for the cavity interaction
+coefficient identifies the old Gibbs measure with the reduced SK measure.
+Its overlap centering becomes $(N+2)q/(N+1)$, within $2/(N+1)$ of $q_-$.
+The ratio of consecutive sizes is at most two, so the bound retains a uniform constant.
 \end{proof}
 
 \begin{lemma}[Rectangular sum identities]\label{lem:sg-tal:hanen-rect-diff}
