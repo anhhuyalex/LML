@@ -87,10 +87,7 @@ theorem sk_eta_full_overlap_shift_bound (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 
         (∏ j ∈ I, B j σ) = ∏ j ∈ J, (σ j (Fin.last N) : ℝ) := by
       apply hprod (fun j => (σ j (Fin.last N) : ℝ))
       intro j
-      calc
-        (σ j (Fin.last N) : ℝ) * (σ j (Fin.last N) : ℝ) =
-            |(σ j (Fin.last N) : ℝ)| ^ 2 := by rw [sq_abs, pow_two]
-        _ = 1 := by rw [abs_units_cast_eq_one]; norm_num
+      simpa only [pow_two] using units_cast_sq (σ j (Fin.last N))
     have hc : ((Finset.univ : Finset (Fin s)).biUnion
         (fun v => {(pairMap v).1, (pairMap v).2}) ∩ J).card ≤ 2 * I.card :=
       (Finset.card_le_card Finset.inter_subset_right).trans hJ

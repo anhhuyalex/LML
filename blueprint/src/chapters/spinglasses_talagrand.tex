@@ -8089,8 +8089,9 @@ base case $m=0$ of Theorem~1.11.9 (\texttt{sk\_hanen\_pairing\_derivative\_zero}
 the hyperbolic identity $\alpha = \mathbb E\operatorname{ch}^{-4} Y$
 (\texttt{alpha\_eq\_integral\_inv\_cosh\_four}) and standard Gaussian moments
 (\texttt{gaussian\_moment\_odd}, \texttt{gaussian\_moment\_even}) are verified.
-In progress: induction for H3, H4 (Propositions~1.11.10--1.11.11) and H5 (Hanen's Theorem~1.11.1).
-Five proof placeholders remain in these results, including both parity cases of H5.
+The odd case of H5 is proved (Theorem~\ref{thm:sg-tal:hanen-odd}), using the endpoint
+derivative bounds and Taylor expansion. In progress: the H3 induction, H4
+(Propositions~1.11.10--1.11.11) and the even case of H5. Four proof placeholders remain.
 The roadmap for Section~1.11 is structured into steps H0--H5:
 \begin{enumerate}
 \item \emph{H0: Blueprint statements.} Mathematical statements for Lemma~1.11.3,
@@ -8362,6 +8363,30 @@ There exists $K(p, \beta_0)$ such that for all $\beta^2 \le \beta_0^2$ and $N \g
 \le \frac{K(p, \beta_0)}{(N+1)^{(2p+1)/2}}.
 \]
 \end{proposition}
+
+\begin{theorem}[Odd moments in Hanen's Theorem]\label{thm:sg-tal:hanen-odd}
+\lean{SpinGlasses.sk_hanen_theorem_odd, SpinGlasses.sk_hanen_odd_spin_product_bound, SpinGlasses.sk_hanen_endpoint_derivative_bound}
+\leanok
+\uses{lem:sg-tal:cavity-iterated-deriv-bound,lem:sg-tal:cavity-deriv-zero-vanishing,lem:sg-tal:hanen-reduced-system,lem:sg-tal:hanen-cov-powers,lem:sg-tal:hanen-cov-site-symmetry}
+\talsource{Theorem~1.11.1, odd case; Eqs.~(1.349)--(1.358)}
+Fix $p\in\mathbb N$ and $4\beta_0^2<1$. There is $K(p,\beta_0)>0$ such that, for
+all $\beta^2\le\beta_0^2$, deterministic $h$, fixed points
+$q=\mathbb E\tanh^2(\beta\sqrt q Z+h)$, system sizes $N+1$, and distinct sites $i,j$,
+\[
+\left|\mathbb E\left(\langle\sigma_i\sigma_j\rangle
+ -\langle\sigma_i\rangle\langle\sigma_j\rangle\right)^{2p+1}\right|
+\le \frac{K(p,\beta_0)}{(N+1)^{p+1}}.
+\]
+\end{theorem}
+\begin{proof}
+\leanok
+At two canonical distinct sites, expand the corresponding replica spin product through
+order $2p+1$. Derivatives of order at most $p$ vanish. The derivative of order $r>p$
+at the endpoint is $O((N+1)^{-(p+1+r)/2})$, by the iterated-kernel expansion and the
+reduced-system bound. Each such Taylor term is therefore $O((N+1)^{-(p+1)})$.
+Lemma~1.11.3 bounds the remainder at the same order. The covariance-power identity
+and site permutation invariance transfer the result to arbitrary distinct sites.
+\end{proof}
 
 \begin{theorem}[Hanen's Theorem]\label{thm:sg-tal:hanen-theorem}
 \talsource{Theorem~1.11.1, Eq.~(1.329)}
