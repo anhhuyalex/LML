@@ -81,21 +81,18 @@ theorem rect_mul_prod_pair {R : Type*} [CommRing R] (ε : α → R) (p q : α ×
 For any decomposition $R(x, y) - q = T_{x, y} + T_x + T_y + T$, the rectangular difference
 $(R x₁ y₁ - q) - (R x₂ y₁ - q) - (R x₁ y₂ - q) + (R x₂ y₂ - q)$
 equals $T_{x₁ y₁} - T_{x₂ y₁} - T_{x₁ y₂} + T_{x₂ y₂}$. -/
-theorem rect_overlap_sub_q_eq_rect_T (R T_pair : α → α → ℝ) (T_single : α → ℝ)
-    (T_global q : ℝ)
+theorem rect_overlap_sub_q_eq_rect_T (R T_pair : α → α → β) (T_single : α → β)
+    (T_global q : β)
     (hdecomp : ∀ x y, R x y - q = T_pair x y + T_single x + T_single y + T_global)
     (x₁ x₂ y₁ y₂ : α) :
     (R x₁ y₁ - q) - (R x₂ y₁ - q) - (R x₁ y₂ - q) + (R x₂ y₂ - q) =
       T_pair x₁ y₁ - T_pair x₂ y₁ - T_pair x₁ y₂ + T_pair x₂ y₂ := by
-  have h1 := hdecomp x₁ y₁
-  have h2 := hdecomp x₂ y₁
-  have h3 := hdecomp x₁ y₂
-  have h4 := hdecomp x₂ y₂
-  linarith
+  rw [hdecomp x₁ y₁, hdecomp x₂ y₁, hdecomp x₁ y₂, hdecomp x₂ y₂]
+  abel
 
 /-- Pair form of `rect_overlap_sub_q_eq_rect_T`. -/
-theorem rect_overlap_sub_q_eq_rect_T_pair (R T_pair : α → α → ℝ) (T_single : α → ℝ)
-    (T_global q : ℝ)
+theorem rect_overlap_sub_q_eq_rect_T_pair (R T_pair : α → α → β) (T_single : α → β)
+    (T_global q : β)
     (hdecomp : ∀ x y, R x y - q = T_pair x y + T_single x + T_single y + T_global)
     (p q_pair : α × α) :
     (R p.1 q_pair.1 - q) - (R p.2 q_pair.1 - q) - (R p.1 q_pair.2 - q) + (R p.2 q_pair.2 - q) =

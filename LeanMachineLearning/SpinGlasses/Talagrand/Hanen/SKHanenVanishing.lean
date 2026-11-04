@@ -16,6 +16,8 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteTilted
 public import Mathlib.Data.Finset.Card
 public import Mathlib.Data.Finset.Union
 public import Mathlib.Data.Finset.Erase
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 public import Mathlib.Algebra.Order.BigOperators.Group.Finset
 
 /-!
@@ -27,9 +29,8 @@ endpoint of the cavity path:
   (`exists_disjoint_of_card_inter_biUnion_lt`).
 * General vanishing of coordinate differences under product measures
   (`integral_spin_diff_eq_zero_of_indep`).
-* Talagrand's Lemma 1.11.4: `ν₀(η_V ε_J f̂) = 0` whenever `card (V* ∩ J) < card V`.
-* Talagrand's Lemma 1.11.5: `ν₀^{(m)}(η_V ε_J f̂ f⁻) = 0` whenever `2m + r < s` for `card V = s`
-  and `card (V* ∩ J) ≤ r`.
+* Decoupled vanishing for spin-difference products, including extra spin-pair factors.
+  The connection to the derivatives in Talagrand's Lemma 1.11.5 remains open.
 -/
 
 @[expose] public section
@@ -57,16 +58,12 @@ theorem exists_disjoint_of_card_inter_biUnion_lt {α β : Type*} [DecidableEq β
   have hsum : V.card ≤ ∑ v ∈ V, (S v ∩ J).card := by
     rw [card_eq_sum_ones]
     exact Finset.sum_le_sum fun v hv => hle v hv
-  have heq : (V.biUnion S ∩ J) = V.biUnion (fun v => S v ∩ J) := by
-    ext x
-    simp only [mem_inter, mem_biUnion]
-    tauto
   have hdisj' : (V : Set α).PairwiseDisjoint (fun v => S v ∩ J) := by
     intro u hu w hw huw
     exact (hdisj hu hw huw).mono inter_subset_left inter_subset_left
   have hcard_eq : (V.biUnion (fun v => S v ∩ J)).card = ∑ v ∈ V, (S v ∩ J).card :=
     Finset.card_biUnion hdisj'
-  rw [heq, hcard_eq] at hcard
+  rw [Finset.biUnion_inter, hcard_eq] at hcard
   omega
 
 /-- **General vanishing of coordinate differences under a product measure.**
@@ -142,27 +139,191 @@ theorem exists_pair_disjoint_of_card_lt {α β : Type*} [DecidableEq β]
     · exact h4
   obtain ⟨v, hv, hdisj_v⟩ := exists_disjoint_of_card_inter_biUnion_lt V
     (fun v => {(pairMap v).1, (pairMap v).2}) J hpair_disj hcard
-  refine ⟨v, hv, ?_, ?_⟩
-  · intro h1
-    have : (pairMap v).1 ∈ {(pairMap v).1, (pairMap v).2} ∩ J := by
-      simp [h1]
-    have : ¬Disjoint {(pairMap v).1, (pairMap v).2} J := by
-      rw [Finset.disjoint_iff_ne]
-      intro hneg
-      exact hneg (pairMap v).1 (by simp) (pairMap v).1 h1 rfl
-    contradiction
-  · intro h2
-    have : (pairMap v).2 ∈ {(pairMap v).1, (pairMap v).2} ∩ J := by
-      simp [h2]
-    have : ¬Disjoint {(pairMap v).1, (pairMap v).2} J := by
-      rw [Finset.disjoint_iff_ne]
-      intro hneg
-      exact hneg (pairMap v).2 (by simp) (pairMap v).2 h2 rfl
-    contradiction
+  obtain ⟨h1, h2⟩ := Finset.disjoint_insert_left.mp hdisj_v
+  exact ⟨v, hv, h1, Finset.disjoint_singleton_left.mp h2⟩
 
-/-- **Talagrand's Lemma 1.11.4.** Decoupled vanishing of spin differences:
-If `card (V* ∩ J) < card V`, then for any function `f̂` independent of the last spins of `V*`,
-the expectation of `η_V · ε_J · f̂` under the decoupled measure vanishes identically. -/
+/-- Cardinality bound for derivative index sets: adding `m` pairs of replica indices to `J`
+increases the intersection with `V*` by at most `2 * m`. If `2 * m + r < card V` and
+`card (V* ∩ J) ≤ r`, then the union still intersects `V*` strictly less than `card V`. -/
+theorem card_inter_biUnion_union_pairs_lt {α β : Type*} [DecidableEq β]
+    (V : Finset α) (S : α → Finset β) (J : Finset β)
+    {m r : ℕ} (p : Fin m → β × β)
+    (hcard : (V.biUnion S ∩ J).card ≤ r)
+    (hr : 2 * m + r < V.card) :
+    (V.biUnion S ∩ (J ∪ Finset.univ.biUnion (fun j => {(p j).1, (p j).2}))).card < V.card := by
+  let Jpairs : Finset β := Finset.univ.biUnion (fun j => {(p j).1, (p j).2})
+  have h_inter : V.biUnion S ∩ (J ∪ Jpairs) = (V.biUnion S ∩ J) ∪ (V.biUnion S ∩ Jpairs) :=
+    Finset.inter_union_distrib_left (V.biUnion S) J Jpairs
+  rw [h_inter]
+  have h_le := card_union_le (V.biUnion S ∩ J) (V.biUnion S ∩ Jpairs)
+  have h_sub : (V.biUnion S ∩ Jpairs).card ≤ Jpairs.card := card_le_card inter_subset_right
+  have h_pairs : Jpairs.card ≤ 2 * m := by
+    simpa [Jpairs, mul_comm] using
+      Finset.card_biUnion_le_card_mul (univ : Finset (Fin m))
+        (fun j => {(p j).1, (p j).2}) 2 (fun _ _ => card_insert_le _ _)
+  omega
+
+/-- Decoupled vanishing for products with extra spin-pair factors:
+For any set of replica pairs `V` with `card V = s`, and any index set `J` with
+`card (V* ∩ J) ≤ r`, if `2 * m + r < s`, then the decoupled expectation of any product formed by
+`F` (depending only on the first `N` spins), `η_V`, `ε_J`, `m` pairs of derivative spins, and
+`f̂` (independent of `V*`), vanishes identically. This is a step towards Lemma 1.11.5;
+the identification with the iterated cavity derivative is not part of this statement. -/
+theorem sk_cavity_deriv_zero_vanishing {α : Type*} [Finite α]
+    [MeasurableSpace α] [MeasurableSingletonClass α] {n : ℕ}
+    (A : α → ℝ) (Y : ℝ) (V : Finset (Fin n)) (pairMap : Fin n → Fin n × Fin n)
+    (hdisj : ∀ u ∈ V, ∀ v ∈ V, u ≠ v →
+      (pairMap u).1 ≠ (pairMap v).1 ∧ (pairMap u).1 ≠ (pairMap v).2 ∧
+      (pairMap u).2 ≠ (pairMap v).1 ∧ (pairMap u).2 ≠ (pairMap v).2)
+    (J : Finset (Fin n)) {m r : ℕ} (p : Fin m → Fin n × Fin n)
+    (hcard : (V.biUnion (fun v => {(pairMap v).1, (pairMap v).2}) ∩ J).card ≤ r)
+    (hr : 2 * m + r < V.card)
+    (F : (Fin n → α) → ℝ)
+    (fhat : (Fin n → ℤˣ) → ℝ)
+    (hfhat : ∀ (ε : Fin n → ℤˣ) (i : Fin n) (t : ℤˣ),
+      i ∈ V.biUnion (fun v => {(pairMap v).1, (pairMap v).2}) →
+      fhat (Function.update ε i t) = fhat ε) :
+    ∫ σ : Fin n → α × ℤˣ, F (fun r => (σ r).1) *
+        (∏ w ∈ V, ((((σ (pairMap w).1).2 : ℤˣ) : ℝ) - (((σ (pairMap w).2).2 : ℤˣ) : ℝ))) *
+        (∏ j ∈ J, (((σ j).2 : ℤˣ) : ℝ)) *
+        (∏ j : Fin m, (((σ (p j).1).2 : ℤˣ) : ℝ) * (((σ (p j).2).2 : ℤˣ) : ℝ)) *
+        fhat (fun r => (σ r).2)
+      ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
+        fun x : α × ℤˣ => A x.1 + ((x.2 : ℤˣ) : ℝ) * Y) = 0 := by
+  have heq : (fun σ : Fin n → α × ℤˣ => F (fun r => (σ r).1) *
+      (∏ w ∈ V, ((((σ (pairMap w).1).2 : ℤˣ) : ℝ) - (((σ (pairMap w).2).2 : ℤˣ) : ℝ))) *
+      (∏ j ∈ J, (((σ j).2 : ℤˣ) : ℝ)) *
+      (∏ j : Fin m, (((σ (p j).1).2 : ℤˣ) : ℝ) * (((σ (p j).2).2 : ℤˣ) : ℝ)) *
+      fhat (fun r => (σ r).2)) =
+    fun σ => F (fun r => (σ r).1) *
+      ((∏ w ∈ V, ((((σ (pairMap w).1).2 : ℤˣ) : ℝ) - (((σ (pairMap w).2).2 : ℤˣ) : ℝ))) *
+      (∏ j ∈ J, (((σ j).2 : ℤˣ) : ℝ)) *
+      (∏ j : Fin m, (((σ (p j).1).2 : ℤˣ) : ℝ) * (((σ (p j).2).2 : ℤˣ) : ℝ)) *
+      fhat (fun r => (σ r).2)) := by
+    funext σ
+    ring
+  simp_rw [heq]
+  rw [integral_pi_count_tilted_decoupled_prod A Y F
+    (fun ε => (∏ w ∈ V, (((ε (pairMap w).1 : ℤˣ) : ℝ) - ((ε (pairMap w).2 : ℤˣ) : ℝ))) *
+      (∏ j ∈ J, ((ε j : ℤˣ) : ℝ)) *
+      (∏ j : Fin m, (((ε (p j).1 : ℤˣ) : ℝ) * ((ε (p j).2 : ℤˣ) : ℝ))) *
+      fhat ε)]
+  suffices hH : (∫ ε,
+      (∏ w ∈ V, (((ε (pairMap w).1 : ℤˣ) : ℝ) - ((ε (pairMap w).2 : ℤˣ) : ℝ))) *
+      (∏ j ∈ J, ((ε j : ℤˣ) : ℝ)) *
+      (∏ j : Fin m, (((ε (p j).1 : ℤˣ) : ℝ) * ((ε (p j).2 : ℤˣ) : ℝ))) *
+      fhat ε
+      ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
+        fun s : ℤˣ => ((s : ℤˣ) : ℝ) * Y)) = 0 by
+    rw [hH, mul_zero]
+  let Jpairs : Finset (Fin n) := Finset.univ.biUnion (fun j => {(p j).1, (p j).2})
+  have hcard_union := card_inter_biUnion_union_pairs_lt V
+    (fun v => {(pairMap v).1, (pairMap v).2}) J p hcard hr
+  obtain ⟨v, hv, hp1_not, hp2_not⟩ := exists_pair_disjoint_of_card_lt V pairMap
+    (J ∪ Jpairs) hdisj hcard_union
+  obtain ⟨hp1_J, hp1_pairs⟩ := Finset.notMem_union.mp hp1_not
+  obtain ⟨hp2_J, hp2_pairs⟩ := Finset.notMem_union.mp hp2_not
+  set p1 := (pairMap v).1
+  set p2 := (pairMap v).2
+  by_cases h12 : p1 = p2
+  · have hzero (ε : Fin n → ℤˣ) : ((ε p1 : ℤˣ) : ℝ) - ((ε p2 : ℤˣ) : ℝ) = 0 := by
+      rw [h12, sub_self]
+    have hprod_zero (ε : Fin n → ℤˣ) :
+        (∏ w ∈ V, (((ε (pairMap w).1 : ℤˣ) : ℝ) - ((ε (pairMap w).2 : ℤˣ) : ℝ))) = 0 := by
+      rw [(Finset.insert_erase hv).symm, Finset.prod_insert (Finset.notMem_erase v V)]
+      rw [mul_eq_zero]
+      left
+      exact hzero ε
+    have hint_zero : (fun ε : Fin n → ℤˣ =>
+        (∏ w ∈ V, (((ε (pairMap w).1 : ℤˣ) : ℝ) - ((ε (pairMap w).2 : ℤˣ) : ℝ))) *
+        (∏ j ∈ J, ((ε j : ℤˣ) : ℝ)) *
+        (∏ j : Fin m, (((ε (p j).1 : ℤˣ) : ℝ) * ((ε (p j).2 : ℤˣ) : ℝ))) *
+        fhat ε) = fun _ => 0 := by
+      funext ε
+      simp [hprod_zero ε]
+    simp_rw [hint_zero]
+    exact integral_zero (α := Fin n → ℤˣ) (G := ℝ)
+  · set G : (Fin n → ℤˣ) → ℝ := fun ε =>
+        (∏ w ∈ V.erase v, (((ε (pairMap w).1 : ℤˣ) : ℝ) - ((ε (pairMap w).2 : ℤˣ) : ℝ))) *
+        (∏ j ∈ J, ((ε j : ℤˣ) : ℝ)) *
+        (∏ j : Fin m, (((ε (p j).1 : ℤˣ) : ℝ) * ((ε (p j).2 : ℤˣ) : ℝ))) *
+        fhat ε
+    have hsplit : V = insert v (V.erase v) := (Finset.insert_erase hv).symm
+    have hp1_mem : p1 ∈ V.biUnion (fun v => {(pairMap v).1, (pairMap v).2}) := by
+      rw [Finset.mem_biUnion]
+      exact ⟨v, hv, by simp [p1]⟩
+    have hp2_mem : p2 ∈ V.biUnion (fun v => {(pairMap v).1, (pairMap v).2}) := by
+      rw [Finset.mem_biUnion]
+      exact ⟨v, hv, by simp [p2]⟩
+    have hG_p1 (ε : Fin n → ℤˣ) (t : ℤˣ) : G (Function.update ε p1 t) = G ε := by
+      dsimp [G]
+      congr 1
+      · congr 1
+        · congr 1
+          · refine Finset.prod_congr rfl fun w hw => ?_
+            have hwV : w ∈ V := Finset.mem_of_mem_erase hw
+            have hne : w ≠ v := Finset.ne_of_mem_erase hw
+            obtain ⟨h_u1, h_u2, -, -⟩ := hdisj v hv w hwV hne.symm
+            rw [Function.update_of_ne h_u1.symm, Function.update_of_ne h_u2.symm]
+          · refine Finset.prod_congr rfl fun j hj => ?_
+            have : j ≠ p1 := ne_of_mem_of_not_mem hj hp1_J
+            rw [Function.update_of_ne this]
+        · refine Finset.prod_congr rfl fun j hj => ?_
+          have h1 : (p j).1 ≠ p1 := by
+            intro heq
+            apply hp1_pairs
+            rw [Finset.mem_biUnion]
+            exact ⟨j, Finset.mem_univ j, by simp [heq]⟩
+          have h2 : (p j).2 ≠ p1 := by
+            intro heq
+            apply hp1_pairs
+            rw [Finset.mem_biUnion]
+            exact ⟨j, Finset.mem_univ j, by simp [heq]⟩
+          rw [Function.update_of_ne h1, Function.update_of_ne h2]
+      · exact hfhat ε p1 t hp1_mem
+    have hG_p2 (ε : Fin n → ℤˣ) (t : ℤˣ) : G (Function.update ε p2 t) = G ε := by
+      dsimp [G]
+      congr 1
+      · congr 1
+        · congr 1
+          · refine Finset.prod_congr rfl fun w hw => ?_
+            have hwV : w ∈ V := Finset.mem_of_mem_erase hw
+            have hne : w ≠ v := Finset.ne_of_mem_erase hw
+            obtain ⟨-, -, h_u1, h_u2⟩ := hdisj v hv w hwV hne.symm
+            rw [Function.update_of_ne h_u1.symm, Function.update_of_ne h_u2.symm]
+          · refine Finset.prod_congr rfl fun j hj => ?_
+            have : j ≠ p2 := ne_of_mem_of_not_mem hj hp2_J
+            rw [Function.update_of_ne this]
+        · refine Finset.prod_congr rfl fun j hj => ?_
+          have h1 : (p j).1 ≠ p2 := by
+            intro heq
+            apply hp2_pairs
+            rw [Finset.mem_biUnion]
+            exact ⟨j, Finset.mem_univ j, by simp [heq]⟩
+          have h2 : (p j).2 ≠ p2 := by
+            intro heq
+            apply hp2_pairs
+            rw [Finset.mem_biUnion]
+            exact ⟨j, Finset.mem_univ j, by simp [heq]⟩
+          rw [Function.update_of_ne h1, Function.update_of_ne h2]
+      · exact hfhat ε p2 t hp2_mem
+    have hpt (ε : Fin n → ℤˣ) :
+        (∏ w ∈ V, (((ε (pairMap w).1 : ℤˣ) : ℝ) - ((ε (pairMap w).2 : ℤˣ) : ℝ))) *
+        (∏ j ∈ J, ((ε j : ℤˣ) : ℝ)) *
+        (∏ j : Fin m, (((ε (p j).1 : ℤˣ) : ℝ) * ((ε (p j).2 : ℤˣ) : ℝ))) *
+        fhat ε =
+        (((ε p1 : ℤˣ) : ℝ) - ((ε p2 : ℤˣ) : ℝ)) * G ε := by
+      rw [hsplit, Finset.prod_insert (Finset.notMem_erase v V)]
+      dsimp [G]
+      ring
+    simp_rw [hpt]
+    exact integral_spin_diff_eq_zero_of_indep
+      (fun _ : Fin n => Measure.count.tilted fun s : ℤˣ => ((s : ℤˣ) : ℝ) * Y)
+      p1 p2 h12
+      (fun s => ((s : ℤˣ) : ℝ)) (fun s => ((s : ℤˣ) : ℝ))
+      rfl G hG_p1 hG_p2
+
+/-- Decoupled vanishing for a spin-difference product and a product of spins. -/
 theorem sk_cavity_decoupled_vanishing {α : Type*} [Finite α]
     [MeasurableSpace α] [MeasurableSingletonClass α] {n : ℕ}
     (A : α → ℝ) (Y : ℝ) (V : Finset (Fin n)) (pairMap : Fin n → Fin n × Fin n)
@@ -177,81 +338,10 @@ theorem sk_cavity_decoupled_vanishing {α : Type*} [Finite α]
         (∏ j ∈ J, (((σ j).2 : ℤˣ) : ℝ))
       ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
         fun x : α × ℤˣ => A x.1 + ((x.2 : ℤˣ) : ℝ) * Y) = 0 := by
-  have heq : (fun σ : Fin n → α × ℤˣ => F (fun r => (σ r).1) *
-      (∏ w ∈ V, ((((σ (pairMap w).1).2 : ℤˣ) : ℝ) - (((σ (pairMap w).2).2 : ℤˣ) : ℝ))) *
-      (∏ j ∈ J, (((σ j).2 : ℤˣ) : ℝ))) =
-    fun σ => F (fun r => (σ r).1) *
-      ((∏ w ∈ V, ((((σ (pairMap w).1).2 : ℤˣ) : ℝ) - (((σ (pairMap w).2).2 : ℤˣ) : ℝ))) *
-      (∏ j ∈ J, (((σ j).2 : ℤˣ) : ℝ))) := by
-    funext σ
-    ring
-  simp_rw [heq]
-  rw [integral_pi_count_tilted_decoupled_prod A Y F
-    (fun ε => (∏ w ∈ V, (((ε (pairMap w).1 : ℤˣ) : ℝ) - ((ε (pairMap w).2 : ℤˣ) : ℝ))) *
-      ∏ j ∈ J, ((ε j : ℤˣ) : ℝ))]
-  suffices hH : (∫ ε,
-      (∏ w ∈ V, (((ε (pairMap w).1 : ℤˣ) : ℝ) - ((ε (pairMap w).2 : ℤˣ) : ℝ))) *
-      ∏ j ∈ J, ((ε j : ℤˣ) : ℝ)
-      ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
-        fun s : ℤˣ => ((s : ℤˣ) : ℝ) * Y)) = 0 by
-    rw [hH, mul_zero]
-  obtain ⟨v, hv, hp1, hp2⟩ := exists_pair_disjoint_of_card_lt V pairMap J hdisj hcard
-  set p1 := (pairMap v).1
-  set p2 := (pairMap v).2
-  by_cases h12 : p1 = p2
-  · have hzero (ε : Fin n → ℤˣ) : ((ε p1 : ℤˣ) : ℝ) - ((ε p2 : ℤˣ) : ℝ) = 0 := by
-      rw [h12, sub_self]
-    have hprod_zero (ε : Fin n → ℤˣ) :
-        (∏ w ∈ V, (((ε (pairMap w).1 : ℤˣ) : ℝ) - ((ε (pairMap w).2 : ℤˣ) : ℝ))) = 0 := by
-      rw [(Finset.insert_erase hv).symm, Finset.prod_insert (Finset.notMem_erase v V)]
-      rw [mul_eq_zero]
-      left
-      exact hzero ε
-    have hint_zero : (fun ε : Fin n → ℤˣ =>
-        (∏ w ∈ V, (((ε (pairMap w).1 : ℤˣ) : ℝ) - ((ε (pairMap w).2 : ℤˣ) : ℝ))) *
-        ∏ j ∈ J, ((ε j : ℤˣ) : ℝ)) = fun _ => 0 := by
-      funext ε
-      simp [hprod_zero ε]
-    simp_rw [hint_zero]
-    exact integral_zero (α := Fin n → ℤˣ) (G := ℝ)
-  · set G : (Fin n → ℤˣ) → ℝ := fun ε =>
-        (∏ w ∈ V.erase v, (((ε (pairMap w).1 : ℤˣ) : ℝ) - ((ε (pairMap w).2 : ℤˣ) : ℝ))) *
-        ∏ j ∈ J, ((ε j : ℤˣ) : ℝ)
-    have hsplit : V = insert v (V.erase v) := (Finset.insert_erase hv).symm
-    have hG_p1 (ε : Fin n → ℤˣ) (t : ℤˣ) : G (Function.update ε p1 t) = G ε := by
-      dsimp [G]
-      congr 1
-      · refine Finset.prod_congr rfl fun w hw => ?_
-        have hwV : w ∈ V := Finset.mem_of_mem_erase hw
-        have hne : w ≠ v := Finset.ne_of_mem_erase hw
-        obtain ⟨h_u1, h_u2, -, -⟩ := hdisj v hv w hwV hne.symm
-        rw [Function.update_of_ne h_u1.symm, Function.update_of_ne h_u2.symm]
-      · refine Finset.prod_congr rfl fun j hj => ?_
-        have : j ≠ p1 := ne_of_mem_of_not_mem hj hp1
-        rw [Function.update_of_ne this]
-    have hG_p2 (ε : Fin n → ℤˣ) (t : ℤˣ) : G (Function.update ε p2 t) = G ε := by
-      dsimp [G]
-      congr 1
-      · refine Finset.prod_congr rfl fun w hw => ?_
-        have hwV : w ∈ V := Finset.mem_of_mem_erase hw
-        have hne : w ≠ v := Finset.ne_of_mem_erase hw
-        obtain ⟨-, -, h_u1, h_u2⟩ := hdisj v hv w hwV hne.symm
-        rw [Function.update_of_ne h_u1.symm, Function.update_of_ne h_u2.symm]
-      · refine Finset.prod_congr rfl fun j hj => ?_
-        have : j ≠ p2 := ne_of_mem_of_not_mem hj hp2
-        rw [Function.update_of_ne this]
-    have hpt (ε : Fin n → ℤˣ) :
-        (∏ w ∈ V, (((ε (pairMap w).1 : ℤˣ) : ℝ) - ((ε (pairMap w).2 : ℤˣ) : ℝ))) *
-        ∏ j ∈ J, ((ε j : ℤˣ) : ℝ) =
-        (((ε p1 : ℤˣ) : ℝ) - ((ε p2 : ℤˣ) : ℝ)) * G ε := by
-      rw [hsplit, Finset.prod_insert (Finset.notMem_erase v V)]
-      dsimp [G]
-      ring
-    simp_rw [hpt]
-    exact integral_spin_diff_eq_zero_of_indep
-      (fun _ : Fin n => Measure.count.tilted fun s : ℤˣ => ((s : ℤˣ) : ℝ) * Y)
-      p1 p2 h12
-      (fun s => ((s : ℤˣ) : ℝ)) (fun s => ((s : ℤˣ) : ℝ))
-      rfl G hG_p1 hG_p2
+  have h := sk_cavity_deriv_zero_vanishing A Y V pairMap hdisj J
+    (m := 0) (r := (V.biUnion (fun v => {(pairMap v).1, (pairMap v).2}) ∩ J).card)
+    (fun j => Fin.elim0 j) (le_refl _) (by simpa using hcard) F (fun _ => 1)
+    (by intros; rfl)
+  simpa using h
 
 end SpinGlasses

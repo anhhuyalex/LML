@@ -11,6 +11,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityDom
 public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityContraction
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKCavityTaylor
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.HigherOrderCavity.SKCavityHigherOrderMoments
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Contractions.SKOverlapCLTStep
 
 /-!
 # Iterated cavity derivatives and Taylor bounds
@@ -23,10 +24,9 @@ This module formalizes the quantitative differential calculus along the cavity p
   with respect to $u$.
 * `hasDerivAt_skCavityPathMean`: differentiability of $u \mapsto \nu_u(f)$ on $(0, 1)$ via
   `hasDerivAt_integral_sk_cavity_path_square`.
-* **Lemma 1.11.3** (`sk_cavity_first_deriv_bound`): the first derivative along the cavity path
-  satisfies $|\nu_u'(f)| \le K (N+1)^{-1/2} \nu_1(f^2)^{1/2}$.
-* **Lemma 1.11.5** (`sk_cavity_decoupled_spin_vanishing`): vanishing of spin-difference observables
-  under the decoupled endpoint $\nu_0$ whenever $2m + r < s$.
+* Bounds for coupled expectations of products of truncated centered overlaps.
+
+The iterated derivative bounds and their connection to decoupled vanishing remain open.
 -/
 
 @[expose] public section
@@ -57,7 +57,8 @@ noncomputable def skCavityPathMean (N n : ℕ) (β q h : ℝ) (u : ℝ)
     ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
   ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
 
-/-- The cavity interaction kernel $K(a, b) = \beta^2 \varepsilon(a) \varepsilon(b) (R^-(a, b) - q)$. -/
+/-- The cavity interaction kernel:
+$K(a, b) = \beta^2 \varepsilon(a) \varepsilon(b) (R^-(a, b) - q)$. -/
 noncomputable def skCavityPathKernel (N : ℕ) (β q : ℝ)
     (a b : Fin (N + 1) → ℤˣ) : ℝ :=
   β ^ 2 * (a (Fin.last N) : ℝ) * (b (Fin.last N) : ℝ) *
@@ -143,12 +144,8 @@ theorem abs_skCavityPathDerivKernel_le (N n : ℕ) (β q : ℝ)
           skCavityTruncDev N q (τ (some (some r))) (τ (some none)) +
         (n : ℝ) * ((n : ℝ) + 1) / 2 *
           skCavityTruncDev N q (τ (some none)) (τ none)) := by
-    have h1 := abs_add_le (X - Y) Z
-    have h2 : |X - Y| ≤ |X| + |Y| := by
-      rw [sub_eq_add_neg]
-      refine (abs_add_le X (-Y)).trans ?_
-      simp only [abs_neg, le_rfl]
-    have htri : |X - Y + Z| ≤ |X| + |Y| + |Z| := by linarith
+    have htri : |X - Y + Z| ≤ |X| + |Y| + |Z| := by
+      linarith [abs_add_le (X - Y) Z, abs_sub X Y]
     refine htri.trans ?_
     have hX : |X| ≤ β ^ 2 * ∑ p : Fin n × Fin n with p.1 < p.2,
         skCavityTruncDev N q (τ (some (some p.1))) (τ (some (some p.2))) := by
@@ -176,5 +173,119 @@ theorem abs_skCavityPathDerivKernel_le (N n : ℕ) (β q : ℝ)
   calc |f (fun r => τ (some (some r)))| * |X - Y + Z| ≤
       |f (fun r => τ (some (some r)))| * (β ^ 2 * _) := h_prod
   _ = β ^ 2 * |f (fun r => τ (some (some r)))| * _ := by ring
+
+/-- A coupled expectation containing `m` truncated overlap deviations and a uniformly
+bounded observable is `O((N + 1)^(-m/2))`. This is not an iterated derivative bound. -/
+theorem sk_cavity_iterated_deriv_bound (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
+    (n m : ℕ) (M : ℝ) :
+    ∃ K : ℝ, 0 < K ∧ ∀ (β h q : ℝ),
+      (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂gaussianReal 0 1 = q) →
+      β ^ 2 ≤ β₀ ^ 2 → ∀ (N : ℕ) (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ),
+      (∀ σ, |f σ| ≤ M) →
+      ∀ (p : Fin m → Fin n × Fin n),
+      (∀ j, (p j).1 ≠ (p j).2) →
+      let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g σ =>
+        (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
+          h * ∑ i : Fin (N + 1), (σ i : ℝ)
+      let ν : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) → ℝ := fun F =>
+        ∫ g, ∫ σ, F σ ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (E g))
+          ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)
+      |ν (fun σ => f σ * ∏ j : Fin m,
+          ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ (p j).1 i.castSucc : ℝ)) ⬝ᵥ
+            fun i : Fin N => (σ (p j).2 i.castSucc : ℝ)) - q))| ≤
+        K / ((N : ℝ) + 1) ^ (((m : ℕ) : ℝ) / 2) := by
+  obtain ⟨H, hH0, hH⟩ := sk_cavity_prod_sq_le β₀ hβ₀ m M
+  refine ⟨Real.sqrt H + 1, by positivity, ?_⟩
+  intro β h q hfix hb N f hf p hp E ν
+  let F : (Fin n → Fin (N + 1) → ℤˣ) → ℝ := fun σ =>
+    f σ * ∏ j : Fin m,
+      ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ (p j).1 i.castSucc : ℝ)) ⬝ᵥ
+        fun i : Fin N => (σ (p j).2 i.castSucc : ℝ)) - q)
+  have h_sq := hH β h q hfix hb N n (fun j => (p j).1) (fun j => (p j).2) hp f hf
+  change ν (fun σ => F σ ^ 2) ≤ H / ((N : ℝ) + 1) ^ m at h_sq
+  have h_cs : (ν F) ^ 2 ≤ ν (fun σ => F σ ^ 2) := sk_nu_sq_le N n β h ν (fun _ => rfl) F
+  have h_abs : |ν F| ≤ Real.sqrt (ν (fun σ => F σ ^ 2)) := by
+    rw [← Real.sqrt_sq_eq_abs]
+    exact Real.sqrt_le_sqrt h_cs
+  have h_trans := h_abs.trans (Real.sqrt_le_sqrt h_sq)
+  refine h_trans.trans ?_
+  have hN_pos : (0 : ℝ) < (N : ℝ) + 1 := by positivity
+  rw [Real.sqrt_div hH0.le]
+  have h_pow : Real.sqrt (((N : ℝ) + 1) ^ m) = ((N : ℝ) + 1) ^ (((m : ℕ) : ℝ) / 2) := by
+    rw [Real.sqrt_eq_rpow, ← Real.rpow_natCast, ← Real.rpow_mul hN_pos.le]
+    ring_nf
+  rw [h_pow]
+  exact div_le_div_of_nonneg_right (by linarith) (by positivity)
+
+/-- Coupled expectation bound for a bounded observable and `a` truncated overlap deviations.
+This does not yet establish the spin-difference Taylor estimate in Corollary 1.11.6. -/
+theorem sk_eta_coupled_bound (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
+    (n a : ℕ) (M : ℝ) :
+    ∃ K : ℝ, 0 < K ∧ ∀ (β h q : ℝ),
+      (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂gaussianReal 0 1 = q) →
+      β ^ 2 ≤ β₀ ^ 2 → ∀ (N : ℕ) (W : (Fin n → Fin (N + 1) → ℤˣ) → ℝ),
+      (∀ σ, |W σ| ≤ M) →
+      ∀ (x y : Fin a → Fin n),
+      (∀ j, x j ≠ y j) →
+      let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g σ =>
+        (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
+          h * ∑ i : Fin (N + 1), (σ i : ℝ)
+      let ν : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) → ℝ := fun F =>
+        ∫ g, ∫ σ, F σ ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (E g))
+          ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)
+      |ν (fun σ => W σ * ∏ j : Fin a,
+          ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ (x j) i.castSucc : ℝ)) ⬝ᵥ
+            fun i : Fin N => (σ (y j) i.castSucc : ℝ)) - q))| ≤
+        K / ((N : ℝ) + 1) ^ (((a : ℕ) : ℝ) / 2) := by
+  obtain ⟨H, hH0, hH⟩ := sk_cavity_prod_sq_le β₀ hβ₀ a M
+  refine ⟨Real.sqrt H + 1, by positivity, ?_⟩
+  intro β h q hfix hb N W hW x y hxy E ν
+  let F : (Fin n → Fin (N + 1) → ℤˣ) → ℝ := fun σ =>
+    W σ * ∏ j : Fin a,
+      ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ (x j) i.castSucc : ℝ)) ⬝ᵥ
+        fun i : Fin N => (σ (y j) i.castSucc : ℝ)) - q)
+  have h_sq := hH β h q hfix hb N n x y hxy W hW
+  change ν (fun σ => F σ ^ 2) ≤ H / ((N : ℝ) + 1) ^ a at h_sq
+  have h_cs : (ν F) ^ 2 ≤ ν (fun σ => F σ ^ 2) := sk_nu_sq_le N n β h ν (fun _ => rfl) F
+  have h_abs : |ν F| ≤ Real.sqrt (ν (fun σ => F σ ^ 2)) := by
+    rw [← Real.sqrt_sq_eq_abs]
+    exact Real.sqrt_le_sqrt h_cs
+  have h_trans := h_abs.trans (Real.sqrt_le_sqrt h_sq)
+  refine h_trans.trans ?_
+  have hN_pos : (0 : ℝ) < (N : ℝ) + 1 := by positivity
+  rw [Real.sqrt_div hH0.le]
+  have h_pow : Real.sqrt (((N : ℝ) + 1) ^ a) = ((N : ℝ) + 1) ^ (((a : ℕ) : ℝ) / 2) := by
+    rw [Real.sqrt_eq_rpow, ← Real.rpow_natCast, ← Real.rpow_mul hN_pos.le]
+    ring_nf
+  rw [h_pow]
+  exact div_le_div_of_nonneg_right (by linarith) (by positivity)
+
+/-- The coupled overlap-product bound specialized to `2 * p + m` factors.
+The spin-difference and shifted-overlap estimate of Corollary 1.11.7 remains open. -/
+theorem sk_eta_overlap_shifted_bound (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
+    (n p m : ℕ) (M : ℝ) :
+    ∃ K : ℝ, 0 < K ∧ ∀ (β h q : ℝ),
+      (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂gaussianReal 0 1 = q) →
+      β ^ 2 ≤ β₀ ^ 2 → ∀ (N : ℕ) (W : (Fin n → Fin (N + 1) → ℤˣ) → ℝ),
+      (∀ σ, |W σ| ≤ M) →
+      ∀ (x y : Fin (2 * p + m) → Fin n),
+      (∀ j, x j ≠ y j) →
+      let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g σ =>
+        (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
+          h * ∑ i : Fin (N + 1), (σ i : ℝ)
+      let ν : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) → ℝ := fun F =>
+        ∫ g, ∫ σ, F σ ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (E g))
+          ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)
+      |ν (fun σ => W σ * ∏ j : Fin (2 * p + m),
+          ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ (x j) i.castSucc : ℝ)) ⬝ᵥ
+            fun i : Fin N => (σ (y j) i.castSucc : ℝ)) - q))| ≤
+        K / ((N : ℝ) + 1) ^ (((2 * p + m : ℕ) : ℝ) / 2) := by
+  obtain ⟨K, hK0, hK⟩ := sk_eta_coupled_bound β₀ hβ₀ n (2 * p + m) M
+  refine ⟨K, hK0, ?_⟩
+  intro β h q hfix hb N W hW x y hxy E ν
+  exact hK β h q hfix hb N W hW x y hxy
 
 end SpinGlasses
