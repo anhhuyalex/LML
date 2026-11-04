@@ -8084,10 +8084,13 @@ $\nu(\eta_V \hat f \prod U_J^-)$ and $\nu(\eta_V \prod U_J)$ using Proposition~1
 \begin{lemma}[Iterated cavity derivatives]\label{lem:sg-tal:cavity-iterated-deriv-bound}
 \talsource{Lemma~1.11.3, Eq.~(1.334)}
 Let $4\beta_0^2 < 1$, $n, m \in \mathbb N$, and let $f$ be an observable on $n$ replicas of $N+1$ spins.
+Along the trigonometric cavity path $s \in [0, \pi/2]$ with interpolating energy
+$E(s, g', \omega, \sigma) = \cos s \cdot (N+1)^{-1/2}\beta \sigma_{N+1} \sum_{i \le N} \omega_{1, i} \sigma_i + \sin s \cdot \beta \sigma_{N+1} \omega_2 \sqrt{q} + B(g', \sigma)$,
+reparameterized in $u = \cos^2 s \in [0, 1]$ ($u = 1$ is the coupled system, $u = 0$ is the decoupled endpoint $\nu_0$):
 There exists a constant $K(m, n, \beta_0)$ such that for all $\beta^2 \le \beta_0^2$, all $h, q$ with
-$q = \mathbb E \tanh^2(\beta \sqrt{q} z + h)$, all $N \ge 1$ and all $t \in [0, 1]$:
+$q = \mathbb E \tanh^2(\beta \sqrt{q} z + h)$, all $N \ge 1$ and all $u \in [0, 1]$:
 \[
-|\nu_t^{(m)}(f)| \le \frac{K(m, n, \beta_0)}{(N+1)^{m/2}} \, \nu(f^2)^{1/2}.
+|\nu_u^{(m)}(f)| \le \frac{K(m, n, \beta_0)}{(N+1)^{m/2}} \, \nu(f^2)^{1/2}.
 \]
 \end{lemma}
 
@@ -8122,7 +8125,7 @@ Then there exists $K(s, n, \beta_0)$ such that for all $\beta^2 \le \beta_0^2$ a
 \end{corollary}
 
 \begin{lemma}[Rectangular sum identities]\label{lem:sg-tal:hanen-rect-diff}
-\lean{SpinGlasses.rect_overlap_sub_q_eq_rect_T}
+\lean{SpinGlasses.rect_overlap_sub_q_eq_rect_T, SpinGlasses.rect_overlap_eq_truncated_add_spin}
 \leanok
 \talsource{Eqs.~(1.345), (1.348)}
 For any four replica indices $(2u-1, 2u)$ and $(2v-1, 2v)$, the single-type $T_\ell$
