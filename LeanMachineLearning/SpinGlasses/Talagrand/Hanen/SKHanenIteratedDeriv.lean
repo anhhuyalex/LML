@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenVanishing
 public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsReplicaMarginal
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKCavityReplicaPairs
 public import Mathlib.Analysis.Calculus.IteratedDeriv.Lemmas
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.IntervalDerivative
 public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityOuterDerivative
@@ -86,6 +87,16 @@ noncomputable def skCavityPathDerivKernel (N n : ℕ) (β q : ℝ)
         skCavityPathKernel N β q (τ (some (some r))) (τ (some none)) +
       (n : ℝ) * ((n : ℝ) + 1) / 2 *
         skCavityPathKernel N β q (τ (some none)) (τ none))
+
+/-- The cavity derivative kernel is the canonical signed sum over distinct replica pairs. -/
+theorem skCavityPathDerivKernel_eq_pair_sum (N n : ℕ) (β q : ℝ)
+    (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ)
+    (τ : Option (Option (Fin n)) → Fin (N + 1) → ℤˣ) :
+    skCavityPathDerivKernel N n β q f τ =
+      (f (fun r => τ (some (some r)))) * ∑ j : SKCavityReplicaPair n,
+        skCavityReplicaPairWeight n j * skCavityPathKernel N β q
+          (τ (skCavityReplicaPairMap j).1) (τ (skCavityReplicaPairMap j).2) := by
+  rw [skCavityPathDerivKernel, sk_cavity_signed_pair_sum]
 
 /-- Pointwise bound on the cavity interaction kernel: $|K(a, b)| \le \beta^2 |R^-(a, b) - q|$. -/
 theorem abs_skCavityPathKernel_le (N : ℕ) (β q : ℝ) (a b : Fin (N + 1) → ℤˣ) :

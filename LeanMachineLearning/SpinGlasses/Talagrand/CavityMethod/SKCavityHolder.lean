@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityDomination
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedHolder
+public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKCavityReplicaPairs
 
 /-!
 # Hölder bound for the SK average of an overlap deviation times an observable
@@ -109,35 +110,11 @@ theorem exists_replica_pair_weights (n : ℕ) :
           (n : ℝ) * ∑ s : Fin n, D (τ (some (some s))) (τ (some none)) +
           (n : ℝ) * ((n : ℝ) + 1) / 2 * D (τ (some none)) (τ none) =
         ∑ j, cw j * D (τ (pr j).1) (τ (pr j).2) := by
-  let ι := FinPairs n ⊕ (Fin n ⊕ Unit)
-  let pr : ι → Option (Option (Fin n)) × Option (Option (Fin n)) := fun j =>
-    match j with
-    | Sum.inl s => (some (some s.val.1), some (some s.val.2))
-    | Sum.inr (Sum.inl s) => (some (some s), some none)
-    | Sum.inr (Sum.inr _) => (some none, none)
-  let cw : ι → ℝ := fun j =>
-    match j with
-    | Sum.inl _ => 1
-    | Sum.inr (Sum.inl _) => (n : ℝ)
-    | Sum.inr (Sum.inr _) => (n : ℝ) * ((n : ℝ) + 1) / 2
-  refine ⟨ι, inferInstance, pr, cw, ?_, ?_, ?_, ?_⟩
-  · rintro (s | s | s)
-    · have := s.property
-      simp only [pr, ne_eq, Option.some.injEq]
-      exact this.ne
-    · simp [pr]
-    · simp [pr]
-  · rintro (s | s | s) <;> simp only [cw] <;> positivity
-  · simp only [ι, cw, Fintype.sum_sum_type, Finset.sum_const, Finset.card_univ, card_finPairs,
-      Fintype.card_fin, nsmul_eq_mul, mul_one, Nat.cast_choose_two,
-      Finset.univ_unique, Finset.card_singleton, Nat.cast_one]
-    ring
-  · intro α D τ
-    simp only [ι, cw, pr, Fintype.sum_sum_type, Finset.univ_unique, Finset.sum_singleton,
-      one_mul, ← Finset.mul_sum]
-    rw [sum_filter_lt_eq_sum_subtype fun s : Fin n × Fin n =>
-      D (τ (some (some s.1))) (τ (some (some s.2)))]
-    ring
+  refine ⟨SKCavityReplicaPair n, inferInstance, skCavityReplicaPairMap,
+    fun j => |skCavityReplicaPairWeight n j|, skCavityReplicaPair_ne,
+    fun _ => abs_nonneg _, sum_abs_skCavityReplicaPairWeight n, ?_⟩
+  intro α D τ
+  exact sk_cavity_abs_pair_sum D τ
 
 /-- **Hölder for an observable against a product of two overlap deviations.**  For an observable
 `f` of the replicas `ρ r` (`ρ` injective) and two pairs of distinct replicas `(a, b)`, `(c, d)`,

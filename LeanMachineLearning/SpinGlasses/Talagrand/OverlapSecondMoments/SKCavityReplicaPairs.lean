@@ -88,4 +88,33 @@ theorem sk_cavity_signed_pair_mul_sum {n : ℕ} {α : Type*} (D : α → α → 
   intro j _
   ring
 
+/-- The total absolute weight of the cavity replica pairs is exactly `2 * n^2`. -/
+theorem sum_abs_skCavityReplicaPairWeight (n : ℕ) :
+    (∑ j : SKCavityReplicaPair n, |skCavityReplicaPairWeight n j|) = 2 * (n : ℝ) ^ 2 := by
+  simp only [SKCavityReplicaPair, skCavityReplicaPairWeight, Fintype.sum_sum_type,
+    abs_one, abs_neg, abs_of_nonneg (show (0 : ℝ) ≤ n by positivity), Finset.sum_const,
+    Finset.card_univ, card_finPairs, Fintype.card_fin, nsmul_eq_mul, mul_one,
+    Nat.cast_choose_two, Finset.univ_unique, Finset.card_singleton, Nat.cast_one]
+  have h : 0 ≤ (n : ℝ) * ((n : ℝ) + 1) / 2 := by positivity
+  rw [abs_of_nonneg h]
+  ring
+
+/-- The positive three-family sum uses the absolute canonical replica-pair weights. -/
+theorem sk_cavity_abs_pair_sum {n : ℕ} {α : Type*} (D : α → α → ℝ)
+    (τ : Option (Option (Fin n)) → α) :
+    (∑ p : Fin n × Fin n with p.1 < p.2, D (τ (some (some p.1))) (τ (some (some p.2)))) +
+      (n : ℝ) * ∑ r : Fin n, D (τ (some (some r))) (τ (some none)) +
+      (n : ℝ) * ((n : ℝ) + 1) / 2 * D (τ (some none)) (τ none) =
+    ∑ j : SKCavityReplicaPair n,
+      |skCavityReplicaPairWeight n j| *
+        D (τ (skCavityReplicaPairMap j).1) (τ (skCavityReplicaPairMap j).2) := by
+  simp only [skCavityReplicaPairWeight, skCavityReplicaPairMap, Fintype.sum_sum_type,
+    Finset.univ_unique, Finset.sum_singleton, ← Finset.mul_sum, abs_one, abs_neg,
+    abs_of_nonneg (show (0 : ℝ) ≤ n by positivity),
+    abs_of_nonneg (show (0 : ℝ) ≤ (n : ℝ) * ((n : ℝ) + 1) / 2 by positivity)]
+  rw [sum_filter_lt_eq_sum_subtype fun s : Fin n × Fin n =>
+    D (τ (some (some s.1))) (τ (some (some s.2)))]
+  ring
+
+
 end SpinGlasses
