@@ -186,8 +186,9 @@ theorem hasDerivAt_skCavityPathMean_fin_step (N n : ℕ) (β q h t : ℝ)
   funext ω
   apply integral_pi_count_tilted_reindex (skCavityReplicaEquiv n)
 
-/-- Replica count after iterating the two-fresh-replica cavity derivative. -/
-def skCavityIterReplicaCount : ℕ → ℕ → ℕ
+/-- Replica count after iterating the two-fresh-replica cavity derivative.
+Reducibility lets dependent replica indices compute during typeclass and rewrite matching. -/
+abbrev skCavityIterReplicaCount : ℕ → ℕ → ℕ
   | 0, n => n
   | m + 1, n => skCavityIterReplicaCount m (n + 2)
 

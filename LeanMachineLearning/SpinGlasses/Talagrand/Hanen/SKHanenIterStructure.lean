@@ -5,14 +5,14 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenIteratedDeriv
+public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenIterChoices
 
 /-!
 # Pointwise structure of the iterated cavity kernel (Talagrand, Lemma 1.11.3, Eq. (1.334))
 
 Each cavity derivative brings out one factor `β² ε_a ε_b (R⁻_{ab} - q)` on a pair of distinct
 replicas (Eq. (1.151)). Iterating `m` times, the observable `skCavityIterKernel N β q m n f` is
-`f` evaluated on the first `n` replicas, times a signed finite sum, over a finite index type
+`f` evaluated on the original `n` replicas, times a signed finite sum, over a finite index type
 `T` of `m`-tuples of replica pairs, of products of `m` such factors.  The index structure
 (`T`, the weights, the replica positions) does not depend on `N`, `β`, `q` or `f`; the total
 absolute weight is the explicit number `skCavityIterWeightBound m n = ∏_{r < m} 2 (n + 2r)²`.
@@ -50,6 +50,22 @@ theorem skCavityIterWeightBound_nonneg (m n : ℕ) : 0 ≤ skCavityIterWeightBou
     have := ih (n + 2)
     positivity
 
+/-- The canonical choice enumeration has the same total absolute weight as the
+previous existential expansion. -/
+theorem sum_abs_skCavityChoiceWeight (m n : ℕ) :
+    (∑ c : SKCavityDerivativeChoices m n, |skCavityChoiceWeight m n c|) =
+      skCavityIterWeightBound m n := by
+  induction m generalizing n with
+  | zero =>
+    change (∑ _ : Unit, |(1 : ℝ)|) = 1
+    simp
+  | succ m ih =>
+    change (∑ c : SKCavityReplicaPair n × SKCavityDerivativeChoices m (n + 2),
+      |skCavityReplicaPairWeight n c.1 * skCavityChoiceWeight m (n + 2) c.2|) = _
+    simp only [abs_mul, Fintype.sum_prod_type]
+    rw [← sum_mul_sum, sum_abs_skCavityReplicaPairWeight, ih]
+    rfl
+
 /-- **Pointwise structure of the iterated cavity kernel.**  There are a finite index type `T`
 (of `m`-tuples of replica pairs), weights `w`, a position map `ι` of the `n` old replicas and
 position maps `a t r ≠ b t r` of the pair `r` of the tuple `t`, all independent of `N, β, q, f`,
@@ -64,46 +80,13 @@ theorem skCavityIterKernel_structure (m n : ℕ) :
         (τ : Fin (skCavityIterReplicaCount m n) → Fin (N + 1) → ℤˣ),
         skCavityIterKernel N β q m n f τ = f (fun r => τ (ι r)) *
           ∑ t, w t * ∏ r, skCavityPathKernel N β q (τ (a t r)) (τ (b t r)) := by
-  induction m generalizing n with
-  | zero =>
-    refine ⟨Unit, inferInstance, fun _ => 1, id, fun _ r => r.elim0, fun _ r => r.elim0,
-      Function.injective_id, fun _ r => r.elim0, by simp [skCavityIterWeightBound], ?_⟩
-    intro N β q f τ
-    simp [skCavityIterKernel]
-  | succ m ih =>
-    obtain ⟨T', hT', w', ι', a', b', hι', hab', hw', h'⟩ := ih (n + 2)
-    refine ⟨SKCavityReplicaPair n × T', inferInstance,
-      fun p => skCavityReplicaPairWeight n p.1 * w' p.2,
-      fun r => ι' (skCavityReplicaEquiv n (some (some r))),
-      fun p => Fin.cons (α := fun _ => Fin (skCavityIterReplicaCount m (n + 2)))
-        (ι' (skCavityReplicaEquiv n (skCavityReplicaPairMap p.1).1)) (a' p.2),
-      fun p => Fin.cons (α := fun _ => Fin (skCavityIterReplicaCount m (n + 2)))
-        (ι' (skCavityReplicaEquiv n (skCavityReplicaPairMap p.1).2)) (b' p.2),
-      ?_, ?_, ?_, ?_⟩
-    · intro r s hrs
-      have h1 : ι' (skCavityReplicaEquiv n (some (some r))) =
-          ι' (skCavityReplicaEquiv n (some (some s))) := hrs
-      exact Option.some_injective _ (Option.some_injective _
-        ((skCavityReplicaEquiv n).injective (hι' h1)))
-    · rintro ⟨j, t⟩ r
-      refine Fin.cases ?_ (fun r => ?_) r
-      · simp only []
-        intro h
-        exact skCavityReplicaPair_ne j (by simpa using hι' h)
-      · simp only []
-        exact hab' t r
-    · simp only [abs_mul, Fintype.sum_prod_type]
-      rw [← Finset.sum_mul_sum, sum_abs_skCavityReplicaPairWeight, hw']
-      simp [skCavityIterWeightBound]
-    · intro N β q f τ
-      rw [skCavityIterKernel, h' N β q _ τ]
-      unfold skCavityPathStep
-      rw [skCavityPathDerivKernel_eq_pair_sum]
-      simp only [Fintype.sum_prod_type, Fin.prod_univ_succ, Fin.cons_zero, Fin.cons_succ]
-      rw [mul_assoc, Finset.sum_mul_sum]
-      congr 1
-      refine Finset.sum_congr rfl fun j _ => Finset.sum_congr rfl fun t _ => ?_
-      ring
+  refine ⟨SKCavityDerivativeChoices m n, inferInstance, skCavityChoiceWeight m n,
+    skCavityIterOldEmbedding m n,
+    (fun c r => (skCavityChoiceEndpoints m n c r).1),
+    (fun c r => (skCavityChoiceEndpoints m n c r).2),
+    (skCavityIterOldEmbedding m n).injective, skCavityChoiceEndpoints_ne m n,
+    sum_abs_skCavityChoiceWeight m n, ?_⟩
+  exact fun N β q f τ => skCavityIterKernel_eq_choice_sum N m n β q f τ
 
 /-- Pointwise bound on the iterated cavity kernel: `β^{2m} |f ∘ ι|` times a nonnegative
 weighted sum of products of truncated overlap deviations. -/
