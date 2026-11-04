@@ -129,6 +129,16 @@ theorem sk_hanen_pairing_derivative_zero (N n : ℕ) (β q h : ℝ)
   simp only [Fin.prod_univ_zero, mul_one]
   exact skCavityPathMean_zero_mul N n β q h F fhat
 
+/- Leading-coefficient checks for the remaining combinatorial proof:
+At m = 1 there is one pairing. The four choices of endpoints, one from each
+spin-difference pair, have signs +,-,-,+ and sum to one rectangle U^-.
+At m = 2 there are three pairings of the four spin-difference pairs. Each has
+2! derivative orderings and 2^4 endpoint choices: 3 * 2 * 16 = 96 surviving
+terms. Regrouping the endpoint choices gives the product of two rectangles;
+the two derivative orderings give exactly the factor 2!, without an extra 2^m.
+These are hand checks of the coefficient, not a proof of the general identity.
+-/
+
 /-- **Talagrand's Theorem 1.11.9 (Eq. (1.337)).** Combinatorial pairing formula for the cavity
 derivative: for `|V| = 2m`, the `m`-th cavity derivative at `u = 0` evaluates to
 `β^{2m} m! ∑_{P} 𝔼(⟨f̂⟩₀ ch^{-4m} Y) ν₀(f⁻ ∏_{J ∈ P} U_J⁻)`. -/

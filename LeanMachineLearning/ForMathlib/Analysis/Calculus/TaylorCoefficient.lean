@@ -45,7 +45,8 @@ theorem norm_sub_taylor_coefficient_le {E : Type*} [NormedAddCommGroup E] [Norme
     have hb := taylor_mean_remainder_bound (f := f) (n := s) zero_le_one hc
       (show (1 : ℝ) ∈ Set.Icc 0 1 from ⟨zero_le_one, le_rfl⟩) hder
     simp only [sub_zero, one_pow, mul_one] at hb
-    exact hb.trans (div_le_self hM (by exact_mod_cast Nat.one_le_iff_ne_zero.2 (Nat.factorial_ne_zero s)))
+    exact hb.trans (div_le_self hM
+      (by exact_mod_cast Nat.one_le_iff_ne_zero.2 (Nat.factorial_ne_zero s)))
   calc
     _ ≤ ‖f 1 - taylorWithinEval f s (Set.Icc 0 1) 0 1‖ +
         ‖taylorWithinEval f s (Set.Icc 0 1) 0 1 -

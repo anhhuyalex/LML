@@ -8090,7 +8090,9 @@ the hyperbolic identity $\alpha = \mathbb E\operatorname{ch}^{-4} Y$
 (\texttt{alpha\_eq\_integral\_inv\_cosh\_four}) and standard Gaussian moments
 (\texttt{gaussian\_moment\_odd}, \texttt{gaussian\_moment\_even}) are verified.
 The odd case of H5 is proved (Theorem~\ref{thm:sg-tal:hanen-odd}), using the endpoint
-derivative bounds and Taylor expansion. In progress: the H3 induction, H4
+derivative bounds and Taylor expansion. The common Taylor expansion for either parity
+(Lemma~\ref{lem:sg-tal:hanen-leading-taylor}) is proved and retains the leading coefficient
+needed for the even case. In progress: the H3 induction, H4
 (Propositions~1.11.10--1.11.11) and the even case of H5. Four proof placeholders remain.
 The roadmap for Section~1.11 is structured into steps H0--H5:
 \begin{enumerate}
@@ -8364,10 +8366,40 @@ There exists $K(p, \beta_0)$ such that for all $\beta^2 \le \beta_0^2$ and $N \g
 \]
 \end{proposition}
 
+\begin{lemma}[The leading Taylor term for either parity]\label{lem:sg-tal:hanen-leading-taylor}
+\lean{norm_sub_taylor_coefficient_le, SpinGlasses.sk_hanen_spin_product_taylor}
+\leanok
+\uses{lem:sg-tal:cavity-iterated-deriv-bound,lem:sg-tal:cavity-deriv-zero-vanishing,lem:sg-tal:hanen-reduced-system}
+\talsource{Proof of Theorem~1.11.1, Eqs.~(1.351)--(1.358)}
+Fix $n,s\in\mathbb N$ and $4\beta_0^2<1$. For disjoint replica pairs $(x_w,y_w)$,
+$w<s$, in an $(N+2)$-spin system, set
+\[
+ f(\sigma)=\prod_{w<s}(\sigma^{x_w}_{N+1}-\sigma^{y_w}_{N+1})
+                  (\sigma^{x_w}_{N+2}-\sigma^{y_w}_{N+2}),\qquad
+ \varphi(u)=\nu_u(f),\qquad a=\lceil s/2\rceil.
+\]
+There is $K(n,s,\beta_0)>0$, independent of $N,\beta,h,q$ and the replica pairs,
+such that whenever $\beta^2\le\beta_0^2$ and
+$q=\mathbb E\tanh^2(\beta\sqrt q Z+h)$,
+\[
+ \left|\varphi(1)-\frac{\varphi^{(a)}(0)}{a!}\right|
+ \le \frac{K(n,s,\beta_0)}{(N+2)^{(s+1)/2}}.
+\]
+The derivative is taken within $[0,1]$. This includes $s=0$.
+\end{lemma}
+\begin{proof}
+\leanok
+Expand through degree $s$, retaining only degree $a$. Lower derivatives vanish.
+For $r>a$, the endpoint estimate has exponent $(a+r)/2\ge(s+1)/2$.
+The uniform $(s+1)$-st derivative estimate bounds the remainder at the same order.
+The analytic coefficient-isolation lemma works for functions into any real normed
+vector space and accepts separate bounds for the other coefficients.
+\end{proof}
+
 \begin{theorem}[Odd moments in Hanen's Theorem]\label{thm:sg-tal:hanen-odd}
 \lean{SpinGlasses.sk_hanen_theorem_odd, SpinGlasses.sk_hanen_odd_spin_product_bound, SpinGlasses.sk_hanen_endpoint_derivative_bound}
 \leanok
-\uses{lem:sg-tal:cavity-iterated-deriv-bound,lem:sg-tal:cavity-deriv-zero-vanishing,lem:sg-tal:hanen-reduced-system,lem:sg-tal:hanen-cov-powers,lem:sg-tal:hanen-cov-site-symmetry}
+\uses{lem:sg-tal:cavity-iterated-deriv-bound,lem:sg-tal:cavity-deriv-zero-vanishing,lem:sg-tal:hanen-reduced-system,lem:sg-tal:hanen-cov-powers,lem:sg-tal:hanen-cov-site-symmetry,lem:sg-tal:hanen-leading-taylor}
 \talsource{Theorem~1.11.1, odd case; Eqs.~(1.349)--(1.358)}
 Fix $p\in\mathbb N$ and $4\beta_0^2<1$. There is $K(p,\beta_0)>0$ such that, for
 all $\beta^2\le\beta_0^2$, deterministic $h$, fixed points

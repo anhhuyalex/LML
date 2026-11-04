@@ -4436,3 +4436,5 @@ ProbabilityTheory.integral_gaussianReal_abs_mul
 SpinGlasses.sk_hanen_endpoint_derivative_bound
 SpinGlasses.sk_hanen_odd_spin_product_bound
 SpinGlasses.sk_hanen_theorem_odd
+norm_sub_taylor_coefficient_le
+SpinGlasses.sk_hanen_spin_product_taylor

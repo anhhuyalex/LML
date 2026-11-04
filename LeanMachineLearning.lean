@@ -12,6 +12,7 @@ public import LeanMachineLearning.ForMathlib.Analysis.Asymptotics.Theta
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.Gradient.Basic
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.GronwallBackward
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.IntervalDerivative
+public import LeanMachineLearning.ForMathlib.Analysis.Calculus.TaylorCoefficient
 public import LeanMachineLearning.ForMathlib.Analysis.Cesaro
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.PointwiseLimitKink
 public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.GramIsometry
@@ -524,6 +525,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenOddProduct
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPairing
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPathCalculus
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPathVanishing
+public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenProductTaylor
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenRectangular
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenReducedSystem
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenTaylor
