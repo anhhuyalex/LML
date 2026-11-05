@@ -18,7 +18,6 @@ without introducing a wrapper definition:
   proving $U_J = T_{2u-1,2v-1} - T_{2u-1,2v} - T_{2u,2v-1} + T_{2u,2v}$ (Eq. (1.345)).
 * Decomposition into the truncated rectangular sum and the last-spin factor:
   $U_J = U_J^- + (N+1)^{-1} \eta_J$ (Eq. (1.348)).
-* Basic algebraic linearity and vanishing on functions depending on only one coordinate.
 -/
 
 @[expose] public section
@@ -28,54 +27,6 @@ open scoped BigOperators Real
 namespace SpinGlasses
 
 variable {α β : Type*} [AddCommGroup β]
-
-/-- Linearity: distributing over pointwise addition of bivariate functions. -/
-theorem rect_add (f g : α → α → β) (x₁ x₂ y₁ y₂ : α) :
-    (f x₁ y₁ + g x₁ y₁) - (f x₂ y₁ + g x₂ y₁) - (f x₁ y₂ + g x₁ y₂) + (f x₂ y₂ + g x₂ y₂) =
-      (f x₁ y₁ - f x₂ y₁ - f x₁ y₂ + f x₂ y₂) + (g x₁ y₁ - g x₂ y₁ - g x₁ y₂ + g x₂ y₂) := by
-  abel
-
-/-- Linearity: distributing over pointwise subtraction of bivariate functions. -/
-theorem rect_sub (f g : α → α → β) (x₁ x₂ y₁ y₂ : α) :
-    (f x₁ y₁ - g x₁ y₁) - (f x₂ y₁ - g x₂ y₁) - (f x₁ y₂ - g x₁ y₂) + (f x₂ y₂ - g x₂ y₂) =
-      (f x₁ y₁ - f x₂ y₁ - f x₁ y₂ + f x₂ y₂) - (g x₁ y₁ - g x₂ y₁ - g x₁ y₂ + g x₂ y₂) := by
-  abel
-
-/-- If `f(x, y)` depends only on the first coordinate `x`, the rectangular difference vanishes. -/
-theorem rect_of_fst (g : α → β) (x₁ x₂ : α) :
-    g x₁ - g x₂ - g x₁ + g x₂ = 0 := by
-  abel
-
-/-- If `f(x, y)` depends only on the second coordinate `y`, the rectangular difference vanishes. -/
-theorem rect_of_snd (g : α → β) (y₁ y₂ : α) :
-    g y₁ - g y₁ - g y₂ + g y₂ = 0 := by
-  abel
-
-/-- If `f(x, y)` is a constant `c`, the rectangular difference vanishes. -/
-theorem rect_const (c : β) :
-    c - c - c + c = 0 := by
-  abel
-
-/-- Symmetry: for a symmetric bivariate function, transposing arguments gives the same sum. -/
-theorem rect_comm (f : α → α → β) (hf : ∀ x y, f x y = f y x) (x₁ x₂ y₁ y₂ : α) :
-    f x₁ y₁ - f x₂ y₁ - f x₁ y₂ + f x₂ y₂ =
-      f y₁ x₁ - f y₁ x₂ - f y₂ x₁ + f y₂ x₂ := by
-  rw [hf x₁ y₁, hf x₂ y₁, hf x₁ y₂, hf x₂ y₂]
-
-/-- Product factorization of last-spin differences:
-`(ε x₁ * ε y₁) - (ε x₂ * ε y₁) - (ε x₁ * ε y₂) + (ε x₂ * ε y₂) = (ε x₁ - ε x₂) * (ε y₁ - ε y₂)`. -/
-theorem rect_mul_prod {R : Type*} [CommRing R] (ε : α → R) (x₁ x₂ y₁ y₂ : α) :
-    (ε x₁ * ε y₁) - (ε x₂ * ε y₁) - (ε x₁ * ε y₂) + (ε x₂ * ε y₂) =
-      (ε x₁ - ε x₂) * (ε y₁ - ε y₂) := by
-  ring
-
-/-- Product factorization for coordinate pairs:
-`(ε p.1 * ε q.1) - (ε p.2 * ε q.1) - (ε p.1 * ε q.2) + (ε p.2 * ε q.2) =
-  (ε p.1 - ε p.2) * (ε q.1 - ε q.2)`. -/
-theorem rect_mul_prod_pair {R : Type*} [CommRing R] (ε : α → R) (p q : α × α) :
-    (ε p.1 * ε q.1) - (ε p.2 * ε q.1) - (ε p.1 * ε q.2) + (ε p.2 * ε q.2) =
-      (ε p.1 - ε p.2) * (ε q.1 - ε q.2) :=
-  rect_mul_prod ε p.1 p.2 q.1 q.2
 
 /-- **Talagrand's Eq. (1.345): The exact cancellation of $T_\ell$ and $T$ in $U_J$.**
 For any decomposition $R(x, y) - q = T_{x, y} + T_x + T_y + T$, the rectangular difference

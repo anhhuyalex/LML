@@ -18,10 +18,8 @@ where the sum ranges over all pairings $P$ of $V$ into 2-element blocks.
 
 ## Main declarations
 
-* `SpinGlasses.HanenPairing`: a pairing on `Fin (2 * m)` represented as a fixed-point-free
-  involution.
 * `SpinGlasses.skCavityRectTrunc`: the truncated rectangular difference $U_J^-$.
-* `SpinGlasses.skCavityPairingRectProd`: product of rectangular differences $\prod_{J ∈ P} U_J^-$.
+* `Renormalization.wick`: the existing finite-partition sum of rectangular block products.
 * `SpinGlasses.sk_hanen_pairing_derivative`: Theorem 1.11.9.
 -/
 
@@ -44,22 +42,26 @@ theorem sk_hanen_pairing_derivative_zero (N n : ℕ) (β q h : ℝ)
           ((σ (pairMap w).2 (Fin.last N) : ℤˣ) : ℝ))) *
         fhat (fun k => σ k (Fin.last N)))) (Set.Icc 0 1) 0 =
     (β ^ 2) ^ 0 * (Nat.factorial 0 : ℝ) *
-      ∑ P : HanenPairing 0,
-        (∫ z : ℝ, (∫ ε : Fin n → ℤˣ, fhat ε
+      (∫ z : ℝ, (∫ ε : Fin n → ℤˣ, fhat ε
             ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
               fun s : ℤˣ => ((s : ℤˣ) : ℝ) * (β * z * Real.sqrt q + h))) *
           (Real.cosh (β * z * Real.sqrt q + h) ^ (4 * 0))⁻¹
           ∂gaussianReal 0 1) *
         (∫ g' : FinPairs N → ℝ, ∫ ρ : Fin n → Fin N → ℤˣ,
-            F ρ * skCavityPairingRectProd N n 0 q pairMap P ρ
+            F ρ * Renormalization.wick
+              (fun u v => skCavityRectTrunc N n 0 q pairMap u v ρ)
+              (univ : Finset (Fin 0))
           ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
             (skCavityOldEnergy N β h g'))
           ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) := by
   rw [iteratedDerivWithin_zero]
   simp only [pow_zero, Nat.factorial_zero, Nat.cast_one, one_mul, mul_zero,
-    inv_one, mul_one, skCavityPairingRectProd_zero]
-  rw [Fintype.sum_unique]
-  simp only [Fin.prod_univ_zero, mul_one]
+    inv_one, mul_one, Fin.prod_univ_zero]
+  have hw (ρ : Fin n → Fin N → ℤˣ) :
+      Renormalization.wick (fun u v => skCavityRectTrunc N n 0 q pairMap u v ρ)
+        (univ : Finset (Fin 0)) = 1 := by
+    simp only [Finset.univ_eq_empty, Renormalization.wick, Finpartition.pairingSum_empty]
+  simp_rw [hw, mul_one]
   exact skCavityPathMean_zero_mul N n β q h F fhat
 
 /- Leading-coefficient checks for the remaining combinatorial proof:
@@ -91,14 +93,15 @@ theorem sk_hanen_pairing_derivative (N m n : ℕ) (β q h : ℝ)
           ((σ (pairMap w).2 (Fin.last N) : ℤˣ) : ℝ))) *
         fhat (fun k => σ k (Fin.last N)))) (Set.Icc 0 1) 0 =
     (β ^ 2) ^ m * (Nat.factorial m : ℝ) *
-      ∑ P : HanenPairing m,
-        (∫ z : ℝ, (∫ ε : Fin n → ℤˣ, fhat ε
+      (∫ z : ℝ, (∫ ε : Fin n → ℤˣ, fhat ε
             ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
               fun s : ℤˣ => ((s : ℤˣ) : ℝ) * (β * z * Real.sqrt q + h))) *
           (Real.cosh (β * z * Real.sqrt q + h) ^ (4 * m))⁻¹
           ∂gaussianReal 0 1) *
         (∫ g' : FinPairs N → ℝ, ∫ ρ : Fin n → Fin N → ℤˣ,
-            F ρ * skCavityPairingRectProd N n m q pairMap P ρ
+            F ρ * Renormalization.wick
+              (fun u v => skCavityRectTrunc N n m q pairMap u v ρ)
+              (univ : Finset (Fin (2 * m)))
           ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
             (skCavityOldEnergy N β h g'))
           ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) := by

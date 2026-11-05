@@ -37,6 +37,14 @@ variable {α : Type*} [DecidableEq α]
     apply Subtype.ext
     exact Subsingleton.elim _ _
 
+/-- The empty pairing product is one, for weights in any commutative semiring. -/
+@[simp] theorem pairingSum_empty {R : Type*} [CommSemiring R] (w : Finset α → R) :
+    pairingSum w (∅ : Finset α) = 1 := by
+  have hp (P : Pairing (∅ : Finset α)) : P.val.parts = ∅ :=
+    P.val.parts_eq_empty_iff.mpr rfl
+  simp only [pairingSum, Pairing.blockProduct, blockProduct, hp, prod_empty,
+    sum_const, card_univ, Pairing.card_empty, one_nsmul]
+
 /-- Count pairings by choosing the partner of a distinguished element.
 This is the constant-weight instance of the existing weighted pairing recursion. -/
 theorem Pairing.card_erase (s : Finset α) {a : α} (ha : a ∈ s) :
