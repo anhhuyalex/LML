@@ -8232,23 +8232,26 @@ for either parity, Corollary~\ref{cor:sg-tal:eta-full-overlap-shifted-bound}, an
 reduced-system application, Lemma~\ref{lem:sg-tal:hanen-reduced-system}, are also proved. The Gibbs covariance-power
 representation (Lemma~\ref{lem:sg-tal:hanen-cov-powers}) and its site-permutation
 invariance (Lemma~\ref{lem:sg-tal:hanen-cov-site-symmetry}) are also proved.
-\textbf{H3 base case $m=0$}: \texttt{HanenPairing} as fixed-point-free involutions and the
-base case $m=0$ of Theorem~1.11.9 (\texttt{sk\_hanen\_pairing\_derivative\_zero}) are proved;
+\textbf{H3 base case $m=0$}: the base case $m=0$ of Theorem~1.11.9 (\texttt{sk\_hanen\_pairing\_derivative\_zero}) are proved;
 the hyperbolic identity $\alpha = \mathbb E\operatorname{ch}^{-4} Y$
 (\texttt{alpha\_eq\_integral\_inv\_cosh\_four}) and standard Gaussian moments
 (\texttt{gaussian\_moment\_odd}, \texttt{gaussian\_moment\_even}) are verified.
-The Hanen involutions and weighted rectangular products are linked to the existing
-finite-partition/Wick library (Lemma~\ref{lem:sg-tal:hanen-pairing-bridge}), and the
-pairing count needed for H5 is proved (Lemma~\ref{lem:sg-tal:hanen-pairing-count}).
+The derivative statement uses the existing finite-partition Wick sum directly;
+the redundant Hanen pairing type and involution bridge have been removed.
+Indexed disjoint blocks determine a unique pairing with an ordering
+(Lemma~\ref{lem:sg-tal:hanen-pairing-bridge}), and the pairing count needed for H5 is proved (Lemma~\ref{lem:sg-tal:hanen-pairing-count}).
 The exact support of surviving critical endpoint terms, their signed spin contraction,
 and the weighted $m!$ ordering identity are proved
 (Lemmas~\ref{lem:sg-tal:hanen-critical-survival}--\ref{lem:sg-tal:hanen-pairing-orderings}).
-Reindexing the actual iterated derivative into these ordered blocks remains open;
-the exact derivative identity of H3 is not yet proved.
+The actual critical derivative is now reduced to ordered tuples of original
+replica pairs (Lemma~\ref{lem:sg-tal:hanen-critical-choices}); all fresh-replica terms
+and signed weights have been eliminated. Reindexing these tuples with their
+endpoint selections into ordered blocks remains open; the exact derivative
+identity of H3 is not yet proved.
 The odd case of H5 is proved (Theorem~\ref{thm:sg-tal:hanen-odd}), using the endpoint
 derivative bounds and Taylor expansion. The common Taylor expansion for either parity
 (Lemma~\ref{lem:sg-tal:hanen-leading-taylor}) is proved and retains the leading coefficient
-needed for the even case. In progress: the H3 induction, H4
+needed for the even case. In progress: the H3 finite-sum regrouping, H4
 (Propositions~1.11.10--1.11.11) and the even case of H5. Four proof placeholders remain.
 The roadmap for Section~1.11 is structured into steps H0--H5:
 \begin{enumerate}
@@ -8610,40 +8613,38 @@ The analytic coefficient-isolation lemma works for functions into any real norme
 vector space and accepts separate bounds for the other coefficients.
 \end{proof}
 
-\begin{lemma}[Pairing representations and weighted products]\label{lem:sg-tal:hanen-pairing-bridge}
-\lean{Finpartition.Pairing.partner_partner, Finpartition.Pairing.ofInvolution, Finpartition.Pairing.part_ofInvolution, Finpartition.Pairing.partner_ofInvolution, Finpartition.Pairing.equivInvolution, Finpartition.Pairing.blockProduct_ofInvolution, SpinGlasses.HanenPairing.equivFinpartition, SpinGlasses.HanenPairing.part_equivFinpartition, SpinGlasses.HanenPairing.blockProduct_equivFinpartition, SpinGlasses.skCavityPairingRectProd_eq_blockProduct, SpinGlasses.sum_skCavityPairingRectProd_eq_wick}
+\begin{lemma}[Indexed blocks and ordered pair partitions]\label{lem:sg-tal:hanen-pairing-bridge}
+\lean{Finpartition.Pairing.equivOrderedBlocks, Finpartition.Pairing.equivOrderedBlocks_apply, Finpartition.existsUnique_pairing_ordering, Finpartition.existsUnique_pairing_ordering_of_equiv}
 \leanok
 \talsource{Theorem~1.11.9, the pair partitions in Eqs.~(1.337)--(1.340)}
-For every finite type $A$, pair partitions of $A$ are equivalent to fixed-point-free
-involutions $p:A\to A$, with blocks $\{a,p(a)\}$. If $A$ is linearly ordered and
-$w$ takes values in any commutative monoid, the product of its block weights is
-\[
- \prod_{a<p(a)}w(\{a,p(a)\}).
-\]
-For $A=\{0,\ldots,2m-1\}$ this identifies the public Hanen pairing type with the
-existing finite-partition pairing type. Applying the unordered pair weight to
-the symmetric rectangular kernel $U^-_{uv}$ gives exactly
-$\prod_{J\in\mathcal I}U^-_J$. Hence the sum of rectangular products over Hanen
-pairings equals the existing Wick sum of that kernel. This is a combinatorial
-identification; it does not evaluate the cavity derivative in Eq.~(1.337).
+Let $s$ be a finite subset of a type with decidable equality, and let $I$ be any
+finite index type. Indexed two-element sets $(B_i)_{i\in I}$, pairwise disjoint
+and with union $s$, are equivalent to a pair partition $P$ of $s$ together with
+a bijection $e:I\simeq P.\mathrm{parts}$, with $e(i)=B_i$.
+In particular, a bijection $a:s\simeq I\times\{0,1\}$ induces a unique pair
+partition and block ordering with $v\in e(i)$ if and only if the first component
+of $a(v)$ is $i$. No ordering of the ambient set is required.
 \end{lemma}
 \begin{proof}
 \leanok
-Given a pair partition, let $p(a)$ be the other element of the block containing $a$; then $p$ is an involution without fixed points. Conversely, given such a
-$p$, the sets $\{a,p(a)\}$ are the blocks of a pair partition. The two constructions are inverse to each other, which is the equivalence. For the product formula, each block
-$\{a,p(a)\}$ is hit by exactly two elements $a$, of which exactly one is the smaller one, so the product over blocks equals the product over $a$ with $a<p(a)$.
-In the Hanen case the unordered block weight of $\{u,v\}$ is the symmetric kernel $U^-_{uv}$ (Lemma~\ref{lem:sg-tal:hanen-rect-diff} and the symmetry of $U^-$), so
-the product of block weights is $\prod_{J\in\mathcal I}U_J^-$, and summing over all pair partitions is the Wick sum of the kernel.
+Take the image of the indexed blocks as the parts of the partition. Disjointness
+and coverage give existence and uniqueness of the part containing any element;
+nonemptiness makes the map from indices to blocks injective. It is surjective
+by construction. Conversely, enumerate the parts by the given bijection.
+These constructions are inverse, using equality of the enumerated blocks.
+For the last assertion use the blocks
+$\{a^{-1}(i,0),a^{-1}(i,1)\}$. The construction uses the existing
+\texttt{Finpartition.Pairing}; no separate Hanen pairing type is introduced.
 \end{proof}
 
 \begin{lemma}[The number of Hanen pairings]\label{lem:sg-tal:hanen-pairing-count}
-\lean{Finpartition.Pairing.card_empty, Finpartition.Pairing.card_erase, Finpartition.Pairing.card_mul_two_pow_mul_factorial, Finpartition.Pairing.card_eq_factorial_div, SpinGlasses.HanenPairing.card}
+\lean{Finpartition.Pairing.card_empty, Finpartition.Pairing.card_erase, Finpartition.Pairing.card_mul_two_pow_mul_factorial, Finpartition.Pairing.card_eq_factorial_div}
 \leanok
 \uses{lem:sg-tal:hanen-pairing-bridge}
 \talsource{Proof of Theorem~1.11.1, the pairing count after Eq.~(1.358)}
 Every finite set of size $2m$ has $(2m)!/(2^m m!)$ pair partitions. In particular,
 \[
- |\operatorname{HanenPairing}(m)|=\frac{(2m)!}{2^m m!}=a(2m).
+ |\operatorname{Pairing}(\{0,\ldots,2m-1\})|=\frac{(2m)!}{2^m m!}=a(2m).
 \]
 The generic theorem is proved by the existing weighted pairing recursion with
 constant weight one; it is independent of any order or probability measure.
@@ -8658,7 +8659,7 @@ $(2m+2)!=(2m+2)(2m+1)(2m)!$, and so $P(m)=(2m)!/(2^mm!)$. This is $a(2m)=\mathbb
 \end{proof}
 
 \begin{lemma}[Exact support at the critical order]\label{lem:sg-tal:hanen-critical-survival}
-\lean{MeasureTheory.integral_pi_mul_pair_of_invariant, exists_equiv_of_pairwiseDisjoint_of_hits, SpinGlasses.sk_cavity_deriv_zero_vanishing_of_missing_pair, SpinGlasses.skCavityPathMean_zero_vanishing_of_missing_pair, SpinGlasses.skCavityPathMean_zero_critical_survival}
+\lean{MeasureTheory.integral_pi_mul_pair_of_invariant, exists_equiv_of_pairwiseDisjoint_of_hits, SpinGlasses.sk_cavity_deriv_zero_vanishing_of_missing_pair, SpinGlasses.skCavityPathMean_zero_vanishing_of_missing_pair, SpinGlasses.skCavityPathMean_zero_critical_survival, SpinGlasses.skCavityPathMean_zero_critical_pairing}
 \leanok
 \uses{thm:sg-tal:cavity-decoupled}
 \talsource{Theorem~1.11.9, Eq.~(1.339)}
@@ -8670,7 +8671,11 @@ For any $m$ derivative pairs $(a_j,b_j)$, a nonzero decoupled average
 \]
 induces a bijection from $V$ to the $2m$ individual derivative positions:
 exactly one endpoint lies in each spin-difference pair. All endpoint values are
-distinct and none lies outside $V^*$.
+distinct and none lies outside $V^*$. Moreover, the term determines a unique
+pair partition $P$ of $V$ and bijective derivative ordering $e:\operatorname{Fin}(m)\simeq P.\mathrm{parts}$:
+the block $e(i)$ consists exactly of the difference labels whose pairs contain
+one of the two endpoints of derivative $i$. Uniqueness does not depend on
+which survival bijection is chosen.
 The generic counting lemma applies to any disjoint family of sets hit by an
 equally large finite list, even when the ambient set is infinite.
 The cancellation criterion is stronger than a cardinality estimate: if any one
@@ -8719,6 +8724,42 @@ Selecting the second endpoint changes $(\varepsilon_x-\varepsilon_y)\varepsilon_
 that $\hat f$ does not depend on them; $2m$ pairs give $\prod_vs_v\operatorname{ch}^{-4m}Y\langle\hat f\rangle_0$ (\texttt{integral\_spin\_diff\_prod\_selected}).
 After including $F$ and averaging over the disorder, the decoupled endpoint factorizes into the last-spin average and the old-system average, with all old replicas sharing one old disorder
 (\texttt{skCavityPathMean\_zero\_tuple\_eval}).
+\end{proof}
+
+\begin{lemma}[Canonical choices and removal of fresh replicas]\label{lem:sg-tal:hanen-critical-choices}
+\lean{SpinGlasses.skCavityIterKernel_eq_choice_sum, SpinGlasses.sum_abs_skCavityChoiceWeight, SpinGlasses.skCavityPathMean_comp_injective, SpinGlasses.sum_skCavityOldChoices, SpinGlasses.skCavityPathMean_zero_choice_support, SpinGlasses.skCavityPathMean_zero_choice_sum, SpinGlasses.iteratedDerivWithin_skCavityPathMean_zero_old_pairs}
+\leanok
+\uses{lem:sg-tal:hanen-interior-derivatives,lem:sg-tal:hanen-critical-survival}
+\talsource{Lemma~1.11.8 and the expansion in Eqs.~(1.338)--(1.339)}
+For any derivative order $m$, the iterated kernel is exactly a sum over sequences
+of one-step replica-pair choices, with their explicit weights and final endpoint
+indices. Its total absolute coefficient weight equals the bound used in
+Lemma~\ref{lem:sg-tal:cavity-iter-structure}.
+Suppose $q\in[0,1]$, $V$ has $2m$ pairwise disjoint difference pairs among the
+original $n$ replicas, $F$ depends only on the old spins, and $\hat f$ is
+invariant under updates at every replica in $V^*$. Then
+\[
+ \nu_0^{(m)}(F\eta_V\hat f)
+ = (\beta^2)^m
+   \sum_{p:\operatorname{Fin}(m)\to\{(a,b):a<b<n\}}
+   \nu_0\left(F\eta_V\hat f
+     \prod_{r<m}\varepsilon_{(p_r)_1}\varepsilon_{(p_r)_2}
+     \prod_{r<m}(R^-_{(p_r)_1,(p_r)_2}-q)\right).
+\]
+The sum and average on the right use only the original $n$ replicas. These exact
+identities require no high-temperature or fixed-point assumption beyond
+$q\in[0,1]$ for the derivative identification.
+\end{lemma}
+\begin{proof}
+\leanok
+Expand the recursive kernel using the existing one-step pair sum. Critical
+survival forces every endpoint of a nonzero term into $V^*$, so no fresh replica
+can occur. Each retained one-step choice is then an old-old pair with coefficient
+one. The old choices are injectively encoded by tuples of original pairs;
+all choices outside the image vanish. Finite-sum reindexing gives the displayed
+sum. Finally use the generic finite Gibbs marginal identity to remove unused
+replicas. This proves the original-pair reduction, not yet the rectangular
+regrouping in Theorem~1.11.9.
 \end{proof}
 
 \begin{lemma}[The weighted ordering factor]\label{lem:sg-tal:hanen-pairing-orderings}

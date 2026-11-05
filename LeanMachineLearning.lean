@@ -342,8 +342,8 @@ public import LeanMachineLearning.Optimization.Renormalization.Learning
 public import LeanMachineLearning.Optimization.Renormalization.MLPInitialization
 public import LeanMachineLearning.Optimization.Renormalization.NearlyGaussian
 public import LeanMachineLearning.Optimization.Renormalization.Network
+public import LeanMachineLearning.Optimization.Renormalization.PairingBlocks
 public import LeanMachineLearning.Optimization.Renormalization.PairingCardinality
-public import LeanMachineLearning.Optimization.Renormalization.PairingInvolution
 public import LeanMachineLearning.Optimization.Renormalization.PairingOrderings
 public import LeanMachineLearning.Optimization.Renormalization.PairingWick
 public import LeanMachineLearning.Optimization.Renormalization.ParameterizedMLP

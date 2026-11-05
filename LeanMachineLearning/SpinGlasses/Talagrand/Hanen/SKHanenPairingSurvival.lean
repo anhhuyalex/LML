@@ -8,6 +8,7 @@ module
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPathVanishing
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenSpinContraction
 public import LeanMachineLearning.ForMathlib.Data.Fintype.DisjointTransversal
+public import LeanMachineLearning.Optimization.Renormalization.PairingBlocks
 
 /-!
 # Exact support of the surviving critical cavity terms
@@ -86,6 +87,52 @@ theorem skCavityPathMean_zero_critical_survival (N m n : ℕ) (β q h : ℝ)
       ∅ p v (mem_univ _) ⟨hp1, hp2⟩ F fhat hfhat
     exact hnonzero (by simpa only [prod_empty, mul_one] using hz)
   exact exists_equiv_of_pairwiseDisjoint_of_hits S endpoint (by simp [mul_comm]) hd hhit
+
+/-- A nonzero critical term recovers a unique generic pairing and derivative ordering.
+Its blocks are characterized by incidence with the two endpoints of each derivative pair,
+so the recovered data do not depend on a choice of survival witness. -/
+theorem skCavityPathMean_zero_critical_pairing (N m n : ℕ) (β q h : ℝ)
+    (pairMap : Fin (2 * m) → Fin n × Fin n)
+    (hdisj : ∀ u v : Fin (2 * m), u ≠ v →
+      (pairMap u).1 ≠ (pairMap v).1 ∧ (pairMap u).1 ≠ (pairMap v).2 ∧
+      (pairMap u).2 ≠ (pairMap v).1 ∧ (pairMap u).2 ≠ (pairMap v).2)
+    (p : Fin m → Fin n × Fin n)
+    (F : (Fin n → Fin N → ℤˣ) → ℝ) (fhat : (Fin n → ℤˣ) → ℝ)
+    (hfhat : ∀ (ε : Fin n → ℤˣ) (i : Fin n) (t : ℤˣ),
+      i ∈ (univ : Finset (Fin (2 * m))).biUnion
+        (fun v => {(pairMap v).1, (pairMap v).2}) →
+      fhat (Function.update ε i t) = fhat ε) :
+    skCavityPathMean N n β q h 0 (fun σ => F (fun r i => σ r i.castSucc) *
+      (∏ w : Fin (2 * m), ((σ (pairMap w).1 (Fin.last N) : ℝ) -
+        (σ (pairMap w).2 (Fin.last N) : ℝ))) *
+      (∏ j : Fin m, (σ (p j).1 (Fin.last N) : ℝ) * (σ (p j).2 (Fin.last N) : ℝ)) *
+      fhat (fun r => σ r (Fin.last N))) ≠ 0 →
+    ∃! Pe : Σ P : Finpartition.Pairing (univ : Finset (Fin (2 * m))),
+        Fin m ≃ P.val.parts, ∀ i v,
+      v ∈ (Pe.2 i).val ↔
+        (p i).1 ∈ ({(pairMap v).1, (pairMap v).2} : Finset (Fin n)) ∨
+        (p i).2 ∈ ({(pairMap v).1, (pairMap v).2} : Finset (Fin n)) := by
+  intro hn
+  obtain ⟨e, he, _⟩ := skCavityPathMean_zero_critical_survival N m n β q h
+    pairMap hdisj p F fhat hfhat hn
+  obtain ⟨Pe, hPe, hu⟩ := Finpartition.existsUnique_pairing_ordering_of_equiv e
+  have hi (i : Fin m) (v : Fin (2 * m)) : (e v).1 = i ↔
+      (p i).1 ∈ ({(pairMap v).1, (pairMap v).2} : Finset (Fin n)) ∨
+      (p i).2 ∈ ({(pairMap v).1, (pairMap v).2} : Finset (Fin n)) := by
+    have ht : (p i).1 ∈ ({(pairMap v).1, (pairMap v).2} : Finset (Fin n)) ↔
+        e v = (i, true) := he v (i, true)
+    have hf : (p i).2 ∈ ({(pairMap v).1, (pairMap v).2} : Finset (Fin n)) ↔
+        e v = (i, false) := he v (i, false)
+    rw [ht, hf]
+    constructor
+    · intro hvi
+      cases hb : (e v).2
+      · exact Or.inr (Prod.ext hvi hb)
+      · exact Or.inl (Prod.ext hvi hb)
+    · rintro (hvi | hvi) <;> exact congrArg Prod.fst hvi
+  refine ⟨Pe, (fun i v => (hPe i v).trans (hi i v)), ?_⟩
+  intro Q hQ
+  exact hu Q (fun i v => (hQ i v).trans (hi i v).symm)
 
 /-- Evaluate an admissible surviving endpoint term, including the old-spin observable.
 The old replicas continue to share one disorder. No fixed-point or temperature hypothesis

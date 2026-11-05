@@ -21,7 +21,7 @@ open Finset
 open scoped BigOperators
 namespace Finpartition
 
-variable {α ι : Type*} [DecidableEq α] [Fintype ι] [DecidableEq ι]
+variable {α ι : Type*} [DecidableEq α] [Fintype ι]
 
 /-- A pairing with an indexed ordering of its parts is exactly an indexed family of
 disjoint two-element blocks covering the set. No linear order on the ambient set is needed.
@@ -90,9 +90,10 @@ noncomputable def Pairing.equivOrderedBlocks (s : Finset α) :
           refine ⟨b i, ⟨mem_image.mpr ⟨i, mem_univ _, rfl⟩, hi⟩, ?_⟩
           rintro B ⟨hB, hxB⟩
           obtain ⟨j, _, rfl⟩ := mem_image.mp hB
-          by_cases hij : j = i
-          · exact congrArg b hij
-          · exact False.elim (disjoint_left.mp (hd hij) hxB hi))
+          have hji : j = i := by
+            by_contra hji
+            exact disjoint_left.mp (hd hji) hxB hi
+          exact congrArg b hji)
         (by
           intro h
           obtain ⟨i, _, hi⟩ := mem_image.mp h
@@ -136,5 +137,49 @@ theorem existsUnique_pairing_ordering (s : Finset α) (b : ι → Finset α)
     apply Subtype.ext
     funext i
     exact (hPe i).trans (congrFun (congrArg Subtype.val (e.apply_symm_apply B)) i).symm
+
+omit [Fintype ι] in
+/-- Grouping a bijection to pairs of endpoint positions gives a unique pairing and block
+ordering. The Boolean component orients a block, and is forgotten in this characterization. -/
+theorem existsUnique_pairing_ordering_of_equiv [Fintype α] (e : α ≃ ι × Bool) :
+    ∃! Pe : Σ P : Pairing (univ : Finset α), ι ≃ P.val.parts, ∀ i v,
+      v ∈ (Pe.2 i).val ↔ (e v).1 = i := by
+  let : Fintype ι := Fintype.ofInjective (fun i => e.symm (i, true))
+    (fun _ _ h => congrArg Prod.fst (e.symm.injective h))
+  let b : ι → Finset α := fun i => {e.symm (i, true), e.symm (i, false)}
+  have hc (i) : (b i).card = 2 := by
+    apply card_pair
+    intro h
+    have := e.symm.injective h
+    simp at this
+  have hd : Pairwise fun i j => Disjoint (b i) (b j) := by
+    intro i j hij
+    rw [disjoint_left]
+    intro x hx hy
+    simp only [b, mem_insert, mem_singleton] at hx hy
+    rcases hx with rfl | rfl <;> rcases hy with hy | hy
+    all_goals exact hij (congrArg Prod.fst (e.symm.injective hy))
+  have hm (i : ι) (v : α) : v ∈ b i ↔ (e v).1 = i := by
+    simp only [b, mem_insert, mem_singleton, e.eq_symm_apply]
+    constructor
+    · rintro (h | h) <;> exact congrArg Prod.fst h
+    · intro hi
+      cases hb : (e v).2
+      · exact Or.inr (Prod.ext hi hb)
+      · exact Or.inl (Prod.ext hi hb)
+  have hcover : univ.biUnion b = (univ : Finset α) := by
+    ext v
+    simp only [mem_biUnion, mem_univ, true_and, hm, iff_true]
+    exact ⟨(e v).1, rfl⟩
+  obtain ⟨Pe, hPe, hu⟩ := existsUnique_pairing_ordering univ b hc hd hcover
+  refine ⟨Pe, ?_, ?_⟩
+  · intro i v
+    rw [hPe]
+    exact hm i v
+  · intro Q hQ
+    apply hu Q
+    intro i
+    ext v
+    exact (hQ i v).trans (hm i v).symm
 
 end Finpartition
