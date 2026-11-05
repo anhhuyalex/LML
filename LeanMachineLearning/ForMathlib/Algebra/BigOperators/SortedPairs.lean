@@ -53,8 +53,8 @@ theorem sum_signed_orderedPairs_product {α R : Type*} [Fintype α] [LinearOrder
   erw [sum_product]
   simp only [sum_pair hx, sum_pair hy]
   simp only [mem_insert, mem_singleton, hx, hy, hd'.1.1, hd'.1.2,
-    hd'.2.1, hd'.2.2, Ne.symm hd'.1.1, Ne.symm hd'.2.1, or_self,
-    eq_self, true_or, or_true, or_false, ite_true, ite_false,
+    Ne.symm hd'.1.1, Ne.symm hd'.2.1, or_self,
+    eq_self, or_true, or_false, ite_true, ite_false,
     one_mul, neg_mul, neg_neg]
   ring
 

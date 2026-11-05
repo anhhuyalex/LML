@@ -65,7 +65,122 @@ theorem sk_hanen_pairing_derivative_zero (N n : ℕ) (β q h : ℝ)
   simp_rw [hw, mul_one]
   exact skCavityPathMean_zero_mul N n β q h F fhat
 
-/- Leading-coefficient checks for the remaining combinatorial proof:
+/-- Assemble the original-pair sum using the class evaluations and the existing ordering
+identity. This argument works for every `m`, including zero, without induction. -/
+theorem sk_hanen_pairing_derivative_of_old_pairs (N m n : ℕ) (β q h : ℝ)
+    (pairMap : Fin (2 * m) → Fin n × Fin n)
+    (hxy : ∀ v, (pairMap v).1 ≠ (pairMap v).2)
+    (hdisj : ∀ u v : Fin (2 * m), u ≠ v →
+      (pairMap u).1 ≠ (pairMap v).1 ∧ (pairMap u).1 ≠ (pairMap v).2 ∧
+      (pairMap u).2 ≠ (pairMap v).1 ∧ (pairMap u).2 ≠ (pairMap v).2)
+    (F : (Fin n → Fin N → ℤˣ) → ℝ) (fhat : (Fin n → ℤˣ) → ℝ)
+    (hfhat : ∀ ε i t,
+      i ∈ (univ : Finset (Fin (2 * m))).biUnion
+        (fun v => {(pairMap v).1, (pairMap v).2}) →
+      fhat (Function.update ε i t) = fhat ε) :
+    (∑ p : Fin m → FinPairs n, skCavityPathMean N n β q h 0 (fun σ =>
+      F (fun r i => σ r i.castSucc) *
+        (∏ v : Fin (2 * m), ((σ (pairMap v).1 (Fin.last N) : ℝ) -
+          (σ (pairMap v).2 (Fin.last N) : ℝ))) *
+        (∏ r : Fin m, (σ (p r).val.1 (Fin.last N) : ℝ) *
+          (σ (p r).val.2 (Fin.last N) : ℝ)) * fhat (fun r => σ r (Fin.last N)) *
+        ∏ r : Fin m, ((N + 1 : ℝ)⁻¹ *
+          (∑ i : Fin N, (σ (p r).val.1 i.castSucc : ℝ) *
+            (σ (p r).val.2 i.castSucc : ℝ)) - q))) =
+      (m.factorial : ℝ) *
+        (∫ z : ℝ, (∫ ε : Fin n → ℤˣ, fhat ε
+            ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
+              fun s : ℤˣ => (s : ℝ) * (β * z * Real.sqrt q + h))) *
+          ((Real.cosh (β * z * Real.sqrt q + h))⁻¹) ^ (4 * m) ∂gaussianReal 0 1) *
+        (∫ g' : FinPairs N → ℝ, ∫ ρ : Fin n → Fin N → ℤˣ,
+          F ρ * Renormalization.wick
+            (fun u v => skCavityRectTrunc N n m q pairMap u v ρ) univ
+          ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (skCavityOldEnergy N β h g'))
+          ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) := by
+  let oldMean := fun G : (Fin n → Fin N → ℤˣ) → ℝ =>
+    ∫ g' : FinPairs N → ℝ, ∫ ρ : Fin n → Fin N → ℤˣ, G ρ
+      ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (skCavityOldEnergy N β h g'))
+      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
+  have hlin {ι : Type} (s : Finset ι) (G : ι → (Fin n → Fin N → ℤˣ) → ℝ) :
+      oldMean (fun ρ => ∑ i ∈ s, G i ρ) = ∑ i ∈ s, oldMean (G i) := by
+    simpa only [one_mul] using integral_gibbs_finset_sum
+      (Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
+      (skCavityOldEnergy N β h) (by intro a; unfold skCavityOldEnergy; fun_prop)
+      s (fun _ => 1) G
+  let Z := ∫ z : ℝ, (∫ ε : Fin n → ℤˣ, fhat ε
+      ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
+        fun s : ℤˣ => (s : ℝ) * (β * z * Real.sqrt q + h))) *
+      ((Real.cosh (β * z * Real.sqrt q + h))⁻¹) ^ (4 * m) ∂gaussianReal 0 1
+  let K := fun (ρ : Fin n → Fin N → ℤˣ) (a b : Fin n) =>
+    (N + 1 : ℝ)⁻¹ * (∑ j : Fin N, (ρ a j : ℝ) * (ρ b j : ℝ)) - q
+  have hK (ρ : Fin n → Fin N → ℤˣ) (a b : Fin n) : K ρ a b = K ρ b a := by
+    simp only [K, mul_comm]
+  let C := fun (ρ : Fin n → Fin N → ℤˣ) u v =>
+    skCavityRectTrunc N n m q pairMap u v ρ
+  let w := fun (ρ : Fin n → Fin N → ℤˣ) => Renormalization.pairWeight (C ρ)
+  have horder (ρ : Fin n → Fin N → ℤˣ) :
+      (∑ Pe : (Σ P : Finpartition.Pairing (univ : Finset (Fin (2 * m))),
+          Fin m ≃ P.val.parts), Pe.1.blockProduct (w ρ)) =
+        (m.factorial : ℝ) * Renormalization.wick (C ρ) univ := by
+    rw [Fintype.sum_sigma]
+    have he (P : Finpartition.Pairing (univ : Finset (Fin (2 * m))))
+        (e : Fin m ≃ P.val.parts) :
+        P.blockProduct (w ρ) = ∏ i : Fin m, w ρ (e i).val := by
+      rw [e.prod_comp, prod_coe_sort]
+      rfl
+    simp_rw [he]
+    exact Finpartition.pairingSum_orderings univ m (by simp) (w ρ)
+  rw [skCavityPathMean_zero_old_pairs_sum_fibers N m n β q h pairMap hdisj F fhat hfhat]
+  have hclass (Pe : Σ P : Finpartition.Pairing (univ : Finset (Fin (2 * m))),
+      Fin m ≃ P.val.parts) :
+      (∑ p with (∀ i v, v ∈ (Pe.2 i).val ↔
+          (p i).val.1 ∈ ({(pairMap v).1, (pairMap v).2} : Finset (Fin n)) ∨
+          (p i).val.2 ∈ ({(pairMap v).1, (pairMap v).2} : Finset (Fin n))),
+        skCavityPathMean N n β q h 0 (fun σ => F (fun r i => σ r i.castSucc) *
+          (∏ v : Fin (2 * m), ((σ (pairMap v).1 (Fin.last N) : ℝ) -
+            (σ (pairMap v).2 (Fin.last N) : ℝ))) *
+          (∏ r : Fin m, (σ (p r).val.1 (Fin.last N) : ℝ) *
+            (σ (p r).val.2 (Fin.last N) : ℝ)) * fhat (fun r => σ r (Fin.last N)) *
+          ∏ r : Fin m, ((N + 1 : ℝ)⁻¹ *
+            (∑ i : Fin N, (σ (p r).val.1 i.castSucc : ℝ) *
+              (σ (p r).val.2 i.castSucc : ℝ)) - q))) =
+        Z * oldMean (fun ρ => F ρ * Pe.1.blockProduct (w ρ)) := by
+    let s := univ.filter fun p : Fin m → FinPairs n => ∀ i v, v ∈ (Pe.2 i).val ↔
+      (p i).val.1 ∈ ({(pairMap v).1, (pairMap v).2} : Finset (Fin n)) ∨
+      (p i).val.2 ∈ ({(pairMap v).1, (pairMap v).2} : Finset (Fin n))
+    let G := fun (p : Fin m → FinPairs n) (ρ : Fin n → Fin N → ℤˣ) =>
+      F ρ * ∏ i : Fin m,
+        (∏ v ∈ (Pe.2 i).val,
+          if (pairMap v).1 ∈ ({(p i).val.1, (p i).val.2} : Finset (Fin n)) then
+            (1 : ℝ) else -1) * K ρ (p i).val.1 (p i).val.2
+    trans ∑ p ∈ s, Z * oldMean (G p)
+    · apply sum_congr rfl
+      intro p hp
+      exact skCavityPathMean_zero_fiber_term_eval N m n β q h pairMap hxy hdisj
+        Pe p (mem_filter.mp hp).2 F fhat hfhat
+    rw [← mul_sum, ← hlin]
+    congr 1
+    congr 1
+    funext ρ
+    dsimp only [G]
+    rw [← mul_sum]
+    congr 1
+    simpa only [s, w, C, K, skCavityRectTrunc, dotProduct] using
+      skCavityPairing_signed_fiber_sum pairMap hxy hdisj Pe (K ρ) (hK ρ)
+  simp_rw [hclass]
+  rw [← mul_sum, ← hlin]
+  have hsum : (fun ρ => ∑ Pe : (Σ P : Finpartition.Pairing
+      (univ : Finset (Fin (2 * m))), Fin m ≃ P.val.parts),
+      F ρ * Pe.1.blockProduct (w ρ)) =
+      fun ρ => (m.factorial : ℝ) * (F ρ * Renormalization.wick (C ρ) univ) := by
+    funext ρ
+    rw [← mul_sum, horder]
+    ring
+  rw [hsum]
+  simp only [oldMean, integral_const_mul]
+  ring
+
+/- Leading-coefficient checks for the combinatorial proof:
 At m = 1 there is one pairing. The four choices of endpoints, one from each
 spin-difference pair, have signs +,-,-,+ and sum to one rectangle U^-.
 At m = 2 there are three pairings of the four spin-difference pairs. Each has
