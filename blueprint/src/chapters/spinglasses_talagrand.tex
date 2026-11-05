@@ -8245,17 +8245,15 @@ and the weighted $m!$ ordering identity are proved
 (Lemmas~\ref{lem:sg-tal:hanen-critical-survival}--\ref{lem:sg-tal:hanen-pairing-orderings}).
 The actual critical derivative is now reduced to ordered tuples of original
 replica pairs (Lemma~\ref{lem:sg-tal:hanen-critical-choices}); all fresh-replica terms
-and signed weights have been eliminated. Reindexing these tuples with their
-endpoint selections into signed rectangular factors remains open. The sum is
-already grouped by its unique pairing and derivative ordering, and each class
-is a product of four-element endpoint-choice sets
-(Lemmas~\ref{lem:sg-tal:hanen-pairing-fibers}--\ref{lem:sg-tal:hanen-endpoint-choice-sets}).
-The exact derivative identity of H3 is not yet proved.
+and signed weights have been eliminated. Grouping by the unique ordered pairing,
+evaluating each class as a product of rectangles, and applying the ordering
+identity proves H3 for every $m$, including zero
+(Theorem~\ref{thm:sg-tal:hanen-pairing-derivative}).
 The odd case of H5 is proved (Theorem~\ref{thm:sg-tal:hanen-odd}), using the endpoint
 derivative bounds and Taylor expansion. The common Taylor expansion for either parity
 (Lemma~\ref{lem:sg-tal:hanen-leading-taylor}) is proved and retains the leading coefficient
-needed for the even case. In progress: the H3 finite-sum regrouping, H4
-(Propositions~1.11.10--1.11.11) and the even case of H5. Four proof placeholders remain.
+needed for the even case. In progress: H4
+(Propositions~1.11.10--1.11.11) and the even case of H5. Three proof placeholders remain.
 The roadmap for Section~1.11 is structured into steps H0--H5:
 \begin{enumerate}
 \item \emph{H0: Blueprint statements.} Mathematical statements for Lemma~1.11.3,
@@ -8549,7 +8547,9 @@ integrated over $z$, times the old-system average of $f^-$ (\texttt{skCavityPath
 \end{proof}
 
 \begin{theorem}[Combinatorial pairing formula for the cavity derivative]\label{thm:sg-tal:hanen-pairing-derivative}
-\uses{lem:sg-tal:hanen-pairing-derivative-zero, lem:sg-tal:hanen-critical-survival, lem:sg-tal:hanen-spin-contraction, lem:sg-tal:hanen-pairing-orderings, lem:sg-tal:hanen-pairing-bridge}
+\lean{SpinGlasses.sk_hanen_pairing_derivative_of_old_pairs, SpinGlasses.sk_hanen_pairing_derivative}
+\leanok
+\uses{lem:sg-tal:hanen-pairing-derivative-zero, lem:sg-tal:hanen-critical-choices, lem:sg-tal:hanen-pairing-fibers, lem:sg-tal:hanen-fiber-evaluation, lem:sg-tal:hanen-pairing-orderings}
 \talsource{Theorem~1.11.9, Eq.~(1.337)}
 Let $|V| = 2m$, $\hat f$ depend only on $(\varepsilon_\ell)_{\ell \notin V^*}$, and $f^-$ be a function of the first $N$ spins.
 Assume the replica pairs $\{a_v,b_v\}$ are pairwise disjoint and $a_v\ne b_v$ for every $v\in V$, with $q\in[0,1]$.
@@ -8559,12 +8559,21 @@ Then
 \nu_0\left( f^- \prod_{J \in \mathcal I} U_J^- \right),
 \]
 where the sum ranges over all partitions $\mathcal I$ of $V$ into 2-element sets $J = \{u, v\}$, and
-$U_J^- = R^-_{2u-1, 2v-1} - R^-_{2u-1, 2v} - R^-_{2u, 2v-1} + R^-_{2u, 2v}$.
-\emph{Status.} Only the case $m=0$ (Lemma~\ref{lem:sg-tal:hanen-pairing-derivative-zero}) is proved in Lean; the general case is open (one \texttt{sorry}).
-The ingredients are proved: the support of the surviving terms (Lemma~\ref{lem:sg-tal:hanen-critical-survival}), their signed evaluation (Lemma~\ref{lem:sg-tal:hanen-spin-contraction}),
-the factor $m!$ (Lemma~\ref{lem:sg-tal:hanen-pairing-orderings}) and the identification of pair partitions (Lemma~\ref{lem:sg-tal:hanen-pairing-bridge}).
-What remains is grouping the surviving tuples by their unique pair partition and block ordering, regrouping their signed contributions into rectangles; each group is now a product of four-element endpoint-choice sets (Lemma~\ref{lem:sg-tal:hanen-endpoint-choice-sets}).
+$U_J^- = R^-_{a_u,a_v} - R^-_{b_u,a_v} - R^-_{a_u,b_v} + R^-_{b_u,b_v}$.
 \end{theorem}
+\begin{proof}
+\leanok
+Reduce the derivative to the original-pair sum by
+Lemma~\ref{lem:sg-tal:hanen-critical-choices} and group by the unique ordered
+pairing using Lemma~\ref{lem:sg-tal:hanen-pairing-fibers}.
+Lemma~\ref{lem:sg-tal:hanen-fiber-evaluation} evaluates every class.
+Move the finite sums through the old Gibbs and disorder averages using the
+existing finite-observable linearity theorem; it supplies integrability
+without additional assumptions. The weighted ordering identity gives $m!$
+times the Wick sum of the rectangular kernel. Pull out the common factors
+$\beta^{2m}$ and $\mathbb E(\langle\hat f\rangle_0\operatorname{ch}^{-4m}Y)$.
+This is a direct calculation for every $m$, without induction.
+\end{proof}
 
 \begin{proposition}[Evaluation of rectangular products]\label{prop:sg-tal:hanen-truncated-rect-eval}
 \talsource{Proposition~1.11.10, Eq.~(1.341)}
@@ -8884,8 +8893,7 @@ For a finite set of size $2m$ and block weights in any commutative semiring,
 summing the weighted product over all pairings and all bijective orderings of
 their $m$ blocks gives $m!$ times the usual weighted pairing sum. The proof
 uses the existing finite-equivalence cardinality theorem. This counts block
-orderings; identifying the surviving iterated-kernel choices with those
-orderings remains required for Theorem~1.11.9.
+orderings and supplies the coefficient in Theorem~1.11.9.
 \end{lemma}
 \begin{proof}
 \leanok

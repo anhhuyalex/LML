@@ -4489,3 +4489,4 @@ Finset.sum_signed_orderedPairs_product
 SpinGlasses.skCavityPathMean_zero_fiber_term_eval
 SpinGlasses.skCavityPairing_signed_fiber_sum
 SpinGlasses.sk_hanen_pairing_derivative_of_old_pairs
+SpinGlasses.sk_hanen_pairing_derivative
