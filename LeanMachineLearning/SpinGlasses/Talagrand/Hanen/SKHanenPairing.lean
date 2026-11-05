@@ -6,7 +6,8 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPairingBasic
-public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPairingFibers
+public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPairingTerm
+public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPairingSum
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenTaylor
 
 /-!
@@ -106,10 +107,10 @@ theorem sk_hanen_pairing_derivative (N m n : ℕ) (β q h : ℝ)
           ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
             (skCavityOldEnergy N β h g'))
           ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) := by
-  induction m generalizing n with
-  | zero =>
-    exact sk_hanen_pairing_derivative_zero N n β q h pairMap F fhat
-  | succ m ih =>
-    sorry
+  rw [iteratedDerivWithin_skCavityPathMean_zero_old_pairs N m n β q h hq
+    pairMap hdisj F fhat hfhat,
+    sk_hanen_pairing_derivative_of_old_pairs N m n β q h pairMap hxy hdisj F fhat hfhat]
+  simp only [inv_pow]
+  ring
 
 end SpinGlasses
