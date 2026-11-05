@@ -8279,6 +8279,22 @@ corresponding path average of the iterated kernel, on $n+2m$ replicas. The path
 is smooth to every finite order on $[0,1]$. The quantitative bound is
 Lemma~\ref{lem:sg-tal:cavity-iterated-deriv-bound}.
 \end{lemma}
+\begin{proof}
+\leanok
+\emph{First derivative.} For $u\in(0,1)$ the energy $E_u$ is the trigonometric path $\cos s\,X+\sin s\,Y+A$ with
+$s=\arccos\sqrt u$, and Lemma~1.4.2 (the derivative of a replica Gibbs average along a Gaussian path) gives the $s$-derivative
+as the path average of a signed sum of covariance terms; the diagonal terms cancel (Eq.~(1.151)). Since
+$du/ds=-2\sin s\cos s$, the factor $\sin s\cos s$ cancels and the derivative in $u$ is $\nu_u(Lf)$ with $L$ as in
+Definition~\ref{def:sg-tal:hanen-kernel} (\texttt{hasDerivAt\_skCavityPathMean}). The two fresh replicas $n+1,n+2$ are relabelled by an
+explicit equivalence so that $Lf$ is again an observable of $\operatorname{Fin}(n+2)$ and $\nu_u(Lf)$ is
+a cavity mean of the same form (\texttt{hasDerivAt\_skCavityPathMean\_fin\_step}).
+\emph{Higher derivatives.} Induct on $m$, generalizing $n$ and $f$: the $m$-th derivative of $\nu_u(f)$ is the $(m-1)$-st derivative of $\nu_u(Lf)$,
+which is $\nu_u(L^{(m-1)}Lf)=\nu_u(L^{(m)}f)$ by the induction hypothesis for $n+2$.
+\emph{Endpoints.} $u\mapsto\nu_u(g)$ is continuous on $[0,1]$ for every bounded $g$ (dominated convergence; $\arccos\sqrt u$ is continuous on $[0,1]$).
+A function that is continuous on $[a,b]$ and has a continuous derivative on $(a,b)$ has that derivative within $[a,b]$
+(\texttt{hasDerivWithinAt\_Icc\_of\_continuous\_derivative}), which gives the one-sided derivatives at $u=0$ and $u=1$,
+and hence smoothness of every order on $[0,1]$.
+\end{proof}
 
 \begin{lemma}[Weighted cavity replica pairs]\label{lem:sg-tal:hanen-pair-weights}
 \lean{SpinGlasses.skCavityPathDerivKernel_eq_pair_sum, SpinGlasses.sum_abs_skCavityReplicaPairWeight}
@@ -8288,6 +8304,15 @@ families of distinct replica pairs. The sum of the absolute values of their
 coefficients is $2n^2$. This is a one-step identity and weight bound; it is not
 yet an expansion or quantitative estimate for the iterated kernel.
 \end{lemma}
+\begin{proof}
+\leanok
+The bracket in $Lf$ is the sum over the three families of distinct pairs of replicas: old--old pairs $\ell<\ell'\le n$ with weight $1$, old--fresh pairs $(\ell,n+1)$
+with weight $-n$, and the fresh--fresh pair $(n+1,n+2)$ with weight $n(n+1)/2$. Indexing these by one finite type and collecting the three sums
+into a single sum gives the first claim (\texttt{skCavityPathDerivKernel\_eq\_pair\_sum}). For the weights, the first family has $\binom n2$ elements, the second has $n$ elements of weight $n$, and the third has one element, so
+\[
+\sum_j|w_j|=\binom n2+n\cdot n+\frac{n(n+1)}2=2n^2 .
+\]
+\end{proof}
 
 \begin{lemma}[Pointwise structure of the iterated cavity kernel]\label{lem:sg-tal:cavity-iter-structure}
 \lean{SpinGlasses.skCavityIterKernel_structure, SpinGlasses.abs_skCavityIterKernel_le,
@@ -8327,7 +8352,8 @@ By Lemma~\ref{lem:sg-tal:hanen-interior-derivatives} the derivative is $\nu_u$ o
 \end{proof}
 
 \begin{lemma}[Decoupled vanishing of spin differences]\label{lem:sg-tal:decoupled-eta-vanishing}
-% sk_cavity_decoupled_vanishing proves the special case without the factor \hat f.
+\lean{SpinGlasses.sk_cavity_decoupled_vanishing, SpinGlasses.skCavityPathMean_zero_vanishing}
+\leanok
 \talsource{Lemma~1.11.4}
 Let $V$ and $J$ be finite sets of replica indices with $V^* = \bigcup_{v \in V} \{2v-1, 2v\}$.
 If $|V^* \cap J| < |V|$ and $\hat f$ depends only on $(\varepsilon_\ell)_{\ell \notin V^*}$, then
@@ -8336,6 +8362,14 @@ If $|V^* \cap J| < |V|$ and $\hat f$ depends only on $(\varepsilon_\ell)_{\ell \
 \]
 where $\eta_V = \prod_{v \in V} (\varepsilon_{2v-1} - \varepsilon_{2v})$ and $\varepsilon_J = \prod_{\ell \in J} \varepsilon_\ell$.
 \end{lemma}
+\begin{proof}
+\leanok
+The $|V|$ spin-difference pairs are pairwise disjoint and $|V^*\cap J|<|V|$, so by the pigeonhole principle some pair $v\in V$ has neither endpoint in $J$.
+At the decoupled endpoint the last spins are independent, all with the same law, and independent of the old spins; $\hat f$ and $\varepsilon_J$ do not involve the two spins of the pair $v$.
+Hence the average factorizes and contains the factor $\langle\varepsilon_{a_v}-\varepsilon_{b_v}\rangle_0=\operatorname{th}Y-\operatorname{th}Y=0$.
+The Lean statements (\texttt{sk\_cavity\_decoupled\_vanishing} for the decoupled integral, with an arbitrary function of the old spins in place of $f^-$ and no $\hat f$,
+and \texttt{skCavityPathMean\_zero\_vanishing} with $\hat f$, as the case of zero derivative pairs) prove this.
+\end{proof}
 
 \begin{lemma}[Vanishing of lower cavity derivatives at decoupled endpoint]\label{lem:sg-tal:cavity-deriv-zero-vanishing}
 \lean{SpinGlasses.iteratedDerivWithin_skCavityPathMean_zero_vanishing,
@@ -8446,6 +8480,16 @@ $(R_{2u-1,2v-1} - q) - (R_{2u-1,2v} - q) - (R_{2u,2v-1} - q) + (R_{2u,2v} - q)
 = T_{2u-1,2v-1} - T_{2u-1,2v} - T_{2u,2v-1} + T_{2u,2v}$.
 Furthermore, the full rectangular sum splits as $U_J = U_J^- + (N+1)^{-1} \eta_J$.
 \end{lemma}
+\begin{proof}
+\leanok
+Both identities are algebra. In the four-term combination every term contains $-q$ with signs $+,-,-,+$, so $q$ cancels. Write each overlap as
+$R_{\ell\ell'}-q=T_{\ell\ell'}+T_\ell+T_{\ell'}+T$ (Section~\ref{sec:sg-tal:second-moment}): the single-type terms $T_\ell,T_{\ell'}$ and the global term $T$ occur with signs $+,-,-,+$ in
+the four terms with $\ell\in\{2u-1,2u\}$ and $\ell'\in\{2v-1,2v\}$ and cancel, leaving the four $T_{\ell\ell'}$. For the second identity, $R=R^-+\varepsilon_\ell\varepsilon_{\ell'}/(N+1)$ in each term, and
+\[
+\varepsilon_{2u-1}\varepsilon_{2v-1}-\varepsilon_{2u}\varepsilon_{2v-1}-\varepsilon_{2u-1}\varepsilon_{2v}+\varepsilon_{2u}\varepsilon_{2v}
+=(\varepsilon_{2u-1}-\varepsilon_{2u})(\varepsilon_{2v-1}-\varepsilon_{2v})=\eta_u\eta_v=\eta_J .
+\]
+\end{proof}
 
 \begin{lemma}[Multi-replica representation of covariance powers]\label{lem:sg-tal:hanen-cov-powers}
 \lean{SpinGlasses.integral_two_replicas_cov, SpinGlasses.integral_two_mul_replicas_cov_pow, SpinGlasses.cov_pow_eq_two_inv_pow_mul_integral}
@@ -8486,9 +8530,20 @@ Use Lemma~\ref{lem:sg-tal:hanen-cov-powers} at each disorder realization and app
 site symmetry to the resulting arbitrary $2k$-replica observable.
 \end{proof}
 
-\begin{theorem}[Combinatorial pairing formula for the cavity derivative]\label{thm:sg-tal:hanen-pairing-derivative}
+\begin{lemma}[Pairing formula, case $m=0$]\label{lem:sg-tal:hanen-pairing-derivative-zero}
 \lean{SpinGlasses.sk_hanen_pairing_derivative_zero}
 \leanok
+\talsource{Theorem~1.11.9, Eq.~(1.337) for $m=0$}
+For $m=0$ ($V=\emptyset$, one empty pair partition), $\nu_0(\hat f f^-)=\mathbb E\langle\hat f\rangle_0\;\nu_0(f^-)$.
+\end{lemma}
+\begin{proof}
+\leanok
+At $u=0$ the last spins are independent of the old spins (Definition~\ref{def:sg-tal:hanen-cavity-path}), so the average factorizes into the average of $\hat f$ over the last spins,
+integrated over $z$, times the old-system average of $f^-$ (\texttt{skCavityPathMean\_zero\_mul}).
+\end{proof}
+
+\begin{theorem}[Combinatorial pairing formula for the cavity derivative]\label{thm:sg-tal:hanen-pairing-derivative}
+\uses{lem:sg-tal:hanen-pairing-derivative-zero, lem:sg-tal:hanen-critical-survival, lem:sg-tal:hanen-spin-contraction, lem:sg-tal:hanen-pairing-orderings, lem:sg-tal:hanen-pairing-bridge}
 \talsource{Theorem~1.11.9, Eq.~(1.337)}
 Let $|V| = 2m$, $\hat f$ depend only on $(\varepsilon_\ell)_{\ell \notin V^*}$, and $f^-$ be a function of the first $N$ spins.
 Then
@@ -8498,7 +8553,10 @@ Then
 \]
 where the sum ranges over all partitions $\mathcal I$ of $V$ into 2-element sets $J = \{u, v\}$, and
 $U_J^- = R^-_{2u-1, 2v-1} - R^-_{2u-1, 2v} - R^-_{2u, 2v-1} + R^-_{2u, 2v}$.
-For $m=0$, this base case evaluates the decoupled average and factors as the last-spin expectation times the $N$-spin expectation (\texttt{sk\_hanen\_pairing\_derivative\_zero}).
+\emph{Status.} Only the case $m=0$ (Lemma~\ref{lem:sg-tal:hanen-pairing-derivative-zero}) is proved in Lean; the general case is open (one \texttt{sorry}).
+The ingredients are proved: the support of the surviving terms (Lemma~\ref{lem:sg-tal:hanen-critical-survival}), their signed evaluation (Lemma~\ref{lem:sg-tal:hanen-spin-contraction}),
+the factor $m!$ (Lemma~\ref{lem:sg-tal:hanen-pairing-orderings}) and the identification of pair partitions (Lemma~\ref{lem:sg-tal:hanen-pairing-bridge}).
+What remains is the reindexing of the surviving tuples of derivative pairs by triples (pair partition, ordering of its blocks, choice of one endpoint in each of the two spin-difference pairs of a block).
 \end{theorem}
 
 \begin{proposition}[Evaluation of rectangular products]\label{prop:sg-tal:hanen-truncated-rect-eval}
@@ -8569,6 +8627,14 @@ $\prod_{J\in\mathcal I}U^-_J$. Hence the sum of rectangular products over Hanen
 pairings equals the existing Wick sum of that kernel. This is a combinatorial
 identification; it does not evaluate the cavity derivative in Eq.~(1.337).
 \end{lemma}
+\begin{proof}
+\leanok
+Given a pair partition, let $p(a)$ be the other element of the block containing $a$; then $p$ is an involution without fixed points. Conversely, given such a
+$p$, the sets $\{a,p(a)\}$ are the blocks of a pair partition. The two constructions are inverse to each other, which is the equivalence. For the product formula, each block
+$\{a,p(a)\}$ is hit by exactly two elements $a$, of which exactly one is the smaller one, so the product over blocks equals the product over $a$ with $a<p(a)$.
+In the Hanen case the unordered block weight of $\{u,v\}$ is the symmetric kernel $U^-_{uv}$ (Lemma~\ref{lem:sg-tal:hanen-rect-diff} and the symmetry of $U^-$), so
+the product of block weights is $\prod_{J\in\mathcal I}U_J^-$, and summing over all pair partitions is the Wick sum of the kernel.
+\end{proof}
 
 \begin{lemma}[The number of Hanen pairings]\label{lem:sg-tal:hanen-pairing-count}
 \lean{Finpartition.Pairing.card_empty, Finpartition.Pairing.card_erase, Finpartition.Pairing.card_mul_two_pow_mul_factorial, Finpartition.Pairing.card_eq_factorial_div, SpinGlasses.HanenPairing.card}
@@ -8583,6 +8649,13 @@ The generic theorem is proved by the existing weighted pairing recursion with
 constant weight one; it is independent of any order or probability measure.
 The integral identity for the even Gaussian moment $a(2m)$ was proved previously.
 \end{lemma}
+\begin{proof}
+\leanok
+Let $s$ be a set with $2m$ elements and fix $a\in s$. A pair partition of $s$ is determined by the partner $b\in s\setminus\{a\}$ of $a$ and a pair partition of
+$s\setminus\{a,b\}$, a set with $2(m-1)$ elements. Hence the number $P(m)$ of pair partitions satisfies $P(m)=(2m-1)P(m-1)$ with $P(0)=1$
+(the empty set has exactly one, empty, partition). Equivalently $P(m)\,2^mm!=(2m)!$, which is proved by induction using
+$(2m+2)!=(2m+2)(2m+1)(2m)!$, and so $P(m)=(2m)!/(2^mm!)$. This is $a(2m)=\mathbb Eg^{2m}$ by the even-moment formula for the standard Gaussian.
+\end{proof}
 
 \begin{lemma}[Exact support at the critical order]\label{lem:sg-tal:hanen-critical-survival}
 \lean{MeasureTheory.integral_pi_mul_pair_of_invariant, exists_equiv_of_pairwiseDisjoint_of_hits, SpinGlasses.sk_cavity_deriv_zero_vanishing_of_missing_pair, SpinGlasses.skCavityPathMean_zero_vanishing_of_missing_pair, SpinGlasses.skCavityPathMean_zero_critical_survival}
@@ -8604,6 +8677,16 @@ The cancellation criterion is stronger than a cardinality estimate: if any one
 pair is missed by all extra spin factors, the average is zero. The older
 cardinality-based vanishing theorem specializes this proof.
 \end{lemma}
+\begin{proof}
+\leanok
+Let $S_v=\{a_v,b_v\}$ be the spin-difference pairs; they are pairwise disjoint. First, every $S_v$ contains at least one endpoint $a_j$ or $b_j$ of some derivative pair:
+otherwise the pair $v$ is missed by all the extra spin factors, and the average vanishes, because the factor $\varepsilon_{a_v}-\varepsilon_{b_v}$ has mean zero
+for the decoupled system (the two last spins have the same law and are independent of everything else, \texttt{skCavityPathMean\_zero\_vanishing\_of\_missing\_pair}); this contradicts the assumption that the average is nonzero.
+So the list of $2m$ endpoints hits each of the $2m$ disjoint sets $S_v$. Now a list of length $2m$ that hits $2m$ pairwise disjoint sets hits each exactly once:
+choose for each $v$ an endpoint in $S_v$; these choices are distinct because the sets are disjoint, hence form an injective map between two sets with $2m$ elements, hence a bijection. So
+each $S_v$ contains exactly one endpoint, no endpoint lies outside $V^*$, and the endpoints are distinct
+(\texttt{exists\_equiv\_of\_pairwiseDisjoint\_of\_hits}).
+\end{proof}
 
 \begin{lemma}[Evaluation of a surviving spin factor]\label{lem:sg-tal:hanen-spin-contraction}
 \lean{SpinGlasses.integral_count_tilted_spin_eq_tanh, SpinGlasses.integral_spin_diff_mul_left_of_invariant, SpinGlasses.integral_spin_diff_mul_selected_of_invariant, SpinGlasses.integral_spin_diff_prod_selected, SpinGlasses.integral_spin_diff_prod_endpoint, SpinGlasses.skCavityPathMean_zero_tuple_eval}
@@ -8625,6 +8708,18 @@ same signed Gaussian spin factor multiplies the old-system average of $F$;
 the old replicas share one old disorder. No fixed-point or high-temperature
 hypothesis is needed for these exact decoupled identities.
 \end{lemma}
+\begin{proof}
+\leanok
+For one spin with energy $sY$, $\langle s\rangle=\operatorname{th}Y$. Take a pair $(x,y)$ whose spins are independent of the rest under the product measure, with $G$ unchanged when $\varepsilon_x$ or $\varepsilon_y$ is updated.
+Integrating out $\varepsilon_y$ gives
+$\langle(\varepsilon_x-\varepsilon_y)\varepsilon_x\rangle=1-\varepsilon_x\operatorname{th}Y$, and then integrating out $\varepsilon_x$ gives $1-\operatorname{th}^2Y=\operatorname{ch}^{-2}Y$.
+Hence the first endpoint contributes $+\operatorname{ch}^{-2}Y\langle G\rangle$ (\texttt{integral\_spin\_diff\_mul\_left\_of\_invariant}).
+Selecting the second endpoint changes $(\varepsilon_x-\varepsilon_y)\varepsilon_y$ into $-(\varepsilon_y-\varepsilon_x)\varepsilon_y$, so the sign is reversed
+(\texttt{integral\_spin\_diff\_mul\_selected\_of\_invariant}). For a family of disjoint pairs, apply this one pair at a time by induction on the number of pairs, using that the pairs are disjoint and
+that $\hat f$ does not depend on them; $2m$ pairs give $\prod_vs_v\operatorname{ch}^{-4m}Y\langle\hat f\rangle_0$ (\texttt{integral\_spin\_diff\_prod\_selected}).
+After including $F$ and averaging over the disorder, the decoupled endpoint factorizes into the last-spin average and the old-system average, with all old replicas sharing one old disorder
+(\texttt{skCavityPathMean\_zero\_tuple\_eval}).
+\end{proof}
 
 \begin{lemma}[The weighted ordering factor]\label{lem:sg-tal:hanen-pairing-orderings}
 \lean{Finpartition.pairingSum_orderings}
@@ -8638,6 +8733,12 @@ uses the existing finite-equivalence cardinality theorem. This counts block
 orderings; identifying the surviving iterated-kernel choices with those
 orderings remains required for Theorem~1.11.9.
 \end{lemma}
+\begin{proof}
+\leanok
+A pair partition $P$ with $m$ blocks has $m!$ bijective orderings $e:\{1,\dots,m\}\to P$: the set of bijections between two sets with $m$ elements has $m!$ elements.
+The weighted product $\prod_i w(e(i))$ does not depend on the ordering, because the weights are in a commutative semiring. So the sum over orderings of one partition is $m!$ times its weighted product, and summing over all partitions gives
+$m!\sum_P\prod_{B\in P}w(B)$.
+\end{proof}
 
 \begin{theorem}[Odd moments in Hanen's Theorem]\label{thm:sg-tal:hanen-odd}
 \lean{SpinGlasses.sk_hanen_theorem_odd, SpinGlasses.sk_hanen_odd_spin_product_bound, SpinGlasses.sk_hanen_endpoint_derivative_bound}
@@ -8675,3 +8776,35 @@ $q = \mathbb E \tanh^2(\beta \sqrt{q} z + h)$, $\hat q = \mathbb E \tanh^4(\beta
 \]
 where $a(k) = \mathbb E g^k$ ($a(k) = (k-1)!!$ for $k$ even, $0$ for $k$ odd), and $Y = \beta z \sqrt{q} + h$.
 \end{theorem}
+
+\begin{remark}[Research Problems~1.11.2, 1.11.12 and 1.11.13 are open problems, not theorems]
+\label{rem:sg-tal:research-1111}
+\talsource{Research Problems~1.11.2, 1.11.12, 1.11.13; source lines 4708, 5180--5189}
+This remark records three statements that Talagrand marks as \emph{open problems}. They are not theorems of the book, they have no Lean declaration, and they are deliberately not stated as \texttt{theorem} environments, so that they cannot be mistaken for results that are proved or planned. They are not formalization targets. Notation is that of Section~\ref{sec:sg-tal:hanen-notation} (here with the book's $N$ spins and $q$, $\hat q$, $Y$ as in Definition~\ref{def:sg-tal:hanen-constants}).
+
+\emph{Research Problem~1.11.2 (an underlying structure for Eq.~(1.330)).}
+\emph{The setting.} Theorem~\ref{thm:sg-tal:hanen-theorem} (Eq.~(1.329)) says that, as $N\to\infty$,
+\[
+\sqrt N\bigl(\langle\sigma_1\sigma_2\rangle-\langle\sigma_1\rangle\langle\sigma_2\rangle\bigr)
+\stackrel{\mathcal D}{=}\frac{\beta}{\sqrt{1-\beta^2(1-2q+\hat q)}}\;g\;\frac1{\operatorname{ch}^2Y_1}\;\frac1{\operatorname{ch}^2Y_2}\qquad(1.330),
+\]
+where $g$ is standard Gaussian and $Y_1,Y_2$ are independent copies of $Y$, all three independent. \emph{The problem} (the book gives no precise question and no difficulty level): the book remarks that such a decomposition ``can hardly be accidental'' and asks to find the underlying structure that explains it.
+\emph{Relation to what is formalized.} Nothing here answers the problem. What is formalized is the moment statement~(1.329), and only that (Theorem~\ref{thm:sg-tal:hanen-theorem}); the law statement~(1.330) is the book's reformulation of it, and the blueprint does not claim convergence in law. The proof of~(1.329) shows where the product form comes from in the computation: one factor $\mathbb E\operatorname{ch}^{-2k}Y$ arises from the pairing formula of Theorem~\ref{thm:sg-tal:hanen-pairing-derivative} at the cavity site and the other from the rectangular evaluation of Proposition~\ref{prop:sg-tal:hanen-full-rect-eval} in the system with one site fewer. That is a description of the calculation, not an explanation of the structure that the problem asks for.
+
+\emph{Research Problem~1.11.12 (Level~1: three-site covariance).}
+\emph{The problem.} Compute
+\[
+\lim_{N\to\infty}N^{k/2}\,\mathbb E\bigl(\langle\sigma_1\sigma_2\sigma_3\rangle-\langle\sigma_1\rangle\langle\sigma_2\rangle\langle\sigma_3\rangle\bigr)^k ,
+\]
+that is, the analogue of Theorem~\ref{thm:sg-tal:hanen-theorem} for three sites instead of two. The book labels it ``Level~1'' in its own scale of difficulty.
+\emph{Relation to what is formalized.} Nothing is formalized for three sites. The Gibbs-level identity that turns the $k$-th power of the covariance into a $2k$-replica average (Lemma~\ref{lem:sg-tal:hanen-cov-powers}) and the site-symmetry reduction (Lemma~\ref{lem:sg-tal:hanen-cov-site-symmetry}) are stated for two sites only, and the cavity expansion of Section~\ref{sec:sg-tal:hanen} is built for products of differences $\varepsilon_{2v-1}-\varepsilon_{2v}$ at one cavity site and one further site. A three-site version would need a different replica identity and a different pairing count; none of this is attempted.
+
+\emph{Research Problem~1.11.13 (Level~$1^-$: fluctuations of a random projection of the spins).}
+\emph{The setting.} Let $\dot\sigma_i=\sigma_i-\langle\sigma_i\rangle$, let $t\in\mathbb R$, and let $(g_i)_{i\le N}$ be i.i.d.\ standard Gaussians independent of the disorder of the Hamiltonian.
+\emph{The problem.} Compute
+\[
+\lim_{N\to\infty}N^{k/2}\,\mathbb E\Bigl(\Bigl\langle\exp\Bigl(t\sum_{i\le N}\frac{g_i\dot\sigma_i}{\sqrt N}\Bigr)\Bigr\rangle-\exp\Bigl(\frac{t^2}{2}(1-q)\Bigr)\Bigr)^k ,
+\]
+the fluctuations around the Gaussian limit of the Gibbs average of a random projection of the centered spins. The book labels it ``Level~$1^-$'' and hints to read the proof of Theorem~1.7.11 very carefully.
+\emph{Relation to what is formalized.} Nothing here computes this limit. Theorem~1.7.11, the Gaussian fluctuation principle that the hint refers to, is formalized (Section~\ref{sec:sg-tal:fluct-main}); it gives the leading behaviour of the Gibbs average of a smooth function of such a projection, but not the $N^{-k/2}$ fluctuations that the problem asks for.
+\end{remark}
