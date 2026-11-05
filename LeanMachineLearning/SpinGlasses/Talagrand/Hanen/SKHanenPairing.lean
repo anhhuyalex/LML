@@ -80,6 +80,7 @@ derivative: for `|V| = 2m`, the `m`-th cavity derivative at `u = 0` evaluates to
 theorem sk_hanen_pairing_derivative (N m n : ℕ) (β q h : ℝ)
     (hq : q ∈ Set.Icc (0 : ℝ) 1)
     (pairMap : Fin (2 * m) → Fin n × Fin n)
+    (hxy : ∀ v, (pairMap v).1 ≠ (pairMap v).2)
     (hdisj : ∀ u v : Fin (2 * m), u ≠ v →
       (pairMap u).1 ≠ (pairMap v).1 ∧ (pairMap u).1 ≠ (pairMap v).2 ∧
       (pairMap u).2 ≠ (pairMap v).1 ∧ (pairMap u).2 ≠ (pairMap v).2)

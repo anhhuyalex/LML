@@ -8549,6 +8549,7 @@ integrated over $z$, times the old-system average of $f^-$ (\texttt{skCavityPath
 \uses{lem:sg-tal:hanen-pairing-derivative-zero, lem:sg-tal:hanen-critical-survival, lem:sg-tal:hanen-spin-contraction, lem:sg-tal:hanen-pairing-orderings, lem:sg-tal:hanen-pairing-bridge}
 \talsource{Theorem~1.11.9, Eq.~(1.337)}
 Let $|V| = 2m$, $\hat f$ depend only on $(\varepsilon_\ell)_{\ell \notin V^*}$, and $f^-$ be a function of the first $N$ spins.
+Assume the replica pairs $\{a_v,b_v\}$ are pairwise disjoint and $a_v\ne b_v$ for every $v\in V$, with $q\in[0,1]$.
 Then
 \[
 \nu_0^{(m)}(\eta_V \hat f f^-) = \beta^{2m} m! \sum_{\mathcal I} \mathbb E\left( \langle \hat f \rangle_0 \frac{1}{\operatorname{ch}^{4m} Y} \right)
@@ -8559,7 +8560,7 @@ $U_J^- = R^-_{2u-1, 2v-1} - R^-_{2u-1, 2v} - R^-_{2u, 2v-1} + R^-_{2u, 2v}$.
 \emph{Status.} Only the case $m=0$ (Lemma~\ref{lem:sg-tal:hanen-pairing-derivative-zero}) is proved in Lean; the general case is open (one \texttt{sorry}).
 The ingredients are proved: the support of the surviving terms (Lemma~\ref{lem:sg-tal:hanen-critical-survival}), their signed evaluation (Lemma~\ref{lem:sg-tal:hanen-spin-contraction}),
 the factor $m!$ (Lemma~\ref{lem:sg-tal:hanen-pairing-orderings}) and the identification of pair partitions (Lemma~\ref{lem:sg-tal:hanen-pairing-bridge}).
-What remains is the reindexing of the surviving tuples of derivative pairs by triples (pair partition, ordering of its blocks, choice of one endpoint in each of the two spin-difference pairs of a block).
+What remains is grouping the surviving tuples by their unique pair partition and block ordering, identifying each group as a product of four-element endpoint-choice sets, and regrouping their signed contributions into rectangles.
 \end{theorem}
 
 \begin{proposition}[Evaluation of rectangular products]\label{prop:sg-tal:hanen-truncated-rect-eval}

@@ -6,7 +6,6 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKTBasisAlgebra
-public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.HigherOrderCavity.SKCavityHigherOrderCorollary
 public import Mathlib.Algebra.BigOperators.Ring.Finset
 
 /-!

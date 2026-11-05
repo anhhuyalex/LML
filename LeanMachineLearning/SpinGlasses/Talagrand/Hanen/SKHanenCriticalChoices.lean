@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenOldChoices
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPairingSurvival
+public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.RelationFibers
 
 /-!
 # Removing fresh replicas from the critical derivative sum
@@ -206,5 +207,53 @@ theorem iteratedDerivWithin_skCavityPathMean_zero_old_pairs (N m n : ℕ) (β q 
       ring
     _ = _ := by
       simpa only [H, mul_assoc] using skCavityPathMean_comp_injective N β q h 0 ι.injective H
+
+/-- Group the original-pair sum by its unique pairing and derivative ordering. Membership
+in a group is an explicit incidence relation; zero terms require no arbitrary classification. -/
+theorem skCavityPathMean_zero_old_pairs_sum_fibers (N m n : ℕ) (β q h : ℝ)
+    (pairMap : Fin (2 * m) → Fin n × Fin n)
+    (hdisj : ∀ u v : Fin (2 * m), u ≠ v →
+      (pairMap u).1 ≠ (pairMap v).1 ∧ (pairMap u).1 ≠ (pairMap v).2 ∧
+      (pairMap u).2 ≠ (pairMap v).1 ∧ (pairMap u).2 ≠ (pairMap v).2)
+    (F : (Fin n → Fin N → ℤˣ) → ℝ) (fhat : (Fin n → ℤˣ) → ℝ)
+    (hfhat : ∀ ε i t,
+      i ∈ (univ : Finset (Fin (2 * m))).biUnion
+        (fun v => {(pairMap v).1, (pairMap v).2}) →
+      fhat (Function.update ε i t) = fhat ε) :
+    let A := fun p : Fin m → FinPairs n => skCavityPathMean N n β q h 0 (fun σ =>
+      F (fun r i => σ r i.castSucc) *
+        (∏ v : Fin (2 * m), ((σ (pairMap v).1 (Fin.last N) : ℝ) -
+          (σ (pairMap v).2 (Fin.last N) : ℝ))) *
+        (∏ r : Fin m, (σ (p r).val.1 (Fin.last N) : ℝ) *
+          (σ (p r).val.2 (Fin.last N) : ℝ)) * fhat (fun r => σ r (Fin.last N)) *
+        ∏ r : Fin m, ((N + 1 : ℝ)⁻¹ *
+          (∑ i : Fin N, (σ (p r).val.1 i.castSucc : ℝ) *
+            (σ (p r).val.2 i.castSucc : ℝ)) - q))
+    (∑ p, A p) =
+      ∑ Pe : (Σ P : Finpartition.Pairing (univ : Finset (Fin (2 * m))),
+          Fin m ≃ P.val.parts),
+        ∑ p with (∀ i v, v ∈ (Pe.2 i).val ↔
+          (p i).val.1 ∈ ({(pairMap v).1, (pairMap v).2} : Finset (Fin n)) ∨
+          (p i).val.2 ∈ ({(pairMap v).1, (pairMap v).2} : Finset (Fin n))), A p := by
+  intro A
+  apply sum_eq_sum_filter_of_existsUnique
+  intro p _ hp
+  let Fp : (Fin n → Fin N → ℤˣ) → ℝ := fun ρ => F ρ *
+    ∏ r : Fin m, ((N + 1 : ℝ)⁻¹ *
+      (∑ i : Fin N, (ρ (p r).val.1 i : ℝ) * (ρ (p r).val.2 i : ℝ)) - q)
+  have he : A p = skCavityPathMean N n β q h 0 (fun σ =>
+      Fp (fun r i => σ r i.castSucc) *
+        (∏ v : Fin (2 * m), ((σ (pairMap v).1 (Fin.last N) : ℝ) -
+          (σ (pairMap v).2 (Fin.last N) : ℝ))) *
+        (∏ r : Fin m, (σ (p r).val.1 (Fin.last N) : ℝ) *
+          (σ (p r).val.2 (Fin.last N) : ℝ)) * fhat (fun r => σ r (Fin.last N))) := by
+    dsimp only [A]
+    congr 1
+    funext σ
+    dsimp only [Fp]
+    ring
+  rw [he] at hp
+  simpa only [mem_univ, true_and] using skCavityPathMean_zero_critical_pairing N m n β q h
+    pairMap hdisj (fun r => (p r).val) Fp fhat hfhat hp
 
 end SpinGlasses
