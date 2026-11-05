@@ -4466,3 +4466,9 @@ SpinGlasses.integral_spin_diff_prod_selected
 SpinGlasses.integral_spin_diff_prod_endpoint
 SpinGlasses.skCavityPathMean_zero_tuple_eval
 Finpartition.pairingSum_orderings
+SpinGlasses.skCavityPathMean
+SpinGlasses.skCavityPathKernel
+SpinGlasses.skCavityPathDerivKernel
+SpinGlasses.skCavityIterKernel
+SpinGlasses.skCavityIterReplicaCount
+SpinGlasses.skCavityTruncDev
