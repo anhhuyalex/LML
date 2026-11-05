@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.Renormalization.PairingOrderings
+public import LeanMachineLearning.ForMathlib.Data.Fintype.DisjointTransversal
 
 /-!
 # Pairings as indexed disjoint blocks
@@ -181,5 +182,102 @@ theorem existsUnique_pairing_ordering_of_equiv [Fintype α] (e : α ≃ ι × Bo
     intro i
     ext v
     exact (hQ i v).trans (hm i v).symm
+
+omit [Fintype ι] in
+/-- A tuple in an ordered-pairing class chooses exactly one endpoint of each disjoint pair.
+The Boolean choices record whether the first endpoint was chosen, and the endpoint bijection
+respects the given block ordering. The ambient endpoint type need not be finite. -/
+theorem exists_endpoint_choices_of_pairing_fiber {κ γ : Type*}
+    [Fintype κ] [DecidableEq κ] [DecidableEq γ]
+    (pairMap : κ → γ × γ) (hxy : ∀ v, (pairMap v).1 ≠ (pairMap v).2)
+    (hdisj : ∀ u v : κ, u ≠ v →
+      (pairMap u).1 ≠ (pairMap v).1 ∧ (pairMap u).1 ≠ (pairMap v).2 ∧
+      (pairMap u).2 ≠ (pairMap v).1 ∧ (pairMap u).2 ≠ (pairMap v).2)
+    (Pe : Σ P : Pairing (univ : Finset κ), ι ≃ P.val.parts) (p : ι → γ × γ)
+    (hp : ∀ i v, v ∈ (Pe.2 i).val ↔
+      (p i).1 ∈ ({(pairMap v).1, (pairMap v).2} : Finset γ) ∨
+      (p i).2 ∈ ({(pairMap v).1, (pairMap v).2} : Finset γ)) :
+    ∃ (e : κ ≃ ι × Bool) (b : κ → Bool),
+      (∀ v, (if (e v).2 then (p (e v).1).1 else (p (e v).1).2) =
+        if b v then (pairMap v).1 else (pairMap v).2) ∧
+      (∀ i v, v ∈ (Pe.2 i).val → (e v).1 = i) ∧
+      (∀ i v, v ∈ (Pe.2 i).val →
+        (b v = true ↔ (pairMap v).1 ∈ ({(p i).1, (p i).2} : Finset γ))) := by
+  let : Fintype ι := Fintype.ofEquiv Pe.1.val.parts Pe.2.symm
+  let S : κ → Set γ := fun v => {(pairMap v).1, (pairMap v).2}
+  let endpoint : ι × Bool → γ := fun j => if j.2 then (p j.1).1 else (p j.1).2
+  have hd : Pairwise fun u v => Disjoint (S u) (S v) := by
+    intro u v huv
+    simpa only [S, Set.disjoint_insert_left, Set.disjoint_singleton_left,
+      Set.mem_insert_iff, Set.mem_singleton_iff, not_or, and_assoc] using hdisj u v huv
+  have hhit (v : κ) : ∃ j, endpoint j ∈ S v := by
+    obtain ⟨i, hi⟩ := Pe.2.surjective
+      ⟨Pe.1.val.part v, Pe.1.val.part_mem.mpr (mem_univ v)⟩
+    have hv : v ∈ (Pe.2 i).val := by
+      rw [hi]
+      exact Pe.1.val.mem_part (mem_univ v)
+    rcases (hp i v).mp hv with hv | hv
+    · exact ⟨(i, true), by simpa [endpoint, S] using hv⟩
+    · exact ⟨(i, false), by simpa [endpoint, S] using hv⟩
+  have hc : Fintype.card κ = Fintype.card (ι × Bool) := by
+    have hi : Pe.1.val.parts.card = Fintype.card ι := by
+      simpa only [Fintype.card_coe] using (Fintype.card_congr Pe.2).symm
+    have hc := Pe.1.two_mul_card_parts
+    rw [hi, card_univ] at hc
+    simpa only [Fintype.card_prod, Fintype.card_bool, mul_comm] using hc.symm
+  obtain ⟨e, he, _⟩ := exists_equiv_of_pairwiseDisjoint_of_hits S endpoint hc hd hhit
+  have hb0 (v : κ) : ∃ b : Bool,
+      endpoint (e v) = if b then (pairMap v).1 else (pairMap v).2 := by
+    have hv := (he v (e v)).mpr rfl
+    simp only [S, Set.mem_insert_iff, Set.mem_singleton_iff] at hv
+    rcases hv with hv | hv
+    · exact ⟨true, hv⟩
+    · exact ⟨false, hv⟩
+  choose b hb using hb0
+  have hi (i : ι) (v : κ) (hv : v ∈ (Pe.2 i).val) : (e v).1 = i := by
+    rcases (hp i v).mp hv with hv | hv
+    · have hj : e v = (i, true) := (he v (i, true)).mp (by
+        simpa [endpoint, S] using hv)
+      exact congrArg Prod.fst hj
+    · have hj : e v = (i, false) := (he v (i, false)).mp (by
+        simpa [endpoint, S] using hv)
+      exact congrArg Prod.fst hj
+  refine ⟨e, b, hb, hi, ?_⟩
+  intro i v hv
+  constructor
+  · intro hbtrue
+    simp only [mem_insert, mem_singleton]
+    have h := hb v
+    rw [hbtrue] at h
+    cases ht : (e v).2
+    · right
+      simpa [endpoint, ht, hi i v hv] using h.symm
+    · left
+      simpa [endpoint, ht, hi i v hv] using h.symm
+  · intro hm
+    have hfirst : (pairMap v).1 = endpoint (e v) := by
+      simp only [mem_insert, mem_singleton] at hm
+      rcases hm with hm | hm
+      · have hj : e v = (i, true) := (he v (i, true)).mp (by
+          simp [endpoint, S, ← hm])
+        rw [hj]
+        exact hm
+      · have hj : e v = (i, false) := (he v (i, false)).mp (by
+          simp [endpoint, S, ← hm])
+        rw [hj]
+        exact hm
+    have h := hfirst.trans (hb v)
+    cases hbv : b v
+    · exact False.elim (hxy v (by simpa [hbv] using h))
+    · rfl
+
+/-- Multiplying element weights inside each part is the product over the partitioned set.
+The weights take values in an arbitrary commutative monoid. -/
+theorem prod_parts {M : Type*} [CommMonoid M] {s : Finset α}
+    (P : Finpartition s) (f : α → M) :
+    (∏ B ∈ P.parts, ∏ v ∈ B, f v) = ∏ v ∈ s, f v := by
+  calc
+    _ = ∏ v ∈ P.parts.biUnion id, f v := (prod_biUnion P.disjoint).symm
+    _ = _ := by rw [P.biUnion_parts]
 
 end Finpartition

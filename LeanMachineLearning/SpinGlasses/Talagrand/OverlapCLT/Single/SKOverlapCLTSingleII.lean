@@ -7,7 +7,7 @@ module
 
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Single.SKOverlapCLTSingleRecurrence
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.GibbsMoments.SKOverlapCLTLiveMoments
-public import Mathlib.Data.Sym.Sym2.Order
+public import LeanMachineLearning.ForMathlib.Data.Sym.Sym2
 
 /-!
 # The evaluation of the term II (Talagrand, Eq. (1.319))
@@ -127,13 +127,6 @@ theorem sum_sub_card_mul_le {ι : Type*} [DecidableEq ι] (L M : Finset ι) (hML
     _ = 2 * L.card * e := by
         rw [← add_mul, hcard]
         ring
-
-/-- Unordered pairs given by `(min, max)` are equal iff they agree up to swapping. -/
-theorem minmax_pair_eq_iff {α : Type*} [LinearOrder α] {x y x' y' : α} :
-    (min x y, max x y) = (min x' y', max x' y') ↔ (x = x' ∧ y = y') ∨ (x = y' ∧ y = x') := by
-  rw [Prod.mk.injEq]
-  exact (Sym2.inf_eq_inf_and_sup_eq_sup
-    (s := s(x, y)) (t := s(x', y'))).trans Sym2.eq_iff
 
 /-- **Unmatched replicas contribute `O(k+1)` to the term II.** The full increment against the
 full product of the other fresh factors, for a replica `ℓ` that is not the last fresh replica of

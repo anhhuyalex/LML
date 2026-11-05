@@ -8246,8 +8246,11 @@ and the weighted $m!$ ordering identity are proved
 The actual critical derivative is now reduced to ordered tuples of original
 replica pairs (Lemma~\ref{lem:sg-tal:hanen-critical-choices}); all fresh-replica terms
 and signed weights have been eliminated. Reindexing these tuples with their
-endpoint selections into ordered blocks remains open; the exact derivative
-identity of H3 is not yet proved.
+endpoint selections into signed rectangular factors remains open. The sum is
+already grouped by its unique pairing and derivative ordering, and each class
+is a product of four-element endpoint-choice sets
+(Lemmas~\ref{lem:sg-tal:hanen-pairing-fibers}--\ref{lem:sg-tal:hanen-endpoint-choice-sets}).
+The exact derivative identity of H3 is not yet proved.
 The odd case of H5 is proved (Theorem~\ref{thm:sg-tal:hanen-odd}), using the endpoint
 derivative bounds and Taylor expansion. The common Taylor expansion for either parity
 (Lemma~\ref{lem:sg-tal:hanen-leading-taylor}) is proved and retains the leading coefficient
@@ -8560,7 +8563,7 @@ $U_J^- = R^-_{2u-1, 2v-1} - R^-_{2u-1, 2v} - R^-_{2u, 2v-1} + R^-_{2u, 2v}$.
 \emph{Status.} Only the case $m=0$ (Lemma~\ref{lem:sg-tal:hanen-pairing-derivative-zero}) is proved in Lean; the general case is open (one \texttt{sorry}).
 The ingredients are proved: the support of the surviving terms (Lemma~\ref{lem:sg-tal:hanen-critical-survival}), their signed evaluation (Lemma~\ref{lem:sg-tal:hanen-spin-contraction}),
 the factor $m!$ (Lemma~\ref{lem:sg-tal:hanen-pairing-orderings}) and the identification of pair partitions (Lemma~\ref{lem:sg-tal:hanen-pairing-bridge}).
-What remains is grouping the surviving tuples by their unique pair partition and block ordering, identifying each group as a product of four-element endpoint-choice sets, and regrouping their signed contributions into rectangles.
+What remains is grouping the surviving tuples by their unique pair partition and block ordering, regrouping their signed contributions into rectangles; each group is now a product of four-element endpoint-choice sets (Lemma~\ref{lem:sg-tal:hanen-endpoint-choice-sets}).
 \end{theorem}
 
 \begin{proposition}[Evaluation of rectangular products]\label{prop:sg-tal:hanen-truncated-rect-eval}
@@ -8761,6 +8764,68 @@ all choices outside the image vanish. Finite-sum reindexing gives the displayed
 sum. Finally use the generic finite Gibbs marginal identity to remove unused
 replicas. This proves the original-pair reduction, not yet the rectangular
 regrouping in Theorem~1.11.9.
+\end{proof}
+
+\begin{lemma}[Grouping critical terms by ordered pairings]\label{lem:sg-tal:hanen-pairing-fibers}
+\lean{Finset.sum_eq_sum_filter_of_existsUnique, SpinGlasses.skCavityPathMean_zero_old_pairs_sum_fibers}
+\leanok
+\uses{lem:sg-tal:hanen-critical-survival,lem:sg-tal:hanen-critical-choices}
+\talsource{Theorem~1.11.9, regrouping Eqs.~(1.338)--(1.340)}
+Let $s,t$ be finite sets, $A$ take values in an additive commutative monoid,
+and $R$ be a decidable relation between their index types. Suppose every
+$i\in s$ with $A(i)\ne0$ has a unique $k\in t$ satisfying $R(i,k)$. Then
+\[
+ \sum_{i\in s} A(i)=\sum_{k\in t}\sum_{\substack{i\in s\\R(i,k)}}A(i).
+\]
+In particular, the original-pair sum of
+Lemma~\ref{lem:sg-tal:hanen-critical-choices} is the sum over generic pair
+partitions $P$ and derivative orderings $e$ of the terms with
+\[
+ v\in e(i)\quad\Longleftrightarrow\quad
+ (p_i)_1\in\{a_v,b_v\}\ \text{or}\ (p_i)_2\in\{a_v,b_v\}.
+\]
+This grouping does not yet evaluate the sum inside a class as a rectangular product.
+\end{lemma}
+\begin{proof}
+\leanok
+For a nonzero term exactly one class contributes it; for a zero term every class
+contributes zero. Write each term as the sum of its class indicators and exchange
+the two finite sums. For the cavity application, absorb the product of truncated
+overlaps into the old-spin observable and apply the unique ordered-pairing
+recovery in Lemma~\ref{lem:sg-tal:hanen-critical-survival}.
+\end{proof}
+
+\begin{lemma}[Four endpoint choices per block]\label{lem:sg-tal:hanen-endpoint-choice-sets}
+\lean{hits_pair_iff_of_pairwiseDisjoint, minmax_pair_eq_iff, minmax_pair_injOn_prod, Finset.card_orderedPairs_sorted_product, SpinGlasses.skCavityPairing_fiber_pair_mem_iff, SpinGlasses.skCavityPairing_fiber_eq_piFinset}
+\leanok
+\uses{lem:sg-tal:hanen-pairing-fibers,lem:sg-tal:hanen-pairing-bridge}
+\talsource{Theorem~1.11.9, the endpoint choices in Eqs.~(1.339)--(1.340)}
+Suppose the replica pairs $\{x_v,y_v\}$ are pairwise disjoint with $x_v\ne y_v$.
+Fix a pair partition $P$ of the difference labels and a derivative ordering $e$.
+Choose distinct $u_i,v_i$ with $e(i)=\{u_i,v_i\}$, and put
+\[
+ S_i=\{(\min(a,b),\max(a,b)):
+        a\in\{x_{u_i},y_{u_i}\},\ b\in\{x_{v_i},y_{v_i}\}\}.
+\]
+Every $S_i$ consists of four distinct strictly ordered replica pairs. The class
+of tuples associated with $(P,e)$ in
+Lemma~\ref{lem:sg-tal:hanen-pairing-fibers} is exactly $\prod_i S_i$.
+Consequently, products of one-pair weights can be summed over this class using
+the existing finite product-of-sums identity.
+More generally, sorting cross pairs from any two disjoint finite subsets $A,B$
+of a linear order is injective and gives $|A||B|$ distinct choices; for replica
+indices these are represented by \texttt{FinPairs}.
+\end{lemma}
+\begin{proof}
+\leanok
+In a disjoint family, a pair of endpoints hits exactly the labels $u,v$ if and
+only if one endpoint lies in each of their replica sets. Equality of sorted
+pairs means equality either in the original order or after swapping. The swapped
+case is impossible for two choices from the same disjoint cross product; hence
+sorting is injective. The two endpoint sets each have cardinality two, so their
+cross product and its sorted image have cardinality four. Apply this characterization
+independently to every derivative index. The resulting membership condition is
+exactly membership in \texttt{Fintype.piFinset}. No extra factor $2^m$ is introduced.
 \end{proof}
 
 \begin{lemma}[The weighted ordering factor]\label{lem:sg-tal:hanen-pairing-orderings}

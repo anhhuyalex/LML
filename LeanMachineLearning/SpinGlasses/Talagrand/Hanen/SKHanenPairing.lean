@@ -6,7 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPairingBasic
-public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenCriticalChoices
+public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPairingFibers
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenTaylor
 
 /-!

@@ -7,6 +7,7 @@ public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.OffDiag
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.PiFinSucc
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.ProductExpansion
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.QuarticSignProd
+public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.RelationFibers
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.Weights
 public import LeanMachineLearning.ForMathlib.Analysis.Asymptotics.Theta
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.Gradient.Basic
@@ -533,6 +534,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenOddProduct
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenOldChoices
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPairing
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPairingBasic
+public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPairingFibers
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPairingSurvival
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPathCalculus
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPathVanishing

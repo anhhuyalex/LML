@@ -50,18 +50,11 @@ theorem skCavityPathMean_zero_critical_survival (N m n : ℕ) (β q h : ℝ)
       Function.Injective endpoint := by
   intro endpoint hnonzero
   let S : Fin (2 * m) → Set (Fin n) :=
-    fun v => ↑({(pairMap v).1, (pairMap v).2} : Finset (Fin n))
+    fun v => {(pairMap v).1, (pairMap v).2}
   have hd : Pairwise fun u v => Disjoint (S u) (S v) := by
     intro u v huv
-    rw [Set.disjoint_left]
-    intro a ha hb
-    simp only [S, mem_coe, mem_insert, mem_singleton] at ha hb
-    obtain ⟨h1, h2, h3, h4⟩ := hdisj u v huv
-    rcases ha with rfl | rfl <;> rcases hb with hb | hb
-    · exact h1 hb
-    · exact h2 hb
-    · exact h3 hb
-    · exact h4 hb
+    simpa only [S, Set.disjoint_insert_left, Set.disjoint_singleton_left,
+      Set.mem_insert_iff, Set.mem_singleton_iff, not_or, and_assoc] using hdisj u v huv
   have hhit (v : Fin (2 * m)) : ∃ j, endpoint j ∈ S v := by
     by_contra hmiss
     have hp1 : (pairMap v).1 ∉ (∅ : Finset (Fin n)) ∪
@@ -86,7 +79,8 @@ theorem skCavityPathMean_zero_critical_survival (N m n : ℕ) (β q h : ℝ)
       (univ : Finset (Fin (2 * m))) pairMap (fun u _ v _ huv => hdisj u v huv)
       ∅ p v (mem_univ _) ⟨hp1, hp2⟩ F fhat hfhat
     exact hnonzero (by simpa only [prod_empty, mul_one] using hz)
-  exact exists_equiv_of_pairwiseDisjoint_of_hits S endpoint (by simp [mul_comm]) hd hhit
+  simpa only [S, Set.mem_insert_iff, Set.mem_singleton_iff, mem_insert, mem_singleton] using
+    exists_equiv_of_pairwiseDisjoint_of_hits S endpoint (by simp [mul_comm]) hd hhit
 
 /-- A nonzero critical term recovers a unique generic pairing and derivative ordering.
 Its blocks are characterized by incidence with the two endpoints of each derivative pair,
