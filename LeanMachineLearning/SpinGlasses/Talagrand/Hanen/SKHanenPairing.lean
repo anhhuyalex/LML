@@ -126,14 +126,23 @@ theorem sk_hanen_pairing_derivative_of_old_pairs (N m n : ℕ) (β q h : ℝ)
     have he (P : Finpartition.Pairing (univ : Finset (Fin (2 * m))))
         (e : Fin m ≃ P.val.parts) :
         P.blockProduct (w ρ) = ∏ i : Fin m, w ρ (e i).val := by
-      rw [e.prod_comp, prod_coe_sort]
-      rfl
-    simp_rw [he]
-    exact Finpartition.pairingSum_orderings univ m (by simp) (w ρ)
+      symm
+      calc
+        _ = ∏ B : P.val.parts, w ρ B.val := e.prod_comp (fun B : P.val.parts => w ρ B.val)
+        _ = _ := prod_coe_sort _ _
+    calc
+      _ = ∑ P : Finpartition.Pairing (univ : Finset (Fin (2 * m))),
+          ∑ e : Fin m ≃ P.val.parts, ∏ i : Fin m, w ρ (e i).val := by
+        apply sum_congr rfl
+        intro P _
+        apply sum_congr rfl
+        intro e _
+        exact he P e
+      _ = _ := Finpartition.pairingSum_orderings univ m (by simp) (w ρ)
   rw [skCavityPathMean_zero_old_pairs_sum_fibers N m n β q h pairMap hdisj F fhat hfhat]
   have hclass (Pe : Σ P : Finpartition.Pairing (univ : Finset (Fin (2 * m))),
       Fin m ≃ P.val.parts) :
-      (∑ p with (∀ i v, v ∈ (Pe.2 i).val ↔
+      (∑ p : Fin m → FinPairs n with (∀ i v, v ∈ (Pe.2 i).val ↔
           (p i).val.1 ∈ ({(pairMap v).1, (pairMap v).2} : Finset (Fin n)) ∨
           (p i).val.2 ∈ ({(pairMap v).1, (pairMap v).2} : Finset (Fin n))),
         skCavityPathMean N n β q h 0 (fun σ => F (fun r i => σ r i.castSucc) *

@@ -8828,6 +8828,53 @@ independently to every derivative index. The resulting membership condition is
 exactly membership in \texttt{Fintype.piFinset}. No extra factor $2^m$ is introduced.
 \end{proof}
 
+\begin{lemma}[Evaluation of one ordered-pairing class]\label{lem:sg-tal:hanen-fiber-evaluation}
+\lean{Finpartition.exists_endpoint_choices_of_pairing_fiber, Finpartition.prod_parts, Finset.sum_orderedPairs_sorted_product, Finset.sum_signed_orderedPairs_product, SpinGlasses.skCavityPathMean_zero_fiber_term_eval, SpinGlasses.skCavityPairing_signed_fiber_sum}
+\leanok
+\uses{lem:sg-tal:hanen-endpoint-choice-sets,lem:sg-tal:hanen-spin-contraction}
+\talsource{Theorem~1.11.9, signed regrouping in Eqs.~(1.339)--(1.340)}
+Use the notation of Section~\ref{sec:sg-tal:hanen-notation}.
+Let $|V|=2m$, assume the replica pairs $\{a_v,b_v\}$ are pairwise disjoint
+with $a_v\ne b_v$, and fix a pair partition $P$ and an ordering $e$ of its blocks.
+Let $\mathcal A(P,e)$ be the class in
+Lemma~\ref{lem:sg-tal:hanen-pairing-fibers}. For $p$ in this class put
+\[
+ s_i(p)=\prod_{v\in e(i)}
+  \begin{cases}1,&a_v\in\{(p_i)_1,(p_i)_2\},\\-1,&\text{otherwise}.
+  \end{cases}
+\]
+For arbitrary real $\beta,q,h$, any old-spin observable $f^-$ and any
+$\hat f$ independent of the replicas in $V^*$, the critical term associated
+with $p$ evaluates to
+\[
+ Z\,\nu_{\mathrm{old}}\left(f^-\prod_{i=1}^m
+       s_i(p)(R^-_{(p_i)_1,(p_i)_2}-q)\right),
+ \qquad Z=\mathbb E\left(\langle\hat f\rangle_0\operatorname{ch}^{-4m}Y\right).
+\]
+Here $\nu_{\mathrm{old}}$ is the old-spin and disorder average, without last spins.
+For any symmetric real kernel $K$ on the replica indices, define
+$C(u,v)=K(a_u,a_v)-K(b_u,a_v)-K(a_u,b_v)+K(b_u,b_v)$. Then
+\[
+ \sum_{p\in\mathcal A(P,e)}\prod_{i=1}^m s_i(p)K((p_i)_1,(p_i)_2)
+   =\prod_{\{u,v\}\in P}C(u,v).
+\]
+With $K(a,b)=R^-_{a,b}-q$ this is the product of the truncated rectangles.
+The signed four-choice identity itself holds for any commutative ring of kernel
+values and any finite linearly ordered replica type.
+\end{lemma}
+\begin{proof}
+\leanok
+Construct the endpoint bijection required by
+Lemma~\ref{lem:sg-tal:hanen-spin-contraction} from the class incidence relation.
+Apply its tuple evaluation after absorbing the product of truncated overlaps
+into $f^-$. Factor the signs over the partition blocks. By
+Lemma~\ref{lem:sg-tal:hanen-endpoint-choice-sets}, summing over the class is a
+product of four-choice sums. The four signs are $+,-,-,+$; symmetry of $K$
+removes the sorting of endpoints. Each sum is exactly $C(u,v)$.
+The generic weighted sorting lemma also recovers the earlier cardinality
+lemma by taking every weight to be one.
+\end{proof}
+
 \begin{lemma}[The weighted ordering factor]\label{lem:sg-tal:hanen-pairing-orderings}
 \lean{Finpartition.pairingSum_orderings}
 \leanok
