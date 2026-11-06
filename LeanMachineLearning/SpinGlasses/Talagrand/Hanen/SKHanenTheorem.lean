@@ -24,8 +24,8 @@ $$\mathbb E(\langle \sigma_1 \sigma_2 \rangle - \langle \sigma_1 \rangle \langle
 = a(k) \left( \frac{\beta^2}{(N+1)(1 - \beta^2(1 - 2q + \hat q))} \right)^{k/2}
 (\mathbb E \operatorname{ch}^{-2k} Y)^2 + O((N+1)^{-(k+1)/2}),$$
 where $a(k) = \mathbb E g^k$ ($a(k) = (k-1)!!$ for $k$ even, $0$ for $k$ odd).
-The odd estimate is proved. The even estimate remains a placeholder, and the parity assembly
-depends on it.
+Both parities are proved (`sk_hanen_theorem_odd`, `sk_hanen_theorem_even`), and the theorem is
+their assembly.
 
 ## Main declaration
 

@@ -9265,6 +9265,49 @@ where $a(k) = \mathbb E g^k$ ($a(k) = (k-1)!!$ for $k$ even, $0$ for $k$ odd), a
 Split by the parity of $k$: for odd $k$ the moment is $O((N+1)^{-(k+1)/2})$ (Theorem~\ref{thm:sg-tal:hanen-odd}) and $a(k)=0$; for $k=2p$ use Theorem~\ref{thm:sg-tal:hanen-even} with $a(2p)=(2p-1)!!$.
 \end{proof}
 
+\begin{theorem}[Hanen's theorem as a limit]\label{thm:sg-tal:hanen-limit}
+\lean{SpinGlasses.sk_hanen_limit}
+\leanok
+\uses{thm:sg-tal:hanen-theorem}
+\talsource{Theorem~1.11.1, Eq.~(1.329)}
+Let $4\beta^2<1$, let $h\in\mathbb R$, and let $q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$. Put $\alpha=1-2q+\mathbb E\tanh^4(\beta\sqrt q\,z+h)$,
+$Y=\beta z\sqrt q+h$, and $a(k)=\mathbb E g^k$. In the system with $M=n+2$ spins, with sites $1$ and $2$, for every $k\in\mathbb N$,
+\[
+ \sqrt M^{\,k}\;\mathbb E\bigl(\langle\sigma_1\sigma_2\rangle-\langle\sigma_1\rangle\langle\sigma_2\rangle\bigr)^k
+ \;\longrightarrow\; a(k)\Bigl(\frac{\beta}{\sqrt{1-\beta^2\alpha}}\Bigr)^{k}\bigl(\mathbb E\operatorname{ch}^{-2k}Y\bigr)^2
+ \qquad (n\to\infty).
+\]
+For odd $k$ both sides are $0$. In Lean the limit is written with $\sqrt{\beta^2/(1-\beta^2\alpha)}^{\,k}$, which is the same number for even $k$.
+\end{theorem}
+\begin{proof}
+\leanok
+Apply Theorem~\ref{thm:sg-tal:hanen-theorem} with $\beta_0=|\beta|$. Multiply the error by $\sqrt M^{\,k}$. It becomes $K/\sqrt M\to0$.
+For even $k=2p$, $\sqrt M^{\,2p}\,(\beta^2/(M(1-\beta^2\alpha)))^p=(\beta^2/(1-\beta^2\alpha))^p$. Here $1-\beta^2\alpha>0$ because $0\le\alpha\le1$ and $\beta^2<1/4$.
+\end{proof}
+
+\begin{lemma}[Moments of the limit law]\label{lem:sg-tal:hanen-law-moment}
+\lean{SpinGlasses.hanen_law_moment}
+\leanok
+\talsource{Eq.~(1.330)}
+Let $g,z_1,z_2$ be independent standard Gaussian variables, let $Y_i=\beta z_i\sqrt q+h$, and let $c\in\mathbb R$. Then, for every $k\in\mathbb N$,
+\[
+ \mathbb E\bigl(c\,g\,\operatorname{ch}^{-2}Y_1\operatorname{ch}^{-2}Y_2\bigr)^k=a(k)\,c^k\bigl(\mathbb E\operatorname{ch}^{-2k}Y\bigr)^2 .
+\]
+With $c=\beta/\sqrt{1-\beta^2\alpha}$ these are the moments of the law of Eq.~(1.330), and by Theorem~\ref{thm:sg-tal:hanen-limit} they are the limits of the moments of
+$\sqrt M(\langle\sigma_1\sigma_2\rangle-\langle\sigma_1\rangle\langle\sigma_2\rangle)$.
+\end{lemma}
+\begin{proof}
+\leanok
+The expectation of a product of functions of independent variables is the product of the expectations (Fubini). Use $(\operatorname{ch}^{-2}Y)^k=\operatorname{ch}^{-2k}Y$.
+\end{proof}
+
+\begin{remark}[Convergence in law is not claimed]\label{rem:sg-tal:hanen-law}
+\talsource{Eq.~(1.330)}
+Theorem~\ref{thm:sg-tal:hanen-limit} and Lemma~\ref{lem:sg-tal:hanen-law-moment} give convergence of all moments to the moments of the law in Eq.~(1.330).
+They do not give convergence in law. That would need the moment method, which applies when the limit law is determined by its moments.
+This is the case here, because $|c\,g\,\operatorname{ch}^{-2}Y_1\operatorname{ch}^{-2}Y_2|\le|c\,g|$ has Gaussian tails. This step is neither formalized nor planned.
+\end{remark}
+
 \begin{remark}[Research Problems~1.11.2, 1.11.12 and 1.11.13 are open problems, not theorems]
 \label{rem:sg-tal:research-1111}
 \talsource{Research Problems~1.11.2, 1.11.12, 1.11.13; source lines 4708, 5180--5189}

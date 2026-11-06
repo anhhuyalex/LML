@@ -553,6 +553,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenIterChoices
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenIterStructure
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenIteratedDeriv
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenLeadingShift
+public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenLimit
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenOddProduct
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenOldChoices
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPairing

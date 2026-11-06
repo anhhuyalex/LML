@@ -4458,3 +4458,5 @@ SpinGlasses.hanen_even_assemble
 SpinGlasses.hanen_even_identity
 SpinGlasses.sk_hanen_theorem_even
 SpinGlasses.sk_hanen_theorem
+SpinGlasses.sk_hanen_limit
+SpinGlasses.hanen_law_moment
