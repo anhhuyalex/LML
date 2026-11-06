@@ -565,7 +565,6 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPathCalculu
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPathVanishing
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenProductTaylor
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenRectComparison
-public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenRectDerivative
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenRectEval
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenRectFull
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenRectGaussian

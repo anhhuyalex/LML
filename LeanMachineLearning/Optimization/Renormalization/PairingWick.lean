@@ -252,8 +252,9 @@ theorem wick_univ_equiv {α β : Type*} [Fintype α] [DecidableEq α]
 
 /-- The block weight is linear in the kernel: scaling a kernel by a constant scales every block
 weight. -/
-theorem pairWeight_const_mul (c : ℝ) (C : ι → ι → ℝ) (B : Finset ι) :
-    pairWeight (fun a b => c * C a b) B = c * pairWeight C B := by
+theorem pairWeight_const_mul (c : ℝ) (C : ι → ι → ℝ) :
+    pairWeight (fun a b => c * C a b) = fun B => c * pairWeight C B := by
+  funext B
   unfold pairWeight
   simp only [← Finset.mul_sum]
   ring
