@@ -36,21 +36,40 @@ theorem mul_mul_transpose_apply (M : Matrix p n R) (Γ : Matrix n n R) (j k : p)
   exact mul_assoc _ _ _
 
 
+/-- The squared Frobenius norm of a cross-Gram matrix is bounded by the product of the
+total squared norms of its two families. The families may have different index types. -/
+theorem sum_sq_mul_transpose_le_sum_sq_mul_sum_sq {p q n : Type*}
+    [Fintype p] [Fintype q] [Fintype n] (A : Matrix p n ℝ) (B : Matrix q n ℝ) :
+    ∑ i, ∑ j, ((A * Bᵀ) i j) ^ 2 ≤
+      (∑ i, ∑ k, A i k ^ 2) * ∑ j, ∑ k, B j k ^ 2 := by
+  calc
+    _ ≤ ∑ i, ∑ j, (∑ k, A i k ^ 2) * ∑ k, B j k ^ 2 := by
+      apply Finset.sum_le_sum
+      intro i _
+      apply Finset.sum_le_sum
+      intro j _
+      simpa only [Matrix.mul_apply, Matrix.transpose_apply] using
+        Finset.sum_mul_sq_le_sq_mul_sq Finset.univ (A i) (B j)
+    _ = _ := by rw [Finset.sum_mul_sum]
+
+/-- Cauchy--Schwarz for contraction of a matrix against a rank-one tensor.
+This form separates the two vector radii from the matrix's squared Frobenius norm. -/
+theorem sq_sum_mul_mul_le {p q : Type*} [Fintype p] [Fintype q]
+    (x : p → ℝ) (y : q → ℝ) (A : Matrix p q ℝ) :
+    (∑ i, ∑ j, x i * y j * A i j) ^ 2 ≤
+      (∑ i, x i ^ 2) * (∑ j, y j ^ 2) * ∑ i, ∑ j, A i j ^ 2 := by
+  have hcs := Finset.sum_mul_sq_le_sq_mul_sq (Finset.univ : Finset (p × q))
+    (fun ij => x ij.1 * y ij.2) (fun ij => A ij.1 ij.2)
+  simp only [Fintype.sum_prod_type, mul_pow] at hcs
+  simpa only [Finset.sum_mul_sum] using hcs
+
 /-- **A Gram matrix has Frobenius norm at most its trace.** For `B = K Kᵀ`,
 `∑ᵢⱼ Bᵢⱼ² ≤ (tr B)²`: by Cauchy–Schwarz `Bᵢⱼ² ≤ Bᵢᵢ Bⱼⱼ`. -/
 theorem sum_sq_mul_transpose_le_trace_sq {p n : Type*} [Fintype p] [Fintype n]
     (K : Matrix p n ℝ) :
     ∑ i, ∑ j, ((K * Kᵀ) i j) ^ 2 ≤ ((K * Kᵀ).trace) ^ 2 := by
-  have hentry : ∀ i j, (K * Kᵀ) i j = K i ⬝ᵥ K j := fun i j => by
-    simp [Matrix.mul_apply, dotProduct]
-  have hcs : ∀ i j, ((K * Kᵀ) i j) ^ 2 ≤ (K * Kᵀ) i i * (K * Kᵀ) j j := fun i j => by
-    rw [hentry, hentry, hentry]
-    have := Finset.sum_mul_sq_le_sq_mul_sq Finset.univ (K i) (K j)
-    simpa [dotProduct, sq] using this
-  calc ∑ i, ∑ j, ((K * Kᵀ) i j) ^ 2 ≤ ∑ i, ∑ j, (K * Kᵀ) i i * (K * Kᵀ) j j :=
-        Finset.sum_le_sum fun i _ => Finset.sum_le_sum fun j _ => hcs i j
-    _ = ((K * Kᵀ).trace) ^ 2 := by
-        simp only [Matrix.trace, Matrix.diag, sq, Finset.sum_mul_sum]
+  simpa only [Matrix.trace, Matrix.diag, Matrix.mul_apply, Matrix.transpose_apply, sq] using
+    sum_sq_mul_transpose_le_sum_sq_mul_sum_sq K K
 
 /-- The dot product of `A x` and `A y` is the bilinear form of the Gram matrix:
 `(A x) ⬝ (A y) = x ⬝ (Aᵀ A) y`. -/
