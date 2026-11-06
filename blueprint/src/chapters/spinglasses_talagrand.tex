@@ -9339,3 +9339,285 @@ that is, the analogue of Theorem~\ref{thm:sg-tal:hanen-theorem} for three sites 
 the fluctuations around the Gaussian limit of the Gibbs average of a random projection of the centered spins. The book labels it ``Level~$1^-$'' and hints to read the proof of Theorem~1.7.11 very carefully.
 \emph{Relation to what is formalized.} Nothing here computes this limit. Theorem~1.7.11, the Gaussian fluctuation principle that the hint refers to, is formalized (Section~\ref{sec:sg-tal:fluct-main}); it gives the leading behaviour of the Gibbs average of a smooth function of such a projection, but not the $N^{-k/2}$ fluctuations that the problem asks for.
 \end{remark}
+
+\section{The replica computation of $\mathbb E Z_N^n$ (Talagrand Section~1.13)}\label{sec:sg-tal:replica}
+
+This section proves the one rigorous theorem of Section~1.13 of the book: the exact limit of $N^{-1}\log\mathbb E Z_N^n$ for every integer $n$.
+It holds at all temperatures. It does not use the cavity method. The book calls the computation the ``physicist's replica method'' made rigorous for integer $n$.
+Throughout, $Z_N=\sum_{\sigma\in\{\pm1\}^N}\exp\bigl(\frac{\beta}{\sqrt N}\sum_{i<j}g_{ij}\sigma_i\sigma_j+h\sum_i\sigma_i\bigr)$ is the plain sum (not the average) over configurations,
+the disorder $g_{ij}$ is i.i.d.\ standard Gaussian, and the field $h$ is not random.
+
+\begin{definition}[The functions $A$, $B$ and $\Phi_n$]\label{def:sg-tal:replica-A}
+\lean{SpinGlasses.skReplicaLogPartition, SpinGlasses.skReplicaMatLogPartition, SpinGlasses.skReplicaMatObjective, SpinGlasses.skSymmCoupling}
+\leanok
+\talsource{Eqs.~(1.399)--(1.400)}
+Fix $n\in\mathbb N$ replicas. For couplings $\mathbf g=(g_{\ell\ell'})_{\ell<\ell'}$ between the replicas put
+\[
+A(\mathbf g)=\log\sum_{\varepsilon\in\{\pm1\}^n}\exp\Bigl(\beta\sum_{\ell<\ell'}g_{\ell\ell'}\varepsilon_\ell\varepsilon_{\ell'}+h\sum_\ell\varepsilon_\ell\Bigr),
+\qquad B(\mathbf g)=A(\mathbf g)-\tfrac12\sum_{\ell<\ell'}g_{\ell\ell'}^2 .
+\]
+For $q\ge0$ put
+\[
+\Phi_n(q)=\frac{n\beta^2}{4}(1-q)^2-\frac{n^2\beta^2}{4}q^2+\log\mathbb E\operatorname{ch}^n(\beta z\sqrt q+h),
+\]
+with $z$ standard Gaussian. In Lean the couplings are a function on the pairs $\ell<\ell'$ (the type \texttt{FinPairs}~$n$).
+The proof of Proposition~\ref{prop:sg-tal:replica-maximizers} also uses the same objects for a symmetric matrix $G$ with zero diagonal,
+with $\tfrac12\sum_{\ell<\ell'}g^2$ written as $\tfrac14\sum_{\ell,\ell'}G_{\ell\ell'}^2$; \texttt{skSymmCoupling} turns couplings into such a matrix.
+\end{definition}
+
+\begin{theorem}[Theorem~1.13.1, Eq.~(1.396)]\label{thm:sg-tal:replica}
+\lean{SpinGlasses.sk_replica_theorem, SpinGlasses.sk_replica_theorem_pos, SpinGlasses.sk_replica_theorem_zero}
+\leanok
+\uses{def:sg-tal:replica-A, lem:sg-tal:replica-laplace, lem:sg-tal:replica-moment, prop:sg-tal:replica-maximizers, cor:sg-tal:replica-constant, lem:sg-tal:replica-constant, lem:sg-tal:replica-existence}
+\talsource{Theorem~1.13.1; source lines 5712--5944}
+Let $n\in\mathbb N$ and let $\beta,h\in\mathbb R$ be arbitrary. There is $q\ge0$ such that $\Phi_n(q')\le\Phi_n(q)$ for all $q'\ge0$, and
+\[
+\lim_{N\to\infty}\frac1N\log\mathbb E Z_N^n=n\log2+\Phi_n(q).
+\]
+\end{theorem}
+\begin{proof}
+\leanok
+Case $\beta>0$. By Lemma~\ref{lem:sg-tal:replica-moment}, $\mathbb E Z_N^n=\exp(\beta^2n(N-n)/4)\,\mathbb E\exp(NA(x/\sqrt N))$ for a standard Gaussian vector $x$ indexed by the pairs of replicas.
+The function $B$ has a maximizer $\mathbf g$ (Lemma~\ref{lem:sg-tal:replica-existence}), and $A$ is continuous with $|A|\le K(1+\sum|g|)$.
+The Laplace principle (Lemma~\ref{lem:sg-tal:replica-laplace}) gives $N^{-1}\log\mathbb E\exp(NA(x/\sqrt N))\to B(\mathbf g)$.
+So $N^{-1}\log\mathbb EZ_N^n\to\beta^2n/4+B(\mathbf g)$.
+By Corollary~\ref{cor:sg-tal:replica-constant} there is $V\ge0$ such that $B(\mathbf g)$ equals the value of $B$ at the constant coupling $V$.
+Put $q=V/\beta$. Lemma~\ref{lem:sg-tal:replica-constant} says that the value of $B$ at the constant coupling $\beta q'$ is $n\log2+\Phi_n(q')-n\beta^2/4$, for every $q'\ge0$.
+Since $\mathbf g$ maximizes $B$, $\Phi_n(q')\le\Phi_n(q)$ for all $q'\ge0$, and the limit is $n\log2+\Phi_n(q)$.
+Case $\beta=0$. The disorder does not enter, $Z_N=(2\operatorname{ch}h)^N$, and $\Phi_n$ does not depend on $q$.
+Case $\beta<0$. The change of variables $g\mapsto-g$ preserves the Gaussian disorder, so $\mathbb E Z_N^n$ is even in $\beta$.
+The function $\Phi_n$ is also even in $\beta$ (substitute $z\mapsto-z$). Apply the case $\beta>0$ to $-\beta$.
+\end{proof}
+
+\begin{remark}[Hypotheses of Theorem~\ref{thm:sg-tal:replica}: what the book leaves unsaid]\label{rem:sg-tal:replica-hypotheses}
+\talsource{Section~1.13, Proposition~1.13.2, the last paragraph of the proof of Theorem~1.13.1}
+The Lean statement has no hypothesis on $\beta$, $h$, or $n$. The book's argument uses more than it says, and the differences are these.
+\begin{itemize}
+\item \emph{Sign of $\beta$.} The book writes the maximizing couplings as $g_{\ell\ell'}=\beta q$ with $q\ge0$. This uses $\beta>0$. The core of the proof
+ (Lemmas~\ref{lem:sg-tal:replica-hyp} and~\ref{lem:sg-tal:replica-collapse}, Proposition~\ref{prop:sg-tal:replica-maximizers}) is proved for $\beta>0$ only.
+ The general case follows because $\mathbb E Z_N^n$ and $\Phi_n$ are even in $\beta$.
+\item \emph{Sign of $h$.} The book treats $h>0$ and $h=0$. The Lean proof treats every real $h$ at once: the proof shows that a negative coupling can occur at a maximizer only if $h=0$,
+ and this does not use the sign of $h$.
+\item \emph{Existence of the maximum.} The book writes ``max'' for $B$ and for $\Phi_n$ without proof. Lemma~\ref{lem:sg-tal:replica-existence} proves that $B$ has a maximizer
+ ($B$ is continuous and tends to $-\infty$ at infinity). The existence of a maximizer of $\Phi_n$ is a consequence of the proof, as stated in the theorem: it is not assumed.
+ The theorem is stated with the maximizer $q$ as a witness, not with a supremum.
+\item \emph{The Laplace limit.} The book calls it elementary. It is proved here for any continuous $A$ with $|A(g)|\le K(1+\sum|g_i|)$ (Lemma~\ref{lem:sg-tal:replica-laplace}).
+\item \emph{Replica number.} The Lean statement holds for $n=0$ too (both sides are $0$), and for $n=1$ (there are no couplings $g_{\ell\ell'}$ and $\Phi_1$ does not depend on $q$).
+ The book assumes $n\ge1$.
+\item \emph{Nothing else.} There is no high-temperature condition, no uniqueness of the maximizer (the book itself says the maximizer is not unique for $h=0$), no condition $N>n$,
+ and no assumption $q>0$.
+\end{itemize}
+The theorem is about a non-random field and integer $n$. The book says its arguments do not extend to a random field or to non-integer $n$. Neither extension is attempted.
+\end{remark}
+
+\begin{lemma}[Laplace principle]\label{lem:sg-tal:replica-laplace}
+\lean{ProbabilityTheory.tendsto_log_integral_exp_laplace, ProbabilityTheory.integral_exp_laplace_le, ProbabilityTheory.integral_exp_laplace_ge, ProbabilityTheory.integral_exp_mul_sq_add_mul_gaussianReal, Real.exp_add_mul_abs_le_add}
+\leanok
+\talsource{The sentence ``it is elementary to show'' before Eq.~(1.399)}
+Let $\iota$ be a finite set, $A:\mathbb R^\iota\to\mathbb R$ continuous with $|A(g)|\le K(1+\sum_i|g_i|)$ for some $K$, and let $\mathbf g^*$ maximize $A(g)-\frac12\|g\|^2$.
+Let $x$ be a standard Gaussian vector in $\mathbb R^\iota$. Then
+\[
+\frac1N\log\mathbb E\exp\bigl(NA(x/\sqrt N)\bigr)\longrightarrow A(\mathbf g^*)-\tfrac12\|\mathbf g^*\|^2 .
+\]
+\end{lemma}
+\begin{proof}
+\leanok
+Upper bound. Write $A=tA+(1-t)A$ with $0<t<1$. Use $A(g)\le M+\frac12\|g\|^2$ for the first part ($M$ is the maximum) and the growth bound for the second.
+This gives $NA(x/\sqrt N)\le NtM+N(1-t)K+\sum_i\bigl(\frac t2x_i^2+\sqrt N(1-t)K|x_i|\bigr)$. The expectation of the exponential of the right side factors over $i$.
+For the absolute-value term use the shared signed bound
+$e^{a+b|x|}\le e^{a+bx}+e^{a-bx}$, valid for either sign of $b$.
+Each signed factor is a Gaussian integral, $\mathbb E\exp(\frac t2 x^2+cx)=(1-t)^{-1/2}\exp(c^2/(2(1-t)))$ (complete the square), so the limsup of $N^{-1}\log$ is at most $tM+(1-t)(K+\dim K^2/2)$. Let $t\to1$.
+Lower bound. By continuity of $A$ at $\mathbf g^*$, $A\ge A(\mathbf g^*)-\varepsilon$ on a small box around $\mathbf g^*$. The Gaussian measure of the scaled box is at least
+a product of one-dimensional interval probabilities, each at least $2\sqrt N\delta(2\pi)^{-1/2}\exp(-N(|g^*_i|+\delta)^2/2)$. Let $\delta,\varepsilon\to0$.
+\end{proof}
+
+\begin{lemma}[The moment $\mathbb E Z_N^n$, Eqs.~(1.397)--(1.399)]\label{lem:sg-tal:replica-moment}
+\lean{SpinGlasses.sum_finPairs_sq_replicas, SpinGlasses.integral_sk_partition_pow_eq, SpinGlasses.integral_exp_replica_log_partition, SpinGlasses.integral_sk_partition_pow_eq_laplace}
+\leanok
+\uses{def:sg-tal:replica-A}
+\talsource{Eqs.~(1.397), (1.398), (1.399); source lines 5732--5780}
+For $N\ge1$ and every $n$,
+\[
+\mathbb E Z_N^n=\exp\Bigl(\frac{\beta^2}{4}n(N-n)\Bigr)\;\mathbb E\exp\bigl(NA(x/\sqrt N)\bigr),
+\]
+where $x=(x_{\ell\ell'})_{\ell<\ell'}$ is a vector of i.i.d.\ standard Gaussians. This is an equality, not an asymptotic statement.
+\end{lemma}
+\begin{proof}
+\leanok
+Write $Z_N^n$ as a sum over $n$ replicas $\sigma^1,\dots,\sigma^n$ and average over the disorder with $\mathbb E e^{cg}=e^{c^2/2}$. This gives the exponent
+$\frac{\beta^2}{2N}\sum_{i<j}(\sum_\ell\sigma^\ell_i\sigma^\ell_j)^2$.
+The finite identity (1.397) says that this equals $\frac{\beta^2}{2N}\bigl(\frac12(nN^2-n^2N)+\sum_{\ell<\ell'}(\sigma^\ell\cdot\sigma^{\ell'})^2\bigr)$.
+Apply $\mathbb E e^{cx}=e^{c^2/2}$ in reverse with $c=\frac{\beta}{\sqrt N}\sigma^\ell\cdot\sigma^{\ell'}$ to write $\exp(\frac{\beta^2}{2N}\sum(\sigma^\ell\cdot\sigma^{\ell'})^2)$ as an expectation over $x$.
+The sum over $\sigma$ factorizes over the sites $i$ and gives $\bigl(\sum_\varepsilon\exp(\cdots)\bigr)^N=\exp(NA)$.
+\end{proof}
+
+\begin{lemma}[Lemma~1.13.4: the hyperbolic Cauchy--Schwarz inequality]\label{lem:sg-tal:replica-hyp}
+\lean{SpinGlasses.hyp_cs_le, SpinGlasses.hyp_cs_eq, SpinGlasses.hyp_sum_cs_le, SpinGlasses.hyp_sum_cs_eq}
+\leanok
+\talsource{Lemma~1.13.4, Eq.~(1.400); source lines 5800--5827}
+For real $a_1,a_2,g$,
+\[
+\operatorname{ch}a_1\operatorname{ch}a_2\operatorname{ch}g+\operatorname{sh}a_1\operatorname{sh}a_2\operatorname{sh}g\le
+\bigl(\operatorname{ch}^2a_1\operatorname{ch}|g|+\operatorname{sh}^2a_1\operatorname{sh}|g|\bigr)^{1/2}\bigl(\operatorname{ch}^2a_2\operatorname{ch}|g|+\operatorname{sh}^2a_2\operatorname{sh}|g|\bigr)^{1/2}.
+\]
+If equality holds and $g\ne0$, then $a_1=a_2$ for $g>0$ and $a_1=-a_2$ for $g<0$. The same holds for weighted sums $\sum_s w_s(\cdots)$ with positive weights, with the conclusion at every $s$.
+\end{lemma}
+\begin{proof}
+\leanok
+Let $u=\operatorname{ch}g$ and $w=|\operatorname{sh}g|$. The product of the two brackets minus the square of the left side equals
+$u\bigl(w(x^2+y^2)-2\operatorname{sh}g\,xy\bigr)$ with $x=\operatorname{ch}a_1\operatorname{sh}a_2$ and $y=\operatorname{sh}a_1\operatorname{ch}a_2$ (use $\operatorname{sh}^2g=w^2$).
+This is $\ge0$, which gives the inequality. For $g>0$ it equals $uw(x-y)^2$ and $x-y=\operatorname{sh}(a_2-a_1)$. For $g<0$ it equals $uw(x+y)^2$ and $x+y=\operatorname{sh}(a_1+a_2)$.
+The weighted version follows by termwise use of the inequality and the Cauchy--Schwarz inequality for sums.
+In case of equality for the sum, equality holds termwise.
+\end{proof}
+
+\begin{lemma}[Lemma~1.13.5, in matrix form]\label{lem:sg-tal:replica-collapse}
+\lean{SpinGlasses.skReplica_lemma_1_13_5, SpinGlasses.skReplicaCollapse, SpinGlasses.skReplicaCollapse_split_data, SpinGlasses.exp_skReplicaMatLogPartition_split, SpinGlasses.sum_sq_collapse}
+\leanok
+\uses{lem:sg-tal:replica-hyp, def:sg-tal:replica-A}
+\talsource{Lemma~1.13.5, Eqs.~(1.404)--(1.407); source lines 5829--5890}
+Let $\beta>0$. Write the couplings as a symmetric matrix $G$ with zero diagonal, and let $G$ maximize $B$ among such matrices. Let $a\ne b$ be two replicas.
+Let $G'$ be $G$ with the couplings of replica $b$ replaced by those of $a$ and $G_{ab}$ replaced by $|G_{ab}|$. Let $G''$ be the same with the roles of $a$ and $b$ exchanged. Then
+\begin{itemize}
+\item $G'$ and $G''$ are also maximizers (in fact $B(G')=B(G'')=B(G)$);
+\item if $G_{ab}>0$ then $G_{a\ell}=G_{b\ell}$ for all $\ell\notin\{a,b\}$;
+\item if $G_{ab}<0$ then $h=0$ and $G_{a\ell}=-G_{b\ell}$ for all $\ell\notin\{a,b\}$.
+\end{itemize}
+\end{lemma}
+\begin{proof}
+\leanok
+Sum over the signs of the other replicas $\alpha$ last. This gives $e^{A(G)}=\sum_\alpha w(\alpha)\,4(\operatorname{ch}A_1\operatorname{ch}A_2\operatorname{ch}\beta G_{ab}+\operatorname{sh}A_1\operatorname{sh}A_2\operatorname{sh}\beta G_{ab})$,
+with $A_j(\alpha)=\beta\sum_\ell G_{j\ell}\alpha_\ell+h$ and a weight $w(\alpha)>0$ that depends only on the couplings among the other replicas (Eq.~(1.407)).
+The same formula for $G'$ and $G''$ has $A_1=A_2$ (resp.\ with $A_1,A_2$ both replaced by the other one) and coupling $\beta|G_{ab}|$.
+By Lemma~\ref{lem:sg-tal:replica-hyp}, $e^{A(G)}\le e^{(A(G')+A(G''))/2}$. Also $\sum G^2=\frac12(\sum G'^2+\sum G''^2)$. So $B(G)\le\frac12(B(G')+B(G''))$.
+Since $G$ is a maximizer, $B(G')=B(G'')=B(G)$, and the inequality is an equality. The equality case of Lemma~\ref{lem:sg-tal:replica-hyp} gives $A_1(\alpha)=\pm A_2(\alpha)$ for every $\alpha$.
+Comparing two sign vectors that differ in one coordinate gives $G_{a\ell}=\pm G_{b\ell}$. In the case of the minus sign, comparing $\alpha$ with $-\alpha$ gives $h=0$.
+\end{proof}
+
+\begin{proposition}[Proposition~1.13.2: the maximizers of $B$]\label{prop:sg-tal:replica-maximizers}
+\lean{SpinGlasses.skReplica_maximizer_structure, SpinGlasses.skReplica_abs_const, SpinGlasses.skReplica_abs_eq_of_ne_zero}
+\leanok
+\uses{lem:sg-tal:replica-collapse}
+\talsource{Proposition~1.13.2; source lines 5846--5870}
+Let $\beta>0$ and let $G$ be a maximizer of $B$ among symmetric matrices with zero diagonal. Then $G=0$, or there are $V>0$ and signs $u_\ell\in\{\pm1\}$ with $G_{\ell\ell'}=Vu_\ell u_{\ell'}$ for $\ell\ne\ell'$.
+If moreover $h\ne0$, then $G_{\ell\ell'}=V$ for all $\ell\ne\ell'$.
+\end{proposition}
+\begin{proof}
+\leanok
+First, if $G_{bc}\ne0$ and $a\notin\{b,c\}$ then $|G_{ab}|=|G_{bc}|$: apply Lemma~\ref{lem:sg-tal:replica-collapse} to $(a,b)$ to get the maximizer $G''$ with $G''_{ac}=G_{bc}\ne0$, and then apply it to $G''$ and the pair $(a,c)$ with $\ell=b$.
+Hence all $|G_{\ell\ell'}|$ equal $V=|G_{xy}|$ for any nonzero entry. Next fix a reference replica $r$ and put $u_\ell=\operatorname{sign}G_{r\ell}$. Lemma~\ref{lem:sg-tal:replica-collapse} for the pair $(r,\ell)$ gives $G_{\ell\ell'}=u_\ell G_{r\ell'}=Vu_\ell u_{\ell'}$.
+If $h\ne0$ no entry is negative, by the last item of Lemma~\ref{lem:sg-tal:replica-collapse}.
+\end{proof}
+
+\begin{corollary}[Corollary~1.13.3]\label{cor:sg-tal:replica-constant}
+\lean{SpinGlasses.skReplica_maximizer_const, SpinGlasses.skReplicaMatLogPartition_gauge}
+\leanok
+\uses{prop:sg-tal:replica-maximizers}
+\talsource{Corollary~1.13.3}
+Let $\beta>0$. For a maximizer $G$ of $B$ there is $V\ge0$ such that $B(G)$ equals $B$ at the constant matrix with all off-diagonal entries $V$.
+\end{corollary}
+\begin{proof}
+\leanok
+By Proposition~\ref{prop:sg-tal:replica-maximizers}, $G=Vuu^{T}$ off the diagonal. If $h=0$, the change of variables $\varepsilon_\ell\mapsto u_\ell\varepsilon_\ell$ shows $A(G)=A(V)$, and $\sum G^2=\sum V^2$.
+If $h\ne0$ then $G$ is already constant. If $G=0$ take $V=0$.
+\end{proof}
+
+\begin{lemma}[Existence of a maximizer of $B$]\label{lem:sg-tal:replica-existence}
+\lean{SpinGlasses.exists_forall_objective_le, SpinGlasses.abs_skReplicaLogPartition_le, SpinGlasses.continuous_skReplicaLogPartition}
+\leanok
+\talsource{Section~1.13: ``max'' in Eq.~(1.399), not proved in the book}
+For all real $\beta,h$ the function $B$ attains its maximum. Moreover $|A(\mathbf g)|\le K(1+\sum|g_{\ell\ell'}|)$ with $K=n\log2+n|h|+|\beta|$.
+\end{lemma}
+\begin{proof}
+\leanok
+Each exponent in the definition of $A$ has absolute value at most $|\beta|\sum|g|+|h|n$, and there are $2^n$ terms. This gives the bound on $|A|$.
+Then $B(\mathbf g)\le K(1+\sum|g|)-\frac12\sum g^2\to-\infty$ as $\|\mathbf g\|\to\infty$. A continuous function tending to $-\infty$ at infinity attains its maximum.
+\end{proof}
+
+\begin{lemma}[Constant couplings, end of the proof of Theorem~1.13.1]\label{lem:sg-tal:replica-constant}
+\lean{SpinGlasses.skReplicaMatObjective_const, SpinGlasses.exp_skReplicaMatLogPartition_const}
+\leanok
+\talsource{Source lines 5895--5930}
+Let $\beta>0$ and $q\ge0$. The value of $B$ at the constant matrix with off-diagonal entries $\beta q$ is $n\log2+\Phi_n(q)-n\beta^2/4$.
+\end{lemma}
+\begin{proof}
+\leanok
+With $V=\beta q$, $\sum_{\ell<\ell'}\varepsilon_\ell\varepsilon_{\ell'}=\frac12\bigl((\sum\varepsilon)^2-n\bigr)$, and $\exp(\frac{c}{2}s^2)=\mathbb E\exp(\sqrt c\,zs)$ for a standard Gaussian $z$.
+Sum over $\varepsilon$ first: $\sum_\varepsilon\exp\bigl((\sqrt{\beta V}z+h)\sum_\ell\varepsilon_\ell\bigr)=(2\operatorname{ch}(\sqrt{\beta V}z+h))^n$.
+So $e^{A}=e^{-n\beta V/2}\mathbb E(2\operatorname{ch}(\sqrt{\beta V}z+h))^n$. Here $\sqrt{\beta V}=\beta\sqrt q$. The penalty $\frac14\sum G^2$ is $\frac{n(n-1)}4\beta^2q^2$.
+Collect terms.
+\end{proof}
+
+\begin{remark}[Not claimed: the continuation to non-integer $n$]\label{rem:sg-tal:replica-heuristic}
+\talsource{Eqs.~(1.408)--(1.411)}
+After Theorem~1.13.1 the book writes the fixed-point equation (1.408) for the maximizer, observes $\lim_{t\to0^+}\frac1t\log\mathbb EZ_N^t=\mathbb E\log Z_N$ (Eq.~(1.409)),
+and then ``pretends'' that the theorem holds for non-integer $n>0$ and that the limits $N\to\infty$ and $n\to0$ can be exchanged. This yields the replica-symmetric formula (1.411).
+The book marks these steps as a heuristic. They are not formalized and not claimed. In particular this section does not prove Eq.~(1.411), and Eq.~(1.411) is wrong at low temperature.
+Equation~(1.408) is also not formalized.
+\end{remark}
+
+\section{The matrix and the pair Hamiltonian of the SK model}\label{sec:sg-tal:hamiltonian-bridge}
+
+The parts of this project that follow Panchenko and the parts that follow Talagrand use different conventions for the same model.
+Panchenko writes $H_N(G,\sigma)=\frac1{\sqrt N}\sum_{i,j\le N}G_{ij}\sigma_i\sigma_j$ with an $N\times N$ matrix $G$ of i.i.d.\ standard Gaussians.
+Talagrand writes $\frac{\beta}{\sqrt N}\sum_{i<j}g_{ij}\sigma_i\sigma_j+h\sum_i\sigma_i$ with one Gaussian $g_{ij}$ per pair $i<j$ (Definition~\ref{def:sg-tal:hamiltonian}).
+This section shows that the two are the same model: the matrix Hamiltonian is the pair Hamiltonian at $\beta=\sqrt2$ plus a Gaussian that does not depend on $\sigma$.
+
+\begin{theorem}[Law of the matrix Hamiltonian]\label{thm:sg-tal:hamiltonian-bridge-law}
+\lean{SpinGlasses.map_skHamiltonian_eq_pair, SpinGlasses.skPair_gram}
+\leanok
+\talsource{Panchenko, Eq.~(1.1); Talagrand, Eq.~(1.12)}
+Let $N\ge1$. The process $\sigma\mapsto H_N(G,\sigma)$, $\sigma\in\{\pm1\}^N$, under the law of $G$, has the same law as
+$\sigma\mapsto\frac{\sqrt2}{\sqrt N}\sum_{i<j}g_{ij}\sigma_i\sigma_j+Z$, where the $g_{ij}$ ($i<j$) and $Z$ are independent standard Gaussians.
+\end{theorem}
+\begin{proof}
+\leanok
+Both processes are centered Gaussian. The covariance of the first is $N R(\sigma,\tau)^2$ with $R=\frac1N\sigma\cdot\tau$ (this is Panchenko's covariance computation for the matrix Hamiltonian, Lean name \texttt{SpinGlasses.integral\_skHamiltonian\_mul\_skHamiltonian\_units}).
+For the second, $\sum_{i<j}\sigma_i\sigma_j\tau_i\tau_j=\frac12\bigl((\sigma\cdot\tau)^2-N\bigr)$ since $\sigma_i^2=\tau_i^2=1$. So the covariance is $\frac2N\cdot\frac12((\sigma\cdot\tau)^2-N)+1=N R^2$.
+Two centered Gaussian families with the same covariance have the same law.
+\end{proof}
+
+\begin{theorem}[Gibbs measures of the two conventions]\label{thm:sg-tal:hamiltonian-bridge-gibbs}
+\lean{SpinGlasses.integral_gibbs_skHamiltonian_eq_pair}
+\leanok
+\uses{thm:sg-tal:hamiltonian-bridge-law}
+\talsource{Panchenko, Eq.~(1.1); Talagrand, Eq.~(1.12)}
+Let $N\ge1$, $n\in\mathbb N$, $\beta,h\in\mathbb R$, and let $\Theta$ be any real function of $n$ replicas $\sigma^1,\dots,\sigma^n\in\{\pm1\}^N$.
+Let $\langle\Theta\rangle_G$ be the average of $\Theta$ under the product of $n$ copies of the Gibbs measure with energy $\beta H_N(G,\sigma)+h\sum_i\sigma_i$,
+and let $\langle\Theta\rangle'_g$ be the same for the pair Hamiltonian at inverse temperature $\sqrt2\,\beta$, that is, with energy $\frac{\sqrt2\beta}{\sqrt N}\sum_{i<j}g_{ij}\sigma_i\sigma_j+h\sum_i\sigma_i$. Then
+\[
+\mathbb E_G\langle\Theta\rangle_G=\mathbb E_g\langle\Theta\rangle'_g .
+\]
+\end{theorem}
+\begin{proof}
+\leanok
+The map that sends an energy function on $\{\pm1\}^N$ to the replica Gibbs average of $\Theta$ is measurable. By Theorem~\ref{thm:sg-tal:hamiltonian-bridge-law} its expectation under the matrix law equals its expectation
+under the law of $(g,Z)$. The constant $\beta Z$ cancels in every Gibbs average, so the integrand depends on $g$ only, and $\mathbb E$ over $Z$ is trivial.
+\end{proof}
+
+\begin{remark}[What this does and does not give]\label{rem:sg-tal:hamiltonian-bridge}
+The statement is about disorder averages of Gibbs averages, which is the form that both parts of the project use. It is not an equality of the two probability spaces:
+the matrix has $N^2$ Gaussians and the pair form has $\binom N2+1$. The extra Gaussians (the antisymmetric parts $G_{ij}-G_{ji}$ and the $N-1$ other diagonal entries) do not enter the Hamiltonian.
+The scaling $\beta\mapsto\sqrt2\,\beta$ also means that a statement made for the matrix model at $\beta_{\mathrm{mat}}$ is a statement for the pair model at $\beta=\sqrt2\,\beta_{\mathrm{mat}}$.
+\end{remark}
+
+\begin{remark}[How the Talagrand part and the Panchenko cascade part fit together]\label{rem:sg-tal:cascade-link}
+\talsource{Sections~1.3, 1.6, 1.8, 1.10, 1.11}
+This remark records an interpretation. It is not a theorem, and no part of it is claimed as formalized except where a Lean name is given.
+The two parts of the project describe one model at two temperatures. Talagrand's Chapter~1 is the high-temperature, one-valley regime. Panchenko's cascade part is the low-temperature regime.
+\begin{enumerate}
+\item \emph{The cavity field.} In Section~1.6 the field that the other spins exert on a removed spin is a single Gaussian $Y=\beta z\sqrt q+h$, and the overlap $q$ solves $q=\mathbb E\tanh^2(\beta z\sqrt q+h)$.
+ This is the field of the decoupled system, the endpoint $u=0$ of the cavity path used in Section~1.11. In the cascade part the same field is a Gaussian field indexed by the leaves of a Ruelle cascade (a tree of correlated Gaussians).
+ The replica-symmetric case corresponds to a cascade with one level, whose overlap law is a point mass at $q$. The fixed-point equation is the stationarity condition of that case.
+\item \emph{Guerra's bound.} The replica-symmetric bound of Section~1.3 (\texttt{Talagrand/GuerraReplicaSymmetric/}) is the zero-level case of the Parisi interpolation: the same Gaussian interpolation, with a covariance difference that is constant off the diagonal.
+ For a cascade the covariance is ultrametric. \emph{Not formalized:} the repository has no definition of the Parisi functional. The cascade part proves the law, moment and logarithm identities of the cascade partition function, not the variational formula.
+\item \emph{The $T$-basis.} The three Gaussian families $T_{\ell\ell'}$, $T_\ell$, $T$ of Sections~1.8 and~1.10 (variances $A^2$, $B^2$, $C^2$) have the same three levels (pair, row, global) as the Aldous--Hoover representation of the overlap array in the cascade part.
+ At high temperature the leading term of the overlaps is deterministic, and Section~1.10 describes the Gaussian fluctuations around it. This is an interpretation, not a proved statement.
+\item \emph{The replica expansion.} Each derivative of the cavity path in Section~1.11 (\texttt{skCavityIterKernel}) adds two replicas and a factor $\varepsilon\varepsilon'(R^--q)$. This is the replica expansion of Gibbs-average derivatives that underlies the Ghirlanda--Guerra identities
+ and the Bolthausen--Sznitman invariance in the cascade part. For a mixed $p$-spin model the factor $\beta^2(R^--q)$ is replaced by $\xi'(R^-)$-type terms.
+\item \emph{The two conventions.} Section~\ref{sec:sg-tal:hamiltonian-bridge} shows that the matrix Hamiltonian of the cascade part and the pair Hamiltonian of this chapter have the same Gibbs measures after the change $\beta\mapsto\sqrt2\,\beta$ (Lean: \texttt{SpinGlasses.integral\_gibbs\_skHamiltonian\_eq\_pair}).
+\end{enumerate}
+\emph{One cavity split instead of two (checked, not done).} The cascade part proves the cavity decomposition in law (\texttt{SpinGlasses.map\_skHamiltonian\_succ}) and this chapter proves a measure-preserving cavity decomposition of the pair disorder (\texttt{measurePreserving\_sk\_cavity\_disorder}).
+Deriving the first from the second through Theorem~\ref{thm:sg-tal:hamiltonian-bridge-law} would not shorten the code. The first proof is about 35 lines, because it uses the same Gram-transfer lemma (\texttt{map\_eq\_map\_dotProduct\_prod}) as the bridge.
+The route through the pair form would add the factor $\sqrt2$, the extra Gaussian $Z$, and a change of index set, for the same statement. So both are kept.
+\end{remark}

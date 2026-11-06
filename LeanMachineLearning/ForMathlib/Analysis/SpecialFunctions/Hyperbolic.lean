@@ -23,6 +23,16 @@ public import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
 
 namespace Real
 
+/-- An exponential with an absolute-value argument is dominated by the two signed arguments.
+The coefficient may have either sign, and the common additive term is arbitrary. -/
+theorem exp_add_mul_abs_le_add (a b x : ℝ) :
+    exp (a + b * |x|) ≤ exp (a + b * x) + exp (a - b * x) := by
+  rcases le_total 0 x with hx | hx
+  · rw [abs_of_nonneg hx]
+    exact le_add_of_nonneg_right (exp_pos _).le
+  · rw [abs_of_nonpos hx, mul_neg, ← sub_eq_add_neg]
+    exact le_add_of_nonneg_left (exp_pos _).le
+
 /-- Product formula for hyperbolic cosine: `cosh x * cosh y = (cosh (x + y) + cosh (x - y)) / 2`. -/
 theorem cosh_mul_cosh (x y : ℝ) :
     Real.cosh x * Real.cosh y = (Real.cosh (x + y) + Real.cosh (x - y)) / 2 := by

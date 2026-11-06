@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.Renormalization.DeepLinear.GaussianLayer
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.PiNeg
 
 /-!
 # Exact finite-depth moments of deep linear networks
@@ -44,35 +45,6 @@ def correlatorAmplitude (Cw : ℝ≥0) (q : ℝ) (m : ℕ) (widths : List ℕ) :
 /-- Wick's pairing sum for the Kronecker covariance on a list of output indices. -/
 def pairingTensor {κ : Type uJ} [DecidableEq κ] {m : ℕ} (a : Fin (2 * m) → κ) : ℝ :=
   Renormalization.wick (fun r s => if a r = a s then 1 else 0) Finset.univ
-
-/-- A product measure is invariant under pointwise negation when every marginal is. -/
-private lemma pi_map_neg_invariant {ι : Type*} [Fintype ι] {α : Type*} [MeasurableSpace α]
-    [Neg α] [MeasurableNeg α] (μ : ι → Measure α) [∀ i, IsProbabilityMeasure (μ i)]
-    (hμ : ∀ i, (μ i).map (fun x : α => -x) = μ i) :
-    (Measure.pi μ).map (fun f : ι → α => -f) = Measure.pi μ := by
-  have hIndep : iIndepFun (fun i : ι => fun f : ι → α => -f i) (Measure.pi μ) :=
-    iIndepFun_pi (μ := μ) (X := fun _ : ι => fun x : α => -x)
-      (mX := fun _ => (by fun_prop : Measurable fun x : α => -x).aemeasurable)
-  have hmap := iIndepFun.map_fun_eq_pi_map
-    (μ := Measure.pi μ)
-    (f := fun (i : ι) (f : ι → α) => -f i)
-    (hf := fun i => (by fun_prop : Measurable fun f : ι → α => -f i).aemeasurable)
-    hIndep
-  calc
-    (Measure.pi μ).map (fun f : ι → α => -f)
-        = Measure.pi (fun i : ι => (Measure.pi μ).map (fun f : ι → α => -f i)) := hmap
-    _ = Measure.pi (fun i : ι => (μ i).map (fun x : α => -x)) := by
-          congr 1
-          funext i
-          calc
-            (Measure.pi μ).map (fun f : ι → α => -f i)
-                = ((Measure.pi μ).map (fun f : ι → α => f i)).map (fun x : α => -x) :=
-                  (Measure.map_map (g := fun x : α => -x) (f := fun f : ι → α => f i)
-                    (by fun_prop : Measurable fun x : α => -x) (measurable_pi_apply i)).symm
-            _ = (μ i).map (fun x : α => -x) :=
-                  congrArg (fun ν : Measure α => ν.map (fun x : α => -x))
-                    (measurePreserving_eval μ i).map_eq
-    _ = Measure.pi μ := congrArg Measure.pi (funext hμ)
 
 /-- Negate the weights and biases of the final affine layer of a structured parameter tuple. -/
 noncomputable def negLastLayer {m n : ℕ} : (S : MLPShape m n) → S.Params → S.Params
@@ -126,14 +98,14 @@ theorem gaussianInit_negLastLayer {m n : ℕ} (S : MLPShape m n) (Cw : ℝ≥0) 
         fun _ => by simpa using gaussianReal_map_neg (μ := (0 : ℝ)) (v := p.biasVariance)
       have hW : (gaussianWeightLaw p (Fin m₀) (Fin n₀)).map
           (fun W : Fin n₀ → Fin m₀ → ℝ => -W) = gaussianWeightLaw p (Fin m₀) (Fin n₀) :=
-        pi_map_neg_invariant
+        Measure.pi_map_neg_eq
           (μ := fun _ : Fin n₀ => Measure.pi fun _ : Fin m₀ =>
             gaussianReal 0 (scaledWeightVariance p (Fin m₀)))
-          (fun _ => pi_map_neg_invariant
+          (fun _ => Measure.pi_map_neg_eq
             (μ := fun _ : Fin m₀ => gaussianReal 0 (scaledWeightVariance p (Fin m₀))) hgW)
       have hB : (gaussianBiasLaw p (Fin n₀)).map (fun b : Fin n₀ → ℝ => -b) =
           gaussianBiasLaw p (Fin n₀) :=
-        pi_map_neg_invariant (μ := fun _ : Fin n₀ => gaussianReal 0 p.biasVariance) hgB
+        Measure.pi_map_neg_eq (μ := fun _ : Fin n₀ => gaussianReal 0 p.biasVariance) hgB
       have : SFinite (gaussianWeightLaw p (Fin m₀) (Fin n₀)) := by
         unfold gaussianWeightLaw
         infer_instance

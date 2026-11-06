@@ -9,6 +9,7 @@ public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianCovarianceInterpo
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedBound
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiExp
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.PiUpdate
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Hyperbolic
 
 /-!
 # Interpolation between a Gaussian projection and independent Gaussians
@@ -437,9 +438,7 @@ theorem integral_exp_mul_projPath (u : Fin m → Fin N → ℝ) (v s b : ℝ) (l
 
 
 theorem exp_abs_le_add (x : ℝ) : Real.exp |x| ≤ Real.exp x + Real.exp (-x) := by
-  rcases abs_cases x with ⟨h, _⟩ | ⟨h, _⟩
-  · rw [h]; linarith [Real.exp_pos (-x)]
-  · rw [h]; linarith [Real.exp_pos x]
+  simpa using Real.exp_add_mul_abs_le_add 0 1 x
 
 theorem abs_integral_derivProd_projPath_le {C₀ c : ℝ} (hm : 0 < m) (a : Fin m → ℕ) (B : ℝ)
     (hC₀ : 0 ≤ C₀) (hc : 0 ≤ c)

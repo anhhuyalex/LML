@@ -147,6 +147,13 @@ $(\sigma\cdot\tau)^2$. The normalization $N^{-1/2}$ appears twice, giving
 $N^{-1}(\sigma\cdot\tau)^2=N\,(N^{-1}\sigma\cdot\tau)^2$.
 \end{proof}
 
+\begin{remark}[This Hamiltonian and the pair Hamiltonian of Talagrand's chapter]\label{rem:sg:pair-bridge}
+Talagrand's chapter uses one Gaussian per pair $i<j$ and an explicit inverse temperature $\beta$. The matrix Hamiltonian above is the same model:
+as a process in $\sigma$ it has the law of $\frac{\sqrt2}{\sqrt N}\sum_{i<j}g_{ij}\sigma_i\sigma_j+Z$ with an independent Gaussian $Z$ that does not depend on $\sigma$,
+and every disorder-averaged replica Gibbs average for $\beta H_N$ equals the one for the pair Hamiltonian at inverse temperature $\sqrt2\,\beta$.
+See Theorems~\ref{thm:sg-tal:hamiltonian-bridge-law} and~\ref{thm:sg-tal:hamiltonian-bridge-gibbs}, and Remark~\ref{rem:sg-tal:cascade-link} for how the two parts of the project fit together.
+\end{remark}
+
 \begin{lemma}[Dean's comfort identity]\label{lem:sg:comfort}
   \lean{SpinGlasses.sum_lt_mul_units_eq_sub}
   \leanok

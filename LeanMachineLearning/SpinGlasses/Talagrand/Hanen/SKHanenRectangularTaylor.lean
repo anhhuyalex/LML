@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenTaylor
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPairingBasic
+public import LeanMachineLearning.Optimization.Renormalization.PairingBlocks
 public import
   LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.HigherOrderCavity.SKCavityHigherOrderMoments
 
@@ -47,14 +48,10 @@ theorem sk_hanen_rect_prod_sq_le (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (k :
     if e.1 then (pairMap (u j)).2 else (pairMap (u j)).1
   let b : Fin k → Bool × Bool → Fin n := fun j e =>
     if e.2 then (pairMap (v j)).2 else (pairMap (v j)).1
-  have hab (j : Fin k) (e : Bool × Bool) : a j e ≠ b j e := by
-    have hd := hdisj (u j) (v j) (huv j)
-    rcases e with ⟨e₁, e₂⟩
-    cases e₁ <;> cases e₂ <;> simp only [a, b, Bool.false_eq_true, ite_false, ite_true]
-    · exact hd.1
-    · exact hd.2.1
-    · exact hd.2.2.1
-    · exact hd.2.2.2
+  have hab (j : Fin k) (e : Bool × Bool) : a j e ≠ b j e :=
+    (Finpartition.pairwise_disjoint_pair_endpoints pairMap hdisj (huv j)).ne_of_mem
+      (by rcases e with ⟨e₁, e₂⟩; cases e₁ <;> simp [a])
+      (by rcases e with ⟨e₁, e₂⟩; cases e₂ <;> simp [b])
   have hR (j : Fin k) (σ : Fin n → Fin (N + 1) → ℤˣ) :
       (∑ e : Bool × Bool, c j e * ((N + 1 : ℝ)⁻¹ *
         ((fun i : Fin N => (σ (a j e) i.castSucc : ℝ)) ⬝ᵥ

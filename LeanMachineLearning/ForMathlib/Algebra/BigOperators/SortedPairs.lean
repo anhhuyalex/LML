@@ -22,6 +22,20 @@ Sorting the chosen endpoints has no effect for symmetric kernels.
 open scoped BigOperators
 namespace Finset
 
+/-- Sorting the two elements of a pair does not change the pair. -/
+theorem pair_min_max {α : Type*} [LinearOrder α] (a b : α) :
+    ({min a b, max a b} : Finset α) = {a, b} := by
+  rcases le_total a b with h | h
+  · rw [min_eq_left h, max_eq_right h]
+  · rw [min_eq_right h, max_eq_left h, pair_comm]
+
+/-- A symmetric kernel takes the same value on a pair and on its sorted version. -/
+theorem symmetric_min_max {α R : Type*} [LinearOrder α] (K : α → α → R)
+    (hK : ∀ a b, K a b = K b a) (a b : α) : K (min a b) (max a b) = K a b := by
+  rcases le_total a b with h | h
+  · rw [min_eq_left h, max_eq_right h]
+  · rw [min_eq_right h, max_eq_left h, hK]
+
 /-- The signed sum over the four sorted cross choices is a rectangle of a symmetric kernel.
 This identity holds over any commutative ring and any finite linearly ordered index type. -/
 theorem sum_signed_orderedPairs_product {α R : Type*} [Fintype α] [LinearOrder α]
@@ -43,9 +57,7 @@ theorem sum_signed_orderedPairs_product {α R : Type*} [Fintype α] [LinearOrder
         K (min a b) (max a b) =
       (if x₀ ∈ ({a, b} : Finset α) then (1 : R) else -1) *
         (if y₀ ∈ ({a, b} : Finset α) then (1 : R) else -1) * K a b := by
-    rcases le_total a b with hab | hba
-    · rw [min_eq_left hab, max_eq_right hab]
-    · rw [min_eq_right hba, max_eq_left hba, pair_comm b a, hK b a]
+    rw [pair_min_max, symmetric_min_max K hK]
   simp_rw [hs]
   have hd' : (x₀ ≠ y₀ ∧ x₀ ≠ y₁) ∧ x₁ ≠ y₀ ∧ x₁ ≠ y₁ := by
     simpa only [disjoint_insert_left, disjoint_singleton_left,
