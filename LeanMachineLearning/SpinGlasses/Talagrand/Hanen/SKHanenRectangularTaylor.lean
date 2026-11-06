@@ -134,7 +134,8 @@ theorem sk_hanen_rect_product_taylor (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) 
   have hW (σ : Fin n → Fin (N + 1) → ℤˣ) : |W σ| ≤ 2 ^ (2 * m) := by
     have hp : |∏ w : Fin (2 * m), ((σ (pairMap w).1 (Fin.last N) : ℝ) -
         (σ (pairMap w).2 (Fin.last N) : ℝ))| ≤ 2 ^ (2 * m) := by
-      simpa using abs_prod_units_sub_le_two_pow (fun w : Fin (2 * m) => σ (pairMap w).1 (Fin.last N))
+      simpa using abs_prod_units_sub_le_two_pow
+        (fun w : Fin (2 * m) => σ (pairMap w).1 (Fin.last N))
         (fun w : Fin (2 * m) => σ (pairMap w).2 (Fin.last N))
     calc
       |W σ| = |∏ w : Fin (2 * m), ((σ (pairMap w).1 (Fin.last N) : ℝ) -

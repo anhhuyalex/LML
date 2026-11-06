@@ -7,6 +7,8 @@ module
 
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenTaylor
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPairingBasic
+public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenRectEval
+public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenRectFull
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Pair.SKOverlapCLTPairGaussian
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKCovarianceRows
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SqSub
@@ -137,7 +139,270 @@ theorem sk_hanen_truncated_rect_eval (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) 
           (Real.cosh (β * z * Real.sqrt q + h) ^ (4 * m))⁻¹ ∂gaussianReal 0 1) *
         (4 * β ^ 2 * A_sq / (N + 1 : ℝ)) ^ m| ≤
       K * M / ((N : ℝ) + 1) ^ (((2 * m + 1 : ℕ) : ℝ) / 2) := by
-  sorry
+  obtain ⟨K1, hK1, hb1⟩ := sk_hanen_rect_leading β₀ hβ₀ m n
+  obtain ⟨K2, hK2, hb2⟩ := sk_hanen_trunc_old_vs_coupled β₀ hβ₀ m n
+  obtain ⟨K3, hK3, hb3⟩ := sk_hanen_trunc_vs_full β₀ hβ₀ m n
+  obtain ⟨K4, hK4, hb4⟩ := sk_hanen_full_pairing_sq β₀ hβ₀ m n
+  obtain ⟨K5, hK5, hb5⟩ := sk_hanen_full_pairings_of_ne β₀ hβ₀ m n
+  refine ⟨K1 + (Fintype.card (Finpartition.Pairing (univ : Finset (Fin (2 * m)))) : ℝ) *
+    (K2 + K3 + (K4 + K5)), by positivity, ?_⟩
+  classical
+  intro β h q hfix hβ N P x y hxy hdisj fhat M hM hfhat α A_sq F
+  have hM0 : 0 ≤ M := (abs_nonneg (fhat fun _ => 1)).trans (hM _)
+  have hD : (0 : ℝ) < ((N : ℝ) + 1) ^ (((2 * m + 1 : ℕ) : ℝ) / 2) := by positivity
+  let pairMap : Fin (2 * m) → Fin n × Fin n := fun j => (x j, y j)
+  have hconv : (∫ z : ℝ, Real.tanh (β * z * Real.sqrt q + h) ^ 4 ∂gaussianReal 0 1) =
+      ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 4 ∂gaussianReal 0 1 :=
+    integral_tanh_pow_mul_z_sqrt_eq β q h 4
+  have hb1' := hb1 β h q hfix hβ N P pairMap hxy hdisj fhat M hM hfhat
+  have hb4' := hb4 β h q hfix hβ N P pairMap hxy hdisj
+  dsimp only at hb1' hb4'
+  simp only [hconv] at hb4'
+  -- the Wick-sum term for each pairing `P'`
+  let t : Finpartition.Pairing (univ : Finset (Fin (2 * m))) → ℝ := fun P' =>
+    skCavityPathMean N n β q h 0 (fun σ =>
+      P.blockProduct (Renormalization.pairWeight fun u v =>
+        skCavityRectTrunc N n m q pairMap u v (fun r i => σ r i.castSucc)) *
+      P'.blockProduct (Renormalization.pairWeight fun u v =>
+        skCavityRectTrunc N n m q pairMap u v (fun r i => σ r i.castSucc)))
+  have hterm : ∀ P' : Finpartition.Pairing (univ : Finset (Fin (2 * m))),
+      |t P' - (if P' = P then (4 * A_sq / ((N : ℝ) + 1)) ^ m else 0)| ≤
+        (K2 + K3 + (K4 + K5)) / ((N : ℝ) + 1) ^ (((2 * m + 1 : ℕ) : ℝ) / 2) := by
+    intro P'
+    have h2 := hb2 β h q hfix hβ N P P' pairMap hdisj
+    have h3 := hb3 β h q hfix hβ N P P' pairMap hdisj hxy
+    dsimp only at h2 h3
+    have hsplit : (K2 + K3 + (K4 + K5)) / ((N : ℝ) + 1) ^ (((2 * m + 1 : ℕ) : ℝ) / 2) =
+        K2 / ((N : ℝ) + 1) ^ (((2 * m + 1 : ℕ) : ℝ) / 2) +
+        K3 / ((N : ℝ) + 1) ^ (((2 * m + 1 : ℕ) : ℝ) / 2) +
+        K4 / ((N : ℝ) + 1) ^ (((2 * m + 1 : ℕ) : ℝ) / 2) +
+        K5 / ((N : ℝ) + 1) ^ (((2 * m + 1 : ℕ) : ℝ) / 2) := by ring
+    have hK4D : 0 ≤ K4 / ((N : ℝ) + 1) ^ (((2 * m + 1 : ℕ) : ℝ) / 2) := by positivity
+    have hK5D : 0 ≤ K5 / ((N : ℝ) + 1) ^ (((2 * m + 1 : ℕ) : ℝ) / 2) := by positivity
+    have h2' := abs_le.1 h2
+    have h3' := abs_le.1 h3
+    by_cases hPP : P' = P
+    · subst hPP
+      simp only [eq_self, ↓reduceIte]
+      have h4' := abs_le.1 hb4'
+      refine abs_le.2 ⟨?_, ?_⟩ <;> simp only [t] <;> rw [hsplit] <;> linarith [h2'.1, h2'.2, h3'.1,
+        h3'.2, h4'.1, h4'.2]
+    · simp only [hPP, ↓reduceIte, sub_zero]
+      have h5 := hb5 β h q hfix hβ N P P' hPP pairMap hxy hdisj
+      dsimp only at h5
+      have h5' := abs_le.1 h5
+      refine abs_le.2 ⟨?_, ?_⟩ <;> simp only [t] <;> rw [hsplit] <;> linarith [h2'.1, h2'.2, h3'.1,
+        h3'.2, h5'.1, h5'.2]
+  set D := ((N : ℝ) + 1) ^ (((2 * m + 1 : ℕ) : ℝ) / 2) with hDdef
+  set T := (4 * A_sq / ((N : ℝ) + 1)) ^ m with hT
+  set Z := ∫ z : ℝ, (∫ ε : Fin n → ℤˣ, fhat ε
+            ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
+              fun s : ℤˣ => (s : ℝ) * (β * z * Real.sqrt q + h))) *
+          (Real.cosh (β * z * Real.sqrt q + h) ^ (4 * m))⁻¹ ∂gaussianReal 0 1 with hZ
+  have hsum : |(∑ P' : Finpartition.Pairing (univ : Finset (Fin (2 * m))), t P') - T| ≤
+      (Fintype.card (Finpartition.Pairing (univ : Finset (Fin (2 * m)))) : ℝ) *
+        ((K2 + K3 + (K4 + K5)) / D) := by
+    have h1 : (∑ P' : Finpartition.Pairing (univ : Finset (Fin (2 * m))), t P') - T =
+        ∑ P' : Finpartition.Pairing (univ : Finset (Fin (2 * m))),
+          (t P' - if P' = P then T else 0) := by
+      rw [Finset.sum_sub_distrib, Finset.sum_ite_eq' Finset.univ P (fun _ => T)]
+      simp
+    rw [h1]
+    refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
+    refine (Finset.sum_le_sum fun P' _ => hterm P').trans ?_
+    simp
+  have hZb : |Z| ≤ M := by
+    have hb : ∀ z : ℝ, ‖(∫ ε : Fin n → ℤˣ, fhat ε
+            ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
+              fun s : ℤˣ => (s : ℝ) * (β * z * Real.sqrt q + h))) *
+          (Real.cosh (β * z * Real.sqrt q + h) ^ (4 * m))⁻¹‖ ≤ M := by
+      intro z
+      have hc : 1 ≤ Real.cosh (β * z * Real.sqrt q + h) ^ (4 * m) :=
+        one_le_pow₀ (Real.one_le_cosh _)
+      have hinv : ‖(Real.cosh (β * z * Real.sqrt q + h) ^ (4 * m))⁻¹‖ ≤ 1 := by
+        rw [Real.norm_eq_abs, abs_of_nonneg (by positivity)]
+        exact inv_le_one_of_one_le₀ hc
+      have hf : ‖∫ ε : Fin n → ℤˣ, fhat ε
+            ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
+              fun s : ℤˣ => (s : ℝ) * (β * z * Real.sqrt q + h))‖ ≤ M := by
+        refine (norm_integral_le_of_norm_le_const (C := M)
+          (Filter.Eventually.of_forall fun ε => ?_)).trans ?_
+        · simpa using hM ε
+        · simp
+      rw [norm_mul]
+      calc _ ≤ M * 1 := mul_le_mul hf hinv (norm_nonneg _) hM0
+        _ = M := mul_one M
+    have := norm_integral_le_of_norm_le_const (μ := gaussianReal 0 1) (C := M)
+      (Filter.Eventually.of_forall hb)
+    simpa [hZ] using this
+  have hβm : (β ^ 2) ^ m ≤ 1 :=
+    pow_le_one₀ (sq_nonneg β) (by nlinarith [sq_nonneg β₀])
+  have hid : Z * (4 * β ^ 2 * A_sq / ((N : ℝ) + 1)) ^ m = β ^ (2 * m) * Z * T := by
+    rw [hT, pow_mul, show 4 * β ^ 2 * A_sq / ((N : ℝ) + 1) = β ^ 2 * (4 * A_sq / ((N : ℝ) + 1))
+      by ring, mul_pow]
+    ring
+  have hlead := hb1'
+  simp only [hid]
+  have hcomb : |(skCavityPathMean N n β q h 1 fun σ =>
+        (∏ v : Fin (2 * m), ((σ (x v) (Fin.last N) : ℝ) - (σ (y v) (Fin.last N) : ℝ))) *
+          fhat (fun r => σ r (Fin.last N)) * F (fun r i => σ r i.castSucc)) -
+      β ^ (2 * m) * Z * T| ≤ K1 * M / D +
+        |β ^ (2 * m) * Z| * |(∑ P' : Finpartition.Pairing (univ : Finset (Fin (2 * m))), t P') - T| := by
+    have hsplit : (skCavityPathMean N n β q h 1 fun σ =>
+        (∏ v : Fin (2 * m), ((σ (x v) (Fin.last N) : ℝ) - (σ (y v) (Fin.last N) : ℝ))) *
+          fhat (fun r => σ r (Fin.last N)) * F (fun r i => σ r i.castSucc)) -
+        β ^ (2 * m) * Z * T =
+        ((skCavityPathMean N n β q h 1 fun σ =>
+        (∏ v : Fin (2 * m), ((σ (x v) (Fin.last N) : ℝ) - (σ (y v) (Fin.last N) : ℝ))) *
+          fhat (fun r => σ r (Fin.last N)) * F (fun r i => σ r i.castSucc)) -
+          β ^ (2 * m) * Z * ∑ P' : Finpartition.Pairing (univ : Finset (Fin (2 * m))), t P') +
+        β ^ (2 * m) * Z * ((∑ P' : Finpartition.Pairing (univ : Finset (Fin (2 * m))), t P') - T) := by
+      ring
+    rw [hsplit]
+    refine (abs_add_le _ _).trans ?_
+    rw [abs_mul]
+    exact add_le_add hlead le_rfl
+  have hbz : |β ^ (2 * m) * Z| ≤ M := by
+    rw [abs_mul, abs_of_nonneg (by rw [pow_mul]; exact pow_nonneg (sq_nonneg β) m)]
+    calc β ^ (2 * m) * |Z| ≤ 1 * M :=
+          mul_le_mul (by rw [pow_mul]; exact hβm) hZb (abs_nonneg _) zero_le_one
+      _ = M := one_mul M
+  have hnp : (0 : ℝ) ≤ (Fintype.card (Finpartition.Pairing (univ : Finset (Fin (2 * m)))) : ℝ) *
+      ((K2 + K3 + (K4 + K5)) / D) :=
+    mul_nonneg (Nat.cast_nonneg _) (div_nonneg (by linarith) hD.le)
+  calc _ ≤ K1 * M / D + |β ^ (2 * m) * Z| * |(∑ P' : Finpartition.Pairing
+          (univ : Finset (Fin (2 * m))), t P') - T| := hcomb
+    _ ≤ K1 * M / D + M * ((Fintype.card (Finpartition.Pairing (univ : Finset (Fin (2 * m)))) : ℝ) *
+          ((K2 + K3 + (K4 + K5)) / D)) := by gcongr
+    _ = _ := by ring
+
+/-- **Proposition 1.11.11, one subset of blocks.** For a subset `S` of the blocks of the pairing
+`P`, the coupled mean of `∏_{B ∈ S} η_B · ∏_{B ∉ S} η_B² · ∏_{B ∈ S} U_B⁻` is
+`4^{p - |S|} 𝔼 ch^{-4p} (4 β² A²/(N+1))^{|S|}` up to `16^{p-|S|} K_{|S|} / (N+1)^{(2|S|+1)/2}`.
+It is Proposition 1.11.10 applied to the sub-pairing of `S` (relabelled by
+`exists_relabel_pairing_subset`) with `f̂ = ∏_{B ∉ S} η_B²`, whose Gibbs mean at `u = 0` is
+`(4 ch^{-4})^{p-|S|}`. -/
+theorem sk_hanen_full_subset_term (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (p n : ℕ) :
+    ∃ K : ℕ → ℝ, (∀ k, 0 < K k) ∧ ∀ (β h q : ℝ),
+      (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂gaussianReal 0 1 = q) →
+      β ^ 2 ≤ β₀ ^ 2 → ∀ (N : ℕ)
+      (P : Finpartition.Pairing (univ : Finset (Fin (2 * p))))
+      (x y : Fin (2 * p) → Fin n), (∀ j, x j ≠ y j) →
+      (∀ u v : Fin (2 * p), u ≠ v →
+        x u ≠ x v ∧ x u ≠ y v ∧ y u ≠ x v ∧ y u ≠ y v) →
+      ∀ S : Finset (Finset (Fin (2 * p))), S ⊆ P.val.parts →
+      let α := (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 4
+        ∂gaussianReal 0 1) - 2 * q + 1
+      let A_sq := α / (1 - β ^ 2 * α)
+      |skCavityPathMean N n β q h 1 (fun σ =>
+          (∏ B ∈ S, ∏ v ∈ B, ((σ (x v) (Fin.last N) : ℝ) - (σ (y v) (Fin.last N) : ℝ))) *
+          (∏ B ∈ P.val.parts \ S,
+            (∏ v ∈ B, ((σ (x v) (Fin.last N) : ℝ) - (σ (y v) (Fin.last N) : ℝ))) ^ 2) *
+          ∏ B ∈ S, Renormalization.pairWeight (fun a b =>
+            skCavityRectTrunc N n p q (fun j => (x j, y j)) a b
+              (fun r i => σ r i.castSucc)) B) -
+        4 ^ (p - S.card) * (∫ z : ℝ, (Real.cosh (β * z * Real.sqrt q + h) ^ (4 * p))⁻¹
+          ∂gaussianReal 0 1) * (4 * β ^ 2 * A_sq / (N + 1 : ℝ)) ^ S.card| ≤
+      K S.card * 16 ^ (p - S.card) / ((N : ℝ) + 1) ^ (((2 * S.card + 1 : ℕ) : ℝ) / 2) := by
+  choose K hKpos hKb using fun k : ℕ => sk_hanen_truncated_rect_eval β₀ hβ₀ k n
+  refine ⟨K, hKpos, ?_⟩
+  intro β h q hfix hβ N P x y hxy hdisj S hS α A_sq
+  classical
+  obtain ⟨w, Q, hwinj, hwrange, hQ⟩ := Renormalization.exists_relabel_pairing_subset P S hS
+  have hparts : P.val.parts.card = p := P.card_parts_of_card_eq (m := p) (by simp)
+  have hcard2 : ∀ B ∈ P.val.parts, B.card = 2 := fun B hB => P.2 B hB
+  have hmp : S.card ≤ p := by have := Finset.card_le_card hS; omega
+  let Λ : Finset (Fin (2 * p)) := (P.val.parts \ S).biUnion id
+  have hΛcard : Λ.card = 2 * (p - S.card) :=
+    hanen_card_biUnion_sdiff P.val.parts S P.val.disjoint hcard2 hS hparts
+  let fhat' : (Fin n → ℤˣ) → ℝ := fun ε => ∏ v ∈ Λ, ((ε (x v) : ℝ) - (ε (y v) : ℝ)) ^ 2
+  have hdisj' : ∀ u v : Fin (2 * S.card), u ≠ v →
+      x (w u) ≠ x (w v) ∧ x (w u) ≠ y (w v) ∧ y (w u) ≠ x (w v) ∧ y (w u) ≠ y (w v) :=
+    fun u v huv => hdisj (w u) (w v) (fun h => huv (hwinj h))
+  have hM : ∀ ε, |fhat' ε| ≤ 16 ^ (p - S.card) := by
+    intro ε
+    have hf (v : Fin (2 * p)) : ((ε (x v) : ℝ) - (ε (y v) : ℝ)) ^ 2 ≤ 4 := by
+      have h1 := units_cast_sq (ε (x v))
+      have h2 := units_cast_sq (ε (y v))
+      nlinarith [sq_nonneg ((ε (x v) : ℝ) + (ε (y v) : ℝ))]
+    have h0 : 0 ≤ fhat' ε := Finset.prod_nonneg fun v _ => sq_nonneg _
+    rw [abs_of_nonneg h0]
+    calc fhat' ε ≤ ∏ _v ∈ Λ, (4 : ℝ) := by
+          show (∏ v ∈ Λ, ((ε (x v) : ℝ) - (ε (y v) : ℝ)) ^ 2) ≤ ∏ _v ∈ Λ, (4 : ℝ)
+          gcongr with v _
+          exact hf v
+      _ = 16 ^ (p - S.card) := by
+          rw [Finset.prod_const, hΛcard, pow_mul]; norm_num
+  have hfhat' : ∀ (ε : Fin n → ℤˣ) (i : Fin n) (t : ℤˣ),
+      i ∈ (univ : Finset (Fin (2 * S.card))).biUnion
+        (fun k => {(x (w k), y (w k)).1, (x (w k), y (w k)).2}) →
+      fhat' (Function.update ε i t) = fhat' ε := by
+    intro ε i t hi
+    simp only [Finset.mem_biUnion, Finset.mem_univ, true_and, Finset.mem_insert,
+      Finset.mem_singleton] at hi
+    obtain ⟨k, hk⟩ := hi
+    refine Finset.prod_congr rfl fun v hv => ?_
+    obtain ⟨B', hB', hvB'⟩ := Finset.mem_biUnion.1 hv
+    obtain ⟨B, hBS, hwk⟩ := (hwrange (w k)).1 ⟨k, rfl⟩
+    have hBB' : B ≠ B' := fun h => (Finset.mem_sdiff.1 hB').2 (h ▸ hBS)
+    have hdj := P.val.disjoint (hS hBS) (Finset.mem_sdiff.1 hB').1 hBB'
+    have hvw : w k ≠ v := fun h => Finset.disjoint_left.1 hdj hwk (h ▸ hvB')
+    have hd := hdisj (w k) v hvw
+    have hne : i ≠ x v ∧ i ≠ y v := by
+      rcases hk with rfl | rfl
+      · exact ⟨hd.1, hd.2.1⟩
+      · exact ⟨hd.2.2.1, hd.2.2.2⟩
+    simp only [Function.update_of_ne hne.1.symm, Function.update_of_ne hne.2.symm]
+  have hb := hKb S.card β h q hfix hβ N Q (fun k => x (w k)) (fun k => y (w k))
+    (fun k => hxy _) hdisj' fhat' (16 ^ (p - S.card)) hM hfhat'
+  dsimp only at hb
+  -- the observable of `hb` is the observable of the statement
+  have hobs : (fun σ : Fin n → Fin (N + 1) → ℤˣ =>
+      ((∏ v : Fin (2 * S.card), ((σ (x (w v)) (Fin.last N) : ℝ) -
+          (σ (y (w v)) (Fin.last N) : ℝ))) * fhat' (fun r => σ r (Fin.last N))) *
+        Q.blockProduct (Renormalization.pairWeight fun u v =>
+          skCavityRectTrunc N n S.card q (fun j => (x (w j), y (w j))) u v
+            (fun r i => σ r i.castSucc))) =
+      fun σ => ((∏ B ∈ S, ∏ v ∈ B, ((σ (x v) (Fin.last N) : ℝ) - (σ (y v) (Fin.last N) : ℝ))) *
+          (∏ B ∈ P.val.parts \ S,
+            (∏ v ∈ B, ((σ (x v) (Fin.last N) : ℝ) - (σ (y v) (Fin.last N) : ℝ))) ^ 2)) *
+        ∏ B ∈ S, Renormalization.pairWeight (fun a b =>
+          skCavityRectTrunc N n p q (fun j => (x j, y j)) a b
+            (fun r i => σ r i.castSucc)) B := by
+    funext σ
+    have F1 := hanen_prod_relabel_eq_prod_blocks P.val.parts S P.val.disjoint hS w hwinj hwrange
+      (fun v => (σ (x v) (Fin.last N) : ℝ) - (σ (y v) (Fin.last N) : ℝ))
+    have F2 := hanen_prod_sq_blocks P.val.parts S P.val.disjoint
+      (fun v => (σ (x v) (Fin.last N) : ℝ) - (σ (y v) (Fin.last N) : ℝ))
+    have F3 := hQ (fun a b => skCavityRectTrunc N n p q (fun j => (x j, y j)) a b
+        (fun r i => σ r i.castSucc))
+      (fun a b => skCavityRectTrunc_comm N n p q _ a b _)
+    rw [F1, F3]
+    show _ * (∏ v ∈ Λ, _) * _ = _
+    rw [F2]
+  have hZ : (∫ z : ℝ, (∫ ε : Fin n → ℤˣ, fhat' ε
+        ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
+          fun s : ℤˣ => (s : ℝ) * (β * z * Real.sqrt q + h))) *
+        (Real.cosh (β * z * Real.sqrt q + h) ^ (4 * S.card))⁻¹ ∂gaussianReal 0 1) =
+      4 ^ (p - S.card) * ∫ z : ℝ, (Real.cosh (β * z * Real.sqrt q + h) ^ (4 * p))⁻¹
+        ∂gaussianReal 0 1 := by
+    rw [← integral_const_mul]
+    refine integral_congr_ae (Filter.Eventually.of_forall fun z => ?_)
+    dsimp only
+    rw [show (∫ ε : Fin n → ℤˣ, fhat' ε ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
+          fun s : ℤˣ => (s : ℝ) * (β * z * Real.sqrt q + h))) =
+        (2 * ((Real.cosh (β * z * Real.sqrt q + h))⁻¹) ^ 2) ^ Λ.card from
+      integral_prod_spin_diff_sq _ x y hxy hdisj Λ, hΛcard]
+    have hc : 0 < Real.cosh (β * z * Real.sqrt q + h) := Real.cosh_pos _
+    have key : ∀ (c : ℝ), 0 < c → ∀ k m' : ℕ,
+        (2 * c⁻¹ ^ 2) ^ (2 * k) * (c ^ (4 * m'))⁻¹ = 4 ^ k * (c ^ (4 * (k + m')))⁻¹ := by
+      intro c hc k m'
+      field_simp
+      ring
+    rw [show 4 * p = 4 * ((p - S.card) + S.card) by omega]
+    exact key _ hc _ _
+  rw [hZ, hobs] at hb
+  exact hb
 
 /-- **Talagrand's Proposition 1.11.11 (Eq. (1.347)).** Evaluation of the full rectangular
 product for any pairing of the difference labels. The distinct, mutually disjoint replica

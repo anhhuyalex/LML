@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.Renormalization.PairingCardinality
+public import Mathlib.Algebra.BigOperators.Fin
 public import Mathlib.Basic.Real.Basic
 public import Mathlib.Tactic.Ring
 public import Aesop
@@ -92,6 +93,27 @@ theorem exists_labels_prod_pairWeight {s : Finset ι} {m : ℕ} (P : Finpartitio
       intro j _
       rw [hB, pairWeight_pair C hC (huv j)]
     _ = _ := P.prod_equiv_eq_blockProduct e (pairWeight C)
+
+/-- Two pairings of a `2m`-element set, read together, are a family of `m + m` labelled pairs of
+distinct elements: for every symmetric kernel `C`, the product of `C` over the labelled pairs is
+the product of the block products of the two pairings. This lets a statement about one family of
+rectangles serve for any pair of pairings. -/
+theorem exists_labels_prod_pairWeight_mul {s : Finset ι} {m : ℕ} (P P' : Finpartition.Pairing s)
+    (hs : s.card = 2 * m) :
+    ∃ u v : Fin (m + m) → ι, (∀ j, u j ≠ v j) ∧ ∀ C : ι → ι → ℝ, (∀ i j, C i j = C j i) →
+      ∏ j : Fin (m + m), C (u j) (v j) =
+        P.blockProduct (pairWeight C) * P'.blockProduct (pairWeight C) := by
+  obtain ⟨u₁, v₁, h₁, e₁⟩ := exists_labels_prod_pairWeight P hs
+  obtain ⟨u₂, v₂, h₂, e₂⟩ := exists_labels_prod_pairWeight P' hs
+  refine ⟨Fin.append u₁ u₂, Fin.append v₁ v₂, fun j => ?_, fun C hC => ?_⟩
+  · refine Fin.addCases (fun i => ?_) (fun i => ?_) j
+    · rw [Fin.append_left, Fin.append_left]
+      exact h₁ i
+    · rw [Fin.append_right, Fin.append_right]
+      exact h₂ i
+  · rw [Fin.prod_univ_add]
+    simp only [Fin.append_left, Fin.append_right]
+    rw [e₁ C hC, e₂ C hC]
 
 /-- Pairing recurrence obtained by choosing the partner of a distinguished element.
 
