@@ -450,7 +450,7 @@ the two-measure version of `HasGaussianLaw.sumElim_prod`, with two different (fi
 and a site cavity field. -/
 theorem HasGaussianLaw.sumElim_prod_of_independent {Ω₁ Ω₂ κ₁ κ₂ : Type*}
     {m₁ : MeasurableSpace Ω₁} {m₂ : MeasurableSpace Ω₂} {μ : Measure Ω₁} {ν : Measure Ω₂}
-    [SFinite μ] [SFinite ν] [Finite κ₁] [Finite κ₂] {f : Ω₁ → κ₁ → ℝ} {g : Ω₂ → κ₂ → ℝ}
+    [SFinite ν] [Finite κ₁] [Finite κ₂] {f : Ω₁ → κ₁ → ℝ} {g : Ω₂ → κ₂ → ℝ}
     (hf : HasGaussianLaw f μ) (hg : HasGaussianLaw g ν) (hfm : Measurable f)
     (hgm : Measurable g) :
     HasGaussianLaw (fun z : Ω₁ × Ω₂ => fun s : κ₁ ⊕ κ₂ =>

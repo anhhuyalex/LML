@@ -199,7 +199,7 @@ the subtree below each root child: its joint law. The functional of the subtrees
 independent of the root data and identically distributed. -/
 theorem hasLaw_cascadeRoot_marks {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω}
     [IsProbabilityMeasure P] {Ξ W : Type*} [MeasurableSpace Ξ] [MeasurableSpace W]
-    (nu₀ : ℕ → Measure ℝ) [∀ k, IsProbabilityMeasure (nu₀ k)] (rate₀ : ℕ → ℝ≥0)
+    (nu₀ : ℕ → Measure ℝ) (rate₀ : ℕ → ℝ≥0)
     (ρ : Measure Ξ) [IsProbabilityMeasure ρ]
     (𝔡 : ℕ → Measure ((ℕ → ℕ × (ℕ → ℝ)) × (ℕ → Ξ)))
     (h𝔡₀ : 𝔡 0 = (Measure.infinitePi fun k =>
