@@ -183,6 +183,17 @@ theorem existsUnique_pairing_ordering_of_equiv [Fintype α] (e : α ≃ ι × Bo
     ext v
     exact (hQ i v).trans (hm i v).symm
 
+/-- Pairs with pairwise distinct endpoints have pairwise disjoint endpoint sets. -/
+theorem pairwise_disjoint_pair_endpoints {κ γ : Type*} (pairMap : κ → γ × γ)
+    (hdisj : ∀ u v : κ, u ≠ v →
+      (pairMap u).1 ≠ (pairMap v).1 ∧ (pairMap u).1 ≠ (pairMap v).2 ∧
+      (pairMap u).2 ≠ (pairMap v).1 ∧ (pairMap u).2 ≠ (pairMap v).2) :
+    Pairwise fun u v =>
+      Disjoint ({(pairMap u).1, (pairMap u).2} : Set γ) {(pairMap v).1, (pairMap v).2} := by
+  intro u v huv
+  simpa only [Set.disjoint_insert_left, Set.disjoint_singleton_left,
+    Set.mem_insert_iff, Set.mem_singleton_iff, not_or, and_assoc] using hdisj u v huv
+
 omit [Fintype ι] in
 /-- A tuple in an ordered-pairing class chooses exactly one endpoint of each disjoint pair.
 The Boolean choices record whether the first endpoint was chosen, and the endpoint bijection
@@ -206,10 +217,8 @@ theorem exists_endpoint_choices_of_pairing_fiber {κ γ : Type*}
   let : Fintype ι := Fintype.ofEquiv Pe.1.val.parts Pe.2.symm
   let S : κ → Set γ := fun v => {(pairMap v).1, (pairMap v).2}
   let endpoint : ι × Bool → γ := fun j => if j.2 then (p j.1).1 else (p j.1).2
-  have hd : Pairwise fun u v => Disjoint (S u) (S v) := by
-    intro u v huv
-    simpa only [S, Set.disjoint_insert_left, Set.disjoint_singleton_left,
-      Set.mem_insert_iff, Set.mem_singleton_iff, not_or, and_assoc] using hdisj u v huv
+  have hd : Pairwise fun u v => Disjoint (S u) (S v) :=
+    pairwise_disjoint_pair_endpoints pairMap hdisj
   have hhit (v : κ) : ∃ j, endpoint j ∈ S v := by
     obtain ⟨i, hi⟩ := Pe.2.surjective
       ⟨Pe.1.val.part v, Pe.1.val.part_mem.mpr (mem_univ v)⟩

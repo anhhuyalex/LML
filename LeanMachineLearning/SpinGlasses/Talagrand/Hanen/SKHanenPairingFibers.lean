@@ -35,10 +35,8 @@ theorem skCavityPairing_fiber_pair_mem_iff {m n : ℕ}
     p.val ∈ (({(pairMap u).1, (pairMap u).2} : Finset (Fin n)).product
       {(pairMap v).1, (pairMap v).2}).image (fun ab => (min ab.1 ab.2, max ab.1 ab.2)) := by
   let S : Fin (2 * m) → Set (Fin n) := fun w => {(pairMap w).1, (pairMap w).2}
-  have hd : Pairwise fun i j => Disjoint (S i) (S j) := by
-    intro i j hij
-    simpa only [S, Set.disjoint_insert_left, Set.disjoint_singleton_left,
-      Set.mem_insert_iff, Set.mem_singleton_iff, not_or, and_assoc] using hdisj i j hij
+  have hd : Pairwise fun i j => Disjoint (S i) (S j) :=
+    Finpartition.pairwise_disjoint_pair_endpoints pairMap hdisj
   have hsorted : (min p.val.1 p.val.2, max p.val.1 p.val.2) = p.val := by
     rw [min_eq_left p.property.le, max_eq_right p.property.le]
   conv_rhs => rw [← hsorted]

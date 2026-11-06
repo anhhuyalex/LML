@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.Optimization.Renormalization.Finpartition
+public import LeanMachineLearning.Optimization.Renormalization.PairingCardinality
 
 /-!
 # Ordering the blocks of a pair partition
@@ -29,15 +29,9 @@ theorem pairingSum_orderings {α R : Type*} [DecidableEq α] [CommSemiring R]
   rw [pairingSum, Finset.mul_sum]
   apply sum_congr rfl
   intro P _
-  have hparts : P.val.parts.card = m := by
-    have hp := P.two_mul_card_parts
-    omega
+  have hparts : P.val.parts.card = m := P.card_parts_of_card_eq hs
   let e0 : Fin m ≃ P.val.parts := Fintype.equivOfCardEq (by simp [hparts])
-  have hprod (e : Fin m ≃ P.val.parts) : (∏ i : Fin m, w (e i).val) = P.blockProduct w := by
-    calc
-      _ = ∏ B : P.val.parts, w B.val := e.prod_comp _
-      _ = _ := Finset.prod_coe_sort P.val.parts w
-  simp_rw [hprod]
+  simp_rw [P.prod_equiv_eq_blockProduct]
   rw [sum_const, card_univ, Fintype.card_equiv e0, Fintype.card_fin, nsmul_eq_mul]
 
 end Finpartition

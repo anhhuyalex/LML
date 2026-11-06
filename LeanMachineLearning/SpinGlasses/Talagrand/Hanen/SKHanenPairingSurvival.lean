@@ -51,30 +51,21 @@ theorem skCavityPathMean_zero_critical_survival (N m n : ℕ) (β q h : ℝ)
   intro endpoint hnonzero
   let S : Fin (2 * m) → Set (Fin n) :=
     fun v => {(pairMap v).1, (pairMap v).2}
-  have hd : Pairwise fun u v => Disjoint (S u) (S v) := by
-    intro u v huv
-    simpa only [S, Set.disjoint_insert_left, Set.disjoint_singleton_left,
-      Set.mem_insert_iff, Set.mem_singleton_iff, not_or, and_assoc] using hdisj u v huv
+  have hd : Pairwise fun u v => Disjoint (S u) (S v) :=
+    Finpartition.pairwise_disjoint_pair_endpoints pairMap hdisj
   have hhit (v : Fin (2 * m)) : ∃ j, endpoint j ∈ S v := by
     by_contra hmiss
-    have hp1 : (pairMap v).1 ∉ (∅ : Finset (Fin n)) ∪
+    have hp (x : Fin n) (hx : x ∈ S v) : x ∉ (∅ : Finset (Fin n)) ∪
         univ.biUnion (fun j : Fin m => {(p j).1, (p j).2}) := by
       intro hm
       rw [empty_union, mem_biUnion] at hm
       obtain ⟨j, _, hj⟩ := hm
       simp only [mem_insert, mem_singleton] at hj
       rcases hj with hj | hj
-      · exact hmiss ⟨(j, true), by simp [endpoint, S, hj]⟩
-      · exact hmiss ⟨(j, false), by simp [endpoint, S, hj]⟩
-    have hp2 : (pairMap v).2 ∉ (∅ : Finset (Fin n)) ∪
-        univ.biUnion (fun j : Fin m => {(p j).1, (p j).2}) := by
-      intro hm
-      rw [empty_union, mem_biUnion] at hm
-      obtain ⟨j, _, hj⟩ := hm
-      simp only [mem_insert, mem_singleton] at hj
-      rcases hj with hj | hj
-      · exact hmiss ⟨(j, true), by simp [endpoint, S, hj]⟩
-      · exact hmiss ⟨(j, false), by simp [endpoint, S, hj]⟩
+      · exact hmiss ⟨(j, true), by simpa [endpoint] using hj ▸ hx⟩
+      · exact hmiss ⟨(j, false), by simpa [endpoint] using hj ▸ hx⟩
+    have hp1 := hp (pairMap v).1 (by simp [S])
+    have hp2 := hp (pairMap v).2 (by simp [S])
     have hz := skCavityPathMean_zero_vanishing_of_missing_pair N n β q h
       (univ : Finset (Fin (2 * m))) pairMap (fun u _ v _ huv => hdisj u v huv)
       ∅ p v (mem_univ _) ⟨hp1, hp2⟩ F fhat hfhat

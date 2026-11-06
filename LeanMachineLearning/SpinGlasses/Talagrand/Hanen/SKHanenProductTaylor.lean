@@ -53,11 +53,8 @@ theorem sk_hanen_spin_product_taylor (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) 
   have hf (σ : Fin n → Fin (N + 2) → ℤˣ) : |f σ| ≤ 4 ^ s := by
     have hp (i : Fin (N + 2)) :
         |∏ w : Fin s, ((σ (pairMap w).1 i : ℝ) - (σ (pairMap w).2 i : ℝ))| ≤ 2 ^ s := by
-      rw [Finset.abs_prod]
-      calc _ ≤ ∏ _w : Fin s, (2 : ℝ) := by
-            gcongr with w _
-            exact (abs_sub _ _).trans (by norm_num [abs_units_cast_eq_one])
-        _ = _ := by simp
+      simpa using abs_prod_units_sub_le_two_pow (fun w : Fin s => σ (pairMap w).1 i)
+        (fun w : Fin s => σ (pairMap w).2 i)
     rw [abs_mul]
     calc _ ≤ 2 ^ s * 2 ^ s := mul_le_mul (hp _) (hp _) (abs_nonneg _) (by positivity)
       _ = _ := by rw [← mul_pow]; norm_num

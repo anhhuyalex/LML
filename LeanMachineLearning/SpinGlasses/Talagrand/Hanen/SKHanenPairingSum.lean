@@ -77,8 +77,6 @@ theorem skCavityPairing_signed_fiber_sum {m n : ℕ}
       apply prod_congr rfl
       intro i _
       rw [(hB i).2, Renormalization.pairWeight_pair C hC (hB i).1]
-    _ = ∏ B : Pe.1.val.parts, Renormalization.pairWeight C B.val := by
-      exact Pe.2.prod_comp (fun B : Pe.1.val.parts => Renormalization.pairWeight C B.val)
-    _ = _ := prod_coe_sort _ _
+    _ = _ := Pe.1.prod_equiv_eq_blockProduct Pe.2 (Renormalization.pairWeight C)
 
 end SpinGlasses

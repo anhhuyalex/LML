@@ -89,4 +89,19 @@ theorem Pairing.card_eq_factorial_div (m : ℕ) (s : Finset α) (hs : s.card = 2
   rw [← Pairing.card_mul_two_pow_mul_factorial m s hs]
   exact (Nat.mul_div_cancel _ (by positivity)).symm
 
+/-- A pairing of a set with `2 * m` elements has `m` blocks. -/
+theorem Pairing.card_parts_of_card_eq {α : Type*} [DecidableEq α] {s : Finset α} {m : ℕ}
+    (P : Pairing s) (hs : s.card = 2 * m) : P.val.parts.card = m := by
+  have hp := P.two_mul_card_parts
+  omega
+
+/-- Indexing the blocks of a pairing by any equivalence does not change the product of a
+block weight. -/
+theorem Pairing.prod_equiv_eq_blockProduct {α R ι : Type*} [DecidableEq α] [CommMonoid R]
+    [Fintype ι] {s : Finset α} (P : Pairing s) (e : ι ≃ P.val.parts) (w : Finset α → R) :
+    (∏ i : ι, w (e i).val) = P.blockProduct w := by
+  calc
+    _ = ∏ B : P.val.parts, w B.val := e.prod_comp (fun B : P.val.parts => w B.val)
+    _ = _ := Finset.prod_coe_sort P.val.parts w
+
 end Finpartition

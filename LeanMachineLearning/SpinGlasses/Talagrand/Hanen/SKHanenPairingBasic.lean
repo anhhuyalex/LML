@@ -38,6 +38,21 @@ noncomputable def skCavityRectTrunc (N n m : ℕ) (q : ℝ)
   ((N + 1 : ℝ)⁻¹ * ((fun i => (ρ x1 i : ℝ)) ⬝ᵥ (fun i => (ρ y2 i : ℝ))) - q) +
   ((N + 1 : ℝ)⁻¹ * ((fun i => (ρ x2 i : ℝ)) ⬝ᵥ (fun i => (ρ y2 i : ℝ))) - q)
 
+/-- $U_{\{u, v\}}^-$ is a signed sum of four overlap fluctuations, one for each choice of an
+endpoint of the pair `u` and of the pair `v`. Here `true` selects the second endpoint and carries
+the sign `-1`. -/
+theorem skCavityRectTrunc_eq_sum_bool (N n m : ℕ) (q : ℝ)
+    (pairMap : Fin (2 * m) → Fin n × Fin n) (u v : Fin (2 * m))
+    (ρ : Fin n → Fin N → ℤˣ) :
+    skCavityRectTrunc N n m q pairMap u v ρ =
+      ∑ e : Bool × Bool, ((if e.1 then (-1 : ℝ) else 1) * (if e.2 then (-1 : ℝ) else 1)) *
+        ((N + 1 : ℝ)⁻¹ *
+          ((fun i : Fin N => (ρ (if e.1 then (pairMap u).2 else (pairMap u).1) i : ℝ)) ⬝ᵥ
+            fun i : Fin N => (ρ (if e.2 then (pairMap v).2 else (pairMap v).1) i : ℝ)) - q) := by
+  simp only [Fintype.sum_prod_type, Fintype.sum_bool, Bool.false_eq_true, ite_false, ite_true,
+    skCavityRectTrunc]
+  ring
+
 /-- Symmetry of $U_{\{u, v\}}^-$ under swapping $u$ and $v$. -/
 theorem skCavityRectTrunc_comm (N n m : ℕ) (q : ℝ)
     (pairMap : Fin (2 * m) → Fin n × Fin n) (u v : Fin (2 * m))

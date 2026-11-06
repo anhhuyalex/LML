@@ -154,12 +154,8 @@ theorem abs_sk_eta_taylor_le (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (n s r :
       rcases units_cast_eq_one_or x with hx | hx <;> simp [hx]
     have hd : |∏ w : Fin s, (((σ (pairMap w).1 (Fin.last N) : ℤˣ) : ℝ) -
         ((σ (pairMap w).2 (Fin.last N) : ℤˣ) : ℝ))| ≤ 2 ^ s := by
-      rw [Finset.abs_prod]
-      calc _ ≤ ∏ _w : Fin s, (2 : ℝ) := by
-            gcongr with w _
-            refine (abs_sub _ _).trans ?_
-            rw [hε, hε]; norm_num
-        _ = 2 ^ s := by simp
+      simpa using abs_prod_units_sub_le_two_pow (fun w : Fin s => σ (pairMap w).1 (Fin.last N))
+        (fun w : Fin s => σ (pairMap w).2 (Fin.last N))
     have hJ : |∏ j ∈ J, ((σ j (Fin.last N) : ℤˣ) : ℝ)| = 1 := by
       rw [Finset.abs_prod]; simp [hε]
     have hsq : G σ ^ 2 = (∏ w : Fin s, (((σ (pairMap w).1 (Fin.last N) : ℤˣ) : ℝ) -

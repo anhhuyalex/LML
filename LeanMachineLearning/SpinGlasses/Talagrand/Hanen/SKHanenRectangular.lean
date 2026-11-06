@@ -75,4 +75,15 @@ theorem rect_overlap_eq_truncated_add_spin_pair (N : ℕ) (R R_trunc : α → α
         ((N + 1 : ℝ)⁻¹) * ((ε p.1 - ε p.2) * (ε q.1 - ε q.2)) :=
   rect_overlap_eq_truncated_add_spin N R R_trunc ε hsplit p.1 p.2 q.1 q.2
 
+/-- A product of differences of hypercube coordinates has absolute value at most
+`2 ^ (number of factors)`. -/
+theorem abs_prod_units_sub_le_two_pow {ι : Type*} [Fintype ι] (a b : ι → ℤˣ) :
+    |∏ w : ι, (((a w : ℤ) : ℝ) - ((b w : ℤ) : ℝ))| ≤ 2 ^ Fintype.card ι := by
+  rw [Finset.abs_prod]
+  calc
+    _ ≤ ∏ _w : ι, (2 : ℝ) := by
+      gcongr with w _
+      exact (abs_sub _ _).trans (by norm_num [abs_units_cast_eq_one])
+    _ = _ := by simp
+
 end SpinGlasses

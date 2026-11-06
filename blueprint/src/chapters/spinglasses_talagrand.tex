@@ -8265,9 +8265,10 @@ Two choices keep them from being narrower than the book.
  and $K$ does not depend on $M$. Both sides of the proposition are linear in $\hat f$, which gives this.
  The proof of Proposition~\ref{prop:sg-tal:hanen-full-rect-eval} uses it with $\hat f=\prod_{J\notin\mathcal I'}\eta_J^2$, which is bounded by $16^{|\mathcal I|-|\mathcal I'|}$.
 \end{itemize}
-\emph{Status of the Lean statements.} At the time of writing, the Lean statements of the two propositions still fix the consecutive
-partition and assume $|\hat f|\le1$. They are special cases of the statements above and are being restated. The statement of
-Theorem~\ref{thm:sg-tal:hanen-pairing-derivative} already has the general form.
+\emph{Status of the Lean statements.} The Lean statements of the two propositions have the general form described above:
+an arbitrary pair partition, arbitrary replica pairs, and a bound $M$ on $\hat f$. Their proofs are not finished
+(see Remark~\ref{rem:sg-tal:hanen-status}). Theorem~\ref{thm:sg-tal:hanen-pairing-derivative}, which is proved,
+has the same general form.
 \end{remark}
 
 \begin{remark}[Steps that the book leaves vague]\label{rem:sg-tal:hanen-vague}
@@ -8321,7 +8322,7 @@ for either parity, Corollary~\ref{cor:sg-tal:eta-full-overlap-shifted-bound}, an
 reduced-system application, Lemma~\ref{lem:sg-tal:hanen-reduced-system}, are also proved. The Gibbs covariance-power
 representation (Lemma~\ref{lem:sg-tal:hanen-cov-powers}) and its site-permutation
 invariance (Lemma~\ref{lem:sg-tal:hanen-cov-site-symmetry}) are also proved.
-\textbf{H3 base case $m=0$}: the base case $m=0$ of Theorem~1.11.9 (\texttt{sk\_hanen\_pairing\_derivative\_zero}) are proved;
+The case $m=0$ of Theorem~1.11.9 is proved on its own (\texttt{sk\_hanen\_pairing\_derivative\_zero}) and is also a special case of the general theorem;
 the hyperbolic identity $\alpha = \mathbb E\operatorname{ch}^{-4} Y$
 (\texttt{alpha\_eq\_integral\_inv\_cosh\_four}) and standard Gaussian moments
 (\texttt{gaussian\_moment\_odd}, \texttt{gaussian\_moment\_even}) are verified.
@@ -8341,8 +8342,11 @@ identity proves H3 for every $m$, including zero
 The odd case of H5 is proved (Theorem~\ref{thm:sg-tal:hanen-odd}), using the endpoint
 derivative bounds and Taylor expansion. The common Taylor expansion for either parity
 (Lemma~\ref{lem:sg-tal:hanen-leading-taylor}) is proved and retains the leading coefficient
-needed for the even case. In progress: H4
-(Propositions~1.11.10--1.11.11) and the even case of H5. Three proof placeholders remain.
+needed for the even case. The first step of H4 is proved: a Taylor lemma for any cavity observable
+(Lemma~\ref{lem:sg-tal:hanen-taylor-coefficient}) and Eq.~(1.342) for the product of rectangles of any pair partition
+(Lemma~\ref{lem:sg-tal:hanen-rect-product-taylor}).
+In progress: the rest of H4 (Propositions~1.11.10--1.11.11, whose statements are in place) and the even case of H5
+(Theorem~1.11.1). Three proofs are still missing: Propositions~1.11.10 and~1.11.11, and the even case of Theorem~1.11.1.
 The roadmap for Section~1.11 is structured into steps H0--H5:
 \begin{enumerate}
 \item \emph{H0: Blueprint statements.} Mathematical statements for Lemma~1.11.3,
@@ -8686,6 +8690,53 @@ There exists $K(p, \beta_0)$ such that for all $\beta^2 \le \beta_0^2$ and $N \g
 \le \frac{K(p, \beta_0)}{(N+1)^{(2p+1)/2}}.
 \]
 \end{proposition}
+
+\begin{lemma}[Taylor coefficient of a cavity observable]\label{lem:sg-tal:hanen-taylor-coefficient}
+\lean{SpinGlasses.skCavityPathMean_taylor_coefficient_le}
+\leanok
+\uses{lem:sg-tal:cavity-iterated-deriv-bound}
+\talsource{Proof of Proposition~1.11.10, used for Eq.~(1.342)}
+Fix $4\beta_0^2<1$ and $m,k,n\in\mathbb N$. There is $D>0$, independent of $N,\beta,h,q$, such that the following holds
+whenever $\beta^2\le\beta_0^2$ and $q=\mathbb E\tanh^2(\beta\sqrt q Z+h)$. Let $f$ be any real function of $n$ replicas
+of $N+1$ spins and put $\varphi(u)=\nu_u(f)$. Suppose $\nu_1(f^2)\le C/(N+1)^k$ and $\varphi^{(j)}(0)=0$ for $j<m$. Then
+\[
+ \left|\varphi(1)-\frac{\varphi^{(m)}(0)}{m!}\right|\le \frac{D\,C^{1/2}}{(N+1)^{(m+k+1)/2}}.
+\]
+The moment degree $k$ does not depend on $m$. For $m=0$ this compares the coupled and the decoupled system.
+No special form of $f$ is assumed.
+\end{lemma}
+\begin{proof}
+\leanok
+Lemma~\ref{lem:sg-tal:cavity-iterated-deriv-bound} bounds $\varphi^{(m+1)}$ on $[0,1]$ by $D(N+1)^{-(m+1)/2}\nu_1(f^2)^{1/2}$,
+which is at most $D\,C^{1/2}(N+1)^{-(m+k+1)/2}$. Apply Taylor's formula at $u=0$ to order $m$. The terms of order below $m$ vanish by assumption,
+and the remainder is bounded by the bound on $\varphi^{(m+1)}$.
+\end{proof}
+
+\begin{lemma}[Eq.~(1.342): Taylor term of a product of rectangles]\label{lem:sg-tal:hanen-rect-product-taylor}
+\lean{SpinGlasses.sk_hanen_rect_product_taylor, SpinGlasses.sk_hanen_pairing_rect_prod_sq_le, SpinGlasses.sk_hanen_rect_prod_sq_le}
+\leanok
+\uses{lem:sg-tal:hanen-taylor-coefficient,lem:sg-tal:cavity-deriv-zero-vanishing,def:sg-tal:hanen-rectangles}
+\talsource{Proof of Proposition~1.11.10, Eq.~(1.342); source lines 4966--4990}
+Fix $4\beta_0^2<1$ and $m,n\in\mathbb N$. There is $K>0$, chosen before $N,\beta,h,q$, such that the following holds whenever
+$\beta^2\le\beta_0^2$ and $q=\mathbb E\tanh^2(\beta\sqrt q Z+h)$. Let $\mathcal I$ be any pair partition of $\{1,\dots,2m\}$,
+let $(x_v,y_v)_{v\le 2m}$ be replica pairs such that different pairs share no replica, and let $\hat f$ be a function of the spins of one site with $|\hat f|\le M$
+that does not depend on the replicas $x_v,y_v$. Put
+\[
+ f(\sigma)=\prod_{v\le 2m}(\sigma^{x_v}_{N+1}-\sigma^{y_v}_{N+1})\;\hat f(\sigma_{N+1})\prod_{J\in\mathcal I}U_J^-,\qquad \varphi(u)=\nu_u(f).
+\]
+Then
+\[
+ \left|\varphi(1)-\frac{\varphi^{(m)}(0)}{m!}\right|\le\frac{K\,M}{(N+1)^{(2m+1)/2}}.
+\]
+\end{lemma}
+\begin{proof}
+\leanok
+Each $U_J^-$ is a signed sum of four overlap fluctuations, and the spin differences are bounded by $2^{2m}$.
+A second-moment estimate for such products gives $\nu_1(f^2)\le CM^2/(N+1)^m$. The derivatives of order below $m$ vanish at $u=0$
+by Lemma~\ref{lem:sg-tal:cavity-deriv-zero-vanishing}, because $f$ has $2m$ spin differences and no other dependence on the last spins beyond $\hat f$.
+Apply Lemma~\ref{lem:sg-tal:hanen-taylor-coefficient} with $k=m$. The exponent is $(m+m+1)/2=(2m+1)/2$,
+and the error is linear in $M$ because the second moment is quadratic in $M$.
+\end{proof}
 
 \begin{lemma}[The leading Taylor term for either parity]\label{lem:sg-tal:hanen-leading-taylor}
 \lean{norm_sub_taylor_coefficient_le, SpinGlasses.sk_hanen_spin_product_taylor}

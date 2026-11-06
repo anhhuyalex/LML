@@ -67,12 +67,9 @@ theorem sk_hanen_endpoint_derivative_bound (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2
       rw [Finset.abs_prod]
       simp [abs_mul, abs_units_cast_eq_one]
     dsimp only [G]
-    rw [abs_mul, hε, mul_one, Finset.abs_prod]
-    calc
-      _ ≤ ∏ _v : Fin s, (2 : ℝ) := by
-        gcongr with v _
-        exact (abs_sub _ _).trans (by norm_num [abs_units_cast_eq_one])
-      _ = _ := by simp
+    rw [abs_mul, hε, mul_one]
+    simpa using abs_prod_units_sub_le_two_pow (fun v : Fin s => ε (pm v).1)
+      (fun v : Fin s => ε (pm v).2)
   have hspin (t : T) : |∫ z : ℝ, ∫ ε : Fin n' → ℤˣ, G t ε
       ∂(Measure.pi fun _ : Fin n' => Measure.count.tilted
         fun r : ℤˣ => (r : ℝ) * (β * z * Real.sqrt q + h)) ∂gaussianReal 0 1| ≤ 2 ^ s := by

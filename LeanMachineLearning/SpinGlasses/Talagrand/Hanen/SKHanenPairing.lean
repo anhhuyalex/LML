@@ -126,10 +126,7 @@ theorem sk_hanen_pairing_derivative_of_old_pairs (N m n : ℕ) (β q h : ℝ)
     have he (P : Finpartition.Pairing (univ : Finset (Fin (2 * m))))
         (e : Fin m ≃ P.val.parts) :
         P.blockProduct (w ρ) = ∏ i : Fin m, w ρ (e i).val := by
-      symm
-      calc
-        _ = ∏ B : P.val.parts, w ρ B.val := e.prod_comp (fun B : P.val.parts => w ρ B.val)
-        _ = _ := prod_coe_sort _ _
+      exact (P.prod_equiv_eq_blockProduct e (w ρ)).symm
     calc
       _ = ∑ P : Finpartition.Pairing (univ : Finset (Fin (2 * m))),
           ∑ e : Fin m ≃ P.val.parts, ∏ i : Fin m, w ρ (e i).val := by

@@ -60,9 +60,7 @@ theorem sk_hanen_rect_prod_sq_le (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (k :
         ((fun i : Fin N => (σ (a j e) i.castSucc : ℝ)) ⬝ᵥ
           fun i : Fin N => (σ (b j e) i.castSucc : ℝ)) - q)) =
       skCavityRectTrunc N n m q pairMap (u j) (v j) (fun r i => σ r i.castSucc) := by
-    simp only [Fintype.sum_prod_type, Fintype.sum_bool, c, a, b,
-      Bool.false_eq_true, ite_false, ite_true, skCavityRectTrunc]
-    ring
+    rw [skCavityRectTrunc_eq_sum_bool N n m q pairMap (u j) (v j)]
   have hb := hCb β h q hfix hβ N n a b hab W hW
   rw [← skCavityPathMean_one N n β q h] at hb
   simpa only [hR] using hb
@@ -87,10 +85,7 @@ theorem sk_hanen_pairing_rect_prod_sq_le (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 <
   obtain ⟨C, hC, hCb⟩ := sk_hanen_rect_prod_sq_le β₀ hβ₀ m M
   refine ⟨C, hC, ?_⟩
   intro β h q hfix hβ N n P pairMap hdisj W hW
-  have hparts : P.val.parts.card = m := by
-    have hb := P.two_mul_card_parts
-    simp only [card_univ, Fintype.card_fin] at hb
-    omega
+  have hparts : P.val.parts.card = m := P.card_parts_of_card_eq (by simp)
   let e : Fin m ≃ P.val.parts := Fintype.equivOfCardEq (by simp [hparts])
   choose u v huv hB using fun j : Fin m =>
     card_eq_two.mp (P.property (e j).val (e j).property)
@@ -105,9 +100,7 @@ theorem sk_hanen_pairing_rect_prod_sq_le (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 <
         intro j _
         rw [hB, Renormalization.pairWeight_pair C
           (fun u v => skCavityRectTrunc_comm N n m q pairMap u v ρ) (huv j)]
-      _ = ∏ B : P.val.parts, Renormalization.pairWeight C B.val :=
-        e.prod_comp (fun B : P.val.parts => Renormalization.pairWeight C B.val)
-      _ = _ := prod_coe_sort _ _
+      _ = _ := P.prod_equiv_eq_blockProduct e (Renormalization.pairWeight C)
   simpa only [hprod] using hCb β h q hfix hβ N n m pairMap hdisj u v huv W hW
 
 /-- **Eq. (1.342).** Isolate the leading Taylor term for the rectangular product of any
@@ -151,12 +144,8 @@ theorem sk_hanen_rect_product_taylor (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) 
   have hW (σ : Fin n → Fin (N + 1) → ℤˣ) : |W σ| ≤ 2 ^ (2 * m) := by
     have hp : |∏ w : Fin (2 * m), ((σ (pairMap w).1 (Fin.last N) : ℝ) -
         (σ (pairMap w).2 (Fin.last N) : ℝ))| ≤ 2 ^ (2 * m) := by
-      rw [abs_prod]
-      calc
-        _ ≤ ∏ _w : Fin (2 * m), (2 : ℝ) := by
-          gcongr with w _
-          exact (abs_sub _ _).trans (by norm_num [abs_units_cast_eq_one])
-        _ = _ := by simp
+      simpa using abs_prod_units_sub_le_two_pow (fun w : Fin (2 * m) => σ (pairMap w).1 (Fin.last N))
+        (fun w : Fin (2 * m) => σ (pairMap w).2 (Fin.last N))
     calc
       |W σ| = |∏ w : Fin (2 * m), ((σ (pairMap w).1 (Fin.last N) : ℝ) -
           (σ (pairMap w).2 (Fin.last N) : ℝ))| *
@@ -166,8 +155,7 @@ theorem sk_hanen_rect_product_taylor (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) 
   have hf (σ : Fin n → Fin (N + 1) → ℤˣ) :
       f σ = M * (W σ * F (fun r i => σ r i.castSucc)) := by
     by_cases hM0 : M = 0
-    · have hzero : ∀ ε, fhat ε = 0 := fun ε => abs_eq_zero.mp
-        (le_antisymm ((hfbound ε).trans_eq hM0) (abs_nonneg _))
+    · have hzero : ∀ ε, fhat ε = 0 := fun ε => abs_nonpos_iff.mp (hM0 ▸ hfbound ε)
       simp only [f, hzero, mul_zero, zero_mul, hM0]
     · dsimp only [f, W]
       field_simp
@@ -178,9 +166,7 @@ theorem sk_hanen_rect_product_taylor (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) 
         (W σ * F (fun r i => σ r i.castSucc)) ^ 2 := by
       funext σ
       rw [hf, mul_pow]
-    rw [he, skCavityPathMean_one] at ⊢
-    simp only [integral_const_mul]
-    rw [skCavityPathMean_one] at hb
+    rw [he, skCavityPathMean_const_mul]
     calc
       _ ≤ M ^ 2 * (C / ((N : ℝ) + 1) ^ m) :=
         mul_le_mul_of_nonneg_left hb (sq_nonneg M)

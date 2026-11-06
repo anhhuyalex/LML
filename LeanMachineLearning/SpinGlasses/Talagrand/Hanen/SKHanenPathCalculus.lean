@@ -105,6 +105,12 @@ theorem skCavityPathMeanLM_apply (N n : ℕ) (β q h u : ℝ)
     (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) :
     skCavityPathMeanLM N n β q h u f = skCavityPathMean N n β q h u f := rfl
 
+/-- The cavity-path average commutes with multiplication by a constant. -/
+theorem skCavityPathMean_const_mul (N n : ℕ) (β q h u c : ℝ)
+    (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) :
+    skCavityPathMean N n β q h u (fun σ => c * f σ) = c * skCavityPathMean N n β q h u f :=
+  (skCavityPathMeanLM N n β q h u).map_smul c f
+
 /-- The cavity-path average is monotone. -/
 theorem skCavityPathMean_mono (N n : ℕ) (β q h u : ℝ)
     {f g : (Fin n → Fin (N + 1) → ℤˣ) → ℝ} (hfg : ∀ σ, f σ ≤ g σ) :
