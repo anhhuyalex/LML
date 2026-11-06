@@ -7,6 +7,10 @@ on:
       - 'master'
     paths:
       - 'lean-toolchain'
+      - '.github/workflows/create-release.yml'
+      - 'scripts/create_lean_release_tag.sh'
+      - 'scripts/check_release_tags.py'
+  workflow_dispatch:
 
 jobs:
   lean-release-tag:
@@ -15,10 +19,20 @@ jobs:
     permissions:
       contents: write
     steps:
-    - name: lean-release-tag action
-      uses: leanprover-community/lean-release-tag@9ca7ed09e240259871327bfc3a3a8d8c4bcb41aa # 2025-05-22
+    - name: Checkout the pushed revision
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
-        before: ${{ github.event.before }}
-        after: ${{ github.event.after }}
-        do-release: true
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+
+    - name: Check release tag selection
+      run: python3 -B scripts/check_release_tags.py
+
+    # Tag this fork's pushed tip, not historical commits imported from upstream.
+    # Tagging an older commit with different workflows needs a token permission
+    # that GITHUB_TOKEN cannot obtain.
+    - name: lean-release-tag action
+      run: bash scripts/create_lean_release_tag.sh
+      env:
+        AFTER: ${{ github.sha }}
+        DO_RELEASE: 'true'
+        GH_TOKEN: ${{ github.token }}
