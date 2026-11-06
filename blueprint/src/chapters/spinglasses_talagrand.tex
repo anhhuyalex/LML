@@ -1,6 +1,6 @@
 \chapter{The Sherrington--Kirkpatrick Model at High Temperature: The Talagrand Theory}\label{chap:sg-talagrand}
 
-This chapter develops Sections~1.1 through 1.9 of Michel Talagrand's \emph{Spin Glasses: A Challenge for Mathematicians} (Volume~I, Springer, 2010), with the scope qualifications below, and begins the higher-order cavity preparation of Section~1.10.
+This chapter develops Sections~1.1--1.11 and the integer-replica theorem of Section~1.13 of Michel Talagrand's \emph{Spin Glasses: A Challenge for Mathematicians} (Volume~I, Springer, 2010), with the scope qualifications below. Section~1.12 is in progress: the vector-spin Hamiltonian, matrix geometry and bounded-energy calculus are formalized, while its concentration, fixed-point and pressure theorems remain open.
 Section~1.6, including Proposition~1.6.8 (the cavity free-energy increment), is proved without any smallness assumption on the model parameters.
 Of Section~1.7 Theorem~1.7.11 (the general Gaussian fluctuation principle) is formalized; Corollaries~1.7.13 and~1.7.15, Lemma~1.7.14, Lemma~1.7.5, Lemma~1.7.4, Lemma~1.7.6 and Theorem~1.7.1 are formalized as well (Section~\ref{sec:sg-tal:fluct}).
 The mathematical narrative develops the high-temperature theory of the Sherrington--Kirkpatrick (SK) model:
@@ -16,7 +16,10 @@ The mathematical narrative develops the high-temperature theory of the Sherringt
 \item Higher overlap moments (Section~1.10): the product cavity expansions (1.298)--(1.299)
 are proved for products of individual truncated centered overlaps; Lemma~1.10.2 and both
 formulas of Corollary~1.10.3 hold for products of finite linear combinations
-(Section~\ref{sec:sg-tal:overlap-clt}). The joint $T$-basis mixed-moment theorem remains open.
+(Section~\ref{sec:sg-tal:overlap-clt}). The joint $T$-basis mixed-moment theorem and the Gibbs-centered consequences are proved for a deterministic external field.
+\item Hanen's covariance moments (Section~1.11), including both parities, the moment limit and the moments of the proposed law. Convergence in distribution is not claimed (Section~\ref{sec:sg-tal:hanen}).
+\item Vector spins (Section~1.12): arbitrary probability spin laws, deterministic overlap bounds, the exact Gaussian covariance and bounded-energy differentiation. The matrix fixed point and the quantitative cavity results are still targets (Section~\ref{sec:sg-tal:vector}).
+\item The rigorous integer-replica computation at all temperatures (Theorem~1.13.1), with a maximizing witness. Continuation to non-integer replica counts is not formalized (Section~\ref{sec:sg-tal:replica}).
 \end{enumerate}
 
 \medskip\noindent\textbf{Source tags.}
@@ -9338,6 +9341,173 @@ that is, the analogue of Theorem~\ref{thm:sg-tal:hanen-theorem} for three sites 
 \]
 the fluctuations around the Gaussian limit of the Gibbs average of a random projection of the centered spins. The book labels it ``Level~$1^-$'' and hints to read the proof of Theorem~1.7.11 very carefully.
 \emph{Relation to what is formalized.} Nothing here computes this limit. Theorem~1.7.11, the Gaussian fluctuation principle that the hint refers to, is formalized (Section~\ref{sec:sg-tal:fluct-main}); it gives the leading behaviour of the Gibbs average of a smooth function of such a projection, but not the $N^{-k/2}$ fluctuations that the problem asks for.
+\end{remark}
+
+\section{The SK model with vector spins (Talagrand Section~1.12)}\label{sec:sg-tal:vector}
+
+\begin{remark}[Scope and current status]\label{rem:sg-tal:vector-status}
+\talsource{Section~1.12, Eqs.~(1.360)--(1.392)}
+The user authorized this section on 2026-11-06. The setup and deterministic estimates
+below are formalized, together with bounded-energy calculus on arbitrary measure spaces.
+Theorems~1.12.1--1.12.3, Proposition~1.12.4, Corollary~1.12.5 and Lemma~1.12.6
+are still targets, not proved Lean results. No exercises or research problems are assigned.
+Throughout this section the base spin law is a probability measure; the partition function
+is an integral, rather than the unnormalized counting sum of the Ising sections.
+\end{remark}
+
+\begin{definition}[Vector-spin energy and base law]\label{def:sg-tal:vector-energy}
+\lean{SpinGlasses.skVectorEnergy, SpinGlasses.skVectorEnergy_eq_sum_components, SpinGlasses.skVectorEnergy_one_component}
+\leanok
+\talsource{Eqs.~(1.360)--(1.363)}
+Let $D$ be a finite component set, $N\in\mathbb N$ and $\beta\in\mathbb R$.
+For real coordinates $\sigma_{iu}$ and pair couplings $g_{ij}$ put
+\[
+E_N(g,\sigma)=-H_N(g,\sigma)
+=\frac{\beta}{\sqrt N}\sum_{i<j}g_{ij}\sum_{u\in D}\sigma_{iu}\sigma_{ju}
+=\frac{\beta}{\sqrt N}\sum_{u\in D}\sum_{i<j}g_{ij}\sigma_{iu}\sigma_{ju}.
+\]
+The same coupling is shared by every component. For $|D|=1$ this is the real-spin
+scalar interaction, and restricting to spins $\pm1$ gives the Ising interaction.
+For an arbitrary measurable space $\alpha$, a probability measure $\mu$ and measurable
+coordinates $\xi:\alpha\to\mathbb R^D$ with $\sum_u\xi_u(a)^2\le r$, configurations
+are in $\alpha^N$ with coordinates $\sigma_{iu}=\xi_u(a_i)$ and base law $\mu^{\otimes N}$.
+Taking $\alpha$ to be the radius-$\sqrt d$ ball and $r=d$ recovers the book's setting.
+The Gibbs measure is Mathlib's existing normalized exponential tilt of this product law;
+no new model-specific Gibbs construction is introduced.
+\end{definition}
+
+\begin{lemma}[Cross-Gram and rank-one contraction bounds]\label{lem:sg-tal:vector-gram}
+\lean{Matrix.sum_sq_mul_transpose_le_sum_sq_mul_sum_sq, Matrix.sq_sum_mul_mul_le}
+\leanok
+\talsource{Finite Cauchy--Schwarz; auxiliary to Eqs.~(1.381)--(1.382)}
+For arbitrary finite index sets and real rectangular matrices $A,B$ with the same
+column set,
+\[
+\sum_{u,v}(AB^\mathsf T)_{uv}^2
+\le\Bigl(\sum_{u,i}A_{ui}^2\Bigr)\Bigl(\sum_{v,i}B_{vi}^2\Bigr).
+\]
+For arbitrary real vectors $x,y$ and a rectangular real matrix $D$,
+\[
+\Bigl(\sum_{u,v}x_u y_v D_{uv}\Bigr)^2
+\le\Bigl(\sum_u x_u^2\Bigr)\Bigl(\sum_v y_v^2\Bigr)\sum_{u,v}D_{uv}^2.
+\]
+The two row types may differ. No symmetry, positivity or invertibility of the matrices is assumed.
+\end{lemma}
+\begin{proof}
+\leanok
+Apply finite Cauchy--Schwarz to each matrix entry and sum. For the second inequality,
+apply it once on the product component set and factor $\sum_{u,v}x_u^2y_v^2$.
+The earlier same-family Gram bound is now a corollary of the cross-family result.
+\end{proof}
+
+\begin{lemma}[Full and cavity overlap geometry]\label{lem:sg-tal:vector-overlap-bound}
+\lean{SpinGlasses.sum_sq_vector_overlap_le, SpinGlasses.sq_vector_overlap_contraction_le, SpinGlasses.sum_sq_sk_vector_overlap_le, SpinGlasses.sum_sq_sk_vector_trunc_overlap_le}
+\leanok
+\uses{lem:sg-tal:vector-gram}
+\talsource{Eqs.~(1.381)--(1.382), deterministic inputs to Corollary~1.12.5}
+Let $I,U,V$ be finite sets, $c,A,B\ge0$, $c|I|\le1$, and suppose
+$\sum_u\sigma_{iu}^2\le A$, $\sum_v\tau_{iv}^2\le B$ for every $i$.
+Then
+\[
+\sum_{u,v}\Bigl(c\sum_{i\in I}\sigma_{iu}\tau_{iv}\Bigr)^2\le AB.
+\]
+This includes $I=\varnothing$. For $A=B=d$, full normalization $c=1/N$ on $N$ sites
+and cavity normalization $c=1/(N+1)$ on $N$ old sites both give the bound $d^2$.
+If instead $\sum_u x_u^2\le A$ and $\sum_v y_v^2\le B$, the squared contraction
+with any error matrix is at most $AB\sum_{u,v}D_{uv}^2$.
+These are pointwise bounds; they do not yet establish the derivative estimates of Corollary~1.12.5.
+\end{lemma}
+\begin{proof}
+\leanok
+Use Lemma~\ref{lem:sg-tal:vector-gram}, sum the site radius bounds and multiply by $c^2$.
+The remaining normalization factor is $(c|I|)^2\le1$.
+\end{proof}
+
+\begin{lemma}[Exact vector-spin energy covariance and cavity split]\label{lem:sg-tal:vector-covariance}
+\lean{SpinGlasses.skVectorEnergy_eq_dotProduct, SpinGlasses.integral_skVectorEnergy_eq_zero, SpinGlasses.sum_sk_vector_pair_coeff_mul, SpinGlasses.integral_skVectorEnergy_mul, SpinGlasses.skVectorEnergy_succ_cavity}
+\leanok
+\uses{def:sg-tal:vector-energy}
+\talsource{Eqs.~(1.360)--(1.361); interaction part of Eq.~(1.375)}
+For independent standard Gaussian couplings, any $N\ge1$, any $\beta\in\mathbb R$ and
+arbitrary real configurations $\sigma,\tau$,
+\[
+\mathbb E E_N(g,\sigma)=0,\qquad
+\mathbb E[E_N(g,\sigma)E_N(g,\tau)]
+=\frac{\beta^2}{2N}\left\{
+\sum_{u,v}\Bigl(\sum_i\sigma_{iu}\tau_{iv}\Bigr)^2
+-\sum_i\Bigl(\sum_u\sigma_{iu}^2\Bigr)\Bigl(\sum_v\tau_{iv}^2\Bigr)\right\}.
+\]
+Splitting the pairs on $N+1$ sites gives the old-site interactions plus
+$\sum_u\sigma_{N+1,u}\sum_{i\le N}g_{i,N+1}\sigma_{iu}$, both with the full-system
+factor $\beta/\sqrt{N+1}$. This statement does not include the interpolating Gaussian
+field or the quadratic compensation in Eq.~(1.375).
+\end{lemma}
+\begin{proof}
+\leanok
+Write the energy as a Gaussian linear form. Apply the existing first and second Gaussian
+linear-form moment lemmas. For each $(u,v)$ use the existing scalar identity
+$\sum_{i<j}z_i z_j=((\sum_i z_i)^2-\sum_i z_i^2)/2$ to $z_i=\sigma_{iu}\tau_{iv}$.
+The cavity decomposition applies the existing scalar real-coordinate pair split componentwise.
+\end{proof}
+
+\begin{lemma}[Bounded-energy calculus for arbitrary spin spaces]\label{lem:sg-tal:bounded-tilt}
+\lean{MeasureTheory.integrable_exp_of_ae_le, MeasureTheory.abs_log_integral_exp_le_of_ae_abs_le, ProbabilityTheory.integrableExpSet_eq_univ_of_ae_abs_le, ProbabilityTheory.hasDerivAt_log_integral_exp_mul_of_ae_abs_le, MeasureTheory.hasDerivAt_integral_mul_exp_mul_of_ae_abs_le, MeasureTheory.hasDerivAt_integral_tilted_mul_of_ae_abs_le}
+\leanok
+\talsource{Auxiliary measure-theoretic calculus for Eqs.~(1.363), (1.377)}
+Let $\mu$ be any finite measure, and let $X,Y$ be real, almost everywhere measurable
+functions with $|X|\le C$ and $|Y|\le B$ almost everywhere. All exponential moments
+of $X$ exist. For every real $t$,
+\[
+\frac{d}{dt}\log\int e^{tX}\,d\mu=\int X\,d\mu_t,
+\qquad \mu_t=\mu.\operatorname{tilted}(tX).
+\]
+If $\mu\ne0$, the bounded-observable derivative is
+\[
+\frac{d}{dt}\int Y\,d\mu_t
+=\int YX\,d\mu_t-\Bigl(\int Y\,d\mu_t\Bigr)\Bigl(\int X\,d\mu_t\Bigr).
+\]
+The unnormalized derivative is $\frac{d}{dt}\int Ye^{tX}\,d\mu=\int Ye^{tX}X\,d\mu$.
+For a probability measure and an almost everywhere measurable energy $f$ with $|f|\le C$,
+$|\log\int e^f\,d\mu|\le C$. An upper bound alone suffices for exponential integrability
+under any finite measure. There is no finite-support hypothesis or new tilt definition.
+\end{lemma}
+\begin{proof}
+\leanok
+Bound the exponential by a constant. The log-partition derivative uses Mathlib's analytic
+cumulant-generating function and its tilted-mean identity. For the observable derivative,
+differentiate the numerator under the integral using a constant envelope on $(t-1,t+1)$,
+then apply the quotient rule and the same moment-generating-function API.
+\end{proof}
+
+\begin{lemma}[Vector Gibbs normalization and temperature derivative]\label{lem:sg-tal:vector-normalization}
+\lean{SpinGlasses.abs_skVectorEnergy_le, SpinGlasses.integrable_exp_skVectorEnergy, SpinGlasses.isProbabilityMeasure_skVectorGibbs, SpinGlasses.integral_exp_skVectorEnergy_zero_beta, SpinGlasses.abs_log_integral_exp_skVectorEnergy_le, SpinGlasses.hasDerivAt_log_integral_exp_skVectorEnergy}
+\leanok
+\uses{def:sg-tal:vector-energy, lem:sg-tal:bounded-tilt}
+\talsource{Eqs.~(1.362)--(1.364); setup for Eq.~(1.390)}
+Under the measurable coordinate and radius assumptions of Definition~\ref{def:sg-tal:vector-energy},
+for every disorder realization $g$ and every real $\beta$,
+\[
+|E_N(g,\sigma)|\le C_g:=\frac{|\beta|r}{\sqrt N}\sum_{i<j}|g_{ij}|.
+\]
+The exponential energy is integrable for any finite base law; for a probability base law
+its tilt is a probability measure, $Z_N(0,g)=1$, and $|\log Z_N(\beta,g)|\le C_g$.
+At fixed $g$, $\frac{d}{d\beta}\log Z_N(\beta,g)=\langle E_N(1,g,\sigma)\rangle_\beta$.
+No disorder-averaged differentiation or pressure limit is claimed here.
+\end{lemma}
+
+\begin{remark}[Remaining mathematics and singular fixed points]\label{rem:sg-tal:vector-remaining}
+\talsource{Theorems~1.12.1--1.12.3, Proposition~1.12.4, Corollary~1.12.5, Lemma~1.12.6}
+The next step is the arbitrary-spin-law replica derivative and Gaussian integration by parts,
+including the deterministic quadratic compensation and both self- and cross-overlaps.
+The site-diagonal correction in Lemma~\ref{lem:sg-tal:vector-covariance} varies with the
+configuration; replacing it by the constant Ising correction would be incorrect.
+The intended fixed-point domain is $Q\succeq0$, $\rho-Q\succeq0$, $\operatorname{tr}\rho\le d$.
+Positive semidefiniteness, rather than strict positive definiteness, is necessary:
+$\mu=\delta_0$ gives $Q=\rho=0$, and a lower-dimensional spin law can also give singular $Q$.
+Invariance and contraction on this complete closed domain are not yet proved.
+Smallness for signed $\beta$ must involve $|\beta|d$ or $\beta^2d^2$.
+The stationarity argument must justify admissible covariance directions at the boundary;
+the pressure proof must establish parameter regularity or use direct interpolation.
 \end{remark}
 
 \section{The replica computation of $\mathbb E Z_N^n$ (Talagrand Section~1.13)}\label{sec:sg-tal:replica}

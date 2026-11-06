@@ -6,6 +6,8 @@ Authors: LML Contributors
 module
 
 public import Mathlib.Probability.Moments.Tilted
+public import Mathlib.Analysis.Calculus.ParametricIntegral
+public import Mathlib.Tactic.Linarith
 
 /-!
 # Bounded energies on arbitrary finite measure spaces
@@ -85,3 +87,83 @@ theorem hasDerivAt_log_integral_exp_mul_of_ae_abs_le [IsFiniteMeasure μ]
   exact (analyticAt_cgf ht).differentiableAt.hasDerivAt
 
 end ProbabilityTheory
+
+namespace MeasureTheory
+
+variable {α : Type*} [MeasurableSpace α] {μ : Measure α} [IsFiniteMeasure μ]
+  {X Y : α → ℝ} {C B : ℝ}
+
+/-- Differentiate a bounded observable's unnormalized exponential moment on an arbitrary
+finite measure space. Only almost everywhere bounds and measurability are required. -/
+theorem hasDerivAt_integral_mul_exp_mul_of_ae_abs_le
+    (hX : AEMeasurable X μ) (hY : AEMeasurable Y μ)
+    (hXbound : ∀ᵐ a ∂μ, |X a| ≤ C) (hYbound : ∀ᵐ a ∂μ, |Y a| ≤ B) (t : ℝ) :
+    HasDerivAt (fun s => ∫ a, Y a * Real.exp (s * X a) ∂μ)
+      (∫ a, Y a * Real.exp (t * X a) * X a ∂μ) t := by
+  have hi (s : ℝ) : Integrable (fun a => Real.exp (s * X a)) μ := by
+    have hs : s ∈ integrableExpSet X μ := by
+      rw [integrableExpSet_eq_univ_of_ae_abs_le hX hXbound]
+      trivial
+    exact hs
+  refine (hasDerivAt_integral_of_dominated_loc_of_deriv_le
+    (F := fun s a => Y a * Real.exp (s * X a))
+    (F' := fun s a => Y a * Real.exp (s * X a) * X a)
+    (s := Ioo (t - 1) (t + 1)) (bound := fun _ =>
+      |B| * Real.exp ((|t| + 1) * |C|) * |C|)
+    (Ioo_mem_nhds (by linarith) (by linarith))
+    (Eventually.of_forall fun s => (hY.mul (hX.const_mul s).exp).aestronglyMeasurable)
+    ((hi t).bdd_mul hY.aestronglyMeasurable (by simpa only [Real.norm_eq_abs] using hYbound))
+    ((hY.mul (hX.const_mul t).exp).mul hX).aestronglyMeasurable ?_
+    (integrable_const _) ?_).2
+  · filter_upwards [hXbound, hYbound] with a hx hy
+    intro s hs
+    have hsabs : |s| ≤ |t| + 1 := abs_le.mpr ⟨by
+      linarith [neg_abs_le t, hs.1], by linarith [le_abs_self t, hs.2]⟩
+    have hexp : Real.exp (s * X a) ≤ Real.exp ((|t| + 1) * |C|) := by
+      apply Real.exp_le_exp.mpr
+      apply (le_abs_self _).trans
+      rw [abs_mul]
+      exact mul_le_mul hsabs (hx.trans (le_abs_self C)) (abs_nonneg _) (by positivity)
+    simp only [Real.norm_eq_abs, abs_mul, abs_of_pos (Real.exp_pos _)]
+    exact mul_le_mul
+      (mul_le_mul (hy.trans (le_abs_self B)) hexp (Real.exp_pos _).le (abs_nonneg _))
+      (hx.trans (le_abs_self C)) (abs_nonneg _) (by positivity)
+  · exact Eventually.of_forall fun a s _ => by
+      simpa only [mul_assoc, id_eq, one_mul] using
+        (((hasDerivAt_id s).mul_const (X a)).exp.const_mul (Y a))
+
+/-- Linear response of a bounded observable under exponential tilting: the derivative
+is the tilted covariance with the energy. The base measure may be any nonzero finite
+measure, and the formula holds at every real parameter. -/
+theorem hasDerivAt_integral_tilted_mul_of_ae_abs_le [NeZero μ]
+    (hX : AEMeasurable X μ) (hY : AEMeasurable Y μ)
+    (hXbound : ∀ᵐ a ∂μ, |X a| ≤ C) (hYbound : ∀ᵐ a ∂μ, |Y a| ≤ B) (t : ℝ) :
+    HasDerivAt (fun s => ∫ a, Y a ∂(μ.tilted (fun a => s * X a)))
+      ((∫ a, Y a * X a ∂(μ.tilted (fun a => t * X a))) -
+        (∫ a, Y a ∂(μ.tilted (fun a => t * X a))) *
+          ∫ a, X a ∂(μ.tilted (fun a => t * X a))) t := by
+  have ht : t ∈ interior (integrableExpSet X μ) := by
+    simp [integrableExpSet_eq_univ_of_ae_abs_le hX hXbound]
+  have hZ : mgf X μ t ≠ 0 := (mgf_pos' (NeZero.ne μ) (interior_subset ht)).ne'
+  have hmean (s : ℝ) (f : α → ℝ) :
+      (∫ a, f a ∂(μ.tilted (fun a => s * X a))) =
+        (∫ a, f a * Real.exp (s * X a) ∂μ) / mgf X μ s := by
+    rw [integral_tilted_mul_eq_mgf]
+    simp only [smul_eq_mul, div_mul_eq_mul_div]
+    rw [integral_div]
+    congr 1
+    exact integral_congr_ae (ae_of_all _ fun a => mul_comm _ _)
+  have hnum := hasDerivAt_integral_mul_exp_mul_of_ae_abs_le hX hY hXbound hYbound t
+  have hswap : (∫ a, Y a * Real.exp (t * X a) * X a ∂μ) =
+      ∫ a, (Y a * X a) * Real.exp (t * X a) ∂μ :=
+    integral_congr_ae (ae_of_all _ fun a => by ring)
+  simp_rw [hmean]
+  convert hnum.div (hasDerivAt_mgf ht) hZ using 1
+  rw [hswap]
+  generalize (∫ a, Y a * X a * Real.exp (t * X a) ∂μ) = A
+  generalize (∫ a, Y a * Real.exp (t * X a) ∂μ) = D
+  generalize (∫ a, X a * Real.exp (t * X a) ∂μ) = E
+  generalize mgf X μ t = Z at hZ ⊢
+  field_simp
+
+end MeasureTheory

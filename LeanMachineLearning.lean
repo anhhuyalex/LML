@@ -71,6 +71,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.PiSnoc
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Function.LpSectionMeasurable
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Function.UnitVectorField
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Group.Arithmetic
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.BoundedTilted
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ChebyshevAssociation
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.CoordinatePair
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ExpMoment
@@ -198,6 +199,7 @@ public import LeanMachineLearning.ForMathlib.Topology.Algebra.InfiniteSum.PiProd
 public import LeanMachineLearning.ForMathlib.Topology.Algebra.InfiniteSum.PiProdENNReal
 public import LeanMachineLearning.ForMathlib.Topology.DenseRangeCodRestrict
 public import LeanMachineLearning.ForMathlib.Topology.Instances.ENNReal.Lemmas
+public import LeanMachineLearning.ForMathlib.Topology.LipschitzSubsequence
 public import LeanMachineLearning.ForMathlib.Topology.MetricSpace.OpenUnionBalls
 public import LeanMachineLearning.ForMathlib.Topology.Order.Sandwich
 public import LeanMachineLearning.ForMathlib.Topology.UniformSpace.LimitInterchange
@@ -669,6 +671,8 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKCova
 public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKRandomProjectionCLT
 public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKSiteSymmetry
 public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKSpinDecorrelation
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.SKVectorEnergy
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.SKVectorGeometry
 public import LeanMachineLearning.Tactic.EqLift
 public import LeanMachineLearning.Tactic.EqLift.ForMathlib.Kernel
 public import LeanMachineLearning.Tactic.EqLift.ForMathlib.MeasurableEquiv
