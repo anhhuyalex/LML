@@ -20,18 +20,21 @@ differs, so counts should not be described as directly comparable to that report
 
 ## Build and preview
 
-Requires Python **3.9+**, Node **18+** for histogram tests, and Chrome/Chromium for
+Requires Python **3.10+** for extractor datasets (legacy examples also run on 3.9),
+Node **18+** for histogram tests, and Chrome/Chromium for
 browser tests. The normal GitHub runner already provides them. Set `CHROME` if
-Chrome is not on PATH. No Python packages or online chart services are needed.
+Chrome is not on PATH. Extractor datasets need the maintained `evidence-core`
+reader (`pip install -r scripts/website_stats/requirements.txt`); the Referee
+action also installs it. No online chart services are needed.
 
-First obtain **the same build's** Referee collected-data artifact and rendered
-site. In CI these are `steps.referee.outputs.data` and `.site`. Keep the site in
+First obtain **the same build's** Referee dataset and rendered
+site. In CI these are `steps.referee.outputs.dataset` and `.site`. Keep the site in
 `home_page/exposition/`. The source checkout must match the collected data; source
 links are pinned to that checkout's Git commit.
 
 ```bash
 # Run from LML. This consumes existing outputs; it does not compile or extract Lean.
-python3 scripts/build_stats.py --data /path/to/referee-data.json \
+python3 scripts/build_stats.py --data /path/to/dataset \
   --repository https://github.com/anhhuyalex/LML
 python3 scripts/check_stats.py --site home_page/exposition
 python3 -m http.server 8080 --directory home_page
@@ -65,9 +68,17 @@ user-installed Python packages or `PYTHONPATH` supplying missing imports.
 
 ## Add another statistic
 
-- `reader.py` is the only part that understands Referee's collected-data format
-  and Browse HTML. Its version-16 adapter is tied to action commit
-  `4f43fed3fa5a6f55ef6daf848f5a1b9dd348b0cf` / binary `v4.34.0-rc2-7`.
+- `dataset.py` reads the public `ltb-dataset/2` protocol using `evidence-core`.
+  It normalizes declarations, source ranges and proof-inclusive references into
+  the same records used by the legacy collected-JSON reader. Compatibility is
+  checked by schema; no Lean or Referee release is hardcoded in the adapter.
+  A toolchain bump needs no Stats change while the protocol remains compatible.
+- `reader.py` validates the declaration population and links against the rendered
+  site and source checkout. The dataset, rendered site and checkout must agree
+  on the project and revision. Unknown schemas and partial sites fail clearly.
+- `render.py` shares the output writer and interactive viewer across both site
+  layouts. The current Referee integration adds its own small navigation script
+  without rewriting upstream's application JavaScript.
 - `metrics.py` registers a statistic's stable name, explanation, subject,
   calculation and display. Calculations receive the shared declaration catalog
   plus the decoded input. Add a metric there and a small, independently countable
@@ -99,3 +110,14 @@ count as clean results. No paid reviews run in the website workflow.
 After the first deployment, open the public Stats URL, choose a nonempty bar, and
 follow a declaration's Documentation and Source links. Confirm API docs, tutorial,
 blueprint, exposition and Leanviz still load from the same Pages artifact.
+
+## Compatibility checks
+
+The tests normalize the same hand-counted declarations from the legacy JSON and
+extractor dataset formats and require identical reuse counts. They also change
+the recorded toolchain to a future version to verify that schema compatibility
+is independent of the Lean release. Browser checks cover both site layouts.
+The new-format tests need `evidence-core`; the Referee action installs the pinned
+Python dependencies before the full-site checks. For standalone use, install
+the maintained Referee tools into a separate Python environment. Tool versions
+and the input digest are recorded as provenance, rather than compatibility gates.

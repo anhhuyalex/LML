@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import html
 import pathlib
 import shutil
 from html.parser import HTMLParser
@@ -121,6 +122,8 @@ CONTENT = """<main><div class="content-wrapper lml-stats">
 def build_site(site: pathlib.Path, bundle):
     # The home page gives us the matching header, styles, theme and sidebar, without Browse's table.
     text = (site / "index.html").read_text()
+    if (site / "data/site.json").is_file():
+        return build_spa_site(site, bundle, text)
     parts = PageParts(text)
     for name in ("main", "title", "base", "head_end"):
         require(name in parts.spans, f"Missing exposition shell element: {name}")
@@ -131,13 +134,7 @@ def build_site(site: pathlib.Path, bundle):
              (*parts.spans["head_end"],
               '<link rel="stylesheet" href="stats/stats.css">'
               '<script src="stats/stats.js" defer></script>')]
-    out = site / "stats"
-    out.mkdir(exist_ok=True)
-    (out / "index.html").write_text(edited(text, edits))
-    (out / "data.json").write_text(json.dumps(bundle, ensure_ascii=False, indent=2) + "\n")
-    assets = pathlib.Path(__file__).parent / "assets"
-    for name in ("stats.js", "stats.css"):
-        shutil.copyfile(assets / name, out / name)
+    write_stats_page(site, bundle, edited(text, edits))
     pages = 0
     for path in sorted(site.rglob("*.html")):
         original = path.read_text()
@@ -148,3 +145,37 @@ def build_site(site: pathlib.Path, bundle):
             path.write_text(updated)
     require(pages, "No exposition navigation was updated")
     return pages
+
+
+def build_spa_site(site, bundle, shell):
+    """Attach the standalone Stats viewer without modifying upstream's application code."""
+    title = html.escape(json.loads((site / "data/site.json").read_text())["title"])
+    page = f'''<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><base href="../">
+<title>Stats — {title}</title><link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="stats/stats.css"><script defer src="stats/stats.js"></script>
+<script defer src="stats/navigation.js"></script></head><body data-lml-stats="true">
+<header class="top"><button class="menu" id="menu" aria-label="Contents">☰</button>
+<a class="brand" href="index.html#/">{title}</a></header><div class="shell">
+<nav class="side" id="side" aria-label="Site"><div class="nav-links">
+<a href="index.html#/">Home</a><a href="index.html#/browse">Browse</a>
+<a href="index.html#/sorries">Sorries</a><a href="stats/#stats" class="here">Stats</a>
+</div></nav>{CONTENT}</div></body></html>'''
+    write_stats_page(site, bundle, page)
+    marker = 'data-lml-stats-navigation="true"'
+    if marker not in shell:
+        require("</body>" in shell, "Missing exposition body")
+        script = f'<script defer src="stats/navigation.js" {marker}></script>'
+        (site / "index.html").write_text(shell.replace("</body>", script + "</body>", 1))
+    return 2
+
+
+def write_stats_page(site, bundle, page):
+    """Both supported site shells share the same data, assets and interactive viewer."""
+    out = site / "stats"
+    out.mkdir(exist_ok=True)
+    (out / "index.html").write_text(page)
+    (out / "data.json").write_text(json.dumps(bundle, ensure_ascii=False, indent=2) + "\n")
+    assets = pathlib.Path(__file__).parent / "assets"
+    for name in ("stats.js", "stats.css", "navigation.js"):
+        shutil.copyfile(assets / name, out / name)

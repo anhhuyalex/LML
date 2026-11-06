@@ -166,7 +166,7 @@ private theorem card_wordFiber {ι : Type*} [Fintype ι] [DecidableEq ι]
     (n : ℕ) (m : ι → ℕ) (hsum : ∑ i, m i = n) :
     Fintype.card (WordFiber n m) = Nat.multinomial Finset.univ m := by
   induction n using Nat.strong_induction_on generalizing m with
-  | h n ih =>
+  | ind n ih =>
     cases n with
     | zero =>
       simpa [WordFiber] using (multinomial_eq_card_words_zero m hsum).symm

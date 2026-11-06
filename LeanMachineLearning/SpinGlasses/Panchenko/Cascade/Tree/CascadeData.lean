@@ -6,7 +6,7 @@ Authors: LML contributors
 module
 
 public import LeanMachineLearning.SpinGlasses.Panchenko.Cascade.Parisi.CascadeMoment
-public import LeanMachineLearning.ForMathlib.Probability.Independence.IndepInfinitePi
+public import LeanMachineLearning.ForMathlib.Probability.Independence.InfinitePi
 
 /-!
 # Vertex data of a Ruelle cascade

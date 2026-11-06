@@ -56,13 +56,13 @@ theorem integrable_tsum_of_tsum_eLpNorm_ne_top {p : ℝ≥0∞} (hp : 1 ≤ p) {
     (hf : ∀ n, AEStronglyMeasurable (f n) μ) (h : ∑' n, eLpNorm (f n) p μ ≠ ∞) :
     Integrable (fun ω => ∑' n, f n ω) μ := by
   have h1 : ∑' n, eLpNorm (f n) 1 μ ≠ ∞ := ne_top_of_le_ne_top h
-    (ENNReal.tsum_le_tsum fun n => eLpNorm_le_eLpNorm_of_exponent_le hp (hf n))
+    (ENNReal.tsum_le_tsum fun n => eLpNorm_le_eLpNorm_of_exponent_le hp)
   refine ⟨(AEMeasurable.tsum fun n => (hf n).aemeasurable).aestronglyMeasurable, ?_⟩
   calc ∫⁻ ω, ‖∑' n, f n ω‖ₑ ∂μ ≤ ∫⁻ ω, ∑' n, ‖f n ω‖ₑ ∂μ :=
         lintegral_mono fun ω => enorm_tsum_le_tsum_enorm
     _ = ∑' n, eLpNorm (f n) 1 μ := by
         rw [lintegral_tsum fun n => (hf n).enorm]
-        simp only [eLpNorm_one_eq_lintegral_enorm]
+        simp only [eLpNorm_one_eq_lintegral_enorm (hf _)]
     _ < ∞ := h1.lt_top
 
 omit [IsProbabilityMeasure μ] in
@@ -72,7 +72,9 @@ theorem ae_summable_of_tsum_eLpNorm_ne_top {f : κ → Ω → ℝ}
     ∀ᵐ ω ∂μ, Summable fun n => f n ω := by
   have hlint : ∫⁻ ω, ∑' n, ‖f n ω‖ₑ ∂μ ≠ ∞ := by
     rw [lintegral_tsum fun n => (hf n).enorm]
-    simpa only [eLpNorm_one_eq_lintegral_enorm] using h
+    have he : (∑' n, eLpNorm (f n) 1 μ) = ∑' n, ∫⁻ ω, ‖f n ω‖ₑ ∂μ :=
+      tsum_congr fun n => eLpNorm_one_eq_lintegral_enorm (hf n)
+    exact fun htop => h (he.trans htop)
   have hae : ∀ᵐ ω ∂μ, ∑' n, ‖f n ω‖ₑ < ∞ :=
     ae_lt_top' (AEMeasurable.tsum fun n => (hf n).enorm) hlint
   filter_upwards [hae] with ω hω
@@ -90,23 +92,26 @@ theorem integral_tsum_mul_tsum_of_indepFun {X Y : κ → Ω → ℝ} (hX : ∀ p
     (hYs : ∑' p, eLpNorm (Y p) 2 μ ≠ ∞) (hind : ∀ p q, p ≠ q → IndepFun (X p) (Y q) μ)
     (hX0 : ∀ p, ∫ ω, X p ω ∂μ = 0) :
     ∫ ω, (∑' p, X p ω) * (∑' q, Y q ω) ∂μ = ∑' p, ∫ ω, X p ω * Y p ω ∂μ := by
-  have hXn := summable_norm_of_tsum_eLpNorm_ne_top one_le_two (fun p => (hX p).1) hXs
-  have hYn := summable_norm_of_tsum_eLpNorm_ne_top one_le_two (fun p => (hY p).1) hYs
+  have hXn := summable_norm_of_tsum_eLpNorm_ne_top one_le_two hXs
+  have hYn := summable_norm_of_tsum_eLpNorm_ne_top one_le_two hYs
   have hmeas : ∀ z : κ × κ, AEStronglyMeasurable (fun ω => X z.1 ω * Y z.2 ω) μ := fun z =>
-    (hX z.1).1.mul (hY z.2).1
+    (hX z.1).aestronglyMeasurable.mul (hY z.2).aestronglyMeasurable
   have hbound : ∑' z : κ × κ, ∫⁻ ω, ‖X z.1 ω * Y z.2 ω‖ₑ ∂μ ≠ ∞ := by
     have h1 : ∀ z : κ × κ, ∫⁻ ω, ‖X z.1 ω * Y z.2 ω‖ₑ ∂μ ≤
         eLpNorm (X z.1) 2 μ * eLpNorm (Y z.2) 2 μ := fun z => by
-      rw [← eLpNorm_one_eq_lintegral_enorm]
-      have h := eLpNorm_smul_le_mul_eLpNorm (μ := μ) (p := 2) (q := 2) (r := 1) (hY z.2).1
-        (hX z.1).1 (hpqr := ⟨by simp [ENNReal.inv_two_add_inv_two]⟩)
-      exact h
+      rw [← eLpNorm_one_eq_lintegral_enorm (hmeas z)]
+      simpa only [ENNReal.coe_one, one_mul] using
+        eLpNorm_le_eLpNorm_mul_eLpNorm (μ := μ) (p := 2) (q := 2) (r := 1)
+          (fun x y : ℝ => x * y) 1 continuous_mul
+          (hX z.1).aestronglyMeasurable (hY z.2).aestronglyMeasurable
+          (Filter.Eventually.of_forall fun _ => by simp [nnnorm_mul])
+          (hpqr := ⟨by simp [ENNReal.inv_two_add_inv_two]⟩)
     refine ne_top_of_le_ne_top ?_ (ENNReal.tsum_le_tsum h1)
     rw [ENNReal.tsum_prod (f := fun a b => eLpNorm (X a) 2 μ * eLpNorm (Y b) 2 μ)]
     simp only [ENNReal.tsum_mul_left, ENNReal.tsum_mul_right]
     exact ENNReal.mul_ne_top hXs hYs
   have hoff : ∀ z : κ × κ, z.1 ≠ z.2 → ∫ ω, X z.1 ω * Y z.2 ω ∂μ = 0 := fun z hz => by
-    rw [(hind _ _ hz).integral_fun_mul_eq_mul_integral (hX z.1).1 (hY z.2).1, hX0, zero_mul]
+    rw [(hind _ _ hz).integral_fun_mul_eq_mul_integral (hX z.1).aestronglyMeasurable (hY z.2).aestronglyMeasurable, hX0, zero_mul]
   calc ∫ ω, (∑' p, X p ω) * (∑' q, Y q ω) ∂μ
       = ∫ ω, ∑' z : κ × κ, X z.1 ω * Y z.2 ω ∂μ := by
         refine integral_congr_ae ?_

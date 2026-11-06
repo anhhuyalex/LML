@@ -5,9 +5,9 @@ Authors: Gaëtan Serré
 -/
 module
 
-public import LeanMachineLearning.SequentialLearning.Algorithm
+public import LeanMachineLearning.SequentialLearning.Algorithms.Markov
 
-import LeanMachineLearning.ForMathlib.Probability.Independence.IndepFun
+import LeanMachineLearning.ForMathlib.Probability.Independence.Basic
 
 /-!
 # Random Sampling
@@ -17,13 +17,13 @@ measure at each iteration.
 
 ## Main definitions
 
-* `randomSampling`: The random sampling algorithm that samples from a fixed distribution at
-each iteration.
+* `Algorithm.const μ`: the random sampling algorithm, that samples from the fixed distribution `μ`
+  at each iteration.
 
 ## Main statements
 
-* `hasLaw_action`: Each action follows the distribution μ.
-* `iIndep_action`: Actions are mutually independent across time steps.
+* `IsAlgEnvSeq.hasLaw_action_const`: each action has law `μ`.
+* `IsAlgEnvSeq.iIndepFun_action_const`: the actions are mutually independent.
 -/
 
 @[expose] public section
@@ -39,41 +39,54 @@ variable {𝓞 𝓐 𝓨 Ω : Type*} {m𝓞 : MeasurableSpace 𝓞} {m𝓐 : Mea
   {mΩ : MeasurableSpace Ω} {μ : Measure 𝓐} [IsProbabilityMeasure μ]
   {P : Measure Ω} [IsProbabilityMeasure P]
 
-open Set in
 /-- The _Random Sampling_ algorithm, which samples from a fixed probability
 measure at each iteration. -/
 @[simps]
-noncomputable def randomSampling (μ : Measure 𝓐) [IsProbabilityMeasure μ] :
+noncomputable def Algorithm.const (μ : Measure 𝓐) [IsProbabilityMeasure μ] :
     Algorithm 𝓞 𝓐 𝓨 where
   policy _ := Kernel.const _ μ
 
-namespace randomSampling
+/-- The random sampling algorithm is the Markov algorithm with the constant kernel `μ` at every
+time. -/
+lemma Algorithm.const_eq_markov :
+    (Algorithm.const μ : Algorithm 𝓞 𝓐 𝓨) = Algorithm.markov (fun _ ↦ Kernel.const 𝓞 μ) := rfl
+
+instance : (Algorithm.const μ : Algorithm 𝓞 𝓐 𝓨).IsMarkov :=
+  inferInstanceAs (Algorithm.markov (fun _ ↦ Kernel.const 𝓞 μ) : Algorithm 𝓞 𝓐 𝓨).IsMarkov
+
+@[simp]
+lemma Algorithm.policyCondObs_const [Nonempty 𝓨] (n : ℕ) :
+    (Algorithm.const μ : Algorithm 𝓞 𝓐 𝓨).policyCondObs n = Kernel.const 𝓞 μ :=
+  Algorithm.policyCondObs_eq_of_policy_eq _ rfl
+
+namespace IsAlgEnvSeq
 
 variable {O : ℕ → Ω → 𝓞} {A : ℕ → Ω → 𝓐} {Y : ℕ → Ω → 𝓨} {env : Environment 𝓞 𝓐 𝓨}
 
-/-- Each action follows the distribution μ. -/
-lemma hasLaw_action (h : IsAlgEnvSeq O A Y (randomSampling μ) env P) (n : ℕ) :
+/-- Each action of the random sampling algorithm follows the distribution μ. -/
+lemma hasLaw_action_const (h : IsAlgEnvSeq O A Y (Algorithm.const μ) env P) (n : ℕ) :
     HasLaw (A n) μ P :=
   (h.hasCondDistrib_action n).hasLaw_of_const
 
-/-- Actions are mutually independent. -/
-lemma iIndep_action (h : IsAlgEnvSeq O A Y (randomSampling μ) env P) :
+/-- Actions of the random sampling algorithm are mutually independent. -/
+lemma iIndepFun_action_const (h : IsAlgEnvSeq O A Y (Algorithm.const μ) env P) :
     iIndepFun A P := by
   have hO := h.measurable_obs
   have hA := h.measurable_action
   rw [iIndepFun_nat_iff_forall_indepFun (by fun_prop)]
   intro n
   have map_eq := (h.hasCondDistrib_action (n + 1)).map_eq
-  simp only [randomSampling_policy, Measure.compProd_const] at map_eq
-  have law_eq : P.map (A (n + 1)) = μ := (hasLaw_action h (n + 1)).map_eq
+  simp only [Algorithm.const_policy, Measure.compProd_const] at map_eq
+  have law_eq : P.map (A (n + 1)) = μ := (h.hasLaw_action_const (n + 1)).map_eq
   rw [← law_eq, ← indepFun_iff_map_prod_eq_prod_map_map] at map_eq
-  · change A (n + 1) ⟂ᵢ[P] (fun (p : Hist 𝓞 𝓐 𝓨 (n + 1) × 𝓞) (i : Iic n) ↦
+  · -- the actions before time `n + 1` are a function of the history at time `n + 1`
+    change A (n + 1) ⟂ᵢ[P] (fun (p : Hist 𝓞 𝓐 𝓨 (n + 1) × 𝓞) (i : Iic n) ↦
       (p.1 ⟨i.1, Nat.lt_succ_of_le (mem_Iic.mp i.2)⟩).action) ∘
       (fun ω ↦ (history O A Y (n + 1) ω, O (n + 1) ω))
     refine map_eq.symm.comp measurable_id (by fun_prop)
   · exact ((h.measurable_history (n + 1)).prodMk (h.measurable_obs (n + 1))).aemeasurable
   · exact (h.measurable_action (n + 1)).aemeasurable
 
-end randomSampling
+end IsAlgEnvSeq
 
 end Learning

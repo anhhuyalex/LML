@@ -66,7 +66,7 @@ theorem measurable_toLp_section {α E : Type*} [MeasurableSpace α] [NormedAddCo
     have key : (hmem a).toLp (fun b => F (a, b)) - d =
         ((hmem a).sub hd).toLp ((fun b => F (a, b)) - ⇑d) := by
       rw [MemLp.toLp_sub (hmem a) hd, Lp.toLp_coeFn d hd]
-    rw [dist_eq_norm, key, Lp.norm_toLp, toReal_eLpNorm ((hmem a).sub hd).aestronglyMeasurable,
+    rw [dist_eq_norm, key, Lp.norm_toLp, toReal_eLpNorm,
       lpNorm_eq_integral_norm_rpow_toReal hp₀ hp ((hmem a).sub hd).aestronglyMeasurable]
     rfl
   rw [hdist]

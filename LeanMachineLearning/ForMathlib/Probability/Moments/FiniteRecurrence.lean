@@ -132,7 +132,7 @@ theorem exists_finset_moment_error_of_two_factor_recurrence
   classical
   intro s
   induction hn : s.card using Nat.strong_induction_on generalizing s with
-  | h n ih =>
+  | ind n ih =>
     rw [← hn]
     by_cases hp : (s.filter P).Nonempty
     · obtain ⟨p, hp⟩ := hp

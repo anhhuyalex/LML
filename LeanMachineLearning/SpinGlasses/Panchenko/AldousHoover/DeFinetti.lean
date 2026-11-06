@@ -8,7 +8,7 @@ module
 public import LeanMachineLearning.ForMathlib.MeasureTheory.ConditionalExpectation.IdentDistrib
 public import LeanMachineLearning.ForMathlib.MeasureTheory.ConditionalExpectation.SequentialDecoupling
 public import LeanMachineLearning.ForMathlib.Probability.ConditionallyIID
-public import LeanMachineLearning.ForMathlib.Probability.Independence.IndepInfinitePi
+public import LeanMachineLearning.ForMathlib.Probability.Independence.InfinitePi
 public import Mathlib.Data.Nat.Nth
 public import Mathlib.MeasureTheory.Constructions.UnitInterval
 public import Mathlib.Probability.Kernel.Representation

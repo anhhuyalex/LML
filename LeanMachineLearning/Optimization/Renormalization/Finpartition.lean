@@ -5,6 +5,11 @@ Authors: LML Contributors
 -/
 module
 
+public import Mathlib.Data.Fintype.Sigma
+public import Mathlib.Data.Fintype.Prod
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
+
 public import Mathlib.Combinatorics.Enumerative.IncidenceAlgebra
 public import Mathlib.Order.Partition.Finpartition
 public import Mathlib.Data.Fintype.Perm
@@ -1346,7 +1351,7 @@ private theorem partitionTransform_injective_of_empty [CommRing R] {f g : Finset
   have hcard : ∀ n, ∀ s : Finset α, s.card = n → f s = g s := by
     intro n
     induction n using Nat.strong_induction_on with
-    | h n ih =>
+    | ind n ih =>
       intro s hs_card
       rcases eq_or_ne s ∅ with rfl | hs
       · rw [hf, hg]
@@ -1914,7 +1919,6 @@ lemma restrict_glue_left (M : Matching π σ) (hAB : Disjoint A B) :
   apply Finpartition.ext
   ext t
   rw [Finpartition.restrict, Finset.mem_erase, Finset.mem_image]
-  simp only [Finset.inf_eq_inter]
   constructor
   · rintro ⟨htne, D, hD, rfl⟩
     rw [glue_parts, glueParts, Finset.mem_union, Finset.mem_union] at hD
@@ -1949,7 +1953,6 @@ lemma restrict_glue_right (M : Matching π σ) (hAB : Disjoint A B) :
   apply Finpartition.ext
   ext t
   rw [Finpartition.restrict, Finset.mem_erase, Finset.mem_image]
-  simp only [Finset.inf_eq_inter]
   constructor
   · rintro ⟨htne, D, hD, rfl⟩
     rw [glue_parts, glueParts, Finset.mem_union, Finset.mem_union] at hD

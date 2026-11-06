@@ -3,25 +3,23 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import pathlib
 import subprocess
 
 from website_stats.metrics import results
-from website_stats.reader import REFEREE_COMMIT, REFEREE_VERSION, catalog, decode
+from website_stats.reader import catalog
+from website_stats.dataset import load
 from website_stats.render import build_site
 
 
 def build(data_path, site, project, repository, revision):
-    raw = data_path.read_bytes()
-    data = decode(json.loads(raw))
+    data, producer = load(data_path, project, revision)
     declarations, excluded = catalog(data, site, project, repository, revision)
     bundle = {"schema_version": 1,
               "build": {"repository": repository, "revision": revision,
                         "lean": (project / "lean-toolchain").read_text().strip(),
-                        "referee_commit": REFEREE_COMMIT, "referee_release": REFEREE_VERSION,
-                        "input_sha256": hashlib.sha256(raw).hexdigest()},
+                        **producer},
               "population": {"description": "Named public declarations authored in LML",
                              "collected": len(data["decls"]), "included": len(declarations),
                              "excluded": excluded},

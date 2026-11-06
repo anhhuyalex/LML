@@ -7,7 +7,7 @@ module
 
 public import LeanMachineLearning.SpinGlasses.Panchenko.Cascade.Tree.CascadeTree
 public import LeanMachineLearning.SpinGlasses.Panchenko.PoissonDirichlet.PoissonDirichletGibbs
-public import LeanMachineLearning.ForMathlib.Probability.Independence.IndepInfinitePi
+public import LeanMachineLearning.ForMathlib.Probability.Independence.InfinitePi
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.NthLargestAtomRank
 
 /-!

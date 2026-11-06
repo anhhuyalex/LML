@@ -48,7 +48,8 @@ lemma hasFDerivAt_log_sum_exp_fderiv (y : κ → ℝ) :
 omit [DecidableEq κ] in
 lemma contDiff_log_sum_exp :
     ContDiff ℝ 2 (fun y : κ → ℝ => Real.log (∑ a, Real.exp (y a + h a))) :=
-  ContDiff.log (ContDiff.sum fun a _ => ((contDiff_apply ℝ ℝ a).add contDiff_const).exp)
+  ContDiff.log (ContDiff.sum fun a _ =>
+    ((contDiff_apply ℝ (fun _ : κ => ℝ) a).add contDiff_const).exp)
     fun y => (sum_exp_add_pos h y).ne'
 
 lemma differentiable_fderiv_log_sum_exp_single (l : κ) :

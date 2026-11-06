@@ -891,43 +891,6 @@ private lemma integrable_pow_preactivation {ι κ : Type*} [Fintype ι] [Fintype
             exact mul_le_mul_of_nonneg_left (by nlinarith [hsumle])
               (pow_nonneg (by positivity : 0 ≤ (Fintype.card ι + 1 : ℝ)) _)
 
-/-- Pulling a measurable map out of the left side of a measure bind. -/
-private lemma measure_bind_map_comp {α β γ : Type*} [MeasurableSpace α] [MeasurableSpace β]
-    [MeasurableSpace γ] (μ : Measure α) {f : α → β} {g : β → Measure γ}
-    (hf : Measurable f) (hg : Measurable g) :
-    (μ.map f).bind g = μ.bind (fun x => g (f x)) := by
-  rw [Measure.bind, Measure.bind, Measure.map_map hg hf]
-  rfl
-
-/-- Mapping a bind through a measurable function. -/
-private lemma measure_map_bind {α β γ : Type*} [MeasurableSpace α] [MeasurableSpace β]
-    [MeasurableSpace γ] (μ : Measure α) (f : α → Measure β) {g : β → γ}
-    (hf : Measurable f) (hg : Measurable g) :
-    (μ.bind f).map g = μ.bind (fun x => (f x).map g) := by
-  rw [Measure.bind, ← Measure.join_map_map hg]
-  rw [Measure.bind, Measure.map_map (Measure.measurable_map g hg) hf]
-  rfl
-
-/-- The product-measure pushforward of a two-variable measurable function is the iterated bind
-that first samples the left coordinate and then pushes the right measure forward.
-
-This is the measure-level Fubini/Giry-monad calculation used in the hidden case of
-`MLPEnsemble.outputKernel_apply_eq_outputLaw`. -/
-private lemma map_prod_eq_bind_map {α β γ : Type*} [MeasurableSpace α] [MeasurableSpace β]
-    [MeasurableSpace γ] (μ : Measure α) (ν : Measure β) [SFinite ν] {G : α × β → γ}
-    (hG : Measurable G) :
-    (μ.prod ν).map G = μ.bind (fun a => ν.map (fun b => G (a, b))) := by
-  rw [Measure.prod]
-  calc
-    (μ.bind (fun a : α => Measure.map (Prod.mk a) ν)).map G
-        = μ.bind (fun a => (Measure.map (Prod.mk a) ν).map G) := by
-          exact measure_map_bind μ (fun a : α => Measure.map (Prod.mk a) ν) (g := G)
-            (by exact Measurable.map_prodMk_left) hG
-    _ = μ.bind (fun a => ν.map (fun b => G (a, b))) := by
-          congr
-          funext a
-          exact Measure.map_map hG (measurable_const.prodMk measurable_id)
-
 /-- The tail output law varies measurably in the deterministic input.
 
 Informal proof: unfold `deepLinearOutputLaw` and use `Measure.measurable_map` on the jointly
@@ -988,10 +951,10 @@ private lemma deepLinearOutputLaw_hidden_eq_bind {dIn k dOut : ℕ}
   have htailLaw_meas : Measurable fun y : Fin k → ℝ => tail.deepLinearOutputLaw Cw y :=
     measurable_deepLinearOutputLaw_kernel tail Cw
   have hprod : (μ.prod ν).map G = μ.bind (fun q => ν.map (fun θ' => G (q, θ'))) := by
-    exact map_prod_eq_bind_map μ ν hG_meas
+    exact Measure.map_prod_eq_bind_map μ ν hG_meas
   have hpull : (μ.map f).bind (fun y : Fin k → ℝ => tail.deepLinearOutputLaw Cw y) =
       μ.bind (fun q => tail.deepLinearOutputLaw Cw (f q)) := by
-    exact measure_bind_map_comp μ hf_meas htailLaw_meas
+    exact Measure.bind_map hf_meas.aemeasurable htailLaw_meas.aemeasurable
   calc
     (MLPShape.hidden tail : MLPShape dIn dOut).deepLinearOutputLaw Cw x
         = (μ.prod ν).map G := by
@@ -1536,7 +1499,8 @@ private lemma jointMoment_outputLaw_hidden_even_of_tail {dIn k dOut : ℕ}
     rw [deepLinearOutputLaw_hidden_eq_bind tail Cw x]
     have hpull : (μ₁.map f).bind (fun y : Fin k → ℝ => tail.deepLinearOutputLaw Cw y) =
         μ₁.bind (fun q => tail.deepLinearOutputLaw Cw (f q)) := by
-      exact measure_bind_map_comp μ₁ hf_meas (measurable_deepLinearOutputLaw_kernel tail Cw)
+      exact Measure.bind_map hf_meas.aemeasurable
+        (measurable_deepLinearOutputLaw_kernel tail Cw).aemeasurable
     let η' : Kernel (LayerParams (Fin dIn) (Fin k)) (Fin dOut → ℝ) :=
       ⟨fun q => tail.deepLinearOutputLaw Cw (f q),
         (measurable_deepLinearOutputLaw_kernel tail Cw).comp hf_meas⟩
@@ -2397,11 +2361,11 @@ private lemma deepLinearBatchLaw_hidden_eq_bind {A : Type uA} {dIn k dOut : ℕ}
           rw [MLPShape.eval_hidden]
           simp [activate_linear_eq_preactivation]
     _ = μ₁.bind (fun q => ν.map (fun θ' => G (q, θ'))) := by
-          exact map_prod_eq_bind_map μ₁ ν hG_meas
+          exact Measure.map_prod_eq_bind_map μ₁ ν hG_meas
     _ = μ₁.bind (fun q => tail.deepLinearBatchLaw Cw (f q)) := by
           congr
     _ = (μ₁.map f).bind (fun y : A → Fin k → ℝ => tail.deepLinearBatchLaw Cw y) :=
-          (measure_bind_map_comp μ₁ hf_meas htailLaw_meas).symm
+          (Measure.bind_map hf_meas.aemeasurable htailLaw_meas.aemeasurable).symm
     _ = (oneLayerBatchLaw (ι := Fin dIn) (κ := Fin k) Cw D).bind
           (fun y => tail.deepLinearBatchLaw Cw y) := by
           rfl
@@ -2412,7 +2376,7 @@ Informal proof: unfold `deepLinearBatchLaw` as a parameter-law pushforward.  The
 `.hidden tail` is the product of the first-layer Gaussian initialization and the independent tail
 initialization.  Push this product through the evaluator, use
 `MLPShape.eval_hidden` and `activate_linear_eq_preactivation`, and then apply the measure-level
-identity `map_prod_eq_bind_map` / `measure_bind_map_comp`, exactly as in
+identities `Measure.map_prod_eq_bind_map` / `Measure.bind_map`, exactly as in
 `deepLinearOutputLaw_hidden_eq_bind`, but with `D : A → Fin dIn → ℝ` instead of a single input.
 Finally apply `integral_bind_of_integrable` to the observable `z ↦ z a i * z b j`. -/
 private lemma integral_mul_batchOutputLaw_hidden_tower {A : Type uA}

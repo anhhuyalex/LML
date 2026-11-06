@@ -5,6 +5,8 @@ Authors: LML Contributors
 -/
 module
 
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Gaussian.Shift
 public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKFixedPoint
 

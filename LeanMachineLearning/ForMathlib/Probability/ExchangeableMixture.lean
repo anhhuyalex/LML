@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.ForMathlib.Probability.Independence.IndepInfinitePi
+public import LeanMachineLearning.ForMathlib.Probability.Independence.InfinitePi
 public import Mathlib.MeasureTheory.Constructions.Cylinders
 public import Mathlib.Probability.Independence.InfinitePi
 public import Mathlib.Probability.Kernel.Composition.MeasureCompProd
@@ -126,18 +126,11 @@ theorem measurePreserving_prefixMap (ν : Measure X) [IsProbabilityMeasure ν] (
       (Measure.infinitePi fun _ : ℕ => ν) (Measure.pi fun _ : Fin n => ν) :=
   measurePreserving_restrict_infinitePi ν Fin.val_injective
 
-/-- The pushforward of a mixture is the mixture of the pushforwards. -/
-theorem map_bind {A B : Type*} [MeasurableSpace A] [MeasurableSpace B] {P : Measure Ω}
-    {κ : Ω → Measure A} (hκ : Measurable κ) {T : A → B} (hT : Measurable T) :
-    (P.bind κ).map T = P.bind fun ω => (κ ω).map T := by
-  have h := Measure.map_comp P (⟨κ, hκ⟩ : Kernel Ω A) hT
-  exact h.trans (congrArg P.bind (funext fun ω => Kernel.map_apply _ hT ω))
-
 /-- A mixture of measures that are invariant under a measurable map `T` is invariant under `T`. -/
 theorem map_bind_eq_self {A : Type*} [MeasurableSpace A] {P : Measure Ω} {κ : Ω → Measure A}
     (hκ : Measurable κ) {T : A → A} (hT : Measurable T) (h : ∀ ω, (κ ω).map T = κ ω) :
     (P.bind κ).map T = P.bind κ := by
-  rw [map_bind hκ hT]
+  rw [map_bind hκ.aemeasurable hT.aemeasurable]
   simp_rw [h]
 
 /-- **A mixture of i.i.d. sequences is exchangeable:** if `ν : Ω → Measure X` is a measurable
@@ -241,7 +234,7 @@ theorem map_infinitePi_pair_of_disjoint {α β : Type*} (ν : Measure X) [IsProb
 /-- A parameter `a ~ μ` together with two sub-families, indexed by disjoint sets of an i.i.d.
 family independent of `a`, are independent. -/
 theorem map_prod_infinitePi_pair_of_disjoint {α β A : Type*} [MeasurableSpace A] (μ : Measure A)
-    [SFinite μ] (ν : Measure X) [IsProbabilityMeasure ν] {f : α → ι} {g : β → ι}
+    (ν : Measure X) [IsProbabilityMeasure ν] {f : α → ι} {g : β → ι}
     (hf : Function.Injective f) (hg : Function.Injective g) (hfg : Disjoint (range f) (range g)) :
     (μ.prod (infinitePi fun _ : ι => ν)).map
         (fun p => (p.1, (fun a => p.2 (f a), fun b => p.2 (g b)))) =

@@ -183,7 +183,7 @@ lemma memLp_two_gaussianRow_mul_comp_of_linear_growth (φ : ℝ → ℝ) (hφ : 
   have h4 : ∀ y : Fin d → ℝ, MemLp (fun w : Fin d → ℝ => φ (w ⬝ᵥ y)) (4 : ENNReal)
       (Measure.pi fun _ : Fin d => gaussianReal 0 1) := fun y => by
     simpa using memLp_gaussianRow_comp_of_linear_growth φ hφ hA hB hgrow y (d := d) 4
-  exact MemLp.mul (r := 2) (h4 x') (h4 x)
+  exact MemLp.mul (r := 2) (h4 x) (h4 x')
 
 /-! ### Entrywise (max) concentration for readout weights
 

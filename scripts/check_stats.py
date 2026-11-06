@@ -52,6 +52,12 @@ def validate(site):
                     f"Stats navigation missing or duplicated: {path}")
             require(parts.stats[0][0] == parts.sorries[0][1], f"Stats must follow Sorries: {path}")
             pages += 1
+    if (site / "data/site.json").is_file():
+        shell = (site / "index.html").read_text()
+        require(shell.count('data-lml-stats-navigation="true"') == 1,
+                "Missing or duplicated Stats navigation integration")
+        require((site / "stats/navigation.js").is_file(), "Missing Stats navigation script")
+        pages += 2
     require(pages > 0, "No exposition navigation found")
     print(f"Validated {len(names)} declarations, links and navigation on {pages} pages", flush=True)
     return bundle
@@ -126,8 +132,10 @@ def browser_checks(base, bundle, fixture, screenshots):
                 page.value("document.querySelector('#stats-clear').click()")
                 page.screenshot(screenshots / f"stats-{width}.png")
             # Open the actual documentation destination in the served exposition.
-            page.visit(row[0], "!!document.querySelector('main')")
-            require(page.value("document.querySelector('#toc a[href=\"stats/#stats\"]').textContent") == "Stats",
+            selector = ('#nav-links a[data-lml-stats]' if bundle["build"].get("format") ==
+                        "ltb-dataset/2" else '#toc a[href="stats/#stats"]')
+            page.visit(row[0], f"!!document.querySelector({json.dumps(selector)})")
+            require(page.value(f"document.querySelector({json.dumps(selector)}).textContent") == "Stats",
                     "Documentation page has no Stats navigation")
             print(f"Stats at {width}px: bar choices, keyboard, lists, links and shared URLs passed", flush=True)
         finally:

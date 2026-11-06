@@ -8,6 +8,7 @@ module
 public import LeanMachineLearning.SpinGlasses.Panchenko.Foundations.Concentration
 public import LeanMachineLearning.SpinGlasses.Panchenko.Foundations.FreeEnergy
 public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsMeasure
+public import Mathlib.Analysis.Convex.Deriv
 
 /-!
 # Free energy of a Gaussian field tilted by a deterministic observable

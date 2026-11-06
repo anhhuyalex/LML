@@ -8,6 +8,7 @@ module
 public import LeanMachineLearning.Optimization.NTK.Shallow.Linearization
 public import LeanMachineLearning.ForMathlib.Probability.StdGaussianRadial
 public import Mathlib.MeasureTheory.Integral.Gamma
+public import Mathlib.Analysis.SpecialFunctions.PolarCoord
 
 /-!
 # The Cho-Saul Kernel: Angular and Polar-Coordinate Integrals

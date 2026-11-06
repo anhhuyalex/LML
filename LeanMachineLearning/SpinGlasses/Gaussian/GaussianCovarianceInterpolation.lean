@@ -11,6 +11,7 @@ public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianComparison
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianVector
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianGram
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SinCosEndpoint
+public import Mathlib.Analysis.Calculus.Deriv.Prod
 
 /-!
 # Gaussian interpolation for smooth functionals
@@ -380,7 +381,8 @@ section Pair
 /-- The product functional `y ↦ f (y 0) * g (y 1)` on `ℝ²` is `C²` when `f` and `g` are. -/
 theorem contDiff_pair_mul {f g : ℝ → ℝ} (hf : ContDiff ℝ 2 f) (hg : ContDiff ℝ 2 g) :
     ContDiff ℝ 2 fun y : Fin 2 → ℝ => f (y 0) * g (y 1) :=
-  (hf.comp (contDiff_apply ℝ ℝ 0)).mul (hg.comp (contDiff_apply ℝ ℝ 1))
+  (hf.comp (contDiff_apply ℝ (fun _ : Fin 2 => ℝ) 0)).mul
+    (hg.comp (contDiff_apply ℝ (fun _ : Fin 2 => ℝ) 1))
 
 /-- The partial derivatives of `y ↦ f (y 0) * g (y 1)`. -/
 theorem fderiv_pair_mul {f g : ℝ → ℝ} (hf : Differentiable ℝ f) (hg : Differentiable ℝ g)
@@ -531,7 +533,8 @@ theorem integral_log_sum_exp_le_of_covariance_le [Nonempty κ]
       ∫ ω, Real.log (∑ a, Real.exp (X a ω + h a)) ∂P := by
   classical
   have hF : ContDiff ℝ 2 (fun y : κ → ℝ => -Real.log (∑ a, Real.exp (y a + h a))) :=
-    (ContDiff.log (ContDiff.sum fun a _ => ((contDiff_apply ℝ ℝ a).add contDiff_const).exp)
+    (ContDiff.log (ContDiff.sum fun a _ =>
+      ((contDiff_apply ℝ (fun _ : κ => ℝ) a).add contDiff_const).exp)
       fun y => (sum_exp_add_pos h y).ne').neg
   have hF1 : ∀ l y, fderiv ℝ (fun y : κ → ℝ => -Real.log (∑ a, Real.exp (y a + h a))) y
       (Pi.single l 1) = -(Real.exp (y l + h l) / ∑ a, Real.exp (y a + h a)) := fun l y => by

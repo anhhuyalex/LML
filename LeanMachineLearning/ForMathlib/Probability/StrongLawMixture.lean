@@ -7,7 +7,7 @@ module
 
 public import LeanMachineLearning.ForMathlib.Probability.HasLaw
 public import LeanMachineLearning.ForMathlib.Probability.ExchangeableMixture
-public import LeanMachineLearning.ForMathlib.Probability.Independence.IndepInfinitePi
+public import LeanMachineLearning.ForMathlib.Probability.Independence.InfinitePi
 public import Mathlib.MeasureTheory.Integral.Prod
 public import Mathlib.Probability.StrongLaw
 
@@ -44,7 +44,7 @@ theorem ae_tendsto_mean_infinitePi (ν : Measure C) [IsProbabilityMeasure ν] {g
       Tendsto (fun n : ℕ => (n : ℝ)⁻¹ * ∑ i ∈ range n, g (σ i)) atTop (𝓝 (∫ c, g c ∂ν)) := by
   have hlaw : ∀ i : ℕ, HasLaw (fun σ : ℕ → C => g (σ i)) (ν.map g)
       (Measure.infinitePi fun _ : ℕ => ν) := fun i =>
-    (hg.hasLaw_map ν).comp (hasLaw_eval_infinitePi (fun _ : ℕ => ν) i)
+    (hasLaw_map hg.aemeasurable).comp (hasLaw_eval_infinitePi (fun _ : ℕ => ν) i)
   have hindep := iIndepFun_infinitePi (P := fun _ : ℕ => ν) (X := fun _ c => g c) fun _ => hg
   have hev := hasLaw_eval_infinitePi (fun _ : ℕ => ν) 0
   have h := strong_law_ae_real (μ := Measure.infinitePi fun _ : ℕ => ν)
@@ -94,7 +94,7 @@ theorem ae_tendsto_mean_infinitePi_blocks {J C F : Type*} [Fintype F] [Measurabl
     Measure.measurePreserving_restrict_infinitePi ν (hf i)
   have hlaw : ∀ i, HasLaw (fun σ : J → C => Φ fun a => σ (f i a))
       ((Measure.pi fun _ : F => ν).map Φ) (Measure.infinitePi fun _ : J => ν) := fun i =>
-    (hΦ.hasLaw_map _).comp (hres i).hasLaw
+    (hasLaw_map hΦ.aemeasurable).comp (hres i).hasLaw
   have hindep : ∀ i j, i ≠ j → IndepFun (fun σ : J → C => Φ fun a => σ (f i a))
       (fun σ : J → C => Φ fun a => σ (f j a)) (Measure.infinitePi fun _ : J => ν) :=
     fun i j hij => (Measure.indepFun_restrict_infinitePi_of_disjoint ν (hdisj i j hij)).comp hΦ hΦ

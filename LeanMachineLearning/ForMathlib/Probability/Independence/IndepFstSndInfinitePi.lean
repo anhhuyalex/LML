@@ -5,7 +5,7 @@ Authors: LML contributors
 -/
 module
 
-public import LeanMachineLearning.ForMathlib.Probability.Independence.IndepInfinitePi
+public import LeanMachineLearning.ForMathlib.Probability.Independence.InfinitePi
 public import LeanMachineLearning.ForMathlib.Probability.InfinitePiZip
 
 /-!

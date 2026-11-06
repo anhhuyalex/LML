@@ -79,11 +79,13 @@ theorem eLpNorm_one_mul_exp_le {X Z : Ω → ℝ} (hZ : HasGaussianLaw Z P) (hZ0
   have hXn : eLpNorm X 2 P ≤ ENNReal.ofReal (√a) := by
     refine eLpNorm_two_le_ofReal_of_integral_sq_le hX (Real.sqrt_nonneg _) ?_
     rw [Real.sq_sqrt ha0]; exact ha
-  have h := eLpNorm_smul_le_mul_eLpNorm (μ := P) (p := 2) (q := 2) (r := 1) hE.1 hX.1
+  have h := eLpNorm_le_eLpNorm_mul_eLpNorm (μ := P) (p := 2) (q := 2) (r := 1)
+    (fun x y : ℝ => x * y) 1 continuous_mul hX.aestronglyMeasurable hE.aestronglyMeasurable
+    (Filter.Eventually.of_forall fun _ => by simp [nnnorm_mul])
     (hpqr := ⟨by simp [ENNReal.inv_two_add_inv_two]⟩)
   calc eLpNorm (fun ω => X ω * Real.exp (Z ω)) 1 P
       ≤ eLpNorm X 2 P * eLpNorm (fun ω => Real.exp (Z ω)) 2 P :=
-        h
+        by simpa only [ENNReal.coe_one, one_mul] using h
     _ ≤ ENNReal.ofReal (√a) * ENNReal.ofReal (Real.exp v) := mul_le_mul' hXn hEn
     _ = ENNReal.ofReal (√a * Real.exp v) := (ENNReal.ofReal_mul (Real.sqrt_nonneg _)).symm
 
@@ -100,7 +102,7 @@ theorem ae_summable_and_integrable_tsum_mul_exp [IsProbabilityMeasure P] {κ : T
   set K : ℝ := √a * Real.exp v with hK
   set f : κ → Ω → ℝ := fun b ω => G b * (|X b ω| * Real.exp (Z b ω)) with hf
   have hfm : ∀ b, AEStronglyMeasurable (f b) P := fun b =>
-    (((hX b).1.norm.mul (Real.measurable_exp.comp_aemeasurable
+    (((hX b).aestronglyMeasurable.norm.mul (Real.measurable_exp.comp_aemeasurable
       (hZ b).aemeasurable).aestronglyMeasurable).const_mul (G b))
   have hnorm : ∀ b, eLpNorm (f b) 1 P ≤ ENNReal.ofReal (G b) * ENNReal.ofReal K := fun b => by
     have h1 := eLpNorm_one_mul_exp_le (hZ b) (hZ0 b) (hX b).abs (a := a) (v := v)
@@ -113,7 +115,7 @@ theorem ae_summable_and_integrable_tsum_mul_exp [IsProbabilityMeasure P] {κ : T
     rw [ENNReal.tsum_mul_right, ← ENNReal.ofReal_tsum_of_nonneg hG0 hG]
     exact ENNReal.mul_ne_top ENNReal.ofReal_ne_top ENNReal.ofReal_ne_top
   refine ⟨?_, integrable_tsum_of_tsum_eLpNorm_ne_top le_rfl hfm hsum⟩
-  filter_upwards [summable_norm_of_tsum_eLpNorm_ne_top le_rfl hfm hsum] with ω hω
+  filter_upwards [summable_norm_of_tsum_eLpNorm_ne_top le_rfl hsum] with ω hω
   refine hω.congr fun b => ?_
   simp only [hf, Real.norm_eq_abs]
   exact abs_of_nonneg (mul_nonneg (hG0 b) (mul_nonneg (abs_nonneg _) (Real.exp_pos _).le))

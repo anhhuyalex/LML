@@ -5,6 +5,8 @@ Authors: LML Contributors
 -/
 module
 
+public import Mathlib.Analysis.Calculus.ParametricIntegral
+
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein
 public import Mathlib.Probability.Distributions.Gaussian.HasGaussianLaw.Basic
 public import Mathlib.Probability.Distributions.Gaussian.IsGaussianProcess.Basic
@@ -407,7 +409,7 @@ end Monomial
 Gaussian laws under `μ` and `ν`, then `z ↦ (f z.1, g z.2)` has a Gaussian law under `μ.prod ν`
 (the product of two Gaussian measures is Gaussian). -/
 theorem HasGaussianLaw.prodMk_prod {Ω₁ Ω₂ E F : Type*} {m₁ : MeasurableSpace Ω₁}
-    {m₂ : MeasurableSpace Ω₂} {μ : Measure Ω₁} {ν : Measure Ω₂} [SFinite μ] [SFinite ν]
+    {m₂ : MeasurableSpace Ω₂} {μ : Measure Ω₁} {ν : Measure Ω₂} [SFinite ν]
     [NormedAddCommGroup E] [NormedSpace ℝ E] [MeasurableSpace E] [BorelSpace E]
     [NormedAddCommGroup F] [NormedSpace ℝ F] [MeasurableSpace F] [BorelSpace F]
     [SecondCountableTopologyEither E F] {f : Ω₁ → E} {g : Ω₂ → F}

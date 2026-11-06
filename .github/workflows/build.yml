@@ -34,6 +34,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # Run before the expensive Lean build. A fresh checkout catches missing or ignored
       # Python modules and frontend assets that can accidentally pass local tests.
+      - name: Install the Stats dataset reader
+        run: python3 -m pip install -r scripts/website_stats/requirements.txt
       - name: Test Stats calculations, site assembly and browser interactions
         env:
           PYTHONDONTWRITEBYTECODE: '1'
@@ -41,7 +43,8 @@ jobs:
 
   build_project:
     needs: check_website_stats
-    runs-on: ubuntu-latest
+    # Upstream pins this runner to avoid documentation builds exhausting memory.
+    runs-on: ubuntu-24.04
     name: Build project
     steps:
       - name: Cleanup to free disk space
@@ -65,32 +68,22 @@ jobs:
           fetch-depth: 0 # Fetch all history for all branches and tags
 
       - name: Build and lint project
-        uses: leanprover/lean-action@50fcf42d2e460296f1a34b402e990d1b24f8b596 # v1.6.0
+        uses: leanprover/lean-action@fe408643ea7367d8c0404a8be3975bb145f5fb64 # v1.7.0
         with:
           build: true
           lint: true
           mk_all-check: true
 
-      # The whole Referee pipeline: the binary and its toolchain check, semantic_hash, collect,
-      # the provenance ledger's branch round trip, the revision-diff baseline, extract and
-      # build-site. All of it used to be spelled out here, in 240 lines that were copy-pasted into
-      # three repositories and then drifted apart. It now lives in the action, which is tested in
-      # its own repository.
-      #
-      # Pin the action source and binary release separately: a SHA action ref otherwise selects
-      # the latest release. The statistics reader is tested against this release's format 16.
+      # The maintained Referee reader follows the project's Lean toolchain. Stats consumes
+      # its versioned dataset protocol; a Lean bump does not change the statistics adapter.
       - name: Build the referee site
         id: referee
         if: github.event_name == 'push'
-        uses: LeanMachineLearning/exposition@4f43fed3fa5a6f55ef6daf848f5a1b9dd348b0cf # v4.34.0-rc2-7
+        uses: LeanTrustBuilders/referee-site@3b745e5b418ceff84f30f2f9a64af0c4938effa7 # v0.12.0
         with:
-          version: v4.34.0-rc2-7
           root: LeanMachineLearning
-          exclude-lib: LMLTutorial
-          site-url: https://anhhuyalex.github.io/LML/exposition
-          # An editorial claim, not a derived fact: it says whoever publishes this site vouches for
-          # Mathlib and everything under it. Drop it and every upstream package counts as unaudited.
           trust: mathlib
+          extract-args: --upstream-closure term
 
       # Unconditional, unlike the referee step: on a pull request this is the check that the
       # tutorial still builds. Placed after the referee step, which folds the provenance ledger, so
@@ -152,7 +145,7 @@ jobs:
       - name: Add exposition statistics
         if: github.event_name == 'push'
         env:
-          REFEREE_DATA: ${{ steps.referee.outputs.data }}
+          REFEREE_DATA: ${{ steps.referee.outputs.dataset }}
         run: |
           python3 scripts/build_stats.py --data "$REFEREE_DATA" \
             --repository "https://github.com/$GITHUB_REPOSITORY"

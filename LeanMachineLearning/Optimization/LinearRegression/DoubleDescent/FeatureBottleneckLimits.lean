@@ -132,14 +132,16 @@ theorem exists_orthonormal_snoc {ι : Type*} [Fintype ι] {n : ℕ} (Q : Matrix 
   induction c using Fin.lastCases with
   | last =>
     induction c' using Fin.lastCases with
-    | last => simpa [Matrix.mul_apply, Matrix.one_apply, dotProduct] using hu
-    | cast k' => simp [Matrix.mul_apply, (Fin.castSucc_lt_last k').ne', hue]
+    | last => simpa [Matrix.mul_apply, Function.swap_def, Matrix.one_apply, dotProduct] using hu
+    | cast k' =>
+      simp [Matrix.mul_apply, Function.swap_def, (Fin.castSucc_lt_last k').ne', hue]
   | cast k =>
     induction c' using Fin.lastCases with
     | last =>
-      simp [Matrix.mul_apply, (Fin.castSucc_lt_last k).ne]
+      simp [Matrix.mul_apply, Function.swap_def, (Fin.castSucc_lt_last k).ne]
       simpa [mul_comm] using hue k
-    | cast k' => simpa [Matrix.mul_apply, Matrix.one_apply] using hQe k k'
+    | cast k' =>
+      simpa [Matrix.mul_apply, Function.swap_def, Matrix.one_apply] using hQe k k'
 
 /-- **A Gaussian matrix against an orthonormal frame and one more direction.** If `X` has i.i.d.
 standard normal entries, `Qᵀ Q = 1`, and `u` is a unit vector orthogonal to the columns of `Q`,

@@ -1,12 +1,12 @@
 /-
 Copyright (c) 2026 Paulo Rauber. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Paulo Rauber
+Authors: Paulo Rauber, Rémy Degenne
 -/
 module
 
 public import LeanMachineLearning.Online.Bandit.Algorithms.TS
-public import LeanMachineLearning.Online.Bandit.SumRewards
+public import LeanMachineLearning.Online.Bandit.Concentration
 
 /-!
 # Bayesian regret of Thompson sampling
@@ -21,35 +21,58 @@ and properties are also given in this file.
 
 * `ucb A R l u σ2 δ a n` : clipped upper confidence bound used in the regret analysis of Thompson
   sampling for a sequence of actions `A : ℕ → Ω → Fin K`, rewards `R : ℕ → Ω → ℝ`, reward lower
-  bound `l : ℝ`, reward upper bound `u : ℝ`, sub-Gaussian variance proxy `σ2 : ℝ`, confidence
+  bound `l : ℝ`, reward upper bound `u : ℝ`, sub-Gaussian variance proxy `σ2 : ℝ≥0`, confidence
   parameter `δ : ℝ`, action `a : Fin K`, and time `n : ℕ`.
 * `ucb' n h l u σ2 δ a`: clipped upper confidence bound for action `a : Fin K` at time `n : ℕ` given
-  the history `h : Fin n → Fin K × ℝ` (rather than the entire sequences of actions and rewards).
+  the history `h : Hist Unit (Fin K) ℝ n` (rather than the entire sequences of actions and
+  rewards).
 
-## Main results
+## Main statements
 
-* `integral_regret_le`: if Thompson sampling has the correct prior over environments and every
-  environment has `K` actions, each of which has a corresponding reward between `l` and `u` that
-  is sub-Gaussian with variance proxy `σ2` after its mean is subtracted, then the Bayesian regret at
-  time `n` is at most `(2 * K + 1) * (u - l) + 8 * √(σ2 * K * n * Real.log n)`.
+* `TS.integral_regret_le`: if Thompson sampling has the correct prior over environments, in every
+  environment each of the `K` actions has a mean reward between `l` and `u`, and in almost every
+  environment (under the prior) the reward distribution of each action is sub-Gaussian with
+  variance proxy `σ2` after its mean is subtracted, then the Bayesian regret at time `n` is at most
+  `(2 * K + 1) * (u - l) + 8 * √(σ2 * K * n * log n)`.
+
+## Implementation notes
+
+The proof follows the upper confidence bound argument of Russo and Van Roy. Since the action played
+and the best action have the same conditional law given the history, the upper confidence bounds
+of the two actions have the same expectation, and the Bayesian regret is the sum of the expected
+differences between the mean of the best action and its upper confidence bound, and between the
+upper confidence bound and the mean of the action played (`TS.integral_regret_eq_add`). The first
+sum is controlled by concentration
+(`IsBayesAlgEnvSeq.prob_empMean_bestAction_sub_actionMean_le_le`), the second one by the widths of
+the confidence intervals.
+
+## References
+
+* D. Russo and B. Van Roy, *Learning to optimize via posterior sampling*, Mathematics of
+  Operations Research, 2014.
+* T. Lattimore and C. Szepesvári, *Bandit Algorithms*, Cambridge University Press, 2020,
+  Theorem 36.1.
 
 -/
 
 @[expose] public section
 
 open MeasureTheory ProbabilityTheory Finset Learning
+open scoped NNReal
+
 open IsBayesAlgEnvSeq (bestAction actionMean)
 
 namespace Bandits
 
 namespace ClippedUCB
 
-variable {K : ℕ} {l u σ2 δ : ℝ}
+variable {K : ℕ} {l u δ : ℝ} {σ2 : ℝ≥0}
 variable {Ω : Type*} {A : ℕ → Ω → Fin K} {R : ℕ → Ω → ℝ}
 
 /-- Clipped upper confidence bound used in the regret analysis of Thompson sampling. -/
 noncomputable
-def ucb (A : ℕ → Ω → Fin K) (R : ℕ → Ω → ℝ) (l u σ2 δ : ℝ) (a : Fin K) (n : ℕ) (ω : Ω) : ℝ :=
+def ucb (A : ℕ → Ω → Fin K) (R : ℕ → Ω → ℝ) (l u : ℝ) (σ2 : ℝ≥0) (δ : ℝ) (a : Fin K) (n : ℕ)
+    (ω : Ω) : ℝ :=
   if pullCount A a n ω = 0 then u
   else max l (min u (empMean A R a n ω + √(2 * σ2 * Real.log (1 / δ) / (pullCount A a n ω))))
 
@@ -71,6 +94,7 @@ lemma measurable_ucb [MeasurableSpace Ω] {a : Fin K} {n : ℕ} (hA : ∀ t, Mea
 lemma measurable_uncurry_ucb_comp [MeasurableSpace Ω] (hA : ∀ t, Measurable (A t))
     (hR : ∀ t, Measurable (R t)) {f : Ω → Fin K} (hf : Measurable f) {g : Ω → ℕ}
     (hg : Measurable g) : Measurable (fun ω ↦ ucb A R l u σ2 δ (f ω) (g ω) ω) := by
+  -- write the function as a composition with `fun ω ↦ (f ω, ω)`, then with `fun ω ↦ (g ω, ω)`
   change Measurable ((fun aω ↦ ucb A R l u σ2 δ aω.1 (g aω.2) aω.2) ∘ fun ω ↦ (f ω, ω))
   apply Measurable.comp _ (by fun_prop)
   apply measurable_from_prod_countable_right
@@ -93,7 +117,7 @@ lemma integrable_uncurry_ucb_comp [MeasurableSpace Ω] (hA : ∀ t, Measurable (
 
 /-- Clipped upper confidence bound (history-based version). -/
 noncomputable
-def ucb' (n : ℕ) (h : Hist Unit (Fin K) ℝ n) (l u σ2 δ : ℝ) (a : Fin K) : ℝ :=
+def ucb' (n : ℕ) (h : Hist Unit (Fin K) ℝ n) (l u : ℝ) (σ2 : ℝ≥0) (δ : ℝ) (a : Fin K) : ℝ :=
   if pullCount' n h a = 0 then u
   else max l (min u (empMean' n h a + √(2 * σ2 * Real.log (1 / δ) / (pullCount' n h a))))
 
@@ -133,11 +157,18 @@ private lemma sum_inv_sqrt_le {n : ℕ} (h : 0 < n) : ∑ k ∈ range (n + 1), 1
       have : √n * √n = n := Real.mul_self_sqrt (by positivity)
       nlinarith
 
-lemma sum_ucb_sub_mean_le {n : ℕ} {ω : Ω} (μ : Fin K → ℝ) (hμ : ∀ a, μ a ∈ Set.Icc l u) (hi : l ≤ u)
+lemma sum_ucb_sub_mean_le {n : ℕ} {ω : Ω} (μ : Fin K → ℝ) (hμ : ∀ a, μ a ∈ Set.Icc l u)
     (hc : ∀ s < n, pullCount A (A s ω) s ω ≠ 0 → empMean A R (A s ω) s ω - μ (A s ω)
       < √(2 * σ2 * Real.log (1 / δ) / (pullCount A (A s ω) s ω))) :
     ∑ s ∈ range n, (ucb A R l u σ2 δ (A s ω) s ω - μ (A s ω))
       ≤ (u - l) * K + 4 * √(2 * σ2 * Real.log (1 / δ) * K * n) := by
+  -- if `n = 0` both sides are `0` when `K = 0`, and otherwise `l ≤ u` follows from `hμ`
+  obtain hK | hK := K.eq_zero_or_pos
+  · subst hK
+    cases n with
+    | zero => simp
+    | succ n => exact (A 0 ω).elim0
+  have hi : l ≤ u := Set.nonempty_Icc.mp ⟨_, hμ ⟨0, hK⟩⟩
   let S₀ := {s ∈ range n | pullCount A (A s ω) s ω = 0}
   let S₁ := {s ∈ range n | pullCount A (A s ω) s ω ≠ 0}
   have hu : S₀ ∪ S₁ = range n := filter_union_filter_not_eq _ _
@@ -205,14 +236,19 @@ variable {P : Measure Ω} [IsProbabilityMeasure P]
 
 lemma integral_sum_range_actionMean_bestAction_sub_ucb_bestAction_le
     {alg : Algorithm Unit (Fin K) ℝ} (h : IsBayesAlgEnvSeq Q κ alg E A R P)
-    (hlu : l ≤ u) (hm : ∀ e a, (κ (e, a))[id] ∈ (Set.Icc l u)) (hσ2 : 0 < σ2)
-    (hs : ∀ e a, HasSubgaussianMGF (fun x ↦ x - (κ (e, a))[id]) ⟨σ2, hσ2.le⟩ (κ (e, a)))
-    (hδ : 0 < δ) (n : ℕ) :
+    (hm : ∀ e a, (κ (e, a))[id] ∈ (Set.Icc l u))
+    (hs : ∀ᵐ e ∂Q, ∀ a, HasSubgaussianMGF (fun x ↦ x - (κ (e, a))[id]) σ2 (κ (e, a)))
+    (hσ2 : σ2 ≠ 0) (hδ : 0 < δ) (n : ℕ) :
     P[fun ω ↦ ∑ t ∈ range n,
       (actionMean κ E (bestAction κ E ω) ω - ucb A R l u σ2 δ (bestAction κ E ω) t ω)] ≤
         (u - l) * (n - 1) * n * δ := by
+  obtain ⟨ω₀⟩ := nonempty_of_isProbabilityMeasure P
+  have hlu : l ≤ u := Set.nonempty_Icc.mp ⟨_, hm (E ω₀) (Classical.arbitrary _)⟩
   by_cases hn : n = 0
   · simp [hn]
+  -- `F` is the event on which the confidence interval of the best action fails at some time
+  -- `t < n`. On its complement, each term of the sum is nonpositive. On `F`, each term is at most
+  -- `u - l`, and `F` has probability at most `(n - 1) * δ`.
   let F := {ω | ∃ t < n, pullCount A (bestAction κ E ω) t ω ≠ 0 ∧
     empMean A R (bestAction κ E ω) t ω - actionMean κ E (bestAction κ E ω) ω ≤
       -√(2 * σ2 * Real.log (1 / δ) / (pullCount A (bestAction κ E ω) t ω))}
@@ -247,19 +283,24 @@ lemma integral_sum_range_actionMean_bestAction_sub_ucb_bestAction_le
         gcongr
         have : (1 : ℝ) ≤ n := by simp [Nat.one_le_iff_ne_zero, hn]
         apply ENNReal.toReal_le_of_le_ofReal (by nlinarith)
-        exact h.prob_empMean_bestAction_sub_actionMean_le_le hσ2 hs hδ n
+        exact h.prob_empMean_bestAction_sub_actionMean_le_le hs hσ2 hδ n
     _ = _ := by
       ring
 
 lemma integral_sum_range_ucb_action_sub_actionMean_action_le {alg : Algorithm Unit (Fin K) ℝ}
     (h : IsBayesAlgEnvSeq Q κ alg E A R P)
-    (hlu : l ≤ u) (hm : ∀ e a, (κ (e, a))[id] ∈ (Set.Icc l u)) (hσ2 : 0 < σ2)
-    (hs : ∀ e a, HasSubgaussianMGF (fun x ↦ x - (κ (e, a))[id]) ⟨σ2, hσ2.le⟩ (κ (e, a)))
-    (hδ : 0 < δ) (n : ℕ) :
+    (hm : ∀ e a, (κ (e, a))[id] ∈ (Set.Icc l u))
+    (hs : ∀ᵐ e ∂Q, ∀ a, HasSubgaussianMGF (fun x ↦ x - (κ (e, a))[id]) σ2 (κ (e, a)))
+    (hσ2 : σ2 ≠ 0) (hδ : 0 < δ) (n : ℕ) :
     P[fun ω ↦ ∑ t ∈ range n, (ucb A R l u σ2 δ (A t ω) t ω - actionMean κ E (A t ω) ω)] ≤
       (u - l) * K + 4 * √(2 * σ2 * Real.log (1 / δ) * K * n) + (u - l) * K * (n - 1) * n * δ := by
+  obtain ⟨ω₀⟩ := nonempty_of_isProbabilityMeasure P
+  have hlu : l ≤ u := Set.nonempty_Icc.mp ⟨_, hm (E ω₀) (Classical.arbitrary _)⟩
   by_cases hn : n = 0
   · simp [hn, hlu, mul_nonneg]
+  -- `F` is the event on which the confidence interval of some action fails at some time `t < n`.
+  -- On `F`, each term of the sum is at most `u - l`, and `F` has probability at most
+  -- `K * (n - 1) * δ`. On its complement, the sum is bounded by `sum_ucb_sub_mean_le`.
   let F := {ω | ∃ t < n, ∃ a, pullCount A a t ω ≠ 0 ∧
     √(2 * σ2 * Real.log (1 / δ) / pullCount A a t ω) ≤ empMean A R a t ω - actionMean κ E a ω}
   have := h.measurable_action
@@ -284,7 +325,7 @@ lemma integral_sum_range_ucb_action_sub_actionMean_action_le {alg : Algorithm Un
           intro ω hω
           rw [Set.mem_compl_iff, Set.mem_ofPred_eq] at hω
           push Not at hω
-          exact sum_ucb_sub_mean_le (fun a ↦ (κ (E ω, a))[id]) (hm (E ω)) hlu
+          exact sum_ucb_sub_mean_le (fun a ↦ (κ (E ω, a))[id]) (hm (E ω))
             (fun t ht hpc ↦ hω t ht (A t ω) hpc)
     _ = P.real F * (n * (u - l)) +
           P.real Fᶜ * ((u - l) * K + 4 * √(2 * σ2 * Real.log (1 / δ) * K * n)) := by
@@ -295,7 +336,8 @@ lemma integral_sum_range_ucb_action_sub_actionMean_action_le {alg : Algorithm Un
         gcongr
         · have : (0 : ℝ) ≤ n - 1 := by simp [Nat.one_le_iff_ne_zero, hn]
           apply ENNReal.toReal_le_of_le_ofReal (by positivity)
-          exact h.prob_empMean_sub_actionMean_ge_le hσ2 hs hδ n
+          exact (h.prob_empMean_sub_actionMean_ge_le hs hσ2 hδ n).trans_eq
+            (by rw [Fintype.card_fin])
         · exact measureReal_le_one
     _ = _ := by
         ring
@@ -307,7 +349,7 @@ namespace TS
 open ClippedUCB
 
 variable {K : ℕ} [NeZero K]
-variable {l u σ2 δ : ℝ}
+variable {l u δ : ℝ} {σ2 : ℝ≥0}
 variable {Ω : Type*} [MeasurableSpace Ω]
 variable {𝓔 : Type*} [MeasurableSpace 𝓔] [StandardBorelSpace 𝓔] [Nonempty 𝓔]
 variable {Q : Measure 𝓔} [IsProbabilityMeasure Q] {κ : Kernel (𝓔 × Fin K) ℝ} [IsMarkovKernel κ]
@@ -330,7 +372,7 @@ lemma integral_ucb_action_eq_integral_ucb_bestAction
     _ = ∫ ha, uc ha ∂P.map (fun ω ↦ (history (noObs Ω) A R n ω, bestAction κ E ω)) := by
         rw [← compProd_map_condDistrib (by fun_prop) (by fun_prop),
           ← compProd_map_condDistrib (by fun_prop) (by fun_prop),
-            Measure.compProd_congr (hasCondDistrib_action h n).condDistrib_eq]
+            Measure.compProd_congr (hasCondDistrib_action h n).condDistrib_ae_eq]
     _ = P[fun ω ↦ ucb A R l u σ2 δ (bestAction κ E ω) n ω] := by
         rw [integral_map (by fun_prop) (by fun_prop)]
         simp_rw [uc, ucb_eq_ucb' (O := noObs Ω)]
@@ -374,15 +416,14 @@ lemma integral_regret_eq_add (h : IsBayesAlgEnvSeq Q κ (tsAlgorithm Q κ) E A R
     _ = _ := by
         rw [← integral_finsetSum _ (by fun_prop), ← integral_finsetSum _ (by fun_prop)]
 
-/-- If Thompson sampling has the correct prior over environments and every environment has `K`
-actions, each of which has a corresponding reward between `l` and `u` that is sub-Gaussian with
-variance proxy `σ2` after its mean is subtracted, then the Bayesian regret at time `n` is at most
-`(2 * K + 1) * (u - l) + 8 * √(σ2 * K * n * Real.log n)`. -/
-theorem integral_regret_le (h : IsBayesAlgEnvSeq Q κ (tsAlgorithm Q κ) E A R P)
-    (hlu : l ≤ u) (hm : ∀ e a, (κ (e, a))[id] ∈ (Set.Icc l u)) (hσ2 : 0 < σ2)
-    (hs : ∀ e a, HasSubgaussianMGF (fun x ↦ x - (κ (e, a))[id]) ⟨σ2, hσ2.le⟩ (κ (e, a))) (n : ℕ) :
+/-- The bound of `integral_regret_le` for a nonzero variance proxy `σ2`. -/
+private lemma integral_regret_le_of_ne_zero (h : IsBayesAlgEnvSeq Q κ (tsAlgorithm Q κ) E A R P)
+    (hm : ∀ e a, (κ (e, a))[id] ∈ (Set.Icc l u))
+    (hs : ∀ᵐ e ∂Q, ∀ a, HasSubgaussianMGF (fun x ↦ x - (κ (e, a))[id]) σ2 (κ (e, a)))
+    (hσ2 : σ2 ≠ 0) (n : ℕ) :
     P[IsBayesAlgEnvSeq.regret κ E A n]
       ≤ (2 * K + 1) * (u - l) + 8 * √(σ2 * K * n * Real.log n) := by
+  have hlu : l ≤ u := Set.nonempty_Icc.mp ⟨_, hm (Classical.arbitrary 𝓔) 0⟩
   by_cases hn : n = 0
   · simp [hn, IsBayesAlgEnvSeq.regret, Bandits.regret]
     nlinarith
@@ -392,8 +433,8 @@ theorem integral_regret_le (h : IsBayesAlgEnvSeq Q κ (tsAlgorithm Q κ) E A R P
         integral_regret_eq_add h hm n
     _ ≤ _ :=
         add_le_add
-          (integral_sum_range_actionMean_bestAction_sub_ucb_bestAction_le h hlu hm hσ2 hs hδ n)
-          (integral_sum_range_ucb_action_sub_actionMean_action_le h hlu hm hσ2 hs hδ n)
+          (integral_sum_range_actionMean_bestAction_sub_ucb_bestAction_le h hm hs hσ2 hδ n)
+          (integral_sum_range_ucb_action_sub_actionMean_action_le h hm hs hσ2 hδ n)
     _ = K * (u - l) + (K + 1) * (u - l) * ((n - 1) / n)
           + 4 * √((2 : ℝ) ^ 2 * (σ2 * K * n * Real.log n)) := by
         field_simp
@@ -409,6 +450,27 @@ theorem integral_regret_le (h : IsBayesAlgEnvSeq Q κ (tsAlgorithm Q κ) E A R P
         linarith
     _ = _ := by
         ring
+
+open Filter Topology in
+/-- **Bayesian regret of Thompson sampling.** If Thompson sampling has the correct prior over
+environments, in every environment each of the `K` actions has a mean reward between `l` and `u`,
+and in almost every environment (under the prior) the reward distribution of each action is
+sub-Gaussian with variance proxy `σ2` after its mean is subtracted, then the Bayesian regret at
+time `n` is at most `(2 * K + 1) * (u - l) + 8 * √(σ2 * K * n * Real.log n)`. -/
+theorem integral_regret_le (h : IsBayesAlgEnvSeq Q κ (tsAlgorithm Q κ) E A R P)
+    (hm : ∀ e a, (κ (e, a))[id] ∈ (Set.Icc l u))
+    (hs : ∀ᵐ e ∂Q, ∀ a, HasSubgaussianMGF (fun x ↦ x - (κ (e, a))[id]) σ2 (κ (e, a)))
+    (n : ℕ) :
+    P[IsBayesAlgEnvSeq.regret κ E A n]
+      ≤ (2 * K + 1) * (u - l) + 8 * √(σ2 * K * n * Real.log n) := by
+  -- The bound holds for every variance proxy `σ2' > σ2`, which is nonzero, and is continuous in
+  -- the variance proxy: let `σ2'` tend to `σ2`.
+  have h_cont : Continuous fun σ2' : ℝ≥0 ↦
+      (2 * K + 1) * (u - l) + 8 * √(σ2' * K * n * Real.log n) := by fun_prop
+  refine ge_of_tendsto (x := 𝓝[>] σ2) ((h_cont.tendsto σ2).mono_left nhdsWithin_le_nhds) ?_
+  filter_upwards [self_mem_nhdsWithin] with σ2' hσ2'
+  exact integral_regret_le_of_ne_zero h hm (hs.mono fun e he a ↦ (he a).mono hσ2'.le)
+    (pos_of_gt (show σ2 < σ2' from hσ2')).ne' n
 
 end TS
 

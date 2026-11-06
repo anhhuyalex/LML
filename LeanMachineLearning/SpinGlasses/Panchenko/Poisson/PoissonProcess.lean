@@ -8,7 +8,7 @@ module
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Poisson.Thinning
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Poisson.SumCountable
 public import LeanMachineLearning.ForMathlib.Probability.Independence.Nonatomic
-public import LeanMachineLearning.ForMathlib.Probability.Independence.IndepInfinitePi
+public import LeanMachineLearning.ForMathlib.Probability.Independence.InfinitePi
 public import Mathlib.MeasureTheory.Measure.GiryMonad
 public import Mathlib.Probability.IdentDistrib
 

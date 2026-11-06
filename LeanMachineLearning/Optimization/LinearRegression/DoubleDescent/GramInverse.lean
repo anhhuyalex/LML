@@ -234,7 +234,7 @@ theorem trace_inv_gram_mul_self (Z : Matrix m n ℝ) (hZ : IsUnit (Zᵀ * Z).det
   have hcol : ∀ i j, (Zᵀ * Z)⁻¹ j i = (Zᵀ * Z)⁻¹ i j := fun i j => by
     conv_lhs => rw [← hsymm]
     rfl
-  simp only [trace, diag_apply, mul_apply]
+  simp only [trace, diag_apply, pow_two, Matrix.mul_apply]
   refine Finset.sum_congr rfl fun j _ => ?_
   simp only [hcol _ j, ← sq]
   rw [sum_eq_apply_add_sum_ne _ j]

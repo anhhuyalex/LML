@@ -57,7 +57,7 @@ theorem infinitePi_prod_map_zip (μ : ι → Measure X) (ν : ι → Measure Y)
 
 /-- Associating an outer factor with the coordinatewise pairing of two infinite products. -/
 theorem prod_infinitePi_map_assoc_zip {A : Type*} [MeasurableSpace A] (μ : Measure A)
-    [SFinite μ] (ν₁ : ι → Measure X) (ν₂ : ι → Measure Y)
+    (ν₁ : ι → Measure X) (ν₂ : ι → Measure Y)
     [∀ i, IsProbabilityMeasure (ν₁ i)] [∀ i, IsProbabilityMeasure (ν₂ i)] :
     ((μ.prod (infinitePi ν₁)).prod (infinitePi ν₂)).map
         (fun p => (p.1.1, fun i => (p.1.2 i, p.2 i))) =

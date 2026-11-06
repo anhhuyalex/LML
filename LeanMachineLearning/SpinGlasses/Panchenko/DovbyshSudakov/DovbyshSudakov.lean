@@ -112,7 +112,8 @@ theorem exists_dovbysh_sudakov_representation (hR : ∀ l l', Measurable fun ω 
     have hg𝒩 : Measurable fun (η : (I × ((ℕ → I) × (ℕ → I))) × (ℕ × ℕ → I)) (p : ℕ × ℕ) =>
         τ (η.1.1, η.1.2.1 p.1, η.1.2.2 p.2, η.2 p) := measurable_pi_iff.2 fun p =>
       hτ.comp (by fun_prop)
-    exact ((hg𝒩.hasLaw_map _).identDistrib ((hg𝒩.hasLaw_map _).comp hT.hasLaw))
+    exact (hasLaw_map hg𝒩.aemeasurable).identDistrib
+      ((hasLaw_map hg𝒩.aemeasurable).comp hT.hasLaw)
   -- the empirical second moments of `τ` converge: this is true for `g`, hence for `τ`
   have hEg : MeasurableSet {y : ℕ × ℕ → ℝ | ∃ c : ℝ, Tendsto (fun n : ℕ => (n : ℝ)⁻¹ *
       ∑ i ∈ range n, y (0, i) * y (0, i)) atTop (𝓝 c)} :=
@@ -163,7 +164,7 @@ theorem exists_dovbysh_sudakov_representation (hR : ∀ l l', Measurable fun ω 
     measurable_pi_iff.2 fun p => hR p.1 p.2
   have hRz : IdentDistrib (fun ω (p : ℕ × ℕ) => R ω p.1 p.2)
       (fun (z : Ω × (ℕ → ℕ → ℝ)) (p : ℕ × ℕ) => R z.1 p.1 p.2) P (P.prod γ) :=
-    (hRFm.hasLaw_map P).identDistrib ((hRFm.hasLaw_map P).comp
+    (hasLaw_map hRFm.aemeasurable).identDistrib ((hasLaw_map hRFm.aemeasurable).comp
       (measurePreserving_fst (μ := P) (ν := γ)).hasLaw)
   have hE1' : IdentDistrib (fun (z : Ω × (ℕ → ℕ → ℝ)) (p : ℕ × ℕ) => R z.1 p.1 p.2)
       (fun z => Lim (fun p => s p z)) (P.prod γ) (P.prod γ) :=
@@ -179,8 +180,8 @@ theorem exists_dovbysh_sudakov_representation (hR : ∀ l l', Measurable fun ω 
     IdentDistrib.of_ae_eq (hLimm.comp harrm).aemeasurable hE3
   have hE4 : IdentDistrib (fun m p => Fn m.1 p) (fun η p => Fn η p) M
       ((volume : Measure I).prod (Measure.infinitePi fun _ : ℕ => (volume : Measure I))) :=
-    ((hFnm.hasLaw_map _).comp measurePreserving_fst.hasLaw).identDistrib
-      (hFnm.hasLaw_map _)
+    ((hasLaw_map hFnm.aemeasurable).comp measurePreserving_fst.hasLaw).identDistrib
+      (hasLaw_map hFnm.aemeasurable)
   exact hRz.trans (hE1'.trans (hE2.trans (hE3'.trans hE4)))
 
 /-- **Dovbysh–Sudakov representation of an exchangeable Gram-type law.**  Let `Λ` be a probability

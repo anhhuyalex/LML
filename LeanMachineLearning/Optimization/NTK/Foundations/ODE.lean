@@ -5,6 +5,10 @@ Authors: LML Contributors
 -/
 module
 
+public import Mathlib.Analysis.ODE.Gronwall
+public import Mathlib.Analysis.Matrix.Normed
+public import Mathlib.Analysis.Calculus.FDeriv.Extend
+
 public import Mathlib.Analysis.InnerProductSpace.Calculus
 public import Mathlib.Analysis.ODE.ExistUnique
 public import Mathlib.Analysis.Normed.Algebra.MatrixExponential

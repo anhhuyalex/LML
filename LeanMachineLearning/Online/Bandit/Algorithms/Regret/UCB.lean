@@ -8,10 +8,27 @@ module
 public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
 public import Mathlib.Analysis.SumIntegralComparisons
 public import LeanMachineLearning.Online.Bandit.Algorithms.UCB
-public import LeanMachineLearning.Online.Bandit.SumRewards
+public import LeanMachineLearning.Online.Bandit.Concentration
 
 /-!
 # Regret bounds for the UCB algorithm
+
+## Main statements
+
+* `UCB.integral_pullCount_le`: for `σ2`-sub-Gaussian rewards, the expected number of pulls at time
+  `n` of an arm `a` with positive gap `Δₐ` by UCB with exploration parameter `c * σ2` is at most
+  `8 * c * σ2 * log (n + 1) / Δₐ ^ 2 + 2 + 2 * constSum c n`.
+* `UCB.regret_le_of_gt_two`: for `σ2`-sub-Gaussian rewards and an exploration parameter
+  `c > 2 * σ2`, the expected regret of UCB at time `n` is at most
+  `∑ a, (8 * c * log (n + 1) / Δₐ + Δₐ * (4 + 2 * σ2 / (c - 2 * σ2)))`. The term of an arm with
+  gap `0` is `0` (by the convention `x / 0 = 0`).
+
+## References
+
+* P. Auer, N. Cesa-Bianchi and P. Fischer, *Finite-time analysis of the multiarmed bandit problem*,
+  Machine Learning, 2002.
+* T. Lattimore and C. Szepesvári, *Bandit Algorithms*, Cambridge University Press, 2020,
+  Chapter 7.
 
 -/
 
@@ -53,7 +70,7 @@ omit [IsMarkovKernel ν] in
 /-- If the means of the best arm and of arm `b` lie in their confidence intervals and the UCB index
 of `b` is at least that of the best arm, then the number of pulls of `b` is at most
 `8 * c * log (n + 1) / gap ν b ^ 2`. -/
-lemma pullCount_le_of_ucbIndex_le (hc : 0 ≤ c) {b : Fin K}
+lemma pullCount_le_of_ucbIndex_le {b : Fin K}
     (h_best : (ν (bestArm ν))[id] ≤ empMean A R (bestArm ν) n ω + ucbWidth A c (bestArm ν) n ω)
     (h_arm : empMean A R b n ω - ucbWidth A c b n ω ≤ (ν b)[id])
     (h_le : empMean A R (bestArm ν) n ω + ucbWidth A c (bestArm ν) n ω ≤
@@ -69,62 +86,58 @@ lemma pullCount_le_of_ucbIndex_le (hc : 0 ≤ c) {b : Fin K}
     rw [this] at h2
     field_simp at h2 ⊢
     grind
-  · have : 0 ≤ log (n + 1) := by simp [log_nonneg]
-    positivity
+  · -- for a negative argument, the square root is `0` and the gap would be nonpositive
+    by_contra h_neg
+    rw [sqrt_eq_zero_of_nonpos (not_le.1 h_neg).le] at h_gap_le
+    linarith
+
+/-- Auxiliary lemma for `prob_ucbIndex_le` and `prob_lcbIndex_ge`: the bound of
+`prob_exists_empMean_sub_le_neg_sqrt_le` at time `n + 1` with `L = c * log (n + 1)` is at most
+`1 / (n + 1) ^ (c - 1)`. -/
+private lemma ofReal_mul_exp_neg_mul_log_le (c : ℝ) (n : ℕ) :
+    ENNReal.ofReal ((↑(n + 1) - 1) * exp (-(c * log (n + 1)))) ≤ 1 / (n + 1) ^ (c - 1) := by
+  have hn : (0 : ℝ) < n + 1 := by positivity
+  calc ENNReal.ofReal ((↑(n + 1) - 1) * exp (-(c * log (n + 1))))
+  _ ≤ ENNReal.ofReal ((n + 1) ^ (1 - c)) := by
+    refine ENNReal.ofReal_le_ofReal ?_
+    rw [rpow_def_of_pos hn, show log (n + 1) * (1 - c) = log (n + 1) + -(c * log (n + 1)) by ring,
+      exp_add, exp_log hn]
+    gcongr
+    push_cast
+    linarith
+  _ = 1 / (n + 1) ^ (c - 1) := by
+    rw [← ENNReal.ofReal_rpow_of_pos hn, one_div, ← ENNReal.rpow_neg, neg_sub,
+      ENNReal.ofReal_add (by positivity) zero_le_one, ENNReal.ofReal_natCast, ENNReal.ofReal_one]
 
 /-- The probability that the UCB index of arm `a` is below its mean is at most
 `1 / (n + 1) ^ (c - 1)`. -/
 lemma prob_ucbIndex_le {alg : Algorithm Unit (Fin K) ℝ}
-    (h : IsAlgEnvSeq O A R alg (stationaryEnv ν) P)
+    (h : IsAlgEnvSeq O A R alg (Environment.bandit ν) P)
     (hν : ∀ a, HasSubgaussianMGF (fun x ↦ x - (ν a)[id]) σ2 (ν a))
-    (hσ2 : σ2 ≠ 0) (hc : 0 ≤ c) (a : Fin K) (n : ℕ) :
+    (hσ2 : σ2 ≠ 0) (c : ℝ) (a : Fin K) (n : ℕ) :
     P {ω | 0 < pullCount A a n ω ∧ empMean A R a n ω + ucbWidth A (c * σ2) a n ω ≤ (ν a)[id]} ≤
       1 / (n + 1) ^ (c - 1) := by
-  have h_le := prob_pullCount_pos_and_le h a n
-    (p := fun k x ↦ x / k + √(2 * c * σ2 * log (n + 1) / k) ≤ (ν a)[id])
-    (B := 1 / (n + 1) ^ c) ?_ ?_
-  rotate_left
-  · simp only [Nat.cast_nonneg, sqrt_div', id_eq]
-    fun_prop
-  · exact fun k hk ↦ prob_avg_add_sqrt_log_le hν hσ2 hc a n k hk
-  simp only [mul_assoc] at h_le
-  simp only [empMean, ucbWidth, mul_assoc]
-  calc _ ≤ (n : ℝ≥0∞) * (1 / (n + 1) ^ c) := h_le
-  _ ≤ (n + 1) * (1 : ℝ≥0∞) / (n + 1) ^ c := by
-    rw [mul_one_div, mul_one]
-    gcongr
-    exact le_self_add
-  _ = 1 / (n + 1) ^ (c - 1) := by
-    simp only [mul_one, one_div]
-    rw [ENNReal.rpow_sub _ _ (by simp) (by finiteness), ENNReal.rpow_one, div_eq_mul_inv,
-      ENNReal.div_eq_inv_mul, ENNReal.mul_inv (by simp) (by simp), inv_inv]
+  refine le_trans (measure_mono ?_) ((prob_exists_empMean_sub_le_neg_sqrt_le h (hν a) hσ2
+    (c * log (n + 1)) (n + 1)).trans (ofReal_mul_exp_neg_mul_log_le c n))
+  rintro ω ⟨h_pos, h_le⟩
+  refine ⟨n, n.lt_add_one, h_pos.ne', ?_⟩
+  rw [ucbWidth, show 2 * (c * σ2) * log (n + 1) = 2 * σ2 * (c * log (n + 1)) by ring] at h_le
+  linarith
 
 /-- The probability that the lower confidence bound of arm `a` is above its mean is at most
 `1 / (n + 1) ^ (c - 1)`. -/
 lemma prob_lcbIndex_ge {alg : Algorithm Unit (Fin K) ℝ}
-    (h : IsAlgEnvSeq O A R alg (stationaryEnv ν) P)
+    (h : IsAlgEnvSeq O A R alg (Environment.bandit ν) P)
     (hν : ∀ a, HasSubgaussianMGF (fun x ↦ x - (ν a)[id]) σ2 (ν a))
-    (hσ2 : σ2 ≠ 0) (hc : 0 ≤ c) (a : Fin K) (n : ℕ) :
+    (hσ2 : σ2 ≠ 0) (c : ℝ) (a : Fin K) (n : ℕ) :
     P {ω | 0 < pullCount A a n ω ∧
       (ν a)[id] ≤ empMean A R a n ω - ucbWidth A (c * σ2) a n ω} ≤ 1 / (n + 1) ^ (c - 1) := by
-  have h_le := prob_pullCount_pos_and_le h a n
-    (p := fun k x ↦ (ν a)[id] ≤ x / k - √(2 * c * σ2 * log (n + 1) / k))
-    (B := 1 / (n + 1) ^ c) ?_ ?_
-  rotate_left
-  · simp only [Nat.cast_nonneg, sqrt_div', id_eq]
-    fun_prop
-  · exact fun k hk ↦ prob_avg_sub_sqrt_log_ge hν hσ2 hc a n k hk
-  simp only [mul_assoc] at h_le
-  simp only [empMean, ucbWidth, mul_assoc]
-  calc _ ≤ (n : ℝ≥0∞) * (1 / (n + 1) ^ c) := h_le
-  _ ≤ (n + 1) * (1 : ℝ≥0∞) / (n + 1) ^ c := by
-    rw [mul_one_div, mul_one]
-    gcongr
-    exact le_self_add
-  _ = 1 / (n + 1) ^ (c - 1) := by
-    simp only [mul_one, one_div]
-    rw [ENNReal.rpow_sub _ _ (by simp) (by finiteness), ENNReal.rpow_one, div_eq_mul_inv,
-      ENNReal.div_eq_inv_mul, ENNReal.mul_inv (by simp) (by simp), inv_inv]
+  refine le_trans (measure_mono ?_) ((prob_exists_sqrt_le_empMean_sub_le h (hν a) hσ2
+    (c * log (n + 1)) (n + 1)).trans (ofReal_mul_exp_neg_mul_log_le c n))
+  rintro ω ⟨h_pos, h_le⟩
+  refine ⟨n, n.lt_add_one, h_pos.ne', ?_⟩
+  rw [ucbWidth, show 2 * (c * σ2) * log (n + 1) = 2 * σ2 * (c * log (n + 1)) by ring] at h_le
+  linarith
 
 omit [IsMarkovKernel ν] in
 lemma pullCount_le_add_three (a : Fin K) (n C : ℕ) (ω : Ω) :
@@ -149,6 +162,7 @@ lemma pullCount_le_add_three (a : Fin K) (n C : ℕ) (ω : Ω) :
   let C' := {s | C < pullCount A a s ω ∧
     empMean A R (bestArm ν) s ω + ucbWidth A c (bestArm ν) s ω < (ν (bestArm ν))[id]}
   let D := {s | C < pullCount A a s ω ∧ (ν a)[id] < empMean A R a s ω - ucbWidth A c a s ω}
+  -- fold the sets `A'`, `B`, `C'` and `D`
   change ∑ s ∈ range n, A'.indicator 1 s ≤
     ∑ s ∈ range n, B.indicator 1 s + ∑ s ∈ range n, C'.indicator 1 s +
       ∑ s ∈ range n, D.indicator 1 s
@@ -170,7 +184,7 @@ lemma pullCount_le_add_three (a : Fin K) (n C : ℕ) (ω : Ω) :
       rw [Finset.sum_add_distrib, Finset.sum_add_distrib]
 
 lemma pullCount_le_add_three_ae
-    (h : IsAlgEnvSeq O A R (ucbAlgorithm K c) (stationaryEnv ν) P)
+    (h : IsAlgEnvSeq O A R (ucbAlgorithm K c) (Environment.bandit ν) P)
     (a : Fin K) (n C : ℕ) (hC : C ≠ 0) :
     ∀ᵐ ω ∂P,
     pullCount A a n ω ≤ C + 1 +
@@ -195,7 +209,7 @@ lemma pullCount_le_add_three_ae
 at which it already has more than `C` pulls and the means of the best arm and of `a` lie in
 their confidence intervals. -/
 lemma sum_indicator_good_event_eq_zero
-    (h : IsAlgEnvSeq O A R (ucbAlgorithm K (c * σ2)) (stationaryEnv ν) P)
+    (h : IsAlgEnvSeq O A R (ucbAlgorithm K (c * σ2)) (Environment.bandit ν) P)
     (hc : 0 ≤ c) (a : Fin K) (h_gap : 0 < gap ν a) (n C : ℕ)
     (hC : C ≠ 0) (hC' : 8 * c * σ2 * log (n + 1) / gap ν a ^ 2 ≤ C) :
     ∀ᵐ ω ∂P,
@@ -210,7 +224,7 @@ lemma sum_indicator_good_event_eq_zero
     Set.mem_ofPred_eq, Pi.one_apply, one_ne_zero, imp_false, not_and, not_le]
   intro k hn h_arm hC_lt h_le_best
   by_contra! h_le_arm
-  have h := pullCount_le_of_ucbIndex_le (b := A k ω) (by positivity : 0 ≤ c * σ2) h_le_best
+  have h := pullCount_le_of_ucbIndex_le (b := A k ω) h_le_best
     (by simpa) ?_ ?_ ?_
   rotate_left
   · refine h_le _ ?_
@@ -228,7 +242,8 @@ lemma sum_indicator_good_event_eq_zero
     simp_rw [← mul_assoc]
     gcongr
 
-lemma pullCount_ae_le_add_two (h : IsAlgEnvSeq O A R (ucbAlgorithm K (c * σ2)) (stationaryEnv ν) P)
+lemma pullCount_ae_le_add_two
+    (h : IsAlgEnvSeq O A R (ucbAlgorithm K (c * σ2)) (Environment.bandit ν) P)
     (hc : 0 ≤ c) (a : Fin K) (h_gap : 0 < gap ν a)
     (n C : ℕ) (hC : C ≠ 0) (hC' : 8 * c * σ2 * log (n + 1) / gap ν a ^ 2 ≤ C) :
     ∀ᵐ ω ∂P,
@@ -295,18 +310,16 @@ lemma constSum_le {c : ℝ} (hc : 2 < c) (n : ℕ) : constSum c n ≤ 1 + 1 / (c
     _ ≤ 1 + 1 / (c - 2) := by gcongr; linarith
 
 /-- Bound on the expectation of the number of pulls of each arm by the UCB algorithm. -/
-lemma expectation_pullCount_le'
-    (h : IsAlgEnvSeq O A R (ucbAlgorithm K (c * σ2)) (stationaryEnv ν) P)
+lemma lintegral_pullCount_le
+    (h : IsAlgEnvSeq O A R (ucbAlgorithm K (c * σ2)) (Environment.bandit ν) P)
     (hν : ∀ a, HasSubgaussianMGF (fun x ↦ x - (ν a)[id]) σ2 (ν a))
-    (hσ2 : σ2 ≠ 0) (hc : 0 < c) (a : Fin K) (h_gap : 0 < gap ν a) (n : ℕ) :
+    (hσ2 : σ2 ≠ 0) (hc : 0 ≤ c) (a : Fin K) (h_gap : 0 < gap ν a) (n : ℕ) :
     ∫⁻ ω, pullCount A a n ω ∂P ≤
       ENNReal.ofReal (8 * c * σ2 * log (n + 1) / gap ν a ^ 2 + 1) + 1 +
         2 * ENNReal.ofReal (constSum c n) := by
   have hA := h.measurable_action
   have hR := h.measurable_feedback
-  by_cases hn_zero : n = 0
-  · simp [hn_zero]
-  let C a : ℕ := ⌈8 * c * σ2 * log (n + 1) / gap ν a ^ 2⌉₊
+  let C a : ℕ := max 1 ⌈8 * c * σ2 * log (n + 1) / gap ν a ^ 2⌉₊
   have h_set_1 b : MeasurableSet {ω | 0 < pullCount A a b ω ∧
       (ν a)[id] < empMean A R a b ω - ucbWidth A (c * σ2) a b ω} := by
     simp only [measurableSet_setOfPred]
@@ -334,11 +347,10 @@ lemma expectation_pullCount_le'
         {s | 0 < pullCount A a s ω ∧ (ν a)[id] <
           empMean A R a s ω - ucbWidth A (c * σ2) a s ω}.indicator (1 : ℕ → ℕ) s ∂P := by
     refine lintegral_mono_ae ?_
-    have hCa : C a ≠ 0 := by
-      simp only [ne_eq, Nat.ceil_eq_zero, not_le, C]
-      have : 0 < log (n + 1) := log_pos (by simp; grind)
-      positivity
-    filter_upwards [pullCount_ae_le_add_two h hc.le a h_gap n (C a) hCa (Nat.le_ceil _)] with ω hω
+    have hCa : C a ≠ 0 := (zero_lt_one.trans_le (le_max_left _ _)).ne'
+    have hC_le : 8 * c * σ2 * log (n + 1) / gap ν a ^ 2 ≤ C a :=
+      (Nat.le_ceil _).trans (Nat.cast_le.mpr (le_max_right _ _))
+    filter_upwards [pullCount_ae_le_add_two h hc a h_gap n (C a) hCa hC_le] with ω hω
     simp only [id_eq, Nat.cast_sum]
     norm_cast
   _ ≤ (C a : ℝ≥0∞) + 1 +
@@ -365,9 +377,9 @@ lemma expectation_pullCount_le'
       ∑ s ∈ range n, 1 / ((s : ℝ≥0∞) + 1) ^ (c - 1) +
       ∑ s ∈ range n, 1 / ((s : ℝ≥0∞) + 1) ^ (c - 1) := by
     gcongr with s hs s hs
-    · refine (measure_mono ?_).trans (prob_ucbIndex_le h hν hσ2 (by positivity) (bestArm ν) s)
+    · refine (measure_mono ?_).trans (prob_ucbIndex_le h hν hσ2 c (bestArm ν) s)
       grind
-    · refine (measure_mono ?_).trans (prob_lcbIndex_ge h hν hσ2 (by positivity) a s)
+    · refine (measure_mono ?_).trans (prob_lcbIndex_ge h hν hσ2 c a s)
       grind
   _ ≤ ENNReal.ofReal (8 * c * σ2 * log (n + 1) / gap ν a ^ 2 + 1) + 1 +
       2 * ENNReal.ofReal (constSum c n) := by
@@ -376,18 +388,21 @@ lemma expectation_pullCount_le'
     simp only [C]
     rw [← ENNReal.ofReal_natCast]
     refine ENNReal.ofReal_le_ofReal ?_
-    refine (Nat.ceil_lt_add_one ?_).le
-    have : 0 ≤ log (n + 1) := log_nonneg (by simp)
-    positivity
+    have : 0 ≤ 8 * c * σ2 * log (n + 1) / gap ν a ^ 2 := by
+      have : 0 ≤ log (n + 1) := log_nonneg (by simp)
+      positivity
+    rw [Nat.cast_max, Nat.cast_one]
+    exact max_le (by linarith) (Nat.ceil_lt_add_one this).le
 
 /-- Bound on the expectation of the number of pulls of each arm by the UCB algorithm. -/
-lemma expectation_pullCount_le (h : IsAlgEnvSeq O A R (ucbAlgorithm K (c * σ2)) (stationaryEnv ν) P)
+lemma integral_pullCount_le
+    (h : IsAlgEnvSeq O A R (ucbAlgorithm K (c * σ2)) (Environment.bandit ν) P)
     (hν : ∀ a, HasSubgaussianMGF (fun x ↦ x - (ν a)[id]) σ2 (ν a))
-    (hσ2 : σ2 ≠ 0) (hc : 0 < c) (a : Fin K) (h_gap : 0 < gap ν a) (n : ℕ) :
+    (hσ2 : σ2 ≠ 0) (hc : 0 ≤ c) (a : Fin K) (h_gap : 0 < gap ν a) (n : ℕ) :
     P[fun ω ↦ (pullCount A a n ω : ℝ)] ≤
       8 * c * σ2 * log (n + 1) / gap ν a ^ 2 + 2 + 2 * constSum c n := by
   have hA := h.measurable_action
-  have h := expectation_pullCount_le' h hν hσ2 hc a h_gap n
+  have h := lintegral_pullCount_le h hν hσ2 hc a h_gap n
   simp_rw [← ENNReal.ofReal_natCast] at h
   rw [← ofReal_integral_eq_lintegral_ofReal] at h
   rotate_left
@@ -402,61 +417,85 @@ lemma expectation_pullCount_le (h : IsAlgEnvSeq O A R (ucbAlgorithm K (c * σ2))
   refine h.trans_eq ?_
   ring
 
-/-- Regret bound for the UCB algorithm. -/
-lemma regret_le (h : IsAlgEnvSeq O A R (ucbAlgorithm K (c * σ2)) (stationaryEnv ν) P)
+/-- Regret bound for the UCB algorithm with exploration parameter `c * σ2`, for `σ2`-sub-Gaussian
+rewards. -/
+lemma regret_le' (h : IsAlgEnvSeq O A R (ucbAlgorithm K (c * σ2)) (Environment.bandit ν) P)
     (hν : ∀ a, HasSubgaussianMGF (fun x ↦ x - (ν a)[id]) σ2 (ν a))
-    (hσ2 : σ2 ≠ 0) (hc : 0 < c) (n : ℕ) :
+    (hσ2 : σ2 ≠ 0) (hc : 0 ≤ c) (n : ℕ) :
     P[regret ν A n] ≤
       ∑ a, (8 * c * σ2 * log (n + 1) / gap ν a + gap ν a * (2 + 2 * constSum c n)) := by
-  refine (integral_regret_le_of_forall_integral_pullCount_le h
-    (fun a h_gap ↦ expectation_pullCount_le h hν hσ2 hc a
+  refine (integral_regret_le_of_forall_integral_pullCount_le h.measurable_action
+    (fun a h_gap ↦ integral_pullCount_le h hν hσ2 hc a
       (lt_of_le_of_ne' gap_nonneg h_gap) n)).trans_eq ?_
   congr with a
   by_cases h_gap : gap ν a = 0
   · simp [h_gap]
   · field
 
-/-- Regret bound for the UCB algorithm with an explicit constant, for `c > 2`. -/
-lemma regret_le_of_gt_two (h : IsAlgEnvSeq O A R (ucbAlgorithm K (c * σ2)) (stationaryEnv ν) P)
+/-- Regret bound for the UCB algorithm with exploration parameter `c * σ2`, for `σ2`-sub-Gaussian
+rewards and `c > 2`, with an explicit constant. -/
+lemma regret_le_of_gt_two'
+    (h : IsAlgEnvSeq O A R (ucbAlgorithm K (c * σ2)) (Environment.bandit ν) P)
     (hν : ∀ a, HasSubgaussianMGF (fun x ↦ x - (ν a)[id]) σ2 (ν a))
     (hσ2 : σ2 ≠ 0) (hc : 2 < c) (n : ℕ) :
     P[regret ν A n] ≤
       ∑ a, (8 * c * σ2 * log (n + 1) / gap ν a + gap ν a * (4 + 2 / (c - 2))) := by
-  refine (regret_le h hν hσ2 (by linarith) n).trans (Finset.sum_le_sum fun a _ ↦ ?_)
+  refine (regret_le' h hν hσ2 (by linarith) n).trans (Finset.sum_le_sum fun a _ ↦ ?_)
   have h_le : 2 + 2 * constSum c n ≤ 4 + 2 / (c - 2) := by
     have := constSum_le hc n
     rw [show (4 : ℝ) + 2 / (c - 2) = 2 + 2 * (1 + 1 / (c - 2)) by ring]
     gcongr
   exact add_le_add le_rfl (mul_le_mul_of_nonneg_left h_le (gap_nonneg (ν := ν) (a := a)))
 
-/-- Regret bound for the UCB algorithm with exploration constant `c`,
-for `σ2`-subgaussian rewards. -/
-lemma regret_le' (h : IsAlgEnvSeq O A R (ucbAlgorithm K c) (stationaryEnv ν) P)
+/-- Regret bound for the UCB algorithm with exploration parameter `c`, for `σ2`-sub-Gaussian
+rewards. -/
+lemma regret_le (h : IsAlgEnvSeq O A R (ucbAlgorithm K c) (Environment.bandit ν) P)
     (hν : ∀ a, HasSubgaussianMGF (fun x ↦ x - (ν a)[id]) σ2 (ν a))
-    (hσ2 : σ2 ≠ 0) (hc : 0 < c) (n : ℕ) :
+    (hσ2 : σ2 ≠ 0) (hc : 0 ≤ c) (n : ℕ) :
     P[regret ν A n] ≤
       ∑ a, (8 * c * log (n + 1) / gap ν a + gap ν a * (2 + 2 * constSum (c / σ2) n)) := by
   have hσ2' : (0 : ℝ) < σ2 := NNReal.coe_pos.mpr (pos_iff_ne_zero.mpr hσ2)
-  have h' : IsAlgEnvSeq O A R (ucbAlgorithm K (c / σ2 * σ2)) (stationaryEnv ν) P := by
+  have h' : IsAlgEnvSeq O A R (ucbAlgorithm K (c / σ2 * σ2)) (Environment.bandit ν) P := by
     rwa [div_mul_cancel₀ _ hσ2'.ne']
-  refine (regret_le h' hν hσ2 (div_pos hc hσ2') n).trans_eq ?_
+  refine (regret_le' h' hν hσ2 (div_nonneg hc hσ2'.le) n).trans_eq ?_
   rw [show (8 : ℝ) * (c / σ2) * σ2 = 8 * c by rw [mul_assoc, div_mul_cancel₀ _ hσ2'.ne']]
 
-/-- Regret bound for the UCB algorithm with exploration constant `c > 2 * σ2`, for `σ2`-subgaussian
-rewards, with an explicit constant. -/
-theorem regret_le_of_gt_two' (h : IsAlgEnvSeq O A R (ucbAlgorithm K c) (stationaryEnv ν) P)
+/-- The bound of `regret_le_of_gt_two` for a nonzero variance proxy `σ2`. -/
+private lemma regret_le_of_gt_two_of_ne_zero
+    (h : IsAlgEnvSeq O A R (ucbAlgorithm K c) (Environment.bandit ν) P)
     (hν : ∀ a, HasSubgaussianMGF (fun x ↦ x - (ν a)[id]) σ2 (ν a))
     (hσ2 : σ2 ≠ 0) (hc : 2 * σ2 < c) (n : ℕ) :
     P[regret ν A n] ≤
       ∑ a, (8 * c * log (n + 1) / gap ν a + gap ν a * (4 + 2 * σ2 / (c - 2 * σ2))) := by
   have hσ2' : (0 : ℝ) < σ2 := NNReal.coe_pos.mpr (pos_iff_ne_zero.mpr hσ2)
-  have h' : IsAlgEnvSeq O A R (ucbAlgorithm K (c / σ2 * σ2)) (stationaryEnv ν) P := by
+  have h' : IsAlgEnvSeq O A R (ucbAlgorithm K (c / σ2 * σ2)) (Environment.bandit ν) P := by
     rwa [div_mul_cancel₀ _ hσ2'.ne']
   have hc' : 2 < c / σ2 := by rwa [lt_div_iff₀ hσ2']
-  refine (regret_le_of_gt_two h' hν hσ2 hc' n).trans_eq ?_
+  refine (regret_le_of_gt_two' h' hν hσ2 hc' n).trans_eq ?_
   rw [show (8 : ℝ) * (c / σ2) * σ2 = 8 * c by rw [mul_assoc, div_mul_cancel₀ _ hσ2'.ne'],
     show c / σ2 - 2 = (c - 2 * σ2) / σ2 by rw [sub_div, mul_div_assoc, div_self hσ2'.ne', mul_one],
     div_div_eq_mul_div]
+
+open Topology in
+/-- Regret bound for the UCB algorithm with exploration parameter `c > 2 * σ2`, for
+`σ2`-sub-Gaussian rewards, with an explicit constant. -/
+theorem regret_le_of_gt_two (h : IsAlgEnvSeq O A R (ucbAlgorithm K c) (Environment.bandit ν) P)
+    (hν : ∀ a, HasSubgaussianMGF (fun x ↦ x - (ν a)[id]) σ2 (ν a))
+    (hc : 2 * σ2 < c) (n : ℕ) :
+    P[regret ν A n] ≤
+      ∑ a, (8 * c * log (n + 1) / gap ν a + gap ν a * (4 + 2 * σ2 / (c - 2 * σ2))) := by
+  -- The bound holds for every variance proxy `σ2' > σ2` close enough to `σ2` that `2 * σ2' < c`,
+  -- and is continuous in the variance proxy at `σ2`: let `σ2'` tend to `σ2`.
+  have h_cont : ContinuousAt (fun x : ℝ ↦
+      ∑ a, (8 * c * log (n + 1) / gap ν a + gap ν a * (4 + 2 * x / (c - 2 * x)))) σ2 := by
+    fun_prop (disch := exact (sub_pos.2 hc).ne')
+  have h_tendsto : Tendsto (fun σ2' : ℝ≥0 ↦ (σ2' : ℝ)) (𝓝[>] σ2) (𝓝 σ2) :=
+    (NNReal.continuous_coe.tendsto σ2).mono_left nhdsWithin_le_nhds
+  refine ge_of_tendsto (h_cont.tendsto.comp h_tendsto) ?_
+  filter_upwards [self_mem_nhdsWithin, (h_tendsto.const_mul 2).eventually_lt_const hc]
+    with σ2' hσ2' hc'
+  exact regret_le_of_gt_two_of_ne_zero h (fun a ↦ (hν a).mono (show σ2 < σ2' from hσ2').le)
+    (pos_of_gt (show σ2 < σ2' from hσ2')).ne' hc' n
 
 end UCB
 

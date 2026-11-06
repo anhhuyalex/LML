@@ -324,8 +324,7 @@ lemma map_cholesky2x2_stdGaussian (ρ : ℝ) (hρ : ρ ∈ Set.Icc (-1) 1) :
       rw [vecMul_vecMul]
       rw [dotProduct_mulVec]
     rw [h_eval]
-    have h_L := cholesky2x2_mul_transpose ρ hρ
-    dsimp [L] at h_L
+    have h_L : L * Lᵀ = !![1, ρ; ρ, 1] := cholesky2x2_mul_transpose ρ hρ
     rw [h_L]
 
 /-! ### Step 1: Reduction to Standardized Variables via Positive Homogeneity -/
@@ -368,8 +367,8 @@ lemma map_diagScale2x2_multivariateGaussian
     have h_u : (T u : Fin 2 → ℝ) = D *ᵥ u := ofLp_toEuclideanCLM D u
     have h_v : (T v : Fin 2 → ℝ) = D *ᵥ v := ofLp_toEuclideanCLM D v
     rw [h_u, h_v]
-    have h_scale := diagScale2x2_mul_corr_mul_diagScale Φαα Φββ Φαβ hΦαα hΦββ
-    dsimp [D, ρ] at h_scale
+    have h_scale : D * !![1, ρ; ρ, 1] * Dᵀ = !![Φαα, Φαβ; Φαβ, Φββ] :=
+      diagScale2x2_mul_corr_mul_diagScale Φαα Φββ Φαβ hΦαα hΦββ
     have h_eval : (D *ᵥ (u : Fin 2 → ℝ)) ⬝ᵥ !![1, ρ; ρ, 1] *ᵥ (D *ᵥ (v : Fin 2 → ℝ)) =
         (u : Fin 2 → ℝ) ⬝ᵥ (D * !![1, ρ; ρ, 1] * Dᵀ) *ᵥ (v : Fin 2 → ℝ) := by
       simp only [dotProduct, mulVec, Fin.sum_univ_two, D]

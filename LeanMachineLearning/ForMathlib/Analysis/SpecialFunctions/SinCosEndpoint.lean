@@ -5,6 +5,8 @@ Authors: LML Contributors
 -/
 module
 
+public import Mathlib.Analysis.Calculus.Deriv.Pow
+
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
 public import Mathlib.Analysis.Calculus.Deriv.MeanValue

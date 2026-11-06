@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.Renormalization.MLPInitialization
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.MapProdFiberLaw
 public import Mathlib.Analysis.SpecialFunctions.Pow.Real
 public import Mathlib.LinearAlgebra.Matrix.PosDef
 public import Mathlib.MeasureTheory.Measure.CharacteristicFunction.Basic
@@ -890,23 +891,6 @@ def outputKernel {σ : ℝ → ℝ} (hσ : Measurable σ) {m n : ℕ} (N : MLPEn
       N.outputKernel hσ A ∘ₖ batchActivationKernel σ hσ ∘ₖ
         (randomLayerKernel (A := A) (ι := Fin m) (κ := Fin k) p) := rfl
 
-/-- `(μ.map f).bind g = μ.bind (g ∘ f)` for measurable maps, the measure-monad pullback rule. -/
-private lemma bind_map {α β γ : Type*} [MeasurableSpace α] [MeasurableSpace β]
-    [MeasurableSpace γ] (μ : Measure α) {f : α → β} {g : β → Measure γ}
-    (hf : Measurable f) (hg : Measurable g) :
-    (μ.map f).bind g = μ.bind (fun x => g (f x)) := by
-  rw [Measure.bind, Measure.bind, Measure.map_map hg hf]
-  rfl
-
-/-- `(μ.bind f).map g = μ.bind (fun x => (f x).map g)` for a measurable map `g`. -/
-private lemma map_bind {α β γ : Type*} [MeasurableSpace α] [MeasurableSpace β]
-    [MeasurableSpace γ] (μ : Measure α) (f : α → Measure β) {g : β → γ}
-    (hf : Measurable f) (hg : Measurable g) :
-    (μ.bind f).map g = μ.bind (fun x => (f x).map g) := by
-  rw [Measure.bind, ← Measure.join_map_map hg]
-  rw [Measure.bind, Measure.map_map (Measure.measurable_map g hg) hf]
-  rfl
-
 /-- Recursive integration of fresh layer parameters agrees with one global pushforward of the
 joint independent parameter law.
 
@@ -951,16 +935,7 @@ theorem outputKernel_apply_eq_outputLaw {σ : ℝ → ℝ} (hσ : Measurable σ)
       have hprod :
           (μ.prod ν).map G =
           μ.bind (fun q => ν.map (fun θ' => G (q, θ'))) := by
-        rw [Measure.prod]
-        calc
-          (μ.bind (fun q : LayerParams (Fin m) (Fin k) => Measure.map (Prod.mk q) ν)).map G
-              = μ.bind (fun q => (Measure.map (Prod.mk q) ν).map G) := by
-                exact map_bind μ (fun q => Measure.map (Prod.mk q) ν) (g := G)
-                  (by exact Measurable.map_prodMk_left) hG_meas
-          _ = μ.bind (fun q => ν.map (fun θ' => G (q, θ'))) := by
-                congr
-                funext q
-                exact Measure.map_map hG_meas (measurable_const.prodMk measurable_id)
+        exact Measure.map_prod_eq_bind_map μ ν hG_meas
       calc
         (@MLPEnsemble.hidden σ m n k p N').outputKernel hσ A D
             = (N'.outputKernel hσ A ∘ₖ batchActivationKernel σ hσ ∘ₖ
@@ -973,8 +948,8 @@ theorem outputKernel_apply_eq_outputLaw {σ : ℝ → ℝ} (hσ : Measurable σ)
               (fun q => N'.outputKernel hσ A (act (f q))) := by
           rw [randomLayerKernel_apply]
           rw [hcomp]
-          exact bind_map (layerGaussianInit p (Fin m) (Fin k)) (hf := hf_meas)
-            (hg := (N'.outputKernel hσ A).measurable.comp hact_meas)
+          exact Measure.bind_map hf_meas.aemeasurable
+            ((N'.outputKernel hσ A).measurable.comp hact_meas).aemeasurable
         _ = (layerGaussianInit p (Fin m) (Fin k)).bind
               (fun q => ν.map (fun θ' => fun a => N'.shape.eval σ θ' (act (f q) a))) := by
           apply congrArg (Measure.bind (layerGaussianInit p (Fin m) (Fin k)))

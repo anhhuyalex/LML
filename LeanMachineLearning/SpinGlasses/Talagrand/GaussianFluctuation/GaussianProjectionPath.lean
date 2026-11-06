@@ -78,7 +78,7 @@ open scoped ContDiff in
 theorem ExpTame.contDiff_derivProd (hV : ExpTame V) (a : Fin m → ℕ) :
     ContDiff ℝ ∞ (fun x : Fin m → ℝ => ∏ ℓ, deriv^[a ℓ] V (x ℓ)) := by
   refine contDiff_prod fun ℓ _ => ?_
-  exact (hV.contDiff.iterate_deriv (a ℓ)).comp (contDiff_apply ℝ ℝ ℓ)
+  exact (hV.contDiff.iterate_deriv (a ℓ)).comp (contDiff_apply ℝ (fun _ : Fin m => ℝ) ℓ)
 
 theorem ExpTame.hasFDerivAt_derivProd (hV : ExpTame V) (a : Fin m → ℕ) (x : Fin m → ℝ)
     (k : Fin m) :

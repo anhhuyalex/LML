@@ -8,7 +8,7 @@ module
 public import Mathlib.Probability.IdentDistrib
 public import Mathlib.Probability.Independence.InfinitePi
 public import Mathlib.Probability.ProductMeasure
-public import LeanMachineLearning.ForMathlib.Probability.Independence.IndepInfinitePi
+public import LeanMachineLearning.ForMathlib.Probability.Independence.InfinitePi
 
 /-!
 # Replacing an independent i.i.d. family by another with the same conditional laws

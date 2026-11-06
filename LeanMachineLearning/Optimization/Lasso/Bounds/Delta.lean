@@ -5,6 +5,9 @@ Authors: LML Contributors
 -/
 module
 
+public import Mathlib.Analysis.InnerProductSpace.Calculus
+public import Mathlib.Analysis.Calculus.FDeriv.WithLp
+
 public import LeanMachineLearning.Optimization.Lasso.Definitions
 public import Mathlib.Analysis.Calculus.MeanValue
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.DerivIntegrable

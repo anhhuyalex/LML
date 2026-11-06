@@ -130,9 +130,9 @@ theorem map_tsum_dotProduct_eq_gaussianReal {a : ∀ p, ρ p → ℝ}
       (𝓝 (∑' p, a p ⬝ᵥ g p)) := by
     have := ae_summable_of_tsum_eLpNorm_ne_top (μ := gaussianField)
       (f := fun p (g : ∀ p, ρ p → ℝ) => a p ⬝ᵥ g p)
-      (fun p => (memLp_coord p (a p)).1) (by
+      (fun p => (memLp_coord p (a p)).aestronglyMeasurable) (by
         refine ne_top_of_le_ne_top (tsum_eLpNorm_coord_ne_top ha) (ENNReal.tsum_le_tsum fun p => ?_)
-        exact eLpNorm_le_eLpNorm_of_exponent_le one_le_two (memLp_coord p (a p)).1)
+        exact eLpNorm_le_eLpNorm_of_exponent_le one_le_two)
     filter_upwards [this] with g hg using hg.hasSum.tendsto_sum_nat
   have hlim : Tendsto (fun n => ∫ g, Complex.exp (t * (∑ p ∈ range n, a p ⬝ᵥ g p) * Complex.I)
       ∂gaussianField) atTop
@@ -231,10 +231,10 @@ theorem hasGaussianLaw_tsum_dotProduct {S : Type*} [Finite S] {a : S → ∀ p, 
     ae_all_iff.2 fun s => by
       have := ae_summable_of_tsum_eLpNorm_ne_top (μ := gaussianField)
         (f := fun p (g : ∀ p, ρ p → ℝ) => a s p ⬝ᵥ g p)
-        (fun p => (memLp_coord p (a s p)).1) (by
+        (fun p => (memLp_coord p (a s p)).aestronglyMeasurable) (by
           refine ne_top_of_le_ne_top (tsum_eLpNorm_coord_ne_top (ha s))
             (ENNReal.tsum_le_tsum fun p => ?_)
-          exact eLpNorm_le_eLpNorm_of_exponent_le one_le_two (memLp_coord p (a s p)).1)
+          exact eLpNorm_le_eLpNorm_of_exponent_le one_le_two)
       exact this
   have hEq : (fun g : ∀ p, ρ p → ℝ => L fun s => ∑' p, a s p ⬝ᵥ g p) =ᵐ[gaussianField]
       fun g => ∑' p, b p ⬝ᵥ g p := by

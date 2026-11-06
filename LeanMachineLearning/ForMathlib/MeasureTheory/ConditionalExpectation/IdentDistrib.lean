@@ -6,11 +6,13 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.MeasureTheory.ConditionalExpectation.L2Projection
-public import LeanMachineLearning.ForMathlib.Probability.Independence.IndepInfinitePi
+public import LeanMachineLearning.ForMathlib.Probability.Independence.InfinitePi
 public import LeanMachineLearning.ForMathlib.Probability.Kernel.Composition.MeasureCompProd
 public import Mathlib.Probability.IdentDistrib
 public import Mathlib.Probability.Kernel.CompProdEqIff
 public import Mathlib.Probability.Kernel.CondDistrib
+-- Exact equality depends on the chosen disintegration, whose definition is not exposed.
+import all Mathlib.Probability.Kernel.CondDistrib
 
 /-!
 # Conditional expectations only depend on the joint law
@@ -61,7 +63,7 @@ theorem condDistrib_eq_of_map_eq [IsFiniteMeasure P] [IsFiniteMeasure P'] {B' : 
       ρ.condKernel = ρ'.condKernel := by
     rintro ρ ρ' _ _ rfl
     rfl
-  rw [condDistrib_def, condDistrib_def]
+  rw [condDistrib.eq_def, condDistrib.eq_def]
   exact key _ _ h
 
 /-- The `L²` norm of `P[F ∘ A | σ(B)]` is the `L²(P.map B)` norm of

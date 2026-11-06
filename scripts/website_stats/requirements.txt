@@ -1,0 +1,2 @@
+# The public dataset reader is independent of the project's Lean toolchain.
+evidence-core @ git+https://github.com/LeanTrustBuilders/evidence-core@v0.16.1

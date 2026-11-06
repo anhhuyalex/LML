@@ -26,6 +26,17 @@ namespace MeasureTheory.Measure
 
 variable {α β γ : Type*} [MeasurableSpace α] [MeasurableSpace β] [MeasurableSpace γ]
 
+/-- Mapping a product measure is the mixture of the maps of its right-hand fibres.
+Only the right measure needs to be s-finite. -/
+theorem map_prod_eq_bind_map (μ : Measure α) (ν : Measure β) [SFinite ν]
+    {G : α × β → γ} (hG : Measurable G) :
+    (μ.prod ν).map G = μ.bind (fun a => ν.map (fun b => G (a, b))) := by
+  rw [Measure.prod_eq_of_sfinite,
+    Measure.map_bind Measurable.map_prodMk_left.aemeasurable hG.aemeasurable]
+  congr 1
+  funext a
+  exact Measure.map_map hG (measurable_const.prodMk measurable_id)
+
 /-- **Constant fibre law ⟹ product law.**  If, for `A`-a.e. `a`, the law of `b ↦ F (a, b)` under
 `B` is `lam`, then `(a, F (a, b))` has the law `A ⊗ lam` under `A ⊗ B`. -/
 theorem map_prod_fst_eq_prod (A : Measure α) (B : Measure β) [SFinite B]

@@ -96,8 +96,7 @@ lemma memLp_coord_mul_stdGaussian (a b : ι) :
     MemLp (fun z : EuclideanSpace ℝ ι => z a * z b) 2 (stdGaussian (EuclideanSpace ℝ ι)) := by
   have h4 : ∀ x : ι, MemLp (fun z : EuclideanSpace ℝ ι => z x) 4
       (stdGaussian (EuclideanSpace ℝ ι)) := fun x => memLp_coord_stdGaussian x 4 (by simp)
-  have := MemLp.mul (r := 2) (h4 b) (h4 a)
-  convert this using 1
+  exact MemLp.mul (r := 2) (h4 a) (h4 b)
 
 omit [DecidableEq ι] in
 /-- A product of four Gaussian coordinates is integrable. -/

@@ -6,7 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.Renormalization.Network
-public import LeanMachineLearning.ForMathlib.Probability.Independence.IndepFun
+public import LeanMachineLearning.ForMathlib.Probability.Independence.InfinitePi
 public import Mathlib.Probability.Independence.Basic
 public import Mathlib.Probability.Moments.Covariance
 

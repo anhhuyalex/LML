@@ -249,7 +249,7 @@ private lemma map_prod_snd_eq {Ω Ω' : Type*} [MeasurableSpace Ω] [MeasurableS
 -- `iIndepFun_sum_prod_real`.
 private lemma sumPi_tuple_map_prod_map {Ω Ω' ι κ : Type*} [MeasurableSpace Ω]
     [MeasurableSpace Ω'] (μ : Measure Ω) (ν : Measure Ω')
-    [SFinite μ] [SFinite ν] (f : ι → Ω → ℝ) (g : κ → Ω' → ℝ)
+    [SFinite ν] (f : ι → Ω → ℝ) (g : κ → Ω' → ℝ)
     (hfmeas : ∀ i, Measurable (f i)) (hgmeas : ∀ j, Measurable (g j)) :
     ((μ.prod ν).map (fun ω : Ω × Ω' => fun c : ι ⊕ κ =>
         Sum.elim (fun i => f i ω.1) (fun j => g j ω.2) c)).map

@@ -5,6 +5,8 @@ Authors: LML Contributors
 -/
 module
 
+public import Mathlib.Analysis.Normed.Group.InfiniteSum
+
 public import Mathlib.Algebra.BigOperators.Ring.Finset
 public import Mathlib.Algebra.Order.BigOperators.GroupWithZero.Finset
 public import Mathlib.Analysis.Normed.Group.Tannery
@@ -137,7 +139,8 @@ theorem tsum_prod_pi_fiber_eq {I K : Type*} [Fintype I] [Fintype K]
       (∑' σ : I → α, F σ) = ∑' σ : {σ : I → α // ∀ i j,
           b i = b j → σ i = σ j}, F σ.1 := by
         symm
-        apply tsum_subtype_eq_of_support_subset
+        apply tsum_subtype_eq_of_support_subset (f := F)
+          (s := {σ : I → α | ∀ i j, b i = b j → σ i = σ j})
         intro σ hσ
         by_contra hn
         have h : ¬ ∀ i j, b i = b j → σ i = σ j := hn

@@ -5,6 +5,7 @@ Authors: Rémy Degenne
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Analysis.Complex.Exponential
 public import Mathlib.Probability.Moments.SubGaussian
 public import Mathlib.Probability.Moments.MGFAnalytic
 
@@ -61,6 +62,11 @@ least `1` (with the convention `x / 0 = 0`) and the bound holds trivially.
 As in `Kernel.HasSubgaussianMGF`, the integrability condition of the kernel version is
 integrability with respect to `κ ∘ₘ ν`, not almost-everywhere integrability with respect to
 `κ ω'`.
+
+## References
+
+* [M. J. Wainwright, *High-Dimensional Statistics: A Non-Asymptotic Viewpoint*][wainwright2019],
+  Section 2.1.3 (sub-exponential variables and Bernstein-type bounds)
 -/
 
 @[expose] public section
@@ -136,10 +142,11 @@ lemma ae_forall_integrable_exp_mul (h : HasSubexponentialMGF X V b κ ν) :
 lemma ae_forall_memLp_exp_mul (h : HasSubexponentialMGF X V b κ ν) (p : ℝ≥0) :
     ∀ᵐ ω' ∂ν, ∀ t : ℝ, b * |(p : ℝ) * t| ≤ 1 → MemLp (fun ω ↦ exp (t * X ω)) p (κ ω') := by
   filter_upwards [h.ae_forall_integrable_exp_mul, h.ae_aestronglyMeasurable] with ω' hi hm t ht
-  refine ⟨continuous_exp.comp_aestronglyMeasurable (hm.const_mul t), ?_⟩
+  have hmeas : AEStronglyMeasurable (fun ω ↦ exp (t * X ω)) (κ ω') :=
+    continuous_exp.comp_aestronglyMeasurable (hm.const_mul t)
   by_cases hp : p = 0
-  · simp [hp]
-  rw [eLpNorm_lt_top_iff_lintegral_rpow_enorm_lt_top (mod_cast hp) (by simp),
+  · simp [hp, hmeas]
+  rw [memLp_iff, eLpNorm_lt_top_iff_lintegral_rpow_enorm_lt_top (mod_cast hp) (by simp) hmeas,
     ENNReal.coe_toReal]
   have hf := (hi (p * t) ht).lintegral_lt_top
   convert! hf using 3 with ω
@@ -150,10 +157,11 @@ lemma ae_forall_memLp_exp_mul (h : HasSubexponentialMGF X V b κ ν) (p : ℝ≥
 lemma memLp_exp_mul (h : HasSubexponentialMGF X V b κ ν) {t : ℝ} (p : ℝ≥0)
     (ht : b * |(p : ℝ) * t| ≤ 1) :
     MemLp (fun ω ↦ exp (t * X ω)) p (κ ∘ₘ ν) := by
-  refine ⟨continuous_exp.comp_aestronglyMeasurable (h.aestronglyMeasurable.const_mul t), ?_⟩
+  have hmeas : AEStronglyMeasurable (fun ω ↦ exp (t * X ω)) (κ ∘ₘ ν) :=
+    continuous_exp.comp_aestronglyMeasurable (h.aestronglyMeasurable.const_mul t)
   by_cases hp0 : p = 0
-  · simp [hp0]
-  rw [eLpNorm_lt_top_iff_lintegral_rpow_enorm_lt_top (mod_cast hp0) (by simp)]
+  · simp [hp0, hmeas]
+  rw [memLp_iff, eLpNorm_lt_top_iff_lintegral_rpow_enorm_lt_top (mod_cast hp0) (by simp) hmeas]
   simp only [ENNReal.coe_toReal]
   have h' := (h.integrable_exp_mul (p * t) ht).2
   rw [hasFiniteIntegral_def] at h'
@@ -324,8 +332,7 @@ lemma of_map {Ω'' : Type*} {mΩ'' : MeasurableSpace Ω''} {κ : Kernel Ω' Ω''
 lemma id_map_iff (hX : Measurable X) :
     HasSubexponentialMGF id V b (κ.map X) ν ↔ HasSubexponentialMGF X V b κ ν := by
   refine ⟨fun h ↦ ?_, fun h ↦ ⟨fun t ht ↦ ?_, ?_⟩⟩
-  · change HasSubexponentialMGF (id ∘ X) V b κ ν
-    exact .of_map hX h
+  · exact .of_map (X := id) hX h
   · rw [← Kernel.deterministic_comp_eq_map hX, ← Measure.comp_assoc,
       Measure.deterministic_comp_eq_map, integrable_map_measure (by fun_prop) hX.aemeasurable]
     exact h.integrable_exp_mul t ht
@@ -1158,13 +1165,6 @@ lemma Kernel.HasSubexponentialMGF.ae_eq_zero_of_hasSubexponentialMGF_zero {Ω' :
   exact h.ae_eq_zero_of_hasSubexponentialMGF_zero
 
 section Bounded
-
-/-- Second-order bound on the exponential on `[-1, 1]`, from `Real.exp_bound`. -/
-lemma exp_le_one_add_add_of_abs_le_one {x : ℝ} (hx : |x| ≤ 1) :
-    exp x ≤ 1 + x + 3 / 4 * x ^ 2 := by
-  have h := Real.exp_bound hx (n := 2) two_pos
-  norm_num [Finset.sum_range_succ, Nat.factorial] at h
-  linarith [(abs_le.1 h).2]
 
 /-- If `|X| ≤ M` almost surely, `X` is centered and `μ[X ^ 2] ≤ v`, then `X` has
 a sub-exponential mgf with parameters `(3 * v / 2, M)`. -/

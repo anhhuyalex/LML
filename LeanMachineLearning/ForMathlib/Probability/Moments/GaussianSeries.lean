@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.ForMathlib.Probability.Independence.IndepInfinitePi
+public import LeanMachineLearning.ForMathlib.Probability.Independence.InfinitePi
 public import LeanMachineLearning.ForMathlib.Probability.Independence.IntegralTsumMul
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiLinearForm
 
@@ -117,7 +117,8 @@ theorem measurable_tsum_dotProduct (a : ∀ p, κ p → ℝ) :
 theorem integrable_tsum_dotProduct {a : ∀ p, κ p → ℝ}
     (ha : Summable fun p => Real.sqrt (a p ⬝ᵥ a p)) :
     Integrable (fun g : ∀ p, κ p → ℝ => ∑' p, a p ⬝ᵥ g p) gaussianField :=
-  integrable_tsum_of_tsum_eLpNorm_ne_top one_le_two (fun p => (memLp_coord p (a p)).1)
+  integrable_tsum_of_tsum_eLpNorm_ne_top one_le_two
+    (fun p => (memLp_coord p (a p)).aestronglyMeasurable)
     (tsum_eLpNorm_coord_ne_top ha)
 
 end ProbabilityTheory

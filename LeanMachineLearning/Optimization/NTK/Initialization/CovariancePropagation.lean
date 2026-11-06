@@ -412,7 +412,7 @@ lemma memLp_activation_product_of_polynomial_growth
       hφ_growth β
   change MemLp ((fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp α)) *
     fun z : EuclideanSpace ℝ (Fin m) => φ (z.ofLp β)) 2 (multivariateGaussian 0 K)
-  exact hβ.mul (r := (2 : ℝ≥0∞)) hα
+  exact hα.mul (r := (2 : ℝ≥0∞)) hβ
 
 /-- **Conditional empirical covariance propagation.**  For an i.i.d. sequence of conditional
 preactivation vectors with law `𝒩(0, K)`, the empirical activated covariance converges in

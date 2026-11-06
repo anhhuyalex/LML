@@ -176,10 +176,10 @@ theorem measure_preimage_transpose_le (p q : ℕ) (E : Set (Fin q → Fin p → 
   exact Measure.le_map_apply hfm.aemeasurable E
 
 /-- **Pulling back an event of a pair `(a, W)` along transposition of the second component.** For
-a (σ-finite) measure `μ`, a `p × q` Gaussian matrix `W` independent of it, and any event `E` of
+any measure `μ`, a `p × q` Gaussian matrix `W` independent of it, and any event `E` of
 pairs `(a, Wᵀ)`, `(μ ⊗ 𝒩^{p×q}) {(a, W) | (a, Wᵀ) ∈ E} ≤ (μ ⊗ 𝒩^{q×p}) E`. -/
 theorem measure_prod_preimage_transpose_le {α : Type*} [MeasurableSpace α] (μ : Measure α)
-    [SFinite μ] (p q : ℕ) (E : Set (α × (Fin q → Fin p → ℝ))) :
+    (p q : ℕ) (E : Set (α × (Fin q → Fin p → ℝ))) :
     (μ.prod (Measure.pi fun _ : Fin p => Measure.pi fun _ : Fin q => gaussianReal 0 1))
         {x | (x.1, fun k i => x.2 i k) ∈ E} ≤
       (μ.prod (Measure.pi fun _ : Fin q => Measure.pi fun _ : Fin p => gaussianReal 0 1)) E := by

@@ -11,7 +11,7 @@ import tempfile
 import unittest
 
 from build_stats import build
-from .example import REPOSITORY, REVISION, make_fixture
+from .example import REPOSITORY, REVISION, make_fixture, make_dataset_fixture
 from .metrics import reuse
 from .reader import authored, catalog, decode
 from .render import PageParts, add_navigation
@@ -114,6 +114,65 @@ class StatsChecks(unittest.TestCase):
                 )
                 self.assertEqual(completed.returncode, 0, completed.stderr)
                 self.assertIn("usage:", completed.stdout)
+
+
+class DatasetChecks(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        import importlib.util
+        if importlib.util.find_spec("evidence_core") is None:
+            raise unittest.SkipTest("Dataset adapter tests require the Referee tools")
+
+    def test_expand_generated_helpers_but_not_authored_private_or_instance_bodies(self):
+        import struct
+        with tempfile.TemporaryDirectory() as tmp:
+            project, site, dataset, legacy = make_dataset_fixture(pathlib.Path(tmp))
+            ids = {decl["name"]: index for index, decl in enumerate(legacy["decls"])}
+            private = "_private.Example.0.hidden"
+            references = {"C": ["A.match_1", private, "instFact"],
+                          private: ["B"], "instFact": ["B"]}
+            edges = [(ids[decl["name"]], ids[name]) for decl in legacy["decls"]
+                     for name in references.get(decl["name"], decl["deps"]) if name in ids]
+            (dataset / "edges/term.bin").write_bytes(
+                b"".join(struct.pack("<ii", *edge) for edge in edges))
+            counts = build(dataset, site, project, REPOSITORY, REVISION)["metrics"][0]["values"]
+            self.assertEqual(counts["A"], 5)  # C uses A through generated code.
+            self.assertEqual(counts["B"], 0)  # Authored helpers do not add indirect uses.
+
+    def test_dataset_and_legacy_counts_agree_across_toolchain_bumps(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project, site, dataset, legacy = make_dataset_fixture(pathlib.Path(tmp))
+            expected = reuse(catalog(legacy, site, project, REPOSITORY, REVISION)[0], legacy)
+            for toolchain in ["leanprover/lean4:v4.36.0-rc2", "leanprover/lean4:v99.0.0"]:
+                (project / "lean-toolchain").write_text(toolchain + "\n")
+                meta = json.loads((dataset / "meta.json").read_text())
+                meta["toolchain"] = toolchain
+                (dataset / "meta.json").write_text(json.dumps(meta))
+                info = json.loads((site / "data/site.json").read_text())
+                info["toolchain"] = toolchain
+                (site / "data/site.json").write_text(json.dumps(info))
+                bundle = build(dataset, site, project, REPOSITORY, REVISION)
+                self.assertEqual(bundle["metrics"][0]["values"], expected)
+                self.assertEqual(bundle["build"]["lean"], toolchain)
+            self.assertEqual((site / "index.html").read_text().count(
+                'data-lml-stats-navigation="true"'), 1)
+
+    def test_schema_and_provenance_errors_are_explicit(self):
+        from .dataset import load_dataset
+        with tempfile.TemporaryDirectory() as tmp:
+            project, site, dataset, _ = make_dataset_fixture(pathlib.Path(tmp))
+            with self.assertRaisesRegex(ValueError, "revisions differ"):
+                load_dataset(dataset, project, "f" * 40)
+            info = json.loads((site / "data/site.json").read_text())
+            info["toolchain"] = "mismatched-toolchain"
+            (site / "data/site.json").write_text(json.dumps(info))
+            with self.assertRaisesRegex(ValueError, "toolchains differ"):
+                build(dataset, site, project, REPOSITORY, REVISION)
+            meta = json.loads((dataset / "meta.json").read_text())
+            meta["spec"] = "unknown-format"
+            (dataset / "meta.json").write_text(json.dumps(meta))
+            with self.assertRaisesRegex(ValueError, "schema"):
+                load_dataset(dataset, project, REVISION)
 
 
 if __name__ == "__main__":

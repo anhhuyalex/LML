@@ -1,15 +1,14 @@
-"""Adapter for the Referee release pinned in build.yml; no Lean extraction is needed."""
+"""Validate declarations against the matching source checkout and rendered site."""
 from __future__ import annotations
 
 import collections
+import functools
 import json
 import pathlib
 import re
 from html.parser import HTMLParser
-from urllib.parse import unquote, urlsplit
+from urllib.parse import quote, unquote, urlsplit
 
-REFEREE_COMMIT = "4f43fed3fa5a6f55ef6daf848f5a1b9dd348b0cf"
-REFEREE_VERSION = "v4.34.0-rc2-7"
 DATA_VERSION = 16
 
 
@@ -20,8 +19,7 @@ def require(condition, message):
 
 def decode(envelope):
     require(envelope.get("version") == DATA_VERSION,
-            f"Unsupported Referee data version; expected {DATA_VERSION}. "
-            "Update and test the reader when changing the Referee release.")
+            f"Unsupported legacy collected-data schema; expected {DATA_VERSION}.")
     resolved = []
 
     def expand(value):
@@ -79,7 +77,11 @@ def local_target(site, href):
     if target.is_dir():
         target /= "index.html"
     require(target.is_file(), f"Missing documentation page: {href}")
-    if url.fragment:
+    if url.fragment.startswith("/d/"):
+        rows = spa_rows(site)
+        name = unquote(url.fragment[len("/d/"):])
+        require(name in rows, f"Missing documentation declaration: {name}")
+    elif url.fragment:
         text = target.read_text()
         require(f'id="{unquote(url.fragment)}"' in text, f"Missing anchor: {href}")
     return target
@@ -124,13 +126,13 @@ COMMAND = re.compile(
 )
 
 
-def authored(name, text):
+def authored(name, text, *, include_private=False):
     """A generated companion often shares its parent's source range; check the written name."""
     masked = mask_comments(text)
     match = COMMAND.search(masked)
     if not match:
         return False
-    if re.search(r"\bprivate\b", masked[:match.start()]):
+    if not include_private and re.search(r"\bprivate\b", masked[:match.start()]):
         return False
     normalized = name.replace("«", "").replace("»", "")
     if match[1] == "alias":
@@ -150,22 +152,36 @@ def catalog(data, site, project, repository, revision):
     require(re.fullmatch(r"[0-9a-f]{40}", revision), "Expected a full Git commit")
     require(re.fullmatch(r"https://github.com/[\w.-]+/[\w.-]+", repository),
             "Expected an HTTPS GitHub repository URL")
-    parsed = BrowseData((site / "browse/index.html").read_text())
-    require(parsed.parts, "Cannot find declaration links in Referee's Browse page")
-    browse = json.loads("".join(parsed.parts))
-    require(browse.get("project") == data["rootPrefix"], "Browse belongs to another library")
-    rows = {row["name"]: row for row in browse["rows"]}
-    require(len(rows) == len(browse["rows"]), "Duplicate names in Browse")
     names = [decl["name"] for decl in data["decls"]]
     require(len(set(names)) == len(names), "Duplicate collected declaration names")
-    require(set(rows) == set(names), "Collected data and rendered Browse contain different declarations")
+    if data.get("_format") == "ltb-dataset/2":
+        info = json.loads((site / "data/site.json").read_text())
+        require(info.get("root") == data["rootPrefix"], "Rendered site belongs to another library")
+        require(info.get("commit") == revision, "Dataset and rendered site revisions differ")
+        require(info.get("toolchain") == (project / "lean-toolchain").read_text().strip(),
+                "Rendered site and source checkout toolchains differ")
+        require(info.get("scope", {}).get("mode") == "full", "Stats needs a full-library site")
+        rows = spa_rows(site)
+        expected = {decl["name"] for decl in data["decls"] if not decl.get("deprecated")}
+    else:
+        parsed = BrowseData((site / "browse/index.html").read_text())
+        require(parsed.parts, "Cannot find declaration links in Referee's Browse page")
+        browse = json.loads("".join(parsed.parts))
+        require(browse.get("project") == data["rootPrefix"], "Browse belongs to another library")
+        rows = {row["name"]: row for row in browse["rows"]}
+        require(len(rows) == len(browse["rows"]), "Duplicate names in Browse")
+        expected = set(names)
+    require(set(rows) == expected, "Collected data and rendered Browse contain different declarations")
     files, included, excluded = {}, [], collections.Counter()
     for decl in sorted(data["decls"], key=lambda d: d["name"]):
         name = decl["name"]
+        if decl.get("deprecated"):
+            excluded["deprecated"] += 1
+            continue
         require(isinstance(decl.get("deps"), list) and
                 all(isinstance(dep, str) for dep in decl["deps"]), f"Missing references: {name}")
         module = decl["moduleName"]
-        require(module == "LeanMachineLearning" or module.startswith("LeanMachineLearning."),
+        require(module == data["rootPrefix"] or module.startswith(data["rootPrefix"] + "."),
                 f"Unexpected external declaration: {name}")
         # Lean's derived JSON codec drops the trailing '?' from optional field names.
         source = decl.get("source")
@@ -195,3 +211,20 @@ def catalog(data, site, project, repository, revision):
                          "file": str(rel), "line": start, "end_line": end})
     require(included, "No eligible public declarations found")
     return included, dict(excluded)
+
+
+def spa_rows(site):
+    path = site / "data/decls.json"
+    info = path.stat()
+    return _spa_rows(path, info.st_mtime_ns, info.st_size)
+
+
+@functools.lru_cache(maxsize=8)
+def _spa_rows(path, modified, size):
+    """Cache the rendered catalog during link checks; changed files invalidate it."""
+    rows = json.loads(path.read_text())
+    result = {row[1]: {"name": row[1], "kind": row[2],
+                       "href": "index.html#/d/" + quote(row[1], safe="")}
+              for row in rows}
+    require(len(result) == len(rows), "Duplicate names in rendered catalog")
+    return result

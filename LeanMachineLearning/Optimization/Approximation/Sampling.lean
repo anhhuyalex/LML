@@ -898,7 +898,7 @@ private lemma memLp_pi_eval {Ω_w : Type*} [MeasurableSpace Ω_w] {ν : Measure 
   have hg_meas : AEStronglyMeasurable g (Measure.map (fun ω : Fin k → Ω_w => ω i)
         (Measure.pi (fun _ : Fin k => ν))) := by
     rw [hmap_i]
-    exact hg.1
+    exact hg.aestronglyMeasurable
   have h_meas_map : AEMeasurable (fun ω : Fin k → Ω_w => ω i) (Measure.pi (fun _ : Fin k => ν)) :=
         (measurable_pi_apply i).aemeasurable
   have h_mem : MemLp g 2 (Measure.map (fun ω => ω i) (Measure.pi (fun _ : Fin k => ν))) := by
@@ -957,7 +957,7 @@ private lemma memLp_uncurry_and_ae_memLp {Ω_w Ω_x : Type*} [MeasurableSpace Ω
     (∫⁻ x, ∫⁻ w, ENNReal.ofReal (F w x ^ 2) ∂ν ∂P ≤ ENNReal.ofReal C) ∧
     (∀ᵐ x ∂P, MemLp (fun w => F w x) 2 ν) := by
   have hF2_int (w : Ω_w) : Integrable (fun x => F w x ^ 2) P :=
-    (memLp_two_iff_integrable_sq (hF_L2 w).1).mp (hF_L2 w)
+    (memLp_two_iff_integrable_sq (hF_L2 w).aestronglyMeasurable).mp (hF_L2 w)
   have hF2_lintegral (w : Ω_w) : ∫⁻ x, ENNReal.ofReal (F w x ^ 2) ∂P =
     ENNReal.ofReal (∫ x, F w x ^ 2 ∂P) := by
     rw [← ofReal_integral_eq_lintegral_ofReal (hF2_int w)
@@ -965,24 +965,23 @@ private lemma memLp_uncurry_and_ae_memLp {Ω_w Ω_x : Type*} [MeasurableSpace Ω
   have hC_ofReal : ∀ᵐ w ∂ν, ENNReal.ofReal (∫ x, F w x ^ 2 ∂P) ≤ ENNReal.ofReal C := by
     filter_upwards [hC] with w hw using ENNReal.ofReal_le_ofReal hw
   have hF_uncurry_L2 : MemLp (Function.uncurry F) 2 (ν.prod P) := by
-    constructor
-    · exact hF_meas.aestronglyMeasurable
-    · rw [eLpNorm_lt_top_iff_lintegral_rpow_enorm_lt_top (by norm_num) (by norm_num)]
-      have h_enorm : (fun p : Ω_w × Ω_x => enorm (Function.uncurry F p) ^ ENNReal.toReal 2) =
-        fun p => ENNReal.ofReal (F p.1 p.2 ^ 2) := by
-        ext ⟨w, x⟩
-        dsimp [Function.uncurry]
-        rw [enorm_eq_ofReal_abs]
-        rw [ENNReal.ofReal_rpow_of_nonneg (abs_nonneg _) ENNReal.toReal_nonneg]
-        congr 1
-        have h2 : ENNReal.toReal 2 = 2 := rfl
-        rw [h2, Real.rpow_two, sq_abs]
-      rw [h_enorm]
-      rw [lintegral_prod _ (by fun_prop)]
-      simp_rw [hF2_lintegral]
-      have h_le := lintegral_mono_ae hC_ofReal
-      refine h_le.trans_lt ?_
-      simp [measure_univ]
+    rw [memLp_iff, eLpNorm_lt_top_iff_lintegral_rpow_enorm_lt_top
+      (by norm_num) (by norm_num) hF_meas.aestronglyMeasurable]
+    have h_enorm : (fun p : Ω_w × Ω_x => enorm (Function.uncurry F p) ^ ENNReal.toReal 2) =
+      fun p => ENNReal.ofReal (F p.1 p.2 ^ 2) := by
+      ext ⟨w, x⟩
+      dsimp [Function.uncurry]
+      rw [enorm_eq_ofReal_abs]
+      rw [ENNReal.ofReal_rpow_of_nonneg (abs_nonneg _) ENNReal.toReal_nonneg]
+      congr 1
+      have h2 : ENNReal.toReal 2 = 2 := rfl
+      rw [h2, Real.rpow_two, sq_abs]
+    rw [h_enorm]
+    rw [lintegral_prod _ (by fun_prop)]
+    simp_rw [hF2_lintegral]
+    have h_le := lintegral_mono_ae hC_ofReal
+    refine h_le.trans_lt ?_
+    simp [measure_univ]
   have hF_sec_meas (x : Ω_x) : Measurable (fun w => F w x) := by
     have : (fun w => F w x) = (Function.uncurry F) ∘ (fun w => (w, x)) := rfl
     rw [this]
@@ -1002,19 +1001,18 @@ private lemma memLp_uncurry_and_ae_memLp {Ω_w Ω_x : Type*} [MeasurableSpace Ω
     have h_ae_lt : ∀ᵐ x ∂P, ∫⁻ w, ENNReal.ofReal (F w x ^ 2) ∂ν < ⊤ := by
       exact ae_lt_top (by fun_prop) h_lt.ne
     filter_upwards [h_ae_lt] with x hx
-    constructor
-    · exact (hF_sec_meas x).aestronglyMeasurable
-    · rw [eLpNorm_lt_top_iff_lintegral_rpow_enorm_lt_top (by norm_num) (by norm_num)]
-      have h_enorm : (fun w => enorm (F w x) ^ ENNReal.toReal 2) =
-        fun w => ENNReal.ofReal (F w x ^ 2) := by
-        ext w
-        rw [enorm_eq_ofReal_abs]
-        rw [ENNReal.ofReal_rpow_of_nonneg (abs_nonneg _) ENNReal.toReal_nonneg]
-        congr 1
-        have h2 : ENNReal.toReal 2 = 2 := rfl
-        rw [h2, Real.rpow_two, sq_abs]
-      rw [h_enorm]
-      exact hx
+    rw [memLp_iff, eLpNorm_lt_top_iff_lintegral_rpow_enorm_lt_top
+      (by norm_num) (by norm_num) (hF_sec_meas x).aestronglyMeasurable]
+    have h_enorm : (fun w => enorm (F w x) ^ ENNReal.toReal 2) =
+      fun w => ENNReal.ofReal (F w x ^ 2) := by
+      ext w
+      rw [enorm_eq_ofReal_abs]
+      rw [ENNReal.ofReal_rpow_of_nonneg (abs_nonneg _) ENNReal.toReal_nonneg]
+      congr 1
+      have h2 : ENNReal.toReal 2 = 2 := rfl
+      rw [h2, Real.rpow_two, sq_abs]
+    rw [h_enorm]
+    exact hx
   exact ⟨hF_uncurry_L2, h_swap_le, h_ae_L2⟩
 
 lemma L2_mean_of_L2 {Ω_w Ω_x : Type*} [MeasurableSpace Ω_w] [MeasurableSpace Ω_x]
@@ -1046,38 +1044,39 @@ lemma L2_mean_of_L2 {Ω_w Ω_x : Type*} [MeasurableSpace Ω_w] [MeasurableSpace 
     filter_upwards [h_jensen_ae] with x hx
     rw [← hmean x]
     exact hx
-  constructor
-  · have hf_eq : f = fun x => ∫ w, F w x ∂ν := by ext x; rw [← hmean x]
+  have hf_meas : AEStronglyMeasurable f P := by
+    have hf_eq : f = fun x => ∫ w, F w x ∂ν := by ext x; rw [← hmean x]
     rw [hf_eq]
     have h_int : Integrable (fun x => ∫ w, F w x ∂ν) P :=
       Integrable.integral_prod_right (hF_uncurry_L2.integrable (show (1 : ENNReal) ≤
         2 by norm_num))
     exact h_int.aestronglyMeasurable
-  · rw [eLpNorm_lt_top_iff_lintegral_rpow_enorm_lt_top (by norm_num) (by norm_num)]
-    have h_enorm : (fun x => enorm (f x) ^ ENNReal.toReal 2) =
-      fun x => ENNReal.ofReal (f x ^ 2) := by
-      ext x
-      rw [enorm_eq_ofReal_abs]
-      rw [ENNReal.ofReal_rpow_of_nonneg (abs_nonneg _) ENNReal.toReal_nonneg]
-      congr 1
-      have h2 : ENNReal.toReal 2 = 2 := rfl
-      rw [h2, Real.rpow_two, sq_abs]
-    rw [h_enorm]
-    have h_le := lintegral_mono_ae (μ := P) (by
-      filter_upwards [hf2_le_F2] with x hx
-      exact ENNReal.ofReal_le_ofReal hx
-    )
-    refine h_le.trans_lt ?_
-    have h_eq : (fun x => ENNReal.ofReal (∫ w, F w x ^ 2 ∂ν)) =ᵐ[P]
-        fun x => ∫⁻ w, ENNReal.ofReal (F w x ^ 2) ∂ν := by
-      filter_upwards [h_ae_L2] with x hx
-      have hgi : Integrable (fun w => (F w x) ^ 2) ν := by
-        rw [← memLp_two_iff_integrable_sq (hF_sec_meas x).aestronglyMeasurable]
-        exact hx
-      rw [← ofReal_integral_eq_lintegral_ofReal hgi (ae_of_all ν (fun _ => sq_nonneg _))]
-    rw [lintegral_congr_ae h_eq]
-    have h_lt : (∫⁻ x, ∫⁻ w, ENNReal.ofReal (F w x ^ 2) ∂ν ∂P) < ⊤ := h_swap_le.trans_lt (by simp)
-    exact h_lt
+  rw [memLp_iff, eLpNorm_lt_top_iff_lintegral_rpow_enorm_lt_top
+    (by norm_num) (by norm_num) hf_meas]
+  have h_enorm : (fun x => enorm (f x) ^ ENNReal.toReal 2) =
+    fun x => ENNReal.ofReal (f x ^ 2) := by
+    ext x
+    rw [enorm_eq_ofReal_abs]
+    rw [ENNReal.ofReal_rpow_of_nonneg (abs_nonneg _) ENNReal.toReal_nonneg]
+    congr 1
+    have h2 : ENNReal.toReal 2 = 2 := rfl
+    rw [h2, Real.rpow_two, sq_abs]
+  rw [h_enorm]
+  have h_le := lintegral_mono_ae (μ := P) (by
+    filter_upwards [hf2_le_F2] with x hx
+    exact ENNReal.ofReal_le_ofReal hx
+  )
+  refine h_le.trans_lt ?_
+  have h_eq : (fun x => ENNReal.ofReal (∫ w, F w x ^ 2 ∂ν)) =ᵐ[P]
+      fun x => ∫⁻ w, ENNReal.ofReal (F w x ^ 2) ∂ν := by
+    filter_upwards [h_ae_L2] with x hx
+    have hgi : Integrable (fun w => (F w x) ^ 2) ν := by
+      rw [← memLp_two_iff_integrable_sq (hF_sec_meas x).aestronglyMeasurable]
+      exact hx
+    rw [← ofReal_integral_eq_lintegral_ofReal hgi (ae_of_all ν (fun _ => sq_nonneg _))]
+  rw [lintegral_congr_ae h_eq]
+  have h_lt : (∫⁻ x, ∫⁻ w, ENNReal.ofReal (F w x ^ 2) ∂ν ∂P) < ⊤ := h_swap_le.trans_lt (by simp)
+  exact h_lt
 
 lemma pointwise_maurey_bound {Ω_w Ω_x : Type*} [MeasurableSpace Ω_w]
     (ν : Measure Ω_w) [IsProbabilityMeasure ν] (F : Ω_w → Ω_x → ℝ) (f : Ω_x → ℝ)
@@ -1095,7 +1094,7 @@ lemma pointwise_maurey_bound {Ω_w Ω_x : Type*} [MeasurableSpace Ω_w]
   have hVi_L2 (i : Fin k) : MemLp (fun ω : Fin k → Ω_w => F (ω i) x) 2 μ_prob := memLp_pi_eval i hx
   have hVi_mean (i : Fin k) : ∫ ω : Fin k → Ω_w, F (ω i) x ∂μ_prob =
     ∫ ω : Fin k → Ω_w, V ω ∂μ_prob := by
-    rw [integral_pi_eval i hx.1, integral_pi_eval ⟨0, hk⟩ hx.1]
+    rw [integral_pi_eval i hx.aestronglyMeasurable, integral_pi_eval ⟨0, hk⟩ hx.aestronglyMeasurable]
   let h_fam : Fin k → (Fin k → Ω_w) → ℝ := fun i ω => F (ω i) x
   have hVi_indep : iIndepFun (m := fun _ => inferInstance) h_fam μ_prob := by
     have h_comp : h_fam = (fun i => (fun w => F w x) ∘ (fun ω => ω i)) := by ext i ω; rfl
@@ -1106,7 +1105,7 @@ lemma pointwise_maurey_bound {Ω_w Ω_x : Type*} [MeasurableSpace Ω_w]
     exact map_pi_eval_eq i ⟨0, hk⟩ hF_sec_meas
   have h_ms := maureySampling hV_L2 hk hVi_L2 hVi_mean hVi_indep hVi_map
   have h_mean_eq : ∫ ω : Fin k → Ω_w, V ω ∂μ_prob = f x := by
-    rw [integral_pi_eval ⟨0, hk⟩ hx.1, hmean]
+    rw [integral_pi_eval ⟨0, hk⟩ hx.aestronglyMeasurable, hmean]
   have h_norm_V : ∫ ω : Fin k → Ω_w, ‖V ω‖ ^ 2 ∂μ_prob = ∫ w, F w x ^ 2 ∂ν := by
     have h_int_eq : ∫ ω : Fin k → Ω_w, ‖V ω‖ ^ 2 ∂μ_prob = ∫ ω : Fin k → Ω_w, V ω ^ 2 ∂μ_prob := by
       congr 1; ext omega; rw [Real.norm_eq_abs, sq_abs]
@@ -1451,6 +1450,7 @@ instance isProbabilityMeasure_jordanSample {μ : SignedMeasure W} [NeZero μ] :
   have h_neg := μ.toJordanDecomposition.negPart.map_apply h_meas_false
     (MeasurableSet.univ : MeasurableSet Set.univ)
   dsimp [jordanSample]
+  simp only [Measure.smul_apply, Measure.add_apply, smul_eq_mul]
   rw [h_pos, h_neg]
   simp only [Set.preimage_univ]
   change (μ.totalVariation Set.univ)⁻¹ * (μ.totalVariation Set.univ) = 1

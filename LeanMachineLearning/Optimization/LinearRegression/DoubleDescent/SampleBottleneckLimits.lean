@@ -139,6 +139,7 @@ theorem measurableSet_sampleTraceBad {η : ℝ} (ν : ℝ) :
     measurable_matrix_trace (by fun_prop)
   have hmT₁' : Measurable fun x : (Fin m → Fin n₀ → ℝ) × (Fin n → Fin n₀ → ℝ) =>
       ((Matrix.of x.1 * (Matrix.of x.1)ᵀ)⁻¹).trace := hmT₁.comp measurable_fst
+  simp only [← Set.compl_ofPred, Set.ofPred_and]
   refine (measurableSet_lt measurable_const hmT₁').inter ?_
   refine MeasurableSet.compl ?_
   exact (measurableSet_le (hmT₁'.div_const _) hmτ).inter
@@ -198,6 +199,7 @@ theorem measurableSet_sampleQuadBad {η : ℝ} (ν : ℝ) (θ : Fin n₀ → ℝ
       (Matrix.of x.1 *ᵥ θ) ⬝ᵥ ((((Matrix.of x.1 * (Matrix.of x.2)ᵀ) *
         (Matrix.of x.1 * (Matrix.of x.2)ᵀ)ᵀ)⁻¹) *ᵥ (Matrix.of x.1 *ᵥ θ)) :=
     measurable_dotProduct ha (measurable_mulVec (by fun_prop) ha)
+  simp only [← Set.compl_ofPred, Set.ofPred_and]
   refine (measurableSet_lt measurable_const hmT₁').inter ?_
   refine MeasurableSet.compl ?_
   exact (measurableSet_le (hs.div_const _) hq).inter (measurableSet_le hq (hs.div_const _))

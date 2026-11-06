@@ -5,6 +5,8 @@ Authors: LML Contributors
 -/
 module
 
+public import Mathlib.Analysis.Calculus.Deriv.Prod
+
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ParametrizedL2
 public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianIBP
 public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianComparison

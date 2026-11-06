@@ -5,6 +5,8 @@ Authors: LML Contributors
 -/
 module
 
+public import Mathlib.Data.Nat.Choose.Cast
+
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.AddPowEstimates
 public import LeanMachineLearning.ForMathlib.Data.Nat.Recurrence
 public import LeanMachineLearning.ForMathlib.Probability.Moments.IidSumMoments

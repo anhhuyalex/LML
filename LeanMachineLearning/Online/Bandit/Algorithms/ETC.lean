@@ -12,6 +12,27 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Order.MeasurableArg
 
 /-! # The Explore-Then-Commit Algorithm
 
+The Explore-Then-Commit (ETC) algorithm with parameter `m` for a bandit with `K` arms pulls each arm
+`m` times in a round-robin fashion (exploration phase, up to time `K * m`), then pulls the arm with
+the highest empirical mean at time `K * m` for all remaining rounds (commit phase).
+
+## Main definitions
+
+* `ETC.nextArm K m n h`: the arm pulled by ETC at time `n`, given the history `h` before `n`.
+* `etcAlgorithm K m`: the ETC algorithm.
+
+## Main statements
+
+* `ETC.pullCount_of_ge`: for `n ≥ K * m`, the number of pulls of arm `a` at time `n` is `m`, plus
+  `n - K * m` if `a` is the arm chosen at time `K * m`.
+* `ETC.sumRewards_bestArm_le_of_arm_mul_eq`: if arm `a` is chosen at time `K * m`, its sum of
+  rewards in the exploration phase is at least that of the best arm.
+
+## References
+
+* T. Lattimore and C. Szepesvári, *Bandit Algorithms*, Cambridge University Press, 2020,
+  Chapter 6.
+
 -/
 
 @[expose] public section
@@ -48,7 +69,7 @@ variable (K) in
 to `ETC.nextArm`. -/
 noncomputable
 def etcAlgorithm [NeZero K] (m : ℕ) : Algorithm Unit (Fin K) ℝ :=
-  detAlgorithm (fun n p ↦ ETC.nextArm K m n p.1) (by fun_prop)
+  Algorithm.deterministic (fun n p ↦ ETC.nextArm K m n p.1) (by fun_prop)
 
 end AlgorithmDefinition
 
@@ -59,37 +80,39 @@ variable [NeZero K] {m : ℕ} {ν : Kernel (Fin K) ℝ} [IsMarkovKernel ν]
   {P : Measure Ω} [IsProbabilityMeasure P]
   {O : ℕ → Ω → Unit} {A : ℕ → Ω → Fin K} {R : ℕ → Ω → ℝ}
 
+omit [IsProbabilityMeasure P] in
 /-- Before round `K * m`, the ETC algorithm behaves like the Round-Robin algorithm. -/
-lemma isAlgEnvSeqUntil_roundRobinAlgorithm
-    (h : IsAlgEnvSeq O A R (etcAlgorithm K m) (stationaryEnv ν) P) :
-    IsAlgEnvSeqUntil O A R (roundRobinAlgorithm K) (stationaryEnv ν) P (K * m) := by
+lemma isAlgEnvSeqUntil_roundRobin
+    (h : IsAlgEnvSeq O A R (etcAlgorithm K m) (Environment.bandit ν) P) :
+    IsAlgEnvSeqUntil O A R (Algorithm.roundRobin K) (Environment.bandit ν) P (K * m) := by
   refine h.isAlgEnvSeqUntil_of_policy_eq fun n hn ↦ ?_
-  simp only [roundRobinAlgorithm, detAlgorithm_policy, etcAlgorithm]
+  simp only [Algorithm.roundRobin, Algorithm.deterministic_policy, etcAlgorithm]
   congr 1 with p
   simp [ETC.nextArm, hn]
 
 section AlgorithmBehavior
 
-lemma arm_ae_eq_nextArm (h : IsAlgEnvSeq O A R (etcAlgorithm K m) (stationaryEnv ν) P) (n : ℕ) :
+lemma arm_ae_eq_nextArm (h : IsAlgEnvSeq O A R (etcAlgorithm K m) (Environment.bandit ν) P)
+    (n : ℕ) :
     A n =ᵐ[P] fun ω ↦ nextArm K m n (history O A R n ω) :=
-  h.action_detAlgorithm_ae_eq n
+  h.action_ae_eq_deterministic n
 
 /-- For `n < K * m`, the arm pulled at time `n` is the arm `n % K`. -/
-lemma arm_of_lt (h : IsAlgEnvSeq O A R (etcAlgorithm K m) (stationaryEnv ν) P)
+lemma arm_of_lt (h : IsAlgEnvSeq O A R (etcAlgorithm K m) (Environment.bandit ν) P)
     {n : ℕ} (hn : n < K * m) :
     A n =ᵐ[P] fun _ ↦ RoundRobin.nextAction K n :=
-  RoundRobin.action_ae_eq n ((isAlgEnvSeqUntil_roundRobinAlgorithm h).mono hn)
+  RoundRobin.action_ae_eq n ((isAlgEnvSeqUntil_roundRobin h).mono hn)
 
 /-- The arm pulled at time `K * m` is the arm with the highest empirical mean after the exploration
 phase. -/
 lemma arm_mul
-    (h : IsAlgEnvSeq O A R (etcAlgorithm K m) (stationaryEnv ν) P) :
+    (h : IsAlgEnvSeq O A R (etcAlgorithm K m) (Environment.bandit ν) P) :
     A (K * m) =ᵐ[P] fun ω ↦ argmax (empMean' (K * m) (history O A R (K * m) ω)) := by
   filter_upwards [arm_ae_eq_nextArm h (K * m)] with ω hn_eq
   rw [hn_eq, nextArm, dite_eq_right (by simp), dite_eq_left rfl]
 
 /-- For `n ≥ K * m`, the arm pulled at time `n + 1` is the same as the arm pulled at time `n`. -/
-lemma arm_add_one_of_ge (h : IsAlgEnvSeq O A R (etcAlgorithm K m) (stationaryEnv ν) P)
+lemma arm_add_one_of_ge (h : IsAlgEnvSeq O A R (etcAlgorithm K m) (Environment.bandit ν) P)
     {n : ℕ} (hn : K * m ≤ n) :
     A (n + 1) =ᵐ[P] fun ω ↦ A n ω := by
   filter_upwards [arm_ae_eq_nextArm h (n + 1)] with ω hn_eq
@@ -97,7 +120,7 @@ lemma arm_add_one_of_ge (h : IsAlgEnvSeq O A R (etcAlgorithm K m) (stationaryEnv
   rfl
 
 /-- For `n ≥ K * m`, the arm pulled at time `n` is the same as the arm pulled at time `K * m`. -/
-lemma arm_of_ge (h : IsAlgEnvSeq O A R (etcAlgorithm K m) (stationaryEnv ν) P)
+lemma arm_of_ge (h : IsAlgEnvSeq O A R (etcAlgorithm K m) (Environment.bandit ν) P)
     {n : ℕ} (hn : K * m ≤ n) :
     A n =ᵐ[P] A (K * m) := by
   have h_ae n : K * m ≤ n → A (n + 1) =ᵐ[P] fun ω ↦ A n ω := arm_add_one_of_ge h
@@ -108,11 +131,12 @@ lemma arm_of_ge (h : IsAlgEnvSeq O A R (etcAlgorithm K m) (stationaryEnv ν) P)
   | succ n hmn h_ind => rw [h_ae n hmn, h_ind]
 
 /-- At time `K * m`, the number of pulls of each arm is equal to `m`. -/
-lemma pullCount_mul (h : IsAlgEnvSeq O A R (etcAlgorithm K m) (stationaryEnv ν) P) (a : Fin K) :
+lemma pullCount_mul (h : IsAlgEnvSeq O A R (etcAlgorithm K m) (Environment.bandit ν) P)
+    (a : Fin K) :
     pullCount A a (K * m) =ᵐ[P] fun _ ↦ m :=
-  RoundRobin.pullCount_mul m (isAlgEnvSeqUntil_roundRobinAlgorithm h) a
+  RoundRobin.pullCount_mul m (isAlgEnvSeqUntil_roundRobin h) a
 
-lemma pullCount_add_one_of_ge (h : IsAlgEnvSeq O A R (etcAlgorithm K m) (stationaryEnv ν) P)
+lemma pullCount_add_one_of_ge (h : IsAlgEnvSeq O A R (etcAlgorithm K m) (Environment.bandit ν) P)
     (a : Fin K) {n : ℕ} (hn : K * m ≤ n) :
     pullCount A a (n + 1)
       =ᵐ[P] fun ω ↦ pullCount A a n ω + {ω' | A (K * m) ω' = a}.indicator 1 ω := by
@@ -121,8 +145,9 @@ lemma pullCount_add_one_of_ge (h : IsAlgEnvSeq O A R (etcAlgorithm K m) (station
   congr 3
 
 /-- For `n ≥ K * m`, the number of pulls of each arm `a` at time `n` is equal to `m` plus
-`n - K * m` if arm `a` is the best arm after the exploration phase. -/
-lemma pullCount_of_ge (h : IsAlgEnvSeq O A R (etcAlgorithm K m) (stationaryEnv ν) P)
+`n - K * m` if arm `a` is the arm chosen at time `K * m` (the arm with the highest empirical mean
+after the exploration phase). -/
+lemma pullCount_of_ge (h : IsAlgEnvSeq O A R (etcAlgorithm K m) (Environment.bandit ν) P)
     (a : Fin K) {n : ℕ} (hn : K * m ≤ n) :
     pullCount A a n
       =ᵐ[P] fun ω ↦ m + (n - K * m) * {ω' | A (K * m) ω' = a}.indicator 1 ω := by
@@ -140,14 +165,17 @@ lemma pullCount_of_ge (h : IsAlgEnvSeq O A R (etcAlgorithm K m) (stationaryEnv �
     grind
 
 /-- If at time `K * m` the algorithm chooses arm `a`, then the total reward obtained by pulling
-arm `a` is at least the total reward obtained by pulling the best arm. -/
+arm `a` before time `K * m` is at least the total reward obtained by pulling the best arm. -/
 lemma sumRewards_bestArm_le_of_arm_mul_eq
-    (h : IsAlgEnvSeq O A R (etcAlgorithm K m) (stationaryEnv ν) P) (a : Fin K) (hm : m ≠ 0) :
+    (h : IsAlgEnvSeq O A R (etcAlgorithm K m) (Environment.bandit ν) P) (a : Fin K) :
     ∀ᵐ ω ∂P, A (K * m) ω = a → sumRewards A R (bestArm ν) (K * m) ω ≤
       sumRewards A R a (K * m) ω := by
+  rcases eq_or_ne m 0 with rfl | hm
+  · simp [sumRewards]
   filter_upwards [arm_mul h, pullCount_mul h a, pullCount_mul h (bestArm ν)]
     with ω h_arm ha h_best h_eq
-  have h_max := isMaxOn_argmax (empMean' (K * m) (history O A R (K * m) ω)) (bestArm ν)
+  have h_max := isMaxOn_univ_iff.1
+    (isMaxOn_argmax (empMean' (K * m) (history O A R (K * m) ω))) (bestArm ν)
   rw [← h_arm, h_eq] at h_max
   rw [sumRewards_eq_pullCount_mul_empMean, sumRewards_eq_pullCount_mul_empMean, ha, h_best]
   · gcongr
