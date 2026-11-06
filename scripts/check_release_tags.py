@@ -36,7 +36,8 @@ class ReleaseTagChecks(unittest.TestCase):
 
     def run_script(self, **environment):
         return subprocess.run(["bash", str(SCRIPT)], cwd=self.repo, text=True,
-                              env={**os.environ, "DO_RELEASE": "false", **environment},
+                              env={**os.environ, "AFTER": "HEAD", "DO_RELEASE": "false",
+                                   **environment},
                               capture_output=True)
 
     def remote_tags(self):
