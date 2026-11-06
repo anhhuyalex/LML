@@ -85,22 +85,12 @@ theorem sk_hanen_pairing_rect_prod_sq_le (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 <
   obtain ⟨C, hC, hCb⟩ := sk_hanen_rect_prod_sq_le β₀ hβ₀ m M
   refine ⟨C, hC, ?_⟩
   intro β h q hfix hβ N n P pairMap hdisj W hW
-  have hparts : P.val.parts.card = m := P.card_parts_of_card_eq (by simp)
-  let e : Fin m ≃ P.val.parts := Fintype.equivOfCardEq (by simp [hparts])
-  choose u v huv hB using fun j : Fin m =>
-    card_eq_two.mp (P.property (e j).val (e j).property)
+  obtain ⟨u, v, huv, hlabels⟩ := Renormalization.exists_labels_prod_pairWeight (m := m) P (by simp)
   have hprod (ρ : Fin n → Fin N → ℤˣ) :
       (∏ j : Fin m, skCavityRectTrunc N n m q pairMap (u j) (v j) ρ) =
         P.blockProduct (Renormalization.pairWeight fun u v =>
-          skCavityRectTrunc N n m q pairMap u v ρ) := by
-    let C := fun u v => skCavityRectTrunc N n m q pairMap u v ρ
-    calc
-      _ = ∏ j : Fin m, Renormalization.pairWeight C (e j).val := by
-        apply prod_congr rfl
-        intro j _
-        rw [hB, Renormalization.pairWeight_pair C
-          (fun u v => skCavityRectTrunc_comm N n m q pairMap u v ρ) (huv j)]
-      _ = _ := P.prod_equiv_eq_blockProduct e (Renormalization.pairWeight C)
+          skCavityRectTrunc N n m q pairMap u v ρ) :=
+    hlabels _ fun a b => skCavityRectTrunc_comm N n m q pairMap a b ρ
   simpa only [hprod] using hCb β h q hfix hβ N n m pairMap hdisj u v huv W hW
 
 /-- **Eq. (1.342).** Isolate the leading Taylor term for the rectangular product of any

@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.Optimization.Renormalization.Finpartition
+public import LeanMachineLearning.Optimization.Renormalization.PairingCardinality
 public import Mathlib.Basic.Real.Basic
 public import Mathlib.Tactic.Ring
 public import Aesop
@@ -73,6 +73,25 @@ theorem pairWeight_pair (C : ι → ι → ℝ) (hC : ∀ i j, C i j = C j i) {a
   rw [Finset.sum_singleton, Finset.sum_singleton]
   rw [hC b a]
   ring
+
+/-- The blocks of a pairing of a `2m`-element set can be written as `m` labelled pairs of distinct
+elements: for every symmetric kernel `C`, the product of `C` over the labelled pairs is the product
+of the block weights `pairWeight C`. -/
+theorem exists_labels_prod_pairWeight {s : Finset ι} {m : ℕ} (P : Finpartition.Pairing s)
+    (hs : s.card = 2 * m) :
+    ∃ u v : Fin m → ι, (∀ j, u j ≠ v j) ∧ ∀ C : ι → ι → ℝ, (∀ i j, C i j = C j i) →
+      ∏ j : Fin m, C (u j) (v j) = P.blockProduct (pairWeight C) := by
+  have hparts : P.val.parts.card = m := P.card_parts_of_card_eq hs
+  let e : Fin m ≃ P.val.parts := Fintype.equivOfCardEq (by simp [hparts])
+  choose u v huv hB using fun j : Fin m =>
+    Finset.card_eq_two.mp (P.property (e j).val (e j).property)
+  refine ⟨u, v, huv, fun C hC => ?_⟩
+  calc
+    _ = ∏ j : Fin m, pairWeight C (e j).val := by
+      apply Finset.prod_congr rfl
+      intro j _
+      rw [hB, pairWeight_pair C hC (huv j)]
+    _ = _ := P.prod_equiv_eq_blockProduct e (pairWeight C)
 
 /-- Pairing recurrence obtained by choosing the partner of a distinguished element.
 
