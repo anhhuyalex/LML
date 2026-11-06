@@ -147,14 +147,15 @@ theorem sk_hanen_rect_product_taylor (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) 
     by_cases hM0 : M = 0
     · simp [hM0]
     · rw [abs_div, abs_of_nonneg hM]
-      exact (div_le_one (lt_of_le_of_ne hM (Ne.symm hM0))).2 (hfbound ε)
+      exact (div_le_one₀ (lt_of_le_of_ne hM (Ne.symm hM0))).2 (hfbound ε)
   have hW (σ : Fin n → Fin (N + 1) → ℤˣ) : |W σ| ≤ 2 ^ (2 * m) := by
     have hp : |∏ w : Fin (2 * m), ((σ (pairMap w).1 (Fin.last N) : ℝ) -
         (σ (pairMap w).2 (Fin.last N) : ℝ))| ≤ 2 ^ (2 * m) := by
       rw [abs_prod]
       calc
-        _ ≤ ∏ _w : Fin (2 * m), (2 : ℝ) := prod_le_prod
-          (fun w _ => (abs_sub _ _).trans (by norm_num [abs_units_cast_eq_one]))
+        _ ≤ ∏ _w : Fin (2 * m), (2 : ℝ) := by
+          gcongr with w _
+          exact (abs_sub _ _).trans (by norm_num [abs_units_cast_eq_one])
         _ = _ := by simp
     calc
       |W σ| = |∏ w : Fin (2 * m), ((σ (pairMap w).1 (Fin.last N) : ℝ) -
