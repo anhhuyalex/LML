@@ -8298,7 +8298,7 @@ as in the book's constants $K(m,n)$. The range $4\beta_0^2<1$ is the book's rang
 
 \begin{remark}[Status of Section~1.11]\label{rem:sg-tal:hanen-status}
 \talsource{Section~1.11, Lemmas~1.11.3--1.11.8, Theorem~1.11.9, Propositions~1.11.10--1.11.11, Theorem~1.11.1}
-\emph{Under construction:} The prerequisite overlap CLT for deterministic external fields
+\emph{Complete:} The prerequisite overlap CLT for deterministic external fields
 (Theorem~1.10.1 and Propositions~1.10.4, 1.10.5) is fully proved and sorry-free.
 H0 (blueprint statements) is in place; the algebraic rectangular identities
 (Eqs.~(1.345), (1.348)) are proved in \texttt{SKHanenRectangular.lean}.
@@ -8345,8 +8345,9 @@ derivative bounds and Taylor expansion. The common Taylor expansion for either p
 needed for the even case. The first step of H4 is proved: a Taylor lemma for any cavity observable
 (Lemma~\ref{lem:sg-tal:hanen-taylor-coefficient}) and Eq.~(1.342) for the product of rectangles of any pair partition
 (Lemma~\ref{lem:sg-tal:hanen-rect-product-taylor}).
-In progress: the rest of H4 (Propositions~1.11.10--1.11.11, whose statements are in place) and the even case of H5
-(Theorem~1.11.1). Three proofs are still missing: Propositions~1.11.10 and~1.11.11, and the even case of Theorem~1.11.1.
+Propositions~1.11.10 and~1.11.11 are proved (Lemmas~\ref{lem:sg-tal:hanen-rect-leading}--\ref{lem:sg-tal:hanen-subset-term}),
+and so is the even case of H5 (Theorem~\ref{thm:sg-tal:hanen-even}, using Lemmas~\ref{lem:sg-tal:hanen-reduced-eval} and~\ref{lem:sg-tal:hanen-leading-shift}).
+Theorem~1.11.1 is therefore fully formalized for a deterministic field (Theorem~\ref{thm:sg-tal:hanen-theorem}); no \texttt{sorry} remains in the Hanen files.
 The roadmap for Section~1.11 is structured into steps H0--H5:
 \begin{enumerate}
 \item \emph{H0: Blueprint statements.} Mathematical statements for Lemma~1.11.3,
@@ -8669,6 +8670,9 @@ This is a direct calculation for every $m$, without induction.
 \end{proof}
 
 \begin{proposition}[Evaluation of rectangular products]\label{prop:sg-tal:hanen-truncated-rect-eval}
+\lean{SpinGlasses.sk_hanen_truncated_rect_eval}
+\leanok
+\uses{lem:sg-tal:hanen-rect-product-taylor,thm:sg-tal:hanen-pairing-derivative,lem:sg-tal:hanen-rect-leading,lem:sg-tal:hanen-trunc-comparison,lem:sg-tal:hanen-full-pairings}
 \talsource{Proposition~1.11.10, Eq.~(1.341)}
 The replica pairs are distinct and disjoint, and $\hat f$ is bounded by $M$ with error proportional to $M$ (Remarks~\ref{rem:sg-tal:hanen-implicit} and~\ref{rem:sg-tal:hanen-general}).
 Let $|V| = 2m$ and let $\mathcal I$ be a partition of $V$ into pairs.
@@ -8679,8 +8683,25 @@ There exists $K(m, n, \beta_0)$ such that for all $\beta^2 \le \beta_0^2$ and $N
 \le \frac{K(m, n, \beta_0)}{(N+1)^{(2m+1)/2}}.
 \]
 \end{proposition}
+\begin{proof}
+\leanok
+Taylor's formula at $u=0$ to order $m$ (Lemma~\ref{lem:sg-tal:hanen-rect-product-taylor}) replaces
+$\nu(\eta_V\hat f\prod_{J\in\mathcal I}U_J^-)$ by the $m$-th endpoint derivative divided by $m!$.
+Theorem~\ref{thm:sg-tal:hanen-pairing-derivative} evaluates that derivative as
+$\beta^{2m}\,\mathbb E(\langle\hat f\rangle_0\operatorname{ch}^{-4m}Y)\sum_{\mathcal I'}\nu_0(\prod_{\mathcal I}U^-\prod_{\mathcal I'}U^-)$,
+the sum running over all pair partitions $\mathcal I'$ (Lemma~\ref{lem:sg-tal:hanen-rect-leading}).
+Each $\nu_0$ is replaced by the coupled average, then $U^-$ by $U$, at cost $O((N+1)^{-(2m+1)/2})$
+(Lemma~\ref{lem:sg-tal:hanen-trunc-comparison}). The coupled average of the product of full rectangles of two pair partitions
+is $(4A^2/(N+1))^m$ if the partitions agree and $0$ otherwise, up to the same error
+(Lemma~\ref{lem:sg-tal:hanen-full-pairings}). Only the term $\mathcal I'=\mathcal I$ survives.
+The number of pair partitions depends on $m$ only, so the errors add up with a constant $K(m,n,\beta_0)$,
+and all errors are linear in $M$.
+\end{proof}
 
 \begin{proposition}[Evaluation of full rectangular products]\label{prop:sg-tal:hanen-full-rect-eval}
+\lean{SpinGlasses.sk_hanen_full_rect_eval}
+\leanok
+\uses{prop:sg-tal:hanen-truncated-rect-eval,lem:sg-tal:hanen-subset-term}
 \talsource{Proposition~1.11.11, Eq.~(1.347)}
 The replica pairs are distinct and disjoint (Remark~\ref{rem:sg-tal:hanen-implicit}); $\mathcal I$ is any pair partition.
 Let $|V| = 2p$ and let $\mathcal I$ be a partition of $V$ into pairs.
@@ -8690,6 +8711,20 @@ There exists $K(p, \beta_0)$ such that for all $\beta^2 \le \beta_0^2$ and $N \g
 \le \frac{K(p, \beta_0)}{(N+1)^{(2p+1)/2}}.
 \]
 \end{proposition}
+\begin{proof}
+\leanok
+Write $U_J=U_J^-+(N+1)^{-1}\eta_J$ for each block $J$ of the partition (Eq.~(1.348)) and expand the product over
+subsets $\mathcal I'$ of the blocks. Since $\eta_V=\prod_J\eta_J$, the term of $\mathcal I'$ is
+$(N+1)^{-(p-|\mathcal I'|)}\,\eta_{V'}\hat f\prod_{J\in\mathcal I'}U_J^-$ with $V'=\bigcup\mathcal I'$ and
+$\hat f=\prod_{J\notin\mathcal I'}\eta_J^2$ (Lemma~\ref{lem:sg-tal:hanen-subset-term}).
+Proposition~\ref{prop:sg-tal:hanen-truncated-rect-eval} applies to $V'$ with the sub-partition $\mathcal I'$ and this $\hat f$,
+which does not depend on the replicas of $V'^*$ and is bounded by $16^{p-|\mathcal I'|}$.
+Under the independent tilted spins at $u=0$ one has $\langle\eta_J^2\rangle_0=4\operatorname{ch}^{-4}Y$, so
+$\mathbb E(\langle\hat f\rangle_0\operatorname{ch}^{-4|\mathcal I'|}Y)=4^{p-|\mathcal I'|}\,\mathbb E\operatorname{ch}^{-4p}Y$.
+The binomial theorem sums the leading terms to
+$\bigl(4(\tfrac1{N+1}+\tfrac{\beta^2A^2}{N+1})\bigr)^p\mathbb E\operatorname{ch}^{-4p}Y$, and each error is
+$(N+1)^{-(p-|\mathcal I'|)}\cdot K\,16^{p-|\mathcal I'|}(N+1)^{-(2|\mathcal I'|+1)/2}\le K'(N+1)^{-(2p+1)/2}$.
+\end{proof}
 
 \begin{lemma}[Taylor coefficient of a cavity observable]\label{lem:sg-tal:hanen-taylor-coefficient}
 \lean{SpinGlasses.skCavityPathMean_taylor_coefficient_le}
@@ -9044,6 +9079,148 @@ The weighted product $\prod_i w(e(i))$ does not depend on the ordering, because 
 $m!\sum_P\prod_{B\in P}w(B)$.
 \end{proof}
 
+\begin{lemma}[Leading Taylor term of a product of rectangles]\label{lem:sg-tal:hanen-rect-leading}
+\lean{SpinGlasses.sk_hanen_rect_leading, SpinGlasses.skCavityPathMean_zero_old, Renormalization.exists_labels_prod_pairWeight_mul}
+\leanok
+\uses{lem:sg-tal:hanen-rect-product-taylor,thm:sg-tal:hanen-pairing-derivative}
+\talsource{Proof of Proposition~1.11.10, step from Eq.~(1.342) to Eq.~(1.337)}
+In the setting of Lemma~\ref{lem:sg-tal:hanen-rect-product-taylor}, $\varphi(1)$ differs from
+$\beta^{2m}\,\mathbb E(\langle\hat f\rangle_0\operatorname{ch}^{-4m}Y)\sum_{\mathcal I'}\nu_0\bigl(\prod_{\mathcal I}U^-\prod_{\mathcal I'}U^-\bigr)$
+by at most $K M (N+1)^{-(2m+1)/2}$, where $\mathcal I'$ runs over all pair partitions of the $2m$ labels
+and $\nu_0$ is the average at $u=0$ of a function of the old spins.
+\end{lemma}
+\begin{proof}
+\leanok
+Theorem~\ref{thm:sg-tal:hanen-pairing-derivative} gives $\varphi^{(m)}(0)=\beta^{2m}m!\,Z\,\nu_0(\prod_{\mathcal I}U^-\cdot\mathrm{wick}(U^-))$.
+The factor $m!$ cancels the $1/m!$ of Lemma~\ref{lem:sg-tal:hanen-rect-product-taylor}. The Wick sum is the sum over pair partitions
+of the products of block weights, and the path average is linear. Two pair partitions of the $2m$ labels,
+read together, are a family of $m+m$ labelled pairs of distinct labels
+(\texttt{exists\_labels\_prod\_pairWeight\_mul}); this reindexing is used again below.
+\end{proof}
+
+\begin{lemma}[Truncated versus full rectangle products]\label{lem:sg-tal:hanen-trunc-comparison}
+\lean{SpinGlasses.sk_hanen_two_pairings_sq_le, SpinGlasses.sk_hanen_trunc_old_vs_coupled, SpinGlasses.sk_hanen_trunc_vs_full}
+\leanok
+\uses{lem:sg-tal:hanen-taylor-coefficient,lem:sg-tal:hanen-rect-product-taylor}
+\talsource{Eq.~(1.344); the book says only ``as explained in detail in the previous section''}
+Let $\mathcal I,\mathcal I'$ be pair partitions of the $2m$ labels with disjoint replica pairs, and put
+$G=\prod_{\mathcal I}U^-\prod_{\mathcal I'}U^-$. Then (i) $\nu_1(G^2)\le C(N+1)^{-2m}$;
+(ii) $|\nu_1(G)-\nu_0(G)|\le K(N+1)^{-(2m+1)/2}$ (decoupled versus coupled average of a function of the old spins);
+(iii) $|\nu_1(G)-\nu_1(\prod_{\mathcal I}U\prod_{\mathcal I'}U)|\le K(N+1)^{-(2m+1)/2}$ (full rectangles on $N+1$ sites).
+\end{lemma}
+\begin{proof}
+\leanok
+(i) is the second-moment bound for a product of $2m$ truncated rectangles. (ii) is Lemma~\ref{lem:sg-tal:hanen-taylor-coefficient}
+with $m=0$ and $k=2m$. (iii) expands every $U$ as $U^-+(N+1)^{-1}\eta$ and applies the overlap-correction estimate of Section~1.10 to the $2m$ factors.
+\end{proof}
+
+\begin{lemma}[Gaussian reference for pair partitions]\label{lem:sg-tal:hanen-gaussian-pairings}
+\lean{MeasureTheory.integral_pi_prod_of_disjoint_supports, Renormalization.integral_pi_gaussian_two_pairings_eq_prod, Renormalization.integral_pi_gaussian_pairing_sq, Renormalization.integral_pi_gaussian_two_pairings_of_ne, SpinGlasses.hanen_rect_coeff, SpinGlasses.hanen_gaussian_rect_pairing_sq, SpinGlasses.hanen_gaussian_rect_pairings_of_ne}
+\leanok
+\talsource{Book, p.~5000: ``a pair $\{\ell,\ell'\}$ determines the rectangle $J$ it came from''}
+Let $(z_k)$ be i.i.d. standard Gaussians and let $V_{ab}=\sum_k V_{ab}(k)z_k$ be linear forms, symmetric in $(a,b)$,
+with $\|V_{ab}\|^2=s$ and with disjoint coefficient supports for different unordered pairs $\{a,b\}$.
+For pair partitions $P_0,P$ of the labels, $\mathbb E\prod_{B\in P_0}V_B\prod_{B\in P}V_B=s^{|P|}$ if $P=P_0$ and $0$ otherwise.
+For the rectangles $V_{ab}=A\sum_{e\in\{\pm\}^2}c_e\,z_{\kappa(a,b,e)}$ of disjoint replica pairs ($\kappa$ the sorted pair of the chosen replicas,
+which determines the labels $a,b$) one has $s=4A^2$.
+\end{lemma}
+\begin{proof}
+\leanok
+Blocks that occur in only one partition appear once. Their linear forms are centered, and independent of the other blocks because the supports are disjoint
+(\texttt{integral\_pi\_prod\_of\_disjoint\_supports}: the integral of a product of functions of disjoint coordinate groups is the product of the integrals,
+by induction using the independence of two disjoint groups of coordinates). Blocks that occur in both partitions give the second moment $s$.
+A sorted pair of replicas of the disjoint pairs $(x_v,y_v)$ determines the two labels, so the supports are disjoint,
+and the four signed coordinates of one rectangle have squared norm $4A^2$.
+\end{proof}
+
+\begin{lemma}[Product of two pair partitions of full rectangles]\label{lem:sg-tal:hanen-full-pairings}
+\lean{SpinGlasses.sk_hanen_full_pairings_gaussian_data, SpinGlasses.sk_hanen_full_pairings_gaussian, SpinGlasses.sk_hanen_full_pairing_sq, SpinGlasses.sk_hanen_full_pairings_of_ne, SpinGlasses.hanen_rect_T_identity, SpinGlasses.hanen_A_sq_nonneg, SpinGlasses.exists_pos_forall_of_finite}
+\leanok
+\uses{lem:sg-tal:hanen-gaussian-pairings}
+\talsource{Eqs.~(1.345)--(1.346), via Theorem~1.10.1 for the pair variables $T_{\ell\ell'}$ only}
+Let $\mathcal I,\mathcal I'$ be pair partitions of the $2m$ labels with disjoint replica pairs and put $A^2=\alpha/(1-\beta^2\alpha)$.
+Then $\nu_1(\prod_{\mathcal I}U\prod_{\mathcal I'}U)=(4A^2/(N+1))^m+O((N+1)^{-(2m+1)/2})$ if $\mathcal I'=\mathcal I$ and
+$=O((N+1)^{-(2m+1)/2})$ otherwise, with a constant that depends on $m,n,\beta_0$ only.
+\end{lemma}
+\begin{proof}
+\leanok
+Write each $U_J$ as the rectangle $T_{x_ux_v}-T_{y_ux_v}-T_{x_uy_v}+T_{y_uy_v}$ of the centered pair overlaps (the centering cancels).
+The Gibbs-level Gaussian moments of such linear combinations (Section~1.10) replace $(N+1)^{m}\nu_1(\cdot)$ by the Gaussian expectation of the same
+polynomial in i.i.d. Gaussian pair variables, with error $O((N+1)^{-1/2})$. Lemma~\ref{lem:sg-tal:hanen-gaussian-pairings} evaluates that expectation.
+The constants of the finitely many configurations (pair partitions and replica maps) are combined by taking their maximum.
+\end{proof}
+
+\begin{lemma}[One subset of the blocks]\label{lem:sg-tal:hanen-subset-term}
+\lean{SpinGlasses.sk_hanen_full_subset_term, SpinGlasses.hanen_block_expansion, SpinGlasses.hanen_full_rect_eq_trunc_add_spin, SpinGlasses.integral_spin_diff_sq, SpinGlasses.integral_prod_spin_diff_sq, Renormalization.exists_relabel_pairing_subset}
+\leanok
+\uses{prop:sg-tal:hanen-truncated-rect-eval}
+\talsource{Proof of Proposition~1.11.11, Eqs.~(1.347)--(1.348)}
+For a subset $\mathcal S$ of the blocks of a pair partition $\mathcal I$ of $2p$ labels, the coupled mean of
+$\prod_{J\in\mathcal S}\eta_J\prod_{J\notin\mathcal S}\eta_J^2\prod_{J\in\mathcal S}U_J^-$ is
+$4^{p-|\mathcal S|}\,\mathbb E\operatorname{ch}^{-4p}Y\,(4\beta^2A^2/(N+1))^{|\mathcal S|}$ up to $K_{|\mathcal S|}16^{p-|\mathcal S|}(N+1)^{-(2|\mathcal S|+1)/2}$.
+\end{lemma}
+\begin{proof}
+\leanok
+The $2|\mathcal S|$ labels covered by $\mathcal S$ are relabelled by $\{1,\dots,2|\mathcal S|\}$ so that $\mathcal S$ becomes a pair partition of this set
+(\texttt{exists\_relabel\_pairing\_subset}); Proposition~\ref{prop:sg-tal:hanen-truncated-rect-eval} applies with
+$\hat f=\prod_{J\notin\mathcal S}\eta_J^2$. Its Gibbs mean at $u=0$ is the product over the remaining labels of $\langle(\varepsilon_x-\varepsilon_y)^2\rangle_0=2\operatorname{ch}^{-2}Y$,
+because the replicas are independent tilted spins; the product of functions of disjoint groups of coordinates integrates factor by factor.
+\end{proof}
+
+\begin{lemma}[Reduced-system evaluation]\label{lem:sg-tal:hanen-reduced-eval}
+\lean{SpinGlasses.sk_hanen_reduced_full_rect_eval}
+\leanok
+\uses{prop:sg-tal:hanen-full-rect-eval,lem:sg-tal:hanen-reduced-system}
+\talsource{Proof of Theorem~1.11.1, ``using (1.347) for the $(N-1)$-spin system'', Eqs.~(1.355)--(1.357)}
+Let the reduced $(N+1)$-spin system have coupling $\beta/\sqrt{N+2}=\beta_-/\sqrt{N+1}$ and let $q_-$ be a fixed point for $\beta_-$.
+For any pair partition $\mathcal I$ of $2p$ labels with disjoint replica pairs, the reduced average of $\eta_V\prod_{\mathcal I}U_J$, with rectangles normalized by $(N+2)^{-1}$,
+equals $((N+1)/(N+2))^p$ times the leading term of Proposition~\ref{prop:sg-tal:hanen-full-rect-eval} for $(\beta_-,h,q_-)$, up to $O((N+1)^{-(2p+1)/2})$.
+\end{lemma}
+\begin{proof}
+\leanok
+Apply Proposition~\ref{prop:sg-tal:hanen-full-rect-eval} to $(\beta_-,h,q_-)$. The normalization of the $p$ rectangles changes by the factor $(N+1)/(N+2)$ each.
+\end{proof}
+
+\begin{lemma}[Shift of the leading term]\label{lem:sg-tal:hanen-leading-shift}
+\lean{SpinGlasses.sk_hanen_leading_term_shift, SpinGlasses.hanen_param_gap, SpinGlasses.abs_integral_inv_cosh_pow_sub_le, SpinGlasses.abs_integral_tanh_pow_four_sub_le, SpinGlasses.hanen_shift_core, SpinGlasses.hanen_even_assemble, SpinGlasses.hanen_even_identity}
+\leanok
+\talsource{Proof of Theorem~1.11.1, ``it is a very simple matter to check'', end of the proof}
+With $\beta_-=\beta\sqrt{(N+1)/(N+2)}$ and $|q-q_-|\le 1/(N+2)$, the leading terms
+$\theta^p\bigl(4(\tfrac1{N+1}+\tfrac{\beta_-^2A_-^2}{N+1})\bigr)^p\mathbb E\operatorname{ch}^{-4p}Y_-$ ($\theta=\tfrac{N+1}{N+2}$) and
+$\bigl(4(\tfrac1{N+2}+\tfrac{\beta^2A^2}{N+2})\bigr)^p\mathbb E\operatorname{ch}^{-4p}Y$ differ by $O((N+2)^{-(2p+1)/2})$.
+\end{lemma}
+\begin{proof}
+\leanok
+The fields $r=\beta\sqrt q$ and $r_-=\beta_-\sqrt{q_-}$ satisfy $|r-r_-|\le (N+2)^{-1/2}$, because $|\sqrt a-\sqrt b|\le\sqrt{|a-b|}$.
+The Gaussian averages of $\tanh^4(rz+h)$ and of $\operatorname{ch}^{-4p}(rz+h)$ are Lipschitz in $r$ with constants $4$ and $4p$ ($\tanh$ and $1/\!\cosh$ are $1$-Lipschitz and $\mathbb E|z|\le1$).
+Hence $\alpha$ and the ratio $A^2=\alpha/(1-\beta^2\alpha)$ (denominator at least $3/4$) change by $O((N+2)^{-1/2})$.
+The bracket is $O((N+2)^{-1})$ and it enters to the power $p$, so its error is $O((N+2)^{-p-1/2})$.
+\end{proof}
+
+\begin{theorem}[Even moments in Hanen's Theorem]\label{thm:sg-tal:hanen-even}
+\lean{SpinGlasses.sk_hanen_theorem_even}
+\leanok
+\uses{lem:sg-tal:hanen-leading-taylor,thm:sg-tal:hanen-pairing-derivative,lem:sg-tal:hanen-reduced-eval,lem:sg-tal:hanen-leading-shift,lem:sg-tal:hanen-cov-powers,lem:sg-tal:hanen-cov-site-symmetry,lem:sg-tal:hanen-pairing-count}
+\talsource{Theorem~1.11.1, even case; Eqs.~(1.349)--(1.358)}
+Fix $p\in\mathbb N$ and $4\beta_0^2<1$. There is $K(p,\beta_0)>0$ such that, for all $\beta^2\le\beta_0^2$, deterministic $h$,
+fixed points $q=\mathbb E\tanh^2(\beta\sqrt q Z+h)$, system sizes $N+1$ and distinct sites $i,j$,
+\[
+\left|\mathbb E\left(\langle\sigma_i\sigma_j\rangle-\langle\sigma_i\rangle\langle\sigma_j\rangle\right)^{2p}
+ -a(2p)\Bigl(\frac{\beta^2}{(N+1)(1-\beta^2\alpha)}\Bigr)^p\bigl(\mathbb E\operatorname{ch}^{-4p}Y\bigr)^2\right|
+\le\frac{K(p,\beta_0)}{(N+1)^{(2p+1)/2}},
+\]
+with $\alpha=1-2q+\hat q$ and $a(2p)=(2p-1)!!=\mathbb E g^{2p}$.
+\end{theorem}
+\begin{proof}
+\leanok
+Move the two sites to the last two by site symmetry (Lemma~\ref{lem:sg-tal:hanen-cov-site-symmetry}) and write the covariance power as $2^{-2p}\nu(\eta_Vf^-)$
+(Lemma~\ref{lem:sg-tal:hanen-cov-powers}). Taylor's formula to order $p$ (Lemma~\ref{lem:sg-tal:hanen-leading-taylor}) leaves the term $\nu_0^{(p)}(\eta_Vf^-)/p!$ up to $O((N+2)^{-(2p+1)/2})$.
+By Theorem~\ref{thm:sg-tal:hanen-pairing-derivative} this term is $\beta^{2p}\,\mathbb E\operatorname{ch}^{-4p}Y\sum_{\mathcal I}\nu_0(f^-\prod_{J\in\mathcal I}U_J^-)$, the sum over all pair partitions.
+Here $\nu_0$ is the average over the reduced system, and every $\nu_0(f^-\prod U_J^-)$ is given by Lemma~\ref{lem:sg-tal:hanen-reduced-eval}, the same for all $\mathcal I$.
+There are $(2p)!/(2^pp!)=a(2p)$ pair partitions (Lemma~\ref{lem:sg-tal:hanen-pairing-count}). Lemma~\ref{lem:sg-tal:hanen-leading-shift} replaces the reduced leading term by the one of the full system, and
+$\tfrac1{N+2}+\tfrac{\beta^2A^2}{N+2}=\tfrac1{(N+2)(1-\beta^2\alpha)}$ together with $2^{-2p}4^p=1$ gives the stated limit.
+\end{proof}
+
 \begin{theorem}[Odd moments in Hanen's Theorem]\label{thm:sg-tal:hanen-odd}
 \lean{SpinGlasses.sk_hanen_theorem_odd, SpinGlasses.sk_hanen_odd_spin_product_bound, SpinGlasses.sk_hanen_endpoint_derivative_bound}
 \leanok
@@ -9069,6 +9246,9 @@ and site permutation invariance transfer the result to arbitrary distinct sites.
 \end{proof}
 
 \begin{theorem}[Hanen's Theorem]\label{thm:sg-tal:hanen-theorem}
+\lean{SpinGlasses.sk_hanen_theorem}
+\leanok
+\uses{thm:sg-tal:hanen-odd,thm:sg-tal:hanen-even}
 \talsource{Theorem~1.11.1, Eq.~(1.329)}
 Let $4\beta_0^2 < 1$ and $k \in \mathbb N$.
 There exists a constant $K(k, \beta_0)$ such that for all $\beta^2 \le \beta_0^2$, deterministic $h \in \mathbb R$,
@@ -9080,6 +9260,10 @@ $q = \mathbb E \tanh^2(\beta \sqrt{q} z + h)$, $\hat q = \mathbb E \tanh^4(\beta
 \]
 where $a(k) = \mathbb E g^k$ ($a(k) = (k-1)!!$ for $k$ even, $0$ for $k$ odd), and $Y = \beta z \sqrt{q} + h$.
 \end{theorem}
+\begin{proof}
+\leanok
+Split by the parity of $k$: for odd $k$ the moment is $O((N+1)^{-(k+1)/2})$ (Theorem~\ref{thm:sg-tal:hanen-odd}) and $a(k)=0$; for $k=2p$ use Theorem~\ref{thm:sg-tal:hanen-even} with $a(2p)=(2p-1)!!$.
+\end{proof}
 
 \begin{remark}[Research Problems~1.11.2, 1.11.12 and 1.11.13 are open problems, not theorems]
 \label{rem:sg-tal:research-1111}

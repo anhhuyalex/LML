@@ -341,7 +341,8 @@ theorem sk_hanen_full_pairings_gaussian (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 
   · subst hm
     refine ⟨1, one_pos, ?_⟩
     intro β h q hfix hβ N P₀ P pairMap hxy hdisj α A_sq Cf
-    have hb (Q : Finpartition.Pairing (univ : Finset (Fin (2 * 0)))) (f : Finset (Fin (2 * 0)) → ℝ) :
+    have hb (Q : Finpartition.Pairing (univ : Finset (Fin (2 * 0))))
+        (f : Finset (Fin (2 * 0)) → ℝ) :
         Q.blockProduct f = 1 := by
       have h0 : Q.1.parts.card = 0 := Q.card_parts_of_card_eq (m := 0) (by simp)
       rw [Finset.card_eq_zero] at h0

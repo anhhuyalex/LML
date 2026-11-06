@@ -6,7 +6,8 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenRectLeading
-public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Contractions.SKOverlapCLTComparison
+public import
+  LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Contractions.SKOverlapCLTComparison
 
 /-!
 # Comparison of rectangular products (Talagrand, Eq. (1.344))

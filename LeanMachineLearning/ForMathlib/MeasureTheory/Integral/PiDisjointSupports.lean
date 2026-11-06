@@ -29,12 +29,13 @@ namespace MeasureTheory
 only on the coordinates `S v`, and the sets `S v` are pairwise disjoint, then
 `∫ ∏_{v ∈ W} Y v = ∏_{v ∈ W} ∫ Y v` under the product measure. No integrability is needed. -/
 theorem integral_pi_prod_of_disjoint_supports {α D V : Type*} [MeasurableSpace α] [Inhabited α]
-    [Fintype D] [DecidableEq D] [DecidableEq V] (μ : Measure α) [IsProbabilityMeasure μ]
+    [Fintype D] (μ : Measure α) [IsProbabilityMeasure μ]
     (S : V → Finset D) (hS : ∀ v w, v ≠ w → Disjoint (S v) (S w)) (Y : V → (D → α) → ℝ)
     (hYm : ∀ v, Measurable (Y v))
     (hY : ∀ v (z z' : D → α), (∀ d ∈ S v, z d = z' d) → Y v z = Y v z') (W : Finset V) :
     ∫ z, ∏ v ∈ W, Y v z ∂(Measure.pi fun _ : D => μ) =
       ∏ v ∈ W, ∫ z, Y v z ∂(Measure.pi fun _ : D => μ) := by
+  classical
   have hind : iIndepFun (fun (d : D) (z : D → α) => z d) (Measure.pi fun _ : D => μ) :=
     iIndepFun_pi (μ := fun _ : D => μ) (X := fun _ => (id : α → α)) (fun _ => aemeasurable_id)
   -- extension of a function on a coordinate group by the default value

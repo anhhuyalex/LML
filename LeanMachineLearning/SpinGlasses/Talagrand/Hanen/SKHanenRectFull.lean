@@ -41,11 +41,12 @@ theorem hanen_full_rect_eq_trunc_add_spin (N n m : ℕ) (q : ℝ)
 
 /-- **One spin difference squared.** For two distinct replicas the mean of the squared spin
 difference under independent tilted spins is `2 (cosh Y)^{-2} = 2 - 2 tanh² Y`. -/
-theorem integral_spin_diff_sq {ι : Type*} [Fintype ι] [DecidableEq ι] (Y : ℝ) (x y : ι)
+theorem integral_spin_diff_sq {ι : Type*} [Fintype ι] (Y : ℝ) (x y : ι)
     (hxy : x ≠ y) :
     (∫ ε : ι → ℤˣ, ((ε x : ℝ) - (ε y : ℝ)) ^ 2
       ∂(Measure.pi fun _ : ι => Measure.count.tilted fun s : ℤˣ => (s : ℝ) * Y)) =
       2 * ((Real.cosh Y)⁻¹) ^ 2 := by
+  classical
   have h := integral_pi_mul_pair_of_invariant
     (fun _ : ι => Measure.count.tilted fun s : ℤˣ => (s : ℝ) * Y) x y hxy
     (fun a b : ℤˣ => ((a : ℝ) - (b : ℝ)) ^ 2) (fun _ => 1) (fun _ _ => rfl) (fun _ _ => rfl)
@@ -77,13 +78,14 @@ theorem integral_spin_diff_sq {ι : Type*} [Fintype ι] [DecidableEq ι] (Y : �
 
 /-- **A product of squared spin differences of disjoint replica pairs.** The mean under
 independent tilted spins of `∏_{v ∈ Λ} (ε_{x v} - ε_{y v})²` is `(2 (cosh Y)^{-2})^{|Λ|}`. -/
-theorem integral_prod_spin_diff_sq {ι κ : Type*} [Fintype κ] [DecidableEq κ] [DecidableEq ι]
+theorem integral_prod_spin_diff_sq {ι κ : Type*} [Fintype κ]
     (Y : ℝ) (x y : ι → κ) (hxy : ∀ v, x v ≠ y v)
     (hdisj : ∀ u v : ι, u ≠ v → x u ≠ x v ∧ x u ≠ y v ∧ y u ≠ x v ∧ y u ≠ y v)
     (Λ : Finset ι) :
     (∫ ε : κ → ℤˣ, ∏ v ∈ Λ, ((ε (x v) : ℝ) - (ε (y v) : ℝ)) ^ 2
       ∂(Measure.pi fun _ : κ => Measure.count.tilted fun s : ℤˣ => (s : ℝ) * Y)) =
       (2 * ((Real.cosh Y)⁻¹) ^ 2) ^ Λ.card := by
+  classical
   have : Inhabited ℤˣ := ⟨1⟩
   have h := integral_pi_prod_of_disjoint_supports
     (Measure.count.tilted fun s : ℤˣ => (s : ℝ) * Y) (D := κ) (V := ι)
@@ -129,11 +131,12 @@ theorem hanen_block_expansion {L : Type*} [DecidableEq L] (parts : Finset (Finse
 /-- The labels covered by a set of blocks of a pairing, as a product: a product over the
 relabelled elements `w k` is a product over the covered labels, which is the double product over
 the blocks (they are pairwise disjoint). -/
-theorem hanen_prod_relabel_eq_prod_blocks {L : Type*} [DecidableEq L] {m' : ℕ}
+theorem hanen_prod_relabel_eq_prod_blocks {L : Type*} {m' : ℕ}
     (parts S : Finset (Finset L)) (hdisj : (parts : Set (Finset L)).PairwiseDisjoint id)
     (hS : S ⊆ parts) (w : Fin m' → L) (hwinj : Function.Injective w)
     (hwrange : ∀ a, a ∈ Set.range w ↔ ∃ B ∈ S, a ∈ B) (g : L → ℝ) :
     ∏ k, g (w k) = ∏ B ∈ S, ∏ v ∈ B, g v := by
+  classical
   have himg : (Finset.univ : Finset (Fin m')).image w = S.biUnion id := by
     ext a
     simp only [Finset.mem_image, Finset.mem_univ, true_and, Finset.mem_biUnion, id_eq]

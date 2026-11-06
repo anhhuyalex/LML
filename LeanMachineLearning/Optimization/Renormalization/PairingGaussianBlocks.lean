@@ -27,7 +27,7 @@ open scoped BigOperators Matrix
 
 namespace Renormalization
 
-variable {D L : Type*} [Fintype D] [DecidableEq D] [DecidableEq L]
+variable {D L : Type*} [Fintype D] [DecidableEq L]
 
 /-- **Gaussian mean of two pairings with disjoint block supports.** See the module docstring. -/
 theorem integral_pi_gaussian_two_pairings_eq_prod [Fintype L] (V : L → L → D → ℝ)

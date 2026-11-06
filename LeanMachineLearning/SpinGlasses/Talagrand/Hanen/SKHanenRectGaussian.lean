@@ -100,7 +100,8 @@ theorem hanen_rect_coeff {m n : ℕ} (pairMap : Fin (2 * m) → Fin n × Fin n)
       ∑ e : Bool × Bool, c e * (A * z (κ a b e))) := by
   intro rep c κ V
   have hkey (a b a' b' : Fin (2 * m)) (e e' : Bool × Bool) (h : κ a b e = κ a' b' e') :
-      (a = a' ∧ e.1 = e'.1 ∧ b = b' ∧ e.2 = e'.2) ∨ (a = b' ∧ e.1 = e'.2 ∧ b = a' ∧ e.2 = e'.1) := by
+      (a = a' ∧ e.1 = e'.1 ∧ b = b' ∧ e.2 = e'.2) ∨
+        (a = b' ∧ e.1 = e'.2 ∧ b = a' ∧ e.2 = e'.1) := by
     simp only [κ, Sum.inl.injEq, Prod.mk.injEq] at h
     rcases (min_max_eq_iff _ _ _ _).1 h with ⟨h1, h2⟩ | ⟨h1, h2⟩
     · left

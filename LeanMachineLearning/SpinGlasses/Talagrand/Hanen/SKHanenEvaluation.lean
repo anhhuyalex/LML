@@ -247,7 +247,8 @@ theorem sk_hanen_truncated_rect_eval (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) 
         (∏ v : Fin (2 * m), ((σ (x v) (Fin.last N) : ℝ) - (σ (y v) (Fin.last N) : ℝ))) *
           fhat (fun r => σ r (Fin.last N)) * F (fun r i => σ r i.castSucc)) -
       β ^ (2 * m) * Z * T| ≤ K1 * M / D +
-        |β ^ (2 * m) * Z| * |(∑ P' : Finpartition.Pairing (univ : Finset (Fin (2 * m))), t P') - T| := by
+        |β ^ (2 * m) * Z| *
+          |(∑ P' : Finpartition.Pairing (univ : Finset (Fin (2 * m))), t P') - T| := by
     have hsplit : (skCavityPathMean N n β q h 1 fun σ =>
         (∏ v : Fin (2 * m), ((σ (x v) (Fin.last N) : ℝ) - (σ (y v) (Fin.last N) : ℝ))) *
           fhat (fun r => σ r (Fin.last N)) * F (fun r i => σ r i.castSucc)) -
@@ -256,7 +257,8 @@ theorem sk_hanen_truncated_rect_eval (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) 
         (∏ v : Fin (2 * m), ((σ (x v) (Fin.last N) : ℝ) - (σ (y v) (Fin.last N) : ℝ))) *
           fhat (fun r => σ r (Fin.last N)) * F (fun r i => σ r i.castSucc)) -
           β ^ (2 * m) * Z * ∑ P' : Finpartition.Pairing (univ : Finset (Fin (2 * m))), t P') +
-        β ^ (2 * m) * Z * ((∑ P' : Finpartition.Pairing (univ : Finset (Fin (2 * m))), t P') - T) := by
+        β ^ (2 * m) * Z *
+          ((∑ P' : Finpartition.Pairing (univ : Finset (Fin (2 * m))), t P') - T) := by
       ring
     rw [hsplit]
     refine (abs_add_le _ _).trans ?_
@@ -328,7 +330,7 @@ theorem sk_hanen_full_subset_term (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (p 
     have h0 : 0 ≤ fhat' ε := Finset.prod_nonneg fun v _ => sq_nonneg _
     rw [abs_of_nonneg h0]
     calc fhat' ε ≤ ∏ _v ∈ Λ, (4 : ℝ) := by
-          show (∏ v ∈ Λ, ((ε (x v) : ℝ) - (ε (y v) : ℝ)) ^ 2) ≤ ∏ _v ∈ Λ, (4 : ℝ)
+          change (∏ v ∈ Λ, ((ε (x v) : ℝ) - (ε (y v) : ℝ)) ^ 2) ≤ ∏ _v ∈ Λ, (4 : ℝ)
           gcongr with v _
           exact hf v
       _ = 16 ^ (p - S.card) := by
@@ -384,7 +386,7 @@ theorem sk_hanen_full_subset_term (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (p 
         (fun r i => σ r i.castSucc))
         (fun a b => skCavityRectTrunc_comm N n p q _ a b _)
     rw [F1, F3]
-    show _ * (∏ v ∈ Λ, _) * _ = _
+    change _ * (∏ v ∈ Λ, _) * _ = _
     rw [F2]
   have hZ : (∫ z : ℝ, (∫ ε : Fin n → ℤˣ, fhat' ε
         ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
@@ -549,7 +551,8 @@ theorem sk_hanen_full_rect_eval (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (p n 
     dsimp only at hb
     have hc : 0 ≤ ((N : ℝ) + 1)⁻¹ ^ (p - S.card) := by positivity
     rw [← mul_sub, abs_mul, abs_of_nonneg hc]
-    have key : ((N : ℝ) + 1) ^ (p - S.card) * ((N : ℝ) + 1) ^ (((2 * S.card + 1 : ℕ) : ℝ) / 2) = D := by
+    have key : ((N : ℝ) + 1) ^ (p - S.card) *
+        ((N : ℝ) + 1) ^ (((2 * S.card + 1 : ℕ) : ℝ) / 2) = D := by
       rw [hDdef, ← Real.rpow_natCast, ← Real.rpow_add (by positivity)]
       congr 1
       push_cast [Nat.cast_sub hmS]
