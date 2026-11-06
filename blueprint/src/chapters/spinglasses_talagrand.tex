@@ -8206,6 +8206,95 @@ The variables $T_{\ell,\ell'}$ used in Lemma~\ref{lem:sg-tal:hanen-rect-diff} an
 are the pair-type centered overlaps of Section~\ref{sec:sg-tal:second-moment}.
 \end{definition}
 
+\subsection{Hypotheses of the statements in Section~1.11}\label{sec:sg-tal:hanen-hypotheses}
+
+The book states the hypotheses of this section briefly and leaves some of them to the notation.
+The remarks below say which hypotheses the statements use, which ones the book uses without saying so,
+and where the Lean statements are weaker or stronger than the book. They add no new results.
+
+\begin{remark}[Standing hypotheses and where each one comes from]\label{rem:sg-tal:hanen-standing}
+\talsource{Theorem~1.11.1, Eq.~(1.74), and the proof after Eq.~(1.357); source lines 4689--4700, 5100--5110}
+\begin{itemize}
+\item \emph{Temperature.} The book assumes $\beta<1/2$. The statements here fix $\beta_0$ with $4\beta_0^2<1$
+ and take all $\beta$ with $\beta^2\le\beta_0^2$. The constant $K$ is chosen first and does not depend on $\beta$.
+ This uniformity is needed, not only convenient. The proof applies Corollary~\ref{cor:sg-tal:eta-overlap-shifted-bound}
+ to the system with $N-1$ spins, whose inverse temperature $\beta_-=\sqrt{(N-1)/N}\,\beta$ changes with $N$.
+ The book says so after Eq.~(1.357): the estimate is uniform over $\beta\le\beta_0<1/2$.
+\item \emph{The number $q$.} The book takes $q$ to be \emph{the} root of Eq.~(1.74). The statements here only
+ assume that $q\in[0,1]$ is \emph{a} root (Definition~\ref{def:sg-tal:hanen-constants}). They never use that the root is unique.
+ Where the book writes $|q-q_-|\le L/N$ for the reduced system (citing Eq.~(1.187)), the proof uses the existence of a root $q_-$
+ of the reduced system with $|q-q_-|\le 1/(N+1)$ (Lemma~\ref{lem:sg-tal:hanen-reduced-system}).
+\item \emph{The field $h$.} The field $h$ is a fixed real number. The constants $K$ do not depend on $h$ either.
+ This is stronger than the book, which fixes $h$ before choosing $K$.
+ If a later estimate made this uniformity costly, the statement could let $K$ depend on $h$, since $h$ is fixed in Theorem~1.11.1.
+\item \emph{The sign of $\beta$.} The statements allow $\beta$ of either sign, and $\beta=0$. Only $\beta^2$ matters.
+\item \emph{The size $N$.} The constants do not depend on $N$. Small $N$ needs no separate treatment:
+ the constant absorbs finitely many cases, or the hypothesis $i_1\neq i_2$ excludes them.
+\end{itemize}
+\end{remark}
+
+\begin{remark}[Hypotheses that the book uses without stating them]\label{rem:sg-tal:hanen-implicit}
+\talsource{Notation $\eta_v$, $V^*$ and Propositions~1.11.10--1.11.11; source lines 4750--4760, 4966--5020}
+Three hypotheses are hidden in the notation $\eta_V$ and $V^*$. They must stay in every statement.
+\begin{enumerate}
+\item \emph{Each difference uses two different replicas.} In $\eta_v=\varepsilon_{2v-1}-\varepsilon_{2v}$ the two
+ replicas $2v-1$ and $2v$ are different. In the notation of Definition~\ref{def:sg-tal:hanen-spin-differences} this reads $a_v\neq b_v$.
+ This hypothesis cannot be dropped. If $a_v=b_v$ then $\eta_v=0$, so the left side of Proposition~\ref{prop:sg-tal:hanen-truncated-rect-eval} is $0$.
+ For $\hat f=1$ and $\beta\ne0$ the right side is not $0$. So the proposition is false without this hypothesis.
+\item \emph{The pairs of replicas for different $v$ are disjoint.} The sets $\{2v-1,2v\}$ for different $v$ do not meet.
+ The pairing formula (Theorem~\ref{thm:sg-tal:hanen-pairing-derivative}) uses this to read off which pair of
+ spin differences each overlap factor comes from.
+\item \emph{The function $\hat f$ does not depend on the replicas in $V^*$.} The book writes
+ ``a function of $(\varepsilon_\ell)_{\ell\notin V^*}$''. Lean states this as: changing the spin of one replica in $V^*$ does not change $\hat f$.
+\end{enumerate}
+In Lean the first two hypotheses appear as \texttt{hxy} and \texttt{hxydisj} (or \texttt{hdisj}), and the third as \texttt{hfhat}.
+\end{remark}
+
+\begin{remark}[Statements are not narrower than the book]\label{rem:sg-tal:hanen-general}
+\talsource{Propositions~1.11.10--1.11.11; source lines 4966--5067}
+Propositions~\ref{prop:sg-tal:hanen-truncated-rect-eval} and~\ref{prop:sg-tal:hanen-full-rect-eval} are stated here as in the book.
+Two choices keep them from being narrower than the book.
+\begin{itemize}
+\item \emph{Any pair partition.} The book allows any partition $\mathcal I$ of $V$ into two-element sets. The statements
+ do the same. They do not fix the partition to be $\{1,2\},\{3,4\},\dots$. This matters for the proof of Theorem~1.11.1,
+ which sums over \emph{all} partitions $\mathcal I$ and uses that each one gives the same value.
+ With an arbitrary partition in the statement, that step needs no relabelling argument.
+ The replicas $x_v,y_v$ of the pairs are also arbitrary, so the book's numbering $2v-1,2v$ is a special case.
+\item \emph{The size of $\hat f$.} The function $\hat f$ is a fixed function on the finite set $\{\pm1\}^n$, so it is bounded.
+ The error bound in Proposition~\ref{prop:sg-tal:hanen-truncated-rect-eval} is proportional to $M=\max|\hat f|$,
+ and $K$ does not depend on $M$. Both sides of the proposition are linear in $\hat f$, which gives this.
+ The proof of Proposition~\ref{prop:sg-tal:hanen-full-rect-eval} uses it with $\hat f=\prod_{J\notin\mathcal I'}\eta_J^2$, which is bounded by $16^{|\mathcal I|-|\mathcal I'|}$.
+\end{itemize}
+\emph{Status of the Lean statements.} At the time of writing, the Lean statements of the two propositions still fix the consecutive
+partition and assume $|\hat f|\le1$. They are special cases of the statements above and are being restated. The statement of
+Theorem~\ref{thm:sg-tal:hanen-pairing-derivative} already has the general form.
+\end{remark}
+
+\begin{remark}[Steps that the book leaves vague]\label{rem:sg-tal:hanen-vague}
+\talsource{Eqs.~(1.344), (1.347), and the last lines of the proof of Theorem~1.11.1; source lines 4990--4995, 5160--5175}
+Three steps in the book are short or are left to the reader. The formalization states each one as a precise lemma.
+\begin{itemize}
+\item \emph{Eq.~(1.344).} The book writes ``in the previous section we have explained in detail why'' the average over the old system
+ of a product of truncated rectangles equals the average over the full system of the product of rectangles, up to $O(2m+1)$.
+ No numbered statement says this. It needs two comparisons: the $N$-spin average against the $(N+1)$-spin average
+ for a function of the old spins, and the truncated overlaps $U_J^-$ against the full overlaps $U_J$.
+\item \emph{``Each choice of $\mathcal I$ gives the same contribution.''} In Lean this is the statement for an arbitrary partition
+ (see Remark~\ref{rem:sg-tal:hanen-general}), together with the count of partitions (Lemma~\ref{lem:sg-tal:hanen-pairing-count}).
+\item \emph{``It is a very simple matter to check.''} The book replaces the reduced-system value
+ $\bigl(4(\tfrac1{N-1}+\beta^2A_-^2)\bigr)^p\,\mathbb E\operatorname{ch}^{-4p}Y_-$ by the same expression for the full system. The error is $O(2p+1)$.
+ This needs $|q-q_-|\le L/N$, the relation $\beta_-^2=\beta^2(N-1)/N$, and a Lipschitz estimate for
+ $r\mapsto\mathbb E\operatorname{ch}^{-4p}(rz+h)$ and for $\alpha$.
+\end{itemize}
+\end{remark}
+
+\begin{remark}[What cannot be generalized]\label{rem:sg-tal:hanen-limits}
+\talsource{Section~1.11 and the interpolation of Section~1.6; source lines 4689--5190}
+All statements are about the Sherrington--Kirkpatrick model with Gaussian pair disorder and spins in $\{\pm1\}$.
+The proofs use the interpolation of Eq.~(1.147), Gaussian integration by parts, and the explicit derivative formula of Eq.~(1.151).
+A version for an abstract Gibbs measure is not meaningful, and none is attempted. The number $n$ of replicas stays in the statements,
+as in the book's constants $K(m,n)$. The range $4\beta_0^2<1$ is the book's range $\beta<1/2$. It is not improved here.
+\end{remark}
+
 \begin{remark}[Status of Section~1.11]\label{rem:sg-tal:hanen-status}
 \talsource{Section~1.11, Lemmas~1.11.3--1.11.8, Theorem~1.11.9, Propositions~1.11.10--1.11.11, Theorem~1.11.1}
 \emph{Under construction:} The prerequisite overlap CLT for deterministic external fields
@@ -8577,6 +8666,7 @@ This is a direct calculation for every $m$, without induction.
 
 \begin{proposition}[Evaluation of rectangular products]\label{prop:sg-tal:hanen-truncated-rect-eval}
 \talsource{Proposition~1.11.10, Eq.~(1.341)}
+The replica pairs are distinct and disjoint, and $\hat f$ is bounded by $M$ with error proportional to $M$ (Remarks~\ref{rem:sg-tal:hanen-implicit} and~\ref{rem:sg-tal:hanen-general}).
 Let $|V| = 2m$ and let $\mathcal I$ be a partition of $V$ into pairs.
 Let $\hat f$ depend only on $(\varepsilon_\ell)_{\ell \notin V^*}$.
 There exists $K(m, n, \beta_0)$ such that for all $\beta^2 \le \beta_0^2$ and $N \ge 1$:
@@ -8588,6 +8678,7 @@ There exists $K(m, n, \beta_0)$ such that for all $\beta^2 \le \beta_0^2$ and $N
 
 \begin{proposition}[Evaluation of full rectangular products]\label{prop:sg-tal:hanen-full-rect-eval}
 \talsource{Proposition~1.11.11, Eq.~(1.347)}
+The replica pairs are distinct and disjoint (Remark~\ref{rem:sg-tal:hanen-implicit}); $\mathcal I$ is any pair partition.
 Let $|V| = 2p$ and let $\mathcal I$ be a partition of $V$ into pairs.
 There exists $K(p, \beta_0)$ such that for all $\beta^2 \le \beta_0^2$ and $N \ge 1$:
 \[

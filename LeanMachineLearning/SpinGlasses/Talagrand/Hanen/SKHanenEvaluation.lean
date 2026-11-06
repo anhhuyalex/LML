@@ -6,7 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenTaylor
-public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenRectangular
+public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPairingBasic
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Pair.SKOverlapCLTPairGaussian
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKCovarianceRows
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SqSub
@@ -105,104 +105,67 @@ theorem four_mul_pow_mul_two_inv_pow (p : ℕ) (X : ℝ) :
     _ = 1 * X ^ p := by rw [h4]
     _ = X ^ p := by ring
 
-/-- **Talagrand's Proposition 1.11.10 (Eq. (1.341)).** Evaluation of truncated rectangular
-products: for $|V| = 2m$ and a pairing of $V$, the coupled expectation of
-$\eta_V \hat f \prod_{J \in \mathcal I} U_J^-$ equals
-$\mathbb E(\langle \hat f \rangle_0 \operatorname{ch}^{-4m} Y) (4 \beta^2 A^2)^m$ up to
-$O((N+1)^{-(2m+1)/2})$, uniformly in $\beta^2 \le \beta_0^2 < 1/4$. -/
+/-- **Talagrand's Proposition 1.11.10 (Eq. (1.341)).** Evaluation for any pairing of the
+`2m` difference labels, with error linear in an arbitrary bound `M` on `fhat`.
+Distinct endpoints, disjoint replica pairs and independence of `fhat` from their replicas
+are implicit in the book's notation and necessary for the nonzero leading term. -/
 theorem sk_hanen_truncated_rect_eval (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (m n : ℕ) :
     ∃ K : ℝ, 0 < K ∧ ∀ (β h q : ℝ),
       (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂gaussianReal 0 1 = q) →
       β ^ 2 ≤ β₀ ^ 2 → ∀ (N : ℕ)
-      (x y : Fin (2 * m) → Fin n) (hxy : ∀ j, x j ≠ y j)
-      (hxydisj : ∀ u v : Fin (2 * m), u ≠ v →
-        x u ≠ x v ∧ x u ≠ y v ∧ y u ≠ x v ∧ y u ≠ y v)
-      (fhat : (Fin n → ℤˣ) → ℝ) (hfbound : ∀ ε, |fhat ε| ≤ 1)
-      (hfhat : ∀ (ε : Fin n → ℤˣ) (i : Fin n) (t : ℤˣ),
-        i ∈ (Finset.univ : Finset (Fin (2 * m))).biUnion (fun j => {x j, y j}) →
-        fhat (Function.update ε i t) = fhat ε),
-      let α : ℝ := (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 4
+      (P : Finpartition.Pairing (univ : Finset (Fin (2 * m))))
+      (x y : Fin (2 * m) → Fin n), (∀ j, x j ≠ y j) →
+      (∀ u v : Fin (2 * m), u ≠ v →
+        x u ≠ x v ∧ x u ≠ y v ∧ y u ≠ x v ∧ y u ≠ y v) →
+      ∀ (fhat : (Fin n → ℤˣ) → ℝ) (M : ℝ), (∀ ε, |fhat ε| ≤ M) →
+      (∀ (ε : Fin n → ℤˣ) (i : Fin n) (t : ℤˣ),
+        i ∈ (univ : Finset (Fin (2 * m))).biUnion (fun j => {x j, y j}) →
+        fhat (Function.update ε i t) = fhat ε) →
+      let α := (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 4
         ∂gaussianReal 0 1) - 2 * q + 1
-      let A_sq : ℝ := α / (1 - β ^ 2 * α)
-      |∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ,
-          (∏ w : Fin m, (((σ (x (finPair0 w)) (Fin.last N) : ℤˣ) : ℝ) -
-            ((σ (y (finPair0 w)) (Fin.last N) : ℤˣ) : ℝ)) *
-            (((σ (x (finPair1 w)) (Fin.last N) : ℤˣ) : ℝ) -
-            ((σ (y (finPair1 w)) (Fin.last N) : ℤˣ) : ℝ))) *
-          fhat (fun k => σ k (Fin.last N)) *
-          ∏ w : Fin m,
-            (((N + 1 : ℝ)⁻¹ *
-              ((fun i : Fin N => (σ (x (finPair0 w)) i.castSucc : ℝ)) ⬝ᵥ
-                (fun i : Fin N => (σ (x (finPair1 w)) i.castSucc : ℝ))) - q) -
-            ((N + 1 : ℝ)⁻¹ *
-              ((fun i : Fin N => (σ (y (finPair0 w)) i.castSucc : ℝ)) ⬝ᵥ
-                (fun i : Fin N => (σ (x (finPair1 w)) i.castSucc : ℝ))) - q) -
-            ((N + 1 : ℝ)⁻¹ *
-              ((fun i : Fin N => (σ (x (finPair0 w)) i.castSucc : ℝ)) ⬝ᵥ
-                (fun i : Fin N => (σ (y (finPair1 w)) i.castSucc : ℝ))) - q) +
-            ((N + 1 : ℝ)⁻¹ *
-              ((fun i : Fin N => (σ (y (finPair0 w)) i.castSucc : ℝ)) ⬝ᵥ
-                (fun i : Fin N => (σ (y (finPair1 w)) i.castSucc : ℝ))) - q))
-          ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-            (Real.sqrt (N + 1))⁻¹ * β *
-              (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-              h * ∑ i : Fin (N + 1), (a i : ℝ))
-        ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) -
+      let A_sq := α / (1 - β ^ 2 * α)
+      let F := fun ρ : Fin n → Fin N → ℤˣ => P.blockProduct
+        (Renormalization.pairWeight fun u v =>
+          skCavityRectTrunc N n m q (fun j => (x j, y j)) u v ρ)
+      |skCavityPathMean N n β q h 1 (fun σ =>
+          (∏ v : Fin (2 * m), ((σ (x v) (Fin.last N) : ℝ) -
+            (σ (y v) (Fin.last N) : ℝ))) * fhat (fun r => σ r (Fin.last N)) *
+          F (fun r i => σ r i.castSucc)) -
         (∫ z : ℝ, (∫ ε : Fin n → ℤˣ, fhat ε
             ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
-              fun s : ℤˣ => ((s : ℤˣ) : ℝ) * (β * z * Real.sqrt q + h))) *
-          (Real.cosh (β * z * Real.sqrt q + h) ^ (4 * m))⁻¹
-          ∂gaussianReal 0 1) *
+              fun s : ℤˣ => (s : ℝ) * (β * z * Real.sqrt q + h))) *
+          (Real.cosh (β * z * Real.sqrt q + h) ^ (4 * m))⁻¹ ∂gaussianReal 0 1) *
         (4 * β ^ 2 * A_sq / (N + 1 : ℝ)) ^ m| ≤
-      K / ((N : ℝ) + 1) ^ ((((2 * m + 1 : ℕ) : ℝ)) / 2) := by
-  obtain ⟨K1, hK1pos, hK1⟩ := abs_sk_eta_taylor_le β₀ hβ₀ n (2 * m) 0
-  obtain ⟨K2, hK2pos, hK2⟩ := sk_cavity_prod_sq_le β₀ hβ₀ m 1
-  refine ⟨K1 * (Real.sqrt K2 + 1) + (4 * β₀ ^ 2 * 4) ^ m + 1, by positivity, ?_⟩
-  intro β h q hfix hβ N x y hxy hxydisj fhat hfbound hfhat α A_sq
+      K * M / ((N : ℝ) + 1) ^ (((2 * m + 1 : ℕ) : ℝ) / 2) := by
   sorry
 
-/-- **Talagrand's Proposition 1.11.11 (Eq. (1.347)).** Evaluation of full rectangular products:
-for $|V| = 2p$ and a pairing of $V$, the coupled expectation of
-$\eta_V \prod_{J \in \mathcal I} U_J$ equals
-$(4 (1 / (N+1) + \beta^2 A^2))^p \mathbb E \operatorname{ch}^{-4p} Y$ up to
-$O((N+1)^{-(2p+1)/2})$, uniformly in $\beta^2 \le \beta_0^2 < 1/4$. -/
+/-- **Talagrand's Proposition 1.11.11 (Eq. (1.347)).** Evaluation of the full rectangular
+product for any pairing of the difference labels. The distinct, mutually disjoint replica
+pairs are implicit in the book's notation; the leading term is independent of the pairing. -/
 theorem sk_hanen_full_rect_eval (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (p n : ℕ) :
     ∃ K : ℝ, 0 < K ∧ ∀ (β h q : ℝ),
       (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂gaussianReal 0 1 = q) →
       β ^ 2 ≤ β₀ ^ 2 → ∀ (N : ℕ)
-      (x y : Fin (2 * p) → Fin n) (hxy : ∀ j, x j ≠ y j)
-      (hxydisj : ∀ u v : Fin (2 * p), u ≠ v →
-        x u ≠ x v ∧ x u ≠ y v ∧ y u ≠ x v ∧ y u ≠ y v),
-      let α : ℝ := (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 4
+      (P : Finpartition.Pairing (univ : Finset (Fin (2 * p))))
+      (x y : Fin (2 * p) → Fin n), (∀ j, x j ≠ y j) →
+      (∀ u v : Fin (2 * p), u ≠ v →
+        x u ≠ x v ∧ x u ≠ y v ∧ y u ≠ x v ∧ y u ≠ y v) →
+      let α := (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 4
         ∂gaussianReal 0 1) - 2 * q + 1
-      let A_sq : ℝ := α / (1 - β ^ 2 * α)
-      |∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ,
-          (∏ w : Fin p, (((σ (x (finPair0 w)) (Fin.last N) : ℤˣ) : ℝ) -
-            ((σ (y (finPair0 w)) (Fin.last N) : ℤˣ) : ℝ)) *
-            (((σ (x (finPair1 w)) (Fin.last N) : ℤˣ) : ℝ) -
-            ((σ (y (finPair1 w)) (Fin.last N) : ℤˣ) : ℝ))) *
-          ∏ w : Fin p,
-            (((N + 1 : ℝ)⁻¹ *
-              ((fun i : Fin (N + 1) => (σ (x (finPair0 w)) i : ℝ)) ⬝ᵥ
-                (fun i : Fin (N + 1) => (σ (x (finPair1 w)) i : ℝ))) - q) -
-            ((N + 1 : ℝ)⁻¹ *
-              ((fun i : Fin (N + 1) => (σ (y (finPair0 w)) i : ℝ)) ⬝ᵥ
-                (fun i : Fin (N + 1) => (σ (x (finPair1 w)) i : ℝ))) - q) -
-            ((N + 1 : ℝ)⁻¹ *
-              ((fun i : Fin (N + 1) => (σ (x (finPair0 w)) i : ℝ)) ⬝ᵥ
-                (fun i : Fin (N + 1) => (σ (y (finPair1 w)) i : ℝ))) - q) +
-            ((N + 1 : ℝ)⁻¹ *
-              ((fun i : Fin (N + 1) => (σ (y (finPair0 w)) i : ℝ)) ⬝ᵥ
-                (fun i : Fin (N + 1) => (σ (y (finPair1 w)) i : ℝ))) - q))
-          ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-            (Real.sqrt (N + 1))⁻¹ * β *
-              (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-              h * ∑ i : Fin (N + 1), (a i : ℝ))
-        ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) -
+      let A_sq := α / (1 - β ^ 2 * α)
+      let C := fun (σ : Fin n → Fin (N + 1) → ℤˣ) u v =>
+        (N + 1 : ℝ)⁻¹ * (∑ i : Fin (N + 1), (σ (x u) i : ℝ) * (σ (x v) i : ℝ)) -
+        (N + 1 : ℝ)⁻¹ * (∑ i : Fin (N + 1), (σ (y u) i : ℝ) * (σ (x v) i : ℝ)) -
+        (N + 1 : ℝ)⁻¹ * (∑ i : Fin (N + 1), (σ (x u) i : ℝ) * (σ (y v) i : ℝ)) +
+        (N + 1 : ℝ)⁻¹ * (∑ i : Fin (N + 1), (σ (y u) i : ℝ) * (σ (y v) i : ℝ))
+      |skCavityPathMean N n β q h 1 (fun σ =>
+          (∏ v : Fin (2 * p), ((σ (x v) (Fin.last N) : ℝ) -
+            (σ (y v) (Fin.last N) : ℝ))) *
+          P.blockProduct (Renormalization.pairWeight (C σ))) -
         (4 * ((N + 1 : ℝ)⁻¹ + β ^ 2 * (A_sq / (N + 1 : ℝ)))) ^ p *
           ∫ z : ℝ, (Real.cosh (β * z * Real.sqrt q + h) ^ (4 * p))⁻¹
             ∂gaussianReal 0 1| ≤
-      K / ((N : ℝ) + 1) ^ ((((2 * p + 1 : ℕ) : ℝ)) / 2) := by
+      K / ((N : ℝ) + 1) ^ (((2 * p + 1 : ℕ) : ℝ) / 2) := by
   sorry
 
 end SpinGlasses

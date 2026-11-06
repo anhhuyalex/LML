@@ -7,7 +7,7 @@ module
 
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenIterBound
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPathVanishing
-public import Mathlib.Analysis.Calculus.Taylor
+public import LeanMachineLearning.ForMathlib.Analysis.Calculus.TaylorCoefficient
 
 /-!
 # Taylor bound for spin-difference observables (Talagrand, Corollaries 1.11.6, 1.11.7)
@@ -44,6 +44,54 @@ theorem skCavityPathMean_one (N n : ℕ) (β q h : ℝ) (f : (Fin n → Fin (N +
   simp only [skCavityPathMean] at this ⊢
   rw [Real.sqrt_one, Real.arccos_one]
   exact this
+
+/-- Retain a cavity Taylor coefficient using vanishing lower derivatives and a square-moment
+bound. The moment degree `k` is independent of the derivative order `m`; in particular `m = 0`
+compares the coupled and decoupled means. No special form of the observable is required. -/
+theorem skCavityPathMean_taylor_coefficient_le (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
+    (m k n : ℕ) :
+    ∃ D : ℝ, 0 < D ∧ ∀ (β h q : ℝ),
+      (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂gaussianReal 0 1 = q) →
+      β ^ 2 ≤ β₀ ^ 2 → ∀ (N : ℕ) (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ)
+      (C : ℝ), 0 ≤ C →
+      skCavityPathMean N n β q h 1 (fun σ => f σ ^ 2) ≤ C / ((N : ℝ) + 1) ^ k →
+      (∀ j < m, iteratedDerivWithin j (fun u => skCavityPathMean N n β q h u f)
+        (Set.Icc 0 1) 0 = 0) →
+      |skCavityPathMean N n β q h 1 f - (m.factorial : ℝ)⁻¹ *
+        iteratedDerivWithin m (fun u => skCavityPathMean N n β q h u f)
+          (Set.Icc 0 1) 0| ≤
+        D * Real.sqrt C / ((N : ℝ) + 1) ^ (((m : ℝ) + k + 1) / 2) := by
+  obtain ⟨D, hD, hDb⟩ := abs_iteratedDerivWithin_skCavityPathMean_le β₀ hβ₀ (m + 1) n
+  refine ⟨D, hD, ?_⟩
+  intro β h q hfix hβ N f C hC hmoment hzero
+  let t : ℝ := (N : ℝ) + 1
+  have ht : 0 < t := by dsimp [t]; positivity
+  have hL2 : Real.sqrt (skCavityPathMean N n β q h 1 (fun σ => f σ ^ 2)) ≤
+      Real.sqrt C / t ^ ((k : ℝ) / 2) := by
+    refine (Real.sqrt_le_sqrt hmoment).trans_eq ?_
+    rw [Real.sqrt_div hC, sqrt_pow_eq_rpow_half t ht.le k]
+  have hder (u : ℝ) (hu : u ∈ Set.Icc (0 : ℝ) 1) :
+      |iteratedDerivWithin (m + 1) (fun u => skCavityPathMean N n β q h u f)
+          (Set.Icc 0 1) u| ≤ D * Real.sqrt C / t ^ (((m : ℝ) + k + 1) / 2) := by
+    have hb := hDb β h q hfix hβ N f u hu
+    rw [← skCavityPathMean_one N n β q h] at hb
+    calc
+      _ ≤ D / t ^ (((m + 1 : ℕ) : ℝ) / 2) *
+          (Real.sqrt C / t ^ ((k : ℝ) / 2)) :=
+        hb.trans (mul_le_mul_of_nonneg_left hL2 (by positivity))
+      _ = _ := by
+        rw [div_mul_div_comm, ← Real.rpow_add ht]
+        congr 2
+        push_cast
+        ring
+  have hc := contDiffOn_skCavityPathMean N n β q h (fixedPoint_mem_Icc hfix) f (m + 1)
+  have hb := norm_sub_taylor_coefficient_le (s := m) (a := m) le_rfl hc (fun _ => 0)
+    (M := D * Real.sqrt C / t ^ (((m : ℝ) + k + 1) / 2)) (by positivity)
+    (fun j hj hne => by
+      have hjm : j < m := by have := mem_range.mp hj; omega
+      rw [hzero j hjm, smul_zero, norm_zero])
+    (fun u hu => by simpa only [Real.norm_eq_abs] using hder u hu)
+  simpa only [sum_const_zero, zero_add, smul_eq_mul, Real.norm_eq_abs] using hb
 
 /-- **Talagrand's Corollary 1.11.6 (Eq. (1.335)).**  Let `s` replica pairs `pairMap w` be pairwise
 disjoint, `J` a set of replicas with `|V* ∩ J| ≤ r`, `F` a function of the old spins and `f̂` a
