@@ -374,9 +374,15 @@ theorem sk_hanen_full_subset_term (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (p 
       (fun v => (σ (x v) (Fin.last N) : ℝ) - (σ (y v) (Fin.last N) : ℝ))
     have F2 := hanen_prod_sq_blocks P.val.parts S P.val.disjoint
       (fun v => (σ (x v) (Fin.last N) : ℝ) - (σ (y v) (Fin.last N) : ℝ))
-    have F3 := hQ (fun a b => skCavityRectTrunc N n p q (fun j => (x j, y j)) a b
+    have F3 : Q.blockProduct (Renormalization.pairWeight fun u v =>
+        skCavityRectTrunc N n S.card q (fun j => (x (w j), y (w j))) u v
+          (fun r i => σ r i.castSucc)) =
+        ∏ B ∈ S, Renormalization.pairWeight (fun a b =>
+          skCavityRectTrunc N n p q (fun j => (x j, y j)) a b
+            (fun r i => σ r i.castSucc)) B :=
+      hQ (fun a b => skCavityRectTrunc N n p q (fun j => (x j, y j)) a b
         (fun r i => σ r i.castSucc))
-      (fun a b => skCavityRectTrunc_comm N n p q _ a b _)
+        (fun a b => skCavityRectTrunc_comm N n p q _ a b _)
     rw [F1, F3]
     show _ * (∏ v ∈ Λ, _) * _ = _
     rw [F2]
@@ -397,7 +403,8 @@ theorem sk_hanen_full_subset_term (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (p 
     have key : ∀ (c : ℝ), 0 < c → ∀ k m' : ℕ,
         (2 * c⁻¹ ^ 2) ^ (2 * k) * (c ^ (4 * m'))⁻¹ = 4 ^ k * (c ^ (4 * (k + m')))⁻¹ := by
       intro c hc k m'
-      field_simp
+      have h4 : (4 : ℝ) ^ k = 2 ^ (2 * k) := by rw [pow_mul]; norm_num
+      rw [h4]
       ring
     rw [show 4 * p = 4 * ((p - S.card) + S.card) by omega]
     exact key _ hc _ _
@@ -431,6 +438,141 @@ theorem sk_hanen_full_rect_eval (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (p n 
           ∫ z : ℝ, (Real.cosh (β * z * Real.sqrt q + h) ^ (4 * p))⁻¹
             ∂gaussianReal 0 1| ≤
       K / ((N : ℝ) + 1) ^ (((2 * p + 1 : ℕ) : ℝ) / 2) := by
-  sorry
+  obtain ⟨K, hKpos, hKb⟩ := sk_hanen_full_subset_term β₀ hβ₀ p n
+  classical
+  refine ⟨2 ^ p * 16 ^ p * ∑ k ∈ range (p + 1), K k, by
+    have : 0 < ∑ k ∈ range (p + 1), K k :=
+      Finset.sum_pos (fun k _ => hKpos k) ⟨0, by simp⟩
+    positivity, ?_⟩
+  intro β h q hfix hβ N P x y hxy hdisj α A_sq C
+  have hparts : P.val.parts.card = p := P.card_parts_of_card_eq (m := p) (by simp)
+  have hcard2 : ∀ B ∈ P.val.parts, B.card = 2 := fun B hB => P.2 B hB
+  -- Stage 1: pointwise expansion over subsets of the blocks
+  have hpt : ∀ σ : Fin n → Fin (N + 1) → ℤˣ,
+      (∏ v : Fin (2 * p), ((σ (x v) (Fin.last N) : ℝ) - (σ (y v) (Fin.last N) : ℝ))) *
+        P.blockProduct (Renormalization.pairWeight (C σ)) =
+      ∑ S ∈ P.val.parts.powerset, ((N : ℝ) + 1)⁻¹ ^ (p - S.card) *
+        ((∏ B ∈ S, ∏ v ∈ B, ((σ (x v) (Fin.last N) : ℝ) - (σ (y v) (Fin.last N) : ℝ))) *
+          (∏ B ∈ P.val.parts \ S,
+            (∏ v ∈ B, ((σ (x v) (Fin.last N) : ℝ) - (σ (y v) (Fin.last N) : ℝ))) ^ 2) *
+          ∏ B ∈ S, Renormalization.pairWeight (fun a b =>
+            skCavityRectTrunc N n p q (fun j => (x j, y j)) a b
+              (fun r i => σ r i.castSucc)) B) := by
+    intro σ
+    have hη : (∏ v : Fin (2 * p), ((σ (x v) (Fin.last N) : ℝ) - (σ (y v) (Fin.last N) : ℝ))) =
+        ∏ B ∈ P.val.parts, ∏ v ∈ B, ((σ (x v) (Fin.last N) : ℝ) -
+          (σ (y v) (Fin.last N) : ℝ)) :=
+      (P.val.prod_parts fun v => (σ (x v) (Fin.last N) : ℝ) - (σ (y v) (Fin.last N) : ℝ)).symm
+    have hCsymm (a b : Fin (2 * p)) : C σ a b = C σ b a := by
+      simp only [C]
+      have h1 (s t : Fin n) : ∑ i : Fin (N + 1), (σ s i : ℝ) * (σ t i : ℝ) =
+          ∑ i : Fin (N + 1), (σ t i : ℝ) * (σ s i : ℝ) :=
+        Finset.sum_congr rfl fun i _ => mul_comm _ _
+      rw [h1 (x a) (x b), h1 (y a) (x b), h1 (x a) (y b), h1 (y a) (y b)]
+      ring
+    have hblock : ∀ B ∈ P.val.parts, Renormalization.pairWeight (C σ) B =
+        Renormalization.pairWeight (fun a b => skCavityRectTrunc N n p q (fun j => (x j, y j)) a b
+          (fun r i => σ r i.castSucc)) B +
+        ((N : ℝ) + 1)⁻¹ * ∏ v ∈ B, ((σ (x v) (Fin.last N) : ℝ) -
+          (σ (y v) (Fin.last N) : ℝ)) := by
+      intro B hB
+      obtain ⟨a, b, hab, rfl⟩ := Finset.card_eq_two.1 (hcard2 B hB)
+      rw [Renormalization.pairWeight_pair (C σ) hCsymm hab,
+        Renormalization.pairWeight_pair _ (fun a b => skCavityRectTrunc_comm N n p q _ a b _) hab,
+        Finset.prod_pair hab]
+      exact hanen_full_rect_eq_trunc_add_spin N n p q (fun j => (x j, y j)) σ a b
+    have hbp : P.blockProduct (Renormalization.pairWeight (C σ)) =
+        ∏ B ∈ P.val.parts, (Renormalization.pairWeight (fun a b =>
+          skCavityRectTrunc N n p q (fun j => (x j, y j)) a b (fun r i => σ r i.castSucc)) B +
+          ((N : ℝ) + 1)⁻¹ * ∏ v ∈ B, ((σ (x v) (Fin.last N) : ℝ) -
+            (σ (y v) (Fin.last N) : ℝ))) :=
+      Finset.prod_congr rfl hblock
+    rw [hη, hbp, hanen_block_expansion P.val.parts _ _ _, hparts]
+    refine Finset.sum_congr rfl fun S _ => ?_
+    rw [Finset.prod_mul_distrib]
+    ring
+  -- Stage 2: linearity of the path mean over the subsets
+  set D : ℝ := ((N : ℝ) + 1) ^ (((2 * p + 1 : ℕ) : ℝ) / 2) with hDdef
+  have hD : 0 < D := by positivity
+  set J : ℝ := ∫ z : ℝ, (Real.cosh (β * z * Real.sqrt q + h) ^ (4 * p))⁻¹ ∂gaussianReal 0 1
+    with hJ
+  set yl : ℝ := 4 * β ^ 2 * A_sq / (N + 1 : ℝ) with hyl
+  have hlin := skCavityPathMean_finset_sum N n β q h 1 P.val.parts.powerset
+    (fun S => ((N : ℝ) + 1)⁻¹ ^ (p - S.card))
+    (fun S σ =>
+      (∏ B ∈ S, ∏ v ∈ B, ((σ (x v) (Fin.last N) : ℝ) - (σ (y v) (Fin.last N) : ℝ))) *
+        (∏ B ∈ P.val.parts \ S,
+          (∏ v ∈ B, ((σ (x v) (Fin.last N) : ℝ) - (σ (y v) (Fin.last N) : ℝ))) ^ 2) *
+        ∏ B ∈ S, Renormalization.pairWeight (fun a b =>
+          skCavityRectTrunc N n p q (fun j => (x j, y j)) a b
+            (fun r i => σ r i.castSucc)) B)
+  simp only [hpt]
+  rw [hlin]
+  -- the leading terms add up to the target (binomial theorem)
+  have hlead : (4 * (((N : ℝ) + 1)⁻¹ + β ^ 2 * (A_sq / (N + 1 : ℝ)))) ^ p * J =
+      ∑ S ∈ P.val.parts.powerset, ((N : ℝ) + 1)⁻¹ ^ (p - S.card) *
+        (4 ^ (p - S.card) * J * yl ^ S.card) := by
+    have h1 : ∀ S ∈ P.val.parts.powerset, ((N : ℝ) + 1)⁻¹ ^ (p - S.card) *
+        (4 ^ (p - S.card) * J * yl ^ S.card) =
+        J * ((4 * ((N : ℝ) + 1)⁻¹) ^ (p - S.card) * yl ^ S.card) := by
+      intro S _
+      rw [mul_pow]
+      ring
+    rw [Finset.sum_congr rfl h1, ← Finset.mul_sum]
+    have h2 := Finset.sum_powerset_apply_card (x := P.val.parts)
+      (fun m => (4 * ((N : ℝ) + 1)⁻¹) ^ (p - m) * yl ^ m)
+    rw [h2, hparts]
+    have h3 := add_pow yl (4 * ((N : ℝ) + 1)⁻¹) p
+    have e : 4 * (((N : ℝ) + 1)⁻¹ + β ^ 2 * (A_sq / (N + 1 : ℝ))) = yl + 4 * ((N : ℝ) + 1)⁻¹ := by
+      rw [hyl]; field_simp; ring
+    rw [e, h3, mul_comm]
+    congr 1
+    refine Finset.sum_congr rfl fun m _ => ?_
+    simp only [nsmul_eq_mul]
+    ring
+  rw [hlead, ← Finset.sum_sub_distrib]
+  refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
+  have hterm : ∀ S ∈ P.val.parts.powerset,
+      |((N : ℝ) + 1)⁻¹ ^ (p - S.card) * skCavityPathMean N n β q h 1 (fun σ =>
+        (∏ B ∈ S, ∏ v ∈ B, ((σ (x v) (Fin.last N) : ℝ) - (σ (y v) (Fin.last N) : ℝ))) *
+        (∏ B ∈ P.val.parts \ S,
+          (∏ v ∈ B, ((σ (x v) (Fin.last N) : ℝ) - (σ (y v) (Fin.last N) : ℝ))) ^ 2) *
+        ∏ B ∈ S, Renormalization.pairWeight (fun a b =>
+          skCavityRectTrunc N n p q (fun j => (x j, y j)) a b
+            (fun r i => σ r i.castSucc)) B) -
+        ((N : ℝ) + 1)⁻¹ ^ (p - S.card) * (4 ^ (p - S.card) * J * yl ^ S.card)| ≤
+      (∑ k ∈ range (p + 1), K k) * 16 ^ p / D := by
+    intro S hS
+    have hSsub := Finset.mem_powerset.1 hS
+    have hmS : S.card ≤ p := by have := Finset.card_le_card hSsub; omega
+    have hb := hKb β h q hfix hβ N P x y hxy hdisj S hSsub
+    dsimp only at hb
+    have hc : 0 ≤ ((N : ℝ) + 1)⁻¹ ^ (p - S.card) := by positivity
+    rw [← mul_sub, abs_mul, abs_of_nonneg hc]
+    have key : ((N : ℝ) + 1) ^ (p - S.card) * ((N : ℝ) + 1) ^ (((2 * S.card + 1 : ℕ) : ℝ) / 2) = D := by
+      rw [hDdef, ← Real.rpow_natCast, ← Real.rpow_add (by positivity)]
+      congr 1
+      push_cast [Nat.cast_sub hmS]
+      ring
+    have hKS : K S.card ≤ ∑ k ∈ range (p + 1), K k :=
+      Finset.single_le_sum (f := K) (fun k _ => (hKpos k).le)
+        (Finset.mem_range.2 (by omega))
+    have h16 : (16 : ℝ) ^ (p - S.card) ≤ 16 ^ p :=
+      pow_le_pow_right₀ (by norm_num) (Nat.sub_le _ _)
+    calc ((N : ℝ) + 1)⁻¹ ^ (p - S.card) * _ ≤ ((N : ℝ) + 1)⁻¹ ^ (p - S.card) *
+          (K S.card * 16 ^ (p - S.card) / ((N : ℝ) + 1) ^ (((2 * S.card + 1 : ℕ) : ℝ) / 2)) :=
+        mul_le_mul_of_nonneg_left hb hc
+      _ = K S.card * 16 ^ (p - S.card) / D := by
+        rw [← key, inv_pow]
+        field_simp
+      _ ≤ (∑ k ∈ range (p + 1), K k) * 16 ^ p / D :=
+        div_le_div_of_nonneg_right (mul_le_mul hKS h16 (by positivity)
+          (Finset.sum_nonneg fun k _ => (hKpos k).le)) hD.le
+  calc _ ≤ ∑ _S ∈ P.val.parts.powerset, (∑ k ∈ range (p + 1), K k) * 16 ^ p / D :=
+        Finset.sum_le_sum hterm
+    _ = _ := by
+        rw [Finset.sum_const, Finset.card_powerset, hparts, nsmul_eq_mul]
+        push_cast
+        ring
 
 end SpinGlasses

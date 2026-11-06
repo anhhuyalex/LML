@@ -249,4 +249,21 @@ theorem wick_univ_equiv {α β : Type*} [Fintype α] [DecidableEq α]
       wick C (Finset.univ : Finset β) := by
   rw [wick_map, Finset.map_univ_equiv]
 
+
+/-- The block weight is linear in the kernel: scaling a kernel by a constant scales every block
+weight. -/
+theorem pairWeight_const_mul (c : ℝ) (C : ι → ι → ℝ) (B : Finset ι) :
+    pairWeight (fun a b => c * C a b) B = c * pairWeight C B := by
+  unfold pairWeight
+  simp only [← Finset.mul_sum]
+  ring
+
+/-- The block product of a constant multiple of a block weight is the constant to the number
+of blocks times the block product. -/
+theorem blockProduct_const_mul {s : Finset ι} (P : Finpartition.Pairing s) (c : ℝ)
+    (f : Finset ι → ℝ) :
+    P.blockProduct (fun B => c * f B) = c ^ P.val.parts.card * P.blockProduct f := by
+  unfold Finpartition.Pairing.blockProduct Finpartition.blockProduct
+  rw [Finset.prod_mul_distrib, Finset.prod_const]
+
 end Renormalization

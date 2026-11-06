@@ -85,6 +85,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedHold
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.JensenLog
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.MeasurePreservingSymmetry
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ParametrizedL2
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.PiDisjointSupports
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ReplicaIntegrateOut
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ReplicaOverlaps
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SignedToReal
@@ -363,7 +364,9 @@ public import LeanMachineLearning.Optimization.Renormalization.NearlyGaussian
 public import LeanMachineLearning.Optimization.Renormalization.Network
 public import LeanMachineLearning.Optimization.Renormalization.PairingBlocks
 public import LeanMachineLearning.Optimization.Renormalization.PairingCardinality
+public import LeanMachineLearning.Optimization.Renormalization.PairingGaussianBlocks
 public import LeanMachineLearning.Optimization.Renormalization.PairingOrderings
+public import LeanMachineLearning.Optimization.Renormalization.PairingRestrict
 public import LeanMachineLearning.Optimization.Renormalization.PairingWick
 public import LeanMachineLearning.Optimization.Renormalization.ParameterizedMLP
 public import LeanMachineLearning.Optimization.Renormalization.Perturbation
@@ -549,6 +552,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenIterBound
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenIterChoices
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenIterStructure
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenIteratedDeriv
+public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenLeadingShift
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenOddProduct
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenOldChoices
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPairing
@@ -560,8 +564,15 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPairingTerm
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPathCalculus
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPathVanishing
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenProductTaylor
+public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenRectComparison
+public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenRectDerivative
+public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenRectEval
+public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenRectFull
+public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenRectGaussian
+public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenRectLeading
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenRectangular
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenRectangularTaylor
+public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenReducedEval
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenReducedSystem
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenSpinContraction
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenTaylor
