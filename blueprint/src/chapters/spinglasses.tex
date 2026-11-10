@@ -5826,18 +5826,16 @@ Direct from the definitions.
         ProbabilityTheory.IndepFun.hasCondDistrib_const,
         ProbabilityTheory.hasCondDistrib_self,
         ProbabilityTheory.HasCondDistrib.const_map_of_const,
-        ProbabilityTheory.HasLaw.prod_of_hasCondDistrib,
         ProbabilityTheory.HasCondDistrib.congr,
         ProbabilityTheory.HasCondDistrib.hasLaw_comp,
-        ProbabilityTheory.HasCondDistrib.prod,
         ProbabilityTheory.hasCondDistrib_comp_self,
-        ProbabilityTheory.ae_eq_of_hasCondDistrib_deterministic,
+        ProbabilityTheory.HasCondDistrib.ae_eq_of_deterministic,
         ProbabilityTheory.hasCondDistrib_deterministic_iff,
         ProbabilityTheory.hasCondDistrib_const_iff,
         ProbabilityTheory.HasCondDistrib.hasLaw_cond,
         ProbabilityTheory.HasCondDistrib.indepFun_cond,
-        ProbabilityTheory.HasCondDistrib.condDistrib_eq,
-        ProbabilityTheory.hasCondDistrib_of_condDistrib_eq}
+        ProbabilityTheory.HasCondDistrib.condDistrib_ae_eq,
+        ProbabilityTheory.hasCondDistrib_of_condDistrib_ae_eq}
   \leanok
 Write $Y\mid X\sim\kappa$ if the conditional distribution of $Y$ given $X$ is the kernel $\kappa$, i.e.\ the pair $(X,Y)$ has law $(\mathrm{law}\,X)\otimes\kappa$.
 It depends only on almost sure classes; $Y\mid X\sim\kappa$ and $X\sim P$ give $(X,Y)\sim P\otimes\kappa$ and $Y\sim\kappa\circ P$; chaining

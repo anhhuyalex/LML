@@ -35,7 +35,7 @@ An environment with which an algorithm interacts is described by the following d
 \begin{definition}[Deterministic algorithm]\label{def:detAlgorithm}
   \uses{def:algorithm}
   \leanok
-  \lean{Learning.detAlgorithm}
+  \lean{Learning.Algorithm.deterministic}
 An algorithm is deterministic if its initial probability measure $P_0$ is a Dirac measure and if all its policies $\pi_t$ are deterministic kernels.
 \end{definition}
 
@@ -43,7 +43,7 @@ An algorithm is deterministic if its initial probability measure $P_0$ is a Dira
 \begin{definition}[Stationary environment]\label{def:stationaryEnv}
   \uses{def:environment}
   \leanok
-  \lean{Learning.stationaryEnv}
+  \lean{Learning.Environment.stationary}
 An environment is stationary if there exists a Markov kernel $\nu : \mathcal{A} \rightsquigarrow \mathcal{R}$ such that $\nu'_0 = \nu$ and for all $t \in \mathbb{N}$, for all $h_t \in (\mathcal{A} \times \mathcal{R})^{t+1}$, for all $a \in \mathcal{A}$, $\nu_t(h_t, a) = \nu(a)$.
 \end{definition}
 
@@ -166,7 +166,7 @@ Let $(A, R, P)$ be an algorithm-environment interaction in a stationary environm
 \begin{lemma}\label{lem:condDistrib_reward_stationaryEnv}
   \uses{def:stationaryEnv,def:IsAlgEnvSeq,def:algorithm}
   \leanok
-  \lean{Learning.IsAlgEnvSeq.condDistrib_feedback_stationaryEnv}
+  \lean{Learning.IsAlgEnvSeq.hasCondDistrib_feedback_stationary}
 In a stationary environment, for any $t \in \mathbb{N}$, $P\left(R_t \mid A_t\right) = \nu$.
 \end{lemma}
 
@@ -179,7 +179,7 @@ In a stationary environment, for any $t \in \mathbb{N}$, $P\left(R_t \mid A_t\ri
 \begin{lemma}\label{lem:condIndepFun_reward_hist_action}
   \uses{def:stationaryEnv,def:environment,def:IsAlgEnvSeq,def:algorithm,def:history}
   \leanok
-  \lean{Learning.IsAlgEnvSeq.condIndepFun_feedback_history_action}
+  \lean{Learning.IsAlgEnvSeq.condIndepFun_feedback_history_action_bandit}
 In a stationary environment, for any $t \in \mathbb{N}$, the reward $R_{t+1}$ is conditionally independent of the history $H_t$ given the action $A_{t+1}$ (more succinctly, $R_{t+1} \ind H_t \mid A_{t+1}$).
 \end{lemma}
 
@@ -490,7 +490,7 @@ We note the following basic properties of $T_{n,a}$:
 \begin{lemma}\label{lem:isStoppingTime_stepsUntil}
   \uses{def:IsAlgEnvSeq.filtration, def:stepsUntil}
   \leanok
-  \lean{Learning.isStoppingTime_stepsUntil}
+  \lean{Learning.IsAlgEnvSeq.isStoppingTime_stepsUntil}
 Let $a \in \mathcal{A}$. For any $n > 0$, the random variable $T_{n,a}$ is a stopping time with respect to the filtration $\mathcal{F}$.
 \end{lemma}
 

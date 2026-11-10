@@ -17,7 +17,7 @@ Note: the argmax in the second step is chosen in a measurable way.
 \begin{lemma}\label{lem:UCB.isAlgEnvSeqUntil_roundRobinAlgorithm}
   \uses{def:stationaryEnv,def:IsAlgEnvSeq,def:ucbAlgorithm,def:roundRobinAlgorithm}
   \leanok
-  \lean{Bandits.UCB.isAlgEnvSeqUntil_roundRobinAlgorithm}
+  \lean{Bandits.UCB.isAlgEnvSeqUntil_roundRobin}
 An algorithm-environment sequence for the UCB algorithm is an algorithm-environment sequence for the Round-Robin algorithm until time $K - 1$.
 That is, UCB plays the same as Round-Robin until time $K - 1$.
 \end{lemma}
@@ -146,7 +146,7 @@ For the UCB algorithm with parameter $c \sigma^2 \ge 0$, for any time $n \in \ma
 \begin{lemma}\label{lem:expectation_pullCount_le}
   \uses{def:stationaryEnv,def:IsAlgEnvSeq,def:subGaussian,def:ucbAlgorithm,def:pullCount,def:gap}
   \leanok
-  \lean{Bandits.UCB.expectation_pullCount_le}
+  \lean{Bandits.UCB.integral_pullCount_le}
 Suppose that $\nu(a)$ is $\sigma^2$-sub-Gaussian for all arms $a \in [K]$.
 For the UCB algorithm with parameter $c \sigma^2 > 0$, for any time $n \in \mathbb{N}$ and any arm $a \in [K]$ with positive gap, we have
 \begin{align*}

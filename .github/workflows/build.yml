@@ -93,6 +93,13 @@ jobs:
         run: |
           ./scripts/build_docs.sh
 
+      # Diagnostic. The docgen step below regenerates `blueprint/lean_decls` from the `\lean{...}`
+      # tags in the TeX sources and then runs `checkdecls`, so a renamed Lean declaration that the TeX
+      # still names fails there with only a bare "is missing" list. This runs the same check first and
+      # prints, for every missing name, the TeX file:line that uses it and likely replacements.
+      - name: Diagnose blueprint \lean names
+        run: python3 scripts/check_blueprint_decls.py
+
       # `blueprint: true` runs `leanblueprint pdf`, `leanblueprint web` and then
       # `lake exe checkdecls blueprint/lean_decls`. That last step imports the root module of every
       # `lean_lib`, which is why `LMLTutorial` is built by `scripts/build_docs.sh` above, and it needs
@@ -104,6 +111,17 @@ jobs:
           blueprint: true
           build-page: false
           deploy: false
+
+      # Diagnostic, only when the docgen/blueprint step fails: show the LaTeX and plasTeX errors and
+      # whether `lean_decls` was rewritten, which the action's own log buries.
+      - name: Blueprint failure diagnostics
+        if: failure()
+        run: |
+          git rev-parse HEAD
+          git status --short blueprint | head -20
+          wc -l blueprint/lean_decls || true
+          grep -n "^!" blueprint/print/print.log 2>/dev/null | head -20 || true
+          python3 scripts/check_blueprint_decls.py || true
 
       # Force the project's own API pages to be rendered on every push.
       #

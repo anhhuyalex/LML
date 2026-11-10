@@ -116,7 +116,7 @@ By definition of $P_{\mathcal{A}}$ (Definition~\ref{def:arrayMeasure}).
 \begin{lemma}\label{lem:prob_pullCount_prod_sumRewards_mem_le}
   \uses{def:arrayMeasure,def:AM.history,def:algorithm,thm:ionescu-tulcea,def:sumRewards,def:pullCount,def:stationaryEnv,def:IsAlgEnvSeq}
   \leanok
-  \lean{Bandits.ArrayModel.prob_pullCount_prod_sumRewards_mem_le, Bandits.prob_pullCount_prod_sumRewards_mem_le}
+  \lean{Bandits.prob_pullCount_prod_sumRewards_mem_le}
 In the array model, for $t \in \mathbb{N}$, $a \in \mathcal{A}$, and a measurable set $B \subseteq \mathbb{N} \times \mathbb{R}$,
 \begin{align*}
   P_{\mathcal{A}}\left((N_{t,a}, S_{t, a}) \in B\right)
@@ -174,7 +174,8 @@ Let $\nu(a)$ be a $\sigma^2$-sub-Gaussian distribution on $\mathbb{R}$ for each 
 \begin{lemma}\label{lem:prob_sum_le_sqrt_log}
   \uses{thm:ionescu-tulcea,def:subGaussian}
   \leanok
-  \lean{Bandits.prob_sum_le_sqrt_log, Bandits.prob_sum_ge_sqrt_log}
+  \lean{Bandits.StreamMeasure.prob_sum_range_sub_le_neg_sqrt_le,
+        Bandits.StreamMeasure.prob_sqrt_le_sum_range_sub_le}
 Let $\nu(a)$ be a $\sigma^2$-sub-Gaussian distribution on $\mathbb{R}$ for each arm $a \in \mathcal{A}$.
 Let $c \ge 0$ be a real number and $k$ a positive natural number.
 Then
