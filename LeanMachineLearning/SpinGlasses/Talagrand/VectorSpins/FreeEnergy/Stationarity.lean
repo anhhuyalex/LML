@@ -46,11 +46,6 @@ theorem gibbs_ratio_sum_sum {μ : Measure α} (ξ : α → D → ℝ) (c : D →
   rw [integral_finsetSum _ fun v _ => (hint u v).const_mul _, Finset.sum_div]
   exact Finset.sum_congr rfl fun v _ => by rw [integral_const_mul]; ring
 
-
-/-- The Gibbs average of `Y` for the log-density `e`: `∫ Y e^{e} dμ / ∫ e^{e} dμ`. -/
-noncomputable def skVectorGibbs (μ : Measure α) (e Y : α → ℝ) : ℝ :=
-  (∫ a, Y a * Real.exp (e a) ∂μ) / ∫ a, Real.exp (e a) ∂μ
-
 /-- **Lemma 1.12.6, the derivative in `ρ`.**  In every matrix direction `E` the derivative of
 `𝔼 log ∫ ℰ dμ` with respect to `ρ` is `(β²/2) ∑ᵤᵥ Eᵤᵥ 𝔼⟨ξᵤ ξᵥ⟩`. -/
 theorem hasDerivAt_skVectorGaussianFreeEnergy_rho (μ : Measure α) [IsProbabilityMeasure μ]
@@ -60,10 +55,9 @@ theorem hasDerivAt_skVectorGaussianFreeEnergy_rho (μ : Measure α) [IsProbabili
     (hX : HasGaussianLaw (fun ω u => X u ω) P) (hXm : ∀ u, Measurable (X u))
     (hX0 : ∀ u, ∫ ω, X u ω ∂P = 0) (β s₀ : ℝ) :
     HasDerivAt (fun s => skVectorGaussianFreeEnergy μ ξ (fun u v => ρ u v + s * E u v) q P X β)
-      (β ^ 2 / 2 * ∑ u, ∑ v, E u v * ∫ ω, skVectorGibbs μ
+      (β ^ 2 / 2 * ∑ u, ∑ v, E u v * ∫ ω, ∫ a, ξ a u * ξ a v ∂(μ.tilted
         (fun a => β * ∑ w, X w ω * ξ a w +
-          β ^ 2 / 2 * ∑ w, ∑ w', ξ a w * ξ a w' * (ρ w w' + s₀ * E w w' - q w w'))
-        (fun a => ξ a u * ξ a v) ∂P) s₀ := by
+          β ^ 2 / 2 * ∑ w, ∑ w', ξ a w * ξ a w' * (ρ w w' + s₀ * E w w' - q w w'))) ∂P) s₀ := by
   classical
   set Xs : Unit → α → ℝ := fun _ a => ∑ w, ∑ w', E w w' * (ξ a w * ξ a w') with hXs
   set Xf : D → α → ℝ := fun u a => ξ a u with hXf
@@ -166,17 +160,21 @@ theorem hasDerivAt_skVectorGaussianFreeEnergy_rho (μ : Measure α) [IsProbabili
   have hRb : ∀ (Y : α → ℝ) (M : ℝ), (∀ a, |Y a| ≤ M) → ∀ z, |R Y z| ≤ M := fun Y M hYb z =>
     abs_gibbs_ratio_le (μ := μ) (K := D ⊕ Unit) (X := Sum.elim Xf Xs) (D := D0)
       (Eb := Eb) hD0m hXall hD0b hXallb hYb z
-  have hRz : ∀ (Y : α → ℝ) ω, R Y (zt ω) = skVectorGibbs μ (fun a => β * ∑ w, X w ω * ξ a w +
-      β ^ 2 / 2 * ∑ w, ∑ w', ξ a w * ξ a w' * (ρ w w' + s₀ * E w w' - q w w')) Y := by
+  have hRz : ∀ (Y : α → ℝ) ω, R Y (zt ω) = ∫ a, Y a ∂(μ.tilted (fun a => β * ∑ w, X w ω * ξ a w +
+      β ^ 2 / 2 * ∑ w, ∑ w', ξ a w * ξ a w' * (ρ w w' + s₀ * E w w' - q w w'))) := by
     intro Y ω
-    simp only [hRdef, hzt, hexpo, skVectorGibbs]
+    simp only [hRdef, hzt, hexpo]
+    rw [integral_tilted, ← integral_div]
+    refine integral_congr_ae (Filter.Eventually.of_forall fun a => ?_)
+    simp only [smul_eq_mul]
+    ring
   have hi1 : ∀ u v, Integrable (fun ω => R (fun a => ξ a u * ξ a v) (zt ω)) P := fun u v =>
     (integrable_const r).mono'
       ((hRcont _ r hr (hξm2 u v) (hξξ · u v)).measurable.comp hztm).aestronglyMeasurable
       (ae_of_all _ fun ω => by rw [Real.norm_eq_abs]; exact hRb _ r (hξξ · u v) _)
   have hlin : ∀ ω, R (Xs ()) (zt ω) = ∑ w, ∑ w', E w w' * R (fun a => ξ a w * ξ a w') (zt ω) := by
     intro ω
-    simp only [hRz, skVectorGibbs]
+    simp only [hRdef, hzt, hexpo]
     have hexpI := integrable_exp_linear (μ := μ) (K := D ⊕ Unit) (X := Sum.elim Xf Xs)
       (D := D0) (Eb := Eb) hD0m hXall hD0b hXallb (zt ω)
     simp only [hzt, hexpo] at hexpI
@@ -221,10 +219,10 @@ theorem hasDerivAt_skVectorSegment (μ : Measure α) [IsProbabilityMeasure μ]
     HasDerivAt (fun s => ∫ ω, Real.log (∫ a, Real.exp (skVectorSegmentExponent ξ ρ q₀ q₁ β s
         (fun u => Z (.inl u) ω) (fun u => Z (.inr u) ω) a) ∂μ) ∂P)
       (-(β ^ 2 / 2) * ∑ u, ∑ v, (q₁ u v - q₀ u v) * ∫ ω,
-        skVectorGibbs μ (skVectorSegmentExponent ξ ρ q₀ q₁ β t
-          (fun u => Z (.inl u) ω) (fun u => Z (.inr u) ω)) (fun a => ξ a u) *
-        skVectorGibbs μ (skVectorSegmentExponent ξ ρ q₀ q₁ β t
-          (fun u => Z (.inl u) ω) (fun u => Z (.inr u) ω)) (fun a => ξ a v) ∂P) t := by
+        (∫ a, ξ a u ∂(μ.tilted (skVectorSegmentExponent ξ ρ q₀ q₁ β t
+          (fun u => Z (.inl u) ω) (fun u => Z (.inr u) ω)))) *
+        (∫ a, ξ a v ∂(μ.tilted (skVectorSegmentExponent ξ ρ q₀ q₁ β t
+          (fun u => Z (.inl u) ω) (fun u => Z (.inr u) ω)))) ∂P) t := by
   classical
   set Xs : Unit → α → ℝ := fun _ a => ∑ w, ∑ w', (q₁ w w' - q₀ w w') * (ξ a w * ξ a w') with hXs
   set Xf : D ⊕ D → α → ℝ := Sum.elim (fun u a => ξ a u) (fun u a => ξ a u) with hXf
@@ -380,10 +378,15 @@ theorem hasDerivAt_skVectorSegment (μ : Measure α) [IsProbabilityMeasure μ]
   have hRb : ∀ (Y : α → ℝ) (M : ℝ), (∀ a, |Y a| ≤ M) → ∀ z, |R Y z| ≤ M := fun Y M hYb z =>
     abs_gibbs_ratio_le (μ := μ) (K := (D ⊕ D) ⊕ Unit) (X := Sum.elim Xf Xs) (D := D0)
       (Eb := Eb) hD0m hXall hD0b hXallb hYb z
-  have hRz : ∀ (Y : α → ℝ) ω, R Y (zt ω) = skVectorGibbs μ (skVectorSegmentExponent ξ ρ q₀ q₁ β t
-      (fun u => Z (.inl u) ω) (fun u => Z (.inr u) ω)) Y := by
+  have hRz : ∀ (Y : α → ℝ) ω, R Y (zt ω) =
+      ∫ a, Y a ∂(μ.tilted (skVectorSegmentExponent ξ ρ q₀ q₁ β t
+        (fun u => Z (.inl u) ω) (fun u => Z (.inr u) ω))) := by
     intro Y ω
-    simp only [hRdef, hzt, hexpo, skVectorGibbs]
+    simp only [hRdef, hzt, hexpo]
+    rw [integral_tilted, ← integral_div]
+    refine integral_congr_ae (Filter.Eventually.of_forall fun a => ?_)
+    simp only [smul_eq_mul]
+    ring
   have hi1 : ∀ u v, Integrable (fun ω => R (fun a => ξ a u * ξ a v) (zt ω)) P := fun u v =>
     (integrable_const r).mono'
       ((hRcont _ r hr (hξm2 u v) (hξξ · u v)).measurable.comp hztm).aestronglyMeasurable
@@ -448,10 +451,10 @@ theorem hasDerivAt_skVectorPressure_rho (μ : Measure α) [IsProbabilityMeasure 
     (hX0 : ∀ u, ∫ ω, X u ω ∂P = 0) (β s₀ : ℝ) :
     HasDerivAt (fun s => -(β ^ 2 / 4) * ∑ u, ∑ v, ((ρ u v + s * E u v) ^ 2 - q u v ^ 2) +
         skVectorGaussianFreeEnergy μ ξ (fun u v => ρ u v + s * E u v) q P X β)
-      (β ^ 2 / 2 * ∑ u, ∑ v, E u v * ((∫ ω, skVectorGibbs μ
+      (β ^ 2 / 2 * ∑ u, ∑ v, E u v * ((∫ ω, ∫ a, ξ a u * ξ a v ∂(μ.tilted
         (fun a => β * ∑ w, X w ω * ξ a w +
-          β ^ 2 / 2 * ∑ w, ∑ w', ξ a w * ξ a w' * (ρ w w' + s₀ * E w w' - q w w'))
-        (fun a => ξ a u * ξ a v) ∂P) - (ρ u v + s₀ * E u v))) s₀ := by
+          β ^ 2 / 2 * ∑ w, ∑ w', ξ a w * ξ a w' * (ρ w w' + s₀ * E w w' - q w w'))) ∂P) -
+        (ρ u v + s₀ * E u v))) s₀ := by
   have hpoly : HasDerivAt (fun s => -(β ^ 2 / 4) * ∑ u, ∑ v, ((ρ u v + s * E u v) ^ 2 - q u v ^ 2))
       (-(β ^ 2 / 4) * ∑ u, ∑ v, (2 * (ρ u v + s₀ * E u v) * E u v)) s₀ := by
     refine HasDerivAt.const_mul _ (HasDerivAt.fun_sum fun u _ => HasDerivAt.fun_sum fun v _ => ?_)
@@ -481,10 +484,10 @@ theorem hasDerivAt_skVectorPressure_segment (μ : Measure α) [IsProbabilityMeas
           (fun u => Z (.inl u) ω) (fun u => Z (.inr u) ω) a) ∂μ) ∂P)
       (β ^ 2 / 2 * ∑ u, ∑ v, (q₁ u v - q₀ u v) *
         ((t * q₁ u v + (1 - t) * q₀ u v) - ∫ ω,
-          skVectorGibbs μ (skVectorSegmentExponent ξ ρ q₀ q₁ β t
-            (fun u => Z (.inl u) ω) (fun u => Z (.inr u) ω)) (fun a => ξ a u) *
-          skVectorGibbs μ (skVectorSegmentExponent ξ ρ q₀ q₁ β t
-            (fun u => Z (.inl u) ω) (fun u => Z (.inr u) ω)) (fun a => ξ a v) ∂P)) t := by
+          (∫ a, ξ a u ∂(μ.tilted (skVectorSegmentExponent ξ ρ q₀ q₁ β t
+            (fun u => Z (.inl u) ω) (fun u => Z (.inr u) ω)))) *
+          (∫ a, ξ a v ∂(μ.tilted (skVectorSegmentExponent ξ ρ q₀ q₁ β t
+            (fun u => Z (.inl u) ω) (fun u => Z (.inr u) ω)))) ∂P)) t := by
   have hpoly : HasDerivAt (fun s => -(β ^ 2 / 4) * ∑ u, ∑ v,
         (ρ u v ^ 2 - (s * q₁ u v + (1 - s) * q₀ u v) ^ 2))
       (-(β ^ 2 / 4) * ∑ u, ∑ v, (-(2 * (t * q₁ u v + (1 - t) * q₀ u v) *
@@ -516,10 +519,10 @@ theorem hasDerivAt_skVectorPressure_segment_eq_zero (μ : Measure α) [IsProbabi
     (h10 : ∀ u v, ∫ ω, Z (.inl u) ω * Z (.inr v) ω ∂P = 0)
     {β : ℝ} (hβ : β ≠ 0) {t : ℝ} (ht0 : 0 < t) (ht1 : t < 1)
     (h372 : ∀ u v, t * q₁ u v + (1 - t) * q₀ u v = ∫ ω,
-          skVectorGibbs μ (skVectorSegmentExponent ξ ρ q₀ q₁ β t
-            (fun u => Z (.inl u) ω) (fun u => Z (.inr u) ω)) (fun a => ξ a u) *
-          skVectorGibbs μ (skVectorSegmentExponent ξ ρ q₀ q₁ β t
-            (fun u => Z (.inl u) ω) (fun u => Z (.inr u) ω)) (fun a => ξ a v) ∂P) :
+          (∫ a, ξ a u ∂(μ.tilted (skVectorSegmentExponent ξ ρ q₀ q₁ β t
+            (fun u => Z (.inl u) ω) (fun u => Z (.inr u) ω)))) *
+          (∫ a, ξ a v ∂(μ.tilted (skVectorSegmentExponent ξ ρ q₀ q₁ β t
+            (fun u => Z (.inl u) ω) (fun u => Z (.inr u) ω)))) ∂P) :
     HasDerivAt (fun s => -(β ^ 2 / 4) * ∑ u, ∑ v,
         (ρ u v ^ 2 - (s * q₁ u v + (1 - s) * q₀ u v) ^ 2) +
         ∫ ω, Real.log (∫ a, Real.exp (skVectorSegmentExponent ξ ρ q₀ q₁ β s

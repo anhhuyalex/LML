@@ -364,28 +364,6 @@ theorem integrable_integral_pi_tilted {E : Ω → α → ℝ}
     (f := G) (C := M) (Filter.Eventually.of_forall fun σ => by simpa using hGb σ)
   simpa using this
 
-/-- **Linearity of the disorder average of replica Gibbs averages.**  For a finite family of
-bounded measurable functions `G i` of the replicas, the average of `∑ c i * G i` is
-`∑ c i *` the average of `G i`. -/
-theorem integral_integral_pi_tilted_sum {κ : Type*} [Fintype κ] {E : Ω → α → ℝ}
-    (hE : Measurable fun p : Ω × α => E p.1 p.2)
-    (hprob : ∀ ω, IsProbabilityMeasure (μ.tilted (E ω))) {P : Measure Ω} [IsFiniteMeasure P]
-    {G : κ → (ι → α) → ℝ} (hG : ∀ i, Measurable (G i)) {M : ℝ} (hGb : ∀ i σ, |G i σ| ≤ M)
-    (c : κ → ℝ) :
-    ∫ ω, ∫ σ, ∑ i, c i * G i σ ∂(Measure.pi fun _ : ι => μ.tilted (E ω)) ∂P =
-      ∑ i, c i * ∫ ω, ∫ σ, G i σ ∂(Measure.pi fun _ : ι => μ.tilted (E ω)) ∂P := by
-  have hinner : ∀ ω, ∫ σ, ∑ i, c i * G i σ ∂(Measure.pi fun _ : ι => μ.tilted (E ω)) =
-      ∑ i, c i * ∫ σ, G i σ ∂(Measure.pi fun _ : ι => μ.tilted (E ω)) := fun ω => by
-    have := hprob ω
-    rw [integral_finsetSum]
-    · exact Finset.sum_congr rfl fun i _ => integral_const_mul _ _
-    · exact fun i _ => (Integrable.of_bound (hG i).aestronglyMeasurable M
-        (Filter.Eventually.of_forall fun σ => by simpa using hGb i σ)).const_mul _
-  simp_rw [hinner]
-  rw [integral_finsetSum]
-  · exact Finset.sum_congr rfl fun i _ => integral_const_mul _ _
-  · exact fun i _ => (integrable_integral_pi_tilted hE hprob (hG i) (hGb i)).const_mul _
-
 omit [IsFiniteMeasure μ] in
 /-- A uniform bound on a function of the replicas bounds its disorder-averaged Gibbs average. -/
 theorem abs_integral_integral_pi_tilted_le {E : Ω → α → ℝ}

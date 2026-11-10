@@ -295,13 +295,15 @@ theorem hasDerivAt_skVectorFreeEnergy {d : ℕ} (μ : Measure α) [IsProbability
   have hexp : ∀ g : FinPairs (N + 1) → ℝ, Integrable (fun σ : Fin (N + 1) → α =>
       Real.exp (skVectorEnergy (N + 1) β g (fun i => ξ (σ i))))
       (Measure.pi fun _ : Fin (N + 1) => μ) := fun g =>
-    integrable_exp_of_abs_le (b := ∑ p, |g p| * (|β| * B))
-      (hEm.comp (measurable_const.prodMk measurable_id)) fun σ => by
+    integrable_exp_of_ae_le (C := ∑ p, |g p| * (|β| * B))
+      (hEm.comp (measurable_const.prodMk measurable_id)).aemeasurable
+      (Filter.Eventually.of_forall fun σ => by
         rw [skVectorEnergy_eq_sum_features]
-        refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun p _ => ?_)
+        refine (le_abs_self _).trans
+          ((Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun p _ => ?_))
         rw [abs_mul, abs_mul]
         exact mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_left (hXb p σ) (abs_nonneg _))
-          (abs_nonneg _)
+          (abs_nonneg _))
   set Tp : FinPairs (N + 1) → (FinPairs (N + 1) → ℝ) → ℝ := fun p g =>
     skVectorGibbs (Measure.pi fun _ : Fin (N + 1) => μ)
         (fun σ => skVectorEnergy (N + 1) β g (fun i => ξ (σ i)))

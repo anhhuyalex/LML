@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.FreeEnergy.Stationarity
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IntegrableOfBound
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaProduct
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Cavity.Bounds
 public import Mathlib.Analysis.Convex.Integral
@@ -26,67 +26,44 @@ namespace SpinGlasses
 
 variable {α Ω ι : Type*} [MeasurableSpace α] [MeasurableSpace Ω]
 
-/-- **Jensen for a vector of bounded functions**: `∑ᵢ (∫ hᵢ)² ≤ ∫ ∑ᵢ hᵢ²` for a probability
-measure. -/
-theorem sum_sq_integral_le [Fintype ι] {P : Measure Ω} [IsProbabilityMeasure P]
-    (h : ι → Ω → ℝ) (hm : ∀ i, Measurable (h i)) {M : ℝ} (hb : ∀ i ω, |h i ω| ≤ M) :
-    ∑ i, (∫ ω, h i ω ∂P) ^ 2 ≤ ∫ ω, ∑ i, h i ω ^ 2 ∂P := by
-  have hint : ∀ i, Integrable (h i) P := fun i =>
-    integrable_of_measurable_bound (hm i) (hb i)
-  have hint2 : ∀ i, Integrable (fun ω => h i ω ^ 2) P := fun i =>
-    integrable_of_measurable_bound ((hm i).pow_const 2) (M := M ^ 2) fun ω => by
-      rw [abs_pow]; exact pow_le_pow_left₀ (abs_nonneg _) (hb i ω) 2
-  rw [integral_finsetSum _ fun i _ => hint2 i]
-  refine Finset.sum_le_sum fun i _ => ?_
-  exact ConvexOn.map_integral_le (Even.convexOn_pow (𝕜 := ℝ) (by decide : Even 2)) (μ := P)
-    (f := h i)
-    (continuous_pow 2).continuousOn isClosed_univ (ae_of_all _ fun _ => Set.mem_univ _)
-    (hint i) (hint2 i)
-
 section Gibbs
 
 variable {μ : Measure α} [IsProbabilityMeasure μ]
 
+/-- The Gibbs measure and Jensen's inequality: for bounded measurable observables `hᵢ`,
+`∑ᵢ (∫ hᵢ d(μ.tilted e))² ≤ ∫ ∑ᵢ hᵢ² d(μ.tilted e)`. -/
+theorem sum_sq_integral_tilted_le [Fintype ι] {e : α → ℝ}
+    (he : Integrable (fun a => Real.exp (e a)) μ) (h : ι → α → ℝ) (hm : ∀ i, Measurable (h i))
+    {M : ℝ} (hb : ∀ i a, |h i a| ≤ M) :
+    ∑ i, (∫ a, h i a ∂(μ.tilted e)) ^ 2 ≤ ∫ a, ∑ i, h i a ^ 2 ∂(μ.tilted e) := by
+  have := isProbabilityMeasure_tilted he
+  exact sum_sq_integral_le h hm hb
+
 omit [IsProbabilityMeasure μ] in
-/-- The Gibbs average is the integral against the tilted probability measure. -/
-theorem skVectorGibbs_eq_integral_tilted (e Y : α → ℝ) :
-    skVectorGibbs μ e Y = ∫ a, Y a ∂(μ.tilted e) := by
-  rw [integral_tilted, skVectorGibbs, ← integral_div]
+/-- The integral against the tilted probability measure written as a quotient of integrals. -/
+theorem integral_tilted_eq_div (e Y : α → ℝ) :
+    ∫ a, Y a ∂(μ.tilted e) = (∫ a, Y a * Real.exp (e a) ∂μ) / ∫ a, Real.exp (e a) ∂μ := by
+  rw [integral_tilted, ← integral_div]
   refine integral_congr_ae (Filter.Eventually.of_forall fun a => ?_)
   simp only [smul_eq_mul]
   ring
 
-/-- For a log-density with integrable exponential, the Gibbs measure is a probability measure. -/
-theorem isProbabilityMeasure_tilted_of_integrable {e : α → ℝ}
-    (he : Integrable (fun a => Real.exp (e a)) μ) : IsProbabilityMeasure (μ.tilted e) :=
-  isProbabilityMeasure_tilted he
-
-/-- **The Gibbs measure and Jensen's inequality**: for bounded measurable observables `hᵢ`,
-`∑ᵢ ⟨hᵢ⟩² ≤ ⟨∑ᵢ hᵢ²⟩`. -/
-theorem sum_sq_skVectorGibbs_le [Fintype ι] {e : α → ℝ}
-    (he : Integrable (fun a => Real.exp (e a)) μ) (h : ι → α → ℝ) (hm : ∀ i, Measurable (h i))
-    {M : ℝ} (hb : ∀ i a, |h i a| ≤ M) :
-    ∑ i, skVectorGibbs μ e (h i) ^ 2 ≤ ∫ a, ∑ i, h i a ^ 2 ∂(μ.tilted e) := by
-  have := isProbabilityMeasure_tilted_of_integrable he
-  simp_rw [skVectorGibbs_eq_integral_tilted]
-  exact sum_sq_integral_le h hm hb
-
-/-- The Gibbs average of a measurable observable is measurable in a jointly measurable random
+/-- The tilted integral of a measurable observable is measurable in a jointly measurable random
 log-density. -/
-theorem measurable_skVectorGibbs {e : Ω → α → ℝ} (hE : Measurable fun p : Ω × α => e p.1 p.2)
-    {Y : α → ℝ} (hY : Measurable Y) : Measurable fun ω => skVectorGibbs μ (e ω) Y := by
-  unfold skVectorGibbs
+theorem measurable_integral_tilted {e : Ω → α → ℝ} (hE : Measurable fun p : Ω × α => e p.1 p.2)
+    {Y : α → ℝ} (hY : Measurable Y) : Measurable fun ω => ∫ a, Y a ∂(μ.tilted (e ω)) := by
+  simp_rw [integral_tilted_eq_div]
   have h1 : Measurable fun p : Ω × α => Y p.2 * Real.exp (e p.1 p.2) :=
     (hY.comp measurable_snd).mul (Real.measurable_exp.comp hE)
   have h2 : Measurable fun p : Ω × α => Real.exp (e p.1 p.2) := Real.measurable_exp.comp hE
-  exact (h1.stronglyMeasurable.integral_prod_right').measurable.div
-    (h2.stronglyMeasurable.integral_prod_right').measurable
+  exact (h1.stronglyMeasurable.integral_prod_right' (ν := μ)).measurable.div
+    (h2.stronglyMeasurable.integral_prod_right' (ν := μ)).measurable
 
-/-- A Gibbs average of an observable bounded by `M` is bounded by `M`. -/
-theorem abs_skVectorGibbs_le {e Y : α → ℝ} (he : Integrable (fun a => Real.exp (e a)) μ) {M : ℝ}
-    (hY : ∀ a, |Y a| ≤ M) : |skVectorGibbs μ e Y| ≤ M := by
-  have := isProbabilityMeasure_tilted_of_integrable he
-  rw [skVectorGibbs_eq_integral_tilted, ← Real.norm_eq_abs]
+/-- A tilted integral of an observable bounded by `M` is bounded by `M`. -/
+theorem abs_integral_tilted_le {e Y : α → ℝ} (he : Integrable (fun a => Real.exp (e a)) μ) {M : ℝ}
+    (hY : ∀ a, |Y a| ≤ M) : |∫ a, Y a ∂(μ.tilted e)| ≤ M := by
+  have := isProbabilityMeasure_tilted he
+  rw [← Real.norm_eq_abs]
   have := norm_integral_le_of_norm_le_const (μ := μ.tilted e) (f := Y) (C := M)
     (Filter.Eventually.of_forall fun a => by simpa [Real.norm_eq_abs] using hY a)
   simpa using this
@@ -103,29 +80,30 @@ theorem sum_sq_skVectorFixedPoint_le {D : Type*} [Fintype D] (μ : Measure α) [
     {P : Measure Ω} [IsProbabilityMeasure P] {e : Ω → α → ℝ}
     (hE : ∀ ω, Integrable (fun a => Real.exp (e ω a)) μ)
     (hEm : Measurable fun p : Ω × α => e p.1 p.2)
-    (hρ : ∀ u v, ρ u v = ∫ ω, skVectorGibbs μ (e ω) (fun a => ξ a u * ξ a v) ∂P)
-    (hq : ∀ u v, q u v = ∫ ω, skVectorGibbs μ (e ω) (fun a => ξ a u) *
-      skVectorGibbs μ (e ω) (fun a => ξ a v) ∂P) :
+    (hρ : ∀ u v, ρ u v = ∫ ω, ∫ a, ξ a u * ξ a v ∂(μ.tilted (e ω)) ∂P)
+    (hq : ∀ u v, q u v = ∫ ω, (∫ a, ξ a u ∂(μ.tilted (e ω))) *
+      (∫ a, ξ a v ∂(μ.tilted (e ω))) ∂P) :
     (∑ u, ∑ v, q u v ^ 2 ≤ r ^ 2) ∧ (∑ u, ∑ v, ρ u v ^ 2 ≤ r ^ 2) := by
   have hξb : ∀ a u, |ξ a u| ≤ Real.sqrt r := abs_spin_le ξ hbound
   have hξξ : ∀ a u v, |ξ a u * ξ a v| ≤ r := fun a u v =>
     abs_spin_mul_le ξ hr hbound a a u v
   have hξm2 : ∀ u v, Measurable fun a => ξ a u * ξ a v := fun u v => (hξ u).mul (hξ v)
   -- pointwise (in `ω`) Jensen bounds for the Gibbs measure
-  have hG : ∀ ω, ∑ u, skVectorGibbs μ (e ω) (fun a => ξ a u) ^ 2 ≤ r := fun ω => by
-    refine (sum_sq_skVectorGibbs_le (hE ω) (fun u a => ξ a u) hξ (M := Real.sqrt r)
+  have hG : ∀ ω, ∑ u, (∫ a, ξ a u ∂(μ.tilted (e ω))) ^ 2 ≤ r := fun ω => by
+    refine (sum_sq_integral_tilted_le (hE ω) (fun u a => ξ a u) hξ (M := Real.sqrt r)
       fun u a => hξb a u).trans ?_
-    have := isProbabilityMeasure_tilted_of_integrable (hE ω)
+    have := isProbabilityMeasure_tilted (hE ω)
     calc ∫ a, ∑ u, ξ a u ^ 2 ∂(μ.tilted (e ω)) ≤ ∫ _a, r ∂(μ.tilted (e ω)) :=
           integral_mono_of_nonneg (Filter.Eventually.of_forall fun a =>
             Finset.sum_nonneg fun u _ => sq_nonneg _) (integrable_const r)
             (Filter.Eventually.of_forall hbound)
       _ = r := by simp
-  have hH : ∀ ω, ∑ uv : D × D, skVectorGibbs μ (e ω) (fun a => ξ a uv.1 * ξ a uv.2) ^ 2 ≤
+  have hH : ∀ ω, ∑ uv : D × D, (∫ a, ξ a uv.1 * ξ a uv.2 ∂(μ.tilted (e ω))) ^ 2 ≤
       r ^ 2 := fun ω => by
-    refine (sum_sq_skVectorGibbs_le (ι := D × D) (hE ω) (fun (uv : D × D) a => ξ a uv.1 * ξ a uv.2)
+    refine (sum_sq_integral_tilted_le (ι := D × D) (hE ω)
+      (fun (uv : D × D) a => ξ a uv.1 * ξ a uv.2)
       (fun uv => hξm2 uv.1 uv.2) (M := r) fun uv a => hξξ a uv.1 uv.2).trans ?_
-    have := isProbabilityMeasure_tilted_of_integrable (hE ω)
+    have := isProbabilityMeasure_tilted (hE ω)
     calc ∫ a, ∑ uv : D × D, (ξ a uv.1 * ξ a uv.2) ^ 2 ∂(μ.tilted (e ω))
         ≤ ∫ _a, r ^ 2 ∂(μ.tilted (e ω)) := by
           refine integral_mono_of_nonneg (Filter.Eventually.of_forall fun a =>
@@ -140,15 +118,15 @@ theorem sum_sq_skVectorFixedPoint_le {D : Type*} [Fintype D] (μ : Measure α) [
                 (Finset.sum_nonneg fun _ _ => sq_nonneg _) hr
             _ = r ^ 2 := by ring
       _ = r ^ 2 := by simp
-  set g : D → Ω → ℝ := fun u ω => skVectorGibbs μ (e ω) (fun a => ξ a u) with hg
-  have hgm : ∀ u, Measurable (g u) := fun u => measurable_skVectorGibbs hEm (hξ u)
+  set g : D → Ω → ℝ := fun u ω => ∫ a, ξ a u ∂(μ.tilted (e ω)) with hg
+  have hgm : ∀ u, Measurable (g u) := fun u => measurable_integral_tilted hEm (hξ u)
   have hgb : ∀ u ω, |g u ω| ≤ Real.sqrt r := fun u ω =>
-    abs_skVectorGibbs_le (hE ω) (fun a => hξb a u)
-  set H : D × D → Ω → ℝ := fun uv ω => skVectorGibbs μ (e ω) (fun a => ξ a uv.1 * ξ a uv.2)
+    abs_integral_tilted_le (hE ω) (fun a => hξb a u)
+  set H : D × D → Ω → ℝ := fun uv ω => ∫ a, ξ a uv.1 * ξ a uv.2 ∂(μ.tilted (e ω))
     with hHdef
-  have hHm : ∀ uv, Measurable (H uv) := fun uv => measurable_skVectorGibbs hEm (hξm2 uv.1 uv.2)
+  have hHm : ∀ uv, Measurable (H uv) := fun uv => measurable_integral_tilted hEm (hξm2 uv.1 uv.2)
   have hHb : ∀ uv ω, |H uv ω| ≤ r := fun uv ω =>
-    abs_skVectorGibbs_le (hE ω) (fun a => hξξ a uv.1 uv.2)
+    abs_integral_tilted_le (hE ω) (fun a => hξξ a uv.1 uv.2)
   constructor
   · have h1 := sum_sq_integral_le (ι := D × D) (P := P) (fun uv ω => g uv.1 ω * g uv.2 ω)
       (fun uv => (hgm uv.1).mul (hgm uv.2)) (M := r) fun uv ω => by
@@ -223,11 +201,11 @@ theorem sum_sq_skVectorFixedPoint_field_le {d : ℕ} (μ : Measure α) [IsProbab
     (ξ : α → Fin d → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u))
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) (β : ℝ) (q ρ : Fin d → Fin d → ℝ)
     {P : Measure Ω} [IsProbabilityMeasure P] {Y : Fin d → Ω → ℝ} (hYm : ∀ u, Measurable (Y u))
-    (hρ : ∀ u v, ρ u v = ∫ ω, skVectorGibbs μ
-      (skVectorFieldExponent ξ β ρ q (fun w => Y w ω)) (fun a => ξ a u * ξ a v) ∂P)
-    (hq : ∀ u v, q u v = ∫ ω, skVectorGibbs μ (skVectorFieldExponent ξ β ρ q (fun w => Y w ω))
-      (fun a => ξ a u) * skVectorGibbs μ (skVectorFieldExponent ξ β ρ q (fun w => Y w ω))
-      (fun a => ξ a v) ∂P) :
+    (hρ : ∀ u v, ρ u v = ∫ ω, ∫ a, ξ a u * ξ a v ∂(μ.tilted
+      (skVectorFieldExponent ξ β ρ q (fun w => Y w ω))) ∂P)
+    (hq : ∀ u v, q u v = ∫ ω, (∫ a, ξ a u ∂(μ.tilted
+      (skVectorFieldExponent ξ β ρ q (fun w => Y w ω)))) *
+      (∫ a, ξ a v ∂(μ.tilted (skVectorFieldExponent ξ β ρ q (fun w => Y w ω)))) ∂P) :
     (∑ u, ∑ v, q u v ^ 2 ≤ (d : ℝ) ^ 2) ∧ (∑ u, ∑ v, ρ u v ^ 2 ≤ (d : ℝ) ^ 2) :=
   sum_sq_skVectorFixedPoint_le μ ξ hξ (Nat.cast_nonneg d) hbound q ρ
     (e := fun ω => skVectorFieldExponent ξ β ρ q (fun w => Y w ω))

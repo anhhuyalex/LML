@@ -600,9 +600,10 @@ theorem isProbabilityMeasure_tilted_skVectorCavityEnergy (μ : Measure α) [IsPr
     exact (Finset.measurable_sum _ fun k _ => measurable_const.mul
       (measurable_skVectorCavityFeature hξ N β k)).add
       (measurable_const.mul (measurable_skVectorCavityCompensation hξ N β ρ q))
-  refine isProbabilityMeasure_tilted_of_bound (Eb := ∑ k, |Sum.elim (Sum.elim (fun _ => (1 : ℝ))
+  refine isProbabilityMeasure_tilted_of_ae_le (C := ∑ k, |Sum.elim (Sum.elim (fun _ => (1 : ℝ))
       fun _ => Real.sqrt t) (fun _ => Real.sqrt (1 - t)) k * Sum.elim (Sum.elim g g') Y k| *
-        skVectorCavityBound D r β ρ q + |1 - t| * skVectorCavityBound D r β ρ q) hEm fun a => ?_
+        skVectorCavityBound D r β ρ q + |1 - t| * skVectorCavityBound D r β ρ q) hEm.aemeasurable
+    (Filter.Eventually.of_forall fun a => (le_abs_self _).trans ?_)
   rw [skVectorCavityEnergy_eq_features]
   refine (abs_add_le _ _).trans (add_le_add ?_ ?_)
   · refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun k _ => ?_)

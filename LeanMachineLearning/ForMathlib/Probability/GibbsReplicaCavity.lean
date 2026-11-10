@@ -36,14 +36,6 @@ theorem neZero_measure_pi {α J : Type*} [MeasurableSpace α] [Fintype J] (μ : 
     obtain ⟨i, -, hi⟩ := this
     exact (NeZero.ne μ) (Measure.measure_univ_eq_zero.mp hi)⟩
 
-/-- The Gibbs measure `μ.tilted g` is a probability measure when the energy `g` is bounded and
-measurable. -/
-theorem isProbabilityMeasure_tilted_of_bound {α : Type*} [MeasurableSpace α] {μ : Measure α}
-    [IsFiniteMeasure μ] [NeZero μ] {g : α → ℝ} (hg : Measurable g) {Eb : ℝ}
-    (hb : ∀ a, |g a| ≤ Eb) : IsProbabilityMeasure (μ.tilted g) :=
-  isProbabilityMeasure_tilted_of_ae_le hg.aemeasurable
-    (Filter.Eventually.of_forall fun a => (le_abs_self _).trans (hb a))
-
 variable {α K Ks R : Type*} [MeasurableSpace α] [Fintype K] [Fintype Ks] [Fintype R]
   {μ : Measure α} [IsFiniteMeasure μ] [NeZero μ]
 
@@ -114,7 +106,8 @@ theorem hasDerivAt_integral_gibbs_replica_cavity_path {Ω : Type*} [MeasurableSp
     intro z a
     exact abs_add_sum_mul_le _ z _ (hDb a) (fun l => hXallb l a)
   have hprob : ∀ z, IsProbabilityMeasure (μ.tilted (gz z)) := fun z =>
-    isProbabilityMeasure_tilted_of_bound (hgzm z) (hgzb z)
+    isProbabilityMeasure_tilted_of_ae_le (hgzm z).aemeasurable
+      (Filter.Eventually.of_forall fun a => (le_abs_self _).trans (hgzb z a))
   have hXallB : ∀ (l : K ⊕ Ks) (σ : Option (Option R) → α),
       Sum.elim XB XsB l σ = ∑ i, Sum.elim X Xs l (σ i) := by
     intro l σ; rcases l with k | j <;> rfl
@@ -285,7 +278,8 @@ theorem continuous_integral_gibbs_replica_path {Ω : Type*} [MeasurableSpace Ω]
     funext a
     simp only [hgz, hzp, Fintype.sum_sum_type, Sum.elim_inl, Sum.elim_inr, add_assoc]
   have hprob : ∀ z, IsProbabilityMeasure (μ.tilted (gz z)) := fun z =>
-    isProbabilityMeasure_tilted_of_bound (hgzm z) (hgzb z)
+    isProbabilityMeasure_tilted_of_ae_le (hgzm z).aemeasurable
+      (Filter.Eventually.of_forall fun a => (le_abs_self _).trans (hgzb z a))
   have hzm : ∀ r, Measurable (zp r) := by
     intro r
     refine measurable_pi_iff.2 fun l => ?_

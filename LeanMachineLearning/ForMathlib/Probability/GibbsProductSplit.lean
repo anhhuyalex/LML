@@ -31,13 +31,6 @@ theorem measurePreserving_piFinSuccLast (μ : Measure α) [IsProbabilityMeasure 
       (Measure.pi fun _ : Fin (N + 1) => μ) (μ.prod (Measure.pi fun _ : Fin N => μ)) :=
   measurePreserving_piFinSuccAbove (fun _ : Fin (N + 1) => μ) (Fin.last N)
 
-/-- The exponential of a bounded measurable function is integrable for a finite measure. -/
-theorem integrable_exp_of_abs_le {β : Type*} [MeasurableSpace β] {ν : Measure β}
-    [IsFiniteMeasure ν] {E : β → ℝ} (hE : Measurable E) {b : ℝ} (hb : ∀ x, |E x| ≤ b) :
-    Integrable (fun x => Real.exp (E x)) ν :=
-  integrable_exp_of_ae_le hE.aemeasurable
-    (Filter.Eventually.of_forall fun x => (le_abs_self _).trans (hb x))
-
 /-- Splitting off the last site of an i.i.d. configuration. -/
 theorem integral_pi_succ_last (μ : Measure α) [IsProbabilityMeasure μ]
     (G : α × (Fin N → α) → ℝ) :
@@ -140,11 +133,14 @@ theorem map_tilted_pi_succ_last (μ : Measure α) [IsProbabilityMeasure μ]
     fun σ => (abs_add_le _ _).trans (add_le_add (h₁ _) (h₂ _))
   have : IsProbabilityMeasure ((Measure.pi fun _ : Fin (N + 1) => μ).tilted
       (fun σ => E₁ (fun j => σ j.castSucc) + E₂ (σ (Fin.last N)))) :=
-    isProbabilityMeasure_tilted (integrable_exp_of_abs_le hE hb)
+    isProbabilityMeasure_tilted_of_ae_le hE.aemeasurable
+      (Filter.Eventually.of_forall fun σ => (le_abs_self _).trans (hb σ))
   have : IsProbabilityMeasure (μ.tilted E₂) :=
-    isProbabilityMeasure_tilted (integrable_exp_of_abs_le hE₂ h₂)
+    isProbabilityMeasure_tilted_of_ae_le hE₂.aemeasurable
+      (Filter.Eventually.of_forall fun a => (le_abs_self _).trans (h₂ a))
   have : IsProbabilityMeasure ((Measure.pi fun _ : Fin N => μ).tilted E₁) :=
-    isProbabilityMeasure_tilted (integrable_exp_of_abs_le hE₁ h₁)
+    isProbabilityMeasure_tilted_of_ae_le hE₁.aemeasurable
+      (Filter.Eventually.of_forall fun σ => (le_abs_self _).trans (h₁ σ))
   refine (Measure.prod_eq fun s t hs ht => ?_).symm
   have hmeas : Measurable fun σ : Fin (N + 1) → α =>
       (σ (Fin.last N), fun j : Fin N => σ j.castSucc) :=
@@ -214,11 +210,13 @@ theorem integral_pi_tilted_split {ι : Type*} [Fintype ι] (μ : Measure α) [Is
     fun σ => (abs_add_le _ _).trans (add_le_add (h₁ _) (h₂ _))
   have : IsProbabilityMeasure ((Measure.pi fun _ : Fin (N + 1) => μ).tilted
       (fun σ => E₁ (fun j => σ j.castSucc) + E₂ (σ (Fin.last N)))) :=
-    isProbabilityMeasure_tilted (integrable_exp_of_abs_le hE hb)
-  have : IsProbabilityMeasure (μ.tilted E₂) := isProbabilityMeasure_tilted
-    (integrable_exp_of_abs_le hE₂ h₂)
+    isProbabilityMeasure_tilted_of_ae_le hE.aemeasurable
+      (Filter.Eventually.of_forall fun σ => (le_abs_self _).trans (hb σ))
+  have : IsProbabilityMeasure (μ.tilted E₂) := isProbabilityMeasure_tilted_of_ae_le
+    hE₂.aemeasurable (Filter.Eventually.of_forall fun a => (le_abs_self _).trans (h₂ a))
   have : IsProbabilityMeasure ((Measure.pi fun _ : Fin N => μ).tilted E₁) :=
-    isProbabilityMeasure_tilted (integrable_exp_of_abs_le hE₁ h₁)
+    isProbabilityMeasure_tilted_of_ae_le hE₁.aemeasurable
+      (Filter.Eventually.of_forall fun σ => (le_abs_self _).trans (h₁ σ))
   have hmap := map_tilted_pi_succ_last μ E₁ E₂ hE₁ hE₂ h₁ h₂
   set g : (ι → Fin (N + 1) → α) → (ι → α) × (ι → Fin N → α) :=
     fun σ => (fun i => σ i (Fin.last N), fun i j => σ i j.castSucc) with hg
