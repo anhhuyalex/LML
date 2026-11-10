@@ -57,13 +57,9 @@ theorem hasDerivAt_integral_log_partition_cavity_path {Ω : Type*} [MeasurableSp
     with hzp
   set Xall : K ⊕ Ks → α → ℝ := Sum.elim X Xs with hXall
   have hXallm : ∀ l, Measurable (Xall l) := by
-    intro l; rcases l with k | j
-    · exact hX k
-    · exact hXs j
+    exact Sum.forall.2 ⟨hX, hXs⟩
   have hXallb : ∀ l a, |Xall l a| ≤ B := by
-    intro l a; rcases l with k | j
-    · exact hXb k a
-    · exact hXsb j a
+    exact Sum.forall.2 ⟨hXb, hXsb⟩
   have hint : ∀ k, Integrable (fun ω => |Z k ω|) P := fun k => ((hZ.eval k).integrable).norm
   have hg : Integrable (fun ω => C * (1 + ∑ k, |Z k ω|)) P :=
     ((integrable_const 1).add (integrable_finsetSum _ fun k _ => hint k)).const_mul C
@@ -165,10 +161,7 @@ theorem hasDerivAt_integral_log_partition_cavity_path {Ω : Type*} [MeasurableSp
     have hDtm : Measurable Dt := by
       refine hD.add (Finset.measurable_sum _ fun j _ => (hXs j).const_mul _)
     have hDtb : ∀ a, |Dt a| ≤ Eb + ∑ j, |c j t| * B := fun a => by
-      refine (abs_add_le _ _).trans (add_le_add (hDb a) ?_)
-      refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun j _ => ?_)
-      rw [abs_mul]
-      exact mul_le_mul_of_nonneg_left (hXsb j a) (abs_nonneg _)
+      exact abs_add_sum_mul_le _ (fun j => c j t) _ (hDb a) (fun j => hXsb j a)
     set Rt : (α → ℝ) → (K → ℝ) → ℝ := fun Y' w => (∫ a, Y' a * Real.exp (Dt a +
       ∑ k, w k * X k a) ∂μ) / ∫ a, Real.exp (Dt a + ∑ k, w k * X k a) ∂μ with hRt
     have hexp : ∀ ω a, Dt a + ∑ k, Zt k ω * X k a = D a + ∑ l, zt ω l * Xall l a := by

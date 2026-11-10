@@ -704,10 +704,15 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.FreeEnergy.P
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.FreeEnergy.PressureBound
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.FreeEnergy.Stationarity
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Geometry
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Model.Ball
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Model.Coupled
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Model.Disorder
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Model.Energy
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Model.GaussianField
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Model.Hypercube
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Model.Ising
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Model.ReplicaAverage
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Model.Scaling
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Model.SiteSymmetry
 public import LeanMachineLearning.Tactic.EqLift
 public import LeanMachineLearning.Tactic.EqLift.ForMathlib.Kernel
