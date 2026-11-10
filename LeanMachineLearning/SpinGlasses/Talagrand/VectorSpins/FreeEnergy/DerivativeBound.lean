@@ -246,7 +246,6 @@ theorem exists_hasDerivAt_skVectorFreeEnergy_abs_sub_le {d : ℕ} (μ : Measure 
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
   have hM : (0 : ℝ) < (N : ℝ) + 1 := by positivity
   obtain ⟨hq2, hρ2⟩ := skVectorFixedPoint_sum_sq_le μ ξ hξ hbound β hx hxf
-  have hAB := sum_overlap_variances_le_of_fixedPoint μ ξ hξ hbound β hβ' N hx hxf
   have hW01m := measurable_sum_sq_skVectorOverlapDeviation (N := N) ξ hξ 0 1 x.1
   have hW00m := measurable_sum_sq_skVectorOverlapDeviation (N := N) ξ hξ 0 0 x.2
   have hqb : ∀ u v, |x.1 u v| ≤ d := abs_entry_le_of_sum_sq_le x.1 hq2
@@ -255,14 +254,7 @@ theorem exists_hasDerivAt_skVectorFreeEnergy_abs_sub_le {d : ℕ} (μ : Measure 
     ⟨_, abs_sum_sq_skVectorOverlapDeviation_le ξ hbound 0 1 x.1 hqb⟩
   have hW00b : ∃ C, ∀ τ, |∑ u, ∑ v, skVectorOverlapDeviation ξ N 0 0 x.2 u v τ ^ 2| ≤ C :=
     ⟨_, abs_sum_sq_skVectorOverlapDeviation_le ξ hbound 0 0 x.2 hρb⟩
-  have e1 := skVectorCavityAverage_disorderLaw_eq_replicaAverage μ ξ hξ hbound N β x.2 x.1 _ hW01m
-  have e2 := skVectorCavityAverage_disorderLaw_eq_replicaAverage μ ξ hξ hbound N β x.2 x.1 _ hW00m
-  have hAB' : skVectorReplicaAverage μ ξ N β (fun τ => ∑ u, ∑ v, skVectorOverlapDeviation ξ N 0 1
-    x.1 u v τ ^ 2) +
-      skVectorReplicaAverage μ ξ N β (fun τ => ∑ u, ∑ v, skVectorOverlapDeviation ξ N 0 0 x.2 u v
-        τ ^ 2) ≤
-      (8 * (d : ℝ) ^ 4 + 2 * (d : ℝ) ^ 2) / ((N : ℝ) + 1) := by
-    rw [← e1, ← e2]; exact hAB
+  have hAB' := sum_sq_skVectorOverlapDeviation_average_le μ ξ hξ hbound N β hβ' hx hxf
   refine ⟨_, hasDerivAt_skVectorFreeEnergy μ ξ hξ hbound N β, ?_⟩
   set ε : ℝ := (8 * (d : ℝ) ^ 4 + 2 * (d : ℝ) ^ 2) / ((N : ℝ) + 1) with hε
   set c0 : ℝ := β / 2 * (∑ u, ∑ v, x.2 u v ^ 2 - ∑ u, ∑ v, x.1 u v ^ 2) with hc0

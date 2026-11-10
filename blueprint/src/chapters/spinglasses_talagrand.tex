@@ -20,8 +20,8 @@ formulas of Corollary~1.10.3 hold for products of finite linear combinations
 \item Hanen's covariance moments (Section~1.11), including both parities, the moment limit and the moments of the proposed law. Convergence in distribution is not claimed (Section~\ref{sec:sg-tal:hanen}).
 \item Vector spins (Section~1.12): arbitrary probability spin laws, the cavity derivative,
 matrix fixed-point existence and uniqueness, overlap concentration, stationarity and the
-free-energy limit with an auxiliary upper inverse temperature. The exact hypotheses and
-remaining theorem-statement work are recorded in Section~\ref{sec:sg-tal:vector}.
+free-energy limit under $0\le\beta$, $15\beta d\le1$, with one fixed point for all
+system sizes and a dimension-only error constant (Section~\ref{sec:sg-tal:vector}).
 \item The rigorous integer-replica computation at all temperatures (Theorem~1.13.1), with a maximizing witness. Continuation to non-integer replica counts is not formalized (Section~\ref{sec:sg-tal:replica}).
 \end{enumerate}
 
@@ -9367,10 +9367,11 @@ the fluctuations around the Gaussian limit of the Gibbs average of a random proj
 \talsource{Section~1.12, Eqs.~(1.360)--(1.392)}
 The user authorized this section on 2026-11-06. The setup, cavity derivative,
 derivative bounds, fixed-point theorem, overlap concentration and stationarity below are
-formalized for arbitrary probability spin laws. The free-energy rate and limit are proved
-for $0<\beta<\beta_1$, $18\beta_1^2d^2<1$ and $\beta_1^2d^2\le1/200$, at the fixed point.
-A theorem stated directly under $0\le\beta$ and $15\beta d\le1$, including equality,
-remains to be written using those results. Exercises and research problems are not included.
+formalized for arbitrary probability spin laws. Theorems~1.12.1--1.12.3 now also hold
+in one statement under $0\le\beta$ and $15\beta d\le1$, including equality, $\beta=0$
+and dimension zero. The constant depends only on $d$, and the fixed point is chosen once
+for all system sizes (Theorem~\ref{thm:sg-tal:vector-high-temperature}).
+Exercises and research problems are not included.
 Throughout this section the base spin law is a probability measure; the partition function
 is an integral, rather than the unnormalized counting sum of the Ising sections.
 \end{remark}
@@ -9954,14 +9955,196 @@ Choosing $s=(N+1)^{-1/2}$ gives $|p_{N+1}(\beta)-G(\beta,(q,\rho))|\le C/\sqrt{N
 Choose a branch $z(b)$ of fixed points for $b\in(0,\beta_1)$ (Theorem~\ref{thm:sg-tal:vector-fixed-point-exists}) and let $\Delta(b)=p_{N+1}(b)-G(b,z(b))$. By Theorems~\ref{thm:sg-tal:vector-free-energy-approx} and~\ref{thm:sg-tal:vector-pressure-family}, $|\Delta'(b)|\le Kb$ with $K$ the bracket above. By Theorem~\ref{thm:sg-tal:vector-pressure-small}, $\Delta(b)\to0$ as $b\to0^+$. The mean value inequality on $[b_0,\beta]$ gives $|\Delta(\beta)-\Delta(b_0)|\le K\beta^2$; let $b_0\to0^+$. Uniqueness of the fixed point identifies $z(\beta)$ with $(q,\rho)$.
 \end{proof}
 
+\begin{theorem}[Theorems~1.12.1--1.12.3 in the closed high-temperature range]\label{thm:sg-tal:vector-high-temperature}
+\lean{SpinGlasses.sum_sq_skVectorOverlapDeviation_average_le, SpinGlasses.abs_skVectorFreeEnergy_sub_pressure_le_inv_sqrt_of_pos, SpinGlasses.existsUnique_skVectorFixedPoint_of_high_temperature, SpinGlasses.skVectorPressure_zero, SpinGlasses.exists_gt_sq_mul_sq_bounds, SpinGlasses.abs_skVectorFreeEnergy_sub_pressure_le_inv_sqrt_of_high_temperature, SpinGlasses.tendsto_skVectorFreeEnergy_of_nonneg, SpinGlasses.existsUnique_skVectorFixedPoint_overlap_free_energy}
+\leanok
+\uses{thm:sg-tal:vector-fixed-point-exists, thm:sg-tal:vector-overlap-concrete, thm:sg-tal:vector-free-energy-limit}
+\talsource{Theorems~1.12.1--1.12.3; Eqs.~(1.368)--(1.374)}
+For every $d\in\mathbb N$ there is a constant $K_d\ge0$ with the following property.
+Let $\alpha$ be a measurable space, $\mu$ a probability measure on $\alpha$, and
+$\xi:\alpha\to\mathbb R^d$ have measurable coordinates satisfying
+$\sum_u\xi_u(a)^2\le d$ for every $a$. If $\beta\ge0$ and $15\beta d\le1$, the
+matrix fixed-point map has a unique fixed point $(q,\rho)$ in the cone
+$q\succeq0$, $\rho-q\succeq0$. These matrices solve (1.372)--(1.373).
+For the same pair at every $M=N+1\ge1$, with the overlap matrices of
+(1.366)--(1.367) and expectation over Gibbs replicas and the shared disorder,
+\[
+ \nu\!\left(\sum_{u,v}(R_{1,2}^{u,v}-q_{uv})^2\right)
+ +\nu\!\left(\sum_{u,v}(R^{u,v}-\rho_{uv})^2\right)\le\frac{K_d}{M},
+ \qquad |p_M(\beta,\mu)-G(\beta,(q,\rho))|\le\frac{K_d}{\sqrt M}.
+\]
+In particular $p_M(\beta,\mu)\to G(\beta,(q,\rho))$. Both individual overlap
+bounds follow because each summand in the left side is nonnegative.
+One can take
+\[
+ c_d=8d^4+2d^2,\qquad
+ P_d=\frac{c_d+dc_d+2d}{2}+\frac{d^2}{2},\qquad K_d=c_d+P_d.
+\]
+The quantifier for $K_d$ precedes the spin space, spin law, inverse temperature
+and system size. No auxiliary upper inverse temperature or fixed point is an input.
+\end{theorem}
+\begin{proof}
+\leanok
+The condition $15\beta d\le1$ implies $18\beta^2d^2<1$ and
+$\beta^2d^2\le1/200$. Apply the existing fixed-point theorem once, before choosing
+$M$. Its Gaussian law-transfer lemma identifies the fixed-point equations with
+(1.372)--(1.373). The existing concrete overlap estimate gives $c_d/M$; the
+replica-average conversion is shared with the free-energy derivative proof.
+For $d>0$, choose the proof-local upper parameter $b=(7/100)/d$.
+Then $\beta<b$, $18b^2d^2<1$ and $b^2d^2\le1/200$ even when $15\beta d=1$.
+The existing quantitative pressure proof, with its explicit coefficient exposed,
+gives $\beta^2P_d/\sqrt M$ and the limit. For positive integral $d$ the same
+hypothesis implies $\beta\le1$, hence $\beta^2P_d\le P_d\le K_d$.
+For $d=0$, the coefficient $P_d$ is zero and an upper parameter $b=\beta+1$
+meets the numerical conditions. For $\beta=0$ both the free energy and pressure
+vanish directly. All arguments permit singular covariance matrices.
+\end{proof}
+
+\begin{lemma}[Normalizing finite product Gibbs laws]\label{lem:sg-tal:vector-product-normalization}
+\lean{MeasureTheory.Measure.pi_count, MeasureTheory.tilted_pi_count_tilted, MeasureTheory.integral_exp_pi_count_tilted_eq_div, MeasureTheory.log_integral_exp_pi_count_tilted}
+\leanok
+Let $A,I$ be finite types and $f:A\to\mathbb R$. Put $c=\sum_{a\in A}e^{f(a)}$.
+For any interaction $E:A^I\to\mathbb R$,
+\[
+ \int e^{E(\sigma)}\,d(\operatorname{count}.\operatorname{tilted}f)^{\otimes I}(\sigma)
+ =\frac{\sum_{\sigma\in A^I}\exp(\sum_{i\in I}f(\sigma_i)+E(\sigma))}{c^{|I|}}.
+\]
+Tilting the product law by $E$ gives counting measure tilted by $\sum_i f(\sigma_i)+E(\sigma)$.
+When $A$ is nonempty the logarithm subtracts $|I|\log c$. Empty site sets are allowed.
+\end{lemma}
+\begin{proof}
+A finite product of counting measures is counting measure, as checked on singletons.
+The product-tilt identity combines the one-site energies; the exponential-tilt integral
+formula gives the quotient. The denominator factors over sites. No spin or Gaussian
+hypotheses enter these shared measure-theory lemmas.
+\end{proof}
+
+\begin{theorem}[The scalar Ising comparison]\label{thm:sg-tal:vector-ising}
+\talsource{Section~1.12, discussion before and after (1.363)}
+\lean{SpinGlasses.sum_field_add_skVectorEnergy_eq_skGibbsEnergy, SpinGlasses.tilted_skVectorEnergy_eq_ising, SpinGlasses.integral_exp_skVectorEnergy_ising, SpinGlasses.log_integral_exp_skVectorEnergy_ising, SpinGlasses.skVectorFreeEnergy_ising}
+\leanok
+For one component let $\mu_h(\varepsilon)=e^{h\varepsilon}/(2\cosh h)$ on signs.
+For every $\beta,h,g$ and $N\ge0$ the vector Gibbs law equals the scalar SK Gibbs law and
+\[
+ Z_N^{\rm vector}(g)=\frac{Z_N^{\rm Ising}(\beta,h,g)}{(2\cosh h)^N}.
+\]
+Here $Z_N^{\rm Ising}$ is the counting sum. For $N>0$, disorder averaging gives
+$p_N^{\rm vector}=p_N^{\rm Ising}-\log(2\cosh h)$.
+\end{theorem}
+\begin{proof}\uses{lem:sg-tal:vector-product-normalization}
+Add the sum of the one-site field energies to the existing one-component interaction
+identity. The resulting energy is exactly \texttt{skGibbsEnergy}. Apply the product-law
+normalization and use $\sum_{\varepsilon=\pm1}e^{h\varepsilon}=2\cosh h$.
+The scalar log-partition function is integrable by the existing affine-Gaussian bound.
+\end{proof}
+
+\begin{theorem}[The coupled-copy comparison]\label{thm:sg-tal:vector-coupled}
+\talsource{Section~1.12, two-component example and (1.365)}
+\lean{SpinGlasses.sum_field_add_skVectorEnergy_eq_coupled, SpinGlasses.sum_exp_skVectorEnergy_coupled, SpinGlasses.integral_tilted_skVectorEnergy_coupled, SpinGlasses.integral_exp_skVectorEnergy_coupled, SpinGlasses.log_integral_exp_skVectorEnergy_coupled, SpinGlasses.skVectorFreeEnergy_coupled, SpinGlasses.integrable_log_skCoupledPartition, SpinGlasses.skCoupledPartition_zero_coupling}
+\leanok
+Give each sign pair probability proportional to
+$\exp(h(\varepsilon_1+\varepsilon_2)+\lambda\varepsilon_1\varepsilon_2)$ and write
+\[
+ C(h,\lambda)=\sum_{\varepsilon_1,\varepsilon_2=\pm1}
+   \exp(h(\varepsilon_1+\varepsilon_2)+\lambda\varepsilon_1\varepsilon_2).
+\]
+For every fixed disorder and every $\beta,h,\lambda$,
+$Z_N^{\rm vector}=Z_{N,\lambda}^{\rm coupled}/C(h,\lambda)^N$.
+Reindexing site pairs as two configurations identifies all their Gibbs averages.
+For $N>0$,
+\[
+ p_N^{\rm vector}=2p_N^{\rm Ising}+\psi_N(\lambda)-\log C(h,\lambda),
+\]
+where $\psi_N$ is the existing coupled free energy of Section~1.9. Both copies share $g$.
+\end{theorem}
+\begin{proof}\uses{lem:sg-tal:vector-product-normalization}
+The finite equivalence between site pairs and pairs of configurations transports the
+energy, counting sum and arbitrary Gibbs observable. At $\lambda=0$ the coupled counting
+partition is the square of the scalar partition. Integrate the logarithmic identity,
+using the existing affine-Gaussian integrability theorem. No independence between the
+couplings of the two copies is introduced.
+\end{proof}
+
+\begin{theorem}[Uniform hypercube spins]\label{thm:sg-tal:vector-hypercube}
+\talsource{Section~1.12, uniform law on the hypercube}
+\lean{SpinGlasses.skVectorEnergy_hypercube_eq_sum, SpinGlasses.sum_exp_skVectorEnergy_hypercube, SpinGlasses.integral_exp_skVectorEnergy_hypercube, SpinGlasses.integral_tilted_skVectorEnergy_hypercube, SpinGlasses.log_integral_exp_skVectorEnergy_hypercube, SpinGlasses.skVectorFreeEnergy_hypercube, SpinGlasses.tendsto_skVectorFreeEnergy_hypercube}
+\leanok
+For the uniform probability law on $\{\pm1\}^d$, at each fixed disorder,
+\[
+ Z_N^{\rm vector}=\bigl(2^{-N}Z_N^{\rm Ising}(\beta,0,g)\bigr)^d.
+\]
+Its component Gibbs law is the product of $d$ scalar Gibbs laws at this same $g$.
+For $N>0$, $p_N^{\rm vector}=d(p_N^{\rm Ising}(\beta,0)-\log2)$.
+Consequently if $\beta^2<1/4$, then
+$\lim_N p_N^{\rm vector}=d\beta^2/4$ for every $d$, without requiring $\beta d$ small.
+\end{theorem}
+\begin{proof}\uses{lem:sg-tal:vector-product-normalization}
+Transpose the site and component indices. The energy becomes the sum of scalar
+zero-field energies, and the finite sum of products factors. The same equivalence
+transports arbitrary Gibbs observables. For the limit, reuse the scalar
+Aizenman--Lebowitz--Ruelle theorem at $h=q=0$.
+\end{proof}
+
+\begin{theorem}[Two antipodal points]\label{thm:sg-tal:vector-two-point}
+\talsource{Section~1.12, the two points $(\pm\sqrt d,0,\ldots,0)$}
+\lean{SpinGlasses.skVectorEnergy_single_component, SpinGlasses.tilted_skVectorEnergy_two_point, SpinGlasses.integral_exp_skVectorEnergy_two_point, SpinGlasses.log_integral_exp_skVectorEnergy_two_point, SpinGlasses.skVectorFreeEnergy_two_point}
+\leanok
+Fix a component $u_0\in\{1,\ldots,d\}$ and $r\in\mathbb R$. Give equal mass to
+$\pm r e_{u_0}$. Then the Gibbs law is scalar zero-field SK at parameter $\beta r^2$,
+\[
+ Z_N^{\rm vector}=2^{-N}Z_N^{\rm Ising}(\beta r^2,0,g),\qquad
+ p_N^{\rm vector}=p_N^{\rm Ising}(\beta r^2,0)-\log2\quad(N>0).
+\]
+Taking $r=\sqrt d$ gives the book's parameter $\beta d$. A chosen component requires $d>0$.
+\end{theorem}
+\begin{proof}\uses{lem:sg-tal:vector-product-normalization}
+Only the coordinate $u_0$ survives in each dot product. It contributes the factor $r^2$.
+Apply the uniform-sign normalization. The finite-size identities require no restriction on $\beta$.
+\end{proof}
+
+\begin{theorem}[The ball instance and zero coordinates]\label{thm:sg-tal:vector-ball-zero}
+\talsource{Section~1.12, (1.362) and Theorems~1.12.1--1.12.3}
+\lean{SpinGlasses.existsUnique_skVectorFixedPoint_overlap_free_energy_ball, SpinGlasses.skVectorFixedPointMap_zero_coordinates, SpinGlasses.existsUnique_skVectorFixedPoint_zero_coordinates, SpinGlasses.skVectorFreeEnergy_zero_coordinates}
+\leanok
+Theorem~\ref{thm:sg-tal:vector-high-temperature} applies to every probability law on
+$\{x\in\mathbb R^d:\sum_u x_u^2\le d\}$ with the coordinate inclusion, with its same
+dimension-only constant. If all coordinates vanish, then at every temperature
+$T(q,\rho)=(0,0)$, its unique fixed point is $(0,0)$, and $p_N=0$ for every $N$.
+\end{theorem}
+\begin{proof}\uses{thm:sg-tal:vector-high-temperature}
+The ball's coordinates are measurable and their bound is part of membership in the
+subtype. For zero coordinates every field moment and interaction vanishes directly.
+\end{proof}
+
+\begin{theorem}[Concentration of the coupled log ratio]\label{thm:sg-tal:vector-coupled-ratio-concentration}
+\talsource{Section~1.12, paragraph following (1.365)}
+\lean{SpinGlasses.measureReal_abs_log_skCoupledPartition_ratio_sub_freeEnergy_ge_le}
+\leanok
+For $N>0$ and $y\ge0$, put
+$D_N(g)=N^{-1}(\log Z_{N,\lambda}(g)-\log Z_{N,0}(g))$. Then
+\[
+ \mathbb P\{|D_N-\psi_N(\lambda)|\ge y\}
+ \le 4\exp\left(-\frac{(Ny/2)^2}{8\beta^2N}\right).
+\]
+For $\beta\ne0$ the exponent is $-Ny^2/(32\beta^2)$. At $\beta=0$ the Lean denominator
+uses totalized division; the bound is still true. The earlier log-partition identity
+identifies $D_N$ with $N^{-1}\log\langle e^{\lambda NR_{12}}\rangle$.
+\end{theorem}
+\begin{proof}\uses{thm:sg-tal:vector-coupled}
+Apply the existing Gaussian concentration estimate to $\log Z_{N,\lambda}$ and
+$\log Z_{N,0}$ at threshold $Ny/2$. The triangle inequality and a union bound suffice;
+independence between these two random variables is not required.
+\end{proof}
+
 \begin{remark}[Remaining statements and singular fixed points]\label{rem:sg-tal:vector-remaining}
 \talsource{Theorems~1.12.1--1.12.3}
-The six principal results are proved above under their stated hypotheses. The pressure
-rate and limit still require an auxiliary $\beta_1>\beta$ satisfying the two numerical
-smallness conditions. It remains to state them directly under $0\le\beta$,
-$15\beta d\le1$, supplying both $\beta_1$ and the fixed point inside the proof and handling
-$\beta=0$. The ball, Ising and coupled-copy measure comparisons must also retain their
-exact partition-function normalization factors.
+The six principal results now include the closed-range statement of
+Theorem~\ref{thm:sg-tal:vector-high-temperature}. The earlier pressure lemmas
+with an auxiliary upper parameter remain reusable inputs to its proof.
+The ball, Ising, coupled-copy, hypercube and two-point comparisons are proved above,
+with their exact normalization factors and shared disorder. The scalar reduction of
+the vector cavity derivative remains to be written; wrapper removal and final
+checks are still recorded in the vector-spin plan.
 The site-diagonal correction in Lemma~\ref{lem:sg-tal:vector-covariance} varies with the
 configuration. The implemented closed cone requires $q\succeq0$ and $\rho-q\succeq0$;
 its definition does not include the trace bound proposed in the original plan.

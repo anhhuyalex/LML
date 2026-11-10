@@ -7,6 +7,7 @@ module
 
 public import Mathlib.MeasureTheory.Constructions.Pi
 public import Mathlib.MeasureTheory.Integral.Prod
+public import Mathlib.MeasureTheory.Measure.Count
 
 /-! # Regrouping products and triples of coordinates -/
 
@@ -15,6 +16,15 @@ public import Mathlib.MeasureTheory.Integral.Prod
 open MeasureTheory
 
 namespace MeasureTheory
+
+/-- A finite product of counting measures is the counting measure on the product space. -/
+theorem Measure.pi_count {ι : Type*} [Fintype ι] {X : ι → Type*}
+    [∀ i, MeasurableSpace (X i)] [∀ i, MeasurableSingletonClass (X i)]
+    [∀ i, Countable (X i)] :
+    Measure.pi (fun i => (Measure.count : Measure (X i))) = Measure.count := by
+  apply Measure.ext_of_singleton
+  intro x
+  simp [Measure.pi_singleton]
 
 /-- **Coordinate marginal of a product law:** if `z` has the product law `Measure.pi μ`, then its
 `i`-th coordinate has law `μ i`. -/

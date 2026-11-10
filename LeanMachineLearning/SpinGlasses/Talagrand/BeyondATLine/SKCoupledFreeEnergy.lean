@@ -149,6 +149,22 @@ theorem skCoupledPartition_eq {M : ℕ} {β h : ℝ}
   refine Finset.sum_congr rfl fun x _ => ?_
   rw [hE x g, hb x]
 
+/-- The coupled log-partition function is integrable for every deterministic coupling. -/
+theorem integrable_log_skCoupledPartition (M : ℕ) (β h lam : ℝ) :
+    Integrable (fun g => Real.log (skCoupledPartition M β h lam g))
+      (Measure.pi fun _ : FinPairs M => gaussianReal 0 1) := by
+  obtain ⟨a, d, b, hE, hb, -, -⟩ := exists_sk_coupled_data M β h
+  simp_rw [skCoupledPartition_eq hE hb]
+  simpa only [add_assoc] using
+    integrable_log_sum_exp_linear_gaussian a (fun x => d x + lam * b x)
+
+/-- At zero coupling the two partition functions multiply at each fixed disorder. -/
+theorem skCoupledPartition_zero_coupling (M : ℕ) (β h : ℝ) (g : FinPairs M → ℝ) :
+    skCoupledPartition M β h 0 g =
+      (∑ σ : Fin M → ℤˣ, Real.exp (skGibbsEnergy M β h g σ)) ^ 2 := by
+  simp only [skCoupledPartition, zero_mul, add_zero, Real.exp_add, ← Finset.mul_sum,
+    ← Finset.sum_mul, pow_two]
+
 /-- `ψ_M(0) = 0`. -/
 theorem skCoupledFreeEnergy_zero (M : ℕ) (β h : ℝ) : skCoupledFreeEnergy M β h 0 = 0 := by
   simp [skCoupledFreeEnergy]

@@ -164,6 +164,32 @@ theorem div_sq_add_div_le_div {c d r : ℝ} (hc : 0 ≤ c) (hr : 1 ≤ r) :
   have h5 : c / (r * r) + d * c / r + 2 * d / r ≤ c / r + d * c / r + 2 * d / r := by linarith
   linarith
 
+/-- **Theorem 1.12.3 with its explicit error constant.** The factor multiplying
+`1 / √(N+1)` depends only on `β` and the dimension, not on the spin law. -/
+theorem abs_skVectorFreeEnergy_sub_pressure_le_inv_sqrt_of_pos {d : ℕ} (μ : Measure α)
+    [IsProbabilityMeasure μ] (ξ : α → Fin d → ℝ)
+    (hξ : ∀ u, Measurable (fun a => ξ a u))
+    (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) {β β₁ : ℝ} (hβ : 0 < β) (hββ₁ : β < β₁)
+    (hκ : 18 * β₁ ^ 2 * (d : ℝ) ^ 2 < 1) (hβ₁ : β₁ ^ 2 * (d : ℝ) ^ 2 ≤ 1 / 200)
+    {x : (Fin d → Fin d → ℝ) × (Fin d → Fin d → ℝ)}
+    (hx : x ∈ skVectorFixedPointCone d) (hxf : skVectorFixedPointMap μ ξ β x = x) (N : ℕ) :
+    |skVectorFreeEnergy μ ξ (N + 1) β - skVectorPressure μ ξ β x| ≤
+      β ^ 2 * (((8 * (d : ℝ) ^ 4 + 2 * (d : ℝ) ^ 2) +
+        d * (8 * (d : ℝ) ^ 4 + 2 * (d : ℝ) ^ 2) + 2 * d) / 2 + (d : ℝ) ^ 2 / 2) /
+        Real.sqrt ((N : ℝ) + 1) := by
+  have hc : (0 : ℝ) ≤ 8 * (d : ℝ) ^ 4 + 2 * (d : ℝ) ^ 2 := by positivity
+  set r : ℝ := Real.sqrt ((N : ℝ) + 1) with hr
+  have hN : (0 : ℝ) < (N : ℝ) + 1 := by positivity
+  have hr1 : 1 ≤ r := by
+    rw [hr]; exact Real.one_le_sqrt.2 (by linarith [(Nat.cast_nonneg N : (0 : ℝ) ≤ N)])
+  have hrr : r * r = (N : ℝ) + 1 := Real.mul_self_sqrt hN.le
+  have h := abs_skVectorFreeEnergy_sub_pressure_le_of_pos μ ξ hξ hbound hβ hββ₁ hκ hβ₁ N
+    (s := 1 / r) (by positivity) hx hxf
+  rw [← hrr] at h
+  exact h.trans (le_of_le_of_eq (mul_le_mul_of_nonneg_left (div_sq_add_div_le_div hc hr1)
+    (sq_nonneg β))
+    (mul_div_assoc _ _ _).symm)
+
 /-- **Theorem 1.12.3 (rate of convergence).**  Under the smallness conditions
 `18 β₁² d² < 1`, `β₁² d² ≤ 1/200` and for `0 < β < β₁`, the free energies of the vector SK model
 satisfy `|p_{N+1}(β) - G(β, (q, ρ))| ≤ C/√(N+1)`, where `(q, ρ)` is the fixed point of `T`
@@ -177,20 +203,10 @@ theorem exists_abs_skVectorFreeEnergy_sub_pressure_le_inv_sqrt {d : ℕ} (μ : M
     (hxf : skVectorFixedPointMap μ ξ β x = x) :
     ∃ C : ℝ, ∀ N : ℕ, |skVectorFreeEnergy μ ξ (N + 1) β - skVectorPressure μ ξ β x| ≤
       C / Real.sqrt ((N : ℝ) + 1) := by
-  have hc : (0 : ℝ) ≤ 8 * (d : ℝ) ^ 4 + 2 * (d : ℝ) ^ 2 := by positivity
   refine ⟨β ^ 2 * (((8 * (d : ℝ) ^ 4 + 2 * (d : ℝ) ^ 2) +
-    d * (8 * (d : ℝ) ^ 4 + 2 * (d : ℝ) ^ 2) + 2 * d) / 2 + (d : ℝ) ^ 2 / 2), fun N => ?_⟩
-  set r : ℝ := Real.sqrt ((N : ℝ) + 1) with hr
-  have hN : (0 : ℝ) < (N : ℝ) + 1 := by positivity
-  have hr1 : 1 ≤ r := by
-    rw [hr]; exact Real.one_le_sqrt.2 (by linarith [(Nat.cast_nonneg N : (0 : ℝ) ≤ N)])
-  have hrr : r * r = (N : ℝ) + 1 := Real.mul_self_sqrt hN.le
-  have h := abs_skVectorFreeEnergy_sub_pressure_le_of_pos μ ξ hξ hbound hβ hββ₁ hκ hβ₁ N
-    (s := 1 / r) (by positivity) hx hxf
-  rw [← hrr] at h
-  exact h.trans (le_of_le_of_eq (mul_le_mul_of_nonneg_left (div_sq_add_div_le_div hc hr1)
-    (sq_nonneg β))
-    (mul_div_assoc _ _ _).symm)
+    d * (8 * (d : ℝ) ^ 4 + 2 * (d : ℝ) ^ 2) + 2 * d) / 2 + (d : ℝ) ^ 2 / 2), ?_⟩
+  exact abs_skVectorFreeEnergy_sub_pressure_le_inv_sqrt_of_pos μ ξ hξ hbound hβ hββ₁
+    hκ hβ₁ hx hxf
 
 /-- **Theorem 1.12.3 (limit).**  Under the same conditions the free energies of the vector SK
 model converge to the replica-symmetric pressure at the fixed point of `T`. -/
@@ -221,6 +237,21 @@ theorem smallness_of_high_temperature {β d : ℝ} (hβ : 0 ≤ β) (hd : 0 ≤ 
   have h2 : (β * d) ^ 2 ≤ (1 / 15) ^ 2 := pow_le_pow_left₀ h0 h1 2
   constructor <;> nlinarith [h2]
 
+/-- The matrix fixed point is uniquely determined throughout the closed high-temperature range.
+The conclusion requires no Gaussian realization or previously chosen solution. -/
+theorem existsUnique_skVectorFixedPoint_of_high_temperature {d : ℕ}
+    (μ : Measure α) [IsProbabilityMeasure μ] (ξ : α → Fin d → ℝ)
+    (hξ : ∀ u, Measurable (fun a => ξ a u))
+    (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) {β : ℝ} (hβ : 0 ≤ β)
+    (hsmall : 15 * β * (d : ℝ) ≤ 1) :
+    ∃! x : (Fin d → Fin d → ℝ) × (Fin d → Fin d → ℝ),
+      x ∈ skVectorFixedPointCone d ∧ skVectorFixedPointMap μ ξ β x = x := by
+  have hκ := (smallness_of_high_temperature hβ (Nat.cast_nonneg d) hsmall).1
+  obtain ⟨x, hx, hxf⟩ := exists_skVectorFixedPoint μ ξ hξ hbound β hκ
+  refine ⟨x, ⟨hx, hxf⟩, ?_⟩
+  intro y hy
+  exact skVectorFixedPoint_unique μ ξ hξ hbound β hκ hy.1 hx hy.2 hxf
+
 /-- **Theorem 1.12.3 in the book's range `L β d ≤ 1` (with `L = 15`)**: the free energies of the
 vector SK model satisfy `|p_{N+1}(β) - G(β, (q, ρ))| ≤ C/√(N+1)`, where `(q, ρ)` is the solution
 of (1.372)--(1.373) in the cone. -/
@@ -245,5 +276,113 @@ theorem tendsto_skVectorFreeEnergy_of_high_temperature {d : ℕ} (μ : Measure �
     Tendsto (fun N : ℕ => skVectorFreeEnergy μ ξ N β) atTop (𝓝 (skVectorPressure μ ξ β x)) := by
   obtain ⟨h1, h2⟩ := smallness_of_high_temperature (hβ.trans hββ₁).le (Nat.cast_nonneg d) h
   exact tendsto_skVectorFreeEnergy μ ξ hξ hbound hβ hββ₁ h1 h2 hx hxf
+
+
+/-- The replica-symmetric pressure vanishes at zero inverse temperature for every matrix pair. -/
+theorem skVectorPressure_zero {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
+    (ξ : α → Fin d → ℝ) (x : (Fin d → Fin d → ℝ) × (Fin d → Fin d → ℝ)) :
+    skVectorPressure μ ξ 0 x = 0 := by
+  simp [skVectorPressure, skVectorGaussianFreeEnergy]
+
+/-- The book's closed temperature range leaves room for the strict numerical hypotheses of
+the pressure theorem. The rational choice avoids differentiating or estimating a square root. -/
+theorem exists_gt_sq_mul_sq_bounds {β d : ℝ} (hd : 0 ≤ d) (h : 15 * β * d ≤ 1) :
+    ∃ b : ℝ, β < b ∧ 18 * b ^ 2 * d ^ 2 < 1 ∧ b ^ 2 * d ^ 2 ≤ 1 / 200 := by
+  by_cases hd0 : d = 0
+  · subst d
+    exact ⟨β + 1, by linarith, by norm_num, by norm_num⟩
+  have hdpos : 0 < d := lt_of_le_of_ne hd (Ne.symm hd0)
+  refine ⟨(7 / 100) / d, (lt_div_iff₀ hdpos).2 ?_, ?_, ?_⟩
+  · nlinarith
+  · rw [mul_assoc, ← mul_pow, div_mul_cancel₀ _ hd0]
+    norm_num
+  · rw [← mul_pow, div_mul_cancel₀ _ hd0]
+    norm_num
+
+/-- The explicit pressure error holds throughout the closed high-temperature range, including
+zero inverse temperature and dimension zero. No auxiliary upper temperature is supplied. -/
+theorem abs_skVectorFreeEnergy_sub_pressure_le_inv_sqrt_of_high_temperature {d : ℕ}
+    (μ : Measure α) [IsProbabilityMeasure μ] (ξ : α → Fin d → ℝ)
+    (hξ : ∀ u, Measurable (fun a => ξ a u))
+    (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) {β : ℝ} (hβ : 0 ≤ β)
+    (hsmall : 15 * β * (d : ℝ) ≤ 1)
+    {x : (Fin d → Fin d → ℝ) × (Fin d → Fin d → ℝ)}
+    (hx : x ∈ skVectorFixedPointCone d) (hxf : skVectorFixedPointMap μ ξ β x = x) (N : ℕ) :
+    |skVectorFreeEnergy μ ξ (N + 1) β - skVectorPressure μ ξ β x| ≤
+      β ^ 2 * (((8 * (d : ℝ) ^ 4 + 2 * (d : ℝ) ^ 2) +
+        d * (8 * (d : ℝ) ^ 4 + 2 * (d : ℝ) ^ 2) + 2 * d) / 2 + (d : ℝ) ^ 2 / 2) /
+        Real.sqrt ((N : ℝ) + 1) := by
+  by_cases hβ0 : β = 0
+  · subst β
+    simp [skVectorFreeEnergy_zero, skVectorPressure_zero]
+  have hβpos : 0 < β := lt_of_le_of_ne hβ (Ne.symm hβ0)
+  obtain ⟨β₁, hββ₁, hκ, hβ₁⟩ := exists_gt_sq_mul_sq_bounds (Nat.cast_nonneg d) hsmall
+  exact abs_skVectorFreeEnergy_sub_pressure_le_inv_sqrt_of_pos μ ξ hξ hbound hβpos hββ₁
+    hκ hβ₁ hx hxf N
+
+/-- The pressure limit under the book's hypothesis, without an auxiliary upper temperature. -/
+theorem tendsto_skVectorFreeEnergy_of_nonneg {d : ℕ}
+    (μ : Measure α) [IsProbabilityMeasure μ] (ξ : α → Fin d → ℝ)
+    (hξ : ∀ u, Measurable (fun a => ξ a u))
+    (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) {β : ℝ} (hβ : 0 ≤ β)
+    (hsmall : 15 * β * (d : ℝ) ≤ 1)
+    {x : (Fin d → Fin d → ℝ) × (Fin d → Fin d → ℝ)}
+    (hx : x ∈ skVectorFixedPointCone d) (hxf : skVectorFixedPointMap μ ξ β x = x) :
+    Tendsto (fun N : ℕ => skVectorFreeEnergy μ ξ N β) atTop (𝓝 (skVectorPressure μ ξ β x)) := by
+  by_cases hβ0 : β = 0
+  · subst β
+    simp [skVectorFreeEnergy_zero, skVectorPressure_zero]
+  have hβpos : 0 < β := lt_of_le_of_ne hβ (Ne.symm hβ0)
+  obtain ⟨β₁, hββ₁, hκ, hβ₁⟩ := exists_gt_sq_mul_sq_bounds (Nat.cast_nonneg d) hsmall
+  exact tendsto_skVectorFreeEnergy μ ξ hξ hbound hβpos hββ₁ hκ hβ₁ hx hxf
+
+/-- **Talagrand Theorems 1.12.1--1.12.3 under the book's hypotheses.** A dimension-only constant
+works for every probability spin law and every nonnegative inverse temperature with `15 β d ≤ 1`.
+There is one unique fixed point for all system sizes; both overlap errors and the pressure error
+are bounded, and the free energies converge to the pressure. No margin or fixed point is input. -/
+theorem existsUnique_skVectorFixedPoint_overlap_free_energy (d : ℕ) :
+    ∃ K : ℝ, 0 ≤ K ∧ ∀ {S : Type*} [MeasurableSpace S] (μ : Measure S)
+      [IsProbabilityMeasure μ] (ξ : S → Fin d → ℝ),
+      (∀ u, Measurable (fun a => ξ a u)) → (∀ a, ∑ u, ξ a u ^ 2 ≤ d) →
+      ∀ β : ℝ, 0 ≤ β → 15 * β * (d : ℝ) ≤ 1 →
+      ∃! x : (Fin d → Fin d → ℝ) × (Fin d → Fin d → ℝ),
+        x ∈ skVectorFixedPointCone d ∧ skVectorFixedPointMap μ ξ β x = x ∧
+        (∀ N : ℕ, skVectorReplicaAverage μ ξ N β (fun σ => ∑ u, ∑ v,
+            skVectorOverlapDeviation ξ N 0 1 x.1 u v σ ^ 2) +
+          skVectorReplicaAverage μ ξ N β (fun σ => ∑ u, ∑ v,
+            skVectorOverlapDeviation ξ N 0 0 x.2 u v σ ^ 2) ≤ K / ((N : ℝ) + 1)) ∧
+        (∀ N : ℕ, |skVectorFreeEnergy μ ξ (N + 1) β - skVectorPressure μ ξ β x| ≤
+          K / Real.sqrt ((N : ℝ) + 1)) ∧
+        Tendsto (fun N : ℕ => skVectorFreeEnergy μ ξ N β) atTop
+          (𝓝 (skVectorPressure μ ξ β x)) := by
+  let c : ℝ := 8 * (d : ℝ) ^ 4 + 2 * (d : ℝ) ^ 2
+  let p : ℝ := (c + d * c + 2 * d) / 2 + (d : ℝ) ^ 2 / 2
+  have hc : 0 ≤ c := by dsimp [c]; positivity
+  have hp : 0 ≤ p := by dsimp [p]; positivity
+  refine ⟨c + p, add_nonneg hc hp, ?_⟩
+  intro S _ μ _ ξ hξ hbound β hβ hsmall
+  obtain ⟨hκ, hβ2⟩ := smallness_of_high_temperature hβ (Nat.cast_nonneg d) hsmall
+  obtain ⟨x, ⟨hx, hxf⟩, hunique⟩ :=
+    existsUnique_skVectorFixedPoint_of_high_temperature μ ξ hξ hbound hβ hsmall
+  refine ⟨x, ⟨hx, hxf, ?_, ?_, ?_⟩, ?_⟩
+  · intro N
+    have h := sum_sq_skVectorOverlapDeviation_average_le μ ξ hξ hbound N β hβ2 hx hxf
+    exact h.trans (div_le_div_of_nonneg_right (le_add_of_nonneg_right hp) (by positivity))
+  · intro N
+    have h := abs_skVectorFreeEnergy_sub_pressure_le_inv_sqrt_of_high_temperature μ ξ hξ
+      hbound hβ hsmall hx hxf N
+    have hcoef : β ^ 2 * p ≤ c + p := by
+      by_cases hd0 : d = 0
+      · simp [p, c, hd0]
+      have hd1 : (1 : ℝ) ≤ d := by exact_mod_cast Nat.one_le_iff_ne_zero.mpr hd0
+      have hβ1 : β ≤ 1 := by
+        nlinarith [mul_le_mul_of_nonneg_left hd1 hβ]
+      have hβsq : β ^ 2 ≤ 1 := by nlinarith
+      calc β ^ 2 * p ≤ p := by nlinarith [mul_nonneg (sub_nonneg.mpr hβsq) hp]
+           _ ≤ c + p := le_add_of_nonneg_left hc
+    exact h.trans (div_le_div_of_nonneg_right hcoef (Real.sqrt_nonneg _))
+  · exact tendsto_skVectorFreeEnergy_of_nonneg μ ξ hξ hbound hβ hsmall hx hxf
+  · intro y hy
+    exact hunique y ⟨hy.1, hy.2.1⟩
 
 end SpinGlasses

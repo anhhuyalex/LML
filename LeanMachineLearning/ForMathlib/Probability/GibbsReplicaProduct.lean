@@ -8,6 +8,7 @@ module
 public import Mathlib.MeasureTheory.Integral.Pi
 public import Mathlib.MeasureTheory.Measure.Tilted
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FreshReplicas
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteTilted
 
 /-!
 # Replica Gibbs measures on an arbitrary base space
@@ -74,6 +75,45 @@ theorem pi_tilted_eq_tilted_pi {E : α → ℝ} :
       exact div_nonneg (Real.exp_pos _).le (integral_nonneg fun b => (Real.exp_pos _).le)
     · rw [Set.indicator_of_notMem ha]
       exact le_rfl
+
+/-- Adding an interaction to independent finite Gibbs laws gives the Gibbs law of the sum
+of the one-site energies and the interaction, relative to counting measure. -/
+theorem tilted_pi_count_tilted {A I : Type*} [Finite A] [Fintype I]
+    [MeasurableSpace A] [MeasurableSingletonClass A] (f : A → ℝ) (E : (I → A) → ℝ) :
+    (Measure.pi fun _ : I => Measure.count.tilted f).tilted E =
+      Measure.count.tilted (fun σ => (∑ i, f (σ i)) + E σ) := by
+  rw [pi_tilted_eq_tilted_pi, Measure.pi_count, tilted_tilted Integrable.of_finite]
+  rfl
+
+section Counting
+
+variable {A I : Type*} [Fintype A] [Fintype I] [MeasurableSpace A]
+  [MeasurableSingletonClass A]
+
+/-- The partition integral relative to independent normalized Gibbs laws is a counting sum
+divided by the product of the one-site normalizing sums. Empty site types are allowed. -/
+theorem integral_exp_pi_count_tilted_eq_div [DecidableEq I] (f : A → ℝ) (E : (I → A) → ℝ) :
+    (∫ σ, Real.exp (E σ) ∂(Measure.pi fun _ : I => Measure.count.tilted f)) =
+      (∑ σ : I → A, Real.exp ((∑ i, f (σ i)) + E σ)) /
+        (∑ a, Real.exp (f a)) ^ Fintype.card I := by
+  rw [pi_tilted_eq_tilted_pi, Measure.pi_count, integral_exp_tilted,
+    integral_count_eq_sum]
+  congr 1
+  rw [← Measure.pi_count]
+  simpa only [integral_count_eq_sum] using
+    integral_pi_exp_sum (μ := Measure.count) (ι := I) f
+
+/-- Logarithmic form of the product-law partition normalization. The one-site normalizing
+sum contributes once per site, without a restriction on the interaction or its sign. -/
+theorem log_integral_exp_pi_count_tilted [DecidableEq I] [Nonempty A]
+    (f : A → ℝ) (E : (I → A) → ℝ) :
+    Real.log (∫ σ, Real.exp (E σ) ∂(Measure.pi fun _ : I => Measure.count.tilted f)) =
+      Real.log (∑ σ : I → A, Real.exp ((∑ i, f (σ i)) + E σ)) -
+        (Fintype.card I : ℝ) * Real.log (∑ a, Real.exp (f a)) := by
+  rw [integral_exp_pi_count_tilted_eq_div,
+    Real.log_div (by positivity) (by positivity), Real.log_pow]
+
+end Counting
 
 /-- The `ι`-replica Gibbs average of `Y` as a ratio of integrals against the product base law. -/
 theorem integral_pi_tilted_eq_div (E : α → ℝ) (Y : (ι → α) → ℝ) :

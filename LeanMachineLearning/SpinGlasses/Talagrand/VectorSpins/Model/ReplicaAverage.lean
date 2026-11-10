@@ -124,6 +124,25 @@ theorem skVectorCavityAverage_disorderLaw_eq_replicaAverage (ρ q : Fin d → Fi
         (fun τ => skVectorEnergy (N + 1) β g (fun i => ξ (τ i))))) (fun _ => (1 : ℝ))
   simpa using this
 
+include hξ hbound in
+/-- The self- and cross-overlap variances of the concrete Gibbs model satisfy a common bound.
+This is the cavity estimate expressed using the ordinary two-replica average. -/
+theorem sum_sq_skVectorOverlapDeviation_average_le
+    (hβ : β ^ 2 * (d : ℝ) ^ 2 ≤ 1 / 200)
+    {x : (Fin d → Fin d → ℝ) × (Fin d → Fin d → ℝ)}
+    (hx : x ∈ skVectorFixedPointCone d) (hxf : skVectorFixedPointMap μ ξ β x = x) :
+    skVectorReplicaAverage μ ξ N β (fun σ => ∑ u, ∑ v,
+        skVectorOverlapDeviation ξ N 0 1 x.1 u v σ ^ 2) +
+      skVectorReplicaAverage μ ξ N β (fun σ => ∑ u, ∑ v,
+        skVectorOverlapDeviation ξ N 0 0 x.2 u v σ ^ 2) ≤
+      (8 * (d : ℝ) ^ 4 + 2 * (d : ℝ) ^ 2) / ((N : ℝ) + 1) := by
+  have h := sum_overlap_variances_le_of_fixedPoint μ ξ hξ hbound β hβ N hx hxf
+  have h01 := measurable_sum_sq_skVectorOverlapDeviation (N := N) ξ hξ 0 1 x.1
+  have h00 := measurable_sum_sq_skVectorOverlapDeviation (N := N) ξ hξ 0 0 x.2
+  rw [skVectorCavityAverage_disorderLaw_eq_replicaAverage μ ξ hξ hbound N β x.2 x.1 _ h01,
+    skVectorCavityAverage_disorderLaw_eq_replicaAverage μ ξ hξ hbound N β x.2 x.1 _ h00] at h
+  exact h
+
 end Lemmas
 
 end SpinGlasses
