@@ -7,6 +7,7 @@ module
 
 public import Mathlib.MeasureTheory.Integral.Bochner.Basic
 public import Mathlib.MeasureTheory.Integral.IntegrableOn
+public import Mathlib.Analysis.Convex.Integral
 
 /-!
 # Integrability of the integral of a bounded function against random probability measures
@@ -50,5 +51,39 @@ theorem integral_integral_finset_sum {Ω α ι : Type*} [MeasurableSpace Ω] [Me
     integral_finsetSum s fun i hi => hinner i hi ω
   simp_rw [h]
   exact integral_finsetSum s houter
+
+/-- **Jensen's inequality for a finite sum of convex functions**:
+`∑ i ∈ s, g i (∫ ω, h i ω ∂P) ≤ ∫ ω, ∑ i ∈ s, g i (h i ω) ∂P` for a probability measure `P`. -/
+theorem sum_convex_integral_le {Ω ι : Type*} [MeasurableSpace Ω] {P : Measure Ω}
+    [IsProbabilityMeasure P] (s : Finset ι) (h : ι → Ω → ℝ) (g : ι → ℝ → ℝ)
+    (hg : ∀ i ∈ s, ConvexOn ℝ Set.univ (g i)) (hgc : ∀ i ∈ s, Continuous (g i))
+    (hint1 : ∀ i ∈ s, Integrable (h i) P)
+    (hint2 : ∀ i ∈ s, Integrable (fun ω => g i (h i ω)) P) :
+    ∑ i ∈ s, g i (∫ ω, h i ω ∂P) ≤ ∫ ω, ∑ i ∈ s, g i (h i ω) ∂P := by
+  have hsum : ∑ i ∈ s, ∫ ω, g i (h i ω) ∂P = ∫ ω, ∑ i ∈ s, g i (h i ω) ∂P :=
+    (integral_finsetSum s hint2).symm
+  rw [← hsum]
+  refine Finset.sum_le_sum fun i hi => ?_
+  exact (hg i hi).map_integral_le (hgc i hi).continuousOn isClosed_univ
+    (Filter.Eventually.of_forall fun _ => Set.mem_univ _) (hint1 i hi) (hint2 i hi)
+
+/-- **Jensen for a vector of bounded functions**: `∑ᵢ (∫ hᵢ)² ≤ ∫ ∑ᵢ hᵢ²` for a probability
+measure. -/
+theorem sum_sq_integral_le {Ω ι : Type*} [MeasurableSpace Ω] [Fintype ι] {P : Measure Ω}
+    [IsProbabilityMeasure P] (h : ι → Ω → ℝ) (hm : ∀ i, Measurable (h i)) {M : ℝ}
+    (hb : ∀ i ω, |h i ω| ≤ M) :
+    ∑ i, (∫ ω, h i ω ∂P) ^ 2 ≤ ∫ ω, ∑ i, h i ω ^ 2 ∂P := by
+  have hint : ∀ i, Integrable (h i) P := fun i =>
+    Integrable.of_bound (hm i).aestronglyMeasurable M
+      (Filter.Eventually.of_forall fun ω => by rw [Real.norm_eq_abs]; exact hb i ω)
+  have hint2 : ∀ i, Integrable (fun ω => h i ω ^ 2) P := fun i =>
+    Integrable.of_bound ((hm i).pow_const 2).aestronglyMeasurable (M ^ 2)
+      (Filter.Eventually.of_forall fun ω => by
+        rw [Real.norm_eq_abs, abs_pow]
+        exact pow_le_pow_left₀ (abs_nonneg _) (hb i ω) 2)
+  exact sum_convex_integral_le Finset.univ h (fun _ t => t ^ 2)
+    (fun _ _ => Even.convexOn_pow (𝕜 := ℝ) (by decide : Even 2))
+    (fun _ _ => continuous_pow 2)
+    (fun i _ => hint i) (fun i _ => hint2 i)
 
 end MeasureTheory

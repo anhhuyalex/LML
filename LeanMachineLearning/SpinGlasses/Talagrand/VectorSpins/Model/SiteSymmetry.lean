@@ -134,20 +134,6 @@ theorem integrable_integral_skVectorEnergy {N d : ℕ} {Ω R : Type*} [Measurabl
     (fun ω => isProbabilityMeasure_tilted_skVectorEnergy μ ξ hξ (Nat.cast_nonneg d) hbound N β
       (gt ω)) hG hGb.choose_spec
 
-/-- **A finite sum of bounded observables commutes with the disorder average of the Gibbs
-average.** -/
-theorem integral_integral_finsetSum {Ω X ι : Type*} [Fintype ι] [MeasurableSpace Ω]
-    [MeasurableSpace X] {P : Measure Ω} (Q : Ω → Measure X) [∀ ω, IsProbabilityMeasure (Q ω)]
-    (hI : ∀ G : X → ℝ, Measurable G → (∃ M, ∀ x, |G x| ≤ M) →
-      Integrable (fun ω => ∫ x, G x ∂(Q ω)) P)
-    (F : ι → X → ℝ) (hF : ∀ i, Measurable (F i)) (hFb : ∀ i, ∃ M, ∀ x, |F i x| ≤ M) :
-    ∫ ω, ∫ x, ∑ i, F i x ∂(Q ω) ∂P = ∑ i, ∫ ω, ∫ x, F i x ∂(Q ω) ∂P := by
-  exact integral_integral_finset_sum P Q Finset.univ F
-    (fun i _ ω => by
-      obtain ⟨M, hM⟩ := hFb i
-      exact integrable_of_measurable_bound (hF i) hM)
-    (fun i _ => hI _ (hF i) (hFb i))
-
 /-- **Symmetry between sites** (Eq. (1.383)): for two replicas, `ν((R - T) (R - T)) =
 ν(ε_last (R - T))` where `R - T = (N+1)⁻¹ ∑_i e_i` is the centered overlap and `e_i` the centered
 product of the replica spins `a`, `b` at the site `i`. -/
@@ -245,11 +231,14 @@ theorem skVector_overlap_variance_eq_last_spin {N d : ℕ} {Ω : Type*} [Measura
     rw [← Finset.mul_sum, hsum]
     field_simp
   simp_rw [hH]
-  have hlin := integral_integral_finsetSum (P := P) Q hI
+  have hlin := integral_integral_finset_sum P Q Finset.univ
     (fun s σ => (((N : ℝ) + 1)⁻¹ * ∑ i, ξ (σ a i) u * ξ (σ b i) v - T) *
-      (ξ (σ a s) u * ξ (σ b s) v - T)) (fun s => hHm.mul (heM s))
-    (fun s => ⟨(d + d) * (d + d), fun σ => by
-      rw [abs_mul]; exact mul_le_mul (hHb σ) (heb s σ) (abs_nonneg _) (add_nonneg hr hr)⟩)
+      (ξ (σ a s) u * ξ (σ b s) v - T))
+    (fun s _ ω => integrable_of_measurable_bound (hHm.mul (heM s))
+      (fun σ => by rw [abs_mul]; exact mul_le_mul (hHb σ) (heb s σ) (abs_nonneg _) (add_nonneg hr hr)))
+    (fun s _ => hI _ (hHm.mul (heM s))
+      ⟨(d + d) * (d + d), fun σ => by
+        rw [abs_mul]; exact mul_le_mul (hHb σ) (heb s σ) (abs_nonneg _) (add_nonneg hr hr)⟩)
   simp_rw [integral_const_mul]
   rw [hlin]
   simp_rw [hsite]

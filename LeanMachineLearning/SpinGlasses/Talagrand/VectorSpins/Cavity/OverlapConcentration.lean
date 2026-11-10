@@ -94,19 +94,6 @@ theorem skVectorCavityAverage_one_eq {R : Type*} [Fintype R]
     simp only [hg, hg']
   simp only [hE]
 
-/-- A double sum over `Fin d × Fin d` of bounded observables commutes with the disorder average of
-the Gibbs average. -/
-theorem integral_integral_sum_sum {Ω X : Type*} [MeasurableSpace Ω] [MeasurableSpace X]
-    {P : Measure Ω} (Q : Ω → Measure X) [∀ ω, IsProbabilityMeasure (Q ω)]
-    (hI : ∀ G : X → ℝ, Measurable G → (∃ M, ∀ x, |G x| ≤ M) →
-      Integrable (fun ω => ∫ x, G x ∂(Q ω)) P)
-    {d : ℕ} (F : Fin d → Fin d → X → ℝ) (hF : ∀ u v, Measurable (F u v))
-    (hFb : ∀ u v, ∃ M, ∀ x, |F u v x| ≤ M) :
-    ∫ ω, ∫ x, ∑ u, ∑ v, F u v x ∂(Q ω) ∂P = ∑ u, ∑ v, ∫ ω, ∫ x, F u v x ∂(Q ω) ∂P := by
-  have := integral_integral_finsetSum (P := P) Q hI (ι := Fin d × Fin d)
-    (fun p x => F p.1 p.2 x) (fun p => hF p.1 p.2) (fun p => hFb p.1 p.2)
-  simpa only [Fintype.sum_prod_type] using this
-
 include hξ hbound in
 /-- The Gibbs averages of the cavity path are integrable in the Gaussian environment, for any
 number of replicas. -/
@@ -167,7 +154,15 @@ theorem skVectorCavityAverage_one_overlap_variance_eq_last_spin [IsProbabilityMe
     integrable_integral_skVectorEnergy μ ξ hξ hbound β hgt' G hG hGb
   have hb : ∀ (F : Fin d → Fin d → (Fin 2 → Fin (N + 1) → α) → ℝ) (C : ℝ),
       (∀ u v x, |F u v x| ≤ C) → ∀ u v, ∃ M, ∀ x, |F u v x| ≤ M := fun F C h u v => ⟨C, h u v⟩
-  rw [integral_integral_sum_sum Q hI
+  have hsum_prod : ∀ (F : Fin d → Fin d → (Fin 2 → Fin (N + 1) → α) → ℝ)
+      (hF : ∀ u v, Measurable (F u v)) (hFb : ∀ u v, ∃ M, ∀ x, |F u v x| ≤ M),
+      ∫ ω, ∫ x, ∑ u, ∑ v, F u v x ∂(Q ω) ∂P = ∑ u, ∑ v, ∫ ω, ∫ x, F u v x ∂(Q ω) ∂P := fun F hF hFb => by
+    have := integral_integral_finset_sum P Q (Finset.univ : Finset (Fin d × Fin d))
+      (fun p x => F p.1 p.2 x)
+      (fun p _ ω => integrable_of_measurable_bound (hF p.1 p.2) (hFb p.1 p.2).choose_spec)
+      (fun p _ => hI _ (hF p.1 p.2) (hFb p.1 p.2))
+    simpa only [Fintype.sum_prod_type] using this
+  rw [hsum_prod
       (fun u v x => skVectorLastSpinDeviation ξ N a b T u v x * skVectorOverlapDeviation ξ N a b T
         u v x)
       (fun u v => (measurable_skVectorLastSpinDeviation ξ hξ a b T u v).mul
@@ -177,7 +172,7 @@ theorem skVectorCavityAverage_one_overlap_variance_eq_last_spin [IsProbabilityMe
         exact mul_le_mul (abs_skVectorLastSpinDeviation_le ξ hbound a b T u v (hT u v) x)
           (abs_skVectorOverlapDeviation_le ξ hbound a b T u v (hT u v) x) (abs_nonneg _)
           (add_nonneg hr hr)⟩),
-    integral_integral_sum_sum Q hI
+    hsum_prod
       (fun u v x => skVectorOverlapDeviation ξ N a b T u v x ^ 2)
       (fun u v => (measurable_skVectorOverlapDeviation ξ hξ a b T u v).pow_const 2)
       (fun u v => ⟨(d + d) ^ 2, fun x => by
@@ -226,7 +221,15 @@ theorem abs_skVectorCavityAverage_zero_sum_le
   have hI : ∀ G : (Fin 2 → Fin (N + 1) → α) → ℝ, Measurable G → (∃ M, ∀ x, |G x| ≤ M) →
       Integrable (fun ω => ∫ x, G x ∂(Q ω)) P := fun G hG hGb =>
     integrable_integral_skVectorCavity μ ξ hξ hbound β ρ q hgm hg'm hYm 0 G hG hGb
-  rw [integral_integral_sum_sum Q hI
+  have hsum_prod : ∀ (F : Fin d → Fin d → (Fin 2 → Fin (N + 1) → α) → ℝ)
+      (hF : ∀ u v, Measurable (F u v)) (hFb : ∀ u v, ∃ M, ∀ x, |F u v x| ≤ M),
+      ∫ ω, ∫ x, ∑ u, ∑ v, F u v x ∂(Q ω) ∂P = ∑ u, ∑ v, ∫ ω, ∫ x, F u v x ∂(Q ω) ∂P := fun F hF hFb => by
+    have := integral_integral_finset_sum P Q (Finset.univ : Finset (Fin d × Fin d))
+      (fun p x => F p.1 p.2 x)
+      (fun p _ ω => integrable_of_measurable_bound (hF p.1 p.2) (hFb p.1 p.2).choose_spec)
+      (fun p _ => hI _ (hF p.1 p.2) (hFb p.1 p.2))
+    simpa only [Fintype.sum_prod_type] using this
+  rw [hsum_prod
     (fun u v x => skVectorLastSpinDeviation ξ N a b T u v x * skVectorOverlapDeviation ξ N a b T u
       v x)
     (fun u v => (measurable_skVectorLastSpinDeviation ξ hξ a b T u v).mul

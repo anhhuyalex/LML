@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.FixedPoint.Bounds
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IntegrableOfBound
 
 /-!
 # Frobenius-norm bounds for the replica combinations of the smart path
@@ -165,8 +166,22 @@ theorem abs_sum_integral_pair_le {Ω R : Type*} [MeasurableSpace Ω] [Fintype R]
       (ξ (σ none) j.2) (Real.sqrt d) (fun a => hxb _ _) (hxb _ _) hcardo
     exact mul_le_mul (mul_le_mul (hFb _) h1 (abs_nonneg _) hM) h2 (abs_nonneg _)
       (by positivity)
-  have hsum := integral_integral_pi_tilted_sum (μ := μ) (ι := Option (Option R)) hE hprob
-    (P := P) hGm hGb (fun j => Δ j.1 j.2)
+  have hsum : ∫ ω, ∫ σ, ∑ j, Δ j.1 j.2 * G j σ
+        ∂(Measure.pi fun _ : Option (Option R) => μ.tilted (en ω)) ∂P =
+      ∑ j : Fin d × Fin d, Δ j.1 j.2 * ∫ ω, ∫ σ, G j σ
+        ∂(Measure.pi fun _ : Option (Option R) => μ.tilted (en ω)) ∂P := by
+    have hlin := integral_integral_finset_sum P
+      (fun ω => Measure.pi fun _ : Option (Option R) => μ.tilted (en ω))
+      (Finset.univ : Finset (Fin d × Fin d)) (fun j σ => Δ j.1 j.2 * G j σ)
+      (fun j _ ω => by
+        have := hprob ω
+        exact integrable_of_measurable_bound ((hGm j).const_mul _) fun σ => by
+          rw [abs_mul]; exact mul_le_mul_of_nonneg_left (hGb j σ) (abs_nonneg _))
+      (fun j _ => by
+        simp_rw [integral_const_mul]
+        exact (integrable_integral_pi_tilted hE hprob (hGm j) (hGb j)).const_mul _)
+    simp_rw [integral_const_mul] at hlin
+    exact hlin
   have hconv : (∑ u, ∑ v, Δ u v * ∫ ω, ∫ σ : Option (Option R) → α,
       (F fun a => σ (some (some a))) *
         (∑ a, ξ (σ (some (some a))) u - n * ξ (σ (some none)) u) *
@@ -234,8 +249,22 @@ theorem abs_sum_integral_single_le {Ω R : Type*} [MeasurableSpace Ω] [Fintype 
       (fun o : Option R => ξ (σ (some o)) j.1 * ξ (σ (some o)) j.2)
       (ξ (σ none) j.1 * ξ (σ none) j.2) (d : ℝ) (fun a => hxs _ _ _) (hxs _ _ _) hcardo
     exact mul_le_mul (hFb _) h2 (abs_nonneg _) hM
-  have hsum := integral_integral_pi_tilted_sum (μ := μ) (ι := Option (Option R)) hE hprob
-    (P := P) hGm hGb (fun j => C j.1 j.2)
+  have hsum : ∫ ω, ∫ σ, ∑ j, C j.1 j.2 * G j σ
+        ∂(Measure.pi fun _ : Option (Option R) => μ.tilted (en ω)) ∂P =
+      ∑ j : Fin d × Fin d, C j.1 j.2 * ∫ ω, ∫ σ, G j σ
+        ∂(Measure.pi fun _ : Option (Option R) => μ.tilted (en ω)) ∂P := by
+    have hlin := integral_integral_finset_sum P
+      (fun ω => Measure.pi fun _ : Option (Option R) => μ.tilted (en ω))
+      (Finset.univ : Finset (Fin d × Fin d)) (fun j σ => C j.1 j.2 * G j σ)
+      (fun j _ ω => by
+        have := hprob ω
+        exact integrable_of_measurable_bound ((hGm j).const_mul _) fun σ => by
+          rw [abs_mul]; exact mul_le_mul_of_nonneg_left (hGb j σ) (abs_nonneg _))
+      (fun j _ => by
+        simp_rw [integral_const_mul]
+        exact (integrable_integral_pi_tilted hE hprob (hGm j) (hGb j)).const_mul _)
+    simp_rw [integral_const_mul] at hlin
+    exact hlin
   rw [← hsum]
   refine abs_integral_integral_pi_tilted_le hprob fun σ => ?_
   have hq : ∀ a, |∑ u, ∑ v, C u v * (ξ a u * ξ a v)| ≤ d * ε := fun a => by

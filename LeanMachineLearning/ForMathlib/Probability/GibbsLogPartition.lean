@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.Probability.GibbsIBPLinear
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.BoundedTilted
 
 /-!
 # The log-partition function of a Gibbs measure with a linear Gaussian energy
@@ -55,13 +56,8 @@ theorem abs_log_partition_le [NeZero μ] (hD : Measurable D) (hX : ∀ k, Measur
     |Real.log (∫ a, Real.exp (D a + ∑ k, z k * X k a) ∂μ)| ≤
       |Real.log (μ.real univ)| + (Eb + ∑ k, |z k| * B) := by
   set S : ℝ := Eb + ∑ k, |z k| * B with hS
-  have hbd : ∀ a, |D a + ∑ k, z k * X k a| ≤ S := by
-    intro a
-    refine (abs_add_le _ _).trans ?_
-    have h1 : |∑ k, z k * X k a| ≤ ∑ k, |z k| * B :=
-      (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun k _ => by
-        rw [abs_mul]; exact mul_le_mul_of_nonneg_left (hXb k a) (abs_nonneg _))
-    linarith [hDb a]
+  have hbd : ∀ a, |D a + ∑ k, z k * X k a| ≤ S :=
+    fun a => abs_add_sum_mul_le (D a) z (fun k => X k a) (hDb a) (fun k => hXb k a)
   have hi := integrable_exp_linear (μ := μ) hD hX hDb hXb z
   have hpos : 0 < ∫ a, Real.exp (D a + ∑ k, z k * X k a) ∂μ := integral_exp_pos hi
   have hμ : 0 < μ.real univ := measureReal_univ_pos

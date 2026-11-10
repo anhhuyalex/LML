@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianVector
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.BoundedTilted
 public import Mathlib.Analysis.Calculus.ParametricIntegral
 
 /-!
@@ -60,22 +61,15 @@ theorem hasFDerivAt_integral_mul_exp_linear
   have hS0 : 0 ≤ S := by positivity
   have hexp : ∀ a, ∀ z ∈ Metric.ball z₀ 1, D a + ∑ k, z k * X k a ≤ Eb + S := by
     intro a z hz
-    have h1 : ∑ k, z k * X k a ≤ S := by
-      refine (sum_le_sum fun k _ => ?_)
-      have hzk : |z k| ≤ |z₀ k| + 1 := by
-        have := dist_le_pi_dist z z₀ k
-        rw [Real.dist_eq] at this
-        have h2 : dist z z₀ < 1 := hz
-        have : |z k - z₀ k| < 1 := by
-          have := (dist_le_pi_dist z z₀ k).trans_lt h2
-          simpa [Real.dist_eq] using this
-        calc |z k| = |(z k - z₀ k) + z₀ k| := by ring_nf
-          _ ≤ |z k - z₀ k| + |z₀ k| := abs_add_le _ _
-          _ ≤ |z₀ k| + 1 := by linarith
-      calc z k * X k a ≤ |z k * X k a| := le_abs_self _
-        _ = |z k| * |X k a| := abs_mul _ _
-        _ ≤ (|z₀ k| + 1) * B := mul_le_mul hzk (hXb k a) (abs_nonneg _) (by positivity)
-    linarith [(le_abs_self (D a)).trans (hDb a)]
+    have hzk : ∀ k, |z k| ≤ |z₀ k| + 1 := fun k => by
+      have : |z k - z₀ k| < 1 := (dist_le_pi_dist z z₀ k).trans_lt hz
+      calc |z k| = |(z k - z₀ k) + z₀ k| := by ring_nf
+        _ ≤ |z k - z₀ k| + |z₀ k| := abs_add_le _ _
+        _ ≤ 1 + |z₀ k| := by linarith
+        _ = |z₀ k| + 1 := by ring
+    have hbd := abs_add_sum_mul_le (D a) z (fun k => X k a) (hDb a) (fun k => hXb k a)
+    have hsum : ∑ k, |z k| * B ≤ S := sum_le_sum fun k _ => mul_le_mul_of_nonneg_right (hzk k) hB
+    linarith [le_abs_self (D a + ∑ k, z k * X k a)]
   have hmeasE : ∀ z : K → ℝ, Measurable fun a => D a + ∑ k, z k * X k a := by
     intro z
     exact hD.add (Finset.measurable_sum _ fun k _ => (hX k).const_mul _)
@@ -135,19 +129,11 @@ omit [DecidableEq K] in
 /-- The exponential of the bounded linear energy is integrable. -/
 theorem integrable_exp_linear (hD : Measurable D) (hX : ∀ k, Measurable (X k))
     (hDb : ∀ a, |D a| ≤ Eb) (hXb : ∀ k a, |X k a| ≤ B) (z : K → ℝ) :
-    Integrable (fun a => Real.exp (D a + ∑ k, z k * X k a)) μ := by
-  have hbd0 : ∀ a, D a + ∑ k, z k * X k a ≤ Eb + ∑ k, |z k| * B := by
-    intro a
-    have h1 : ∑ k, z k * X k a ≤ ∑ k, |z k| * B := sum_le_sum fun k _ => by
-      calc z k * X k a ≤ |z k * X k a| := le_abs_self _
-        _ = |z k| * |X k a| := abs_mul _ _
-        _ ≤ |z k| * B := mul_le_mul_of_nonneg_left (hXb k a) (abs_nonneg _)
-    linarith [(le_abs_self (D a)).trans (hDb a)]
-  refine (integrable_const (Real.exp (Eb + ∑ k, |z k| * B))).mono'
-    (hD.add (Finset.measurable_sum _ fun k _ => (hX k).const_mul _)).exp.aestronglyMeasurable
-    (ae_of_all _ fun a => ?_)
-  rw [Real.norm_of_nonneg (Real.exp_pos _).le]
-  exact Real.exp_le_exp.2 (hbd0 a)
+    Integrable (fun a => Real.exp (D a + ∑ k, z k * X k a)) μ :=
+  integrable_exp_of_ae_le
+    (hD.add (Finset.measurable_sum _ fun k _ => (hX k).const_mul _)).aemeasurable
+    (Filter.Eventually.of_forall fun a => (le_abs_self _).trans
+      (abs_add_sum_mul_le (D a) z (fun k => X k a) (hDb a) (fun k => hXb k a)))
 
 /-- **The Gibbs average as a smooth function of the Gaussian parameters.** For `μ ≠ 0` and
 bounded measurable data, `z ↦ ∫ Y e^{E_z} / ∫ e^{E_z}` is Fréchet differentiable and its partial
