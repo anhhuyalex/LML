@@ -6084,6 +6084,21 @@ The functions $\psi_{N+1}$ are convex with derivative $\mathbb E\langle R_{1,2}\
 (Theorem~\ref{thm:sg-tal:prop-197}) gives the gap $>\delta'/2$ for every fixed $\lambda>0$ and large $N$; apply Theorem~\ref{thm:sg-tal:convex-kink} with $c=\delta'/2$.
 \end{proof}
 
+\begin{theorem}[Subsequential limits of the coupled free energy have a corner]\label{thm:sg-tal:coupled-subsequence}
+\lean{SpinGlasses.sk_coupled_subsequential_limit_not_differentiableAt, SpinGlasses.lipschitzWith_skCoupledFreeEnergy, SpinGlasses.abs_skCoupledOverlapMean_le, exists_subseq_tendsto_of_lipschitz}
+\leanok
+\uses{thm:sg-tal:convex-kink, thm:sg-tal:prop-197, thm:sg-tal:coupled-calculus}
+\talsource{Section~1.9, the discussion after Theorem~1.9.6}
+Under the hypotheses of Theorem~\ref{thm:sg-tal:thm-196}, but without assuming that $\lim_N\psi_N(\lambda)$ exists, let $r>0$.
+There are a strictly increasing sequence $N_k$ and a function $\psi$ such that $\psi_{N_k+1}(\lambda)\to\psi(\lambda)$ for every $\lambda\in[-r,r]$,
+and every such $\psi$ is not differentiable at $0$.
+\end{theorem}
+\begin{proof}
+\leanok
+Each $\psi_M$ is convex, $\psi_M(0)=0$ and $\psi_M'(\lambda)=\mathbb E\langle R_{1,2}\rangle_\lambda\in[-1,1]$, so the $\psi_M$ are $1$-Lipschitz.
+The Arzela--Ascoli theorem on $C([-r,r])$ gives a subsequence that converges (uniformly) on $[-r,r]$. Along it, Theorem~\ref{thm:sg-tal:convex-kink} applies with $c=\delta'/2$, exactly as in the proof of Theorem~\ref{thm:sg-tal:thm-196}.
+\end{proof}
+
 \begin{remark}[Deviations and the open items of Section~1.9]
 \label{rem:sg-tal:dev-19}
 \begin{itemize}
@@ -9495,10 +9510,448 @@ At fixed $g$, $\frac{d}{d\beta}\log Z_N(\beta,g)=\langle E_N(1,g,\sigma)\rangle_
 No disorder-averaged differentiation or pressure limit is claimed here.
 \end{lemma}
 
+\begin{lemma}[Gaussian integration by parts for a Gibbs average with a linear Gaussian energy]\label{lem:sg-tal:gibbs-ibp-linear}
+\lean{MeasureTheory.hasFDerivAt_integral_mul_exp_linear, MeasureTheory.hasFDerivAt_gibbs_ratio_linear, MeasureTheory.abs_gibbs_ratio_le, MeasureTheory.integral_mul_gibbs_ratio_eq_sum, MeasureTheory.integrable_exp_linear, MeasureTheory.hasDerivAt_gibbs_ratio_path, MeasureTheory.hasDerivAt_integral_gibbs_ratio_path}
+\leanok
+\uses{lem:sg-tal:bounded-tilt}
+\talsource{Eqs.~(1.376)--(1.377); the Gaussian integration by parts inside the proof of Proposition~1.12.4}
+Let $\mu\ne0$ be a finite measure on a measurable space $\alpha$ (the base law of the spins; it may be continuous or singular). Let $K$ be finite, and $D$, $X_k$ ($k\in K$), $Y$ bounded measurable functions on $\alpha$, with $|X_k|\le B$ and $|Y|\le M$.
+For $z\in\mathbb R^K$ put $\langle Y\rangle_z=\int Y e^{D+\sum_k z_kX_k}\,d\mu\big/\int e^{D+\sum_k z_kX_k}\,d\mu$. Then $z\mapsto\langle Y\rangle_z$ is Fr\'echet differentiable, $|\langle Y\rangle_z|\le M$, and
+\[
+\partial_{z_l}\langle Y\rangle_z=\langle YX_l\rangle_z-\langle Y\rangle_z\langle X_l\rangle_z .
+\]
+If $Z=(Z_k)_{k\in K}$ is a centered jointly Gaussian vector (its covariance may be singular), then for every $i$
+\[
+\mathbb E\bigl[Z_i\langle Y\rangle_Z\bigr]=\sum_{l}\mathbb E[Z_iZ_l]\;\mathbb E\bigl[\langle YX_l\rangle_Z-\langle Y\rangle_Z\langle X_l\rangle_Z\bigr].
+\]
+\end{lemma}
+\begin{proof}
+\leanok
+Both integrals are Laplace-type integrals of bounded functions. Differentiate them under the integral sign with a constant dominating function on a unit ball of parameters. The quotient rule gives the derivative of the ratio, and the covariance form follows because $\langle Y\rangle$ is bounded by $M$ and its derivative by $2MB$.
+Then the Gaussian integration by parts formula for a function with bounded value and derivatives (Section~\ref{sec:sg:stein}) applies.
+Along a path $t\mapsto z(t)$ of parameters, $\frac{d}{dt}\langle Y\rangle_{z(t)}=\sum_l z_l'(t)\bigl(\langle YX_l\rangle-\langle Y\rangle\langle X_l\rangle\bigr)$, and this can be integrated against a random path (such as $z_k(t)=\sqrt t\,g_k$) when $|z_l'|$ is dominated by an integrable function near $t$; this is the step that gives Eq.~(1.377).
+For $n$ replicas, apply the lemma to the product base law on $\alpha^n$ with the energy summed over replicas; the $(n+1)$-st replica comes from $\langle Y\rangle\langle X_l\rangle=\langle Y X_l(\omega_{n+1})\rangle_{n+1}$.
+\end{proof}
+
+\begin{lemma}[Derivative of an interpolating Gibbs average along a cavity path]\label{lem:sg-tal:gibbs-cavity-path}
+\lean{MeasureTheory.hasDerivAt_integral_gibbs_cavity_path, MeasureTheory.continuous_gibbs_ratio_linear}
+\leanok
+\uses{lem:sg-tal:gibbs-ibp-linear}
+\talsource{Eq.~(1.376), the abstract form of the derivative formula in Proposition~1.12.4}
+Work in the setting of Lemma~\ref{lem:sg-tal:gibbs-ibp-linear}, with bounded measurable features $X_k$ ($k\in K$) and $X'_j$ ($j\in J$), a bounded observable $f$, and $Y_k=\langle fX_k\rangle-\langle f\rangle\langle X_k\rangle$ expressed through the Gibbs average.
+Let $Z$ be a centered jointly Gaussian vector, and $s_k,c_j$ real functions differentiable near $t$ with derivatives bounded near $t$.
+Assume that $s_k'(t)=0$ or $s_k(t)\ne0$ for each $k$.
+Let $\langle\cdot\rangle_r$ be the Gibbs average for the energy $\sum_k s_k(r)Z_kX_k+\sum_j c_j(r)X'_j$.
+Then $r\mapsto\mathbb E\langle f\rangle_r$ is differentiable at $t$, with derivative
+\[
+\sum_{k,l}s_k'(t)s_l(t)\,\mathbb E[Z_kZ_l]\;\mathbb E\bigl[\langle Y_kX_l\rangle_t-\langle Y_k\rangle_t\langle X_l\rangle_t\bigr]
++\sum_j c_j'(t)\,\mathbb E\bigl[\langle fX'_j\rangle_t-\langle f\rangle_t\langle X'_j\rangle_t\bigr].
+\]
+\end{lemma}
+\begin{proof}
+\leanok
+Differentiate along the random path using the path-derivative statement of Lemma~\ref{lem:sg-tal:gibbs-ibp-linear}; the Gaussian parameters are unbounded, so the domination uses an integrable bound of the form $C(1+\sum_k|Z_k|)$.
+The terms with a deterministic parameter $c_j$ are already in the stated form.
+For the Gaussian terms freeze the time at $t$, put $Z^{(t)}_k=s_k(t)Z_k$ (again a centered Gaussian vector, with covariance $s_k(t)s_l(t)\mathbb E[Z_kZ_l]$) and absorb the deterministic energy into the base potential.
+Gaussian integration by parts (Lemma~\ref{lem:sg-tal:gibbs-ibp-linear}) applied to $\langle Y_k\rangle$ gives $\mathbb E[Z^{(t)}_k\langle Y_k\rangle]$.
+If $s_k'(t)=0$ the term vanishes; otherwise divide by $s_k(t)\ne0$.
+\end{proof}
+
+\begin{lemma}[Replicas of a Gibbs measure on an arbitrary base space]\label{lem:sg-tal:gibbs-replica-product}
+\lean{MeasureTheory.pi_tilted_eq_tilted_pi, MeasureTheory.integral_pi_tilted_eq_div, MeasureTheory.integral_pi_fresh_replica_mul, MeasureTheory.integral_pi_comp_injective, MeasureTheory.integral_pi_replace_replica, MeasureTheory.measurable_integral_pi_tilted, MeasureTheory.integrable_integral_pi_tilted}
+\leanok
+\talsource{Section~1.12, replicas in the proof of Proposition~1.12.4}
+Let $\mu$ be a finite measure on a measurable space $\alpha$ and $E:\alpha\to\mathbb R$ measurable. The product over a finite index set $\iota$ of the Gibbs measures $\mu_E=e^{E}\mu/\int e^{E}d\mu$ is the Gibbs measure of the product law $\mu^{\iota}$ for the energy $\sum_{i}E(\sigma_i)$, so the $\iota$-replica Gibbs average of $Y$ is $\int Y e^{\sum_iE(\sigma_i)}d\mu^{\iota}\big/\int e^{\sum_iE(\sigma_i)}d\mu^{\iota}$.
+For a probability measure $\nu$ and i.i.d. replicas, a function of the replicas $e(i)$ ($e$ injective) times a function of one further replica $r$ has the product of the two averages; a function of the replicas $e(i)$ has the same average whether the family is indexed by $I$ or by a larger index set; and in a product $F(\sigma_{e(i)})K(\sigma_i,\sigma_k)$ with $F$ independent of $\sigma_k$ the replica $k$ may be replaced by a fresh replica.
+If the energy $E(\omega,a)$ is jointly measurable in a random environment $\omega$, the Gibbs average of a bounded measurable function of $\iota$ replicas is a measurable (and, if each $\mu_{E(\omega)}$ is a probability measure, integrable) function of $\omega$.
+\end{lemma}
+\begin{proof}
+\leanok
+Both sides of the first identity agree on measurable rectangles, because the integral of a product of one-coordinate functions against a finite product measure is the product of the integrals (Fubini). The other statements follow by integrating out the coordinates that are not used, using that the coordinate projections of a product probability measure are measure preserving.
+Measurability in $\omega$ follows from the ratio formula and measurability of parametric integrals.
+\end{proof}
+
+\begin{lemma}[Replica identities behind Eq.~(1.376)]\label{lem:sg-tal:replica-pattern}
+\lean{MeasureTheory.integral_replica_cov_identity', MeasureTheory.integral_replica_combination_eq_cov, MeasureTheory.integral_replica_swap_fresh, MeasureTheory.integral_replica_pattern, SpinGlasses.sum_replica_combination_mul}
+\leanok
+\uses{lem:sg-tal:gibbs-replica-product}
+\talsource{Section~1.12, the passage from~(1.377) to~(1.376)}
+Let $R$ be a finite set of $n$ replicas and write the replicas $n+1$, $n+2$ as two further indices.
+For a probability measure $\nu$, a bounded function $F$ of the replicas in $R$, and a bounded function $h$, the average of $F\,(\sum_{a\in R}h(\sigma^a)-n\,h(\sigma^{n+1}))$ over $n+2$ replicas equals the covariance of $F$ with $\sum_{\ell\le n+2}h(\sigma^\ell)$, and this covariance is the average of $F$ times $\sum_{\ell\le n+1}h(\sigma^\ell)-(n+1)h(\sigma^{n+2})$.
+If $H$ is a symmetric bounded kernel and $C$ a bounded function, then the average of $F$ times the bilinear combination of $H$ over replica pairs, minus the combination of $C$ over single replicas, is
+\[
+\sum_{a,b\in R}\langle F\,(H(\sigma^a,\sigma^b)-\mathbf 1_{a=b}C(\sigma^a))\rangle-2n\sum_{a}\langle FH(\sigma^a,\sigma^{n+1})\rangle-n\langle F\,(H(\sigma^{n+1},\sigma^{n+1})-C(\sigma^{n+1}))\rangle+n(n+1)\langle FH(\sigma^{n+1},\sigma^{n+2})\rangle .
+\]
+\end{lemma}
+\begin{proof}
+\leanok
+Expand the sums over the replicas $\mathrm{some}\,o$ (the last two replicas are the extra indices). Terms with the fresh replica $n+2$ factor by the previous lemma. The kernel is symmetric, and $F$ does not depend on the replicas $n+1$, $n+2$, so averages with $\sigma^{n+2}$ may be replaced by averages with $\sigma^{n+1}$ and $H(\sigma^{n+1},\sigma^a)$ by $H(\sigma^a,\sigma^{n+1})$. Collecting terms gives the stated coefficients, for instance $1-n-(n+1)=-2n$ for the cross terms.
+\end{proof}
+
+\begin{theorem}[Derivative of a replica Gibbs average along a cavity path]\label{thm:sg-tal:gibbs-replica-cavity}
+\lean{MeasureTheory.hasDerivAt_integral_gibbs_replica_cavity_path}
+\leanok
+\uses{lem:sg-tal:gibbs-cavity-path, lem:sg-tal:gibbs-replica-product}
+\talsource{Eqs.~(1.376)--(1.377), before the overlap algebra}
+Let $F$ be a bounded measurable function of $n$ replicas, with the setting of Lemma~\ref{lem:sg-tal:gibbs-cavity-path}. Then $r\mapsto\mathbb E\langle F\rangle_r$ (the $n$-replica Gibbs average for the energy $\sum_ks_k(r)Z_kX_k+\sum_jc_j(r)X'_j$) is differentiable at $t$, with derivative
+\[
+\sum_{k,l}s_k'(t)s_l(t)\,\mathbb E[Z_kZ_l]\;\mathbb E\Bigl\langle F\,\bigl(\textstyle\sum_{a\le n}X_k(\sigma^a)-nX_k(\sigma^{n+1})\bigr)\bigl(\sum_{\ell\le n+1}X_l(\sigma^\ell)-(n+1)X_l(\sigma^{n+2})\bigr)\Bigr\rangle_{n+2}
+\]
+plus the corresponding term $\sum_jc_j'(t)\,\mathbb E\langle F\,(\sum_{\ell\le n+1}X'_j(\sigma^\ell)-(n+1)X'_j(\sigma^{n+2}))\rangle_{n+2}$.
+\end{theorem}
+\begin{proof}
+\leanok
+Apply Lemma~\ref{lem:sg-tal:gibbs-cavity-path} to the base space of $n+2$ replicas, with the product base law and every energy and feature summed over the replicas, to the observable $F(\sigma^1,\dots,\sigma^n)$ and to $Y_k=F\,(\sum_{a\le n}X_k(\sigma^a)-nX_k(\sigma^{n+1}))$; the Gibbs average of $Y_k$ is $\langle FX_k\rangle-\langle F\rangle\langle X_k\rangle$ because the replica $n+1$ is fresh. Then rewrite $\langle Y_kX_l\rangle-\langle Y_k\rangle\langle X_l\rangle$ with the replica covariance identity.
+\end{proof}
+
+\begin{theorem}[Proposition~1.12.4: the derivative of the cavity path for vector spins]\label{thm:sg-tal:vector-cavity}
+\lean{SpinGlasses.skVectorCavityEnergy, SpinGlasses.skVectorCavityOverlap, SpinGlasses.skVectorCavityAvg, SpinGlasses.hasDerivAt_skVectorCavity, SpinGlasses.skVectorCavity_fixed}
+\leanok
+\uses{thm:sg-tal:gibbs-replica-cavity, lem:sg-tal:replica-pattern}
+\talsource{Proposition~1.12.4, Eqs.~(1.375)--(1.376)}
+Let $\mu$ be a probability measure on $\alpha$ and $\xi:\alpha\to\mathbb R^D$ measurable with $\sum_u\xi_u^2\le r$ pointwise; the spin of site $i$ is $\xi(\sigma_i)$. Let $q$ be a symmetric matrix, $\rho$ any matrix, $\beta\in\mathbb R$, and let $(g_{ij})_{i<j<N}$, $(g_{iN})_{i<N}$, $(Y_u)_{u\le D}$ be centered jointly Gaussian, with the couplings $g_{ij}$, $g_{iN}$ of identity covariance, $\mathbb E Y_uY_v=\beta^2q_{uv}$, and $Y$ uncorrelated with the couplings (no non-degeneracy of $q$ is assumed). For $0<t<1$ put, for $N+1$ spins (the last one is the cavity spin $N$ and the normalization is $(N+1)^{-1/2}$),
+\[
+-H_{N,t}(\sigma)=\frac{\beta}{\sqrt{N+1}}\sum_{u}\sum_{i<j<N}g_{ij}\sigma_{i,u}\sigma_{j,u}+\sum_u\sigma_{N,u}\bigl(\sqrt t\,g_u(\boldsymbol\rho_u)+\sqrt{1-t}\,Y_u\bigr)+\frac{\beta^2}2(1-t)\sum_{u,v}\sigma_{N,u}\sigma_{N,v}(\rho_{uv}-q_{uv}),
+\]
+with $g_u(\boldsymbol\rho_u)=\frac\beta{\sqrt{N+1}}\sum_{i<N}g_{iN}\sigma_{i,u}$. For a bounded measurable function $f$ of $n$ configurations, $\nu_t(f)=\mathbb E\langle f\rangle_t$ and $R^{-,u,v}_{\ell,\ell'}=(N+1)^{-1}\sum_{i<N}\sigma^{\ell}_{i,u}\sigma^{\ell'}_{i,v}$, $\varepsilon^\ell_u=\sigma^\ell_{N,u}$, $q_{uv}(\ell,\ell')=q_{uv}$ for $\ell\ne\ell'$ and $q_{uv}(\ell,\ell)=\rho_{uv}$,
+\begin{align*}
+\nu_t'(f)={}&\frac{\beta^2}2\sum_{\ell,\ell'\le n,\;u,v}\nu_t\bigl(f\varepsilon^\ell_u\varepsilon^{\ell'}_v(R^{-,u,v}_{\ell,\ell'}-q_{uv}(\ell,\ell'))\bigr)-n\beta^2\sum_{\ell\le n,\;u,v}\nu_t\bigl(f\varepsilon^\ell_u\varepsilon^{n+1}_v(R^{-,u,v}_{\ell,n+1}-q_{uv})\bigr)\\
+&-\frac{n\beta^2}2\sum_{u,v}\nu_t\bigl(f\varepsilon^{n+1}_u\varepsilon^{n+1}_v(R^{-,u,v}_{n+1,n+1}-\rho_{uv})\bigr)+\frac{n(n+1)}2\beta^2\sum_{u,v}\nu_t\bigl(f\varepsilon^{n+1}_u\varepsilon^{n+2}_v(R^{-,u,v}_{n+1,n+2}-q_{uv})\bigr).
+\end{align*}
+\end{theorem}
+\begin{proof}
+\leanok
+Write $-H_{N,t}$ as $\sum_ks_k(t)Z_kX_k+(1-t)X'$ with the Gaussian family $Z=(g_{ij},g_{iN},Y_u)$, $s=(1,\sqrt t,\sqrt{1-t})$ and the features of the three groups together with the compensation $X'$; the pair features of the new couplings multiply to $\beta^2\sum_{u,v}\varepsilon_u\varepsilon_vR^{-,u,v}$ because the normalization $(N+1)^{-1/2}$ squares to the factor in $R^-$. The weights $s_k'(t)s_l(t)\mathbb E[Z_kZ_l]$ equal $\tfrac12$ on the diagonal of the new couplings, $-\tfrac{\beta^2}2q_{uv}$ for the field and $0$ otherwise (the old couplings do not move), so the covariance kernel is $\tfrac{\beta^2}2\sum_{u,v}\varepsilon_u\varepsilon_v(R^-_{uv}-q_{uv})$. Theorem~\ref{thm:sg-tal:gibbs-replica-cavity} and Lemma~\ref{lem:sg-tal:replica-pattern} give the four groups; on the diagonal $\ell=\ell'$ the compensation turns $q$ into $\rho$. This is a restatement of the Gaussian integration by parts and the extra-replica reduction of the book, carried out for an arbitrary spin law.
+\end{proof}
+
+\begin{theorem}[Corollary~1.12.5: bounds on the derivative of the cavity path]\label{thm:sg-tal:vector-cavity-bounds}
+\lean{SpinGlasses.abs_deriv_skVectorCavity_le, SpinGlasses.abs_deriv_skVectorCavity_le_sqrt, SpinGlasses.abs_sum_spin_overlap_error_le_sqrt, SpinGlasses.abs_sum_spin_overlap_error_le, SpinGlasses.sum_sq_overlap_error_le, SpinGlasses.abs_sum_avg_book_le_sqrt, SpinGlasses.abs_skVectorCavityAvg_mul_le, SpinGlasses.abs_skVectorCavityAvg_le, SpinGlasses.skVectorCavityAvg_sum, SpinGlasses.skVectorCavityAvg_const_mul, SpinGlasses.skVectorCavityAvg_pair_eq, SpinGlasses.skVectorCavityAvg_diag_eq, MeasureTheory.integral_pi_pair_eq, MeasureTheory.integral_pi_diag_eq}
+\leanok
+\uses{thm:sg-tal:vector-cavity, lem:sg-tal:vector-gram, lem:sg-tal:vector-overlap-bound}
+\talsource{Corollary~1.12.5, Eqs.~(1.378)--(1.382)}
+In the setting of Theorem~\ref{thm:sg-tal:vector-cavity} with $D=\{1,\dots,d\}$, $\sum_u\xi_u^2\le d$ pointwise (Eq.~(1.380)), and assume that $q$ and $\rho$ satisfy $\sum_{u,v}q_{uv}^2\le d^2$ and $\sum_{u,v}\rho_{uv}^2\le d^2$ (these follow from the fixed point equations (1.372)--(1.373), see below). Then for $0<t<1$:
+\begin{itemize}
+\item for every number $n$ of replicas, $|\nu_t'(f)|\le 2n(2n+1)\beta^2d^2\,\nu_t(|f|)$ (Eq.~(1.379), with an explicit constant);
+\item for $n=2$,
+\[
+|\nu_t'(f)|\le 8\beta^2d\,\nu_t^{1/2}(f^2)\Bigl(\nu_t\bigl(\textstyle\sum_{u,v}(R^{-,u,v}_{1,1}-\rho_{uv})^2\bigr)^{1/2}+\nu_t\bigl(\textstyle\sum_{u,v}(R^{-,u,v}_{1,2}-q_{uv})^2\bigr)^{1/2}\Bigr)
+\]
+(Eq.~(1.378), with an explicit constant).
+\end{itemize}
+\end{theorem}
+\begin{proof}
+\leanok
+Apply Theorem~\ref{thm:sg-tal:vector-cavity}. For spin vectors $\varepsilon,\varepsilon'$ with $\sum_u\varepsilon_u^2\le d$ and any matrix $E$, $|\sum_{u,v}\varepsilon_u\varepsilon'_vE_{uv}|\le d\,\|E\|_F$ (rank-one contraction, Eq.~(1.381)); with $E=R^{-}_{\ell,\ell'}-q(\ell,\ell')$ one has $\|E\|_F^2\le2\|R^-\|_F^2+2\|q\|_F^2\le4d^2$ by Eq.~(1.382) (Lemmas~\ref{lem:sg-tal:vector-gram} and~\ref{lem:sg-tal:vector-overlap-bound} give the rank-one contraction and the bound $\|R^-\|_F^2\le d^2$ for the cavity overlaps). This gives the pointwise bound $2d^2$ and hence (1.379). For (1.378) apply the Cauchy--Schwarz inequality for $\nu_t$ (proved from positivity and linearity of $\nu_t$ by the discriminant argument). The replica average of the squared error depends only on whether the two replicas coincide, because the replicas are exchangeable and $f$ does not involve them; this identifies each term with the diagonal or the off-diagonal error. Collecting the coefficients of Eq.~(1.376) for $n=2$ gives $2\beta^2$ for the diagonal errors and $8\beta^2$ for the off-diagonal ones.
+\end{proof}
+
+\begin{theorem}[Derivative of the expected log-partition function along a Gaussian interpolation]\label{thm:sg-tal:log-partition-cavity}
+\lean{MeasureTheory.hasFDerivAt_log_partition_linear, MeasureTheory.abs_log_partition_le, MeasureTheory.hasDerivAt_integral_log_partition_path, MeasureTheory.hasDerivAt_integral_log_partition_cavity_path}
+\leanok
+\uses{lem:sg-tal:gibbs-ibp-linear, lem:sg-tal:gibbs-cavity-path}
+\talsource{Proposition~1.3.2 and the computation of Lemma~1.12.6 and Eq.~(1.393)}
+In the setting of Lemma~\ref{lem:sg-tal:gibbs-cavity-path}, the map $z\mapsto\log\int e^{D+\sum_kz_kX_k}d\mu$ is Fr\'echet differentiable with partial derivatives $\langle X_l\rangle_z$, and it is bounded by $|\log\mu(\alpha)|+E_b+B\sum_k|z_k|$. For the energy $D+\sum_ks_k(r)Z_kX_k+\sum_jc_j(r)X'_j$ the map $r\mapsto\mathbb E\log\int e^{\mathrm{energy}}d\mu$ has derivative at $t$
+\[
+\sum_{k,l}s_k'(t)s_l(t)\,\mathbb E[Z_kZ_l]\;\mathbb E\bigl[\langle X_kX_l\rangle-\langle X_k\rangle\langle X_l\rangle\bigr]+\sum_jc_j'(t)\,\mathbb E\langle X'_j\rangle .
+\]
+\end{theorem}
+\begin{proof}
+\leanok
+Differentiate the logarithm of the Laplace integral under the integral sign (the derivative is $\langle X_l\rangle$, bounded by $B$), integrate against the random path with the dominated-convergence lemma, and apply Gaussian integration by parts to $\mathbb E[Z_k\langle X_k\rangle]$ at the frozen time $t$ as in Lemma~\ref{lem:sg-tal:gibbs-cavity-path}.
+\end{proof}
+
+\begin{theorem}[Eq.~(1.393): the $\beta$-derivative of the free energy]\label{thm:sg-tal:vector-free-energy-beta}
+\lean{SpinGlasses.skVectorGaussFreeEnergy, SpinGlasses.hasDerivAt_skVectorGaussFreeEnergy}
+\leanok
+\uses{thm:sg-tal:log-partition-cavity}
+\talsource{Eq.~(1.393)}
+Let $\mu$ be a probability measure with bounded measurable coordinates $\xi$, $X$ a centered Gaussian vector of covariance $q$, and $\mathcal E(x)=\exp\bigl(\beta\sum_ux_uX_u+\frac{\beta^2}2\sum_{u,v}x_ux_v(\rho_{uv}-q_{uv})\bigr)$ (Eq.~(1.371) with $Y=\beta X$). If $\beta\ne0$ and $q,\rho$ satisfy $q_{uv}=\mathbb E\bigl(\langle\xi_u\rangle\langle\xi_v\rangle\bigr)$ and $\rho_{uv}=\mathbb E\langle\xi_u\xi_v\rangle$ for the Gibbs average of $\mathcal E$ (Eqs.~(1.372)--(1.373)), then $\partial_\beta\,\mathbb E\log\int\mathcal E\,d\mu=\beta\sum_{u,v}(\rho_{uv}^2-q_{uv}^2)$ with $q,\rho$ held fixed.
+\end{theorem}
+\begin{proof}
+\leanok
+Apply Theorem~\ref{thm:sg-tal:log-partition-cavity} with $s_k(r)=r$, $c(r)=r^2/2$: the Gaussian part gives $\beta\sum_{u,v}q_{uv}\,\mathbb E(\langle\xi_u\xi_v\rangle-\langle\xi_u\rangle\langle\xi_v\rangle)=\beta\sum q_{uv}(\rho_{uv}-q_{uv})$ by (1.372)--(1.373), and the compensation gives $\beta\sum_{u,v}(\rho_{uv}-q_{uv})\mathbb E\langle\xi_u\xi_v\rangle=\beta\sum(\rho_{uv}-q_{uv})\rho_{uv}$. Add.
+\end{proof}
+
+\begin{theorem}[Lemma~1.12.6: stationarity of the replica-symmetric functional]\label{thm:sg-tal:vector-stationarity}
+\lean{SpinGlasses.skVectorGibbs, SpinGlasses.skVectorSegmentExponent, SpinGlasses.gibbs_ratio_sum_sum, SpinGlasses.hasDerivAt_skVectorGaussFreeEnergy_rho, SpinGlasses.hasDerivAt_skVectorSegment, SpinGlasses.hasDerivAt_skVectorPressure_rho, SpinGlasses.hasDerivAt_skVectorPressure_segment, SpinGlasses.hasDerivAt_skVectorPressure_segment_eq_zero}
+\leanok
+\uses{thm:sg-tal:log-partition-cavity, thm:sg-tal:vector-free-energy-beta}
+\talsource{Lemma~1.12.6, Eqs.~(1.386)--(1.391)}
+Let $\Phi=-\frac{\beta^2}4\sum_{u,v}(\rho_{uv}^2-q_{uv}^2)+\mathbb E\log\int\mathcal E\,d\mu$ (Eq.~(1.387)). In every matrix direction $E$ the derivative of $\Phi$ in $\rho$ is $\frac{\beta^2}2\sum_{u,v}E_{uv}(\mathbb E\langle\xi_u\xi_v\rangle-\rho_{uv})$, so it vanishes exactly when Eq.~(1.373) holds. Along a segment $q(s)=sq_1+(1-s)q_0$ between two covariance matrices (realized by independent centered Gaussian vectors $Z_1,Z_0$ and the field $\sqrt sZ_1+\sqrt{1-s}Z_0$), for $0<t<1$ and $\beta\ne0$ the derivative of $\Phi$ is $\frac{\beta^2}2\sum_{u,v}(q_1-q_0)_{uv}\bigl(q(t)_{uv}-\mathbb E\langle\xi_u\rangle\langle\xi_v\rangle\bigr)$, which vanishes when $q(t)$ satisfies Eq.~(1.372). Admissible directions at singular covariance matrices are thus described by segments to other covariance matrices, and no extension of $\Phi$ off the positive semidefinite cone is used.
+\end{theorem}
+\begin{proof}
+\leanok
+The $\rho$ statement is Theorem~\ref{thm:sg-tal:log-partition-cavity} with $s_k$ constant and $c(r)=\frac{\beta^2}2r$ added to the polynomial term. For the segment take the Gaussian family $(Z_1,Z_0)$ with $s=(\beta\sqrt r,\beta\sqrt{1-r})$ and $c(r)=-\frac{\beta^2}2r$ for the compensation term $\sum_{u,v}\xi_u\xi_v(q_1-q_0)_{uv}$. The weights are $s_k'(t)s_l(t)\mathbb E[Z_kZ_l]=\pm\frac{\beta^2}2(q_{1}\text{ or }q_0)_{uv}$ on the two diagonal blocks and $0$ across (independence), and the compensation derivative cancels the $\langle\xi_u\xi_v\rangle$ part, leaving $-\frac{\beta^2}2\sum(q_1-q_0)_{uv}\mathbb E\langle\xi_u\rangle\langle\xi_v\rangle$; the derivative of $\frac{\beta^2}4\sum q(s)_{uv}^2$ is $\frac{\beta^2}2\sum q(t)_{uv}(q_1-q_0)_{uv}$.
+\end{proof}
+
+\begin{theorem}[Frobenius bounds for the fixed point, Eq.~(1.382)]\label{thm:sg-tal:vector-fixed-point-bounds}
+\lean{SpinGlasses.sum_sq_integral_le, SpinGlasses.skVectorGibbs_eq_integral_tilted, SpinGlasses.sum_sq_skVectorGibbs_le, SpinGlasses.measurable_skVectorGibbs, SpinGlasses.abs_skVectorGibbs_le, SpinGlasses.sum_sq_fixedPoint_le, SpinGlasses.skVectorFieldExponent, SpinGlasses.skVectorFieldExponent_integrable, SpinGlasses.sum_sq_fixedPoint_field_le}
+\leanok
+\uses{thm:sg-tal:vector-cavity-bounds}
+\talsource{End of the proof of Corollary~1.12.5, Eq.~(1.382)}
+Let $\mu$ be a probability measure with $\sum_{u\le d}\xi_u^2\le d$ and let $Y$ be a random field. Put $\mathcal E(x)=\exp\bigl(\sum_ux_uY_u+\frac{\beta^2}2\sum_{u,v}x_ux_v(\rho_{uv}-q_{uv})\bigr)$. If $q_{uv}=\mathbb E\bigl(\langle\xi_u\rangle\langle\xi_v\rangle\bigr)$ and $\rho_{uv}=\mathbb E\langle\xi_u\xi_v\rangle$ (Eqs.~(1.372)--(1.373)) then $\sum_{u,v}q_{uv}^2\le d^2$ and $\sum_{u,v}\rho_{uv}^2\le d^2$. In particular the hypotheses on $q,\rho$ of Corollary~1.12.5 hold at the fixed point.
+\end{theorem}
+\begin{proof}
+\leanok
+Jensen's inequality for the Gibbs measure gives $\sum_u\langle\xi_u\rangle^2\le\langle\sum_u\xi_u^2\rangle\le d$ and $\sum_{u,v}\langle\xi_u\xi_v\rangle^2\le\langle(\sum_u\xi_u^2)^2\rangle\le d^2$. Jensen's inequality for $\mathbb E$ gives $\sum_{u,v}(\mathbb E\langle\xi_u\rangle\langle\xi_v\rangle)^2\le\mathbb E(\sum_u\langle\xi_u\rangle^2)^2\le d^2$, and similarly for $\rho$.
+\end{proof}
+
+\begin{theorem}[Comparison along the cavity path]\label{thm:sg-tal:vector-comparison}
+\lean{MeasureTheory.continuous_integral_gibbs_replica_path, SpinGlasses.SKVectorCavityNoise, SpinGlasses.continuous_skVectorCavity, SpinGlasses.skVectorCavityAvg_old, SpinGlasses.skVectorCavity_deriv_bound, SpinGlasses.skVectorCavity_comparison, SpinGlasses.skVectorCavity_endpoint}
+\leanok
+\uses{thm:sg-tal:vector-cavity, thm:sg-tal:vector-cavity-bounds}
+\talsource{Proof of Theorem~1.12.1: the relations $\nu(f)\le\nu_0(f)+\sup_t|\nu_t'(f)|$ and $\nu_t(f)\le L\nu_1(f)$}
+In the setting of Theorem~\ref{thm:sg-tal:vector-cavity-bounds} (with $\|q\|_F,\|\rho\|_F\le d$), let $f\ge0$ be a bounded measurable function of $n$ replicas and $c=2n(2n+1)\beta^2d^2$. Then $t\mapsto\nu_t(f)$ is continuous on $[0,1]$ (indeed on $\mathbb R$), differentiable on $(0,1)$ with $|\nu_t'(f)|\le c\,\nu_t(f)$, and
+\[
+\nu_t(f)\le e^{c(1-t)}\nu_1(f)\quad(0\le t\le1),\qquad \nu_1(f)\le\nu_0(f)+c\,e^{c}\,\nu_1(f).
+\]
+\end{theorem}
+\begin{proof}
+\leanok
+Continuity: the Gibbs average is a continuous function of the parameters and the coefficients $1,\sqrt t,\sqrt{1-t},1-t$ are continuous; dominated convergence in $\omega$. Differentiability and the bound are Proposition~1.12.4 and Eq.~(1.379), using $\nu_t(|f|)=\nu_t(f)$. Then $e^{ct}\nu_t(f)$ has nonnegative derivative, hence is monotone on $[0,1]$, which gives the comparison; the endpoint inequality is the mean value theorem combined with the comparison.
+\end{proof}
+
+\begin{lemma}[A Gibbs measure whose energy splits over the last site is a product]\label{lem:sg-tal:gibbs-product-split}
+\lean{MeasureTheory.measurePreserving_piFinSuccLast, MeasureTheory.integral_pi_succ_last, MeasureTheory.integral_tilted_pi_succ_last}
+\leanok
+\talsource{Proof of Theorem~1.12.1: the decoupling of the last spin at $t=0$ in Eq.~(1.375)}
+Let $\mu$ be a probability measure, $E_1$ a bounded measurable function of $N$ sites and $E_2$ a bounded measurable function of one site. For the i.i.d. law on $N+1$ sites tilted by $E_1(\sigma_1,\dots,\sigma_N)+E_2(\sigma_{N+1})$ and a bounded measurable $\Phi$,
+\[
+\int\Phi(\sigma_{\le N},\sigma_{N+1})\,d\mu^{\otimes(N+1)}_{E_1+E_2}=\int\!\!\int\Phi(\tau,a)\,d\mu_{E_2}(a)\,d\mu^{\otimes N}_{E_1}(\tau),
+\]
+i.e. the Gibbs measure is the product of the Gibbs measures of the two parts.
+\end{lemma}
+\begin{proof}
+\leanok
+Transport along the measure preserving equivalence splitting off the last site, write the tilted measure through its density $e^{E_1+E_2}/Z$, factor the density and the partition function $Z=Z_1Z_2$ (product of integrals over a product measure) and use Fubini.
+\end{proof}
+
+\begin{theorem}[The decoupled system at $t=0$]\label{thm:sg-tal:vector-decoupled}
+\lean{MeasureTheory.integrable_exp_of_abs_le, MeasureTheory.map_tilted_pi_succ_last, MeasureTheory.integral_pi_tilted_split, SpinGlasses.skVectorOldEnergy, SpinGlasses.skVectorCavityEnergy_zero, SpinGlasses.abs_spin_mul_le, SpinGlasses.abs_skVectorOldEnergy_le, SpinGlasses.abs_skVectorFieldExponent_le, SpinGlasses.skVector_nu0_decoupled}
+\leanok
+\uses{lem:sg-tal:gibbs-product-split, thm:sg-tal:vector-fixed-point-bounds}
+\talsource{Proof of Theorem~1.12.1: $\nu_0((\varepsilon^1_u\varepsilon^2_v-q_{u,v})f^-)=0$ by Eq.~(1.372)}
+At $t=0$ the Hamiltonian (1.375) is $E_{\mathrm{old}}(\sigma_1,\dots,\sigma_N)+E_{\mathrm{new}}(\sigma_{N+1})$, with $E_{\mathrm{new}}(x)=\sum_ux_uY_u+\frac{\beta^2}2\sum_{u,v}x_ux_v(\rho_{uv}-q_{uv})$, so the Gibbs measure of $n$ replicas is the product of the replica Gibbs measures of the two parts. If $Y$ is independent of the old couplings and $q$ satisfies (1.372), then for every bounded measurable function $h$ of the first $N$ sites of two replicas,
+\[
+\nu_0\bigl((\varepsilon^1_u\varepsilon^2_v-q_{uv})\,h\bigr)=0 .
+\]
+\end{theorem}
+\begin{proof}
+\leanok
+By Lemma~\ref{lem:sg-tal:gibbs-product-split} (for replicas) the expectation over the Gibbs measure factorizes into $\bigl(\int h\,d\langle\cdot\rangle_{\mathrm{old}}\bigr)\bigl(\langle\xi_u\rangle\langle\xi_v\rangle-q_{uv}\bigr)$, a function of the old couplings times a function of $Y$. By independence the expectation is the product of the two expectations, and $\mathbb E(\langle\xi_u\rangle\langle\xi_v\rangle-q_{uv})=0$ by (1.372).
+\end{proof}
+
+\begin{theorem}[$\nu_0(f)=O(1/N)$]\label{thm:sg-tal:vector-overlap-bound}
+\lean{SpinGlasses.abs_integral_add_const_mul_le, SpinGlasses.skVector_nu0_overlap_bound}
+\leanok
+\uses{thm:sg-tal:vector-decoupled}
+\talsource{Proof of Theorem~1.12.1: the bound $|\nu_0(f)|\le K(d)/N$}
+In the setting of Theorem~\ref{thm:sg-tal:vector-decoupled}, assume $|q_{uv}|\le d$ and let $R^{u,v}_{1,2}=(N+1)^{-1}\sum_{i\le N}\xi(\sigma^1_i)_u\,\xi(\sigma^2_i)_v$ be the overlap of the full system. Then at $t=0$
+\[
+\Bigl|\nu_0\bigl((\varepsilon^1_u\varepsilon^2_v-q_{uv})(R^{u,v}_{1,2}-q_{uv})\bigr)\Bigr|\le\frac{2d^2}{N+1}.
+\]
+\end{theorem}
+\begin{proof}
+\leanok
+Split $R^{u,v}_{1,2}=R^{-,u,v}_{1,2}+(N+1)^{-1}\varepsilon^1_u\varepsilon^2_v$. The first part is a bounded function of the first $N$ sites, so its contribution vanishes by Theorem~\ref{thm:sg-tal:vector-decoupled}. In the second part all factors are bounded by $d$ or $2d$, which gives the bound.
+\end{proof}
+
+\begin{lemma}[Symmetry between sites]\label{lem:sg-tal:vector-site-symmetry}
+\lean{MeasureTheory.measurePreserving_replica_perm, MeasureTheory.integral_pi_tilted_comp_perm, SpinGlasses.skVectorEnergy_comp_pairPerm, SpinGlasses.skVectorCavityEnergy_one, SpinGlasses.integral_skVector_replica_perm, SpinGlasses.skVector_overlap_sq_eq_last_site}
+\leanok
+\talsource{Proof of Theorem~1.12.1: Eq.~(1.383), symmetry between sites}
+At $t=1$ the cavity Hamiltonian (1.375) is the vector SK energy of the $N+1$ site system whose couplings are $g$ (old pairs) and $g'$ (pairs with the last site). Relabelling the sites of all replicas by a permutation $\pi$ replaces the couplings $g$ by $g\circ(\mathrm{pairPerm}\,\pi)^{-1}$. If the law of the couplings is invariant under this relabelling, then permuting the sites of the replicas does not change $\mathbb E\langle\Theta\rangle$. Consequently, for $H=(N+1)^{-1}\sum_{i\le N}e_i$ with $e_i=\xi(\sigma^a_i)_u\xi(\sigma^b_i)_v-T$,
+\[
+\nu(H^2)=\nu(e_{N+1}H).
+\]
+\end{lemma}
+\begin{proof}
+\leanok
+Transport the product measure along the measure preserving relabelling (a change of variables) to move the relabelling onto the energy. Then average over the disorder and use invariance of its law. For $e_i$ swap the sites $i$ and $N+1$; $H$ is invariant, so $\nu(He_i)=\nu(He_{N+1})$, and $H^2=H\cdot(N+1)^{-1}\sum_ie_i$.
+\end{proof}
+
+\begin{theorem}[The smart-path step]\label{thm:sg-tal:vector-overlap-step}
+\lean{SpinGlasses.sqrt_step_bound, SpinGlasses.overlap_error_data, SpinGlasses.skVectorCavity_comparison_two, SpinGlasses.skVectorCavityAvg_sq_le, SpinGlasses.skVector_nu1_le_nu0_add}
+\leanok
+\uses{thm:sg-tal:vector-cavity-bounds, thm:sg-tal:vector-comparison}
+\talsource{Proof of Theorem~1.12.1: $\nu(f)\le\nu_0(f)+\sup_t|\nu_t'(f)|$ combined with Eq.~(1.378)}
+Let $F$ be a bounded function of two replicas with $F^2\le4d^2W$ for a bounded $W\ge0$. In the setting of Corollary~\ref{thm:sg-tal:vector-cavity-bounds},
+\[
+\nu_1(F)\le\nu_0(F)+16\beta^2d^2e^{20\beta^2d^2}\,\nu_1(W)^{1/2}\bigl(\nu_1(X_B)^{1/2}+\nu_1(X_A)^{1/2}\bigr),
+\]
+where $X_A=\sum_{u,v}(R^{-,u,v}_{1,2}-q_{uv})^2$ and $X_B=\sum_{u,v}(R^{-,u,v}_{1,1}-\rho_{uv})^2$.
+\end{theorem}
+\begin{proof}
+\leanok
+By the mean value theorem there is $c\in(0,1)$ with $\nu_1(F)-\nu_0(F)=\nu_c'(F)$ (this needs only continuity on $[0,1]$ and differentiability on $(0,1)$, valid for functions of either sign). Eq.~(1.378) bounds $|\nu_c'(F)|$ by square roots of $\nu_c(F^2)$, $\nu_c(X_A)$, $\nu_c(X_B)$; the comparison $\nu_c\le e^{20\beta^2d^2}\nu_1$ for nonnegative functions and $F^2\le4d^2W$ give the claim.
+\end{proof}
+
+\begin{theorem}[Concentration of the overlaps, Theorem~1.12.1]\label{thm:sg-tal:vector-overlap-concentration}
+\lean{SpinGlasses.skVectorOverlapDev, SpinGlasses.skVectorLastDev, SpinGlasses.sum_sq_skVectorLastDev_le, SpinGlasses.sq_sum_lastDev_mul_overlapDev_le, SpinGlasses.abs_entry_le_of_sum_sq_le, SpinGlasses.skVectorOverlapDev_eq, SpinGlasses.sum_sq_cavityOverlap_dev_le, SpinGlasses.sqrt_mul_sqrt_le_half_add, SpinGlasses.closing_algebra, SpinGlasses.skVectorCavityAvg_one_eq, SpinGlasses.skVectorCavityAvg_one_sum_symm, SpinGlasses.abs_skVectorCavityAvg_zero_sum_le, SpinGlasses.skVectorCavityAvg_le_two_mul_add, SpinGlasses.skVector_side_ineq, SpinGlasses.map_comp_pairPerm_eq_of_iid, SpinGlasses.skVector_theorem_1_12_1}
+\leanok
+\uses{thm:sg-tal:vector-overlap-step, lem:sg-tal:vector-site-symmetry, thm:sg-tal:vector-overlap-bound, thm:sg-tal:vector-decoupled, thm:sg-tal:vector-fixed-point-bounds}
+\talsource{Theorem~1.12.1, Eqs.~(1.368), (1.369) and their proof}
+Let $(q_{uv})$, $(\rho_{uv})$ satisfy (1.372)--(1.373) for a Gaussian field $Y$ of covariance $\beta^2q$, independent of the couplings, and assume $\beta^2d^2\le1/200$ and $\sum_u\xi(a)_u^2\le d$ on the support of the spin law. For the vector SK model with $N+1$ sites and Gaussian couplings whose law is invariant under relabelling the sites, put $R^{u,v}_{1,2}=(N+1)^{-1}\sum_{i\le N+1}\xi(\sigma^1_i)_u\xi(\sigma^2_i)_v$ and $R^{u,v}_{1,1}$ likewise. Then
+\[
+\nu\Bigl(\sum_{u,v}(R^{u,v}_{1,2}-q_{uv})^2\Bigr)+\nu\Bigl(\sum_{u,v}(R^{u,v}_{1,1}-\rho_{uv})^2\Bigr)\le\frac{8d^4+2d^2}{N+1}.
+\]
+\end{theorem}
+\begin{proof}
+\leanok
+Let $A,B$ be the two terms and $f_A=\sum_{u,v}(\varepsilon^1_u\varepsilon^2_v-q_{uv})(R^{u,v}_{1,2}-q_{uv})$. Symmetry between sites gives $A=\nu(f_A)$. By Cauchy--Schwarz $f_A^2\le4d^2\sum_{u,v}(R^{u,v}_{1,2}-q_{uv})^2$, and Theorem~\ref{thm:sg-tal:vector-overlap-bound} gives $|\nu_0(f_A)|\le2d^4/(N+1)$. The smart-path step turns this into $A\le 2d^4/(N+1)+\kappa A^{1/2}(\sqrt{2B+\epsilon}+\sqrt{2A+\epsilon})$ with $\kappa=16\beta^2d^2e^{20\beta^2d^2}\le1/6$ and $\epsilon=2d^2/(N+1)^2$, because replacing $R^-$ by $R$ costs at most $2d^2/(N+1)^2$. The same argument with (1.373) gives the inequality for $B$. Adding and using $\sqrt{x}\sqrt{y}\le(x+y)/2$ gives $A+B\le 8d^4/(N+1)+\epsilon$.
+\end{proof}
+
+\begin{theorem}[Lipschitz estimate along the path (1.386)]\label{thm:sg-tal:vector-path-lipschitz}
+\lean{SpinGlasses.skVectorFieldAvg, SpinGlasses.skVectorPathEnergy_eq, SpinGlasses.skVectorPathEnergy_eq_fieldExponent, SpinGlasses.skVectorPathEnergy_one, SpinGlasses.skVectorPathEnergy_zero, SpinGlasses.abs_replica_combination_le, SpinGlasses.skVectorField_path_hasDerivAt, SpinGlasses.skVectorField_path_lipschitz}
+\leanok
+\uses{thm:sg-tal:vector-cavity}
+\talsource{Existence of the solution of (1.372)--(1.373): the map $(Q,Q')\mapsto(T,T')$ is a contraction}
+Let $Z^1,Z^2$ be independent centered Gaussian fields with covariances $\beta^2q$, $\beta^2q'$, and $F$ a function of $n$ replicas with $|F|\le M$. Let $\langle F\rangle_{\rho,q,y}$ denote the $n$-replica Gibbs average for the exponent (1.371). If $\sum_{u,v}(\rho_{uv}-\rho'_{uv})^2\le\varepsilon^2$ and $\sum_{u,v}(q_{uv}-q'_{uv})^2\le\varepsilon^2$ (Frobenius distance at most $\varepsilon$) then
+\[
+\Bigl|\mathbb E\langle F\rangle_{\rho,q,Z^1}-\mathbb E\langle F\rangle_{\rho',q',Z^2}\Bigr|\le 2(n+1)^2\beta^2Md\,\varepsilon .
+\]
+\end{theorem}
+\begin{proof}
+\leanok
+Interpolate the field by $\sqrt t Z^1+\sqrt{1-t}Z^2$ and the matrices linearly. The replica derivative theorem gives a derivative equal to $\frac{\beta^2}2\sum_{x,y}(q-q')_{xy}E_{xy}+\sum_{x,y}c'_{xy}E'_{xy}$ (the two Gaussian blocks have the same replica average, so their contributions combine to $q-q'$), the Frobenius-weighted sums of the $E$ are bounded by $4n(n+1)Md\varepsilon$ and $4(n+1)Md\varepsilon$ by Cauchy--Schwarz for the bilinear forms $\sum\Delta_{uv}x_uw_v$ (spins have $\|x\|^2\le d$). The mean value theorem finishes.
+\end{proof}
+
+\begin{theorem}[Frobenius contraction of the fixed-point map]\label{thm:sg-tal:vector-frobenius-contraction}
+\lean{SpinGlasses.sum_sum_sum_comm, SpinGlasses.sum_bilinear_left, SpinGlasses.sum_bilinear_right, SpinGlasses.abs_sum_bilinear_le, SpinGlasses.abs_bilinear_combination_le, SpinGlasses.measurable_replica_combination, SpinGlasses.measurable_replica_combination', SpinGlasses.abs_sum_integral_pair_le, SpinGlasses.abs_sum_integral_single_le, MeasureTheory.integral_integral_pi_tilted_sum, MeasureTheory.abs_integral_integral_pi_tilted_le, SpinGlasses.abs_skVectorFieldAvg_le, SpinGlasses.integral_skVectorFieldAvg_sum, SpinGlasses.skVectorFieldAvg_lipschitz, SpinGlasses.sum_sq_skVectorFieldAvg_sub_le, SpinGlasses.skVectorFrobDist, SpinGlasses.skVectorFrobDist_nonneg, SpinGlasses.sum_sq_le_skVectorFrobDist_sq, SpinGlasses.skVectorFrobDist_le_of_sum_sq_le, SpinGlasses.dist_le_skVectorFrobDist, SpinGlasses.skVectorFrobDist_le_mul_dist, SpinGlasses.skVectorFrobDist_triangle, SpinGlasses.skVectorFixedMap_frobDist_le, SpinGlasses.isGaussian_skVectorGaussLaw}
+\leanok
+\uses{thm:sg-tal:vector-path-lipschitz}
+\talsource{Existence part of Theorem~1.12.2: getting the dependence on $d$ of the correct order}
+For pairs $x,y$ in the cone let $\|x-y\|_F=\max(\|q-q'\|_F,\|\rho-\rho'\|_F)$. Then $\|T_\beta x-T_\beta y\|_F\le18\beta^2d^2\|x-y\|_F$.
+\end{theorem}
+\begin{proof}
+\leanok
+Let $D=T_\beta x-T_\beta y$ (one block) and apply Theorem~\ref{thm:sg-tal:vector-path-lipschitz} to the test function $F=\sum_{u,v}D_{uv}\xi_u(\sigma^1)\xi_v(\sigma^2)$ (or with $\sigma^2$ replaced by $\sigma^1$), which is bounded by $d\|D\|_F$ by Cauchy--Schwarz. Linearity of the Gibbs average gives $\|D\|_F^2\le18\beta^2d\cdot d\|D\|_F\,\|x-y\|_F$. In the path estimate itself the matrix-weighted replica sums are bounded by Cauchy--Schwarz for the bilinear forms $\sum\Delta_{uv}x_uw_v$, which replaces the factor $d^2\delta$ of the entrywise estimate by $d\varepsilon$.
+\end{proof}
+
+\begin{theorem}[Existence and uniqueness of the fixed point of (1.372)--(1.373), Theorem~1.12.2]\label{thm:sg-tal:vector-fixed-point-exists}
+\lean{SpinGlasses.skVectorGaussLaw, SpinGlasses.skVectorFixedMap, SpinGlasses.skVectorFixedMap_lipschitz, SpinGlasses.skVectorFixedMap_fst_posSemidef, SpinGlasses.skVectorFixedMap_sub_posSemidef, SpinGlasses.skVectorFixedCone, SpinGlasses.isClosed_skVectorFixedCone, SpinGlasses.skVectorFixedMap_dist_le, SpinGlasses.exists_skVectorFixedPoint, SpinGlasses.map_eq_skVectorGaussLaw, SpinGlasses.integral_skVectorFieldAvg_realization, SpinGlasses.skVectorFixedMap_eq_iff_equations, SpinGlasses.skVectorFixedPoint_unique, SpinGlasses.skVector_theorem_1_12_2}
+\leanok
+\uses{thm:sg-tal:vector-frobenius-contraction}
+\talsource{Existence part of Theorem~1.12.2, by the contraction argument of the book}
+If $18\beta^2d^2<1$ there exist matrices $q\succeq0$, $\rho-q\succeq0$ solving (1.372) and (1.373), and the solution is unique among pairs with $q\succeq0$. For every centered Gaussian field $Y$ of covariance $\beta^2q$ on any probability space, (1.372) and (1.373) hold with this $Y$ (they are equivalent to $T(q,\rho)=(q,\rho)$).
+\end{theorem}
+\begin{proof}
+\leanok
+The map $T(q,\rho)=(\mathbb E\langle\xi_u\rangle\langle\xi_v\rangle,\mathbb E\langle\xi_u\xi_v\rangle)$ takes values in the closed cone (a mean of Gram matrices, and a mean of covariance matrices of probability measures). By the previous theorem it is $18\beta^2d^2$-Lipschitz for the Frobenius distance (apply the previous theorem to the test function $\sum_{u,v}D_{uv}\xi_u(\sigma^1)\xi_v(\sigma^2)$, with $D$ the difference of the images; Cauchy--Schwarz bounds it by $d\|D\|_F$), hence a contraction. The iterates are Cauchy for the supremum distance, which is dominated by the Frobenius distance, so they converge to a fixed point. The law of a centered Gaussian field is determined by its covariance, so the equations hold for every realization. Uniqueness: any solution is a fixed point of $T$, hence lies in the cone, and two fixed points satisfy $\mathrm{dist}\le18\beta^2d^4\,\mathrm{dist}$, so they coincide.
+\end{proof}
+
+\begin{theorem}[Theorem~1.12.1 on the concrete model]\label{thm:sg-tal:vector-overlap-concrete}
+\lean{SpinGlasses.finPairsSplit, SpinGlasses.finPairsSplit_injective, SpinGlasses.integral_pi_gaussianReal_coord_mul, SpinGlasses.integral_pi_gaussianReal_coord, SpinGlasses.integral_skVectorGaussLaw_coord, SpinGlasses.integral_skVectorGaussLaw_mul, SpinGlasses.isGaussian_skVectorGaussLaw, SpinGlasses.skVectorConcreteLaw, SpinGlasses.skVectorConcreteNoise, SpinGlasses.skVector_theorem_1_12_1_concrete}
+\leanok
+\uses{thm:sg-tal:vector-overlap-concentration, thm:sg-tal:vector-fixed-point-exists}
+\talsource{Theorem~1.12.1 together with the existence part of Theorem~1.12.2}
+Let $18\beta^2d^2<1$ and $\beta^2d^2\le1/200$. On the product space of i.i.d. standard Gaussian couplings on the pairs of $N+1$ sites and an independent centered Gaussian field $Y$ of covariance $\beta^2q$, where $(q,\rho)$ is the fixed point of Theorem~\ref{thm:sg-tal:vector-fixed-point-exists}, the overlap bound of Theorem~\ref{thm:sg-tal:vector-overlap-concentration} holds with no further hypothesis.
+\end{theorem}
+\begin{proof}
+\leanok
+The Gaussian-noise structure is obtained from the product of the two Gaussian laws and the covariance of i.i.d. Gaussians; independence of the field from the couplings is independence of the two factors; site invariance of the coupling law is the invariance of the product Gaussian measure under permutation of coordinates; (1.372)--(1.373) hold by Theorem~\ref{thm:sg-tal:vector-fixed-point-exists}.
+\end{proof}
+
+\begin{lemma}[Temperature derivative of the expected free energy]\label{lem:sg-tal:gibbs-temperature-derivative}
+\lean{MeasureTheory.hasDerivAt_integral_log_partition_temperature}
+\leanok
+\talsource{Proof of Theorem~1.12.3: $\partial p_N/\partial\beta$ by Gaussian integration by parts}
+Let $g_k$ be i.i.d. standard Gaussians and $X_k$ bounded measurable features. Then
+\[
+\frac{d}{db}\,\mathbb E\log\int e^{b\sum_kg_kX_k}\,d\mu=b\sum_k\mathbb E\bigl(\langle X_k^2\rangle_b-\langle X_k\rangle_b^2\bigr).
+\]
+\end{lemma}
+\begin{proof}
+\leanok
+Differentiate the log-partition function along $b\mapsto bg$, which gives $\sum_k\mathbb E\,g_k\langle X_k\rangle_b$, and integrate by parts in each $g_k$ (Gaussian integration by parts for Gibbs averages with a linear energy).
+\end{proof}
+
+\begin{theorem}[$\partial p_{N+1}/\partial\beta$ through the overlaps]\label{thm:sg-tal:vector-free-energy-derivative}
+\lean{SpinGlasses.skVectorFreeEnergy, SpinGlasses.skVectorPairFeature, SpinGlasses.skVectorEnergy_eq_sum_feature, SpinGlasses.hasDerivAt_skVector_logPartition, SpinGlasses.sum_pairFeature_mul, SpinGlasses.variance_eq_integral_pi_two, SpinGlasses.sum_gibbsVariance_eq, SpinGlasses.hasDerivAt_skVectorFreeEnergy}
+\leanok
+\uses{lem:sg-tal:gibbs-temperature-derivative}
+\talsource{Proof of Theorem~1.12.3: the first display, $\partial p_N/\partial\beta$ in terms of $\nu((R^{u,v})^2)-\nu((R^{u,v}_{1,2})^2)$}
+Let $p_M(\beta,\mu)=M^{-1}\mathbb E\log\int\exp(-H_M)\,d\mu^{\otimes M}$ for the vector SK model with $M=N+1$ sites. Then $p_M$ is differentiable in $\beta$ with derivative
+\[
+\frac{\beta}{M}\,\mathbb E\Bigl\langle\frac1{2M}\sum_{u,v}\Bigl[\bigl(\textstyle\sum_{i}\xi^1_{i,u}\xi^1_{i,v}\bigr)^2-\sum_i(\xi^1_{i,u}\xi^1_{i,v})^2-\bigl(\textstyle\sum_i\xi^1_{i,u}\xi^2_{i,v}\bigr)^2+\sum_i(\xi^1_{i,u}\xi^2_{i,v})^2\Bigr]\Bigr\rangle,
+\]
+that is, $\frac\beta2\sum_{u,v}\nu\bigl((R^{u,v}_{1,1})^2-(R^{u,v}_{1,2})^2\bigr)$ up to a diagonal correction of order $1/M$.
+\end{theorem}
+\begin{proof}
+\leanok
+Differentiate in $\beta$ and integrate by parts in each pair coupling to get $\frac\beta{M}\sum_{i<j}\mathbb E(\langle X_{ij}^2\rangle-\langle X_{ij}\rangle^2)$. Write $\langle X^2\rangle-\langle X\rangle^2=\langle X(\sigma^1)^2-X(\sigma^1)X(\sigma^2)\rangle$ for two replicas and use $\sum_{i<j}a_ia_j=\frac12((\sum a_i)^2-\sum a_i^2)$.
+\end{proof}
+
+\begin{theorem}[$\partial p_{N+1}/\partial\beta$ is close to $\frac\beta2\sum(\rho^2-q^2)$]\label{thm:sg-tal:vector-free-energy-approx}
+\lean{SpinGlasses.skVectorNu, SpinGlasses.integrable_skVectorNu_inner, SpinGlasses.skVectorNu_const, SpinGlasses.skVectorNu_const_mul, SpinGlasses.skVectorNu_add, SpinGlasses.abs_skVectorNu_le, SpinGlasses.skVectorCavityAvg_concrete_eq_nu, SpinGlasses.skVector_theorem_1_12_1_of_fixed, SpinGlasses.skVectorFixedPoint_sum_sq_le, SpinGlasses.abs_sum_mul_le_amgm, SpinGlasses.deriv_integrand_bound, SpinGlasses.skVectorDerivIntegrand, SpinGlasses.sum_diag_mem, SpinGlasses.abs_skVectorDerivIntegrand_sub_le, SpinGlasses.measurable_skVectorDerivIntegrand, SpinGlasses.exists_abs_skVectorDerivIntegrand_le, SpinGlasses.hasDerivAt_skVectorFreeEnergy_approx}
+\leanok
+\uses{thm:sg-tal:vector-free-energy-derivative, thm:sg-tal:vector-overlap-concrete}
+\talsource{Proof of Theorem~1.12.3: the bound $|\partial p_N/\partial\beta-\frac\beta2\sum_{u,v}(\rho_{uv}^2-q_{uv}^2)|\le K(d)/\sqrt N$}
+Let $(q,\rho)$ be the fixed point and $\beta^2d^2\le1/200$, $M=N+1$, $\varepsilon=(8d^4+2d^2)/M$. For every $s>0$,
+\[
+\Bigl|\frac{\partial p_M}{\partial\beta}-\frac\beta2\sum_{u,v}(\rho_{uv}^2-q_{uv}^2)\Bigr|\le\frac{|\beta|}2\Bigl(\varepsilon+\frac{d\varepsilon}s+2ds\Bigr)+\frac{|\beta|d^2}{2M}.
+\]
+Choosing $s=\sqrt\varepsilon$ gives the rate $K(d)/\sqrt M$.
+\end{theorem}
+\begin{proof}
+\leanok
+By the previous theorem $\partial p_M/\partial\beta=\frac\beta2\sum_{u,v}\nu((R^{u,v}_{1,1})^2-(R^{u,v}_{1,2})^2)$ up to a diagonal term of order $1/M$. Write $R=(R-T)+T$ with $T=\rho$ or $q$ so $\nu(\sum R^2)-\sum T^2=\nu(\sum(R-T)^2)+2\nu(\sum T(R-T))$, and bound the cross term by Cauchy--Schwarz and $\sqrt W\le (W/s+s)/2$. Theorem~\ref{thm:sg-tal:vector-overlap-concrete} bounds $\nu(\sum(R-T)^2)$.
+\end{proof}
+
+\begin{theorem}[The fixed point is Lipschitz in $\beta$]\label{thm:sg-tal:vector-fixed-point-beta}
+\lean{SpinGlasses.skVectorBetaEnergy_eq, SpinGlasses.skVectorField_beta_hasDerivAt, SpinGlasses.skVectorFieldAvg_beta_lipschitz, SpinGlasses.skVectorFixedMap_beta_dist_le, SpinGlasses.skVectorFixedPoint_beta_dist_le}
+\leanok
+\uses{thm:sg-tal:vector-fixed-point-exists, thm:sg-tal:vector-path-lipschitz}
+\talsource{Proof of Theorem~1.12.3: the dependence of $(q,\rho)$ on $\beta$}
+Let $18\beta_1^2d^2<1$ and $0<b_1\le b_2<\beta_1$. The map $T_b$ of Theorem~\ref{thm:sg-tal:vector-fixed-point-exists} moves by at most a constant times $|b_2-b_1|$ when $b$ changes, uniformly on the cone with bounded Frobenius norm, and is a contraction of constant $18b^2d^4$ in each variable. Hence the fixed points $z(b)$ satisfy $\|z(b_2)-z(b_1)\|\le C|b_2-b_1|$ (entrywise supremum distance).
+\end{theorem}
+\begin{proof}
+\leanok
+Differentiate the exponent of the Gibbs weights in $b$ (the field $Y$ has covariance $b^2q$, so $bY$ is rescaled), bound the derivative of the expected product of Gibbs averages by the replica bounds, and combine with the contraction estimate: $\|z(b_2)-z(b_1)\|\le\|T_{b_2}z(b_2)-T_{b_2}z(b_1)\|+\|T_{b_2}z(b_1)-T_{b_1}z(b_1)\|$.
+\end{proof}
+
+\begin{theorem}[$\frac{d}{d\beta}G(\beta,z(\beta))=\frac\beta2\sum(\rho^2-q^2)$]\label{thm:sg-tal:vector-pressure-family}
+\lean{SpinGlasses.skVectorPressure, SpinGlasses.measurable_skVectorLogPartition, SpinGlasses.skVectorGaussFreeEnergy_eq_canonical, SpinGlasses.integral_skVectorGaussLaw_scale, SpinGlasses.hasDerivAt_skVectorPressure_rho_leg, SpinGlasses.abs_skVectorPressure_rho_leg_le, SpinGlasses.integral_pairField_combination, SpinGlasses.integral_pairField_combination_mul, SpinGlasses.map_pairField_combination, SpinGlasses.hasGaussianLaw_pairField_combination, SpinGlasses.continuous_skVectorSegment_logPartition, SpinGlasses.segment_gaussFreeEnergy_eq, SpinGlasses.segment_gibbs_eq, SpinGlasses.abs_skVectorPressure_q_leg_le, SpinGlasses.hasDerivAt_skVectorPressure_beta, SpinGlasses.abs_skVectorPressure_sub_le, SpinGlasses.hasDerivAt_pressure_family, MeasureTheory.continuous_integral_log_partition_path}
+\leanok
+\uses{thm:sg-tal:vector-stationarity, thm:sg-tal:vector-fixed-point-beta, thm:sg-tal:vector-free-energy-beta}
+\talsource{Proof of Theorem~1.12.3: $\frac{d}{d\beta}G(\beta,z(\beta))$ by stationarity}
+Let $G(\beta,z)=-\frac{\beta^2}4\sum_{u,v}(\rho_{uv}^2-q_{uv}^2)+\mathbb E\log\int\mathcal E\,d\mu$ for $z=(q,\rho)$ and $18\beta_1^2d^2<1$. If $z(b)$ is a fixed point of $T_b$ in the cone for $b\in(\beta/2,\beta_1)$, then $b\mapsto G(b,z(b))$ is differentiable at $\beta$ with derivative $\frac\beta2\sum_{u,v}(\rho_{uv}^2-q_{uv}^2)$ evaluated at $z(\beta)$.
+\end{theorem}
+\begin{proof}
+\leanok
+Equation~(1.393) gives $\partial_\beta G=\frac\beta2\sum(\rho^2-q^2)$ at fixed $z$ when $z$ solves the equations, and Lemma~\ref{thm:sg-tal:vector-stationarity} makes the gradient of $G$ in $z$ equal to $\frac{\beta^2}2(z-Tz)$, which vanishes at $z(\beta)$ and is Lipschitz. Therefore $G(b,z)-G(b,z(b))$ is bounded by a constant times $\|z-z(b)\|^2$ (integrate the gradient along the segment from $z(b)$ to $z$ using the Lipschitz constant of $T$ only), and combining with the Lipschitz bound on $z(b)$ shows the dependence of $z(b)$ on $b$ is of second order. No implicit function theorem is used.
+\end{proof}
+
+\begin{theorem}[The pressure is small near $\beta=0$]\label{thm:sg-tal:vector-pressure-small}
+\lean{SpinGlasses.integral_abs_skVectorGaussLaw_le, SpinGlasses.abs_skVectorPressure_le, SpinGlasses.skVectorFreeEnergy_zero, SpinGlasses.tendsto_pressure_fixedPoint}
+\leanok
+\uses{thm:sg-tal:vector-pressure-family}
+\talsource{Proof of Theorem~1.12.3: $p_N(0)=0$ and $G(0^+,z)\to0$}
+For $q\succeq0$ with $\|q\|_F,\|\rho\|_F\le d$, $|G(b,(q,\rho))|\le\frac{b^2d^2}2+|b|d^2+b^2d^3$. Moreover $p_N(0)=0$. Consequently $b\mapsto G(b,z(b))$ tends to $0$ as $b\to0^+$ along any branch of fixed points in the cone.
+\end{theorem}
+\begin{proof}
+\leanok
+The compensation term of the exponent is at most $b^2d^3$ in absolute value, the linear term $b\sum_u y_u\xi_u$ is bounded by $|b|\sqrt d\sum_u|y_u|$, and $\mathbb E|y_u|\le\sqrt{q_{uu}}\le\sqrt d$ for the centered Gaussian field of covariance $q$; apply the uniform bound for the log-partition function. At $\beta=0$ the energy vanishes so $p_N(0)=N^{-1}\mathbb E\log 1=0$.
+\end{proof}
+
+\begin{theorem}[Theorem~1.12.3: the free energy of the vector SK model]\label{thm:sg-tal:vector-free-energy-limit}
+\lean{SpinGlasses.abs_sub_le_of_deriv_bound, SpinGlasses.skVector_theorem_1_12_3_rate, SpinGlasses.rate_le, SpinGlasses.skVector_theorem_1_12_3, SpinGlasses.tendsto_skVectorFreeEnergy, SpinGlasses.skVector_smallness, SpinGlasses.skVector_theorem_1_12_3_book, SpinGlasses.tendsto_skVectorFreeEnergy_book}
+\leanok
+\uses{thm:sg-tal:vector-free-energy-approx, thm:sg-tal:vector-pressure-family, thm:sg-tal:vector-pressure-small, thm:sg-tal:vector-fixed-point-exists}
+\talsource{Theorem~1.12.3}
+Let $0<\beta<\beta_1$ with $18\beta_1^2d^2<1$ and $\beta_1^2d^2\le1/200$, and let $(q,\rho)$ be the fixed point of $T$ at $\beta$ (Theorem~\ref{thm:sg-tal:vector-fixed-point-exists}). Then for every $N$ and every $s>0$,
+\[
+\bigl|p_{N+1}(\beta)-G(\beta,(q,\rho))\bigr|\le\beta^2\Bigl(\frac12\Bigl(\varepsilon+\frac{d\varepsilon}s+2ds\Bigr)+\frac{d^2}{2(N+1)}\Bigr),\qquad\varepsilon=\frac{8d^4+2d^2}{N+1}.
+\]
+Choosing $s=(N+1)^{-1/2}$ gives $|p_{N+1}(\beta)-G(\beta,(q,\rho))|\le C/\sqrt{N+1}$, and in particular $p_N(\beta)\to G(\beta,(q,\rho))$. The two smallness conditions hold as soon as $15\beta_1d\le1$, which is the book's hypothesis $L\beta d\le1$ with $L=15$.
+\end{theorem}
+\begin{proof}
+\leanok
+Choose a branch $z(b)$ of fixed points for $b\in(0,\beta_1)$ (Theorem~\ref{thm:sg-tal:vector-fixed-point-exists}) and let $\Delta(b)=p_{N+1}(b)-G(b,z(b))$. By Theorems~\ref{thm:sg-tal:vector-free-energy-approx} and~\ref{thm:sg-tal:vector-pressure-family}, $|\Delta'(b)|\le Kb$ with $K$ the bracket above. By Theorem~\ref{thm:sg-tal:vector-pressure-small}, $\Delta(b)\to0$ as $b\to0^+$. The mean value inequality on $[b_0,\beta]$ gives $|\Delta(\beta)-\Delta(b_0)|\le K\beta^2$; let $b_0\to0^+$. Uniqueness of the fixed point identifies $z(\beta)$ with $(q,\rho)$.
+\end{proof}
+
 \begin{remark}[Remaining mathematics and singular fixed points]\label{rem:sg-tal:vector-remaining}
-\talsource{Theorems~1.12.1--1.12.3, Proposition~1.12.4, Corollary~1.12.5, Lemma~1.12.6}
-The next step is the arbitrary-spin-law replica derivative and Gaussian integration by parts,
-including the deterministic quadratic compensation and both self- and cross-overlaps.
+\talsource{Theorems~1.12.1--1.12.3}
+Proposition~1.12.4, Corollary~1.12.5 (with the squared-norm bounds on $q$, $\rho$ as hypotheses), Lemma~1.12.6 and Eq.~(1.393) are proved above; Theorem~1.12.1 is proved above as a conditional statement (it assumes a solution of (1.372)--(1.373), independence of the field from the couplings, and site-invariance of the coupling law; these are supplied on a concrete product space by the theorem below); the existence of the fixed point is proved above for $18\beta^2d^2<1$ (implied by the book's $L\beta d\le1$ with $L=15$), together with its uniqueness (Theorem~1.12.2); Theorem~1.12.3 is proved above in the book's range $L\beta d\le1$ with $L=15$ (the conditions used are $18\beta^2d^2<1$ and $\beta^2d^2\le1/200$), with the rate $O(N^{-1/2})$ in the quantitative form.
 The site-diagonal correction in Lemma~\ref{lem:sg-tal:vector-covariance} varies with the
 configuration; replacing it by the constant Ising correction would be incorrect.
 The intended fixed-point domain is $Q\succeq0$, $\rho-Q\succeq0$, $\operatorname{tr}\rho\le d$.

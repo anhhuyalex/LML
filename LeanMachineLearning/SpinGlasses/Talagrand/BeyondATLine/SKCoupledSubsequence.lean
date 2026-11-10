@@ -6,7 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.SpinGlasses.Talagrand.BeyondATLine.SKCoupledLimit
-public import Mathlib.Topology.UniformSpace.Ascoli
+public import LeanMachineLearning.ForMathlib.Topology.LipschitzSubsequence
 
 /-!
 # Subsequential limits of the coupled free energy (Talagrand, after Theorem 1.9.6)
@@ -64,5 +64,42 @@ theorem abs_skCoupledOverlapMean_le (M : ℕ) (β h lam : ℝ) :
   rw [Real.norm_eq_abs, probReal_univ, mul_one] at hint
   rw [abs_mul, abs_of_pos (inv_pos.2 hMpos), inv_mul_le_iff₀ hMpos, mul_one]
   exact hint
+
+/-- The coupled free energy is `1`-Lipschitz in the coupling. -/
+theorem lipschitzWith_skCoupledFreeEnergy (M : ℕ) (β h : ℝ) :
+    LipschitzWith 1 (skCoupledFreeEnergy M β h) := by
+  refine lipschitzWith_of_nnnorm_deriv_le (fun x => (hasDerivAt_skCoupledFreeEnergy M β h x)
+    |>.differentiableAt) fun x => ?_
+  rw [(hasDerivAt_skCoupledFreeEnergy M β h x).deriv]
+  have := abs_skCoupledOverlapMean_le M β h x
+  rw [← NNReal.coe_le_coe]
+  simpa [Real.norm_eq_abs] using this
+
+/-- **Subsequential limits of the coupled free energy have a corner at `0`** (Talagrand, the
+discussion after Theorem 1.9.6, without the existence of the limit). Beyond the AT line, for
+`r > 0` the sequence `ψ_N` has a subsequence that converges on `[-r, r]`, and every such
+subsequential limit is not differentiable at `0`. -/
+theorem sk_coupled_subsequential_limit_not_differentiableAt (β h q qhat : ℝ) (hh : h ≠ 0)
+    (hfix : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂(gaussianReal 0 1) = q)
+    (hqhat : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 4 ∂(gaussianReal 0 1) = qhat)
+    (hAT : 1 < β ^ 2 * (1 - 2 * q + qhat)) {r : ℝ} (hr : 0 < r) :
+    ∃ φ : ℕ → ℕ, StrictMono φ ∧ ∃ ψ : ℝ → ℝ,
+      (∀ lam ∈ Icc (-r) r,
+        Tendsto (fun N : ℕ => skCoupledFreeEnergy (φ N + 1) β h lam) atTop (𝓝 (ψ lam))) ∧
+      ¬ DifferentiableAt ℝ ψ 0 := by
+  obtain ⟨φ, hφ, ψ, hψ⟩ := exists_subseq_tendsto_of_lipschitz
+    (fun N => skCoupledFreeEnergy (N + 1) β h) (fun N => lipschitzWith_skCoupledFreeEnergy _ β h)
+    (fun N => skCoupledFreeEnergy_zero _ β h) r
+  refine ⟨φ, hφ, ψ, hψ, ?_⟩
+  obtain ⟨δ', hδ', hsep⟩ := sk_coupled_derivative_separation β h q qhat hh hfix hqhat hAT
+  refine not_differentiableAt_of_convexOn_tendsto_of_derivative_gap (c := δ' / 2) hr
+    (by positivity) (fun N => (convexOn_skCoupledFreeEnergy (φ N + 1) β h).subset (subset_univ _)
+      (convex_Ioo _ _))
+    (fun N x _ => hasDerivAt_skCoupledFreeEnergy (φ N + 1) β h x)
+    (fun lam hlam => hψ lam ⟨hlam.1.le, hlam.2.le⟩) ?_
+  intro lam hlam
+  obtain ⟨N₀, hN₀⟩ := hsep lam hlam.1
+  filter_upwards [eventually_ge_atTop N₀] with N hN
+  exact (hN₀ (φ N) (hN.trans (hφ.id_le N))).le
 
 end SpinGlasses

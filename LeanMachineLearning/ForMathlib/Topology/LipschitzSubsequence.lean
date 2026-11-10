@@ -74,4 +74,4 @@ theorem exists_subseq_tendsto_of_lipschitz (f : ℕ → ℝ → ℝ) (hf : ∀ n
   obtain ⟨a, -, φ, hφ, hlim⟩ := hSc.tendsto_subseq hg
   refine ⟨φ, hφ, fun x => if hx : x ∈ Icc (-r) r then a ⟨x, hx⟩ else 0, fun x hx => ?_⟩
   simp only [hx, dite_true]
-  exact ((ContinuousMap.continuous_eval_const (⟨x, hx⟩ : Icc (-r) r)).tendsto a).comp hlim
+  exact ((continuous_eval_const (⟨x, hx⟩ : Icc (-r) r)).tendsto a).comp hlim

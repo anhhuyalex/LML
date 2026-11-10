@@ -67,8 +67,8 @@ theorem integral_pi_count_tilted_comp_injective {R R' : Type*} [Finite α] [None
     (G : (R → α) → ℝ) :
     ∫ τ : R' → α, G (fun r => τ (ρ r)) ∂(Measure.pi fun _ : R' => Measure.count.tilted f) =
       ∫ σ : R → α, G σ ∂(Measure.pi fun _ : R => Measure.count.tilted f) :=
-  (measurePreserving_pi_comp_injective (Measure.count.tilted f)
-    hρ).integral_comp_of_aestronglyMeasurable Integrable.of_finite.aestronglyMeasurable
+  integral_pi_comp_injective (Measure.count.tilted f) hρ G
+    Integrable.of_finite.aestronglyMeasurable
 
 /-- A product of functions of the first `m` and last `n` coordinates factorizes under
 a finite product measure. Normalization of the coordinate measure is not required. -/
@@ -128,26 +128,8 @@ theorem integral_pi_count_tilted_replace_replica {R R' : Type*} [Finite α] [Non
       ∫ τ : R' → α, F (fun r => τ (e r)) * K (τ (e i)) (τ x₀)
         ∂(Measure.pi fun _ : R' => Measure.count.tilted f) := by
   have := Fintype.ofFinite R
-  have he' : Function.Injective (Function.update e k x₀) := by
-    intro r r' h
-    by_cases hr : r = k <;> by_cases hr' : r' = k
-    · rw [hr, hr']
-    · subst hr
-      simp only [Function.update_self, Function.update_of_ne hr'] at h
-      exact absurd h.symm (hx₀ r')
-    · subst hr'
-      simp only [Function.update_self, Function.update_of_ne hr] at h
-      exact absurd h (hx₀ r)
-    · simp only [Function.update_of_ne hr, Function.update_of_ne hr'] at h
-      exact he h
-  have h1 := integral_pi_count_tilted_comp_injective he f
-    (fun σ : R → α => F σ * K (σ i) (σ k))
-  have h2 := integral_pi_count_tilted_comp_injective he' f
-    (fun σ : R → α => F σ * K (σ i) (σ k))
-  refine h1.trans (h2.symm.trans (integral_congr_ae (Filter.Eventually.of_forall fun τ => ?_)))
-  have hc : (fun r => τ (Function.update e k x₀ r)) =
-      Function.update (fun r => τ (e r)) k (τ x₀) := Function.comp_update τ e k x₀
-  simp only [hc, hF, Function.update_self, Function.update_of_ne hik]
+  exact integral_pi_replace_replica (Measure.count.tilted f) he hx₀ hik F hF K
+    Integrable.of_finite.aestronglyMeasurable
 
 
 /-- **Two replicas and a covariance:** for the Gibbs measure of an energy `A`, the average over

@@ -9,6 +9,7 @@ public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.ProductExpansi
 public import Mathlib.MeasureTheory.Integral.Pi
 public import Mathlib.MeasureTheory.Integral.Prod
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.MeasurePreservingSymmetry
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.Pi
 
 /-!
 # Integrating fresh replica pairs in products
@@ -23,6 +24,47 @@ replicas. The identities are independent of Gibbs energies and of any spin model
 open scoped BigOperators
 
 namespace MeasureTheory
+
+/-- **Marginal along an injection of the replicas, for any replica law.** An observable of the
+replicas `ρ r` (`ρ : R → R'` injective) has the same average under `R'` i.i.d. replicas as under
+`R` i.i.d. replicas. Only a.e. strong measurability is needed. -/
+theorem integral_pi_comp_injective {R R' X : Type*} [Fintype R] [Fintype R']
+    [MeasurableSpace X] (ν : Measure X) [IsProbabilityMeasure ν] {ρ : R → R'}
+    (hρ : Function.Injective ρ) (G : (R → X) → ℝ)
+    (hG : AEStronglyMeasurable G (Measure.pi fun _ : R => ν)) :
+    ∫ τ : R' → X, G (fun r => τ (ρ r)) ∂(Measure.pi fun _ : R' => ν) =
+      ∫ σ : R → X, G σ ∂(Measure.pi fun _ : R => ν) :=
+  (measurePreserving_pi_comp_injective ν hρ).integral_comp_of_aestronglyMeasurable hG
+
+/-- **Moving one replica to a fresh one, for any replica law.** If `F` does not depend on the
+replica `k`, then the average of `F · K(σ_i, σ_k)` equals that of `F · K(σ_i, σ_{x₀})`, where `x₀`
+is a replica outside the range of the injection `e` and `i ≠ k`. -/
+theorem integral_pi_replace_replica {R R' X : Type*} [Fintype R] [Fintype R'] [DecidableEq R]
+    [MeasurableSpace X] (ν : Measure X) [IsProbabilityMeasure ν] {e : R → R'}
+    (he : Function.Injective e) {x₀ : R'} (hx₀ : ∀ r, e r ≠ x₀) {i k : R} (hik : i ≠ k)
+    (F : (R → X) → ℝ) (hF : ∀ σ x, F (Function.update σ k x) = F σ) (K : X → X → ℝ)
+    (hm : AEStronglyMeasurable (fun σ : R → X => F σ * K (σ i) (σ k))
+      (Measure.pi fun _ : R => ν)) :
+    ∫ τ : R' → X, F (fun r => τ (e r)) * K (τ (e i)) (τ (e k)) ∂(Measure.pi fun _ : R' => ν) =
+      ∫ τ : R' → X, F (fun r => τ (e r)) * K (τ (e i)) (τ x₀) ∂(Measure.pi fun _ : R' => ν) := by
+  have he' : Function.Injective (Function.update e k x₀) := by
+    intro r r' h
+    by_cases hr : r = k <;> by_cases hr' : r' = k
+    · rw [hr, hr']
+    · subst hr
+      simp only [Function.update_self, Function.update_of_ne hr'] at h
+      exact absurd h.symm (hx₀ r')
+    · subst hr'
+      simp only [Function.update_self, Function.update_of_ne hr] at h
+      exact absurd h (hx₀ r)
+    · simp only [Function.update_of_ne hr, Function.update_of_ne hr'] at h
+      exact he h
+  have h1 := integral_pi_comp_injective ν he (fun σ : R → X => F σ * K (σ i) (σ k)) hm
+  have h2 := integral_pi_comp_injective ν he' (fun σ : R → X => F σ * K (σ i) (σ k)) hm
+  refine h1.trans (h2.symm.trans (integral_congr_ae (Filter.Eventually.of_forall fun τ => ?_)))
+  have hc : (fun r => τ (Function.update e k x₀ r)) =
+      Function.update (fun r => τ (e r)) k (τ x₀) := Function.comp_update τ e k x₀
+  simp only [hc, hF, Function.update_self, Function.update_of_ne hik]
 
 /-- Split a finite replica family into two independent blocks on a sigma-finite space.
 The integrability hypothesis is automatic for finite configuration spaces. -/

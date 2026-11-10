@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.MulTranspose
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
 public import Mathlib.Tactic.Positivity
 public import Mathlib.Tactic.Linarith
 public import Mathlib.Tactic.Ring
@@ -89,5 +90,54 @@ theorem sum_sq_sk_vector_trunc_overlap_le (N d : ℕ) (σ τ : Fin N → Fin d �
     exact (div_le_one (by positivity)).2 (by linarith)
   simpa only [sq] using sum_sq_vector_overlap_le σ τ (N + 1 : ℝ)⁻¹ d d
     (by positivity) hmass (Nat.cast_nonneg _) (Nat.cast_nonneg _) hσ hτ
+
+/-- **A bilinear form is bounded by the Frobenius norm of its matrix.**  If `∑ Δ² ≤ ε²`,
+`∑ x² ≤ a²` and `∑ w² ≤ b²` then `|∑ᵤᵥ Δᵤᵥ xᵤ wᵥ| ≤ ε a b`. -/
+theorem abs_sum_bilinear_le {d : ℕ} (Δ : Fin d → Fin d → ℝ) (x w : Fin d → ℝ) {ε a b : ℝ}
+    (hε : 0 ≤ ε) (ha : 0 ≤ a) (hb : 0 ≤ b) (hΔ : ∑ u, ∑ v, Δ u v ^ 2 ≤ ε ^ 2)
+    (hx : ∑ u, x u ^ 2 ≤ a ^ 2) (hw : ∑ v, w v ^ 2 ≤ b ^ 2) :
+    |∑ u, ∑ v, Δ u v * (x u * w v)| ≤ ε * a * b := by
+  have hcs := Finset.sum_mul_sq_le_sq_mul_sq (Finset.univ : Finset (Fin d × Fin d))
+    (fun p => Δ p.1 p.2) (fun p => x p.1 * w p.2)
+  rw [Fintype.sum_prod_type, Fintype.sum_prod_type, Fintype.sum_prod_type] at hcs
+  have hxw : ∑ u, ∑ v, (x u * w v) ^ 2 = (∑ u, x u ^ 2) * ∑ v, w v ^ 2 := by
+    rw [Finset.sum_mul_sum]
+    exact Finset.sum_congr rfl fun u _ => Finset.sum_congr rfl fun v _ => by ring
+  rw [hxw] at hcs
+  have h2 : (∑ u, ∑ v, Δ u v * (x u * w v)) ^ 2 ≤ (ε * a * b) ^ 2 := by
+    refine hcs.trans ?_
+    have hx0 : 0 ≤ ∑ u, x u ^ 2 := Finset.sum_nonneg fun _ _ => sq_nonneg _
+    have hw0 : 0 ≤ ∑ v, w v ^ 2 := Finset.sum_nonneg fun _ _ => sq_nonneg _
+    have hΔ0 : 0 ≤ ∑ u, ∑ v, Δ u v ^ 2 :=
+      Finset.sum_nonneg fun _ _ => Finset.sum_nonneg fun _ _ => sq_nonneg _
+    calc (∑ u, ∑ v, Δ u v ^ 2) * ((∑ u, x u ^ 2) * ∑ v, w v ^ 2) ≤
+          ε ^ 2 * (a ^ 2 * b ^ 2) :=
+          mul_le_mul hΔ (mul_le_mul hx hw hw0 (sq_nonneg a)) (mul_nonneg hx0 hw0)
+            (sq_nonneg ε)
+      _ = (ε * a * b) ^ 2 := by ring
+  exact abs_le.2 (abs_le_of_sq_le_sq' h2 (by positivity))
+
+section SpinBounds
+
+variable {α D : Type*} [Fintype D] {r : ℝ} (ξ : α → D → ℝ) (hr : 0 ≤ r)
+  (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ r)
+include hr hbound
+
+omit hr in
+/-- Each coordinate of a spin of squared radius at most `r` is at most `√r` in absolute value. -/
+theorem abs_spin_le (a : α) (u : D) : |ξ a u| ≤ Real.sqrt r := by
+  refine Real.abs_le_sqrt ?_
+  exact (Finset.single_le_sum (f := fun u => ξ a u ^ 2) (fun _ _ => sq_nonneg _)
+    (Finset.mem_univ u)).trans (hbound a)
+
+/-- Products of coordinates of two spins of squared radius at most `r` are at most `r`. -/
+theorem abs_spin_mul_le (a b : α) (u v : D) : |ξ a u * ξ b v| ≤ r := by
+  rw [abs_mul]
+  calc |ξ a u| * |ξ b v| ≤ Real.sqrt r * Real.sqrt r :=
+        mul_le_mul (abs_spin_le ξ hbound a u) (abs_spin_le ξ hbound b v) (abs_nonneg _)
+          (Real.sqrt_nonneg _)
+    _ = r := Real.mul_self_sqrt hr
+
+end SpinBounds
 
 end SpinGlasses
