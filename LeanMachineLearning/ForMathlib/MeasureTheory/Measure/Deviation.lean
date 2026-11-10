@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import Mathlib.MeasureTheory.Measure.Prod
+public import Mathlib.MeasureTheory.Measure.Real
 public import Mathlib.Topology.Instances.ENNReal.Lemmas
 
 /-!
@@ -22,6 +23,21 @@ into convergence of the risk.
 namespace MeasureTheory
 
 open Filter Topology
+
+/-- A large deviation of a difference forces a deviation of at least one term. -/
+theorem measureReal_abs_sub_ge_le {α : Type*} [MeasurableSpace α] (μ : Measure α)
+    [IsFiniteMeasure μ] (X Y : α → ℝ) (t : ℝ) :
+    μ.real {x | t ≤ |X x - Y x|} ≤
+      μ.real {x | t / 2 ≤ |X x|} + μ.real {x | t / 2 ≤ |Y x|} := by
+  refine (measureReal_mono ?_).trans (measureReal_union_le _ _)
+  intro x hx
+  simp only [Set.mem_ofPred_eq, Set.mem_union] at hx ⊢
+  by_cases hX : t / 2 ≤ |X x|
+  · exact Or.inl hX
+  right
+  by_contra hY
+  have htri := abs_sub (X x) (Y x)
+  linarith [not_le.mp hX, not_le.mp hY]
 
 /-- **A deviation of `A + σ B` is a deviation of `A` or of `B`.** -/
 theorem measure_add_mul_deviation_le {α : Type*} [MeasurableSpace α] (μ : Measure α)

@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Model.Ising
 public import LeanMachineLearning.SpinGlasses.Talagrand.BeyondATLine.SKCoupledFreeEnergy
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.Deviation
 
 /-!
 # Two-component vector spins and two coupled Ising copies
@@ -141,32 +142,24 @@ theorem measureReal_abs_log_skCoupledPartition_ratio_sub_freeEnergy_ge_le (N : �
   have hhalf : 0 ≤ (N : ℝ) * y / 2 := by positivity
   have hA := measureReal_abs_sub_integral_log_skCoupledPartition_ge_le N β h lam hhalf
   have hB := measureReal_abs_sub_integral_log_skCoupledPartition_ge_le N β h 0 hhalf
-  have hsub :
-      {g | y ≤ |(N : ℝ)⁻¹ * (A g - B g) - (N : ℝ)⁻¹ * (a - b)|} ⊆
-        {g | (N : ℝ) * y / 2 ≤ |A g - a|} ∪
-          {g | (N : ℝ) * y / 2 ≤ |B g - b|} := by
-    intro g hg
-    by_cases hleft : (N : ℝ) * y / 2 ≤ |A g - a|
-    · exact Or.inl hleft
-    apply Or.inr
-    change (N : ℝ) * y / 2 ≤ |B g - b|
-    by_contra hright
-    have hr : |(N : ℝ)⁻¹ * (A g - B g) - (N : ℝ)⁻¹ * (a - b)| =
-        (N : ℝ)⁻¹ * |(A g - a) - (B g - b)| := by
-      rw [← mul_sub, abs_mul, abs_of_pos (inv_pos.mpr hNpos)]
-      congr 2
-      ring
-    change y ≤ _ at hg
-    rw [hr] at hg
-    have hmul := mul_le_mul_of_nonneg_left hg hNpos.le
-    rw [← mul_assoc, mul_inv_cancel₀ hNpos.ne', one_mul] at hmul
-    have htri := abs_sub (A g - a) (B g - b)
-    linarith [not_le.mp hleft, not_le.mp hright]
+  have hset :
+      {g | y ≤ |(N : ℝ)⁻¹ * (A g - B g) - (N : ℝ)⁻¹ * (a - b)|} =
+        {g | (N : ℝ) * y ≤ |(A g - a) - (B g - b)|} := by
+    ext g
+    simp only [Set.mem_ofPred_eq, ← mul_sub, abs_mul,
+      abs_of_pos (inv_pos.mpr hNpos)]
+    have heq : (A g - B g) - (a - b) = (A g - a) - (B g - b) := by ring
+    rw [heq, inv_mul_eq_div, le_div_iff₀ hNpos]
+    simp only [mul_comm]
+  have htail := measureReal_abs_sub_ge_le P (fun g => A g - a) (fun g => B g - b)
+    ((N : ℝ) * y)
   calc
-    _ ≤ P.real ({g | (N : ℝ) * y / 2 ≤ |A g - a|} ∪
-        {g | (N : ℝ) * y / 2 ≤ |B g - b|}) := measureReal_mono hsub
+    _ = P.real {g | (N : ℝ) * y ≤ |(A g - a) - (B g - b)|} := by
+      change P.real {g | y ≤ |(N : ℝ)⁻¹ * (A g - B g) -
+        (N : ℝ)⁻¹ * (a - b)|} = _
+      exact congrArg P.real hset
     _ ≤ P.real {g | (N : ℝ) * y / 2 ≤ |A g - a|} +
-        P.real {g | (N : ℝ) * y / 2 ≤ |B g - b|} := measureReal_union_le _ _
+        P.real {g | (N : ℝ) * y / 2 ≤ |B g - b|} := htail
     _ ≤ _ := by
       change P.real {g | (N : ℝ) * y / 2 ≤ |A g - a|} ≤ _ at hA
       change P.real {g | (N : ℝ) * y / 2 ≤ |B g - b|} ≤ _ at hB

@@ -105,21 +105,14 @@ theorem hasDerivAt_integral_gibbs_replica_cavity_path {Ω : Type*} [MeasurableSp
       ∑ i, g (σ i) := fun g hg =>
     Finset.measurable_sum _ fun i _ => hg.comp (measurable_pi_apply i)
   have hXall : ∀ l, Measurable (Sum.elim X Xs l) := by
-    intro l; rcases l with k | j
-    · exact hX k
-    · exact hXs j
+    exact Sum.forall.2 ⟨hX, hXs⟩
   have hXallb : ∀ l a, |Sum.elim X Xs l a| ≤ B := by
-    intro l a; rcases l with k | j
-    · exact hXb k a
-    · exact hXsb j a
+    exact Sum.forall.2 ⟨hXb, hXsb⟩
   have hgzm : ∀ z, Measurable (gz z) := fun z =>
     hD.add (Finset.measurable_sum _ fun l _ => (hXall l).const_mul _)
   have hgzb : ∀ z, ∀ a, |gz z a| ≤ Eb + ∑ l, |z l| * B := by
     intro z a
-    refine (abs_add_le _ _).trans (add_le_add (hDb a) ?_)
-    refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun l _ => ?_)
-    rw [abs_mul]
-    exact mul_le_mul_of_nonneg_left (hXallb l a) (abs_nonneg _)
+    exact abs_add_sum_mul_le _ z _ (hDb a) (fun l => hXallb l a)
   have hprob : ∀ z, IsProbabilityMeasure (μ.tilted (gz z)) := fun z =>
     isProbabilityMeasure_tilted_of_bound (hgzm z) (hgzb z)
   have hXallB : ∀ (l : K ⊕ Ks) (σ : Option (Option R) → α),
@@ -250,21 +243,14 @@ theorem continuous_integral_gibbs_replica_path {Ω : Type*} [MeasurableSpace Ω]
   have hmeassum : ∀ g : α → ℝ, Measurable g → Measurable fun σ : R → α => ∑ i, g (σ i) :=
     fun g hg => Finset.measurable_sum _ fun i _ => hg.comp (measurable_pi_apply i)
   have hXall : ∀ l, Measurable (Sum.elim X Xs l) := by
-    intro l; rcases l with k | j
-    · exact hX k
-    · exact hXs j
+    exact Sum.forall.2 ⟨hX, hXs⟩
   have hXallb : ∀ l a, |Sum.elim X Xs l a| ≤ B := by
-    intro l a; rcases l with k | j
-    · exact hXb k a
-    · exact hXsb j a
+    exact Sum.forall.2 ⟨hXb, hXsb⟩
   have hgzm : ∀ z, Measurable (gz z) := fun z =>
     hD.add (Finset.measurable_sum _ fun l _ => (hXall l).const_mul _)
   have hgzb : ∀ z, ∀ a, |gz z a| ≤ Eb + ∑ l, |z l| * B := by
     intro z a
-    refine (abs_add_le _ _).trans (add_le_add (hDb a) ?_)
-    refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun l _ => ?_)
-    rw [abs_mul]
-    exact mul_le_mul_of_nonneg_left (hXallb l a) (abs_nonneg _)
+    exact abs_add_sum_mul_le _ z _ (hDb a) (fun l => hXallb l a)
   have hXallB : ∀ (l : K ⊕ Ks) (σ : R → α),
       Sum.elim XB XsB l σ = ∑ i, Sum.elim X Xs l (σ i) := by
     intro l σ; rcases l with k | j <;> rfl

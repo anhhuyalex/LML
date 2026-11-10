@@ -8,6 +8,7 @@ module
 public import Mathlib.Probability.Moments.Tilted
 public import Mathlib.Analysis.Calculus.ParametricIntegral
 public import Mathlib.Tactic.Linarith
+public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.Weights
 
 /-!
 # Bounded energies on arbitrary finite measure spaces
@@ -23,6 +24,17 @@ open MeasureTheory ProbabilityTheory Filter Set
 namespace MeasureTheory
 
 variable {α : Type*} [MeasurableSpace α] {μ : Measure α} {f : α → ℝ} {C : ℝ}
+
+/-- Bound a constant plus a finite weighted sum. This is the energy bound used by
+Gaussian cavity paths, with the weights supplied by the path. -/
+theorem abs_add_sum_mul_le {K : Type*} [Fintype K] (D : ℝ) (z X : K → ℝ)
+    {Eb B : ℝ} (hD : |D| ≤ Eb) (hX : ∀ k, |X k| ≤ B) :
+    |D + ∑ k, z k * X k| ≤ Eb + ∑ k, |z k| * B := by
+  calc
+    _ ≤ |D| + |∑ k, z k * X k| := abs_add_le _ _
+    _ ≤ Eb + (∑ k, |z k|) * B :=
+      add_le_add hD (Weights.abs_weighted_sum_le z X hX)
+    _ = _ := by rw [Finset.sum_mul]
 
 /-- An almost everywhere upper bound on a real energy gives exponential integrability
 against any finite measure. A lower bound is unnecessary. -/
