@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Cavity.Comparison
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.FixedPoint.Bounds
 public import LeanMachineLearning.ForMathlib.Probability.GibbsProductSplit
 
 /-!
@@ -186,9 +187,9 @@ theorem skVectorCavityAverage_zero_pair_mul_eq_zero {d N : ℕ} {Ω : Type*} [Me
     {g : FinPairs N → Ω → ℝ} {g' : Fin N → Ω → ℝ} {Y : Fin d → Ω → ℝ}
     (hgm : ∀ p, Measurable (g p)) (hYm : ∀ u, Measurable (Y u))
     (hind : IndepFun (fun ω p => g p ω) (fun ω u => Y u ω) P)
-    (hq : ∀ u v, q u v = ∫ ω, skVectorGibbs μ (skVectorFieldExponent ξ β ρ q (fun w => Y w ω))
-      (fun a => ξ a u) * skVectorGibbs μ (skVectorFieldExponent ξ β ρ q (fun w => Y w ω))
-      (fun a => ξ a v) ∂P)
+    (hq : ∀ u v, q u v = ∫ ω,
+      (∫ a, ξ a u ∂(μ.tilted (skVectorFieldExponent ξ β ρ q (fun w => Y w ω)))) *
+      (∫ a, ξ a v ∂(μ.tilted (skVectorFieldExponent ξ β ρ q (fun w => Y w ω)))) ∂P)
     (Ψ : (Fin 2 → Fin N → α) → ℝ) (hΨ : Measurable Ψ) (u v : Fin d) :
     ∫ ω, ∫ σ : Fin 2 → Fin (N + 1) → α, Ψ (fun i j => σ i j.castSucc) *
         (ξ (σ 0 (Fin.last N)) u * ξ (σ 1 (Fin.last N)) v - q u v)
@@ -211,8 +212,8 @@ theorem skVectorCavityAverage_zero_pair_mul_eq_zero {d N : ℕ} {Ω : Type*} [Me
           (((hξ w).comp measurable_snd).mul ((hξ w').comp measurable_snd)).mul measurable_const))
   have hHm : Measurable fun ω u => Y u ω := measurable_pi_iff.2 hYm
   -- step 4: the field average vanishes by Eq. (1.372)
-  have hBy : ∀ y, B y = skVectorGibbs μ (skVectorFieldExponent ξ β ρ q y) (fun a => ξ a u) *
-      skVectorGibbs μ (skVectorFieldExponent ξ β ρ q y) (fun a => ξ a v) - q u v := by
+  have hBy : ∀ y, B y = (∫ a, ξ a u ∂(μ.tilted (skVectorFieldExponent ξ β ρ q y))) *
+      (∫ a, ξ a v ∂(μ.tilted (skVectorFieldExponent ξ β ρ q y))) - q u v := by
     intro y
     have hexpi := integrable_exp_skVectorFieldExponent μ ξ hξ hr hbound β ρ q y
     have : IsProbabilityMeasure (μ.tilted (skVectorFieldExponent ξ β ρ q y)) :=
@@ -238,24 +239,24 @@ theorem skVectorCavityAverage_zero_pair_mul_eq_zero {d N : ℕ} {Ω : Type*} [Me
           simpa [Real.norm_eq_abs] using abs_spin_mul_le ξ hr hbound (a 0) (a 1) u v
     simp only [hB, hΨ₂]
     rw [integral_sub hΨ₂i (integrable_const _), hprod, integral_const]
-    simp [skVectorGibbs_eq_integral_tilted]
-  have hGm' : ∀ w, Measurable fun ω => skVectorGibbs μ
-      (skVectorFieldExponent ξ β ρ q (fun w' => Y w' ω)) (fun a => ξ a w) := fun w =>
-    measurable_skVectorGibbs (e := fun ω a => skVectorFieldExponent ξ β ρ q (fun w' => Y w' ω) a)
+    simp
+  have hGm' : ∀ w, Measurable fun ω =>
+      ∫ a, ξ a w ∂(μ.tilted (skVectorFieldExponent ξ β ρ q (fun w' => Y w' ω))) := fun w =>
+    measurable_integral_tilted
+      (e := fun ω a => skVectorFieldExponent ξ β ρ q (fun w' => Y w' ω) a)
       (hEj₂.comp ((hHm.comp measurable_fst).prodMk measurable_snd)) (hξ w)
   have hB0 : ∫ ω, B (fun w => Y w ω) ∂P = 0 := by
     simp_rw [hBy]
-    have hi : Integrable (fun ω => skVectorGibbs μ
-        (skVectorFieldExponent ξ β ρ q (fun w' => Y w' ω)) (fun a => ξ a u) *
-        skVectorGibbs μ (skVectorFieldExponent ξ β ρ q (fun w' => Y w' ω))
-        (fun a => ξ a v)) P := by
+    have hi : Integrable (fun ω =>
+        (∫ a, ξ a u ∂(μ.tilted (skVectorFieldExponent ξ β ρ q (fun w' => Y w' ω)))) *
+        (∫ a, ξ a v ∂(μ.tilted (skVectorFieldExponent ξ β ρ q (fun w' => Y w' ω))))) P := by
       refine integrable_of_measurable_bound ((hGm' u).mul (hGm' v)) (M := d) fun ω => ?_
       have hexpi := integrable_exp_skVectorFieldExponent μ ξ hξ hr hbound β ρ q (fun w' => Y w' ω)
       have hb : ∀ a w, |ξ a w| ≤ Real.sqrt d := abs_spin_le ξ hbound
       rw [abs_mul]
       calc _ ≤ Real.sqrt d * Real.sqrt d :=
-            mul_le_mul (abs_skVectorGibbs_le hexpi fun a => hb a u)
-              (abs_skVectorGibbs_le hexpi fun a => hb a v) (abs_nonneg _) (Real.sqrt_nonneg _)
+            mul_le_mul (abs_integral_tilted_le hexpi fun a => hb a u)
+              (abs_integral_tilted_le hexpi fun a => hb a v) (abs_nonneg _) (Real.sqrt_nonneg _)
         _ = d := Real.mul_self_sqrt hr
     rw [integral_sub hi (integrable_const _), ← hq u v]
     simp
@@ -272,8 +273,8 @@ theorem skVectorCavityAverage_zero_diag_mul_eq_zero {d N : ℕ} {Ω : Type*} [Me
     {g : FinPairs N → Ω → ℝ} {g' : Fin N → Ω → ℝ} {Y : Fin d → Ω → ℝ}
     (hgm : ∀ p, Measurable (g p)) (hYm : ∀ u, Measurable (Y u))
     (hind : IndepFun (fun ω p => g p ω) (fun ω u => Y u ω) P)
-    (hρ : ∀ u v, ρ u v = ∫ ω, skVectorGibbs μ
-      (skVectorFieldExponent ξ β ρ q (fun w => Y w ω)) (fun a => ξ a u * ξ a v) ∂P)
+    (hρ : ∀ u v, ρ u v = ∫ ω, ∫ a, ξ a u * ξ a v ∂(μ.tilted
+      (skVectorFieldExponent ξ β ρ q (fun w => Y w ω))) ∂P)
     (Ψ : (Fin 2 → Fin N → α) → ℝ) (hΨ : Measurable Ψ) (u v : Fin d) :
     ∫ ω, ∫ σ : Fin 2 → Fin (N + 1) → α, Ψ (fun i j => σ i j.castSucc) *
         (ξ (σ 0 (Fin.last N)) u * ξ (σ 0 (Fin.last N)) v - ρ u v)
@@ -294,7 +295,7 @@ theorem skVectorCavityAverage_zero_diag_mul_eq_zero {d N : ℕ} {Ω : Type*} [Me
   have hHm : Measurable fun ω u => Y u ω := measurable_pi_iff.2 hYm
   have hBy : ∀ y, ∫ a, (ξ (a 0) u * ξ (a 0) v - ρ u v) ∂(Measure.pi fun _ : Fin 2 =>
       μ.tilted (skVectorFieldExponent ξ β ρ q y)) =
-      skVectorGibbs μ (skVectorFieldExponent ξ β ρ q y) (fun a => ξ a u * ξ a v) - ρ u v := by
+      (∫ a, ξ a u * ξ a v ∂(μ.tilted (skVectorFieldExponent ξ β ρ q y))) - ρ u v := by
     intro y
     have hexpi := integrable_exp_skVectorFieldExponent μ ξ hξ hr hbound β ρ q y
     have : IsProbabilityMeasure (μ.tilted (skVectorFieldExponent ξ β ρ q y)) :=
@@ -307,20 +308,20 @@ theorem skVectorCavityAverage_zero_diag_mul_eq_zero {d N : ℕ} {Ω : Type*} [Me
       integrable_of_measurable_bound ((hξ u).mul (hξ v)) (M := d)
         fun a => abs_spin_mul_le ξ hr hbound a a u v
     rw [integral_pi_eval (μ.tilted (skVectorFieldExponent ξ β ρ q y)) (J := Fin 2) 0
-      (fun a => ξ a u * ξ a v - ρ u v) hmeas, integral_sub hint (integrable_const _),
-      ← skVectorGibbs_eq_integral_tilted]
+      (fun a => ξ a u * ξ a v - ρ u v) hmeas, integral_sub hint (integrable_const _)]
     simp
-  have hG : Measurable fun ω => skVectorGibbs μ
-      (skVectorFieldExponent ξ β ρ q (fun w' => Y w' ω)) (fun a => ξ a u * ξ a v) :=
-    measurable_skVectorGibbs (e := fun ω a => skVectorFieldExponent ξ β ρ q (fun w' => Y w' ω) a)
+  have hG : Measurable fun ω => ∫ a, ξ a u * ξ a v ∂(μ.tilted
+      (skVectorFieldExponent ξ β ρ q (fun w' => Y w' ω))) :=
+    measurable_integral_tilted
+      (e := fun ω a => skVectorFieldExponent ξ β ρ q (fun w' => Y w' ω) a)
       (hEj₂.comp ((hHm.comp measurable_fst).prodMk measurable_snd)) ((hξ u).mul (hξ v))
   have hB0 : ∫ ω, ∫ a, (ξ (a 0) u * ξ (a 0) v - ρ u v) ∂(Measure.pi fun _ : Fin 2 =>
       μ.tilted (skVectorFieldExponent ξ β ρ q (fun w => Y w ω))) ∂P = 0 := by
     simp_rw [hBy]
-    have hi : Integrable (fun ω => skVectorGibbs μ
-        (skVectorFieldExponent ξ β ρ q (fun w' => Y w' ω)) (fun a => ξ a u * ξ a v)) P :=
+    have hi : Integrable (fun ω => ∫ a, ξ a u * ξ a v ∂(μ.tilted
+        (skVectorFieldExponent ξ β ρ q (fun w' => Y w' ω)))) P :=
       integrable_of_measurable_bound hG (M := d) fun ω =>
-        abs_skVectorGibbs_le (integrable_exp_skVectorFieldExponent μ ξ hξ hr hbound β ρ q _)
+        abs_integral_tilted_le (integrable_exp_skVectorFieldExponent μ ξ hξ hr hbound β ρ q _)
           fun a => abs_spin_mul_le ξ hr hbound a a u v
     rw [integral_sub hi (integrable_const _), ← hρ u v]
     simp

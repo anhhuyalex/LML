@@ -37,26 +37,25 @@ omit [IsProbabilityMeasure μ] in
 /-- Two-replica Gibbs averages of products are products of Gibbs means. -/
 theorem skVectorFieldAverage_pair (u v : Fin d) (y : Fin d → ℝ) :
     skVectorFieldAverage μ ξ β ρ q (fun σ : Fin 2 → α => ξ (σ 0) u * ξ (σ 1) v) y =
-      skVectorGibbs μ (skVectorFieldExponent ξ β ρ q y) (fun a => ξ a u) *
-        skVectorGibbs μ (skVectorFieldExponent ξ β ρ q y) (fun a => ξ a v) := by
+      (∫ a, ξ a u ∂(μ.tilted (skVectorFieldExponent ξ β ρ q y))) *
+        (∫ a, ξ a v ∂(μ.tilted (skVectorFieldExponent ξ β ρ q y))) := by
   unfold skVectorFieldAverage
   have := integral_fintype_prod_eq_prod (ι := Fin 2) (E := fun _ => α)
     (fun i => ![fun a => ξ a u, fun a => ξ a v] i)
     (μ := fun _ => μ.tilted (skVectorFieldExponent ξ β ρ q y))
   simp only [Fin.prod_univ_two] at this
   simp only [Matrix.cons_val_zero, Matrix.cons_val_one] at this
-  rw [this, skVectorGibbs_eq_integral_tilted, skVectorGibbs_eq_integral_tilted]
+  exact this
 
 include hξ hbound in
 /-- One-replica Gibbs averages of products. -/
 theorem skVectorFieldAverage_diag (u v : Fin d) (y : Fin d → ℝ) :
     skVectorFieldAverage μ ξ β ρ q (fun σ : Fin 2 → α => ξ (σ 0) u * ξ (σ 0) v) y =
-      skVectorGibbs μ (skVectorFieldExponent ξ β ρ q y) (fun a => ξ a u * ξ a v) := by
+      ∫ a, ξ a u * ξ a v ∂(μ.tilted (skVectorFieldExponent ξ β ρ q y)) := by
   unfold skVectorFieldAverage
   have hexpi := integrable_exp_skVectorFieldExponent μ ξ hξ (Nat.cast_nonneg d) hbound β ρ q y
   have : IsProbabilityMeasure (μ.tilted (skVectorFieldExponent ξ β ρ q y)) :=
     isProbabilityMeasure_tilted hexpi
-  rw [skVectorGibbs_eq_integral_tilted]
   exact integral_pi_eval (μ.tilted (skVectorFieldExponent ξ β ρ q y)) (J := Fin 2) 0
     (fun a => ξ a u * ξ a v) ((((hξ u).mul (hξ v))).aestronglyMeasurable)
 
@@ -67,12 +66,12 @@ theorem skVectorFixedPointMap_fst_posSemidef (x : (Fin d → Fin d → ℝ) × (
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
   have hb : ∀ a w, |ξ a w| ≤ Real.sqrt d := abs_spin_le ξ hbound
   set G : (Fin d → ℝ) → Fin d → ℝ := fun y w =>
-    skVectorGibbs μ (skVectorFieldExponent ξ β x.2 x.1 y) (fun a => ξ a w) with hG
+    ∫ a, ξ a w ∂(μ.tilted (skVectorFieldExponent ξ β x.2 x.1 y)) with hG
   have hGm : ∀ w, Measurable fun y => G y w := fun w =>
-    measurable_skVectorGibbs (e := fun y a => skVectorFieldExponent ξ β x.2 x.1 y a)
+    measurable_integral_tilted (e := fun y a => skVectorFieldExponent ξ β x.2 x.1 y a)
       (measurable_skVectorFieldExponent_joint ξ hξ β x.2 x.1) (hξ w)
   have hGb : ∀ y w, |G y w| ≤ Real.sqrt d := fun y w =>
-    abs_skVectorGibbs_le (integrable_exp_skVectorFieldExponent μ ξ hξ hr hbound β x.2 x.1 y)
+    abs_integral_tilted_le (integrable_exp_skVectorFieldExponent μ ξ hξ hr hbound β x.2 x.1 y)
       fun a => hb a w
   have := Matrix.posSemidef_integral_of_posSemidef (skVectorGaussianLaw β x.1)
     (fun y => Matrix.vecMulVec (G y) (star (G y)))
@@ -104,34 +103,32 @@ theorem skVectorFixedPointMap_sub_posSemidef (x : (Fin d → Fin d → ℝ) × (
   set e : (Fin d → ℝ) → α → ℝ := fun y => skVectorFieldExponent ξ β x.2 x.1 y with he
   have hem : Measurable fun p : (Fin d → ℝ) × α => e p.1 p.2 :=
     measurable_skVectorFieldExponent_joint ξ hξ β x.2 x.1
-  have hGm : ∀ w, Measurable fun y => skVectorGibbs μ (e y) (fun a => ξ a w) := fun w =>
-    measurable_skVectorGibbs (e := e) hem (hξ w)
-  have hHm : ∀ u v, Measurable fun y => skVectorGibbs μ (e y) (fun a => ξ a u * ξ a v) :=
-    fun u v => measurable_skVectorGibbs (e := e) hem ((hξ u).mul (hξ v))
-  have hGb : ∀ y w, |skVectorGibbs μ (e y) (fun a => ξ a w)| ≤ Real.sqrt d := fun y w =>
-    abs_skVectorGibbs_le (hexp y) fun a => hb a w
-  have hHb : ∀ y u v, |skVectorGibbs μ (e y) (fun a => ξ a u * ξ a v)| ≤ d := fun y u v =>
-    abs_skVectorGibbs_le (hexp y) fun a => hxs a u v
-  have hHi : ∀ u v, Integrable (fun y => skVectorGibbs μ (e y) (fun a => ξ a u * ξ a v))
+  have hGm : ∀ w, Measurable fun y => ∫ a, ξ a w ∂(μ.tilted (e y)) := fun w =>
+    measurable_integral_tilted (e := e) hem (hξ w)
+  have hHm : ∀ u v, Measurable fun y => ∫ a, ξ a u * ξ a v ∂(μ.tilted (e y)) :=
+    fun u v => measurable_integral_tilted (e := e) hem ((hξ u).mul (hξ v))
+  have hGb : ∀ y w, |∫ a, ξ a w ∂(μ.tilted (e y))| ≤ Real.sqrt d := fun y w =>
+    abs_integral_tilted_le (hexp y) fun a => hb a w
+  have hHb : ∀ y u v, |∫ a, ξ a u * ξ a v ∂(μ.tilted (e y))| ≤ d := fun y u v =>
+    abs_integral_tilted_le (hexp y) fun a => hxs a u v
+  have hHi : ∀ u v, Integrable (fun y => ∫ a, ξ a u * ξ a v ∂(μ.tilted (e y)))
       (skVectorGaussianLaw β x.1) := fun u v =>
     integrable_of_measurable_bound (hHm u v) (M := d) (hHb · u v)
-  have hGGi : ∀ u v, Integrable (fun y => skVectorGibbs μ (e y) (fun a => ξ a u) *
-      skVectorGibbs μ (e y) (fun a => ξ a v)) (skVectorGaussianLaw β x.1) := fun u v =>
+  have hGGi : ∀ u v, Integrable (fun y => (∫ a, ξ a u ∂(μ.tilted (e y))) *
+      (∫ a, ξ a v ∂(μ.tilted (e y)))) (skVectorGaussianLaw β x.1) := fun u v =>
     integrable_of_measurable_bound ((hGm u).mul (hGm v)) (M := d) fun y => by
       rw [abs_mul]
       calc _ ≤ Real.sqrt d * Real.sqrt d :=
             mul_le_mul (hGb y u) (hGb y v) (abs_nonneg _) (Real.sqrt_nonneg _)
         _ = d := Real.mul_self_sqrt hr
-  have hcov : ∀ y, (Matrix.of fun u v => skVectorGibbs μ (e y) (fun a => ξ a u * ξ a v) -
-      skVectorGibbs μ (e y) (fun a => ξ a u) * skVectorGibbs μ (e y) (fun a => ξ a v)).PosSemidef
-      := fun y => by
+  have hcov : ∀ y, (Matrix.of fun u v => (∫ a, ξ a u * ξ a v ∂(μ.tilted (e y))) -
+      (∫ a, ξ a u ∂(μ.tilted (e y))) * (∫ a, ξ a v ∂(μ.tilted (e y)))).PosSemidef := fun y => by
     have := hprob y
-    simp only [skVectorGibbs_eq_integral_tilted]
     exact Matrix.posSemidef_covariance_of_bounded (μ.tilted (e y)) (fun u a => ξ a u) hξ
       (B := Real.sqrt d) fun u a => hb a u
   have := Matrix.posSemidef_integral_of_posSemidef (skVectorGaussianLaw β x.1)
-    (fun y => Matrix.of fun u v => skVectorGibbs μ (e y) (fun a => ξ a u * ξ a v) -
-      skVectorGibbs μ (e y) (fun a => ξ a u) * skVectorGibbs μ (e y) (fun a => ξ a v)) hcov
+    (fun y => Matrix.of fun u v => (∫ a, ξ a u * ξ a v ∂(μ.tilted (e y))) -
+      (∫ a, ξ a u ∂(μ.tilted (e y))) * (∫ a, ξ a v ∂(μ.tilted (e y)))) hcov
     (fun u v => (hHi u v).sub (hGGi u v))
   convert this using 1
   ext u v

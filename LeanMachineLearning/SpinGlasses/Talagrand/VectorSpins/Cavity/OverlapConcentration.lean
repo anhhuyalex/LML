@@ -156,7 +156,8 @@ theorem skVectorCavityAverage_one_overlap_variance_eq_last_spin [IsProbabilityMe
       (∀ u v x, |F u v x| ≤ C) → ∀ u v, ∃ M, ∀ x, |F u v x| ≤ M := fun F C h u v => ⟨C, h u v⟩
   have hsum_prod : ∀ (F : Fin d → Fin d → (Fin 2 → Fin (N + 1) → α) → ℝ)
       (hF : ∀ u v, Measurable (F u v)) (hFb : ∀ u v, ∃ M, ∀ x, |F u v x| ≤ M),
-      ∫ ω, ∫ x, ∑ u, ∑ v, F u v x ∂(Q ω) ∂P = ∑ u, ∑ v, ∫ ω, ∫ x, F u v x ∂(Q ω) ∂P := fun F hF hFb => by
+      ∫ ω, ∫ x, ∑ u, ∑ v, F u v x ∂(Q ω) ∂P =
+        ∑ u, ∑ v, ∫ ω, ∫ x, F u v x ∂(Q ω) ∂P := fun F hF hFb => by
     have := integral_integral_finset_sum P Q (Finset.univ : Finset (Fin d × Fin d))
       (fun p x => F p.1 p.2 x)
       (fun p _ ω => integrable_of_measurable_bound (hF p.1 p.2) (hFb p.1 p.2).choose_spec)
@@ -223,7 +224,8 @@ theorem abs_skVectorCavityAverage_zero_sum_le
     integrable_integral_skVectorCavity μ ξ hξ hbound β ρ q hgm hg'm hYm 0 G hG hGb
   have hsum_prod : ∀ (F : Fin d → Fin d → (Fin 2 → Fin (N + 1) → α) → ℝ)
       (hF : ∀ u v, Measurable (F u v)) (hFb : ∀ u v, ∃ M, ∀ x, |F u v x| ≤ M),
-      ∫ ω, ∫ x, ∑ u, ∑ v, F u v x ∂(Q ω) ∂P = ∑ u, ∑ v, ∫ ω, ∫ x, F u v x ∂(Q ω) ∂P := fun F hF hFb => by
+      ∫ ω, ∫ x, ∑ u, ∑ v, F u v x ∂(Q ω) ∂P =
+        ∑ u, ∑ v, ∫ ω, ∫ x, F u v x ∂(Q ω) ∂P := fun F hF hFb => by
     have := integral_integral_finset_sum P Q (Finset.univ : Finset (Fin d × Fin d))
       (fun p x => F p.1 p.2 x)
       (fun p _ ω => integrable_of_measurable_bound (hF p.1 p.2) (hFb p.1 p.2).choose_spec)
@@ -410,11 +412,11 @@ fixed-point equations (1.372)--(1.373) for the Gaussian field `Y` of covariance 
 `A + B ≤ (8 d⁴ + 2 d²)/(N + 1)`. Here `ν_1` is the cavity average at `t = 1`, i.e. the Gibbs
 average of the `(N+1)`-site system whose couplings are the restriction of `gt`. -/
 theorem sum_overlap_variances_le (hβ : β ^ 2 * (d : ℝ) ^ 2 ≤ 1 / 200)
-    (hq : ∀ u v, q u v = ∫ ω, skVectorGibbs μ (skVectorFieldExponent ξ β ρ q (fun w => Y w ω))
-      (fun a => ξ a u) * skVectorGibbs μ (skVectorFieldExponent ξ β ρ q (fun w => Y w ω))
-      (fun a => ξ a v) ∂P)
-    (hρ : ∀ u v, ρ u v = ∫ ω, skVectorGibbs μ
-      (skVectorFieldExponent ξ β ρ q (fun w => Y w ω)) (fun a => ξ a u * ξ a v) ∂P)
+    (hq : ∀ u v, q u v = ∫ ω,
+      (∫ a, ξ a u ∂(μ.tilted (skVectorFieldExponent ξ β ρ q (fun w => Y w ω)))) *
+      (∫ a, ξ a v ∂(μ.tilted (skVectorFieldExponent ξ β ρ q (fun w => Y w ω)))) ∂P)
+    (hρ : ∀ u v, ρ u v = ∫ ω, ∫ a, ξ a u * ξ a v ∂(μ.tilted
+      (skVectorFieldExponent ξ β ρ q (fun w => Y w ω))) ∂P)
     (hn : SKVectorCavityGaussianData P N d β q g g' Y)
     (hg : ∀ p ω, g p ω = gt ⟨(p.val.1.castSucc, p.val.2.castSucc),
       Fin.castSucc_lt_castSucc_iff.mpr p.property⟩ ω)

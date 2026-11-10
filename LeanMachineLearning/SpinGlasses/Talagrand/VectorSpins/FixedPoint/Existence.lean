@@ -275,26 +275,27 @@ theorem skVectorFixedPointMap_eq_iff_equations {d : ℕ} {Ω : Type*} [Measurabl
     (hYm : ∀ u, Measurable (Y u)) (hY0 : ∀ u, ∫ ω, Y u ω ∂P = 0)
     (hYc : ∀ u v, ∫ ω, Y u ω * Y v ω ∂P = β ^ 2 * x.1 u v) :
     skVectorFixedPointMap μ ξ β x = x ↔
-      (∀ u v, x.1 u v = ∫ ω, skVectorGibbs μ
-          (skVectorFieldExponent ξ β x.2 x.1 (fun w => Y w ω)) (fun a => ξ a u) *
-        skVectorGibbs μ (skVectorFieldExponent ξ β x.2 x.1 (fun w => Y w ω))
-          (fun a => ξ a v) ∂P) ∧
-      (∀ u v, x.2 u v = ∫ ω, skVectorGibbs μ
-          (skVectorFieldExponent ξ β x.2 x.1 (fun w => Y w ω)) (fun a => ξ a u * ξ a v) ∂P) := by
+      (∀ u v, x.1 u v = ∫ ω,
+        (∫ a, ξ a u ∂(μ.tilted (skVectorFieldExponent ξ β x.2 x.1 (fun w => Y w ω)))) *
+        (∫ a, ξ a v ∂(μ.tilted (skVectorFieldExponent ξ β x.2 x.1 (fun w => Y w ω)))) ∂P) ∧
+      (∀ u v, x.2 u v = ∫ ω, ∫ a, ξ a u * ξ a v ∂(μ.tilted
+        (skVectorFieldExponent ξ β x.2 x.1 (fun w => Y w ω))) ∂P) := by
   have hlaw := map_eq_skVectorGaussianLaw β x.1 hYg hY0 hYc
   have hF1 : ∀ u v, Measurable fun σ : Fin 2 → α => ξ (σ 0) u * ξ (σ 1) v := fun u v =>
     ((hξ u).comp (measurable_pi_apply 0)).mul ((hξ v).comp (measurable_pi_apply 1))
   have hF2 : ∀ u v, Measurable fun σ : Fin 2 → α => ξ (σ 0) u * ξ (σ 0) v := fun u v =>
     ((hξ u).comp (measurable_pi_apply 0)).mul ((hξ v).comp (measurable_pi_apply 0))
-  have e1 : ∀ u v, ∫ ω, skVectorGibbs μ (skVectorFieldExponent ξ β x.2 x.1 (fun w => Y w ω))
-      (fun a => ξ a u) * skVectorGibbs μ (skVectorFieldExponent ξ β x.2 x.1 (fun w => Y w ω))
-        (fun a => ξ a v) ∂P = (skVectorFixedPointMap μ ξ β x).1 u v := fun u v => by
+  have e1 : ∀ u v, ∫ ω,
+      (∫ a, ξ a u ∂(μ.tilted (skVectorFieldExponent ξ β x.2 x.1 (fun w => Y w ω)))) *
+      (∫ a, ξ a v ∂(μ.tilted (skVectorFieldExponent ξ β x.2 x.1 (fun w => Y w ω)))) ∂P =
+      (skVectorFixedPointMap μ ξ β x).1 u v := fun u v => by
     simp only [skVectorFixedPointMap]
     rw [← integral_skVectorFieldAverage_realization μ ξ hξ β x.2 x.1 _ (hF1 u v) hYm hlaw]
     exact integral_congr_ae (Filter.Eventually.of_forall fun ω =>
       (skVectorFieldAverage_pair μ ξ β x.2 x.1 u v _).symm)
-  have e2 : ∀ u v, ∫ ω, skVectorGibbs μ (skVectorFieldExponent ξ β x.2 x.1 (fun w => Y w ω))
-      (fun a => ξ a u * ξ a v) ∂P = (skVectorFixedPointMap μ ξ β x).2 u v := fun u v => by
+  have e2 : ∀ u v, ∫ ω, ∫ a, ξ a u * ξ a v ∂(μ.tilted
+      (skVectorFieldExponent ξ β x.2 x.1 (fun w => Y w ω))) ∂P =
+      (skVectorFixedPointMap μ ξ β x).2 u v := fun u v => by
     simp only [skVectorFixedPointMap]
     rw [← integral_skVectorFieldAverage_realization μ ξ hξ β x.2 x.1 _ (hF2 u v) hYm hlaw]
     exact integral_congr_ae (Filter.Eventually.of_forall fun ω =>
@@ -332,23 +333,20 @@ theorem exists_skVectorFixedPoint_equations_unique {d : ℕ} (μ : Measure α) [
       (∀ {Ω : Type u} [MeasurableSpace Ω] {P : Measure Ω} [IsProbabilityMeasure P]
         {Y : Fin d → Ω → ℝ}, HasGaussianLaw (fun ω u => Y u ω) P → (∀ u, Measurable (Y u)) →
         (∀ u, ∫ ω, Y u ω ∂P = 0) → (∀ u v, ∫ ω, Y u ω * Y v ω ∂P = β ^ 2 * x.1 u v) →
-        (∀ u v, x.1 u v = ∫ ω, skVectorGibbs μ
-            (skVectorFieldExponent ξ β x.2 x.1 (fun w => Y w ω)) (fun a => ξ a u) *
-          skVectorGibbs μ (skVectorFieldExponent ξ β x.2 x.1 (fun w => Y w ω))
-            (fun a => ξ a v) ∂P) ∧
-        (∀ u v, x.2 u v = ∫ ω, skVectorGibbs μ
-            (skVectorFieldExponent ξ β x.2 x.1 (fun w => Y w ω)) (fun a => ξ a u * ξ a v) ∂P)) ∧
+        (∀ u v, x.1 u v = ∫ ω,
+          (∫ a, ξ a u ∂(μ.tilted (skVectorFieldExponent ξ β x.2 x.1 (fun w => Y w ω)))) *
+          (∫ a, ξ a v ∂(μ.tilted (skVectorFieldExponent ξ β x.2 x.1 (fun w => Y w ω)))) ∂P) ∧
+        (∀ u v, x.2 u v = ∫ ω, ∫ a, ξ a u * ξ a v ∂(μ.tilted
+          (skVectorFieldExponent ξ β x.2 x.1 (fun w => Y w ω))) ∂P)) ∧
       ∀ x' : (Fin d → Fin d → ℝ) × (Fin d → Fin d → ℝ), (Matrix.of x'.1).PosSemidef →
         ∀ {Ω : Type u} [MeasurableSpace Ω] {P : Measure Ω} [IsProbabilityMeasure P]
           {Y : Fin d → Ω → ℝ}, HasGaussianLaw (fun ω u => Y u ω) P → (∀ u, Measurable (Y u)) →
           (∀ u, ∫ ω, Y u ω ∂P = 0) → (∀ u v, ∫ ω, Y u ω * Y v ω ∂P = β ^ 2 * x'.1 u v) →
-          (∀ u v, x'.1 u v = ∫ ω, skVectorGibbs μ
-              (skVectorFieldExponent ξ β x'.2 x'.1 (fun w => Y w ω)) (fun a => ξ a u) *
-            skVectorGibbs μ (skVectorFieldExponent ξ β x'.2 x'.1 (fun w => Y w ω))
-              (fun a => ξ a v) ∂P) →
-          (∀ u v, x'.2 u v = ∫ ω, skVectorGibbs μ
-              (skVectorFieldExponent ξ β x'.2 x'.1 (fun w => Y w ω)) (fun a => ξ a u * ξ a v)
-              ∂P) → x' = x := by
+          (∀ u v, x'.1 u v = ∫ ω,
+            (∫ a, ξ a u ∂(μ.tilted (skVectorFieldExponent ξ β x'.2 x'.1 (fun w => Y w ω)))) *
+            (∫ a, ξ a v ∂(μ.tilted (skVectorFieldExponent ξ β x'.2 x'.1 (fun w => Y w ω)))) ∂P) →
+          (∀ u v, x'.2 u v = ∫ ω, ∫ a, ξ a u * ξ a v ∂(μ.tilted
+            (skVectorFieldExponent ξ β x'.2 x'.1 (fun w => Y w ω))) ∂P) → x' = x := by
   obtain ⟨x, hx, hxf⟩ := exists_skVectorFixedPoint μ ξ hξ hbound β hβ
   refine ⟨x, hx.1, hx.2, ?_, ?_⟩
   · intro Ω _ P _ Y hYg hYm hY0 hYc

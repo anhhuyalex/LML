@@ -6,7 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Model.GaussianField
-public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Cavity.Decoupling
+public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaProduct
 
 /-!
 # The fixed-point map of (1.372)--(1.373) and its contraction estimate

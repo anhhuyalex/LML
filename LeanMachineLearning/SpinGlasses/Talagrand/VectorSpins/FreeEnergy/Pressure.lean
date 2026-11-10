@@ -128,12 +128,13 @@ theorem hasDerivAt_skVectorPressure_rho_segment {d : ℕ} (μ : Measure α) [IsP
   congr 2
   -- identify the Gibbs mean with the fixed-point map
   set ρs : Fin d → Fin d → ℝ := fun u v => ρ u v + s₀ * (ρ' u v - ρ u v) with hρs
-  have hmeasG : Measurable fun y : Fin d → ℝ => skVectorGibbs μ
-      (skVectorFieldExponent ξ b ρs q y) (fun a => ξ a u * ξ a v) :=
-    measurable_skVectorGibbs (e := fun y a => skVectorFieldExponent ξ b ρs q y a)
+  have hmeasG : Measurable fun y : Fin d → ℝ =>
+      ∫ a, ξ a u * ξ a v ∂(μ.tilted (skVectorFieldExponent ξ b ρs q y)) :=
+    measurable_integral_tilted (e := fun y a => skVectorFieldExponent ξ b ρs q y a)
       (measurable_skVectorFieldExponent_joint ξ hξ b ρs q) ((hξ u).mul (hξ v))
-  have hT : (skVectorFixedPointMap μ ξ b (q, ρs)).2 u v = ∫ y, skVectorGibbs μ
-      (skVectorFieldExponent ξ b ρs q y) (fun a => ξ a u * ξ a v) ∂(skVectorGaussianLaw b q) := by
+  have hT : (skVectorFixedPointMap μ ξ b (q, ρs)).2 u v = ∫ y,
+      ∫ a, ξ a u * ξ a v ∂(μ.tilted (skVectorFieldExponent ξ b ρs q y))
+      ∂(skVectorGaussianLaw b q) := by
     simp only [skVectorFixedPointMap]
     exact integral_congr_ae (Filter.Eventually.of_forall fun y =>
       skVectorFieldAverage_diag μ ξ hξ hbound b ρs q u v y)
@@ -477,14 +478,12 @@ theorem skVectorSegment_gibbs_eq {d : ℕ} (μ : Measure α) [IsProbabilityMeasu
     (ρ q q' : Fin d → Fin d → ℝ)
     (hq : (Matrix.of q).PosSemidef) (hq' : (Matrix.of q').PosSemidef) (b : ℝ) {t : ℝ}
     (ht : t ∈ Set.Icc (0 : ℝ) 1) (u v : Fin d) :
-    ∫ ω, skVectorGibbs μ (skVectorSegmentExponent ξ ρ q q' b t
+    ∫ ω, (∫ a, ξ a u ∂(μ.tilted (skVectorSegmentExponent ξ ρ q q' b t
         (fun w => skVectorGaussianPairField (Sum.inl w) ω) (fun w => skVectorGaussianPairField
-          (Sum.inr w) ω))
-        (fun a => ξ a u) *
-      skVectorGibbs μ (skVectorSegmentExponent ξ ρ q q' b t
+          (Sum.inr w) ω)))) *
+      (∫ a, ξ a v ∂(μ.tilted (skVectorSegmentExponent ξ ρ q q' b t
         (fun w => skVectorGaussianPairField (Sum.inl w) ω) (fun w => skVectorGaussianPairField
-          (Sum.inr w) ω))
-        (fun a => ξ a v) ∂(skVectorGaussianPairLaw 1 q' q) =
+          (Sum.inr w) ω)))) ∂(skVectorGaussianPairLaw 1 q' q) =
       (skVectorFixedPointMap μ ξ b (fun u v => t * q' u v + (1 - t) * q u v, ρ)).1 u v := by
   have hQ : ∀ u v, b ^ 2 * (t * q' u v + (1 - t) * q u v) =
       (b * Real.sqrt t) ^ 2 * q' u v + (b * Real.sqrt (1 - t)) ^ 2 * q u v := fun u v => by
