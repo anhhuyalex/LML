@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.SKVectorPressureBound
-public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.SKVectorFreeEnergyError
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.FreeEnergy.PressureBound
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.FreeEnergy.DerivativeBound
 
 /-!
 # Theorem 1.12.3: the free energy of the vector SK model
@@ -67,11 +67,12 @@ theorem skVectorFreeEnergy_zero {d : ℕ} (μ : Measure α) [IsProbabilityMeasur
   simp [skVectorEnergy]
 
 /-- The replica-symmetric pressure along the branch of fixed points is small near `0`. -/
-theorem tendsto_pressure_fixedPoint {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
+theorem tendsto_skVectorPressure_fixedPoint_zero {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
     (ξ : α → Fin d → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u))
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) {β₁ : ℝ} (hβ₁ : 0 < β₁)
     (z : ℝ → (Fin d → Fin d → ℝ) × (Fin d → Fin d → ℝ))
-    (hz : ∀ b ∈ Ioo 0 β₁, z b ∈ skVectorFixedCone d ∧ skVectorFixedMap μ ξ b (z b) = z b) :
+    (hz : ∀ b ∈ Ioo 0 β₁, z b ∈ skVectorFixedPointCone d ∧ skVectorFixedPointMap μ ξ b (z b) = z
+      b) :
     Tendsto (fun b => skVectorPressure μ ξ b (z b)) (𝓝[>] 0) (𝓝 0) := by
   have hc : Continuous fun b : ℝ => b ^ 2 * (d : ℝ) ^ 2 / 2 + |b| * (d : ℝ) ^ 2 +
       b ^ 2 * (d : ℝ) ^ 3 := by fun_prop
@@ -90,12 +91,13 @@ theorem tendsto_pressure_fixedPoint {d : ℕ} (μ : Measure α) [IsProbabilityMe
 energy `p_{N+1}(β)` of the vector SK model with `N + 1` sites satisfies
 `|p_{N+1}(β) - G(β, (q, ρ))| ≤ β² (ε + d ε/s + 2 d s)/2 + β² d²/(2(N+1))`,
 where `ε = (8 d⁴ + 2 d²)/(N+1)`. -/
-theorem skVector_theorem_1_12_3_rate {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
+theorem abs_skVectorFreeEnergy_sub_pressure_le_of_pos {d : ℕ} (μ : Measure α)
+  [IsProbabilityMeasure μ]
     (ξ : α → Fin d → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u))
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) {β β₁ : ℝ} (hβ : 0 < β) (hββ₁ : β < β₁)
     (hκ : 18 * β₁ ^ 2 * (d : ℝ) ^ 2 < 1) (hβ₁ : β₁ ^ 2 * (d : ℝ) ^ 2 ≤ 1 / 200) (N : ℕ)
     {s : ℝ} (hs : 0 < s) {x : (Fin d → Fin d → ℝ) × (Fin d → Fin d → ℝ)}
-    (hx : x ∈ skVectorFixedCone d) (hxf : skVectorFixedMap μ ξ β x = x) :
+    (hx : x ∈ skVectorFixedPointCone d) (hxf : skVectorFixedPointMap μ ξ β x = x) :
     |skVectorFreeEnergy μ ξ (N + 1) β - skVectorPressure μ ξ β x| ≤
       β ^ 2 * (((8 * (d : ℝ) ^ 4 + 2 * (d : ℝ) ^ 2) / ((N : ℝ) + 1) +
         d * ((8 * (d : ℝ) ^ 4 + 2 * (d : ℝ) ^ 2) / ((N : ℝ) + 1)) / s + 2 * d * s) / 2 +
@@ -109,7 +111,8 @@ theorem skVector_theorem_1_12_3_rate {d : ℕ} (μ : Measure α) [IsProbabilityM
   let z : ℝ → (Fin d → Fin d → ℝ) × (Fin d → Fin d → ℝ) := fun b =>
     if h : 18 * b ^ 2 * (d : ℝ) ^ 2 < 1 then
       Classical.choose (exists_skVectorFixedPoint μ ξ hξ hbound b h) else 0
-  have hz : ∀ b ∈ Ioo 0 β₁, z b ∈ skVectorFixedCone d ∧ skVectorFixedMap μ ξ b (z b) = z b :=
+  have hz : ∀ b ∈ Ioo 0 β₁, z b ∈ skVectorFixedPointCone d ∧ skVectorFixedPointMap μ ξ b (z b) = z
+    b :=
     fun b hb => by
       have hzb : z b = Classical.choose (exists_skVectorFixedPoint μ ξ hξ hbound b (hsmall b hb)) :=
         by simp [z, hsmall b hb]
@@ -124,9 +127,9 @@ theorem skVector_theorem_1_12_3_rate {d : ℕ} (μ : Measure α) [IsProbabilityM
     have hb2 : b ^ 2 * (d : ℝ) ^ 2 ≤ 1 / 200 := by
       have : b ^ 2 ≤ β₁ ^ 2 := by nlinarith [hb.1, hb.2]
       nlinarith [sq_nonneg (d : ℝ)]
-    obtain ⟨V, hV, hVb⟩ := hasDerivAt_skVectorFreeEnergy_approx μ ξ hξ hbound b hb2 N
+    obtain ⟨V, hV, hVb⟩ := exists_hasDerivAt_skVectorFreeEnergy_abs_sub_le μ ξ hξ hbound b hb2 N
       (hz b hb).1 (hz b hb).2 hs
-    have hF := hasDerivAt_pressure_family μ ξ hξ hbound hb.1 hb.2 hκ z
+    have hF := hasDerivAt_skVectorPressure_fixedPoint μ ξ hξ hbound hb.1 hb.2 hκ z
       (fun b' hb' => hz b' ⟨(half_pos hb.1).trans hb'.1, hb'.2⟩)
     refine ⟨_, hV.sub hF, ?_⟩
     rw [abs_of_pos hb.1] at hVb
@@ -137,14 +140,14 @@ theorem skVector_theorem_1_12_3_rate {d : ℕ} (μ : Measure α) [IsProbabilityM
     rw [skVectorFreeEnergy_zero] at this
     exact this.mono_left nhdsWithin_le_nhds
   have key := abs_sub_le_of_deriv_bound hK0 hβ hββ₁ hΔ hp
-    (tendsto_pressure_fixedPoint μ ξ hξ hbound hβ₁0 z hz)
+    (tendsto_skVectorPressure_fixedPoint_zero μ ξ hξ hbound hβ₁0 z hz)
   have hxz : x = z β := skVectorFixedPoint_unique μ ξ hξ hbound β (hsmall β ⟨hβ, hββ₁⟩) hx
     (hz β ⟨hβ, hββ₁⟩).1 hxf (hz β ⟨hβ, hββ₁⟩).2
   rw [hxz]
   linarith [key, mul_comm K (β ^ 2)]
 
 /-- Choosing `s = 1/r` with `r = √(N+1)` makes the error of the quantitative theorem `O(1/r)`. -/
-theorem rate_le {c d r : ℝ} (hc : 0 ≤ c) (hr : 1 ≤ r) :
+theorem div_sq_add_div_le_div {c d r : ℝ} (hc : 0 ≤ c) (hr : 1 ≤ r) :
     (c / (r * r) + d * (c / (r * r)) / (1 / r) + 2 * d * (1 / r)) / 2 + d ^ 2 / (2 * (r * r)) ≤
       ((c + d * c + 2 * d) / 2 + d ^ 2 / 2) / r := by
   have hr0 : 0 < r := by linarith
@@ -165,12 +168,13 @@ theorem rate_le {c d r : ℝ} (hc : 0 ≤ c) (hr : 1 ≤ r) :
 `18 β₁² d² < 1`, `β₁² d² ≤ 1/200` and for `0 < β < β₁`, the free energies of the vector SK model
 satisfy `|p_{N+1}(β) - G(β, (q, ρ))| ≤ C/√(N+1)`, where `(q, ρ)` is the fixed point of `T`
 at `β` and `G` the replica-symmetric pressure. -/
-theorem skVector_theorem_1_12_3 {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
+theorem exists_abs_skVectorFreeEnergy_sub_pressure_le_inv_sqrt {d : ℕ} (μ : Measure α)
+  [IsProbabilityMeasure μ]
     (ξ : α → Fin d → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u))
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) {β β₁ : ℝ} (hβ : 0 < β) (hββ₁ : β < β₁)
     (hκ : 18 * β₁ ^ 2 * (d : ℝ) ^ 2 < 1) (hβ₁ : β₁ ^ 2 * (d : ℝ) ^ 2 ≤ 1 / 200)
-    {x : (Fin d → Fin d → ℝ) × (Fin d → Fin d → ℝ)} (hx : x ∈ skVectorFixedCone d)
-    (hxf : skVectorFixedMap μ ξ β x = x) :
+    {x : (Fin d → Fin d → ℝ) × (Fin d → Fin d → ℝ)} (hx : x ∈ skVectorFixedPointCone d)
+    (hxf : skVectorFixedPointMap μ ξ β x = x) :
     ∃ C : ℝ, ∀ N : ℕ, |skVectorFreeEnergy μ ξ (N + 1) β - skVectorPressure μ ξ β x| ≤
       C / Real.sqrt ((N : ℝ) + 1) := by
   have hc : (0 : ℝ) ≤ 8 * (d : ℝ) ^ 4 + 2 * (d : ℝ) ^ 2 := by positivity
@@ -181,10 +185,11 @@ theorem skVector_theorem_1_12_3 {d : ℕ} (μ : Measure α) [IsProbabilityMeasur
   have hr1 : 1 ≤ r := by
     rw [hr]; exact Real.one_le_sqrt.2 (by linarith [(Nat.cast_nonneg N : (0 : ℝ) ≤ N)])
   have hrr : r * r = (N : ℝ) + 1 := Real.mul_self_sqrt hN.le
-  have h := skVector_theorem_1_12_3_rate μ ξ hξ hbound hβ hββ₁ hκ hβ₁ N
+  have h := abs_skVectorFreeEnergy_sub_pressure_le_of_pos μ ξ hξ hbound hβ hββ₁ hκ hβ₁ N
     (s := 1 / r) (by positivity) hx hxf
   rw [← hrr] at h
-  exact h.trans (le_of_le_of_eq (mul_le_mul_of_nonneg_left (rate_le hc hr1) (sq_nonneg β))
+  exact h.trans (le_of_le_of_eq (mul_le_mul_of_nonneg_left (div_sq_add_div_le_div hc hr1)
+    (sq_nonneg β))
     (mul_div_assoc _ _ _).symm)
 
 /-- **Theorem 1.12.3 (limit).**  Under the same conditions the free energies of the vector SK
@@ -193,10 +198,11 @@ theorem tendsto_skVectorFreeEnergy {d : ℕ} (μ : Measure α) [IsProbabilityMea
     (ξ : α → Fin d → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u))
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) {β β₁ : ℝ} (hβ : 0 < β) (hββ₁ : β < β₁)
     (hκ : 18 * β₁ ^ 2 * (d : ℝ) ^ 2 < 1) (hβ₁ : β₁ ^ 2 * (d : ℝ) ^ 2 ≤ 1 / 200)
-    {x : (Fin d → Fin d → ℝ) × (Fin d → Fin d → ℝ)} (hx : x ∈ skVectorFixedCone d)
-    (hxf : skVectorFixedMap μ ξ β x = x) :
+    {x : (Fin d → Fin d → ℝ) × (Fin d → Fin d → ℝ)} (hx : x ∈ skVectorFixedPointCone d)
+    (hxf : skVectorFixedPointMap μ ξ β x = x) :
     Tendsto (fun N : ℕ => skVectorFreeEnergy μ ξ N β) atTop (𝓝 (skVectorPressure μ ξ β x)) := by
-  obtain ⟨C, hC⟩ := skVector_theorem_1_12_3 μ ξ hξ hbound hβ hββ₁ hκ hβ₁ hx hxf
+  obtain ⟨C, hC⟩ := exists_abs_skVectorFreeEnergy_sub_pressure_le_inv_sqrt μ ξ hξ hbound hβ hββ₁
+    hκ hβ₁ hx hxf
   rw [← tendsto_add_atTop_iff_nat 1, tendsto_iff_dist_tendsto_zero]
   have hlim : Tendsto (fun N : ℕ => C / Real.sqrt ((N : ℝ) + 1)) atTop (𝓝 0) := by
     refine tendsto_const_nhds.div_atTop ?_
@@ -208,7 +214,7 @@ theorem tendsto_skVectorFreeEnergy {d : ℕ} (μ : Measure α) [IsProbabilityMea
 /-- **The book's hypothesis `L β d ≤ 1` with `L = 15` implies our two smallness conditions**
 `18 β² d² < 1` (existence, uniqueness and the free energy) and `β² d² ≤ 1/200` (the overlap
 estimates of Theorem 1.12.1). -/
-theorem skVector_smallness {β d : ℝ} (hβ : 0 ≤ β) (hd : 0 ≤ d) (h : 15 * β * d ≤ 1) :
+theorem smallness_of_high_temperature {β d : ℝ} (hβ : 0 ≤ β) (hd : 0 ≤ d) (h : 15 * β * d ≤ 1) :
     18 * β ^ 2 * d ^ 2 < 1 ∧ β ^ 2 * d ^ 2 ≤ 1 / 200 := by
   have h0 : 0 ≤ β * d := mul_nonneg hβ hd
   have h1 : β * d ≤ 1 / 15 := by linarith
@@ -218,24 +224,26 @@ theorem skVector_smallness {β d : ℝ} (hβ : 0 ≤ β) (hd : 0 ≤ d) (h : 15 
 /-- **Theorem 1.12.3 in the book's range `L β d ≤ 1` (with `L = 15`)**: the free energies of the
 vector SK model satisfy `|p_{N+1}(β) - G(β, (q, ρ))| ≤ C/√(N+1)`, where `(q, ρ)` is the solution
 of (1.372)--(1.373) in the cone. -/
-theorem skVector_theorem_1_12_3_book {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
+theorem exists_abs_skVectorFreeEnergy_sub_pressure_le_inv_sqrt_of_high_temperature {d : ℕ} (μ :
+  Measure α) [IsProbabilityMeasure μ]
     (ξ : α → Fin d → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u))
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) {β β₁ : ℝ} (hβ : 0 < β) (hββ₁ : β < β₁)
     (h : 15 * β₁ * (d : ℝ) ≤ 1) {x : (Fin d → Fin d → ℝ) × (Fin d → Fin d → ℝ)}
-    (hx : x ∈ skVectorFixedCone d) (hxf : skVectorFixedMap μ ξ β x = x) :
+    (hx : x ∈ skVectorFixedPointCone d) (hxf : skVectorFixedPointMap μ ξ β x = x) :
     ∃ C : ℝ, ∀ N : ℕ, |skVectorFreeEnergy μ ξ (N + 1) β - skVectorPressure μ ξ β x| ≤
       C / Real.sqrt ((N : ℝ) + 1) := by
-  obtain ⟨h1, h2⟩ := skVector_smallness (hβ.trans hββ₁).le (Nat.cast_nonneg d) h
-  exact skVector_theorem_1_12_3 μ ξ hξ hbound hβ hββ₁ h1 h2 hx hxf
+  obtain ⟨h1, h2⟩ := smallness_of_high_temperature (hβ.trans hββ₁).le (Nat.cast_nonneg d) h
+  exact exists_abs_skVectorFreeEnergy_sub_pressure_le_inv_sqrt μ ξ hξ hbound hβ hββ₁ h1 h2 hx hxf
 
 /-- **Theorem 1.12.3 (limit) in the book's range `L β d ≤ 1` (with `L = 15`)**. -/
-theorem tendsto_skVectorFreeEnergy_book {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
+theorem tendsto_skVectorFreeEnergy_of_high_temperature {d : ℕ} (μ : Measure α)
+  [IsProbabilityMeasure μ]
     (ξ : α → Fin d → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u))
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) {β β₁ : ℝ} (hβ : 0 < β) (hββ₁ : β < β₁)
     (h : 15 * β₁ * (d : ℝ) ≤ 1) {x : (Fin d → Fin d → ℝ) × (Fin d → Fin d → ℝ)}
-    (hx : x ∈ skVectorFixedCone d) (hxf : skVectorFixedMap μ ξ β x = x) :
+    (hx : x ∈ skVectorFixedPointCone d) (hxf : skVectorFixedPointMap μ ξ β x = x) :
     Tendsto (fun N : ℕ => skVectorFreeEnergy μ ξ N β) atTop (𝓝 (skVectorPressure μ ξ β x)) := by
-  obtain ⟨h1, h2⟩ := skVector_smallness (hβ.trans hββ₁).le (Nat.cast_nonneg d) h
+  obtain ⟨h1, h2⟩ := smallness_of_high_temperature (hβ.trans hββ₁).le (Nat.cast_nonneg d) h
   exact tendsto_skVectorFreeEnergy μ ξ hξ hbound hβ hββ₁ h1 h2 hx hxf
 
 end SpinGlasses

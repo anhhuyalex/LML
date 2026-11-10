@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.SKVectorReplicaSymmetric
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.FreeEnergy.LogPartition
 public import Mathlib.Analysis.SpecialFunctions.Sqrt
 
 /-!
@@ -53,13 +53,13 @@ noncomputable def skVectorGibbs (μ : Measure α) (e Y : α → ℝ) : ℝ :=
 
 /-- **Lemma 1.12.6, the derivative in `ρ`.**  In every matrix direction `E` the derivative of
 `𝔼 log ∫ ℰ dμ` with respect to `ρ` is `(β²/2) ∑ᵤᵥ Eᵤᵥ 𝔼⟨ξᵤ ξᵥ⟩`. -/
-theorem hasDerivAt_skVectorGaussFreeEnergy_rho (μ : Measure α) [IsProbabilityMeasure μ]
+theorem hasDerivAt_skVectorGaussianFreeEnergy_rho (μ : Measure α) [IsProbabilityMeasure μ]
     (ξ : α → D → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u)) {r : ℝ} (hr : 0 ≤ r)
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ r) (ρ q E : D → D → ℝ)
     {P : Measure Ω} [IsProbabilityMeasure P] {X : D → Ω → ℝ}
     (hX : HasGaussianLaw (fun ω u => X u ω) P) (hXm : ∀ u, Measurable (X u))
     (hX0 : ∀ u, ∫ ω, X u ω ∂P = 0) (β s₀ : ℝ) :
-    HasDerivAt (fun s => skVectorGaussFreeEnergy μ ξ (fun u v => ρ u v + s * E u v) q P X β)
+    HasDerivAt (fun s => skVectorGaussianFreeEnergy μ ξ (fun u v => ρ u v + s * E u v) q P X β)
       (β ^ 2 / 2 * ∑ u, ∑ v, E u v * ∫ ω, skVectorGibbs μ
         (fun a => β * ∑ w, X w ω * ξ a w +
           β ^ 2 / 2 * ∑ w, ∑ w', ξ a w * ξ a w' * (ρ w w' + s₀ * E w w' - q w w'))
@@ -134,12 +134,12 @@ theorem hasDerivAt_skVectorGaussFreeEnergy_rho (μ : Measure α) [IsProbabilityM
     simp only [Fintype.sum_sum_type, Sum.elim_inl, Sum.elim_inr, hXf, hXs, hD0,
       Finset.univ_unique, Finset.sum_singleton, h2]
     ring
-  have hfun : (fun s => skVectorGaussFreeEnergy μ ξ (fun u v => ρ u v + s * E u v) q P X β) =
+  have hfun : (fun s => skVectorGaussianFreeEnergy μ ξ (fun u v => ρ u v + s * E u v) q P X β) =
       fun r' => ∫ ω, Real.log (∫ a, Real.exp (D0 a + ∑ l : D ⊕ Unit,
         Sum.elim (fun k => β * X k ω) (fun _ => β ^ 2 / 2 * r') l * Sum.elim Xf Xs l a) ∂μ)
         ∂P := by
     funext r'
-    unfold skVectorGaussFreeEnergy
+    unfold skVectorGaussianFreeEnergy
     simp only [hexpo]
   rw [hfun]
   refine hmain.congr_deriv ?_
@@ -447,7 +447,7 @@ theorem hasDerivAt_skVectorPressure_rho (μ : Measure α) [IsProbabilityMeasure 
     (hX : HasGaussianLaw (fun ω u => X u ω) P) (hXm : ∀ u, Measurable (X u))
     (hX0 : ∀ u, ∫ ω, X u ω ∂P = 0) (β s₀ : ℝ) :
     HasDerivAt (fun s => -(β ^ 2 / 4) * ∑ u, ∑ v, ((ρ u v + s * E u v) ^ 2 - q u v ^ 2) +
-        skVectorGaussFreeEnergy μ ξ (fun u v => ρ u v + s * E u v) q P X β)
+        skVectorGaussianFreeEnergy μ ξ (fun u v => ρ u v + s * E u v) q P X β)
       (β ^ 2 / 2 * ∑ u, ∑ v, E u v * ((∫ ω, skVectorGibbs μ
         (fun a => β * ∑ w, X w ω * ξ a w +
           β ^ 2 / 2 * ∑ w, ∑ w', ξ a w * ξ a w' * (ρ w w' + s₀ * E w w' - q w w'))
@@ -457,7 +457,7 @@ theorem hasDerivAt_skVectorPressure_rho (μ : Measure α) [IsProbabilityMeasure 
     refine HasDerivAt.const_mul _ (HasDerivAt.fun_sum fun u _ => HasDerivAt.fun_sum fun v _ => ?_)
     have h := ((hasDerivAt_id s₀).mul_const (E u v)).const_add (ρ u v)
     simpa using (h.pow 2).sub_const (q u v ^ 2)
-  refine (hpoly.add (hasDerivAt_skVectorGaussFreeEnergy_rho μ ξ hξ hr hbound ρ q E hX hXm hX0 β
+  refine (hpoly.add (hasDerivAt_skVectorGaussianFreeEnergy_rho μ ξ hξ hr hbound ρ q E hX hXm hX0 β
     s₀)).congr_deriv ?_
   simp only [Finset.mul_sum, ← Finset.sum_add_distrib, mul_sub]
   exact Finset.sum_congr rfl fun u _ => Finset.sum_congr rfl fun v _ => by ring

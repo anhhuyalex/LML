@@ -5,9 +5,9 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.SKVectorStationarity
-public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.SKVectorReplicaSymmetric
-public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.SKVectorFixedPointBeta
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.FreeEnergy.Stationarity
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.FreeEnergy.LogPartition
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.FixedPoint.Temperature
 
 /-!
 # The replica-symmetric pressure (Talagrand Eq. (1.387))
@@ -30,7 +30,7 @@ the exponent as `β X`. -/
 noncomputable def skVectorPressure {d : ℕ} (μ : Measure α) (ξ : α → Fin d → ℝ) (β : ℝ)
     (z : (Fin d → Fin d → ℝ) × (Fin d → Fin d → ℝ)) : ℝ :=
   -(β ^ 2 / 4) * (∑ u, ∑ v, z.2 u v ^ 2 - ∑ u, ∑ v, z.1 u v ^ 2) +
-    skVectorGaussFreeEnergy μ ξ z.2 z.1 (skVectorGaussLaw 1 z.1) (fun u y => y u) β
+    skVectorGaussianFreeEnergy μ ξ z.2 z.1 (skVectorGaussianLaw 1 z.1) (fun u y => y u) β
 
 /-- The log-partition function of the field model is measurable in the field. -/
 theorem measurable_skVectorLogPartition {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
@@ -47,18 +47,18 @@ theorem measurable_skVectorLogPartition {d : ℕ} (μ : Measure α) [IsProbabili
   exact ((Real.measurable_exp.comp hE).stronglyMeasurable.integral_prod_right').measurable.log
 
 /-- **The free energy does not depend on the realization of the Gaussian field.** -/
-theorem skVectorGaussFreeEnergy_eq_canonical {d : ℕ} {Ω : Type*} [MeasurableSpace Ω]
+theorem skVectorGaussianFreeEnergy_eq_canonical {d : ℕ} {Ω : Type*} [MeasurableSpace Ω]
     (μ : Measure α) [IsProbabilityMeasure μ] (ξ : α → Fin d → ℝ)
     (hξ : ∀ u, Measurable (fun a => ξ a u)) (ρ q : Fin d → Fin d → ℝ) {P : Measure Ω}
     [IsProbabilityMeasure P] {X : Fin d → Ω → ℝ} (hX : HasGaussianLaw (fun ω u => X u ω) P)
     (hXm : ∀ u, Measurable (X u)) (hX0 : ∀ u, ∫ ω, X u ω ∂P = 0)
     (hXc : ∀ u v, ∫ ω, X u ω * X v ω ∂P = q u v) (β : ℝ) :
-    skVectorGaussFreeEnergy μ ξ ρ q P X β =
-      skVectorGaussFreeEnergy μ ξ ρ q (skVectorGaussLaw 1 q) (fun u y => y u) β := by
-  have hlaw : P.map (fun ω u => X u ω) = skVectorGaussLaw 1 q :=
-    map_eq_skVectorGaussLaw 1 q hX hX0 (fun u v => by simpa using hXc u v)
+    skVectorGaussianFreeEnergy μ ξ ρ q P X β =
+      skVectorGaussianFreeEnergy μ ξ ρ q (skVectorGaussianLaw 1 q) (fun u y => y u) β := by
+  have hlaw : P.map (fun ω u => X u ω) = skVectorGaussianLaw 1 q :=
+    map_eq_skVectorGaussianLaw 1 q hX hX0 (fun u v => by simpa using hXc u v)
   have hXv : Measurable fun ω u => X u ω := measurable_pi_iff.2 hXm
-  unfold skVectorGaussFreeEnergy
+  unfold skVectorGaussianFreeEnergy
   have := integral_map (μ := P) (φ := fun ω u => X u ω) hXv.aemeasurable
     (f := fun y : Fin d → ℝ => Real.log (∫ a, Real.exp (β * ∑ u, y u * ξ a u +
       β ^ 2 / 2 * ∑ u, ∑ v, ξ a u * ξ a v * (ρ u v - q u v)) ∂μ))
@@ -67,19 +67,19 @@ theorem skVectorGaussFreeEnergy_eq_canonical {d : ℕ} {Ω : Type*} [MeasurableS
   exact this.symm
 
 /-- Scaling the canonical Gaussian field by `b` gives the Gaussian field of covariance `b² q`. -/
-theorem integral_skVectorGaussLaw_scale {d : ℕ} (b : ℝ) (q : Fin d → Fin d → ℝ)
+theorem integral_skVectorGaussianLaw_scale {d : ℕ} (b : ℝ) (q : Fin d → Fin d → ℝ)
     (hq : (Matrix.of q).PosSemidef) {g : (Fin d → ℝ) → ℝ} (hg : Measurable g) :
-    ∫ y, g (fun u => b * y u) ∂(skVectorGaussLaw 1 q) = ∫ y, g y ∂(skVectorGaussLaw b q) := by
-  have := isGaussian_skVectorGaussLaw 1 q
-  set P := skVectorGaussLaw 1 q with hP
+    ∫ y, g (fun u => b * y u) ∂(skVectorGaussianLaw 1 q) = ∫ y, g y ∂(skVectorGaussianLaw b q) := by
+  have := isGaussian_skVectorGaussianLaw 1 q
+  set P := skVectorGaussianLaw 1 q with hP
   have hZ : HasGaussianLaw (fun (y : Fin d → ℝ) (k : Fin d) => y k) P :=
     IsGaussian.hasGaussianLaw_id
   have hmean : ∀ k : Fin d, ∫ y : Fin d → ℝ, y k ∂P = 0 := fun k =>
-    integral_skVectorGaussLaw_coord 1 q k
+    integral_skVectorGaussianLaw_coord 1 q k
   have hcov : ∀ x y : Fin d, ∫ ω : Fin d → ℝ, ω x * ω y ∂P = q x y := fun x y => by
-    simpa using integral_skVectorGaussLaw_mul 1 q hq x y
-  have hlaw : P.map (fun (ω : Fin d → ℝ) (u : Fin d) => b * ω u) = skVectorGaussLaw b q :=
-    map_eq_skVectorGaussLaw b q (hZ.mul (fun _ => b)) (fun u => by
+    simpa using integral_skVectorGaussianLaw_mul 1 q hq x y
+  have hlaw : P.map (fun (ω : Fin d → ℝ) (u : Fin d) => b * ω u) = skVectorGaussianLaw b q :=
+    map_eq_skVectorGaussianLaw b q (hZ.mul (fun _ => b)) (fun u => by
       rw [integral_const_mul, hmean, mul_zero]) (fun u v => by
       have : ∫ ω : Fin d → ℝ, b * ω u * (b * ω v) ∂P = b ^ 2 * ∫ ω, ω u * ω v ∂P := by
         rw [← integral_const_mul]
@@ -92,29 +92,30 @@ theorem integral_skVectorGaussLaw_scale {d : ℕ} (b : ℝ) (q : Fin d → Fin d
 /-- **The gradient of the pressure in `ρ` is `(β²/2)(T₂(q, ρ) - ρ)`** (Lemma 1.12.6 for `ρ`, in the
 language of the fixed-point map): along `ρ(s) = ρ + s (ρ' - ρ)` the derivative of the pressure at
 `s₀` is `(β²/2) ∑ᵤᵥ (ρ' - ρ)ᵤᵥ ((T(q, ρ(s₀))).2 - ρ(s₀))ᵤᵥ`. -/
-theorem hasDerivAt_skVectorPressure_rho_leg {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
+theorem hasDerivAt_skVectorPressure_rho_segment {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
     (ξ : α → Fin d → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u))
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) (b : ℝ) (q ρ ρ' : Fin d → Fin d → ℝ)
     (hq : (Matrix.of q).PosSemidef) (s₀ : ℝ) :
     HasDerivAt (fun s => skVectorPressure μ ξ b (q, fun u v => ρ u v + s * (ρ' u v - ρ u v)))
       (b ^ 2 / 2 * ∑ u, ∑ v, (ρ' u v - ρ u v) *
-        ((skVectorFixedMap μ ξ b (q, fun u v => ρ u v + s₀ * (ρ' u v - ρ u v))).2 u v -
+        ((skVectorFixedPointMap μ ξ b (q, fun u v => ρ u v + s₀ * (ρ' u v - ρ u v))).2 u v -
           (ρ u v + s₀ * (ρ' u v - ρ u v)))) s₀ := by
   classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
-  have := isGaussian_skVectorGaussLaw 1 q
-  set P := skVectorGaussLaw 1 q with hP
+  have := isGaussian_skVectorGaussianLaw 1 q
+  set P := skVectorGaussianLaw 1 q with hP
   have hX : HasGaussianLaw (fun (y : Fin d → ℝ) (u : Fin d) => y u) P :=
       IsGaussian.hasGaussianLaw_id
   have hXm : ∀ u : Fin d, Measurable fun y : Fin d → ℝ => y u := fun u => measurable_pi_apply u
-  have hX0 : ∀ u : Fin d, ∫ y : Fin d → ℝ, y u ∂P = 0 := fun u => integral_skVectorGaussLaw_coord 1
+  have hX0 : ∀ u : Fin d, ∫ y : Fin d → ℝ, y u ∂P = 0 := fun u =>
+    integral_skVectorGaussianLaw_coord 1
       q u
   have h := hasDerivAt_skVectorPressure_rho μ ξ hξ hr hbound ρ q (fun u v => ρ' u v - ρ u v)
     hX hXm hX0 b s₀
   have hfun : (fun s => skVectorPressure μ ξ b
       (q, fun u v => ρ u v + s * (ρ' u v - ρ u v))) = fun s =>
       -(b ^ 2 / 4) * ∑ u, ∑ v, ((ρ u v + s * (fun u v => ρ' u v - ρ u v) u v) ^ 2 - q u v ^ 2) +
-        skVectorGaussFreeEnergy μ ξ (fun u v => ρ u v + s * (fun u v => ρ' u v - ρ u v) u v) q P
+        skVectorGaussianFreeEnergy μ ξ (fun u v => ρ u v + s * (fun u v => ρ' u v - ρ u v) u v) q P
           (fun u y => y u) b := by
     funext s
     unfold skVectorPressure
@@ -131,12 +132,12 @@ theorem hasDerivAt_skVectorPressure_rho_leg {d : ℕ} (μ : Measure α) [IsProba
       (skVectorFieldExponent ξ b ρs q y) (fun a => ξ a u * ξ a v) :=
     measurable_skVectorGibbs (e := fun y a => skVectorFieldExponent ξ b ρs q y a)
       (measurable_skVectorFieldExponent_joint ξ hξ b ρs q) ((hξ u).mul (hξ v))
-  have hT : (skVectorFixedMap μ ξ b (q, ρs)).2 u v = ∫ y, skVectorGibbs μ
-      (skVectorFieldExponent ξ b ρs q y) (fun a => ξ a u * ξ a v) ∂(skVectorGaussLaw b q) := by
-    simp only [skVectorFixedMap]
+  have hT : (skVectorFixedPointMap μ ξ b (q, ρs)).2 u v = ∫ y, skVectorGibbs μ
+      (skVectorFieldExponent ξ b ρs q y) (fun a => ξ a u * ξ a v) ∂(skVectorGaussianLaw b q) := by
+    simp only [skVectorFixedPointMap]
     exact integral_congr_ae (Filter.Eventually.of_forall fun y =>
-      skVectorFieldAvg_diag μ ξ hξ hbound b ρs q u v y)
-  rw [hT, ← integral_skVectorGaussLaw_scale b q hq hmeasG]
+      skVectorFieldAverage_diag μ ξ hξ hbound b ρs q u v y)
+  rw [hT, ← integral_skVectorGaussianLaw_scale b q hq hmeasG]
   refine integral_congr_ae (Filter.Eventually.of_forall fun y => ?_)
   beta_reduce
   congr 1
@@ -149,18 +150,18 @@ theorem hasDerivAt_skVectorPressure_rho_leg {d : ℕ} (μ : Measure α) [IsProba
 /-- **Quadratic estimate in `ρ`.**  If `(q', ρ')` is a fixed point of `T_b` and `(q, ρ)` is within
 `δ` of it (entrywise, with `q ⪰ 0`), moving `ρ` to `ρ'` changes the pressure by at most
 `(b²/2) d² (1 + 18 b² d³) δ²`. -/
-theorem abs_skVectorPressure_rho_leg_le {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
+theorem abs_skVectorPressure_rho_sub_le {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
     (ξ : α → Fin d → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u))
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) (b : ℝ) {q ρ q' ρ' : Fin d → Fin d → ℝ}
     (hq : (Matrix.of q).PosSemidef) (hq' : (Matrix.of q').PosSemidef)
-    (hfix : skVectorFixedMap μ ξ b (q', ρ') = (q', ρ')) {δ : ℝ} (hδ : 0 ≤ δ)
+    (hfix : skVectorFixedPointMap μ ξ b (q', ρ') = (q', ρ')) {δ : ℝ} (hδ : 0 ≤ δ)
     (hqδ : ∀ u v, |q u v - q' u v| ≤ δ) (hρδ : ∀ u v, |ρ u v - ρ' u v| ≤ δ) :
     |skVectorPressure μ ξ b (q, ρ') - skVectorPressure μ ξ b (q, ρ)| ≤
       b ^ 2 / 2 * ((d : ℝ) * d * ((1 + 18 * b ^ 2 * (d : ℝ) ^ 3) * δ * δ)) := by
   classical
   set ψ : ℝ → ℝ := fun s => skVectorPressure μ ξ b
     (q, fun u v => ρ u v + s * (ρ' u v - ρ u v)) with hψ
-  have hder := fun s₀ => hasDerivAt_skVectorPressure_rho_leg μ ξ hξ hbound b q ρ ρ' hq s₀
+  have hder := fun s₀ => hasDerivAt_skVectorPressure_rho_segment μ ξ hξ hbound b q ρ ρ' hq s₀
   have hdiff : Differentiable ℝ ψ := fun s => (hder s).differentiableAt
   obtain ⟨c, hc, hcd⟩ := exists_deriv_eq_slope ψ zero_lt_one hdiff.continuous.continuousOn
     hdiff.differentiableOn
@@ -178,14 +179,15 @@ theorem abs_skVectorPressure_rho_leg_le {d : ℕ} (μ : Measure α) [IsProbabili
     calc (1 - c) * |ρ u v - ρ' u v| ≤ 1 * δ :=
           mul_le_mul (by linarith [hc.1]) (hρδ u v) (abs_nonneg _) zero_le_one
       _ = δ := one_mul _
-  have hlip := skVectorFixedMap_lipschitz μ ξ hξ hbound b (x := (q, ρc)) (x' := (q', ρ')) hq hq'
+  have hlip := abs_skVectorFixedPointMap_apply_sub_le μ ξ hξ hbound b (x := (q, ρc)) (x' := (q',
+    ρ')) hq hq'
     hqδ hρcδ
-  have hterm : ∀ u v, |(skVectorFixedMap μ ξ b (q, ρc)).2 u v - ρc u v| ≤
+  have hterm : ∀ u v, |(skVectorFixedPointMap μ ξ b (q, ρc)).2 u v - ρc u v| ≤
       (1 + 18 * b ^ 2 * (d : ℝ) ^ 3) * δ := fun u v => by
     have h2 := (hlip u v).2
     rw [hfix] at h2
-    calc |(skVectorFixedMap μ ξ b (q, ρc)).2 u v - ρc u v| ≤
-          |(skVectorFixedMap μ ξ b (q, ρc)).2 u v - ρ' u v| + |ρ' u v - ρc u v| := by
+    calc |(skVectorFixedPointMap μ ξ b (q, ρc)).2 u v - ρc u v| ≤
+          |(skVectorFixedPointMap μ ξ b (q, ρc)).2 u v - ρ' u v| + |ρ' u v - ρc u v| := by
           exact abs_sub_le _ (ρ' u v) _
       _ ≤ 18 * b ^ 2 * (d : ℝ) ^ 3 * δ + δ := by
           refine add_le_add ?_ ?_
@@ -194,7 +196,7 @@ theorem abs_skVectorPressure_rho_leg_le {d : ℕ} (μ : Measure α) [IsProbabili
       _ = _ := by ring
   have hEb : ∀ u v, |ρ' u v - ρ u v| ≤ δ := fun u v => by rw [abs_sub_comm]; exact hρδ u v
   have hterm2 : ∀ u v, |(ρ' u v - ρ u v) *
-      ((skVectorFixedMap μ ξ b (q, ρc)).2 u v - (ρ u v + c * (ρ' u v - ρ u v)))| ≤
+      ((skVectorFixedPointMap μ ξ b (q, ρc)).2 u v - (ρ u v + c * (ρ' u v - ρ u v)))| ≤
       δ * ((1 + 18 * b ^ 2 * (d : ℝ) ^ 3) * δ) := fun u v => by
     rw [abs_mul]
     exact mul_le_mul (hEb u v) (hterm u v) (abs_nonneg _) hδ
@@ -204,56 +206,69 @@ theorem abs_skVectorPressure_rho_leg_le {d : ℕ} (μ : Measure α) [IsProbabili
   nlinarith
 
 /-- The combination `c₁ Z¹ + c₀ Z²` of the two independent fields is centered. -/
-theorem integral_pairField_combination {d : ℕ} (q' q : Fin d → Fin d → ℝ) (c₁ c₀ : ℝ) (u : Fin d) :
-    ∫ ω, (c₁ * skVectorPairField (Sum.inl u) ω + c₀ * skVectorPairField (Sum.inr u) ω)
-      ∂(skVectorPairLaw 1 q' q) = 0 := by
-  have hZ := hasGaussianLaw_skVectorPairField (d := d) 1 q' q
-  have hint : ∀ k : Fin d ⊕ Fin d, Integrable (skVectorPairField k) (skVectorPairLaw 1 q' q) :=
+theorem integral_skVectorGaussianPairField_combination {d : ℕ} (q' q : Fin d → Fin d → ℝ) (c₁ c₀ :
+  ℝ) (u : Fin d) :
+    ∫ ω, (c₁ * skVectorGaussianPairField (Sum.inl u) ω + c₀ * skVectorGaussianPairField (Sum.inr
+      u) ω)
+      ∂(skVectorGaussianPairLaw 1 q' q) = 0 := by
+  have hZ := hasGaussianLaw_skVectorGaussianPairField (d := d) 1 q' q
+  have hint : ∀ k : Fin d ⊕ Fin d, Integrable (skVectorGaussianPairField k)
+    (skVectorGaussianPairLaw 1 q' q) :=
     fun k => (hZ.eval k).integrable
   rw [integral_add ((hint _).const_mul c₁) ((hint _).const_mul c₀), integral_const_mul,
-    integral_const_mul, integral_skVectorPairField, integral_skVectorPairField]
+    integral_const_mul, integral_skVectorGaussianPairField, integral_skVectorGaussianPairField]
   simp
 
 /-- Covariance of the combination `c₁ Z¹ + c₀ Z²` of the two independent fields. -/
-theorem integral_pairField_combination_mul {d : ℕ} (q' q : Fin d → Fin d → ℝ)
+theorem integral_skVectorGaussianPairField_combination_mul {d : ℕ} (q' q : Fin d → Fin d → ℝ)
     (hq' : (Matrix.of q').PosSemidef) (hq : (Matrix.of q).PosSemidef) (c₁ c₀ : ℝ) (u v : Fin d) :
-    ∫ ω, (c₁ * skVectorPairField (Sum.inl u) ω + c₀ * skVectorPairField (Sum.inr u) ω) *
-      (c₁ * skVectorPairField (Sum.inl v) ω + c₀ * skVectorPairField (Sum.inr v) ω)
-      ∂(skVectorPairLaw 1 q' q) = c₁ ^ 2 * q' u v + c₀ ^ 2 * q u v := by
-  have hZ := hasGaussianLaw_skVectorPairField (d := d) 1 q' q
-  have h11 := integral_skVectorPairField_inl_mul 1 q' q hq'
-  have h00 := integral_skVectorPairField_inr_mul 1 q' q hq
-  have h10 := integral_skVectorPairField_inl_inr_mul 1 q' q
-  have hint2 : ∀ k l : Fin d ⊕ Fin d, Integrable (fun ω => skVectorPairField k ω *
-      skVectorPairField l ω) (skVectorPairLaw 1 q' q) := fun k l =>
+    ∫ ω, (c₁ * skVectorGaussianPairField (Sum.inl u) ω + c₀ * skVectorGaussianPairField (Sum.inr
+      u) ω) *
+      (c₁ * skVectorGaussianPairField (Sum.inl v) ω + c₀ * skVectorGaussianPairField (Sum.inr v) ω)
+      ∂(skVectorGaussianPairLaw 1 q' q) = c₁ ^ 2 * q' u v + c₀ ^ 2 * q u v := by
+  have hZ := hasGaussianLaw_skVectorGaussianPairField (d := d) 1 q' q
+  have h11 := integral_skVectorGaussianPairField_inl_mul 1 q' q hq'
+  have h00 := integral_skVectorGaussianPairField_inr_mul 1 q' q hq
+  have h10 := integral_skVectorGaussianPairField_inl_inr_mul 1 q' q
+  have hint2 : ∀ k l : Fin d ⊕ Fin d, Integrable (fun ω => skVectorGaussianPairField k ω *
+      skVectorGaussianPairField l ω) (skVectorGaussianPairLaw 1 q' q) := fun k l =>
     (hZ.eval k).memLp_two.integrable_mul (hZ.eval l).memLp_two
-  have e : ∀ ω, (c₁ * skVectorPairField (Sum.inl u) ω + c₀ * skVectorPairField (Sum.inr u) ω) *
-      (c₁ * skVectorPairField (Sum.inl v) ω + c₀ * skVectorPairField (Sum.inr v) ω) =
-      c₁ ^ 2 * (skVectorPairField (Sum.inl u) ω * skVectorPairField (Sum.inl v) ω) +
-      c₁ * c₀ * (skVectorPairField (Sum.inl u) ω * skVectorPairField (Sum.inr v) ω) +
-      c₀ * c₁ * (skVectorPairField (Sum.inr u) ω * skVectorPairField (Sum.inl v) ω) +
-      c₀ ^ 2 * (skVectorPairField (Sum.inr u) ω * skVectorPairField (Sum.inr v) ω) :=
+  have e : ∀ ω, (c₁ * skVectorGaussianPairField (Sum.inl u) ω + c₀ * skVectorGaussianPairField
+    (Sum.inr u) ω) *
+      (c₁ * skVectorGaussianPairField (Sum.inl v) ω + c₀ * skVectorGaussianPairField (Sum.inr v)
+        ω) =
+      c₁ ^ 2 * (skVectorGaussianPairField (Sum.inl u) ω * skVectorGaussianPairField (Sum.inl v) ω) +
+      c₁ * c₀ * (skVectorGaussianPairField (Sum.inl u) ω * skVectorGaussianPairField (Sum.inr v)
+        ω) +
+      c₀ * c₁ * (skVectorGaussianPairField (Sum.inr u) ω * skVectorGaussianPairField (Sum.inl v)
+        ω) +
+      c₀ ^ 2 * (skVectorGaussianPairField (Sum.inr u) ω * skVectorGaussianPairField (Sum.inr v) ω)
+        :=
     fun ω => by ring
   simp_rw [e]
-  set Pm := skVectorPairLaw 1 q' q with hPm
-  have iA : Integrable (fun ω => c₁ ^ 2 * (skVectorPairField (Sum.inl u) ω *
-      skVectorPairField (Sum.inl v) ω)) Pm := (hint2 _ _).const_mul _
-  have iB : Integrable (fun ω => c₁ * c₀ * (skVectorPairField (Sum.inl u) ω *
-      skVectorPairField (Sum.inr v) ω)) Pm := (hint2 _ _).const_mul _
-  have iC : Integrable (fun ω => c₀ * c₁ * (skVectorPairField (Sum.inr u) ω *
-      skVectorPairField (Sum.inl v) ω)) Pm := (hint2 _ _).const_mul _
-  have iD : Integrable (fun ω => c₀ ^ 2 * (skVectorPairField (Sum.inr u) ω *
-      skVectorPairField (Sum.inr v) ω)) Pm := (hint2 _ _).const_mul _
-  have iAB : Integrable (fun ω => c₁ ^ 2 * (skVectorPairField (Sum.inl u) ω *
-      skVectorPairField (Sum.inl v) ω) + c₁ * c₀ * (skVectorPairField (Sum.inl u) ω *
-      skVectorPairField (Sum.inr v) ω)) Pm := iA.add iB
-  have iABC : Integrable (fun ω => c₁ ^ 2 * (skVectorPairField (Sum.inl u) ω *
-      skVectorPairField (Sum.inl v) ω) + c₁ * c₀ * (skVectorPairField (Sum.inl u) ω *
-      skVectorPairField (Sum.inr v) ω) + c₀ * c₁ * (skVectorPairField (Sum.inr u) ω *
-      skVectorPairField (Sum.inl v) ω)) Pm := iAB.add iC
+  set Pm := skVectorGaussianPairLaw 1 q' q with hPm
+  have iA : Integrable (fun ω => c₁ ^ 2 * (skVectorGaussianPairField (Sum.inl u) ω *
+      skVectorGaussianPairField (Sum.inl v) ω)) Pm := (hint2 _ _).const_mul _
+  have iB : Integrable (fun ω => c₁ * c₀ * (skVectorGaussianPairField (Sum.inl u) ω *
+      skVectorGaussianPairField (Sum.inr v) ω)) Pm := (hint2 _ _).const_mul _
+  have iC : Integrable (fun ω => c₀ * c₁ * (skVectorGaussianPairField (Sum.inr u) ω *
+      skVectorGaussianPairField (Sum.inl v) ω)) Pm := (hint2 _ _).const_mul _
+  have iD : Integrable (fun ω => c₀ ^ 2 * (skVectorGaussianPairField (Sum.inr u) ω *
+      skVectorGaussianPairField (Sum.inr v) ω)) Pm := (hint2 _ _).const_mul _
+  have iAB : Integrable (fun ω => c₁ ^ 2 * (skVectorGaussianPairField (Sum.inl u) ω *
+      skVectorGaussianPairField (Sum.inl v) ω) + c₁ * c₀ * (skVectorGaussianPairField (Sum.inl u)
+        ω *
+      skVectorGaussianPairField (Sum.inr v) ω)) Pm := iA.add iB
+  have iABC : Integrable (fun ω => c₁ ^ 2 * (skVectorGaussianPairField (Sum.inl u) ω *
+      skVectorGaussianPairField (Sum.inl v) ω) + c₁ * c₀ * (skVectorGaussianPairField (Sum.inl u)
+        ω *
+      skVectorGaussianPairField (Sum.inr v) ω) + c₀ * c₁ * (skVectorGaussianPairField (Sum.inr u)
+        ω *
+      skVectorGaussianPairField (Sum.inl v) ω)) Pm := iAB.add iC
   rw [integral_add iABC iD, integral_add iAB iC, integral_add iA iB]
   simp only [integral_const_mul, h11, h00, h10]
-  have h01 : ∫ ω, skVectorPairField (Sum.inr u) ω * skVectorPairField (Sum.inl v) ω ∂Pm = 0 := by
+  have h01 : ∫ ω, skVectorGaussianPairField (Sum.inr u) ω * skVectorGaussianPairField (Sum.inl v)
+    ω ∂Pm = 0 := by
     rw [← h10 v u]
     exact integral_congr_ae (Filter.Eventually.of_forall fun ω => mul_comm _ _)
   rw [h01]
@@ -262,16 +277,19 @@ theorem integral_pairField_combination_mul {d : ℕ} (q' q : Fin d → Fin d →
 /-- **A combination of the two independent fields is a Gaussian field with the combined
 covariance.**
 For `Z` the pair of fields of covariances `q'`, `q` (with `β = 1`) and real coefficients `c₁`, `c₀`,
-the field `c₁ Z¹ + c₀ Z²` has law `skVectorGaussLaw β Q` whenever `β² Q = c₁² q' + c₀² q`. -/
-theorem map_pairField_combination {d : ℕ} (q' q : Fin d → Fin d → ℝ) (hq' : (Matrix.of
+the field `c₁ Z¹ + c₀ Z²` has law `skVectorGaussianLaw β Q` whenever `β² Q = c₁² q' + c₀² q`. -/
+theorem map_skVectorGaussianPairField_combination {d : ℕ} (q' q : Fin d → Fin d → ℝ) (hq' :
+  (Matrix.of
     q').PosSemidef)
     (hq : (Matrix.of q).PosSemidef) (c₁ c₀ β : ℝ) (Q : Fin d → Fin d → ℝ)
     (hQ : ∀ u v, β ^ 2 * Q u v = c₁ ^ 2 * q' u v + c₀ ^ 2 * q u v) :
-    (skVectorPairLaw 1 q' q).map (fun ω (u : Fin d) =>
-        c₁ * skVectorPairField (Sum.inl u) ω + c₀ * skVectorPairField (Sum.inr u) ω) =
-      skVectorGaussLaw β Q := by
-  have hZ := hasGaussianLaw_skVectorPairField (d := d) 1 q' q
-  refine map_eq_skVectorGaussLaw β Q ?_ (integral_pairField_combination q' q c₁ c₀) ?_
+    (skVectorGaussianPairLaw 1 q' q).map (fun ω (u : Fin d) =>
+        c₁ * skVectorGaussianPairField (Sum.inl u) ω + c₀ * skVectorGaussianPairField (Sum.inr u)
+          ω) =
+      skVectorGaussianLaw β Q := by
+  have hZ := hasGaussianLaw_skVectorGaussianPairField (d := d) 1 q' q
+  refine map_eq_skVectorGaussianLaw β Q ?_ (integral_skVectorGaussianPairField_combination q' q c₁
+    c₀) ?_
   · have := hZ.map_fun (L := (ContinuousLinearMap.pi fun u : Fin d =>
       c₁ • ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : Fin d ⊕ Fin d => ℝ) (Sum.inl u) +
       c₀ • ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : Fin d ⊕ Fin d => ℝ) (Sum.inr u)))
@@ -279,21 +297,21 @@ theorem map_pairField_combination {d : ℕ} (q' q : Fin d → Fin d → ℝ) (hq
     ext u
     simp
   · intro u v
-    rw [integral_pairField_combination_mul q' q hq' hq, hQ]
+    rw [integral_skVectorGaussianPairField_combination_mul q' q hq' hq, hQ]
 
 /-- A combination of the two independent fields is a Gaussian vector. -/
-theorem hasGaussianLaw_pairField_combination {d : ℕ} (q' q : Fin d → Fin d → ℝ)
+theorem hasGaussianLaw_skVectorGaussianPairField_combination {d : ℕ} (q' q : Fin d → Fin d → ℝ)
     (hq' : (Matrix.of q').PosSemidef) (hq : (Matrix.of q).PosSemidef) (c₁ c₀ β : ℝ)
     (Q : Fin d → Fin d → ℝ) (hQ : ∀ u v, β ^ 2 * Q u v = c₁ ^ 2 * q' u v + c₀ ^ 2 * q u v) :
     HasGaussianLaw (fun ω (u : Fin d) =>
-      c₁ * skVectorPairField (Sum.inl u) ω + c₀ * skVectorPairField (Sum.inr u) ω)
-      (skVectorPairLaw 1 q' q) where
+      c₁ * skVectorGaussianPairField (Sum.inl u) ω + c₀ * skVectorGaussianPairField (Sum.inr u) ω)
+      (skVectorGaussianPairLaw 1 q' q) where
   aemeasurable := (measurable_pi_iff.2 fun u => (measurable_const.mul
-    (measurable_skVectorPairField (Sum.inl u))).add (measurable_const.mul
-    (measurable_skVectorPairField (Sum.inr u)))).aemeasurable
+    (measurable_skVectorGaussianPairField (Sum.inl u))).add (measurable_const.mul
+    (measurable_skVectorGaussianPairField (Sum.inr u)))).aemeasurable
   isGaussian_map := by
-    rw [map_pairField_combination q' q hq' hq c₁ c₀ β Q hQ]
-    exact isGaussian_skVectorGaussLaw β Q
+    rw [map_skVectorGaussianPairField_combination q' q hq' hq c₁ c₀ β Q hQ]
+    exact isGaussian_skVectorGaussianLaw β Q
 
 /-- **Continuity of the segment free energy** (including the endpoints `s = 0, 1`, where `√s`,
 `√(1 - s)` are not differentiable): `s ↦ 𝔼 log ∫ e^{segExp(clamp s)} dμ` is continuous. -/
@@ -424,61 +442,70 @@ theorem continuous_skVectorSegment_logPartition {d : ℕ} {Ω : Type*} [Measurab
 
 /-- On the segment `q(s) = s q' + (1 - s) q` the free energy of the interpolated field is the
 canonical free energy at `q(s)`. -/
-theorem segment_gaussFreeEnergy_eq {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
+theorem skVectorSegment_logPartition_eq {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
     (ξ : α → Fin d → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u)) (ρ q q' : Fin d → Fin d → ℝ)
     (hq : (Matrix.of q).PosSemidef) (hq' : (Matrix.of q').PosSemidef) (b : ℝ) {s : ℝ}
     (hs : s ∈ Set.Icc (0 : ℝ) 1) :
     ∫ ω, Real.log (∫ a, Real.exp (skVectorSegmentExponent ξ ρ q q' b s
-        (fun u => skVectorPairField (Sum.inl u) ω) (fun u => skVectorPairField (Sum.inr u) ω) a)
-        ∂μ) ∂(skVectorPairLaw 1 q' q) =
-      skVectorGaussFreeEnergy μ ξ ρ (fun u v => s * q' u v + (1 - s) * q u v)
-        (skVectorGaussLaw 1 (fun u v => s * q' u v + (1 - s) * q u v)) (fun u y => y u) b := by
+        (fun u => skVectorGaussianPairField (Sum.inl u) ω) (fun u => skVectorGaussianPairField
+          (Sum.inr u) ω) a)
+        ∂μ) ∂(skVectorGaussianPairLaw 1 q' q) =
+      skVectorGaussianFreeEnergy μ ξ ρ (fun u v => s * q' u v + (1 - s) * q u v)
+        (skVectorGaussianLaw 1 (fun u v => s * q' u v + (1 - s) * q u v)) (fun u y => y u) b := by
   have hQ : ∀ u v, (1 : ℝ) ^ 2 * (s * q' u v + (1 - s) * q u v) =
       Real.sqrt s ^ 2 * q' u v + Real.sqrt (1 - s) ^ 2 * q u v := fun u v => by
     rw [Real.sq_sqrt hs.1, Real.sq_sqrt (by linarith [hs.2])]; ring
-  have hX := hasGaussianLaw_pairField_combination q' q hq' hq (Real.sqrt s) (Real.sqrt (1 - s)) 1
+  have hX := hasGaussianLaw_skVectorGaussianPairField_combination q' q hq' hq (Real.sqrt s)
+    (Real.sqrt (1 - s)) 1
     _ hQ
-  have hXm : ∀ u : Fin d, Measurable fun ω => Real.sqrt s * skVectorPairField (Sum.inl u) ω +
-      Real.sqrt (1 - s) * skVectorPairField (Sum.inr u) ω := fun u =>
-    (measurable_const.mul (measurable_skVectorPairField _)).add
-      (measurable_const.mul (measurable_skVectorPairField _))
-  have := skVectorGaussFreeEnergy_eq_canonical μ ξ hξ ρ (fun u v => s * q' u v + (1 - s) * q u v)
-    (P := skVectorPairLaw 1 q' q) hX hXm (integral_pairField_combination q' q _ _)
-    (fun u v => by rw [integral_pairField_combination_mul q' q hq' hq, ← hQ u v]; ring) b
+  have hXm : ∀ u : Fin d, Measurable fun ω => Real.sqrt s * skVectorGaussianPairField (Sum.inl u)
+    ω +
+      Real.sqrt (1 - s) * skVectorGaussianPairField (Sum.inr u) ω := fun u =>
+    (measurable_const.mul (measurable_skVectorGaussianPairField _)).add
+      (measurable_const.mul (measurable_skVectorGaussianPairField _))
+  have := skVectorGaussianFreeEnergy_eq_canonical μ ξ hξ ρ (fun u v => s * q' u v + (1 - s) * q u v)
+    (P := skVectorGaussianPairLaw 1 q' q) hX hXm (integral_skVectorGaussianPairField_combination
+      q' q _ _)
+    (fun u v => by
+      rw [integral_skVectorGaussianPairField_combination_mul q' q hq' hq, ← hQ u v]; ring) b
   rw [← this]
   rfl
 
 /-- The Gibbs means along the segment are the fixed-point map at `q(t)`. -/
-theorem segment_gibbs_eq {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
+theorem skVectorSegment_gibbs_eq {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
     (ξ : α → Fin d → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u))
     (ρ q q' : Fin d → Fin d → ℝ)
     (hq : (Matrix.of q).PosSemidef) (hq' : (Matrix.of q').PosSemidef) (b : ℝ) {t : ℝ}
     (ht : t ∈ Set.Icc (0 : ℝ) 1) (u v : Fin d) :
     ∫ ω, skVectorGibbs μ (skVectorSegmentExponent ξ ρ q q' b t
-        (fun w => skVectorPairField (Sum.inl w) ω) (fun w => skVectorPairField (Sum.inr w) ω))
+        (fun w => skVectorGaussianPairField (Sum.inl w) ω) (fun w => skVectorGaussianPairField
+          (Sum.inr w) ω))
         (fun a => ξ a u) *
       skVectorGibbs μ (skVectorSegmentExponent ξ ρ q q' b t
-        (fun w => skVectorPairField (Sum.inl w) ω) (fun w => skVectorPairField (Sum.inr w) ω))
-        (fun a => ξ a v) ∂(skVectorPairLaw 1 q' q) =
-      (skVectorFixedMap μ ξ b (fun u v => t * q' u v + (1 - t) * q u v, ρ)).1 u v := by
+        (fun w => skVectorGaussianPairField (Sum.inl w) ω) (fun w => skVectorGaussianPairField
+          (Sum.inr w) ω))
+        (fun a => ξ a v) ∂(skVectorGaussianPairLaw 1 q' q) =
+      (skVectorFixedPointMap μ ξ b (fun u v => t * q' u v + (1 - t) * q u v, ρ)).1 u v := by
   have hQ : ∀ u v, b ^ 2 * (t * q' u v + (1 - t) * q u v) =
       (b * Real.sqrt t) ^ 2 * q' u v + (b * Real.sqrt (1 - t)) ^ 2 * q u v := fun u v => by
     rw [mul_pow, mul_pow, Real.sq_sqrt ht.1, Real.sq_sqrt (by linarith [ht.2])]; ring
-  have hlaw := map_pairField_combination q' q hq' hq (b * Real.sqrt t) (b * Real.sqrt (1 - t)) b
+  have hlaw := map_skVectorGaussianPairField_combination q' q hq' hq (b * Real.sqrt t) (b *
+    Real.sqrt (1 - t)) b
     _ hQ
-  have hYm : ∀ w : Fin d, Measurable fun ω => b * Real.sqrt t * skVectorPairField (Sum.inl w) ω +
-      b * Real.sqrt (1 - t) * skVectorPairField (Sum.inr w) ω := fun w =>
-    (measurable_const.mul (measurable_skVectorPairField _)).add
-      (measurable_const.mul (measurable_skVectorPairField _))
+  have hYm : ∀ w : Fin d, Measurable fun ω => b * Real.sqrt t * skVectorGaussianPairField (Sum.inl
+    w) ω +
+      b * Real.sqrt (1 - t) * skVectorGaussianPairField (Sum.inr w) ω := fun w =>
+    (measurable_const.mul (measurable_skVectorGaussianPairField _)).add
+      (measurable_const.mul (measurable_skVectorGaussianPairField _))
   have hF : Measurable fun σ : Fin 2 → α => ξ (σ 0) u * ξ (σ 1) v :=
     ((hξ u).comp (measurable_pi_apply 0)).mul ((hξ v).comp (measurable_pi_apply 1))
-  have key := integral_skVectorFieldAvg_realization μ ξ hξ b ρ
+  have key := integral_skVectorFieldAverage_realization μ ξ hξ b ρ
     (fun u v => t * q' u v + (1 - t) * q u v) _ hF hYm hlaw
-  simp only [skVectorFixedMap]
+  simp only [skVectorFixedPointMap]
   rw [← key]
   refine integral_congr_ae (Filter.Eventually.of_forall fun ω => ?_)
   beta_reduce
-  rw [skVectorFieldAvg_pair μ ξ b ρ _ u v]
+  rw [skVectorFieldAverage_pair μ ξ b ρ _ u v]
   congr 2
   all_goals
     funext a
@@ -490,28 +517,28 @@ theorem segment_gibbs_eq {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
 /-- **Quadratic estimate in `q`.**  If `(q', ρ')` is a fixed point of `T_b` and `q` is within `δ`
 of `q'`, moving `q` to `q'` (at fixed `ρ'`) changes the pressure by at most
 `(b²/2) d² (1 + 18 b² d³) δ²`. -/
-theorem abs_skVectorPressure_q_leg_le {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
+theorem abs_skVectorPressure_q_sub_le {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
     (ξ : α → Fin d → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u))
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) {b : ℝ} (hb : 0 < b) {q q' ρ' : Fin d → Fin d → ℝ}
     (hq : (Matrix.of q).PosSemidef) (hq' : (Matrix.of q').PosSemidef)
-    (hfix : skVectorFixedMap μ ξ b (q', ρ') = (q', ρ')) {δ : ℝ} (hδ : 0 ≤ δ)
+    (hfix : skVectorFixedPointMap μ ξ b (q', ρ') = (q', ρ')) {δ : ℝ} (hδ : 0 ≤ δ)
     (hqδ : ∀ u v, |q u v - q' u v| ≤ δ) :
     |skVectorPressure μ ξ b (q', ρ') - skVectorPressure μ ξ b (q, ρ')| ≤
       b ^ 2 / 2 * ((d : ℝ) * d * ((1 + 18 * b ^ 2 * (d : ℝ) ^ 3) * δ * δ)) := by
   classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
-  set P := skVectorPairLaw 1 q' q with hP
+  set P := skVectorGaussianPairLaw 1 q' q with hP
   set Z : Fin d ⊕ Fin d → (EuclideanSpace ℝ (Fin d) × EuclideanSpace ℝ (Fin d)) → ℝ :=
-    skVectorPairField with hZdef
-  have hZ := hasGaussianLaw_skVectorPairField (d := d) 1 q' q
-  have hZm := measurable_skVectorPairField (d := d)
-  have hZ0 := integral_skVectorPairField (d := d) 1 q' q
+    skVectorGaussianPairField with hZdef
+  have hZ := hasGaussianLaw_skVectorGaussianPairField (d := d) 1 q' q
+  have hZm := measurable_skVectorGaussianPairField (d := d)
+  have hZ0 := integral_skVectorGaussianPairField (d := d) 1 q' q
   have h11 : ∀ u v, ∫ ω, Z (.inl u) ω * Z (.inl v) ω ∂P = q' u v := fun u v => by
-    simpa using integral_skVectorPairField_inl_mul 1 q' q hq' u v
+    simpa using integral_skVectorGaussianPairField_inl_mul 1 q' q hq' u v
   have h00 : ∀ u v, ∫ ω, Z (.inr u) ω * Z (.inr v) ω ∂P = q u v := fun u v => by
-    simpa using integral_skVectorPairField_inr_mul 1 q' q hq u v
+    simpa using integral_skVectorGaussianPairField_inr_mul 1 q' q hq u v
   have h10 : ∀ u v, ∫ ω, Z (.inl u) ω * Z (.inr v) ω ∂P = 0 :=
-    integral_skVectorPairField_inl_inr_mul 1 q' q
+    integral_skVectorGaussianPairField_inl_inr_mul 1 q' q
   have hZi : ∀ l, Integrable (Z l) P := fun l => (hZ.eval l).integrable
   set qs : ℝ → Fin d → Fin d → ℝ := fun s u v => s * q' u v + (1 - s) * q u v with hqs
   have hqsPSD : ∀ s ∈ Set.Icc (0 : ℝ) 1, (Matrix.of (qs s)).PosSemidef := fun s hs => by
@@ -525,7 +552,7 @@ theorem abs_skVectorPressure_q_leg_le {d : ℕ} (μ : Measure α) [IsProbability
         (fun u => Z (.inl u) ω) (fun u => Z (.inr u) ω) a) ∂μ) ∂P with hφ
   have hφ_eq : ∀ s ∈ Set.Icc (0 : ℝ) 1, φ s = skVectorPressure μ ξ b (qs s, ρ') := fun s hs => by
     simp only [hφ, skVectorPressure]
-    rw [segment_gaussFreeEnergy_eq μ ξ hξ ρ' q q' hq hq' b hs]
+    rw [skVectorSegment_logPartition_eq μ ξ hξ ρ' q q' hq hq' b hs]
     simp only [Finset.sum_sub_distrib, hqs]
   have hφ0 : φ 0 = skVectorPressure μ ξ b (q, ρ') := by
     rw [hφ_eq 0 ⟨le_rfl, zero_le_one⟩]
@@ -560,7 +587,8 @@ theorem abs_skVectorPressure_q_leg_le {d : ℕ} (μ : Measure α) [IsProbability
   rw [hE, (hder c hc).deriv, abs_mul, abs_of_nonneg (by positivity : (0 : ℝ) ≤ b ^ 2 / 2)]
   refine mul_le_mul_of_nonneg_left ?_ (by positivity)
   have hcI : c ∈ Set.Icc (0 : ℝ) 1 := ⟨hc.1.le, hc.2.le⟩
-  have hlip := skVectorFixedMap_lipschitz μ ξ hξ hbound b (x := (qs c, ρ')) (x' := (q', ρ'))
+  have hlip := abs_skVectorFixedPointMap_apply_sub_le μ ξ hξ hbound b (x := (qs c, ρ')) (x' :=
+    (q', ρ'))
     (hqsPSD c hcI) hq' (δ := δ) (fun u v => by
       have : qs c u v - q' u v = (1 - c) * (q u v - q' u v) := by simp only [hqs]; ring
       change |qs c u v - q' u v| ≤ δ
@@ -576,7 +604,7 @@ theorem abs_skVectorPressure_q_leg_le {d : ℕ} (μ : Measure α) [IsProbability
       δ * ((1 + 18 * b ^ 2 * (d : ℝ) ^ 3) * δ) := fun u v => by
     rw [abs_mul]
     refine mul_le_mul (by rw [abs_sub_comm]; exact hqδ u v) ?_ (abs_nonneg _) hδ
-    have h1 := segment_gibbs_eq μ ξ hξ ρ' q q' hq hq' b hcI u v
+    have h1 := skVectorSegment_gibbs_eq μ ξ hξ ρ' q q' hq hq' b hcI u v
     rw [h1]
     have h2 := (hlip u v).1
     rw [hfix] at h2
@@ -587,8 +615,8 @@ theorem abs_skVectorPressure_q_leg_le {d : ℕ} (μ : Measure α) [IsProbability
             mul_le_mul (by linarith [hc.1]) (hqδ u v) (abs_nonneg _) zero_le_one
         _ = δ := one_mul _
     calc |c * q' u v + (1 - c) * q u v -
-          (skVectorFixedMap μ ξ b (fun u v => c * q' u v + (1 - c) * q u v, ρ')).1 u v| ≤
-        |qs c u v - q' u v| + |q' u v - (skVectorFixedMap μ ξ b (qs c, ρ')).1 u v| :=
+          (skVectorFixedPointMap μ ξ b (fun u v => c * q' u v + (1 - c) * q u v, ρ')).1 u v| ≤
+        |qs c u v - q' u v| + |q' u v - (skVectorFixedPointMap μ ξ b (qs c, ρ')).1 u v| :=
           abs_sub_le _ (q' u v) _
       _ ≤ δ + 18 * b ^ 2 * (d : ℝ) ^ 3 * δ := by
           refine add_le_add h3 ?_
@@ -606,28 +634,29 @@ point of `T_β` (`β ≠ 0`, `q ⪰ 0`) then `b ↦ G(b, z)` has derivative `(β
 theorem hasDerivAt_skVectorPressure_beta {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
     (ξ : α → Fin d → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u))
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) {β : ℝ} (hβ : β ≠ 0) {q ρ : Fin d → Fin d → ℝ}
-    (hq : (Matrix.of q).PosSemidef) (hfix : skVectorFixedMap μ ξ β (q, ρ) = (q, ρ)) :
+    (hq : (Matrix.of q).PosSemidef) (hfix : skVectorFixedPointMap μ ξ β (q, ρ) = (q, ρ)) :
     HasDerivAt (fun b => skVectorPressure μ ξ b (q, ρ))
       (β / 2 * (∑ u, ∑ v, ρ u v ^ 2 - ∑ u, ∑ v, q u v ^ 2)) β := by
   classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
-  have := isGaussian_skVectorGaussLaw 1 q
-  set P := skVectorGaussLaw 1 q with hP
+  have := isGaussian_skVectorGaussianLaw 1 q
+  set P := skVectorGaussianLaw 1 q with hP
   have hX : HasGaussianLaw (fun (y : Fin d → ℝ) (u : Fin d) => y u) P :=
       IsGaussian.hasGaussianLaw_id
   have hXm : ∀ u : Fin d, Measurable fun y : Fin d → ℝ => y u := fun u => measurable_pi_apply u
-  have hX0 : ∀ u : Fin d, ∫ y : Fin d → ℝ, y u ∂P = 0 := fun u => integral_skVectorGaussLaw_coord 1
+  have hX0 : ∀ u : Fin d, ∫ y : Fin d → ℝ, y u ∂P = 0 := fun u =>
+    integral_skVectorGaussianLaw_coord 1
       q u
   have hXc : ∀ u v : Fin d, ∫ y : Fin d → ℝ, y u * y v ∂P = q u v := fun u v => by
-    simpa using integral_skVectorGaussLaw_mul 1 q hq u v
-  -- the fixed-point equations in the form of `hasDerivAt_skVectorGaussFreeEnergy`
+    simpa using integral_skVectorGaussianLaw_mul 1 q hq u v
+  -- the fixed-point equations in the form of `hasDerivAt_skVectorGaussianFreeEnergy`
   have hYg : HasGaussianLaw (fun (y : Fin d → ℝ) (u : Fin d) => β * y u) P := hX.mul (fun _ => β)
   have hYc : ∀ u v : Fin d, ∫ y : Fin d → ℝ, β * y u * (β * y v) ∂P = β ^ 2 * q u v := fun u v => by
     have : ∫ y : Fin d → ℝ, β * y u * (β * y v) ∂P = β ^ 2 * ∫ y, y u * y v ∂P := by
       rw [← integral_const_mul]
       exact integral_congr_ae (Filter.Eventually.of_forall fun y => by ring)
     rw [this, hXc]
-  obtain ⟨hq', hρ'⟩ := (skVectorFixedMap_eq_iff_equations μ ξ hξ hbound β (q, ρ)
+  obtain ⟨hq', hρ'⟩ := (skVectorFixedPointMap_eq_iff_equations μ ξ hξ hbound β (q, ρ)
     (Y := fun (u : Fin d) (y : Fin d → ℝ) => β * y u) hYg
     (fun u => (measurable_const.mul (measurable_pi_apply u) : Measurable fun y : Fin d → ℝ =>
       β * y u))
@@ -642,7 +671,7 @@ theorem hasDerivAt_skVectorPressure_beta {d : ℕ} (μ : Measure α) [IsProbabil
     have : ∀ a, ∑ w, β * y w * ξ a w = β * ∑ w, y w * ξ a w := fun a => by
       rw [Finset.mul_sum]; exact Finset.sum_congr rfl fun w _ => by ring
     simp only [this]
-  have hd := hasDerivAt_skVectorGaussFreeEnergy μ ξ hξ hr hbound ρ q hX hXm hX0 (fun u v => by
+  have hd := hasDerivAt_skVectorGaussianFreeEnergy μ ξ hξ hr hbound ρ q hX hXm hX0 (fun u v => by
       simpa using hXc u v) (hρ := fun u v => by
         have h := hρ' u v
         simp only [hconv] at h
@@ -670,7 +699,7 @@ theorem abs_skVectorPressure_sub_le {d : ℕ} (μ : Measure α) [IsProbabilityMe
     (ξ : α → Fin d → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u))
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) {b : ℝ} (hb : 0 < b)
     {z z' : (Fin d → Fin d → ℝ) × (Fin d → Fin d → ℝ)} (hz : (Matrix.of z.1).PosSemidef)
-    (hz' : (Matrix.of z'.1).PosSemidef) (hfix : skVectorFixedMap μ ξ b z' = z') {δ : ℝ}
+    (hz' : (Matrix.of z'.1).PosSemidef) (hfix : skVectorFixedPointMap μ ξ b z' = z') {δ : ℝ}
     (hδ : 0 ≤ δ) (hzδ : dist z z' ≤ δ) :
     |skVectorPressure μ ξ b z' - skVectorPressure μ ξ b z| ≤
       b ^ 2 * ((d : ℝ) * d * ((1 + 18 * b ^ 2 * (d : ℝ) ^ 3) * δ * δ)) := by
@@ -686,10 +715,10 @@ theorem abs_skVectorPressure_sub_le {d : ℕ} (μ : Measure α) [IsProbabilityMe
       _ ≤ dist z.2 z'.2 := dist_le_pi_dist _ _ u
       _ ≤ dist z z' := by rw [Prod.dist_eq]; exact le_max_right _ _
       _ ≤ δ := hzδ
-  have hz'fix : skVectorFixedMap μ ξ b (z'.1, z'.2) = (z'.1, z'.2) := hfix
-  have hq := abs_skVectorPressure_q_leg_le μ ξ hξ hbound hb (q := z.1) (q' := z'.1) (ρ' := z'.2)
+  have hz'fix : skVectorFixedPointMap μ ξ b (z'.1, z'.2) = (z'.1, z'.2) := hfix
+  have hq := abs_skVectorPressure_q_sub_le μ ξ hξ hbound hb (q := z.1) (q' := z'.1) (ρ' := z'.2)
     hz hz' hz'fix hδ h1
-  have hρ := abs_skVectorPressure_rho_leg_le μ ξ hξ hbound b (q := z.1) (ρ := z.2) (q' := z'.1)
+  have hρ := abs_skVectorPressure_rho_sub_le μ ξ hξ hbound b (q := z.1) (ρ := z.2) (q' := z'.1)
     (ρ' := z'.2) hz hz' hz'fix hδ h1 h2
   have : skVectorPressure μ ξ b z' - skVectorPressure μ ξ b z =
       (skVectorPressure μ ξ b (z'.1, z'.2) - skVectorPressure μ ξ b (z.1, z'.2)) +
@@ -702,12 +731,13 @@ theorem abs_skVectorPressure_sub_le {d : ℕ} (μ : Measure α) [IsProbabilityMe
 /-- **`F(β) = G(β, z(β))` is differentiable with derivative `(β/2) ∑ (ρ² - q²)`** for any family of
 fixed points `z(b)` of `T_b` in the cone (proof of Theorem 1.12.3: the stationarity of `G` in `z`,
 Lemma 1.12.6, makes the dependence of `z` on `β` second order). -/
-theorem hasDerivAt_pressure_family {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
+theorem hasDerivAt_skVectorPressure_fixedPoint {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
     (ξ : α → Fin d → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u))
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) {β β₁ : ℝ} (hβ : 0 < β) (hββ₁ : β < β₁)
     (hκ : 18 * β₁ ^ 2 * (d : ℝ) ^ 2 < 1)
     (z : ℝ → (Fin d → Fin d → ℝ) × (Fin d → Fin d → ℝ))
-    (hz : ∀ b ∈ Set.Ioo (β / 2) β₁, z b ∈ skVectorFixedCone d ∧ skVectorFixedMap μ ξ b (z b) = z b)
+    (hz : ∀ b ∈ Set.Ioo (β / 2) β₁, z b ∈ skVectorFixedPointCone d ∧ skVectorFixedPointMap μ ξ b
+      (z b) = z b)
         :
     HasDerivAt (fun b => skVectorPressure μ ξ b (z b))
       (β / 2 * (∑ u, ∑ v, (z β).2 u v ^ 2 - ∑ u, ∑ v, (z β).1 u v ^ 2)) β := by

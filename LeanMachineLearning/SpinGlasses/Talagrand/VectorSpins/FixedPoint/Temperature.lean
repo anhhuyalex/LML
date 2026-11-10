@@ -5,9 +5,9 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.SKVectorFixedPointPath
-public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.SKVectorFixedPointExistence
-public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.SKVectorConcreteModel
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.FixedPoint.Interpolation
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.FixedPoint.Existence
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Model.Disorder
 
 /-!
 # Dependence of the fixed-point map on the inverse temperature
@@ -28,7 +28,8 @@ variable {α : Type*} [MeasurableSpace α]
 
 omit [MeasurableSpace α] in
 /-- The energy along the `β`-path is the field exponent of the scaled field. -/
-theorem skVectorBetaEnergy_eq {d : ℕ} (ξ : α → Fin d → ℝ) (ρ q : Fin d → Fin d → ℝ)
+theorem skVectorFieldExponent_eq_temperature_features {d : ℕ} (ξ : α → Fin d → ℝ) (ρ q : Fin d →
+  Fin d → ℝ)
     (x : Fin d → ℝ) (b : ℝ) (a : α) :
     0 + ∑ k : Fin d, b * x k * ξ a k +
       ∑ j : Fin d × Fin d, (b ^ 2 / 2 * (ρ j.1 j.2 - q j.1 j.2)) * (ξ a j.1 * ξ a j.2) =
@@ -45,7 +46,8 @@ theorem skVectorBetaEnergy_eq {d : ℕ} (ξ : α → Fin d → ℝ) (ρ q : Fin 
 Gaussian field of covariance `q` and the energy `∑ b Zₖ ξₖ + (b²/2) ∑ ξᵤ ξᵥ (ρ - q)ᵤᵥ`, the
 expected `n`-replica Gibbs average of `F` is differentiable at `b > 0` with derivative of absolute
 value at most `4 b (n+1)² M d³ (D_q + D_{ρ-q})`, where `D_q`, `D_{ρ-q}` bound the entries. -/
-theorem skVectorField_beta_hasDerivAt {d : ℕ} {Ω R : Type*} [MeasurableSpace Ω] [Fintype R]
+theorem hasDerivAt_skVectorFieldAverage_temperature {d : ℕ} {Ω R : Type*} [MeasurableSpace Ω]
+  [Fintype R]
     (μ : Measure α) [IsProbabilityMeasure μ] (ξ : α → Fin d → ℝ)
     (hξ : ∀ u, Measurable (fun a => ξ a u)) (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d)
     (ρ q : Fin d → Fin d → ℝ) {Dq DA : ℝ} (hq : ∀ u v, |q u v| ≤ Dq)
@@ -118,10 +120,12 @@ theorem skVectorField_beta_hasDerivAt {d : ℕ} {Ω R : Type*} [MeasurableSpace 
         ∂(Measure.pi fun _ : Option (Option R) => μ.tilted (en ω)) ∂P := ⟨_, fun _ => rfl⟩
   simp only [← hE1, ← hE2]
   have hen' : ∀ ω, en ω = skVectorFieldExponent ξ b ρ q (fun k => b * Z k ω) := fun ω =>
-    funext fun a => by rw [hen]; exact skVectorBetaEnergy_eq ξ ρ q (fun k => Z k ω) b a
+    funext fun a => by
+      rw [hen]; exact skVectorFieldExponent_eq_temperature_features ξ ρ q (fun k => Z k ω) b a
   have hprob : ∀ ω, IsProbabilityMeasure (μ.tilted (en ω)) := fun ω => by
     rw [hen']
-    exact isProbabilityMeasure_tilted (skVectorFieldExponent_integrable μ ξ hξ hr hbound b _ _ _)
+    exact isProbabilityMeasure_tilted (integrable_exp_skVectorFieldExponent μ ξ hξ hr hbound b _ _
+      _)
   have hint : ∀ (G : (Option (Option R) → α) → ℝ) (C : ℝ), (∀ σ, |G σ| ≤ C) →
       |∫ ω, ∫ σ, G σ ∂(Measure.pi fun _ : Option (Option R) => μ.tilted (en ω)) ∂P| ≤ C := by
     intro G C hG
@@ -196,30 +200,31 @@ theorem skVectorField_beta_hasDerivAt {d : ℕ} {Ω R : Type*} [MeasurableSpace 
 /-- The `β`-dependence of the expected Gibbs average: for `0 < b₁ ≤ b₂` the average over the field
 of
 covariance `b² q` changes by at most `b₂ K₀ (b₂ - b₁)`. -/
-theorem skVectorFieldAvg_beta_lipschitz {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
+theorem abs_skVectorFieldAverage_temperature_sub_le {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
     (ξ : α → Fin d → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u))
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) (ρ q : Fin d → Fin d → ℝ)
     (hqpsd : (Matrix.of q).PosSemidef) {Dq DA : ℝ} (hDq : 0 ≤ Dq) (hDA : 0 ≤ DA)
     (hq : ∀ u v, |q u v| ≤ Dq) (hA : ∀ u v, |ρ u v - q u v| ≤ DA) (F : (Fin 2 → α) → ℝ) (hF :
         Measurable F) {M : ℝ}
     (hM : 0 ≤ M) (hFb : ∀ σ, |F σ| ≤ M) {b₁ b₂ : ℝ} (hb₁ : 0 < b₁) (hb₁₂ : b₁ ≤ b₂) :
-    |(∫ y, skVectorFieldAvg μ ξ b₂ ρ q F y ∂(skVectorGaussLaw b₂ q)) -
-        ∫ y, skVectorFieldAvg μ ξ b₁ ρ q F y ∂(skVectorGaussLaw b₁ q)| ≤
+    |(∫ y, skVectorFieldAverage μ ξ b₂ ρ q F y ∂(skVectorGaussianLaw b₂ q)) -
+        ∫ y, skVectorFieldAverage μ ξ b₁ ρ q F y ∂(skVectorGaussianLaw b₁ q)| ≤
       b₂ * ((d : ℝ) * d * Dq * (4 * 2 * (2 + 1) * M * d) +
         (d : ℝ) * d * DA * (2 * (2 + 1) * M * d)) * (b₂ - b₁) := by
   classical
-  have := isGaussian_skVectorGaussLaw 1 q
-  set P := skVectorGaussLaw 1 q with hP
+  have := isGaussian_skVectorGaussianLaw 1 q
+  set P := skVectorGaussianLaw 1 q with hP
   have hZ : HasGaussianLaw (fun (y : Fin d → ℝ) (k : Fin d) => y k) P :=
     IsGaussian.hasGaussianLaw_id
   have hZm : ∀ k : Fin d, Measurable fun y : Fin d → ℝ => y k := fun k => measurable_pi_apply k
   have hmean : ∀ k : Fin d, ∫ y : Fin d → ℝ, y k ∂P = 0 := fun k =>
-    integral_skVectorGaussLaw_coord 1 q k
+    integral_skVectorGaussianLaw_coord 1 q k
   have hcov : ∀ x y : Fin d, ∫ ω : Fin d → ℝ, ω x * ω y ∂P = q x y := fun x y => by
-    have := integral_skVectorGaussLaw_mul 1 q hqpsd x y
+    have := integral_skVectorGaussianLaw_mul 1 q hqpsd x y
     simpa using this
-  have hlaw : ∀ b : ℝ, P.map (fun (ω : Fin d → ℝ) (u : Fin d) => b * ω u) = skVectorGaussLaw b q :=
-    fun b => map_eq_skVectorGaussLaw b q (hZ.mul (fun _ => b)) (fun u => by
+  have hlaw : ∀ b : ℝ, P.map (fun (ω : Fin d → ℝ) (u : Fin d) => b * ω u) = skVectorGaussianLaw b
+    q :=
+    fun b => map_eq_skVectorGaussianLaw b q (hZ.mul (fun _ => b)) (fun u => by
       rw [integral_const_mul, hmean, mul_zero]) (fun u v => by
       have : ∫ ω : Fin d → ℝ, b * ω u * (b * ω v) ∂P = b ^ 2 * ∫ ω, ω u * ω v ∂P := by
         rw [← integral_const_mul]
@@ -229,20 +234,22 @@ theorem skVectorFieldAvg_beta_lipschitz {d : ℕ} (μ : Measure α) [IsProbabili
       μ.tilted fun a => 0 + ∑ k : Fin d, r * ω k * ξ a k +
         ∑ j : Fin d × Fin d, (r ^ 2 / 2 * (ρ j.1 j.2 - q j.1 j.2)) * (ξ a j.1 * ξ a j.2)) ∂P
     with hφ
-  have hφ_eq : ∀ b : ℝ, ∫ y, skVectorFieldAvg μ ξ b ρ q F y ∂(skVectorGaussLaw b q) = φ b := by
+  have hφ_eq : ∀ b : ℝ, ∫ y, skVectorFieldAverage μ ξ b ρ q F y ∂(skVectorGaussianLaw b q) = φ b
+    := by
     intro b
-    rw [← integral_skVectorFieldAvg_realization μ ξ hξ b ρ q F hF
+    rw [← integral_skVectorFieldAverage_realization μ ξ hξ b ρ q F hF
       (Y := fun (u : Fin d) (ω : Fin d → ℝ) => b * ω u)
       (fun u => (measurable_const.mul (measurable_pi_apply u) : Measurable fun ω : Fin d → ℝ => b *
           ω u))
       (hlaw b)]
     refine integral_congr_ae (Filter.Eventually.of_forall fun ω => ?_)
-    unfold skVectorFieldAvg
-    simp only [skVectorBetaEnergy_eq]
+    unfold skVectorFieldAverage
+    simp only [skVectorFieldExponent_eq_temperature_features]
   rw [hφ_eq, hφ_eq]
   have hder : ∀ r : ℝ, 0 < r → ∃ V, HasDerivAt φ V r ∧ |V| ≤ r * ((d : ℝ) * d * Dq *
       (4 * 2 * (2 + 1) * M * d) + (d : ℝ) * d * DA * (2 * (2 + 1) * M * d)) := fun r hr => by
-    obtain ⟨V, hV, hVb⟩ := skVectorField_beta_hasDerivAt (R := Fin 2) μ ξ hξ hbound ρ q hq hA F hF
+    obtain ⟨V, hV, hVb⟩ := hasDerivAt_skVectorFieldAverage_temperature (R := Fin 2) μ ξ hξ hbound
+      ρ q hq hA F hF
       hM hFb hZ hZm hmean hcov hr
     refine ⟨V, hV, ?_⟩
     simpa [Fintype.card_fin] using hVb
@@ -265,13 +272,13 @@ theorem skVectorFieldAvg_beta_lipschitz {d : ℕ} (μ : Measure α) [IsProbabili
 /-- **`β`-Lipschitz dependence of the fixed-point map.**  For `w` in the cone with entries bounded
 by `Dq`, `DA` and `0 < b₁ ≤ b₂`, `T_{b₁} w` and `T_{b₂} w` are at sup-distance at most
 `b₂ K₀ (b₂ - b₁)`. -/
-theorem skVectorFixedMap_beta_dist_le {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
+theorem skVectorFixedPointMap_beta_dist_le {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
     (ξ : α → Fin d → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u))
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) {w : (Fin d → Fin d → ℝ) × (Fin d → Fin d → ℝ)}
     (hw : (Matrix.of w.1).PosSemidef) {Dq DA : ℝ} (hDq : 0 ≤ Dq) (hDA : 0 ≤ DA)
     (hq : ∀ u v, |w.1 u v| ≤ Dq) (hA : ∀ u v, |w.2 u v - w.1 u v| ≤ DA) {b₁ b₂ : ℝ}
     (hb₁ : 0 < b₁) (hb₁₂ : b₁ ≤ b₂) :
-    dist (skVectorFixedMap μ ξ b₁ w) (skVectorFixedMap μ ξ b₂ w) ≤
+    dist (skVectorFixedPointMap μ ξ b₁ w) (skVectorFixedPointMap μ ξ b₂ w) ≤
       b₂ * ((d : ℝ) * d * Dq * (4 * 2 * (2 + 1) * d * d) +
         (d : ℝ) * d * DA * (2 * (2 + 1) * d * d)) * (b₂ - b₁) := by
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
@@ -284,9 +291,10 @@ theorem skVectorFixedMap_beta_dist_le {d : ℕ} (μ : Measure α) [IsProbability
     have : 0 ≤ b₂ - b₁ := sub_nonneg.2 hb₁₂
     positivity
   have key : ∀ F : (Fin 2 → α) → ℝ, Measurable F → (∀ σ, |F σ| ≤ d) →
-      |(∫ y, skVectorFieldAvg μ ξ b₂ w.2 w.1 F y ∂(skVectorGaussLaw b₂ w.1)) -
-        ∫ y, skVectorFieldAvg μ ξ b₁ w.2 w.1 F y ∂(skVectorGaussLaw b₁ w.1)| ≤ K :=
-    fun F hF hFb => skVectorFieldAvg_beta_lipschitz μ ξ hξ hbound w.2 w.1 hw hDq hDA hq hA F hF hr
+      |(∫ y, skVectorFieldAverage μ ξ b₂ w.2 w.1 F y ∂(skVectorGaussianLaw b₂ w.1)) -
+        ∫ y, skVectorFieldAverage μ ξ b₁ w.2 w.1 F y ∂(skVectorGaussianLaw b₁ w.1)| ≤ K :=
+    fun F hF hFb => abs_skVectorFieldAverage_temperature_sub_le μ ξ hξ hbound w.2 w.1 hw hDq hDA
+      hq hA F hF hr
       hFb hb₁ hb₁₂
   have hF1 : ∀ u v, Measurable fun σ : Fin 2 → α => ξ (σ 0) u * ξ (σ 1) v := fun u v =>
     ((hξ u).comp (measurable_pi_apply 0)).mul ((hξ v).comp (measurable_pi_apply 1))
@@ -308,9 +316,9 @@ theorem skVectorFixedPoint_beta_dist_le {d : ℕ} (μ : Measure α) [IsProbabili
     (ξ : α → Fin d → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u))
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) {b₁ b₂ : ℝ} (hb₁ : 0 < b₁) (hb₁₂ : b₁ ≤ b₂)
     (hκ : 18 * b₁ ^ 2 * (d : ℝ) ^ 2 < 1)
-    {z₁ z₂ : (Fin d → Fin d → ℝ) × (Fin d → Fin d → ℝ)} (hz₁ : z₁ ∈ skVectorFixedCone d)
-    (hz₂ : z₂ ∈ skVectorFixedCone d) (hf₁ : skVectorFixedMap μ ξ b₁ z₁ = z₁)
-    (hf₂ : skVectorFixedMap μ ξ b₂ z₂ = z₂) :
+    {z₁ z₂ : (Fin d → Fin d → ℝ) × (Fin d → Fin d → ℝ)} (hz₁ : z₁ ∈ skVectorFixedPointCone d)
+    (hz₂ : z₂ ∈ skVectorFixedPointCone d) (hf₁ : skVectorFixedPointMap μ ξ b₁ z₁ = z₁)
+    (hf₂ : skVectorFixedPointMap μ ξ b₂ z₂ = z₂) :
     dist z₁ z₂ ≤ d * (b₂ * ((d : ℝ) * d * d * (4 * 2 * (2 + 1) * d * d) +
         (d : ℝ) * d * (2 * d) * (2 * (2 + 1) * d * d)) * (b₂ - b₁)) /
       (1 - 18 * b₁ ^ 2 * (d : ℝ) ^ 2) := by
@@ -320,20 +328,22 @@ theorem skVectorFixedPoint_beta_dist_le {d : ℕ} (μ : Measure α) [IsProbabili
   have hρb : ∀ u v, |z₂.2 u v| ≤ d := abs_entry_le_of_sum_sq_le z₂.2 hρ2
   have hAb : ∀ u v, |z₂.2 u v - z₂.1 u v| ≤ 2 * d := fun u v =>
     (abs_sub _ _).trans (by linarith [hqb u v, hρb u v])
-  have h1 := skVectorFixedMap_frobDist_le μ ξ hξ hbound b₁ hz₁ hz₂
-  have h2 := skVectorFixedMap_beta_dist_le μ ξ hξ hbound hz₂.1 (Dq := d) (DA := 2 * d) hr
+  have h1 := skVectorFrobeniusDist_fixedPointMap_le μ ξ hξ hbound b₁ hz₁ hz₂
+  have h2 := skVectorFixedPointMap_beta_dist_le μ ξ hξ hbound hz₂.1 (Dq := d) (DA := 2 * d) hr
     (by positivity) hqb hAb hb₁ hb₁₂
   rw [hf₁] at h1
   rw [hf₂] at h2
-  have h2' := (skVectorFrobDist_le_mul_dist _ _).trans (mul_le_mul_of_nonneg_left h2 hr)
+  have h2' := (skVectorFrobeniusDist_le_mul_dist _ _).trans (mul_le_mul_of_nonneg_left h2 hr)
   set B : ℝ := d * (b₂ * ((d : ℝ) * d * d * (4 * 2 * (2 + 1) * d * d) +
       (d : ℝ) * d * (2 * d) * (2 * (2 + 1) * d * d)) * (b₂ - b₁)) with hB
-  have h3 : skVectorFrobDist z₁ z₂ ≤ 18 * b₁ ^ 2 * (d : ℝ) ^ 2 * skVectorFrobDist z₁ z₂ + B := by
-    calc skVectorFrobDist z₁ z₂ ≤ skVectorFrobDist z₁ (skVectorFixedMap μ ξ b₁ z₂) +
-          skVectorFrobDist (skVectorFixedMap μ ξ b₁ z₂) z₂ := skVectorFrobDist_triangle _ _ _
+  have h3 : skVectorFrobeniusDist z₁ z₂ ≤ 18 * b₁ ^ 2 * (d : ℝ) ^ 2 * skVectorFrobeniusDist z₁ z₂
+    + B := by
+    calc skVectorFrobeniusDist z₁ z₂ ≤ skVectorFrobeniusDist z₁ (skVectorFixedPointMap μ ξ b₁ z₂) +
+          skVectorFrobeniusDist (skVectorFixedPointMap μ ξ b₁ z₂) z₂ :=
+            skVectorFrobeniusDist_triangle _ _ _
       _ ≤ _ := add_le_add h1 h2'
   rw [le_div_iff₀ (by linarith)]
-  have h4 : dist z₁ z₂ ≤ skVectorFrobDist z₁ z₂ := dist_le_skVectorFrobDist _ _
+  have h4 : dist z₁ z₂ ≤ skVectorFrobeniusDist z₁ z₂ := dist_le_skVectorFrobeniusDist _ _
   nlinarith
 
 end SpinGlasses

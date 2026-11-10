@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.SKVectorCavity
-public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.SKVectorGeometry
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Cavity.Derivative
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Geometry
 
 /-!
 # Bounds for the cavity derivative (Talagrand Corollary 1.12.5)
@@ -92,18 +92,19 @@ include hξ hr hbound hgm hg'm hYm
 
 /-- The Gibbs expectation `ν_t` of a finite sum of bounded measurable functions is the sum of the
 expectations. -/
-theorem skVectorCavityAvg_sum {ι : Type*} [Fintype ι]
+theorem skVectorCavityAverage_sum {ι : Type*} [Fintype ι]
     (G : ι → (Option (Option R) → Fin (N + 1) → α) → ℝ) (hG : ∀ i, Measurable (G i))
     (hGb : ∀ i, ∃ B, ∀ σ, |G i σ| ≤ B) :
-    skVectorCavityAvg μ ξ N β ρ q P g g' Y t (fun σ => ∑ i, G i σ) =
-      ∑ i, skVectorCavityAvg μ ξ N β ρ q P g g' Y t (G i) := by
-  have hint := fun i => integrable_skVectorCavityGibbs (R := R) (P := P) μ ξ hξ hr hbound N β ρ q
+    skVectorCavityAverage μ ξ N β ρ q P g g' Y t (fun σ => ∑ i, G i σ) =
+      ∑ i, skVectorCavityAverage μ ξ N β ρ q P g g' Y t (G i) := by
+  have hint := fun i => integrable_integral_skVectorCavityAverage (R := R) (P := P) μ ξ hξ hr
+    hbound N β ρ q
     hgm hg'm
     hYm t (G i) (hG i) (hGb i)
-  unfold skVectorCavityAvg
+  unfold skVectorCavityAverage
   rw [← integral_finsetSum _ fun i _ => hint i]
   refine integral_congr_ae (Filter.Eventually.of_forall fun ω => ?_)
-  have := isProbabilityMeasure_skVectorCavityGibbs μ ξ hξ hr hbound N β ρ q
+  have := isProbabilityMeasure_tilted_skVectorCavityEnergy μ ξ hξ hr hbound N β ρ q
     (fun p => g p ω) (fun i => g' i ω) (fun u => Y u ω) t
   refine integral_finsetSum _ fun i _ => ?_
   obtain ⟨B, hB⟩ := hGb i
@@ -113,26 +114,28 @@ theorem skVectorCavityAvg_sum {ι : Type*} [Fintype ι]
 
 omit [IsProbabilityMeasure μ] [IsProbabilityMeasure P] hξ hr hbound hgm hg'm hYm in
 /-- Scaling the observable scales the expectation. -/
-theorem skVectorCavityAvg_const_mul (c : ℝ)
+theorem skVectorCavityAverage_const_mul (c : ℝ)
     (G : (Option (Option R) → Fin (N + 1) → α) → ℝ) :
-    skVectorCavityAvg μ ξ N β ρ q P g g' Y t (fun σ => c * G σ) =
-      c * skVectorCavityAvg μ ξ N β ρ q P g g' Y t G := by
-  unfold skVectorCavityAvg
+    skVectorCavityAverage μ ξ N β ρ q P g g' Y t (fun σ => c * G σ) =
+      c * skVectorCavityAverage μ ξ N β ρ q P g g' Y t G := by
+  unfold skVectorCavityAverage
   rw [← integral_const_mul]
   exact integral_congr_ae (Filter.Eventually.of_forall fun ω => integral_const_mul _ _)
 
 /-- **Monotonicity of `ν_t`**: if `|G| ≤ H` pointwise and `H` is bounded and measurable then
 `|ν_t(G)| ≤ ν_t(H)`. -/
-theorem abs_skVectorCavityAvg_le
+theorem abs_skVectorCavityAverage_le
     (G H : (Option (Option R) → Fin (N + 1) → α) → ℝ) (hH : Measurable H)
     (hHb : ∃ B, ∀ σ, |H σ| ≤ B) (hGH : ∀ σ, |G σ| ≤ H σ) :
-    |skVectorCavityAvg μ ξ N β ρ q P g g' Y t G| ≤ skVectorCavityAvg μ ξ N β ρ q P g g' Y t H := by
-  have hint := integrable_skVectorCavityGibbs (R := R) (P := P) μ ξ hξ hr hbound N β ρ q hgm hg'm
+    |skVectorCavityAverage μ ξ N β ρ q P g g' Y t G| ≤ skVectorCavityAverage μ ξ N β ρ q P g g' Y
+      t H := by
+  have hint := integrable_integral_skVectorCavityAverage (R := R) (P := P) μ ξ hξ hr hbound N β ρ
+    q hgm hg'm
     hYm t H hH hHb
-  unfold skVectorCavityAvg
+  unfold skVectorCavityAverage
   rw [← Real.norm_eq_abs]
   refine norm_integral_le_of_norm_le hint (Filter.Eventually.of_forall fun ω => ?_)
-  have := isProbabilityMeasure_skVectorCavityGibbs μ ξ hξ hr hbound N β ρ q
+  have := isProbabilityMeasure_tilted_skVectorCavityEnergy μ ξ hξ hr hbound N β ρ q
     (fun p => g p ω) (fun i => g' i ω) (fun u => Y u ω) t
   obtain ⟨B, hB⟩ := hHb
   exact norm_integral_le_of_norm_le (integrable_of_measurable_bound (m := Measure.pi
@@ -143,19 +146,19 @@ theorem abs_skVectorCavityAvg_le
 
 omit [IsProbabilityMeasure μ] [IsProbabilityMeasure P] hξ hr hbound hgm hg'm hYm in
 /-- `ν_t` is a positive functional. -/
-theorem skVectorCavityAvg_nonneg (G : (Option (Option R) → Fin (N + 1) → α) → ℝ)
-    (hG : ∀ σ, 0 ≤ G σ) : 0 ≤ skVectorCavityAvg μ ξ N β ρ q P g g' Y t G :=
+theorem skVectorCavityAverage_nonneg (G : (Option (Option R) → Fin (N + 1) → α) → ℝ)
+    (hG : ∀ σ, 0 ≤ G σ) : 0 ≤ skVectorCavityAverage μ ξ N β ρ q P g g' Y t G :=
   integral_nonneg fun _ => integral_nonneg fun σ => hG σ
 
 /-- **Cauchy--Schwarz for `ν_t`**: `|ν_t(G H)| ≤ ν_t(G²)^{1/2} ν_t(H²)^{1/2}` for bounded measurable
 `G`, `H`. -/
-theorem abs_skVectorCavityAvg_mul_le
+theorem abs_skVectorCavityAverage_mul_le
     (G H : (Option (Option R) → Fin (N + 1) → α) → ℝ) (hG : Measurable G) (hH : Measurable H)
     (hGb : ∃ B, ∀ σ, |G σ| ≤ B) (hHb : ∃ B, ∀ σ, |H σ| ≤ B) :
-    |skVectorCavityAvg μ ξ N β ρ q P g g' Y t (fun σ => G σ * H σ)| ≤
-      Real.sqrt (skVectorCavityAvg μ ξ N β ρ q P g g' Y t (fun σ => G σ ^ 2)) *
-        Real.sqrt (skVectorCavityAvg μ ξ N β ρ q P g g' Y t (fun σ => H σ ^ 2)) := by
-  set A := skVectorCavityAvg (R := R) μ ξ N β ρ q P g g' Y t with hAdef
+    |skVectorCavityAverage μ ξ N β ρ q P g g' Y t (fun σ => G σ * H σ)| ≤
+      Real.sqrt (skVectorCavityAverage μ ξ N β ρ q P g g' Y t (fun σ => G σ ^ 2)) *
+        Real.sqrt (skVectorCavityAverage μ ξ N β ρ q P g g' Y t (fun σ => H σ ^ 2)) := by
+  set A := skVectorCavityAverage (R := R) μ ξ N β ρ q P g g' Y t with hAdef
   simp only [sq]
   have hexp : ∀ s : ℝ, A (fun σ => (G σ + s * H σ) * (G σ + s * H σ)) =
       A (fun σ => G σ * G σ) + 2 * s * A (fun σ => G σ * H σ) +
@@ -164,7 +167,7 @@ theorem abs_skVectorCavityAvg_mul_le
     have hGG := exists_abs_le_mul hGb hGb
     have hGH := exists_abs_le_mul hGb hHb
     have hHH := exists_abs_le_mul hHb hHb
-    have h3 := skVectorCavityAvg_sum (R := R) (P := P) (g := g) (g' := g') (Y := Y) μ ξ hξ hr
+    have h3 := skVectorCavityAverage_sum (R := R) (P := P) (g := g) (g' := g') (Y := Y) μ ξ hξ hr
       hbound N β ρ q hgm hg'm hYm t (ι := Fin 3)
       (fun i σ => ![G σ * G σ, 2 * s * (G σ * H σ), s ^ 2 * (H σ * H σ)] i)
       (by
@@ -182,18 +185,21 @@ theorem abs_skVectorCavityAvg_mul_le
     have e : (fun σ => (G σ + s * H σ) * (G σ + s * H σ)) = fun σ => G σ * G σ +
         2 * s * (G σ * H σ) + s ^ 2 * (H σ * H σ) := funext fun σ => by ring
     rw [e, hAdef, h3]
-    rw [skVectorCavityAvg_const_mul (R := R) μ ξ N β ρ q t, skVectorCavityAvg_const_mul]
+    rw [skVectorCavityAverage_const_mul (R := R) μ ξ N β ρ q t, skVectorCavityAverage_const_mul]
   have hnn : ∀ s : ℝ, 0 ≤ A (fun σ => G σ * G σ) + 2 * s * A (fun σ => G σ * H σ) +
       s ^ 2 * A (fun σ => H σ * H σ) := fun s => by
     rw [← hexp s]
-    exact skVectorCavityAvg_nonneg (R := R) (P := P) (g := g) (g' := g') (Y := Y) μ ξ N β ρ q t _
+    exact skVectorCavityAverage_nonneg (R := R) (P := P) (g := g) (g' := g') (Y := Y) μ ξ N β ρ q
+      t _
       fun σ => mul_self_nonneg _
   have hdis := discrim_le_zero (a := A (fun σ => H σ * H σ)) (b := 2 * A (fun σ => G σ * H σ))
     (c := A (fun σ => G σ * G σ)) fun s => by nlinarith [hnn s]
-  have hG2 := skVectorCavityAvg_nonneg (R := R) (P := P) (g := g) (g' := g') (Y := Y) μ ξ N β ρ q
+  have hG2 := skVectorCavityAverage_nonneg (R := R) (P := P) (g := g) (g' := g') (Y := Y) μ ξ N β
+    ρ q
     t (fun σ => G σ * G σ)
     fun σ => mul_self_nonneg _
-  have hH2 := skVectorCavityAvg_nonneg (R := R) (P := P) (g := g) (g' := g') (Y := Y) μ ξ N β ρ q
+  have hH2 := skVectorCavityAverage_nonneg (R := R) (P := P) (g := g) (g' := g') (Y := Y) μ ξ N β
+    ρ q
     t (fun σ => H σ * H σ)
     fun σ => mul_self_nonneg _
   rw [← Real.sqrt_mul hG2]
@@ -204,27 +210,27 @@ theorem abs_skVectorCavityAvg_mul_le
 omit [IsProbabilityMeasure P] hgm hg'm hYm in
 /-- **Replica exchangeability of `ν_t`**: a function of two distinct replicas has the same
 expectation for any two distinct replicas. -/
-theorem skVectorCavityAvg_pair_eq {x y x' y' : Option (Option R)} (hxy : x ≠ y) (hxy' : x' ≠ y')
+theorem skVectorCavityAverage_pair_eq {x y x' y' : Option (Option R)} (hxy : x ≠ y) (hxy' : x' ≠ y')
     (φ : (Fin (N + 1) → α) → (Fin (N + 1) → α) → ℝ)
     (hφ : Measurable fun p : (Fin (N + 1) → α) × (Fin (N + 1) → α) => φ p.1 p.2) :
-    skVectorCavityAvg μ ξ N β ρ q P g g' Y t (fun σ => φ (σ x) (σ y)) =
-      skVectorCavityAvg μ ξ N β ρ q P g g' Y t (fun σ => φ (σ x') (σ y')) := by
-  unfold skVectorCavityAvg
+    skVectorCavityAverage μ ξ N β ρ q P g g' Y t (fun σ => φ (σ x) (σ y)) =
+      skVectorCavityAverage μ ξ N β ρ q P g g' Y t (fun σ => φ (σ x') (σ y')) := by
+  unfold skVectorCavityAverage
   refine integral_congr_ae (Filter.Eventually.of_forall fun ω => ?_)
-  have := isProbabilityMeasure_skVectorCavityGibbs μ ξ hξ hr hbound N β ρ q
+  have := isProbabilityMeasure_tilted_skVectorCavityEnergy μ ξ hξ hr hbound N β ρ q
     (fun p => g p ω) (fun i => g' i ω) (fun u => Y u ω) t
   exact integral_pi_pair_eq _ hxy hxy' φ hφ
 
 omit [IsProbabilityMeasure P] hgm hg'm hYm in
 /-- **Replica exchangeability of `ν_t` for a single replica.** -/
-theorem skVectorCavityAvg_diag_eq {x x' : Option (Option R)}
+theorem skVectorCavityAverage_diag_eq {x x' : Option (Option R)}
     (φ : (Fin (N + 1) → α) → (Fin (N + 1) → α) → ℝ)
     (hφ : Measurable fun p : (Fin (N + 1) → α) × (Fin (N + 1) → α) => φ p.1 p.2) :
-    skVectorCavityAvg μ ξ N β ρ q P g g' Y t (fun σ => φ (σ x) (σ x)) =
-      skVectorCavityAvg μ ξ N β ρ q P g g' Y t (fun σ => φ (σ x') (σ x')) := by
-  unfold skVectorCavityAvg
+    skVectorCavityAverage μ ξ N β ρ q P g g' Y t (fun σ => φ (σ x) (σ x)) =
+      skVectorCavityAverage μ ξ N β ρ q P g g' Y t (fun σ => φ (σ x') (σ x')) := by
+  unfold skVectorCavityAverage
   refine integral_congr_ae (Filter.Eventually.of_forall fun ω => ?_)
-  have := isProbabilityMeasure_skVectorCavityGibbs μ ξ hξ hr hbound N β ρ q
+  have := isProbabilityMeasure_tilted_skVectorCavityEnergy μ ξ hξ hr hbound N β ρ q
     (fun p => g p ω) (fun i => g' i ω) (fun u => Y u ω) t
   exact integral_pi_diag_eq _ φ hφ
 
@@ -241,7 +247,7 @@ variable {d N : ℕ} {Ω R : Type*} [MeasurableSpace Ω] [Fintype R] [Measurable
   (t : ℝ) (F : (R → Fin (N + 1) → α) → ℝ) (hF : Measurable F) {M : ℝ} (hFb : ∀ σ, |F σ| ≤ M)
 
 omit [MeasurableSpace α] [Fintype R] in
-theorem skVectorCavity_book_sum_pointwise (x y : Option (Option R)) (Q : Fin d → Fin d → ℝ)
+theorem sum_skVectorCavityKernel_eq (x y : Option (Option R)) (Q : Fin d → Fin d → ℝ)
     (σ : Option (Option R) → Fin (N + 1) → α) :
     ∑ u, ∑ v, (F fun c => σ (some (some c))) * ξ (σ x (Fin.last N)) u *
         ξ (σ y (Fin.last N)) v * (skVectorCavityOverlap ξ N (σ x) (σ y) u v - Q u v) =
@@ -254,46 +260,48 @@ include hξ hbound hgm hg'm hYm hF hFb
 
 /-- The sum over the component indices of the book expectations of Eq. (1.376) is the expectation
 of `f` times the contraction of the overlap error against the two spins. -/
-theorem skVectorCavityAvg_book_sum (x y : Option (Option R)) (Q : Fin d → Fin d → ℝ) :
-    ∑ u, ∑ v, skVectorCavityAvg μ ξ N β ρ q P g g' Y t (fun σ =>
+theorem skVectorCavityAverage_sum_kernel_eq (x y : Option (Option R)) (Q : Fin d → Fin d → ℝ) :
+    ∑ u, ∑ v, skVectorCavityAverage μ ξ N β ρ q P g g' Y t (fun σ =>
         (F fun c => σ (some (some c))) * ξ (σ x (Fin.last N)) u * ξ (σ y (Fin.last N)) v *
           (skVectorCavityOverlap ξ N (σ x) (σ y) u v - Q u v)) =
-      skVectorCavityAvg μ ξ N β ρ q P g g' Y t (fun σ =>
+      skVectorCavityAverage μ ξ N β ρ q P g g' Y t (fun σ =>
         (F fun c => σ (some (some c))) * ∑ u, ∑ v, ξ (σ x (Fin.last N)) u *
           ξ (σ y (Fin.last N)) v * (skVectorCavityOverlap ξ N (σ x) (σ y) u v - Q u v)) := by
   have hbook := fun (u v : Fin d) =>
-    skVectorCavity_book_integrand (R := R) hξ (Nat.cast_nonneg d) hbound hF hFb x y Q u v
+    skVectorCavity_replica_term_eq (R := R) hξ (Nat.cast_nonneg d) hbound hF hFb x y Q u v
   have hfun : (fun σ : Option (Option R) → Fin (N + 1) → α =>
       (F fun c => σ (some (some c))) * ∑ u, ∑ v, ξ (σ x (Fin.last N)) u *
         ξ (σ y (Fin.last N)) v * (skVectorCavityOverlap ξ N (σ x) (σ y) u v - Q u v)) =
       fun σ => ∑ u, ∑ v, (F fun c => σ (some (some c))) * ξ (σ x (Fin.last N)) u *
         ξ (σ y (Fin.last N)) v * (skVectorCavityOverlap ξ N (σ x) (σ y) u v - Q u v) :=
-    funext fun σ => (skVectorCavity_book_sum_pointwise ξ F x y Q σ).symm
-  rw [hfun, skVectorCavityAvg_sum (R := R) (P := P) μ ξ hξ (Nat.cast_nonneg d) hbound N β ρ q
+    funext fun σ => (sum_skVectorCavityKernel_eq ξ F x y Q σ).symm
+  rw [hfun, skVectorCavityAverage_sum (R := R) (P := P) μ ξ hξ (Nat.cast_nonneg d) hbound N β ρ q
     hgm hg'm hYm t (fun u σ => ∑ v,
       (F fun c => σ (some (some c))) * ξ (σ x (Fin.last N)) u * ξ (σ y (Fin.last N)) v *
         (skVectorCavityOverlap ξ N (σ x) (σ y) u v - Q u v))
     (fun u => Finset.measurable_sum _ fun v _ => (hbook u v).1)
     (fun u => exists_abs_le_sum _ fun v _ => (hbook u v).2)]
   refine Finset.sum_congr rfl fun u _ => ?_
-  exact (skVectorCavityAvg_sum (R := R) (P := P) μ ξ hξ (Nat.cast_nonneg d) hbound N β ρ q hgm
+  exact (skVectorCavityAverage_sum (R := R) (P := P) μ ξ hξ (Nat.cast_nonneg d) hbound N β ρ q hgm
     hg'm hYm t (fun v σ =>
       (F fun c => σ (some (some c))) * ξ (σ x (Fin.last N)) u * ξ (σ y (Fin.last N)) v *
         (skVectorCavityOverlap ξ N (σ x) (σ y) u v - Q u v))
     (fun v => (hbook u v).1) (fun v => (hbook u v).2)).symm
 
 /-- **One term of Eq. (1.378)**: Cauchy--Schwarz in the spins and then for `ν_t`. -/
-theorem abs_sum_avg_book_le_sqrt (x y : Option (Option R)) (Q : Fin d → Fin d → ℝ)
+theorem abs_skVectorCavityAverage_sum_kernel_le_sqrt (x y : Option (Option R)) (Q : Fin d → Fin d
+  → ℝ)
     (hQ : ∑ u, ∑ v, Q u v ^ 2 ≤ (d : ℝ) ^ 2) :
-    |∑ u, ∑ v, skVectorCavityAvg μ ξ N β ρ q P g g' Y t (fun σ =>
+    |∑ u, ∑ v, skVectorCavityAverage μ ξ N β ρ q P g g' Y t (fun σ =>
         (F fun c => σ (some (some c))) * ξ (σ x (Fin.last N)) u * ξ (σ y (Fin.last N)) v *
           (skVectorCavityOverlap ξ N (σ x) (σ y) u v - Q u v))| ≤
-      d * Real.sqrt (skVectorCavityAvg μ ξ N β ρ q P g g' Y t
+      d * Real.sqrt (skVectorCavityAverage μ ξ N β ρ q P g g' Y t
           (fun σ => (F fun c => σ (some (some c))) ^ 2)) *
-        Real.sqrt (skVectorCavityAvg μ ξ N β ρ q P g g' Y t (fun σ => ∑ u, ∑ v,
+        Real.sqrt (skVectorCavityAverage μ ξ N β ρ q P g g' Y t (fun σ => ∑ u, ∑ v,
           (skVectorCavityOverlap ξ N (σ x) (σ y) u v - Q u v) ^ 2)) := by
   classical
-  rw [skVectorCavityAvg_book_sum (R := R) (P := P) μ ξ hξ hbound β ρ q hgm hg'm hYm t F hF hFb
+  rw [skVectorCavityAverage_sum_kernel_eq (R := R) (P := P) μ ξ hξ hbound β ρ q hgm hg'm hYm t F
+    hF hFb
     x y Q]
   set S : (Option (Option R) → Fin (N + 1) → α) → ℝ := fun σ => ∑ u, ∑ v,
     (skVectorCavityOverlap ξ N (σ x) (σ y) u v - Q u v) ^ 2 with hS
@@ -323,7 +331,7 @@ theorem abs_sum_avg_book_le_sqrt (x y : Option (Option R)) (Q : Fin d → Fin d 
       |(|F fun c => σ (some (some c))|)| ≤ B :=
     ⟨M, fun σ => by simpa using hFb _⟩
   -- step 1: pointwise bound by `d |f| √S`
-  have hmono := abs_skVectorCavityAvg_le (R := R) (P := P) (g := g) (g' := g') (Y := Y) μ ξ hξ
+  have hmono := abs_skVectorCavityAverage_le (R := R) (P := P) (g := g) (g' := g') (Y := Y) μ ξ hξ
     (Nat.cast_nonneg d) hbound N β ρ q hgm hg'm hYm t
     (fun σ => (F fun c => σ (some (some c))) * ∑ u, ∑ v, ξ (σ x (Fin.last N)) u *
       ξ (σ y (Fin.last N)) v * (skVectorCavityOverlap ξ N (σ x) (σ y) u v - Q u v))
@@ -339,8 +347,8 @@ theorem abs_sum_avg_book_le_sqrt (x y : Option (Option R)) (Q : Fin d → Fin d 
               (abs_nonneg _)
         _ = _ := by ring)
   refine hmono.trans ?_
-  rw [skVectorCavityAvg_const_mul (R := R) (P := P) (g := g) (g' := g') (Y := Y) μ ξ N β ρ q t]
-  have hcs := abs_skVectorCavityAvg_mul_le (R := R) (P := P) (g := g) (g' := g') (Y := Y) μ ξ hξ
+  rw [skVectorCavityAverage_const_mul (R := R) (P := P) (g := g) (g' := g') (Y := Y) μ ξ N β ρ q t]
+  have hcs := abs_skVectorCavityAverage_mul_le (R := R) (P := P) (g := g) (g' := g') (Y := Y) μ ξ hξ
     (Nat.cast_nonneg d) hbound N β ρ q hgm hg'm hYm t
     (fun σ => |F fun c => σ (some (some c))|) (fun σ => Real.sqrt (S σ)) hfa hsqm hfab hsqb
   have e1 : (fun σ : Option (Option R) → Fin (N + 1) → α => |F fun c => σ (some (some c))| ^ 2) =
@@ -349,14 +357,14 @@ theorem abs_sum_avg_book_le_sqrt (x y : Option (Option R)) (Q : Fin d → Fin d 
     funext fun σ => Real.sq_sqrt (hS0 σ)
   rw [e1, e2] at hcs
   have hd : (0 : ℝ) ≤ d := Nat.cast_nonneg d
-  calc (d : ℝ) * skVectorCavityAvg μ ξ N β ρ q P g g' Y t
+  calc (d : ℝ) * skVectorCavityAverage μ ξ N β ρ q P g g' Y t
         (fun σ => |F fun c => σ (some (some c))| * Real.sqrt (S σ))
-      ≤ d * |skVectorCavityAvg μ ξ N β ρ q P g g' Y t
+      ≤ d * |skVectorCavityAverage μ ξ N β ρ q P g g' Y t
         (fun σ => |F fun c => σ (some (some c))| * Real.sqrt (S σ))| :=
         mul_le_mul_of_nonneg_left (le_abs_self _) hd
-    _ ≤ d * (Real.sqrt (skVectorCavityAvg μ ξ N β ρ q P g g' Y t
+    _ ≤ d * (Real.sqrt (skVectorCavityAverage μ ξ N β ρ q P g g' Y t
           (fun σ => (F fun c => σ (some (some c))) ^ 2)) *
-        Real.sqrt (skVectorCavityAvg μ ξ N β ρ q P g g' Y t S)) :=
+        Real.sqrt (skVectorCavityAverage μ ξ N β ρ q P g g' Y t S)) :=
         mul_le_mul_of_nonneg_left hcs hd
     _ = _ := by ring
 
@@ -365,7 +373,7 @@ end Book
 /-- **Corollary 1.12.5, Eq. (1.379)**, for any number `n` of replicas.  If the matrices `q`, `ρ`
 satisfy `‖q‖_F, ‖ρ‖_F ≤ d` (as the fixed point of Eqs. (1.372)--(1.373) does), the derivative of the
 cavity path is bounded by `2 n (2 n + 1) β² d² ν_t(|f|)`. -/
-theorem abs_deriv_skVectorCavity_le {d N : ℕ} {Ω R : Type*} [MeasurableSpace Ω] [Fintype R]
+theorem abs_deriv_skVectorCavityAverage_le {d N : ℕ} {Ω R : Type*} [MeasurableSpace Ω] [Fintype R]
     [MeasurableSpace α] (μ : Measure α) [IsProbabilityMeasure μ]
     (ξ : α → Fin d → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u))
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) (β : ℝ) (ρ q : Fin d → Fin d → ℝ)
@@ -390,29 +398,31 @@ theorem abs_deriv_skVectorCavity_le {d N : ℕ} {Ω R : Type*} [MeasurableSpace 
         (Measure.pi fun _ : Fin (N + 1) => μ).tilted (skVectorCavityEnergy ξ N β ρ q
           (fun p => g p ω) (fun i => g' i ω) (fun u => Y u ω) s)) ∂P) t| ≤
       2 * Fintype.card R * (2 * Fintype.card R + 1) * β ^ 2 * (d : ℝ) ^ 2 *
-        skVectorCavityAvg μ ξ N β ρ q P g g' Y t
+        skVectorCavityAverage μ ξ N β ρ q P g g' Y t
           (fun σ => |F fun c => σ (some (some c))|) := by
   classical
-  rw [(hasDerivAt_skVectorCavity μ ξ hξ (Nat.cast_nonneg d) hbound N β ρ q hq F hF hM hFb hG hgm
+  rw [(hasDerivAt_skVectorCavityAverage μ ξ hξ (Nat.cast_nonneg d) hbound N β ρ q hq F hF hM hFb
+    hG hgm
     hg'm hYm hgg hYY hgY hg0 hg'0 hY0 ht0 ht1).deriv]
   set J := Option (Option R) with hJ
   have hfm : Measurable fun σ : J → Fin (N + 1) → α => F fun c => σ (some (some c)) :=
     hF.comp (measurable_pi_iff.2 fun c => measurable_pi_apply _)
   have hbook := fun (x y : J) (Q : Fin d → Fin d → ℝ) (u v : Fin d) =>
-    skVectorCavity_book_integrand (R := R) hξ (Nat.cast_nonneg d) hbound hF hFb x y Q u v
+    skVectorCavity_replica_term_eq (R := R) hξ (Nat.cast_nonneg d) hbound hF hFb x y Q u v
   -- the key bound for one pair of replicas
   have hT : ∀ (x y : J) (Q : Fin d → Fin d → ℝ), ∑ u, ∑ v, Q u v ^ 2 ≤ (d : ℝ) ^ 2 →
-      |∑ u, ∑ v, skVectorCavityAvg μ ξ N β ρ q P g g' Y t (fun σ =>
+      |∑ u, ∑ v, skVectorCavityAverage μ ξ N β ρ q P g g' Y t (fun σ =>
         (F fun c => σ (some (some c))) * ξ (σ x (Fin.last N)) u * ξ (σ y (Fin.last N)) v *
           (skVectorCavityOverlap ξ N (σ x) (σ y) u v - Q u v))| ≤
-        2 * (d : ℝ) ^ 2 * skVectorCavityAvg μ ξ N β ρ q P g g' Y t
+        2 * (d : ℝ) ^ 2 * skVectorCavityAverage μ ξ N β ρ q P g g' Y t
           (fun σ => |F fun c => σ (some (some c))|) := by
     intro x y Q hQ
-    rw [skVectorCavityAvg_book_sum (R := R) (P := P) μ ξ hξ hbound β ρ q hgm hg'm hYm t F hF hFb x
+    rw [skVectorCavityAverage_sum_kernel_eq (R := R) (P := P) μ ξ hξ hbound β ρ q hgm hg'm hYm t F
+      hF hFb x
       y Q,
-      ← skVectorCavityAvg_const_mul (R := R) (P := P) (g := g) (g' := g') (Y := Y) μ ξ N
+      ← skVectorCavityAverage_const_mul (R := R) (P := P) (g := g) (g' := g') (Y := Y) μ ξ N
       β ρ q t (2 * (d : ℝ) ^ 2) (fun σ : J → Fin (N + 1) → α => |F fun c => σ (some (some c))|)]
-    refine abs_skVectorCavityAvg_le μ ξ hξ (Nat.cast_nonneg d) hbound N β ρ q hgm hg'm hYm t _ _
+    refine abs_skVectorCavityAverage_le μ ξ hξ (Nat.cast_nonneg d) hbound N β ρ q hgm hg'm hYm t _ _
       ((continuous_abs.measurable.comp hfm).const_mul _) ⟨2 * (d : ℝ) ^ 2 * M, fun σ => ?_⟩
       fun σ => ?_
     · rw [abs_mul, abs_abs, abs_of_nonneg (by positivity : (0 : ℝ) ≤ 2 * (d : ℝ) ^ 2)]
@@ -420,7 +430,7 @@ theorem abs_deriv_skVectorCavity_le {d N : ℕ} {Ω R : Type*} [MeasurableSpace 
     · rw [abs_mul, mul_comm (2 * (d : ℝ) ^ 2)]
       exact mul_le_mul_of_nonneg_left
         (abs_sum_spin_overlap_error_le ξ hbound Q hQ (σ x) (σ y)) (abs_nonneg _)
-  set K : ℝ := 2 * (d : ℝ) ^ 2 * skVectorCavityAvg μ ξ N β ρ q P g g' Y t
+  set K : ℝ := 2 * (d : ℝ) ^ 2 * skVectorCavityAverage μ ξ N β ρ q P g g' Y t
     (fun σ => |F fun c => σ (some (some c))|) with hK
   have hQ1 : ∀ a b : R, ∑ u, ∑ v, (if a = b then ρ u v else q u v) ^ 2 ≤ (d : ℝ) ^ 2 := by
     intro a b
@@ -431,26 +441,26 @@ theorem abs_deriv_skVectorCavity_le {d N : ℕ} {Ω R : Type*} [MeasurableSpace 
   have hK0 : 0 ≤ K := by
     rw [hK]
     refine mul_nonneg (by positivity) ?_
-    have := abs_skVectorCavityAvg_le (R := R) (P := P) μ ξ hξ (Nat.cast_nonneg d) hbound N β ρ q
+    have := abs_skVectorCavityAverage_le (R := R) (P := P) μ ξ hξ (Nat.cast_nonneg d) hbound N β ρ q
       hgm hg'm hYm t
       (fun σ : J → Fin (N + 1) → α => |F fun c => σ (some (some c))|)
       (fun σ : J → Fin (N + 1) → α => |F fun c => σ (some (some c))|)
       (continuous_abs.measurable.comp hfm) ⟨M, fun σ => by simpa using hFb _⟩
       fun σ => (abs_abs _).le
     exact (abs_nonneg _).trans this
-  have hflat : ∀ (a b : R), |∑ u, ∑ v, skVectorCavityAvg μ ξ N β ρ q P g g' Y t (fun σ =>
+  have hflat : ∀ (a b : R), |∑ u, ∑ v, skVectorCavityAverage μ ξ N β ρ q P g g' Y t (fun σ =>
       (F fun c => σ (some (some c))) * ξ (σ (some (some a)) (Fin.last N)) u *
         ξ (σ (some (some b)) (Fin.last N)) v *
         (skVectorCavityOverlap ξ N (σ (some (some a))) (σ (some (some b))) u v -
           if a = b then ρ u v else q u v))| ≤ K := fun a b =>
     hT (some (some a)) (some (some b)) _ (hQ1 a b)
-  have hA : |∑ a : R, ∑ b : R, ∑ u, ∑ v, skVectorCavityAvg μ ξ N β ρ q P g g' Y t (fun σ =>
+  have hA : |∑ a : R, ∑ b : R, ∑ u, ∑ v, skVectorCavityAverage μ ξ N β ρ q P g g' Y t (fun σ =>
       (F fun c => σ (some (some c))) * ξ (σ (some (some a)) (Fin.last N)) u *
         ξ (σ (some (some b)) (Fin.last N)) v *
         (skVectorCavityOverlap ξ N (σ (some (some a))) (σ (some (some b))) u v -
           if a = b then ρ u v else q u v))| ≤ Fintype.card R * Fintype.card R * K := by
     refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
-    calc ∑ a : R, |∑ b : R, ∑ u, ∑ v, skVectorCavityAvg μ ξ N β ρ q P g g' Y t (fun σ =>
+    calc ∑ a : R, |∑ b : R, ∑ u, ∑ v, skVectorCavityAverage μ ξ N β ρ q P g g' Y t (fun σ =>
           (F fun c => σ (some (some c))) * ξ (σ (some (some a)) (Fin.last N)) u *
             ξ (σ (some (some b)) (Fin.last N)) v *
             (skVectorCavityOverlap ξ N (σ (some (some a))) (σ (some (some b))) u v -
@@ -458,7 +468,7 @@ theorem abs_deriv_skVectorCavity_le {d N : ℕ} {Ω R : Type*} [MeasurableSpace 
           Finset.sum_le_sum fun a _ => (Finset.abs_sum_le_sum_abs _ _).trans
             ((Finset.sum_le_sum fun b _ => hflat a b).trans (by simp))
       _ = Fintype.card R * Fintype.card R * K := by simp [mul_assoc]
-  have hB : |∑ a : R, ∑ u, ∑ v, skVectorCavityAvg μ ξ N β ρ q P g g' Y t (fun σ =>
+  have hB : |∑ a : R, ∑ u, ∑ v, skVectorCavityAverage μ ξ N β ρ q P g g' Y t (fun σ =>
       (F fun c => σ (some (some c))) * ξ (σ (some (some a)) (Fin.last N)) u *
         ξ (σ (some none) (Fin.last N)) v *
         (skVectorCavityOverlap ξ N (σ (some (some a))) (σ (some none)) u v - q u v))| ≤
@@ -496,7 +506,7 @@ theorem abs_deriv_skVectorCavity_le {d N : ℕ} {Ω R : Type*} [MeasurableSpace 
 /-- **Corollary 1.12.5, Eq. (1.378)**, for `n = 2` replicas.  Here `ν_t(f²)`, the diagonal error
 `ν_t(‖R⁻_{1,1} - ρ‖_F²)` and the off-diagonal error `ν_t(‖R⁻_{1,2} - q‖_F²)` are the averages of
 the function `F` of the first two replicas and of the matrix overlaps of the replicas `1`, `2`. -/
-theorem abs_deriv_skVectorCavity_le_sqrt {d N : ℕ} {Ω : Type*} [MeasurableSpace Ω]
+theorem abs_deriv_skVectorCavityAverage_le_sqrt {d N : ℕ} {Ω : Type*} [MeasurableSpace Ω]
     [MeasurableSpace α] (μ : Measure α) [IsProbabilityMeasure μ]
     (ξ : α → Fin d → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u))
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) (β : ℝ) (ρ q : Fin d → Fin d → ℝ)
@@ -520,15 +530,16 @@ theorem abs_deriv_skVectorCavity_le_sqrt {d N : ℕ} {Ω : Type*} [MeasurableSpa
     |deriv (fun s => ∫ ω, ∫ σ : Fin 2 → Fin (N + 1) → α, F σ ∂(Measure.pi fun _ : Fin 2 =>
         (Measure.pi fun _ : Fin (N + 1) => μ).tilted (skVectorCavityEnergy ξ N β ρ q
           (fun p => g p ω) (fun i => g' i ω) (fun u => Y u ω) s)) ∂P) t| ≤
-      8 * β ^ 2 * d * Real.sqrt (skVectorCavityAvg μ ξ N β ρ q P g g' Y t
+      8 * β ^ 2 * d * Real.sqrt (skVectorCavityAverage μ ξ N β ρ q P g g' Y t
           (fun σ => (F fun c => σ (some (some c))) ^ 2)) *
-        (Real.sqrt (skVectorCavityAvg μ ξ N β ρ q P g g' Y t (fun σ => ∑ u, ∑ v,
+        (Real.sqrt (skVectorCavityAverage μ ξ N β ρ q P g g' Y t (fun σ => ∑ u, ∑ v,
             (skVectorCavityOverlap ξ N (σ (some (some (0 : Fin 2))))
               (σ (some (some (0 : Fin 2)))) u v - ρ u v) ^ 2)) +
-          Real.sqrt (skVectorCavityAvg μ ξ N β ρ q P g g' Y t (fun σ => ∑ u, ∑ v,
+          Real.sqrt (skVectorCavityAverage μ ξ N β ρ q P g g' Y t (fun σ => ∑ u, ∑ v,
             (skVectorCavityOverlap ξ N (σ (some (some (0 : Fin 2))))
               (σ (some (some (1 : Fin 2)))) u v - q u v) ^ 2))) := by
-  rw [(hasDerivAt_skVectorCavity μ ξ hξ (Nat.cast_nonneg d) hbound N β ρ q hq F hF hM hFb hG hgm
+  rw [(hasDerivAt_skVectorCavityAverage μ ξ hξ (Nat.cast_nonneg d) hbound N β ρ q hq F hF hM hFb
+    hG hgm
     hg'm hYm hgg hYY hgY hg0 hg'0 hY0 ht0 ht1).deriv]
   classical
   have hφ : ∀ Q : Fin d → Fin d → ℝ, Measurable fun p : (Fin (N + 1) → α) × (Fin (N + 1) → α) =>
@@ -536,31 +547,33 @@ theorem abs_deriv_skVectorCavity_le_sqrt {d N : ℕ} {Ω : Type*} [MeasurableSpa
     Finset.measurable_sum _ fun u _ => Finset.measurable_sum _ fun v _ =>
       Measurable.pow_const (Measurable.sub (measurable_skVectorCavityOverlap hξ N u v)
         measurable_const) 2
-  set AF := skVectorCavityAvg μ ξ N β ρ q P g g' Y t
+  set AF := skVectorCavityAverage μ ξ N β ρ q P g g' Y t
     (fun σ => (F fun c => σ (some (some c))) ^ 2) with hAF
-  set Ad := skVectorCavityAvg μ ξ N β ρ q P g g' Y t (fun σ => ∑ u, ∑ v,
+  set Ad := skVectorCavityAverage μ ξ N β ρ q P g g' Y t (fun σ => ∑ u, ∑ v,
     (skVectorCavityOverlap ξ N (σ (some (some (0 : Fin 2)))) (σ (some (some (0 : Fin 2)))) u v -
       ρ u v) ^ 2) with hAd
-  set Ao := skVectorCavityAvg μ ξ N β ρ q P g g' Y t (fun σ => ∑ u, ∑ v,
+  set Ao := skVectorCavityAverage μ ξ N β ρ q P g g' Y t (fun σ => ∑ u, ∑ v,
     (skVectorCavityOverlap ξ N (σ (some (some (0 : Fin 2)))) (σ (some (some (1 : Fin 2)))) u v -
       q u v) ^ 2) with hAo
-  have hdiag : ∀ x : Option (Option (Fin 2)), skVectorCavityAvg μ ξ N β ρ q P g g' Y t
+  have hdiag : ∀ x : Option (Option (Fin 2)), skVectorCavityAverage μ ξ N β ρ q P g g' Y t
       (fun σ => ∑ u, ∑ v, (skVectorCavityOverlap ξ N (σ x) (σ x) u v - ρ u v) ^ 2) = Ad :=
-    fun x => skVectorCavityAvg_diag_eq (R := Fin 2) (P := P) (g := g) (g' := g') (Y := Y) μ ξ hξ
+    fun x => skVectorCavityAverage_diag_eq (R := Fin 2) (P := P) (g := g) (g' := g') (Y := Y) μ ξ hξ
       (Nat.cast_nonneg d) hbound N β ρ q t (φ := fun a b => ∑ u, ∑ v,
         (skVectorCavityOverlap ξ N a b u v - ρ u v) ^ 2) (hφ ρ)
-  have hoff : ∀ x y : Option (Option (Fin 2)), x ≠ y → skVectorCavityAvg μ ξ N β ρ q P g g' Y t
+  have hoff : ∀ x y : Option (Option (Fin 2)), x ≠ y → skVectorCavityAverage μ ξ N β ρ q P g g' Y t
       (fun σ => ∑ u, ∑ v, (skVectorCavityOverlap ξ N (σ x) (σ y) u v - q u v) ^ 2) = Ao :=
-    fun x y hxy => skVectorCavityAvg_pair_eq (R := Fin 2) (P := P) (g := g) (g' := g') (Y := Y) μ
+    fun x y hxy => skVectorCavityAverage_pair_eq (R := Fin 2) (P := P) (g := g) (g' := g') (Y :=
+      Y) μ
       ξ hξ (Nat.cast_nonneg d) hbound N β ρ q t hxy (by simp) (φ := fun a b => ∑ u, ∑ v,
         (skVectorCavityOverlap ξ N a b u v - q u v) ^ 2) (hφ q)
   set Td := d * Real.sqrt AF * Real.sqrt Ad with hTd
   set To := d * Real.sqrt AF * Real.sqrt Ao with hTo
   have term := fun (x y : Option (Option (Fin 2))) (Q : Fin d → Fin d → ℝ)
     (hQ : ∑ u, ∑ v, Q u v ^ 2 ≤ (d : ℝ) ^ 2) =>
-    abs_sum_avg_book_le_sqrt (R := Fin 2) (P := P) μ ξ hξ hbound β ρ q hgm hg'm hYm t F hF hFb
+    abs_skVectorCavityAverage_sum_kernel_le_sqrt (R := Fin 2) (P := P) μ ξ hξ hbound β ρ q hgm
+      hg'm hYm t F hF hFb
       x y Q hQ
-  have tX : ∀ a b : Fin 2, |∑ u, ∑ v, skVectorCavityAvg μ ξ N β ρ q P g g' Y t (fun σ =>
+  have tX : ∀ a b : Fin 2, |∑ u, ∑ v, skVectorCavityAverage μ ξ N β ρ q P g g' Y t (fun σ =>
       (F fun c => σ (some (some c))) * ξ (σ (some (some a)) (Fin.last N)) u *
         ξ (σ (some (some b)) (Fin.last N)) v *
         (skVectorCavityOverlap ξ N (σ (some (some a))) (σ (some (some b))) u v -
@@ -572,7 +585,7 @@ theorem abs_deriv_skVectorCavity_le_sqrt {d N : ℕ} {Ω : Type*} [MeasurableSpa
     · have := term (some (some a)) (some (some b)) q hq2
       rw [hoff _ _ (by simpa using h)] at this
       simpa only [h, ite_false] using this
-  have tY : ∀ a : Fin 2, |∑ u, ∑ v, skVectorCavityAvg μ ξ N β ρ q P g g' Y t (fun σ =>
+  have tY : ∀ a : Fin 2, |∑ u, ∑ v, skVectorCavityAverage μ ξ N β ρ q P g g' Y t (fun σ =>
       (F fun c => σ (some (some c))) * ξ (σ (some (some a)) (Fin.last N)) u *
         ξ (σ (some none) (Fin.last N)) v *
         (skVectorCavityOverlap ξ N (σ (some (some a))) (σ (some none)) u v - q u v))| ≤ To := by
@@ -585,7 +598,7 @@ theorem abs_deriv_skVectorCavity_le_sqrt {d N : ℕ} {Ω : Type*} [MeasurableSpa
   rw [hoff _ _ (by simp)] at tW
   have hTd0 : 0 ≤ Td := by positivity
   have hTo0 : 0 ≤ To := by positivity
-  have hsumA : |∑ a : Fin 2, ∑ b : Fin 2, ∑ u, ∑ v, skVectorCavityAvg μ ξ N β ρ q P g g' Y t
+  have hsumA : |∑ a : Fin 2, ∑ b : Fin 2, ∑ u, ∑ v, skVectorCavityAverage μ ξ N β ρ q P g g' Y t
       (fun σ => (F fun c => σ (some (some c))) * ξ (σ (some (some a)) (Fin.last N)) u *
         ξ (σ (some (some b)) (Fin.last N)) v *
         (skVectorCavityOverlap ξ N (σ (some (some a))) (σ (some (some b))) u v -
@@ -595,7 +608,7 @@ theorem abs_deriv_skVectorCavity_le_sqrt {d N : ℕ} {Ω : Type*} [MeasurableSpa
       (Finset.sum_le_sum fun b _ => tX a b)).trans (le_of_eq ?_)
     simp [Fin.sum_univ_two]
     ring
-  have hsumB : |∑ a : Fin 2, ∑ u, ∑ v, skVectorCavityAvg μ ξ N β ρ q P g g' Y t
+  have hsumB : |∑ a : Fin 2, ∑ u, ∑ v, skVectorCavityAverage μ ξ N β ρ q P g g' Y t
       (fun σ => (F fun c => σ (some (some c))) * ξ (σ (some (some a)) (Fin.last N)) u *
         ξ (σ (some none) (Fin.last N)) v *
         (skVectorCavityOverlap ξ N (σ (some (some a))) (σ (some none)) u v - q u v))| ≤

@@ -6,7 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.Probability.GibbsLogPartitionCavity
-public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.SKVectorEnergy
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Model.Energy
 
 /-!
 # The replica-symmetric free energy for vector spins (Talagrand Eqs. (1.371), (1.387), (1.393))
@@ -27,7 +27,7 @@ variable {α D Ω : Type*} [MeasurableSpace α] [Fintype D] [MeasurableSpace Ω]
 
 /-- **The random part of the replica-symmetric free energy**, `𝔼 log ∫ ℰ(x) dμ(x)` with
 `ℰ(x) = exp(β ∑ᵤ xᵤ Xᵤ + (β²/2) ∑ᵤᵥ xᵤ xᵥ (ρᵤᵥ - qᵤᵥ))`, Eq. (1.371) with `Y = β X`. -/
-noncomputable def skVectorGaussFreeEnergy (μ : Measure α) (ξ : α → D → ℝ) (ρ q : D → D → ℝ)
+noncomputable def skVectorGaussianFreeEnergy (μ : Measure α) (ξ : α → D → ℝ) (ρ q : D → D → ℝ)
     (P : Measure Ω) (X : D → Ω → ℝ) (β : ℝ) : ℝ :=
   ∫ ω, Real.log (∫ a, Real.exp (β * ∑ u, X u ω * ξ a u +
     β ^ 2 / 2 * ∑ u, ∑ v, ξ a u * ξ a v * (ρ u v - q u v)) ∂μ) ∂P
@@ -36,7 +36,7 @@ noncomputable def skVectorGaussFreeEnergy (μ : Measure α) (ξ : α → D → �
 /-- **Equation (1.393).**  If `(q, ρ)` satisfy the replica-symmetric equations (1.372)--(1.373) at
 the inverse temperature `β ≠ 0`, then the partial derivative in `β` of `𝔼 log ∫ ℰ dμ`, with `q` and
 `ρ` held fixed, is `β ∑ᵤᵥ (ρᵤᵥ² - qᵤᵥ²)`. -/
-theorem hasDerivAt_skVectorGaussFreeEnergy (μ : Measure α) [IsProbabilityMeasure μ]
+theorem hasDerivAt_skVectorGaussianFreeEnergy (μ : Measure α) [IsProbabilityMeasure μ]
     (ξ : α → D → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u)) {r : ℝ} (hr : 0 ≤ r)
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ r) (ρ q : D → D → ℝ)
     {P : Measure Ω} [IsProbabilityMeasure P] {X : D → Ω → ℝ}
@@ -55,7 +55,8 @@ theorem hasDerivAt_skVectorGaussFreeEnergy (μ : Measure α) [IsProbabilityMeasu
         β ^ 2 / 2 * ∑ w, ∑ w', ξ a w * ξ a w' * (ρ w w' - q w w')) ∂μ) /
       ∫ a, Real.exp (β * ∑ w, X w ω * ξ a w +
         β ^ 2 / 2 * ∑ w, ∑ w', ξ a w * ξ a w' * (ρ w w' - q w w')) ∂μ) ∂P) :
-    HasDerivAt (skVectorGaussFreeEnergy μ ξ ρ q P X) (β * ∑ u, ∑ v, (ρ u v ^ 2 - q u v ^ 2)) β := by
+    HasDerivAt (skVectorGaussianFreeEnergy μ ξ ρ q P X) (β * ∑ u, ∑ v, (ρ u v ^ 2 - q u v ^ 2)) β
+      := by
   classical
   set Xs : Unit → α → ℝ := fun _ a => ∑ w, ∑ w', ξ a w * ξ a w' * (ρ w w' - q w w') with hXs
   set Xf : D → α → ℝ := fun u a => ξ a u with hXf
@@ -106,11 +107,11 @@ theorem hasDerivAt_skVectorGaussFreeEnergy (μ : Measure α) [IsProbabilityMeasu
     simp only [Fintype.sum_sum_type, Sum.elim_inl, Sum.elim_inr, hXf, hXs, Finset.univ_unique,
       Finset.sum_singleton, zero_add, Finset.mul_sum]
     ring_nf
-  have hfun : skVectorGaussFreeEnergy μ ξ ρ q P X = fun r' => ∫ ω, Real.log (∫ a, Real.exp
+  have hfun : skVectorGaussianFreeEnergy μ ξ ρ q P X = fun r' => ∫ ω, Real.log (∫ a, Real.exp
       ((fun _ => (0 : ℝ)) a + ∑ l : D ⊕ Unit, Sum.elim (fun k => r' * X k ω)
         (fun _ => r' ^ 2 / 2) l * Sum.elim Xf Xs l a) ∂μ) ∂P := by
     funext r'
-    unfold skVectorGaussFreeEnergy
+    unfold skVectorGaussianFreeEnergy
     simp only [hexpo]
   rw [hfun]
   refine hmain.congr_deriv ?_

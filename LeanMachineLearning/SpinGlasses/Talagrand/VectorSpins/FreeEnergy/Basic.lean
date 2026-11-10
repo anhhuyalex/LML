@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.SKVectorConcreteModel
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Model.Disorder
 public import LeanMachineLearning.ForMathlib.Probability.GibbsTemperatureDerivative
 
 /-!
@@ -39,7 +39,7 @@ noncomputable def skVectorPairFeature {d : ℕ} (ξ : α → Fin d → ℝ) (N :
   (Real.sqrt N)⁻¹ * ∑ u, ξ (σ p.val.1) u * ξ (σ p.val.2) u
 
 omit [MeasurableSpace α] in
-theorem skVectorEnergy_eq_sum_feature {d : ℕ} (ξ : α → Fin d → ℝ) (N : ℕ) (β : ℝ)
+theorem skVectorEnergy_eq_sum_features {d : ℕ} (ξ : α → Fin d → ℝ) (N : ℕ) (β : ℝ)
     (g : FinPairs N → ℝ) (σ : Fin N → α) :
     skVectorEnergy N β g (fun i => ξ (σ i)) =
       ∑ p, g p * (β * skVectorPairFeature ξ N p σ) := by
@@ -50,7 +50,7 @@ theorem skVectorEnergy_eq_sum_feature {d : ℕ} (ξ : α → Fin d → ℝ) (N :
 /-- **The temperature derivative of the free energy** (proof of Theorem 1.12.3).  The derivative of
 `β ↦ 𝔼 log ∫ exp (-H_N) dμ^{⊗N}` is `β ∑_p 𝔼 (⟨X_p²⟩ - ⟨X_p⟩²)` with `X_p` the normalized pair
 features. -/
-theorem hasDerivAt_skVector_logPartition {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
+theorem hasDerivAt_skVectorLogPartition {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
     (ξ : α → Fin d → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u))
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) (N : ℕ) (β : ℝ) :
     HasDerivAt (fun b => ∫ g : FinPairs N → ℝ, Real.log (∫ σ : Fin N → α,
@@ -94,7 +94,7 @@ theorem hasDerivAt_skVector_logPartition {d : ℕ} (μ : Measure α) [IsProbabil
     (by positivity) hXb hlaw (fun p => measurable_pi_apply p)
     (fun p => integral_pi_gaussianReal_coord p) (fun i l => integral_pi_gaussianReal_coord_mul i l)
         β
-  simp only [skVectorEnergy_eq_sum_feature]
+  simp only [skVectorEnergy_eq_sum_features]
   exact this
 
 omit [MeasurableSpace α] in
@@ -102,7 +102,7 @@ omit [MeasurableSpace α] in
 pair
 features of two configurations is half the sum of the squared overlaps minus the diagonal:
 `∑_p X_p(σ) X_p(τ) = (2N)⁻¹ ∑ᵤᵥ ((∑ᵢ ξ(σᵢ)ᵤ ξ(τᵢ)ᵥ)² - ∑ᵢ (ξ(σᵢ)ᵤ ξ(τᵢ)ᵥ)²)`. -/
-theorem sum_pairFeature_mul {d : ℕ} (ξ : α → Fin d → ℝ) (N : ℕ) (σ τ : Fin N → α) :
+theorem sum_skVectorPairFeature_mul {d : ℕ} (ξ : α → Fin d → ℝ) (N : ℕ) (σ τ : Fin N → α) :
     ∑ p : FinPairs N, skVectorPairFeature ξ N p σ * skVectorPairFeature ξ N p τ =
       (2 * (N : ℝ))⁻¹ * ∑ u, ∑ v, ((∑ i, ξ (σ i) u * ξ (τ i) v) ^ 2 -
         ∑ i, (ξ (σ i) u * ξ (τ i) v) ^ 2) := by
@@ -170,7 +170,7 @@ theorem variance_eq_integral_pi_two {β : Type*} [MeasurableSpace β] (ν : Meas
 
 /-- The Gibbs-covariance sum over pairs, written through the squared overlaps of two replicas
 (`∑_p (⟨X_p²⟩ - ⟨X_p⟩²) = ⟨(2M)⁻¹ ∑ᵤᵥ (S₀₀² - D₀₀ - S₀₁² + D₀₁)⟩`). -/
-theorem sum_gibbsVariance_eq {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
+theorem sum_skVectorPairFeature_gibbsVariance_eq {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
     (ξ : α → Fin d → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u))
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) (N : ℕ) (β : ℝ) (g : FinPairs (N + 1) → ℝ) :
     ∑ p : FinPairs (N + 1),
@@ -241,8 +241,8 @@ theorem sum_gibbsVariance_eq {d : ℕ} (μ : Measure α) [IsProbabilityMeasure �
   rw [← integral_finsetSum Finset.univ fun p _ => hint0 p]
   refine integral_congr_ae (Filter.Eventually.of_forall fun σ => ?_)
   simp only [Finset.sum_sub_distrib]
-  have h0 := sum_pairFeature_mul ξ (N + 1) (σ 0) (σ 0)
-  have h1 := sum_pairFeature_mul ξ (N + 1) (σ 0) (σ 1)
+  have h0 := sum_skVectorPairFeature_mul ξ (N + 1) (σ 0) (σ 0)
+  have h1 := sum_skVectorPairFeature_mul ξ (N + 1) (σ 0) (σ 1)
   simp only [sq, Nat.cast_add, Nat.cast_one] at h0 h1 ⊢
   rw [h0, h1, ← mul_sub]
   congr 1
@@ -262,7 +262,7 @@ theorem hasDerivAt_skVectorFreeEnergy {d : ℕ} (μ : Measure α) [IsProbability
         ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))) β := by
   classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
-  have hd := (hasDerivAt_skVector_logPartition μ ξ hξ hbound (N + 1) β).const_mul
+  have hd := (hasDerivAt_skVectorLogPartition μ ξ hξ hbound (N + 1) β).const_mul
     (((N + 1 : ℕ) : ℝ)⁻¹)
   have hfun : skVectorFreeEnergy μ ξ (N + 1) = fun b => ((N + 1 : ℕ) : ℝ)⁻¹ * ∫ g : FinPairs (N +
       1) → ℝ,
@@ -297,7 +297,7 @@ theorem hasDerivAt_skVectorFreeEnergy {d : ℕ} (μ : Measure α) [IsProbability
       (Measure.pi fun _ : Fin (N + 1) => μ) := fun g =>
     integrable_exp_of_abs_le (b := ∑ p, |g p| * (|β| * B))
       (hEm.comp (measurable_const.prodMk measurable_id)) fun σ => by
-        rw [skVectorEnergy_eq_sum_feature]
+        rw [skVectorEnergy_eq_sum_features]
         refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun p _ => ?_)
         rw [abs_mul, abs_mul]
         exact mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_left (hXb p σ) (abs_nonneg _))
@@ -334,6 +334,6 @@ theorem hasDerivAt_skVectorFreeEnergy {d : ℕ} (μ : Measure α) [IsProbability
   congr 2
   exact (Finset.sum_congr rfl fun p _ => rfl).trans (hsum.trans
     (integral_congr_ae (Filter.Eventually.of_forall fun g =>
-      sum_gibbsVariance_eq μ ξ hξ hbound N β g)))
+      sum_skVectorPairFeature_gibbsVariance_eq μ ξ hξ hbound N β g)))
 
 end SpinGlasses

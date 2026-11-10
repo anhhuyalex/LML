@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.SKVectorFixedPointBounds
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.FixedPoint.Bounds
 
 /-!
 # Comparison along the cavity path (Talagrand, proof of Theorem 1.12.1)
@@ -26,34 +26,35 @@ namespace SpinGlasses
 /-- The Gaussian data of the cavity path (Section 1.12): jointly Gaussian centered couplings `g`,
 `g'` of identity covariance and a field `Y` of covariance `β² q`, uncorrelated with the
 couplings. -/
-structure SKVectorCavityNoise {Ω : Type*} [MeasurableSpace Ω] (P : Measure Ω) (N d : ℕ) (β : ℝ)
+structure SKVectorCavityGaussianData {Ω : Type*} [MeasurableSpace Ω] (P : Measure Ω) (N d : ℕ) (β
+  : ℝ)
     (q : Fin d → Fin d → ℝ) (g : FinPairs N → Ω → ℝ) (g' : Fin N → Ω → ℝ)
     (Y : Fin d → Ω → ℝ) : Prop where
-  gaussian : HasGaussianLaw (fun ω (k : (FinPairs N ⊕ Fin N) ⊕ Fin d) =>
+  hasGaussianLaw : HasGaussianLaw (fun ω (k : (FinPairs N ⊕ Fin N) ⊕ Fin d) =>
     Sum.elim (Sum.elim (fun p => g p ω) fun i => g' i ω) (fun u => Y u ω) k) P
-  meas_g : ∀ p, Measurable (g p)
-  meas_g' : ∀ i, Measurable (g' i)
-  meas_Y : ∀ u, Measurable (Y u)
-  cov_gg : ∀ k l : FinPairs N ⊕ Fin N,
+  measurable_old_coupling : ∀ p, Measurable (g p)
+  measurable_new_coupling : ∀ i, Measurable (g' i)
+  measurable_field : ∀ u, Measurable (Y u)
+  integral_coupling_mul_coupling : ∀ k l : FinPairs N ⊕ Fin N,
     ∫ ω, Sum.elim (fun p => g p ω) (fun i => g' i ω) k *
       Sum.elim (fun p => g p ω) (fun i => g' i ω) l ∂P = if k = l then 1 else 0
-  cov_YY : ∀ u v, ∫ ω, Y u ω * Y v ω ∂P = β ^ 2 * q u v
-  cov_gY : ∀ (k : FinPairs N ⊕ Fin N) u,
+  integral_field_mul_field : ∀ u v, ∫ ω, Y u ω * Y v ω ∂P = β ^ 2 * q u v
+  integral_coupling_mul_field : ∀ (k : FinPairs N ⊕ Fin N) u,
     ∫ ω, Sum.elim (fun p => g p ω) (fun i => g' i ω) k * Y u ω ∂P = 0
-  mean_g : ∀ p, ∫ ω, g p ω ∂P = 0
-  mean_g' : ∀ i, ∫ ω, g' i ω ∂P = 0
-  mean_Y : ∀ u, ∫ ω, Y u ω ∂P = 0
+  integral_old_coupling : ∀ p, ∫ ω, g p ω ∂P = 0
+  integral_new_coupling : ∀ i, ∫ ω, g' i ω ∂P = 0
+  integral_field : ∀ u, ∫ ω, Y u ω ∂P = 0
 
 variable {α : Type*} [MeasurableSpace α]
 
 /-- **Continuity of `ν_t(f)` on the whole line** (in particular at the endpoints `t = 0, 1`). -/
-theorem continuous_skVectorCavity {d N : ℕ} {Ω R : Type*} [MeasurableSpace Ω] [Fintype R]
+theorem continuous_skVectorCavityAverage {d N : ℕ} {Ω R : Type*} [MeasurableSpace Ω] [Fintype R]
     (μ : Measure α) [IsProbabilityMeasure μ] (ξ : α → Fin d → ℝ)
     (hξ : ∀ u, Measurable (fun a => ξ a u)) (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) (β : ℝ)
     (ρ q : Fin d → Fin d → ℝ) (F : (R → Fin (N + 1) → α) → ℝ) (hF : Measurable F) {M : ℝ}
     (hM : 0 ≤ M) (hFb : ∀ σ, |F σ| ≤ M) {P : Measure Ω} [IsProbabilityMeasure P]
     {g : FinPairs N → Ω → ℝ} {g' : Fin N → Ω → ℝ} {Y : Fin d → Ω → ℝ}
-    (hn : SKVectorCavityNoise P N d β q g g' Y) :
+    (hn : SKVectorCavityGaussianData P N d β q g g' Y) :
     Continuous (fun s => ∫ ω, ∫ σ : R → Fin (N + 1) → α, F σ ∂(Measure.pi fun _ : R =>
         (Measure.pi fun _ : Fin (N + 1) => μ).tilted (skVectorCavityEnergy ξ N β ρ q
           (fun p => g p ω) (fun i => g' i ω) (fun u => Y u ω) s)) ∂P) := by
@@ -65,9 +66,9 @@ theorem continuous_skVectorCavity {d N : ℕ} {Ω R : Type*} [MeasurableSpace Ω
     with hsc
   have hZmeas : ∀ k, Measurable (Z k) := by
     rintro ((p | i) | u)
-    · exact hn.meas_g p
-    · exact hn.meas_g' i
-    · exact hn.meas_Y u
+    · exact hn.measurable_old_coupling p
+    · exact hn.measurable_new_coupling i
+    · exact hn.measurable_field u
   have hBnn : 0 ≤ skVectorCavityBound (Fin d) d β ρ q := by
     unfold skVectorCavityBound; positivity
   have hfe : ∀ (r' : ℝ) (ω : Ω), (fun a : Fin (N + 1) → α => (fun _ => (0 : ℝ)) a +
@@ -96,26 +97,27 @@ theorem continuous_skVectorCavity {d N : ℕ} {Ω R : Type*} [MeasurableSpace Ω
   exact this
 
 /-- The expectation of a function of the old replicas does not depend on the extra replicas. -/
-theorem skVectorCavityAvg_old {d N : ℕ} {Ω R : Type*} [MeasurableSpace Ω] [Fintype R]
+theorem skVectorCavityAverage_old {d N : ℕ} {Ω R : Type*} [MeasurableSpace Ω] [Fintype R]
     (μ : Measure α) [IsProbabilityMeasure μ] (ξ : α → Fin d → ℝ)
     (hξ : ∀ u, Measurable (fun a => ξ a u)) (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) (β : ℝ)
     (ρ q : Fin d → Fin d → ℝ) (G : (R → Fin (N + 1) → α) → ℝ) (hG : Measurable G)
     {P : Measure Ω} {g : FinPairs N → Ω → ℝ} {g' : Fin N → Ω → ℝ} {Y : Fin d → Ω → ℝ} (t : ℝ) :
-    skVectorCavityAvg μ ξ N β ρ q P g g' Y t (fun σ : Option (Option R) → Fin (N + 1) → α =>
+    skVectorCavityAverage μ ξ N β ρ q P g g' Y t (fun σ : Option (Option R) → Fin (N + 1) → α =>
         G fun c => σ (some (some c))) =
       ∫ ω, ∫ σ : R → Fin (N + 1) → α, G σ ∂(Measure.pi fun _ : R =>
         (Measure.pi fun _ : Fin (N + 1) => μ).tilted (skVectorCavityEnergy ξ N β ρ q
           (fun p => g p ω) (fun i => g' i ω) (fun u => Y u ω) t)) ∂P := by
-  unfold skVectorCavityAvg
+  unfold skVectorCavityAverage
   refine integral_congr_ae (Filter.Eventually.of_forall fun ω => ?_)
-  have := isProbabilityMeasure_skVectorCavityGibbs μ ξ hξ (Nat.cast_nonneg d) hbound N β ρ q
+  have := isProbabilityMeasure_tilted_skVectorCavityEnergy μ ξ hξ (Nat.cast_nonneg d) hbound N β ρ q
     (fun p => g p ω) (fun i => g' i ω) (fun u => Y u ω) t
   exact integral_pi_comp_injective _ (ρ := fun c : R => some (some c))
     (fun a b hab => Option.some_injective _ (Option.some_injective _ hab)) G hG.aestronglyMeasurable
 
 /-- For `f ≥ 0` the expectation `φ(s) = ν_s(f)` is differentiable on `(0, 1)` with
 `|φ'(s)| ≤ c φ(s)`, `c = 2n(2n+1)β²d²` (Proposition 1.12.4 and Eq. (1.379)). -/
-theorem skVectorCavity_deriv_bound {d N : ℕ} {Ω R : Type*} [MeasurableSpace Ω] [Fintype R]
+theorem abs_deriv_skVectorCavityAverage_le_mul_self {d N : ℕ} {Ω R : Type*} [MeasurableSpace Ω]
+  [Fintype R]
     (μ : Measure α) [IsProbabilityMeasure μ] (ξ : α → Fin d → ℝ)
     (hξ : ∀ u, Measurable (fun a => ξ a u)) (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) (β : ℝ)
     (ρ q : Fin d → Fin d → ℝ) (hq : ∀ u v, q u v = q v u)
@@ -123,7 +125,7 @@ theorem skVectorCavity_deriv_bound {d N : ℕ} {Ω R : Type*} [MeasurableSpace �
     (F : (R → Fin (N + 1) → α) → ℝ) (hF : Measurable F) {M : ℝ} (hM : 0 ≤ M)
     (hFb : ∀ σ, |F σ| ≤ M) (hF0 : ∀ σ, 0 ≤ F σ) {P : Measure Ω} [IsProbabilityMeasure P]
     {g : FinPairs N → Ω → ℝ} {g' : Fin N → Ω → ℝ} {Y : Fin d → Ω → ℝ}
-    (hn : SKVectorCavityNoise P N d β q g g' Y) {s : ℝ} (hs : s ∈ Set.Ioo (0 : ℝ) 1) :
+    (hn : SKVectorCavityGaussianData P N d β q g g' Y) {s : ℝ} (hs : s ∈ Set.Ioo (0 : ℝ) 1) :
     HasDerivAt (fun s => ∫ ω, ∫ σ : R → Fin (N + 1) → α, F σ ∂(Measure.pi fun _ : R =>
         (Measure.pi fun _ : Fin (N + 1) => μ).tilted (skVectorCavityEnergy ξ N β ρ q
           (fun p => g p ω) (fun i => g' i ω) (fun u => Y u ω) s)) ∂P)
@@ -138,19 +140,25 @@ theorem skVectorCavity_deriv_bound {d N : ℕ} {Ω R : Type*} [MeasurableSpace �
         (Measure.pi fun _ : Fin (N + 1) => μ).tilted (skVectorCavityEnergy ξ N β ρ q
           (fun p => g p ω) (fun i => g' i ω) (fun u => Y u ω) s)) ∂P := by
   classical
-  have hd := hasDerivAt_skVectorCavity μ ξ hξ (Nat.cast_nonneg d) hbound N β ρ q hq F hF hM hFb
-    hn.gaussian hn.meas_g hn.meas_g' hn.meas_Y hn.cov_gg hn.cov_YY hn.cov_gY hn.mean_g
-    hn.mean_g' hn.mean_Y hs.1 hs.2
+  have hd := hasDerivAt_skVectorCavityAverage μ ξ hξ (Nat.cast_nonneg d) hbound N β ρ q hq F hF hM
+    hFb
+    hn.hasGaussianLaw hn.measurable_old_coupling hn.measurable_new_coupling hn.measurable_field
+      hn.integral_coupling_mul_coupling hn.integral_field_mul_field hn.integral_coupling_mul_field
+      hn.integral_old_coupling
+    hn.integral_new_coupling hn.integral_field hs.1 hs.2
   refine ⟨hd.differentiableAt.hasDerivAt, ?_⟩
-  have hb := abs_deriv_skVectorCavity_le μ ξ hξ hbound β ρ q hq hq2 hρ2 F hF hM hFb hn.gaussian
-    hn.meas_g hn.meas_g' hn.meas_Y hn.cov_gg hn.cov_YY hn.cov_gY hn.mean_g hn.mean_g'
-    hn.mean_Y hs.1 hs.2
-  have habs : skVectorCavityAvg μ ξ N β ρ q P g g' Y s
+  have hb := abs_deriv_skVectorCavityAverage_le μ ξ hξ hbound β ρ q hq hq2 hρ2 F hF hM hFb
+    hn.hasGaussianLaw
+    hn.measurable_old_coupling hn.measurable_new_coupling hn.measurable_field
+      hn.integral_coupling_mul_coupling hn.integral_field_mul_field hn.integral_coupling_mul_field
+      hn.integral_old_coupling hn.integral_new_coupling
+    hn.integral_field hs.1 hs.2
+  have habs : skVectorCavityAverage μ ξ N β ρ q P g g' Y s
       (fun σ : Option (Option R) → Fin (N + 1) → α => |F fun c => σ (some (some c))|) =
       ∫ ω, ∫ σ : R → Fin (N + 1) → α, F σ ∂(Measure.pi fun _ : R =>
         (Measure.pi fun _ : Fin (N + 1) => μ).tilted (skVectorCavityEnergy ξ N β ρ q
           (fun p => g p ω) (fun i => g' i ω) (fun u => Y u ω) s)) ∂P := by
-    rw [← skVectorCavityAvg_old μ ξ hξ hbound β ρ q F hF s]
+    rw [← skVectorCavityAverage_old μ ξ hξ hbound β ρ q F hF s]
     congr 1
     funext σ
     exact abs_of_nonneg (hF0 _)
@@ -159,7 +167,8 @@ theorem skVectorCavity_deriv_bound {d N : ℕ} {Ω R : Type*} [MeasurableSpace �
 
 /-- **The comparison `ν_t(f) ≤ e^{c(1-t)} ν_1(f)` for `f ≥ 0`** used in the proof of
 Theorem 1.12.1, with `c = 2n(2n+1)β²d²` from Eq. (1.379). -/
-theorem skVectorCavity_comparison {d N : ℕ} {Ω R : Type*} [MeasurableSpace Ω] [Fintype R]
+theorem skVectorCavityAverage_le_exp_mul_endpoint {d N : ℕ} {Ω R : Type*} [MeasurableSpace Ω]
+  [Fintype R]
     (μ : Measure α) [IsProbabilityMeasure μ] (ξ : α → Fin d → ℝ)
     (hξ : ∀ u, Measurable (fun a => ξ a u)) (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) (β : ℝ)
     (ρ q : Fin d → Fin d → ℝ) (hq : ∀ u v, q u v = q v u)
@@ -167,11 +176,11 @@ theorem skVectorCavity_comparison {d N : ℕ} {Ω R : Type*} [MeasurableSpace Ω
     (F : (R → Fin (N + 1) → α) → ℝ) (hF : Measurable F) {M : ℝ} (hM : 0 ≤ M)
     (hFb : ∀ σ, |F σ| ≤ M) (hF0 : ∀ σ, 0 ≤ F σ) {P : Measure Ω} [IsProbabilityMeasure P]
     {g : FinPairs N → Ω → ℝ} {g' : Fin N → Ω → ℝ} {Y : Fin d → Ω → ℝ}
-    (hn : SKVectorCavityNoise P N d β q g g' Y) {t : ℝ} (ht0 : 0 ≤ t) (ht1 : t ≤ 1) :
-    skVectorCavityAvg μ ξ N β ρ q P g g' Y t
+    (hn : SKVectorCavityGaussianData P N d β q g g' Y) {t : ℝ} (ht0 : 0 ≤ t) (ht1 : t ≤ 1) :
+    skVectorCavityAverage μ ξ N β ρ q P g g' Y t
         (fun σ : Option (Option R) → Fin (N + 1) → α => F fun c => σ (some (some c))) ≤
       Real.exp (2 * Fintype.card R * (2 * Fintype.card R + 1) * β ^ 2 * (d : ℝ) ^ 2 * (1 - t)) *
-        skVectorCavityAvg μ ξ N β ρ q P g g' Y 1
+        skVectorCavityAverage μ ξ N β ρ q P g g' Y 1
           (fun σ : Option (Option R) → Fin (N + 1) → α => F fun c => σ (some (some c))) := by
   classical
   set c : ℝ := 2 * Fintype.card R * (2 * Fintype.card R + 1) * β ^ 2 * (d : ℝ) ^ 2 with hc
@@ -179,14 +188,15 @@ theorem skVectorCavity_comparison {d N : ℕ} {Ω R : Type*} [MeasurableSpace Ω
   set φ : ℝ → ℝ := fun s => ∫ ω, ∫ σ : R → Fin (N + 1) → α, F σ ∂(Measure.pi fun _ : R =>
         (Measure.pi fun _ : Fin (N + 1) => μ).tilted (skVectorCavityEnergy ξ N β ρ q
           (fun p => g p ω) (fun i => g' i ω) (fun u => Y u ω) s)) ∂P with hφ
-  have hold : ∀ s, skVectorCavityAvg μ ξ N β ρ q P g g' Y s
+  have hold : ∀ s, skVectorCavityAverage μ ξ N β ρ q P g g' Y s
       (fun σ : Option (Option R) → Fin (N + 1) → α => F fun c => σ (some (some c))) = φ s :=
-    fun s => skVectorCavityAvg_old μ ξ hξ hbound β ρ q F hF s
+    fun s => skVectorCavityAverage_old μ ξ hξ hbound β ρ q F hF s
   rw [hold, hold]
-  have hcont : Continuous φ := continuous_skVectorCavity μ ξ hξ hbound β ρ q F hF hM hFb hn
+  have hcont : Continuous φ := continuous_skVectorCavityAverage μ ξ hξ hbound β ρ q F hF hM hFb hn
   have hder : ∀ s ∈ Set.Ioo (0 : ℝ) 1, HasDerivAt φ (deriv φ s) s ∧ -(c * φ s) ≤ deriv φ s := by
     intro s hs
-    obtain ⟨h1, h2⟩ := skVectorCavity_deriv_bound μ ξ hξ hbound β ρ q hq hq2 hρ2 F hF hM hFb hF0
+    obtain ⟨h1, h2⟩ := abs_deriv_skVectorCavityAverage_le_mul_self μ ξ hξ hbound β ρ q hq hq2 hρ2
+      F hF hM hFb hF0
       hn hs
     exact ⟨h1, by have := (abs_le.1 h2).1; simpa [hc] using this⟩
   -- the function `e^{cs} φ(s)` is monotone on `[0, 1]`
@@ -220,7 +230,8 @@ theorem skVectorCavity_comparison {d N : ℕ} {Ω R : Type*} [MeasurableSpace Ω
 /-- **The endpoint inequality of the smart path**: for `f ≥ 0`,
 `ν_1(f) ≤ ν_0(f) + c e^{c} ν_1(f)` with `c = 2n(2n+1)β²d²` (the integrated form of Eq. (1.379),
 via the mean value theorem and the comparison `ν_ξ(f) ≤ e^{c} ν_1(f)`). -/
-theorem skVectorCavity_endpoint {d N : ℕ} {Ω R : Type*} [MeasurableSpace Ω] [Fintype R]
+theorem skVectorCavityAverage_one_le_zero_add {d N : ℕ} {Ω R : Type*} [MeasurableSpace Ω] [Fintype
+  R]
     (μ : Measure α) [IsProbabilityMeasure μ] (ξ : α → Fin d → ℝ)
     (hξ : ∀ u, Measurable (fun a => ξ a u)) (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) (β : ℝ)
     (ρ q : Fin d → Fin d → ℝ) (hq : ∀ u v, q u v = q v u)
@@ -228,14 +239,14 @@ theorem skVectorCavity_endpoint {d N : ℕ} {Ω R : Type*} [MeasurableSpace Ω] 
     (F : (R → Fin (N + 1) → α) → ℝ) (hF : Measurable F) {M : ℝ} (hM : 0 ≤ M)
     (hFb : ∀ σ, |F σ| ≤ M) (hF0 : ∀ σ, 0 ≤ F σ) {P : Measure Ω} [IsProbabilityMeasure P]
     {g : FinPairs N → Ω → ℝ} {g' : Fin N → Ω → ℝ} {Y : Fin d → Ω → ℝ}
-    (hn : SKVectorCavityNoise P N d β q g g' Y) :
-    skVectorCavityAvg μ ξ N β ρ q P g g' Y 1
+    (hn : SKVectorCavityGaussianData P N d β q g g' Y) :
+    skVectorCavityAverage μ ξ N β ρ q P g g' Y 1
         (fun σ : Option (Option R) → Fin (N + 1) → α => F fun c => σ (some (some c))) ≤
-      skVectorCavityAvg μ ξ N β ρ q P g g' Y 0
+      skVectorCavityAverage μ ξ N β ρ q P g g' Y 0
         (fun σ : Option (Option R) → Fin (N + 1) → α => F fun c => σ (some (some c))) +
       2 * Fintype.card R * (2 * Fintype.card R + 1) * β ^ 2 * (d : ℝ) ^ 2 *
         Real.exp (2 * Fintype.card R * (2 * Fintype.card R + 1) * β ^ 2 * (d : ℝ) ^ 2) *
-        skVectorCavityAvg μ ξ N β ρ q P g g' Y 1
+        skVectorCavityAverage μ ξ N β ρ q P g g' Y 1
           (fun σ : Option (Option R) → Fin (N + 1) → α => F fun c => σ (some (some c))) := by
   classical
   set c : ℝ := 2 * Fintype.card R * (2 * Fintype.card R + 1) * β ^ 2 * (d : ℝ) ^ 2 with hc
@@ -243,19 +254,22 @@ theorem skVectorCavity_endpoint {d N : ℕ} {Ω R : Type*} [MeasurableSpace Ω] 
   set φ : ℝ → ℝ := fun s => ∫ ω, ∫ σ : R → Fin (N + 1) → α, F σ ∂(Measure.pi fun _ : R =>
         (Measure.pi fun _ : Fin (N + 1) => μ).tilted (skVectorCavityEnergy ξ N β ρ q
           (fun p => g p ω) (fun i => g' i ω) (fun u => Y u ω) s)) ∂P with hφ
-  have hold : ∀ s, skVectorCavityAvg μ ξ N β ρ q P g g' Y s
+  have hold : ∀ s, skVectorCavityAverage μ ξ N β ρ q P g g' Y s
       (fun σ : Option (Option R) → Fin (N + 1) → α => F fun c => σ (some (some c))) = φ s :=
-    fun s => skVectorCavityAvg_old μ ξ hξ hbound β ρ q F hF s
+    fun s => skVectorCavityAverage_old μ ξ hξ hbound β ρ q F hF s
   rw [hold, hold]
-  have hcont : Continuous φ := continuous_skVectorCavity μ ξ hξ hbound β ρ q F hF hM hFb hn
+  have hcont : Continuous φ := continuous_skVectorCavityAverage μ ξ hξ hbound β ρ q F hF hM hFb hn
   have hφ0 : ∀ s, 0 ≤ φ s := fun s => by
     rw [← hold s]
-    exact skVectorCavityAvg_nonneg μ ξ _ β ρ q s _ fun σ => hF0 _
+    exact skVectorCavityAverage_nonneg μ ξ _ β ρ q s _ fun σ => hF0 _
   obtain ⟨x, hx, hxd⟩ := exists_deriv_eq_slope φ zero_lt_one hcont.continuousOn
-    (fun s hs => (skVectorCavity_deriv_bound μ ξ hξ hbound β ρ q hq hq2 hρ2 F hF hM hFb hF0 hn
+    (fun s hs => (abs_deriv_skVectorCavityAverage_le_mul_self μ ξ hξ hbound β ρ q hq hq2 hρ2 F hF
+      hM hFb hF0 hn
       hs).1.differentiableAt.differentiableWithinAt)
-  obtain ⟨-, hxb⟩ := skVectorCavity_deriv_bound μ ξ hξ hbound β ρ q hq hq2 hρ2 F hF hM hFb hF0 hn hx
-  have hcmp := skVectorCavity_comparison μ ξ hξ hbound β ρ q hq hq2 hρ2 F hF hM hFb hF0 hn
+  obtain ⟨-, hxb⟩ := abs_deriv_skVectorCavityAverage_le_mul_self μ ξ hξ hbound β ρ q hq hq2 hρ2 F
+    hF hM hFb hF0 hn hx
+  have hcmp := skVectorCavityAverage_le_exp_mul_endpoint μ ξ hξ hbound β ρ q hq hq2 hρ2 F hF hM
+    hFb hF0 hn
     hx.1.le hx.2.le
   rw [hold, hold] at hcmp
   have hslope : φ 1 - φ 0 = deriv φ x := by

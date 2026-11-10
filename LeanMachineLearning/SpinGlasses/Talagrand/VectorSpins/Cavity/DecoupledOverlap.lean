@@ -5,14 +5,15 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.SKVectorDecoupled
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Cavity.Decoupling
 
 /-!
 # The `t = 0` bound `ν₀(f) ≤ K(d)/N` (Talagrand, proof of Theorem 1.12.1)
 
 The full overlap of `N + 1` sites splits as the cavity overlap plus the contribution of the last
 site, `R_{1,2}^{u,v} = R^{-,u,v}_{1,2} + (N+1)⁻¹ ε¹ᵤ ε²ᵥ`.  By the decoupling theorem
-`skVector_nu0_decoupled` the cavity part of `ν₀((ε¹ᵤ ε²ᵥ - qᵤᵥ)(R^{u,v}_{1,2} - qᵤᵥ))` vanishes, and
+`skVectorCavityAverage_zero_pair_mul_eq_zero` the cavity part of `ν₀((ε¹ᵤ ε²ᵥ - qᵤᵥ)(R^{u,v}_{1,2}
+  - qᵤᵥ))` vanishes, and
 the last-site part is `O(1/N)` because all spin coordinates are bounded.
 -/
 
@@ -59,7 +60,7 @@ whose centered last-site observable `ε^a_u ε^b_v - T` decouples from all bound
 functions of the old sites at `t = 0` (hypothesis `hdec`), the Gibbs average of
 `f = (ε^a_u ε^b_v - T)(R^{u,v}_{a,b} - T)` over two replicas of the `N + 1` site system is at most
 `2 d² / (N + 1)` in absolute value, where `R^{u,v}_{a,b} = (N+1)⁻¹ ∑_{i ≤ N} ξ(σᵃᵢ)ᵤ ξ(σᵇᵢ)ᵥ`. -/
-theorem skVector_nu0_overlap_bound {d N : ℕ} {Ω : Type*} [MeasurableSpace Ω]
+theorem abs_skVectorCavityAverage_zero_overlap_le {d N : ℕ} {Ω : Type*} [MeasurableSpace Ω]
     (μ : Measure α) [IsProbabilityMeasure μ] (ξ : α → Fin d → ℝ)
     (hξ : ∀ u, Measurable (fun a => ξ a u)) (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) (β : ℝ)
     (ρ q : Fin d → Fin d → ℝ) {P : Measure Ω} [IsProbabilityMeasure P]
@@ -117,7 +118,7 @@ theorem skVector_nu0_overlap_bound {d N : ℕ} {Ω : Type*} [MeasurableSpace Ω]
     measurable_pi_iff.2 fun i => measurable_pi_iff.2 fun j =>
       (measurable_pi_apply _).comp (measurable_pi_apply i)
   have hEnm := measurable_skVectorCavityEnergy_joint ξ hξ N β ρ q hgm hg'm hYm 0
-  have hprob := fun ω => isProbabilityMeasure_skVectorCavityGibbs μ ξ hξ hr hbound N β ρ q
+  have hprob := fun ω => isProbabilityMeasure_tilted_skVectorCavityEnergy μ ξ hξ hr hbound N β ρ q
     (fun p => g p ω) (fun i => g' i ω) (fun w => Y w ω) 0
   have hpt : ∀ σ : Fin 2 → Fin (N + 1) → α,
       (ξ (σ a (Fin.last N)) u * ξ (σ b (Fin.last N)) v - T) *

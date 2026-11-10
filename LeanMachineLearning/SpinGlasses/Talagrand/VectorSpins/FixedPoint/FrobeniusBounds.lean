@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.SKVectorFixedPointBounds
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.FixedPoint.Bounds
 
 /-!
 # Frobenius-norm bounds for the replica combinations of the smart path

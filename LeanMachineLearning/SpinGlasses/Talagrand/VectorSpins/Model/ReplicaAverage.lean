@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.SKVectorFreeEnergy
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.FreeEnergy.Basic
 
 /-!
 # The two-replica average `ν` of the vector SK model with i.i.d. couplings
@@ -24,7 +24,7 @@ variable {α : Type*} [MeasurableSpace α]
 
 /-- `ν(G) = 𝔼 ⟨G(σ¹, σ²)⟩`: the disorder average of the two-replica Gibbs average for the
 `N + 1` site vector SK model with i.i.d. standard Gaussian couplings. -/
-noncomputable def skVectorNu {d : ℕ} (μ : Measure α) (ξ : α → Fin d → ℝ) (N : ℕ) (β : ℝ)
+noncomputable def skVectorReplicaAverage {d : ℕ} (μ : Measure α) (ξ : α → Fin d → ℝ) (N : ℕ) (β : ℝ)
     (G : (Fin 2 → Fin (N + 1) → α) → ℝ) : ℝ :=
   ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin 2 → Fin (N + 1) → α, G σ ∂(Measure.pi fun _ : Fin 2 =>
     (Measure.pi fun _ : Fin (N + 1) => μ).tilted
@@ -39,7 +39,8 @@ variable {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ] (ξ : α → Fin 
 
 include hξ hbound in
 /-- The inner Gibbs average of a bounded measurable function is integrable in the couplings. -/
-theorem integrable_skVectorNu_inner (G : (Fin 2 → Fin (N + 1) → α) → ℝ) (hG : Measurable G)
+theorem integrable_skVectorReplicaAverage_inner (G : (Fin 2 → Fin (N + 1) → α) → ℝ) (hG :
+  Measurable G)
     (hGb : ∃ M, ∀ x, |G x| ≤ M) :
     Integrable (fun g : FinPairs (N + 1) → ℝ => ∫ σ : Fin 2 → Fin (N + 1) → α, G σ
       ∂(Measure.pi fun _ : Fin 2 => (Measure.pi fun _ : Fin (N + 1) => μ).tilted
@@ -49,9 +50,9 @@ theorem integrable_skVectorNu_inner (G : (Fin 2 → Fin (N + 1) → α) → ℝ)
 
 include hξ hbound in
 /-- `ν` of a constant. -/
-theorem skVectorNu_const (c : ℝ) : skVectorNu μ ξ N β (fun _ => c) = c := by
+theorem skVectorReplicaAverage_const (c : ℝ) : skVectorReplicaAverage μ ξ N β (fun _ => c) = c := by
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
-  unfold skVectorNu
+  unfold skVectorReplicaAverage
   have : ∀ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin 2 → Fin (N + 1) → α, c
       ∂(Measure.pi fun _ : Fin 2 => (Measure.pi fun _ : Fin (N + 1) => μ).tilted
         (fun τ => skVectorEnergy (N + 1) β g (fun i => ξ (τ i)))) = c := fun g => by
@@ -61,21 +62,22 @@ theorem skVectorNu_const (c : ℝ) : skVectorNu μ ξ N β (fun _ => c) = c := b
 
 omit [IsProbabilityMeasure μ] in
 /-- `ν` is linear: scaling. -/
-theorem skVectorNu_const_mul (c : ℝ) (G : (Fin 2 → Fin (N + 1) → α) → ℝ) :
-    skVectorNu μ ξ N β (fun σ => c * G σ) = c * skVectorNu μ ξ N β G := by
-  unfold skVectorNu
+theorem skVectorReplicaAverage_const_mul (c : ℝ) (G : (Fin 2 → Fin (N + 1) → α) → ℝ) :
+    skVectorReplicaAverage μ ξ N β (fun σ => c * G σ) = c * skVectorReplicaAverage μ ξ N β G := by
+  unfold skVectorReplicaAverage
   rw [← integral_const_mul]
   exact integral_congr_ae (Filter.Eventually.of_forall fun g => integral_const_mul _ _)
 
 include hξ hbound in
 /-- `ν` is linear: sums. -/
-theorem skVectorNu_add (G H : (Fin 2 → Fin (N + 1) → α) → ℝ) (hG : Measurable G)
+theorem skVectorReplicaAverage_add (G H : (Fin 2 → Fin (N + 1) → α) → ℝ) (hG : Measurable G)
     (hH : Measurable H) (hGb : ∃ M, ∀ x, |G x| ≤ M) (hHb : ∃ M, ∀ x, |H x| ≤ M) :
-    skVectorNu μ ξ N β (fun σ => G σ + H σ) = skVectorNu μ ξ N β G + skVectorNu μ ξ N β H := by
+    skVectorReplicaAverage μ ξ N β (fun σ => G σ + H σ) = skVectorReplicaAverage μ ξ N β G +
+      skVectorReplicaAverage μ ξ N β H := by
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
-  unfold skVectorNu
-  rw [← integral_add (integrable_skVectorNu_inner μ ξ hξ hbound N β G hG hGb)
-    (integrable_skVectorNu_inner μ ξ hξ hbound N β H hH hHb)]
+  unfold skVectorReplicaAverage
+  rw [← integral_add (integrable_skVectorReplicaAverage_inner μ ξ hξ hbound N β G hG hGb)
+    (integrable_skVectorReplicaAverage_inner μ ξ hξ hbound N β H hH hHb)]
   refine integral_congr_ae (Filter.Eventually.of_forall fun g => ?_)
   have := isProbabilityMeasure_tilted_skVectorEnergy μ ξ hξ hr hbound N β g
   obtain ⟨M, hM⟩ := hGb
@@ -84,13 +86,14 @@ theorem skVectorNu_add (G H : (Fin 2 → Fin (N + 1) → α) → ℝ) (hG : Meas
 
 include hξ hbound in
 /-- **Monotonicity of `ν`**: `|G| ≤ H` implies `|ν G| ≤ ν H`. -/
-theorem abs_skVectorNu_le (G H : (Fin 2 → Fin (N + 1) → α) → ℝ) (hH : Measurable H)
+theorem abs_skVectorReplicaAverage_le (G H : (Fin 2 → Fin (N + 1) → α) → ℝ) (hH : Measurable H)
     (hHb : ∃ M, ∀ x, |H x| ≤ M) (hGH : ∀ σ, |G σ| ≤ H σ) :
-    |skVectorNu μ ξ N β G| ≤ skVectorNu μ ξ N β H := by
+    |skVectorReplicaAverage μ ξ N β G| ≤ skVectorReplicaAverage μ ξ N β H := by
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
-  unfold skVectorNu
+  unfold skVectorReplicaAverage
   rw [← Real.norm_eq_abs]
-  refine norm_integral_le_of_norm_le (integrable_skVectorNu_inner μ ξ hξ hbound N β H hH hHb)
+  refine norm_integral_le_of_norm_le (integrable_skVectorReplicaAverage_inner μ ξ hξ hbound N β H
+    hH hHb)
     (Filter.Eventually.of_forall fun g => ?_)
   have := isProbabilityMeasure_tilted_skVectorEnergy μ ξ hξ hr hbound N β g
   obtain ⟨M, hM⟩ := hHb
@@ -101,22 +104,22 @@ include hξ hbound in
 /-- **The cavity average `ν₁` of the concrete model is `ν`.** At `t = 1` the cavity energy does not
 involve the Gaussian field, so the cavity average over the product space is the average over the
 couplings alone. -/
-theorem skVectorCavityAvg_concrete_eq_nu (ρ q : Fin d → Fin d → ℝ)
+theorem skVectorCavityAverage_disorderLaw_eq_replicaAverage (ρ q : Fin d → Fin d → ℝ)
     (G : (Fin 2 → Fin (N + 1) → α) → ℝ) (hG : Measurable G) :
-    skVectorCavityAvg μ ξ N β ρ q (skVectorConcreteLaw N β q)
+    skVectorCavityAverage μ ξ N β ρ q (skVectorDisorderLaw N β q)
         (fun p ω => ω.1 (finPairsSplit N (Sum.inl p)))
         (fun i ω => ω.1 (finPairsSplit N (Sum.inr i))) (fun u ω => ω.2 u) 1
         (fun σ : Option (Option (Fin 2)) → Fin (N + 1) → α => G fun c => σ (some (some c))) =
-      skVectorNu μ ξ N β G := by
-  have h := skVectorCavityAvg_one_eq μ ξ hξ hbound β ρ q
-    (P := skVectorConcreteLaw N β q) (gt := fun p ω => ω.1 p)
+      skVectorReplicaAverage μ ξ N β G := by
+  have h := skVectorCavityAverage_one_eq μ ξ hξ hbound β ρ q
+    (P := skVectorDisorderLaw N β q) (gt := fun p ω => ω.1 p)
     (g := fun p ω => ω.1 (finPairsSplit N (Sum.inl p)))
     (g' := fun i ω => ω.1 (finPairsSplit N (Sum.inr i))) (Y := fun u ω => ω.2 u)
     (fun _ _ => rfl) (fun _ _ => rfl) G hG
   rw [h]
-  unfold skVectorNu skVectorConcreteLaw
+  unfold skVectorReplicaAverage skVectorDisorderLaw
   have := integral_prod_mul (μ := Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)
-    (ν := skVectorGaussLaw β q) (fun g : FinPairs (N + 1) → ℝ => ∫ x : Fin 2 → Fin (N + 1) → α,
+    (ν := skVectorGaussianLaw β q) (fun g : FinPairs (N + 1) → ℝ => ∫ x : Fin 2 → Fin (N + 1) → α,
       G x ∂(Measure.pi fun _ : Fin 2 => (Measure.pi fun _ : Fin (N + 1) => μ).tilted
         (fun τ => skVectorEnergy (N + 1) β g (fun i => ξ (τ i))))) (fun _ => (1 : ℝ))
   simpa using this

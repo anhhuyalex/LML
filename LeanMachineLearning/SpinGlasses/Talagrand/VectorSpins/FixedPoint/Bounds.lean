@@ -5,9 +5,9 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.SKVectorStationarity
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.FreeEnergy.Stationarity
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaProduct
-public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.SKVectorCavityBounds
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Cavity.Bounds
 public import Mathlib.Analysis.Convex.Integral
 
 /-!
@@ -15,7 +15,7 @@ public import Mathlib.Analysis.Convex.Integral
 
 If `q` and `ρ` satisfy the fixed-point equations (1.372)--(1.373) for spins with
 `∑ᵤ ξᵤ² ≤ r`, then `‖q‖_F² ≤ r²` and `‖ρ‖_F² ≤ r²`.  These are the two hypotheses that
-`abs_deriv_skVectorCavity_le` and `abs_deriv_skVectorCavity_le_sqrt` need.
+`abs_deriv_skVectorCavityAverage_le` and `abs_deriv_skVectorCavityAverage_le_sqrt` need.
 -/
 
 @[expose] public section
@@ -96,7 +96,8 @@ end Gibbs
 /-- **The Frobenius bounds of Eq. (1.382) for the fixed point.**  If `q` and `ρ` satisfy the
 replica-symmetric equations (1.372)--(1.373) for a random log-density `e ω` and spins with
 `∑ᵤ ξᵤ² ≤ r`, then `∑ᵤᵥ qᵤᵥ² ≤ r²` and `∑ᵤᵥ ρᵤᵥ² ≤ r²`. -/
-theorem sum_sq_fixedPoint_le {D : Type*} [Fintype D] (μ : Measure α) [IsProbabilityMeasure μ]
+theorem sum_sq_skVectorFixedPoint_le {D : Type*} [Fintype D] (μ : Measure α) [IsProbabilityMeasure
+  μ]
     (ξ : α → D → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u)) {r : ℝ} (hr : 0 ≤ r)
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ r) (q ρ : D → D → ℝ)
     {P : Measure Ω} [IsProbabilityMeasure P] {e : Ω → α → ℝ}
@@ -188,7 +189,7 @@ noncomputable def skVectorFieldExponent {D : Type*} [Fintype D] (ξ : α → D �
 
 omit [MeasurableSpace Ω] in
 /-- The decoupled log-density has an integrable exponential and is jointly measurable. -/
-theorem skVectorFieldExponent_integrable {D : Type*} [Fintype D] (μ : Measure α)
+theorem integrable_exp_skVectorFieldExponent {D : Type*} [Fintype D] (μ : Measure α)
     [IsProbabilityMeasure μ] (ξ : α → D → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u)) {r : ℝ}
     (hr : 0 ≤ r) (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ r) (β : ℝ) (ρ q : D → D → ℝ) (y : D → ℝ) :
     Integrable (fun a => Real.exp (skVectorFieldExponent ξ β ρ q y a)) μ := by
@@ -216,8 +217,9 @@ theorem skVectorFieldExponent_integrable {D : Type*} [Fintype D] (μ : Measure �
 
 /-- **The fixed point satisfies the Frobenius bounds** `‖q‖_F² ≤ d²`, `‖ρ‖_F² ≤ d²` of Eq. (1.382),
 for the Gaussian field `Y` of the cavity path: these are the hypotheses `hq2`, `hρ2` of
-Corollary 1.12.5 (`abs_deriv_skVectorCavity_le`, `abs_deriv_skVectorCavity_le_sqrt`). -/
-theorem sum_sq_fixedPoint_field_le {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
+Corollary 1.12.5 (`abs_deriv_skVectorCavityAverage_le`,
+  `abs_deriv_skVectorCavityAverage_le_sqrt`). -/
+theorem sum_sq_skVectorFixedPoint_field_le {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
     (ξ : α → Fin d → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u))
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) (β : ℝ) (q ρ : Fin d → Fin d → ℝ)
     {P : Measure Ω} [IsProbabilityMeasure P] {Y : Fin d → Ω → ℝ} (hYm : ∀ u, Measurable (Y u))
@@ -227,9 +229,9 @@ theorem sum_sq_fixedPoint_field_le {d : ℕ} (μ : Measure α) [IsProbabilityMea
       (fun a => ξ a u) * skVectorGibbs μ (skVectorFieldExponent ξ β ρ q (fun w => Y w ω))
       (fun a => ξ a v) ∂P) :
     (∑ u, ∑ v, q u v ^ 2 ≤ (d : ℝ) ^ 2) ∧ (∑ u, ∑ v, ρ u v ^ 2 ≤ (d : ℝ) ^ 2) :=
-  sum_sq_fixedPoint_le μ ξ hξ (Nat.cast_nonneg d) hbound q ρ
+  sum_sq_skVectorFixedPoint_le μ ξ hξ (Nat.cast_nonneg d) hbound q ρ
     (e := fun ω => skVectorFieldExponent ξ β ρ q (fun w => Y w ω))
-    (fun ω => skVectorFieldExponent_integrable μ ξ hξ (Nat.cast_nonneg d) hbound β ρ q _)
+    (fun ω => integrable_exp_skVectorFieldExponent μ ξ hξ (Nat.cast_nonneg d) hbound β ρ q _)
     (by
       unfold skVectorFieldExponent
       exact (Finset.measurable_sum _ fun u _ => ((hYm u).comp measurable_fst).mul

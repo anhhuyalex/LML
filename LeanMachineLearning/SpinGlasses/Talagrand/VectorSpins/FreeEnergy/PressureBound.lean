@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.SKVectorPressure
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.FreeEnergy.Pressure
 
 /-!
 # The pressure is `O(β)` at small `β`
@@ -23,24 +23,24 @@ namespace SpinGlasses
 variable {α : Type*} [MeasurableSpace α]
 
 /-- `∫ |y_u| dγ ≤ √(q_uu)` for the centered Gaussian field of covariance `q`. -/
-theorem integral_abs_skVectorGaussLaw_le {d : ℕ} (q : Fin d → Fin d → ℝ)
+theorem integral_abs_skVectorGaussianLaw_le {d : ℕ} (q : Fin d → Fin d → ℝ)
     (hq : (Matrix.of q).PosSemidef) (u : Fin d) :
-    ∫ y, |y u| ∂(skVectorGaussLaw 1 q) ≤ Real.sqrt (q u u) := by
-  have := isGaussian_skVectorGaussLaw 1 q
-  have hZ : HasGaussianLaw (fun (y : Fin d → ℝ) (k : Fin d) => y k) (skVectorGaussLaw 1 q) :=
+    ∫ y, |y u| ∂(skVectorGaussianLaw 1 q) ≤ Real.sqrt (q u u) := by
+  have := isGaussian_skVectorGaussianLaw 1 q
+  have hZ : HasGaussianLaw (fun (y : Fin d → ℝ) (k : Fin d) => y k) (skVectorGaussianLaw 1 q) :=
     IsGaussian.hasGaussianLaw_id
-  have hmem : MemLp (fun y : Fin d → ℝ => y u) 2 (skVectorGaussLaw 1 q) := (hZ.eval u).memLp_two
-  have hm2 : MemLp (fun y : Fin d → ℝ => |y u|) 2 (skVectorGaussLaw 1 q) := hmem.abs
-  have hvar := variance_nonneg (fun y : Fin d → ℝ => |y u|) (skVectorGaussLaw 1 q)
+  have hmem : MemLp (fun y : Fin d → ℝ => y u) 2 (skVectorGaussianLaw 1 q) := (hZ.eval u).memLp_two
+  have hm2 : MemLp (fun y : Fin d → ℝ => |y u|) 2 (skVectorGaussianLaw 1 q) := hmem.abs
+  have hvar := variance_nonneg (fun y : Fin d → ℝ => |y u|) (skVectorGaussianLaw 1 q)
   rw [variance_eq_sub hm2] at hvar
-  have hsq : ∫ y : Fin d → ℝ, (fun y => |y u|) y ^ 2 ∂(skVectorGaussLaw 1 q) = q u u := by
-    have := integral_skVectorGaussLaw_mul 1 q hq u u
+  have hsq : ∫ y : Fin d → ℝ, (fun y => |y u|) y ^ 2 ∂(skVectorGaussianLaw 1 q) = q u u := by
+    have := integral_skVectorGaussianLaw_mul 1 q hq u u
     simp only [one_pow, one_mul] at this
     rw [← this]
     exact integral_congr_ae (Filter.Eventually.of_forall fun y => by
       simp only [sq]
       exact abs_mul_abs_self _)
-  have h1 : (∫ y : Fin d → ℝ, |y u| ∂(skVectorGaussLaw 1 q)) ^ 2 ≤ q u u := by
+  have h1 : (∫ y : Fin d → ℝ, |y u| ∂(skVectorGaussianLaw 1 q)) ^ 2 ≤ q u u := by
     simp only [Pi.pow_apply] at hvar
     nlinarith [hsq]
   exact Real.le_sqrt_of_sq_le h1
@@ -115,35 +115,37 @@ theorem abs_skVectorPressure_le {d : ℕ} (μ : Measure α) [IsProbabilityMeasur
       exact Finset.sum_congr rfl fun k _ => by rw [abs_mul]; ring
     linarith
   have hmeas := measurable_skVectorLogPartition μ ξ hξ b z.2 z.1
-  have hint : ∀ u, Integrable (fun y : Fin d → ℝ => |y u|) (skVectorGaussLaw 1 z.1) := fun u => by
-    have := isGaussian_skVectorGaussLaw 1 z.1
-    have hZ : HasGaussianLaw (fun (y : Fin d → ℝ) (k : Fin d) => y k) (skVectorGaussLaw 1 z.1) :=
+  have hint : ∀ u, Integrable (fun y : Fin d → ℝ => |y u|) (skVectorGaussianLaw 1 z.1) := fun u =>
+    by
+    have := isGaussian_skVectorGaussianLaw 1 z.1
+    have hZ : HasGaussianLaw (fun (y : Fin d → ℝ) (k : Fin d) => y k) (skVectorGaussianLaw 1 z.1) :=
       IsGaussian.hasGaussianLaw_id
     exact ((hZ.eval u).memLp_two.abs).integrable one_le_two
   have hI : Integrable (fun y : Fin d → ℝ => b ^ 2 * (d : ℝ) ^ 3 +
-      |b| * Real.sqrt d * ∑ u, |y u|) (skVectorGaussLaw 1 z.1) :=
+      |b| * Real.sqrt d * ∑ u, |y u|) (skVectorGaussianLaw 1 z.1) :=
     (integrable_const _).add ((integrable_finsetSum _ fun u _ => hint u).const_mul _)
   have hLint : Integrable (fun y : Fin d → ℝ => Real.log (∫ a, Real.exp (b * ∑ u, y u * ξ a u +
-      b ^ 2 / 2 * ∑ u, ∑ v, ξ a u * ξ a v * (z.2 u v - z.1 u v)) ∂μ)) (skVectorGaussLaw 1 z.1) :=
+      b ^ 2 / 2 * ∑ u, ∑ v, ξ a u * ξ a v * (z.2 u v - z.1 u v)) ∂μ)) (skVectorGaussianLaw 1 z.1) :=
     hI.mono' hmeas.aestronglyMeasurable (Filter.Eventually.of_forall fun y => by
       simpa [Real.norm_eq_abs] using hpt y)
-  have hG : |skVectorGaussFreeEnergy μ ξ z.2 z.1 (skVectorGaussLaw 1 z.1) (fun u y => y u) b| ≤
+  have hG : |skVectorGaussianFreeEnergy μ ξ z.2 z.1 (skVectorGaussianLaw 1 z.1) (fun u y => y u)
+    b| ≤
       b ^ 2 * (d : ℝ) ^ 3 + |b| * (d : ℝ) ^ 2 := by
-    unfold skVectorGaussFreeEnergy
+    unfold skVectorGaussianFreeEnergy
     refine (abs_integral_le_integral_abs).trans ?_
     refine (integral_mono hLint.abs hI (fun y => hpt y)).trans ?_
     rw [integral_add (integrable_const _) ((integrable_finsetSum _ fun u _ => hint u).const_mul _),
       integral_const_mul (|b| * Real.sqrt d), integral_finsetSum _ fun u _ => hint u]
     simp only [integral_const, probReal_univ, smul_eq_mul, one_mul]
-    have h3 : ∑ u, ∫ y : Fin d → ℝ, |y u| ∂(skVectorGaussLaw 1 z.1) ≤ d * Real.sqrt d := by
+    have h3 : ∑ u, ∫ y : Fin d → ℝ, |y u| ∂(skVectorGaussianLaw 1 z.1) ≤ d * Real.sqrt d := by
       calc _ ≤ ∑ _u : Fin d, Real.sqrt d := Finset.sum_le_sum fun u _ =>
-            (integral_abs_skVectorGaussLaw_le z.1 hz u).trans (Real.sqrt_le_sqrt (hqu u))
+            (integral_abs_skVectorGaussianLaw_le z.1 hz u).trans (Real.sqrt_le_sqrt (hqu u))
         _ = d * Real.sqrt d := by simp
     have h4 : |b| * Real.sqrt d * (d * Real.sqrt d) = |b| * (d : ℝ) ^ 2 := by
       calc |b| * Real.sqrt d * (d * Real.sqrt d)
           = |b| * d * (Real.sqrt d * Real.sqrt d) := by ring
         _ = |b| * (d : ℝ) ^ 2 := by rw [Real.mul_self_sqrt hr]; ring
-    have h5 : |b| * Real.sqrt d * ∑ u, ∫ y : Fin d → ℝ, |y u| ∂(skVectorGaussLaw 1 z.1) ≤
+    have h5 : |b| * Real.sqrt d * ∑ u, ∫ y : Fin d → ℝ, |y u| ∂(skVectorGaussianLaw 1 z.1) ≤
         |b| * Real.sqrt d * (d * Real.sqrt d) :=
       mul_le_mul_of_nonneg_left h3 (by positivity)
     linarith

@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.SKVectorCavityComparison
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Cavity.Comparison
 public import LeanMachineLearning.ForMathlib.Probability.GibbsProductSplit
 
 /-!
@@ -99,7 +99,7 @@ end Bounds
 /-- **Decoupling at `t = 0`, abstract form.**  If `Y` is independent of the old couplings and the
 two-replica observable `Ψ₂` of the last spin has zero average against the Gibbs measure of the
 field `Y`, then `ν₀(Ψ(old sites) Ψ₂(last site)) = 0`. -/
-theorem skVector_nu0_split_zero {d N : ℕ} {Ω : Type*} [MeasurableSpace Ω]
+theorem skVectorCavityAverage_zero_centered_mul_eq_zero {d N : ℕ} {Ω : Type*} [MeasurableSpace Ω]
     (μ : Measure α) [IsProbabilityMeasure μ] (ξ : α → Fin d → ℝ)
     (hξ : ∀ u, Measurable (fun a => ξ a u)) (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) (β : ℝ)
     (ρ q : Fin d → Fin d → ℝ) {P : Measure Ω}
@@ -179,7 +179,7 @@ theorem skVector_nu0_split_zero {d N : ℕ} {Ω : Type*} [MeasurableSpace Ω]
 /-- **Decoupling at `t = 0`** (Eq. (1.372)): with `Y` independent of the old couplings,
 `ν₀((ε¹ᵤ ε²ᵥ - qᵤᵥ) h) = 0` for every bounded measurable function `h` of the first `N`
 sites of the two replicas. -/
-theorem skVector_nu0_decoupled {d N : ℕ} {Ω : Type*} [MeasurableSpace Ω]
+theorem skVectorCavityAverage_zero_pair_mul_eq_zero {d N : ℕ} {Ω : Type*} [MeasurableSpace Ω]
     (μ : Measure α) [IsProbabilityMeasure μ] (ξ : α → Fin d → ℝ)
     (hξ : ∀ u, Measurable (fun a => ξ a u)) (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) (β : ℝ)
     (ρ q : Fin d → Fin d → ℝ) {P : Measure Ω} [IsProbabilityMeasure P]
@@ -214,7 +214,7 @@ theorem skVector_nu0_decoupled {d N : ℕ} {Ω : Type*} [MeasurableSpace Ω]
   have hBy : ∀ y, B y = skVectorGibbs μ (skVectorFieldExponent ξ β ρ q y) (fun a => ξ a u) *
       skVectorGibbs μ (skVectorFieldExponent ξ β ρ q y) (fun a => ξ a v) - q u v := by
     intro y
-    have hexpi := skVectorFieldExponent_integrable μ ξ hξ hr hbound β ρ q y
+    have hexpi := integrable_exp_skVectorFieldExponent μ ξ hξ hr hbound β ρ q y
     have : IsProbabilityMeasure (μ.tilted (skVectorFieldExponent ξ β ρ q y)) :=
       isProbabilityMeasure_tilted hexpi
     have hξu := abs_spin_mul_le ξ hr hbound
@@ -250,7 +250,7 @@ theorem skVector_nu0_decoupled {d N : ℕ} {Ω : Type*} [MeasurableSpace Ω]
         skVectorGibbs μ (skVectorFieldExponent ξ β ρ q (fun w' => Y w' ω))
         (fun a => ξ a v)) P := by
       refine integrable_of_measurable_bound ((hGm' u).mul (hGm' v)) (M := d) fun ω => ?_
-      have hexpi := skVectorFieldExponent_integrable μ ξ hξ hr hbound β ρ q (fun w' => Y w' ω)
+      have hexpi := integrable_exp_skVectorFieldExponent μ ξ hξ hr hbound β ρ q (fun w' => Y w' ω)
       have hb : ∀ a w, |ξ a w| ≤ Real.sqrt d := abs_spin_le ξ hbound
       rw [abs_mul]
       calc _ ≤ Real.sqrt d * Real.sqrt d :=
@@ -259,12 +259,13 @@ theorem skVector_nu0_decoupled {d N : ℕ} {Ω : Type*} [MeasurableSpace Ω]
         _ = d := Real.mul_self_sqrt hr
     rw [integral_sub hi (integrable_const _), ← hq u v]
     simp
-  exact skVector_nu0_split_zero μ ξ hξ hbound β ρ q hgm hYm hind Ψ hΨ Ψ₂ hΨ₂m hB0
+  exact skVectorCavityAverage_zero_centered_mul_eq_zero μ ξ hξ hbound β ρ q hgm hYm hind Ψ hΨ Ψ₂
+    hΨ₂m hB0
 
 /-- **Decoupling at `t = 0` for the diagonal overlap** (Eq. (1.373)): with `Y` independent of the
 old couplings, `ν₀((ε¹ᵤ ε¹ᵥ - ρᵤᵥ) h) = 0` for every bounded measurable function `h` of the first
 `N` sites of the two replicas. -/
-theorem skVector_nu0_decoupled_diag {d N : ℕ} {Ω : Type*} [MeasurableSpace Ω]
+theorem skVectorCavityAverage_zero_diag_mul_eq_zero {d N : ℕ} {Ω : Type*} [MeasurableSpace Ω]
     (μ : Measure α) [IsProbabilityMeasure μ] (ξ : α → Fin d → ℝ)
     (hξ : ∀ u, Measurable (fun a => ξ a u)) (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) (β : ℝ)
     (ρ q : Fin d → Fin d → ℝ) {P : Measure Ω} [IsProbabilityMeasure P]
@@ -295,7 +296,7 @@ theorem skVector_nu0_decoupled_diag {d N : ℕ} {Ω : Type*} [MeasurableSpace Ω
       μ.tilted (skVectorFieldExponent ξ β ρ q y)) =
       skVectorGibbs μ (skVectorFieldExponent ξ β ρ q y) (fun a => ξ a u * ξ a v) - ρ u v := by
     intro y
-    have hexpi := skVectorFieldExponent_integrable μ ξ hξ hr hbound β ρ q y
+    have hexpi := integrable_exp_skVectorFieldExponent μ ξ hξ hr hbound β ρ q y
     have : IsProbabilityMeasure (μ.tilted (skVectorFieldExponent ξ β ρ q y)) :=
       isProbabilityMeasure_tilted hexpi
     have hmeas : AEStronglyMeasurable (fun a => ξ a u * ξ a v - ρ u v)
@@ -319,11 +320,11 @@ theorem skVector_nu0_decoupled_diag {d N : ℕ} {Ω : Type*} [MeasurableSpace Ω
     have hi : Integrable (fun ω => skVectorGibbs μ
         (skVectorFieldExponent ξ β ρ q (fun w' => Y w' ω)) (fun a => ξ a u * ξ a v)) P :=
       integrable_of_measurable_bound hG (M := d) fun ω =>
-        abs_skVectorGibbs_le (skVectorFieldExponent_integrable μ ξ hξ hr hbound β ρ q _)
+        abs_skVectorGibbs_le (integrable_exp_skVectorFieldExponent μ ξ hξ hr hbound β ρ q _)
           fun a => abs_spin_mul_le ξ hr hbound a a u v
     rw [integral_sub hi (integrable_const _), ← hρ u v]
     simp
-  exact skVector_nu0_split_zero μ ξ hξ hbound β ρ q hgm hYm hind Ψ hΨ
+  exact skVectorCavityAverage_zero_centered_mul_eq_zero μ ξ hξ hbound β ρ q hgm hYm hind Ψ hΨ
     (fun a => ξ (a 0) u * ξ (a 0) v - ρ u v) hΨ₂m hB0
 
 end SpinGlasses

@@ -1,8 +1,10 @@
 # SpinGlasses: directory layout
 
-The directory is organized by topic. Lean namespaces (`SpinGlasses`) and declaration names did
-not change when the files were moved; only module paths did
+The directory is organized by topic. The original topic split preserved Lean namespaces
+(`SpinGlasses`) and declaration names; only module paths changed
 (for example `LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityFreeEnergy`).
+The later vector-spin review also replaced numbered and unclear declaration names with
+descriptive names; its current names and milestones are in the vector-spin formalization plan.
 A new file goes in the directory of the topic it treats, and must be added to
 `LeanMachineLearning.lean` (run `lake exe mk_all`).
 
@@ -44,3 +46,9 @@ Blueprint chapters: `blueprint/src/chapters/spinglasses.tex` (Panchenko) and
 * `BeyondATLine/`: instability beyond the AT line, coupled replicas, non-differentiability.
 * `OverlapCLT/`: the central limit theorem for the overlaps: `HigherOrderCavity/`, `Contractions/`,
   `GibbsMoments/`, and the three inductions `Pair/`, `Single/`, `Global/`.
+* `VectorSpins/`: the SK model with bounded vector spins and an arbitrary probability spin law.
+  `Geometry.lean` gives coordinate and overlap estimates; `Model/` contains the energy, Gaussian
+  fields, disorder and replica averages; `Cavity/` contains interpolation and overlap concentration;
+  `FixedPoint/` contains the matrix fixed-point equations and their solution; `FreeEnergy/` contains
+  log-partition derivatives, replica-symmetric pressure and the thermodynamic limit.
+  Module and declaration names describe the mathematics; book theorem numbers belong in comments.

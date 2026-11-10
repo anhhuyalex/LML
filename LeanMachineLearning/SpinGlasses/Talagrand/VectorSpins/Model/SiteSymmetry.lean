@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.SKVectorOverlapBound
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Cavity.DecoupledOverlap
 public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKSiteSymmetry
 public import LeanMachineLearning.ForMathlib.Probability.GibbsSiteSymmetry
 
@@ -114,7 +114,7 @@ theorem isProbabilityMeasure_tilted_skVectorEnergy (μ : Measure α) [IsProbabil
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ r) (N : ℕ) (β : ℝ) (g : FinPairs (N + 1) → ℝ) :
     IsProbabilityMeasure ((Measure.pi fun _ : Fin (N + 1) => μ).tilted
       (fun a => skVectorEnergy (N + 1) β g (fun i => ξ (a i)))) := by
-  have := isProbabilityMeasure_skVectorCavityGibbs μ ξ hξ hr hbound N β 0 0
+  have := isProbabilityMeasure_tilted_skVectorCavityEnergy μ ξ hξ hr hbound N β 0 0
     (fun p => g ⟨(p.val.1.castSucc, p.val.2.castSucc), Fin.castSucc_lt_castSucc_iff.mpr p.property⟩)
     (fun i => g ⟨(i.castSucc, Fin.last N), Fin.castSucc_lt_last i⟩) 0 1
   have hf : skVectorCavityEnergy ξ N β 0 0
@@ -160,7 +160,7 @@ theorem integral_integral_finsetSum {Ω X ι : Type*} [Fintype ι] [MeasurableSp
 /-- **Symmetry between sites** (Eq. (1.383)): for two replicas, `ν((R - T) (R - T)) =
 ν(ε_last (R - T))` where `R - T = (N+1)⁻¹ ∑_i e_i` is the centered overlap and `e_i` the centered
 product of the replica spins `a`, `b` at the site `i`. -/
-theorem skVector_overlap_sq_eq_last_site {N d : ℕ} {Ω : Type*} [MeasurableSpace Ω]
+theorem skVector_overlap_variance_eq_last_spin {N d : ℕ} {Ω : Type*} [MeasurableSpace Ω]
     (μ : Measure α) [IsProbabilityMeasure μ] (ξ : α → Fin d → ℝ)
     (hξ : ∀ u, Measurable (fun a => ξ a u)) (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) (β : ℝ)
     {P : Measure Ω} [IsProbabilityMeasure P] {gt : Ω → FinPairs (N + 1) → ℝ}

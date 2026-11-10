@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.SKVectorPathFrobenius
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.FixedPoint.FrobeniusBounds
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaCavity
 
 /-!
@@ -29,7 +29,7 @@ variable {α : Type*} [MeasurableSpace α]
 `∫ F d(μ_{y})^{⊗R}`, where `μ_y` is `μ` tilted by `skVectorFieldExponent`.  The fixed-point maps of
 (1.372)--(1.373) are the disorder averages of these quantities for `F = ξᵤ(σ¹) ξᵥ(σ²)` and
 `F = ξᵤ(σ¹) ξᵥ(σ¹)`. -/
-noncomputable def skVectorFieldAvg {d : ℕ} {R : Type*} [Fintype R] (μ : Measure α)
+noncomputable def skVectorFieldAverage {d : ℕ} {R : Type*} [Fintype R] (μ : Measure α)
     (ξ : α → Fin d → ℝ) (β : ℝ) (ρ q : Fin d → Fin d → ℝ) (F : (R → α) → ℝ)
     (y : Fin d → ℝ) : ℝ :=
   ∫ σ : R → α, F σ ∂(Measure.pi fun _ : R => μ.tilted (skVectorFieldExponent ξ β ρ q y))
@@ -37,7 +37,8 @@ noncomputable def skVectorFieldAvg {d : ℕ} {R : Type*} [Fintype R] (μ : Measu
 omit [MeasurableSpace α] in
 /-- The energy of the interpolation path (1.386) between the field models `(ρ, q, Z¹)` and
 `(ρ', q', Z²)`, in the coefficient form used by the replica derivative theorem. -/
-theorem skVectorPathEnergy_eq {d : ℕ} (ξ : α → Fin d → ℝ) (β : ℝ) (ρ q ρ' q' : Fin d → Fin d → ℝ)
+theorem skVectorFieldInterpolationEnergy_eq_sum {d : ℕ} (ξ : α → Fin d → ℝ) (β : ℝ) (ρ q ρ' q' :
+  Fin d → Fin d → ℝ)
     (z : Fin d ⊕ Fin d → ℝ) (r : ℝ) (a : α) :
     0 + ∑ k : Fin d ⊕ Fin d, Sum.elim (fun _ => Real.sqrt r) (fun _ => Real.sqrt (1 - r)) k *
         z k * ξ a (Sum.elim id id k) +
@@ -54,7 +55,7 @@ theorem skVectorPathEnergy_eq {d : ℕ} (ξ : α → Fin d → ℝ) (β : ℝ) (
 
 omit [MeasurableSpace α] in
 /-- The path energy is the field exponent (1.371) of the interpolated parameters. -/
-theorem skVectorPathEnergy_eq_fieldExponent {d : ℕ} (ξ : α → Fin d → ℝ) (β : ℝ)
+theorem skVectorFieldInterpolationEnergy_eq_fieldExponent {d : ℕ} (ξ : α → Fin d → ℝ) (β : ℝ)
     (ρ q ρ' q' : Fin d → Fin d → ℝ) (z : Fin d ⊕ Fin d → ℝ) (r : ℝ) (a : α) :
     0 + ∑ k : Fin d ⊕ Fin d, Sum.elim (fun _ => Real.sqrt r) (fun _ => Real.sqrt (1 - r)) k *
         z k * ξ a (Sum.elim id id k) +
@@ -63,7 +64,7 @@ theorem skVectorPathEnergy_eq_fieldExponent {d : ℕ} (ξ : α → Fin d → ℝ
       skVectorFieldExponent ξ β (fun u v => r * ρ u v + (1 - r) * ρ' u v)
         (fun u v => r * q u v + (1 - r) * q' u v)
         (fun x => Real.sqrt r * z (Sum.inl x) + Real.sqrt (1 - r) * z (Sum.inr x)) a := by
-  rw [skVectorPathEnergy_eq]
+  rw [skVectorFieldInterpolationEnergy_eq_sum]
   unfold skVectorFieldExponent
   simp only [add_mul, Finset.sum_add_distrib, Finset.mul_sum]
   congr 1
@@ -71,32 +72,33 @@ theorem skVectorPathEnergy_eq_fieldExponent {d : ℕ} (ξ : α → Fin d → ℝ
 
 omit [MeasurableSpace α] in
 /-- At `r = 1` the path energy is the field exponent of `(ρ, q, Z¹)`. -/
-theorem skVectorPathEnergy_one {d : ℕ} (ξ : α → Fin d → ℝ) (β : ℝ)
+theorem skVectorFieldInterpolationEnergy_one {d : ℕ} (ξ : α → Fin d → ℝ) (β : ℝ)
     (ρ q ρ' q' : Fin d → Fin d → ℝ) (z : Fin d ⊕ Fin d → ℝ) (a : α) :
     0 + ∑ k : Fin d ⊕ Fin d, Sum.elim (fun _ => Real.sqrt 1) (fun _ => Real.sqrt (1 - 1)) k *
         z k * ξ a (Sum.elim id id k) +
       ∑ j : Fin d × Fin d, (β ^ 2 / 2 * ((1 * ρ j.1 j.2 + (1 - 1) * ρ' j.1 j.2) -
         (1 * q j.1 j.2 + (1 - 1) * q' j.1 j.2))) * (ξ a j.1 * ξ a j.2) =
       skVectorFieldExponent ξ β ρ q (fun x => z (Sum.inl x)) a := by
-  rw [skVectorPathEnergy_eq]
+  rw [skVectorFieldInterpolationEnergy_eq_sum]
   simp [skVectorFieldExponent]
 
 omit [MeasurableSpace α] in
 /-- At `r = 0` the path energy is the field exponent of `(ρ', q', Z²)`. -/
-theorem skVectorPathEnergy_zero {d : ℕ} (ξ : α → Fin d → ℝ) (β : ℝ)
+theorem skVectorFieldInterpolationEnergy_zero {d : ℕ} (ξ : α → Fin d → ℝ) (β : ℝ)
     (ρ q ρ' q' : Fin d → Fin d → ℝ) (z : Fin d ⊕ Fin d → ℝ) (a : α) :
     0 + ∑ k : Fin d ⊕ Fin d, Sum.elim (fun _ => Real.sqrt 0) (fun _ => Real.sqrt (1 - 0)) k *
         z k * ξ a (Sum.elim id id k) +
       ∑ j : Fin d × Fin d, (β ^ 2 / 2 * ((0 * ρ j.1 j.2 + (1 - 0) * ρ' j.1 j.2) -
         (0 * q j.1 j.2 + (1 - 0) * q' j.1 j.2))) * (ξ a j.1 * ξ a j.2) =
       skVectorFieldExponent ξ β ρ' q' (fun x => z (Sum.inr x)) a := by
-  rw [skVectorPathEnergy_eq]
+  rw [skVectorFieldInterpolationEnergy_eq_sum]
   simp [skVectorFieldExponent]
 
 /-- **The derivative along the path (1.386)** (first step of the contraction): at every interior
 time the expected replica Gibbs average has a derivative of absolute value at most
 `2 (n+1)² β² M d ε`, where `ε` bounds the Frobenius distance of the two pairs of matrices. -/
-theorem skVectorField_path_hasDerivAt {d : ℕ} {Ω R : Type*} [MeasurableSpace Ω] [Fintype R]
+theorem hasDerivAt_skVectorFieldAverage_interpolation {d : ℕ} {Ω R : Type*} [MeasurableSpace Ω]
+  [Fintype R]
     (μ : Measure α) [IsProbabilityMeasure μ] (ξ : α → Fin d → ℝ)
     (hξ : ∀ u, Measurable (fun a => ξ a u)) (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) (β : ℝ)
     (ρ q ρ' q' : Fin d → Fin d → ℝ) {ε : ℝ}
@@ -233,10 +235,12 @@ theorem skVectorField_path_hasDerivAt {d : ℕ} {Ω R : Type*} [MeasurableSpace 
   have hen' : ∀ ω, en ω = skVectorFieldExponent ξ β (fun u v => t * ρ u v + (1 - t) * ρ' u v)
       (fun u v => t * q u v + (1 - t) * q' u v)
       (fun x => Real.sqrt t * Z (Sum.inl x) ω + Real.sqrt (1 - t) * Z (Sum.inr x) ω) := fun ω =>
-    funext fun a => by rw [hen]; exact skVectorPathEnergy_eq_fieldExponent ξ β ρ q ρ' q' _ t a
+    funext fun a => by
+      rw [hen]; exact skVectorFieldInterpolationEnergy_eq_fieldExponent ξ β ρ q ρ' q' _ t a
   have hprob : ∀ ω, IsProbabilityMeasure (μ.tilted (en ω)) := fun ω => by
     rw [hen']
-    exact isProbabilityMeasure_tilted (skVectorFieldExponent_integrable μ ξ hξ hr hbound β _ _ _)
+    exact isProbabilityMeasure_tilted (integrable_exp_skVectorFieldExponent μ ξ hξ hr hbound β _ _
+      _)
   set n : ℝ := (Fintype.card R : ℝ) with hn
   have hn0 : 0 ≤ n := Nat.cast_nonneg _
   have hE : Measurable fun p : Ω × α => en p.1 p.2 := by
@@ -318,7 +322,8 @@ theorem skVectorField_path_hasDerivAt {d : ℕ} {Ω R : Type*} [MeasurableSpace 
 the field models `(ρ, q)` and `(ρ', q')` (driven by the Gaussian fields `Z¹`, `Z²` of covariances
 `β² q`, `β² q'`) differ by at most `2 (n+1)² β² M d ε` when the matrices differ by at most `ε` in
 Frobenius norm. -/
-theorem skVectorField_path_lipschitz {d : ℕ} {Ω R : Type*} [MeasurableSpace Ω] [Fintype R]
+theorem abs_skVectorFieldAverage_interpolation_sub_le {d : ℕ} {Ω R : Type*} [MeasurableSpace Ω]
+  [Fintype R]
     (μ : Measure α) [IsProbabilityMeasure μ] (ξ : α → Fin d → ℝ)
     (hξ : ∀ u, Measurable (fun a => ξ a u)) (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) (β : ℝ)
     (ρ q ρ' q' : Fin d → Fin d → ℝ) {ε : ℝ}
@@ -331,8 +336,8 @@ theorem skVectorField_path_lipschitz {d : ℕ} {Ω R : Type*} [MeasurableSpace �
     (hcov1 : ∀ x y, ∫ ω, Z (Sum.inl x) ω * Z (Sum.inl y) ω ∂P = β ^ 2 * q x y)
     (hcov2 : ∀ x y, ∫ ω, Z (Sum.inr x) ω * Z (Sum.inr y) ω ∂P = β ^ 2 * q' x y)
     (hcov12 : ∀ x y, ∫ ω, Z (Sum.inl x) ω * Z (Sum.inr y) ω ∂P = 0) :
-    |(∫ ω, skVectorFieldAvg μ ξ β ρ q F (fun x => Z (Sum.inl x) ω) ∂P) -
-      ∫ ω, skVectorFieldAvg μ ξ β ρ' q' F (fun x => Z (Sum.inr x) ω) ∂P| ≤
+    |(∫ ω, skVectorFieldAverage μ ξ β ρ q F (fun x => Z (Sum.inl x) ω) ∂P) -
+      ∫ ω, skVectorFieldAverage μ ξ β ρ' q' F (fun x => Z (Sum.inr x) ω) ∂P| ≤
       2 * ((Fintype.card R : ℝ) + 1) ^ 2 * β ^ 2 * M * (d : ℝ) * ε := by
   classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
@@ -367,7 +372,8 @@ theorem skVectorField_path_lipschitz {d : ℕ} {Ω R : Type*} [MeasurableSpace �
       fun_prop
   have hder : ∀ t ∈ Set.Ioo (0 : ℝ) 1, ∃ V, HasDerivAt φ V t ∧
       |V| ≤ 2 * ((Fintype.card R : ℝ) + 1) ^ 2 * β ^ 2 * M * (d : ℝ) * ε := fun t ht =>
-    skVectorField_path_hasDerivAt μ ξ hξ hbound β ρ q ρ' q' hε hρε hqε F hF hM hFb hZ hZm hmean
+    hasDerivAt_skVectorFieldAverage_interpolation μ ξ hξ hbound β ρ q ρ' q' hε hρε hqε F hF hM hFb
+      hZ hZm hmean
       hcov1 hcov2 hcov12 ht.1 ht.2
   have hdiff : DifferentiableOn ℝ φ (Set.Ioo 0 1) := fun t ht =>
     (hder t ht).choose_spec.1.differentiableAt.differentiableWithinAt
@@ -376,14 +382,14 @@ theorem skVectorField_path_lipschitz {d : ℕ} {Ω R : Type*} [MeasurableSpace �
   have h1 : φ 1 - φ 0 = V := by
     rw [hV.deriv] at hcd
     rw [hcd]; ring
-  have e1 : φ 1 = ∫ ω, skVectorFieldAvg μ ξ β ρ q F (fun x => Z (Sum.inl x) ω) ∂P := by
+  have e1 : φ 1 = ∫ ω, skVectorFieldAverage μ ξ β ρ q F (fun x => Z (Sum.inl x) ω) ∂P := by
     refine integral_congr_ae (Filter.Eventually.of_forall fun ω => ?_)
-    unfold skVectorFieldAvg
-    simp only [skVectorPathEnergy_one]
-  have e0 : φ 0 = ∫ ω, skVectorFieldAvg μ ξ β ρ' q' F (fun x => Z (Sum.inr x) ω) ∂P := by
+    unfold skVectorFieldAverage
+    simp only [skVectorFieldInterpolationEnergy_one]
+  have e0 : φ 0 = ∫ ω, skVectorFieldAverage μ ξ β ρ' q' F (fun x => Z (Sum.inr x) ω) ∂P := by
     refine integral_congr_ae (Filter.Eventually.of_forall fun ω => ?_)
-    unfold skVectorFieldAvg
-    simp only [skVectorPathEnergy_zero]
+    unfold skVectorFieldAverage
+    simp only [skVectorFieldInterpolationEnergy_zero]
   rw [← e1, ← e0, h1]
   exact hVb
 

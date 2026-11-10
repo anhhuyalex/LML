@@ -18,7 +18,10 @@ are proved for products of individual truncated centered overlaps; Lemma~1.10.2 
 formulas of Corollary~1.10.3 hold for products of finite linear combinations
 (Section~\ref{sec:sg-tal:overlap-clt}). The joint $T$-basis mixed-moment theorem and the Gibbs-centered consequences are proved for a deterministic external field.
 \item Hanen's covariance moments (Section~1.11), including both parities, the moment limit and the moments of the proposed law. Convergence in distribution is not claimed (Section~\ref{sec:sg-tal:hanen}).
-\item Vector spins (Section~1.12): arbitrary probability spin laws, deterministic overlap bounds, the exact Gaussian covariance and bounded-energy differentiation. The matrix fixed point and the quantitative cavity results are still targets (Section~\ref{sec:sg-tal:vector}).
+\item Vector spins (Section~1.12): arbitrary probability spin laws, the cavity derivative,
+matrix fixed-point existence and uniqueness, overlap concentration, stationarity and the
+free-energy limit with an auxiliary upper inverse temperature. The exact hypotheses and
+remaining theorem-statement work are recorded in Section~\ref{sec:sg-tal:vector}.
 \item The rigorous integer-replica computation at all temperatures (Theorem~1.13.1), with a maximizing witness. Continuation to non-integer replica counts is not formalized (Section~\ref{sec:sg-tal:replica}).
 \end{enumerate}
 
@@ -9362,10 +9365,12 @@ the fluctuations around the Gaussian limit of the Gibbs average of a random proj
 
 \begin{remark}[Scope and current status]\label{rem:sg-tal:vector-status}
 \talsource{Section~1.12, Eqs.~(1.360)--(1.392)}
-The user authorized this section on 2026-11-06. The setup and deterministic estimates
-below are formalized, together with bounded-energy calculus on arbitrary measure spaces.
-Theorems~1.12.1--1.12.3, Proposition~1.12.4, Corollary~1.12.5 and Lemma~1.12.6
-are still targets, not proved Lean results. No exercises or research problems are assigned.
+The user authorized this section on 2026-11-06. The setup, cavity derivative,
+derivative bounds, fixed-point theorem, overlap concentration and stationarity below are
+formalized for arbitrary probability spin laws. The free-energy rate and limit are proved
+for $0<\beta<\beta_1$, $18\beta_1^2d^2<1$ and $\beta_1^2d^2\le1/200$, at the fixed point.
+A theorem stated directly under $0\le\beta$ and $15\beta d\le1$, including equality,
+remains to be written using those results. Exercises and research problems are not included.
 Throughout this section the base spin law is a probability measure; the partition function
 is an integral, rather than the unnormalized counting sum of the Ising sections.
 \end{remark}
@@ -9495,7 +9500,7 @@ then apply the quotient rule and the same moment-generating-function API.
 \end{proof}
 
 \begin{lemma}[Vector Gibbs normalization and temperature derivative]\label{lem:sg-tal:vector-normalization}
-\lean{SpinGlasses.abs_skVectorEnergy_le, SpinGlasses.integrable_exp_skVectorEnergy, SpinGlasses.isProbabilityMeasure_skVectorGibbs, SpinGlasses.integral_exp_skVectorEnergy_zero_beta, SpinGlasses.abs_log_integral_exp_skVectorEnergy_le, SpinGlasses.hasDerivAt_log_integral_exp_skVectorEnergy}
+\lean{SpinGlasses.abs_skVectorEnergy_le, SpinGlasses.integrable_exp_skVectorEnergy, SpinGlasses.isProbabilityMeasure_tilted_skVectorEnergy_of_sum_sq_le, SpinGlasses.integral_exp_skVectorEnergy_zero_beta, SpinGlasses.abs_log_integral_exp_skVectorEnergy_le, SpinGlasses.hasDerivAt_log_integral_exp_skVectorEnergy}
 \leanok
 \uses{def:sg-tal:vector-energy, lem:sg-tal:bounded-tilt}
 \talsource{Eqs.~(1.362)--(1.364); setup for Eq.~(1.390)}
@@ -9605,7 +9610,7 @@ Apply Lemma~\ref{lem:sg-tal:gibbs-cavity-path} to the base space of $n+2$ replic
 \end{proof}
 
 \begin{theorem}[Proposition~1.12.4: the derivative of the cavity path for vector spins]\label{thm:sg-tal:vector-cavity}
-\lean{SpinGlasses.skVectorCavityEnergy, SpinGlasses.skVectorCavityOverlap, SpinGlasses.skVectorCavityAvg, SpinGlasses.hasDerivAt_skVectorCavity, SpinGlasses.skVectorCavity_fixed}
+\lean{SpinGlasses.skVectorCavityEnergy, SpinGlasses.skVectorCavityOverlap, SpinGlasses.skVectorCavityAverage, SpinGlasses.hasDerivAt_skVectorCavityAverage, SpinGlasses.skVectorCavity_covariance_eq_replica_sums}
 \leanok
 \uses{thm:sg-tal:gibbs-replica-cavity, lem:sg-tal:replica-pattern}
 \talsource{Proposition~1.12.4, Eqs.~(1.375)--(1.376)}
@@ -9625,7 +9630,7 @@ Write $-H_{N,t}$ as $\sum_ks_k(t)Z_kX_k+(1-t)X'$ with the Gaussian family $Z=(g_
 \end{proof}
 
 \begin{theorem}[Corollary~1.12.5: bounds on the derivative of the cavity path]\label{thm:sg-tal:vector-cavity-bounds}
-\lean{SpinGlasses.abs_deriv_skVectorCavity_le, SpinGlasses.abs_deriv_skVectorCavity_le_sqrt, SpinGlasses.abs_sum_spin_overlap_error_le_sqrt, SpinGlasses.abs_sum_spin_overlap_error_le, SpinGlasses.sum_sq_overlap_error_le, SpinGlasses.abs_sum_avg_book_le_sqrt, SpinGlasses.abs_skVectorCavityAvg_mul_le, SpinGlasses.abs_skVectorCavityAvg_le, SpinGlasses.skVectorCavityAvg_sum, SpinGlasses.skVectorCavityAvg_const_mul, SpinGlasses.skVectorCavityAvg_pair_eq, SpinGlasses.skVectorCavityAvg_diag_eq, MeasureTheory.integral_pi_pair_eq, MeasureTheory.integral_pi_diag_eq}
+\lean{SpinGlasses.abs_deriv_skVectorCavityAverage_le, SpinGlasses.abs_deriv_skVectorCavityAverage_le_sqrt, SpinGlasses.abs_sum_spin_overlap_error_le_sqrt, SpinGlasses.abs_sum_spin_overlap_error_le, SpinGlasses.sum_sq_overlap_error_le, SpinGlasses.abs_skVectorCavityAverage_sum_kernel_le_sqrt, SpinGlasses.abs_skVectorCavityAverage_mul_le, SpinGlasses.abs_skVectorCavityAverage_le, SpinGlasses.skVectorCavityAverage_sum, SpinGlasses.skVectorCavityAverage_const_mul, SpinGlasses.skVectorCavityAverage_pair_eq, SpinGlasses.skVectorCavityAverage_diag_eq, MeasureTheory.integral_pi_pair_eq, MeasureTheory.integral_pi_diag_eq}
 \leanok
 \uses{thm:sg-tal:vector-cavity, lem:sg-tal:vector-gram, lem:sg-tal:vector-overlap-bound}
 \talsource{Corollary~1.12.5, Eqs.~(1.378)--(1.382)}
@@ -9660,7 +9665,7 @@ Differentiate the logarithm of the Laplace integral under the integral sign (the
 \end{proof}
 
 \begin{theorem}[Eq.~(1.393): the $\beta$-derivative of the free energy]\label{thm:sg-tal:vector-free-energy-beta}
-\lean{SpinGlasses.skVectorGaussFreeEnergy, SpinGlasses.hasDerivAt_skVectorGaussFreeEnergy}
+\lean{SpinGlasses.skVectorGaussianFreeEnergy, SpinGlasses.hasDerivAt_skVectorGaussianFreeEnergy}
 \leanok
 \uses{thm:sg-tal:log-partition-cavity}
 \talsource{Eq.~(1.393)}
@@ -9672,7 +9677,7 @@ Apply Theorem~\ref{thm:sg-tal:log-partition-cavity} with $s_k(r)=r$, $c(r)=r^2/2
 \end{proof}
 
 \begin{theorem}[Lemma~1.12.6: stationarity of the replica-symmetric functional]\label{thm:sg-tal:vector-stationarity}
-\lean{SpinGlasses.skVectorGibbs, SpinGlasses.skVectorSegmentExponent, SpinGlasses.gibbs_ratio_sum_sum, SpinGlasses.hasDerivAt_skVectorGaussFreeEnergy_rho, SpinGlasses.hasDerivAt_skVectorSegment, SpinGlasses.hasDerivAt_skVectorPressure_rho, SpinGlasses.hasDerivAt_skVectorPressure_segment, SpinGlasses.hasDerivAt_skVectorPressure_segment_eq_zero}
+\lean{SpinGlasses.skVectorGibbs, SpinGlasses.skVectorSegmentExponent, SpinGlasses.gibbs_ratio_sum_sum, SpinGlasses.hasDerivAt_skVectorGaussianFreeEnergy_rho, SpinGlasses.hasDerivAt_skVectorSegment, SpinGlasses.hasDerivAt_skVectorPressure_rho, SpinGlasses.hasDerivAt_skVectorPressure_segment, SpinGlasses.hasDerivAt_skVectorPressure_segment_eq_zero}
 \leanok
 \uses{thm:sg-tal:log-partition-cavity, thm:sg-tal:vector-free-energy-beta}
 \talsource{Lemma~1.12.6, Eqs.~(1.386)--(1.391)}
@@ -9684,7 +9689,7 @@ The $\rho$ statement is Theorem~\ref{thm:sg-tal:log-partition-cavity} with $s_k$
 \end{proof}
 
 \begin{theorem}[Frobenius bounds for the fixed point, Eq.~(1.382)]\label{thm:sg-tal:vector-fixed-point-bounds}
-\lean{SpinGlasses.sum_sq_integral_le, SpinGlasses.skVectorGibbs_eq_integral_tilted, SpinGlasses.sum_sq_skVectorGibbs_le, SpinGlasses.measurable_skVectorGibbs, SpinGlasses.abs_skVectorGibbs_le, SpinGlasses.sum_sq_fixedPoint_le, SpinGlasses.skVectorFieldExponent, SpinGlasses.skVectorFieldExponent_integrable, SpinGlasses.sum_sq_fixedPoint_field_le}
+\lean{SpinGlasses.sum_sq_integral_le, SpinGlasses.skVectorGibbs_eq_integral_tilted, SpinGlasses.sum_sq_skVectorGibbs_le, SpinGlasses.measurable_skVectorGibbs, SpinGlasses.abs_skVectorGibbs_le, SpinGlasses.sum_sq_skVectorFixedPoint_le, SpinGlasses.skVectorFieldExponent, SpinGlasses.integrable_exp_skVectorFieldExponent, SpinGlasses.sum_sq_skVectorFixedPoint_field_le}
 \leanok
 \uses{thm:sg-tal:vector-cavity-bounds}
 \talsource{End of the proof of Corollary~1.12.5, Eq.~(1.382)}
@@ -9696,7 +9701,7 @@ Jensen's inequality for the Gibbs measure gives $\sum_u\langle\xi_u\rangle^2\le\
 \end{proof}
 
 \begin{theorem}[Comparison along the cavity path]\label{thm:sg-tal:vector-comparison}
-\lean{MeasureTheory.continuous_integral_gibbs_replica_path, SpinGlasses.SKVectorCavityNoise, SpinGlasses.continuous_skVectorCavity, SpinGlasses.skVectorCavityAvg_old, SpinGlasses.skVectorCavity_deriv_bound, SpinGlasses.skVectorCavity_comparison, SpinGlasses.skVectorCavity_endpoint}
+\lean{MeasureTheory.continuous_integral_gibbs_replica_path, SpinGlasses.SKVectorCavityGaussianData, SpinGlasses.continuous_skVectorCavityAverage, SpinGlasses.skVectorCavityAverage_old, SpinGlasses.abs_deriv_skVectorCavityAverage_le_mul_self, SpinGlasses.skVectorCavityAverage_le_exp_mul_endpoint, SpinGlasses.skVectorCavityAverage_one_le_zero_add}
 \leanok
 \uses{thm:sg-tal:vector-cavity, thm:sg-tal:vector-cavity-bounds}
 \talsource{Proof of Theorem~1.12.1: the relations $\nu(f)\le\nu_0(f)+\sup_t|\nu_t'(f)|$ and $\nu_t(f)\le L\nu_1(f)$}
@@ -9726,7 +9731,7 @@ Transport along the measure preserving equivalence splitting off the last site, 
 \end{proof}
 
 \begin{theorem}[The decoupled system at $t=0$]\label{thm:sg-tal:vector-decoupled}
-\lean{MeasureTheory.integrable_exp_of_abs_le, MeasureTheory.map_tilted_pi_succ_last, MeasureTheory.integral_pi_tilted_split, SpinGlasses.skVectorOldEnergy, SpinGlasses.skVectorCavityEnergy_zero, SpinGlasses.abs_spin_mul_le, SpinGlasses.abs_skVectorOldEnergy_le, SpinGlasses.abs_skVectorFieldExponent_le, SpinGlasses.skVector_nu0_decoupled}
+\lean{MeasureTheory.integrable_exp_of_abs_le, MeasureTheory.map_tilted_pi_succ_last, MeasureTheory.integral_pi_tilted_split, SpinGlasses.skVectorOldEnergy, SpinGlasses.skVectorCavityEnergy_zero, SpinGlasses.abs_spin_mul_le, SpinGlasses.abs_skVectorOldEnergy_le, SpinGlasses.abs_skVectorFieldExponent_le, SpinGlasses.skVectorCavityAverage_zero_pair_mul_eq_zero}
 \leanok
 \uses{lem:sg-tal:gibbs-product-split, thm:sg-tal:vector-fixed-point-bounds}
 \talsource{Proof of Theorem~1.12.1: $\nu_0((\varepsilon^1_u\varepsilon^2_v-q_{u,v})f^-)=0$ by Eq.~(1.372)}
@@ -9741,7 +9746,7 @@ By Lemma~\ref{lem:sg-tal:gibbs-product-split} (for replicas) the expectation ove
 \end{proof}
 
 \begin{theorem}[$\nu_0(f)=O(1/N)$]\label{thm:sg-tal:vector-overlap-bound}
-\lean{SpinGlasses.abs_integral_add_const_mul_le, SpinGlasses.skVector_nu0_overlap_bound}
+\lean{SpinGlasses.abs_integral_add_const_mul_le, SpinGlasses.abs_skVectorCavityAverage_zero_overlap_le}
 \leanok
 \uses{thm:sg-tal:vector-decoupled}
 \talsource{Proof of Theorem~1.12.1: the bound $|\nu_0(f)|\le K(d)/N$}
@@ -9756,7 +9761,7 @@ Split $R^{u,v}_{1,2}=R^{-,u,v}_{1,2}+(N+1)^{-1}\varepsilon^1_u\varepsilon^2_v$. 
 \end{proof}
 
 \begin{lemma}[Symmetry between sites]\label{lem:sg-tal:vector-site-symmetry}
-\lean{MeasureTheory.measurePreserving_replica_perm, MeasureTheory.integral_pi_tilted_comp_perm, SpinGlasses.skVectorEnergy_comp_pairPerm, SpinGlasses.skVectorCavityEnergy_one, SpinGlasses.integral_skVector_replica_perm, SpinGlasses.skVector_overlap_sq_eq_last_site}
+\lean{MeasureTheory.measurePreserving_replica_perm, MeasureTheory.integral_pi_tilted_comp_perm, SpinGlasses.skVectorEnergy_comp_pairPerm, SpinGlasses.skVectorCavityEnergy_one, SpinGlasses.integral_skVector_replica_perm, SpinGlasses.skVector_overlap_variance_eq_last_spin}
 \leanok
 \talsource{Proof of Theorem~1.12.1: Eq.~(1.383), symmetry between sites}
 At $t=1$ the cavity Hamiltonian (1.375) is the vector SK energy of the $N+1$ site system whose couplings are $g$ (old pairs) and $g'$ (pairs with the last site). Relabelling the sites of all replicas by a permutation $\pi$ replaces the couplings $g$ by $g\circ(\mathrm{pairPerm}\,\pi)^{-1}$. If the law of the couplings is invariant under this relabelling, then permuting the sites of the replicas does not change $\mathbb E\langle\Theta\rangle$. Consequently, for $H=(N+1)^{-1}\sum_{i\le N}e_i$ with $e_i=\xi(\sigma^a_i)_u\xi(\sigma^b_i)_v-T$,
@@ -9770,7 +9775,7 @@ Transport the product measure along the measure preserving relabelling (a change
 \end{proof}
 
 \begin{theorem}[The smart-path step]\label{thm:sg-tal:vector-overlap-step}
-\lean{SpinGlasses.sqrt_step_bound, SpinGlasses.overlap_error_data, SpinGlasses.skVectorCavity_comparison_two, SpinGlasses.skVectorCavityAvg_sq_le, SpinGlasses.skVector_nu1_le_nu0_add}
+\lean{SpinGlasses.sqrt_mul_add_le_of_le_mul, SpinGlasses.measurable_nonneg_bounded_sq_overlap_sub, SpinGlasses.skVectorCavityAverage_two_le_exp_mul_endpoint, SpinGlasses.skVectorCavityAverage_sq_le, SpinGlasses.skVectorCavityAverage_one_le_zero_add_deriv}
 \leanok
 \uses{thm:sg-tal:vector-cavity-bounds, thm:sg-tal:vector-comparison}
 \talsource{Proof of Theorem~1.12.1: $\nu(f)\le\nu_0(f)+\sup_t|\nu_t'(f)|$ combined with Eq.~(1.378)}
@@ -9786,7 +9791,7 @@ By the mean value theorem there is $c\in(0,1)$ with $\nu_1(F)-\nu_0(F)=\nu_c'(F)
 \end{proof}
 
 \begin{theorem}[Concentration of the overlaps, Theorem~1.12.1]\label{thm:sg-tal:vector-overlap-concentration}
-\lean{SpinGlasses.skVectorOverlapDev, SpinGlasses.skVectorLastDev, SpinGlasses.sum_sq_skVectorLastDev_le, SpinGlasses.sq_sum_lastDev_mul_overlapDev_le, SpinGlasses.abs_entry_le_of_sum_sq_le, SpinGlasses.skVectorOverlapDev_eq, SpinGlasses.sum_sq_cavityOverlap_dev_le, SpinGlasses.sqrt_mul_sqrt_le_half_add, SpinGlasses.closing_algebra, SpinGlasses.skVectorCavityAvg_one_eq, SpinGlasses.skVectorCavityAvg_one_sum_symm, SpinGlasses.abs_skVectorCavityAvg_zero_sum_le, SpinGlasses.skVectorCavityAvg_le_two_mul_add, SpinGlasses.skVector_side_ineq, SpinGlasses.map_comp_pairPerm_eq_of_iid, SpinGlasses.skVector_theorem_1_12_1}
+\lean{SpinGlasses.skVectorOverlapDeviation, SpinGlasses.skVectorLastSpinDeviation, SpinGlasses.sum_sq_skVectorLastSpinDeviation_le, SpinGlasses.sq_sum_lastSpinDeviation_mul_overlapDeviation_le, SpinGlasses.abs_entry_le_of_sum_sq_le, SpinGlasses.skVectorOverlapDeviation_eq, SpinGlasses.sum_sq_cavityOverlap_deviation_le, SpinGlasses.sqrt_mul_sqrt_le_half_add, SpinGlasses.add_le_of_coupled_sqrt_bounds, SpinGlasses.skVectorCavityAverage_one_eq, SpinGlasses.skVectorCavityAverage_one_overlap_variance_eq_last_spin, SpinGlasses.abs_skVectorCavityAverage_zero_sum_le, SpinGlasses.skVectorCavityAverage_le_two_mul_add, SpinGlasses.skVector_overlap_variance_le_sqrt, SpinGlasses.map_comp_pairPerm_eq_of_iid, SpinGlasses.sum_overlap_variances_le}
 \leanok
 \uses{thm:sg-tal:vector-overlap-step, lem:sg-tal:vector-site-symmetry, thm:sg-tal:vector-overlap-bound, thm:sg-tal:vector-decoupled, thm:sg-tal:vector-fixed-point-bounds}
 \talsource{Theorem~1.12.1, Eqs.~(1.368), (1.369) and their proof}
@@ -9801,7 +9806,7 @@ Let $A,B$ be the two terms and $f_A=\sum_{u,v}(\varepsilon^1_u\varepsilon^2_v-q_
 \end{proof}
 
 \begin{theorem}[Lipschitz estimate along the path (1.386)]\label{thm:sg-tal:vector-path-lipschitz}
-\lean{SpinGlasses.skVectorFieldAvg, SpinGlasses.skVectorPathEnergy_eq, SpinGlasses.skVectorPathEnergy_eq_fieldExponent, SpinGlasses.skVectorPathEnergy_one, SpinGlasses.skVectorPathEnergy_zero, SpinGlasses.abs_replica_combination_le, SpinGlasses.skVectorField_path_hasDerivAt, SpinGlasses.skVectorField_path_lipschitz}
+\lean{SpinGlasses.skVectorFieldAverage, SpinGlasses.skVectorFieldInterpolationEnergy_eq_sum, SpinGlasses.skVectorFieldInterpolationEnergy_eq_fieldExponent, SpinGlasses.skVectorFieldInterpolationEnergy_one, SpinGlasses.skVectorFieldInterpolationEnergy_zero, SpinGlasses.abs_replica_combination_le, SpinGlasses.hasDerivAt_skVectorFieldAverage_interpolation, SpinGlasses.abs_skVectorFieldAverage_interpolation_sub_le}
 \leanok
 \uses{thm:sg-tal:vector-cavity}
 \talsource{Existence of the solution of (1.372)--(1.373): the map $(Q,Q')\mapsto(T,T')$ is a contraction}
@@ -9816,7 +9821,7 @@ Interpolate the field by $\sqrt t Z^1+\sqrt{1-t}Z^2$ and the matrices linearly. 
 \end{proof}
 
 \begin{theorem}[Frobenius contraction of the fixed-point map]\label{thm:sg-tal:vector-frobenius-contraction}
-\lean{SpinGlasses.sum_sum_sum_comm, SpinGlasses.sum_bilinear_left, SpinGlasses.sum_bilinear_right, SpinGlasses.abs_sum_bilinear_le, SpinGlasses.abs_bilinear_combination_le, SpinGlasses.measurable_replica_combination, SpinGlasses.measurable_replica_combination', SpinGlasses.abs_sum_integral_pair_le, SpinGlasses.abs_sum_integral_single_le, MeasureTheory.integral_integral_pi_tilted_sum, MeasureTheory.abs_integral_integral_pi_tilted_le, SpinGlasses.abs_skVectorFieldAvg_le, SpinGlasses.integral_skVectorFieldAvg_sum, SpinGlasses.skVectorFieldAvg_lipschitz, SpinGlasses.sum_sq_skVectorFieldAvg_sub_le, SpinGlasses.skVectorFrobDist, SpinGlasses.skVectorFrobDist_nonneg, SpinGlasses.sum_sq_le_skVectorFrobDist_sq, SpinGlasses.skVectorFrobDist_le_of_sum_sq_le, SpinGlasses.dist_le_skVectorFrobDist, SpinGlasses.skVectorFrobDist_le_mul_dist, SpinGlasses.skVectorFrobDist_triangle, SpinGlasses.skVectorFixedMap_frobDist_le, SpinGlasses.isGaussian_skVectorGaussLaw}
+\lean{SpinGlasses.sum_sum_sum_comm, SpinGlasses.sum_bilinear_left, SpinGlasses.sum_bilinear_right, SpinGlasses.abs_sum_bilinear_le, SpinGlasses.abs_bilinear_combination_le, SpinGlasses.measurable_replica_combination, SpinGlasses.measurable_replica_combination', SpinGlasses.abs_sum_integral_pair_le, SpinGlasses.abs_sum_integral_single_le, MeasureTheory.integral_integral_pi_tilted_sum, MeasureTheory.abs_integral_integral_pi_tilted_le, SpinGlasses.abs_skVectorFieldAverage_le, SpinGlasses.integral_skVectorFieldAverage_sum, SpinGlasses.abs_skVectorFieldAverage_sub_le, SpinGlasses.sum_sq_skVectorFieldAverage_sub_le, SpinGlasses.skVectorFrobeniusDist, SpinGlasses.skVectorFrobeniusDist_nonneg, SpinGlasses.sum_sq_le_skVectorFrobeniusDist_sq, SpinGlasses.skVectorFrobeniusDist_le_of_sum_sq_le, SpinGlasses.dist_le_skVectorFrobeniusDist, SpinGlasses.skVectorFrobeniusDist_le_mul_dist, SpinGlasses.skVectorFrobeniusDist_triangle, SpinGlasses.skVectorFrobeniusDist_fixedPointMap_le, SpinGlasses.isGaussian_skVectorGaussianLaw}
 \leanok
 \uses{thm:sg-tal:vector-path-lipschitz}
 \talsource{Existence part of Theorem~1.12.2: getting the dependence on $d$ of the correct order}
@@ -9828,7 +9833,7 @@ Let $D=T_\beta x-T_\beta y$ (one block) and apply Theorem~\ref{thm:sg-tal:vector
 \end{proof}
 
 \begin{theorem}[Existence and uniqueness of the fixed point of (1.372)--(1.373), Theorem~1.12.2]\label{thm:sg-tal:vector-fixed-point-exists}
-\lean{SpinGlasses.skVectorGaussLaw, SpinGlasses.skVectorFixedMap, SpinGlasses.skVectorFixedMap_lipschitz, SpinGlasses.skVectorFixedMap_fst_posSemidef, SpinGlasses.skVectorFixedMap_sub_posSemidef, SpinGlasses.skVectorFixedCone, SpinGlasses.isClosed_skVectorFixedCone, SpinGlasses.skVectorFixedMap_dist_le, SpinGlasses.exists_skVectorFixedPoint, SpinGlasses.map_eq_skVectorGaussLaw, SpinGlasses.integral_skVectorFieldAvg_realization, SpinGlasses.skVectorFixedMap_eq_iff_equations, SpinGlasses.skVectorFixedPoint_unique, SpinGlasses.skVector_theorem_1_12_2}
+\lean{SpinGlasses.skVectorGaussianLaw, SpinGlasses.skVectorFixedPointMap, SpinGlasses.abs_skVectorFixedPointMap_apply_sub_le, SpinGlasses.skVectorFixedPointMap_fst_posSemidef, SpinGlasses.skVectorFixedPointMap_sub_posSemidef, SpinGlasses.skVectorFixedPointCone, SpinGlasses.isClosed_skVectorFixedPointCone, SpinGlasses.dist_skVectorFixedPointMap_le, SpinGlasses.exists_skVectorFixedPoint, SpinGlasses.map_eq_skVectorGaussianLaw, SpinGlasses.integral_skVectorFieldAverage_realization, SpinGlasses.skVectorFixedPointMap_eq_iff_equations, SpinGlasses.skVectorFixedPoint_unique, SpinGlasses.exists_skVectorFixedPoint_equations_unique}
 \leanok
 \uses{thm:sg-tal:vector-frobenius-contraction}
 \talsource{Existence part of Theorem~1.12.2, by the contraction argument of the book}
@@ -9836,11 +9841,11 @@ If $18\beta^2d^2<1$ there exist matrices $q\succeq0$, $\rho-q\succeq0$ solving (
 \end{theorem}
 \begin{proof}
 \leanok
-The map $T(q,\rho)=(\mathbb E\langle\xi_u\rangle\langle\xi_v\rangle,\mathbb E\langle\xi_u\xi_v\rangle)$ takes values in the closed cone (a mean of Gram matrices, and a mean of covariance matrices of probability measures). By the previous theorem it is $18\beta^2d^2$-Lipschitz for the Frobenius distance (apply the previous theorem to the test function $\sum_{u,v}D_{uv}\xi_u(\sigma^1)\xi_v(\sigma^2)$, with $D$ the difference of the images; Cauchy--Schwarz bounds it by $d\|D\|_F$), hence a contraction. The iterates are Cauchy for the supremum distance, which is dominated by the Frobenius distance, so they converge to a fixed point. The law of a centered Gaussian field is determined by its covariance, so the equations hold for every realization. Uniqueness: any solution is a fixed point of $T$, hence lies in the cone, and two fixed points satisfy $\mathrm{dist}\le18\beta^2d^4\,\mathrm{dist}$, so they coincide.
+The map $T(q,\rho)=(\mathbb E\langle\xi_u\rangle\langle\xi_v\rangle,\mathbb E\langle\xi_u\xi_v\rangle)$ takes values in the closed cone (a mean of Gram matrices, and a mean of covariance matrices of probability measures). By the previous theorem it is $18\beta^2d^2$-Lipschitz for the Frobenius distance (apply the previous theorem to the test function $\sum_{u,v}D_{uv}\xi_u(\sigma^1)\xi_v(\sigma^2)$, with $D$ the difference of the images; Cauchy--Schwarz bounds it by $d\|D\|_F$), hence a contraction. The iterates are Cauchy for the supremum distance, which is dominated by the Frobenius distance, so they converge to a fixed point. The law of a centered Gaussian field is determined by its covariance, so the equations hold for every realization. Uniqueness: any solution is a fixed point of $T$, hence lies in the cone, and two fixed points satisfy $\|x-y\|_F\le18\beta^2d^2\|x-y\|_F$, so they coincide.
 \end{proof}
 
 \begin{theorem}[Theorem~1.12.1 on the concrete model]\label{thm:sg-tal:vector-overlap-concrete}
-\lean{SpinGlasses.finPairsSplit, SpinGlasses.finPairsSplit_injective, SpinGlasses.integral_pi_gaussianReal_coord_mul, SpinGlasses.integral_pi_gaussianReal_coord, SpinGlasses.integral_skVectorGaussLaw_coord, SpinGlasses.integral_skVectorGaussLaw_mul, SpinGlasses.isGaussian_skVectorGaussLaw, SpinGlasses.skVectorConcreteLaw, SpinGlasses.skVectorConcreteNoise, SpinGlasses.skVector_theorem_1_12_1_concrete}
+\lean{SpinGlasses.finPairsSplit, SpinGlasses.finPairsSplit_injective, SpinGlasses.integral_pi_gaussianReal_coord_mul, SpinGlasses.integral_pi_gaussianReal_coord, SpinGlasses.integral_skVectorGaussianLaw_coord, SpinGlasses.integral_skVectorGaussianLaw_mul, SpinGlasses.isGaussian_skVectorGaussianLaw, SpinGlasses.skVectorDisorderLaw, SpinGlasses.skVectorCavityGaussianData_disorderLaw, SpinGlasses.exists_fixedPoint_sum_overlap_variances_le}
 \leanok
 \uses{thm:sg-tal:vector-overlap-concentration, thm:sg-tal:vector-fixed-point-exists}
 \talsource{Theorem~1.12.1 together with the existence part of Theorem~1.12.2}
@@ -9866,7 +9871,7 @@ Differentiate the log-partition function along $b\mapsto bg$, which gives $\sum_
 \end{proof}
 
 \begin{theorem}[$\partial p_{N+1}/\partial\beta$ through the overlaps]\label{thm:sg-tal:vector-free-energy-derivative}
-\lean{SpinGlasses.skVectorFreeEnergy, SpinGlasses.skVectorPairFeature, SpinGlasses.skVectorEnergy_eq_sum_feature, SpinGlasses.hasDerivAt_skVector_logPartition, SpinGlasses.sum_pairFeature_mul, SpinGlasses.variance_eq_integral_pi_two, SpinGlasses.sum_gibbsVariance_eq, SpinGlasses.hasDerivAt_skVectorFreeEnergy}
+\lean{SpinGlasses.skVectorFreeEnergy, SpinGlasses.skVectorPairFeature, SpinGlasses.skVectorEnergy_eq_sum_features, SpinGlasses.hasDerivAt_skVectorLogPartition, SpinGlasses.sum_skVectorPairFeature_mul, SpinGlasses.variance_eq_integral_pi_two, SpinGlasses.sum_skVectorPairFeature_gibbsVariance_eq, SpinGlasses.hasDerivAt_skVectorFreeEnergy}
 \leanok
 \uses{lem:sg-tal:gibbs-temperature-derivative}
 \talsource{Proof of Theorem~1.12.3: the first display, $\partial p_N/\partial\beta$ in terms of $\nu((R^{u,v})^2)-\nu((R^{u,v}_{1,2})^2)$}
@@ -9882,7 +9887,7 @@ Differentiate in $\beta$ and integrate by parts in each pair coupling to get $\f
 \end{proof}
 
 \begin{theorem}[$\partial p_{N+1}/\partial\beta$ is close to $\frac\beta2\sum(\rho^2-q^2)$]\label{thm:sg-tal:vector-free-energy-approx}
-\lean{SpinGlasses.skVectorNu, SpinGlasses.integrable_skVectorNu_inner, SpinGlasses.skVectorNu_const, SpinGlasses.skVectorNu_const_mul, SpinGlasses.skVectorNu_add, SpinGlasses.abs_skVectorNu_le, SpinGlasses.skVectorCavityAvg_concrete_eq_nu, SpinGlasses.skVector_theorem_1_12_1_of_fixed, SpinGlasses.skVectorFixedPoint_sum_sq_le, SpinGlasses.abs_sum_mul_le_amgm, SpinGlasses.deriv_integrand_bound, SpinGlasses.skVectorDerivIntegrand, SpinGlasses.sum_diag_mem, SpinGlasses.abs_skVectorDerivIntegrand_sub_le, SpinGlasses.measurable_skVectorDerivIntegrand, SpinGlasses.exists_abs_skVectorDerivIntegrand_le, SpinGlasses.hasDerivAt_skVectorFreeEnergy_approx}
+\lean{SpinGlasses.skVectorReplicaAverage, SpinGlasses.integrable_skVectorReplicaAverage_inner, SpinGlasses.skVectorReplicaAverage_const, SpinGlasses.skVectorReplicaAverage_const_mul, SpinGlasses.skVectorReplicaAverage_add, SpinGlasses.abs_skVectorReplicaAverage_le, SpinGlasses.skVectorCavityAverage_disorderLaw_eq_replicaAverage, SpinGlasses.sum_overlap_variances_le_of_fixedPoint, SpinGlasses.skVectorFixedPoint_sum_sq_le, SpinGlasses.abs_sum_mul_le_sq_div_add, SpinGlasses.abs_overlap_deriv_sub_quadratic_le, SpinGlasses.skVectorFreeEnergyDerivIntegrand, SpinGlasses.sum_sq_spin_products_nonneg_le, SpinGlasses.abs_skVectorFreeEnergyDerivIntegrand_sub_le, SpinGlasses.measurable_skVectorFreeEnergyDerivIntegrand, SpinGlasses.exists_abs_skVectorFreeEnergyDerivIntegrand_le, SpinGlasses.exists_hasDerivAt_skVectorFreeEnergy_abs_sub_le}
 \leanok
 \uses{thm:sg-tal:vector-free-energy-derivative, thm:sg-tal:vector-overlap-concrete}
 \talsource{Proof of Theorem~1.12.3: the bound $|\partial p_N/\partial\beta-\frac\beta2\sum_{u,v}(\rho_{uv}^2-q_{uv}^2)|\le K(d)/\sqrt N$}
@@ -9898,11 +9903,11 @@ By the previous theorem $\partial p_M/\partial\beta=\frac\beta2\sum_{u,v}\nu((R^
 \end{proof}
 
 \begin{theorem}[The fixed point is Lipschitz in $\beta$]\label{thm:sg-tal:vector-fixed-point-beta}
-\lean{SpinGlasses.skVectorBetaEnergy_eq, SpinGlasses.skVectorField_beta_hasDerivAt, SpinGlasses.skVectorFieldAvg_beta_lipschitz, SpinGlasses.skVectorFixedMap_beta_dist_le, SpinGlasses.skVectorFixedPoint_beta_dist_le}
+\lean{SpinGlasses.skVectorFieldExponent_eq_temperature_features, SpinGlasses.hasDerivAt_skVectorFieldAverage_temperature, SpinGlasses.abs_skVectorFieldAverage_temperature_sub_le, SpinGlasses.skVectorFixedPointMap_beta_dist_le, SpinGlasses.skVectorFixedPoint_beta_dist_le}
 \leanok
 \uses{thm:sg-tal:vector-fixed-point-exists, thm:sg-tal:vector-path-lipschitz}
 \talsource{Proof of Theorem~1.12.3: the dependence of $(q,\rho)$ on $\beta$}
-Let $18\beta_1^2d^2<1$ and $0<b_1\le b_2<\beta_1$. The map $T_b$ of Theorem~\ref{thm:sg-tal:vector-fixed-point-exists} moves by at most a constant times $|b_2-b_1|$ when $b$ changes, uniformly on the cone with bounded Frobenius norm, and is a contraction of constant $18b^2d^4$ in each variable. Hence the fixed points $z(b)$ satisfy $\|z(b_2)-z(b_1)\|\le C|b_2-b_1|$ (entrywise supremum distance).
+Let $18\beta_1^2d^2<1$ and $0<b_1\le b_2<\beta_1$. The map $T_b$ of Theorem~\ref{thm:sg-tal:vector-fixed-point-exists} moves by at most a constant times $|b_2-b_1|$ when $b$ changes, uniformly on the cone with bounded Frobenius norm, and is a contraction of constant $18b^2d^2$ for the maximum of the two block Frobenius norms. Hence the fixed points $z(b)$ satisfy $\|z(b_2)-z(b_1)\|\le C|b_2-b_1|$ (entrywise supremum distance).
 \end{theorem}
 \begin{proof}
 \leanok
@@ -9910,7 +9915,7 @@ Differentiate the exponent of the Gibbs weights in $b$ (the field $Y$ has covari
 \end{proof}
 
 \begin{theorem}[$\frac{d}{d\beta}G(\beta,z(\beta))=\frac\beta2\sum(\rho^2-q^2)$]\label{thm:sg-tal:vector-pressure-family}
-\lean{SpinGlasses.skVectorPressure, SpinGlasses.measurable_skVectorLogPartition, SpinGlasses.skVectorGaussFreeEnergy_eq_canonical, SpinGlasses.integral_skVectorGaussLaw_scale, SpinGlasses.hasDerivAt_skVectorPressure_rho_leg, SpinGlasses.abs_skVectorPressure_rho_leg_le, SpinGlasses.integral_pairField_combination, SpinGlasses.integral_pairField_combination_mul, SpinGlasses.map_pairField_combination, SpinGlasses.hasGaussianLaw_pairField_combination, SpinGlasses.continuous_skVectorSegment_logPartition, SpinGlasses.segment_gaussFreeEnergy_eq, SpinGlasses.segment_gibbs_eq, SpinGlasses.abs_skVectorPressure_q_leg_le, SpinGlasses.hasDerivAt_skVectorPressure_beta, SpinGlasses.abs_skVectorPressure_sub_le, SpinGlasses.hasDerivAt_pressure_family, MeasureTheory.continuous_integral_log_partition_path}
+\lean{SpinGlasses.skVectorPressure, SpinGlasses.measurable_skVectorLogPartition, SpinGlasses.skVectorGaussianFreeEnergy_eq_canonical, SpinGlasses.integral_skVectorGaussianLaw_scale, SpinGlasses.hasDerivAt_skVectorPressure_rho_segment, SpinGlasses.abs_skVectorPressure_rho_sub_le, SpinGlasses.integral_skVectorGaussianPairField_combination, SpinGlasses.integral_skVectorGaussianPairField_combination_mul, SpinGlasses.map_skVectorGaussianPairField_combination, SpinGlasses.hasGaussianLaw_skVectorGaussianPairField_combination, SpinGlasses.continuous_skVectorSegment_logPartition, SpinGlasses.skVectorSegment_logPartition_eq, SpinGlasses.skVectorSegment_gibbs_eq, SpinGlasses.abs_skVectorPressure_q_sub_le, SpinGlasses.hasDerivAt_skVectorPressure_beta, SpinGlasses.abs_skVectorPressure_sub_le, SpinGlasses.hasDerivAt_skVectorPressure_fixedPoint, MeasureTheory.continuous_integral_log_partition_path}
 \leanok
 \uses{thm:sg-tal:vector-stationarity, thm:sg-tal:vector-fixed-point-beta, thm:sg-tal:vector-free-energy-beta}
 \talsource{Proof of Theorem~1.12.3: $\frac{d}{d\beta}G(\beta,z(\beta))$ by stationarity}
@@ -9922,7 +9927,7 @@ Equation~(1.393) gives $\partial_\beta G=\frac\beta2\sum(\rho^2-q^2)$ at fixed $
 \end{proof}
 
 \begin{theorem}[The pressure is small near $\beta=0$]\label{thm:sg-tal:vector-pressure-small}
-\lean{SpinGlasses.integral_abs_skVectorGaussLaw_le, SpinGlasses.abs_skVectorPressure_le, SpinGlasses.skVectorFreeEnergy_zero, SpinGlasses.tendsto_pressure_fixedPoint}
+\lean{SpinGlasses.integral_abs_skVectorGaussianLaw_le, SpinGlasses.abs_skVectorPressure_le, SpinGlasses.skVectorFreeEnergy_zero, SpinGlasses.tendsto_skVectorPressure_fixedPoint_zero}
 \leanok
 \uses{thm:sg-tal:vector-pressure-family}
 \talsource{Proof of Theorem~1.12.3: $p_N(0)=0$ and $G(0^+,z)\to0$}
@@ -9934,7 +9939,7 @@ The compensation term of the exponent is at most $b^2d^3$ in absolute value, the
 \end{proof}
 
 \begin{theorem}[Theorem~1.12.3: the free energy of the vector SK model]\label{thm:sg-tal:vector-free-energy-limit}
-\lean{SpinGlasses.abs_sub_le_of_deriv_bound, SpinGlasses.skVector_theorem_1_12_3_rate, SpinGlasses.rate_le, SpinGlasses.skVector_theorem_1_12_3, SpinGlasses.tendsto_skVectorFreeEnergy, SpinGlasses.skVector_smallness, SpinGlasses.skVector_theorem_1_12_3_book, SpinGlasses.tendsto_skVectorFreeEnergy_book}
+\lean{SpinGlasses.abs_sub_le_of_deriv_bound, SpinGlasses.abs_skVectorFreeEnergy_sub_pressure_le_of_pos, SpinGlasses.div_sq_add_div_le_div, SpinGlasses.exists_abs_skVectorFreeEnergy_sub_pressure_le_inv_sqrt, SpinGlasses.tendsto_skVectorFreeEnergy, SpinGlasses.smallness_of_high_temperature, SpinGlasses.exists_abs_skVectorFreeEnergy_sub_pressure_le_inv_sqrt_of_high_temperature, SpinGlasses.tendsto_skVectorFreeEnergy_of_high_temperature}
 \leanok
 \uses{thm:sg-tal:vector-free-energy-approx, thm:sg-tal:vector-pressure-family, thm:sg-tal:vector-pressure-small, thm:sg-tal:vector-fixed-point-exists}
 \talsource{Theorem~1.12.3}
@@ -9942,25 +9947,29 @@ Let $0<\beta<\beta_1$ with $18\beta_1^2d^2<1$ and $\beta_1^2d^2\le1/200$, and le
 \[
 \bigl|p_{N+1}(\beta)-G(\beta,(q,\rho))\bigr|\le\beta^2\Bigl(\frac12\Bigl(\varepsilon+\frac{d\varepsilon}s+2ds\Bigr)+\frac{d^2}{2(N+1)}\Bigr),\qquad\varepsilon=\frac{8d^4+2d^2}{N+1}.
 \]
-Choosing $s=(N+1)^{-1/2}$ gives $|p_{N+1}(\beta)-G(\beta,(q,\rho))|\le C/\sqrt{N+1}$, and in particular $p_N(\beta)\to G(\beta,(q,\rho))$. The two smallness conditions hold as soon as $15\beta_1d\le1$, which is the book's hypothesis $L\beta d\le1$ with $L=15$.
+Choosing $s=(N+1)^{-1/2}$ gives $|p_{N+1}(\beta)-G(\beta,(q,\rho))|\le C/\sqrt{N+1}$, and in particular $p_N(\beta)\to G(\beta,(q,\rho))$. The two smallness conditions hold if $15\beta_1d\le1$; this corollary still requires $\beta<\beta_1$. A statement directly under $15\beta d\le1$, including equality, must choose $\beta_1$ inside its proof using the slack in the numerical conditions.
 \end{theorem}
 \begin{proof}
 \leanok
 Choose a branch $z(b)$ of fixed points for $b\in(0,\beta_1)$ (Theorem~\ref{thm:sg-tal:vector-fixed-point-exists}) and let $\Delta(b)=p_{N+1}(b)-G(b,z(b))$. By Theorems~\ref{thm:sg-tal:vector-free-energy-approx} and~\ref{thm:sg-tal:vector-pressure-family}, $|\Delta'(b)|\le Kb$ with $K$ the bracket above. By Theorem~\ref{thm:sg-tal:vector-pressure-small}, $\Delta(b)\to0$ as $b\to0^+$. The mean value inequality on $[b_0,\beta]$ gives $|\Delta(\beta)-\Delta(b_0)|\le K\beta^2$; let $b_0\to0^+$. Uniqueness of the fixed point identifies $z(\beta)$ with $(q,\rho)$.
 \end{proof}
 
-\begin{remark}[Remaining mathematics and singular fixed points]\label{rem:sg-tal:vector-remaining}
+\begin{remark}[Remaining statements and singular fixed points]\label{rem:sg-tal:vector-remaining}
 \talsource{Theorems~1.12.1--1.12.3}
-Proposition~1.12.4, Corollary~1.12.5 (with the squared-norm bounds on $q$, $\rho$ as hypotheses), Lemma~1.12.6 and Eq.~(1.393) are proved above; Theorem~1.12.1 is proved above as a conditional statement (it assumes a solution of (1.372)--(1.373), independence of the field from the couplings, and site-invariance of the coupling law; these are supplied on a concrete product space by the theorem below); the existence of the fixed point is proved above for $18\beta^2d^2<1$ (implied by the book's $L\beta d\le1$ with $L=15$), together with its uniqueness (Theorem~1.12.2); Theorem~1.12.3 is proved above in the book's range $L\beta d\le1$ with $L=15$ (the conditions used are $18\beta^2d^2<1$ and $\beta^2d^2\le1/200$), with the rate $O(N^{-1/2})$ in the quantitative form.
+The six principal results are proved above under their stated hypotheses. The pressure
+rate and limit still require an auxiliary $\beta_1>\beta$ satisfying the two numerical
+smallness conditions. It remains to state them directly under $0\le\beta$,
+$15\beta d\le1$, supplying both $\beta_1$ and the fixed point inside the proof and handling
+$\beta=0$. The ball, Ising and coupled-copy measure comparisons must also retain their
+exact partition-function normalization factors.
 The site-diagonal correction in Lemma~\ref{lem:sg-tal:vector-covariance} varies with the
-configuration; replacing it by the constant Ising correction would be incorrect.
-The intended fixed-point domain is $Q\succeq0$, $\rho-Q\succeq0$, $\operatorname{tr}\rho\le d$.
-Positive semidefiniteness, rather than strict positive definiteness, is necessary:
-$\mu=\delta_0$ gives $Q=\rho=0$, and a lower-dimensional spin law can also give singular $Q$.
-Invariance and contraction on this complete closed domain are not yet proved.
-Smallness for signed $\beta$ must involve $|\beta|d$ or $\beta^2d^2$.
-The stationarity argument must justify admissible covariance directions at the boundary;
-the pressure proof must establish parameter regularity or use direct interpolation.
+configuration. The implemented closed cone requires $q\succeq0$ and $\rho-q\succeq0$;
+its definition does not include the trace bound proposed in the original plan.
+Invariance and contraction are proved, including singular covariances:
+$\mu=\delta_0$ gives $q=\rho=0$. Admissible covariance-segment stationarity and the
+parameter estimates used to differentiate the pressure are proved above.
+A signed-temperature extension would require $|\beta|d$ or $\beta^2d^2$ in the
+smallness hypothesis and a separate Gaussian sign-symmetry argument.
 \end{remark}
 
 \section{The replica computation of $\mathbb E Z_N^n$ (Talagrand Section~1.13)}\label{sec:sg-tal:replica}

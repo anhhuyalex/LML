@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.SKVectorOverlapData
-public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.SKVectorSiteSymmetry
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Cavity.Overlap
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Model.SiteSymmetry
 
 /-!
 # Theorem 1.12.1 (Talagrand): the overlaps concentrate
@@ -32,7 +32,8 @@ theorem sqrt_mul_sqrt_le_half_add {x y : ℝ} (hx : 0 ≤ x) (hy : 0 ≤ y) :
 
 /-- The closing algebra of Theorem 1.12.1: from `A ≤ K + κ √A (√(2B+ε) + √(2A+ε))` and the
 same for `B`, with `κ ≤ 1/6`, we get `A + B ≤ 4K + ε`. -/
-theorem closing_algebra {A B K ε κ : ℝ} (hA : 0 ≤ A) (hB : 0 ≤ B) (hε : 0 ≤ ε) (hκ0 : 0 ≤ κ)
+theorem add_le_of_coupled_sqrt_bounds {A B K ε κ : ℝ} (hA : 0 ≤ A) (hB : 0 ≤ B) (hε : 0 ≤ ε) (hκ0
+  : 0 ≤ κ)
     (hκ : κ ≤ 1 / 6)
     (h1 : A ≤ K + κ * Real.sqrt A * (Real.sqrt (2 * B + ε) + Real.sqrt (2 * A + ε)))
     (h2 : B ≤ K + κ * Real.sqrt B * (Real.sqrt (2 * B + ε) + Real.sqrt (2 * A + ε))) :
@@ -71,17 +72,17 @@ omit [IsProbabilityMeasure P] in
 being the restriction of the family `gt` to the old pairs and the pairs with the last site, the
 average `ν_1` of a function of `R` replicas is the disorder average of the `R`-replica Gibbs
 average of the vector SK energy. -/
-theorem skVectorCavityAvg_one_eq {R : Type*} [Fintype R]
+theorem skVectorCavityAverage_one_eq {R : Type*} [Fintype R]
     (hg : ∀ p ω, g p ω = gt ⟨(p.val.1.castSucc, p.val.2.castSucc),
       Fin.castSucc_lt_castSucc_iff.mpr p.property⟩ ω)
     (hg' : ∀ i ω, g' i ω = gt ⟨(i.castSucc, Fin.last N), Fin.castSucc_lt_last i⟩ ω)
     (G : (R → Fin (N + 1) → α) → ℝ) (hG : Measurable G) :
-    skVectorCavityAvg μ ξ N β ρ q P g g' Y 1 (fun σ : Option (Option R) → Fin (N + 1) → α =>
+    skVectorCavityAverage μ ξ N β ρ q P g g' Y 1 (fun σ : Option (Option R) → Fin (N + 1) → α =>
         G fun c => σ (some (some c))) =
       ∫ ω, ∫ x : R → Fin (N + 1) → α, G x ∂(Measure.pi fun _ : R =>
         (Measure.pi fun _ : Fin (N + 1) => μ).tilted
           (fun x => skVectorEnergy (N + 1) β (fun p => gt p ω) (fun i => ξ (x i)))) ∂P := by
-  rw [skVectorCavityAvg_old μ ξ hξ hbound β ρ q G hG 1]
+  rw [skVectorCavityAverage_old μ ξ hξ hbound β ρ q G hG 1]
   refine integral_congr_ae (Filter.Eventually.of_forall fun ω => ?_)
   show _ = _
   have hE : skVectorCavityEnergy ξ N β ρ q (fun p => g p ω) (fun i => g' i ω)
@@ -95,7 +96,7 @@ theorem skVectorCavityAvg_one_eq {R : Type*} [Fintype R]
 
 /-- A double sum over `Fin d × Fin d` of bounded observables commutes with the disorder average of
 the Gibbs average. -/
-theorem integral_integral_double_sum {Ω X : Type*} [MeasurableSpace Ω] [MeasurableSpace X]
+theorem integral_integral_sum_sum {Ω X : Type*} [MeasurableSpace Ω] [MeasurableSpace X]
     {P : Measure Ω} (Q : Ω → Measure X) [∀ ω, IsProbabilityMeasure (Q ω)]
     (hI : ∀ G : X → ℝ, Measurable G → (∃ M, ∀ x, |G x| ≤ M) →
       Integrable (fun ω => ∫ x, G x ∂(Q ω)) P)
@@ -117,14 +118,15 @@ theorem integrable_integral_skVectorCavity {R : Type*} [Fintype R] (hgm : ∀ p,
         (fun p => g p ω) (fun i => g' i ω) (fun u => Y u ω) t))) P :=
   integrable_integral_pi_tilted (ι := R) (P := P) (μ := Measure.pi fun _ : Fin (N + 1) => μ)
     (measurable_skVectorCavityEnergy_joint ξ hξ N β ρ q hgm hg'm hYm t)
-    (fun _ => isProbabilityMeasure_skVectorCavityGibbs μ ξ hξ (Nat.cast_nonneg d) hbound N β ρ q
+    (fun _ => isProbabilityMeasure_tilted_skVectorCavityEnergy μ ξ hξ (Nat.cast_nonneg d) hbound N
+      β ρ q
       _ _ _ t) hG hGb.choose_spec
 
 omit [IsProbabilityMeasure P] in
 include hξ hbound in
 /-- **Symmetry between sites, summed over the matrix entries** (Eq. (1.383)): at `t = 1`,
 `ν(∑ᵤᵥ (ε^a_u ε^b_v - Tᵤᵥ)(R^{u,v}_{a,b} - Tᵤᵥ)) = ν(∑ᵤᵥ (R^{u,v}_{a,b} - Tᵤᵥ)²)`. -/
-theorem skVectorCavityAvg_one_sum_symm [IsProbabilityMeasure P]
+theorem skVectorCavityAverage_one_overlap_variance_eq_last_spin [IsProbabilityMeasure P]
     (hgt : ∀ p, Measurable (gt p))
     (hsym : ∀ π : Equiv.Perm (Fin (N + 1)),
       Measure.map (fun ω => (fun p => gt p ω) ∘ (pairPerm π).symm) P =
@@ -133,26 +135,27 @@ theorem skVectorCavityAvg_one_sum_symm [IsProbabilityMeasure P]
       Fin.castSucc_lt_castSucc_iff.mpr p.property⟩ ω)
     (hg' : ∀ i ω, g' i ω = gt ⟨(i.castSucc, Fin.last N), Fin.castSucc_lt_last i⟩ ω)
     (a b : Fin 2) (T : Fin d → Fin d → ℝ) (hT : ∀ u v, |T u v| ≤ d) :
-    skVectorCavityAvg μ ξ N β ρ q P g g' Y 1 (fun σ : Option (Option (Fin 2)) →
+    skVectorCavityAverage μ ξ N β ρ q P g g' Y 1 (fun σ : Option (Option (Fin 2)) →
         Fin (N + 1) → α => ∑ u, ∑ v,
-          skVectorLastDev ξ N a b T u v (fun c => σ (some (some c))) *
-            skVectorOverlapDev ξ N a b T u v (fun c => σ (some (some c)))) =
-      skVectorCavityAvg μ ξ N β ρ q P g g' Y 1 (fun σ : Option (Option (Fin 2)) →
+          skVectorLastSpinDeviation ξ N a b T u v (fun c => σ (some (some c))) *
+            skVectorOverlapDeviation ξ N a b T u v (fun c => σ (some (some c)))) =
+      skVectorCavityAverage μ ξ N β ρ q P g g' Y 1 (fun σ : Option (Option (Fin 2)) →
         Fin (N + 1) → α => ∑ u, ∑ v,
-          skVectorOverlapDev ξ N a b T u v (fun c => σ (some (some c))) ^ 2) := by
+          skVectorOverlapDeviation ξ N a b T u v (fun c => σ (some (some c))) ^ 2) := by
   classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
   have hgt' : Measurable fun ω p => gt p ω := measurable_pi_iff.2 hgt
   have hm1 : Measurable fun τ : Fin 2 → Fin (N + 1) → α => ∑ u, ∑ v,
-      skVectorLastDev ξ N a b T u v τ * skVectorOverlapDev ξ N a b T u v τ :=
+      skVectorLastSpinDeviation ξ N a b T u v τ * skVectorOverlapDeviation ξ N a b T u v τ :=
     Finset.measurable_sum _ fun u _ => Finset.measurable_sum _ fun v _ =>
-      (measurable_skVectorLastDev ξ hξ a b T u v).mul (measurable_skVectorOverlapDev ξ hξ a b T u v)
+      (measurable_skVectorLastSpinDeviation ξ hξ a b T u v).mul
+        (measurable_skVectorOverlapDeviation ξ hξ a b T u v)
   have hm2 : Measurable fun τ : Fin 2 → Fin (N + 1) → α => ∑ u, ∑ v,
-      skVectorOverlapDev ξ N a b T u v τ ^ 2 :=
+      skVectorOverlapDeviation ξ N a b T u v τ ^ 2 :=
     Finset.measurable_sum _ fun u _ => Finset.measurable_sum _ fun v _ =>
-      (measurable_skVectorOverlapDev ξ hξ a b T u v).pow_const 2
-  rw [skVectorCavityAvg_one_eq μ ξ hξ hbound β ρ q hg hg' _ hm1,
-    skVectorCavityAvg_one_eq μ ξ hξ hbound β ρ q hg hg' _ hm2]
+      (measurable_skVectorOverlapDeviation ξ hξ a b T u v).pow_const 2
+  rw [skVectorCavityAverage_one_eq μ ξ hξ hbound β ρ q hg hg' _ hm1,
+    skVectorCavityAverage_one_eq μ ξ hξ hbound β ρ q hg hg' _ hm2]
   set Q : Ω → Measure (Fin 2 → Fin (N + 1) → α) := fun ω => Measure.pi fun _ : Fin 2 =>
     (Measure.pi fun _ : Fin (N + 1) => μ).tilted
       (fun x => skVectorEnergy (N + 1) β (fun p => gt p ω) (fun i => ξ (x i))) with hQ
@@ -164,33 +167,34 @@ theorem skVectorCavityAvg_one_sum_symm [IsProbabilityMeasure P]
     integrable_integral_skVectorEnergy μ ξ hξ hbound β hgt' G hG hGb
   have hb : ∀ (F : Fin d → Fin d → (Fin 2 → Fin (N + 1) → α) → ℝ) (C : ℝ),
       (∀ u v x, |F u v x| ≤ C) → ∀ u v, ∃ M, ∀ x, |F u v x| ≤ M := fun F C h u v => ⟨C, h u v⟩
-  rw [integral_integral_double_sum Q hI
-      (fun u v x => skVectorLastDev ξ N a b T u v x * skVectorOverlapDev ξ N a b T u v x)
-      (fun u v => (measurable_skVectorLastDev ξ hξ a b T u v).mul
-        (measurable_skVectorOverlapDev ξ hξ a b T u v))
+  rw [integral_integral_sum_sum Q hI
+      (fun u v x => skVectorLastSpinDeviation ξ N a b T u v x * skVectorOverlapDeviation ξ N a b T
+        u v x)
+      (fun u v => (measurable_skVectorLastSpinDeviation ξ hξ a b T u v).mul
+        (measurable_skVectorOverlapDeviation ξ hξ a b T u v))
       (fun u v => ⟨(d + d) * (d + d), fun x => by
         rw [abs_mul]
-        exact mul_le_mul (abs_skVectorLastDev_le ξ hbound a b T u v (hT u v) x)
-          (abs_skVectorOverlapDev_le ξ hbound a b T u v (hT u v) x) (abs_nonneg _)
+        exact mul_le_mul (abs_skVectorLastSpinDeviation_le ξ hbound a b T u v (hT u v) x)
+          (abs_skVectorOverlapDeviation_le ξ hbound a b T u v (hT u v) x) (abs_nonneg _)
           (add_nonneg hr hr)⟩),
-    integral_integral_double_sum Q hI
-      (fun u v x => skVectorOverlapDev ξ N a b T u v x ^ 2)
-      (fun u v => (measurable_skVectorOverlapDev ξ hξ a b T u v).pow_const 2)
+    integral_integral_sum_sum Q hI
+      (fun u v x => skVectorOverlapDeviation ξ N a b T u v x ^ 2)
+      (fun u v => (measurable_skVectorOverlapDeviation ξ hξ a b T u v).pow_const 2)
       (fun u v => ⟨(d + d) ^ 2, fun x => by
         rw [abs_of_nonneg (sq_nonneg _)]
-        exact pow_le_pow_left₀ (abs_nonneg _) (abs_skVectorOverlapDev_le ξ hbound a b T u v
+        exact pow_le_pow_left₀ (abs_nonneg _) (abs_skVectorOverlapDeviation_le ξ hbound a b T u v
           (hT u v) x) 2 |>.trans' (by rw [sq_abs])⟩)]
   refine Finset.sum_congr rfl fun u _ => Finset.sum_congr rfl fun v _ => ?_
-  have := skVector_overlap_sq_eq_last_site μ ξ hξ hbound β (gt := fun ω p => gt p ω) hgt' hsym
+  have := skVector_overlap_variance_eq_last_spin μ ξ hξ hbound β (gt := fun ω p => gt p ω) hgt' hsym
     a b u v (T u v) (hT u v)
-  simp only [skVectorOverlapDev, skVectorLastDev, sq]
+  simp only [skVectorOverlapDeviation, skVectorLastSpinDeviation, sq]
   exact this.symm
 
 include hξ hbound in
 /-- **The bound `|ν₀(f)| ≤ K(d)/N`** of the proof of Theorem 1.12.1, summed over the matrix entries:
 if the centered last-site products decouple from the old sites at `t = 0`, then
 `|ν₀(∑ᵤᵥ (ε^a_u ε^b_v - Tᵤᵥ)(R^{u,v}_{a,b} - Tᵤᵥ))| ≤ 2 d⁴/(N+1)`. -/
-theorem abs_skVectorCavityAvg_zero_sum_le
+theorem abs_skVectorCavityAverage_zero_sum_le
     (hgm : ∀ p, Measurable (g p)) (hg'm : ∀ i, Measurable (g' i)) (hYm : ∀ u, Measurable (Y u))
     (a b : Fin 2) (T : Fin d → Fin d → ℝ) (hT : ∀ u v, |T u v| ≤ d)
     (hdec : ∀ u v, ∀ Ψ : (Fin 2 → Fin N → α) → ℝ, Measurable Ψ →
@@ -199,61 +203,64 @@ theorem abs_skVectorCavityAvg_zero_sum_le
         ∂(Measure.pi fun _ : Fin 2 => (Measure.pi fun _ : Fin (N + 1) => μ).tilted
           (skVectorCavityEnergy ξ N β ρ q (fun p => g p ω) (fun i => g' i ω)
             (fun w => Y w ω) 0)) ∂P = 0) :
-    |skVectorCavityAvg μ ξ N β ρ q P g g' Y 0 (fun σ : Option (Option (Fin 2)) →
+    |skVectorCavityAverage μ ξ N β ρ q P g g' Y 0 (fun σ : Option (Option (Fin 2)) →
         Fin (N + 1) → α => ∑ u, ∑ v,
-          skVectorLastDev ξ N a b T u v (fun c => σ (some (some c))) *
-            skVectorOverlapDev ξ N a b T u v (fun c => σ (some (some c))))| ≤
+          skVectorLastSpinDeviation ξ N a b T u v (fun c => σ (some (some c))) *
+            skVectorOverlapDeviation ξ N a b T u v (fun c => σ (some (some c))))| ≤
       (d : ℝ) * d * (2 * (d : ℝ) ^ 2 / ((N : ℝ) + 1)) := by
   classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
   have hm1 : Measurable fun τ : Fin 2 → Fin (N + 1) → α => ∑ u, ∑ v,
-      skVectorLastDev ξ N a b T u v τ * skVectorOverlapDev ξ N a b T u v τ :=
+      skVectorLastSpinDeviation ξ N a b T u v τ * skVectorOverlapDeviation ξ N a b T u v τ :=
     Finset.measurable_sum _ fun u _ => Finset.measurable_sum _ fun v _ =>
-      (measurable_skVectorLastDev ξ hξ a b T u v).mul (measurable_skVectorOverlapDev ξ hξ a b T u v)
-  rw [skVectorCavityAvg_old μ ξ hξ hbound β ρ q _ hm1 0]
+      (measurable_skVectorLastSpinDeviation ξ hξ a b T u v).mul
+        (measurable_skVectorOverlapDeviation ξ hξ a b T u v)
+  rw [skVectorCavityAverage_old μ ξ hξ hbound β ρ q _ hm1 0]
   set Q : Ω → Measure (Fin 2 → Fin (N + 1) → α) := fun ω => Measure.pi fun _ : Fin 2 =>
     (Measure.pi fun _ : Fin (N + 1) => μ).tilted (skVectorCavityEnergy ξ N β ρ q
       (fun p => g p ω) (fun i => g' i ω) (fun u => Y u ω) 0) with hQ
   have hprob : ∀ ω, IsProbabilityMeasure (Q ω) := fun ω => by
-    have := isProbabilityMeasure_skVectorCavityGibbs μ ξ hξ hr hbound N β ρ q
+    have := isProbabilityMeasure_tilted_skVectorCavityEnergy μ ξ hξ hr hbound N β ρ q
       (fun p => g p ω) (fun i => g' i ω) (fun u => Y u ω) 0
     exact inferInstance
   have hI : ∀ G : (Fin 2 → Fin (N + 1) → α) → ℝ, Measurable G → (∃ M, ∀ x, |G x| ≤ M) →
       Integrable (fun ω => ∫ x, G x ∂(Q ω)) P := fun G hG hGb =>
     integrable_integral_skVectorCavity μ ξ hξ hbound β ρ q hgm hg'm hYm 0 G hG hGb
-  rw [integral_integral_double_sum Q hI
-    (fun u v x => skVectorLastDev ξ N a b T u v x * skVectorOverlapDev ξ N a b T u v x)
-    (fun u v => (measurable_skVectorLastDev ξ hξ a b T u v).mul
-      (measurable_skVectorOverlapDev ξ hξ a b T u v))
+  rw [integral_integral_sum_sum Q hI
+    (fun u v x => skVectorLastSpinDeviation ξ N a b T u v x * skVectorOverlapDeviation ξ N a b T u
+      v x)
+    (fun u v => (measurable_skVectorLastSpinDeviation ξ hξ a b T u v).mul
+      (measurable_skVectorOverlapDeviation ξ hξ a b T u v))
     (fun u v => ⟨(d + d) * (d + d), fun x => by
       rw [abs_mul]
-      exact mul_le_mul (abs_skVectorLastDev_le ξ hbound a b T u v (hT u v) x)
-        (abs_skVectorOverlapDev_le ξ hbound a b T u v (hT u v) x) (abs_nonneg _)
+      exact mul_le_mul (abs_skVectorLastSpinDeviation_le ξ hbound a b T u v (hT u v) x)
+        (abs_skVectorOverlapDeviation_le ξ hbound a b T u v (hT u v) x) (abs_nonneg _)
         (add_nonneg hr hr)⟩)]
   exact abs_double_sum_le _ fun u v =>
-    skVector_nu0_overlap_bound μ ξ hξ hbound β ρ q hgm hg'm hYm a b u v (T u v) (hT u v)
+    abs_skVectorCavityAverage_zero_overlap_le μ ξ hξ hbound β ρ q hgm hg'm hYm a b u v (T u v) (hT
+      u v)
       (hdec u v)
 
 include hξ hbound in
 /-- If `X ≤ 2 W + e` pointwise for bounded measurable `X`, `W`, then `ν_t(X) ≤ 2 ν_t(W) + e`. -/
-theorem skVectorCavityAvg_le_two_mul_add
+theorem skVectorCavityAverage_le_two_mul_add
     (hgm : ∀ p, Measurable (g p)) (hg'm : ∀ i, Measurable (g' i)) (hYm : ∀ u, Measurable (Y u))
     (t : ℝ) (X W : (Fin 2 → Fin (N + 1) → α) → ℝ) (hX : Measurable X) (hW : Measurable W)
     {MX MW : ℝ} (hXb : ∀ σ, |X σ| ≤ MX) (hWb : ∀ σ, |W σ| ≤ MW) (e : ℝ)
     (hXW : ∀ σ, X σ ≤ 2 * W σ + e) :
-    skVectorCavityAvg μ ξ N β ρ q P g g' Y t (fun σ : Option (Option (Fin 2)) →
+    skVectorCavityAverage μ ξ N β ρ q P g g' Y t (fun σ : Option (Option (Fin 2)) →
         Fin (N + 1) → α => X fun c => σ (some (some c))) ≤
-      2 * skVectorCavityAvg μ ξ N β ρ q P g g' Y t (fun σ : Option (Option (Fin 2)) →
+      2 * skVectorCavityAverage μ ξ N β ρ q P g g' Y t (fun σ : Option (Option (Fin 2)) →
         Fin (N + 1) → α => W fun c => σ (some (some c))) + e := by
   classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
-  rw [skVectorCavityAvg_old μ ξ hξ hbound β ρ q X hX t,
-    skVectorCavityAvg_old μ ξ hξ hbound β ρ q W hW t]
+  rw [skVectorCavityAverage_old μ ξ hξ hbound β ρ q X hX t,
+    skVectorCavityAverage_old μ ξ hξ hbound β ρ q W hW t]
   set Q : Ω → Measure (Fin 2 → Fin (N + 1) → α) := fun ω => Measure.pi fun _ : Fin 2 =>
     (Measure.pi fun _ : Fin (N + 1) => μ).tilted (skVectorCavityEnergy ξ N β ρ q
       (fun p => g p ω) (fun i => g' i ω) (fun u => Y u ω) t) with hQ
   have hprob : ∀ ω, IsProbabilityMeasure (Q ω) := fun ω => by
-    have := isProbabilityMeasure_skVectorCavityGibbs μ ξ hξ hr hbound N β ρ q
+    have := isProbabilityMeasure_tilted_skVectorCavityEnergy μ ξ hξ hr hbound N β ρ q
       (fun p => g p ω) (fun i => g' i ω) (fun u => Y u ω) t
     exact inferInstance
   have hIX := integrable_integral_skVectorCavity (P := P) μ ξ hξ hbound β ρ q hgm hg'm hYm t X hX
@@ -285,9 +292,9 @@ include hξ hbound in
 target `T` (`‖T‖_F ≤ d`, decoupled at `t = 0`), the squared overlap error `A_T = ν_1(∑ (R - T)²)`
 satisfies `A_T ≤ 2d⁴/(N+1) + 16 β² d² e^{20 β² d²} A_T^{1/2}(√(2B+ε) + √(2A+ε))`, provided the
 cavity-overlap errors at `t = 1` are at most `2A + ε` and `2B + ε`. -/
-theorem skVector_side_ineq (hq : ∀ u v, q u v = q v u)
+theorem skVector_overlap_variance_le_sqrt (hq : ∀ u v, q u v = q v u)
     (hq2 : ∑ u, ∑ v, q u v ^ 2 ≤ (d : ℝ) ^ 2) (hρ2 : ∑ u, ∑ v, ρ u v ^ 2 ≤ (d : ℝ) ^ 2)
-    (hn : SKVectorCavityNoise P N d β q g g' Y)
+    (hn : SKVectorCavityGaussianData P N d β q g g' Y)
     (hg : ∀ p ω, g p ω = gt ⟨(p.val.1.castSucc, p.val.2.castSucc),
       Fin.castSucc_lt_castSucc_iff.mpr p.property⟩ ω)
     (hg' : ∀ i ω, g' i ω = gt ⟨(i.castSucc, Fin.last N), Fin.castSucc_lt_last i⟩ ω)
@@ -303,61 +310,65 @@ theorem skVector_side_ineq (hq : ∀ u v, q u v = q v u)
           (skVectorCavityEnergy ξ N β ρ q (fun p => g p ω) (fun i => g' i ω)
             (fun w => Y w ω) 0)) ∂P = 0)
     (A B ε : ℝ)
-    (hXA : skVectorCavityAvg μ ξ N β ρ q P g g' Y 1 (fun σ : Option (Option (Fin 2)) →
+    (hXA : skVectorCavityAverage μ ξ N β ρ q P g g' Y 1 (fun σ : Option (Option (Fin 2)) →
         Fin (N + 1) → α => ∑ u, ∑ v, (skVectorCavityOverlap ξ N (σ (some (some (0 : Fin 2))))
           (σ (some (some (1 : Fin 2)))) u v - q u v) ^ 2) ≤ 2 * A + ε)
-    (hXB : skVectorCavityAvg μ ξ N β ρ q P g g' Y 1 (fun σ : Option (Option (Fin 2)) →
+    (hXB : skVectorCavityAverage μ ξ N β ρ q P g g' Y 1 (fun σ : Option (Option (Fin 2)) →
         Fin (N + 1) → α => ∑ u, ∑ v, (skVectorCavityOverlap ξ N (σ (some (some (0 : Fin 2))))
           (σ (some (some (0 : Fin 2)))) u v - ρ u v) ^ 2) ≤ 2 * B + ε) :
-    skVectorCavityAvg μ ξ N β ρ q P g g' Y 1 (fun σ : Option (Option (Fin 2)) →
+    skVectorCavityAverage μ ξ N β ρ q P g g' Y 1 (fun σ : Option (Option (Fin 2)) →
         Fin (N + 1) → α => ∑ u, ∑ v,
-          skVectorOverlapDev ξ N a b T u v (fun c => σ (some (some c))) ^ 2) ≤
+          skVectorOverlapDeviation ξ N a b T u v (fun c => σ (some (some c))) ^ 2) ≤
       (d : ℝ) * d * (2 * (d : ℝ) ^ 2 / ((N : ℝ) + 1)) +
         16 * β ^ 2 * (d : ℝ) ^ 2 * Real.exp (20 * β ^ 2 * (d : ℝ) ^ 2) *
-          Real.sqrt (skVectorCavityAvg μ ξ N β ρ q P g g' Y 1 (fun σ : Option (Option (Fin 2)) →
+          Real.sqrt (skVectorCavityAverage μ ξ N β ρ q P g g' Y 1 (fun σ : Option (Option (Fin 2)) →
             Fin (N + 1) → α => ∑ u, ∑ v,
-              skVectorOverlapDev ξ N a b T u v (fun c => σ (some (some c))) ^ 2)) *
+              skVectorOverlapDeviation ξ N a b T u v (fun c => σ (some (some c))) ^ 2)) *
           (Real.sqrt (2 * B + ε) + Real.sqrt (2 * A + ε)) := by
   classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
-  have hgm := hn.meas_g
-  have hg'm := hn.meas_g'
-  have hYm := hn.meas_Y
+  have hgm := hn.measurable_old_coupling
+  have hg'm := hn.measurable_new_coupling
+  have hYm := hn.measurable_field
   have hTb : ∀ u v, |T u v| ≤ d := abs_entry_le_of_sum_sq_le T hT2
   have hqb : ∀ u v, |q u v| ≤ d := abs_entry_le_of_sum_sq_le q hq2
   have hmf : Measurable fun τ : Fin 2 → Fin (N + 1) → α => ∑ u, ∑ v,
-      skVectorLastDev ξ N a b T u v τ * skVectorOverlapDev ξ N a b T u v τ :=
+      skVectorLastSpinDeviation ξ N a b T u v τ * skVectorOverlapDeviation ξ N a b T u v τ :=
     Finset.measurable_sum _ fun u _ => Finset.measurable_sum _ fun v _ =>
-      (measurable_skVectorLastDev ξ hξ a b T u v).mul (measurable_skVectorOverlapDev ξ hξ a b T u v)
-  have hmw := measurable_sum_sq_skVectorOverlapDev (N := N) ξ hξ a b T
+      (measurable_skVectorLastSpinDeviation ξ hξ a b T u v).mul
+        (measurable_skVectorOverlapDeviation ξ hξ a b T u v)
+  have hmw := measurable_sum_sq_skVectorOverlapDeviation (N := N) ξ hξ a b T
   have hfb : ∀ τ : Fin 2 → Fin (N + 1) → α, |∑ u, ∑ v,
-      skVectorLastDev ξ N a b T u v τ * skVectorOverlapDev ξ N a b T u v τ| ≤
+      skVectorLastSpinDeviation ξ N a b T u v τ * skVectorOverlapDeviation ξ N a b T u v τ| ≤
       (d : ℝ) * d * ((d + d) * (d + d)) := fun τ =>
     abs_double_sum_le _ fun u v => by
       rw [abs_mul]
-      exact mul_le_mul (abs_skVectorLastDev_le ξ hbound a b T u v (hTb u v) τ)
-        (abs_skVectorOverlapDev_le ξ hbound a b T u v (hTb u v) τ) (abs_nonneg _)
+      exact mul_le_mul (abs_skVectorLastSpinDeviation_le ξ hbound a b T u v (hTb u v) τ)
+        (abs_skVectorOverlapDeviation_le ξ hbound a b T u v (hTb u v) τ) (abs_nonneg _)
         (add_nonneg hr hr)
-  have hwb := abs_sum_sq_skVectorOverlapDev_le ξ hbound a b T hTb (N := N)
-  have hstep := skVector_nu1_le_nu0_add μ ξ hξ hbound β ρ q hq hq2 hρ2 hn
-    (fun τ => ∑ u, ∑ v, skVectorLastDev ξ N a b T u v τ * skVectorOverlapDev ξ N a b T u v τ)
-    (fun τ => ∑ u, ∑ v, skVectorOverlapDev ξ N a b T u v τ ^ 2) hmf hmw
+  have hwb := abs_sum_sq_skVectorOverlapDeviation_le ξ hbound a b T hTb (N := N)
+  have hstep := skVectorCavityAverage_one_le_zero_add_deriv μ ξ hξ hbound β ρ q hq hq2 hρ2 hn
+    (fun τ => ∑ u, ∑ v, skVectorLastSpinDeviation ξ N a b T u v τ * skVectorOverlapDeviation ξ N a
+      b T u v τ)
+    (fun τ => ∑ u, ∑ v, skVectorOverlapDeviation ξ N a b T u v τ ^ 2) hmf hmw
     (by positivity) (by positivity) hfb hwb
     (fun τ => Finset.sum_nonneg fun u _ => Finset.sum_nonneg fun v _ => sq_nonneg _)
-    (fun τ => sq_sum_lastDev_mul_overlapDev_le ξ hbound a b T hT2 τ)
-  have hsymm := skVectorCavityAvg_one_sum_symm (Y := Y) μ ξ hξ hbound β ρ q hgt hsym hg hg' a b T
+    (fun τ => sq_sum_lastSpinDeviation_mul_overlapDeviation_le ξ hbound a b T hT2 τ)
+  have hsymm := skVectorCavityAverage_one_overlap_variance_eq_last_spin (Y := Y) μ ξ hξ hbound β ρ
+    q hgt hsym hg hg' a b T
     hTb
-  have h0 := abs_skVectorCavityAvg_zero_sum_le μ ξ hξ hbound β ρ q hgm hg'm hYm a b T hTb hdec
+  have h0 := abs_skVectorCavityAverage_zero_sum_le μ ξ hξ hbound β ρ q hgm hg'm hYm a b T hTb hdec
   set K0 : ℝ := (d : ℝ) * d * (2 * (d : ℝ) ^ 2 / ((N : ℝ) + 1)) with hK0
-  set W1 := skVectorCavityAvg μ ξ N β ρ q P g g' Y 1 (fun σ : Option (Option (Fin 2)) →
+  set W1 := skVectorCavityAverage μ ξ N β ρ q P g g' Y 1 (fun σ : Option (Option (Fin 2)) →
     Fin (N + 1) → α => ∑ u, ∑ v,
-      skVectorOverlapDev ξ N a b T u v (fun c => σ (some (some c))) ^ 2) with hW1
+      skVectorOverlapDeviation ξ N a b T u v (fun c => σ (some (some c))) ^ 2) with hW1
   rw [hsymm] at hstep
   have hκ : 0 ≤ 16 * β ^ 2 * (d : ℝ) ^ 2 * Real.exp (20 * β ^ 2 * (d : ℝ) ^ 2) := by positivity
-  have hsq : Real.sqrt (skVectorCavityAvg μ ξ N β ρ q P g g' Y 1 (fun σ : Option (Option (Fin 2)) →
+  have hsq : Real.sqrt (skVectorCavityAverage μ ξ N β ρ q P g g' Y 1 (fun σ : Option (Option (Fin
+    2)) →
         Fin (N + 1) → α => ∑ u, ∑ v, (skVectorCavityOverlap ξ N (σ (some (some (0 : Fin 2))))
           (σ (some (some (0 : Fin 2)))) u v - ρ u v) ^ 2)) +
-      Real.sqrt (skVectorCavityAvg μ ξ N β ρ q P g g' Y 1 (fun σ : Option (Option (Fin 2)) →
+      Real.sqrt (skVectorCavityAverage μ ξ N β ρ q P g g' Y 1 (fun σ : Option (Option (Fin 2)) →
         Fin (N + 1) → α => ∑ u, ∑ v, (skVectorCavityOverlap ξ N (σ (some (some (0 : Fin 2))))
           (σ (some (some (1 : Fin 2)))) u v - q u v) ^ 2)) ≤
       Real.sqrt (2 * B + ε) + Real.sqrt (2 * A + ε) :=
@@ -395,13 +406,13 @@ fixed-point equations (1.372)--(1.373) for the Gaussian field `Y` of covariance 
 `A = ν(∑ᵤᵥ (R^{u,v}_{1,2} - qᵤᵥ)²)` and `B = ν(∑ᵤᵥ (R^{u,v}_{1,1} - ρᵤᵥ)²)` satisfy
 `A + B ≤ (8 d⁴ + 2 d²)/(N + 1)`. Here `ν_1` is the cavity average at `t = 1`, i.e. the Gibbs
 average of the `(N+1)`-site system whose couplings are the restriction of `gt`. -/
-theorem skVector_theorem_1_12_1 (hβ : β ^ 2 * (d : ℝ) ^ 2 ≤ 1 / 200)
+theorem sum_overlap_variances_le (hβ : β ^ 2 * (d : ℝ) ^ 2 ≤ 1 / 200)
     (hq : ∀ u v, q u v = ∫ ω, skVectorGibbs μ (skVectorFieldExponent ξ β ρ q (fun w => Y w ω))
       (fun a => ξ a u) * skVectorGibbs μ (skVectorFieldExponent ξ β ρ q (fun w => Y w ω))
       (fun a => ξ a v) ∂P)
     (hρ : ∀ u v, ρ u v = ∫ ω, skVectorGibbs μ
       (skVectorFieldExponent ξ β ρ q (fun w => Y w ω)) (fun a => ξ a u * ξ a v) ∂P)
-    (hn : SKVectorCavityNoise P N d β q g g' Y)
+    (hn : SKVectorCavityGaussianData P N d β q g g' Y)
     (hg : ∀ p ω, g p ω = gt ⟨(p.val.1.castSucc, p.val.2.castSucc),
       Fin.castSucc_lt_castSucc_iff.mpr p.property⟩ ω)
     (hg' : ∀ i ω, g' i ω = gt ⟨(i.castSucc, Fin.last N), Fin.castSucc_lt_last i⟩ ω)
@@ -410,19 +421,19 @@ theorem skVector_theorem_1_12_1 (hβ : β ^ 2 * (d : ℝ) ^ 2 ≤ 1 / 200)
       Measure.map (fun ω => (fun p => gt p ω) ∘ (pairPerm π).symm) P =
         Measure.map (fun ω p => gt p ω) P)
     (hind : IndepFun (fun ω p => g p ω) (fun ω u => Y u ω) P) :
-    skVectorCavityAvg μ ξ N β ρ q P g g' Y 1 (fun σ : Option (Option (Fin 2)) →
+    skVectorCavityAverage μ ξ N β ρ q P g g' Y 1 (fun σ : Option (Option (Fin 2)) →
         Fin (N + 1) → α => ∑ u, ∑ v,
-          skVectorOverlapDev ξ N 0 1 q u v (fun c => σ (some (some c))) ^ 2) +
-      skVectorCavityAvg μ ξ N β ρ q P g g' Y 1 (fun σ : Option (Option (Fin 2)) →
+          skVectorOverlapDeviation ξ N 0 1 q u v (fun c => σ (some (some c))) ^ 2) +
+      skVectorCavityAverage μ ξ N β ρ q P g g' Y 1 (fun σ : Option (Option (Fin 2)) →
         Fin (N + 1) → α => ∑ u, ∑ v,
-          skVectorOverlapDev ξ N 0 0 ρ u v (fun c => σ (some (some c))) ^ 2) ≤
+          skVectorOverlapDeviation ξ N 0 0 ρ u v (fun c => σ (some (some c))) ^ 2) ≤
       (8 * (d : ℝ) ^ 4 + 2 * (d : ℝ) ^ 2) / ((N : ℝ) + 1) := by
   classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
-  have hgm := hn.meas_g
-  have hg'm := hn.meas_g'
-  have hYm := hn.meas_Y
-  obtain ⟨hq2, hρ2⟩ := sum_sq_fixedPoint_field_le μ ξ hξ hbound β q ρ hYm hρ hq
+  have hgm := hn.measurable_old_coupling
+  have hg'm := hn.measurable_new_coupling
+  have hYm := hn.measurable_field
+  obtain ⟨hq2, hρ2⟩ := sum_sq_skVectorFixedPoint_field_le μ ξ hξ hbound β q ρ hYm hρ hq
   have hqsym : ∀ u v, q u v = q v u := fun u v => by
     rw [hq u v, hq v u]
     exact integral_congr_ae (Filter.Eventually.of_forall fun ω => mul_comm _ _)
@@ -431,36 +442,40 @@ theorem skVector_theorem_1_12_1 (hβ : β ^ 2 * (d : ℝ) ^ 2 ≤ 1 / 200)
   set ε : ℝ := 2 * (d : ℝ) ^ 2 / ((N : ℝ) + 1) ^ 2 with hε
   have hε0 : 0 ≤ ε := by positivity
   -- the cavity-overlap errors are controlled by the full overlap errors
-  have hXA := skVectorCavityAvg_le_two_mul_add (P := P) μ ξ hξ hbound β ρ q hgm hg'm hYm 1
+  have hXA := skVectorCavityAverage_le_two_mul_add (P := P) μ ξ hξ hbound β ρ q hgm hg'm hYm 1
     (fun τ => ∑ u, ∑ v, (skVectorCavityOverlap ξ N (τ 0) (τ 1) u v - q u v) ^ 2)
-    (fun τ => ∑ u, ∑ v, skVectorOverlapDev ξ N 0 1 q u v τ ^ 2)
-    (overlap_error_data (N := N) ξ hξ hbound 0 1 q hq2).1
-    (measurable_sum_sq_skVectorOverlapDev ξ hξ 0 1 q)
-    (overlap_error_data (N := N) ξ hξ hbound 0 1 q hq2).2.2
-    (abs_sum_sq_skVectorOverlapDev_le ξ hbound 0 1 q hqb) ε
-    (fun τ => sum_sq_cavityOverlap_dev_le ξ hbound 0 1 q τ)
-  have hXB := skVectorCavityAvg_le_two_mul_add (P := P) μ ξ hξ hbound β ρ q hgm hg'm hYm 1
+    (fun τ => ∑ u, ∑ v, skVectorOverlapDeviation ξ N 0 1 q u v τ ^ 2)
+    (measurable_nonneg_bounded_sq_overlap_sub (N := N) ξ hξ hbound 0 1 q hq2).1
+    (measurable_sum_sq_skVectorOverlapDeviation ξ hξ 0 1 q)
+    (measurable_nonneg_bounded_sq_overlap_sub (N := N) ξ hξ hbound 0 1 q hq2).2.2
+    (abs_sum_sq_skVectorOverlapDeviation_le ξ hbound 0 1 q hqb) ε
+    (fun τ => sum_sq_cavityOverlap_deviation_le ξ hbound 0 1 q τ)
+  have hXB := skVectorCavityAverage_le_two_mul_add (P := P) μ ξ hξ hbound β ρ q hgm hg'm hYm 1
     (fun τ => ∑ u, ∑ v, (skVectorCavityOverlap ξ N (τ 0) (τ 0) u v - ρ u v) ^ 2)
-    (fun τ => ∑ u, ∑ v, skVectorOverlapDev ξ N 0 0 ρ u v τ ^ 2)
-    (overlap_error_data (N := N) ξ hξ hbound 0 0 ρ hρ2).1
-    (measurable_sum_sq_skVectorOverlapDev ξ hξ 0 0 ρ)
-    (overlap_error_data (N := N) ξ hξ hbound 0 0 ρ hρ2).2.2
-    (abs_sum_sq_skVectorOverlapDev_le ξ hbound 0 0 ρ hρb) ε
-    (fun τ => sum_sq_cavityOverlap_dev_le ξ hbound 0 0 ρ τ)
+    (fun τ => ∑ u, ∑ v, skVectorOverlapDeviation ξ N 0 0 ρ u v τ ^ 2)
+    (measurable_nonneg_bounded_sq_overlap_sub (N := N) ξ hξ hbound 0 0 ρ hρ2).1
+    (measurable_sum_sq_skVectorOverlapDeviation ξ hξ 0 0 ρ)
+    (measurable_nonneg_bounded_sq_overlap_sub (N := N) ξ hξ hbound 0 0 ρ hρ2).2.2
+    (abs_sum_sq_skVectorOverlapDeviation_le ξ hbound 0 0 ρ hρb) ε
+    (fun τ => sum_sq_cavityOverlap_deviation_le ξ hbound 0 0 ρ τ)
   have hnn : ∀ G : (Fin 2 → Fin (N + 1) → α) → ℝ, (∀ σ, 0 ≤ G σ) →
-      0 ≤ skVectorCavityAvg μ ξ N β ρ q P g g' Y 1 (fun σ : Option (Option (Fin 2)) →
+      0 ≤ skVectorCavityAverage μ ξ N β ρ q P g g' Y 1 (fun σ : Option (Option (Fin 2)) →
         Fin (N + 1) → α => G fun c => σ (some (some c))) := fun G hG => by
-    unfold skVectorCavityAvg
+    unfold skVectorCavityAverage
     exact integral_nonneg fun _ => integral_nonneg fun σ => hG _
-  have hA0 := hnn (fun τ => ∑ u, ∑ v, skVectorOverlapDev ξ N 0 1 q u v τ ^ 2) fun τ =>
+  have hA0 := hnn (fun τ => ∑ u, ∑ v, skVectorOverlapDeviation ξ N 0 1 q u v τ ^ 2) fun τ =>
     Finset.sum_nonneg fun u _ => Finset.sum_nonneg fun v _ => sq_nonneg _
-  have hB0 := hnn (fun τ => ∑ u, ∑ v, skVectorOverlapDev ξ N 0 0 ρ u v τ ^ 2) fun τ =>
+  have hB0 := hnn (fun τ => ∑ u, ∑ v, skVectorOverlapDeviation ξ N 0 0 ρ u v τ ^ 2) fun τ =>
     Finset.sum_nonneg fun u _ => Finset.sum_nonneg fun v _ => sq_nonneg _
-  have hsideA := skVector_side_ineq μ ξ hξ hbound β ρ q hqsym hq2 hρ2 hn hg hg' hgt hsym 0 1 q
-    hq2 (fun u v Ψ hΨ => skVector_nu0_decoupled μ ξ hξ hbound β ρ q hgm hYm hind hq Ψ hΨ u v)
+  have hsideA := skVector_overlap_variance_le_sqrt μ ξ hξ hbound β ρ q hqsym hq2 hρ2 hn hg hg' hgt
+    hsym 0 1 q
+    hq2 (fun u v Ψ hΨ => skVectorCavityAverage_zero_pair_mul_eq_zero μ ξ hξ hbound β ρ q hgm hYm
+      hind hq Ψ hΨ u v)
     _ _ ε hXA hXB
-  have hsideB := skVector_side_ineq μ ξ hξ hbound β ρ q hqsym hq2 hρ2 hn hg hg' hgt hsym 0 0 ρ
-    hρ2 (fun u v Ψ hΨ => skVector_nu0_decoupled_diag μ ξ hξ hbound β ρ q hgm hYm hind hρ Ψ hΨ u v)
+  have hsideB := skVector_overlap_variance_le_sqrt μ ξ hξ hbound β ρ q hqsym hq2 hρ2 hn hg hg' hgt
+    hsym 0 0 ρ
+    hρ2 (fun u v Ψ hΨ => skVectorCavityAverage_zero_diag_mul_eq_zero μ ξ hξ hbound β ρ q hgm hYm
+      hind hρ Ψ hΨ u v)
     _ _ ε hXA hXB
   -- the smallness of the contraction constant
   have hs0 : 0 ≤ β ^ 2 * (d : ℝ) ^ 2 := by positivity
@@ -474,7 +489,7 @@ theorem skVector_theorem_1_12_1 (hβ : β ^ 2 * (d : ℝ) ^ 2 ≤ 1 / 200)
           16 * β ^ 2 * (d : ℝ) ^ 2 * (10 / 9) := by
           refine mul_le_mul_of_nonneg_left hexp (by positivity)
       _ ≤ 1 / 6 := by nlinarith
-  have hclose := closing_algebra hA0 hB0 hε0 (by positivity) hκ hsideA hsideB
+  have hclose := add_le_of_coupled_sqrt_bounds hA0 hB0 hε0 (by positivity) hκ hsideA hsideB
   refine hclose.trans ?_
   have hM : (1 : ℝ) ≤ (N : ℝ) + 1 := by
     have : (0 : ℝ) ≤ N := Nat.cast_nonneg N

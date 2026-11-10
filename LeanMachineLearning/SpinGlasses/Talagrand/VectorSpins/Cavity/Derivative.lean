@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.SKVectorEnergy
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Model.Energy
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaCavity
 public import Mathlib.Analysis.SpecialFunctions.Sqrt
 
@@ -153,7 +153,7 @@ theorem skVectorCavityEnergy_eq_sum (ξ : α → D → ℝ) (N : ℕ) (β : ℝ)
 
 /-- `ν_t(G) = 𝔼 ⟨G⟩_t`: the expected average of a function of replicas `Option (Option R)` for
 the product of the Gibbs measures of the cavity Hamiltonian (1.375). -/
-noncomputable def skVectorCavityAvg {Ω R : Type*} [MeasurableSpace Ω] [Fintype R]
+noncomputable def skVectorCavityAverage {Ω R : Type*} [MeasurableSpace Ω] [Fintype R]
     (μ : Measure α) (ξ : α → D → ℝ) (N : ℕ) (β : ℝ) (ρ q : D → D → ℝ) (P : Measure Ω)
     (g : FinPairs N → Ω → ℝ) (g' : Fin N → Ω → ℝ) (Y : D → Ω → ℝ) (t : ℝ)
     (G : (Option (Option R) → Fin (N + 1) → α) → ℝ) : ℝ :=
@@ -462,7 +462,7 @@ variable {R : Type*} [Fintype R] {ξ : α → D → ℝ} (hξ : ∀ u, Measurabl
 include hξ hr hbound hF hFb
 
 /-- The integrand of the covariance term of the cavity derivative is bounded and measurable. -/
-theorem skVectorCavity_covariance_integrand (β : ℝ) (k l : (FinPairs N ⊕ Fin N) ⊕ D) :
+theorem skVectorCavityFeature_weighted_covariance_eq (β : ℝ) (k l : (FinPairs N ⊕ Fin N) ⊕ D) :
     Measurable (fun σ : Option (Option R) → Fin (N + 1) → α =>
         (F fun a => σ (some (some a))) *
           (∑ a, skVectorCavityFeature ξ N β k (σ (some (some a))) -
@@ -497,7 +497,7 @@ theorem skVectorCavity_covariance_integrand (β : ℝ) (k l : (FinPairs N ⊕ Fi
 
 /-- The integrand of the compensation term of the cavity derivative is bounded and
 measurable. -/
-theorem skVectorCavity_compensation_integrand (β : ℝ) (ρ q : D → D → ℝ) :
+theorem skVectorCavityCompensation_covariance_eq (β : ℝ) (ρ q : D → D → ℝ) :
     Measurable (fun σ : Option (Option R) → Fin (N + 1) → α =>
         (F fun a => σ (some (some a))) *
           (∑ o : Option R, skVectorCavityCompensation ξ N β ρ q (σ (some o)) -
@@ -523,7 +523,7 @@ theorem skVectorCavity_compensation_integrand (β : ℝ) (ρ q : D → D → ℝ
 
 omit [Fintype R] in
 /-- The integrands of Eq. (1.376) are bounded and measurable. -/
-theorem skVectorCavity_book_integrand (x y : Option (Option R)) (Q : D → D → ℝ)
+theorem skVectorCavity_replica_term_eq (x y : Option (Option R)) (Q : D → D → ℝ)
     (u v : D) :
     Measurable (fun σ : Option (Option R) → Fin (N + 1) → α =>
         (F fun c => σ (some (some c))) * ξ (σ x (Fin.last N)) u * ξ (σ y (Fin.last N)) v *
@@ -582,7 +582,7 @@ theorem measurable_skVectorCavityEnergy_joint {Ω : Type*} [MeasurableSpace Ω]
 
 /-- The Gibbs measure of the cavity Hamiltonian is a probability measure for every value of the
 Gaussian environment. -/
-theorem isProbabilityMeasure_skVectorCavityGibbs (μ : Measure α) [IsProbabilityMeasure μ]
+theorem isProbabilityMeasure_tilted_skVectorCavityEnergy (μ : Measure α) [IsProbabilityMeasure μ]
     (ξ : α → D → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u)) {r : ℝ} (hr : 0 ≤ r)
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ r) (N : ℕ) (β : ℝ) (ρ q : D → D → ℝ)
     (g : FinPairs N → ℝ) (g' : Fin N → ℝ) (Y : D → ℝ) (t : ℝ) :
@@ -615,7 +615,7 @@ theorem isProbabilityMeasure_skVectorCavityGibbs (μ : Measure α) [IsProbabilit
 
 /-- A bounded measurable function of the replicas has an integrable Gibbs average in the random
 environment of the cavity path. -/
-theorem integrable_skVectorCavityGibbs {Ω R : Type*} [MeasurableSpace Ω] [Fintype R]
+theorem integrable_integral_skVectorCavityAverage {Ω R : Type*} [MeasurableSpace Ω] [Fintype R]
     (μ : Measure α) [IsProbabilityMeasure μ] (ξ : α → D → ℝ)
     (hξ : ∀ u, Measurable (fun a => ξ a u)) {r : ℝ} (hr : 0 ≤ r)
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ r) (N : ℕ) (β : ℝ) (ρ q : D → D → ℝ)
@@ -630,13 +630,14 @@ theorem integrable_skVectorCavityGibbs {Ω R : Type*} [MeasurableSpace Ω] [Fint
   obtain ⟨B, hB⟩ := hGb
   exact integrable_integral_pi_tilted (μ := Measure.pi fun _ : Fin (N + 1) => μ)
     (measurable_skVectorCavityEnergy_joint ξ hξ N β ρ q hgm hg'm hYm t)
-    (fun ω => isProbabilityMeasure_skVectorCavityGibbs μ ξ hξ hr hbound N β ρ q _ _ _ t) hG hB
+    (fun ω => isProbabilityMeasure_tilted_skVectorCavityEnergy μ ξ hξ hr hbound N β ρ q _ _ _ t)
+      hG hB
 
 /-- **Proposition 1.12.4 at a fixed environment** (the algebra behind Eq. (1.376)).  For any
 probability measure `ν` on configurations of `N + 1` spins, the covariance combination of the cavity
 path (weights `W`) minus the compensation combination equals the four groups of Eq. (1.376) for the
 `ν`-replica average. -/
-theorem skVectorCavity_fixed {R : Type*} [Fintype R] [DecidableEq R]
+theorem skVectorCavity_covariance_eq_replica_sums {R : Type*} [Fintype R] [DecidableEq R]
     (ξ : α → D → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u)) {r : ℝ} (hr : 0 ≤ r)
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ r) (N : ℕ) (β : ℝ) (ρ q : D → D → ℝ)
     (hq : ∀ u v, q u v = q v u)
@@ -988,7 +989,7 @@ theorem integral_weighted_sum_sub {K : Type*} [Fintype K] (W : K → K → ℝ) 
     integral_const_mul, e]
 
 /-- The expectation of the four groups of Eq. (1.376). -/
-theorem integral_four_groups {R D : Type*} [Fintype R] [Fintype D] (c₁ c₂ c₃ c₄ : ℝ)
+theorem integral_replica_covariance_sums {R D : Type*} [Fintype R] [Fintype D] (c₁ c₂ c₃ c₄ : ℝ)
     (I₁ : R → R → D → D → Ω → ℝ) (I₂ : R → D → D → Ω → ℝ) (I₃ I₄ : D → D → Ω → ℝ)
     (h₁ : ∀ a b u v, Integrable (I₁ a b u v) P) (h₂ : ∀ a u v, Integrable (I₂ a u v) P)
     (h₃ : ∀ u v, Integrable (I₃ u v) P) (h₄ : ∀ u v, Integrable (I₄ u v) P) :
@@ -1033,7 +1034,8 @@ measurable function of `n = |R|` configurations; the replicas `n+1` and `n+2` of
 `some none` and `none`.  The Gaussian couplings `g`, `g'` and the field `Y` are jointly Gaussian
 with `E g g' = δ`, `E Y Y = β² q` and `Y` independent of the couplings; no boundedness of the
 Gaussian parameters is assumed. -/
-theorem hasDerivAt_skVectorCavity {Ω R : Type*} [MeasurableSpace Ω] [Fintype R] [DecidableEq R]
+theorem hasDerivAt_skVectorCavityAverage {Ω R : Type*} [MeasurableSpace Ω] [Fintype R]
+  [DecidableEq R]
     (μ : Measure α) [IsProbabilityMeasure μ] (ξ : α → D → ℝ)
     (hξ : ∀ u, Measurable (fun a => ξ a u)) {r : ℝ} (hr : 0 ≤ r)
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ r) (N : ℕ) (β : ℝ) (ρ q : D → D → ℝ)
@@ -1058,23 +1060,23 @@ theorem hasDerivAt_skVectorCavity {Ω R : Type*} [MeasurableSpace Ω] [Fintype R
         (Measure.pi fun _ : Fin (N + 1) => μ).tilted (skVectorCavityEnergy ξ N β ρ q
           (fun p => g p ω) (fun i => g' i ω) (fun u => Y u ω) s)) ∂P)
       (β ^ 2 / 2 * ∑ a : R, ∑ b : R, ∑ u, ∑ v,
-          skVectorCavityAvg μ ξ N β ρ q P g g' Y t (fun σ =>
+          skVectorCavityAverage μ ξ N β ρ q P g g' Y t (fun σ =>
             F (fun c => σ (some (some c))) * ξ (σ (some (some a)) (Fin.last N)) u *
               ξ (σ (some (some b)) (Fin.last N)) v *
               (skVectorCavityOverlap ξ N (σ (some (some a))) (σ (some (some b))) u v -
                 if a = b then ρ u v else q u v)) -
         Fintype.card R * β ^ 2 * ∑ a : R, ∑ u, ∑ v,
-          skVectorCavityAvg μ ξ N β ρ q P g g' Y t (fun σ =>
+          skVectorCavityAverage μ ξ N β ρ q P g g' Y t (fun σ =>
             F (fun c => σ (some (some c))) * ξ (σ (some (some a)) (Fin.last N)) u *
               ξ (σ (some none) (Fin.last N)) v *
               (skVectorCavityOverlap ξ N (σ (some (some a))) (σ (some none)) u v - q u v)) -
         Fintype.card R * (β ^ 2 / 2) * ∑ u, ∑ v,
-          skVectorCavityAvg μ ξ N β ρ q P g g' Y t (fun σ =>
+          skVectorCavityAverage μ ξ N β ρ q P g g' Y t (fun σ =>
             F (fun c => σ (some (some c))) * ξ (σ (some none) (Fin.last N)) u *
               ξ (σ (some none) (Fin.last N)) v *
               (skVectorCavityOverlap ξ N (σ (some none)) (σ (some none)) u v - ρ u v)) +
         Fintype.card R * (Fintype.card R + 1) / 2 * β ^ 2 * ∑ u, ∑ v,
-          skVectorCavityAvg μ ξ N β ρ q P g g' Y t (fun σ =>
+          skVectorCavityAverage μ ξ N β ρ q P g g' Y t (fun σ =>
             F (fun c => σ (some (some c))) * ξ (σ (some none) (Fin.last N)) u *
               ξ (σ none (Fin.last N)) v *
               (skVectorCavityOverlap ξ N (σ (some none)) (σ none) u v - q u v))) t := by
@@ -1208,9 +1210,9 @@ theorem hasDerivAt_skVectorCavity {Ω R : Type*} [MeasurableSpace Ω] [Fintype R
       Integrable (fun ω => ∫ σ, G σ ∂(Measure.pi fun _ : Option (Option R) =>
         (Measure.pi fun _ : Fin (N + 1) => μ).tilted (skVectorCavityEnergy ξ N β ρ q
           (fun p => g p ω) (fun i => g' i ω) (fun u => Y u ω) t))) P := fun G hG hGb =>
-    integrable_skVectorCavityGibbs μ ξ hξ hr hbound N β ρ q hgm hg'm hYm t G hG hGb
+    integrable_integral_skVectorCavityAverage μ ξ hξ hr hbound N β ρ q hgm hg'm hYm t G hG hGb
   have hbook := fun (x y : Option (Option R)) (Q : D → D → ℝ) (u v : D) =>
-    skVectorCavity_book_integrand hξ hr hbound hF hFb x y Q u v
+    skVectorCavity_replica_term_eq hξ hr hbound hF hFb x y Q u v
   simp only [Finset.univ_unique, Finset.sum_singleton]
   refine (integral_weighted_sum_sub (P := P) _ _ _
     (fun ω => β ^ 2 / 2 * ∑ a : R, ∑ b : R, ∑ u, ∑ v,
@@ -1247,16 +1249,16 @@ theorem hasDerivAt_skVectorCavity {Ω R : Type*} [MeasurableSpace Ω] [Fintype R
             (fun p => g p ω) (fun i => g' i ω) (fun u => Y u ω) t)) )
     ?_ ?_ ?_).trans ?_
   · intro k l
-    exact hint _ (skVectorCavity_covariance_integrand hξ hr hbound hF hFb β k l).1
-      (skVectorCavity_covariance_integrand hξ hr hbound hF hFb β k l).2
-  · exact hint _ (skVectorCavity_compensation_integrand hξ hr hbound hF hFb β ρ q).1
-      (skVectorCavity_compensation_integrand hξ hr hbound hF hFb β ρ q).2
+    exact hint _ (skVectorCavityFeature_weighted_covariance_eq hξ hr hbound hF hFb β k l).1
+      (skVectorCavityFeature_weighted_covariance_eq hξ hr hbound hF hFb β k l).2
+  · exact hint _ (skVectorCavityCompensation_covariance_eq hξ hr hbound hF hFb β ρ q).1
+      (skVectorCavityCompensation_covariance_eq hξ hr hbound hF hFb β ρ q).2
   · intro ω
-    have := isProbabilityMeasure_skVectorCavityGibbs μ ξ hξ hr hbound N β ρ q
+    have := isProbabilityMeasure_tilted_skVectorCavityEnergy μ ξ hξ hr hbound N β ρ q
       (fun p => g p ω) (fun i => g' i ω) (fun u => Y u ω) t
-    exact skVectorCavity_fixed ξ hξ hr hbound N β ρ q hq F hF hFb _
+    exact skVectorCavity_covariance_eq_replica_sums ξ hξ hr hbound N β ρ q hq F hF hFb _
       (fun k l => sc' k t * sc l t * ∫ ω, Z k ω * Z l ω ∂P) hW1 hW2 hW3
-  · refine (integral_four_groups (P := P) _ _ _ _ _ _ _ _ ?_ ?_ ?_ ?_).trans ?_
+  · refine (integral_replica_covariance_sums (P := P) _ _ _ _ _ _ _ _ ?_ ?_ ?_ ?_).trans ?_
     · intro a b u v
       exact hint _ (hbook (some (some a)) (some (some b))
         (fun u v => if a = b then ρ u v else q u v) u v).1 (hbook (some (some a)) (some (some b))

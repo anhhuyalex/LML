@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.SKVectorGaussRealization
-public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.SKVectorDecoupled
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Model.GaussianField
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Cavity.Decoupling
 
 /-!
 # The fixed-point map of (1.372)--(1.373) and its contraction estimate
@@ -36,11 +36,11 @@ theorem measurable_skVectorFieldExponent_joint {d : ℕ} (ξ : α → Fin d → 
         (((hξ w).comp measurable_snd).mul ((hξ w').comp measurable_snd)).mul measurable_const))
 
 /-- The replica Gibbs average of the field model is measurable in the field. -/
-theorem measurable_skVectorFieldAvg {d : ℕ} {R : Type*} [Fintype R] (μ : Measure α)
+theorem measurable_skVectorFieldAverage {d : ℕ} {R : Type*} [Fintype R] (μ : Measure α)
     [IsProbabilityMeasure μ]
     (ξ : α → Fin d → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u)) (β : ℝ)
     (ρ q : Fin d → Fin d → ℝ) (F : (R → α) → ℝ) (hF : Measurable F) :
-    Measurable (skVectorFieldAvg μ ξ β ρ q F) :=
+    Measurable (skVectorFieldAverage μ ξ β ρ q F) :=
   measurable_integral_pi_tilted (μ := μ) (ι := R)
     (E := fun y a => skVectorFieldExponent ξ β ρ q y a)
     (measurable_skVectorFieldExponent_joint ξ hξ β ρ q) hF
@@ -48,60 +48,60 @@ theorem measurable_skVectorFieldAvg {d : ℕ} {R : Type*} [Fintype R] (μ : Meas
 /-- The right-hand sides of (1.372) and (1.373) as a map on pairs `(q, ρ)` of matrices:
 `T(q, ρ) = (E⟨ξᵤ⟩⟨ξᵥ⟩, E⟨ξᵤ ξᵥ⟩)` for the Gaussian field of covariance `β² q` and the field
 exponent (1.371) with matrix `ρ - q`. -/
-noncomputable def skVectorFixedMap {d : ℕ} (μ : Measure α) (ξ : α → Fin d → ℝ) (β : ℝ)
+noncomputable def skVectorFixedPointMap {d : ℕ} (μ : Measure α) (ξ : α → Fin d → ℝ) (β : ℝ)
     (x : (Fin d → Fin d → ℝ) × (Fin d → Fin d → ℝ)) :
     (Fin d → Fin d → ℝ) × (Fin d → Fin d → ℝ) :=
-  (fun u v => ∫ y, skVectorFieldAvg μ ξ β x.2 x.1
-      (fun σ : Fin 2 → α => ξ (σ 0) u * ξ (σ 1) v) y ∂(skVectorGaussLaw β x.1),
-   fun u v => ∫ y, skVectorFieldAvg μ ξ β x.2 x.1
-      (fun σ : Fin 2 → α => ξ (σ 0) u * ξ (σ 0) v) y ∂(skVectorGaussLaw β x.1))
+  (fun u v => ∫ y, skVectorFieldAverage μ ξ β x.2 x.1
+      (fun σ : Fin 2 → α => ξ (σ 0) u * ξ (σ 1) v) y ∂(skVectorGaussianLaw β x.1),
+   fun u v => ∫ y, skVectorFieldAverage μ ξ β x.2 x.1
+      (fun σ : Fin 2 → α => ξ (σ 0) u * ξ (σ 0) v) y ∂(skVectorGaussianLaw β x.1))
 
 /-- The disorder average over the pair of Gaussian fields is the average over the first field. -/
-theorem integral_skVectorPairField_avg_inl {d : ℕ} {R : Type*} [Fintype R] (μ : Measure α)
+theorem integral_skVectorGaussianPairField_avg_inl {d : ℕ} {R : Type*} [Fintype R] (μ : Measure α)
     [IsProbabilityMeasure μ] (ξ : α → Fin d → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u))
     (β : ℝ) (ρ q q' : Fin d → Fin d → ℝ) (F : (R → α) → ℝ) (hF : Measurable F) :
-    ∫ ω, skVectorFieldAvg μ ξ β ρ q F (fun x => skVectorPairField (Sum.inl x) ω)
-        ∂(skVectorPairLaw β q q') =
-      ∫ y, skVectorFieldAvg μ ξ β ρ q F y ∂(skVectorGaussLaw β q) := by
-  have hm := measurable_skVectorFieldAvg μ ξ hξ β ρ q F hF
-  have h1 := integral_skVectorPairField_fst β q q'
-    (fun z : EuclideanSpace ℝ (Fin d) => skVectorFieldAvg μ ξ β ρ q F z.ofLp)
-  have h2 : ∫ y, skVectorFieldAvg μ ξ β ρ q F y ∂(skVectorGaussLaw β q) =
-      ∫ z : EuclideanSpace ℝ (Fin d), skVectorFieldAvg μ ξ β ρ q F z.ofLp
+    ∫ ω, skVectorFieldAverage μ ξ β ρ q F (fun x => skVectorGaussianPairField (Sum.inl x) ω)
+        ∂(skVectorGaussianPairLaw β q q') =
+      ∫ y, skVectorFieldAverage μ ξ β ρ q F y ∂(skVectorGaussianLaw β q) := by
+  have hm := measurable_skVectorFieldAverage μ ξ hξ β ρ q F hF
+  have h1 := integral_skVectorGaussianPairField_fst β q q'
+    (fun z : EuclideanSpace ℝ (Fin d) => skVectorFieldAverage μ ξ β ρ q F z.ofLp)
+  have h2 : ∫ y, skVectorFieldAverage μ ξ β ρ q F y ∂(skVectorGaussianLaw β q) =
+      ∫ z : EuclideanSpace ℝ (Fin d), skVectorFieldAverage μ ξ β ρ q F z.ofLp
         ∂(multivariateGaussian 0 (β ^ 2 • Matrix.of q)) := by
-    unfold skVectorGaussLaw
+    unfold skVectorGaussianLaw
     exact integral_map (by fun_prop) hm.aestronglyMeasurable
   rw [h2, ← h1]
   rfl
 
 /-- The disorder average over the pair of Gaussian fields is the average over the second field. -/
-theorem integral_skVectorPairField_avg_inr {d : ℕ} {R : Type*} [Fintype R] (μ : Measure α)
+theorem integral_skVectorGaussianPairField_avg_inr {d : ℕ} {R : Type*} [Fintype R] (μ : Measure α)
     [IsProbabilityMeasure μ] (ξ : α → Fin d → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u))
     (β : ℝ) (ρ q q' : Fin d → Fin d → ℝ) (F : (R → α) → ℝ) (hF : Measurable F) :
-    ∫ ω, skVectorFieldAvg μ ξ β ρ q' F (fun x => skVectorPairField (Sum.inr x) ω)
-        ∂(skVectorPairLaw β q q') =
-      ∫ y, skVectorFieldAvg μ ξ β ρ q' F y ∂(skVectorGaussLaw β q') := by
-  have hm := measurable_skVectorFieldAvg μ ξ hξ β ρ q' F hF
-  have h1 := integral_skVectorPairField_snd β q q'
-    (fun z : EuclideanSpace ℝ (Fin d) => skVectorFieldAvg μ ξ β ρ q' F z.ofLp)
-  have h2 : ∫ y, skVectorFieldAvg μ ξ β ρ q' F y ∂(skVectorGaussLaw β q') =
-      ∫ z : EuclideanSpace ℝ (Fin d), skVectorFieldAvg μ ξ β ρ q' F z.ofLp
+    ∫ ω, skVectorFieldAverage μ ξ β ρ q' F (fun x => skVectorGaussianPairField (Sum.inr x) ω)
+        ∂(skVectorGaussianPairLaw β q q') =
+      ∫ y, skVectorFieldAverage μ ξ β ρ q' F y ∂(skVectorGaussianLaw β q') := by
+  have hm := measurable_skVectorFieldAverage μ ξ hξ β ρ q' F hF
+  have h1 := integral_skVectorGaussianPairField_snd β q q'
+    (fun z : EuclideanSpace ℝ (Fin d) => skVectorFieldAverage μ ξ β ρ q' F z.ofLp)
+  have h2 : ∫ y, skVectorFieldAverage μ ξ β ρ q' F y ∂(skVectorGaussianLaw β q') =
+      ∫ z : EuclideanSpace ℝ (Fin d), skVectorFieldAverage μ ξ β ρ q' F z.ofLp
         ∂(multivariateGaussian 0 (β ^ 2 • Matrix.of q')) := by
-    unfold skVectorGaussLaw
+    unfold skVectorGaussianLaw
     exact integral_map (by fun_prop) hm.aestronglyMeasurable
   rw [h2, ← h1]
   rfl
 
 /-- A bounded replica Gibbs average of the field model is bounded by the same constant. -/
-theorem abs_skVectorFieldAvg_le {d : ℕ} {R : Type*} [Fintype R] (μ : Measure α)
+theorem abs_skVectorFieldAverage_le {d : ℕ} {R : Type*} [Fintype R] (μ : Measure α)
     [IsProbabilityMeasure μ] (ξ : α → Fin d → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u))
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) (β : ℝ) (ρ q : Fin d → Fin d → ℝ) (y : Fin d → ℝ)
     (F : (R → α) → ℝ) {M : ℝ} (hFb : ∀ σ, |F σ| ≤ M) :
-    |skVectorFieldAvg μ ξ β ρ q F y| ≤ M := by
+    |skVectorFieldAverage μ ξ β ρ q F y| ≤ M := by
   have hprob : IsProbabilityMeasure (μ.tilted (skVectorFieldExponent ξ β ρ q y)) :=
     isProbabilityMeasure_tilted
-      (skVectorFieldExponent_integrable μ ξ hξ (Nat.cast_nonneg d) hbound β ρ q y)
-  unfold skVectorFieldAvg
+      (integrable_exp_skVectorFieldExponent μ ξ hξ (Nat.cast_nonneg d) hbound β ρ q y)
+  unfold skVectorFieldAverage
   rw [← Real.norm_eq_abs]
   have := norm_integral_le_of_norm_le_const
     (μ := Measure.pi fun _ : R => μ.tilted (skVectorFieldExponent ξ β ρ q y)) (f := F) (C := M)
@@ -109,20 +109,20 @@ theorem abs_skVectorFieldAvg_le {d : ℕ} {R : Type*} [Fintype R] (μ : Measure 
   simpa using this
 
 /-- **Linearity of the Gaussian average of replica Gibbs averages.** -/
-theorem integral_skVectorFieldAvg_sum {d : ℕ} {R κ : Type*} [Fintype R] [Fintype κ]
+theorem integral_skVectorFieldAverage_sum {d : ℕ} {R κ : Type*} [Fintype R] [Fintype κ]
     (μ : Measure α) [IsProbabilityMeasure μ] (ξ : α → Fin d → ℝ)
     (hξ : ∀ u, Measurable (fun a => ξ a u)) (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) (β : ℝ)
     (ρ q : Fin d → Fin d → ℝ) {P : Measure (Fin d → ℝ)} [IsProbabilityMeasure P]
     (G : κ → (R → α) → ℝ) (hG : ∀ i, Measurable (G i)) {M : ℝ} (hGb : ∀ i σ, |G i σ| ≤ M)
     (c : κ → ℝ) :
-    ∫ y, skVectorFieldAvg μ ξ β ρ q (fun σ => ∑ i, c i * G i σ) y ∂P =
-      ∑ i, c i * ∫ y, skVectorFieldAvg μ ξ β ρ q (G i) y ∂P := by
-  have hinner : ∀ y, skVectorFieldAvg μ ξ β ρ q (fun σ => ∑ i, c i * G i σ) y =
-      ∑ i, c i * skVectorFieldAvg μ ξ β ρ q (G i) y := fun y => by
+    ∫ y, skVectorFieldAverage μ ξ β ρ q (fun σ => ∑ i, c i * G i σ) y ∂P =
+      ∑ i, c i * ∫ y, skVectorFieldAverage μ ξ β ρ q (G i) y ∂P := by
+  have hinner : ∀ y, skVectorFieldAverage μ ξ β ρ q (fun σ => ∑ i, c i * G i σ) y =
+      ∑ i, c i * skVectorFieldAverage μ ξ β ρ q (G i) y := fun y => by
     have hprob : IsProbabilityMeasure (μ.tilted (skVectorFieldExponent ξ β ρ q y)) :=
       isProbabilityMeasure_tilted
-        (skVectorFieldExponent_integrable μ ξ hξ (Nat.cast_nonneg d) hbound β ρ q y)
-    unfold skVectorFieldAvg
+        (integrable_exp_skVectorFieldExponent μ ξ hξ (Nat.cast_nonneg d) hbound β ρ q y)
+    unfold skVectorFieldAverage
     rw [integral_finsetSum]
     · exact Finset.sum_congr rfl fun i _ => integral_const_mul _ _
     · exact fun i _ => (Integrable.of_bound (hG i).aestronglyMeasurable M
@@ -131,15 +131,15 @@ theorem integral_skVectorFieldAvg_sum {d : ℕ} {R κ : Type*} [Fintype R] [Fint
   rw [integral_finsetSum]
   · exact Finset.sum_congr rfl fun i _ => integral_const_mul _ _
   · exact fun i _ => (Integrable.of_bound
-      (measurable_skVectorFieldAvg μ ξ hξ β ρ q (G i) (hG i)).aestronglyMeasurable M
+      (measurable_skVectorFieldAverage μ ξ hξ β ρ q (G i) (hG i)).aestronglyMeasurable M
       (Filter.Eventually.of_forall fun y => by
-        simpa using abs_skVectorFieldAvg_le μ ξ hξ hbound β ρ q y (G i) (hGb i))).const_mul _
+        simpa using abs_skVectorFieldAverage_le μ ξ hξ hbound β ρ q y (G i) (hGb i))).const_mul _
 
 /-- **The Lipschitz estimate for one replica Gibbs average** (Frobenius form).  For two pairs of
 matrices with `q`, `q'` positive semidefinite and Frobenius distance at most `ε`, the Gaussian
 averages of the replica averages of a function `F` bounded by `M` differ by at most
 `18 β² M d ε`. -/
-theorem skVectorFieldAvg_lipschitz {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
+theorem abs_skVectorFieldAverage_sub_le {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
     (ξ : α → Fin d → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u))
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) (β : ℝ)
     {x x' : (Fin d → Fin d → ℝ) × (Fin d → Fin d → ℝ)} (hx : (Matrix.of x.1).PosSemidef)
@@ -147,17 +147,18 @@ theorem skVectorFieldAvg_lipschitz {d : ℕ} (μ : Measure α) [IsProbabilityMea
     (h1 : ∑ u, ∑ v, (x.1 u v - x'.1 u v) ^ 2 ≤ ε ^ 2)
     (h2 : ∑ u, ∑ v, (x.2 u v - x'.2 u v) ^ 2 ≤ ε ^ 2)
     (F : (Fin 2 → α) → ℝ) (hF : Measurable F) {M : ℝ} (hM : 0 ≤ M) (hFb : ∀ σ, |F σ| ≤ M) :
-    |(∫ y, skVectorFieldAvg μ ξ β x.2 x.1 F y ∂(skVectorGaussLaw β x.1)) -
-        ∫ y, skVectorFieldAvg μ ξ β x'.2 x'.1 F y ∂(skVectorGaussLaw β x'.1)| ≤
+    |(∫ y, skVectorFieldAverage μ ξ β x.2 x.1 F y ∂(skVectorGaussianLaw β x.1)) -
+        ∫ y, skVectorFieldAverage μ ξ β x'.2 x'.1 F y ∂(skVectorGaussianLaw β x'.1)| ≤
       18 * β ^ 2 * M * (d : ℝ) * ε := by
-  have h := skVectorField_path_lipschitz μ ξ hξ hbound β x.2 x.1 x'.2 x'.1 hε h2 h1 F hF hM hFb
-    (hasGaussianLaw_skVectorPairField β x.1 x'.1) (measurable_skVectorPairField)
-    (integral_skVectorPairField β x.1 x'.1)
-    (integral_skVectorPairField_inl_mul β x.1 x'.1 hx)
-    (integral_skVectorPairField_inr_mul β x.1 x'.1 hx')
-    (integral_skVectorPairField_inl_inr_mul β x.1 x'.1)
-  rw [integral_skVectorPairField_avg_inl μ ξ hξ β x.2 x.1 x'.1 F hF,
-    integral_skVectorPairField_avg_inr μ ξ hξ β x'.2 x.1 x'.1 F hF] at h
+  have h := abs_skVectorFieldAverage_interpolation_sub_le μ ξ hξ hbound β x.2 x.1 x'.2 x'.1 hε h2
+    h1 F hF hM hFb
+    (hasGaussianLaw_skVectorGaussianPairField β x.1 x'.1) (measurable_skVectorGaussianPairField)
+    (integral_skVectorGaussianPairField β x.1 x'.1)
+    (integral_skVectorGaussianPairField_inl_mul β x.1 x'.1 hx)
+    (integral_skVectorGaussianPairField_inr_mul β x.1 x'.1 hx')
+    (integral_skVectorGaussianPairField_inl_inr_mul β x.1 x'.1)
+  rw [integral_skVectorGaussianPairField_avg_inl μ ξ hξ β x.2 x.1 x'.1 F hF,
+    integral_skVectorGaussianPairField_avg_inr μ ξ hξ β x'.2 x.1 x'.1 F hF] at h
   simp only [Fintype.card_fin] at h
   refine h.trans (le_of_eq ?_)
   push_cast
@@ -167,7 +168,7 @@ theorem skVectorFieldAvg_lipschitz {d : ℕ} (μ : Measure α) [IsProbabilityMea
 `a bᵀ` with `‖a‖², ‖b‖² ≤ d` for every pair of spins `σ`, then the matrix of Gaussian averages of
 the replica averages of `W σ u v` moves by at most `18 β² d² ε` in Frobenius norm when the
 pair `(q, ρ)` moves by at most `ε` in Frobenius norm. -/
-theorem sum_sq_skVectorFieldAvg_sub_le {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
+theorem sum_sq_skVectorFieldAverage_sub_le {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
     (ξ : α → Fin d → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u))
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) (β : ℝ)
     {x x' : (Fin d → Fin d → ℝ) × (Fin d → Fin d → ℝ)} (hx : (Matrix.of x.1).PosSemidef)
@@ -178,14 +179,15 @@ theorem sum_sq_skVectorFieldAvg_sub_le {d : ℕ} (μ : Measure α) [IsProbabilit
     (hW : ∀ σ, ∃ a b : Fin d → ℝ, ∑ u, a u ^ 2 ≤ d ∧ ∑ v, b v ^ 2 ≤ d ∧
       ∀ u v, W σ u v = a u * b v)
     (hWb : ∀ σ u v, |W σ u v| ≤ d) :
-    ∑ u, ∑ v, ((∫ y, skVectorFieldAvg μ ξ β x.2 x.1 (fun σ => W σ u v) y
-        ∂(skVectorGaussLaw β x.1)) - ∫ y, skVectorFieldAvg μ ξ β x'.2 x'.1 (fun σ => W σ u v) y
-        ∂(skVectorGaussLaw β x'.1)) ^ 2 ≤ (18 * β ^ 2 * (d : ℝ) ^ 2 * ε) ^ 2 := by
+    ∑ u, ∑ v, ((∫ y, skVectorFieldAverage μ ξ β x.2 x.1 (fun σ => W σ u v) y
+        ∂(skVectorGaussianLaw β x.1)) - ∫ y, skVectorFieldAverage μ ξ β x'.2 x'.1 (fun σ => W σ u
+          v) y
+        ∂(skVectorGaussianLaw β x'.1)) ^ 2 ≤ (18 * β ^ 2 * (d : ℝ) ^ 2 * ε) ^ 2 := by
   classical
   have hd : 0 ≤ (d : ℝ) := Nat.cast_nonneg d
   set D : Fin d → Fin d → ℝ := fun u v =>
-    (∫ y, skVectorFieldAvg μ ξ β x.2 x.1 (fun σ => W σ u v) y ∂(skVectorGaussLaw β x.1)) -
-      ∫ y, skVectorFieldAvg μ ξ β x'.2 x'.1 (fun σ => W σ u v) y ∂(skVectorGaussLaw β x'.1)
+    (∫ y, skVectorFieldAverage μ ξ β x.2 x.1 (fun σ => W σ u v) y ∂(skVectorGaussianLaw β x.1)) -
+      ∫ y, skVectorFieldAverage μ ξ β x'.2 x'.1 (fun σ => W σ u v) y ∂(skVectorGaussianLaw β x'.1)
     with hD
   change ∑ u, ∑ v, D u v ^ 2 ≤ _
   set S : ℝ := ∑ u, ∑ v, D u v ^ 2 with hS
@@ -204,21 +206,22 @@ theorem sum_sq_skVectorFieldAvg_sub_le {d : ℕ} (μ : Measure α) [IsProbabilit
       (Real.sqrt_nonneg _) (by rw [hsS]) (by rw [hsd]; exact ha) (by rw [hsd]; exact hb)
     calc _ ≤ Real.sqrt S * Real.sqrt d * Real.sqrt d := this
       _ = Real.sqrt S * d := by rw [mul_assoc, Real.mul_self_sqrt hd]
-  have key := skVectorFieldAvg_lipschitz μ ξ hξ hbound β hx hx' hε h1 h2 F hFm
+  have key := abs_skVectorFieldAverage_sub_le μ ξ hξ hbound β hx hx' hε h1 h2 F hFm
     (mul_nonneg (Real.sqrt_nonneg S) hd) hFb
   have lin : ∀ (y' : (Fin d → Fin d → ℝ) × (Fin d → Fin d → ℝ)),
-      ∫ y, skVectorFieldAvg μ ξ β y'.2 y'.1 F y ∂(skVectorGaussLaw β y'.1) =
-        ∑ j : Fin d × Fin d, D j.1 j.2 * ∫ y, skVectorFieldAvg μ ξ β y'.2 y'.1
-          (fun σ => W σ j.1 j.2) y ∂(skVectorGaussLaw β y'.1) := fun y' => by
-    have := isGaussian_skVectorGaussLaw β y'.1
-    exact integral_skVectorFieldAvg_sum μ ξ hξ hbound β y'.2 y'.1
+      ∫ y, skVectorFieldAverage μ ξ β y'.2 y'.1 F y ∂(skVectorGaussianLaw β y'.1) =
+        ∑ j : Fin d × Fin d, D j.1 j.2 * ∫ y, skVectorFieldAverage μ ξ β y'.2 y'.1
+          (fun σ => W σ j.1 j.2) y ∂(skVectorGaussianLaw β y'.1) := fun y' => by
+    have := isGaussian_skVectorGaussianLaw β y'.1
+    exact integral_skVectorFieldAverage_sum μ ξ hξ hbound β y'.2 y'.1
       (G := fun (j : Fin d × Fin d) σ => W σ j.1 j.2)
       (fun j => hWm j.1 j.2) (M := d) (fun j σ => hWb σ j.1 j.2)
       (fun (j : Fin d × Fin d) => D j.1 j.2)
   rw [lin x, lin x', ← Finset.sum_sub_distrib] at key
-  have hSeq : ∑ j : Fin d × Fin d, (D j.1 j.2 * ∫ y, skVectorFieldAvg μ ξ β x.2 x.1
-      (fun σ => W σ j.1 j.2) y ∂(skVectorGaussLaw β x.1) - D j.1 j.2 * ∫ y, skVectorFieldAvg μ ξ β
-      x'.2 x'.1 (fun σ => W σ j.1 j.2) y ∂(skVectorGaussLaw β x'.1)) = S := by
+  have hSeq : ∑ j : Fin d × Fin d, (D j.1 j.2 * ∫ y, skVectorFieldAverage μ ξ β x.2 x.1
+      (fun σ => W σ j.1 j.2) y ∂(skVectorGaussianLaw β x.1) - D j.1 j.2 * ∫ y,
+        skVectorFieldAverage μ ξ β
+      x'.2 x'.1 (fun σ => W σ j.1 j.2) y ∂(skVectorGaussianLaw β x'.1)) = S := by
     rw [hS, Fintype.sum_prod_type]
     refine Finset.sum_congr rfl fun u _ => Finset.sum_congr rfl fun v _ => ?_
     simp only [hD]; ring
@@ -237,15 +240,15 @@ theorem sum_sq_skVectorFieldAvg_sub_le {d : ℕ} (μ : Measure α) [IsProbabilit
 /-- **The Lipschitz estimate for the right-hand sides of (1.372)--(1.373)** (entrywise form).
 For two pairs of matrices with `q`, `q'` positive semidefinite and entrywise distance at most
 `δ`, the entries of `T(q, ρ)` and `T(q', ρ')` differ by at most `18 β² d³ δ`. -/
-theorem skVectorFixedMap_lipschitz {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
+theorem abs_skVectorFixedPointMap_apply_sub_le {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
     (ξ : α → Fin d → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u))
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) (β : ℝ)
     {x x' : (Fin d → Fin d → ℝ) × (Fin d → Fin d → ℝ)} (hx : (Matrix.of x.1).PosSemidef)
     (hx' : (Matrix.of x'.1).PosSemidef) {δ : ℝ} (h1 : ∀ u v, |x.1 u v - x'.1 u v| ≤ δ)
     (h2 : ∀ u v, |x.2 u v - x'.2 u v| ≤ δ) (u v : Fin d) :
-    |(skVectorFixedMap μ ξ β x).1 u v - (skVectorFixedMap μ ξ β x').1 u v| ≤
+    |(skVectorFixedPointMap μ ξ β x).1 u v - (skVectorFixedPointMap μ ξ β x').1 u v| ≤
         18 * β ^ 2 * (d : ℝ) ^ 3 * δ ∧
-      |(skVectorFixedMap μ ξ β x).2 u v - (skVectorFixedMap μ ξ β x').2 u v| ≤
+      |(skVectorFixedPointMap μ ξ β x).2 u v - (skVectorFixedPointMap μ ξ β x').2 u v| ≤
         18 * β ^ 2 * (d : ℝ) ^ 3 * δ := by
   have hd : 0 ≤ (d : ℝ) := Nat.cast_nonneg d
   have hδ : 0 ≤ δ := (abs_nonneg _).trans (h1 u v)
@@ -271,12 +274,12 @@ theorem skVectorFixedMap_lipschitz {d : ℕ} (μ : Measure α) [IsProbabilityMea
     rw [← h4]
     exact abs_le_of_sq_le_sq' (h3.trans hM) (by positivity) |> fun h => abs_le.2 h
   refine ⟨?_, ?_⟩
-  · exact hent _ (sum_sq_skVectorFieldAvg_sub_le μ ξ hξ hbound β hx hx' hε hs1 hs2
+  · exact hent _ (sum_sq_skVectorFieldAverage_sub_le μ ξ hξ hbound β hx hx' hε hs1 hs2
       (fun σ u v => ξ (σ 0) u * ξ (σ 1) v)
       (fun u v => ((hξ u).comp (measurable_pi_apply 0)).mul ((hξ v).comp (measurable_pi_apply 1)))
       (fun σ => ⟨ξ (σ 0), ξ (σ 1), hbound _, hbound _, fun _ _ => rfl⟩)
       (fun σ u v => abs_spin_mul_le ξ hd hbound (σ 0) (σ 1) u v))
-  · exact hent _ (sum_sq_skVectorFieldAvg_sub_le μ ξ hξ hbound β hx hx' hε hs1 hs2
+  · exact hent _ (sum_sq_skVectorFieldAverage_sub_le μ ξ hξ hbound β hx hx' hε hs1 hs2
       (fun σ u v => ξ (σ 0) u * ξ (σ 0) v)
       (fun u v => ((hξ u).comp (measurable_pi_apply 0)).mul ((hξ v).comp (measurable_pi_apply 0)))
       (fun σ => ⟨ξ (σ 0), ξ (σ 0), hbound _, hbound _, fun _ _ => rfl⟩)

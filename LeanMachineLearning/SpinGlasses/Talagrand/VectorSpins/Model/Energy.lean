@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.SKVectorGeometry
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Geometry
 public import
   LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKReplicaSymmetricBound
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiLinearForm
@@ -203,7 +203,8 @@ theorem integrable_exp_skVectorEnergy {α D : Type*} [MeasurableSpace α] [Finty
 
 /-- Gibbs normalization for any probability law on bounded vector spins, using the
 existing tilted-measure construction rather than a new model-specific Gibbs definition. -/
-theorem isProbabilityMeasure_skVectorGibbs {α D : Type*} [MeasurableSpace α] [Fintype D]
+theorem isProbabilityMeasure_tilted_skVectorEnergy_of_sum_sq_le {α D : Type*} [MeasurableSpace α]
+  [Fintype D]
     (μ : Measure α) [IsProbabilityMeasure μ] (ξ : α → D → ℝ)
     (hξ : ∀ u, Measurable (fun a => ξ a u)) (r : ℝ) (hr : 0 ≤ r)
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ r) (N : ℕ) (β : ℝ) (g : FinPairs N → ℝ) :
