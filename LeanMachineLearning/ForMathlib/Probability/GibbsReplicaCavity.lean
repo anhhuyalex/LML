@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.ForMathlib.Probability.GibbsCavityPath
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaProduct
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.BoundedTilted
 
 /-!
 # The cavity derivative for a replica Gibbs average
@@ -40,10 +41,8 @@ measurable. -/
 theorem isProbabilityMeasure_tilted_of_bound {α : Type*} [MeasurableSpace α] {μ : Measure α}
     [IsFiniteMeasure μ] [NeZero μ] {g : α → ℝ} (hg : Measurable g) {Eb : ℝ}
     (hb : ∀ a, |g a| ≤ Eb) : IsProbabilityMeasure (μ.tilted g) :=
-  isProbabilityMeasure_tilted (integrable_of_measurable_bound
-    (Real.measurable_exp.comp hg) (M := Real.exp Eb) fun a => by
-      rw [abs_of_pos (Real.exp_pos _)]
-      exact Real.exp_le_exp.2 ((le_abs_self _).trans (hb a)))
+  isProbabilityMeasure_tilted_of_ae_le hg.aemeasurable
+    (Filter.Eventually.of_forall fun a => (le_abs_self _).trans (hb a))
 
 variable {α K Ks R : Type*} [MeasurableSpace α] [Fintype K] [Fintype Ks] [Fintype R]
   {μ : Measure α} [IsFiniteMeasure μ] [NeZero μ]

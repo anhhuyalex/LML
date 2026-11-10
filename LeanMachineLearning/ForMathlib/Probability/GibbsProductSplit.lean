@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaProduct
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.BoundedTilted
 
 /-!
 # A Gibbs measure whose energy splits over the last site is a product
@@ -34,9 +35,8 @@ theorem measurePreserving_piFinSuccLast (μ : Measure α) [IsProbabilityMeasure 
 theorem integrable_exp_of_abs_le {β : Type*} [MeasurableSpace β] {ν : Measure β}
     [IsFiniteMeasure ν] {E : β → ℝ} (hE : Measurable E) {b : ℝ} (hb : ∀ x, |E x| ≤ b) :
     Integrable (fun x => Real.exp (E x)) ν :=
-  integrable_of_measurable_bound (Real.measurable_exp.comp hE) (M := Real.exp b) fun x => by
-    rw [abs_of_pos (Real.exp_pos _)]
-    exact Real.exp_le_exp.2 ((le_abs_self _).trans (hb x))
+  integrable_exp_of_ae_le hE.aemeasurable
+    (Filter.Eventually.of_forall fun x => (le_abs_self _).trans (hb x))
 
 /-- Splitting off the last site of an i.i.d. configuration. -/
 theorem integral_pi_succ_last (μ : Measure α) [IsProbabilityMeasure μ]

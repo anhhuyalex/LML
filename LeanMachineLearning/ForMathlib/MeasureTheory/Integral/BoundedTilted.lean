@@ -33,6 +33,13 @@ theorem integrable_exp_of_ae_le [IsFiniteMeasure μ] (hf : AEMeasurable f μ)
   rw [Real.norm_of_nonneg (Real.exp_pos _).le]
   exact Real.exp_le_exp.mpr ha
 
+/-- An almost everywhere upper bound on an energy makes its exponential tilt a
+probability measure whenever the base measure is nonzero and finite. -/
+theorem isProbabilityMeasure_tilted_of_ae_le [IsFiniteMeasure μ] [NeZero μ]
+    (hf : AEMeasurable f μ) (hbound : ∀ᵐ a ∂μ, f a ≤ C) :
+    IsProbabilityMeasure (μ.tilted f) :=
+  isProbabilityMeasure_tilted (integrable_exp_of_ae_le hf hbound)
+
 /-- The logarithmic partition function of a bounded energy on a probability space is
 bounded by the same constant. This applies to continuous and singular base laws alike. -/
 theorem abs_log_integral_exp_le_of_ae_abs_le [IsProbabilityMeasure μ]

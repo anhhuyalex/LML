@@ -37,4 +37,18 @@ theorem integrable_integral_of_bound {Ω α E : Type*} [MeasurableSpace Ω] [Mea
     ((integral_mono_of_nonneg (ae_of_all _ fun x => norm_nonneg (f x))
       (integrable_const C) (ae_of_all _ hC)).trans (by simp))
 
+/-- A finite sum can be moved through an inner integral against a measure that depends on the
+outer variable, then through the outer integral. Only integrability of the summands is needed. -/
+theorem integral_integral_finset_sum {Ω α ι : Type*} [MeasurableSpace Ω] [MeasurableSpace α]
+    (P : Measure Ω) (κ : Ω → Measure α) (s : Finset ι) (f : ι → α → ℝ)
+    (hinner : ∀ i ∈ s, ∀ ω, Integrable (f i) (κ ω))
+    (houter : ∀ i ∈ s, Integrable (fun ω => ∫ x, f i x ∂κ ω) P) :
+    ∫ ω, ∫ x, ∑ i ∈ s, f i x ∂κ ω ∂P =
+      ∑ i ∈ s, ∫ ω, ∫ x, f i x ∂κ ω ∂P := by
+  have h (ω : Ω) : ∫ x, ∑ i ∈ s, f i x ∂κ ω =
+      ∑ i ∈ s, ∫ x, f i x ∂κ ω :=
+    integral_finsetSum s fun i hi => hinner i hi ω
+  simp_rw [h]
+  exact integral_finsetSum s houter
+
 end MeasureTheory
