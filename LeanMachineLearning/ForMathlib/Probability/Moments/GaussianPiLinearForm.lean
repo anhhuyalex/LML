@@ -18,7 +18,8 @@ For `g` with i.i.d. `𝒩(0, 1)` coordinates indexed by a finite type `κ`
 covariance `𝔼[(a ⬝ᵥ g)(b ⬝ᵥ g)] = a ⬝ᵥ b`.  This is the covariance of `stdGaussian`
 (`covarianceBilin_stdGaussian`) transported along
 `pi_gaussianReal_eq_map_stdGaussian`.  It is the Gaussian-field covariance used for the pure
-`p`-spin Hamiltonians of `SpinGlasses/Panchenko/Foundations/MixedPSpin.lean`, with `κ = (Fin p → ι)`.
+`p`-spin Hamiltonians of `SpinGlasses/Panchenko/Foundations/MixedPSpin.lean`,
+with `κ = (Fin p → ι)`.
 -/
 
 @[expose] public section
@@ -79,6 +80,22 @@ theorem integrable_dotProduct_mul_dotProduct_pi_gaussianReal (a b : κ → ℝ) 
     Integrable (fun g : κ → ℝ => (a ⬝ᵥ g) * (b ⬝ᵥ g))
       (Measure.pi fun _ : κ => gaussianReal 0 1) :=
   (memLp_dotProduct_pi_gaussianReal a).integrable_mul (memLp_dotProduct_pi_gaussianReal b)
+
+/-- Covariance of individual coordinates of i.i.d. standard Gaussians: `1` if `p = p'`,
+`0` otherwise. -/
+theorem integral_pi_gaussianReal_coord_mul [DecidableEq κ] (p p' : κ) :
+    ∫ g : κ → ℝ, g p * g p' ∂(Measure.pi fun _ : κ => gaussianReal 0 1) =
+      if p = p' then 1 else 0 := by
+  have := integral_dotProduct_mul_dotProduct_pi_gaussianReal (Pi.single p (1 : ℝ))
+    (Pi.single p' (1 : ℝ))
+  simpa [dotProduct_single, single_dotProduct, Pi.single_apply, eq_comm] using this
+
+/-- Individual coordinates of i.i.d. standard Gaussians are centered. -/
+theorem integral_pi_gaussianReal_coord (p : κ) :
+    ∫ g : κ → ℝ, g p ∂(Measure.pi fun _ : κ => gaussianReal 0 1) = 0 := by
+  classical
+  have := integral_dotProduct_pi_gaussianReal (Pi.single p (1 : ℝ))
+  simpa [single_dotProduct] using this
 
 end ProbabilityTheory
 

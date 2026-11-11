@@ -52,21 +52,6 @@ theorem finPairsSplit_injective (N : ℕ) : Function.Injective (finPairsSplit N)
     simp only [Prod.mk.injEq, Fin.castSucc_inj] at this
     exact congrArg Sum.inr this.1
 
-/-- Covariance of the i.i.d. standard Gaussian couplings. -/
-theorem integral_pi_gaussianReal_coord_mul {κ : Type*} [Fintype κ] [DecidableEq κ] (p p' : κ) :
-    ∫ g : κ → ℝ, g p * g p' ∂(Measure.pi fun _ : κ => gaussianReal 0 1) =
-      if p = p' then 1 else 0 := by
-  have := integral_dotProduct_mul_dotProduct_pi_gaussianReal (Pi.single p (1 : ℝ))
-    (Pi.single p' (1 : ℝ))
-  simpa [dotProduct_single, single_dotProduct, Pi.single_apply, eq_comm] using this
-
-/-- The i.i.d. standard Gaussian couplings are centered. -/
-theorem integral_pi_gaussianReal_coord {κ : Type*} [Fintype κ] (p : κ) :
-    ∫ g : κ → ℝ, g p ∂(Measure.pi fun _ : κ => gaussianReal 0 1) = 0 := by
-  have := integral_pi_eval (gaussianReal 0 1) (J := κ) p (fun x : ℝ => x)
-    aestronglyMeasurable_id
-  simpa using this
-
 /-- The Gaussian field of covariance `β² q` is centered. -/
 theorem integral_skVectorGaussianLaw_coord {d : ℕ} (β : ℝ) (Q : Fin d → Fin d → ℝ) (u : Fin d) :
     ∫ y, y u ∂(skVectorGaussianLaw β Q) = 0 := by

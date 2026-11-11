@@ -1,0 +1,49 @@
+\chapter{Mini chapter on $\mathbb{R}$}\label{chap:mini}
+
+Intro with ``quotes'', an accent H\"older and a ref to Theorem~\ref{thm:mini:a}.
+
+\section{First section}\label{sec:mini:first}
+
+\begin{theorem}[A title with $x^2$]\label{thm:mini:a}
+  \lean{Nat.add_comm, Nat.mul_comm}
+  \leanok
+\talsource{Theorem~1.2.3, Eq.~(1.4)}
+Let $n\in\mathbb N$. Then
+\[
+  \sum_{i<n} i = \frac{n(n-1)}{2}, \qquad \text{see Lemma~\ref{lem:mini:b}.}
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+  \uses{lem:mini:b}
+By induction. Here is a matrix $B=\begin{psmallmatrix}1&1\\1&1\end{psmallmatrix}$.
+\end{proof}
+
+\subsection{Second level}\label{sec:mini:second}
+
+\begin{lemma}\label{lem:mini:b}
+  \lean{Nat.add_zero}
+\talsource{Lemma~1.2.3}
+A list:
+\begin{itemize}
+\item first with \emph{emphasis} and \texttt{Fin 2 $\to$ Nat},
+\item second, nested:
+  \begin{enumerate}
+  \item inner one,
+  \item inner two, see Section~\ref{sec:mini:second}.
+  \end{enumerate}
+\end{itemize}
+\end{lemma}
+
+\begin{remark}
+\paragraph{Run-in.} Text after a run-in head, an external \ref{thm:other:x}, and 50\% of $a_{ij}$.
+\begin{itemize}
+\item[A.] labelled item
+\item[B.] another
+\end{itemize}
+$$\Big|x\Big| \le 1,$$
+\begin{align*}
+a &= b \\
+c &= d
+\end{align*}
+\end{remark}

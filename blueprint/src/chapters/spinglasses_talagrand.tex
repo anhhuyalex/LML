@@ -9678,7 +9678,7 @@ Apply Theorem~\ref{thm:sg-tal:log-partition-cavity} with $s_k(r)=r$, $c(r)=r^2/2
 \end{proof}
 
 \begin{theorem}[Lemma~1.12.6: stationarity of the replica-symmetric functional]\label{thm:sg-tal:vector-stationarity}
-\lean{SpinGlasses.skVectorSegmentExponent, SpinGlasses.gibbs_ratio_sum_sum, SpinGlasses.hasDerivAt_skVectorGaussianFreeEnergy_rho, SpinGlasses.hasDerivAt_skVectorSegment, SpinGlasses.hasDerivAt_skVectorPressure_rho, SpinGlasses.hasDerivAt_skVectorPressure_segment, SpinGlasses.hasDerivAt_skVectorPressure_segment_eq_zero}
+\lean{SpinGlasses.gibbs_ratio_sum_sum, SpinGlasses.hasDerivAt_skVectorGaussianFreeEnergy_rho, SpinGlasses.hasDerivAt_skVectorSegment, SpinGlasses.hasDerivAt_skVectorPressure_rho, SpinGlasses.hasDerivAt_skVectorPressure_segment, SpinGlasses.hasDerivAt_skVectorPressure_segment_eq_zero}
 \leanok
 \uses{thm:sg-tal:log-partition-cavity, thm:sg-tal:vector-free-energy-beta}
 \talsource{Lemma~1.12.6, Eqs.~(1.386)--(1.391)}
@@ -9846,7 +9846,7 @@ The map $T(q,\rho)=(\mathbb E\langle\xi_u\rangle\langle\xi_v\rangle,\mathbb E\la
 \end{proof}
 
 \begin{theorem}[Theorem~1.12.1 on the concrete model]\label{thm:sg-tal:vector-overlap-concrete}
-\lean{SpinGlasses.finPairsSplit, SpinGlasses.finPairsSplit_injective, SpinGlasses.integral_pi_gaussianReal_coord_mul, SpinGlasses.integral_pi_gaussianReal_coord, SpinGlasses.integral_skVectorGaussianLaw_coord, SpinGlasses.integral_skVectorGaussianLaw_mul, SpinGlasses.isGaussian_skVectorGaussianLaw, SpinGlasses.skVectorDisorderLaw, SpinGlasses.skVectorCavityGaussianData_disorderLaw, SpinGlasses.exists_fixedPoint_sum_overlap_variances_le}
+\lean{SpinGlasses.finPairsSplit, SpinGlasses.finPairsSplit_injective, ProbabilityTheory.integral_pi_gaussianReal_coord_mul, ProbabilityTheory.integral_pi_gaussianReal_coord, SpinGlasses.integral_skVectorGaussianLaw_coord, SpinGlasses.integral_skVectorGaussianLaw_mul, SpinGlasses.isGaussian_skVectorGaussianLaw, SpinGlasses.skVectorDisorderLaw, SpinGlasses.skVectorCavityGaussianData_disorderLaw, SpinGlasses.exists_fixedPoint_sum_overlap_variances_le}
 \leanok
 \uses{thm:sg-tal:vector-overlap-concentration, thm:sg-tal:vector-fixed-point-exists}
 \talsource{Theorem~1.12.1 together with the existence part of Theorem~1.12.2}
@@ -10163,6 +10163,65 @@ $\mu=\delta_0$ gives $q=\rho=0$. Admissible covariance-segment stationarity and 
 parameter estimates used to differentiate the pressure are proved above.
 A signed-temperature extension would require $|\beta|d$ or $\beta^2d^2$ in the
 smallness hypothesis and a separate Gaussian sign-symmetry argument.
+\end{remark}
+
+\begin{remark}[Formalization hypotheses and comparison with the text]\label{rem:sg-tal:vector-hypotheses}
+\talsource{Section~1.12; Theorems~1.12.1--1.12.3}
+A number of formulation details in the Lean formalization differ slightly in presentation,
+though not in mathematical content, from the text of Section~1.12:
+\begin{enumerate}
+\item \emph{Singular covariance matrices $q$.} The book writes covariance matrices without
+explicitly considering whether $q$ is invertible. In Lean, the cone $\mathcal C$ requires only
+positive semidefiniteness $q\succeq0$ and $\rho-q\succeq0$; no strict positivity or non-degeneracy
+is required. For instance, when $\mu=\delta_0$, the unique fixed point is the singular pair
+$q=0, \rho=0$. Admissible directions at the boundary of the cone are handled via straight-line
+segments $q(t)=tq_1+(1-t)q_0$ to other covariance matrices, keeping all intermediate matrices
+positive semidefinite without ever exiting the cone or requiring full rank.
+\item \emph{Explicit constant $L = 15$.} The text states high-temperature conditions in the form
+$L\beta d\le1$ for an unspecified numerical constant $L$. In the formalization, the explicit
+constant $L=15$ is verified: it ensures both the contraction factor $18\beta^2d^2\le 18/225<1$
+for fixed-point existence and uniqueness, and the cavity derivative bound $\beta^2d^2\le 1/225\le 1/200$
+for overlap concentration.
+\item \emph{Cavity path on the open interval $0<t<1$.} Differentiability along the cavity
+interpolation path $\nu_t(f)$ and the covariance segment $q(t)$ is established for interior points
+$t\in(0,1)$ where the coefficients $\sqrt t$ and $\sqrt{1-t}$ have standard real derivatives.
+Continuity on the closed interval $[0,1]$ connects the interior derivative bounds to the endpoints
+$t=0$ and $t=1$ via the mean value theorem.
+\item \emph{Bounded measurable test functions $F$.} Rather than assuming smoothness or polynomial
+growth, test functions and observables are formalized for bounded measurable functions, which
+suffices for all replica overlaps and guarantees Bochner integrability against the tilted Gibbs
+measures without moment growth assumptions.
+\end{enumerate}
+\end{remark}
+
+\begin{remark}[Bibliographic remarks on exercises and research problems of Section~1.12]\label{rem:sg-tal:vector-exercises-problems}
+\talsource{Section~1.12, source lines 5578, 5678--5711}
+The exercises and research problems in Section~1.12 highlight open directions, alternative proofs,
+and coupled systems beyond the core formalized theorems:
+\begin{enumerate}
+\item \emph{Research Problem~1.12.7 (Structure of stationarity).} The fact that the
+replica-symmetric equations (1.372)--(1.373) characterize the critical points of the
+replica-symmetric functional $\Phi(q,\rho)$ (Lemma~1.12.6) reflects the variational structure
+of the Parisi formula in the vector setting. In the scalar case this is the TAP free-energy
+landscape; for vector spins, it shows that the free energy is a saddle-point value over the
+positive semidefinite cone.
+\item \emph{Exercise~1.12.8 (Alternative proof of Eq.~(1.393)).} Equation~(1.393) computes
+the $\beta$-derivative of the replica-symmetric free energy at a fixed point. The exercise asks
+for an alternative proof using Gaussian interpolation (Proposition~1.3.2) as in Lemma~1.12.6;
+in our formalization, this path is realized through the general log-partition derivative
+\texttt{hasDerivAt\_skVectorGaussianFreeEnergy}.
+\item \emph{Exercise~1.12.9 (Interpolation proof of Theorem~1.12.3).} The exercise asks to prove
+Theorem~1.12.3 directly by interpolating between the $N$-spin system and the decoupled single-spin
+cavity state in the spirit of Eq.~(1.108), rather than integrating the $\beta$-derivative. The cavity
+derivative bounds in Corollary~1.12.5 provide the exact ingredients needed for this alternative approach.
+\item \emph{Research Problems~1.12.10 and~1.12.11 (Coupled systems and general temperature).}
+Problem~1.12.10 investigates the cavity method for the coupled Hamiltonian with parameter $\lambda$,
+where two systems share the disorder, while Problem~1.12.11 asks whether near-constancy of overlaps
+extends to all temperatures for large $N$. Our formalization covers the high-temperature concentration
+and coupled log-ratio estimates (Theorems~\ref{thm:sg-tal:vector-coupled}
+and~\ref{thm:sg-tal:vector-coupled-ratio-concentration}), leaving the low-temperature behavior open as
+in the book.
+\end{enumerate}
 \end{remark}
 
 \section{The replica computation of $\mathbb E Z_N^n$ (Talagrand Section~1.13)}\label{sec:sg-tal:replica}

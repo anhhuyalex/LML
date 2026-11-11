@@ -13,7 +13,7 @@ from tex2typ.parser import Parser
 
 HERE = Path(__file__).parent
 BOOK = HERE.parent
-FIXTURE = HERE / "fixtures" / "mini.tex"
+FIXTURE = HERE / "samples" / "mini.tex"
 CHAPTER = BOOK.parent.parent / "blueprint" / "src" / "chapters" / "spinglasses_talagrand.tex"
 TYPST = shutil.which("typst")
 

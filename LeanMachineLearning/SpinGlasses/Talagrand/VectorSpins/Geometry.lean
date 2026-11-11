@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.MulTranspose
 public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.MeasureTheory.Constructions.BorelSpace.Real
 public import Mathlib.Tactic.Positivity
 public import Mathlib.Tactic.Linarith
 public import Mathlib.Tactic.Ring
@@ -26,12 +27,12 @@ open scoped BigOperators Matrix
 namespace SpinGlasses
 
 /-- The cross-overlap matrix has squared Frobenius norm bounded by the product of the
-squared spin radii. The normalization may have mass less than one, as for cavity overlaps. -/
+squared spin radii. The normalization factor `c` scales the bound quadratically. -/
 theorem sum_sq_vector_overlap_le {I U V : Type*} [Fintype I] [Fintype U] [Fintype V]
     (σ : I → U → ℝ) (τ : I → V → ℝ) (c A B : ℝ)
-    (hc : 0 ≤ c) (hmass : c * Fintype.card I ≤ 1) (hA : 0 ≤ A) (hB : 0 ≤ B)
+    (hA : 0 ≤ A)
     (hσ : ∀ i, ∑ u, σ i u ^ 2 ≤ A) (hτ : ∀ i, ∑ v, τ i v ^ 2 ≤ B) :
-    (∑ u, ∑ v, (c * ∑ i, σ i u * τ i v) ^ 2) ≤ A * B := by
+    (∑ u, ∑ v, (c * ∑ i, σ i u * τ i v) ^ 2) ≤ (c * Fintype.card I) ^ 2 * (A * B) := by
   have hcross := Matrix.sum_sq_mul_transpose_le_sum_sq_mul_sum_sq
     (fun u i => σ i u) (fun v i => τ i v)
   have hσsum : (∑ u, ∑ i, σ i u ^ 2) ≤ Fintype.card I * A := by
@@ -40,7 +41,6 @@ theorem sum_sq_vector_overlap_le {I U V : Type*} [Fintype I] [Fintype U] [Fintyp
   have hτsum : (∑ v, ∑ i, τ i v ^ 2) ≤ Fintype.card I * B := by
     rw [sum_comm]
     exact (sum_le_sum fun i _ => hτ i).trans_eq (by simp)
-  have hmass0 : 0 ≤ c * Fintype.card I := mul_nonneg hc (Nat.cast_nonneg _)
   calc
     _ = c ^ 2 * ∑ u, ∑ v, (∑ i, σ i u * τ i v) ^ 2 := by
       simp_rw [mul_pow]
@@ -53,8 +53,6 @@ theorem sum_sq_vector_overlap_le {I U V : Type*} [Fintype I] [Fintype U] [Fintyp
           (sum_nonneg fun _ _ => sum_nonneg fun _ _ => sq_nonneg _)
           (mul_nonneg (Nat.cast_nonneg _) hA)) (sq_nonneg c)
     _ = (c * Fintype.card I) ^ 2 * (A * B) := by ring
-    _ ≤ 1 ^ 2 * (A * B) := by gcongr
-    _ = _ := by ring
 
 /-- The sharp dimension factor in the pointwise estimate behind Corollary 1.12.5.
 No positivity or symmetry assumption on the error matrix is required. -/
@@ -78,8 +76,13 @@ theorem sum_sq_sk_vector_overlap_le (N d : ℕ) (σ τ : Fin N → Fin d → ℝ
     by_cases hN : N = 0
     · simp [hN]
     · rw [inv_mul_cancel₀ (by exact_mod_cast hN)]
-  simpa only [sq] using sum_sq_vector_overlap_le σ τ (N : ℝ)⁻¹ d d
-    (inv_nonneg.mpr (Nat.cast_nonneg _)) hmass (Nat.cast_nonneg _) (Nat.cast_nonneg _) hσ hτ
+  have h := sum_sq_vector_overlap_le σ τ (N : ℝ)⁻¹ d d (Nat.cast_nonneg _) hσ hτ
+  refine h.trans ?_
+  calc ((N : ℝ)⁻¹ * Fintype.card (Fin N)) ^ 2 * ((d : ℝ) * d)
+      ≤ 1 ^ 2 * ((d : ℝ) * d) := by
+        have : 0 ≤ (N : ℝ)⁻¹ * Fintype.card (Fin N) := by positivity
+        gcongr
+    _ = (d : ℝ) ^ 2 := by ring
 
 /-- Cavity overlaps have the same Frobenius bound despite omitting the last spin. -/
 theorem sum_sq_sk_vector_trunc_overlap_le (N d : ℕ) (σ τ : Fin N → Fin d → ℝ)
@@ -88,34 +91,31 @@ theorem sum_sq_sk_vector_trunc_overlap_le (N d : ℕ) (σ τ : Fin N → Fin d �
   have hmass : (N + 1 : ℝ)⁻¹ * Fintype.card (Fin N) ≤ 1 := by
     rw [Fintype.card_fin, inv_mul_eq_div]
     exact (div_le_one (by positivity)).2 (by linarith)
-  simpa only [sq] using sum_sq_vector_overlap_le σ τ (N + 1 : ℝ)⁻¹ d d
-    (by positivity) hmass (Nat.cast_nonneg _) (Nat.cast_nonneg _) hσ hτ
+  have h := sum_sq_vector_overlap_le σ τ (N + 1 : ℝ)⁻¹ d d (Nat.cast_nonneg _) hσ hτ
+  refine h.trans ?_
+  calc ((N + 1 : ℝ)⁻¹ * Fintype.card (Fin N)) ^ 2 * ((d : ℝ) * d)
+      ≤ 1 ^ 2 * ((d : ℝ) * d) := by
+        have : 0 ≤ (N + 1 : ℝ)⁻¹ * Fintype.card (Fin N) := by positivity
+        gcongr
+    _ = (d : ℝ) ^ 2 := by ring
 
 /-- **A bilinear form is bounded by the Frobenius norm of its matrix.**  If `∑ Δ² ≤ ε²`,
 `∑ x² ≤ a²` and `∑ w² ≤ b²` then `|∑ᵤᵥ Δᵤᵥ xᵤ wᵥ| ≤ ε a b`. -/
-theorem abs_sum_bilinear_le {d : ℕ} (Δ : Fin d → Fin d → ℝ) (x w : Fin d → ℝ) {ε a b : ℝ}
+theorem abs_sum_bilinear_le {U V : Type*} [Fintype U] [Fintype V]
+    (Δ : U → V → ℝ) (x : U → ℝ) (w : V → ℝ) {ε a b : ℝ}
     (hε : 0 ≤ ε) (ha : 0 ≤ a) (hb : 0 ≤ b) (hΔ : ∑ u, ∑ v, Δ u v ^ 2 ≤ ε ^ 2)
     (hx : ∑ u, x u ^ 2 ≤ a ^ 2) (hw : ∑ v, w v ^ 2 ≤ b ^ 2) :
     |∑ u, ∑ v, Δ u v * (x u * w v)| ≤ ε * a * b := by
-  have hcs := Finset.sum_mul_sq_le_sq_mul_sq (Finset.univ : Finset (Fin d × Fin d))
-    (fun p => Δ p.1 p.2) (fun p => x p.1 * w p.2)
-  rw [Fintype.sum_prod_type, Fintype.sum_prod_type, Fintype.sum_prod_type] at hcs
-  have hxw : ∑ u, ∑ v, (x u * w v) ^ 2 = (∑ u, x u ^ 2) * ∑ v, w v ^ 2 := by
-    rw [Finset.sum_mul_sum]
-    exact Finset.sum_congr rfl fun u _ => Finset.sum_congr rfl fun v _ => by ring
-  rw [hxw] at hcs
-  have h2 : (∑ u, ∑ v, Δ u v * (x u * w v)) ^ 2 ≤ (ε * a * b) ^ 2 := by
-    refine hcs.trans ?_
-    have hx0 : 0 ≤ ∑ u, x u ^ 2 := Finset.sum_nonneg fun _ _ => sq_nonneg _
-    have hw0 : 0 ≤ ∑ v, w v ^ 2 := Finset.sum_nonneg fun _ _ => sq_nonneg _
-    have hΔ0 : 0 ≤ ∑ u, ∑ v, Δ u v ^ 2 :=
-      Finset.sum_nonneg fun _ _ => Finset.sum_nonneg fun _ _ => sq_nonneg _
-    calc (∑ u, ∑ v, Δ u v ^ 2) * ((∑ u, x u ^ 2) * ∑ v, w v ^ 2) ≤
-          ε ^ 2 * (a ^ 2 * b ^ 2) :=
-          mul_le_mul hΔ (mul_le_mul hx hw hw0 (sq_nonneg a)) (mul_nonneg hx0 hw0)
-            (sq_nonneg ε)
+  have hrew : (∑ u, ∑ v, Δ u v * (x u * w v)) = ∑ u, ∑ v, x u * w v * Δ u v :=
+    Finset.sum_congr rfl fun u _ => Finset.sum_congr rfl fun v _ => by ring
+  rw [hrew]
+  have h2 := sq_vector_overlap_contraction_le x w Δ (a ^ 2) (b ^ 2) hx hw
+  have hle : (∑ u, ∑ v, x u * w v * Δ u v) ^ 2 ≤ (ε * a * b) ^ 2 := by
+    refine h2.trans ?_
+    calc a ^ 2 * b ^ 2 * (∑ u, ∑ v, Δ u v ^ 2)
+        ≤ a ^ 2 * b ^ 2 * ε ^ 2 := mul_le_mul_of_nonneg_left hΔ (by positivity)
       _ = (ε * a * b) ^ 2 := by ring
-  exact abs_le.2 (abs_le_of_sq_le_sq' h2 (by positivity))
+  exact abs_le.2 (abs_le_of_sq_le_sq' hle (by positivity))
 
 section SpinBounds
 
@@ -137,6 +137,12 @@ theorem abs_spin_mul_le (a b : α) (u v : D) : |ξ a u * ξ b v| ≤ r := by
         mul_le_mul (abs_spin_le ξ hbound a u) (abs_spin_le ξ hbound b v) (abs_nonneg _)
           (Real.sqrt_nonneg _)
     _ = r := Real.mul_self_sqrt hr
+
+omit [Fintype D] hr hbound in
+/-- The product of two coordinates of a vector spin is measurable. -/
+theorem measurable_spin_mul [MeasurableSpace α] (hξ : ∀ u, Measurable (fun a => ξ a u)) (u v : D) :
+    Measurable (fun a => ξ a u * ξ a v) :=
+  (hξ u).mul (hξ v)
 
 end SpinBounds
 

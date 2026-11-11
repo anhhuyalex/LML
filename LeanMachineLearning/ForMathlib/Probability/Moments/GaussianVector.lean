@@ -6,7 +6,7 @@ Authors: LML Contributors
 module
 
 public import Mathlib.Analysis.Calculus.ParametricIntegral
-
+public import Mathlib.Probability.Distributions.Gaussian.Fernique
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein
 public import Mathlib.Probability.Distributions.Gaussian.HasGaussianLaw.Basic
 public import Mathlib.Probability.Distributions.Gaussian.IsGaussianProcess.Basic
@@ -511,5 +511,34 @@ theorem HasGaussianLaw.cos_sin_combination {Ω κ : Type*} {mΩ : MeasurableSpac
   convert hXY.map_fun L using 1
   ext ω k
   simp [L, mul_comm]
+
+/-- The coordinate evaluation of `multivariateGaussian 0 S` under `ofLp` has Gaussian law. -/
+theorem hasGaussianLaw_ofLp_multivariateGaussian {κ : Type*} [Fintype κ] [DecidableEq κ]
+    (S : Matrix κ κ ℝ) :
+    HasGaussianLaw (fun z : EuclideanSpace ℝ κ => z.ofLp) (multivariateGaussian 0 S) :=
+  (IsGaussian.hasGaussianLaw_id (μ := multivariateGaussian 0 S)).map_fun
+    (ContinuousLinearEquiv.toContinuousLinearMap (PiLp.continuousLinearEquiv 2 ℝ fun _ : κ => ℝ))
+
+/-- Coordinates of `multivariateGaussian 0 S` are centered. -/
+theorem integral_eval_multivariateGaussian {κ : Type*} [Fintype κ] [DecidableEq κ]
+    (S : Matrix κ κ ℝ) (x : κ) :
+    ∫ z : EuclideanSpace ℝ κ, z x ∂(multivariateGaussian 0 S) = 0 := by
+  have h := (EuclideanSpace.proj (𝕜 := ℝ) x).integral_comp_comm
+    (IsGaussian.integrable_id (μ := multivariateGaussian 0 S))
+  simpa [integral_id_multivariateGaussian'] using h
+
+/-- Second moments of the coordinates of `multivariateGaussian 0 S`. -/
+theorem integral_mul_eval_multivariateGaussian {κ : Type*} [Fintype κ] [DecidableEq κ]
+    {S : Matrix κ κ ℝ} (hS : S.PosSemidef) (x y : κ) :
+    ∫ z : EuclideanSpace ℝ κ, z x * z y ∂(multivariateGaussian 0 S) = S x y := by
+  have h1 := hasGaussianLaw_ofLp_multivariateGaussian S
+  have hx : MemLp (fun z : EuclideanSpace ℝ κ => z x) 2 (multivariateGaussian 0 S) :=
+    (h1.eval x).memLp_two
+  have hy : MemLp (fun z : EuclideanSpace ℝ κ => z y) 2 (multivariateGaussian 0 S) :=
+    (h1.eval y).memLp_two
+  have := covariance_eval_multivariateGaussian (μ := 0) hS x y
+  rw [covariance_eq_sub hx hy, integral_eval_multivariateGaussian,
+    integral_eval_multivariateGaussian] at this
+  simpa using this
 
 end ProbabilityTheory

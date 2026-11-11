@@ -7,7 +7,7 @@ from tex2typ.parser import Parser
 from tex2typ.text import escape_line_start, escape_markup, normalize_math, typst_string
 from tex2typ.errors import ConversionError
 
-FIXTURE = Path(__file__).parent / "fixtures" / "mini.tex"
+FIXTURE = Path(__file__).parent / "samples" / "mini.tex"
 NBSP = "\u00a0"
 
 

@@ -32,12 +32,6 @@ section Pair
 
 variable {d : ℕ} (β : ℝ) (Q Q' : Fin d → Fin d → ℝ)
 
-/-- The coordinate field of the Gaussian measure with covariance `β² Q` is a Gaussian vector. -/
-theorem hasGaussianLaw_ofLp_multivariateGaussian (S : Matrix (Fin d) (Fin d) ℝ) :
-    HasGaussianLaw (fun z : EuclideanSpace ℝ (Fin d) => z.ofLp) (multivariateGaussian 0 S) :=
-  (IsGaussian.hasGaussianLaw_id (μ := multivariateGaussian 0 S)).map_fun
-    (PiLp.continuousLinearEquiv 2 ℝ (fun _ : Fin d => ℝ)).toContinuousLinearMap
-
 /-- The Gaussian field law is a Gaussian measure. -/
 theorem isGaussian_skVectorGaussianLaw :
     IsGaussian (skVectorGaussianLaw β Q) :=
@@ -69,28 +63,6 @@ theorem measurable_skVectorGaussianPairField (k : Fin d ⊕ Fin d) :
     Measurable (skVectorGaussianPairField k) := by
   unfold skVectorGaussianPairField
   rcases k with x | x <;> simp only [Sum.elim_inl, Sum.elim_inr] <;> fun_prop
-
-
-/-- The coordinates of a centered Euclidean Gaussian have mean zero. -/
-theorem integral_eval_multivariateGaussian (S : Matrix (Fin d) (Fin d) ℝ) (x : Fin d) :
-    ∫ z : EuclideanSpace ℝ (Fin d), z x ∂(multivariateGaussian 0 S) = 0 := by
-  have h := (EuclideanSpace.proj (𝕜 := ℝ) x).integral_comp_comm
-    (IsGaussian.integrable_id (μ := multivariateGaussian 0 S))
-  simpa [integral_id_multivariateGaussian'] using h
-
-/-- Second moments of the coordinates of `multivariateGaussian 0 S`. -/
-theorem integral_mul_eval_multivariateGaussian {S : Matrix (Fin d) (Fin d) ℝ} (hS : S.PosSemidef)
-    (x y : Fin d) :
-    ∫ z : EuclideanSpace ℝ (Fin d), z x * z y ∂(multivariateGaussian 0 S) = S x y := by
-  have h1 := hasGaussianLaw_ofLp_multivariateGaussian S
-  have hx : MemLp (fun z : EuclideanSpace ℝ (Fin d) => z x) 2 (multivariateGaussian 0 S) :=
-    (h1.eval x).memLp_two
-  have hy : MemLp (fun z : EuclideanSpace ℝ (Fin d) => z y) 2 (multivariateGaussian 0 S) :=
-    (h1.eval y).memLp_two
-  have := covariance_eval_multivariateGaussian (μ := 0) hS x y
-  rw [covariance_eq_sub hx hy, integral_eval_multivariateGaussian,
-    integral_eval_multivariateGaussian] at this
-  simpa using this
 
 theorem integral_skVectorGaussianPairField_fst (f : EuclideanSpace ℝ (Fin d) → ℝ) :
     ∫ ω, f ω.1 ∂(skVectorGaussianPairLaw β Q Q') =

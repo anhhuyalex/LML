@@ -7,7 +7,7 @@ from tex2typ.model import (DisplayMath, Environment, Heading, ListBlock, Math, M
                            Proof, Ref, RunInHead, Styled, Text)
 from tex2typ.parser import Parser, strip_comments
 
-FIXTURE = Path(__file__).parent / "fixtures" / "mini.tex"
+FIXTURE = Path(__file__).parent / "samples" / "mini.tex"
 
 
 def blocks(source: str):
