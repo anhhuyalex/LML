@@ -194,14 +194,6 @@ theorem hasDerivAt_skVectorGaussianFreeEnergy_rho (μ : Measure α) [IsProbabili
   rw [hsum]
   simp only [hRz]
 
-/-- The Gibbs weight exponent of the interpolation between the covariance matrices `q₀` and `q₁`
-(Eq. (1.386)): the Gaussian field is `√t Z₁ + √(1-t) Z₀` and the compensation uses
-`q(t) = t q₁ + (1-t) q₀`. -/
-noncomputable def skVectorSegmentExponent (ξ : α → D → ℝ) (ρ q₀ q₁ : D → D → ℝ) (β t : ℝ)
-    (z₁ z₀ : D → ℝ) (a : α) : ℝ :=
-  β * ∑ u, (Real.sqrt t * z₁ u + Real.sqrt (1 - t) * z₀ u) * ξ a u +
-    β ^ 2 / 2 * ∑ u, ∑ v, ξ a u * ξ a v * (ρ u v - (t * q₁ u v + (1 - t) * q₀ u v))
-
 /-- **Lemma 1.12.6, the derivative in `q`** (Gaussian interpolation, Proposition 1.3.2).  Along the
 segment `q(t) = t q₁ + (1 - t) q₀` between two covariance matrices, realized by the independent
 Gaussian vectors `Z₁`, `Z₀`, the derivative of `𝔼 log ∫ ℰ dμ` at `0 < t < 1` is
@@ -216,13 +208,19 @@ theorem hasDerivAt_skVectorSegment (μ : Measure α) [IsProbabilityMeasure μ]
     (h00 : ∀ u v, ∫ ω, Z (.inr u) ω * Z (.inr v) ω ∂P = q₀ u v)
     (h10 : ∀ u v, ∫ ω, Z (.inl u) ω * Z (.inr v) ω ∂P = 0)
     {β : ℝ} (hβ : β ≠ 0) {t : ℝ} (ht0 : 0 < t) (ht1 : t < 1) :
-    HasDerivAt (fun s => ∫ ω, Real.log (∫ a, Real.exp (skVectorSegmentExponent ξ ρ q₀ q₁ β s
-        (fun u => Z (.inl u) ω) (fun u => Z (.inr u) ω) a) ∂μ) ∂P)
+    HasDerivAt (fun s => ∫ ω, Real.log (∫ a, Real.exp (skVectorFieldExponent ξ β ρ
+        (fun u v => s * q₁ u v + (1 - s) * q₀ u v)
+        (fun u => β * (Real.sqrt s * Z (.inl u) ω +
+          Real.sqrt (1 - s) * Z (.inr u) ω)) a) ∂μ) ∂P)
       (-(β ^ 2 / 2) * ∑ u, ∑ v, (q₁ u v - q₀ u v) * ∫ ω,
-        (∫ a, ξ a u ∂(μ.tilted (skVectorSegmentExponent ξ ρ q₀ q₁ β t
-          (fun u => Z (.inl u) ω) (fun u => Z (.inr u) ω)))) *
-        (∫ a, ξ a v ∂(μ.tilted (skVectorSegmentExponent ξ ρ q₀ q₁ β t
-          (fun u => Z (.inl u) ω) (fun u => Z (.inr u) ω)))) ∂P) t := by
+        (∫ a, ξ a u ∂(μ.tilted (skVectorFieldExponent ξ β ρ
+          (fun u v => t * q₁ u v + (1 - t) * q₀ u v)
+          (fun u => β * (Real.sqrt t * Z (.inl u) ω +
+            Real.sqrt (1 - t) * Z (.inr u) ω))))) *
+        (∫ a, ξ a v ∂(μ.tilted (skVectorFieldExponent ξ β ρ
+          (fun u v => t * q₁ u v + (1 - t) * q₀ u v)
+          (fun u => β * (Real.sqrt t * Z (.inl u) ω +
+            Real.sqrt (1 - t) * Z (.inr u) ω))))) ∂P) t := by
   classical
   set Xs : Unit → α → ℝ := fun _ a => ∑ w, ∑ w', (q₁ w w' - q₀ w w') * (ξ a w * ξ a w') with hXs
   set Xf : D ⊕ D → α → ℝ := Sum.elim (fun u a => ξ a u) (fun u a => ξ a u) with hXf
@@ -327,12 +325,13 @@ theorem hasDerivAt_skVectorSegment (μ : Measure α) [IsProbabilityMeasure μ]
   have hexpo : ∀ (ω : Ω) (a : α) (r' : ℝ), D0 a + ∑ l : (D ⊕ D) ⊕ Unit,
       Sum.elim (fun k => Sum.elim (fun _ r => β * Real.sqrt r) (fun _ r => β * Real.sqrt (1 - r))
         k r' * Z k ω) (fun _ => -(β ^ 2 / 2) * r') l * Sum.elim Xf Xs l a =
-      skVectorSegmentExponent ξ ρ q₀ q₁ β r' (fun u => Z (.inl u) ω) (fun u => Z (.inr u) ω) a := by
+      skVectorFieldExponent ξ β ρ (fun u v => r' * q₁ u v + (1 - r') * q₀ u v)
+        (fun u => β * (Real.sqrt r' * Z (.inl u) ω + Real.sqrt (1 - r') * Z (.inr u) ω)) a := by
     intro ω a r'
     have e1 : ∑ u, β * Real.sqrt r' * Z (.inl u) ω * ξ a u +
         ∑ u, β * Real.sqrt (1 - r') * Z (.inr u) ω * ξ a u =
-        β * ∑ u, (Real.sqrt r' * Z (.inl u) ω + Real.sqrt (1 - r') * Z (.inr u) ω) * ξ a u := by
-      rw [← Finset.sum_add_distrib, Finset.mul_sum]
+        ∑ u, β * (Real.sqrt r' * Z (.inl u) ω + Real.sqrt (1 - r') * Z (.inr u) ω) * ξ a u := by
+      rw [← Finset.sum_add_distrib]
       exact Finset.sum_congr rfl fun u _ => by ring
     have e2 : ∑ w, ∑ w', ξ a w * ξ a w' * (ρ w w' - (r' * q₁ w w' + (1 - r') * q₀ w w')) =
         ∑ w, ∑ w', ξ a w * ξ a w' * (ρ w w' - q₀ w w') +
@@ -340,11 +339,12 @@ theorem hasDerivAt_skVectorSegment (μ : Measure α) [IsProbabilityMeasure μ]
       simp only [Finset.mul_sum, ← Finset.sum_add_distrib]
       exact Finset.sum_congr rfl fun w _ => Finset.sum_congr rfl fun w' _ => by ring
     simp only [Fintype.sum_sum_type, Sum.elim_inl, Sum.elim_inr, hXf, hXs, hD0,
-      skVectorSegmentExponent, Finset.univ_unique, Finset.sum_singleton]
+      skVectorFieldExponent, Finset.univ_unique, Finset.sum_singleton]
     rw [e2, ← e1]
     ring
-  have hfun : (fun s => ∫ ω, Real.log (∫ a, Real.exp (skVectorSegmentExponent ξ ρ q₀ q₁ β s
-        (fun u => Z (.inl u) ω) (fun u => Z (.inr u) ω) a) ∂μ) ∂P) =
+  have hfun : (fun s => ∫ ω, Real.log (∫ a, Real.exp (skVectorFieldExponent ξ β ρ
+        (fun u v => s * q₁ u v + (1 - s) * q₀ u v)
+        (fun u => β * (Real.sqrt s * Z (.inl u) ω + Real.sqrt (1 - s) * Z (.inr u) ω)) a) ∂μ) ∂P) =
       fun r' => ∫ ω, Real.log (∫ a, Real.exp (D0 a + ∑ l : (D ⊕ D) ⊕ Unit,
         Sum.elim (fun k => Sum.elim (fun _ r => β * Real.sqrt r)
           (fun _ r => β * Real.sqrt (1 - r)) k r' * Z k ω) (fun _ => -(β ^ 2 / 2) * r') l *
@@ -379,8 +379,9 @@ theorem hasDerivAt_skVectorSegment (μ : Measure α) [IsProbabilityMeasure μ]
     abs_gibbs_ratio_le (μ := μ) (K := (D ⊕ D) ⊕ Unit) (X := Sum.elim Xf Xs) (D := D0)
       (Eb := Eb) hD0m hXall hD0b hXallb hYb z
   have hRz : ∀ (Y : α → ℝ) ω, R Y (zt ω) =
-      ∫ a, Y a ∂(μ.tilted (skVectorSegmentExponent ξ ρ q₀ q₁ β t
-        (fun u => Z (.inl u) ω) (fun u => Z (.inr u) ω))) := by
+      ∫ a, Y a ∂(μ.tilted (skVectorFieldExponent ξ β ρ
+        (fun u v => t * q₁ u v + (1 - t) * q₀ u v)
+        (fun u => β * (Real.sqrt t * Z (.inl u) ω + Real.sqrt (1 - t) * Z (.inr u) ω)))) := by
     intro Y ω
     simp only [hRdef, hzt, hexpo]
     rw [integral_tilted, ← integral_div]
@@ -480,14 +481,20 @@ theorem hasDerivAt_skVectorPressure_segment (μ : Measure α) [IsProbabilityMeas
     {β : ℝ} (hβ : β ≠ 0) {t : ℝ} (ht0 : 0 < t) (ht1 : t < 1) :
     HasDerivAt (fun s => -(β ^ 2 / 4) * ∑ u, ∑ v,
         (ρ u v ^ 2 - (s * q₁ u v + (1 - s) * q₀ u v) ^ 2) +
-        ∫ ω, Real.log (∫ a, Real.exp (skVectorSegmentExponent ξ ρ q₀ q₁ β s
-          (fun u => Z (.inl u) ω) (fun u => Z (.inr u) ω) a) ∂μ) ∂P)
+        ∫ ω, Real.log (∫ a, Real.exp (skVectorFieldExponent ξ β ρ
+          (fun u v => s * q₁ u v + (1 - s) * q₀ u v)
+          (fun u => β * (Real.sqrt s * Z (.inl u) ω +
+            Real.sqrt (1 - s) * Z (.inr u) ω)) a) ∂μ) ∂P)
       (β ^ 2 / 2 * ∑ u, ∑ v, (q₁ u v - q₀ u v) *
         ((t * q₁ u v + (1 - t) * q₀ u v) - ∫ ω,
-          (∫ a, ξ a u ∂(μ.tilted (skVectorSegmentExponent ξ ρ q₀ q₁ β t
-            (fun u => Z (.inl u) ω) (fun u => Z (.inr u) ω)))) *
-          (∫ a, ξ a v ∂(μ.tilted (skVectorSegmentExponent ξ ρ q₀ q₁ β t
-            (fun u => Z (.inl u) ω) (fun u => Z (.inr u) ω)))) ∂P)) t := by
+          (∫ a, ξ a u ∂(μ.tilted (skVectorFieldExponent ξ β ρ
+            (fun u v => t * q₁ u v + (1 - t) * q₀ u v)
+            (fun u => β * (Real.sqrt t * Z (.inl u) ω +
+              Real.sqrt (1 - t) * Z (.inr u) ω))))) *
+          (∫ a, ξ a v ∂(μ.tilted (skVectorFieldExponent ξ β ρ
+            (fun u v => t * q₁ u v + (1 - t) * q₀ u v)
+            (fun u => β * (Real.sqrt t * Z (.inl u) ω +
+              Real.sqrt (1 - t) * Z (.inr u) ω))))) ∂P)) t := by
   have hpoly : HasDerivAt (fun s => -(β ^ 2 / 4) * ∑ u, ∑ v,
         (ρ u v ^ 2 - (s * q₁ u v + (1 - s) * q₀ u v) ^ 2))
       (-(β ^ 2 / 4) * ∑ u, ∑ v, (-(2 * (t * q₁ u v + (1 - t) * q₀ u v) *
@@ -519,16 +526,43 @@ theorem hasDerivAt_skVectorPressure_segment_eq_zero (μ : Measure α) [IsProbabi
     (h10 : ∀ u v, ∫ ω, Z (.inl u) ω * Z (.inr v) ω ∂P = 0)
     {β : ℝ} (hβ : β ≠ 0) {t : ℝ} (ht0 : 0 < t) (ht1 : t < 1)
     (h372 : ∀ u v, t * q₁ u v + (1 - t) * q₀ u v = ∫ ω,
-          (∫ a, ξ a u ∂(μ.tilted (skVectorSegmentExponent ξ ρ q₀ q₁ β t
-            (fun u => Z (.inl u) ω) (fun u => Z (.inr u) ω)))) *
-          (∫ a, ξ a v ∂(μ.tilted (skVectorSegmentExponent ξ ρ q₀ q₁ β t
-            (fun u => Z (.inl u) ω) (fun u => Z (.inr u) ω)))) ∂P) :
+          (∫ a, ξ a u ∂(μ.tilted (skVectorFieldExponent ξ β ρ
+            (fun u v => t * q₁ u v + (1 - t) * q₀ u v)
+            (fun u => β * (Real.sqrt t * Z (.inl u) ω +
+              Real.sqrt (1 - t) * Z (.inr u) ω))))) *
+          (∫ a, ξ a v ∂(μ.tilted (skVectorFieldExponent ξ β ρ
+            (fun u v => t * q₁ u v + (1 - t) * q₀ u v)
+            (fun u => β * (Real.sqrt t * Z (.inl u) ω +
+              Real.sqrt (1 - t) * Z (.inr u) ω))))) ∂P) :
     HasDerivAt (fun s => -(β ^ 2 / 4) * ∑ u, ∑ v,
         (ρ u v ^ 2 - (s * q₁ u v + (1 - s) * q₀ u v) ^ 2) +
-        ∫ ω, Real.log (∫ a, Real.exp (skVectorSegmentExponent ξ ρ q₀ q₁ β s
-          (fun u => Z (.inl u) ω) (fun u => Z (.inr u) ω) a) ∂μ) ∂P) 0 t := by
-  have := hasDerivAt_skVectorPressure_segment μ ξ hξ hr hbound ρ q₀ q₁ hZ hZm hZ0 h11 h00 h10
+        ∫ ω, Real.log (∫ a, Real.exp (skVectorFieldExponent ξ β ρ
+          (fun u v => s * q₁ u v + (1 - s) * q₀ u v)
+          (fun u => β * (Real.sqrt s * Z (.inl u) ω +
+            Real.sqrt (1 - s) * Z (.inr u) ω)) a) ∂μ) ∂P) 0 t := by
+  have hd := hasDerivAt_skVectorPressure_segment μ ξ hξ hr hbound ρ q₀ q₁ hZ hZm hZ0 h11 h00 h10
     hβ ht0 ht1
-  simpa [h372] using this
+  have hzero : β ^ 2 / 2 * ∑ u, ∑ v, (q₁ u v - q₀ u v) *
+        ((t * q₁ u v + (1 - t) * q₀ u v) - ∫ ω,
+          (∫ a, ξ a u ∂(μ.tilted (skVectorFieldExponent ξ β ρ
+            (fun u v => t * q₁ u v + (1 - t) * q₀ u v)
+            (fun u => β * (Real.sqrt t * Z (.inl u) ω +
+              Real.sqrt (1 - t) * Z (.inr u) ω))))) *
+          (∫ a, ξ a v ∂(μ.tilted (skVectorFieldExponent ξ β ρ
+            (fun u v => t * q₁ u v + (1 - t) * q₀ u v)
+            (fun u => β * (Real.sqrt t * Z (.inl u) ω +
+              Real.sqrt (1 - t) * Z (.inr u) ω))))) ∂P) = 0 := by
+    have hsub : ∀ u v, ((t * q₁ u v + (1 - t) * q₀ u v) - ∫ ω,
+          (∫ a, ξ a u ∂(μ.tilted (skVectorFieldExponent ξ β ρ
+            (fun u v => t * q₁ u v + (1 - t) * q₀ u v)
+            (fun u => β * (Real.sqrt t * Z (.inl u) ω +
+              Real.sqrt (1 - t) * Z (.inr u) ω))))) *
+          (∫ a, ξ a v ∂(μ.tilted (skVectorFieldExponent ξ β ρ
+            (fun u v => t * q₁ u v + (1 - t) * q₀ u v)
+            (fun u => β * (Real.sqrt t * Z (.inl u) ω +
+              Real.sqrt (1 - t) * Z (.inr u) ω))))) ∂P) = 0 :=
+      fun u v => by rw [h372 u v, sub_self]
+    simp only [hsub, mul_zero, Finset.sum_const_zero]
+  exact hd.congr_deriv (by rw [hzero])
 
 end SpinGlasses

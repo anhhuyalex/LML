@@ -324,8 +324,10 @@ theorem continuous_skVectorSegment_logPartition {d : ℕ} {Ω : Type*} [Measurab
     (hξ : ∀ u, Measurable (fun a => ξ a u)) (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d)
     (ρ q₀ q₁ : Fin d → Fin d → ℝ) (b : ℝ) {P : Measure Ω} [IsProbabilityMeasure P]
     {Z : Fin d ⊕ Fin d → Ω → ℝ} (hZm : ∀ l, Measurable (Z l)) (hZi : ∀ l, Integrable (Z l) P) :
-    Continuous (fun s : ℝ => ∫ ω, Real.log (∫ a, Real.exp (skVectorSegmentExponent ξ ρ q₀ q₁ b
-      (max 0 (min 1 s)) (fun u => Z (.inl u) ω) (fun u => Z (.inr u) ω) a) ∂μ) ∂P) := by
+    Continuous (fun s : ℝ => ∫ ω, Real.log (∫ a, Real.exp (skVectorFieldExponent ξ b ρ
+      (fun u v => max 0 (min 1 s) * q₁ u v + (1 - max 0 (min 1 s)) * q₀ u v)
+      (fun u => b * (Real.sqrt (max 0 (min 1 s)) * Z (.inl u) ω +
+        Real.sqrt (1 - max 0 (min 1 s)) * Z (.inr u) ω)) a) ∂μ) ∂P) := by
   classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
   have hxb : ∀ a u, |ξ a u| ≤ Real.sqrt d := abs_spin_le ξ hbound
@@ -423,15 +425,15 @@ theorem continuous_skVectorSegment_logPartition {d : ℕ} {Ω : Type*} [Measurab
   have hcont := continuous_integral_log_partition_path (μ := μ) (D := D0) (X := X') (B := B)
     (Eb := Eb) (P := P) hD0m hX'm hB0 hD0b hX'b hzc hzm hgi hgb
   convert hcont using 4 with s ω a
-  simp only [skVectorSegmentExponent, hD0, hX', hzf, Fintype.sum_sum_type, Sum.elim_inl,
+  simp only [skVectorFieldExponent, hD0, hX', hzf, Fintype.sum_sum_type, Sum.elim_inl,
     Sum.elim_inr, Finset.univ_unique, Finset.sum_singleton]
   congr 2
   funext a
   congr 1
-  have e1 : b * ∑ x, (Real.sqrt (c s) * Z (Sum.inl x) ω + Real.sqrt (1 - c s) * Z (Sum.inr x) ω) *
+  have e1 : ∑ x, b * (Real.sqrt (c s) * Z (Sum.inl x) ω + Real.sqrt (1 - c s) * Z (Sum.inr x) ω) *
       ξ a x = ∑ x, b * Real.sqrt (c s) * Z (Sum.inl x) ω * ξ a x +
         ∑ x, b * Real.sqrt (1 - c s) * Z (Sum.inr x) ω * ξ a x := by
-    rw [Finset.mul_sum, ← Finset.sum_add_distrib]
+    rw [← Finset.sum_add_distrib]
     exact Finset.sum_congr rfl fun x _ => by ring
   have e2 : ∑ u, ∑ v, ξ a u * ξ a v * (ρ u v - (c s * q₁ u v + (1 - c s) * q₀ u v)) =
       ∑ u, ∑ v, ξ a u * ξ a v * (ρ u v - q₀ u v) -
@@ -450,9 +452,10 @@ theorem skVectorSegment_logPartition_eq {d : ℕ} (μ : Measure α) [IsProbabili
     (ξ : α → Fin d → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u)) (ρ q q' : Fin d → Fin d → ℝ)
     (hq : (Matrix.of q).PosSemidef) (hq' : (Matrix.of q').PosSemidef) (b : ℝ) {s : ℝ}
     (hs : s ∈ Set.Icc (0 : ℝ) 1) :
-    ∫ ω, Real.log (∫ a, Real.exp (skVectorSegmentExponent ξ ρ q q' b s
-        (fun u => skVectorGaussianPairField (Sum.inl u) ω) (fun u => skVectorGaussianPairField
-          (Sum.inr u) ω) a)
+    ∫ ω, Real.log (∫ a, Real.exp (skVectorFieldExponent ξ b ρ
+        (fun u v => s * q' u v + (1 - s) * q u v)
+        (fun u => b * (Real.sqrt s * skVectorGaussianPairField (Sum.inl u) ω +
+          Real.sqrt (1 - s) * skVectorGaussianPairField (Sum.inr u) ω)) a)
         ∂μ) ∂(skVectorGaussianPairLaw 1 q' q) =
       skVectorGaussianFreeEnergy μ ξ ρ (fun u v => s * q' u v + (1 - s) * q u v)
         (skVectorGaussianLaw 1 (fun u v => s * q' u v + (1 - s) * q u v)) (fun u y => y u) b := by
@@ -467,13 +470,14 @@ theorem skVectorSegment_logPartition_eq {d : ℕ} (μ : Measure α) [IsProbabili
       Real.sqrt (1 - s) * skVectorGaussianPairField (Sum.inr u) ω := fun u =>
     (measurable_const.mul (measurable_skVectorGaussianPairField _)).add
       (measurable_const.mul (measurable_skVectorGaussianPairField _))
-  have := skVectorGaussianFreeEnergy_eq_canonical μ ξ hξ ρ (fun u v => s * q' u v + (1 - s) * q u v)
+  have hcanon := skVectorGaussianFreeEnergy_eq_canonical μ ξ hξ ρ
+    (fun u v => s * q' u v + (1 - s) * q u v)
     (P := skVectorGaussianPairLaw 1 q' q) hX hXm (integral_skVectorGaussianPairField_combination
       q' q _ _)
     (fun u v => by
       rw [integral_skVectorGaussianPairField_combination_mul q' q hq' hq, ← hQ u v]; ring) b
-  rw [← this]
-  rfl
+  simp_rw [skVectorFieldExponent_mul_left]
+  exact hcanon
 
 /-- The Gibbs means along the segment are the fixed-point map at `q(t)`. -/
 theorem skVectorSegment_gibbs_eq {d : ℕ} (μ : Measure α) [IsProbabilityMeasure μ]
@@ -481,12 +485,15 @@ theorem skVectorSegment_gibbs_eq {d : ℕ} (μ : Measure α) [IsProbabilityMeasu
     (ρ q q' : Fin d → Fin d → ℝ)
     (hq : (Matrix.of q).PosSemidef) (hq' : (Matrix.of q').PosSemidef) (b : ℝ) {t : ℝ}
     (ht : t ∈ Set.Icc (0 : ℝ) 1) (u v : Fin d) :
-    ∫ ω, (∫ a, ξ a u ∂(μ.tilted (skVectorSegmentExponent ξ ρ q q' b t
-        (fun w => skVectorGaussianPairField (Sum.inl w) ω) (fun w => skVectorGaussianPairField
-          (Sum.inr w) ω)))) *
-      (∫ a, ξ a v ∂(μ.tilted (skVectorSegmentExponent ξ ρ q q' b t
-        (fun w => skVectorGaussianPairField (Sum.inl w) ω) (fun w => skVectorGaussianPairField
-          (Sum.inr w) ω)))) ∂(skVectorGaussianPairLaw 1 q' q) =
+    ∫ ω, (∫ a, ξ a u ∂(μ.tilted (skVectorFieldExponent ξ b ρ
+        (fun u v => t * q' u v + (1 - t) * q u v)
+        (fun w => b * (Real.sqrt t * skVectorGaussianPairField (Sum.inl w) ω +
+          Real.sqrt (1 - t) * skVectorGaussianPairField (Sum.inr w) ω))))) *
+      (∫ a, ξ a v ∂(μ.tilted (skVectorFieldExponent ξ b ρ
+        (fun u v => t * q' u v + (1 - t) * q u v)
+        (fun w => b * (Real.sqrt t * skVectorGaussianPairField (Sum.inl w) ω +
+          Real.sqrt (1 - t) * skVectorGaussianPairField (Sum.inr w) ω)))))
+        ∂(skVectorGaussianPairLaw 1 q' q) =
       (skVectorFixedPointMap μ ξ b (fun u v => t * q' u v + (1 - t) * q u v, ρ)).1 u v := by
   have hQ : ∀ u v, b ^ 2 * (t * q' u v + (1 - t) * q u v) =
       (b * Real.sqrt t) ^ 2 * q' u v + (b * Real.sqrt (1 - t)) ^ 2 * q u v := fun u v => by
@@ -508,18 +515,12 @@ theorem skVectorSegment_gibbs_eq {d : ℕ} (μ : Measure α) [IsProbabilityMeasu
   refine integral_congr_ae (Filter.Eventually.of_forall fun ω => ?_)
   beta_reduce
   rw [skVectorFieldAverage_pair μ ξ b ρ _ u v]
-  have heq : skVectorSegmentExponent ξ ρ q q' b t
-      (fun w => skVectorGaussianPairField (Sum.inl w) ω)
-      (fun w => skVectorGaussianPairField (Sum.inr w) ω) =
-      skVectorFieldExponent ξ b ρ (fun u v => t * q' u v + (1 - t) * q u v) (fun w =>
-        b * Real.sqrt t * skVectorGaussianPairField (Sum.inl w) ω +
-          b * Real.sqrt (1 - t) * skVectorGaussianPairField (Sum.inr w) ω) := by
-    funext a
-    unfold skVectorSegmentExponent skVectorFieldExponent
-    congr 1
-    rw [Finset.mul_sum]
-    exact Finset.sum_congr rfl fun w _ => by ring
-  rw [heq]
+  have hdistr : (fun w => b * Real.sqrt t * skVectorGaussianPairField (Sum.inl w) ω +
+      b * Real.sqrt (1 - t) * skVectorGaussianPairField (Sum.inr w) ω) =
+    fun w => b * (Real.sqrt t * skVectorGaussianPairField (Sum.inl w) ω +
+      Real.sqrt (1 - t) * skVectorGaussianPairField (Sum.inr w) ω) := by
+    funext w; ring
+  rw [hdistr]
 
 /-- **Quadratic estimate in `q`.**  If `(q', ρ')` is a fixed point of `T_b` and `q` is within `δ`
 of `q'`, moving `q` to `q'` (at fixed `ρ'`) changes the pressure by at most
@@ -555,8 +556,10 @@ theorem abs_skVectorPressure_q_sub_le {d : ℕ} (μ : Measure α) [IsProbability
     exact (hq'.smul hs.1).add (hq.smul (by linarith [hs.2]))
   set φ : ℝ → ℝ := fun s => -(b ^ 2 / 4) * ∑ u, ∑ v,
       (ρ' u v ^ 2 - (s * q' u v + (1 - s) * q u v) ^ 2) +
-      ∫ ω, Real.log (∫ a, Real.exp (skVectorSegmentExponent ξ ρ' q q' b s
-        (fun u => Z (.inl u) ω) (fun u => Z (.inr u) ω) a) ∂μ) ∂P with hφ
+      ∫ ω, Real.log (∫ a, Real.exp (skVectorFieldExponent ξ b ρ'
+        (fun u v => s * q' u v + (1 - s) * q u v)
+        (fun u => b * (Real.sqrt s * Z (.inl u) ω +
+          Real.sqrt (1 - s) * Z (.inr u) ω)) a) ∂μ) ∂P with hφ
   have hφ_eq : ∀ s ∈ Set.Icc (0 : ℝ) 1, φ s = skVectorPressure μ ξ b (qs s, ρ') := fun s hs => by
     simp only [hφ, skVectorPressure]
     rw [skVectorSegment_logPartition_eq μ ξ hξ ρ' q q' hq hq' b hs]
@@ -581,10 +584,14 @@ theorem abs_skVectorPressure_q_sub_le {d : ℕ} (μ : Measure α) [IsProbability
     rfl
   have hder : ∀ t ∈ Set.Ioo (0 : ℝ) 1, HasDerivAt φ (b ^ 2 / 2 * ∑ u, ∑ v, (q' u v - q u v) *
       ((t * q' u v + (1 - t) * q u v) - ∫ ω,
-        (∫ a, ξ a u ∂(μ.tilted (skVectorSegmentExponent ξ ρ' q q' b t
-          (fun w => Z (.inl w) ω) (fun w => Z (.inr w) ω)))) *
-        (∫ a, ξ a v ∂(μ.tilted (skVectorSegmentExponent ξ ρ' q q' b t
-          (fun w => Z (.inl w) ω) (fun w => Z (.inr w) ω)))) ∂P)) t := fun t ht =>
+        (∫ a, ξ a u ∂(μ.tilted (skVectorFieldExponent ξ b ρ'
+          (fun u v => t * q' u v + (1 - t) * q u v)
+          (fun w => b * (Real.sqrt t * Z (.inl w) ω +
+            Real.sqrt (1 - t) * Z (.inr w) ω))))) *
+        (∫ a, ξ a v ∂(μ.tilted (skVectorFieldExponent ξ b ρ'
+          (fun u v => t * q' u v + (1 - t) * q u v)
+          (fun w => b * (Real.sqrt t * Z (.inl w) ω +
+            Real.sqrt (1 - t) * Z (.inr w) ω))))) ∂P)) t := fun t ht =>
     hasDerivAt_skVectorPressure_segment μ ξ hξ hr hbound ρ' q q' hZ hZm hZ0 h11 h00 h10 hb.ne'
       ht.1 ht.2
   have hdiff : DifferentiableOn ℝ φ (Set.Ioo 0 1) := fun t ht =>
@@ -605,10 +612,14 @@ theorem abs_skVectorPressure_q_sub_le {d : ℕ} (μ : Measure α) [IsProbability
             mul_le_mul (by linarith [hc.1]) (hqδ u v) (abs_nonneg _) zero_le_one
         _ = δ := one_mul _) (fun u v => by simpa using hδ)
   have hterm : ∀ u v, |(q' u v - q u v) * ((c * q' u v + (1 - c) * q u v) -
-      ∫ ω, (∫ a, ξ a u ∂(μ.tilted (skVectorSegmentExponent ξ ρ' q q' b c
-        (fun w => Z (.inl w) ω) (fun w => Z (.inr w) ω)))) *
-      (∫ a, ξ a v ∂(μ.tilted (skVectorSegmentExponent ξ ρ' q q' b c
-        (fun w => Z (.inl w) ω) (fun w => Z (.inr w) ω)))) ∂P)| ≤
+      ∫ ω, (∫ a, ξ a u ∂(μ.tilted (skVectorFieldExponent ξ b ρ'
+        (fun u v => c * q' u v + (1 - c) * q u v)
+        (fun w => b * (Real.sqrt c * Z (.inl w) ω +
+          Real.sqrt (1 - c) * Z (.inr w) ω))))) *
+      (∫ a, ξ a v ∂(μ.tilted (skVectorFieldExponent ξ b ρ'
+        (fun u v => c * q' u v + (1 - c) * q u v)
+        (fun w => b * (Real.sqrt c * Z (.inl w) ω +
+          Real.sqrt (1 - c) * Z (.inr w) ω))))) ∂P)| ≤
       δ * ((1 + 18 * b ^ 2 * (d : ℝ) ^ 3) * δ) := fun u v => by
     rw [abs_mul]
     refine mul_le_mul (by rw [abs_sub_comm]; exact hqδ u v) ?_ (abs_nonneg _) hδ
