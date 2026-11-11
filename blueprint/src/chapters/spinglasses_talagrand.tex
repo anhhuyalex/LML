@@ -9732,7 +9732,7 @@ Transport along the measure preserving equivalence splitting off the last site, 
 \end{proof}
 
 \begin{theorem}[The decoupled system at $t=0$]\label{thm:sg-tal:vector-decoupled}
-\lean{MeasureTheory.integrable_exp_of_abs_le, MeasureTheory.map_tilted_pi_succ_last, MeasureTheory.integral_pi_tilted_split, SpinGlasses.skVectorOldEnergy, SpinGlasses.skVectorCavityEnergy_zero, SpinGlasses.abs_spin_mul_le, SpinGlasses.abs_skVectorOldEnergy_le, SpinGlasses.abs_skVectorFieldExponent_le, SpinGlasses.skVectorCavityAverage_zero_pair_mul_eq_zero}
+\lean{MeasureTheory.integrable_exp_of_ae_le, MeasureTheory.map_tilted_pi_succ_last, MeasureTheory.integral_pi_tilted_split, SpinGlasses.skVectorOldEnergy, SpinGlasses.skVectorCavityEnergy_zero, SpinGlasses.abs_spin_mul_le, SpinGlasses.abs_skVectorOldEnergy_le, SpinGlasses.abs_skVectorFieldExponent_le, SpinGlasses.skVectorCavityAverage_zero_pair_mul_eq_zero}
 \leanok
 \uses{lem:sg-tal:gibbs-product-split, thm:sg-tal:vector-fixed-point-bounds}
 \talsource{Proof of Theorem~1.12.1: $\nu_0((\varepsilon^1_u\varepsilon^2_v-q_{u,v})f^-)=0$ by Eq.~(1.372)}
@@ -9822,7 +9822,7 @@ Interpolate the field by $\sqrt t Z^1+\sqrt{1-t}Z^2$ and the matrices linearly. 
 \end{proof}
 
 \begin{theorem}[Frobenius contraction of the fixed-point map]\label{thm:sg-tal:vector-frobenius-contraction}
-\lean{SpinGlasses.sum_sum_sum_comm, SpinGlasses.sum_bilinear_left, SpinGlasses.sum_bilinear_right, SpinGlasses.abs_sum_bilinear_le, SpinGlasses.abs_bilinear_combination_le, SpinGlasses.measurable_replica_combination, SpinGlasses.measurable_replica_combination', SpinGlasses.abs_sum_integral_pair_le, SpinGlasses.abs_sum_integral_single_le, MeasureTheory.integral_integral_pi_tilted_sum, MeasureTheory.abs_integral_integral_pi_tilted_le, SpinGlasses.abs_skVectorFieldAverage_le, SpinGlasses.integral_skVectorFieldAverage_sum, SpinGlasses.abs_skVectorFieldAverage_sub_le, SpinGlasses.sum_sq_skVectorFieldAverage_sub_le, SpinGlasses.skVectorFrobeniusDist, SpinGlasses.skVectorFrobeniusDist_nonneg, SpinGlasses.sum_sq_le_skVectorFrobeniusDist_sq, SpinGlasses.skVectorFrobeniusDist_le_of_sum_sq_le, SpinGlasses.dist_le_skVectorFrobeniusDist, SpinGlasses.skVectorFrobeniusDist_le_mul_dist, SpinGlasses.skVectorFrobeniusDist_triangle, SpinGlasses.skVectorFrobeniusDist_fixedPointMap_le, SpinGlasses.isGaussian_skVectorGaussianLaw}
+\lean{SpinGlasses.sum_sum_sum_comm, SpinGlasses.sum_bilinear_left, SpinGlasses.sum_bilinear_right, SpinGlasses.abs_sum_bilinear_le, SpinGlasses.abs_bilinear_combination_le, SpinGlasses.measurable_replica_combination, SpinGlasses.measurable_replica_combination', SpinGlasses.abs_sum_integral_pair_le, SpinGlasses.abs_sum_integral_single_le, MeasureTheory.integral_integral_finset_sum, MeasureTheory.abs_integral_integral_pi_tilted_le, SpinGlasses.abs_skVectorFieldAverage_le, SpinGlasses.integral_skVectorFieldAverage_sum, SpinGlasses.abs_skVectorFieldAverage_sub_le, SpinGlasses.sum_sq_skVectorFieldAverage_sub_le, SpinGlasses.skVectorFrobeniusDist, SpinGlasses.skVectorFrobeniusDist_nonneg, SpinGlasses.sum_sq_le_skVectorFrobeniusDist_sq, SpinGlasses.skVectorFrobeniusDist_le_of_sum_sq_le, SpinGlasses.dist_le_skVectorFrobeniusDist, SpinGlasses.skVectorFrobeniusDist_le_mul_dist, SpinGlasses.skVectorFrobeniusDist_triangle, SpinGlasses.skVectorFrobeniusDist_fixedPointMap_le, SpinGlasses.isGaussian_skVectorGaussianLaw}
 \leanok
 \uses{thm:sg-tal:vector-path-lipschitz}
 \talsource{Existence part of Theorem~1.12.2: getting the dependence on $d$ of the correct order}

@@ -8,6 +8,7 @@ module
 public import Mathlib.MeasureTheory.Integral.Bochner.Basic
 public import Mathlib.MeasureTheory.Integral.IntegrableOn
 public import Mathlib.Analysis.Convex.Integral
+public import Mathlib.MeasureTheory.Measure.Tilted
 
 /-!
 # Integrability of the integral of a bounded function against random probability measures
@@ -85,5 +86,43 @@ theorem sum_sq_integral_le {Ω ι : Type*} [MeasurableSpace Ω] [Fintype ι] {P 
     (fun _ _ => Even.convexOn_pow (𝕜 := ℝ) (by decide : Even 2))
     (fun _ _ => continuous_pow 2)
     (fun i _ => hint i) (fun i _ => hint2 i)
+
+/-- The integral against the tilted probability measure written as a quotient of integrals. -/
+theorem integral_tilted_eq_div {α : Type*} [MeasurableSpace α] {μ : Measure α} (e Y : α → ℝ) :
+    ∫ a, Y a ∂(μ.tilted e) = (∫ a, Y a * Real.exp (e a) ∂μ) / ∫ a, Real.exp (e a) ∂μ := by
+  rw [integral_tilted, ← integral_div]
+  refine integral_congr_ae (Filter.Eventually.of_forall fun a => ?_)
+  simp only [smul_eq_mul]
+  ring
+
+/-- The tilted integral of a measurable observable is measurable in a jointly measurable random
+log-density. -/
+theorem measurable_integral_tilted {Ω α : Type*} [MeasurableSpace Ω] [MeasurableSpace α]
+    {μ : Measure α} {e : Ω → α → ℝ} (hE : Measurable fun p : Ω × α => e p.1 p.2)
+    {Y : α → ℝ} (hY : Measurable Y) : Measurable fun ω => ∫ a, Y a ∂(μ.tilted (e ω)) := by
+  simp_rw [integral_tilted_eq_div]
+  have h1 : Measurable fun p : Ω × α => Y p.2 * Real.exp (e p.1 p.2) :=
+    (hY.comp measurable_snd).mul (Real.measurable_exp.comp hE)
+  have h2 : Measurable fun p : Ω × α => Real.exp (e p.1 p.2) := Real.measurable_exp.comp hE
+  exact (h1.stronglyMeasurable.integral_prod_right' (ν := μ)).measurable.div
+    (h2.stronglyMeasurable.integral_prod_right' (ν := μ)).measurable
+
+/-- A tilted integral of an observable bounded by `M` is bounded by `M`. -/
+theorem abs_integral_tilted_le {α : Type*} [MeasurableSpace α] {μ : Measure α}
+    {e Y : α → ℝ} (he : Integrable (fun a => Real.exp (e a)) μ) {M : ℝ}
+    (hY : ∀ a, |Y a| ≤ M) : |∫ a, Y a ∂(μ.tilted e)| ≤ M := by
+  have := isProbabilityMeasure_tilted he
+  rw [← Real.norm_eq_abs]
+  have := norm_integral_le_of_norm_le_const (μ := μ.tilted e) (f := Y) (C := M)
+    (Filter.Eventually.of_forall fun a => by simpa [Real.norm_eq_abs] using hY a)
+  simpa using this
+
+/-- Jensen's inequality for a vector of observables under a tilted probability measure. -/
+theorem sum_sq_integral_tilted_le {α ι : Type*} [MeasurableSpace α] [Fintype ι]
+    {μ : Measure α} {e : α → ℝ} (he : Integrable (fun a => Real.exp (e a)) μ)
+    (Y : ι → α → ℝ) (hY : ∀ i, Measurable (Y i)) {M : ℝ} (hb : ∀ i a, |Y i a| ≤ M) :
+    ∑ i, (∫ a, Y i a ∂(μ.tilted e)) ^ 2 ≤ ∫ a, ∑ i, Y i a ^ 2 ∂(μ.tilted e) := by
+  have : IsProbabilityMeasure (μ.tilted e) := isProbabilityMeasure_tilted he
+  exact sum_sq_integral_le Y hY hb
 
 end MeasureTheory

@@ -180,8 +180,9 @@ noncomputable def skVectorCavityIsingRHS (N : ℕ) (β q : ℝ) (R : Type*) [Fin
           (σ (some none)) (σ none) 0 0 - q))
 
 /-- The scalar cavity combination of three replica families (Eq. (1.151) / (1.152)). -/
-noncomputable def skScalarCavityCombination (N : ℕ) (β q : ℝ) (R : Type*) [Fintype R] [LinearOrder R]
-    (F : (R → Fin (N + 1) → ℤˣ) → ℝ) (σ : Option (Option R) → Fin (N + 1) → ℤˣ) : ℝ :=
+noncomputable def skScalarCavityCombination (N : ℕ) (β q : ℝ) (R : Type*)
+    [Fintype R] [LinearOrder R] (F : (R → Fin (N + 1) → ℤˣ) → ℝ)
+    (σ : Option (Option R) → Fin (N + 1) → ℤˣ) : ℝ :=
   F (fun c => σ (some (some c))) *
     ((∑ p : R × R with p.1 < p.2,
         skIsingCavityKernel N β q (σ (some (some p.1))) (σ (some (some p.2)))) -

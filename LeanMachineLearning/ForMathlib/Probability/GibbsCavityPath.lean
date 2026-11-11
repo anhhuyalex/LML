@@ -78,7 +78,7 @@ theorem abs_cavity_path_deriv_le {K Ks : Type*} [Fintype K]
 
 /-- Gaussian integration by parts for a cavity path observable at frozen time `t`. -/
 theorem integral_mul_cavity_path_ibp {Ω : Type*} [MeasurableSpace Ω]
-    {P : Measure Ω} [IsProbabilityMeasure P] {D : α → ℝ} {X : K → α → ℝ} {Xs : Ks → α → ℝ}
+    {P : Measure Ω} {D : α → ℝ} {X : K → α → ℝ} {Xs : Ks → α → ℝ}
     {Y : K → α → ℝ} {Eb B M' : ℝ}
     (R : (α → ℝ) → (K ⊕ Ks → ℝ) → ℝ)
     (hR : ∀ Y' z, R Y' z = (∫ a, Y' a * Real.exp (D a + ∑ k, z k * Sum.elim X Xs k a) ∂μ) /
