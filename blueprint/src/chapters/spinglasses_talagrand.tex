@@ -9540,7 +9540,7 @@ For $n$ replicas, apply the lemma to the product base law on $\alpha^n$ with the
 \end{proof}
 
 \begin{lemma}[Derivative of an interpolating Gibbs average along a cavity path]\label{lem:sg-tal:gibbs-cavity-path}
-\lean{MeasureTheory.hasDerivAt_integral_gibbs_cavity_path, MeasureTheory.continuous_gibbs_ratio_linear}
+\lean{MeasureTheory.hasDerivAt_integral_gibbs_cavity_path, MeasureTheory.continuous_gibbs_ratio_linear, MeasureTheory.hasDerivAt_cavity_path, MeasureTheory.integrable_cavity_path_bound, MeasureTheory.abs_cavity_path_deriv_le, MeasureTheory.integral_mul_cavity_path_ibp}
 \leanok
 \uses{lem:sg-tal:gibbs-ibp-linear}
 \talsource{Eq.~(1.376), the abstract form of the derivative formula in Proposition~1.12.4}
@@ -9678,7 +9678,7 @@ Apply Theorem~\ref{thm:sg-tal:log-partition-cavity} with $s_k(r)=r$, $c(r)=r^2/2
 \end{proof}
 
 \begin{theorem}[Lemma~1.12.6: stationarity of the replica-symmetric functional]\label{thm:sg-tal:vector-stationarity}
-\lean{SpinGlasses.skVectorGibbs, SpinGlasses.skVectorSegmentExponent, SpinGlasses.gibbs_ratio_sum_sum, SpinGlasses.hasDerivAt_skVectorGaussianFreeEnergy_rho, SpinGlasses.hasDerivAt_skVectorSegment, SpinGlasses.hasDerivAt_skVectorPressure_rho, SpinGlasses.hasDerivAt_skVectorPressure_segment, SpinGlasses.hasDerivAt_skVectorPressure_segment_eq_zero}
+\lean{SpinGlasses.skVectorSegmentExponent, SpinGlasses.gibbs_ratio_sum_sum, SpinGlasses.hasDerivAt_skVectorGaussianFreeEnergy_rho, SpinGlasses.hasDerivAt_skVectorSegment, SpinGlasses.hasDerivAt_skVectorPressure_rho, SpinGlasses.hasDerivAt_skVectorPressure_segment, SpinGlasses.hasDerivAt_skVectorPressure_segment_eq_zero}
 \leanok
 \uses{thm:sg-tal:log-partition-cavity, thm:sg-tal:vector-free-energy-beta}
 \talsource{Lemma~1.12.6, Eqs.~(1.386)--(1.391)}
@@ -9690,7 +9690,7 @@ The $\rho$ statement is Theorem~\ref{thm:sg-tal:log-partition-cavity} with $s_k$
 \end{proof}
 
 \begin{theorem}[Frobenius bounds for the fixed point, Eq.~(1.382)]\label{thm:sg-tal:vector-fixed-point-bounds}
-\lean{SpinGlasses.sum_sq_integral_le, SpinGlasses.skVectorGibbs_eq_integral_tilted, SpinGlasses.sum_sq_skVectorGibbs_le, SpinGlasses.measurable_skVectorGibbs, SpinGlasses.abs_skVectorGibbs_le, SpinGlasses.sum_sq_skVectorFixedPoint_le, SpinGlasses.skVectorFieldExponent, SpinGlasses.integrable_exp_skVectorFieldExponent, SpinGlasses.sum_sq_skVectorFixedPoint_field_le}
+\lean{MeasureTheory.sum_sq_integral_le, SpinGlasses.sum_sq_integral_tilted_le, SpinGlasses.sum_sq_skVectorFixedPoint_le, SpinGlasses.skVectorFieldExponent, SpinGlasses.integrable_exp_skVectorFieldExponent, SpinGlasses.sum_sq_skVectorFixedPoint_field_le}
 \leanok
 \uses{thm:sg-tal:vector-cavity-bounds}
 \talsource{End of the proof of Corollary~1.12.5, Eq.~(1.382)}
@@ -10021,7 +10021,7 @@ hypotheses enter these shared measure-theory lemmas.
 
 \begin{theorem}[The scalar Ising comparison]\label{thm:sg-tal:vector-ising}
 \talsource{Section~1.12, discussion before and after (1.363)}
-\lean{SpinGlasses.sum_field_add_skVectorEnergy_eq_skGibbsEnergy, SpinGlasses.tilted_skVectorEnergy_eq_ising, SpinGlasses.integral_exp_skVectorEnergy_ising, SpinGlasses.log_integral_exp_skVectorEnergy_ising, SpinGlasses.skVectorFreeEnergy_ising}
+\lean{SpinGlasses.sum_field_add_skVectorEnergy_eq_skGibbsEnergy, SpinGlasses.tilted_skVectorEnergy_eq_ising, SpinGlasses.integral_exp_skVectorEnergy_ising, SpinGlasses.log_integral_exp_skVectorEnergy_ising, SpinGlasses.skVectorFreeEnergy_ising, SpinGlasses.skVectorCavityOverlap_ising_diag, SpinGlasses.skVectorCavityOverlap_ising_sub_one, SpinGlasses.ising_last_spin_sq, SpinGlasses.skVectorCavityOverlap_ising_symm, SpinGlasses.skIsingCavityKernel, SpinGlasses.skIsingCavityKernel_comm, SpinGlasses.skIsingCavityKernel_eq_skCavityKernel, SpinGlasses.skVectorCavityIsingRHS, SpinGlasses.skScalarCavityCombination, SpinGlasses.skVectorCavityIsingRHS_eq_skScalarCavityCombination}
 \leanok
 For one component let $\mu_h(\varepsilon)=e^{h\varepsilon}/(2\cosh h)$ on signs.
 For every $\beta,h,g$ and $N\ge0$ the vector Gibbs law equals the scalar SK Gibbs law and
@@ -10030,12 +10030,21 @@ For every $\beta,h,g$ and $N\ge0$ the vector Gibbs law equals the scalar SK Gibb
 \]
 Here $Z_N^{\rm Ising}$ is the counting sum. For $N>0$, disorder averaging gives
 $p_N^{\rm vector}=p_N^{\rm Ising}-\log(2\cosh h)$.
+Furthermore, for one component the vector cavity derivative integrand of Eq.~(1.376)
+reduces identically to the three-replica scalar cavity combination of Eqs.~(1.151)--(1.152):
+the diagonal terms $a = b$ in the first sum evaluate to $-(N+1)^{-1}$ and cancel exactly
+against the third sum, while the off-diagonal terms double by symmetry to the strictly
+ordered pairs $a < b$.
 \end{theorem}
 \begin{proof}\uses{lem:sg-tal:vector-product-normalization}
 Add the sum of the one-site field energies to the existing one-component interaction
 identity. The resulting energy is exactly \texttt{skGibbsEnergy}. Apply the product-law
 normalization and use $\sum_{\varepsilon=\pm1}e^{h\varepsilon}=2\cosh h$.
 The scalar log-partition function is integrable by the existing affine-Gaussian bound.
+For the cavity derivative, evaluate the diagonal overlap $R^-_{\sigma,\sigma} = N / (N + 1)$
+so $R^-_{\sigma,\sigma} - 1 = -(N+1)^{-1}$; the diagonal terms in the double sum sum to
+$|R|(-(N+1)^{-1})$, matching and cancelling the third term. The off-diagonal terms $a \ne b$
+pair up by symmetry to $2 \sum_{a < b} \text{kernel}(a, b)$, reproducing the scalar combination.
 \end{proof}
 
 \begin{theorem}[The coupled-copy comparison]\label{thm:sg-tal:vector-coupled}
@@ -10143,8 +10152,9 @@ Theorem~\ref{thm:sg-tal:vector-high-temperature}. The earlier pressure lemmas
 with an auxiliary upper parameter remain reusable inputs to its proof.
 The ball, Ising, coupled-copy, hypercube and two-point comparisons are proved above,
 with their exact normalization factors and shared disorder. The scalar reduction of
-the vector cavity derivative remains to be written; wrapper removal and final
-checks are still recorded in the vector-spin plan.
+the vector cavity derivative is formalized in Theorem~\ref{thm:sg-tal:vector-ising},
+verifying the diagonal error cancellation and reproduction of the scalar cavity combination.
+Shared cavity-path deduplication and wrapper removal are complete.
 The site-diagonal correction in Lemma~\ref{lem:sg-tal:vector-covariance} varies with the
 configuration. The implemented closed cone requires $q\succeq0$ and $\rho-q\succeq0$;
 its definition does not include the trace bound proposed in the original plan.

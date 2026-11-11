@@ -141,12 +141,15 @@ theorem hasDerivAt_skVectorPressure_rho_segment {d : ℕ} (μ : Measure α) [IsP
   rw [hT, ← integral_skVectorGaussianLaw_scale b q hq hmeasG]
   refine integral_congr_ae (Filter.Eventually.of_forall fun y => ?_)
   beta_reduce
-  congr 1
-  funext a
-  unfold skVectorFieldExponent
-  congr 1
-  rw [Finset.mul_sum]
-  exact Finset.sum_congr rfl fun w _ => by ring
+  have heq : (fun a => b * ∑ w, y w * ξ a w +
+      b ^ 2 / 2 * ∑ w, ∑ w', ξ a w * ξ a w' * (ρ w w' + s₀ * (ρ' w w' - ρ w w') - q w w')) =
+      skVectorFieldExponent ξ b ρs q (fun u => b * y u) := by
+    funext a
+    unfold skVectorFieldExponent
+    congr 1
+    rw [Finset.mul_sum]
+    exact Finset.sum_congr rfl fun w _ => by ring
+  rw [heq]
 
 /-- **Quadratic estimate in `ρ`.**  If `(q', ρ')` is a fixed point of `T_b` and `(q, ρ)` is within
 `δ` of it (entrywise, with `q ⪰ 0`), moving `ρ` to `ρ'` changes the pressure by at most
@@ -505,13 +508,18 @@ theorem skVectorSegment_gibbs_eq {d : ℕ} (μ : Measure α) [IsProbabilityMeasu
   refine integral_congr_ae (Filter.Eventually.of_forall fun ω => ?_)
   beta_reduce
   rw [skVectorFieldAverage_pair μ ξ b ρ _ u v]
-  congr 2
-  all_goals
+  have heq : skVectorSegmentExponent ξ ρ q q' b t
+      (fun w => skVectorGaussianPairField (Sum.inl w) ω)
+      (fun w => skVectorGaussianPairField (Sum.inr w) ω) =
+      skVectorFieldExponent ξ b ρ (fun u v => t * q' u v + (1 - t) * q u v) (fun w =>
+        b * Real.sqrt t * skVectorGaussianPairField (Sum.inl w) ω +
+          b * Real.sqrt (1 - t) * skVectorGaussianPairField (Sum.inr w) ω) := by
     funext a
     unfold skVectorSegmentExponent skVectorFieldExponent
     congr 1
     rw [Finset.mul_sum]
     exact Finset.sum_congr rfl fun w _ => by ring
+  rw [heq]
 
 /-- **Quadratic estimate in `q`.**  If `(q', ρ')` is a fixed point of `T_b` and `q` is within `δ`
 of `q'`, moving `q` to `q'` (at fixed `ρ'`) changes the pressure by at most
@@ -572,10 +580,11 @@ theorem abs_skVectorPressure_q_sub_le {d : ℕ} (μ : Measure α) [IsProbability
     simp only [hφ, Pi.add_apply, hcl]
     rfl
   have hder : ∀ t ∈ Set.Ioo (0 : ℝ) 1, HasDerivAt φ (b ^ 2 / 2 * ∑ u, ∑ v, (q' u v - q u v) *
-      ((t * q' u v + (1 - t) * q u v) - ∫ ω, skVectorGibbs μ (skVectorSegmentExponent ξ ρ' q q' b t
-        (fun w => Z (.inl w) ω) (fun w => Z (.inr w) ω)) (fun a => ξ a u) *
-      skVectorGibbs μ (skVectorSegmentExponent ξ ρ' q q' b t
-        (fun w => Z (.inl w) ω) (fun w => Z (.inr w) ω)) (fun a => ξ a v) ∂P)) t := fun t ht =>
+      ((t * q' u v + (1 - t) * q u v) - ∫ ω,
+        (∫ a, ξ a u ∂(μ.tilted (skVectorSegmentExponent ξ ρ' q q' b t
+          (fun w => Z (.inl w) ω) (fun w => Z (.inr w) ω)))) *
+        (∫ a, ξ a v ∂(μ.tilted (skVectorSegmentExponent ξ ρ' q q' b t
+          (fun w => Z (.inl w) ω) (fun w => Z (.inr w) ω)))) ∂P)) t := fun t ht =>
     hasDerivAt_skVectorPressure_segment μ ξ hξ hr hbound ρ' q q' hZ hZm hZ0 h11 h00 h10 hb.ne'
       ht.1 ht.2
   have hdiff : DifferentiableOn ℝ φ (Set.Ioo 0 1) := fun t ht =>
@@ -596,10 +605,10 @@ theorem abs_skVectorPressure_q_sub_le {d : ℕ} (μ : Measure α) [IsProbability
             mul_le_mul (by linarith [hc.1]) (hqδ u v) (abs_nonneg _) zero_le_one
         _ = δ := one_mul _) (fun u v => by simpa using hδ)
   have hterm : ∀ u v, |(q' u v - q u v) * ((c * q' u v + (1 - c) * q u v) -
-      ∫ ω, skVectorGibbs μ (skVectorSegmentExponent ξ ρ' q q' b c
-        (fun w => Z (.inl w) ω) (fun w => Z (.inr w) ω)) (fun a => ξ a u) *
-      skVectorGibbs μ (skVectorSegmentExponent ξ ρ' q q' b c
-        (fun w => Z (.inl w) ω) (fun w => Z (.inr w) ω)) (fun a => ξ a v) ∂P)| ≤
+      ∫ ω, (∫ a, ξ a u ∂(μ.tilted (skVectorSegmentExponent ξ ρ' q q' b c
+        (fun w => Z (.inl w) ω) (fun w => Z (.inr w) ω)))) *
+      (∫ a, ξ a v ∂(μ.tilted (skVectorSegmentExponent ξ ρ' q q' b c
+        (fun w => Z (.inl w) ω) (fun w => Z (.inr w) ω)))) ∂P)| ≤
       δ * ((1 + 18 * b ^ 2 * (d : ℝ) ^ 3) * δ) := fun u v => by
     rw [abs_mul]
     refine mul_le_mul (by rw [abs_sub_comm]; exact hqδ u v) ?_ (abs_nonneg _) hδ
@@ -660,16 +669,22 @@ theorem hasDerivAt_skVectorPressure_beta {d : ℕ} (μ : Measure α) [IsProbabil
     (fun u => (measurable_const.mul (measurable_pi_apply u) : Measurable fun y : Fin d → ℝ =>
       β * y u))
     (fun u => by rw [integral_const_mul, hX0, mul_zero]) hYc).1 hfix
-  have hconv : ∀ (y : Fin d → ℝ) (Y : α → ℝ), skVectorGibbs μ
-      (skVectorFieldExponent ξ β ρ q (fun w => β * y w)) Y =
+  have hconv : ∀ (y : Fin d → ℝ) (Y : α → ℝ),
+      ∫ a, Y a ∂(μ.tilted (skVectorFieldExponent ξ β ρ q (fun w => β * y w))) =
       (∫ a, Y a * Real.exp (β * ∑ w, y w * ξ a w +
         β ^ 2 / 2 * ∑ w, ∑ w', ξ a w * ξ a w' * (ρ w w' - q w w')) ∂μ) /
       ∫ a, Real.exp (β * ∑ w, y w * ξ a w +
         β ^ 2 / 2 * ∑ w, ∑ w', ξ a w * ξ a w' * (ρ w w' - q w w')) ∂μ := fun y Y => by
-    unfold skVectorGibbs skVectorFieldExponent
-    have : ∀ a, ∑ w, β * y w * ξ a w = β * ∑ w, y w * ξ a w := fun a => by
-      rw [Finset.mul_sum]; exact Finset.sum_congr rfl fun w _ => by ring
-    simp only [this]
+    rw [integral_tilted_eq_div]
+    congr 2 with a
+    · unfold skVectorFieldExponent
+      have : ∑ w, β * y w * ξ a w = β * ∑ w, y w * ξ a w := by
+        rw [Finset.mul_sum]; exact Finset.sum_congr rfl fun w _ => by ring
+      rw [this]
+    · unfold skVectorFieldExponent
+      have : ∑ w, β * y w * ξ a w = β * ∑ w, y w * ξ a w := by
+        rw [Finset.mul_sum]; exact Finset.sum_congr rfl fun w _ => by ring
+      rw [this]
   have hd := hasDerivAt_skVectorGaussianFreeEnergy μ ξ hξ hr hbound ρ q hX hXm hX0 (fun u v => by
       simpa using hXc u v) (hρ := fun u v => by
         have h := hρ' u v

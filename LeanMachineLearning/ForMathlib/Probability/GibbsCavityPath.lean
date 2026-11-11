@@ -30,6 +30,126 @@ namespace MeasureTheory
 variable {α K Ks : Type*} [MeasurableSpace α] [Fintype K] [Fintype Ks]
   {μ : Measure α} [IsFiniteMeasure μ] [NeZero μ]
 
+/-- Path derivative along the Gaussian interpolation `Sum.elim (s · Z) c`. -/
+theorem hasDerivAt_cavity_path {K Ks : Type*}
+    {s s' : K → ℝ → ℝ} {c c' : Ks → ℝ → ℝ} {t δ : ℝ}
+    (hs : ∀ k, ∀ r ∈ Metric.ball t δ, HasDerivAt (s k) (s' k r) r)
+    (hc : ∀ j, ∀ r ∈ Metric.ball t δ, HasDerivAt (c j) (c' j r) r)
+    (Z : K → ℝ) {r : ℝ} (hr : r ∈ Metric.ball t δ) :
+    HasDerivAt (fun r' => Sum.elim (fun k => s k r' * Z k) (fun j => c j r'))
+      (Sum.elim (fun k => s' k r * Z k) (fun j => c' j r)) r := by
+  rw [hasDerivAt_pi]
+  intro l
+  rcases l with k | j
+  · simpa using (hs k r hr).mul_const (Z k)
+  · simpa using hc j r hr
+
+/-- Integrable bound for the velocity of the Gaussian interpolation path. -/
+theorem integrable_cavity_path_bound {Ω K : Type*} [Fintype K] [MeasurableSpace Ω]
+    {P : Measure Ω} [IsProbabilityMeasure P] {Z : K → Ω → ℝ}
+    (hZ : HasGaussianLaw (fun ω k => Z k ω) P) (C : ℝ) :
+    Integrable (fun ω => C * (1 + ∑ k, |Z k ω|)) P := by
+  have hint : ∀ k, Integrable (fun ω => |Z k ω|) P := fun k => ((hZ.eval k).integrable).norm
+  exact ((integrable_const 1).add (integrable_finsetSum _ fun k _ => hint k)).const_mul C
+
+/-- Uniform bound on the velocity of the interpolation path by `C (1 + ∑ |Z_k|)`. -/
+theorem abs_cavity_path_deriv_le {K Ks : Type*} [Fintype K]
+    {s' : K → ℝ → ℝ} {c' : Ks → ℝ → ℝ} {t δ C : ℝ}
+    (hsC : ∀ k, ∀ r ∈ Metric.ball t δ, |s' k r| ≤ C)
+    (hcC : ∀ j, ∀ r ∈ Metric.ball t δ, |c' j r| ≤ C)
+    {r : ℝ} (hr : r ∈ Metric.ball t δ) (Z : K → ℝ) (l : K ⊕ Ks) :
+    |Sum.elim (fun k => s' k r * Z k) (fun j => c' j r) l| ≤ C * (1 + ∑ k, |Z k|) := by
+  rcases l with k | j
+  · simp only [Sum.elim_inl, abs_mul]
+    calc |s' k r| * |Z k| ≤ C * |Z k| :=
+          mul_le_mul_of_nonneg_right (hsC k r hr) (abs_nonneg _)
+      _ ≤ C * (1 + ∑ k, |Z k|) := by
+          have hC0 : 0 ≤ C := (abs_nonneg _).trans (hsC k r hr)
+          refine mul_le_mul_of_nonneg_left ?_ hC0
+          have := Finset.single_le_sum (f := fun k => |Z k|) (fun _ _ => abs_nonneg _)
+            (Finset.mem_univ k)
+          linarith
+  · simp only [Sum.elim_inr]
+    have hC0 : 0 ≤ C := (abs_nonneg _).trans (hcC j r hr)
+    calc |c' j r| ≤ C := hcC j r hr
+      _ ≤ C * (1 + ∑ k, |Z k|) := by
+          have : 0 ≤ ∑ k, |Z k| := Finset.sum_nonneg fun _ _ => abs_nonneg _
+          nlinarith
+
+/-- Gaussian integration by parts for a cavity path observable at frozen time `t`. -/
+theorem integral_mul_cavity_path_ibp {Ω : Type*} [MeasurableSpace Ω]
+    {P : Measure Ω} [IsProbabilityMeasure P] {D : α → ℝ} {X : K → α → ℝ} {Xs : Ks → α → ℝ}
+    {Y : K → α → ℝ} {Eb B M' : ℝ}
+    (R : (α → ℝ) → (K ⊕ Ks → ℝ) → ℝ)
+    (hR : ∀ Y' z, R Y' z = (∫ a, Y' a * Real.exp (D a + ∑ k, z k * Sum.elim X Xs k a) ∂μ) /
+      ∫ a, Real.exp (D a + ∑ k, z k * Sum.elim X Xs k a) ∂μ)
+    (hD : Measurable D) (hX : ∀ k, Measurable (X k)) (hXs : ∀ j, Measurable (Xs j))
+    (hY : ∀ k, Measurable (Y k)) (hB : 0 ≤ B) (hM' : 0 ≤ M')
+    (hDb : ∀ a, |D a| ≤ Eb) (hXb : ∀ k a, |X k a| ≤ B) (hXsb : ∀ j a, |Xs j a| ≤ B)
+    (hYb : ∀ k a, |Y k a| ≤ M')
+    {Z : K → Ω → ℝ} (hZ : HasGaussianLaw (fun ω k => Z k ω) P)
+    (hmean : ∀ k, ∫ ω, Z k ω ∂P = 0)
+    {s s' : K → ℝ → ℝ} {c : Ks → ℝ → ℝ} (t : ℝ)
+    (hsz : ∀ k, s' k t = 0 ∨ s k t ≠ 0) (k : K) :
+    ∫ ω, s' k t * Z k ω * R (Y k) (Sum.elim (fun k => s k t * Z k ω) (fun j => c j t)) ∂P =
+      ∑ l, s' k t * s l t * (∫ ω, Z k ω * Z l ω ∂P) *
+        ∫ ω, (R (fun a => Y k a * X l a) (Sum.elim (fun k => s k t * Z k ω) (fun j => c j t)) -
+          R (Y k) (Sum.elim (fun k => s k t * Z k ω) (fun j => c j t)) *
+            R (X l) (Sum.elim (fun k => s k t * Z k ω) (fun j => c j t))) ∂P := by
+  set Zt : K → Ω → ℝ := fun k ω => s k t * Z k ω with hZt
+  have hZtG : HasGaussianLaw (fun ω k => Zt k ω) P := by
+    have := hZ.map (F := K → ℝ)
+      (ContinuousLinearMap.pi fun k => s k t • ContinuousLinearMap.proj k)
+    convert this using 1
+    funext ω k
+    simp [hZt]
+  set Dt : α → ℝ := fun a => D a + ∑ j, c j t * Xs j a with hDt
+  have hDtm : Measurable Dt := by
+    refine hD.add (Finset.measurable_sum _ fun j _ => (hXs j).const_mul _)
+  have hDtb : ∀ a, |Dt a| ≤ Eb + ∑ j, |c j t| * B := fun a => by
+    exact abs_add_sum_mul_le _ (fun j => c j t) _ (hDb a) (fun j => hXsb j a)
+  set Rt : (α → ℝ) → (K → ℝ) → ℝ := fun Y' w => (∫ a, Y' a * Real.exp (Dt a +
+    ∑ k, w k * X k a) ∂μ) / ∫ a, Real.exp (Dt a + ∑ k, w k * X k a) ∂μ with hRt
+  have hexp : ∀ ω a, Dt a + ∑ k, Zt k ω * X k a =
+      D a + ∑ l, Sum.elim (fun k => s k t * Z k ω) (fun j => c j t) l * Sum.elim X Xs l a := by
+    intro ω a
+    simp only [hDt, Fintype.sum_sum_type, Sum.elim_inl, Sum.elim_inr, hZt]
+    ring
+  have hbridge : ∀ Y' ω, Rt Y' (fun k => Zt k ω) =
+      R Y' (Sum.elim (fun k => s k t * Z k ω) (fun j => c j t)) := by
+    intro Y' ω
+    rw [hR, hRt]
+    simp only [hexp]
+  rcases hsz k with h0 | hne
+  · simp [h0]
+  have hibp := integral_mul_gibbs_ratio_eq_sum (μ := μ) (D := Dt) (X := X) (Y := Y k)
+    (Z := Zt) (B := B) (M := M') (Eb := Eb + ∑ j, |c j t| * B) Rt (fun _ _ => rfl) hZtG
+    (fun i => by simp only [hZt, integral_const_mul, hmean i, mul_zero]) k hDtm hX (hY k) hB hM'
+    hDtb hXb (hYb k)
+  simp only [hbridge] at hibp
+  have hZZ : ∀ l, ∫ ω, Zt k ω * Zt l ω ∂P = s k t * s l t * ∫ ω, Z k ω * Z l ω ∂P := by
+    intro l
+    rw [← integral_const_mul]
+    exact integral_congr_ae (ae_of_all _ fun ω => by simp only [hZt]; ring)
+  calc ∫ ω, s' k t * Z k ω * R (Y k) (Sum.elim (fun k => s k t * Z k ω) (fun j => c j t)) ∂P
+      = (s' k t / s k t) * ∫ ω, Zt k ω * R (Y k)
+          (Sum.elim (fun k => s k t * Z k ω) (fun j => c j t)) ∂P := by
+        rw [← integral_const_mul]
+        refine integral_congr_ae (ae_of_all _ fun ω => ?_)
+        simp only [hZt]
+        field_simp
+    _ = (s' k t / s k t) * ∑ l, (∫ ω, Zt k ω * Zt l ω ∂P) *
+          ∫ ω, (R (fun a => Y k a * X l a)
+                (Sum.elim (fun k => s k t * Z k ω) (fun j => c j t)) -
+              R (Y k) (Sum.elim (fun k => s k t * Z k ω) (fun j => c j t)) *
+                R (X l) (Sum.elim (fun k => s k t * Z k ω) (fun j => c j t))) ∂P := by
+        rw [hibp]
+    _ = _ := by
+        rw [Finset.mul_sum]
+        refine Finset.sum_congr rfl fun l _ => ?_
+        rw [hZZ l]
+        field_simp
+
 /-- **The abstract cavity derivative** (the shape of Proposition 1.12.4 before the replica
 bookkeeping). `R Y z` is the Gibbs average of `Y` for the parameters `z : K ⊕ Ks → ℝ`. -/
 theorem hasDerivAt_integral_gibbs_cavity_path {Ω : Type*} [MeasurableSpace Ω]
@@ -73,17 +193,12 @@ theorem hasDerivAt_integral_gibbs_cavity_path {Ω : Type*} [MeasurableSpace Ω]
   -- Step 1: derivative of the expected Gibbs average along the path
   have hint : ∀ k, Integrable (fun ω => |Z k ω|) P := fun k => ((hZ.eval k).integrable).norm
   have hg : Integrable (fun ω => C * (1 + ∑ k, |Z k ω|)) P :=
-    ((integrable_const 1).add (integrable_finsetSum _ fun k _ => hint k)).const_mul C
+    integrable_cavity_path_bound hZ C
   have hstep1 := hasDerivAt_integral_gibbs_ratio_path (μ := μ) (P := P) (K := K ⊕ Ks)
     (X := Xall) (Y := f) (D := D) R hR hD hXallm hf hB hM hDb hXallb hfb
     (z := zp) (z' := fun r ω => Sum.elim (fun k => s' k r * Z k ω) (fun j => c' j r))
     (t := t) (δ := δ) hδ
-    (fun ω r hr => by
-      rw [hasDerivAt_pi]
-      intro l
-      rcases l with k | j
-      · simpa [hzp] using (hs k r hr).mul_const (Z k ω)
-      · simpa [hzp] using hc j r hr)
+    (fun ω r hr => by simpa [hzp] using hasDerivAt_cavity_path hs hc (fun k => Z k ω) hr)
     (fun r => by
       refine measurable_pi_iff.2 fun l => ?_
       rcases l with k | j
@@ -95,23 +210,7 @@ theorem hasDerivAt_integral_gibbs_cavity_path {Ω : Type*} [MeasurableSpace Ω]
       · simpa using (hZm k).const_mul (s' k t)
       · simp)
     hg
-    (fun ω r hr l => by
-      rcases l with k | j
-      · simp only [Sum.elim_inl, abs_mul]
-        calc |s' k r| * |Z k ω| ≤ C * |Z k ω| :=
-              mul_le_mul_of_nonneg_right (hsC k r hr) (abs_nonneg _)
-          _ ≤ C * (1 + ∑ k, |Z k ω|) := by
-              have hC0 : 0 ≤ C := (abs_nonneg _).trans (hsC k r hr)
-              refine mul_le_mul_of_nonneg_left ?_ hC0
-              have := Finset.single_le_sum (f := fun k => |Z k ω|) (fun _ _ => abs_nonneg _)
-                (Finset.mem_univ k)
-              linarith
-      · simp only [Sum.elim_inr]
-        have hC0 : 0 ≤ C := (abs_nonneg _).trans (hcC j r hr)
-        calc |c' j r| ≤ C := hcC j r hr
-          _ ≤ C * (1 + ∑ k, |Z k ω|) := by
-              have : 0 ≤ ∑ k, |Z k ω| := Finset.sum_nonneg fun _ _ => abs_nonneg _
-              nlinarith)
+    (fun ω r hr l => abs_cavity_path_deriv_le hsC hcC hr (fun k => Z k ω) l)
   refine hstep1.congr_deriv ?_
   -- the path at time `t`, and its covariance terms
   set zt : Ω → K ⊕ Ks → ℝ := fun ω => zp t ω with hzt
@@ -172,57 +271,13 @@ theorem hasDerivAt_integral_gibbs_cavity_path {Ω : Type*} [MeasurableSpace Ω]
       (integrable_finsetSum _ fun j _ => hintj j),
     integral_finsetSum _ fun k _ => hintk k, integral_finsetSum _ fun j _ => hintj j]
   congr 1
-  · -- the Gaussian integration by parts at the frozen time `t`
-    set Zt : K → Ω → ℝ := fun k ω => s k t * Z k ω with hZt
-    have hZtG : HasGaussianLaw (fun ω k => Zt k ω) P := by
-      have := hZ.map (F := K → ℝ)
-        (ContinuousLinearMap.pi fun k => s k t • ContinuousLinearMap.proj k)
-      convert this using 1
-      funext ω k
-      simp [hZt]
-    set Dt : α → ℝ := fun a => D a + ∑ j, c j t * Xs j a with hDt
-    have hDtm : Measurable Dt := by
-      refine hD.add (Finset.measurable_sum _ fun j _ => (hXs j).const_mul _)
-    have hDtb : ∀ a, |Dt a| ≤ Eb + ∑ j, |c j t| * B := fun a => by
-      exact abs_add_sum_mul_le _ (fun j => c j t) _ (hDb a) (fun j => hXsb j a)
-    set Rt : (α → ℝ) → (K → ℝ) → ℝ := fun Y' w => (∫ a, Y' a * Real.exp (Dt a +
-      ∑ k, w k * X k a) ∂μ) / ∫ a, Real.exp (Dt a + ∑ k, w k * X k a) ∂μ with hRt
-    have hexp : ∀ ω a, Dt a + ∑ k, Zt k ω * X k a = D a + ∑ l, zt ω l * Xall l a := by
-      intro ω a
-      simp only [hDt, hzt, hzp, Fintype.sum_sum_type, Sum.elim_inl, Sum.elim_inr, hXall, hZt]
-      ring
-    have hbridge : ∀ Y' ω, Rt Y' (fun k => Zt k ω) = R Y' (zt ω) := by
-      intro Y' ω
-      rw [hR, hRt]
-      simp only [hexp]
-    refine Finset.sum_congr rfl fun k _ => ?_
-    rcases hsz k with h0 | hne
-    · simp [h0]
-    have hibp := integral_mul_gibbs_ratio_eq_sum (μ := μ) (D := Dt) (X := X) (Y := Y k)
-      (Z := Zt) (B := B) (M := M') (Eb := Eb + ∑ j, |c j t| * B) Rt (fun _ _ => rfl) hZtG
-      (fun i => by simp only [hZt, integral_const_mul, hmean i, mul_zero]) k hDtm hX (hY k) hB hM'
-      hDtb hXb (hYb k)
-    simp only [hbridge] at hibp
-    have hcovk : ∀ ω, cov (Sum.inl k) ω = R (Y k) (zt ω) := fun ω => (hYk k (zt ω)).symm
-    have hZZ : ∀ l, ∫ ω, Zt k ω * Zt l ω ∂P = s k t * s l t * ∫ ω, Z k ω * Z l ω ∂P := by
-      intro l
-      rw [← integral_const_mul]
-      exact integral_congr_ae (ae_of_all _ fun ω => by simp only [hZt]; ring)
-    calc ∫ ω, s' k t * Z k ω * cov (Sum.inl k) ω ∂P
-        = (s' k t / s k t) * ∫ ω, Zt k ω * R (Y k) (zt ω) ∂P := by
-          rw [← integral_const_mul]
-          refine integral_congr_ae (ae_of_all _ fun ω => ?_)
-          simp only [hcovk, hZt]
-          field_simp
-      _ = (s' k t / s k t) * ∑ l, (∫ ω, Zt k ω * Zt l ω ∂P) *
-            ∫ ω, (R (fun a => Y k a * X l a) (zt ω) - R (Y k) (zt ω) * R (X l) (zt ω)) ∂P := by
-          rw [hibp]
-      _ = _ := by
-          rw [Finset.mul_sum]
-          refine Finset.sum_congr rfl fun l _ => ?_
-          rw [hZZ l]
-          field_simp
-          rfl
+  · refine Finset.sum_congr rfl fun k _ => ?_
+    have hcovk : ∀ ω, cov (Sum.inl k) ω =
+        R (Y k) (Sum.elim (fun k => s k t * Z k ω) (fun j => c j t)) := fun ω =>
+      (hYk k (zt ω)).symm
+    simp_rw [hcovk]
+    exact integral_mul_cavity_path_ibp (μ := μ) R hR hD hX hXs (hY) hB hM' hDb hXb hXsb
+      hYb hZ hmean t hsz k
   · refine Finset.sum_congr rfl fun j _ => ?_
     rw [integral_const_mul]
     rfl

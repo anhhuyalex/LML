@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Model.Disorder
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.FixedPoint.Bounds
 public import LeanMachineLearning.ForMathlib.Probability.GibbsTemperatureDerivative
 
 /-!
@@ -174,16 +175,12 @@ theorem sum_skVectorPairFeature_gibbsVariance_eq {d : ℕ} (μ : Measure α) [Is
     (ξ : α → Fin d → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u))
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) (N : ℕ) (β : ℝ) (g : FinPairs (N + 1) → ℝ) :
     ∑ p : FinPairs (N + 1),
-      ((∫ σ : Fin (N + 1) → α, skVectorPairFeature ξ (N + 1) p σ ^ 2 *
-            Real.exp (skVectorEnergy (N + 1) β g (fun i => ξ (σ i)))
-              ∂(Measure.pi fun _ : Fin (N + 1) => μ)) /
-          ∫ σ : Fin (N + 1) → α, Real.exp (skVectorEnergy (N + 1) β g (fun i => ξ (σ i)))
-            ∂(Measure.pi fun _ : Fin (N + 1) => μ) -
-        ((∫ σ : Fin (N + 1) → α, skVectorPairFeature ξ (N + 1) p σ *
-            Real.exp (skVectorEnergy (N + 1) β g (fun i => ξ (σ i)))
-              ∂(Measure.pi fun _ : Fin (N + 1) => μ)) /
-          ∫ σ : Fin (N + 1) → α, Real.exp (skVectorEnergy (N + 1) β g (fun i => ξ (σ i)))
-            ∂(Measure.pi fun _ : Fin (N + 1) => μ)) ^ 2) =
+      ((∫ σ : Fin (N + 1) → α, skVectorPairFeature ξ (N + 1) p σ ^ 2
+          ∂((Measure.pi fun _ : Fin (N + 1) => μ).tilted
+            (fun σ => skVectorEnergy (N + 1) β g (fun i => ξ (σ i))))) -
+        (∫ σ : Fin (N + 1) → α, skVectorPairFeature ξ (N + 1) p σ
+          ∂((Measure.pi fun _ : Fin (N + 1) => μ).tilted
+            (fun σ => skVectorEnergy (N + 1) β g (fun i => ξ (σ i))))) ^ 2) =
       ∫ σ : Fin 2 → Fin (N + 1) → α, (2 * ((N : ℝ) + 1))⁻¹ * ∑ u, ∑ v,
           (((∑ i, ξ (σ 0 i) u * ξ (σ 0 i) v) ^ 2 - ∑ i, (ξ (σ 0 i) u * ξ (σ 0 i) v) ^ 2) -
             ((∑ i, ξ (σ 0 i) u * ξ (σ 1 i) v) ^ 2 - ∑ i, (ξ (σ 0 i) u * ξ (σ 1 i) v) ^ 2))
@@ -212,15 +209,9 @@ theorem sum_skVectorPairFeature_gibbsVariance_eq {d : ℕ} (μ : Measure α) [Is
     (fun σ => skVectorEnergy (N + 1) β g (fun i => ξ (σ i))) with hG
   have : IsProbabilityMeasure G :=
     isProbabilityMeasure_tilted_skVectorEnergy μ ξ hξ hr hbound N β g
-  have hratio : ∀ Y : (Fin (N + 1) → α) → ℝ,
-      (∫ σ, Y σ * Real.exp (skVectorEnergy (N + 1) β g (fun i => ξ (σ i)))
-        ∂(Measure.pi fun _ : Fin (N + 1) => μ)) /
-      ∫ σ, Real.exp (skVectorEnergy (N + 1) β g (fun i => ξ (σ i)))
-        ∂(Measure.pi fun _ : Fin (N + 1) => μ) = ∫ σ, Y σ ∂G := fun Y =>
-    (skVectorGibbs_eq_integral_tilted (μ := Measure.pi fun _ : Fin (N + 1) => μ)
-      (fun σ => skVectorEnergy (N + 1) β g (fun i => ξ (σ i))) Y)
-  simp only [hratio]
   have hvar := fun p => variance_eq_integral_pi_two G (hXm p) (hXb p)
+  change ∑ p, ((∫ σ, skVectorPairFeature ξ (N + 1) p σ ^ 2 ∂G) -
+      (∫ σ, skVectorPairFeature ξ (N + 1) p σ ∂G) ^ 2) = _
   simp only [hvar]
   have hint0 : ∀ p : FinPairs (N + 1), Integrable (fun σ : Fin 2 → Fin (N + 1) → α =>
       skVectorPairFeature ξ (N + 1) p (σ 0) ^ 2 -
@@ -264,6 +255,7 @@ theorem hasDerivAt_skVectorFreeEnergy {d : ℕ} (μ : Measure α) [IsProbability
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
   have hd := (hasDerivAt_skVectorLogPartition μ ξ hξ hbound (N + 1) β).const_mul
     (((N + 1 : ℕ) : ℝ)⁻¹)
+  simp_rw [← integral_tilted_eq_div] at hd
   have hfun : skVectorFreeEnergy μ ξ (N + 1) = fun b => ((N + 1 : ℕ) : ℝ)⁻¹ * ∫ g : FinPairs (N +
       1) → ℝ,
       Real.log (∫ σ : Fin (N + 1) → α, Real.exp (skVectorEnergy (N + 1) b g (fun i => ξ (σ i)))
@@ -305,27 +297,25 @@ theorem hasDerivAt_skVectorFreeEnergy {d : ℕ} (μ : Measure α) [IsProbability
         exact mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_left (hXb p σ) (abs_nonneg _))
           (abs_nonneg _))
   set Tp : FinPairs (N + 1) → (FinPairs (N + 1) → ℝ) → ℝ := fun p g =>
-    skVectorGibbs (Measure.pi fun _ : Fin (N + 1) => μ)
-        (fun σ => skVectorEnergy (N + 1) β g (fun i => ξ (σ i)))
-        (fun σ => skVectorPairFeature ξ (N + 1) p σ ^ 2) -
-      skVectorGibbs (Measure.pi fun _ : Fin (N + 1) => μ)
-        (fun σ => skVectorEnergy (N + 1) β g (fun i => ξ (σ i)))
-        (fun σ => skVectorPairFeature ξ (N + 1) p σ) ^ 2 with hTp
+    (∫ σ, skVectorPairFeature ξ (N + 1) p σ ^ 2 ∂((Measure.pi fun _ : Fin (N + 1) => μ).tilted
+        (fun σ => skVectorEnergy (N + 1) β g (fun i => ξ (σ i))))) -
+      (∫ σ, skVectorPairFeature ξ (N + 1) p σ ∂((Measure.pi fun _ : Fin (N + 1) => μ).tilted
+        (fun σ => skVectorEnergy (N + 1) β g (fun i => ξ (σ i))))) ^ 2 with hTp
   have hTm : ∀ p, Measurable (Tp p) := fun p =>
-    (measurable_skVectorGibbs (μ := Measure.pi fun _ : Fin (N + 1) => μ)
+    (measurable_integral_tilted (μ := Measure.pi fun _ : Fin (N + 1) => μ)
       (e := fun g σ => skVectorEnergy (N + 1) β g (fun i => ξ (σ i))) hEm
       ((hXm p).pow_const 2)).sub
-    ((measurable_skVectorGibbs (μ := Measure.pi fun _ : Fin (N + 1) => μ)
+    ((measurable_integral_tilted (μ := Measure.pi fun _ : Fin (N + 1) => μ)
       (e := fun g σ => skVectorEnergy (N + 1) β g (fun i => ξ (σ i))) hEm (hXm p)).pow_const 2)
   have hTb : ∀ p g, |Tp p g| ≤ B ^ 2 + B ^ 2 := fun p g => by
     refine (abs_sub _ _).trans (add_le_add ?_ ?_)
-    · exact abs_skVectorGibbs_le (hexp g) fun σ => by
+    · exact abs_integral_tilted_le (hexp g) fun σ => by
         rw [abs_of_nonneg (sq_nonneg _)]
         calc skVectorPairFeature ξ (N + 1) p σ ^ 2 = |skVectorPairFeature ξ (N + 1) p σ| ^ 2 :=
               (sq_abs _).symm
           _ ≤ B ^ 2 := pow_le_pow_left₀ (abs_nonneg _) (hXb p σ) 2
     · rw [abs_pow]
-      exact pow_le_pow_left₀ (abs_nonneg _) (abs_skVectorGibbs_le (hexp g) (hXb p)) 2
+      exact pow_le_pow_left₀ (abs_nonneg _) (abs_integral_tilted_le (hexp g) (hXb p)) 2
   have hTi : ∀ p, Integrable (Tp p) (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) :=
     fun p => integrable_of_measurable_bound (hTm p) (hTb p)
   have hsum : ∑ p : FinPairs (N + 1), ∫ g, Tp p g ∂(Measure.pi fun _ : FinPairs (N + 1) =>
