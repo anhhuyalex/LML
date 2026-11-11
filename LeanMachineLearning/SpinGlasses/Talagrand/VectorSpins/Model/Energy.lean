@@ -262,4 +262,21 @@ theorem hasDerivAt_log_integral_exp_skVectorEnergy {α D : Type*}
     hm.aemeasurable (ae_of_all _ fun σ =>
       abs_skVectorEnergy_le N 1 g (fun i => ξ (σ i)) r hr (fun i => hbound (σ i))) β
 
+/-- The log-density of the decoupled last spin: the Gaussian field `Y` and the compensation
+(Eq. (1.371)). -/
+noncomputable def skVectorFieldExponent {α D : Type*} [Fintype D] (ξ : α → D → ℝ) (β : ℝ)
+    (ρ q : D → D → ℝ) (y : D → ℝ) (a : α) : ℝ :=
+  ∑ u, y u * ξ a u + β ^ 2 / 2 * ∑ u, ∑ v, ξ a u * ξ a v * (ρ u v - q u v)
+
+/-- Unfolding `skVectorFieldExponent` when the field is scaled by `β`. -/
+theorem skVectorFieldExponent_mul_left {α D : Type*} [Fintype D] (ξ : α → D → ℝ) (β : ℝ)
+    (ρ q : D → D → ℝ) (y : D → ℝ) (a : α) :
+    skVectorFieldExponent ξ β ρ q (fun w => β * y w) a =
+      β * ∑ w, y w * ξ a w +
+        β ^ 2 / 2 * ∑ w, ∑ w', ξ a w * ξ a w' * (ρ w w' - q w w') := by
+  unfold skVectorFieldExponent
+  congr 1
+  rw [Finset.mul_sum]
+  exact Finset.sum_congr rfl fun w _ => by ring
+
 end SpinGlasses

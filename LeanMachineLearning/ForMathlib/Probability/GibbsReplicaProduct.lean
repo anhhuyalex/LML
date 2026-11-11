@@ -9,6 +9,7 @@ public import Mathlib.MeasureTheory.Integral.Pi
 public import Mathlib.MeasureTheory.Measure.Tilted
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FreshReplicas
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteTilted
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.BoundedTilted
 
 /-!
 # Replica Gibbs measures on an arbitrary base space
@@ -120,10 +121,7 @@ theorem integral_pi_tilted_eq_div (E : α → ℝ) (Y : (ι → α) → ℝ) :
     ∫ σ, Y σ ∂(Measure.pi fun _ : ι => μ.tilted E) =
       (∫ σ, Y σ * Real.exp (∑ i, E (σ i)) ∂(Measure.pi fun _ : ι => μ)) /
         ∫ σ, Real.exp (∑ i, E (σ i)) ∂(Measure.pi fun _ : ι => μ) := by
-  rw [pi_tilted_eq_tilted_pi, integral_tilted, ← integral_div]
-  refine integral_congr_ae (Filter.Eventually.of_forall fun σ => ?_)
-  simp only [smul_eq_mul]
-  ring
+  rw [pi_tilted_eq_tilted_pi, integral_tilted_eq_div]
 
 /-- **Fresh replicas factorize.** A function of the replicas `e i` (`e` injective) times a function
 of one further replica `r` has the product of the two averages. -/
@@ -161,13 +159,6 @@ theorem integral_pi_eval (ν : Measure α) [IsProbabilityMeasure ν] {J : Type*}
     (i : J) (h : α → ℝ) (hh : AEStronglyMeasurable h ν) :
     ∫ σ : J → α, h (σ i) ∂(Measure.pi fun _ : J => ν) = ∫ a, h a ∂ν :=
   (measurePreserving_eval (fun _ : J => ν) i).integral_comp_of_aestronglyMeasurable hh
-
-/-- A bounded measurable function is integrable for a finite measure. -/
-theorem integrable_of_measurable_bound {β : Type*} [MeasurableSpace β] {m : Measure β}
-    [IsFiniteMeasure m] {G : β → ℝ} (hG : Measurable G) {M : ℝ} (hM : ∀ x, |G x| ≤ M) :
-    Integrable G m :=
-  (integrable_const M).mono' hG.aestronglyMeasurable
-    (Filter.Eventually.of_forall fun x => by simpa [Real.norm_eq_abs] using hM x)
 
 /-- **The replica covariance identity.** For `Y` a function of the replicas `some o`
 (`o : Option R`) and `h` a function of one spin, the covariance of `Y` with the sum of `h` over all
@@ -340,16 +331,11 @@ measurable function of `ω`. -/
 theorem measurable_integral_pi_tilted {E : Ω → α → ℝ} (hE : Measurable fun p : Ω × α => E p.1 p.2)
     {G : (ι → α) → ℝ} (hG : Measurable G) :
     Measurable fun ω => ∫ σ, G σ ∂(Measure.pi fun _ : ι => μ.tilted (E ω)) := by
+  simp_rw [pi_tilted_eq_tilted_pi]
   have hJ : Measurable fun p : Ω × (ι → α) => ∑ i, E p.1 (p.2 i) :=
     Finset.measurable_sum _ fun i _ => hE.comp (measurable_fst.prodMk
       ((measurable_pi_apply i).comp measurable_snd))
-  have h1 : Measurable fun p : Ω × (ι → α) => G p.2 * Real.exp (∑ i, E p.1 (p.2 i)) :=
-    (hG.comp measurable_snd).mul (Real.measurable_exp.comp hJ)
-  have h2 : Measurable fun p : Ω × (ι → α) => Real.exp (∑ i, E p.1 (p.2 i)) :=
-    Real.measurable_exp.comp hJ
-  simp_rw [integral_pi_tilted_eq_div]
-  exact (h1.stronglyMeasurable.integral_prod_right').measurable.div
-    (h2.stronglyMeasurable.integral_prod_right').measurable
+  exact measurable_integral_tilted hJ hG
 
 /-- A bounded replica Gibbs average is integrable in the random environment. -/
 theorem integrable_integral_pi_tilted {E : Ω → α → ℝ}

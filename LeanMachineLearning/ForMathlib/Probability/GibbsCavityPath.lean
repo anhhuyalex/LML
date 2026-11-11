@@ -97,12 +97,7 @@ theorem integral_mul_cavity_path_ibp {Ω : Type*} [MeasurableSpace Ω]
           R (Y k) (Sum.elim (fun k => s k t * Z k ω) (fun j => c j t)) *
             R (X l) (Sum.elim (fun k => s k t * Z k ω) (fun j => c j t))) ∂P := by
   set Zt : K → Ω → ℝ := fun k ω => s k t * Z k ω with hZt
-  have hZtG : HasGaussianLaw (fun ω k => Zt k ω) P := by
-    have := hZ.map (F := K → ℝ)
-      (ContinuousLinearMap.pi fun k => s k t • ContinuousLinearMap.proj k)
-    convert this using 1
-    funext ω k
-    simp [hZt]
+  have hZtG : HasGaussianLaw (fun ω k => Zt k ω) P := hZ.mul fun k => s k t
   set Dt : α → ℝ := fun a => D a + ∑ j, c j t * Xs j a with hDt
   have hDtm : Measurable Dt := by
     refine hD.add (Finset.measurable_sum _ fun j _ => (hXs j).const_mul _)

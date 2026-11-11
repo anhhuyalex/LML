@@ -5,10 +5,9 @@ Authors: LML contributors
 -/
 module
 
+public import Mathlib.Data.Fintype.Prod
 public import Mathlib.MeasureTheory.Integral.Bochner.Basic
 public import Mathlib.MeasureTheory.Integral.IntegrableOn
-public import Mathlib.Analysis.Convex.Integral
-public import Mathlib.MeasureTheory.Measure.Tilted
 
 /-!
 # Integrability of the integral of a bounded function against random probability measures
@@ -24,6 +23,14 @@ averages, where `κ ω` is a random Gibbs measure or a power of one.
 open MeasureTheory
 
 namespace MeasureTheory
+
+/-- A bounded measurable real function against a finite measure is integrable.
+This is Mathlib's `Integrable.of_bound` combined with `Real.norm_eq_abs`. -/
+theorem integrable_of_measurable_bound {β : Type*} [MeasurableSpace β] {m : Measure β}
+    [IsFiniteMeasure m] {G : β → ℝ} (hG : Measurable G) {M : ℝ} (hM : ∀ x, |G x| ≤ M) :
+    Integrable G m :=
+  (integrable_const M).mono' hG.aestronglyMeasurable
+    (Filter.Eventually.of_forall fun x => by simpa [Real.norm_eq_abs] using hM x)
 
 /-- A bounded function integrated against random probability measures gives an integrable
 function of the randomness, once that function is a.e. strongly measurable (for real values,
@@ -53,76 +60,47 @@ theorem integral_integral_finset_sum {Ω α ι : Type*} [MeasurableSpace Ω] [Me
   simp_rw [h]
   exact integral_finsetSum s houter
 
-/-- **Jensen's inequality for a finite sum of convex functions**:
-`∑ i ∈ s, g i (∫ ω, h i ω ∂P) ≤ ∫ ω, ∑ i ∈ s, g i (h i ω) ∂P` for a probability measure `P`. -/
-theorem sum_convex_integral_le {Ω ι : Type*} [MeasurableSpace Ω] {P : Measure Ω}
-    [IsProbabilityMeasure P] (s : Finset ι) (h : ι → Ω → ℝ) (g : ι → ℝ → ℝ)
-    (hg : ∀ i ∈ s, ConvexOn ℝ Set.univ (g i)) (hgc : ∀ i ∈ s, Continuous (g i))
-    (hint1 : ∀ i ∈ s, Integrable (h i) P)
-    (hint2 : ∀ i ∈ s, Integrable (fun ω => g i (h i ω)) P) :
-    ∑ i ∈ s, g i (∫ ω, h i ω ∂P) ≤ ∫ ω, ∑ i ∈ s, g i (h i ω) ∂P := by
-  have hsum : ∑ i ∈ s, ∫ ω, g i (h i ω) ∂P = ∫ ω, ∑ i ∈ s, g i (h i ω) ∂P :=
-    (integral_finsetSum s hint2).symm
-  rw [← hsum]
-  refine Finset.sum_le_sum fun i hi => ?_
-  exact (hg i hi).map_integral_le (hgc i hi).continuousOn isClosed_univ
-    (Filter.Eventually.of_forall fun _ => Set.mem_univ _) (hint1 i hi) (hint2 i hi)
+/-- A finite sum with scalar coefficients can be moved through an inner integral against a
+measure depending on the outer variable, then through the outer integral. -/
+theorem integral_integral_finset_sum_mul {Ω α ι : Type*} [MeasurableSpace Ω] [MeasurableSpace α]
+    (P : Measure Ω) (κ : Ω → Measure α) (s : Finset ι) (c : ι → ℝ) (f : ι → α → ℝ)
+    (hinner : ∀ i ∈ s, ∀ ω, Integrable (f i) (κ ω))
+    (houter : ∀ i ∈ s, Integrable (fun ω => ∫ x, f i x ∂κ ω) P) :
+    ∫ ω, ∫ x, ∑ i ∈ s, c i * f i x ∂κ ω ∂P =
+      ∑ i ∈ s, c i * ∫ ω, ∫ x, f i x ∂κ ω ∂P := by
+  have hlin := integral_integral_finset_sum P κ s (fun i x => c i * f i x)
+    (fun i hi ω => (hinner i hi ω).const_mul _)
+    (fun i hi => by
+      simp_rw [integral_const_mul]
+      exact (houter i hi).const_mul _)
+  simp_rw [integral_const_mul] at hlin
+  exact hlin
 
-/-- **Jensen for a vector of bounded functions**: `∑ᵢ (∫ hᵢ)² ≤ ∫ ∑ᵢ hᵢ²` for a probability
-measure. -/
-theorem sum_sq_integral_le {Ω ι : Type*} [MeasurableSpace Ω] [Fintype ι] {P : Measure Ω}
-    [IsProbabilityMeasure P] (h : ι → Ω → ℝ) (hm : ∀ i, Measurable (h i)) {M : ℝ}
-    (hb : ∀ i ω, |h i ω| ≤ M) :
-    ∑ i, (∫ ω, h i ω ∂P) ^ 2 ≤ ∫ ω, ∑ i, h i ω ^ 2 ∂P := by
-  have hint : ∀ i, Integrable (h i) P := fun i =>
-    Integrable.of_bound (hm i).aestronglyMeasurable M
-      (Filter.Eventually.of_forall fun ω => by rw [Real.norm_eq_abs]; exact hb i ω)
-  have hint2 : ∀ i, Integrable (fun ω => h i ω ^ 2) P := fun i =>
-    Integrable.of_bound ((hm i).pow_const 2).aestronglyMeasurable (M ^ 2)
-      (Filter.Eventually.of_forall fun ω => by
-        rw [Real.norm_eq_abs, abs_pow]
-        exact pow_le_pow_left₀ (abs_nonneg _) (hb i ω) 2)
-  exact sum_convex_integral_le Finset.univ h (fun _ t => t ^ 2)
-    (fun _ _ => Even.convexOn_pow (𝕜 := ℝ) (by decide : Even 2))
-    (fun _ _ => continuous_pow 2)
-    (fun i _ => hint i) (fun i _ => hint2 i)
+/-- For a probability kernel and bounded measurable functions, swapping a double integral
+with a finite sum requires only that the outer integrals are integrable. -/
+theorem integral_integral_finset_sum_of_bound {Ω α ι : Type*} [MeasurableSpace Ω]
+    [MeasurableSpace α] (P : Measure Ω) (κ : Ω → Measure α) [∀ ω, IsProbabilityMeasure (κ ω)]
+    (s : Finset ι) (f : ι → α → ℝ) (hf : ∀ i ∈ s, Measurable (f i))
+    (hfb : ∀ i ∈ s, ∃ M, ∀ x, |f i x| ≤ M)
+    (houter : ∀ i ∈ s, Integrable (fun ω => ∫ x, f i x ∂κ ω) P) :
+    ∫ ω, ∫ x, ∑ i ∈ s, f i x ∂κ ω ∂P =
+      ∑ i ∈ s, ∫ ω, ∫ x, f i x ∂κ ω ∂P :=
+  integral_integral_finset_sum P κ s f
+    (fun i hi _ => integrable_of_measurable_bound (hf i hi) (hfb i hi).choose_spec)
+    houter
 
-/-- The integral against the tilted probability measure written as a quotient of integrals. -/
-theorem integral_tilted_eq_div {α : Type*} [MeasurableSpace α] {μ : Measure α} (e Y : α → ℝ) :
-    ∫ a, Y a ∂(μ.tilted e) = (∫ a, Y a * Real.exp (e a) ∂μ) / ∫ a, Real.exp (e a) ∂μ := by
-  rw [integral_tilted, ← integral_div]
-  refine integral_congr_ae (Filter.Eventually.of_forall fun a => ?_)
-  simp only [smul_eq_mul]
-  ring
-
-/-- The tilted integral of a measurable observable is measurable in a jointly measurable random
-log-density. -/
-theorem measurable_integral_tilted {Ω α : Type*} [MeasurableSpace Ω] [MeasurableSpace α]
-    {μ : Measure α} {e : Ω → α → ℝ} (hE : Measurable fun p : Ω × α => e p.1 p.2)
-    {Y : α → ℝ} (hY : Measurable Y) : Measurable fun ω => ∫ a, Y a ∂(μ.tilted (e ω)) := by
-  simp_rw [integral_tilted_eq_div]
-  have h1 : Measurable fun p : Ω × α => Y p.2 * Real.exp (e p.1 p.2) :=
-    (hY.comp measurable_snd).mul (Real.measurable_exp.comp hE)
-  have h2 : Measurable fun p : Ω × α => Real.exp (e p.1 p.2) := Real.measurable_exp.comp hE
-  exact (h1.stronglyMeasurable.integral_prod_right' (ν := μ)).measurable.div
-    (h2.stronglyMeasurable.integral_prod_right' (ν := μ)).measurable
-
-/-- A tilted integral of an observable bounded by `M` is bounded by `M`. -/
-theorem abs_integral_tilted_le {α : Type*} [MeasurableSpace α] {μ : Measure α}
-    {e Y : α → ℝ} (he : Integrable (fun a => Real.exp (e a)) μ) {M : ℝ}
-    (hY : ∀ a, |Y a| ≤ M) : |∫ a, Y a ∂(μ.tilted e)| ≤ M := by
-  have := isProbabilityMeasure_tilted he
-  rw [← Real.norm_eq_abs]
-  have := norm_integral_le_of_norm_le_const (μ := μ.tilted e) (f := Y) (C := M)
-    (Filter.Eventually.of_forall fun a => by simpa [Real.norm_eq_abs] using hY a)
-  simpa using this
-
-/-- Jensen's inequality for a vector of observables under a tilted probability measure. -/
-theorem sum_sq_integral_tilted_le {α ι : Type*} [MeasurableSpace α] [Fintype ι]
-    {μ : Measure α} {e : α → ℝ} (he : Integrable (fun a => Real.exp (e a)) μ)
-    (Y : ι → α → ℝ) (hY : ∀ i, Measurable (Y i)) {M : ℝ} (hb : ∀ i a, |Y i a| ≤ M) :
-    ∑ i, (∫ a, Y i a ∂(μ.tilted e)) ^ 2 ≤ ∫ a, ∑ i, Y i a ^ 2 ∂(μ.tilted e) := by
-  have : IsProbabilityMeasure (μ.tilted e) := isProbabilityMeasure_tilted he
-  exact sum_sq_integral_le Y hY hb
+/-- A double finite sum can be moved through an inner integral against a probability kernel,
+then through the outer integral, for bounded measurable functions. -/
+theorem integral_integral_sum_sum_of_bound {Ω α ι κ : Type*} [MeasurableSpace Ω]
+    [MeasurableSpace α] [Fintype ι] [Fintype κ] (P : Measure Ω) (Q : Ω → Measure α)
+    [∀ ω, IsProbabilityMeasure (Q ω)] (f : ι → κ → α → ℝ)
+    (hf : ∀ i j, Measurable (f i j)) (hfb : ∀ i j, ∃ M, ∀ x, |f i j x| ≤ M)
+    (houter : ∀ i j, Integrable (fun ω => ∫ x, f i j x ∂Q ω) P) :
+    ∫ ω, ∫ x, ∑ i, ∑ j, f i j x ∂Q ω ∂P =
+      ∑ i, ∑ j, ∫ ω, ∫ x, f i j x ∂Q ω ∂P := by
+  have := integral_integral_finset_sum_of_bound P Q (Finset.univ : Finset (ι × κ))
+    (fun p x => f p.1 p.2 x) (fun p _ => hf p.1 p.2) (fun p _ => hfb p.1 p.2)
+    (fun p _ => houter p.1 p.2)
+  simpa only [Fintype.sum_prod_type] using this
 
 end MeasureTheory

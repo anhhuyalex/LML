@@ -160,6 +160,40 @@ jobs:
           mkdir -p home_page/exposition
           cp -r "${{ steps.referee.outputs.site }}/." home_page/exposition/
 
+      # The Talagrand book (book/README.md): the blueprint chapter typeset with Typst, with the Lean
+      # statement of every theorem. It reads the Lean project that was built above, so it runs here.
+      - name: Install Typst
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/bin"
+          curl -sSL https://github.com/typst/typst/releases/download/v0.15.1/typst-x86_64-unknown-linux-musl.tar.xz \
+            | tar -xJ --strip-components=1 -C "$HOME/.local/bin" typst-x86_64-unknown-linux-musl/typst
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Test the Talagrand book converter
+        run: python3 -m unittest discover -s book/talagrand/checks -p 'check_*.py'
+        env:
+          PYTHONPATH: book/talagrand
+          PYTHONDONTWRITEBYTECODE: '1'
+
+      # Extracting the signatures takes minutes, so they are cached. The key covers everything they
+      # depend on; an exact match only (a stale cache would silently show outdated statements).
+      - name: Cache the Talagrand book's Lean signatures
+        if: github.event_name == 'push'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: book/typstverso/typst/lean.json
+          key: talagrand-signatures-${{ hashFiles('LeanMachineLearning/**/*.lean', 'lean-toolchain', 'lake-manifest.json', 'blueprint/src/chapters/spinglasses_talagrand.tex', 'book/typstverso/ExportLean.lean', 'book/typstverso/build.py') }}
+
+      # Pull requests only check that the chapter still converts and compiles (no Lean needed).
+      - name: Check the Talagrand book
+        if: github.event_name != 'push'
+        run: scripts/build_talagrand_book.sh --check
+
+      - name: Build the Talagrand book
+        if: github.event_name == 'push'
+        run: scripts/build_talagrand_book.sh home_page/talagrand
+
       - name: Add exposition statistics
         if: github.event_name == 'push'
         env:

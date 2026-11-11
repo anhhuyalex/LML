@@ -129,4 +129,21 @@ theorem integral_prod_mul_prod (hfm : Measurable f)
   refine integral_congr_ae (Filter.Eventually.of_forall fun v => ?_)
   exact integral_prod_mul (fun x => f (v, x)) (fun x => f' (v, x))
 
+/-- **Jensen for a vector of bounded functions**: `∑ᵢ (∫ hᵢ)² ≤ ∫ ∑ᵢ hᵢ²` for a probability
+measure. -/
+theorem sum_sq_integral_le {Ω ι : Type*} [MeasurableSpace Ω] [Fintype ι] {P : Measure Ω}
+    [IsProbabilityMeasure P] (h : ι → Ω → ℝ) (hm : ∀ i, Measurable (h i)) {M : ℝ}
+    (hb : ∀ i ω, |h i ω| ≤ M) :
+    ∑ i, (∫ ω, h i ω ∂P) ^ 2 ≤ ∫ ω, ∑ i, h i ω ^ 2 ∂P := by
+  have hint2 (i : ι) : Integrable (fun ω => h i ω ^ 2) P :=
+    Integrable.of_bound ((hm i).pow_const 2).aestronglyMeasurable (M ^ 2)
+      (Filter.Eventually.of_forall fun ω => by
+        rw [Real.norm_eq_abs, abs_pow]
+        exact pow_le_pow_left₀ (abs_nonneg _) (hb i ω) 2)
+  have hle : ∑ i, (∫ ω, h i ω ∂P) ^ 2 ≤ ∑ i, ∫ ω, h i ω ^ 2 ∂P :=
+    Finset.sum_le_sum fun i _ => sq_integral_le_integral_sq (hm i) (hint2 i)
+  have hsum : ∑ i, ∫ ω, h i ω ^ 2 ∂P = ∫ ω, ∑ i, h i ω ^ 2 ∂P :=
+    (integral_finsetSum Finset.univ fun i _ => hint2 i).symm
+  rwa [hsum] at hle
+
 end MeasureTheory

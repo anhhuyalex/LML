@@ -1,0 +1,523 @@
+--- a/build.py
++++ b/build.py
+@@ -13,7 +13,11 @@
+ # See the License for the specific language governing permissions and
+ # limitations under the License.
+ 
+-"""Incrementally extract requested Lean code and export a Typst document."""
++"""Incrementally extract requested Lean code and export a Typst document.
++
++Vendored from https://github.com/Shreyas4991/TypstVerso (see ../VENDORED.md).
++Changes for LML are marked "LML:" and listed in ../VENDORED.md.
++"""
+ import argparse
+ from contextlib import contextmanager
+ import errno
+@@ -26,7 +30,9 @@
+ import subprocess
+ import sys
+ import tempfile
++import threading
+ import time
++from concurrent.futures import ThreadPoolExecutor
+ 
+ ROOT = Path(__file__).resolve().parent
+ PROJECT = ROOT / "LeanProject"
+@@ -36,6 +42,8 @@
+ DOCUMENT_KINDS = ("slides", "article", "book", "blog")
+ BUILD = DOCUMENT / "build"
+ MODULES = ["LeanProject"]
++CACHE_FORMAT = 1  # LML: change when lean.json's content or the requests it answers change
++EXPORT_SCRIPT = ROOT / "ExportLean.lean"  # LML: kept next to build.py, not in the Lean project
+ REQUEST_PREFIX = "LEAN_REQUEST:"
+ 
+ 
+@@ -97,10 +105,63 @@
+                 fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
+ 
+ 
++def compact_cache(data):
++    """LML: store each distinct tooltip once.
++
++    Signatures repeat the same long tooltips (a constant's type and docstring) thousands
++    of times. Tokens keep a table index ``t`` instead of the ``tooltip`` text; ``lean.typ``
++    looks it up in ``tooltips``. ``expand_cache`` is the inverse.
++    """
++    table, index = [], {}
++
++    def visit(node):
++        if isinstance(node, list):
++            return [visit(item) for item in node]
++        if not isinstance(node, dict):
++            return node
++        result = {}
++        for key, value in node.items():
++            if key == "tooltip" and isinstance(value, str):
++                result["t"] = index.setdefault(value, len(index))
++                if result["t"] == len(table):
++                    table.append(value)
++            else:
++                result[key] = visit(value)
++        return result
++
++    compact = visit(data)
++    compact["tooltips"] = table
++    return compact
++
++
++def expand_cache(data):
++    """LML: inverse of ``compact_cache`` (accepts data that was never compacted)."""
++    table = data.get("tooltips")
++    if table is None:
++        return data
++
++    def visit(node):
++        if isinstance(node, list):
++            return [visit(item) for item in node]
++        if not isinstance(node, dict):
++            return node
++        result = {}
++        for key, value in node.items():
++            if key == "t" and isinstance(value, int):
++                result["tooltip"] = table[value]
++            else:
++                result[key] = visit(value)
++        return result
++
++    expanded = visit({k: v for k, v in data.items() if k != "tooltips"})
++    return expanded
++
++
+ def write_json(path, value):
+     """Atomically replace the single extraction/cache file, only when it changes."""
+     path.parent.mkdir(parents=True, exist_ok=True)
+-    content = json.dumps(value, ensure_ascii=False, indent=2) + "\n"
++    # LML: compact separators and a shared tooltip table keep lean.json loadable by Typst.
++    content = json.dumps(compact_cache(value), ensure_ascii=False, separators=(",", ":")) + "\n"
+     if path.is_file() and path.read_text() == content:
+         return
+     with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", prefix=".lean-", suffix=".tmp",
+@@ -153,6 +214,30 @@
+     run(["git", "apply", patch], cwd=package)
+ 
+ 
++def config_snapshot(project):
++    """LML: the files that pin a prebuilt Lean project (toolchain and dependency revisions).
++
++    Contents are hashed, not modification times: a fresh checkout (CI) must give the same key.
++    """
++    paths = []
++    for name in ("lake-manifest.json", "lean-toolchain", "lakefile.toml"):
++        path = project / name
++        if path.is_file():
++            paths.append((name, hashlib.sha256(path.read_bytes()).hexdigest()))
++    return paths
++
++
++def newest_lean_source(project):
++    """LML: modification time of the newest ``.lean`` file below ``project`` (nanoseconds)."""
++    newest = 0
++    for directory, dirs, files in os.walk(project):
++        dirs[:] = [d for d in dirs if d not in {".git", ".lake", ".venv", "node_modules", "__pycache__"}]
++        for name in files:
++            if name.endswith(".lean"):
++                newest = max(newest, (Path(directory) / name).stat().st_mtime_ns)
++    return newest
++
++
+ def source_snapshot(project):
+     """Include dependency sources; exclude compiled artifacts and nested caches."""
+     paths = []
+@@ -247,7 +332,15 @@
+ class Builder:
+     def __init__(self, project=PROJECT, document=DOCUMENT, output=None,
+                  modules=None, refresh=False, formats="both", library=LIBRARY,
+-                 templates=TEMPLATES, kind=None):
++                 templates=TEMPLATES, kind=None, prebuilt=False, export_script=EXPORT_SCRIPT,
++                 light_pdf=False, jobs=1):
++        # LML: `prebuilt` means the Lean project is already built (and is not ours to
++        # patch): skip `lake update`, the SubVerso patch and `lake build`.
++        self.prebuilt = prebuilt
++        self.light_pdf = light_pdf
++        self.jobs = max(1, jobs)
++        self.recovery_lock = threading.Lock()  # recovery edits the shared extraction cache
++        self.export_script = Path(export_script).resolve()
+         self.project = Path(project).resolve()
+         self.document = Path(document).resolve()
+         self.library = Path(library).resolve()
+@@ -274,7 +367,7 @@
+         self.fingerprint = self.lean_fingerprint()
+         if self.path.is_file() and not refresh:
+             try:
+-                saved = json.loads(self.path.read_text())
++                saved = expand_cache(json.loads(self.path.read_text()))
+                 if (saved.get("schemaVersion") == 1 and
+                         saved.get("_cache", {}).get("fingerprint") == self.fingerprint and
+                         isinstance(saved.get("declarations"), dict) and
+@@ -284,10 +377,26 @@
+             except (ValueError, AttributeError):
+                 print("Discarding invalid extraction cache: " + str(self.path), file=sys.stderr)
+ 
++    def warn_if_stale(self):
++        """LML: remind the user that cached signatures predate edits to the Lean sources."""
++        if os.environ.get("CI"):
++            return  # a fresh checkout is always newer than a restored cache; the cache key covers it
++        if self.prebuilt and self.path.is_file() and newest_lean_source(self.project) > self.path.stat().st_mtime_ns:
++            print("Warning: Lean sources are newer than the saved signatures; run with --refresh "
++                  "to extract them again.", file=sys.stderr)
++
+     def lean_fingerprint(self):
+-        digest = hashlib.sha256(Path(__file__).read_bytes())
++        # LML: a prebuilt run extracts through ExportLean.lean only, so editing the rest of this
++        # script (HTML export, CLI) must not discard minutes of Lean results. Bump
++        # CACHE_FORMAT when the stored data or the requests change.
++        digest = hashlib.sha256(Path(__file__).read_bytes() if not self.prebuilt
++                                else f"cache-format-{CACHE_FORMAT}".encode())
++        digest.update(self.export_script.read_bytes())
++        # LML: a prebuilt project is described by its pins; hashing its (concurrently edited)
++        # sources would invalidate the cache on every edit. `warn_if_stale` covers that case.
++        snapshot = config_snapshot(self.project) if self.prebuilt else source_snapshot(self.project)
+         digest.update(request_key({"project": str(self.project), "modules": self.modules,
+-                                   "sources": source_snapshot(self.project)}).encode())
++                                   "sources": snapshot}).encode())
+         return digest.hexdigest()
+ 
+     def save(self):
+@@ -300,6 +409,13 @@
+         targets = set(self.modules) | set(extra_modules)
+         if self.ready and targets <= self.built_modules:
+             return
++        if self.prebuilt:
++            sysroot = run(["lake", "env", "lean", "--print-prefix"],
++                          cwd=self.project, capture=True).strip()
++            self.env = {**os.environ, "LEAN_SYSROOT": sysroot}
++            self.built_modules.update(targets)
++            self.ready = True
++            return
+         if not (self.project / ".lake/packages/subverso").is_dir():
+             run(["lake", "update"], cwd=self.project)
+         prepare_subverso(self.project)
+@@ -318,7 +434,7 @@
+         self.ready = True
+ 
+     def bridge(self, arguments, value):
+-        result = run(["lake", "env", "lean", "--run", "ExportLean.lean", *arguments],
++        result = run(["lake", "env", "lean", "--run", self.export_script, *arguments],
+                      cwd=self.project, capture=True, env=self.env,
+                      input=value if isinstance(value, str) else json.dumps(value))
+         return json.loads(result)
+@@ -373,7 +489,9 @@
+                 self.data["inlineCommands"].append({
+                     "module": command["module"], "source": command["source"],
+                     "lines": quote_lines(command["fragments"]),
+-                    "messages": [{**m, "lines": quote_lines(m["fragments"])}
++                    # LML: the raw fragments duplicate `lines` and are not needed by Typst.
++                    "messages": [{**{k: v for k, v in m.items() if k != "fragments"},
++                                  "lines": quote_lines(m["fragments"])}
+                                  for m in command["messages"]]})
+         self.save()
+         return bool(missing or pending)
+@@ -401,7 +519,11 @@
+             directory = Path(temporary)
+             targets = []
+             if self.formats in {"pdf", "both"}:
+-                self.typst(["compile", entry, directory / "document.pdf"])
++                # LML: a "light" PDF drops everything that only the HTML or an interactive PDF
++                # needs: Lean hover boxes, and the per-glyph accessibility tags that made a
++                # whole book of signatures ten times larger.
++                light = ["--input", "lean-plain=true", "--no-pdf-tags"] if self.light_pdf else []
++                self.typst(["compile", *light, entry, directory / "document.pdf"])
+             if self.formats in {"html", "both"}:
+                 self.typst(["compile", "--format", "svg", entry, directory / "page-{n}.svg"])
+             expression = '''query(metadata).filter(item => type(item.value) == dictionary and
+@@ -409,7 +531,15 @@
+               let p = item.location().position()
+               (page: p.page, x: p.x.pt(), y: p.y.pt(), ..item.value)
+             })'''
+-            regions = json.loads(self.typst(["eval", expression, "--in", entry]))
++            needs_regions = self.formats != "pdf" or not self.light_pdf
++            regions = json.loads(self.typst(["eval", expression, "--in", entry])) if needs_regions else []
++            # LML: link regions (cross-references) and anchors (link targets) for the HTML reader.
++            navigation_expression = '''query(metadata).filter(item => type(item.value) == dictionary and
++              item.value.at("kind", default: "") in ("book-link", "book-anchor")).map(item => {
++              let p = item.location().position()
++              (page: p.page, x: p.x.pt(), y: p.y.pt(), ..item.value)
++            })'''
++            navigation = json.loads(self.typst(["eval", navigation_expression, "--in", entry])) if needs_regions else []
+             if self.formats in {"html", "both"}:
+                 # Ask Typst for outlined headings and their final locations, including
+                 # computed chapter numbers; never infer a contents list from page text.
+@@ -443,6 +573,8 @@
+                     width, height = re.search(r'viewBox="0 0 ([\d.]+) ([\d.]+)"', markup).groups()
+                     pages.append({"svg": markup, "width": float(width), "height": float(height),
+                                   "regions": [r for r in regions if r["page"] == number],
++                                  "links": [n for n in navigation if n["page"] == number and n["kind"] == "book-link"],
++                                  "anchors": [n for n in navigation if n["page"] == number and n["kind"] == "book-anchor"],
+                                   "headings": [h for h in headings if h["page"] == number]})
+                 template = (self.templates / (self.kind + ".html")).read_text()
+                 for marker, name in (("__TOOLTIPS_CSS__", "tooltips.css"),
+@@ -456,27 +588,51 @@
+                 (directory / "document.html").write_text(document)
+                 targets.append((directory / "document.html", self.output / (stem + ".html")))
+             if self.formats in {"pdf", "both"}:
+-                annotate_pdf(directory / "document.pdf", directory / "annotated.pdf", regions)
+-                targets.append((directory / "annotated.pdf", self.output / (stem + ".pdf")))
++                # LML: a whole book of signatures has hundreds of thousands of hover regions;
++                # PDF viewers cannot cope with that many annotations, so they can be skipped.
++                if not self.light_pdf:
++                    annotate_pdf(directory / "document.pdf", directory / "annotated.pdf", regions)
++                    targets.append((directory / "annotated.pdf", self.output / (stem + ".pdf")))
++                else:
++                    targets.append((directory / "document.pdf", self.output / (stem + ".pdf")))
+             for source, destination in targets:
+                 source.replace(destination)
+             print("Built " + ", ".join(str(p) for _, p in targets) +
+                   f" ({len(regions)} Lean hover regions)", flush=True)
+ 
+-    def build(self, entry="main.typ", extract_only=False):
++    def build(self, entries="main.typ", extract_only=False):
++        """Build one entry file, or several that share a single Lean extraction pass."""
+         with build_lock(self.library):
+             # A different process may have updated the data while this one waited.
+             self.load_cache(self.refresh)
+             self.refresh = False
+-            self.build_locked(entry, extract_only)
++            self.warn_if_stale()
++            self.build_locked(entries, extract_only)
+ 
+-    def build_locked(self, entry="main.typ", extract_only=False):
++    def resolve_entry(self, entry):
+         entry = (self.document / entry).resolve()
+         if not entry.is_file() or not entry.is_relative_to(self.document):
+-            raise ValueError("The entry file must be inside the document project")
+-        self.ensure_requests(self.discover(entry))
++            raise ValueError("The entry file must be inside the document project: " + str(entry))
++        return entry
++
++    def build_locked(self, entries="main.typ", extract_only=False):
++        # LML: all entries are discovered first, so Lean runs once for the union of requests.
++        entries = [entries] if isinstance(entries, (str, os.PathLike)) else list(entries)
++        resolved = [self.resolve_entry(entry) for entry in entries]
++        requests = [request for entry in resolved for request in self.discover(entry)]
++        self.ensure_requests(requests)
+         if extract_only:
+             return
++        if self.jobs == 1 or len(resolved) == 1:
++            for entry in resolved:
++                self.export_with_recovery(entry)
++        else:
++            # LML: entries are independent Typst runs; export them in parallel.
++            with ThreadPoolExecutor(self.jobs) as pool:
++                for _ in pool.map(self.export_with_recovery, resolved):
++                    pass  # iterating re-raises the first failure
++
++    def export_with_recovery(self, entry):
+         attempted = set()
+         for _ in range(32):
+             try:
+@@ -491,7 +647,9 @@
+                     raise RuntimeError(recovery_error(request)) from error
+                 attempted.add(key)
+                 print("Preparing the missing result for " + request_description(request) + " and rebuilding...", flush=True)
+-                if not self.ensure_requests([request]):
++                with self.recovery_lock:
++                    prepared = self.ensure_requests([request])
++                if not prepared:
+                     raise RuntimeError(recovery_error(request)) from error
+         raise RuntimeError("Stopped after 32 missing-data retries; check document-dependent requests")
+ 
+@@ -531,9 +689,9 @@
+         writer.write(stream)
+ 
+ 
+-def watch_snapshot(project, document, library=LIBRARY, templates=TEMPLATES):
++def watch_snapshot(project, document, library=LIBRARY, templates=TEMPLATES, include_packages=True):
+     paths = [(str(Path(__file__)), Path(__file__).stat().st_mtime_ns, Path(__file__).stat().st_size)]
+-    paths += source_snapshot(project)
++    paths += source_snapshot(project) if include_packages else config_snapshot(project)
+     documents = [document] if isinstance(document, (str, os.PathLike)) else document
+     for root in documents:
+         for directory, dirs, files in os.walk(root):
+@@ -560,7 +718,8 @@
+ 
+ def main(argv=None):
+     parser = argparse.ArgumentParser(description=__doc__)
+-    parser.add_argument("entry", nargs="?", default="main.typ")
++    parser.add_argument("entries", nargs="*", default=["main.typ"], metavar="entry",
++                        help="Typst entry files, relative to the document folder")
+     parser.add_argument("--project", type=Path, default=PROJECT)
+     selection = parser.add_mutually_exclusive_group()
+     selection.add_argument("--document", type=Path, default=DOCUMENT)
+@@ -574,6 +733,15 @@
+     parser.add_argument("--extract-only", action="store_true")
+     parser.add_argument("--refresh", action="store_true", help="Discard the extraction cache once")
+     parser.add_argument("--watch", action="store_true")
++    parser.add_argument("--prebuilt", action="store_true",
++                        help="LML: the Lean project is already built; do not run lake update/build or patch SubVerso")
++    parser.add_argument("--export-script", type=Path, default=EXPORT_SCRIPT,
++                        help="LML: path of ExportLean.lean")
++    parser.add_argument("--jobs", type=int, default=1,
++                        help="LML: export this many entry files in parallel")
++    parser.add_argument("--light-pdf", action="store_true",
++                        help="LML: PDF without Lean hover annotations, hover boxes and accessibility tags "
++                             "(a whole book of signatures is otherwise ~100 MB)")
+     args = parser.parse_args(argv)
+     documents = [ROOT / "documents" / kind for kind in DOCUMENT_KINDS] if args.all else [args.document]
+     previous = None
+@@ -582,7 +750,7 @@
+         if args.watch and Path(__file__).stat().st_mtime_ns != loaded_script:
+             os.execv(sys.executable, [sys.executable, str(Path(__file__).resolve()), *sys.argv[1:]])
+         current = watch_snapshot(args.project.resolve(), [p.resolve() for p in documents],
+-                                 args.library, args.templates)
++                                 args.library, args.templates, not args.prebuilt)
+         failed = False
+         if current != previous:
+             previous = current
+@@ -591,9 +759,11 @@
+                 output = args.output / document.name if args.all and args.output else args.output
+                 try:
+                     builder = Builder(args.project, document, output, args.modules,
+-                                      refresh, args.format, args.library, args.templates, args.template)
++                                      refresh, args.format, args.library, args.templates, args.template,
++                                      args.prebuilt, args.export_script, args.light_pdf,
++                                      args.jobs)
+                     refresh = False
+-                    builder.build(args.entry, args.extract_only)
++                    builder.build(args.entries, args.extract_only)
+                 except (subprocess.CalledProcessError, RuntimeError, ValueError, OSError) as error:
+                     failed = True
+                     print(f"Build failed ({document.name}): {error}", file=sys.stderr)
+--- a/typst/lean.typ
++++ b/typst/lean.typ
+@@ -19,6 +19,9 @@
+   (schemaVersion: 1, declarations: (:), commands: (), inlineCommands: ())
+ } else { json("lean.json") }
+ 
++// LML: tokens store `t`, an index into the shared `tooltips` table (see build.py).
++#let lean-tooltip(part) = if "t" in part { lean-data.tooltips.at(part.t) } else { part.at("tooltip", default: "") }
++
+ #let lean-request(request) = metadata((kind: "lean-request", request: request))
+ #let lean-build-fix = "If build.py is already running, wait about a minute for it to update the saved Lean results, then save this Typst file again. Check its terminal for errors.\n\nIf it is not running, open a terminal in the folder containing build.py and run:\n.venv/bin/python build.py --watch --all\n\nTo build once instead, run:\n.venv/bin/python build.py --all\n\nOn Windows, use .venv\\Scripts\\python.exe instead of .venv/bin/python."
+ 
+@@ -42,8 +45,12 @@
+   "They were created by an older version of the template or do not contain the information this document needs.",
+   lean-build-fix + "\n\nIf rebuilding does not help, run:\n.venv/bin/python build.py --all --refresh")
+ 
++// LML: with `--input lean-plain=true` (the PDF of the book) tokens are plain coloured text:
++// hover regions are only useful in the HTML, and hundreds of thousands of boxes bloat the PDF.
++#let lean-plain = sys.inputs.at("lean-plain", default: "false") == "true"
++
+ #let lean-hover(body, tooltip, kind: "token") = context {
+-  if tooltip == "" { body } else {
++  if tooltip == "" or lean-plain { body } else {
+     let dimensions = measure(body)
+     box[
+       #metadata((
+@@ -124,11 +131,11 @@
+                   radius: 0.14em, fill: none,
+                   stroke: 0.65pt + rgb("89949f"),
+                 ),
+-                part.tooltip, kind: "state",
++                lean-tooltip(part), kind: "state",
+               )
+             }
+           } else {
+-            lean-hover(text(fill: lean-color(part.kind), raw(part.text)), part.tooltip)
++            lean-hover(text(fill: lean-color(part.kind), raw(part.text)), lean-tooltip(part))
+           }
+         }
+       })
+@@ -158,7 +165,8 @@
+ }
+ 
+ // Render a saved or inline Lean command with Lean's actual output.
+-#let lean-command(code, module: none, occurrence: 1, output: true, size: 1em, output-size: none) = {
++// LML: `source: false` hides the command itself and shows only Lean's output.
++#let lean-command(code, module: none, occurrence: 1, source: true, output: true, size: 1em, output-size: none) = {
+   let request = (kind: "command", source: code.trim(), module: module, occurrence: occurrence)
+   if lean-discover { return lean-request(request) }
+   if "commands" not in lean-data { lean-refresh() }
+@@ -176,8 +184,10 @@
+   assert(modules.len() == 1, message: "Command appears in several modules; specify module: with the Lean module name.")
+   assert(occurrence >= 1 and occurrence <= matches.len(), message: "Lean command occurrence out of range: choose 1 to " + str(matches.len()) + ".")
+   let command = matches.at(occurrence - 1)
+-  let panels = (block(width: 100%, fill: rgb("f6f8fa"), radius: 5pt, inset: 12pt,
+-    lean-render(command.lines, size: size)),)
++  let panels = if source {
++    (block(width: 100%, fill: rgb("f6f8fa"), radius: 5pt, inset: 12pt,
++      lean-render(command.lines, size: size)),)
++  } else { () }
+   if output {
+     for message in command.messages {
+       let error = message.at("severity", default: "info") == "error"
+@@ -216,3 +226,18 @@
+     lean-render(lean-fragment-lines(info), size: size, states: false))
+ }
+ 
++
++// LML: show the statement of a declaration, as `#check` prints it, with hover information.
++// `opens` are namespaces opened for printing (shorter names, scoped notation); `width` is
++// Lean's line width, chosen to fit the page. The request is an ordinary command, so it is
++// cached and recovered exactly like `lean-command`.
++#let lean-signature-source(name, opens: (), width: 72) = {
++  let prefix = "set_option format.width " + str(width) + " in\n"
++  let opening = if opens.len() == 0 { "" } else { "open " + opens.join(" ") + " in\n" }
++  prefix + opening + "#check " + name
++}
++
++#let lean-signature(name, opens: (), width: 72, size: 1em, module: none) = {
++  lean-command(lean-signature-source(name, opens: opens, width: width), module: module,
++    source: false, size: size)
++}
+--- a/templates/html/tooltips.js
++++ b/templates/html/tooltips.js
+@@ -94,6 +94,18 @@
+       });
+       container.append(button);
+     }
++    // LML: cross-references of the book are real links over the rendered text.
++    for (const link of page.links || []) {
++      const anchor = document.createElement("a");
++      anchor.className = "hover book-link";
++      anchor.href = link.href;
++      anchor.setAttribute("aria-label", "Go to " + link.href);
++      anchor.style.left = (100 * link.x / page.width) + "%";
++      anchor.style.top = (100 * link.y / page.height) + "%";
++      anchor.style.width = (100 * link.width / page.width) + "%";
++      anchor.style.height = (100 * link.height / page.height) + "%";
++      container.append(anchor);
++    }
+   }
+   tooltip.tabIndex = 0;
+   tooltip.addEventListener("pointerenter", () => { hoveringTooltip = true; cancelHide(); });
+--- a/templates/html/tooltips.css
++++ b/templates/html/tooltips.css
+@@ -17,6 +17,8 @@
+   .hover { position: absolute; border: 0; padding: 0; margin: 0; background: transparent; color: transparent; cursor: help; }
+   .hover:focus-visible, .hover.active { outline: 2px solid #60a5fa; border-radius: 3px; background: #60a5fa22; }
+   .hover[data-role="state"] { cursor: pointer; }
++  a.book-link { cursor: pointer; }
++  a.book-link:hover { background: #60a5fa22; border-radius: 3px; }
+   .hover[data-role="state"]:focus-visible, .hover[data-role="state"].active {
+     outline: 1px solid #89949f; outline-offset: 2px; border-radius: 999px; background: transparent;
+   }
+--- a/templates/html/reader.js
++++ b/templates/html/reader.js
+@@ -39,6 +39,17 @@
+     section.append(anchor);
+     headings.push(heading);
+   }
++  // LML: anchors for labelled statements, so that `#label` links (and other pages) can target them.
++  for (const item of page.anchors || []) {
++    const anchor = document.createElement("span");
++    anchor.id = item.id;
++    anchor.style.position = "absolute";
++    anchor.style.top = (100 * item.y / page.height) + "%";
++    anchor.style.left = "0";
++    anchor.style.scrollMarginTop = "24px";
++    anchor.setAttribute("aria-hidden", "true");
++    section.append(anchor);
++  }
+ }
+ if (contents) {
+   const parents = [];

@@ -186,18 +186,8 @@ theorem abs_gibbs_ratio_le [NeZero μ] (hD : Measurable D) (hX : ∀ k, Measurab
     (hYb : ∀ a, |Y a| ≤ M) (z : K → ℝ) :
     |(∫ a, Y a * Real.exp (D a + ∑ k, z k * X k a) ∂μ) /
       ∫ a, Real.exp (D a + ∑ k, z k * X k a) ∂μ| ≤ M := by
-  have hi := integrable_exp_linear (μ := μ) hD hX hDb hXb z
-  have hpos := integral_exp_pos hi
-  rw [abs_div, abs_of_pos hpos, div_le_iff₀ hpos]
-  calc |∫ a, Y a * Real.exp (D a + ∑ k, z k * X k a) ∂μ|
-      ≤ ∫ a, |Y a * Real.exp (D a + ∑ k, z k * X k a)| ∂μ := abs_integral_le_integral_abs
-    _ ≤ ∫ a, M * Real.exp (D a + ∑ k, z k * X k a) ∂μ := by
-        refine integral_mono_of_nonneg (ae_of_all _ fun a => abs_nonneg _) (hi.const_mul M)
-          (ae_of_all _ fun a => ?_)
-        beta_reduce
-        rw [abs_mul, abs_of_pos (Real.exp_pos _)]
-        exact mul_le_mul_of_nonneg_right (hYb a) (Real.exp_pos _).le
-    _ = M * ∫ a, Real.exp (D a + ∑ k, z k * X k a) ∂μ := integral_const_mul _ _
+  rw [← integral_tilted_eq_div]
+  exact abs_integral_tilted_le (integrable_exp_linear hD hX hDb hXb z) hYb
 
 omit [DecidableEq K] in
 /-- **Gaussian integration by parts for a Gibbs average with a linear Gaussian energy.**

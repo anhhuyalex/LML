@@ -8,6 +8,7 @@ module
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IntegrableOfBound
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaProduct
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Cavity.Bounds
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Model.Energy
 public import Mathlib.Analysis.Convex.Integral
 
 /-!
@@ -158,12 +159,6 @@ theorem sum_sq_skVectorFixedPoint_le {D : Type*} [Fintype D] (μ : Measure α) [
               Finset.sum_nonneg fun uv _ => sq_nonneg _) (integrable_const _)
               (Filter.Eventually.of_forall hH)
         _ = r ^ 2 := by simp
-
-/-- The log-density of the decoupled last spin: the Gaussian field `Y` and the compensation
-(Eq. (1.371)). -/
-noncomputable def skVectorFieldExponent {D : Type*} [Fintype D] (ξ : α → D → ℝ) (β : ℝ)
-    (ρ q : D → D → ℝ) (y : D → ℝ) (a : α) : ℝ :=
-  ∑ u, y u * ξ a u + β ^ 2 / 2 * ∑ u, ∑ v, ξ a u * ξ a v * (ρ u v - q u v)
 
 omit [MeasurableSpace Ω] in
 /-- The decoupled log-density has an integrable exponential and is jointly measurable. -/

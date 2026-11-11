@@ -43,18 +43,12 @@ theorem hasDerivAt_skVectorGaussianFreeEnergy (μ : Measure α) [IsProbabilityMe
     (hX : HasGaussianLaw (fun ω u => X u ω) P) (hXm : ∀ u, Measurable (X u))
     (hX0 : ∀ u, ∫ ω, X u ω ∂P = 0) (hXcov : ∀ u v, ∫ ω, X u ω * X v ω ∂P = q u v)
     {β : ℝ} (hβ : β ≠ 0)
-    (hρ : ∀ u v, ρ u v = ∫ ω, (∫ a, ξ a u * ξ a v * Real.exp (β * ∑ w, X w ω * ξ a w +
-        β ^ 2 / 2 * ∑ w, ∑ w', ξ a w * ξ a w' * (ρ w w' - q w w')) ∂μ) /
-      ∫ a, Real.exp (β * ∑ w, X w ω * ξ a w +
-        β ^ 2 / 2 * ∑ w, ∑ w', ξ a w * ξ a w' * (ρ w w' - q w w')) ∂μ ∂P)
-    (hq : ∀ u v, q u v = ∫ ω, ((∫ a, ξ a u * Real.exp (β * ∑ w, X w ω * ξ a w +
-        β ^ 2 / 2 * ∑ w, ∑ w', ξ a w * ξ a w' * (ρ w w' - q w w')) ∂μ) /
-      ∫ a, Real.exp (β * ∑ w, X w ω * ξ a w +
-        β ^ 2 / 2 * ∑ w, ∑ w', ξ a w * ξ a w' * (ρ w w' - q w w')) ∂μ) *
-      ((∫ a, ξ a v * Real.exp (β * ∑ w, X w ω * ξ a w +
-        β ^ 2 / 2 * ∑ w, ∑ w', ξ a w * ξ a w' * (ρ w w' - q w w')) ∂μ) /
-      ∫ a, Real.exp (β * ∑ w, X w ω * ξ a w +
-        β ^ 2 / 2 * ∑ w, ∑ w', ξ a w * ξ a w' * (ρ w w' - q w w')) ∂μ) ∂P) :
+    (hρ : ∀ u v, ρ u v = ∫ ω, ∫ a, ξ a u * ξ a v ∂(μ.tilted (skVectorFieldExponent ξ β ρ q
+        (fun w => β * X w ω))) ∂P)
+    (hq : ∀ u v, q u v = ∫ ω, (∫ a, ξ a u ∂(μ.tilted (skVectorFieldExponent ξ β ρ q
+        (fun w => β * X w ω)))) *
+      (∫ a, ξ a v ∂(μ.tilted (skVectorFieldExponent ξ β ρ q
+        (fun w => β * X w ω)))) ∂P) :
     HasDerivAt (skVectorGaussianFreeEnergy μ ξ ρ q P X) (β * ∑ u, ∑ v, (ρ u v ^ 2 - q u v ^ 2)) β
       := by
   classical
@@ -141,19 +135,22 @@ theorem hasDerivAt_skVectorGaussianFreeEnergy (μ : Measure α) [IsProbabilityMe
       Integrable (fun ω => R Y (zt ω)) P := fun Y M hM hY hYb =>
     (integrable_const M).mono' ((hRcont Y M hM hY hYb).measurable.comp hztm).aestronglyMeasurable
       (ae_of_all _ fun ω => by rw [Real.norm_eq_abs]; exact hRb Y M hYb _)
-  have hRz : ∀ (Y : α → ℝ) ω, R Y (zt ω) = (∫ a, Y a * Real.exp (β * ∑ w, X w ω * ξ a w +
-        β ^ 2 / 2 * ∑ w, ∑ w', ξ a w * ξ a w' * (ρ w w' - q w w')) ∂μ) /
-      ∫ a, Real.exp (β * ∑ w, X w ω * ξ a w +
-        β ^ 2 / 2 * ∑ w, ∑ w', ξ a w * ξ a w' * (ρ w w' - q w w')) ∂μ := by
+  have hRz : ∀ (Y : α → ℝ) ω, R Y (zt ω) =
+      ∫ a, Y a ∂(μ.tilted (skVectorFieldExponent ξ β ρ q (fun w => β * X w ω))) := by
     intro Y ω
-    simp only [hRdef, hzt, hexpo]
+    rw [integral_tilted_eq_div]
+    simp only [hRdef, hzt, hexpo, skVectorFieldExponent_mul_left]
   have hξm2 : ∀ u v, Measurable fun a => ξ a u * ξ a v := fun u v => (hξ u).mul (hξ v)
   have hI1 : ∀ u v, ∫ ω, R (fun a => ξ a u * ξ a v) (zt ω) ∂P = ρ u v := fun u v => by
     rw [hρ u v]
-    exact integral_congr_ae (ae_of_all _ fun ω => by beta_reduce; exact hRz _ ω)
+    refine integral_congr_ae (ae_of_all _ fun ω => ?_)
+    dsimp only
+    rw [hRz]
   have hI2 : ∀ u v, ∫ ω, R (Xf u) (zt ω) * R (Xf v) (zt ω) ∂P = q u v := fun u v => by
     rw [hq u v]
-    exact integral_congr_ae (ae_of_all _ fun ω => by beta_reduce; rw [hRz, hRz])
+    refine integral_congr_ae (ae_of_all _ fun ω => ?_)
+    dsimp only [hXf]
+    rw [hRz, hRz]
   have hi1 : ∀ u v, Integrable (fun ω => R (fun a => ξ a u * ξ a v) (zt ω)) P := fun u v =>
     hRint _ r hr (hξm2 u v) (hξξ · u v)
   have hi2 : ∀ u v, Integrable (fun ω => R (Xf u) (zt ω) * R (Xf v) (zt ω)) P := fun u v => by

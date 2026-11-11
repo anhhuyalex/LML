@@ -235,7 +235,9 @@ theorem skVector_overlap_variance_eq_last_spin {N d : ℕ} {Ω : Type*} [Measura
     (fun s σ => (((N : ℝ) + 1)⁻¹ * ∑ i, ξ (σ a i) u * ξ (σ b i) v - T) *
       (ξ (σ a s) u * ξ (σ b s) v - T))
     (fun s _ ω => integrable_of_measurable_bound (hHm.mul (heM s))
-      (fun σ => by rw [abs_mul]; exact mul_le_mul (hHb σ) (heb s σ) (abs_nonneg _) (add_nonneg hr hr)))
+      (fun σ => by
+        rw [abs_mul]
+        exact mul_le_mul (hHb σ) (heb s σ) (abs_nonneg _) (add_nonneg hr hr)))
     (fun s _ => hI _ (hHm.mul (heM s))
       ⟨(d + d) * (d + d), fun σ => by
         rw [abs_mul]; exact mul_le_mul (hHb σ) (heb s σ) (abs_nonneg _) (add_nonneg hr hr)⟩)

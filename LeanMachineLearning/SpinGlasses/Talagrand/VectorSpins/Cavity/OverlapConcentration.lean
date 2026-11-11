@@ -152,17 +152,11 @@ theorem skVectorCavityAverage_one_overlap_variance_eq_last_spin [IsProbabilityMe
   have hI : ∀ G : (Fin 2 → Fin (N + 1) → α) → ℝ, Measurable G → (∃ M, ∀ x, |G x| ≤ M) →
       Integrable (fun ω => ∫ x, G x ∂(Q ω)) P := fun G hG hGb =>
     integrable_integral_skVectorEnergy μ ξ hξ hbound β hgt' G hG hGb
-  have hb : ∀ (F : Fin d → Fin d → (Fin 2 → Fin (N + 1) → α) → ℝ) (C : ℝ),
-      (∀ u v x, |F u v x| ≤ C) → ∀ u v, ∃ M, ∀ x, |F u v x| ≤ M := fun F C h u v => ⟨C, h u v⟩
-  have hsum_prod : ∀ (F : Fin d → Fin d → (Fin 2 → Fin (N + 1) → α) → ℝ)
-      (hF : ∀ u v, Measurable (F u v)) (hFb : ∀ u v, ∃ M, ∀ x, |F u v x| ≤ M),
+  have hsum_prod (F : Fin d → Fin d → (Fin 2 → Fin (N + 1) → α) → ℝ)
+      (hF : ∀ u v, Measurable (F u v)) (hFb : ∀ u v, ∃ M, ∀ x, |F u v x| ≤ M) :
       ∫ ω, ∫ x, ∑ u, ∑ v, F u v x ∂(Q ω) ∂P =
-        ∑ u, ∑ v, ∫ ω, ∫ x, F u v x ∂(Q ω) ∂P := fun F hF hFb => by
-    have := integral_integral_finset_sum P Q (Finset.univ : Finset (Fin d × Fin d))
-      (fun p x => F p.1 p.2 x)
-      (fun p _ ω => integrable_of_measurable_bound (hF p.1 p.2) (hFb p.1 p.2).choose_spec)
-      (fun p _ => hI _ (hF p.1 p.2) (hFb p.1 p.2))
-    simpa only [Fintype.sum_prod_type] using this
+        ∑ u, ∑ v, ∫ ω, ∫ x, F u v x ∂(Q ω) ∂P :=
+    integral_integral_sum_sum_of_bound P Q F hF hFb fun u v => hI _ (hF u v) (hFb u v)
   rw [hsum_prod
       (fun u v x => skVectorLastSpinDeviation ξ N a b T u v x * skVectorOverlapDeviation ξ N a b T
         u v x)
@@ -222,15 +216,11 @@ theorem abs_skVectorCavityAverage_zero_sum_le
   have hI : ∀ G : (Fin 2 → Fin (N + 1) → α) → ℝ, Measurable G → (∃ M, ∀ x, |G x| ≤ M) →
       Integrable (fun ω => ∫ x, G x ∂(Q ω)) P := fun G hG hGb =>
     integrable_integral_skVectorCavity μ ξ hξ hbound β ρ q hgm hg'm hYm 0 G hG hGb
-  have hsum_prod : ∀ (F : Fin d → Fin d → (Fin 2 → Fin (N + 1) → α) → ℝ)
-      (hF : ∀ u v, Measurable (F u v)) (hFb : ∀ u v, ∃ M, ∀ x, |F u v x| ≤ M),
+  have hsum_prod (F : Fin d → Fin d → (Fin 2 → Fin (N + 1) → α) → ℝ)
+      (hF : ∀ u v, Measurable (F u v)) (hFb : ∀ u v, ∃ M, ∀ x, |F u v x| ≤ M) :
       ∫ ω, ∫ x, ∑ u, ∑ v, F u v x ∂(Q ω) ∂P =
-        ∑ u, ∑ v, ∫ ω, ∫ x, F u v x ∂(Q ω) ∂P := fun F hF hFb => by
-    have := integral_integral_finset_sum P Q (Finset.univ : Finset (Fin d × Fin d))
-      (fun p x => F p.1 p.2 x)
-      (fun p _ ω => integrable_of_measurable_bound (hF p.1 p.2) (hFb p.1 p.2).choose_spec)
-      (fun p _ => hI _ (hF p.1 p.2) (hFb p.1 p.2))
-    simpa only [Fintype.sum_prod_type] using this
+        ∑ u, ∑ v, ∫ ω, ∫ x, F u v x ∂(Q ω) ∂P :=
+    integral_integral_sum_sum_of_bound P Q F hF hFb fun u v => hI _ (hF u v) (hFb u v)
   rw [hsum_prod
     (fun u v x => skVectorLastSpinDeviation ξ N a b T u v x * skVectorOverlapDeviation ξ N a b T u
       v x)

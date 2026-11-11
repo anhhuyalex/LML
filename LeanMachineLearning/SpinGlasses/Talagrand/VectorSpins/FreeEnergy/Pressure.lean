@@ -669,30 +669,8 @@ theorem hasDerivAt_skVectorPressure_beta {d : ℕ} (μ : Measure α) [IsProbabil
     (fun u => (measurable_const.mul (measurable_pi_apply u) : Measurable fun y : Fin d → ℝ =>
       β * y u))
     (fun u => by rw [integral_const_mul, hX0, mul_zero]) hYc).1 hfix
-  have hconv : ∀ (y : Fin d → ℝ) (Y : α → ℝ),
-      ∫ a, Y a ∂(μ.tilted (skVectorFieldExponent ξ β ρ q (fun w => β * y w))) =
-      (∫ a, Y a * Real.exp (β * ∑ w, y w * ξ a w +
-        β ^ 2 / 2 * ∑ w, ∑ w', ξ a w * ξ a w' * (ρ w w' - q w w')) ∂μ) /
-      ∫ a, Real.exp (β * ∑ w, y w * ξ a w +
-        β ^ 2 / 2 * ∑ w, ∑ w', ξ a w * ξ a w' * (ρ w w' - q w w')) ∂μ := fun y Y => by
-    rw [integral_tilted_eq_div]
-    congr 2 with a
-    · unfold skVectorFieldExponent
-      have : ∑ w, β * y w * ξ a w = β * ∑ w, y w * ξ a w := by
-        rw [Finset.mul_sum]; exact Finset.sum_congr rfl fun w _ => by ring
-      rw [this]
-    · unfold skVectorFieldExponent
-      have : ∑ w, β * y w * ξ a w = β * ∑ w, y w * ξ a w := by
-        rw [Finset.mul_sum]; exact Finset.sum_congr rfl fun w _ => by ring
-      rw [this]
-  have hd := hasDerivAt_skVectorGaussianFreeEnergy μ ξ hξ hr hbound ρ q hX hXm hX0 (fun u v => by
-      simpa using hXc u v) (hρ := fun u v => by
-        have h := hρ' u v
-        simp only [hconv] at h
-        exact h) (hq := fun u v => by
-        have h := hq' u v
-        simp only [hconv] at h
-        exact h) hβ
+  have hd := hasDerivAt_skVectorGaussianFreeEnergy μ ξ hξ hr hbound ρ q hX hXm hX0
+    (fun u v => by simpa using hXc u v) hβ hρ' hq'
   have hpoly : HasDerivAt (fun b : ℝ => -(b ^ 2 / 4) * (∑ u, ∑ v, ρ u v ^ 2 - ∑ u, ∑ v, q u v ^ 2))
       (-(β / 2) * (∑ u, ∑ v, ρ u v ^ 2 - ∑ u, ∑ v, q u v ^ 2)) β := by
     have := (((hasDerivAt_id β).pow 2).div_const 4).neg.mul_const

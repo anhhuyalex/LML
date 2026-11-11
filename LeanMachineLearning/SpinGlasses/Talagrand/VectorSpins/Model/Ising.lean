@@ -104,7 +104,7 @@ theorem skVectorCavityOverlap_ising_diag (N : ℕ) (σ : Fin (N + 1) → ℤˣ) 
       (N : ℝ) / ((N : ℝ) + 1) := by
   simp only [skVectorCavityOverlap]
   have h1 : ∀ i : Fin N, ((σ i.castSucc : ℤ) : ℝ) * ((σ i.castSucc : ℤ) : ℝ) = 1 := fun i => by
-    obtain (h | h) := Int.units_eq_one_or (σ i.castSucc) <;> simp [h]
+    rw [← sq, units_cast_sq]
   simp_rw [h1, Finset.sum_const, card_univ, Fintype.card_fin, nsmul_eq_mul, mul_one]
   ring
 
@@ -120,7 +120,7 @@ theorem skVectorCavityOverlap_ising_sub_one (N : ℕ) (σ : Fin (N + 1) → ℤ�
 /-- The last-spin product on the diagonal is 1. -/
 theorem ising_last_spin_sq (N : ℕ) (σ : Fin (N + 1) → ℤˣ) :
     ((σ (Fin.last N) : ℤ) : ℝ) * ((σ (Fin.last N) : ℤ) : ℝ) = 1 := by
-  obtain (h | h) := Int.units_eq_one_or (σ (Fin.last N)) <;> simp [h]
+  rw [← sq, units_cast_sq]
 
 /-- Symmetry of the one-component cavity overlap. -/
 theorem skVectorCavityOverlap_ising_symm (N : ℕ) (σ τ : Fin (N + 1) → ℤˣ) :
@@ -202,114 +202,111 @@ theorem skVectorCavityIsingRHS_eq_skScalarCavityCombination
     skVectorCavityIsingRHS N β q R F σ =
       skScalarCavityCombination N β q R F σ := by
   set F0 := F (fun c => σ (some (some c)))
-  set u : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ :=
+  set U : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ :=
     fun x y => ((x (Fin.last N) : ℤ) : ℝ) * ((y (Fin.last N) : ℤ) : ℝ) *
       (skVectorCavityOverlap (fun (ε : ℤˣ) (_ : Fin 1) => ((ε : ℤ) : ℝ)) N x y 0 0 - q)
-  have hu_symm : ∀ x y, u x y = u y x := fun x y => by
-    dsimp [u]
+  have hu_symm : ∀ x y, U x y = U y x := fun x y => by
+    dsimp [U]
     rw [skVectorCavityOverlap_ising_symm N x y]
     ring
-  have hdiag_val : ∀ x, ((x (Fin.last N) : ℤ) : ℝ) * ((x (Fin.last N) : ℤ) : ℝ) *
-      (skVectorCavityOverlap (fun (ε : ℤˣ) (_ : Fin 1) => ((ε : ℤ) : ℝ)) N x x 0 0 - 1) =
-      - ((N : ℝ) + 1)⁻¹ := fun x => by
-    have h1 := ising_last_spin_sq N x
-    have h2 := skVectorCavityOverlap_ising_sub_one N x
-    calc ((x (Fin.last N) : ℤ) : ℝ) * ((x (Fin.last N) : ℤ) : ℝ) *
-          (skVectorCavityOverlap (fun (ε : ℤˣ) (_ : Fin 1) => ((ε : ℤ) : ℝ)) N x x 0 0 - 1)
-        = 1 * (- ((N : ℝ) + 1)⁻¹) := by rw [h1, h2]
-      _ = - ((N : ℝ) + 1)⁻¹ := one_mul _
-  have hsplit (a : R) : ∑ b : R,
+  have hu_diag : ∀ x, U x x = (N : ℝ) / ((N : ℝ) + 1) - q := fun x => by
+    dsimp [U]
+    rw [ising_last_spin_sq, skVectorCavityOverlap_ising_diag]
+    ring
+  have h_term1 (a b : R) :
       ((σ (some (some a)) (Fin.last N) : ℤ) : ℝ) *
-      ((σ (some (some b)) (Fin.last N) : ℤ) : ℝ) *
-      (skVectorCavityOverlap (fun (ε : ℤˣ) (_ : Fin 1) => ((ε : ℤ) : ℝ)) N
-        (σ (some (some a))) (σ (some (some b))) 0 0 - if a = b then 1 else q) =
-      - ((N : ℝ) + 1)⁻¹ +
-      ∑ b : R, if a = b then 0 else u (σ (some (some a))) (σ (some (some b))) := by
-    have hh (b : R) :
-        ((σ (some (some a)) (Fin.last N) : ℤ) : ℝ) *
         ((σ (some (some b)) (Fin.last N) : ℤ) : ℝ) *
         (skVectorCavityOverlap (fun (ε : ℤˣ) (_ : Fin 1) => ((ε : ℤ) : ℝ)) N
           (σ (some (some a))) (σ (some (some b))) 0 0 - if a = b then 1 else q) =
-        (if a = b then - ((N : ℝ) + 1)⁻¹ else 0) +
-        (if a = b then 0 else u (σ (some (some a))) (σ (some (some b)))) := by
-      split_ifs with hab
-      · subst hab
-        simp only [add_zero]
-        exact hdiag_val (σ (some (some a)))
-      · simp only [zero_add, u]
-    rw [Finset.sum_congr rfl fun b _ => hh b, Finset.sum_add_distrib]
-    simp only [sum_ite_eq, mem_univ, ite_true]
-  have hsum_split : ∑ a : R, ∑ b : R,
+      U (σ (some (some a))) (σ (some (some b))) - if a = b then 1 - q else 0 := by
+    split_ifs with hab
+    · subst hab
+      dsimp [U]
+      rw [ising_last_spin_sq]
+      ring
+    · dsimp [U]
+      ring
+  have h_sum1 : ∑ a : R, ∑ b : R,
+      ((σ (some (some a)) (Fin.last N) : ℤ) : ℝ) *
+        ((σ (some (some b)) (Fin.last N) : ℤ) : ℝ) *
+        (skVectorCavityOverlap (fun (ε : ℤˣ) (_ : Fin 1) => ((ε : ℤ) : ℝ)) N
+          (σ (some (some a))) (σ (some (some b))) 0 0 - if a = b then 1 else q) =
+      (∑ a : R, ∑ b : R, U (σ (some (some a))) (σ (some (some b)))) -
+        (Fintype.card R : ℝ) * (1 - q) := by
+    simp_rw [h_term1, sum_sub_distrib]
+    congr 1
+    simp only [sum_ite_eq, mem_univ, ite_true, sum_const, card_univ, nsmul_eq_mul]
+  have h_term3 :
+      ((σ (some none) (Fin.last N) : ℤ) : ℝ) *
+        ((σ (some none) (Fin.last N) : ℤ) : ℝ) *
+        (skVectorCavityOverlap (fun (ε : ℤˣ) (_ : Fin 1) => ((ε : ℤ) : ℝ)) N
+          (σ (some none)) (σ (some none)) 0 0 - 1) =
+      U (σ (some none)) (σ (some none)) - (1 - q) := by
+    dsimp [U]
+    rw [ising_last_spin_sq]
+    ring
+  have hker : ∀ x y, skIsingCavityKernel N β q x y = β ^ 2 * U x y := fun x y => by
+    dsimp [skIsingCavityKernel, U]; ring
+  have hcomb := replica_covariance_combination_eq_two_sum_lt U
+    ((N : ℝ) / ((N : ℝ) + 1) - q) hu_diag hu_symm σ
+  have hF_sum1 : (∑ a : R, ∑ b : R,
       F0 * ((σ (some (some a)) (Fin.last N) : ℤ) : ℝ) *
         ((σ (some (some b)) (Fin.last N) : ℤ) : ℝ) *
         (skVectorCavityOverlap (fun (ε : ℤˣ) (_ : Fin 1) => ((ε : ℤ) : ℝ)) N
-          (σ (some (some a))) (σ (some (some b))) 0 0 - if a = b then 1 else q) =
-      F0 * ((Fintype.card R : ℝ) * (- ((N : ℝ) + 1)⁻¹)) +
-      F0 * (2 * ∑ p : R × R with p.1 < p.2,
-        u (σ (some (some p.1))) (σ (some (some p.2)))) := by
-    have h1 : ∀ a : R, ∑ b : R,
+          (σ (some (some a))) (σ (some (some b))) 0 0 - if a = b then 1 else q)) =
+      F0 * ((∑ a : R, ∑ b : R, U (σ (some (some a))) (σ (some (some b)))) -
+        (Fintype.card R : ℝ) * (1 - q)) := by
+    have : ∀ a b : R,
         F0 * ((σ (some (some a)) (Fin.last N) : ℤ) : ℝ) *
           ((σ (some (some b)) (Fin.last N) : ℤ) : ℝ) *
           (skVectorCavityOverlap (fun (ε : ℤˣ) (_ : Fin 1) => ((ε : ℤ) : ℝ)) N
             (σ (some (some a))) (σ (some (some b))) 0 0 - if a = b then 1 else q) =
-        F0 * (- ((N : ℝ) + 1)⁻¹ +
-          ∑ b : R, if a = b then 0 else u (σ (some (some a))) (σ (some (some b)))) := by
-      intro a
-      have h2 : ∀ b : R,
-          F0 * ((σ (some (some a)) (Fin.last N) : ℤ) : ℝ) *
-            ((σ (some (some b)) (Fin.last N) : ℤ) : ℝ) *
-            (skVectorCavityOverlap (fun (ε : ℤˣ) (_ : Fin 1) => ((ε : ℤ) : ℝ)) N
-              (σ (some (some a))) (σ (some (some b))) 0 0 - if a = b then 1 else q) =
-          F0 * (((σ (some (some a)) (Fin.last N) : ℤ) : ℝ) *
-            ((σ (some (some b)) (Fin.last N) : ℤ) : ℝ) *
-            (skVectorCavityOverlap (fun (ε : ℤˣ) (_ : Fin 1) => ((ε : ℤ) : ℝ)) N
-              (σ (some (some a))) (σ (some (some b))) 0 0 - if a = b then 1 else q)) :=
-        fun b => by ring
-      simp_rw [h2, ← Finset.mul_sum, hsplit a]
-    simp_rw [h1, ← mul_sum, sum_add_distrib, sum_const, card_univ, nsmul_eq_mul]
-    rw [sum_sum_offDiag_eq_two_sum_lt (fun a b => u (σ (some (some a))) (σ (some (some b))))
-      fun a b => hu_symm (σ (some (some a))) (σ (some (some b))), mul_add]
-  have h2_term : (∑ a : R,
+        F0 * (((σ (some (some a)) (Fin.last N) : ℤ) : ℝ) *
+          ((σ (some (some b)) (Fin.last N) : ℤ) : ℝ) *
+          (skVectorCavityOverlap (fun (ε : ℤˣ) (_ : Fin 1) => ((ε : ℤ) : ℝ)) N
+            (σ (some (some a))) (σ (some (some b))) 0 0 - if a = b then 1 else q)) :=
+      fun a b => by ring
+    simp_rw [this, ← Finset.mul_sum, h_sum1]
+  have hF_sum2 : (∑ a : R,
       F0 * ((σ (some (some a)) (Fin.last N) : ℤ) : ℝ) *
         ((σ (some none) (Fin.last N) : ℤ) : ℝ) *
         (skVectorCavityOverlap (fun (ε : ℤˣ) (_ : Fin 1) => ((ε : ℤ) : ℝ)) N
           (σ (some (some a))) (σ (some none)) 0 0 - q)) =
-      F0 * ∑ a : R, u (σ (some (some a))) (σ (some none)) := by
-    have h : ∀ a : R,
+      F0 * ∑ a : R, U (σ (some (some a))) (σ (some none)) := by
+    have : ∀ a : R,
         F0 * ((σ (some (some a)) (Fin.last N) : ℤ) : ℝ) *
           ((σ (some none) (Fin.last N) : ℤ) : ℝ) *
           (skVectorCavityOverlap (fun (ε : ℤˣ) (_ : Fin 1) => ((ε : ℤ) : ℝ)) N
             (σ (some (some a))) (σ (some none)) 0 0 - q) =
-        F0 * u (σ (some (some a))) (σ (some none)) := fun a => by
-      dsimp [u]; ring
-    simp_rw [h, ← Finset.mul_sum]
-  have h3 : F0 * ((σ (some none) (Fin.last N) : ℤ) : ℝ) *
-      ((σ (some none) (Fin.last N) : ℤ) : ℝ) *
-      (skVectorCavityOverlap (fun (ε : ℤˣ) (_ : Fin 1) => ((ε : ℤ) : ℝ)) N
-        (σ (some none)) (σ (some none)) 0 0 - 1) =
-      F0 * (- ((N : ℝ) + 1)⁻¹) := by
+        F0 * U (σ (some (some a))) (σ (some none)) := fun a => by
+      dsimp [U]; ring
+    simp_rw [this, ← Finset.mul_sum]
+  have hF_term3 :
+      F0 * ((σ (some none) (Fin.last N) : ℤ) : ℝ) *
+        ((σ (some none) (Fin.last N) : ℤ) : ℝ) *
+        (skVectorCavityOverlap (fun (ε : ℤˣ) (_ : Fin 1) => ((ε : ℤ) : ℝ)) N
+          (σ (some none)) (σ (some none)) 0 0 - 1) =
+      F0 * (U (σ (some none)) (σ (some none)) - (1 - q)) := by
     calc F0 * ((σ (some none) (Fin.last N) : ℤ) : ℝ) *
           ((σ (some none) (Fin.last N) : ℤ) : ℝ) *
           (skVectorCavityOverlap (fun (ε : ℤˣ) (_ : Fin 1) => ((ε : ℤ) : ℝ)) N
             (σ (some none)) (σ (some none)) 0 0 - 1)
         = F0 * (((σ (some none) (Fin.last N) : ℤ) : ℝ) *
-            ((σ (some none) (Fin.last N) : ℤ) : ℝ) *
-            (skVectorCavityOverlap (fun (ε : ℤˣ) (_ : Fin 1) => ((ε : ℤ) : ℝ)) N
-              (σ (some none)) (σ (some none)) 0 0 - 1)) := by ring
-      _ = F0 * (- ((N : ℝ) + 1)⁻¹) := by rw [hdiag_val]
-  have h4_term :
+          ((σ (some none) (Fin.last N) : ℤ) : ℝ) *
+          (skVectorCavityOverlap (fun (ε : ℤˣ) (_ : Fin 1) => ((ε : ℤ) : ℝ)) N
+            (σ (some none)) (σ (some none)) 0 0 - 1)) := by ring
+      _ = F0 * (U (σ (some none)) (σ (some none)) - (1 - q)) := by rw [h_term3]
+  have hF_term4 :
       F0 * ((σ (some none) (Fin.last N) : ℤ) : ℝ) *
         ((σ none (Fin.last N) : ℤ) : ℝ) *
         (skVectorCavityOverlap (fun (ε : ℤˣ) (_ : Fin 1) => ((ε : ℤ) : ℝ)) N
           (σ (some none)) (σ none) 0 0 - q) =
-      F0 * u (σ (some none)) (σ none) := by
-    dsimp [u]; ring
-  have hker : ∀ x y, skIsingCavityKernel N β q x y = β ^ 2 * u x y := fun x y => by
-    dsimp [skIsingCavityKernel, u]; ring
+      F0 * U (σ (some none)) (σ none) := by
+    dsimp [U]; ring
   dsimp [skVectorCavityIsingRHS, skScalarCavityCombination]
   simp_rw [hker]
-  rw [hsum_split, h2_term, h3, h4_term]
   simp_rw [← Finset.mul_sum]
-  ring
+  rw [hF_sum1, hF_sum2, hF_term3, hF_term4]
+  linear_combination (F0 * (β ^ 2 / 2)) * hcomb
 
 end SpinGlasses

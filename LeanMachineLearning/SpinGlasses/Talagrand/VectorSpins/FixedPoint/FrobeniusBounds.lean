@@ -169,19 +169,12 @@ theorem abs_sum_integral_pair_le {Ω R : Type*} [MeasurableSpace Ω] [Fintype R]
   have hsum : ∫ ω, ∫ σ, ∑ j, Δ j.1 j.2 * G j σ
         ∂(Measure.pi fun _ : Option (Option R) => μ.tilted (en ω)) ∂P =
       ∑ j : Fin d × Fin d, Δ j.1 j.2 * ∫ ω, ∫ σ, G j σ
-        ∂(Measure.pi fun _ : Option (Option R) => μ.tilted (en ω)) ∂P := by
-    have hlin := integral_integral_finset_sum P
-      (fun ω => Measure.pi fun _ : Option (Option R) => μ.tilted (en ω))
-      (Finset.univ : Finset (Fin d × Fin d)) (fun j σ => Δ j.1 j.2 * G j σ)
+        ∂(Measure.pi fun _ : Option (Option R) => μ.tilted (en ω)) ∂P :=
+    integral_integral_finset_sum_mul P _ Finset.univ (fun j => Δ j.1 j.2) G
       (fun j _ ω => by
         have := hprob ω
-        exact integrable_of_measurable_bound ((hGm j).const_mul _) fun σ => by
-          rw [abs_mul]; exact mul_le_mul_of_nonneg_left (hGb j σ) (abs_nonneg _))
-      (fun j _ => by
-        simp_rw [integral_const_mul]
-        exact (integrable_integral_pi_tilted hE hprob (hGm j) (hGb j)).const_mul _)
-    simp_rw [integral_const_mul] at hlin
-    exact hlin
+        exact integrable_of_measurable_bound (hGm j) (hGb j))
+      (fun j _ => integrable_integral_pi_tilted hE hprob (hGm j) (hGb j))
   have hconv : (∑ u, ∑ v, Δ u v * ∫ ω, ∫ σ : Option (Option R) → α,
       (F fun a => σ (some (some a))) *
         (∑ a, ξ (σ (some (some a))) u - n * ξ (σ (some none)) u) *
@@ -252,19 +245,12 @@ theorem abs_sum_integral_single_le {Ω R : Type*} [MeasurableSpace Ω] [Fintype 
   have hsum : ∫ ω, ∫ σ, ∑ j, C j.1 j.2 * G j σ
         ∂(Measure.pi fun _ : Option (Option R) => μ.tilted (en ω)) ∂P =
       ∑ j : Fin d × Fin d, C j.1 j.2 * ∫ ω, ∫ σ, G j σ
-        ∂(Measure.pi fun _ : Option (Option R) => μ.tilted (en ω)) ∂P := by
-    have hlin := integral_integral_finset_sum P
-      (fun ω => Measure.pi fun _ : Option (Option R) => μ.tilted (en ω))
-      (Finset.univ : Finset (Fin d × Fin d)) (fun j σ => C j.1 j.2 * G j σ)
+        ∂(Measure.pi fun _ : Option (Option R) => μ.tilted (en ω)) ∂P :=
+    integral_integral_finset_sum_mul P _ Finset.univ (fun j => C j.1 j.2) G
       (fun j _ ω => by
         have := hprob ω
-        exact integrable_of_measurable_bound ((hGm j).const_mul _) fun σ => by
-          rw [abs_mul]; exact mul_le_mul_of_nonneg_left (hGb j σ) (abs_nonneg _))
-      (fun j _ => by
-        simp_rw [integral_const_mul]
-        exact (integrable_integral_pi_tilted hE hprob (hGm j) (hGb j)).const_mul _)
-    simp_rw [integral_const_mul] at hlin
-    exact hlin
+        exact integrable_of_measurable_bound (hGm j) (hGb j))
+      (fun j _ => integrable_integral_pi_tilted hE hprob (hGm j) (hGb j))
   rw [← hsum]
   refine abs_integral_integral_pi_tilted_le hprob fun σ => ?_
   have hq : ∀ a, |∑ u, ∑ v, C u v * (ξ a u * ξ a v)| ≤ d * ε := fun a => by

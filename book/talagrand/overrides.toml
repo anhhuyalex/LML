@@ -1,0 +1,6 @@
+# Manual corrections to the Talagrand number shown for a blueprint statement.
+#
+# By default a statement's Talagrand number is the first "Theorem|Lemma|Proposition|Corollary|
+# Definition X.Y.Z" in its \talsource tag. List a label here to replace it ("Kind X.Y.Z") or to
+# remove it (""). Check the report of `tex2typ` for tags that cite several statements.
+[tal-number]
