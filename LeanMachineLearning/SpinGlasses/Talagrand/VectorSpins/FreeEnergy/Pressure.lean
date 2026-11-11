@@ -131,7 +131,7 @@ theorem hasDerivAt_skVectorPressure_rho_segment {d : ℕ} (μ : Measure α) [IsP
   have hmeasG : Measurable fun y : Fin d → ℝ =>
       ∫ a, ξ a u * ξ a v ∂(μ.tilted (skVectorFieldExponent ξ b ρs q y)) :=
     measurable_integral_tilted (e := fun y a => skVectorFieldExponent ξ b ρs q y a)
-      (measurable_skVectorFieldExponent_joint ξ hξ b ρs q) ((hξ u).mul (hξ v))
+      (measurable_skVectorFieldExponent_joint ξ hξ b ρs q) (measurable_spin_mul ξ hξ u v)
   have hT : (skVectorFixedPointMap μ ξ b (q, ρs)).2 u v = ∫ y,
       ∫ a, ξ a u * ξ a v ∂(μ.tilted (skVectorFieldExponent ξ b ρs q y))
       ∂(skVectorGaussianLaw b q) := by
@@ -344,7 +344,7 @@ theorem continuous_skVectorSegment_logPartition {d : ℕ} {Ω : Type*} [Measurab
   set Eb : ℝ := b ^ 2 / 2 * ∑ w, ∑ w', d * |ρ w w' - q₀ w w'| with hEb
   set B : ℝ := Real.sqrt d + b ^ 2 / 2 * ∑ w, ∑ w', d * |q₁ w w' - q₀ w w'| with hB
   have hB0 : 0 ≤ B := by positivity
-  have hξm2 : ∀ u v, Measurable fun a => ξ a u * ξ a v := fun u v => (hξ u).mul (hξ v)
+  have hξm2 : ∀ u v, Measurable fun a => ξ a u * ξ a v := measurable_spin_mul ξ hξ
   have hD0m : Measurable D0 :=
     measurable_const.mul (Finset.measurable_sum _ fun w _ => Finset.measurable_sum _ fun w' _ =>
       (hξm2 w w').mul measurable_const)

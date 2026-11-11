@@ -65,7 +65,7 @@ theorem hasDerivAt_skVectorGaussianFreeEnergy (μ : Measure α) [IsProbabilityMe
     linarith [hξb a u]
   have hXsm : ∀ j, Measurable (Xs j) := fun j =>
     Finset.measurable_sum _ fun w _ => Finset.measurable_sum _ fun w' _ =>
-      ((hξ w).mul (hξ w')).mul measurable_const
+      (measurable_spin_mul ξ hξ w w').mul measurable_const
   have hXsb : ∀ j a, |Xs j a| ≤ B := fun j a => by
     have h1 : |∑ w, ∑ w', ξ a w * ξ a w' * (ρ w w' - q w w')| ≤
         ∑ w, ∑ w', r * |ρ w w' - q w w'| := by
@@ -140,7 +140,7 @@ theorem hasDerivAt_skVectorGaussianFreeEnergy (μ : Measure α) [IsProbabilityMe
     intro Y ω
     rw [integral_tilted_eq_div]
     simp only [hRdef, hzt, hexpo, skVectorFieldExponent_mul_left]
-  have hξm2 : ∀ u v, Measurable fun a => ξ a u * ξ a v := fun u v => (hξ u).mul (hξ v)
+  have hξm2 : ∀ u v, Measurable fun a => ξ a u * ξ a v := measurable_spin_mul ξ hξ
   have hI1 : ∀ u v, ∫ ω, R (fun a => ξ a u * ξ a v) (zt ω) ∂P = ρ u v := fun u v => by
     rw [hρ u v]
     refine integral_congr_ae (ae_of_all _ fun ω => ?_)

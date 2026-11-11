@@ -9732,7 +9732,7 @@ Transport along the measure preserving equivalence splitting off the last site, 
 \end{proof}
 
 \begin{theorem}[The decoupled system at $t=0$]\label{thm:sg-tal:vector-decoupled}
-\lean{MeasureTheory.integrable_exp_of_ae_le, MeasureTheory.map_tilted_pi_succ_last, MeasureTheory.integral_pi_tilted_split, SpinGlasses.skVectorOldEnergy, SpinGlasses.skVectorCavityEnergy_zero, SpinGlasses.abs_spin_mul_le, SpinGlasses.abs_skVectorOldEnergy_le, SpinGlasses.abs_skVectorFieldExponent_le, SpinGlasses.skVectorCavityAverage_zero_pair_mul_eq_zero}
+\lean{MeasureTheory.integrable_exp_of_ae_le, MeasureTheory.map_tilted_pi_succ_last, MeasureTheory.integral_pi_tilted_split, SpinGlasses.skVectorCavityEnergy_zero, SpinGlasses.abs_spin_mul_le, SpinGlasses.abs_skVectorOldEnergy_le, SpinGlasses.abs_skVectorFieldExponent_le, SpinGlasses.skVectorCavityAverage_zero_pair_mul_eq_zero}
 \leanok
 \uses{lem:sg-tal:gibbs-product-split, thm:sg-tal:vector-fixed-point-bounds}
 \talsource{Proof of Theorem~1.12.1: $\nu_0((\varepsilon^1_u\varepsilon^2_v-q_{u,v})f^-)=0$ by Eq.~(1.372)}
@@ -10021,7 +10021,7 @@ hypotheses enter these shared measure-theory lemmas.
 
 \begin{theorem}[The scalar Ising comparison]\label{thm:sg-tal:vector-ising}
 \talsource{Section~1.12, discussion before and after (1.363)}
-\lean{SpinGlasses.sum_field_add_skVectorEnergy_eq_skGibbsEnergy, SpinGlasses.tilted_skVectorEnergy_eq_ising, SpinGlasses.integral_exp_skVectorEnergy_ising, SpinGlasses.log_integral_exp_skVectorEnergy_ising, SpinGlasses.skVectorFreeEnergy_ising, SpinGlasses.skVectorCavityOverlap_ising_diag, SpinGlasses.skVectorCavityOverlap_ising_sub_one, SpinGlasses.ising_last_spin_sq, SpinGlasses.skVectorCavityOverlap_ising_symm, SpinGlasses.skVectorCavityIsingRHS_eq_skScalarCavityCombination}
+\lean{SpinGlasses.sum_field_add_skVectorEnergy_eq_skGibbsEnergy, SpinGlasses.tilted_skVectorEnergy_eq_ising, SpinGlasses.integral_exp_skVectorEnergy_ising, SpinGlasses.log_integral_exp_skVectorEnergy_ising, SpinGlasses.skVectorFreeEnergy_ising, SpinGlasses.skVectorCavityOverlap_ising_diag, SpinGlasses.skVectorCavityOverlap_ising_sub_one, SpinGlasses.ising_last_spin_sq, SpinGlasses.skVectorCavityOverlap_ising_symm, SpinGlasses.ising_cavity_rhs_eq_three_family_sum}
 \leanok
 For one component let $\mu_h(\varepsilon)=e^{h\varepsilon}/(2\cosh h)$ on signs.
 For every $\beta,h,g$ and $N\ge0$ the vector Gibbs law equals the scalar SK Gibbs law and
@@ -10159,7 +10159,7 @@ The site-diagonal correction in Lemma~\ref{lem:sg-tal:vector-covariance} varies 
 configuration. The implemented closed cone requires $q\succeq0$ and $\rho-q\succeq0$;
 its definition does not include the trace bound proposed in the original plan.
 Invariance and contraction are proved, including singular covariances:
-$\mu=\delta_0$ gives $q=\rho=0$. Admissible covariance-segment stationarity and the
+zero spin coordinates give $q=\rho=0$. Admissible covariance-segment stationarity and the
 parameter estimates used to differentiate the pressure are proved above.
 A signed-temperature extension would require $|\beta|d$ or $\beta^2d^2$ in the
 smallness hypothesis and a separate Gaussian sign-symmetry argument.
@@ -10167,30 +10167,42 @@ smallness hypothesis and a separate Gaussian sign-symmetry argument.
 
 \begin{remark}[Formalization hypotheses and comparison with the text]\label{rem:sg-tal:vector-hypotheses}
 \talsource{Section~1.12; Theorems~1.12.1--1.12.3}
-A number of formulation details in the Lean formalization differ slightly in presentation,
-though not in mathematical content, from the text of Section~1.12:
+The Lean formalization generalizes several settings from Section~1.12 and makes explicit a small
+number of conditions that the book leaves implicit:
 \begin{enumerate}
-\item \emph{Singular covariance matrices $q$.} The book writes covariance matrices without
-explicitly considering whether $q$ is invertible. In Lean, the cone $\mathcal C$ requires only
-positive semidefiniteness $q\succeq0$ and $\rho-q\succeq0$; no strict positivity or non-degeneracy
-is required. For instance, when $\mu=\delta_0$, the unique fixed point is the singular pair
-$q=0, \rho=0$. Admissible directions at the boundary of the cone are handled via straight-line
-segments $q(t)=tq_1+(1-t)q_0$ to other covariance matrices, keeping all intermediate matrices
-positive semidefinite without ever exiting the cone or requiring full rank.
+\item \emph{General spin space and dimension-dependent constant.} The text assumes $\mu$ is a
+probability measure on the ball $B_d\subset\mathbb R^d$ (Eq.~(1.362)). The formalization works for
+any measurable space $S$, probability measure $\mu$, and measurable coordinates $\xi:S\to\mathbb R^d$
+satisfying $\sum_{u=1}^d \xi_u(a)^2\le d$ for all $a\in S$. The ball is the special case $S=B_d$
+with coordinate inclusion (\texttt{existsUnique\_skVectorFixedPoint\_overlap\_free\_energy\_ball}).
+The constant $K(d)$ depends only on $d$ and is quantified before the spin space, law, $\beta$, and $N$.
 \item \emph{Explicit constant $L = 15$.} The text states high-temperature conditions in the form
 $L\beta d\le1$ for an unspecified numerical constant $L$. In the formalization, the explicit
 constant $L=15$ is verified: it ensures both the contraction factor $18\beta^2d^2\le 18/225<1$
-for fixed-point existence and uniqueness, and the cavity derivative bound $\beta^2d^2\le 1/225\le 1/200$
-for overlap concentration.
+for fixed-point existence and uniqueness (Theorem~1.12.2), and the cavity smallness condition
+$\beta^2d^2\le 1/225\le 1/200$ for overlap concentration (Theorem~1.12.1).
+\item \emph{Singular covariance matrices $q$.} In Lean, the cone $\mathcal C$ requires only positive
+semidefiniteness $q\succeq0$ and $\rho-q\succeq0$; no strict positivity or non-degeneracy is required.
+When spin coordinates are identically zero, the unique fixed point is the singular pair
+$q=0, \rho=0$ (\texttt{existsUnique\_skVectorFixedPoint\_zero\_coordinates}). Admissible directions at the
+boundary of the cone are handled via straight-line segments $q(t)=tq_1+(1-t)q_0$ to other covariance
+matrices, keeping all intermediate matrices positive semidefinite without ever requiring full rank.
+\item \emph{Uniqueness packaging.} In the final theorem
+\texttt{existsUnique\_skVectorFixedPoint\_overlap\_free\_energy}, uniqueness of the fixed point is
+packaged inside the closed cone $\{q\succeq0, \rho-q\succeq0\}$. The book-faithful global uniqueness
+theorem \texttt{exists\_skVectorFixedPoint\_equations\_unique} already covers the entire range
+$15\beta d\le1$ because $18\beta^2d^2<1$ there.
+\item \emph{Additional hypotheses in intermediate lemmas.} In Corollary~1.12.5, Frobenius bounds
+$\|q\|_F\le d$ and $\|\rho\|_F\le d$ are explicit hypotheses; in the book, $q,\rho$ are fixed points,
+which automatically satisfy these bounds by \texttt{skVectorFixedPoint\_sum\_sq\_le}. In Lemma~1.12.6,
+stationarity along covariance segments in $q$ assumes $\beta\ne0$ (likewise in
+\texttt{hasDerivAt\_skVectorGaussianFreeEnergy} for Eq.~(1.393)).
 \item \emph{Cavity path on the open interval $0<t<1$.} Differentiability along the cavity
-interpolation path $\nu_t(f)$ and the covariance segment $q(t)$ is established for interior points
-$t\in(0,1)$ where the coefficients $\sqrt t$ and $\sqrt{1-t}$ have standard real derivatives.
-Continuity on the closed interval $[0,1]$ connects the interior derivative bounds to the endpoints
-$t=0$ and $t=1$ via the mean value theorem.
-\item \emph{Bounded measurable test functions $F$.} Rather than assuming smoothness or polynomial
-growth, test functions and observables are formalized for bounded measurable functions, which
-suffices for all replica overlaps and guarantees Bochner integrability against the tilted Gibbs
-measures without moment growth assumptions.
+interpolation path in Proposition~1.12.4 is established for interior points $t\in(0,1)$, which matches
+the factors $1/\sqrt t$ and $1/\sqrt{1-t}$ in Eq.~(1.377).
+\item \emph{Bounded measurable test functions $F$.} Rather than leaving the observable $f$
+unspecified, Proposition~1.12.4 assumes $F$ is bounded and measurable, guaranteeing Bochner integrability
+against the tilted Gibbs measures without moment growth assumptions.
 \end{enumerate}
 \end{remark}
 
@@ -10199,28 +10211,29 @@ measures without moment growth assumptions.
 The exercises and research problems in Section~1.12 highlight open directions, alternative proofs,
 and coupled systems beyond the core formalized theorems:
 \begin{enumerate}
-\item \emph{Research Problem~1.12.7 (Structure of stationarity).} The fact that the
-replica-symmetric equations (1.372)--(1.373) characterize the critical points of the
-replica-symmetric functional $\Phi(q,\rho)$ (Lemma~1.12.6) reflects the variational structure
-of the Parisi formula in the vector setting. In the scalar case this is the TAP free-energy
-landscape; for vector spins, it shows that the free energy is a saddle-point value over the
-positive semidefinite cone.
-\item \emph{Exercise~1.12.8 (Alternative proof of Eq.~(1.393)).} Equation~(1.393) computes
-the $\beta$-derivative of the replica-symmetric free energy at a fixed point. The exercise asks
-for an alternative proof using Gaussian interpolation (Proposition~1.3.2) as in Lemma~1.12.6;
-in our formalization, this path is realized through the general log-partition derivative
-\texttt{hasDerivAt\_skVectorGaussianFreeEnergy}.
+\item \emph{Research Problem~1.12.7 (Structure of stationarity).} The book asks to ``understand the
+underlying structure'' of the fact that the free parameters $q,\rho$ in the replica-symmetric
+functional $\Phi(q,\rho)$ are the points where its partial derivatives vanish (Lemma~1.12.6).
+\item \emph{Exercise~1.12.8 (Alternative proof of Eq.~(1.393)).} Equation~(1.393) computes the
+$\beta$-derivative of the replica-symmetric free energy at a fixed point. The exercise asks for an
+alternative proof using Gaussian interpolation (Proposition~1.3.2) as in Lemma~1.12.6. In our
+formalization, Eq.~(1.393) is proved using the book's first method via the log-partition derivative
+\texttt{hasDerivAt\_skVectorGaussianFreeEnergy}; the second proof via Proposition~1.3.2 is not formalized.
 \item \emph{Exercise~1.12.9 (Interpolation proof of Theorem~1.12.3).} The exercise asks to prove
 Theorem~1.12.3 directly by interpolating between the $N$-spin system and the decoupled single-spin
-cavity state in the spirit of Eq.~(1.108), rather than integrating the $\beta$-derivative. The cavity
-derivative bounds in Corollary~1.12.5 provide the exact ingredients needed for this alternative approach.
+cavity state in the spirit of Eq.~(1.108), rather than integrating the $\beta$-derivative. The Lean
+proof of Theorem~1.12.3 integrates the $\beta$-derivative (1.393) to obtain the rate $N^{-1/2}$; the direct
+interpolation proof is not formalized.
 \item \emph{Research Problems~1.12.10 and~1.12.11 (Coupled systems and general temperature).}
-Problem~1.12.10 investigates the cavity method for the coupled Hamiltonian with parameter $\lambda$,
-where two systems share the disorder, while Problem~1.12.11 asks whether near-constancy of overlaps
-extends to all temperatures for large $N$. Our formalization covers the high-temperature concentration
-and coupled log-ratio estimates (Theorems~\ref{thm:sg-tal:vector-coupled}
-and~\ref{thm:sg-tal:vector-coupled-ratio-concentration}), leaving the low-temperature behavior open as
-in the book.
+Problem~1.12.10 defines $\varphi(\sigma)$ by Eq.~(1.394) as the logarithm of a partition function for a
+second configuration $\tau$ rewarding agreement between $\sigma$ and $\tau$, and asks to compute
+$\nu(\varphi)$ and $\nu(\varphi^2)$ for small $\beta$. Problem~1.12.11 asks whether
+$\nu(\varphi^2)\simeq\nu(\varphi)^2$ at all temperatures for large $N$ (self-averaging of $\varphi$,
+Eq.~(1.395)). Neither calculation is carried out in the book or formalized in Lean. What the formalization
+provides in \texttt{Model/Coupled.lean} (Theorems~\ref{thm:sg-tal:vector-coupled}
+and~\ref{thm:sg-tal:vector-coupled-ratio-concentration}) is the analysis of the two-component coupled
+replica model introduced after Eq.~(1.365) to bound $\langle\varphi\rangle$ via Jensen's inequality and to
+establish concentration of the coupled log ratio.
 \end{enumerate}
 \end{remark}
 

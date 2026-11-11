@@ -136,7 +136,7 @@ local notation "skOverlap₁" => skVectorCavityOverlap (fun (ε : ℤˣ) (_ : Fi
 For one-component Ising spins, the diagonal terms `a = b` in the first sum of (1.376)
 cancel exactly against the third sum, and the off-diagonal terms double to the strictly
 ordered pairs, yielding the three-family replica combination of Eq. (1.151) / (1.152). -/
-theorem skVectorCavityIsingRHS_eq_skScalarCavityCombination
+theorem ising_cavity_rhs_eq_three_family_sum
     (N : ℕ) (β q : ℝ) (R : Type*) [Fintype R] [LinearOrder R]
     (F : (R → Fin (N + 1) → ℤˣ) → ℝ)
     (σ : Option (Option R) → Fin (N + 1) → ℤˣ) :

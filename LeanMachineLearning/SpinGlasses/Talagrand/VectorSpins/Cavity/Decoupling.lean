@@ -26,26 +26,39 @@ namespace SpinGlasses
 
 variable {α D : Type*} [MeasurableSpace α] [Fintype D]
 
-/-- The part of the cavity Hamiltonian (1.375) that involves only the first `N` spins
-(the old couplings). -/
-noncomputable def skVectorOldEnergy (ξ : α → D → ℝ) (N : ℕ) (β : ℝ) (g : FinPairs N → ℝ)
-    (τ : Fin N → α) : ℝ :=
-  (Real.sqrt (N + 1))⁻¹ * β * ∑ p : FinPairs N, g p *
-      ∑ u, ξ (τ p.val.1) u * ξ (τ p.val.2) u
+omit [MeasurableSpace α] in
+/-- The old-couplings interaction in the cavity Hamiltonian equals `skVectorEnergy` with
+rescaled temperature `β * √(N / (N + 1))`. -/
+theorem skVectorCavityEnergy_old_eq_skVectorEnergy (ξ : α → D → ℝ) (N : ℕ) (β : ℝ)
+    (g : FinPairs N → ℝ) (τ : Fin N → α) :
+    (Real.sqrt ((N : ℝ) + 1))⁻¹ * β * ∑ p : FinPairs N, g p *
+        ∑ u, ξ (τ p.val.1) u * ξ (τ p.val.2) u =
+      skVectorEnergy N (β * Real.sqrt ((N : ℝ) / ((N : ℝ) + 1))) g (fun j => ξ (τ j)) := by
+  unfold skVectorEnergy
+  rcases N with _ | N
+  · simp [FinPairs]
+  · rw [Real.sqrt_div (by positivity)]
+    have h1 : Real.sqrt ((N + 1 : ℕ) : ℝ) ≠ 0 := by positivity
+    have h2 : Real.sqrt (((N + 1 : ℕ) : ℝ) + 1) ≠ 0 := by positivity
+    have this : (Real.sqrt ((N + 1 : ℕ) : ℝ))⁻¹ *
+        (β * (Real.sqrt ((N + 1 : ℕ) : ℝ) / Real.sqrt (((N + 1 : ℕ) : ℝ) + 1))) =
+        (Real.sqrt (((N + 1 : ℕ) : ℝ) + 1))⁻¹ * β := by field_simp
+    rw [← this]
 
 omit [MeasurableSpace α] in
-/-- At `t = 0` the cavity Hamiltonian is the old energy plus the energy of the decoupled last
-spin. -/
+/-- At `t = 0` the cavity Hamiltonian is the rescaled old energy plus the energy of the decoupled
+last spin. -/
 theorem skVectorCavityEnergy_zero (ξ : α → D → ℝ) (N : ℕ) (β : ℝ) (ρ q : D → D → ℝ)
     (g : FinPairs N → ℝ) (g' : Fin N → ℝ) (Y : D → ℝ) (σ : Fin (N + 1) → α) :
     skVectorCavityEnergy ξ N β ρ q g g' Y 0 σ =
-      skVectorOldEnergy ξ N β g (fun j => σ j.castSucc) +
+      skVectorEnergy N (β * Real.sqrt ((N : ℝ) / ((N : ℝ) + 1))) g
+        (fun j => ξ (σ j.castSucc)) +
         skVectorFieldExponent ξ β ρ q Y (σ (Fin.last N)) := by
-  unfold skVectorCavityEnergy skVectorOldEnergy skVectorFieldExponent
+  unfold skVectorCavityEnergy skVectorFieldExponent
   simp only [Real.sqrt_zero, zero_mul, zero_add, sub_zero, Real.sqrt_one, one_mul]
   have h : ∑ u, ξ (σ (Fin.last N)) u * Y u = ∑ u, Y u * ξ (σ (Fin.last N)) u :=
     Finset.sum_congr rfl fun u _ => mul_comm _ _
-  rw [h]
+  rw [h, ← skVectorCavityEnergy_old_eq_skVectorEnergy]
   ring
 
 section Bounds
@@ -54,15 +67,16 @@ variable {r : ℝ} (ξ : α → D → ℝ) (hr : 0 ≤ r) (hbound : ∀ a, ∑ u
 include hr hbound
 
 omit [MeasurableSpace α] in
-/-- A uniform bound for the old energy, for fixed couplings. -/
+/-- A uniform bound for the rescaled old energy, for fixed couplings. -/
 theorem abs_skVectorOldEnergy_le (N : ℕ) (β : ℝ) (g : FinPairs N → ℝ)
     (τ : Fin N → α) :
-    |skVectorOldEnergy ξ N β g τ| ≤ |β| * ∑ p : FinPairs N, |g p| * (Fintype.card D * r) := by
+    |skVectorEnergy N (β * Real.sqrt ((N : ℝ) / ((N : ℝ) + 1))) g (fun j => ξ (τ j))| ≤
+      |β| * ∑ p : FinPairs N, |g p| * (Fintype.card D * r) := by
+  rw [← skVectorCavityEnergy_old_eq_skVectorEnergy]
   have hc : |(Real.sqrt ((N : ℝ) + 1))⁻¹| ≤ 1 := by
     rw [abs_of_nonneg (inv_nonneg.2 (Real.sqrt_nonneg _))]
     exact inv_le_one_of_one_le₀
       (Real.one_le_sqrt.2 (by linarith [(Nat.cast_nonneg N : (0 : ℝ) ≤ N)]))
-  unfold skVectorOldEnergy
   rw [abs_mul, abs_mul]
   calc |(Real.sqrt ((N : ℝ) + 1))⁻¹| * |β| * |∑ p : FinPairs N, g p *
         ∑ u, ξ (τ p.val.1) u * ξ (τ p.val.2) u|
@@ -119,11 +133,14 @@ theorem skVectorCavityAverage_zero_centered_mul_eq_zero {d N : ℕ} {Ω : Type*}
   classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
   set A : (FinPairs N → ℝ) → ℝ := fun x => ∫ τ, Ψ τ ∂(Measure.pi fun _ : Fin 2 =>
-    (Measure.pi fun _ : Fin N => μ).tilted (skVectorOldEnergy ξ N β x)) with hA
+    (Measure.pi fun _ : Fin N => μ).tilted
+      (fun τ : Fin N → α => skVectorEnergy N (β * Real.sqrt ((N : ℝ) / ((N : ℝ) + 1))) x
+        (fun j => ξ (τ j)))) with hA
   set B : (Fin d → ℝ) → ℝ := fun y => ∫ a, Ψ₂ a ∂(Measure.pi fun _ : Fin 2 =>
     μ.tilted (skVectorFieldExponent ξ β ρ q y)) with hB
-  have hE₁m : ∀ x, Measurable (skVectorOldEnergy ξ N β x) := fun x => by
-    unfold skVectorOldEnergy
+  have hE₁m : ∀ x, Measurable (fun τ : Fin N → α => skVectorEnergy N
+      (β * Real.sqrt ((N : ℝ) / ((N : ℝ) + 1))) x (fun j => ξ (τ j))) := fun x => by
+    simp_rw [← skVectorCavityEnergy_old_eq_skVectorEnergy]
     refine measurable_const.mul (Finset.measurable_sum _ fun p _ => measurable_const.mul
       (Finset.measurable_sum _ fun w _ => ?_))
     exact ((hξ w).comp (measurable_pi_apply _)).mul ((hξ w).comp (measurable_pi_apply _))
@@ -131,7 +148,7 @@ theorem skVectorCavityAverage_zero_centered_mul_eq_zero {d N : ℕ} {Ω : Type*}
     unfold skVectorFieldExponent
     exact (Finset.measurable_sum _ fun w _ => measurable_const.mul (hξ w)).add
       (measurable_const.mul (Finset.measurable_sum _ fun w _ => Finset.measurable_sum _
-        fun w' _ => ((hξ w).mul (hξ w')).mul measurable_const))
+        fun w' _ => (measurable_spin_mul ξ hξ w w').mul measurable_const))
   -- step 1: the inner integral factorizes at every `ω`
   have hstep : ∀ ω, ∫ σ : Fin 2 → Fin (N + 1) → α, Ψ (fun i j => σ i j.castSucc) *
         Ψ₂ (fun i => σ i (Fin.last N))
@@ -140,22 +157,26 @@ theorem skVectorCavityAverage_zero_centered_mul_eq_zero {d N : ℕ} {Ω : Type*}
             (fun w => Y w ω) 0)) = A (fun p => g p ω) * B (fun w => Y w ω) := by
     intro ω
     have hfun : skVectorCavityEnergy ξ N β ρ q (fun p => g p ω) (fun i => g' i ω)
-        (fun w => Y w ω) 0 = fun σ => skVectorOldEnergy ξ N β (fun p => g p ω)
-          (fun j => σ j.castSucc) +
+        (fun w => Y w ω) 0 = fun σ => skVectorEnergy N
+          (β * Real.sqrt ((N : ℝ) / ((N : ℝ) + 1))) (fun p => g p ω)
+          (fun j => ξ (σ j.castSucc)) +
           skVectorFieldExponent ξ β ρ q (fun w => Y w ω) (σ (Fin.last N)) :=
       funext fun σ => skVectorCavityEnergy_zero ξ N β ρ q _ _ _ σ
     rw [hfun]
-    exact integral_pi_tilted_split μ (skVectorOldEnergy ξ N β (fun p => g p ω))
+    exact integral_pi_tilted_split μ
+      (fun τ => skVectorEnergy N (β * Real.sqrt ((N : ℝ) / ((N : ℝ) + 1))) (fun p => g p ω)
+        (fun j => ξ (τ j)))
       (skVectorFieldExponent ξ β ρ q (fun w => Y w ω)) (hE₁m _) (hE₂m _)
       (abs_skVectorOldEnergy_le ξ hr hbound N β _)
       (abs_skVectorFieldExponent_le ξ hr hbound β ρ q _)
       Ψ Ψ₂ hΨ hΨ₂m
   -- step 2: measurability of `A` and `B`
   have hEj₁ : Measurable fun p : (FinPairs N → ℝ) × (Fin N → α) =>
-      skVectorOldEnergy ξ N β p.1 p.2 := by
-    unfold skVectorOldEnergy
+      skVectorEnergy N (β * Real.sqrt ((N : ℝ) / ((N : ℝ) + 1))) p.1 (fun j => ξ (p.2 j)) := by
+    simp_rw [← skVectorCavityEnergy_old_eq_skVectorEnergy]
     refine measurable_const.mul (Finset.measurable_sum _ fun p _ => ?_)
-    refine ((measurable_pi_apply p).comp measurable_fst).mul (Finset.measurable_sum _ fun w _ => ?_)
+    refine ((measurable_pi_apply p).comp measurable_fst).mul
+      (Finset.measurable_sum _ fun w _ => ?_)
     exact ((hξ w).comp ((measurable_pi_apply _).comp measurable_snd)).mul
       ((hξ w).comp ((measurable_pi_apply _).comp measurable_snd))
   have hEj₂ : Measurable fun p : (Fin d → ℝ) × α => skVectorFieldExponent ξ β ρ q p.1 p.2 := by
@@ -163,10 +184,11 @@ theorem skVectorCavityAverage_zero_centered_mul_eq_zero {d N : ℕ} {Ω : Type*}
     exact (Finset.measurable_sum _ fun w _ => ((measurable_pi_apply w).comp measurable_fst).mul
       ((hξ w).comp measurable_snd)).add (measurable_const.mul (Finset.measurable_sum _
         fun w _ => Finset.measurable_sum _ fun w' _ =>
-          (((hξ w).comp measurable_snd).mul ((hξ w').comp measurable_snd)).mul measurable_const))
+          ((measurable_spin_mul ξ hξ w w').comp measurable_snd).mul measurable_const))
   have hAm : Measurable A := measurable_integral_pi_tilted
     (μ := Measure.pi fun _ : Fin N => μ) (ι := Fin 2)
-    (E := fun x τ => skVectorOldEnergy ξ N β x τ) hEj₁ hΨ
+    (E := fun x τ => skVectorEnergy N (β * Real.sqrt ((N : ℝ) / ((N : ℝ) + 1))) x
+      (fun j => ξ (τ j))) hEj₁ hΨ
   have hBm : Measurable B := measurable_integral_pi_tilted (μ := μ) (ι := Fin 2)
     (E := fun y a => skVectorFieldExponent ξ β ρ q y a) hEj₂ hΨ₂m
   -- step 3: independence of the old couplings and the field
@@ -291,7 +313,7 @@ theorem skVectorCavityAverage_zero_diag_mul_eq_zero {d N : ℕ} {Ω : Type*} [Me
     exact (Finset.measurable_sum _ fun w _ => ((measurable_pi_apply w).comp measurable_fst).mul
       ((hξ w).comp measurable_snd)).add (measurable_const.mul (Finset.measurable_sum _
         fun w _ => Finset.measurable_sum _ fun w' _ =>
-          (((hξ w).comp measurable_snd).mul ((hξ w').comp measurable_snd)).mul measurable_const))
+          ((measurable_spin_mul ξ hξ w w').comp measurable_snd).mul measurable_const))
   have hHm : Measurable fun ω u => Y u ω := measurable_pi_iff.2 hYm
   have hBy : ∀ y, ∫ a, (ξ (a 0) u * ξ (a 0) v - ρ u v) ∂(Measure.pi fun _ : Fin 2 =>
       μ.tilted (skVectorFieldExponent ξ β ρ q y)) =
@@ -302,10 +324,10 @@ theorem skVectorCavityAverage_zero_diag_mul_eq_zero {d N : ℕ} {Ω : Type*} [Me
       isProbabilityMeasure_tilted hexpi
     have hmeas : AEStronglyMeasurable (fun a => ξ a u * ξ a v - ρ u v)
         (μ.tilted (skVectorFieldExponent ξ β ρ q y)) :=
-      (((hξ u).mul (hξ v)).sub measurable_const).aestronglyMeasurable
+      ((measurable_spin_mul ξ hξ u v).sub measurable_const).aestronglyMeasurable
     have hint : Integrable (fun a => ξ a u * ξ a v)
         (μ.tilted (skVectorFieldExponent ξ β ρ q y)) :=
-      integrable_of_measurable_bound ((hξ u).mul (hξ v)) (M := d)
+      integrable_of_measurable_bound (measurable_spin_mul ξ hξ u v) (M := d)
         fun a => abs_spin_mul_le ξ hr hbound a a u v
     rw [integral_pi_eval (μ.tilted (skVectorFieldExponent ξ β ρ q y)) (J := Fin 2) 0
       (fun a => ξ a u * ξ a v - ρ u v) hmeas, integral_sub hint (integrable_const _)]
@@ -314,7 +336,8 @@ theorem skVectorCavityAverage_zero_diag_mul_eq_zero {d N : ℕ} {Ω : Type*} [Me
       (skVectorFieldExponent ξ β ρ q (fun w' => Y w' ω))) :=
     measurable_integral_tilted
       (e := fun ω a => skVectorFieldExponent ξ β ρ q (fun w' => Y w' ω) a)
-      (hEj₂.comp ((hHm.comp measurable_fst).prodMk measurable_snd)) ((hξ u).mul (hξ v))
+      (hEj₂.comp ((hHm.comp measurable_fst).prodMk measurable_snd))
+      (measurable_spin_mul ξ hξ u v)
   have hB0 : ∫ ω, ∫ a, (ξ (a 0) u * ξ (a 0) v - ρ u v) ∂(Measure.pi fun _ : Fin 2 =>
       μ.tilted (skVectorFieldExponent ξ β ρ q (fun w => Y w ω))) ∂P = 0 := by
     simp_rw [hBy]

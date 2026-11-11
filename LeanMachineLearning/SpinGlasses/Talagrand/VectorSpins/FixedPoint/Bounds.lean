@@ -88,7 +88,7 @@ theorem sum_sq_skVectorFixedPoint_le {D : Type*} [Fintype D] (μ : Measure α) [
   have hξb : ∀ a u, |ξ a u| ≤ Real.sqrt r := abs_spin_le ξ hbound
   have hξξ : ∀ a u v, |ξ a u * ξ a v| ≤ r := fun a u v =>
     abs_spin_mul_le ξ hr hbound a a u v
-  have hξm2 : ∀ u v, Measurable fun a => ξ a u * ξ a v := fun u v => (hξ u).mul (hξ v)
+  have hξm2 : ∀ u v, Measurable fun a => ξ a u * ξ a v := measurable_spin_mul ξ hξ
   -- pointwise (in `ω`) Jensen bounds for the Gibbs measure
   have hG : ∀ ω, ∑ u, (∫ a, ξ a u ∂(μ.tilted (e ω))) ^ 2 ≤ r := fun ω => by
     refine (sum_sq_integral_tilted_le (hE ω) (fun u a => ξ a u) hξ (M := Real.sqrt r)
@@ -172,7 +172,7 @@ theorem integrable_exp_skVectorFieldExponent {D : Type*} [Fintype D] (μ : Measu
   have hm : Measurable fun a => skVectorFieldExponent ξ β ρ q y a :=
     (Finset.measurable_sum _ fun u _ => (hξ u).const_mul _).add
       (measurable_const.mul (Finset.measurable_sum _ fun u _ => Finset.measurable_sum _
-        fun v _ => ((hξ u).mul (hξ v)).mul measurable_const))
+        fun v _ => (measurable_spin_mul ξ hξ u v).mul measurable_const))
   refine (integrable_const (Real.exp (∑ u, |y u| * Real.sqrt r +
     β ^ 2 / 2 * ∑ u, ∑ v, r * |ρ u v - q u v|))).mono' hm.exp.aestronglyMeasurable
     (Filter.Eventually.of_forall fun a => ?_)

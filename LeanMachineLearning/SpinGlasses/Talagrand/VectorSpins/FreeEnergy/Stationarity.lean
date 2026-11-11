@@ -68,7 +68,7 @@ theorem hasDerivAt_skVectorGaussianFreeEnergy_rho (μ : Measure α) [IsProbabili
   set B : ℝ := Real.sqrt r + ∑ w, ∑ w', r * |E w w'| with hBdef
   have hB0 : 0 ≤ B := by positivity
   set Eb : ℝ := β ^ 2 / 2 * ∑ w, ∑ w', r * |ρ w w' - q w w'| with hEb
-  have hξm2 : ∀ u v, Measurable fun a => ξ a u * ξ a v := fun u v => (hξ u).mul (hξ v)
+  have hξm2 : ∀ u v, Measurable fun a => ξ a u * ξ a v := measurable_spin_mul ξ hξ
   have hD0m : Measurable D0 :=
     measurable_const.mul (Finset.measurable_sum _ fun w _ => Finset.measurable_sum _ fun w' _ =>
       (hξm2 w w').mul measurable_const)
@@ -231,7 +231,7 @@ theorem hasDerivAt_skVectorSegment (μ : Measure α) [IsProbabilityMeasure μ]
   set B : ℝ := Real.sqrt r + ∑ w, ∑ w', r * |q₁ w w' - q₀ w w'| with hBdef
   have hB0 : 0 ≤ B := by positivity
   set Eb : ℝ := β ^ 2 / 2 * ∑ w, ∑ w', r * |ρ w w' - q₀ w w'| with hEb
-  have hξm2 : ∀ u v, Measurable fun a => ξ a u * ξ a v := fun u v => (hξ u).mul (hξ v)
+  have hξm2 : ∀ u v, Measurable fun a => ξ a u * ξ a v := measurable_spin_mul ξ hξ
   have hD0m : Measurable D0 :=
     measurable_const.mul (Finset.measurable_sum _ fun w _ => Finset.measurable_sum _ fun w' _ =>
       (hξm2 w w').mul measurable_const)
