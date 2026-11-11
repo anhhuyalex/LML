@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from sample_files import MINI_TEX, read_sample
 from tex2typ.cli import convert
 from tex2typ.emit import Emitter
 from tex2typ.index import Index
@@ -13,13 +14,13 @@ from tex2typ.parser import Parser
 
 HERE = Path(__file__).parent
 BOOK = HERE.parent
-FIXTURE = HERE / "samples" / "mini.tex"
+FIXTURE = MINI_TEX
 CHAPTER = BOOK.parent.parent / "blueprint" / "src" / "chapters" / "spinglasses_talagrand.tex"
 TYPST = shutil.which("typst")
 
 
 def emit_fixture() -> str:
-    document = Parser(FIXTURE.read_text(), "mini.tex").parse_document()
+    document = Parser(read_sample(FIXTURE), "mini.tex").parse_document()
     index = Index(document)
     return Emitter(index, 1).blocks(document.sections[0])
 

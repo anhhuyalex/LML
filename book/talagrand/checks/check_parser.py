@@ -1,13 +1,13 @@
 """Checks for the LaTeX parser (``tex2typ.parser``)."""
 import unittest
-from pathlib import Path
 
+from sample_files import MINI_TEX, read_sample
 from tex2typ.errors import ConversionError
 from tex2typ.model import (DisplayMath, Environment, Heading, ListBlock, Math, Meta, Paragraph,
                            Proof, Ref, RunInHead, Styled, Text)
 from tex2typ.parser import Parser, strip_comments
 
-FIXTURE = Path(__file__).parent / "samples" / "mini.tex"
+FIXTURE = MINI_TEX
 
 
 def blocks(source: str):
@@ -111,7 +111,7 @@ class BlockChecks(unittest.TestCase):
 
 class DocumentChecks(unittest.TestCase):
     def test_fixture_structure(self):
-        document = Parser(FIXTURE.read_text(), "mini.tex").parse_document()
+        document = Parser(read_sample(FIXTURE), "mini.tex").parse_document()
         self.assertEqual(document.label, "chap:mini")
         self.assertEqual(len(document.front), 1)
         self.assertEqual(len(document.sections), 1)

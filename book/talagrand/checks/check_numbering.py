@@ -1,18 +1,18 @@
 """Checks for label numbering (``tex2typ.index``) and text/math helpers (``tex2typ.text``)."""
 import unittest
-from pathlib import Path
 
+from sample_files import MINI_TEX, read_sample
 from tex2typ.index import Index, talagrand_statement
 from tex2typ.parser import Parser
 from tex2typ.text import escape_line_start, escape_markup, normalize_math, typst_string
 from tex2typ.errors import ConversionError
 
-FIXTURE = Path(__file__).parent / "samples" / "mini.tex"
+FIXTURE = MINI_TEX
 NBSP = "\u00a0"
 
 
 def mini_index(overrides=None) -> Index:
-    return Index(Parser(FIXTURE.read_text(), "mini.tex").parse_document(), overrides)
+    return Index(Parser(read_sample(FIXTURE), "mini.tex").parse_document(), overrides)
 
 
 class NumberingChecks(unittest.TestCase):

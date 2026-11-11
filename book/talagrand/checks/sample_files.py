@@ -11,10 +11,11 @@ def git_ignore_rule(path: Path) -> str | None:
 
     Also None when git is unavailable or ``path`` is not in a repository.
     """
+    existing = next(parent for parent in path.parents if parent.exists())
     try:
         result = subprocess.run(
             ["git", "check-ignore", "-v", str(path)],
-            cwd=path.parent, capture_output=True, text=True, check=False)
+            cwd=existing, capture_output=True, text=True, check=False)
     except OSError:
         return None
     if result.returncode != 0:
