@@ -10518,12 +10518,31 @@ The result follows from the general probability theorem on difference quotients 
 $\lim_{t \to 0^+} \frac{1}{t} \log \mathbb E [Z^t] = \mathbb E [\log Z]$.
 \end{proof}
 
+\begin{theorem}[Maximizing fixed point of the replica variational problem]\label{thm:sg-tal:replica-fixed-point}
+\lean{SpinGlasses.exists_skReplica_maximizer_fixedPoint}
+\leanok
+\talsource{Eq.~(1.408); source lines 5900--5915}
+For every integer $n \ge 1$ and all real $\beta, h$, there exists a maximizer $q \in [0, 1]$ of
+\[
+\Phi_n(q) = \frac{n \beta^2 (1-q)^2}{4} - \frac{n^2 \beta^2 q^2}{4} + \log \mathbb E \bigl[\cosh^n(\beta z \sqrt{q} + h)\bigr]
+\]
+over $[0, \infty)$ satisfying the tilted fixed-point equation
+\[
+q = \frac{\mathbb E \bigl[\cosh^n(\beta z \sqrt{q} + h) \tanh^2(\beta z \sqrt{q} + h)\bigr]}{\mathbb E \bigl[\cosh^n(\beta z \sqrt{q} + h)\bigr]},
+\]
+and $\lim_{N \to \infty} \frac{1}{N} \log \mathbb E [Z_N^n] = n \log 2 + \Phi_n(q)$.
+\end{theorem}
+\begin{proof}
+\leanok
+For $n = 1$ and $\beta = 0$, $\Phi_n$ is constant on $q \ge 0$, and the fixed point reduces to $q = \tanh^2 h$ or the standard fixed-point theorem. For $n \ge 2$ and $\beta > 0$, Theorem~\ref{thm:sg-tal:replica-method} yields a maximizer $q_0 \ge 0$. We express the partition function as a finite configuration sum $S_n(q)$ and compute the exact derivative $\Phi_n'(q) = \frac{n(n-1)\beta^2}{2} (R_n(q) - q)$ on $q \ge 0$. If $q_0 > 0$, by Fermat's theorem on interior local maxima, $\Phi_n'(q_0) = 0$, yielding $q_0 = R_n(q_0)$. If $q_0 = 0$, either $h = 0$ (so $R_n(0) = \tanh^2 0 = 0 = q_0$) or $h \ne 0$ (giving $\Phi_n'(0) > 0$, contradicting maximality of $0$). Nonnegativity and $q_0 \le 1$ follow from the ratio bounds. The case $\beta < 0$ follows by symmetry under $\beta \mapsto -\beta$ and $z \mapsto -z$.
+\end{proof}
+
 \begin{remark}[Not claimed: the continuation to non-integer $n$]\label{rem:sg-tal:replica-heuristic}
 \talsource{Eqs.~(1.408)--(1.411)}
 After Theorem~1.13.1 the book writes the fixed-point equation (1.408) for the maximizer, observes the finite-system real-moment limit $\lim_{t\to0^+}\frac1t\log\mathbb EZ_N^t=\mathbb E\log Z_N$ (Eq.~(1.409), proved above in Theorem~\ref{thm:sg-tal:replica-real-moments}),
 and then ``pretends'' that the integer formula extends to non-integer $n>0$ and that the limits $N\to\infty$ and $n\to0$ can be exchanged. This yields the replica-symmetric formula (1.411).
 The book marks these steps as a heuristic. The exchange of limits and the continuation to non-integer $n$ are not proved by the integer theorem alone. In particular this section does not prove Eq.~(1.411) at all temperatures, and Eq.~(1.411) is wrong at low temperature.
-Equation~(1.408) is also not formalized.
+Theorem~\ref{thm:sg-tal:replica-fixed-point} formalizes the existence of a maximizing fixed point satisfying Eq.~(1.408).
 \end{remark}
 
 \section{The matrix and the pair Hamiltonian of the SK model}\label{sec:sg-tal:hamiltonian-bridge}
