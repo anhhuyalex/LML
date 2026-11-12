@@ -53,21 +53,16 @@ lemma mem_interior_integrableExpSet_of_forall
 theorem hasDerivAt_cgf_zero [IsProbabilityMeasure μ]
     (h : 0 ∈ interior (integrableExpSet X μ)) :
     HasDerivAt (cgf X μ) (∫ ω, X ω ∂μ) 0 := by
-  have hd : HasDerivAt (cgf X μ) (deriv (cgf X μ) 0) 0 :=
-    (analyticAt_cgf h).differentiableAt.hasDerivAt
-  have hd0 := deriv_cgf_zero (X := X) (μ := μ) h
-  rw [probReal_univ, div_one] at hd0
-  rwa [hd0] at hd
+  simpa only [deriv_cgf_zero h, probReal_univ, div_one]
+    using (analyticAt_cgf h).differentiableAt.hasDerivAt
 
 /-- The difference quotient `cgf X μ t / t` tends to `∫ X ∂μ` as `t → 0` along `𝓝[≠] 0`. -/
 theorem tendsto_cgf_div_zero [IsProbabilityMeasure μ]
     (h : 0 ∈ interior (integrableExpSet X μ)) :
     Tendsto (fun t => cgf X μ t / t) (𝓝[≠] 0) (𝓝 (∫ ω, X ω ∂μ)) := by
-  have hd := (hasDerivAt_cgf_zero h).tendsto_slope
-  have h_slope : (fun t => cgf X μ t / t) =ᶠ[𝓝[≠] 0] slope (cgf X μ) 0 := by
-    filter_upwards [self_mem_nhdsWithin] with t ht
-    rw [slope_def_field, cgf_zero, sub_zero, sub_zero]
-  exact hd.congr' h_slope.symm
+  simpa only [zero_add, cgf_zero, sub_zero, smul_eq_mul,
+    div_eq_mul_inv, mul_comm]
+    using (hasDerivAt_cgf_zero h).tendsto_slope_zero
 
 /-- The difference quotient `cgf X μ t / t` tends to `∫ X ∂μ` as `t → 0+`. -/
 theorem tendsto_cgf_div_zero_pos [IsProbabilityMeasure μ]
@@ -79,11 +74,8 @@ theorem tendsto_cgf_div_zero_pos [IsProbabilityMeasure μ]
 theorem tendsto_log_integral_exp_mul_div_zero_pos [IsProbabilityMeasure μ]
     (h : 0 ∈ interior (integrableExpSet X μ)) :
     Tendsto (fun t => Real.log (∫ ω, Real.exp (t * X ω) ∂μ) / t)
-      (𝓝[>] 0) (𝓝 (∫ ω, X ω ∂μ)) := by
-  have hcgf : (fun t => Real.log (∫ ω, Real.exp (t * X ω) ∂μ) / t) =
-      (fun t => cgf X μ t / t) := rfl
-  rw [hcgf]
-  exact tendsto_cgf_div_zero_pos h
+      (𝓝[>] 0) (𝓝 (∫ ω, X ω ∂μ)) :=
+  tendsto_cgf_div_zero_pos h
 
 /-- For a positive random variable `Z`, `(1 / t) * log ∫ Z^t ∂μ` tends to `∫ log Z ∂μ`
 as `t → 0+`. -/

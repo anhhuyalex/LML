@@ -49,6 +49,11 @@ theorem exp_skReplicaMatLogPartition_const (β h V : ℝ) (hβV : 0 ≤ β * V) 
         ∂(gaussianReal 0 1) := by
   rw [exp_skReplicaMatLogPartition]
   have hsq : Real.sqrt (β * V) ^ 2 = β * V := Real.sq_sqrt hβV
+  have hz (ε : Fin n → ℤˣ) (z : ℝ) :
+      Real.exp ((Real.sqrt (β * V) * z + h) * ∑ l, ((ε l : ℤ) : ℝ)) =
+        Real.exp (h * ∑ l, ((ε l : ℤ) : ℝ)) *
+          Real.exp ((Real.sqrt (β * V) * ∑ l, ((ε l : ℤ) : ℝ)) * z) := by
+    rw [← Real.exp_add]; congr 1; ring
   have hterm (ε : Fin n → ℤˣ) :
       Real.exp (β / 2 * ∑ l, ∑ l', (if l = l' then 0 else V) * ((ε l : ℤ) : ℝ) *
         ((ε l' : ℤ) : ℝ) + h * ∑ l, ((ε l : ℤ) : ℝ)) =
@@ -57,11 +62,7 @@ theorem exp_skReplicaMatLogPartition_const (β h V : ℝ) (hβV : 0 ≤ β * V) 
     have hsum : ∑ l, ((ε l : ℤ) : ℝ) ^ 2 = n := by
       simp [units_cast_sq]
     rw [sum_const_coupling V (fun l => ((ε l : ℤ) : ℝ)), hsum]
-    have hz : ∀ z : ℝ, Real.exp ((Real.sqrt (β * V) * z + h) * ∑ l, ((ε l : ℤ) : ℝ)) =
-        Real.exp (h * ∑ l, ((ε l : ℤ) : ℝ)) *
-          Real.exp ((Real.sqrt (β * V) * ∑ l, ((ε l : ℤ) : ℝ)) * z) := fun z => by
-      rw [← Real.exp_add]; congr 1; ring
-    simp_rw [hz]
+    simp_rw [hz ε]
     rw [integral_const_mul, integral_exp_mul_gaussianReal_zero_one, mul_pow, hsq,
       ← mul_assoc, mul_comm (Real.exp (-(n * β * V) / 2)), mul_assoc, ← Real.exp_add,
       ← Real.exp_add]
@@ -74,11 +75,7 @@ theorem exp_skReplicaMatLogPartition_const (β h V : ℝ) (hβV : 0 ≤ β * V) 
   · refine integral_congr_ae (ae_of_all _ fun z => ?_)
     exact sum_exp_h_mul_spin _
   · intro ε _
-    have hz : ∀ z : ℝ, Real.exp ((Real.sqrt (β * V) * z + h) * ∑ l, ((ε l : ℤ) : ℝ)) =
-        Real.exp (h * ∑ l, ((ε l : ℤ) : ℝ)) *
-          Real.exp ((Real.sqrt (β * V) * ∑ l, ((ε l : ℤ) : ℝ)) * z) := fun z => by
-      rw [← Real.exp_add]; congr 1; ring
-    simp_rw [hz]
+    simp_rw [hz ε]
     exact (integrable_exp_mul_gaussianReal _).const_mul _
 
 theorem sum_sq_const_coupling (V : ℝ) :

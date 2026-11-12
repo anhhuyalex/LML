@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.LogSumExp
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.SKReplicaMaximizer
 public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKSiteSymmetry
 
@@ -63,16 +64,10 @@ theorem skReplicaLogPartition_eq_mat (β h : ℝ) (g : FinPairs n → ℝ) :
   congr 1
   refine Finset.sum_congr rfl fun ε _ => ?_
   congr 1
-  have := sum_finPairs_eq_half_sym g (fun l l' => ((ε l : ℤ) : ℝ) * ((ε l' : ℤ) : ℝ))
+  have hp := sum_finPairs_eq_half_sym g (fun l l' => ((ε l : ℤ) : ℝ) * ((ε l' : ℤ) : ℝ))
     (fun l l' => mul_comm _ _)
-  have h2 : ∑ p : FinPairs n, g p * ((ε p.val.1 : ℤ) : ℝ) * ((ε p.val.2 : ℤ) : ℝ) =
-      ∑ p : FinPairs n, g p * (((ε p.val.1 : ℤ) : ℝ) * ((ε p.val.2 : ℤ) : ℝ)) :=
-    Finset.sum_congr rfl fun p _ => by ring
-  rw [h2, this]
-  have h3 : ∑ l, ∑ l', skSymmCoupling g l l' * (((ε l : ℤ) : ℝ) * ((ε l' : ℤ) : ℝ)) =
-      ∑ l, ∑ l', skSymmCoupling g l l' * ((ε l : ℤ) : ℝ) * ((ε l' : ℤ) : ℝ) :=
-    Finset.sum_congr rfl fun l _ => Finset.sum_congr rfl fun l' _ => by ring
-  rw [h3]
+  simp only [← mul_assoc] at hp
+  rw [hp]
   ring
 
 /-- `∑_p g_p²` is half of the sum of squares of the symmetric extension. -/
@@ -108,45 +103,22 @@ theorem abs_replica_energy_le (β h : ℝ) (g : FinPairs n → ℝ) (ε : Fin n 
 theorem abs_skReplicaLogPartition_le (β h : ℝ) (g : FinPairs n → ℝ) :
     |skReplicaLogPartition n β h g| ≤
       (n * Real.log 2 + n * |h| + |β|) * (1 + ∑ p, |g p|) := by
-  set M : ℝ := |β| * ∑ p, |g p| + |h| * n with hM
-  have hM0 : 0 ≤ M := by positivity
-  set S : ℝ := ∑ ε : Fin n → ℤˣ, Real.exp (β * ∑ p : FinPairs n,
-    g p * ((ε p.val.1 : ℤ) : ℝ) * ((ε p.val.2 : ℤ) : ℝ) + h * ∑ l, ((ε l : ℤ) : ℝ)) with hS
-  have hcard : (Finset.univ : Finset (Fin n → ℤˣ)).card = 2 ^ n := by
-    simp [Finset.card_univ, Fintype.card_units_int]
-  have hup : S ≤ 2 ^ n * Real.exp M := by
-    calc S ≤ ∑ _ε : Fin n → ℤˣ, Real.exp M := Finset.sum_le_sum fun ε _ =>
-          Real.exp_le_exp.2 ((le_abs_self _).trans (abs_replica_energy_le β h g ε))
-      _ = _ := by rw [Finset.sum_const, hcard, nsmul_eq_mul]; push_cast; ring
-  have hlow : 2 ^ n * Real.exp (-M) ≤ S := by
-    calc (2 : ℝ) ^ n * Real.exp (-M) = ∑ _ε : Fin n → ℤˣ, Real.exp (-M) := by
-          rw [Finset.sum_const, hcard, nsmul_eq_mul]; push_cast; ring
-      _ ≤ S := Finset.sum_le_sum fun ε _ => Real.exp_le_exp.2
-          (neg_le_of_abs_le (abs_replica_energy_le β h g ε))
-  have hSpos : 0 < S := Finset.sum_pos (fun ε _ => Real.exp_pos _) Finset.univ_nonempty
-  have hlog1 : Real.log S ≤ n * Real.log 2 + M := by
-    calc Real.log S ≤ Real.log (2 ^ n * Real.exp M) := Real.log_le_log hSpos hup
-      _ = _ := by rw [Real.log_mul (by positivity) (Real.exp_pos _).ne', Real.log_pow,
-          Real.log_exp]
-  have hlog2 : n * Real.log 2 - M ≤ Real.log S := by
-    calc n * Real.log 2 - M = Real.log (2 ^ n * Real.exp (-M)) := by
-          rw [Real.log_mul (by positivity) (Real.exp_pos _).ne', Real.log_pow, Real.log_exp]
-          ring
-      _ ≤ Real.log S := Real.log_le_log (by positivity) hlow
-  have hn : 0 ≤ (n : ℝ) * Real.log 2 := by positivity
-  change |Real.log S| ≤ _
-  rw [abs_le]
+  have hcard : Fintype.card (Fin n → ℤˣ) = 2 ^ n := by simp
+  have hlog : Real.log (Fintype.card (Fin n → ℤˣ) : ℝ) = (n : ℝ) * Real.log 2 := by
+    rw [hcard, Nat.cast_pow, Nat.cast_ofNat, Real.log_pow]
+  rw [skReplicaLogPartition_def]
+  have h_le := abs_log_sum_exp_le_of_forall
+    (fun ε : Fin n → ℤˣ => β * ∑ p : FinPairs n,
+      g p * ((ε p.val.1 : ℤ) : ℝ) * ((ε p.val.2 : ℤ) : ℝ) + h * ∑ l, ((ε l : ℤ) : ℝ))
+    (abs_replica_energy_le β h g)
+  rw [hlog] at h_le
   have hsum : 0 ≤ ∑ p, |g p| := Finset.sum_nonneg fun p _ => abs_nonneg _
-  have e : (↑n * Real.log 2 + ↑n * |h| + |β|) * (1 + ∑ p, |g p|) =
-      n * Real.log 2 + n * |h| + |β| + (n * Real.log 2) * ∑ p, |g p| +
-        (n * |h|) * ∑ p, |g p| + |β| * ∑ p, |g p| := by ring
-  have h1 : 0 ≤ (n * Real.log 2) * ∑ p, |g p| := mul_nonneg hn hsum
-  have h2 : 0 ≤ ((n : ℝ) * |h|) * ∑ p, |g p| := mul_nonneg (by positivity) hsum
-  have h3 : 0 ≤ (n : ℝ) * |h| := by positivity
-  have h4 : 0 ≤ |β| := abs_nonneg β
-  have h5 : |h| * (n : ℝ) = (n : ℝ) * |h| := mul_comm _ _
-  rw [e]
-  constructor <;> linarith
+  have hn : 0 ≤ (n : ℝ) * Real.log 2 := by positivity
+  have hnh : 0 ≤ (n : ℝ) * |h| := by positivity
+  have hbeta : 0 ≤ |β| := abs_nonneg β
+  have hhn : |h| * (n : ℝ) = (n : ℝ) * |h| := mul_comm _ _
+  rw [hhn] at h_le
+  nlinarith
 
 theorem continuous_skReplicaLogPartition (β h : ℝ) :
     Continuous fun g : FinPairs n → ℝ => skReplicaLogPartition n β h g := by
