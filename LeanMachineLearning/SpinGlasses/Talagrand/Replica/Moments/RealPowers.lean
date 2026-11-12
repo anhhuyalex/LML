@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.ForMathlib.Probability.Moments.CGFQuotient
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.LogSumExp
 public import LeanMachineLearning.SpinGlasses.Talagrand.GaussianFluctuation.SKGaussianFluctuation
 public import LeanMachineLearning.SpinGlasses.Basic
 
@@ -51,92 +52,29 @@ lemma abs_log_skPartition_le (N : ℕ) (β h : ℝ) (g : FinPairs N → ℝ) :
     |Real.log (∑ σ : Fin N → ℤˣ, Real.exp (skGibbsEnergy N β h g σ))| ≤
       (N : ℝ) * Real.log 2 + |h| * (N : ℝ) +
         (Real.sqrt N)⁻¹ * |β| * (∑ p : FinPairs N, |g p|) := by
-  set U : ℝ := (Real.sqrt N)⁻¹ * |β| * (∑ p : FinPairs N, |g p|) + |h| * (N : ℝ)
-  have hU_nonneg : 0 ≤ U := by positivity
-  have hN_log2_nonneg : 0 ≤ (N : ℝ) * Real.log 2 := by
-    refine mul_nonneg (Nat.cast_nonneg N) ?_
-    exact Real.log_nonneg (by norm_num)
-  have h_term_le (σ : Fin N → ℤˣ) : skGibbsEnergy N β h g σ ≤ U := by
-    have := abs_skGibbsEnergy_le N β h g σ
-    linarith [le_abs_self (skGibbsEnergy N β h g σ)]
-  have h_neg_term_le (σ : Fin N → ℤˣ) : -U ≤ skGibbsEnergy N β h g σ := by
-    have := abs_skGibbsEnergy_le N β h g σ
-    linarith [neg_le_of_abs_le this]
-  have h_exp_le (σ : Fin N → ℤˣ) :
-      Real.exp (skGibbsEnergy N β h g σ) ≤ Real.exp U :=
-    Real.exp_le_exp.mpr (h_term_le σ)
-  have h_sum_le :
-      (∑ σ : Fin N → ℤˣ, Real.exp (skGibbsEnergy N β h g σ)) ≤
-        (2 : ℝ) ^ N * Real.exp U := by
-    calc (∑ σ : Fin N → ℤˣ, Real.exp (skGibbsEnergy N β h g σ))
-      _ ≤ ∑ _ : Fin N → ℤˣ, Real.exp U := Finset.sum_le_sum fun σ _ => h_exp_le σ
-      _ = (Finset.univ : Finset (Fin N → ℤˣ)).card * Real.exp U := by
-        rw [Finset.sum_const, nsmul_eq_mul]
-      _ = (2 : ℝ) ^ N * Real.exp U := by
-        rw [Finset.card_univ, card_spin_configurations, Fintype.card_fin]
-        norm_cast
-  have h_sum_ge :
-      Real.exp (-U) ≤ ∑ σ : Fin N → ℤˣ, Real.exp (skGibbsEnergy N β h g σ) := by
-    have h_mem : (fun _ : Fin N => (1 : ℤˣ)) ∈ (Finset.univ : Finset (Fin N → ℤˣ)) :=
-      Finset.mem_univ _
-    calc Real.exp (-U)
-      _ ≤ Real.exp (skGibbsEnergy N β h g (fun _ => 1)) :=
-        Real.exp_le_exp.mpr (h_neg_term_le (fun _ => 1))
-      _ ≤ ∑ σ : Fin N → ℤˣ, Real.exp (skGibbsEnergy N β h g σ) :=
-        Finset.single_le_sum (fun _ _ => (Real.exp_pos _).le) h_mem
-  have h_log_le :
-      Real.log (∑ σ : Fin N → ℤˣ, Real.exp (skGibbsEnergy N β h g σ)) ≤
-        (N : ℝ) * Real.log 2 + U := by
-    have hpos : 0 < (2 : ℝ) ^ N * Real.exp U := by positivity
-    have h_le := (Real.log_le_log_iff (skPartition_pos N β h g) hpos).mpr h_sum_le
-    rw [Real.log_mul (by positivity) (by positivity), Real.log_exp, Real.log_pow] at h_le
-    linarith
-  have h_log_ge :
-      -((N : ℝ) * Real.log 2 + U) ≤
-        Real.log (∑ σ : Fin N → ℤˣ, Real.exp (skGibbsEnergy N β h g σ)) := by
-    have hpos : 0 < Real.exp (-U) := Real.exp_pos _
-    have h_ge := (Real.log_le_log_iff hpos (skPartition_pos N β h g)).mpr h_sum_ge
-    rw [Real.log_exp] at h_ge
-    linarith
-  have hU_def : (N : ℝ) * Real.log 2 + U =
-      (N : ℝ) * Real.log 2 + |h| * (N : ℝ) +
-        (Real.sqrt N)⁻¹ * |β| * (∑ p : FinPairs N, |g p|) := by ring
-  rw [abs_le]
-  refine ⟨by linarith [h_log_ge], by linarith [h_log_le]⟩
+  have hcard : Fintype.card (Fin N → ℤˣ) = 2 ^ N := by simp
+  have hlog : Real.log (Fintype.card (Fin N → ℤˣ) : ℝ) = (N : ℝ) * Real.log 2 := by
+    rw [hcard, Nat.cast_pow, Nat.cast_ofNat, Real.log_pow]
+  have h_le := abs_log_sum_exp_le_of_forall
+    (skGibbsEnergy N β h g) (abs_skGibbsEnergy_le N β h g)
+  rw [hlog] at h_le
+  linarith
 
 /-- For every `t : ℝ`, `exp (t * log Z_N)` is integrable against the Gaussian disorder. -/
 theorem integrable_exp_mul_log_skPartition (N : ℕ) (β h t : ℝ) :
     Integrable (fun g : FinPairs N → ℝ =>
       Real.exp (t * Real.log (∑ σ : Fin N → ℤˣ, Real.exp (skGibbsEnergy N β h g σ))))
       (Measure.pi fun _ : FinPairs N => gaussianReal 0 1) := by
-  set μ := (Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
-  set C := |t| * ((N : ℝ) * Real.log 2 + |h| * (N : ℝ))
-  set K := |t| * ((Real.sqrt N)⁻¹ * |β|)
-  have hint_bound : Integrable (fun g : FinPairs N → ℝ =>
-      Real.exp C * Real.exp (∑ p : FinPairs N, K * |g p|)) μ := by
-    have hint_sum := integrable_exp_sum_mul_abs_pi (ι := FinPairs N) (fun _ => K)
-    exact hint_sum.const_mul (Real.exp C)
-  refine Integrable.mono' hint_bound ?_ (ae_of_all _ fun g => ?_)
-  · refine Measurable.aestronglyMeasurable ?_
-    exact (measurable_const.mul (measurable_log_skPartition N β h)).exp
-  · rw [Real.norm_eq_abs, abs_of_pos (Real.exp_pos _)]
-    have h_abs := abs_log_skPartition_le N β h g
-    have ht_le : t * Real.log (∑ σ : Fin N → ℤˣ, Real.exp (skGibbsEnergy N β h g σ)) ≤
-        C + ∑ p : FinPairs N, K * |g p| := by
-      calc t * Real.log (∑ σ : Fin N → ℤˣ, Real.exp (skGibbsEnergy N β h g σ))
-        _ ≤ |t * Real.log (∑ σ : Fin N → ℤˣ, Real.exp (skGibbsEnergy N β h g σ))| :=
-          le_abs_self _
-        _ = |t| * |Real.log (∑ σ : Fin N → ℤˣ, Real.exp (skGibbsEnergy N β h g σ))| :=
-          abs_mul _ _
-        _ ≤ |t| * ((N : ℝ) * Real.log 2 + |h| * (N : ℝ) +
-              (Real.sqrt N)⁻¹ * |β| * (∑ p : FinPairs N, |g p|)) := by
-          gcongr
-        _ = C + |t| * ((Real.sqrt N)⁻¹ * |β| * (∑ p : FinPairs N, |g p|)) := by ring
-        _ = C + K * (∑ p : FinPairs N, |g p|) := by ring
-        _ = C + ∑ p : FinPairs N, K * |g p| := by rw [Finset.mul_sum]
-    calc Real.exp (t * Real.log (∑ σ : Fin N → ℤˣ, Real.exp (skGibbsEnergy N β h g σ)))
-      _ ≤ Real.exp (C + ∑ p : FinPairs N, K * |g p|) := Real.exp_le_exp.mpr ht_le
-      _ = Real.exp C * Real.exp (∑ p : FinPairs N, K * |g p|) := Real.exp_add _ _
+  have hm := (measurable_log_skPartition N β h).aemeasurable
+    (μ := Measure.pi fun _ => gaussianReal 0 1)
+  have hbd (g : FinPairs N → ℝ) :
+      |Real.log (∑ σ : Fin N → ℤˣ, Real.exp (skGibbsEnergy N β h g σ))| ≤
+        ((N : ℝ) * Real.log 2 + |h| * (N : ℝ)) +
+          ∑ p : FinPairs N, ((Real.sqrt N)⁻¹ * |β|) * |g p| := by
+    have := abs_log_skPartition_le N β h g
+    rw [Finset.mul_sum] at this
+    linarith
+  exact ProbabilityTheory.integrable_exp_of_linear_bound hm hbd t
 
 /-- `0` belongs to the interior of the exponential integrability set of `log Z_N`. -/
 lemma mem_interior_integrableExpSet_log_skPartition (N : ℕ) (β h : ℝ) :
@@ -164,7 +102,7 @@ theorem tendsto_log_integral_rpow_skPartition_div (N : ℕ) (β h : ℝ) :
 
 /-- **Talagrand, Eq. (1.410).** Rescaled by `1 / N`, the real-moment limit satisfies
 `(1 / (N * t)) * log 𝔼 Z_N^t → (1 / N) * 𝔼 log Z_N` as `t → 0+` for `0 < N`. -/
-theorem tendsto_inv_mul_log_integral_rpow_skPartition_div {N : ℕ} (hN : 0 < N) (β h : ℝ) :
+theorem tendsto_inv_mul_log_integral_rpow_skPartition_div {N : ℕ} (_hN : 0 < N) (β h : ℝ) :
     Tendsto (fun t => (1 / ((N : ℝ) * t)) * Real.log (∫ g : FinPairs N → ℝ,
         (∑ σ : Fin N → ℤˣ, Real.exp (skGibbsEnergy N β h g σ)) ^ t
         ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)))
@@ -172,18 +110,9 @@ theorem tendsto_inv_mul_log_integral_rpow_skPartition_div {N : ℕ} (hN : 0 < N)
       (𝓝 ((1 / (N : ℝ)) * ∫ g : FinPairs N → ℝ,
         Real.log (∑ σ : Fin N → ℤˣ, Real.exp (skGibbsEnergy N β h g σ))
         ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1))) := by
-  have hN_ne : (N : ℝ) ≠ 0 := Nat.cast_ne_zero.mpr hN.ne'
-  have h_lim := (tendsto_log_integral_rpow_skPartition_div N β h).const_mul (1 / (N : ℝ))
-  refine h_lim.congr' ?_
-  filter_upwards [self_mem_nhdsWithin] with t ht
-  have ht_ne : t ≠ 0 := ht.ne'
-  have h_alg : 1 / ((N : ℝ) * t) * Real.log (∫ g : FinPairs N → ℝ,
-      (∑ σ : Fin N → ℤˣ, Real.exp (skGibbsEnergy N β h g σ)) ^ t
-      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) =
-      1 / (N : ℝ) * (Real.log (∫ g : FinPairs N → ℝ,
-      (∑ σ : Fin N → ℤˣ, Real.exp (skGibbsEnergy N β h g σ)) ^ t
-      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) / t) := by
-    ring
-  rw [h_alg]
+  simpa only [one_div, div_eq_mul_inv, mul_inv_rev,
+    mul_assoc, mul_left_comm, mul_comm]
+    using (tendsto_log_integral_rpow_skPartition_div N β h).const_mul
+      (1 / (N : ℝ))
 
 end SpinGlasses
