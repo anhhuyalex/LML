@@ -177,6 +177,7 @@ public import LeanMachineLearning.ForMathlib.Probability.Kernel.MeasurableSpace
 public import LeanMachineLearning.ForMathlib.Probability.Kernel.RadonNikodym
 public import LeanMachineLearning.ForMathlib.Probability.Kernel.Sigma
 public import LeanMachineLearning.ForMathlib.Probability.LaplacePrinciple
+public import LeanMachineLearning.ForMathlib.Probability.Moments.CGFQuotient
 public import LeanMachineLearning.ForMathlib.Probability.Moments.DiscreteLyapunov
 public import LeanMachineLearning.ForMathlib.Probability.Moments.FiniteRecurrence
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianAffineDerivative
@@ -667,6 +668,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKT
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKTBasisAsymptotics
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKTBasisCoefficients
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKTBasisSecondMoment
+public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Moments.RealPowers
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.SKReplicaAlgebra
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.SKReplicaBridge
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.SKReplicaCavity
