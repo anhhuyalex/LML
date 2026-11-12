@@ -8910,19 +8910,17 @@ Lemma~\ref{lem:sg-tal:cavity-iterated-deriv-bound}.
 \end{lemma}
 \begin{proof}
 \leanok
-\emph{First derivative.} For $u\in(0,1)$ the energy $E_u$ is the trigonometric path $\cos s\,X+\sin s\,Y+A$ with
-$s=\arccos\sqrt u$, and Lemma~1.4.2 (the derivative of a replica Gibbs average along a Gaussian path) gives the $s$-derivative
-as the path average of a signed sum of covariance terms; the diagonal terms cancel (Eq.~(1.151)). Since
-$du/ds=-2\sin s\cos s$, the factor $\sin s\cos s$ cancels and the derivative in $u$ is $\nu_u(Lf)$ with $L$ as in
-Definition~\ref{def:sg-tal:hanen-kernel} (\texttt{hasDerivAt\_skCavityPathMean}). The two fresh replicas $n+1,n+2$ are relabelled by an
-explicit equivalence so that $Lf$ is again an observable of $\operatorname{Fin}(n+2)$ and $\nu_u(Lf)$ is
-a cavity mean of the same form (\texttt{hasDerivAt\_skCavityPathMean\_fin\_step}).
-\emph{Higher derivatives.} Induct on $m$, generalizing $n$ and $f$: the $m$-th derivative of $\nu_u(f)$ is the $(m-1)$-st derivative of $\nu_u(Lf)$,
-which is $\nu_u(L^{(m-1)}Lf)=\nu_u(L^{(m)}f)$ by the induction hypothesis for $n+2$.
-\emph{Endpoints.} $u\mapsto\nu_u(g)$ is continuous on $[0,1]$ for every bounded $g$ (dominated convergence; $\arccos\sqrt u$ is continuous on $[0,1]$).
-A function that is continuous on $[a,b]$ and has a continuous derivative on $(a,b)$ has that derivative within $[a,b]$
-(\texttt{hasDerivWithinAt\_Icc\_of\_continuous\_derivative}), which gives the one-sided derivatives at $u=0$ and $u=1$,
-and hence smoothness of every order on $[0,1]$.
+\emph{Step 1 (first derivative).} For $u\in(0,1)$ the energy $E_u$ is the trigonometric path $\cos s\,X+\sin s\,Y+A$ with $s=\arccos\sqrt u$, so $u=\cos^2s$ and $\frac{du}{ds}=-2\sin s\cos s$. Lemma~1.4.2 (the derivative of a replica Gibbs average along a Gaussian path) gives $\frac{d}{ds}\nu_s(f)$ as $\sin s\cos s$ times the path average of a signed sum of covariance terms, in which the diagonal terms cancel (Eq.~(1.151)). By the chain rule the factor $\sin s\cos s$ cancels:
+\[
+\frac d{du}\nu_u(f)=\frac{d\nu/ds}{du/ds}=\nu_u(Lf)
+\]
+with $L$ as in Definition~\ref{def:sg-tal:hanen-kernel} (\texttt{hasDerivAt\_skCavityPathMean}). The two fresh replicas $n+1,n+2$ are relabelled by an explicit equivalence so that $Lf$ is again an observable of $\operatorname{Fin}(n+2)$ and $\nu_u(Lf)$ is a cavity mean of the same form (\texttt{hasDerivAt\_skCavityPathMean\_fin\_step}).
+\emph{Step 2 (higher derivatives).} Induct on $m$, generalizing $n$ and $f$:
+\[
+\frac{d^m}{du^m}\nu_u(f)=\frac{d^{m-1}}{du^{m-1}}\nu_u(Lf)=\nu_u\big(L^{(m-1)}Lf\big)=\nu_u\big(L^{(m)}f\big),
+\]
+where the middle equality is the induction hypothesis for $n+2$.
+\emph{Step 3 (endpoints).} $u\mapsto\nu_u(g)$ is continuous on $[0,1]$ for every bounded $g$ (dominated convergence; $\arccos\sqrt u$ is continuous on $[0,1]$). A function that is continuous on $[a,b]$ and has a continuous derivative on $(a,b)$ has that derivative within $[a,b]$ (\texttt{hasDerivWithinAt\_Icc\_of\_continuous\_derivative}), which gives the one-sided derivatives at $u=0$ and $u=1$, and hence smoothness of every order on $[0,1]$.
 \end{proof}
 
 \begin{lemma}[Weighted cavity replica pairs]\label{lem:sg-tal:hanen-pair-weights}
@@ -9109,11 +9107,17 @@ This includes odd $s$ and full overlaps; the preceding result concerns even $s$ 
 \end{corollary}
 \begin{proof}
 \leanok
-Expand each overlap into its truncated part plus its last-spin contribution.
-For a subset $I$ of corrections, cancel repeated spin factors using their involutive property.
-The resulting spin monomial involves at most $2|I|$ replicas. Apply the Taylor estimate with
-$r=2|I|$ and the shifted truncated product moment bound. The prefactor $(N+1)^{-|I|}$
-compensates for the lost vanishing order; summing the finitely many terms proves the claim.
+\emph{Step 1 (truncated part plus last-spin part).} $R_{x,y}-q'=(R^-_{x,y}-q')+\frac{\varepsilon_x\varepsilon_y}{N+1}$, so expanding the product over $r<m$ in the subsets $I\subseteq[m]$ of corrections,
+\[
+\prod_{r<m}(R_{x_r,y_r}-q')=\sum_{I\subseteq[m]}(N+1)^{-|I|}\prod_{r\in I}\varepsilon_{x_r}\varepsilon_{y_r}\prod_{r\notin I}(R^-_{x_r,y_r}-q') .
+\]
+\emph{Step 2 (cancel repeated spins).} For fixed $I$ the spin monomial $\varepsilon_J=\prod_{r\in I}\varepsilon_{x_r}\varepsilon_{y_r}$ simplifies by $\varepsilon^2=1$ and involves at most $2|I|$ replicas.
+\emph{Step 3 (Taylor estimate).} The Taylor estimate (Corollary~\ref{cor:sg-tal:eta-coupled-bound}) with $r=2|I|$ together with the shifted truncated product bound (Corollary~\ref{cor:sg-tal:eta-overlap-shifted-bound}) for the $m-|I|$ remaining truncated overlaps bounds the $I$-term by
+\[
+K_I\,(N+1)^{-|I|}\,(N+1)^{-\frac12\left(\lceil(s-2|I|)/2\rceil+m-|I|\right)}\le K_I\,(N+1)^{-(b+m)/2},\qquad b=\lceil s/2\rceil .
+\]
+(For $s\ge2|I|$ the exponent is exactly $|I|+\frac{b-|I|+m-|I|}2=\frac{b+m}2$; for $s<2|I|$ the order is $a=0$ and the exponent is $\frac{m+|I|}2\ge\frac{b+m}2$.) The prefactor $(N+1)^{-|I|}$ thus compensates for the lost vanishing order.
+\emph{Step 4 (sum).} Summing the finitely many terms $I\subseteq[m]$ gives the claim with $K=\sum_IK_I$.
 \end{proof}
 
 \begin{lemma}[Decoupled factorization and reduced-system bound]\label{lem:sg-tal:hanen-reduced-system}
@@ -9151,13 +9155,17 @@ Furthermore, the full rectangular sum splits as $U_J = U_J^- + (N+1)^{-1} \eta_J
 \end{lemma}
 \begin{proof}
 \leanok
-Both identities are algebra. In the four-term combination every term contains $-q$ with signs $+,-,-,+$, so $q$ cancels. Write each overlap as
-$R_{\ell\ell'}-q=T_{\ell\ell'}+T_\ell+T_{\ell'}+T$ (Section~\ref{sec:sg-tal:second-moment}): the single-type terms $T_\ell,T_{\ell'}$ and the global term $T$ occur with signs $+,-,-,+$ in
-the four terms with $\ell\in\{2u-1,2u\}$ and $\ell'\in\{2v-1,2v\}$ and cancel, leaving the four $T_{\ell\ell'}$. For the second identity, $R=R^-+\varepsilon_\ell\varepsilon_{\ell'}/(N+1)$ in each term, and
+\emph{Identity 1.} Every term of the four-term combination contains $-q$ with signs $+,-,-,+$, so $q$ cancels. Write each overlap as $R_{\ell\ell'}-q=T_{\ell\ell'}+T_\ell+T_{\ell'}+T$ (Section~\ref{sec:sg-tal:second-moment}). With $\ell\in\{2u-1,2u\}$ and $\ell'\in\{2v-1,2v\}$ the single-type terms and the global term occur with signs $+,-,-,+$ and cancel:
+\begin{align*}
+&T_{2u-1}\,(1-1)+T_{2u}\,(-1+1)+T_{2v-1}\,(1-1)+T_{2v}\,(-1+1)=0,\qquad T\,(1-1-1+1)=0,
+\end{align*}
+leaving the four $T_{\ell\ell'}$.
+\emph{Identity 2.} In each term $R_{\ell\ell'}=R^-_{\ell\ell'}+\varepsilon_\ell\varepsilon_{\ell'}/(N+1)$, and
 \[
 \varepsilon_{2u-1}\varepsilon_{2v-1}-\varepsilon_{2u}\varepsilon_{2v-1}-\varepsilon_{2u-1}\varepsilon_{2v}+\varepsilon_{2u}\varepsilon_{2v}
-=(\varepsilon_{2u-1}-\varepsilon_{2u})(\varepsilon_{2v-1}-\varepsilon_{2v})=\eta_u\eta_v=\eta_J .
+=(\varepsilon_{2u-1}-\varepsilon_{2u})(\varepsilon_{2v-1}-\varepsilon_{2v})=\eta_u\eta_v=\eta_J ,
 \]
+so $U_J=U_J^-+(N+1)^{-1}\eta_J$.
 \end{proof}
 
 \begin{lemma}[Multi-replica representation of covariance powers]\label{lem:sg-tal:hanen-cov-powers}
@@ -9256,17 +9264,22 @@ There exists $K(m, n, \beta_0)$ such that for all $\beta^2 \le \beta_0^2$ and $N
 \end{proposition}
 \begin{proof}
 \leanok
-Taylor's formula at $u=0$ to order $m$ (Lemma~\ref{lem:sg-tal:hanen-rect-product-taylor}) replaces
-$\nu(\eta_V\hat f\prod_{J\in\mathcal I}U_J^-)$ by the $m$-th endpoint derivative divided by $m!$.
-Theorem~\ref{thm:sg-tal:hanen-pairing-derivative} evaluates that derivative as
-$\beta^{2m}\,\mathbb E(\langle\hat f\rangle_0\operatorname{ch}^{-4m}Y)\sum_{\mathcal I'}\nu_0(\prod_{\mathcal I}U^-\prod_{\mathcal I'}U^-)$,
-the sum running over all pair partitions $\mathcal I'$ (Lemma~\ref{lem:sg-tal:hanen-rect-leading}).
-Each $\nu_0$ is replaced by the coupled average, then $U^-$ by $U$, at cost $O((N+1)^{-(2m+1)/2})$
-(Lemma~\ref{lem:sg-tal:hanen-trunc-comparison}). The coupled average of the product of full rectangles of two pair partitions
-is $(4A^2/(N+1))^m$ if the partitions agree and $0$ otherwise, up to the same error
-(Lemma~\ref{lem:sg-tal:hanen-full-pairings}). Only the term $\mathcal I'=\mathcal I$ survives.
-The number of pair partitions depends on $m$ only, so the errors add up with a constant $K(m,n,\beta_0)$,
-and all errors are linear in $M$.
+Let $f=\eta_V\hat f\prod_{J\in\mathcal I}U_J^-$ and $\varphi(u)=\nu_u(f)$.
+\emph{Step 1 (Taylor).} Lemma~\ref{lem:sg-tal:hanen-rect-product-taylor} replaces $\nu(f)=\varphi(1)$ by the $m$-th endpoint derivative divided by $m!$, up to $O(M(N+1)^{-(2m+1)/2})$.
+\emph{Step 2 (derivative at $u=0$).} By Theorem~\ref{thm:sg-tal:hanen-pairing-derivative} and Lemma~\ref{lem:sg-tal:hanen-rect-leading},
+\[
+\frac{\varphi^{(m)}(0)}{m!}=\beta^{2m}\,\mathbb E\Big(\langle\hat f\rangle_0\operatorname{ch}^{-4m}Y\Big)\sum_{\mathcal I'}\nu_0\Big(\prod_{J\in\mathcal I}U_J^-\prod_{J\in\mathcal I'}U_J^-\Big),
+\]
+the sum running over all pair partitions $\mathcal I'$.
+\emph{Step 3 (compare with the coupled system).} Each $\nu_0$ is replaced by the coupled average, then $U^-$ by $U$, at cost $O((N+1)^{-(2m+1)/2})$ (Lemma~\ref{lem:sg-tal:hanen-trunc-comparison}). The coupled average of the product of full rectangles of two pair partitions is
+\[
+\nu\Big(\prod_{J\in\mathcal I}U_J\prod_{J\in\mathcal I'}U_J\Big)=\begin{cases}\big(4A^2/(N+1)\big)^m&\mathcal I'=\mathcal I,\\ 0&\mathcal I'\ne\mathcal I,\end{cases}
+\]
+up to the same error (Lemma~\ref{lem:sg-tal:hanen-full-pairings}). Only $\mathcal I'=\mathcal I$ survives, so
+\[
+\frac{\varphi^{(m)}(0)}{m!}\approx\mathbb E\Big(\langle\hat f\rangle_0\frac1{\operatorname{ch}^{4m}Y}\Big)\Big(\frac{4\beta^2A^2}{N+1}\Big)^m .
+\]
+The number of pair partitions depends on $m$ only, so the errors add up with a constant $K(m,n,\beta_0)$, and all errors are linear in $M$.
 \end{proof}
 
 \begin{proposition}[Evaluation of full rectangular products]\label{prop:sg-tal:hanen-full-rect-eval}
@@ -9284,17 +9297,20 @@ There exists $K(p, \beta_0)$ such that for all $\beta^2 \le \beta_0^2$ and $N \g
 \end{proposition}
 \begin{proof}
 \leanok
-Write $U_J=U_J^-+(N+1)^{-1}\eta_J$ for each block $J$ of the partition (Eq.~(1.348)) and expand the product over
-subsets $\mathcal I'$ of the blocks. Since $\eta_V=\prod_J\eta_J$, the term of $\mathcal I'$ is
-$(N+1)^{-(p-|\mathcal I'|)}\,\eta_{V'}\hat f\prod_{J\in\mathcal I'}U_J^-$ with $V'=\bigcup\mathcal I'$ and
-$\hat f=\prod_{J\notin\mathcal I'}\eta_J^2$ (Lemma~\ref{lem:sg-tal:hanen-subset-term}).
-Proposition~\ref{prop:sg-tal:hanen-truncated-rect-eval} applies to $V'$ with the sub-partition $\mathcal I'$ and this $\hat f$,
-which does not depend on the replicas of $V'^*$ and is bounded by $16^{p-|\mathcal I'|}$.
-Under the independent tilted spins at $u=0$ one has $\langle\eta_J^2\rangle_0=4\operatorname{ch}^{-4}Y$, so
-$\mathbb E(\langle\hat f\rangle_0\operatorname{ch}^{-4|\mathcal I'|}Y)=4^{p-|\mathcal I'|}\,\mathbb E\operatorname{ch}^{-4p}Y$.
-The binomial theorem sums the leading terms to
-$\bigl(4(\tfrac1{N+1}+\tfrac{\beta^2A^2}{N+1})\bigr)^p\mathbb E\operatorname{ch}^{-4p}Y$, and each error is
-$(N+1)^{-(p-|\mathcal I'|)}\cdot K\,16^{p-|\mathcal I'|}(N+1)^{-(2|\mathcal I'|+1)/2}\le K'(N+1)^{-(2p+1)/2}$.
+\emph{Step 1 (expand the product).} Write $U_J=U_J^-+(N+1)^{-1}\eta_J$ for each of the $p$ blocks $J$ (Eq.~(1.348)). Since $\eta_V=\prod_J\eta_J$, expanding over the subsets $\mathcal I'$ of blocks gives
+\[
+\eta_V\prod_{J\in\mathcal I}U_J=\sum_{\mathcal I'\subseteq\mathcal I}(N+1)^{-(p-|\mathcal I'|)}\;\eta_{V'}\,\hat f_{\mathcal I'}\prod_{J\in\mathcal I'}U_J^-,\qquad V'=\bigcup\mathcal I',\quad\hat f_{\mathcal I'}=\prod_{J\notin\mathcal I'}\eta_J^2
+\]
+(Lemma~\ref{lem:sg-tal:hanen-subset-term}).
+\emph{Step 2 (apply the truncated evaluation).} $\hat f_{\mathcal I'}$ does not depend on the replicas of $V'^*$ and is bounded by $16^{p-|\mathcal I'|}$, so Proposition~\ref{prop:sg-tal:hanen-truncated-rect-eval} applies to $V'$ with the sub-partition $\mathcal I'$. Under the independent tilted spins at $u=0$, $\langle\eta_J^2\rangle_0=4\operatorname{ch}^{-4}Y$, so
+\[
+\mathbb E\big(\langle\hat f_{\mathcal I'}\rangle_0\operatorname{ch}^{-4|\mathcal I'|}Y\big)=4^{p-|\mathcal I'|}\,\mathbb E\operatorname{ch}^{-4p}Y .
+\]
+\emph{Step 3 (binomial theorem).} The leading terms add up to
+\[
+\sum_{k=0}^p\binom pk\Big(\frac4{N+1}\Big)^{p-k}\Big(\frac{4\beta^2A^2}{N+1}\Big)^k\mathbb E\operatorname{ch}^{-4p}Y=\Big(\frac4{N+1}\big(1+\beta^2A^2\big)\Big)^p\mathbb E\operatorname{ch}^{-4p}Y,
+\]
+and each error is $(N+1)^{-(p-k)}\cdot K\,16^{p-k}(N+1)^{-(2k+1)/2}\le K'(N+1)^{-(2p+1)/2}$ with $k=|\mathcal I'|$.
 \end{proof}
 
 \begin{lemma}[Taylor coefficient of a cavity observable]\label{lem:sg-tal:hanen-taylor-coefficient}
@@ -9313,9 +9329,15 @@ No special form of $f$ is assumed.
 \end{lemma}
 \begin{proof}
 \leanok
-Lemma~\ref{lem:sg-tal:cavity-iterated-deriv-bound} bounds $\varphi^{(m+1)}$ on $[0,1]$ by $D(N+1)^{-(m+1)/2}\nu_1(f^2)^{1/2}$,
-which is at most $D\,C^{1/2}(N+1)^{-(m+k+1)/2}$. Apply Taylor's formula at $u=0$ to order $m$. The terms of order below $m$ vanish by assumption,
-and the remainder is bounded by the bound on $\varphi^{(m+1)}$.
+\emph{Step 1 (bound the next derivative).} Lemma~\ref{lem:sg-tal:cavity-iterated-deriv-bound} bounds $\varphi^{(m+1)}$ on $[0,1]$:
+\[
+\sup_{[0,1]}|\varphi^{(m+1)}|\le D(N+1)^{-(m+1)/2}\,\nu_1(f^2)^{1/2}\le D\,C^{1/2}(N+1)^{-(m+k+1)/2}.
+\]
+\emph{Step 2 (Taylor at $u=0$ to order $m$).} The terms of order below $m$ vanish by assumption, so
+\[
+\varphi(1)-\frac{\varphi^{(m)}(0)}{m!}=\frac{\varphi^{(m+1)}(\xi)}{(m+1)!}\quad\text{for some }\xi\in(0,1),
+\]
+and its absolute value is at most the bound of Step~1 (absorb $1/(m+1)!$ into $D$).
 \end{proof}
 
 \begin{lemma}[Eq.~(1.342): Taylor term of a product of rectangles]\label{lem:sg-tal:hanen-rect-product-taylor}
@@ -9337,11 +9359,16 @@ Then
 \end{lemma}
 \begin{proof}
 \leanok
-Each $U_J^-$ is a signed sum of four overlap fluctuations, and the spin differences are bounded by $2^{2m}$.
-A second-moment estimate for such products gives $\nu_1(f^2)\le CM^2/(N+1)^m$. The derivatives of order below $m$ vanish at $u=0$
-by Lemma~\ref{lem:sg-tal:cavity-deriv-zero-vanishing}, because $f$ has $2m$ spin differences and no other dependence on the last spins beyond $\hat f$.
-Apply Lemma~\ref{lem:sg-tal:hanen-taylor-coefficient} with $k=m$. The exponent is $(m+m+1)/2=(2m+1)/2$,
-and the error is linear in $M$ because the second moment is quadratic in $M$.
+\emph{Step 1 (second moment).} Each $U_J^-$ is a signed sum of four overlap fluctuations and the spin differences are bounded by $2^{2m}$. A second-moment estimate for such products gives
+\[
+\nu_1(f^2)\le\frac{C\,M^2}{(N+1)^m}.
+\]
+\emph{Step 2 (lower derivatives).} The derivatives of order below $m$ vanish at $u=0$ by Lemma~\ref{lem:sg-tal:cavity-deriv-zero-vanishing}, because $f$ has $2m$ spin differences and no other dependence on the last spins beyond $\hat f$.
+\emph{Step 3 (Taylor).} Lemma~\ref{lem:sg-tal:hanen-taylor-coefficient} with $k=m$ has exponent $\frac{m+m+1}2=\frac{2m+1}2$ and constant $D(CM^2)^{1/2}$, so
+\[
+\Big|\varphi(1)-\frac{\varphi^{(m)}(0)}{m!}\Big|\le\frac{D\,C^{1/2}\,M}{(N+1)^{(2m+1)/2}} ;
+\]
+the error is linear in $M$ because the second moment is quadratic in $M$.
 \end{proof}
 
 \begin{lemma}[The leading Taylor term for either parity]\label{lem:sg-tal:hanen-leading-taylor}
@@ -9367,11 +9394,16 @@ The derivative is taken within $[0,1]$. This includes $s=0$.
 \end{lemma}
 \begin{proof}
 \leanok
-Expand through degree $s$, retaining only degree $a$. Lower derivatives vanish.
-For $r>a$, the endpoint estimate has exponent $(a+r)/2\ge(s+1)/2$.
-The uniform $(s+1)$-st derivative estimate bounds the remainder at the same order.
-The analytic coefficient-isolation lemma works for functions into any real normed
-vector space and accepts separate bounds for the other coefficients.
+\emph{Step 1 (expand through degree $s$).}
+\[
+\varphi(1)=\sum_{r\le s}\frac{\varphi^{(r)}(0)}{r!}+\text{remainder}.
+\]
+\emph{Step 2 (lower derivatives vanish).} $\varphi^{(r)}(0)=0$ for $r<a=\lceil s/2\rceil$ (Lemma~\ref{lem:sg-tal:cavity-deriv-zero-vanishing}), so only the degree $a$ term is retained.
+\emph{Step 3 (higher degrees).} For $a<r\le s$ the endpoint estimate has exponent
+\[
+\frac{a+r}2\ge\frac{s+1}2,
+\]
+so these terms are $O((N+2)^{-(s+1)/2})$. The uniform $(s+1)$-st derivative estimate (Lemma~\ref{lem:sg-tal:cavity-iterated-deriv-bound}) bounds the remainder at the same order. Hence $|\varphi(1)-\varphi^{(a)}(0)/a!|\le K(N+2)^{-(s+1)/2}$. The analytic coefficient-isolation lemma works for functions into any real normed vector space and accepts separate bounds for the other coefficients.
 \end{proof}
 
 \begin{lemma}[Indexed blocks and ordered pair partitions]\label{lem:sg-tal:hanen-pairing-bridge}
@@ -9413,10 +9445,15 @@ The integral identity for the even Gaussian moment $a(2m)$ was proved previously
 \end{lemma}
 \begin{proof}
 \leanok
-Let $s$ be a set with $2m$ elements and fix $a\in s$. A pair partition of $s$ is determined by the partner $b\in s\setminus\{a\}$ of $a$ and a pair partition of
-$s\setminus\{a,b\}$, a set with $2(m-1)$ elements. Hence the number $P(m)$ of pair partitions satisfies $P(m)=(2m-1)P(m-1)$ with $P(0)=1$
-(the empty set has exactly one, empty, partition). Equivalently $P(m)\,2^mm!=(2m)!$, which is proved by induction using
-$(2m+2)!=(2m+2)(2m+1)(2m)!$, and so $P(m)=(2m)!/(2^mm!)$. This is $a(2m)=\mathbb Eg^{2m}$ by the even-moment formula for the standard Gaussian.
+Let $P(m)$ be the number of pair partitions of a set $s$ with $2m$ elements, and fix $a\in s$. A pair partition is determined by the partner $b\in s\setminus\{a\}$ of $a$ (there are $2m-1$ choices) and a pair partition of $s\setminus\{a,b\}$, which has $2(m-1)$ elements. Hence
+\[
+P(m)=(2m-1)\,P(m-1),\qquad P(0)=1
+\]
+(the empty set has exactly one, empty, partition). Induction with $(2m+2)!=(2m+2)(2m+1)(2m)!$ shows $P(m)\,2^mm!=(2m)!$:
+\[
+P(m+1)\,2^{m+1}(m+1)!=(2m+1)\,P(m)\,2^m m!\cdot2(m+1)=(2m+1)(2m+2)\,(2m)!=(2m+2)! .
+\]
+So $P(m)=\frac{(2m)!}{2^mm!}=(2m-1)!!$, which is $a(2m)=\mathbb Eg^{2m}$ by the even-moment formula for the standard Gaussian.
 \end{proof}
 
 \begin{lemma}[Exact support at the critical order]\label{lem:sg-tal:hanen-critical-survival}
@@ -9476,15 +9513,20 @@ hypothesis is needed for these exact decoupled identities.
 \end{lemma}
 \begin{proof}
 \leanok
-For one spin with energy $sY$, $\langle s\rangle=\operatorname{th}Y$. Take a pair $(x,y)$ whose spins are independent of the rest under the product measure, with $G$ unchanged when $\varepsilon_x$ or $\varepsilon_y$ is updated.
-Integrating out $\varepsilon_y$ gives
-$\langle(\varepsilon_x-\varepsilon_y)\varepsilon_x\rangle=1-\varepsilon_x\operatorname{th}Y$, and then integrating out $\varepsilon_x$ gives $1-\operatorname{th}^2Y=\operatorname{ch}^{-2}Y$.
-Hence the first endpoint contributes $+\operatorname{ch}^{-2}Y\langle G\rangle$ (\texttt{integral\_spin\_diff\_mul\_left\_of\_invariant}).
-Selecting the second endpoint changes $(\varepsilon_x-\varepsilon_y)\varepsilon_y$ into $-(\varepsilon_y-\varepsilon_x)\varepsilon_y$, so the sign is reversed
-(\texttt{integral\_spin\_diff\_mul\_selected\_of\_invariant}). For a family of disjoint pairs, apply this one pair at a time by induction on the number of pairs, using that the pairs are disjoint and
-that $\hat f$ does not depend on them; $2m$ pairs give $\prod_vs_v\operatorname{ch}^{-4m}Y\langle\hat f\rangle_0$ (\texttt{integral\_spin\_diff\_prod\_selected}).
-After including $F$ and averaging over the disorder, the decoupled endpoint factorizes into the last-spin average and the old-system average, with all old replicas sharing one old disorder
-(\texttt{skCavityPathMean\_zero\_tuple\_eval}).
+Let $\varepsilon$ be one spin with energy $\varepsilon Y$, so $\langle\varepsilon\rangle=\operatorname{th}Y$.
+\emph{Step 1 (one pair, first endpoint).} Take a pair $(x,y)$ whose spins are independent of the rest under the product measure, with $G$ unchanged when $\varepsilon_x$ or $\varepsilon_y$ is updated. Integrating out $\varepsilon_y$ and then $\varepsilon_x$ (using $\varepsilon_x^2=1$),
+\[
+\langle(\varepsilon_x-\varepsilon_y)\varepsilon_x\rangle_{\varepsilon_y}=1-\varepsilon_x\operatorname{th}Y,\qquad
+\langle1-\varepsilon_x\operatorname{th}Y\rangle_{\varepsilon_x}=1-\operatorname{th}^2Y=\operatorname{ch}^{-2}Y,
+\]
+so the first endpoint contributes $+\operatorname{ch}^{-2}Y\,\langle G\rangle$ (\texttt{integral\_spin\_diff\_mul\_left\_of\_invariant}).
+\emph{Step 2 (second endpoint).} $(\varepsilon_x-\varepsilon_y)\varepsilon_y=-(\varepsilon_y-\varepsilon_x)\varepsilon_y$, so the sign is reversed: the contribution is $-\operatorname{ch}^{-2}Y\,\langle G\rangle$ (\texttt{integral\_spin\_diff\_mul\_selected\_of\_invariant}).
+\emph{Step 3 (disjoint pairs).} Apply Steps~1--2 one pair at a time by induction on the number of pairs (the pairs are disjoint and $\hat f$ does not depend on them). Each of the $2m$ pairs contributes $s_v\operatorname{ch}^{-2}Y$:
+\[
+\Big\langle\eta_V\prod_{j<m}\varepsilon_{a_j}\varepsilon_{b_j}\hat f\Big\rangle_0=\prod_{v\in V}\big(s_v\operatorname{ch}^{-2}Y\big)\langle\hat f\rangle_0=\Big(\prod_{v\in V}s_v\Big)\operatorname{ch}^{-4m}Y\,\langle\hat f\rangle_0
+\]
+(\texttt{integral\_spin\_diff\_prod\_selected}).
+\emph{Step 4 (old system).} After including $F$ and averaging over the disorder, the decoupled endpoint factorizes into the last-spin average and the old-system average, with all old replicas sharing one old disorder (\texttt{skCavityPathMean\_zero\_tuple\_eval}).
 \end{proof}
 
 \begin{lemma}[Canonical choices and removal of fresh replicas]\label{lem:sg-tal:hanen-critical-choices}
@@ -9681,8 +9723,15 @@ $G=\prod_{\mathcal I}U^-\prod_{\mathcal I'}U^-$. Then (i) $\nu_1(G^2)\le C(N+1)^
 \end{lemma}
 \begin{proof}
 \leanok
-(i) is the second-moment bound for a product of $2m$ truncated rectangles. (ii) is Lemma~\ref{lem:sg-tal:hanen-taylor-coefficient}
-with $m=0$ and $k=2m$. (iii) expands every $U$ as $U^-+(N+1)^{-1}\eta$ and applies the overlap-correction estimate of Section~1.10 to the $2m$ factors.
+\emph{(i)} This is the second-moment bound for a product of $2m$ truncated rectangles: $\nu_1(G^2)\le C(N+1)^{-2m}$.
+\emph{(ii)} Lemma~\ref{lem:sg-tal:hanen-taylor-coefficient} with $m=0$ and $k=2m$ (the exponent is $\frac{0+2m+1}2$):
+\[
+|\nu_1(G)-\nu_0(G)|\le\frac{D\,C^{1/2}}{(N+1)^{(2m+1)/2}} .
+\]
+\emph{(iii)} Expand every $U$ as $U^-+(N+1)^{-1}\eta$; the overlap-correction estimate of Section~1.10, applied to the $2m$ factors, gives
+\[
+\Big|\nu_1(G)-\nu_1\Big(\prod_{\mathcal I}U\prod_{\mathcal I'}U\Big)\Big|\le\frac K{(N+1)^{(2m+1)/2}} .
+\]
 \end{proof}
 
 \begin{lemma}[Gaussian reference for pair partitions]\label{lem:sg-tal:hanen-gaussian-pairings}
@@ -9697,11 +9746,15 @@ which determines the labels $a,b$) one has $s=4A^2$.
 \end{lemma}
 \begin{proof}
 \leanok
-Blocks that occur in only one partition appear once. Their linear forms are centered, and independent of the other blocks because the supports are disjoint
-(\texttt{integral\_pi\_prod\_of\_disjoint\_supports}: the integral of a product of functions of disjoint coordinate groups is the product of the integrals,
-by induction using the independence of two disjoint groups of coordinates). Blocks that occur in both partitions give the second moment $s$.
-A sorted pair of replicas of the disjoint pairs $(x_v,y_v)$ determines the two labels, so the supports are disjoint,
-and the four signed coordinates of one rectangle have squared norm $4A^2$.
+\emph{Step 1 (blocks occurring once).} A block $B$ occurring in only one of the partitions appears once in the product; $V_B$ is centered, and independent of the other blocks because the supports are disjoint (\texttt{integral\_pi\_prod\_of\_disjoint\_supports}: the integral of a product of functions of disjoint coordinate groups is the product of the integrals). So the expectation is $0$ unless $P=P_0$.
+\emph{Step 2 (blocks occurring twice).} If $P=P_0$, each block gives its second moment, and the blocks are independent:
+\[
+\mathbb E\prod_{B\in P_0}V_B^2=\prod_{B\in P_0}\mathbb EV_B^2=s^{|P|}.
+\]
+\emph{Step 3 (rectangles).} A sorted pair of replicas of the disjoint pairs $(x_v,y_v)$ determines the two labels, so the supports are disjoint, and the four signed coordinates of one rectangle have squared norm
+\[
+\|V_{ab}\|^2=A^2\sum_{e\in\{\pm\}^2}c_e^2=4A^2=s .
+\]
 \end{proof}
 
 \begin{lemma}[Product of two pair partitions of full rectangles]\label{lem:sg-tal:hanen-full-pairings}
@@ -9715,10 +9768,13 @@ $=O((N+1)^{-(2m+1)/2})$ otherwise, with a constant that depends on $m,n,\beta_0$
 \end{lemma}
 \begin{proof}
 \leanok
-Write each $U_J$ as the rectangle $T_{x_ux_v}-T_{y_ux_v}-T_{x_uy_v}+T_{y_uy_v}$ of the centered pair overlaps (the centering cancels).
-The Gibbs-level Gaussian moments of such linear combinations (Section~1.10) replace $(N+1)^{m}\nu_1(\cdot)$ by the Gaussian expectation of the same
-polynomial in i.i.d. Gaussian pair variables, with error $O((N+1)^{-1/2})$. Lemma~\ref{lem:sg-tal:hanen-gaussian-pairings} evaluates that expectation.
-The constants of the finitely many configurations (pair partitions and replica maps) are combined by taking their maximum.
+\emph{Step 1 (rectangles of pair overlaps).} Each $U_J$ is the rectangle $T_{x_ux_v}-T_{y_ux_v}-T_{x_uy_v}+T_{y_uy_v}$ of the centered pair overlaps (the centering cancels).
+\emph{Step 2 (Gaussian replacement).} The Gibbs-level Gaussian moments of such linear combinations (Section~1.10) replace $(N+1)^m\nu_1(\cdot)$ by the Gaussian expectation of the same polynomial in i.i.d.\ Gaussian pair variables, with error $O((N+1)^{-1/2})$.
+\emph{Step 3 (evaluate).} Lemma~\ref{lem:sg-tal:hanen-gaussian-pairings} with $s=4A^2$ gives
+\[
+(N+1)^m\,\nu_1\Big(\prod_{\mathcal I}U\prod_{\mathcal I'}U\Big)=(4A^2)^m\,\mathbf 1_{\mathcal I'=\mathcal I}+O\big((N+1)^{-1/2}\big),
+\]
+and dividing by $(N+1)^m$ gives the claim, since $(N+1)^{-m}(N+1)^{-1/2}=(N+1)^{-(2m+1)/2}$. The constants of the finitely many configurations (pair partitions and replica maps) are combined by taking their maximum.
 \end{proof}
 
 \begin{lemma}[One subset of the blocks]\label{lem:sg-tal:hanen-subset-term}
@@ -9732,10 +9788,13 @@ $4^{p-|\mathcal S|}\,\mathbb E\operatorname{ch}^{-4p}Y\,(4\beta^2A^2/(N+1))^{|\m
 \end{lemma}
 \begin{proof}
 \leanok
-The $2|\mathcal S|$ labels covered by $\mathcal S$ are relabelled by $\{1,\dots,2|\mathcal S|\}$ so that $\mathcal S$ becomes a pair partition of this set
-(\texttt{exists\_relabel\_pairing\_subset}); Proposition~\ref{prop:sg-tal:hanen-truncated-rect-eval} applies with
-$\hat f=\prod_{J\notin\mathcal S}\eta_J^2$. Its Gibbs mean at $u=0$ is the product over the remaining labels of $\langle(\varepsilon_x-\varepsilon_y)^2\rangle_0=2\operatorname{ch}^{-2}Y$,
-because the replicas are independent tilted spins; the product of functions of disjoint groups of coordinates integrates factor by factor.
+\emph{Step 1 (relabel).} The $2|\mathcal S|$ labels covered by $\mathcal S$ are relabelled by $\{1,\dots,2|\mathcal S|\}$ so that $\mathcal S$ becomes a pair partition of this set (\texttt{exists\_relabel\_pairing\_subset}); Proposition~\ref{prop:sg-tal:hanen-truncated-rect-eval} applies with $\hat f=\prod_{J\notin\mathcal S}\eta_J^2$.
+\emph{Step 2 (Gibbs mean of $\hat f$ at $u=0$).} The replicas are independent tilted spins, and $\langle(\varepsilon_x-\varepsilon_y)^2\rangle_0=2(1-\operatorname{th}^2Y)=2\operatorname{ch}^{-2}Y$. The product of functions of disjoint groups of coordinates integrates factor by factor, and $\eta_J^2=(\varepsilon_{x}-\varepsilon_{y})^2(\varepsilon_{x'}-\varepsilon_{y'})^2$:
+\[
+\langle\hat f\rangle_0=\prod_{J\notin\mathcal S}\langle\eta_J^2\rangle_0=\big(4\operatorname{ch}^{-4}Y\big)^{p-|\mathcal S|},\qquad
+\mathbb E\big(\langle\hat f\rangle_0\operatorname{ch}^{-4|\mathcal S|}Y\big)=4^{p-|\mathcal S|}\,\mathbb E\operatorname{ch}^{-4p}Y .
+\]
+Inserting into Proposition~\ref{prop:sg-tal:hanen-truncated-rect-eval} (with $M=16^{p-|\mathcal S|}$) gives the stated mean and error.
 \end{proof}
 
 \begin{lemma}[Reduced-system evaluation]\label{lem:sg-tal:hanen-reduced-eval}
@@ -9762,10 +9821,25 @@ $\bigl(4(\tfrac1{N+2}+\tfrac{\beta^2A^2}{N+2})\bigr)^p\mathbb E\operatorname{ch}
 \end{lemma}
 \begin{proof}
 \leanok
-The fields $r=\beta\sqrt q$ and $r_-=\beta_-\sqrt{q_-}$ satisfy $|r-r_-|\le (N+2)^{-1/2}$, because $|\sqrt a-\sqrt b|\le\sqrt{|a-b|}$.
-The Gaussian averages of $\tanh^4(rz+h)$ and of $\operatorname{ch}^{-4p}(rz+h)$ are Lipschitz in $r$ with constants $4$ and $4p$ ($\tanh$ and $1/\!\cosh$ are $1$-Lipschitz and $\mathbb E|z|\le1$).
-Hence $\alpha$ and the ratio $A^2=\alpha/(1-\beta^2\alpha)$ (denominator at least $3/4$) change by $O((N+2)^{-1/2})$.
-The bracket is $O((N+2)^{-1})$ and it enters to the power $p$, so its error is $O((N+2)^{-p-1/2})$.
+\emph{Step 1 (fields).} Put $r=\beta\sqrt q$ and $r_-=\beta_-\sqrt{q_-}$. Since $|\sqrt a-\sqrt b|\le\sqrt{|a-b|}$ and $|q-q_-|\le\frac1{N+2}$,
+\[
+|r-r_-|\le(N+2)^{-1/2}.
+\]
+\emph{Step 2 (Lipschitz bounds).} $\tanh$ and $1/\!\cosh$ are $1$-Lipschitz and $\mathbb E|z|\le1$, so the Gaussian averages are Lipschitz in $r$ with constants $4$ and $4p$:
+\[
+\big|\mathbb E\tanh^4(rz+h)-\mathbb E\tanh^4(r_-z+h)\big|\le4|r-r_-|,\qquad
+\big|\mathbb E\operatorname{ch}^{-4p}(rz+h)-\mathbb E\operatorname{ch}^{-4p}(r_-z+h)\big|\le4p|r-r_-| .
+\]
+Hence $\alpha$ and the ratio $A^2=\alpha/(1-\beta^2\alpha)$ (the denominator is at least $\frac34$) change by $O((N+2)^{-1/2})$.
+\emph{Step 3 (the $p$-th power).} Each bracket is $O((N+2)^{-1})$ and the two brackets differ by $O((N+2)^{-3/2})$; with $|x^p-y^p|\le p\max(|x|,|y|)^{p-1}|x-y|$,
+\[
+\Big|x^p-y^p\Big|=O\big((N+2)^{-(p-1)}(N+2)^{-3/2}\big)=O\big((N+2)^{-(2p+1)/2}\big).
+\]
+\emph{Remark (the intermediate estimate in Step 3).} The original text only said that the bracket is $O((N+2)^{-1})$ and that its error is $O((N+2)^{-p-1/2})$. The statement that the two brackets differ by $O((N+2)^{-3/2})$ is the missing intermediate step, and it is exactly what the Lean proof \texttt{hanen\_shift\_core} shows. With $t=N+2$, $\varepsilon=t^{-1/2}$, $b=\beta^2\le\frac14$, the reduced and full brackets are $a_m=4\big(t^{-1}+b\,\theta A_m/t\big)$ and $a=4\big(t^{-1}+b\,A/t\big)$ (the identity $\theta\cdot4\big(\frac1{N+1}+\dots\big)=4\big(\frac1{N+2}+\dots\big)$ is \texttt{hanen\_lead\_bracket\_eq}). From the parameter gap $|\theta A_m-A|\le13\varepsilon$ (\texttt{hanen\_param\_gap}),
+\[
+|a_m-a|=\frac{4b\,|\theta A_m-A|}t\le\frac{13\,\varepsilon}t=13\,t^{-3/2},\qquad a,\ a_m\le\frac6t ,
+\]
+so $|a_m^p-a^p|\le p\,(6/t)^{p-1}\cdot13\,t^{-3/2}$, and together with $|J_m-J|\le4p\varepsilon$ for the $\operatorname{ch}^{-4p}$ averages the Lean bound is $\big(7p6^p+1\big)\,t^{-(2p+1)/2}$.
 \end{proof}
 
 \begin{theorem}[Even moments in Hanen's Theorem]\label{thm:sg-tal:hanen-even}
@@ -9784,12 +9858,24 @@ with $\alpha=1-2q+\hat q$ and $a(2p)=(2p-1)!!=\mathbb E g^{2p}$.
 \end{theorem}
 \begin{proof}
 \leanok
-Move the two sites to the last two by site symmetry (Lemma~\ref{lem:sg-tal:hanen-cov-site-symmetry}) and write the covariance power as $2^{-2p}\nu(\eta_Vf^-)$
-(Lemma~\ref{lem:sg-tal:hanen-cov-powers}). Taylor's formula to order $p$ (Lemma~\ref{lem:sg-tal:hanen-leading-taylor}) leaves the term $\nu_0^{(p)}(\eta_Vf^-)/p!$ up to $O((N+2)^{-(2p+1)/2})$.
-By Theorem~\ref{thm:sg-tal:hanen-pairing-derivative} this term is $\beta^{2p}\,\mathbb E\operatorname{ch}^{-4p}Y\sum_{\mathcal I}\nu_0(f^-\prod_{J\in\mathcal I}U_J^-)$, the sum over all pair partitions.
-Here $\nu_0$ is the average over the reduced system, and every $\nu_0(f^-\prod U_J^-)$ is given by Lemma~\ref{lem:sg-tal:hanen-reduced-eval}, the same for all $\mathcal I$.
-There are $(2p)!/(2^pp!)=a(2p)$ pair partitions (Lemma~\ref{lem:sg-tal:hanen-pairing-count}). Lemma~\ref{lem:sg-tal:hanen-leading-shift} replaces the reduced leading term by the one of the full system, and
-$\tfrac1{N+2}+\tfrac{\beta^2A^2}{N+2}=\tfrac1{(N+2)(1-\beta^2\alpha)}$ together with $2^{-2p}4^p=1$ gives the stated limit.
+\emph{Step 1 (reduce to the last two sites).} Move the two sites to the last two by site symmetry (Lemma~\ref{lem:sg-tal:hanen-cov-site-symmetry}) and write the covariance power as (Lemma~\ref{lem:sg-tal:hanen-cov-powers})
+\[
+\mathbb E\big(\langle\sigma_i\sigma_j\rangle-\langle\sigma_i\rangle\langle\sigma_j\rangle\big)^{2p}=2^{-2p}\,\nu(\eta_Vf^-).
+\]
+\emph{Step 2 (Taylor to order $p$).} Lemma~\ref{lem:sg-tal:hanen-leading-taylor} leaves only the $p$-th derivative term:
+\[
+\nu(\eta_Vf^-)=\frac{\nu_0^{(p)}(\eta_Vf^-)}{p!}+O\big((N+2)^{-(2p+1)/2}\big).
+\]
+\emph{Step 3 (pairings).} By Theorem~\ref{thm:sg-tal:hanen-pairing-derivative},
+\[
+\frac{\nu_0^{(p)}(\eta_Vf^-)}{p!}=\beta^{2p}\,\mathbb E\operatorname{ch}^{-4p}Y\sum_{\mathcal I}\nu_0\Big(f^-\prod_{J\in\mathcal I}U_J^-\Big),
+\]
+the sum over all pair partitions $\mathcal I$. Here $\nu_0$ is the average over the reduced system, and every $\nu_0(f^-\prod U_J^-)$ is given by Lemma~\ref{lem:sg-tal:hanen-reduced-eval}, the same value for all $\mathcal I$. There are $(2p)!/(2^pp!)=a(2p)$ pair partitions (Lemma~\ref{lem:sg-tal:hanen-pairing-count}).
+\emph{Step 4 (leading constant).} Lemma~\ref{lem:sg-tal:hanen-leading-shift} replaces the reduced leading term by the one of the full system, and
+\[
+\frac1{N+2}+\frac{\beta^2A^2}{N+2}=\frac1{(N+2)(1-\beta^2\alpha)},\qquad 2^{-2p}\cdot4^p=1,
+\]
+which gives the stated limit.
 \end{proof}
 
 \begin{theorem}[Odd moments in Hanen's Theorem]\label{thm:sg-tal:hanen-odd}
@@ -9808,12 +9894,18 @@ $q=\mathbb E\tanh^2(\beta\sqrt q Z+h)$, system sizes $N+1$, and distinct sites $
 \end{theorem}
 \begin{proof}
 \leanok
-At two canonical distinct sites, expand the corresponding replica spin product through
-order $2p+1$. Derivatives of order at most $p$ vanish. The derivative of order $r>p$
-at the endpoint is $O((N+1)^{-(p+1+r)/2})$, by the iterated-kernel expansion and the
-reduced-system bound. Each such Taylor term is therefore $O((N+1)^{-(p+1)})$.
-Lemma~1.11.3 bounds the remainder at the same order. The covariance-power identity
-and site permutation invariance transfer the result to arbitrary distinct sites.
+At two canonical distinct sites let $\varphi(u)=\nu_u(f)$ for the corresponding replica spin product $f$ (the covariance-power identity of Lemma~\ref{lem:sg-tal:hanen-cov-powers}).
+\emph{Step 1 (expand through order $2p+1$).}
+\[
+\varphi(1)=\sum_{r\le2p+1}\frac{\varphi^{(r)}(0)}{r!}+\text{remainder}.
+\]
+\emph{Step 2 (low orders vanish).} $\varphi^{(r)}(0)=0$ for $r\le p$.
+\emph{Step 3 (higher orders).} For $p<r\le2p+1$ the iterated-kernel expansion and the reduced-system bound give
+\[
+|\varphi^{(r)}(0)|=O\big((N+1)^{-(p+1+r)/2}\big)\le O\big((N+1)^{-(p+1)}\big)\qquad(r\ge p+1).
+\]
+\emph{Step 4 (remainder).} Lemma~1.11.3 bounds the remainder at the same order $(N+1)^{-(p+1)}$.
+Hence $|\varphi(1)|\le K(N+1)^{-(p+1)}$ at the canonical sites, and the covariance-power identity together with site permutation invariance transfers the result to arbitrary distinct sites.
 \end{proof}
 
 \begin{theorem}[Hanen's Theorem]\label{thm:sg-tal:hanen-theorem}
@@ -10459,7 +10551,23 @@ Let $Z^1,Z^2$ be independent centered Gaussian fields with covariances $\beta^2q
 \end{theorem}
 \begin{proof}
 \leanok
-Interpolate the field by $\sqrt t Z^1+\sqrt{1-t}Z^2$ and the matrices linearly. The replica derivative theorem gives a derivative equal to $\frac{\beta^2}2\sum_{x,y}(q-q')_{xy}E_{xy}+\sum_{x,y}c'_{xy}E'_{xy}$ (the two Gaussian blocks have the same replica average, so their contributions combine to $q-q'$), the Frobenius-weighted sums of the $E$ are bounded by $4n(n+1)Md\varepsilon$ and $4(n+1)Md\varepsilon$ by Cauchy--Schwarz for the bilinear forms $\sum\Delta_{uv}x_uw_v$ (spins have $\|x\|^2\le d$). The mean value theorem finishes.
+\emph{Step 1 (interpolate).} Put $Z_t=\sqrt t\,Z^1+\sqrt{1-t}\,Z^2$ and interpolate the matrices linearly, $\rho_t=t\rho+(1-t)\rho'$, $q_t=tq+(1-t)q'$, and let $\psi(t)=\mathbb E\langle F\rangle_{\rho_t,q_t,Z_t}$. Then $\psi(1)-\psi(0)$ is the quantity to bound.
+\emph{Step 2 (derivative).} The replica derivative theorem (Theorem~\ref{thm:sg-tal:vector-cavity}; \texttt{hasDerivAt\_skVectorFieldAverage\_interpolation}, for $0<t<1$) has two kinds of terms. The Gaussian blocks have weights $s_k'(t)s_l(t)\,\mathbb E[Z_kZ_l]$ equal to $\frac12\beta^2q_{xy}$ (block $\sqrt t\,Z^1$, since $\frac1{2\sqrt t}\sqrt t=\frac12$) and $-\frac12\beta^2q'_{xy}$ (block $\sqrt{1-t}\,Z^2$), and the two blocks have the same replica average $E_{xy}$, so they combine to $(q-q')_{xy}$. The compensation term $c_{xy}(t)=\frac{\beta^2}2\big(\rho_t-q_t\big)_{xy}$ has $c'_{xy}=\frac{\beta^2}2\big((\rho-\rho')-(q-q')\big)_{xy}$. Hence
+\[
+\psi'(t)=\frac{\beta^2}2\sum_{x,y}(q-q')_{xy}\,E_{xy}+\sum_{x,y}\frac{\beta^2}2\Big((\rho-\rho')-(q-q')\Big)_{xy}\,E'_{xy},
+\]
+where $E_{xy}$ and $E'_{xy}$ are expectations of $F$ times the replica combinations $\big(\sum_{a\le n}\xi^a_x-n\,\xi^{n+1}_x\big)\big(\sum_{o\le n+1}\xi^o_y-(n+1)\,\xi^{n+2}_y\big)$ and $\sum_{o\le n+1}\xi^o_x\xi^o_y-(n+1)\,\xi^{n+2}_x\xi^{n+2}_y$ (in the notation of the Lean statement, with $n$ the number of replicas of $F$).
+\emph{Step 3 (Cauchy--Schwarz).} For the bilinear forms $\sum\Delta_{uv}x_uw_v$ (spins have $\|x\|^2\le d$, so $|\sum\Delta_{uv}x_uw_v|\le d\|\Delta\|_F$), the replica-combination bound $|\sum_jf_j-c\,g|\le2cb$ gives
+\[
+\Big|\sum_{x,y}(q-q')_{xy}E_{xy}\Big|\le M\cdot4n(n+1)\,d\,\varepsilon,\qquad
+\Big|\sum_{x,y}\Big((\rho-\rho')-(q-q')\Big)_{xy}E'_{xy}\Big|\le M\cdot4(n+1)\,d\,\varepsilon,
+\]
+where the second uses $\|(\rho-\rho')-(q-q')\|_F\le2\varepsilon$ (from $(a-b)^2\le2a^2+2b^2$). Therefore
+\[
+|\psi'(t)|\le\frac{\beta^2}2M\,d\,\varepsilon\,\big(4n(n+1)+4(n+1)\big)=2(n+1)^2\beta^2Md\,\varepsilon .
+\]
+\emph{Step 4.} The mean value theorem on $[0,1]$ finishes.
+\emph{Remark (where the coefficients come from).} In the first version of this proof the factor $\frac{\beta^2}2$ on the compensation term was inferred from the stated constant $2(n+1)^2\beta^2Md$. It is now read from the Lean proof: the interpolated compensation is \texttt{c j r = $\beta^2/2$ * ((r*$\rho$ + (1-r)*$\rho'$) - (r*q + (1-r)*q'))}, its derivative is \texttt{$\beta^2/2$ * (($\rho-\rho'$) - (q-q'))}, and the two bounds above are the Lean estimates \texttt{hA} and \texttt{hB} (the second with the factor $2\varepsilon$ coming from \texttt{hsq2}). The mean value theorem is used on $(0,1)$ together with continuity of $\psi$ on $[0,1]$ (\texttt{exists\_deriv\_eq\_slope}).
 \end{proof}
 
 \begin{theorem}[Frobenius contraction of the fixed-point map]\label{thm:sg-tal:vector-frobenius-contraction}
@@ -11193,7 +11301,10 @@ If moreover $h\ne0$, then $G_{\ell\ell'}=V$ for all $\ell\ne\ell'$.
 \begin{proof}
 \leanok
 First, if $G_{bc}\ne0$ and $a\notin\{b,c\}$ then $|G_{ab}|=|G_{bc}|$: apply Lemma~\ref{lem:sg-tal:replica-collapse} to $(a,b)$ to get the maximizer $G''$ with $G''_{ac}=G_{bc}\ne0$, and then apply it to $G''$ and the pair $(a,c)$ with $\ell=b$.
-Hence all $|G_{\ell\ell'}|$ equal $V=|G_{xy}|$ for any nonzero entry. Next fix a reference replica $r$ and put $u_\ell=\operatorname{sign}G_{r\ell}$. Lemma~\ref{lem:sg-tal:replica-collapse} for the pair $(r,\ell)$ gives $G_{\ell\ell'}=u_\ell G_{r\ell'}=Vu_\ell u_{\ell'}$.
+Hence all $|G_{\ell\ell'}|$ equal $V=|G_{xy}|$ for any nonzero entry. Next fix a reference replica $r$ and put $u_\ell=\operatorname{sign}G_{r\ell}$. Lemma~\ref{lem:sg-tal:replica-collapse} for the pair $(r,\ell)$ gives, for $\ell\ne\ell'$ both different from $r$,
+\[
+G_{\ell\ell'}=u_\ell\,G_{r\ell'}=u_\ell\,(u_{\ell'}\,|G_{r\ell'}|)=V\,u_\ell u_{\ell'} .
+\]
 If $h\ne0$ no entry is negative, by the last item of Lemma~\ref{lem:sg-tal:replica-collapse}.
 \end{proof}
 
