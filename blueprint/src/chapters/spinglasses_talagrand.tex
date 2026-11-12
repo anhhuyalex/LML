@@ -76,10 +76,15 @@ Let $N\ge1$ and $\beta\in\mathbb R$. For any two configurations $\sigma^1, \sigm
 \end{theorem}
 \begin{proof}
   \leanok
-By independence of the $g_{ij}$, the expectation is $\frac{\beta^2}{N} \sum_{i < j} \sigma_i^1 \sigma_j^1 \sigma_i^2 \sigma_j^2$.
-Using $\sum_{i < j} x_i x_j = \frac{1}{2}((\sum_i x_i)^2 - \sum_i x_i^2)$ with $x_i = \sigma_i^1 \sigma_i^2$ (so $x_i^2 = 1$ and $\sum x_i = N R_{1,2}$),
-the sum equals $\frac{1}{2}(N^2 R_{1,2}^2 - N) = \frac{N^2}{2}(R_{1,2}^2 - 1/N)$.
-Multiplying by $\beta^2 / N$ gives $\frac{N\beta^2}{2}(R_{1,2}^2 - 1/N)$.
+\emph{Step 1 (independence).} Since $\mathbb E[g_{ij}g_{kl}]=\mathbf 1_{(i,j)=(k,l)}$,
+\[
+\mathbb E\Big[\Big(\tfrac\beta{\sqrt N}\sum_{i<j}g_{ij}\sigma^1_i\sigma^1_j\Big)\Big(\tfrac\beta{\sqrt N}\sum_{i<j}g_{ij}\sigma^2_i\sigma^2_j\Big)\Big]=\frac{\beta^2}N\sum_{i<j}x_ix_j,\qquad x_i=\sigma^1_i\sigma^2_i .
+\]
+\emph{Step 2 (pair sum).} With $\sum_{i<j}x_ix_j=\frac12\big((\sum_ix_i)^2-\sum_ix_i^2\big)$, $x_i^2=1$ and $\sum_ix_i=N\,R(\sigma^1,\sigma^2)$,
+\[
+\sum_{i<j}x_ix_j=\frac12\big(N^2R^2-N\big)=\frac{N^2}2\Big(R^2-\frac1N\Big).
+\]
+\emph{Step 3.} Multiplying by $\beta^2/N$ gives $\frac{N\beta^2}2\big(R(\sigma^1,\sigma^2)^2-\frac1N\big)$.
 Formalized in \texttt{SpinGlasses/Talagrand/GuerraReplicaSymmetric/SKReplicaSymmetricBound.lean}.
 \end{proof}
 
@@ -426,9 +431,20 @@ and, if the $Y_i$ are random variables with the same law and $\log\cosh Y_{i_0}$
 \end{theorem}
 \begin{proof}
   \leanok
-Apply Lemma~\ref{lem:sg-tal:hypercube-prod} with $a(i, \pm 1) = \exp(\pm Y_i)$ and use $\exp(Y) + \exp(-Y) = 2\cosh Y$ and $\exp(Y) - \exp(-Y) = 2\sinh Y$.
-For the single-spin sum take $a(j,s)=s\,e^{sY_j}$ and $a(i,s)=e^{sY_i}$ for $i\ne j$; the ratio of the two sums is $\tanh Y_j$.
-The integrability of $\tanh^2(Y)$ for any a.e.\ measurable $Y$ (it is bounded by $1$) is recorded separately because every expectation below uses it.
+\emph{Step 1 (factorization).} Apply Lemma~\ref{lem:sg-tal:hypercube-prod} with $a(i,\pm1)=e^{\pm Y_i}$ and use $e^{Y}+e^{-Y}=2\cosh Y$:
+\[
+Z_0=\sum_\sigma\prod_ie^{\sigma_iY_i}=\prod_i\big(e^{Y_i}+e^{-Y_i}\big)=\prod_{i=1}^N2\cosh Y_i=2^N\prod_i\cosh Y_i .
+\]
+\emph{Step 2 (single spin).} For the single-spin sum take $a(j,s)=s\,e^{sY_j}$ and $a(i,s)=e^{sY_i}$ for $i\ne j$; with $e^{Y}-e^{-Y}=2\sinh Y$,
+\[
+\sum_\sigma\sigma_je^{\sum_i\sigma_iY_i}=2\sinh Y_j\prod_{i\ne j}2\cosh Y_i,\qquad
+\langle\sigma_j\rangle_0=\frac{2\sinh Y_j\prod_{i\ne j}2\cosh Y_i}{2\cosh Y_j\prod_{i\ne j}2\cosh Y_i}=\tanh Y_j .
+\]
+\emph{Step 3 (two replicas, free energy).} The two replicas are independent, so $\langle\sigma^1_j\sigma^2_j\rangle_0=\langle\sigma_j\rangle_0^2=\tanh^2Y_j$. Finally, if the $Y_i$ have the same law,
+\[
+\frac1N\mathbb E\log Z_0=\frac1N\sum_{i=1}^N\mathbb E\big[\log2+\log\cosh Y_i\big]=\log2+\mathbb E\log\cosh Y_{i_0}.
+\]
+(The integrability of $\tanh^2Y$ for any a.e.\ measurable $Y$, since it is bounded by $1$, is recorded separately because every expectation below uses it.)
 Formalized in \texttt{SpinGlasses/Talagrand/DecoupledSystems/SKDecoupled.lean}.
 \end{proof}
 
@@ -450,8 +466,15 @@ which for $Y_j=\beta z_j\sqrt q+h$ is the right-hand side $\mathbb{E}[\tanh^2(\b
 \end{theorem}
 \begin{proof}
   \leanok
-Linearity of the integral over the product of the two (identical) Gibbs measures reduces the first claim to the single-site identity $\langle\sigma^1_j\sigma^2_j\rangle_0=\langle\sigma_j\rangle_0^2=\tanh^2Y_j$ of Theorem~\ref{thm:sg-tal:decoupled-partition}.
-The second claim is linearity of the expectation together with $\mathbb{E}[\tanh^2Y_j]=\mathbb{E}[\tanh^2Y_{j_0}]$, which follows from identical distribution.
+\emph{Step 1 (first claim).} By linearity of the integral over the product of the two identical Gibbs measures and the single-site identity of Theorem~\ref{thm:sg-tal:decoupled-partition},
+\[
+\Big\langle\frac1N\sum_j\sigma^1_j\sigma^2_j\Big\rangle_0=\frac1N\sum_j\langle\sigma_j\rangle_0^2=\frac1N\sum_j\tanh^2Y_j .
+\]
+\emph{Step 2 (second claim).} Linearity of the expectation and identical distribution give
+\[
+\mathbb E\Big[\frac1N\sum_j\tanh^2Y_j\Big]=\frac1N\sum_j\mathbb E\tanh^2Y_j=\mathbb E\tanh^2Y_{j_0}.
+\]
+\emph{Step 3 (fixed point).} For $Y_j=\beta z_j\sqrt q+h$ the right side is $\mathbb E\tanh^2(\beta z\sqrt q+h)$, which equals $q$ at a fixed point.
 Formalized in \texttt{SpinGlasses/Talagrand/DecoupledSystems/SKDecoupled.lean}.
 \end{proof}
 
@@ -478,8 +501,16 @@ which yields the exact normalized log-moment (Talagrand Exercise~1.2.3, Eq.~(1.2
 \end{theorem}
 \begin{proof}
   \leanok
-For each configuration $\sigma$, the Gaussian linear combination $\sum_{i<j} \frac{\beta}{\sqrt{N}} g_{ij} \sigma_i \sigma_j$ has variance $\sum_{i<j} \frac{\beta^2}{N} = \binom{N}{2}\frac{\beta^2}{N} = N \frac{\beta^2}{4}(1 - \frac{1}{N})$, independent of $\sigma$.
-Integrating out the Gaussian disorder factors the sum into $(2\cosh h)^N \exp(N \frac{\beta^2}{4}(1 - 1/N))$.
+\emph{Step 1 (variance of the energy).} For each configuration $\sigma$ the Gaussian linear combination $\sum_{i<j}\frac\beta{\sqrt N}g_{ij}\sigma_i\sigma_j$ is centered with variance
+\[
+\sum_{i<j}\frac{\beta^2}N=\binom N2\frac{\beta^2}N=N\,\frac{\beta^2}4\Big(1-\frac1N\Big),
+\]
+independent of $\sigma$ (since $\sigma_i^2\sigma_j^2=1$).
+\emph{Step 2 (integrate out the disorder).} With $\mathbb Ee^{X}=e^{\operatorname{Var}X/2}$ for a centered Gaussian $X$,
+\[
+\mathbb EZ_N=\sum_\sigma e^{h\sum_i\sigma_i}\,\mathbb E\exp\Big(\tfrac\beta{\sqrt N}\sum_{i<j}g_{ij}\sigma_i\sigma_j\Big)=\Big(\sum_{\varepsilon=\pm1}e^{h\varepsilon}\Big)^N\exp\Big(N\frac{\beta^2}4\Big(1-\frac1N\Big)\Big)=(2\cosh h)^N\exp\Big(N\frac{\beta^2}4\Big(1-\frac1N\Big)\Big).
+\]
+Taking $\frac1N\log$ gives the second formula.
 Formalized in \texttt{SpinGlasses/Talagrand/DecoupledSystems/SKFirstMoment.lean}.
 \end{proof}
 
@@ -514,8 +545,18 @@ Let $N\ge1$, $h\in\mathbb R$, $u_\sigma(g)=N^{-1/2}\sum_{i<j}g_{ij}\sigma_i\sigm
 \end{theorem}
 \begin{proof}
   \leanok
-Differentiating $b \mapsto \log \sum_\sigma \exp(b\, u_\sigma(g) + C_\sigma)$ yields the Gibbs average.
-Dominated differentiation under the integral applies via the integrable bound $B(g) = (\sqrt{N})^{-1}\sum_{i<j} |g_{ij}|$.
+\emph{Step 1 (fixed disorder).} Differentiating $b\mapsto\log\sum_\sigma\exp(b\,u_\sigma(g)+C_\sigma)$,
+\[
+\frac d{db}\log Z_N(b)=\frac{\sum_\sigma u_\sigma e^{bu_\sigma+C_\sigma}}{\sum_\sigma e^{bu_\sigma+C_\sigma}}=\langle u_\sigma\rangle_b .
+\]
+\emph{Step 2 (domination).} The Gibbs average is bounded by the largest term,
+\[
+\big|\langle u_\sigma\rangle_b\big|\le\max_\sigma|u_\sigma|\le B(g):=N^{-1/2}\sum_{i<j}|g_{ij}|,
+\]
+which is integrable and independent of $b$. Dominated differentiation under the integral gives
+\[
+\frac{\partial p_N}{\partial\beta}=\frac1N\,\frac{\partial}{\partial\beta}\mathbb E\log Z_N=\frac1N\,\mathbb E\big[\langle u_\sigma\rangle\big].
+\]
 Formalized in \texttt{SpinGlasses/Talagrand/DecoupledSystems/SKFirstMoment.lean}.
 \emph{Not formalized:} the evaluation $\frac1N\mathbb{E}[\langle u_\sigma\rangle]=\frac{\beta}{2}(1-\mathbb{E}[\langle R_{1,2}^2\rangle])$ by Gaussian integration by parts; see Remark~\ref{rem:sg-tal:dev-12}.
 \end{proof}
@@ -828,7 +869,12 @@ q=\mathbb{E}[\tanh^2(\beta z\sqrt q+h)]\qquad\text{(Eq.~(1.74))}.
 \end{theorem}
 \begin{proof}
   \leanok
-Continuity follows from dominated convergence (the integrand is bounded by $1$ and continuous in $x$ for each $z$), and $0\le\tanh^2\le1$ gives the range. The function $\psi(x)-x$ is $\ge0$ at $x=0$ and $\le0$ at $x=1$, so the intermediate value theorem gives a zero in $[0,1]$.
+\emph{Step 1 (continuity and range).} The integrand $\tanh^2(\beta z\sqrt x+h)$ is continuous in $x$ for each $z$ and bounded by $1$, so $\psi$ is continuous by dominated convergence, and $0\le\tanh^2\le1$ gives $\psi(x)\in[0,1]$.
+\emph{Step 2 (intermediate value theorem).} The continuous function $\psi(x)-x$ satisfies
+\[
+\psi(0)-0\ge0,\qquad\psi(1)-1\le0,
+\]
+so it has a zero $q\in[0,1]$, i.e.\ $q=\psi(q)$.
 Formalized in \texttt{SpinGlasses/Talagrand/GuerraReplicaSymmetric/SKFixedPoint.lean}.
 \end{proof}
 
@@ -1524,7 +1570,17 @@ its value at $s=0$ is the $k$-th moment of $A_N-\mathrm{RS}(q)$ in the SK model 
 \end{theorem}
 \begin{proof}
   \leanok
-Eq.~(1.125) (Theorem~\ref{thm:sg-tal:profile-comp}) with the fixed center $a_0=\mathrm{SK}(t)$ gives $\partial_t\varphi(t,a_0)$. Write $(A_s-\mathrm{SK}(s))^k=\sum_i\binom ki z(s)^i(A_s-a_0)^{k-i}$ with $z(s)=a_0-\mathrm{SK}(s)$, $z(t)=0$; at $s=t$ only the terms $i=0,1$ have a nonzero derivative, and $z'(t)=\frac{\beta^2}2(1-q)^2\sin t\cos t=-\mathrm{SK}'(t)$ (\texttt{sum\_choose\_mul\_deriv\_pow\_zero}). Integrability of all powers is Lemma~1.4.12 along the path (\texttt{integrable\_smart\_path\_free\_energy\_sub\_pow}).
+Fix $t$, put $a_0=\mathrm{SK}(t)$, $z(s)=a_0-\mathrm{SK}(s)$ (so $z(t)=0$), and $\varphi(s,a)=\mathbb E(A_s-a)^k$.
+\emph{Step 1 (binomial expansion around the frozen center).} Since $A_s-\mathrm{SK}(s)=(A_s-a_0)+z(s)$,
+\[
+\mathbb EV_s^k=\sum_{i=0}^k\binom ki\,z(s)^i\;\mathbb E(A_s-a_0)^{k-i}.
+\]
+\emph{Step 2 (differentiate at $s=t$).} Because $z(t)=0$, every term with $i\ge2$ has zero derivative at $s=t$ (\texttt{sum\_choose\_mul\_deriv\_pow\_zero}), the term $i=0$ gives $\partial_s\varphi(s,a_0)|_{s=t}$ and the term $i=1$ gives $k\,z'(t)\,\mathbb E(A_t-a_0)^{k-1}$:
+\[
+\frac d{ds}\mathbb EV_s^k\Big|_{s=t}=\partial_s\varphi(t,a_0)+k\,z'(t)\,\mathbb EV_t^{k-1},\qquad z'(t)=-\mathrm{SK}'(t)=\frac{\beta^2}2(1-q)^2\sin t\cos t .
+\]
+\emph{Step 3 (insert Eq.~(1.125)).} Eq.~(1.125) (Theorem~\ref{thm:sg-tal:profile-comp}) with the fixed center $a_0$ gives $\partial_s\varphi(t,a_0)=\frac{\beta^2}2\sin t\cos t\,\mathbb E\big[kV^{k-1}(Q-(1-q)^2)-N^{-1}k(k-1)V^{k-2}(Q-q^2-N^{-1})\big]$ (at $s=t$, $A_t-a_0=V_t$). Adding Step~2 gives the claimed formula.
+\emph{Integrability.} All powers of $V_s$ are integrable by Lemma~1.4.12 along the path (\texttt{integrable\_smart\_path\_free\_energy\_sub\_pow}).
 Formalized in \texttt{SpinGlasses/Talagrand/OverlapConcentration/FreeEnergyCLT/SKCenteredPathMoments.lean}.
 \end{proof}
 
@@ -1781,7 +1837,16 @@ Let $N\ge1$ and $\beta,h\in\mathbb R$. The Gibbs weights $G_g(\sigma)=\exp(-H_N(
 \end{lemma}
 \begin{proof}
 \leanok
-The map $\{i<j\}\mapsto\{\pi(i),\pi(j)\}$, sorted, is a permutation of $\mathrm{FinPairs}\,N$ (its inverse is the same construction for $\pi^{-1}$). Reindexing the sum over pairs by this permutation gives $\sum_{i<j}g_{ij}\sigma_{\pi(i)}\sigma_{\pi(j)}=\sum_{i<j}g_{\tau^{-1}(ij)}\sigma_i\sigma_j$, so $H_N(\sigma\circ\pi)$ for the couplings $g$ is $H_N(\sigma)$ for the relabelled couplings $\varphi_\pi(g)=g\circ\tau^{-1}$; the field term $h\sum_i\sigma_{\pi(i)}$ is invariant, and so is the partition function. A coordinate permutation preserves a product of identical measures.
+\emph{Step 1 (a permutation of pairs).} Let $\tau(\{i<j\})=\{\pi(i),\pi(j)\}$ (sorted). This is a permutation of $\mathrm{FinPairs}\,N$ (its inverse is the same construction for $\pi^{-1}$).
+\emph{Step 2 (reindex the interaction).} Reindexing the sum over pairs by $\tau$,
+\[
+\sum_{i<j}g_{ij}\,\sigma_{\pi(i)}\sigma_{\pi(j)}=\sum_{i<j}g_{\tau^{-1}(ij)}\,\sigma_i\sigma_j .
+\]
+So $H_N(\sigma\circ\pi)$ with couplings $g$ equals $H_N(\sigma)$ with the relabelled couplings $\varphi_\pi(g)=g\circ\tau^{-1}$; the field term $h\sum_i\sigma_{\pi(i)}=h\sum_i\sigma_i$ and the partition function are invariant. Hence
+\[
+G_{\varphi_\pi(g)}(\sigma)=G_g(\sigma\circ\pi).
+\]
+\emph{Step 3 (law).} A coordinate permutation preserves a product of identical measures, so $\varphi_\pi$ preserves $\mathcal N(0,1)^{\otimes\mathrm{FinPairs}\,N}$.
 Formalized in \texttt{SpinGlasses/Talagrand/SpinDecorrelation/SKSiteSymmetry.lean} and \texttt{SpinGlasses/Talagrand/SpinDecorrelation/SKCorrelationDecay.lean}.
 \end{proof}
 
@@ -1831,7 +1896,21 @@ G(A_\eta)-\mu_n(\{\eta\})=2^{-n}\sum_{I\subseteq[n]}\eta_I\Big(\Big\langle\prod_
 \end{lemma}
 \begin{proof}
 \leanok
-For signs $x,e$ one has $1+xe\in\{0,2\}$ with $1+xe=2$ iff $x=e$, so $\mathbf 1\{\xi=\eta\}=2^{-n}\prod_i(1+\xi_i\eta_i)=2^{-n}\sum_I\eta_I\xi_I$ (Eq.~(1.134)); averaging gives the first identity (the density $\prod_i(1+\eta_i\langle\xi_i\rangle)$ expands in the same way). The second claim is the Cauchy--Schwarz inequality twice: over the $2^n$ values of $\eta$, and over the $2^n$ subsets $I$ (using $\eta_I^2=1$).
+Write $\eta_I=\prod_{i\in I}\eta_i$, $\xi_I=\prod_{i\in I}\xi_i$ and $c_I=\langle\xi_I\rangle-\prod_{i\in I}\langle\xi_i\rangle$.
+\emph{Step 1 (indicator of a cylinder, Eq.~(1.134)).} For signs $x,e$ one has $1+xe\in\{0,2\}$ with $1+xe=2$ iff $x=e$, so
+\[
+\mathbf 1\{\xi_i=\eta_i,\ i<n\}=\prod_{i<n}\frac{1+\xi_i\eta_i}2=2^{-n}\sum_{I\subseteq[n]}\eta_I\,\xi_I .
+\]
+\emph{Step 2 (first identity).} Averaging Step~1 gives $G(A_\eta)=2^{-n}\sum_I\eta_I\langle\xi_I\rangle$, and expanding the product density in the same way, $\mu_n(\{\eta\})=\prod_{i<n}\frac{1+\eta_i\langle\xi_i\rangle}2=2^{-n}\sum_I\eta_I\prod_{i\in I}\langle\xi_i\rangle$. Subtracting,
+\[
+G(A_\eta)-\mu_n(\{\eta\})=2^{-n}\sum_I\eta_Ic_I .
+\]
+\emph{Step 3 (second claim: Cauchy--Schwarz twice).} Over the $2^n$ subsets $I$ (using $\eta_I^2=1$), and then over the $2^n$ values of $\eta$:
+\[
+\big|G(A_\eta)-\mu_n(\{\eta\})\big|\le2^{-n}\sum_I|c_I|\le2^{-n/2}\Big(\sum_Ic_I^2\Big)^{1/2},\qquad
+\sum_\eta\big|G(A_\eta)-\mu_n(\{\eta\})\big|\le2^{n/2}\Big(\sum_Ic_I^2\Big)^{1/2},
+\]
+and squaring gives $\big(\sum_\eta|G(A_\eta)-\mu_n(\{\eta\})|\big)^2\le2^n\sum_Ic_I^2$.
 Formalized in \texttt{SpinGlasses/Talagrand/SpinDecorrelation/SKAsymptoticProduct.lean}.
 \end{proof}
 
@@ -6639,13 +6718,16 @@ The pairs may repeat or share indices. The bounded factor $W$ can depend on the 
 \end{lemma}
 \begin{proof}
 \leanok
-Use the exact last-spin split and $|\varepsilon_x\varepsilon_y|=1$ to bound
-$(D^-_{xy})^{2r}$ by $2^{2r-1}((R_{xy}-q)^{2r}+m^{-2r})$.
-The uniform high-temperature overlap moments and $m^{-2r}\le m^{-r}$ give the first claim.
-For a nonempty product, the existing finite-product inequality
-$\prod_j|u_j|\le\sum_j|u_j|^k$, applied to $u_j=(D^-_{a_jb_j})^2$,
-reduces the second claim to $2k$-th moments. The empty product is handled separately.
-No independence of the factors is assumed.
+\emph{Step 1 (first claim).} By the exact last-spin split, $D^-_{xy}$ differs from $R_{xy}-q$ by at most $1/m$ (because $|\varepsilon_x\varepsilon_y|=1$), and $(a+b)^{2r}\le2^{2r-1}(a^{2r}+b^{2r})$, so
+\[
+\nu\big((D^-_{xy})^{2r}\big)\le2^{2r-1}\Big(\nu\big((R_{xy}-q)^{2r}\big)+m^{-2r}\Big)\le2^{2r-1}\,\frac{K'_r+1}{m^r},
+\]
+by the uniform high-temperature overlap moments and $m^{-2r}\le m^{-r}$.
+\emph{Step 2 (products).} For a nonempty product, the finite-product inequality $\prod_{j\le k}|u_j|\le\sum_{j\le k}|u_j|^k$ applied to $u_j=(D^-_{a_jb_j})^2$ gives, with $|W|\le M$,
+\[
+f^2=W^2\prod_j(D^-_{a_jb_j})^2\le M^2\sum_{j\le k}(D^-_{a_jb_j})^{2k}\quad\Longrightarrow\quad\nu(f^2)\le M^2\sum_{j\le k}\nu\big((D^-_{a_jb_j})^{2k}\big)\le\frac{M^2kK_k}{m^k}.
+\]
+So $H=M^2kK_k$ works; no independence of the factors is assumed. The empty product is handled separately.
 \end{proof}
 
 \begin{theorem}[Higher-order cavity expansions]\label{thm:sg-tal:cavity-higher-expansion}
@@ -8876,7 +8958,16 @@ and $\sum_t|w_t|=\prod_{r<m}2(n+2r)^2$. Consequently $|\texttt{skCavityIterKerne
 \end{lemma}
 \begin{proof}
 \leanok
-Induction on $m$ (generalizing $n$). One step is the pair-sum formula of Lemma~\ref{lem:sg-tal:hanen-pair-weights} (total weight $2n^2$); apply the induction hypothesis for $n+2$ to the reindexed derivative observable (the explicit equivalence $\texttt{skCavityReplicaEquiv}$) and index the new tuples by (first pair)$\times$(tuple for $n+2$). The weights multiply and their absolute values sum to $2n^2$ times the bound for $n+2$. The absolute bound follows from $|K(a,b)|\le\beta^2|R^-_{a,b}-q|$.
+Induction on $m$, generalizing $n$. For $m=0$ the kernel is $f$ itself ($T$ a point, $w=1$, empty product).
+\emph{Step (from $m$ to $m+1$).} One derivative is the pair-sum formula of Lemma~\ref{lem:sg-tal:hanen-pair-weights}, with total absolute weight $2n^2$:
+\[
+\texttt{skCavityIterKernel}(m+1,n,f)=\sum_{(a,b)}c_{ab}\;K(\tau_a,\tau_b)\;\texttt{skCavityIterKernel}(m,n+2,f_{ab})(\tau),\qquad\sum_{(a,b)}|c_{ab}|=2n^2,
+\]
+where $f_{ab}$ is the reindexed derivative observable (the explicit equivalence \texttt{skCavityReplicaEquiv}). Apply the induction hypothesis for $n+2$ and index the new tuples by (first pair)$\times$(tuple for $n+2$). The weights multiply, so
+\[
+\sum|w|=2n^2\prod_{r<m}2\big(n+2+2r\big)^2=\prod_{r<m+1}2(n+2r)^2 .
+\]
+\emph{Absolute bound.} It follows from $|K(a,b)|=\beta^2|\varepsilon_a\varepsilon_b|\,|R^-_{a,b}-q|\le\beta^2|R^-_{a,b}-q|$.
 \end{proof}
 
 \begin{lemma}[Iterated cavity derivatives]\label{lem:sg-tal:cavity-iterated-deriv-bound}
@@ -8961,7 +9052,20 @@ where $\nu$ is the $(N+1)$-spin SK average with $n$ replicas.
 \end{corollary}
 \begin{proof}
 \leanok
-Let $g=f^-\eta_V\varepsilon_J\hat f$ and $\phi(u)=\nu_u(g)$, so $\phi(1)=\nu(g)$ (\texttt{skCavityPathMean\_one}). The function $\phi$ is $C^\infty$ on $[0,1]$. For $k\le a-1$ one has $2k+r<s$, so $\phi^{(k)}(0)=0$ by Lemma~\ref{lem:sg-tal:cavity-deriv-zero-vanishing}. Taylor's formula with Lagrange remainder of order $a$ gives $\phi(1)=\phi^{(a)}(\xi)/a!$ for some $\xi\in(0,1)$, and Lemma~\ref{lem:sg-tal:cavity-iterated-deriv-bound} bounds $|\phi^{(a)}(\xi)|\le K_0(N+1)^{-a/2}\nu(g^2)^{1/2}$. Finally $|\eta_V|\le 2^s$ and $|\varepsilon_J|=1$ give $\nu(g^2)\le 4^s\nu((\hat f f^-)^2)$. For $a=0$ the bound is Lemma~\ref{lem:sg-tal:cavity-iterated-deriv-bound} with $m=0$.
+Let $g=f^-\eta_V\varepsilon_J\hat f$ and $\phi(u)=\nu_u(g)$, so $\phi(1)=\nu(g)$ (\texttt{skCavityPathMean\_one}); $\phi$ is $C^\infty$ on $[0,1]$.
+\emph{Step 1 (lower derivatives vanish).} For $k\le a-1$ one has $2k+r<s$, so by Lemma~\ref{lem:sg-tal:cavity-deriv-zero-vanishing}
+\[
+\phi^{(k)}(0)=0\qquad(0\le k\le a-1).
+\]
+\emph{Step 2 (Taylor with Lagrange remainder of order $a$).}
+\[
+\phi(1)=\sum_{k<a}\frac{\phi^{(k)}(0)}{k!}+\frac{\phi^{(a)}(\xi)}{a!}=\frac{\phi^{(a)}(\xi)}{a!}\qquad\text{for some }\xi\in(0,1).
+\]
+\emph{Step 3 (bound the remainder).} Lemma~\ref{lem:sg-tal:cavity-iterated-deriv-bound} gives $|\phi^{(a)}(\xi)|\le K_0(N+1)^{-a/2}\nu(g^2)^{1/2}$, and $|\eta_V|\le2^s$, $|\varepsilon_J|=1$ give $\nu(g^2)\le4^s\,\nu\big((\hat ff^-)^2\big)$. Hence
+\[
+|\nu(g)|\le\frac{K_02^s}{a!}\,(N+1)^{-a/2}\,\nu\big((\hat ff^-)^2\big)^{1/2}.
+\]
+For $a=0$ the bound is Lemma~\ref{lem:sg-tal:cavity-iterated-deriv-bound} with $m=0$.
 \end{proof}
 
 \begin{corollary}[Pairing bound for shifted overlaps]\label{cor:sg-tal:eta-overlap-shifted-bound}
@@ -8977,8 +9081,14 @@ and $|q-q'| \le L/(N+1)$ with $L \ge 0$ fixed,
 \end{corollary}
 \begin{proof}
 \leanok
-Apply Corollary~\ref{cor:sg-tal:eta-coupled-bound} with $s = 2p$, $r = 0$, $J = \emptyset$, $\hat f = 1$ and $F = \prod_{u \le m} (R^-_{\ell(u), \ell'(u)} - q')$, giving bound $K_1 (N+1)^{-p/2} \nu(F^2)^{1/2}$. The bound of Eq.~(1.297) is stable under the stated change of centering
-(\texttt{sk\_cavity\_prod\_sq\_shift\_le}), so $\nu(F^2) \le K_2 (N+1)^{-m}$, so $\nu(F^2)^{1/2} \le K_2^{1/2} (N+1)^{-m/2}$. Combining the exponents gives $(N+1)^{-(p+m)/2}$.
+Apply Corollary~\ref{cor:sg-tal:eta-coupled-bound} with $s=2p$, $r=0$, $J=\emptyset$, $\hat f=1$ and $F=\prod_{u\le m}(R^-_{\ell(u),\ell'(u)}-q')$:
+\[
+\Big|\nu\big(\eta_VF\big)\Big|\le K_1(N+1)^{-p/2}\,\nu(F^2)^{1/2}.
+\]
+The bound of Eq.~(1.297) is stable under the stated change of centering from $q$ to $q'$ ($|q-q'|\le L/(N+1)$; \texttt{sk\_cavity\_prod\_sq\_shift\_le}), so
+\[
+\nu(F^2)\le K_2(N+1)^{-m},\qquad\text{hence}\qquad\Big|\nu\big(\eta_VF\big)\Big|\le K_1K_2^{1/2}\,(N+1)^{-p/2-m/2}=\frac{K}{(N+1)^{(p+m)/2}} .
+\]
 \end{proof}
 
 \begin{corollary}[Full-overlap bound with shifted centering]\label{cor:sg-tal:eta-full-overlap-shifted-bound}
@@ -9934,10 +10044,17 @@ under any finite measure. There is no finite-support hypothesis or new tilt defi
 \end{lemma}
 \begin{proof}
 \leanok
-Bound the exponential by a constant. The log-partition derivative uses Mathlib's analytic
-cumulant-generating function and its tilted-mean identity. For the observable derivative,
-differentiate the numerator under the integral using a constant envelope on $(t-1,t+1)$,
-then apply the quotient rule and the same moment-generating-function API.
+Write $\mathcal Z(t)=\int e^{tX}d\mu$ and $\mathcal N(t)=\int Ye^{tX}d\mu$, so that $\int Y\,d\mu_t=\mathcal N(t)/\mathcal Z(t)$.
+\emph{Step 1 (exponential moments).} $e^{-|t|C}\le e^{tX}\le e^{|t|C}$, so every exponential moment exists, and $\mathcal Z(t)>0$ if $\mu\ne0$.
+\emph{Step 2 (log-partition derivative).} Mathlib's analytic cumulant-generating function and its tilted-mean identity give
+\[
+\frac d{dt}\log\mathcal Z(t)=\frac{\int Xe^{tX}d\mu}{\int e^{tX}d\mu}=\int X\,d\mu_t .
+\]
+\emph{Step 3 (observable derivative).} Differentiating the numerator under the integral sign with the constant envelope $B\,C\,e^{(|t|+1)C}$ on $(t-1,t+1)$ gives $\mathcal N'(t)=\int YXe^{tX}d\mu$ (the unnormalized statement), $\mathcal Z'(t)=\int Xe^{tX}d\mu$, and by the quotient rule
+\[
+\frac d{dt}\frac{\mathcal N}{\mathcal Z}=\frac{\mathcal N'}{\mathcal Z}-\frac{\mathcal N\,\mathcal Z'}{\mathcal Z^2}=\int YX\,d\mu_t-\Big(\int Y\,d\mu_t\Big)\Big(\int X\,d\mu_t\Big).
+\]
+\emph{Step 4 (bound).} For a probability measure and $|f|\le C$, $e^{-C}\le\int e^fd\mu\le e^C$, hence $|\log\int e^fd\mu|\le C$; an upper bound on $f$ alone already gives exponential integrability under any finite measure.
 \end{proof}
 
 \begin{lemma}[Vector Gibbs normalization and temperature derivative]\label{lem:sg-tal:vector-normalization}
@@ -10007,11 +10124,21 @@ Then $r\mapsto\mathbb E\langle f\rangle_r$ is differentiable at $t$, with deriva
 \end{lemma}
 \begin{proof}
 \leanok
-Differentiate along the random path using the path-derivative statement of Lemma~\ref{lem:sg-tal:gibbs-ibp-linear}; the Gaussian parameters are unbounded, so the domination uses an integrable bound of the form $C(1+\sum_k|Z_k|)$.
-The terms with a deterministic parameter $c_j$ are already in the stated form.
-For the Gaussian terms freeze the time at $t$, put $Z^{(t)}_k=s_k(t)Z_k$ (again a centered Gaussian vector, with covariance $s_k(t)s_l(t)\mathbb E[Z_kZ_l]$) and absorb the deterministic energy into the base potential.
-Gaussian integration by parts (Lemma~\ref{lem:sg-tal:gibbs-ibp-linear}) applied to $\langle Y_k\rangle$ gives $\mathbb E[Z^{(t)}_k\langle Y_k\rangle]$.
-If $s_k'(t)=0$ the term vanishes; otherwise divide by $s_k(t)\ne0$.
+\emph{Step 1 (pathwise derivative).} By the path-derivative statement of Lemma~\ref{lem:sg-tal:gibbs-ibp-linear} (the Gaussian parameters are unbounded, so the domination uses an integrable bound of the form $C(1+\sum_k|Z_k|)$), for fixed $Z$
+\[
+\frac d{dr}\langle f\rangle_r\Big|_{r=t}=\sum_ks_k'(t)\,Z_k\,\langle Y_k\rangle_t+\sum_jc_j'(t)\Big(\langle fX'_j\rangle_t-\langle f\rangle_t\langle X'_j\rangle_t\Big).
+\]
+The terms with a deterministic parameter $c_j$ are already in the stated form after taking $\mathbb E$.
+\emph{Step 2 (freeze the time).} Put $Z^{(t)}_k=s_k(t)Z_k$ (a centered Gaussian vector with covariance $s_k(t)s_l(t)\mathbb E[Z_kZ_l]$) and absorb the deterministic energy into the base potential.
+\emph{Step 3 (Gaussian integration by parts).} Lemma~\ref{lem:sg-tal:gibbs-ibp-linear} applied to $\langle Y_k\rangle$ gives
+\[
+\mathbb E\big[Z^{(t)}_k\langle Y_k\rangle_t\big]=\sum_l s_k(t)s_l(t)\,\mathbb E[Z_kZ_l]\;\mathbb E\big[\langle Y_kX_l\rangle_t-\langle Y_k\rangle_t\langle X_l\rangle_t\big].
+\]
+\emph{Step 4 (divide by $s_k(t)$).} If $s_k'(t)=0$ the $k$-th term of Step~1 vanishes; otherwise $s_k(t)\ne0$ and
+\[
+s_k'(t)\,\mathbb E\big[Z_k\langle Y_k\rangle_t\big]=\frac{s_k'(t)}{s_k(t)}\,\mathbb E\big[Z^{(t)}_k\langle Y_k\rangle_t\big]=\sum_l s_k'(t)s_l(t)\,\mathbb E[Z_kZ_l]\;\mathbb E\big[\langle Y_kX_l\rangle_t-\langle Y_k\rangle_t\langle X_l\rangle_t\big].
+\]
+Summing over $k$ gives the stated derivative.
 \end{proof}
 
 \begin{lemma}[Replicas of a Gibbs measure on an arbitrary base space]\label{lem:sg-tal:gibbs-replica-product}
@@ -10078,7 +10205,19 @@ with $g_u(\boldsymbol\rho_u)=\frac\beta{\sqrt{N+1}}\sum_{i<N}g_{iN}\sigma_{i,u}$
 \end{theorem}
 \begin{proof}
 \leanok
-Write $-H_{N,t}$ as $\sum_ks_k(t)Z_kX_k+(1-t)X'$ with the Gaussian family $Z=(g_{ij},g_{iN},Y_u)$, $s=(1,\sqrt t,\sqrt{1-t})$ and the features of the three groups together with the compensation $X'$; the pair features of the new couplings multiply to $\beta^2\sum_{u,v}\varepsilon_u\varepsilon_vR^{-,u,v}$ because the normalization $(N+1)^{-1/2}$ squares to the factor in $R^-$. The weights $s_k'(t)s_l(t)\mathbb E[Z_kZ_l]$ equal $\tfrac12$ on the diagonal of the new couplings, $-\tfrac{\beta^2}2q_{uv}$ for the field and $0$ otherwise (the old couplings do not move), so the covariance kernel is $\tfrac{\beta^2}2\sum_{u,v}\varepsilon_u\varepsilon_v(R^-_{uv}-q_{uv})$. Theorem~\ref{thm:sg-tal:gibbs-replica-cavity} and Lemma~\ref{lem:sg-tal:replica-pattern} give the four groups; on the diagonal $\ell=\ell'$ the compensation turns $q$ into $\rho$. This is a restatement of the Gaussian integration by parts and the extra-replica reduction of the book, carried out for an arbitrary spin law.
+\emph{Step 1 (write the energy in the Gaussian-path form).} Write $-H_{N,t}=\sum_ks_k(t)Z_kX_k+(1-t)X'$ with the Gaussian family $Z=(g_{ij},g_{iN},Y_u)$, $s=(1,\sqrt t,\sqrt{1-t})$, the spin features $X_k$ of the three groups, and the compensation $X'=\frac{\beta^2}2\sum_{u,v}\varepsilon_u\varepsilon_v(\rho_{uv}-q_{uv})$.
+\emph{Step 2 (weights).} The weights $s_k'(t)s_l(t)\,\mathbb E[Z_kZ_l]$ are
+\[
+\underbrace{0}_{\text{old couplings}},\qquad \underbrace{\tfrac1{2\sqrt t}\sqrt t\cdot1=\tfrac12}_{g_{iN}\text{ (diagonal)}},\qquad \underbrace{-\tfrac1{2\sqrt{1-t}}\sqrt{1-t}\cdot\beta^2q_{uv}=-\tfrac{\beta^2}2q_{uv}}_{Y_u,Y_v},
+\]
+and $0$ across groups (independence).
+\emph{Step 3 (covariance kernel).} For two replicas with last spins $\varepsilon,\varepsilon'$, the pair features of the new couplings multiply to $\frac{\beta^2}{N+1}\sum_{i<N}\sum_{u,v}\varepsilon_u\varepsilon'_v\sigma_{i,u}\sigma'_{i,v}=\beta^2\sum_{u,v}\varepsilon_u\varepsilon'_vR^{-,u,v}$ (the normalization $(N+1)^{-1/2}$ squares to the factor in $R^-$). Hence the kernel is
+\[
+\ell\ne\ell':\ \frac{\beta^2}2\sum_{u,v}\varepsilon^\ell_u\varepsilon^{\ell'}_v\big(R^{-,u,v}_{\ell,\ell'}-q_{uv}\big),\qquad
+\ell=\ell':\ \frac{\beta^2}2\sum_{u,v}\varepsilon_u\varepsilon_v\big(R^{-,u,v}_{\ell,\ell}-q_{uv}\big)-\frac{\beta^2}2\sum_{u,v}\varepsilon_u\varepsilon_v(\rho_{uv}-q_{uv}),
+\]
+and the last expression equals $\frac{\beta^2}2\sum_{u,v}\varepsilon_u\varepsilon_v(R^{-,u,v}_{\ell,\ell}-\rho_{uv})$: on the diagonal the compensation turns $q$ into $\rho$.
+\emph{Step 4 (extra replicas).} Theorem~\ref{thm:sg-tal:gibbs-replica-cavity} and Lemma~\ref{lem:sg-tal:replica-pattern} (Gaussian integration by parts and the extra-replica reduction of the book, carried out for an arbitrary spin law) combine the kernels with the coefficients $1,-n,-\frac n2,\frac{n(n+1)}2$ into the four groups of the displayed formula.
 \end{proof}
 
 \begin{theorem}[Corollary~1.12.5: bounds on the derivative of the cavity path]\label{thm:sg-tal:vector-cavity-bounds}
@@ -10123,7 +10262,15 @@ In the setting of Lemma~\ref{lem:sg-tal:gibbs-cavity-path}, the map $z\mapsto\lo
 \end{theorem}
 \begin{proof}
 \leanok
-Differentiate the logarithm of the Laplace integral under the integral sign (the derivative is $\langle X_l\rangle$, bounded by $B$), integrate against the random path with the dominated-convergence lemma, and apply Gaussian integration by parts to $\mathbb E[Z_k\langle X_k\rangle]$ at the frozen time $t$ as in Lemma~\ref{lem:sg-tal:gibbs-cavity-path}.
+\emph{Step 1 (pathwise derivative).} Differentiating the logarithm of the Laplace integral under the integral sign (the partial derivative is $\langle X_l\rangle$, bounded by $B$), and integrating against the random path with the dominated-convergence lemma,
+\[
+\frac d{dr}\mathbb E\log\int e^{\mathrm{energy}}d\mu\Big|_{r=t}=\sum_ks_k'(t)\,\mathbb E\big[Z_k\langle X_k\rangle_t\big]+\sum_jc_j'(t)\,\mathbb E\langle X'_j\rangle_t .
+\]
+\emph{Step 2 (Gaussian integration by parts at the frozen time).} As in Lemma~\ref{lem:sg-tal:gibbs-cavity-path}, with $\partial_{z_l}\langle X_k\rangle=\langle X_kX_l\rangle-\langle X_k\rangle\langle X_l\rangle$,
+\[
+s_k'(t)\,\mathbb E\big[Z_k\langle X_k\rangle_t\big]=\sum_l s_k'(t)s_l(t)\,\mathbb E[Z_kZ_l]\;\mathbb E\big[\langle X_kX_l\rangle-\langle X_k\rangle\langle X_l\rangle\big].
+\]
+Summing over $k$ and inserting into Step~1 gives the stated derivative.
 \end{proof}
 
 \begin{theorem}[Eq.~(1.393): the $\beta$-derivative of the free energy]\label{thm:sg-tal:vector-free-energy-beta}
@@ -10135,7 +10282,19 @@ Let $\mu$ be a probability measure with bounded measurable coordinates $\xi$, $X
 \end{theorem}
 \begin{proof}
 \leanok
-Apply Theorem~\ref{thm:sg-tal:log-partition-cavity} with $s_k(r)=r$, $c(r)=r^2/2$: the Gaussian part gives $\beta\sum_{u,v}q_{uv}\,\mathbb E(\langle\xi_u\xi_v\rangle-\langle\xi_u\rangle\langle\xi_v\rangle)=\beta\sum q_{uv}(\rho_{uv}-q_{uv})$ by (1.372)--(1.373), and the compensation gives $\beta\sum_{u,v}(\rho_{uv}-q_{uv})\mathbb E\langle\xi_u\xi_v\rangle=\beta\sum(\rho_{uv}-q_{uv})\rho_{uv}$. Add.
+Apply Theorem~\ref{thm:sg-tal:log-partition-cavity} with $s_k(r)=r$ (so $s_k'(\beta)s_l(\beta)=\beta$) and the compensation $c(r)=r^2/2$ multiplying $\sum_{u,v}\xi_u\xi_v(\rho_{uv}-q_{uv})$.
+\emph{Step 1 (Gaussian part).} Using $\mathbb E[X_uX_v]=q_{uv}$ and then (1.372)--(1.373),
+\[
+\beta\sum_{u,v}q_{uv}\,\mathbb E\big(\langle\xi_u\xi_v\rangle-\langle\xi_u\rangle\langle\xi_v\rangle\big)=\beta\sum_{u,v}q_{uv}(\rho_{uv}-q_{uv}).
+\]
+\emph{Step 2 (compensation).} $c'(\beta)=\beta$, and $\mathbb E\langle\xi_u\xi_v\rangle=\rho_{uv}$, so it contributes
+\[
+\beta\sum_{u,v}(\rho_{uv}-q_{uv})\,\mathbb E\langle\xi_u\xi_v\rangle=\beta\sum_{u,v}(\rho_{uv}-q_{uv})\rho_{uv}.
+\]
+\emph{Step 3 (add).}
+\[
+\partial_\beta\mathbb E\log\int\mathcal E\,d\mu=\beta\sum_{u,v}(\rho_{uv}-q_{uv})(q_{uv}+\rho_{uv})=\beta\sum_{u,v}(\rho_{uv}^2-q_{uv}^2).
+\]
 \end{proof}
 
 \begin{theorem}[Lemma~1.12.6: stationarity of the replica-symmetric functional]\label{thm:sg-tal:vector-stationarity}
@@ -10147,7 +10306,14 @@ Let $\Phi=-\frac{\beta^2}4\sum_{u,v}(\rho_{uv}^2-q_{uv}^2)+\mathbb E\log\int\mat
 \end{theorem}
 \begin{proof}
 \leanok
-The $\rho$ statement is Theorem~\ref{thm:sg-tal:log-partition-cavity} with $s_k$ constant and $c(r)=\frac{\beta^2}2r$ added to the polynomial term. For the segment take the Gaussian family $(Z_1,Z_0)$ with $s=(\beta\sqrt r,\beta\sqrt{1-r})$ and $c(r)=-\frac{\beta^2}2r$ for the compensation term $\sum_{u,v}\xi_u\xi_v(q_1-q_0)_{uv}$. The weights are $s_k'(t)s_l(t)\mathbb E[Z_kZ_l]=\pm\frac{\beta^2}2(q_{1}\text{ or }q_0)_{uv}$ on the two diagonal blocks and $0$ across (independence), and the compensation derivative cancels the $\langle\xi_u\xi_v\rangle$ part, leaving $-\frac{\beta^2}2\sum(q_1-q_0)_{uv}\mathbb E\langle\xi_u\rangle\langle\xi_v\rangle$; the derivative of $\frac{\beta^2}4\sum q(s)_{uv}^2$ is $\frac{\beta^2}2\sum q(t)_{uv}(q_1-q_0)_{uv}$.
+\emph{The $\rho$ direction.} This is Theorem~\ref{thm:sg-tal:log-partition-cavity} with $s_k$ constant and $c(r)=\frac{\beta^2}2r$ added to the polynomial term: the derivative of $-\frac{\beta^2}4\sum\rho_{uv}^2$ is $-\frac{\beta^2}2\sum\rho_{uv}E_{uv}$ and the compensation contributes $\frac{\beta^2}2\sum E_{uv}\,\mathbb E\langle\xi_u\xi_v\rangle$, so
+\[
+\frac d{d\epsilon}\Phi(\rho+\epsilon E)\Big|_{\epsilon=0}=\frac{\beta^2}2\sum_{u,v}E_{uv}\big(\mathbb E\langle\xi_u\xi_v\rangle-\rho_{uv}\big).
+\]
+\emph{The segment.} Take the Gaussian family $(Z_1,Z_0)$ with $s=(\beta\sqrt r,\beta\sqrt{1-r})$ and $c(r)=-\frac{\beta^2}2r$ for the compensation term $\sum_{u,v}\xi_u\xi_v(q_1-q_0)_{uv}$. The weights $s_k'(t)s_l(t)\mathbb E[Z_kZ_l]$ equal $\pm\frac{\beta^2}2(q_1\text{ or }q_0)_{uv}$ on the two diagonal blocks and $0$ across (independence). The compensation derivative cancels the $\langle\xi_u\xi_v\rangle$ part, leaving $-\frac{\beta^2}2\sum(q_1-q_0)_{uv}\,\mathbb E\langle\xi_u\rangle\langle\xi_v\rangle$, while the derivative of $\frac{\beta^2}4\sum q(s)_{uv}^2$ is $\frac{\beta^2}2\sum q(t)_{uv}(q_1-q_0)_{uv}$. Adding,
+\[
+\frac d{ds}\Phi\Big|_{s=t}=\frac{\beta^2}2\sum_{u,v}(q_1-q_0)_{uv}\Big(q(t)_{uv}-\mathbb E\langle\xi_u\rangle\langle\xi_v\rangle\Big).
+\]
 \end{proof}
 
 \begin{theorem}[Frobenius bounds for the fixed point, Eq.~(1.382)]\label{thm:sg-tal:vector-fixed-point-bounds}
@@ -10264,7 +10430,21 @@ Let $(q_{uv})$, $(\rho_{uv})$ satisfy (1.372)--(1.373) for a Gaussian field $Y$ 
 \end{theorem}
 \begin{proof}
 \leanok
-Let $A,B$ be the two terms and $f_A=\sum_{u,v}(\varepsilon^1_u\varepsilon^2_v-q_{uv})(R^{u,v}_{1,2}-q_{uv})$. Symmetry between sites gives $A=\nu(f_A)$. By Cauchy--Schwarz $f_A^2\le4d^2\sum_{u,v}(R^{u,v}_{1,2}-q_{uv})^2$, and Theorem~\ref{thm:sg-tal:vector-overlap-bound} gives $|\nu_0(f_A)|\le2d^4/(N+1)$. The smart-path step turns this into $A\le 2d^4/(N+1)+\kappa A^{1/2}(\sqrt{2B+\epsilon}+\sqrt{2A+\epsilon})$ with $\kappa=16\beta^2d^2e^{20\beta^2d^2}\le1/6$ and $\epsilon=2d^2/(N+1)^2$, because replacing $R^-$ by $R$ costs at most $2d^2/(N+1)^2$. The same argument with (1.373) gives the inequality for $B$. Adding and using $\sqrt{x}\sqrt{y}\le(x+y)/2$ gives $A+B\le 8d^4/(N+1)+\epsilon$.
+Let $A=\nu\big(\sum_{u,v}(R^{u,v}_{1,2}-q_{uv})^2\big)$, $B=\nu\big(\sum_{u,v}(R^{u,v}_{1,1}-\rho_{uv})^2\big)$, $f_A=\sum_{u,v}(\varepsilon^1_u\varepsilon^2_v-q_{uv})(R^{u,v}_{1,2}-q_{uv})$ and $\kappa=16\beta^2d^2e^{20\beta^2d^2}\le\frac16$, $\epsilon=\frac{2d^2}{(N+1)^2}$.
+\emph{Step 1 (symmetry).} Symmetry between sites gives $A=\nu(f_A)$.
+\emph{Step 2 (Cauchy--Schwarz and the decoupled value).} Pointwise $f_A^2\le4d^2\sum_{u,v}(R^{u,v}_{1,2}-q_{uv})^2$, and Theorem~\ref{thm:sg-tal:vector-overlap-bound} gives the value at the decoupled endpoint
+\[
+|\nu_0(f_A)|\le\frac{2d^4}{N+1}.
+\]
+\emph{Step 3 (smart-path step).} Replacing $R^-$ by $R$ costs at most $\epsilon$, and the smart-path step turns Steps~1--2 into
+\[
+A\le\frac{2d^4}{N+1}+\kappa\,A^{1/2}\Big(\sqrt{2B+\epsilon}+\sqrt{2A+\epsilon}\Big).
+\]
+The same argument with (1.373) gives the analogous inequality for $B$.
+\emph{Step 4 (add).} Adding the two inequalities and using $\sqrt x\sqrt y\le\frac{x+y}2$ gives
+\[
+A+B\le\frac{8d^4}{N+1}+\epsilon\le\frac{8d^4+2d^2}{N+1}.
+\]
 \end{proof}
 
 \begin{theorem}[Lipschitz estimate along the path (1.386)]\label{thm:sg-tal:vector-path-lipschitz}
@@ -10303,7 +10483,19 @@ If $18\beta^2d^2<1$ there exist matrices $q\succeq0$, $\rho-q\succeq0$ solving (
 \end{theorem}
 \begin{proof}
 \leanok
-The map $T(q,\rho)=(\mathbb E\langle\xi_u\rangle\langle\xi_v\rangle,\mathbb E\langle\xi_u\xi_v\rangle)$ takes values in the closed cone (a mean of Gram matrices, and a mean of covariance matrices of probability measures). By the previous theorem it is $18\beta^2d^2$-Lipschitz for the Frobenius distance (apply the previous theorem to the test function $\sum_{u,v}D_{uv}\xi_u(\sigma^1)\xi_v(\sigma^2)$, with $D$ the difference of the images; Cauchy--Schwarz bounds it by $d\|D\|_F$), hence a contraction. The iterates are Cauchy for the supremum distance, which is dominated by the Frobenius distance, so they converge to a fixed point. The law of a centered Gaussian field is determined by its covariance, so the equations hold for every realization. Uniqueness: any solution is a fixed point of $T$, hence lies in the cone, and two fixed points satisfy $\|x-y\|_F\le18\beta^2d^2\|x-y\|_F$, so they coincide.
+Let $T(q,\rho)=\big(\mathbb E\langle\xi_u\rangle\langle\xi_v\rangle,\ \mathbb E\langle\xi_u\xi_v\rangle\big)_{u,v}$ and $\lambda=18\beta^2d^2<1$.
+\emph{Step 1 (values in the cone).} $T$ takes values in the closed cone: $\mathbb E\langle\xi_u\rangle\langle\xi_v\rangle$ is a mean of Gram matrices and $\mathbb E\langle\xi_u\xi_v\rangle$ a mean of second-moment matrices of probability measures.
+\emph{Step 2 (Lipschitz bound).} Let $x,y$ be two points of the cone and $D$ the difference of $T(x)$ and $T(y)$. Apply the previous theorem to the test function $f=\sum_{u,v}D_{uv}\xi_u(\sigma^1)\xi_v(\sigma^2)$, for which Cauchy--Schwarz gives $|f|\le d\|D\|_F$:
+\[
+\|T(x)-T(y)\|_F\le\lambda\,\|x-y\|_F .
+\]
+So $T$ is a contraction.
+\emph{Step 3 (existence).} The iterates $x_{n+1}=T(x_n)$ satisfy
+\[
+\|x_{n+1}-x_n\|_F\le\lambda^n\|x_1-x_0\|_F ,
+\]
+hence are Cauchy for the Frobenius distance, and also for the supremum distance, which it dominates; they converge to a fixed point in the closed cone. The law of a centered Gaussian field is determined by its covariance, so the equations (1.372)--(1.373) hold for every realization of $Y$.
+\emph{Step 4 (uniqueness).} Any solution is a fixed point of $T$, hence lies in the cone, and two fixed points $x,y$ satisfy $\|x-y\|_F=\|T(x)-T(y)\|_F\le\lambda\|x-y\|_F$, so $x=y$.
 \end{proof}
 
 \begin{theorem}[Theorem~1.12.1 on the concrete model]\label{thm:sg-tal:vector-overlap-concrete}
@@ -10345,7 +10537,17 @@ that is, $\frac\beta2\sum_{u,v}\nu\bigl((R^{u,v}_{1,1})^2-(R^{u,v}_{1,2})^2\bigr
 \end{theorem}
 \begin{proof}
 \leanok
-Differentiate in $\beta$ and integrate by parts in each pair coupling to get $\frac\beta{M}\sum_{i<j}\mathbb E(\langle X_{ij}^2\rangle-\langle X_{ij}\rangle^2)$. Write $\langle X^2\rangle-\langle X\rangle^2=\langle X(\sigma^1)^2-X(\sigma^1)X(\sigma^2)\rangle$ for two replicas and use $\sum_{i<j}a_ia_j=\frac12((\sum a_i)^2-\sum a_i^2)$.
+Let $X_{ij}=\sum_u\xi_{i,u}\xi_{j,u}$, so that $-H_M=\frac\beta{\sqrt M}\sum_{i<j}g_{ij}X_{ij}$.
+\emph{Step 1 (differentiate and integrate by parts).} $\partial_\beta\log Z=\frac1{\sqrt M}\sum_{i<j}g_{ij}\langle X_{ij}\rangle$, and Gaussian integration by parts in each $g_{ij}$ gives $\mathbb E[g_{ij}\langle X_{ij}\rangle]=\frac\beta{\sqrt M}\,\mathbb E\big(\langle X_{ij}^2\rangle-\langle X_{ij}\rangle^2\big)$, hence
+\[
+\partial_\beta p_M=\frac\beta{M^2}\sum_{i<j}\mathbb E\Big(\langle X_{ij}^2\rangle-\langle X_{ij}\rangle^2\Big).
+\]
+\emph{Step 2 (two replicas).} $\langle X^2\rangle-\langle X\rangle^2=\big\langle X(\sigma^1)^2-X(\sigma^1)X(\sigma^2)\big\rangle$.
+\emph{Step 3 (sum over pairs).} With $a_i=\xi_{i,u}\xi_{i,v}$ and $\sum_{i<j}a_ia_j=\frac12\big((\sum_ia_i)^2-\sum_ia_i^2\big)$,
+\[
+\sum_{i<j}X_{ij}(\sigma)X_{ij}(\sigma')=\frac12\sum_{u,v}\Big[\Big(\sum_i\xi_{i,u}\xi'_{i,v}\Big)^2-\sum_i\big(\xi_{i,u}\xi'_{i,v}\big)^2\Big]\quad(\sigma'=\sigma^1\text{ or }\sigma^2),
+\]
+and inserting this for $\sigma'=\sigma^1$ and $\sigma'=\sigma^2$ in Step~2 gives the displayed derivative. Since $\sum_i\xi_{i,u}\xi_{i,v}^{\,\prime}=M\,R^{u,v}$, this is $\frac\beta2\sum_{u,v}\nu\big((R^{u,v}_{1,1})^2-(R^{u,v}_{1,2})^2\big)$ minus the diagonal sums, which are $O(1/M)$.
 \end{proof}
 
 \begin{theorem}[$\partial p_{N+1}/\partial\beta$ is close to $\frac\beta2\sum(\rho^2-q^2)$]\label{thm:sg-tal:vector-free-energy-approx}
@@ -10385,7 +10587,20 @@ Let $G(\beta,z)=-\frac{\beta^2}4\sum_{u,v}(\rho_{uv}^2-q_{uv}^2)+\mathbb E\log\i
 \end{theorem}
 \begin{proof}
 \leanok
-Equation~(1.393) gives $\partial_\beta G=\frac\beta2\sum(\rho^2-q^2)$ at fixed $z$ when $z$ solves the equations, and Lemma~\ref{thm:sg-tal:vector-stationarity} makes the gradient of $G$ in $z$ equal to $\frac{\beta^2}2(z-Tz)$, which vanishes at $z(\beta)$ and is Lipschitz. Therefore $G(b,z)-G(b,z(b))$ is bounded by a constant times $\|z-z(b)\|^2$ (integrate the gradient along the segment from $z(b)$ to $z$ using the Lipschitz constant of $T$ only), and combining with the Lipschitz bound on $z(b)$ shows the dependence of $z(b)$ on $b$ is of second order. No implicit function theorem is used.
+Write $\Gamma=\frac{\beta^2}2(z-T_\beta z)$ for the gradient of $G(\beta,\cdot)$ (Lemma~\ref{thm:sg-tal:vector-stationarity}); it vanishes at the fixed point $z(\beta)$ and is Lipschitz in $z$ with a constant depending only on that of $T$.
+\emph{Step 1 (derivative in $\beta$ at fixed $z$).} Equation~(1.393) gives, when $z$ solves the equations,
+\[
+\partial_\beta G(\beta,z)=\frac\beta2\sum_{u,v}(\rho_{uv}^2-q_{uv}^2).
+\]
+\emph{Step 2 (second order in $z$).} Integrate the gradient along the segment from $z(b)$ to $z$, using $\Gamma(z(b))=0$ and the Lipschitz constant $C$ of $\Gamma$ (of $T$ only):
+\[
+\big|G(b,z)-G(b,z(b))\big|=\Big|\int_0^1\big\langle\Gamma\big(z(b)+\theta(z-z(b))\big),\,z-z(b)\big\rangle\,d\theta\Big|\le\frac C2\|z-z(b)\|^2 .
+\]
+\emph{Step 3 (splitting the increment).} For small $\delta$,
+\[
+G\big(b+\delta,z(b+\delta)\big)-G\big(b,z(b)\big)=\underbrace{\big[G(b+\delta,z(b+\delta))-G(b+\delta,z(b))\big]}_{O(\|z(b+\delta)-z(b)\|^2)=O(\delta^2)}+\underbrace{\big[G(b+\delta,z(b))-G(b,z(b))\big]}_{\delta\,\partial_\beta G(b,z(b))+o(\delta)},
+\]
+where the first bracket is of second order because $z(b)$ is Lipschitz in $b$. Hence the derivative at $b=\beta$ is $\partial_\beta G(\beta,z(\beta))=\frac\beta2\sum_{u,v}(\rho_{uv}^2-q_{uv}^2)$. No implicit function theorem is used.
 \end{proof}
 
 \begin{theorem}[The pressure is small near $\beta=0$]\label{thm:sg-tal:vector-pressure-small}
@@ -10413,7 +10628,18 @@ Choosing $s=(N+1)^{-1/2}$ gives $|p_{N+1}(\beta)-G(\beta,(q,\rho))|\le C/\sqrt{N
 \end{theorem}
 \begin{proof}
 \leanok
-Choose a branch $z(b)$ of fixed points for $b\in(0,\beta_1)$ (Theorem~\ref{thm:sg-tal:vector-fixed-point-exists}) and let $\Delta(b)=p_{N+1}(b)-G(b,z(b))$. By Theorems~\ref{thm:sg-tal:vector-free-energy-approx} and~\ref{thm:sg-tal:vector-pressure-family}, $|\Delta'(b)|\le Kb$ with $K$ the bracket above. By Theorem~\ref{thm:sg-tal:vector-pressure-small}, $\Delta(b)\to0$ as $b\to0^+$. The mean value inequality on $[b_0,\beta]$ gives $|\Delta(\beta)-\Delta(b_0)|\le K\beta^2$; let $b_0\to0^+$. Uniqueness of the fixed point identifies $z(\beta)$ with $(q,\rho)$.
+Choose a branch $z(b)$ of fixed points for $b\in(0,\beta_1)$ (Theorem~\ref{thm:sg-tal:vector-fixed-point-exists}) and put $\Delta(b)=p_{N+1}(b)-G(b,z(b))$. Let $K=\frac12\big(\varepsilon+\frac{d\varepsilon}s+2ds\big)+\frac{d^2}{2(N+1)}$, so the claim is $|\Delta(\beta)|\le\beta^2K$.
+\emph{Step 1 (derivative of $\Delta$).} By Theorems~\ref{thm:sg-tal:vector-free-energy-approx} and~\ref{thm:sg-tal:vector-pressure-family} (the two derivatives agree up to the overlap error),
+\[
+|\Delta'(b)|\le K\,b\qquad(0<b<\beta_1).
+\]
+\emph{Step 2 (start at $0$).} By Theorem~\ref{thm:sg-tal:vector-pressure-small}, $\Delta(b)\to0$ as $b\to0^+$.
+\emph{Step 3 (mean value inequality).} For $0<b_0<\beta$,
+\[
+|\Delta(\beta)-\Delta(b_0)|\le\sup_{b\le\beta}|\Delta'(b)|\,(\beta-b_0)\le K\beta\cdot\beta=K\beta^2 .
+\]
+Let $b_0\to0^+$. Uniqueness of the fixed point identifies $z(\beta)$ with $(q,\rho)$.
+\emph{Step 4 (rate).} With $s=(N+1)^{-1/2}$ one has $\varepsilon=O(1/(N+1))$, $d\varepsilon/s=O((N+1)^{-1/2})$, $2ds=O((N+1)^{-1/2})$, so $|p_{N+1}(\beta)-G(\beta,(q,\rho))|\le C/\sqrt{N+1}$.
 \end{proof}
 
 \begin{theorem}[Theorems~1.12.1--1.12.3 in the closed high-temperature range]\label{thm:sg-tal:vector-high-temperature}
@@ -10446,19 +10672,21 @@ and system size. No auxiliary upper inverse temperature or fixed point is an inp
 \end{theorem}
 \begin{proof}
 \leanok
-The condition $15\beta d\le1$ implies $18\beta^2d^2<1$ and
-$\beta^2d^2\le1/200$. Apply the existing fixed-point theorem once, before choosing
-$M$. Its Gaussian law-transfer lemma identifies the fixed-point equations with
-(1.372)--(1.373). The existing concrete overlap estimate gives $c_d/M$; the
-replica-average conversion is shared with the free-energy derivative proof.
-For $d>0$, choose the proof-local upper parameter $b=(7/100)/d$.
-Then $\beta<b$, $18b^2d^2<1$ and $b^2d^2\le1/200$ even when $15\beta d=1$.
-The existing quantitative pressure proof, with its explicit coefficient exposed,
-gives $\beta^2P_d/\sqrt M$ and the limit. For positive integral $d$ the same
-hypothesis implies $\beta\le1$, hence $\beta^2P_d\le P_d\le K_d$.
-For $d=0$, the coefficient $P_d$ is zero and an upper parameter $b=\beta+1$
-meets the numerical conditions. For $\beta=0$ both the free energy and pressure
-vanish directly. All arguments permit singular covariance matrices.
+\emph{Step 1 (numerical conditions).} From $15\beta d\le1$,
+\[
+\beta^2d^2\le\tfrac1{225}\le\tfrac1{200},\qquad 18\beta^2d^2\le\tfrac{18}{225}<1 .
+\]
+\emph{Step 2 (fixed point and overlaps).} Apply the existing fixed-point theorem once, before choosing $M$. Its Gaussian law-transfer lemma identifies the fixed-point equations with (1.372)--(1.373). The existing concrete overlap estimate gives the overlap bound $c_d/M\le K_d/M$; the replica-average conversion is shared with the free-energy derivative proof.
+\emph{Step 3 (pressure).} For $d>0$ choose the proof-local upper parameter $b=\frac{7/100}d$. Then $\beta\le\frac1{15d}<b$ and
+\[
+18b^2d^2=18\cdot0.0049<1,\qquad b^2d^2=0.0049\le\tfrac1{200}
+\]
+even when $15\beta d=1$. The existing quantitative pressure proof, with its explicit coefficient exposed, gives
+\[
+|p_M(\beta,\mu)-G(\beta,(q,\rho))|\le\frac{\beta^2P_d}{\sqrt M}\le\frac{P_d}{\sqrt M}\le\frac{K_d}{\sqrt M},
+\]
+using $\beta\le1$ for positive integral $d$ (a consequence of $15\beta d\le1$) and $K_d=c_d+P_d\ge P_d$. This also gives the limit.
+\emph{Degenerate cases.} For $d=0$ the coefficient $P_d$ is zero and the upper parameter $b=\beta+1$ meets the numerical conditions. For $\beta=0$ both the free energy and the pressure vanish directly. All arguments permit singular covariance matrices.
 \end{proof}
 
 \begin{lemma}[Normalizing finite product Gibbs laws]\label{lem:sg-tal:vector-product-normalization}
@@ -10503,14 +10731,20 @@ equality derives the scalar cavity path derivative
 (\texttt{hasDerivAt\_integral\_sk\_cavity\_path\_square\_of\_vector}) directly from the vector engine.
 \end{theorem}
 \begin{proof}\uses{lem:sg-tal:vector-product-normalization}
-Add the sum of the one-site field energies to the existing one-component interaction
-identity. The resulting energy is exactly \texttt{skGibbsEnergy}. Apply the product-law
-normalization and use $\sum_{\varepsilon=\pm1}e^{h\varepsilon}=2\cosh h$.
-The scalar log-partition function is integrable by the existing affine-Gaussian bound.
-For the cavity derivative, evaluate the diagonal overlap $R^-_{\sigma,\sigma} = N / (N + 1)$
-so $R^-_{\sigma,\sigma} - 1 = -(N+1)^{-1}$; the diagonal terms in the double sum sum to
-$|R|(-(N+1)^{-1})$, matching and cancelling the third term. The off-diagonal terms $a \ne b$
-pair up by symmetry to $2 \sum_{a < b} \text{kernel}(a, b)$, reproducing the scalar combination.
+\emph{Step 1 (partition function).} Add the sum of the one-site field energies to the existing one-component interaction identity; the resulting energy is exactly \texttt{skGibbsEnergy}. With the product-law normalization and $\sum_{\varepsilon=\pm1}e^{h\varepsilon}=2\cosh h$,
+\[
+Z_N^{\rm vector}(g)=\sum_{\sigma\in\{\pm1\}^N}\prod_i\frac{e^{h\sigma_i}}{2\cosh h}\;e^{-H^{\rm int}_N(\sigma,g)}=\frac{Z_N^{\rm Ising}(\beta,h,g)}{(2\cosh h)^N},
+\]
+and the scalar log-partition function is integrable by the existing affine-Gaussian bound, so $p_N^{\rm vector}=p_N^{\rm Ising}-\log(2\cosh h)$.
+\emph{Step 2 (the cavity integrand, diagonal terms).} For one component, $\rho=1$ and the diagonal overlap is $R^-_{\ell,\ell}=\frac N{N+1}$, so $R^-_{\ell,\ell}-1=-\frac1{N+1}$ and $(\varepsilon_\ell)^2=1$. The first sum of Eq.~(1.376) contributes on the diagonal and the third sum contributes
+\[
+\underbrace{\frac{\beta^2}2\sum_{\ell\le n}\nu_t\Big(f\cdot\Big(-\frac1{N+1}\Big)\Big)}_{=-\frac{n\beta^2}{2(N+1)}\nu_t(f)}\ +\ \underbrace{\Big(-\frac{n\beta^2}2\Big)\nu_t\Big(f\cdot\Big(-\frac1{N+1}\Big)\Big)}_{=+\frac{n\beta^2}{2(N+1)}\nu_t(f)}=0 .
+\]
+\emph{Step 3 (off-diagonal terms).} The pairs $\ell\ne\ell'$ are symmetric in $(\ell,\ell')$, so
+\[
+\sum_{\ell\ne\ell'}\mathrm{kernel}(\ell,\ell')=2\sum_{\ell<\ell'}\mathrm{kernel}(\ell,\ell'),
+\]
+which reproduces the scalar three-family combination of Eqs.~(1.151)--(1.152).
 \end{proof}
 
 \begin{theorem}[The coupled-copy comparison]\label{thm:sg-tal:vector-coupled}
@@ -10785,16 +11019,22 @@ Let $n\in\mathbb N$ and let $\beta,h\in\mathbb R$ be arbitrary. There is $q\ge0$
 \end{theorem}
 \begin{proof}
 \leanok
-Case $\beta>0$. By Lemma~\ref{lem:sg-tal:replica-moment}, $\mathbb E Z_N^n=\exp(\beta^2n(N-n)/4)\,\mathbb E\exp(NA(x/\sqrt N))$ for a standard Gaussian vector $x$ indexed by the pairs of replicas.
-The function $B$ has a maximizer $\mathbf g$ (Lemma~\ref{lem:sg-tal:replica-existence}), and $A$ is continuous with $|A|\le K(1+\sum|g|)$.
-The Laplace principle (Lemma~\ref{lem:sg-tal:replica-laplace}) gives $N^{-1}\log\mathbb E\exp(NA(x/\sqrt N))\to B(\mathbf g)$.
-So $N^{-1}\log\mathbb EZ_N^n\to\beta^2n/4+B(\mathbf g)$.
-By Corollary~\ref{cor:sg-tal:replica-constant} there is $V\ge0$ such that $B(\mathbf g)$ equals the value of $B$ at the constant coupling $V$.
-Put $q=V/\beta$. Lemma~\ref{lem:sg-tal:replica-constant} says that the value of $B$ at the constant coupling $\beta q'$ is $n\log2+\Phi_n(q')-n\beta^2/4$, for every $q'\ge0$.
-Since $\mathbf g$ maximizes $B$, $\Phi_n(q')\le\Phi_n(q)$ for all $q'\ge0$, and the limit is $n\log2+\Phi_n(q)$.
-Case $\beta=0$. The disorder does not enter, $Z_N=(2\operatorname{ch}h)^N$, and $\Phi_n$ does not depend on $q$.
-Case $\beta<0$. The change of variables $g\mapsto-g$ preserves the Gaussian disorder, so $\mathbb E Z_N^n$ is even in $\beta$.
-The function $\Phi_n$ is also even in $\beta$ (substitute $z\mapsto-z$). Apply the case $\beta>0$ to $-\beta$.
+\emph{Case $\beta>0$.}
+\emph{Step 1 (exact moment).} By Lemma~\ref{lem:sg-tal:replica-moment}, with $x$ a standard Gaussian vector indexed by the pairs of replicas,
+\[
+\frac1N\log\mathbb EZ_N^n=\frac{\beta^2n(N-n)}{4N}+\frac1N\log\mathbb E\exp\big(NA(x/\sqrt N)\big).
+\]
+\emph{Step 2 (Laplace principle).} The function $B$ has a maximizer $\mathbf g$ (Lemma~\ref{lem:sg-tal:replica-existence}), and $A$ is continuous with $|A|\le K(1+\sum|g|)$, so Lemma~\ref{lem:sg-tal:replica-laplace} gives $N^{-1}\log\mathbb E\exp(NA(x/\sqrt N))\to B(\mathbf g)$. Hence
+\[
+\frac1N\log\mathbb EZ_N^n\longrightarrow\frac{\beta^2n}4+B(\mathbf g).
+\]
+\emph{Step 3 (constant couplings).} By Corollary~\ref{cor:sg-tal:replica-constant} there is $V\ge0$ such that $B(\mathbf g)$ equals the value of $B$ at the constant coupling $V$. Put $q=V/\beta$. By Lemma~\ref{lem:sg-tal:replica-constant}, for every $q'\ge0$
+\[
+B\big(\text{constant coupling }\beta q'\big)=n\log2+\Phi_n(q')-\frac{n\beta^2}4 .
+\]
+Since $\mathbf g$ maximizes $B$, $\Phi_n(q')\le\Phi_n(q)$ for all $q'\ge0$, and the limit is $\frac{\beta^2n}4+n\log2+\Phi_n(q)-\frac{n\beta^2}4=n\log2+\Phi_n(q)$.
+\emph{Case $\beta=0$.} The disorder does not enter, $Z_N=(2\operatorname{ch}h)^N$, and $\Phi_n$ does not depend on $q$.
+\emph{Case $\beta<0$.} The change of variables $g\mapsto-g$ preserves the Gaussian disorder, so $\mathbb EZ_N^n$ is even in $\beta$. The function $\Phi_n$ is also even in $\beta$ (substitute $z\mapsto-z$). Apply the case $\beta>0$ to $-\beta$.
 \end{proof}
 
 \begin{remark}[Hypotheses of Theorem~\ref{thm:sg-tal:replica}: what the book leaves unsaid]\label{rem:sg-tal:replica-hypotheses}
@@ -10900,11 +11140,19 @@ If equality holds and $g\ne0$, then $a_1=a_2$ for $g>0$ and $a_1=-a_2$ for $g<0$
 \end{lemma}
 \begin{proof}
 \leanok
-Let $u=\operatorname{ch}g$ and $w=|\operatorname{sh}g|$. The product of the two brackets minus the square of the left side equals
-$u\bigl(w(x^2+y^2)-2\operatorname{sh}g\,xy\bigr)$ with $x=\operatorname{ch}a_1\operatorname{sh}a_2$ and $y=\operatorname{sh}a_1\operatorname{ch}a_2$ (use $\operatorname{sh}^2g=w^2$).
-This is $\ge0$, which gives the inequality. For $g>0$ it equals $uw(x-y)^2$ and $x-y=\operatorname{sh}(a_2-a_1)$. For $g<0$ it equals $uw(x+y)^2$ and $x+y=\operatorname{sh}(a_1+a_2)$.
-The weighted version follows by termwise use of the inequality and the Cauchy--Schwarz inequality for sums.
-In case of equality for the sum, equality holds termwise.
+Write $c_j=\operatorname{ch}a_j$, $s_j=\operatorname{sh}a_j$, $u=\operatorname{ch}g$, $w=|\operatorname{sh}g|$, and $x=c_1s_2$, $y=s_1c_2$. Let $P_j=c_j^2u+s_j^2w$ and $L=c_1c_2u+s_1s_2\operatorname{sh}g$.
+\emph{Step 1 (the difference of squares).} Expanding and using $\operatorname{sh}^2g=w^2$ (the terms $c_1^2c_2^2u^2$ and $s_1^2s_2^2w^2$ cancel),
+\begin{align*}
+P_1P_2-L^2&=uw\,(c_1^2s_2^2+s_1^2c_2^2)-2u\operatorname{sh}g\,c_1c_2s_1s_2\\
+&=u\Big(w\,(x^2+y^2)-2\operatorname{sh}g\;xy\Big).
+\end{align*}
+\emph{Step 2 (sign and equality case).} Since $\pm2\operatorname{sh}g\,xy\ge-2w|xy|$, the bracket is at least $w(|x|-|y|)^2\ge0$, so $L^2\le P_1P_2$, which is the inequality. More precisely:
+\[
+g>0:\ P_1P_2-L^2=uw\,(x-y)^2,\ \ x-y=\operatorname{sh}(a_2-a_1);\qquad
+g<0:\ P_1P_2-L^2=uw\,(x+y)^2,\ \ x+y=\operatorname{sh}(a_1+a_2).
+\]
+Equality with $g\ne0$ ($u,w>0$) therefore forces $a_1=a_2$ for $g>0$ and $a_1=-a_2$ for $g<0$.
+\emph{Step 3 (weighted sums).} The weighted version follows by termwise use of the inequality and the Cauchy--Schwarz inequality for sums, $\sum_sw_sP_{1,s}^{1/2}P_{2,s}^{1/2}\le(\sum_sw_sP_{1,s})^{1/2}(\sum_sw_sP_{2,s})^{1/2}$. In case of equality for the sum, equality holds termwise.
 \end{proof}
 
 \begin{lemma}[Lemma~1.13.5, in matrix form]\label{lem:sg-tal:replica-collapse}
@@ -10982,10 +11230,21 @@ Let $\beta>0$ and $q\ge0$. The value of $B$ at the constant matrix with off-diag
 \end{lemma}
 \begin{proof}
 \leanok
-With $V=\beta q$, $\sum_{\ell<\ell'}\varepsilon_\ell\varepsilon_{\ell'}=\frac12\bigl((\sum\varepsilon)^2-n\bigr)$, and $\exp(\frac{c}{2}s^2)=\mathbb E\exp(\sqrt c\,zs)$ for a standard Gaussian $z$.
-Sum over $\varepsilon$ first: $\sum_\varepsilon\exp\bigl((\sqrt{\beta V}z+h)\sum_\ell\varepsilon_\ell\bigr)=(2\operatorname{ch}(\sqrt{\beta V}z+h))^n$.
-So $e^{A}=e^{-n\beta V/2}\mathbb E(2\operatorname{ch}(\sqrt{\beta V}z+h))^n$. Here $\sqrt{\beta V}=\beta\sqrt q$. The penalty $\frac14\sum G^2$ is $\frac{n(n-1)}4\beta^2q^2$.
-Collect terms.
+Put $V=\beta q$ and let $z$ be a standard Gaussian.
+\emph{Step 1 (pair sum).} $\sum_{\ell<\ell'}\varepsilon_\ell\varepsilon_{\ell'}=\frac12\big((\sum_\ell\varepsilon_\ell)^2-n\big)$.
+\emph{Step 2 (linearize the square).} With $\exp(\frac c2s^2)=\mathbb E\exp(\sqrt c\,zs)$ and $c=\beta V$ (so $\sqrt{\beta V}=\beta\sqrt q$),
+\[
+e^{A}=\sum_{\varepsilon}\exp\Big(\frac{\beta V}2\Big(\sum_\ell\varepsilon_\ell\Big)^2-\frac{n\beta V}2+h\sum_\ell\varepsilon_\ell\Big)=e^{-n\beta V/2}\,\mathbb E\sum_\varepsilon\exp\Big((\beta\sqrt q\,z+h)\sum_\ell\varepsilon_\ell\Big).
+\]
+\emph{Step 3 (sum over $\varepsilon$ first).} The sum factorizes over the replicas: $\sum_\varepsilon\exp\big((\beta\sqrt qz+h)\sum_\ell\varepsilon_\ell\big)=\big(2\operatorname{ch}(\beta\sqrt qz+h)\big)^n$, so
+\[
+A=-\frac{n\beta^2q}2+n\log2+\log\mathbb E\operatorname{ch}^n(\beta\sqrt qz+h).
+\]
+\emph{Step 4 (penalty).} $\frac12\sum_{\ell<\ell'}V^2=\frac{n(n-1)}4\beta^2q^2$. Therefore
+\[
+B=n\log2+\log\mathbb E\operatorname{ch}^n(\beta\sqrt qz+h)-\frac{n\beta^2q}2-\frac{n(n-1)}4\beta^2q^2 ,
+\]
+which equals $n\log2+\Phi_n(q)-\frac{n\beta^2}4$ because $\frac{n\beta^2}4(1-q)^2-\frac{n^2\beta^2}4q^2-\frac{n\beta^2}4=-\frac{n\beta^2q}2-\frac{n(n-1)\beta^2}4q^2$.
 \end{proof}
 
 \begin{theorem}[Finite-system real-moment limits, Eqs.~(1.409)--(1.410)]\label{thm:sg-tal:replica-real-moments}
@@ -11003,12 +11262,21 @@ and consequently
 \end{theorem}
 \begin{proof}
 \leanok
-Since $Z_N(\mathbf g) > 0$ everywhere, $\log Z_N$ is well-defined and measurable.
-Using the bound $|\log Z_N(\mathbf g)| \le N \log 2 + |h| N + \frac{|\beta|}{\sqrt N} \sum_{i<j} |g_{ij}|$,
-Gaussian exponential moments ensure that $\mathbb E \exp(t |\log Z_N|) < \infty$ for all $t \in \mathbb R$.
-Thus $0 \in \operatorname{interior}(\operatorname{integrableExpSet}(\log Z_N))$.
-The result follows from the general probability theorem on difference quotients of the cumulant generating function at zero,
-$\lim_{t \to 0^+} \frac{1}{t} \log \mathbb E [Z^t] = \mathbb E [\log Z]$.
+Write $\Lambda(t)=\log\mathbb Ee^{t\log Z_N}=\log\mathbb EZ_N^t$.
+\emph{Step 1 (log-partition bound).} $Z_N(\mathbf g)>0$ everywhere, so $\log Z_N$ is well defined and measurable, and
+\[
+|\log Z_N(\mathbf g)|\le N\log2+|h|N+\frac{|\beta|}{\sqrt N}\sum_{i<j}|g_{ij}| .
+\]
+\emph{Step 2 (exponential moments).} By Step~1 and independence of the Gaussians $g_{ij}$,
+\[
+\mathbb Ee^{t|\log Z_N|}\le e^{|t|(N\log2+|h|N)}\prod_{i<j}\mathbb Ee^{|t||\beta||g_{ij}|/\sqrt N}<\infty\qquad(t\in\mathbb R),
+\]
+so $0$ is an interior point of the set where $\mathbb E\exp(t\log Z_N)$ is finite.
+\emph{Step 3 (difference quotient at zero).} The cumulant generating function $\Lambda$ is differentiable at $0$ with $\Lambda(0)=0$ and $\Lambda'(0)=\mathbb E\log Z_N$ (general probability theorem), so
+\[
+\lim_{t\to0^+}\frac1t\log\mathbb EZ_N^t=\lim_{t\to0^+}\frac{\Lambda(t)-\Lambda(0)}t=\mathbb E\log Z_N .
+\]
+Dividing by $N$ gives the second statement.
 \end{proof}
 
 \begin{theorem}[Maximizing fixed point of the replica variational problem]\label{thm:sg-tal:replica-fixed-point}
@@ -11027,7 +11295,13 @@ and $\lim_{N \to \infty} \frac{1}{N} \log \mathbb E [Z_N^n] = n \log 2 + \Phi_n(
 \end{theorem}
 \begin{proof}
 \leanok
-For $n = 1$ and $\beta = 0$, $\Phi_n$ is constant on $q \ge 0$, and the fixed point reduces to $q = \tanh^2 h$ or the standard fixed-point theorem. For $n \ge 2$ and $\beta > 0$, Theorem~\ref{thm:sg-tal:replica-method} yields a maximizer $q_0 \ge 0$. We express the partition function as a finite configuration sum $S_n(q)$ and compute the exact derivative $\Phi_n'(q) = \frac{n(n-1)\beta^2}{2} (R_n(q) - q)$ on $q \ge 0$. If $q_0 > 0$, by Fermat's theorem on interior local maxima, $\Phi_n'(q_0) = 0$, yielding $q_0 = R_n(q_0)$. If $q_0 = 0$, either $h = 0$ (so $R_n(0) = \tanh^2 0 = 0 = q_0$) or $h \ne 0$ (giving $\Phi_n'(0) > 0$, contradicting maximality of $0$). Nonnegativity and $q_0 \le 1$ follow from the ratio bounds. The case $\beta < 0$ follows by symmetry under $\beta \mapsto -\beta$ and $z \mapsto -z$.
+\emph{Case $n=1$, $\beta=0$.} $\Phi_n$ is constant on $q\ge0$, and the fixed point reduces to $q=\tanh^2h$ or the standard fixed-point theorem.
+\emph{Case $n\ge2$, $\beta>0$.} Theorem~\ref{thm:sg-tal:replica-method} yields a maximizer $q_0\ge0$. Express the partition function as a finite configuration sum $S_n(q)$. Gaussian integration by parts, $\frac d{dq}\mathbb E\,\mathrm{ch}^n(\beta z\sqrt q+h)=\frac{\beta^2}2\mathbb E\big[n(n-1)\mathrm{ch}^{n-2}\mathrm{sh}^2+n\,\mathrm{ch}^n\big]$, gives the exact derivative: with $R_n(q)$ the right side of the tilted equation,
+\[
+\Phi_n'(q)=-\frac{n\beta^2(1-q)}2-\frac{n^2\beta^2q}2+\frac{\beta^2}2\Big(n(n-1)R_n(q)+n\Big)=\frac{n(n-1)\beta^2}2\big(R_n(q)-q\big)\qquad(q\ge0).
+\]
+If $q_0>0$, Fermat's theorem on interior local maxima gives $\Phi_n'(q_0)=0$, i.e.\ $q_0=R_n(q_0)$. If $q_0=0$, either $h=0$ (so $R_n(0)=\tanh^20=0=q_0$) or $h\ne0$, in which case $\Phi_n'(0)=\frac{n(n-1)\beta^2}2R_n(0)>0$ contradicts maximality of $0$. Nonnegativity and $q_0\le1$ follow from the ratio bounds ($0\le R_n\le1$).
+\emph{Case $\beta<0$.} Symmetry under $\beta\mapsto-\beta$ and $z\mapsto-z$.
 \end{proof}
 
 \begin{remark}[Not claimed: the continuation to non-integer $n$]\label{rem:sg-tal:replica-heuristic}
