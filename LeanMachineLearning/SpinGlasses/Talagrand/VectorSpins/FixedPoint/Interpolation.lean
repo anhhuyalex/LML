@@ -119,7 +119,6 @@ theorem hasDerivAt_skVectorFieldAverage_interpolation {d : ℕ} {Ω R : Type*} [
         ∑ j : Fin d × Fin d, (β ^ 2 / 2 * ((r * ρ j.1 j.2 + (1 - r) * ρ' j.1 j.2) -
           (r * q j.1 j.2 + (1 - r) * q' j.1 j.2))) * (ξ a j.1 * ξ a j.2)) ∂P) V t ∧
       |V| ≤ 2 * ((Fintype.card R : ℝ) + 1) ^ 2 * β ^ 2 * M * (d : ℝ) * ε := by
-  classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
   have hxb : ∀ a u, |ξ a u| ≤ Real.sqrt d := abs_spin_le ξ hbound
   have hxs : ∀ a u v, |ξ a u * ξ a v| ≤ d := fun a u v =>
@@ -339,7 +338,6 @@ theorem abs_skVectorFieldAverage_interpolation_sub_le {d : ℕ} {Ω R : Type*} [
     |(∫ ω, skVectorFieldAverage μ ξ β ρ q F (fun x => Z (Sum.inl x) ω) ∂P) -
       ∫ ω, skVectorFieldAverage μ ξ β ρ' q' F (fun x => Z (Sum.inr x) ω) ∂P| ≤
       2 * ((Fintype.card R : ℝ) + 1) ^ 2 * β ^ 2 * M * (d : ℝ) * ε := by
-  classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
   have hxb : ∀ a u, |ξ a u| ≤ Real.sqrt d := abs_spin_le ξ hbound
   have hxs : ∀ a u v, |ξ a u * ξ a v| ≤ d := fun a u v =>

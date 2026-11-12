@@ -588,7 +588,6 @@ theorem isProbabilityMeasure_tilted_skVectorCavityEnergy (μ : Measure α) [IsPr
     (g : FinPairs N → ℝ) (g' : Fin N → ℝ) (Y : D → ℝ) (t : ℝ) :
     IsProbabilityMeasure ((Measure.pi fun _ : Fin (N + 1) => μ).tilted
       (skVectorCavityEnergy ξ N β ρ q g g' Y t)) := by
-  classical
   have hEm : Measurable (skVectorCavityEnergy ξ N β ρ q g g' Y t) := by
     have : skVectorCavityEnergy ξ N β ρ q g g' Y t = fun a => ∑ k : (FinPairs N ⊕ Fin N) ⊕ D,
         Sum.elim (Sum.elim (fun _ => (1 : ℝ)) fun _ => Real.sqrt t)
@@ -685,7 +684,6 @@ theorem skVectorCavity_covariance_eq_replica_sums {R : Type*} [Fintype R] [Decid
               ξ (σ none (Fin.last N)) v *
               (skVectorCavityOverlap ξ N (σ (some none)) (σ none) u v - q u v)
             ∂(Measure.pi fun _ => ν) := by
-  classical
   -- atoms: measurability and boundedness
   have hfm : Measurable fun σ : Option (Option R) → Fin (N + 1) → α =>
       F fun a => σ (some (some a)) :=
@@ -1081,7 +1079,6 @@ theorem hasDerivAt_skVectorCavityAverage {Ω R : Type*} [MeasurableSpace Ω] [Fi
             F (fun c => σ (some (some c))) * ξ (σ (some none) (Fin.last N)) u *
               ξ (σ none (Fin.last N)) v *
               (skVectorCavityOverlap ξ N (σ (some none)) (σ none) u v - q u v))) t := by
-  classical
   set Z : (FinPairs N ⊕ Fin N) ⊕ D → Ω → ℝ := fun k ω =>
     Sum.elim (Sum.elim (fun p => g p ω) fun i => g' i ω) (fun u => Y u ω) k with hZdef
   set sc : (FinPairs N ⊕ Fin N) ⊕ D → ℝ → ℝ := fun k r =>

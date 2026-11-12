@@ -102,7 +102,6 @@ theorem abs_skVectorFreeEnergy_sub_pressure_le_of_pos {d : ℕ} (μ : Measure α
       β ^ 2 * (((8 * (d : ℝ) ^ 4 + 2 * (d : ℝ) ^ 2) / ((N : ℝ) + 1) +
         d * ((8 * (d : ℝ) ^ 4 + 2 * (d : ℝ) ^ 2) / ((N : ℝ) + 1)) / s + 2 * d * s) / 2 +
         (d : ℝ) ^ 2 / (2 * ((N : ℝ) + 1))) := by
-  classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
   have hβ₁0 : 0 < β₁ := hβ.trans hββ₁
   have hsmall : ∀ b ∈ Ioo 0 β₁, 18 * b ^ 2 * (d : ℝ) ^ 2 < 1 := fun b hb => by

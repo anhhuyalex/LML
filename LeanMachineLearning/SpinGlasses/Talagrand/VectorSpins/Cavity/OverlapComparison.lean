@@ -167,7 +167,6 @@ theorem skVectorCavityAverage_one_le_zero_add_deriv {d N : ℕ} {Ω : Type*} [Me
           Real.sqrt (skVectorCavityAverage μ ξ N β ρ q P g g' Y 1 (fun σ => ∑ u, ∑ v,
             (skVectorCavityOverlap ξ N (σ (some (some (0 : Fin 2)))) (σ (some (some (1 : Fin 2))))
               u v - q u v) ^ 2))) := by
-  classical
   set φ : ℝ → ℝ := fun s => ∫ ω, ∫ σ : Fin 2 → Fin (N + 1) → α, F σ ∂(Measure.pi fun _ : Fin 2 =>
       (Measure.pi fun _ : Fin (N + 1) => μ).tilted (skVectorCavityEnergy ξ N β ρ q
         (fun p => g p ω) (fun i => g' i ω) (fun u => Y u ω) s)) ∂P with hφ

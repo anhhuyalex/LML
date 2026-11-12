@@ -129,7 +129,6 @@ theorem skVectorCavityAverage_one_overlap_variance_eq_last_spin [IsProbabilityMe
       skVectorCavityAverage μ ξ N β ρ q P g g' Y 1 (fun σ : Option (Option (Fin 2)) →
         Fin (N + 1) → α => ∑ u, ∑ v,
           skVectorOverlapDeviation ξ N a b T u v (fun c => σ (some (some c))) ^ 2) := by
-  classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
   have hgt' : Measurable fun ω p => gt p ω := measurable_pi_iff.2 hgt
   have hm1 : Measurable fun τ : Fin 2 → Fin (N + 1) → α => ∑ u, ∑ v,
@@ -198,7 +197,6 @@ theorem abs_skVectorCavityAverage_zero_sum_le
           skVectorLastSpinDeviation ξ N a b T u v (fun c => σ (some (some c))) *
             skVectorOverlapDeviation ξ N a b T u v (fun c => σ (some (some c))))| ≤
       (d : ℝ) * d * (2 * (d : ℝ) ^ 2 / ((N : ℝ) + 1)) := by
-  classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
   have hm1 : Measurable fun τ : Fin 2 → Fin (N + 1) → α => ∑ u, ∑ v,
       skVectorLastSpinDeviation ξ N a b T u v τ * skVectorOverlapDeviation ξ N a b T u v τ :=
@@ -247,7 +245,6 @@ theorem skVectorCavityAverage_le_two_mul_add
         Fin (N + 1) → α => X fun c => σ (some (some c))) ≤
       2 * skVectorCavityAverage μ ξ N β ρ q P g g' Y t (fun σ : Option (Option (Fin 2)) →
         Fin (N + 1) → α => W fun c => σ (some (some c))) + e := by
-  classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
   rw [skVectorCavityAverage_old μ ξ hξ hbound β ρ q X hX t,
     skVectorCavityAverage_old μ ξ hξ hbound β ρ q W hW t]
@@ -320,7 +317,6 @@ theorem skVector_overlap_variance_le_sqrt (hq : ∀ u v, q u v = q v u)
             Fin (N + 1) → α => ∑ u, ∑ v,
               skVectorOverlapDeviation ξ N a b T u v (fun c => σ (some (some c))) ^ 2)) *
           (Real.sqrt (2 * B + ε) + Real.sqrt (2 * A + ε)) := by
-  classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
   have hgm := hn.measurable_old_coupling
   have hg'm := hn.measurable_new_coupling
@@ -423,7 +419,6 @@ theorem sum_overlap_variances_le (hβ : β ^ 2 * (d : ℝ) ^ 2 ≤ 1 / 200)
         Fin (N + 1) → α => ∑ u, ∑ v,
           skVectorOverlapDeviation ξ N 0 0 ρ u v (fun c => σ (some (some c))) ^ 2) ≤
       (8 * (d : ℝ) ^ 4 + 2 * (d : ℝ) ^ 2) / ((N : ℝ) + 1) := by
-  classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
   have hgm := hn.measurable_old_coupling
   have hg'm := hn.measurable_new_coupling

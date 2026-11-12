@@ -141,7 +141,6 @@ theorem abs_sum_integral_pair_le {Ω R : Type*} [MeasurableSpace Ω] [Fintype R]
         (∑ o, ξ (σ (some o)) v - ((Fintype.card R : ℝ) + 1) * ξ (σ none) v)
         ∂(Measure.pi fun _ : Option (Option R) => μ.tilted (en ω)) ∂P| ≤
       M * (4 * (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) * d * ε) := by
-  classical
   set n : ℝ := (Fintype.card R : ℝ) with hn
   have hn0 : 0 ≤ n := Nat.cast_nonneg _
   have hcardo : (Fintype.card (Option R) : ℝ) = n + 1 := by simp [hn]
@@ -217,7 +216,6 @@ theorem abs_sum_integral_single_le {Ω R : Type*} [MeasurableSpace Ω] [Fintype 
             ((Fintype.card R : ℝ) + 1) * (ξ (σ none) j.1 * ξ (σ none) j.2))
         ∂(Measure.pi fun _ : Option (Option R) => μ.tilted (en ω)) ∂P| ≤
       M * (2 * ((Fintype.card R : ℝ) + 1) * (d * ε)) := by
-  classical
   set n : ℝ := (Fintype.card R : ℝ) with hn
   have hn0 : 0 ≤ n := Nat.cast_nonneg _
   have hcardo : (Fintype.card (Option R) : ℝ) = n + 1 := by simp [hn]

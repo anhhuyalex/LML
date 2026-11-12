@@ -100,7 +100,6 @@ theorem hasDerivAt_skVectorPressure_rho_segment {d : ℕ} (μ : Measure α) [IsP
       (b ^ 2 / 2 * ∑ u, ∑ v, (ρ' u v - ρ u v) *
         ((skVectorFixedPointMap μ ξ b (q, fun u v => ρ u v + s₀ * (ρ' u v - ρ u v))).2 u v -
           (ρ u v + s₀ * (ρ' u v - ρ u v)))) s₀ := by
-  classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
   have := isGaussian_skVectorGaussianLaw 1 q
   set P := skVectorGaussianLaw 1 q with hP
@@ -162,7 +161,6 @@ theorem abs_skVectorPressure_rho_sub_le {d : ℕ} (μ : Measure α) [IsProbabili
     (hqδ : ∀ u v, |q u v - q' u v| ≤ δ) (hρδ : ∀ u v, |ρ u v - ρ' u v| ≤ δ) :
     |skVectorPressure μ ξ b (q, ρ') - skVectorPressure μ ξ b (q, ρ)| ≤
       b ^ 2 / 2 * ((d : ℝ) * d * ((1 + 18 * b ^ 2 * (d : ℝ) ^ 3) * δ * δ)) := by
-  classical
   set ψ : ℝ → ℝ := fun s => skVectorPressure μ ξ b
     (q, fun u v => ρ u v + s * (ρ' u v - ρ u v)) with hψ
   have hder := fun s₀ => hasDerivAt_skVectorPressure_rho_segment μ ξ hξ hbound b q ρ ρ' hq s₀
@@ -328,7 +326,6 @@ theorem continuous_skVectorSegment_logPartition {d : ℕ} {Ω : Type*} [Measurab
       (fun u v => max 0 (min 1 s) * q₁ u v + (1 - max 0 (min 1 s)) * q₀ u v)
       (fun u => b * (Real.sqrt (max 0 (min 1 s)) * Z (.inl u) ω +
         Real.sqrt (1 - max 0 (min 1 s)) * Z (.inr u) ω)) a) ∂μ) ∂P) := by
-  classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
   have hxb : ∀ a u, |ξ a u| ≤ Real.sqrt d := abs_spin_le ξ hbound
   have hxs : ∀ a u v, |ξ a u * ξ a v| ≤ d := fun a u v =>
@@ -533,7 +530,6 @@ theorem abs_skVectorPressure_q_sub_le {d : ℕ} (μ : Measure α) [IsProbability
     (hqδ : ∀ u v, |q u v - q' u v| ≤ δ) :
     |skVectorPressure μ ξ b (q', ρ') - skVectorPressure μ ξ b (q, ρ')| ≤
       b ^ 2 / 2 * ((d : ℝ) * d * ((1 + 18 * b ^ 2 * (d : ℝ) ^ 3) * δ * δ)) := by
-  classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
   set P := skVectorGaussianPairLaw 1 q' q with hP
   set Z : Fin d ⊕ Fin d → (EuclideanSpace ℝ (Fin d) × EuclideanSpace ℝ (Fin d)) → ℝ :=
@@ -656,7 +652,6 @@ theorem hasDerivAt_skVectorPressure_beta {d : ℕ} (μ : Measure α) [IsProbabil
     (hq : (Matrix.of q).PosSemidef) (hfix : skVectorFixedPointMap μ ξ β (q, ρ) = (q, ρ)) :
     HasDerivAt (fun b => skVectorPressure μ ξ b (q, ρ))
       (β / 2 * (∑ u, ∑ v, ρ u v ^ 2 - ∑ u, ∑ v, q u v ^ 2)) β := by
-  classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
   have := isGaussian_skVectorGaussianLaw 1 q
   set P := skVectorGaussianLaw 1 q with hP
@@ -744,7 +739,6 @@ theorem hasDerivAt_skVectorPressure_fixedPoint {d : ℕ} (μ : Measure α) [IsPr
         :
     HasDerivAt (fun b => skVectorPressure μ ξ b (z b))
       (β / 2 * (∑ u, ∑ v, (z β).2 u v ^ 2 - ∑ u, ∑ v, (z β).1 u v ^ 2)) β := by
-  classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
   have hβmem : β ∈ Set.Ioo (β / 2) β₁ := ⟨by linarith, hββ₁⟩
   set κ : ℝ := 18 * β₁ ^ 2 * (d : ℝ) ^ 2 with hκdef

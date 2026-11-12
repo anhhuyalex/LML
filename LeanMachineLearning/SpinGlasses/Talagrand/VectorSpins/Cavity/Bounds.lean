@@ -299,7 +299,6 @@ theorem abs_skVectorCavityAverage_sum_kernel_le_sqrt (x y : Option (Option R)) (
           (fun σ => (F fun c => σ (some (some c))) ^ 2)) *
         Real.sqrt (skVectorCavityAverage μ ξ N β ρ q P g g' Y t (fun σ => ∑ u, ∑ v,
           (skVectorCavityOverlap ξ N (σ x) (σ y) u v - Q u v) ^ 2)) := by
-  classical
   rw [skVectorCavityAverage_sum_kernel_eq (R := R) (P := P) μ ξ hξ hbound β ρ q hgm hg'm hYm t F
     hF hFb
     x y Q]
@@ -541,7 +540,6 @@ theorem abs_deriv_skVectorCavityAverage_le_sqrt {d N : ℕ} {Ω : Type*} [Measur
   rw [(hasDerivAt_skVectorCavityAverage μ ξ hξ (Nat.cast_nonneg d) hbound N β ρ q hq F hF hM hFb
     hG hgm
     hg'm hYm hgg hYY hgY hg0 hg'0 hY0 ht0 ht1).deriv]
-  classical
   have hφ : ∀ Q : Fin d → Fin d → ℝ, Measurable fun p : (Fin (N + 1) → α) × (Fin (N + 1) → α) =>
       ∑ u, ∑ v, (skVectorCavityOverlap ξ N p.1 p.2 u v - Q u v) ^ 2 := fun Q =>
     Finset.measurable_sum _ fun u _ => Finset.measurable_sum _ fun v _ =>

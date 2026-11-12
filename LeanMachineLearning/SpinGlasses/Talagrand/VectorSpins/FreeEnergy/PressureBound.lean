@@ -55,7 +55,6 @@ theorem abs_skVectorPressure_le {d : ℕ} (μ : Measure α) [IsProbabilityMeasur
     (hρ2 : ∑ u, ∑ v, z.2 u v ^ 2 ≤ (d : ℝ) ^ 2) :
     |skVectorPressure μ ξ b z| ≤
       b ^ 2 * (d : ℝ) ^ 2 / 2 + |b| * (d : ℝ) ^ 2 + b ^ 2 * (d : ℝ) ^ 3 := by
-  classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
   have hxb : ∀ a u, |ξ a u| ≤ Real.sqrt d := abs_spin_le ξ hbound
   have hxs : ∀ a u v, |ξ a u * ξ a v| ≤ d := fun a u v =>

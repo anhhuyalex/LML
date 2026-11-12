@@ -90,7 +90,6 @@ theorem skVectorCavityGaussianData_disorderLaw (N : ℕ) {d : ℕ} (β : ℝ) (q
     SKVectorCavityGaussianData (skVectorDisorderLaw N β q) N d β q
       (fun p ω => ω.1 (finPairsSplit N (Sum.inl p)))
       (fun i ω => ω.1 (finPairsSplit N (Sum.inr i))) (fun u ω => ω.2 u) := by
-  classical
   have hG1 : IsGaussian (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) :=
     isGaussian_pi_gaussianReal
   have hG2 := isGaussian_skVectorGaussianLaw β q

@@ -64,7 +64,6 @@ theorem hasDerivAt_skVectorFieldAverage_temperature {d : ℕ} {Ω R : Type*} [Me
       |V| ≤ b * ((d : ℝ) * d * Dq * (4 * (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) * M * d)
           +
         (d : ℝ) * d * DA * (2 * ((Fintype.card R : ℝ) + 1) * M * d)) := by
-  classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
   have hxb : ∀ a u, |ξ a u| ≤ Real.sqrt d := abs_spin_le ξ hbound
   have hxs : ∀ a u v, |ξ a u * ξ a v| ≤ d := fun a u v =>
@@ -211,7 +210,6 @@ theorem abs_skVectorFieldAverage_temperature_sub_le {d : ℕ} (μ : Measure α) 
         ∫ y, skVectorFieldAverage μ ξ b₁ ρ q F y ∂(skVectorGaussianLaw b₁ q)| ≤
       b₂ * ((d : ℝ) * d * Dq * (4 * 2 * (2 + 1) * M * d) +
         (d : ℝ) * d * DA * (2 * (2 + 1) * M * d)) * (b₂ - b₁) := by
-  classical
   have := isGaussian_skVectorGaussianLaw 1 q
   set P := skVectorGaussianLaw 1 q with hP
   have hZ : HasGaussianLaw (fun (y : Fin d → ℝ) (k : Fin d) => y k) P :=

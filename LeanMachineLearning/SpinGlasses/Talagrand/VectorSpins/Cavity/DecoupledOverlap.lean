@@ -79,7 +79,6 @@ theorem abs_skVectorCavityAverage_zero_overlap_le {d N : ℕ} {Ω : Type*} [Meas
         ∂(Measure.pi fun _ : Fin 2 => (Measure.pi fun _ : Fin (N + 1) => μ).tilted
           (skVectorCavityEnergy ξ N β ρ q (fun p => g p ω) (fun i => g' i ω)
             (fun w => Y w ω) 0)) ∂P| ≤ 2 * (d : ℝ) ^ 2 / ((N : ℝ) + 1) := by
-  classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
   have hc0 : (0 : ℝ) ≤ ((N : ℝ) + 1)⁻¹ := by positivity
   have hcN : ((N : ℝ) + 1)⁻¹ * N ≤ 1 := by

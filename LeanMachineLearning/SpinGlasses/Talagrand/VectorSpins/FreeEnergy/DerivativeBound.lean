@@ -136,7 +136,6 @@ theorem abs_skVectorFreeEnergyDerivIntegrand_sub_le {d : ℕ} (ξ : α → Fin d
         d * (∑ u, ∑ v, skVectorOverlapDeviation ξ N 0 0 r u v σ ^ 2 +
           ∑ u, ∑ v, skVectorOverlapDeviation ξ N 0 1 q u v σ ^ 2) / s + 2 * d * s) +
         |β| * d ^ 2 / (2 * ((N : ℝ) + 1)) := by
-  classical
   have hM : (0 : ℝ) < (N : ℝ) + 1 := by positivity
   have hd : (0 : ℝ) ≤ d := Nat.cast_nonneg d
   have hS : ∀ (a b : Fin 2) (T : Fin d → Fin d → ℝ) (u v : Fin d),
@@ -187,7 +186,6 @@ theorem exists_abs_skVectorFreeEnergyDerivIntegrand_le {d : ℕ} (ξ : α → Fi
     (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ d) (N : ℕ) : ∃ C : ℝ, ∀ σ, |skVectorFreeEnergyDerivIntegrand ξ
       N σ| ≤ C
         := by
-  classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
   have hxb : ∀ a u, |ξ a u| ≤ Real.sqrt d := abs_spin_le ξ hbound
   have hxx : ∀ a b u v, |ξ a u * ξ b v| ≤ d := abs_spin_mul_le ξ (Nat.cast_nonneg d) hbound
@@ -242,7 +240,6 @@ theorem exists_hasDerivAt_skVectorFreeEnergy_abs_sub_le {d : ℕ} (μ : Measure 
         |β| / 2 * ((8 * (d : ℝ) ^ 4 + 2 * (d : ℝ) ^ 2) / ((N : ℝ) + 1) +
           d * ((8 * (d : ℝ) ^ 4 + 2 * (d : ℝ) ^ 2) / ((N : ℝ) + 1)) / s + 2 * d * s) +
           |β| * d ^ 2 / (2 * ((N : ℝ) + 1)) := by
-  classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
   have hM : (0 : ℝ) < (N : ℝ) + 1 := by positivity
   obtain ⟨hq2, hρ2⟩ := skVectorFixedPoint_sum_sq_le μ ξ hξ hbound β hx hxf

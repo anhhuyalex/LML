@@ -155,7 +155,6 @@ theorem skVector_overlap_variance_eq_last_spin {N d : ℕ} {Ω : Type*} [Measura
           (((N : ℝ) + 1)⁻¹ * ∑ i, ξ (σ a i) u * ξ (σ b i) v - T)
         ∂(Measure.pi fun _ : Fin 2 => (Measure.pi fun _ : Fin (N + 1) => μ).tilted
           (fun x => skVectorEnergy (N + 1) β (gt ω) (fun i => ξ (x i)))) ∂P := by
-  classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
   have hM0 : ((N : ℝ) + 1) ≠ 0 := by positivity
   have hsp := abs_spin_mul_le ξ hr hbound

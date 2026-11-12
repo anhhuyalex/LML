@@ -58,7 +58,6 @@ theorem hasDerivAt_skVectorGaussianFreeEnergy_rho (μ : Measure α) [IsProbabili
       (β ^ 2 / 2 * ∑ u, ∑ v, E u v * ∫ ω, ∫ a, ξ a u * ξ a v ∂(μ.tilted
         (fun a => β * ∑ w, X w ω * ξ a w +
           β ^ 2 / 2 * ∑ w, ∑ w', ξ a w * ξ a w' * (ρ w w' + s₀ * E w w' - q w w'))) ∂P) s₀ := by
-  classical
   set Xs : Unit → α → ℝ := fun _ a => ∑ w, ∑ w', E w w' * (ξ a w * ξ a w') with hXs
   set Xf : D → α → ℝ := fun u a => ξ a u with hXf
   set D0 : α → ℝ := fun a => β ^ 2 / 2 * ∑ w, ∑ w', ξ a w * ξ a w' * (ρ w w' - q w w') with hD0
@@ -221,7 +220,6 @@ theorem hasDerivAt_skVectorSegment (μ : Measure α) [IsProbabilityMeasure μ]
           (fun u v => t * q₁ u v + (1 - t) * q₀ u v)
           (fun u => β * (Real.sqrt t * Z (.inl u) ω +
             Real.sqrt (1 - t) * Z (.inr u) ω))))) ∂P) t := by
-  classical
   set Xs : Unit → α → ℝ := fun _ a => ∑ w, ∑ w', (q₁ w w' - q₀ w w') * (ξ a w * ξ a w') with hXs
   set Xf : D ⊕ D → α → ℝ := Sum.elim (fun u a => ξ a u) (fun u a => ξ a u) with hXf
   set D0 : α → ℝ := fun a => β ^ 2 / 2 * ∑ w, ∑ w', ξ a w * ξ a w' * (ρ w w' - q₀ w w') with hD0

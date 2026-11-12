@@ -130,7 +130,6 @@ theorem skVectorCavityAverage_zero_centered_mul_eq_zero {d N : ℕ} {Ω : Type*}
         ∂(Measure.pi fun _ : Fin 2 => (Measure.pi fun _ : Fin (N + 1) => μ).tilted
           (skVectorCavityEnergy ξ N β ρ q (fun p => g p ω) (fun i => g' i ω)
             (fun w => Y w ω) 0)) ∂P = 0 := by
-  classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
   set A : (FinPairs N → ℝ) → ℝ := fun x => ∫ τ, Ψ τ ∂(Measure.pi fun _ : Fin 2 =>
     (Measure.pi fun _ : Fin N => μ).tilted
@@ -218,7 +217,6 @@ theorem skVectorCavityAverage_zero_pair_mul_eq_zero {d N : ℕ} {Ω : Type*} [Me
         ∂(Measure.pi fun _ : Fin 2 => (Measure.pi fun _ : Fin (N + 1) => μ).tilted
           (skVectorCavityEnergy ξ N β ρ q (fun p => g p ω) (fun i => g' i ω)
             (fun w => Y w ω) 0)) ∂P = 0 := by
-  classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
   set Ψ₂ : (Fin 2 → α) → ℝ := fun a => ξ (a 0) u * ξ (a 1) v - q u v with hΨ₂
   have hΨ₂m : Measurable Ψ₂ :=
@@ -303,7 +301,6 @@ theorem skVectorCavityAverage_zero_diag_mul_eq_zero {d N : ℕ} {Ω : Type*} [Me
         ∂(Measure.pi fun _ : Fin 2 => (Measure.pi fun _ : Fin (N + 1) => μ).tilted
           (skVectorCavityEnergy ξ N β ρ q (fun p => g p ω) (fun i => g' i ω)
             (fun w => Y w ω) 0)) ∂P = 0 := by
-  classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
   have hΨ₂m : Measurable fun a : Fin 2 → α => ξ (a 0) u * ξ (a 0) v - ρ u v :=
     (((hξ u).comp (measurable_pi_apply 0)).mul ((hξ v).comp (measurable_pi_apply 0))).sub

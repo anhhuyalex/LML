@@ -138,6 +138,7 @@ theorem abs_deriv_skVectorCavityAverage_le_mul_self {d N : ℕ} {Ω R : Type*} [
         ∫ ω, ∫ σ : R → Fin (N + 1) → α, F σ ∂(Measure.pi fun _ : R =>
         (Measure.pi fun _ : Fin (N + 1) => μ).tilted (skVectorCavityEnergy ξ N β ρ q
           (fun p => g p ω) (fun i => g' i ω) (fun u => Y u ω) s)) ∂P := by
+  classical
   have hd := hasDerivAt_skVectorCavityAverage μ ξ hξ (Nat.cast_nonneg d) hbound N β ρ q hq F hF hM
     hFb
     hn.hasGaussianLaw hn.measurable_old_coupling hn.measurable_new_coupling hn.measurable_field
@@ -180,7 +181,6 @@ theorem skVectorCavityAverage_le_exp_mul_endpoint {d N : ℕ} {Ω R : Type*} [Me
       Real.exp (2 * Fintype.card R * (2 * Fintype.card R + 1) * β ^ 2 * (d : ℝ) ^ 2 * (1 - t)) *
         skVectorCavityAverage μ ξ N β ρ q P g g' Y 1
           (fun σ : Option (Option R) → Fin (N + 1) → α => F fun c => σ (some (some c))) := by
-  classical
   set c : ℝ := 2 * Fintype.card R * (2 * Fintype.card R + 1) * β ^ 2 * (d : ℝ) ^ 2 with hc
   have hc0 : 0 ≤ c := by positivity
   set φ : ℝ → ℝ := fun s => ∫ ω, ∫ σ : R → Fin (N + 1) → α, F σ ∂(Measure.pi fun _ : R =>
@@ -246,7 +246,6 @@ theorem skVectorCavityAverage_one_le_zero_add {d N : ℕ} {Ω R : Type*} [Measur
         Real.exp (2 * Fintype.card R * (2 * Fintype.card R + 1) * β ^ 2 * (d : ℝ) ^ 2) *
         skVectorCavityAverage μ ξ N β ρ q P g g' Y 1
           (fun σ : Option (Option R) → Fin (N + 1) → α => F fun c => σ (some (some c))) := by
-  classical
   set c : ℝ := 2 * Fintype.card R * (2 * Fintype.card R + 1) * β ^ 2 * (d : ℝ) ^ 2 with hc
   have hc0 : 0 ≤ c := by positivity
   set φ : ℝ → ℝ := fun s => ∫ ω, ∫ σ : R → Fin (N + 1) → α, F σ ∂(Measure.pi fun _ : R =>

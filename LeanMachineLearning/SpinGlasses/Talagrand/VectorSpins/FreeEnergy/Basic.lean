@@ -67,7 +67,6 @@ theorem hasDerivAt_skVectorLogPartition {d : ℕ} (μ : Measure α) [IsProbabili
             ∫ σ : Fin N → α, Real.exp (skVectorEnergy N β g (fun i => ξ (σ i)))
               ∂(Measure.pi fun _ : Fin N => μ)) ^ 2)
           ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) β := by
-  classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
   have hxb : ∀ a u, |ξ a u| ≤ Real.sqrt d := abs_spin_le ξ hbound
   have hXm : ∀ p : FinPairs N, Measurable (skVectorPairFeature ξ N p) := fun p => by
@@ -186,7 +185,6 @@ theorem sum_skVectorPairFeature_gibbsVariance_eq {d : ℕ} (μ : Measure α) [Is
             ((∑ i, ξ (σ 0 i) u * ξ (σ 1 i) v) ^ 2 - ∑ i, (ξ (σ 0 i) u * ξ (σ 1 i) v) ^ 2))
         ∂(Measure.pi fun _ : Fin 2 => (Measure.pi fun _ : Fin (N + 1) => μ).tilted
           (fun σ => skVectorEnergy (N + 1) β g (fun i => ξ (σ i)))) := by
-  classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
   have hxb : ∀ a u, |ξ a u| ≤ Real.sqrt d := abs_spin_le ξ hbound
   have hXm : ∀ p : FinPairs (N + 1), Measurable (skVectorPairFeature ξ (N + 1) p) := fun p => by
@@ -251,7 +249,6 @@ theorem hasDerivAt_skVectorFreeEnergy {d : ℕ} (μ : Measure α) [IsProbability
         ∂(Measure.pi fun _ : Fin 2 => (Measure.pi fun _ : Fin (N + 1) => μ).tilted
           (fun σ => skVectorEnergy (N + 1) β g (fun i => ξ (σ i))))
         ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))) β := by
-  classical
   have hr : (0 : ℝ) ≤ d := Nat.cast_nonneg d
   have hd := (hasDerivAt_skVectorLogPartition μ ξ hξ hbound (N + 1) β).const_mul
     (((N + 1 : ℕ) : ℝ)⁻¹)

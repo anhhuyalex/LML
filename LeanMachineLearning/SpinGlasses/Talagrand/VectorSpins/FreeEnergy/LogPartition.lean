@@ -51,7 +51,6 @@ theorem hasDerivAt_skVectorGaussianFreeEnergy (μ : Measure α) [IsProbabilityMe
         (fun w => β * X w ω)))) ∂P) :
     HasDerivAt (skVectorGaussianFreeEnergy μ ξ ρ q P X) (β * ∑ u, ∑ v, (ρ u v ^ 2 - q u v ^ 2)) β
       := by
-  classical
   set Xs : Unit → α → ℝ := fun _ a => ∑ w, ∑ w', ξ a w * ξ a w' * (ρ w w' - q w w') with hXs
   set Xf : D → α → ℝ := fun u a => ξ a u with hXf
   have hξb : ∀ a u, |ξ a u| ≤ Real.sqrt r := abs_spin_le ξ hbound

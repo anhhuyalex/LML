@@ -183,7 +183,6 @@ theorem sum_sq_skVectorFieldAverage_sub_le {d : ℕ} (μ : Measure α) [IsProbab
         ∂(skVectorGaussianLaw β x.1)) - ∫ y, skVectorFieldAverage μ ξ β x'.2 x'.1 (fun σ => W σ u
           v) y
         ∂(skVectorGaussianLaw β x'.1)) ^ 2 ≤ (18 * β ^ 2 * (d : ℝ) ^ 2 * ε) ^ 2 := by
-  classical
   have hd : 0 ≤ (d : ℝ) := Nat.cast_nonneg d
   set D : Fin d → Fin d → ℝ := fun u v =>
     (∫ y, skVectorFieldAverage μ ξ β x.2 x.1 (fun σ => W σ u v) y ∂(skVectorGaussianLaw β x.1)) -
