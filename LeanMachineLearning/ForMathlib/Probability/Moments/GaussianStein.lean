@@ -159,6 +159,35 @@ theorem integrable_exp_sum_mul_abs_pi (w : ι → ℝ) :
     (f := fun k (t : ℝ) => Real.exp (w k * |t|)) fun k => integrable_exp_mul_abs_gaussianReal (w k)
   simpa [Real.exp_sum] using h
 
+omit [DecidableEq ι] in
+/-- Any measurable functional `F` bounded by `C + ∑ k, w k |x k|` satisfies
+`exp (t * F x)` is integrable against standard Gaussian disorder for every `t : ℝ`. -/
+theorem integrable_exp_of_linear_bound {F : (ι → ℝ) → ℝ}
+    (hFm : AEMeasurable F (Measure.pi fun _ : ι => gaussianReal 0 1))
+    {C : ℝ} {w : ι → ℝ} (hF : ∀ x, |F x| ≤ C + ∑ k, w k * |x k|) (t : ℝ) :
+    Integrable (fun x => Real.exp (t * F x)) (Measure.pi fun _ : ι => gaussianReal 0 1) := by
+  have hbound (x : ι → ℝ) : t * F x ≤ |t| * C + ∑ k, (|t| * |w k|) * |x k| := by
+    have h1 : t * F x ≤ |t * F x| := le_abs_self _
+    have h2 : |t * F x| = |t| * |F x| := abs_mul _ _
+    have h3 : |t| * |F x| ≤ |t| * (C + ∑ k, w k * |x k|) :=
+      mul_le_mul_of_nonneg_left (hF x) (abs_nonneg _)
+    have h4 : |t| * (C + ∑ k, w k * |x k|) = |t| * C + ∑ k, (|t| * w k) * |x k| := by
+      rw [mul_add, Finset.mul_sum]
+      congr 1
+      refine Finset.sum_congr rfl fun k _ => by ring
+    have h5 : ∑ k, (|t| * w k) * |x k| ≤ ∑ k, (|t| * |w k|) * |x k| := by
+      refine Finset.sum_le_sum fun k _ => ?_
+      exact mul_le_mul_of_nonneg_right
+        (mul_le_mul_of_nonneg_left (le_abs_self _) (abs_nonneg _)) (abs_nonneg _)
+    linarith
+  have hint : Integrable (fun x : ι → ℝ => Real.exp (|t| * C + ∑ k, (|t| * |w k|) * |x k|))
+      (Measure.pi fun _ : ι => gaussianReal 0 1) := by
+    simp_rw [add_comm (|t| * C), Real.exp_add]
+    exact (integrable_exp_sum_mul_abs_pi (fun k => |t| * |w k|)).mul_const _
+  refine hint.mono' (hFm.const_mul t).exp.aestronglyMeasurable (ae_of_all _ fun x => ?_)
+  rw [Real.norm_eq_abs, abs_of_pos (Real.exp_pos _)]
+  exact Real.exp_le_exp.mpr (hbound x)
+
 end Growth
 
 

@@ -8,6 +8,7 @@ module
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SecondMoment
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SubGaussianSymmetrization
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianVector
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.LogSumExp
 public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianComparison
 public import LeanMachineLearning.SpinGlasses.Panchenko.Foundations.MixedPSpin
 
@@ -33,24 +34,8 @@ variable {α : Type*} [Fintype α] [Nonempty α]
 /-- **`log ∑ₐ exp (· + h)` is 1-Lipschitz for the sup norm:** if `|uₐ - vₐ| ≤ M` for all `a`, then
 `|log ∑ₐ exp (uₐ + hₐ) - log ∑ₐ exp (vₐ + hₐ)| ≤ M`. -/
 theorem abs_log_sum_exp_sub_le_of_forall (h u v : α → ℝ) {M : ℝ} (hM : ∀ a, |u a - v a| ≤ M) :
-    |Real.log (∑ a, Real.exp (u a + h a)) - Real.log (∑ a, Real.exp (v a + h a))| ≤ M := by
-  have key : ∀ u v : α → ℝ, (∀ a, u a - v a ≤ M) → Real.log (∑ a, Real.exp (u a + h a)) -
-      Real.log (∑ a, Real.exp (v a + h a)) ≤ M := by
-    intro u v huv
-    have hu : 0 < ∑ a, Real.exp (u a + h a) :=
-      Finset.sum_pos (fun _ _ => Real.exp_pos _) Finset.univ_nonempty
-    have hv : 0 < ∑ a, Real.exp (v a + h a) :=
-      Finset.sum_pos (fun _ _ => Real.exp_pos _) Finset.univ_nonempty
-    rw [sub_le_iff_le_add', ← Real.log_exp M, ← Real.log_mul hv.ne' (Real.exp_pos _).ne']
-    refine Real.log_le_log hu ?_
-    rw [Finset.sum_mul]
-    refine Finset.sum_le_sum fun a _ => ?_
-    rw [← Real.exp_add]
-    exact Real.exp_le_exp.2 (by linarith [huv a])
-  rw [abs_le]
-  refine ⟨?_, key u v fun a => (le_abs_self _).trans (hM a)⟩
-  have := key v u fun a => (le_abs_self _).trans ((abs_sub_comm _ _).trans_le (hM a))
-  linarith
+    |Real.log (∑ a, Real.exp (u a + h a)) - Real.log (∑ a, Real.exp (v a + h a))| ≤ M :=
+  _root_.abs_log_sum_exp_sub_le_of_forall h u v hM
 
 /-- **`log ∑ₐ exp (· + h)` is 1-Lipschitz** for the `ℓ¹` norm:
 `|log ∑ₐ exp (uₐ + hₐ) - log ∑ₐ exp (vₐ + hₐ)| ≤ ∑ₐ |uₐ - vₐ|`. -/
