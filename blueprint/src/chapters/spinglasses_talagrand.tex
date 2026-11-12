@@ -10021,7 +10021,7 @@ hypotheses enter these shared measure-theory lemmas.
 
 \begin{theorem}[The scalar Ising comparison]\label{thm:sg-tal:vector-ising}
 \talsource{Section~1.12, discussion before and after (1.363)}
-\lean{SpinGlasses.sum_field_add_skVectorEnergy_eq_skGibbsEnergy, SpinGlasses.tilted_skVectorEnergy_eq_ising, SpinGlasses.integral_exp_skVectorEnergy_ising, SpinGlasses.log_integral_exp_skVectorEnergy_ising, SpinGlasses.skVectorFreeEnergy_ising, SpinGlasses.skVectorCavityOverlap_ising_diag, SpinGlasses.skVectorCavityOverlap_ising_sub_one, SpinGlasses.ising_last_spin_sq, SpinGlasses.skVectorCavityOverlap_ising_symm, SpinGlasses.ising_cavity_rhs_eq_three_family_sum}
+\lean{SpinGlasses.sum_field_add_skVectorEnergy_eq_skGibbsEnergy, SpinGlasses.tilted_skVectorEnergy_eq_ising, SpinGlasses.integral_exp_skVectorEnergy_ising, SpinGlasses.log_integral_exp_skVectorEnergy_ising, SpinGlasses.skVectorFreeEnergy_ising, SpinGlasses.skVectorCavityOverlap_ising_diag, SpinGlasses.skVectorCavityOverlap_ising_sub_one, SpinGlasses.ising_last_spin_sq, SpinGlasses.skVectorCavityOverlap_ising_symm, SpinGlasses.ising_cavity_rhs_eq_three_family_sum, SpinGlasses.skVectorCavityAverage_ising_eq, SpinGlasses.hasDerivAt_ising_cavity_path_of_vector, SpinGlasses.ising_cavity_path_deriv_eq_scalar, SpinGlasses.hasDerivAt_integral_sk_cavity_path_square_of_vector}
 \leanok
 For one component let $\mu_h(\varepsilon)=e^{h\varepsilon}/(2\cosh h)$ on signs.
 For every $\beta,h,g$ and $N\ge0$ the vector Gibbs law equals the scalar SK Gibbs law and
@@ -10034,8 +10034,12 @@ Furthermore, for one component the vector cavity derivative integrand of Eq.~(1.
 reduces identically to the three-replica scalar cavity combination of Eqs.~(1.151)--(1.152):
 the diagonal terms $a = b$ in the first sum evaluate to $-(N+1)^{-1}$ and cancel exactly
 against the third sum, while the off-diagonal terms double by symmetry to the strictly
-ordered pairs $a < b$. The identity of the two sums is proved; the identification of the
-derivatives themselves is not formalized.
+ordered pairs $a < b$. The identity of the two sums is proved; furthermore, the identification
+of the derivatives themselves is fully formalized in \texttt{Model/IsingCavity.lean}: by Fubini
+and the configuration-independent energy shift $(1-t)\frac{\beta^2}{2}(1-q)$, the vector and scalar
+cavity expectation functions coincide on $(0, 1)$, and transferring the derivative along the
+equality derives the scalar cavity path derivative
+(\texttt{hasDerivAt\_integral\_sk\_cavity\_path\_square\_of\_vector}) directly from the vector engine.
 \end{theorem}
 \begin{proof}\uses{lem:sg-tal:vector-product-normalization}
 Add the sum of the one-site field energies to the existing one-component interaction

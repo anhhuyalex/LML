@@ -137,7 +137,7 @@ For one-component Ising spins, the diagonal terms `a = b` in the first sum of Eq
 cancel exactly against the third sum, and the off-diagonal terms double to the strictly
 ordered pairs, yielding the three-family replica combination of Eq. (1.151) / (1.152).
 This establishes the algebraic equality of the two right-hand sums; the identification
-of the derivatives themselves is not formalized here. -/
+of the derivatives themselves is formalized in `Model/IsingCavity.lean`. -/
 theorem ising_cavity_rhs_eq_three_family_sum
     (N : ℕ) (β q : ℝ) (R : Type*) [Fintype R] [LinearOrder R]
     (F : (R → Fin (N + 1) → ℤˣ) → ℝ)

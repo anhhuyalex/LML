@@ -58,7 +58,6 @@ theorem continuous_skVectorCavityAverage {d N : ℕ} {Ω R : Type*} [MeasurableS
     Continuous (fun s => ∫ ω, ∫ σ : R → Fin (N + 1) → α, F σ ∂(Measure.pi fun _ : R =>
         (Measure.pi fun _ : Fin (N + 1) => μ).tilted (skVectorCavityEnergy ξ N β ρ q
           (fun p => g p ω) (fun i => g' i ω) (fun u => Y u ω) s)) ∂P) := by
-  classical
   set Z : (FinPairs N ⊕ Fin N) ⊕ Fin d → Ω → ℝ := fun k ω =>
     Sum.elim (Sum.elim (fun p => g p ω) fun i => g' i ω) (fun u => Y u ω) k with hZdef
   set sc : (FinPairs N ⊕ Fin N) ⊕ Fin d → ℝ → ℝ := fun k r =>
@@ -139,7 +138,6 @@ theorem abs_deriv_skVectorCavityAverage_le_mul_self {d N : ℕ} {Ω R : Type*} [
         ∫ ω, ∫ σ : R → Fin (N + 1) → α, F σ ∂(Measure.pi fun _ : R =>
         (Measure.pi fun _ : Fin (N + 1) => μ).tilted (skVectorCavityEnergy ξ N β ρ q
           (fun p => g p ω) (fun i => g' i ω) (fun u => Y u ω) s)) ∂P := by
-  classical
   have hd := hasDerivAt_skVectorCavityAverage μ ξ hξ (Nat.cast_nonneg d) hbound N β ρ q hq F hF hM
     hFb
     hn.hasGaussianLaw hn.measurable_old_coupling hn.measurable_new_coupling hn.measurable_field

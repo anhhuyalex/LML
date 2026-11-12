@@ -9,6 +9,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Model.Ising
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Cavity.Derivative
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Cavity.Comparison
 public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityOuterDerivative
+public import LeanMachineLearning.SpinGlasses.Talagrand.GaussianFluctuation.SKLastSpinGaussian
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteReplicaTiltedShift
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianVector
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiLinearForm
@@ -42,7 +43,7 @@ $\rho = 1$, and tilted base measure $\mu_h = \text{count}.\text{tilted}(h \cdot 
 @[expose] public section
 
 open MeasureTheory ProbabilityTheory Finset
-open scoped BigOperators
+open scoped BigOperators Topology
 
 namespace SpinGlasses
 
@@ -143,5 +144,439 @@ theorem skVectorCavityGibbs_ising_eq {R : Type*} [Fintype R] (N : ℕ) (β q h t
     exact skVectorCavityEnergy_ising_eq N β q h t ht0 ht1 g' ω σ
   simp_rw [htilt]
   exact integral_pi_count_tilted_add_const _ _ Ψ
+
+
+/-! ### S4. Gaussian disorder data -/
+
+/-- **Gaussian disorder data on the scalar space**: the product Gaussian measure on
+`(FinPairs N → ℝ) × ((Fin N → ℝ) × ℝ)` satisfies the joint Gaussianity and covariance
+hypotheses of `SKVectorCavityGaussianData` with `d = 1` and `Y_u = β √q ω₂.2`. -/
+theorem skVectorCavityGaussianData_disorderLaw_ising (N : ℕ) (β q : ℝ) (hq : 0 ≤ q) :
+    SKVectorCavityGaussianData
+      ((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
+        ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)))
+      N 1 β (fun _ _ => q)
+      (fun p ω => ω.1 p)
+      (fun i ω => ω.2.1 i)
+      (fun _ ω => β * Real.sqrt q * ω.2.2) := by
+  have h1 : HasGaussianLaw (fun x : FinPairs N → ℝ => x)
+      (Measure.pi fun _ : FinPairs N => gaussianReal 0 1) :=
+    isGaussian_pi_gaussianReal.hasGaussianLaw_id
+  have h2a : HasGaussianLaw (fun x : Fin N → ℝ => x)
+      (Measure.pi fun _ : Fin N => gaussianReal 0 1) :=
+    isGaussian_pi_gaussianReal.hasGaussianLaw_id
+  have h2b_real : HasGaussianLaw (fun z : ℝ => z) (gaussianReal 0 1) :=
+    isGaussian_gaussianReal 0 1 |>.hasGaussianLaw_id
+  let L : ℝ →L[ℝ] (Fin 1 → ℝ) := ContinuousLinearMap.pi fun _ => ContinuousLinearMap.id ℝ ℝ
+  have h2b : HasGaussianLaw (fun z (_ : Fin 1) => z) (gaussianReal 0 1) :=
+    h2b_real.map_fun L
+  have h2_joint := HasGaussianLaw.sumElim_prod_of_independent h2a h2b
+    measurable_id (Measurable.of_eval fun _ => measurable_id)
+  let c : Fin N ⊕ Fin 1 → ℝ := Sum.elim (fun _ => 1) (fun _ => β * Real.sqrt q)
+  have h2_scaled := h2_joint.reindex_mul id c
+  have h2_m : Measurable (fun z : (Fin N → ℝ) × ℝ => fun s : Fin N ⊕ Fin 1 =>
+      c s * Sum.elim (fun a => z.1 a) (fun b => z.2) (id s)) := by
+    refine Measurable.of_eval fun s => ?_
+    rcases s with i | u
+    · simp only [c, Sum.elim_inl, id_eq, one_mul]
+      exact (measurable_pi_apply i).comp measurable_fst
+    · simp only [c, Sum.elim_inr, id_eq]
+      exact measurable_const.mul measurable_snd
+  have h_all := HasGaussianLaw.sumElim_prod_of_independent h1 h2_scaled measurable_id h2_m
+  let e : (FinPairs N ⊕ Fin N) ⊕ Fin 1 → FinPairs N ⊕ (Fin N ⊕ Fin 1) := fun k =>
+    match k with
+    | .inl (.inl p) => .inl p
+    | .inl (.inr i) => .inr (.inl i)
+    | .inr u => .inr (.inr u)
+  have h_final := h_all.reindex e
+  have hG : HasGaussianLaw (fun ω : (FinPairs N → ℝ) × ((Fin N → ℝ) × ℝ) =>
+      fun k : (FinPairs N ⊕ Fin N) ⊕ Fin 1 =>
+        Sum.elim (Sum.elim (fun p => ω.1 p) fun i => ω.2.1 i)
+          (fun _ => β * Real.sqrt q * ω.2.2) k)
+      ((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
+        ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))) := by
+    convert h_final using 1
+    ext ω k
+    rcases k with (p | i) | u <;> simp [c, e]
+  refine ⟨hG, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · exact fun p => (measurable_pi_apply p).comp measurable_fst
+  · exact fun i => ((measurable_pi_apply i).comp measurable_fst).comp measurable_snd
+  · exact fun u => measurable_const.mul (measurable_snd.comp measurable_snd)
+  · intro k l
+    rcases k with p | i <;> rcases l with p' | i'
+    · dsimp only [Sum.elim_inl, Sum.elim_inr]
+      have h_int := integral_prod_mul (μ := Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
+        (ν := (Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+        (fun g => g p * g p') (fun _ => (1 : ℝ))
+      simp only [mul_one, integral_const, probReal_univ, smul_eq_mul] at h_int
+      rw [h_int, integral_pi_gaussianReal_coord_mul]
+      simp only [Sum.inl.injEq]
+    · dsimp only [Sum.elim_inl, Sum.elim_inr]
+      have h_int := integral_prod_mul (μ := Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
+        (ν := (Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+        (fun g => g p) (fun ω₂ => ω₂.1 i')
+      rw [h_int, integral_pi_gaussianReal_coord, zero_mul]
+      rfl
+    · dsimp only [Sum.elim_inl, Sum.elim_inr]
+      have h_int := integral_prod_mul (μ := Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
+        (ν := (Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+        (fun g => g p') (fun ω₂ => ω₂.1 i)
+      have hcomm : (fun ω : (FinPairs N → ℝ) × (Fin N → ℝ) × ℝ => ω.2.1 i * ω.1 p') =
+          (fun ω => ω.1 p' * ω.2.1 i) := funext fun ω => mul_comm _ _
+      rw [hcomm, h_int, integral_pi_gaussianReal_coord, zero_mul]
+      rfl
+    · dsimp only [Sum.elim_inl, Sum.elim_inr]
+      have h_int1 := integral_prod_mul (μ := Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
+        (ν := (Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+        (fun _ => (1 : ℝ)) (fun ω₂ => ω₂.1 i * ω₂.1 i')
+      simp only [one_mul, integral_const, probReal_univ, smul_eq_mul] at h_int1
+      have h_int2 := integral_prod_mul (μ := Measure.pi fun _ : Fin N => gaussianReal 0 1)
+        (ν := gaussianReal 0 1) (fun g' => g' i * g' i') (fun _ => (1 : ℝ))
+      simp only [mul_one, integral_const, probReal_univ, smul_eq_mul] at h_int2
+      rw [h_int1, h_int2, integral_pi_gaussianReal_coord_mul]
+      simp only [Sum.inr.injEq]
+  · intro u v
+    have h_int1 := integral_prod_mul (μ := Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
+      (ν := (Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+      (fun _ => (1 : ℝ)) (fun ω₂ => (β * Real.sqrt q * ω₂.2) * (β * Real.sqrt q * ω₂.2))
+    simp only [one_mul, integral_const, probReal_univ, smul_eq_mul] at h_int1
+    have h_int2 := integral_prod_mul (μ := Measure.pi fun _ : Fin N => gaussianReal 0 1)
+      (ν := gaussianReal 0 1) (fun _ => (1 : ℝ))
+      (fun z => (β * Real.sqrt q * z) * (β * Real.sqrt q * z))
+    simp only [one_mul, integral_const, probReal_univ, smul_eq_mul] at h_int2
+    rw [h_int1, h_int2]
+    have hz : (∫ z, (β * Real.sqrt q * z) * (β * Real.sqrt q * z) ∂(gaussianReal 0 1)) =
+        (β * Real.sqrt q) ^ 2 * ∫ z, z * z ∂(gaussianReal 0 1) := by
+      have : (fun z => (β * Real.sqrt q * z) * (β * Real.sqrt q * z)) =
+          fun z => (β * Real.sqrt q) ^ 2 * (z * z) := funext fun z => by ring
+      rw [this, integral_const_mul]
+    have hsqz : (fun z : ℝ => z * z) = fun z => z ^ 2 := funext fun z => by ring
+    rw [hz, hsqz, integral_sq_gaussianReal_zero_one, mul_one]
+    have hsq : (β * Real.sqrt q) ^ 2 = β ^ 2 * q := by
+      rw [mul_pow, Real.sq_sqrt hq]
+    rw [hsq]
+  · intro k u
+    rcases k with p | i
+    · dsimp only [Sum.elim_inl, Sum.elim_inr]
+      have h_int := integral_prod_mul (μ := Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
+        (ν := (Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+        (fun g => g p) (fun ω₂ => β * Real.sqrt q * ω₂.2)
+      rw [h_int, integral_pi_gaussianReal_coord, zero_mul]
+    · dsimp only [Sum.elim_inl, Sum.elim_inr]
+      have h_int1 := integral_prod_mul (μ := Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
+        (ν := (Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+        (fun _ => (1 : ℝ)) (fun ω₂ => ω₂.1 i * (β * Real.sqrt q * ω₂.2))
+      simp only [one_mul, integral_const, probReal_univ, smul_eq_mul] at h_int1
+      have h_int2 := integral_prod_mul (μ := Measure.pi fun _ : Fin N => gaussianReal 0 1)
+        (ν := gaussianReal 0 1) (fun g' => g' i) (fun z => β * Real.sqrt q * z)
+      rw [h_int1, h_int2, integral_pi_gaussianReal_coord, zero_mul]
+  · intro p
+    have h_int := integral_prod_mul (μ := Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
+      (ν := (Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+      (fun g => g p) (fun _ => (1 : ℝ))
+    simp only [mul_one, integral_const, probReal_univ, smul_eq_mul] at h_int
+    rw [h_int, integral_pi_gaussianReal_coord]
+  · intro i
+    have h_int1 := integral_prod_mul (μ := Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
+      (ν := (Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+      (fun _ => (1 : ℝ)) (fun ω₂ => ω₂.1 i)
+    simp only [one_mul, integral_const, probReal_univ, smul_eq_mul] at h_int1
+    have h_int2 := integral_prod_mul (μ := Measure.pi fun _ : Fin N => gaussianReal 0 1)
+      (ν := gaussianReal 0 1) (fun g' => g' i) (fun _ => (1 : ℝ))
+    simp only [mul_one, integral_const, probReal_univ, smul_eq_mul] at h_int2
+    rw [h_int1, h_int2, integral_pi_gaussianReal_coord]
+  · intro u
+    have h_int1 := integral_prod_mul (μ := Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
+      (ν := (Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+      (fun _ => (1 : ℝ)) (fun ω₂ => β * Real.sqrt q * ω₂.2)
+    simp only [one_mul, integral_const, probReal_univ, smul_eq_mul] at h_int1
+    have h_int2 := integral_prod_mul (μ := Measure.pi fun _ : Fin N => gaussianReal 0 1)
+      (ν := gaussianReal 0 1) (fun _ => (1 : ℝ)) (fun z => β * Real.sqrt q * z)
+    simp only [one_mul, integral_const, probReal_univ, smul_eq_mul] at h_int2
+    rw [h_int1, h_int2, integral_const_mul, integral_id_gaussianReal, mul_zero]
+
+/-! ### S5. Integrability of replica Gibbs averages -/
+
+/-- Integrability of vector cavity replica Gibbs averages under finite disorder measures. -/
+theorem integrable_skVectorCavityGibbs {Ω R α : Type*} [MeasurableSpace Ω] [Fintype R]
+    [MeasurableSpace α] (μ : Measure α) [IsProbabilityMeasure μ]
+    {D : Type*} [Fintype D] (ξ : α → D → ℝ) (hξ : ∀ u, Measurable (fun a => ξ a u))
+    {r : ℝ} (hr : 0 ≤ r) (hbound : ∀ a, ∑ u, ξ a u ^ 2 ≤ r)
+    (N : ℕ) (β : ℝ) (ρ q : D → D → ℝ)
+    {P : Measure Ω} [IsFiniteMeasure P]
+    (g : FinPairs N → Ω → ℝ) (g' : Fin N → Ω → ℝ) (Y : D → Ω → ℝ)
+    (hgm : ∀ p, Measurable (g p)) (hg'm : ∀ i, Measurable (g' i)) (hYm : ∀ u, Measurable (Y u))
+    (t : ℝ) (G : (R → Fin (N + 1) → α) → ℝ) (hG : Measurable G)
+    {M : ℝ} (hGb : ∀ σ, |G σ| ≤ M) :
+    Integrable (fun ω => ∫ σ, G σ ∂(Measure.pi fun _ : R =>
+      (Measure.pi fun _ : Fin (N + 1) => μ).tilted (skVectorCavityEnergy ξ N β ρ q
+        (fun p => g p ω) (fun i => g' i ω) (fun u => Y u ω) t))) P :=
+  integrable_integral_pi_tilted (μ := Measure.pi fun _ : Fin (N + 1) => μ)
+    (measurable_skVectorCavityEnergy_joint ξ hξ N β ρ q hgm hg'm hYm t)
+    (fun _ => isProbabilityMeasure_tilted_skVectorCavityEnergy μ ξ hξ hr hbound N β ρ q _ _ _ t)
+    hG hGb
+
+/-! ### S6. Disorder average equality (Milestone A1) -/
+
+/-- **Equality of cavity expectation functions (Milestone A1)**: for one-component spins,
+the disorder expectation of the vector cavity Gibbs average equals the scalar cavity path
+integral on `[0, 1]`. -/
+theorem skVectorCavityAverage_ising_eq (N n : ℕ) (β q h t : ℝ) (ht0 : 0 ≤ t) (ht1 : t ≤ 1)
+    (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) :
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
+      (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs N,
+            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
+      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
+        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
+      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
+    (∫ ω : (FinPairs N → ℝ) × ((Fin N → ℝ) × ℝ),
+        ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ ∂(Measure.pi fun _ : Fin n =>
+          (Measure.pi fun _ : Fin (N + 1) =>
+            Measure.count.tilted (fun ε : ℤˣ => h * ((ε : ℤ) : ℝ))).tilted
+              (skVectorCavityEnergy ξ₁ N β (fun _ _ => 1) (fun _ _ => q)
+                (fun p => ω.1 p) (fun i => ω.2.1 i) (fun _ => β * Real.sqrt q * ω.2.2) t))
+        ∂((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
+          ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)))) =
+      ∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
+        ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ
+          ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
+            (E (Real.arccos (Real.sqrt t)) g' ω))
+        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) := by
+  intro B E
+  have h_gibbs : ∀ ω : (FinPairs N → ℝ) × (Fin N → ℝ) × ℝ,
+      (∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ ∂(Measure.pi fun _ : Fin n =>
+        (Measure.pi fun _ : Fin (N + 1) =>
+          Measure.count.tilted (fun ε : ℤˣ => h * ((ε : ℤ) : ℝ))).tilted
+            (skVectorCavityEnergy ξ₁ N β (fun _ _ => 1) (fun _ _ => q)
+              (fun p => ω.1 p) (fun i => ω.2.1 i) (fun _ => β * Real.sqrt q * ω.2.2) t))) =
+      ∫ σ, f σ ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
+        (E (Real.arccos (Real.sqrt t)) ω.1 ω.2)) :=
+    fun ω => skVectorCavityGibbs_ising_eq N β q h t ht0 ht1 ω.1 ω.2 f
+  have hYm : ∀ u : Fin 1, Measurable (fun ω : (FinPairs N → ℝ) × (Fin N → ℝ) × ℝ =>
+      β * Real.sqrt q * ω.2.2) :=
+    fun _ => measurable_const.mul (measurable_snd.comp measurable_snd)
+  have h_int_vec : Integrable (fun ω : (FinPairs N → ℝ) × (Fin N → ℝ) × ℝ =>
+      ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ ∂(Measure.pi fun _ : Fin n =>
+        (Measure.pi fun _ : Fin (N + 1) =>
+          Measure.count.tilted (fun ε : ℤˣ => h * ((ε : ℤ) : ℝ))).tilted
+            (skVectorCavityEnergy ξ₁ N β (fun _ _ => 1) (fun _ _ => q)
+              (fun p => ω.1 p) (fun i => ω.2.1 i) (fun _ => β * Real.sqrt q * ω.2.2) t)))
+      ((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
+        ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))) :=
+    integrable_skVectorCavityGibbs
+      (μ := Measure.count.tilted (fun ε : ℤˣ => h * ((ε : ℤ) : ℝ)))
+      ξ₁ (fun u => measurable_of_finite _) zero_le_one
+      (fun a => ising_spin_sq_sum_le_one a) N β (fun _ _ => 1) (fun _ _ => q)
+      (P := (Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
+        ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)))
+      (fun p ω => ω.1 p) (fun i ω => ω.2.1 i) (fun _ ω => β * Real.sqrt q * ω.2.2)
+      (fun p => (measurable_pi_apply p).comp measurable_fst)
+      (fun i => ((measurable_pi_apply i).comp measurable_fst).comp measurable_snd)
+      hYm
+      t f (measurable_of_finite _) (M := ∑ σ, |f σ|)
+      (fun σ => Finset.single_le_sum (f := fun x => |f x|) (fun _ _ => abs_nonneg _)
+        (Finset.mem_univ σ))
+  have h_int_scal : Integrable (fun ω : (FinPairs N → ℝ) × (Fin N → ℝ) × ℝ =>
+      ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
+        (E (Real.arccos (Real.sqrt t)) ω.1 ω.2)))
+      ((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
+        ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))) :=
+    h_int_vec.congr (ae_of_all _ h_gibbs)
+  rw [integral_congr_ae (ae_of_all _ h_gibbs)]
+  exact MeasureTheory.integral_prod (fun ω => ∫ σ, f σ ∂(Measure.pi fun _ : Fin n =>
+    Measure.count.tilted (E (Real.arccos (Real.sqrt t)) ω.1 ω.2))) h_int_scal
+
+/-! ### S7. Derivative transfer (Milestones A2 and A3) -/
+
+/-- **Milestone A2: Scalar cavity path derivative transferred from the vector engine.** -/
+theorem hasDerivAt_ising_cavity_path_of_vector (N n : ℕ) (β q h t : ℝ)
+    (hq0 : 0 ≤ q) (ht : t ∈ Set.Ioo (0 : ℝ) 1)
+    (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) :
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
+      (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs N,
+            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
+      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
+        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
+      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
+    let P : Measure ((FinPairs N → ℝ) × (Fin N → ℝ) × ℝ) :=
+      (Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
+        ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+    let μ_h : Measure ℤˣ := Measure.count.tilted (fun ε : ℤˣ => h * ((ε : ℤ) : ℝ))
+    HasDerivAt (fun u =>
+      ∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
+        ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ
+          ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
+            (E (Real.arccos (Real.sqrt u)) g' ω))
+        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1))
+      (β ^ 2 / 2 * ∑ a : Fin n, ∑ b : Fin n, ∑ u : Fin 1, ∑ v : Fin 1,
+          skVectorCavityAverage μ_h ξ₁ N β (fun _ _ => 1) (fun _ _ => q) P
+            (fun p ω => ω.1 p) (fun i ω => ω.2.1 i) (fun _ ω => β * Real.sqrt q * ω.2.2) t (fun σ =>
+            f (fun c => σ (some (some c))) * ξ₁ (σ (some (some a)) (Fin.last N)) u *
+              ξ₁ (σ (some (some b)) (Fin.last N)) v *
+              (skVectorCavityOverlap ξ₁ N (σ (some (some a))) (σ (some (some b))) u v -
+                if a = b then 1 else q)) -
+        (n : ℝ) * β ^ 2 * ∑ a : Fin n, ∑ u : Fin 1, ∑ v : Fin 1,
+          skVectorCavityAverage μ_h ξ₁ N β (fun _ _ => 1) (fun _ _ => q) P
+            (fun p ω => ω.1 p) (fun i ω => ω.2.1 i) (fun _ ω => β * Real.sqrt q * ω.2.2) t (fun σ =>
+            f (fun c => σ (some (some c))) * ξ₁ (σ (some (some a)) (Fin.last N)) u *
+              ξ₁ (σ (some none) (Fin.last N)) v *
+              (skVectorCavityOverlap ξ₁ N (σ (some (some a))) (σ (some none)) u v - q)) -
+        (n : ℝ) * (β ^ 2 / 2) * ∑ u : Fin 1, ∑ v : Fin 1,
+          skVectorCavityAverage μ_h ξ₁ N β (fun _ _ => 1) (fun _ _ => q) P
+            (fun p ω => ω.1 p) (fun i ω => ω.2.1 i) (fun _ ω => β * Real.sqrt q * ω.2.2) t (fun σ =>
+            f (fun c => σ (some (some c))) * ξ₁ (σ (some none) (Fin.last N)) u *
+              ξ₁ (σ (some none) (Fin.last N)) v *
+              (skVectorCavityOverlap ξ₁ N (σ (some none)) (σ (some none)) u v - 1)) +
+        (n : ℝ) * ((n : ℝ) + 1) / 2 * β ^ 2 * ∑ u : Fin 1, ∑ v : Fin 1,
+          skVectorCavityAverage μ_h ξ₁ N β (fun _ _ => 1) (fun _ _ => q) P
+            (fun p ω => ω.1 p) (fun i ω => ω.2.1 i) (fun _ ω => β * Real.sqrt q * ω.2.2) t (fun σ =>
+            f (fun c => σ (some (some c))) * ξ₁ (σ (some none) (Fin.last N)) u *
+              ξ₁ (σ none (Fin.last N)) v *
+              (skVectorCavityOverlap ξ₁ N (σ (some none)) (σ none) u v - q))) t := by
+  intro B E P μ_h
+  have hG := skVectorCavityGaussianData_disorderLaw_ising N β q hq0
+  have hM0 : 0 ≤ ∑ σ, |f σ| := Finset.sum_nonneg fun _ _ => abs_nonneg _
+  have hd_vec := hasDerivAt_skVectorCavityAverage μ_h ξ₁
+    (fun u => measurable_of_finite _) zero_le_one
+    (fun a => ising_spin_sq_sum_le_one a) N β (fun _ _ => 1) (fun _ _ => q)
+    (fun _ _ => rfl) f (measurable_of_finite _) hM0
+    (fun σ => Finset.single_le_sum (f := fun x => |f x|) (fun _ _ => abs_nonneg _)
+      (Finset.mem_univ σ))
+    hG.hasGaussianLaw hG.measurable_old_coupling hG.measurable_new_coupling hG.measurable_field
+    hG.integral_coupling_mul_coupling hG.integral_field_mul_field hG.integral_coupling_mul_field
+    hG.integral_old_coupling hG.integral_new_coupling hG.integral_field ht.1 ht.2
+  have heq : (fun u =>
+      ∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
+        ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ
+          ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
+            (E (Real.arccos (Real.sqrt u)) g' ω))
+        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) =ᶠ[𝓝 t]
+      (fun s => ∫ ω, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ ∂(Measure.pi fun _ : Fin n =>
+        (Measure.pi fun _ : Fin (N + 1) => μ_h).tilted (skVectorCavityEnergy ξ₁ N β
+          (fun _ _ => 1) (fun _ _ => q) (fun p => ω.1 p) (fun i => ω.2.1 i)
+          (fun _ => β * Real.sqrt q * ω.2.2) s)) ∂P) := by
+    filter_upwards [Ioo_mem_nhds ht.1 ht.2] with u hu
+    exact (skVectorCavityAverage_ising_eq N n β q h u hu.1.le hu.2.le f).symm
+  have hd := hd_vec.congr_of_eventuallyEq heq
+  simpa only [Fintype.card_fin] using hd
+
+/-- **Milestone A3: The vector derivative value equals the scalar derivative value.** -/
+theorem ising_cavity_path_deriv_eq_scalar (N n : ℕ) (β q h t : ℝ)
+    (hq0 : 0 ≤ q) (hq1 : q ≤ 1) (ht : t ∈ Set.Ioo (0 : ℝ) 1)
+    (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) :
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
+      (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs N,
+            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
+      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
+        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
+      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
+    let K : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ := fun a b =>
+      β ^ 2 * (a (Fin.last N) : ℝ) * (b (Fin.last N) : ℝ) *
+        ((N + 1 : ℝ)⁻¹ *
+          ((fun i : Fin N => (a i.castSucc : ℝ)) ⬝ᵥ fun i : Fin N =>
+            (b i.castSucc : ℝ)) - q)
+    let P : Measure ((FinPairs N → ℝ) × (Fin N → ℝ) × ℝ) :=
+      (Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
+        ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+    let μ_h : Measure ℤˣ := Measure.count.tilted (fun ε : ℤˣ => h * ((ε : ℤ) : ℝ))
+    (β ^ 2 / 2 * ∑ a : Fin n, ∑ b : Fin n, ∑ u : Fin 1, ∑ v : Fin 1,
+        skVectorCavityAverage μ_h ξ₁ N β (fun _ _ => 1) (fun _ _ => q) P
+          (fun p ω => ω.1 p) (fun i ω => ω.2.1 i) (fun _ ω => β * Real.sqrt q * ω.2.2) t (fun σ =>
+          f (fun c => σ (some (some c))) * ξ₁ (σ (some (some a)) (Fin.last N)) u *
+            ξ₁ (σ (some (some b)) (Fin.last N)) v *
+            (skVectorCavityOverlap ξ₁ N (σ (some (some a))) (σ (some (some b))) u v -
+              if a = b then 1 else q)) -
+      (n : ℝ) * β ^ 2 * ∑ a : Fin n, ∑ u : Fin 1, ∑ v : Fin 1,
+        skVectorCavityAverage μ_h ξ₁ N β (fun _ _ => 1) (fun _ _ => q) P
+          (fun p ω => ω.1 p) (fun i ω => ω.2.1 i) (fun _ ω => β * Real.sqrt q * ω.2.2) t (fun σ =>
+          f (fun c => σ (some (some c))) * ξ₁ (σ (some (some a)) (Fin.last N)) u *
+            ξ₁ (σ (some none) (Fin.last N)) v *
+            (skVectorCavityOverlap ξ₁ N (σ (some (some a))) (σ (some none)) u v - q)) -
+      (n : ℝ) * (β ^ 2 / 2) * ∑ u : Fin 1, ∑ v : Fin 1,
+        skVectorCavityAverage μ_h ξ₁ N β (fun _ _ => 1) (fun _ _ => q) P
+          (fun p ω => ω.1 p) (fun i ω => ω.2.1 i) (fun _ ω => β * Real.sqrt q * ω.2.2) t (fun σ =>
+          f (fun c => σ (some (some c))) * ξ₁ (σ (some none) (Fin.last N)) u *
+            ξ₁ (σ (some none) (Fin.last N)) v *
+            (skVectorCavityOverlap ξ₁ N (σ (some none)) (σ (some none)) u v - 1)) +
+      (n : ℝ) * ((n : ℝ) + 1) / 2 * β ^ 2 * ∑ u : Fin 1, ∑ v : Fin 1,
+        skVectorCavityAverage μ_h ξ₁ N β (fun _ _ => 1) (fun _ _ => q) P
+          (fun p ω => ω.1 p) (fun i ω => ω.2.1 i) (fun _ ω => β * Real.sqrt q * ω.2.2) t (fun σ =>
+          f (fun c => σ (some (some c))) * ξ₁ (σ (some none) (Fin.last N)) u *
+            ξ₁ (σ none (Fin.last N)) v *
+            (skVectorCavityOverlap ξ₁ N (σ (some none)) (σ none) u v - q))) =
+      ∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
+        ∫ τ : Option (Option (Fin n)) → Fin (N + 1) → ℤˣ,
+          f (fun r => τ (some (some r))) *
+            ((∑ p : Fin n × Fin n with p.1 < p.2,
+                K (τ (some (some p.1))) (τ (some (some p.2)))) -
+              (n : ℝ) * ∑ r : Fin n, K (τ (some (some r))) (τ (some none)) +
+              (n : ℝ) * ((n : ℝ) + 1) / 2 * K (τ (some none)) (τ none))
+        ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted
+          (E (Real.arccos (Real.sqrt t)) g' ω))
+        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) := by
+  intro B E K P μ_h
+  have hd_vec := hasDerivAt_ising_cavity_path_of_vector N n β q h t hq0 ht f
+  have hd_scal := hasDerivAt_integral_sk_cavity_path_square N n β q h t ⟨hq0, hq1⟩ ht f
+  exact hd_vec.unique hd_scal
+
+/-! ### S8/S9. Integrand specialization (Milestone B) -/
+
+/-- **Talagrand's Eq. (1.151) derived from the vector cavity derivative.**
+By specializing Proposition 1.12.4 to one-component spins (`d = 1`), `ξ₁ ε = ε`, `ρ = 1`,
+and tilted measure `μ_h = count.tilted (h · ε)`, the vector cavity path derivative
+coincides with the scalar SK cavity derivative. -/
+theorem hasDerivAt_integral_sk_cavity_path_square_of_vector (N n : ℕ) (β q h t : ℝ)
+    (hq : q ∈ Set.Icc (0 : ℝ) 1) (ht : t ∈ Set.Ioo (0 : ℝ) 1)
+    (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) :
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
+      (Real.sqrt (N + 1))⁻¹ * β *
+          (∑ p : FinPairs N,
+            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
+        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
+        (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
+      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
+        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
+      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
+    let K : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ := fun a b =>
+      β ^ 2 * (a (Fin.last N) : ℝ) * (b (Fin.last N) : ℝ) *
+        ((N + 1 : ℝ)⁻¹ *
+          ((fun i : Fin N => (a i.castSucc : ℝ)) ⬝ᵥ fun i : Fin N =>
+            (b i.castSucc : ℝ)) - q)
+    HasDerivAt (fun u =>
+      ∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
+        ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ
+          ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
+            (E (Real.arccos (Real.sqrt u)) g' ω))
+        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1))
+      (∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
+        ∫ τ : Option (Option (Fin n)) → Fin (N + 1) → ℤˣ,
+          f (fun r => τ (some (some r))) *
+            ((∑ p : Fin n × Fin n with p.1 < p.2,
+                K (τ (some (some p.1))) (τ (some (some p.2)))) -
+              (n : ℝ) * ∑ r : Fin n, K (τ (some (some r))) (τ (some none)) +
+              (n : ℝ) * ((n : ℝ) + 1) / 2 * K (τ (some none)) (τ none))
+        ∂(Measure.pi fun _ : Option (Option (Fin n)) => Measure.count.tilted
+          (E (Real.arccos (Real.sqrt t)) g' ω))
+        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) t := by
+  intro B E K
+  have hd := hasDerivAt_ising_cavity_path_of_vector N n β q h t hq.1 ht f
+  have heq := ising_cavity_path_deriv_eq_scalar N n β q h t hq.1 hq.2 ht f
+  exact heq ▸ hd
 
 end SpinGlasses
