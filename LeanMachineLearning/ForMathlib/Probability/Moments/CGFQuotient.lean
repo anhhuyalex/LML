@@ -28,6 +28,8 @@ For a positive random variable `Z`, this yields the finite-system real-moment li
 open MeasureTheory ProbabilityTheory Filter Set
 open scoped Topology
 
+namespace ProbabilityTheory
+
 variable {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} {X : Ω → ℝ}
 
 /-- If `exp (t * X)` is integrable for all `t` in an open ball around `0`, then `0` belongs to
@@ -97,3 +99,5 @@ theorem tendsto_log_integral_rpow_div_zero_pos [IsProbabilityMeasure μ]
   refine integral_congr_ae ?_
   filter_upwards [hZ] with ω hω
   rw [Real.rpow_def_of_pos hω, mul_comm]
+
+end ProbabilityTheory

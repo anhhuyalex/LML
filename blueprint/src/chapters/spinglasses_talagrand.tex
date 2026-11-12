@@ -10495,11 +10495,34 @@ So $e^{A}=e^{-n\beta V/2}\mathbb E(2\operatorname{ch}(\sqrt{\beta V}z+h))^n$. He
 Collect terms.
 \end{proof}
 
+\begin{theorem}[Finite-system real-moment limits, Eqs.~(1.409)--(1.410)]\label{thm:sg-tal:replica-real-moments}
+\lean{SpinGlasses.tendsto_log_integral_rpow_skPartition_div, SpinGlasses.tendsto_inv_mul_log_integral_rpow_skPartition_div, ProbabilityTheory.tendsto_log_integral_rpow_div_zero_pos}
+\leanok
+\talsource{Eqs.~(1.409), (1.410); source lines 5931--5944}
+For each fixed system size $N > 0$ and any real $\beta, h$, the partition function $Z_N > 0$ satisfies
+\[
+\lim_{t \to 0^+} \frac{1}{t} \log \mathbb E [Z_N^t] = \mathbb E [\log Z_N],
+\]
+and consequently
+\[
+\lim_{t \to 0^+} \frac{1}{N t} \log \mathbb E [Z_N^t] = \frac{1}{N} \mathbb E [\log Z_N].
+\]
+\end{theorem}
+\begin{proof}
+\leanok
+Since $Z_N(\mathbf g) > 0$ everywhere, $\log Z_N$ is well-defined and measurable.
+Using the bound $|\log Z_N(\mathbf g)| \le N \log 2 + |h| N + \frac{|\beta|}{\sqrt N} \sum_{i<j} |g_{ij}|$,
+Gaussian exponential moments ensure that $\mathbb E \exp(t |\log Z_N|) < \infty$ for all $t \in \mathbb R$.
+Thus $0 \in \operatorname{interior}(\operatorname{integrableExpSet}(\log Z_N))$.
+The result follows from the general probability theorem on difference quotients of the cumulant generating function at zero,
+$\lim_{t \to 0^+} \frac{1}{t} \log \mathbb E [Z^t] = \mathbb E [\log Z]$.
+\end{proof}
+
 \begin{remark}[Not claimed: the continuation to non-integer $n$]\label{rem:sg-tal:replica-heuristic}
 \talsource{Eqs.~(1.408)--(1.411)}
-After Theorem~1.13.1 the book writes the fixed-point equation (1.408) for the maximizer, observes $\lim_{t\to0^+}\frac1t\log\mathbb EZ_N^t=\mathbb E\log Z_N$ (Eq.~(1.409)),
-and then ``pretends'' that the theorem holds for non-integer $n>0$ and that the limits $N\to\infty$ and $n\to0$ can be exchanged. This yields the replica-symmetric formula (1.411).
-The book marks these steps as a heuristic. They are not formalized and not claimed. In particular this section does not prove Eq.~(1.411), and Eq.~(1.411) is wrong at low temperature.
+After Theorem~1.13.1 the book writes the fixed-point equation (1.408) for the maximizer, observes the finite-system real-moment limit $\lim_{t\to0^+}\frac1t\log\mathbb EZ_N^t=\mathbb E\log Z_N$ (Eq.~(1.409), proved above in Theorem~\ref{thm:sg-tal:replica-real-moments}),
+and then ``pretends'' that the integer formula extends to non-integer $n>0$ and that the limits $N\to\infty$ and $n\to0$ can be exchanged. This yields the replica-symmetric formula (1.411).
+The book marks these steps as a heuristic. The exchange of limits and the continuation to non-integer $n$ are not proved by the integer theorem alone. In particular this section does not prove Eq.~(1.411) at all temperatures, and Eq.~(1.411) is wrong at low temperature.
 Equation~(1.408) is also not formalized.
 \end{remark}
 
