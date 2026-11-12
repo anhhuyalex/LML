@@ -148,6 +148,10 @@ UI size checks stay enabled; additional desktop and phone checks cover skewed ar
 counts and verify that pooling preserves navigation. Recheck this patch when updating
 the leanviz pin; a patch that no longer applies fails the build.
 
+It also applies `scripts/leanviz-responsive-labels.patch` so long module paths in
+declaration lists wrap within the viewport. Homepage checks cover desktop and
+500-, 390-, and 320-pixel widths, including an explicitly long LML module label.
+
 Validation runs upstream's `check_bundle.py`, `check_page.py`, and `check_ui.py`,
 plus `scripts/check_leanviz.py` checks for LML modules, the current Lean version,
 and source links pinned to this checkout. The browser tests serve the assembled

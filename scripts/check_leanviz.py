@@ -85,6 +85,44 @@ def check_declaration_page(page, base: str, module_name: str, declaration: dict,
     require(not problems, f"Browser reported errors on the LML declaration: {problems}")
 
 
+def check_home_layout(page, base: str, width: int) -> None:
+    page.ws.send("Emulation.setDeviceMetricsOverride", {
+        "width": width, "height": 880, "deviceScaleFactor": 1, "mobile": False,
+    })
+    page.visit(base + "/?p=lml#/", "!!document.querySelector('#top .mod') && !!document.querySelector('#tree li')")
+    # A real LML module path longer than the labels in older cached bundles.
+    long_module = ("LeanMachineLearning.SpinGlasses.Panchenko.PoissonDirichlet.GhirlandaGuerra."
+                   "PoissonDirichletGhirlandaGuerraExpectation")
+    for kind, module in (("project homepage", None), ("homepage with a long module label", long_module)):
+        probe = f"""(() => {{
+            const label = document.querySelector('#top .mod');
+            if (!label || !document.querySelector('#tree li')) return null;
+            const module = {json.dumps(module)};
+            if (module) label.textContent = module;
+            const outside = [...document.querySelectorAll('#main .list .mod')].filter(e => {{
+                const range = document.createRange();
+                range.selectNodeContents(e);
+                return [...range.getClientRects()].some(r => r.left < -1 || r.right > innerWidth + 1);
+            }}).slice(0, 5).map(e => e.textContent);
+            return {{width: innerWidth, overflow: document.documentElement.scrollWidth - innerWidth,
+                outside, label: label.textContent}};
+        }})()"""
+        deadline = time.monotonic() + 60
+        state = None
+        while state is None and time.monotonic() < deadline:
+            state = page.value(probe)
+            if state is None:
+                time.sleep(0.25)
+        label = f"{kind} at {width}px"
+        require(state is not None, f"{label} did not render")
+        require(state["width"] == width, f"{label} is using the wrong viewport width")
+        require(state["overflow"] <= 4 and not state["outside"],
+                f"{label} overflows: {state}")
+        if module:
+            require(state["label"] == module, "Long module label regression was not exercised")
+        print(f"{label}: all module text fits the viewport", flush=True)
+
+
 def check_map_layout(page, base: str, width: int) -> None:
     # Headless Chrome can clamp --window-size to 500px. Override the viewport
     # explicitly so the phone regression really measures a 390px layout.
@@ -180,10 +218,12 @@ def main(tools: pathlib.Path, repository: str) -> None:
         try:
             for check in ("check_page.py", "check_ui.py"):
                 subprocess.run([sys.executable, str(tools / "tests" / check), base], check=True)
-            for width in (1280, 390):
+            for width in (1280, 500, 390, 320):
                 page = Page(width=width, height=880)
                 try:
-                    check_map_layout(page, base, width)
+                    check_home_layout(page, base, width)
+                    if width in (1280, 390):
+                        check_map_layout(page, base, width)
                 finally:
                     page.close()
             for reload_during_search in (False, True):

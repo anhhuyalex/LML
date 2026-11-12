@@ -1,0 +1,11 @@
+diff --git a/site/style.css b/site/style.css
+--- a/site/style.css
++++ b/site/style.css
+@@ -93,6 +93,7 @@
+ .list li { display: flex; gap: 8px; align-items: baseline; padding: 3px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+ .list .nm { word-break: break-all; }
+ .list .mod, .mod { color: var(--dim); font-size: 12px; }
++.list .mod { min-width: 0; overflow-wrap: anywhere; }
+ .list .n { margin-left: auto; color: var(--dim); font-size: 12px; font-variant-numeric: tabular-nums; }
+ .stats { display: flex; flex-wrap: wrap; gap: 24px; margin: 0; padding: 0; list-style: none; }
+ .stats div { font-size: 12px; color: var(--dim); }

@@ -43,6 +43,7 @@ checkout_tool keithadler/tenet "$TENET_REF" "$TOOLS_DIR/tenet"
 echo "leanviz $LEANVIZ_REF; Tenet reader $TENET_REF"
 # Keep the pinned viewer's tiny map areas reachable without undersized links.
 git -C "$TOOLS_DIR/leanviz" apply "$PROJECT_ROOT/scripts/leanviz-map-hit-targets.patch"
+git -C "$TOOLS_DIR/leanviz" apply "$PROJECT_ROOT/scripts/leanviz-responsive-labels.patch"
 
 dotnet build "$TOOLS_DIR/tenet/src/Tenet.Olean" -c Release -f net10.0 -p:TargetFrameworks=net10.0
 mkdir -p "$TOOLS_DIR/leanviz/lib"
