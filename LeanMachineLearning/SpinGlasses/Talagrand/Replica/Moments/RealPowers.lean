@@ -45,30 +45,6 @@ theorem measurable_log_skPartition (N : ℕ) (β h : ℝ) :
   refine (Finset.measurable_sum _ fun σ _ => ?_).log
   exact (measurable_skGibbsEnergy N β h σ).exp
 
-/-- The absolute value of the SK Gibbs energy for any configuration is bounded by
-a constant plus a multiple of the sum of absolute disorder variables. -/
-lemma abs_skGibbsEnergy_le (N : ℕ) (β h : ℝ) (g : FinPairs N → ℝ) (σ : Fin N → ℤˣ) :
-    |skGibbsEnergy N β h g σ| ≤
-      (Real.sqrt N)⁻¹ * |β| * (∑ p : FinPairs N, |g p|) + |h| * N := by
-  unfold skGibbsEnergy
-  refine (abs_add_le _ _).trans ?_
-  have h1 : |(Real.sqrt N)⁻¹ * β * (∑ p : FinPairs N,
-      g p * ((σ p.val.1 : ℤ) : ℝ) * ((σ p.val.2 : ℤ) : ℝ))|
-      ≤ (Real.sqrt N)⁻¹ * |β| * ∑ p : FinPairs N, |g p| := by
-    rw [abs_mul, abs_mul, abs_inv, abs_of_nonneg (Real.sqrt_nonneg _)]
-    refine mul_le_mul_of_nonneg_left ?_ (by positivity)
-    refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
-    refine Finset.sum_le_sum fun p _ => ?_
-    rw [abs_mul, abs_mul, abs_units_cast_eq_one, abs_units_cast_eq_one, mul_one, mul_one]
-  have h2 : |h * ∑ i : Fin N, ((σ i : ℤ) : ℝ)| ≤ |h| * N := by
-    rw [abs_mul]
-    refine mul_le_mul_of_nonneg_left ?_ (abs_nonneg h)
-    refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
-    have : (∑ i : Fin N, |((σ i : ℤ) : ℝ)|) = ∑ i : Fin N, (1 : ℝ) := by
-      refine Finset.sum_congr rfl fun i _ => abs_units_cast_eq_one (σ i)
-    rw [this, Finset.sum_const, nsmul_eq_mul, Finset.card_univ, Fintype.card_fin, mul_one]
-  exact add_le_add h1 h2
-
 /-- The absolute value of the logarithm of the partition function is bounded by
 `N * log 2 + |h| * N + (√N)⁻¹ * |β| * ∑_p |g_p|`. -/
 lemma abs_log_skPartition_le (N : ℕ) (β h : ℝ) (g : FinPairs N → ℝ) :

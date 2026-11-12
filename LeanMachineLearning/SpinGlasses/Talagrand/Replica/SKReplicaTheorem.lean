@@ -109,13 +109,6 @@ theorem sk_replica_theorem_pos (β h : ℝ) (hβ : 0 < β) :
     convert hlim using 2
     ring
 
-theorem skGibbsEnergy_neg_beta (N : ℕ) (β h : ℝ) (g : FinPairs N → ℝ) (σ : Fin N → ℤˣ) :
-    skGibbsEnergy N (-β) h g σ = skGibbsEnergy N β h (-g) σ := by
-  unfold skGibbsEnergy
-  simp only [Pi.neg_apply, neg_mul]
-  rw [Finset.sum_neg_distrib]
-  ring
-
 /-- The moments of the partition function are even in `β`. -/
 theorem integral_partition_pow_neg_beta (N n : ℕ) (β h : ℝ) :
     ∫ g : FinPairs N → ℝ, (∑ σ : Fin N → ℤˣ, Real.exp (skGibbsEnergy N (-β) h g σ)) ^ n

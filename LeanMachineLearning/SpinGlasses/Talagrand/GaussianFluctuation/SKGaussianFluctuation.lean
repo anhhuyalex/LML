@@ -9,6 +9,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.GaussianFluctuation.Gibb
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapConcentration.SKOverlapConcentration
 public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKFirstMoment
 public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKFixedPoint
+public import LeanMachineLearning.SpinGlasses.Basic
 
 /-!
 # The general Gaussian fluctuation principle for the SK model (Talagrand, Theorem 1.7.11)
@@ -36,10 +37,66 @@ noncomputable def skGibbsEnergy (N : ℕ) (β h : ℝ) (g : FinPairs N → ℝ) 
   (Real.sqrt N)⁻¹ * β * (∑ p : FinPairs N, g p * ((a p.val.1 : ℤ) : ℝ) * ((a p.val.2 : ℤ) : ℝ)) +
     h * ∑ i, ((a i : ℤ) : ℝ)
 
+/-- Definitional equality for `skGibbsEnergy`. -/
+theorem skGibbsEnergy_def (N : ℕ) (β h : ℝ) (g : FinPairs N → ℝ) (a : Fin N → ℤˣ) :
+    skGibbsEnergy N β h g a =
+      (Real.sqrt N)⁻¹ * β * (∑ p : FinPairs N,
+        g p * ((a p.val.1 : ℤ) : ℝ) * ((a p.val.2 : ℤ) : ℝ)) +
+        h * ∑ i, ((a i : ℤ) : ℝ) := rfl
+
+@[simp]
+theorem skGibbsEnergy_zero_beta (N : ℕ) (h : ℝ) (g : FinPairs N → ℝ) (σ : Fin N → ℤˣ) :
+    skGibbsEnergy N 0 h g σ = h * ∑ i, ((σ i : ℤ) : ℝ) := by
+  simp [skGibbsEnergy_def]
+
+@[simp]
+theorem skGibbsEnergy_zero_field (N : ℕ) (β : ℝ) (g : FinPairs N → ℝ) (σ : Fin N → ℤˣ) :
+    skGibbsEnergy N β 0 g σ =
+      (Real.sqrt N)⁻¹ * β * (∑ p : FinPairs N,
+        g p * ((σ p.val.1 : ℤ) : ℝ) * ((σ p.val.2 : ℤ) : ℝ)) := by
+  simp [skGibbsEnergy_def]
+
+@[simp]
+theorem skGibbsEnergy_zero (N : ℕ) (g : FinPairs N → ℝ) (σ : Fin N → ℤˣ) :
+    skGibbsEnergy N 0 0 g σ = 0 := by
+  simp [skGibbsEnergy_def]
+
+/-- The SK Gibbs energy is invariant under negating both `β` and the disorder `g`. -/
+theorem skGibbsEnergy_neg_beta (N : ℕ) (β h : ℝ) (g : FinPairs N → ℝ) (σ : Fin N → ℤˣ) :
+    skGibbsEnergy N (-β) h g σ = skGibbsEnergy N β h (-g) σ := by
+  rw [skGibbsEnergy_def, skGibbsEnergy_def]
+  simp only [Pi.neg_apply, neg_mul]
+  rw [Finset.sum_neg_distrib]
+  ring
+
+/-- The absolute value of the SK Gibbs energy for any configuration is bounded by
+a constant plus a multiple of the sum of absolute disorder variables. -/
+theorem abs_skGibbsEnergy_le (N : ℕ) (β h : ℝ) (g : FinPairs N → ℝ) (σ : Fin N → ℤˣ) :
+    |skGibbsEnergy N β h g σ| ≤
+      (Real.sqrt N)⁻¹ * |β| * (∑ p : FinPairs N, |g p|) + |h| * N := by
+  rw [skGibbsEnergy_def]
+  refine (abs_add_le _ _).trans ?_
+  have h1 : |(Real.sqrt N)⁻¹ * β * (∑ p : FinPairs N,
+      g p * ((σ p.val.1 : ℤ) : ℝ) * ((σ p.val.2 : ℤ) : ℝ))|
+      ≤ (Real.sqrt N)⁻¹ * |β| * ∑ p : FinPairs N, |g p| := by
+    rw [abs_mul, abs_mul, abs_inv, abs_of_nonneg (Real.sqrt_nonneg _)]
+    refine mul_le_mul_of_nonneg_left ?_ (by positivity)
+    refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
+    refine Finset.sum_le_sum fun p _ => ?_
+    rw [abs_mul, abs_mul, abs_units_cast_eq_one, abs_units_cast_eq_one, mul_one, mul_one]
+  have h2 : |h * ∑ i : Fin N, ((σ i : ℤ) : ℝ)| ≤ |h| * N := by
+    rw [abs_mul]
+    refine mul_le_mul_of_nonneg_left ?_ (abs_nonneg h)
+    refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
+    have : (∑ i : Fin N, |((σ i : ℤ) : ℝ)|) = ∑ i : Fin N, (1 : ℝ) := by
+      refine Finset.sum_congr rfl fun i _ => abs_units_cast_eq_one (σ i)
+    rw [this, Finset.sum_const, nsmul_eq_mul, Finset.card_univ, Fintype.card_fin, mul_one]
+  exact add_le_add h1 h2
+
 /-- The SK energy of a fixed configuration is measurable in the disorder. -/
 theorem measurable_skGibbsEnergy (N : ℕ) (β h : ℝ) (a : Fin N → ℤˣ) :
     Measurable fun g : FinPairs N → ℝ => skGibbsEnergy N β h g a := by
-  unfold skGibbsEnergy
+  simp only [skGibbsEnergy_def]
   fun_prop
 
 /-- **The SK energy is a linear form of the disorder.**  There are coefficient vectors `a σ` with
