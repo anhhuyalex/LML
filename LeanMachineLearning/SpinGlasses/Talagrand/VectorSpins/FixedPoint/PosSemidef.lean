@@ -57,7 +57,7 @@ theorem skVectorFieldAverage_diag (u v : Fin d) (y : Fin d → ℝ) :
   have : IsProbabilityMeasure (μ.tilted (skVectorFieldExponent ξ β ρ q y)) :=
     isProbabilityMeasure_tilted hexpi
   exact integral_pi_eval (μ.tilted (skVectorFieldExponent ξ β ρ q y)) (J := Fin 2) 0
-    (fun a => ξ a u * ξ a v) ((((hξ u).mul (hξ v))).aestronglyMeasurable)
+    (fun a => ξ a u * ξ a v) (measurable_spin_mul ξ hξ u v).aestronglyMeasurable
 
 include hξ hbound in
 /-- The first component of the fixed-point map is positive semidefinite. -/
@@ -106,7 +106,7 @@ theorem skVectorFixedPointMap_sub_posSemidef (x : (Fin d → Fin d → ℝ) × (
   have hGm : ∀ w, Measurable fun y => ∫ a, ξ a w ∂(μ.tilted (e y)) := fun w =>
     measurable_integral_tilted (e := e) hem (hξ w)
   have hHm : ∀ u v, Measurable fun y => ∫ a, ξ a u * ξ a v ∂(μ.tilted (e y)) :=
-    fun u v => measurable_integral_tilted (e := e) hem ((hξ u).mul (hξ v))
+    fun u v => measurable_integral_tilted (e := e) hem (measurable_spin_mul ξ hξ u v)
   have hGb : ∀ y w, |∫ a, ξ a w ∂(μ.tilted (e y))| ≤ Real.sqrt d := fun y w =>
     abs_integral_tilted_le (hexp y) fun a => hb a w
   have hHb : ∀ y u v, |∫ a, ξ a u * ξ a v ∂(μ.tilted (e y))| ≤ d := fun y u v =>

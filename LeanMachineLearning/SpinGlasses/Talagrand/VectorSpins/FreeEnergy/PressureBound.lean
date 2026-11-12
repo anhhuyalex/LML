@@ -79,7 +79,7 @@ theorem abs_skVectorPressure_le {d : ℕ} (μ : Measure α) [IsProbabilityMeasur
   have hDmeas : Measurable Dm := by
     refine Measurable.const_mul (Finset.measurable_sum _ fun u _ =>
       Finset.measurable_sum _ fun v _ => ?_) _
-    exact ((hξ u).mul (hξ v)).mul_const _
+    exact (measurable_spin_mul ξ hξ u v).mul_const _
   have hDb : ∀ a, |Dm a| ≤ b ^ 2 * (d : ℝ) ^ 3 := fun a => by
     have h1 : |∑ u, ∑ v, ξ a u * ξ a v * (z.2 u v - z.1 u v)| ≤
         ∑ u, ∑ v, (d : ℝ) * (|z.2 u v| + |z.1 u v|) := by

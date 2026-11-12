@@ -68,7 +68,7 @@ include hr hbound
 
 omit [MeasurableSpace α] in
 /-- A uniform bound for the rescaled old energy, for fixed couplings. -/
-theorem abs_skVectorOldEnergy_le (N : ℕ) (β : ℝ) (g : FinPairs N → ℝ)
+theorem abs_skVectorEnergy_rescaled_le (N : ℕ) (β : ℝ) (g : FinPairs N → ℝ)
     (τ : Fin N → α) :
     |skVectorEnergy N (β * Real.sqrt ((N : ℝ) / ((N : ℝ) + 1))) g (fun j => ξ (τ j))| ≤
       |β| * ∑ p : FinPairs N, |g p| * (Fintype.card D * r) := by
@@ -167,7 +167,7 @@ theorem skVectorCavityAverage_zero_centered_mul_eq_zero {d N : ℕ} {Ω : Type*}
       (fun τ => skVectorEnergy N (β * Real.sqrt ((N : ℝ) / ((N : ℝ) + 1))) (fun p => g p ω)
         (fun j => ξ (τ j)))
       (skVectorFieldExponent ξ β ρ q (fun w => Y w ω)) (hE₁m _) (hE₂m _)
-      (abs_skVectorOldEnergy_le ξ hr hbound N β _)
+      (abs_skVectorEnergy_rescaled_le ξ hr hbound N β _)
       (abs_skVectorFieldExponent_le ξ hr hbound β ρ q _)
       Ψ Ψ₂ hΨ hΨ₂m
   -- step 2: measurability of `A` and `B`
