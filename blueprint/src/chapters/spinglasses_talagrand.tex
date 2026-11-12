@@ -10167,42 +10167,87 @@ smallness hypothesis and a separate Gaussian sign-symmetry argument.
 
 \begin{remark}[Formalization hypotheses and comparison with the text]\label{rem:sg-tal:vector-hypotheses}
 \talsource{Section~1.12; Theorems~1.12.1--1.12.3}
-The Lean formalization generalizes several settings from Section~1.12 and makes explicit a small
-number of conditions that the book leaves implicit:
+The Lean statements of Section~1.12 differ from the book in two ways.
+Some are \emph{more general} than the text.
+Others carry an \emph{extra hypothesis} that the book does not write down.
+We list both kinds, and for each extra hypothesis we say why the Lean proof needs it and why it
+does not weaken the results of the book.
+
+\medskip\noindent\textbf{(A) Where the Lean statements are more general than the text.}
 \begin{enumerate}
-\item \emph{General spin space and dimension-dependent constant.} The text assumes $\mu$ is a
-probability measure on the ball $B_d\subset\mathbb R^d$ (Eq.~(1.362)). The formalization works for
-any measurable space $S$, probability measure $\mu$, and measurable coordinates $\xi:S\to\mathbb R^d$
-satisfying $\sum_{u=1}^d \xi_u(a)^2\le d$ for all $a\in S$. The ball is the special case $S=B_d$
-with coordinate inclusion (\texttt{existsUnique\_skVectorFixedPoint\_overlap\_free\_energy\_ball}).
-The constant $K(d)$ depends only on $d$ and is quantified before the spin space, law, $\beta$, and $N$.
-\item \emph{Explicit constant $L = 15$.} The text states high-temperature conditions in the form
-$L\beta d\le1$ for an unspecified numerical constant $L$. In the formalization, the explicit
-constant $L=15$ is verified: it ensures both the contraction factor $18\beta^2d^2\le 18/225<1$
-for fixed-point existence and uniqueness (Theorem~1.12.2), and the cavity smallness condition
-$\beta^2d^2\le 1/225\le 1/200$ for overlap concentration (Theorem~1.12.1).
-\item \emph{Singular covariance matrices $q$.} In Lean, the cone $\mathcal C$ requires only positive
-semidefiniteness $q\succeq0$ and $\rho-q\succeq0$; no strict positivity or non-degeneracy is required.
-When spin coordinates are identically zero, the unique fixed point is the singular pair
-$q=0, \rho=0$ (\texttt{existsUnique\_skVectorFixedPoint\_zero\_coordinates}). Admissible directions at the
-boundary of the cone are handled via straight-line segments $q(t)=tq_1+(1-t)q_0$ to other covariance
-matrices, keeping all intermediate matrices positive semidefinite without ever requiring full rank.
-\item \emph{Uniqueness packaging.} In the final theorem
-\texttt{existsUnique\_skVectorFixedPoint\_overlap\_free\_energy}, uniqueness of the fixed point is
-packaged inside the closed cone $\{q\succeq0, \rho-q\succeq0\}$. The book-faithful global uniqueness
-theorem \texttt{exists\_skVectorFixedPoint\_equations\_unique} already covers the entire range
-$15\beta d\le1$ because $18\beta^2d^2<1$ there.
-\item \emph{Additional hypotheses in intermediate lemmas.} In Corollary~1.12.5, Frobenius bounds
-$\|q\|_F\le d$ and $\|\rho\|_F\le d$ are explicit hypotheses; in the book, $q,\rho$ are fixed points,
-which automatically satisfy these bounds by \texttt{skVectorFixedPoint\_sum\_sq\_le}. In Lemma~1.12.6,
-stationarity along covariance segments in $q$ assumes $\beta\ne0$ (likewise in
-\texttt{hasDerivAt\_skVectorGaussianFreeEnergy} for Eq.~(1.393)).
-\item \emph{Cavity path on the open interval $0<t<1$.} Differentiability along the cavity
-interpolation path in Proposition~1.12.4 is established for interior points $t\in(0,1)$, which matches
-the factors $1/\sqrt t$ and $1/\sqrt{1-t}$ in Eq.~(1.377).
-\item \emph{Bounded measurable test functions $F$.} Rather than leaving the observable $f$
-unspecified, Proposition~1.12.4 assumes $F$ is bounded and measurable, guaranteeing Bochner integrability
-against the tilted Gibbs measures without moment growth assumptions.
+\item \emph{General spin space.} The text assumes $\mu$ is a probability measure on the ball
+$B_d\subset\mathbb R^d$ (Eq.~(1.362)). The formalization works for any measurable space $S$, probability
+measure $\mu$, and measurable coordinates $\xi:S\to\mathbb R^d$ with $\sum_{u=1}^d \xi_u(a)^2\le d$ for all
+$a\in S$. The ball is the special case $S=B_d$ with the coordinate inclusion
+(\texttt{existsUnique\_skVectorFixedPoint\_overlap\_free\_energy\_ball}). The constant $K(d)$ depends only on
+$d$; it is chosen before the spin space, the law $\mu$, $\beta$ and $N$.
+\item \emph{Singular covariance matrices.} The closed cone $\mathcal C$ requires only $q\succeq0$ and
+$\rho-q\succeq0$; no strict positivity is needed. For instance, when all spin coordinates vanish the unique
+fixed point is the singular pair $q=\rho=0$
+(\texttt{existsUnique\_skVectorFixedPoint\_zero\_coordinates}).
+\end{enumerate}
+
+\medskip\noindent\textbf{(B) Hypotheses that Lean adds, and the reason for each.}
+\begin{enumerate}
+\item \emph{An explicit constant $L=15$.}
+\emph{What the book says:} the high-temperature condition is $L\beta d\le1$ for ``a number $L$ large enough''.
+\emph{What Lean assumes:} $15\beta d\le1$.
+\emph{Why:} a formal statement needs a number. The proof uses two smallness conditions. The contraction
+argument for Theorem~1.12.2 needs $18\beta^2d^2<1$. The closing inequality of Theorem~1.12.1 needs
+$\beta^2d^2\le 1/200$. From $15\beta d\le1$ we get $\beta^2d^2\le1/225$, which gives both
+($18/225<1$ and $1/225\le1/200$). The integer $15$ is the smallest integer with $L^2\ge200$, so it is the
+smallest integer constant that this proof supports; we do not claim that the book's theorem fails for
+smaller $L$.
+\item \emph{The cavity path is differentiated only for $0<t<1$ (Proposition~1.12.4).}
+\emph{What the book says:} Eq.~(1.376) is the derivative $\nu_t'(f)$, with no range of $t$ stated.
+\emph{What Lean assumes:} $0<t<1$.
+\emph{Why:} the computation (1.377) differentiates $\sqrt t$ and $\sqrt{1-t}$, which produces the factors
+$1/\sqrt t$ and $1/\sqrt{1-t}$, and these are not defined at $t=0$ or $t=1$; also \texttt{HasDerivAt} asks
+for a two-sided neighbourhood. This costs nothing in the application: the two endpoints are reached by
+continuity of $t\mapsto\nu_t(f)$ on $[0,1]$ (\texttt{continuous\_skVectorCavityAverage}) together with a
+mean-value or monotonicity argument on the interior
+(\texttt{skVectorCavityAverage\_le\_exp\_mul\_endpoint}, \texttt{skVectorCavityAverage\_one\_le\_zero\_add}).
+\item \emph{The test function $f$ is bounded and measurable (Proposition~1.12.4).}
+\emph{What the book says:} $f$ is a function of the replicas, with no further condition.
+\emph{What Lean assumes:} $F$ is measurable and $|F|\le M$ for some constant $M$.
+\emph{Why:} the derivative of an average with respect to $t$ is exchanged with the integral over the
+Gaussian disorder, and the averages are taken against the Gibbs measure. Boundedness gives a dominating
+constant, so integrability and the exchange of derivative and integral hold with no moment condition on
+$F$. The functions to which the proposition is applied in the proofs of Theorems~1.12.1 and~1.12.3 (products
+of overlap errors and spin coordinates) are bounded, because the spins are bounded by $\sqrt d$ and the
+overlaps by $d$. No bound is assumed on the Gaussian disorder.
+\item \emph{Frobenius bounds on $q$ and $\rho$ (Corollary~1.12.5).}
+\emph{What the book says:} the corollary is stated for the pair $(q,\rho)$ that solves (1.372)--(1.373).
+\emph{What Lean assumes:} $\|q\|_F\le d$ and $\|\rho\|_F\le d$, for arbitrary matrices $q,\rho$.
+\emph{Why:} these two bounds are the only property of $q,\rho$ that the estimate uses (they give
+$\|R^{-}-Q\|_F^2\le4d^2$). Stating the corollary for any $q,\rho$ with these bounds makes it more general
+than the book's version, and the dependence on the fixed-point equations is explicit.
+The bounds are not an extra requirement in the application: they hold for every fixed point in the cone
+(Eq.~(1.382), \texttt{skVectorFixedPoint\_sum\_sq\_le}), so Theorem~1.12.1 needs no further assumption.
+\item \emph{$\beta\ne0$ in Eq.~(1.393) and in the $q$-part of Lemma~1.12.6.}
+\emph{What the book says:} the $\beta$-derivative of $\mathbb E\log\int\mathcal E\,d\mu$ is
+$\beta\sum_{u,v}(\rho_{uv}^2-q_{uv}^2)$, and the $q$-derivative vanishes, with no restriction on $\beta$.
+\emph{What Lean assumes:} $\beta\ne0$.
+\emph{Why:} this is a restriction of the proof, not of the mathematics. Both statements are obtained from one
+shared lemma on the log-partition function of a Gaussian field whose coefficient is $s(t)$. In its Gaussian
+integration by parts step the lemma divides by $s(t)$, so it asks that $s'(t)=0$ or $s(t)\ne0$; here
+$s(t)=\beta$ and $s'(t)=1$, which forces $\beta\ne0$. The case $\beta=0$ is not needed: the pressure limit
+treats $\beta=0$ separately (\texttt{FreeEnergy/Limit.lean}, case split on $\beta=0$) and uses (1.393) and
+Lemma~1.12.6 only for $\beta>0$.
+\item \emph{Uniqueness is stated inside the cone in the final theorem.}
+\emph{What the book says:} Theorem~1.12.2 gives one solution $(q,\rho)$ of (1.372)--(1.373) for
+$L\beta d\le1$, and Theorem~1.12.3 uses it.
+\emph{What Lean assumes:} in \texttt{existsUnique\_skVectorFixedPoint\_overlap\_free\_energy} the uniqueness
+quantifier ranges over fixed points $x$ in the closed cone $\mathcal C=\{q\succeq0,\ \rho-q\succeq0\}$
+that also satisfy the overlap and pressure bounds.
+\emph{Why:} the fixed-point map is proved to be a contraction on $\mathcal C$, a closed set that the map
+preserves, and this is where Banach's theorem is applied. Every pair that arises in the book is in $\mathcal C$,
+since $q=\mathbb E\langle\xi\rangle\langle\xi\rangle^{\!\top}$ and $\rho-q$ is an expected covariance, so both
+are positive semidefinite. Uniqueness among \emph{all} solutions is the book's own statement, and it is proved
+separately and for the full range $15\beta d\le1$ by \texttt{exists\_skVectorFixedPoint\_equations\_unique}
+(because $18\beta^2d^2<1$ there): it requires only $q'\succeq0$ and allows any realization of the Gaussian
+field. The final theorem packages existence, uniqueness in $\mathcal C$ and the quantitative bounds in one
+statement; it does not replace the book-faithful uniqueness theorem.
 \end{enumerate}
 \end{remark}
 
