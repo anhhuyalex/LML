@@ -31,6 +31,7 @@ public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.AddPowEst
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.EvenMomentShift
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Hyperbolic
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.LogRpow
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.LogSumExp
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SinCosChain
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SinCosEndpoint
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SqrtSub
@@ -677,6 +678,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.SKReplicaHyperbo
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.SKReplicaMaximizer
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.SKReplicaMoment
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.SKReplicaTheorem
+public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.FixedPoint
 public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKAsymptoticProduct
 public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKCorrelationDecay
 public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKCovarianceSiteSymmetry
