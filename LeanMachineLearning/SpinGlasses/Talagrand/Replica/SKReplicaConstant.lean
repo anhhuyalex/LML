@@ -47,8 +47,7 @@ theorem exp_skReplicaMatLogPartition_const (β h V : ℝ) (hβV : 0 ≤ β * V) 
     Real.exp (skReplicaMatLogPartition n β h (fun l l' => if l = l' then 0 else V)) =
       Real.exp (-(n * β * V) / 2) * ∫ z : ℝ, (2 * cosh (Real.sqrt (β * V) * z + h)) ^ n
         ∂(gaussianReal 0 1) := by
-  unfold skReplicaMatLogPartition
-  rw [Real.exp_log (Finset.sum_pos (fun ε _ => Real.exp_pos _) Finset.univ_nonempty)]
+  rw [exp_skReplicaMatLogPartition]
   have hsq : Real.sqrt (β * V) ^ 2 = β * V := Real.sq_sqrt hβV
   have hterm (ε : Fin n → ℤˣ) :
       Real.exp (β / 2 * ∑ l, ∑ l', (if l = l' then 0 else V) * ((ε l : ℤ) : ℝ) *
@@ -130,8 +129,7 @@ theorem skReplicaMatObjective_const (β h q : ℝ) (hβ : 0 < β) (hq : 0 ≤ q)
     apply Real.exp_injective
     rw [hexp, Real.exp_add, Real.exp_add, Real.exp_log hI, ← Real.log_pow,
       Real.exp_log (by positivity)]
-  unfold skReplicaMatObjective
-  rw [hA, sum_sq_const_coupling]
+  rw [skReplicaMatObjective_def, hA, sum_sq_const_coupling]
   ring
 
 end SpinGlasses

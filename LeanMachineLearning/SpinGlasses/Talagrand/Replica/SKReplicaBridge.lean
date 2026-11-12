@@ -37,7 +37,7 @@ theorem skSymmCoupling_of_matrix (G : Fin n → Fin n → ℝ) (hs : ∀ l l', G
     (hd : ∀ l, G l l = 0) :
     skSymmCoupling (fun p : FinPairs n => G p.val.1 p.val.2) = G := by
   funext l l'
-  unfold skSymmCoupling
+  dsimp only [skSymmCoupling]
   by_cases h : l < l'
   · simp [h]
   · by_cases h' : l' < l
@@ -59,7 +59,7 @@ theorem sum_finPairs_eq_half_sym (g : FinPairs n → ℝ) (c : Fin n → Fin n �
 /-- `A(g)` equals the matrix log-partition function of the symmetric extension. -/
 theorem skReplicaLogPartition_eq_mat (β h : ℝ) (g : FinPairs n → ℝ) :
     skReplicaLogPartition n β h g = skReplicaMatLogPartition n β h (skSymmCoupling g) := by
-  unfold skReplicaLogPartition skReplicaMatLogPartition
+  rw [skReplicaLogPartition_def, skReplicaMatLogPartition_def]
   congr 1
   refine Finset.sum_congr rfl fun ε _ => ?_
   congr 1
@@ -87,8 +87,7 @@ symmetric extension. -/
 theorem skReplicaLogPartition_sub_eq_objective (β h : ℝ) (g : FinPairs n → ℝ) :
     skReplicaLogPartition n β h g - (∑ p : FinPairs n, g p ^ 2) / 2 =
       skReplicaMatObjective n β h (skSymmCoupling g) := by
-  unfold skReplicaMatObjective
-  rw [skReplicaLogPartition_eq_mat, sum_sq_finPairs_eq_half_sym]
+  rw [skReplicaMatObjective_def, skReplicaLogPartition_eq_mat, sum_sq_finPairs_eq_half_sym]
   ring
 
 /-- The exponent of the replica Boltzmann weight is at most `|β| ∑|g| + |h| n` in absolute value. -/
@@ -151,7 +150,7 @@ theorem abs_skReplicaLogPartition_le (β h : ℝ) (g : FinPairs n → ℝ) :
 
 theorem continuous_skReplicaLogPartition (β h : ℝ) :
     Continuous fun g : FinPairs n → ℝ => skReplicaLogPartition n β h g := by
-  unfold skReplicaLogPartition
+  simp only [skReplicaLogPartition_def]
   refine Continuous.log (continuous_finsetSum _ fun ε _ => by fun_prop) fun g => ?_
   exact (Finset.sum_pos (fun ε _ => Real.exp_pos _) Finset.univ_nonempty).ne'
 
@@ -197,7 +196,7 @@ theorem exists_forall_objective_le (β h : ℝ) :
     have hr2 : K - B0 < ‖g‖ := lt_of_le_of_lt (le_max_right _ _) hgn
     have h4 : skReplicaLogPartition n β h g ≤ K * (1 + d * ‖g‖) :=
       (le_abs_self _).trans (h1.trans (mul_le_mul_of_nonneg_left (by linarith) hK0))
-    show skReplicaLogPartition n β h g - (∑ p, g p ^ 2) / 2 ≤ B0
+    change skReplicaLogPartition n β h g - (∑ p, g p ^ 2) / 2 ≤ B0
     nlinarith [mul_nonneg hK0 hd0, norm_nonneg g])
   exact ⟨g, hg⟩
 

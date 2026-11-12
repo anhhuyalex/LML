@@ -30,6 +30,10 @@ matrix with zero diagonal this is `A(g) - ½ ∑_{ℓ<ℓ'} g²`. -/
 noncomputable def skReplicaMatObjective (n : ℕ) (β h : ℝ) (G : Fin n → Fin n → ℝ) : ℝ :=
   skReplicaMatLogPartition n β h G - (∑ l, ∑ l', G l l' ^ 2) / 4
 
+theorem skReplicaMatObjective_def (n : ℕ) (β h : ℝ) (G : Fin n → Fin n → ℝ) :
+    skReplicaMatObjective n β h G =
+      skReplicaMatLogPartition n β h G - (∑ l, ∑ l', G l l' ^ 2) / 4 := rfl
+
 /-- If `|G_ab|`'s neighbour `G_bc` is nonzero at a maximizer, then `|G_ab| = |G_bc|`: the first
 step of the proof of Proposition 1.13.2. -/
 theorem skReplica_abs_eq_of_ne_zero (β h : ℝ) (hβ : 0 < β) (G : Fin n → Fin n → ℝ)
@@ -45,7 +49,7 @@ theorem skReplica_abs_eq_of_ne_zero (β h : ℝ) (hβ : 0 < β) (G : Fin n → F
       skReplicaMatObjective n β h H ≤ skReplicaMatObjective n β h (skReplicaCollapse G b a) := by
     intro H hHs hHd
     have := hmax H hHs hHd
-    unfold skReplicaMatObjective at this ⊢
+    simp only [skReplicaMatObjective_def] at this ⊢
     linarith
   have hs'' := skReplicaCollapse_symm G b a hs
   have hd'' := skReplicaCollapse_diag G b a hab.symm hd
@@ -198,7 +202,7 @@ theorem skReplicaMatLogPartition_gauge (β V : ℝ) (G : Fin n → Fin n → ℝ
     (hd : ∀ l, G l l = 0) :
     skReplicaMatLogPartition n β 0 G =
       skReplicaMatLogPartition n β 0 (fun l l' => if l = l' then 0 else V) := by
-  unfold skReplicaMatLogPartition
+  simp only [skReplicaMatLogPartition_def]
   congr 1
   refine Fintype.sum_equiv (Equiv.mulLeft u) _ _ fun ε => ?_
   simp only [zero_mul, add_zero]
@@ -228,7 +232,7 @@ theorem skReplica_maximizer_const (β h : ℝ) (hβ : 0 < β) (G : Fin n → Fin
   · by_cases hh : h = 0
     · subst hh
       refine ⟨V, hV.le, ?_⟩
-      unfold skReplicaMatObjective
+      simp only [skReplicaMatObjective_def]
       rw [skReplicaMatLogPartition_gauge β V G u hG hd]
       congr 1
       congr 1
