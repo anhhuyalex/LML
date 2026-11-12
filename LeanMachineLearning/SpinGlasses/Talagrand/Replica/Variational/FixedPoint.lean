@@ -285,4 +285,115 @@ lemma continuousOn_integral_cosh_pow (n : ℕ) (β h : ℝ) :
   · refine Continuous.continuousOn ?_
     exact (Real.continuous_cosh.comp (by fun_prop)).pow n
 
+/-- Continuity of the numerator on `[0, 1]`. -/
+lemma continuousOn_integral_cosh_pow_mul_tanh_sq (n : ℕ) (β h : ℝ) :
+    ContinuousOn (fun q : ℝ => ∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n *
+      tanh (β * z * Real.sqrt q + h) ^ 2 ∂(gaussianReal 0 1)) (Set.Icc (0 : ℝ) 1) := by
+  set B : ℝ → ℝ := fun z => Real.exp (n * |h|) *
+    (Real.exp (n * |β| * z) + Real.exp (-(n * |β|) * z))
+  have hB : Integrable B (gaussianReal 0 1) :=
+    ((integrable_exp_mul_gaussianReal (n * |β|)).add
+      (integrable_exp_mul_gaussianReal (-(n * |β|)))).const_mul _
+  refine continuousOn_of_dominated (bound := B) (fun q _ => ?_)
+    (fun q hq => ae_of_all _ fun z => ?_) hB (ae_of_all _ fun z => ?_)
+  · exact ((Real.continuous_cosh.comp (by fun_prop : Continuous fun z : ℝ =>
+      β * z * Real.sqrt q + h)).pow n |>.mul
+      ((Real.continuous_tanh.comp (by fun_prop : Continuous fun z : ℝ =>
+      β * z * Real.sqrt q + h)).pow 2)).aestronglyMeasurable
+  · rw [Real.norm_eq_abs, abs_mul, abs_of_nonneg (pow_nonneg (Real.cosh_pos _).le _),
+      abs_of_nonneg (sq_nonneg _)]
+    have hq0 : 0 ≤ q := hq.1
+    have hq1 : q ≤ 1 := hq.2
+    have hsq : Real.sqrt q ≤ 1 := by
+      rw [← Real.sqrt_one]
+      exact Real.sqrt_le_sqrt hq1
+    have hsq0 : 0 ≤ Real.sqrt q := Real.sqrt_nonneg q
+    have hx : |β * z * Real.sqrt q + h| ≤ |β| * |z| + |h| := by
+      calc |β * z * Real.sqrt q + h|
+        _ ≤ |β * z * Real.sqrt q| + |h| := abs_add_le _ _
+        _ = |β| * |z| * Real.sqrt q + |h| := by
+          rw [abs_mul, abs_mul, abs_of_nonneg hsq0]
+        _ ≤ |β| * |z| * 1 + |h| := by
+          gcongr
+        _ = |β| * |z| + |h| := by rw [mul_one]
+    have hch : cosh (β * z * Real.sqrt q + h) ≤ Real.exp (|β| * |z| + |h|) :=
+      (cosh_le_exp_abs _).trans (Real.exp_le_exp.2 hx)
+    have hpow : cosh (β * z * Real.sqrt q + h) ^ n ≤ B z := by
+      calc cosh (β * z * Real.sqrt q + h) ^ n
+        _ ≤ (Real.exp (|β| * |z| + |h|)) ^ n :=
+          pow_le_pow_left₀ (Real.cosh_pos _).le hch n
+        _ = Real.exp (n * (|β| * |z| + |h|)) := by
+          rw [← Real.exp_nat_mul]
+        _ = Real.exp (n * |h|) * Real.exp ((n * |β|) * |z|) := by
+          rw [show (n : ℝ) * (|β| * |z| + |h|) =
+            (n : ℝ) * |h| + ((n : ℝ) * |β|) * |z| by ring, Real.exp_add]
+        _ ≤ Real.exp (n * |h|) * (Real.exp (n * |β| * z) + Real.exp (-(n * |β|) * z)) :=
+          mul_le_mul_of_nonneg_left (exp_abs_le_exp_add_exp _ _) (Real.exp_pos _).le
+    calc cosh (β * z * Real.sqrt q + h) ^ n * tanh (β * z * Real.sqrt q + h) ^ 2
+      _ ≤ cosh (β * z * Real.sqrt q + h) ^ n * 1 :=
+        mul_le_mul_of_nonneg_left ((Real.tanh_sq_lt_one _).le)
+          (pow_nonneg (Real.cosh_pos _).le _)
+      _ = cosh (β * z * Real.sqrt q + h) ^ n := mul_one _
+      _ ≤ B z := hpow
+  · refine Continuous.continuousOn ?_
+    exact (Real.continuous_cosh.comp (by fun_prop)).pow n |>.mul
+      ((Real.continuous_tanh.comp (by fun_prop)).pow 2)
+
+/-- Continuity of the replica ratio map on `[0, 1]`. -/
+lemma continuousOn_skReplica_ratio (n : ℕ) (β h : ℝ) :
+    ContinuousOn (fun q : ℝ =>
+      (∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n *
+            tanh (β * z * Real.sqrt q + h) ^ 2 ∂(gaussianReal 0 1)) /
+          (∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n ∂(gaussianReal 0 1)))
+      (Set.Icc (0 : ℝ) 1) := by
+  refine ContinuousOn.div (continuousOn_integral_cosh_pow_mul_tanh_sq n β h)
+    (continuousOn_integral_cosh_pow n β h) fun q _ => ?_
+  exact (integral_cosh_pow_sk_pos n β h q).ne'
+
+/-- Existence of a fixed point in `[0, 1]` for the replica ratio map. -/
+theorem exists_skReplica_ratio_fixedPoint (n : ℕ) (β h : ℝ) :
+    ∃ q : ℝ, 0 ≤ q ∧ q ≤ 1 ∧
+      q = (∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n *
+            tanh (β * z * Real.sqrt q + h) ^ 2 ∂(gaussianReal 0 1)) /
+          (∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n ∂(gaussianReal 0 1)) := by
+  set R : ℝ → ℝ := fun q =>
+    (∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n *
+          tanh (β * z * Real.sqrt q + h) ^ 2 ∂(gaussianReal 0 1)) /
+        (∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n ∂(gaussianReal 0 1))
+  have hcont : ContinuousOn (fun x => R x - x) (Set.Icc (0 : ℝ) 1) :=
+    ((continuousOn_skReplica_ratio n β h).sub continuous_id.continuousOn)
+  have h0 : 0 ≤ R 0 - 0 := by
+    rw [sub_zero]; exact skReplica_ratio_nonneg n β h 0
+  have h1 : R 1 - 1 ≤ 0 := by
+    linarith [skReplica_ratio_le_one n β h 1]
+  obtain ⟨q, hq, hq0⟩ := intermediate_value_Icc' (zero_le_one' ℝ) hcont ⟨h1, h0⟩
+  refine ⟨q, hq.1, hq.2, ?_⟩
+  dsimp [R] at hq0
+  linarith
+
+/-- **Talagrand's Eq. (1.408) for `n = 1`:** any fixed point in `[0, 1]` is a maximizer. -/
+theorem exists_skReplica_maximizer_fixedPoint_one (β h : ℝ) :
+    ∃ q : ℝ, 0 ≤ q ∧ q ≤ 1 ∧
+      (∀ q' : ℝ, 0 ≤ q' →
+        1 * β ^ 2 * (1 - q') ^ 2 / 4 - (1 : ℝ) ^ 2 * β ^ 2 * q' ^ 2 / 4 +
+            Real.log (∫ z : ℝ, cosh (β * z * Real.sqrt q' + h) ^ 1 ∂(gaussianReal 0 1)) ≤
+          1 * β ^ 2 * (1 - q) ^ 2 / 4 - (1 : ℝ) ^ 2 * β ^ 2 * q ^ 2 / 4 +
+            Real.log (∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ 1 ∂(gaussianReal 0 1))) ∧
+      q = (∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ 1 *
+            tanh (β * z * Real.sqrt q + h) ^ 2 ∂(gaussianReal 0 1)) /
+          (∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ 1 ∂(gaussianReal 0 1)) ∧
+      Tendsto (fun N : ℕ => (N : ℝ)⁻¹ * Real.log (∫ g' : FinPairs N → ℝ,
+          (∑ σ : Fin N → ℤˣ, Real.exp (skGibbsEnergy N β h g' σ)) ^ 1
+            ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1))) atTop
+        (𝓝 (1 * Real.log 2 + (1 * β ^ 2 * (1 - q) ^ 2 / 4 -
+          (1 : ℝ) ^ 2 * β ^ 2 * q ^ 2 / 4 +
+          Real.log (∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ 1 ∂(gaussianReal 0 1))))) := by
+  obtain ⟨q, hq0, hq1, hqfix⟩ := exists_skReplica_ratio_fixedPoint 1 β h
+  refine ⟨q, hq0, hq1, fun q' hq' => ?_, hqfix, ?_⟩
+  · rw [replica_phi_one_const β h q' hq', replica_phi_one_const β h q hq0]
+  · obtain ⟨q0, hq0_ge, -, hlim⟩ := sk_replica_theorem (n := 1) β h
+    rw [replica_phi_one_const β h q0 hq0_ge] at hlim
+    rw [replica_phi_one_const β h q hq0]
+    exact hlim
+
 end SpinGlasses
