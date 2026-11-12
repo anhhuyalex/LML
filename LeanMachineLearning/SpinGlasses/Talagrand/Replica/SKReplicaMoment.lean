@@ -34,6 +34,21 @@ noncomputable def skReplicaLogPartition (n : ℕ) (β h : ℝ) (g : FinPairs n �
   Real.log (∑ ε : Fin n → ℤˣ, Real.exp (β * ∑ p : FinPairs n,
     g p * ((ε p.val.1 : ℤ) : ℝ) * ((ε p.val.2 : ℤ) : ℝ) + h * ∑ l, ((ε l : ℤ) : ℝ)))
 
+/-- Definitional equality for `skReplicaLogPartition`. -/
+theorem skReplicaLogPartition_def (n : ℕ) (β h : ℝ) (g : FinPairs n → ℝ) :
+    skReplicaLogPartition n β h g =
+      Real.log (∑ ε : Fin n → ℤˣ, Real.exp (β * ∑ p : FinPairs n,
+        g p * ((ε p.val.1 : ℤ) : ℝ) * ((ε p.val.2 : ℤ) : ℝ) + h * ∑ l, ((ε l : ℤ) : ℝ))) := rfl
+
+/-- The exponential of `skReplicaLogPartition` is the partition sum. -/
+@[simp]
+theorem exp_skReplicaLogPartition (n : ℕ) (β h : ℝ) (g : FinPairs n → ℝ) :
+    Real.exp (skReplicaLogPartition n β h g) =
+      ∑ ε : Fin n → ℤˣ, Real.exp (β * ∑ p : FinPairs n,
+        g p * ((ε p.val.1 : ℤ) : ℝ) * ((ε p.val.2 : ℤ) : ℝ) + h * ∑ l, ((ε l : ℤ) : ℝ)) := by
+  rw [skReplicaLogPartition_def]
+  exact Real.exp_log (Finset.sum_pos (fun _ _ => Real.exp_pos _) Finset.univ_nonempty)
+
 /-- The exponent of the replica partition function of `N` spins and `n` replicas, written as a
 function of replica-major spins. -/
 theorem sum_skGibbsEnergy_replicas (N n : ℕ) (β h : ℝ) (g : FinPairs N → ℝ)
@@ -140,9 +155,7 @@ theorem integral_exp_replica_log_partition {N : ℕ} (hN : 0 < N) (n : ℕ) (β 
       (fun p => x p / Real.sqrt N)) = ∑ ρ : Fin N → Fin n → ℤˣ, Real.exp (h * ∑ i, ∑ l,
         ((ρ i l : ℤ) : ℝ)) * Real.exp (∑ q : FinPairs n, ((Real.sqrt N)⁻¹ * β *
           ∑ i, ((ρ i q.val.1 : ℤ) : ℝ) * ((ρ i q.val.2 : ℤ) : ℝ)) * x q) := by
-    unfold skReplicaLogPartition
-    rw [Real.exp_nat_mul, Real.exp_log (Finset.sum_pos (fun ε _ => Real.exp_pos _)
-      Finset.univ_nonempty), Fintype.sum_pow]
+    rw [Real.exp_nat_mul, exp_skReplicaLogPartition, Fintype.sum_pow]
     refine Finset.sum_congr rfl fun ρ _ => ?_
     rw [← Real.exp_sum, ← Real.exp_add]
     congr 1

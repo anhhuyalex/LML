@@ -33,6 +33,21 @@ noncomputable def skReplicaMatLogPartition (n : ℕ) (β h : ℝ) (G : Fin n →
   Real.log (∑ ε : Fin n → ℤˣ, Real.exp (β / 2 * ∑ l, ∑ l', G l l' * ((ε l : ℤ) : ℝ) *
     ((ε l' : ℤ) : ℝ) + h * ∑ l, ((ε l : ℤ) : ℝ)))
 
+/-- Definitional equality for `skReplicaMatLogPartition`. -/
+theorem skReplicaMatLogPartition_def (n : ℕ) (β h : ℝ) (G : Fin n → Fin n → ℝ) :
+    skReplicaMatLogPartition n β h G =
+      Real.log (∑ ε : Fin n → ℤˣ, Real.exp (β / 2 * ∑ l, ∑ l', G l l' * ((ε l : ℤ) : ℝ) *
+        ((ε l' : ℤ) : ℝ) + h * ∑ l, ((ε l : ℤ) : ℝ))) := rfl
+
+/-- The exponential of `skReplicaMatLogPartition` is the partition sum. -/
+@[simp]
+theorem exp_skReplicaMatLogPartition (n : ℕ) (β h : ℝ) (G : Fin n → Fin n → ℝ) :
+    Real.exp (skReplicaMatLogPartition n β h G) =
+      ∑ ε : Fin n → ℤˣ, Real.exp (β / 2 * ∑ l, ∑ l', G l l' * ((ε l : ℤ) : ℝ) *
+        ((ε l' : ℤ) : ℝ) + h * ∑ l, ((ε l : ℤ) : ℝ)) := by
+  rw [skReplicaMatLogPartition_def]
+  exact Real.exp_log (Finset.sum_pos (fun _ _ => Real.exp_pos _) Finset.univ_nonempty)
+
 /-- The signs of the replicas other than `a` and `b` determine, together with `ε_a` and `ε_b`,
 a sign configuration of all replicas. -/
 def epsSplit (a b : Fin n) (hab : a ≠ b) :
@@ -147,8 +162,7 @@ theorem exp_skReplicaMatLogPartition_split (a b : Fin n) (hab : a ≠ b) (β h :
             sinh (β * ∑ l : {l : Fin n // l ≠ a ∧ l ≠ b}, G a l.val * ((α l : ℤ) : ℝ) + h) *
               sinh (β * ∑ l : {l : Fin n // l ≠ a ∧ l ≠ b}, G b l.val * ((α l : ℤ) : ℝ) + h) *
               sinh (β * G a b))) := by
-  unfold skReplicaMatLogPartition
-  rw [Real.exp_log (Finset.sum_pos (fun ε _ => Real.exp_pos _) Finset.univ_nonempty)]
+  rw [exp_skReplicaMatLogPartition]
   rw [← Fintype.sum_equiv (epsSplit a b hab).symm (fun t => Real.exp (β / 2 * ∑ l, ∑ l',
       G l l' * (((epsSplit a b hab).symm t l : ℤˣ) : ℝ) *
         (((epsSplit a b hab).symm t l' : ℤˣ) : ℝ) +
@@ -194,13 +208,20 @@ def skReplicaCollapse (G : Fin n → Fin n → ℝ) (a b : Fin n) : Fin n → Fi
   fun l l' => G (Function.update id b a l) (Function.update id b a l') +
     if (l = a ∧ l' = b) ∨ (l = b ∧ l' = a) then |G a b| else 0
 
+/-- Evaluation lemma for `skReplicaCollapse`. -/
+@[simp]
+theorem skReplicaCollapse_apply (G : Fin n → Fin n → ℝ) (a b : Fin n) (l l' : Fin n) :
+    skReplicaCollapse G a b l l' =
+      G (Function.update id b a l) (Function.update id b a l') +
+        if (l = a ∧ l' = b) ∨ (l = b ∧ l' = a) then |G a b| else 0 := rfl
+
 section Collapse
 
 variable (G : Fin n → Fin n → ℝ) (a b : Fin n)
 
 theorem skReplicaCollapse_symm (hs : ∀ l l', G l l' = G l' l) (l l' : Fin n) :
     skReplicaCollapse G a b l l' = skReplicaCollapse G a b l' l := by
-  unfold skReplicaCollapse
+  simp only [skReplicaCollapse_apply]
   rw [hs (Function.update id b a l) (Function.update id b a l')]
   congr 1
   by_cases h : (l = a ∧ l' = b) ∨ (l = b ∧ l' = a)
@@ -211,32 +232,27 @@ theorem skReplicaCollapse_symm (hs : ∀ l l', G l l' = G l' l) (l l' : Fin n) :
 
 theorem skReplicaCollapse_diag (hab : a ≠ b) (hd : ∀ l, G l l = 0) (l : Fin n) :
     skReplicaCollapse G a b l l = 0 := by
-  unfold skReplicaCollapse
   have h : ¬ ((l = a ∧ l = b) ∨ (l = b ∧ l = a)) := by
     rintro (⟨h1, h2⟩ | ⟨h1, h2⟩)
     · exact hab (h1.symm.trans h2)
     · exact hab (h2.symm.trans h1)
-  simp [hd, h]
+  simp [skReplicaCollapse_apply, hd, h]
 
 theorem skReplicaCollapse_rest (l l' : Fin n) (hl : l ≠ a ∧ l ≠ b) (hl' : l' ≠ a ∧ l' ≠ b) :
     skReplicaCollapse G a b l l' = G l l' := by
-  unfold skReplicaCollapse
-  simp [hl.1, hl.2, hl'.1, hl'.2]
+  simp [skReplicaCollapse_apply, hl.1, hl.2, hl'.1, hl'.2]
 
 theorem skReplicaCollapse_a_rest (hab : a ≠ b) (l : Fin n) (hl : l ≠ a ∧ l ≠ b) :
     skReplicaCollapse G a b a l = G a l := by
-  unfold skReplicaCollapse
-  simp [Function.update_of_ne hab, hl.1, hl.2]
+  simp [skReplicaCollapse_apply, Function.update_of_ne hab, hl.1, hl.2]
 
 theorem skReplicaCollapse_b_rest (hab : a ≠ b) (l : Fin n) (hl : l ≠ a ∧ l ≠ b) :
     skReplicaCollapse G a b b l = G a l := by
-  unfold skReplicaCollapse
-  simp [hl.1, hl.2, Ne.symm hab]
+  simp [skReplicaCollapse_apply, hl.1, hl.2, Ne.symm hab]
 
 theorem skReplicaCollapse_ab (hab : a ≠ b) (hd : ∀ l, G l l = 0) :
     skReplicaCollapse G a b a b = |G a b| := by
-  unfold skReplicaCollapse
-  simp [hd, hab]
+  simp [skReplicaCollapse_apply, hd, hab]
 
 end Collapse
 

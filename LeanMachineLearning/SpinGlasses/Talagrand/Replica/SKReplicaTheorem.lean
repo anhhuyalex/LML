@@ -62,7 +62,7 @@ theorem tendsto_replica_moment (β h : ℝ) (g : FinPairs n → ℝ)
       (fun p => x p / Real.sqrt N)) ∂(Measure.pi fun _ : FinPairs n => gaussianReal 0 1) :=
     integral_exp_pos (integrable_exp_laplace _ (continuous_skReplicaLogPartition β h).measurable
       (n * Real.log 2 + n * |h| + |β|) (fun g' => abs_skReplicaLogPartition_le β h g') _ hmax hN)
-  show _ = (N : ℝ)⁻¹ * Real.log _
+  change _ = (N : ℝ)⁻¹ * Real.log _
   rw [integral_sk_partition_pow_eq_laplace hN, Real.log_mul (Real.exp_pos _).ne' hI.ne',
     Real.log_exp]
   field_simp
