@@ -711,6 +711,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Model.Energy
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Model.GaussianField
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Model.Hypercube
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Model.Ising
+public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Model.IsingCavity
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Model.ReplicaAverage
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Model.Scaling
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Model.SiteSymmetry

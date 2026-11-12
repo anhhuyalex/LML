@@ -132,10 +132,12 @@ theorem skVectorCavityOverlap_ising_symm (N : ℕ) (σ τ : Fin (N + 1) → ℤ�
 
 local notation "skOverlap₁" => skVectorCavityOverlap (fun (ε : ℤˣ) (_ : Fin 1) => ((ε : ℤ) : ℝ))
 
-/-- **Reduction of the vector cavity derivative to the scalar cavity formula.**
-For one-component Ising spins, the diagonal terms `a = b` in the first sum of (1.376)
+/-- **Algebraic identity of the vector cavity and scalar cavity right-hand sums.**
+For one-component Ising spins, the diagonal terms `a = b` in the first sum of Eq. (1.376)
 cancel exactly against the third sum, and the off-diagonal terms double to the strictly
-ordered pairs, yielding the three-family replica combination of Eq. (1.151) / (1.152). -/
+ordered pairs, yielding the three-family replica combination of Eq. (1.151) / (1.152).
+This establishes the algebraic equality of the two right-hand sums; the identification
+of the derivatives themselves is not formalized here. -/
 theorem ising_cavity_rhs_eq_three_family_sum
     (N : ℕ) (β q : ℝ) (R : Type*) [Fintype R] [LinearOrder R]
     (F : (R → Fin (N + 1) → ℤˣ) → ℝ)
