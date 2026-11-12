@@ -56,7 +56,6 @@ theorem skGibbsEnergy_zero_field (N : ℕ) (β : ℝ) (g : FinPairs N → ℝ) (
         g p * ((σ p.val.1 : ℤ) : ℝ) * ((σ p.val.2 : ℤ) : ℝ)) := by
   simp [skGibbsEnergy_def]
 
-@[simp]
 theorem skGibbsEnergy_zero (N : ℕ) (g : FinPairs N → ℝ) (σ : Fin N → ℤˣ) :
     skGibbsEnergy N 0 0 g σ = 0 := by
   simp [skGibbsEnergy_def]
