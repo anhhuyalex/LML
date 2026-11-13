@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.GibbsMeanTrick
 public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsReplicaMarginal
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.PiFinMul
 
 /-!
 # The overlap covariances in the `T`-basis (Talagrand, Eq. (1.246) and Theorem 1.8.12)
@@ -36,34 +37,6 @@ open MeasureTheory Finset
 open scoped BigOperators
 
 namespace SpinGlasses
-
-/-- Independent replicas: the average of a product `f₀(σ¹) f₁(σ²)` factorizes. -/
-theorem integral_pi_fin_two_mul_fun {α : Type*} [MeasurableSpace α] (μ : Measure α)
-    [IsProbabilityMeasure μ] (f₀ f₁ : α → ℝ) :
-    ∫ τ : Fin 2 → α, f₀ (τ 0) * f₁ (τ 1) ∂(Measure.pi fun _ : Fin 2 => μ) =
-      (∫ x, f₀ x ∂μ) * ∫ x, f₁ x ∂μ := by
-  have := integral_fintype_prod_eq_prod (μ := fun _ : Fin 2 => μ) (fun r : Fin 2 => ![f₀, f₁] r)
-  simpa [Fin.prod_univ_two] using this
-
-/-- Independent replicas: the average of a product `f₀(σ¹) f₁(σ²) f₂(σ³)` factorizes. -/
-theorem integral_pi_fin_three_mul_fun {α : Type*} [MeasurableSpace α] (μ : Measure α)
-    [IsProbabilityMeasure μ] (f₀ f₁ f₂ : α → ℝ) :
-    ∫ τ : Fin 3 → α, f₀ (τ 0) * f₁ (τ 1) * f₂ (τ 2) ∂(Measure.pi fun _ : Fin 3 => μ) =
-      (∫ x, f₀ x ∂μ) * (∫ x, f₁ x ∂μ) * ∫ x, f₂ x ∂μ := by
-  have := integral_fintype_prod_eq_prod (μ := fun _ : Fin 3 => μ)
-    (fun r : Fin 3 => ![f₀, f₁, f₂] r)
-  simpa [Fin.prod_univ_three] using this
-
-/-- Independent replicas: the average of a product of four functions of four replicas
-factorizes. -/
-theorem integral_pi_fin_four_mul_fun {α : Type*} [MeasurableSpace α] (μ : Measure α)
-    [IsProbabilityMeasure μ] (f₀ f₁ f₂ f₃ : α → ℝ) :
-    ∫ τ : Fin 4 → α, f₀ (τ 0) * f₁ (τ 1) * f₂ (τ 2) * f₃ (τ 3)
-        ∂(Measure.pi fun _ : Fin 4 => μ) =
-      (∫ x, f₀ x ∂μ) * (∫ x, f₁ x ∂μ) * (∫ x, f₂ x ∂μ) * ∫ x, f₃ x ∂μ := by
-  have := integral_fintype_prod_eq_prod (μ := fun _ : Fin 4 => μ)
-    (fun r : Fin 4 => ![f₀, f₁, f₂, f₃] r)
-  simpa [Fin.prod_univ_four] using this
 
 /-- Expansion of a product of two centered overlaps. -/
 theorem overlap_prod_expand {M : ℕ} (q : ℝ) (u v : Fin M → ℝ) :

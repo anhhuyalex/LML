@@ -11,6 +11,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Cavity.Compa
 public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityOuterDerivative
 public import LeanMachineLearning.SpinGlasses.Talagrand.GaussianFluctuation.SKLastSpinGaussian
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteReplicaTiltedShift
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.TripleProductMul
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianVector
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiLinearForm
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaProduct
@@ -203,97 +204,51 @@ theorem skVectorCavityGaussianData_disorderLaw_ising (N : ℕ) (β q : ℝ) (hq 
   · exact fun i => ((measurable_pi_apply i).comp measurable_fst).comp measurable_snd
   · exact fun u => measurable_const.mul (measurable_snd.comp measurable_snd)
   · intro k l
-    rcases k with p | i <;> rcases l with p' | i'
-    · dsimp only [Sum.elim_inl, Sum.elim_inr]
-      have h_int := integral_prod_mul (μ := Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
-        (ν := (Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
-        (fun g => g p * g p') (fun _ => (1 : ℝ))
-      simp only [mul_one, integral_const, probReal_univ, smul_eq_mul] at h_int
-      rw [h_int, integral_pi_gaussianReal_coord_mul]
-      simp only [Sum.inl.injEq]
-    · dsimp only [Sum.elim_inl, Sum.elim_inr]
-      have h_int := integral_prod_mul (μ := Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
-        (ν := (Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
-        (fun g => g p) (fun ω₂ => ω₂.1 i')
-      rw [h_int, integral_pi_gaussianReal_coord, zero_mul]
-      rfl
-    · dsimp only [Sum.elim_inl, Sum.elim_inr]
-      have h_int := integral_prod_mul (μ := Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
-        (ν := (Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
-        (fun g => g p') (fun ω₂ => ω₂.1 i)
-      have hcomm : (fun ω : (FinPairs N → ℝ) × (Fin N → ℝ) × ℝ => ω.2.1 i * ω.1 p') =
-          (fun ω => ω.1 p' * ω.2.1 i) := funext fun ω => mul_comm _ _
-      rw [hcomm, h_int, integral_pi_gaussianReal_coord, zero_mul]
-      rfl
-    · dsimp only [Sum.elim_inl, Sum.elim_inr]
-      have h_int1 := integral_prod_mul (μ := Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
-        (ν := (Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
-        (fun _ => (1 : ℝ)) (fun ω₂ => ω₂.1 i * ω₂.1 i')
-      simp only [one_mul, integral_const, probReal_univ, smul_eq_mul] at h_int1
-      have h_int2 := integral_prod_mul (μ := Measure.pi fun _ : Fin N => gaussianReal 0 1)
-        (ν := gaussianReal 0 1) (fun g' => g' i * g' i') (fun _ => (1 : ℝ))
-      simp only [mul_one, integral_const, probReal_univ, smul_eq_mul] at h_int2
-      rw [h_int1, h_int2, integral_pi_gaussianReal_coord_mul]
-      simp only [Sum.inr.injEq]
+    rcases k with p | i <;> rcases l with p' | i' <;> dsimp only [Sum.elim_inl, Sum.elim_inr]
+    · refine (integral_prod_prod_eq_mul _ (fun g => g p * g p') (fun _ => 1) (fun _ => 1)
+        fun ω => by ring).trans ?_
+      simp [integral_pi_gaussianReal_coord_mul]
+    · refine (integral_prod_prod_eq_mul _ (fun g => g p) (fun g' => g' i') (fun _ => 1)
+        fun ω => by ring).trans ?_
+      simp [integral_pi_gaussianReal_coord]
+    · refine (integral_prod_prod_eq_mul _ (fun g => g p') (fun g' => g' i) (fun _ => 1)
+        fun ω => by ring).trans ?_
+      simp [integral_pi_gaussianReal_coord]
+    · refine (integral_prod_prod_eq_mul _ (fun _ => 1) (fun g' => g' i * g' i') (fun _ => 1)
+        fun ω => by ring).trans ?_
+      simp [integral_pi_gaussianReal_coord_mul]
   · intro u v
-    have h_int1 := integral_prod_mul (μ := Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
-      (ν := (Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
-      (fun _ => (1 : ℝ)) (fun ω₂ => (β * Real.sqrt q * ω₂.2) * (β * Real.sqrt q * ω₂.2))
-    simp only [one_mul, integral_const, probReal_univ, smul_eq_mul] at h_int1
-    have h_int2 := integral_prod_mul (μ := Measure.pi fun _ : Fin N => gaussianReal 0 1)
-      (ν := gaussianReal 0 1) (fun _ => (1 : ℝ))
-      (fun z => (β * Real.sqrt q * z) * (β * Real.sqrt q * z))
-    simp only [one_mul, integral_const, probReal_univ, smul_eq_mul] at h_int2
-    rw [h_int1, h_int2]
-    have hz : (∫ z, (β * Real.sqrt q * z) * (β * Real.sqrt q * z) ∂(gaussianReal 0 1)) =
-        (β * Real.sqrt q) ^ 2 * ∫ z, z * z ∂(gaussianReal 0 1) := by
-      have : (fun z => (β * Real.sqrt q * z) * (β * Real.sqrt q * z)) =
-          fun z => (β * Real.sqrt q) ^ 2 * (z * z) := funext fun z => by ring
-      rw [this, integral_const_mul]
-    have hsqz : (fun z : ℝ => z * z) = fun z => z ^ 2 := funext fun z => by ring
-    rw [hz, hsqz, integral_sq_gaussianReal_zero_one, mul_one]
-    have hsq : (β * Real.sqrt q) ^ 2 = β ^ 2 * q := by
-      rw [mul_pow, Real.sq_sqrt hq]
-    rw [hsq]
+    refine (integral_prod_prod_eq_mul _ (fun _ => 1) (fun _ => 1)
+      (fun z => (β * Real.sqrt q * z) * (β * Real.sqrt q * z)) fun ω => by ring).trans ?_
+    have hsq : (β * Real.sqrt q) ^ 2 = β ^ 2 * q := by rw [mul_pow, Real.sq_sqrt hq]
+    have hz : ∫ z, (β * Real.sqrt q * z) * (β * Real.sqrt q * z) ∂(gaussianReal 0 1) =
+        β ^ 2 * q := by
+      have : (fun z : ℝ => (β * Real.sqrt q * z) * (β * Real.sqrt q * z)) =
+          fun z => (β * Real.sqrt q) ^ 2 * z ^ 2 := funext fun z => by ring
+      rw [this, integral_const_mul, integral_sq_gaussianReal_zero_one, mul_one, hsq]
+    simp [hz]
   · intro k u
-    rcases k with p | i
-    · dsimp only [Sum.elim_inl, Sum.elim_inr]
-      have h_int := integral_prod_mul (μ := Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
-        (ν := (Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
-        (fun g => g p) (fun ω₂ => β * Real.sqrt q * ω₂.2)
-      rw [h_int, integral_pi_gaussianReal_coord, zero_mul]
-    · dsimp only [Sum.elim_inl, Sum.elim_inr]
-      have h_int1 := integral_prod_mul (μ := Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
-        (ν := (Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
-        (fun _ => (1 : ℝ)) (fun ω₂ => ω₂.1 i * (β * Real.sqrt q * ω₂.2))
-      simp only [one_mul, integral_const, probReal_univ, smul_eq_mul] at h_int1
-      have h_int2 := integral_prod_mul (μ := Measure.pi fun _ : Fin N => gaussianReal 0 1)
-        (ν := gaussianReal 0 1) (fun g' => g' i) (fun z => β * Real.sqrt q * z)
-      rw [h_int1, h_int2, integral_pi_gaussianReal_coord, zero_mul]
+    rcases k with p | i <;> dsimp only [Sum.elim_inl, Sum.elim_inr]
+    · refine (integral_prod_prod_eq_mul _ (fun g => g p) (fun _ => 1)
+        (fun z => β * Real.sqrt q * z) fun ω => by ring).trans ?_
+      simp [integral_pi_gaussianReal_coord]
+    · refine (integral_prod_prod_eq_mul _ (fun _ => 1) (fun g' => g' i)
+        (fun z => β * Real.sqrt q * z) fun ω => by ring).trans ?_
+      simp [integral_pi_gaussianReal_coord]
   · intro p
-    have h_int := integral_prod_mul (μ := Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
-      (ν := (Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
-      (fun g => g p) (fun _ => (1 : ℝ))
-    simp only [mul_one, integral_const, probReal_univ, smul_eq_mul] at h_int
-    rw [h_int, integral_pi_gaussianReal_coord]
+    refine (integral_prod_prod_eq_mul _ (fun g => g p) (fun _ => 1) (fun _ => 1)
+      fun ω => by ring).trans ?_
+    simp [integral_pi_gaussianReal_coord]
   · intro i
-    have h_int1 := integral_prod_mul (μ := Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
-      (ν := (Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
-      (fun _ => (1 : ℝ)) (fun ω₂ => ω₂.1 i)
-    simp only [one_mul, integral_const, probReal_univ, smul_eq_mul] at h_int1
-    have h_int2 := integral_prod_mul (μ := Measure.pi fun _ : Fin N => gaussianReal 0 1)
-      (ν := gaussianReal 0 1) (fun g' => g' i) (fun _ => (1 : ℝ))
-    simp only [mul_one, integral_const, probReal_univ, smul_eq_mul] at h_int2
-    rw [h_int1, h_int2, integral_pi_gaussianReal_coord]
+    refine (integral_prod_prod_eq_mul _ (fun _ => 1) (fun g' => g' i) (fun _ => 1)
+      fun ω => by ring).trans ?_
+    simp [integral_pi_gaussianReal_coord]
   · intro u
-    have h_int1 := integral_prod_mul (μ := Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
-      (ν := (Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
-      (fun _ => (1 : ℝ)) (fun ω₂ => β * Real.sqrt q * ω₂.2)
-    simp only [one_mul, integral_const, probReal_univ, smul_eq_mul] at h_int1
-    have h_int2 := integral_prod_mul (μ := Measure.pi fun _ : Fin N => gaussianReal 0 1)
-      (ν := gaussianReal 0 1) (fun _ => (1 : ℝ)) (fun z => β * Real.sqrt q * z)
-    simp only [one_mul, integral_const, probReal_univ, smul_eq_mul] at h_int2
-    rw [h_int1, h_int2, integral_const_mul, integral_id_gaussianReal, mul_zero]
+    refine (integral_prod_prod_eq_mul _ (fun _ => 1) (fun _ => 1)
+      (fun z => β * Real.sqrt q * z) fun ω => by ring).trans ?_
+    have hz : ∫ z, β * Real.sqrt q * z ∂(gaussianReal 0 1) = 0 := by
+      rw [integral_const_mul, integral_id_gaussianReal, mul_zero]
+    simp [hz]
 
 /-! ### S5. Integrability of replica Gibbs averages -/
 

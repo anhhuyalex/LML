@@ -8,6 +8,7 @@ module
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Cavity.Comparison
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.FixedPoint.Bounds
 public import LeanMachineLearning.ForMathlib.Probability.GibbsProductSplit
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.PiFinMul
 
 /-!
 # The decoupled system at `t = 0` (Talagrand, proof of Theorem 1.12.1)
@@ -248,10 +249,7 @@ theorem skVectorCavityAverage_zero_pair_mul_eq_zero {d N : ℕ} {Ω : Type*} [Me
         μ.tilted (skVectorFieldExponent ξ β ρ q y)) =
         (∫ a, ξ a u ∂(μ.tilted (skVectorFieldExponent ξ β ρ q y))) *
           ∫ a, ξ a v ∂(μ.tilted (skVectorFieldExponent ξ β ρ q y)) := by
-      have := integral_fintype_prod_eq_prod (ι := Fin 2) (E := fun _ => α)
-        (fun i => ![fun a => ξ a u, fun a => ξ a v] i)
-        (μ := fun _ => μ.tilted (skVectorFieldExponent ξ β ρ q y))
-      simpa [Fin.prod_univ_two] using this
+      exact integral_pi_fin_two_mul_fun _ (fun a => ξ a u) (fun a => ξ a v)
     have hΨ₂i : Integrable (fun a : Fin 2 → α => ξ (a 0) u * ξ (a 1) v)
         (Measure.pi fun _ : Fin 2 => μ.tilted (skVectorFieldExponent ξ β ρ q y)) :=
       integrable_of_measurable_bound (((hξ u).comp (measurable_pi_apply 0)).mul

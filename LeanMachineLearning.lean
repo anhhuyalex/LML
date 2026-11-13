@@ -91,11 +91,13 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.MatrixPosSem
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.MeasurePreservingSymmetry
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ParametrizedL2
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.PiDisjointSupports
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.PiFinMul
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ReplicaIntegrateOut
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ReplicaOverlaps
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SignedToReal
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SqSub
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SupMoment
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.TripleProductMul
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.TsumNonneg
 public import LeanMachineLearning.ForMathlib.MeasureTheory.MeasurableSpace.Basic
 public import LeanMachineLearning.ForMathlib.MeasureTheory.MeasurableSpace.Constructions

@@ -8,6 +8,7 @@ module
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Model.Disorder
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.FixedPoint.Bounds
 public import LeanMachineLearning.ForMathlib.Probability.GibbsTemperatureDerivative
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.PiFinMul
 
 /-!
 # The free energy of the vector SK model and its temperature derivative
@@ -152,9 +153,7 @@ theorem variance_eq_integral_pi_two {β : Type*} [MeasurableSpace β] (ν : Meas
     integral_pi_eval ν 0 (fun a => X a ^ 2) (hX.pow_const 2).aestronglyMeasurable
   have h1 : ∫ σ : Fin 2 → β, X (σ 0) * X (σ 1) ∂(Measure.pi fun _ : Fin 2 => ν) =
       (∫ a, X a ∂ν) ^ 2 := by
-    have := integral_fintype_prod_eq_prod (ι := Fin 2) (E := fun _ => β)
-      (fun _ => X) (μ := fun _ => ν)
-    simpa [Fin.prod_univ_two, sq] using this
+    rw [integral_pi_fin_two_mul_fun ν X X, sq]
   have hm0 : Measurable fun σ : Fin 2 → β => X (σ 0) ^ 2 :=
     (hX.comp (measurable_pi_apply 0)).pow_const 2
   have hm1 : Measurable fun σ : Fin 2 → β => X (σ 0) * X (σ 1) :=
