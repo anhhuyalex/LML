@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKReplicaAverage
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenVanishing
 public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsReplicaMarginal
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKCavityReplicaPairs
@@ -45,11 +46,7 @@ namespace SpinGlasses
 to the decoupled endpoint ($s = \pi / 2$). -/
 noncomputable def skCavityPathMean (N n : ℕ) (β q h : ℝ) (u : ℝ)
     (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) : ℝ :=
-  let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
-    (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs N,
-          g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
+  let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skCavityBase%
   let s := Real.arccos (Real.sqrt u)
   let E : (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' ω a =>
     Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
@@ -114,11 +111,7 @@ the square parameter `u ∈ (0, 1)`. -/
 theorem hasDerivAt_skCavityPathMean (N n : ℕ) (β q h t : ℝ)
     (hq : q ∈ Set.Icc (0 : ℝ) 1) (ht : t ∈ Set.Ioo (0 : ℝ) 1)
     (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) :
-    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs N,
-            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ);
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skCavityBase%;
     let E : (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' ω a =>
       Real.cos (Real.arccos (Real.sqrt t)) * ((Real.sqrt (N + 1))⁻¹ * β *
         (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +

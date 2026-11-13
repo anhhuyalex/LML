@@ -233,8 +233,8 @@ theorem deepActivationGram_posSemidef (d n0 n m : ℕ) (φ : ℝ → ℝ) (X : F
     (deepActivationGram d n0 n m φ X θ ℓ).PosSemidef := by
   simp only [deepActivationGram]
   split_ifs
-  · exact scaled_gram_posSemidef (n0 : ℝ)⁻¹ (by positivity) X
-  · exact scaled_gram_posSemidef (n : ℝ)⁻¹ (by positivity) _
+  · exact Matrix.posSemidef_of_const_mul_dotProduct X (by positivity)
+  · exact Matrix.posSemidef_of_const_mul_dotProduct _ (by positivity)
 
 /-- Empirical derivative covariance matrix `Φ'_{k+1}^{(n)} ∈ ℝ^{m × m}` for hidden layer
 `k ∈ Fin d`: `Φ'_{k+1}^{(n), αβ} = (n : ℝ)⁻¹ • (φ'(h_k^α) ⬝ᵥ φ'(h_k^β))`. -/
@@ -384,7 +384,7 @@ theorem deepSensitivityGram_posSemidef (d n0 n m : ℕ) (φ φ' : ℝ → ℝ) (
   simp only [deepSensitivityGram]
   split_ifs
   · exact posSemidef_allOnes
-  · exact scaled_gram_posSemidef (n : ℝ)⁻¹ (by positivity) _
+  · exact Matrix.posSemidef_of_const_mul_dotProduct _ (by positivity)
 
 end NTK
 

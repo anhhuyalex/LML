@@ -53,7 +53,7 @@ lemma abs_log_skPartition_le (N : ℕ) (β h : ℝ) (g : FinPairs N → ℝ) :
       (N : ℝ) * Real.log 2 + |h| * (N : ℝ) +
         (Real.sqrt N)⁻¹ * |β| * (∑ p : FinPairs N, |g p|) := by
   have hlog : Real.log (Fintype.card (Fin N → ℤˣ) : ℝ) = (N : ℝ) * Real.log 2 := by
-    simpa using log_card_spin_configurations (ι := Fin N)
+    rw [log_card_spin_configurations (ι := Fin N), Fintype.card_fin]
   have h_le := abs_log_sum_exp_le_of_forall
     (skGibbsEnergy N β h g) (abs_skGibbsEnergy_le N β h g)
   rw [hlog] at h_le

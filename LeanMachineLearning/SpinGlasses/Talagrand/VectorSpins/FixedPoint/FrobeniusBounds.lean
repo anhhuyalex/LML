@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.FixedPoint.Bounds
+public import LeanMachineLearning.ForMathlib.Data.Finset.SumBound
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IntegrableOfBound
 
 /-!
@@ -29,17 +30,8 @@ most
 theorem abs_replica_combination_le {J : Type*} [Fintype J] (f : J → ℝ) (g b : ℝ)
     (hf : ∀ j, |f j| ≤ b) (hg : |g| ≤ b) {c : ℝ} (hc : (Fintype.card J : ℝ) = c) :
     |∑ j, f j - c * g| ≤ 2 * c * b := by
-  have hc0 : 0 ≤ c := hc ▸ Nat.cast_nonneg _
-  have h1 : |∑ j, f j| ≤ c * b := by
-    refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
-    calc ∑ j, |f j| ≤ ∑ _j : J, b := Finset.sum_le_sum fun j _ => hf j
-      _ = c * b := by simp [hc]
-  calc |∑ j, f j - c * g| ≤ |∑ j, f j| + |c * g| := abs_sub _ _
-    _ ≤ c * b + c * b := by
-        refine add_le_add h1 ?_
-        rw [abs_mul, abs_of_nonneg hc0]
-        exact mul_le_mul_of_nonneg_left hg hc0
-    _ = 2 * c * b := by ring
+  subst hc
+  exact Finset.abs_sum_sub_card_mul_le_of_abs_le f g b hf hg
 
 section Algebra
 

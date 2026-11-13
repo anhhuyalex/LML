@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKReplicaAverage
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKCovarianceRows
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.HigherOrderCavity.SKCavityHigherOrderMoments
 public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityOverlap
@@ -72,12 +73,7 @@ one correction `e_u / (N+1)`, and the explicit sum over the subsets `t` with at 
 corrections. -/
 theorem sk_overlap_step_identity (N n : ℕ) (β h : ℝ)
     (ν : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
-    (hν : ∀ Φ, ν Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, Φ σ
-      ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    (hν : skReplicaAverage% ν n)
     {κ : Type*} [Fintype κ] [DecidableEq κ] (ξ : (Fin n → ℤˣ) → ℝ)
     (Uf Um e : κ → (Fin n → Fin (N + 1) → ℤˣ) → ℝ)
     (hsplit : ∀ j σ, Uf j σ = Um j σ + (N + 1 : ℝ)⁻¹ * e j σ)
@@ -119,12 +115,7 @@ theorem sk_overlap_step_identity (N n : ℕ) (β h : ℝ)
 /-- **Cauchy-Schwarz for an `n`-replica SK average:** `ν(f)² ≤ ν(f²)`. -/
 theorem sk_nu_sq_le (N n : ℕ) (β h : ℝ)
     (ν : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
-    (hν : ∀ Φ, ν Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, Φ σ
-      ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    (hν : skReplicaAverage% ν n)
     (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) : ν f ^ 2 ≤ ν (fun σ => f σ ^ 2) := by
   obtain ⟨hadd, hsmul, hmono, hconst⟩ := sk_replica_avg_calculus N n β h ν hν
   exact LinearMap.sq_apply_le_apply_sq

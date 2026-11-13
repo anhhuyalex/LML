@@ -358,12 +358,6 @@ theorem exists_sk_cavity_gaussian (β h : ℝ) {N : ℕ} (hN : 0 < N) :
     (measurePreserving_skCavityDisorderEquiv N) hmeas
   exact ⟨m, Z, hm, hmeas, hZ, hind, hlaw, hZi, hZint⟩
 
-/-- `∫ x² dγ = 1` for the standard Gaussian. -/
-theorem integral_sq_gaussianReal_zero_one : ∫ x : ℝ, x ^ 2 ∂(gaussianReal 0 1) = 1 := by
-  have h2 := variance_id_gaussianReal (μ := (0 : ℝ)) (v := (1 : NNReal))
-  rw [variance_eq_integral (X := id) measurable_id'.aemeasurable] at h2
-  simpa [id] using h2
-
 /-- With no external field the fixed point vanishes. -/
 theorem fixedPoint_eq_zero_of_field_zero {β q : ℝ} (hβ : 4 * β ^ 2 < 1)
     (hfix : ∫ x : ℝ, Real.tanh (β * Real.sqrt q * x + 0) ^ 2 ∂(gaussianReal 0 1) = q) :
@@ -380,7 +374,7 @@ theorem fixedPoint_eq_zero_of_field_zero {β q : ℝ} (hβ : 4 * β ^ 2 < 1)
             exact sq_le_sq.mpr (by simpa using Real.abs_tanh_le_abs (β * Real.sqrt q * x))
       _ = β ^ 2 * q := by
           simp_rw [mul_pow]
-          rw [integral_const_mul, integral_sq_gaussianReal_zero_one, mul_one, Real.sq_sqrt hq.1]
+          rw [integral_const_mul, NTK.integral_sq_gaussianReal, mul_one, Real.sq_sqrt hq.1]
   nlinarith [hq.1, sq_nonneg β]
 
 /-- **Lemma 1.7.6 (Talagrand).**  Let `0 ≤ β ≤ β₀`, `4 β₀² < 1` and let `q` solve the fixed-point

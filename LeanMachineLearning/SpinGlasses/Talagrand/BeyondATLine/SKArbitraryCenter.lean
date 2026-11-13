@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKReplicaAverage
 public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKFixedPointResidual
 public import LeanMachineLearning.SpinGlasses.Talagrand.BeyondATLine.SKBeyondATProposition
 
@@ -35,12 +36,7 @@ of the `(N+1)`-spin system,
 `|ν₂(R₁₂) - Φ(x)| ≤ 8 β² e^{64 β²} ν₂(|R₁₂ - x|) `, `Φ(x) = 𝔼 tanh²(β √x z + h)`. -/
 theorem sk_overlap_mean_sub_fixedPointMap_le (N : ℕ) (β h x : ℝ) (hx : x ∈ Icc (0 : ℝ) 1)
     (ν₂ : ((Fin 2 → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
-    (hν₂ : ∀ Φ, ν₂ Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, Φ σ
-      ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) :
+    (hν₂ : skReplicaAverage% ν₂ 2) :
     |ν₂ (fun σ => (N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
           fun i : Fin (N + 1) => (σ 1 i : ℝ))) -
         ∫ z : ℝ, Real.tanh (β * Real.sqrt x * z + h) ^ 2 ∂(gaussianReal 0 1)| ≤
@@ -74,12 +70,7 @@ theorem sk_overlap_mean_sub_fixedPointMap_le (N : ℕ) (β h x : ℝ) (hx : x �
 /-- **Jensen:** `|ν₂(R₁₂) - x| ≤ ν₂(|R₁₂ - x|)`. -/
 theorem sk_abs_mean_overlap_sub_le (N : ℕ) (β h x : ℝ)
     (ν₂ : ((Fin 2 → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
-    (hν₂ : ∀ Φ, ν₂ Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, Φ σ
-      ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) :
+    (hν₂ : skReplicaAverage% ν₂ 2) :
     |ν₂ (fun σ => (N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
           fun i : Fin (N + 1) => (σ 1 i : ℝ))) - x| ≤
       ν₂ (fun σ => |(N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ

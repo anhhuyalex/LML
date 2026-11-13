@@ -8,6 +8,7 @@ module
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.PiFinSucc
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.Weights
 public import LeanMachineLearning.ForMathlib.Combinatorics.DescFactorial
+public import LeanMachineLearning.SpinGlasses.Basic
 public import Mathlib.Basic.Real.Basic
 public import Mathlib.Analysis.Convex.Mul
 public import Mathlib.Analysis.Convex.Jensen
@@ -207,13 +208,10 @@ omit [Fintype α] in
 /-- The overlap of two configurations lies in `[-1, 1]` when the observables do. -/
 theorem abs_inv_mul_sum_mul_le_one (hN : 0 < N) (ξ : Fin N → α → ℝ) (hξ : ∀ i a, |ξ i a| ≤ 1)
     (x y : α) : |(N : ℝ)⁻¹ * ∑ i, ξ i x * ξ i y| ≤ 1 := by
-  have hNpos : (0 : ℝ) < N := Nat.cast_pos.2 hN
-  rw [abs_mul, abs_inv, Nat.abs_cast, inv_mul_le_iff₀ hNpos, mul_one]
-  refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
-  calc ∑ i, |ξ i x * ξ i y| ≤ ∑ _i : Fin N, (1 : ℝ) := Finset.sum_le_sum fun i _ => by
-        rw [abs_mul]
-        nlinarith [hξ i x, hξ i y, abs_nonneg (ξ i x), abs_nonneg (ξ i y)]
-    _ = N := by simp
+  have _ : Nonempty (Fin N) := ⟨⟨0, hN⟩⟩
+  simpa only [Fintype.card_fin, dotProduct] using
+    abs_card_inv_mul_dotProduct_le_one (fun i => ξ i x) (fun i => ξ i y) (fun i => hξ i x)
+      (fun i => hξ i y)
 
 /-- **The deterministic half of Proposition 1.4.14.**  For a probability vector `w` on a finite
 configuration space with `N` observables of modulus at most one, every `|q| ≤ 1` and `k : ℕ`,

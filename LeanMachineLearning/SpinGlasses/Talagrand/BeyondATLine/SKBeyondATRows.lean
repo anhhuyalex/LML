@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKReplicaAverage
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKCovarianceRows
 
 /-!
@@ -41,12 +42,7 @@ theorem sk_pair_taylor_three (N n : ℕ) (β q h : ℝ)
     (hqhat : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 4 ∂(gaussianReal 0 1) = qhat)
     {x y : Fin n} (hxy : x ≠ y) (F : (Fin n → Fin N → ℤˣ) → ℝ)
     (ν : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
-    (hν : ∀ Φ, ν Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, Φ σ
-      ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) (Dthree : ℝ)
+    (hν : skReplicaAverage% ν n) (Dthree : ℝ)
     (hDthree : Dthree = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ,
       |(N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
         fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q| ^ 3
@@ -101,12 +97,7 @@ theorem sk_old_spin_compare_three (N m : ℕ) (β q h : ℝ)
     (hfix : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂(gaussianReal 0 1) = q)
     (G : (Fin m → Fin N → ℤˣ) → ℝ)
     (ν : ((Fin m → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
-    (hν : ∀ Φ, ν Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin m → Fin (N + 1) → ℤˣ, Φ σ
-      ∂(Measure.pi fun _ : Fin m => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) (Dthree : ℝ)
+    (hν : skReplicaAverage% ν m) (Dthree : ℝ)
     (hDthree : Dthree = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ,
       |(N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
         fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q| ^ 3
@@ -157,19 +148,9 @@ theorem abs_sub_pow_three_le {X δ c : ℝ} (hδ : |δ| ≤ c) :
 `ν(|f|³) ≤ 32 ν(|R_{1,2} - q|³) + 32/M³`. -/
 theorem sk_row_Vf_three (n : ℕ)
     (ν : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
-    (hν : ∀ Φ, ν Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, Φ σ
-      ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    (hν : skReplicaAverage% ν n)
     (ν₂ : ((Fin 2 → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
-    (hν₂ : ∀ Φ, ν₂ Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, Φ σ
-      ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    (hν₂ : skReplicaAverage% ν₂ 2)
     (hq : q ∈ Set.Icc (0 : ℝ) 1) {x y a b : Fin n} (hab : a ≠ b) :
     ν (fun σ => |((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ a i.castSucc : ℝ)) ⬝ᵥ
           fun i : Fin N => (σ b i.castSucc : ℝ)) - q) *
@@ -217,19 +198,9 @@ theorem sk_row_Vf_three (n : ℕ)
 `ν(|(R⁻_P - q)(R⁻_Q - q)|^{3/2}) ≤ 4 ν(|R_{1,2} - q|³) + 4/M³`. -/
 theorem sk_row_Gb_three (m : ℕ)
     (ν : ((Fin m → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
-    (hν : ∀ Φ, ν Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin m → Fin (N + 1) → ℤˣ, Φ σ
-      ∂(Measure.pi fun _ : Fin m => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    (hν : skReplicaAverage% ν m)
     (ν₂ : ((Fin 2 → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
-    (hν₂ : ∀ Φ, ν₂ Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, Φ σ
-      ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    (hν₂ : skReplicaAverage% ν₂ 2)
     {p₁ p₂ r₁ r₂ : Fin m} (hp : p₁ ≠ p₂) (hr : r₁ ≠ r₂) :
     ν (fun σ => |((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (σ p₁ i.castSucc : ℝ)) ⬝ᵥ
           fun i : Fin N => (σ p₂ i.castSucc : ℝ)) - q) *
@@ -292,12 +263,7 @@ variable (N : ℕ) (β h q : ℝ)
 /-- An `n`-replica SK average of a nonnegative observable is nonnegative. -/
 theorem sk_avg_nonneg (n : ℕ)
     (ν : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
-    (hν : ∀ Φ, ν Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, Φ σ
-      ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    (hν : skReplicaAverage% ν n)
     (Φ : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) (hΦ : ∀ σ, 0 ≤ Φ σ) : 0 ≤ ν Φ := by
   obtain ⟨-, -, hmono, hconst⟩ := sk_replica_avg_calculus N n β h ν hν
   have := hmono (fun _ => 0) Φ hΦ
@@ -307,12 +273,7 @@ theorem sk_avg_nonneg (n : ℕ)
 `M⁻¹ ν(|R_{1,2} - q|) ≤ ν(|R_{1,2} - q|³)/3 + (2/3) M^{-3/2}`. -/
 theorem sk_inv_mul_abs_le_cube
     (ν₂ : ((Fin 2 → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
-    (hν₂ : ∀ Φ, ν₂ Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, Φ σ
-      ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) :
+    (hν₂ : skReplicaAverage% ν₂ 2) :
     (N + 1 : ℝ)⁻¹ * ν₂ (fun σ => |(N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
           fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q|) ≤
       ν₂ (fun σ => |(N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
@@ -351,26 +312,11 @@ theorem sk_cov_row_bound_three (N : ℕ) (β q h : ℝ)
     (hqhat01 : qhat ∈ Set.Icc (0 : ℝ) 1)
     (e : Option (Option (Fin 4)) ≃ Fin (4 + 2))
     (ν₂ : ((Fin 2 → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
-    (hν₂ : ∀ Φ, ν₂ Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, Φ σ
-      ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    (hν₂ : skReplicaAverage% ν₂ 2)
     (ν₄ : ((Fin 4 → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
-    (hν₄ : ∀ Φ, ν₄ Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin 4 → Fin (N + 1) → ℤˣ, Φ σ
-      ∂(Measure.pi fun _ : Fin 4 => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    (hν₄ : skReplicaAverage% ν₄ 4)
     (ν₆ : ((Fin (4 + 2) → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
-    (hν₆ : ∀ Φ, ν₆ Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin (4 + 2) → Fin (N + 1) → ℤˣ, Φ σ
-      ∂(Measure.pi fun _ : Fin (4 + 2) => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    (hν₆ : skReplicaAverage% ν₆ (4 + 2))
     {a c : Fin 4} (hac : a ≠ c) (E : ℝ)
     (hE : E = (2304 * β ^ 4 * Real.exp (256 * β ^ 2) * 32 +
         32 * β ^ 2 * (72 * β ^ 2 * Real.exp (256 * β ^ 2) * 4 + 3) +

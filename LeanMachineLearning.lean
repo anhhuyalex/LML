@@ -11,6 +11,7 @@ public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.RelationFibers
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.SortedPairs
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.Weights
 public import LeanMachineLearning.ForMathlib.Analysis.Asymptotics.Theta
+public import LeanMachineLearning.ForMathlib.Analysis.Calculus.DerivZeroOfEventuallyZero
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.Gradient.Basic
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.GronwallBackward
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.IntervalDerivative
@@ -18,6 +19,7 @@ public import LeanMachineLearning.ForMathlib.Analysis.Calculus.TaylorCoefficient
 public import LeanMachineLearning.ForMathlib.Analysis.Cesaro
 public import LeanMachineLearning.ForMathlib.Analysis.Complex.Exponential
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.Bregman.Basic
+public import LeanMachineLearning.ForMathlib.Analysis.Convex.DerivConvergence
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.Integral
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.PointwiseLimitKink
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.Subgradient.Basic
@@ -180,6 +182,7 @@ public import LeanMachineLearning.ForMathlib.Probability.Kernel.MeasurableSpace
 public import LeanMachineLearning.ForMathlib.Probability.Kernel.RadonNikodym
 public import LeanMachineLearning.ForMathlib.Probability.Kernel.Sigma
 public import LeanMachineLearning.ForMathlib.Probability.LaplacePrinciple
+public import LeanMachineLearning.ForMathlib.Probability.Moments.CGFConvex
 public import LeanMachineLearning.ForMathlib.Probability.Moments.CGFQuotient
 public import LeanMachineLearning.ForMathlib.Probability.Moments.DiscreteLyapunov
 public import LeanMachineLearning.ForMathlib.Probability.Moments.FiniteRecurrence
@@ -542,6 +545,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKPairPertu
 public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKPairPerturbGaussian
 public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKDecoupled
 public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKFirstMoment
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKReplicaAverage
 public import LeanMachineLearning.SpinGlasses.Talagrand.GaussianFluctuation.GaussianProjectionPath
 public import LeanMachineLearning.SpinGlasses.Talagrand.GaussianFluctuation.GibbsCavityDeviation
 public import LeanMachineLearning.SpinGlasses.Talagrand.GaussianFluctuation.GibbsFluctuationMoment
@@ -671,6 +675,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKT
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKTBasisAsymptotics
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKTBasisCoefficients
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKTBasisSecondMoment
+public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Moments.Convexity
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Moments.RealPowers
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.SKReplicaAlgebra
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.SKReplicaBridge

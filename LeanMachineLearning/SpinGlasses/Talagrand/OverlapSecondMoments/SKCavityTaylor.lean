@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKReplicaAverage
 public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityContraction
 
 /-!
@@ -37,10 +38,7 @@ namespace SpinGlasses
 theorem integral_abs_lifted_mul_dev_le (N n : ℕ) (β q h : ℝ)
     (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) {p r : ℝ} (hpr : p.HolderConjugate r)
     (e : Option (Option (Fin n)) ≃ Fin (n + 2)) :
-    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
     let U : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ := fun a b =>
       β ^ 2 * (a (Fin.last N) : ℝ) * (b (Fin.last N) : ℝ) *
         (q - (N + 1 : ℝ)⁻¹ *
@@ -158,24 +156,11 @@ with the truncated overlap `R⁻`).  The constant is `4 n² (n+2)² β⁴ exp (4
 theorem sk_cavity_nu_sub_nu_zero_sub_deriv_le (N n : ℕ) (β q h : ℝ)
     (hq : q ∈ Set.Icc (0 : ℝ) 1) (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) {p r : ℝ}
     (hpr : p.HolderConjugate r) :
-    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs N,
-            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skCavityBase%
     let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
-        (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
-      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
-        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
-      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
-    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
-    let K : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ := fun a b =>
-      β ^ 2 * (a (Fin.last N) : ℝ) * (b (Fin.last N) : ℝ) *
-        ((N + 1 : ℝ)⁻¹ *
-          ((fun i : Fin N => (a i.castSucc : ℝ)) ⬝ᵥ fun i : Fin N => (b i.castSucc : ℝ)) - q)
+        (Fin (N + 1) → ℤˣ) → ℝ := skCavityEnergy%
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
+    let K : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ := skCavityKernel%
     let dev : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ := fun x y =>
       |(N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (x i : ℝ)) ⬝ᵥ
         fun i : Fin (N + 1) => (y i : ℝ)) - q|
@@ -319,24 +304,11 @@ decoupled endpoint (angle `π/2`) and `ν₀'(f)` the value there of the first d
 with the truncated overlap `R⁻`).  The constant is `4 n² (n+2)² β⁴ exp (4 (n+4)² β²)`. -/
 theorem sk_cavity_nu_sub_nu_zero_sub_deriv_le_two (N n : ℕ) (β q h : ℝ)
     (hq : q ∈ Set.Icc (0 : ℝ) 1) (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) :
-    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs N,
-            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skCavityBase%
     let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
-        (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
-      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
-        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
-      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
-    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
-    let K : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ := fun a b =>
-      β ^ 2 * (a (Fin.last N) : ℝ) * (b (Fin.last N) : ℝ) *
-        ((N + 1 : ℝ)⁻¹ *
-          ((fun i : Fin N => (a i.castSucc : ℝ)) ⬝ᵥ fun i : Fin N => (b i.castSucc : ℝ)) - q)
+        (Fin (N + 1) → ℤˣ) → ℝ := skCavityEnergy%
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
+    let K : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ := skCavityKernel%
     |(∫ g, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ
         ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (Esk g))
         ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) -

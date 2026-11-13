@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKReplicaAverage
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKCovarianceAsymptotics
 
 /-!
@@ -109,10 +110,7 @@ theorem sk_T_basis_second_moments (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (h 
   obtain ⟨-, hVb, hWb⟩ := H β q qhat hβ hfix hqhat N
   have hcast : ((N + 1 : ℕ) : ℝ) = (N : ℝ) + 1 := by push_cast; ring
   have hM0 : (0 : ℝ) < (N : ℝ) + 1 := by positivity
-  let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-    (Real.sqrt (N + 1))⁻¹ * β *
-      (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-    h * ∑ i : Fin (N + 1), (a i : ℝ)
+  let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
   let m : (FinPairs (N + 1) → ℝ) → Fin (N + 1) → Fin (N + 1) → ℝ := fun g i j =>
     ∫ y : Fin (N + 1) → ℤˣ, ((y i : ℤˣ) : ℝ) * ((y j : ℤˣ) : ℝ) ∂(Measure.count.tilted (Esk g))
   -- the Gibbs-level identities, pointwise in the disorder

@@ -30,11 +30,7 @@ theorem integral_abs_gaussianReal_le_one : ∫ z : ℝ, |z| ∂gaussianReal 0 1 
   have hsq : Integrable (fun z : ℝ => z ^ 2) (gaussianReal 0 1) := hm.integrable_sq
   have habs : Integrable (fun z : ℝ => |z|) (gaussianReal 0 1) :=
     (hm.integrable (by norm_num)).abs
-  have hvar : ∫ z : ℝ, z ^ 2 ∂gaussianReal 0 1 = 1 := by
-    have h0 : ∫ z : ℝ, id z ∂gaussianReal 0 1 = 0 := integral_id_gaussianReal
-    have := variance_of_integral_eq_zero (μ := gaussianReal 0 1) (X := id) aemeasurable_id h0
-    rw [variance_id_gaussianReal] at this
-    simpa using this.symm
+  have hvar : ∫ z : ℝ, z ^ 2 ∂gaussianReal 0 1 = 1 := NTK.integral_sq_gaussianReal
   calc ∫ z : ℝ, |z| ∂gaussianReal 0 1 ≤ ∫ z : ℝ, (1 + z ^ 2) / 2 ∂gaussianReal 0 1 :=
         integral_mono habs ((integrable_const (1 : ℝ)).add hsq |>.div_const 2) fun z => by
           nlinarith [sq_abs z, sq_nonneg (|z| - 1)]

@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKReplicaAverage
 public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityDomination
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedHolder
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKCavityReplicaPairs
@@ -54,10 +55,7 @@ theorem sk_replica_holder (N : ℕ) {R : Type*} [Fintype R]
 theorem sk_nested_holder_pair (N n : ℕ) (β h : ℝ) (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ)
     {p r : ℝ} (hpr : p.HolderConjugate r) (q : ℝ)
     {a b : Option (Option (Fin n))} (hab : a ≠ b) :
-    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
     ∫ g, ∫ τ : Option (Option (Fin n)) → Fin (N + 1) → ℤˣ,
         |f (fun s => τ (some (some s)))| *
           |(N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (τ a i : ℝ)) ⬝ᵥ
@@ -124,10 +122,7 @@ the average of `|f| |R_{ab} - q| |R_{cd} - q|` is at most
 theorem sk_replica_holder_dev_dev (N n : ℕ) (β h q : ℝ) {R : Type*} [Fintype R] {ρ : Fin n → R}
     (hρ : Function.Injective ρ) (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) {p r : ℝ}
     (hpr : p.HolderConjugate r) {a b c d : R} (hab : a ≠ b) (hcd : c ≠ d) :
-    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
     let dev : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ := fun x y =>
       |(N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (x i : ℝ)) ⬝ᵥ
         fun i : Fin (N + 1) => (y i : ℝ)) - q|
@@ -220,10 +215,7 @@ Eq. (1.152), with weights `1`, `n` and `n (n + 1) / 2`, is bounded by `2 n²` ti
 bound of a single pair. -/
 theorem sk_nested_holder_sum (N n : ℕ) (β h : ℝ) (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ)
     {p r : ℝ} (hpr : p.HolderConjugate r) (q : ℝ) :
-    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
     let dev : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ := fun x y =>
       |(N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (x i : ℝ)) ⬝ᵥ
         fun i : Fin (N + 1) => (y i : ℝ)) - q|

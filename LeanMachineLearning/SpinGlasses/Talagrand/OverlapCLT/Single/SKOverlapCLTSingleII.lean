@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKReplicaAverage
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Single.SKOverlapCLTSingleRecurrence
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.GibbsMoments.SKOverlapCLTLiveMoments
 public import LeanMachineLearning.ForMathlib.Data.Sym.Sym2
@@ -140,16 +141,8 @@ theorem sk_single_Xfull_unmatched_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 
     ∃ C : ℝ, 0 < C ∧ ∀ (β h q : ℝ),
       (∫ t : ℝ, Real.tanh (β * Real.sqrt q * t + h) ^ 2 ∂gaussianReal 0 1 = q) →
       β ^ 2 ≤ β₀ ^ 2 → ∀ N : ℕ,
-    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
-    let U : J → ((R ⊕ (J ⊕ J)) → Fin (N + 1) → ℤˣ) → ℝ := fun j ρ =>
-      ((N + 1 : ℝ)⁻¹ * ∑ v : Fin (N + 1),
-        (if L j then (ρ (.inl (a j)) v : ℝ) - (ρ (.inr (.inl j)) v : ℝ)
-          else (ρ (.inr (.inl j)) v : ℝ)) *
-        (if S j then (ρ (.inl (b j)) v : ℝ) - (ρ (.inr (.inr j)) v : ℝ)
-          else (ρ (.inr (.inr j)) v : ℝ))) - (if L j || S j then 0 else q)
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
+    let U : J → ((R ⊕ (J ⊕ J)) → Fin (N + 1) → ℤˣ) → ℝ := skReplicaOverlapStat% (N + 1)
     |∫ g, ∫ σ : Fin n → Fin (N + 1) → ℤˣ,
         (∑ i : Bool × Bool, (if i.1 then (1 : ℝ) else -1) * (if i.2 then 1 else -1) *
           ((N + 1 : ℝ)⁻¹ * ∑ v : Fin (N + 1),
@@ -268,16 +261,8 @@ theorem sk_single_Xfull_matched_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 
     ∃ C : ℝ, 0 < C ∧ ∀ (β h q : ℝ),
       (∫ t : ℝ, Real.tanh (β * Real.sqrt q * t + h) ^ 2 ∂gaussianReal 0 1 = q) →
       β ^ 2 ≤ β₀ ^ 2 → ∀ N : ℕ,
-    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
-    let U : J → ((R ⊕ (J ⊕ J)) → Fin (N + 1) → ℤˣ) → ℝ := fun j ρ =>
-      ((N + 1 : ℝ)⁻¹ * ∑ v : Fin (N + 1),
-        (if L j then (ρ (.inl (a j)) v : ℝ) - (ρ (.inr (.inl j)) v : ℝ)
-          else (ρ (.inr (.inl j)) v : ℝ)) *
-        (if S j then (ρ (.inl (b j)) v : ℝ) - (ρ (.inr (.inr j)) v : ℝ)
-          else (ρ (.inr (.inr j)) v : ℝ))) - (if L j || S j then 0 else q)
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
+    let U : J → ((R ⊕ (J ⊕ J)) → Fin (N + 1) → ℤˣ) → ℝ := skReplicaOverlapStat% (N + 1)
     let α : ℝ := (∫ t : ℝ, Real.tanh (β * t * Real.sqrt q + h) ^ 4
       ∂gaussianReal 0 1) - 2 * q + 1
     |(∫ g, ∫ σ : Fin n → Fin (N + 1) → ℤˣ,
@@ -462,22 +447,9 @@ theorem sk_single_Y_conv_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
     ∃ C : ℝ, 0 < C ∧ ∀ (β h q : ℝ),
       (∫ t : ℝ, Real.tanh (β * Real.sqrt q * t + h) ^ 2 ∂gaussianReal 0 1 = q) →
       β ^ 2 ≤ β₀ ^ 2 → ∀ N : ℕ,
-    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
-    let U : J → ((R ⊕ (J ⊕ J)) → Fin (N + 1) → ℤˣ) → ℝ := fun j ρ =>
-      ((N + 1 : ℝ)⁻¹ * ∑ v : Fin (N + 1),
-        (if L j then (ρ (.inl (a j)) v : ℝ) - (ρ (.inr (.inl j)) v : ℝ)
-          else (ρ (.inr (.inl j)) v : ℝ)) *
-        (if S j then (ρ (.inl (b j)) v : ℝ) - (ρ (.inr (.inr j)) v : ℝ)
-          else (ρ (.inr (.inr j)) v : ℝ))) - (if L j || S j then 0 else q)
-    let V : J → ((R ⊕ (J ⊕ J)) → Fin N → ℤˣ) → ℝ := fun j ρ =>
-      ((N + 1 : ℝ)⁻¹ * ∑ v : Fin N,
-        (if L j then (ρ (.inl (a j)) v : ℝ) - (ρ (.inr (.inl j)) v : ℝ)
-          else (ρ (.inr (.inl j)) v : ℝ)) *
-        (if S j then (ρ (.inl (b j)) v : ℝ) - (ρ (.inr (.inr j)) v : ℝ)
-          else (ρ (.inr (.inr j)) v : ℝ))) - (if L j || S j then 0 else q)
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
+    let U : J → ((R ⊕ (J ⊕ J)) → Fin (N + 1) → ℤˣ) → ℝ := skReplicaOverlapStat% (N + 1)
+    let V : J → ((R ⊕ (J ⊕ J)) → Fin N → ℤˣ) → ℝ := skReplicaOverlapStat% N
     let ν₂ : ((Option (Option (R ⊕ (J ⊕ J))) → Fin (N + 1) → ℤˣ) → ℝ) → ℝ := fun f =>
       ∫ g, ∫ σ, f σ
         ∂(Measure.pi fun _ : Option (Option (R ⊕ (J ⊕ J))) => Measure.count.tilted (Esk g))
@@ -629,16 +601,8 @@ theorem sk_fresh_prod_erase_symm (N : ℕ) (β h q : ℝ)
     (L S : J → Bool) (a b : J → R) (s : Finset J) {u w : J} (hu : u ∈ s) (hw : w ∈ s)
     (hL : L u = L w) (hS : S u = S w) (ha : L u = true → a u = a w)
     (hb : S u = true → b u = b w) :
-    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
-    let U : J → ((R ⊕ (J ⊕ J)) → Fin (N + 1) → ℤˣ) → ℝ := fun j ρ =>
-      ((N + 1 : ℝ)⁻¹ * ∑ v : Fin (N + 1),
-        (if L j then (ρ (.inl (a j)) v : ℝ) - (ρ (.inr (.inl j)) v : ℝ)
-          else (ρ (.inr (.inl j)) v : ℝ)) *
-        (if S j then (ρ (.inl (b j)) v : ℝ) - (ρ (.inr (.inr j)) v : ℝ)
-          else (ρ (.inr (.inr j)) v : ℝ))) - (if L j || S j then 0 else q)
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
+    let U : J → ((R ⊕ (J ⊕ J)) → Fin (N + 1) → ℤˣ) → ℝ := skReplicaOverlapStat% (N + 1)
     (∫ g, ∫ σ : (R ⊕ (J ⊕ J)) → Fin (N + 1) → ℤˣ, ∏ j ∈ s.erase u, U j σ
         ∂(Measure.pi fun _ : R ⊕ (J ⊕ J) => Measure.count.tilted (Esk g))
         ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) =
@@ -661,22 +625,9 @@ theorem sk_fresh_prod_full_trunc_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 <
     ∃ C : ℝ, 0 < C ∧ ∀ (β h q : ℝ),
       (∫ t : ℝ, Real.tanh (β * Real.sqrt q * t + h) ^ 2 ∂gaussianReal 0 1 = q) →
       β ^ 2 ≤ β₀ ^ 2 → ∀ N : ℕ,
-    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
-    let U : J → ((R ⊕ (J ⊕ J)) → Fin (N + 1) → ℤˣ) → ℝ := fun j ρ =>
-      ((N + 1 : ℝ)⁻¹ * ∑ v : Fin (N + 1),
-        (if L j then (ρ (.inl (a j)) v : ℝ) - (ρ (.inr (.inl j)) v : ℝ)
-          else (ρ (.inr (.inl j)) v : ℝ)) *
-        (if S j then (ρ (.inl (b j)) v : ℝ) - (ρ (.inr (.inr j)) v : ℝ)
-          else (ρ (.inr (.inr j)) v : ℝ))) - (if L j || S j then 0 else q)
-    let V : J → ((R ⊕ (J ⊕ J)) → Fin N → ℤˣ) → ℝ := fun j ρ =>
-      ((N + 1 : ℝ)⁻¹ * ∑ v : Fin N,
-        (if L j then (ρ (.inl (a j)) v : ℝ) - (ρ (.inr (.inl j)) v : ℝ)
-          else (ρ (.inr (.inl j)) v : ℝ)) *
-        (if S j then (ρ (.inl (b j)) v : ℝ) - (ρ (.inr (.inr j)) v : ℝ)
-          else (ρ (.inr (.inr j)) v : ℝ))) - (if L j || S j then 0 else q)
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
+    let U : J → ((R ⊕ (J ⊕ J)) → Fin (N + 1) → ℤˣ) → ℝ := skReplicaOverlapStat% (N + 1)
+    let V : J → ((R ⊕ (J ⊕ J)) → Fin N → ℤˣ) → ℝ := skReplicaOverlapStat% N
     |(∫ g, ∫ σ : (R ⊕ (J ⊕ J)) → Fin (N + 1) → ℤˣ, ∏ j ∈ s, U j σ
         ∂(Measure.pi fun _ : R ⊕ (J ⊕ J) => Measure.count.tilted (Esk g))
         ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) -
@@ -768,22 +719,9 @@ theorem sk_single_Y_conv_all_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
     ∃ E : ℝ, 0 < E ∧ ∀ (β h q : ℝ),
       (∫ t : ℝ, Real.tanh (β * Real.sqrt q * t + h) ^ 2 ∂gaussianReal 0 1 = q) →
       β ^ 2 ≤ β₀ ^ 2 → ∀ N : ℕ,
-    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
-    let U : J → ((R ⊕ (J ⊕ J)) → Fin (N + 1) → ℤˣ) → ℝ := fun j ρ =>
-      ((N + 1 : ℝ)⁻¹ * ∑ v : Fin (N + 1),
-        (if L j then (ρ (.inl (a j)) v : ℝ) - (ρ (.inr (.inl j)) v : ℝ)
-          else (ρ (.inr (.inl j)) v : ℝ)) *
-        (if S j then (ρ (.inl (b j)) v : ℝ) - (ρ (.inr (.inr j)) v : ℝ)
-          else (ρ (.inr (.inr j)) v : ℝ))) - (if L j || S j then 0 else q)
-    let V : J → ((R ⊕ (J ⊕ J)) → Fin N → ℤˣ) → ℝ := fun j ρ =>
-      ((N + 1 : ℝ)⁻¹ * ∑ v : Fin N,
-        (if L j then (ρ (.inl (a j)) v : ℝ) - (ρ (.inr (.inl j)) v : ℝ)
-          else (ρ (.inr (.inl j)) v : ℝ)) *
-        (if S j then (ρ (.inl (b j)) v : ℝ) - (ρ (.inr (.inr j)) v : ℝ)
-          else (ρ (.inr (.inr j)) v : ℝ))) - (if L j || S j then 0 else q)
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
+    let U : J → ((R ⊕ (J ⊕ J)) → Fin (N + 1) → ℤˣ) → ℝ := skReplicaOverlapStat% (N + 1)
+    let V : J → ((R ⊕ (J ⊕ J)) → Fin N → ℤˣ) → ℝ := skReplicaOverlapStat% N
     let ν₂ : ((Option (Option (R ⊕ (J ⊕ J))) → Fin (N + 1) → ℤˣ) → ℝ) → ℝ := fun f =>
       ∫ g, ∫ σ, f σ
         ∂(Measure.pi fun _ : Option (Option (R ⊕ (J ⊕ J))) => Measure.count.tilted (Esk g))
@@ -825,16 +763,8 @@ theorem sk_single_Xfull_unmatched_all_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ 
     ∃ E : ℝ, 0 < E ∧ ∀ (β h q : ℝ),
       (∫ t : ℝ, Real.tanh (β * Real.sqrt q * t + h) ^ 2 ∂gaussianReal 0 1 = q) →
       β ^ 2 ≤ β₀ ^ 2 → ∀ N : ℕ,
-    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
-    let U : J → ((R ⊕ (J ⊕ J)) → Fin (N + 1) → ℤˣ) → ℝ := fun j ρ =>
-      ((N + 1 : ℝ)⁻¹ * ∑ v : Fin (N + 1),
-        (if L j then (ρ (.inl (a j)) v : ℝ) - (ρ (.inr (.inl j)) v : ℝ)
-          else (ρ (.inr (.inl j)) v : ℝ)) *
-        (if S j then (ρ (.inl (b j)) v : ℝ) - (ρ (.inr (.inr j)) v : ℝ)
-          else (ρ (.inr (.inr j)) v : ℝ))) - (if L j || S j then 0 else q)
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
+    let U : J → ((R ⊕ (J ⊕ J)) → Fin (N + 1) → ℤˣ) → ℝ := skReplicaOverlapStat% (N + 1)
     ∀ ℓ : R ⊕ (J ⊕ J), ℓ ≠ .inl (a p) → ℓ ≠ .inr (.inl p) →
     (∀ u, u ≠ p → L u = true → a u = a p → ℓ ≠ .inr (.inr u)) →
     |∫ g, ∫ σ : Fin n → Fin (N + 1) → ℤˣ,
@@ -866,16 +796,8 @@ theorem sk_single_Xfull_matched_all_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 
     ∃ E : ℝ, 0 < E ∧ ∀ (β h q : ℝ),
       (∫ t : ℝ, Real.tanh (β * Real.sqrt q * t + h) ^ 2 ∂gaussianReal 0 1 = q) →
       β ^ 2 ≤ β₀ ^ 2 → ∀ N : ℕ,
-    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
-    let U : J → ((R ⊕ (J ⊕ J)) → Fin (N + 1) → ℤˣ) → ℝ := fun j ρ =>
-      ((N + 1 : ℝ)⁻¹ * ∑ v : Fin (N + 1),
-        (if L j then (ρ (.inl (a j)) v : ℝ) - (ρ (.inr (.inl j)) v : ℝ)
-          else (ρ (.inr (.inl j)) v : ℝ)) *
-        (if S j then (ρ (.inl (b j)) v : ℝ) - (ρ (.inr (.inr j)) v : ℝ)
-          else (ρ (.inr (.inr j)) v : ℝ))) - (if L j || S j then 0 else q)
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
+    let U : J → ((R ⊕ (J ⊕ J)) → Fin (N + 1) → ℤˣ) → ℝ := skReplicaOverlapStat% (N + 1)
     let α : ℝ := (∫ t : ℝ, Real.tanh (β * t * Real.sqrt q + h) ^ 4
       ∂gaussianReal 0 1) - 2 * q + 1
     ∀ u : J, u ≠ p → L u = true → a u = a p →
@@ -966,16 +888,8 @@ theorem sk_cavity_single_II_eval_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 <
     ∃ C : ℝ, 0 < C ∧ ∀ (β h q : ℝ),
       (∫ t : ℝ, Real.tanh (β * Real.sqrt q * t + h) ^ 2 ∂gaussianReal 0 1 = q) →
       β ^ 2 ≤ β₀ ^ 2 → ∀ N : ℕ,
-    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
-    let V : J → ((R ⊕ (J ⊕ J)) → Fin N → ℤˣ) → ℝ := fun j ρ =>
-      ((N + 1 : ℝ)⁻¹ * ∑ v : Fin N,
-        (if L j then (ρ (.inl (a j)) v : ℝ) - (ρ (.inr (.inl j)) v : ℝ)
-          else (ρ (.inr (.inl j)) v : ℝ)) *
-        (if S j then (ρ (.inl (b j)) v : ℝ) - (ρ (.inr (.inr j)) v : ℝ)
-          else (ρ (.inr (.inr j)) v : ℝ))) - (if L j || S j then 0 else q)
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
+    let V : J → ((R ⊕ (J ⊕ J)) → Fin N → ℤˣ) → ℝ := skReplicaOverlapStat% N
     let ν : (((R ⊕ (J ⊕ J)) → Fin (N + 1) → ℤˣ) → ℝ) → ℝ := fun f =>
       ∫ g, ∫ σ, f σ
         ∂(Measure.pi fun _ : R ⊕ (J ⊕ J) => Measure.count.tilted (Esk g))
@@ -1038,12 +952,7 @@ theorem sk_cavity_single_II_eval_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 <
         (mul_nonneg (mul_nonneg (by norm_num) (Nat.cast_nonneg _)) hC10.le)) one_pos
   refine ⟨_, hCpos, fun β h q hfix hb N => ?_⟩
   intro Esk V ν ν₂ Jf II cls α
-  let U : J → ((R ⊕ (J ⊕ J)) → Fin (N + 1) → ℤˣ) → ℝ := fun j ρ =>
-    ((N + 1 : ℝ)⁻¹ * ∑ v : Fin (N + 1),
-      (if L j then (ρ (.inl (a j)) v : ℝ) - (ρ (.inr (.inl j)) v : ℝ)
-        else (ρ (.inr (.inl j)) v : ℝ)) *
-      (if S j then (ρ (.inl (b j)) v : ℝ) - (ρ (.inr (.inr j)) v : ℝ)
-        else (ρ (.inr (.inr j)) v : ℝ))) - (if L j || S j then 0 else q)
+  let U : J → ((R ⊕ (J ⊕ J)) → Fin (N + 1) → ℤˣ) → ℝ := skReplicaOverlapStat% (N + 1)
   let νf : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) → ℝ := fun Φ =>
     ∫ g, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, Φ σ
       ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (Esk g))

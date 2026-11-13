@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKReplicaAverage
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKRectangularDerivative
 
 /-!
@@ -33,16 +34,9 @@ theorem sk_cavity_decoupled_rect_lincomb (N : ℕ) (β q h : ℝ)
     {I : Type*} [Fintype I] (c : I → ℝ) (a b : I → R) (hab : ∀ i, a i ≠ b i)
     (hx₁y₁ : x₁ ≠ y₁) (hx₁y₂ : x₁ ≠ y₂) (hx₂y₁ : x₂ ≠ y₁) (hx₂y₂ : x₂ ≠ y₂)
     (G : (R → Fin N → ℤˣ) → ℝ) :
-    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs N,
-            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skCavityBase%
     let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
-        (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
-      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
-        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
-      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
+        (Fin (N + 1) → ℤˣ) → ℝ := skCavityEnergy%
     (∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
         ∫ σ : R → Fin (N + 1) → ℤˣ,
           G (fun r i => σ r i.castSucc) *

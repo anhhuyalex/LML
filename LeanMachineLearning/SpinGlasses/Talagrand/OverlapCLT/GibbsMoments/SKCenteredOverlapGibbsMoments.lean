@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKReplicaAverage
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SecondMoment
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.GibbsMoments.SKOverlapCLTGibbsPolynomials
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.GaussianOverlapCovariance
@@ -62,10 +63,7 @@ theorem sk_centered_overlap_gibbs_moments_uniform (β₀ : ℝ) (hβ₀ : 4 * β
     ∃ C : ℝ, 0 < C ∧ ∀ (β h q : ℝ),
       (∫ t : ℝ, Real.tanh (β * Real.sqrt q * t + h) ^ 2 ∂gaussianReal 0 1 = q) →
       β ^ 2 ≤ β₀ ^ 2 → ∀ N : ℕ,
-    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g σ =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (σ i : ℝ)
+    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
     let qbar := fun g => ∫ ρ : R → Fin (N + 1) → ℤˣ,
       (N + 1 : ℝ)⁻¹ * ∑ i, (ρ r i : ℝ) * (ρ s i : ℝ)
       ∂(Measure.pi fun _ : R => Measure.count.tilted (E g))

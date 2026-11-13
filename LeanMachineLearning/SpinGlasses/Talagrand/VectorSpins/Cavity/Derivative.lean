@@ -996,32 +996,32 @@ theorem integral_replica_covariance_sums {R D : Type*} [Fintype R] [Fintype D] (
         c₃ * ∑ u, ∑ v, I₃ u v ω + c₄ * ∑ u, ∑ v, I₄ u v ω) ∂P =
       c₁ * ∑ a, ∑ b, ∑ u, ∑ v, ∫ ω, I₁ a b u v ω ∂P - c₂ * ∑ a, ∑ u, ∑ v, ∫ ω, I₂ a u v ω ∂P -
         c₃ * ∑ u, ∑ v, ∫ ω, I₃ u v ω ∂P + c₄ * ∑ u, ∑ v, ∫ ω, I₄ u v ω ∂P := by
-  have e₁ : Integrable (fun ω => ∑ a, ∑ b, ∑ u, ∑ v, I₁ a b u v ω) P :=
-    integrable_finsetSum _ fun a _ => integrable_finsetSum _ fun b _ =>
-      integrable_finsetSum _ fun u _ => integrable_finsetSum _ fun v _ => h₁ a b u v
-  have e₂ : Integrable (fun ω => ∑ a, ∑ u, ∑ v, I₂ a u v ω) P :=
-    integrable_finsetSum _ fun a _ => integrable_finsetSum _ fun u _ =>
-      integrable_finsetSum _ fun v _ => h₂ a u v
-  have e₃ : Integrable (fun ω => ∑ u, ∑ v, I₃ u v ω) P :=
-    integrable_finsetSum _ fun u _ => integrable_finsetSum _ fun v _ => h₃ u v
-  have e₄ : Integrable (fun ω => ∑ u, ∑ v, I₄ u v ω) P :=
-    integrable_finsetSum _ fun u _ => integrable_finsetSum _ fun v _ => h₄ u v
+  -- Reindex each nested finite sum over a product type, so that `integral_finsetSum` and
+  -- `integrable_finsetSum` apply once.
+  have e₁ : Integrable (fun ω => ∑ a, ∑ b, ∑ u, ∑ v, I₁ a b u v ω) P := by
+    simp only [← Fintype.sum_prod_type']
+    exact integrable_finsetSum _ fun x _ => h₁ _ _ _ _
+  have e₂ : Integrable (fun ω => ∑ a, ∑ u, ∑ v, I₂ a u v ω) P := by
+    simp only [← Fintype.sum_prod_type']
+    exact integrable_finsetSum _ fun x _ => h₂ _ _ _
+  have e₃ : Integrable (fun ω => ∑ u, ∑ v, I₃ u v ω) P := by
+    simp only [← Fintype.sum_prod_type']
+    exact integrable_finsetSum _ fun x _ => h₃ _ _
+  have e₄ : Integrable (fun ω => ∑ u, ∑ v, I₄ u v ω) P := by
+    simp only [← Fintype.sum_prod_type']
+    exact integrable_finsetSum _ fun x _ => h₄ _ _
   have s2 : ∀ (f : D → D → Ω → ℝ), (∀ u v, Integrable (f u v) P) →
-      ∫ ω, ∑ u, ∑ v, f u v ω ∂P = ∑ u, ∑ v, ∫ ω, f u v ω ∂P := by
-    intro f hf
-    rw [integral_finsetSum Finset.univ fun u _ => integrable_finsetSum _ fun v _ => hf u v]
-    exact Finset.sum_congr rfl fun u _ => integral_finsetSum Finset.univ fun v _ => hf u v
+      ∫ ω, ∑ u, ∑ v, f u v ω ∂P = ∑ u, ∑ v, ∫ ω, f u v ω ∂P := fun f hf => by
+    simp only [← Fintype.sum_prod_type']
+    exact integral_finsetSum _ fun x _ => hf _ _
   have s3 : ∀ (f : R → D → D → Ω → ℝ), (∀ a u v, Integrable (f a u v) P) →
-      ∫ ω, ∑ a, ∑ u, ∑ v, f a u v ω ∂P = ∑ a, ∑ u, ∑ v, ∫ ω, f a u v ω ∂P := by
-    intro f hf
-    rw [integral_finsetSum Finset.univ fun a _ => integrable_finsetSum _ fun u _ =>
-      integrable_finsetSum _ fun v _ => hf a u v]
-    exact Finset.sum_congr rfl fun a _ => s2 (f a) (hf a)
+      ∫ ω, ∑ a, ∑ u, ∑ v, f a u v ω ∂P = ∑ a, ∑ u, ∑ v, ∫ ω, f a u v ω ∂P := fun f hf => by
+    simp only [← Fintype.sum_prod_type']
+    exact integral_finsetSum _ fun x _ => hf _ _ _
   have s4 : ∫ ω, ∑ a, ∑ b, ∑ u, ∑ v, I₁ a b u v ω ∂P =
       ∑ a, ∑ b, ∑ u, ∑ v, ∫ ω, I₁ a b u v ω ∂P := by
-    rw [integral_finsetSum Finset.univ fun a _ => integrable_finsetSum _ fun b _ =>
-      integrable_finsetSum _ fun u _ => integrable_finsetSum _ fun v _ => h₁ a b u v]
-    exact Finset.sum_congr rfl fun a _ => s3 (I₁ a) (h₁ a)
+    simp only [← Fintype.sum_prod_type']
+    exact integral_finsetSum _ fun x _ => h₁ _ _ _ _
   rw [integral_four_combination (e₁.const_mul c₁) (e₂.const_mul c₂) (e₃.const_mul c₃)
     (e₄.const_mul c₄), integral_const_mul, integral_const_mul, integral_const_mul,
     integral_const_mul, s4, s3 I₂ h₂, s2 I₃ h₃, s2 I₄ h₄]

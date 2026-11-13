@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKReplicaAverage
 public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityOuterBound
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.TrigSquareParam
 
@@ -78,10 +79,7 @@ theorem hasDerivAt_integral_cavity_outer
   have hq0 : 0 ≤ q := hq.1
   let P : Measure ((Fin N → ℝ) × ℝ) :=
     (Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)
-  let E : ℝ → Ω₀ → (Fin N → ℝ) × ℝ → (Fin (N + 1) → ℤˣ) → ℝ := fun s η ω a =>
-    Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
-      (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
-    Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B η a
+  let E : ℝ → Ω₀ → (Fin N → ℝ) × ℝ → (Fin (N + 1) → ℤˣ) → ℝ := skCavityEnergy%
   let U : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ := fun a b =>
     β ^ 2 * (a (Fin.last N) : ℝ) * (b (Fin.last N) : ℝ) *
       (q - (N + 1 : ℝ)⁻¹ *
@@ -155,11 +153,7 @@ off-diagonal sum. -/
 theorem hasDerivAt_integral_sk_cavity_path_angle (N n : ℕ) (β q h : ℝ)
     (hq : q ∈ Set.Icc (0 : ℝ) 1)
     (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) (t : ℝ) :
-    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs N,
-            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skCavityBase%
     HasDerivAt (fun s =>
       ∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
         ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ
@@ -219,16 +213,9 @@ form preceding Talagrand's change from the angle to `t = cos² s`. -/
 theorem hasDerivAt_integral_sk_cavity_path_angle_offDiag (N n : ℕ) (β q h : ℝ)
     (hq : q ∈ Set.Icc (0 : ℝ) 1)
     (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) (t : ℝ) :
-    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs N,
-            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skCavityBase%
     let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
-        (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
-      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
-        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
-      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
+        (Fin (N + 1) → ℤˣ) → ℝ := skCavityEnergy%
     let U : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ := fun a b =>
       β ^ 2 * (a (Fin.last N) : ℝ) * (b (Fin.last N) : ℝ) *
         (q - (N + 1 : ℝ)⁻¹ *
@@ -274,21 +261,10 @@ the three integrals, which reverses the covariance kernel `q - R⁻` to the book
 theorem hasDerivAt_integral_sk_cavity_path_square (N n : ℕ) (β q h t : ℝ)
     (hq : q ∈ Set.Icc (0 : ℝ) 1) (ht : t ∈ Set.Ioo (0 : ℝ) 1)
     (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) :
-    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs N,
-            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skCavityBase%
     let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
-        (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
-      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
-        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
-      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
-    let K : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ := fun a b =>
-      β ^ 2 * (a (Fin.last N) : ℝ) * (b (Fin.last N) : ℝ) *
-        ((N + 1 : ℝ)⁻¹ *
-          ((fun i : Fin N => (a i.castSucc : ℝ)) ⬝ᵥ fun i : Fin N =>
-            (b i.castSucc : ℝ)) - q)
+        (Fin (N + 1) → ℤˣ) → ℝ := skCavityEnergy%
+    let K : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ := skCavityKernel%
     HasDerivAt (fun u =>
       ∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
         ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ
@@ -331,16 +307,9 @@ the three replica families have total weight zero. -/
 theorem hasDerivAt_integral_sk_cavity_path_square_full (N n : ℕ) (β q h t : ℝ)
     (hq : q ∈ Set.Icc (0 : ℝ) 1) (ht : t ∈ Set.Ioo (0 : ℝ) 1)
     (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) :
-    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs N,
-            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skCavityBase%
     let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
-        (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
-      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
-        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
-      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
+        (Fin (N + 1) → ℤˣ) → ℝ := skCavityEnergy%
     let K : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ := fun a b =>
       β ^ 2 * (a (Fin.last N) : ℝ) * (b (Fin.last N) : ℝ) *
         ((N + 1 : ℝ)⁻¹ *

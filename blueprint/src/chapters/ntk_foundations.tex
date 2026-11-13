@@ -22,7 +22,7 @@ has entries $u_iv_j$ (``rank-one matrix''; \texttt{Matrix.vecMulVec} in Lean).
 \section{Matrix utilities}\label{sec:ntkf:matrix}
 
 \begin{lemma}[Quadratic form of a positive semidefinite matrix]\label{lem:ntkf:psdSum}
-  \lean{NTK.posSemidef_sum_nonneg}
+  \lean{Matrix.PosSemidef.sum_mul_mul_nonneg}
   \leanok
 Let $M\in\mathbb R^{n\times n}$ be positive semidefinite. Then for all $\alpha\in\mathbb R^n$,
 \[

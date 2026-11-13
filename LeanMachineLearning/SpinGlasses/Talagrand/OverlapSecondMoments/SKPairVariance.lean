@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKReplicaAverage
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKSecondMoment
 
 /-!
@@ -28,12 +29,7 @@ namespace SpinGlasses
 `ν(rect²) = ν(a_N²)/M + (M-1)/M · ν(a_i a_j)` for any two distinct sites `i ≠ j`. -/
 theorem sk_rect_sq_eq_diag_add_offdiag (N : ℕ) (β h : ℝ)
     (ν : ((Fin 4 → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
-    (hν : ∀ Φ, ν Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin 4 → Fin (N + 1) → ℤˣ, Φ σ
-      ∂(Measure.pi fun _ : Fin 4 => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    (hν : skReplicaAverage% ν 4)
     {i j : Fin (N + 1)} (hij : i ≠ j) :
     let a : Fin (N + 1) → (Fin 4 → Fin (N + 1) → ℤˣ) → ℝ := fun k σ =>
       (((σ 0 k : ℤˣ) : ℝ) - ((σ 1 k : ℤˣ) : ℝ)) * (((σ 2 k : ℤˣ) : ℝ) - ((σ 3 k : ℤˣ) : ℝ))
@@ -151,12 +147,7 @@ theorem pair_variance_arith {X Pa V M lam c2 E e : ℝ} (hM : 2 ≤ M) (hlam0 : 
 /-- `ν(a_i a_j) = 4 𝔼(⟨σ_iσ_j⟩ - ⟨σ_i⟩⟨σ_j⟩)²`: the replicas `(1,2)` and `(3,4)` are independent. -/
 theorem sk_nu_a_prod_eq_cov_sq (N : ℕ) (β h : ℝ)
     (ν : ((Fin 4 → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
-    (hν : ∀ Φ, ν Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin 4 → Fin (N + 1) → ℤˣ, Φ σ
-      ∂(Measure.pi fun _ : Fin 4 => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    (hν : skReplicaAverage% ν 4)
     (i j : Fin (N + 1)) :
     ν (fun σ => ((((σ 0 i : ℤˣ) : ℝ) - ((σ 1 i : ℤˣ) : ℝ)) * (((σ 2 i : ℤˣ) : ℝ) -
         ((σ 3 i : ℤˣ) : ℝ))) * ((((σ 0 j : ℤˣ) : ℝ) - ((σ 1 j : ℤˣ) : ℝ)) *

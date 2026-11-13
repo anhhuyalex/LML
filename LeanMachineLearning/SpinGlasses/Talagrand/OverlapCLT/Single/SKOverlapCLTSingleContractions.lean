@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKReplicaAverage
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Contractions.SKOverlapCLTFreshContractions
 
 /-!
@@ -31,16 +32,9 @@ theorem sk_cavity_decoupled_single_monomial (N : ℕ) (β q h : ℝ)
     {R : Type*} [Fintype R] [DecidableEq R] {x₁ x₂ y a b : R} (hab : a ≠ b)
     (hx₁y : x₁ ≠ y) (hx₂y : x₂ ≠ y) (hya : y ≠ a) (hyb : y ≠ b)
     (G : (R → Fin N → ℤˣ) → ℝ) :
-    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs N,
-            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skCavityBase%
     let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
-        (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
-      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
-        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
-      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
+        (Fin (N + 1) → ℤˣ) → ℝ := skCavityEnergy%
     (∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
         ∫ σ : R → Fin (N + 1) → ℤˣ,
           G (fun r i => σ r i.castSucc) *
@@ -127,16 +121,9 @@ theorem sk_cavity_decoupled_single_lincomb (N : ℕ) (β q h : ℝ)
     {I : Type*} [Fintype I] (c : I → ℝ) (a b : I → R) (hab : ∀ i, a i ≠ b i)
     (hx₁y : x₁ ≠ y) (hx₂y : x₂ ≠ y) (hya : ∀ i, y ≠ a i) (hyb : ∀ i, y ≠ b i)
     (G : (R → Fin N → ℤˣ) → ℝ) :
-    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs N,
-            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skCavityBase%
     let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
-        (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
-      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
-        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
-      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
+        (Fin (N + 1) → ℤˣ) → ℝ := skCavityEnergy%
     (∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
         ∫ σ : R → Fin (N + 1) → ℤˣ,
           G (fun r i => σ r i.castSucc) *
@@ -230,16 +217,9 @@ theorem sk_cavity_decoupled_fresh_single (N : ℕ) (β q h : ℝ)
     (x a b : R) (p u : J) (hpu : p ≠ u) (L S : Bool)
     (hab : L = true → S = true → a ≠ b)
     (G : ((R ⊕ (J ⊕ J)) → Fin N → ℤˣ) → ℝ) :
-    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs N,
-            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skCavityBase%
     let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
-        (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
-      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
-        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
-      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
+        (Fin (N + 1) → ℤˣ) → ℝ := skCavityEnergy%
     let e0 : (R ⊕ (J ⊕ J) → ℤˣ) → ℝ := fun ε =>
       ((ε (.inl x) : ℝ) - (ε (.inr (.inl p)) : ℝ)) * (ε (.inr (.inr p)) : ℝ)
     let eu : (R ⊕ (J ⊕ J) → ℤˣ) → ℝ := fun ε =>

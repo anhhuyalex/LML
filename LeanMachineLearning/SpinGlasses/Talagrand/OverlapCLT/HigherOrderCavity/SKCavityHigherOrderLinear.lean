@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKReplicaAverage
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.HigherOrderCavity.SKCavityHigherOrderPair
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.FiniteProductBound
 
@@ -36,10 +37,7 @@ theorem sk_cavity_pair_lincomb_expansion_uniform (β₀ : ℝ) (hβ₀ : 4 * β�
     let F : (Fin n → Fin N → ℤˣ) → ℝ := fun ρ => ∏ j : Fin k, ∑ i : ι j,
       c j i * ((N + 1 : ℝ)⁻¹ * ((fun v : Fin N => (ρ (a j i) v : ℝ)) ⬝ᵥ
         fun v : Fin N => (ρ (b j i) v : ℝ)) - q)
-    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g σ =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
-        h * ∑ i : Fin (N + 1), (σ i : ℝ)
+    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
     let ν : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) → ℝ := fun f =>
       ∫ g, ∫ σ, f σ ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (E g))
         ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)
@@ -129,10 +127,7 @@ theorem sk_cavity_pair_lincomb_expansion (β h q : ℝ) (hβ : 4 * β ^ 2 < 1)
     let F : (Fin n → Fin N → ℤˣ) → ℝ := fun ρ => ∏ j : Fin k, ∑ i : ι j,
       c j i * ((N + 1 : ℝ)⁻¹ * ((fun v : Fin N => (ρ (a j i) v : ℝ)) ⬝ᵥ
         fun v : Fin N => (ρ (b j i) v : ℝ)) - q)
-    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g σ =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
-        h * ∑ i : Fin (N + 1), (σ i : ℝ)
+    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
     let ν : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) → ℝ := fun f =>
       ∫ g, ∫ σ, f σ ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (E g))
         ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)

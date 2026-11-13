@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKReplicaAverage
 public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityOuterDerivative
 public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityEndpoint
 public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsReplicaMarginal
@@ -115,15 +116,8 @@ theorem abs_cavity_outer_book_derivative_le
     (N n : ℕ) (β q : ℝ) (hq : q ∈ Set.Icc (0 : ℝ) 1)
     (B : Ω₀ → (Fin (N + 1) → ℤˣ) → ℝ) (hB : ∀ a, Measurable (fun η => B η a))
     (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) (hf : ∀ σ, 0 ≤ f σ) (s : ℝ) :
-    let E : ℝ → Ω₀ → ((Fin N → ℝ) × ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun s η ω a =>
-      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
-        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
-      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B η a
-    let K : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ := fun a b =>
-      β ^ 2 * (a (Fin.last N) : ℝ) * (b (Fin.last N) : ℝ) *
-        ((N + 1 : ℝ)⁻¹ *
-          ((fun i : Fin N => (a i.castSucc : ℝ)) ⬝ᵥ fun i : Fin N =>
-            (b i.castSucc : ℝ)) - q)
+    let E : ℝ → Ω₀ → ((Fin N → ℝ) × ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skCavityEnergy%
+    let K : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ := skCavityKernel%
     |∫ η, ∫ ω : (Fin N → ℝ) × ℝ,
         ∫ τ : Option (Option (Fin n)) → Fin (N + 1) → ℤˣ,
           f (fun r => τ (some (some r))) *
@@ -176,11 +170,7 @@ theorem abs_cavity_outer_book_derivative_le
 path average is the `(N + 1)`-spin SK average. -/
 theorem integral_sk_cavity_path_zero (N n : ℕ) (β q h : ℝ)
     (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) :
-    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs N,
-            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skCavityBase%
     (∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
         ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ
           ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
@@ -231,16 +221,9 @@ coupled endpoint `t = 1`, which is the `(N + 1)`-spin SK average. -/
 theorem sk_cavity_path_square_le_exp_mul (N n : ℕ) (β q h : ℝ)
     (hq : q ∈ Set.Icc (0 : ℝ) 1) (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ)
     (hf : ∀ σ, 0 ≤ f σ) (t : ℝ) (ht : t ∈ Set.Icc (0 : ℝ) 1) :
-    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs N,
-            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skCavityBase%
     let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
-        (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
-      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
-        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
-      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
+        (Fin (N + 1) → ℤˣ) → ℝ := skCavityEnergy%
     (∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
         ∫ σ : Fin n → Fin (N + 1) → ℤˣ, f σ
           ∂(Measure.pi fun _ : Fin n => Measure.count.tilted
@@ -303,16 +286,9 @@ through its cardinality `m`, so the comparison constant is `exp (4 m² β²)`. -
 theorem sk_cavity_path_square_le_exp_mul_replicas (N : ℕ) (β q h : ℝ)
     (hq : q ∈ Set.Icc (0 : ℝ) 1) {R : Type*} [Fintype R]
     (G : (R → Fin (N + 1) → ℤˣ) → ℝ) (hG : ∀ τ, 0 ≤ G τ) (t : ℝ) (ht : t ∈ Set.Icc (0 : ℝ) 1) :
-    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs N,
-            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skCavityBase%
     let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
-        (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
-      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
-        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
-      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
+        (Fin (N + 1) → ℤˣ) → ℝ := skCavityEnergy%
     (∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
         ∫ τ : R → Fin (N + 1) → ℤˣ, G τ
           ∂(Measure.pi fun _ : R => Measure.count.tilted

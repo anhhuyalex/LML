@@ -215,9 +215,8 @@ lemma shallowEmpiricalNTK_posSemidef
     {n : ℕ} (α : Fin n → ℝ) (pts : Fin n → Fin d → ℝ) :
     0 ≤ ∑ i : Fin n, ∑ j : Fin n,
       α i * α j * shallowEmpiricalNTK σ' W₀ (pts i) (pts j) :=
-  posSemidef_sum_nonneg
-    (M := Matrix.of fun a b => shallowEmpiricalNTK σ' W₀ (pts a) (pts b))
-    (shallowEmpiricalNTK_dataset_posSemidef σ' (fun _ => 1) W₀ pts (fun _ => one_pow 2)) α
+  (shallowEmpiricalNTK_dataset_posSemidef σ' (fun _ => 1) W₀ pts
+    (fun _ => one_pow 2)).sum_mul_mul_nonneg α
 
 /-! ### Limiting NTK (Definition 4.6) -/
 

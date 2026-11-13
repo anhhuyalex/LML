@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKRectangularDerivative
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKReplicaAverage
 public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKOverlapContraction
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapConcentration.SKOverlapConcentration
 public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKFixedPoint
@@ -49,10 +50,7 @@ theorem sk_dev_moment_le (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (r : ℕ) :
 `a_i = (σ¹_i - σ²_i)(σ³_i - σ⁴_i)` and `rect = (N+1)⁻¹ ∑_i a_i`, we have
 `ν(rect²) = ν(a_N rect)`. -/
 theorem sk_rect_sq_eq_last_site (N : ℕ) (β h : ℝ) :
-    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
     let rect : (Fin 4 → Fin (N + 1) → ℤˣ) → ℝ := fun σ =>
       (N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ) - (σ 1 i : ℝ)) ⬝ᵥ
         fun i : Fin (N + 1) => (σ 2 i : ℝ) - (σ 3 i : ℝ))
@@ -144,10 +142,7 @@ theorem rect_pow_four_le (u₁ u₂ u₃ u₄ : ℝ) :
 are replicas pairs with the same average. -/
 theorem sk_rect_moment_le (N : ℕ) (β h q : ℝ) (m : ℕ) (C : ℝ)
     (hC : ∀ u₁ u₂ u₃ u₄ : ℝ, (u₁ - u₂ - u₃ + u₄) ^ m ≤ C * (u₁ ^ m + u₂ ^ m + u₃ ^ m + u₄ ^ m)) :
-    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
     let rect : (Fin 4 → Fin (N + 1) → ℤˣ) → ℝ := fun σ =>
       (N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ) - (σ 1 i : ℝ)) ⬝ᵥ
         fun i : Fin (N + 1) => (σ 2 i : ℝ) - (σ 3 i : ℝ))
@@ -210,16 +205,9 @@ spins. -/
 theorem sk_cavity_decoupled_rect_zero (N : ℕ) (β q h : ℝ)
     (hfix : ∫ z : ℝ, Real.tanh (β * z * Real.sqrt q + h) ^ 2 ∂(gaussianReal 0 1) = q)
     (F : (Fin 4 → Fin N → ℤˣ) → ℝ) :
-    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs N,
-            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skCavityBase%
     let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
-        (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
-      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
-        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
-      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
+        (Fin (N + 1) → ℤˣ) → ℝ := skCavityEnergy%
     (∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
         ∫ σ : Fin 4 → Fin (N + 1) → ℤˣ,
           F (fun r i => σ r i.castSucc) *
@@ -275,16 +263,9 @@ theorem sk_cavity_decoupled_rect_zero (N : ℕ) (β q h : ℝ)
 `ν₀(((ε₁ - ε₂)(ε₃ - ε₄))²) = 4 (1 - 2 q + q̂)` (Eq. (1.242)). -/
 theorem sk_cavity_decoupled_rect_sq (N : ℕ) (β q h : ℝ)
     (hfix : ∫ z : ℝ, Real.tanh (β * z * Real.sqrt q + h) ^ 2 ∂(gaussianReal 0 1) = q) :
-    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs N,
-            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skCavityBase%
     let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
-        (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
-      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
-        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
-      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
+        (Fin (N + 1) → ℤˣ) → ℝ := skCavityEnergy%
     (∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
         ∫ σ : Fin 4 → Fin (N + 1) → ℤˣ,
           ((((σ 0 (Fin.last N) : ℤˣ) : ℝ) - ((σ 1 (Fin.last N) : ℤˣ) : ℝ)) *
@@ -435,12 +416,7 @@ theorem sq_sign_rect_le (u₀ u₁ u₂ u₃ : ℤˣ) :
 /-- An `n`-replica SK average is additive. -/
 theorem sk_replica_avg_add (N n : ℕ) (β h : ℝ)
     (ν : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
-    (hν : ∀ Φ, ν Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, Φ σ
-      ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    (hν : skReplicaAverage% ν n)
     (Φ Ψ : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) :
     ν (fun σ => Φ σ + Ψ σ) = ν Φ + ν Ψ := by
   simp only [hν]
@@ -467,12 +443,7 @@ theorem sk_replica_avg_add (N n : ℕ) (β h : ℝ)
 /-- An `n`-replica SK average is homogeneous. -/
 theorem sk_replica_avg_smul (N n : ℕ) (β h : ℝ)
     (ν : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
-    (hν : ∀ Φ, ν Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, Φ σ
-      ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    (hν : skReplicaAverage% ν n)
     (c : ℝ) (Φ : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) :
     ν (fun σ => c * Φ σ) = c * ν Φ := by
   simp only [hν, integral_const_mul]
@@ -480,12 +451,7 @@ theorem sk_replica_avg_smul (N n : ℕ) (β h : ℝ)
 /-- An `n`-replica SK average is monotone. -/
 theorem sk_replica_avg_mono (N n : ℕ) (β h : ℝ)
     (ν : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
-    (hν : ∀ Φ, ν Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, Φ σ
-      ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    (hν : skReplicaAverage% ν n)
     (Φ Ψ : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) (hΦΨ : ∀ σ, Φ σ ≤ Ψ σ) :
     ν Φ ≤ ν Ψ := by
   rw [hν, hν]
@@ -494,24 +460,14 @@ theorem sk_replica_avg_mono (N n : ℕ) (β h : ℝ)
 /-- An `n`-replica SK average is normalized. -/
 theorem sk_replica_avg_const (N n : ℕ) (β h : ℝ)
     (ν : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
-    (hν : ∀ Φ, ν Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, Φ σ
-      ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    (hν : skReplicaAverage% ν n)
     (c : ℝ) : ν (fun _ => c) = c := by
   simp [hν]
 
 /-- Finite combinations commute with an `n`-replica SK average. -/
 theorem sk_replica_avg_finset_sum (N n : ℕ) (β h : ℝ)
     (ν : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
-    (hν : ∀ Φ, ν Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, Φ σ
-      ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    (hν : skReplicaAverage% ν n)
     {ι : Type*} (s : Finset ι) (c : ι → ℝ) (Φ : ι → (Fin n → Fin (N + 1) → ℤˣ) → ℝ) :
     ν (fun σ => ∑ j ∈ s, c j * Φ j σ) = ∑ j ∈ s, c j * ν (Φ j) := by
   have hEg (a : Fin (N + 1) → ℤˣ) : Measurable (fun g : FinPairs (N + 1) → ℝ =>
@@ -526,12 +482,7 @@ theorem sk_replica_avg_finset_sum (N n : ℕ) (β h : ℝ)
 `ν Φ = 𝔼 ⟨Φ⟩`, is additive, homogeneous, monotone and normalized. -/
 theorem sk_replica_avg_calculus (N n : ℕ) (β h : ℝ)
     (ν : ((Fin n → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
-    (hν : ∀ Φ, ν Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin n → Fin (N + 1) → ℤˣ, Φ σ
-      ∂(Measure.pi fun _ : Fin n => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) :
+    (hν : skReplicaAverage% ν n) :
     (∀ Φ Ψ : (Fin n → Fin (N + 1) → ℤˣ) → ℝ, ν (fun σ => Φ σ + Ψ σ) = ν Φ + ν Ψ) ∧
     (∀ (c : ℝ) (Φ : (Fin n → Fin (N + 1) → ℤˣ) → ℝ), ν (fun σ => c * Φ σ) = c * ν Φ) ∧
     (∀ Φ Ψ : (Fin n → Fin (N + 1) → ℤˣ) → ℝ, (∀ σ, Φ σ ≤ Ψ σ) → ν Φ ≤ ν Ψ) ∧
@@ -547,12 +498,7 @@ one has `ν(rect²) = ν(a rect)`, `ν(a rect) = ν(f*) + ν(a²)/M` and
 `ν((rect⁻)²) = ν(rect²) (1 - 2/M) + ν(a²)/M²`; moreover `0 ≤ ν(a²) ≤ 16`. -/
 theorem sk_rect_nu_structure (N : ℕ) (β h : ℝ)
     (ν : ((Fin 4 → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
-    (hν : ∀ Φ, ν Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin 4 → Fin (N + 1) → ℤˣ, Φ σ
-      ∂(Measure.pi fun _ : Fin 4 => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)) :
+    (hν : skReplicaAverage% ν 4) :
     let aL : (Fin 4 → Fin (N + 1) → ℤˣ) → ℝ := fun σ =>
       (((σ 0 (Fin.last N) : ℤˣ) : ℝ) - ((σ 1 (Fin.last N) : ℤˣ) : ℝ)) *
         (((σ 2 (Fin.last N) : ℤˣ) : ℝ) - ((σ 3 (Fin.last N) : ℤˣ) : ℝ))
@@ -614,12 +560,7 @@ theorem sk_rect_nu_structure (N : ℕ) (β h : ℝ)
 `ν(f*²) ≤ (512 K₁ + 512)/M` and `ν((rect⁻)⁴) ≤ (2048 K₂ + 2048)/M²`. -/
 theorem sk_rect_nu_bounds (N : ℕ) (β h q K₁ K₂ : ℝ) (hK₁ : 0 ≤ K₁)
     (ν : ((Fin 4 → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
-    (hν : ∀ Φ, ν Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin 4 → Fin (N + 1) → ℤˣ, Φ σ
-      ∂(Measure.pi fun _ : Fin 4 => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    (hν : skReplicaAverage% ν 4)
     (hD2 : (∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ,
         ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
           fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) ^ 2
@@ -750,12 +691,7 @@ theorem sk_rect_nu_bounds (N : ℕ) (β h q K₁ K₂ : ℝ) (hK₁ : 0 ≤ K₁
 theorem sk_rect_nu_decoupled (N : ℕ) (β h q : ℝ)
     (hfix : ∫ x : ℝ, Real.tanh (β * Real.sqrt q * x + h) ^ 2 ∂(gaussianReal 0 1) = q)
     (ν : ((Fin 4 → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
-    (hν : ∀ Φ, ν Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin 4 → Fin (N + 1) → ℤˣ, Φ σ
-      ∂(Measure.pi fun _ : Fin 4 => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    (hν : skReplicaAverage% ν 4)
     :
     let aL : (Fin 4 → Fin (N + 1) → ℤˣ) → ℝ := fun σ =>
       (((σ 0 (Fin.last N) : ℤˣ) : ℝ) - ((σ 1 (Fin.last N) : ℤˣ) : ℝ)) *
@@ -770,10 +706,7 @@ theorem sk_rect_nu_decoupled (N : ℕ) (β h q : ℝ)
           (((σ 2 (Fin.last N) : ℤˣ) : ℝ) - ((σ 3 (Fin.last N) : ℤˣ) : ℝ)))
     let c₂ : ℝ := (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 4 ∂(gaussianReal 0 1)) -
       2 * q + 1
-    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
     ∃ ν₀ : ((Fin 4 → Fin (N + 1) → ℤˣ) → ℝ) → ℝ,
       |ν fstar - β ^ 2 * c₂ * ν₀ (fun σ => rectm σ ^ 2)| ≤
         2304 * β ^ 4 * Real.exp (256 * β ^ 2) *
@@ -805,10 +738,7 @@ theorem sk_rect_nu_decoupled (N : ℕ) (β h q : ℝ)
   have hc₂z : (∫ z : ℝ, Real.tanh (β * z * Real.sqrt q + h) ^ 4 ∂(gaussianReal 0 1)) -
       2 * q + 1 = c₂ := by
     rw [integral_tanh_pow_mul_z_sqrt_eq]
-  let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
-    (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs N, g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
+  let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skCavityBase%
   let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) → (Fin (N + 1) → ℤˣ) → ℝ :=
     fun s g' ω a =>
       Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
@@ -958,10 +888,7 @@ Eq. (1.215) for `rect⁻²`, the size of `ν(rect²)`, and Eq. (1.215) for `a_N�
 theorem sk_rect_second_moment_aux (N : ℕ) (β q h K₁ K₂ : ℝ) (hβ : 4 * β ^ 2 < 1)
     (hK₁ : 0 ≤ K₁)
     (hfix : ∫ x : ℝ, Real.tanh (β * Real.sqrt q * x + h) ^ 2 ∂(gaussianReal 0 1) = q) :
-    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
     let c₂ : ℝ := (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 4 ∂(gaussianReal 0 1)) -
       2 * q + 1
     (∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ,

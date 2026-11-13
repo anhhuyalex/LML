@@ -5244,7 +5244,7 @@ For the SK system $e=\mathrm{skCavityDisorderEquiv}$ and $m_i=\langle\sigma_i\ra
         Real.tanh_add_tanh_sub,
         Real.abs_tanh_sub_tanh_le,
         Real.abs_tanh_le_abs,
-        SpinGlasses.integral_sq_gaussianReal_zero_one,
+        NTK.integral_sq_gaussianReal,
         SpinGlasses.fixedPoint_eq_zero_of_field_zero}
   \leanok
 \talsource{Section~1.7, proof of Lemma~1.7.6: ``we can and do assume $h\ne0$, for otherwise $q=0$'' and the division by $q$ in the last display (the book gives no lower bound)}
@@ -6652,8 +6652,7 @@ Then $\psi_M(0)=0$, $\psi_M$ is convex on $\mathbb R$, differentiable with $\psi
 \begin{proof}
   \leanok
 The pair $(\sigma,\tau)$ is one configuration of a finite space, and $E_g(\sigma)+E_g(\tau)=a(\sigma,\tau)\cdot g+d(\sigma,\tau)$ is a linear form of $g$.
-Convexity of $s\mapsto\log\sum_xe^{d_x+sb_x}$ is H\"older's inequality (in the proof, the weighted AM--GM inequality for the normalised weights at two
-values of $s$); integrating a pointwise convex inequality gives convexity of $\mathbb E\log Z$.  The derivative is obtained by differentiation under
+Convexity of $s\mapsto\log\sum_xe^{d_x+sb_x}$ is H\"older's inequality for the sums $\sum_x e^{\theta_1(d_x+sb_x)}e^{\theta_2(d_x+tb_x)}$ with the conjugate exponents $\theta_1^{-1},\theta_2^{-1}$ (the measure-theoretic form is \texttt{ProbabilityTheory.convexOn\_cgf}); integrating a pointwise convex inequality gives convexity of $\mathbb E\log Z$.  The derivative is obtained by differentiation under
 the integral (Lemma \texttt{hasDerivAt\_integral\_log\_sum\_exp\_path} with the constant bound $\sum_x|b_x|$ on the $s$-derivative of the energy).
 At $\lambda=0$ the two replicas are independent, so the numerator of $m_M(0)$ is $\sum_i(\sum_\sigma\sigma_ie^{E_g(\sigma)})^2\ge0$.
 \end{proof}
@@ -11543,6 +11542,34 @@ so $0$ is an interior point of the set where $\mathbb E\exp(t\log Z_N)$ is finit
 \]
 Dividing by $N$ gives the second statement.
 \end{proof}
+
+\begin{theorem}[Convexity of the real-moment pressure and convergence of derivatives]\label{thm:sg-tal:replica-convexity}
+\lean{SpinGlasses.convexOn_log_integral_rpow_skPartition, SpinGlasses.convexOn_inv_mul_log_integral_rpow_skPartition, ProbabilityTheory.convexOn_log_integral_rpow, ProbabilityTheory.convexOn_cgf, ProbabilityTheory.mgf_add_le_rpow_mul_rpow, tendsto_deriv_of_convexOn_tendsto}
+\leanok
+\uses{thm:sg-tal:replica-real-moments}
+\talsource{Source lines 5920--5935, the convexity step before the exchange of limits}
+For fixed $N$ and any real $\beta,h$ the functions $t\mapsto\log\mathbb EZ_N^t$ and $t\mapsto\frac1N\log\mathbb EZ_N^t$ are convex on $\mathbb R$.
+Moreover, let $\psi_i$ be convex on $(-r,r)$ and differentiable at $0$, converging pointwise to a function $\psi$ on $(-r,r)$ along any filter. If $\psi$ is differentiable at $0$, then $\psi_i'(0)\to\psi'(0)$.
+\end{theorem}
+\begin{proof}
+\leanok
+\emph{Step 1 (H\"older).} Let $a,b>0$, $a+b=1$, and $s,t$ be such that $\mathbb Ee^{sX},\mathbb Ee^{tX}<\infty$. H\"older's inequality with the conjugate exponents $a^{-1},b^{-1}$ applied to $f=e^{asX}$ and $g=e^{btX}$ gives
+\[
+\mathbb Ee^{(as+bt)X}=\mathbb E[fg]\le(\mathbb Ef^{1/a})^{a}(\mathbb Eg^{1/b})^{b}=(\mathbb Ee^{sX})^a(\mathbb Ee^{tX})^b .
+\]
+\emph{Step 2 (cumulant generating function).} Taking logarithms, $\Lambda(as+bt)\le a\Lambda(s)+b\Lambda(t)$ for $\Lambda(t)=\log\mathbb Ee^{tX}$. For $X=\log Z_N$ we have $e^{tX}=Z_N^t$, and the exponential moments are finite for every $t$ (Theorem~\ref{thm:sg-tal:replica-real-moments}, Step~2), so $t\mapsto\log\mathbb EZ_N^t$ is convex on $\mathbb R$; multiplying by $N^{-1}>0$ keeps convexity.
+\emph{Step 3 (secant slopes).} For a convex function $\psi_i$ and small $\lambda>0$,
+\[
+\frac{\psi_i(0)-\psi_i(-\lambda)}{\lambda}\le\psi_i'(0)\le\frac{\psi_i(\lambda)-\psi_i(0)}{\lambda}.
+\]
+Let $i\to\infty$: the outer terms converge to $\frac{\psi(0)-\psi(-\lambda)}\lambda$ and $\frac{\psi(\lambda)-\psi(0)}\lambda$. Given $\varepsilon>0$, differentiability of $\psi$ at $0$ gives $\lambda$ with both limits within $\varepsilon$ of $\psi'(0)$, so eventually $|\psi_i'(0)-\psi'(0)|<2\varepsilon$.
+\end{proof}
+
+\begin{remark}[What this does and does not give]\label{rem:sg-tal:replica-convexity-scope}
+\talsource{Source lines 5930--5940}
+The convexity and the derivative-convergence statement are the two elementary facts the book uses to exchange $N\to\infty$ with $t\to0$.
+They do not prove that $\frac1N\log\mathbb EZ_N^t$ converges for $t$ in an interval around $0$, nor that the limit is differentiable at $0$; these two hypotheses are exactly what the book leaves open in this section (it only suggests adapting the proof of (1.108)). So the exchange of limits itself, and hence Eq.~(1.411), is not proved here.
+\end{remark}
 
 \begin{theorem}[Maximizing fixed point of the replica variational problem]\label{thm:sg-tal:replica-fixed-point}
 \lean{SpinGlasses.exists_skReplica_maximizer_fixedPoint}

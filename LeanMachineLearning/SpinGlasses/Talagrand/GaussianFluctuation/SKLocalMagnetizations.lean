@@ -75,7 +75,7 @@ theorem integral_sq_coord_eq_one {Ω : Type*} [MeasurableSpace Ω] {P : Measure 
   have h1 : P.map (fun ω => z ω i) = gaussianReal 0 1 :=
     Measure.map_apply_eq_of_map_eq_pi (μ := fun _ : Fin n => gaussianReal 0 1) hz hl i
   have hm : Measurable fun ω => z ω i := (measurable_pi_apply i).comp hz
-  rw [← integral_sq_gaussianReal_zero_one, ← h1, integral_map hm.aemeasurable (by fun_prop)]
+  rw [← NTK.integral_sq_gaussianReal, ← h1, integral_map hm.aemeasurable (by fun_prop)]
 
 /-- A coordinate of a vector with the i.i.d. standard Gaussian law has an integrable square. -/
 theorem integrable_sq_coord {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω} {n : ℕ}

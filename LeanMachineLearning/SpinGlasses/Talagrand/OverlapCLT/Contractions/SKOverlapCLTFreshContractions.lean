@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKReplicaAverage
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Contractions.SKOverlapCLTContractions
 
 /-!
@@ -70,16 +71,9 @@ theorem sk_cavity_decoupled_fresh_factor (N : ℕ) (β q h : ℝ)
     (x y a b : R) (hxy : x ≠ y) (p u : J) (hpu : p ≠ u) (L S : Bool)
     (hab : L = true → S = true → a ≠ b)
     (G : ((R ⊕ (J ⊕ J)) → Fin N → ℤˣ) → ℝ) :
-    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs N,
-            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skCavityBase%
     let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
-        (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
-      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
-        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
-      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
+        (Fin (N + 1) → ℤˣ) → ℝ := skCavityEnergy%
     let e0 : (R ⊕ (J ⊕ J) → ℤˣ) → ℝ := fun ε =>
       ((ε (.inl x) : ℝ) - (ε (.inr (.inl p)) : ℝ)) *
         ((ε (.inl y) : ℝ) - (ε (.inr (.inr p)) : ℝ))

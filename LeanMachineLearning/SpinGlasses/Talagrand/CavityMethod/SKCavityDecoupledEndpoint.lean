@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKReplicaAverage
 public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityDecoupled
 public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityDomination
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedBound
@@ -29,16 +30,9 @@ namespace SpinGlasses
 `f⁻` under the `N`-spin Gibbs measure of the old-pair energy. -/
 theorem sk_cavity_decoupled_endpoint (N n : ℕ) (β q h : ℝ) (I : Finset (Fin n))
     (F : (Fin n → Fin N → ℤˣ) → ℝ) :
-    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs N,
-            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skCavityBase%
     let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
-        (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
-      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
-        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
-      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
+        (Fin (N + 1) → ℤˣ) → ℝ := skCavityEnergy%
     (∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
         ∫ σ : Fin n → Fin (N + 1) → ℤˣ,
           F (fun r i => σ r i.castSucc) * ∏ r ∈ I, ((σ r (Fin.last N) : ℤˣ) : ℝ)

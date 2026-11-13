@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKReplicaAverage
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Global.SKOverlapCLTGlobalMoments
 
 /-!
@@ -41,10 +42,7 @@ theorem sk_global_integrable (N : ℕ) (β h q : ℝ)
     {R : Type*} [Fintype R]
     (F : (FinPairs (N + 1) → ℝ) → (R → Fin (N + 1) → ℤˣ) → ℝ)
     (hF : ∀ ρ, Measurable fun g => F g ρ) (M : ℝ) (hM : ∀ g ρ, |F g ρ| ≤ M) (j : ℕ) :
-    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g σ =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (σ i : ℝ)
+    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
     let bmean : (FinPairs (N + 1) → ℝ) → Fin (N + 1) → ℝ := fun g i =>
       ∫ σ : Fin (N + 1) → ℤˣ, (σ i : ℝ) ∂(Measure.count.tilted (E g))
     let Tg : (FinPairs (N + 1) → ℝ) → ℝ := fun g =>
@@ -89,10 +87,7 @@ theorem sk_global_integrable (N : ℕ) (β h q : ℝ)
 `g ↦ T^j`, `g ↦ T^j 𝔼 T_x²`, `g ↦ T^j 𝔼 T_{xy}²` and `g ↦ T^j 𝔼 T_{xy} T_x T_y` are integrable. -/
 theorem sk_global_integrable_monomials (N : ℕ) (β h q : ℝ)
     {R : Type*} [Fintype R] (x y : R) (j : ℕ) :
-    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g σ =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (σ i : ℝ)
+    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
     let bmean : (FinPairs (N + 1) → ℝ) → Fin (N + 1) → ℝ := fun g i =>
       ∫ σ : Fin (N + 1) → ℤˣ, (σ i : ℝ) ∂(Measure.count.tilted (E g))
     let Tg : (FinPairs (N + 1) → ℝ) → ℝ := fun g =>
@@ -181,10 +176,7 @@ theorem sk_overlap_blocks_one_touched_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ 
     ∃ C : ℝ, 0 < C ∧ ∀ (β h q : ℝ),
       (∫ t : ℝ, Real.tanh (β * Real.sqrt q * t + h) ^ 2 ∂gaussianReal 0 1 = q) →
       β ^ 2 ≤ β₀ ^ 2 → ∀ N : ℕ,
-    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g σ =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (σ i : ℝ)
+    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
     let bmean : (FinPairs (N + 1) → ℝ) → Fin (N + 1) → ℝ := fun g i =>
       ∫ σ : Fin (N + 1) → ℤˣ, (σ i : ℝ) ∂(Measure.count.tilted (E g))
     let Tg : (FinPairs (N + 1) → ℝ) → ℝ := fun g =>
@@ -264,10 +256,7 @@ theorem sk_overlap_blocks_same_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1
     ∃ C : ℝ, 0 < C ∧ ∀ (β h q : ℝ),
       (∫ t : ℝ, Real.tanh (β * Real.sqrt q * t + h) ^ 2 ∂gaussianReal 0 1 = q) →
       β ^ 2 ≤ β₀ ^ 2 → ∀ N : ℕ,
-    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g σ =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (σ i : ℝ)
+    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
     let bmean : (FinPairs (N + 1) → ℝ) → Fin (N + 1) → ℝ := fun g i =>
       ∫ σ : Fin (N + 1) → ℤˣ, (σ i : ℝ) ∂(Measure.count.tilted (E g))
     let Tg : (FinPairs (N + 1) → ℝ) → ℝ := fun g =>
@@ -404,10 +393,7 @@ theorem sk_overlap_blocks_two_touched_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ 
     ∃ C : ℝ, 0 < C ∧ ∀ (β h q : ℝ),
       (∫ t : ℝ, Real.tanh (β * Real.sqrt q * t + h) ^ 2 ∂gaussianReal 0 1 = q) →
       β ^ 2 ≤ β₀ ^ 2 → ∀ N : ℕ,
-    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g σ =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (σ i : ℝ)
+    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
     let bmean : (FinPairs (N + 1) → ℝ) → Fin (N + 1) → ℝ := fun g i =>
       ∫ σ : Fin (N + 1) → ℤˣ, (σ i : ℝ) ∂(Measure.count.tilted (E g))
     let Tg : (FinPairs (N + 1) → ℝ) → ℝ := fun g =>
@@ -553,10 +539,7 @@ theorem sk_overlap_blocks_untouched_exact (N : ℕ) (β h q : ℝ)
     {R V : Type*} [Fintype R] [Fintype V] (ca da : V → R)
     (hinj : Function.Injective (Sum.elim ca da : V ⊕ V → R)) {x y : R} (hxy : x ≠ y)
     (hx : ∀ u, x ≠ ca u ∧ x ≠ da u) (hy : ∀ u, y ≠ ca u ∧ y ≠ da u) :
-    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g σ =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (σ i : ℝ)
+    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
     let bmean : (FinPairs (N + 1) → ℝ) → Fin (N + 1) → ℝ := fun g i =>
       ∫ σ : Fin (N + 1) → ℤˣ, (σ i : ℝ) ∂(Measure.count.tilted (E g))
     let Tg : (FinPairs (N + 1) → ℝ) → ℝ := fun g =>
@@ -598,10 +581,7 @@ theorem sk_overlap_blocks_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
     ∃ C : ℝ, 0 < C ∧ ∀ (β h q : ℝ),
       (∫ t : ℝ, Real.tanh (β * Real.sqrt q * t + h) ^ 2 ∂gaussianReal 0 1 = q) →
       β ^ 2 ≤ β₀ ^ 2 → ∀ N : ℕ,
-    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g σ =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (σ i : ℝ)
+    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
     let bmean : (FinPairs (N + 1) → ℝ) → Fin (N + 1) → ℝ := fun g i =>
       ∫ σ : Fin (N + 1) → ℤˣ, (σ i : ℝ) ∂(Measure.count.tilted (E g))
     let Tg : (FinPairs (N + 1) → ℝ) → ℝ := fun g =>

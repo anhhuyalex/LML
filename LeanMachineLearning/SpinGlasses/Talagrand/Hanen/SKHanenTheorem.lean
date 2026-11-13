@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKReplicaAverage
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenEvaluation
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenOddProduct
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenReducedEval
@@ -60,10 +61,7 @@ theorem sk_hanen_theorem_odd (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (m : ℕ
       (∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂gaussianReal 0 1 = q) →
       β ^ 2 ≤ β₀ ^ 2 → ∀ (N : ℕ)
       (i₁ i₂ : Fin (N + 1)) (_ : i₁ ≠ i₂),
-      let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g σ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
-          h * ∑ i : Fin (N + 1), (σ i : ℝ)
+      let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
       |∫ g : FinPairs (N + 1) → ℝ,
           (∫ σ : Fin (N + 1) → ℤˣ, (σ i₁ : ℝ) * (σ i₂ : ℝ) ∂(Measure.count.tilted (E g)) -
             (∫ σ : Fin (N + 1) → ℤˣ, (σ i₁ : ℝ) ∂(Measure.count.tilted (E g))) *
@@ -140,10 +138,7 @@ theorem sk_hanen_theorem_even (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (p : �
         ∂gaussianReal 0 1) - 2 * q + 1
       let D_var : ℝ := β ^ 2 / ((N + 1 : ℝ) * (1 - β ^ 2 * α))
       let a_2p : ℝ := ∫ x : ℝ, x ^ (2 * p) ∂gaussianReal 0 1
-      let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g σ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
-          h * ∑ i : Fin (N + 1), (σ i : ℝ)
+      let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
       |∫ g : FinPairs (N + 1) → ℝ,
           (∫ σ : Fin (N + 1) → ℤˣ, (σ i₁ : ℝ) * (σ i₂ : ℝ) ∂(Measure.count.tilted (E g)) -
             (∫ σ : Fin (N + 1) → ℤˣ, (σ i₁ : ℝ) ∂(Measure.count.tilted (E g))) *
@@ -366,10 +361,7 @@ theorem sk_hanen_theorem (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (k : ℕ) :
         ∂gaussianReal 0 1) - 2 * q + 1
       let D_var : ℝ := β ^ 2 / ((N + 1 : ℝ) * (1 - β ^ 2 * α))
       let a_k : ℝ := ∫ x : ℝ, x ^ k ∂gaussianReal 0 1
-      let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g σ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
-          h * ∑ i : Fin (N + 1), (σ i : ℝ)
+      let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
       |∫ g : FinPairs (N + 1) → ℝ,
           (∫ σ : Fin (N + 1) → ℤˣ, (σ i₁ : ℝ) * (σ i₂ : ℝ) ∂(Measure.count.tilted (E g)) -
             (∫ σ : Fin (N + 1) → ℤˣ, (σ i₁ : ℝ) ∂(Measure.count.tilted (E g))) *

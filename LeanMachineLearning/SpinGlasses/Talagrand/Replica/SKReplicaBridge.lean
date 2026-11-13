@@ -104,7 +104,7 @@ theorem abs_skReplicaLogPartition_le (β h : ℝ) (g : FinPairs n → ℝ) :
     |skReplicaLogPartition n β h g| ≤
       (n * Real.log 2 + n * |h| + |β|) * (1 + ∑ p, |g p|) := by
   have hlog : Real.log (Fintype.card (Fin n → ℤˣ) : ℝ) = (n : ℝ) * Real.log 2 := by
-    simpa using log_card_spin_configurations (ι := Fin n)
+    rw [log_card_spin_configurations (ι := Fin n), Fintype.card_fin]
   rw [skReplicaLogPartition_def]
   have h_le := abs_log_sum_exp_le_of_forall
     (fun ε : Fin n → ℤˣ => β * ∑ p : FinPairs n,

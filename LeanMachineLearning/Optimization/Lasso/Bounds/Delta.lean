@@ -9,6 +9,7 @@ public import Mathlib.Analysis.InnerProductSpace.Calculus
 public import Mathlib.Analysis.Calculus.FDeriv.WithLp
 
 public import LeanMachineLearning.Optimization.Lasso.Definitions
+public import LeanMachineLearning.ForMathlib.Analysis.Calculus.DerivZeroOfEventuallyZero
 public import Mathlib.Analysis.Calculus.MeanValue
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.DerivIntegrable
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.AbsolutelyContinuousFun
@@ -2861,24 +2862,12 @@ lemma pos_delta_bound_4_term1
             | inl h => exact (ne_of_gt hμ_pos h).elim
             | inr h => exact h
           have hz0_i : (z 0) i = 0 := by rw [hz0]; simp
-          -- On 𝓝[>] 0, the slope of (z i) at 0 is identically 0
-          have h_slope_eq_zero : (slope (fun μ => z μ i) 0) =ᶠ[𝓝[>] 0] (fun _ => (0 : ℝ)) := by
-            filter_upwards [h_zi_zero] with μ hμ
-            simp [slope, hμ, hz0_i]
-          have h_tendsto_slope_zero : Tendsto (slope (fun μ => z μ i) 0) (𝓝[>] 0) (𝓝 (0 : ℝ)) :=
-            h_slope_eq_zero.tendsto
-          -- The derivative is also the limit of the slope
+          -- The derivative of a coordinate that vanishes on `(0, ε)` is zero
           have h_hasDeriv : HasDerivAt (fun μ => z μ i) ((deriv z 0).ofLp i) 0 := by
             have h_deriv_z : HasDerivAt z (deriv z 0) 0 := h_diff.hasDerivAt
             exact (EuclideanSpace.proj i).hasFDerivAt.comp_hasDerivAt 0 h_deriv_z
-          have h_nhdsWithin_ne : 𝓝[>] (0 : ℝ) ≤ 𝓝[≠] (0 : ℝ) :=
-            nhdsWithin_mono 0 (fun x hx => Set.mem_compl_singleton_iff.mpr (ne_of_gt hx))
-          have h_tendsto_slope_deriv : Tendsto (slope (fun μ => z μ i) 0) (𝓝[>] 0)
-              (𝓝 ((deriv z 0).ofLp i)) :=
-            h_hasDeriv.tendsto_slope.mono_left h_nhdsWithin_ne
-          -- By uniqueness of limits, deriv = 0
           have h_deriv_zi_zero : (deriv z 0).ofLp i = 0 :=
-            tendsto_nhds_unique h_tendsto_slope_deriv h_tendsto_slope_zero
+            eq_zero_of_hasDerivAt_of_eventually_eq_zero_nhdsGT h_hasDeriv hz0_i h_zi_zero
           have h_eval : deriv (fun μ => z μ i) 0 = (deriv z 0).ofLp i := h_hasDeriv.deriv
           rw [h_eval, h_deriv_zi_zero]
           ring

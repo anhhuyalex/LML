@@ -30,12 +30,6 @@ open scoped RealInnerProductSpace Matrix
 
 namespace NTK
 
-/-- A positive semidefinite matrix has a nonnegative quadratic form in the double-sum shape
-`∑ᵢ ∑ⱼ αᵢ αⱼ Mᵢⱼ`. -/
-theorem posSemidef_sum_nonneg {n : ℕ} {M : Matrix (Fin n) (Fin n) ℝ} (hM : M.PosSemidef)
-    (α : Fin n → ℝ) : 0 ≤ ∑ i, ∑ j, α i * α j * M i j :=
-  hM.sum_mul_mul_nonneg α
-
 /-- `x ⬝ᵥ x` is the sum of the coordinate squares for any vector over a commutative semiring. -/
 theorem dotProduct_self_eq_sum_sq {ι : Type*} {R : Type*} [Fintype ι] [CommSemiring R]
     (x : ι → R) : x ⬝ᵥ x = ∑ k : ι, x k ^ 2 := by
@@ -323,16 +317,6 @@ theorem gram_posSemidef {m n : Type*} [Finite m] [Fintype n] (M : Matrix m n ℝ
     simp [Matrix.mul_apply, dotProduct]
   rw [h_eq]
   exact mul_transpose_posSemidef M
-
-/-- A non-negatively scaled Gram matrix `c • (M * Mᵀ)` is positive semidefinite. -/
-theorem scaled_gram_posSemidef {m n : Type*} [Finite m] [Fintype n]
-    (c : ℝ) (hc : 0 ≤ c) (M : Matrix m n ℝ) :
-    (Matrix.of fun α β => c * (M α ⬝ᵥ M β)).PosSemidef := by
-  have h_eq : (Matrix.of fun α β => c * (M α ⬝ᵥ M β)) = c • (Matrix.of fun α β => M α ⬝ᵥ M β) := by
-    ext α β
-    simp [Matrix.smul_apply]
-  rw [h_eq]
-  exact (gram_posSemidef M).smul hc
 
 /-- The all-ones matrix `1_{m × m}` is positive semidefinite. -/
 theorem posSemidef_allOnes {m : Type*} [Finite m] :

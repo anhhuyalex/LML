@@ -160,7 +160,6 @@ Approximation.BarronNorm.barronNorm
 Approximation.BarronNorm.gaussian_barronNorm_bound
 Approximation.Sampling.maureySamplingSignedMeasure
 Approximation.Sampling.barronSamplingBound
-NTK.posSemidef_sum_nonneg
 NTK.dotProduct_self_eq_sum_sq
 NTK.trace_vecMulVec_mul_transpose_vecMulVec
 NTK.matrix_frobenius_norm_sq
@@ -798,7 +797,6 @@ NTK.scaled_gram_transpose
 NTK.const_matrix_transpose
 NTK.mul_transpose_posSemidef
 NTK.gram_posSemidef
-NTK.scaled_gram_posSemidef
 NTK.posSemidef_allOnes
 NTK.hadamard_allOnes
 NTK.allOnes_hadamard
@@ -3721,7 +3719,6 @@ SpinGlasses.two_div_sub_div_sq_le_inv
 Real.tanh_add_tanh_sub
 Real.abs_tanh_sub_tanh_le
 Real.abs_tanh_le_abs
-SpinGlasses.integral_sq_gaussianReal_zero_one
 SpinGlasses.fixedPoint_eq_zero_of_field_zero
 SpinGlasses.sk_old_overlap_dev_bound
 SpinGlasses.sq_sub_mul_le
@@ -4842,3 +4839,10 @@ SpinGlasses.integrable_exp_mul_log_skPartition
 SpinGlasses.mem_interior_integrableExpSet_log_skPartition
 SpinGlasses.tendsto_log_integral_rpow_skPartition_div
 SpinGlasses.tendsto_inv_mul_log_integral_rpow_skPartition_div
+SpinGlasses.convexOn_log_integral_rpow_skPartition
+SpinGlasses.convexOn_inv_mul_log_integral_rpow_skPartition
+ProbabilityTheory.convexOn_log_integral_rpow
+ProbabilityTheory.convexOn_cgf
+ProbabilityTheory.mgf_add_le_rpow_mul_rpow
+tendsto_deriv_of_convexOn_tendsto
+Finset.abs_sum_sub_card_mul_le_of_abs_le

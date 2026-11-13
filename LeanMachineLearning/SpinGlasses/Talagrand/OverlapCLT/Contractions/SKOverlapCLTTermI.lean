@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKReplicaAverage
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.HigherOrderCavity.SKCavityHigherOrderFinite
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Contractions.SKOverlapCLTFreshContractions
 
@@ -36,20 +37,13 @@ theorem sk_cavity_prod_contraction_compare (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2
       (∫ t : ℝ, Real.tanh (β * Real.sqrt q * t + h) ^ 2 ∂gaussianReal 0 1 = q) →
       β ^ 2 ≤ β₀ ^ 2 → ∀ (N : ℕ) (A B : ∀ j, ι j → R), (∀ j ∈ s, ∀ i, A j i ≠ B j i) →
       ∀ Wl : (R → ℤˣ) → ℝ, (∀ ε, |Wl ε| ≤ 16) → ∀ coef : ℝ, |coef| ≤ 2 →
-    let B₀ : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs N,
-            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let B₀ : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skCavityBase%
     let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
         (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
       Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
         (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
       Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B₀ g' a
-    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
     let G : (R → Fin N → ℤˣ) → ℝ := fun ρ =>
       ∏ j ∈ s, ∑ i : ι j, c j i * ((N + 1 : ℝ)⁻¹ *
         ((fun v : Fin N => (ρ (A j i) v : ℝ)) ⬝ᵥ
@@ -134,10 +128,7 @@ theorem sk_cavity_fresh_factor_product_compare (β₀ : ℝ) (hβ₀ : 4 * β₀
       ∀ (p u : J), p ≠ u → ∀ (L S : Bool), (L = true → S = true → z ≠ w) →
       ∀ (A B : ∀ j, ι j → R ⊕ (J ⊕ J)),
       (∀ j ∈ s, ∀ i, A j i ≠ B j i) →
-    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
     let G : ((R ⊕ (J ⊕ J)) → Fin N → ℤˣ) → ℝ := fun ρ =>
       ∏ j ∈ s, ∑ i : ι j, c j i * ((N + 1 : ℝ)⁻¹ *
         ((fun v : Fin N => (ρ (A j i) v : ℝ)) ⬝ᵥ
@@ -212,10 +203,7 @@ theorem sk_cavity_fresh_term_sum_compare (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 <
       (∀ i, L i = true → S i = true → z i ≠ w i) →
       ∀ (A B : ∀ j, ι j → R ⊕ (J ⊕ J)),
       (∀ i j, j ∈ s i → ∀ a, A j a ≠ B j a) →
-    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
     let G : U → ((R ⊕ (J ⊕ J)) → Fin N → ℤˣ) → ℝ := fun i ρ =>
       ∏ j ∈ s i, ∑ i : ι j, c j i * ((N + 1 : ℝ)⁻¹ *
         ((fun v : Fin N => (ρ (A j i) v : ℝ)) ⬝ᵥ

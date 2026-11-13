@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKReplicaAverage
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Contractions.SKOverlapCLTTermI
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Single.SKOverlapCLTSingleContractions
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKTBasisAlgebra
@@ -37,10 +38,7 @@ theorem sk_cavity_fresh_single_product_compare (β₀ : ℝ) (hβ₀ : 4 * β₀
       β ^ 2 ≤ β₀ ^ 2 → ∀ (N : ℕ) (x z w : R) (p u : J), p ≠ u → ∀ (L S : Bool),
       (L = true → S = true → z ≠ w) →
       ∀ (A B : ∀ j, ι j → R ⊕ (J ⊕ J)), (∀ j ∈ s, ∀ i, A j i ≠ B j i) →
-    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
     let G : ((R ⊕ (J ⊕ J)) → Fin N → ℤˣ) → ℝ := fun ρ =>
       ∏ j ∈ s, ∑ i : ι j, c j i * ((N + 1 : ℝ)⁻¹ *
         ((fun v : Fin N => (ρ (A j i) v : ℝ)) ⬝ᵥ
@@ -109,10 +107,7 @@ theorem sk_cavity_fresh_single_term_sum_compare (β₀ : ℝ) (hβ₀ : 4 * β�
       (∀ i, L i = true → S i = true → z i ≠ w i) →
       ∀ (A B : ∀ j, ι j → R ⊕ (J ⊕ J)),
       (∀ i j, j ∈ s i → ∀ a, A j a ≠ B j a) →
-    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
     let G : U → ((R ⊕ (J ⊕ J)) → Fin N → ℤˣ) → ℝ := fun i ρ =>
       ∏ j ∈ s i, ∑ i : ι j, c j i * ((N + 1 : ℝ)⁻¹ *
         ((fun v : Fin N => (ρ (A j i) v : ℝ)) ⬝ᵥ
@@ -168,16 +163,8 @@ theorem sk_cavity_single_term_I_multiplicity (β₀ : ℝ) (hβ₀ : 4 * β₀ ^
       (∫ t : ℝ, Real.tanh (β * Real.sqrt q * t + h) ^ 2 ∂gaussianReal 0 1 = q) →
       β ^ 2 ≤ β₀ ^ 2 → ∀ (N : ℕ) (a b : J → R),
       (∀ j, L j = true → S j = true → a j ≠ b j) →
-    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
-    let V : J → ((R ⊕ (J ⊕ J)) → Fin N → ℤˣ) → ℝ := fun j ρ =>
-      ((N + 1 : ℝ)⁻¹ * ∑ v : Fin N,
-        (if L j then (ρ (.inl (a j)) v : ℝ) - (ρ (.inr (.inl j)) v : ℝ)
-          else (ρ (.inr (.inl j)) v : ℝ)) *
-        (if S j then (ρ (.inl (b j)) v : ℝ) - (ρ (.inr (.inr j)) v : ℝ)
-          else (ρ (.inr (.inr j)) v : ℝ))) - (if L j || S j then 0 else q)
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
+    let V : J → ((R ⊕ (J ⊕ J)) → Fin N → ℤˣ) → ℝ := skReplicaOverlapStat% N
     let G : J → ((R ⊕ (J ⊕ J)) → Fin N → ℤˣ) → ℝ := fun u ρ =>
       ∏ j ∈ (Finset.univ.erase p).erase u, V j ρ
     let e : J → (R ⊕ (J ⊕ J) → ℤˣ) → ℝ := fun j ε =>

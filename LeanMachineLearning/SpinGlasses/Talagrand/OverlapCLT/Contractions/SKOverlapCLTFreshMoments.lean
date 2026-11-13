@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKReplicaAverage
 public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKSiteSymmetry
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FreshReplicas
 
@@ -29,10 +30,7 @@ theorem sk_mixed_T_moment_eq_fresh (N : ℕ) (β h q : ℝ)
     {R P S G : Type*} [Fintype R] [Fintype P] [Fintype S] [Fintype G]
     (a a' : P → R) (d : S → R) :
     let J := P ⊕ (S ⊕ G)
-    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g σ =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (σ i : ℝ)
+    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
     let b : (FinPairs (N + 1) → ℝ) → Fin (N + 1) → ℝ := fun g i =>
       ∫ σ : Fin (N + 1) → ℤˣ, (σ i : ℝ) ∂(Measure.count.tilted (E g))
     (∫ g, ∫ ρ : R → Fin (N + 1) → ℤˣ,
@@ -68,10 +66,7 @@ stays fixed when factors are deleted, as needed by the moment recurrence. -/
 theorem sk_flagged_T_moment_eq_fresh (N : ℕ) (β h q : ℝ)
     {R J : Type*} [Fintype R] [Fintype J]
     (a a' : J → R) (L S : J → Bool) (s : Finset J) :
-    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g σ =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (σ p.val.1 : ℝ) * (σ p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (σ i : ℝ)
+    let E : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
     let b : (FinPairs (N + 1) → ℝ) → Fin (N + 1) → ℝ := fun g i =>
       ∫ σ : Fin (N + 1) → ℤˣ, (σ i : ℝ) ∂(Measure.count.tilted (E g))
     (∫ g, ∫ ρ : R → Fin (N + 1) → ℤˣ, ∏ j ∈ s,

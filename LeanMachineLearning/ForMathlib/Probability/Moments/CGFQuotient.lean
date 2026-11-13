@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Probability.Moments.CGFConvex
 public import Mathlib.Probability.Moments.MGFAnalytic
 public import Mathlib.Probability.Moments.IntegrableExpMul
 public import Mathlib.Analysis.Calculus.Deriv.Slope
@@ -86,10 +87,7 @@ theorem tendsto_log_integral_rpow_div_zero_pos [IsProbabilityMeasure μ]
       (𝓝[>] 0) (𝓝 (∫ ω, Real.log (Z ω) ∂μ)) := by
   have htend := tendsto_log_integral_exp_mul_div_zero_pos (X := fun ω => Real.log (Z ω)) h
   refine htend.congr fun t => ?_
-  congr 1
-  congr 1
-  refine integral_congr_ae ?_
-  filter_upwards [hZ] with ω hω
-  rw [Real.rpow_def_of_pos hω, mul_comm]
+  rw [integral_rpow_eq_mgf_log hZ]
+  rfl
 
 end ProbabilityTheory

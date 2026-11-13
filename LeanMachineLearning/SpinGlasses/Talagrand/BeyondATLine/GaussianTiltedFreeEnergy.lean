@@ -41,56 +41,40 @@ variable {α : Type*} [Fintype α] [Nonempty α]
 
 /-- **Convexity of the log-partition function in a tilt parameter.**  For weights `exp (d x)` and
 an observable `b`, `s ↦ log ∑ₓ exp (d x + s b x)` is convex (Hölder's inequality, here in the form
-of the weighted AM-GM inequality for the normalized weights at `s` and `t`). -/
+of `Real.inner_le_Lp_mul_Lq` for the conjugate exponents `θ₁⁻¹, θ₂⁻¹`; the measure-theoretic
+version is `ProbabilityTheory.convexOn_cgf`). -/
 theorem convexOn_log_sum_exp_add_mul (d b : α → ℝ) :
     ConvexOn ℝ Set.univ (fun s => Real.log (∑ x, Real.exp (d x + s * b x))) := by
   refine ⟨convex_univ, fun s _ t _ θ₁ θ₂ h₁ h₂ h12 => ?_⟩
   have hZ : ∀ r : ℝ, 0 < ∑ x, Real.exp (d x + r * b x) := fun r =>
     Finset.sum_pos (fun x _ => Real.exp_pos _) Finset.univ_nonempty
-  set Zs := ∑ x, Real.exp (d x + s * b x) with hZs
-  set Zt := ∑ x, Real.exp (d x + t * b x) with hZt
-  have hs0 : Zs ≠ 0 := (hZ s).ne'
-  have ht0 : Zt ≠ 0 := (hZ t).ne'
-  have key : ∀ x, Real.exp (d x + (θ₁ • s + θ₂ • t) * b x) ≤
-      Zs ^ θ₁ * Zt ^ θ₂ * (θ₁ * (Real.exp (d x + s * b x) / Zs) +
-        θ₂ * (Real.exp (d x + t * b x) / Zt)) := fun x => by
-    have e : Real.exp (d x + (θ₁ • s + θ₂ • t) * b x) =
-        Zs ^ θ₁ * Zt ^ θ₂ * ((Real.exp (d x + s * b x) / Zs) ^ θ₁ *
-          (Real.exp (d x + t * b x) / Zt) ^ θ₂) := by
-      have h1 : Real.exp (d x + s * b x) = Zs * (Real.exp (d x + s * b x) / Zs) := by
-        field_simp
-      have h2 : Real.exp (d x + t * b x) = Zt * (Real.exp (d x + t * b x) / Zt) := by
-        field_simp
-      have h3 : Real.exp (d x + (θ₁ • s + θ₂ • t) * b x) =
-          Real.exp (d x + s * b x) ^ θ₁ * Real.exp (d x + t * b x) ^ θ₂ := by
-        rw [← Real.exp_mul, ← Real.exp_mul, ← Real.exp_add]
-        congr 1
-        simp only [smul_eq_mul]
-        have : θ₂ = 1 - θ₁ := by linarith
-        subst this
-        ring
-      rw [h3]
-      conv_lhs => rw [h1, h2]
-      rw [Real.mul_rpow (hZ s).le (div_nonneg (Real.exp_pos _).le (hZ s).le),
-        Real.mul_rpow (hZ t).le (div_nonneg (Real.exp_pos _).le (hZ t).le)]
-      ring
-    rw [e]
-    refine mul_le_mul_of_nonneg_left ?_ (mul_nonneg (Real.rpow_nonneg (hZ s).le _)
-      (Real.rpow_nonneg (hZ t).le _))
-    exact Real.geom_mean_le_arith_mean2_weighted h₁ h₂ (div_nonneg (Real.exp_pos _).le
-      (hZ s).le) (div_nonneg (Real.exp_pos _).le (hZ t).le) h12
-  have hsum : ∑ x, Real.exp (d x + (θ₁ • s + θ₂ • t) * b x) ≤ Zs ^ θ₁ * Zt ^ θ₂ := by
-    refine (Finset.sum_le_sum fun x _ => key x).trans_eq ?_
-    rw [← Finset.mul_sum, Finset.sum_add_distrib, ← Finset.mul_sum, ← Finset.mul_sum,
-      ← Finset.sum_div, ← Finset.sum_div, div_self (hZ s).ne', div_self (hZ t).ne']
-    rw [mul_one, mul_one, h12, mul_one]
-  have hpos := hZ (θ₁ • s + θ₂ • t)
-  calc Real.log (∑ x, Real.exp (d x + (θ₁ • s + θ₂ • t) * b x))
-      ≤ Real.log (Zs ^ θ₁ * Zt ^ θ₂) := Real.log_le_log hpos hsum
-    _ = θ₁ • Real.log Zs + θ₂ • Real.log Zt := by
-      rw [Real.log_mul (Real.rpow_pos_of_pos (hZ s) _).ne' (Real.rpow_pos_of_pos (hZ t) _).ne',
-        Real.log_rpow (hZ s), Real.log_rpow (hZ t)]
-      rfl
+  simp only [smul_eq_mul]
+  rcases h₁.eq_or_lt with rfl | h₁'
+  · obtain rfl : θ₂ = 1 := by linarith
+    simp
+  rcases h₂.eq_or_lt with rfl | h₂'
+  · obtain rfl : θ₁ = 1 := by linarith
+    simp
+  have hp := Real.HolderConjugate.inv_inv h₁' h₂' h12
+  have key := Real.inner_le_Lp_mul_Lq (univ : Finset α)
+    (fun x => Real.exp (θ₁ * (d x + s * b x))) (fun x => Real.exp (θ₂ * (d x + t * b x))) hp
+  have e1 : ∀ x, Real.exp (θ₁ * (d x + s * b x)) * Real.exp (θ₂ * (d x + t * b x)) =
+      Real.exp (d x + (θ₁ * s + θ₂ * t) * b x) := fun x => by
+    rw [← Real.exp_add]; congr 1
+    have : θ₂ = 1 - θ₁ := by linarith
+    subst this; ring
+  have e2 : ∀ x, |Real.exp (θ₁ * (d x + s * b x))| ^ θ₁⁻¹ = Real.exp (d x + s * b x) := fun x => by
+    rw [abs_of_pos (Real.exp_pos _), ← Real.exp_mul]; congr 1; field_simp
+  have e3 : ∀ x, |Real.exp (θ₂ * (d x + t * b x))| ^ θ₂⁻¹ = Real.exp (d x + t * b x) := fun x => by
+    rw [abs_of_pos (Real.exp_pos _), ← Real.exp_mul]; congr 1; field_simp
+  simp only [e1, e2, e3, one_div, inv_inv] at key
+  calc Real.log (∑ x, Real.exp (d x + (θ₁ * s + θ₂ * t) * b x))
+      ≤ Real.log ((∑ x, Real.exp (d x + s * b x)) ^ θ₁ * (∑ x, Real.exp (d x + t * b x)) ^ θ₂) :=
+        Real.log_le_log (sum_pos (fun x _ => Real.exp_pos _) univ_nonempty) key
+    _ = θ₁ * Real.log (∑ x, Real.exp (d x + s * b x)) +
+          θ₂ * Real.log (∑ x, Real.exp (d x + t * b x)) := by
+        rw [Real.log_mul (Real.rpow_pos_of_pos (hZ s) _).ne' (Real.rpow_pos_of_pos (hZ t) _).ne',
+          Real.log_rpow (hZ s), Real.log_rpow (hZ t)]
 
 /-- **Lower bound by a set where the tilt is large.**  If `m ≤ s b x` on a nonempty set `T`, the
 log-partition function of the tilted energy exceeds that of `f` by at least `m` plus the log of the

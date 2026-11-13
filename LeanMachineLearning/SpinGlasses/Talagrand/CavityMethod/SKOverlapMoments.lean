@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKReplicaAverage
 public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKOverlapContraction
 public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityDomination
 
@@ -84,10 +85,7 @@ theorem sk_overlap_moment_step (N : ℕ) (β q h : ℝ) (hq : q ∈ Set.Icc (0 :
     (hfix : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂(gaussianReal 0 1) = q)
     (hsmall : 16 * β ^ 2 * Real.exp (64 * β ^ 2) ≤ 1 / 2) {k : ℕ} (hk : 1 ≤ k)
     (hxk : 16 * ((k : ℝ) + 1) * (N + 1 : ℝ)⁻¹ ≤ 1) :
-    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
     (∫ g, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ,
         ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
           fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) ^ (2 * k)
@@ -101,16 +99,9 @@ theorem sk_overlap_moment_step (N : ℕ) (β q h : ℝ) (hq : q ∈ Set.Icc (0 :
       ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) ≤
         (64 * ((k : ℝ) + 1) * (N + 1 : ℝ)⁻¹) ^ (k + 1) := by
   intro Esk hVk
-  let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
-    (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs N,
-          g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
+  let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skCavityBase%
   let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
-      (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
-    Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
-      (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
-    Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
+      (Fin (N + 1) → ℤˣ) → ℝ := skCavityEnergy%
   have hEm (a : Fin (N + 1) → ℤˣ) :
       Measurable (fun p : (FinPairs N → ℝ) × ((Fin N → ℝ) × ℝ) => E (π / 2) p.1 p.2 a) := by
     dsimp [E, B]
@@ -226,10 +217,7 @@ theorem sk_overlap_moment_step (N : ℕ) (β q h : ℝ) (hq : q ∈ Set.Icc (0 :
 theorem sk_overlap_moment_le (N : ℕ) (β q h : ℝ) (hq : q ∈ Set.Icc (0 : ℝ) 1)
     (hfix : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂(gaussianReal 0 1) = q)
     (hsmall : 16 * β ^ 2 * Real.exp (64 * β ^ 2) ≤ 1 / 2) (k : ℕ) (hk : 1 ≤ k) :
-    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
     ∫ g, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ,
         ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
           fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) ^ (2 * k)

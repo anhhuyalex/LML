@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKReplicaAverage
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.HigherOrderCavity.SKCavityHigherOrderCorollary
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Contractions.SKOverlapCLTTermIMultiplicity
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Contractions.SKOverlapCLTComparison
@@ -33,16 +34,8 @@ theorem sk_cavity_fresh_pair_feedback_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ 
     ∃ C : ℝ, 0 < C ∧ ∀ (β h q : ℝ),
       (∫ t : ℝ, Real.tanh (β * Real.sqrt q * t + h) ^ 2 ∂gaussianReal 0 1 = q) →
       β ^ 2 ≤ β₀ ^ 2 → ∀ N : ℕ,
-    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
-    let V : J → ((R ⊕ (J ⊕ J)) → Fin N → ℤˣ) → ℝ := fun j ρ =>
-      ((N + 1 : ℝ)⁻¹ * ∑ v : Fin N,
-        (if L j then (ρ (.inl (a j)) v : ℝ) - (ρ (.inr (.inl j)) v : ℝ)
-          else (ρ (.inr (.inl j)) v : ℝ)) *
-        (if S j then (ρ (.inl (b j)) v : ℝ) - (ρ (.inr (.inr j)) v : ℝ)
-          else (ρ (.inr (.inr j)) v : ℝ))) - (if L j || S j then 0 else q)
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
+    let V : J → ((R ⊕ (J ⊕ J)) → Fin N → ℤˣ) → ℝ := skReplicaOverlapStat% N
     let ep : J → (R ⊕ (J ⊕ J) → ℤˣ) → ℝ := fun j ε =>
       (if L j then (ε (.inl (a j)) : ℝ) - (ε (.inr (.inl j)) : ℝ)
         else (ε (.inr (.inl j)) : ℝ)) *
@@ -166,16 +159,8 @@ theorem sk_cavity_fresh_pair_feedback (β h q : ℝ) (hβ : 4 * β ^ 2 < 1)
     (L S : J → Bool) (p : J) (hLp : L p = true) (hSp : S p = true)
     (a b : J → R) (hord : ∀ j, L j = true → S j = true → a j < b j) :
     ∃ C : ℝ, 0 < C ∧ ∀ N : ℕ,
-    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
-    let V : J → ((R ⊕ (J ⊕ J)) → Fin N → ℤˣ) → ℝ := fun j ρ =>
-      ((N + 1 : ℝ)⁻¹ * ∑ v : Fin N,
-        (if L j then (ρ (.inl (a j)) v : ℝ) - (ρ (.inr (.inl j)) v : ℝ)
-          else (ρ (.inr (.inl j)) v : ℝ)) *
-        (if S j then (ρ (.inl (b j)) v : ℝ) - (ρ (.inr (.inr j)) v : ℝ)
-          else (ρ (.inr (.inr j)) v : ℝ))) - (if L j || S j then 0 else q)
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
+    let V : J → ((R ⊕ (J ⊕ J)) → Fin N → ℤˣ) → ℝ := skReplicaOverlapStat% N
     let ep : J → (R ⊕ (J ⊕ J) → ℤˣ) → ℝ := fun j ε =>
       (if L j then (ε (.inl (a j)) : ℝ) - (ε (.inr (.inl j)) : ℝ)
         else (ε (.inr (.inl j)) : ℝ)) *

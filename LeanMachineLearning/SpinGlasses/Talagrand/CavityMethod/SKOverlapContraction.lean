@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKReplicaAverage
 public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityContraction
 public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKCorrelationDecay
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.AddPowEstimates
@@ -28,10 +29,7 @@ namespace SpinGlasses
 permutation does not change the disorder average of an observable of the replicas. -/
 theorem sk_replica_site_perm (N : ℕ) (β h : ℝ) {R : Type*} [Fintype R]
     (pm : Equiv.Perm (Fin (N + 1))) (Θ : (R → Fin (N + 1) → ℤˣ) → ℝ) :
-    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
     ∫ g, ∫ σ : R → Fin (N + 1) → ℤˣ, Θ (fun r i => σ r (pm i))
         ∂(Measure.pi fun _ : R => Measure.count.tilted (Esk g))
       ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) =
@@ -148,10 +146,7 @@ theorem integral_integral_sk_replica_affine (N n : ℕ) (β h a b : ℝ)
 /-- **Talagrand's Eq. (1.157), for an arbitrary function of the overlap.** By symmetry between
 sites, `ν((R - q) φ(R - q)) = ν((ε₁ε₂ - q) φ(R - q))` for the last site. -/
 theorem sk_overlap_mul_eq_last_site (N : ℕ) (β h q : ℝ) (φ : ℝ → ℝ) :
-    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
     ∫ g, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ,
         ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
           fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) *
@@ -229,16 +224,9 @@ Lemma 1.6.2 and the fixed-point equation. Only the part of `φ` that is odd abou
 theorem sk_cavity_decoupled_odd_part (N : ℕ) (β q h : ℝ)
     (hfix : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂(gaussianReal 0 1) = q)
     (φ : ℝ → ℝ) :
-    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs N,
-            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skCavityBase%
     let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
-        (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
-      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
-        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
-      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
+        (Fin (N + 1) → ℤˣ) → ℝ := skCavityEnergy%
     ∫ g', ∫ ω : (Fin N → ℝ) × ℝ, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ,
         ((σ 0 (Fin.last N) : ℝ) * (σ 1 (Fin.last N) : ℝ) - q) *
           φ ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
@@ -346,20 +334,10 @@ theorem sk_cavity_decoupled_odd_part (N : ℕ) (β q h : ℝ)
 `16 β² exp (64 β²) ν((R - q)^(2k+2))`, which the smallness hypothesis absorbs. -/
 theorem sk_overlap_pow_le_two_nu_zero (N : ℕ) (β q h : ℝ) (hq : q ∈ Set.Icc (0 : ℝ) 1)
     (hsmall : 16 * β ^ 2 * Real.exp (64 * β ^ 2) ≤ 1 / 2) (k : ℕ) :
-    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs N,
-            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skCavityBase%
     let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
-        (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
-      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
-        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
-      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
-    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
+        (Fin (N + 1) → ℤˣ) → ℝ := skCavityEnergy%
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
     ∫ g, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ,
         ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
           fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) ^ (2 * k + 2)
@@ -456,20 +434,10 @@ decoupled endpoint: `ν((R - q)^(2k+2))` is at most `2 (1 - q²)` times the deco
 theorem sk_overlap_pow_le_two_odd_part (N : ℕ) (β q h : ℝ) (hq : q ∈ Set.Icc (0 : ℝ) 1)
     (hfix : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂(gaussianReal 0 1) = q)
     (hsmall : 16 * β ^ 2 * Real.exp (64 * β ^ 2) ≤ 1 / 2) (k : ℕ) :
-    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g' a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs N,
-            g' p * (a p.val.1.castSucc : ℝ) * (a p.val.2.castSucc : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skCavityBase%
     let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
-        (Fin (N + 1) → ℤˣ) → ℝ := fun s g' ω a =>
-      Real.cos s * ((Real.sqrt (N + 1))⁻¹ * β *
-        (a (Fin.last N) : ℝ) * ∑ i : Fin N, ω.1 i * (a i.castSucc : ℝ)) +
-      Real.sin s * (β * (a (Fin.last N) : ℝ) * ω.2 * Real.sqrt q) + B g' a
-    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
+        (Fin (N + 1) → ℤˣ) → ℝ := skCavityEnergy%
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
     ∫ g, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ,
         ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
           fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) ^ (2 * k + 2)
@@ -496,10 +464,7 @@ theorem sk_overlap_pow_le_two_odd_part (N : ℕ) (β q h : ℝ) (hq : q ∈ Set.
 theorem sk_overlap_sq_le_two_div (N : ℕ) (β q h : ℝ) (hq : q ∈ Set.Icc (0 : ℝ) 1)
     (hfix : ∫ z : ℝ, Real.tanh (β * Real.sqrt q * z + h) ^ 2 ∂(gaussianReal 0 1) = q)
     (hsmall : 16 * β ^ 2 * Real.exp (64 * β ^ 2) ≤ 1 / 2) :
-    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := fun g a =>
-      (Real.sqrt (N + 1))⁻¹ * β *
-        (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-      h * ∑ i : Fin (N + 1), (a i : ℝ)
+    let Esk : (FinPairs (N + 1) → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skEnergy%
     ∫ g, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ,
         ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
           fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) ^ 2

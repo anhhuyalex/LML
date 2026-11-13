@@ -108,12 +108,12 @@ theorem preactivation_toGlobalDenseLayer [Fintype ι] [Fintype P] [DecidableEq P
   simp only [DenseLayer.preactivation_apply, finitePreactivation_apply,
     toGlobalDenseLayer_bias]
   congr 1
-  rw [Conv2DLayer.sum_over_prod]
+  rw [Fintype.sum_prod_type]
   apply Finset.sum_congr rfl
   intro i _
   simp_rw [toGlobalDenseLayer_weight, Finset.sum_mul]
   rw [Finset.sum_comm]
-  rw [← Conv2DLayer.sum_over_prod
+  rw [← Fintype.sum_prod_type
     (fun r : WindowIndex k × WindowIndex k =>
       L.weight o i r.1 r.2 * x (i, B.shift p r.1 r.2))]
   apply Finset.sum_congr rfl

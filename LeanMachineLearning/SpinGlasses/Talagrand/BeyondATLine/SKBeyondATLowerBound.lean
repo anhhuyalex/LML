@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKReplicaAverage
 public import Mathlib.Analysis.SpecialFunctions.Pow.Real
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKSecondMoment
 
@@ -73,15 +74,10 @@ theorem indicator_lower_bound_of_cubic {Ω : Type*} (ν : (Ω → ℝ) → ℝ)
 theorem abs_overlap_le_one {N : ℕ} (σ : Fin 2 → Fin (N + 1) → ℤˣ) :
     |(N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
       fun i : Fin (N + 1) => (σ 1 i : ℝ))| ≤ 1 := by
-  have hM : (0 : ℝ) < N + 1 := by positivity
-  have hdot : |(fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ fun i : Fin (N + 1) => (σ 1 i : ℝ)| ≤
-      N + 1 := by
-    refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
-    simp only [abs_mul, abs_units_cast_eq_one, mul_one, Finset.sum_const, Finset.card_univ,
-      Fintype.card_fin, nsmul_eq_mul]
-    simp
-  rw [abs_mul, abs_inv, abs_of_pos hM, inv_mul_le_iff₀ hM]
-  linarith
+  simpa only [Fintype.card_fin, Nat.cast_add, Nat.cast_one] using
+    abs_card_inv_mul_dotProduct_le_one (fun i : Fin (N + 1) => (σ 0 i : ℝ))
+      (fun i : Fin (N + 1) => (σ 1 i : ℝ)) (fun i => abs_units_cast_le_one (σ 0 i))
+      (fun i => abs_units_cast_le_one (σ 1 i))
 
 /-- The centered overlap of two replicas of an `N + 1`-spin system is at most `2` in absolute
 value when `|q| ≤ 1`. -/
@@ -96,12 +92,7 @@ theorem abs_overlap_sub_le_two {N : ℕ} {q : ℝ} (hq : |q| ≤ 1)
 `ν(1{|R₁₂ - q| ≥ δ/2}) ≥ (δ/16) ν((R₁₂ - q)²)`. -/
 theorem sk_indicator_lower_bound_of_cubic (N : ℕ) (β h q δ : ℝ) (hq : |q| ≤ 1) (hδ : 0 < δ)
     (ν : ((Fin 2 → Fin (N + 1) → ℤˣ) → ℝ) → ℝ)
-    (hν : ∀ Φ, ν Φ = ∫ g : FinPairs (N + 1) → ℝ, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, Φ σ
-      ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted fun a : Fin (N + 1) → ℤˣ =>
-        (Real.sqrt (N + 1))⁻¹ * β *
-          (∑ p : FinPairs (N + 1), g p * (a p.val.1 : ℝ) * (a p.val.2 : ℝ)) +
-        h * ∑ i : Fin (N + 1), (a i : ℝ))
-      ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))
+    (hν : skReplicaAverage% ν 2)
     (hcubic : δ * ν (fun σ => ((N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
           fun i : Fin (N + 1) => (σ 1 i : ℝ)) - q) ^ 2) ≤
       ν (fun σ => |(N + 1 : ℝ)⁻¹ * ((fun i : Fin (N + 1) => (σ 0 i : ℝ)) ⬝ᵥ
