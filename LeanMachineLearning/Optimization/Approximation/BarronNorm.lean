@@ -412,13 +412,13 @@ private lemma barron_real_part {d : ℕ} {f : (EuclideanSpace ℝ (Fin d)) → �
 -- and zero elsewhere; the threshold activation σ(z-b) = 1 exactly on that interval.
 private lemma barronCosineBump_threshold_repr {d : ℕ}
     (w : EuclideanSpace ℝ (Fin d)) (θ : ℝ) (x : EuclideanSpace ℝ (Fin d)) :
-    ∃ g : ℝ → ℝ, barronCosineBump w θ x = ∫ b, thresholdActivation (inner ℝ w x - b) * g b := by
+    ∃ g : ℝ → ℝ, barronCosineBump w θ x = ∫ b, NeuralNetwork.threshold (inner ℝ w x - b) * g b := by
   set z := inner ℝ w x with hz
   set B := barronCosineBump w θ x with hB
   let g : ℝ → ℝ := fun b => if b ∈ Set.Icc (z - 1) z then B else 0
   refine ⟨g, ?_⟩
-  -- Key observation: thresholdActivation(z - b) = 1 when b ≤ z (i.e., when g b ≠ 0)
-  have h_pointwise : ∀ b, thresholdActivation (z - b) * g b = g b := by
+  -- Key observation: NeuralNetwork.threshold(z - b) = 1 when b ≤ z (i.e., when g b ≠ 0)
+  have h_pointwise : ∀ b, NeuralNetwork.threshold (z - b) * g b = g b := by
     intro b
     dsimp [g]
     by_cases hb : b ∈ Set.Icc (z - 1) z
@@ -426,10 +426,10 @@ private lemma barronCosineBump_threshold_repr {d : ℕ}
       have hz_ge_b : z - b ≥ 0 := by
         rcases hb with ⟨hbl, hbr⟩
         linarith
-      simp [thresholdActivation, hb, hz_ge_b]
+      simp [NeuralNetwork.threshold, hb, hz_ge_b]
     · -- b ∉ [z-1, z], so g b = 0
       simp [hb]
-  have h_int_eq : ∫ b : ℝ, thresholdActivation (z - b) * g b = ∫ b : ℝ, g b :=
+  have h_int_eq : ∫ b : ℝ, NeuralNetwork.threshold (z - b) * g b = ∫ b : ℝ, g b :=
     integral_congr_ae (ae_of_all volume h_pointwise)
   rw [h_int_eq]
   -- g equals the indicator of Icc(z-1, z) scaled by B
@@ -446,24 +446,24 @@ private lemma barronCosineBump_threshold_repr {d : ℕ}
 -- Reduces an integral against a threshold activation over [0, W] to an integral over [0, c]
 private lemma setIntegral_thresholdActivation_eq_Icc {c W : ℝ} (_hc_nonneg : 0 ≤ c)
     (hc_le : c ≤ W) (f : ℝ → ℝ) :
-    (∫ b in Set.Icc (0 : ℝ) W, thresholdActivation (c - b) * f b) =
+    (∫ b in Set.Icc (0 : ℝ) W, NeuralNetwork.threshold (c - b) * f b) =
     ∫ b in Set.Icc (0 : ℝ) c, f b := by
-  -- Helper: thresholdActivation(c - b) = (Set.Iic c).indicator 1 at b
+  -- Helper: NeuralNetwork.threshold(c - b) = (Set.Iic c).indicator 1 at b
   have h_thresh_indicator (b : ℝ) :
-      thresholdActivation (c - b) = (Set.Iic c).indicator (fun _ => (1 : ℝ)) b := by
+      NeuralNetwork.threshold (c - b) = (Set.Iic c).indicator (fun _ => (1 : ℝ)) b := by
     by_cases hb : b ≤ c
     · have h_nonneg : c - b ≥ 0 := by linarith
-      simp [thresholdActivation, Set.indicator, Set.mem_Iic, h_nonneg, hb]
+      simp [NeuralNetwork.threshold, Set.indicator, Set.mem_Iic, h_nonneg, hb]
     · have h_neg : ¬(c - b ≥ 0) := by linarith
-      simp [thresholdActivation, Set.indicator, Set.mem_Iic, h_neg, hb]
+      simp [NeuralNetwork.threshold, Set.indicator, Set.mem_Iic, h_neg, hb]
   -- Intersection lemma: when 0 ≤ c ≤ W, Icc 0 W ∩ Iic c = Icc 0 c
   have h_inter_pos :
       Set.Icc (0 : ℝ) W ∩ Set.Iic c = Set.Icc (0 : ℝ) c := by
     ext y; constructor
     · rintro ⟨⟨hy0, hyw⟩, hyc⟩; exact ⟨hy0, hyc⟩
     · rintro ⟨hy0, hyc⟩; exact ⟨⟨hy0, hyc.trans hc_le⟩, hyc⟩
-  -- Step 1: replace thresholdActivation with indicator
-  have h_step1 : (∫ b in Set.Icc (0 : ℝ) W, thresholdActivation (c - b) * f b) =
+  -- Step 1: replace NeuralNetwork.threshold with indicator
+  have h_step1 : (∫ b in Set.Icc (0 : ℝ) W, NeuralNetwork.threshold (c - b) * f b) =
       (∫ b in Set.Icc (0 : ℝ) W, ((Set.Iic c).indicator (fun _ => (1 : ℝ)) b) * f b) := by
     refine setIntegral_congr_fun measurableSet_Icc ?_
     intro b _
@@ -484,17 +484,17 @@ private lemma setIntegral_thresholdActivation_eq_Icc {c W : ℝ} (_hc_nonneg : 0
 -- An integral against a threshold activation is zero if the threshold is non-positive
 private lemma setIntegral_thresholdActivation_nonpos_eq_zero {c W : ℝ} (hc : c ≤ 0)
     (hW_nonneg : 0 ≤ W) (f : ℝ → ℝ) :
-    (∫ b in Set.Icc (0 : ℝ) W, thresholdActivation (c - b) * f b) = 0 := by
+    (∫ b in Set.Icc (0 : ℝ) W, NeuralNetwork.threshold (c - b) * f b) = 0 := by
   by_cases hc0 : c = 0
-  · -- c = 0: thresholdActivation(-b) is 0 for b > 0, and {0} has measure zero
+  · -- c = 0: NeuralNetwork.threshold(-b) is 0 for b > 0, and {0} has measure zero
     have h_thresh_indicator (b : ℝ) :
-        thresholdActivation (-b) = (Set.Iic (0 : ℝ)).indicator (fun _ => (1 : ℝ)) b := by
+        NeuralNetwork.threshold (-b) = (Set.Iic (0 : ℝ)).indicator (fun _ => (1 : ℝ)) b := by
       by_cases hb : b ≤ 0
       · have h_nonneg : -b ≥ 0 := by linarith
-        simp [thresholdActivation, Set.indicator, Set.mem_Iic, h_nonneg, hb]
+        simp [NeuralNetwork.threshold, Set.indicator, Set.mem_Iic, h_nonneg, hb]
       · have h_neg : ¬(-b ≥ 0) := by linarith
-        simp [thresholdActivation, Set.indicator, Set.mem_Iic, h_neg, hb]
-    have h_eq1 : (fun b => thresholdActivation (-b) * f b)
+        simp [NeuralNetwork.threshold, Set.indicator, Set.mem_Iic, h_neg, hb]
+    have h_eq1 : (fun b => NeuralNetwork.threshold (-b) * f b)
         = (fun b => ((Set.Iic (0 : ℝ)).indicator (fun _ => (1 : ℝ)) b) * f b) := by
       ext b
       rw [← h_thresh_indicator b]
@@ -510,9 +510,9 @@ private lemma setIntegral_thresholdActivation_nonpos_eq_zero {c W : ℝ} (hc : c
         have h0' : (0 : ℝ) ∈ Set.Iic (0 : ℝ) := show (0 : ℝ) ≤ (0 : ℝ) from le_rfl
         exact ⟨h0, h0'⟩
     calc
-      (∫ b in Set.Icc (0 : ℝ) W, thresholdActivation (c - b) * f b)
-      _ = (∫ b in Set.Icc (0 : ℝ) W, thresholdActivation (0 - b) * f b) := by rw [hc0]
-      _ = (∫ b in Set.Icc (0 : ℝ) W, thresholdActivation (-b) * f b) := by simp
+      (∫ b in Set.Icc (0 : ℝ) W, NeuralNetwork.threshold (c - b) * f b)
+      _ = (∫ b in Set.Icc (0 : ℝ) W, NeuralNetwork.threshold (0 - b) * f b) := by rw [hc0]
+      _ = (∫ b in Set.Icc (0 : ℝ) W, NeuralNetwork.threshold (-b) * f b) := by simp
       _ = (∫ b in Set.Icc (0 : ℝ) W,
           ((Set.Iic (0 : ℝ)).indicator (fun _ => (1 : ℝ)) b) * f b) := by
         rw [h_eq1]
@@ -523,15 +523,15 @@ private lemma setIntegral_thresholdActivation_nonpos_eq_zero {c W : ℝ} (hc : c
         MeasureTheory.setIntegral_indicator measurableSet_Iic
       _ = ∫ b in {(0 : ℝ)}, f b := by rw [h_inter]
       _ = 0 := by simp
-  · -- c < 0: then thresholdActivation(c - b) = 0 for all b ≥ 0
-    have h_ae : (fun b => thresholdActivation (c - b) * f b)
+  · -- c < 0: then NeuralNetwork.threshold(c - b) = 0 for all b ≥ 0
+    have h_ae : (fun b => NeuralNetwork.threshold (c - b) * f b)
         =ᵐ[volume.restrict (Set.Icc (0 : ℝ) W)] fun _ => (0 : ℝ) := by
       filter_upwards [MeasureTheory.ae_restrict_mem measurableSet_Icc] with b hb
       rcases hb with ⟨hb0, _hbw⟩
       have h_not_nonneg : ¬(c - b ≥ 0) := by
         have : c < 0 := lt_of_le_of_ne hc hc0
         linarith
-      simp [thresholdActivation, h_not_nonneg]
+      simp [NeuralNetwork.threshold, h_not_nonneg]
     simp [integral_congr_ae h_ae]
 
 -- Evaluate the integral of the scaled sine wave over [0, c]
@@ -579,10 +579,10 @@ private lemma barronCosineBump_sin_repr_pos {d : ℕ}
     (w : EuclideanSpace ℝ (Fin d)) (θ : ℝ) (x : EuclideanSpace ℝ (Fin d))
     (hx : ‖x‖ ≤ 1) (hw0 : ‖w‖ ≠ 0) (ha_nonneg : 0 ≤ inner ℝ w x) :
     (∫ b in Set.Icc (0 : ℝ) ‖w‖,
-      thresholdActivation (inner ℝ w x - b) *
+      NeuralNetwork.threshold (inner ℝ w x - b) *
         (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) +
     (∫ b in Set.Icc (0 : ℝ) ‖w‖,
-      thresholdActivation (inner ℝ (-w) x - b) *
+      NeuralNetwork.threshold (inner ℝ (-w) x - b) *
         (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖)) =
     barronCosineBump w θ x := by
   have hw_pos : 0 < ‖w‖ := lt_of_le_of_ne (norm_nonneg _) (Ne.symm hw0)
@@ -596,12 +596,12 @@ private lemma barronCosineBump_sin_repr_pos {d : ℕ}
   have ha_abs_range : -‖w‖ ≤ a ∧ a ≤ ‖w‖ := abs_le.mp ha_bound
   have ha_le_norm : a ≤ ‖w‖ := ha_abs_range.2
   have h_int1 : (∫ b in Set.Icc (0 : ℝ) ‖w‖,
-      thresholdActivation (a - b) * (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) =
+      NeuralNetwork.threshold (a - b) * (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) =
       ∫ b in Set.Icc (0 : ℝ) a, (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖) :=
     setIntegral_thresholdActivation_eq_Icc ha_nonneg ha_le_norm _
   have h_inner_neg : inner ℝ (-w) x = -a := by rw [inner_neg_left, ha_def]
   have h_int2 : (∫ b in Set.Icc (0 : ℝ) ‖w‖,
-      thresholdActivation (inner ℝ (-w) x - b) *
+      NeuralNetwork.threshold (inner ℝ (-w) x - b) *
         (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖)) = 0 := by
     rw [h_inner_neg]
     exact setIntegral_thresholdActivation_nonpos_eq_zero (by linarith) (norm_nonneg _) _
@@ -609,19 +609,19 @@ private lemma barronCosineBump_sin_repr_pos {d : ℕ}
       (Real.cos (2 * π * a + 2 * π * θ) - Real.cos (2 * π * θ)) / (2 * π * ‖w‖) :=
     integral_sin_bump_ftc a (2 * π * θ) ‖w‖ hw0 ha_nonneg
   have hgoal : (∫ b in Set.Icc (0 : ℝ) ‖w‖,
-      thresholdActivation (inner ℝ w x - b) * (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) +
+      NeuralNetwork.threshold (inner ℝ w x - b) * (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) +
       (∫ b in Set.Icc (0 : ℝ) ‖w‖,
-        thresholdActivation (inner ℝ (-w) x - b) * (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖)) =
+        NeuralNetwork.threshold (inner ℝ (-w) x - b) * (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖)) =
       barronCosineBump w θ x := by
     calc
       (∫ b in Set.Icc (0 : ℝ) ‖w‖,
-          thresholdActivation (inner ℝ w x - b) * (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) +
+          NeuralNetwork.threshold (inner ℝ w x - b) * (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) +
         (∫ b in Set.Icc (0 : ℝ) ‖w‖,
-          thresholdActivation (inner ℝ (-w) x - b) * (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖))
+          NeuralNetwork.threshold (inner ℝ (-w) x - b) * (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖))
       = (∫ b in Set.Icc (0 : ℝ) ‖w‖,
-          thresholdActivation (a - b) * (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) +
+          NeuralNetwork.threshold (a - b) * (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) +
         (∫ b in Set.Icc (0 : ℝ) ‖w‖,
-          thresholdActivation (inner ℝ (-w) x - b) *
+          NeuralNetwork.threshold (inner ℝ (-w) x - b) *
             (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖)) := by
         dsimp [a]
       _ = (∫ b in Set.Icc (0 : ℝ) a, (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) + (0 : ℝ) := by
@@ -636,10 +636,10 @@ private lemma barronCosineBump_sin_repr_neg {d : ℕ}
     (w : EuclideanSpace ℝ (Fin d)) (θ : ℝ) (x : EuclideanSpace ℝ (Fin d))
     (hx : ‖x‖ ≤ 1) (hw0 : ‖w‖ ≠ 0) (ha_neg : inner ℝ w x < 0) :
     (∫ b in Set.Icc (0 : ℝ) ‖w‖,
-      thresholdActivation (inner ℝ w x - b) *
+      NeuralNetwork.threshold (inner ℝ w x - b) *
         (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) +
     (∫ b in Set.Icc (0 : ℝ) ‖w‖,
-      thresholdActivation (inner ℝ (-w) x - b) *
+      NeuralNetwork.threshold (inner ℝ (-w) x - b) *
         (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖)) =
     barronCosineBump w θ x := by
   have hw_pos : 0 < ‖w‖ := lt_of_le_of_ne (norm_nonneg _) (Ne.symm hw0)
@@ -654,11 +654,11 @@ private lemma barronCosineBump_sin_repr_neg {d : ℕ}
   have h_neg_a_nonneg : 0 ≤ -a := by linarith
   have h_neg_a_le_norm : -a ≤ ‖w‖ := by linarith
   have h_int1 : (∫ b in Set.Icc (0 : ℝ) ‖w‖,
-      thresholdActivation (a - b) * (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) = 0 :=
+      NeuralNetwork.threshold (a - b) * (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) = 0 :=
     setIntegral_thresholdActivation_nonpos_eq_zero (by linarith) (norm_nonneg _) _
   have h_inner_neg : inner ℝ (-w) x = -a := by rw [inner_neg_left, ha_def]
   have h_int2 : (∫ b in Set.Icc (0 : ℝ) ‖w‖,
-      thresholdActivation (inner ℝ (-w) x - b) * (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖)) =
+      NeuralNetwork.threshold (inner ℝ (-w) x - b) * (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖)) =
       ∫ b in Set.Icc (0 : ℝ) (-a), (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖) := by
     rw [h_inner_neg]
     exact setIntegral_thresholdActivation_eq_Icc h_neg_a_nonneg h_neg_a_le_norm _
@@ -679,19 +679,19 @@ private lemma barronCosineBump_sin_repr_neg {d : ℕ}
     rw [← h_eq_LHS, ← h_eq_RHS]
     exact h_ftc_raw
   have hgoal : (∫ b in Set.Icc (0 : ℝ) ‖w‖,
-      thresholdActivation (inner ℝ w x - b) * (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) +
+      NeuralNetwork.threshold (inner ℝ w x - b) * (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) +
       (∫ b in Set.Icc (0 : ℝ) ‖w‖,
-        thresholdActivation (inner ℝ (-w) x - b) * (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖)) =
+        NeuralNetwork.threshold (inner ℝ (-w) x - b) * (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖)) =
       barronCosineBump w θ x := by
     calc
       (∫ b in Set.Icc (0 : ℝ) ‖w‖,
-          thresholdActivation (inner ℝ w x - b) * (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) +
+          NeuralNetwork.threshold (inner ℝ w x - b) * (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) +
         (∫ b in Set.Icc (0 : ℝ) ‖w‖,
-          thresholdActivation (inner ℝ (-w) x - b) * (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖))
+          NeuralNetwork.threshold (inner ℝ (-w) x - b) * (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖))
       = (∫ b in Set.Icc (0 : ℝ) ‖w‖,
-          thresholdActivation (a - b) * (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) +
+          NeuralNetwork.threshold (a - b) * (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) +
         (∫ b in Set.Icc (0 : ℝ) ‖w‖,
-          thresholdActivation (inner ℝ (-w) x - b) *
+          NeuralNetwork.threshold (inner ℝ (-w) x - b) *
             (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖)) := by
         dsimp [a]
       _ = (0 : ℝ) + (∫ b in Set.Icc (0 : ℝ) (-a), (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖)) := by
@@ -710,10 +710,10 @@ private lemma barronCosineBump_sin_repr {d : ℕ}
     (hx : ‖x‖ ≤ 1) :
     barronCosineBump w θ x =
       (∫ b in Set.Icc (0 : ℝ) ‖w‖,
-        thresholdActivation (inner ℝ w x - b) *
+        NeuralNetwork.threshold (inner ℝ w x - b) *
           (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) +
       (∫ b in Set.Icc (0 : ℝ) ‖w‖,
-        thresholdActivation (inner ℝ (-w) x - b) *
+        NeuralNetwork.threshold (inner ℝ (-w) x - b) *
           (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖)) := by
   by_cases hw0 : ‖w‖ = 0
   · -- Case ‖w‖ = 0: both sides are 0 (division by 0 yields 0, integrals over {0} are 0)
@@ -721,9 +721,9 @@ private lemma barronCosineBump_sin_repr {d : ℕ}
       unfold barronCosineBump
       rw [ite_eq_left hw0]
     have hRHS : (∫ b in Set.Icc (0 : ℝ) ‖w‖,
-        thresholdActivation (inner ℝ w x - b) * (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) +
+        NeuralNetwork.threshold (inner ℝ w x - b) * (-Real.sin (2 * π * b + 2 * π * θ) / ‖w‖)) +
         (∫ b in Set.Icc (0 : ℝ) ‖w‖,
-          thresholdActivation (inner ℝ (-w) x - b) *
+          NeuralNetwork.threshold (inner ℝ (-w) x - b) *
             (-Real.sin (2 * π * b - 2 * π * θ) / ‖w‖)) = 0 := by
       rw [hw0]
       simp
@@ -897,13 +897,13 @@ theorem barronTheorem
     (hf_L1 : Integrable f volume)
     (hfhat_L1 : Integrable (fourierTransform f) volume)
     (hbarron : Integrable (barronIntegrand f) volume) :
-    ∃ (net : Approximation.InfiniteWidth.InfiniteWidthNetwork thresholdActivation (d + 1)),
-      Approximation.InfiniteWidth.InfiniteWidthNetwork.mass thresholdActivation net ≤
+    ∃ (net : Approximation.InfiniteWidth.InfiniteWidthNetwork NeuralNetwork.threshold (d + 1)),
+      Approximation.InfiniteWidth.InfiniteWidthNetwork.mass NeuralNetwork.threshold net ≤
         2 * barronNorm f ∧
       ∀ x : EuclideanSpace ℝ (Fin d), ‖x‖ ≤ 1 →
         f x - f 0 =
-          Approximation.InfiniteWidth.InfiniteWidthNetwork.eval thresholdActivation net
-            (fun wb => thresholdActivation
+          Approximation.InfiniteWidth.InfiniteWidthNetwork.eval NeuralNetwork.threshold net
+            (fun wb => NeuralNetwork.threshold
               (inner ℝ
                 ((EuclideanSpace.equiv (Fin d) ℝ).symm
                   (fun (j : Fin d) => wb j.castSucc))
@@ -925,10 +925,10 @@ theorem barronTheorem
   have h_sin_repr : ∀ w x, ‖x‖ ≤ 1 →
       barronCosineBump w (fourierPhase f w) x =
         (∫ b in Set.Icc (0 : ℝ) ‖w‖,
-          thresholdActivation (inner ℝ w x - b) *
+          NeuralNetwork.threshold (inner ℝ w x - b) *
             (-Real.sin (2 * π * b + 2 * π * fourierPhase f w) / ‖w‖)) +
         (∫ b in Set.Icc (0 : ℝ) ‖w‖,
-          thresholdActivation (inner ℝ (-w) x - b) *
+          NeuralNetwork.threshold (inner ℝ (-w) x - b) *
             (-Real.sin (2 * π * b - 2 * π * fourierPhase f w) / ‖w‖)) := by
     intro w x hx
     exact barronCosineBump_sin_repr w (fourierPhase f w) x hx
@@ -956,7 +956,7 @@ theorem barronTheorem
     (@Measure.toSignedMeasure (Fin (d + 1) → ℝ) _ measure_pos h_finite_pos) -
     (@Measure.toSignedMeasure (Fin (d + 1) → ℝ) _ measure_neg h_finite_neg)
 
-  let net : Approximation.InfiniteWidth.InfiniteWidthNetwork thresholdActivation (d + 1) :=
+  let net : Approximation.InfiniteWidth.InfiniteWidthNetwork NeuralNetwork.threshold (d + 1) :=
     ⟨net_measure⟩
 
   refine ⟨net, ?_, ?_⟩

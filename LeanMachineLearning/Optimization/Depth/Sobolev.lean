@@ -117,7 +117,7 @@ theorem monoApprox_network_size (k d r : ℕ) (hk : 0 < k) (hd : 0 < d) (hr : 0 
 /-- The univariate bump function: h(a) = (1 + sa) for a ∈ [−1/s, 0), (1 − sa) for a ∈ [0, 1/s].
   Implemented via ReLU: h(a) = σ(sa+1) − 2σ(sa) + σ(sa−1). -/
 noncomputable def univariateBump (s : ℕ) (a : ℝ) : ℝ :=
-  reluActivation (s * a + 1) - 2 * reluActivation (s * a) + reluActivation (s * a - 1)
+  NeuralNetwork.relu (s * a + 1) - 2 * NeuralNetwork.relu (s * a) + NeuralNetwork.relu (s * a - 1)
 
 /-- The bump h(a) is supported on [−1/s, 1/s]. -/
 lemma univariateBump_support (s : ℕ) (hs : 0 < s) (a : ℝ) (ha : |a| > 1 / s) :

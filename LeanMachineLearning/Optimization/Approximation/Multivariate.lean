@@ -158,19 +158,19 @@ theorem piecewiseConstApprox_error {U : Set (EuclideanSpace ℝ (Fin d))} {δ ε
 
 /-- The soft indicator for a single coordinate interval [a, b) at smoothing scale γ. -/
 noncomputable def softStep (a b γ : ℝ) (z : ℝ) : ℝ :=
-  reluActivation ((z - (a - γ)) / γ)
-  - reluActivation ((z - a) / γ)
-  - reluActivation ((z - b) / γ)
-  + reluActivation ((z - (b + γ)) / γ)
+  NeuralNetwork.relu ((z - (a - γ)) / γ)
+  - NeuralNetwork.relu ((z - a) / γ)
+  - NeuralNetwork.relu ((z - b) / γ)
+  + NeuralNetwork.relu ((z - (b + γ)) / γ)
 
 /-- The rectangle indicator network gγ for rectangle R at smoothing scale γ. -/
 noncomputable def rectIndicatorNet (R : Rectangle d) (γ : ℝ) (x : EuclideanSpace ℝ (Fin d)) : ℝ :=
-  reluActivation (∑ j : Fin d, softStep (R.left j) (R.left j + R.width j) γ (x j) - (d - 1 : ℝ))
+  NeuralNetwork.relu (∑ j : Fin d, softStep (R.left j) (R.left j + R.width j) γ (x j) - (d - 1 : ℝ))
 
 /-- If γ > 0 and a ≤ z < b, then the soft step function equals 1. -/
 lemma softStep_eq_one {a b γ z : ℝ} (hγ : 0 < γ) (hz : a ≤ z ∧ z < b) : softStep a b γ z = 1 := by
   rcases hz with ⟨hle, hlt⟩
-  dsimp [softStep, reluActivation]
+  dsimp [softStep, NeuralNetwork.relu]
   -- The four ReLU terms: analyze sign of each argument
   have hz_minus_a_nonneg : 0 ≤ z - a := by linarith
   have hz_minus_b_neg : z - b < 0 := by linarith
@@ -205,8 +205,8 @@ lemma rectIndicatorNet_one {R : Rectangle d} {γ : ℝ} (hγ : 0 < γ)
             rw [h_softstep j]
       _ = (d : ℝ) := by simp
   rw [h_sum]
-  -- Now: reluActivation ((d : ℝ) - (d - 1 : ℝ)) = 1
-  dsimp [reluActivation]
+  -- Now: NeuralNetwork.relu ((d : ℝ) - (d - 1 : ℝ)) = 1
+  dsimp [NeuralNetwork.relu]
   have h_sub : (d : ℝ) - (d - 1 : ℝ) = 1 := by
     ring
   rw [h_sub]
@@ -218,7 +218,7 @@ lemma softStep_eq_zero {a b γ z : ℝ} (hγ : 0 < γ) (h_ab : a ≤ b) (hz : z 
     softStep a b γ z = 0 := by
   rcases hz with (hz_lt | hz_ge)
   · -- Case: z < a - γ  (all four ReLU arguments are negative → all max = 0)
-    dsimp [softStep, reluActivation]
+    dsimp [softStep, NeuralNetwork.relu]
     have h_div1 : (z - (a - γ)) / γ < 0 := div_neg_of_neg_of_pos (by linarith) hγ
     have h_div2 : (z - a) / γ < 0 := div_neg_of_neg_of_pos (by linarith) hγ
     have h_div3 : (z - b) / γ < 0 := div_neg_of_neg_of_pos (by linarith) hγ
@@ -227,7 +227,7 @@ lemma softStep_eq_zero {a b γ z : ℝ} (hγ : 0 < γ) (h_ab : a ≤ b) (hz : z 
       max_eq_right h_div4.le]
     norm_num
   · -- Case: z ≥ b + γ  (all four ReLU arguments are nonnegative → all max = argument)
-    dsimp [softStep, reluActivation]
+    dsimp [softStep, NeuralNetwork.relu]
     have h_div1 : 0 ≤ (z - (a - γ)) / γ := div_nonneg (by linarith) hγ.le
     have h_div2 : 0 ≤ (z - a) / γ := div_nonneg (by linarith) hγ.le
     have h_div3 : 0 ≤ (z - b) / γ := div_nonneg (by linarith) hγ.le
@@ -238,7 +238,7 @@ lemma softStep_eq_zero {a b γ z : ℝ} (hγ : 0 < γ) (h_ab : a ≤ b) (hz : z 
 
 /-- If γ > 0 and a ≤ b, the soft step function is bounded above by 1 for all z. -/
 lemma softStep_le_one {a b γ z : ℝ} (hγ : 0 < γ) (h_ab : a ≤ b) : softStep a b γ z ≤ 1 := by
-  dsimp [softStep, reluActivation]
+  dsimp [softStep, NeuralNetwork.relu]
   by_cases hz1 : z ≤ a - γ
   · -- Region I: z ≤ a-γ  → all terms ≤ 0 → softStep = 0 ≤ 1
     have h1 : (z - (a - γ)) / γ ≤ 0 := div_nonpos_of_nonpos_of_nonneg (by linarith) hγ.le
@@ -346,18 +346,18 @@ lemma rectIndicatorNet_zero {R : Rectangle d} {γ : ℝ} (hγ : 0 < γ)
       - (d - 1 : ℝ) ≤ 0 := by
     linarith
   -- ReLU of a non-positive argument is 0.
-  dsimp [reluActivation]
+  dsimp [NeuralNetwork.relu]
   exact max_eq_right h_arg_nonpos
 
 lemma rectIndicatorNet_nonneg {R : Rectangle d} {γ : ℝ} (x : EuclideanSpace ℝ (Fin d)) :
     0 ≤ rectIndicatorNet R γ x := by
-  dsimp [rectIndicatorNet, reluActivation]
+  dsimp [rectIndicatorNet, NeuralNetwork.relu]
   exact le_max_right _ _
 
 lemma rectIndicatorNet_le_one {R : Rectangle d} {γ : ℝ} (hγ : 0 < γ)
     (x : EuclideanSpace ℝ (Fin d)) :
     rectIndicatorNet R γ x ≤ 1 := by
-  dsimp [rectIndicatorNet, reluActivation]
+  dsimp [rectIndicatorNet, NeuralNetwork.relu]
   have h_sum :
       (∑ j : Fin d, softStep (R.left j) (R.left j + R.width j) γ (x j)) ≤
         (d : ℝ) := by
@@ -426,13 +426,13 @@ private lemma volume_half_open_rectangle_eq_prod (l w : Fin d → ℝ) (hw_pos :
 -- rectIndicatorNet is continuous (as a composition of ReLU with continuous affine maps)
 private lemma rectIndicatorNet_continuous {R : Rectangle d} {γ : ℝ} :
     Continuous (rectIndicatorNet R γ) := by
-  have h_cont_relu : Continuous reluActivation := by
-    unfold reluActivation
+  have h_cont_relu : Continuous NeuralNetwork.relu := by
+    unfold NeuralNetwork.relu
     exact continuous_id.max continuous_const
   -- softStep a b γ is continuous as a function ℝ → ℝ
   have h_cont_softStep_fn (a b : ℝ) : Continuous (fun (z : ℝ) => softStep a b γ z) := by
     dsimp [softStep]
-    have h_term (c : ℝ) : Continuous (fun (z : ℝ) => reluActivation ((z - c) / γ)) :=
+    have h_term (c : ℝ) : Continuous (fun (z : ℝ) => NeuralNetwork.relu ((z - c) / γ)) :=
       h_cont_relu.comp ((continuous_id.sub continuous_const).div_const γ)
     -- softStep = term(a-γ) - term(a) - term(b) + term(b+γ)
     exact Continuous.add
@@ -449,7 +449,7 @@ private lemma rectIndicatorNet_continuous {R : Rectangle d} {γ : ℝ} :
   have h_cont_sum : Continuous (fun (x : EuclideanSpace ℝ (Fin d)) =>
       ∑ j : Fin d, softStep (R.left j) (R.left j + R.width j) γ (x j)) :=
     continuous_finsetSum (Finset.univ : Finset (Fin d)) fun j _ => h_cont_coord j
-  -- rectIndicatorNet = reluActivation ∘ (sum - (d-1)), hence continuous
+  -- rectIndicatorNet = NeuralNetwork.relu ∘ (sum - (d-1)), hence continuous
   unfold rectIndicatorNet
   refine h_cont_relu.comp ?_
   exact h_cont_sum.sub continuous_const
@@ -782,7 +782,7 @@ lemma exists_unitCube_partition {δ : ℝ} (hδ : 0 < δ) :
 /-- A single rectIndicatorNet is representable as a two-hidden-layer ReLU network
     with hidden widths m₁ = 4*d (the inner softStep components) and m₂ = 1. -/
 lemma rectIndicatorNet_mem_FunctionClass {R : Rectangle d} {γ : ℝ} :
-    ∃ m₁ : ℕ, rectIndicatorNet R γ ∈ TwoHiddenLayer.FunctionClass reluActivation d m₁ 1 := by
+    ∃ m₁ : ℕ, rectIndicatorNet R γ ∈ TwoHiddenLayer.FunctionClass NeuralNetwork.relu d m₁ 1 := by
   -- Construct a TwoHiddenLayer.Network that computes rectIndicatorNet.
   -- The first layer has 4*d neurons: for each coordinate j, four neurons
   -- computing relu((x_j - c)/γ) for c = a-γ, a, b, b+γ.
@@ -795,7 +795,7 @@ lemma rectIndicatorNet_mem_FunctionClass {R : Rectangle d} {γ : ℝ} :
 lemma sum_rectIndicatorNet_mem_FunctionClass {ι : Type*} [Fintype ι]
     (R : ι → Rectangle d) (γ : ℝ) (α : ι → ℝ) :
     ∃ m₁ m₂ : ℕ, (fun x => ∑ i : ι, α i * rectIndicatorNet (R i) γ x) ∈
-      TwoHiddenLayer.FunctionClass reluActivation d m₁ m₂ := by
+      TwoHiddenLayer.FunctionClass NeuralNetwork.relu d m₁ m₂ := by
   -- Concatenate the networks for each rectIndicatorNet.
   -- First layer: take disjoint union of first layers (size = sum of individual m₁'s).
   -- Second layer: one neuron per rectangle, each computing its own rectIndicatorNet.
@@ -811,7 +811,7 @@ theorem folkloreBound {δ ε : ℝ} (hδ : 0 < δ) (hε : 0 < ε)
     (g : (EuclideanSpace ℝ (Fin d)) → ℝ) (hg : Continuous g)
     (hω : uniformModulus g δ ≤ (ε : WithTop ℝ)) :
     ∃ (f : (EuclideanSpace ℝ (Fin d)) → ℝ) (m₁ m₂ : ℕ),
-      f ∈ TwoHiddenLayer.FunctionClass reluActivation d m₁ m₂ ∧
+      f ∈ TwoHiddenLayer.FunctionClass NeuralNetwork.relu d m₁ m₂ ∧
       ∫ x in unitCube d, |f x - g x| ≤ 2 * ε := by
   -- Step 1: Obtain a δ-fine partition of the unit cube
   rcases exists_unitCube_partition hδ with ⟨P, _⟩
@@ -840,7 +840,7 @@ theorem folkloreBound {δ ε : ℝ} (hδ : 0 < δ) (hε : 0 < ε)
   -- f(x) = Σ_R g(representative R) · gγ_R(x)
   set f := (fun x => ∑ R ∈ P.rectangles, g (representative R) * rectIndicatorNet R γ x) with hf_def
   -- Step 5: Show f is in TwoHiddenLayer.FunctionClass
-  have h_f_mem : ∃ m₁ m₂ : ℕ, f ∈ TwoHiddenLayer.FunctionClass reluActivation d m₁ m₂ := by
+  have h_f_mem : ∃ m₁ m₂ : ℕ, f ∈ TwoHiddenLayer.FunctionClass NeuralNetwork.relu d m₁ m₂ := by
     -- Use the lemma sum_rectIndicatorNet_mem_FunctionClass,
     -- converting the Finset sum to a sum over a Fintype.
     -- Let ι := P.rectangles (which is a Finset).

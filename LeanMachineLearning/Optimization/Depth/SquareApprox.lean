@@ -134,7 +134,7 @@ theorem squareInterp_network_size (i : ℕ) :
     ∃ net : ReLUNetwork (2 * i),
       net.totalNodes ≤ 4 * i ∧
       ∀ x ∈ Set.Icc (0 : ℝ) 1,
-        (∑ j, net.outWeights j * reluActivation 0) = squareInterp i x := by
+        (∑ j, net.outWeights j * NeuralNetwork.relu 0) = squareInterp i x := by
   sorry
 
 /-! ### Lower bound (Theorem 5.2, part 4) -/

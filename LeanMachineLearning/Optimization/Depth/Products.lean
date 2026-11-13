@@ -72,7 +72,7 @@ lemma squareInterp_at_zero (k : ℕ) : squareInterp k 0 = 0 := by
     intro n
     induction n with
     | zero => simp [deltaTentIter]
-    | succ n ih => simp [deltaTentIter, ih, deltaTent, reluActivation]
+    | succ n ih => simp [deltaTentIter, ih, deltaTent, NeuralNetwork.relu]
   simp [squareInterp, h]
 
 /-- For x ∈ [0,1], we have Δ(x/2) = x.
@@ -80,7 +80,7 @@ lemma squareInterp_at_zero (k : ℕ) : squareInterp k 0 = 0 := by
 lemma deltaTent_half_eq (x : ℝ) (hx : x ∈ Set.Icc (0 : ℝ) 1) : deltaTent (x / 2) = x := by
   rcases Set.mem_Icc.mp hx with ⟨hx0, hx1⟩
   by_cases hx_one : x = 1
-  · subst hx_one; simp [deltaTent, reluActivation]; norm_num
+  · subst hx_one; simp [deltaTent, NeuralNetwork.relu]; norm_num
   · have hx_lt_one : x < 1 := by
       by_contra! H; exact hx_one (by linarith)
     have hx2_mem : x / 2 ∈ Set.Ico (0 : ℝ) (1/2) := by
@@ -178,7 +178,7 @@ theorem approxProdL_network_size (k l : ℕ) (hk : 0 < k) (hl : 0 < l) :
     ∃ net : ReLUNetwork (3 * k * l),
       net.totalNodes ≤ 2 * (k * l + l^2) ∧
       ∀ x : Fin l → ℝ, (∀ j, x j ∈ Set.Icc (0 : ℝ) 1) →
-        ∑ j, net.outWeights j * reluActivation 0 = approxProdL k l x := by
+        ∑ j, net.outWeights j * NeuralNetwork.relu 0 = approxProdL k l x := by
   sorry
 
 end Depth

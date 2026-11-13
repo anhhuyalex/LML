@@ -400,7 +400,7 @@ theorem sigmoidal_isUniversal (σ : ℝ → ℝ) (hσ : Sigmoidal σ) :
 
 /-- Corollary: F_{ReLU,d} is a universal approximator.
     Uses the fact that z ↦ σ_ReLU(z) - σ_ReLU(z-1) exhibits sigmoidal-type behavior. -/
-theorem relu_isUniversal : IsUniversal (OneHiddenLayer.UnboundedClass reluActivation d) := by
+theorem relu_isUniversal : IsUniversal (OneHiddenLayer.UnboundedClass NeuralNetwork.relu d) := by
   sorry
 
 /-! ### Alternative Universal Approximation Conditions -/

@@ -53,21 +53,21 @@ noncomputable def coeff (g : ℝ → ℝ) (ρ ε : ℝ) : ℕ → ℝ
   f_ε(x) = ∑_{i=0}^{m-1} aᵢ · 1[x ≥ bᵢ] -/
 noncomputable def stepApprox (g : ℝ → ℝ) (ρ ε : ℝ) (x : ℝ) : ℝ :=
   ∑ i ∈ range (numSteps ρ ε),
-    coeff g ρ ε i * thresholdActivation (x - breakpoint ρ ε i)
+    coeff g ρ ε i * NeuralNetwork.threshold (x - breakpoint ρ ε i)
 
 /-- The step-function approximant lies in the threshold network function class. -/
 theorem stepApprox_mem_FunctionClass (_hρ : 0 < ρ) (_hε : 0 < ε) :
     (fun (x : EuclideanSpace ℝ (Fin 1))
       => stepApprox g ρ ε (x 0)) ∈
-        OneHiddenLayer.FunctionClass thresholdActivation 1 (numSteps ρ ε) := by
+        OneHiddenLayer.FunctionClass NeuralNetwork.threshold 1 (numSteps ρ ε) := by
   simp only [OneHiddenLayer.FunctionClass, Set.mem_ofPred_eq]
-  let net : OneHiddenLayer.Network thresholdActivation 1 (numSteps ρ ε) :=
+  let net : OneHiddenLayer.Network NeuralNetwork.threshold 1 (numSteps ρ ε) :=
     { weights := fun i => (EuclideanSpace.equiv (Fin 1) ℝ).symm (fun _ => 1)
       biases  := fun i => -(breakpoint ρ ε i.val)
       coeffs  := fun i => coeff g ρ ε i.val }
   exact ⟨net, by
     ext x
-    simp only [OneHiddenLayer.Network.eval, stepApprox, thresholdActivation]
+    simp only [OneHiddenLayer.Network.eval, stepApprox, NeuralNetwork.threshold]
     rw [← Fin.sum_univ_eq_sum_range]
     apply Finset.sum_congr rfl
     intro i _
@@ -136,23 +136,23 @@ lemma stepApprox_collapse (g : ℝ → ℝ) (ρ ε x : ℝ) {k : ℕ}
     Finset.range_subset_range.mpr hk
   -- Terms with index > k vanish because `x < bᵢ` forces the threshold to `0`.
   have hzero : ∀ i ∈ Finset.range (numSteps ρ ε), i ∉ Finset.range (k + 1) →
-      coeff g ρ ε i * thresholdActivation (x - breakpoint ρ ε i) = 0 := by
+      coeff g ρ ε i * NeuralNetwork.threshold (x - breakpoint ρ ε i) = 0 := by
     intro i hi hni
     rw [Finset.mem_range] at hi
     rw [Finset.mem_range, not_lt] at hni
     have hlt : x < breakpoint ρ ε i := hgt i (by omega) hi
     have hcond : ¬ (x - breakpoint ρ ε i ≥ 0) := by
       simp only [ge_iff_le, not_le]; linarith
-    simp only [thresholdActivation]
+    simp only [NeuralNetwork.threshold]
     rw [ite_eq_right hcond, mul_zero]
   -- Terms with index ≤ k keep coefficient `aᵢ` because `bᵢ ≤ x` forces threshold `1`.
   have hone : ∀ i ∈ Finset.range (k + 1),
-      coeff g ρ ε i * thresholdActivation (x - breakpoint ρ ε i) = coeff g ρ ε i := by
+      coeff g ρ ε i * NeuralNetwork.threshold (x - breakpoint ρ ε i) = coeff g ρ ε i := by
     intro i hi
     rw [Finset.mem_range] at hi
     have hbi : breakpoint ρ ε i ≤ x := hle i (by omega)
     have hcond : x - breakpoint ρ ε i ≥ 0 := by simp only [ge_iff_le]; linarith
-    simp only [thresholdActivation]
+    simp only [NeuralNetwork.threshold]
     rw [ite_eq_left hcond, mul_one]
   rw [stepApprox, ← sum_coeff_eq g ρ ε k, ← Finset.sum_subset hsub hzero]
   exact Finset.sum_congr rfl hone

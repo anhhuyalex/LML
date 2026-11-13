@@ -100,7 +100,7 @@ theorem numAffinePieces_composed_linear_le {n : ℕ} (f : ℝ → ℝ) (a : Fin 
   sorry
 
 /-- The ReLU activation has exactly 2 affine pieces. -/
-lemma numAffinePieces_relu : N_A(reluActivation) = 2 := by
+lemma numAffinePieces_relu : N_A(NeuralNetwork.relu) = 2 := by
   sorry
 
 

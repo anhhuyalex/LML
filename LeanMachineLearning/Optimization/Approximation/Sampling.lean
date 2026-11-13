@@ -1646,16 +1646,16 @@ end SignedMaurey
 
 open Approximation.InfiniteWidth
 
-lemma thresholdActivation_meas : Measurable thresholdActivation := by
-  unfold thresholdActivation
+lemma thresholdActivation_meas : Measurable NeuralNetwork.threshold := by
+  unfold NeuralNetwork.threshold
   apply Measurable.ite
   · exact measurableSet_Ici
   · exact measurable_const
   · exact measurable_const
 
 lemma thresholdActivation_bound (x : ℝ) :
-    0 ≤ thresholdActivation x ∧ thresholdActivation x ≤ 1 := by
-  unfold thresholdActivation
+    0 ≤ NeuralNetwork.threshold x ∧ NeuralNetwork.threshold x ≤ 1 := by
+  unfold NeuralNetwork.threshold
   split_ifs <;> norm_num
 
 /-- Extract the first `d` coordinates of an augmented weight-bias vector as a weight vector. -/
@@ -1681,7 +1681,7 @@ lemma barronSamplingBound_measurability
     {d : ℕ} {Ω_x : Type*} [MeasurableSpace Ω_x]
     (x_embed : Ω_x → EuclideanSpace ℝ (Fin d)) (hx_meas : Measurable x_embed) :
     Measurable (fun (p : (Fin (d + 1) → ℝ) × Ω_x) =>
-      thresholdActivation (inner ℝ (extractWeights p.1) (x_embed p.2) - extractBias p.1)) := by
+      NeuralNetwork.threshold (inner ℝ (extractWeights p.1) (x_embed p.2) - extractBias p.1)) := by
   apply thresholdActivation_meas.comp
   have hc : Continuous
       (fun p : (EuclideanSpace ℝ (Fin d)) × (EuclideanSpace ℝ (Fin d)) =>
@@ -1711,11 +1711,11 @@ lemma barronSamplingBound_L2
     (w : Fin (d + 1) → ℝ) :
     MemLp
       (fun (x : Ω_x) =>
-        thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w))
+        NeuralNetwork.threshold (inner ℝ (extractWeights w) (x_embed x) - extractBias w))
       2 P := by
   have h_meas_w : Measurable
       (fun (x : Ω_x) =>
-        thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w)) := by
+        NeuralNetwork.threshold (inner ℝ (extractWeights w) (x_embed x) - extractBias w)) := by
     have h1 : Continuous
         (fun x : EuclideanSpace ℝ (Fin d) =>
           inner ℝ (extractWeights w) x - extractBias w) := by
@@ -1723,17 +1723,17 @@ lemma barronSamplingBound_L2
     exact (thresholdActivation_meas).comp (h1.measurable.comp hx_meas)
   have h_ae : AEStronglyMeasurable
       (fun (x : Ω_x) =>
-        thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w)) P :=
+        NeuralNetwork.threshold (inner ℝ (extractWeights w) (x_embed x) - extractBias w)) P :=
     h_meas_w.aestronglyMeasurable
   have h_bound : ∀ᵐ (x : Ω_x) ∂P,
-      ‖thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w)‖ ≤ 1 := by
+      ‖NeuralNetwork.threshold (inner ℝ (extractWeights w) (x_embed x) - extractBias w)‖ ≤ 1 := by
     filter_upwards [] with x
     have h_ta := thresholdActivation_bound (inner ℝ (extractWeights w) (x_embed x) - extractBias w)
     rw [Real.norm_eq_abs, abs_le]
     constructor <;> linarith
   exact MemLp.of_bound
     (f := fun (x : Ω_x) =>
-      thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w))
+      NeuralNetwork.threshold (inner ℝ (extractWeights w) (x_embed x) - extractBias w))
     (p := 2) (μ := P) (C := 1) h_ae h_bound
 
 lemma barronSamplingBound_integrability_pos
@@ -1742,11 +1742,11 @@ lemma barronSamplingBound_integrability_pos
     (x : Ω_x) (μ : Measure (Fin (d + 1) → ℝ)) [IsFiniteMeasure μ] :
     Integrable
       (fun (w : Fin (d + 1) → ℝ) =>
-        thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w))
+        NeuralNetwork.threshold (inner ℝ (extractWeights w) (x_embed x) - extractBias w))
       μ := by
   have h_meas_x : Measurable
       (fun (w : Fin (d + 1) → ℝ) =>
-        thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w)) := by
+        NeuralNetwork.threshold (inner ℝ (extractWeights w) (x_embed x) - extractBias w)) := by
     have h1 : Continuous
         (fun wb : (Fin (d + 1) → ℝ) =>
           inner ℝ (extractWeights wb) (x_embed x) - extractBias wb) := by
@@ -1754,21 +1754,21 @@ lemma barronSamplingBound_integrability_pos
     exact thresholdActivation_meas.comp h1.measurable
   have h_ae : AEStronglyMeasurable
       (fun (w : Fin (d + 1) → ℝ) =>
-        thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w)) μ :=
+        NeuralNetwork.threshold (inner ℝ (extractWeights w) (x_embed x) - extractBias w)) μ :=
     h_meas_x.aestronglyMeasurable
   have h_bound : ∀ᵐ (w : Fin (d + 1) → ℝ) ∂μ,
-      ‖thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w)‖ ≤ 1 := by
+      ‖NeuralNetwork.threshold (inner ℝ (extractWeights w) (x_embed x) - extractBias w)‖ ≤ 1 := by
     filter_upwards [] with w
     have h_ta := thresholdActivation_bound (inner ℝ (extractWeights w) (x_embed x) - extractBias w)
     rw [Real.norm_eq_abs, abs_le]
     constructor <;> linarith
   have h_mem : MemLp
       (fun (w : Fin (d + 1) → ℝ) =>
-        thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w))
+        NeuralNetwork.threshold (inner ℝ (extractWeights w) (x_embed x) - extractBias w))
       1 μ :=
     MemLp.of_bound
       (f := fun (w : Fin (d + 1) → ℝ) =>
-        thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w))
+        NeuralNetwork.threshold (inner ℝ (extractWeights w) (x_embed x) - extractBias w))
       (p := 1) (μ := μ) (C := 1) h_ae h_bound
   exact h_mem.integrable le_rfl
 
@@ -1778,12 +1778,12 @@ lemma barronSamplingBound_hB
     (P : Measure Ω_x) [IsProbabilityMeasure P]
     (w : Fin (d + 1) → ℝ) :
     ∫ (x : Ω_x),
-        (thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w)) ^ 2 ∂P
+        (NeuralNetwork.threshold (inner ℝ (extractWeights w) (x_embed x) - extractBias w)) ^ 2 ∂P
       ≤ 1 := by
   have h_L2 := barronSamplingBound_L2 x_embed hx_meas P w
   have h_int_bound :
       ∫ (x : Ω_x),
-          (thresholdActivation (inner ℝ (extractWeights w) (x_embed x) - extractBias w)) ^ 2 ∂P
+          (NeuralNetwork.threshold (inner ℝ (extractWeights w) (x_embed x) - extractBias w)) ^ 2 ∂P
         ≤ ∫ (x : Ω_x), (1 : ℝ) ∂P := by
     apply integral_mono
     · exact MemLp.integrable_sq h_L2
@@ -1823,7 +1823,7 @@ theorem barronSamplingBound
       (biases : Fin k → ℝ)
       (signs : Fin k → ℝ),
       (∫ ω, (f (x_embed ω) - (f 0 + (2 * C / k) * ∑ i, signs i *
-        thresholdActivation (inner ℝ (weights i) (x_embed ω) - biases i))) ^ 2 ∂P)
+        NeuralNetwork.threshold (inner ℝ (weights i) (x_embed ω) - biases i))) ^ 2 ∂P)
           ≤ 4 * C ^ 2 / k := by
   have h_barron := BarronNorm.barronTheorem hf_cont hf_L1 hfhat_L1 hf.1
   rcases h_barron with ⟨net, h_mass, h_eval⟩
@@ -1835,9 +1835,9 @@ theorem barronSamplingBound
       intro ω
       have hx := hx_unit ω
       have heq := h_eval (x_embed ω) hx
-      have heval0 : InfiniteWidthNetwork.eval thresholdActivation net
+      have heval0 : InfiniteWidthNetwork.eval NeuralNetwork.threshold net
           (fun (wb : Fin (d + 1) → ℝ) ↦
-            thresholdActivation
+            NeuralNetwork.threshold
               (inner ℝ
                 ((EuclideanSpace.equiv (Fin d) ℝ).symm (fun j ↦ wb j.castSucc))
                 (x_embed ω) - wb (Fin.last d))) =
@@ -1855,7 +1855,7 @@ theorem barronSamplingBound
     rw [h_int_zero]
     positivity
   · let g : (Fin (d + 1) → ℝ) → Ω_x → ℝ := fun wb ω ↦
-      thresholdActivation (inner ℝ (extractWeights wb) (x_embed ω) - extractBias wb)
+      NeuralNetwork.threshold (inner ℝ (extractWeights wb) (x_embed ω) - extractBias wb)
     have hg_meas : Measurable (Function.uncurry g) :=
       barronSamplingBound_measurability x_embed hx_meas
     have hg_L2 : ∀ w, MemLp (g w) 2 P := barronSamplingBound_L2 x_embed hx_meas P
@@ -1881,7 +1881,7 @@ theorem barronSamplingBound
     use weights, biases, signs
     have h_integrand_eq : ∀ ω,
         (f (x_embed ω) - (f 0 + (2 * C / k) * ∑ i, signs i *
-          thresholdActivation (inner ℝ (weights i) (x_embed ω) - biases i))) =
+          NeuralNetwork.threshold (inner ℝ (weights i) (x_embed ω) - biases i))) =
         signedIntegral net.measure (fun w => g w ω) -
           (1 / k : ℝ) * ∑ i, rescaled net.measure (fun w => g w ω) (ws i) := by
       intro ω
@@ -1893,7 +1893,7 @@ theorem barronSamplingBound
       rw [h_eval_eq]
       have h_sum_eq :
           (2 * C / (k : ℝ)) * ∑ i,
-              signs i * thresholdActivation (inner ℝ (weights i) (x_embed ω) - biases i) =
+              signs i * NeuralNetwork.threshold (inner ℝ (weights i) (x_embed ω) - biases i) =
           (1 / (k : ℝ)) * ∑ i, rescaled net.measure (fun w => g w ω) (ws i) := by
         rw [Finset.mul_sum, Finset.mul_sum]
         apply Finset.sum_congr rfl
@@ -1903,11 +1903,11 @@ theorem barronSamplingBound
         have eq1 :
             (2 * C / ↑k) *
               (signWeight (ws i).2 * totalMass net.measure / (2 * C) *
-                thresholdActivation
+                NeuralNetwork.threshold
                   (inner ℝ (extractWeights (ws i).1) (x_embed ω) - extractBias (ws i).1)) =
             ((2 * C) * (2 * C)⁻¹) *
               ((signWeight (ws i).2 * totalMass net.measure) *
-                thresholdActivation
+                NeuralNetwork.threshold
                   (inner ℝ (extractWeights (ws i).1) (x_embed ω) -
                     extractBias (ws i).1) /
                 ↑k) := by ring
@@ -1917,7 +1917,7 @@ theorem barronSamplingBound
       linarith
     have h_int_eq :
         (∫ ω, (f (x_embed ω) - (f 0 + (2 * C / k) * ∑ i, signs i *
-          thresholdActivation (inner ℝ (weights i) (x_embed ω) - biases i))) ^ 2 ∂P) =
+          NeuralNetwork.threshold (inner ℝ (weights i) (x_embed ω) - biases i))) ^ 2 ∂P) =
         ∫ ω, (signedIntegral net.measure (fun w => g w ω) -
           (1 / k : ℝ) * ∑ i, rescaled net.measure (fun w => g w ω) (ws i)) ^ 2 ∂P := by
       apply integral_congr_ae
@@ -1925,7 +1925,7 @@ theorem barronSamplingBound
       rw [h_integrand_eq ω]
     rw [h_int_eq]
     have h_bound1 : M ^ 2 * 1 / k ≤ 4 * C ^ 2 / k := by
-      have hm_eq : M = InfiniteWidthNetwork.mass thresholdActivation net := by
+      have hm_eq : M = InfiniteWidthNetwork.mass NeuralNetwork.threshold net := by
         dsimp [M, totalMass, InfiniteWidthNetwork.mass]
         have h_tv : net.measure.totalVariation Set.univ =
             net.measure.toJordanDecomposition.posPart Set.univ +
@@ -1968,7 +1968,7 @@ theorem univariateSamplingBound
       (signs : Fin k → ℝ),
       (∫ ω, (g (x_embed ω) -
         (Approximation.InfiniteWidth.totalVariationCost (deriv g) / k) *
-          ∑ i, signs i * thresholdActivation (x_embed ω - biases i)) ^ 2 ∂P)
+          ∑ i, signs i * NeuralNetwork.threshold (x_embed ω - biases i)) ^ 2 ∂P)
         ≤ (Approximation.InfiniteWidth.totalVariationCost (deriv g)) ^ 2 / k := by
   sorry
 

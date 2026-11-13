@@ -71,7 +71,7 @@ theorem depthSeparation (L : ℕ) (hL : 2 ≤ L) (g : ℝ → ℝ)
     (hNet : ∃ net : ReLUNetwork L, net.totalNodes ≤ 2 ^ L ∧
         ∀ x, g x = (∑ j : Fin (net.widths ⟨L - 1, Nat.sub_lt net.hLpos (by decide)⟩),
           net.outWeights j *
-          reluActivation ((∑ k : Fin (if ((⟨L - 1, Nat.sub_lt net.hLpos (by decide)⟩ :
+          NeuralNetwork.relu ((∑ k : Fin (if ((⟨L - 1, Nat.sub_lt net.hLpos (by decide)⟩ :
               Fin L).val = 0) then 1 else
             net.widths ⟨((⟨L - 1, Nat.sub_lt net.hLpos (by decide)⟩ : Fin L).val) - 1, by
               have hi : ((⟨L - 1, Nat.sub_lt net.hLpos (by decide)⟩ : Fin L).val) < L :=
@@ -79,7 +79,7 @@ theorem depthSeparation (L : ℕ) (hL : 2 ≤ L) (g : ℝ → ℝ)
               exact Nat.lt_of_le_of_lt (Nat.sub_le _ 1) hi
             ⟩),
             net.weights (⟨L - 1, Nat.sub_lt net.hLpos (by decide)⟩ : Fin L) j k) *
-            reluActivation 0 +
+            NeuralNetwork.relu 0 +
               net.biases (⟨L - 1, Nat.sub_lt net.hLpos (by decide)⟩ : Fin L) j) +
               net.outBias)) :
     (1 : ℝ)/32 ≤
@@ -90,7 +90,7 @@ theorem depthSeparation (L : ℕ) (hL : 2 ≤ L) (g : ℝ → ℝ)
 theorem deltaTentIter_network_size (L : ℕ) (hL : 2 ≤ L) :
     ∃ net : ReLUNetwork (2*L^2 + 4),
       (∀ x, (∑ j : Fin (net.widths ⟨(2*L^2 + 4) - 1, Nat.sub_lt net.hLpos (by decide)⟩),
-        net.outWeights j * reluActivation 0) = deltaTentIter (L^2 + 2) x) ∧
+        net.outWeights j * NeuralNetwork.relu 0) = deltaTentIter (L^2 + 2) x) ∧
       net.totalNodes = 3*L^2 + 6 := by
   sorry
 

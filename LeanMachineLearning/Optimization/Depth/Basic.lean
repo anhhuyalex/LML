@@ -58,7 +58,7 @@ namespace Depth
 /-- The tent function Δ, defined via ReLU:
   Δ(x) = 2σ(x) − 4σ(x − 1/2) + 2σ(x − 1). -/
 noncomputable def deltaTent (x : ℝ) : ℝ :=
-  2 * reluActivation x - 4 * reluActivation (x - 1/2) + 2 * reluActivation (x - 1)
+  2 * NeuralNetwork.relu x - 4 * NeuralNetwork.relu (x - 1/2) + 2 * NeuralNetwork.relu (x - 1)
 
 /-- The fractional part of a real number: ⟨x⟩ = x − ⌊x⌋. -/
 noncomputable def fractionalPart (x : ℝ) : ℝ := x - ⌊x⌋
@@ -67,7 +67,7 @@ noncomputable def fractionalPart (x : ℝ) : ℝ := x - ⌊x⌋
 
 lemma deltaTent_of_Ico_left (x : ℝ) (hx : x ∈ Set.Ico (0 : ℝ) (1 / 2)) :
     deltaTent x = 2 * x := by
-  simp only [deltaTent, reluActivation]
+  simp only [deltaTent, NeuralNetwork.relu]
   rcases Set.mem_Ico.mp hx with ⟨hx0, hx1⟩
   have h1 : max x 0 = x := max_eq_left hx0
   have h2 : max (x - 1/2) 0 = 0 := by
@@ -80,7 +80,7 @@ lemma deltaTent_of_Ico_left (x : ℝ) (hx : x ∈ Set.Ico (0 : ℝ) (1 / 2)) :
 
 lemma deltaTent_of_Ico_right (x : ℝ) (hx : x ∈ Set.Ico (1 / 2 : ℝ) 1) :
     deltaTent x = 2 - 2 * x := by
-  simp only [deltaTent, reluActivation]
+  simp only [deltaTent, NeuralNetwork.relu]
   rcases Set.mem_Ico.mp hx with ⟨hx1, hx2⟩
   have h1 : max x 0 = x := max_eq_left (le_trans (by norm_num : (0 : ℝ) ≤ 1/2) hx1)
   have h2 : max (x - 1/2) 0 = x - 1/2 := by
@@ -91,7 +91,7 @@ lemma deltaTent_of_Ico_right (x : ℝ) (hx : x ∈ Set.Ico (1 / 2 : ℝ) 1) :
 
 lemma deltaTent_of_outside (x : ℝ) (hx : x ∉ Set.Ico (0 : ℝ) 1) :
     deltaTent x = 0 := by
-  simp only [deltaTent, reluActivation]
+  simp only [deltaTent, NeuralNetwork.relu]
   rw [Set.mem_Ico, not_and_or] at hx
   by_cases h : x < 0
   · have h1 : max x 0 = 0 := max_eq_right (le_of_lt h)
@@ -115,7 +115,7 @@ lemma deltaTent_nonneg (x : ℝ) (hx : x ∈ Set.Icc (0 : ℝ) 1) : 0 ≤ deltaT
     nlinarith
   · by_cases hx_eq_one : x = 1
     · rw [hx_eq_one]
-      simp [deltaTent, reluActivation]
+      simp [deltaTent, NeuralNetwork.relu]
       norm_num
     · have hx_lt_one : x < 1 := by
         by_contra! H
@@ -130,7 +130,7 @@ lemma deltaTent_reflection (z : ℝ) (hz : z ∈ Set.Icc (0 : ℝ) 1) :
   by_cases hz_lt_half : z < 1/2
   · by_cases hz_eq_zero : z = 0
     · rw [hz_eq_zero]
-      simp [deltaTent, reluActivation]
+      simp [deltaTent, NeuralNetwork.relu]
       norm_num
     · have hz_pos : 0 < z := by
         by_contra! H
@@ -145,14 +145,14 @@ lemma deltaTent_reflection (z : ℝ) (hz : z ∈ Set.Icc (0 : ℝ) 1) :
       ring
   · by_cases hz_eq_half : z = 1/2
     · rw [hz_eq_half]
-      simp [deltaTent, reluActivation]
+      simp [deltaTent, NeuralNetwork.relu]
       norm_num
     · have hz_gt_half : 1/2 < z := by
         by_contra! H
         exact hz_eq_half (by linarith)
       by_cases hz_eq_one : z = 1
       · rw [hz_eq_one]
-        simp [deltaTent, reluActivation]
+        simp [deltaTent, NeuralNetwork.relu]
         norm_num
       · have hz_lt_one : z < 1 := by
           by_contra! H
@@ -186,7 +186,7 @@ lemma deltaTent_of_Icc (x : ℝ) (hx : x ∈ Set.Icc (0 : ℝ) 1) :
   · have hx_ge_half : 1/2 ≤ x := by linarith
     by_cases hx_eq_one : x = 1
     · rw [hx_eq_one]
-      simp [deltaTent, reluActivation]
+      simp [deltaTent, NeuralNetwork.relu]
       norm_num
     · have hx_lt_one : x < 1 := by
         by_contra! H; exact hx_eq_one (by linarith)
@@ -267,7 +267,7 @@ theorem deltaTentIter_eq (L : ℕ) (hL : 1 ≤ L) (x : ℝ) (hx : x ∈ Set.Icc 
         simp [deltaTentIter, fractionalPart, h_floor]
       · have hx_eq_one : x = 1 := by linarith
         rw [hx_eq_one]
-        simp [deltaTentIter, fractionalPart, deltaTent, reluActivation]
+        simp [deltaTentIter, fractionalPart, deltaTent, NeuralNetwork.relu]
         norm_num
     | succ m =>
       rw [deltaTentIter_succ]

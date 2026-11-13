@@ -23,8 +23,8 @@ corresponding to Section 2 of the deep learning theory notes.
 
 ## Main definitions
 
-* `thresholdActivation` : the Heaviside threshold function σ(z) = 1[z ≥ 0]
-* `reluActivation` : the ReLU function σ(z) = max(z, 0)
+* `NeuralNetwork.threshold` : the Heaviside threshold function σ(z) = 1[z ≥ 0]
+* `NeuralNetwork.relu` : the ReLU function σ(z) = max(z, 0)
 * `Sigmoidal` : predicate for sigmoidal activations (continuous, limits 0 and 1)
 * `OneHiddenLayer.FunctionClass σ d m` : class of single-hidden-layer networks
   with activation σ, input dimension d, and width m
@@ -45,17 +45,6 @@ namespace Approximation
 
 /-! ### Activation functions -/
 
-/-- Compatibility wrapper for the shared threshold activation. -/
-noncomputable def thresholdActivation : ℝ → ℝ := fun z => if z ≥ 0 then 1 else 0
-
-/-- Compatibility wrapper for the shared ReLU activation. -/
-noncomputable def reluActivation : ℝ → ℝ := fun z => max z 0
-
-theorem thresholdActivation_eq_threshold :
-    thresholdActivation = NeuralNetwork.threshold := rfl
-
-theorem reluActivation_eq_relu : reluActivation = NeuralNetwork.relu := rfl
-
 /-- A sigmoidal activation is continuous with limits 0 at -∞ and 1 at +∞. -/
 structure Sigmoidal (σ : ℝ → ℝ) : Prop where
   continuous : Continuous σ
@@ -63,7 +52,7 @@ structure Sigmoidal (σ : ℝ → ℝ) : Prop where
   tendsto_atTop : Filter.Tendsto σ Filter.atTop (nhds 1)
 
 /-- The threshold activation is not `Sigmoidal`: that predicate requires continuity. -/
-lemma thresholdActivation_not_sigmoidal : ¬ Sigmoidal thresholdActivation := by
+lemma thresholdActivation_not_sigmoidal : ¬ Sigmoidal NeuralNetwork.threshold := by
   intro h
   exact NeuralNetwork.not_continuousAt_threshold_zero h.continuous.continuousAt
 
