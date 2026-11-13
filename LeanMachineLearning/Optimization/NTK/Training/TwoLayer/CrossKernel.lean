@@ -303,24 +303,9 @@ private theorem tendsto_measure_crossKernel_drift_core
     obtain ⟨hp2, hJ0, hall⟩ := hEp p hpE
     have hpU2 : ‖empiricalNTKMatrix (netFromParams φ n d) (Fin.snoc (α := fun _ => Fin d → ℝ)
         Xs xs : Fin (m + 1) → Fin d → ℝ) (packParams p.1 p.2) - L'‖ < 1 := not_le.1 hpU'
-    have hrow := norm_row_castSucc_le
-      (empiricalNTKMatrix (netFromParams φ n d) (Fin.snoc (α := fun _ => Fin d → ℝ) Xs xs :
-        Fin (m + 1) → Fin d → ℝ) (packParams p.1 p.2) - L') (Fin.last m)
     have hg0 : ‖gradParams φ n d xs (packParams p.1 p.2)‖ ≤ G₀ := by
-      rw [hG₀]
-      refine Real.le_sqrt_of_sq_le ?_
-      have h1 : ‖gradParams φ n d xs (packParams p.1 p.2)‖ ^ 2 = empiricalNTKMatrix
-          (netFromParams φ n d)
-          (Fin.snoc (α := fun _ => Fin d → ℝ) Xs xs : Fin (m + 1) → Fin d → ℝ)
-          (packParams p.1 p.2) (Fin.last m) (Fin.last m) := by
-        rw [(empiricalNTKMatrix_snoc_last _ _ _ _ (⟨0, hm⟩ : Fin m)).2,
-          tangentFeature_netFromParams_of_differentiable φ hφ, real_inner_self_eq_norm_sq]
-      have h2 := hrow.2
-      rw [Matrix.sub_apply] at h2
-      have h3 := (abs_le.1 (h2.trans hpU2.le)).2
-      have h4 := le_abs_self (L' (Fin.last m) (Fin.last m))
-      rw [h1]
-      linarith
+      rw [hG₀, ← tangentFeature_netFromParams_of_differentiable φ hφ]
+      exact (tangent_row_facts (netFromParams φ n d) Xs xs hm _ L' le_rfl hpU2.le).2
     have hreadout : ∀ i : Fin n,
         |packParams p.1 p.2 (paramIndexEquiv n d (Sum.inr i))| ≤
         Real.sqrt (2 * Real.log (2 * n / δ)) := fun i => by
