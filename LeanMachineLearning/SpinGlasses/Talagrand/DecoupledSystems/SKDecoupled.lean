@@ -29,7 +29,6 @@ in closed form to hyperbolic functions.
 
 ## Main declarations
 
-* `SpinGlasses.integrable_tanh_sq`: integrability of `tanh²(Y)` under any probability measure.
 * `SpinGlasses.decoupled_partition_function_eq`:
   $Z_0 = 2^N \prod_{i \in \iota} \cosh(Y_i)$ (Eq. 1.32).
 * `SpinGlasses.decoupled_sum_spin_mul_exp_eq`:
@@ -57,13 +56,6 @@ open MeasureTheory ProbabilityTheory Filter Finset
 open scoped BigOperators Topology Real Matrix
 
 namespace SpinGlasses
-
-/-- Integrability of `tanh²(Y)` under any probability measure for an almost-everywhere
-measurable random variable `Y`. -/
-lemma integrable_tanh_sq {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω}
-    [IsProbabilityMeasure P] (Y : Ω → ℝ) (hY : AEMeasurable Y P) :
-    Integrable (fun ω => Real.tanh (Y ω) ^ 2) P :=
-  MeasureTheory.integrable_tanh_sq Y hY
 
 /-- For any random variable `Y` under a probability measure,
 `∫ tanh⁴(Y) - 2 ∫ tanh²(Y) + 1 = ∫ (1 - tanh²(Y))² ∈ [0, 1]`. -/

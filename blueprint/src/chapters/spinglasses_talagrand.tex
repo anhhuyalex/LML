@@ -403,7 +403,7 @@ Formalized in \texttt{ForMathlib/Algebra/BigOperators/HypercubeProduct.lean}.
 
 \begin{theorem}[Decoupled partition function and local observables]\label{thm:sg-tal:decoupled-partition}
   \lean{Real.continuous_tanh,
-        SpinGlasses.integrable_tanh_sq,
+        MeasureTheory.integrable_tanh_sq,
         SpinGlasses.decoupled_partition_function_eq,
         SpinGlasses.decoupled_partition_function_eq_mul_erase,
         SpinGlasses.decoupled_sum_spin_mul_exp_eq,
@@ -10563,7 +10563,7 @@ Let $\Phi=-\frac{\beta^2}4\sum_{u,v}(\rho_{uv}^2-q_{uv}^2)+\mathbb E\log\int\mat
 \end{proof}
 
 \begin{theorem}[Frobenius bounds for the fixed point, Eq.~(1.382)]\label{thm:sg-tal:vector-fixed-point-bounds}
-\lean{MeasureTheory.sum_sq_integral_le, SpinGlasses.sum_sq_integral_tilted_le, SpinGlasses.sum_sq_skVectorFixedPoint_le, SpinGlasses.skVectorFieldExponent, SpinGlasses.integrable_exp_skVectorFieldExponent, SpinGlasses.sum_sq_skVectorFixedPoint_field_le}
+\lean{MeasureTheory.sum_sq_integral_le, MeasureTheory.sum_sq_integral_tilted_le, SpinGlasses.sum_sq_skVectorFixedPoint_le, SpinGlasses.skVectorFieldExponent, SpinGlasses.integrable_exp_skVectorFieldExponent, SpinGlasses.sum_sq_skVectorFixedPoint_field_le}
 \leanok
 \uses{thm:sg-tal:vector-cavity-bounds}
 \talsource{End of the proof of Corollary~1.12.5, Eq.~(1.382)}

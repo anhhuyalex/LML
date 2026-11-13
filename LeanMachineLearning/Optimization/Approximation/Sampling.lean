@@ -909,20 +909,8 @@ private lemma memLp_pi_eval {Ω_w : Type*} [MeasurableSpace Ω_w] {ν : Measure 
 private lemma integral_pi_eval {Ω_w : Type*} [MeasurableSpace Ω_w] {ν : Measure Ω_w}
     [IsProbabilityMeasure ν]
     {k : ℕ} (i : Fin k) {g : Ω_w → ℝ} (hg : AEStronglyMeasurable g ν) :
-    ∫ ω : Fin k → Ω_w, g (ω i) ∂(Measure.pi (fun _ : Fin k => ν)) = ∫ w, g w ∂ν := by
-  have hmap_i : Measure.map (fun ω : Fin k → Ω_w => ω i) (Measure.pi (fun _ : Fin k => ν)) =
-    ν := by
-    have h_eval : (fun ω : Fin k → Ω_w => ω i) = Function.eval i := rfl
-    rw [h_eval, Measure.pi_map_eval]
-    simp
-  have hg_meas : AEStronglyMeasurable g (Measure.map (fun ω : Fin k → Ω_w => ω i)
-        (Measure.pi (fun _ : Fin k => ν))) := by
-    rw [hmap_i]
-    exact hg
-  change ∫ ω, g (ω i) ∂(Measure.pi (fun _ : Fin k => ν)) = ∫ w, g w ∂ν
-  rw [← integral_map (measurable_pi_apply i : Measurable (fun ω : Fin k → Ω_w => ω i)).aemeasurable
-        hg_meas]
-  rw [hmap_i]
+    ∫ ω : Fin k → Ω_w, g (ω i) ∂(Measure.pi (fun _ : Fin k => ν)) = ∫ w, g w ∂ν :=
+  integral_comp_eval hg
 
 private lemma map_pi_eval_eq {Ω_w : Type*} [MeasurableSpace Ω_w] {ν : Measure Ω_w}
     [IsProbabilityMeasure ν]

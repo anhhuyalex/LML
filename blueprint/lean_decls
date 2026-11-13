@@ -1099,7 +1099,7 @@ NTK.sum_eq_sum_badSet
 NTK.relu_error_sum_le
 NTK.sqrt_sum_sq_eq_zero
 NTK.frob_sub_le
-NTK.sqrt_add_le_add_sqrt
+Real.sqrt_add_le_add_sqrt
 NTK.m_pow_bound
 NTK.sqrt_B_pow
 NTK.sqrt_m_pow
@@ -3118,7 +3118,7 @@ sum_units_int
 hypercube_sum_prod_eq_prod_add
 hypercube_sum_prod_erase_eq_prod_add
 Real.continuous_tanh
-SpinGlasses.integrable_tanh_sq
+MeasureTheory.integrable_tanh_sq
 SpinGlasses.decoupled_partition_function_eq
 SpinGlasses.decoupled_partition_function_eq_mul_erase
 SpinGlasses.decoupled_sum_spin_mul_exp_eq
@@ -4585,7 +4585,7 @@ SpinGlasses.hasDerivAt_skVectorPressure_rho
 SpinGlasses.hasDerivAt_skVectorPressure_segment
 SpinGlasses.hasDerivAt_skVectorPressure_segment_eq_zero
 MeasureTheory.sum_sq_integral_le
-SpinGlasses.sum_sq_integral_tilted_le
+MeasureTheory.sum_sq_integral_tilted_le
 SpinGlasses.sum_sq_skVectorFixedPoint_le
 SpinGlasses.skVectorFieldExponent
 SpinGlasses.integrable_exp_skVectorFieldExponent

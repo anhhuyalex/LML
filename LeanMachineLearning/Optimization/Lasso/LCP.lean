@@ -1412,15 +1412,9 @@ theorem nonnegative_minNorm_solution_norm_bound
   rcases hxS with ⟨hx_nonneg, hx_sum⟩
   exact ⟨x, ⟨hx_nonneg, hx_sum, hx_min⟩, h_unique, h_norm_bound⟩
 
-/--
-The positive lasso objective achieves its minimum on the non-negative orthant.
-Informal proof: The positive lasso objective is a convex quadratic function. Since the problem data
-$r$ is in the span of $M$, the objective is bounded below. By the Frank-Wolfe theorem for quadratic
-programming, a convex quadratic function bounded below on a polyhedron achieves its minimum.
-Source: docs/Lasso.md Section 4.4, Proposition 4.9.
--/
--- For nonnegative vectors, ‖x‖₂ ≤ ‖x‖₁ (the standard inequality for Euclidean norms).
-private lemma norm_le_sum_of_nonnegative
+/-- For a nonnegative vector the Euclidean norm is at most the sum of its coordinates
+(`‖x‖₂ ≤ ‖x‖₁`). -/
+lemma norm_le_sum_of_nonnegative
     (x : EuclideanSpace ℝ ι) (hx : Nonnegative x) : ‖x‖ ≤ ∑ i, x i := by
   have hsq : ‖x‖ ^ 2 ≤ (∑ i, x i) ^ 2 := by
     rw [EuclideanSpace.real_norm_sq_eq]

@@ -158,7 +158,7 @@ of the replica law. -/
 theorem integral_pi_eval (ν : Measure α) [IsProbabilityMeasure ν] {J : Type*} [Fintype J]
     (i : J) (h : α → ℝ) (hh : AEStronglyMeasurable h ν) :
     ∫ σ : J → α, h (σ i) ∂(Measure.pi fun _ : J => ν) = ∫ a, h a ∂ν :=
-  (measurePreserving_eval (fun _ : J => ν) i).integral_comp_of_aestronglyMeasurable hh
+  integral_comp_eval hh
 
 /-- **The replica covariance identity.** For `Y` a function of the replicas `some o`
 (`o : Option R`) and `h` a function of one spin, the covariance of `Y` with the sum of `h` over all

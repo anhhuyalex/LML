@@ -744,12 +744,8 @@ lemma exists_gt_of_hasDerivAt_zero_pos {f : ℝ → ℝ} {c : ℝ} (hd : HasDeri
   have h_both := ht.and self_mem_nhdsWithin
   rcases h_both.exists with ⟨x, hx_slope, hx_pos⟩
   refine ⟨x, hx_pos, ?_⟩
-  dsimp at hx_slope
-  rw [zero_add] at hx_slope
-  have hpos_inv : 0 < x⁻¹ := inv_pos.mpr hx_pos
-  have h_mul : 0 < x * (x⁻¹ • (f x - f 0)) := mul_pos hx_pos hx_slope
-  rw [smul_eq_mul, ← mul_assoc, mul_inv_cancel₀ hx_pos.ne', one_mul] at h_mul
-  linarith
+  simp only [zero_add, smul_eq_mul] at hx_slope
+  exact sub_pos.1 ((mul_pos_iff_of_pos_left (inv_pos.2 hx_pos)).1 hx_slope)
 
 theorem skReplica_ratio_neg_beta (n : ℕ) (β h q : ℝ) :
     (∫ z : ℝ, cosh (-β * z * Real.sqrt q + h) ^ n *

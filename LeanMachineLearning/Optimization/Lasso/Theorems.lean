@@ -11,6 +11,7 @@ public import LeanMachineLearning.Optimization.Lasso.MirrorFlow
 public import LeanMachineLearning.Optimization.Lasso.Definitions
 public import LeanMachineLearning.Optimization.Lasso.Bounds.Delta
 public import LeanMachineLearning.Optimization.Lasso.Bounds.Energy
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SqrtSub
 public import Mathlib.Topology.MetricSpace.Basic
 public import Mathlib.Analysis.Calculus.Deriv.Basic
 public import Mathlib.Data.Matrix.Block
@@ -562,18 +563,6 @@ theorem exists_dual_certificate_for_positive_path
   constructor
   · exact dual_certificate_regularity M Mdagger r lambda x_lasso w hdata hinverse hsol
   · exact hsol
-
-/-- `sqrt(a + b) ≤ sqrt a + sqrt b` for nonnegative `a, b`. Not in Mathlib under this name;
-proved by squaring, since `(sqrt a + sqrt b)^2 = a + b + 2 sqrt a sqrt b ≥ a + b`. -/
-private lemma sqrt_add_le_add_sqrt {a b : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) :
-    Real.sqrt (a + b) ≤ Real.sqrt a + Real.sqrt b := by
-  have h1 : a + b ≤ (Real.sqrt a + Real.sqrt b) ^ 2 := by
-    have hsa := Real.sq_sqrt ha
-    have hsb := Real.sq_sqrt hb
-    nlinarith [mul_nonneg (Real.sqrt_nonneg a) (Real.sqrt_nonneg b)]
-  calc Real.sqrt (a + b) ≤ Real.sqrt ((Real.sqrt a + Real.sqrt b) ^ 2) := Real.sqrt_le_sqrt h1
-    _ = Real.sqrt a + Real.sqrt b :=
-      Real.sqrt_sq (by positivity)
 
 /-- The rescaled integrated trajectory `τ ↦ z^ε(τ)` is continuously differentiable.
 This extracts the `C¹` argument that is reused in several absolute-continuity proofs
@@ -1593,7 +1582,7 @@ constant `C_E` uniform in `s` (`Bounds/Energy.lean`'s `energy_complementarity_bo
 to hold a.e. rather than pointwise-everywhere — see that file's docstring for why the "kink"
 case is discarded for free). `pathDelta_uniform_bound` gives `Δᵋ(τ) ≤ D` uniformly on `[0,s]`,
 where `D = C_D·(1/L·(s+z↑(s)) + z↓(s)) + C_D·δ_D`. Bounding `√(2Δᵋ(τ)) ≤ √(2D)` and splitting
-`√(2D)` via `sqrt_add_le_add_sqrt` isolates a term `C_E·√(2C_D)·√(z↓(s))` (matching
+`√(2D)` via `Real.sqrt_add_le_add_sqrt` isolates a term `C_E·√(2C_D)·√(z↓(s))` (matching
 `suboptimalityGap`'s leading term) from an `ε`-vanishing remainder (→ 0 as `ε → 0` since
 `1/log(1/ε) → 0`) and a `δ_E, δ_D`-controllable remainder. Choosing `C := max(C_E·√(2C_D), C_E)`
 and `δ_E, δ_D` proportional to the target `δ`/4 absorbs the controllable remainder into `δ`;
@@ -1889,10 +1878,10 @@ lemma positive_energy_integrated_bound
     have hC_nonneg : 0 ≤ C_rem := by
       dsimp [C_rem]; positivity
     have hAB : Real.sqrt (A + B) ≤ Real.sqrt A + Real.sqrt B :=
-      sqrt_add_le_add_sqrt hA_nonneg hB_nonneg
+      Real.sqrt_add_le_add_sqrt hA_nonneg hB_nonneg
     have h_tot : Real.sqrt (A + B + C_rem) ≤ Real.sqrt (A + B) + Real.sqrt C_rem := by
       have hAB_nonneg : 0 ≤ A + B := by positivity
-      exact sqrt_add_le_add_sqrt hAB_nonneg hC_nonneg
+      exact Real.sqrt_add_le_add_sqrt hAB_nonneg hC_nonneg
     have h_sqrt_B : Real.sqrt B = Real.sqrt (2 * C_D) * Real.sqrt z_down_s := by
       dsimp [B]
       rw [Real.sqrt_mul (by positivity : 0 ≤ 2*C_D) z_down_s]
@@ -2241,10 +2230,10 @@ lemma positive_energy_integrated_bound_of_monotone
     have hC_nonneg : 0 ≤ C_rem := by
       dsimp [C_rem]; positivity
     have hAB : Real.sqrt (A + B) ≤ Real.sqrt A + Real.sqrt B :=
-      sqrt_add_le_add_sqrt hA_nonneg hB_nonneg
+      Real.sqrt_add_le_add_sqrt hA_nonneg hB_nonneg
     have h_tot : Real.sqrt (A + B + C_rem) ≤ Real.sqrt (A + B) + Real.sqrt C_rem := by
       have hAB_nonneg : 0 ≤ A + B := by positivity
-      exact sqrt_add_le_add_sqrt hAB_nonneg hC_nonneg
+      exact Real.sqrt_add_le_add_sqrt hAB_nonneg hC_nonneg
     have h_sqrt_B : Real.sqrt B = Real.sqrt (2 * C_D) * Real.sqrt z_down_s := by
       dsimp [B]
       rw [Real.sqrt_mul (by positivity : 0 ≤ 2*C_D) z_down_s]

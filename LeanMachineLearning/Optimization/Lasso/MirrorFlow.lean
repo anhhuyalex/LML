@@ -1687,26 +1687,6 @@ private lemma mul_log_le_sq (t : ℝ) (ht : 0 ≤ t) : t * Real.log t ≤ t ^ 2 
   · have hlog : Real.log t ≤ t - 1 := Real.log_le_sub_one_of_pos h0
     nlinarith [h0.le]
 
--- `‖x‖ ≤ ∑ᵢ xᵢ` for nonnegative `x`: the ℓ² norm is dominated by the ℓ¹ norm
--- (= the sum, since `x ≥ 0`) coordinatewise.
-private lemma norm_le_sum_of_nonneg (x : EuclideanSpace ℝ ι) (hx : Nonnegative x) :
-    ‖x‖ ≤ ∑ i, x i := by
-  have hsq : ‖x‖ ^ 2 ≤ (∑ i, x i) ^ 2 := by
-    rw [EuclideanSpace.real_norm_sq_eq]
-    have hterm : ∀ i, x.ofLp i ^ 2 ≤ x.ofLp i * ∑ j, x j := by
-      intro i
-      have hle : x i ≤ ∑ j, x j := Finset.single_le_sum (fun j _ => hx j) (Finset.mem_univ i)
-      have hxi : (0 : ℝ) ≤ x.ofLp i := hx i
-      calc x.ofLp i ^ 2 = x.ofLp i * x.ofLp i := sq (x.ofLp i)
-        _ ≤ x.ofLp i * ∑ j, x j := mul_le_mul_of_nonneg_left hle hxi
-    calc ∑ i, x.ofLp i ^ 2 ≤ ∑ i, x.ofLp i * ∑ j, x j := Finset.sum_le_sum (fun i _ => hterm i)
-      _ = (∑ i, x.ofLp i) * (∑ j, x j) := by rw [← Finset.sum_mul]
-      _ = (∑ i, x i) ^ 2 := (sq _).symm
-  have hnn1 : 0 ≤ ‖x‖ := norm_nonneg x
-  have hnn2 : 0 ≤ ∑ i, x i := Finset.sum_nonneg (fun i _ => hx i)
-  have := Real.sqrt_le_sqrt hsq
-  rwa [Real.sqrt_sq hnn1, Real.sqrt_sq hnn2] at this
-
 private lemma sum_eq_inner_ones (x : EuclideanSpace ℝ ι) :
     (∑ i, x i) = inner ℝ (ones : EuclideanSpace ℝ ι) x := by
   dsimp [ones, euclideanOf]
@@ -1734,7 +1714,7 @@ private lemma inner_eq_sum_mul_alphaLogSq (α x' : EuclideanSpace ℝ ι) :
 /--
 Lower half of Eq. (4.8) from `docs/Lasso.md`, stated with `L = -log ε` in place
 of `log(1/ε)` and with the Euclidean norm `‖x'‖` in place of `‖x'‖₁` (valid
-since `‖x'‖ ≤ ‖x'‖₁ = ∑ x'ᵢ` for `x' ≥ 0`, `norm_le_sum_of_nonneg`).  Requires
+since `‖x'‖ ≤ ‖x'‖₁ = ∑ x'ᵢ` for `x' ≥ 0`, `norm_le_sum_of_nonnegative`).  Requires
 `log ε ≤ -1` (i.e. `ε ≤ 1/e`) so that the coefficient of `∑ x'ᵢ` is nonnegative.
 -/
 private lemma entropyBregman_scaled_lower_bound
@@ -1752,7 +1732,7 @@ private lemma entropyBregman_scaled_lower_bound
       simpa [inner_eq_sum_mul_alphaLogSq] using real_inner_le_norm x' (alphaLogSq α)
     nlinarith
   have h3 : (-Real.log ε) * ‖x'‖ ≤ (-Real.log ε) * (∑ i, x' i) :=
-    mul_le_mul_of_nonneg_left (norm_le_sum_of_nonneg x' hx') (by linarith)
+    mul_le_mul_of_nonneg_left (norm_le_sum_of_nonnegative x' hx') (by linarith)
   have hε2 : (0 : ℝ) ≤ ε * ∑ i, α i * α i :=
     mul_nonneg hε0.le (Finset.sum_nonneg (fun i _ => mul_self_nonneg _))
   linarith [h1, h2, h3, hε2]
@@ -2253,7 +2233,7 @@ theorem pos_trajectory_uniform_bound
     have hx_nonneg : Nonnegative (posEffectiveParameter (u ε) t) :=
       posEffectiveParameter_nonnegative (u ε) t
     calc ‖posEffectiveParameter (u ε) t‖ ≤ ∑ i, posEffectiveParameter (u ε) t i :=
-        norm_le_sum_of_nonneg _ hx_nonneg
+        norm_le_sum_of_nonnegative _ hx_nonneg
       _ = inner ℝ (ones : EuclideanSpace ℝ ι) (posEffectiveParameter (u ε) t) :=
         sum_eq_inner_ones _
       _ ≤ K'' / lambda := hones_bound

@@ -23,11 +23,6 @@ open Real
 
 namespace SpinGlasses
 
-theorem sinh_abs_eq_abs_sinh (g : ℝ) : sinh |g| = |sinh g| := by
-  rcases le_total 0 g with h | h
-  · rw [abs_of_nonneg h, abs_of_nonneg (Real.sinh_nonneg_iff.2 h)]
-  · rw [abs_of_nonpos h, Real.sinh_neg, abs_of_nonpos (Real.sinh_nonpos_iff.2 h)]
-
 /-- The defect of the hyperbolic Cauchy-Schwarz inequality, as a quadratic form. -/
 theorem hyp_cs_defect (a₁ a₂ g : ℝ) :
     (cosh a₁ ^ 2 * cosh |g| + sinh a₁ ^ 2 * sinh |g|) *
@@ -35,7 +30,7 @@ theorem hyp_cs_defect (a₁ a₂ g : ℝ) :
       (cosh a₁ * cosh a₂ * cosh g + sinh a₁ * sinh a₂ * sinh g) ^ 2 =
     cosh g * (|sinh g| * ((cosh a₁ * sinh a₂) ^ 2 + (sinh a₁ * cosh a₂) ^ 2) -
       2 * sinh g * (cosh a₁ * sinh a₂) * (sinh a₁ * cosh a₂)) := by
-  rw [Real.cosh_abs, sinh_abs_eq_abs_sinh]
+  rw [Real.cosh_abs, ← Real.abs_sinh]
   have h : sinh g ^ 2 = |sinh g| ^ 2 := (sq_abs _).symm
   linear_combination (sinh a₁ ^ 2 * sinh a₂ ^ 2) * (-h)
 

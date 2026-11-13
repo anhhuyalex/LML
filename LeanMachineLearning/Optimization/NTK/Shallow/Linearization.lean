@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.Optimization.NTK.Shallow.Kernel
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SqrtSub
 public import Mathlib.Probability.Moments.SubGaussian
 
 /-!
@@ -925,19 +926,6 @@ lemma card_largePerturb_bound
   rw [div_pow]
   exact (le_div_iff₀ hr_pos).mpr h_bound
 
-/-- `√(x + y) ≤ √x + √y` for nonnegative `x` and `y`. -/
-lemma sqrt_add_le_add_sqrt {x y : ℝ} (hx : 0 ≤ x) (hy : 0 ≤ y) :
-    Real.sqrt (x + y) ≤ Real.sqrt x + Real.sqrt y := by
-  rw [Real.sqrt_le_iff]
-  refine ⟨add_nonneg (Real.sqrt_nonneg _) (Real.sqrt_nonneg _), ?_⟩
-  calc x + y ≤ x + y + 2 * (Real.sqrt x * Real.sqrt y) := by
-        have : 0 ≤ 2 * (Real.sqrt x * Real.sqrt y) := mul_nonneg zero_le_two (mul_nonneg
-            (Real.sqrt_nonneg _) (Real.sqrt_nonneg _))
-        linarith
-    _ = (Real.sqrt x) ^ 2 + (Real.sqrt y) ^ 2 + 2 * (Real.sqrt x * Real.sqrt y) :=
-        by rw [Real.sq_sqrt hx, Real.sq_sqrt hy]
-    _ = (Real.sqrt x + Real.sqrt y) ^ 2 := by ring
-
 /-- `m^{-1/4} ≤ m^{-1/6}` for `m ≥ 1`. -/
 lemma m_pow_bound (m : ℕ) (hm : 1 ≤ m) : (m : ℝ) ^ (-1/4 : ℝ) ≤ (m : ℝ) ^ (-1/6 : ℝ) :=
   Real.rpow_le_rpow_of_exponent_le (by exact_mod_cast hm) (by norm_num)
@@ -1069,7 +1057,7 @@ lemma reluLinearization_algebraic_bound
   have h_sqrt_S_div : Real.sqrt (S_bound / (m : ℝ)) ≤ Real.sqrt (2 * B ^ (2/3 : ℝ) * (m : ℝ) ^ (-1/3
       : ℝ)) + Real.sqrt (Real.sqrt (1 / (2 * (m : ℝ)) * Real.log (1 / δ))) := by
     rw [h_S_div]
-    apply sqrt_add_le_add_sqrt <;> positivity
+    apply Real.sqrt_add_le_add_sqrt <;> positivity
   have h_term1 : Real.sqrt (2 * B ^ (2/3 : ℝ) * (m : ℝ) ^ (-1/3 : ℝ)) =
       Real.sqrt 2 * B ^ (1/3 : ℝ) * (m : ℝ) ^ (-1/6 : ℝ) := by
     rw [Real.sqrt_mul (by positivity), Real.sqrt_mul (by positivity)]
