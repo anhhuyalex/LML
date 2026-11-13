@@ -207,6 +207,7 @@ public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianVector
 public import LeanMachineLearning.ForMathlib.Probability.Moments.IidSumExpansion
 public import LeanMachineLearning.ForMathlib.Probability.Moments.IidSumMoments
+public import LeanMachineLearning.ForMathlib.Probability.Moments.MemLpExp
 public import LeanMachineLearning.ForMathlib.Probability.Moments.PiSumChebyshev
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SecondMoment
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SubExponential

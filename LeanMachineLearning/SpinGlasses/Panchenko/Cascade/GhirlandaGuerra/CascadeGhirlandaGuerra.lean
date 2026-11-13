@@ -249,8 +249,8 @@ theorem ghirlandaGuerra_Q (n : ℕ) (f : (Fin n → Fin n → Fin (r + 1)) → �
           Real.exp (∑ i : Fin r, σ i * leafLabel (lab ω) b i)) _).trans ?_
     refine tsum_congr fun τ => ?_
     congr 1
-    simp only [hΞ, Fintype.sum_option, hc0, hc1, one_mul, finSuccEquivLast_symm_some,
-      finSuccEquivLast_symm_none, ENNReal.toReal_ofReal (hf _)]
+    simp only [Function.comp_apply, hΞ, Fintype.sum_option, hc0, hc1, one_mul,
+      finSuccEquivLast_symm_some, finSuccEquivLast_symm_none, ENNReal.toReal_ofReal (hf _)]
     rw [← Finset.mul_sum]
     ring
   simp_rw [e2] at h2

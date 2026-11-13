@@ -136,24 +136,14 @@ theorem skReplica_ratio_le_one (n : ℕ) (β h q : ℝ) :
   have hden := integral_cosh_pow_sk_pos n β h q
   rw [div_le_one hden]
   refine integral_mono (integrable_cosh_pow_mul_tanh_sq_sk n β h q)
-    (integrable_cosh_pow_sk n β h q) fun z => ?_
-  calc cosh (β * z * Real.sqrt q + h) ^ n * tanh (β * z * Real.sqrt q + h) ^ 2
-    _ ≤ cosh (β * z * Real.sqrt q + h) ^ n * 1 :=
-      mul_le_mul_of_nonneg_left ((Real.tanh_sq_lt_one _).le)
-        (pow_nonneg (Real.cosh_pos _).le _)
-    _ = cosh (β * z * Real.sqrt q + h) ^ n := mul_one _
+    (integrable_cosh_pow_sk n β h q) fun z => cosh_pow_mul_tanh_sq_le n _
 
 /-- At `β = 0`, `Φ_n(q)` is constant and equals `n * log (cosh h)`. -/
 theorem replica_phi_zero (n : ℕ) (h q : ℝ) :
     n * (0 : ℝ) ^ 2 * (1 - q) ^ 2 / 4 - (n : ℝ) ^ 2 * 0 ^ 2 * q ^ 2 / 4 +
         Real.log (∫ z : ℝ, cosh (0 * z * Real.sqrt q + h) ^ n ∂(gaussianReal 0 1)) =
       n * Real.log (cosh h) := by
-  have heq : (fun z : ℝ => cosh (0 * z * Real.sqrt q + h) ^ n) =
-      (fun _ => cosh h ^ n) := by
-    ext z; congr 2; ring
-  simp_rw [heq]
-  rw [integral_const, probReal_univ, smul_eq_mul, one_mul, Real.log_pow]
-  ring
+  simp [Real.log_pow]
 
 /-- At `β = 0`, the replica ratio is identically `th² h`. -/
 theorem skReplica_ratio_zero (n : ℕ) (h q : ℝ) :
@@ -199,24 +189,6 @@ theorem exists_skReplica_maximizer_fixedPoint_zero (n : ℕ) (h : ℝ) :
     rw [replica_phi_zero (q := tanh h ^ 2)]
     exact hlim
 
-/-- 1D Gaussian expectation of `ch(w z + h)`. -/
-theorem integral_cosh_affine_gaussianReal (w h : ℝ) :
-    ∫ z : ℝ, cosh (w * z + h) ∂(gaussianReal 0 1) = Real.exp (w ^ 2 / 2) * cosh h := by
-  have hch (z : ℝ) : cosh (w * z + h) =
-      (Real.exp h * Real.exp (w * z) + Real.exp (-h) * Real.exp (-w * z)) / 2 := by
-    rw [cosh_eq, ← Real.exp_add, ← Real.exp_add]
-    congr 1; congr 1
-    · congr 1; ring
-    · congr 1; ring
-  simp_rw [hch]
-  rw [integral_div, integral_add, integral_const_mul, integral_const_mul,
-    integral_exp_mul_gaussianReal_zero_one w,
-    integral_exp_mul_gaussianReal_zero_one (-w)]
-  · rw [neg_sq, Real.cosh_eq]
-    ring
-  · exact (integrable_exp_mul_gaussianReal w).const_mul _
-  · exact (integrable_exp_mul_gaussianReal (-w)).const_mul _
-
 /-- For `n = 1`, `Φ_1(q)` is constant on `q ≥ 0` and equals `β² / 4 + log (cosh h)`. -/
 theorem replica_phi_one_const (β h q : ℝ) (hq : 0 ≤ q) :
     1 * β ^ 2 * (1 - q) ^ 2 / 4 - (1 : ℝ) ^ 2 * β ^ 2 * q ^ 2 / 4 +
@@ -225,7 +197,7 @@ theorem replica_phi_one_const (β h q : ℝ) (hq : 0 ≤ q) :
   have heq : (fun z : ℝ => cosh (β * z * Real.sqrt q + h) ^ 1) =
       (fun z => cosh ((β * Real.sqrt q) * z + h)) := by
     ext z; rw [pow_one]; congr 1; ring
-  rw [heq, integral_cosh_affine_gaussianReal]
+  rw [heq, integral_cosh_mul_add_gaussianReal]
   have hpos1 : 0 < Real.exp ((β * Real.sqrt q) ^ 2 / 2) := Real.exp_pos _
   have hpos2 : 0 < cosh h := Real.cosh_pos h
   rw [Real.log_mul hpos1.ne' hpos2.ne', Real.log_exp, mul_pow, Real.sq_sqrt hq]
@@ -578,19 +550,10 @@ theorem hasDerivAt_skReplicaSum (n : ℕ) (β h q : ℝ) :
         (β ^ 2 * (∑ l, ((ε l : ℤ) : ℝ)) ^ 2 / 2)) q := by
   simp only [skReplicaSum_def]
   refine HasDerivAt.fun_sum fun ε _ => ?_
-  have hlin : HasDerivAt (fun x : ℝ => h * ∑ l, ((ε l : ℤ) : ℝ) +
-      β ^ 2 * (∑ l, ((ε l : ℤ) : ℝ)) ^ 2 * x / 2)
-    (β ^ 2 * (∑ l, ((ε l : ℤ) : ℝ)) ^ 2 / 2) q := by
-    have h1 : (fun x : ℝ => h * ∑ l, ((ε l : ℤ) : ℝ) +
-        β ^ 2 * (∑ l, ((ε l : ℤ) : ℝ)) ^ 2 * x / 2) =
-      (fun x : ℝ => (β ^ 2 * (∑ l, ((ε l : ℤ) : ℝ)) ^ 2 / 2) * x +
-        h * ∑ l, ((ε l : ℤ) : ℝ)) := by
-      ext x; ring
-    rw [h1]
-    have := ((hasDerivAt_id q).const_mul (β ^ 2 * (∑ l, ((ε l : ℤ) : ℝ)) ^ 2 / 2)).add_const
-      (h * ∑ l, ((ε l : ℤ) : ℝ))
-    simpa using this
-  exact hlin.exp
+  simpa only [mul_one, zero_add, Pi.add_apply, id_eq] using
+    ((hasDerivAt_const q (h * ∑ l, ((ε l : ℤ) : ℝ))).add
+      (((hasDerivAt_id q).const_mul
+        (β ^ 2 * (∑ l, ((ε l : ℤ) : ℝ)) ^ 2)).div_const 2)).exp
 
 theorem skReplicaSum_deriv_eq (n : ℕ) (β h q : ℝ) (hq : 0 ≤ q) :
     (∑ ε : Fin n → ℤˣ, Real.exp (h * ∑ l, ((ε l : ℤ) : ℝ) +
@@ -732,11 +695,6 @@ theorem hasDerivAt_skReplicaF (n : ℕ) (β h q : ℝ) (hq : 0 ≤ q) :
   have htot' := htot.congr_deriv hval
   exact htot'
 
-lemma isLocalMax_of_forall_le {f : ℝ → ℝ} {a : ℝ} (ha : 0 < a)
-    (hmax : ∀ x : ℝ, 0 ≤ x → f x ≤ f a) : IsLocalMax f a := by
-  filter_upwards [Ioi_mem_nhds ha] with x hx
-  exact hmax x hx.le
-
 lemma exists_gt_of_hasDerivAt_zero_pos {f : ℝ → ℝ} {c : ℝ} (hd : HasDerivAt f c 0) (hc : 0 < c) :
     ∃ x : ℝ, 0 < x ∧ f 0 < f x := by
   have ht := (hd.tendsto_slope_zero.mono_left (nhdsGT_le_nhdsNE 0)).eventually (Ioi_mem_nhds hc)
@@ -817,22 +775,13 @@ lemma exists_skReplica_maximizer_fixedPoint_pos (n : ℕ) (hn : 2 ≤ n) (β h :
     linarith
   have hC_pos : 0 < (n : ℝ) * ((n : ℝ) - 1) * β ^ 2 / 2 := by positivity
   by_cases hq0_pos : 0 < q0
-  · have hloc : IsLocalMax (skReplicaF n β h) q0 := isLocalMax_of_forall_le hq0_pos hF_max
+  · have hloc : IsLocalMax (skReplicaF n β h) q0 :=
+      (show IsMaxOn (skReplicaF n β h) (Ici 0) q0 from hF_max).isLocalMax (Ici_mem_nhds hq0_pos)
     have hder := hloc.hasDerivAt_eq_zero (hasDerivAt_skReplicaF n β h q0 hq0_nonneg)
-    have hd_eq : (n : ℝ) * ((n : ℝ) - 1) * β ^ 2 / 2 *
-        (((∫ z : ℝ, cosh (β * z * Real.sqrt q0 + h) ^ n *
-            tanh (β * z * Real.sqrt q0 + h) ^ 2 ∂(gaussianReal 0 1)) /
-          (∫ z : ℝ, cosh (β * z * Real.sqrt q0 + h) ^ n ∂(gaussianReal 0 1))) - q0) = 0 := by
-      exact hder
-    have h_sub_zero : ((∫ z : ℝ, cosh (β * z * Real.sqrt q0 + h) ^ n *
-          tanh (β * z * Real.sqrt q0 + h) ^ 2 ∂(gaussianReal 0 1)) /
-        (∫ z : ℝ, cosh (β * z * Real.sqrt q0 + h) ^ n ∂(gaussianReal 0 1))) - q0 = 0 := by
-      cases mul_eq_zero.mp hd_eq with
-      | inl h1 => linarith
-      | inr h2 => exact h2
     have h_fix : q0 = (∫ z : ℝ, cosh (β * z * Real.sqrt q0 + h) ^ n *
           tanh (β * z * Real.sqrt q0 + h) ^ 2 ∂(gaussianReal 0 1)) /
-        (∫ z : ℝ, cosh (β * z * Real.sqrt q0 + h) ^ n ∂(gaussianReal 0 1)) := by linarith
+        (∫ z : ℝ, cosh (β * z * Real.sqrt q0 + h) ^ n ∂(gaussianReal 0 1)) := by
+      linarith [(mul_eq_zero.mp hder).resolve_left hC_pos.ne']
     refine ⟨q0, hq0_nonneg, ?_, hq0_max, h_fix, hlim⟩
     rw [h_fix]
     exact skReplica_ratio_le_one n β h q0
@@ -871,13 +820,7 @@ lemma exists_skReplica_maximizer_fixedPoint_pos (n : ℕ) (hn : 2 ≤ n) (β h :
             (∫ z : ℝ, cosh (β * z * Real.sqrt 0 + h) ^ n ∂(gaussianReal 0 1))) - 0) := by
         rw [sub_zero]
         exact mul_pos hC_pos hR0_pos
-      have hd0' : HasDerivAt (skReplicaF n β h)
-          ((n : ℝ) * ((n : ℝ) - 1) * β ^ 2 / 2 *
-            (((∫ z : ℝ, cosh (β * z * Real.sqrt 0 + h) ^ n *
-                tanh (β * z * Real.sqrt 0 + h) ^ 2 ∂(gaussianReal 0 1)) /
-              (∫ z : ℝ, cosh (β * z * Real.sqrt 0 + h) ^ n ∂(gaussianReal 0 1))) - 0)) 0 := by
-        exact hd0
-      rcases exists_gt_of_hasDerivAt_zero_pos hd0' hd0_val with ⟨x, hx_pos, hx_lt⟩
+      rcases exists_gt_of_hasDerivAt_zero_pos hd0 hd0_val with ⟨x, hx_pos, hx_lt⟩
       have hx_le := hF_max x hx_pos.le
       rw [hq0_eq] at hx_le
       have hfalse : False := by linarith

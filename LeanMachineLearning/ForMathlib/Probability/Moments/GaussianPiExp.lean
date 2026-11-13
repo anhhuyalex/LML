@@ -147,6 +147,14 @@ theorem integral_cosh_sum_mul_gaussianReal {E : Type*} [Fintype E] (c : E → �
   rw [hsq, Real.cosh_eq]
   ring
 
+/-- One-dimensional case of `integral_cosh_sum_mul_gaussianReal`:
+`𝔼 cosh (w z + h) = exp (w ^ 2 / 2) * cosh h` for `z ~ N(0, 1)`. -/
+theorem integral_cosh_mul_add_gaussianReal (w h : ℝ) :
+    ∫ z : ℝ, Real.cosh (w * z + h) ∂(gaussianReal 0 1) =
+      Real.exp (w ^ 2 / 2) * Real.cosh h := by
+  have e := (measurePreserving_funUnique (gaussianReal 0 1) Unit).integral_comp'
+    (fun z => Real.cosh (w * z + h))
+  simpa [mul_comm, ← e] using integral_cosh_sum_mul_gaussianReal (E := Unit) (fun _ => w) h
 
 /-- `cosh` of affine forms in two independent finite Gaussian blocks is the average of the
 corresponding positive and negative exponential products. -/

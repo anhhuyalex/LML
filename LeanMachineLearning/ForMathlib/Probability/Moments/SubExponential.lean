@@ -6,6 +6,7 @@ Authors: Rémy Degenne
 module
 
 public import LeanMachineLearning.ForMathlib.Analysis.Complex.Exponential
+public import LeanMachineLearning.ForMathlib.Probability.Moments.MemLpExp
 public import Mathlib.Probability.Moments.SubGaussian
 public import Mathlib.Probability.Moments.MGFAnalytic
 
@@ -146,13 +147,8 @@ lemma ae_forall_memLp_exp_mul (h : HasSubexponentialMGF X V b κ ν) (p : ℝ≥
     continuous_exp.comp_aestronglyMeasurable (hm.const_mul t)
   by_cases hp : p = 0
   · simp [hp, hmeas]
-  rw [memLp_iff, eLpNorm_lt_top_iff_lintegral_rpow_enorm_lt_top (mod_cast hp) (by simp) hmeas,
-    ENNReal.coe_toReal]
-  have hf := (hi (p * t) ht).lintegral_lt_top
-  convert! hf using 3 with ω
-  rw [enorm_eq_ofReal (by positivity), ENNReal.ofReal_rpow_of_nonneg (by positivity),
-    ← exp_mul, mul_comm, ← mul_assoc]
-  positivity
+  simpa using memLp_exp_mul_of_integrable_exp_mul hm
+    (p := p) (c := t) (NNReal.coe_pos.2 (pos_iff_ne_zero.2 hp)) (hi (p * t) ht)
 
 lemma memLp_exp_mul (h : HasSubexponentialMGF X V b κ ν) {t : ℝ} (p : ℝ≥0)
     (ht : b * |(p : ℝ) * t| ≤ 1) :
@@ -161,14 +157,8 @@ lemma memLp_exp_mul (h : HasSubexponentialMGF X V b κ ν) {t : ℝ} (p : ℝ≥
     continuous_exp.comp_aestronglyMeasurable (h.aestronglyMeasurable.const_mul t)
   by_cases hp0 : p = 0
   · simp [hp0, hmeas]
-  rw [memLp_iff, eLpNorm_lt_top_iff_lintegral_rpow_enorm_lt_top (mod_cast hp0) (by simp) hmeas]
-  simp only [ENNReal.coe_toReal]
-  have h' := (h.integrable_exp_mul (p * t) ht).2
-  rw [hasFiniteIntegral_def] at h'
-  convert! h' using 3 with ω
-  rw [enorm_eq_ofReal (by positivity), enorm_eq_ofReal (by positivity),
-    ENNReal.ofReal_rpow_of_nonneg (by positivity), ← exp_mul, mul_comm, ← mul_assoc]
-  positivity
+  simpa using memLp_exp_mul_of_integrable_exp_mul h.aestronglyMeasurable
+    (p := p) (c := t) (NNReal.coe_pos.2 (pos_iff_ne_zero.2 hp0)) (h.integrable_exp_mul (p * t) ht)
 
 lemma cgf_le (h : HasSubexponentialMGF X V b κ ν) (hV : 0 ≤ V) :
     ∀ᵐ ω' ∂ν, ∀ t, b * |t| ≤ 1 → cgf X (κ ω') t ≤ V * t ^ 2 / 2 := by

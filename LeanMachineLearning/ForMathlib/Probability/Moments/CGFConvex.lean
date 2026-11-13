@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Probability.Moments.MemLpExp
 public import Mathlib.Probability.Moments.IntegrableExpMul
 public import Mathlib.Probability.Moments.Basic
 public import Mathlib.MeasureTheory.Integral.Bochner.Basic
@@ -47,32 +48,18 @@ theorem mgf_add_le_rpow_mul_rpow (hX : AEMeasurable X μ) {a b s t : ℝ}
     (ht : Integrable (fun ω => Real.exp (t * X ω)) μ) :
     mgf X μ (a * s + b * t) ≤ mgf X μ s ^ a * mgf X μ t ^ b := by
   have hpq := Real.HolderConjugate.inv_inv ha hb hab
-  set f : Ω → ℝ := fun ω => Real.exp (a * (s * X ω)) with hf
-  set g : Ω → ℝ := fun ω => Real.exp (b * (t * X ω)) with hg
+  set f : Ω → ℝ := fun ω => Real.exp ((a * s) * X ω) with hf
+  set g : Ω → ℝ := fun ω => Real.exp ((b * t) * X ω) with hg
   have hfp : ∀ ω, f ω ^ a⁻¹ = Real.exp (s * X ω) := fun ω => by
     rw [hf, ← Real.exp_mul]; congr 1; field_simp
   have hgq : ∀ ω, g ω ^ b⁻¹ = Real.exp (t * X ω) := fun ω => by
     rw [hg, ← Real.exp_mul]; congr 1; field_simp
-  have hfm : AEStronglyMeasurable f μ := by
-    refine Real.continuous_exp.comp_aestronglyMeasurable ?_
-    exact (((hX.const_mul s).const_mul a)).aestronglyMeasurable
-  have hgm : AEStronglyMeasurable g μ := by
-    refine Real.continuous_exp.comp_aestronglyMeasurable ?_
-    exact (((hX.const_mul t).const_mul b)).aestronglyMeasurable
-  have hfL : MemLp f (ENNReal.ofReal a⁻¹) μ := by
-    refine (integrable_norm_rpow_iff hfm (by simpa using ha) ENNReal.ofReal_ne_top).1 ?_
-    have : (fun ω => ‖f ω‖ ^ (ENNReal.ofReal a⁻¹).toReal) = fun ω => Real.exp (s * X ω) := by
-      funext ω
-      rw [ENNReal.toReal_ofReal (inv_nonneg.2 ha.le), Real.norm_of_nonneg (Real.exp_pos _).le,
-        hfp]
-    rw [this]; exact hs
-  have hgL : MemLp g (ENNReal.ofReal b⁻¹) μ := by
-    refine (integrable_norm_rpow_iff hgm (by simpa using hb) ENNReal.ofReal_ne_top).1 ?_
-    have : (fun ω => ‖g ω‖ ^ (ENNReal.ofReal b⁻¹).toReal) = fun ω => Real.exp (t * X ω) := by
-      funext ω
-      rw [ENNReal.toReal_ofReal (inv_nonneg.2 hb.le), Real.norm_of_nonneg (Real.exp_pos _).le,
-        hgq]
-    rw [this]; exact ht
+  have hfL : MemLp f (ENNReal.ofReal a⁻¹) μ :=
+    memLp_exp_mul_of_integrable_exp_mul hX.aestronglyMeasurable (inv_pos.2 ha)
+      (by simpa only [inv_mul_cancel_left₀ ha.ne'] using hs)
+  have hgL : MemLp g (ENNReal.ofReal b⁻¹) μ :=
+    memLp_exp_mul_of_integrable_exp_mul hX.aestronglyMeasurable (inv_pos.2 hb)
+      (by simpa only [inv_mul_cancel_left₀ hb.ne'] using ht)
   have key := integral_mul_le_Lp_mul_Lq_of_nonneg hpq
     (Filter.Eventually.of_forall fun ω => (Real.exp_pos _).le)
     (Filter.Eventually.of_forall fun ω => (Real.exp_pos _).le) hfL hgL

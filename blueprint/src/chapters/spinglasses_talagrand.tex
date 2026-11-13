@@ -11542,7 +11542,7 @@ Dividing by $N$ gives the second statement.
 \end{proof}
 
 \begin{theorem}[Convexity of the real-moment pressure and convergence of derivatives]\label{thm:sg-tal:replica-convexity}
-\lean{SpinGlasses.convexOn_log_integral_rpow_skPartition, SpinGlasses.convexOn_inv_mul_log_integral_rpow_skPartition, ProbabilityTheory.convexOn_log_integral_rpow, ProbabilityTheory.convexOn_cgf, ProbabilityTheory.mgf_add_le_rpow_mul_rpow, tendsto_deriv_of_convexOn_tendsto}
+\lean{SpinGlasses.convexOn_log_integral_rpow_skPartition, SpinGlasses.convexOn_inv_mul_log_integral_rpow_skPartition, ProbabilityTheory.convexOn_log_integral_rpow, ProbabilityTheory.convexOn_cgf, ProbabilityTheory.mgf_add_le_rpow_mul_rpow, tendsto_deriv_of_convexOn_tendsto_of_mem_Ioo, tendsto_deriv_of_convexOn_tendsto}
 \leanok
 \uses{thm:sg-tal:replica-real-moments}
 \talsource{Source lines 5920--5935, the convexity step before the exchange of limits}
@@ -11564,7 +11564,7 @@ Let $i\to\infty$: the outer terms converge to $\frac{\psi(0)-\psi(-\lambda)}\lam
 \end{proof}
 
 \begin{remark}[What this does and does not give]\label{rem:sg-tal:replica-convexity-scope}
-\talsource{Source lines 5930--5940}
+\talsource{Source lines 5939--5941}
 The convexity and the derivative-convergence statement are the two elementary facts the book uses to exchange $N\to\infty$ with $t\to0$.
 They do not prove that $\frac1N\log\mathbb EZ_N^t$ converges for $t$ in an interval around $0$, nor that the limit is differentiable at $0$; these two hypotheses are exactly what the book leaves open in this section (it only suggests adapting the proof of (1.108)). So the exchange of limits itself, and hence Eq.~(1.411), is not proved here.
 \end{remark}
@@ -11572,7 +11572,7 @@ They do not prove that $\frac1N\log\mathbb EZ_N^t$ converges for $t$ in an inter
 \begin{theorem}[Maximizing fixed point of the replica variational problem]\label{thm:sg-tal:replica-fixed-point}
 \lean{SpinGlasses.exists_skReplica_maximizer_fixedPoint}
 \leanok
-\talsource{Eq.~(1.408); source lines 5900--5915}
+\talsource{Eq.~(1.408); source lines 5905--5917}
 For every integer $n \ge 1$ and all real $\beta, h$, there exists a maximizer $q \in [0, 1]$ of
 \[
 \Phi_n(q) = \frac{n \beta^2 (1-q)^2}{4} - \frac{n^2 \beta^2 q^2}{4} + \log \mathbb E \bigl[\cosh^n(\beta z \sqrt{q} + h)\bigr]
@@ -11585,13 +11585,39 @@ and $\lim_{N \to \infty} \frac{1}{N} \log \mathbb E [Z_N^n] = n \log 2 + \Phi_n(
 \end{theorem}
 \begin{proof}
 \leanok
-\emph{Case $n=1$, $\beta=0$.} $\Phi_n$ is constant on $q\ge0$, and the fixed point reduces to $q=\tanh^2h$ or the standard fixed-point theorem.
-\emph{Case $n\ge2$, $\beta>0$.} Theorem~\ref{thm:sg-tal:replica-method} yields a maximizer $q_0\ge0$. Express the partition function as a finite configuration sum $S_n(q)$. Gaussian integration by parts, $\frac d{dq}\mathbb E\,\mathrm{ch}^n(\beta z\sqrt q+h)=\frac{\beta^2}2\mathbb E\big[n(n-1)\mathrm{ch}^{n-2}\mathrm{sh}^2+n\,\mathrm{ch}^n\big]$, gives the exact derivative: with $R_n(q)$ the right side of the tilted equation,
+Write $R_n(q)$ for the right side of the tilted equation, $Y_q=\beta z\sqrt q+h$ and $\mathrm{ch}=\cosh$, $\mathrm{th}=\tanh$. Since $0\le\mathrm{th}^2\le1$, we have $0\le R_n(q)\le1$ for all $q\ge0$; $R_n$ is continuous on $[0,1]$ by dominated convergence (the integrands are bounded by $\mathrm{ch}^n(Y_q)\le e^{n(|\beta||z|+|h|)}$, which is integrable against $N(0,1)$ uniformly for $q\le1$).
+The limit statement is always the one of Theorem~\ref{thm:sg-tal:replica} (integer $n$), evaluated at the chosen $q$; the proof only has to produce a maximizer of $\Phi_n$ on $q\ge0$ that is a fixed point of $R_n$.
+
+\emph{Case $n=1$ (any $\beta,h$).} Here $\mathbb E\,\mathrm{ch}(\beta z\sqrt q+h)=e^{\beta^2q/2}\mathrm{ch}\,h$, hence
 \[
-\Phi_n'(q)=-\frac{n\beta^2(1-q)}2-\frac{n^2\beta^2q}2+\frac{\beta^2}2\Big(n(n-1)R_n(q)+n\Big)=\frac{n(n-1)\beta^2}2\big(R_n(q)-q\big)\qquad(q\ge0).
+\Phi_1(q)=\frac{\beta^2(1-q)^2}4-\frac{\beta^2q^2}4+\frac{\beta^2q}2+\log\mathrm{ch}\,h=\frac{\beta^2}4+\log\mathrm{ch}\,h\qquad(q\ge0)
 \]
-If $q_0>0$, Fermat's theorem on interior local maxima gives $\Phi_n'(q_0)=0$, i.e.\ $q_0=R_n(q_0)$. If $q_0=0$, either $h=0$ (so $R_n(0)=\tanh^20=0=q_0$) or $h\ne0$, in which case $\Phi_n'(0)=\frac{n(n-1)\beta^2}2R_n(0)>0$ contradicts maximality of $0$. Nonnegativity and $q_0\le1$ follow from the ratio bounds ($0\le R_n\le1$).
-\emph{Case $\beta<0$.} Symmetry under $\beta\mapsto-\beta$ and $z\mapsto-z$.
+is constant, so every $q\ge0$ is a maximizer. The continuous function $q\mapsto R_1(q)-q$ is $\ge0$ at $q=0$ and $\le0$ at $q=1$, so the intermediate value theorem gives a fixed point $q\in[0,1]$ of $R_1$.
+
+\emph{Case $\beta=0$.} Then $Y_q=h$ does not depend on $q$ or $z$, so $\Phi_n(q)=n\log\mathrm{ch}\,h$ is constant and $R_n(q)=\mathrm{th}^2h$ for every $q$. Take $q=\mathrm{th}^2h\in[0,1)$.
+
+\emph{Case $\beta<0$.} The substitution $z\mapsto-z$ shows that $\Phi_n$, $R_n$ and $\mathbb E\,Z_N^n$ (via $g\mapsto-g$) are unchanged under $\beta\mapsto-\beta$, so the case $\beta>0$ applies.
+
+\emph{Case $\beta>0$, $n\ge2$.} Let $q_0\ge0$ be a maximizer of $\Phi_n$ on $[0,\infty)$ given by Theorem~\ref{thm:sg-tal:replica}. The derivative of $\Phi_n$ is not computed from the Gaussian expression, which is only defined for $q\ge0$ (it contains $\sqrt q$). Instead use the finite sum over spin configurations $\varepsilon\in\{\pm1\}^n$,
+\[
+S_n(q)=\sum_{\varepsilon}\exp\Big(h\sum_{l}\varepsilon_l+\frac{\beta^2q}2\Big(\sum_l\varepsilon_l\Big)^2\Big),\qquad
+S_n(q)=2^n\,\mathbb E\,\mathrm{ch}^n(Y_q)\quad(q\ge0),
+\]
+where the identity is $e^{\beta^2 m^2q/2}=\mathbb E\,e^{\beta z\sqrt q\,m}$ for $m=\sum_l\varepsilon_l$. Unlike the Gaussian expression, $S_n$ is a finite sum of exponentials of affine functions of $q$, so it is smooth on all of $\mathbb R$, and so is
+\[
+F_n(q)=\frac{n\beta^2(1-q)^2}4-\frac{n^2\beta^2q^2}4+\log S_n(q)-n\log2,
+\]
+which equals $\Phi_n(q)$ for $q\ge0$. Differentiating termwise, $S_n'(q)=\frac{\beta^2}2\sum_\varepsilon m_\varepsilon^2\exp(\cdots)$. Write $m_\varepsilon^2=n+\sum_{l\ne l'}\varepsilon_l\varepsilon_{l'}$ and use, for $l\ne l'$, $\sum_\varepsilon\varepsilon_l\varepsilon_{l'}e^{Y\sum_k\varepsilon_k}=(2\,\mathrm{ch}\,Y)^n\,\mathrm{th}^2Y$ with $Y=Y_q$ (the sum factorizes over the $n$ spins, the two marked ones contributing $2\,\mathrm{sh}\,Y$ each). For $q\ge0$ this gives
+\[
+\frac{S_n'(q)}{S_n(q)}=\frac{\beta^2}2\Big(n+n(n-1)R_n(q)\Big),\qquad
+F_n'(q)=-\frac{n\beta^2}2-\frac{n(n-1)\beta^2}2\,q+\frac{\beta^2}2\Big(n+n(n-1)R_n(q)\Big)=\frac{n(n-1)\beta^2}2\big(R_n(q)-q\big).
+\]
+Now two sub-cases.
+\begin{itemize}
+\item $q_0>0$. Then $F_n=\Phi_n\le\Phi_n(q_0)=F_n(q_0)$ on the neighbourhood $[0,\infty)$ of $q_0$, so $q_0$ is a local maximum of the smooth function $F_n$ on $\mathbb R$, and Fermat's theorem gives $F_n'(q_0)=0$. Since $\frac{n(n-1)\beta^2}2>0$, this means $q_0=R_n(q_0)$.
+\item $q_0=0$. If $h=0$, then $R_n(0)=\mathrm{th}^2 0=0=q_0$, a fixed point. If $h\ne0$, then $R_n(0)=\mathrm{th}^2h>0$, so $F_n'(0)=\frac{n(n-1)\beta^2}2R_n(0)>0$. This is a right increment, not a two-sided derivative of the Gaussian expression: there is $x>0$ with $\Phi_n(x)=F_n(x)>F_n(0)=\Phi_n(0)$, contradicting that $0$ maximizes $\Phi_n$ on $q\ge0$. So this sub-case does not occur.
+\end{itemize}
+In both sub-cases $q_0=R_n(q_0)\in[0,1]$ by the bounds $0\le R_n\le1$.
 \end{proof}
 
 \begin{remark}[Not claimed: the continuation to non-integer $n$]\label{rem:sg-tal:replica-heuristic}
