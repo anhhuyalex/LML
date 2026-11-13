@@ -36,12 +36,12 @@ The \emph{unbounded-width class} is $\mathcal{F}_{\sigma,d} := \bigcup_{m \ge 0}
 \end{remark}
 
 \begin{definition}[Threshold activation]\label{def:thresholdActivation}
-  \lean{Approximation.thresholdActivation}
+  \lean{NeuralNetwork.threshold}
 The \emph{threshold activation} (Heaviside step function) is $\sigma_\theta : \mathbb{R} \to \mathbb{R}$ defined by $\sigma_\theta(z) = \mathbf{1}[z \ge 0]$.
 \end{definition}
 
 \begin{definition}[ReLU activation]\label{def:reluActivation}
-  \lean{Approximation.reluActivation}
+  \lean{NeuralNetwork.relu}
 The \emph{ReLU activation} is $\sigma_\mathrm{ReLU} : \mathbb{R} \to \mathbb{R}$ defined by $\sigma_\mathrm{ReLU}(z) = \max(z, 0)$.
 \end{definition}
 

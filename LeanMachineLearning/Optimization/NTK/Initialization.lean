@@ -527,7 +527,7 @@ re-exported by this module.
     conditional normality step; uses Part 1).
 
 * **Cho-Saul / Arc-Cosine Kernel for ReLU (Proposition 2.5)**:
-  * `NTK.relu` : Rectified Linear Unit activation function $\varphi(u) = \max\{u, 0\}$.
+  * `NeuralNetwork.relu` : Rectified Linear Unit activation function $\varphi(u) = \max\{u, 0\}$.
   * `NTK.reluIndicator` : the weak derivative `1[u ≥ 0]` of ReLU.
   * `NTK.pearsonRho_mem_Icc` : Pearson correlation $\rho \in [-1, 1]$.
   * `NTK.corrMatrix2x2_posSemidef` : positive semidefiniteness of the $2 \times 2$ correlation

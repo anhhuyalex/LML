@@ -1255,11 +1255,12 @@ for later chapters, not a Chapter~2 theorem.
 
 \subsection{Activation API}
 
-The existing \texttt{Approximation.Basic} file already defines
-\texttt{Approximation.thresholdActivation}, \texttt{Approximation.reluActivation}, and
-\texttt{Approximation.Sigmoidal}.  Those definitions should be extracted to the neutral activation
-module described above, preserving compatibility aliases during migration.  In particular, there
-must be only one ReLU definition in LML.
+The activation module \texttt{Renormalization.Activation} defines \texttt{NeuralNetwork.threshold}
+and \texttt{NeuralNetwork.relu}.  The former compatibility wrappers
+\texttt{Approximation.thresholdActivation} and \texttt{Approximation.reluActivation} (and the
+separate \texttt{NTK} copy of ReLU, see below) have been removed, and \texttt{Approximation}
+uses the shared definitions directly; only \texttt{Approximation.Sigmoidal} remains in
+\texttt{Approximation.Basic}.  In particular, there is one ReLU definition in LML.
 
 \begin{lemma}[Taylor expansion of the exponential]
 \label{lem:renorm:expTaylor}

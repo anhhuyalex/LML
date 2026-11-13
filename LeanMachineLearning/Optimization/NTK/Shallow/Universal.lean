@@ -51,6 +51,8 @@ open scoped Matrix
 
 namespace NTK
 
+open NeuralNetwork (relu)
+
 variable {d : ℕ}
 
 /-- The NTK sphere slice is a subset of the Euclidean unit sphere. -/

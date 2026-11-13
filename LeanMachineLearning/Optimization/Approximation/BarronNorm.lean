@@ -532,7 +532,8 @@ private lemma setIntegral_thresholdActivation_nonpos_eq_zero {c W : ℝ} (hc : c
         have : c < 0 := lt_of_le_of_ne hc hc0
         linarith
       simp [NeuralNetwork.threshold, h_not_nonneg]
-    simp [integral_congr_ae h_ae]
+    rw [integral_congr_ae h_ae]
+    simp
 
 -- Evaluate the integral of the scaled sine wave over [0, c]
 private lemma integral_sin_bump_ftc (c φ W : ℝ) (hW : W ≠ 0) (hc : 0 ≤ c) :

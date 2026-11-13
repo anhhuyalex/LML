@@ -38,11 +38,13 @@ open scoped BigOperators MatrixOrder RealInnerProductSpace Kronecker ENNReal
 
 namespace NTK
 
+open NeuralNetwork (relu continuous_relu)
+
 variable {d n m : ℕ}
 
 /-! ## Cho-Saul / Arc-Cosine Kernel for ReLU (Proposition 2.5) -/
 
-/-- Equation lemma for `relu` (imported from `NTK.Shallow.Linearization`). -/
+/-- Equation lemma for `NeuralNetwork.relu`. -/
 @[simp] lemma relu_apply (u : ℝ) : relu u = max u 0 := rfl
 
 /-! ### 2×2 Covariance and Correlation Geometry -/

@@ -22,6 +22,8 @@ open scoped BigOperators MatrixOrder RealInnerProductSpace Kronecker ENNReal
 
 namespace NTK
 
+open NeuralNetwork (relu)
+
 variable {d n m : ℕ}
 
 /-- The conditional expectation of the output vector vanishes. -/

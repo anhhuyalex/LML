@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.Optimization.NTK.Shallow.Kernel
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SqrtSub
+public import LeanMachineLearning.Optimization.Renormalization.Activation
 public import Mathlib.Probability.Moments.SubGaussian
 
 /-!
@@ -46,6 +47,8 @@ open Real MeasureTheory ProbabilityTheory NNReal Filter
 open scoped Matrix
 
 namespace NTK
+
+open NeuralNetwork (relu)
 
 variable {d m : ℕ}
 
@@ -690,9 +693,6 @@ lemma sign_preserved_outside_badSet
     linarith
 
 /-! ### ReLU linearization bound (Lemma 4.1) -/
-
-/-- The ReLU activation. Bundled here for convenience. -/
-noncomputable def relu : ℝ → ℝ := fun z => max z 0
 
 /-- A neuron outside the bad set contributes no linearization error. -/
 lemma relu_error_eq_zero_outside_badSet

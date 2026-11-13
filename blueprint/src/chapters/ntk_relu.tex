@@ -24,7 +24,7 @@ angular integrals separate.
 \section{The ReLU and its derivative}\label{sec:ntkr:relu}
 
 \begin{definition}[ReLU, its derivative, and the indicator]\label{def:ntkr:relu}
-  \lean{NTK.relu, NTK.reluIndicator}
+  \lean{NeuralNetwork.relu, NTK.reluIndicator}
   \leanok
 $\operatorname{relu}(z)=\max(z,0)$, and $\operatorname{reluIndicator}(z)=\mathbf 1[z\ge0]$ (the derivative of ReLU away from $0$; the ReLU is differentiable except at $0$, and the value
 at $0$ is a convention).
@@ -32,7 +32,7 @@ at $0$ is a convention).
 
 \begin{lemma}[Elementary properties of the ReLU]\label{lem:ntkr:reluProps}
   \uses{def:ntkr:relu}
-  \lean{NTK.relu_apply, NTK.relu_pos_mul, NTK.continuous_relu,
+  \lean{NTK.relu_apply, NTK.relu_pos_mul, NeuralNetwork.continuous_relu,
         NTK.reluIndicator_pos_mul, NTK.relu_eq_reluDeriv_mul, NTK.measurable_reluIndicator,
         NTK.abs_reluIndicator_le}
   \leanok

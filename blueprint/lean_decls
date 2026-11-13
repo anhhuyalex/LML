@@ -110,8 +110,6 @@ Bandits.UCB.pullCount_le_add_three_ae
 Bandits.UCB.integral_pullCount_le
 Bandits.UCB.regret_le
 Approximation.OneHiddenLayer.FunctionClass
-Approximation.thresholdActivation
-Approximation.reluActivation
 Real.cos
 Approximation.Sigmoidal
 Approximation.TwoHiddenLayer.FunctionClass
@@ -266,11 +264,9 @@ NTK.RKHSClass_smul
 NTK.RKHSClass_add
 NTK.isUniversal
 NTK.rkhs_approx_by_network
-NTK.relu
 NTK.reluIndicator
 NTK.relu_apply
 NTK.relu_pos_mul
-NTK.continuous_relu
 NTK.reluIndicator_pos_mul
 NTK.relu_eq_reluDeriv_mul
 NTK.measurable_reluIndicator

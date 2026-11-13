@@ -33,6 +33,8 @@ exported lemmas give the ReLU and ReLU-indicator formulas for directions separat
 
 namespace NTK
 
+open NeuralNetwork (relu continuous_relu)
+
 section Angular
 
 open Real MeasureTheory Set
@@ -315,10 +317,6 @@ lemma relu_pos_mul (c u : ℝ) (hc : 0 ≤ c) : relu (c * u) = c * relu u := by
   rcases le_total 0 u with hu | hu
   · rw [max_eq_left hu, max_eq_left (mul_nonneg hc hu)]
   · rw [max_eq_right hu, mul_zero, max_eq_right (mul_nonpos_of_nonneg_of_nonpos hc hu)]
-
-/-- Continuity of the ReLU activation function. -/
-lemma continuous_relu : Continuous relu :=
-  continuous_id.max continuous_const
 
 private lemma integral_prod_stdGaussian_relu_of_angular
     (theta : ℝ)
