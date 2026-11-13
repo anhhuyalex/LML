@@ -694,6 +694,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.SKReplicaMoment
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.SKReplicaTheorem
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.FinitePartition
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.FixedPoint
+public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.LargeReplicas
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.Stationarity
 public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKAsymptoticProduct
 public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKCorrelationDecay

@@ -127,33 +127,15 @@ theorem sum_spin_pair_exp_eq (n : ℕ) (Y : ℝ) (a b : Fin n) (hab : a ≠ b) :
     omega
   rw [hcard]
   have hn2 : 2 ≤ n := by
-    have := Fintype.card_fin n
     by_contra! hlt
     interval_cases n
     · exact hab (Subsingleton.elim a b)
     · exact hab (Subsingleton.elim a b)
-  have hpow : (2 * Real.cosh Y) ^ n =
-      (2 * Real.cosh Y) ^ 2 * (2 * Real.cosh Y) ^ (n - 2) := by
-    rw [← pow_add]
-    congr 1
-    omega
-  rw [hpow]
-  have htanh : Real.tanh Y = Real.sinh Y / Real.cosh Y := Real.tanh_eq_sinh_div_cosh Y
-  rw [htanh, div_pow]
+  obtain ⟨m, rfl⟩ : ∃ m, n = m + 2 := ⟨n - 2, by omega⟩
+  rw [Real.tanh_eq_sinh_div_cosh, Nat.add_sub_cancel]
   have hch : Real.cosh Y ≠ 0 := (Real.cosh_pos Y).ne'
-  have hmul : (2 * Real.cosh Y) ^ 2 * (Real.sinh Y ^ 2 / Real.cosh Y ^ 2) =
-      4 * Real.sinh Y ^ 2 := by
-    calc (2 * Real.cosh Y) ^ 2 * (Real.sinh Y ^ 2 / Real.cosh Y ^ 2)
-      _ = (4 * Real.cosh Y ^ 2) * (Real.sinh Y ^ 2 / Real.cosh Y ^ 2) := by ring
-      _ = 4 * (Real.cosh Y ^ 2 * (Real.sinh Y ^ 2 / Real.cosh Y ^ 2)) := by ring
-      _ = 4 * Real.sinh Y ^ 2 := by
-        rw [mul_div_cancel₀ _ (pow_ne_zero 2 hch)]
-  calc (2 * Real.sinh Y) * ((2 * Real.sinh Y) * (2 * Real.cosh Y) ^ (n - 2))
-    _ = 4 * Real.sinh Y ^ 2 * (2 * Real.cosh Y) ^ (n - 2) := by ring
-    _ = (2 * Real.cosh Y) ^ 2 * (Real.sinh Y ^ 2 / Real.cosh Y ^ 2) *
-          (2 * Real.cosh Y) ^ (n - 2) := by rw [hmul]
-    _ = (2 * Real.cosh Y) ^ 2 * (2 * Real.cosh Y) ^ (n - 2) *
-          (Real.sinh Y ^ 2 / Real.cosh Y ^ 2) := by ring
+  field_simp
+  ring
 
 theorem sum_spin_sq_sub_n_exp_eq (n : ℕ) (Y : ℝ) :
     ∑ ε : Fin n → ℤˣ, ((∑ l, ((ε l : ℤ) : ℝ)) ^ 2 - (n : ℝ)) *

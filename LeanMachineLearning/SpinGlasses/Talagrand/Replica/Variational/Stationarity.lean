@@ -132,30 +132,32 @@ theorem hasDerivAt_skReplicaPoly (n : ℕ) (β q : ℝ) :
       (-((n : ℝ) * β ^ 2 / 2) - (n : ℝ) * ((n : ℝ) - 1) * β ^ 2 / 2 * q) := by ring
   exact hd.congr_deriv hval
 
-/-- Replica free-energy function $F_n(q)$ expressed in terms of the finite configuration
-sum `skReplicaSum`. -/
-noncomputable def skReplicaF (n : ℕ) (β h q : ℝ) : ℝ :=
+/-- The replica objective `Φ_n(q) - n log 2` written through the finite spin sum `skReplicaSum`.
+Unlike the Gaussian expression, which contains `√q`, it is defined and smooth for all real `q`; it
+agrees with `Φ_n` on `q ≥ 0` (`skReplicaSmoothObjective_eq_phi`), so a maximizer `q₀ > 0` of `Φ_n`
+on `[0, ∞)` is a two-sided local maximum of it, and Fermat's theorem applies. -/
+noncomputable def skReplicaSmoothObjective (n : ℕ) (β h q : ℝ) : ℝ :=
   (n : ℝ) * β ^ 2 * (1 - q) ^ 2 / 4 - (n : ℝ) ^ 2 * β ^ 2 * q ^ 2 / 4 +
     Real.log (skReplicaSum n β h q) - (n : ℝ) * Real.log 2
 
-theorem skReplicaF_def (n : ℕ) (β h q : ℝ) :
-    skReplicaF n β h q =
+theorem skReplicaSmoothObjective_def (n : ℕ) (β h q : ℝ) :
+    skReplicaSmoothObjective n β h q =
       (n : ℝ) * β ^ 2 * (1 - q) ^ 2 / 4 - (n : ℝ) ^ 2 * β ^ 2 * q ^ 2 / 4 +
         Real.log (skReplicaSum n β h q) - (n : ℝ) * Real.log 2 := rfl
 
-theorem skReplicaF_eq_phi (n : ℕ) (β h q : ℝ) (hq : 0 ≤ q) :
-    skReplicaF n β h q =
+theorem skReplicaSmoothObjective_eq_phi (n : ℕ) (β h q : ℝ) (hq : 0 ≤ q) :
+    skReplicaSmoothObjective n β h q =
       (n : ℝ) * β ^ 2 * (1 - q) ^ 2 / 4 - (n : ℝ) ^ 2 * β ^ 2 * q ^ 2 / 4 +
         Real.log (∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n ∂(gaussianReal 0 1)) := by
   have hS := skReplicaSum_eq_integral n β h q hq
   have h2n_pos : (0 : ℝ) < (2 : ℝ) ^ n := pow_pos two_pos n
   have hint_pos := integral_cosh_pow_sk_pos n β h q
-  dsimp [skReplicaF]
+  dsimp [skReplicaSmoothObjective]
   rw [hS, Real.log_mul h2n_pos.ne' hint_pos.ne', Real.log_pow]
   ring
 
-theorem hasDerivAt_skReplicaF (n : ℕ) (β h q : ℝ) (hq : 0 ≤ q) :
-    HasDerivAt (skReplicaF n β h)
+theorem hasDerivAt_skReplicaSmoothObjective (n : ℕ) (β h q : ℝ) (hq : 0 ≤ q) :
+    HasDerivAt (skReplicaSmoothObjective n β h)
       ((n : ℝ) * ((n : ℝ) - 1) * β ^ 2 / 2 *
         (((∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n *
           tanh (β * z * Real.sqrt q + h) ^ 2 ∂(gaussianReal 0 1)) /

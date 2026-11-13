@@ -198,9 +198,11 @@ lemma exists_skReplica_maximizer_fixedPoint_pos (n : ℕ) (hn : 2 ≤ n) (β h :
           (n : ℝ) ^ 2 * β ^ 2 * q ^ 2 / 4 +
           Real.log (∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n ∂(gaussianReal 0 1))))) := by
   obtain ⟨q0, hq0_nonneg, hq0_max, hlim⟩ := sk_replica_theorem_pos (n := n) β h hβ
-  have hF_max : ∀ q : ℝ, 0 ≤ q → skReplicaF n β h q ≤ skReplicaF n β h q0 := by
+  have hF_max : ∀ q : ℝ, 0 ≤ q →
+      skReplicaSmoothObjective n β h q ≤ skReplicaSmoothObjective n β h q0 := by
     intro q hq
-    rw [skReplicaF_eq_phi n β h q hq, skReplicaF_eq_phi n β h q0 hq0_nonneg]
+    rw [skReplicaSmoothObjective_eq_phi n β h q hq,
+      skReplicaSmoothObjective_eq_phi n β h q0 hq0_nonneg]
     exact hq0_max q hq
   have hn_pos : 0 < (n : ℝ) := by positivity
   have hn_sub_pos : 0 < (n : ℝ) - 1 := by
@@ -208,9 +210,10 @@ lemma exists_skReplica_maximizer_fixedPoint_pos (n : ℕ) (hn : 2 ≤ n) (β h :
     linarith
   have hC_pos : 0 < (n : ℝ) * ((n : ℝ) - 1) * β ^ 2 / 2 := by positivity
   by_cases hq0_pos : 0 < q0
-  · have hloc : IsLocalMax (skReplicaF n β h) q0 :=
-      (show IsMaxOn (skReplicaF n β h) (Ici 0) q0 from hF_max).isLocalMax (Ici_mem_nhds hq0_pos)
-    have hder := hloc.hasDerivAt_eq_zero (hasDerivAt_skReplicaF n β h q0 hq0_nonneg)
+  · have hloc : IsLocalMax (skReplicaSmoothObjective n β h) q0 :=
+      (show IsMaxOn (skReplicaSmoothObjective n β h) (Ici 0) q0 from hF_max).isLocalMax
+        (Ici_mem_nhds hq0_pos)
+    have hder := hloc.hasDerivAt_eq_zero (hasDerivAt_skReplicaSmoothObjective n β h q0 hq0_nonneg)
     have h_fix : q0 = (∫ z : ℝ, cosh (β * z * Real.sqrt q0 + h) ^ n *
           tanh (β * z * Real.sqrt q0 + h) ^ 2 ∂(gaussianReal 0 1)) /
         (∫ z : ℝ, cosh (β * z * Real.sqrt q0 + h) ^ n ∂(gaussianReal 0 1)) := by
@@ -246,7 +249,7 @@ lemma exists_skReplica_maximizer_fixedPoint_pos (n : ℕ) (hn : 2 ≤ n) (β h :
           | inr h2 =>
             exact (Real.cosh_pos h).ne' h2
         exact sq_pos_of_ne_zero ht
-      have hd0 := hasDerivAt_skReplicaF n β h 0 le_rfl
+      have hd0 := hasDerivAt_skReplicaSmoothObjective n β h 0 le_rfl
       have hd0_val : 0 < (n : ℝ) * ((n : ℝ) - 1) * β ^ 2 / 2 *
           (((∫ z : ℝ, cosh (β * z * Real.sqrt 0 + h) ^ n *
               tanh (β * z * Real.sqrt 0 + h) ^ 2 ∂(gaussianReal 0 1)) /

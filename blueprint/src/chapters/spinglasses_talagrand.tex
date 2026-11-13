@@ -11620,6 +11620,45 @@ Now two sub-cases.
 In both sub-cases $q_0=R_n(q_0)\in[0,1]$ by the bounds $0\le R_n\le1$.
 \end{proof}
 
+\begin{theorem}[Large numbers of replicas: the maximizers tend to one]\label{thm:sg-tal:replica-large-n}
+\lean{SpinGlasses.skReplica_maximizer_sq_le, SpinGlasses.tendsto_skReplica_maximizer_one, SpinGlasses.exists_skReplica_maximizer_fixedPoint_tendsto_one, SpinGlasses.skReplicaSum_le, SpinGlasses.le_skReplicaSum_one, SpinGlasses.abs_sum_units_cast_le}
+\leanok
+\uses{thm:sg-tal:replica-fixed-point}
+\talsource{Source line 5937 (the remark after Eq.~(1.411))}
+Let $\beta\ne0$ and $h\in\mathbb R$, and let $\Phi_n$ be the function of Theorem~\ref{thm:sg-tal:replica-fixed-point}. If $n\ge1$ and $q\ge0$ maximizes $\Phi_n$ over $[0,\infty)$, then
+\[
+(n-1)\,\beta^2\,(1-q)^2\le 4\log 2 .
+\]
+Consequently, if $q_n\ge0$ maximizes $\Phi_n$ over $[0,\infty)$ for every $n\ge1$ (for instance the maximizing fixed points $q_n\in[0,1]$ of Theorem~\ref{thm:sg-tal:replica-fixed-point}, which can be chosen for all $n\ge1$), then $q_n\to1$ as $n\to\infty$.
+\end{theorem}
+\begin{proof}
+\leanok
+Write $m_\varepsilon=\sum_{l\le n}\varepsilon_l$ for $\varepsilon\in\{\pm1\}^n$ and $S_n(q)=\sum_\varepsilon\exp\big(h\,m_\varepsilon+\tfrac{\beta^2q}2m_\varepsilon^2\big)$, so that $S_n(q)=2^n\,\mathbb E\,\mathrm{ch}^n(\beta z\sqrt q+h)$ for $q\ge0$ (the finite-sum identity in the case $\beta>0$, $n\ge2$ of the proof of Theorem~\ref{thm:sg-tal:replica-fixed-point}) and
+\[
+\Phi_n(q)=\frac{n\beta^2(1-q)^2}4-\frac{n^2\beta^2q^2}4+\log S_n(q)-n\log2\qquad(q\ge0).
+\]
+\emph{Step 1 (upper bound).} Since $|m_\varepsilon|\le n$, each term is at most $\exp(n|h|+\tfrac{\beta^2q}2n^2)$, and there are $2^n$ terms:
+\[
+\log S_n(q)\le n\log2+n|h|+\frac{\beta^2q\,n^2}2 .
+\]
+\emph{Step 2 (lower bound at $q=1$).} Keep only the term $\varepsilon\equiv\operatorname{sign}(h)$, for which $h\,m_\varepsilon=n|h|$ and $m_\varepsilon^2=n^2$:
+\[
+\log S_n(1)\ge n|h|+\frac{\beta^2n^2}2 .
+\]
+\emph{Step 3 (comparison).} Put $u=(1-q)^2$. Since $q$ maximizes $\Phi_n$ on $[0,\infty)$, $\Phi_n(1)\le\Phi_n(q)$. Insert Step 2 on the left and Step 1 on the right, and use $2q-q^2=1-u$:
+\[
+\frac{n^2\beta^2}4+n|h|-n\log2\;\le\;\Phi_n(1)\;\le\;\Phi_n(q)\;\le\;\frac{n\beta^2u}4+\frac{n^2\beta^2(1-u)}4+n|h| .
+\]
+Cancel $n^2\beta^2/4+n|h|$ and multiply by $4/n$: $(n-1)\beta^2u\le4\log2$.
+
+\emph{Step 4 (limit).} For $n\ge2$ the bound gives $|q_n-1|\le\sqrt{4\log2/((n-1)\beta^2)}\to0$. The existence of maximizing fixed points for every $n\ge1$ is Theorem~\ref{thm:sg-tal:replica-fixed-point}.
+\end{proof}
+
+\begin{remark}[What this does and does not give]\label{rem:sg-tal:replica-large-n-scope}
+\talsource{Source line 5937}
+The book states $q_n\to1$ for $h=0$ and $\beta<1$ and says it is ``not difficult to get convinced'' of it; the proof above is quantitative and needs neither $h=0$ nor $\beta<1$, only $\beta\ne0$ (for $\beta=0$ the objective is constant and the ratio is $\tanh^2h$ for every $n$). For $h=0$ and $\beta<1$ the replica-symmetric value is $q=0$, so this explains why the information of Theorem~\ref{thm:sg-tal:replica} at large integer $n$ does not determine the limit $n\to0$. It does not prove or disprove an analytic continuation in $n$, and it says nothing about the exchange of limits.
+\end{remark}
+
 \begin{remark}[Not claimed: the continuation to non-integer $n$]\label{rem:sg-tal:replica-heuristic}
 \talsource{Eqs.~(1.408)--(1.411)}
 After Theorem~1.13.1 the book writes the fixed-point equation (1.408) for the maximizer, observes the finite-system real-moment limit $\lim_{t\to0^+}\frac1t\log\mathbb EZ_N^t=\mathbb E\log Z_N$ (Eq.~(1.409), proved above in Theorem~\ref{thm:sg-tal:replica-real-moments}),
