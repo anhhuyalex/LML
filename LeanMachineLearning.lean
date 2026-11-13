@@ -682,6 +682,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKT
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKTBasisCoefficients
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKTBasisSecondMoment
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Moments.Convexity
+public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Moments.Hyperbolic
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Moments.RealPowers
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.SKReplicaAlgebra
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.SKReplicaBridge
@@ -691,7 +692,9 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.SKReplicaHyperbo
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.SKReplicaMaximizer
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.SKReplicaMoment
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.SKReplicaTheorem
+public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.FinitePartition
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.FixedPoint
+public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.Stationarity
 public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKAsymptoticProduct
 public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKCorrelationDecay
 public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKCovarianceSiteSymmetry
