@@ -56,6 +56,13 @@ theorem integrable_cosh_pow (n : ℕ) (w h : ℝ) :
   simp_rw [← mul_assoc, inv_mul_cancel₀ h2n, one_mul] at this
   exact this
 
+/-- `ch^n x · th² x ≤ ch^n x`, since `th² ≤ 1`. -/
+lemma cosh_pow_mul_tanh_sq_le (n : ℕ) (x : ℝ) : cosh x ^ n * tanh x ^ 2 ≤ cosh x ^ n := by
+  calc cosh x ^ n * tanh x ^ 2
+    _ ≤ cosh x ^ n * 1 :=
+      mul_le_mul_of_nonneg_left ((Real.tanh_sq_lt_one _).le) (pow_nonneg (Real.cosh_pos _).le _)
+    _ = cosh x ^ n := mul_one _
+
 /-- For any `n, w, h`, `z ↦ ch^n(w z + h) th²(w z + h)` is integrable against the standard
 Gaussian. -/
 theorem integrable_cosh_pow_mul_tanh_sq (n : ℕ) (w h : ℝ) :
@@ -67,11 +74,7 @@ theorem integrable_cosh_pow_mul_tanh_sq (n : ℕ) (w h : ℝ) :
       ((Real.continuous_tanh.comp (by fun_prop)).pow 2)
   · rw [Real.norm_eq_abs, abs_mul, abs_of_nonneg (pow_nonneg (Real.cosh_pos _).le _),
       abs_of_nonneg (sq_nonneg _)]
-    calc cosh (w * z + h) ^ n * tanh (w * z + h) ^ 2
-      _ ≤ cosh (w * z + h) ^ n * 1 :=
-        mul_le_mul_of_nonneg_left ((Real.tanh_sq_lt_one _).le)
-          (pow_nonneg (Real.cosh_pos _).le _)
-      _ = cosh (w * z + h) ^ n := mul_one _
+    exact cosh_pow_mul_tanh_sq_le n _
 
 /-- Positivity of the replicated cosh expectation: `0 < 𝔼 ch^n(w z + h)`. -/
 theorem integral_cosh_pow_pos (n : ℕ) (w h : ℝ) :
@@ -228,64 +231,54 @@ theorem replica_phi_one_const (β h q : ℝ) (hq : 0 ≤ q) :
   rw [Real.log_mul hpos1.ne' hpos2.ne', Real.log_exp, mul_pow, Real.sq_sqrt hq]
   ring
 
-/-- Upper bound on `cosh x` by `exp |x|`. -/
-lemma cosh_le_exp_abs (x : ℝ) : cosh x ≤ Real.exp |x| := by
-  rw [cosh_eq]
-  have h1 : Real.exp x ≤ Real.exp |x| := Real.exp_le_exp.2 (le_abs_self x)
-  have h2 : Real.exp (-x) ≤ Real.exp |x| := Real.exp_le_exp.2 (neg_le_abs x)
-  linarith
+/-- Domination of `ch^n(β z √q + h)` for `q ∈ [0, 1]` by an exponentially integrable function of
+`z` that does not depend on `q`. Only `q ≤ 1` is needed. -/
+lemma cosh_pow_le_exp_bound (n : ℕ) (β h z q : ℝ) (hq1 : q ≤ 1) :
+    cosh (β * z * Real.sqrt q + h) ^ n ≤
+      Real.exp (n * |h|) * (Real.exp (n * |β| * z) + Real.exp (-(n * |β|) * z)) := by
+  have hsq : Real.sqrt q ≤ 1 := by
+    rw [← Real.sqrt_one]
+    exact Real.sqrt_le_sqrt hq1
+  have hx : |β * z * Real.sqrt q + h| ≤ |β| * |z| + |h| := by
+    calc |β * z * Real.sqrt q + h|
+      _ ≤ |β * z * Real.sqrt q| + |h| := abs_add_le _ _
+      _ = |β| * |z| * Real.sqrt q + |h| := by
+        rw [abs_mul, abs_mul, abs_of_nonneg (Real.sqrt_nonneg q)]
+      _ ≤ |β| * |z| * 1 + |h| := by gcongr
+      _ = |β| * |z| + |h| := by rw [mul_one]
+  have hch : cosh (β * z * Real.sqrt q + h) ≤ Real.exp (|β| * |z| + |h|) :=
+    (Real.cosh_le_exp_abs _).trans (Real.exp_le_exp.2 hx)
+  have hexp : Real.exp (n * |β| * |z|) ≤ Real.exp (n * |β| * z) + Real.exp (-(n * |β|) * z) := by
+    have := Real.exp_add_mul_abs_le_add 0 (n * |β|) z
+    rwa [zero_add, zero_add, zero_sub, ← neg_mul] at this
+  calc cosh (β * z * Real.sqrt q + h) ^ n
+    _ ≤ (Real.exp (|β| * |z| + |h|)) ^ n := pow_le_pow_left₀ (Real.cosh_pos _).le hch n
+    _ = Real.exp (n * (|β| * |z| + |h|)) := by rw [← Real.exp_nat_mul]
+    _ = Real.exp (n * |h|) * Real.exp (n * |β| * |z|) := by
+      rw [show (n : ℝ) * (|β| * |z| + |h|) = (n : ℝ) * |h| + n * |β| * |z| by ring,
+        Real.exp_add]
+    _ ≤ Real.exp (n * |h|) * (Real.exp (n * |β| * z) + Real.exp (-(n * |β|) * z)) :=
+      mul_le_mul_of_nonneg_left hexp (Real.exp_pos _).le
 
-/-- Bound `exp (c |z|)` by `exp (c z) + exp (-c z)` for `c ≥ 0`. -/
-lemma exp_abs_le_exp_add_exp (c : ℝ) (z : ℝ) :
-    Real.exp (c * |z|) ≤ Real.exp (c * z) + Real.exp (-c * z) := by
-  rcases le_total 0 z with hz | hz
-  · rw [abs_of_nonneg hz]
-    linarith [Real.exp_pos (-c * z)]
-  · rw [abs_of_nonpos hz]
-    have : c * -z = -c * z := by ring
-    rw [this]
-    linarith [Real.exp_pos (c * z)]
+/-- The `q`-independent dominating function of `cosh_pow_le_exp_bound` is Gaussian integrable. -/
+lemma integrable_cosh_pow_bound (n : ℕ) (β h : ℝ) :
+    Integrable (fun z : ℝ => Real.exp (n * |h|) *
+      (Real.exp (n * |β| * z) + Real.exp (-(n * |β|) * z))) (gaussianReal 0 1) :=
+  ((integrable_exp_mul_gaussianReal (n * |β|)).add
+    (integrable_exp_mul_gaussianReal (-(n * |β|)))).const_mul _
 
 /-- Continuity of the denominator on `[0, 1]`. -/
 lemma continuousOn_integral_cosh_pow (n : ℕ) (β h : ℝ) :
     ContinuousOn (fun q : ℝ => ∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n
       ∂(gaussianReal 0 1)) (Set.Icc (0 : ℝ) 1) := by
-  set B : ℝ → ℝ := fun z => Real.exp (n * |h|) *
-    (Real.exp (n * |β| * z) + Real.exp (-(n * |β|) * z))
-  have hB : Integrable B (gaussianReal 0 1) :=
-    ((integrable_exp_mul_gaussianReal (n * |β|)).add
-      (integrable_exp_mul_gaussianReal (-(n * |β|)))).const_mul _
-  refine continuousOn_of_dominated (bound := B) (fun q _ => ?_)
-    (fun q hq => ae_of_all _ fun z => ?_) hB (ae_of_all _ fun z => ?_)
+  refine continuousOn_of_dominated (bound := fun z : ℝ => Real.exp (n * |h|) *
+      (Real.exp (n * |β| * z) + Real.exp (-(n * |β|) * z))) (fun q _ => ?_)
+    (fun q hq => ae_of_all _ fun z => ?_) (integrable_cosh_pow_bound n β h)
+    (ae_of_all _ fun z => ?_)
   · exact (Real.continuous_cosh.comp (by fun_prop : Continuous fun z : ℝ =>
       β * z * Real.sqrt q + h)).pow n |>.aestronglyMeasurable
   · rw [Real.norm_eq_abs, abs_of_nonneg (pow_nonneg (Real.cosh_pos _).le _)]
-    have hq0 : 0 ≤ q := hq.1
-    have hq1 : q ≤ 1 := hq.2
-    have hsq : Real.sqrt q ≤ 1 := by
-      rw [← Real.sqrt_one]
-      exact Real.sqrt_le_sqrt hq1
-    have hsq0 : 0 ≤ Real.sqrt q := Real.sqrt_nonneg q
-    have hx : |β * z * Real.sqrt q + h| ≤ |β| * |z| + |h| := by
-      calc |β * z * Real.sqrt q + h|
-        _ ≤ |β * z * Real.sqrt q| + |h| := abs_add_le _ _
-        _ = |β| * |z| * Real.sqrt q + |h| := by
-          rw [abs_mul, abs_mul, abs_of_nonneg hsq0]
-        _ ≤ |β| * |z| * 1 + |h| := by
-          gcongr
-        _ = |β| * |z| + |h| := by rw [mul_one]
-    have hch : cosh (β * z * Real.sqrt q + h) ≤ Real.exp (|β| * |z| + |h|) :=
-      (cosh_le_exp_abs _).trans (Real.exp_le_exp.2 hx)
-    calc cosh (β * z * Real.sqrt q + h) ^ n
-      _ ≤ (Real.exp (|β| * |z| + |h|)) ^ n :=
-        pow_le_pow_left₀ (Real.cosh_pos _).le hch n
-      _ = Real.exp (n * (|β| * |z| + |h|)) := by
-        rw [← Real.exp_nat_mul]
-      _ = Real.exp (n * |h|) * Real.exp ((n * |β|) * |z|) := by
-        rw [show (n : ℝ) * (|β| * |z| + |h|) =
-          (n : ℝ) * |h| + ((n : ℝ) * |β|) * |z| by ring, Real.exp_add]
-      _ ≤ Real.exp (n * |h|) * (Real.exp (n * |β| * z) + Real.exp (-(n * |β|) * z)) :=
-        mul_le_mul_of_nonneg_left (exp_abs_le_exp_add_exp _ _) (Real.exp_pos _).le
+    exact cosh_pow_le_exp_bound n β h z q hq.2
   · refine Continuous.continuousOn ?_
     exact (Real.continuous_cosh.comp (by fun_prop)).pow n
 
@@ -293,52 +286,17 @@ lemma continuousOn_integral_cosh_pow (n : ℕ) (β h : ℝ) :
 lemma continuousOn_integral_cosh_pow_mul_tanh_sq (n : ℕ) (β h : ℝ) :
     ContinuousOn (fun q : ℝ => ∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n *
       tanh (β * z * Real.sqrt q + h) ^ 2 ∂(gaussianReal 0 1)) (Set.Icc (0 : ℝ) 1) := by
-  set B : ℝ → ℝ := fun z => Real.exp (n * |h|) *
-    (Real.exp (n * |β| * z) + Real.exp (-(n * |β|) * z))
-  have hB : Integrable B (gaussianReal 0 1) :=
-    ((integrable_exp_mul_gaussianReal (n * |β|)).add
-      (integrable_exp_mul_gaussianReal (-(n * |β|)))).const_mul _
-  refine continuousOn_of_dominated (bound := B) (fun q _ => ?_)
-    (fun q hq => ae_of_all _ fun z => ?_) hB (ae_of_all _ fun z => ?_)
+  refine continuousOn_of_dominated (bound := fun z : ℝ => Real.exp (n * |h|) *
+      (Real.exp (n * |β| * z) + Real.exp (-(n * |β|) * z))) (fun q _ => ?_)
+    (fun q hq => ae_of_all _ fun z => ?_) (integrable_cosh_pow_bound n β h)
+    (ae_of_all _ fun z => ?_)
   · exact ((Real.continuous_cosh.comp (by fun_prop : Continuous fun z : ℝ =>
       β * z * Real.sqrt q + h)).pow n |>.mul
       ((Real.continuous_tanh.comp (by fun_prop : Continuous fun z : ℝ =>
       β * z * Real.sqrt q + h)).pow 2)).aestronglyMeasurable
   · rw [Real.norm_eq_abs, abs_mul, abs_of_nonneg (pow_nonneg (Real.cosh_pos _).le _),
       abs_of_nonneg (sq_nonneg _)]
-    have hq0 : 0 ≤ q := hq.1
-    have hq1 : q ≤ 1 := hq.2
-    have hsq : Real.sqrt q ≤ 1 := by
-      rw [← Real.sqrt_one]
-      exact Real.sqrt_le_sqrt hq1
-    have hsq0 : 0 ≤ Real.sqrt q := Real.sqrt_nonneg q
-    have hx : |β * z * Real.sqrt q + h| ≤ |β| * |z| + |h| := by
-      calc |β * z * Real.sqrt q + h|
-        _ ≤ |β * z * Real.sqrt q| + |h| := abs_add_le _ _
-        _ = |β| * |z| * Real.sqrt q + |h| := by
-          rw [abs_mul, abs_mul, abs_of_nonneg hsq0]
-        _ ≤ |β| * |z| * 1 + |h| := by
-          gcongr
-        _ = |β| * |z| + |h| := by rw [mul_one]
-    have hch : cosh (β * z * Real.sqrt q + h) ≤ Real.exp (|β| * |z| + |h|) :=
-      (cosh_le_exp_abs _).trans (Real.exp_le_exp.2 hx)
-    have hpow : cosh (β * z * Real.sqrt q + h) ^ n ≤ B z := by
-      calc cosh (β * z * Real.sqrt q + h) ^ n
-        _ ≤ (Real.exp (|β| * |z| + |h|)) ^ n :=
-          pow_le_pow_left₀ (Real.cosh_pos _).le hch n
-        _ = Real.exp (n * (|β| * |z| + |h|)) := by
-          rw [← Real.exp_nat_mul]
-        _ = Real.exp (n * |h|) * Real.exp ((n * |β|) * |z|) := by
-          rw [show (n : ℝ) * (|β| * |z| + |h|) =
-            (n : ℝ) * |h| + ((n : ℝ) * |β|) * |z| by ring, Real.exp_add]
-        _ ≤ Real.exp (n * |h|) * (Real.exp (n * |β| * z) + Real.exp (-(n * |β|) * z)) :=
-          mul_le_mul_of_nonneg_left (exp_abs_le_exp_add_exp _ _) (Real.exp_pos _).le
-    calc cosh (β * z * Real.sqrt q + h) ^ n * tanh (β * z * Real.sqrt q + h) ^ 2
-      _ ≤ cosh (β * z * Real.sqrt q + h) ^ n * 1 :=
-        mul_le_mul_of_nonneg_left ((Real.tanh_sq_lt_one _).le)
-          (pow_nonneg (Real.cosh_pos _).le _)
-      _ = cosh (β * z * Real.sqrt q + h) ^ n := mul_one _
-      _ ≤ B z := hpow
+    exact (cosh_pow_mul_tanh_sq_le n _).trans (cosh_pow_le_exp_bound n β h z q hq.2)
   · refine Continuous.continuousOn ?_
     exact (Real.continuous_cosh.comp (by fun_prop)).pow n |>.mul
       ((Real.continuous_tanh.comp (by fun_prop)).pow 2)

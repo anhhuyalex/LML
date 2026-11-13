@@ -1400,7 +1400,7 @@ $G'(s,y)=\sum_l(-\sin s\,y_{\mathrm{left},l}+\cos s\,y_{\mathrm{right},l})\,\par
 \end{remark}
 
 \begin{theorem}[Exponential moments of the free-energy difference of two copies]\label{thm:sg:expmoment}
-  \lean{SpinGlasses.abs_log_sum_exp_sub_le_of_forall, SpinGlasses.abs_log_sum_exp_sub_le,
+  \lean{abs_log_sum_exp_sub_le_of_forall, SpinGlasses.abs_log_sum_exp_sub_le,
         SpinGlasses.hasDerivAt_cos_mul_add_sin_mul, SpinGlasses.abs_neg_sin_mul_add_cos_mul_le,
         SpinGlasses.hasFDerivAt_log_sum_exp,
         SpinGlasses.hasDerivAt_exp_mul_log_sum_exp_trig, SpinGlasses.exp_mul_log_sum_exp_trig_le,
@@ -5248,7 +5248,6 @@ Theorem~\ref{thm:sg:leaf-field}; the variance is bounded by $\sum_i\sigma_i^2$.
         SpinGlasses.tsum_cascadeSeries_eq_toReal_sub,
         SpinGlasses.integral_cascadeSeries_eq,
         SpinGlasses.integral_cascadeSeries_tilt,
-        SpinGlasses.toReal_ofReal_sub_toReal_ofReal_neg,
         SpinGlasses.summable_replicaGibbsAt_series,
         SpinGlasses.tsum_cascadeSeries_energy_eq,
         SpinGlasses.integral_cascadeEnergy}

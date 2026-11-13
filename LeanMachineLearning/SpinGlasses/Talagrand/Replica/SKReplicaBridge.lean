@@ -103,9 +103,8 @@ theorem abs_replica_energy_le (β h : ℝ) (g : FinPairs n → ℝ) (ε : Fin n 
 theorem abs_skReplicaLogPartition_le (β h : ℝ) (g : FinPairs n → ℝ) :
     |skReplicaLogPartition n β h g| ≤
       (n * Real.log 2 + n * |h| + |β|) * (1 + ∑ p, |g p|) := by
-  have hcard : Fintype.card (Fin n → ℤˣ) = 2 ^ n := by simp
   have hlog : Real.log (Fintype.card (Fin n → ℤˣ) : ℝ) = (n : ℝ) * Real.log 2 := by
-    rw [hcard, Nat.cast_pow, Nat.cast_ofNat, Real.log_pow]
+    simpa using log_card_spin_configurations (ι := Fin n)
   rw [skReplicaLogPartition_def]
   have h_le := abs_log_sum_exp_le_of_forall
     (fun ε : Fin n → ℤˣ => β * ∑ p : FinPairs n,

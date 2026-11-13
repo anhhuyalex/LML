@@ -230,11 +230,6 @@ section Hypercube
 variable {ι : Type*} [Fintype ι] [DecidableEq ι] {Ω : Type*} [MeasurableSpace Ω]
   {μ : Measure Ω} [IsProbabilityMeasure μ] {H : Ω → (ι → ℤˣ) → ℝ} {β : ℝ}
 
-/-- The entropy of the hypercube: `log |{-1, 1}^ι| = |ι| log 2`. -/
-lemma log_card_spin_configurations :
-    Real.log (Fintype.card (ι → ℤˣ)) = Fintype.card ι * Real.log 2 := by
-  rw [card_spin_configurations, Nat.cast_pow, Real.log_pow, Nat.cast_ofNat]
-
 /-- **Smooth approximation sandwich** ([Panchenko, 2013, Eq. (1.7)]). For a random energy
 `H : Ω → (ι → ℤˣ) → ℝ` on the hypercube with integrable coordinates and `β > 0`,
 `N⁻¹ 𝔼 max_σ H(σ) ≤ (N β)⁻¹ 𝔼 log Z(β) ≤ log 2 / β + N⁻¹ 𝔼 max_σ H(σ)`, where

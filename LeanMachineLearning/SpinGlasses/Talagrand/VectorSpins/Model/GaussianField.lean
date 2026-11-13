@@ -67,16 +67,12 @@ theorem measurable_skVectorGaussianPairField (k : Fin d ⊕ Fin d) :
 theorem integral_skVectorGaussianPairField_fst (f : EuclideanSpace ℝ (Fin d) → ℝ) :
     ∫ ω, f ω.1 ∂(skVectorGaussianPairLaw β Q Q') =
       ∫ z, f z ∂(multivariateGaussian 0 (β ^ 2 • Matrix.of Q)) := by
-  have := integral_prod_mul (μ := multivariateGaussian 0 (β ^ 2 • Matrix.of Q))
-    (ν := multivariateGaussian 0 (β ^ 2 • Matrix.of Q')) f (fun _ => (1 : ℝ))
-  simpa [skVectorGaussianPairLaw] using this
+  simp [skVectorGaussianPairLaw, integral_fun_fst]
 
 theorem integral_skVectorGaussianPairField_snd (f : EuclideanSpace ℝ (Fin d) → ℝ) :
     ∫ ω, f ω.2 ∂(skVectorGaussianPairLaw β Q Q') =
       ∫ z, f z ∂(multivariateGaussian 0 (β ^ 2 • Matrix.of Q')) := by
-  have := integral_prod_mul (μ := multivariateGaussian 0 (β ^ 2 • Matrix.of Q))
-    (ν := multivariateGaussian 0 (β ^ 2 • Matrix.of Q')) (fun _ => (1 : ℝ)) f
-  simpa [skVectorGaussianPairLaw] using this
+  simp [skVectorGaussianPairLaw, integral_fun_snd]
 
 /-- The pair of fields is centered. -/
 theorem integral_skVectorGaussianPairField (k : Fin d ⊕ Fin d) :

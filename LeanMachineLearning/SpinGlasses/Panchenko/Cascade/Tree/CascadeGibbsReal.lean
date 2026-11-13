@@ -285,11 +285,6 @@ theorem summable_replicaGibbsAt_series (F : (Fin n → Fin n → Fin (r + 1)) �
     hfin
   simpa only [ENNReal.toReal_mul, ENNReal.toReal_ofReal (Real.exp_pos _).le] using h
 
-/-- The positive and negative parts of a real number, as real numbers, recover it. -/
-theorem toReal_ofReal_sub_toReal_ofReal_neg (x : ℝ) :
-    (ENNReal.ofReal x).toReal - (ENNReal.ofReal (-x)).toReal = x :=
-  Real.toReal_ofReal_sub_toReal_ofReal_neg x
-
 /-- **The Gibbs series of an observable times the centred field, through the Gibbs averages with a
 test of one label.** If the Gibbs averages `⟨F (±σᵢ(labelᵢ - tσᵢζᵢ))^+⟩_t` of the replica `l₀` are
 finite for every level `i`, the Gibbs series of `F (g(α^{l₀}) - t ∑ᵢ σᵢ² ζᵢ)` is the sum over the
@@ -348,7 +343,7 @@ theorem tsum_cascadeSeries_energy_eq (ζ : ℕ → ℝ) (F : (Fin n → Fin n �
     simp_rw [← mul_sub]
     rw [← Finset.mul_sum, ← Finset.mul_sum]
     congr 2
-    simp_rw [toReal_ofReal_sub_toReal_ofReal_neg]
+    simp_rw [Real.toReal_ofReal_sub_toReal_ofReal_neg]
     rw [Finset.mul_sum, ← Finset.sum_sub_distrib]
     refine Finset.sum_congr rfl fun i _ => ?_
     ring

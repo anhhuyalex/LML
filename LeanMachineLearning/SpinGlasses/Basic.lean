@@ -11,6 +11,7 @@ public import Mathlib.Data.Matrix.Mul
 public import Mathlib.Basic.Real.Basic
 public import Mathlib.Algebra.Order.BigOperators.Group.Finset
 public import Mathlib.Algebra.Order.Field.Basic
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
 
 /-!
 # Spin configurations and the overlap
@@ -39,6 +40,7 @@ and proves the elementary properties of the central order parameter, the *overla
 * `SpinGlasses.abs_card_inv_mul_dotProduct_le_one`: the overlap is at most `1` in absolute value
   when the coordinates lie in `[-1, 1]`.
 * `SpinGlasses.card_spin_configurations`: the hypercube has `2 ^ N` points.
+* `SpinGlasses.log_card_spin_configurations`: its entropy is `N * log 2`.
 
 ## References
 
@@ -125,5 +127,10 @@ theorem units_cast_sq (u : ℤˣ) : ((u : ℤ) : ℝ) ^ 2 = 1 := by
 theorem card_spin_configurations [DecidableEq ι] :
     Fintype.card (ι → ℤˣ) = 2 ^ Fintype.card ι := by
   rw [Fintype.card_fun, Fintype.card_units_int]
+
+/-- The entropy of the hypercube: `log |{-1, 1}^ι| = |ι| log 2`. -/
+lemma log_card_spin_configurations [DecidableEq ι] :
+    Real.log (Fintype.card (ι → ℤˣ)) = Fintype.card ι * Real.log 2 := by
+  rw [card_spin_configurations, Nat.cast_pow, Real.log_pow, Nat.cast_ofNat]
 
 end SpinGlasses

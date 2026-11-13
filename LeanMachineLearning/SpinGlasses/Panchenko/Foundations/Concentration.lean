@@ -31,18 +31,12 @@ section LogSumExp
 
 variable {α : Type*} [Fintype α] [Nonempty α]
 
-/-- **`log ∑ₐ exp (· + h)` is 1-Lipschitz for the sup norm:** if `|uₐ - vₐ| ≤ M` for all `a`, then
-`|log ∑ₐ exp (uₐ + hₐ) - log ∑ₐ exp (vₐ + hₐ)| ≤ M`. -/
-theorem abs_log_sum_exp_sub_le_of_forall (h u v : α → ℝ) {M : ℝ} (hM : ∀ a, |u a - v a| ≤ M) :
-    |Real.log (∑ a, Real.exp (u a + h a)) - Real.log (∑ a, Real.exp (v a + h a))| ≤ M :=
-  _root_.abs_log_sum_exp_sub_le_of_forall h u v hM
-
 /-- **`log ∑ₐ exp (· + h)` is 1-Lipschitz** for the `ℓ¹` norm:
 `|log ∑ₐ exp (uₐ + hₐ) - log ∑ₐ exp (vₐ + hₐ)| ≤ ∑ₐ |uₐ - vₐ|`. -/
 theorem abs_log_sum_exp_sub_le (h u v : α → ℝ) :
     |Real.log (∑ a, Real.exp (u a + h a)) - Real.log (∑ a, Real.exp (v a + h a))| ≤
       ∑ a, |u a - v a| :=
-  abs_log_sum_exp_sub_le_of_forall h u v fun a => Finset.single_le_sum
+  _root_.abs_log_sum_exp_sub_le_of_forall h u v fun a => Finset.single_le_sum
     (f := fun b => |u b - v b|) (fun _ _ => abs_nonneg _) (Finset.mem_univ a)
 
 /-- The gradient of `w ↦ log ∑ₐ exp (wₐ + hₐ)` is the Gibbs weight vector. -/
