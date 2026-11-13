@@ -87,11 +87,8 @@ theorem identDistrib_cascadeMarkedSum_succ_root {Ω : Type*} [MeasurableSpace Ω
     exact hDlaw v
   -- the root blocks
   have hBvec : HasLaw (fun ω => (D ⟨0, fun i => i.elim0⟩ ω).1) (Measure.infinitePi fun k =>
-      Po(rate 0 k).prod (Measure.infinitePi fun _ : ℕ => nu 0 k)) P := by
-    refine ⟨(measurable_fst.comp (hDm _)).aemeasurable, ?_⟩
-    rw [show (fun ω => (D ⟨0, fun i => i.elim0⟩ ω).1) = Prod.fst ∘ D ⟨0, fun i => i.elim0⟩
-      from rfl, ← Measure.map_map measurable_fst (hDm _), (hDlaw' _).map_eq,
-      Measure.map_fst_prod, measure_univ, one_smul]
+      Po(rate 0 k).prod (Measure.infinitePi fun _ : ℕ => nu 0 k)) P :=
+    (hasLaw_fst_prod _ _).comp (hDlaw' _)
   obtain ⟨hB, hBlaw⟩ := iIndepFun_hasLaw_of_hasLaw_infinitePi hBvec
   -- the marks: real parts of the subtree sums
   have hXm : Measurable fun y : (Σ p : ℕ, Fin p → ℕ) → (ℕ → ℕ × (ℕ → ℝ)) × (ℕ → Ξ) =>
@@ -180,11 +177,8 @@ theorem cascadeMarkedSum_succ_log_facts {Ω : Type*} [MeasurableSpace Ω] {P : M
     rw [← h𝔡 v.1]
     exact hDlaw v
   have hBvec : HasLaw (fun ω => (D ⟨0, fun i => i.elim0⟩ ω).1) (Measure.infinitePi fun k =>
-      Po(rate 0 k).prod (Measure.infinitePi fun _ : ℕ => nu 0 k)) P := by
-    refine ⟨(measurable_fst.comp (hDm _)).aemeasurable, ?_⟩
-    rw [show (fun ω => (D ⟨0, fun i => i.elim0⟩ ω).1) = Prod.fst ∘ D ⟨0, fun i => i.elim0⟩
-      from rfl, ← Measure.map_map measurable_fst (hDm _), (hDlaw' _).map_eq,
-      Measure.map_fst_prod, measure_univ, one_smul]
+      Po(rate 0 k).prod (Measure.infinitePi fun _ : ℕ => nu 0 k)) P :=
+    (hasLaw_fst_prod _ _).comp (hDlaw' _)
   obtain ⟨hB, hBlaw⟩ := iIndepFun_hasLaw_of_hasLaw_infinitePi hBvec
   have hBm : ∀ k, Measurable fun ω => (D ⟨0, fun i => i.elim0⟩ ω).1 k := fun k =>
     (measurable_pi_apply k).comp (measurable_fst.comp (hDm _))

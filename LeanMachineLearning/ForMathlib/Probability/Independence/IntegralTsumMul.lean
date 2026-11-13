@@ -111,7 +111,8 @@ theorem integral_tsum_mul_tsum_of_indepFun {X Y : κ → Ω → ℝ} (hX : ∀ p
     simp only [ENNReal.tsum_mul_left, ENNReal.tsum_mul_right]
     exact ENNReal.mul_ne_top hXs hYs
   have hoff : ∀ z : κ × κ, z.1 ≠ z.2 → ∫ ω, X z.1 ω * Y z.2 ω ∂μ = 0 := fun z hz => by
-    rw [(hind _ _ hz).integral_fun_mul_eq_mul_integral (hX z.1).aestronglyMeasurable (hY z.2).aestronglyMeasurable, hX0, zero_mul]
+    rw [(hind _ _ hz).integral_fun_mul_eq_mul_integral (hX z.1).aestronglyMeasurable
+      (hY z.2).aestronglyMeasurable, hX0, zero_mul]
   calc ∫ ω, (∑' p, X p ω) * (∑' q, Y q ω) ∂μ
       = ∫ ω, ∑' z : κ × κ, X z.1 ω * Y z.2 ω ∂μ := by
         refine integral_congr_ae ?_

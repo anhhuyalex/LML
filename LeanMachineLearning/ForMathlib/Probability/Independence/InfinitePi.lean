@@ -104,7 +104,8 @@ lemma iIndepFun.curry {κ : ι → Type*} {𝓧 : (i : ι) → κ i → Type*}
   exact (h2 i).symm
 
 /-- Non-dependent version of `iIndepFun.curry`. -/
-lemma iIndepFun.curry' [∀ i j, MeasurableSpace (𝓧 i j)] {X : (i : ι) → (j : κ) → Ω → 𝓧 i j} (mX : ∀ i j, Measurable (X i j))
+lemma iIndepFun.curry' [∀ i j, MeasurableSpace (𝓧 i j)] {X : (i : ι) → (j : κ) → Ω → 𝓧 i j}
+    (mX : ∀ i j, Measurable (X i j))
     (h : iIndepFun (fun (p : ι × κ) ω ↦ X p.1 p.2 ω) P) :
     iIndepFun (fun i ω ↦ (X i · ω)) P :=
   iIndepFun.curry mX (h.precomp (Equiv.sigmaEquivProd ι κ).injective)

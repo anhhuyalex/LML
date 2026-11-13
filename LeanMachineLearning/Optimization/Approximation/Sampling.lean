@@ -1082,7 +1082,8 @@ lemma pointwise_maurey_bound {Ω_w Ω_x : Type*} [MeasurableSpace Ω_w]
   have hVi_L2 (i : Fin k) : MemLp (fun ω : Fin k → Ω_w => F (ω i) x) 2 μ_prob := memLp_pi_eval i hx
   have hVi_mean (i : Fin k) : ∫ ω : Fin k → Ω_w, F (ω i) x ∂μ_prob =
     ∫ ω : Fin k → Ω_w, V ω ∂μ_prob := by
-    rw [integral_pi_eval i hx.aestronglyMeasurable, integral_pi_eval ⟨0, hk⟩ hx.aestronglyMeasurable]
+    rw [integral_pi_eval i hx.aestronglyMeasurable,
+      integral_pi_eval ⟨0, hk⟩ hx.aestronglyMeasurable]
   let h_fam : Fin k → (Fin k → Ω_w) → ℝ := fun i ω => F (ω i) x
   have hVi_indep : iIndepFun (m := fun _ => inferInstance) h_fam μ_prob := by
     have h_comp : h_fam = (fun i => (fun w => F w x) ∘ (fun ω => ω i)) := by ext i ω; rfl

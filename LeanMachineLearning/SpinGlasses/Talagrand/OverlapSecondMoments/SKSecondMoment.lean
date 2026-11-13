@@ -396,6 +396,25 @@ theorem tanh_fourth_sub_two_mul_add_one_mem_Icc_of_fixedPoint {β q h : ℝ}
   have := tanh_fourth_sub_two_add_one_mem_Icc (β * Real.sqrt q) h
   rwa [hfix, ← integral_tanh_pow_mul_z_sqrt_eq β q h 4] at this
 
+/-- The denominator `1 - β² α` of the overlap-CLT variance coefficients is at least `3/4` when
+`α ≤ 1` and `β² ≤ 1/4`. -/
+theorem three_quarters_le_one_sub_sq_mul {β α : ℝ} (hα : α ≤ 1) (hβ : β ^ 2 ≤ 1 / 4) :
+    3 / 4 ≤ 1 - β ^ 2 * α := by
+  have h2 : β ^ 2 * α ≤ β ^ 2 * 1 := mul_le_mul_of_nonneg_left hα (sq_nonneg _)
+  linarith only [h2, hβ]
+
+/-- The coefficient `α / (1 - β² α) / (N + 1)` of the overlap-CLT variances is nonnegative and at
+most `(4/3) / (N + 1)` when `0 ≤ α ≤ 1` and `1 - β² α ≥ 3/4`. -/
+theorem div_one_sub_sq_mul_div_bounds {β α : ℝ} {N : ℕ} (hα : 0 ≤ α ∧ α ≤ 1)
+    (hden : 3 / 4 ≤ 1 - β ^ 2 * α) :
+    0 ≤ α / (1 - β ^ 2 * α) / (N + 1 : ℝ) ∧
+      α / (1 - β ^ 2 * α) / (N + 1 : ℝ) ≤ 4 / 3 / (N + 1 : ℝ) := by
+  have hDpos : 0 < 1 - β ^ 2 * α := by linarith only [hden]
+  refine ⟨div_nonneg (div_nonneg hα.1 hDpos.le) (by positivity),
+    div_le_div_of_nonneg_right ?_ (by positivity)⟩
+  rw [div_le_iff₀ hDpos]
+  nlinarith only [hden, hα.2]
+
 /-- Generic four-variable rectangle bound: `((x₀ - x₁)(x₂ - x₃))² ≤ 16` for `|x_i| ≤ 1`. -/
 theorem sq_rect_le_of_abs_le_one {x₀ x₁ x₂ x₃ : ℝ}
     (h0 : |x₀| ≤ 1) (h1 : |x₁| ≤ 1) (h2 : |x₂| ≤ 1) (h3 : |x₃| ≤ 1) :

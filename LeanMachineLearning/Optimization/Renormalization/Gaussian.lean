@@ -17,8 +17,8 @@ public import Mathlib.Probability.Distributions.Gaussian.Fernique
 # Wick calculus for Gaussian measures
 
 This file uses the canonical pairing sums of `PairingWick.lean` and states scalar,
-coordinate-free, and coordinate Wick formulae.  The coordinate-free theorem is primary; the multivariate-coordinate theorem and the
-sixth-moment theorem are direct specializations.
+coordinate-free, and coordinate Wick formulae.  The coordinate-free theorem is primary; the
+multivariate-coordinate theorem and the sixth-moment theorem are direct specializations.
 
 Deferred proof references:
 

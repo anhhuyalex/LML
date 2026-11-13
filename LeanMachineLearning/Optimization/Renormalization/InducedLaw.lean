@@ -148,29 +148,6 @@ theorem outputLaw_gaussianInit_eq_map {m n : ℕ} (S : MLPShape m n) (σ : ℝ �
 
 end MLPShape
 
-/-- Discoverability wrapper for Bochner integration against a Dirac measure. -/
-theorem integral_dirac_apply [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
-    [MeasurableSpace S] [MeasurableSingletonClass S] (f : S → E) (s : S) :
-    ∫ x, f x ∂Measure.dirac s = f s := by
-  exact integral_dirac f s
-
-/-- The identity random variable has zero variance under a point mass. -/
-theorem variance_id_dirac (s : ℝ) : Var[id; Measure.dirac s] = 0 := by
-  exact variance_dirac s
-
-/-- The source's Dirac mean equation. -/
-theorem integral_id_dirac (s : ℝ) : ∫ z, z ∂Measure.dirac s = s := by
-  exact integral_dirac _ _
-
-/-- The source's Dirac second-moment equation. -/
-theorem integral_sq_dirac (s : ℝ) : ∫ z, z ^ 2 ∂Measure.dirac s = s ^ 2 := by
-  exact integral_dirac _ _
-
-/-- The source's Dirac normalization equation. -/
-theorem dirac_apply_univ (s : S) [MeasurableSpace S] :
-    Measure.dirac s Set.univ = 1 := by
-  simp
-
 /-- A probability law is self-averaging at `s` when every bounded continuous observable has the
 same expectation as under the point mass at `s`. -/
 def SelfAveragingAt (μ : Measure ℝ) (s : ℝ) : Prop :=

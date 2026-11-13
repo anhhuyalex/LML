@@ -144,6 +144,22 @@ theorem measurable_spin_mul [MeasurableSpace α] (hξ : ∀ u, Measurable (fun a
     Measurable (fun a => ξ a u * ξ a v) :=
   (hξ u).mul (hξ v)
 
+/-- A double sum of spin products against a coefficient matrix `c` is at most `r ∑∑ |c|`. -/
+theorem abs_double_sum_spin_mul_le (a : α) (c : D → D → ℝ) :
+    |∑ w, ∑ w', ξ a w * ξ a w' * c w w'| ≤ ∑ w, ∑ w', r * |c w w'| := by
+  refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun w _ => ?_)
+  refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun w' _ => ?_)
+  rw [abs_mul]
+  exact mul_le_mul_of_nonneg_right (abs_spin_mul_le ξ hr hbound a a w w') (abs_nonneg _)
+
+omit hr hbound in
+/-- A double sum of spin products against a coefficient matrix is measurable in the spin. -/
+theorem measurable_double_sum_spin_mul [MeasurableSpace α]
+    (hξ : ∀ u, Measurable (fun a => ξ a u)) (c : D → D → ℝ) :
+    Measurable (fun a => ∑ w, ∑ w', ξ a w * ξ a w' * c w w') :=
+  Finset.measurable_sum _ fun w _ => Finset.measurable_sum _ fun w' _ =>
+    (measurable_spin_mul ξ hξ w w').mul measurable_const
+
 end SpinBounds
 
 end SpinGlasses

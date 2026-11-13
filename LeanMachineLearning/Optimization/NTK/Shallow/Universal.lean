@@ -51,7 +51,7 @@ open scoped Matrix
 
 namespace NTK
 
-open NeuralNetwork (relu)
+open NeuralNetwork (relu threshold)
 
 variable {d : ℕ}
 
@@ -73,7 +73,7 @@ lemma isCompact_ntkDomain (d : ℕ) (hd : 0 < d) :
 /-- The ReLU NTK in coordinates on the reduced domain `U`. For `x, x'` in the NTK domain, let
 `z = u ⬝ᵥ u'` where `u, u'` are `x, x'` with the last coordinate dropped. Then
 `f_tilde(z) = (z + 1/2)/2 − (z + 1/2)·arccos(z + 1/2)/(2π)` equals
-`shallowLimitingNTK reluIndicator x x'`. -/
+`shallowLimitingNTK threshold x x'`. -/
 lemma reducedReluFormula_eq_shallowLimitingNTK
     (d : ℕ) (x x' : Fin (d + 1) → ℝ)
     (hx : x ∈ {x | x ⬝ᵥ x = 1 ∧
@@ -87,7 +87,7 @@ lemma reducedReluFormula_eq_shallowLimitingNTK
         Real.arccos
           ((fun k : Fin d => x k.castSucc) ⬝ᵥ (fun k : Fin d => x' k.castSucc) + 1 / 2) /
           (2 * Real.pi) =
-    shallowLimitingNTK reluIndicator x x' := by
+    shallowLimitingNTK threshold x x' := by
   sorry
 
 /-! ### NTK RKHS predictor class (Definition 4.8) -/
@@ -99,7 +99,7 @@ def RKHSClass (d : ℕ) : Set ((Fin d → ℝ) → ℝ) :=
   { h | ∃ (n : ℕ) (α : Fin n → ℝ) (pts : Fin n → Fin d → ℝ),
           (∀ j, pts j ∈ {x | x ⬝ᵥ x = 1 ∧
             (∃ hd : 0 < d, x ⟨d - 1, Nat.sub_lt hd Nat.one_pos⟩ = 1 / Real.sqrt 2)}) ∧
-          h = fun x => ∑ j : Fin n, α j * shallowLimitingNTK reluIndicator x (pts j) }
+          h = fun x => ∑ j : Fin n, α j * shallowLimitingNTK threshold x (pts j) }
 
 /-- The zero function belongs to `ℋ` (via the empty sum). -/
 lemma zero_mem_RKHSClass (d : ℕ) : (fun _ => (0 : ℝ)) ∈ RKHSClass d := by

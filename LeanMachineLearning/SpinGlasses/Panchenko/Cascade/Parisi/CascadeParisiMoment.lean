@@ -292,11 +292,8 @@ theorem lintegral_cascadeMarkedSum_rpow_lt_top {Ω : Type*} [MeasurableSpace Ω]
       exact h
     -- the root blocks are independent Poisson blocks
     have hBvec : HasLaw (fun ω => (D ⟨0, fun i => i.elim0⟩ ω).1) (Measure.infinitePi fun k =>
-        Po(rate 0 k).prod (Measure.infinitePi fun _ : ℕ => nu 0 k)) P := by
-      refine ⟨(measurable_fst.comp (hDm _)).aemeasurable, ?_⟩
-      rw [show (fun ω => (D ⟨0, fun i => i.elim0⟩ ω).1) = Prod.fst ∘ D ⟨0, fun i => i.elim0⟩
-        from rfl, ← Measure.map_map measurable_fst (hDm _), (hDlaw' _).map_eq,
-        Measure.map_fst_prod, measure_univ, one_smul]
+        Po(rate 0 k).prod (Measure.infinitePi fun _ : ℕ => nu 0 k)) P :=
+      (hasLaw_fst_prod _ _).comp (hDlaw' _)
     obtain ⟨hB, hBlaw⟩ := iIndepFun_hasLaw_of_hasLaw_infinitePi hBvec
     have hstep := lintegral_rankedRoot_marked_sum_rpow_lt_top (hζ0 0) ha0 haζ (hζ1 0) (nu 0)
       (rate 0) (fun k ω => (D ⟨0, fun i => i.elim0⟩ ω).1 k)

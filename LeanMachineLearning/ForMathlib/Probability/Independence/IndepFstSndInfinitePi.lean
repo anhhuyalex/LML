@@ -54,16 +54,10 @@ theorem hasLaw_indepFun_fst_snd_of_iIndepFun [IsProbabilityMeasure P] (D : V →
       rw [this, Measure.map_id]
     · exact measurable_pi_iff.2 fun v => ((measurable_pi_apply v).comp measurable_fst).prodMk
         ((measurable_pi_apply v).comp measurable_snd)
-  have hmA : P.map (fun ω v => (D v ω).1) = Measure.infinitePi μ := by
-    have e : (fun ω v => (D v ω).1) = Prod.fst ∘ fun ω =>
-        ((fun v => (D v ω).1), fun v => (D v ω).2) := rfl
-    rw [e, ← AEMeasurable.map_map_of_aemeasurable measurable_fst.aemeasurable
-      hpair.aemeasurable, hpair.map_eq, Measure.map_fst_prod, measure_univ, one_smul]
-  have hmB : P.map (fun ω v => (D v ω).2) = Measure.infinitePi ν := by
-    have e : (fun ω v => (D v ω).2) = Prod.snd ∘ fun ω =>
-        ((fun v => (D v ω).1), fun v => (D v ω).2) := rfl
-    rw [e, ← AEMeasurable.map_map_of_aemeasurable measurable_snd.aemeasurable
-      hpair.aemeasurable, hpair.map_eq, Measure.map_snd_prod, measure_univ, one_smul]
+  have hmA : P.map (fun ω v => (D v ω).1) = Measure.infinitePi μ :=
+    ((hasLaw_fst_prod _ _).comp hpair).map_eq
+  have hmB : P.map (fun ω v => (D v ω).2) = Measure.infinitePi ν :=
+    ((hasLaw_snd_prod _ _).comp hpair).map_eq
   refine ⟨⟨hA.aemeasurable, hmA⟩, ⟨hB.aemeasurable, hmB⟩, ?_⟩
   rw [indepFun_iff_map_prod_eq_prod_map_map hA.aemeasurable hB.aemeasurable, hmA, hmB]
   exact hpair.map_eq

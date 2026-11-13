@@ -1439,20 +1439,78 @@ lemma positiveZ_deriv_nonneg
       rwa [hd.derivWithin (uniqueDiffOn_Ici 0 τ hτ)] at h
     · simp [deriv_zero_of_not_differentiableAt hd]
 
-lemma pos_delta_bound_3
+/-- The scaled primal path of the Lasso family vanishes near `μ = 0` (for `μ < 1 / max ‖r - λ𝟙‖∞ 1`
+the LCP has the zero solution, by `lcp_eq_iff_of_small_mu`), so its derivative at `0` is `0`. -/
+lemma deriv_scaledPrimalPath_zero_eq_zero
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (hdata : ProblemData M r lambda)
+    (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ)) :
+    deriv (scaledPrimalPath x_lasso) 0 = 0 := by
+  let N : ℝ := ⨆ i, |r i - lambda|
+  let denom : ℝ := max N (1 : ℝ)
+  have h_denom_pos : 0 < denom := by
+    dsimp [denom, N]
+    exact lt_max_of_lt_right (by norm_num : (0 : ℝ) < 1)
+  have h_path_zero_near_zero : ∃ μ₀ > 0,
+      ∀ μ ∈ Set.Icc (0 : ℝ) μ₀, scaledPrimalPath x_lasso μ = 0 := by
+    refine ⟨(1 / denom) / 2, half_pos (div_pos (by norm_num) h_denom_pos), ?_⟩
+    intro μ hμ
+    rcases hμ with ⟨hμ_low, hμ_high⟩
+    by_cases hμ_zero : μ = 0
+    · subst hμ_zero; simp [scaledPrimalPath]
+    · have hμ_pos : 0 < μ := lt_of_le_of_ne hμ_low (Ne.symm hμ_zero)
+      have hx_min : IsPositiveLassoMinimizer M r lambda μ (x_lasso μ) := hx_lasso μ hμ_pos
+      have hpos : 0 < 1 / denom := div_pos (by norm_num) h_denom_pos
+      have hμ_small : μ < 1 / denom := by linarith
+      have hx_zero : x_lasso μ = 0 := by
+        rcases (pos_lasso_is_lcp M r lambda μ (x_lasso μ) hdata.psd.symm hdata.psd).mp hx_min with
+          ⟨v, hv⟩
+        exact ((lcp_eq_iff_of_small_mu M r lambda μ hdata.psd
+          hμ_pos hμ_small (x_lasso μ) v).mp hv).1
+      dsimp [scaledPrimalPath]
+      rw [hx_zero, smul_zero]
+  rcases h_path_zero_near_zero with ⟨μ₀, hμ₀_pos, h_zero⟩
+  -- Now prove deriv = 0 at 0
+  have h_deriv_zero : deriv (scaledPrimalPath x_lasso) 0 = 0 := by
+    by_cases hd : DifferentiableAt ℝ (scaledPrimalPath x_lasso) 0
+    · have h_zero_right : ∀ᶠ t in 𝓝[>] 0, scaledPrimalPath x_lasso t = 0 := by
+        filter_upwards [Ioo_mem_nhdsGT hμ₀_pos] with t ht
+        exact h_zero t ⟨ht.1.le, ht.2.le⟩
+      have h_f0 : scaledPrimalPath x_lasso 0 = 0 := by
+        simpa using h_zero 0 ⟨le_refl 0, hμ₀_pos.le⟩
+      have h_slope_eq : (fun _ => (0 : EuclideanSpace ℝ ι)) =ᶠ[𝓝[>] 0]
+          (fun t : ℝ => t⁻¹ • (scaledPrimalPath x_lasso (0 + t) -
+            scaledPrimalPath x_lasso 0)) := by
+        filter_upwards [h_zero_right] with t ht
+        simp [ht, h_f0]
+      have h_tendsto_zero : Tendsto
+          (fun t : ℝ => t⁻¹ • (scaledPrimalPath x_lasso (0 + t) - scaledPrimalPath x_lasso 0))
+          (𝓝[>] 0) (𝓝 (0 : EuclideanSpace ℝ ι)) :=
+        Filter.Tendsto.congr' h_slope_eq
+          (tendsto_const_nhds (x := (0 : EuclideanSpace ℝ ι)))
+      have h_tendsto_deriv := hd.hasDerivAt.tendsto_slope_zero_right
+      exact tendsto_nhds_unique h_tendsto_deriv h_tendsto_zero
+    · exact deriv_zero_of_not_differentiableAt hd
+  exact h_deriv_zero
+
+/-- Shared core of `pos_delta_bound_3` and `pos_delta_bound_3_of_monotone`: the "Term 3" bound
+holds as soon as, at every `τ ≥ 0`, either the derivative of the scaled primal path vanishes or the
+derivative identities for the positive-part trajectories `positiveZUpward`, `positiveZDownward`
+hold. The two public lemmas differ only in how they supply this alternative. -/
+private lemma pos_delta_bound_3_core
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
     (β : EuclideanSpace ℝ ι)
     (u : ℝ → ℝ → EuclideanSpace ℝ ι)
     (hdata : ProblemData M r lambda) (hβ : NonzeroCoordinates β)
     (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
-    (_hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
     (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
-    (h_piecewise_deriv : ∀ (τ' : ℝ) (i' : ι), 0 ≤ τ' →
-        DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ' →
-        ∃ ε > 0, ∀ t, |t - τ'| < ε →
-          deriv (fun u' => u' * (x_lasso u').ofLp i') t =
-          deriv (fun u' => u' * (x_lasso u').ofLp i') τ') :
+    (h_cases : ∀ τ : ℝ, 0 ≤ τ → deriv (scaledPrimalPath x_lasso) τ = 0 ∨
+      (deriv (positiveZUpward x_lasso) τ =
+          ∑ i, max 0 ((deriv (scaledPrimalPath x_lasso) τ) i) ∧
+        deriv (positiveZDownward x_lasso) τ =
+          ∑ i, (1 + τ) * max 0 (-((deriv (scaledPrimalPath x_lasso) τ) i)))) :
     ∃ C > 0, ∀ s : ℝ, 0 < s → ∀ᶠ ε in 𝓝[>] 0,
       ∀ τ ∈ Set.Icc (0 : ℝ) s,
         - inner ℝ (deriv (scaledPrimalPath x_lasso) τ)
@@ -1486,10 +1544,9 @@ lemma pos_delta_bound_3
     rw [mem_nhdsGT_iff_exists_Ioo_subset]
     exact ⟨1, by norm_num, fun _ hx => hx⟩] with ε hXε hW_low_ε hW_ε hε_mem
   intro τ hτ
-  by_cases h_path_diff : DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ
-  swap
-  · have h_nonneg := positiveZ_deriv_nonneg x_lasso τ hτ.left h_regular
-    rw [deriv_zero_of_not_differentiableAt h_path_diff, inner_zero_left, neg_zero]
+  have h_nonneg := positiveZ_deriv_nonneg x_lasso τ hτ.left h_regular
+  rcases h_cases τ hτ.left with h_zero | ⟨h_upward_eq, h_downward_eq⟩
+  · rw [h_zero, inner_zero_left, neg_zero]
     apply mul_nonneg
     · exact (lt_max_of_lt_left hC_low_pos).le
     · apply add_nonneg
@@ -1497,48 +1554,50 @@ lemma pos_delta_bound_3
           (div_nonneg zero_le_one (Real.log_pos
             (one_lt_one_div hε_mem.1 hε_mem.2)).le) h_nonneg.1
       · exact h_nonneg.2
-  -- Notation for the derivative and the dual variable
-  set zDot := deriv (scaledPrimalPath x_lasso) τ
-  set w := posRescaledMirrorVariable ε (u ε) τ
-  -- Now bound each part using the bounds on w.
-  -- For the positive part: since w_i ≥ -C_low / log(1/ε) and max(0, zDot_i) ≥ 0,
-  --   -(max(0, zDot_i)) * w_i ≤ max(0, zDot_i) * C_low / log(1/ε)
-  -- For the negative part: since |w_i| ≤ C_w * (1+τ) and max(0, -zDot_i) ≥ 0,
-  --   max(0, -zDot_i) * w_i ≤ max(0, -zDot_i) * C_w * (1+τ)
-  rcases mirror_pos_neg_bounds zDot w C_low C_w τ ε
-    (hW_low_ε τ hτ)
-    (hW_ε τ hτ) with ⟨h_bound_pos, h_bound_neg⟩
-  -- Relate the sums to derivatives of positiveZUpward and positiveZDownward
-  -- using the FTC and piecewise linearity of the Lasso path.
-  have h_derivs := deriv_pos_z_identities x_lasso τ hτ.left h_regular
-    h_piecewise_deriv h_path_diff
-  rcases h_derivs with ⟨h_upward_eq_raw, h_downward_eq_raw⟩
-  have h_upward_eq : deriv (positiveZUpward x_lasso) τ = ∑ i, max 0 (zDot i) := by
-    simpa [zDot] using h_upward_eq_raw
-  have h_downward_eq : deriv (positiveZDownward x_lasso) τ = ∑ i, (1 + τ) * max 0 (-zDot i) := by
-    simpa [zDot] using h_downward_eq_raw
-  rw [← h_upward_eq] at h_bound_pos
-  rw [← h_downward_eq] at h_bound_neg
-  -- Nonnegativity of deriv (positiveZUpward x_lasso) τ: from the derivative identity
-  -- (it equals a sum of max(0, ...) terms, each ≥ 0)
-  have h_up_nonneg : 0 ≤ deriv (positiveZUpward x_lasso) τ := by
-    rw [h_upward_eq]
-    refine Finset.sum_nonneg (fun i _ => ?_)
-    exact le_max_left _ _
-  -- Nonnegativity of deriv (positiveZDownward x_lasso) τ: from the derivative identity
-  -- and τ ≥ 0 (since τ ∈ [0, s]).  For τ ≥ 0 we have (1+τ) ≥ 1 > 0 and
-  -- max(0, -zDot i) ≥ 0, so the RHS sum is nonnegative, hence LHS ≥ 0.
-  have hτ_nonneg : 0 ≤ τ := hτ.left
-  have h_down_nonneg : 0 ≤ deriv (positiveZDownward x_lasso) τ := by
-    rw [h_downward_eq]
-    refine Finset.sum_nonneg (fun i _ => ?_)
-    have h_nonneg_max : 0 ≤ max 0 (-zDot i) := le_max_left _ _
-    have h_nonneg_factor : 0 ≤ 1 + τ := by linarith
-    nlinarith
-  -- Assemble the final inequality from the pos/neg bounds
-  exact assemble_pos_delta_bound_3 zDot w C_low C_w C τ ε x_lasso
-    (le_max_left _ _) (le_max_right _ _)
-    h_bound_pos h_bound_neg h_up_nonneg h_down_nonneg hε_mem.1 hε_mem.2
+  · set zDot := deriv (scaledPrimalPath x_lasso) τ
+    set w := posRescaledMirrorVariable ε (u ε) τ
+    rcases mirror_pos_neg_bounds zDot w C_low C_w τ ε
+      (hW_low_ε τ hτ)
+      (hW_ε τ hτ) with ⟨h_bound_pos, h_bound_neg⟩
+    rw [← h_upward_eq] at h_bound_pos
+    rw [← h_downward_eq] at h_bound_neg
+    have h_up_nonneg : 0 ≤ deriv (positiveZUpward x_lasso) τ := by
+      rw [h_upward_eq]
+      exact Finset.sum_nonneg (fun i _ => le_max_left _ _)
+    have h_down_nonneg : 0 ≤ deriv (positiveZDownward x_lasso) τ := by
+      rw [h_downward_eq]
+      refine Finset.sum_nonneg (fun i _ => ?_)
+      have h_nonneg_max : 0 ≤ max 0 (-zDot i) := le_max_left _ _
+      have h_nonneg_factor : 0 ≤ 1 + τ := by linarith [hτ.left]
+      nlinarith
+    exact assemble_pos_delta_bound_3 zDot w C_low C_w C τ ε x_lasso
+      (le_max_left _ _) (le_max_right _ _)
+      h_bound_pos h_bound_neg h_up_nonneg h_down_nonneg hε_mem.1 hε_mem.2
+
+lemma pos_delta_bound_3
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (β : EuclideanSpace ℝ ι)
+    (u : ℝ → ℝ → EuclideanSpace ℝ ι)
+    (hdata : ProblemData M r lambda) (hβ : NonzeroCoordinates β)
+    (hu : ∀ ε > 0, posDlnGradientFlow M r lambda ε β (u ε))
+    (x_lasso : ℝ → EuclideanSpace ℝ ι)
+    (_hx_lasso : ∀ μ > 0, IsPositiveLassoMinimizer M r lambda μ (x_lasso μ))
+    (h_regular : LocallyAbsolutelyContinuousOnNonnegativeCompacts (scaledPrimalPath x_lasso))
+    (h_piecewise_deriv : ∀ (τ' : ℝ) (i' : ι), 0 ≤ τ' →
+        DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ' →
+        ∃ ε > 0, ∀ t, |t - τ'| < ε →
+          deriv (fun u' => u' * (x_lasso u').ofLp i') t =
+          deriv (fun u' => u' * (x_lasso u').ofLp i') τ') :
+    ∃ C > 0, ∀ s : ℝ, 0 < s → ∀ᶠ ε in 𝓝[>] 0,
+      ∀ τ ∈ Set.Icc (0 : ℝ) s,
+        - inner ℝ (deriv (scaledPrimalPath x_lasso) τ)
+            (posRescaledMirrorVariable ε (u ε) τ)
+        ≤ C * (1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) τ +
+          deriv (positiveZDownward x_lasso) τ) :=
+  pos_delta_bound_3_core M r lambda β u hdata hβ hu x_lasso h_regular fun τ hτ => by
+    by_cases h_path_diff : DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ
+    · exact Or.inr (deriv_pos_z_identities x_lasso τ hτ h_regular h_piecewise_deriv h_path_diff)
+    · exact Or.inl (deriv_zero_of_not_differentiableAt h_path_diff)
 
 /--
 Monotone-case analogue of `pos_delta_bound_3`: the same bound on
@@ -1570,125 +1629,14 @@ lemma pos_delta_bound_3_of_monotone
         - inner ℝ (deriv (scaledPrimalPath x_lasso) τ)
             (posRescaledMirrorVariable ε (u ε) τ)
         ≤ C * (1 / Real.log (1 / ε) * deriv (positiveZUpward x_lasso) τ +
-          deriv (positiveZDownward x_lasso) τ) := by
-  have hu_pos : ∀ ε > 0, ∀ t i, posEffectiveParameter (u ε) t i ≠ 0 :=
-    pos_effective_param_ne_zero M r lambda β u hdata hβ hu
-  rcases uniform_trajectory_coordinate_bound M r lambda β u hdata hβ hu with ⟨X, hX_pos, hX_ev⟩
-  rcases rescaled_mirror_lower_bound X u hX_ev hu_pos with ⟨C_low, hC_low_pos, hW_low_ev⟩
-  rcases rescaled_mirror_upper_bound M r lambda β u hdata hβ hu hu_pos X hX_pos hX_ev with
-    ⟨C_w, _, hW_ev⟩
-  set C := max C_low C_w
-  refine ⟨C, lt_max_of_lt_left hC_low_pos, fun s _hs => ?_⟩
-  filter_upwards [hX_ev s _hs, hW_low_ev s _hs, hW_ev s _hs, by
-    rw [mem_nhdsGT_iff_exists_Ioo_subset]
-    exact ⟨1, by norm_num, fun _ hx => hx⟩] with ε hXε hW_low_ε hW_ε hε_mem
-  intro τ hτ
-  -- Split on whether τ = 0 (requires special handling because monotone derivative
-  -- identities need τ > 0), or τ > 0 (the main case).
-  by_cases hτ_zero : τ = 0
-  · -- τ = 0 case: the scaled primal path vanishes on a right neighborhood of 0
-    -- (property of the Lasso path, proved here via `lcp_eq_iff_of_small_mu` from LCP.lean
-    -- to avoid a circular import with Theorems.lean).  Thus the derivative at 0 is 0,
-    -- giving LHS = 0 ≤ RHS (nonnegative from `positiveZ_deriv_nonneg`).
-    subst hτ_zero
-    have h_nonneg := positiveZ_deriv_nonneg x_lasso 0 (le_refl 0) h_regular
-    -- First, prove scaledPrimalPath x_lasso μ = 0 for all sufficiently small μ ≥ 0
-    -- (this is the content of `scaled_path_zero_near_zero` in Theorems.lean, reproved here
-    -- using `lcp_eq_iff_of_small_mu` which is available via LCP.lean).
-    let N : ℝ := ⨆ i, |r i - lambda|
-    let denom : ℝ := max N (1 : ℝ)
-    have h_denom_pos : 0 < denom := by
-      dsimp [denom, N]
-      exact lt_max_of_lt_right (by norm_num : (0 : ℝ) < 1)
-    have h_path_zero_near_zero : ∃ μ₀ > 0,
-        ∀ μ ∈ Set.Icc (0 : ℝ) μ₀, scaledPrimalPath x_lasso μ = 0 := by
-      refine ⟨(1 / denom) / 2, half_pos (div_pos (by norm_num) h_denom_pos), ?_⟩
-      intro μ hμ
-      rcases hμ with ⟨hμ_low, hμ_high⟩
-      by_cases hμ_zero : μ = 0
-      · subst hμ_zero; simp [scaledPrimalPath]
-      · have hμ_pos : 0 < μ := lt_of_le_of_ne hμ_low (Ne.symm hμ_zero)
-        have hx_min : IsPositiveLassoMinimizer M r lambda μ (x_lasso μ) := _hx_lasso μ hμ_pos
-        have hpos : 0 < 1 / denom := div_pos (by norm_num) h_denom_pos
-        have hμ_small : μ < 1 / denom := by linarith
-        have hx_zero : x_lasso μ = 0 := by
-          rcases (pos_lasso_is_lcp M r lambda μ (x_lasso μ) hdata.psd.symm hdata.psd).mp hx_min with
-            ⟨v, hv⟩
-          exact ((lcp_eq_iff_of_small_mu M r lambda μ hdata.psd
-            hμ_pos hμ_small (x_lasso μ) v).mp hv).1
-        dsimp [scaledPrimalPath]
-        rw [hx_zero, smul_zero]
-    rcases h_path_zero_near_zero with ⟨μ₀, hμ₀_pos, h_zero⟩
-    -- Now prove deriv = 0 at 0
-    have h_deriv_zero : deriv (scaledPrimalPath x_lasso) 0 = 0 := by
-      by_cases hd : DifferentiableAt ℝ (scaledPrimalPath x_lasso) 0
-      · have h_zero_right : ∀ᶠ t in 𝓝[>] 0, scaledPrimalPath x_lasso t = 0 := by
-          filter_upwards [Ioo_mem_nhdsGT hμ₀_pos] with t ht
-          exact h_zero t ⟨ht.1.le, ht.2.le⟩
-        have h_f0 : scaledPrimalPath x_lasso 0 = 0 := by
-          simpa using h_zero 0 ⟨le_refl 0, hμ₀_pos.le⟩
-        have h_slope_eq : (fun _ => (0 : EuclideanSpace ℝ ι)) =ᶠ[𝓝[>] 0]
-            (fun t : ℝ => t⁻¹ • (scaledPrimalPath x_lasso (0 + t) -
-              scaledPrimalPath x_lasso 0)) := by
-          filter_upwards [h_zero_right] with t ht
-          simp [ht, h_f0]
-        have h_tendsto_zero : Tendsto
-            (fun t : ℝ => t⁻¹ • (scaledPrimalPath x_lasso (0 + t) - scaledPrimalPath x_lasso 0))
-            (𝓝[>] 0) (𝓝 (0 : EuclideanSpace ℝ ι)) :=
-          Filter.Tendsto.congr' h_slope_eq
-            (tendsto_const_nhds (x := (0 : EuclideanSpace ℝ ι)))
-        have h_tendsto_deriv := hd.hasDerivAt.tendsto_slope_zero_right
-        exact tendsto_nhds_unique h_tendsto_deriv h_tendsto_zero
-      · exact deriv_zero_of_not_differentiableAt hd
-    rw [h_deriv_zero, inner_zero_left, neg_zero]
-    apply mul_nonneg
-    · exact (lt_max_of_lt_left hC_low_pos).le
-    · apply add_nonneg
-      · exact mul_nonneg
-          (div_nonneg zero_le_one (Real.log_pos
-            (one_lt_one_div hε_mem.1 hε_mem.2)).le) h_nonneg.1
-      · exact h_nonneg.2
-  · -- τ > 0: the main case, mirroring the proof of `pos_delta_bound_3`.
-    have hτ_pos : 0 < τ := lt_of_le_of_ne hτ.left (Ne.symm hτ_zero)
-    by_cases h_path_diff : DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ
-    swap
-    · -- non-differentiable case (identical to pos_delta_bound_3)
-      have h_nonneg' := positiveZ_deriv_nonneg x_lasso τ hτ.left h_regular
-      rw [deriv_zero_of_not_differentiableAt h_path_diff, inner_zero_left, neg_zero]
-      apply mul_nonneg
-      · exact (lt_max_of_lt_left hC_low_pos).le
-      · apply add_nonneg
-        · exact mul_nonneg
-            (div_nonneg zero_le_one (Real.log_pos
-              (one_lt_one_div hε_mem.1 hε_mem.2)).le) h_nonneg'.1
-        · exact h_nonneg'.2
-    -- differentiable case (τ > 0, differentiable)
-    set zDot := deriv (scaledPrimalPath x_lasso) τ
-    set w := posRescaledMirrorVariable ε (u ε) τ
-    rcases mirror_pos_neg_bounds zDot w C_low C_w τ ε
-      (hW_low_ε τ hτ)
-      (hW_ε τ hτ) with ⟨h_bound_pos, h_bound_neg⟩
-    -- Use monotone derivative identities instead of `deriv_pos_z_identities`
-    have h_derivs := deriv_pos_z_identities_of_monotone
-      x_lasso τ hτ_pos h_regular h_mono h_path_diff
-    rcases h_derivs with ⟨h_upward_eq, h_downward_eq⟩
-    rw [← h_upward_eq] at h_bound_pos
-    rw [← h_downward_eq] at h_bound_neg
-    -- Nonnegativity of the Z-derivatives (same as in pos_delta_bound_3)
-    have h_up_nonneg : 0 ≤ deriv (positiveZUpward x_lasso) τ := by
-      rw [h_upward_eq]
-      refine Finset.sum_nonneg (fun i _ => ?_)
-      exact le_max_left _ _
-    have h_down_nonneg : 0 ≤ deriv (positiveZDownward x_lasso) τ := by
-      rw [h_downward_eq]
-      refine Finset.sum_nonneg (fun i _ => ?_)
-      have h_nonneg_max : 0 ≤ max 0 (-zDot i) := le_max_left _ _
-      have h_nonneg_factor : 0 ≤ 1 + τ := by linarith
-      nlinarith
-    -- Assemble the final inequality from the pos/neg bounds
-    exact assemble_pos_delta_bound_3 zDot w C_low C_w C τ ε x_lasso
-      (le_max_left _ _) (le_max_right _ _)
-      h_bound_pos h_bound_neg h_up_nonneg h_down_nonneg hε_mem.1 hε_mem.2
+          deriv (positiveZDownward x_lasso) τ) :=
+  pos_delta_bound_3_core M r lambda β u hdata hβ hu x_lasso h_regular fun τ hτ => by
+    rcases hτ.eq_or_lt with rfl | hτ_pos
+    · exact Or.inl (deriv_scaledPrimalPath_zero_eq_zero M r lambda hdata x_lasso _hx_lasso)
+    · by_cases h_path_diff : DifferentiableAt ℝ (scaledPrimalPath x_lasso) τ
+      · exact Or.inr (deriv_pos_z_identities_of_monotone x_lasso τ hτ_pos h_regular h_mono
+          h_path_diff)
+      · exact Or.inl (deriv_zero_of_not_differentiableAt h_path_diff)
 
 /--
 If `f, g : ℝ → ℝ` are continuous on `[0, ∞)` and their product is identically zero on `[0, ∞)`,
@@ -2405,6 +2353,139 @@ lemma deriv_piLp_apply {ι : Type*} [Fintype ι] {z : ℝ → EuclideanSpace ℝ
   change (deriv z τ).ofLp i = deriv (fun x => (z x).ofLp i) τ
   exact h2.deriv.symm
 
+-- Complementary slackness of the parametric LCP kills the pairing of the
+-- derivative of the exact primal path against the exact dual variable.
+-- For every τ ≥ 0, ⟨deriv z(τ), w(τ)⟩ = 0.
+-- This uses Fermat's stationary-point theorem for τ > 0 and a boundary
+-- continuity argument for τ = 0.
+lemma complementary_slackness_derivative
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
+    (x_lasso : ℝ → EuclideanSpace ℝ ι) (w : ℝ → EuclideanSpace ℝ ι)
+    (hdual_selected : ∀ μ, 0 ≤ μ →
+      isParametricLCP M r lambda μ (scaledPrimalPath x_lasso μ) (w μ)) :
+    ∀ τ : ℝ, 0 ≤ τ → inner ℝ (deriv (scaledPrimalPath x_lasso) τ) (w τ) = 0 := by
+  -- The exact scaled dual variable coincides with the explicit expression
+  -- used throughout `Bounds/Delta.lean`.
+  have hw_explicit : ∀ τ : ℝ, 0 ≤ τ →
+      w τ = matVec M (scaledPrimalPath x_lasso τ) - τ • r + (1 + τ * lambda) • ones := by
+    intro τ hτ
+    have h := hdual_selected τ hτ
+    dsimp [isParametricLCP, isLCP] at h
+    rw [h.1]
+    ext i
+    simp [parametricLcpQ, ones, euclideanOf, matVec]
+    ring
+  intro τ hτ
+  set z := scaledPrimalPath x_lasso
+  have hLCP := hdual_selected τ hτ
+  dsimp [isParametricLCP, isLCP] at hLCP
+  rcases hLCP with ⟨hw_eq, hw_nonneg, hz_nonneg, h_inner_zero⟩
+  -- Coordinatewise complementarity for all μ ≥ 0:
+  -- (w μ) i * (z μ) i = 0 for every i.
+  have h_coord_zero_at : ∀ μ, 0 ≤ μ → ∀ i, (w μ) i * (z μ) i = 0 := by
+    intro μ hμ i
+    have hLCPμ := hdual_selected μ hμ
+    dsimp [isParametricLCP, isLCP] at hLCPμ
+    rcases hLCPμ with ⟨_, hw_nonneg_μ, hz_nonneg_μ, h_inner_zero_μ⟩
+    have h_inner_sum : inner ℝ (w μ) (z μ) = (∑ j : ι, (w μ) j * (z μ) j) := by
+      simp [PiLp.inner_apply, mul_comm]
+    have h_sum : (∑ j : ι, (w μ) j * (z μ) j) = 0 := by
+      rw [← h_inner_sum, h_inner_zero_μ]
+    have h_nonneg : ∀ j, 0 ≤ (w μ) j * (z μ) j := fun j =>
+      mul_nonneg (hw_nonneg_μ j) (hz_nonneg_μ j)
+    have h_all_zero := (Finset.sum_eq_zero_iff_of_nonneg (fun j _ => h_nonneg j)).mp h_sum
+    exact h_all_zero i (Finset.mem_univ i)
+  by_cases h_diff : DifferentiableAt ℝ z τ
+  · -- z is differentiable at τ: work coordinatewise
+    rw [PiLp.inner_apply]
+    simp only [deriv_piLp_apply h_diff, Real.inner_apply]
+    apply Finset.sum_eq_zero
+    intro i hi
+    by_cases hwi_zero : (w τ) i = 0
+    · simp [hwi_zero]
+    · have hwi_pos : 0 < (w τ) i :=
+        lt_of_le_of_ne (hw_nonneg i) (Ne.symm hwi_zero)
+      have hzi_zero : (z τ) i = 0 := by
+        have hprod := h_coord_zero_at τ hτ i
+        nlinarith
+      by_cases hτ_pos : τ > 0
+      · -- τ > 0: use Fermat (IsLocalMin) since z_i ≥ 0 everywhere and z_i(τ)=0
+        have h_deriv_zero : deriv (fun μ => z μ i) τ = 0 :=
+          IsLocalMin.deriv_eq_zero (by
+            have hδ : 0 < τ / 2 := by linarith
+            apply Filter.mem_of_superset (Metric.ball_mem_nhds τ hδ)
+            intro μ hμ
+            have hμ_nonneg : 0 ≤ μ := by
+              have : |μ - τ| < τ / 2 := hμ
+              linarith [abs_sub_lt_iff.mp this]
+            have hμ_lcp := hdual_selected μ hμ_nonneg
+            dsimp [isParametricLCP, isLCP] at hμ_lcp
+            rcases hμ_lcp with ⟨_, _, hz_nonneg_μ, _⟩
+            simpa [hzi_zero] using hz_nonneg_μ i)
+        simp [h_deriv_zero]
+      · -- τ = 0: boundary case
+        have hτ_zero : τ = 0 := by linarith
+        subst hτ_zero
+        -- w is continuous at 0 (since z is differentiable at 0, hence continuous)
+        have hz_cont_at_0 : ContinuousAt z 0 := h_diff.continuousAt
+        -- Define f(μ) = matVec M(z(μ)) - μ•r + (1+μ•λ)•ones, which equals w(μ) for μ ≥ 0
+        set f := fun (μ : ℝ) => matVec M (z μ) - μ • r + (1 + μ * lambda) • ones
+        have hf_cont_at_0 : ContinuousAt f 0 := by
+          dsimp [f]
+          have h_matVec_cont : Continuous (matVec M) := continuous_matVec M
+          refine ContinuousAt.add (ContinuousAt.sub ?_ ?_) ?_
+          · exact h_matVec_cont.continuousAt.comp hz_cont_at_0
+          · exact continuousAt_id.smul_const r
+          · have h1 : ContinuousAt (fun (μ : ℝ) => 1 + μ * lambda) 0 :=
+              continuousAt_const.add (continuousAt_id.mul continuousAt_const)
+            have h2 : ContinuousAt (fun (_ : ℝ) => (ones : EuclideanSpace ℝ ι)) 0 :=
+              continuousAt_const
+            exact h1.smul h2
+        have hf0_i_one : (f 0) i = 1 := by
+          dsimp [f]
+          have hz0 : z 0 = 0 := by
+            dsimp [z, scaledPrimalPath]
+            simp
+          rw [hz0]
+          simp [ones, euclideanOf, matVec]
+        have h_fi_cont : ContinuousAt (fun μ => (f μ) i) 0 :=
+          (continuous_euclidean_apply i).continuousAt.comp hf_cont_at_0
+        -- w agrees with f for μ ≥ 0 (by hw_explicit)
+        have h_wi_tendsto : Tendsto (fun μ => (w μ) i) (𝓝[>] 0) (𝓝 1) := by
+          apply Filter.Tendsto.congr'
+          · filter_upwards [self_mem_nhdsWithin] with μ hμ
+            have hμ_nonneg' : 0 ≤ μ := le_of_lt hμ
+            rw [hw_explicit μ hμ_nonneg']
+          · have h_limit := h_fi_cont.tendsto.mono_left
+              (nhdsWithin_le_nhds (s := Set.Ioi (0 : ℝ)))
+            rwa [hf0_i_one] at h_limit
+        -- Since (w μ) i → 1 > 0, eventually (w μ) i > 0 for μ > 0 small enough
+        have h_wi_pos : ∀ᶠ μ in 𝓝[>] 0, 0 < (w μ) i :=
+          h_wi_tendsto.eventually (eventually_gt_nhds (by norm_num : (0 : ℝ) < 1))
+        -- Using complementarity: if w_i(μ) > 0, then z_i(μ) = 0 (for μ > 0)
+        have h_zi_zero : ∀ᶠ μ in 𝓝[>] 0, (z μ) i = 0 := by
+          filter_upwards [h_wi_pos, self_mem_nhdsWithin] with μ hμ_pos hμ_Ioi
+          have hμ_nonneg : 0 ≤ μ := le_of_lt hμ_Ioi
+          have hprod := h_coord_zero_at μ hμ_nonneg i
+          cases mul_eq_zero.mp hprod with
+          | inl h => exact (ne_of_gt hμ_pos h).elim
+          | inr h => exact h
+        have hz0_i : (z 0) i = 0 := by
+          dsimp [z, scaledPrimalPath]
+          simp
+        -- The derivative of a coordinate that vanishes on `(0, ε)` is zero
+        have h_hasDeriv : HasDerivAt (fun μ => z μ i) ((deriv z 0).ofLp i) 0 := by
+          have h_deriv_z : HasDerivAt z (deriv z 0) 0 := h_diff.hasDerivAt
+          exact (EuclideanSpace.proj i).hasFDerivAt.comp_hasDerivAt 0 h_deriv_z
+        have h_deriv_zi_zero : (deriv z 0).ofLp i = 0 :=
+          eq_zero_of_hasDerivAt_of_eventually_eq_zero_nhdsGT h_hasDeriv hz0_i h_zi_zero
+        have h_eval : deriv (fun μ => z μ i) 0 = (deriv z 0).ofLp i := h_hasDeriv.deriv
+        rw [h_eval, h_deriv_zi_zero]
+        ring
+  · -- z is not differentiable at τ: deriv yields 0
+    rw [deriv_zero_of_not_differentiableAt h_diff]
+    simp [inner_zero_left]
+
 lemma pos_delta_bound_4_term1
     (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda : ℝ)
     (x_lasso : ℝ → EuclideanSpace ℝ ι)
@@ -2463,128 +2544,15 @@ lemma pos_delta_bound_4_term1
   have hz0_nonneg : Nonnegative (z 0) := by
     rw [hz0]; intro i; simp
   have h_inner_zero_0 : inner ℝ (w 0) (z 0) = 0 := by rw [hz0, inner_zero_right]
-  -- Step 3: Coordinate-wise complementarity for all μ ≥ 0
-  have h_coord_zero : ∀ μ ≥ 0, ∀ i : ι, (w μ) i * (z μ) i = 0 := by
-    intro μ hμ i
-    by_cases hμ0 : μ = 0
-    · subst hμ0; rw [hz0]; simp
-    · have hμpos : μ > 0 := Ne.lt_of_le (Ne.symm hμ0) hμ
-      rcases hLCP_pos μ hμpos with ⟨_, hw_nonneg, hz_nonneg, h_inner_zero⟩
-      have h_sum : (∑ j : ι, (w μ) j * (z μ) j) = 0 := by
-        have h_inner_sum : inner ℝ (w μ) (z μ) = (∑ j : ι, (w μ) j * (z μ) j) := by
-          rw [PiLp.inner_apply]
-          simp [mul_comm]
-        rw [← h_inner_sum, h_inner_zero]
-      have h_nonneg : ∀ j, 0 ≤ (w μ) j * (z μ) j := fun j =>
-        mul_nonneg (hw_nonneg j) (hz_nonneg j)
-      have h_all_zero := (Finset.sum_eq_zero_iff_of_nonneg (fun j _ => h_nonneg j)).mp h_sum
-      exact h_all_zero i (Finset.mem_univ i)
-  -- Step 4: Prove inner product = 0 (hence ≤ 0) via LCP complementarity
-  -- The inner product is exactly 0 by the same coordinatewise argument as
-  -- `h_comp_zero` in Energy.lean.  We defer the calculus details (case split
-  -- on `DifferentiableAt ℝ z τ`, coordinate expansion via `differentiableAt_pi`
-  -- + `deriv_pi`, `IsLocalMin.deriv_eq_zero` for τ>0, slope argument for τ=0,
-  -- `deriv_zero_of_not_differentiableAt` for non-differentiable points).
-  have h_inner_eq_zero : inner ℝ (deriv z τ) (w τ) = 0 := by
-    -- Step 4: Prove inner product = 0 (hence ≤ 0)
-    by_cases h_diff : DifferentiableAt ℝ z τ
-    · -- z is differentiable at τ: work coordinatewise
-      rw [PiLp.inner_apply]
-      have h_deriv_eval : ∀ i, (deriv z τ) i = deriv (fun x => z x i) τ := fun i =>
-        deriv_piLp_apply h_diff i
-      simp only [h_deriv_eval, Real.inner_apply]
-      apply Finset.sum_eq_zero
-      intro i hi
-      by_cases hwi_zero : (w τ) i = 0
-      · simp [hwi_zero]
-      · have hwi_pos : 0 < (w τ) i := by
-          by_cases hτ0 : τ = 0
-          · subst hτ0; rw [hw0]; simp [ones, euclideanOf]
-          · have hτpos : τ > 0 := lt_of_le_of_ne hτ_nonneg (Ne.symm hτ0)
-            rcases hLCP_pos τ hτpos with ⟨_, hw_nonneg, _, _⟩
-            exact lt_of_le_of_ne (hw_nonneg i) (Ne.symm hwi_zero)
-        have hzi_zero : (z τ) i = 0 := by
-          have hprod := h_coord_zero τ hτ_nonneg i
-          cases mul_eq_zero.mp hprod with
-          | inl h => exact (hwi_zero h).elim
-          | inr h => exact h
-        by_cases hτ_pos : τ > 0
-        · -- τ > 0: z_i has a local minimum at τ (since z_i ≥ 0 everywhere on (0,∞))
-          have h_isMin : IsLocalMin (fun μ => z μ i) τ := by
-            have hδ : 0 < τ / 2 := by linarith
-            refine Filter.mem_of_superset (Metric.ball_mem_nhds τ hδ) ?_
-            intro μ hμ
-            rw [Metric.mem_ball, Real.dist_eq] at hμ
-            have hμ_bounds := abs_lt.mp hμ
-            have hμ_nonneg : 0 ≤ μ := by linarith
-            have hz_nonneg_μ : 0 ≤ (z μ) i := by
-              by_cases hμ0 : μ = 0
-              · subst hμ0; rw [hz0]; rfl
-              · have hμpos : μ > 0 := by linarith
-                rcases hLCP_pos μ hμpos with ⟨_, _, hz_nonneg_μ', _⟩
-                exact hz_nonneg_μ' i
-            dsimp only [Set.mem_ofPred_eq]
-            rw [hzi_zero]
-            exact hz_nonneg_μ
-          have h_deriv_zero : deriv (fun μ => z μ i) τ = 0 :=
-            IsLocalMin.deriv_eq_zero h_isMin
-          simp [h_deriv_zero]
-        · -- τ = 0: use continuity of w at 0 to deduce z_i ≡ 0 on a right neighborhood
-          have hτ_zero : τ = 0 := by linarith
-          subst hτ_zero
-          -- w is continuous at 0 (since z is differentiable at 0, hence continuous)
-          have hz_cont_at_0 : ContinuousAt z 0 := h_diff.continuousAt
-          -- Define f(μ) = matVec M(z(μ)) - μ•r + (1+μ•λ)•ones, which is continuous at 0
-          set f := fun (μ : ℝ) => matVec M (z μ) - μ • r + (1 + μ * lambda) • ones
-            with hf_def
-          have hf_cont_at_0 : ContinuousAt f 0 := by
-            dsimp [f]
-            have h_matVec_cont : Continuous (matVec M) := continuous_matVec M
-            refine ContinuousAt.add (ContinuousAt.sub ?_ ?_) ?_
-            · exact (h_matVec_cont.continuousAt.comp hz_cont_at_0)
-            · exact continuousAt_id.smul_const r
-            · have h1 : ContinuousAt (fun (μ : ℝ) => 1 + μ * lambda) 0 :=
-                continuousAt_const.add (continuousAt_id.mul continuousAt_const)
-              have h2 : ContinuousAt (fun (_ : ℝ) => (ones : EuclideanSpace ℝ ι)) 0 :=
-                continuousAt_const
-              exact h1.smul h2
-          have hf0_i_one : (f 0) i = 1 := by
-            dsimp [f]; rw [hz0]; simp [ones, euclideanOf, matVec]
-          have h_fi_cont : ContinuousAt (fun μ => (f μ) i) 0 :=
-            (continuous_euclidean_apply i).continuousAt.comp hf_cont_at_0
-          -- w agrees with f for μ ≥ 0
-          have h_wi_tendsto : Tendsto (fun μ => (w μ) i) (𝓝[>] 0) (𝓝 1) := by
-            apply Filter.Tendsto.congr'
-            · filter_upwards [self_mem_nhdsWithin] with μ hμ
-              have hμ_nonneg' : 0 ≤ μ := le_of_lt hμ
-              dsimp [w, f]
-            · have h_limit := h_fi_cont.tendsto.mono_left
-                (nhdsWithin_le_nhds (s := Set.Ioi (0 : ℝ)))
-              rwa [hf0_i_one] at h_limit
-          -- Since (w μ) i → 1 > 0, eventually (w μ) i > 0 for μ > 0 small enough
-          have h_wi_pos : ∀ᶠ μ in 𝓝[>] 0, 0 < (w μ) i :=
-            h_wi_tendsto.eventually (eventually_gt_nhds (by norm_num : (0 : ℝ) < 1))
-          -- Using complementarity: if w_i(μ) > 0, then z_i(μ) = 0 (for μ > 0)
-          have h_zi_zero : ∀ᶠ μ in 𝓝[>] 0, (z μ) i = 0 := by
-            filter_upwards [h_wi_pos, self_mem_nhdsWithin] with μ hμ_pos hμ_Ioi
-            have hμ_nonneg' : 0 ≤ μ := le_of_lt hμ_Ioi
-            have hprod := h_coord_zero μ hμ_nonneg' i
-            cases mul_eq_zero.mp hprod with
-            | inl h => exact (ne_of_gt hμ_pos h).elim
-            | inr h => exact h
-          have hz0_i : (z 0) i = 0 := by rw [hz0]; simp
-          -- The derivative of a coordinate that vanishes on `(0, ε)` is zero
-          have h_hasDeriv : HasDerivAt (fun μ => z μ i) ((deriv z 0).ofLp i) 0 := by
-            have h_deriv_z : HasDerivAt z (deriv z 0) 0 := h_diff.hasDerivAt
-            exact (EuclideanSpace.proj i).hasFDerivAt.comp_hasDerivAt 0 h_deriv_z
-          have h_deriv_zi_zero : (deriv z 0).ofLp i = 0 :=
-            eq_zero_of_hasDerivAt_of_eventually_eq_zero_nhdsGT h_hasDeriv hz0_i h_zi_zero
-          have h_eval : deriv (fun μ => z μ i) 0 = (deriv z 0).ofLp i := h_hasDeriv.deriv
-          rw [h_eval, h_deriv_zi_zero]
-          ring
-    · -- z is not differentiable at τ: deriv yields 0, inner product is 0
-      rw [deriv_zero_of_not_differentiableAt h_diff]
-      simp [inner_zero_left]
+  -- Step 3: the LCP holds for every μ ≥ 0, so complementary slackness kills the pairing
+  have hdual : ∀ μ, 0 ≤ μ → isParametricLCP M r lambda μ (z μ) (w μ) := fun μ hμ => by
+    rcases hμ.eq_or_lt with hμ0 | hμpos
+    · subst hμ0
+      exact ⟨by rw [hz0, hw0]; ext i; simp [parametricLcpQ, ones, euclideanOf, matVec],
+        hw0_nonneg, hz0_nonneg, h_inner_zero_0⟩
+    · exact hLCP_pos μ hμpos
+  have h_inner_eq_zero : inner ℝ (deriv z τ) (w τ) = 0 :=
+    complementary_slackness_derivative M r lambda x_lasso w hdual τ hτ_nonneg
   have h_goal : inner ℝ (deriv (scaledPrimalPath x_lasso) τ)
       (matVec M (scaledPrimalPath x_lasso τ) - τ • r + (1 + τ * lambda) • ones) ≤ 0 := by
     simpa [hz_def, hw_def] using h_inner_eq_zero.le

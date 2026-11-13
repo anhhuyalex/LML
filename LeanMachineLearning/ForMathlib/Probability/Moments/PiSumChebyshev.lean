@@ -54,3 +54,5 @@ theorem measure_pi_ge_abs_mul_sum_le {ι : Type*} [Fintype ι] {Ω : Type*} [Mea
   have hcheb := meas_ge_le_variance_div_sq hX_mem hε
   rw [integral_const_mul, hmean_S, mul_zero, variance_const_mul, hvarS] at hcheb
   simpa [S, hS_fun] using hcheb
+
+end ProbabilityTheory

@@ -343,22 +343,18 @@ theorem continuous_skVectorSegment_logPartition {d : ℕ} {Ω : Type*} [Measurab
   have hB0 : 0 ≤ B := by positivity
   have hξm2 : ∀ u v, Measurable fun a => ξ a u * ξ a v := measurable_spin_mul ξ hξ
   have hD0m : Measurable D0 :=
-    measurable_const.mul (Finset.measurable_sum _ fun w _ => Finset.measurable_sum _ fun w' _ =>
-      (hξm2 w w').mul measurable_const)
+    measurable_const.mul (measurable_double_sum_spin_mul ξ hξ (fun w w' => ρ w w' - q₀ w w'))
   have hD0b : ∀ a, |D0 a| ≤ Eb := fun a => by
     simp only [hD0, hEb]
     rw [abs_mul, abs_of_nonneg (by positivity : (0 : ℝ) ≤ b ^ 2 / 2)]
-    refine mul_le_mul_of_nonneg_left ?_ (by positivity)
-    refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun w _ => ?_)
-    refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun w' _ => ?_)
-    rw [abs_mul]
-    exact mul_le_mul_of_nonneg_right (hxs a w w') (abs_nonneg _)
+    exact mul_le_mul_of_nonneg_left
+      (abs_double_sum_spin_mul_le ξ hr hbound a (fun w w' => ρ w w' - q₀ w w')) (by positivity)
   have hX'm : ∀ k, Measurable (X' k) := by
     rintro ((u | u) | ⟨⟩)
     · exact hξ u
     · exact hξ u
-    · exact measurable_const.mul (Finset.measurable_sum _ fun w _ => Finset.measurable_sum _
-        fun w' _ => (hξm2 w w').mul measurable_const)
+    · exact measurable_const.mul
+        (measurable_double_sum_spin_mul ξ hξ (fun w w' => q₁ w w' - q₀ w w'))
   have hX'b : ∀ k a, |X' k a| ≤ B := by
     have hnn : 0 ≤ b ^ 2 / 2 * ∑ w, ∑ w', (d : ℝ) * |q₁ w w' - q₀ w w'| := by positivity
     rintro ((u | u) | ⟨⟩) a
@@ -369,11 +365,9 @@ theorem continuous_skVectorSegment_logPartition {d : ℕ} {Ω : Type*} [Measurab
       rw [e]
       refine le_trans ?_ (le_add_of_nonneg_left (Real.sqrt_nonneg _))
       rw [abs_mul, abs_of_nonneg (by positivity : (0 : ℝ) ≤ b ^ 2 / 2)]
-      refine mul_le_mul_of_nonneg_left ?_ (by positivity)
-      refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun w _ => ?_)
-      refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun w' _ => ?_)
-      rw [abs_mul]
-      exact mul_le_mul_of_nonneg_right (hxs a w w') (abs_nonneg _)
+      exact mul_le_mul_of_nonneg_left
+        (abs_double_sum_spin_mul_le ξ hr hbound a (fun w w' => q₁ w w' - q₀ w w'))
+        (by positivity)
   set zf : ℝ → Ω → (Fin d ⊕ Fin d) ⊕ Unit → ℝ := fun s ω => Sum.elim
     (Sum.elim (fun u => b * Real.sqrt (c s) * Z (.inl u) ω)
       (fun u => b * Real.sqrt (1 - c s) * Z (.inr u) ω)) (fun _ => -c s) with hzf

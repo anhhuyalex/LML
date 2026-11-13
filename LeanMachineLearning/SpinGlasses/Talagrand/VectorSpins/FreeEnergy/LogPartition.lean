@@ -63,15 +63,9 @@ theorem hasDerivAt_skVectorGaussianFreeEnergy (μ : Measure α) [IsProbabilityMe
     have : 0 ≤ ∑ w, ∑ w', r * |ρ w w' - q w w'| := by positivity
     linarith [hξb a u]
   have hXsm : ∀ j, Measurable (Xs j) := fun j =>
-    Finset.measurable_sum _ fun w _ => Finset.measurable_sum _ fun w' _ =>
-      (measurable_spin_mul ξ hξ w w').mul measurable_const
+    measurable_double_sum_spin_mul ξ hξ (fun w w' => ρ w w' - q w w')
   have hXsb : ∀ j a, |Xs j a| ≤ B := fun j a => by
-    have h1 : |∑ w, ∑ w', ξ a w * ξ a w' * (ρ w w' - q w w')| ≤
-        ∑ w, ∑ w', r * |ρ w w' - q w w'| := by
-      refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun w _ => ?_)
-      refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun w' _ => ?_)
-      rw [abs_mul]
-      exact mul_le_mul_of_nonneg_right (hξξ a w w') (abs_nonneg _)
+    have h1 := abs_double_sum_spin_mul_le ξ hr hbound a (fun w w' => ρ w w' - q w w')
     have := Real.sqrt_nonneg r
     simp only [hXs]
     linarith

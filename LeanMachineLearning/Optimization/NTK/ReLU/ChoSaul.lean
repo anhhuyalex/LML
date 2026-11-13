@@ -33,7 +33,7 @@ exported lemmas give the ReLU and ReLU-indicator formulas for directions separat
 
 namespace NTK
 
-open NeuralNetwork (relu continuous_relu)
+open NeuralNetwork (relu continuous_relu threshold)
 
 section Angular
 
@@ -142,7 +142,7 @@ lemma angular_relu_integral (theta : ℝ) (htheta0 : 0 ≤ theta) (hthetapi : th
 private lemma angular_indicator_support (theta : ℝ) (htheta0 : 0 ≤ theta)
     (hthetapi : theta ≤ Real.pi) :
     ∫ phi in Set.Ioo (-Real.pi) Real.pi,
-      reluIndicator (Real.cos phi) * reluIndicator (Real.cos (phi - theta)) =
+      threshold (Real.cos phi) * threshold (Real.cos (phi - theta)) =
     ∫ _ in Set.Ioc (theta - Real.pi / 2) (Real.pi / 2), (1 : ℝ) := by
   have ha : -Real.pi < theta - Real.pi / 2 := by linarith [Real.pi_pos]
   have hb : Real.pi / 2 < Real.pi := by linarith [Real.pi_pos]
@@ -166,7 +166,7 @@ private lemma angular_indicator_support (theta : ℝ) (htheta0 : 0 ≤ theta)
           apply Real.cos_neg_of_pi_div_two_lt_of_lt
           · linarith
           · linarith [htarget.1, Real.pi_pos]
-        simp [reluIndicator, not_le.mpr hc]
+        simp [threshold, not_le.mpr hc]
       · have hphi_lower : -(Real.pi / 2) < phi :=
           lt_of_le_of_ne (le_of_not_gt hphi) (Ne.symm hne_neg_b)
         have harg_upper : phi - theta < -(Real.pi / 2) := by linarith
@@ -174,7 +174,7 @@ private lemma angular_indicator_support (theta : ℝ) (htheta0 : 0 ≤ theta)
         have hc : Real.cos (phi - theta) < 0 := by
           rw [← Real.cos_neg (phi - theta)]
           apply Real.cos_neg_of_pi_div_two_lt_of_lt <;> linarith
-        simp [reluIndicator, not_le.mpr hc]
+        simp [threshold, not_le.mpr hc]
     · have hleft' : theta - Real.pi / 2 < phi :=
         lt_of_le_of_ne (le_of_not_gt hleft) (Ne.symm hne_a)
       by_cases hright : phi < Real.pi / 2
@@ -185,7 +185,7 @@ private lemma angular_indicator_support (theta : ℝ) (htheta0 : 0 ≤ theta)
           Real.cos_nonneg_of_neg_pi_div_two_le_of_le (by linarith) hright.le
         have hc1 : 0 ≤ Real.cos (phi - theta) :=
           Real.cos_nonneg_of_neg_pi_div_two_le_of_le (by linarith) (by linarith)
-        simp [reluIndicator, hc0, hc1]
+        simp [threshold, hc0, hc1]
       · have hright' : Real.pi / 2 < phi :=
           lt_of_le_of_ne (le_of_not_gt hright) (Ne.symm hne_b)
         have hnot : phi ∉ Set.Ioc (theta - Real.pi / 2) (Real.pi / 2) := by
@@ -194,7 +194,7 @@ private lemma angular_indicator_support (theta : ℝ) (htheta0 : 0 ≤ theta)
         rw [Set.indicator_of_notMem hnot]
         have hc : Real.cos phi < 0 :=
           Real.cos_neg_of_pi_div_two_lt_of_lt hright' (by linarith [htarget.2, Real.pi_pos])
-        simp [reluIndicator, not_le.mpr hc]
+        simp [threshold, not_le.mpr hc]
   · have hnot : phi ∉ Set.Ioc (theta - Real.pi / 2) (Real.pi / 2) := by
       intro h
       exact htarget ⟨ha.trans h.1, h.2.trans_lt hb⟩
@@ -205,7 +205,7 @@ private lemma angular_indicator_support (theta : ℝ) (htheta0 : 0 ≤ theta)
 lemma angular_indicator_integral (theta : ℝ) (htheta0 : 0 ≤ theta)
     (hthetapi : theta ≤ Real.pi) :
     ∫ phi in Set.Ioo (-Real.pi) Real.pi,
-      reluIndicator (Real.cos phi) * reluIndicator (Real.cos (phi - theta)) =
+      threshold (Real.cos phi) * threshold (Real.cos (phi - theta)) =
       Real.pi - theta := by
   have hab : theta - Real.pi / 2 ≤ Real.pi / 2 := by linarith
   rw [angular_indicator_support theta htheta0 hthetapi]
@@ -377,8 +377,8 @@ private lemma integral_prod_stdGaussian_relu_of_angular
           field_simp [Real.pi_ne_zero]
 
 /-- Scale invariance of the ReLU derivative for positive multipliers. -/
-lemma reluIndicator_pos_mul (c u : ℝ) (hc : 0 < c) : reluIndicator (c * u) = reluIndicator u := by
-  unfold reluIndicator
+lemma reluIndicator_pos_mul (c u : ℝ) (hc : 0 < c) : threshold (c * u) = threshold u := by
+  unfold threshold
   have : 0 ≤ c * u ↔ 0 ≤ u := mul_nonneg_iff_of_pos_left hc
   rw [if_congr this rfl rfl]
 
@@ -386,10 +386,10 @@ private lemma integral_prod_stdGaussian_reluIndicator_of_angular
     (theta : ℝ)
     (hangular :
       ∫ phi in Set.Ioo (-Real.pi) Real.pi,
-        reluIndicator (Real.cos phi) * reluIndicator (Real.cos (phi - theta)) =
+        threshold (Real.cos phi) * threshold (Real.cos (phi - theta)) =
         Real.pi - theta) :
-    ∫ p, reluIndicator p.1 *
-        reluIndicator (Real.cos theta * p.1 + Real.sin theta * p.2)
+    ∫ p, threshold p.1 *
+        threshold (Real.cos theta * p.1 + Real.sin theta * p.2)
       ∂((gaussianReal 0 1).prod (gaussianReal 0 1)) =
       (Real.pi - theta) / (2 * Real.pi) := by
   rw [integral_prod_stdGaussian_eq_density]
@@ -399,20 +399,20 @@ private lemma integral_prod_stdGaussian_reluIndicator_of_angular
       ∫ p in Set.Ioi (0 : ℝ) ×ˢ Set.Ioo (-Real.pi) Real.pi,
         p.1 • (gaussianPDFReal 0 1 (polarCoord.symm p).1 *
           gaussianPDFReal 0 1 (polarCoord.symm p).2 *
-          (reluIndicator (polarCoord.symm p).1 *
-            reluIndicator (Real.cos theta * (polarCoord.symm p).1 +
+          (threshold (polarCoord.symm p).1 *
+            threshold (Real.cos theta * (polarCoord.symm p).1 +
               Real.sin theta * (polarCoord.symm p).2))) =
       ∫ p in Set.Ioi (0 : ℝ) ×ˢ Set.Ioo (-Real.pi) Real.pi,
         ((1 / (2 * Real.pi)) *
           (p.1 * Real.exp (-(1 / 2 : ℝ) * p.1 ^ 2))) *
-          (reluIndicator (Real.cos p.2) * reluIndicator (Real.cos (p.2 - theta))) := by
+          (threshold (Real.cos p.2) * threshold (Real.cos (p.2 - theta))) := by
     apply setIntegral_congr_fun (measurableSet_Ioi.prod measurableSet_Ioo)
     intro p hp
     have hr : 0 < p.1 := hp.1
     change p.1 * (gaussianPDFReal 0 1 (p.1 * Real.cos p.2) *
       gaussianPDFReal 0 1 (p.1 * Real.sin p.2) *
-      (reluIndicator (p.1 * Real.cos p.2) *
-        reluIndicator (Real.cos theta * (p.1 * Real.cos p.2) +
+      (threshold (p.1 * Real.cos p.2) *
+        threshold (Real.cos theta * (p.1 * Real.cos p.2) +
           Real.sin theta * (p.1 * Real.sin p.2)))) = _
     rw [stdGaussian_density_polar]
     rw [reluIndicator_pos_mul p.1 (Real.cos p.2) hr]
@@ -427,11 +427,11 @@ private lemma integral_prod_stdGaussian_reluIndicator_of_angular
     ∫ p in Set.Ioi (0 : ℝ) ×ˢ Set.Ioo (-Real.pi) Real.pi,
         ((1 / (2 * Real.pi)) *
           (p.1 * Real.exp (-(1 / 2 : ℝ) * p.1 ^ 2))) *
-          (reluIndicator (Real.cos p.2) * reluIndicator (Real.cos (p.2 - theta))) =
+          (threshold (Real.cos p.2) * threshold (Real.cos (p.2 - theta))) =
       (∫ r in Set.Ioi (0 : ℝ),
           (1 / (2 * Real.pi)) * (r * Real.exp (-(1 / 2 : ℝ) * r ^ 2))) *
         (∫ phi in Set.Ioo (-Real.pi) Real.pi,
-          reluIndicator (Real.cos phi) * reluIndicator (Real.cos (phi - theta))) := by
+          threshold (Real.cos phi) * threshold (Real.cos (phi - theta))) := by
             rw [← setIntegral_prod_mul, volume_eq_prod]
     _ = (1 / (2 * Real.pi)) * (Real.pi - theta) := by
           rw [integral_const_mul, integral_radial_gaussian_one, hangular, mul_one]
@@ -450,8 +450,8 @@ lemma integral_prod_stdGaussian_relu
 angle `theta`. -/
 lemma integral_prod_stdGaussian_reluIndicator
     (theta : ℝ) (htheta0 : 0 ≤ theta) (hthetapi : theta ≤ Real.pi) :
-    ∫ p, reluIndicator p.1 *
-        reluIndicator (Real.cos theta * p.1 + Real.sin theta * p.2)
+    ∫ p, threshold p.1 *
+        threshold (Real.cos theta * p.1 + Real.sin theta * p.2)
       ∂((gaussianReal 0 1).prod (gaussianReal 0 1)) =
       (Real.pi - theta) / (2 * Real.pi) :=
   integral_prod_stdGaussian_reluIndicator_of_angular theta
@@ -504,23 +504,23 @@ Gaussian space. -/
 lemma integral_stdGaussian_reluIndicator_angle
     (theta : ℝ) (htheta0 : 0 ≤ theta) (hthetapi : theta ≤ Real.pi) :
     ∫ z : EuclideanSpace ℝ (Fin 2),
-        reluIndicator (z.ofLp 0) *
-          reluIndicator (Real.cos theta * z.ofLp 0 + Real.sin theta * z.ofLp 1)
+        threshold (z.ofLp 0) *
+          threshold (Real.cos theta * z.ofLp 0 + Real.sin theta * z.ofLp 1)
       ∂(stdGaussian (EuclideanSpace ℝ (Fin 2))) =
       (Real.pi - theta) / (2 * Real.pi) := by
   have hmeas : AEStronglyMeasurable
-      (fun p : ℝ × ℝ => reluIndicator p.1 *
-        reluIndicator (Real.cos theta * p.1 + Real.sin theta * p.2))
+      (fun p : ℝ × ℝ => threshold p.1 *
+        threshold (Real.cos theta * p.1 + Real.sin theta * p.2))
       (Measure.map (fun t : Fin 2 → ℝ => (t 0, t 1)) (Measure.pi fun _ : Fin 2 =>
           gaussianReal 0 1)) := by
     apply StronglyMeasurable.aestronglyMeasurable
-    exact ((measurable_reluIndicator.comp measurable_fst).mul
-      (measurable_reluIndicator.comp
+    exact ((NeuralNetwork.measurable_threshold.comp measurable_fst).mul
+      (NeuralNetwork.measurable_threshold.comp
         ((measurable_const.mul measurable_fst).add
           (measurable_const.mul measurable_snd)))).stronglyMeasurable
   calc
-    _ = ∫ p, reluIndicator p.1 *
-          reluIndicator (Real.cos theta * p.1 + Real.sin theta * p.2)
+    _ = ∫ p, threshold p.1 *
+          threshold (Real.cos theta * p.1 + Real.sin theta * p.2)
           ∂((gaussianReal 0 1).prod (gaussianReal 0 1)) :=
       integral_stdGaussian_fin2_eq_prod _ hmeas
     _ = _ := integral_prod_stdGaussian_reluIndicator theta htheta0 hthetapi

@@ -69,16 +69,12 @@ theorem hasDerivAt_skVectorGaussianFreeEnergy_rho (μ : Measure α) [IsProbabili
   set Eb : ℝ := β ^ 2 / 2 * ∑ w, ∑ w', r * |ρ w w' - q w w'| with hEb
   have hξm2 : ∀ u v, Measurable fun a => ξ a u * ξ a v := measurable_spin_mul ξ hξ
   have hD0m : Measurable D0 :=
-    measurable_const.mul (Finset.measurable_sum _ fun w _ => Finset.measurable_sum _ fun w' _ =>
-      (hξm2 w w').mul measurable_const)
+    measurable_const.mul (measurable_double_sum_spin_mul ξ hξ (fun w w' => ρ w w' - q w w'))
   have hD0b : ∀ a, |D0 a| ≤ Eb := fun a => by
     simp only [hD0, hEb]
     rw [abs_mul, abs_of_nonneg (by positivity : (0 : ℝ) ≤ β ^ 2 / 2)]
-    refine mul_le_mul_of_nonneg_left ?_ (by positivity)
-    refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun w _ => ?_)
-    refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun w' _ => ?_)
-    rw [abs_mul]
-    exact mul_le_mul_of_nonneg_right (hξξ a w w') (abs_nonneg _)
+    exact mul_le_mul_of_nonneg_left
+      (abs_double_sum_spin_mul_le ξ hr hbound a (fun w w' => ρ w w' - q w w')) (by positivity)
   have hXfm : ∀ u, Measurable (Xf u) := hξ
   have hXfb : ∀ u a, |Xf u a| ≤ B := fun u a => by
     have : 0 ≤ ∑ w, ∑ w', r * |E w w'| := by positivity
@@ -88,10 +84,7 @@ theorem hasDerivAt_skVectorGaussianFreeEnergy_rho (μ : Measure α) [IsProbabili
       measurable_const.mul (hξm2 w w')
   have hXsb : ∀ j a, |Xs j a| ≤ B := fun j a => by
     have h1 : |∑ w, ∑ w', E w w' * (ξ a w * ξ a w')| ≤ ∑ w, ∑ w', r * |E w w'| := by
-      refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun w _ => ?_)
-      refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun w' _ => ?_)
-      rw [abs_mul, mul_comm]
-      exact mul_le_mul_of_nonneg_right (hξξ a w w') (abs_nonneg _)
+      simpa only [mul_comm (E _ _)] using abs_double_sum_spin_mul_le ξ hr hbound a E
     have := Real.sqrt_nonneg r
     simp only [hXs]
     linarith
@@ -231,16 +224,12 @@ theorem hasDerivAt_skVectorSegment (μ : Measure α) [IsProbabilityMeasure μ]
   set Eb : ℝ := β ^ 2 / 2 * ∑ w, ∑ w', r * |ρ w w' - q₀ w w'| with hEb
   have hξm2 : ∀ u v, Measurable fun a => ξ a u * ξ a v := measurable_spin_mul ξ hξ
   have hD0m : Measurable D0 :=
-    measurable_const.mul (Finset.measurable_sum _ fun w _ => Finset.measurable_sum _ fun w' _ =>
-      (hξm2 w w').mul measurable_const)
+    measurable_const.mul (measurable_double_sum_spin_mul ξ hξ (fun w w' => ρ w w' - q₀ w w'))
   have hD0b : ∀ a, |D0 a| ≤ Eb := fun a => by
     simp only [hD0, hEb]
     rw [abs_mul, abs_of_nonneg (by positivity : (0 : ℝ) ≤ β ^ 2 / 2)]
-    refine mul_le_mul_of_nonneg_left ?_ (by positivity)
-    refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun w _ => ?_)
-    refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun w' _ => ?_)
-    rw [abs_mul]
-    exact mul_le_mul_of_nonneg_right (hξξ a w w') (abs_nonneg _)
+    exact mul_le_mul_of_nonneg_left
+      (abs_double_sum_spin_mul_le ξ hr hbound a (fun w w' => ρ w w' - q₀ w w')) (by positivity)
   have hXfm : ∀ k, Measurable (Xf k) := by
     rintro (u | u) <;> exact hξ u
   have hXfb : ∀ k a, |Xf k a| ≤ B := by
@@ -254,10 +243,8 @@ theorem hasDerivAt_skVectorSegment (μ : Measure α) [IsProbabilityMeasure μ]
   have hXsb : ∀ j a, |Xs j a| ≤ B := fun j a => by
     have h1 : |∑ w, ∑ w', (q₁ w w' - q₀ w w') * (ξ a w * ξ a w')| ≤
         ∑ w, ∑ w', r * |q₁ w w' - q₀ w w'| := by
-      refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun w _ => ?_)
-      refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun w' _ => ?_)
-      rw [abs_mul, mul_comm]
-      exact mul_le_mul_of_nonneg_right (hξξ a w w') (abs_nonneg _)
+      simpa only [mul_comm (q₁ _ _ - q₀ _ _)] using
+        abs_double_sum_spin_mul_le ξ hr hbound a (fun w w' => q₁ w w' - q₀ w w')
     have := Real.sqrt_nonneg r
     simp only [hXs]
     linarith

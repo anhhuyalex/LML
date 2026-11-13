@@ -114,6 +114,15 @@ theorem measureReal_compl_inter_le {α : Type*} [MeasurableSpace α] (μ : Measu
   rw [Set.compl_inter]
   exact measureReal_union_le _ _
 
+/-- The complement of `(E ∩ Uᶜ) ∩ U'ᶜ` has measure at most `μ Eᶜ + μ U + μ U'`. -/
+theorem measureReal_compl_inter_compl_inter_le {α : Type*} [MeasurableSpace α] (μ : Measure α)
+    (E U U' : Set α) :
+    μ.real ((E ∩ Uᶜ) ∩ U'ᶜ)ᶜ ≤ μ.real Eᶜ + μ.real U + μ.real U' := by
+  have h1 := measureReal_compl_inter_le μ (E ∩ Uᶜ) U'ᶜ
+  have h2 := measureReal_compl_inter_le μ E Uᶜ
+  rw [compl_compl] at h1 h2
+  linarith
+
 /-- On a probability measure, `1 - μ Sᶜ ≤ μ S` for an arbitrary (possibly non-measurable) `S`. -/
 theorem one_sub_le_measureReal_of_measureReal_compl_le {α : Type*} [MeasurableSpace α]
     (μ : Measure α) [IsProbabilityMeasure μ] {S : Set α} {c : ℝ} (h : μ.real Sᶜ ≤ c) :

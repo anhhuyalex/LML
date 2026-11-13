@@ -81,7 +81,8 @@ macro "skCavityKernel%" : term =>
 set_option hygiene false in
 /-- `skReplicaOverlapStat% K` is the centred overlap statistic of the pair `(a j, b j)` of
 replicas against the fresh replicas `j`:
-`fun j ρ => (N+1)⁻¹ ∑_{v : Fin K} X_L X_S - [¬ (L j ∨ S j)] q`, where `X_L = ρ(a j) v - ρ(j₁) v` if `L j` and `ρ(j₁) v` otherwise (similarly `X_S` with `b j`,
+`fun j ρ => (N+1)⁻¹ ∑_{v : Fin K} X_L X_S - [¬ (L j ∨ S j)] q`, where
+`X_L = ρ(a j) v - ρ(j₁) v` if `L j` and `ρ(j₁) v` otherwise (similarly `X_S` with `b j`,
 `j₂`). It uses the ambient `N q L S a b`; `K` is `N + 1` (all sites) or `N` (the first `N`
 sites). -/
 macro "skReplicaOverlapStat% " k:term:max : term =>

@@ -25,6 +25,8 @@ open scoped RealInnerProductSpace Matrix
 
 namespace NTK
 
+open NeuralNetwork (relu threshold)
+
 variable {d : ℕ}
 
 /-- **Pushforward of the standard Gaussian along a matrix.** The image of the standard Gaussian on
@@ -69,7 +71,7 @@ lemma prob_halfspace_intersect
     (x x' : Fin d → ℝ)
     (hx : x ⬝ᵥ x = 1)
     (hx' : x' ⬝ᵥ x' = 1) :
-    ∫ w : Fin d → ℝ, reluIndicator (w ⬝ᵥ x) * reluIndicator (w ⬝ᵥ x') ∂(Measure.pi fun _ : Fin d =>
+    ∫ w : Fin d → ℝ, threshold (w ⬝ᵥ x) * threshold (w ⬝ᵥ x') ∂(Measure.pi fun _ : Fin d =>
         gaussianReal 0 1) =
       (Real.pi - Real.arccos (x ⬝ᵥ x')) / (2 * Real.pi) := by
   have hρ := dotProduct_mem_Icc_of_unit hx hx'
@@ -83,17 +85,17 @@ lemma prob_halfspace_intersect
   have hmap := map_matrixCLM_stdGaussian A
   rw [hAA] at hmap
   rw [integral_gaussianRowMeasure_eq_integral_stdGaussian
-    (f := fun w => reluIndicator (w ⬝ᵥ x) * reluIndicator (w ⬝ᵥ x'))]
+    (f := fun w => threshold (w ⬝ᵥ x) * threshold (w ⬝ᵥ x'))]
   have hint : ∫ y : EuclideanSpace ℝ (Fin d),
-        reluIndicator (y.ofLp ⬝ᵥ x) * reluIndicator (y.ofLp ⬝ᵥ x')
+        threshold (y.ofLp ⬝ᵥ x) * threshold (y.ofLp ⬝ᵥ x')
         ∂(stdGaussian (EuclideanSpace ℝ (Fin d))) =
-      ∫ z : EuclideanSpace ℝ (Fin 2), reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1)
+      ∫ z : EuclideanSpace ℝ (Fin 2), threshold (z.ofLp 0) * threshold (z.ofLp 1)
         ∂(multivariateGaussian 0 !![1, x ⬝ᵥ x'; x ⬝ᵥ x', 1]) := by
     have hmeas : AEStronglyMeasurable
-        (fun z : EuclideanSpace ℝ (Fin 2) => reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1))
+        (fun z : EuclideanSpace ℝ (Fin 2) => threshold (z.ofLp 0) * threshold (z.ofLp 1))
         (Measure.map (matrixCLM A) (stdGaussian (EuclideanSpace ℝ (Fin d)))) :=
-      (((measurable_reluIndicator.comp (EuclideanSpace.proj (0 : Fin 2)).measurable).mul
-        (measurable_reluIndicator.comp (EuclideanSpace.proj (1 : Fin 2)).measurable)
+      (((NeuralNetwork.measurable_threshold.comp (EuclideanSpace.proj (0 : Fin 2)).measurable).mul
+        (NeuralNetwork.measurable_threshold.comp (EuclideanSpace.proj (1 : Fin 2)).measurable)
         ).stronglyMeasurable).aestronglyMeasurable
     rw [← hmap, integral_map (matrixCLM A).continuous.measurable.aemeasurable hmeas]
     refine integral_congr_ae (Filter.Eventually.of_forall fun y => ?_)
@@ -116,7 +118,7 @@ theorem reluNTK_closedForm
     (x x' : Fin d → ℝ)
     (hx : x ⬝ᵥ x = 1)
     (hx' : x' ⬝ᵥ x' = 1) :
-    shallowLimitingNTK reluIndicator x x' =
+    shallowLimitingNTK threshold x x' =
       (x ⬝ᵥ x') * (Real.pi - Real.arccos (x ⬝ᵥ x')) / (2 * Real.pi) := by
   unfold shallowLimitingNTK
   rw [prob_halfspace_intersect x x' hx hx']
@@ -127,7 +129,7 @@ lemma reluNTK_nonneg_of_nonneg_inner
     (x x' : Fin d → ℝ)
     (hx : x ⬝ᵥ x = 1) (hx' : x' ⬝ᵥ x' = 1)
     (hinn : 0 ≤ x ⬝ᵥ x') :
-    0 ≤ shallowLimitingNTK reluIndicator x x' := by
+    0 ≤ shallowLimitingNTK threshold x x' := by
   rw [reluNTK_closedForm x x' hx hx']
   apply div_nonneg
   · apply mul_nonneg hinn
@@ -137,7 +139,7 @@ lemma reluNTK_nonneg_of_nonneg_inner
 /-- The ReLU NTK at equal inputs normalized by the local inner product. -/
 lemma reluNTK_self
     (x : Fin d → ℝ) (hx : x ⬝ᵥ x = 1) :
-    shallowLimitingNTK reluIndicator x x = 1 / 2 := by
+    shallowLimitingNTK threshold x x = 1 / 2 := by
   rw [reluNTK_closedForm x x hx hx]
   rw [hx]
   simp [Real.arccos_one]

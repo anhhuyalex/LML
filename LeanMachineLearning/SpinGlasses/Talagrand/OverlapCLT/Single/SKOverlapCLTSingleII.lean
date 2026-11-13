@@ -969,16 +969,9 @@ theorem sk_cavity_single_II_eval_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 <
   have hDd : 0 < Dd := by positivity
   have hα01 := tanh_fourth_sub_two_mul_add_one_mem_Icc_of_fixedPoint hfix
   have hα : 0 ≤ α ∧ α ≤ 1 := hα01
-  have hden : 3 / 4 ≤ 1 - β ^ 2 * α := by
-    have h2 : β ^ 2 * α ≤ β ^ 2 * 1 := mul_le_mul_of_nonneg_left hα.2 (sq_nonneg _)
-    linarith only [h2, hb, hβ₀]
+  have hden := three_quarters_le_one_sub_sq_mul (β := β) hα.2 (by linarith only [hb, hβ₀])
   have hDpos : 0 < 1 - β ^ 2 * α := by linarith only [hden]
-  have hc2 : 0 ≤ α / (1 - β ^ 2 * α) / (N + 1 : ℝ) ∧
-      α / (1 - β ^ 2 * α) / (N + 1 : ℝ) ≤ 4 / 3 / (N + 1 : ℝ) := by
-    refine ⟨div_nonneg (div_nonneg hα.1 hDpos.le) (by positivity),
-      div_le_div_of_nonneg_right ?_ (by positivity)⟩
-    rw [div_le_iff₀ hDpos]
-    nlinarith only [hden, hα.2]
+  have hc2 := div_one_sub_sq_mul_div_bounds (N := N) hα hden
   let Yf : Q → ℝ := fun l =>
     (Jf (some (some (.inl (a p)))) (some (some l)) -
       Jf (some (some (.inr (.inl p)))) (some (some l)) -

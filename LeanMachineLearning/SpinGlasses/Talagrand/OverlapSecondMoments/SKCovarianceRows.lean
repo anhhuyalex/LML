@@ -1640,12 +1640,6 @@ theorem frac_sub_half (c₂ d D₁ D₂ M n : ℝ) (hM : M ≠ 0) (hD₁ : D₁ 
   field_simp
 
 
-/-- Compatibility name for the generic absolute quotient bound. -/
-alias abs_div_le_div_of_le_abs := _root_.abs_div_le_div_of_le_abs
-
-/-- Compatibility name for the generic `3/4` denominator bound. -/
-alias abs_div_le_four_thirds := _root_.abs_div_le_four_thirds
-
 /-- The error bookkeeping of the covariance system: with `a = ρ₁/D₁`, `b' = (ρ₁/D₁ - ρ₂/D₂)/2`
 and `w = (b₀ a + g b' + R₂)/D₂`, `D_i ≥ 3/4`, `|R_i| ≤ E`, `|b₀| ≤ 1/4`, `|g| ≤ 3/2`, one has
 `|a| ≤ 16E/3`, `|b'| ≤ 8E` and `|w| ≤ 20E`. -/

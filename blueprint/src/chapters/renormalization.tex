@@ -1278,7 +1278,7 @@ Equation~\texttt{eq:exponential-Taylor-expansion}.
 
 \begin{definition}[Standard activations]
 \label{def:renorm:activations}
-\lean{NeuralNetwork.threshold, NeuralNetwork.logistic, NeuralNetwork.relu,
+\lean{NeuralNetwork.threshold, Real.sigmoid, NeuralNetwork.relu,
 NeuralNetwork.linear, NeuralNetwork.leakyRelu, NeuralNetwork.softplus,
 NeuralNetwork.swish, NeuralNetwork.standardNormalCDF, NeuralNetwork.gaussianErf,
 NeuralNetwork.gelu, NeuralNetwork.signedThreshold, NeuralNetwork.signedThreshold_eq_sign}
@@ -1314,18 +1314,18 @@ displays immediately follow \texttt{eq:softplus}.
 \begin{lemma}[Measurability and continuity of activations]
 \label{lem:renorm:activationRegularity}
 \uses{def:renorm:activations}
-\lean{NeuralNetwork.measurable_threshold, NeuralNetwork.continuous_logistic,
-NeuralNetwork.measurable_logistic, NeuralNetwork.continuous_relu,
+\lean{NeuralNetwork.measurable_threshold, continuous_sigmoid,
+NeuralNetwork.continuous_relu,
 NeuralNetwork.measurable_relu, NeuralNetwork.continuous_linear,
 NeuralNetwork.measurable_linear, NeuralNetwork.continuous_leakyRelu,
 NeuralNetwork.measurable_leakyRelu, NeuralNetwork.continuous_softplus,
 NeuralNetwork.measurable_softplus, NeuralNetwork.continuous_swish,
 NeuralNetwork.measurable_swish, NeuralNetwork.measurable_standardNormalCDF,
-NeuralNetwork.measurable_gelu, NeuralNetwork.continuous_tanhActivation,
-NeuralNetwork.measurable_tanhActivation, NeuralNetwork.continuous_sinActivation,
-NeuralNetwork.measurable_sinActivation, NeuralNetwork.continuous_standardNormalCDF,
-NeuralNetwork.continuous_gelu, NeuralNetwork.contDiff_logistic,
-NeuralNetwork.contDiff_tanhActivation, NeuralNetwork.contDiff_sinActivation,
+NeuralNetwork.measurable_gelu, Real.continuous_tanh,
+Continuous.measurable, Real.continuous_sin,
+Continuous.measurable, NeuralNetwork.continuous_standardNormalCDF,
+NeuralNetwork.continuous_gelu, contDiff_sigmoid,
+NeuralNetwork.contDiff_tanh, Real.contDiff_sin,
 NeuralNetwork.contDiff_softplus, NeuralNetwork.contDiff_swish,
 NeuralNetwork.contDiff_gaussianErf, NeuralNetwork.contDiff_standardNormalCDF,
 NeuralNetwork.contDiff_gelu, NeuralNetwork.not_continuousAt_threshold_zero}
@@ -1398,15 +1398,15 @@ present in the statement.
 \lean{NeuralNetwork.logistic_eq_half_add_half_tanh,
 NeuralNetwork.tanh_eq_exp_div, NeuralNetwork.tanh_eq_exp_two_mul,
 NeuralNetwork.standardNormalCDF_eq_erf, NeuralNetwork.gelu_eq_erf,
-NeuralNetwork.logistic_pos, NeuralNetwork.logistic_lt_one,
-NeuralNetwork.logistic_zero, NeuralNetwork.tanhActivation_zero,
-NeuralNetwork.sinActivation_zero, NeuralNetwork.sinActivation_periodic,
+Real.sigmoid_pos, Real.sigmoid_lt_one,
+Real.sigmoid_zero, Real.tanh_zero,
+Real.sin_zero, Real.sin_periodic,
 NeuralNetwork.softplus_zero, NeuralNetwork.swish_zero, NeuralNetwork.gelu_zero,
 NeuralNetwork.hasDerivAt_tanh_zero,
 NeuralNetwork.tendsto_standardNormalCDF_atTop,
 NeuralNetwork.tendsto_standardNormalCDF_atBot,
-NeuralNetwork.tendsto_logistic_atTop,
-NeuralNetwork.tendsto_logistic_atBot, NeuralNetwork.tendsto_tanh_atTop,
+Real.tendsto_sigmoid_atTop,
+Real.tendsto_sigmoid_atBot, NeuralNetwork.tendsto_tanh_atTop,
 NeuralNetwork.tendsto_tanh_atBot, NeuralNetwork.tendsto_softplus_sub_id_atTop,
 NeuralNetwork.tendsto_softplus_div_exp_atBot, NeuralNetwork.tendsto_swish_sub_id_atTop,
 NeuralNetwork.tendsto_swish_atBot, NeuralNetwork.tendsto_gelu_sub_id_atTop,
@@ -1788,9 +1788,8 @@ It formalizes the conditional deterministic factors in
 
 \begin{lemma}[Dirac expectation and variance]
 \label{lem:renorm:diracMoments}
-\lean{NeuralNetwork.integral_dirac_apply, NeuralNetwork.integral_id_dirac,
-NeuralNetwork.integral_sq_dirac, NeuralNetwork.variance_id_dirac,
-NeuralNetwork.dirac_apply_univ}
+\lean{MeasureTheory.integral_dirac, ProbabilityTheory.variance_dirac,
+MeasureTheory.Measure.dirac_apply_of_mem}
 For every $s\in\mathbb R$,
 \[
   \int f\,d\delta_s=f(s),\qquad

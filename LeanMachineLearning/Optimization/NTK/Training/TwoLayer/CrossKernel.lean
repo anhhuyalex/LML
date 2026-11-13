@@ -52,6 +52,36 @@ lemma scaled_snoc {m d : ℕ} (X : Fin m → Fin d → ℝ) (x : Fin d → ℝ) 
   funext α
   refine Fin.lastCases ?_ (fun i => ?_) α <;> simp
 
+/-- **Row facts for the extended NTK Gram matrix.** If the extended empirical Gram matrix of the
+dataset `(Xs, xs)` at `θ₀` is within `e ≤ 1` of `L'` in Frobenius norm, then the train-test cross
+kernel `J(θ₀) ∇f(xs; θ₀)` is within `e` of the last row `L'(last, ·)` of `L'`, and the tangent
+feature satisfies `‖∇f(xs; θ₀)‖ ≤ √(|L'(last, last)| + 1)`. -/
+lemma tangent_row_facts {ι : Type*} {P m : ℕ} (f : ι → EuclideanSpace ℝ (Fin P) → ℝ)
+    (Xs : Fin m → ι) (xs : ι) (hm : 0 < m) (θ₀ : EuclideanSpace ℝ (Fin P))
+    (L' : Matrix (Fin (m + 1)) (Fin (m + 1)) ℝ) {e : ℝ} (he1 : e ≤ 1)
+    (h : ‖empiricalNTKMatrix f (Fin.snoc (α := fun _ => ι) Xs xs : Fin (m + 1) → ι) θ₀ - L'‖ ≤ e) :
+    ‖(WithLp.toLp 2 (outputJacobian f Xs θ₀ *ᵥ (tangentFeature f xs θ₀).ofLp) :
+        EuclideanSpace ℝ (Fin m)) -
+      WithLp.toLp 2 (fun α : Fin m => L' (Fin.last m) (Fin.castSucc α))‖ ≤ e ∧
+    ‖tangentFeature f xs θ₀‖ ≤ Real.sqrt (|L' (Fin.last m) (Fin.last m)| + 1) := by
+  have hrow := norm_row_castSucc_le
+    (empiricalNTKMatrix f (Fin.snoc (α := fun _ => ι) Xs xs : Fin (m + 1) → ι) θ₀ - L')
+    (Fin.last m)
+  refine ⟨le_of_eq_of_le ?_ (hrow.1.trans h), Real.le_sqrt_of_sq_le ?_⟩
+  · congr 1
+    ext α
+    simp only [PiLp.sub_apply, Matrix.sub_apply]
+    rw [outputJacobian_mulVec_tangentFeature, (empiricalNTKMatrix_snoc_last _ _ _ _ α).1]
+  · have h1 : ‖tangentFeature f xs θ₀‖ ^ 2 = empiricalNTKMatrix f
+        (Fin.snoc (α := fun _ => ι) Xs xs : Fin (m + 1) → ι) θ₀ (Fin.last m) (Fin.last m) := by
+      rw [(empiricalNTKMatrix_snoc_last _ _ _ _ (⟨0, hm⟩ : Fin m)).2, real_inner_self_eq_norm_sq]
+    have h2 := hrow.2
+    rw [Matrix.sub_apply] at h2
+    have h3 := (abs_le.1 (h2.trans h)).2
+    have h4 := le_abs_self (L' (Fin.last m) (Fin.last m))
+    rw [h1]
+    linarith
+
 /-- Deterministic cross-kernel drift bound. Let `k_θ(x) = J(θ) ∇f(x; θ)` be the train-test
 cross-kernel vector (`k_θ(x)_α = ⟪∇f(x; θ), ∇f(X α; θ)⟫`). If the readout weights of `θ₀` are
 bounded by `R`, `‖θ - θ₀‖ ≤ Cd`, `‖J(θ₀)‖ ≤ M`, `‖J(θ) - J(θ₀)‖ ≤ jr` and `‖∇f(x; θ₀)‖ ≤ G₀`, then

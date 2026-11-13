@@ -333,11 +333,7 @@ theorem tendsto_measure_test_prediction_finite_horizon
         have := min_le_right 1 (c / 8)
         have h2 : 2 * δ ≤ c / 4 := by rw [hδ]; linarith
         linarith
-      have := (measureReal_compl_inter_le ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
-          gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)) (E ∩ Uᶜ) U'ᶜ)
-      have h2 := measureReal_compl_inter_le ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d
-          => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)) E Uᶜ
-      rw [compl_compl] at this h2
+      refine (measureReal_compl_inter_compl_inter_le _ E U U').trans ?_
       linarith
     · rintro p ⟨⟨hpE, hpU⟩, hpU'⟩ hflow t' ht'
       have ht'eq : t' = t := ht'
@@ -364,30 +360,7 @@ theorem tendsto_measure_test_prediction_finite_horizon
           (empiricalNTKMatrix (netFromParams φ n d) Xs (θ n p s))
           (empiricalNTKMatrix (netFromParams φ n d) Xs θ₀) L
         linarith
-      have hrow := norm_row_castSucc_le
-        (empiricalNTKMatrix (netFromParams φ n d) (Fin.snoc (α := fun _ => Fin d → ℝ) Xs xs :
-          Fin (m + 1) → Fin d → ℝ) θ₀ - L') (Fin.last m)
-      have hk : ‖(WithLp.toLp 2 (outputJacobian (netFromParams φ n d) Xs θ₀ *ᵥ g.ofLp) :
-          EuclideanSpace ℝ (Fin m)) - WithLp.toLp 2 kv‖ ≤ e := by
-        refine le_of_eq_of_le ?_ (hrow.1.trans hpU2.le)
-        congr 1
-        ext α
-        simp only [PiLp.sub_apply, Matrix.sub_apply, hg, hkv, hL']
-        rw [outputJacobian_mulVec_tangentFeature, (empiricalNTKMatrix_snoc_last _ _ _ _ α).1]
-      have hgnorm : ‖g‖ ≤ G₀ := by
-        rw [hG₀]
-        refine Real.le_sqrt_of_sq_le ?_
-        have h1 : ‖g‖ ^ 2 = empiricalNTKMatrix (netFromParams φ n d)
-            (Fin.snoc (α := fun _ => Fin d → ℝ) Xs xs : Fin (m + 1) → Fin d → ℝ) θ₀
-            (Fin.last m) (Fin.last m) := by
-          rw [(empiricalNTKMatrix_snoc_last _ _ _ _ (⟨0, hm⟩ : Fin m)).2, hg,
-            real_inner_self_eq_norm_sq]
-        have h2 := hrow.2
-        rw [Matrix.sub_apply] at h2
-        have h3 := (abs_le.1 (h2.trans hpU2.le)).2
-        have h4 := le_abs_self (L' (Fin.last m) (Fin.last m))
-        rw [h1]
-        linarith
+      obtain ⟨hk, hgnorm⟩ := tangent_row_facts (netFromParams φ n d) Xs xs hm θ₀ L' he1 hpU2.le
       have hKa' := abs_inner_displacement_add_frozenPrediction_le (netFromParams φ n d) Xs y hm'
         hflow hdiff g ht L hK_inf (L⁻¹ *ᵥ kv) kv hLa hJ hK hk t ⟨ht, le_rfl⟩
       have hg' : gradParams φ n d xs θ₀ = g := (tangentFeature_netFromParams_of_differentiable φ
@@ -598,11 +571,7 @@ theorem tendsto_measure_test_prediction_global_positive_gap
         have := min_le_right 1 (c / 8)
         have h2 : 2 * δ ≤ c / 4 := by rw [hδ]; linarith
         linarith
-      have := (measureReal_compl_inter_le ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d =>
-          gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)) (E ∩ Uᶜ) U'ᶜ)
-      have h2 := measureReal_compl_inter_le ((Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin d
-          => gaussianReal 0 1).prod (Measure.pi fun _ : Fin n => gaussianReal 0 1)) E Uᶜ
-      rw [compl_compl] at this h2
+      refine (measureReal_compl_inter_compl_inter_le _ E U U').trans ?_
       linarith
     · rintro p ⟨⟨hpE, hpU⟩, hpU'⟩ hflow t' ht'
       obtain ⟨-, -, hall, hp2⟩ := hEp p hpE
@@ -629,30 +598,7 @@ theorem tendsto_measure_test_prediction_global_positive_gap
           (empiricalNTKMatrix (netFromParams φ n d) Xs (θ n p s))
           (empiricalNTKMatrix (netFromParams φ n d) Xs θ₀) L
         linarith
-      have hrow := norm_row_castSucc_le
-        (empiricalNTKMatrix (netFromParams φ n d) (Fin.snoc (α := fun _ => Fin d → ℝ) Xs xs :
-          Fin (m + 1) → Fin d → ℝ) θ₀ - L') (Fin.last m)
-      have hk : ‖(WithLp.toLp 2 (outputJacobian (netFromParams φ n d) Xs θ₀ *ᵥ g.ofLp) :
-          EuclideanSpace ℝ (Fin m)) - WithLp.toLp 2 kv‖ ≤ e := by
-        refine le_of_eq_of_le ?_ (hrow.1.trans hpU2.le)
-        congr 1
-        ext α
-        simp only [PiLp.sub_apply, Matrix.sub_apply, hg, hkv, hL']
-        rw [outputJacobian_mulVec_tangentFeature, (empiricalNTKMatrix_snoc_last _ _ _ _ α).1]
-      have hgnorm : ‖g‖ ≤ G₀ := by
-        rw [hG₀]
-        refine Real.le_sqrt_of_sq_le ?_
-        have h1 : ‖g‖ ^ 2 = empiricalNTKMatrix (netFromParams φ n d)
-            (Fin.snoc (α := fun _ => Fin d → ℝ) Xs xs : Fin (m + 1) → Fin d → ℝ) θ₀
-            (Fin.last m) (Fin.last m) := by
-          rw [(empiricalNTKMatrix_snoc_last _ _ _ _ (⟨0, hm⟩ : Fin m)).2, hg,
-            real_inner_self_eq_norm_sq]
-        have h2 := hrow.2
-        rw [Matrix.sub_apply] at h2
-        have h3 := (abs_le.1 (h2.trans hpU2.le)).2
-        have h4 := le_abs_self (L' (Fin.last m) (Fin.last m))
-        rw [h1]
-        linarith
+      obtain ⟨hk, hgnorm⟩ := tangent_row_facts (netFromParams φ n d) Xs xs hm θ₀ L' he1 hpU2.le
       have hres0 : ‖trainingResidual (netFromParams φ n d) Xs y θ₀‖ ≤ R := by
         have := (hcert 0 le_rfl).2.2.1
         simpa [hflow.init, ν] using this

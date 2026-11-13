@@ -17,8 +17,8 @@ A random variable `Z` with `HasGaussianLaw` has `exp (t Z)` integrable with
 Hölder's inequality this gives the Cauchy--Schwarz bound
 `‖X exp Z‖₁ ≤ √a exp v` for a centered Gaussian `Z` with `𝔼 Z² ≤ v` and `𝔼 X² ≤ a`
 (`eLpNorm_one_mul_exp_le`), which controls the Gibbs weights of a Gaussian energy in
-`SpinGlasses/Gaussian/GaussianIBPCountable.lean`.  A centered Gaussian with second moment at most `v` is
-sub-Gaussian with parameter `v` (`HasGaussianLaw.hasSubgaussianMGF_of_integral_sq_le`).
+`SpinGlasses/Gaussian/GaussianIBPCountable.lean`.  A centered Gaussian with second moment at most
+`v` is sub-Gaussian with parameter `v` (`HasGaussianLaw.hasSubgaussianMGF_of_integral_sq_le`).
 -/
 
 @[expose] public section

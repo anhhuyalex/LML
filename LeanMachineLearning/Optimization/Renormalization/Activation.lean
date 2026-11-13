@@ -40,9 +40,6 @@ namespace NeuralNetwork
 /-- The threshold (Heaviside) activation, with value one at the origin. -/
 noncomputable abbrev threshold (x : ℝ) : ℝ := if 0 ≤ x then 1 else 0
 
-/-- The logistic activation `x ↦ 1 / (1 + exp (-x))`. -/
-def logistic (x : ℝ) : ℝ := (1 + Real.exp (-x))⁻¹
-
 /-- The rectified linear unit. -/
 noncomputable abbrev relu (x : ℝ) : ℝ := max x 0
 
@@ -56,7 +53,7 @@ def leakyRelu (a x : ℝ) : ℝ := if 0 ≤ x then x else a * x
 def softplus (x : ℝ) : ℝ := Real.log (1 + Real.exp x)
 
 /-- The SWISH activation. -/
-def swish (x : ℝ) : ℝ := x * logistic x
+def swish (x : ℝ) : ℝ := x * Real.sigmoid x
 
 /-- The standard-normal CDF. -/
 def standardNormalCDF : ℝ → ℝ := ProbabilityTheory.cdf (gaussianReal 0 1)
@@ -127,24 +124,6 @@ theorem not_continuousAt_threshold_zero : ¬ ContinuousAt threshold 0 := by
   rw [threshold_of_neg hxneg, threshold_of_nonneg (le_refl 0)] at hout
   norm_num [Real.dist_eq] at hout
 
-lemma continuous_logistic : Continuous logistic := by
-  unfold logistic
-  apply Continuous.inv₀
-  · fun_prop
-  · intro x
-    positivity
-
-lemma measurable_logistic : Measurable logistic := continuous_logistic.measurable
-
-lemma logistic_pos (x : ℝ) : 0 < logistic x := by
-  simp only [logistic]
-  positivity
-
-lemma logistic_lt_one (x : ℝ) : logistic x < 1 := by
-  unfold logistic
-  apply inv_lt_one_of_one_lt₀
-  linarith [Real.exp_pos (-x)]
-
 lemma continuous_relu : Continuous relu := by
   unfold relu
   fun_prop
@@ -179,7 +158,7 @@ lemma measurable_softplus : Measurable softplus := continuous_softplus.measurabl
 
 lemma continuous_swish : Continuous swish := by
   unfold swish
-  exact continuous_id.mul continuous_logistic
+  exact continuous_id.mul continuous_sigmoid
 
 lemma measurable_swish : Measurable swish := continuous_swish.measurable
 
@@ -195,23 +174,6 @@ theorem tendsto_standardNormalCDF_atTop : Tendsto standardNormalCDF atTop (nhds 
 
 theorem tendsto_standardNormalCDF_atBot : Tendsto standardNormalCDF atBot (nhds 0) :=
   ProbabilityTheory.tendsto_cdf_atBot _
-
-lemma continuous_tanhActivation : Continuous Real.tanh := Real.continuous_tanh
-
-lemma measurable_tanhActivation : Measurable Real.tanh := continuous_tanhActivation.measurable
-
-lemma continuous_sinActivation : Continuous Real.sin := Real.continuous_sin
-
-lemma measurable_sinActivation : Measurable Real.sin := Real.continuous_sin.measurable
-
-theorem tanhActivation_zero : Real.tanh 0 = 0 := Real.tanh_zero
-
-theorem sinActivation_zero : Real.sin 0 = 0 := Real.sin_zero
-
-theorem sinActivation_periodic : Function.Periodic Real.sin (2 * Real.pi) := Real.sin_periodic
-
-@[simp] theorem logistic_zero : logistic 0 = 1 / 2 := by
-  norm_num [logistic]
 
 @[simp] theorem softplus_zero : softplus 0 = Real.log 2 := by
   unfold softplus
@@ -254,12 +216,12 @@ theorem tanh_eq_exp_two_mul (x : ℝ) :
 
 -- Specializing `tanh_eq_exp_two_mul` to the half-argument: `tanh (x / 2)` is the
 -- single-exponential quotient `(exp x - 1) / (exp x + 1)`.  This is the exponential
--- quotient substituted into the logistic/tanh identity below.
+-- quotient substituted into the Real.sigmoid/tanh identity below.
 private lemma tanh_half_eq (x : ℝ) :
     Real.tanh (x / 2) = (Real.exp x - 1) / (Real.exp x + 1) := by
   rw [tanh_eq_exp_two_mul, show 2 * (x / 2) = x by ring]
 
--- Algebraic core of the logistic/tanh identity: for `a ≠ 0` with `a + 1 ≠ 0`, the
+-- Algebraic core of the Real.sigmoid/tanh identity: for `a ≠ 0` with `a + 1 ≠ 0`, the
 -- reciprocal `(1 + a⁻¹)⁻¹` equals `1 / 2 + 1 / 2 * ((a - 1) / (a + 1))`.  This is the
 -- denominator-clearing step of `logistic_eq_half_add_half_tanh`, independent of `exp`
 -- (compare `div_sub_inv_eq` above).
@@ -268,15 +230,15 @@ private lemma inv_add_one_eq_half_add_half (a : ℝ) (ha : a ≠ 0) (ha1 : a + 1
   field_simp [ha, ha1]
   ring
 
-/-- The logistic/tanh identity in the source.
+/-- The Real.sigmoid/tanh identity in the source.
 
 Informal proof: substitute the exponential quotient for `tanh (x / 2)`, multiply numerator and
 denominator by `exp (x / 2)`, and use `exp (x / 2)^2 = exp x`.  This is the standard identity
 recorded, for example, at
 <https://en.wikipedia.org/wiki/Logistic_function#Mathematical_properties>. -/
 theorem logistic_eq_half_add_half_tanh (x : ℝ) :
-    logistic x = 1 / 2 + 1 / 2 * Real.tanh (x / 2) := by
-  rw [logistic, tanh_half_eq, Real.exp_neg,
+    Real.sigmoid x = 1 / 2 + 1 / 2 * Real.tanh (x / 2) := by
+  rw [Real.sigmoid, tanh_half_eq, Real.exp_neg,
     inv_add_one_eq_half_add_half (Real.exp x) (Real.exp_ne_zero x) (by positivity)]
 
 -- The standard-normal density integrates to `1 / 2` on the non-positive half-line.  The density
@@ -381,26 +343,15 @@ theorem gelu_eq_erf (x : ℝ) :
   rw [gelu, standardNormalCDF_eq_erf]
   ring
 
-/-- The logistic activation is smooth. -/
-theorem contDiff_logistic : ContDiff ℝ ⊤ logistic := by
-  unfold logistic
-  apply ContDiff.inv (f := fun x => 1 + Real.exp (-x))
-  · fun_prop
-  · intro x
-    positivity
-
 /-- `tanh` is smooth.
 
 Informal proof: `sinh` and `cosh` are smooth and `cosh` is nowhere zero.  See
 <https://en.wikipedia.org/wiki/Hyperbolic_functions#Derivatives>. -/
-theorem contDiff_tanhActivation : ContDiff ℝ ⊤ Real.tanh := by
+theorem contDiff_tanh : ContDiff ℝ ⊤ Real.tanh := by
   rw [show Real.tanh = fun x => Real.sinh x / Real.cosh x by
     funext x
     exact Real.tanh_eq_sinh_div_cosh x]
   exact Real.contDiff_sinh.div Real.contDiff_cosh fun x => (Real.cosh_pos x).ne'
-
-/-- `sin` is smooth. -/
-theorem contDiff_sinActivation : ContDiff ℝ ⊤ Real.sin := Real.contDiff_sin
 
 /-- Softplus is smooth. -/
 theorem contDiff_softplus : ContDiff ℝ ⊤ softplus := by
@@ -410,7 +361,7 @@ theorem contDiff_softplus : ContDiff ℝ ⊤ softplus := by
 /-- SWISH is smooth. -/
 theorem contDiff_swish : ContDiff ℝ ⊤ swish := by
   unfold swish
-  exact contDiff_id.mul contDiff_logistic
+  exact contDiff_id.mul contDiff_sigmoid
 
 -- The Taylor coefficients of the odd power series for `gaussianErf`: the term of degree
 -- `2*n + 1` is `(-1)^n / (n! * (2*n + 1))`.  These are the coefficients obtained by
@@ -663,34 +614,6 @@ theorem hasDerivAt_tanh_zero : HasDerivAt Real.tanh 1 0 := by
       (Real.cosh_pos 0).ne').congr_deriv ?_)
   norm_num [Real.sinh_zero, Real.cosh_zero]
 
-/-- Logistic saturates to `1` at `+∞`.
-
-Informal proof: divide the logistic expression by the dominant exponential. -/
-theorem tendsto_logistic_atTop : Tendsto logistic atTop (nhds 1) := by
-  unfold logistic
-  have h : Tendsto (fun x => 1 + Real.exp (-x)) atTop (nhds 1) := by
-    simpa using (tendsto_const_nhds : Tendsto (fun _ : ℝ => (1 : ℝ)) atTop (nhds (1 : ℝ))).add
-      Real.tendsto_exp_neg_atTop_nhds_zero
-  simpa using h.inv₀ (by norm_num : (1 : ℝ) ≠ 0)
-
-/-- Logistic saturates to `0` at `-∞`.
-
-Informal proof: divide the logistic expression by the dominant exponential. -/
-theorem tendsto_logistic_atBot : Tendsto logistic atBot (nhds 0) := by
-  have he : Tendsto (fun x => Real.exp x) atBot (nhds 0) := Real.tendsto_exp_atBot
-  have hd : Tendsto (fun x => 1 + Real.exp x) atBot (nhds 1) := by
-    simpa using (tendsto_const_nhds : Tendsto (fun _ : ℝ => (1 : ℝ)) atBot (nhds (1 : ℝ))).add he
-  have h : Tendsto (fun x => Real.exp x / (1 + Real.exp x)) atBot (nhds 0) := by
-    change Tendsto ((fun x => Real.exp x) / (fun x => 1 + Real.exp x)) atBot (nhds 0)
-    simpa using he.div hd (by norm_num : (1 : ℝ) ≠ 0)
-  have hlog : (fun x => logistic x) = fun x => Real.exp x / (1 + Real.exp x) := by
-    funext x
-    unfold logistic
-    rw [Real.exp_neg]
-    field_simp [Real.exp_ne_zero x]
-    ring
-  simpa [hlog] using h
-
 /-- `tanh` saturates to `1` at `+∞`.
 
 Informal proof: divide the exponential expression for `tanh` by the dominant exponential.  See
@@ -787,8 +710,8 @@ theorem tendsto_softplus_div_exp_atBot :
 
 /-- SWISH agrees with the identity to within a vanishing error at `+∞`.
 
-Informal proof: multiply the `+∞` logistic limit against `x`, using that the correction term
-`x * logistic (-x)` is dominated by the exponential decay of `logistic (-x)`. -/
+Informal proof: multiply the `+∞` Real.sigmoid limit against `x`, using that the correction term
+`x * Real.sigmoid (-x)` is dominated by the exponential decay of `Real.sigmoid (-x)`. -/
 theorem tendsto_swish_sub_id_atTop : Tendsto (fun x => swish x - x) atTop (nhds 0) := by
   have h1 : Tendsto (fun x => x * Real.exp (-x)) atTop (nhds 0) := by
     simpa using (Real.tendsto_pow_mul_exp_neg_atTop_nhds_zero 1)
@@ -802,7 +725,7 @@ theorem tendsto_swish_sub_id_atTop : Tendsto (fun x => swish x - x) atTop (nhds 
   have hswish : (fun x => swish x - x) = fun x =>
       -((x * Real.exp (-x)) * (Real.exp (-x) + 1)⁻¹) := by
     funext x
-    unfold swish logistic
+    unfold swish Real.sigmoid
     field_simp
     ring
   rw [hswish]
@@ -810,8 +733,9 @@ theorem tendsto_swish_sub_id_atTop : Tendsto (fun x => swish x - x) atTop (nhds 
 
 /-- SWISH vanishes at `-∞`.
 
-Informal proof: `swish x = x * logistic x` with `logistic x` decaying like `exp x`, so the product
-of the linearly growing `|x|` against the exponentially decaying `logistic x` vanishes. -/
+Informal proof: `swish x = x * Real.sigmoid x` with `Real.sigmoid x` decaying like `exp x`, so the
+product of the linearly growing `|x|` against the exponentially decaying `Real.sigmoid x`
+vanishes. -/
 theorem tendsto_swish_atBot : Tendsto swish atBot (nhds 0) := by
   have hxexp : Tendsto (fun x => x * Real.exp x) atBot (nhds 0) := by
     have h : Tendsto (fun y : ℝ => -(y * Real.exp (-y))) atTop (nhds 0) := by
@@ -826,7 +750,7 @@ theorem tendsto_swish_atBot : Tendsto swish atBot (nhds 0) := by
     simpa using hxexp.mul hinv
   have hswish : (fun x => swish x) = fun x => (x * Real.exp x) * (1 + Real.exp x)⁻¹ := by
     funext x
-    unfold swish logistic
+    unfold swish Real.sigmoid
     rw [Real.exp_neg]
     field_simp [Real.exp_ne_zero x]
     ring
@@ -1025,8 +949,8 @@ theorem binaryValued_threshold : BinaryValued threshold := by
 theorem not_passesThroughOrigin_threshold : ¬ PassesThroughOrigin threshold := by
   simp [PassesThroughOrigin, threshold]
 
-theorem not_passesThroughOrigin_logistic : ¬ PassesThroughOrigin logistic := by
-  simp [PassesThroughOrigin, logistic_zero]
+theorem not_passesThroughOrigin_logistic : ¬ PassesThroughOrigin Real.sigmoid := by
+  simp [PassesThroughOrigin, Real.sigmoid_zero]
 
 theorem passesThroughOrigin_relu : PassesThroughOrigin relu := by
   simp [PassesThroughOrigin, relu]
@@ -1039,8 +963,8 @@ chapter's optimizer-dependent judgment that an activation is "poor". -/
 def Saturates (σ : ℝ → ℝ) : Prop :=
   ∃ yBot yTop : ℝ, Tendsto σ atBot (nhds yBot) ∧ Tendsto σ atTop (nhds yTop)
 
-theorem saturates_logistic : Saturates logistic :=
-  ⟨0, 1, tendsto_logistic_atBot, tendsto_logistic_atTop⟩
+theorem saturates_logistic : Saturates Real.sigmoid :=
+  ⟨0, 1, Real.tendsto_sigmoid_atBot, Real.tendsto_sigmoid_atTop⟩
 
 theorem saturates_tanh : Saturates Real.tanh :=
   ⟨-1, 1, tendsto_tanh_atBot, tendsto_tanh_atTop⟩
@@ -1057,10 +981,10 @@ theorem not_posHomogeneous_threshold : ¬ PosHomogeneous threshold := by
   simp [threshold] at h0
 
 /-- Logistic is not positively homogeneous; in particular, it does not pass through the origin. -/
-theorem not_posHomogeneous_logistic : ¬ PosHomogeneous logistic := by
+theorem not_posHomogeneous_logistic : ¬ PosHomogeneous Real.sigmoid := by
   intro h
   have h0 := h.zero
-  rw [logistic_zero] at h0
+  rw [Real.sigmoid_zero] at h0
   norm_num at h0
 
 lemma posHomogeneous_linear (a : ℝ) : PosHomogeneous (linear a) := by
@@ -1125,16 +1049,16 @@ theorem nonhomogeneous_activations :
     · constructor
       · intro h
         have h2 := h (by norm_num : (0 : ℝ) < 2) 1
-        have hc : logistic 2 = logistic 1 := by
-          have hs2 : swish 2 = 2 * logistic 2 := by simp [swish]
-          have hs1 : swish 1 = logistic 1 := by simp [swish]
-          have h2' : 2 * logistic 2 = 2 * logistic 1 := by
-            simpa [hs2, hs1] using h2
+        have hc : Real.sigmoid 2 = Real.sigmoid 1 := by
+          have hs2 : swish 2 = 2 * Real.sigmoid 2 := by simp [swish]
+          have hs1 : swish 1 = Real.sigmoid 1 := by simp [swish]
+          have h2' : 2 * Real.sigmoid 2 = 2 * Real.sigmoid 1 := by
+            simp [hs2, hs1] at h2
           exact mul_left_cancel₀ (by norm_num : (2 : ℝ) ≠ 0) h2'
-        have hne : ¬ logistic 2 = logistic 1 := by
+        have hne : ¬ Real.sigmoid 2 = Real.sigmoid 1 := by
           intro h'
-          have hl : logistic 1 < logistic 2 := by
-            unfold logistic
+          have hl : Real.sigmoid 1 < Real.sigmoid 2 := by
+            unfold Real.sigmoid
             have he : Real.exp (-2) < Real.exp (-1) := by
               exact Real.exp_lt_exp.mpr (by norm_num : (-2 : ℝ) < -1)
             have hsum : 1 + Real.exp (-2) < 1 + Real.exp (-1) := by linarith

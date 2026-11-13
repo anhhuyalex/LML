@@ -38,7 +38,7 @@ open scoped BigOperators MatrixOrder RealInnerProductSpace Kronecker ENNReal
 
 namespace NTK
 
-open NeuralNetwork (relu continuous_relu)
+open NeuralNetwork (relu continuous_relu threshold)
 
 variable {d n m : ℕ}
 
@@ -191,15 +191,15 @@ lemma relu_mul_relu_toEuclideanCLM_diagScale
 
 /-- Pullback of the ReLU indicator product under diagonal scaling:
 positive multipliers leave signs invariant, so
-`reluIndicator (D z)₀ * reluIndicator (D z)₁ = reluIndicator z₀ * reluIndicator z₁`. -/
+`threshold (D z)₀ * threshold (D z)₁ = threshold z₀ * threshold z₁`. -/
 lemma reluIndicator_mul_reluIndicator_toEuclideanCLM_diagScale
     (Φαα Φββ : ℝ) (hΦαα : 0 < Φαα) (hΦββ : 0 < Φββ)
     (z : EuclideanSpace ℝ (Fin 2)) :
-    reluIndicator ((toEuclideanCLM (𝕜 := ℝ) (!![Real.sqrt Φαα, 0; 0,
+    threshold ((toEuclideanCLM (𝕜 := ℝ) (!![Real.sqrt Φαα, 0; 0,
         Real.sqrt Φββ] : Matrix (Fin 2) (Fin 2) ℝ) z).ofLp 0) *
-      reluIndicator ((toEuclideanCLM (𝕜 := ℝ) (!![Real.sqrt Φαα, 0; 0,
+      threshold ((toEuclideanCLM (𝕜 := ℝ) (!![Real.sqrt Φαα, 0; 0,
           Real.sqrt Φββ] : Matrix (Fin 2) (Fin 2) ℝ) z).ofLp 1) =
-      reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1) := by
+      threshold (z.ofLp 0) * threshold (z.ofLp 1) := by
   obtain ⟨h0, h1⟩ := toEuclideanCLM_diagScale_apply (Real.sqrt Φαα) (Real.sqrt Φββ) z
   rw [h0, h1]
   have h_sqrt_α : 0 < Real.sqrt Φαα := Real.sqrt_pos.mpr hΦαα
@@ -414,22 +414,22 @@ lemma expected_relu_mul_relu_eq_scale_mul_standardized
 /--
 Informal proof of Step 1 for derivative products:
 Because scaling by positive constants `√(Φαα), √(Φββ) > 0` leaves signs invariant
-(`reluIndicator (c * u) = reluIndicator u`), the expected derivative product reduces identically
+(`threshold (c * u) = threshold u`), the expected derivative product reduces identically
 to the standardized orthant probability `p(ρ) = 𝔼_{(z₁, z₂)}[1[z₁ ≥ 0] 1[z₂ ≥ 0]]`.
 -/
 lemma expected_reluIndicator_mul_reluIndicator_eq_standardized
     (Φαα Φββ Φαβ : ℝ) (hΦαα : 0 < Φαα) (hΦββ : 0 < Φββ)
     (hSigma : (show Matrix (Fin 2) (Fin 2) ℝ from !![Φαα, Φαβ; Φαβ, Φββ]).PosSemidef) :
     let ρ := Φαβ / Real.sqrt (Φαα * Φββ)
-    ∫ z : EuclideanSpace ℝ (Fin 2), reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1)
+    ∫ z : EuclideanSpace ℝ (Fin 2), threshold (z.ofLp 0) * threshold (z.ofLp 1)
       ∂(multivariateGaussian 0 !![Φαα, Φαβ; Φαβ, Φββ]) =
-      ∫ z : EuclideanSpace ℝ (Fin 2), reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1)
+      ∫ z : EuclideanSpace ℝ (Fin 2), threshold (z.ofLp 0) * threshold (z.ofLp 1)
         ∂(multivariateGaussian 0 !![1, ρ; ρ, 1]) := by
   intro ρ
   have h := integral_multivariateGaussian_eq_const_mul_integral_of_diagScale_pullback Φαα Φββ Φαβ
-    hΦαα hΦββ hSigma (fun z => reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1))
-    ((measurable_reluIndicator.comp (EuclideanSpace.proj (0 : Fin 2)).measurable).mul
-      (measurable_reluIndicator.comp (EuclideanSpace.proj (1 : Fin 2)).measurable)) 1
+    hΦαα hΦββ hSigma (fun z => threshold (z.ofLp 0) * threshold (z.ofLp 1))
+    ((NeuralNetwork.measurable_threshold.comp (EuclideanSpace.proj (0 : Fin 2)).measurable).mul
+      (NeuralNetwork.measurable_threshold.comp (EuclideanSpace.proj (1 : Fin 2)).measurable)) 1
     (fun z => by
       simpa using reluIndicator_mul_reluIndicator_toEuclideanCLM_diagScale Φαα Φββ hΦαα hΦββ z)
   simpa using h
@@ -483,23 +483,23 @@ private lemma integral_corrGaussian_eq_angle
 /-- The derivative kernel is the angular size of the intersection of two half-planes. -/
 lemma expected_reluIndicator_mul_reluIndicator_eq_halfspace_sector
     (ρ : ℝ) (hρ : ρ ∈ Set.Icc (-1) 1) :
-    ∫ z : EuclideanSpace ℝ (Fin 2), reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1)
+    ∫ z : EuclideanSpace ℝ (Fin 2), threshold (z.ofLp 0) * threshold (z.ofLp 1)
       ∂(multivariateGaussian 0 !![1, ρ; ρ, 1]) =
       (Real.pi - Real.arccos ρ) / (2 * Real.pi) := by
   calc
-    _ = ∫ z : EuclideanSpace ℝ (Fin 2), reluIndicator (z.ofLp 0) *
-          reluIndicator (Real.cos (Real.arccos ρ) * z.ofLp 0 +
+    _ = ∫ z : EuclideanSpace ℝ (Fin 2), threshold (z.ofLp 0) *
+          threshold (Real.cos (Real.arccos ρ) * z.ofLp 0 +
             Real.sin (Real.arccos ρ) * z.ofLp 1)
           ∂(stdGaussian (EuclideanSpace ℝ (Fin 2))) :=
-      integral_corrGaussian_eq_angle reluIndicator reluIndicator
-        measurable_reluIndicator measurable_reluIndicator ρ hρ
+      integral_corrGaussian_eq_angle threshold threshold
+        NeuralNetwork.measurable_threshold NeuralNetwork.measurable_threshold ρ hρ
     _ = _ := integral_stdGaussian_reluIndicator_angle (Real.arccos ρ)
       (Real.arccos_nonneg ρ) (Real.arccos_le_pi ρ)
 
 /-- Standardized form of the Cho-Saul derivative kernel. -/
 lemma expected_reluIndicator_mul_reluIndicator_standardized
     (ρ : ℝ) (hρ : ρ ∈ Set.Icc (-1) 1) :
-    ∫ z : EuclideanSpace ℝ (Fin 2), reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1)
+    ∫ z : EuclideanSpace ℝ (Fin 2), threshold (z.ofLp 0) * threshold (z.ofLp 1)
       ∂(multivariateGaussian 0 !![1, ρ; ρ, 1]) =
       1 / 4 + (1 / (2 * Real.pi)) * Real.arcsin ρ := by
   rw [expected_reluIndicator_mul_reluIndicator_eq_halfspace_sector ρ hρ]
@@ -547,7 +547,7 @@ theorem expected_reluIndicator_mul_reluIndicator_bivariate
     (Φαα Φββ Φαβ : ℝ) (hΦαα : 0 < Φαα) (hΦββ : 0 < Φββ)
     (hSigma : (show Matrix (Fin 2) (Fin 2) ℝ from !![Φαα, Φαβ; Φαβ, Φββ]).PosSemidef) :
     let ρ := Φαβ / Real.sqrt (Φαα * Φββ)
-    ∫ z : EuclideanSpace ℝ (Fin 2), reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1)
+    ∫ z : EuclideanSpace ℝ (Fin 2), threshold (z.ofLp 0) * threshold (z.ofLp 1)
       ∂(multivariateGaussian 0 !![Φαα, Φαβ; Φαβ, Φββ]) =
       1 / 4 + (1 / (2 * Real.pi)) * Real.arcsin ρ := by
   intro ρ
@@ -561,7 +561,7 @@ theorem expected_reluDeriv_mul_reluDeriv_bivariate
     (hSigma : (show Matrix (Fin 2) (Fin 2) ℝ from
       !![Φαα, Φαβ; Φαβ, Φββ]).PosSemidef) :
     let ρ := Φαβ / Real.sqrt (Φαα * Φββ)
-    ∫ z : EuclideanSpace ℝ (Fin 2), reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1)
+    ∫ z : EuclideanSpace ℝ (Fin 2), threshold (z.ofLp 0) * threshold (z.ofLp 1)
       ∂(multivariateGaussian 0 !![Φαα, Φαβ; Φαβ, Φββ]) =
       1 / 4 + (1 / (2 * Real.pi)) * Real.arcsin ρ := by
   exact expected_reluIndicator_mul_reluIndicator_bivariate

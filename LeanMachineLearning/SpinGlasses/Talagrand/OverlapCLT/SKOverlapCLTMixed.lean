@@ -172,9 +172,7 @@ theorem sk_T_mixed_gaussian_moment_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2
   obtain ⟨hdq, hD, hB0, hB2⟩ := single_coeff_facts β₀ hβ₀ β h q hfix hb
   have hα : 0 ≤ α ∧ α ≤ 1 := tanh_fourth_sub_two_mul_add_one_mem_Icc_of_fixedPoint hfix
   have hβ4 : β ^ 2 ≤ 1 / 4 := by linarith
-  have hDα : 3 / 4 ≤ 1 - β ^ 2 * α := by
-    have h2 : β ^ 2 * α ≤ β ^ 2 * 1 := mul_le_mul_of_nonneg_left hα.2 (sq_nonneg _)
-    linarith
+  have hDα := three_quarters_le_one_sub_sq_mul hα.2 hβ4
   have hA0 : 0 ≤ α / (1 - β ^ 2 * α) := div_nonneg hα.1 (by linarith)
   have hA12 : α / (1 - β ^ 2 * α) ≤ 12 := by
     rw [div_le_iff₀ (by linarith)]

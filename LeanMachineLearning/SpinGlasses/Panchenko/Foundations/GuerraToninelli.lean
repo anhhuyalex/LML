@@ -22,8 +22,9 @@ configurations of `N` and `M` spins (`Fin.appendEquiv`), the overlap splits as t
 combination `R(σ, σ') = (N R(ρ, ρ') + M R(τ, τ')) / (N + M)`.  The Hamiltonian `H_{N+M}` is thus
 *more correlated* than the independent sum `H_N(ρ) + H_M(τ)` in the sense of
 `ξ(R) (N + M) ≤ N ξ(R(ρ, ρ')) + M ξ(R(τ, τ'))` (convexity), and the two have the same variances.
-The Gaussian comparison inequality of `SpinGlasses/Gaussian/GaussianComparison.lean` (Gaussian integration
-by parts along the Guerra–Toninelli path `√t H_{N+M} + √(1 - t)(H_N + H_M)`) gives
+The Gaussian comparison inequality of `SpinGlasses/Gaussian/GaussianComparison.lean`
+(Gaussian integration by parts along the Guerra–Toninelli path
+`√t H_{N+M} + √(1 - t)(H_N + H_M)`) gives
 `𝔼 log Z_N + 𝔼 log Z_M ≤ 𝔼 log Z_{N+M}` (Eq. (1.36)), i.e. `N F_N + M F_M ≤ (N + M) F_{N+M}`.
 
 The statement is *abstract in the model*: the Hamiltonian enters only through its Gaussian law and

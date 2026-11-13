@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.Optimization.Renormalization.Activation
 public import LeanMachineLearning.Optimization.NTK.Foundations.IIDAverage
 public import LeanMachineLearning.Optimization.NTK.Shallow.DatasetNTK
 
@@ -62,6 +63,8 @@ open Real MeasureTheory ProbabilityTheory Filter ConvexOpt
 open scoped RealInnerProductSpace Matrix
 
 namespace NTK
+
+open NeuralNetwork (threshold)
 
 variable {d m : ℕ}
 
@@ -300,7 +303,7 @@ by the constant `xᵀx'` yields the claim, since
 `𝔼[Y₀] = 𝔼_{w ~ 𝒩(0,Iᵈ)}[σ'(wᵀx)σ'(wᵀx')]`.
 
 The measurability hypothesis `hσ'_meas` is implicit in the informal notes (their `σ'`
-is the ReLU derivative `1[· ≥ 0]`, which is measurable: `measurable_reluIndicator`);
+is the ReLU derivative `1[· ≥ 0]`, which is measurable: `NeuralNetwork.measurable_threshold`);
 it is needed for the integrability required by the strong law. -/
 theorem ntk_convergence
     (σ' : ℝ → ℝ)
@@ -327,22 +330,9 @@ theorem ntk_convergence
 
 /-! ### ReLU NTK closed form (Proposition 4.2) -/
 
-/-- The ReLU derivative: `1[z ≥ 0]` (a.e. equal to the actual derivative). -/
-noncomputable def reluIndicator : ℝ → ℝ := fun z => if 0 ≤ z then 1 else 0
-
-/-- The ReLU derivative is measurable: it is the indicator of the closed
-measurable set `[0, ∞)`. Together with `abs_reluIndicator_le` this shows that
-`reluIndicator` satisfies the hypotheses of `ntk_convergence`. -/
-lemma measurable_reluIndicator : Measurable reluIndicator := by
-  have h : reluIndicator = Set.indicator (Set.Ici 0) fun _ => (1 : ℝ) := by
-    ext z
-    simp [reluIndicator, Set.indicator]
-  rw [h]
-  exact Measurable.indicator measurable_const measurableSet_Ici
-
 /-- The ReLU derivative is bounded by `1`. -/
-lemma abs_reluIndicator_le (z : ℝ) : |reluIndicator z| ≤ 1 := by
-  simp only [reluIndicator]
+lemma abs_reluIndicator_le (z : ℝ) : |threshold z| ≤ 1 := by
+  simp only [threshold]
   split_ifs <;> simp
 
 /-! ### Auxiliary lemmas for the ReLU NTK closed form -/
