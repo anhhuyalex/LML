@@ -62,7 +62,7 @@ theorem zetaPoissonMeasure_map_mul {ζ c : ℝ} (hζ : 0 < ζ) (hc : 0 < c) :
       simp [d, hu, hui]
   ext A hA
   have hmeas : Measurable fun u : ℝ => u * c := by fun_prop
-  rw [Measure.map_apply hmeas hA, Measure.smul_apply, zetaPoissonMeasure,
+  rw [Measure.map_apply hmeas hA, smul_apply, zetaPoissonMeasure,
     withDensity_apply _ (hA.preimage hmeas), withDensity_apply _ hA]
   have heq : ∀ u : ℝ, (A.preimage (fun v => v * c)).indicator d u =
       A.indicator (fun v => d (v * c⁻¹)) (u * c) := by
@@ -107,7 +107,7 @@ theorem poissonMarkTilt_isProbability {S : Type*} [MeasurableSpace S]
     IsProbabilityMeasure (poissonMarkTilt ζ ν) := by
   constructor
   simp only [poissonMarkTilt]
-  rw [Measure.smul_apply, Measure.map_apply (by fun_prop : Measurable (Prod.snd : ℝ × S → S))
+  rw [smul_apply, Measure.map_apply (by fun_prop : Measurable (Prod.snd : ℝ × S → S))
     MeasurableSet.univ, Set.preimage_univ, withDensity_apply _ MeasurableSet.univ,
     Measure.restrict_univ]
   have hne : (∫⁻ p, ENNReal.ofReal p.1 ^ ζ ∂ν) ≠ ∞ := hfin.ne
@@ -119,7 +119,7 @@ theorem poissonMarkTilt_apply {S : Type*} [MeasurableSpace S] (ζ : ℝ)
     poissonMarkTilt ζ ν A =
       (∫⁻ p, ENNReal.ofReal p.1 ^ ζ ∂ν)⁻¹ *
         ∫⁻ p in Prod.snd ⁻¹' A, ENNReal.ofReal p.1 ^ ζ ∂ν := by
-  rw [poissonMarkTilt, Measure.smul_apply, Measure.map_apply (by fun_prop) hA,
+  rw [poissonMarkTilt, smul_apply, Measure.map_apply (by fun_prop) hA,
     withDensity_apply _ (hA.preimage (by fun_prop))]
   rfl
 
@@ -158,7 +158,7 @@ theorem zetaPoissonMeasure_prod_map_mul {S : Type*} [MeasurableSpace S]
     have hsectionmeas : MeasurableSet {u : ℝ | (u, p.2) ∈ A} :=
       hA.preimage (by fun_prop)
     have := congrArg (fun m : Measure ℝ => m {u | (u, p.2) ∈ A}) (hs p hp)
-    simpa only [Measure.map_apply hmeas hsectionmeas, Measure.smul_apply,
+    simpa only [Measure.map_apply hmeas hsectionmeas, smul_apply,
       smul_eq_mul, g, Set.mem_ofPred_eq, Set.preimage_ofPred_eq] using this
   have hleft : ((zetaPoissonMeasure ζ).prod ν) (g ⁻¹' A) =
       ∫⁻ p, (zetaPoissonMeasure ζ) {u | g (u, p) ∈ A} ∂ν :=

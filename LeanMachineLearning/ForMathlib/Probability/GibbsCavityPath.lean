@@ -145,6 +145,39 @@ theorem integral_mul_cavity_path_ibp {Ω : Type*} [MeasurableSpace Ω]
         rw [hZZ l]
         field_simp
 
+/-- **Splitting the cavity-path derivative.** For bounded measurable observables `g l` and
+integrable `|Z k|`, the integral of `∑ₗ ż ₗ(ω) g ₗ(ω)`, where `ż = (aₖ Zₖ)ₖ ⊕ (bⱼ)ⱼ`, splits into
+the `K` part (carrying the Gaussian `Zₖ`) and the `Ks` part (deterministic coefficients). -/
+theorem integral_sum_elim_mul_eq {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω}
+    {Z : K → Ω → ℝ} (hZm : ∀ k, Measurable (Z k)) (hint : ∀ k, Integrable (fun ω => |Z k ω|) P)
+    (a : K → ℝ) (b : Ks → ℝ) {g : K ⊕ Ks → Ω → ℝ} (hgm : ∀ l, Measurable (g l)) {G : ℝ}
+    (hgb : ∀ l ω, |g l ω| ≤ G) [IsFiniteMeasure P] :
+    ∫ ω, ∑ l : K ⊕ Ks, Sum.elim (fun k => a k * Z k ω) (fun j => b j) l * g l ω ∂P =
+      ∑ k, ∫ ω, a k * Z k ω * g (Sum.inl k) ω ∂P + ∑ j, ∫ ω, b j * g (Sum.inr j) ω ∂P := by
+  have hintk : ∀ k, Integrable (fun ω => a k * Z k ω * g (Sum.inl k) ω) P := by
+    intro k
+    refine ((hint k).const_mul (|a k| * G)).mono'
+      (((hZm k).const_mul _).mul (hgm _)).aestronglyMeasurable (ae_of_all _ fun ω => ?_)
+    rw [Real.norm_eq_abs, abs_mul, abs_mul]
+    calc |a k| * |Z k ω| * |g (Sum.inl k) ω| ≤ |a k| * |Z k ω| * G :=
+          mul_le_mul_of_nonneg_left (hgb _ _) (mul_nonneg (abs_nonneg _) (abs_nonneg _))
+      _ = |a k| * G * |Z k ω| := by ring
+  have hintj : ∀ j, Integrable (fun ω => b j * g (Sum.inr j) ω) P := by
+    intro j
+    refine (integrable_const (|b j| * G)).mono'
+      ((hgm _).const_mul _).aestronglyMeasurable (ae_of_all _ fun ω => ?_)
+    rw [Real.norm_eq_abs, abs_mul]
+    exact mul_le_mul_of_nonneg_left (hgb _ _) (abs_nonneg _)
+  have hsplit : ∀ ω, ∑ l : K ⊕ Ks, Sum.elim (fun k => a k * Z k ω) (fun j => b j) l * g l ω =
+      ∑ k, a k * Z k ω * g (Sum.inl k) ω + ∑ j, b j * g (Sum.inr j) ω := by
+    intro ω
+    rw [Fintype.sum_sum_type]
+    rfl
+  rw [integral_congr_ae (ae_of_all _ hsplit),
+    integral_add (integrable_finsetSum _ fun k _ => hintk k)
+      (integrable_finsetSum _ fun j _ => hintj j),
+    integral_finsetSum _ fun k _ => hintk k, integral_finsetSum _ fun j _ => hintj j]
+
 /-- **The abstract cavity derivative** (the shape of Proposition 1.12.4 before the replica
 bookkeeping). `R Y z` is the Gibbs average of `Y` for the parameters `z : K ⊕ Ks → ℝ`. -/
 theorem hasDerivAt_integral_gibbs_cavity_path {Ω : Type*} [MeasurableSpace Ω]
@@ -240,31 +273,7 @@ theorem hasDerivAt_integral_gibbs_cavity_path {Ω : Type*} [MeasurableSpace Ω]
       _ ≤ M * B + M * B := add_le_add (hRb _ _ (hfXb l) _)
           (mul_le_mul (hRb f M hfb _) (hRb (Xall l) B (hXallb l) _) (abs_nonneg _) hM)
       _ = 2 * M * B := by ring
-  -- splitting the sum over `K ⊕ Ks`
-  have hsplit : ∀ ω, ∑ l : K ⊕ Ks, Sum.elim (fun k => s' k t * Z k ω) (fun j => c' j t) l *
-        cov l ω =
-      ∑ k, s' k t * Z k ω * cov (Sum.inl k) ω + ∑ j, c' j t * cov (Sum.inr j) ω := by
-    intro ω
-    rw [Fintype.sum_sum_type]
-    rfl
-  have hintk : ∀ k, Integrable (fun ω => s' k t * Z k ω * cov (Sum.inl k) ω) P := by
-    intro k
-    refine ((hint k).const_mul (|s' k t| * (2 * M * B))).mono'
-      (((hZm k).const_mul _).mul (hcovm _)).aestronglyMeasurable (ae_of_all _ fun ω => ?_)
-    rw [Real.norm_eq_abs, abs_mul, abs_mul]
-    calc |s' k t| * |Z k ω| * |cov (Sum.inl k) ω| ≤ |s' k t| * |Z k ω| * (2 * M * B) :=
-          mul_le_mul_of_nonneg_left (hcovb _ _) (mul_nonneg (abs_nonneg _) (abs_nonneg _))
-      _ = |s' k t| * (2 * M * B) * |Z k ω| := by ring
-  have hintj : ∀ j, Integrable (fun ω => c' j t * cov (Sum.inr j) ω) P := by
-    intro j
-    refine (integrable_const (|c' j t| * (2 * M * B))).mono'
-      ((hcovm _).const_mul _).aestronglyMeasurable (ae_of_all _ fun ω => ?_)
-    rw [Real.norm_eq_abs, abs_mul]
-    exact mul_le_mul_of_nonneg_left (hcovb _ _) (abs_nonneg _)
-  rw [integral_congr_ae (ae_of_all _ hsplit),
-    integral_add (integrable_finsetSum _ fun k _ => hintk k)
-      (integrable_finsetSum _ fun j _ => hintj j),
-    integral_finsetSum _ fun k _ => hintk k, integral_finsetSum _ fun j _ => hintj j]
+  rw [integral_sum_elim_mul_eq hZm hint (fun k => s' k t) (fun j => c' j t) hcovm hcovb]
   congr 1
   · refine Finset.sum_congr rfl fun k _ => ?_
     have hcovk : ∀ ω, cov (Sum.inl k) ω =

@@ -51,7 +51,7 @@ theorem ae_infinitePi_blocks_atoms_pos_finite {ζ : ℝ} (hζ0 : 0 < ζ) (hζ1 :
     hlaw hmu (M := fun b => poissonCountingMeasure (fun k => (b k).1) (fun k l => (b k).2 l)) hM
   filter_upwards [h] with b hb m
   exact ⟨(hb.1 m).ne', ne_top_of_le_ne_top hb.2.1.ne
-    (ENNReal.le_tsum (f := fun n => nthLargestAtom n
+    (le_tsum (f := fun n => nthLargestAtom n
       (poissonCountingMeasure (fun k => (b k).1) (fun k l => (b k).2 l))) m)⟩
 
 /-- In the vertex data model all ranked atoms of all vertices are positive and finite almost
@@ -142,7 +142,7 @@ theorem cascadeMarkedSum_ne_zero (r : ℕ) (X : (Fin r → Ξ) → ℝ)
       (fun k => ((d ⟨p, γ⟩).1 k).1) (fun k l => ((d ⟨p, γ⟩).1 k).2 l)) ≠ 0)
     (hg : ∀ α : Fin r → ℕ, g (d ⟨r, α⟩) ≠ 0) : cascadeMarkedSum r X g d ≠ 0 := by
   intro h
-  have hle := ENNReal.le_tsum (f := fun α : Fin r → ℕ => cascadeBranchWeight
+  have hle := le_tsum (f := fun α : Fin r → ℕ => cascadeBranchWeight
     (fun p γ m => nthLargestAtom m (poissonCountingMeasure
       (fun k => ((d ⟨p, γ⟩).1 k).1) (fun k l => ((d ⟨p, γ⟩).1 k).2 l))) α * g (d ⟨r, α⟩) *
     ENNReal.ofReal (Real.exp (X fun i : Fin r =>

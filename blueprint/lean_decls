@@ -267,10 +267,8 @@ NTK.RKHSClass_add
 NTK.isUniversal
 NTK.rkhs_approx_by_network
 NTK.relu
-NTK.reluDeriv
 NTK.reluIndicator
 NTK.relu_apply
-NTK.reluDeriv_eq_reluIndicator
 NTK.relu_pos_mul
 NTK.continuous_relu
 NTK.reluIndicator_pos_mul
@@ -336,7 +334,6 @@ NTK.gradient_mseLoss_eq_mulVec
 NTK.gdIterate_mseLoss_succ
 NTK.gradient_mseLoss_norm_le
 ConvexOpt.ForwardGFTrajectory
-NTK.euclideanSpace_inner_eq_sum
 NTK.hasDerivAt_trainingOutputs_coord
 NTK.hasDerivAt_trainingOutputs_coord_sum
 NTK.hasDerivAt_euclideanSpace
@@ -532,7 +529,6 @@ NTK.outputJacobian_netFromParams_norm_sq_le
 NTK.outputJacobian_netFromParams_norm_sq_le_energies
 NTK.outputJacobian_netFromParams_frobenius_norm_concentration
 NTK.outputJacobian_netFromParams_frobenius_norm_concentration_of_L2
-NTK.two_mul_add_two_mul_sq
 NTK.dotProduct_sub_sq_le
 NTK.grad_single_neuron_sub_le
 NTK.grad_sum_neurons_sub_le
@@ -796,7 +792,6 @@ NTK.quadForm_mul_mul_transpose
 NTK.scaled_gram_transpose
 NTK.const_matrix_transpose
 NTK.mul_transpose_posSemidef
-NTK.gram_posSemidef
 NTK.posSemidef_allOnes
 NTK.hadamard_allOnes
 NTK.allOnes_hadamard
@@ -1779,7 +1774,7 @@ NeuralNetwork.DeepLinear.jointMoment_outputLaw_odd
 NeuralNetwork.DeepLinear.jointMoment_outputLaw_even
 NeuralNetwork.DeepLinear.integral_coordinate_pow_outputLaw_even
 NeuralNetwork.DeepLinear.covariance_batchOutputLaw
-NeuralNetwork.DeepLinear.covariance_batchOutputLaw_closedForm
+NeuralNetwork.DeepLinear.integral_mul_batchOutputLaw
 NeuralNetwork.DeepLinear.tendsto_covariance_of_weightVariance_lt_one
 NeuralNetwork.DeepLinear.covariance_eq_of_weightVariance_eq_one
 NeuralNetwork.DeepLinear.tendsto_covariance_atTop_of_one_lt_weightVariance
@@ -2544,8 +2539,6 @@ SpinGlasses.integrable_log_lintegral_of_blocks
 SpinGlasses.ae_pos_of_tail
 SpinGlasses.lintegral_map_fst_Ioi
 SpinGlasses.lintegral_map_scale_fst
-SpinGlasses.integral_log_marked_sum_eq_tilt
-SpinGlasses.integral_log_lintegral_eq_of_intensity_eq
 SpinGlasses.integral_log_marked_sum_eq
 SpinGlasses.lintegral_prod_rpow_mul
 SpinGlasses.integral_log_marked_sum_mul_eq
@@ -2593,7 +2586,7 @@ SpinGlasses.poissonDirichlet_blocks_expected_weight_sq_eq_one_sub_zeta
 SpinGlasses.ae_poissonDirichlet_gaussian_tilt_centering_series
 SpinGlasses.integral_poissonDirichlet_gaussian_tilt_mark_centering
 SpinGlasses.integral_poissonDirichlet_gaussian_unit_tilt_mark
-SpinGlasses.tsum_option_fin_replica_eq
+tsum_option_fin_replica_eq
 SpinGlasses.integral_poissonDirichlet_gaussian_overlap_tilt_eq
 SpinGlasses.integral_poissonDirichlet_gaussian_old_overlap_tilt_eq
 SpinGlasses.measurable_fresh_replica_overlap
@@ -2985,7 +2978,6 @@ SpinGlasses.tsum_cascadeSeries_energy_eq
 SpinGlasses.integral_cascadeEnergy
 ProbabilityTheory.IndepFun.integral_comp_pair_eq_integral_integral_map
 SpinGlasses.measurable_tsum_prod_div_mul
-SpinGlasses.tsum_option_fin_eq
 SpinGlasses.integral_cascade_ibp
 SpinGlasses.exists_abs_le_pattern
 SpinGlasses.ae_cascadeWeights_good
@@ -3270,9 +3262,6 @@ SpinGlasses.fderiv_pair_mul
 SpinGlasses.fderiv_fderiv_pair_mul
 SpinGlasses.abs_integral_mul_sub_le
 SpinGlasses.abs_integral_block_sub_le
-SpinGlasses.integral_pi_fin_two_gaussianReal
-SpinGlasses.integral_pi_fin_two_fst
-SpinGlasses.integral_pi_fin_two_mul
 SpinGlasses.continuous_integral_comp_add_mul
 MeasureTheory.integral_sq_sub
 SpinGlasses.integral_sq_sub_le
@@ -3545,7 +3534,7 @@ SpinGlasses.integral_exp_mul_projPath
 SpinGlasses.exp_sum_le_avg_exp
 SpinGlasses.exp_abs_le_add
 SpinGlasses.ExpTame.integrable_derivProd_projPath
-SpinGlasses.abs_dotProduct_le_of_self_le
+abs_dotProduct_le_of_self_le
 SpinGlasses.abs_projGram_le
 SpinGlasses.continuous_projPath
 SpinGlasses.continuous_projPath_uncurry

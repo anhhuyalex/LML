@@ -46,7 +46,7 @@ theorem poissonIntensity_map {S T : Type*} [MeasurableSpace S]
       Measure.sum fun n => (r n : ℝ≥0∞) • (ν n).map f := by
   ext A hA
   simp [Measure.map_apply hf hA, Measure.sum_apply _ hA,
-    Measure.sum_apply _ (hf hA), Measure.smul_apply]
+    Measure.sum_apply _ (hf hA), smul_apply]
 
 /-- Forgetting the marks of a marked counting measure gives the counting measure of the
 unmarked points. -/
@@ -82,7 +82,7 @@ theorem nullSingletonClass_map_block {S T : Type*} [MeasurableSpace S] [Measurab
   refine ⟨fun x => ?_⟩
   have hx := h.measure_singleton x
   rw [poissonIntensity_map ν r hf, Measure.sum_apply _ (measurableSet_singleton x)] at hx
-  have := (ENNReal.tsum_eq_zero.1 hx) n
+  have := (tsum_eq_zero_iff.1 hx) n
   simpa [hn] using this
 
 /-- **Mapping theorem (Panchenko, Theorem 2.1), in the finite-dimensional count-law form.**

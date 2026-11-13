@@ -528,7 +528,7 @@ re-exported by this module.
 
 * **Cho-Saul / Arc-Cosine Kernel for ReLU (Proposition 2.5)**:
   * `NTK.relu` : Rectified Linear Unit activation function $\varphi(u) = \max\{u, 0\}$.
-  * `NTK.reluDeriv` : the weak derivative `1[u ≥ 0]` (the same function as `reluIndicator`).
+  * `NTK.reluIndicator` : the weak derivative `1[u ≥ 0]` of ReLU.
   * `NTK.pearsonRho_mem_Icc` : Pearson correlation $\rho \in [-1, 1]$.
   * `NTK.corrMatrix2x2_posSemidef` : positive semidefiniteness of the $2 \times 2$ correlation
     matrix for $\rho \in [-1, 1]$.
@@ -537,7 +537,7 @@ re-exported by this module.
   * `NTK.expected_reluIndicator_mul_reluIndicator_bivariate` : Proposition 2.5 derivative kernel
     $\frac{1}{4} + \frac{1}{2\pi}\arcsin(\rho)$.
   * `NTK.expected_reluDeriv_mul_reluDeriv_bivariate` : derivative kernel stated with weak-derivative
-    notation `reluDeriv`.
+    notation `reluIndicator`.
   * `NTK.expected_relu_mul_relu_bivariate` : Proposition 2.5 0-th order / NNGP kernel
     $\frac{\sqrt{\Phi^{\alpha\alpha}\Phi^{\beta\beta}}}{2\pi}(\sqrt{1-\rho^2} +
       \rho(\frac{\pi}{2}+\arcsin(\rho)))$.

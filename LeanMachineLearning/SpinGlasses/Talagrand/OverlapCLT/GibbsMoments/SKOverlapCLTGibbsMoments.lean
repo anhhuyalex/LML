@@ -8,7 +8,7 @@ module
 public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKReplicaAverage
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.SKOverlapCLTMultiIndex
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SecondMoment
-public import Mathlib.Data.Sum.Order
+public import Mathlib.Order.Sum.Order
 
 /-!
 # Conditional Gibbs moment fluctuations

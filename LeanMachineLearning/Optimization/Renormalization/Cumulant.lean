@@ -357,19 +357,6 @@ lemma cumulantCoefficient_top {α : Type*} [DecidableEq α] {s : Finset α} (hs 
   rw [Finpartition.top_parts_eq_singleton (Finset.nonempty_iff_ne_empty.mp hs)]
   simp
 
-/-- The block product of a function on the top partition is the function applied to the whole
-set.
-
-Informal proof: The top partition has exactly one block, which is `s`. The product over its parts
-is just `f s`. -/
-lemma blockProduct_top {α : Type*} [DecidableEq α] {s : Finset α} (hs : s.Nonempty)
-    {R : Type*} [CommMonoid R]
-    (f : Finset α → R) :
-    (⊤ : Finpartition s).blockProduct f = f s := by
-  dsimp [Finpartition.blockProduct]
-  rw [Finpartition.top_parts_eq_singleton (Finset.nonempty_iff_ne_empty.mp hs)]
-  simp
-
 /-- The first cumulant is the expectation.
 
 Informal proof: the only partition of a singleton has one block, whose Möbius coefficient is one. -/
@@ -380,7 +367,7 @@ theorem jointCumulant_one (X : Fin 1 → Ω → ℝ) :
   rw [h_univ]
   rw [sum_Finpartition_singleton 0]
   rw [cumulantCoefficient_top (Finset.singleton_nonempty 0)]
-  rw [blockProduct_top (Finset.singleton_nonempty 0)]
+  rw [Finpartition.blockProduct_top (Finset.singleton_nonempty 0)]
   dsimp [blockMoment]
   simp
 
@@ -591,7 +578,7 @@ theorem jointCumulant_two (X : Fin 2 → Ω → ℝ) :
   rw [h_univ]
   rw [sum_Finpartition_pair 0 1 (by decide)]
   have h_ne : ({0, 1} : Finset (Fin 2)).Nonempty := by simp
-  rw [cumulantCoefficient_top h_ne, blockProduct_top h_ne]
+  rw [cumulantCoefficient_top h_ne, Finpartition.blockProduct_top h_ne]
   rw [cumulantCoefficient_bot_pair 0 1 (by decide)]
   rw [blockProduct_bot_pair 0 1 (by decide)]
   dsimp [blockMoment]
@@ -973,7 +960,7 @@ lemma cumulantTransform_fin_four_of_singleton_vanish (f : Finset (Fin 4) → ℝ
   -- Step 4: the four surviving summands evaluate to the displayed expression
   have h_top : Finpartition.cumulantCoefficient (⊤ : Finpartition (Finset.univ : Finset (Fin 4))) *
       (⊤ : Finpartition (Finset.univ : Finset (Fin 4))).blockProduct f = f {0, 1, 2, 3} := by
-    simp [cumulantCoefficient_top, blockProduct_top, finFour_univ_eq_0123]
+    simp [cumulantCoefficient_top, Finpartition.blockProduct_top, finFour_univ_eq_0123]
   have h_p1 : Finpartition.cumulantCoefficient (finFourPairing 1) *
       (finFourPairing 1).blockProduct f = -(f {0, 1} * f {2, 3}) := by
     simp [cumulantCoefficient_finFourPairing 1, blockProduct_finFourPairing f 1,
@@ -1641,13 +1628,6 @@ def IndepAcross (μ : Measure Ω) (X : ι → Ω → ℝ)
     (A : Finset ι) : Prop :=
   IndepFun (fun ω (i : A) ↦ X i.1 ω) (fun ω (i : {i : ι // i ∉ A}) ↦ X i.1 ω) μ
 
--- The product over a finset splits into the product over its intersection with `A` and its
--- complement `s \ A`; this is the finite-product form of "disjoint union".
-private lemma prod_inter_mul_prod_sdiff [DecidableEq ι] (s A : Finset ι) (f : ι → ℝ) :
-    (∏ i ∈ s ∩ A, f i) * (∏ i ∈ s \ A, f i) = ∏ i ∈ s, f i := by
-  simpa [← Finset.filter_mem_eq_inter, ← Finset.filter_notMem_eq_sdiff] using
-    Finset.prod_filter_mul_prod_filter_not s (fun i ↦ i ∈ A) f
-
 -- Independence of the restrictions of `X` to `A` and to its complement factors the integral of
 -- the product over `s` into the product of the integrals over `s ∩ A` and `s \ A`.  The
 -- restriction maps and evaluation functionals are defined internally so the statement only
@@ -1693,7 +1673,7 @@ lemma blockMoment_indepFun_split [DecidableEq ι]
     (X : ι → Ω → ℝ) (A : Finset ι) (_hX : HasFiniteJointMoments μ X)
     (hmeas : ∀ i, Measurable (X i)) (hindep : IndepAcross μ X A) (s : Finset ι) :
     blockMoment μ X s = blockMoment μ X (s ∩ A) * blockMoment μ X (s \ A) := by
-  simpa [blockMoment, prod_inter_mul_prod_sdiff] using
+  simpa [blockMoment, Finset.prod_inter_mul_prod_sdiff] using
     indepFun_split_integral X A hmeas hindep s
 
 -- `f ∅` acts as an identity on the values of `f` at subsets of `A`: the split hypothesis applied
@@ -1766,7 +1746,7 @@ private lemma restrict_sdiff_parts {ι : Type*} [DecidableEq ι] {s : Finset ι}
   · -- the empty finset is neither a part of a finpartition nor in `P.parts.erase B`
     simp [Finpartition.restrict, hC]
   · -- a nonempty trace block comes from a unique original block different from `B`
-    simp only [Finpartition.restrict, Finset.inf_eq_inter', Finset.bot_eq_empty, Finset.mem_erase,
+    simp only [Finpartition.restrict, Finset.bot_eq_empty, Finset.mem_erase,
       ne_eq, hC, not_false_eq_true, Finset.mem_image, true_and]
     constructor
     · rintro ⟨D, hD, hDC⟩

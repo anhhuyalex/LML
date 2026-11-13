@@ -70,7 +70,7 @@ theorem expected_reluDeriv_mul_reluDeriv_bivariate_eq_arcCosineJ0
     (Φαα Φββ Φαβ : ℝ) (hΦαα : 0 < Φαα) (hΦββ : 0 < Φββ)
     (hSigma : (show Matrix (Fin 2) (Fin 2) ℝ from !![Φαα, Φαβ; Φαβ, Φββ]).PosSemidef) :
     let ρ := Φαβ / Real.sqrt (Φαα * Φββ)
-    ∫ z : EuclideanSpace ℝ (Fin 2), reluDeriv (z.ofLp 0) * reluDeriv (z.ofLp 1)
+    ∫ z : EuclideanSpace ℝ (Fin 2), reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1)
       ∂(multivariateGaussian 0 !![Φαα, Φαβ; Φαβ, Φββ]) =
       (1 / 2) * ((1 / Real.pi) * (Real.pi - Real.arccos ρ)) := by
   intro ρ

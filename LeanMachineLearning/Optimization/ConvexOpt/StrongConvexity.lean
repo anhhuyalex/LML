@@ -61,21 +61,6 @@ lemma sc_gradient_inner {f : E → ℝ} {mu : ℝ}
   rw [hinner_swap] at hsum
   linarith
 
-/-- A strongly convex function has at most one critical point. -/
-lemma sc_unique_critical_point {f : E → ℝ} {mu : ℝ} (hmu : 0 < mu)
-    (hf : IsStronglyConvex f mu) {w v : E}
-    (hw : gradient f w = 0) (hv : gradient f v = 0) : w = v := by
-  have h := sc_gradient_inner hf w v
-  rw [hw, hv] at h
-  simp only [sub_zero, inner_zero_left, ge_iff_le] at h
-  have h_nonneg : 0 ≤ mu * ‖w - v‖ ^ 2 := mul_nonneg hmu.le (sq_nonneg _)
-  have h_nonpos : mu * ‖w - v‖ ^ 2 ≤ 0 := by linarith
-  have hzero : mu * ‖w - v‖ ^ 2 = 0 := by linarith
-  have hnorm_sq_zero : ‖w - v‖ ^ 2 = 0 := by nlinarith
-  have hnorm_zero : ‖w - v‖ = 0 := by
-    nlinarith
-  exact sub_eq_zero.mp (norm_eq_zero.mp hnorm_zero)
-
 /-! ### GD strongly convex rate (Theorem 7.5) -/
 
 /-- **Theorem 7.5** (Telgarsky 2021, Theorem 7.5).

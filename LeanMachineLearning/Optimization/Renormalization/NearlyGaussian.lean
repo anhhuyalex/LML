@@ -130,17 +130,10 @@ theorem potential_neg (A : EvenAction ι) (ε : ℝ) (z : EuclideanSpace ℝ ι)
     rw [EvenCoupling.potential_neg (A.coupling m) z]
   rw [hquad, hint]
 
-/-- The quadratic action with a fixed precision matrix is continuous.
-
-Informal proof: unfolding the dot-product and matrix-vector product, the quadratic action is a
-finite sum of products of coordinate projections, hence continuous. -/
-theorem quadraticAction_continuous (P : Matrix ι ι ℝ) : Continuous (quadraticAction P) := by
-  exact Action.quadraticAction_continuous P
-
 /-- The full hierarchical even action is continuous. -/
 theorem continuous_potential (A : EvenAction ι) (ε : ℝ) : Continuous (A.potential ε) := by
   unfold EvenAction.potential
-  exact (quadraticAction_continuous A.precision).add (by
+  exact (Action.quadraticAction_continuous A.precision).add (by
     unfold EvenAction.interactionPotential
     exact continuous_finsetSum (Finset.Icc 2 A.cutoff) (fun m _hm => by
       exact (EvenCoupling.continuous_potential (A.coupling m)).const_mul (ε ^ (m - 1))))
@@ -748,7 +741,7 @@ theorem jointMoment_six_eq_connected_decomposition
   have htop_eq : (∑ P ∈ ({(⊤ : Finpartition (Finset.univ : Finset (Fin 6)))} :
       Finset (Finpartition (Finset.univ : Finset (Fin 6)))), P.blockProduct (blockCumulant μ X)) =
       jointCumulant μ X := by
-    rw [Finset.sum_singleton, blockProduct_top Finset.univ_nonempty]
+    rw [Finset.sum_singleton, Finpartition.blockProduct_top Finset.univ_nonempty]
     rfl
   rw [hsplit, hbucket1, hbucket2, hbucket3, htop_eq, sixPoint_sum_pairing_eq]
   rfl

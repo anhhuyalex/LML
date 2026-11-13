@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import Mathlib.Data.Sym.Sym2.Order
+public import Mathlib.Order.Sym2
 public import Mathlib.Data.Fintype.Prod
 public import Mathlib.Data.Finset.Prod
 public import Mathlib.Algebra.BigOperators.Group.Finset.Basic

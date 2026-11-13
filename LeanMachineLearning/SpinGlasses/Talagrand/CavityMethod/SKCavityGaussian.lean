@@ -466,6 +466,39 @@ theorem sk_cavity_field_linear_combo_eq (N : ℕ) (β q s h u v : ℝ)
   congr 2
   exact Finset.sum_congr rfl fun i _ => by ring
 
+/-- Any real combination `u * L σ + v * L τ` of the two cavity fields along the trigonometric path
+has an integrable `cosh` under the product Gaussian law. -/
+theorem integrable_cosh_sk_cavity_field_combo (N : ℕ) (β q s h u v : ℝ)
+    (σ τ : Fin N → ℤˣ) :
+    let L : (Fin N → ℤˣ) → (Fin N → ℝ) × ℝ → ℝ := fun ρ ω =>
+      Real.cos s * ((Real.sqrt (N : ℝ))⁻¹ * β * ∑ i : Fin N, ω.1 i * (ρ i : ℝ)) +
+      Real.sin s * (β * ω.2 * Real.sqrt q) + h
+    Integrable (fun ω : (Fin N → ℝ) × ℝ => Real.cosh (u * L σ ω + v * L τ ω))
+      ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)) := by
+  intro L
+  simp_rw [show ∀ ω : (Fin N → ℝ) × ℝ, u * L σ ω + v * L τ ω = _ from fun ω =>
+    sk_cavity_field_linear_combo_eq N β q s h u v σ τ ω]
+  exact integrable_cosh_sum_mul_add_mul_gaussianReal _ _ _
+
+/-- The Gaussian expectation of `cosh (L σ + sign * L τ)` along the trigonometric path is at most
+`cosh ((1 + sign) h) exp (2 β²)` for `sign = ±1`. -/
+theorem integral_cosh_sk_cavity_field_combo_le (N : ℕ) (hN : 0 < N) (β q s h : ℝ)
+    (hq : q ∈ Set.Icc (0 : ℝ) 1) (σ τ : Fin N → ℤˣ) (sign : ℝ)
+    (hsign : sign = 1 ∨ sign = -1) :
+    let L : (Fin N → ℤˣ) → (Fin N → ℝ) × ℝ → ℝ := fun ρ ω =>
+      Real.cos s * ((Real.sqrt (N : ℝ))⁻¹ * β * ∑ i : Fin N, ω.1 i * (ρ i : ℝ)) +
+      Real.sin s * (β * ω.2 * Real.sqrt q) + h
+    (∫ ω : (Fin N → ℝ) × ℝ, Real.cosh (L σ ω + sign * L τ ω)
+      ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))) ≤
+      Real.cosh ((1 + sign) * h) * Real.exp (2 * β ^ 2) := by
+  intro L
+  have h_eq := fun ω : (Fin N → ℝ) × ℝ =>
+    sk_cavity_field_linear_combo_eq N β q s h 1 sign σ τ ω
+  simp only [one_mul] at h_eq
+  have key := integral_cosh_sk_cavity_linear_combo_le N hN β q s ((1 + sign) * h) hq σ τ sign hsign
+  simp_rw [show ∀ ω : (Fin N → ℝ) × ℝ, L σ ω + sign * L τ ω = _ from h_eq]
+  exact key
+
 /-- The product of the two `sinh` cavity factors along the trigonometric path is integrable
 under the product Gaussian law.  This is separated from its moment bound because Fubini
 arguments need integrability independently of the numerical estimate. -/
@@ -478,28 +511,14 @@ theorem integrable_abs_sinh_mul_sinh_sk_cavity (N : ℕ) (β q s h : ℝ)
       |Real.sinh (L σ ω)| * |Real.sinh (L τ ω)|)
       ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)) := by
   intro L
-  let c_add : Fin N → ℝ := fun i =>
-    Real.cos s * ((Real.sqrt (N : ℝ))⁻¹ * β * ((σ i : ℝ) + 1 * (τ i : ℝ)))
-  let d_add : ℝ := Real.sin s * (β * Real.sqrt q * (1 + 1))
-  let c_sub : Fin N → ℝ := fun i =>
-    Real.cos s * ((Real.sqrt (N : ℝ))⁻¹ * β * ((σ i : ℝ) + (-1) * (τ i : ℝ)))
-  let d_sub : ℝ := Real.sin s * (β * Real.sqrt q * (1 + (-1)))
-  have h_add_eq (ω : (Fin N → ℝ) × ℝ) :
-      L σ ω + L τ ω = ∑ i, c_add i * ω.1 i + d_add * ω.2 + 2 * h := by
-    simpa only [L, c_add, d_add, one_mul, one_add_one_eq_two] using
-      sk_cavity_field_linear_combo_eq N β q s h 1 1 σ τ ω
-  have h_sub_eq (ω : (Fin N → ℝ) × ℝ) :
-      L σ ω - L τ ω = ∑ i, c_sub i * ω.1 i + d_sub * ω.2 + 0 := by
-    simpa [L, c_sub, d_sub, sub_eq_add_neg] using
-      sk_cavity_field_linear_combo_eq N β q s h 1 (-1) σ τ ω
   have hint_add : Integrable (fun ω : (Fin N → ℝ) × ℝ => Real.cosh (L σ ω + L τ ω))
       ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)) := by
-    simp_rw [h_add_eq]
-    exact integrable_cosh_sum_mul_add_mul_gaussianReal c_add d_add (2 * h)
+    simpa using integrable_cosh_sk_cavity_field_combo N β q s h 1 1 σ τ
   have hint_sub : Integrable (fun ω : (Fin N → ℝ) × ℝ => Real.cosh (L σ ω - L τ ω))
       ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)) := by
-    simp_rw [h_sub_eq]
-    exact integrable_cosh_sum_mul_add_mul_gaussianReal c_sub d_sub 0
+    have e : ∀ ω : (Fin N → ℝ) × ℝ, L σ ω - L τ ω = 1 * L σ ω + (-1) * L τ ω := fun ω => by ring
+    simp_rw [e]
+    exact integrable_cosh_sk_cavity_field_combo N β q s h 1 (-1) σ τ
   have hint_dom : Integrable (fun ω : (Fin N → ℝ) × ℝ =>
       (Real.cosh (L σ ω + L τ ω) + Real.cosh (L σ ω - L τ ω)) / 2)
       ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)) :=
@@ -537,28 +556,14 @@ theorem integral_abs_sinh_mul_sinh_sk_cavity_le (N : ℕ) (hN : 0 < N) (β q s h
       |Real.sinh (L σ ω)| * |Real.sinh (L τ ω)|)
       ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)) :=
     integrable_abs_sinh_mul_sinh_sk_cavity N β q s h σ τ
-  let c_add : Fin N → ℝ := fun i =>
-    Real.cos s * ((Real.sqrt (N : ℝ))⁻¹ * β * ((σ i : ℝ) + 1 * (τ i : ℝ)))
-  let d_add : ℝ := Real.sin s * (β * Real.sqrt q * (1 + 1))
-  let c_sub : Fin N → ℝ := fun i =>
-    Real.cos s * ((Real.sqrt (N : ℝ))⁻¹ * β * ((σ i : ℝ) + (-1) * (τ i : ℝ)))
-  let d_sub : ℝ := Real.sin s * (β * Real.sqrt q * (1 + (-1)))
-  have h_add_eq (ω : (Fin N → ℝ) × ℝ) :
-      L σ ω + L τ ω = ∑ i, c_add i * ω.1 i + d_add * ω.2 + 2 * h := by
-    simpa only [L, c_add, d_add, one_mul, one_add_one_eq_two] using
-      sk_cavity_field_linear_combo_eq N β q s h 1 1 σ τ ω
-  have h_sub_eq (ω : (Fin N → ℝ) × ℝ) :
-      L σ ω - L τ ω = ∑ i, c_sub i * ω.1 i + d_sub * ω.2 + 0 := by
-    simpa [L, c_sub, d_sub, sub_eq_add_neg] using
-      sk_cavity_field_linear_combo_eq N β q s h 1 (-1) σ τ ω
   have hint_add : Integrable (fun ω : (Fin N → ℝ) × ℝ => Real.cosh (L σ ω + L τ ω))
       ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)) := by
-    simp_rw [h_add_eq]
-    exact integrable_cosh_sum_mul_add_mul_gaussianReal c_add d_add (2 * h)
+    simpa using integrable_cosh_sk_cavity_field_combo N β q s h 1 1 σ τ
   have hint_sub : Integrable (fun ω : (Fin N → ℝ) × ℝ => Real.cosh (L σ ω - L τ ω))
       ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)) := by
-    simp_rw [h_sub_eq]
-    exact integrable_cosh_sum_mul_add_mul_gaussianReal c_sub d_sub 0
+    have e : ∀ ω : (Fin N → ℝ) × ℝ, L σ ω - L τ ω = 1 * L σ ω + (-1) * L τ ω := fun ω => by ring
+    simp_rw [e]
+    exact integrable_cosh_sk_cavity_field_combo N β q s h 1 (-1) σ τ
   have hint_dom : Integrable (fun ω : (Fin N → ℝ) × ℝ =>
       (Real.cosh (L σ ω + L τ ω) + Real.cosh (L σ ω - L τ ω)) / 2)
       ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)) :=
@@ -578,15 +583,17 @@ theorem integral_abs_sinh_mul_sinh_sk_cavity_le (N : ℕ) (hN : 0 < N) (β q s h
   have h_int_add : (∫ ω : (Fin N → ℝ) × ℝ, Real.cosh (L σ ω + L τ ω)
       ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))) ≤
       Real.cosh (2 * h) * Real.exp (2 * β ^ 2) := by
-    simp_rw [h_add_eq]
-    exact integral_cosh_sk_cavity_linear_combo_le N hN β q s (2 * h) hq σ τ 1 (Or.inl rfl)
+    simpa [one_add_one_eq_two] using
+      integral_cosh_sk_cavity_field_combo_le N hN β q s h hq σ τ 1 (Or.inl rfl)
   have h_int_sub : (∫ ω : (Fin N → ℝ) × ℝ, Real.cosh (L σ ω - L τ ω)
       ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))) ≤
       Real.cosh (2 * h) * Real.exp (2 * β ^ 2) := by
-    simp_rw [h_sub_eq]
-    have h0 := integral_cosh_sk_cavity_linear_combo_le N hN β q s 0 hq σ τ (-1) (Or.inr rfl)
-    refine h0.trans ?_
-    rw [Real.cosh_zero, one_mul]
+    have e : ∀ ω : (Fin N → ℝ) × ℝ, L σ ω - L τ ω = L σ ω + (-1) * L τ ω := fun ω => by ring
+    simp_rw [e]
+    have h0 := integral_cosh_sk_cavity_field_combo_le N hN β q s h hq σ τ (-1) (Or.inr rfl)
+    dsimp only at h0
+    refine le_trans h0 ?_
+    rw [show (1 + -1 : ℝ) * h = 0 by ring, Real.cosh_zero, one_mul]
     have h1le : 1 ≤ Real.cosh (2 * h) := Real.one_le_cosh (2 * h)
     have : 0 ≤ Real.exp (2 * β ^ 2) := (Real.exp_pos _).le
     nlinarith

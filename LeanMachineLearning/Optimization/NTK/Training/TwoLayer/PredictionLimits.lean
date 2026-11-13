@@ -394,7 +394,7 @@ theorem tendsto_measure_test_prediction_finite_horizon
         hφ n d xs θ₀).symm
       have hreadout : ∀ i : Fin n, |θ₀ (paramIndexEquiv n d (Sum.inr i))| ≤ Real.sqrt (2 *
           Real.log (2 * n / δ)) :=
-        fun i => by simpa only [hθ₀, packParams_readout] using hp2 i
+        fun i => by simpa only [hθ₀, packParams_apply_idxA] using hp2 i
       have hdisp := (hallt t ⟨ht, le_rfl⟩).2.2.2
       have htay := abs_netFromParams_sub_linearization_le_of_disp hact hn0 xs hreadout hdisp
       rw [hg'] at htay
@@ -663,7 +663,7 @@ theorem tendsto_measure_test_prediction_global_positive_gap
         hφ n d xs θ₀).symm
       have hreadout : ∀ i : Fin n, |θ₀ (paramIndexEquiv n d (Sum.inr i))| ≤ Real.sqrt (2 *
           Real.log (2 * n / δ)) :=
-        fun i => by simpa only [hθ₀, packParams_readout] using hp2 i
+        fun i => by simpa only [hθ₀, packParams_apply_idxA] using hp2 i
       have hdisp := (hcert t' ht').1
       have htay := abs_netFromParams_sub_linearization_le_of_disp hact hn0 xs hreadout hdisp
       rw [hg'] at htay

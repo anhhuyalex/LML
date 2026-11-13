@@ -88,8 +88,8 @@ lemma dotProduct_mul_mul (c₁ c₂ : ℝ) (x y : Fin d → ℝ) :
   exact Finset.sum_congr rfl fun k _ => by ring
 
 /-- Cauchy–Schwarz for the dot product, in sum-of-squares form. -/
-lemma sq_dotProduct_le (w x : Fin d → ℝ) :
-    (w ⬝ᵥ x) ^ 2 ≤ (∑ j : Fin d, w j ^ 2) * ∑ j : Fin d, x j ^ 2 := by
+lemma sq_dotProduct_le {ι : Type*} [Fintype ι] (w x : ι → ℝ) :
+    (w ⬝ᵥ x) ^ 2 ≤ (∑ j, w j ^ 2) * ∑ j, x j ^ 2 := by
   simpa [dotProduct, sq] using dotProduct_sq_le_mul_self w x
 
 /-- The dot product of a weight vector with a scaled input `(1 / √d) * x` has the scaling

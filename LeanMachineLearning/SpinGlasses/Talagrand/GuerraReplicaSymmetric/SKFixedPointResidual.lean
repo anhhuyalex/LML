@@ -59,7 +59,7 @@ theorem hasDerivAt_fixedPointMap_sqrt (β h : ℝ) {x : ℝ} (hx : 0 < x) :
 /-- For `h ≠ 0`, `𝔼 tanh²(w z + h) > 0`. -/
 theorem fixedPointMap_pos {h : ℝ} (hh : h ≠ 0) (w : ℝ) :
     0 < ∫ z : ℝ, Real.tanh (w * z + h) ^ 2 ∂(gaussianReal 0 1) := by
-  refine integral_pos_of_integrable_nonneg_nonzero (x := 0) (continuous_tanh_sq_affine w h)
+  refine integral_pos_of_integrable_nonneg_ne_zero (x := 0) (continuous_tanh_sq_affine w h)
     (integrable_tanh_sq_affine w h) (fun z => sq_nonneg _) ?_
   have : Real.tanh h ≠ 0 := by
     rw [Real.tanh_eq_sinh_div_cosh]

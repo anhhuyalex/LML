@@ -244,7 +244,7 @@ lemma empiricalNTKMatrix_netFromParams_of_seq (φ : ℝ → ℝ) (n d m : ℕ)
     (by
       intro α i
       simpa only [packParams_weight_row] using hφ α i) α β
-  simpa only [packParams_weight_row, packParams_readout] using h
+  simpa only [packParams_weight_row, packParams_apply_idxA] using h
 
 /-- Scaled-dataset version of `empiricalNTKMatrix_netFromParams_of_seq`, with the input
 Gram factor written as `(X α ⬝ᵥ X β) / d`. -/
@@ -270,7 +270,7 @@ lemma empiricalNTKMatrix_netFromParams_scaled_dataset_of_seq
     (by
       intro α i
       simpa only [packParams_weight_row] using hφ α i) α β
-  simpa only [packParams_weight_row, packParams_readout] using h
+  simpa only [packParams_weight_row, packParams_apply_idxA] using h
 
 /-- Matrix equation identifying the canonical empirical NTK on the scaled dataset at the
 explicitly packed sequence-prefix parameters with the explicit neuron-average matrix. -/

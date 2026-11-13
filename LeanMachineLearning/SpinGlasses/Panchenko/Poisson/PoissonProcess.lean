@@ -63,7 +63,7 @@ theorem measurable_poissonCountingMeasure :
       (∑ l ∈ Finset.range k, Measure.dirac (y l)) s
     rw [show (fun y : ℕ → S => (∑ l ∈ Finset.range k, Measure.dirac (y l)) s) =
       (fun y => ∑ l ∈ Finset.range k, (Measure.dirac (y l)) s) by
-        funext y; simp only [Measure.coe_finsetSum, Finset.sum_apply]]
+        funext y; simp only [FunLike.coe_sum, Finset.sum_apply]]
     exact Finset.measurable_sum _ fun l _ =>
       ((Measure.measurable_coe hs).comp Measure.measurable_dirac).comp
         (measurable_pi_apply l)
@@ -81,7 +81,7 @@ theorem poissonCountingMeasure_apply (N : ℕ → ℕ) (X : ℕ → ℕ → S)
     {A : Set S} (hA : MeasurableSet A) :
     poissonCountingMeasure N X A =
       ∑' n, ∑ l ∈ Finset.range (N n), A.indicator 1 (X n l) := by
-  simp only [poissonCountingMeasure, Measure.sum_apply _ hA, Measure.coe_finsetSum,
+  simp only [poissonCountingMeasure, Measure.sum_apply _ hA, FunLike.coe_sum,
     Finset.sum_apply, Measure.dirac_apply' _ hA]
 
 /-- The counting measure is the sum of Dirac masses at the sampled points `X n l`, `l < N n`,
@@ -94,7 +94,7 @@ theorem poissonCountingMeasure_eq_sum_dirac (N : ℕ → ℕ) (X : ℕ → ℕ �
   simp only [Measure.dirac_apply' _ hs]
   refine Eq.trans ?_ (tsum_subtype {q : ℕ × ℕ | q.2 < N q.1}
     (fun q => s.indicator (1 : S → ℝ≥0∞) (X q.1 q.2))).symm
-  rw [ENNReal.tsum_prod']
+  rw [tsum_prod']
   refine tsum_congr fun n => ?_
   rw [tsum_eq_sum (s := Finset.range (N n))]
   · refine Finset.sum_congr rfl fun l hl => ?_

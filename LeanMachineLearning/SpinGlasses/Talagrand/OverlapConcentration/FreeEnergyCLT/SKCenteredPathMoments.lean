@@ -79,7 +79,7 @@ theorem integrable_smart_path_free_energy_sub_pow {N : ℕ} (hN : 0 < N) (β h q
     (c := ∫ ω', A s ω' ∂((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
       (Measure.pi fun _ : Fin N => gaussianReal 0 1))) ?_ a
   convert h1 using 3
-  all_goals simp only [hA, hF, hG]
+  simp only [hA, hF, hG]
 
 /-- **Eq. (1.124)-(1.126) with the moving center `SK(s)`** (Talagrand, proof of Theorem 1.4.11).
 With the smart-path free energy `A_s`, the overlap average `Q_s = ⟨(R_{1,2} - q)²⟩_s` and

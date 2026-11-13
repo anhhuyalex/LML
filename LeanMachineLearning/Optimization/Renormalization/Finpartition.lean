@@ -808,15 +808,15 @@ private lemma restrict_extendBlock {s B D : Finset α} (Q : Finpartition B) (hDn
     · -- `E = D`: `E ⊓ B = ∅` contradicts `C ≠ ∅`
       exfalso
       apply hC_ne
-      rw [← hE_eq, Finset.inf_eq_inter, Finset.inter_comm]
+      rw [← hE_eq, Finset.inter_comm]
       exact Finset.disjoint_iff_inter_eq_empty.mp hdisj
     · -- `E ∈ Q.parts`: `E ⊓ B = E`
-      rw [← hE_eq, Finset.inf_eq_inter, Finset.inter_eq_left.2 (Q.subset hE)]
+      rw [← hE_eq, Finset.inter_eq_left.2 (Q.subset hE)]
       exact hE
   · intro hC
     rw [Finset.mem_erase]
     refine ⟨Q.ne_empty hC, Finset.mem_image.mpr ⟨C, Finset.mem_insert_of_mem hC, ?_⟩⟩
-    rw [Finset.inf_eq_inter, Finset.inter_eq_left.2 (Q.subset hC)]
+    rw [Finset.inter_eq_left.2 (Q.subset hC)]
 
 /-- The parts of the indiscrete partition `⊤` is exactly the singleton containing the set. -/
 lemma top_parts_eq_singleton {s : Finset α} (hs : s ≠ ∅) :
@@ -1267,9 +1267,9 @@ theorem partitionTransform_cumulantTransform [CommRing R] (f : Finset α → R)
     exact partitionTransform_cumulantTransform_of_nonempty f hs
 
 /-- The indiscrete partition has block product `f s` on a nonempty carrier. -/
-private lemma blockProduct_top [CommMonoid R] (f : Finset α → R) {s : Finset α} (hs : s ≠ ∅) :
+lemma blockProduct_top [CommMonoid R] {s : Finset α} (hs : s.Nonempty) (f : Finset α → R) :
     (⊤ : Finpartition s).blockProduct f = f s := by
-  have hparts : (⊤ : Finpartition s).parts = {s} := top_parts_eq_singleton hs
+  have hparts : (⊤ : Finpartition s).parts = {s} := top_parts_eq_singleton hs.ne_empty
   rw [blockProduct, hparts, Finset.prod_singleton]
 
 /-- If a part of `P` is the whole carrier, then `P` is the indiscrete partition. -/
@@ -1303,7 +1303,7 @@ private lemma partitionTransform_eq_top_add_erase [CommSemiring R] (f : Finset �
     partitionTransform f s =
       f s + ∑ P ∈ (Finset.univ.erase (⊤ : Finpartition s)), P.blockProduct f := by
   nth_rw 1 [partitionTransform, ← Finset.insert_erase (Finset.mem_univ (⊤ : Finpartition s))]
-  rw [Finset.sum_insert, blockProduct_top f hs]
+  rw [Finset.sum_insert, blockProduct_top (Finset.nonempty_iff_ne_empty.2 hs) f]
   simp
 
 -- Triangularity step for the partition transform on a nonempty carrier: if `f` and `g` agree on
@@ -1802,7 +1802,7 @@ private lemma glueParts_subset_parts (T : Finpartition (A ∪ B)) (hAB : Disjoin
   have hsplit : ∀ ⦃D : Finset α⦄, D ∈ T.parts → (D ∩ A) ∪ (D ∩ B) = D :=
     fun D hD => union_inter_inter_eq_self (T.subset hD)
   -- Unfold `glueParts` (with both restricted partitions and the merged blocks) into three cases.
-  simp only [glueParts, ofFinpartition, Finpartition.restrict, Finset.inf_eq_inter,
+  simp only [glueParts, ofFinpartition, Finpartition.restrict,
     Finset.mem_union, Finset.mem_sdiff, Finset.mem_erase, Finset.mem_image, Finset.mem_attach,
     true_and] at ht
   rcases ht with (ht | ht) | ht
@@ -1832,7 +1832,7 @@ private lemma parts_subset_glueParts (T : Finpartition (A ∪ B)) (hAB : Disjoin
   -- `t = (t ∩ A) ∪ (t ∩ B)`: `t` is a merged block iff it spans the cut, otherwise it is
   -- unmatched on exactly one side.
   have hsplit : (t ∩ A) ∪ (t ∩ B) = t := union_inter_inter_eq_self (T.subset ht)
-  simp only [glueParts, ofFinpartition, Finpartition.restrict, Finset.inf_eq_inter,
+  simp only [glueParts, ofFinpartition, Finpartition.restrict,
     Finset.mem_union, Finset.mem_sdiff, Finset.mem_erase, Finset.mem_image, Finset.mem_attach,
     true_and]
   by_cases htm : t ∈ mergedOf T

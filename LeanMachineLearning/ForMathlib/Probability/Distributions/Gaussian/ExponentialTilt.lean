@@ -46,7 +46,7 @@ theorem gaussianReal_withDensity_exp_mul (a : ℝ) :
     gaussianReal_of_var_ne_zero a (one_ne_zero : (1 : NNReal) ≠ 0)]
   apply Measure.ext
   intro s hs
-  rw [withDensity_apply _ hs, Measure.smul_apply, withDensity_apply _ hs,
+  rw [withDensity_apply _ hs, smul_apply, withDensity_apply _ hs,
     setLIntegral_withDensity_eq_setLIntegral_mul _ (by fun_prop) (by fun_prop) hs,
     smul_eq_mul, ← lintegral_const_mul _ (by fun_prop : Measurable (gaussianPDF a 1))]
   exact setLIntegral_congr_fun hs fun x _ => gaussianPDF_zero_one_mul_exp a x

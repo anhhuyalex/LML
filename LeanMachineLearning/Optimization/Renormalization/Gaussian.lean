@@ -759,7 +759,7 @@ private lemma cumulantTransform_pair_eq_pairWeight_covariance {Ω ι : Type*}
       rw [ite_eq_right]
       · rw [sum_Finpartition_pair i j hij]
         have hne : ({i, j} : Finset ι).Nonempty := by simp
-        rw [cumulantCoefficient_top hne, blockProduct_top hne,
+        rw [cumulantCoefficient_top hne, Finpartition.blockProduct_top hne,
           cumulantCoefficient_bot_pair i j hij, blockProduct_bot_pair i j hij]
         ring
       · simp
@@ -1191,7 +1191,7 @@ private lemma cumulantTransform_blockMoment_centered_gaussian_eq_zero_of_card_ne
         dsimp [Finpartition.cumulantTransform]
         rw [sum_Finpartition_singleton i]
         rw [cumulantCoefficient_top (Finset.singleton_nonempty i)]
-        rw [blockProduct_top (Finset.singleton_nonempty i)]
+        rw [Finpartition.blockProduct_top (Finset.singleton_nonempty i)]
         ring
       rw [h_single]
       dsimp [blockMoment]
@@ -1682,13 +1682,6 @@ theorem integral_prod_centered_dual_eq_wick (μ : Measure E) [ProbabilityTheory.
           congr 1
           funext i j
           exact covariance_centeredDual_eq_dualCovariance μ (L i) (L j)
-
-/-- The sixth centered Gaussian moment is one application of the general Wick theorem. -/
-theorem sixthMoment_centered_dual_eq_wick (μ : Measure E) [ProbabilityTheory.IsGaussian μ]
-    (L : Fin 6 → StrongDual ℝ E) :
-    jointMoment μ (fun i ↦ centeredDual μ (L i)) =
-      wick (fun i j ↦ dualCovariance μ (L i) (L j)) Finset.univ :=
-  integral_prod_centered_dual_eq_wick μ L
 
 /-- The centered second joint cumulant of Gaussian linear observables is their covariance.
 

@@ -400,7 +400,7 @@ theorem lintegral_pi_poissonCountingMeasure_restrict_eq_tsum
           (measurable_id.prodMk measurable_const)
       simp_rw [lintegral_poissonCountingMeasure_restrict_eq_tsum N X hA (hx _)]
       simp_rw [ite_tsum_zero]
-      rw [ENNReal.tsum_comm, ← ENNReal.tsum_prod]
+      rw [tsum_comm, ← tsum_prod]
       let eI := MeasurableEquiv.piFinSuccAbove (fun _ : Fin (n + 1) =>
         {p : ℕ × ℕ // p.2 < N p.1}) (Fin.last n)
       refine (Equiv.tsum_eq eI.toEquiv

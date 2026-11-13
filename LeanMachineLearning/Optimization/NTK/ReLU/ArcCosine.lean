@@ -45,28 +45,6 @@ variable {d n m : ℕ}
 /-- Equation lemma for `relu` (imported from `NTK.Shallow.Linearization`). -/
 @[simp] lemma relu_apply (u : ℝ) : relu u = max u 0 := rfl
 
-/-- Equivalence between `reluDeriv` and `reluIndicator` (which are definitionally equal). -/
-lemma reluDeriv_eq_reluIndicator : reluDeriv = reluIndicator := rfl
-
-/-! ### Structural API for ReLU -/
-
-/-- Positive homogeneity of ReLU: `relu (c * u) = c * relu u` for `0 ≤ c`. -/
-lemma relu_pos_mul (c u : ℝ) (hc : 0 ≤ c) : relu (c * u) = c * relu u := by
-  dsimp [relu]
-  rcases le_total 0 u with hu | hu
-  · rw [max_eq_left hu, max_eq_left (mul_nonneg hc hu)]
-  · rw [max_eq_right hu, mul_zero, max_eq_right (mul_nonpos_of_nonneg_of_nonpos hc hu)]
-
-/-- Continuity of the ReLU activation function. -/
-lemma continuous_relu : Continuous relu :=
-  continuous_id.max continuous_const
-
-/-- Scale invariance of the ReLU derivative for positive multipliers. -/
-lemma reluIndicator_pos_mul (c u : ℝ) (hc : 0 < c) : reluIndicator (c * u) = reluIndicator u := by
-  unfold reluIndicator
-  have : 0 ≤ c * u ↔ 0 ≤ u := mul_nonneg_iff_of_pos_left hc
-  rw [if_congr this rfl rfl]
-
 /-! ### 2×2 Covariance and Correlation Geometry -/
 
 /-- Positive semidefiniteness of the standardized 2×2 correlation matrix `!![1, ρ; ρ, 1]` for
@@ -145,19 +123,19 @@ lemma diagScale2x2_mul_corr_mul_diagScale
     simp only [cons_mul, Nat.succ_eq_add_one, Nat.reduceAdd, vecMul_cons, head_cons, smul_cons,
       smul_eq_mul, mul_one, smul_empty, tail_cons, zero_smul, empty_vecMul, add_zero, zero_add,
       empty_mul, Equiv.symm_apply_apply, Fin.isValue, Matrix.mul_apply, of_apply, cons_val',
-      cons_val_fin_one, cons_val_zero, transpose_apply, Fin.sum_univ_two, cons_val_one, mul_zero]
+      cons_val_fin_one, cons_val_zero, Fin.sum_univ_two, cons_val_one, mul_zero]
     exact Real.mul_self_sqrt (le_of_lt hΦαα)
   · dsimp [D, ρ]
     simp only [cons_mul, Nat.succ_eq_add_one, Nat.reduceAdd, vecMul_cons, head_cons, smul_cons,
       smul_eq_mul, mul_one, smul_empty, tail_cons, zero_smul, empty_vecMul, add_zero, zero_add,
       empty_mul, Equiv.symm_apply_apply, Fin.isValue, Matrix.mul_apply, of_apply, cons_val',
-      cons_val_fin_one, cons_val_zero, transpose_apply, cons_val_one, Fin.sum_univ_two, mul_zero]
+      cons_val_fin_one, cons_val_zero, cons_val_one, Fin.sum_univ_two, mul_zero]
     exact diagonal_scale_offDiagonal_eq Φαα Φββ Φαβ hΦαα hΦββ
   · dsimp [D, ρ]
     simp only [cons_mul, Nat.succ_eq_add_one, Nat.reduceAdd, vecMul_cons, head_cons, smul_cons,
       smul_eq_mul, mul_one, smul_empty, tail_cons, zero_smul, empty_vecMul, add_zero, zero_add,
       empty_mul, Equiv.symm_apply_apply, Fin.isValue, Matrix.mul_apply, of_apply, cons_val',
-      cons_val_fin_one, cons_val_one, transpose_apply, cons_val_zero, Fin.sum_univ_two, mul_zero]
+      cons_val_fin_one, cons_val_one, cons_val_zero, Fin.sum_univ_two, mul_zero]
     calc
       Real.sqrt Φββ * (Φαβ / Real.sqrt (Φαα * Φββ)) * Real.sqrt Φαα =
           Real.sqrt Φαα * (Φαβ / Real.sqrt (Φαα * Φββ)) * Real.sqrt Φββ := by ring
@@ -166,7 +144,7 @@ lemma diagScale2x2_mul_corr_mul_diagScale
     simp only [cons_mul, Nat.succ_eq_add_one, Nat.reduceAdd, vecMul_cons, head_cons, smul_cons,
       smul_eq_mul, mul_one, smul_empty, tail_cons, zero_smul, empty_vecMul, add_zero, zero_add,
       empty_mul, Equiv.symm_apply_apply, Fin.isValue, Matrix.mul_apply, of_apply, cons_val',
-      cons_val_fin_one, cons_val_one, transpose_apply, Fin.sum_univ_two, cons_val_zero, mul_zero]
+      cons_val_fin_one, cons_val_one, Fin.sum_univ_two, cons_val_zero, mul_zero]
     exact Real.mul_self_sqrt (le_of_lt hΦββ)
 
 /-- Coordinate-wise action of the 2x2 diagonal scaling operator on `EuclideanSpace ℝ (Fin 2)`. -/
@@ -272,16 +250,16 @@ lemma cholesky2x2_mul_transpose (ρ : ℝ) (hρ : ρ ∈ Set.Icc (-1) 1) :
   ext i j
   fin_cases i <;> fin_cases j
   · dsimp [L]
-    simp [Matrix.mul_apply, transpose_apply, Fin.sum_univ_two]
+    simp [Matrix.mul_apply, Fin.sum_univ_two]
   · dsimp [L]
-    simp [Matrix.mul_apply, transpose_apply, Fin.sum_univ_two]
+    simp [Matrix.mul_apply, Fin.sum_univ_two]
   · dsimp [L]
-    simp [Matrix.mul_apply, transpose_apply, Fin.sum_univ_two]
+    simp [Matrix.mul_apply, Fin.sum_univ_two]
   · dsimp [L]
     have h_diff : 0 ≤ 1 - ρ ^ 2 := by
       rcases hρ with ⟨h_ge, h_le⟩
       nlinarith
-    simp [Matrix.mul_apply, transpose_apply, Fin.sum_univ_two, Real.mul_self_sqrt h_diff]
+    simp [Matrix.mul_apply, Fin.sum_univ_two, Real.mul_self_sqrt h_diff]
     ring
 
 /-- Pushforward of the standard bivariate normal distribution under the lower-triangular Cholesky
@@ -581,10 +559,9 @@ theorem expected_reluDeriv_mul_reluDeriv_bivariate
     (hSigma : (show Matrix (Fin 2) (Fin 2) ℝ from
       !![Φαα, Φαβ; Φαβ, Φββ]).PosSemidef) :
     let ρ := Φαβ / Real.sqrt (Φαα * Φββ)
-    ∫ z : EuclideanSpace ℝ (Fin 2), reluDeriv (z.ofLp 0) * reluDeriv (z.ofLp 1)
+    ∫ z : EuclideanSpace ℝ (Fin 2), reluIndicator (z.ofLp 0) * reluIndicator (z.ofLp 1)
       ∂(multivariateGaussian 0 !![Φαα, Φαβ; Φαβ, Φββ]) =
       1 / 4 + (1 / (2 * Real.pi)) * Real.arcsin ρ := by
-  rw [reluDeriv_eq_reluIndicator]
   exact expected_reluIndicator_mul_reluIndicator_bivariate
     Φαα Φββ Φαβ hΦαα hΦββ hSigma
 

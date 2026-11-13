@@ -41,12 +41,6 @@ attribute [local instance]
 
 /-! ### Local Lipschitz Bound on the Output Jacobian -/
 
-/-- `(u + v)² ≤ 2 u² + 2 v²`. -/
-lemma two_mul_add_two_mul_sq (u v : ℝ) :
-    (u + v) ^ 2 ≤ 2 * u ^ 2 + 2 * v ^ 2 := by
-  have : 0 ≤ (u - v) ^ 2 := sq_nonneg (u - v)
-  linarith
-
 /-- The squared norm of a parameter difference splits into an input-weight part and a readout part.
 -/
 lemma norm_sq_sub_unpack (n d : ℕ) (θ₁ θ₂ : EuclideanSpace ℝ (Fin (n * d + n))) :
@@ -188,9 +182,10 @@ lemma grad_single_neuron_sub_le (φ : ℝ → ℝ) (n d : ℕ) (x : Fin d → �
         (θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) *
             deriv φ u₂ := by ring
     rw [hsplit]
-    have h2 := two_mul_add_two_mul_sq (θ₁ (paramIndexEquiv n d (Sum.inr i)) *
+    have h2 := add_sq_le (a := θ₁ (paramIndexEquiv n d (Sum.inr i)) *
         (deriv φ u₁ - deriv φ u₂))
-      ((θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) * deriv φ u₂)
+      (b := (θ₁ (paramIndexEquiv n d (Sum.inr i)) - θ₂ (paramIndexEquiv n d (Sum.inr i))) *
+        deriv φ u₂)
     have ha₁_sq : (θ₁ (paramIndexEquiv n d (Sum.inr i))) ^ 2 ≤ R ^ 2 := by
       rw [← sq_abs]
       exact (sq_le_sq₀ (abs_nonneg _) hR_nonneg).2 ha₁

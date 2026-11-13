@@ -328,7 +328,7 @@ theorem antitone_poissonDirichletWeight (M : Measure ℝ) :
     Antitone fun n => poissonDirichletWeight n M := by
   intro m n hmn
   have hle : nthLargestAtom m M ≤ ∑' l, nthLargestAtom l M :=
-    ENNReal.le_tsum (f := fun l => nthLargestAtom l M) m
+    le_tsum (f := fun l => nthLargestAtom l M) m
   refine ENNReal.toReal_mono (ne_top_of_le_ne_top ENNReal.one_ne_top
     ((ENNReal.div_le_div_right hle _).trans ENNReal.div_self_le_one)) ?_
   exact ENNReal.div_le_div_right (antitone_nthLargestAtom M hmn) _
@@ -343,7 +343,7 @@ theorem hasSum_poissonDirichletWeight {M : Measure ℝ} (h0 : 0 < ∑' l, nthLar
     exact ENNReal.mul_inv_cancel h0.ne' hT.ne
   have hne : ∀ n, nthLargestAtom n M / T ≠ ⊤ := fun n =>
     ne_top_of_le_ne_top ENNReal.one_ne_top
-      (h1 ▸ ENNReal.le_tsum (f := fun n => nthLargestAtom n M / T) n)
+      (h1 ▸ le_tsum (f := fun n => nthLargestAtom n M / T) n)
   have hsum := ENNReal.summable_toReal (f := fun n => nthLargestAtom n M / T)
     (h1 ▸ ENNReal.one_ne_top)
   have := hsum.hasSum
@@ -462,7 +462,7 @@ theorem ae_poissonDirichletWeight (hζ0 : 0 < ζ) (hζ1 : ζ < 1) (hBm : ∀ n, 
     simpa using this
   have hsum := tsum_nthLargestAtom hint
   have hT0 : 0 < ∑' n, nthLargestAtom n (M ω) :=
-    (hpos 0).trans_le (ENNReal.le_tsum (f := fun n => nthLargestAtom n (M ω)) 0)
+    (hpos 0).trans_le (le_tsum (f := fun n => nthLargestAtom n (M ω)) 0)
   have hT : ∑' n, nthLargestAtom n (M ω) < ∞ := hsum ▸ hfin
   refine ⟨hpos, hT, hasSum_poissonDirichletWeight hT0 hT, fun n => ?_,
     antitone_poissonDirichletWeight (M ω)⟩
@@ -470,7 +470,7 @@ theorem ae_poissonDirichletWeight (hζ0 : 0 < ζ) (hζ1 : ζ < 1) (hBm : ∀ n, 
   · exact (ENNReal.div_pos_iff.2 ⟨(hpos n).ne', hT.ne⟩).ne'
   · exact ne_top_of_le_ne_top ENNReal.one_ne_top
       ((ENNReal.div_le_div_right
-        (ENNReal.le_tsum (f := fun l => nthLargestAtom l (M ω)) n) _).trans
+        (le_tsum (f := fun l => nthLargestAtom l (M ω)) n) _).trans
         ENNReal.div_self_le_one)
 
 end BlockModel

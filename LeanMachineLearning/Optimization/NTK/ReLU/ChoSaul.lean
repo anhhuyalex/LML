@@ -309,12 +309,16 @@ lemma stdGaussian_density_polar (r phi : ℝ) :
             nlinarith [Real.sin_sq_add_cos_sq phi]
           rw [harg]
 
-private lemma relu_pos_mul_polar (c x : ℝ) (hc : 0 ≤ c) :
-    relu (c * x) = c * relu x := by
-  simp only [relu]
-  rcases le_total 0 x with hx | hx
-  · rw [max_eq_left hx, max_eq_left (mul_nonneg hc hx)]
-  · rw [max_eq_right hx, mul_zero, max_eq_right (mul_nonpos_of_nonneg_of_nonpos hc hx)]
+/-- Positive homogeneity of ReLU: `relu (c * u) = c * relu u` for `0 ≤ c`. -/
+lemma relu_pos_mul (c u : ℝ) (hc : 0 ≤ c) : relu (c * u) = c * relu u := by
+  dsimp [relu]
+  rcases le_total 0 u with hu | hu
+  · rw [max_eq_left hu, max_eq_left (mul_nonneg hc hu)]
+  · rw [max_eq_right hu, mul_zero, max_eq_right (mul_nonpos_of_nonneg_of_nonpos hc hu)]
+
+/-- Continuity of the ReLU activation function. -/
+lemma continuous_relu : Continuous relu :=
+  continuous_id.max continuous_const
 
 private lemma integral_prod_stdGaussian_relu_of_angular
     (theta : ℝ)
@@ -349,12 +353,12 @@ private lemma integral_prod_stdGaussian_relu_of_angular
         relu (Real.cos theta * (p.1 * Real.cos p.2) +
           Real.sin theta * (p.1 * Real.sin p.2)))) = _
     rw [stdGaussian_density_polar]
-    rw [relu_pos_mul_polar p.1 (Real.cos p.2) hr]
+    rw [relu_pos_mul p.1 (Real.cos p.2) hr]
     have hlinear : Real.cos theta * (p.1 * Real.cos p.2) +
         Real.sin theta * (p.1 * Real.sin p.2) = p.1 * Real.cos (p.2 - theta) := by
       rw [Real.cos_sub]
       ring
-    rw [hlinear, relu_pos_mul_polar p.1 (Real.cos (p.2 - theta)) hr]
+    rw [hlinear, relu_pos_mul p.1 (Real.cos (p.2 - theta)) hr]
     ring
   rw [hpullback]
   calc
@@ -374,10 +378,11 @@ private lemma integral_prod_stdGaussian_relu_of_angular
         (2 * Real.pi) := by
           field_simp [Real.pi_ne_zero]
 
-private lemma reluIndicator_pos_mul_polar (c x : ℝ) (hc : 0 < c) :
-    reluIndicator (c * x) = reluIndicator x := by
-  simp only [reluIndicator]
-  rw [if_congr (mul_nonneg_iff_of_pos_left hc) rfl rfl]
+/-- Scale invariance of the ReLU derivative for positive multipliers. -/
+lemma reluIndicator_pos_mul (c u : ℝ) (hc : 0 < c) : reluIndicator (c * u) = reluIndicator u := by
+  unfold reluIndicator
+  have : 0 ≤ c * u ↔ 0 ≤ u := mul_nonneg_iff_of_pos_left hc
+  rw [if_congr this rfl rfl]
 
 private lemma integral_prod_stdGaussian_reluIndicator_of_angular
     (theta : ℝ)
@@ -412,12 +417,12 @@ private lemma integral_prod_stdGaussian_reluIndicator_of_angular
         reluIndicator (Real.cos theta * (p.1 * Real.cos p.2) +
           Real.sin theta * (p.1 * Real.sin p.2)))) = _
     rw [stdGaussian_density_polar]
-    rw [reluIndicator_pos_mul_polar p.1 (Real.cos p.2) hr]
+    rw [reluIndicator_pos_mul p.1 (Real.cos p.2) hr]
     have hlinear : Real.cos theta * (p.1 * Real.cos p.2) +
         Real.sin theta * (p.1 * Real.sin p.2) = p.1 * Real.cos (p.2 - theta) := by
       rw [Real.cos_sub]
       ring
-    rw [hlinear, reluIndicator_pos_mul_polar p.1 (Real.cos (p.2 - theta)) hr]
+    rw [hlinear, reluIndicator_pos_mul p.1 (Real.cos (p.2 - theta)) hr]
     ring
   rw [hpullback]
   calc
@@ -454,9 +459,6 @@ lemma integral_prod_stdGaussian_reluIndicator
   integral_prod_stdGaussian_reluIndicator_of_angular theta
     (angular_indicator_integral theta htheta0 hthetapi)
 
-private lemma continuous_relu_polar : Continuous relu :=
-  continuous_id.max continuous_const
-
 private lemma integral_stdGaussian_fin2_eq_prod
     (g : ℝ × ℝ → ℝ)
     (hg : AEStronglyMeasurable g
@@ -490,8 +492,8 @@ lemma integral_stdGaussian_relu_angle
       (Measure.map (fun t : Fin 2 → ℝ => (t 0, t 1)) (Measure.pi fun _ : Fin 2 =>
           gaussianReal 0 1)) := by
     apply Continuous.aestronglyMeasurable
-    exact (continuous_relu_polar.comp continuous_fst).mul
-      (continuous_relu_polar.comp
+    exact (continuous_relu.comp continuous_fst).mul
+      (continuous_relu.comp
         ((continuous_const.mul continuous_fst).add (continuous_const.mul continuous_snd)))
   calc
     _ = ∫ p, relu p.1 * relu (Real.cos theta * p.1 + Real.sin theta * p.2)

@@ -307,7 +307,7 @@ theorem integral_mul_deriv_mul_id_lt (hc1 : ContDiff ℝ 1 φ) (hodd : ∀ y, φ
   -- the integral of `f₁ ∘ Y` is negative
   have hneg' : ∫ z : ℝ, f₁ (w * z + h) ∂(gaussianReal 0 1) < 0 := by
     have hpos : 0 < ∫ z : ℝ, -f₁ (w * z + h) ∂(gaussianReal 0 1) := by
-      refine integral_pos_of_integrable_nonneg_nonzero (x := if h = 0 then 1 else 0)
+      refine integral_pos_of_integrable_nonneg_ne_zero (x := if h = 0 then 1 else 0)
         (hf₁c.comp hYc).neg hIf.neg (fun z => ?_) ?_
       · by_cases hz : w * z + h = 0
         · simp only [hf₁, hz, Pi.zero_apply]

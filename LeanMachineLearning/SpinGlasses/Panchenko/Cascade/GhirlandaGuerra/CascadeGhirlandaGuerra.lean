@@ -73,7 +73,7 @@ theorem ae_cascadeWeights_good (t : ℝ) : ∀ᵐ ω ∂P,
     hDlaw hu hlab t
   filter_upwards [h0, ht] with ω hω0 hωt
   obtain ⟨hs, hne⟩ := summable_tsum_ne_zero_cascadeWeight r σ t (u ω) (lab ω)
-    (fun α => ENNReal.ne_top_of_tsum_ne_top hω0.2.ne α) hωt.1 hωt.2
+    (fun α => ne_top_of_tsum_ne_top hω0.2.ne α) hωt.1 hωt.2
   exact ⟨fun α => mul_nonneg ENNReal.toReal_nonneg (Real.exp_pos _).le, hs, hne⟩
 
 include hDm hu hlab hgibbs in
@@ -243,8 +243,10 @@ theorem ghirlandaGuerra_Q (n : ℕ) (f : (Fin n → Fin n → Fin (r + 1)) → �
       gibbs (n + 1) 1 (fun P => ∑ o, c o * Ξ o P) ω := fun ω => by
     rw [hgibbs]
     simp_rw [one_mul]
-    refine (tsum_option_fin_eq (W := fun α => (cascadeBranchWeight (u ω) α).toReal *
-      Real.exp (∑ i : Fin r, σ i * leafLabel (lab ω) α i)) _).trans ?_
+    refine (tsum_option_fin_replica_eq n (fun α => (cascadeBranchWeight (u ω) α).toReal *
+      Real.exp (∑ i : Fin r, σ i * leafLabel (lab ω) α i) /
+        ∑' b, (cascadeBranchWeight (u ω) b).toReal *
+          Real.exp (∑ i : Fin r, σ i * leafLabel (lab ω) b i)) _).trans ?_
     refine tsum_congr fun τ => ?_
     congr 1
     simp only [hΞ, Fintype.sum_option, hc0, hc1, one_mul, finSuccEquivLast_symm_some,

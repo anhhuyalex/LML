@@ -91,8 +91,7 @@ private lemma exists_twoBlock_of_isFourTwoPartition
     rw [Finset.supIndep_iff_pairwiseDisjoint] at hsi
     exact hsi (hPparts ▸ hBmem) (hPparts ▸ hCmem) hBC
   have hunion : B ∪ C = Finset.univ := by
-    rw [← P.sup_parts, hPparts, Finset.sup_insert, Finset.sup_singleton, id_eq, id_eq,
-      Finset.sup_eq_union]
+    rw [← P.sup_parts, hPparts, Finset.sup_insert, Finset.sup_singleton, id_eq, id_eq]
   have hCeq : C = Finset.univ \ B := by
     ext x
     simp only [Finset.mem_sdiff, Finset.mem_univ, true_and]

@@ -76,10 +76,8 @@ theorem sk_cavity_fresh_pair_feedback_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ 
   intro β h q hfix hb N Esk V ep ν α
   let qhat := ∫ t : ℝ, Real.tanh (β * t * Real.sqrt q + h) ^ 4 ∂gaussianReal 0 1
   have hqhat : ∫ t : ℝ, Real.tanh (β * Real.sqrt q * t + h) ^ 4
-      ∂gaussianReal 0 1 = qhat := by
-    apply integral_congr_ae (ae_of_all _ fun t => ?_)
-    congr 2
-    ring
+      ∂gaussianReal 0 1 = qhat :=
+    (integral_tanh_pow_mul_z_sqrt_eq β q h 4).symm
   have hAB (j : J) (i : Bool × Bool) : A j i ≠ B j i :=
     flagged_pair_ne (a j) (b j) j (L j) (S j)
       (fun hL hS => ne_of_lt (hord j hL hS)) i

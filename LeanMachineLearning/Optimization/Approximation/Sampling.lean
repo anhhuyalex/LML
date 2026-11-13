@@ -242,7 +242,7 @@ private lemma integral_centered_norm_sq
     · rw [integral_sub]
       · rw [integral_const_mul]
         rw [MeasureTheory.integral_const]
-        all_goals simp
+        simp
       · exact h3
       · exact h4.const_mul 2
     · exact h3.sub (h4.const_mul 2)
@@ -1384,7 +1384,7 @@ lemma totalMass_eq_add (μ : SignedMeasure W) :
       + (μ.toJordanDecomposition.negPart Set.univ).toReal := by
   have h := μ.toJordanDecomposition.posPart_finite
   have h' := μ.toJordanDecomposition.negPart_finite
-  rw [totalMass, SignedMeasure.totalVariation, Measure.add_apply,
+  rw [totalMass, SignedMeasure.totalVariation, add_apply,
     ENNReal.toReal_add (measure_ne_top _ _) (measure_ne_top _ _)]
 
 lemma totalMass_nonneg (μ : SignedMeasure W) : 0 ≤ totalMass μ := ENNReal.toReal_nonneg
@@ -1438,7 +1438,7 @@ instance isProbabilityMeasure_jordanSample {μ : SignedMeasure W} [NeZero μ] :
   have h_neg := μ.toJordanDecomposition.negPart.map_apply h_meas_false
     (MeasurableSet.univ : MeasurableSet Set.univ)
   dsimp [jordanSample]
-  simp only [Measure.smul_apply, Measure.add_apply, smul_eq_mul]
+  simp only [smul_apply, add_apply, smul_eq_mul]
   rw [h_pos, h_neg]
   simp only [Set.preimage_univ]
   change (μ.totalVariation Set.univ)⁻¹ * (μ.totalVariation Set.univ) = 1

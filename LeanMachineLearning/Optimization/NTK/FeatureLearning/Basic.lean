@@ -174,7 +174,7 @@ theorem inner_tangentFeature_featureLearningNetwork (γ : ℝ) (hd : 0 < d) (hφ
   rw [← empiricalNTKMatrix_apply, empiricalNTKMatrix_featureLearningNetwork, Matrix.smul_apply,
     empiricalNTKMatrix_netFromParams_scaled_dataset_eq_neuron_sum φ n d m hd X _
       (fun _ _ => hφ.differentiableAt) α β]
-  simp only [packParams_weight_row, packParams_readout, smul_eq_mul]
+  simp only [packParams_weight_row, packParams_apply_idxA, smul_eq_mul]
 
 /-- Coordinates of the MSE gradient of the scaled network. -/
 private lemma gradient_mseLoss_featureLearningNetwork_apply (γ : ℝ) (hφ : Differentiable ℝ φ)

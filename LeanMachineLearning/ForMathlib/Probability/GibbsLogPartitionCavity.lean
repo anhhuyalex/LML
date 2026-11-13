@@ -101,38 +101,18 @@ theorem hasDerivAt_integral_log_partition_cavity_path {Ω : Type*} [MeasurableSp
   have hpt : ∀ ω, ∑ l : K ⊕ Ks, Sum.elim (fun k => s' k t * Z k ω) (fun j => c' j t) l *
         ((∫ a, Xall l a * Real.exp (D a + ∑ k, zp t ω k * Xall k a) ∂μ) /
           ∫ a, Real.exp (D a + ∑ k, zp t ω k * Xall k a) ∂μ) =
-      ∑ k, s' k t * Z k ω * R (X k) (zt ω) + ∑ j, c' j t * R (Xs j) (zt ω) := by
-    intro ω
-    rw [Fintype.sum_sum_type]
-    congr 1
-    · refine Finset.sum_congr rfl fun k _ => ?_
-      rw [hR]; rfl
-    · refine Finset.sum_congr rfl fun j _ => ?_
-      rw [hR]; rfl
-  have hintk : ∀ k, Integrable (fun ω => s' k t * Z k ω * R (X k) (zt ω)) P := by
-    intro k
-    refine ((hint k).const_mul (|s' k t| * B)).mono'
-      (((hZm k).const_mul _).mul (hRm (Sum.inl k))).aestronglyMeasurable
-      (ae_of_all _ fun ω => ?_)
-    rw [Real.norm_eq_abs, abs_mul, abs_mul]
-    calc |s' k t| * |Z k ω| * |R (X k) (zt ω)| ≤ |s' k t| * |Z k ω| * B :=
-          mul_le_mul_of_nonneg_left (hRb (Sum.inl k) _) (mul_nonneg (abs_nonneg _) (abs_nonneg _))
-      _ = |s' k t| * B * |Z k ω| := by ring
-  have hintj : ∀ j, Integrable (fun ω => c' j t * R (Xs j) (zt ω)) P := by
-    intro j
-    refine (integrable_const (|c' j t| * B)).mono'
-      ((hRm (Sum.inr j)).const_mul _).aestronglyMeasurable (ae_of_all _ fun ω => ?_)
-    rw [Real.norm_eq_abs, abs_mul]
-    exact mul_le_mul_of_nonneg_left (hRb (Sum.inr j) _) (abs_nonneg _)
+      ∑ l : K ⊕ Ks, Sum.elim (fun k => s' k t * Z k ω) (fun j => c' j t) l *
+        R (Xall l) (zt ω) := fun ω =>
+    Finset.sum_congr rfl fun l _ => by rw [hR]
   rw [integral_congr_ae (ae_of_all _ hpt),
-    integral_add (integrable_finsetSum _ fun k _ => hintk k)
-      (integrable_finsetSum _ fun j _ => hintj j),
-    integral_finsetSum _ fun k _ => hintk k, integral_finsetSum _ fun j _ => hintj j]
+    integral_sum_elim_mul_eq hZm hint (fun k => s' k t) (fun j => c' j t) hRm
+      (fun l ω => hRb l (zt ω))]
   congr 1
   · refine Finset.sum_congr rfl fun k _ =>
       integral_mul_cavity_path_ibp (μ := μ) R hR hD hX hXs hX hB hB hDb hXb hXsb
         hXb hZ hmean t hsz k
   · refine Finset.sum_congr rfl fun j _ => ?_
     rw [integral_const_mul]
+    rfl
 
 end MeasureTheory

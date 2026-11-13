@@ -294,7 +294,7 @@ theorem indepFun_weight_bias_layerGaussianInit (p : InitHyperparams) (ι : Type 
 
 -- Measurability of one flattened coordinate evaluation: `layerCoordinate` is a case split
 -- between the weight coordinate `q.1 ji.1 ji.2` and the bias coordinate `q.2 j`.
-private lemma measurable_layerCoordinate {ι : Type u} {κ : Type v}
+lemma measurable_layerCoordinate {ι : Type u} {κ : Type v}
     (c : LayerCoordinate ι κ) :
     Measurable (fun q : LayerParams ι κ => layerCoordinate c q) := by
   cases c with

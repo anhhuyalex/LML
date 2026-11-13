@@ -309,25 +309,11 @@ theorem allOnes_hadamard {m n α : Type*} [MulOneClass α] (A : Matrix m n α) :
     Matrix.of (fun _ _ => 1) ⊙ A = A :=
   Matrix.of_one_hadamard A
 
-/-- The unscaled Gram matrix `M * Mᵀ` formed by vector dot products is positive semidefinite. -/
-theorem gram_posSemidef {m n : Type*} [Finite m] [Fintype n] (M : Matrix m n ℝ) :
-    (Matrix.of fun α β => M α ⬝ᵥ M β).PosSemidef := by
-  have h_eq : (Matrix.of fun α β => M α ⬝ᵥ M β) = M * Mᵀ := by
-    ext α β
-    simp [Matrix.mul_apply, dotProduct]
-  rw [h_eq]
-  exact mul_transpose_posSemidef M
-
 /-- The all-ones matrix `1_{m × m}` is positive semidefinite. -/
 theorem posSemidef_allOnes {m : Type*} [Finite m] :
     (Matrix.of fun _ _ : m => (1 : ℝ)).PosSemidef := by
-  have h_eq : (Matrix.of fun _ _ : m => (1 : ℝ)) =
-      Matrix.of fun α β => (fun (_ : m) (_ : Unit) => (1 : ℝ)) α ⬝ᵥ
-                           (fun (_ : m) (_ : Unit) => (1 : ℝ)) β := by
-    ext α β
-    simp [dotProduct]
-  rw [h_eq]
-  exact gram_posSemidef (fun _ _ => 1)
+  simpa [dotProduct] using
+    Matrix.posSemidef_of_const_mul_dotProduct (fun (_ : m) (_ : Unit) => (1 : ℝ)) zero_le_one
 
 
 /-- **Kronecker factorization** of a double sum over a product index set whose summand splits as

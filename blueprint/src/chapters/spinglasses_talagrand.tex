@@ -1993,9 +1993,7 @@ Formalized in \texttt{SpinGlasses/Gaussian/GaussianCovarianceInterpolation.lean}
 
 \begin{theorem}[A kind of central limit theorem for a finite Gibbs state]\label{thm:sg-tal:random-projection}
   \lean{SpinGlasses.abs_integral_block_sub_le,
-        SpinGlasses.integral_pi_fin_two_gaussianReal,
-        SpinGlasses.integral_pi_fin_two_fst,
-        SpinGlasses.integral_pi_fin_two_mul,
+        MeasureTheory.integral_pi_fin_two_mul_fun,
         SpinGlasses.continuous_integral_comp_add_mul,
         MeasureTheory.integral_sq_sub,
         SpinGlasses.integral_sq_sub_le,
@@ -4122,7 +4120,7 @@ the moment generating function with $b=\pm mc$.
 \label{lem:sg-tal:projpath-bound}
   \uses{lem:sg-tal:projpath-mgf}
   \lean{SpinGlasses.abs_integral_derivProd_projPath_le,
-        SpinGlasses.abs_dotProduct_le_of_self_le,
+        abs_dotProduct_le_of_self_le,
         SpinGlasses.abs_projGram_le,
         SpinGlasses.pairCount_le,
         SpinGlasses.exists_abs_projSum_le_of_bound}

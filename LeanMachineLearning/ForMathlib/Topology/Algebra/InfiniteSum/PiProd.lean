@@ -395,3 +395,23 @@ theorem abs_tsum_prod_pi_mul_eval_le
     _ ≤ _ := hle
     _ = M * ∑' σ : J → α, (∏ j, w (σ j)) * |χ (σ j₀)| := tsum_mul_left
     _ = _ := by rw [hbase]
+
+/-- Reindex a replica series from `Option (Fin n)` to `Fin (n + 1)`: the fresh replica `none`
+occupies the last coordinate. -/
+theorem tsum_option_fin_replica_eq {α : Type*} (n : ℕ) (w : α → ℝ)
+    (Φ : (Option (Fin n) → α) → ℝ) :
+    (∑' τ : Option (Fin n) → α, (∏ o, w (τ o)) * Φ τ) =
+      ∑' σ : Fin (n + 1) → α, (∏ j, w (σ j)) * Φ (σ ∘ finSuccEquivLast.symm) := by
+  let e : (Option (Fin n) → α) ≃ (Fin (n + 1) → α) :=
+    Equiv.arrowCongr finSuccEquivLast.symm (Equiv.refl α)
+  calc
+    _ = ∑' σ : Fin (n + 1) → α, (∏ o, w ((e.symm σ) o)) * Φ (e.symm σ) :=
+      (Equiv.tsum_eq e.symm (fun τ => (∏ o, w (τ o)) * Φ τ)).symm
+    _ = _ := by
+      apply tsum_congr
+      intro σ
+      have hs : e.symm σ = σ ∘ finSuccEquivLast.symm := rfl
+      rw [hs]
+      congr 1
+      exact Fintype.prod_equiv finSuccEquivLast.symm
+        (fun o => w (σ (finSuccEquivLast.symm o))) (fun j => w (σ j)) (fun _ => rfl)

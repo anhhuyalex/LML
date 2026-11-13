@@ -10,6 +10,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedBoun
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiExp
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.PiUpdate
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Hyperbolic
+public import LeanMachineLearning.ForMathlib.LinearAlgebra.DotProductBound
 
 /-!
 # Interpolation between a Gaussian projection and independent Gaussians
@@ -564,15 +565,6 @@ theorem ExpTame.measurable_projSum (hV : ExpTame V) (v s : ℝ) (r : ℕ) :
       (ν := (Measure.pi fun _ : Fin m => gaussianReal 0 1).prod
         (Measure.pi fun _ : Fin N => gaussianReal 0 1))).measurable
 
-
-theorem abs_dotProduct_le_of_self_le {N : ℕ} {B : ℝ} (x y : Fin N → ℝ) (hx : x ⬝ᵥ x ≤ B)
-    (hy : y ⬝ᵥ y ≤ B) : |x ⬝ᵥ y| ≤ B := by
-  have h1 : 0 ≤ (x + y) ⬝ᵥ (x + y) := dotProduct_self_star_nonneg _
-  have h2 : 0 ≤ (x - y) ⬝ᵥ (x - y) := dotProduct_self_star_nonneg _
-  simp only [add_dotProduct, dotProduct_add, sub_dotProduct, dotProduct_sub,
-    dotProduct_comm y x] at h1 h2
-  rw [abs_le]
-  constructor <;> linarith
 
 theorem abs_projGram_le {N : ℕ} {B : ℝ} (u : Fin m → Fin N → ℝ) (v : ℝ)
     (hu : ∀ l, u l ⬝ᵥ u l ≤ B) (hv : v ^ 2 ≤ B) (hB : 0 ≤ B) (l k : Fin m) :

@@ -76,7 +76,7 @@ private theorem shellKernel_sum_apply (hC : ∀ k, MeasurableSet (C k))
   · simp only [hM, ite_true]
     ext s hs
     rw [Kernel.sum_apply' _ _ hs,
-      ENNReal.tsum_prod (f := fun k j => shellKernel hC k j M s), ← iUnion_disjointed (f := C),
+      tsum_prod (f := fun k j => shellKernel hC k j M s), ← iUnion_disjointed (f := C),
       Measure.restrict_iUnion (disjoint_disjointed C) (MeasurableSet.disjointed hC),
       Measure.sum_apply _ hs]
     refine tsum_congr fun k => ?_

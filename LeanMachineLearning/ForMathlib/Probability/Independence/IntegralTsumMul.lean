@@ -56,7 +56,7 @@ theorem integrable_tsum_of_tsum_eLpNorm_ne_top {p : ℝ≥0∞} (hp : 1 ≤ p) {
     (hf : ∀ n, AEStronglyMeasurable (f n) μ) (h : ∑' n, eLpNorm (f n) p μ ≠ ∞) :
     Integrable (fun ω => ∑' n, f n ω) μ := by
   have h1 : ∑' n, eLpNorm (f n) 1 μ ≠ ∞ := ne_top_of_le_ne_top h
-    (ENNReal.tsum_le_tsum fun n => eLpNorm_le_eLpNorm_of_exponent_le hp)
+    (tsum_le_tsum fun n => eLpNorm_le_eLpNorm_of_exponent_le hp)
   refine ⟨(AEMeasurable.tsum fun n => (hf n).aemeasurable).aestronglyMeasurable, ?_⟩
   calc ∫⁻ ω, ‖∑' n, f n ω‖ₑ ∂μ ≤ ∫⁻ ω, ∑' n, ‖f n ω‖ₑ ∂μ :=
         lintegral_mono fun ω => enorm_tsum_le_tsum_enorm
@@ -106,8 +106,8 @@ theorem integral_tsum_mul_tsum_of_indepFun {X Y : κ → Ω → ℝ} (hX : ∀ p
           (hX z.1).aestronglyMeasurable (hY z.2).aestronglyMeasurable
           (Filter.Eventually.of_forall fun _ => by simp [nnnorm_mul])
           (hpqr := ⟨by simp [ENNReal.inv_two_add_inv_two]⟩)
-    refine ne_top_of_le_ne_top ?_ (ENNReal.tsum_le_tsum h1)
-    rw [ENNReal.tsum_prod (f := fun a b => eLpNorm (X a) 2 μ * eLpNorm (Y b) 2 μ)]
+    refine ne_top_of_le_ne_top ?_ (tsum_le_tsum h1)
+    rw [tsum_prod (f := fun a b => eLpNorm (X a) 2 μ * eLpNorm (Y b) 2 μ)]
     simp only [ENNReal.tsum_mul_left, ENNReal.tsum_mul_right]
     exact ENNReal.mul_ne_top hXs hYs
   have hoff : ∀ z : κ × κ, z.1 ≠ z.2 → ∫ ω, X z.1 ω * Y z.2 ω ∂μ = 0 := fun z hz => by

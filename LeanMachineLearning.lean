@@ -15,6 +15,8 @@ public import LeanMachineLearning.ForMathlib.Analysis.Calculus.DerivZeroOfEventu
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.Gradient.Basic
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.GronwallBackward
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.IntervalDerivative
+public import LeanMachineLearning.ForMathlib.Analysis.Calculus.IntervalIntegralDeriv
+public import LeanMachineLearning.ForMathlib.Analysis.Calculus.LinearODEScalar
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.TaylorCoefficient
 public import LeanMachineLearning.ForMathlib.Analysis.Cesaro
 public import LeanMachineLearning.ForMathlib.Analysis.Complex.Exponential
@@ -42,6 +44,7 @@ public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.TrigSquar
 public import LeanMachineLearning.ForMathlib.Analysis.Subadditive
 public import LeanMachineLearning.ForMathlib.Basic.Unique
 public import LeanMachineLearning.ForMathlib.Combinatorics.DescFactorial
+public import LeanMachineLearning.ForMathlib.Data.Finset.ProdSubtype
 public import LeanMachineLearning.ForMathlib.Data.Finset.SumBound
 public import LeanMachineLearning.ForMathlib.Data.Fintype.DisjointTransversal
 public import LeanMachineLearning.ForMathlib.Data.Nat.Recurrence
@@ -52,6 +55,7 @@ public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.C
 public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.DataProcessing
 public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.MapSequence
 public import LeanMachineLearning.ForMathlib.InformationTheory.KullbackLeibler.Restrict
+public import LeanMachineLearning.ForMathlib.LinearAlgebra.DotProductBound
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.DotProductCentering
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.FiniteProductBound
 public import LeanMachineLearning.ForMathlib.LinearAlgebra.Matrix.CholeskyInfinite
@@ -203,6 +207,7 @@ public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianVector
 public import LeanMachineLearning.ForMathlib.Probability.Moments.IidSumExpansion
 public import LeanMachineLearning.ForMathlib.Probability.Moments.IidSumMoments
+public import LeanMachineLearning.ForMathlib.Probability.Moments.PiSumChebyshev
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SecondMoment
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SubExponential
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SubGaussian

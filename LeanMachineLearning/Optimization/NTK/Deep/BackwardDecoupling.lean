@@ -499,7 +499,7 @@ lemma netGram_apply {n : ℕ} (θ : DeepMLPParams d n0 n) (k : Fin d) (a b : Fin
     netGram φ X θ k a b = (n : ℝ)⁻¹ * ∑ j : Fin n,
       φ (deepMLPPreactivation d n0 n m φ X θ k a j) *
         φ (deepMLPPreactivation d n0 n m φ X θ k b j) := by
-  simp [netGram, netFeat, Matrix.mul_apply, Matrix.smul_apply, Matrix.transpose_apply]
+  simp [netGram, netFeat, Matrix.mul_apply, Matrix.smul_apply]
 
 include A in
 /-- `Σ̂_k → Σ^{k+1}` entrywise. -/

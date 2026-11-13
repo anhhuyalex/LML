@@ -152,7 +152,7 @@ theorem ae_cascadeRoot_active_pos
     have hle := Measure.le_iff'.1
       (Measure.le_sum (fun n => (rate n : ENNReal) • nu n) k) (Set.Iic 0)
     rw [← hmu, zetaPoissonMeasure_Iic_zero] at hle
-    rw [Measure.smul_apply, smul_eq_mul, nonpos_iff_eq_zero, mul_eq_zero] at hle
+    rw [smul_apply, smul_eq_mul, nonpos_iff_eq_zero, mul_eq_zero] at hle
     have hz := hle.resolve_left (by simpa using hk)
     have heq : {x : ℝ | x ∉ Set.Ioi (0 : ℝ)} = Set.Iic 0 := by
       ext x

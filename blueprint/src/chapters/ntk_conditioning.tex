@@ -88,7 +88,7 @@ Let $u,v\in\mathbb R^p$, $A\in\mathbb R^{p\times p}$, $W\in\mathbb R^{n\times p}
 
 \begin{lemma}[Gram matrices and the Hadamard unit]\label{lem:ntkcond:gram}
   \lean{NTK.scaled_gram_transpose, NTK.const_matrix_transpose,
-        NTK.mul_transpose_posSemidef, NTK.gram_posSemidef, Matrix.posSemidef_of_const_mul_dotProduct,
+        NTK.mul_transpose_posSemidef, Matrix.posSemidef_of_const_mul_dotProduct,
         NTK.posSemidef_allOnes, NTK.hadamard_allOnes, NTK.allOnes_hadamard}
   \leanok
 Let $M\in\mathbb R^{m\times n}$ have rows $M_\alpha$, and let $\mathbf 1_{m\times m}$ be the all-ones matrix. Then the matrices $(M_\alpha\cdot M_\beta)_{\alpha\beta}=MM^\top$, $c\,MM^\top$ ($c\ge0$) and $\mathbf 1_{m\times m}$ are symmetric and positive semidefinite, and $A\odot\mathbf 1_{m\times m}=\mathbf 1_{m\times m}\odot A=A$ for every matrix $A$.

@@ -81,7 +81,7 @@ lemma tsum_eLpNorm_coord_ne_top {a : ∀ p, κ p → ℝ}
         have hnn : 0 ≤ a p ⬝ᵥ a p := Finset.sum_nonneg fun i _ => mul_self_nonneg (a p i)
         rw [Real.sq_sqrt hnn]
         simpa [sq] using (integral_coord_mul p (a p) (a p)).le)
-  refine ne_top_of_le_ne_top ?_ (ENNReal.tsum_le_tsum hle)
+  refine ne_top_of_le_ne_top ?_ (tsum_le_tsum hle)
   rw [← ENNReal.ofReal_tsum_of_nonneg (fun _ => Real.sqrt_nonneg _) ha]
   exact ENNReal.ofReal_ne_top
 

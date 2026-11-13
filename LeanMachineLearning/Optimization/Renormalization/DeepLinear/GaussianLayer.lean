@@ -202,31 +202,42 @@ private lemma normalizedEnergy_comp_smul_equiv (c : ℝ) {ι κ : Type*} [Fintyp
   rw [hsum, hcard]
   ring
 
-/-- The law of one bias-free layer's output is a scaled, relabelled standard Gaussian vector.
+/-- Scaling a centered real Gaussian by `Real.sqrt (v : ℝ)` produces variance `v`. -/
+lemma gaussianReal_scaling (v : ℝ≥0) :
+    gaussianReal 0 v = (gaussianReal 0 1).map (fun y : ℝ => Real.sqrt (v : ℝ) * y) := by
+  have h := gaussianReal_map_const_mul (μ := (0 : ℝ)) (v := (1 : ℝ≥0)) (c := Real.sqrt (v : ℝ))
+  calc
+    gaussianReal 0 v = gaussianReal (Real.sqrt (v : ℝ) * 0)
+        (⟨(Real.sqrt (v : ℝ)) ^ 2, sq_nonneg (Real.sqrt (v : ℝ))⟩ * (1 : ℝ≥0)) := by
+          congr 1
+          · ring
+          · apply Subtype.ext
+            change (v : ℝ) = (Real.sqrt (v : ℝ) ^ 2) * 1
+            calc
+              (v : ℝ) = (Real.sqrt (v : ℝ)) ^ 2 := (Real.sq_sqrt v.property).symm
+              _ = (Real.sqrt (v : ℝ)) ^ 2 * 1 := by ring
+    _ = (gaussianReal 0 1).map (fun y : ℝ => Real.sqrt (v : ℝ) * y) := h.symm
 
-This is the probabilistic assembly step of
-`integral_normalizedEnergy_pow_oneLayerOutputLaw_eq_scaled_stdGaussian`.  Specialize
-`map_batchPreactivation` to a singleton batch: the joint law of the Euclidean-embedded outputs is
-a product over `κ` of centered multivariate Gaussians on `EuclideanSpace ℝ PUnit` whose single
-entry is `(Cw : ℝ) * normalizedEnergy x`.  Projecting every coordinate back with
-`ProbabilityTheory.measurePreserving_eval_multivariateGaussian`, identifying the scaled Gaussian
-with the image of `gaussianReal 0 1` under multiplication by the square root of that variance
-(`ProbabilityTheory.gaussianReal_map_const_mul`), and relabelling `κ` to `Fin (Fintype.card κ)`
-(`MeasureTheory.measurePreserving_piCongrLeft`) yields the displayed pushforward of the
-standard product Gaussian on `Fin (Fintype.card κ) → ℝ`. -/
-private lemma oneLayerOutputLaw_eq_map_stdGaussian
+/-- The law of one freshly initialized bias-free layer is a product of independent scalar
+Gaussians with variance `Cw * normalizedEnergy x`.
+
+Informal proof: specialize `map_batchPreactivation` to a singleton batch.  The singleton Gram
+identity `NeuralNetwork.normalizedGram_singleton` identifies every output coordinate with a
+centered Gaussian of variance `s = (Cw : ℝ) * normalizedEnergy x`, and different output
+coordinates are independent because `map_batchPreactivation` gives a product measure over the
+output type.  Projecting the singleton Euclidean coordinates back to `ℝ` via `PUnit.unit`
+(`measurePreserving_eval_multivariateGaussian`) yields `gaussianReal 0 s` per coordinate.  Source:
+`docs/Renormalization.md`, equation `eq:deep-linear-gaussian-first-layer`.
+-/
+lemma oneLayerOutputLaw_eq_pi_gaussianReal
     {ι : Type uI} {κ : Type uJ} [Fintype ι] [Fintype κ]
     (Cw : ℝ≥0) (x : ι → ℝ) :
     oneLayerOutputLaw (ι := ι) (κ := κ) Cw x =
-      Measure.map
-        (fun g : Fin (Fintype.card κ) → ℝ => fun j : κ =>
-          Real.sqrt ((Cw : ℝ) * NeuralNetwork.normalizedEnergy x) * g (Fintype.equivFin κ j))
-        ((Measure.pi fun _ : Fin (Fintype.card κ) => gaussianReal 0 1)) := by
+      Measure.pi (fun _ : κ => gaussianReal 0 (Cw * NeuralNetwork.normalizedEnergyNNReal x)) := by
   let s : ℝ := (Cw : ℝ) * NeuralNetwork.normalizedEnergy x
   have hs : 0 ≤ s := by
     dsimp [s]
     exact mul_nonneg Cw.property (NeuralNetwork.normalizedEnergy_nonneg x)
-  let e : κ ≃ Fin (Fintype.card κ) := Fintype.equivFin κ
   let evalV : EuclideanSpace ℝ PUnit.{1} → ℝ := fun x => x PUnit.unit
   let ν : Measure (EuclideanSpace ℝ PUnit.{1}) :=
     multivariateGaussian 0 (fun _ _ : PUnit.{1} => s)
@@ -359,8 +370,8 @@ private lemma oneLayerOutputLaw_eq_map_stdGaussian
               _ = ν.map evalV := by
                     rw [(@measurePreserving_eval κ (fun _ : κ => EuclideanSpace ℝ PUnit.{1}) _ _
                       (fun _ : κ => ν) (fun _ => hprob) j).map_eq]
-  -- Step 4: each projected coordinate is the image of `gaussianReal 0 1` under `y ↦ √s * y`.
-  have hν_proj : ν.map evalV = (gaussianReal 0 1).map (fun y : ℝ => Real.sqrt s * y) := by
+  -- Step 4: each projected coordinate has law `gaussianReal 0 s`.
+  have hν_proj : ν.map evalV = gaussianReal 0 ⟨s, hs⟩ := by
     let S₀ : Matrix PUnit.{1} PUnit.{1} ℝ := fun _ _ => s
     have hS₀ : S₀.PosSemidef := by
       have hdecomp : S₀ = Matrix.vecMulVec (fun _ : PUnit => Real.sqrt s)
@@ -382,25 +393,52 @@ private lemma oneLayerOutputLaw_eq_map_stdGaussian
       congr 1
       · dsimp [S₀]
         exact Real.toNNReal_of_nonneg hs
-    have hscale : (gaussianReal 0 1).map (fun y : ℝ => Real.sqrt s * y) =
-        gaussianReal 0 ⟨s, hs⟩ := by
-      have h := gaussianReal_map_const_mul (μ := (0 : ℝ)) (v := (1 : ℝ≥0)) (c := Real.sqrt s)
-      calc
-        (gaussianReal 0 1).map (fun y : ℝ => Real.sqrt s * y)
-            = gaussianReal (Real.sqrt s * 0)
-                (⟨(Real.sqrt s) ^ 2, sq_nonneg (Real.sqrt s)⟩ * (1 : ℝ≥0)) := h
-        _ = gaussianReal 0 ⟨s, hs⟩ := by
-              congr 1
-              · ring
-              · apply Subtype.ext
-                change (Real.sqrt s ^ 2) * 1 = s
-                rw [mul_one]
-                exact Real.sq_sqrt hs
     calc
       ν.map evalV = (multivariateGaussian 0 S₀).map evalV := rfl
       _ = gaussianReal 0 ⟨s, hs⟩ := by
             rw [hstep1, hstep2]
-      _ = (gaussianReal 0 1).map (fun y : ℝ => Real.sqrt s * y) := hscale.symm
+  have hν : ν.map evalV = gaussianReal 0 (Cw * NeuralNetwork.normalizedEnergyNNReal x) := by
+    have hNN : (⟨s, hs⟩ : ℝ≥0) = Cw * NeuralNetwork.normalizedEnergyNNReal x := by
+      apply Subtype.ext
+      change s = (Cw : ℝ) * NeuralNetwork.normalizedEnergy x
+      dsimp [s]
+    rw [hν_proj, hNN]
+  calc
+    oneLayerOutputLaw (ι := ι) (κ := κ) Cw x
+        = Measure.map (fun v : κ → EuclideanSpace ℝ PUnit => fun j : κ => (v j) PUnit.unit)
+            (Measure.pi (fun _ : κ => ν)) := hLaw
+    _ = Measure.pi (fun _ : κ => ν.map evalV) := hProj
+    _ = Measure.pi (fun _ : κ =>
+          gaussianReal 0 (Cw * NeuralNetwork.normalizedEnergyNNReal x)) := by
+          congr 1
+          funext j
+          exact hν
+
+/-- The law of one bias-free layer's output is a scaled, relabelled standard Gaussian vector.
+
+This is the probabilistic assembly step of
+`integral_normalizedEnergy_pow_oneLayerOutputLaw_eq_scaled_stdGaussian`.  Specialize
+`map_batchPreactivation` to a singleton batch: the joint law of the Euclidean-embedded outputs is
+a product over `κ` of centered multivariate Gaussians on `EuclideanSpace ℝ PUnit` whose single
+entry is `(Cw : ℝ) * normalizedEnergy x`.  Projecting every coordinate back with
+`ProbabilityTheory.measurePreserving_eval_multivariateGaussian`, identifying the scaled Gaussian
+with the image of `gaussianReal 0 1` under multiplication by the square root of that variance
+(`ProbabilityTheory.gaussianReal_map_const_mul`), and relabelling `κ` to `Fin (Fintype.card κ)`
+(`MeasureTheory.measurePreserving_piCongrLeft`) yields the displayed pushforward of the
+standard product Gaussian on `Fin (Fintype.card κ) → ℝ`. -/
+private lemma oneLayerOutputLaw_eq_map_stdGaussian
+    {ι : Type uI} {κ : Type uJ} [Fintype ι] [Fintype κ]
+    (Cw : ℝ≥0) (x : ι → ℝ) :
+    oneLayerOutputLaw (ι := ι) (κ := κ) Cw x =
+      Measure.map
+        (fun g : Fin (Fintype.card κ) → ℝ => fun j : κ =>
+          Real.sqrt ((Cw : ℝ) * NeuralNetwork.normalizedEnergy x) * g (Fintype.equivFin κ j))
+        ((Measure.pi fun _ : Fin (Fintype.card κ) => gaussianReal 0 1)) := by
+  let s : ℝ := (Cw : ℝ) * NeuralNetwork.normalizedEnergy x
+  have hs : 0 ≤ s := by
+    dsimp [s]
+    exact mul_nonneg Cw.property (NeuralNetwork.normalizedEnergy_nonneg x)
+  let e : κ ≃ Fin (Fintype.card κ) := Fintype.equivFin κ
   -- Step 5: relabel `κ` to `Fin (Fintype.card κ)` and pull the per-coordinate scale out.
   have hRelabel_scale :
       Measure.pi (fun _ : κ => (gaussianReal 0 1).map (fun y : ℝ => Real.sqrt s * y)) =
@@ -475,22 +513,10 @@ private lemma oneLayerOutputLaw_eq_map_stdGaussian
               (by fun_prop : Measurable fun g : Fin (Fintype.card κ) → ℝ =>
                 fun i : Fin (Fintype.card κ) => Real.sqrt s * g i)]
             rfl
-  calc
-    oneLayerOutputLaw (ι := ι) (κ := κ) Cw x
-        = Measure.map (fun v : κ → EuclideanSpace ℝ PUnit => fun j : κ => (v j) PUnit.unit)
-            (Measure.pi (fun _ : κ => ν)) := hLaw
-    _ = Measure.pi (fun _ : κ => ν.map evalV) := hProj
-    _ = Measure.pi (fun _ : κ => (gaussianReal 0 1).map (fun y : ℝ => Real.sqrt s * y)) := by
-          congr 1
-          funext j
-          exact hν_proj
-    _ = (Measure.pi (fun _ : Fin (Fintype.card κ) => gaussianReal 0 1)).map
-          (fun g : Fin (Fintype.card κ) → ℝ => fun j : κ => Real.sqrt s * g (e j)) := hRelabel_scale
-    _ = Measure.map
-          (fun g : Fin (Fintype.card κ) → ℝ => fun j : κ =>
-            Real.sqrt ((Cw : ℝ) * NeuralNetwork.normalizedEnergy x) * g (Fintype.equivFin κ j))
-          ((Measure.pi fun _ : Fin (Fintype.card κ) => gaussianReal 0 1)) := by
-          dsimp [s, e]
+  rw [oneLayerOutputLaw_eq_pi_gaussianReal, gaussianReal_scaling]
+  have hc : (((Cw * NeuralNetwork.normalizedEnergyNNReal x : ℝ≥0) : ℝ)) = s := rfl
+  rw [hc]
+  exact hRelabel_scale
 
 /-- Transport-and-scaling form of the one-layer normalized-energy moment calculation.
 

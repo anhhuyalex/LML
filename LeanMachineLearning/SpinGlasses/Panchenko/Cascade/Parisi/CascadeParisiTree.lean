@@ -48,7 +48,7 @@ theorem cascadeMarkedSum_succ (r : ℕ) (X : (Fin (r + 1) → Ξ) → ℝ)
   unfold cascadeMarkedSum
   rw [← (Fin.consEquiv (fun _ : Fin (r + 1) => ℕ)).tsum_eq]
   change (∑' c : ℕ × (Fin r → ℕ), _) = _
-  rw [ENNReal.tsum_prod']
+  rw [tsum_prod']
   refine tsum_congr fun n => ?_
   rw [← ENNReal.tsum_mul_left]
   refine tsum_congr fun β => ?_

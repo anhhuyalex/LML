@@ -37,7 +37,7 @@ theorem rpow_sum_le_sum_rpow {ι : Type*} (s : Finset ι) (f : ι → ℝ≥0∞
 `(∑' i, f i) ^ p ≤ ∑' i, f i ^ p`. -/
 theorem rpow_tsum_le_tsum_rpow {ι : Type*} (f : ι → ℝ≥0∞) {p : ℝ}
     (hp0 : 0 < p) (hp1 : p ≤ 1) : (∑' i, f i) ^ p ≤ ∑' i, f i ^ p := by
-  rw [ENNReal.tsum_eq_iSup_sum, ENNReal.tsum_eq_iSup_sum]
+  rw [tsum_eq_iSup_sum, tsum_eq_iSup_sum]
   have hmono : Monotone fun x : ℝ≥0∞ => x ^ p := fun a b hab => ENNReal.rpow_le_rpow hab hp0.le
   rw [hmono.map_iSup_of_continuousAt (ENNReal.continuous_rpow_const (y := p)).continuousAt
     (ENNReal.zero_rpow_of_pos hp0)]

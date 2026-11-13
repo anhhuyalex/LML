@@ -118,12 +118,6 @@ section DeleteColumn
 
 variable {m n : Type*} [Fintype m] [Fintype n] [DecidableEq n]
 
-private lemma sum_eq_apply_add_sum_ne (f : n → ℝ) (j : n) :
-    ∑ i, f i = f j + ∑ i : {k // k ≠ j}, f i := by
-  rw [← Finset.add_sum_erase _ _ (Finset.mem_univ j)]
-  congr 1
-  exact Finset.sum_subtype _ (by simp) f
-
 /-- Extension by zero of a vector indexed by `{k // k ≠ j}` to a vector indexed by `n`. -/
 private def extendNe (j : n) (v : {k // k ≠ j} → ℝ) : n → ℝ :=
   fun i => if h : i = j then 0 else v ⟨i, h⟩
@@ -133,7 +127,7 @@ private lemma mulVec_extendNe (Z : Matrix m n ℝ) (j : n) (v : {k // k ≠ j} �
     Z *ᵥ extendNe j v = (Z.submatrix id (Subtype.val : {k // k ≠ j} → n)) *ᵥ v := by
   ext a
   simp only [mulVec, dotProduct, submatrix_apply, id]
-  rw [sum_eq_apply_add_sum_ne _ j]
+  rw [Fintype.sum_eq_add_sum_subtype_ne _ j]
   have h0 : extendNe j v j = 0 := by simp [extendNe]
   have h1 : ∀ x : {k // k ≠ j}, extendNe j v x = v x := fun x => by simp [extendNe, x.2]
   simp only [h0, h1, mul_zero, zero_add]
@@ -237,7 +231,7 @@ theorem trace_inv_gram_mul_self (Z : Matrix m n ℝ) (hZ : IsUnit (Zᵀ * Z).det
   simp only [trace, diag_apply, pow_two, Matrix.mul_apply]
   refine Finset.sum_congr rfl fun j _ => ?_
   simp only [hcol _ j, ← sq]
-  rw [sum_eq_apply_add_sum_ne _ j]
+  rw [Fintype.sum_eq_add_sum_subtype_ne _ j]
   have hne : ∀ i : {k // k ≠ j}, (Zᵀ * Z)⁻¹ i j ^ 2 = (Zᵀ * Z)⁻¹ j j ^ 2 *
       (((((Z.submatrix id (Subtype.val : {k // k ≠ j} → n))ᵀ *
         (Z.submatrix id (Subtype.val : {k // k ≠ j} → n)))⁻¹ *

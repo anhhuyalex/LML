@@ -694,18 +694,15 @@ lemma sign_preserved_outside_badSet
 /-- The ReLU activation. Bundled here for convenience. -/
 noncomputable def relu : ℝ → ℝ := fun z => max z 0
 
-/-- The subgradient / derivative of ReLU (a.e. equal to the indicator): `σ'(z) = 1[z ≥ 0]`. -/
-noncomputable def reluDeriv : ℝ → ℝ := fun z => if 0 ≤ z then 1 else 0
-
 /-- A neuron outside the bad set contributes no linearization error. -/
 lemma relu_error_eq_zero_outside_badSet
     {d m : ℕ} (a : Fin m → ℝ) (x : Fin d → ℝ) (W W₀ : Fin m → Fin d → ℝ)
     (τ : ℝ) (hτ : 0 < τ)
     (j : Fin m) (hj : j ∉ badSet τ τ x W W₀) :
     a j * relu (∑ k, W j k * x k) -
-    a j * reluDeriv (∑ k, W₀ j k * x k) * (∑ k, W j k * x k) = 0 := by
+    a j * reluIndicator (∑ k, W₀ j k * x k) * (∑ k, W j k * x k) = 0 := by
   have h_sign := sign_preserved_outside_badSet τ hτ x W W₀ j hj
-  dsimp [relu, reluDeriv]
+  dsimp [relu, reluIndicator]
   rw [mul_assoc, ← mul_sub]
   split_ifs with h_W₀
   · have h_W : 0 ≤ ∑ k, W j k * x k := h_sign.mpr h_W₀
@@ -717,8 +714,8 @@ lemma relu_error_eq_zero_outside_badSet
 
 /-- Per-neuron ReLU linearization error: `|relu a - relu'(b) · a| ≤ |a - b|`. -/
 lemma relu_linearization_error_le (a b : ℝ) :
-    |relu a - reluDeriv b * a| ≤ |a - b| := by
-  dsimp [relu, reluDeriv]
+    |relu a - reluIndicator b * a| ≤ |a - b| := by
+  dsimp [relu, reluIndicator]
   split_ifs with hb
   · rw [one_mul]
     rcases le_total 0 a with ha | ha
@@ -738,9 +735,9 @@ lemma relu_linearization_error_le (a b : ℝ) :
     · rw [max_eq_right ha, abs_zero]
       exact abs_nonneg _
 
-/-- `relu z = reluDeriv z * z`. -/
-lemma relu_eq_reluDeriv_mul (z : ℝ) : relu z = reluDeriv z * z := by
-  dsimp [relu, reluDeriv]
+/-- `relu z = reluIndicator z * z`. -/
+lemma relu_eq_reluDeriv_mul (z : ℝ) : relu z = reluIndicator z * z := by
+  dsimp [relu, reluIndicator]
   split_ifs with h
   · rw [max_eq_left h, one_mul]
   · push Not at h
@@ -750,17 +747,17 @@ lemma relu_eq_reluDeriv_mul (z : ℝ) : relu z = reluDeriv z * z := by
 linearization errors. -/
 lemma relu_eval_sub_linearization_eq
     {d m : ℕ} (a : Fin m → ℝ) (x : Fin d → ℝ) (W W₀ : Fin m → Fin d → ℝ) :
-    evalSingle relu W a x - linearization (σ := relu) (σ' := reluDeriv) a x W₀ W =
+    evalSingle relu W a x - linearization (σ := relu) (σ' := reluIndicator) a x W₀ W =
     (m : ℝ)⁻¹.sqrt * ∑ j : Fin m,
       (a j * relu (∑ k, W j k * x k) -
-       a j * reluDeriv (∑ k, W₀ j k * x k) * ∑ k, W j k * x k) := by
+       a j * reluIndicator (∑ k, W₀ j k * x k) * ∑ k, W j k * x k) := by
   simp only [evalSingle, linearization, dotProduct, Pi.sub_apply]
   rw [← mul_add, ← mul_sub]
   congr 1
   rw [← Finset.sum_add_distrib, ← Finset.sum_sub_distrib]
   apply Finset.sum_congr rfl
   intro j _
-  have h_relu : relu (∑ k, W₀ j k * x k) = reluDeriv (∑ k, W₀ j k * x k) * ∑ k, W₀ j k * x k :=
+  have h_relu : relu (∑ k, W₀ j k * x k) = reluIndicator (∑ k, W₀ j k * x k) * ∑ k, W₀ j k * x k :=
     relu_eq_reluDeriv_mul _
   rw [h_relu]
   have h_dist : ∑ k : Fin d, (W j k - W₀ j k) * x k = ∑ k, W j k * x k - ∑ k, W₀ j k * x k := by
@@ -775,11 +772,11 @@ lemma sum_eq_sum_badSet
     (τ : ℝ)
     (h_zero : ∀ j : Fin m, j ∉ badSet τ τ x W W₀ →
       a j * relu (∑ k, W j k * x k) -
-      a j * reluDeriv (∑ k, W₀ j k * x k) * ∑ k, W j k * x k = 0) :
+      a j * reluIndicator (∑ k, W₀ j k * x k) * ∑ k, W j k * x k = 0) :
     ∑ j : Fin m, (a j * relu (∑ k, W j k * x k) -
-      a j * reluDeriv (∑ k, W₀ j k * x k) * ∑ k, W j k * x k) =
+      a j * reluIndicator (∑ k, W₀ j k * x k) * ∑ k, W j k * x k) =
     ∑ j ∈ badSet τ τ x W W₀, (a j * relu (∑ k, W j k * x k) -
-      a j * reluDeriv (∑ k, W₀ j k * x k) * ∑ k, W j k * x k) := by
+      a j * reluIndicator (∑ k, W₀ j k * x k) * ∑ k, W j k * x k) := by
   symm
   apply Finset.sum_subset
   · exact Finset.subset_univ _
@@ -791,19 +788,19 @@ lemma relu_error_sum_le
     {d m : ℕ} (a : Fin m → ℝ) (ha : ∀ j, |a j| ≤ 1) (x : Fin d → ℝ) (W W₀ : Fin m → Fin d → ℝ)
     (S : Finset (Fin m)) :
     |∑ j ∈ S, (a j * relu (∑ k, W j k * x k) -
-      a j * reluDeriv (∑ k, W₀ j k * x k) * ∑ k, W j k * x k)| ≤
+      a j * reluIndicator (∑ k, W₀ j k * x k) * ∑ k, W j k * x k)| ≤
     ∑ j ∈ S, |∑ k, (W j k - W₀ j k) * x k| := by
   calc |∑ j ∈ S, (a j * relu (∑ k, W j k * x k) -
-        a j * reluDeriv (∑ k, W₀ j k * x k) * ∑ k, W j k * x k)|
+        a j * reluIndicator (∑ k, W₀ j k * x k) * ∑ k, W j k * x k)|
     _ ≤ ∑ j ∈ S, |a j * relu (∑ k, W j k * x k) -
-          a j * reluDeriv (∑ k, W₀ j k * x k) * ∑ k, W j k * x k| :=
+          a j * reluIndicator (∑ k, W₀ j k * x k) * ∑ k, W j k * x k| :=
         Finset.abs_sum_le_sum_abs _ _
     _ ≤ ∑ j ∈ S, |∑ k, (W j k - W₀ j k) * x k| := by
       apply Finset.sum_le_sum
       intro j _
       have h1 : a j * relu (∑ k, W j k * x k) -
-          a j * reluDeriv (∑ k, W₀ j k * x k) * ∑ k, W j k * x k =
-          a j * (relu (∑ k, W j k * x k) - reluDeriv
+          a j * reluIndicator (∑ k, W₀ j k * x k) * ∑ k, W j k * x k =
+          a j * (relu (∑ k, W j k * x k) - reluIndicator
               (∑ k, W₀ j k * x k) * ∑ k, W j k * x k) := by ring
       rw [h1, abs_mul]
       have h_bound := relu_linearization_error_le (∑ k, W j k * x k) (∑ k, W₀ j k * x k)
@@ -812,7 +809,7 @@ lemma relu_error_sum_le
         exact (Finset.sum_sub_distrib (f := fun k => W j k * x k) (g := fun k => W₀ j k * x k)).symm
       rw [h_sub] at h_bound
       have h_c := ha j
-      nlinarith [abs_nonneg (relu (∑ k, W j k * x k) - reluDeriv
+      nlinarith [abs_nonneg (relu (∑ k, W j k * x k) - reluIndicator
           (∑ k, W₀ j k * x k) * ∑ k, W j k * x k)]
 
 /-- Cauchy–Schwarz bound for the perturbation on a set `S` of neurons: `∑_{j ∈ S} |⟨W_j - W₀_j, x⟩|
@@ -1187,7 +1184,7 @@ theorem reluLinearizationBound
       ∀ W : Fin m → Fin d → ℝ,
         Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (W i k - W₀ i k) ^ 2) ≤ B →
           |evalSingle relu W a x -
-           linearization (σ := relu) (σ' := reluDeriv) a x W₀ W|
+           linearization (σ := relu) (σ' := reluIndicator) a x W₀ W|
           ≤ (2 * B ^ (4 / 3 : ℝ) + B * Real.log (1 / δ) ^ (1 / 4 : ℝ)) /
             (m : ℝ) ^ (1 / 6 : ℝ)} := by
   have h_log_pos : 0 ≤ Real.log (1 / δ) := Real.log_nonneg (one_le_div hδ |>.mpr (le_of_lt hδ1))
@@ -1200,8 +1197,8 @@ theorem reluLinearizationBound
     apply measure_ge_one_sub_delta_of_univ hδ
     intro W₀ W _
     have heval0 : evalSingle relu W a 0 = 0 := by simp [evalSingle, relu, Finset.sum_const_zero]
-    have hlin0 : linearization (σ := relu) (σ' := reluDeriv) a 0 W₀ W = 0 := by
-      simp [linearization, evalSingle, relu, reluDeriv, Finset.sum_const_zero]
+    have hlin0 : linearization (σ := relu) (σ' := reluIndicator) a 0 W₀ W = 0 := by
+      simp [linearization, evalSingle, relu, reluIndicator, Finset.sum_const_zero]
     rw [heval0, hlin0, sub_zero, abs_zero]
     positivity
   by_cases hm : m = 0
@@ -1210,7 +1207,7 @@ theorem reluLinearizationBound
     apply measure_ge_one_sub_delta_of_univ hδ
     intro W₀ W _
     have heval0 : evalSingle relu W a x = 0 := by simp [evalSingle, Real.sqrt_zero]
-    have hlin0 : linearization (σ := relu) (σ' := reluDeriv) a x W₀ W = 0 := by
+    have hlin0 : linearization (σ := relu) (σ' := reluIndicator) a x W₀ W = 0 := by
       simp [linearization, evalSingle, Real.sqrt_zero]
     rw [heval0, hlin0, sub_zero, abs_zero]
     positivity
@@ -1225,7 +1222,7 @@ theorem reluLinearizationBound
           le_antisymm hW hnorm
       have hdiff := (sqrt_sum_sq_eq_zero (fun i k => W i k - W₀ i k)).mp hnorm_zero
       ext i k; exact sub_eq_zero.mp (congr_fun (congr_fun hdiff i) k)
-    have hlin : linearization (σ := relu) (σ' := reluDeriv) a x W₀ W₀ =
+    have hlin : linearization (σ := relu) (σ' := reluIndicator) a x W₀ W₀ =
         evalSingle relu W₀ a x := by
       simp [linearization, evalSingle, sub_self, mul_zero, Finset.sum_const_zero, add_zero]
     rw [hW_eq, hlin, sub_self, abs_zero]
@@ -1270,12 +1267,12 @@ theorem reluLinearizationBound
       exact_mod_cast h1
     linarith
   have h_diff_S : |evalSingle relu W a x - linearization (σ := relu) (σ' :=
-      reluDeriv) a x W₀ W| ≤ B / Real.sqrt (m : ℝ) * Real.sqrt (S.card : ℝ) := by
+      reluIndicator) a x W₀ W| ≤ B / Real.sqrt (m : ℝ) * Real.sqrt (S.card : ℝ) := by
     have h_sub_eq := relu_eval_sub_linearization_eq a x W W₀
     rw [h_sub_eq]
     have h_zero : ∀ j : Fin m, j ∉ S →
         a j * relu (∑ k, W j k * x k) -
-        a j * reluDeriv (∑ k, W₀ j k * x k) * ∑ k, W j k * x k = 0 :=
+        a j * reluIndicator (∑ k, W₀ j k * x k) * ∑ k, W j k * x k = 0 :=
       fun j hj => relu_error_eq_zero_outside_badSet a x W W₀ r hr j hj
     have h_sum := sum_eq_sum_badSet a x W W₀ r h_zero
     rw [h_sum]
@@ -1283,7 +1280,7 @@ theorem reluLinearizationBound
     have h_sum_le := relu_error_sum_le a ha x W W₀ S
     have h_sum_cs := relu_error_cs_bound x hx W W₀ B h_W S
     calc (m : ℝ)⁻¹.sqrt * |∑ j ∈ S, (a j * relu (∑ k, W j k * x k) -
-          a j * reluDeriv (∑ k, W₀ j k * x k) * ∑ k, W j k * x k)|
+          a j * reluIndicator (∑ k, W₀ j k * x k) * ∑ k, W j k * x k)|
       _ ≤ (m : ℝ)⁻¹.sqrt * ∑ j ∈ S, |∑ k, (W j k - W₀ j k) * x k| :=
         mul_le_mul_of_nonneg_left h_sum_le (Real.sqrt_nonneg _)
       _ ≤ (m : ℝ)⁻¹.sqrt * (Real.sqrt (S.card : ℝ) * B) :=
@@ -1420,7 +1417,7 @@ theorem reluLinearizationBound_secondOrder
         Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (W i k - W₀ i k) ^ 2) ≤ B →
         Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (V i k - W₀ i k) ^ 2) ≤ B →
           |evalSingle relu V a x -
-           linearization (σ := relu) (σ' := reluDeriv) a x W V|
+           linearization (σ := relu) (σ' := reluIndicator) a x W V|
           ≤ (6 * B ^ (4 / 3 : ℝ) + 3 * B * Real.log (1 / δ) ^ (1 / 4 : ℝ)) /
             (m : ℝ) ^ (1 / 6 : ℝ)} := by
   have h_log_pos : 0 ≤ Real.log (1 / δ) := Real.log_nonneg (one_le_div hδ |>.mpr (le_of_lt hδ1))
@@ -1433,8 +1430,8 @@ theorem reluLinearizationBound_secondOrder
     apply measure_ge_one_sub_delta_of_univ hδ
     intro W₀ W V _ _
     have heval0 : evalSingle relu V a 0 = 0 := by simp [evalSingle, relu, Finset.sum_const_zero]
-    have hlin0 : linearization (σ := relu) (σ' := reluDeriv) a 0 W V = 0 := by
-      simp [linearization, evalSingle, relu, reluDeriv, Finset.sum_const_zero]
+    have hlin0 : linearization (σ := relu) (σ' := reluIndicator) a 0 W V = 0 := by
+      simp [linearization, evalSingle, relu, reluIndicator, Finset.sum_const_zero]
     rw [heval0, hlin0, sub_zero, abs_zero]
     positivity
   by_cases hm : m = 0
@@ -1443,7 +1440,7 @@ theorem reluLinearizationBound_secondOrder
     apply measure_ge_one_sub_delta_of_univ hδ
     intro W₀ W V _ _
     have heval0 : evalSingle relu V a x = 0 := by simp [evalSingle, Real.sqrt_zero]
-    have hlin0 : linearization (σ := relu) (σ' := reluDeriv) a x W V = 0 := by
+    have hlin0 : linearization (σ := relu) (σ' := reluIndicator) a x W V = 0 := by
       simp [linearization, evalSingle, Real.sqrt_zero]
     rw [heval0, hlin0, sub_zero, abs_zero]
     positivity
@@ -1465,7 +1462,7 @@ theorem reluLinearizationBound_secondOrder
       have hdiff := (sqrt_sum_sq_eq_zero (fun i k => V i k - W₀ i k)).mp hnorm_zero
       ext i k; exact sub_eq_zero.mp (congr_fun (congr_fun hdiff i) k)
     rw [hW_eq, hV_eq]
-    have hlin : linearization (σ := relu) (σ' := reluDeriv) a x W₀ W₀ =
+    have hlin : linearization (σ := relu) (σ' := reluIndicator) a x W₀ W₀ =
         evalSingle relu W₀ a x := by
       simp [linearization, evalSingle, sub_self, mul_zero, Finset.sum_const_zero, add_zero]
     rw [hlin, sub_self, abs_zero]
@@ -1510,7 +1507,7 @@ theorem reluLinearizationBound_secondOrder
   have h_frob_VW : Real.sqrt (∑ i : Fin m, ∑ k : Fin d, (V i k - W i k) ^ 2) ≤ 2 * B :=
       frob_sub_le V W W₀ B hB h_V h_W
   have h_diff_S : |evalSingle relu V a x -
-      linearization (σ := relu) (σ' := reluDeriv) a x W V| ≤
+      linearization (σ := relu) (σ' := reluIndicator) a x W V| ≤
       (2 * B) / Real.sqrt (m : ℝ) * Real.sqrt (S.card : ℝ) := by
     have h_sub_eq := relu_eval_sub_linearization_eq a x V W
     rw [h_sub_eq]
@@ -1522,11 +1519,11 @@ theorem reluLinearizationBound_secondOrder
       · exact hj (Finset.mem_union_right (S1 ∪ S2) h3)
     have h_zero : ∀ j : Fin m, j ∉ S →
         a j * relu (∑ k, V j k * x k) -
-        a j * reluDeriv (∑ k, W j k * x k) * ∑ k, V j k * x k = 0 := by
+        a j * reluIndicator (∑ k, W j k * x k) * ∑ k, V j k * x k = 0 := by
       intro j hj
       have h_sign_W := sign_preserved_outside_badSet r hr x W W₀ j (hj_badW j hj)
       have h_sign_V := sign_preserved_outside_badSet r hr x V W₀ j (hj_badV j hj)
-      dsimp [relu, reluDeriv]
+      dsimp [relu, reluIndicator]
       rw [mul_assoc, ← mul_sub]
       split_ifs with h_W
       · have h_W₀ : 0 ≤ ∑ k, W₀ j k * x k := h_sign_W.mp h_W
@@ -1538,9 +1535,9 @@ theorem reluLinearizationBound_secondOrder
         push Not at h_V
         rw [max_eq_right h_V.le, zero_mul, sub_zero, mul_zero]
     have h_sum : ∑ j : Fin m, (a j * relu (∑ k, V j k * x k) -
-        a j * reluDeriv (∑ k, W j k * x k) * ∑ k, V j k * x k) =
+        a j * reluIndicator (∑ k, W j k * x k) * ∑ k, V j k * x k) =
         ∑ j ∈ S, (a j * relu (∑ k, V j k * x k) -
-        a j * reluDeriv (∑ k, W j k * x k) * ∑ k, V j k * x k) := by
+        a j * reluIndicator (∑ k, W j k * x k) * ∑ k, V j k * x k) := by
       symm
       apply Finset.sum_subset (Finset.subset_univ _)
       intro j _ hj
@@ -1549,7 +1546,7 @@ theorem reluLinearizationBound_secondOrder
     have h_sum_le := relu_error_sum_le a ha x V W S
     have h_sum_cs := relu_error_cs_bound x hx V W (2 * B) h_frob_VW S
     calc (m : ℝ)⁻¹.sqrt * |∑ j ∈ S, (a j * relu (∑ k, V j k * x k) -
-          a j * reluDeriv (∑ k, W j k * x k) * ∑ k, V j k * x k)|
+          a j * reluIndicator (∑ k, W j k * x k) * ∑ k, V j k * x k)|
       _ ≤ (m : ℝ)⁻¹.sqrt * ∑ j ∈ S, |∑ k, (V j k - W j k) * x k| :=
         mul_le_mul_of_nonneg_left h_sum_le (Real.sqrt_nonneg _)
       _ ≤ (m : ℝ)⁻¹.sqrt * (Real.sqrt (S.card : ℝ) * (2 * B)) :=

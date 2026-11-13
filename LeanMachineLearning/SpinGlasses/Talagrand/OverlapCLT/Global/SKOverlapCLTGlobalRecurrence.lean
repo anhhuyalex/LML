@@ -61,10 +61,8 @@ theorem sk_T_global_recurrence_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1
   obtain ⟨C₄, hC₄0, hC₄⟩ := sk_global_termI_uniform β₀ hβ₀ e p
   refine ⟨C₁ + C₂ + C₃ + C₄, by positivity, fun β h q hfix hb N => ?_⟩
   intro Esk bmean Tg qh α ν B2 A2
-  have hqhat : ∫ t : ℝ, Real.tanh (β * Real.sqrt q * t + h) ^ 4 ∂gaussianReal 0 1 = qh := by
-    apply integral_congr_ae (ae_of_all _ fun t => ?_)
-    congr 2
-    ring
+  have hqhat : ∫ t : ℝ, Real.tanh (β * Real.sqrt q * t + h) ^ 4 ∂gaussianReal 0 1 = qh :=
+    (integral_tanh_pow_mul_z_sqrt_eq β q h 4).symm
   have h1 := hC₁ β h q hfix hb N
   have h2 := hC₂ β h q qh hfix hqhat hb N
   have h3 := hC₃ β h q hfix hb N

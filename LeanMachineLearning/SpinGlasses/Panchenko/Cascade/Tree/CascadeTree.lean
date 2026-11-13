@@ -133,7 +133,7 @@ theorem tsum_cascadeBranchWeight_cons
   rw [← (Fin.consEquiv (fun _ : Fin (r + 1) => ℕ)).tsum_eq]
   change (∑' c : ℕ × (Fin r → ℕ), cascadeBranchWeight u (Fin.cons c.1 c.2)) = _
   simp_rw [cascadeBranchWeight_cons]
-  rw [ENNReal.tsum_prod']
+  rw [tsum_prod']
   exact tsum_congr fun n => ENNReal.tsum_mul_left
     (f := fun β => cascadeBranchWeight (fun p γ m => u (p + 1) (Fin.cons n γ) m) β)
     (a := u 0 (fun i : Fin 0 => i.elim0) n)
@@ -161,7 +161,7 @@ theorem tsum_cascadeBranchWeight_ne_zero
     ∑' α : Fin r → ℕ, cascadeBranchWeight u α ≠ 0 := fun h =>
   (Finset.prod_ne_zero_iff.mpr fun _ _ => hu_pos _ _ _ : cascadeBranchWeight u
     (fun _ : Fin r => 0) ≠ 0)
-    (nonpos_iff_eq_zero.mp (h ▸ ENNReal.le_tsum (f := cascadeBranchWeight u) _))
+    (nonpos_iff_eq_zero.mp (h ▸ le_tsum (f := cascadeBranchWeight u) _))
 
 /-- The last-level total mass is the parent-weighted sum of its children's masses. -/
 theorem tsum_cascadeBranchWeight_succ
@@ -171,7 +171,7 @@ theorem tsum_cascadeBranchWeight_succ
   rw [← (Fin.snocEquiv (fun _ : Fin (r + 1) => ℕ)).tsum_eq]
   change (∑' c : ℕ × (Fin r → ℕ), cascadeBranchWeight u (Fin.snoc c.2 c.1)) = _
   simp_rw [cascadeBranchWeight_snoc]
-  rw [ENNReal.tsum_prod', ENNReal.tsum_comm]
+  rw [tsum_prod', tsum_comm]
   exact tsum_congr fun α =>
     ENNReal.tsum_mul_left (f := fun n => u r α n) (a := cascadeBranchWeight u α)
 
@@ -309,7 +309,7 @@ theorem tsum_cascadeBranchWeight_succ_le_tsum_bounds
     ∑' α : Fin (r + 1) → ℕ, cascadeBranchWeight u α ≤
       ∑' α : Fin r → ℕ, cascadeBranchWeight u α * C α := by
   rw [tsum_cascadeBranchWeight_succ]
-  exact ENNReal.tsum_le_tsum fun α => mul_le_mul_of_nonneg_left (hU α) zero_le
+  exact tsum_le_tsum fun α => mul_le_mul_of_nonneg_left (hU α) zero_le
 
 /-- Summability of weighted parent-specific child bounds implies finite leaf mass. -/
 theorem tsum_cascadeBranchWeight_succ_lt_top_of_tsum_bounds

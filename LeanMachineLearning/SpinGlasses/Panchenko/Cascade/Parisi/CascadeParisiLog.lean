@@ -200,7 +200,7 @@ theorem cascadeMarkedSum_succ_log_facts {Ω : Type*} [MeasurableSpace Ω] {P : M
       (M := fun ω => poissonCountingMeasure (fun k => ((D ⟨0, fun i => i.elim0⟩ ω).1 k).1)
         (fun k l => ((D ⟨0, fun i => i.elim0⟩ ω).1 k).2 l)) fun _ => rfl
     filter_upwards [h] with ω hω
-    exact ⟨lt_of_lt_of_le (hω.1 0) (ENNReal.le_tsum (f := fun n => nthLargestAtom n
+    exact ⟨lt_of_lt_of_le (hω.1 0) (le_tsum (f := fun n => nthLargestAtom n
       (poissonCountingMeasure (fun k => ((D ⟨0, fun i => i.elim0⟩ ω).1 k).1)
         (fun k l => ((D ⟨0, fun i => i.elim0⟩ ω).1 k).2 l))) 0), hω.2.1⟩
   have hlogm : Measurable fun x : ℝ≥0∞ => Real.log x.toReal :=

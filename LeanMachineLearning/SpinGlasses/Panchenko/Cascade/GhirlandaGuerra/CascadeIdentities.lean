@@ -198,7 +198,7 @@ theorem integral_cascadeSeries_eq (hζ0 : ∀ p, 0 < ζ p) (hζ1 : ∀ p, ζ p <
         (replicaGibbs r n σ t (fun P => ENNReal.ofReal (-Ξ P)) (u ω) (lab ω)).toReal := by
     filter_upwards [h0, ht] with ω hω0 hωt
     refine tsum_cascadeSeries_eq_toReal_sub r n σ t (u ω) (lab ω) Ξ hΞ (fun α => ?_) hωt.1 hωt.2
-    exact ENNReal.ne_top_of_tsum_ne_top (by simpa using hω0.2.ne) α
+    exact ne_top_of_tsum_ne_top (by simpa using hω0.2.ne) α
   rw [integral_congr_ae hcongr, integral_sub (hint _ hFp) (hint _ hFn),
     integral_toReal (measurable_replicaGibbs_omega r σ D u lab hDm hu hlab n t _).aemeasurable
       (hle _ hFp |>.mono fun ω h => lt_of_le_of_lt h ENNReal.ofReal_lt_top),
@@ -309,7 +309,7 @@ theorem integral_cascadeEnergy (hζ0 : ∀ p, 0 < ζ p) (hζ1 : ∀ p, ζ p < 1)
     filter_upwards [h0, ht, hae] with ω hω0 hωt hωA
     exact (tsum_cascadeSeries_energy_eq r n σ t (u ω) (lab ω) ζ F
       (fun P => ne_top_of_le_ne_top hC (hf P)) l₀
-      (fun α => ENNReal.ne_top_of_tsum_ne_top hω0.2.ne α) hωt.2 hωA).1
+      (fun α => ne_top_of_tsum_ne_top hω0.2.ne α) hωt.2 hωA).1
   have hcongr : (fun ω => ∑' τ : Fin n → Fin r → ℕ, (∏ l, (cascadeBranchWeight (u ω) (τ l)).toReal *
           Real.exp (t * ∑ i : Fin r, σ i * leafLabel (lab ω) (τ l) i) /
         ∑' b : Fin r → ℕ, (cascadeBranchWeight (u ω) b).toReal *
@@ -323,7 +323,7 @@ theorem integral_cascadeEnergy (hζ0 : ∀ p, 0 < ζ p) (hζ1 : ∀ p, ζ p < 1)
     filter_upwards [h0, ht, hae] with ω hω0 hωt hωA
     exact tsum_cascadeSeries_energy_eq r n σ t (u ω) (lab ω) ζ F
       (fun P => ne_top_of_le_ne_top hC (hf P)) l₀
-      (fun α => ENNReal.ne_top_of_tsum_ne_top hω0.2.ne α) hωt.2 hωA |>.2
+      (fun α => ne_top_of_tsum_ne_top hω0.2.ne α) hωt.2 hωA |>.2
   have hdiff : ∀ i : Fin r, Integrable (fun ω => (replicaGibbsAt r n σ t F l₀ i
       (fun y => ENNReal.ofReal (σ i * y)) (t * σ i * ζ i) (u ω) (lab ω)).toReal -
       (replicaGibbsAt r n σ t F l₀ i (fun y => ENNReal.ofReal (-(σ i * y))) (t * σ i * ζ i)

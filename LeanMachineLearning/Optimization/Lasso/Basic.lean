@@ -81,6 +81,16 @@ noncomputable def hadamard (x y : EuclideanSpace ℝ ι) : EuclideanSpace ℝ ι
 noncomputable def coordinateSquare (x : EuclideanSpace ℝ ι) : EuclideanSpace ℝ ι :=
   euclideanOf (fun i => x i * x i)
 
+set_option linter.unusedFintypeInType false in
+/-- `coordinateSquare` is continuous. -/
+lemma continuous_coordinateSquare :
+    Continuous (coordinateSquare : EuclideanSpace ℝ ι → EuclideanSpace ℝ ι) := by
+  have h_sq : Continuous (fun (x : EuclideanSpace ℝ ι) (i : ι) => x i * x i) :=
+    continuous_pi fun i =>
+      Continuous.mul (PiLp.continuous_apply (p := 2) (β := fun _ : ι => ℝ) i)
+        (PiLp.continuous_apply (p := 2) (β := fun _ : ι => ℝ) i)
+  exact euclideanToPiEquiv.symm.continuous.comp h_sq
+
 omit [Fintype ι] in
 /-- `hadamard` is commutative. -/
 lemma hadamard_comm (x y : EuclideanSpace ℝ ι) : hadamard x y = hadamard y x := by
@@ -128,19 +138,6 @@ constrains the symmetric part of an arbitrary real matrix.
 structure IsPositiveSemidefinite (M : Matrix ι ι ℝ) : Prop where
   symm : M.IsSymm
   nonneg : ∀ x : EuclideanSpace ℝ ι, 0 ≤ inner ℝ x (matVec M x)
-
-lemma IsPositiveSemidefinite.get_symm
-    {M : Matrix ι ι ℝ} (hM : IsPositiveSemidefinite M) : M.IsSymm := by
-  cases hM
-  rename_i symm _
-  exact symm
-
-lemma IsPositiveSemidefinite.get_nonneg
-    {M : Matrix ι ι ℝ} (hM : IsPositiveSemidefinite M) (x : EuclideanSpace ℝ ι) :
-    0 ≤ inner ℝ x (matVec M x) := by
-  cases hM
-  rename_i _ nonneg
-  exact nonneg x
 
 /--
 The condition `r ∈ Span M` from the paper, represented as membership in the range
@@ -366,6 +363,10 @@ noncomputable def matVecLM (M : Matrix ι ι ℝ) : EuclideanSpace ℝ ι →ₗ
   toFun := matVec M
   map_add' := matVec_add M
   map_smul' := matVec_smul_eq M
+
+/-- `matVec M` is continuous, being linear on a finite-dimensional space. -/
+lemma continuous_matVec (M : Matrix ι ι ℝ) : Continuous (matVec M) :=
+  (matVecLM M).continuous_of_finiteDimensional
 
 /-- Symmetry of `M` transfers the matrix from the second inner-product argument to the first. -/
 lemma inner_matVec_comm_of_isSymm

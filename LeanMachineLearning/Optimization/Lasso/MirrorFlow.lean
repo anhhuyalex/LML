@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.Optimization.Lasso.Dynamic
 public import LeanMachineLearning.Optimization.Lasso.LCP
+public import LeanMachineLearning.ForMathlib.Analysis.Calculus.LinearODEScalar
 public import Mathlib.Analysis.Calculus.Deriv.Basic
 public import Mathlib.Analysis.Calculus.Deriv.Prod
 public import Mathlib.Analysis.Calculus.Deriv.Mul
@@ -826,17 +827,7 @@ lemma isLittleO_inner_matVec
   apply Asymptotics.IsLittleO.of_isBigOWith
   intro c hc
   rw [Asymptotics.isBigOWith_iff]
-  have h_cont : Continuous (matVec M) := by
-    have h_eq : matVec M = fun (x : EuclideanSpace ℝ ι) =>
-        euclideanToPiEquiv.symm (M.mulVec (x : ι → ℝ)) := rfl
-    rw [h_eq]
-    apply Continuous.comp euclideanToPiEquiv.symm.continuous
-    apply continuous_pi
-    intro i
-    apply continuous_finsetSum
-    intro j _
-    exact Continuous.mul continuous_const
-      ((continuous_apply j).comp euclideanToPiEquiv.continuous)
+  have h_cont : Continuous (matVec M) := continuous_matVec M
   have h_tendsto : Tendsto (fun h => ‖matVec M h‖) (nhds 0) (nhds 0) := by
     refine tendsto_norm_zero.comp ?_
     simpa [matVec, euclideanOf] using h_cont.tendsto 0
@@ -1047,23 +1038,12 @@ theorem posEffectiveParameter_ne_zero
   have ha_cont : Continuous a := by
     dsimp [a]
     have hu_cont : Continuous u := hu.cont_diff.continuous
-    have h_coordSquare_cont :
-        Continuous (coordinateSquare : EuclideanSpace ℝ ι → EuclideanSpace ℝ ι) := by
-      have h_sq : Continuous (fun (x : EuclideanSpace ℝ ι) (i : ι) => x i * x i) :=
-        continuous_pi fun i =>
-          Continuous.mul (PiLp.continuous_apply (p := 2) (β := fun _ : ι => ℝ) i)
-            (PiLp.continuous_apply (p := 2) (β := fun _ : ι => ℝ) i)
-      have h_euclideanOf_cont : Continuous (euclideanOf : (ι → ℝ) → EuclideanSpace ℝ ι) :=
-        euclideanToPiEquiv.symm.continuous_of_finiteDimensional
-      exact h_euclideanOf_cont.comp h_sq
-    have h_matVec_cont : Continuous (matVec M) := by
-      exact (matVecLM M).continuous_of_finiteDimensional
     have h_apply_i : Continuous (fun (x : EuclideanSpace ℝ ι) => x i) :=
       PiLp.continuous_apply (p := 2) (β := fun _ : ι => ℝ) i
     have h_inner : Continuous (fun τ : ℝ =>
         ((matVec M (coordinateSquare (u τ))) i - r i + lambda)) := by
       refine Continuous.add (Continuous.sub ?_ continuous_const) continuous_const
-      exact h_apply_i.comp (h_matVec_cont.comp (h_coordSquare_cont.comp hu_cont))
+      exact h_apply_i.comp ((continuous_matVec M).comp (continuous_coordinateSquare.comp hu_cont))
     exact Continuous.mul continuous_const h_inner
   -- For each τ, the scalar ODE holds: u_i'(τ) = a(τ) * u_i(τ)
   have h_ode_scalar : ∀ (τ : ℝ), HasDerivAt (fun (s : ℝ) => u s i) (a τ * u τ i) τ := by
@@ -1080,76 +1060,12 @@ theorem posEffectiveParameter_ne_zero
     have h_pi := (hasDerivAt_pi.1 h_ode') i
     simpa [a, e, euclideanToPiEquiv, WithLp.linearEquiv, euclideanOf, mul_comm, mul_left_comm,
       mul_assoc] using h_pi
-  -- Integrating factor: B(τ) = ∫_0^τ a(s) ds
-  let B : ℝ → ℝ := fun τ => ∫ s in (0 : ℝ)..τ, a s
-  have hB_deriv : ∀ (τ : ℝ), HasDerivAt B (a τ) τ := by
-    intro τ
-    have h_int : IntervalIntegrable a MeasureTheory.volume 0 τ :=
-      ha_cont.intervalIntegrable _ _
-    have h_meas : StronglyMeasurableAtFilter a (𝓝 τ) :=
-      ha_cont.stronglyMeasurableAtFilter _ _
-    have h_cont_at : ContinuousAt a τ := ha_cont.continuousAt
-    exact intervalIntegral.integral_hasDerivAt_right h_int h_meas h_cont_at
-  have hB_zero : B 0 = 0 := by simp [B]
-  -- Define φ(τ) = u_i(τ) * exp(-B(τ))
-  let φ : ℝ → ℝ := fun τ => u τ i * Real.exp (-B τ)
-  -- φ'(τ) = 0 for all τ
-  have hφ_deriv : ∀ (τ : ℝ), HasDerivAt φ 0 τ := by
-    intro τ
-    -- φ' = u_i' * exp(-B) + u_i * exp(-B) * (-B')
-    --    = (a * u_i) * exp(-B) + u_i * exp(-B) * (-a) = 0
-    have h1 : HasDerivAt (fun s => u s i) (a τ * u τ i) τ := h_ode_scalar τ
-    have h_negB : HasDerivAt (-B) (-a τ) τ := by
-      simpa using (hB_deriv τ).neg
-    have h_exp : HasDerivAt (fun s => Real.exp (-B s)) (Real.exp (-B τ) * (-a τ)) τ :=
-      h_negB.exp
-    -- HasDerivAt.mul gives (exp * u) with derivative (exp'*u + exp*u')
-    have h_mul := HasDerivAt.mul h_exp h1
-    -- Simplify the derivative: exp'*u + exp*u' = exp*(-a)*u + exp*(a*u) = 0
-    have h_deriv_simp : (Real.exp (-B τ) * (-a τ)) * (u τ).ofLp i +
-        Real.exp (-B τ) * (a τ * (u τ).ofLp i) = 0 := by
-      ring
-    have h_mul_simp := h_mul.congr_deriv h_deriv_simp
-    -- h_mul_simp: HasDerivAt (fun s => exp(-B s) * (u s).ofLp i) 0 τ
-    -- Reorder multiplication to match φ
-    -- h_mul_simp: HasDerivAt ((fun s => exp(-B s)) * (fun s => u s i)) 0 τ
-    -- We want: HasDerivAt (fun s => (u s).ofLp i * exp(-B s)) 0 τ = HasDerivAt φ 0 τ
-    have h_mul_reorder : HasDerivAt (fun s => (u s).ofLp i * Real.exp (-B s)) 0 τ := by
-      -- The two functions are equal pointwise by mul_comm
-      have h_eq : ((fun s => Real.exp (-B s)) * fun s => (u s).ofLp i) =
-                 (fun s => (u s).ofLp i * Real.exp (-B s)) := by
-        ext s; apply mul_comm
-      exact h_eq ▸ h_mul_simp
-    simpa [φ] using h_mul_reorder
-  -- Since φ' = 0 everywhere, φ is constant (mean value theorem)
-  have hφ_const : ∀ (τ : ℝ), φ τ = φ 0 := by
-    have hφ_diff : Differentiable ℝ φ := by
-      have hu_i_diff : Differentiable ℝ (fun τ => u τ i) :=
-        fun τ => (h_ode_scalar τ).differentiableAt
-      have hB_diff : Differentiable ℝ B :=
-        fun τ => (hB_deriv τ).differentiableAt
-      have h_exp_negB_diff : Differentiable ℝ (fun τ => Real.exp (-B τ)) :=
-        Real.differentiable_exp.comp hB_diff.neg
-      dsimp [φ]
-      exact Differentiable.mul hu_i_diff h_exp_negB_diff
-    have hφ_deriv_eq_zero : ∀ τ, deriv φ τ = 0 := by
-      intro τ
-      exact (hφ_deriv τ).deriv
-    exact fun τ => is_const_of_deriv_eq_zero hφ_diff hφ_deriv_eq_zero τ 0
-  have hφ0_ne_zero : φ 0 ≠ 0 := by
-    dsimp [φ, B]
-    simp [Real.exp_zero, hu0_ne_zero i]
-  -- Therefore u t i ≠ 0
+  -- Explicit solution `u_i(t) = u_i(0) exp (∫₀ᵗ a)`, hence nonzero
   have hu_t_ne_zero : u t i ≠ 0 := by
-    intro hzero
-    apply hφ0_ne_zero
-    have := hφ_const t
-    dsimp [φ] at this
-    rw [hzero] at this
-    simp at this
-    -- this: (u 0).ofLp i = 0  (after simplification of exp(-B 0) = 1)
-    -- Goal: φ 0 = 0, i.e., (u 0).ofLp i * Real.exp (-B 0) = 0
-    simpa [φ, B] using this
+    have hsol := eq_mul_exp_intervalIntegral_of_hasDerivAt ha_cont h_ode_scalar t
+    simp only at hsol
+    rw [hsol]
+    exact mul_ne_zero (hu0_ne_zero i) (Real.exp_pos _).ne'
   -- Finally, posEffectiveParameter u t i = (u t i)^2 ≠ 0
   dsimp [posEffectiveParameter, coordinateSquare, euclideanOf]
   exact mul_ne_zero hu_t_ne_zero hu_t_ne_zero
@@ -1347,18 +1263,18 @@ Reused from the derivative already computed in `pos_effective_parameter_hasDeriv
 `HasDerivAt` fact at every point of `ℝ` gives continuity for free via `HasDerivAt.continuousAt`.
 -/
 private lemma continuous_posEffectiveParameter
-    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (ε : ℝ)
+    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda ε : ℝ)
     (α : EuclideanSpace ℝ ι) (u : ℝ → EuclideanSpace ℝ ι)
-    (hu : posDlnGradientFlow M r 0 ε α u) (hM : M.IsSymm) :
+    (hu : posDlnGradientFlow M r lambda ε α u) (hM : M.IsSymm) :
     Continuous (posEffectiveParameter u) :=
   continuous_iff_continuousAt.mpr
-    (fun τ => (pos_effective_parameter_hasDerivAt M r 0 ε α u hu hM τ).continuousAt)
+    (fun τ => (pos_effective_parameter_hasDerivAt M r lambda ε α u hu hM τ).continuousAt)
 
 /--
 Chain rule for `matVec M` along a curve, proved coordinatewise (the same
 `WithLp`-unfolding pattern as `hasDerivAt_coordinateSquare`).
 -/
-private lemma hasDerivAt_matVec_comp
+lemma matVec_hasDerivAt
     (M : Matrix ι ι ℝ) (g : ℝ → EuclideanSpace ℝ ι) (g' : EuclideanSpace ℝ ι) (t : ℝ)
     (hg : HasDerivAt g g' t) :
     HasDerivAt (fun τ => matVec M (g τ)) (matVec M g') t := by
@@ -1398,71 +1314,63 @@ private lemma hasDerivAt_posIntegratedTrajectory
 
 /--
 The key identity behind Lemma 4.4's optimality condition: the mirror-map gradient increment
-along the (λ = 0) positive-DLN trajectory is `t • r - M (integrated trajectory)`.
+along the positive-DLN trajectory with `ℓ¹` penalty `λ` is
+`t • r - (t * λ) • 1 - M (integrated trajectory)`.
 
 Informal proof: let
-`F(τ) = ∇h(x(τ)) - τ • r + M z(τ)`, where `z(τ) = ∫₀^τ x(v) dv`.
-By the mirror-flow equation (`pos_dln_is_entropy_mirror_flow` at `λ = 0`),
-`d∇h(x(τ))/dτ = -∇ℓ(x(τ)) = r - M x(τ)`; by the Fundamental Theorem of Calculus,
+`F(τ) = ∇h(x(τ)) - τ • r + (τ * λ) • 1 + M z(τ)`, where `z(τ) = ∫₀^τ x(v) dv`.
+By the mirror-flow equation (`pos_dln_is_entropy_mirror_flow`),
+`d∇h(x(τ))/dτ = -∇ℓ_λ(x(τ)) = r - M x(τ) - λ • 1`; by the Fundamental Theorem of Calculus,
 `dz(τ)/dτ = x(τ)`, so `d(M z(τ))/dτ = M x(τ)` by linearity of `M`. Hence `F'(τ) = 0`
-for every `τ`, so `F` is constant, i.e. `F(t) = F(0)`. Since `z(0) = 0`, this rearranges to
-`∇h(x(t)) - ∇h(x(0)) = t • r - M z(t)`.
+for every `τ`, so `F` is constant, i.e. `F(t) = F(0)`. Since `z(0) = 0`, this rearranges to the
+stated identity.
 -/
-private lemma entropyMirrorGradient_sub_eq
-    (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (ε : ℝ)
-    (α : EuclideanSpace ℝ ι) (u : ℝ → EuclideanSpace ℝ ι)
-    (hu : posDlnGradientFlow M r 0 ε α u)
-    (hu_pos : ∀ t i, posEffectiveParameter u t i ≠ 0)
-    (hM : M.IsSymm) (t : ℝ) :
+lemma entropyMirrorGradient_sub_eq (M : Matrix ι ι ℝ) (r : EuclideanSpace ℝ ι) (lambda ε : ℝ)
+    (β : EuclideanSpace ℝ ι) (u : ℝ → EuclideanSpace ℝ ι)
+    (hu : posDlnGradientFlow M r lambda ε β u)
+    (hu_pos : ∀ t i, posEffectiveParameter u t i ≠ 0) (hM : M.IsSymm) (t : ℝ) :
     entropyMirrorGradient (posEffectiveParameter u t) -
-        entropyMirrorGradient (posEffectiveParameter u 0) =
-      t • r - matVec M (posIntegratedTrajectory u t) := by
+      entropyMirrorGradient (posEffectiveParameter u 0) =
+      t • r - (t * lambda) • ones - matVec M (posIntegratedTrajectory u t) := by
+  set x := posEffectiveParameter u
+  set z := posIntegratedTrajectory u
+  have hcont : Continuous x := continuous_posEffectiveParameter M r lambda ε β u hu hM
   set F : ℝ → EuclideanSpace ℝ ι := fun τ =>
-    entropyMirrorGradient (posEffectiveParameter u τ) - τ • r +
-      matVec M (posIntegratedTrajectory u τ) with hF_def
-  have hcont : Continuous (posEffectiveParameter u) :=
-    continuous_posEffectiveParameter M r ε α u hu hM
+    entropyMirrorGradient (x τ) - τ • r + (τ * lambda) • ones + matVec M (z τ)
   have hderiv : ∀ τ : ℝ, HasDerivAt F 0 τ := by
     intro τ
-    have h1 : HasDerivAt (fun τ => entropyMirrorGradient (posEffectiveParameter u τ))
-        (r - matVec M (posEffectiveParameter u τ)) τ := by
-      have hmf := pos_dln_is_entropy_mirror_flow M r 0 ε α u hu hu_pos hM τ
-      dsimp [IsEntropyMirrorFlow] at hmf
-      rw [gradient_tiltedLoss M r 0 hM (posEffectiveParameter u τ)] at hmf
-      convert hmf using 1
+    have h1 : HasDerivAt (fun τ => entropyMirrorGradient (x τ))
+        (r - matVec M (x τ) - lambda • ones) τ := by
+      have hmf_raw := pos_dln_is_entropy_mirror_flow M r lambda ε β u hu hu_pos hM τ
+      dsimp [IsEntropyMirrorFlow] at hmf_raw
+      rw [gradient_tiltedLoss M r lambda hM (x τ)] at hmf_raw
+      convert hmf_raw using 1
       ext i
-      dsimp [matVec, euclideanOf]
+      simp [matVec, euclideanOf, ones]
       ring
     have h2 : HasDerivAt (fun τ : ℝ => τ • r) r τ := by
       simpa using (hasDerivAt_id τ).smul_const r
-    have h3 : HasDerivAt (fun τ => matVec M (posIntegratedTrajectory u τ))
-        (matVec M (posEffectiveParameter u τ)) τ :=
-      hasDerivAt_matVec_comp M (posIntegratedTrajectory u) (posEffectiveParameter u τ) τ
-        (hasDerivAt_posIntegratedTrajectory u hcont τ)
-    have hsum := (h1.sub h2).add h3
-    have hval : (r - matVec M (posEffectiveParameter u τ)) - r +
-        matVec M (posEffectiveParameter u τ) = 0 := by abel
-    rw [hval] at hsum
+    have h2b : HasDerivAt (fun τ : ℝ => (τ * lambda) • (ones : EuclideanSpace ℝ ι))
+        (lambda • (ones : EuclideanSpace ℝ ι)) τ := by
+      simpa [smul_smul, mul_comm] using
+        (hasDerivAt_id τ).smul_const (lambda • (ones : EuclideanSpace ℝ ι))
+    have h3 : HasDerivAt (fun τ => matVec M (z τ)) (matVec M (x τ)) τ :=
+      matVec_hasDerivAt M z (x τ) τ (hasDerivAt_posIntegratedTrajectory u hcont τ)
+    have hsum := ((h1.sub h2).add h2b).add h3
+    rw [show (r - matVec M (x τ) - lambda • ones) - r +
+      lambda • ones + matVec M (x τ) = 0 by abel] at hsum
     exact hsum
   have hconst : F t - F 0 = ∫ _τ in (0:ℝ)..t, (0 : EuclideanSpace ℝ ι) :=
-    (intervalIntegral.integral_eq_sub_of_hasDerivAt (fun x _ => hderiv x)
+    (intervalIntegral.integral_eq_sub_of_hasDerivAt (fun τ _ => hderiv τ)
       intervalIntegrable_const).symm
   simp only [intervalIntegral.integral_zero, sub_eq_zero] at hconst
-  -- `hconst : F t = F 0`
-  have hz : posIntegratedTrajectory u 0 = 0 := by
-    ext i
-    simp [posIntegratedTrajectory, euclideanOf]
-  have hF0 : F 0 = entropyMirrorGradient (posEffectiveParameter u 0) := by
-    change entropyMirrorGradient (posEffectiveParameter u 0) - (0 : ℝ) • r +
-        matVec M (posIntegratedTrajectory u 0) = entropyMirrorGradient (posEffectiveParameter u 0)
-    rw [hz]
-    have hmz : matVec M (0 : EuclideanSpace ℝ ι) = 0 := by
-      ext i
-      simp [matVec, euclideanOf]
-    simp [hmz]
-  have hFt : F t = entropyMirrorGradient (posEffectiveParameter u t) - t • r +
-      matVec M (posIntegratedTrajectory u t) := rfl
-  rw [hFt, hF0] at hconst
+  have hF0 : F 0 = entropyMirrorGradient (x 0) := by
+    dsimp [F]
+    rw [show z 0 = 0 by ext i; simp [z, posIntegratedTrajectory, euclideanOf],
+      show matVec M (0 : EuclideanSpace ℝ ι) = 0 by ext i; simp [matVec, euclideanOf]]
+    simp
+  rw [hF0] at hconst
+  dsimp [F] at hconst
   rw [← hconst]
   abel
 
@@ -1483,7 +1391,8 @@ private lemma entropyMirrorGradient_sub_mem_span
   obtain ⟨y₀, hy₀⟩ := hr
   refine ⟨t • y₀ - posIntegratedTrajectory u t, ?_⟩
   rw [matVec_sub, matVec_smul_eq, hy₀]
-  rw [entropyMirrorGradient_sub_eq M r ε α u hu hu_pos hM t]
+  rw [entropyMirrorGradient_sub_eq M r 0 ε α u hu hu_pos hM t]
+  simp
 
 /--
 Coordinatewise three-point identity for the (unnormalized) entropy Bregman term
@@ -1590,7 +1499,7 @@ theorem bregman_projection_characterization
           {x | Nonnegative x ∧ matVec M x = matVec M (posEffectiveParameter u t)}
           y →
         y = posEffectiveParameter u t := by
-  have hM : M.IsSymm := hdata.psd.get_symm
+  have hM : M.IsSymm := hdata.psd.symm
   have hu_pos : ∀ t i, posEffectiveParameter u t i ≠ 0 :=
     posEffectiveParameter_ne_zero M r 0 ε α u hu hε hα hM
   have hx_nonneg : Nonnegative (posEffectiveParameter u t) := posEffectiveParameter_nonnegative u t
@@ -2197,7 +2106,7 @@ theorem pos_trajectory_uniform_bound
     have hx0 : posEffectiveParameter (u ε) 0 = ε • a :=
       posEffectiveParameter_zero_eq_smul_coordinateSquare M r lambda ε α (u ε) hflow hε0.le
     have hmono := tiltedLoss_antitone_along_pos_flow M r lambda ε α (u ε) hflow
-      hdata.psd.get_symm ht
+      hdata.psd.symm ht
     simp only [hx0] at hmono
     have hquadinit : quadraticLoss M r (ε • a) ≤ K :=
       quadraticLoss_smul_le_energy_bound M r a hdata.psd hε0 hεε₀
@@ -2212,7 +2121,7 @@ theorem pos_trajectory_uniform_bound
       dsimp only [K', tiltedLoss]
       linarith [hquadinit, hlaminit]
     have hcs := quadraticLoss_complete_square M r (posEffectiveParameter (u ε) t) y
-      hdata.psd.get_symm hy
+      hdata.psd.symm hy
     have hnn : 0 ≤ inner ℝ (posEffectiveParameter (u ε) t - y)
         (matVec M (posEffectiveParameter (u ε) t - y)) := hdata.psd.nonneg _
     have hqlb : -(1 / 2 : ℝ) * inner ℝ y (matVec M y) ≤

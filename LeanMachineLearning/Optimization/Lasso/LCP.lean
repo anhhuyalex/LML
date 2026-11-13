@@ -1505,12 +1505,7 @@ lemma pos_lasso_achieves_minimum
   have h_zero_mem_s : (0 : EuclideanSpace ℝ ι) ∈ s := by
     simp [hs_def, Nonnegative]
   -- matVec M is linear, hence continuous (finite-dimensional domain)
-  have h_cont_matVec : Continuous (matVec M) := by
-    let M_lin : EuclideanSpace ℝ ι →ₗ[ℝ] EuclideanSpace ℝ ι :=
-      { toFun := matVec M
-        map_add' := matVec_add M
-        map_smul' := matVec_smul_eq M }
-    exact M_lin.continuous_of_finiteDimensional
+  have h_cont_matVec : Continuous (matVec M) := continuous_matVec M
   -- f is continuous everywhere, hence continuous on s
   have h_cont_f : Continuous f := by
     dsimp [f, positiveLassoObjective, lassoObjective, quadraticLoss]
@@ -1851,7 +1846,7 @@ theorem parametric_lcp_unique_small_mu
 
 -- Scaling identity: μ • lcpQ = parametricLcpQ (componentwise algebra in ℝ)
 omit [Fintype ι] in
-private lemma lcpQ_smul_eq_parametricLcpQ
+lemma lcpQ_smul_eq_parametricLcpQ
     (r : EuclideanSpace ℝ ι) (lambda μ : ℝ) (hμ_ne : μ ≠ 0) :
     μ • lcpQ r lambda μ = parametricLcpQ r lambda μ := by
   ext i
@@ -2181,11 +2176,7 @@ lemma quad_ineq (α A B C : ℝ) (hA_le_αC : A ≤ α * C) (hα_nonneg : 0 ≤ 
 Follows from linearity of `matVec Mdagger` and continuity of inner product and `Real.sqrt`. -/
 lemma continuous_pseudoInverseSeminorm (Mdagger : Matrix ι ι ℝ) :
     Continuous (pseudoInverseSeminorm Mdagger) := by
-  have h_cont_matVec : Continuous (matVec Mdagger) :=
-    ({ toFun := matVec Mdagger
-       map_add' := matVec_add Mdagger
-       map_smul' := matVec_smul_eq Mdagger } : EuclideanSpace ℝ ι →ₗ[ℝ] EuclideanSpace ℝ ι)
-      |>.continuous_of_finiteDimensional
+  have h_cont_matVec : Continuous (matVec Mdagger) := continuous_matVec Mdagger
   exact ((Continuous.max continuous_const
     (Continuous.inner continuous_id h_cont_matVec)).sqrt : _)
 

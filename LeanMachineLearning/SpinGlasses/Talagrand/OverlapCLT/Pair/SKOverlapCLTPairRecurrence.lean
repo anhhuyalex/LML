@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Data.Finset.ProdSubtype
 public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKReplicaAverage
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Pair.SKOverlapCLTPairFeedback
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapCLT.Contractions.SKOverlapCLTTermIMultiplicity
@@ -126,20 +127,8 @@ theorem sk_cavity_fresh_pair_recurrence_uniform (β₀ : ℝ) (hβ₀ : 4 * β�
   have hp (H : J → ℝ) : (∏ j : base, H j) = ∏ j ∈ base, H j :=
     Finset.prod_coe_sort base H
   have hpe (u : base) (H : J → ℝ) :
-      (∏ j ∈ (Finset.univ : Finset base).erase u, H j) = ∏ j ∈ base.erase (u : J), H j := by
-    apply Finset.prod_bij (fun (j : base) _ => (j : J))
-    · intro j hj
-      exact Finset.mem_erase.mpr
-        ⟨fun heq => (Finset.ne_of_mem_erase hj) (Subtype.ext heq), j.2⟩
-    · intro j _ k _ hjk
-      exact Subtype.ext hjk
-    · intro j hj
-      refine ⟨⟨j, (Finset.mem_erase.mp hj).2⟩, ?_, rfl⟩
-      simpa only [Finset.mem_erase, Finset.mem_univ, and_true] using
-        (show (⟨j, (Finset.mem_erase.mp hj).2⟩ : base) ≠ u from
-          fun h => (Finset.ne_of_mem_erase hj) (congrArg Subtype.val h))
-    · intro _ _
-      rfl
+      (∏ j ∈ (Finset.univ : Finset base).erase u, H j) = ∏ j ∈ base.erase (u : J), H j :=
+    Finset.prod_univ_erase_subtype base u H
   let Uf : J → (Fin (Fintype.card Q) → Fin (N + 1) → ℤˣ) → ℝ :=
     fun j σ => U j (fun r => σ (e r))
   let Um : J → (Fin (Fintype.card Q) → Fin (N + 1) → ℤˣ) → ℝ :=

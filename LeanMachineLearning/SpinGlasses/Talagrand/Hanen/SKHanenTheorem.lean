@@ -14,6 +14,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenProductTayl
 public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKCovarianceSiteSymmetry
 public import LeanMachineLearning.SpinGlasses.Panchenko.AldousHoover.DeFinetti
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein
+public import LeanMachineLearning.ForMathlib.Data.Finset.SumBound
 public import LeanMachineLearning.Optimization.Renormalization.Gaussian
 
 /-!
@@ -321,7 +322,7 @@ theorem sk_hanen_theorem_even (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1) (p : �
         (2 ^ (((2 * p + 1 : ℕ) : ℝ) / 2) * K4 / ((N : ℝ) + 2) ^ (((2 * p + 1 : ℕ) : ℝ) / 2)))
       (hb := sq_nonneg β) (hb4 := by nlinarith) (hJ := hJ) (hc := by positivity) (hc1 := hc1)
       (hcard := Nat.cast_nonneg _) (h1 := hT) (h2 := hder) (h4 := hE5)
-      (h3 := abs_sum_sub_card_mul_le _ _ _ fun P' => (hE4 P').trans hscale)
+      (h3 := Finset.abs_sum_sub_card_mul_le_of_abs_sub_le _ _ _ fun P' => (hE4 P').trans hscale)
     have hTeq : a_2p * D_var ^ p * Jz ^ 2 = (2 : ℝ)⁻¹ ^ (2 * p) *
         ((β ^ 2) ^ p * Jz * ((Fintype.card (Finpartition.Pairing
           (univ : Finset (Fin (2 * p)))) : ℝ) *

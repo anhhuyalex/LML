@@ -50,7 +50,7 @@ theorem lintegral_gaussian_multiplier (ζ t : ℝ) :
         _ = ((gaussianReal 0 1).withDensity
           (fun g => ENNReal.ofReal (Real.exp ((t * ζ) * g)))) Set.univ := by
             rw [withDensity_apply _ MeasurableSet.univ, Measure.restrict_univ]
-        _ = _ := by rw [gaussianReal_withDensity_exp_mul, Measure.smul_apply]; simp
+        _ = _ := by rw [gaussianReal_withDensity_exp_mul, smul_apply]; simp
     rw [hm]
     rw [← ENNReal.ofReal_mul (Real.exp_nonneg _), ← Real.exp_add]
     simp [show -(t * ζ) ^ 2 / 2 + (t * ζ) ^ 2 / 2 = 0 by ring]
@@ -89,7 +89,7 @@ theorem poissonMarkTilt_gaussian (ζ t : ℝ) :
       ENNReal.ofReal (Real.exp (t * ζ * g)) ∂gaussianReal 0 1 =
       ENNReal.ofReal (Real.exp ((t * ζ) ^ 2 / 2)) *
         gaussianReal (t * ζ) 1 ((fun g : ℝ => g - t * ζ) ⁻¹' s) := by
-    rw [← withDensity_apply _ (hs.preimage (by fun_prop)), ht, Measure.smul_apply]
+    rw [← withDensity_apply _ (hs.preimage (by fun_prop)), ht, smul_apply]
     rfl
   rw [lintegral_indicator (hs.preimage (by fun_prop)), heq]
   rw [← Measure.map_apply (by fun_prop : Measurable (fun g : ℝ => g - t * ζ)) hs]

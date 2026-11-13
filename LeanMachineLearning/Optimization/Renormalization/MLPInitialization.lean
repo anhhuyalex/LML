@@ -123,21 +123,13 @@ private theorem map_layerCoordinate_layerGaussianInit (p : InitHyperparams)
   | inr j =>
       simpa [layerCoordinate] using map_bias_layerGaussianInit p ι κ j
 
-/-- Layer-coordinate evaluation is measurable. -/
-private theorem measurable_layerCoordinate' {ι : Type u} {κ : Type v}
-    (c : LayerCoordinate ι κ) :
-    Measurable (fun q : LayerParams ι κ => layerCoordinate c q) :=
-  Sum.rec
-    (fun ji => (measurable_pi_apply ji.2).comp ((measurable_pi_apply ji.1).comp measurable_fst))
-    (fun j => (measurable_pi_apply j).comp measurable_snd) c
-
 /-- Reading any scalar coordinate of an MLP parameter tuple is measurable. -/
 private theorem measurable_coordinate {m n : ℕ} (S : MLPShape m n) (c : S.Coordinate) :
     Measurable (S.coordinate c) := by
   induction S with
-  | output => exact measurable_layerCoordinate' c
+  | output => exact measurable_layerCoordinate c
   | hidden tail ih =>
-      exact Sum.rec (fun c => (measurable_layerCoordinate' c).comp measurable_fst)
+      exact Sum.rec (fun c => (measurable_layerCoordinate c).comp measurable_fst)
         (fun c => (ih c).comp measurable_snd) c
 
 /-- Output-layer case of `map_coordinate_gaussianInit`.
@@ -184,14 +176,14 @@ private theorem map_coordinate_gaussianInit_hidden {m n k : ℕ} (tail : MLPShap
           simp only [coordinate, gaussianInit, coordinateVariance, layerCoordinate, Params]
           rw [show (fun q : LayerParams (Fin m) (Fin k) × tail.Params => q.1.1 jiW.1 jiW.2) =
               layerCoordinate (Sum.inl jiW) ∘ Prod.fst from rfl,
-            ← Measure.map_map (measurable_layerCoordinate' (Sum.inl jiW)) measurable_fst]
+            ← Measure.map_map (measurable_layerCoordinate (Sum.inl jiW)) measurable_fst]
           simpa [layerCoordinate, Measure.map_fst_prod, measure_univ, one_smul] using
             map_weight_layerGaussianInit p.1 (Fin m) (Fin k) jiW.1 jiW.2
       | inr jB =>
           simp only [coordinate, gaussianInit, coordinateVariance, layerCoordinate, Params]
           rw [show (fun q : LayerParams (Fin m) (Fin k) × tail.Params => q.1.2 jB) =
               layerCoordinate (Sum.inr jB) ∘ Prod.fst from rfl,
-            ← Measure.map_map (measurable_layerCoordinate' (Sum.inr jB)) measurable_fst]
+            ← Measure.map_map (measurable_layerCoordinate (Sum.inr jB)) measurable_fst]
           simpa [layerCoordinate, Measure.map_fst_prod, measure_univ, one_smul] using
             map_bias_layerGaussianInit p.1 (Fin m) (Fin k) jB
   | inr c =>
@@ -359,7 +351,7 @@ private theorem iIndepFun_coordinate_gaussianInit_hidden {m n k : ℕ} (tail : M
     (ν := tail.gaussianInit p.2)
     (f := layerCoordinate)
     (g := tail.coordinate)
-    (hfmeas := measurable_layerCoordinate')
+    (hfmeas := measurable_layerCoordinate)
     (hgmeas := measurable_coordinate tail)
     (hf := iIndepFun_layerCoordinate_layerGaussianInit p.1 (Fin m) (Fin k))
     (hg := ih)

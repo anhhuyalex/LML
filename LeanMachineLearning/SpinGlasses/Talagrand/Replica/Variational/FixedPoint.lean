@@ -267,39 +267,38 @@ lemma integrable_cosh_pow_bound (n : ℕ) (β h : ℝ) :
   ((integrable_exp_mul_gaussianReal (n * |β|)).add
     (integrable_exp_mul_gaussianReal (-(n * |β|)))).const_mul _
 
-/-- Continuity of the denominator on `[0, 1]`. -/
-lemma continuousOn_integral_cosh_pow (n : ℕ) (β h : ℝ) :
-    ContinuousOn (fun q : ℝ => ∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n
-      ∂(gaussianReal 0 1)) (Set.Icc (0 : ℝ) 1) := by
+/-- Continuity on `[0, 1]` of the Gaussian integral of any continuous function of
+`β z √q + h` that is dominated by `cosh ^ n`. -/
+private lemma continuousOn_integral_comp_of_abs_le_cosh_pow (n : ℕ) (β h : ℝ) {F : ℝ → ℝ}
+    (hF : Continuous F) (hb : ∀ x, |F x| ≤ cosh x ^ n) :
+    ContinuousOn (fun q : ℝ => ∫ z : ℝ, F (β * z * Real.sqrt q + h) ∂(gaussianReal 0 1))
+      (Set.Icc (0 : ℝ) 1) := by
   refine continuousOn_of_dominated (bound := fun z : ℝ => Real.exp (n * |h|) *
       (Real.exp (n * |β| * z) + Real.exp (-(n * |β|) * z))) (fun q _ => ?_)
     (fun q hq => ae_of_all _ fun z => ?_) (integrable_cosh_pow_bound n β h)
     (ae_of_all _ fun z => ?_)
-  · exact (Real.continuous_cosh.comp (by fun_prop : Continuous fun z : ℝ =>
-      β * z * Real.sqrt q + h)).pow n |>.aestronglyMeasurable
-  · rw [Real.norm_eq_abs, abs_of_nonneg (pow_nonneg (Real.cosh_pos _).le _)]
-    exact cosh_pow_le_exp_bound n β h z q hq.2
-  · refine Continuous.continuousOn ?_
-    exact (Real.continuous_cosh.comp (by fun_prop)).pow n
+  · exact (hF.comp (by fun_prop : Continuous fun z : ℝ =>
+      β * z * Real.sqrt q + h)).aestronglyMeasurable
+  · rw [Real.norm_eq_abs]
+    exact (hb _).trans (cosh_pow_le_exp_bound n β h z q hq.2)
+  · exact (hF.comp (by fun_prop)).continuousOn
+
+/-- Continuity of the denominator on `[0, 1]`. -/
+lemma continuousOn_integral_cosh_pow (n : ℕ) (β h : ℝ) :
+    ContinuousOn (fun q : ℝ => ∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n
+      ∂(gaussianReal 0 1)) (Set.Icc (0 : ℝ) 1) :=
+  continuousOn_integral_comp_of_abs_le_cosh_pow n β h (F := fun x => cosh x ^ n)
+    (Real.continuous_cosh.pow n) fun _ => (abs_of_nonneg (pow_nonneg (Real.cosh_pos _).le _)).le
 
 /-- Continuity of the numerator on `[0, 1]`. -/
 lemma continuousOn_integral_cosh_pow_mul_tanh_sq (n : ℕ) (β h : ℝ) :
     ContinuousOn (fun q : ℝ => ∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n *
-      tanh (β * z * Real.sqrt q + h) ^ 2 ∂(gaussianReal 0 1)) (Set.Icc (0 : ℝ) 1) := by
-  refine continuousOn_of_dominated (bound := fun z : ℝ => Real.exp (n * |h|) *
-      (Real.exp (n * |β| * z) + Real.exp (-(n * |β|) * z))) (fun q _ => ?_)
-    (fun q hq => ae_of_all _ fun z => ?_) (integrable_cosh_pow_bound n β h)
-    (ae_of_all _ fun z => ?_)
-  · exact ((Real.continuous_cosh.comp (by fun_prop : Continuous fun z : ℝ =>
-      β * z * Real.sqrt q + h)).pow n |>.mul
-      ((Real.continuous_tanh.comp (by fun_prop : Continuous fun z : ℝ =>
-      β * z * Real.sqrt q + h)).pow 2)).aestronglyMeasurable
-  · rw [Real.norm_eq_abs, abs_mul, abs_of_nonneg (pow_nonneg (Real.cosh_pos _).le _),
-      abs_of_nonneg (sq_nonneg _)]
-    exact (cosh_pow_mul_tanh_sq_le n _).trans (cosh_pow_le_exp_bound n β h z q hq.2)
-  · refine Continuous.continuousOn ?_
-    exact (Real.continuous_cosh.comp (by fun_prop)).pow n |>.mul
-      ((Real.continuous_tanh.comp (by fun_prop)).pow 2)
+      tanh (β * z * Real.sqrt q + h) ^ 2 ∂(gaussianReal 0 1)) (Set.Icc (0 : ℝ) 1) :=
+  continuousOn_integral_comp_of_abs_le_cosh_pow n β h (F := fun x => cosh x ^ n * tanh x ^ 2)
+    ((Real.continuous_cosh.pow n).mul (Real.continuous_tanh.pow 2)) fun x => by
+      rw [abs_mul, abs_of_nonneg (pow_nonneg (Real.cosh_pos _).le _),
+        abs_of_nonneg (sq_nonneg _)]
+      exact cosh_pow_mul_tanh_sq_le n x
 
 /-- Continuity of the replica ratio map on `[0, 1]`. -/
 lemma continuousOn_skReplica_ratio (n : ℕ) (β h : ℝ) :

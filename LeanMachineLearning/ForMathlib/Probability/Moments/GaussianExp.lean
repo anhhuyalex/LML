@@ -111,7 +111,7 @@ theorem ae_summable_and_integrable_tsum_mul_exp [IsProbabilityMeasure P] {κ : T
     rw [this, eLpNorm_const_smul, Real.enorm_eq_ofReal (hG0 b)]
     exact mul_le_mul' le_rfl h1
   have hsum : ∑' b, eLpNorm (f b) 1 P ≠ ∞ := by
-    refine ne_top_of_le_ne_top ?_ (ENNReal.tsum_le_tsum hnorm)
+    refine ne_top_of_le_ne_top ?_ (tsum_le_tsum hnorm)
     rw [ENNReal.tsum_mul_right, ← ENNReal.ofReal_tsum_of_nonneg hG0 hG]
     exact ENNReal.mul_ne_top ENNReal.ofReal_ne_top ENNReal.ofReal_ne_top
   refine ⟨?_, integrable_tsum_of_tsum_eLpNorm_ne_top le_rfl hfm hsum⟩

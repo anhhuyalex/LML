@@ -324,9 +324,15 @@ lemma IsStronglyConvex.isConvex {f : E → ℝ} {c : ℝ} (hc : 0 ≤ c)
 
 /-- A `λ`-strongly convex function has a unique critical point, which is its global minimizer. -/
 lemma IsStronglyConvex.unique_minimizer {f : E → ℝ} {c : ℝ} (hc : 0 < c)
-    (hf : IsStronglyConvex f c) (hdf : Differentiable ℝ f)
+    (hf : IsStronglyConvex f c)
     {w v : E} (hw : gradient f w = 0) (hv : gradient f v = 0) : w = v := by
-  sorry
+  have h1 := hf w v
+  have h2 := hf v w
+  rw [hw, inner_zero_left] at h1
+  rw [hv, inner_zero_left, norm_sub_rev] at h2
+  have hsq : ‖v - w‖ ^ 2 = 0 :=
+    le_antisymm (by nlinarith) (sq_nonneg _)
+  exact (sub_eq_zero.1 (norm_eq_zero.1 (pow_eq_zero_iff two_ne_zero |>.1 hsq))).symm
 
 /-! ### Approximate gradient iteration (Definition 7.7) -/
 

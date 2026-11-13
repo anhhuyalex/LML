@@ -49,7 +49,7 @@ theorem cosh_add_mul_sinh_mul_exp_neg_le (q : ℝ) (hq : |q| ≤ 1) (u : ℝ) :
     simp
   have hprob : IsProbabilityMeasure ν := ⟨by
     rw [hν]
-    simp only [Measure.coe_add, Measure.coe_smul, Pi.add_apply, Pi.smul_apply, measure_univ,
+    simp only [FunLike.coe_add, FunLike.coe_smul, Pi.add_apply, Pi.smul_apply, measure_univ,
       smul_eq_mul, mul_one]
     rw [← ENNReal.ofReal_add (by linarith) (by linarith)]
     simp only [ENNReal.ofReal_eq_one]

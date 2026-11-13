@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.Probability.StrongLawMixture
+public import LeanMachineLearning.ForMathlib.Probability.Moments.PiSumChebyshev
 public import LeanMachineLearning.Optimization.NTK.Basic
 public import Mathlib.Probability.StrongLaw
 public import Mathlib.Probability.Independence.InfinitePi
@@ -74,57 +75,6 @@ theorem indepFun_pi_apply_Iio {ι X : Type*} [Fintype ι] [LinearOrder ι] [Loca
 
 section IIDAverageConcentration
 
-/-- Integration of coordinate evaluation under a finite product probability measure. -/
-private lemma integral_coord_pi {Ω : Type*} [MeasurableSpace Ω]
-    (ν : Measure Ω) [IsProbabilityMeasure ν]
-    {n : ℕ} (Y : Ω → ℝ) (hY : MemLp Y 2 ν) (i : Fin n) :
-    ∫ ω : Fin n → Ω, Y (ω i) ∂(Measure.pi fun _ : Fin n => ν) = ∫ x, Y x ∂ν := by
-  have h_mp := measurePreserving_eval (fun _ : Fin n => ν) i
-  have h_meas : AEMeasurable (Function.eval i) (Measure.pi fun _ : Fin n => ν) :=
-    (measurable_pi_apply i).aemeasurable
-  have h_aestrong :
-      AEStronglyMeasurable Y (Measure.map (Function.eval i) (Measure.pi fun _ : Fin n => ν)) := by
-    rw [h_mp.map_eq]
-    exact hY.aestronglyMeasurable
-  have h_eq : (∫ x, Y x ∂ν) =
-      ∫ x, Y x ∂(Measure.map (Function.eval i) (Measure.pi fun _ : Fin n => ν)) := by
-    rw [h_mp.map_eq]
-  rw [h_eq]
-  exact (integral_map h_meas h_aestrong).symm
-
-/-- An empirical average of coordinate functions is in `ℒ²` under a product probability measure. -/
-private lemma memLp_two_average_pi {Ω : Type*} [MeasurableSpace Ω]
-    (ν : Measure Ω) [IsProbabilityMeasure ν]
-    (n : ℕ) (Y : Ω → ℝ) (hY : MemLp Y 2 ν) :
-    MemLp (fun ω : Fin n → Ω => (n : ℝ)⁻¹ * ∑ i : Fin n, Y (ω i)) 2
-      (Measure.pi fun _ : Fin n => ν) := by
-  have h_coord : ∀ i : Fin n, MemLp (fun ω : Fin n → Ω => Y (ω i)) 2
-      (Measure.pi fun _ : Fin n => ν) := fun i =>
-    hY.comp_measurePreserving (measurePreserving_eval (fun _ : Fin n => ν) i)
-  have h_sum : MemLp (fun ω : Fin n → Ω => ∑ i : Fin n, Y (ω i)) 2
-      (Measure.pi fun _ : Fin n => ν) :=
-    memLp_finsetSum (Finset.univ : Finset (Fin n)) (fun i _ => h_coord i)
-  exact h_sum.const_mul (n : ℝ)⁻¹
-
-/-- Expectation of an empirical average under a finite product probability measure. -/
-private lemma integral_average_pi {Ω : Type*} [MeasurableSpace Ω]
-    (ν : Measure Ω) [IsProbabilityMeasure ν]
-    {n : ℕ} (hn : 0 < n) (Y : Ω → ℝ) (hY : MemLp Y 2 ν) :
-    ∫ ω : Fin n → Ω, ((n : ℝ)⁻¹ * ∑ i : Fin n, Y (ω i)) ∂(Measure.pi fun _ : Fin n => ν) =
-      ∫ x, Y x ∂ν := by
-  have h_coord_int : ∀ i : Fin n,
-      Integrable (fun ω : Fin n → Ω => Y (ω i)) (Measure.pi fun _ : Fin n => ν) := fun i =>
-    (hY.comp_measurePreserving (measurePreserving_eval (fun _ : Fin n => ν) i)).integrable
-      (by norm_num)
-  have h_sum_int : ∫ ω : Fin n → Ω, (∑ i : Fin n, Y (ω i)) ∂(Measure.pi fun _ : Fin n => ν) =
-      (n : ℝ) * ∫ x, Y x ∂ν := by
-    rw [integral_finsetSum Finset.univ (fun i _ => h_coord_int i)]
-    simp_rw [integral_coord_pi ν Y hY, Finset.sum_const, Finset.card_univ, Fintype.card_fin,
-      nsmul_eq_mul]
-  rw [integral_const_mul, h_sum_int]
-  have hn_ne : (n : ℝ) ≠ 0 := Nat.cast_ne_zero.2 (ne_of_gt hn)
-  rw [← mul_assoc, inv_mul_cancel₀ hn_ne, one_mul]
-
 /-- Variance of an empirical average under an i.i.d. finite product probability measure. -/
 lemma variance_average_pi {Ω : Type*} [MeasurableSpace Ω] (ν : Measure Ω) [IsProbabilityMeasure ν]
     {n : ℕ} (hn : 0 < n) (Y : Ω → ℝ) (hY : MemLp Y 2 ν) :
@@ -157,11 +107,20 @@ theorem chebyshev_average_pi {Ω : Type*} [MeasurableSpace Ω] (ν : Measure Ω)
     (Measure.pi fun _ : Fin n => ν)
       {ω | c ≤ |(n : ℝ)⁻¹ * ∑ i : Fin n, Y (ω i) - ∫ x, Y x ∂ν|} ≤
       ENNReal.ofReal (Var[Y; ν] / ((n : ℝ) * c ^ 2)) := by
-  have h_cheb := meas_ge_le_variance_div_sq (memLp_two_average_pi ν n Y hY) hc
-  rw [integral_average_pi ν hn Y hY, variance_average_pi ν hn Y hY] at h_cheb
-  have heq : ((n : ℝ)⁻¹ * Var[Y; ν]) / c ^ 2 = Var[Y; ν] / ((n : ℝ) * c ^ 2) := by
-    ring
-  rwa [heq] at h_cheb
+  have hn_ne : (n : ℝ) ≠ 0 := Nat.cast_ne_zero.2 hn.ne'
+  have hint : Integrable Y ν := hY.integrable one_le_two
+  have h := measure_pi_ge_abs_mul_sum_le ν (fun _ : Fin n => fun x => Y x - ∫ y, Y y ∂ν)
+    (fun _ => hY.sub (memLp_const _)) (fun _ => by
+      rw [integral_sub hint (integrable_const _)]; simp) (n : ℝ)⁻¹ hc
+  simp_rw [variance_sub_const hY.aestronglyMeasurable, Finset.sum_const, Finset.card_univ,
+    Fintype.card_fin, nsmul_eq_mul] at h
+  have hset : ∀ ω : Fin n → Ω, (n : ℝ)⁻¹ * ∑ i, (Y (ω i) - ∫ y, Y y ∂ν) =
+      (n : ℝ)⁻¹ * ∑ i, Y (ω i) - ∫ x, Y x ∂ν := fun ω => by
+    simp [Finset.sum_sub_distrib, mul_sub, Finset.sum_const, hn_ne]
+  simp_rw [hset] at h
+  refine h.trans (le_of_eq ?_)
+  congr 1
+  field_simp
 
 /-- Chebyshev inequality for empirical averages bounded by the uncentered second moment
 `∫ x, (Y x)^2 ∂ν`. -/

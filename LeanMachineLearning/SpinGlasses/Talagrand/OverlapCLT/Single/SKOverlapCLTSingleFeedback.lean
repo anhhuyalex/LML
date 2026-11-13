@@ -89,10 +89,8 @@ theorem sk_cavity_fresh_single_feedback_uniform (β₀ : ℝ) (hβ₀ : 4 * β�
     (Fintype.card Q) base.card h12 h1r h2r (fun i => c (f.symm i))
   refine ⟨C, hC0, ?_⟩
   intro β h q hfix hb N Esk V ep ν ν₂ qh Jf
-  have hqhat : ∫ t : ℝ, Real.tanh (β * Real.sqrt q * t + h) ^ 4 ∂gaussianReal 0 1 = qh := by
-    apply integral_congr_ae (ae_of_all _ fun t => ?_)
-    congr 2
-    ring
+  have hqhat : ∫ t : ℝ, Real.tanh (β * Real.sqrt q * t + h) ^ 4 ∂gaussianReal 0 1 = qh :=
+    (integral_tanh_pow_mul_z_sqrt_eq β q h 4).symm
   have hAB (j : J) (i : Bool × Bool) : A j i ≠ B j i :=
     flagged_pair_ne (a j) (b j) j (L j) (S j) (hab j) i
   have hV (j : J) (ρ : Q → Fin N → ℤˣ) :

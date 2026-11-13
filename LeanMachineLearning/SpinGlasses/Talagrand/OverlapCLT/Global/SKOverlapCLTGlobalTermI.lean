@@ -66,10 +66,8 @@ theorem sk_global_termI_term_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
   refine ⟨C₀ + 2 * C₁, by positivity, fun β h q hfix hb N => ?_⟩
   intro Esk νF qh
   have hq : q ∈ Set.Icc (0 : ℝ) 1 := fixedPoint_mem_Icc hfix
-  have hqhat : ∫ t : ℝ, Real.tanh (β * Real.sqrt q * t + h) ^ 4 ∂gaussianReal 0 1 = qh := by
-    apply integral_congr_ae (ae_of_all _ fun t => ?_)
-    congr 2
-    ring
+  have hqhat : ∫ t : ℝ, Real.tanh (β * Real.sqrt q * t + h) ^ 4 ∂gaussianReal 0 1 = qh :=
+    (integral_tanh_pow_mul_z_sqrt_eq β q h 4).symm
   obtain ⟨hdq, -, -, -⟩ := single_coeff_facts β₀ hβ₀ β h q hfix hb
   have hcoef : |qh - q ^ 2| ≤ 2 := by
     have h1 : |q - qh| ≤ 1 := abs_sub_integral_tanh_fourth_le_one_of_fixedPoint hfix

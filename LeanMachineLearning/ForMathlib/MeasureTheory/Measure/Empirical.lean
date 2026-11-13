@@ -71,7 +71,7 @@ lemma map_empiricalMeasure {β : Type*} [MeasurableSpace β] (x : ι → α) {f 
 /-- The empirical measure of a measurable set is the fraction of the family lying in it. -/
 lemma empiricalMeasure_apply (x : ι → α) {s : Set α} (hs : MeasurableSet s) :
     empiricalMeasure x s = (Fintype.card ι : ℝ≥0∞)⁻¹ * ∑ i, s.indicator 1 (x i) := by
-  simp only [empiricalMeasure, Measure.smul_apply, Measure.coe_finsetSum, Finset.sum_apply,
+  simp only [empiricalMeasure, smul_apply, FunLike.coe_sum, Finset.sum_apply,
     Measure.dirac_apply' _ hs, smul_eq_mul]
 
 /-- The empirical measure `(card ι)⁻¹ ∑_i δ_{x i}` is a measurable function of the family `x`

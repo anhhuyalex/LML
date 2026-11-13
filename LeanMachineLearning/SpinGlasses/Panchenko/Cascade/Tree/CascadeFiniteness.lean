@@ -330,7 +330,7 @@ theorem ae_cascadeRankedMass_pos_finite
         (fun k => (B v k ω).1) (fun k l => (B v k ω).2 l)) ≠ ∞
     exact ⟨(hω.1 m).ne',
       ne_top_of_le_ne_top hω.2.1.ne
-        (ENNReal.le_tsum (f := fun n => nthLargestAtom n
+        (le_tsum (f := fun n => nthLargestAtom n
           (poissonCountingMeasure (fun k => (B v k ω).1)
             (fun k l => (B v k ω).2 l))) m)⟩
   have hall : ∀ᵐ ω ∂P, ∀ v : Σ p : ℕ, Fin p → ℕ,

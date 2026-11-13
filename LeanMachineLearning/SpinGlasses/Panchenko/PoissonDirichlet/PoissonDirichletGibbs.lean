@@ -97,7 +97,7 @@ theorem ae_poissonDirichlet_gaussian_mass_pos {Ω : Type*} [MeasurableSpace Ω] 
     have hle := Measure.le_iff'.1 (Measure.le_sum (fun n => (r n : ℝ≥0∞) • ν n) n)
       (Set.Iic 0 ×ˢ Set.univ)
     rw [← hμ, Measure.prod_prod, zetaPoissonMeasure_Iic_zero, zero_mul] at hle
-    rw [Measure.smul_apply, smul_eq_mul, nonpos_iff_eq_zero, mul_eq_zero] at hle
+    rw [smul_apply, smul_eq_mul, nonpos_iff_eq_zero, mul_eq_zero] at hle
     exact hle.resolve_left (by simpa using hn)
   filter_upwards [ae_poissonBlocks_forall_mem ν r hlaw hA hmem] with ω h n l hl
   exact (h n l hl).1
@@ -138,7 +138,7 @@ theorem ae_poissonDirichlet_gaussian_active_nonempty
     rw [show M ω = poissonCountingMeasure (fun n => (B n ω).1)
       (fun n l => ((B n ω).2 l).1) by rfl,
       poissonCountingMeasure_apply _ _ measurableSet_Ioi]
-    apply ENNReal.tsum_eq_zero.2
+    apply tsum_eq_zero_iff.2
     intro n
     apply Finset.sum_eq_zero
     intro l hl

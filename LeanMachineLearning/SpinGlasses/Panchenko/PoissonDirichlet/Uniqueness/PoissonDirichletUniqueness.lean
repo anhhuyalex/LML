@@ -45,7 +45,7 @@ theorem poissonDirichletSimplex_coordinate_mem {x : ℕ → ℝ}
   obtain ⟨hpos, _, hsum⟩ := hx
   refine ⟨hpos j, ?_⟩
   have hle : ENNReal.ofReal (x j) ≤ 1 :=
-    (ENNReal.le_tsum j).trans hsum
+    (le_tsum _ j).trans hsum
   exact (ENNReal.ofReal_le_ofReal_iff (by norm_num : (0 : ℝ) ≤ 1)).mp
     (by simpa only [ENNReal.ofReal_one] using hle)
 
@@ -80,7 +80,7 @@ theorem isClosed_poissonDirichletSimplex : IsClosed 𝕍 := by
         ∀ s : Finset ℕ, (∑ j ∈ s, ENNReal.ofReal (x j)) ≤ 1 := by
       constructor
       · intro h s
-        exact (ENNReal.sum_le_tsum s).trans h
+        exact (sum_le_tsum s).trans h
       · intro h
         exact ENNReal.tsum_le_of_sum_range_le fun n => by
           simpa using h (Finset.range n)
@@ -262,10 +262,10 @@ theorem poissonDirichletSimplex_tail (x : 𝕍) :
     exact x.2.2.1 (Nat.add_le_add_right hij 1)
   · have hsum : (∑' j, ENNReal.ofReal (x.1 (j + 1))) ≤
         ∑' j, ENNReal.ofReal (x.1 j) :=
-      (ENNReal.summable
+      (CompleteLattice.summable
         (f := fun j : ℕ => ENNReal.ofReal (x.1 (j + 1)))).tsum_le_tsum_of_inj
         (fun j : ℕ => j + 1) (fun i j hij => Nat.add_right_cancel hij)
-        (fun _ _ => zero_le) (fun _ => le_rfl) ENNReal.summable
+        (fun _ _ => zero_le) (fun _ => le_rfl) CompleteLattice.summable
     exact hsum.trans x.2.2.2
 
 /-- Equal higher power sums and equal first coordinates pass to the tails. -/

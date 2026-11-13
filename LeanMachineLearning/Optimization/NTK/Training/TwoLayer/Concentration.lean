@@ -70,7 +70,7 @@ private lemma empiricalNTKMatrix_packed_arrowProd_eq_summand {m d : ℕ} (hd : 0
     (packParams (MeasurableEquiv.arrowProdEquivProdArrow (Fin d → ℝ) ℝ (Fin n) ω).1
                 (MeasurableEquiv.arrowProdEquivProdArrow (Fin d → ℝ) ℝ (Fin n) ω).2)
     (fun _ _ => hφ_diff.differentiableAt) α β
-  simp_rw [packParams_weight_row, packParams_readout] at h
+  simp_rw [packParams_weight_row, packParams_apply_idxA] at h
   rw [h]
   have h_prod : (d : ℝ)⁻¹ * (X α ⬝ᵥ X β) =
       (fun k => (Real.sqrt (d : ℝ))⁻¹ * X α k) ⬝ᵥ (fun k => (Real.sqrt (d : ℝ))⁻¹ * X β k) :=
@@ -157,49 +157,16 @@ least `ε / m`. Kept private to `NTK.Training.TwoLayer.Concentration` until a se
   by_contra! h_all
   have hm_pos : (0 : ℝ) < (m : ℝ) := Nat.cast_pos.2 hm
   have h_ne : Nonempty (Fin m) := Fin.pos_iff_nonempty.1 hm
-  have h_entry : ∀ (i j : Fin m), ‖A i j‖ ^ (2 : ℝ) < (ε / (m : ℝ)) ^ (2 : ℝ) := by
-    intro i j
-    have := h_all (i, j)
-    rw [Real.norm_eq_abs]
-    have h1 : 0 ≤ |A i j| := abs_nonneg _
-    have h2 : 0 < ε / (m : ℝ) := div_pos hε hm_pos
-    exact Real.rpow_lt_rpow h1 this (by norm_num)
-  have h_sum_inner : ∀ (i : Fin m), ∑ j : Fin m, ‖A i j‖ ^ (2 : ℝ) <
-      (m : ℝ) * (ε / (m : ℝ)) ^ (2 : ℝ) := by
-    intro i
-    have h : ∑ j : Fin m, ‖A i j‖ ^ (2 : ℝ) < ∑ _j : Fin m, (ε / (m : ℝ)) ^ (2 : ℝ) :=
-      Finset.sum_lt_sum_of_nonempty (Finset.univ_nonempty_iff.2 h_ne) (fun j _ => h_entry i j)
-    rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul] at h
-    exact h
-  have h_sum_outer : ∑ i : Fin m, (∑ j : Fin m, ‖A i j‖ ^ (2 : ℝ)) <
-      (m : ℝ) * ((m : ℝ) * (ε / (m : ℝ)) ^ (2 : ℝ)) := by
-    have h : ∑ i : Fin m, (∑ j : Fin m, ‖A i j‖ ^ (2 : ℝ)) <
-        ∑ _i : Fin m, ((m : ℝ) * (ε / (m : ℝ)) ^ (2 : ℝ)) :=
-      Finset.sum_lt_sum_of_nonempty (Finset.univ_nonempty_iff.2 h_ne) (fun i _ => h_sum_inner i)
-    rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul] at h
-    exact h
-  have heq : (m : ℝ) * ((m : ℝ) * (ε / (m : ℝ)) ^ (2 : ℝ)) = ε ^ (2 : ℝ) := by
-    have hm_ne : ((m : ℝ) ^ (2 : ℝ)) ≠ 0 := (Real.rpow_pos_of_pos hm_pos 2).ne'
-    rw [Real.div_rpow hε.le hm_pos.le]
-    calc (m : ℝ) * ((m : ℝ) * (ε ^ (2 : ℝ) / (m : ℝ) ^ (2 : ℝ)))
-      _ = ((m : ℝ) * (m : ℝ)) * (ε ^ (2 : ℝ) / (m : ℝ) ^ (2 : ℝ)) := by ring
-      _ = ((m : ℝ) ^ (2 : ℝ)) * (ε ^ (2 : ℝ) / (m : ℝ) ^ (2 : ℝ)) := by
-        congr 1
-        rw [Real.rpow_two]
-        ring
-      _ = ε ^ (2 : ℝ) := mul_div_cancel₀ _ hm_ne
-  rw [heq] at h_sum_outer
-  rw [Matrix.frobenius_norm_def] at hA
-  have h_sum_nonneg : 0 ≤ ∑ i : Fin m, ∑ j : Fin m, ‖A i j‖ ^ (2 : ℝ) :=
-    Finset.sum_nonneg fun _ _ => Finset.sum_nonneg fun _ _ => Real.rpow_nonneg (norm_nonneg _) _
-  have h_norm_lt : (∑ i : Fin m, ∑ j : Fin m, ‖A i j‖ ^ (2 : ℝ)) ^ (1 / 2 : ℝ) <
-      (ε ^ (2 : ℝ)) ^ (1 / 2 : ℝ) :=
-    Real.rpow_lt_rpow h_sum_nonneg h_sum_outer (by norm_num)
-  have heq2 : (ε ^ (2 : ℝ)) ^ (1 / 2 : ℝ) = ε := by
-    rw [← Real.rpow_mul hε.le]
-    norm_num
-  rw [heq2] at h_norm_lt
-  exact not_lt_of_ge hA h_norm_lt
+  have h_lt : ‖A‖ ^ 2 < ε ^ 2 := by
+    rw [matrix_frobenius_norm_sq]
+    calc ∑ i, ∑ j, A i j ^ 2 < ∑ _i : Fin m, ∑ _j : Fin m, (ε / (m : ℝ)) ^ 2 :=
+          Finset.sum_lt_sum_of_nonempty (Finset.univ_nonempty_iff.2 h_ne) fun i _ =>
+            Finset.sum_lt_sum_of_nonempty (Finset.univ_nonempty_iff.2 h_ne) fun j _ =>
+              sq_lt_sq.2 (by rw [abs_of_pos (div_pos hε hm_pos)]; exact h_all (i, j))
+      _ = ε ^ 2 := by
+          simp only [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
+          field_simp
+  exact absurd (pow_le_pow_left₀ hε.le hA 2) (not_le.2 h_lt)
 
 /-- Finite-width matrix Chebyshev concentration of the empirical NTK in Frobenius norm
 under the joint initialization measure `𝒩(0,1)^{n×d} ⊗ 𝒩(0, I_n)`. -/

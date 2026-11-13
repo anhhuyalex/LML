@@ -107,7 +107,7 @@ theorem poissonCountingMeasure_restrict_partition
       ∑ l ∈ Finset.range (N n), Measure.dirac (X n l) := by
   ext t ht
   rw [Measure.restrict_apply ht, poissonCountingMeasure_apply N X (ht.inter (hA n)),
-    tsum_eq_single n, Measure.finsetSum_apply]
+    tsum_eq_single n, sum_apply]
   · refine Finset.sum_congr rfl fun l hl => ?_
     have hmem := hX n l (Finset.mem_range.mp hl)
     by_cases h : X n l ∈ t <;> simp [Measure.dirac_apply' _ ht, Set.indicator, h, hmem]
@@ -127,7 +127,7 @@ theorem poissonCountingMeasure_partition_apply
     (hA : ∀ n, MeasurableSet (A n)) (n : ℕ) :
     (poissonCountingMeasure N X) (A n) = (N n : ℝ≥0∞) := by
   rw [← Measure.restrict_apply_univ,
-    poissonCountingMeasure_restrict_partition N X A hdisj hX hA n, Measure.finsetSum_apply]
+    poissonCountingMeasure_restrict_partition N X A hdisj hX hA n, sum_apply]
   simp
 
 /-- In the independent-block representation, the counts on partition cells have the

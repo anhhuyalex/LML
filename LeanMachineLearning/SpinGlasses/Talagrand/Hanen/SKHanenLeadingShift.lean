@@ -530,17 +530,6 @@ theorem hanen_even_identity (p : ℕ) (t b α A J card a2p : ℝ) (ht : 0 < t) (
         rw [h44]; ring
     _ = _ := by ring
 
-/-- A finite sum of terms that are each within `B` of `L` is within `card * B` of `card * L`. -/
-theorem abs_sum_sub_card_mul_le {ι : Type*} [Fintype ι] (W : ι → ℝ) (L B : ℝ)
-    (h : ∀ i, |W i - L| ≤ B) :
-    |∑ i, W i - (Fintype.card ι : ℝ) * L| ≤ (Fintype.card ι : ℝ) * B := by
-  have e : ∑ i, W i - (Fintype.card ι : ℝ) * L = ∑ i, (W i - L) := by
-    rw [Finset.sum_sub_distrib, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
-  rw [e]
-  refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
-  calc ∑ i, |W i - L| ≤ ∑ _i : ι, B := Finset.sum_le_sum fun i _ => h i
-    _ = _ := by simp
-
 /-- Final bookkeeping of the three error terms of the even case, over plain reals. -/
 theorem hanen_even_final (K1 K4 K5 c X R : ℝ) (hR : 0 < R) :
     K1 / R + c * (X * K4 / R) + c * (K5 / R) ≤ (K1 + c * (X * K4 + K5) + 1) / R := by

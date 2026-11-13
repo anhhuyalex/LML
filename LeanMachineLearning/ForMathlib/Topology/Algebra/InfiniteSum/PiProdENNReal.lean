@@ -35,7 +35,7 @@ theorem tsum_pi_prod_fin {n : ℕ} {Y : Fin n → Type*} (h : ∀ i, Y i → ℝ
     change (∑' c : Y 0 × (∀ i : Fin n, Y i.succ),
       h 0 ((Fin.consEquiv Y c) 0) * ∏ i : Fin n, h i.succ ((Fin.consEquiv Y c) i.succ)) = _
     simp only [Fin.consEquiv_apply, Fin.cons_zero, Fin.cons_succ]
-    rw [ENNReal.tsum_prod', ← ENNReal.tsum_mul_right]
+    rw [tsum_prod', ← ENNReal.tsum_mul_right]
     refine tsum_congr fun z => ?_
     dsimp only
     rw [ENNReal.tsum_mul_left]

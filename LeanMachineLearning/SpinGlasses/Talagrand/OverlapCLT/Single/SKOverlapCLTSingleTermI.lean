@@ -240,10 +240,10 @@ theorem sk_cavity_single_term_I_multiplicity (β₀ : ℝ) (hβ₀ : 4 * β₀ ^
   have hδ (u : J) : δ u = if P u then 1 else 0 := by
     simp only [δ, P]
     cases hl : L u <;> cases hs : S u
-    · simp [hs]
+    · simp
     · exact absurd (hLS u hs) (by simp [hl])
-    · simp [hl, hs, eq_comm]
-    · simp [hl, hs, eq_comm]
+    · simp [eq_comm]
+    · simp [eq_comm]
   have htp : t = cls.erase p := by
     ext u
     simp only [t, base, cls, P, Finset.mem_filter, Finset.mem_erase, Finset.mem_univ,

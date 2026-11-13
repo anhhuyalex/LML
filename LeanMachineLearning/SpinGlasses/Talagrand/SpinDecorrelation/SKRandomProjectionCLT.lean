@@ -8,6 +8,7 @@ module
 public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianCovarianceInterpolation
 public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKCorrelationDecay
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ParametrizedL2
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.PiFinMul
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SqSub
 
 /-!
@@ -85,37 +86,6 @@ theorem abs_integral_block_sub_le {q ρ : ℝ} (hq : 0 ≤ q) (hqρ : q ≤ ρ) 
   rw [hbridge, abs_sub_comm]
   refine hcomp.trans (le_of_eq ?_)
   simp only [abs_sub_comm q, abs_sub_comm ρ]
-
-/-- **Fubini for two i.i.d. Gaussian coordinates:** a bounded measurable function of the two
-coordinates of a point of `ℝ^{Fin 2}` integrates against the product Gaussian measure as an
-iterated integral. -/
-theorem integral_pi_fin_two_gaussianReal {G : ℝ → ℝ → ℝ} (hG : Measurable (Function.uncurry G))
-    {B : ℝ} (hB : ∀ x y, |G x y| ≤ B) :
-    ∫ σ : Fin 2 → ℝ, G (σ 0) (σ 1) ∂(Measure.pi fun _ : Fin 2 => gaussianReal 0 1) =
-      ∫ x, ∫ y, G x y ∂(gaussianReal 0 1) ∂(gaussianReal 0 1) :=
-  integral_pi_fin_two_of_integrable _ (Integrable.of_bound
-    (hG.comp measurable_id).aestronglyMeasurable B
-    (ae_of_all _ fun p => by rw [Real.norm_eq_abs]; exact hB _ _))
-
-/-- A bounded measurable function of the first of two i.i.d. Gaussian coordinates integrates as
-a function of one Gaussian. -/
-theorem integral_pi_fin_two_fst {φ : ℝ → ℝ} (hφ : Measurable φ) {B : ℝ} (hB : ∀ x, |φ x| ≤ B) :
-    ∫ σ : Fin 2 → ℝ, φ (σ 0) ∂(Measure.pi fun _ : Fin 2 => gaussianReal 0 1) =
-      ∫ x, φ x ∂(gaussianReal 0 1) := by
-  rw [integral_pi_fin_two_gaussianReal (G := fun x _ => φ x) (hφ.comp measurable_fst)
-    fun x _ => hB x]
-  simp
-
-/-- The product of a bounded measurable function of the two i.i.d. Gaussian coordinates is the
-square of its Gaussian mean. -/
-theorem integral_pi_fin_two_mul {φ : ℝ → ℝ} (hφ : Measurable φ) {B : ℝ} (hB : ∀ x, |φ x| ≤ B) :
-    ∫ σ : Fin 2 → ℝ, φ (σ 0) * φ (σ 1) ∂(Measure.pi fun _ : Fin 2 => gaussianReal 0 1) =
-      (∫ x, φ x ∂(gaussianReal 0 1)) ^ 2 := by
-  have hbd : ∀ x y, |φ x * φ y| ≤ B * B := fun x y => by
-    rw [abs_mul]; exact mul_le_mul (hB x) (hB y) (abs_nonneg _) ((abs_nonneg _).trans (hB 0))
-  rw [integral_pi_fin_two_gaussianReal (G := fun x y => φ x * φ y)
-    ((hφ.comp measurable_fst).mul (hφ.comp measurable_snd)) hbd]
-  simp [integral_mul_const, integral_const_mul, sq]
 
 /-- The Gaussian smoothing `c ↦ 𝔼 f (c + s ξ)` of a bounded continuous function is continuous. -/
 theorem continuous_integral_comp_add_mul {f : ℝ → ℝ} (hf : Continuous f) {M : ℝ}
@@ -248,7 +218,8 @@ theorem integral_sq_sub_le (hN : 0 < N) (x : α → Fin N → ℝ) {w : α → �
       simp only [zero_dotProduct, add_zero, hdot0]
       rw [integral_const_mul, hV, hVf]
       congr 1
-      exact integral_pi_fin_two_fst (φ := fun x => f (bb ⬝ᵥ g + s * x)) (hmeasφ _) fun x => h0 _
+      simpa using integral_pi_fin_two_mul_fun (gaussianReal 0 1)
+        (fun x => f (bb ⬝ᵥ g + s * x)) 1
     have hterm : ∀ a, Integrable (fun g => w a * (f (u a ⬝ᵥ g) * V g))
         (Measure.pi fun _ : Fin N => gaussianReal 0 1) := fun a =>
       hint _ (continuous_const.mul ((hfc.comp (hdotc _)).mul hVc)) (w a * (M0 * M0)) fun g => by
@@ -263,8 +234,8 @@ theorem integral_sq_sub_le (hN : 0 < N) (x : α → Fin N → ℝ) {w : α → �
     rw [hblk]
     refine integral_congr_ae (ae_of_all _ fun g => ?_)
     simp only [hdot0, hdot1]
-    rw [integral_pi_fin_two_mul (φ := fun x => f (bb ⬝ᵥ g + s * x)) (hmeasφ _) fun x => h0 _,
-      hV, hVf]
+    rw [integral_pi_fin_two_mul_fun (gaussianReal 0 1) (fun x => f (bb ⬝ᵥ g + s * x))
+      (fun x => f (bb ⬝ᵥ g + s * x)), sq, hV, hVf]
   rw [hE1, hE2, hE3]
   have hww : ∀ c : ℝ, ∑ a, ∑ a', w a * w a' * c = c := fun c => by
     simp_rw [sum_mul_mul_const hw1, sum_mul_const_of_sum_eq_one hw1]

@@ -116,11 +116,6 @@ lemma packParams_weight_row {n d : ℕ} (W : Fin n → Fin d → ℝ) (a : Fin n
   ext j
   exact packParams_apply_idxW W a i j
 
-/-- The readout coordinate recovered from `packParams`. -/
-lemma packParams_readout {n d : ℕ} (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ) (i : Fin n) :
-    packParams W a (paramIndexEquiv n d (Sum.inr i)) = a i :=
-  packParams_apply_idxA W a i
-
 /-- Unpacking the weights of a packed parameter vector returns `W`. -/
 lemma unpackW_packParams {n d : ℕ} (W : Fin n → Fin d → ℝ) (a : Fin n → ℝ) :
     (fun i j => packParams W a (paramIndexEquiv n d (Sum.inl (i, j)))) = W := by
@@ -506,22 +501,7 @@ lemma outputJacobian_frobenius_norm_sq_entries (n d m : ℕ) (φ : ℝ → ℝ)
     ‖outputJacobian (netFromParams φ n d) X θ‖ ^ 2 =
       ∑ α : Fin m, ∑ k : Fin (n * d + n),
         (outputJacobian (netFromParams φ n d) X θ α k) ^ (2 : ℝ) := by
-  rw [Matrix.frobenius_norm_def]
-  simp only [Real.norm_eq_abs]
-  rw [← Real.sqrt_eq_rpow]
-  have hnonneg : 0 ≤ ∑ α : Fin m, ∑ k : Fin (n * d + n),
-      |outputJacobian (netFromParams φ n d) X θ α k| ^ (2 : ℝ) := by
-    apply Finset.sum_nonneg
-    intro α hα
-    apply Finset.sum_nonneg
-    intro k hk
-    positivity
-  calc
-    √(∑ α : Fin m, ∑ k : Fin (n * d + n),
-        |outputJacobian (netFromParams φ n d) X θ α k| ^ (2 : ℝ)) ^ 2 =
-        ∑ α : Fin m, ∑ k : Fin (n * d + n),
-          |outputJacobian (netFromParams φ n d) X θ α k| ^ (2 : ℝ) := Real.sq_sqrt hnonneg
-    _ = _ := by simp [sq_abs]
+  simp only [matrix_frobenius_norm_sq, Real.rpow_two]
 
 /-- Closed-form decomposition of the squared Frobenius norm of the output Jacobian into the
 input-weight and readout blocks. -/
@@ -601,7 +581,7 @@ lemma outputJacobian_netFromParams_norm_sq_le_readout_energy
           intro j hj
           have hpre_nonneg : 0 ≤ (n : ℝ)⁻¹ * a i ^ 2 * X α j ^ 2 := by positivity
           dsimp [gradW]
-          rw [packParams_readout, packParams_weight_row]
+          rw [packParams_apply_idxA, packParams_weight_row]
           rw [mul_pow, mul_pow, mul_pow, hroot_sq]
           nlinarith
       _ = (n : ℝ)⁻¹ * (a i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2) := by
@@ -701,7 +681,7 @@ lemma outputJacobian_netFromParams_norm_sq_le_energies
             refine Finset.sum_le_sum fun j _ => ?_
             have hpre : 0 ≤ (n : ℝ)⁻¹ * a i ^ 2 * X α j ^ 2 := by positivity
             dsimp [gradW]
-            rw [packParams_readout, packParams_weight_row]
+            rw [packParams_apply_idxA, packParams_weight_row]
             rw [mul_pow, mul_pow, mul_pow, hroot_sq]
             nlinarith
         _ = (n : ℝ)⁻¹ * (a i ^ 2 * C₁ ^ 2 * ∑ j : Fin d, X α j ^ 2) := by

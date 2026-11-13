@@ -98,11 +98,6 @@ In particular, for neural network architectures parameterized by width `n` (as i
 empirical kernel matrix `K_t^{(n)}`.
 -/
 
-/-- Helper: The inner product on `EuclideanSpace ℝ (Fin P)` equals the sum of entrywise products. -/
-lemma euclideanSpace_inner_eq_sum (u v : EuclideanSpace ℝ (Fin P)) :
-    ⟪u, v⟫ = ∑ j : Fin P, u j * v j :=
-  real_inner_eq_dotProduct u v
-
 /-- Step 1 (Multivariate Chain Rule - Inner Product Formulation):
 Evaluate the time derivative of component output `f^α(t) ≡ f(x^α; θ(t))`:
   `∂_t f^α(t) = ⟨∇_θ f(x^α; θ(t)), ∂_t θ(t)⟩`. -/
@@ -136,7 +131,7 @@ theorem hasDerivAt_trainingOutputs_coord_sum
     HasDerivAt (fun s => (WithLp.toLp 2 (fun α => f (X α) (θ_traj s))) α)
       (∑ j : Fin P, tangentFeature f (X α) (θ_traj t) j * θ' t j) t := by
   have h := hasDerivAt_trainingOutputs_coord f X θ_traj θ' t α hdiff hθ
-  rw [euclideanSpace_inner_eq_sum] at h
+  rw [real_inner_eq_dotProduct] at h
   exact h
 
 /-- Helper: a curve into `EuclideanSpace ℝ (Fin m)` has a derivative iff each of its coordinate

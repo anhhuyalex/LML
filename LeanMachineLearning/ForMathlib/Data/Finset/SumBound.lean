@@ -19,22 +19,25 @@ public import Mathlib.Tactic.Positivity
 
 namespace Finset
 
+/-- A finite sum of terms that are each within `B` of `L` is within `card * B` of `card * L`. -/
+theorem abs_sum_sub_card_mul_le_of_abs_sub_le {ι : Type*} [Fintype ι] (W : ι → ℝ) (L B : ℝ)
+    (h : ∀ i, |W i - L| ≤ B) :
+    |∑ i, W i - (Fintype.card ι : ℝ) * L| ≤ (Fintype.card ι : ℝ) * B := by
+  have e : ∑ i, W i - (Fintype.card ι : ℝ) * L = ∑ i, (W i - L) := by
+    rw [sum_sub_distrib, sum_const, card_univ, nsmul_eq_mul]
+  rw [e]
+  refine (abs_sum_le_sum_abs _ _).trans ?_
+  calc ∑ i, |W i - L| ≤ ∑ _i : ι, B := sum_le_sum fun i _ => h i
+    _ = _ := by simp
+
 /-- **A replica combination of bounded terms:** if `|f j| ≤ b` for all `j` and `|g| ≤ b`, then
 `|∑ⱼ f j - |ι| g| ≤ 2 |ι| b`. -/
 theorem abs_sum_sub_card_mul_le_of_abs_le {ι : Type*} [Fintype ι] (f : ι → ℝ) (g b : ℝ)
     (hf : ∀ j, |f j| ≤ b) (hg : |g| ≤ b) :
     |∑ j, f j - (Fintype.card ι : ℝ) * g| ≤ 2 * (Fintype.card ι : ℝ) * b := by
-  have h1 : |∑ j, f j| ≤ (Fintype.card ι : ℝ) * b := by
-    refine (abs_sum_le_sum_abs _ _).trans ?_
-    calc ∑ j, |f j| ≤ ∑ _j : ι, b := sum_le_sum fun j _ => hf j
-      _ = (Fintype.card ι : ℝ) * b := by simp
-  have h2 : |(Fintype.card ι : ℝ) * g| ≤ (Fintype.card ι : ℝ) * b := by
-    rw [abs_mul, abs_of_nonneg (Nat.cast_nonneg _)]
-    exact mul_le_mul_of_nonneg_left hg (Nat.cast_nonneg _)
-  calc |∑ j, f j - (Fintype.card ι : ℝ) * g|
-      ≤ |∑ j, f j| + |(Fintype.card ι : ℝ) * g| := abs_sub _ _
-    _ ≤ (Fintype.card ι : ℝ) * b + (Fintype.card ι : ℝ) * b := add_le_add h1 h2
-    _ = 2 * (Fintype.card ι : ℝ) * b := by ring
+  have := abs_sum_sub_card_mul_le_of_abs_sub_le f g (2 * b) fun j =>
+    (abs_sub _ _).trans ((add_le_add (hf j) hg).trans_eq (two_mul b).symm)
+  exact this.trans_eq (by ring)
 
 /-- Triangle-inequality bound on the difference between a finite sum and a scaled multiple. -/
 theorem abs_sum_sub_card_mul_le {ι α : Type*} [Fintype ι] {M : ℝ} (Q : α → ℝ) (hQ0 : ∀ a, 0 ≤ Q a)

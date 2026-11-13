@@ -351,13 +351,13 @@ theorem replicaSum_succ [LinearOrder ι] :
         else 0 := by
   unfold replicaSum
   rw [← (consPiEquiv ι r).tsum_eq]
-  rw [ENNReal.tsum_prod']
+  rw [tsum_prod']
   refine tsum_congr fun m => ?_
   by_cases H : ∀ l l', m l = m l' ↔ 0 < P l l'
   · rw [ite_eq_left_of_eq_true _ _ (eq_true H)]
     exact tsum_replicaSum_succ_inner (r := r) P a u lab m H
   · rw [ite_eq_right_of_eq_false _ _ (eq_false H)]
-    refine ENNReal.tsum_eq_zero.2 fun β => ?_
+    refine tsum_eq_zero_iff.2 fun β => ?_
     have : ¬ ∀ l l', (prefixOverlap (Fin.cons (m l) (β l) : Fin (r + 1) → ℕ)
         (Fin.cons (m l') (β l'))).val = P l l' := fun h =>
       H (forall_child_eq_iff_of_overlap P m β h)
@@ -444,7 +444,7 @@ theorem sum_replicaSum_tilt_pattern (r n : ℕ) (σ ζ : ℕ → ℝ) (t : ℝ)
     refine tsum_congr fun α => ?_
     ring
   simp_rw [h1]
-  rw [← Finset.mul_sum, ← Summable.tsum_finsetSum fun _ _ => ENNReal.summable]
+  rw [← Finset.mul_sum, ← Summable.tsum_finsetSum fun _ _ => CompleteLattice.summable]
   congr 1
   refine tsum_congr fun α => ?_
   simp only [ite_mul, one_mul, zero_mul]
@@ -508,7 +508,7 @@ theorem replicaGibbs_le (r n : ℕ) (σ : ℕ → ℝ) (t : ℝ)
         F (fun l l' => prefixOverlap (α l) (α l'))
       ≤ ∑' α : Fin n → Fin r → ℕ, (∏ l, cascadeBranchWeight u (α l) *
         ENNReal.ofReal (Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab (α l) i))) * C :=
-        ENNReal.tsum_le_tsum fun α => mul_le_mul_right (hf _) _
+        tsum_le_tsum fun α => mul_le_mul_right (hf _) _
     _ = C * Z ^ n := by
         rw [ENNReal.tsum_mul_right, ENNReal.tsum_pi_prod fun _ α => cascadeBranchWeight u α *
           ENNReal.ofReal (Real.exp (t * ∑ i : Fin r, σ i * leafLabel lab α i))]

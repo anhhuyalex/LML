@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.Optimization.NTK.Initialization.ReadoutConcentration
 public import LeanMachineLearning.Optimization.NTK.Initialization.ResidualConcentration
+public import LeanMachineLearning.ForMathlib.Probability.Moments.PiSumChebyshev
 
 /-!
 # Gaussian Linear Forms in the Readout
@@ -34,61 +35,16 @@ theorem chebyshev_linear_weighted (n : ℕ) (hn : 0 < n) (y : Fin n → ℝ) {ε
     (Measure.pi fun _ : Fin n => gaussianReal 0 1)
       {a | ε ≤ |(n : ℝ)⁻¹ * ∑ j : Fin n, a j * y j|} ≤
       ENNReal.ofReal ((∑ j, y j ^ 2) / ((n : ℝ) ^ 2 * ε ^ 2)) := by
-  let μ : Measure (Fin n → ℝ) := Measure.pi fun _ : Fin n => gaussianReal 0 1
-  let g : Fin n → ℝ → ℝ := fun j x => x * y j
-  have hg : ∀ j, MemLp (g j) 2 (gaussianReal 0 1) := fun j =>
-    (memLp_id_gaussianReal 2).mul_const (y j)
-  let S : (Fin n → ℝ) → ℝ := ∑ j, fun a => g j (a j)
-  have hS_eq : ∀ a, S a = ∑ j : Fin n, a j * y j := by
-    intro a; simp [S, g, Finset.sum_apply]
-  have hS_mem : MemLp S 2 μ := by
-    refine memLp_finsetSum' _ fun j _ => ?_
-    exact (hg j).comp_measurePreserving
-      (measurePreserving_eval (fun _ : Fin n => gaussianReal 0 1) j)
-  have hX_mem : MemLp (fun a => (n : ℝ)⁻¹ * S a) 2 μ := hS_mem.const_mul _
-  have hS_fun : S = fun a => ∑ j : Fin n, g j (a j) := by
-    funext a; simp [S, Finset.sum_apply]
-  have hmean_S : μ[S] = 0 := by
-    have hj : ∀ j : Fin n, ∫ a, g j (a j) ∂μ = 0 := by
-      intro j
-      have hmp := measurePreserving_eval (fun _ : Fin n => gaussianReal 0 1) j
-      have hgm : AEStronglyMeasurable (g j) (Measure.map (Function.eval j) μ) :=
-        (by fun_prop : Measurable (g j)).aestronglyMeasurable
-      calc ∫ a, g j (a j) ∂μ
-          = ∫ x, g j x ∂(Measure.map (Function.eval j) μ) :=
-            (integral_map hmp.measurable.aemeasurable hgm).symm
-        _ = ∫ x, g j x ∂(gaussianReal 0 1) := by rw [hmp.map_eq]
-        _ = 0 := by
-          simp only [g]
-          rw [integral_mul_const]
-          rw [integral_id_gaussianReal, zero_mul]
-    rw [hS_fun]
-    rw [integral_finsetSum (f := fun (j : Fin n) (a : Fin n → ℝ) => g j (a j)) _
-      (fun j _ => ((hg j).comp_measurePreserving
-        (measurePreserving_eval (fun _ : Fin n => gaussianReal 0 1) j)).integrable
-          (by norm_num))]
-    exact Finset.sum_eq_zero fun j _ => hj j
-  have hmean : μ[fun a => (n : ℝ)⁻¹ * S a] = 0 := by
-    rw [integral_const_mul, hmean_S, mul_zero]
-  have hvarS : Var[S; μ] = ∑ j, y j ^ 2 := by
-    have h := variance_sum_pi (μ := fun _ : Fin n => gaussianReal 0 1) hg
-    simp only [S]
-    rw [h]
-    have hvj : ∀ j, Var[g j; gaussianReal 0 1] = y j ^ 2 := by
-      intro j
-      have : g j = fun x => y j * id x := by funext x; simp [g, mul_comm]
-      rw [this, variance_const_mul, variance_id_gaussianReal]
-      simp
-    simp_rw [hvj]
-  have hvar : Var[fun a => (n : ℝ)⁻¹ * S a; μ] = (n : ℝ)⁻¹ ^ 2 * ∑ j, y j ^ 2 := by
-    rw [variance_const_mul, hvarS]
-  have hcheb := meas_ge_le_variance_div_sq hX_mem hε
-  rw [hmean, hvar] at hcheb
-  have hset : {a : Fin n → ℝ | ε ≤ |(n : ℝ)⁻¹ * ∑ j : Fin n, a j * y j|} =
-      {a | ε ≤ |(n : ℝ)⁻¹ * S a - 0|} := by
-    ext a; simp [hS_eq]
-  rw [hset]
-  refine hcheb.trans (le_of_eq ?_)
+  have h := measure_pi_ge_abs_mul_sum_le (gaussianReal 0 1) (fun j x => x * y j)
+    (fun j => (memLp_id_gaussianReal 2).mul_const (y j))
+    (fun j => by rw [integral_mul_const, integral_id_gaussianReal, zero_mul]) (n : ℝ)⁻¹ hε
+  have hv : ∀ j, Var[fun x : ℝ => x * y j; gaussianReal 0 1] = y j ^ 2 := by
+    intro j
+    have : (fun x : ℝ => x * y j) = fun x => y j * id x := by funext x; simp [mul_comm]
+    rw [this, variance_const_mul, variance_id_gaussianReal]
+    simp
+  simp_rw [hv] at h
+  refine h.trans (le_of_eq ?_)
   congr 1
   have hn0 : (n : ℝ) ≠ 0 := by positivity
   field_simp
