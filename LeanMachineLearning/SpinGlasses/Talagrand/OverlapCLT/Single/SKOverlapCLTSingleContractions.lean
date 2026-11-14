@@ -213,7 +213,7 @@ fresh index `u ≠ p`. Only a single partner whose unflagged slot is fresh and w
 carries the label `x` survives, with coefficient `q - q̂`. -/
 theorem sk_cavity_decoupled_fresh_single (N : ℕ) (β q h : ℝ)
     (hfix : ∫ z : ℝ, Real.tanh (β * z * Real.sqrt q + h) ^ 2 ∂gaussianReal 0 1 = q)
-    {R J : Type*} [Fintype R] [Fintype J] [DecidableEq R] [DecidableEq J]
+    {R J : Type*} [Fintype R] [Fintype J] [DecidableEq R]
     (x a b : R) (p u : J) (hpu : p ≠ u) (L S : Bool)
     (hab : L = true → S = true → a ≠ b)
     (G : ((R ⊕ (J ⊕ J)) → Fin N → ℤˣ) → ℝ) :
@@ -242,6 +242,7 @@ theorem sk_cavity_decoupled_fresh_single (N : ℕ) (β q h : ℝ)
             (Real.sqrt (N + 1))⁻¹ * β *
               (∑ p : FinPairs N, g' p * (r p.val.1 : ℝ) * (r p.val.2 : ℝ)) +
             h * ∑ i : Fin N, (r i : ℝ))) ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) := by
+  classical
   intro B E e0 eu
   let A : Bool × Bool → R ⊕ (J ⊕ J) := fun i =>
     if L && i.1 then .inl a else .inr (.inl u)

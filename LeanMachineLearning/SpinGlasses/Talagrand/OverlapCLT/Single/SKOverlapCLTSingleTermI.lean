@@ -31,7 +31,7 @@ overlap factors contracts with a leading single factor `(ε_x - ε_p) ε_p'` and
 factor up to `C/(N+1)^((card s+1)/2)`. The coefficient is `q - q̂` times the number of matches
 of `x` with the flagged slot of a single partner, and zero for pair and global partners. -/
 theorem sk_cavity_fresh_single_product_compare (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
-    {R J κ : Type*} [Fintype R] [Fintype J] [DecidableEq R] [DecidableEq J]
+    {R J κ : Type*} [Fintype R] [Fintype J] [DecidableEq R]
     (s : Finset κ) {ι : κ → Type*} [∀ j, Fintype (ι j)] (c : ∀ j, ι j → ℝ) :
     ∃ C : ℝ, 0 < C ∧ ∀ (β h q : ℝ),
       (∫ t : ℝ, Real.tanh (β * Real.sqrt q * t + h) ^ 2 ∂gaussianReal 0 1 = q) →
@@ -61,6 +61,7 @@ theorem sk_cavity_fresh_single_product_compare (β₀ : ℝ) (hβ₀ : 4 * β₀
         (e0 (fun r => σ r (Fin.last N)) * eu (fun r => σ r (Fin.last N)))) -
       d * δ * ν (fun σ => G (fun r v => σ r v.castSucc))| ≤
       C / ((N : ℝ) + 1) ^ (((s.card + 1 : ℕ) : ℝ) / 2) := by
+  classical
   obtain ⟨C, hC0, hC⟩ := sk_cavity_prod_contraction_compare β₀ hβ₀ (R := R ⊕ (J ⊕ J)) s c
   refine ⟨C, hC0, ?_⟩
   intro β h q hfix hb N x z w p u hpu L S hzw A B hAB Esk G e0 eu ν d δ
@@ -97,7 +98,7 @@ theorem sk_cavity_fresh_single_product_compare (β₀ : ℝ) (hβ₀ : 4 * β₀
 `sk_cavity_fresh_term_sum_compare`: after the outer inverse size the error is
 `C/(N+1)^((k+3)/2)`, uniformly over the temperature range. -/
 theorem sk_cavity_fresh_single_term_sum_compare (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
-    {R J U κ : Type*} [Fintype R] [Fintype J] [Fintype U] [DecidableEq R] [DecidableEq J]
+    {R J U κ : Type*} [Fintype R] [Fintype J] [Fintype U] [DecidableEq R]
     (s : U → Finset κ) (k : ℕ) (hcard : ∀ i, (s i).card = k)
     {ι : κ → Type*} [∀ j, Fintype (ι j)] (c : ∀ j, ι j → ℝ) :
     ∃ C : ℝ, 0 < C ∧ ∀ (β h q : ℝ),
@@ -130,6 +131,7 @@ theorem sk_cavity_fresh_single_term_sum_compare (β₀ : ℝ) (hβ₀ : 4 * β�
         (e0 (fun r => σ r (Fin.last N)) * eu i (fun r => σ r (Fin.last N))))) -
       (d / (N + 1 : ℝ)) * ∑ i : U, δ i * ν (fun σ => G i (fun r v => σ r v.castSucc))| ≤
       C / ((N : ℝ) + 1) ^ (((k + 3 : ℕ) : ℝ) / 2) := by
+  classical
   choose C hC0 hC using fun i : U => sk_cavity_fresh_single_product_compare β₀ hβ₀
     (R := R) (J := J) (s i) c
   refine ⟨(∑ i : U, C i) + 1, by

@@ -290,7 +290,7 @@ monomial containing a pair term has an odd (size one) pair class, so the pair te
 can be deleted at the cost of `O(k+1)`. -/
 theorem sk_live_T_drop_pair_terms_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
     {R : Type*} [Fintype R] [LinearOrder R]
-    {K M : Type*} [Fintype K] [DecidableEq K] [Fintype M]
+    {K M : Type*} [Fintype K] [Fintype M]
     (l s : K → M → Bool) (x y : K → M → R)
     (hxy : ∀ k m, l k m = true → s k m = true → x k m ≠ y k m) (γ : K → M → ℝ)
     (hinj : ∀ k k' m m', k ≠ k' → (l k m = true ∧ s k m = true) →
@@ -318,6 +318,7 @@ theorem sk_live_T_drop_pair_terms_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 
         ∂(Measure.pi fun _ : R => Measure.count.tilted (E g))
         ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))| ≤
       C / ((N : ℝ) + 1) ^ (((Fintype.card K + 1 : ℕ) : ℝ) / 2) := by
+  classical
   obtain ⟨C, hC0, hC⟩ := sk_live_T_expansion_uniform β₀ hβ₀ l s x y hxy γ
   refine ⟨C, hC0, fun β h q hfix hb N => ?_⟩
   intro E bmean Tp
@@ -392,7 +393,7 @@ other factors can be dropped and the square contributes the Gaussian second mome
 `α/(1-β²α)/(N+1)` of Proposition 1.10.4. -/
 theorem sk_live_T_square_factor_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
     {R : Type*} [Fintype R] [LinearOrder R]
-    {K M : Type*} [Fintype K] [DecidableEq K] [Fintype M] [DecidableEq M] [Nonempty M]
+    {K M : Type*} [Fintype K] [Fintype M] [Nonempty M]
     (l s : K → M → Bool) (x y : K → M → R)
     (hxy : ∀ k m, l k m = true → s k m = true → x k m ≠ y k m) (γ : K → M → ℝ)
     (u v : R) (huv : u < v)
@@ -427,6 +428,8 @@ theorem sk_live_T_square_factor_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 
         ∂(Measure.pi fun _ : R => Measure.count.tilted (E g))
         ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))| ≤
       C / ((N : ℝ) + 1) ^ (((Fintype.card K + 2 + 1 : ℕ) : ℝ) / 2) := by
+  classical
+  classical
   classical
   obtain ⟨m₀⟩ := (inferInstance : Nonempty M)
   let l' : Bool ⊕ K → M → Bool := fun k' m => Sum.elim (fun _ => true) (fun k => l k m) k'
@@ -628,7 +631,7 @@ terms (nonzero coefficients only for pair terms) and the pair labels of differen
 distinct, the whole average is `O(k+1)`. -/
 theorem sk_live_T_pair_only_factor_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
     {R : Type*} [Fintype R] [LinearOrder R]
-    {K M : Type*} [Fintype K] [DecidableEq K] [Fintype M]
+    {K M : Type*} [Fintype K] [Fintype M]
     (l s : K → M → Bool) (x y : K → M → R)
     (hxy : ∀ k m, l k m = true → s k m = true → x k m ≠ y k m) (γ : K → M → ℝ)
     (hinj : ∀ k k' m m', k ≠ k' → (l k m = true ∧ s k m = true) →
@@ -652,6 +655,7 @@ theorem sk_live_T_pair_only_factor_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2
         ∂(Measure.pi fun _ : R => Measure.count.tilted (E g))
         ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)| ≤
       C / ((N : ℝ) + 1) ^ (((Fintype.card K + 1 : ℕ) : ℝ) / 2) := by
+  classical
   obtain ⟨C, hC0, hC⟩ := sk_live_T_drop_pair_terms_uniform β₀ hβ₀ l s x y hxy γ hinj
   refine ⟨C, hC0, fun β h q hfix hb N => ?_⟩
   intro E bmean Tp
@@ -746,7 +750,7 @@ theorem sum_sign_overlap_eq_pair_T {R : Type*} (N : ℕ) (q : ℝ) (b : Fin (N +
 `∑_i c_{b,i} (R_{A b i,B b i} - q)` has average `O(k+1)` when no pair label of the increment
 equals a pair label of a factor and the pair labels of different factors are distinct. -/
 theorem sk_live_inc_unmatched_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
-    {R : Type*} [Fintype R] [LinearOrder R] {B : Type*} [Fintype B] [DecidableEq B]
+    {R : Type*} [Fintype R] [LinearOrder R] {B : Type*} [Fintype B]
     (c : B → Bool × Bool → ℝ) (A Bb : B → Bool × Bool → R) (X Y : Bool → R)
     (hAB : ∀ b i, A b i ≠ Bb b i) (hXY : ∀ i₁ i₂, X i₁ ≠ Y i₂)
     (hrest : ∀ b b' i i', b ≠ b' → c b i ≠ 0 → c b' i' ≠ 0 →
@@ -765,6 +769,7 @@ theorem sk_live_inc_unmatched_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
         ∂(Measure.pi fun _ : R => Measure.count.tilted (E g))
         ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)| ≤
       C / ((N : ℝ) + 1) ^ (((Fintype.card B + 2 : ℕ) : ℝ) / 2) := by
+  classical
   let sg : Bool × Bool → ℝ := fun i => (if i.1 then (1 : ℝ) else -1) * (if i.2 then 1 else -1)
   let γ : Option B → (Bool × Bool) × (Bool × Bool) → ℝ := fun k m =>
     Option.elim k (if m.2 = (true, true) then sg m.1 else 0) (fun b => c b m.1)
@@ -841,7 +846,7 @@ theorem sk_live_inc_unmatched_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
 T(ls; x k i, y k i)`. If one factor is pair-only and the pair labels of different factors with
 nonzero coefficients are distinct, the average is `O(k+1)`. -/
 theorem sk_live_sp_pair_only_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
-    {R : Type*} [Fintype R] [LinearOrder R] {K : Type*} [Fintype K] [DecidableEq K]
+    {R : Type*} [Fintype R] [LinearOrder R] {K : Type*} [Fintype K]
     (γ : K → (Bool × Bool) × (Bool × Bool) → ℝ) (x y : K → Bool × Bool → R)
     (hxy : ∀ k i, x k i ≠ y k i)
     (hinj : ∀ k k' m m', k ≠ k' → m.2 = (true, true) → m'.2 = (true, true) →
@@ -865,6 +870,7 @@ theorem sk_live_sp_pair_only_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
         ∂(Measure.pi fun _ : R => Measure.count.tilted (E g))
         ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)| ≤
       C / ((N : ℝ) + 1) ^ (((Fintype.card K + 1 : ℕ) : ℝ) / 2) := by
+  classical
   obtain ⟨C, hC0, hC⟩ := sk_live_T_pair_only_factor_uniform β₀ hβ₀
     (fun _ m => m.2.1) (fun _ m => m.2.2) (fun k m => x k m.1) (fun k m => y k m.1)
     (fun k m _ _ => hxy k m.1) γ
@@ -877,7 +883,7 @@ theorem sk_live_sp_pair_only_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
 
 /-- **Dropping pair terms (uniform shape).** -/
 theorem sk_live_sp_drop_pair_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
-    {R : Type*} [Fintype R] [LinearOrder R] {K : Type*} [Fintype K] [DecidableEq K]
+    {R : Type*} [Fintype R] [LinearOrder R] {K : Type*} [Fintype K]
     (γ : K → (Bool × Bool) × (Bool × Bool) → ℝ) (x y : K → Bool × Bool → R)
     (hxy : ∀ k i, x k i ≠ y k i)
     (hinj : ∀ k k' m m', k ≠ k' → m.2 = (true, true) → m'.2 = (true, true) →
@@ -905,6 +911,7 @@ theorem sk_live_sp_drop_pair_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
         ∂(Measure.pi fun _ : R => Measure.count.tilted (E g))
         ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))| ≤
       C / ((N : ℝ) + 1) ^ (((Fintype.card K + 1 : ℕ) : ℝ) / 2) := by
+  classical
   obtain ⟨C, hC0, hC⟩ := sk_live_T_drop_pair_terms_uniform β₀ hβ₀
     (fun _ m => m.2.1) (fun _ m => m.2.2) (fun k m => x k m.1) (fun k m => y k m.1)
     (fun k m _ _ => hxy k m.1) γ
@@ -914,7 +921,7 @@ theorem sk_live_sp_drop_pair_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
 
 /-- **Squared pair factor (uniform shape).** -/
 theorem sk_live_sp_square_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
-    {R : Type*} [Fintype R] [LinearOrder R] {K : Type*} [Fintype K] [DecidableEq K]
+    {R : Type*} [Fintype R] [LinearOrder R] {K : Type*} [Fintype K]
     (γ : K → (Bool × Bool) × (Bool × Bool) → ℝ) (x y : K → Bool × Bool → R)
     (hxy : ∀ k i, x k i ≠ y k i)
     (hinj : ∀ k k' m m', k ≠ k' → m.2 = (true, true) → m'.2 = (true, true) →
@@ -949,6 +956,7 @@ theorem sk_live_sp_square_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
         ∂(Measure.pi fun _ : R => Measure.count.tilted (E g))
         ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))| ≤
       C / ((N : ℝ) + 1) ^ (((Fintype.card K + 2 + 1 : ℕ) : ℝ) / 2) := by
+  classical
   obtain ⟨C, hC0, hC⟩ := sk_live_T_square_factor_uniform β₀ hβ₀
     (fun _ m => m.2.1) (fun _ m => m.2.2) (fun k m => x k m.1) (fun k m => y k m.1)
     (fun k m _ _ => hxy k m.1) γ u v huv
@@ -994,7 +1002,7 @@ is pair-only; the pair labels of the special factors and of the rest are pairwis
 (for nonzero coefficients). The average of the product is `O(k+1)`. This is the pair-only lemma
 for the index set `Bool ⊕ B`, with the sum-type bookkeeping done once. -/
 theorem sk_live_sp_two_special_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
-    {R : Type*} [Fintype R] [LinearOrder R] {B : Type*} [Fintype B] [DecidableEq B]
+    {R : Type*} [Fintype R] [LinearOrder R] {B : Type*} [Fintype B]
     (c : B → Bool × Bool → ℝ) (A Bb : B → Bool × Bool → R)
     (γ0 γ1 : (Bool × Bool) × (Bool × Bool) → ℝ) (x0 y0 x1 y1 : Bool × Bool → R)
     (hAB : ∀ b i, A b i ≠ Bb b i) (hxy0 : ∀ i, x0 i ≠ y0 i) (hxy1 : ∀ i, x1 i ≠ y1 i)
@@ -1028,6 +1036,7 @@ theorem sk_live_sp_two_special_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1
         ∂(Measure.pi fun _ : R => Measure.count.tilted (E g))
         ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)| ≤
       C / ((N : ℝ) + 1) ^ (((Fintype.card B + 3 : ℕ) : ℝ) / 2) := by
+  classical
   let G2 : Bool ⊕ B → (Bool × Bool) × (Bool × Bool) → ℝ :=
     Sum.elim (fun j => if j then γ1 else γ0) (fun b m => c b m.1)
   let X2 : Bool ⊕ B → Bool × Bool → R := Sum.elim (fun j => if j then x1 else x0) A
@@ -1149,7 +1158,7 @@ that of the term `i = (true,true)` (with `cu (true,true) = 1`, `X true = Au (tru
 the remaining factors. Then `ν(Inc · U_u · ∏_b U_b)` equals `α/(1-β²α)/(N+1)` times
 `ν(∏_b U_b)` up to `O(k+1)`. -/
 theorem sk_live_inc_matched_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
-    {R : Type*} [Fintype R] [LinearOrder R] {B : Type*} [Fintype B] [DecidableEq B]
+    {R : Type*} [Fintype R] [LinearOrder R] {B : Type*} [Fintype B]
     (c : B → Bool × Bool → ℝ) (A Bb : B → Bool × Bool → R) (X Y : Bool → R)
     (cu : Bool × Bool → ℝ) (Au Bu : Bool × Bool → R)
     (hAB : ∀ b i, A b i ≠ Bb b i) (hXY : ∀ i₁ i₂, X i₁ ≠ Y i₂) (hABu : ∀ i, Au i ≠ Bu i)
@@ -1184,6 +1193,7 @@ theorem sk_live_inc_matched_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
         ∂(Measure.pi fun _ : R => Measure.count.tilted (E g))
         ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))| ≤
       C / ((N : ℝ) + 1) ^ (((Fintype.card B + 3 : ℕ) : ℝ) / 2) := by
+  classical
   let sg : Bool × Bool → ℝ := fun i => (if i.1 then (1 : ℝ) else -1) * (if i.2 then 1 else -1)
   let ms : (Bool × Bool) × (Bool × Bool) := ((true, true), (true, true))
   let δ : (Bool × Bool) × (Bool × Bool) → ℝ := fun m => if m = ms then 1 else 0

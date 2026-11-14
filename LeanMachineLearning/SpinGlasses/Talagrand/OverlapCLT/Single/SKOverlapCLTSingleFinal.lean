@@ -356,7 +356,7 @@ the Gaussian moments of variance `B²/(N+1)` of its size, with
 `B² = (q - q̂)(1 + β² A²)/(1 - β²(1 - 4q + 3q̂))`, `A² = α/(1 - β²α)`, times the actual moment of
 the non-single factors, up to `O(k+1)`. -/
 theorem sk_T_single_gaussian_moment_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
-    {R J : Type*} [Fintype R] [DecidableEq R] [DecidableEq J]
+    {R J : Type*} [Fintype R] [DecidableEq R]
     (L S : J → Bool) (hnp : ∀ j, S j = false) (a b : J → R) (s : Finset J) :
     ∃ C : ℝ, 0 < C ∧ ∀ (β h q : ℝ),
       (∫ t : ℝ, Real.tanh (β * Real.sqrt q * t + h) ^ 2 ∂gaussianReal 0 1 = q) →
@@ -380,6 +380,7 @@ theorem sk_T_single_gaussian_moment_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 
           (s.filter fun j => (L j = true ∧ S j = false) ∧ a j = k).card ∂gaussianReal 0 1) *
       νT (s.filter fun j => ¬(L j = true ∧ S j = false))| ≤
       C / ((N : ℝ) + 1) ^ (((s.card + 1 : ℕ) : ℝ) / 2) := by
+  classical
   let P : J → Prop := fun j => L j = true ∧ S j = false
   let valid : ℝ × ℝ × ℝ → Prop := fun θ =>
     (∫ t : ℝ, Real.tanh (θ.1 * Real.sqrt θ.2.2 * t + θ.2.1) ^ 2 ∂gaussianReal 0 1 = θ.2.2) ∧

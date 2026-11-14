@@ -101,10 +101,11 @@ theorem sk_inc_prod_full_trunc_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1
 /-- **Summing the per-replica statements of (1.319).** If `Y ℓ` is within `e` of `X ℓ`, `X ℓ` is
 within `e` of `0` off the matched set `M` and within `e` of `c * D` on `M`, then the sum of `Y`
 over `L ⊇ M` is within `2 |L| e` of `|M| c D`. -/
-theorem sum_sub_card_mul_le {ι : Type*} [DecidableEq ι] (L M : Finset ι) (hML : M ⊆ L)
+theorem sum_sub_card_mul_le {ι : Type*} (L M : Finset ι) (hML : M ⊆ L)
     (Y X : ι → ℝ) (c D e : ℝ) (hYX : ∀ ℓ ∈ L, |Y ℓ - X ℓ| ≤ e)
     (hun : ∀ ℓ ∈ L, ℓ ∉ M → |X ℓ| ≤ e) (hma : ∀ ℓ ∈ M, |X ℓ - c * D| ≤ e) :
     |∑ ℓ ∈ L, Y ℓ - (M.card : ℝ) * (c * D)| ≤ 2 * L.card * e := by
+  classical
   have h1 : ∑ ℓ ∈ L, Y ℓ - (M.card : ℝ) * (c * D) =
       ∑ ℓ ∈ L, (Y ℓ - X ℓ) + (∑ ℓ ∈ L \ M, X ℓ + ∑ ℓ ∈ M, (X ℓ - c * D)) := by
     have hsplit : ∑ ℓ ∈ L, X ℓ = ∑ ℓ ∈ L \ M, X ℓ + ∑ ℓ ∈ M, X ℓ :=
@@ -829,7 +830,7 @@ theorem sk_single_Xfull_matched_all_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 
 /-- **Assembling the term II with a signed coefficient.** Per-replica approximations,
 the matched value `c D` and the replacement of `D` by `D'` give the value
 `|M| c D'` of the sum, with an explicit error bounded in terms of `|c|`. -/
-theorem sum_sub_card_mul_le_signed {ι : Type*} [DecidableEq ι] (L M : Finset ι) (hML : M ⊆ L)
+theorem sum_sub_card_mul_le_signed {ι : Type*} (L M : Finset ι) (hML : M ⊆ L)
     (Y X : ι → ℝ) (c D D' e δ : ℝ) (hYX : ∀ ℓ ∈ L, |Y ℓ - X ℓ| ≤ e)
     (hun : ∀ ℓ ∈ L, ℓ ∉ M → |X ℓ| ≤ e) (hma : ∀ ℓ ∈ M, |X ℓ - c * D| ≤ e)
     (hD : |D - D'| ≤ δ) :
@@ -846,7 +847,7 @@ theorem sum_sub_card_mul_le_signed {ι : Type*} [DecidableEq ι] (L M : Finset �
 /-- **Assembling the term II.** Pure bookkeeping for the hard step (1.319): per-replica
 approximations, the matched value `c D` and the replacement of `D` by `D'` give the value
 `|M| c D'` of the sum, with an explicit error. -/
-theorem sum_sub_card_mul_le' {ι : Type*} [DecidableEq ι] (L M : Finset ι) (hML : M ⊆ L)
+theorem sum_sub_card_mul_le' {ι : Type*} (L M : Finset ι) (hML : M ⊆ L)
     (Y X : ι → ℝ) (c D D' e δ : ℝ) (hc : 0 ≤ c) (hYX : ∀ ℓ ∈ L, |Y ℓ - X ℓ| ≤ e)
     (hun : ∀ ℓ ∈ L, ℓ ∉ M → |X ℓ| ≤ e) (hma : ∀ ℓ ∈ M, |X ℓ - c * D| ≤ e)
     (hD : |D - D'| ≤ δ) :

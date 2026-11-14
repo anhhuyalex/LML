@@ -37,7 +37,7 @@ of `s` by at most `C / (N+1)^((card s + 1)/2)`. The constant precedes `β, h, q,
 `β² ≤ β₀²`, `4 β₀² < 1`. The Gaussian moments vanish for odd class sizes and satisfy
 `a(k) = (k - 1) a(k - 2)`; this is the content of the book's `a(k) A^k`. -/
 theorem sk_T_pair_gaussian_moment_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
-    {R J : Type*} [Fintype R] [LinearOrder R] [DecidableEq J]
+    {R J : Type*} [Fintype R] [LinearOrder R]
     (L S : J → Bool) (a b : J → R) (hord : ∀ j, L j = true → S j = true → a j < b j)
     (s : Finset J) :
     ∃ C : ℝ, 0 < C ∧ ∀ (β h q : ℝ),
@@ -62,6 +62,7 @@ theorem sk_T_pair_gaussian_moment_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 
           ∂gaussianReal 0 1) *
       νT (s.filter fun j => ¬(L j = true ∧ S j = true))| ≤
       C / ((N : ℝ) + 1) ^ (((s.card + 1 : ℕ) : ℝ) / 2) := by
+  classical
   let P : J → Prop := fun j => L j = true ∧ S j = true
   have hcls : ∀ (s : Finset J) (p : J), (s.filter fun j => P j ∧ (a j, b j) = (a p, b p)) =
       s.filter fun u => L u = true ∧ S u = true ∧ a u = a p ∧ b u = b p := fun s p =>
@@ -141,7 +142,7 @@ theorem sk_T_pair_gaussian_moment_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 
 odd number of times among the pair factors of `s`, then `νT s = O(k+1)`: the Gaussian reference of
 Proposition 1.10.4 vanishes, because odd Gaussian moments are zero. -/
 theorem sk_T_pair_odd_class_moment_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
-    {R J : Type*} [Fintype R] [LinearOrder R] [DecidableEq J]
+    {R J : Type*} [Fintype R] [LinearOrder R]
     (L S : J → Bool) (a b : J → R) (hord : ∀ j, L j = true → S j = true → a j < b j)
     (s : Finset J) (k : R × R)
     (hodd : Odd (s.filter fun j => (L j = true ∧ S j = true) ∧ (a j, b j) = k).card) :
@@ -160,6 +161,7 @@ theorem sk_T_pair_odd_class_moment_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2
       ∏ j ∈ s, T j g ρ ∂(Measure.pi fun _ : R => Measure.count.tilted (E g))
         ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)
     |νT s| ≤ C / ((N : ℝ) + 1) ^ (((s.card + 1 : ℕ) : ℝ) / 2) := by
+  classical
   obtain ⟨C, hC0, hC⟩ := sk_T_pair_gaussian_moment_uniform β₀ hβ₀ L S a b hord s
   refine ⟨C, hC0, fun β h q hfix hb N => ?_⟩
   intro E bmean T νT
