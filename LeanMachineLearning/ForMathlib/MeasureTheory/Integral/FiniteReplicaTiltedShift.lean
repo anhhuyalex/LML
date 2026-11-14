@@ -24,11 +24,12 @@ namespace MeasureTheory
 variable {α R : Type*} [MeasurableSpace α] [MeasurableSingletonClass α]
 
 /-- **Constant shifts cancel in replica Gibbs averages.** -/
-theorem integral_pi_count_tilted_add_const [Fintype α] [Fintype R] (f : α → ℝ) (c : ℝ)
+theorem integral_pi_count_tilted_add_const [Finite α] [Fintype R] (f : α → ℝ) (c : ℝ)
     (Ψ : (R → α) → ℝ) :
     ∫ σ, Ψ σ ∂(Measure.pi fun _ : R => Measure.count.tilted fun a => f a + c) =
       ∫ σ, Ψ σ ∂(Measure.pi fun _ : R => Measure.count.tilted f) := by
   classical
+  have := Fintype.ofFinite α
   rw [integral_pi_count_tilted, integral_pi_count_tilted]
   refine Finset.sum_congr rfl fun σ _ => ?_
   congr 1

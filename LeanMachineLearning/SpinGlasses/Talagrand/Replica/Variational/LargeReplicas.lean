@@ -61,7 +61,7 @@ lemma skReplicaSum_le (n : ℕ) (β h q : ℝ) (hq : 0 ≤ q) :
         have h3 : β ^ 2 * q ≥ 0 := by positivity
         nlinarith [mul_le_mul_of_nonneg_left h2 h3]
     _ = (2 : ℝ) ^ n * Real.exp (n * |h| + β ^ 2 * q * (n : ℝ) ^ 2 / 2) := by
-        simp [Finset.sum_const, card_spin_configurations]
+        simp [Finset.sum_const]
 
 /-- Lower bound at `q = 1`: the all-aligned configuration with the sign of `h`. -/
 lemma le_skReplicaSum_one (n : ℕ) (β h : ℝ) :

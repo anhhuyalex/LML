@@ -102,17 +102,17 @@ theorem sum_weight_mul_eq_zero (f : α → ℝ) {j : Fin N}
   rw [← hu]
   exact Finset.sum_congr rfl fun a _ => by rw [real_count_tilted_singleton, smul_eq_mul]
 
-omit [Nonempty α] in
-set_option linter.unusedFintypeInType false in
+omit [Fintype α] [Nonempty α] in
 /-- **Parity vanishing (the replica-centering step of Theorem 1.7.11).**  If a replica occurs
 exactly once in a list of pairs, the Gibbs average of the product of the corresponding Gram
 entries vanishes, because every entry is linear in the replica data `u` and `⟨u⟩ = 0`. -/
-theorem integral_pairProd_centered_eq_zero (f : α → ℝ)
+theorem integral_pairProd_centered_eq_zero [Finite α] (f : α → ℝ)
     (hu : ∀ j, ∫ a, u a j ∂(Measure.count.tilted f) = 0) (v : ℝ) {m r : ℕ}
     (p : Fin r → Fin m × Fin m) (ℓ : Fin m) (hℓ : pairCount p ℓ = 1) :
     ∫ σ : Fin m → α,
       ∏ i, (u (σ (p i).1) ⬝ᵥ u (σ (p i).2) - if (p i).1 = (p i).2 then v ^ 2 else 0)
       ∂(Measure.pi fun _ : Fin m => Measure.count.tilted f) = 0 := by
+  have := Fintype.ofFinite α
   obtain ⟨n, rfl⟩ : ∃ n, m = n + 1 := Nat.exists_eq_succ_of_ne_zero (Fin.pos ℓ).ne'
   obtain ⟨i₀, ℓ', hne, hp, hrest⟩ := exists_of_pairCount_eq_one p ℓ hℓ
   rw [integral_pi_count_tilted]
@@ -139,16 +139,16 @@ theorem integral_pairProd_centered_eq_zero (f : α → ℝ)
     simp only [dotProduct, Function.update_of_ne hi'.1, Function.update_of_ne hi'.2]
   · simp only [Function.update_of_ne hne]
 
-omit [Nonempty α] in
-set_option linter.unusedFintypeInType false in
+omit [Fintype α] [Nonempty α] in
 /-- At s = 0, the Gibbs average of the path functional vanishes for any `r < m`, by parity
 vanishing and Gaussian vanishing. -/
-theorem integral_projSum_centered_zero_eq_zero {m r : ℕ} (V : ℝ → ℝ) (hV : ExpTame V)
+theorem integral_projSum_centered_zero_eq_zero [Finite α] {m r : ℕ} (V : ℝ → ℝ) (hV : ExpTame V)
     (hm : 0 < m) (hr : r < m) (f : α → ℝ)
     (hu : ∀ j, ∫ a, u a j ∂(Measure.count.tilted f) = 0) (v : ℝ)
     (hV0 : ∫ t, V (v * t) ∂(gaussianReal 0 1) = 0) :
     ∫ σ : Fin m → α, projSum V (fun l => u (σ l)) v r 0
       ∂(Measure.pi fun _ : Fin m => Measure.count.tilted f) = 0 := by
+  have := Fintype.ofFinite α
   have hterm : ∀ σ : Fin m → α, projSum V (fun l => u (σ l)) v r 0 =
       ∑ p : Fin r → Fin m × Fin m,
         (∏ j, (u (σ (p j).1) ⬝ᵥ u (σ (p j).2) - if (p j).1 = (p j).2 then v ^ 2 else 0)) *

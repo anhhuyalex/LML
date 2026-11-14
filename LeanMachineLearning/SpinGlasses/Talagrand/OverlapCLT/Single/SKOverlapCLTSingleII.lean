@@ -714,7 +714,7 @@ theorem sk_fresh_prod_full_trunc_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 <
   simpa only [one_mul, Pi.sub_apply, Fintype.card_coe, Λ, LinearMap.coe_mk, AddHom.coe_mk]
     using hmain
 theorem sk_single_Y_conv_all_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
-    {R J : Type*} [Fintype R] [DecidableEq R] [Fintype J] [DecidableEq J]
+    {R J : Type*} [Fintype R] [Fintype J] [DecidableEq J]
     (L S : J → Bool) (hnp : ∀ j, S j = false) (p : J)
     (a b : J → R) (n : ℕ) (e : Option (R ⊕ (J ⊕ J)) ≃ Fin n) :
     ∃ E : ℝ, 0 < E ∧ ∀ (β h q : ℝ),
@@ -745,6 +745,7 @@ theorem sk_single_Y_conv_all_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
         ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (Esk g))
         ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)| ≤
       E / ((N : ℝ) + 1) ^ (((Fintype.card J + 1 : ℕ) : ℝ) / 2) := by
+  classical
   choose C hC0 hC using fun ℓ : {ℓ : R ⊕ (J ⊕ J) // ℓ ≠ .inl (a p) ∧ ℓ ≠ .inr (.inl p)} =>
     sk_single_Y_conv_uniform β₀ hβ₀ L S hnp p a b n e ℓ.1 ℓ.2.1 ℓ.2.2
   refine ⟨∑ ℓ, C ℓ + 1, by
@@ -758,7 +759,7 @@ theorem sk_single_Y_conv_all_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
 
 /-- Unmatched replicas, uniformly over `ℓ`. -/
 theorem sk_single_Xfull_unmatched_all_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
-    {R J : Type*} [Fintype R] [DecidableEq R] [Fintype J] [DecidableEq J]
+    {R J : Type*} [Finite R] [Fintype J] [DecidableEq J]
     (L S : J → Bool) (hnp : ∀ j, S j = false) (p : J)
     (a b : J → R) (n : ℕ) (e : Option (R ⊕ (J ⊕ J)) ≃ Fin n) :
     ∃ E : ℝ, 0 < E ∧ ∀ (β h q : ℝ),
@@ -777,6 +778,8 @@ theorem sk_single_Xfull_unmatched_all_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ 
         ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (Esk g))
         ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1)| ≤
       E / ((N : ℝ) + 1) ^ (((Fintype.card J + 1 : ℕ) : ℝ) / 2) := by
+  classical
+  have := Fintype.ofFinite R
   choose C hC0 hC using fun ℓ : {ℓ : R ⊕ (J ⊕ J) // ℓ ≠ .inl (a p) ∧ ℓ ≠ .inr (.inl p) ∧
       ∀ u, u ≠ p → L u = true → a u = a p → ℓ ≠ .inr (.inr u)} =>
     sk_single_Xfull_unmatched_uniform β₀ hβ₀ L S hnp p a b n e ℓ.1 ℓ.2.1 ℓ.2.2.1 ℓ.2.2.2
@@ -791,7 +794,7 @@ theorem sk_single_Xfull_unmatched_all_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ 
 
 /-- Matched replicas, uniformly over `u`. -/
 theorem sk_single_Xfull_matched_all_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 < 1)
-    {R J : Type*} [DecidableEq R] [Fintype J] [DecidableEq J]
+    {R J : Type*} [Fintype J] [DecidableEq J]
     (L S : J → Bool) (hnp : ∀ j, S j = false) (p : J)
     (a b : J → R) (n : ℕ) (e : Option (R ⊕ (J ⊕ J)) ≃ Fin n) :
     ∃ E : ℝ, 0 < E ∧ ∀ (β h q : ℝ),
@@ -816,6 +819,7 @@ theorem sk_single_Xfull_matched_all_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 
         ∂(Measure.pi fun _ : Fin n => Measure.count.tilted (Esk g))
         ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1))| ≤
       E / ((N : ℝ) + 1) ^ (((Fintype.card J + 1 : ℕ) : ℝ) / 2) := by
+  classical
   choose C hC0 hC using fun u : {u : J // u ≠ p ∧ L u = true ∧ a u = a p} =>
     sk_single_Xfull_matched_uniform β₀ hβ₀ L S hnp p a b n e u.1 u.2.1 u.2.2.1 u.2.2.2
   refine ⟨∑ u, C u + 1, by
@@ -1056,7 +1060,7 @@ theorem sk_cavity_single_II_eval_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 <
     have hexp : ((Fintype.card J + 1 : ℕ) : ℝ) / 2 =
         1 + ((((((Finset.univ : Finset J).erase p).erase u₀).card + 1 : ℕ) : ℝ) / 2) := by
       rw [← hcardd]; push_cast; ring
-    show ((N : ℝ) + 1) ^ (((Fintype.card J + 1 : ℕ) : ℝ) / 2) = _
+    change ((N : ℝ) + 1) ^ (((Fintype.card J + 1 : ℕ) : ℝ) / 2) = _
     rw [hexp, Real.rpow_add (by positivity), Real.rpow_one]
   have hrhs := final_arith_term_II (Lset.card : ℝ) (M.card : ℝ) (Ea + Eb + Ec) C1
     (α / (1 - β ^ 2 * α) / (N + 1 : ℝ)) ((N : ℝ) + 1) Dd

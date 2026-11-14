@@ -115,12 +115,12 @@ theorem sq_integral_gibbs_cosh (f : α → ℝ) (c h : ℝ) (g : α → ℝ) (y 
   rw [integral_count_tilted, sq, Finset.sum_mul_sum]
   exact Finset.sum_congr rfl fun a _ => Finset.sum_congr rfl fun b _ => by ring
 
-omit [Nonempty α] in
-set_option linter.unusedFintypeInType false in
+omit [Fintype α] [Nonempty α] in
 /-- The Gaussian second moment of a Gibbs average of `g cosh L_y` is integrable. -/
-theorem integrable_sq_integral_gibbs_cosh (f : α → ℝ) (c h : ℝ) (g : α → ℝ) :
+theorem integrable_sq_integral_gibbs_cosh [Finite α] (f : α → ℝ) (c h : ℝ) (g : α → ℝ) :
     Integrable (fun y : Fin N → ℝ => (∫ a, g a * Real.cosh (c * ∑ j, y j * ξ j a + h)
       ∂(Measure.count.tilted f)) ^ 2) (Measure.pi fun _ : Fin N => gaussianReal 0 1) := by
+  have := Fintype.ofFinite α
   simp_rw [sq_integral_gibbs_cosh ξ f c h g]
   exact integrable_finsetSum _ fun a _ => integrable_finsetSum _ fun b _ =>
     (integrable_cosh_mul_cosh_sum_mul_gaussianReal c h (fun j => ξ j a)
