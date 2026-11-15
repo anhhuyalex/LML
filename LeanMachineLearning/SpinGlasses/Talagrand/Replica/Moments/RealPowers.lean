@@ -39,6 +39,12 @@ theorem skPartition_pos (N : ℕ) (β h : ℝ) (g : FinPairs N → ℝ) :
     0 < ∑ σ : Fin N → ℤˣ, Real.exp (skGibbsEnergy N β h g σ) :=
   Finset.sum_pos (fun _ _ => Real.exp_pos _) ⟨fun _ => 1, Finset.mem_univ _⟩
 
+/-- The real power of the SK partition sum is `exp (t log Z)`. -/
+theorem skPartition_rpow_eq_exp_mul_log (N : ℕ) (β h t : ℝ) (g : FinPairs N → ℝ) :
+    (∑ σ : Fin N → ℤˣ, Real.exp (skGibbsEnergy N β h g σ)) ^ t =
+      Real.exp (t * Real.log (∑ σ : Fin N → ℤˣ, Real.exp (skGibbsEnergy N β h g σ))) := by
+  rw [Real.rpow_def_of_pos (skPartition_pos N β h g), mul_comm]
+
 /-- The logarithm of the SK partition function is measurable in the disorder. -/
 theorem measurable_log_skPartition (N : ℕ) (β h : ℝ) :
     Measurable fun g : FinPairs N → ℝ =>

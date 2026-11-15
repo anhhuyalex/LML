@@ -70,9 +70,8 @@ theorem log_integral_rpow_skPartition_le (hN : 0 < N) (β h : ℝ) {t : ℝ} (ht
     rw [← Real.exp_mul, mul_comm]
   have hrpow : (fun g : FinPairs N → ℝ =>
       (∑ σ : Fin N → ℤˣ, Real.exp (skGibbsEnergy N β h g σ)) ^ t) = fun g =>
-      Real.exp (t * Real.log (∑ σ : Fin N → ℤˣ, Real.exp (skGibbsEnergy N β h g σ))) := by
-    ext g
-    rw [Real.rpow_def_of_pos (skPartition_pos N β h g), mul_comm]
+      Real.exp (t * Real.log (∑ σ : Fin N → ℤˣ, Real.exp (skGibbsEnergy N β h g σ))) :=
+    funext (skPartition_rpow_eq_exp_mul_log N β h t)
   have hint1 : Integrable (fun g : FinPairs N → ℝ =>
       (∑ σ : Fin N → ℤˣ, Real.exp (skGibbsEnergy N β h g σ)) ^ t) P := by
     rw [hrpow]
