@@ -172,10 +172,7 @@ theorem inv_mul_log_integral_rpow_skPartition_sandwich (hN : 0 < N) (t : ℝ) :
       (∑ σ : Fin N → ℤˣ, Real.exp (skGibbsEnergy N β h g σ)) ^ t ∂P =
       mgf X P t := by
     exact integral_rpow_eq_mgf_log (Filter.Eventually.of_forall (skPartition_pos N β h)) t
-  have hcgf : cgf X P t = Real.log (∫ g : FinPairs N → ℝ,
-      (∑ σ : Fin N → ℤˣ, Real.exp (skGibbsEnergy N β h g σ)) ^ t ∂P) := by
-    rw [h_rpow, cgf]
-  rw [hcgf] at h_sand
+  simp only [cgf, ← h_rpow] at h_sand
   have hN_pos : 0 < (N : ℝ) := Nat.cast_pos.2 hN
   have hN_inv_nonneg : 0 ≤ (N : ℝ)⁻¹ := inv_nonneg.2 hN_pos.le
   have hv_nonneg : 0 ≤ β ^ 2 * ((N : ℝ) - 1) / 2 := by

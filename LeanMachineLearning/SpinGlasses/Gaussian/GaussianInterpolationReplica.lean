@@ -8,6 +8,7 @@ module
 public import Mathlib.Analysis.Calculus.Deriv.Prod
 
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ParametrizedL2
+public import LeanMachineLearning.ForMathlib.Probability.Moments.SecondMoment
 public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianIBP
 public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianComparison
 
@@ -331,6 +332,28 @@ theorem integral_sq_integral_pi_count_tilted_le {α R Ω : Type*} [Finite α] [N
   refine integral_mono_ae (hi.mono' (hm.pow_const 2).aestronglyMeasurable
     (ae_of_all _ fun ω => ?_)) hi (ae_of_all _ hpt)
   simpa only [Real.norm_eq_abs, abs_sq] using hpt ω
+
+/-- **Integrated Gibbs variance for a finite random Gibbs state.** For the product Gibbs measure
+`G_ω` of any a.e. measurable energy `E`, the expected Gibbs variance of a deterministic replica
+observable `Φ` is at most its expected mean-square distance to any constant `q`:
+`𝔼 ⟨(Φ - ⟨Φ⟩)²⟩ ≤ 𝔼 ⟨(Φ - q)²⟩`.  No normalization or Gaussianity of the disorder law `P`
+is used. -/
+theorem integral_integral_sub_integral_sq_pi_count_tilted_le {α R Ω : Type*} [Finite α]
+    [Nonempty α] [MeasurableSpace α] [MeasurableSingletonClass α] [Fintype R]
+    [MeasurableSpace Ω] {P : Measure Ω} [IsFiniteMeasure P] {E : α → Ω → ℝ}
+    (hE : ∀ a, AEMeasurable (E a) P) (Φ : (R → α) → ℝ) (q : ℝ) :
+    ∫ ω, ∫ σ : R → α, (Φ σ - ∫ τ : R → α, Φ τ ∂(Measure.pi fun _ : R =>
+        Measure.count.tilted fun a => E a ω)) ^ 2
+      ∂(Measure.pi fun _ : R => Measure.count.tilted fun a => E a ω) ∂P ≤
+    ∫ ω, ∫ σ : R → α, (Φ σ - q) ^ 2
+      ∂(Measure.pi fun _ : R => Measure.count.tilted fun a => E a ω) ∂P := by
+  refine integral_mono_of_nonneg
+    (ae_of_all _ fun _ => integral_nonneg fun _ => sq_nonneg _)
+    (integrable_integral_pi_count_tilted_det hE (fun σ => (Φ σ - q) ^ 2))
+    (ae_of_all _ fun ω => ?_)
+  exact integral_sub_integral_sq_le_integral_sub_const_sq
+    ((memLp_two_iff_integrable_sq (measurable_of_finite Φ).aestronglyMeasurable).2
+      Integrable.of_finite) q
 
 /-- **Marginalizing an extra replica.** A function of `n + 1` replicas that does not depend on the
 last one has the same average as the `n`-replica function. -/

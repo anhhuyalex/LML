@@ -442,4 +442,3 @@ theorem integral_sum_mul_exp_add_mul_gaussianReal {ι : Type*} [Fintype ι]
   · intro i _
     simp_rw [Real.exp_add]
     exact ((integrable_exp_mul_gaussianReal (b i)).const_mul (Real.exp (a i))).const_mul (w i)
-

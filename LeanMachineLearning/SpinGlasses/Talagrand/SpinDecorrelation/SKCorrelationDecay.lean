@@ -152,22 +152,8 @@ theorem sk_gibbs_pair_covariance_sq_le {N : ℕ} (hN : 0 < N) (β h q : ℝ)
         ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) ≤
       spinDecorrConst 2 *
         (((Real.sqrt (1 / 2 - 2 * β ^ 2))⁻¹ - 1) / ((1 / 4 - β ^ 2) * N)) := by
-  obtain ⟨E, hE⟩ : ∃ E : (FinPairs N → ℝ) → (Fin N → ℤˣ) → ℝ, ∀ g a, E g a =
-      (Real.sqrt N)⁻¹ * β *
-        (∑ p : FinPairs N, g p * ((a p.val.1 : ℤ) : ℝ) * ((a p.val.2 : ℤ) : ℝ)) +
-        h * ∑ k, ((a k : ℤ) : ℝ) := ⟨_, fun _ _ => rfl⟩
-  have hcorr := sk_correlation_decay_le hN β h q hfix hβ {i, j}
-  rw [card_pair hij] at hcorr
-  simp only [← hE] at hcorr ⊢
-  have hp1 (σ : Fin N → ℤˣ) : ∏ k ∈ ({i, j} : Finset (Fin N)), ((σ k : ℤ) : ℝ) =
-      ((σ i : ℤ) : ℝ) * ((σ j : ℤ) : ℝ) := prod_pair hij
-  have hp2 (g : FinPairs N → ℝ) :
-      (∏ k ∈ ({i, j} : Finset (Fin N)),
-          ∫ σ : Fin N → ℤˣ, ((σ k : ℤ) : ℝ) ∂(Measure.count.tilted (E g))) =
-        (∫ σ : Fin N → ℤˣ, ((σ i : ℤ) : ℝ) ∂(Measure.count.tilted (E g))) *
-          (∫ σ : Fin N → ℤˣ, ((σ j : ℤ) : ℝ) ∂(Measure.count.tilted (E g))) := prod_pair hij
-  simp_rw [hp1, hp2] at hcorr
-  exact hcorr
+  simpa only [card_pair hij, prod_pair hij] using
+    sk_correlation_decay_le hN β h q hfix hβ {i, j}
 
 /-- **Expected squared Gibbs overlap deviation (Talagrand, Eq. (1.413)).** For the SK model with
 `β² < 1/4` at the fixed point `q = 𝔼 tanh² (β √q z + h)`, the expected squared deviation of the
@@ -197,18 +183,11 @@ theorem sk_expected_gibbs_overlap_sub_sq_le {N : ℕ} (hN : 0 < N) (β h q : ℝ
           - q =
         ∫ σ : Fin 2 → (Fin N → ℤˣ), (Φ σ - q)
           ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted (E g)) := by
-    have : IsProbabilityMeasure (Measure.pi fun _ : Fin 2 => Measure.count.tilted (E g)) := by
-      infer_instance
-    rw [integral_sub Integrable.of_finite (integrable_const q), integral_const, probReal_univ,
-      smul_eq_mul, one_mul]
+    simp only [integral_sub Integrable.of_finite (integrable_const q), integral_const,
+      probReal_univ, one_smul]
   have hE_ae (a : Fin N → ℤˣ) :
-      AEMeasurable (fun g => E g a) (Measure.pi fun _ : FinPairs N => gaussianReal 0 1) := by
-    have : Measurable fun g => E g a := by
-      simp only [hE]
-      refine (measurable_const.mul ?_).add_const _
-      exact Finset.measurable_sum _ fun p _ =>
-        ((measurable_pi_apply p).mul_const _).mul_const _
-    exact this.aemeasurable
+      AEMeasurable (fun g => E g a) (Measure.pi fun _ : FinPairs N => gaussianReal 0 1) :=
+    (by simp only [hE]; fun_prop : Measurable fun g => E g a).aemeasurable
   have hjensen := integral_sq_integral_pi_count_tilted_le (R := Fin 2)
     (P := Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
     (E := fun a g => E g a) hE_ae (fun σ => Φ σ - q)
@@ -247,43 +226,12 @@ theorem sk_expected_gibbs_var_overlap_le {N : ℕ} (hN : 0 < N) (β h q : ℝ)
   set Φ : (Fin 2 → Fin N → ℤˣ) → ℝ := fun σ =>
     (N : ℝ)⁻¹ * ((fun i => ((σ 0 i : ℤ) : ℝ)) ⬝ᵥ fun i => ((σ 1 i : ℤ) : ℝ))
   have hE_ae (a : Fin N → ℤˣ) :
-      AEMeasurable (fun g => E g a) (Measure.pi fun _ : FinPairs N => gaussianReal 0 1) := by
-    have : Measurable fun g => E g a := by
-      simp only [hE]
-      refine (measurable_const.mul ?_).add_const _
-      exact Finset.measurable_sum _ fun p _ =>
-        ((measurable_pi_apply p).mul_const _).mul_const _
-    exact this.aemeasurable
-  have hi : Integrable (fun g => ∫ σ : Fin 2 → (Fin N → ℤˣ), (Φ σ - q) ^ 2
-      ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted (E g)))
-      (Measure.pi fun _ : FinPairs N => gaussianReal 0 1) :=
-    integrable_integral_pi_count_tilted_det (R := Fin 2) (g := fun a g => E g a) hE_ae
-      (fun σ => (Φ σ - q) ^ 2)
-  have h_pt (g : FinPairs N → ℝ) :
-      (∫ σ : Fin 2 → (Fin N → ℤˣ),
-        (Φ σ - ∫ τ : Fin 2 → (Fin N → ℤˣ), Φ τ ∂(Measure.pi fun _ : Fin 2 =>
-          Measure.count.tilted (E g))) ^ 2
-        ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted (E g))) ≤
-      ∫ σ : Fin 2 → (Fin N → ℤˣ), (Φ σ - q) ^ 2
-        ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted (E g)) := by
-    have : IsProbabilityMeasure (Measure.pi fun _ : Fin 2 => Measure.count.tilted (E g)) := by
-      infer_instance
-    have h_mem : MemLp Φ 2 (Measure.pi fun _ : Fin 2 => Measure.count.tilted (E g)) :=
-      (memLp_two_iff_integrable_sq (measurable_of_finite Φ).aestronglyMeasurable).2
-        Integrable.of_finite
-    rw [← variance_eq_integral h_mem.aemeasurable]
-    exact variance_le_integral_sub_const_sq h_mem q
-  have h_nonneg : 0 ≤ᵐ[Measure.pi fun _ : FinPairs N => gaussianReal 0 1] fun g =>
-      ∫ σ : Fin 2 → (Fin N → ℤˣ),
-        (Φ σ - ∫ τ : Fin 2 → (Fin N → ℤˣ), Φ τ ∂(Measure.pi fun _ : Fin 2 =>
-          Measure.count.tilted (E g))) ^ 2
-        ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted (E g)) := by
-    refine ae_of_all _ fun g => ?_
-    exact integral_nonneg fun σ => sq_nonneg _
-  have h_mono := integral_mono_of_nonneg h_nonneg hi (ae_of_all _ h_pt)
+      AEMeasurable (fun g => E g a) (Measure.pi fun _ : FinPairs N => gaussianReal 0 1) :=
+    (by simp only [hE]; fun_prop : Measurable fun g => E g a).aemeasurable
   have hov := sk_expected_sq_overlap_le hN β h q hfix hβ
   simp only [← hE] at hov
-  exact h_mono.trans hov
+  exact (integral_integral_sub_integral_sq_pi_count_tilted_le (E := fun a g => E g a) hE_ae Φ
+    q).trans hov
 
 /-- **Variance of the Gibbs overlap under the disorder (Talagrand, Eq. (1.413)).** For the SK model
 with `β² < 1/4` at the fixed point `q = 𝔼 tanh² (β √q z + h)`, the variance of the Gibbs average
@@ -311,27 +259,14 @@ theorem sk_var_gibbs_overlap_le {N : ℕ} (hN : 0 < N) (β h q : ℝ)
     ⟨_, fun _ => rfl⟩
   simp only [← hE, ← hΦ]
   have hE_ae (a : Fin N → ℤˣ) :
-      AEMeasurable (fun g => E g a) (Measure.pi fun _ : FinPairs N => gaussianReal 0 1) := by
-    have : Measurable fun g => E g a := by
-      simp only [hE]
-      refine (measurable_const.mul ?_).add_const _
-      exact Finset.measurable_sum _ fun p _ =>
-        ((measurable_pi_apply p).mul_const _).mul_const _
-    exact this.aemeasurable
+      AEMeasurable (fun g => E g a) (Measure.pi fun _ : FinPairs N => gaussianReal 0 1) :=
+    (by simp only [hE]; fun_prop : Measurable fun g => E g a).aemeasurable
   have hΦ_bound (σ : Fin 2 → Fin N → ℤˣ) : |Φ σ| ≤ 1 := by
-    have hNpos : (0 : ℝ) < N := Nat.cast_pos.2 hN
-    have habs : |(fun i => ((σ 0 i : ℤ) : ℝ)) ⬝ᵥ fun i => ((σ 1 i : ℤ) : ℝ)| ≤ N := by
-      calc |∑ i, ((σ 0 i : ℤ) : ℝ) * ((σ 1 i : ℤ) : ℝ)|
-          ≤ ∑ i : Fin N, |((σ 0 i : ℤ) : ℝ) * ((σ 1 i : ℤ) : ℝ)| := abs_sum_le_sum_abs _ _
-        _ = ∑ i : Fin N, |((σ 0 i : ℤ) : ℝ)| * |((σ 1 i : ℤ) : ℝ)| := by
-            simp_rw [abs_mul]
-        _ = ∑ i : Fin N, (1 : ℝ) * 1 := by
-            congr 1 with i
-            rw [abs_units_cast_eq_one, abs_units_cast_eq_one]
-        _ = N := by simp
+    have : Nonempty (Fin N) := ⟨⟨0, hN⟩⟩
     rw [hΦ]
-    rw [abs_mul, abs_inv, abs_of_pos hNpos]
-    exact (inv_mul_le_iff₀ hNpos).2 (by simpa using habs)
+    simpa only [Fintype.card_fin] using abs_card_inv_mul_dotProduct_le_one
+      (fun i => ((σ 0 i : ℤ) : ℝ)) (fun i => ((σ 1 i : ℤ) : ℝ))
+      (fun i => (abs_units_cast_eq_one (σ 0 i)).le) (fun i => (abs_units_cast_eq_one (σ 1 i)).le)
   have hY_mem : MemLp (fun g : FinPairs N → ℝ =>
       ∫ σ : Fin 2 → (Fin N → ℤˣ), Φ σ ∂(Measure.pi fun _ : Fin 2 =>
         Measure.count.tilted (E g))) 2 (Measure.pi fun _ : FinPairs N => gaussianReal 0 1) :=

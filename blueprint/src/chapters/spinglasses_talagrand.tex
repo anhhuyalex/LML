@@ -2823,9 +2823,7 @@ whose kernel is $\beta^2\varepsilon_\ell\varepsilon_{\ell'}(q-R^-_{\ell,\ell'})$
 \]
 (Lean: \texttt{HasDerivAt.comp\_arccos\_sqrt\_of\_sin\_cos}). The factor $-\frac12$ is pushed under the three integrals; it turns the kernel $\beta^2\varepsilon\varepsilon'(q-R^-)$ into $\frac{\beta^2}2\varepsilon\varepsilon'(R^--q)$ and the covariance combination into the three families of (1.151) (Lean: \texttt{neg\_half\_replica\_covariance\_offDiag}, \texttt{neg\_sk\_cavity\_covariance}).
 \emph{Step 3 (marginalization).} In the Lean statement the observable is not marginalized: the three families are written as integrals over $n+2$ replicas of $f(\tau^1,\dots,\tau^n)$ times the kernel, which is equal to the $\nu_t$ of the statement by \texttt{integral\_pi\_option\_count\_tilted\_marginal}.
-\emph{Not formalized:} the second form (1.152) with $R$ in place of $R^-$ (it follows from
-Lemma~\ref{lem:sg-tal:cavity-overlap-split} since $\varepsilon_\ell^2=1$ and the three
-families have total weight $\binom n2-n^2+\binom{n+1}2=0$).
+The full-overlap form (1.152) is proved in Theorem~\ref{thm:sg-tal:cavity-path-derivative-full} below by a constant shift of the kernel; the three-family weights sum to zero.
 \end{proof}
 
 \begin{theorem}[The cavity path derivative with the full overlap (Eq. 1.152)]
@@ -6773,7 +6771,7 @@ The Arzela--Ascoli theorem on $C([-r,r])$ gives a subsequence that converges (un
 $\lambda\sum_i\sigma_i\tau_i=\lambda MR_{1,2}$, so no normalisation by $M$ appears in $Z_{M,\lambda}$.  The concentration constant is $K=8\beta^2$
 from the variance bound $2\beta^2M$ (the book's $K$ is unspecified); the separation bound proved is $3\delta'/4>\delta'/2$.  Proposition~1.9.7 inherits
 $h\ne0$ from Proposition~1.9.5; the threshold $N_0$ depends on $\lambda$ (the size conditions degenerate as $\lambda\to0$), as in the book.
-\item \emph{Theorem~1.9.6.} Convergence of $\psi_N(\lambda)$ to a finite real-valued function $\psi$, pointwise on a neighbourhood of $0$, is assumed; its existence is not proved. the formalized statement is the implication ``limit exists $\Rightarrow$ not differentiable at $0$''.  The corner (the one-sided derivatives $\psi'(0\pm)$) is not constructed.
+\item \emph{Theorem~1.9.6.} Convergence of $\psi_N(\lambda)$ to a finite real-valued function $\psi$, pointwise on a neighbourhood of $0$, is assumed; its existence is not proved. The formalized statement is the implication ``limit exists $\Rightarrow$ not differentiable at $0$''.  The corner (the one-sided derivatives $\psi'(0\pm)$) is not constructed.
 \item \emph{Research Problem~1.9.1} (the pointwise-in-$N$ bound $\nu(|R_{1,2}-q|)>\delta$ beyond the AT line, Eq.~(1.268)) is an open problem of the book, not a theorem; it is recorded in Remark~\ref{rem:sg-tal:research-191} and is not part of the formalization targets.
 \end{itemize}
 \end{remark}
@@ -6827,7 +6825,7 @@ Step~2 shows why the closure draft's proposal of an unrestricted comparison was 
 
 \section{Central Limit Theorem for the Overlaps (Talagrand Section~1.10)}\label{sec:sg-tal:overlap-clt}
 
-Section~1.10 of Talagrand establishes the quantitative central limit theorem for the fluctuations of the replica overlaps $X_{\ell,\ell'} = \sqrt{N}(R_{\ell,\ell'} - q)$ in the high-temperature regime $\beta < 1/2$. The asymptotic covariance matrix is determined by the $T$-basis limits $(A^2, B^2, C^2)$ computed in Section~1.8 (Theorem~\ref{thm:sg-tal:thm-1812}):
+Section~1.10 of Talagrand studies the fluctuations $X_{\ell,\ell\prime}=\sqrt N(R_{\ell,\ell\prime}-q)$. The Lean results below prove quantitative Gaussian mixed-moment estimates for a deterministic field in the range $\beta^2<1/4$; a separate weak-convergence theorem is not asserted. The covariance formula is determined by the $T$-basis limits $(A^2,B^2,C^2)$ computed in Section~1.8 (Theorem~\ref{thm:sg-tal:thm-1812}):
 $$\Sigma(\{\ell_1, \ell_2\}, \{\ell_3, \ell_4\}) = A^2 \mathbf{1}_{\{\ell_1, \ell_2\} = \{\ell_3, \ell_4\}} + B^2 |\{\ell_1, \ell_2\} \cap \{\ell_3, \ell_4\}| + C^2.$$
 
 \begin{theorem}[Overlap covariance function]\label{thm:sg-tal:overlap-cov}
@@ -8733,7 +8731,7 @@ Instead of converging to $a(k) D^k$, its moments satisfy Eq.~(1.329):
 = a(k) \left( \frac{\beta^2}{N(1 - \beta^2(1 - 2q + \hat q))} \right)^{k/2} (\mathbb E \operatorname{ch}^{-2k} Y)^2
 + O(k+1),
 \]
-corresponding in law to the non-Gaussian product
+\emph{Source interpretation.} The source identifies the moments with the proposed non-Gaussian limit below. The Lean results in this section prove moment estimates and the moments of that proposed law; they do not prove convergence in distribution.
 \[
 \sqrt{N} (\langle \sigma_1 \sigma_2 \rangle - \langle \sigma_1 \rangle \langle \sigma_2 \rangle)
 \stackrel{\mathcal D}{\longrightarrow}
@@ -11757,7 +11755,9 @@ In particular, for all $t \ne 0$,
 \leanok
 Write $X_N(g)=\log Z_N(g)$ and
 $G_N(g,\sigma)=\beta N^{-1/2}\sum_{i<j}g_{ij}\sigma_i\sigma_j$ for the centered Gaussian part of the energy.
-\emph{Step 1 (the pair normalization).} Independence of the standard Gaussian edges and
+\emph{Step 1 (the pair normalization).} The edge disorder is a vector of independent standard Gaussians and $G_N(\sigma)$ is a linear form in it, so the existing Gaussian linear-form lemmas
+(\texttt{hasGaussianLaw\_dotProduct\_family}, \texttt{integral\_dotProduct\_pi\_gaussianReal},
+\texttt{integral\_dotProduct\_mul\_dotProduct\_pi\_gaussianReal}) give its law, mean and second moment. Independence of the standard Gaussian edges and
 $\sigma_i^2=1$ give, for each fixed configuration,
 \[
 \mathbb E G_N(\sigma)=0,\qquad
@@ -11808,7 +11808,10 @@ tp\le\psi(t)\le tp+\frac{\beta^2t^2}{2},\qquad \psi(0)=0.
 This is differentiability at zero. Together with the finite-system identity in
 Theorem~\ref{thm:sg-tal:replica-real-moments}, it identifies both iterated limits under
 the stated hypotheses. The Lean proof first proves this quadratic-bound implication
-for general sequences of real functions and then applies it to the SK expressions.
+for functions indexed by any type along any nontrivial filter
+(\texttt{hasDerivAt\_zero\_of\_tendsto\_quadratic\_bounds}, in
+\texttt{ForMathlib/Analysis/Calculus/QuadraticBounds.lean}) and then applies it to the SK
+expressions along the sequence filter.
 \end{proof}
 
 \begin{remark}[Status of the real-moment limit]\label{rem:sg-tal:replica-real-moment-status}
@@ -11890,42 +11893,48 @@ The route through the pair form would add the factor $\sqrt2$, the extra Gaussia
 
 \section{Notes and comments (Talagrand Section~1.14)}\label{sec:sg-tal:notes-comments}
 
-Section~1.14 of the book is largely historical and bibliographic, reviewing the development of the SK model,
-high-temperature cavity methods, and concentration of measure.
-This section records the correspondence between Section~1.14 mathematical statements and repository declarations,
-and formalizes the truncated correlation and overlap variance bounds of Eqs.~(1.412)--(1.414).
+Section~1.14 reviews earlier proofs and records several mathematical consequences.
+The table below distinguishes the proved statements from the results cited by the book.
+The bounds for Eqs.~(1.412)--(1.414) are stated and proved after the table.
 
-\subsection{Correspondence ledger for Section~1.14}
+\subsection{Correspondence with the source}
 
 \begin{center}
 \begin{tabular}{|p{0.18\textwidth}|p{0.38\textwidth}|p{0.38\textwidth}|}
 \hline
-\textbf{Paragraph} & \textbf{Content in Talagrand} & \textbf{Repository Status / Declaration} \\
+\textbf{Source topic} & \textbf{Statement in Talagrand} & \textbf{Lean result and scope} \\
 \hline
-1 & SK and Kirkpatrick heuristics; failure of (1.411) at large $\beta$ & Discussion only. The rigorous integer-replica theorem is in Section~\ref{sec:sg-tal:replica}; no Lean statement says that (1.411) fails at low temperature \\
+Original SK formula & The replica-symmetric formula fails at large $\beta$ & The cited failure is not proved here. The integer-replica formula is proved in Theorem~\ref{thm:sg-tal:replica}; it does not prove the real-parameter formula. \\
 \hline
-2 & ALR ($h=0$) and Froehlich--Zegarlinski ($\beta \le \beta_0$): $\mathbb E(\langle\sigma_1\sigma_2\rangle - \langle\sigma_1\rangle\langle\sigma_2\rangle)^2 \le L/N$, Eq.~(1.412) & Proved for $N \ge 1$, $\beta^2 < 1/4$ and a fixed point $q$ (hypothesis \texttt{hfix}): \lean{SpinGlasses.sk_gibbs_pair_covariance_sq_le}. The cluster-expansion proofs of the cited papers are not formalized \\
+Early small-temperature proofs & ALR cluster expansions at $h=0$; Froehlich--Zegarlinski spin decorrelation, Eq.~(1.412) & The original proofs are not reproduced. Theorem~\ref{thm:sg-tal:gibbs-pair-covariance} proves the correlation bound for $\beta^2<1/4$. \\
 \hline
-2 & Comets--Neveu: CLT for $R_{1,2}$ at $h=0$ & Not stated as a convergence in law. Section~\ref{sec:sg-tal:overlap-clt} proves, for a deterministic field and $4\beta_0^2 < 1$, the Gaussian limit of the mixed moments of the decomposed overlap factors (Theorem~\ref{thm:sg-tal:thm-1101}), with error $O(N^{-(|s|+1)/2})$; this is the moment form of the overlap CLT, not the free-energy CLT of Theorem~\ref{thm:sg-tal:free-energy-clt} \\
+Overlap CLT & Comets--Neveu's central limit theorem for $R_{1,2}$ at $h=0$ & Section~\ref{sec:sg-tal:overlap-clt} proves quantitative Gaussian mixed-moment estimates for the overlap factors, also for deterministic $h\ne0$. See Theorem~\ref{thm:sg-tal:thm-1101} for its hypotheses and conclusion. \\
 \hline
-3 & Concentration of measure (Levy, Milman, Ledoux); Theorem~1.3.4 & Proved for the free energy: \lean{SpinGlasses.hasSubgaussianMGF_log_sum_exp} (general Gaussian field), \lean{SpinGlasses.hasSubgaussianMGF_log_skPartition} (the SK pair Hamiltonian, parameter $\beta^2(N-1)$), \lean{SpinGlasses.mixedPSpin_free_energy_concentration} (mixed $p$-spin) \\
+Concentration & Theorem~1.3.4 and its relation to concentration of Gaussian measure & Theorem~\ref{thm:sg-tal:concentration} gives the mixed-spin result; Theorem~\ref{thm:sg-tal:replica-real-moment-sandwich} uses the scalar pair-disorder concentration estimate. \\
 \hline
-4 & Pastur--Shcherbina: $\operatorname{Var}\langle R_{1,2}\rangle \to 0$, Eq.~(1.413); Shcherbina: $\mathbb E\langle(R_{1,2} - \langle R_{1,2}\rangle)^2\rangle \to 0$, Eq.~(1.414) & Proved as bounds $K/N$ (hence both limits are $0$ for fixed parameters) for $N \ge 1$, $\beta^2 < 1/4$ and a fixed point $q$. The equivalence of (1.413) and (1.414) on a larger domain is not formalized: \lean{SpinGlasses.sk_expected_gibbs_overlap_sub_sq_le}, \lean{SpinGlasses.sk_var_gibbs_overlap_le}, \lean{SpinGlasses.sk_expected_gibbs_var_overlap_le} \\
+Overlap variances & Pastur--Shcherbina's condition (1.413), and Shcherbina's equivalence with (1.414) over a domain & Theorem~\ref{thm:sg-tal:gibbs-overlap-variance} proves both variance bounds for $\beta^2<1/4$. The cited implication for the pressure and the larger-domain equivalence are not proved here. \\
 \hline
-5 & Shcherbina [128]: $\lim p_N = \operatorname{SK}(\beta, h)$ for $\beta < 1$ & The repository proves the narrower range $\beta^2 < 1/4$ (a fixed point $q$ supplied): Theorem~\ref{thm:sg-tal:alr} (\lean{SpinGlasses.tendsto_sk_free_energy_of_lt}). The range $\beta < 1$ is not formalized \\
+Larger temperature range & Shcherbina's pressure formula for nonnegative $\beta<1$ & Theorem~\ref{thm:sg-tal:alr} proves the formula for $\beta^2<1/4$ and the supplied fixed point. The larger cited range is not formalized. \\
 \hline
-7 & Smart path method history (Kahane, Pisier) & Proved: Slepian form \lean{SpinGlasses.integral_comp_le_of_covariance_le} \\
+Earlier expansions & The moment recursion and expansion in [149] & The cited proof is not reproduced. Sections~\ref{sec:sg-tal:overlap-clt} and~\ref{sec:sg-tal:hanen} state the moment results proved in this development. \\
 \hline
-8 & Cavity expansion of $\nu_1'((\varepsilon_1\varepsilon_2 - q)f)$, Eq.~(1.152), and its specialization to $f = R_{1,2} - q$ with $R_{1,2,3,4}$, $\hat q$ and an $O(3)$ remainder & The derivative formula (1.152) for a general replica observable is proved: \lean{SpinGlasses.hasDerivAt_integral_sk_cavity_path_square_full}. The displayed four-replica expansion needs moment bounds for $R_{1,2,3,4}-\hat q$ and is not formalized (optional work package P5 of the completion plan; the book itself does not use it) \\
+Smart paths & Kahane's and Pisier's arguments & Gaussian comparison and concentration are proved in Theorems~\ref{thm:sg-tal:slepian} and~\ref{thm:sg-tal:concentration}, with their stated growth and model hypotheses. \\
 \hline
-9 & Quantitative CLT for $N^{-1}\log Z_N$ (Theorem~1.4.11) & Proved: Theorem~\ref{thm:sg-tal:free-energy-clt} (\lean{SpinGlasses.sk_free_energy_clt}) \\
+Four-replica expansion & The expansion following (1.152), involving $R_{1,2,3,4}$ & The general interior derivative formula is Theorem~\ref{thm:sg-tal:cavity-path-derivative-full}. The displayed four-replica specialization and its cubic-moment error estimate are not formalized. \\
 \hline
-10 & Mezard's coupling and Theorem~1.9.6 & Proved: Section~\ref{sec:sg-tal:beyond-at} \\
+Free-energy CLT & Theorem~1.4.11 improves the result cited in [74] & Theorem~\ref{thm:sg-tal:free-energy-clt} gives quantitative moments of $N^{-1}\log Z_N$ for a deterministic field, under $\beta^2<1/4$ and the fixed-point equation. \\
 \hline
-11 & Guerra's bound (1.73); Proposition~1.3.8 & Proved: Theorem~\ref{thm:sg-tal:guerra-rs-bound} (\lean{SpinGlasses.sk_replica_symmetric_upper_bound}) \\
+Coupled copies & Mezard's coupling and Theorem~1.9.6 & Theorem~\ref{thm:sg-tal:thm-196} assumes existence of the coupled limit. Theorem~\ref{thm:sg-tal:coupled-subsequence} proves a subsequence result without that assumption. Both require $h\ne0$ and the stated AT instability. \\
+\hline
+Guerra and Lata\l{}a & Guerra's bound (1.73) and Proposition~1.3.8 & Theorems~\ref{thm:sg-tal:guerra-rs-bound} and~\ref{thm:sg-tal:fixed-point-unique} give the bound and deterministic-field uniqueness, with the separate hypotheses stated there. \\
 \hline
 \end{tabular}
 \end{center}
+
+\emph{Formalization note.} The overlap results in the table are mixed-moment statements.
+The free-energy CLT concerns a different random variable, $N^{-1}\log Z_N$.
+Neither reference should be read as a new convergence-in-distribution theorem beyond the
+conclusions stated in its own section.
 
 \subsection{Correlation and overlap variance bounds}
 
@@ -11934,66 +11943,115 @@ and formalizes the truncated correlation and overlap variance bounds of Eqs.~(1.
 \leanok
 \uses{thm:sg-tal:sk-correlation-decay}
 \talsource{Section~1.14, Eq.~(1.412)}
-For the Sherrington--Kirkpatrick model with $N \ge 1$, $\beta^2 < 1/4$ and $q$ a solution of
-$q = \mathbb E\tanh^2(\beta\sqrt q z + h)$ (hypothesis \texttt{hfix}), every pair of distinct sites $i \ne j$ satisfies
+Let $N\ge1$, $\beta,h,q\in\mathbb R$, and suppose
 \[
-\mathbb E\big(\langle\sigma_i\sigma_j\rangle - \langle\sigma_i\rangle\langle\sigma_j\rangle\big)^2 \le \frac{K}{N},
+\beta^2<\frac14,\qquad q=\mathbb E\tanh^2(\beta\sqrt q\,z+h),\qquad z\sim\mathcal N(0,1).
 \]
-with $K = \operatorname{spinDecorrConst}(2) \cdot \frac{(1/2 - 2\beta^2)^{-1/2} - 1}{1/4 - \beta^2}$.
+For every pair of distinct sites $i,j\in\{1,\ldots,N\}$,
+\[
+\mathbb E\bigl(\langle\sigma_i\sigma_j\rangle-
+\langle\sigma_i\rangle\langle\sigma_j\rangle\bigr)^2
+\le\operatorname{spinDecorrConst}(2)\frac{K_\beta}{N},\qquad
+K_\beta=\frac{(1/2-2\beta^2)^{-1/2}-1}{1/4-\beta^2}.
+\]
+The constant $K_\beta$ is independent of $N,h,q$ and the chosen sites.
 \end{theorem}
 \begin{proof}
 \leanok
-Specialization of Theorem~\ref{thm:sg-tal:sk-correlation-decay} (\texttt{sk\_correlation\_decay\_le})
-to the two-element site set $S = \{i, j\}$ using $|S| = 2$ and $\prod_{k \in S} \sigma_k = \sigma_i \sigma_j$.
+Take $S=\{i,j\}$ in Theorem~\ref{thm:sg-tal:sk-correlation-decay}. Since $i\ne j$,
+\[
+|S|=2,\qquad \prod_{k\in S}\sigma_k=\sigma_i\sigma_j,\qquad
+\prod_{k\in S}\langle\sigma_k\rangle=
+\langle\sigma_i\rangle\langle\sigma_j\rangle.
+\]
+These identities turn that theorem's bound into the displayed inequality.
+Formalized in \texttt{SpinGlasses/Talagrand/SpinDecorrelation/SKCorrelationDecay.lean}.
 \end{proof}
 
-\begin{theorem}[Gibbs overlap deviation and variance, Eqs.~(1.413) and (1.414)]\label{thm:sg-tal:gibbs-overlap-variance}
-\lean{SpinGlasses.sk_expected_gibbs_overlap_sub_sq_le, SpinGlasses.sk_var_gibbs_overlap_le, SpinGlasses.sk_expected_gibbs_var_overlap_le}
+\begin{theorem}[Gibbs overlap mean and its two variances, Eqs.~(1.413)--(1.414)]\label{thm:sg-tal:gibbs-overlap-variance}
+\lean{SpinGlasses.sk_expected_gibbs_overlap_sub_sq_le, SpinGlasses.sk_var_gibbs_overlap_le, SpinGlasses.sk_expected_gibbs_var_overlap_le, SpinGlasses.integral_integral_sub_integral_sq_pi_count_tilted_le}
 \leanok
-\uses{thm:sg-tal:overlap-conc, thm:sg-tal:sk-correlation-decay}
+\uses{thm:sg-tal:overlap-conc}
 \talsource{Section~1.14, Eqs.~(1.413)--(1.414)}
-For the Sherrington--Kirkpatrick model with $N \ge 1$, $\beta^2 < 1/4$ and $q$ a solution of
-$q = \mathbb E\tanh^2(\beta\sqrt q z + h)$ (hypothesis \texttt{hfix}):
+Let $N\ge1$, $\beta,h,q\in\mathbb R$, $\beta^2<1/4$ and
+$q=\mathbb E\tanh^2(\beta\sqrt q\,z+h)$ for standard Gaussian $z$. Write $R=R_{1,2}$ and
+$m_N(g)=\langle R\rangle_g$, the mean under two independent Gibbs replicas with the
+same disorder $g$. With $K_\beta$ as above,
 \begin{enumerate}
-\item The expected squared deviation of the Gibbs overlap mean $\langle R_{1,2}\rangle$ from $q$ satisfies
+\item The mean-square distance of $m_N$ to the deterministic fixed point is bounded by
 \[
-\mathbb E\big(\langle R_{1,2}\rangle - q\big)^2 \le \frac{(1/2 - 2\beta^2)^{-1/2} - 1}{(1/4 - \beta^2) N}.
+\mathbb E\bigl(m_N-q\bigr)^2\le\frac{K_\beta}{N}.
 \]
-\item The variance of the Gibbs overlap mean under the disorder satisfies
+\item The variance under the Gaussian disorder is bounded by
 \[
-\operatorname{Var}\big(\langle R_{1,2}\rangle\big) \le \frac{(1/2 - 2\beta^2)^{-1/2} - 1}{(1/4 - \beta^2) N}.
+\operatorname{Var}_g(m_N)
+=\mathbb E\bigl(m_N-\mathbb E m_N\bigr)^2\le\frac{K_\beta}{N}.
 \]
-\item The expected Gibbs variance of the overlap satisfies
+\item The expected variance under the product Gibbs measure is bounded by
 \[
-\mathbb E\,\big\langle (R_{1,2} - \langle R_{1,2}\rangle)^2 \big\rangle \le \frac{(1/2 - 2\beta^2)^{-1/2} - 1}{(1/4 - \beta^2) N}.
+\mathbb E\big\langle(R-m_N(g))^2\big\rangle_g\le\frac{K_\beta}{N}.
 \]
 \end{enumerate}
 \end{theorem}
 \begin{proof}
 \leanok
-For (1), by Jensen's inequality for the square on the product Gibbs measure,
-$(\langle R_{1,2}\rangle - q)^2 = \langle R_{1,2} - q\rangle^2 \le \langle (R_{1,2} - q)^2\rangle$.
-Taking expectation over the Gaussian disorder gives
-$\mathbb E(\langle R_{1,2}\rangle - q)^2 \le \mathbb E\langle (R_{1,2} - q)^2\rangle \le K / N$
-by Theorem~\ref{thm:sg-tal:overlap-conc} (\texttt{sk\_expected\_sq\_overlap\_le}).
-
-For (2), by the variational characterization of variance (\texttt{variance\_le\_integral\_sub\_const\_sq}),
-$\operatorname{Var}(\langle R_{1,2}\rangle) \le \mathbb E(\langle R_{1,2}\rangle - q)^2 \le K / N$.
-
-For (3), for every realization of the disorder, the variance of $R_{1,2}$ under the Gibbs measure minimizes the
-mean-square distance to any constant, so $\langle (R_{1,2} - \langle R_{1,2}\rangle)^2\rangle \le \langle (R_{1,2} - q)^2\rangle$.
-Integrating over the Gaussian disorder and applying Theorem~\ref{thm:sg-tal:overlap-conc} yields the bound.
+The product Gibbs measure is a probability measure. Since $|R|\le1$, its mean also
+satisfies $|m_N(g)|\le1$; in particular the disorder variance is defined by an
+integrable square.
+\emph{Step 1 (Jensen).} For each disorder realization,
+\[
+(m_N(g)-q)^2=\langle R-q\rangle_g^2\le\langle(R-q)^2\rangle_g.
+\]
+Integrating and applying Theorem~\ref{thm:sg-tal:overlap-conc} gives
+$\mathbb E(m_N-q)^2\le K_\beta/N$.
+\emph{Step 2 (disorder variance).} On the disorder probability space,
+\[
+\operatorname{Var}_g(m_N)\le\mathbb E(m_N-q)^2\le\frac{K_\beta}{N}.
+\]
+The first inequality is the general bound of variance by the mean-square distance
+to any constant, used in Lean as \texttt{variance\_le\_integral\_sub\_const\_sq}.
+\emph{Step 3 (Gibbs variance).} Apply that same inequality on the product Gibbs space,
+for each fixed $g$:
+\[
+\big\langle(R-m_N(g))^2\big\rangle_g\le\langle(R-q)^2\rangle_g.
+\]
+Integrate over the disorder (the shared inequality
+\texttt{integral\_integral\_sub\_integral\_sq\_pi\_count\_tilted\_le} holds for any finite configuration
+space, finite replica type and finite disorder measure) and apply the overlap bound again.
+Formalized in \texttt{SpinGlasses/Talagrand/SpinDecorrelation/SKCorrelationDecay.lean}.
 \end{proof}
 
-\begin{remark}[Cited results not formalized]\label{rem:sg-tal:notes-comments-unformalized}
+\begin{remark}[Comparison with the limits in the source]\label{rem:sg-tal:notes-comments-scope}
+\talsource{Section~1.14, Eqs.~(1.412)--(1.414)}
+The book writes limits in (1.413)--(1.414). Lean proves the finite-size bounds above;
+for fixed $\beta,h,q$ in the stated range, nonnegativity and $K_\beta/N\to0$ give
+both limits. The first mean-square bound is stronger than the disorder variance
+bound, but the two quantities have different centers and are not identified.
+The fixed point is an explicit hypothesis; existence is available from
+Theorem~\ref{thm:sg-tal:fixed-point}. The temperature condition permits signed
+$\beta$ with $|\beta|<1/2$, and includes the book's nonnegative range $\beta<1/2$.
+The proofs use the earlier overlap concentration theorem, rather than the cluster
+expansions cited in these notes. They establish both small-temperature bounds
+separately and do not prove Shcherbina's equivalence over a larger domain.
+\end{remark}
+
+\begin{remark}[Cited results and further expansions not formalized]\label{rem:sg-tal:notes-comments-unformalized}
 \talsource{Section~1.14}
-The following historical or qualitative citations from Section~1.14 are not formalized:
+The following claims and proof methods from the notes are not formalized here:
 \begin{itemize}
-\item The Froehlich--Zegarlinski and Aizenman--Lebowitz--Ruelle cluster expansions for small $\beta$;
-\item The Comets--Neveu central limit theorem for $R_{1,2}$ at $h = 0$ as a convergence in law (only the moment form of Section~\ref{sec:sg-tal:overlap-clt} is proved);
-\item The displayed four-replica expansion of $\nu_1'((\varepsilon_1\varepsilon_2 - q)(R_{1,2}-q))$, which also needs moment bounds for $R_{1,2,3,4}$;
-\item The Shcherbina equivalence between (1.413) and (1.414) over a domain, which relies on Ghirlanda--Guerra identities from Volume~II;
-\item Shcherbina's theorem [128] extending the free energy formula to all $\beta < 1$ (the repository proves $\beta^2 < 1/4$);
-\item The failure of Eq.~(1.411) at large $\beta$.
+\item The original Froehlich--Zegarlinski and Aizenman--Lebowitz--Ruelle cluster-expansion proofs.
+\item The Comets--Neveu stochastic-calculus proof of the overlap CLT. The repository's
+mixed-moment results use the cavity method and retain the hypotheses of
+Section~\ref{sec:sg-tal:overlap-clt}.
+\item The Pastur--Shcherbina implication from a vanishing disorder variance to the
+replica-symmetric pressure formula over the cited domain, and Shcherbina's larger-domain
+equivalence of (1.413) and (1.414).
+\item Shcherbina's theorem [128] in the larger nonnegative temperature range $\beta<1$.
+\item The specialized four-replica expansion following (1.152) and its error estimate.
+The general derivative formula in Theorem~\ref{thm:sg-tal:cavity-path-derivative-full} applies
+for $0<t<1$; it does not by itself give the displayed expansion at the endpoint or
+the needed moment bounds for $R_{1,2,3,4}$.
 \end{itemize}
+The historical attributions and physics commentary are recorded as source discussion,
+without attaching Lean theorem tags to those assertions.
 \end{remark}

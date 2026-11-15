@@ -17,6 +17,7 @@ public import LeanMachineLearning.ForMathlib.Analysis.Calculus.GronwallBackward
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.IntervalDerivative
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.IntervalIntegralDeriv
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.LinearODEScalar
+public import LeanMachineLearning.ForMathlib.Analysis.Calculus.QuadraticBounds
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.TaylorCoefficient
 public import LeanMachineLearning.ForMathlib.Analysis.Cesaro
 public import LeanMachineLearning.ForMathlib.Analysis.Complex.Exponential
