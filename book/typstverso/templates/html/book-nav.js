@@ -257,6 +257,7 @@ const bookNav = (() => {
     const details = element(doc, "details");
     details.dataset.section = entry.id;
     details.open = entry.current || isOpen;
+    details.classList.toggle("leaf", entry.headings.length === 0); // nothing to fold
     if (entry.current) details.setAttribute("aria-current", "page");
     const summary = element(doc, "summary");
     summary.append(link(doc, entry.href, entry.label), element(doc, "span", "tree-meta", entry.meta));

@@ -36,6 +36,8 @@ body.nav-dragging { user-select: none; cursor: col-resize; }
 #book-tree ol ol { margin-top: 6px; padding-left: 14px; font-size: 14px; }
 #book-tree details { margin: 0; }
 #book-tree summary { cursor: pointer; padding: 2px 0; }
+#book-tree .leaf > summary { list-style: none; cursor: default; }
+#book-tree .leaf > summary::-webkit-details-marker { display: none; }
 #book-tree a { color: inherit; text-decoration: none; }
 #book-tree a:hover { text-decoration: underline; text-underline-offset: 3px; }
 #book-tree a:focus-visible { outline: 2px solid #526a58; outline-offset: 3px; }

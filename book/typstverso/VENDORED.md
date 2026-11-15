@@ -3,7 +3,7 @@
 Source: <https://github.com/Shreyas4991/TypstVerso> at commit
 `e00a419e35ac2fa4ebec5c6bbdc22b74480642e0` (Apache-2.0, see `LICENSE.txt`).
 Only what the Talagrand book needs is copied: `build.py`, `ExportLean.lean`, `typst/lean.typ`,
-`templates/html/{book.html,reader.js,tooltips.js,tooltips.css}`. The sample documents, the other
+`templates/html/{book.html,reader.js,tooltips.js,tooltips.css}` (plus the new `book-nav.js`/`book-nav.css`). The sample documents, the other
 templates, the demo Lean project and the SubVerso patch are **not** used.
 
 `packages/preview/mitex/0.2.7/` is the Typst package [mitex](https://typst.app/universe/package/mitex)
@@ -40,6 +40,11 @@ built LML environment. This needs no patch and does not touch LML's SubVerso, wh
 
 `templates/html/`
 * `tooltips.js`/`tooltips.css`: `<a class="book-link">` overlays; `reader.js`: anchor targets.
+* `book.html`: the Contents pane is a three-column grid (pane, splitter, pages) with a hide button,
+  a "Book home" link and a container for the whole-book tree. Pages link to the new
+  `book-nav.js`/`book-nav.css` (new files, not inlined: the script is shared by all pages).
+* `book-nav.js`/`book-nav.css` (new): resizable and collapsible pane, whole-book contents read from
+  `toc.json` (written by `talagrand/make_toc.py`). Tests: `talagrand/checks/check_nav.cjs`.
 
 ## Updating
 

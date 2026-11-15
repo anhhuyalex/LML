@@ -18,6 +18,16 @@ It is published at <https://anhhuyalex.github.io/LML/talagrand/>: one HTML page 
   `#check` prints it, with hover information for the types and documentation.
 * Proofs are the blueprint's informal proofs. Lean proofs are not included.
 
+## The Contents pane
+
+Every section page has a Contents pane on the left. It lists all sections of the book (the
+current one open, the heading on screen in bold), links back to the landing page, and can be
+resized (drag the line between pane and pages; arrow keys, Home/End and double-click also work on it)
+or hidden (Hide button, or `Alt+C`; the "Contents" button at the top left brings it back). Width
+and visibility are remembered in the browser. The code is `typstverso/templates/html/book-nav.js` and
+`book-nav.css`; `talagrand/make_toc.py` writes `toc.json` after all sections are built. Without
+`toc.json` (for example a page opened from disk) the pane shows only the current section.
+
 ## How it works
 
 ```
@@ -39,7 +49,8 @@ Never edit `generated/`. Change the `.tex` (or the theme) and rebuild.
 | `talagrand/overrides.toml` | manual corrections of Talagrand numbers |
 | `talagrand/verify_signatures.py` | fails if a cited Lean name has no signature (renamed/private) |
 | `talagrand/make_index.py` | the landing page |
-| `talagrand/checks/` | tests (`check_*.py`; the repository ignores `test*` names) |
+| `talagrand/make_toc.py` | `toc.json`: the contents of the whole book, shown in every page's Contents pane |
+| `talagrand/checks/` | tests (`check_*.py`; the repository ignores `test*` names; `check_nav.cjs` is run by `check_nav_js.py` and needs `node`) |
 | `typstverso/` | vendored TypstVerso with small changes, see `typstverso/VENDORED.md` |
 | `../scripts/build_talagrand_book.sh` | the whole pipeline |
 
