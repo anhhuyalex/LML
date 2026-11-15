@@ -106,6 +106,14 @@ theorem variance_le_integral_sub_const_sq {Ω : Type*} [MeasurableSpace Ω]
     _ ≤ ∫ ω, (X ω - G) ^ 2 ∂μ :=
         variance_le_expectation_sq (hX.sub (memLp_const G)).aestronglyMeasurable
 
+/-- The mean-square distance to the mean is bounded by the mean-square distance to any constant. -/
+theorem integral_sub_integral_sq_le_integral_sub_const_sq
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : Ω → ℝ} (hX : MemLp X 2 μ) (G : ℝ) :
+    ∫ ω, (X ω - ∫ y, X y ∂μ) ^ 2 ∂μ ≤ ∫ ω, (X ω - G) ^ 2 ∂μ := by
+  rw [← variance_eq_integral hX.aemeasurable]
+  exact variance_le_integral_sub_const_sq hX G
+
 /-- The variance bound follows from the stronger mean-square approximation to a constant. -/
 theorem variance_le_of_moment_errors {Ω : Type*} [MeasurableSpace Ω]
     {μ : Measure Ω} [IsProbabilityMeasure μ] {X : Ω → ℝ} (hX : MemLp X 2 μ)
