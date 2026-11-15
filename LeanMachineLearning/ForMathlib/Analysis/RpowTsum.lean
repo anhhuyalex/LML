@@ -52,3 +52,20 @@ theorem rpow_le_one_add {x : ℝ≥0∞} {p : ℝ} (hp0 : 0 ≤ p) (hp1 : p ≤ 
       _ ≤ 1 + x := le_add_self
 
 end ENNReal
+
+namespace Real
+
+/-- **Finite subadditivity of `x ^ p`, `0 < p ≤ 1`, for nonnegative reals:**
+`(∑ i ∈ s, f i) ^ p ≤ ∑ i ∈ s, f i ^ p`. -/
+theorem rpow_sum_le_sum_rpow {ι : Type*} (s : Finset ι) (f : ι → ℝ) (hf : ∀ i ∈ s, 0 ≤ f i)
+    {p : ℝ} (hp0 : 0 < p) (hp1 : p ≤ 1) : (∑ i ∈ s, f i) ^ p ≤ ∑ i ∈ s, f i ^ p := by
+  classical
+  induction s using Finset.induction_on with
+  | empty => simp [Real.zero_rpow hp0.ne']
+  | insert a s ha ih =>
+    rw [sum_insert ha, sum_insert ha]
+    exact (Real.rpow_add_le_add_rpow (hf a (mem_insert_self a s))
+      (sum_nonneg fun i hi => hf i (mem_insert_of_mem hi)) hp0.le hp1).trans
+        (add_le_add_right (ih fun i hi => hf i (mem_insert_of_mem hi)) _)
+
+end Real

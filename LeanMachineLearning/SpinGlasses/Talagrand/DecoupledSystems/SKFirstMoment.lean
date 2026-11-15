@@ -111,6 +111,60 @@ theorem sum_exp_h_mul_spin {N : ℕ} (h : ℝ) :
   rw [heq, decoupled_partition_function_eq (fun _ => h)]
   rw [Fintype.card_fin, Finset.prod_const, Finset.card_univ, Fintype.card_fin, ← mul_pow]
 
+/-- **Splitting the exponential of the SK energy:** `exp (t H(σ))` is the product of the
+deterministic field factor `exp (t h ∑ σᵢ)` and the exponential of a linear form in the Gaussian
+disorder. -/
+theorem exp_mul_sk_energy_eq {N : ℕ} (β h t : ℝ) (g : FinPairs N → ℝ) (σ : Fin N → ℤˣ) :
+    Real.exp (t * ((Real.sqrt N)⁻¹ * β *
+        (∑ p : FinPairs N, g p * ((σ p.val.1 : ℤ) : ℝ) * ((σ p.val.2 : ℤ) : ℝ)) +
+        h * ∑ i, ((σ i : ℤ) : ℝ))) =
+      Real.exp ((t * h) * ∑ i, ((σ i : ℤ) : ℝ)) * Real.exp (∑ p : FinPairs N,
+        (t * ((Real.sqrt N)⁻¹ * β * ((σ p.val.1 : ℤ) : ℝ) * ((σ p.val.2 : ℤ) : ℝ))) * g p) := by
+  rw [← Real.exp_add]
+  congr 1
+  have e : ∑ p : FinPairs N,
+      (t * ((Real.sqrt N)⁻¹ * β * ((σ p.val.1 : ℤ) : ℝ) * ((σ p.val.2 : ℤ) : ℝ))) * g p =
+      t * ((Real.sqrt N)⁻¹ * β *
+        (∑ p : FinPairs N, g p * ((σ p.val.1 : ℤ) : ℝ) * ((σ p.val.2 : ℤ) : ℝ))) := by
+    rw [Finset.mul_sum, Finset.mul_sum]
+    refine Finset.sum_congr rfl fun p _ => by ring
+  rw [e]
+  ring
+
+/-- For every real `t` and configuration `σ`, `exp (t H(σ))` is integrable against the Gaussian
+disorder. -/
+theorem integrable_exp_mul_sk_energy {N : ℕ} (β h t : ℝ) (σ : Fin N → ℤˣ) :
+    Integrable (fun g : FinPairs N → ℝ => Real.exp (t * ((Real.sqrt N)⁻¹ * β *
+        (∑ p : FinPairs N, g p * ((σ p.val.1 : ℤ) : ℝ) * ((σ p.val.2 : ℤ) : ℝ)) +
+        h * ∑ i, ((σ i : ℤ) : ℝ))))
+      (Measure.pi fun _ : FinPairs N => gaussianReal 0 1) := by
+  simp_rw [exp_mul_sk_energy_eq]
+  exact (integrable_exp_sum_mul_gaussianReal _).const_mul _
+
+/-- **Exponential moments of the SK energy, summed over the hypercube.**  For every real `t`,
+`𝔼 ∑_σ exp (t H(σ)) = (2 cosh (t h))^N exp (t² N (β²/4)(1 - 1/N))`, where `H(σ)` is the SK energy
+with Gaussian disorder `g` on pairs `i < j` and constant external field `h`.  The case `t = 1` is
+the first moment of the partition function (`integral_sk_partition_function`); other `t` give
+the `∑_σ 𝔼 (e^{H(σ)})^t` that bounds real moments `𝔼 Z^t`, `0 < t ≤ 1`, by subadditivity. -/
+theorem integral_sum_exp_mul_sk_energy {N : ℕ} (hN : 0 < N) (β h t : ℝ) :
+    ∫ g : FinPairs N → ℝ, ∑ σ : Fin N → ℤˣ,
+      Real.exp (t * ((Real.sqrt N)⁻¹ * β *
+        (∑ p : FinPairs N, g p * ((σ p.val.1 : ℤ) : ℝ) * ((σ p.val.2 : ℤ) : ℝ)) +
+        h * ∑ i, ((σ i : ℤ) : ℝ)))
+      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) =
+    (2 * Real.cosh (t * h)) ^ N * Real.exp (t ^ 2 * ((N : ℝ) * (β ^ 2 / 4 * (1 - (N : ℝ)⁻¹)))) := by
+  rw [integral_finsetSum Finset.univ fun σ _ => integrable_exp_mul_sk_energy β h t σ]
+  have h_g_int (σ : Fin N → ℤˣ) : ∫ g : FinPairs N → ℝ, Real.exp (∑ p : FinPairs N,
+      (t * ((Real.sqrt N)⁻¹ * β * ((σ p.val.1 : ℤ) : ℝ) * ((σ p.val.2 : ℤ) : ℝ))) * g p)
+      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) =
+      Real.exp (t ^ 2 * ((N : ℝ) * (β ^ 2 / 4 * (1 - (N : ℝ)⁻¹)))) := by
+    rw [integral_exp_sum_mul_gaussianReal]
+    congr 1
+    rw [← sum_sk_first_moment_term_sq hN β σ, Finset.mul_sum]
+    refine Finset.sum_congr rfl fun p _ => by ring
+  simp only [exp_mul_sk_energy_eq, integral_const_mul, h_g_int]
+  rw [← Finset.sum_mul, sum_exp_h_mul_spin]
+
 /-- The exact expectation of the SK partition function over Gaussian disorder `g` on pairs `i < j`
 and constant external field `h`. -/
 theorem integral_sk_partition_function {N : ℕ} (hN : 0 < N) (β h : ℝ) :
@@ -120,40 +174,7 @@ theorem integral_sk_partition_function {N : ℕ} (hN : 0 < N) (β h : ℝ) :
         h * ∑ i, ((σ i : ℤ) : ℝ))
       ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1) =
     (2 * Real.cosh h) ^ N * Real.exp ((N : ℝ) * (β ^ 2 / 4 * (1 - (N : ℝ)⁻¹))) := by
-  set P : Measure (FinPairs N → ℝ) := Measure.pi fun _ : FinPairs N => gaussianReal 0 1
-  have h_int_sum : ∫ g : FinPairs N → ℝ, ∑ σ : Fin N → ℤˣ,
-      Real.exp ((Real.sqrt N)⁻¹ * β *
-        (∑ p : FinPairs N, g p * ((σ p.val.1 : ℤ) : ℝ) * ((σ p.val.2 : ℤ) : ℝ)) +
-        h * ∑ i, ((σ i : ℤ) : ℝ)) ∂P =
-      ∑ σ : Fin N → ℤˣ, Real.exp (h * ∑ i, ((σ i : ℤ) : ℝ)) *
-        ∫ g : FinPairs N → ℝ, Real.exp (∑ p : FinPairs N,
-          ((Real.sqrt N)⁻¹ * β * ((σ p.val.1 : ℤ) : ℝ) * ((σ p.val.2 : ℤ) : ℝ)) * g p) ∂P := by
-    have h_swap : (fun (g : FinPairs N → ℝ) => ∑ σ : Fin N → ℤˣ,
-        Real.exp ((Real.sqrt N)⁻¹ * β *
-          (∑ p : FinPairs N, g p * ((σ p.val.1 : ℤ) : ℝ) * ((σ p.val.2 : ℤ) : ℝ)) +
-          h * ∑ i, ((σ i : ℤ) : ℝ))) =
-        fun (g : FinPairs N → ℝ) => ∑ σ : Fin N → ℤˣ, Real.exp (h * ∑ i, ((σ i : ℤ) : ℝ)) *
-          Real.exp (∑ p : FinPairs N,
-            ((Real.sqrt N)⁻¹ * β * ((σ p.val.1 : ℤ) : ℝ) * ((σ p.val.2 : ℤ) : ℝ)) * g p) := by
-      ext g
-      refine Finset.sum_congr rfl fun σ _ => ?_
-      rw [add_comm, Real.exp_add]
-      congr 2
-      rw [Finset.mul_sum]
-      refine Finset.sum_congr rfl fun p _ => by ring
-    rw [h_swap, integral_finsetSum Finset.univ]
-    · refine Finset.sum_congr rfl fun σ _ => ?_
-      rw [integral_const_mul]
-    · intro σ _
-      exact (integrable_exp_sum_mul_gaussianReal _).const_mul _
-  rw [h_int_sum]
-  have h_g_int (σ : Fin N → ℤˣ) : ∫ g : FinPairs N → ℝ, Real.exp (∑ p : FinPairs N,
-      ((Real.sqrt N)⁻¹ * β * ((σ p.val.1 : ℤ) : ℝ) * ((σ p.val.2 : ℤ) : ℝ)) * g p) ∂P =
-      Real.exp ((N : ℝ) * (β ^ 2 / 4 * (1 - (N : ℝ)⁻¹))) := by
-    rw [integral_exp_sum_mul_gaussianReal]
-    congr 1
-    exact sum_sk_first_moment_term_sq hN β σ
-  simp_rw [h_g_int, ← Finset.sum_mul, sum_exp_h_mul_spin]
+  simpa only [one_mul, one_pow] using integral_sum_exp_mul_sk_energy hN β h 1
 
 /-- **First Moment of the SK Partition Function (Exercise 1.2.3, Eq. 1.25):**
 The expectation of the SK partition function over Gaussian disorder `g` on pairs `i < j`

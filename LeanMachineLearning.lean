@@ -690,6 +690,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Moments.Concentr
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Moments.Convexity
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Moments.Gaussian
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Moments.Hyperbolic
+public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Moments.LargeBeta
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Moments.RealPowers
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.ConstantCoupling
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.Coordinates
