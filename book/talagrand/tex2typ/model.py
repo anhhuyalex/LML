@@ -98,7 +98,30 @@ class Proof:
     blocks: list["Block"]
 
 
-Block = Union[Paragraph, DisplayMath, RunInHead, ListBlock, Heading, Environment, Proof]
+@dataclass
+class TableCell:
+    inlines: list[Inline]
+
+
+@dataclass
+class TableRow:
+    cells: list[TableCell]
+    hline_after: bool = False
+
+
+@dataclass
+class Table:
+    alignments: list[str]
+    rows: list[TableRow]
+    hline_before: bool = False
+
+
+@dataclass
+class Center:
+    blocks: list["Block"]
+
+
+Block = Union[Paragraph, DisplayMath, RunInHead, ListBlock, Heading, Environment, Proof, Center, Table]
 
 
 @dataclass

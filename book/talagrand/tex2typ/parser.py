@@ -10,8 +10,9 @@ import unicodedata
 from typing import Iterator
 
 from .errors import ConversionError
-from .model import (Block, DisplayMath, Document, Environment, Heading, Inline, LineBreak,
-                    ListBlock, ListItem, Math, Meta, Paragraph, Proof, Ref, RunInHead, Styled, Text)
+from .model import (Block, Center, DisplayMath, Document, Environment, Heading, Inline, LineBreak,
+                    ListBlock, ListItem, Math, Meta, Paragraph, Proof, Ref, RunInHead, Styled, Table,
+                    TableCell, TableRow, Text)
 from .scanner import find_matching_end, read_group, read_optional, skip_space
 
 NBSP = "\u00a0"
@@ -275,7 +276,78 @@ class Parser:
             return ListBlock(name == "enumerate", self.parse_items(body_lo, end)), after
         if name == "align*":
             return DisplayMath(self.text[m.start():after].strip()), after
+        if name in {"center", "table"}:
+            blocks = self.parse_blocks(body_lo, end)
+            return Center(blocks), after
+        if name == "tabular":
+            return self.parse_tabular(body_lo, end), after
         raise self.error(f"unsupported environment {name}", m.start())
+
+    def parse_tabular(self, body_lo: int, end: int) -> Table:
+        pos = skip_space(self.text, body_lo)
+        optional = read_optional(self.text, pos, self.filename)
+        if optional:
+            pos = skip_space(self.text, optional[2])
+        col_lo, col_hi, content_lo = self.group(pos)
+        col_spec = self.text[col_lo:col_hi]
+        align_map = {"l": "left", "c": "center", "r": "right"}
+        alignments = [align_map[c] for c in col_spec if c in align_map]
+        if not alignments:
+            alignments = ["left"]
+
+        rows: list[TableRow] = []
+        current_cells: list[TableCell] = []
+        cell_lo = content_lo
+        depth = 0
+        in_math = False
+        hline_before = False
+        i = content_lo
+
+        while i < end:
+            c = self.text[i]
+            if c == "\\":
+                if i + 6 <= end and self.text[i:i + 6] == r"\hline":
+                    s_sub = self.text[cell_lo:i].strip()
+                    if not current_cells and not s_sub and not rows:
+                        hline_before = True
+                    elif rows and not current_cells and not s_sub:
+                        rows[-1].hline_after = True
+                    i += 6
+                    cell_lo = i
+                    continue
+                elif i + 2 <= end and self.text[i:i + 2] == r"\\":
+                    cell_inlines = self.parse_inline(cell_lo, i)
+                    current_cells.append(TableCell(cell_inlines))
+                    rows.append(TableRow(current_cells, hline_after=False))
+                    current_cells = []
+                    i += 2
+                    cell_lo = i
+                    continue
+                else:
+                    i += 2
+                    continue
+            elif c == "$":
+                in_math = not in_math
+            elif not in_math:
+                if c == "{":
+                    depth += 1
+                elif c == "}":
+                    depth -= 1
+                elif depth == 0 and c == "&":
+                    cell_inlines = self.parse_inline(cell_lo, i)
+                    current_cells.append(TableCell(cell_inlines))
+                    i += 1
+                    cell_lo = i
+                    continue
+            i += 1
+
+        if cell_lo < end and self.text[cell_lo:end].strip():
+            cell_inlines = self.parse_inline(cell_lo, end)
+            current_cells.append(TableCell(cell_inlines))
+        if current_cells:
+            rows.append(TableRow(current_cells, hline_after=False))
+
+        return Table(alignments, rows, hline_before=hline_before)
 
     def parse_items(self, lo: int, hi: int) -> list[ListItem]:
         """Split a list body at its own ``\\item`` tokens (nested lists are skipped)."""

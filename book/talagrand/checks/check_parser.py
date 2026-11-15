@@ -3,8 +3,8 @@ import unittest
 
 from sample_files import MINI_TEX, read_sample
 from tex2typ.errors import ConversionError
-from tex2typ.model import (DisplayMath, Environment, Heading, ListBlock, Math, Meta, Paragraph,
-                           Proof, Ref, RunInHead, Styled, Text)
+from tex2typ.model import (Center, DisplayMath, Environment, Heading, ListBlock, Math, Meta, Paragraph,
+                           Proof, Ref, RunInHead, Styled, Table, Text)
 from tex2typ.parser import Parser, strip_comments
 
 FIXTURE = MINI_TEX
@@ -103,6 +103,22 @@ class BlockChecks(unittest.TestCase):
     def test_heading_label_may_follow_on_the_next_line(self):
         (heading,) = blocks("\\subsection{Title $x$}\n\\label{sec:x}")
         self.assertEqual((heading.level, heading.label), (2, "sec:x"))
+
+    def test_center_and_tabular(self):
+        source = r"""\begin{center}
+\begin{tabular}{lc}
+a & $b$\\ \hline
+c & d
+\end{tabular}
+\end{center}"""
+        (center,) = blocks(source)
+        self.assertIsInstance(center, Center)
+        self.assertEqual(len(center.blocks), 1)
+        table = center.blocks[0]
+        self.assertIsInstance(table, Table)
+        self.assertEqual(table.alignments, ["left", "center"])
+        self.assertEqual(len(table.rows), 2)
+        self.assertTrue(table.rows[0].hline_after)
 
     def test_unknown_environment_is_rejected(self):
         with self.assertRaisesRegex(ConversionError, "unsupported environment tikzpicture"):

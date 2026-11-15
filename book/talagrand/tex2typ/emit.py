@@ -7,8 +7,8 @@ from __future__ import annotations
 
 from .errors import ConversionError
 from .index import Index
-from .model import (Block, DisplayMath, Environment, Heading, Inline, LineBreak, ListBlock,
-                    Math, Paragraph, Proof, Ref, RunInHead, Styled, Text)
+from .model import (Block, Center, DisplayMath, Environment, Heading, Inline, LineBreak, ListBlock,
+                    Math, Paragraph, Proof, Ref, RunInHead, Styled, Table, Text)
 from .text import escape_line_start, escape_markup, normalize_math, typst_string
 
 STYLE_FUNCTION = {"emph": "emph", "strong": "strong", "mono": "tt"}
@@ -87,7 +87,34 @@ class Emitter:
             return self.environment(block)
         if isinstance(block, Proof):
             return f"#proof[\n{self.blocks(block.blocks)}\n]"
+        if isinstance(block, Center):
+            return f"#align(center)[\n{self.blocks(block.blocks)}\n]"
+        if isinstance(block, Table):
+            return self.table_block(block)
         raise ConversionError(f"unexpected block {block!r}")
+
+    def table_block(self, table: Table) -> str:
+        cols = ", ".join("auto" for _ in table.alignments)
+        aligns = ", ".join(table.alignments)
+        lines = [
+            "#table(",
+            f"  columns: ({cols}),",
+            f"  align: ({aligns}),",
+            "  stroke: none,",
+        ]
+        if table.hline_before:
+            lines.append("  table.hline(),")
+        for row in table.rows:
+            entries = []
+            for cell in row.cells:
+                entries.append(f"[{self.inlines(cell.inlines).strip()}]")
+            while len(entries) < len(table.alignments):
+                entries.append("[]")
+            lines.append(f"  {', '.join(entries)},")
+            if row.hline_after:
+                lines.append("  table.hline(),")
+        lines.append(")")
+        return "\n".join(lines)
 
     def heading(self, heading: Heading) -> str:
         label = f" <{heading.label}>" if heading.label else ""

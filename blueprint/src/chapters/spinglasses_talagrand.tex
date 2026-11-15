@@ -2028,14 +2028,14 @@ We choose $T=\mathbb{E}f(z\sqrt q+\xi\sqrt{\rho-q})\,f(z\sqrt q+\xi'\sqrt{\rho-q
 \mathbb{E}V^2&=\mathbb{E}f\big(\tfrac{\mathbf g\cdot\mathbf b}{\sqrt N}+\xi_1\sqrt{\rho-q}\big)f\big(\tfrac{\mathbf g\cdot\mathbf b}{\sqrt N}+\xi_2\sqrt{\rho-q}\big).
 \end{align*}
 Each summand has the form $\mathbb{E}f(u\cdot(\mathbf g,\boldsymbol\xi))f(v\cdot(\mathbf g,\boldsymbol\xi))$, and the pair of vectors $(u,v)$ has Gram matrix $\left(\begin{smallmatrix}u\cdot u&u\cdot v\\u\cdot v&v\cdot v\end{smallmatrix}\right)$ equal to
-\[
-\begin{array}{lccc}
-\text{term} & u\cdot u & v\cdot v & u\cdot v\\ \hline
-U^2 & \|x_a\|^2/N & \|x_{a'}\|^2/N & x_a\cdot x_{a'}/N\\
-UV & \|x_a\|^2/N & \|\mathbf b\|^2/N+\rho-q & x_a\cdot\mathbf b/N\\
-V^2 & \|\mathbf b\|^2/N+\rho-q & \|\mathbf b\|^2/N+\rho-q & \|\mathbf b\|^2/N
-\end{array}
-\]
+\begin{center}
+\begin{tabular}{lccc}
+term & $u\cdot u$ & $v\cdot v$ & $u\cdot v$\\ \hline
+$U^2$ & $\|x_a\|^2/N$ & $\|x_{a'}\|^2/N$ & $x_a\cdot x_{a'}/N$\\
+$UV$ & $\|x_a\|^2/N$ & $\|\mathbf b\|^2/N+\rho-q$ & $x_a\cdot\mathbf b/N$\\
+$V^2$ & $\|\mathbf b\|^2/N+\rho-q$ & $\|\mathbf b\|^2/N+\rho-q$ & $\|\mathbf b\|^2/N$
+\end{tabular}
+\end{center}
 \emph{Step 3 (compare with $T$).} Lemma~\ref{lem:sg-tal:gaussian-interp} compares each summand with $T$ (whose Gram matrix is $u\cdot u=v\cdot v=\rho$, $u\cdot v=q$):
 \[
 \Big|\mathbb{E}f(u\cdot)f(v\cdot)-T\Big|\le M_1^2\,|u\cdot v-q|+\tfrac{M_0M_2}2\big(|u\cdot u-\rho|+|v\cdot v-\rho|\big).

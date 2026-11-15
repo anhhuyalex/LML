@@ -6,7 +6,7 @@ from collections import Counter
 from dataclasses import dataclass
 
 from .errors import ConversionError
-from .model import Block, Document, Environment, Heading, Inline, Text
+from .model import Block, Center, Document, Environment, Heading, Inline, Proof, Text
 
 TAL_STATEMENT = re.compile(r"\b(Theorem|Lemma|Proposition|Corollary|Definition)s?\u00a0(\d+\.\d+\.\d+)")
 # Words used for labels that are defined in other blueprint chapters.
@@ -63,6 +63,8 @@ class Index:
                 self._heading(block, part, counters)
             elif isinstance(block, Environment):
                 self._environment(block, part)
+            elif isinstance(block, (Center, Proof)):
+                self._walk(block.blocks, part, counters)
 
     def _heading(self, heading: Heading, part: int, counters: list[int] | None) -> None:
         if counters is None:

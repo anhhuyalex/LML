@@ -52,6 +52,21 @@ class EmitChecks(unittest.TestCase):
         self.assertIn("#enum(tight: false,", self.output)
         self.assertIn("#labeled-items(", self.output)
 
+    def test_center_and_tabular_emit(self):
+        source = r"""\begin{center}
+\begin{tabular}{lc}
+a & $b$\\ \hline
+c & d
+\end{tabular}
+\end{center}"""
+        doc = Parser(r"\chapter{C}" + "\n" + source).parse_document()
+        emitter = Emitter(Index(doc), part=1)
+        blks = Parser(source).parse_blocks(0, len(source))
+        typst = emitter.blocks(blks)
+        self.assertIn("#align(center)[", typst)
+        self.assertIn("#table(", typst)
+        self.assertIn("table.hline()", typst)
+
     def test_escaping_of_special_characters(self):
         self.assertIn("50% of", self.output)
 
