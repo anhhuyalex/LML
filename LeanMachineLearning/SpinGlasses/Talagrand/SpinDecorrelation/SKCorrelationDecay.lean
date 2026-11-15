@@ -28,6 +28,8 @@ For the Sherrington-Kirkpatrick model with `β² < 1/4`, the dispersion is `O(1/
   pairwise covariance decay `𝔼 (⟨σᵢ σⱼ⟩ - ⟨σᵢ⟩⟨σⱼ⟩)² ≤ K / N`.
 * `SpinGlasses.sk_expected_gibbs_overlap_sub_sq_le`: Eq. (1.413),
   Gibbs overlap deviation bound `𝔼 (⟨R₁,₂⟩ - q)² ≤ K / N`.
+* `SpinGlasses.sk_var_gibbs_overlap_le`: Eq. (1.413),
+  disorder variance bound `Var (⟨R₁,₂⟩) ≤ K / N`.
 * `SpinGlasses.sk_expected_gibbs_var_overlap_le`: Eq. (1.414),
   Gibbs overlap variance bound `𝔼 ⟨(R₁,₂ - ⟨R₁,₂⟩)²⟩ ≤ K / N`.
 
@@ -282,5 +284,62 @@ theorem sk_expected_gibbs_var_overlap_le {N : ℕ} (hN : 0 < N) (β h q : ℝ)
   have hov := sk_expected_sq_overlap_le hN β h q hfix hβ
   simp only [← hE] at hov
   exact h_mono.trans hov
+
+/-- **Variance of the Gibbs overlap under the disorder (Talagrand, Eq. (1.413)).** For the SK model
+with `β² < 1/4` at the fixed point `q = 𝔼 tanh² (β √q z + h)`, the variance of the Gibbs average
+`⟨R₁,₂⟩` under the Gaussian disorder is bounded by `K / N`. -/
+theorem sk_var_gibbs_overlap_le {N : ℕ} (hN : 0 < N) (β h q : ℝ)
+    (hfix : ∫ x : ℝ, Real.tanh (β * Real.sqrt q * x + h) ^ 2 ∂(gaussianReal 0 1) = q)
+    (hβ : β ^ 2 < 1 / 4) :
+    variance
+        (fun g : FinPairs N → ℝ =>
+          ∫ σ : Fin 2 → (Fin N → ℤˣ),
+            (N : ℝ)⁻¹ * ((fun i => ((σ 0 i : ℤ) : ℝ)) ⬝ᵥ fun i => ((σ 1 i : ℤ) : ℝ))
+              ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted fun a =>
+                (Real.sqrt N)⁻¹ * β *
+                  (∑ p : FinPairs N, g p * ((a p.val.1 : ℤ) : ℝ) * ((a p.val.2 : ℤ) : ℝ)) +
+                  h * ∑ i, ((a i : ℤ) : ℝ)))
+        (Measure.pi fun _ : FinPairs N => gaussianReal 0 1) ≤
+      ((Real.sqrt (1 / 2 - 2 * β ^ 2))⁻¹ - 1) / ((1 / 4 - β ^ 2) * N) := by
+  have : Nonempty (Fin N → ℤˣ) := ⟨fun _ => 1⟩
+  obtain ⟨E, hE⟩ : ∃ E : (FinPairs N → ℝ) → (Fin N → ℤˣ) → ℝ, ∀ g a, E g a =
+      (Real.sqrt N)⁻¹ * β *
+        (∑ p : FinPairs N, g p * ((a p.val.1 : ℤ) : ℝ) * ((a p.val.2 : ℤ) : ℝ)) +
+        h * ∑ i, ((a i : ℤ) : ℝ) := ⟨_, fun _ _ => rfl⟩
+  obtain ⟨Φ, hΦ⟩ : ∃ Φ : (Fin 2 → Fin N → ℤˣ) → ℝ, ∀ σ, Φ σ =
+      (N : ℝ)⁻¹ * ((fun i => ((σ 0 i : ℤ) : ℝ)) ⬝ᵥ fun i => ((σ 1 i : ℤ) : ℝ)) :=
+    ⟨_, fun _ => rfl⟩
+  simp only [← hE, ← hΦ]
+  have hE_ae (a : Fin N → ℤˣ) :
+      AEMeasurable (fun g => E g a) (Measure.pi fun _ : FinPairs N => gaussianReal 0 1) := by
+    have : Measurable fun g => E g a := by
+      simp only [hE]
+      refine (measurable_const.mul ?_).add_const _
+      exact Finset.measurable_sum _ fun p _ =>
+        ((measurable_pi_apply p).mul_const _).mul_const _
+    exact this.aemeasurable
+  have hΦ_bound (σ : Fin 2 → Fin N → ℤˣ) : |Φ σ| ≤ 1 := by
+    have hNpos : (0 : ℝ) < N := Nat.cast_pos.2 hN
+    have habs : |(fun i => ((σ 0 i : ℤ) : ℝ)) ⬝ᵥ fun i => ((σ 1 i : ℤ) : ℝ)| ≤ N := by
+      calc |∑ i, ((σ 0 i : ℤ) : ℝ) * ((σ 1 i : ℤ) : ℝ)|
+          ≤ ∑ i : Fin N, |((σ 0 i : ℤ) : ℝ) * ((σ 1 i : ℤ) : ℝ)| := abs_sum_le_sum_abs _ _
+        _ = ∑ i : Fin N, |((σ 0 i : ℤ) : ℝ)| * |((σ 1 i : ℤ) : ℝ)| := by
+            simp_rw [abs_mul]
+        _ = ∑ i : Fin N, (1 : ℝ) * 1 := by
+            congr 1 with i
+            rw [abs_units_cast_eq_one, abs_units_cast_eq_one]
+        _ = N := by simp
+    rw [hΦ]
+    rw [abs_mul, abs_inv, abs_of_pos hNpos]
+    exact (inv_mul_le_iff₀ hNpos).2 (by simpa using habs)
+  have hY_mem : MemLp (fun g : FinPairs N → ℝ =>
+      ∫ σ : Fin 2 → (Fin N → ℤˣ), Φ σ ∂(Measure.pi fun _ : Fin 2 =>
+        Measure.count.tilted (E g))) 2 (Measure.pi fun _ : FinPairs N => gaussianReal 0 1) :=
+    memLp_integral_pi_count_tilted_of_bound 2 (fun g a => E g a) hE_ae
+      (fun _ σ => Φ σ) (fun _ => aemeasurable_const) 1 (ae_of_all _ fun _ σ => hΦ_bound σ)
+  have hvar := variance_le_integral_sub_const_sq hY_mem q
+  have hov := sk_expected_gibbs_overlap_sub_sq_le hN β h q hfix hβ
+  simp only [← hE, ← hΦ] at hov
+  exact hvar.trans hov
 
 end SpinGlasses
