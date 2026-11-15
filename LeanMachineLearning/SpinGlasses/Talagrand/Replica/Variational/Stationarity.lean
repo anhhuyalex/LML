@@ -132,7 +132,7 @@ theorem hasDerivAt_skReplicaPoly (n : ℕ) (β q : ℝ) :
       (-((n : ℝ) * β ^ 2 / 2) - (n : ℝ) * ((n : ℝ) - 1) * β ^ 2 / 2 * q) := by ring
   exact hd.congr_deriv hval
 
-/-- The replica objective `Φ_n(q) - n log 2` written through the finite spin sum `skReplicaSum`.
+/-- The replica objective `Φ_n(q)` written through the finite spin sum `skReplicaSum`.
 Unlike the Gaussian expression, which contains `√q`, it is defined and smooth for all real `q`; it
 agrees with `Φ_n` on `q ≥ 0` (`skReplicaSmoothObjective_eq_phi`), so a maximizer `q₀ > 0` of `Φ_n`
 on `[0, ∞)` is a two-sided local maximum of it, and Fermat's theorem applies. -/

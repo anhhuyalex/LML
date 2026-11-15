@@ -1,4 +1,5 @@
 """Locating the sample inputs of the checks, with a clear failure when one is missing."""
+from __future__ import annotations
 import subprocess
 from pathlib import Path
 

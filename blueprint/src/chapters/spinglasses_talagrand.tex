@@ -2028,14 +2028,14 @@ We choose $T=\mathbb{E}f(z\sqrt q+\xi\sqrt{\rho-q})\,f(z\sqrt q+\xi'\sqrt{\rho-q
 \mathbb{E}V^2&=\mathbb{E}f\big(\tfrac{\mathbf g\cdot\mathbf b}{\sqrt N}+\xi_1\sqrt{\rho-q}\big)f\big(\tfrac{\mathbf g\cdot\mathbf b}{\sqrt N}+\xi_2\sqrt{\rho-q}\big).
 \end{align*}
 Each summand has the form $\mathbb{E}f(u\cdot(\mathbf g,\boldsymbol\xi))f(v\cdot(\mathbf g,\boldsymbol\xi))$, and the pair of vectors $(u,v)$ has Gram matrix $\left(\begin{smallmatrix}u\cdot u&u\cdot v\\u\cdot v&v\cdot v\end{smallmatrix}\right)$ equal to
-\begin{center}
-\begin{tabular}{lccc}
-term & $u\cdot u$ & $v\cdot v$ & $u\cdot v$\\ \hline
-$U^2$ & $\|x_a\|^2/N$ & $\|x_{a'}\|^2/N$ & $x_a\cdot x_{a'}/N$\\
-$UV$ & $\|x_a\|^2/N$ & $\|\mathbf b\|^2/N+\rho-q$ & $x_a\cdot\mathbf b/N$\\
-$V^2$ & $\|\mathbf b\|^2/N+\rho-q$ & $\|\mathbf b\|^2/N+\rho-q$ & $\|\mathbf b\|^2/N$
-\end{tabular}
-\end{center}
+\[
+\begin{array}{lccc}
+\text{term} & u\cdot u & v\cdot v & u\cdot v\\ \hline
+U^2 & \|x_a\|^2/N & \|x_{a'}\|^2/N & x_a\cdot x_{a'}/N\\
+UV & \|x_a\|^2/N & \|\mathbf b\|^2/N+\rho-q & x_a\cdot\mathbf b/N\\
+V^2 & \|\mathbf b\|^2/N+\rho-q & \|\mathbf b\|^2/N+\rho-q & \|\mathbf b\|^2/N
+\end{array}
+\]
 \emph{Step 3 (compare with $T$).} Lemma~\ref{lem:sg-tal:gaussian-interp} compares each summand with $T$ (whose Gram matrix is $u\cdot u=v\cdot v=\rho$, $u\cdot v=q$):
 \[
 \Big|\mathbb{E}f(u\cdot)f(v\cdot)-T\Big|\le M_1^2\,|u\cdot v-q|+\tfrac{M_0M_2}2\big(|u\cdot u-\rho|+|v\cdot v-\rho|\big).
@@ -11541,6 +11541,18 @@ so $0$ is an interior point of the set where $\mathbb E\exp(t\log Z_N)$ is finit
 Dividing by $N$ gives the second statement.
 \end{proof}
 
+\begin{remark}[Fixed system size in Eqs.~(1.409)--(1.410)]\label{rem:sg-tal:replica-real-moments-comparison}
+\talsource{Eqs.~(1.409)--(1.410); source lines 5918--5930}
+The book obtains the first limit from the expansion $Z_N^t\simeq1+t\log Z_N$.
+The Lean proof first proves positivity, measurability and exponential integrability of
+$\log Z_N$, then applies the derivative theorem for the cumulant generating function.
+These estimates hold for every real $\beta,h$, with no small-temperature assumption.
+Throughout this argument $N$ is fixed: it proves no convergence as $N\to\infty$ and no
+estimate uniform in $N$ that would by itself exchange the two limits.
+The factor $N^{-1}$ in Eq.~(1.410) uses $N>0$ and the counting-measure partition sum,
+so its $N\log2$ contribution is retained.
+\end{remark}
+
 \begin{theorem}[Convexity of the real-moment pressure and convergence of derivatives]\label{thm:sg-tal:replica-convexity}
 \lean{SpinGlasses.convexOn_log_integral_rpow_skPartition, SpinGlasses.convexOn_inv_mul_log_integral_rpow_skPartition, ProbabilityTheory.convexOn_log_integral_rpow, ProbabilityTheory.convexOn_cgf, ProbabilityTheory.mgf_add_le_rpow_mul_rpow, tendsto_deriv_of_convexOn_tendsto_of_mem_Ioo, tendsto_deriv_of_convexOn_tendsto}
 \leanok
@@ -11565,8 +11577,43 @@ Let $i\to\infty$: the outer terms converge to $\frac{\psi(0)-\psi(-\lambda)}\lam
 
 \begin{remark}[What this does and does not give]\label{rem:sg-tal:replica-convexity-scope}
 \talsource{Source lines 5939--5941}
-The convexity and the derivative-convergence statement are the two elementary facts the book uses to exchange $N\to\infty$ with $t\to0$.
-They do not prove that $\frac1N\log\mathbb EZ_N^t$ converges for $t$ in an interval around $0$, nor that the limit is differentiable at $0$; these two hypotheses are exactly what the book leaves open in this section (it only suggests adapting the proof of (1.108)). So the exchange of limits itself, and hence Eq.~(1.411), is not proved here.
+The book states that, for sufficiently small $\beta$, $\psi_N(t)=N^{-1}\log\mathbb EZ_N^t$
+converges on an interval around zero and its limit is differentiable at zero, and suggests
+extending the proof of (1.108). It does not supply those estimates in this passage.
+The Lean derivative-convergence theorem takes pointwise convergence and differentiability
+of the limit as explicit hypotheses. It is proved at any point of an open interval and
+along any filter, so it also applies outside the SK model.
+Neither hypothesis has been proved here for the limiting SK real-moment pressure.
+In particular, convexity at each fixed $N$ does not prove existence of that limit.
+Thus this development has not justified the exchange of $N\to\infty$ with $t\to0$ by this route.
+Eq.~(1.411) must be obtained from the earlier scalar pressure results in their proved
+temperature range; it does not follow from the integer-replica theorem alone.
+\end{remark}
+
+\begin{remark}[Why the next estimates use real powers]\label{rem:sg-tal:replica-next-estimates}
+\talsource{Eq.~(1.410) and source line 5939}
+The book asks about $t\to0$, so estimates for positive integer replica counts do not suffice.
+The identity $Z_N^t=\exp(t\log Z_N)$ gives a direct way to work with real $t$;
+the corresponding single-site weights are $\cosh^t(\beta z\sqrt q+h)$.
+Proving their integrability for real exponents extends the integrability argument already
+needed for Eq.~(1.408), while leaving the integer-replica theorem unchanged. Negative exponents
+are included when working on a two-sided interval around zero.
+
+There is also a possible shorter route to the derivative at zero, once the real-moment limit
+exists. With $p_N=N^{-1}\mathbb E\log Z_N$, the proposed next bounds are
+\[
+t p_N\le\psi_N(t)\le t p_N+\frac{\beta^2t^2}{2}.
+\]
+Their lower bound is Jensen's inequality; their upper bound should follow from the existing
+Gaussian concentration estimate after its normalization is transferred to this partition sum.
+If these bounds and $p_N\to p$, $\psi_N(t)\to\psi(t)$ are proved, passing to the limit gives
+$|\psi(t)-tp|\le\beta^2t^2/2$, hence $\psi'(0)=p$.
+This would prove the derivative without differentiating a chosen family of fixed points.
+An explicit fixed-point formula for the whole function $\psi(t)$ would be a stronger further
+result; the book's last paragraph states existence and differentiability, and this derivative
+argument needs only existence.
+The scalar-SK bounds and the convergence of $\psi_N$ on an interval remain to be formalized;
+this remark records a further proof step, not a completed limit theorem.
 \end{remark}
 
 \begin{theorem}[Maximizing fixed point of the replica variational problem]\label{thm:sg-tal:replica-fixed-point}
@@ -11620,6 +11667,24 @@ Now two sub-cases.
 In both sub-cases $q_0=R_n(q_0)\in[0,1]$ by the bounds $0\le R_n\le1$.
 \end{proof}
 
+\begin{remark}[How the fixed-point proof differs from the source]\label{rem:sg-tal:replica-fixed-point-comparison}
+\talsource{Eq.~(1.408); source lines 5909--5917}
+The book describes a short computation using Gaussian integration by parts.
+Lean instead differentiates the finite sum $S_n$ and its smooth objective $F_n$ above.
+Since $S_n(q)=2^n\mathbb E\cosh^n(Y_q)$ for $q\ge0$, the subtraction of $n\log2$
+in $F_n$ cancels exactly: $F_n(q)=\Phi_n(q)$, with no remaining constant shift.
+This also supplies the right derivative at $q=0$ without differentiating $\sqrt q$ there.
+
+The formal theorem includes all real $\beta,h$ and treats $\beta=0$, $n=1$ and negative
+$\beta$ explicitly. In particular, its conclusion is that there exists a maximizing
+fixed point, not that every maximizer is a fixed point. When $\beta=0$, every $q\ge0$
+maximizes the constant objective, whereas the fixed-point equation selects
+$q=\tanh^2h$. When $n=1$ the objective is again constant and a fixed point is selected
+by continuity on $[0,1]$. For $n\ge2$, $\beta\ne0$, the boundary case $q=0$, $h\ne0$
+is ruled out by a positive right increment, not by setting the derivative at a boundary
+maximum equal to zero.
+\end{remark}
+
 \begin{theorem}[Large numbers of replicas: the maximizers tend to one]\label{thm:sg-tal:replica-large-n}
 \lean{SpinGlasses.skReplica_maximizer_sq_le, SpinGlasses.tendsto_skReplica_maximizer_one, SpinGlasses.exists_skReplica_maximizer_fixedPoint_tendsto_one, SpinGlasses.skReplicaSum_le, SpinGlasses.le_skReplicaSum_one, SpinGlasses.abs_sum_units_cast_le}
 \leanok
@@ -11641,7 +11706,7 @@ Write $m_\varepsilon=\sum_{l\le n}\varepsilon_l$ for $\varepsilon\in\{\pm1\}^n$ 
 \[
 \log S_n(q)\le n\log2+n|h|+\frac{\beta^2q\,n^2}2 .
 \]
-\emph{Step 2 (lower bound at $q=1$).} Keep only the term $\varepsilon\equiv\operatorname{sign}(h)$, for which $h\,m_\varepsilon=n|h|$ and $m_\varepsilon^2=n^2$:
+\emph{Step 2 (lower bound at $q=1$).} Keep only the all-$+1$ term if $h\ge0$ and the all-$-1$ term if $h<0$, for which $h\,m_\varepsilon=n|h|$ and $m_\varepsilon^2=n^2$:
 \[
 \log S_n(1)\ge n|h|+\frac{\beta^2n^2}2 .
 \]
@@ -11656,7 +11721,18 @@ Cancel $n^2\beta^2/4+n|h|$ and multiply by $4/n$: $(n-1)\beta^2u\le4\log2$.
 
 \begin{remark}[What this does and does not give]\label{rem:sg-tal:replica-large-n-scope}
 \talsource{Source line 5937}
-The book states $q_n\to1$ for $h=0$ and $\beta<1$ and says it is ``not difficult to get convinced'' of it; the proof above is quantitative and needs neither $h=0$ nor $\beta<1$, only $\beta\ne0$ (for $\beta=0$ the objective is constant and the ratio is $\tanh^2h$ for every $n$). For $h=0$ and $\beta<1$ the replica-symmetric value is $q=0$, so this explains why the information of Theorem~\ref{thm:sg-tal:replica} at large integer $n$ does not determine the limit $n\to0$. It does not prove or disprove an analytic continuation in $n$, and it says nothing about the exchange of limits.
+In the source's positive-temperature range $0<\beta<1$ at $h=0$, the book describes
+$q_n\to1$ for maximizing fixed points without giving a quantitative proof.
+Lean proves the displayed bound for every maximizer $q\ge0$, without assuming a fixed-point
+equation or $q\le1$. The bound itself allows $\beta=0$ and $n=1$, when it gives no restriction.
+The limit requires $\beta\ne0$ and holds for every real $h$, with the explicit rate
+$|q_n-1|\le\sqrt{4\log2/((n-1)\beta^2)}$ for $n\ge2$.
+The existence theorem then chooses maximizing fixed points for all positive integers.
+For $\beta=0$ their ratio is instead $\tanh^2h$ for every $n$, which explains the exclusion.
+The book contrasts this with the scalar zero-field solution $q=0$ at $0<\beta<1$.
+That comparison does not add a Lean pressure theorem over that whole temperature range;
+the earlier scalar pressure results retain their own hypotheses.
+No continuation in $n$ or exchange of limits is proved by the large-$n$ bound.
 \end{remark}
 
 \begin{remark}[Not claimed: the continuation to non-integer $n$]\label{rem:sg-tal:replica-heuristic}
