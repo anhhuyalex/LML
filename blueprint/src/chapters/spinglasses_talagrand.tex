@@ -11843,6 +11843,38 @@ under the tilted weight $Z_s^{\,t}$) is not proved. Neither the integer-replica 
 the conditional corollary proves it, and neither extends Eq.~(1.411) to all temperatures.
 \end{remark}
 
+\begin{remark}[Importance of the open real-moment limit, and whether to formalize it]\label{rem:sg-tal:replica-real-moment-priority}
+\talsource{Section~1.13, closing remarks}
+\emph{What the book says.} The book states in one sentence that, for $\beta$ small enough, the limit
+$\psi(t)=\lim_N N^{-1}\log\mathbb E\,Z_N^{\,t}$ exists and is differentiable at zero, ``by generalizing (1.108)
+for any $t\ne0$ using essentially the same method''. It gives no proof and no explicit threshold
+$(\beta_0,t_0)$. The sentence is used only to justify, a posteriori, the exchange of the limits
+$N\to\infty$ and $n\to0$ in the replica computation. As far as the plan of this chapter shows, no later
+theorem of the book relies on it.
+
+\emph{What is in the repository.} The exchange of limits is proved as a conditional statement
+(Corollary~\ref{cor:sg-tal:replica-exchange-limits}), in which the existence of $\psi$ is an explicit hypothesis.
+The exact derivative and the decoupled endpoint for real $t$
+(Theorem~\ref{thm:sg-tal:replica-real-moment-path}) and the upper bound for $0<t\le1$
+(Theorem~\ref{thm:sg-tal:replica-real-moment-guerra}) are proved without any overlap estimate.
+The Guerra-type bound is an addition of this blueprint; it is not stated in the book.
+
+\emph{What is missing.} The missing step is an $O(1/N)$ bound for $\langle(R_{1,2}-q)^2\rangle$ under the
+tilted weight $Z_s^{\,t}$, uniformly for small $|t|$ and $\beta$. The book's route at $t=0$ relies on a
+cancellation among three groups of terms with weights $1,-2,+3$. For $t\ne0$ the weights depend on $t$ and
+the cancellation may fail; this has not been worked out even on paper. A change of measure by $e^{tF}$ with
+$F=\log Z$ does not replace this step, since it only gives a bound of constant order.
+A remaining optional item is the exact integrated identity from $s=0$ to $s=\pi/2$; it needs no estimate,
+but it does not prove convergence either.
+
+\emph{Assessment.} The existence of $\psi(t)$ is the only open mathematical gap in Section~1.13, but it
+is a remark of the book without a proof, and nothing else depends on it. It is a research-level task of very
+large size and high risk. Recommendation: do not start Lean work on it until a paper proof of the tilted
+overlap bound, with explicit constants, exists. The conditional theorem already records what the book
+claims, and the optional integrated identity is worth proving only if the candidate formula for $\psi(t)$
+should be stated exactly.
+\end{remark}
+
 \begin{theorem}[Real moments of the partition function along the smart path]\label{thm:sg-tal:replica-real-moment-path}
   \lean{SpinGlasses.integral_cosh_rpow_pos,
         SpinGlasses.integral_prod_two_mul_cosh_rpow_pi,
@@ -12184,4 +12216,35 @@ the needed moment bounds for $R_{1,2,3,4}$.
 \end{itemize}
 The historical attributions and physics commentary are recorded as source discussion,
 without attaching Lean theorem tags to those assertions.
+\end{remark}
+
+\begin{remark}[Open items of Sections~1.13--1.14: where they come from, how much they matter]\label{rem:sg-tal:notes-comments-priorities}
+\talsource{Sections~1.13 and~1.14}
+None of the items below is needed by a later theorem, as far as the plan of this chapter shows. The
+chapter has not checked the later chapters of the book for citations of them.
+\begin{itemize}
+\item \emph{Existence of $\psi(t)$ for real $t$.} In the book as one unproved sentence. Not formalized; see
+Remark~\ref{rem:sg-tal:replica-real-moment-priority}. Recommendation: wait for a paper proof.
+\item \emph{Expansion after (1.152), step S2 (overlaps from site symmetry).} In the book. It replaces
+$\varepsilon_\ell\varepsilon_{\ell'}$ by the overlap $R_{\ell,\ell'}$ and is valid only for the full SK Gibbs
+measure at $t=1$, while the proved derivative is for $0<t<1$; an endpoint argument is missing. The book says
+it does not use this route. Recommendation: skip, unless the exact identity is wanted as a reusable lemma.
+\item \emph{Step S3 (replacing the overlaps by $q$ and $\hat q$, error $O(3)$).} In the book as part of
+(1.152). It needs a third-moment bound for $R_{1,2,3,4}$. The book does not use it. Recommendation: skip;
+if done, keep the overlap bounds as hypotheses.
+\item \emph{Step S4 (the bound $\nu((R_{1,2,3,4}-\hat q)^{2n})\le K/N^n$).} In the book only as the claim that
+it ``is not very difficult'', with no proof. It is not in the repository. Recommendation: skip for now. It
+could be a standalone four-replica concentration result, but nothing needs it.
+\item \emph{The $q>0$ root of (1.411) at large $\beta$.} Not in the book, which only remarks that (1.411) is
+wrong for large $\beta$. Theorem~\ref{thm:sg-tal:replica-large-beta} proves this for the root $q=0$ at $h=0$,
+which covers what the book claims. Recommendation: do not pursue.
+\item \emph{Rendering of this blueprint.} Not a mathematical item. The edited TeX has not been rendered, since no
+LaTeX toolchain was available; the declaration and text checks passed. Recommendation: confirm that the
+blueprint compiles in continuous integration. An equation-style rewrite of the proofs is cosmetic and low
+priority.
+\end{itemize}
+Added by this blueprint and not in the book: the real-moment Guerra-type bound
+(Theorem~\ref{thm:sg-tal:replica-real-moment-guerra}) and the large-$\beta$ counterexample
+(Theorem~\ref{thm:sg-tal:replica-large-beta}). Overall, everything the book proves is formalized; the open
+items are unproved remarks of the book, or a route the book declines to use.
 \end{remark}
