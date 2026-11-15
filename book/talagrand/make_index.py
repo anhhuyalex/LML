@@ -10,6 +10,8 @@ import html
 import json
 from pathlib import Path
 
+from make_toc import SITE_LINKS
+
 PAGE = """<!doctype html>
 <html lang="en">
 <head>
@@ -37,7 +39,7 @@ and the signature of the Lean declaration that proves it; hover over Lean code f
 <ol>
 {items}
 </ol>
-<footer>{pdf} <a href="../blueprint/">Blueprint</a> · <a href="../docs/">API documentation</a> · <a href="../">Home</a></footer>
+<footer>{footer}</footer>
 </main>
 </body>
 </html>
@@ -50,8 +52,11 @@ def render(sections_json: dict, pdf: str | None) -> str:
         number = "" if section["part"] == 0 else str(section["part"])
         items.append(f'<li><a href="{section["id"]}.html"><span class="number">{number}</span>'
                      f'{html.escape(section["title"])}</a></li>')
-    pdf_link = f'<a href="{html.escape(pdf)}">Whole book (PDF)</a> · ' if pdf else ""
-    return PAGE.format(title=html.escape(sections_json["title"]), items="\n".join(items), pdf=pdf_link)
+    footer_links = [f'<a href="{href}">{title}</a>' for title, href in SITE_LINKS]
+    if pdf:
+        footer_links.insert(0, f'<a href="{html.escape(pdf)}">Whole book (PDF)</a>')
+    return PAGE.format(title=html.escape(sections_json["title"]), items="\n".join(items),
+                       footer=" · ".join(footer_links))
 
 
 def main(argv=None) -> int:

@@ -103,9 +103,15 @@ noncomputable def skReplicaSmoothObjective (n : ℕ) (β h q : ℝ) : ℝ :=
   (n : ℝ) * β ^ 2 * (1 - q) ^ 2 / 4 - (n : ℝ) ^ 2 * β ^ 2 * q ^ 2 / 4 +
     Real.log (skReplicaSum n β h q) - (n : ℝ) * Real.log 2
 
+@[simp]
 theorem skReplicaSmoothObjective_def (n : ℕ) (β h q : ℝ) :
     skReplicaSmoothObjective n β h q =
       (n : ℝ) * β ^ 2 * (1 - q) ^ 2 / 4 - (n : ℝ) ^ 2 * β ^ 2 * q ^ 2 / 4 +
+        Real.log (skReplicaSum n β h q) - (n : ℝ) * Real.log 2 := rfl
+
+theorem skReplicaSmoothObjective_eq (n : ℕ) (β h : ℝ) :
+    skReplicaSmoothObjective n β h =
+      fun q => (n : ℝ) * β ^ 2 * (1 - q) ^ 2 / 4 - (n : ℝ) ^ 2 * β ^ 2 * q ^ 2 / 4 +
         Real.log (skReplicaSum n β h q) - (n : ℝ) * Real.log 2 := rfl
 
 theorem skReplicaSmoothObjective_eq_phi (n : ℕ) (β h q : ℝ) (hq : 0 ≤ q) :
@@ -115,7 +121,7 @@ theorem skReplicaSmoothObjective_eq_phi (n : ℕ) (β h q : ℝ) (hq : 0 ≤ q) 
   have hS := skReplicaSum_eq_integral n β h q hq
   have h2n_pos : (0 : ℝ) < (2 : ℝ) ^ n := pow_pos two_pos n
   have hint_pos := integral_cosh_pow_sk_pos n β h q
-  dsimp [skReplicaSmoothObjective]
+  rw [skReplicaSmoothObjective_def]
   rw [hS, Real.log_mul h2n_pos.ne' hint_pos.ne', Real.log_pow]
   ring
 
@@ -125,10 +131,10 @@ theorem hasDerivAt_skReplicaSmoothObjective (n : ℕ) (β h q : ℝ) (hq : 0 ≤
         (((∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n *
           tanh (β * z * Real.sqrt q + h) ^ 2 ∂(gaussianReal 0 1)) /
         (∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n ∂(gaussianReal 0 1))) - q)) q := by
-  unfold skReplicaSmoothObjective
-  convert ((hasDerivAt_skReplicaPoly n β q).add
+  rw [skReplicaSmoothObjective_eq]
+  refine (((hasDerivAt_skReplicaPoly n β q).add
     (hasDerivAt_log_skReplicaSum_of_nonneg n β h q hq)).sub_const
-      ((n : ℝ) * Real.log 2) using 1
+      ((n : ℝ) * Real.log 2)).congr_deriv ?_
   ring
 
 lemma exists_gt_of_hasDerivAt_zero_pos {f : ℝ → ℝ} {c : ℝ} (hd : HasDerivAt f c 0) (hc : 0 < c) :

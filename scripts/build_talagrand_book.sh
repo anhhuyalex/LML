@@ -62,5 +62,11 @@ echo "== Assembling $output"
 mkdir -p "$output"
 cp "$book"/build/s??.html "$output"/
 cp "$book/build/book.pdf" "$output/$pdf_name"
+# The Contents pane's script and styles are shared by all pages (the pages only link to them).
+cp "$viewer"/templates/html/book-nav.{js,css} "$output"/
+python3 "$book/make_toc.py" "$book/generated/sections.json" "$output" --pdf "$pdf_name"
 python3 "$book/make_index.py" "$book/generated/sections.json" "$output" --pdf "$pdf_name"
+for file in book-nav.js book-nav.css toc.json index.html; do
+  [[ -s "$output/$file" ]] || { echo "error: $output/$file is missing" >&2; exit 1; }
+done
 echo "Done: $output/index.html"
