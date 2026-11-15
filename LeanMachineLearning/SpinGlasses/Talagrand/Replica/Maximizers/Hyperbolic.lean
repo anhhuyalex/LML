@@ -48,7 +48,7 @@ theorem hyp_cs_defect_nonneg (a₁ a₂ g : ℝ) :
   nlinarith [abs_nonneg (sinh g)]
 
 /-- **Talagrand's Lemma 1.13.4**, inequality (1.400). -/
-theorem hyp_cs_le (a₁ a₂ g : ℝ) :
+theorem cosh_sinh_sum_le_sqrt_mul_sqrt (a₁ a₂ g : ℝ) :
     cosh a₁ * cosh a₂ * cosh g + sinh a₁ * sinh a₂ * sinh g ≤
       √(cosh a₁ ^ 2 * cosh |g| + sinh a₁ ^ 2 * sinh |g|) *
         √(cosh a₂ ^ 2 * cosh |g| + sinh a₂ ^ 2 * sinh |g|) := by
@@ -65,7 +65,7 @@ theorem hyp_cs_le (a₁ a₂ g : ℝ) :
 
 /-- **Talagrand's Lemma 1.13.4**, equality case: if (1.400) is an equality and `g ≠ 0`, then
 `a₁ = a₂` for `g > 0` and `a₁ = -a₂` for `g < 0`. -/
-theorem hyp_cs_eq (a₁ a₂ g : ℝ)
+theorem signed_eq_of_hyperbolic_bound_eq (a₁ a₂ g : ℝ)
     (heq : cosh a₁ * cosh a₂ * cosh g + sinh a₁ * sinh a₂ * sinh g =
       √(cosh a₁ ^ 2 * cosh |g| + sinh a₁ ^ 2 * sinh |g|) *
         √(cosh a₂ ^ 2 * cosh |g| + sinh a₂ ^ 2 * sinh |g|)) :
@@ -123,7 +123,7 @@ theorem sqrt_mul_sqrt_mul_eq' {w : ℝ} (hw : 0 ≤ w) (b₁ b₂ : ℝ) :
     _ = _ := by rw [Real.mul_self_sqrt hw]
 
 /-- Weighted sums: the inequality (1.407) with the Cauchy-Schwarz step that follows it. -/
-theorem hyp_sum_cs_le {S : Type*} [Fintype S] (w : S → ℝ) (hw : ∀ s, 0 < w s)
+theorem sum_cosh_sinh_sum_le_sqrt_mul_sqrt {S : Type*} [Fintype S] (w : S → ℝ) (hw : ∀ s, 0 < w s)
     (a₁ a₂ : S → ℝ) (γ : ℝ) :
     ∑ s, w s * (cosh (a₁ s) * cosh (a₂ s) * cosh γ + sinh (a₁ s) * sinh (a₂ s) * sinh γ) ≤
       √(∑ s, w s * (cosh (a₁ s) ^ 2 * cosh |γ| + sinh (a₁ s) ^ 2 * sinh |γ|)) *
@@ -135,13 +135,13 @@ theorem hyp_sum_cs_le {S : Type*} [Fintype S] (w : S → ℝ) (hw : ∀ s, 0 < w
         √(w s * (cosh (a₂ s) ^ 2 * cosh |γ| + sinh (a₂ s) ^ 2 * sinh |γ|)) := by
         refine Finset.sum_le_sum fun s _ => ?_
         rw [sqrt_mul_sqrt_mul_eq' (hw s).le]
-        exact mul_le_mul_of_nonneg_left (hyp_cs_le _ _ _) (hw s).le
+        exact mul_le_mul_of_nonneg_left (cosh_sinh_sum_le_sqrt_mul_sqrt _ _ _) (hw s).le
     _ ≤ _ := Real.sum_sqrt_mul_sqrt_le _
         (fun s => mul_nonneg (hw s).le (hB _)) (fun s => mul_nonneg (hw s).le (hB _))
 
 /-- Weighted sums, equality case: if the weighted hyperbolic Cauchy-Schwarz inequality is an
 equality and `γ ≠ 0`, then `a₁ = a₂` for `γ > 0` and `a₁ = -a₂` for `γ < 0`, at every point. -/
-theorem hyp_sum_cs_eq {S : Type*} [Fintype S] (w : S → ℝ) (hw : ∀ s, 0 < w s)
+theorem sum_signed_eq_of_hyperbolic_bound_eq {S : Type*} [Fintype S] (w : S → ℝ) (hw : ∀ s, 0 < w s)
     (a₁ a₂ : S → ℝ) (γ : ℝ)
     (heq : ∑ s, w s * (cosh (a₁ s) * cosh (a₂ s) * cosh γ + sinh (a₁ s) * sinh (a₂ s) * sinh γ) =
       √(∑ s, w s * (cosh (a₁ s) ^ 2 * cosh |γ| + sinh (a₁ s) ^ 2 * sinh |γ|)) *
@@ -154,7 +154,8 @@ theorem hyp_sum_cs_eq {S : Type*} [Fintype S] (w : S → ℝ) (hw : ∀ s, 0 < w
     √(cosh (a₂ s) ^ 2 * cosh |γ| + sinh (a₂ s) ^ 2 * sinh |γ|)) with hmid
   have h1 : ∑ s, w s * (cosh (a₁ s) * cosh (a₂ s) * cosh γ +
       sinh (a₁ s) * sinh (a₂ s) * sinh γ) ≤ mid :=
-    Finset.sum_le_sum fun s _ => mul_le_mul_of_nonneg_left (hyp_cs_le _ _ _) (hw s).le
+    Finset.sum_le_sum fun s _ =>
+      mul_le_mul_of_nonneg_left (cosh_sinh_sum_le_sqrt_mul_sqrt _ _ _) (hw s).le
   have h2 : mid ≤ √(∑ s, w s * (cosh (a₁ s) ^ 2 * cosh |γ| + sinh (a₁ s) ^ 2 * sinh |γ|)) *
         √(∑ s, w s * (cosh (a₂ s) ^ 2 * cosh |γ| + sinh (a₂ s) ^ 2 * sinh |γ|)) := by
     calc mid = ∑ s, √(w s * (cosh (a₁ s) ^ 2 * cosh |γ| + sinh (a₁ s) ^ 2 * sinh |γ|)) *
@@ -170,12 +171,13 @@ theorem hyp_sum_cs_eq {S : Type*} [Fintype S] (w : S → ℝ) (hw : ∀ s, 0 < w
         sinh (a₁ s) ^ 2 * sinh |γ|) * √(cosh (a₂ s) ^ 2 * cosh |γ| +
         sinh (a₂ s) ^ 2 * sinh |γ|)) :=
     (Finset.sum_eq_sum_iff_of_le fun s _ =>
-      mul_le_mul_of_nonneg_left (hyp_cs_le _ _ _) (hw s).le).1 hfirst |>
+      mul_le_mul_of_nonneg_left (cosh_sinh_sum_le_sqrt_mul_sqrt _ _ _) (hw s).le).1 hfirst |>
       fun h s => h s (Finset.mem_univ s)
   have hpt : ∀ s, cosh (a₁ s) * cosh (a₂ s) * cosh γ + sinh (a₁ s) * sinh (a₂ s) * sinh γ =
       √(cosh (a₁ s) ^ 2 * cosh |γ| + sinh (a₁ s) ^ 2 * sinh |γ|) *
         √(cosh (a₂ s) ^ 2 * cosh |γ| + sinh (a₂ s) ^ 2 * sinh |γ|) :=
     fun s => mul_left_cancel₀ (hw s).ne' (hterm s)
-  exact ⟨fun hγ s => (hyp_cs_eq _ _ _ (hpt s)).1 hγ, fun hγ s => (hyp_cs_eq _ _ _ (hpt s)).2 hγ⟩
+  exact ⟨fun hγ s => (signed_eq_of_hyperbolic_bound_eq _ _ _ (hpt s)).1 hγ,
+    fun hγ s => (signed_eq_of_hyperbolic_bound_eq _ _ _ (hpt s)).2 hγ⟩
 
 end SpinGlasses

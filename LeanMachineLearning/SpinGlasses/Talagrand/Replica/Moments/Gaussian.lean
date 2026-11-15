@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.SKReplicaAlgebra
+public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Moments.Algebra
 public import LeanMachineLearning.SpinGlasses.Talagrand.GaussianFluctuation.SKGaussianFluctuation
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiExp
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.HypercubeProduct

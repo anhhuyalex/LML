@@ -86,10 +86,7 @@ theorem abs_skGibbsEnergy_le (N : ℕ) (β h : ℝ) (g : FinPairs N → ℝ) (σ
   have h2 : |h * ∑ i : Fin N, ((σ i : ℤ) : ℝ)| ≤ |h| * N := by
     rw [abs_mul]
     refine mul_le_mul_of_nonneg_left ?_ (abs_nonneg h)
-    refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
-    have : (∑ i : Fin N, |((σ i : ℤ) : ℝ)|) = ∑ i : Fin N, (1 : ℝ) := by
-      refine Finset.sum_congr rfl fun i _ => abs_units_cast_eq_one (σ i)
-    rw [this, Finset.sum_const, nsmul_eq_mul, Finset.card_univ, Fintype.card_fin, mul_one]
+    simpa using abs_sum_units_cast_le σ
   exact add_le_add h1 h2
 
 /-- The SK energy of a fixed configuration is measurable in the disorder. -/

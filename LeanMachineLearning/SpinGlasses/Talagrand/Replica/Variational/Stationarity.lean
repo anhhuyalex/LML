@@ -44,32 +44,20 @@ theorem skReplicaSum_deriv_eq (n : ℕ) (β h q : ℝ) (hq : 0 ≤ q) :
       (n : ℝ) * ((n : ℝ) - 1) * β ^ 2 / 2 * (2 : ℝ) ^ n *
         ∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n *
           tanh (β * z * Real.sqrt q + h) ^ 2 ∂(gaussianReal 0 1) := by
-  have hsplit (ε : Fin n → ℤˣ) :
-      (∑ l, ((ε l : ℤ) : ℝ)) ^ 2 =
-        (n : ℝ) + ((∑ l, ((ε l : ℤ) : ℝ)) ^ 2 - (n : ℝ)) := by ring
-  have hsum : (∑ ε : Fin n → ℤˣ, Real.exp (h * ∑ l, ((ε l : ℤ) : ℝ) +
-        β ^ 2 * (∑ l, ((ε l : ℤ) : ℝ)) ^ 2 * q / 2) *
-        (β ^ 2 * (∑ l, ((ε l : ℤ) : ℝ)) ^ 2 / 2)) =
+  have hs := sum_spin_sq_exp_integral n β h q hq
+  simp_rw [sub_mul] at hs
+  rw [Finset.sum_sub_distrib, ← Finset.mul_sum, ← skReplicaSum_def] at hs
+  calc (∑ ε : Fin n → ℤˣ, Real.exp (h * ∑ l, ((ε l : ℤ) : ℝ) +
+      β ^ 2 * (∑ l, ((ε l : ℤ) : ℝ)) ^ 2 * q / 2) *
+      (β ^ 2 * (∑ l, ((ε l : ℤ) : ℝ)) ^ 2 / 2)) =
       β ^ 2 / 2 * ∑ ε : Fin n → ℤˣ, (∑ l, ((ε l : ℤ) : ℝ)) ^ 2 *
         Real.exp (h * ∑ l, ((ε l : ℤ) : ℝ) +
           β ^ 2 * (∑ l, ((ε l : ℤ) : ℝ)) ^ 2 * q / 2) := by
-    rw [Finset.mul_sum]
-    refine Finset.sum_congr rfl fun ε _ => by ring
-  rw [hsum]
-  have hsum2 : (∑ ε : Fin n → ℤˣ, (∑ l, ((ε l : ℤ) : ℝ)) ^ 2 *
-        Real.exp (h * ∑ l, ((ε l : ℤ) : ℝ) +
-          β ^ 2 * (∑ l, ((ε l : ℤ) : ℝ)) ^ 2 * q / 2)) =
-      (n : ℝ) * skReplicaSum n β h q +
-        ∑ ε : Fin n → ℤˣ, ((∑ l, ((ε l : ℤ) : ℝ)) ^ 2 - (n : ℝ)) *
-          Real.exp (h * ∑ l, ((ε l : ℤ) : ℝ) +
-            β ^ 2 * (∑ l, ((ε l : ℤ) : ℝ)) ^ 2 * q / 2) := by
-    rw [skReplicaSum_def]
-    rw [Finset.mul_sum, ← Finset.sum_add_distrib]
-    refine Finset.sum_congr rfl fun ε _ => ?_
-    rw [hsplit ε]
-    ring
-  rw [hsum2, sum_spin_sq_exp_integral n β h q hq]
-  ring
+        rw [Finset.mul_sum]
+        apply Finset.sum_congr rfl
+        intro ε _
+        ring
+    _ = _ := by rw [sub_eq_iff_eq_add.mp hs]; ring
 
 theorem hasDerivAt_log_skReplicaSum (n : ℕ) (β h q : ℝ) :
     HasDerivAt (fun x => Real.log (skReplicaSum n β h x))
@@ -85,52 +73,27 @@ theorem hasDerivAt_log_skReplicaSum_of_nonneg (n : ℕ) (β h q : ℝ) (hq : 0 �
           ((∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n *
             tanh (β * z * Real.sqrt q + h) ^ 2 ∂(gaussianReal 0 1)) /
           (∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n ∂(gaussianReal 0 1)))) q := by
-  have hlog := hasDerivAt_log_skReplicaSum n β h q
-  have hderiv_eq := skReplicaSum_deriv_eq n β h q hq
-  have hS_eq := skReplicaSum_eq_integral n β h q hq
-  have h2n_ne : (2 : ℝ) ^ n ≠ 0 := (pow_pos two_pos n).ne'
-  have hint_ne : (∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n ∂(gaussianReal 0 1)) ≠ 0 :=
-    (integral_cosh_pow_sk_pos n β h q).ne'
-  have h_eq : ((∑ ε : Fin n → ℤˣ, Real.exp (h * ∑ l, ((ε l : ℤ) : ℝ) +
-        β ^ 2 * (∑ l, ((ε l : ℤ) : ℝ)) ^ 2 * q / 2) *
-        (β ^ 2 * (∑ l, ((ε l : ℤ) : ℝ)) ^ 2 / 2)) / skReplicaSum n β h q) =
-      ((n : ℝ) * β ^ 2 / 2 +
-        (n : ℝ) * ((n : ℝ) - 1) * β ^ 2 / 2 *
-          ((∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n *
-            tanh (β * z * Real.sqrt q + h) ^ 2 ∂(gaussianReal 0 1)) /
-          (∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n ∂(gaussianReal 0 1)))) := by
-    rw [hderiv_eq, hS_eq]
-    have hprod_ne : (2 : ℝ) ^ n *
-        (∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n ∂(gaussianReal 0 1)) ≠ 0 :=
-      mul_ne_zero h2n_ne hint_ne
-    rw [add_div]
-    congr 1
-    · exact mul_div_cancel_right₀ _ hprod_ne
-    · rw [mul_assoc ((n : ℝ) * ((n : ℝ) - 1) * β ^ 2 / 2), mul_div_assoc]
-      congr 1
-      exact mul_div_mul_left _ _ h2n_ne
-  exact hlog.congr_deriv h_eq
+  refine (hasDerivAt_log_skReplicaSum n β h q).congr_deriv ?_
+  have h2n : (2 : ℝ) ^ n ≠ 0 := (pow_pos two_pos n).ne'
+  rw [skReplicaSum_deriv_eq n β h q hq, add_div,
+    mul_div_cancel_right₀ _ (skReplicaSum_pos n β h q).ne',
+    skReplicaSum_eq_integral n β h q hq]
+  rw [mul_assoc ((n : ℝ) * ((n : ℝ) - 1) * β ^ 2 / 2),
+    mul_div_assoc ((n : ℝ) * ((n : ℝ) - 1) * β ^ 2 / 2), mul_div_mul_left _ _ h2n]
 
 theorem hasDerivAt_skReplicaPoly (n : ℕ) (β q : ℝ) :
     HasDerivAt (fun x => (n : ℝ) * β ^ 2 * (1 - x) ^ 2 / 4 -
       (n : ℝ) ^ 2 * β ^ 2 * x ^ 2 / 4)
       (-((n : ℝ) * β ^ 2 / 2) - (n : ℝ) * ((n : ℝ) - 1) * β ^ 2 / 2 * q) q := by
-  have h1 : (fun x => (n : ℝ) * β ^ 2 * (1 - x) ^ 2 / 4 -
-      (n : ℝ) ^ 2 * β ^ 2 * x ^ 2 / 4) =
-    (fun x => ((n : ℝ) * β ^ 2 / 4) +
-      (-((n : ℝ) * β ^ 2 / 2)) * x +
-      ((n : ℝ) * (1 - (n : ℝ)) * β ^ 2 / 4) * x ^ 2) := by
-    ext x; ring
-  rw [h1]
-  have hd1 := ((hasDerivAt_id q).const_mul (-((n : ℝ) * β ^ 2 / 2))).const_add
-    ((n : ℝ) * β ^ 2 / 4)
-  have hd2 : HasDerivAt (fun x => ((n : ℝ) * (1 - (n : ℝ)) * β ^ 2 / 4) * x ^ 2)
-      (((n : ℝ) * (1 - (n : ℝ)) * β ^ 2 / 4) * (2 * q)) q := by
-    simpa using ((hasDerivAt_id q).pow 2).const_mul ((n : ℝ) * (1 - (n : ℝ)) * β ^ 2 / 4)
-  have hd := hd1.add hd2
-  have hval : (-((n : ℝ) * β ^ 2 / 2) * 1 + ((n : ℝ) * (1 - (n : ℝ)) * β ^ 2 / 4) * (2 * q)) =
-      (-((n : ℝ) * β ^ 2 / 2) - (n : ℝ) * ((n : ℝ) - 1) * β ^ 2 / 2 * q) := by ring
-  exact hd.congr_deriv hval
+  convert
+    (((((hasDerivAt_const q (1 : ℝ)).sub (hasDerivAt_id q)).pow 2).const_mul
+      ((n : ℝ) * β ^ 2)).div_const 4).sub
+      ((((hasDerivAt_id q).pow 2).const_mul ((n : ℝ) ^ 2 * β ^ 2)).div_const 4)
+    using 1
+  · funext x
+    simp only [Pi.sub_apply, Pi.pow_apply, id_eq]
+  · simp only [Pi.sub_apply, id_eq]
+    ring
 
 /-- The replica objective `Φ_n(q)` written through the finite spin sum `skReplicaSum`.
 Unlike the Gaussian expression, which contains `√q`, it is defined and smooth for all real `q`; it
@@ -162,21 +125,11 @@ theorem hasDerivAt_skReplicaSmoothObjective (n : ℕ) (β h q : ℝ) (hq : 0 ≤
         (((∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n *
           tanh (β * z * Real.sqrt q + h) ^ 2 ∂(gaussianReal 0 1)) /
         (∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n ∂(gaussianReal 0 1))) - q)) q := by
-  have hp := hasDerivAt_skReplicaPoly n β q
-  have hl := hasDerivAt_log_skReplicaSum_of_nonneg n β h q hq
-  have htot := (hp.add hl).sub_const ((n : ℝ) * Real.log 2)
-  have hval : -((n : ℝ) * β ^ 2 / 2) - (n : ℝ) * ((n : ℝ) - 1) * β ^ 2 / 2 * q +
-      ((n : ℝ) * β ^ 2 / 2 +
-        (n : ℝ) * ((n : ℝ) - 1) * β ^ 2 / 2 *
-          ((∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n *
-            tanh (β * z * Real.sqrt q + h) ^ 2 ∂(gaussianReal 0 1)) /
-          (∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n ∂(gaussianReal 0 1)))) =
-      (n : ℝ) * ((n : ℝ) - 1) * β ^ 2 / 2 *
-        (((∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n *
-          tanh (β * z * Real.sqrt q + h) ^ 2 ∂(gaussianReal 0 1)) /
-        (∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n ∂(gaussianReal 0 1))) - q) := by ring
-  have htot' := htot.congr_deriv hval
-  exact htot'
+  unfold skReplicaSmoothObjective
+  convert ((hasDerivAt_skReplicaPoly n β q).add
+    (hasDerivAt_log_skReplicaSum_of_nonneg n β h q hq)).sub_const
+      ((n : ℝ) * Real.log 2) using 1
+  ring
 
 lemma exists_gt_of_hasDerivAt_zero_pos {f : ℝ → ℝ} {c : ℝ} (hd : HasDerivAt f c 0) (hc : 0 < c) :
     ∃ x : ℝ, 0 < x ∧ f 0 < f x := by

@@ -6,7 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.LogSumExp
-public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.SKReplicaMaximizer
+public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Maximizers.Structure
 public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKSiteSymmetry
 
 /-!
@@ -143,7 +143,7 @@ theorem sum_abs_le_card_mul_norm (g : FinPairs n → ℝ) :
 
 /-- **`B` attains its maximum.** The function `B(g) = A(g) - ½ ∑ g²` of pair couplings has a
 global maximizer (the book writes `max` without proof). -/
-theorem exists_forall_objective_le (β h : ℝ) :
+theorem exists_skReplicaLogPartition_sub_sum_sq_maximizer (β h : ℝ) :
     ∃ g : FinPairs n → ℝ, ∀ g' : FinPairs n → ℝ,
       skReplicaLogPartition n β h g' - (∑ p, g' p ^ 2) / 2 ≤
         skReplicaLogPartition n β h g - (∑ p, g p ^ 2) / 2 := by

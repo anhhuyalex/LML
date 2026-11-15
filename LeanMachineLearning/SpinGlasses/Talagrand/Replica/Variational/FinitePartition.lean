@@ -38,40 +38,40 @@ theorem skReplicaSum_pos (n : ℕ) (β h q : ℝ) : 0 < skReplicaSum n β h q :=
   rw [skReplicaSum_def]
   exact Finset.sum_pos (fun _ _ => Real.exp_pos _) Finset.univ_nonempty
 
+private lemma sum_mul_exp_eq_integral {ι : Type*} [Fintype ι] (w m : ι → ℝ)
+    (β h q : ℝ) (hq : 0 ≤ q) :
+    (∑ i, w i * Real.exp (h * m i + β ^ 2 * m i ^ 2 * q / 2)) =
+      ∫ z : ℝ, ∑ i, w i * Real.exp ((β * z * Real.sqrt q + h) * m i)
+        ∂(gaussianReal 0 1) := by
+  have H := integral_sum_mul_exp_add_mul_gaussianReal w (fun i => h * m i)
+    (fun i => β * Real.sqrt q * m i)
+  calc (∑ i, w i * Real.exp (h * m i + β ^ 2 * m i ^ 2 * q / 2)) =
+      ∑ i, w i * Real.exp (h * m i + (β * Real.sqrt q * m i) ^ 2 / 2) := by
+        apply Finset.sum_congr rfl
+        intro i _
+        apply congrArg (fun x => w i * Real.exp x)
+        rw [mul_pow, mul_pow, Real.sq_sqrt hq]
+        ring
+    _ = ∫ z : ℝ, ∑ i, w i * Real.exp (h * m i + (β * Real.sqrt q * m i) * z)
+        ∂(gaussianReal 0 1) := H.symm
+    _ = _ := by
+      apply integral_congr_ae
+      filter_upwards [] with z
+      apply Finset.sum_congr rfl
+      intro i _
+      apply congrArg (fun x => w i * Real.exp x)
+      ring
+
 theorem skReplicaSum_eq_integral (n : ℕ) (β h q : ℝ) (hq : 0 ≤ q) :
     skReplicaSum n β h q = (2 : ℝ) ^ n *
       ∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n ∂(gaussianReal 0 1) := by
-  have hz (ε : Fin n → ℤˣ) (z : ℝ) :
-      Real.exp ((β * z * Real.sqrt q + h) * ∑ l, ((ε l : ℤ) : ℝ)) =
-        Real.exp (h * ∑ l, ((ε l : ℤ) : ℝ)) *
-          Real.exp ((β * Real.sqrt q * ∑ l, ((ε l : ℤ) : ℝ)) * z) := by
-    rw [← Real.exp_add]; congr 1; ring
-  have hsq : (β * Real.sqrt q) ^ 2 = β ^ 2 * q := by
-    rw [mul_pow, Real.sq_sqrt hq]
-  have hterm (ε : Fin n → ℤˣ) :
-      Real.exp (h * ∑ l, ((ε l : ℤ) : ℝ) +
-        β ^ 2 * (∑ l, ((ε l : ℤ) : ℝ)) ^ 2 * q / 2) =
-      ∫ z : ℝ, Real.exp ((β * z * Real.sqrt q + h) * ∑ l, ((ε l : ℤ) : ℝ))
-        ∂(gaussianReal 0 1) := by
-    simp_rw [hz ε]
-    rw [integral_const_mul, integral_exp_mul_gaussianReal_zero_one, mul_pow, hsq,
-      ← Real.exp_add]
-    congr 1
-    ring
-  rw [skReplicaSum_def]
-  simp_rw [hterm]
-  rw [← integral_finsetSum]
-  · have heq (z : ℝ) : (∑ ε : Fin n → ℤˣ,
-        Real.exp ((β * z * Real.sqrt q + h) * ∑ l, ((ε l : ℤ) : ℝ))) =
-          (2 : ℝ) ^ n * cosh (β * z * Real.sqrt q + h) ^ n := by
-      have := sum_exp_h_mul_spin (N := n) (β * z * Real.sqrt q + h)
-      rw [mul_pow] at this
-      exact this
-    simp_rw [heq]
-    rw [integral_const_mul]
-  · intro ε _
-    simp_rw [hz ε]
-    exact (integrable_exp_mul_gaussianReal _).const_mul _
+  have H := sum_mul_exp_eq_integral (fun _ : Fin n → ℤˣ => 1)
+    (fun ε => ∑ l, ((ε l : ℤ) : ℝ)) β h q hq
+  simp only [one_mul, ← skReplicaSum_def] at H
+  rw [H, ← integral_const_mul]
+  apply integral_congr_ae
+  filter_upwards [] with z
+  simpa only [mul_pow] using sum_exp_h_mul_spin (N := n) (β * z * Real.sqrt q + h)
 
 theorem sum_spin_pair_exp_eq (n : ℕ) (Y : ℝ) (a b : Fin n) (hab : a ≠ b) :
     ∑ ε : Fin n → ℤˣ, ((ε a : ℤ) : ℝ) * ((ε b : ℤ) : ℝ) *
@@ -184,38 +184,13 @@ theorem sum_spin_sq_exp_integral (n : ℕ) (β h q : ℝ) (hq : 0 ≤ q) :
       (n : ℝ) * ((n : ℝ) - 1) * (2 : ℝ) ^ n *
         ∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n *
           tanh (β * z * Real.sqrt q + h) ^ 2 ∂(gaussianReal 0 1) := by
-  have hz (ε : Fin n → ℤˣ) (z : ℝ) :
-      Real.exp ((β * z * Real.sqrt q + h) * ∑ l, ((ε l : ℤ) : ℝ)) =
-        Real.exp (h * ∑ l, ((ε l : ℤ) : ℝ)) *
-          Real.exp ((β * Real.sqrt q * ∑ l, ((ε l : ℤ) : ℝ)) * z) := by
-    rw [← Real.exp_add]; congr 1; ring
-  have hsq : (β * Real.sqrt q) ^ 2 = β ^ 2 * q := by
-    rw [mul_pow, Real.sq_sqrt hq]
-  have hterm (ε : Fin n → ℤˣ) :
-      Real.exp (h * ∑ l, ((ε l : ℤ) : ℝ) +
-        β ^ 2 * (∑ l, ((ε l : ℤ) : ℝ)) ^ 2 * q / 2) =
-      ∫ z : ℝ, Real.exp ((β * z * Real.sqrt q + h) * ∑ l, ((ε l : ℤ) : ℝ))
-        ∂(gaussianReal 0 1) := by
-    simp_rw [hz ε]
-    rw [integral_const_mul, integral_exp_mul_gaussianReal_zero_one, mul_pow, hsq,
-      ← Real.exp_add]
-    congr 1
-    ring
-  simp_rw [hterm, ← integral_const_mul]
-  rw [← integral_finsetSum]
-  · have heq (z : ℝ) : (∑ ε : Fin n → ℤˣ,
-        ((∑ l, ((ε l : ℤ) : ℝ)) ^ 2 - (n : ℝ)) *
-          Real.exp ((β * z * Real.sqrt q + h) * ∑ l, ((ε l : ℤ) : ℝ))) =
-        (n : ℝ) * ((n : ℝ) - 1) * (2 : ℝ) ^ n *
-          (cosh (β * z * Real.sqrt q + h) ^ n *
-            tanh (β * z * Real.sqrt q + h) ^ 2) := by
-      have := sum_spin_sq_sub_n_exp_eq n (Y := β * z * Real.sqrt q + h)
-      rw [this]
-      rw [mul_pow]
-      ring
-    simp_rw [heq]
-  · intro ε _
-    simp_rw [hz ε]
-    exact ((integrable_exp_mul_gaussianReal _).const_mul _).const_mul _
+  rw [sum_mul_exp_eq_integral
+    (fun ε : Fin n → ℤˣ => (∑ l, ((ε l : ℤ) : ℝ)) ^ 2 - (n : ℝ))
+    (fun ε => ∑ l, ((ε l : ℤ) : ℝ)) β h q hq]
+  simp_rw [sum_spin_sq_sub_n_exp_eq, mul_pow]
+  rw [← integral_const_mul]
+  apply integral_congr_ae
+  filter_upwards [] with z
+  ring
 
 end SpinGlasses

@@ -405,3 +405,41 @@ theorem integrable_even_pow_const_mul_sum_abs_add {ι : Type*} [Fintype ι] (c d
   have h2 := h1.integrable_norm_pow (by positivity : 2 * k ≠ 0)
   have he : Even (2 * k) := ⟨k, by ring⟩
   simpa [Real.norm_eq_abs, he.pow_abs] using h2
+
+/-- Integrability of arbitrary real powers of `cosh(w * z + h)` against the standard Gaussian. -/
+theorem integrable_cosh_rpow_affine_gaussianReal (t w h : ℝ) :
+    Integrable (fun z : ℝ => Real.cosh (w * z + h) ^ t) (gaussianReal 0 1) := by
+  have hcont : Continuous (fun z : ℝ => Real.cosh (w * z + h) ^ t) :=
+    (Real.continuous_cosh.comp (by fun_prop)).rpow_const
+      (fun z => Or.inl (Real.cosh_pos _).ne')
+  refine ((integrable_exp_mul_abs_gaussianReal (|t| * |w|)).const_mul
+    (Real.exp (|t| * |h|))).mono' hcont.aestronglyMeasurable
+      (Filter.Eventually.of_forall fun z => ?_)
+  rw [Real.norm_eq_abs, abs_of_nonneg (Real.rpow_nonneg (Real.cosh_pos _).le _),
+    Real.rpow_def_of_pos (Real.cosh_pos _), ← Real.exp_add]
+  apply Real.exp_le_exp.2
+  calc Real.log (Real.cosh (w * z + h)) * t
+      ≤ |t| * Real.log (Real.cosh (w * z + h)) := by
+        simpa [mul_comm] using
+          mul_le_mul_of_nonneg_right (le_abs_self t) (Real.log_cosh_nonneg _)
+    _ ≤ |t| * |w * z + h| :=
+      mul_le_mul_of_nonneg_left (Real.log_cosh_le_abs _) (abs_nonneg t)
+    _ ≤ |t| * (|w| * |z| + |h|) := by
+      gcongr
+      simpa only [abs_mul] using abs_add_le (w * z) h
+    _ = |t| * |h| + |t| * |w| * |z| := by ring
+
+/-- Gaussian expectation of a weighted sum of affine exponentials. -/
+theorem integral_sum_mul_exp_add_mul_gaussianReal {ι : Type*} [Fintype ι]
+    (w a b : ι → ℝ) :
+    (∫ z : ℝ, ∑ i, w i * Real.exp (a i + b i * z) ∂(gaussianReal 0 1)) =
+      ∑ i, w i * Real.exp (a i + b i ^ 2 / 2) := by
+  rw [integral_finsetSum]
+  · apply Finset.sum_congr rfl
+    intro i _
+    simp_rw [Real.exp_add]
+    rw [integral_const_mul, integral_const_mul, integral_exp_mul_gaussianReal_zero_one]
+  · intro i _
+    simp_rw [Real.exp_add]
+    exact ((integrable_exp_mul_gaussianReal (b i)).const_mul (Real.exp (a i))).const_mul (w i)
+

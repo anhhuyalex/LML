@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.SKReplicaCavity
+public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Maximizers.Replacement
 
 /-!
 # The maximizers of `B` (Talagrand, Proposition 1.13.2 and Corollary 1.13.3)
@@ -42,7 +42,7 @@ theorem skReplica_abs_eq_of_ne_zero (β h : ℝ) (hβ : 0 < β) (G : Fin n → F
       skReplicaMatObjective n β h H ≤ skReplicaMatObjective n β h G)
     {a b c : Fin n} (hab : a ≠ b) (hac : a ≠ c) (hbc : b ≠ c) (hne : G b c ≠ 0) :
     |G a b| = |G b c| := by
-  have h1 := skReplica_lemma_1_13_5 β h hβ a b hab G hs hd hmax
+  have h1 := skReplicaCollapse_objective_eq_and_row_eq_of_maximal β h hβ a b hab G hs hd hmax
   obtain ⟨-, h2, -, -⟩ := h1
   -- `G'' = collapse G b a` is again a maximizer
   have hmax'' : ∀ H : Fin n → Fin n → ℝ, (∀ l l', H l l' = H l' l) → (∀ l, H l l = 0) →
@@ -56,7 +56,8 @@ theorem skReplica_abs_eq_of_ne_zero (β h : ℝ) (hβ : 0 < β) (G : Fin n → F
   have hgac : skReplicaCollapse G b a a c = G b c :=
     skReplicaCollapse_b_rest G b a hab.symm c ⟨hbc.symm, hac.symm⟩
   have hne'' : skReplicaCollapse G b a a c ≠ 0 := by rw [hgac]; exact hne
-  have h3 := skReplica_lemma_1_13_5 β h hβ a c hac (skReplicaCollapse G b a) hs'' hd'' hmax''
+  have h3 := skReplicaCollapse_objective_eq_and_row_eq_of_maximal β h hβ a c hac
+    (skReplicaCollapse G b a) hs'' hd'' hmax''
   obtain ⟨-, -, hpos, hneg⟩ := h3
   have hga_b : skReplicaCollapse G b a a b = |G a b| := by
     rw [skReplicaCollapse_symm G b a hs a b, skReplicaCollapse_ab G b a hab.symm hd, hs b a]
@@ -142,7 +143,8 @@ theorem skReplica_maximizer_structure (β h : ℝ) (hβ : 0 < β) (G : Fin n →
   have hrel : ∀ a b l, a ≠ b → l ≠ a → l ≠ b →
       (G a b = V → G a l = G b l) ∧ (G a b = -V → h = 0 ∧ G a l = -G b l) := by
     intro a b l hab hla hlb
-    obtain ⟨-, -, hpos, hneg⟩ := skReplica_lemma_1_13_5 β h hβ a b hab G hs hd hmax
+    obtain ⟨-, -, hpos, hneg⟩ :=
+      skReplicaCollapse_objective_eq_and_row_eq_of_maximal β h hβ a b hab G hs hd hmax
     exact ⟨fun hp => hpos (by rw [hp]; exact hV) l hla hlb,
       fun hn => hneg (by rw [hn]; linarith) |> fun t => ⟨t.1, t.2 l hla hlb⟩⟩
   have hx_ne : x ≠ y := fun h' => hxy (h' ▸ hd x)
@@ -162,7 +164,8 @@ theorem skReplica_maximizer_structure (β h : ℝ) (hβ : 0 < β) (G : Fin n →
       simp
   have hh0 : ∀ a b, a ≠ b → G a b = -V → h = 0 := by
     intro a b hab hn
-    obtain ⟨-, -, -, hneg⟩ := skReplica_lemma_1_13_5 β h hβ a b hab G hs hd hmax
+    obtain ⟨-, -, -, hneg⟩ :=
+      skReplicaCollapse_objective_eq_and_row_eq_of_maximal β h hβ a b hab G hs hd hmax
     exact (hneg (by rw [hn]; linarith)).1
   refine ⟨V, hV, u, fun l l' hll' => ?_, fun hh l l' hll' => ?_⟩
   · by_cases hlx : l = x

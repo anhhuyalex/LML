@@ -36,12 +36,6 @@ open Finset Real MeasureTheory ProbabilityTheory Filter Topology Set
 
 namespace SpinGlasses
 
-lemma abs_sum_units_cast_le (n : ℕ) (ε : Fin n → ℤˣ) :
-    |∑ l, ((ε l : ℤ) : ℝ)| ≤ n := by
-  calc |∑ l, ((ε l : ℤ) : ℝ)| ≤ ∑ l, |((ε l : ℤ) : ℝ)| := Finset.abs_sum_le_sum_abs _ _
-    _ = ∑ _l : Fin n, (1 : ℝ) := Finset.sum_congr rfl fun l _ => abs_units_cast_eq_one (ε l)
-    _ = n := by simp
-
 /-- Upper bound for the finite partition sum: every configuration has `|∑ ε| ≤ n`. -/
 lemma skReplicaSum_le (n : ℕ) (β h q : ℝ) (hq : 0 ≤ q) :
     skReplicaSum n β h q ≤ (2 : ℝ) ^ n * Real.exp (n * |h| + β ^ 2 * q * (n : ℝ) ^ 2 / 2) := by
@@ -50,7 +44,8 @@ lemma skReplicaSum_le (n : ℕ) (β h q : ℝ) (hq : 0 ≤ q) :
         β ^ 2 * (∑ l, ((ε l : ℤ) : ℝ)) ^ 2 * q / 2)
       ≤ ∑ _ε : Fin n → ℤˣ, Real.exp (n * |h| + β ^ 2 * q * (n : ℝ) ^ 2 / 2) := by
         refine Finset.sum_le_sum fun ε _ => Real.exp_le_exp.2 ?_
-        have hm := abs_sum_units_cast_le n ε
+        have hm : |∑ l, ((ε l : ℤ) : ℝ)| ≤ (n : ℝ) := by
+          simpa using abs_sum_units_cast_le ε
         have h1 : h * ∑ l, ((ε l : ℤ) : ℝ) ≤ n * |h| :=
           (le_abs_self _).trans (by
             rw [abs_mul, mul_comm]

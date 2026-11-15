@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.SKReplicaConstant
-public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.SKReplicaMoment
+public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.ConstantCoupling
+public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Moments.Gaussian
 public import LeanMachineLearning.ForMathlib.Probability.LaplacePrinciple
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.PiNeg
 
@@ -19,8 +19,8 @@ For every integer `n ≥ 1`,
 
 ## Main declarations
 
-* `SpinGlasses.sk_replica_theorem_pos`: the case `β > 0`.
-* `SpinGlasses.sk_replica_theorem`: all real `β` and `h`.
+* `SpinGlasses.exists_tendsto_log_integral_skPartition_pow_pos`: the case `β > 0`.
+* `SpinGlasses.exists_tendsto_log_integral_skPartition_pow`: all real `β` and `h`.
 -/
 
 @[expose] public section
@@ -70,7 +70,7 @@ theorem tendsto_replica_moment (β h : ℝ) (g : FinPairs n → ℝ)
 /-- **Talagrand's Theorem 1.13.1 for `β > 0`.** There is a maximizer `q ≥ 0` of
 `Φ_n(q) = n β²(1-q)²/4 - n² β² q²/4 + log 𝔼 ch^n(β z √q + h)` over `q ≥ 0`, and
 `N⁻¹ log 𝔼 Z_N^n` tends to `n log 2 + Φ_n(q)`. -/
-theorem sk_replica_theorem_pos (β h : ℝ) (hβ : 0 < β) :
+theorem exists_tendsto_log_integral_skPartition_pow_pos (β h : ℝ) (hβ : 0 < β) :
     ∃ q : ℝ, 0 ≤ q ∧
       (∀ q' : ℝ, 0 ≤ q' →
         n * β ^ 2 * (1 - q') ^ 2 / 4 - n ^ 2 * β ^ 2 * q' ^ 2 / 4 +
@@ -82,7 +82,7 @@ theorem sk_replica_theorem_pos (β h : ℝ) (hβ : 0 < β) :
             ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1))) atTop
         (𝓝 (n * Real.log 2 + (n * β ^ 2 * (1 - q) ^ 2 / 4 - n ^ 2 * β ^ 2 * q ^ 2 / 4 +
           Real.log (∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n ∂(gaussianReal 0 1))))) := by
-  obtain ⟨g, hg⟩ := exists_forall_objective_le (n := n) β h
+  obtain ⟨g, hg⟩ := exists_skReplicaLogPartition_sub_sum_sq_maximizer (n := n) β h
   have hmat : ∀ H : Fin n → Fin n → ℝ, (∀ l l', H l l' = H l' l) → (∀ l, H l l = 0) →
       skReplicaMatObjective n β h H ≤ skReplicaMatObjective n β h (skSymmCoupling g) := by
     intro H hHs hHd
@@ -125,16 +125,14 @@ theorem replica_phi_neg_beta (β h q : ℝ) :
         Real.log (∫ z : ℝ, cosh (-β * z * Real.sqrt q + h) ^ n ∂(gaussianReal 0 1)) =
       n * β ^ 2 * (1 - q) ^ 2 / 4 - n ^ 2 * β ^ 2 * q ^ 2 / 4 +
         Real.log (∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n ∂(gaussianReal 0 1)) := by
-  have h1 : ∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n ∂(gaussianReal 0 1) =
-      ∫ z : ℝ, cosh (-β * z * Real.sqrt q + h) ^ n ∂(gaussianReal 0 1) := by
-    rw [← integral_neg_gaussianReal (fun z : ℝ => cosh (-β * z * Real.sqrt q + h) ^ n)]
-    refine integral_congr_ae (ae_of_all _ fun z => ?_)
-    beta_reduce
-    rw [show -β * -z * Real.sqrt q = β * z * Real.sqrt q by ring]
+  have h1 : ∫ z : ℝ, cosh (-β * z * Real.sqrt q + h) ^ n ∂(gaussianReal 0 1) =
+      ∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n ∂(gaussianReal 0 1) := by
+    simpa only [mul_neg, neg_mul] using integral_neg_gaussianReal
+      (fun z : ℝ => cosh (β * z * Real.sqrt q + h) ^ n)
   rw [h1, neg_sq]
 
 /-- **Talagrand's Theorem 1.13.1, case `β = 0`:** the disorder plays no role. -/
-theorem sk_replica_theorem_zero (h : ℝ) :
+theorem tendsto_log_integral_skPartition_pow_zero (h : ℝ) :
     Tendsto (fun N : ℕ => (N : ℝ)⁻¹ * Real.log (∫ g' : FinPairs N → ℝ,
         (∑ σ : Fin N → ℤˣ, Real.exp (skGibbsEnergy N 0 h g' σ)) ^ n
           ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1))) atTop
@@ -167,7 +165,7 @@ theorem sk_replica_theorem_zero (h : ℝ) :
 `Φ_n(q) = n β²(1-q)²/4 - n² β² q²/4 + log 𝔼 ch^n(β z √q + h)` over `q ≥ 0`, and
 `N⁻¹ log 𝔼 Z_N^n` tends to `n log 2 + Φ_n(q)`, where
 `Z_N = ∑_σ exp (β/√N ∑_{i<j} g_ij σ_i σ_j + h ∑ σ_i)`. -/
-theorem sk_replica_theorem (β h : ℝ) :
+theorem exists_tendsto_log_integral_skPartition_pow (β h : ℝ) :
     ∃ q : ℝ, 0 ≤ q ∧
       (∀ q' : ℝ, 0 ≤ q' →
         n * β ^ 2 * (1 - q') ^ 2 / 4 - n ^ 2 * β ^ 2 * q' ^ 2 / 4 +
@@ -180,7 +178,8 @@ theorem sk_replica_theorem (β h : ℝ) :
         (𝓝 (n * Real.log 2 + (n * β ^ 2 * (1 - q) ^ 2 / 4 - n ^ 2 * β ^ 2 * q ^ 2 / 4 +
           Real.log (∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n ∂(gaussianReal 0 1))))) := by
   rcases lt_trichotomy β 0 with hneg | hzero | hpos
-  · obtain ⟨q, hq0, hqmax, hlim⟩ := sk_replica_theorem_pos (n := n) (-β) h (neg_pos.2 hneg)
+  · obtain ⟨q, hq0, hqmax, hlim⟩ :=
+      exists_tendsto_log_integral_skPartition_pow_pos (n := n) (-β) h (neg_pos.2 hneg)
     refine ⟨q, hq0, fun q' hq' => ?_, ?_⟩
     · have := hqmax q' hq'
       rwa [replica_phi_neg_beta, replica_phi_neg_beta] at this
@@ -188,7 +187,7 @@ theorem sk_replica_theorem (β h : ℝ) :
       simpa only [integral_partition_pow_neg_beta] using hlim
   · subst hzero
     refine ⟨0, le_rfl, fun q' hq' => le_of_eq (by simp), ?_⟩
-    exact sk_replica_theorem_zero h
-  · exact sk_replica_theorem_pos β h hpos
+    exact tendsto_log_integral_skPartition_pow_zero h
+  · exact exists_tendsto_log_integral_skPartition_pow_pos β h hpos
 
 end SpinGlasses

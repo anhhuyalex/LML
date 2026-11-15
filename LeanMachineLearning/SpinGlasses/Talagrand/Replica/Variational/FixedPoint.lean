@@ -6,7 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.Stationarity
-public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.SKReplicaTheorem
+public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.Limit
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein
 public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKFixedPointRS
 public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKFixedPointResidual
@@ -38,18 +38,8 @@ theorem skReplica_ratio_zero (n : ℕ) (h q : ℝ) :
           tanh (0 * z * Real.sqrt q + h) ^ 2 ∂(gaussianReal 0 1)) /
         (∫ z : ℝ, cosh (0 * z * Real.sqrt q + h) ^ n ∂(gaussianReal 0 1)) =
       tanh h ^ 2 := by
-  have heq1 : (fun z : ℝ => cosh (0 * z * Real.sqrt q + h) ^ n *
-        tanh (0 * z * Real.sqrt q + h) ^ 2) =
-      (fun _ => cosh h ^ n * tanh h ^ 2) := by
-    ext z; congr 3 <;> ring
-  have heq2 : (fun z : ℝ => cosh (0 * z * Real.sqrt q + h) ^ n) =
-      (fun _ => cosh h ^ n) := by
-    ext z; congr 2; ring
-  simp_rw [heq1, heq2]
-  rw [integral_const, integral_const, probReal_univ, smul_eq_mul, one_mul,
-    smul_eq_mul, one_mul]
-  have hpos : cosh h ^ n ≠ 0 := (pow_pos (Real.cosh_pos h) n).ne'
-  exact mul_div_cancel_left₀ _ hpos
+  simp only [zero_mul, zero_add, integral_const, probReal_univ, one_smul]
+  exact mul_div_cancel_left₀ _ (pow_pos (Real.cosh_pos h) n).ne'
 
 /-- **Talagrand's Eq. (1.408) for `β = 0`:** `q = th² h` is a maximizing fixed point. -/
 theorem exists_skReplica_maximizer_fixedPoint_zero (n : ℕ) (h : ℝ) :
@@ -71,7 +61,7 @@ theorem exists_skReplica_maximizer_fixedPoint_zero (n : ℕ) (h : ℝ) :
   refine ⟨tanh h ^ 2, sq_nonneg _, (Real.tanh_sq_lt_one _).le, fun q' _ => ?_, ?_, ?_⟩
   · rw [replica_phi_zero, replica_phi_zero]
   · rw [skReplica_ratio_zero]
-  · have hlim := sk_replica_theorem_zero (n := n) h
+  · have hlim := tendsto_log_integral_skPartition_pow_zero (n := n) h
     rw [replica_phi_zero (q := 0)] at hlim
     rw [replica_phi_zero (q := tanh h ^ 2)]
     exact hlim
@@ -131,7 +121,7 @@ theorem exists_skReplica_maximizer_fixedPoint_one (β h : ℝ) :
   obtain ⟨q, hq0, hq1, hqfix⟩ := exists_skReplica_ratio_fixedPoint 1 β h
   refine ⟨q, hq0, hq1, fun q' hq' => ?_, hqfix, ?_⟩
   · rw [replica_phi_one_const β h q' hq', replica_phi_one_const β h q hq0]
-  · obtain ⟨q0, hq0_ge, -, hlim⟩ := sk_replica_theorem (n := 1) β h
+  · obtain ⟨q0, hq0_ge, -, hlim⟩ := exists_tendsto_log_integral_skPartition_pow (n := 1) β h
     push_cast at hlim ⊢
     rw [replica_phi_one_const β h q0 hq0_ge] at hlim
     rw [replica_phi_one_const β h q hq0]
@@ -144,42 +134,20 @@ theorem skReplica_ratio_neg_beta (n : ℕ) (β h q : ℝ) :
       (∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n *
           tanh (β * z * Real.sqrt q + h) ^ 2 ∂(gaussianReal 0 1)) /
         (∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n ∂(gaussianReal 0 1)) := by
-  have hnum : ∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n *
-        tanh (β * z * Real.sqrt q + h) ^ 2 ∂(gaussianReal 0 1) =
-      ∫ z : ℝ, cosh (-β * z * Real.sqrt q + h) ^ n *
-        tanh (-β * z * Real.sqrt q + h) ^ 2 ∂(gaussianReal 0 1) := by
-    rw [← integral_neg_gaussianReal (fun z : ℝ => cosh (-β * z * Real.sqrt q + h) ^ n *
-      tanh (-β * z * Real.sqrt q + h) ^ 2)]
-    refine integral_congr_ae (ae_of_all _ fun z => ?_)
-    beta_reduce
-    rw [show -β * -z * Real.sqrt q = β * z * Real.sqrt q by ring]
-  have hden : ∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n ∂(gaussianReal 0 1) =
-      ∫ z : ℝ, cosh (-β * z * Real.sqrt q + h) ^ n ∂(gaussianReal 0 1) := by
-    rw [← integral_neg_gaussianReal (fun z : ℝ => cosh (-β * z * Real.sqrt q + h) ^ n)]
-    refine integral_congr_ae (ae_of_all _ fun z => ?_)
-    beta_reduce
-    rw [show -β * -z * Real.sqrt q = β * z * Real.sqrt q by ring]
-  rw [hnum, hden]
+  refine congrArg₂ (fun a b : ℝ => a / b) ?_ ?_
+  · simpa only [mul_neg, neg_mul] using integral_neg_gaussianReal
+      (fun z : ℝ => cosh (β * z * Real.sqrt q + h) ^ n *
+        tanh (β * z * Real.sqrt q + h) ^ 2)
+  · simpa only [mul_neg, neg_mul] using integral_neg_gaussianReal
+      (fun z : ℝ => cosh (β * z * Real.sqrt q + h) ^ n)
 
 theorem skReplica_ratio_q_zero (n : ℕ) (β h : ℝ) :
     (∫ z : ℝ, cosh (β * z * Real.sqrt 0 + h) ^ n *
           tanh (β * z * Real.sqrt 0 + h) ^ 2 ∂(gaussianReal 0 1)) /
         (∫ z : ℝ, cosh (β * z * Real.sqrt 0 + h) ^ n ∂(gaussianReal 0 1)) =
       tanh h ^ 2 := by
-  have heq1 : (fun z : ℝ => cosh (β * z * Real.sqrt 0 + h) ^ n *
-        tanh (β * z * Real.sqrt 0 + h) ^ 2) =
-      (fun _ => cosh h ^ n * tanh h ^ 2) := by
-    ext z
-    rw [Real.sqrt_zero, mul_zero, zero_add]
-  have heq2 : (fun z : ℝ => cosh (β * z * Real.sqrt 0 + h) ^ n) =
-      (fun _ => cosh h ^ n) := by
-    ext z
-    rw [Real.sqrt_zero, mul_zero, zero_add]
-  simp_rw [heq1, heq2]
-  rw [integral_const, integral_const, probReal_univ, smul_eq_mul, one_mul,
-    smul_eq_mul, one_mul]
-  have hpos : cosh h ^ n ≠ 0 := (pow_pos (Real.cosh_pos h) n).ne'
-  exact mul_div_cancel_left₀ _ hpos
+  simp only [Real.sqrt_zero, mul_zero, zero_add, integral_const, probReal_univ, one_smul]
+  exact mul_div_cancel_left₀ _ (pow_pos (Real.cosh_pos h) n).ne'
 
 lemma exists_skReplica_maximizer_fixedPoint_pos (n : ℕ) (hn : 2 ≤ n) (β h : ℝ) (hβ : 0 < β) :
     ∃ q : ℝ, 0 ≤ q ∧ q ≤ 1 ∧
@@ -197,7 +165,8 @@ lemma exists_skReplica_maximizer_fixedPoint_pos (n : ℕ) (hn : 2 ≤ n) (β h :
         (𝓝 (n * Real.log 2 + (n * β ^ 2 * (1 - q) ^ 2 / 4 -
           (n : ℝ) ^ 2 * β ^ 2 * q ^ 2 / 4 +
           Real.log (∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n ∂(gaussianReal 0 1))))) := by
-  obtain ⟨q0, hq0_nonneg, hq0_max, hlim⟩ := sk_replica_theorem_pos (n := n) β h hβ
+  obtain ⟨q0, hq0_nonneg, hq0_max, hlim⟩ :=
+    exists_tendsto_log_integral_skPartition_pow_pos (n := n) β h hβ
   have hF_max : ∀ q : ℝ, 0 ≤ q →
       skReplicaSmoothObjective n β h q ≤ skReplicaSmoothObjective n β h q0 := by
     intro q hq
@@ -239,16 +208,7 @@ lemma exists_skReplica_maximizer_fixedPoint_pos (n : ℕ) (hn : 2 ≤ n) (β h :
             tanh (β * z * Real.sqrt 0 + h) ^ 2 ∂(gaussianReal 0 1)) /
           (∫ z : ℝ, cosh (β * z * Real.sqrt 0 + h) ^ n ∂(gaussianReal 0 1)) := by
         rw [skReplica_ratio_q_zero]
-        have ht : Real.tanh h ≠ 0 := by
-          intro hth
-          rw [Real.tanh_eq_sinh_div_cosh, div_eq_zero_iff] at hth
-          cases hth with
-          | inl h1 =>
-            rw [Real.sinh_eq_zero] at h1
-            exact hh h1
-          | inr h2 =>
-            exact (Real.cosh_pos h).ne' h2
-        exact sq_pos_of_ne_zero ht
+        simpa using fixedPointMap_pos hh 0
       have hd0 := hasDerivAt_skReplicaSmoothObjective n β h 0 le_rfl
       have hd0_val : 0 < (n : ℝ) * ((n : ℝ) - 1) * β ^ 2 / 2 *
           (((∫ z : ℝ, cosh (β * z * Real.sqrt 0 + h) ^ n *
@@ -261,6 +221,7 @@ lemma exists_skReplica_maximizer_fixedPoint_pos (n : ℕ) (hn : 2 ≤ n) (β h :
       rw [hq0_eq] at hx_le
       have hfalse : False := by linarith
       exact hfalse.elim
+
 /-- **Talagrand's Eq. (1.408).** For every integer `n ≥ 1` and all `β, h ∈ ℝ`, there exists a
 maximizer `q ∈ [0, 1]` of `Φ_n` over `[0, ∞)` that satisfies the tilted fixed-point equation
 `q = 𝔼 [ch^n(β z √q + h) th²(β z √q + h)] / 𝔼 [ch^n(β z √q + h)]`, and `N⁻¹ log 𝔼 Z_N^n` tends to

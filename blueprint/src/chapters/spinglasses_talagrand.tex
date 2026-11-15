@@ -11267,7 +11267,7 @@ with $\tfrac12\sum_{\ell<\ell'}g^2$ written as $\tfrac14\sum_{\ell,\ell'}G_{\ell
 \end{definition}
 
 \begin{theorem}[Theorem~1.13.1, Eq.~(1.396)]\label{thm:sg-tal:replica}
-\lean{SpinGlasses.sk_replica_theorem, SpinGlasses.sk_replica_theorem_pos, SpinGlasses.sk_replica_theorem_zero}
+\lean{SpinGlasses.exists_tendsto_log_integral_skPartition_pow, SpinGlasses.exists_tendsto_log_integral_skPartition_pow_pos, SpinGlasses.tendsto_log_integral_skPartition_pow_zero}
 \leanok
 \uses{def:sg-tal:replica-A, lem:sg-tal:replica-laplace, lem:sg-tal:replica-moment, prop:sg-tal:replica-maximizers, cor:sg-tal:replica-constant, lem:sg-tal:replica-constant, lem:sg-tal:replica-existence}
 \talsource{Theorem~1.13.1; source lines 5712--5944}
@@ -11387,7 +11387,7 @@ Combining Steps~1--4 gives $\mathbb EZ_N^n=\exp\big(\frac{\beta^2}4n(N-n)\big)\,
 \end{proof}
 
 \begin{lemma}[Lemma~1.13.4: the hyperbolic Cauchy--Schwarz inequality]\label{lem:sg-tal:replica-hyp}
-\lean{SpinGlasses.hyp_cs_le, SpinGlasses.hyp_cs_eq, SpinGlasses.hyp_sum_cs_le, SpinGlasses.hyp_sum_cs_eq}
+\lean{SpinGlasses.cosh_sinh_sum_le_sqrt_mul_sqrt, SpinGlasses.signed_eq_of_hyperbolic_bound_eq, SpinGlasses.sum_cosh_sinh_sum_le_sqrt_mul_sqrt, SpinGlasses.sum_signed_eq_of_hyperbolic_bound_eq}
 \leanok
 \talsource{Lemma~1.13.4, Eq.~(1.400); source lines 5800--5827}
 For real $a_1,a_2,g$,
@@ -11415,7 +11415,7 @@ Equality with $g\ne0$ ($u,w>0$) therefore forces $a_1=a_2$ for $g>0$ and $a_1=-a
 \end{proof}
 
 \begin{lemma}[Lemma~1.13.5, in matrix form]\label{lem:sg-tal:replica-collapse}
-\lean{SpinGlasses.skReplica_lemma_1_13_5, SpinGlasses.skReplicaCollapse, SpinGlasses.skReplicaCollapse_split_data, SpinGlasses.exp_skReplicaMatLogPartition_split, SpinGlasses.sum_sq_collapse}
+\lean{SpinGlasses.skReplicaCollapse_objective_eq_and_row_eq_of_maximal, SpinGlasses.skReplicaCollapse, SpinGlasses.skReplicaCollapse_split_data, SpinGlasses.exp_skReplicaMatLogPartition_split, SpinGlasses.sum_sq_collapse}
 \leanok
 \uses{lem:sg-tal:replica-hyp, def:sg-tal:replica-A}
 \talsource{Lemma~1.13.5, Eqs.~(1.404)--(1.407); source lines 5829--5890}
@@ -11473,7 +11473,7 @@ If $h\ne0$ then $G$ is already constant. If $G=0$ take $V=0$.
 \end{proof}
 
 \begin{lemma}[Existence of a maximizer of $B$]\label{lem:sg-tal:replica-existence}
-\lean{SpinGlasses.exists_forall_objective_le, SpinGlasses.abs_skReplicaLogPartition_le, SpinGlasses.continuous_skReplicaLogPartition}
+\lean{SpinGlasses.exists_skReplicaLogPartition_sub_sum_sq_maximizer, SpinGlasses.abs_skReplicaLogPartition_le, SpinGlasses.continuous_skReplicaLogPartition}
 \leanok
 \talsource{Section~1.13: ``max'' in Eq.~(1.399), not proved in the book}
 For all real $\beta,h$ the function $B$ attains its maximum. Moreover $|A(\mathbf g)|\le K(1+\sum|g_{\ell\ell'}|)$ with $K=n\log2+n|h|+|\beta|$.

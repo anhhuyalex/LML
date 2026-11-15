@@ -5,8 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.SKReplicaMoment
-public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.SKReplicaHyperbolic
+public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Moments.Gaussian
+public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Maximizers.Hyperbolic
 
 /-!
 # The two-replica decomposition of `exp A(g)` (Talagrand, proof of Lemma 1.13.5)
@@ -408,7 +408,8 @@ theorem coeff_eq_of_forall_signs {ι : Type*} [Fintype ι] (U V : ι → ℝ)
 symmetric matrices with zero diagonal, and let `a ≠ b` be two replicas. Then `g′` and `g″` have
 the same value of `B`, and the other couplings of `a` and `b` agree if `G_ab > 0` and are opposite
 (with `h = 0`) if `G_ab < 0`. -/
-theorem skReplica_lemma_1_13_5 (β h : ℝ) (hβ : 0 < β) (a b : Fin n) (hab : a ≠ b)
+theorem skReplicaCollapse_objective_eq_and_row_eq_of_maximal (β h : ℝ) (hβ : 0 < β)
+    (a b : Fin n) (hab : a ≠ b)
     (G : Fin n → Fin n → ℝ) (hs : ∀ l l', G l l' = G l' l) (hd : ∀ l, G l l = 0)
     (hmax : ∀ H : Fin n → Fin n → ℝ, (∀ l l', H l l' = H l' l) → (∀ l, H l l = 0) →
       skReplicaMatLogPartition n β h H - (∑ l, ∑ l', H l l' ^ 2) / 4 ≤
@@ -430,7 +431,7 @@ theorem skReplica_lemma_1_13_5 (β h : ℝ) (hβ : 0 < β) (a b : Fin n) (hab : 
     rw [show x = x / 2 + x / 2 by ring, Real.exp_add]
     simp only [add_halves]
     exact Real.sqrt_mul_self (Real.exp_pos _).le
-  have hcs := hyp_sum_cs_le w hw A₁ A₂ (β * G a b)
+  have hcs := sum_cosh_sinh_sum_le_sqrt_mul_sqrt w hw A₁ A₂ (β * G a b)
   rw [← hG, ← hG', ← hG'', hsqrt, hsqrt, ← Real.exp_add] at hcs
   have hlin : A ≤ (A' + A'') / 2 := by
     have := Real.exp_le_exp.1 hcs
@@ -453,7 +454,7 @@ theorem skReplica_lemma_1_13_5 (β h : ℝ) (hβ : 0 < β) (a b : Fin n) (hab : 
     rw [← hG, ← hG', ← hG'', hsqrt, hsqrt, ← Real.exp_add, hAeq]
     congr 1
     ring
-  obtain ⟨hpos, hneg⟩ := hyp_sum_cs_eq w hw A₁ A₂ (β * G a b) heq
+  obtain ⟨hpos, hneg⟩ := sum_signed_eq_of_hyperbolic_bound_eq w hw A₁ A₂ (β * G a b) heq
   refine ⟨e1, e2, fun hc l hla hlb => ?_, fun hc => ?_⟩
   · have hall := hpos (mul_pos hβ hc)
     let l' : {l : Fin n // l ≠ a ∧ l ≠ b} := ⟨l, hla, hlb⟩

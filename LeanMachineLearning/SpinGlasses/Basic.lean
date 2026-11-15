@@ -100,6 +100,14 @@ theorem abs_units_cast_le_one (u : ℤˣ) : |((u : ℤ) : ℝ)| ≤ 1 := by
 theorem abs_units_cast_eq_one (u : ℤˣ) : |((u : ℤ) : ℝ)| = 1 := by
   rcases Int.units_eq_one_or u with h | h <;> simp [h]
 
+/-- The absolute value of a sum of spin configurations is bounded by the cardinality of the
+index type. -/
+lemma abs_sum_units_cast_le (ε : ι → ℤˣ) :
+    |∑ i, ((ε i : ℤ) : ℝ)| ≤ Fintype.card ι := by
+  calc |∑ i, ((ε i : ℤ) : ℝ)| ≤ ∑ i, |((ε i : ℤ) : ℝ)| :=
+        Finset.abs_sum_le_sum_abs _ _
+    _ = Fintype.card ι := by simp [abs_units_cast_eq_one]
+
 /-- The coordinates of a hypercube configuration are `1` or `-1`. -/
 theorem units_cast_eq_one_or (u : ℤˣ) : ((u : ℤ) : ℝ) = 1 ∨ ((u : ℤ) : ℝ) = -1 := by
   rcases Int.units_eq_one_or u with h | h <;> simp [h]

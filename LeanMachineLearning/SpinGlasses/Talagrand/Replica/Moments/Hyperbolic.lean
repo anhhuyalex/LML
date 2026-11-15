@@ -7,7 +7,7 @@ module
 
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiExp
 public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKFixedPoint
-public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.SKReplicaConstant
+public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.ConstantCoupling
 
 /-!
 # Hyperbolic moments of the replica fixed-point problem
@@ -27,28 +27,7 @@ namespace SpinGlasses
 /-- For any `n, w, h`, `z ↦ ch^n(w z + h)` is integrable against the standard Gaussian measure. -/
 theorem integrable_cosh_pow (n : ℕ) (w h : ℝ) :
     Integrable (fun z : ℝ => cosh (w * z + h) ^ n) (gaussianReal 0 1) := by
-  have hz (ε : Fin n → ℤˣ) (z : ℝ) :
-      Real.exp ((w * z + h) * ∑ l, ((ε l : ℤ) : ℝ)) =
-        Real.exp (h * ∑ l, ((ε l : ℤ) : ℝ)) *
-          Real.exp ((w * ∑ l, ((ε l : ℤ) : ℝ)) * z) := by
-    rw [← Real.exp_add]; congr 1; ring
-  have hint_term (ε : Fin n → ℤˣ) :
-      Integrable (fun z : ℝ => Real.exp ((w * z + h) * ∑ l, ((ε l : ℤ) : ℝ)))
-        (gaussianReal 0 1) := by
-    simp_rw [hz ε]
-    exact (integrable_exp_mul_gaussianReal _).const_mul _
-  have hint_sum : Integrable (fun z : ℝ => ∑ ε : Fin n → ℤˣ,
-      Real.exp ((w * z + h) * ∑ l, ((ε l : ℤ) : ℝ))) (gaussianReal 0 1) :=
-    integrable_finsetSum _ fun ε _ => hint_term ε
-  have heq (z : ℝ) : (∑ ε : Fin n → ℤˣ,
-      Real.exp ((w * z + h) * ∑ l, ((ε l : ℤ) : ℝ))) =
-        (2 : ℝ) ^ n * cosh (w * z + h) ^ n := by
-    rw [sum_exp_h_mul_spin (w * z + h), mul_pow]
-  simp_rw [heq] at hint_sum
-  have h2n : (2 : ℝ) ^ n ≠ 0 := (pow_pos two_pos n).ne'
-  have := hint_sum.const_mul ((2 : ℝ) ^ n)⁻¹
-  simp_rw [← mul_assoc, inv_mul_cancel₀ h2n, one_mul] at this
-  exact this
+  simpa only [Real.rpow_natCast] using integrable_cosh_rpow_affine_gaussianReal n w h
 
 /-- `ch^n x · th² x ≤ ch^n x`, since `th² ≤ 1`. -/
 lemma cosh_pow_mul_tanh_sq_le (n : ℕ) (x : ℝ) : cosh x ^ n * tanh x ^ 2 ≤ cosh x ^ n := by
@@ -84,32 +63,19 @@ theorem integral_cosh_pow_pos (n : ℕ) (w h : ℝ) :
 /-- Reordered integrability for `z ↦ ch^n(β z √q + h)`. -/
 theorem integrable_cosh_pow_sk (n : ℕ) (β h q : ℝ) :
     Integrable (fun z : ℝ => cosh (β * z * Real.sqrt q + h) ^ n) (gaussianReal 0 1) := by
-  have heq : (fun z : ℝ => cosh (β * z * Real.sqrt q + h) ^ n) =
-      (fun z => cosh ((β * Real.sqrt q) * z + h) ^ n) := by
-    ext z; congr 2; ring
-  rw [heq]
-  exact integrable_cosh_pow n (β * Real.sqrt q) h
+  simpa only [mul_right_comm β] using integrable_cosh_pow n (β * Real.sqrt q) h
 
 /-- Reordered integrability for `z ↦ ch^n(β z √q + h) th²(β z √q + h)`. -/
 theorem integrable_cosh_pow_mul_tanh_sq_sk (n : ℕ) (β h q : ℝ) :
     Integrable (fun z : ℝ => cosh (β * z * Real.sqrt q + h) ^ n *
       tanh (β * z * Real.sqrt q + h) ^ 2) (gaussianReal 0 1) := by
-  have heq : (fun z : ℝ => cosh (β * z * Real.sqrt q + h) ^ n *
-        tanh (β * z * Real.sqrt q + h) ^ 2) =
-      (fun z => cosh ((β * Real.sqrt q) * z + h) ^ n *
-        tanh ((β * Real.sqrt q) * z + h) ^ 2) := by
-    ext z; congr 3 <;> ring
-  rw [heq]
-  exact integrable_cosh_pow_mul_tanh_sq n (β * Real.sqrt q) h
+  simpa only [mul_right_comm β] using
+    integrable_cosh_pow_mul_tanh_sq n (β * Real.sqrt q) h
 
 /-- Positivity of the replicated cosh expectation for `β z √q + h`. -/
 theorem integral_cosh_pow_sk_pos (n : ℕ) (β h q : ℝ) :
     0 < ∫ z : ℝ, cosh (β * z * Real.sqrt q + h) ^ n ∂(gaussianReal 0 1) := by
-  have heq : (fun z : ℝ => cosh (β * z * Real.sqrt q + h) ^ n) =
-      (fun z => cosh ((β * Real.sqrt q) * z + h) ^ n) := by
-    ext z; congr 2; ring
-  rw [heq]
-  exact integral_cosh_pow_pos n (β * Real.sqrt q) h
+  simpa only [mul_right_comm β] using integral_cosh_pow_pos n (β * Real.sqrt q) h
 
 /-- The replica fixed-point ratio is nonnegative. -/
 theorem skReplica_ratio_nonneg (n : ℕ) (β h q : ℝ) :

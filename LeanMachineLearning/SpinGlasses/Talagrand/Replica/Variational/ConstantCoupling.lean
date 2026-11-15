@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.SKReplicaBridge
+public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.Coordinates
 
 /-!
 # Constant couplings (Talagrand, the end of the proof of Theorem 1.13.1)
