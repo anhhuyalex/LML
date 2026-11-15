@@ -9,9 +9,12 @@ public import Mathlib.Analysis.Calculus.ParametricIntegral
 public import Mathlib.Probability.Distributions.Gaussian.Fernique
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein
 public import Mathlib.Probability.Distributions.Gaussian.HasGaussianLaw.Basic
+public import Mathlib.Probability.Distributions.Gaussian.HasGaussianLaw.Independence
 public import Mathlib.Probability.Distributions.Gaussian.IsGaussianProcess.Basic
 public import Mathlib.Probability.Distributions.Gaussian.Multivariate
 public import Mathlib.Probability.Moments.CovarianceBilin
+public import Mathlib.Probability.Moments.Variance
+public import Mathlib.MeasureTheory.Integral.Pi
 
 /-!
 # Gaussian vectors: representation and Stein's identity
@@ -540,5 +543,75 @@ theorem integral_mul_eval_multivariateGaussian {κ : Type*} [Fintype κ] [Decida
   rw [covariance_eq_sub hx hy, integral_eval_multivariateGaussian,
     integral_eval_multivariateGaussian] at this
   simpa using this
+
+/-- The coordinate evaluation on a product of i.i.d. standard Gaussians has a Gaussian law. -/
+theorem hasGaussianLaw_pi_gaussianReal (ι : Type*) [Fintype ι] :
+    HasGaussianLaw (fun (ω : ι → ℝ) (i : ι) => ω i)
+      (Measure.pi fun _ : ι => gaussianReal 0 1) := by
+  refine iIndepFun.hasGaussianLaw (fun i => ?_) (iIndepFun_pi fun i => aemeasurable_id)
+  refine ⟨(measurable_pi_apply i).aemeasurable, ?_⟩
+  rw [show (fun ω : ι → ℝ => ω i) = Function.eval i from rfl]
+  rw [(measurePreserving_eval (fun _ : ι => gaussianReal 0 1) i).map_eq]
+  exact isGaussian_gaussianReal 0 1
+
+/-- A finite family of linear combinations of i.i.d. standard Gaussians has a Gaussian law. -/
+theorem hasGaussianLaw_pi_gaussianReal_linear {ι S : Type*} [Fintype ι] [Finite S]
+    (A : S → ι → ℝ) :
+    HasGaussianLaw (fun (ω : ι → ℝ) (s : S) => ∑ i, A s i * ω i)
+      (Measure.pi fun _ : ι => gaussianReal 0 1) := by
+  have := Fintype.ofFinite S
+  let L : (ι → ℝ) →ₗ[ℝ] (S → ℝ) := {
+    toFun := fun ω s => ∑ i, A s i * ω i
+    map_add' := fun x y => by
+      ext s
+      simp only [Pi.add_apply, mul_add, Finset.sum_add_distrib]
+    map_smul' := fun c x => by
+      ext s
+      simp only [Pi.smul_apply, RingHom.id_apply, smul_eq_mul]
+      rw [Finset.mul_sum]
+      refine Finset.sum_congr rfl fun i _ => by ring
+  }
+  have hCL : Continuous L := LinearMap.continuous_on_pi L
+  let CL : (ι → ℝ) →L[ℝ] (S → ℝ) := ⟨L, hCL⟩
+  exact (hasGaussianLaw_pi_gaussianReal ι).map_fun CL
+
+/-- Individual coordinate evaluation on i.i.d. standard Gaussians is centered. -/
+theorem integral_pi_gaussianReal_eval_eq_zero {ι : Type*} [Fintype ι] (i : ι) :
+    ∫ ω : ι → ℝ, ω i ∂(Measure.pi fun _ : ι => gaussianReal 0 1) = 0 := by
+  rw [MeasureTheory.integral_eval (μ := fun _ : ι => gaussianReal 0 1) (i := i),
+    ProbabilityTheory.integral_id_gaussianReal]
+
+/-- Any finite linear combination of i.i.d. standard Gaussians is centered. -/
+theorem integral_pi_gaussianReal_linear_eq_zero {ι : Type*} [Fintype ι] (c : ι → ℝ) :
+    ∫ ω : ι → ℝ, (∑ i, c i * ω i) ∂(Measure.pi fun _ : ι => gaussianReal 0 1) = 0 := by
+  have hint : ∀ i ∈ (Finset.univ : Finset ι), Integrable (fun ω : ι → ℝ => c i * ω i)
+      (Measure.pi fun _ : ι => gaussianReal 0 1) := fun i _ =>
+    (integrable_comp_eval (μ := fun _ : ι => gaussianReal 0 1) (i := i)
+      (IsGaussian.integrable_id (μ := gaussianReal 0 1))).const_mul (c i)
+  rw [integral_finsetSum (Finset.univ : Finset ι) hint]
+  simp_rw [integral_const_mul, integral_pi_gaussianReal_eval_eq_zero, mul_zero,
+    Finset.sum_const_zero]
+
+/-- The second moment of a linear combination of i.i.d. standard Gaussians equals `∑ i, c i ^ 2`. -/
+theorem integral_pi_gaussianReal_linear_sq {ι : Type*} [Fintype ι] (c : ι → ℝ) :
+    ∫ ω : ι → ℝ, (∑ i, c i * ω i) ^ 2 ∂(Measure.pi fun _ : ι => gaussianReal 0 1) =
+      ∑ i, c i ^ 2 := by
+  have h0 := integral_pi_gaussianReal_linear_eq_zero (ι := ι) c
+  have hm : AEMeasurable (fun ω : ι → ℝ => ∑ i, c i * ω i)
+      (Measure.pi fun _ : ι => gaussianReal 0 1) :=
+    (Finset.measurable_sum (Finset.univ : Finset ι) fun i _ =>
+      measurable_const.mul (measurable_pi_apply i)).aemeasurable
+  rw [← variance_of_integral_eq_zero hm h0]
+  have h_sum : (fun ω : ι → ℝ => ∑ i, c i * ω i) =
+      ∑ i, (fun ω : ι → ℝ => (fun x : ℝ => c i * x) (ω i)) := by
+    ext ω; simp
+  rw [h_sum, variance_sum_pi]
+  · have h_term (i : ι) : Var[fun x : ℝ => c i * x; gaussianReal 0 1] = c i ^ 2 := by
+      have : (fun x : ℝ => c i * x) = fun x => c i * id x := rfl
+      rw [this, variance_const_mul, variance_id_gaussianReal (μ := 0) (v := 1)]
+      simp
+    simp_rw [h_term]
+  · intro i
+    exact (memLp_id_gaussianReal 2).const_mul (c i)
 
 end ProbabilityTheory
