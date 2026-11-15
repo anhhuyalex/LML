@@ -11824,9 +11824,48 @@ Corollary~\ref{cor:sg-tal:replica-exchange-limits} proves the derivative and the
 exchange when both $p_N\to p$ and $\psi_N(t)\to\psi(t)$ near zero are supplied.
 The earlier scalar pressure theorem supplies the first convergence for $\beta^2<1/4$
 and a fixed point $q$ (Theorem~\ref{thm:sg-tal:alr}). Convergence of the real-moment
-pressure near zero is still unproved here. Neither the integer-replica theorem nor
+pressure near zero is still unproved here. Theorem~\ref{thm:sg-tal:replica-real-moment-path}
+gives the exact derivative of $\mathbb E\,Z_s^{\,t}$ along the smart path and the decoupled
+endpoint for every real $t$, but the remaining estimate (an $O(1/N)$ bound for the overlap
+under the tilted weight $Z_s^{\,t}$) is not proved. Neither the integer-replica theorem nor
 the conditional corollary proves it, and neither extends Eq.~(1.411) to all temperatures.
 \end{remark}
+
+\begin{theorem}[Real moments of the partition function along the smart path]\label{thm:sg-tal:replica-real-moment-path}
+  \lean{SpinGlasses.integral_cosh_rpow_pos,
+        SpinGlasses.integral_prod_two_mul_cosh_rpow_pi,
+        SpinGlasses.inv_mul_log_integral_prod_two_mul_cosh_rpow_pi,
+        SpinGlasses.freeEnergyCompHessian_exp,
+        SpinGlasses.hasDerivAt_integral_exp_mul_log_sum_exp_trig_hessian,
+        SpinGlasses.deriv_exp_mul_const,
+        SpinGlasses.deriv_deriv_exp_mul_const,
+        SpinGlasses.exp_mul_growth,
+        SpinGlasses.exists_sk_smart_path_profile_exp}
+  \leanok
+  \uses{thm:sg-tal:profile-comp, thm:sg-tal:replica-real-moment-sandwich}
+\talsource{Section~1.13, last paragraphs (the generalization of Eq.~(1.108) to real $t$)}
+Let $N\ge1$, $q\ge0$, $h,\beta\in\mathbb R$ and $t\in\mathbb R$. With $Z_s=\sum_\sigma\exp(\cos s\,X_\sigma+\sin s\,Y_\sigma+h\sum_i\sigma_i)$ the partition function of the smart path of Theorem~\ref{thm:sg-tal:profile-comp} ($Z_0$ is the SK partition function and $Z_{\pi/2}$ the decoupled one), put $A_s=N^{-1}\log Z_s$ and $Q_s=\langle(R_{1,2}-q)^2\rangle_s$.
+\begin{enumerate}
+\item The function $s\mapsto\mathbb E\,Z_s^{\,t}=\mathbb E\,e^{tNA_s}$ is differentiable, with
+\[
+\frac{d}{ds}\,\mathbb E\,Z_s^{\,t}=\frac{\beta^2}{2}\,tN\sin s\cos s\;\mathbb E\Big[Z_s^{\,t}\Big(\big(Q_s-(1-q)^2\big)-t\big(Q_s-q^2-\tfrac1N\big)\Big)\Big].
+\]
+More generally, for every real $c$ the same holds for $\mathbb E\,e^{cA_s}$ with $tN$ replaced by $c$ in the first factor and with $c^2/N$ in place of $tN\cdot t$ in the second.
+\item The decoupled endpoint is explicit: for every real $t$,
+\[
+\mathbb E\,Z_{\pi/2}^{\,t}=\Big(2^t\,\mathbb E\cosh^t(\beta\sqrt q\,z+h)\Big)^N,\qquad
+\frac1N\log\mathbb E\,Z_{\pi/2}^{\,t}=t\log2+\log\mathbb E\cosh^t(\beta\sqrt q\,z+h),
+\]
+where $z$ is a standard Gaussian, and $\mathbb E\cosh^t(\beta\sqrt q\,z+h)>0$.
+\end{enumerate}
+This is exact bookkeeping and proves no limit: the derivative in (1) contains the Gibbs average $Q_s$ of the squared overlap under the tilted weight $Z_s^t$. Convergence of $N^{-1}\log\mathbb E\,Z_N^{\,t}$ would need that tilted average to be $O(1/N)$ uniformly in small $|t|$, which is not proved here.
+\end{theorem}
+\begin{proof}
+  \leanok
+(1) Apply Theorem~\ref{thm:sg-tal:profile-comp} to $W(x)=e^{cx}$ with $c=tN$. Then $W'=cW$, $W''=c^2W$, and $W,W',W''$ have exponential growth ($|W^{(k)}(x)|\le|c|^ke^{|c||x|}$). Since $e^{tNA_s}=Z_s^t$, the formula follows with $W'(A_s)=tNZ_s^t$ and $N^{-1}W''(A_s)=t^2NZ_s^t$. Equivalently, with the Gibbs weights $w_l$ of $Z_s$ the Hessian of $u\mapsto(\sum_a e^{u_a+h_a})^t$ is $Z^t\big(t^2w_lw_k+t\,w_l(\mathbf 1_{l=k}-w_k)\big)$ (\texttt{freeEnergyCompHessian\_exp}), which is $tZ^t\big(\mathbf 1_{l=k}w_l+(t-1)w_lw_k\big)$.
+(2) At $s=\pi/2$ the field is $\prod_i2\cosh(\beta\sqrt q\,z_i+h)$ with independent $z_i$, so the $t$-th power of the product is the product of the $t$-th powers ($x^t$ is multiplicative on positive numbers), and independence factorizes the expectation into the $N$-th power of $2^t\,\mathbb E\cosh^t(\beta\sqrt q\,z+h)$. Integrability for every real $t$ follows from $\cosh^t(x)\le e^{|t||x|}$, and positivity holds because the integrand is strictly positive. The logarithm gives the second formula.
+Formalized in \texttt{SpinGlasses/Talagrand/Replica/Moments/Hyperbolic.lean} (item~2), \texttt{SpinGlasses/Talagrand/Replica/Moments/RealPowerInterpolation.lean} (the second-derivative form for an arbitrary jointly Gaussian pair of fields) and \texttt{SpinGlasses/Talagrand/OverlapConcentration/FreeEnergyCLT/SKSmartPathProfileComp.lean} (the SK specialization, item~1).
+\end{proof}
 
 \begin{theorem}[An upper bound on the quenched free energy; failure of the $q=0$ value at large $\beta$]\label{thm:sg-tal:replica-large-beta}
 \lean{SpinGlasses.log_integral_rpow_skPartition_le, SpinGlasses.inv_mul_integral_log_skPartition_le, SpinGlasses.inv_mul_integral_log_skPartition_le_abs_mul_sqrt_log_two, SpinGlasses.inv_mul_integral_log_skPartition_lt_annealed, SpinGlasses.integral_sum_exp_mul_sk_energy, SpinGlasses.exp_mul_sk_energy_eq, SpinGlasses.integrable_exp_mul_sk_energy, Real.rpow_sum_le_sum_rpow}
@@ -11955,7 +11994,7 @@ The bounds for Eqs.~(1.412)--(1.414) are stated and proved after the table.
 \hline
 \textbf{Source topic} & \textbf{Statement in Talagrand} & \textbf{Lean result and scope} \\
 \hline
-Original SK formula & The replica-symmetric formula fails at large $\beta$ & The cited failure is not proved here. The integer-replica formula is proved in Theorem~\ref{thm:sg-tal:replica}; it does not prove the real-parameter formula. \\
+Original SK formula & The replica-symmetric formula fails at large $\beta$ & Only the root $q=0$ at $h=0$ is treated: Theorem~\ref{thm:sg-tal:replica-large-beta} shows that for $|\beta|>2\sqrt{\log2}$ the quenched free energy is strictly below its value $\beta^2/4+\log2$ in (1.411), uniformly in $N$. Failure of (1.411) with a positive root, and the book's remark for general $h$, are not proved. The integer-replica formula is Theorem~\ref{thm:sg-tal:replica}; it does not prove the real-parameter formula. \\
 \hline
 Early small-temperature proofs & ALR cluster expansions at $h=0$; Froehlich--Zegarlinski spin decorrelation, Eq.~(1.412) & The original proofs are not reproduced. Theorem~\ref{thm:sg-tal:gibbs-pair-covariance} proves the correlation bound for $\beta^2<1/4$. \\
 \hline

@@ -344,4 +344,109 @@ theorem exists_sk_smart_path_profile_pow {N : ℕ} (hN : 0 < N) (β h q : ℝ) (
     simp only [hA, hQ] at this ⊢
     exact this
 
+/-- The first derivative of `x ↦ exp (c x)`. -/
+theorem deriv_exp_mul_const (c : ℝ) :
+    deriv (fun x : ℝ => Real.exp (c * x)) = fun x => c * Real.exp (c * x) := by
+  funext x
+  have h : HasDerivAt (fun x : ℝ => Real.exp (c * x)) (Real.exp (c * x) * c) x := by
+    simpa using ((hasDerivAt_id x).const_mul c).exp
+  rw [h.deriv, mul_comm]
+
+/-- The second derivative of `x ↦ exp (c x)`. -/
+theorem deriv_deriv_exp_mul_const (c : ℝ) :
+    deriv (deriv fun x : ℝ => Real.exp (c * x)) = fun x => c ^ 2 * Real.exp (c * x) := by
+  rw [deriv_exp_mul_const]
+  funext x
+  have h : HasDerivAt (fun x : ℝ => c * Real.exp (c * x)) (c * (Real.exp (c * x) * c)) x := by
+    simpa using (((hasDerivAt_id x).const_mul c).exp).const_mul c
+  rw [h.deriv]
+  ring
+
+/-- `x ↦ exp (c x)` is smooth with the exponential-growth bounds required by
+`exists_sk_smart_path_profile_comp`. -/
+theorem exp_mul_growth (c : ℝ) :
+    ContDiff ℝ 2 (fun x : ℝ => Real.exp (c * x)) ∧
+    (∀ x, |Real.exp (c * x)| ≤ 1 * Real.exp (|c| * |x|)) ∧
+    (∀ x, |deriv (fun x : ℝ => Real.exp (c * x)) x| ≤ |c| * Real.exp (|c| * |x|)) ∧
+    (∀ x, |deriv (deriv fun x : ℝ => Real.exp (c * x)) x| ≤ c ^ 2 * Real.exp (|c| * |x|)) := by
+  have hb (x : ℝ) : Real.exp (c * x) ≤ Real.exp (|c| * |x|) :=
+    Real.exp_le_exp.2 ((le_abs_self _).trans (abs_mul c x).le)
+  refine ⟨by fun_prop, fun x => ?_, fun x => ?_, fun x => ?_⟩
+  · rw [abs_of_pos (Real.exp_pos _), one_mul]
+    exact hb x
+  · rw [deriv_exp_mul_const, abs_mul, abs_of_pos (Real.exp_pos _)]
+    exact mul_le_mul_of_nonneg_left (hb x) (abs_nonneg c)
+  · rw [deriv_deriv_exp_mul_const, abs_mul, abs_of_pos (Real.exp_pos _),
+      abs_of_nonneg (sq_nonneg c)]
+    exact mul_le_mul_of_nonneg_left (hb x) (sq_nonneg c)
+
+/-- **Eq. (1.125) for `W(x) = exp (c x)`**, the exponential moment of the free energy, in
+particular `c = t N` gives the real moment `𝔼 Z_t^s` of the partition function of the smart path
+(`exp (t N ⋅ N⁻¹ log Z) = Z^t`).  With `A_s = N⁻¹ log Z_s` and `Q_s = ⟨(R_{1,2} - q)²⟩_s`,
+`ψ(s) = 𝔼 exp (c A_s)` has derivative
+`(β²/2) sin t cos t 𝔼 [exp (c A_t) (c (Q_t - (1-q)²) - N⁻¹ c² (Q_t - q² - N⁻¹))]`, with `ψ 0` the
+SK value and `ψ (π/2)` the decoupled one. -/
+theorem exists_sk_smart_path_profile_exp {N : ℕ} (hN : 0 < N) (β h q : ℝ) (hq : 0 ≤ q) (c : ℝ) :
+    ∃ (F : (FinPairs N → ℝ) → (Fin N → ℤˣ) → ℝ) (G : (Fin N → ℝ) → (Fin N → ℤˣ) → ℝ)
+      (A Q : ℝ → (FinPairs N → ℝ) × (Fin N → ℝ) → ℝ),
+      (∀ g σ, F g σ = (Real.sqrt N)⁻¹ * β *
+        ∑ p : FinPairs N, g p * ((σ p.val.1 : ℤ) : ℝ) * ((σ p.val.2 : ℤ) : ℝ)) ∧
+      (∀ z σ, G z σ = β * Real.sqrt q * ∑ i, z i * ((σ i : ℤ) : ℝ)) ∧
+      (∀ t ω, A t ω = (N : ℝ)⁻¹ * Real.log (∑ σ : Fin N → ℤˣ,
+        Real.exp (Real.cos t * F ω.1 σ + Real.sin t * G ω.2 σ + h * ∑ i, ((σ i : ℤ) : ℝ)))) ∧
+      (∀ t ω, Q t ω = ∫ σ : Fin 2 → (Fin N → ℤˣ),
+        (((N : ℝ)⁻¹ * ((fun i => ((σ 0 i : ℤ) : ℝ)) ⬝ᵥ fun i => ((σ 1 i : ℤ) : ℝ))) - q) ^ 2
+        ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted fun b =>
+          Real.cos t * F ω.1 b + Real.sin t * G ω.2 b + h * ∑ i, ((b i : ℤ) : ℝ))) ∧
+      (∫ ω, Real.exp (c * A 0 ω)
+        ∂((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
+          (Measure.pi fun _ : Fin N => gaussianReal 0 1)) =
+        ∫ g : FinPairs N → ℝ, Real.exp (c * ((N : ℝ)⁻¹ * Real.log (∑ σ : Fin N → ℤˣ,
+          Real.exp (F g σ + h * ∑ i, ((σ i : ℤ) : ℝ)))))
+          ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) ∧
+      (∫ ω, Real.exp (c * A (Real.pi / 2) ω)
+        ∂((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
+          (Measure.pi fun _ : Fin N => gaussianReal 0 1)) =
+        ∫ z : Fin N → ℝ, Real.exp (c * (Real.log 2 + (N : ℝ)⁻¹ * ∑ i,
+          Real.log (Real.cosh (β * Real.sqrt q * z i + h))))
+          ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1)) ∧
+      ∀ t, HasDerivAt (fun s => ∫ ω, Real.exp (c * A s ω)
+        ∂((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
+          (Measure.pi fun _ : Fin N => gaussianReal 0 1)))
+        (β ^ 2 / 2 * Real.sin t * Real.cos t *
+        ∫ ω, (c * Real.exp (c * A t ω) * (Q t ω - (1 - q) ^ 2) -
+          (N : ℝ)⁻¹ * (c ^ 2 * Real.exp (c * A t ω)) * (Q t ω - q ^ 2 - (N : ℝ)⁻¹))
+        ∂((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
+          (Measure.pi fun _ : Fin N => gaussianReal 0 1))) t := by
+  obtain ⟨F, G, hF, hG, hprof⟩ := exists_sk_smart_path_profile_comp hN β h q hq
+  obtain ⟨A, hA⟩ : ∃ A : ℝ → (FinPairs N → ℝ) × (Fin N → ℝ) → ℝ, ∀ t ω, A t ω =
+      (N : ℝ)⁻¹ * Real.log (∑ σ : Fin N → ℤˣ, Real.exp (Real.cos t * F ω.1 σ +
+        Real.sin t * G ω.2 σ + h * ∑ i, ((σ i : ℤ) : ℝ))) := ⟨_, fun _ _ => rfl⟩
+  obtain ⟨Q, hQ⟩ : ∃ Q : ℝ → (FinPairs N → ℝ) × (Fin N → ℝ) → ℝ, ∀ t ω, Q t ω =
+      ∫ σ : Fin 2 → (Fin N → ℤˣ),
+        (((N : ℝ)⁻¹ * ((fun i => ((σ 0 i : ℤ) : ℝ)) ⬝ᵥ fun i => ((σ 1 i : ℤ) : ℝ))) - q) ^ 2
+        ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted fun b =>
+          Real.cos t * F ω.1 b + Real.sin t * G ω.2 b + h * ∑ i, ((b i : ℤ) : ℝ)) :=
+    ⟨_, fun _ _ => rfl⟩
+  refine ⟨F, G, A, Q, hF, hG, hA, hQ, ?_⟩
+  obtain ⟨hW, hW0, hW1, hW2⟩ := exp_mul_growth c
+  obtain ⟨ψ, hψ, h0, hπ, hder⟩ := hprof hW hW0 hW1 hW2
+  have hψA : ψ = fun s => ∫ ω, Real.exp (c * A s ω)
+      ∂((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
+        (Measure.pi fun _ : Fin N => gaussianReal 0 1)) := by
+    funext s
+    rw [hψ s]
+    simp only [hA]
+  refine ⟨?_, ?_, fun t => ?_⟩
+  · rw [← h0]
+    exact (congrFun hψA 0).symm
+  · rw [← hπ]
+    exact (congrFun hψA (Real.pi / 2)).symm
+  · have := hder t
+    simp only [deriv_deriv_exp_mul_const] at this
+    simp only [deriv_exp_mul_const] at this
+    rw [hψA] at this
+    simp only [hA, hQ] at this ⊢
+    exact this
+
 end SpinGlasses

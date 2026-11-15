@@ -691,6 +691,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Moments.Convexit
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Moments.Gaussian
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Moments.Hyperbolic
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Moments.LargeBeta
+public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Moments.RealPowerInterpolation
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Moments.RealPowers
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.ConstantCoupling
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.Coordinates

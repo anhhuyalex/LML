@@ -49,16 +49,21 @@ theorem integrable_cosh_pow_mul_tanh_sq (n : ℕ) (w h : ℝ) :
       abs_of_nonneg (sq_nonneg _)]
     exact cosh_pow_mul_tanh_sq_le n _
 
+/-- Positivity of the real-power cosh expectation: `0 < 𝔼 ch^t(w z + h)` for every `t : ℝ`. -/
+theorem integral_cosh_rpow_pos (t w h : ℝ) :
+    0 < ∫ z : ℝ, cosh (w * z + h) ^ t ∂(gaussianReal 0 1) := by
+  refine (integral_pos_iff_support_of_nonneg
+    (fun z => Real.rpow_nonneg (Real.cosh_pos _).le _)
+    (integrable_cosh_rpow_affine_gaussianReal t w h)).2 ?_
+  have hs : Function.support (fun z : ℝ => cosh (w * z + h) ^ t) = Set.univ :=
+    Set.eq_univ_of_forall fun z => (Real.rpow_pos_of_pos (Real.cosh_pos _) t).ne'
+  rw [hs, measure_univ]
+  exact one_pos
+
 /-- Positivity of the replicated cosh expectation: `0 < 𝔼 ch^n(w z + h)`. -/
 theorem integral_cosh_pow_pos (n : ℕ) (w h : ℝ) :
     0 < ∫ z : ℝ, cosh (w * z + h) ^ n ∂(gaussianReal 0 1) := by
-  have hone : (1 : ℝ) ≤ ∫ z : ℝ, cosh (w * z + h) ^ n ∂(gaussianReal 0 1) := by
-    have h1 : (1 : ℝ) = ∫ _ : ℝ, (1 : ℝ) ∂(gaussianReal 0 1) := by
-      rw [integral_const, probReal_univ, smul_eq_mul, mul_one]
-    rw [h1]
-    refine integral_mono (integrable_const 1) (integrable_cosh_pow n w h) fun z => ?_
-    exact one_le_pow₀ (Real.one_le_cosh _)
-  linarith
+  simpa only [Real.rpow_natCast] using integral_cosh_rpow_pos n w h
 
 /-- Reordered integrability for `z ↦ ch^n(β z √q + h)`. -/
 theorem integrable_cosh_pow_sk (n : ℕ) (β h q : ℝ) :
@@ -177,5 +182,31 @@ lemma continuousOn_skReplica_ratio (n : ℕ) (β h : ℝ) :
   refine ContinuousOn.div (continuousOn_integral_cosh_pow_mul_tanh_sq n β h)
     (continuousOn_integral_cosh_pow n β h) fun q _ => ?_
   exact (integral_cosh_pow_sk_pos n β h q).ne'
+
+/-- **Decoupled endpoint with a real exponent:** for the product of `N` independent coordinates
+`2 ch(w zᵢ + h)`, the `t`-th moment under the i.i.d. standard Gaussian law factorizes as
+`𝔼 (∏ᵢ 2 ch(w zᵢ + h))^t = (2^t 𝔼 ch^t(w z + h))^N`, for every real `t`. -/
+theorem integral_prod_two_mul_cosh_rpow_pi (N : ℕ) (t w h : ℝ) :
+    ∫ z : Fin N → ℝ, (∏ i, 2 * cosh (w * z i + h)) ^ t
+        ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1) =
+      (2 ^ t * ∫ z : ℝ, cosh (w * z + h) ^ t ∂(gaussianReal 0 1)) ^ N := by
+  have hf (z : Fin N → ℝ) : (∏ i, 2 * cosh (w * z i + h)) ^ t =
+      ∏ i, (2 ^ t * cosh (w * z i + h) ^ t) := by
+    rw [← Real.finsetProd_rpow _ _ fun i _ => by positivity]
+    exact Finset.prod_congr rfl fun i _ => Real.mul_rpow (by norm_num) (Real.cosh_pos _).le
+  simp_rw [hf]
+  rw [integral_fintype_prod_eq_prod (fun _ : Fin N => fun x : ℝ => 2 ^ t * cosh (w * x + h) ^ t),
+    Finset.prod_const, Finset.card_univ, Fintype.card_fin, integral_const_mul]
+
+/-- The normalized logarithm of the decoupled endpoint:
+`N⁻¹ log 𝔼 (∏ᵢ 2 ch(w zᵢ + h))^t = t log 2 + log 𝔼 ch^t(w z + h)` for `N ≠ 0`. -/
+theorem inv_mul_log_integral_prod_two_mul_cosh_rpow_pi {N : ℕ} (hN : N ≠ 0) (t w h : ℝ) :
+    (N : ℝ)⁻¹ * Real.log (∫ z : Fin N → ℝ, (∏ i, 2 * cosh (w * z i + h)) ^ t
+        ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1)) =
+      t * Real.log 2 + Real.log (∫ z : ℝ, cosh (w * z + h) ^ t ∂(gaussianReal 0 1)) := by
+  rw [integral_prod_two_mul_cosh_rpow_pi, Real.log_pow,
+    Real.log_mul (Real.rpow_pos_of_pos two_pos t).ne' (integral_cosh_rpow_pos t w h).ne',
+    Real.log_rpow two_pos]
+  field_simp [Nat.cast_ne_zero.mpr hN]
 
 end SpinGlasses
