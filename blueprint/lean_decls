@@ -4871,3 +4871,5 @@ SpinGlasses.deriv_exp_mul_const
 SpinGlasses.deriv_deriv_exp_mul_const
 SpinGlasses.exp_mul_growth
 SpinGlasses.exists_sk_smart_path_profile_exp
+SpinGlasses.book_replica_combination_two
+SpinGlasses.hasDerivAt_integral_sk_cavity_path_square_full_two

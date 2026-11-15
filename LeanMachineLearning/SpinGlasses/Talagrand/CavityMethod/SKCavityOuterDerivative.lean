@@ -346,4 +346,62 @@ theorem hasDerivAt_integral_sk_cavity_path_square_full (N n : ℕ) (β q h t : �
       ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (a i.castSucc : ℝ)) ⬝ᵥ fun i : Fin N =>
         (b i.castSucc : ℝ)) - q)) (β ^ 2 / (N + 1 : ℝ)) τ).symm
 
+/-- The three replica families of `book_replica_combination` for `n = 2`:
+weights `1, -2, -2, +3` on `K 01`, `K 0∗`, `K 1∗`, `K ∗∗`. -/
+theorem book_replica_combination_two {A : Type*} (K : A → A → ℝ)
+    (τ : Option (Option (Fin 2)) → A) :
+    (∑ p : Fin 2 × Fin 2 with p.1 < p.2, K (τ (some (some p.1))) (τ (some (some p.2)))) -
+        ((2 : ℕ) : ℝ) * ∑ r : Fin 2, K (τ (some (some r))) (τ (some none)) +
+        ((2 : ℕ) : ℝ) * (((2 : ℕ) : ℝ) + 1) / 2 * K (τ (some none)) (τ none) =
+      K (τ (some (some 0))) (τ (some (some 1))) - 2 * K (τ (some (some 0))) (τ (some none)) -
+        2 * K (τ (some (some 1))) (τ (some none)) + 3 * K (τ (some none)) (τ none) := by
+  have hp : (Finset.univ.filter fun p : Fin 2 × Fin 2 => p.1 < p.2) =
+      {((0 : Fin 2), (1 : Fin 2))} := by decide
+  rw [hp, Finset.sum_singleton, Fin.sum_univ_two]
+  push_cast
+  ring
+
+/-- **Talagrand's Eq. (1.152) for two replicas** (the four-replica form): the derivative of
+`ν_t(f)` for `f` a function of `σ¹, σ²` has the weights `1, -2, -2, +3` on the kernels
+`K(σ¹,σ²)`, `K(σ¹,σ³)`, `K(σ²,σ³)`, `K(σ³,σ⁴)`, where `σ³, σ⁴` are the two extra replicas.
+This is `hasDerivAt_integral_sk_cavity_path_square_full` at `n = 2`, with the families written
+out. -/
+theorem hasDerivAt_integral_sk_cavity_path_square_full_two (N : ℕ) (β q h t : ℝ)
+    (hq : q ∈ Set.Icc (0 : ℝ) 1) (ht : t ∈ Set.Ioo (0 : ℝ) 1)
+    (f : (Fin 2 → Fin (N + 1) → ℤˣ) → ℝ) :
+    let B : (FinPairs N → ℝ) → (Fin (N + 1) → ℤˣ) → ℝ := skCavityBase%
+    let E : ℝ → (FinPairs N → ℝ) → ((Fin N → ℝ) × ℝ) →
+        (Fin (N + 1) → ℤˣ) → ℝ := skCavityEnergy%
+    let K : (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ := fun a b =>
+      β ^ 2 * (a (Fin.last N) : ℝ) * (b (Fin.last N) : ℝ) *
+        ((N + 1 : ℝ)⁻¹ *
+          ((fun i : Fin (N + 1) => (a i : ℝ)) ⬝ᵥ fun i : Fin (N + 1) =>
+            (b i : ℝ)) - q)
+    HasDerivAt (fun u =>
+      ∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
+        ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, f σ
+          ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted
+            (E (Real.arccos (Real.sqrt u)) g' ω))
+        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1))
+      (∫ g', ∫ ω : (Fin N → ℝ) × ℝ,
+        ∫ τ : Option (Option (Fin 2)) → Fin (N + 1) → ℤˣ,
+          f (fun r => τ (some (some r))) *
+            (K (τ (some (some 0))) (τ (some (some 1))) -
+              2 * K (τ (some (some 0))) (τ (some none)) -
+              2 * K (τ (some (some 1))) (τ (some none)) +
+              3 * K (τ (some none)) (τ none))
+        ∂(Measure.pi fun _ : Option (Option (Fin 2)) => Measure.count.tilted
+          (E (Real.arccos (Real.sqrt t)) g' ω))
+        ∂((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1))
+      ∂(Measure.pi fun _ : FinPairs N => gaussianReal 0 1)) t := by
+  intro B E K
+  refine (hasDerivAt_integral_sk_cavity_path_square_full N 2 β q h t hq ht f).congr_deriv ?_
+  refine integral_congr_ae (ae_of_all _ fun g' => ?_)
+  refine integral_congr_ae (ae_of_all _ fun ω => ?_)
+  refine integral_congr_ae (ae_of_all _ fun τ => ?_)
+  beta_reduce
+  congr 1
+  exact book_replica_combination_two K τ
+
 end SpinGlasses
