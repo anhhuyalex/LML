@@ -11828,6 +11828,54 @@ pressure near zero is still unproved here. Neither the integer-replica theorem n
 the conditional corollary proves it, and neither extends Eq.~(1.411) to all temperatures.
 \end{remark}
 
+\begin{theorem}[An upper bound on the quenched free energy; failure of the $q=0$ value at large $\beta$]\label{thm:sg-tal:replica-large-beta}
+\lean{SpinGlasses.log_integral_rpow_skPartition_le, SpinGlasses.inv_mul_integral_log_skPartition_le, SpinGlasses.inv_mul_integral_log_skPartition_le_abs_mul_sqrt_log_two, SpinGlasses.inv_mul_integral_log_skPartition_lt_annealed, SpinGlasses.integral_sum_exp_mul_sk_energy, SpinGlasses.exp_mul_sk_energy_eq, SpinGlasses.integrable_exp_mul_sk_energy, Real.rpow_sum_le_sum_rpow}
+\leanok
+\uses{thm:sg-tal:replica-real-moment-sandwich, thm:sg-tal:first-moment}
+\talsource{Section~1.13, remark after Eq.~(1.411) that the formula is wrong at low temperature; Section~1.14, first paragraph}
+Let $N\ge1$ and $\beta,h\in\mathbb R$, with $p_N=N^{-1}\mathbb E\log Z_N$.
+\begin{enumerate}
+\item For $0<t\le1$, $\ \log\mathbb EZ_N^t\le N\log\bigl(2\cosh(th)\bigr)+t^2N\frac{\beta^2}4\bigl(1-\frac1N\bigr)$.
+\item For $0<t\le1$, $\ p_N\le t^{-1}\log\bigl(2\cosh(th)\bigr)+\dfrac{t\beta^2}{4}$.
+\item If $h=0$ and $|\beta|\ge2\sqrt{\log2}$, then $p_N\le|\beta|\sqrt{\log2}$.
+\item If $h=0$ and $|\beta|>2\sqrt{\log2}$, then $p_N<\dfrac{\beta^2}4+\log2$, uniformly in $N\ge1$.
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+\leanok
+\emph{Step 1 (subadditivity).} For $0<t\le1$ the map $x\mapsto x^t$ is subadditive on $[0,\infty)$, so
+\[
+Z_N^t=\Bigl(\sum_\sigma e^{H(\sigma)}\Bigr)^t\le\sum_\sigma e^{tH(\sigma)}.
+\]
+\emph{Step 2 (exact Gaussian moments).} Each $H(\sigma)=G_N(\sigma)+h\sum_i\sigma_i$ with $G_N(\sigma)$ a centered Gaussian of variance $v_N=\beta^2(N-1)/2$, so
+$\mathbb E\,e^{tH(\sigma)}=e^{th\sum_i\sigma_i}e^{t^2v_N/2}$ and summing over $\sigma$ (the hypercube sum of Theorem~\ref{thm:sg-tal:first-moment})
+\[
+\mathbb E\sum_\sigma e^{tH(\sigma)}=\bigl(2\cosh(th)\bigr)^Ne^{t^2N\frac{\beta^2}4(1-\frac1N)} .
+\]
+Taking logarithms gives (1); the case $t=1$ is the exact first moment.
+\emph{Step 3 (lower half of the sandwich).} Theorem~\ref{thm:sg-tal:replica-real-moment-sandwich} gives $t\,p_N\le N^{-1}\log\mathbb EZ_N^t$. With (1) and $1-1/N\le1$,
+\[
+t\,p_N\le\log\bigl(2\cosh(th)\bigr)+\frac{t^2\beta^2}4 ,
+\]
+and dividing by $t>0$ gives (2).
+\emph{Step 4 (zero field).} For $h=0$ and $t=2\sqrt{\log2}/|\beta|\in(0,1]$, (2) reads
+$p_N\le\frac{|\beta|\log2}{2\sqrt{\log2}}+\frac{2\sqrt{\log2}\,|\beta|}4=|\beta|\sqrt{\log2}$, which is (3). Finally
+\[
+\frac{\beta^2}4+\log2-|\beta|\sqrt{\log2}=\Bigl(\frac{|\beta|}2-\sqrt{\log2}\Bigr)^2>0
+\quad\text{for }|\beta|\ne2\sqrt{\log2},
+\]
+which is (4).
+Formalized in \texttt{SpinGlasses/Talagrand/Replica/Moments/LargeBeta.lean}.
+\end{proof}
+
+\begin{remark}[What the large-$\beta$ bound does and does not say]\label{rem:sg-tal:replica-large-beta-scope}
+\talsource{Section~1.13, last paragraphs; Section~1.14, first paragraph}
+At $h=0$ the equation $q=\mathbb E\tanh^2(\beta z\sqrt q)$ has the root $q=0$, for which the right side of Eq.~(1.411) equals $\beta^2/4+\log2$ (which is also the annealed value $\lim_N N^{-1}\log\mathbb EZ_N$, Theorem~\ref{thm:sg-tal:first-moment}).
+Theorem~\ref{thm:sg-tal:replica-large-beta}(4) proves, with explicit threshold $|\beta|>2\sqrt{\log2}\approx1.665$ and uniformly in $N$, that the quenched free energy lies strictly below this value, so (1.411) \emph{with the root $q=0$} is wrong at large $\beta$ (the physically correct statement is that this root is not the relevant one there).
+It does not decide whether (1.411) holds with a positive solution $q$ of the fixed-point equation, and it proves no limit of $p_N$.
+The argument is not the one suggested by the book: it needs no replica estimate, only the lower half of the sandwich and the subadditivity of $x\mapsto x^t$ for $t\le1$; the threshold $2\sqrt{\log2}$ is what this argument gives, not a sharp temperature.
+\end{remark}
+
 \section{The matrix and the pair Hamiltonian of the SK model}\label{sec:sg-tal:hamiltonian-bridge}
 
 The parts of this project that follow Panchenko and the parts that follow Talagrand use different conventions for the same model.
