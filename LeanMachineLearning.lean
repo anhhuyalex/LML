@@ -685,6 +685,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Maximizers.Hyper
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Maximizers.Replacement
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Maximizers.Structure
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Moments.Algebra
+public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Moments.Concentration
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Moments.Convexity
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Moments.Gaussian
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Moments.Hyperbolic

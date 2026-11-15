@@ -11743,6 +11743,56 @@ The book marks these steps as a heuristic. The exchange of limits and the contin
 Theorem~\ref{thm:sg-tal:replica-fixed-point} formalizes the existence of a maximizing fixed point satisfying Eq.~(1.408).
 \end{remark}
 
+\begin{theorem}[Quadratic sandwich for the real-moment pressure]\label{thm:sg-tal:replica-real-moment-sandwich}
+\lean{SpinGlasses.inv_mul_log_integral_rpow_skPartition_sandwich, ProbabilityTheory.cgf_sandwich_of_hasSubgaussianMGF}
+\leanok
+\talsource{Section~1.13, discussion around Eqs.~(1.409)--(1.411)}
+For every $N \ge 1$, all $\beta, h \in \mathbb R$, and all real $t$,
+\[
+t\,p_N \le \psi_N(t) \le t\,p_N + \frac{\beta^2 t^2}{2},
+\]
+where $p_N = N^{-1}\mathbb E\log Z_N$ and $\psi_N(t) = N^{-1}\log\mathbb E Z_N^t$.
+In particular, for all $t \ne 0$,
+\[
+\left|\frac{\psi_N(t)}{t} - p_N\right| \le \frac{\beta^2 |t|}{2}.
+\]
+\end{theorem}
+\begin{proof}
+\leanok
+The lower bound is Jensen's inequality for the convex exponential function (in Lean:
+\texttt{ProbabilityTheory.mul\_integral\_le\_cgf}).
+For the upper bound, the Gaussian Hamiltonian part $g \mapsto H_N^{\mathrm{Gauss}}(\sigma)$ has mean zero and
+variance $\beta^2(N-1)/(2N)$ on $\{-1, 1\}^N$, which is bounded by $\beta^2(N-1)/2$.
+By \texttt{hasSubgaussianMGF\_log\_sum\_exp}, $\log Z_N - \mathbb E\log Z_N$ satisfies
+\texttt{HasSubgaussianMGF} with parameter $c = \beta^2(N-1)$.
+Dividing by $N$ and using $(N-1)/N \le 1$ gives the upper bound $\beta^2 t^2/2$.
+\end{proof}
+
+\begin{corollary}[Exchange of limits for the real-moment pressure]\label{cor:sg-tal:replica-exchange-limits}
+\lean{SpinGlasses.hasDerivAt_zero_limit_pressure, hasDerivAt_zero_of_sequence_quadratic_sandwich}
+\leanok
+\uses{thm:sg-tal:replica-real-moment-sandwich}
+\talsource{Section~1.13, discussion around Eqs.~(1.409)--(1.411)}
+Suppose $p_N \to p$ and $\psi_N(t) \to \psi(t)$ pointwise for all $t$ in a neighborhood of $0$.
+Then $\psi$ is differentiable at $0$ with derivative $\psi'(0) = p$.
+\end{corollary}
+\begin{proof}
+\leanok
+Taking the limit as $N \to \infty$ in the quadratic sandwich of Theorem~\ref{thm:sg-tal:replica-real-moment-sandwich} gives
+$t p \le \psi(t) \le t p + \frac{\beta^2 t^2}{2}$ on the neighborhood.
+Since $\psi(0) = 0$, the difference quotient satisfies
+$|t^{-1}(\psi(t) - \psi(0)) - p| \le \frac{\beta^2 |t|}{2} \to 0$ as $t \to 0$.
+\end{proof}
+
+\begin{remark}[Status of the real-moment limit]\label{rem:sg-tal:replica-real-moment-status}
+\talsource{Section~1.13, discussion around Eq.~(1.411)}
+Theorem~\ref{thm:sg-tal:replica-real-moment-sandwich} and Corollary~\ref{cor:sg-tal:replica-exchange-limits} show that
+the exchange of limits $N \to \infty$ and $t \to 0$ is mathematically justified whenever the real-moment limit
+$\psi(t) = \lim_{N\to\infty} \psi_N(t)$ exists on a neighborhood of $0$.
+The sandwich holds for all $\beta$ and $h$, showing that failure of Eq.~(1.411) at large $\beta$ cannot be blamed on the limit exchange.
+However, existence of $\psi(t)$ for non-integer real $t$ near $0$ is not proved here (Package~P3).
+\end{remark}
+
 \section{The matrix and the pair Hamiltonian of the SK model}\label{sec:sg-tal:hamiltonian-bridge}
 
 The parts of this project that follow Panchenko and the parts that follow Talagrand use different conventions for the same model.
@@ -11807,4 +11857,105 @@ The two parts of the project describe one model at two temperatures. Talagrand's
 \emph{One cavity split instead of two (checked, not done).} The cascade part proves the cavity decomposition in law (\texttt{SpinGlasses.map\_skHamiltonian\_succ}) and this chapter proves a measure-preserving cavity decomposition of the pair disorder (\texttt{measurePreserving\_sk\_cavity\_disorder}).
 Deriving the first from the second through Theorem~\ref{thm:sg-tal:hamiltonian-bridge-law} would not shorten the code. The first proof is about 35 lines, because it uses the same Gram-transfer lemma (\texttt{map\_eq\_map\_dotProduct\_prod}) as the bridge.
 The route through the pair form would add the factor $\sqrt2$, the extra Gaussian $Z$, and a change of index set, for the same statement. So both are kept.
+\end{remark}
+
+\section{Notes and comments (Talagrand Section~1.14)}\label{sec:sg-tal:notes-comments}
+
+Section~1.14 of the book is largely historical and bibliographic, reviewing the development of the SK model,
+high-temperature cavity methods, and concentration of measure.
+This section records the correspondence between Section~1.14 mathematical statements and repository declarations,
+and formalizes the truncated correlation and overlap variance bounds of Eqs.~(1.412)--(1.414).
+
+\subsection{Correspondence ledger for Section~1.14}
+
+\begin{center}
+\begin{tabular}{|p{0.18\textwidth}|p{0.38\textwidth}|p{0.38\textwidth}|}
+\hline
+\textbf{Paragraph} & \textbf{Content in Talagrand} & \textbf{Repository Status / Declaration} \\
+\hline
+1 & SK and Kirkpatrick heuristics; failure of (1.411) at large $\beta$ & Discussion; rigorous integer case in Section~\ref{sec:sg-tal:replica} \\
+\hline
+2 & ALR ($h=0$) and Froehlich--Zegarlinski ($\beta \le \beta_0$): $\mathbb E(\langle\sigma_1\sigma_2\rangle - \langle\sigma_1\rangle\langle\sigma_2\rangle)^2 \le L/N$, Eq.~(1.412) & Proved for $\beta^2 < 1/4$: \lean{SpinGlasses.sk_gibbs_pair_covariance_sq_le} \\
+\hline
+2 & Comets--Neveu: CLT for $R_{1,2}$ at $h=0$ & Proved also for $h \ne 0$: Theorem~\ref{thm:sg-tal:free-energy-clt} \\
+\hline
+3 & Concentration of measure (Levy, Milman, Ledoux); Theorem~1.3.4 & Proved: \lean{SpinGlasses.hasSubgaussianMGF_log_sum_exp}, \lean{SpinGlasses.mixedPSpin_free_energy_concentration} \\
+\hline
+4 & Pastur--Shcherbina: $\operatorname{Var}\langle R_{1,2}\rangle \to 0$, Eq.~(1.413); Shcherbina: $\mathbb E\langle(R_{1,2} - \langle R_{1,2}\rangle)^2\rangle \to 0$, Eq.~(1.414) & Proved for $\beta^2 < 1/4$: \lean{SpinGlasses.sk_expected_gibbs_overlap_sub_sq_le}, \lean{SpinGlasses.sk_expected_gibbs_var_overlap_le} \\
+\hline
+5 & Shcherbina [128]: $\lim p_N = \operatorname{SK}(\beta, h)$ for $\beta < 1$ & Proved for $\beta < 1/2$: Theorem~\ref{thm:sg-tal:alr} (\lean{SpinGlasses.tendsto_sk_free_energy_of_lt}) \\
+\hline
+7 & Smart path method history (Kahane, Pisier) & Proved: Slepian form \lean{SpinGlasses.integral_comp_le_of_covariance_le} \\
+\hline
+8 & Cavity expansion of $\nu_1'((\varepsilon_1\varepsilon_2 - q)f)$, Eq.~(1.152) & Proved: \lean{SpinGlasses.hasDerivAt_integral_sk_cavity_path_square_full} \\
+\hline
+9 & Quantitative CLT for $N^{-1}\log Z_N$ (Theorem~1.4.11) & Proved: Theorem~\ref{thm:sg-tal:free-energy-clt} (\lean{SpinGlasses.sk_free_energy_clt}) \\
+\hline
+10 & Mezard's coupling and Theorem~1.9.6 & Proved: Section~\ref{sec:sg-tal:beyond-at} \\
+\hline
+11 & Guerra's bound (1.73); Proposition~1.3.8 & Proved: Theorem~\ref{thm:sg-tal:guerra-rs-bound} (\lean{SpinGlasses.sk_replica_symmetric_upper_bound}) \\
+\hline
+\end{tabular}
+\end{center}
+
+\subsection{Correlation and overlap variance bounds}
+
+\begin{theorem}[Pairwise spin covariance decay, Eq.~(1.412)]\label{thm:sg-tal:gibbs-pair-covariance}
+\lean{SpinGlasses.sk_gibbs_pair_covariance_sq_le}
+\leanok
+\uses{thm:sg-tal:sk-correlation-decay}
+\talsource{Section~1.14, Eq.~(1.412)}
+For the Sherrington--Kirkpatrick model with $\beta^2 < 1/4$ at the fixed point
+$q = \mathbb E\tanh^2(\beta\sqrt q z + h)$, every pair of distinct sites $i \ne j$ satisfies
+\[
+\mathbb E\big(\langle\sigma_i\sigma_j\rangle - \langle\sigma_i\rangle\langle\sigma_j\rangle\big)^2 \le \frac{K}{N},
+\]
+with $K = \operatorname{spinDecorrConst}(2) \cdot \frac{(1/2 - 2\beta^2)^{-1/2} - 1}{1/4 - \beta^2}$.
+\end{theorem}
+\begin{proof}
+\leanok
+Specialization of Theorem~\ref{thm:sg-tal:sk-correlation-decay} (\texttt{sk\_correlation\_decay\_le})
+to the two-element site set $S = \{i, j\}$ using $|S| = 2$ and $\prod_{k \in S} \sigma_k = \sigma_i \sigma_j$.
+\end{proof}
+
+\begin{theorem}[Gibbs overlap deviation and variance, Eqs.~(1.413) and (1.414)]\label{thm:sg-tal:gibbs-overlap-variance}
+\lean{SpinGlasses.sk_expected_gibbs_overlap_sub_sq_le, SpinGlasses.sk_expected_gibbs_var_overlap_le}
+\leanok
+\uses{thm:sg-tal:overlap-conc, thm:sg-tal:sk-correlation-decay}
+\talsource{Section~1.14, Eqs.~(1.413)--(1.414)}
+For the Sherrington--Kirkpatrick model with $\beta^2 < 1/4$ at the fixed point
+$q = \mathbb E\tanh^2(\beta\sqrt q z + h)$:
+\begin{enumerate}
+\item The expected squared deviation of the Gibbs overlap mean $\langle R_{1,2}\rangle$ from $q$ satisfies
+\[
+\mathbb E\big(\langle R_{1,2}\rangle - q\big)^2 \le \frac{(1/2 - 2\beta^2)^{-1/2} - 1}{(1/4 - \beta^2) N}.
+\]
+\item The expected Gibbs variance of the overlap satisfies
+\[
+\mathbb E\,\big\langle (R_{1,2} - \langle R_{1,2}\rangle)^2 \big\rangle \le \frac{(1/2 - 2\beta^2)^{-1/2} - 1}{(1/4 - \beta^2) N}.
+\]
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+\leanok
+For (1), by Jensen's inequality for the square on the product Gibbs measure,
+$(\langle R_{1,2}\rangle - q)^2 = \langle R_{1,2} - q\rangle^2 \le \langle (R_{1,2} - q)^2\rangle$.
+Taking expectation over the Gaussian disorder gives
+$\mathbb E(\langle R_{1,2}\rangle - q)^2 \le \mathbb E\langle (R_{1,2} - q)^2\rangle \le K / N$
+by Theorem~\ref{thm:sg-tal:overlap-conc} (\texttt{sk\_expected\_sq\_overlap\_le}).
+
+For (2), for every realization of the disorder, the variance of $R_{1,2}$ under the Gibbs measure minimizes the
+mean-square distance to any constant, so $\langle (R_{1,2} - \langle R_{1,2}\rangle)^2\rangle \le \langle (R_{1,2} - q)^2\rangle$.
+Integrating over the Gaussian disorder and applying Theorem~\ref{thm:sg-tal:overlap-conc} yields the bound.
+\end{proof}
+
+\begin{remark}[Cited results not formalized]\label{rem:sg-tal:notes-comments-unformalized}
+\talsource{Section~1.14}
+The following historical or qualitative citations from Section~1.14 are not formalized:
+\begin{itemize}
+\item The Froehlich--Zegarlinski and Aizenman--Lebowitz--Ruelle cluster expansions for small $\beta$;
+\item The Comets--Neveu central limit theorem for $R_{1,2}$ at $h = 0$ (the general $h$ version is proved via Section~\ref{sec:sg-tal:overlap-clt});
+\item The Shcherbina equivalence between (1.413) and (1.414) over a domain, which relies on Ghirlanda--Guerra identities from Volume~II;
+\item Shcherbina's theorem [128] extending the free energy formula to all $\beta < 1$.
+\end{itemize}
 \end{remark}
