@@ -134,7 +134,7 @@ theorem hasDerivAt_zero_of_quadratic_sandwich
         _ = |C| * t := by ring
   have h_lim : Tendsto (fun t : ℝ => |C| * |t|) (𝓝[≠] 0) (𝓝 0) := by
     have h1 : Tendsto (fun t : ℝ => |t|) (𝓝[≠] 0) (𝓝 0) := by
-      have := (continuous_abs.tendsto (0 : ℝ)).mono_left inf_le_left
+      have := (continuous_abs.tendsto (0 : ℝ)).mono_left (nhdsWithin_le_nhds (s := {0}ᶜ))
       simpa using this
     have h2 := h1.const_mul (|C|)
     simpa using h2

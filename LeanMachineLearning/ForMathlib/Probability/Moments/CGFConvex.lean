@@ -39,6 +39,8 @@ moments are finite.  This is Hölder's inequality `𝔼 exp ((a s + b t) X) ≤ 
 
 @[expose] public section
 
+open MeasureTheory
+open scoped ENNReal
 open MeasureTheory Real
 open scoped ENNReal NNReal
 
