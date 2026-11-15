@@ -124,64 +124,42 @@ theorem convexOn_log_integral_rpow [IsProbabilityMeasure μ] {Z : Ω → ℝ}
 theorem mul_integral_le_cgf [IsProbabilityMeasure μ] (hX : Integrable X μ) {t : ℝ}
     (hint : Integrable (fun ω => Real.exp (t * X ω)) μ) :
     t * ∫ ω, X ω ∂μ ≤ cgf X μ t := by
-  have hj := ConvexOn.map_integral_le (μ := μ) (f := fun ω => t * X ω) (s := Set.univ)
-    convexOn_exp continuous_exp.continuousOn isClosed_univ
-    (Filter.Eventually.of_forall fun _ => trivial) (hX.const_mul t)
-  have h_int_eq : ∫ ω, t * X ω ∂μ = t * ∫ ω, X ω ∂μ := integral_const_mul t (f := X)
-  have h_exp_int : Integrable (Real.exp ∘ fun ω => t * X ω) μ := hint
-  have hj' := hj h_exp_int
-  rw [h_int_eq] at hj'
-  have h_exp_pos : 0 < Real.exp (t * ∫ ω, X ω ∂μ) := Real.exp_pos _
-  have hlog := Real.log_le_log h_exp_pos hj'
-  rw [Real.log_exp] at hlog
-  exact hlog
+  have hj := convexOn_exp.map_integral_le (μ := μ)
+    continuous_exp.continuousOn isClosed_univ (ae_of_all _ fun _ => Set.mem_univ _)
+    (hX.const_mul t) hint
+  have hl := Real.log_le_log (Real.exp_pos _) hj
+  simpa only [integral_const_mul, Real.log_exp, cgf, mgf] using hl
 
-/-- Shift property of the cumulant-generating function: `cgf (X + c) μ t = cgf X μ t + t * c`. -/
-theorem cgf_add_const [IsProbabilityMeasure μ] {t : ℝ}
+/-- Shift property of the cumulant-generating function: `cgf (X + c) μ t = cgf X μ t + t * c`.
+It holds for every nonzero measure (not only probability measures) once `exp (t X)` is
+integrable; for the zero measure both sides would differ. -/
+theorem cgf_add_const [NeZero μ] {t : ℝ}
     (hint : Integrable (fun ω => Real.exp (t * X ω)) μ) (c : ℝ) :
     cgf (fun ω => X ω + c) μ t = cgf X μ t + t * c := by
-  have hpos : 0 < mgf X μ t := mgf_pos hint
-  have hpos_exp : 0 < Real.exp (t * c) := Real.exp_pos _
   simp only [cgf, mgf_add_const]
-  rw [Real.log_mul hpos.ne' hpos_exp.ne', Real.log_exp]
+  rw [Real.log_mul (mgf_pos' (NeZero.ne μ) hint).ne' (Real.exp_pos _).ne', Real.log_exp]
 
 /-- Upper bound on the CGF for a random variable with centered sub-Gaussian MGF:
 `cgf X μ t ≤ t * 𝔼 X + c * t² / 2`. -/
 theorem cgf_le_mul_integral_add_of_hasSubgaussianMGF [IsProbabilityMeasure μ] {c : ℝ≥0}
     (h : HasSubgaussianMGF (fun ω => X ω - ∫ ω', X ω' ∂μ) c μ) (t : ℝ) :
     cgf X μ t ≤ t * (∫ ω, X ω ∂μ) + (c : ℝ) * t ^ 2 / 2 := by
-  set Y : Ω → ℝ := fun ω => X ω - ∫ ω', X ω' ∂μ with hY
-  have hintY : Integrable (fun ω => Real.exp (t * Y ω)) μ := h.integrable_exp_mul t
-  have heq : X = fun ω => Y ω + ∫ ω', X ω' ∂μ := by
-    ext ω; simp [hY]
-  have hle := h.cgf_le t
-  calc cgf X μ t = cgf (fun ω => Y ω + ∫ ω', X ω' ∂μ) μ t := by rw [← heq]
-    _ = cgf Y μ t + t * (∫ ω', X ω' ∂μ) := cgf_add_const hintY _
-    _ ≤ (c : ℝ) * t ^ 2 / 2 + t * (∫ ω', X ω' ∂μ) := by linarith
-    _ = t * (∫ ω, X ω ∂μ) + (c : ℝ) * t ^ 2 / 2 := by ring
+  have hshift := cgf_add_const (h.integrable_exp_mul t) (∫ ω, X ω ∂μ)
+  simp only [sub_add_cancel] at hshift
+  rw [hshift]
+  linarith [h.cgf_le t]
 
 /-- Lower bound on the CGF for a random variable with centered sub-Gaussian MGF:
 `t * 𝔼 X ≤ cgf X μ t`. -/
 theorem mul_integral_le_cgf_of_hasSubgaussianMGF [IsProbabilityMeasure μ] {c : ℝ≥0}
     (h : HasSubgaussianMGF (fun ω => X ω - ∫ ω', X ω' ∂μ) c μ) (t : ℝ) :
     t * (∫ ω, X ω ∂μ) ≤ cgf X μ t := by
-  have hY_int : Integrable (fun ω => X ω - ∫ ω', X ω' ∂μ) μ := h.integrable
-  have hconst : Integrable (fun _ : Ω => ∫ ω', X ω' ∂μ) μ := integrable_const _
   have hX : Integrable X μ := by
-    have : X = (fun ω => X ω - ∫ ω', X ω' ∂μ) + (fun _ => ∫ ω', X ω' ∂μ) := by
-      ext ω; simp
-    rw [this]
-    exact hY_int.add hconst
-  have hint : Integrable (fun ω => Real.exp (t * X ω)) μ := by
-    have heq : (fun ω => Real.exp (t * X ω)) =
-        fun ω => Real.exp (t * (∫ ω', X ω' ∂μ)) *
-          Real.exp (t * (X ω - ∫ ω', X ω' ∂μ)) := by
-      ext ω
-      rw [← Real.exp_add]
-      congr 1
-      ring
-    rw [heq]
-    exact (h.integrable_exp_mul t).const_mul _
+    simpa only [sub_add_cancel] using
+      (integrable_add_const_iff (f := fun ω => X ω - ∫ ω', X ω' ∂μ)
+        (c := ∫ ω, X ω ∂μ)).2 h.integrable
+  have hint := (h.integrable_exp_mul t).mul_const (Real.exp (t * ∫ ω, X ω ∂μ))
+  simp only [← Real.exp_add, ← mul_add, sub_add_cancel] at hint
   exact mul_integral_le_cgf hX hint
 
 /-- Quadratic sandwich on the CGF of a random variable with centered sub-Gaussian MGF:

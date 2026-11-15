@@ -1,6 +1,6 @@
 \chapter{The Sherrington--Kirkpatrick Model at High Temperature: The Talagrand Theory}\label{chap:sg-talagrand}
 
-This chapter develops Sections~1.1--1.12 and the integer-replica theorem of Section~1.13 of Michel Talagrand's \emph{Spin Glasses: A Challenge for Mathematicians} (Volume~I, Springer, 2010), with the scope qualifications below. Section~1.12 (vector spins) is formalized in the book's range $0\le\beta$, $15\beta d\le1$: the cavity derivative, matrix fixed-point existence and uniqueness, overlap concentration, stationarity and the free-energy limit with rate $C/\sqrt N$ are proved (Section~\ref{sec:sg-tal:vector}). The last section relates the matrix Hamiltonian used in the Panchenko chapters to the pair Hamiltonian used here (Section~\ref{sec:sg-tal:hamiltonian-bridge}).
+This chapter develops Sections~1.1--1.14 of Michel Talagrand's \emph{Spin Glasses: A Challenge for Mathematicians} (Volume~I, Springer, 2010), with the scope qualifications below. Section~1.12 (vector spins) is formalized in the book's range $0\le\beta$, $15\beta d\le1$: the cavity derivative, matrix fixed-point existence and uniqueness, overlap concentration, stationarity and the free-energy limit with rate $C/\sqrt N$ are proved (Section~\ref{sec:sg-tal:vector}). Section~1.13 includes the integer-replica theorem, finite-system real moments and quadratic bounds, and a derivative theorem under explicit convergence hypotheses; existence of the real-moment limit near zero remains unproved (Section~\ref{sec:sg-tal:replica}). The Hamiltonian comparison is in Section~\ref{sec:sg-tal:hamiltonian-bridge}, and the final section records the proved bounds and cited results of Section~1.14 (Section~\ref{sec:sg-tal:notes-comments}).
 Section~1.6, including Proposition~1.6.8 (the cavity free-energy increment), is proved without any smallness assumption on the model parameters.
 Of Section~1.7 Theorem~1.7.11 (the general Gaussian fluctuation principle) is formalized; Corollaries~1.7.13 and~1.7.15, Lemma~1.7.14, Lemma~1.7.5, Lemma~1.7.4, Lemma~1.7.6 and Theorem~1.7.1 are formalized as well (Section~\ref{sec:sg-tal:fluct}).
 The mathematical narrative develops the high-temperature theory of the Sherrington--Kirkpatrick (SK) model:
@@ -22,7 +22,8 @@ formulas of Corollary~1.10.3 hold for products of finite linear combinations
 matrix fixed-point existence and uniqueness, overlap concentration, stationarity and the
 free-energy limit under $0\le\beta$, $15\beta d\le1$, with one fixed point for all
 system sizes and a dimension-only error constant (Section~\ref{sec:sg-tal:vector}).
-\item The rigorous integer-replica computation at all temperatures (Theorem~1.13.1), with a maximizing witness. Continuation to non-integer replica counts is not formalized (Section~\ref{sec:sg-tal:replica}).
+\item The rigorous integer-replica computation at all temperatures (Theorem~1.13.1), maximizing fixed points, the large-integer-replica limit, and real-moment bounds. The derivative of the limiting real-moment pressure is proved under convergence hypotheses; neither existence near zero nor continuation of the integer formula is proved (Section~\ref{sec:sg-tal:replica}).
+\item Pairwise spin decorrelation and the two overlap variance bounds of Eqs.~(1.412)--(1.414), together with a comparison of the cited results in Section~1.14 with the Lean statements (Section~\ref{sec:sg-tal:notes-comments}).
 \end{enumerate}
 
 \medskip\noindent\textbf{Source tags.}
@@ -47,7 +48,7 @@ The theorem statements below are those of the Lean declarations. They differ fro
 \begin{itemize}
 \item \emph{Slepian's lemma} is proved for abstract finite Gaussian families $(X_a,Y_a)_{a\in\alpha}$ on a probability space, with $X$ and $Y$ uncorrelated, not only for fields on $\Sigma_N$.
   Theorem~\ref{thm:sg-tal:slepian} is the book's general Proposition~1.3.3 for a $C^2$ test function with exponentially bounded value, gradient and Hessian instead of a $C^\infty$ function of moderate growth (Eq.~(A.18)). The free-energy comparison, the instance $F=-\log\sum_ae^{x_a+h_a}$ with the bias $h$ as a separate argument, is Theorem~\ref{thm:sg-tal:slepian-lse}. The Lean statements also ask that the two vectors be independent and jointly Gaussian (without loss of generality, since only the two covariance matrices matter). See Remark~\ref{rem:sg-tal:slepian-compare}.
-\item \emph{Concentration} is proved for the mixed $p$-spin Hamiltonian with the constant $4\sum_p\beta_p^2$ in the exponent. The SK model is a special case, but the SK specialization is not stated as a separate Lean theorem.
+\item \emph{Concentration} is proved below for the mixed $p$-spin Hamiltonian with the constant $4\sum_p\beta_p^2$ in the exponent. A separate scalar pair-disorder instance, \texttt{hasSubgaussianMGF\_log\_skPartition}, is used later in Theorem~\ref{thm:sg-tal:replica-real-moment-sandwich}; it retains the counting-measure partition sum and its exact Gaussian variance.
 \item \emph{The thermodynamic limit} is proved for the full-matrix Hamiltonian $N^{-1/2}\sigma\cdot(G\sigma)$ without external field, not for the pair disorder with a field $h$ used in Sections~1.2--1.4. The two disorders have different covariances ($NR^2$ versus $\frac N2(R^2-\frac1N)$), and no Lean statement relates the corresponding free energies; the high-temperature limit in Theorem~\ref{thm:sg-tal:alr} is therefore derived directly and does not use this theorem.
 \item \emph{Covariance.} The SK pair field has covariance $\frac{N\beta^2}{2}(R^2-\frac1N)$ (Lean: \texttt{integral\_sk\_pair\_field\_mul\_eq\_overlap}).
 \end{itemize}
@@ -6752,12 +6753,13 @@ The functions $\psi_{N+1}$ are convex with derivative $\mathbb E\langle R_{1,2}\
 \talsource{Section~1.9, the discussion after Theorem~1.9.6}
 Under the hypotheses of Theorem~\ref{thm:sg-tal:thm-196}, but without assuming that $\lim_N\psi_N(\lambda)$ exists, let $r>0$.
 There are a strictly increasing sequence $N_k$ and a function $\psi$ such that $\psi_{N_k+1}(\lambda)\to\psi(\lambda)$ for every $\lambda\in[-r,r]$,
-and every such $\psi$ is not differentiable at $0$.
+and $\psi$ is not differentiable at $0$.
 \end{theorem}
 \begin{proof}
 \leanok
 Each $\psi_M$ is convex, $\psi_M(0)=0$ and $\psi_M'(\lambda)=\mathbb E\langle R_{1,2}\rangle_\lambda\in[-1,1]$, so the $\psi_M$ are $1$-Lipschitz.
 The Arzela--Ascoli theorem on $C([-r,r])$ gives a subsequence that converges (uniformly) on $[-r,r]$. Along it, Theorem~\ref{thm:sg-tal:convex-kink} applies with $c=\delta'/2$, exactly as in the proof of Theorem~\ref{thm:sg-tal:thm-196}.
+\emph{Formalization note.} The Lean conclusion selects one increasing subsequence and one pointwise limit on $[-r,r]$ with this property. It does not assert convergence of the whole sequence or state uniform convergence in its conclusion. The same derivative-gap theorem applies to any other convergent increasing subsequence, but that universal assertion is not part of the selected-subsequence declaration.
 \end{proof}
 
 \begin{remark}[Deviations and the open items of Section~1.9]
@@ -6811,7 +6813,7 @@ Talagrand states that (1.268) can be deduced from (1.267), with considerable wor
 
 \emph{Is it important to formalize?} Low to moderate. (i) The mathematical content the book calls ``important'' (the instability, and non-differentiability of any limit) is already proved: for every large $N$ by Proposition~1.9.7, and for any pointwise limit by Theorem~\ref{thm:sg-tal:thm-196}. (ii) No later result of the volume uses the existence of the limit. (iii) What is lost without it is only the literal first sentence of Theorem~1.9.6, ``$\psi(\lambda)$ exists for all $\beta,h$''; this is the reason the milestone box for Section~1.9 stays unticked. (iv) The cost is high: it is a research-paper proof, not a corollary of results here. It should be done after Section~1.10 and Hanen's theorem, and only on an explicit scope decision.
 
-\emph{Cheap partial result that avoids the limit (not yet formalized).} Each $\psi_N$ is convex with $\psi_N(0)=0$ and $|\psi_N'|\le1$ (because $|R_{1,2}|\le1$), hence the family is equi-Lipschitz on compact sets. By the Arzela--Ascoli theorem every subsequence has a further subsequence converging locally uniformly to a convex function, and the filter-generalized kink theorem (Theorem~\ref{thm:sg-tal:convex-kink}) applied along that subsequence shows that \emph{every} subsequential limit is non-differentiable at $0$. In particular the sequence $\psi_N$ cannot converge to a function that is differentiable at $0$. This uses only existing results and compactness, and is the natural unconditional substitute for the existence of the limit.
+\emph{Proved subsequence result.} Theorem~\ref{thm:sg-tal:coupled-subsequence} selects an increasing subsequence converging pointwise on each prescribed interval $[-r,r]$, with a limit not differentiable at $0$. Its proof uses $\psi_N(0)=0$ and the $1$-Lipschitz bound, followed by the derivative-gap theorem. This result does not prove that all system sizes converge to a common function.
 
 \emph{General approach to the existence proof (Guerra--Toninelli).} Write $p_N(\lambda)=\frac1N\mathbb E\log Z_{N,\lambda}$, so that $\psi_N(\lambda)=p_N(\lambda)-p_N(0)$ and $p_N(0)=2\cdot\frac1N\mathbb E\log Z_N$ has a limit by Theorem~1.3.9. It remains to show that $p_N(\lambda)$ converges.
 \begin{enumerate}
@@ -11558,8 +11560,8 @@ so its $N\log2$ contribution is retained.
 \leanok
 \uses{thm:sg-tal:replica-real-moments}
 \talsource{Source lines 5920--5935, the convexity step before the exchange of limits}
-For fixed $N$ and any real $\beta,h$ the functions $t\mapsto\log\mathbb EZ_N^t$ and $t\mapsto\frac1N\log\mathbb EZ_N^t$ are convex on $\mathbb R$.
-Moreover, let $\psi_i$ be convex on $(-r,r)$ and differentiable at $0$, converging pointwise to a function $\psi$ on $(-r,r)$ along any filter. If $\psi$ is differentiable at $0$, then $\psi_i'(0)\to\psi'(0)$.
+For fixed $N\in\mathbb N$ and any real $\beta,h$ the functions $t\mapsto\log\mathbb EZ_N^t$ and $t\mapsto N^{-1}\log\mathbb EZ_N^t$ are convex on $\mathbb R$; at $N=0$ the second expression uses Lean's convention $0^{-1}=0$.
+Moreover, let $r>0$ and let $\psi_i$ be convex on $(-r,r)$ and differentiable at $0$, converging pointwise to a function $\psi$ on $(-r,r)$ along any filter. If $\psi$ is differentiable at $0$, then $\psi_i'(0)\to\psi'(0)$.
 \end{theorem}
 \begin{proof}
 \leanok
@@ -11567,7 +11569,7 @@ Moreover, let $\psi_i$ be convex on $(-r,r)$ and differentiable at $0$, convergi
 \[
 \mathbb Ee^{(as+bt)X}=\mathbb E[fg]\le(\mathbb Ef^{1/a})^{a}(\mathbb Eg^{1/b})^{b}=(\mathbb Ee^{sX})^a(\mathbb Ee^{tX})^b .
 \]
-\emph{Step 2 (cumulant generating function).} Taking logarithms, $\Lambda(as+bt)\le a\Lambda(s)+b\Lambda(t)$ for $\Lambda(t)=\log\mathbb Ee^{tX}$. For $X=\log Z_N$ we have $e^{tX}=Z_N^t$, and the exponential moments are finite for every $t$ (Theorem~\ref{thm:sg-tal:replica-real-moments}, Step~2), so $t\mapsto\log\mathbb EZ_N^t$ is convex on $\mathbb R$; multiplying by $N^{-1}>0$ keeps convexity.
+\emph{Step 2 (cumulant generating function).} Taking logarithms, $\Lambda(as+bt)\le a\Lambda(s)+b\Lambda(t)$ for $\Lambda(t)=\log\mathbb Ee^{tX}$. For $X=\log Z_N$ we have $e^{tX}=Z_N^t$, and the exponential moments are finite for every $t$ (Theorem~\ref{thm:sg-tal:replica-real-moments}, Step~2), so $t\mapsto\log\mathbb EZ_N^t$ is convex on $\mathbb R$; multiplying by the nonnegative scalar $N^{-1}$ keeps convexity.
 \emph{Step 3 (secant slopes).} For a convex function $\psi_i$ and small $\lambda>0$,
 \[
 \frac{\psi_i(0)-\psi_i(-\lambda)}{\lambda}\le\psi_i'(0)\le\frac{\psi_i(\lambda)-\psi_i(0)}{\lambda}.
@@ -11583,37 +11585,30 @@ extending the proof of (1.108). It does not supply those estimates in this passa
 The Lean derivative-convergence theorem takes pointwise convergence and differentiability
 of the limit as explicit hypotheses. It is proved at any point of an open interval and
 along any filter, so it also applies outside the SK model.
-Neither hypothesis has been proved here for the limiting SK real-moment pressure.
-In particular, convexity at each fixed $N$ does not prove existence of that limit.
-Thus this development has not justified the exchange of $N\to\infty$ with $t\to0$ by this route.
+Convexity at each fixed $N$ does not prove either hypothesis for a limiting function.
+For the SK model, Corollary~\ref{cor:sg-tal:replica-exchange-limits} instead proves
+differentiability from the quadratic bounds, assuming convergence of both $p_N$ and
+$\psi_N(t)$ near zero. Existence of the latter limit remains unproved.
 Eq.~(1.411) must be obtained from the earlier scalar pressure results in their proved
 temperature range; it does not follow from the integer-replica theorem alone.
 \end{remark}
 
-\begin{remark}[Why the next estimates use real powers]\label{rem:sg-tal:replica-next-estimates}
+\begin{remark}[Real powers and the derivative at zero]\label{rem:sg-tal:replica-next-estimates}
 \talsource{Eq.~(1.410) and source line 5939}
 The book asks about $t\to0$, so estimates for positive integer replica counts do not suffice.
 The identity $Z_N^t=\exp(t\log Z_N)$ gives a direct way to work with real $t$;
 the corresponding single-site weights are $\cosh^t(\beta z\sqrt q+h)$.
-Proving their integrability for real exponents extends the integrability argument already
-needed for Eq.~(1.408), while leaving the integer-replica theorem unchanged. Negative exponents
-are included when working on a two-sided interval around zero.
-
-There is also a possible shorter route to the derivative at zero, once the real-moment limit
-exists. With $p_N=N^{-1}\mathbb E\log Z_N$, the proposed next bounds are
-\[
-t p_N\le\psi_N(t)\le t p_N+\frac{\beta^2t^2}{2}.
-\]
-Their lower bound is Jensen's inequality; their upper bound should follow from the existing
-Gaussian concentration estimate after its normalization is transferred to this partition sum.
-If these bounds and $p_N\to p$, $\psi_N(t)\to\psi(t)$ are proved, passing to the limit gives
-$|\psi(t)-tp|\le\beta^2t^2/2$, hence $\psi'(0)=p$.
-This would prove the derivative without differentiating a chosen family of fixed points.
-An explicit fixed-point formula for the whole function $\psi(t)$ would be a stronger further
-result; the book's last paragraph states existence and differentiability, and this derivative
-argument needs only existence.
-The scalar-SK bounds and the convergence of $\psi_N$ on an interval remain to be formalized;
-this remark records a further proof step, not a completed limit theorem.
+The Lean estimates include integrability of $\cosh^t(wz+h)$ for every real exponent $t$,
+including negative exponents. This extends the integrability needed for Eq.~(1.408)
+without extending the integer-replica formula to noninteger counts.
+Theorem~\ref{thm:sg-tal:replica-real-moment-sandwich} proves the quadratic bounds on
+$\psi_N(t)$ for all real $\beta,h,t$. Corollary~\ref{cor:sg-tal:replica-exchange-limits}
+uses them to prove $\psi'(0)=p$ under the two stated convergence assumptions.
+This argument does not differentiate a selected family of fixed points and does not
+use the convex derivative-convergence theorem above.
+What remains unproved is convergence of $\psi_N(t)$ on a real interval around zero.
+An explicit fixed-point formula for the entire limiting function would be an additional
+result; the derivative argument does not require that formula.
 \end{remark}
 
 \begin{theorem}[Maximizing fixed point of the replica variational problem]\label{thm:sg-tal:replica-fixed-point}
@@ -11744,8 +11739,9 @@ Theorem~\ref{thm:sg-tal:replica-fixed-point} formalizes the existence of a maxim
 \end{remark}
 
 \begin{theorem}[Quadratic sandwich for the real-moment pressure]\label{thm:sg-tal:replica-real-moment-sandwich}
-\lean{SpinGlasses.inv_mul_log_integral_rpow_skPartition_sandwich, ProbabilityTheory.cgf_sandwich_of_hasSubgaussianMGF}
+\lean{SpinGlasses.inv_mul_log_integral_rpow_skPartition_sandwich, SpinGlasses.hasSubgaussianMGF_log_skPartition, ProbabilityTheory.cgf_sandwich_of_hasSubgaussianMGF, abs_inv_mul_sub_le_of_quadratic_bounds}
 \leanok
+\uses{thm:sg:fecentration, thm:sg-tal:replica-real-moments}
 \talsource{Section~1.13, discussion around Eqs.~(1.409)--(1.411)}
 For every $N \ge 1$, all $\beta, h \in \mathbb R$, and all real $t$,
 \[
@@ -11759,38 +11755,71 @@ In particular, for all $t \ne 0$,
 \end{theorem}
 \begin{proof}
 \leanok
-The lower bound is Jensen's inequality for the convex exponential function (in Lean:
-\texttt{ProbabilityTheory.mul\_integral\_le\_cgf}).
-For the upper bound, the Gaussian Hamiltonian part $g \mapsto H_N^{\mathrm{Gauss}}(\sigma)$ has mean zero and
-variance $\beta^2(N-1)/(2N)$ on $\{-1, 1\}^N$, which is bounded by $\beta^2(N-1)/2$.
-By \texttt{hasSubgaussianMGF\_log\_sum\_exp}, $\log Z_N - \mathbb E\log Z_N$ satisfies
-\texttt{HasSubgaussianMGF} with parameter $c = \beta^2(N-1)$.
-Dividing by $N$ and using $(N-1)/N \le 1$ gives the upper bound $\beta^2 t^2/2$.
+Write $X_N(g)=\log Z_N(g)$ and
+$G_N(g,\sigma)=\beta N^{-1/2}\sum_{i<j}g_{ij}\sigma_i\sigma_j$ for the centered Gaussian part of the energy.
+\emph{Step 1 (the pair normalization).} Independence of the standard Gaussian edges and
+$\sigma_i^2=1$ give, for each fixed configuration,
+\[
+\mathbb E G_N(\sigma)=0,\qquad
+\mathbb E G_N(\sigma)^2=\frac{\beta^2}{N}\binom N2
+=\frac{\beta^2(N-1)}2=:v_N.
+\]
+\emph{Step 2 (concentration).} Apply Theorem~\ref{thm:sg:fecentration} with the deterministic
+bias $h\sum_i\sigma_i$. Its sub-Gaussian parameter is $2v_N$, so
+\[
+\log\mathbb E\exp\bigl(t(X_N-\mathbb EX_N)\bigr)\le v_Nt^2.
+\]
+\emph{Step 3 (centering and Jensen).} The exponential moments are finite for every real $t$
+by Theorem~\ref{thm:sg-tal:replica-real-moments}. Thus their integrals are positive, and
+Jensen and the constant-shift identity for the cumulant generating function give
+\[
+t\mathbb EX_N\le\log\mathbb Ee^{tX_N}
+\le t\mathbb EX_N+v_Nt^2.
+\]
+Divide by $N>0$, use $e^{tX_N}=Z_N^t$ and $(N-1)/N\le1$ to obtain the stated bounds.
+For $t\ne0$, put $D_N(t)=\psi_N(t)-tp_N$. Since $0\le D_N(t)\le\beta^2t^2/2$,
+\[
+\left|\frac{\psi_N(t)}t-p_N\right|
+=\frac{|D_N(t)|}{|t|}\le\frac{\beta^2|t|}{2}.
+\]
+Formalized in \texttt{SpinGlasses/Talagrand/Replica/Moments/Concentration.lean}.
 \end{proof}
 
 \begin{corollary}[Exchange of limits for the real-moment pressure]\label{cor:sg-tal:replica-exchange-limits}
-\lean{SpinGlasses.hasDerivAt_zero_limit_pressure, hasDerivAt_zero_of_sequence_quadratic_sandwich}
+\lean{SpinGlasses.hasDerivAt_zero_of_tendsto_inv_mul_log_integral_rpow_skPartition, hasDerivAt_zero_of_tendsto_quadratic_bounds}
 \leanok
 \uses{thm:sg-tal:replica-real-moment-sandwich}
 \talsource{Section~1.13, discussion around Eqs.~(1.409)--(1.411)}
-Suppose $p_N \to p$ and $\psi_N(t) \to \psi(t)$ pointwise for all $t$ in a neighborhood of $0$.
+Let $\beta,h\in\mathbb R$. Suppose $p_N \to p$ and $\psi_N(t) \to \psi(t)$ pointwise for all $t$ in a neighborhood of $0$, with $p_N$ and $\psi_N$ as above.
 Then $\psi$ is differentiable at $0$ with derivative $\psi'(0) = p$.
 \end{corollary}
 \begin{proof}
 \leanok
-Taking the limit as $N \to \infty$ in the quadratic sandwich of Theorem~\ref{thm:sg-tal:replica-real-moment-sandwich} gives
-$t p \le \psi(t) \le t p + \frac{\beta^2 t^2}{2}$ on the neighborhood.
-Since $\psi(0) = 0$, the difference quotient satisfies
-$|t^{-1}(\psi(t) - \psi(0)) - p| \le \frac{\beta^2 |t|}{2} \to 0$ as $t \to 0$.
+\emph{Step 1 (pass to the limit in $N$).} For each $t$ in the stated neighborhood,
+Theorem~\ref{thm:sg-tal:replica-real-moment-sandwich} holds eventually in $N$. The two
+convergence hypotheses therefore give
+\[
+tp\le\psi(t)\le tp+\frac{\beta^2t^2}{2},\qquad \psi(0)=0.
+\]
+\emph{Step 2 (difference quotients).} For nonzero $t$ in that neighborhood,
+\[
+\left|\frac{\psi(t)-\psi(0)}t-p\right|\le\frac{\beta^2|t|}{2}\longrightarrow0.
+\]
+This is differentiability at zero. Together with the finite-system identity in
+Theorem~\ref{thm:sg-tal:replica-real-moments}, it identifies both iterated limits under
+the stated hypotheses. The Lean proof first proves this quadratic-bound implication
+for general sequences of real functions and then applies it to the SK expressions.
 \end{proof}
 
 \begin{remark}[Status of the real-moment limit]\label{rem:sg-tal:replica-real-moment-status}
 \talsource{Section~1.13, discussion around Eq.~(1.411)}
-Theorem~\ref{thm:sg-tal:replica-real-moment-sandwich} and Corollary~\ref{cor:sg-tal:replica-exchange-limits} show that
-the exchange of limits $N \to \infty$ and $t \to 0$ is mathematically justified whenever the real-moment limit
-$\psi(t) = \lim_{N\to\infty} \psi_N(t)$ exists on a neighborhood of $0$.
-The sandwich holds for all $\beta$ and $h$, showing that failure of Eq.~(1.411) at large $\beta$ cannot be blamed on the limit exchange.
-However, existence of $\psi(t)$ for non-integer real $t$ near $0$ is not proved here (Package~P3).
+Theorem~\ref{thm:sg-tal:replica-real-moment-sandwich} holds for every real $\beta,h$.
+Corollary~\ref{cor:sg-tal:replica-exchange-limits} proves the derivative and the limit
+exchange when both $p_N\to p$ and $\psi_N(t)\to\psi(t)$ near zero are supplied.
+The earlier scalar pressure theorem supplies the first convergence for $\beta^2<1/4$
+and a fixed point $q$ (Theorem~\ref{thm:sg-tal:alr}). Convergence of the real-moment
+pressure near zero is still unproved here. Neither the integer-replica theorem nor
+the conditional corollary proves it, and neither extends Eq.~(1.411) to all temperatures.
 \end{remark}
 
 \section{The matrix and the pair Hamiltonian of the SK model}\label{sec:sg-tal:hamiltonian-bridge}
@@ -11873,21 +11902,21 @@ and formalizes the truncated correlation and overlap variance bounds of Eqs.~(1.
 \hline
 \textbf{Paragraph} & \textbf{Content in Talagrand} & \textbf{Repository Status / Declaration} \\
 \hline
-1 & SK and Kirkpatrick heuristics; failure of (1.411) at large $\beta$ & Discussion; rigorous integer case in Section~\ref{sec:sg-tal:replica} \\
+1 & SK and Kirkpatrick heuristics; failure of (1.411) at large $\beta$ & Discussion only. The rigorous integer-replica theorem is in Section~\ref{sec:sg-tal:replica}; no Lean statement says that (1.411) fails at low temperature \\
 \hline
-2 & ALR ($h=0$) and Froehlich--Zegarlinski ($\beta \le \beta_0$): $\mathbb E(\langle\sigma_1\sigma_2\rangle - \langle\sigma_1\rangle\langle\sigma_2\rangle)^2 \le L/N$, Eq.~(1.412) & Proved for $\beta^2 < 1/4$: \lean{SpinGlasses.sk_gibbs_pair_covariance_sq_le} \\
+2 & ALR ($h=0$) and Froehlich--Zegarlinski ($\beta \le \beta_0$): $\mathbb E(\langle\sigma_1\sigma_2\rangle - \langle\sigma_1\rangle\langle\sigma_2\rangle)^2 \le L/N$, Eq.~(1.412) & Proved for $N \ge 1$, $\beta^2 < 1/4$ and a fixed point $q$ (hypothesis \texttt{hfix}): \lean{SpinGlasses.sk_gibbs_pair_covariance_sq_le}. The cluster-expansion proofs of the cited papers are not formalized \\
 \hline
-2 & Comets--Neveu: CLT for $R_{1,2}$ at $h=0$ & Proved also for $h \ne 0$: Theorem~\ref{thm:sg-tal:free-energy-clt} \\
+2 & Comets--Neveu: CLT for $R_{1,2}$ at $h=0$ & Not stated as a convergence in law. Section~\ref{sec:sg-tal:overlap-clt} proves, for a deterministic field and $4\beta_0^2 < 1$, the Gaussian limit of the mixed moments of the decomposed overlap factors (Theorem~\ref{thm:sg-tal:thm-1101}), with error $O(N^{-(|s|+1)/2})$; this is the moment form of the overlap CLT, not the free-energy CLT of Theorem~\ref{thm:sg-tal:free-energy-clt} \\
 \hline
-3 & Concentration of measure (Levy, Milman, Ledoux); Theorem~1.3.4 & Proved: \lean{SpinGlasses.hasSubgaussianMGF_log_sum_exp}, \lean{SpinGlasses.mixedPSpin_free_energy_concentration} \\
+3 & Concentration of measure (Levy, Milman, Ledoux); Theorem~1.3.4 & Proved for the free energy: \lean{SpinGlasses.hasSubgaussianMGF_log_sum_exp} (general Gaussian field), \lean{SpinGlasses.hasSubgaussianMGF_log_skPartition} (the SK pair Hamiltonian, parameter $\beta^2(N-1)$), \lean{SpinGlasses.mixedPSpin_free_energy_concentration} (mixed $p$-spin) \\
 \hline
-4 & Pastur--Shcherbina: $\operatorname{Var}\langle R_{1,2}\rangle \to 0$, Eq.~(1.413); Shcherbina: $\mathbb E\langle(R_{1,2} - \langle R_{1,2}\rangle)^2\rangle \to 0$, Eq.~(1.414) & Proved for $\beta^2 < 1/4$: \lean{SpinGlasses.sk_expected_gibbs_overlap_sub_sq_le}, \lean{SpinGlasses.sk_var_gibbs_overlap_le}, \lean{SpinGlasses.sk_expected_gibbs_var_overlap_le} \\
+4 & Pastur--Shcherbina: $\operatorname{Var}\langle R_{1,2}\rangle \to 0$, Eq.~(1.413); Shcherbina: $\mathbb E\langle(R_{1,2} - \langle R_{1,2}\rangle)^2\rangle \to 0$, Eq.~(1.414) & Proved as bounds $K/N$ (hence both limits are $0$ for fixed parameters) for $N \ge 1$, $\beta^2 < 1/4$ and a fixed point $q$. The equivalence of (1.413) and (1.414) on a larger domain is not formalized: \lean{SpinGlasses.sk_expected_gibbs_overlap_sub_sq_le}, \lean{SpinGlasses.sk_var_gibbs_overlap_le}, \lean{SpinGlasses.sk_expected_gibbs_var_overlap_le} \\
 \hline
-5 & Shcherbina [128]: $\lim p_N = \operatorname{SK}(\beta, h)$ for $\beta < 1$ & Proved for $\beta < 1/2$: Theorem~\ref{thm:sg-tal:alr} (\lean{SpinGlasses.tendsto_sk_free_energy_of_lt}) \\
+5 & Shcherbina [128]: $\lim p_N = \operatorname{SK}(\beta, h)$ for $\beta < 1$ & The repository proves the narrower range $\beta^2 < 1/4$ (a fixed point $q$ supplied): Theorem~\ref{thm:sg-tal:alr} (\lean{SpinGlasses.tendsto_sk_free_energy_of_lt}). The range $\beta < 1$ is not formalized \\
 \hline
 7 & Smart path method history (Kahane, Pisier) & Proved: Slepian form \lean{SpinGlasses.integral_comp_le_of_covariance_le} \\
 \hline
-8 & Cavity expansion of $\nu_1'((\varepsilon_1\varepsilon_2 - q)f)$, Eq.~(1.152) & Proved: \lean{SpinGlasses.hasDerivAt_integral_sk_cavity_path_square_full} \\
+8 & Cavity expansion of $\nu_1'((\varepsilon_1\varepsilon_2 - q)f)$, Eq.~(1.152), and its specialization to $f = R_{1,2} - q$ with $R_{1,2,3,4}$, $\hat q$ and an $O(3)$ remainder & The derivative formula (1.152) for a general replica observable is proved: \lean{SpinGlasses.hasDerivAt_integral_sk_cavity_path_square_full}. The displayed four-replica expansion needs moment bounds for $R_{1,2,3,4}-\hat q$ and is not formalized (optional work package P5 of the completion plan; the book itself does not use it) \\
 \hline
 9 & Quantitative CLT for $N^{-1}\log Z_N$ (Theorem~1.4.11) & Proved: Theorem~\ref{thm:sg-tal:free-energy-clt} (\lean{SpinGlasses.sk_free_energy_clt}) \\
 \hline
@@ -11905,8 +11934,8 @@ and formalizes the truncated correlation and overlap variance bounds of Eqs.~(1.
 \leanok
 \uses{thm:sg-tal:sk-correlation-decay}
 \talsource{Section~1.14, Eq.~(1.412)}
-For the Sherrington--Kirkpatrick model with $\beta^2 < 1/4$ at the fixed point
-$q = \mathbb E\tanh^2(\beta\sqrt q z + h)$, every pair of distinct sites $i \ne j$ satisfies
+For the Sherrington--Kirkpatrick model with $N \ge 1$, $\beta^2 < 1/4$ and $q$ a solution of
+$q = \mathbb E\tanh^2(\beta\sqrt q z + h)$ (hypothesis \texttt{hfix}), every pair of distinct sites $i \ne j$ satisfies
 \[
 \mathbb E\big(\langle\sigma_i\sigma_j\rangle - \langle\sigma_i\rangle\langle\sigma_j\rangle\big)^2 \le \frac{K}{N},
 \]
@@ -11923,8 +11952,8 @@ to the two-element site set $S = \{i, j\}$ using $|S| = 2$ and $\prod_{k \in S} 
 \leanok
 \uses{thm:sg-tal:overlap-conc, thm:sg-tal:sk-correlation-decay}
 \talsource{Section~1.14, Eqs.~(1.413)--(1.414)}
-For the Sherrington--Kirkpatrick model with $\beta^2 < 1/4$ at the fixed point
-$q = \mathbb E\tanh^2(\beta\sqrt q z + h)$:
+For the Sherrington--Kirkpatrick model with $N \ge 1$, $\beta^2 < 1/4$ and $q$ a solution of
+$q = \mathbb E\tanh^2(\beta\sqrt q z + h)$ (hypothesis \texttt{hfix}):
 \begin{enumerate}
 \item The expected squared deviation of the Gibbs overlap mean $\langle R_{1,2}\rangle$ from $q$ satisfies
 \[
@@ -11961,8 +11990,10 @@ Integrating over the Gaussian disorder and applying Theorem~\ref{thm:sg-tal:over
 The following historical or qualitative citations from Section~1.14 are not formalized:
 \begin{itemize}
 \item The Froehlich--Zegarlinski and Aizenman--Lebowitz--Ruelle cluster expansions for small $\beta$;
-\item The Comets--Neveu central limit theorem for $R_{1,2}$ at $h = 0$ (the general $h$ version is proved via Section~\ref{sec:sg-tal:overlap-clt});
+\item The Comets--Neveu central limit theorem for $R_{1,2}$ at $h = 0$ as a convergence in law (only the moment form of Section~\ref{sec:sg-tal:overlap-clt} is proved);
+\item The displayed four-replica expansion of $\nu_1'((\varepsilon_1\varepsilon_2 - q)(R_{1,2}-q))$, which also needs moment bounds for $R_{1,2,3,4}$;
 \item The Shcherbina equivalence between (1.413) and (1.414) over a domain, which relies on Ghirlanda--Guerra identities from Volume~II;
-\item Shcherbina's theorem [128] extending the free energy formula to all $\beta < 1$.
+\item Shcherbina's theorem [128] extending the free energy formula to all $\beta < 1$ (the repository proves $\beta^2 < 1/4$);
+\item The failure of Eq.~(1.411) at large $\beta$.
 \end{itemize}
 \end{remark}
