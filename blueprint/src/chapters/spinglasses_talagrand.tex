@@ -11836,7 +11836,9 @@ The earlier scalar pressure theorem supplies the first convergence for $\beta^2<
 and a fixed point $q$ (Theorem~\ref{thm:sg-tal:alr}). Convergence of the real-moment
 pressure near zero is still unproved here. Theorem~\ref{thm:sg-tal:replica-real-moment-path}
 gives the exact derivative of $\mathbb E\,Z_s^{\,t}$ along the smart path and the decoupled
-endpoint for every real $t$, but the remaining estimate (an $O(1/N)$ bound for the overlap
+endpoint for every real $t$, and Theorem~\ref{thm:sg-tal:replica-real-moment-guerra} turns
+them into an upper bound for $N^{-1}\log\mathbb E\,Z_N^{\,t}$ when $0<t\le1$, but the
+remaining estimate (an $O(1/N)$ bound for the overlap
 under the tilted weight $Z_s^{\,t}$) is not proved. Neither the integer-replica theorem nor
 the conditional corollary proves it, and neither extends Eq.~(1.411) to all temperatures.
 \end{remark}
@@ -11875,6 +11877,33 @@ This is exact bookkeeping and proves no limit: the derivative in (1) contains th
 (1) Apply Theorem~\ref{thm:sg-tal:profile-comp} to $W(x)=e^{cx}$ with $c=tN$. Then $W'=cW$, $W''=c^2W$, and $W,W',W''$ have exponential growth ($|W^{(k)}(x)|\le|c|^ke^{|c||x|}$). Since $e^{tNA_s}=Z_s^t$, the formula follows with $W'(A_s)=tNZ_s^t$ and $N^{-1}W''(A_s)=t^2NZ_s^t$. Equivalently, with the Gibbs weights $w_l$ of $Z_s$ the Hessian of $u\mapsto(\sum_a e^{u_a+h_a})^t$ is $Z^t\big(t^2w_lw_k+t\,w_l(\mathbf 1_{l=k}-w_k)\big)$ (\texttt{freeEnergyCompHessian\_exp}), which is $tZ^t\big(\mathbf 1_{l=k}w_l+(t-1)w_lw_k\big)$.
 (2) At $s=\pi/2$ the field is $\prod_i2\cosh(\beta\sqrt q\,z_i+h)$ with independent $z_i$, so the $t$-th power of the product is the product of the $t$-th powers ($x^t$ is multiplicative on positive numbers), and independence factorizes the expectation into the $N$-th power of $2^t\,\mathbb E\cosh^t(\beta\sqrt q\,z+h)$. Integrability for every real $t$ follows from $\cosh^t(x)\le e^{|t||x|}$, and positivity holds because the integrand is strictly positive. The logarithm gives the second formula.
 Formalized in \texttt{SpinGlasses/Talagrand/Replica/Moments/Hyperbolic.lean} (item~2), \texttt{SpinGlasses/Talagrand/Replica/Moments/RealPowerInterpolation.lean} (the second-derivative form for an arbitrary jointly Gaussian pair of fields) and \texttt{SpinGlasses/Talagrand/OverlapConcentration/FreeEnergyCLT/SKSmartPathProfileComp.lean} (the SK specialization, item~1).
+\end{proof}
+
+\begin{theorem}[A Guerra-type upper bound for the real moments]\label{thm:sg-tal:replica-real-moment-guerra}
+  \lean{SpinGlasses.integrable_comp_log_sum_exp_trig,
+        SpinGlasses.sk_real_moment_guerra_bound}
+  \leanok
+  \uses{thm:sg-tal:replica-real-moment-path}
+\talsource{Section~1.13, last paragraphs (real-$t$ analogue of Theorem~1.3.7)}
+Let $N\ge1$, $\beta,h\in\mathbb R$, $q\ge0$ and $0<t\le1$. Then
+\[
+\mathbb E\,Z_N^{\,t}\le\Big(2^t\,\mathbb E\cosh^t(\beta\sqrt q\,z+h)\Big)^N
+\exp\Big(\frac{\beta^2tN}4\Big((1-q)^2-tq^2-\frac tN\Big)\Big),
+\]
+that is
+\[
+\frac1N\log\mathbb E\,Z_N^{\,t}\le t\log2+\log\mathbb E\cosh^t(\beta\sqrt q\,z+h)+\frac{\beta^2t}4\big((1-q)^2-tq^2\big)-\frac{\beta^2t^2}{4N}.
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+Put $\psi(s)=\mathbb E\,Z_s^{\,t}$, which is positive because $Z_s^t$ is integrable and strictly positive. By Theorem~\ref{thm:sg-tal:replica-real-moment-path}(1),
+\[
+\psi'(s)=\frac{\beta^2}2\,tN\sin s\cos s\;\mathbb E\Big[Z_s^{\,t}\big((1-t)Q_s+a\big)\Big],\qquad a=-(1-q)^2+tq^2+\frac tN,
+\]
+with $Q_s=\langle(R_{1,2}-q)^2\rangle_s\ge0$. Since $1-t\ge0$ and $\sin s\cos s\ge0$ on $[0,\pi/2]$, we get $\psi'(s)\ge\frac{\beta^2}2tNa\,\sin s\cos s\;\psi(s)=-\kappa\sin s\cos s\,\psi(s)$ with $\kappa=\frac{\beta^2tN}2\big((1-q)^2-tq^2-\frac tN\big)$. (The integrability of the integrand, needed to compare the two sides, is part of the formal statement of Theorem~\ref{thm:sg-tal:profile-comp}.) Hence $(\log\psi)'\ge-\kappa\sin s\cos s$, and since $\int_0^{\pi/2}\sin s\cos s\,ds=\frac12$ the increment satisfies $\log\psi(\pi/2)-\log\psi(0)\ge-\kappa/2$. Exponentiating gives $\psi(0)\le\psi(\pi/2)e^{\kappa/2}$, and $\psi(0)=\mathbb E\,Z_N^t$, $\psi(\pi/2)=\big(2^t\,\mathbb E\cosh^t\big)^N$ by Theorem~\ref{thm:sg-tal:replica-real-moment-path}(2).
+\emph{Checks.} At $t=1$ the right side is $2^N\cosh(h)^Ne^{\beta^2q N/2}e^{\beta^2(N/4)(1-2q-1/N)}=2^N\cosh^N(h)e^{\beta^2(N-1)/4}$, which is $\mathbb E\,Z_N$ exactly (Theorem~\ref{thm:sg-tal:first-moment}), so the bound is an equality there. As $t\to0^+$, dividing by $t$ and using Theorem~\ref{thm:sg-tal:replica-real-moment-sandwich} recovers Guerra's bound (Theorem~1.3.7) formally; this limit is not formalized.
+Formalized in \texttt{SpinGlasses/Talagrand/Replica/Moments/RealMomentGuerra.lean}.
 \end{proof}
 
 \begin{theorem}[An upper bound on the quenched free energy; failure of the $q=0$ value at large $\beta$]\label{thm:sg-tal:replica-large-beta}

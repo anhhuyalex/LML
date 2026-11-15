@@ -161,7 +161,30 @@ theorem exists_sk_smart_path_profile_comp {N : ℕ} (hN : 0 < N) (β h q : ℝ) 
                 Real.cos t * F ω.1 a + Real.sin t * G ω.2 a + h * ∑ i, ((a i : ℤ) : ℝ))) -
               q ^ 2 - (N : ℝ)⁻¹))
           ∂((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
-            (Measure.pi fun _ : Fin N => gaussianReal 0 1))) t := by
+            (Measure.pi fun _ : Fin N => gaussianReal 0 1))) t ∧
+        Integrable (fun ω : (FinPairs N → ℝ) × (Fin N → ℝ) => β ^ 2 / 2 *
+          (deriv W ((N : ℝ)⁻¹ * Real.log (∑ σ : Fin N → ℤˣ, Real.exp (Real.cos t * F ω.1 σ +
+              Real.sin t * G ω.2 σ + h * ∑ i, ((σ i : ℤ) : ℝ)))) *
+            ((∫ σ : Fin 2 → (Fin N → ℤˣ),
+              (((N : ℝ)⁻¹ * ((fun i => ((σ 0 i : ℤ) : ℝ)) ⬝ᵥ fun i => ((σ 1 i : ℤ) : ℝ))) - q) ^ 2
+              ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted fun a =>
+                Real.cos t * F ω.1 a + Real.sin t * G ω.2 a + h * ∑ i, ((a i : ℤ) : ℝ))) -
+              (1 - q) ^ 2) -
+          (N : ℝ)⁻¹ * deriv (deriv W) ((N : ℝ)⁻¹ * Real.log (∑ σ : Fin N → ℤˣ,
+              Real.exp (Real.cos t * F ω.1 σ + Real.sin t * G ω.2 σ +
+                h * ∑ i, ((σ i : ℤ) : ℝ)))) *
+            ((∫ σ : Fin 2 → (Fin N → ℤˣ),
+              (((N : ℝ)⁻¹ * ((fun i => ((σ 0 i : ℤ) : ℝ)) ⬝ᵥ fun i => ((σ 1 i : ℤ) : ℝ))) - q) ^ 2
+              ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted fun a =>
+                Real.cos t * F ω.1 a + Real.sin t * G ω.2 a + h * ∑ i, ((a i : ℤ) : ℝ))) -
+              q ^ 2 - (N : ℝ)⁻¹)))
+          ((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
+            (Measure.pi fun _ : Fin N => gaussianReal 0 1)) ∧
+        Integrable (fun ω : (FinPairs N → ℝ) × (Fin N → ℝ) => W ((N : ℝ)⁻¹ *
+          Real.log (∑ σ : Fin N → ℤˣ, Real.exp (Real.cos t * F ω.1 σ + Real.sin t * G ω.2 σ +
+            h * ∑ i, ((σ i : ℤ) : ℝ)))))
+          ((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
+            (Measure.pi fun _ : Fin N => gaussianReal 0 1)) := by
   have : Nonempty (Fin N) := ⟨⟨0, hN⟩⟩
   have : Nonempty (Fin N → ℤˣ) := ⟨fun _ => 1⟩
   have hN0 : (N : ℝ) ≠ 0 := by positivity
@@ -201,9 +224,7 @@ theorem exists_sk_smart_path_profile_comp {N : ℕ} (hN : 0 < N) (β h q : ℝ) 
     have hder := hasDerivAt_integral_comp_log_sum_exp_trig_integral
       (X := fun σ ω => F ω.1 σ) (Y := fun σ ω => G ω.2 σ) (P := Pg.prod Pz) hXG' hX0 hY0 h0
       hW hW0 hW1 hW2 (N : ℝ)⁻¹ (fun σ => h * ∑ i, ((σ i : ℤ) : ℝ)) t
-    rw [hψfun]
     subst hPg hPz
-    refine hder.congr_deriv ?_
     have hpt : ∀ ω : (FinPairs N → ℝ) × (Fin N → ℝ),
         ∑ σ : Fin N → ℤˣ, ∑ τ : Fin N → ℤˣ,
           ((∫ ω', G ω'.2 σ * G ω'.2 τ ∂((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
@@ -215,8 +236,21 @@ theorem exists_sk_smart_path_profile_comp {N : ℕ} (hN : 0 < N) (β h q : ℝ) 
         _ := fun ω => sum_freeEnergyCompHessian_eq hN β q W
           (fun m => Real.cos t * F ω.1 m + Real.sin t * G ω.2 m)
           (fun σ => h * ∑ i, ((σ i : ℤ) : ℝ)) _ hCov'
-    rw [integral_congr_ae (ae_of_all _ hpt), integral_const_mul]
-    ring
+    refine ⟨?_, ?_, ?_⟩
+    · rw [hψfun]
+      refine hder.congr_deriv ?_
+      rw [integral_congr_ae (ae_of_all _ hpt), integral_const_mul]
+      ring
+    · have hint := fun σ τ => integrable_freeEnergyCompHessian (X := fun σ ω => F ω.1 σ)
+        (Y := fun σ ω => G ω.2 σ) (P := (Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
+          (Measure.pi fun _ : Fin N => gaussianReal 0 1)) hXG' hX0 hY0 hW hW1 hW2 (N : ℝ)⁻¹
+        (fun σ => h * ∑ i, ((σ i : ℤ) : ℝ)) t σ τ
+      exact (integrable_finsetSum _ fun σ _ => integrable_finsetSum _ fun τ _ =>
+        (hint σ τ).const_mul _).congr (ae_of_all _ fun ω => (hpt ω).trans (by ring))
+    · exact integrable_comp_log_sum_exp_trig (X := fun σ ω => F ω.1 σ) (Y := fun σ ω => G ω.2 σ)
+        (P := (Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
+          (Measure.pi fun _ : Fin N => gaussianReal 0 1)) hXG' hX0 hY0 hW.continuous hW0
+        (N : ℝ)⁻¹ (fun σ => h * ∑ i, ((σ i : ℤ) : ℝ)) t
 
 /-- `|x - a|^m ≤ m! exp |a| exp |x|`: powers have exponential growth. -/
 theorem abs_sub_pow_le (a x : ℝ) (m : ℕ) :
@@ -337,7 +371,7 @@ theorem exists_sk_smart_path_profile_pow {N : ℕ} (hN : 0 < N) (β h q : ℝ) (
     exact (congrFun hψA 0).symm
   · rw [← hπ]
     exact (congrFun hψA (Real.pi / 2)).symm
-  · have := hder t
+  · have := (hder t).1
     simp only [deriv_deriv_sub_pow] at this
     simp only [deriv_sub_pow] at this
     rw [hψA] at this
@@ -417,7 +451,14 @@ theorem exists_sk_smart_path_profile_exp {N : ℕ} (hN : 0 < N) (β h q : ℝ) (
         ∫ ω, (c * Real.exp (c * A t ω) * (Q t ω - (1 - q) ^ 2) -
           (N : ℝ)⁻¹ * (c ^ 2 * Real.exp (c * A t ω)) * (Q t ω - q ^ 2 - (N : ℝ)⁻¹))
         ∂((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
-          (Measure.pi fun _ : Fin N => gaussianReal 0 1))) t := by
+          (Measure.pi fun _ : Fin N => gaussianReal 0 1))) t ∧
+        Integrable (fun ω => β ^ 2 / 2 * (c * Real.exp (c * A t ω) * (Q t ω - (1 - q) ^ 2) -
+          (N : ℝ)⁻¹ * (c ^ 2 * Real.exp (c * A t ω)) * (Q t ω - q ^ 2 - (N : ℝ)⁻¹)))
+          ((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
+            (Measure.pi fun _ : Fin N => gaussianReal 0 1)) ∧
+        Integrable (fun ω => Real.exp (c * A t ω))
+          ((Measure.pi fun _ : FinPairs N => gaussianReal 0 1).prod
+            (Measure.pi fun _ : Fin N => gaussianReal 0 1)) := by
   obtain ⟨F, G, hF, hG, hprof⟩ := exists_sk_smart_path_profile_comp hN β h q hq
   obtain ⟨A, hA⟩ : ∃ A : ℝ → (FinPairs N → ℝ) × (Fin N → ℝ) → ℝ, ∀ t ω, A t ω =
       (N : ℝ)⁻¹ * Real.log (∑ σ : Fin N → ℤˣ, Real.exp (Real.cos t * F ω.1 σ +
@@ -442,11 +483,11 @@ theorem exists_sk_smart_path_profile_exp {N : ℕ} (hN : 0 < N) (β h q : ℝ) (
     exact (congrFun hψA 0).symm
   · rw [← hπ]
     exact (congrFun hψA (Real.pi / 2)).symm
-  · have := hder t
-    simp only [deriv_deriv_exp_mul_const] at this
-    simp only [deriv_exp_mul_const] at this
-    rw [hψA] at this
-    simp only [hA, hQ] at this ⊢
-    exact this
+  · have h1 := hder t
+    simp only [deriv_deriv_exp_mul_const] at h1
+    simp only [deriv_exp_mul_const] at h1
+    rw [hψA] at h1
+    simp only [hA, hQ] at h1 ⊢
+    exact h1
 
 end SpinGlasses

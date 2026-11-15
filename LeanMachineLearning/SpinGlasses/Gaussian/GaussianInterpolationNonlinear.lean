@@ -276,6 +276,32 @@ theorem integrable_freeEnergyCompHessian
     exact mul_le_mul_of_nonneg_left (Real.exp_le_exp.2 (mul_le_mul_of_nonneg_left
       (sum_abs_cos_mul_add_sin_mul_le t v) hcc)) hD
 
+omit [DecidableEq κ] in
+/-- **Integrability of `W (n log ∑ₐ exp (Z_s(a) + h a))` along the trigonometric path**
+`Z_s = cos s X + sin s Y`, for a continuous `W` of exponential growth. -/
+theorem integrable_comp_log_sum_exp_trig
+    (hXY : HasGaussianLaw (fun ω s => Sum.elim X Y s ω) P)
+    (hX : ∀ l, ∫ ω, X l ω ∂P = 0) (hY : ∀ l, ∫ ω, Y l ω ∂P = 0) {W : ℝ → ℝ}
+    (hW : Continuous W) {C₀ c₀ : ℝ} (hW0 : ∀ x, |W x| ≤ C₀ * Real.exp (c₀ * |x|))
+    (n : ℝ) (h : κ → ℝ) (s : ℝ) :
+    Integrable (fun ω => W (n * Real.log (∑ a, Real.exp (Real.cos s * X a ω +
+      Real.sin s * Y a ω + h a)))) P := by
+  have hmean : ∀ k, ∫ ω, Sum.elim X Y k ω ∂P = 0 := by
+    rintro (k | k)
+    exacts [hX k, hY k]
+  have hcont : Continuous (fun v : κ ⊕ κ → ℝ => W (n * Real.log (∑ a, Real.exp (
+      Real.cos s * v (Sum.inl a) + Real.sin s * v (Sum.inr a) + h a)))) :=
+    hW.comp (continuous_const.mul ((contDiff_log_sum_exp h).continuous.comp (by fun_prop)))
+  exact integrable_comp_of_exp_growth (X := Sum.elim X Y) hXY hmean
+    (F := fun v : κ ⊕ κ → ℝ => W (n * Real.log (∑ a, Real.exp (
+      Real.cos s * v (Sum.inl a) + Real.sin s * v (Sum.inr a) + h a))))
+    hcont.measurable (C := C₀ * Real.exp (|c₀| * |n| * |Real.log (∑ a, Real.exp (h a))|))
+    (c := |c₀| * |n|) fun v => (abs_comp_log_sum_exp_le h hW0 n _).trans
+      (mul_le_mul_of_nonneg_left (Real.exp_le_exp.2 (mul_le_mul_of_nonneg_left
+        (sum_abs_cos_mul_add_sin_mul_le s v) (by positivity)))
+        (mul_nonneg (by simpa using (abs_nonneg _).trans (hW0 0)) (Real.exp_pos _).le))
+
+
 /-- **Derivative of `𝔼 W (n log ∑ₐ exp (Z_s(a) + h a))` along the trigonometric path
 `Z_s = cos s X + sin s Y`** (the second-order term of Talagrand's Eq. (1.125)).  Let `W` be `C²`
 with `W`, `W'`, `W''` of exponential growth and let `w_l = exp (Z_t l + h l) / ∑ₐ exp (Z_t a + h a)`
