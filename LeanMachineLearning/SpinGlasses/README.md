@@ -60,6 +60,9 @@ Blueprint chapters: `blueprint/src/chapters/spinglasses.tex` (Panchenko) and
   `BoundedPotential.lean` finite-size energy, pressure and derivative-product bounds, and
   `RandomNormals.lean` the invariance of the feasible spins under normalizing the Gaussian normals
   (the uniform-direction law itself is `ForMathlib/Probability/StdGaussianDirection.lean`).
-  `GibbsAverages.lean` supplies integrability and bounds for disorder-dependent replica observables.
+  `GaussianFieldSplit.lean` transfers the fixed-spin laws to old and last coordinates without
+  repeating Gaussian moment calculations. `GibbsAverages.lean` supplies integrability and bounds
+  for disorder-dependent replica observables.
   `AuxiliaryMarginal.lean` integrates the auxiliary Gaussian coordinates of the smart path, reusing
-  `ForMathlib/MeasureTheory/Integral/ProductTiltedMarginal.lean`. The path derivative remains open.
+  `ForMathlib/MeasureTheory/Integral/ProductTiltedMarginal.lean`. `SmartPathDecoupling.lean` proves
+  both zero-endpoint factorization identities. The path derivative remains open.

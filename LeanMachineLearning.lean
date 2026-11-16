@@ -691,9 +691,11 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.AuxiliaryMarg
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.BoundedPotential
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ExponentialPenalty
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.FirstMoment
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.GaussianFieldSplit
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.GaussianFields
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.GibbsAverages
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.RandomNormals
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathDecoupling
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Maximizers.Hyperbolic
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Maximizers.Replacement
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Maximizers.Structure
