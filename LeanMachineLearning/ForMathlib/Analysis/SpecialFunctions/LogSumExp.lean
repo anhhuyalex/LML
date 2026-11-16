@@ -13,6 +13,7 @@ public import Mathlib.Data.Fintype.BigOperators
 
 This module contains uniform Lipschitz and absolute bounds on `log ∑ exp`:
 * `abs_log_sum_exp_sub_le_of_forall`: `log ∑ exp (u + h)` is 1-Lipschitz for the supremum norm.
+* `abs_log_sum_exp_sub_log_card_le`: `|log ∑ exp u - log (card α)| ≤ sup |u|`.
 * `abs_log_sum_exp_le_of_forall`: bound on `|log ∑ exp u|` by `log (card α) + sup |u|`.
 -/
 
@@ -45,19 +46,20 @@ theorem abs_log_sum_exp_sub_le_of_forall (h u v : α → ℝ) {M : ℝ} (hM : �
     linarith
   · exact key u v fun a => le_of_abs_le (hM a)
 
+/-- **`log ∑ₐ exp (uₐ)` is within `M` of `log (card α)`** when `|uₐ| ≤ M` for all `a`. -/
+theorem abs_log_sum_exp_sub_log_card_le (u : α → ℝ) {M : ℝ} (hM : ∀ a, |u a| ≤ M) :
+    |Real.log (∑ a, Real.exp (u a)) - Real.log (Fintype.card α)| ≤ M := by
+  have h := abs_log_sum_exp_sub_le_of_forall (fun _ => 0) u (fun _ => 0) (by simpa using hM)
+  simpa [Finset.sum_const, Finset.card_univ, nsmul_eq_mul] using h
+
 /-- Bound on `|log ∑ₐ exp (uₐ)|` by `log (card α) + M` when `|uₐ| ≤ M` for all `a`. -/
 theorem abs_log_sum_exp_le_of_forall (u : α → ℝ) {M : ℝ} (hM : ∀ a, |u a| ≤ M) :
     |Real.log (∑ a, Real.exp (u a))| ≤ Real.log (Fintype.card α) + M := by
-  have h_sub := abs_log_sum_exp_sub_le_of_forall (fun _ => 0) u (fun _ => 0) (by simpa using hM)
-  have h_zero : (∑ a : α, Real.exp ((0 : ℝ) + 0)) = (Fintype.card α : ℝ) := by
-    simp only [add_zero, Real.exp_zero, sum_const, card_univ, nsmul_eq_mul, mul_one]
-  rw [h_zero] at h_sub
-  simp only [add_zero] at h_sub
+  have h_tri := abs_le.mp (abs_log_sum_exp_sub_log_card_le u hM)
   have h1 : 1 ≤ (Fintype.card α : ℝ) := by
     have : 1 ≤ Fintype.card α := Fintype.card_pos
     exact_mod_cast this
   have hlog_nonneg : 0 ≤ Real.log (Fintype.card α) := Real.log_nonneg h1
-  have h_tri := abs_le.mp h_sub
   rw [abs_le]
   constructor
   · linarith [h_tri.1, hlog_nonneg]
