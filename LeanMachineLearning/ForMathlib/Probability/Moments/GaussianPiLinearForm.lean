@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SqrtSub
 public import LeanMachineLearning.ForMathlib.Probability.StdGaussianRadial
 public import Mathlib.Probability.Distributions.Gaussian.Fernique
 public import Mathlib.Probability.Distributions.Gaussian.Multivariate
@@ -74,6 +75,26 @@ theorem memLp_dotProduct_pi_gaussianReal (a : κ → ℝ) :
   refine (memLp_map_measure_iff (by fun_prop) (by fun_prop)).2 ?_
   simp only [Function.comp_def, dotProduct_eq_inner a]
   exact (innerSL ℝ (WithLp.toLp 2 a)).comp_memLp' IsGaussian.memLp_two_id
+
+/-- A linear form `∑ k, g k * a k` is the dot product `a ⬝ᵥ g`. -/
+theorem sum_mul_comm_eq_dotProduct (a g : κ → ℝ) : ∑ k, g k * a k = a ⬝ᵥ g :=
+  dotProduct_comm g a
+
+/-- **Covariance of two normalized Gaussian linear forms.**  For arbitrary coefficient vectors on
+any finite index type and `n ≥ 0`,
+`𝔼[(β/√n ∑ k, g k * a k)(β/√n ∑ k, g k * b k)] = n⁻¹ β² (a ⬝ᵥ b)`. -/
+theorem integral_normalized_gaussian_linear_form_mul (n β : ℝ) (hn : 0 ≤ n) (a b : κ → ℝ) :
+    ∫ g : κ → ℝ,
+      ((Real.sqrt n)⁻¹ * β * ∑ k, g k * a k) *
+        ((Real.sqrt n)⁻¹ * β * ∑ k, g k * b k)
+      ∂(Measure.pi fun _ : κ => gaussianReal 0 1) =
+      n⁻¹ * β ^ 2 * (a ⬝ᵥ b) := by
+  have hc (u v : ℝ) : ((Real.sqrt n)⁻¹ * β * u) * ((Real.sqrt n)⁻¹ * β * v) =
+      n⁻¹ * β ^ 2 * (u * v) := by
+    rw [← Real.inv_sqrt_mul_self n hn]
+    ring
+  simp_rw [sum_mul_comm_eq_dotProduct, hc]
+  rw [integral_const_mul, integral_dotProduct_mul_dotProduct_pi_gaussianReal]
 
 /-- Product of two linear forms of i.i.d. standard Gaussians is integrable. -/
 theorem integrable_dotProduct_mul_dotProduct_pi_gaussianReal (a b : κ → ℝ) :

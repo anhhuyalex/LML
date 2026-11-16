@@ -13,11 +13,17 @@ public import Mathlib.Analysis.SpecialFunctions.Pow.NNReal
 * `Real.sqrt_add_le_add_sqrt`: `√(a + b) ≤ √a + √b` for `a, b ≥ 0`.
 * `Real.sq_sqrt_sub_le_abs_sub`: `(√a - √b)² ≤ |a - b|` for `a, b ≥ 0`.
 * `Real.sq_sqrt_sub_le`: `(√q - a)² ≤ (q - a²)² / q` for `q > 0`, `a ≥ 0`.
+* `Real.inv_sqrt_mul_self`: `(√n)⁻¹ * (√n)⁻¹ = n⁻¹` for `n ≥ 0`.
 -/
 
 @[expose] public section
 
 namespace Real
+
+/-- `(√n)⁻¹ * (√n)⁻¹ = n⁻¹` for `n ≥ 0`. -/
+theorem inv_sqrt_mul_self (n : ℝ) (hn : 0 ≤ n) :
+    (Real.sqrt n)⁻¹ * (Real.sqrt n)⁻¹ = n⁻¹ := by
+  rw [← mul_inv, Real.mul_self_sqrt hn]
 
 /-- `√(a + b) ≤ √a + √b` for nonnegative `a, b`, since `(√a + √b)² = a + b + 2 √a √b ≥ a + b`. -/
 theorem sqrt_add_le_add_sqrt {a b : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) :

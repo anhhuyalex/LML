@@ -109,7 +109,7 @@ theorem integral_sk_pair_perturb_edge_field_mul (N : ℕ) (hN : 0 < N) (β : ℝ
       rw [Finset.mul_sum]
       exact Finset.sum_congr rfl fun i _ => by ring)]
   have hs : (Real.sqrt ((N : ℝ) * (N + 1)))⁻¹ * (Real.sqrt ((N : ℝ) * (N + 1)))⁻¹ =
-      ((N : ℝ) * (N + 1))⁻¹ := inv_sqrt_mul_self _ hn.le
+      ((N : ℝ) * (N + 1))⁻¹ := Real.inv_sqrt_mul_self _ hn.le
   have hsum := sum_sk_pair_coefficient_eq_overlap (N + 1) a b
   have hcoef : ∑ p : FinPairs (N + 1),
       β * (Real.sqrt ((N : ℝ) * (N + 1)))⁻¹ * ((a p.val.1 : ℝ) * (a p.val.2 : ℝ)) *
@@ -133,7 +133,7 @@ theorem integral_sk_pair_perturb_scalar_field_mul (N : ℕ) (β q : ℝ) :
         (gaussianReal 0 1))) = β ^ 2 * q ^ 2 / 2 := by
   rw [integral_scalar_mul_prod (β * (Real.sqrt 2)⁻¹ * q) (β * (Real.sqrt 2)⁻¹ * q)
     (fun _ => rfl) fun _ => rfl]
-  have h2 : (Real.sqrt 2)⁻¹ * (Real.sqrt 2)⁻¹ = 2⁻¹ := inv_sqrt_mul_self 2 (by norm_num)
+  have h2 : (Real.sqrt 2)⁻¹ * (Real.sqrt 2)⁻¹ = 2⁻¹ := Real.inv_sqrt_mul_self 2 (by norm_num)
   linear_combination (β * q) ^ 2 * h2
 
 /-- **Covariance difference of the pair-perturbation fields.**  With

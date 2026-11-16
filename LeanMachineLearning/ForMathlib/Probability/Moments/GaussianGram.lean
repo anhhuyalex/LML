@@ -331,4 +331,32 @@ theorem integrable_comp_iff_dotProduct_prod {X : A → Ω → ℝ} (a₁ : A →
 
 end Prod
 
+section Blocks
+
+variable {ι K : Type*} [Fintype ι] [Fintype K]
+
+/-- **Independent blocks of i.i.d. standard Gaussians give independent linear forms.**  For the
+family `g : ι → K → ℝ` of i.i.d. standard Gaussian blocks and any coefficient vectors `a k`, the
+forms `a k ⬝ᵥ g k` are independent. -/
+theorem iIndepFun_dotProduct_pi_pi_gaussianReal (a : ι → K → ℝ) :
+    iIndepFun (fun (k : ι) (g : ι → K → ℝ) => a k ⬝ᵥ g k)
+      (Measure.pi fun _ : ι => Measure.pi fun _ : K => gaussianReal 0 1) :=
+  iIndepFun_pi (X := fun k (x : K → ℝ) => a k ⬝ᵥ x)
+    (μ := fun _ : ι => Measure.pi fun _ : K => gaussianReal 0 1)
+    fun k => (by fun_prop : Measurable _).aemeasurable
+
+/-- **Unit-norm linear forms of independent blocks are i.i.d. standard normal.**  If every
+coefficient vector `a k` has `a k ⬝ᵥ a k = 1`, the forms `a k ⬝ᵥ g k` of i.i.d. standard Gaussian
+blocks have the law `Measure.pi fun _ => gaussianReal 0 1`. -/
+theorem map_dotProduct_pi_pi_gaussianReal_of_dotProduct_self {a : ι → K → ℝ}
+    (ha : ∀ k, a k ⬝ᵥ a k = 1) :
+    Measure.map (fun (g : ι → K → ℝ) (k : ι) => a k ⬝ᵥ g k)
+        (Measure.pi fun _ : ι => Measure.pi fun _ : K => gaussianReal 0 1) =
+      Measure.pi fun _ : ι => gaussianReal 0 1 := by
+  rw [Measure.pi_map_pi (f := fun (k : ι) (x : K → ℝ) => a k ⬝ᵥ x)
+    fun k => (by fun_prop : Measurable _).aemeasurable]
+  simp only [map_dotProduct_pi_gaussianReal_of_dotProduct_self (ha _)]
+
+end Blocks
+
 end ProbabilityTheory

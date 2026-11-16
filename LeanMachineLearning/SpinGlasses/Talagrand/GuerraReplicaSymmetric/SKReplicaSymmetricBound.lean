@@ -49,33 +49,6 @@ namespace SpinGlasses
 
 variable {ι : Type*} [Fintype ι]
 
-/-- A linear form `∑ k, g k * a k` is the dot product `a ⬝ᵥ g`. -/
-theorem sum_mul_comm_eq_dotProduct {κ : Type*} [Fintype κ] (a g : κ → ℝ) :
-    ∑ k, g k * a k = a ⬝ᵥ g :=
-  dotProduct_comm g a
-
-/-- `(√n)⁻¹ * (√n)⁻¹ = n⁻¹` for `n ≥ 0`. -/
-theorem inv_sqrt_mul_self (n : ℝ) (hn : 0 ≤ n) :
-    (Real.sqrt n)⁻¹ * (Real.sqrt n)⁻¹ = n⁻¹ := by
-  rw [← mul_inv, Real.mul_self_sqrt hn]
-
-/-- The covariance of two Gaussian linear forms, with the SK normalization made explicit.
-This is stated for arbitrary coefficient vectors on any finite index type so that the same
-calculation can be reused for pair, tensor, or cavity Gaussian fields. -/
-theorem integral_normalized_gaussian_linear_form_mul {κ : Type*} [Fintype κ]
-    (n β : ℝ) (hn : 0 ≤ n) (a b : κ → ℝ) :
-    ∫ g : κ → ℝ,
-      ((Real.sqrt n)⁻¹ * β * ∑ k, g k * a k) *
-        ((Real.sqrt n)⁻¹ * β * ∑ k, g k * b k)
-      ∂(Measure.pi fun _ : κ => gaussianReal 0 1) =
-      n⁻¹ * β ^ 2 * (a ⬝ᵥ b) := by
-  have hc (u v : ℝ) : ((Real.sqrt n)⁻¹ * β * u) * ((Real.sqrt n)⁻¹ * β * v) =
-      n⁻¹ * β ^ 2 * (u * v) := by
-    rw [← inv_sqrt_mul_self n hn]
-    ring
-  simp_rw [sum_mul_comm_eq_dotProduct, hc]
-  rw [integral_const_mul, ProbabilityTheory.integral_dotProduct_mul_dotProduct_pi_gaussianReal]
-
 /-- The covariance of the pair-indexed SK Gaussian field before the elementary off-diagonal
 sum is rewritten in terms of the overlap. -/
 theorem integral_sk_pair_field_mul {N : ℕ} (β : ℝ)
