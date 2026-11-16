@@ -46,7 +46,7 @@ variable {N M : ℕ}
 /-- The event that a fixed spin satisfies every constraint is measurable. -/
 theorem measurableSet_feasible_configuration (σ : Fin N → ℤˣ) :
     MeasurableSet {g : Fin M → Fin N → ℝ | ∀ k, 0 ≤ ∑ i, g k i * ((σ i : ℤ) : ℝ)} := by
-  simp only [Set.setOf_forall]
+  simp only [Set.ofPred_forall]
   exact MeasurableSet.iInter fun k => measurableSet_le measurable_const (by fun_prop)
 
 /-- The number of feasible configurations is the sum over spins of the feasibility indicators. -/
@@ -79,7 +79,7 @@ theorem measureReal_feasible_configuration_eq (hN : 0 < N) (σ : Fin N → ℤˣ
       (fun (g : Fin M → Fin N → ℝ) (k : Fin M) =>
         (Real.sqrt N)⁻¹ * ∑ i, g k i * ((σ i : ℤ) : ℝ)) ⁻¹' Set.univ.pi fun _ => Set.Ici 0 := by
     ext g
-    simp only [Set.mem_setOf_eq, Set.mem_preimage, Set.mem_univ_pi, Set.mem_Ici]
+    simp only [Set.mem_ofPred_eq, Set.mem_preimage, Set.mem_univ_pi, Set.mem_Ici]
     exact forall_congr' fun k => (mul_nonneg_iff_of_pos_left hsqrt).symm
   rw [measureReal_def, hset, ← Measure.map_apply hmeas (MeasurableSet.univ_pi fun _ =>
     measurableSet_Ici), map_normalized_constraint_fields_eq_pi_gaussianReal hN (fun _ => σ),
@@ -99,7 +99,7 @@ theorem integral_card_feasible_configurations_eq (hN : 0 < N) :
         ∂(Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin N => gaussianReal 0 1) =
       (2 : ℝ) ^ N / (2 : ℝ) ^ M := by
   simp only [card_feasible_configurations_eq_sum_indicator]
-  rw [integral_finset_sum _ fun σ _ => (integrable_const (1 : ℝ)).indicator
+  rw [integral_finsetSum _ fun σ _ => (integrable_const (1 : ℝ)).indicator
     (measurableSet_feasible_configuration σ)]
   have h : ∀ σ : Fin N → ℤˣ, ∫ g : Fin M → Fin N → ℝ, Set.indicator
       {g : Fin M → Fin N → ℝ | ∀ k, 0 ≤ ∑ i, g k i * ((σ i : ℤ) : ℝ)} (fun _ => (1 : ℝ)) g
@@ -124,7 +124,7 @@ theorem measureReal_exists_feasible_configuration_le (hN : 0 < N) :
         ∀ k, 0 ≤ ∑ i, g k i * ((σ i : ℤ) : ℝ)).card : ℝ))
       (Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin N => gaussianReal 0 1) := by
     simp only [card_feasible_configurations_eq_sum_indicator]
-    exact integrable_finset_sum _ fun σ _ => (integrable_const (1 : ℝ)).indicator
+    exact integrable_finsetSum _ fun σ _ => (integrable_const (1 : ℝ)).indicator
       (measurableSet_feasible_configuration σ)
   have h := hint.measure_le_integral (ae_of_all _ fun g => Nat.cast_nonneg _)
     (s := {g | ∃ σ : Fin N → ℤˣ, ∀ k, 0 ≤ ∑ i, g k i * ((σ i : ℤ) : ℝ)}) (by
@@ -160,13 +160,11 @@ theorem tendsto_measureReal_exists_feasible_configuration_zero {M : ℕ → ℕ}
     Real.rpow_le_rpow_of_exponent_le one_le_two hMN
   have h2 : (2 : ℝ) ^ ((1 + θ) * N) = (2 : ℝ) ^ N * ((2 : ℝ) ^ θ) ^ N := by
     rw [add_mul, one_mul, Real.rpow_add two_pos, Real.rpow_natCast,
-      mul_comm θ, Real.rpow_mul two_pos.le, Real.rpow_natCast]
-  rw [Real.rpow_natCast] at h1
-  rw [h2] at h1
-  rw [inv_pow, div_le_iff₀ (by positivity), ← div_eq_inv_mul, le_div_iff₀ (by positivity)]
-  have : (0 : ℝ) < (2 : ℝ) ^ N * ((2 : ℝ) ^ θ) ^ N := by positivity
-  calc (2 : ℝ) ^ N = (2 : ℝ) ^ N * ((2 : ℝ) ^ θ) ^ N * (((2 : ℝ) ^ θ) ^ N)⁻¹ := by
-        field_simp
-    _ ≤ _ := by gcongr
+      Real.rpow_mul two_pos.le, Real.rpow_natCast]
+  rw [h2, Real.rpow_natCast] at h1
+  calc (2 : ℝ) ^ N / (2 : ℝ) ^ M N
+      ≤ (2 : ℝ) ^ N / ((2 : ℝ) ^ N * ((2 : ℝ) ^ θ) ^ N) :=
+        div_le_div_of_nonneg_left (by positivity) (by positivity) h1
+    _ = ((2 : ℝ) ^ θ)⁻¹ ^ N := by rw [inv_pow]; field_simp
 
 end SpinGlasses
