@@ -1410,7 +1410,7 @@ So $\varphi(s)+\frac{\beta^2}4(1-q)^2\sin^2s$ is nondecreasing and $\varphi(s)+\
 Hence $-\frac{\beta^2K}{4N}\le p_N-\big(\log2+\mathbb{E}\log\cosh(\beta z\sqrt q+h)+\frac{\beta^2}4(1-q)^2\big)\le0$, which is the claim.
 \emph{Formalization note.} This is done by monotonicity instead of integrating the derivative (same bound, no integrability to check).
 As in Theorem~\ref{thm:sg-tal:overlap-conc}, $q$ is a hypothesis (fixed-point equation) and $\beta<1/2$ is stated as $\beta^2<1/4$.
-\emph{Not formalized:} the identification of the solution $q$ with the minimizer of Guerra's bound and the uniqueness of the fixed point for $\beta<1$ and $h=0$ (it is proved for $h\ne0$, Theorem~\ref{thm:sg-tal:fixed-point-unique}); the thermodynamic limit of the Guerra--Toninelli theorem is stated there for the full-matrix disorder without field, while the limit here is derived directly from the $O(1/N)$ bound for the pair disorder with field.
+\emph{Not formalized:} uniqueness of the minimizer of Guerra's bound (a minimizing fixed point exists, and for $h\ne0$ the unique fixed point is therefore a minimizer, but minimizers are not shown to be unique; the uniqueness of the fixed point is proved for $h\ne0$, Theorem~\ref{thm:sg-tal:fixed-point-unique}, and for $|\beta|<1$ including $h=0$, Theorem~\ref{thm:sg-tal:rs-critical}); the thermodynamic limit of the Guerra--Toninelli theorem is stated there for the full-matrix disorder without field, while the limit here is derived directly from the $O(1/N)$ bound for the pair disorder with field.
 Formalized in \texttt{SpinGlasses/Talagrand/OverlapConcentration/SKAizenmanLebowitzRuelle.lean}.
 \end{proof}
 
