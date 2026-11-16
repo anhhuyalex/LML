@@ -56,4 +56,4 @@ Blueprint chapters: `blueprint/src/chapters/spinglasses.tex` (Panchenko) and
 * `Perceptron/` (blueprint chapter `chap:sg-talagrand-perceptron`, Talagrand Section 2.1): the Gaussian
   binary perceptron. `GaussianFields.lean` gives the laws of the constraint fields of fixed spins and
   `FirstMoment.lean` the expected number of feasible configurations and the emptiness bound for
-  `M / N → α > 1`.
+  `M / N → α > 1`; `ExponentialPenalty.lean` the fixed-size limit of exponential penalties.

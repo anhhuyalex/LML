@@ -31,8 +31,10 @@ $S_k(g,\sigma)$ agree because $\sqrt N>0$.
 Formalized here: the exact laws of the constraint fields of \emph{fixed} spins (Lemma~\ref{lem:sg-tal:perceptron-fields}),
 the expected number of feasible configurations, Eq.~(2.2), and the emptiness statement for $M/N\to\alpha>1$
 (Theorems~\ref{thm:sg-tal:perceptron-first-moment} and~\ref{thm:sg-tal:perceptron-empty}).
+Also formalized: the exponential-penalty limit (2.4) and the penalty Hamiltonian (2.5) at fixed $N$, $M$ and disorder
+(Theorem~\ref{thm:sg-tal:perceptron-penalty}).
 Not formalized here: the comparison of Gaussian and spherical normal vectors in the opening paragraph; the
-exponential-penalty limit (2.4)--(2.5); the energy (2.6) with smooth potential (2.7) and the pressure (2.11);
+exchange of the limits $N\to\infty$ and $\beta\to\infty$ (stated in the book as a hope, not a result); the general energy (2.6) with smooth potential (2.7) and the pressure (2.11);
 Research Problem~2.1.1, whose sharp threshold and entropy function are unknown in the book; the Volume~II
 bound with $\alpha_0<1$; and the cavity equations (2.8), (2.10) of Sections~2.2--2.4. The first-moment bound
 does not locate the threshold; it proves emptiness only above $\alpha=1$.
@@ -159,6 +161,55 @@ different $N$ is needed.
 Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/FirstMoment.lean}.
 \end{proof}
 
+\begin{theorem}[Exponential penalties select the feasible configurations]\label{thm:sg-tal:perceptron-penalty}
+  \lean{tendsto_sum_exp_neg_mul_atTop_card_filter_eq_zero,
+        sum_exp_neg_mul_sub_card_filter_le,
+        SpinGlasses.tendsto_sum_exp_neg_mul_card_violated_constraints,
+        SpinGlasses.sum_exp_neg_mul_card_violated_constraints_sub_card_le,
+        SpinGlasses.sum_ite_neg_constraint_field_eq}
+  \leanok
+\talsource{Eqs.~(2.4)--(2.5)}
+Fix $N$, $M$ and a disorder $g$. For $\sigma\in\Sigma_N$ let
+$V_g(\sigma)=\#\{k<M:\ \sum_{i<N}g_{k,i}\sigma_i<0\}$ be the number of violated constraints. Then
+$V_g(\sigma)=0$ exactly when $\sigma\in A(g)$, and
+\[
+\lim_{\beta\to\infty}\sum_{\sigma\in\Sigma_N}e^{-\beta V_g(\sigma)}=C(g).
+\]
+More precisely, for every $\beta\ge0$,
+\[
+0\le\sum_{\sigma}e^{-\beta V_g(\sigma)}-C(g)\le\bigl(2^N-C(g)\bigr)e^{-\beta}.
+\]
+More generally, for a finite set $A$ and costs $c(a)\ge0$, $\sum_{a}e^{-\beta c(a)}\to\#\{a:\ c(a)=0\}$.
+Moreover, for $N\ge1$ the exponent $-\beta V_g(\sigma)$ equals $\sum_{k<M}u(S_k(g,\sigma))$ with
+$u(x)=-\beta$ for $x<0$ and $u(x)=0$ otherwise.
+\end{theorem}
+\begin{proof}
+  \leanok
+\emph{Step 1 (one state).} If $c(a)=0$ then $e^{-\beta c(a)}=1$ for all $\beta$. If $c(a)>0$ then
+$e^{-\beta c(a)}\to0$ as $\beta\to\infty$.
+
+\emph{Step 2 (finite sum).} A finite sum of convergent functions converges to the sum of the limits:
+\[
+\sum_{a}e^{-\beta c(a)}\longrightarrow\sum_{a}\mathbf 1_{\{c(a)=0\}}=\#\{a:\ c(a)=0\}.
+\]
+
+\emph{Step 3 (the perceptron).} Take $c(\sigma)=V_g(\sigma)$. Then $V_g(\sigma)=0$ means no constraint
+is violated, which is $\sigma\in A(g)$. For an integer-valued cost, every state with $c(a)\ge1$
+contributes at most $e^{-\beta}$ when $\beta\ge0$, and there are $2^N-C(g)$ such states; this gives the
+displayed error bound.
+
+\emph{Step 4 (the potential).} Since $\sqrt N>0$, the sign of $S_k(g,\sigma)$ equals the sign of
+$\sum_ig_{k,i}\sigma_i$, so summing $u(S_k)$ over $k$ counts $-\beta$ once per violated constraint.
+
+This is a statement at fixed $N$, $M$ and $g$. The factor $2^N$ in the error bound does not control normalized
+logarithms uniformly in $N$, so nothing is said about exchanging $\beta\to\infty$ with $N\to\infty$.
+The potential $u$ is bounded and measurable but discontinuous at $0$ for $\beta\ne0$, hence is not covered by the
+differentiability hypothesis (2.7). When no spin is feasible the logarithm of the count is not a real number, so
+the corresponding limit of normalized logarithms is not asserted.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ExponentialPenalty.lean}, with the general finite-cost
+limit in \texttt{ForMathlib/Analysis/SpecialFunctions/FiniteExponentialPenalty.lean}.
+\end{proof}
+
 \begin{remark}[Comparison with the book, Section~2.1]\label{rem:sg-tal:perceptron-comparison}
 \talsource{Section~2.1}
 \begin{itemize}
@@ -170,6 +221,10 @@ proof adds the explicit bound $\mathbb P(A\ne\varnothing)\le(2^{-\theta})^N$, us
 handled, and records that $N\ge1$ is used.
 \item The index order $g_{i,k}$ of the book is reversed in Lean to $g_{k,i}$, so that the outer index
 groups the independent constraints.
+\item The finite-cost limit generalizes the proof of (2.4) to any nonnegative cost on a finite set, and adds an
+explicit finite error bound; it is a fixed-size limit and does not exchange $N$ and $\beta$.
+\item The discontinuous indicator potential fits (2.6) algebraically but is outside the differentiability
+hypothesis (2.7).
 \item This is the book's first-moment argument. It neither computes the true threshold nor shows
 nonemptiness below it, so it does not address Research Problem~2.1.1.
 \end{itemize}
