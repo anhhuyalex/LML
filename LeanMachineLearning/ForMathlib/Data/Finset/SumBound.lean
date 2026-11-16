@@ -30,6 +30,11 @@ theorem abs_sum_sub_card_mul_le_of_abs_sub_le {ι : Type*} [Fintype ι] (W : ι 
   calc ∑ i, |W i - L| ≤ ∑ _i : ι, B := sum_le_sum fun i _ => h i
     _ = _ := by simp
 
+/-- A finite sum of uniformly bounded real terms is bounded by cardinality times the bound. -/
+theorem abs_sum_le_card_mul_of_abs_le {ι : Type*} [Fintype ι] (f : ι → ℝ) {C : ℝ}
+    (h : ∀ i, |f i| ≤ C) : |∑ i, f i| ≤ (Fintype.card ι : ℝ) * C := by
+  simpa using abs_sum_sub_card_mul_le_of_abs_sub_le f 0 C (by simpa using h)
+
 /-- **A replica combination of bounded terms:** if `|f j| ≤ b` for all `j` and `|g| ≤ b`, then
 `|∑ⱼ f j - |ι| g| ≤ 2 |ι| b`. -/
 theorem abs_sum_sub_card_mul_le_of_abs_le {ι : Type*} [Fintype ι] (f : ι → ℝ) (g b : ℝ)

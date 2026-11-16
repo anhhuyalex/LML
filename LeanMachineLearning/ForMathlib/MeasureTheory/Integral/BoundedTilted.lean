@@ -47,6 +47,12 @@ theorem integrable_exp_of_ae_le [IsFiniteMeasure μ] (hf : AEMeasurable f μ)
   rw [Real.norm_of_nonneg (Real.exp_pos _).le]
   exact Real.exp_le_exp.mpr ha
 
+/-- A measurable energy bounded above has a positive partition integral on a nonzero finite
+base measure. The upper bound supplies the integrability needed by `integral_exp_pos`. -/
+theorem integral_exp_pos_of_ae_le [IsFiniteMeasure μ] [NeZero μ] (hf : AEMeasurable f μ)
+    (hbound : ∀ᵐ a ∂μ, f a ≤ C) : 0 < ∫ a, Real.exp (f a) ∂μ :=
+  integral_exp_pos (integrable_exp_of_ae_le hf hbound)
+
 /-- An almost everywhere upper bound on an energy makes its exponential tilt a
 probability measure whenever the base measure is nonzero and finite. -/
 theorem isProbabilityMeasure_tilted_of_ae_le [IsFiniteMeasure μ] [NeZero μ]

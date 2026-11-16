@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedBound
 public import Mathlib.MeasureTheory.Integral.Pi
 public import Mathlib.MeasureTheory.Measure.Tilted
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FreshReplicas
@@ -359,14 +360,9 @@ theorem abs_integral_integral_pi_tilted_le {E : Ω → α → ℝ}
     (hprob : ∀ ω, IsProbabilityMeasure (μ.tilted (E ω))) {P : Measure Ω} [IsProbabilityMeasure P]
     {G : Ω → (ι → α) → ℝ} {C : ℝ} (hG : ∀ ω σ, |G ω σ| ≤ C) :
     |∫ ω, ∫ σ, G ω σ ∂(Measure.pi fun _ : ι => μ.tilted (E ω)) ∂P| ≤ C := by
-  rw [← Real.norm_eq_abs]
-  refine (norm_integral_le_of_norm_le_const (C := C)
-    (Filter.Eventually.of_forall fun ω => ?_)).trans (by simp)
-  have := hprob ω
-  have := norm_integral_le_of_norm_le_const
-    (μ := Measure.pi fun _ : ι => μ.tilted (E ω)) (f := G ω) (C := C)
-    (Filter.Eventually.of_forall fun σ => by simpa using hG ω σ)
-  simpa using this
+  have := hprob
+  exact abs_integral_integral_le_of_forall_abs_le P
+    (fun ω => Measure.pi fun _ : ι => μ.tilted (E ω)) G hG
 
 end Measurability
 

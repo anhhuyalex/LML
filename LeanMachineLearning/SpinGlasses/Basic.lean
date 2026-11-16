@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Data.Finset.SumBound
 public import Mathlib.Algebra.GroupWithZero.Units.Fintype
 public import Mathlib.Data.Fintype.Pi
 public import Mathlib.Data.Matrix.Mul
@@ -104,9 +105,8 @@ theorem abs_units_cast_eq_one (u : ℤˣ) : |((u : ℤ) : ℝ)| = 1 := by
 index type. -/
 lemma abs_sum_units_cast_le (ε : ι → ℤˣ) :
     |∑ i, ((ε i : ℤ) : ℝ)| ≤ Fintype.card ι := by
-  calc |∑ i, ((ε i : ℤ) : ℝ)| ≤ ∑ i, |((ε i : ℤ) : ℝ)| :=
-        Finset.abs_sum_le_sum_abs _ _
-    _ = Fintype.card ι := by simp [abs_units_cast_eq_one]
+  simpa using Finset.abs_sum_le_card_mul_of_abs_le (fun i => ((ε i : ℤ) : ℝ))
+    (C := 1) (fun i => (abs_units_cast_eq_one _).le)
 
 /-- The coordinates of a hypercube configuration are `1` or `-1`. -/
 theorem units_cast_eq_one_or (u : ℤˣ) : ((u : ℤ) : ℝ) = 1 ∨ ((u : ℤ) : ℝ) = -1 := by

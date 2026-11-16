@@ -7,6 +7,8 @@ module
 
 public import Mathlib.Analysis.SpecialFunctions.Log.Basic
 public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.MeasureTheory.Integral.Bochner.Basic
+public import Mathlib.MeasureTheory.Function.SpecialFunctions.Basic
 
 /-!
 # Elementary bounds on the logarithm of a finite sum of exponentials
@@ -64,3 +66,42 @@ theorem abs_log_sum_exp_le_of_forall (u : α → ℝ) {M : ℝ} (hM : ∀ a, |u 
   constructor
   · linarith [h_tri.1, hlog_nonneg]
   · linarith [h_tri.2]
+
+namespace MeasureTheory
+
+variable {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+
+omit [Nonempty α] in
+/-- The log-partition function of a finite measurable random energy is measurable. -/
+theorem measurable_log_sum_exp {H : Ω → α → ℝ}
+    (hmeas : ∀ a, Measurable fun ω => H ω a) (β : ℝ) :
+    Measurable fun ω => Real.log (∑ a, Real.exp (β * H ω a)) :=
+  (Finset.measurable_sum _ fun a _ => ((hmeas a).const_mul β).exp).log
+
+/-- An integrable envelope for a finite random energy gives an integrable log-partition
+function. The envelope may depend on the environment, for example through a Gaussian field. -/
+theorem integrable_log_sum_exp_of_abs_le [IsFiniteMeasure μ] {E : Ω → α → ℝ}
+    (hE : ∀ a, Measurable fun ω => E ω a) {B : Ω → ℝ} (hB : Integrable B μ)
+    (hb : ∀ᵐ ω ∂μ, ∀ a, |E ω a| ≤ B ω) :
+    Integrable (fun ω => Real.log (∑ a, Real.exp (E ω a))) μ := by
+  refine ((integrable_const (Real.log (Fintype.card α))).add hB).mono'
+    (by simpa only [one_mul] using (measurable_log_sum_exp hE 1).aestronglyMeasurable) ?_
+  filter_upwards [hb] with ω hω
+  simpa only [Real.norm_eq_abs, Pi.add_apply] using abs_log_sum_exp_le_of_forall (E ω) hω
+
+/-- The expected log-partition function is within the expected energy envelope of `log card`.
+This keeps an environment-dependent envelope rather than requiring a uniform constant. -/
+theorem abs_integral_log_sum_exp_sub_log_card_le [IsProbabilityMeasure μ] {E : Ω → α → ℝ}
+    (hE : ∀ a, Measurable fun ω => E ω a) {B : Ω → ℝ} (hB : Integrable B μ)
+    (hb : ∀ᵐ ω ∂μ, ∀ a, |E ω a| ≤ B ω) :
+    |(∫ ω, Real.log (∑ a, Real.exp (E ω a)) ∂μ) - Real.log (Fintype.card α)| ≤ ∫ ω, B ω ∂μ := by
+  have hi := integrable_log_sum_exp_of_abs_le hE hB hb
+  have hc : (∫ ω, Real.log (∑ a, Real.exp (E ω a)) ∂μ) - Real.log (Fintype.card α) =
+      ∫ ω, Real.log (∑ a, Real.exp (E ω a)) - Real.log (Fintype.card α) ∂μ := by
+    rw [integral_sub hi (integrable_const _), integral_const, probReal_univ, one_smul]
+  rw [hc, ← Real.norm_eq_abs]
+  refine norm_integral_le_of_norm_le hB ?_
+  filter_upwards [hb] with ω hω
+  simpa only [Real.norm_eq_abs] using abs_log_sum_exp_sub_log_card_le (E ω) hω
+
+end MeasureTheory

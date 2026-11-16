@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.LogSumExp
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Order.MeasurableArg
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianGram
 public import LeanMachineLearning.SpinGlasses.Basic
@@ -118,13 +119,6 @@ theorem integrable_max (hmeas : ∀ a, Measurable fun ω => H ω a)
   rw [Real.norm_eq_abs, abs_le]
   exact ⟨by linarith [neg_abs_le (H ω a₀), (H ω).le_max a₀, hle a₀],
     Finset.sup'_le _ _ fun a _ => (le_abs_self _).trans (hle a)⟩
-
-omit [Nonempty α] in
-/-- The log-partition function of a random energy landscape with measurable coordinates is
-measurable. -/
-theorem measurable_log_sum_exp (hmeas : ∀ a, Measurable fun ω => H ω a) (β : ℝ) :
-    Measurable fun ω => Real.log (∑ a, Real.exp (β * H ω a)) :=
-  (Finset.measurable_sum _ fun a _ => ((hmeas a).const_mul β).exp).log
 
 /-- The log-partition function of a random energy landscape with integrable coordinates is
 integrable for `β > 0`, since `|log Z| ≤ β |max H| + log |α|`. -/

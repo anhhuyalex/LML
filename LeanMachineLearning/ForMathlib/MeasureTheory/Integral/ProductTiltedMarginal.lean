@@ -111,8 +111,7 @@ theorem integral_pi_tilted_count_prod_sum {K : Type*} [Fintype K] [Fintype A]
   have hi := integrable_exp_of_ae_le (μ := Measure.count.prod (Measure.pi νs))
     hE.aemeasurable (ae_of_all _ hb)
   have hz (a : A) (k : K) : 0 < ∫ b, Real.exp (V a k b) ∂νs k :=
-    integral_exp_pos (integrable_exp_of_ae_le (hV a k).aemeasurable
-      (ae_of_all _ fun b => hC a k b))
+    integral_exp_pos_of_ae_le (hV a k).aemeasurable (ae_of_all _ fun b => hC a k b)
   have hlog (a : A) :
       Real.log (∫ b : K → B, Real.exp (D a + ∑ k, V a k (b k)) ∂Measure.pi νs) =
         D a + ∑ k, Real.log (∫ b, Real.exp (V a k b) ∂νs k) := by

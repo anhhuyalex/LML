@@ -185,10 +185,9 @@ omit [MeasurableSpace α] in
 /-- A double sum over `Fin d` of terms bounded by `C` is at most `d² C` in absolute value. -/
 theorem abs_double_sum_le (f : Fin d → Fin d → ℝ) {C : ℝ} (h : ∀ u v, |f u v| ≤ C) :
     |∑ u, ∑ v, f u v| ≤ (d : ℝ) * d * C := by
-  refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
-  refine (Finset.sum_le_sum fun u _ => (Finset.abs_sum_le_sum_abs _ _).trans
-    (Finset.sum_le_sum fun v _ => h u v)).trans ?_
-  simp [mul_assoc]
+  simpa [mul_assoc] using Finset.abs_sum_le_card_mul_of_abs_le
+    (fun u : Fin d => ∑ v, f u v) (fun u => by
+      simpa using Finset.abs_sum_le_card_mul_of_abs_le (f u) (h u))
 
 /-- The squared overlap error summed over the matrix entries is measurable. -/
 theorem measurable_sum_sq_skVectorOverlapDeviation (hξ : ∀ u, Measurable (fun a => ξ a u))
