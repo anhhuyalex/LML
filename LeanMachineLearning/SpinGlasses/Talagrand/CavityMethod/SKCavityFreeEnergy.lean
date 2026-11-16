@@ -45,9 +45,9 @@ theorem sum_exp_fin_snoc_cavity (N : ℕ)
         L (fun i => σ i.castSucc))) =
       2 * ∑ ρ : Fin N → ℤˣ, Real.exp (A ρ) * Real.cosh (L ρ) := by
   let e : ((Fin N → ℤˣ) × ℤˣ) ≃ (Fin (N + 1) → ℤˣ) :=
-    (Equiv.prodComm (Fin N → ℤˣ) ℤˣ).trans (Fin.snocEquiv fun _ => ℤˣ)
+    (MeasurableEquiv.finSuccProd ℤˣ N).symm.toEquiv
   rw [← e.sum_comp]
-  simp only [e, Equiv.trans_apply, Equiv.prodComm_apply, Fin.snocEquiv_apply,
+  simp only [e, MeasurableEquiv.coe_toEquiv, MeasurableEquiv.finSuccProd_symm_apply,
     Fin.snoc_castSucc, Fin.snoc_last]
   exact sum_exp_prod_units A L
 
@@ -63,9 +63,9 @@ theorem log_sum_exp_fin_snoc_cavity (N : ℕ)
       Real.log 2 + Real.log (∑ ρ : Fin N → ℤˣ, Real.exp (A ρ)) +
         Real.log (∫ ρ : Fin N → ℤˣ, Real.cosh (L ρ) ∂Measure.count.tilted A) := by
   let e : ((Fin N → ℤˣ) × ℤˣ) ≃ (Fin (N + 1) → ℤˣ) :=
-    (Equiv.prodComm (Fin N → ℤˣ) ℤˣ).trans (Fin.snocEquiv fun _ => ℤˣ)
+    (MeasurableEquiv.finSuccProd ℤˣ N).symm.toEquiv
   rw [← e.sum_comp]
-  simp only [e, Equiv.trans_apply, Equiv.prodComm_apply, Fin.snocEquiv_apply,
+  simp only [e, MeasurableEquiv.coe_toEquiv, MeasurableEquiv.finSuccProd_symm_apply,
     Fin.snoc_castSucc, Fin.snoc_last]
   exact log_sum_exp_prod_units A L
 

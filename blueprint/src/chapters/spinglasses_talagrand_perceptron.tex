@@ -258,6 +258,9 @@ limit in \texttt{ForMathlib/Analysis/SpecialFunctions/FiniteExponentialPenalty.l
 
 \begin{theorem}[Finite-size bounds for a bounded potential]\label{thm:sg-tal:perceptron-pressure}
   \lean{abs_log_sum_exp_sub_log_card_le,
+        Finset.abs_sum_le_card_mul_of_abs_le,
+        MeasureTheory.integrable_log_sum_exp_of_abs_le,
+        MeasureTheory.abs_integral_log_sum_exp_sub_log_card_le,
         SpinGlasses.abs_inv_mul_log_sum_exp_potential_sub_log_two_le,
         SpinGlasses.integrable_log_sum_exp_potential,
         SpinGlasses.abs_inv_mul_integral_log_sum_exp_potential_sub_log_two_le,
@@ -297,10 +300,13 @@ because the map $E\mapsto\log\sum_\sigma e^{E(\sigma)}$ is $1$-Lipschitz for the
 \]
 
 \emph{Step 3 (pressure).} $\log Z_u$ is measurable in $g$ since $u$ is, and it is bounded by $N\log2+MD$, hence
-integrable under the probability disorder law. Integrating item~2,
+integrable under the probability disorder law. The shared log-partition estimate gives
 \[
-\bigl|p_{N,M}(u)-\log2\bigr|=\Bigl|\mathbb E\bigl(N^{-1}\log Z_u-\log2\bigr)\Bigr|\le\frac MN D.
+ |\mathbb E\log Z_u-N\log2|\le MD,\qquad
+ |p_{N,M}(u)-\log2|=N^{-1}|\mathbb E\log Z_u-N\log2|\le\frac MN D.
 \]
+The shared estimate also allows an integrable disorder-dependent envelope $B(g)$, with upper
+bound $\mathbb E B(g)$ in place of $MD$.
 
 \emph{Step 4 (derivative product).} The bound on each factor gives
 \begin{align*}
@@ -625,8 +631,9 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/AuxiliaryMarginal.lean}.
 \talsource{Lemma~2.2.2, Proposition~2.2.3 and Exercise~2.2.4}
 The auxiliary marginal identity alone does not prove the interior derivative formula or the extra term
 for the path without auxiliary spins. The zero-endpoint factorization is proved in
-Theorem~\ref{thm:sg-tal:perceptron-decoupled-endpoint} below; the derivative, interior variance and
-remaining general path well-definedness results are still open in the Section~2.2 plan.
+Theorem~\ref{thm:sg-tal:perceptron-decoupled-endpoint} below. The field law, well-defined
+Gibbs measures and terminal endpoint are proved below as well. The derivative and extra term
+remain open in the Section~2.2 plan.
 \end{remark}
 
 \begin{lemma}[Independent disorder factors for a decoupled spin]\label{lem:sg-tal:perceptron-decoupled-disorder}
@@ -664,7 +671,8 @@ for its replica average and $\langle\cdot\rangle_B$ for the old-state replica av
 \emph{Formalization note.} The Lean identity uses only linearity of the iterated real integrals
 and holds for arbitrary disorder measures. The probability and measurability assumptions above
 make these genuine expectations of bounded observables. This helper does not yet identify the
-perceptron path at zero or prove both equalities of Lemma~2.2.2; that endpoint substitution remains open.
+perceptron path at zero by itself. That substitution and both equalities of Lemma~2.2.2 are
+proved in Theorem~\ref{thm:sg-tal:perceptron-decoupled-endpoint}.
 Formalized in \texttt{SpinGlasses/Talagrand/CavityMethod/DecoupledSpinDisorderAverage.lean}.
 \end{proof}
 
@@ -760,6 +768,145 @@ The second equality is the same calculation with the empty replica subset.
 Substitution in Step~2 gives both asserted equalities.
 \emph{Formalization note.} The same finite decoupling and independent-disorder calculation as in
 Chapter~1 is reused. No positive variance or derivative assumption is needed for this identity.
-The remaining general smart-path integrability and interior-variance results are tracked separately.
+The general smart-path bounds and constant-variance law are proved in the following results.
 Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathDecoupling.lean}.
+\end{proof}
+
+
+\begin{lemma}[Constant variance of the smart-path field]\label{lem:sg-tal:perceptron-path-fields}
+  \lean{SpinGlasses.sum_sq_perceptron_smart_path_coefficients,
+        SpinGlasses.map_perceptron_smart_path_field_eq_gaussianReal}
+  \leanok
+  \uses{lem:sg-tal:perceptron-fields}
+\talsource{Eq.~(2.15) and the paragraph following it}
+Let $L=N+1$, $t\in[0,1]$ and fix $(\sigma,\varepsilon)\in\Sigma_N\times\{-1,1\}$.
+For independent standard Gaussians $(g_i)_{i<N},a,\xi$, the field
+\[
+ S_t=L^{-1/2}\sum_{i<N}g_i\sigma_i+\sqrt{t/L}\,a\varepsilon
+       +\sqrt{(1-t)/L}\,\xi
+\]
+has law $\mathcal N(0,1)$. This includes $N=0$ and both endpoints.
+\end{lemma}
+\begin{proof}
+  \leanok
+Write $c_i=L^{-1/2}\sigma_i$, $c_a=\sqrt{t/L}\,\varepsilon$ and
+$c_\xi=\sqrt{(1-t)/L}$.
+\emph{Step 1 (coefficient squares).} Since every spin has square one,
+\[
+ \sum_{i<N}c_i^2+c_a^2+c_\xi^2
+ =\frac{N}{L}+\frac{t}{L}+\frac{1-t}{L}=1.
+\]
+\emph{Step 2 (existing Gaussian linear-form law).} Group the coordinates with the sum index
+$\operatorname{Fin}N\sqcup\operatorname{Fin}2$. Then
+\[
+ S_t=c\cdot(g,a,\xi)\sim\mathcal N\left(0,\sum_jc_j^2\right)=\mathcal N(0,1).
+\]
+\emph{Formalization note.} This is the prior law of a deterministic-spin field. No assertion
+is made about its law after Gibbs tilting. The shared Gaussian theorem supplies the entire law;
+no moment integral is recomputed.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathFields.lean}.
+\end{proof}
+
+\begin{theorem}[Well-defined smart-path Gibbs averages]\label{thm:sg-tal:perceptron-path-bounds}
+  \lean{SpinGlasses.measurable_perceptron_smart_path_energy,
+        SpinGlasses.abs_perceptron_smart_path_energy_le,
+        SpinGlasses.integrable_exp_perceptron_smart_path_energy,
+        SpinGlasses.integral_exp_perceptron_smart_path_energy_pos,
+        SpinGlasses.isProbabilityMeasure_tilted_perceptron_smart_path_energy,
+        SpinGlasses.integrable_integral_pi_perceptron_smart_path,
+        MeasureTheory.measurable_integral_pi_tilted,
+        MeasureTheory.integrable_integral_pi_tilted,
+        abs_integral_integral_le_of_forall_abs_le,
+        MeasureTheory.integral_exp_pos_of_ae_le}
+  \leanok
+  \uses{thm:sg-tal:perceptron-pressure}
+\talsource{Eqs.~(2.15)--(2.19), (2.21)}
+Suppose $u$ is measurable and $|u|\le D$. Write $L=N+1$,
+$A=\Sigma_N\times\{-1,1\}$, $\Xi=\mathbb R^M$,
+$\mu=\mathrm{count}_A\otimes\gamma_1^{\otimes M}$ and
+\[
+ \omega=(g,a,y),\quad x=(\sigma,\varepsilon,\xi),\qquad
+ E_t(\omega,x)=\varepsilon\sqrt{1-t}\,y+\sum_{k<M}u(S_{k,t}(\omega,x)).
+\]
+For $t\in[0,1]$, this energy is jointly measurable and
+\[
+ |E_t(\omega,x)|\le MD+\sqrt{1-t}\,|y|,\qquad
+ e^{E_t(\omega,\cdot)}\in L^1(\mu),\qquad
+ 0<Z_t(\omega)=\int e^{E_t(\omega,x)}\,d\mu(x)<\infty.
+\]
+Thus $G_{t,\omega}=\mu^{E_t(\omega,\cdot)}$ is a probability measure. For any finite replica
+set $R$ and jointly measurable $\Phi(\omega,(x_l)_{l\in R})$ with $|\Phi|\le C$, its replica
+average is measurable in $\omega$ and integrable under every finite disorder measure $P$.
+If $P$ is a probability measure, then $|\mathbb E_P\langle\Phi\rangle_t|\le C$.
+\end{theorem}
+\begin{proof}
+  \leanok
+\emph{Step 1 (energy bound).} Finite sums and products of the coordinate maps are measurable.
+Measurability of $u$ therefore gives joint measurability of $E_t$. Also
+\[
+ |\varepsilon\sqrt{1-t}\,y|=\sqrt{1-t}\,|y|,\qquad
+ |E_t|\le|\varepsilon\sqrt{1-t}\,y|+\sum_{k<M}|u(S_{k,t})|
+ \le\sqrt{1-t}\,|y|+MD.
+\]
+\emph{Step 2 (normalization).} For fixed $\omega$ the right side is a finite constant, and
+$\mu$ is finite and nonzero. Hence
+\[
+ 0<e^{E_t(\omega,x)}\le e^{MD+\sqrt{1-t}|y|},\qquad
+ 0<\int e^{E_t(\omega,x)}\,d\mu(x)<\infty,\qquad G_{t,\omega}(A\times\Xi)=1.
+\]
+Nonzero mass also follows by projecting $\mu$ onto its nonzero counting marginal.
+\emph{Step 3 (replica averages).} For $J(\omega,\mathbf x)=\sum_{l\in R}E_t(\omega,x_l)$,
+\[
+ \langle\Phi\rangle_t(\omega)=
+ \frac{\int\Phi(\omega,\mathbf x)e^{J(\omega,\mathbf x)}\,d\mu^{\otimes R}}
+      {\int e^{J(\omega,\mathbf x)}\,d\mu^{\otimes R}},\qquad
+ |\langle\Phi\rangle_t(\omega)|\le\int C\,dG_{t,\omega}^{\otimes R}=C.
+\]
+The quotient is measurable in $\omega$. Its constant bound is integrable under finite $P$;
+a second probability average preserves the bound $C$.
+\emph{Formalization note.} The shared replica theorems now allow the observable to depend on
+the same disorder as the energy. The argument uses the continuous auxiliary base space, not
+a finite-state shortcut. Lean's bounds hold for all real coefficient parameters; the source
+path uses $[0,1]$. No derivative hypotheses, positive $M$, positive old-spin count or positive
+variance of $Y$ are required. These results do not yet justify differentiating under an integral.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathBounds.lean}.
+\end{proof}
+
+\begin{theorem}[The original Gibbs law at the terminal endpoint]\label{thm:sg-tal:perceptron-path-one}
+  \lean{SpinGlasses.integral_pi_perceptron_smart_path_one}
+  \leanok
+  \uses{thm:sg-tal:perceptron-auxiliary-spins,lem:sg-tal:perceptron-field-split}
+\talsource{Eq.~(2.21) and the paragraph defining $\nu=\nu_1$}
+Suppose $u$ is measurable and bounded above. For fixed full disorder $g$, any last field $y$,
+any finite replica set $R$ and every spin-only observable $F$,
+\[
+ \langle F(\operatorname{snoc}(\sigma^l,\varepsilon_l))_{l\in R}\rangle_{t=1}
+ =\int F(\boldsymbol\tau)\,d\left(\mathrm{count}^{\sum_{k<M}
+ u(L^{-1/2}\sum_{i<L}g_{k,i}\tau_i)}\right)^{\otimes R}(\boldsymbol\tau).
+\]
+The left side uses the old disorder $g_{k,i}$, $i<N$, and last coordinates $g_{k,N}$.
+\end{theorem}
+\begin{proof}
+  \leanok
+\emph{Step 1 (auxiliary marginal).} At $t=1$ the auxiliary coefficient and the last-field term
+are zero. Exercise~2.2.1 gives
+\[
+ \log\int e^{u(S_{k,1})}\,d\gamma_1=u(S_{k,1}),\qquad
+ S_{k,1}=L^{-1/2}\sum_{i<N}g_{k,i}\sigma_i+L^{-1/2}g_{k,N}\varepsilon.
+\]
+\emph{Step 2 (concatenate spins).} The existing measurable equivalence has inverse
+$e(\sigma,\varepsilon)=\operatorname{snoc}(\sigma,\varepsilon)$, and the coordinate bridge gives
+\[
+ S_{k,1}=L^{-1/2}\sum_{i<L}g_{k,i}(e(\sigma,\varepsilon))_i.
+\]
+\emph{Step 3 (transport counting measure).} The finite Gibbs reindexing theorem transports
+both the energy and the observable along $e$:
+\[
+ \int F(e\boldsymbol\sigma)\,d(\mathrm{count}^{H\circ e})^{\otimes R}
+ =\int F(\boldsymbol\tau)\,d(\mathrm{count}^{H})^{\otimes R}.
+\]
+This is the Section~2.1 Gibbs average. The unused $y$ drops out before averaging disorder.
+\emph{Formalization note.} This is a fixed-disorder identity, stronger than its disorder average.
+It includes empty replica and constraint types and one full spin. No endpoint derivative is asserted.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathEndpoints.lean}.
 \end{proof}

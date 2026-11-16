@@ -125,7 +125,7 @@ theorem abs_inv_mul_integral_log_sum_exp_potential_sub_log_two_le (hN : 0 < N) {
   rw [← hc, ← mul_sub, abs_mul, abs_of_pos (inv_pos.2 hN')]
   calc _ ≤ (N : ℝ)⁻¹ * (M * D) := by
         apply mul_le_mul_of_nonneg_left _ (inv_nonneg.2 hN'.le)
-        simpa only [integral_const, probReal_univ, one_smul] using h
+        simpa only [P, Function.comp_apply, integral_const, probReal_univ, one_smul] using h
     _ = M / N * D := by ring
 
 /-- **The derivative-product observable of (2.10) is bounded by `(M / N) D²`.**  If `|u'| ≤ D`, then
@@ -139,7 +139,8 @@ theorem abs_inv_mul_sum_deriv_mul_deriv_le {u : ℝ → ℝ} {D : ℝ} (hD : ∀
         deriv u ((Real.sqrt N)⁻¹ * ∑ i, g k i * ((τ i : ℤ) : ℝ))| ≤ M * D ^ 2 := by
     refine (Finset.abs_sum_le_card_mul_of_abs_le
       (fun k : Fin M => deriv u ((Real.sqrt N)⁻¹ * ∑ i, g k i * ((σ i : ℤ) : ℝ)) *
-        deriv u ((Real.sqrt N)⁻¹ * ∑ i, g k i * ((τ i : ℤ) : ℝ))) (fun k => ?_)).trans_eq
+        deriv u ((Real.sqrt N)⁻¹ * ∑ i, g k i * ((τ i : ℤ) : ℝ)))
+      (C := D ^ 2) (fun k => ?_)).trans_eq
       (by simp)
     rw [abs_mul, sq]
     exact mul_le_mul (hD _) (hD _) (abs_nonneg _) ((abs_nonneg _).trans (hD 0))
