@@ -175,7 +175,7 @@ theorem abs_sum_integral_pair_le {Ω R : Type*} [MeasurableSpace Ω] [Fintype R]
         ∂(Measure.pi fun _ : Option (Option R) => μ.tilted (en ω)) ∂P := by
     rw [Fintype.sum_prod_type]
   rw [hconv, ← hsum]
-  refine abs_integral_integral_pi_tilted_le hprob fun σ => ?_
+  refine abs_integral_integral_pi_tilted_le hprob fun _ σ => ?_
   have hF1 : ∑ j : Fin d × Fin d, Δ j.1 j.2 * G j σ = F (fun a => σ (some (some a))) *
       ∑ u, ∑ v, Δ u v * ((∑ a, ξ (σ (some (some a))) u - n * ξ (σ (some none)) u) *
         (∑ o, ξ (σ (some o)) v - (n + 1) * ξ (σ none) v)) := by
@@ -242,7 +242,7 @@ theorem abs_sum_integral_single_le {Ω R : Type*} [MeasurableSpace Ω] [Fintype 
         exact integrable_of_measurable_bound (hGm j) (hGb j))
       (fun j _ => integrable_integral_pi_tilted hE hprob (hGm j) (hGb j))
   rw [← hsum]
-  refine abs_integral_integral_pi_tilted_le hprob fun σ => ?_
+  refine abs_integral_integral_pi_tilted_le hprob fun _ σ => ?_
   have hq : ∀ a, |∑ u, ∑ v, C u v * (ξ a u * ξ a v)| ≤ d * ε := fun a => by
     have := abs_sum_bilinear_le C (ξ a) (ξ a) hε (Real.sqrt_nonneg _) (Real.sqrt_nonneg _) hC
       (by rw [Real.sq_sqrt hd]; exact hbound a) (by rw [Real.sq_sqrt hd]; exact hbound a)

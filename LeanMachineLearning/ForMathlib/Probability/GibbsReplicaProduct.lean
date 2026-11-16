@@ -351,18 +351,19 @@ theorem integrable_integral_pi_tilted {E : Ω → α → ℝ}
   simpa using this
 
 omit [IsFiniteMeasure μ] in
-/-- A uniform bound on a function of the replicas bounds its disorder-averaged Gibbs average. -/
+/-- A uniform bound on a function of the disorder and replicas bounds its disorder-averaged
+Gibbs average. The observable may depend on the same disorder as the energy. -/
 theorem abs_integral_integral_pi_tilted_le {E : Ω → α → ℝ}
     (hprob : ∀ ω, IsProbabilityMeasure (μ.tilted (E ω))) {P : Measure Ω} [IsProbabilityMeasure P]
-    {G : (ι → α) → ℝ} {C : ℝ} (hG : ∀ σ, |G σ| ≤ C) :
-    |∫ ω, ∫ σ, G σ ∂(Measure.pi fun _ : ι => μ.tilted (E ω)) ∂P| ≤ C := by
+    {G : Ω → (ι → α) → ℝ} {C : ℝ} (hG : ∀ ω σ, |G ω σ| ≤ C) :
+    |∫ ω, ∫ σ, G ω σ ∂(Measure.pi fun _ : ι => μ.tilted (E ω)) ∂P| ≤ C := by
   rw [← Real.norm_eq_abs]
   refine (norm_integral_le_of_norm_le_const (C := C)
     (Filter.Eventually.of_forall fun ω => ?_)).trans (by simp)
   have := hprob ω
   have := norm_integral_le_of_norm_le_const
-    (μ := Measure.pi fun _ : ι => μ.tilted (E ω)) (f := G) (C := C)
-    (Filter.Eventually.of_forall fun σ => by simpa using hG σ)
+    (μ := Measure.pi fun _ : ι => μ.tilted (E ω)) (f := G ω) (C := C)
+    (Filter.Eventually.of_forall fun σ => by simpa using hG ω σ)
   simpa using this
 
 end Measurability

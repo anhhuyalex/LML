@@ -45,13 +45,33 @@ variable {N M : ℕ}
 
 /-- **The energy is bounded by `M D`.**  If `|u| ≤ D` then
 `|∑ k, u (S_k)| ≤ M D` for every disorder and spin. -/
-private lemma abs_sum_potential_le {u : ℝ → ℝ} {D : ℝ} (hD : ∀ x, |u x| ≤ D)
+theorem abs_sum_potential_le {u : ℝ → ℝ} {D : ℝ} (hD : ∀ x, |u x| ≤ D)
     (g : Fin M → Fin N → ℝ) (σ : Fin N → ℤˣ) :
     |∑ k, u ((Real.sqrt N)⁻¹ * ∑ i, g k i * ((σ i : ℤ) : ℝ))| ≤ M * D := by
   calc _ ≤ ∑ k : Fin M, |u ((Real.sqrt N)⁻¹ * ∑ i, g k i * ((σ i : ℤ) : ℝ))| :=
         Finset.abs_sum_le_sum_abs _ _
     _ ≤ ∑ _k : Fin M, D := Finset.sum_le_sum fun k _ => hD _
     _ = M * D := by simp
+
+/-- The partition sum lies between `2^N exp (-M D)` and `2^N exp (M D)`. These bounds hold
+for every disorder, including zero spins or zero constraints, without measurability assumptions. -/
+theorem sum_exp_potential_bounds {u : ℝ → ℝ} {D : ℝ} (hD : ∀ x, |u x| ≤ D)
+    (g : Fin M → Fin N → ℝ) :
+    (2 : ℝ) ^ N * Real.exp (-(M * D)) ≤
+        ∑ σ : Fin N → ℤˣ,
+          Real.exp (∑ k, u ((Real.sqrt N)⁻¹ * ∑ i, g k i * ((σ i : ℤ) : ℝ))) ∧
+      (∑ σ : Fin N → ℤˣ,
+        Real.exp (∑ k, u ((Real.sqrt N)⁻¹ * ∑ i, g k i * ((σ i : ℤ) : ℝ)))) ≤
+        (2 : ℝ) ^ N * Real.exp (M * D) := by
+  have hcard (c : ℝ) : (∑ _σ : Fin N → ℤˣ, c) = (2 : ℝ) ^ N * c := by
+    simp
+  constructor
+  · rw [← hcard]
+    exact Finset.sum_le_sum fun σ _ =>
+      Real.exp_le_exp.mpr (neg_le_of_abs_le (abs_sum_potential_le hD g σ))
+  · rw [← hcard]
+    exact Finset.sum_le_sum fun σ _ =>
+      Real.exp_le_exp.mpr (le_of_abs_le (abs_sum_potential_le hD g σ))
 
 /-- **Pointwise pressure bound.**  For `N ≥ 1`, `|u| ≤ D` and every disorder `g`,
 `|N⁻¹ log ∑ σ, exp (∑ k, u (S_k)) - log 2| ≤ (M / N) D`. -/
@@ -151,5 +171,6 @@ theorem inv_mul_log_sum_exp_const_potential (hN : 0 < N) (c : ℝ) :
   push_cast
   rw [Real.log_pow]
   field_simp
+  simp [mul_comm]
 
 end SpinGlasses
