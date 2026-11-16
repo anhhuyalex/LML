@@ -218,6 +218,7 @@ public import LeanMachineLearning.ForMathlib.Probability.Moments.SubGaussianSymm
 public import LeanMachineLearning.ForMathlib.Probability.Moments.TwoPointHoeffding
 public import LeanMachineLearning.ForMathlib.Probability.Process.HittingTime
 public import LeanMachineLearning.ForMathlib.Probability.StdGaussianChiSqTails
+public import LeanMachineLearning.ForMathlib.Probability.StdGaussianDirection
 public import LeanMachineLearning.ForMathlib.Probability.StdGaussianRadial
 public import LeanMachineLearning.ForMathlib.Probability.StrongLawMixture
 public import LeanMachineLearning.ForMathlib.Topology.Algebra.InfiniteSum.PiProd
@@ -687,6 +688,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.BoundedPotent
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ExponentialPenalty
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.FirstMoment
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.GaussianFields
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.RandomNormals
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Maximizers.Hyperbolic
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Maximizers.Replacement
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Maximizers.Structure
