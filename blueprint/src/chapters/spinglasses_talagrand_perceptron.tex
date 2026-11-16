@@ -623,9 +623,10 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/AuxiliaryMarginal.lean}.
 
 \begin{remark}[Remaining results of Section~2.2]\label{rem:sg-tal:perceptron-smart-path-remaining}
 \talsource{Lemma~2.2.2, Proposition~2.2.3 and Exercise~2.2.4}
-The auxiliary marginal identity does not prove the zero-endpoint disorder factorization,
-the interior derivative formula, or the extra term for the path without auxiliary spins.
-Those results and the remaining path field and endpoint checks are still open in the Section~2.2 plan.
+The auxiliary marginal identity alone does not prove the interior derivative formula or the extra term
+for the path without auxiliary spins. The zero-endpoint factorization is proved in
+Theorem~\ref{thm:sg-tal:perceptron-decoupled-endpoint} below; the derivative, interior variance and
+remaining general path well-definedness results are still open in the Section~2.2 plan.
 \end{remark}
 
 \begin{lemma}[Independent disorder factors for a decoupled spin]\label{lem:sg-tal:perceptron-decoupled-disorder}
@@ -665,4 +666,100 @@ and holds for arbitrary disorder measures. The probability and measurability ass
 make these genuine expectations of bounded observables. This helper does not yet identify the
 perceptron path at zero or prove both equalities of Lemma~2.2.2; that endpoint substitution remains open.
 Formalized in \texttt{SpinGlasses/Talagrand/CavityMethod/DecoupledSpinDisorderAverage.lean}.
+\end{proof}
+
+\begin{lemma}[Full fields in old and last coordinates]\label{lem:sg-tal:perceptron-field-split}
+  \lean{SpinGlasses.normalized_constraint_field_snoc,
+        SpinGlasses.map_split_constraint_field_eq_gaussianReal,
+        SpinGlasses.integral_split_constraint_field_mul_eq,
+        SpinGlasses.integrable_split_constraint_field_mul,
+        SpinGlasses.iIndepFun_split_constraint_fields,
+        SpinGlasses.map_split_constraint_fields_eq_pi_gaussianReal}
+  \leanok
+  \uses{lem:sg-tal:perceptron-fields}
+\talsource{The coordinate split preceding Eq.~(2.12)}
+For $L=N+1$ and $(\rho,\varepsilon)\in\Sigma_N\times\{-1,1\}$, append the last spin to obtain
+$\sigma\in\Sigma_L$. For every $x\in\mathbb R^L$,
+\[
+ L^{-1/2}\sum_{i<L}x_i\sigma_i
+ =L^{-1/2}\sum_{i<N}x_i\rho_i+L^{-1/2}x_N\varepsilon.
+\]
+Under independent standard Gaussian coordinates this split field is standard normal.
+The product of two such fields is integrable and their covariance is
+\[
+ L^{-1}\left(\sum_{i<N}\rho_i\tau_i+\varepsilon\delta\right).
+\]
+Fields from different constraint rows remain independent, with product standard normal law.
+These statements allow $N=0$ (one full spin) and no constraint rows.
+\end{lemma}
+\begin{proof}
+  \leanok
+\emph{Step 1 (last coordinate).} The finite sum splits exactly:
+\[
+ \sum_{i<L}x_i\sigma_i=\sum_{i<N}x_i\rho_i+x_N\varepsilon,\qquad
+ L^{-1/2}\sum_{i<L}x_i\sigma_i
+ =L^{-1/2}\sum_{i<N}x_i\rho_i+L^{-1/2}x_N\varepsilon.
+\]
+\emph{Step 2 (existing Gaussian laws).} Apply Lemma~\ref{lem:sg-tal:perceptron-fields} to the appended spins:
+\[
+ S(\sigma)\sim\mathcal N(0,1),\qquad
+ \mathbb E[S(\sigma)S(\tau)]
+ =L^{-1}\sum_{i<L}\sigma_i\tau_i
+ =L^{-1}\left(\sum_{i<N}\rho_i\tau_i+\varepsilon\delta\right).
+\]
+The same substitution transfers product integrability and the independent-row product law.
+\emph{Formalization note.} The normalization is the full size $L=N+1$ in both summands.
+No Gaussian integral is recomputed. This is a fixed-spin coordinate bridge, not a law of fields
+sampled from the Gibbs measure or the constant-variance calculation for interior $t$.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/GaussianFieldSplit.lean}.
+\end{proof}
+
+\begin{theorem}[The decoupled endpoint]\label{thm:sg-tal:perceptron-decoupled-endpoint}
+  \lean{SpinGlasses.integral_perceptron_smart_path_decoupled_endpoint}
+  \leanok
+  \uses{thm:sg-tal:perceptron-auxiliary-spins,lem:sg-tal:perceptron-decoupled-disorder}
+\talsource{Lemma~2.2.2}
+Suppose $u$ is measurable and bounded above. At $t=0$ use the counting-times-Gaussian base law,
+independent standard Gaussian disorders $g,a$, and an independent $Y\sim\mathcal N(0,r)$, $r\ge0$.
+Let $\nu_0$ be the corresponding disorder-averaged replica Gibbs integral. For a function $F$
+of the old coordinates of $n$ replicas and $I\subset\{1,\ldots,n\}$,
+\[
+ \nu_0\left(F\prod_{l\in I}\varepsilon_l\right)
+ =\mathbb E[(\tanh Y)^{|I|}]\,\nu_0(F)
+ =\nu_0\left(\prod_{l\in I}\varepsilon_l\right)\nu_0(F).
+\]
+This includes $r=0$, $I=\varnothing$, $n=0$, $M=0$, and $N=0$ old spins.
+\end{theorem}
+\begin{proof}
+  \leanok
+Write
+\[
+ B(g,\rho)=\sum_{k<M}\log\int
+ e^{u(L^{-1/2}\sum_{i<N}g_{k,i}\rho_i+\sqrt{1/L}\,z)}\,d\gamma_1(z).
+\]
+\emph{Step 1 (auxiliary marginal at zero).} Theorem~\ref{thm:sg-tal:perceptron-auxiliary-spins}
+with $t=0$ gives the effective counting energy
+\[
+ E_0^{\rm eff}(\rho,\varepsilon)=B(g,\rho)+\varepsilon y.
+\]
+It is independent of the unused last disorder $a$ except through its probability-law integration.
+
+\emph{Step 2 (disorder factors).} Lemma~\ref{lem:sg-tal:perceptron-decoupled-disorder} gives
+\[
+ \nu_0\left(F\prod_{l\in I}\varepsilon_l\right)
+ =\mathbb E[(\tanh Y)^{|I|}]\,\mathbb E_{(g,a)}\langle F\rangle_B,
+ \qquad \nu_0(F)=\mathbb E_{(g,a)}\langle F\rangle_B.
+\]
+The second equality is the same calculation with the empty replica subset.
+
+\emph{Step 3 (constant observable).} Set $F=1$ and use probability normalization:
+\[
+ \nu_0(1)=1,\qquad
+ \nu_0\left(\prod_{l\in I}\varepsilon_l\right)=\mathbb E[(\tanh Y)^{|I|}].
+\]
+Substitution in Step~2 gives both asserted equalities.
+\emph{Formalization note.} The same finite decoupling and independent-disorder calculation as in
+Chapter~1 is reused. No positive variance or derivative assumption is needed for this identity.
+The remaining general smart-path integrability and interior-variance results are tracked separately.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathDecoupling.lean}.
 \end{proof}
