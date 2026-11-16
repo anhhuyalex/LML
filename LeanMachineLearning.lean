@@ -683,6 +683,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKT
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKTBasisAsymptotics
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKTBasisCoefficients
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKTBasisSecondMoment
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.BoundedPotential
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ExponentialPenalty
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.FirstMoment
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.GaussianFields

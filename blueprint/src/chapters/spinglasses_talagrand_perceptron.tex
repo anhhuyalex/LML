@@ -31,10 +31,13 @@ $S_k(g,\sigma)$ agree because $\sqrt N>0$.
 Formalized here: the exact laws of the constraint fields of \emph{fixed} spins (Lemma~\ref{lem:sg-tal:perceptron-fields}),
 the expected number of feasible configurations, Eq.~(2.2), and the emptiness statement for $M/N\to\alpha>1$
 (Theorems~\ref{thm:sg-tal:perceptron-first-moment} and~\ref{thm:sg-tal:perceptron-empty}).
-Also formalized: the exponential-penalty limit (2.4) and the penalty Hamiltonian (2.5) at fixed $N$, $M$ and disorder
+Also formalized: elementary finite-size bounds for a bounded potential, namely for the energy (2.6), the
+pressure (2.11) and the derivative product of (2.10) (Theorem~\ref{thm:sg-tal:perceptron-pressure}); and the
+exponential-penalty limit (2.4) and the penalty Hamiltonian (2.5) at fixed $N$, $M$ and disorder
 (Theorem~\ref{thm:sg-tal:perceptron-penalty}).
 Not formalized here: the comparison of Gaussian and spherical normal vectors in the opening paragraph; the
-exchange of the limits $N\to\infty$ and $\beta\to\infty$ (stated in the book as a hope, not a result); the general energy (2.6) with smooth potential (2.7) and the pressure (2.11);
+exchange of the limits $N\to\infty$ and $\beta\to\infty$ (stated in the book as a hope, not a result); the
+concentration statements (2.8), (2.10) and the asymptotic value of the pressure (2.11);
 Research Problem~2.1.1, whose sharp threshold and entropy function are unknown in the book; the Volume~II
 bound with $\alpha_0<1$; and the cavity equations (2.8), (2.10) of Sections~2.2--2.4. The first-moment bound
 does not locate the threshold; it proves emptiness only above $\alpha=1$.
@@ -210,6 +213,56 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ExponentialPenalty.lean},
 limit in \texttt{ForMathlib/Analysis/SpecialFunctions/FiniteExponentialPenalty.lean}.
 \end{proof}
 
+\begin{theorem}[Finite-size bounds for a bounded potential]\label{thm:sg-tal:perceptron-pressure}
+  \lean{abs_log_sum_exp_sub_log_card_le,
+        SpinGlasses.abs_inv_mul_log_sum_exp_potential_sub_log_two_le,
+        SpinGlasses.integrable_log_sum_exp_potential,
+        SpinGlasses.abs_inv_mul_integral_log_sum_exp_potential_sub_log_two_le,
+        SpinGlasses.abs_inv_mul_sum_deriv_mul_deriv_le}
+  \leanok
+\talsource{Eqs.~(2.6), (2.10), (2.11)}
+Let $N\ge1$, $M\ge0$, and let $u:\mathbb R\to\mathbb R$ be measurable with $|u|\le D$. Write
+$E_u(g,\sigma)=\sum_{k<M}u(S_k(g,\sigma))$ (the exponent of the Gibbs weight; counting measure on the spins),
+$Z_u(g)=\sum_\sigma e^{E_u(g,\sigma)}$ and $p_{N,M}(u)=N^{-1}\mathbb E\log Z_u(g)$. Then:
+\begin{enumerate}
+\item $|E_u(g,\sigma)|\le MD$;
+\item $\bigl|N^{-1}\log Z_u(g)-\log2\bigr|\le\frac MN D$ for every disorder $g$;
+\item $\log Z_u$ is integrable, and $\bigl|p_{N,M}(u)-\log2\bigr|\le\frac MN D$;
+\item if moreover $|u'|\le D$, then for any two fixed spins $\sigma,\tau$ and every $g$,
+$\bigl|N^{-1}\sum_{k<M}u'(S_k(g,\sigma))\,u'(S_k(g,\tau))\bigr|\le\frac MN D^2$.
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+  \leanok
+\emph{Step 1 (energy).} Each of the $M$ terms of $E_u$ has modulus at most $D$, so
+$|E_u(g,\sigma)|\le MD$. This is item~1.
+
+\emph{Step 2 (log-partition function).} For $|E(\sigma)|\le B$ on a finite set,
+\[
+\Bigl|\log\sum_\sigma e^{E(\sigma)}-\log|\Sigma_N|\Bigr|\le B,
+\]
+because the map $E\mapsto\log\sum_\sigma e^{E(\sigma)}$ is $1$-Lipschitz for the supremum norm. With
+$|\Sigma_N|=2^N$ and $B=MD$ this gives $|\log Z_u-N\log2|\le MD$; dividing by $N$ gives item~2.
+
+\emph{Step 3 (pressure).} $\log Z_u$ is measurable in $g$ since $u$ is, and it is bounded by $N\log2+MD$, hence
+integrable under the probability disorder law. Integrating item~2,
+\[
+\bigl|p_{N,M}(u)-\log2\bigr|=\Bigl|\mathbb E\bigl(N^{-1}\log Z_u-\log2\bigr)\Bigr|\le\frac MN D.
+\]
+
+\emph{Step 4 (derivative product).} Each of the $M$ products $u'(S_k(g,\sigma))u'(S_k(g,\tau))$ has modulus at most
+$D^2$, so the sum is at most $MD^2$ and the factor $N^{-1}$ gives item~4. The denominator is $N$, not $M$.
+
+Only measurability of $u$ and the bounds $|u|\le D$, $|u'|\le D$ are used. The book's hypothesis (2.7), that $u$ is
+three times differentiable with bounded derivatives of orders $0$ to $3$, implies these (a differentiable function
+is continuous, hence measurable), but is much stronger; no restriction on the load $M/N$ is needed. These are
+finite-size estimates. They do not prove the concentration statements (2.8) and (2.10) around $q$ and $r$, nor
+the asymptotic value of the pressure (2.11). For $u=0$ the bound is $0$, so $p_{N,M}(0)=\log2$, the value for the
+counting measure; for $M=0$ the same holds for every $u$.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/BoundedPotential.lean}, with the log-partition bound in
+\texttt{ForMathlib/Analysis/SpecialFunctions/LogSumExp.lean}.
+\end{proof}
+
 \begin{remark}[Comparison with the book, Section~2.1]\label{rem:sg-tal:perceptron-comparison}
 \talsource{Section~2.1}
 \begin{itemize}
@@ -225,6 +278,10 @@ groups the independent constraints.
 explicit finite error bound; it is a fixed-size limit and does not exchange $N$ and $\beta$.
 \item The discontinuous indicator potential fits (2.6) algebraically but is outside the differentiability
 hypothesis (2.7).
+\item The pressure and derivative-product bounds need less than (2.7) and no small-load restriction, and they
+keep the factor $N^{-1}$ and the counting measure on the spins (so $u=0$ gives $\log2$). They are not the
+statements ($\simeq$) of the book. The book writes the energy as $H_{N,M}$ in (2.6) but $H_{M,N}$ in (2.11); a
+single energy $E_u$ is used here for both.
 \item This is the book's first-moment argument. It neither computes the true threshold nor shows
 nonemptiness below it, so it does not address Research Problem~2.1.1.
 \end{itemize}
