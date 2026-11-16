@@ -341,14 +341,14 @@ theorem hasDerivAt_integral_sk_cavity_path_square_full (N n : ℕ) (β q h t : �
   beta_reduce
   congr 1
   simp only [K, sk_cavity_kernel_full_eq]
-  exact (book_replica_combination_add_const n
+  exact (replica_pair_sum_add_const n
     (fun a b : Fin (N + 1) → ℤˣ => β ^ 2 * (a (Fin.last N) : ℝ) * (b (Fin.last N) : ℝ) *
       ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (a i.castSucc : ℝ)) ⬝ᵥ fun i : Fin N =>
         (b i.castSucc : ℝ)) - q)) (β ^ 2 / (N + 1 : ℝ)) τ).symm
 
-/-- The three replica families of `book_replica_combination` for `n = 2`:
+/-- The weighted replica-pair sum for two observed replicas expands into four kernel terms:
 weights `1, -2, -2, +3` on `K 01`, `K 0∗`, `K 1∗`, `K ∗∗`. -/
-theorem book_replica_combination_two {A : Type*} (K : A → A → ℝ)
+theorem replica_pair_sum_two_eq_four_terms {A : Type*} (K : A → A → ℝ)
     (τ : Option (Option (Fin 2)) → A) :
     (∑ p : Fin 2 × Fin 2 with p.1 < p.2, K (τ (some (some p.1))) (τ (some (some p.2)))) -
         ((2 : ℕ) : ℝ) * ∑ r : Fin 2, K (τ (some (some r))) (τ (some none)) +
@@ -402,6 +402,6 @@ theorem hasDerivAt_integral_sk_cavity_path_square_full_two (N : ℕ) (β q h t :
   refine integral_congr_ae (ae_of_all _ fun τ => ?_)
   beta_reduce
   congr 1
-  exact book_replica_combination_two K τ
+  exact replica_pair_sum_two_eq_four_terms K τ
 
 end SpinGlasses

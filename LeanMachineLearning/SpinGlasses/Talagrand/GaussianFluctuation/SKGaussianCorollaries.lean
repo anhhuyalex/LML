@@ -1177,7 +1177,7 @@ theorem integral_dotProduct_centered_mul {α : Type*} [Finite α] [MeasurableSpa
 /-- **Talagrand (1.210), book form.**  The cavity reaction bound with the centred field written
 as `N^{-1/2} ∑ y_i (⟨σ_i cosh L⟩ / ⟨cosh L⟩ - ⟨σ_i⟩)`; it is
 `sk_cavity_field_reaction_approx` after expanding the Gibbs covariance. -/
-theorem sk_cavity_field_reaction_approx_book (β₀ : ℝ) (hβ₀ : 0 ≤ β₀) (hβ₀' : 4 * β₀ ^ 2 < 1)
+theorem sk_cavity_field_reaction_approx_cosh_ratios (β₀ : ℝ) (hβ₀ : 0 ≤ β₀) (hβ₀' : 4 * β₀ ^ 2 < 1)
     (h : ℝ) {k : ℕ} (hk : 1 ≤ k) :
     ∃ K : ℝ, 0 < K ∧ ∀ (β q : ℝ),
       (∫ x : ℝ, Real.tanh (β * Real.sqrt q * x + h) ^ 2 ∂(gaussianReal 0 1) = q) →

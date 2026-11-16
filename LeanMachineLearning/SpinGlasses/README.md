@@ -53,10 +53,13 @@ Blueprint chapters: `blueprint/src/chapters/spinglasses.tex` (Panchenko) and
   `FixedPoint/` contains the matrix fixed-point equations and their solution; `FreeEnergy/` contains
   log-partition derivatives, replica-symmetric pressure and the thermodynamic limit.
   Module and declaration names describe the mathematics; book theorem numbers belong in comments.
-* `Perceptron/` (blueprint chapter `chap:sg-talagrand-perceptron`, Talagrand Section 2.1): the Gaussian
+* `Perceptron/` (blueprint chapter `chap:sg-talagrand-perceptron`, Talagrand Sections 2.1-2.2): the Gaussian
   binary perceptron. `GaussianFields.lean` gives the laws of the constraint fields of fixed spins and
   `FirstMoment.lean` the expected number of feasible configurations and the emptiness bound for
   `M / N → α > 1`; `ExponentialPenalty.lean` the fixed-size limit of exponential penalties, and
   `BoundedPotential.lean` finite-size energy, pressure and derivative-product bounds, and
   `RandomNormals.lean` the invariance of the feasible spins under normalizing the Gaussian normals
   (the uniform-direction law itself is `ForMathlib/Probability/StdGaussianDirection.lean`).
+  `GibbsAverages.lean` supplies integrability and bounds for disorder-dependent replica observables.
+  `AuxiliaryMarginal.lean` integrates the auxiliary Gaussian coordinates of the smart path, reusing
+  `ForMathlib/MeasureTheory/Integral/ProductTiltedMarginal.lean`. The path derivative remains open.

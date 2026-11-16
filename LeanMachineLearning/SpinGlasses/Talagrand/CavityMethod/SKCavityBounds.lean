@@ -231,7 +231,7 @@ theorem card_filter_lt_fin_prod (n : ℕ) :
 `n + 1` against `n + 2`), weighted `1`, `-n`, `n (n + 1) / 2`, carry in total
 `n (n - 1) / 2 + n² + n (n + 1) / 2 = 2 n²` terms. Hence a uniform bound `c` on the kernel
 bounds the combination by `2 n² c`. -/
-theorem abs_book_replica_combination_le {α : Type*} (n : ℕ) (K : α → α → ℝ) (c : ℝ)
+theorem abs_replica_pair_sum_le {α : Type*} (n : ℕ) (K : α → α → ℝ) (c : ℝ)
     (hK : ∀ a b, |K a b| ≤ c) (τ : Option (Option (Fin n)) → α) :
     |(∑ p : Fin n × Fin n with p.1 < p.2, K (τ (some (some p.1))) (τ (some (some p.2)))) -
         (n : ℝ) * ∑ r : Fin n, K (τ (some (some r))) (τ (some none)) +
@@ -261,7 +261,7 @@ theorem abs_book_replica_combination_le {α : Type*} (n : ℕ) (K : α → α �
 
 /-- The book's combination of the three replica families is unchanged when the kernel is shifted
 by a constant, because the weights `C(n,2)`, `-n²` and `C(n+1,2)` add up to zero. -/
-theorem book_replica_combination_add_const {α : Type*} (n : ℕ) (K : α → α → ℝ) (κ : ℝ)
+theorem replica_pair_sum_add_const {α : Type*} (n : ℕ) (K : α → α → ℝ) (κ : ℝ)
     (τ : Option (Option (Fin n)) → α) :
     (∑ p : Fin n × Fin n with p.1 < p.2,
         (K (τ (some (some p.1))) (τ (some (some p.2))) + κ)) -
@@ -286,7 +286,7 @@ theorem abs_two_sum_lt_combination_le {α : Type*} (n : ℕ) (U Kf : α → α �
             |Kf (τ (some (some p.1))) (τ (some (some p.2)))|) +
         (n : ℝ) * ∑ r : Fin n, |Kf (τ (some (some r))) (τ (some none))| +
         (n : ℝ) * ((n : ℝ) + 1) / 2 * |Kf (τ (some none)) (τ none)|) := by
-  have hshift := book_replica_combination_add_const n (fun a b => -Kf a b) κ τ
+  have hshift := replica_pair_sum_add_const n (fun a b => -Kf a b) κ τ
   have heq : 2 * (∑ p : Fin n × Fin n with p.1 < p.2,
           U (τ (some (some p.1))) (τ (some (some p.2)))) -
         2 * (n : ℝ) * ∑ r : Fin n, U (τ (some (some r))) (τ (some none)) +

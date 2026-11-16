@@ -80,11 +80,10 @@ $N^{-1/2}\sum_i g_{k,i}\sigma^k_i$ are independent, and (for $N\ge1$) they are i
 where $b_i=\tau_i/\sqrt N$. The second display is the self-overlap equal to $1$ on the hypercube.
 
 \emph{Step 2 (Gaussian linear forms).} Apply the Gaussian linear-form and Gram-law identities:
-\[
- S(\sigma)=a\cdot x\sim\mathcal N(0,a\cdot a)=\mathcal N(0,1),\qquad
- \mathbb E S(\sigma)=0,\qquad
- \mathbb E[S(\sigma)S(\tau)]=a\cdot b=R(\sigma,\tau).
-\]
+\begin{align*}
+ S(\sigma)=a\cdot x&\sim\mathcal N(0,a\cdot a)=\mathcal N(0,1),\qquad \mathbb E S(\sigma)=0,\\
+ \mathbb E[S(\sigma)S(\tau)]&=a\cdot b=R(\sigma,\tau).
+\end{align*}
 For a finite family of coefficient vectors the same Gram-law identity gives
 \[
  (S(\sigma^r))_r\sim\mathcal N\!\left(0,(a^r\cdot a^s)_{r,s}\right).
@@ -232,12 +231,14 @@ $u(x)=-\beta$ for $x<0$ and $u(x)=0$ otherwise.
 
 \emph{Step 3 (the perceptron and the error).} Put $c(\sigma)=V_g(\sigma)$. For $\beta\ge0$,
 \[
- \{\sigma:V_g(\sigma)=0\}=A(g),\qquad
- 0\le\sum_\sigma e^{-\beta V_g(\sigma)}-C(g)
- =\sum_{\sigma\notin A(g)}e^{-\beta V_g(\sigma)}
- \le(2^N-C(g))e^{-\beta},
+ \{\sigma:V_g(\sigma)=0\}=A(g).
 \]
-because an integer-valued positive cost is at least one.
+Since an integer-valued positive cost is at least one,
+\begin{align*}
+ 0\le\sum_\sigma e^{-\beta V_g(\sigma)}-C(g)
+ &=\sum_{\sigma\notin A(g)}e^{-\beta V_g(\sigma)}\\
+ &\le(2^N-C(g))e^{-\beta}.
+\end{align*}
 
 \emph{Step 4 (the potential).} Since $\sqrt N>0$,
 \[
@@ -302,11 +303,11 @@ integrable under the probability disorder law. Integrating item~2,
 \]
 
 \emph{Step 4 (derivative product).} The bound on each factor gives
-\[
+\begin{align*}
  \left|N^{-1}\sum_{k<M}u'(S_k(g,\sigma))u'(S_k(g,\tau))\right|
- \le N^{-1}\sum_{k<M}|u'(S_k(g,\sigma))|\,|u'(S_k(g,\tau))|
- \le\frac MN D^2.
-\]
+ &\le N^{-1}\sum_{k<M}|u'(S_k(g,\sigma))|\,|u'(S_k(g,\tau))|\\
+ &\le\frac MN D^2.
+\end{align*}
 The denominator is $N$, not $M$.
 
 \emph{Step 5 (constant potential).} Direct summation and $N>0$ give
@@ -595,13 +596,13 @@ exponential integral is positive as well.
 \]
 Taking the logarithm gives $E_t^{\rm eff}(\sigma)$, and
 positivity gives
-\[
+\begin{align*}
  \log\int e^{E_t(\sigma,\xi)}\,d\gamma_M(\xi)
- =\varepsilon\sqrt{1-t}\,y+
-   \sum_{k<M}\log\int e^{u(S^\circ_{k,t}(\sigma)+c_tz)}\,d\gamma_1(z)
- =E_t^{\rm eff}(\sigma),\qquad
- e^{u_t(x)}=\int e^{u(x+c_tz)}\,d\gamma_1(z).
-\]
+ &=\varepsilon\sqrt{1-t}\,y+
+   \sum_{k<M}\log\int e^{u(S^\circ_{k,t}(\sigma)+c_tz)}\,d\gamma_1(z)\\
+ &=E_t^{\rm eff}(\sigma),\\
+ e^{u_t(x)}&=\int e^{u(x+c_tz)}\,d\gamma_1(z).
+\end{align*}
 
 \emph{Step 3 (replicas).} Apply Lemma~\ref{lem:sg-tal:perceptron-auxiliary-marginal} to each replica.
 With $G_t$ the full tilted law and $G_t^{\rm eff}$ the effective spin law,
@@ -626,3 +627,42 @@ The auxiliary marginal identity does not prove the zero-endpoint disorder factor
 the interior derivative formula, or the extra term for the path without auxiliary spins.
 Those results and the remaining path field and endpoint checks are still open in the Section~2.2 plan.
 \end{remark}
+
+\begin{lemma}[Independent disorder factors for a decoupled spin]\label{lem:sg-tal:perceptron-decoupled-disorder}
+  \lean{SpinGlasses.integral_integral_pi_count_tilted_decoupled_spin}
+  \leanok
+\talsource{The factorization used in Lemma~2.2.2; compare Lemma~1.6.2}
+Let $A$ be a finite nonempty old-state space. For independent disorder laws $P_0,P_1$, a measurable
+old-state energy $B(\omega_0,a)$, a measurable last field $Y(\omega_1)$, a function $F$ of $n$ old-state
+replicas, and $I\subset\{1,\ldots,n\}$, consider the counting energy
+$B(\omega_0,a)+\varepsilon Y(\omega_1)$ on $A\times\{-1,1\}$. Write $\langle\cdot\rangle_{B,Y}$
+for its replica average and $\langle\cdot\rangle_B$ for the old-state replica average. Then
+\[
+ \int\!\int\left\langle F\prod_{l\in I}\varepsilon_l\right\rangle_{B,Y}\,dP_1\,dP_0
+ =\left(\int(\tanh Y)^{|I|}\,dP_1\right)
+   \left(\int\langle F\rangle_B\,dP_0\right).
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+\emph{Step 1 (fixed disorder).} Use the already proved finite decoupled-spin identity:
+\[
+ \left\langle F\prod_{l\in I}\varepsilon_l\right\rangle_{B,Y}
+ =(\tanh Y)^{|I|}\langle F\rangle_B.
+\]
+\emph{Step 2 (last-field disorder).} The old-state average does not depend on $\omega_1$, hence
+\[
+ \int(\tanh Y(\omega_1))^{|I|}\langle F\rangle_{B(\omega_0)}\,dP_1
+ =\left(\int(\tanh Y)^{|I|}\,dP_1\right)\langle F\rangle_{B(\omega_0)}.
+\]
+\emph{Step 3 (old disorder).} Pull the remaining constant through the outer integral:
+\[
+ \int\left(\int(\tanh Y)^{|I|}\,dP_1\right)\langle F\rangle_B\,dP_0
+ =\left(\int(\tanh Y)^{|I|}\,dP_1\right)\left(\int\langle F\rangle_B\,dP_0\right).
+\]
+\emph{Formalization note.} The Lean identity uses only linearity of the iterated real integrals
+and holds for arbitrary disorder measures. The probability and measurability assumptions above
+make these genuine expectations of bounded observables. This helper does not yet identify the
+perceptron path at zero or prove both equalities of Lemma~2.2.2; that endpoint substitution remains open.
+Formalized in \texttt{SpinGlasses/Talagrand/CavityMethod/DecoupledSpinDisorderAverage.lean}.
+\end{proof}

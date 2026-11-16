@@ -16,8 +16,8 @@ Talagrand, *Spin Glasses* Vol. I, Lemma 1.6.2 and Lemma 2.2.2.  When the energy 
 `integral_pi_count_tilted_decoupled_spin` computes the replica average for fixed `A` and `Y`.
 Here the energy of the old state depends on one disorder `ω₀` and the field `Y` on another,
 independent, disorder `ω₁`; both are integrated.  The result is the factorization
-`𝔼 (tanh Y)^|I| · 𝔼 ⟨f⁻⟩`.  Nothing is assumed about the laws of `ω₀`, `ω₁` beyond being
-probability measures, so the variance of `Y` may be zero.
+`𝔼 (tanh Y)^|I| · 𝔼 ⟨f⁻⟩`. The iterated-integral identity needs no assumptions on the
+disorder measures. In its probability-law applications the variance of `Y` may be zero.
 
 ## Main declaration
 
@@ -37,7 +37,7 @@ of the old states of `n` replicas and a set `I` of replicas,
 counting measure tilted by `A ω₀ a + ε Y ω₁`, respectively `A ω₀`. -/
 theorem integral_integral_pi_count_tilted_decoupled_spin {Ω₀ Ω₁ α : Type*} [MeasurableSpace Ω₀]
     [MeasurableSpace Ω₁] [Finite α] [MeasurableSpace α] [MeasurableSingletonClass α] {n : ℕ}
-    (μ₀ : Measure Ω₀) (μ₁ : Measure Ω₁) [IsProbabilityMeasure μ₁]
+    (μ₀ : Measure Ω₀) (μ₁ : Measure Ω₁)
     (A : Ω₀ → α → ℝ) (Y : Ω₁ → ℝ) (F : (Fin n → α) → ℝ) (I : Finset (Fin n)) :
     ∫ ω₀, ∫ ω₁, ∫ σ : Fin n → α × ℤˣ, F (fun r => (σ r).1) * ∏ r ∈ I, (((σ r).2 : ℤˣ) : ℝ)
         ∂(Measure.pi fun _ : Fin n => Measure.count.tilted

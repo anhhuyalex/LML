@@ -23,7 +23,7 @@ Proof (source text lines 3152-3190).  Both magnetizations are written by the cav
 ratios of Gibbs averages of the `N`-spin system at `β_- = β √(N/(N+1))`
 (`integral_last_spin_eq_sinh_div_cosh`, `integral_old_spin_eq_mul_cosh_div`).  The difference
 between the full-system tanh and the tanh of Lemma 1.7.4 is controlled by the reaction bound
-`sk_cavity_field_reaction_approx_book` (Eq. (1.210)); replacing `β_-², q_-` by `β², q` costs
+`sk_cavity_field_reaction_approx_cosh_ratios` (Eq. (1.210)); replacing `β_-², q_-` by `β², q` costs
 `O(1/N)` (`abs_tap_coef_le`).  The three pieces are combined by the `2k`-th power triangle
 inequality `integral_pow_le_of_abs_le_add_add`.
 
@@ -129,7 +129,7 @@ theorem sk_tap_equation (β₀ : ℝ) (hβ₀ : 0 ≤ β₀) (hβ₀' : 4 * β�
               ∂(Measure.count.tilted (skGibbsEnergy (N + 1) β h g)))) ^ (2 * k)
           ∂(Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) ≤ K / ((N : ℝ) + 1) ^ k := by
   obtain ⟨K1, hK10, hK1⟩ := sk_last_spin_tanh_approx_pow β₀ hβ₀ hβ₀' h hk
-  obtain ⟨K2, hK20, hK2⟩ := sk_cavity_field_reaction_approx_book β₀ hβ₀ hβ₀' h hk
+  obtain ⟨K2, hK20, hK2⟩ := sk_cavity_field_reaction_approx_cosh_ratios β₀ hβ₀ hβ₀' h hk
   have he : Even (2 * k) := ⟨k, by ring⟩
   refine ⟨2 ^ (2 * k - 1) * K1 + 2 ^ (2 * k - 1) * (2 ^ (2 * k - 1) *
     (β₀ ^ (2 * k) * (2 ^ k * K2)) + 2 ^ (2 * k - 1)), by positivity, ?_⟩

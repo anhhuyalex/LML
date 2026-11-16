@@ -111,7 +111,7 @@ theorem integral_gibbs_finset_sum {Ω₀ : Type*} [MeasurableSpace Ω₀] (P₀ 
 
 /-- **Talagrand's Eq. (1.155)**, for an arbitrary base disorder: the derivative of the cavity
 path is bounded by `4 n² β²` times the path average of a nonnegative observable. -/
-theorem abs_cavity_outer_book_derivative_le
+theorem abs_cavity_outer_pair_sum_le
     {Ω₀ : Type*} [MeasurableSpace Ω₀] (P₀ : Measure Ω₀) [IsProbabilityMeasure P₀]
     (N n : ℕ) (β q : ℝ) (hq : q ∈ Set.Icc (0 : ℝ) 1)
     (B : Ω₀ → (Fin (N + 1) → ℤˣ) → ℝ) (hB : ∀ a, Measurable (fun η => B η a))
@@ -158,7 +158,7 @@ theorem abs_cavity_outer_book_derivative_le
           (n : ℝ) * ∑ r : Fin n, K (τ (some (some r))) (τ (some none)) +
           (n : ℝ) * ((n : ℝ) + 1) / 2 * K (τ (some none)) (τ none))| ≤ Θ τ := by
     rw [abs_mul, abs_of_nonneg (hf _)]
-    have h := abs_book_replica_combination_le n K (2 * β ^ 2) hK τ
+    have h := abs_replica_pair_sum_le n K (2 * β ^ 2) hK τ
     calc _ ≤ f (fun r => τ (some (some r))) * (2 * (n : ℝ) ^ 2 * (2 * β ^ 2)) :=
           mul_le_mul_of_nonneg_left h (hf _)
       _ = Θ τ := by simp only [Θ, hc]; ring
@@ -264,7 +264,7 @@ theorem sk_cavity_path_square_le_exp_mul (N n : ℕ) (β q h : ℝ)
       HasDerivAt (fun u => Φ (Real.arccos (Real.sqrt u))) d u ∧
       -(4 * (n : ℝ) ^ 2 * β ^ 2 * Φ (Real.arccos (Real.sqrt u))) ≤ d := fun u hu =>
     ⟨_, hasDerivAt_integral_sk_cavity_path_square N n β q h u hq hu f,
-      (neg_le_neg_iff.2 (abs_cavity_outer_book_derivative_le
+      (neg_le_neg_iff.2 (abs_cavity_outer_pair_sum_le
         (Measure.pi fun _ : FinPairs N => gaussianReal 0 1) N n β q hq B
         (fun a => by fun_prop) f hf (Real.arccos (Real.sqrt u)))).trans (neg_abs_le _)⟩
   have hmain := le_exp_mul_endpoint_of_exists_hasDerivAt hcontOn hkey ht

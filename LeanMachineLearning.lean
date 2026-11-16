@@ -101,6 +101,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.MeasurePrese
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ParametrizedL2
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.PiDisjointSupports
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.PiFinMul
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ProductTiltedMarginal
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ReplicaIntegrateOut
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ReplicaOverlaps
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SignedToReal
@@ -530,6 +531,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.BeyondATLine.SKCoupledLi
 public import LeanMachineLearning.SpinGlasses.Talagrand.BeyondATLine.SKCoupledSeparation
 public import LeanMachineLearning.SpinGlasses.Talagrand.BeyondATLine.SKCoupledSubsequence
 public import LeanMachineLearning.SpinGlasses.Talagrand.BeyondATLine.SKSecondaryContraction
+public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.DecoupledSpinDisorderAverage
 public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityBounds
 public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityContraction
 public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityCoshEstimate
@@ -685,6 +687,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKT
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKTBasisAsymptotics
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKTBasisCoefficients
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKTBasisSecondMoment
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.AuxiliaryMarginal
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.BoundedPotential
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ExponentialPenalty
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.FirstMoment

@@ -2713,7 +2713,7 @@ summand by $C$; the resulting counts are $n^2$, $2n^2$, $n$ and $n(n+1)$.
 
 \begin{lemma}[Pointwise count for the three replica families]
 \label{lem:sg-tal:cavity-family-count}
-  \lean{SpinGlasses.abs_book_replica_combination_le,
+  \lean{SpinGlasses.abs_replica_pair_sum_le,
         SpinGlasses.card_filter_lt_fin_prod}
   \leanok
 \talsource{text after Eq.~(1.152): the right-hand side of (1.151) has $2n^2$ simple terms}
@@ -2828,10 +2828,10 @@ The full-overlap form (1.152) is proved in Theorem~\ref{thm:sg-tal:cavity-path-d
 
 \begin{theorem}[The cavity path derivative with the full overlap (Eq. 1.152)]
 \label{thm:sg-tal:cavity-path-derivative-full}
-  \lean{SpinGlasses.book_replica_combination_add_const,
+  \lean{SpinGlasses.replica_pair_sum_add_const,
         SpinGlasses.sk_cavity_kernel_full_eq,
         SpinGlasses.hasDerivAt_integral_sk_cavity_path_square_full,
-        SpinGlasses.book_replica_combination_two,
+        SpinGlasses.replica_pair_sum_two_eq_four_terms,
         SpinGlasses.hasDerivAt_integral_sk_cavity_path_square_full_two}
   \leanok
 \talsource{Lemma~1.6.3, Eq.~(1.152)}
@@ -2856,7 +2856,7 @@ to zero.
 
 \begin{lemma}[Domination of the cavity derivative]
 \label{lem:sg-tal:cavity-derivative-domination}
-  \lean{SpinGlasses.abs_cavity_outer_book_derivative_le}
+  \lean{SpinGlasses.abs_cavity_outer_pair_sum_le}
   \leanok
 \talsource{Eq.~(1.155)}
 Let $P_0$ be any probability law for the base disorder and $f\ge0$ a function of $n$ replicas.
@@ -4962,7 +4962,7 @@ Expand the dot product, use linearity of the integral over the finite sum, and $
 \begin{theorem}[Corollary~1.7.15, Eq.~(1.210) in the book form]
 \label{thm:sg-tal:cor-1715-reaction-book}
   \uses{thm:sg-tal:cor-1715-reaction, lem:sg-tal:centered-linear}
-  \lean{SpinGlasses.sk_cavity_field_reaction_approx_book}
+  \lean{SpinGlasses.sk_cavity_field_reaction_approx_cosh_ratios}
   \leanok
 \talsource{Corollary~1.7.15, Eq.~(1.210), last displayed form}
 With the notation of Theorem~\ref{thm:sg-tal:cor-1715-reaction} (so $K$ depends only on $\beta_0,h,k$),
