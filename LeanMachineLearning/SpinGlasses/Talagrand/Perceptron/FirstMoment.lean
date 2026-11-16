@@ -133,6 +133,34 @@ theorem measureReal_exists_feasible_configuration_le (hN : 0 < N) :
   rw [integral_card_feasible_configurations_eq hN] at h
   exact ENNReal.toReal_le_of_le_ofReal (by positivity) h
 
+/-- **Exponentially small non-emptiness probability above the first-moment threshold.**  If
+`M ≥ (1 + θ) N` and `N ≥ 1` (the bound is informative for `θ > 0`), the probability that some
+spin satisfies all `M` constraints is at most `exp (-θ (log 2) N)`.  This is the exponential
+bound `exp (-N / K(α))` of part 1 of Research Problem 2.1.1 for every `α > 1`, which the first
+moment already gives: with `θ = α - 1` the constant is `K = 1 / ((α - 1) log 2)`. -/
+theorem measureReal_exists_feasible_configuration_le_exp {N M : ℕ} (hN : 0 < N) {θ : ℝ}
+    (hM : (1 + θ) * N ≤ M) :
+    (Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin N => gaussianReal 0 1).real
+        {g | ∃ σ : Fin N → ℤˣ, ∀ k, 0 ≤ ∑ i, g k i * ((σ i : ℤ) : ℝ)} ≤
+      Real.exp (-(θ * Real.log 2 * N)) := by
+  refine (measureReal_exists_feasible_configuration_le hN).trans ?_
+  have h1 : (2 : ℝ) ^ ((1 + θ) * N) ≤ (2 : ℝ) ^ (M : ℝ) :=
+    Real.rpow_le_rpow_of_exponent_le one_le_two hM
+  rw [Real.rpow_natCast] at h1
+  have h2 : (2 : ℝ) ^ ((1 + θ) * N) = (2 : ℝ) ^ N * Real.exp (θ * Real.log 2 * N) := by
+    rw [Real.rpow_def_of_pos two_pos, ← Real.rpow_natCast, Real.rpow_def_of_pos two_pos,
+      ← Real.exp_add]
+    congr 1
+    ring
+  rw [h2] at h1
+  rw [Real.exp_neg, ← one_div, le_div_iff₀ (Real.exp_pos _)]
+  calc (2 : ℝ) ^ N / (2 : ℝ) ^ M * Real.exp (θ * Real.log 2 * N)
+      ≤ (2 : ℝ) ^ N / ((2 : ℝ) ^ N * Real.exp (θ * Real.log 2 * N)) *
+          Real.exp (θ * Real.log 2 * N) :=
+        mul_le_mul_of_nonneg_right (div_le_div_of_nonneg_left (by positivity) (by positivity) h1)
+          (Real.exp_pos _).le
+    _ = 1 := by field_simp
+
 /-- **No feasible configuration above the first-moment threshold** (the paragraph after (2.2)):
 if `M(N) / N → α > 1`, the probability that some spin satisfies all `M(N)` constraints tends to
 zero.  Each probability is taken under its own finite-dimensional disorder law. -/
@@ -143,28 +171,18 @@ theorem tendsto_measureReal_exists_feasible_configuration_zero {M : ℕ → ℕ}
         {g | ∃ σ : Fin N → ℤˣ, ∀ k, 0 ≤ ∑ i, g k i * ((σ i : ℤ) : ℝ)}) atTop (𝓝 0) := by
   set θ : ℝ := (α - 1) / 2 with hθ
   have hθ0 : 0 < θ := by rw [hθ]; linarith
-  have h2θ : 1 < (2 : ℝ) ^ θ := Real.one_lt_rpow one_lt_two hθ0
-  have hr : ((2 : ℝ) ^ θ)⁻¹ < 1 := inv_lt_one_of_one_lt₀ h2θ
-  have hr0 : 0 ≤ ((2 : ℝ) ^ θ)⁻¹ := by positivity
   have hev : ∀ᶠ N : ℕ in atTop, 0 < N ∧ (1 + θ) * N ≤ M N := by
     filter_upwards [eventually_gt_atTop 0, hM.eventually (lt_mem_nhds (a := 1 + θ)
       (by rw [hθ]; linarith))] with N hN hlt
     refine ⟨hN, ?_⟩
     have := (lt_div_iff₀ (Nat.cast_pos.2 hN)).1 hlt
     exact this.le
-  refine squeeze_zero' (Eventually.of_forall fun N => measureReal_nonneg) ?_
-    (tendsto_pow_atTop_nhds_zero_of_lt_one hr0 hr)
+  have hc : 0 < θ * Real.log 2 := mul_pos hθ0 (Real.log_pos one_lt_two)
+  have hlim : Tendsto (fun N : ℕ => Real.exp (-(θ * Real.log 2 * N))) atTop (𝓝 0) :=
+    Real.tendsto_exp_atBot.comp (tendsto_neg_atTop_atBot.comp
+      (tendsto_natCast_atTop_atTop.const_mul_atTop hc))
+  refine squeeze_zero' (Eventually.of_forall fun N => measureReal_nonneg) ?_ hlim
   filter_upwards [hev] with N ⟨hN, hMN⟩
-  refine (measureReal_exists_feasible_configuration_le hN).trans ?_
-  have h1 : (2 : ℝ) ^ ((1 + θ) * N) ≤ (2 : ℝ) ^ (M N : ℝ) :=
-    Real.rpow_le_rpow_of_exponent_le one_le_two hMN
-  have h2 : (2 : ℝ) ^ ((1 + θ) * N) = (2 : ℝ) ^ N * ((2 : ℝ) ^ θ) ^ N := by
-    rw [add_mul, one_mul, Real.rpow_add two_pos, Real.rpow_natCast,
-      Real.rpow_mul two_pos.le, Real.rpow_natCast]
-  rw [h2, Real.rpow_natCast] at h1
-  calc (2 : ℝ) ^ N / (2 : ℝ) ^ M N
-      ≤ (2 : ℝ) ^ N / ((2 : ℝ) ^ N * ((2 : ℝ) ^ θ) ^ N) :=
-        div_le_div_of_nonneg_left (by positivity) (by positivity) h1
-    _ = ((2 : ℝ) ^ θ)⁻¹ ^ N := by rw [inv_pow]; field_simp
+  exact measureReal_exists_feasible_configuration_le_exp hN hMN
 
 end SpinGlasses

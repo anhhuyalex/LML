@@ -16,6 +16,7 @@ public import LeanMachineLearning.ForMathlib.Analysis.Calculus.Gradient.Basic
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.GronwallBackward
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.IntervalDerivative
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.IntervalIntegralDeriv
+public import LeanMachineLearning.ForMathlib.Analysis.Calculus.IteratedDerivBounds
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.LinearODEScalar
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.QuadraticBounds
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.TaylorCoefficient
@@ -688,6 +689,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.BoundedPotent
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ExponentialPenalty
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.FirstMoment
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.GaussianFields
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.GibbsAverages
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.RandomNormals
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Maximizers.Hyperbolic
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Maximizers.Replacement

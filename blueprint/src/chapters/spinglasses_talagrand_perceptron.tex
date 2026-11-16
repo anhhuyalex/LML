@@ -219,14 +219,17 @@ limit in \texttt{ForMathlib/Analysis/SpecialFunctions/FiniteExponentialPenalty.l
         SpinGlasses.abs_inv_mul_log_sum_exp_potential_sub_log_two_le,
         SpinGlasses.integrable_log_sum_exp_potential,
         SpinGlasses.abs_inv_mul_integral_log_sum_exp_potential_sub_log_two_le,
-        SpinGlasses.abs_inv_mul_sum_deriv_mul_deriv_le}
+        SpinGlasses.abs_inv_mul_sum_deriv_mul_deriv_le,
+        SpinGlasses.abs_sum_potential_le,
+        SpinGlasses.sum_exp_potential_bounds,
+        SpinGlasses.inv_mul_log_sum_exp_const_potential}
   \leanok
 \talsource{Eqs.~(2.6), (2.10), (2.11)}
 Let $N\ge1$, $M\ge0$, and let $u:\mathbb R\to\mathbb R$ be measurable with $|u|\le D$. Write
 $E_u(g,\sigma)=\sum_{k<M}u(S_k(g,\sigma))$ (the exponent of the Gibbs weight; counting measure on the spins),
 $Z_u(g)=\sum_\sigma e^{E_u(g,\sigma)}$ and $p_{N,M}(u)=N^{-1}\mathbb E\log Z_u(g)$. Then:
 \begin{enumerate}
-\item $|E_u(g,\sigma)|\le MD$;
+\item $|E_u(g,\sigma)|\le MD$ and $0<2^Ne^{-MD}\le Z_u(g)\le2^Ne^{MD}$;
 \item $\bigl|N^{-1}\log Z_u(g)-\log2\bigr|\le\frac MN D$ for every disorder $g$;
 \item $\log Z_u$ is integrable, and $\bigl|p_{N,M}(u)-\log2\bigr|\le\frac MN D$;
 \item if moreover $|u'|\le D$, then for any two fixed spins $\sigma,\tau$ and every $g$,
@@ -259,9 +262,81 @@ three times differentiable with bounded derivatives of orders $0$ to $3$, implie
 is continuous, hence measurable), but is much stronger; no restriction on the load $M/N$ is needed. These are
 finite-size estimates. They do not prove the concentration statements (2.8) and (2.10) around $q$ and $r$, nor
 the asymptotic value of the pressure (2.11). For $u=0$ the bound is $0$, so $p_{N,M}(0)=\log2$, the value for the
-counting measure; for $M=0$ the same holds for every $u$.
+counting measure; for $M=0$ the same holds for every $u$. For $u=c$, direct summation gives
+$N^{-1}\log Z_u=\log2+(M/N)c$, so the pressure bound is sharp.
 Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/BoundedPotential.lean}, with the log-partition bound in
 \texttt{ForMathlib/Analysis/SpecialFunctions/LogSumExp.lean}.
+\end{proof}
+
+\begin{lemma}[The derivative hypothesis and its consequences]\label{lem:sg-tal:perceptron-regularity}
+  \lean{lipschitzWith_iteratedDeriv_of_forall_abs_le}
+  \leanok
+\talsource{Eq.~(2.7)}
+Write $u^{(0)}=u$. The hypothesis used in this chapter is that $u^{(j)}$ is differentiable for
+$0\le j<3$ and $|u^{(j)}(x)|\le D$ for $0\le j\le3$ and every real $x$.
+Then $D\ge0$, and $u$, $u'$ and $u''$ are $D$-Lipschitz, hence continuous and measurable.
+More generally the same statement holds with $3$ replaced by any nonnegative integer $m$,
+with the Lipschitz conclusion for orders less than $m$.
+\end{lemma}
+\begin{proof}
+  \leanok
+The order-zero bound at $0$ gives $0\le |u(0)|\le D$. Apply the mean value theorem to each
+$u^{(j)}$, using existence and the bound of its derivative $u^{(j+1)}$:
+\[
+ |u^{(j)}(x)-u^{(j)}(y)|\le D|x-y|\qquad(j<m).
+\]
+\emph{Formalization note.} Existence of the derivatives is stated separately from their bounds.
+Lean's derivative is defined even where a function is not differentiable, so bounds alone would
+not express (2.7). Continuity of $u'''$ is neither assumed nor asserted. The generic lemma is in
+\texttt{ForMathlib/Analysis/Calculus/IteratedDerivBounds.lean}.
+\end{proof}
+
+\begin{theorem}[Bounded replica averages]\label{thm:sg-tal:perceptron-gibbs-averages}
+  \lean{MeasureTheory.abs_integral_integral_pi_tilted_le,
+        SpinGlasses.integrable_integral_pi_count_tilted_sum_potential,
+        SpinGlasses.abs_integral_integral_pi_count_tilted_sum_potential_le,
+        SpinGlasses.integrable_integral_pi_count_tilted_deriv_mul_deriv,
+        SpinGlasses.abs_integral_integral_pi_count_tilted_deriv_mul_deriv_le}
+  \leanok
+  \uses{thm:sg-tal:perceptron-pressure,lem:sg-tal:perceptron-regularity}
+\talsource{Eqs.~(2.6)--(2.10), with the usual replica Gibbs averages}
+For any finite replica index set $R$, set
+\[
+ G_g=\mathrm{count}^{E_u(g,\cdot)},\qquad
+ \langle\Phi\rangle_g=\int\Phi(g,\sigma)\,dG_g^{\otimes R}(\sigma).
+\]
+Here $G_g$ is the normalized exponential tilt of counting measure, and all replicas share $g$.
+If $u$ is measurable, each $g\mapsto\Phi(g,\sigma)$ is measurable, and $|\Phi(g,\sigma)|\le C$,
+then $g\mapsto\langle\Phi\rangle_g$ is integrable and
+\[
+ |\mathbb E\langle\Phi\rangle_g|\le C.
+\]
+In particular if $|u'|\le D$, then the observable
+\[
+ B(g,\sigma^1,\sigma^2)=N^{-1}\sum_{k<M}u'(S_k(g,\sigma^1))u'(S_k(g,\sigma^2))
+\]
+has an integrable Gibbs average and $|\mathbb E\langle B\rangle_g|\le(M/N)D^2$.
+Zero spins, zero constraints and an empty replica index set are allowed in these bounds.
+\end{theorem}
+\begin{proof}
+  \leanok
+\emph{Step 1 (probability).} For fixed $g$ the spin space is finite and nonempty, so
+$0<\sum_\sigma e^{E_u(g,\sigma)}<\infty$. Thus $G_g$ and its replica product have mass one.
+
+\emph{Step 2 (integrability and bounds).} The existing finite replica integral theorem gives
+measurability and integrability from the bounds on $\Phi$. Twice applying the probability integral bound gives
+\[
+ |\langle\Phi\rangle_g|\le C,\qquad
+ |\mathbb E\langle\Phi\rangle_g|\le\mathbb E|\langle\Phi\rangle_g|\le C.
+\]
+\emph{Step 3 (derivative product).} The total derivative of a real function is measurable.
+Composition with the linear fields makes $B$ measurable, and the pointwise bound from
+Theorem~\ref{thm:sg-tal:perceptron-pressure} applies in Step~2 with $C=(M/N)D^2$.
+
+\emph{Formalization note.} These results supply well-defined averages for the expressions introduced
+in Section~2.1. They do not assert concentration or choose $q$ or $r$. The shared bound was generalized to
+allow disorder-dependent observables; the existing vector-spin callers use its constant-in-disorder case.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/GibbsAverages.lean}.
 \end{proof}
 
 \begin{theorem}[Gaussian and spherical normal vectors]\label{thm:sg-tal:perceptron-sphere}
@@ -340,4 +415,111 @@ single energy $E_u$ is used here for both.
 \item This is the book's first-moment argument. It neither computes the true threshold nor shows
 nonemptiness below it, so it does not address Research Problem~2.1.1.
 \end{itemize}
+\end{remark}
+
+
+\section{The smart path and auxiliary Gaussian spins (Talagrand Section~2.2)}\label{sec:sg-tal:perceptron-smart-path}
+
+Write $L=N+1$ for the full number of spins and $\sigma=(\rho,\varepsilon)\in\Sigma_N\times\{-1,1\}$.
+The old disorder is $g=(g_{k,i})$, the last disorder coordinate is $a=(a_k)$, and $y$ is the last field.
+These are held fixed while forming the Gibbs average. For $\xi\in\mathbb R^M$ put
+\[
+ S^\circ_{k,t}(\sigma)=L^{-1/2}\sum_{i<N}g_{k,i}\rho_i+\sqrt{t/L}\,a_k\varepsilon,
+ \qquad c_t=\sqrt{(1-t)/L}.
+\]
+The configuration is $(\sigma,\xi)$, with base measure counting on $\Sigma_N\times\{-1,1\}$ times
+$\gamma_M=\mathcal N(0,1)^{\otimes M}$. The energy is
+\[
+ E_t(\sigma,\xi)=\varepsilon\sqrt{1-t}\,y+
+     \sum_{k<M}u(S^\circ_{k,t}(\sigma)+c_t\xi_k).
+\]
+This is (2.15)--(2.16), with the two summands of the energy reordered.
+Different replicas have their own auxiliary coordinates and share the quenched variables $g,a,y$.
+
+\begin{lemma}[Marginal of a tilted product measure]\label{lem:sg-tal:perceptron-auxiliary-marginal}
+  \lean{MeasureTheory.integral_tilted_prod_fst,
+        MeasureTheory.map_fst_tilted_prod,
+        MeasureTheory.integral_pi_tilted_prod_fst,
+        MeasureTheory.integral_pi_tilted_count_prod_sum}
+  \leanok
+\talsource{Measure argument used in Exercise~2.2.1}
+Let $\mu,\nu$ be s-finite measures, $\nu\ne0$, and suppose $e^{E(a,b)}$ is integrable under
+$\mu\otimes\nu$. Set $Z(a)=\int e^{E(a,b)}\,d\nu(b)$.
+The first marginal of $(\mu\otimes\nu)^E$ is $\mu^{\log Z}$.
+Consequently every measurable observable of the first coordinates of finitely many replicas
+has the same integral under the corresponding product marginal law.
+For the one-replica integral identity with an arbitrary observable $f(a)$, assume additionally
+that $f(a)e^{E(a,b)}$ is integrable on the product.
+\end{lemma}
+\begin{proof}
+  \leanok
+\emph{Step 1 (positive fibers).} Fubini implies exponential integrability of the fibers for
+$\mu$-almost every $a$. Since $\nu\ne0$ and the exponential is strictly positive,
+\[
+ Z(a)>0,\qquad e^{\log Z(a)}=Z(a)\quad\hbox{for $\mu$-almost every $a$}.
+\]
+\emph{Step 2 (integrals).} Expanding the tilted average and using Fubini gives
+\[
+ \int f(a)\,d(\mu\otimes\nu)^E(a,b)
+ =\frac{\int f(a)Z(a)\,d\mu(a)}{\int Z(a)\,d\mu(a)}
+ =\int f\,d\mu^{\log Z}.
+\]
+Apply this to indicators to obtain equality of the marginal measures. Taking finite products
+and pushing each coordinate forward gives the replica statement, including an empty replica set.
+Formalized in \texttt{ForMathlib/MeasureTheory/Integral/ProductTiltedMarginal.lean}.
+\end{proof}
+
+\begin{theorem}[Integrating the auxiliary spins]\label{thm:sg-tal:perceptron-auxiliary-spins}
+  \lean{SpinGlasses.integral_pi_perceptron_smart_path_auxiliary}
+  \leanok
+  \uses{lem:sg-tal:perceptron-auxiliary-marginal}
+\talsource{Exercise~2.2.1 and Eq.~(2.20)}
+Suppose $u$ is measurable and bounded above. Define directly, for each real $x$,
+\[
+ u_t(x)=\log\int e^{u(x+c_tz)}\,d\gamma_1(z).
+\]
+For any finite replica set $R$ and any spin-only observable $F(\sigma^r:r\in R)$,
+its replica Gibbs average under $E_t$ is exactly its replica Gibbs average for the counting energy
+\[
+ E_t^{\rm eff}(\sigma)=\varepsilon\sqrt{1-t}\,y+
+       \sum_{k<M}u_t(S^\circ_{k,t}(\sigma)).
+\]
+No constraints, one full spin, and zero replicas are allowed.
+\end{theorem}
+\begin{proof}
+  \leanok
+\emph{Step 1 (finite normalizers).} An upper bound $u\le D$ gives, for fixed disorder,
+\[
+ E_t(\sigma,\xi)\le\sqrt{1-t}\,|y|+MD.
+\]
+The energy is measurable and the base measure is finite. Its exponential is integrable and
+strictly positive, so the Gibbs normalizer is positive and finite. Each one-coordinate
+exponential integral is positive as well.
+
+\emph{Step 2 (independent auxiliary coordinates).} Product integration gives
+\[
+ \int e^{E_t(\sigma,\xi)}\,d\gamma_M(\xi)
+ = e^{\varepsilon\sqrt{1-t}\,y}
+   \prod_{k<M}\int e^{u(S^\circ_{k,t}(\sigma)+c_tz)}\,d\gamma_1(z).
+\]
+Taking the logarithm gives $E_t^{\rm eff}(\sigma)$, and
+$e^{u_t(x)}=\int e^{u(x+c_tz)}\,d\gamma_1(z)$ by positivity.
+
+\emph{Step 3 (replicas).} Apply Lemma~\ref{lem:sg-tal:perceptron-auxiliary-marginal} to each replica.
+The Lean proof instantiates its finite-coordinate version, which permits different auxiliary
+probability laws and different measurable upper-bounded potentials at each coordinate.
+
+\emph{Formalization note.} The book uses $0\le t\le1$ for the smart path. This marginalization
+identity holds for every real $t$ with Lean's real square root; it requires no differentiation.
+No continuity or derivative bound is imposed on $u$, and the auxiliary variables remain
+part of the configuration before marginalization. The local symbol $u_t$ above is the direct
+logarithmic expression in Lean, without a new wrapper definition.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/AuxiliaryMarginal.lean}.
+\end{proof}
+
+\begin{remark}[Remaining results of Section~2.2]\label{rem:sg-tal:perceptron-smart-path-remaining}
+\talsource{Lemma~2.2.2, Proposition~2.2.3 and Exercise~2.2.4}
+The auxiliary marginal identity does not prove the zero-endpoint disorder factorization,
+the interior derivative formula, or the extra term for the path without auxiliary spins.
+Those results and the remaining path field and endpoint checks are still open in the Section~2.2 plan.
 \end{remark}
