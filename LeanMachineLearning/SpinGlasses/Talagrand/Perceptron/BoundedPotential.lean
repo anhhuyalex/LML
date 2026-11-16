@@ -30,6 +30,8 @@ The derivative-product observable of (2.10) is bounded in the same way by `(M / 
 * `SpinGlasses.integrable_log_sum_exp_potential`: the log-partition function is integrable.
 * `SpinGlasses.abs_inv_mul_integral_log_sum_exp_potential_sub_log_two_le`: the pressure bound.
 * `SpinGlasses.abs_inv_mul_sum_deriv_mul_deriv_le`: the bound for the observable (2.10).
+* `SpinGlasses.inv_mul_log_sum_exp_const_potential`: for a constant potential the pressure is
+  exactly `log 2 + (M / N) c`, so the constant `(M / N) D` above cannot be improved.
 -/
 
 @[expose] public section
@@ -135,5 +137,19 @@ theorem abs_inv_mul_sum_deriv_mul_deriv_le {u : ℝ → ℝ} {D : ℝ} (hD : ∀
   rw [abs_mul, abs_inv, Nat.abs_cast]
   calc _ ≤ (N : ℝ)⁻¹ * (M * D ^ 2) := by gcongr
     _ = M / N * D ^ 2 := by ring
+
+/-- **The pointwise bound is sharp.**  For a constant potential `u = c` and `N ≥ 1` the pressure is
+exactly `N⁻¹ log ∑ σ, exp (∑ k, c) = log 2 + (M / N) c`, so `(M / N) D` cannot be replaced by a
+smaller constant in `abs_inv_mul_log_sum_exp_potential_sub_log_two_le`. -/
+theorem inv_mul_log_sum_exp_const_potential (hN : 0 < N) (c : ℝ) :
+    (N : ℝ)⁻¹ * Real.log (∑ _σ : Fin N → ℤˣ, Real.exp (∑ _k : Fin M, c)) =
+      Real.log 2 + M / N * c := by
+  have hN' : (N : ℝ) ≠ 0 := (Nat.cast_pos.2 hN).ne'
+  rw [Finset.sum_const, Finset.sum_const, Finset.card_univ, card_spin_configurations,
+    Finset.card_univ, Fintype.card_fin, nsmul_eq_mul, nsmul_eq_mul, Real.log_mul (by positivity)
+      (Real.exp_pos _).ne', Real.log_exp]
+  push_cast
+  rw [Real.log_pow]
+  field_simp
 
 end SpinGlasses

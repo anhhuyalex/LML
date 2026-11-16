@@ -35,8 +35,9 @@ Also formalized: elementary finite-size bounds for a bounded potential, namely f
 pressure (2.11) and the derivative product of (2.10) (Theorem~\ref{thm:sg-tal:perceptron-pressure}); and the
 exponential-penalty limit (2.4) and the penalty Hamiltonian (2.5) at fixed $N$, $M$ and disorder
 (Theorem~\ref{thm:sg-tal:perceptron-penalty}).
-Not formalized here: the comparison of Gaussian and spherical normal vectors in the opening paragraph; the
-exchange of the limits $N\to\infty$ and $\beta\to\infty$ (stated in the book as a hope, not a result); the
+Also formalized: the comparison of Gaussian and uniformly distributed spherical normal vectors from the
+opening paragraph (Theorem~\ref{thm:sg-tal:perceptron-sphere}).
+Not formalized here: the exchange of the limits $N\to\infty$ and $\beta\to\infty$ (stated in the book as a hope, not a result); the
 concentration statements (2.8), (2.10) and the asymptotic value of the pressure (2.11);
 Research Problem~2.1.1, whose sharp threshold and entropy function are unknown in the book; the Volume~II
 bound with $\alpha_0<1$; and the cavity equations (2.8), (2.10) of Sections~2.2--2.4. The first-moment bound
@@ -263,12 +264,66 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/BoundedPotential.lean}, w
 \texttt{ForMathlib/Analysis/SpecialFunctions/LogSumExp.lean}.
 \end{proof}
 
+\begin{theorem}[Gaussian and spherical normal vectors]\label{thm:sg-tal:perceptron-sphere}
+  \lean{ProbabilityTheory.map_normalize_stdGaussian_eq,
+        ProbabilityTheory.map_normalize_toLp_pi_gaussianReal,
+        ProbabilityTheory.map_normalize_toLp_pi_pi_gaussianReal,
+        ProbabilityTheory.iIndepFun_normalize_toLp_pi_pi_gaussianReal,
+        ProbabilityTheory.inner_nonneg_normalize_iff,
+        SpinGlasses.forall_nonneg_sum_mul_normalize_iff}
+  \leanok
+\talsource{The opening paragraph of Section~2.1}
+Let $E$ be a nontrivial finite-dimensional real inner product space, $\nu$ the surface measure on the unit
+sphere $S\subset E$ induced by Lebesgue measure, and $\gamma$ the standard Gaussian measure on $E$.
+\begin{enumerate}
+\item The law of $x\mapsto\|x\|^{-1}x$ under $\gamma$ is $\nu(S)^{-1}\nu$, viewed as a measure on $E$. Here
+$0\mapsto0$, and $\gamma(\{0\})=0$.
+\item For $g,x\in E$: $\langle x,\|g\|^{-1}g\rangle\ge0$ iff $\langle x,g\rangle\ge0$.
+\item If $g=(g_{k,i})$ has i.i.d. standard Gaussian entries, the normalized rows
+$\|g_k\|^{-1}g_k\in\mathbb R^N$ ($N\ge1$) are independent and each has the law in (1) for $E=\mathbb R^N$.
+\item For every disorder $g$ and spin $\sigma\in\Sigma_N$, $\sigma\in A(g)$ iff all constraints hold with $g_k$
+replaced by $\|g_k\|^{-1}g_k$ (a zero row stays zero and its constraint holds).
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+  \leanok
+Write $f(r)=(2\pi)^{-n/2}e^{-r^2/2}$ for $n=\dim E$ and $\Phi:E\setminus\{0\}\to S\times(0,\infty)$,
+$\Phi(x)=(\|x\|^{-1}x,\|x\|)$.
+
+\emph{Step 1 (polar coordinates).} Lebesgue measure on $E\setminus\{0\}$ is sent by $\Phi$ to
+$\nu\otimes\rho_{n-1}$, where $\rho_{n-1}$ has density $r^{n-1}$ on $(0,\infty)$. The Gaussian has density
+$f(\|x\|)$ with respect to Lebesgue measure and does not charge $0$. For a measurable $A\subset S$,
+\[
+\gamma\bigl(\{x\ne0:\|x\|^{-1}x\in A\}\bigr)=\int_A\int_0^\infty f(r)\,d\rho_{n-1}(r)\,d\nu=m\,\nu(A),
+\qquad m=\int_0^\infty f\,d\rho_{n-1}.
+\]
+
+\emph{Step 2 (the constant).} Taking $A=S$ gives $1=m\,\nu(S)$, and $0<\nu(S)<\infty$ since $E$ is nontrivial.
+Hence $m=\nu(S)^{-1}$, which proves (1); dimension one is included.
+
+\emph{Step 3 (half-spaces).} By bilinearity $\langle x,\|g\|^{-1}g\rangle=\|g\|^{-1}\langle x,g\rangle$ and
+$\|g\|^{-1}>0$ for $g\ne0$, while both sides hold for $g=0$. This is (2); (4) is (2) with $E=\mathbb R^N$,
+$x=\sigma$.
+
+\emph{Step 4 (rows).} Under the product law the rows are independent, so are measurable functions of them;
+the law of one row is $\gamma$ on $\mathbb R^N=E$ by the coordinate form of the Gaussian, which gives (3) from (1).
+
+The result is stated for the Gaussian measure and the normalized surface measure of the volume-induced
+sphere measure; it does not claim a uniform law for spins that depend on the disorder. Formalized in
+\texttt{ForMathlib/Probability/StdGaussianDirection.lean} and
+\texttt{SpinGlasses/Talagrand/Perceptron/RandomNormals.lean}.
+\end{proof}
+
 \begin{remark}[Comparison with the book, Section~2.1]\label{rem:sg-tal:perceptron-comparison}
 \talsource{Section~2.1}
 \begin{itemize}
 \item The book says the fields are ``of order one''. Lemma~\ref{lem:sg-tal:perceptron-fields} makes this exact:
 a fixed spin gives a standard normal field. This is a statement for deterministic spins under the disorder
 law; it fills in what the book leaves implicit, and does not apply to Gibbs-distributed spins.
+\item The book says a Gaussian normal vector may be replaced by a uniformly distributed unit vector. Theorem~\ref{thm:sg-tal:perceptron-sphere}
+proves the law identity (the direction of a standard Gaussian is the normalized surface measure) and the
+equality of the half-spaces, with no sphere-valued default; it is stated for a nontrivial finite-dimensional
+inner product space, not only $\mathbb R^N$ with $N\ge2$.
 \item The book computes $\mathbb E\,C=2^N/2^M$ and states emptiness for $\alpha>1$ in one sentence. The Lean
 proof adds the explicit bound $\mathbb P(A\ne\varnothing)\le(2^{-\theta})^N$, uses real powers so that $M>N$ is
 handled, and records that $N\ge1$ is used.

@@ -57,4 +57,6 @@ Blueprint chapters: `blueprint/src/chapters/spinglasses.tex` (Panchenko) and
   binary perceptron. `GaussianFields.lean` gives the laws of the constraint fields of fixed spins and
   `FirstMoment.lean` the expected number of feasible configurations and the emptiness bound for
   `M / N → α > 1`; `ExponentialPenalty.lean` the fixed-size limit of exponential penalties, and
-  `BoundedPotential.lean` finite-size energy, pressure and derivative-product bounds.
+  `BoundedPotential.lean` finite-size energy, pressure and derivative-product bounds, and
+  `RandomNormals.lean` the invariance of the feasible spins under normalizing the Gaussian normals
+  (the uniform-direction law itself is `ForMathlib/Probability/StdGaussianDirection.lean`).
