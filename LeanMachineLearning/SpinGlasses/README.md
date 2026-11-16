@@ -9,7 +9,8 @@ A new file goes in the directory of the topic it treats, and must be added to
 `LeanMachineLearning.lean` (run `lake exe mk_all`).
 
 Blueprint chapters: `blueprint/src/chapters/spinglasses.tex` (Panchenko) and
-`blueprint/src/chapters/spinglasses_talagrand.tex` (Talagrand, *Spin Glasses*, Vol. I).
+`blueprint/src/chapters/spinglasses_talagrand.tex` (Talagrand, *Spin Glasses*, Vol. I, Chapter 1) and
+`blueprint/src/chapters/spinglasses_talagrand_perceptron.tex` (Talagrand, Section 2.1).
 
 ## Shared tools
 
@@ -52,3 +53,7 @@ Blueprint chapters: `blueprint/src/chapters/spinglasses.tex` (Panchenko) and
   `FixedPoint/` contains the matrix fixed-point equations and their solution; `FreeEnergy/` contains
   log-partition derivatives, replica-symmetric pressure and the thermodynamic limit.
   Module and declaration names describe the mathematics; book theorem numbers belong in comments.
+* `Perceptron/` (blueprint chapter `chap:sg-talagrand-perceptron`, Talagrand Section 2.1): the Gaussian
+  binary perceptron. `GaussianFields.lean` gives the laws of the constraint fields of fixed spins and
+  `FirstMoment.lean` the expected number of feasible configurations and the emptiness bound for
+  `M / N → α > 1`.
