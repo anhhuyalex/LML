@@ -79,14 +79,23 @@ $N^{-1/2}\sum_i g_{k,i}\sigma^k_i$ are independent, and (for $N\ge1$) they are i
 \]
 where $b_i=\tau_i/\sqrt N$. The second display is the self-overlap equal to $1$ on the hypercube.
 
-\emph{Step 2 (Gaussian linear forms).} For i.i.d. standard Gaussians $x$ the linear form $a\cdot x$ is centered
-with $\mathbb E[(a\cdot x)(b\cdot x)]=a\cdot b$, and $a\cdot x\sim\mathcal N(0,a\cdot a)$. With Step~1 this gives
-(1) and (2). The family $(a^r\cdot x)_r$ over finitely many coefficient vectors is jointly Gaussian with Gram
-matrix $(a^r\cdot a^s)$, which gives (3).
+\emph{Step 2 (Gaussian linear forms).} Apply the Gaussian linear-form and Gram-law identities:
+\[
+ S(\sigma)=a\cdot x\sim\mathcal N(0,a\cdot a)=\mathcal N(0,1),\qquad
+ \mathbb E S(\sigma)=0,\qquad
+ \mathbb E[S(\sigma)S(\tau)]=a\cdot b=R(\sigma,\tau).
+\]
+For a finite family of coefficient vectors the same Gram-law identity gives
+\[
+ (S(\sigma^r))_r\sim\mathcal N\!\left(0,(a^r\cdot a^s)_{r,s}\right).
+\]
+The Gaussian linear-form moment bounds give integrability, including singular Gram matrices.
 
-\emph{Step 3 (columns).} The columns $g_{k,\cdot}$ are independent, so functions of different columns are
-independent. If each coefficient vector has square sum one, each field is $\mathcal N(0,1)$, and the law of the
-vector of fields is the product law $\mathcal N(0,1)^{\otimes M}$. This gives (4).
+\emph{Step 3 (columns).} Product-coordinate independence and the marginal law in Step~2 give
+\[
+ \mathcal L\!\left((S_k(g,\sigma^k))_{k<M}\right)
+ =\bigotimes_{k<M}\mathcal N(0,1).
+\]
 
 The statements concern fixed spins under the disorder law; they do not say that the field stays standard normal
 when $\sigma$ is drawn from a Gibbs measure that depends on $g$.
@@ -135,7 +144,9 @@ bounded and measurable, so
 The quotient is written with real powers; the natural-number difference $N-M$ would be wrong for $M>N$.
 
 \emph{Step 4 (Markov).} $C$ is nonnegative and integrable, and $C\ge1$ on $\{A\ne\varnothing\}$, hence
-$\mathbb P(A\ne\varnothing)\le\mathbb E\,C$.
+\[
+ \mathbb P(A\ne\varnothing)=\mathbb P(C\ge1)\le\mathbb E C=\frac{2^N}{2^M}.
+\]
 
 The hypothesis $N\ge1$ is needed: for $N=0$ every field is zero and the single empty configuration satisfies all
 constraints, so $\mathbb P(\sigma\in A)=1\ne(1/2)^M$ when $M>0$. The case $M=0$ is allowed.
@@ -144,24 +155,42 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/FirstMoment.lean}, with t
 \end{proof}
 
 \begin{theorem}[No feasible configuration above the first-moment threshold]\label{thm:sg-tal:perceptron-empty}
-  \lean{SpinGlasses.tendsto_measureReal_exists_feasible_configuration_zero}
+  \lean{SpinGlasses.tendsto_measureReal_exists_feasible_configuration_zero,
+        SpinGlasses.measureReal_exists_feasible_configuration_le_exp}
   \leanok
-\talsource{The paragraph after Eq.~(2.2)}
-Let $M:\mathbb N\to\mathbb N$ and $\alpha>1$ with $M(N)/N\to\alpha$. Then
+\talsource{The paragraph after Eq.~(2.2); part 1 of Research Problem~2.1.1 for $\alpha>1$}
+\begin{enumerate}
+\item If $N\ge1$, $\theta\in\mathbb R$ and $M\ge(1+\theta)N$, then
+$\mathbb P_{N,M}\bigl(A(g)\ne\varnothing\bigr)\le\exp\bigl(-\theta(\log2)N\bigr)$.
+\item Let $M:\mathbb N\to\mathbb N$ and $\alpha>1$ with $M(N)/N\to\alpha$. Then
 \[
 \mathbb P_{N,M(N)}\bigl(A(g)\ne\varnothing\bigr)\longrightarrow0\qquad(N\to\infty),
 \]
-where each probability is taken under the product Gaussian law of its own disorder $g\in\mathbb R^{M(N)\times N}$.
+and eventually the probability is at most $\exp(-N/K)$ with $K=2/((\alpha-1)\log2)$.
+\end{enumerate}
+Each probability is taken under the product Gaussian law of its own disorder $g\in\mathbb R^{M(N)\times N}$.
+Item~(1) is informative for $\theta>0$; it is the exponential bound required in part~1 of Research Problem~2.1.1,
+for $\alpha>1$ only. The sharp threshold $\alpha^*$ of the problem is not addressed.
 \end{theorem}
 \begin{proof}
   \leanok
-Put $\theta=(\alpha-1)/2>0$. Since $M(N)/N\to\alpha>1+\theta$, eventually $M(N)\ge(1+\theta)N$ and $N\ge1$.
-By Theorem~\ref{thm:sg-tal:perceptron-first-moment}(3), for such $N$
+Write $\theta=(\alpha-1)/2$ and $b=2^{-\theta}$.
+\emph{Step 1 (eventual load bound).} Convergence of the ratio gives, eventually,
+\[
+ \theta>0,\qquad N\ge1,\qquad M(N)\ge(1+\theta)N,\qquad 0<b<1.
+\]
+\emph{Step 2 (first-moment bound).} Theorem~\ref{thm:sg-tal:perceptron-first-moment}(3) gives
 \[
 \mathbb P_{N,M(N)}(A\ne\varnothing)\le\frac{2^N}{2^{M(N)}}\le\frac{2^N}{2^{(1+\theta)N}}=\bigl(2^{-\theta}\bigr)^N.
 \]
-Since $2^{-\theta}<1$, the right-hand side tends to $0$, and probabilities are nonnegative. No coupling of
-different $N$ is needed.
+\emph{Step 3 (geometric limit).} Since $0<b<1$,
+\[
+ 0\le\mathbb P_{N,M(N)}(A\ne\varnothing)\le b^N\longrightarrow0.
+\]
+No coupling of different $N$ is needed. Item~(1) is Steps~1--2 with $b^N=\exp(-\theta(\log2)N)$: writing
+$2^{M}\ge2^{(1+\theta)N}=2^N e^{\theta(\log2)N}$ gives
+$\mathbb P(A\ne\varnothing)\le2^N/2^M\le e^{-\theta(\log2)N}$, and (2) is item~(1) with
+$\theta=(\alpha-1)/2$, so $K=1/(\theta\log2)$.
 Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/FirstMoment.lean}.
 \end{proof}
 
@@ -189,21 +218,33 @@ $u(x)=-\beta$ for $x<0$ and $u(x)=0$ otherwise.
 \end{theorem}
 \begin{proof}
   \leanok
-\emph{Step 1 (one state).} If $c(a)=0$ then $e^{-\beta c(a)}=1$ for all $\beta$. If $c(a)>0$ then
-$e^{-\beta c(a)}\to0$ as $\beta\to\infty$.
+\emph{Step 1 (one state).} Separate the zero and positive costs:
+\[
+ \lim_{\beta\to\infty}e^{-\beta c(a)}=
+ \begin{cases}1,&c(a)=0,\\ 0,&c(a)>0.
+ \end{cases}
+\]
 
 \emph{Step 2 (finite sum).} A finite sum of convergent functions converges to the sum of the limits:
 \[
 \sum_{a}e^{-\beta c(a)}\longrightarrow\sum_{a}\mathbf 1_{\{c(a)=0\}}=\#\{a:\ c(a)=0\}.
 \]
 
-\emph{Step 3 (the perceptron).} Take $c(\sigma)=V_g(\sigma)$. Then $V_g(\sigma)=0$ means no constraint
-is violated, which is $\sigma\in A(g)$. For an integer-valued cost, every state with $c(a)\ge1$
-contributes at most $e^{-\beta}$ when $\beta\ge0$, and there are $2^N-C(g)$ such states; this gives the
-displayed error bound.
+\emph{Step 3 (the perceptron and the error).} Put $c(\sigma)=V_g(\sigma)$. For $\beta\ge0$,
+\[
+ \{\sigma:V_g(\sigma)=0\}=A(g),\qquad
+ 0\le\sum_\sigma e^{-\beta V_g(\sigma)}-C(g)
+ =\sum_{\sigma\notin A(g)}e^{-\beta V_g(\sigma)}
+ \le(2^N-C(g))e^{-\beta},
+\]
+because an integer-valued positive cost is at least one.
 
-\emph{Step 4 (the potential).} Since $\sqrt N>0$, the sign of $S_k(g,\sigma)$ equals the sign of
-$\sum_ig_{k,i}\sigma_i$, so summing $u(S_k)$ over $k$ counts $-\beta$ once per violated constraint.
+\emph{Step 4 (the potential).} Since $\sqrt N>0$,
+\[
+ S_k(g,\sigma)<0\ \Longleftrightarrow\ \sum_i g_{k,i}\sigma_i<0,\qquad
+ \sum_{k<M}u(S_k(g,\sigma))=-\beta\sum_{k<M}\mathbf1_{\{S_k(g,\sigma)<0\}}
+ =-\beta V_g(\sigma).
+\]
 
 This is a statement at fixed $N$, $M$ and $g$. The factor $2^N$ in the error bound does not control normalized
 logarithms uniformly in $N$, so nothing is said about exchanging $\beta\to\infty$ with $N\to\infty$.
@@ -238,15 +279,21 @@ $\bigl|N^{-1}\sum_{k<M}u'(S_k(g,\sigma))\,u'(S_k(g,\tau))\bigr|\le\frac MN D^2$.
 \end{theorem}
 \begin{proof}
   \leanok
-\emph{Step 1 (energy).} Each of the $M$ terms of $E_u$ has modulus at most $D$, so
-$|E_u(g,\sigma)|\le MD$. This is item~1.
+\emph{Step 1 (energy and partition sum).} The bound on each summand gives
+\[
+ |E_u(g,\sigma)|\le\sum_{k<M}|u(S_k(g,\sigma))|\le MD,\qquad
+ 0<2^Ne^{-MD}\le\sum_\sigma e^{E_u(g,\sigma)}\le2^Ne^{MD}.
+\]
 
 \emph{Step 2 (log-partition function).} For $|E(\sigma)|\le B$ on a finite set,
 \[
 \Bigl|\log\sum_\sigma e^{E(\sigma)}-\log|\Sigma_N|\Bigr|\le B,
 \]
-because the map $E\mapsto\log\sum_\sigma e^{E(\sigma)}$ is $1$-Lipschitz for the supremum norm. With
-$|\Sigma_N|=2^N$ and $B=MD$ this gives $|\log Z_u-N\log2|\le MD$; dividing by $N$ gives item~2.
+because the map $E\mapsto\log\sum_\sigma e^{E(\sigma)}$ is $1$-Lipschitz for the supremum norm. Hence
+\[
+ \left|N^{-1}\log Z_u-\log2\right|
+ =N^{-1}|\log Z_u-N\log2|\le N^{-1}MD=\frac MN D.
+\]
 
 \emph{Step 3 (pressure).} $\log Z_u$ is measurable in $g$ since $u$ is, and it is bounded by $N\log2+MD$, hence
 integrable under the probability disorder law. Integrating item~2,
@@ -254,8 +301,19 @@ integrable under the probability disorder law. Integrating item~2,
 \bigl|p_{N,M}(u)-\log2\bigr|=\Bigl|\mathbb E\bigl(N^{-1}\log Z_u-\log2\bigr)\Bigr|\le\frac MN D.
 \]
 
-\emph{Step 4 (derivative product).} Each of the $M$ products $u'(S_k(g,\sigma))u'(S_k(g,\tau))$ has modulus at most
-$D^2$, so the sum is at most $MD^2$ and the factor $N^{-1}$ gives item~4. The denominator is $N$, not $M$.
+\emph{Step 4 (derivative product).} The bound on each factor gives
+\[
+ \left|N^{-1}\sum_{k<M}u'(S_k(g,\sigma))u'(S_k(g,\tau))\right|
+ \le N^{-1}\sum_{k<M}|u'(S_k(g,\sigma))|\,|u'(S_k(g,\tau))|
+ \le\frac MN D^2.
+\]
+The denominator is $N$, not $M$.
+
+\emph{Step 5 (constant potential).} Direct summation and $N>0$ give
+\[
+ Z_c=\sum_\sigma e^{Mc}=2^Ne^{Mc},\qquad
+ N^{-1}\log Z_c=N^{-1}(N\log2+Mc)=\log2+\frac MN c.
+\]
 
 Only measurability of $u$ and the bounds $|u|\le D$, $|u'|\le D$ are used. The book's hypothesis (2.7), that $u$ is
 three times differentiable with bounded derivatives of orders $0$ to $3$, implies these (a differentiable function
@@ -280,8 +338,11 @@ with the Lipschitz conclusion for orders less than $m$.
 \end{lemma}
 \begin{proof}
   \leanok
-The order-zero bound at $0$ gives $0\le |u(0)|\le D$. Apply the mean value theorem to each
-$u^{(j)}$, using existence and the bound of its derivative $u^{(j+1)}$:
+\emph{Step 1 (sign of the bound).} The order-zero bound at $0$ gives
+\[
+ 0\le |u(0)|\le D.
+\]
+\emph{Step 2 (mean value theorem).} Apply the derivative bound to each $u^{(j)}$:
 \[
  |u^{(j)}(x)-u^{(j)}(y)|\le D|x-y|\qquad(j<m).
 \]
@@ -321,7 +382,10 @@ Zero spins, zero constraints and an empty replica index set are allowed in these
 \begin{proof}
   \leanok
 \emph{Step 1 (probability).} For fixed $g$ the spin space is finite and nonempty, so
-$0<\sum_\sigma e^{E_u(g,\sigma)}<\infty$. Thus $G_g$ and its replica product have mass one.
+\[
+ 0<\sum_\sigma e^{E_u(g,\sigma)}<\infty,\qquad G_g(\Sigma_N)=1,\qquad
+ G_g^{\otimes R}(\Sigma_N^R)=1.
+\]
 
 \emph{Step 2 (integrability and bounds).} The existing finite replica integral theorem gives
 measurability and integrability from the bounds on $\Phi$. Twice applying the probability integral bound gives
@@ -331,7 +395,12 @@ measurability and integrability from the bounds on $\Phi$. Twice applying the pr
 \]
 \emph{Step 3 (derivative product).} The total derivative of a real function is measurable.
 Composition with the linear fields makes $B$ measurable, and the pointwise bound from
-Theorem~\ref{thm:sg-tal:perceptron-pressure} applies in Step~2 with $C=(M/N)D^2$.
+Theorem~\ref{thm:sg-tal:perceptron-pressure} applies in Step~2:
+\[
+ |B(g,\sigma^1,\sigma^2)|\le\frac MN D^2
+ \quad\Longrightarrow\quad
+ |\mathbb E\langle B\rangle_g|\le\frac MN D^2.
+\]
 
 \emph{Formalization note.} These results supply well-defined averages for the expressions introduced
 in Section~2.1. They do not assert concentration or choose $q$ or $r$. The shared bound was generalized to
@@ -373,15 +442,25 @@ $f(\|x\|)$ with respect to Lebesgue measure and does not charge $0$. For a measu
 \qquad m=\int_0^\infty f\,d\rho_{n-1}.
 \]
 
-\emph{Step 2 (the constant).} Taking $A=S$ gives $1=m\,\nu(S)$, and $0<\nu(S)<\infty$ since $E$ is nontrivial.
-Hence $m=\nu(S)^{-1}$, which proves (1); dimension one is included.
+\emph{Step 2 (the constant).} Take $A=S$ and use that $E$ is nontrivial:
+\[
+ 0<\nu(S)<\infty,\qquad 1=\gamma(E)=m\nu(S),\qquad m=\nu(S)^{-1}.
+\]
+Dimension one is included.
 
-\emph{Step 3 (half-spaces).} By bilinearity $\langle x,\|g\|^{-1}g\rangle=\|g\|^{-1}\langle x,g\rangle$ and
-$\|g\|^{-1}>0$ for $g\ne0$, while both sides hold for $g=0$. This is (2); (4) is (2) with $E=\mathbb R^N$,
-$x=\sigma$.
+\emph{Step 3 (half-spaces).} Bilinearity and $\|g\|^{-1}>0$ for $g\ne0$ give
+\[
+ \langle x,\|g\|^{-1}g\rangle=\|g\|^{-1}\langle x,g\rangle,\qquad
+ 0\le\langle x,\|g\|^{-1}g\rangle\ \Longleftrightarrow\ 0\le\langle x,g\rangle.
+\]
+Both inequalities hold for $g=0$. Apply this with $x=\sigma$ to each constraint.
 
-\emph{Step 4 (rows).} Under the product law the rows are independent, so are measurable functions of them;
-the law of one row is $\gamma$ on $\mathbb R^N=E$ by the coordinate form of the Gaussian, which gives (3) from (1).
+\emph{Step 4 (rows).} Put $T(v)=\|v\|^{-1}v$ and $\bar\nu=\nu(S)^{-1}\nu$, viewed on $E$.
+The coordinate Gaussian law and the product pushforward identity give
+\[
+ \mathcal L(g_k)=\gamma,\qquad T_*\gamma=\bar\nu,\qquad
+ \mathcal L((T(g_k))_{k<M})=\bigotimes_{k<M}\bar\nu.
+\]
 
 The result is stated for the Gaussian measure and the normalized surface measure of the volume-induced
 sphere measure; it does not claim a uniform law for spins that depend on the disorder. Formalized in
@@ -420,7 +499,7 @@ nonemptiness below it, so it does not address Research Problem~2.1.1.
 
 \section{The smart path and auxiliary Gaussian spins (Talagrand Section~2.2)}\label{sec:sg-tal:perceptron-smart-path}
 
-Write $L=N+1$ for the full number of spins and $\sigma=(\rho,\varepsilon)\in\Sigma_N\times\{-1,1\}$.
+Write $L=N+1$, $A_L=\Sigma_N\times\{-1,1\}$ and $\sigma=(\rho,\varepsilon)\in A_L$.
 The old disorder is $g=(g_{k,i})$, the last disorder coordinate is $a=(a_k)$, and $y$ is the last field.
 These are held fixed while forming the Gibbs average. For $\xi\in\mathbb R^M$ put
 \[
@@ -453,6 +532,8 @@ that $f(a)e^{E(a,b)}$ is integrable on the product.
 \end{lemma}
 \begin{proof}
   \leanok
+If $\mu=0$ both marginal measures are zero. Otherwise the exponential normalizer is positive
+by the stated integrability and $\nu\ne0$.
 \emph{Step 1 (positive fibers).} Fubini implies exponential integrability of the fibers for
 $\mu$-almost every $a$. Since $\nu\ne0$ and the exponential is strictly positive,
 \[
@@ -464,8 +545,15 @@ $\mu$-almost every $a$. Since $\nu\ne0$ and the exponential is strictly positive
  =\frac{\int f(a)Z(a)\,d\mu(a)}{\int Z(a)\,d\mu(a)}
  =\int f\,d\mu^{\log Z}.
 \]
-Apply this to indicators to obtain equality of the marginal measures. Taking finite products
-and pushing each coordinate forward gives the replica statement, including an empty replica set.
+\emph{Step 3 (marginal and replicas).} Write $\pi(a,b)=a$ and $\kappa=(\mu\otimes\nu)^E$.
+Apply Step~2 to indicators, then use the product pushforward identity:
+\[
+ \pi_*\kappa=\mu^{\log Z},\qquad
+ (\pi^R)_*(\kappa^{\otimes R})=(\pi_*\kappa)^{\otimes R}
+ =(\mu^{\log Z})^{\otimes R}.
+\]
+Integration of a measurable observable against these equal laws gives the replica statement,
+including an empty replica set.
 Formalized in \texttt{ForMathlib/MeasureTheory/Integral/ProductTiltedMarginal.lean}.
 \end{proof}
 
@@ -488,9 +576,12 @@ No constraints, one full spin, and zero replicas are allowed.
 \end{theorem}
 \begin{proof}
   \leanok
-\emph{Step 1 (finite normalizers).} An upper bound $u\le D$ gives, for fixed disorder,
+\emph{Step 1 (finite normalizers).} Write
+$B_t=\sum_{\sigma\in A_L}|\varepsilon\sqrt{1-t}\,y|$. An upper bound $u\le D$ gives
 \[
- E_t(\sigma,\xi)\le\sqrt{1-t}\,|y|+MD.
+ E_t(\sigma,\xi)\le|\varepsilon\sqrt{1-t}\,y|+MD\le B_t+MD,\qquad
+ 0<\sum_{\sigma\in A_L}\int e^{E_t(\sigma,\xi)}\,d\gamma_M(\xi)
+ \le |A_L|e^{B_t+MD}<\infty.
 \]
 The energy is measurable and the base measure is finite. Its exponential is integrable and
 strictly positive, so the Gibbs normalizer is positive and finite. Each one-coordinate
@@ -503,9 +594,21 @@ exponential integral is positive as well.
    \prod_{k<M}\int e^{u(S^\circ_{k,t}(\sigma)+c_tz)}\,d\gamma_1(z).
 \]
 Taking the logarithm gives $E_t^{\rm eff}(\sigma)$, and
-$e^{u_t(x)}=\int e^{u(x+c_tz)}\,d\gamma_1(z)$ by positivity.
+positivity gives
+\[
+ \log\int e^{E_t(\sigma,\xi)}\,d\gamma_M(\xi)
+ =\varepsilon\sqrt{1-t}\,y+
+   \sum_{k<M}\log\int e^{u(S^\circ_{k,t}(\sigma)+c_tz)}\,d\gamma_1(z)
+ =E_t^{\rm eff}(\sigma),\qquad
+ e^{u_t(x)}=\int e^{u(x+c_tz)}\,d\gamma_1(z).
+\]
 
 \emph{Step 3 (replicas).} Apply Lemma~\ref{lem:sg-tal:perceptron-auxiliary-marginal} to each replica.
+With $G_t$ the full tilted law and $G_t^{\rm eff}$ the effective spin law,
+\[
+ \int F((\sigma^r)_{r\in R})\,dG_t^{\otimes R}
+ =\int F((\sigma^r)_{r\in R})\,d(G_t^{\rm eff})^{\otimes R}.
+\]
 The Lean proof instantiates its finite-coordinate version, which permits different auxiliary
 probability laws and different measurable upper-bounded potentials at each coordinate.
 
