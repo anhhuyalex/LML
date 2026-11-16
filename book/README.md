@@ -67,7 +67,7 @@ python3 -m unittest discover -s book/talagrand/checks -p 'check_*.py'   # with P
 
 The first full build asks Lean to `#check` about 1 600 declarations in one process (a few
 minutes) and stores the results in `book/typstverso/typst/lean.json` (about 25 MB, not
-committed). Later builds reuse it. The 15 sections are typeset in parallel (`BOOK_JOBS`, default
+committed). Later builds reuse it. The sections are typeset in parallel (`BOOK_JOBS`, default
 all cores); on a 44-core machine the whole script takes about 20 minutes with a cold cache. The cache is keyed on the toolchain and dependency pins, not
 on the Lean sources: after changing Lean code, rebuild the oleans and run with `BOOK_REFRESH=1`
 (the build warns when sources are newer than the cache). CI keys its cache on the sources.

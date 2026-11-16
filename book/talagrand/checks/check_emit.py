@@ -100,7 +100,12 @@ class TypstCompileChecks(unittest.TestCase):
     def test_real_chapter_compiles(self):
         out = self.generated_dir("chapter")
         summary = convert(CHAPTER, out)
-        self.assertEqual(len(summary["sections"]), 15)
+        # The chapter grows (a section was added after this test was written): do not pin the count,
+        # but require what the pipeline relies on, section files s00, s01, ... with part = 0, 1, ...
+        sections = summary["sections"]
+        self.assertGreaterEqual(len(sections), 15)
+        self.assertEqual([s["id"] for s in sections], [f"s{i:02d}" for i in range(len(sections))])
+        self.assertEqual([s["part"] for s in sections], list(range(len(sections))))
         result = self.compile(out / "book.typ")
         self.assertEqual(result.returncode, 0, result.stderr[-2000:])
 
