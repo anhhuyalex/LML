@@ -107,7 +107,7 @@ theorem integrable_integral_skVectorCavity {R : Type*} [Fintype R] (hgm : ∀ p,
     (measurable_skVectorCavityEnergy_joint ξ hξ N β ρ q hgm hg'm hYm t)
     (fun _ => isProbabilityMeasure_tilted_skVectorCavityEnergy μ ξ hξ (Nat.cast_nonneg d) hbound N
       β ρ q
-      _ _ _ t) hG hGb.choose_spec
+      _ _ _ t) (hG.comp measurable_snd) (fun _ => hGb.choose_spec)
 
 omit [IsProbabilityMeasure P] in
 include hξ hbound in

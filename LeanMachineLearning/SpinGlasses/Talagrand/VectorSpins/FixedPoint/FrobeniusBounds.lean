@@ -165,7 +165,8 @@ theorem abs_sum_integral_pair_le {Ω R : Type*} [MeasurableSpace Ω] [Fintype R]
       (fun j _ ω => by
         have := hprob ω
         exact integrable_of_measurable_bound (hGm j) (hGb j))
-      (fun j _ => integrable_integral_pi_tilted hE hprob (hGm j) (hGb j))
+      (fun j _ => integrable_integral_pi_tilted hE hprob
+        ((hGm j).comp measurable_snd) (fun _ => hGb j))
   have hconv : (∑ u, ∑ v, Δ u v * ∫ ω, ∫ σ : Option (Option R) → α,
       (F fun a => σ (some (some a))) *
         (∑ a, ξ (σ (some (some a))) u - n * ξ (σ (some none)) u) *
@@ -240,7 +241,8 @@ theorem abs_sum_integral_single_le {Ω R : Type*} [MeasurableSpace Ω] [Fintype 
       (fun j _ ω => by
         have := hprob ω
         exact integrable_of_measurable_bound (hGm j) (hGb j))
-      (fun j _ => integrable_integral_pi_tilted hE hprob (hGm j) (hGb j))
+      (fun j _ => integrable_integral_pi_tilted hE hprob
+        ((hGm j).comp measurable_snd) (fun _ => hGb j))
   rw [← hsum]
   refine abs_integral_integral_pi_tilted_le hprob fun _ σ => ?_
   have hq : ∀ a, |∑ u, ∑ v, C u v * (ξ a u * ξ a v)| ≤ d * ε := fun a => by

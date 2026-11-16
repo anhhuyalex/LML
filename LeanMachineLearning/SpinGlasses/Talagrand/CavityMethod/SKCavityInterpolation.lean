@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.MeasureTheory.MeasurableSpace.Embedding
 public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsMeasure
 public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKReplicaSymmetricBound
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.HypercubeProduct
@@ -97,9 +98,9 @@ theorem integral_count_tilted_fin_snoc_cavity_units (N : ℕ)
           f (Fin.snoc ρ (-1)) * Real.exp (-L ρ)) / 2 ∂(Measure.count.tilted A)) /
         (∫ ρ, Real.cosh (L ρ) ∂(Measure.count.tilted A)) := by
   let e : ((Fin N → ℤˣ) × ℤˣ) ≃ (Fin (N + 1) → ℤˣ) :=
-    (Equiv.prodComm (Fin N → ℤˣ) ℤˣ).trans (Fin.snocEquiv fun _ => ℤˣ)
+    (MeasurableEquiv.finSuccProd ℤˣ N).symm.toEquiv
   rw [integral_count_tilted_equiv e _ f]
-  simp only [e, Equiv.trans_apply, Equiv.prodComm_apply, Fin.snocEquiv_apply,
+  simp only [e, MeasurableEquiv.coe_toEquiv, MeasurableEquiv.finSuccProd_symm_apply,
     Fin.snoc_castSucc, Fin.snoc_last]
   change ∫ x : (Fin N → ℤˣ) × ℤˣ, f (Fin.snoc x.1 x.2)
     ∂(Measure.count.tilted fun x => A x.1 + (x.2 : ℝ) * L x.1) = _

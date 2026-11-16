@@ -96,7 +96,7 @@ theorem integral_skVector_replica_perm {M : ℕ} {Ω R : Type*} [MeasurableSpace
   have hΦm : Measurable Φ :=
     measurable_integral_pi_tilted (μ := Measure.pi fun _ : Fin M => μ) (ι := R)
       (E := fun g a => skVectorEnergy M β g (fun i => ξ (a i)))
-      (measurable_skVectorEnergy_joint ξ hξ β) hΘ
+      (measurable_skVectorEnergy_joint ξ hξ β) (hΘ.comp measurable_snd)
   have hinner : ∀ ω, ∫ σ : R → Fin M → α, Θ (fun r i => σ r (π i)) ∂(Measure.pi fun _ : R =>
       (Measure.pi fun _ : Fin M => μ).tilted (fun a => skVectorEnergy M β (gt ω)
         (fun i => ξ (a i)))) = Φ (gt ω ∘ (pairPerm π.symm).symm) := by
@@ -132,7 +132,7 @@ theorem integrable_integral_skVectorEnergy {N d : ℕ} {Ω R : Type*} [Measurabl
     ((measurable_skVectorEnergy_joint ξ hξ β).comp (hgt.comp measurable_fst |>.prodMk
       measurable_snd))
     (fun ω => isProbabilityMeasure_tilted_skVectorEnergy μ ξ hξ (Nat.cast_nonneg d) hbound N β
-      (gt ω)) hG hGb.choose_spec
+      (gt ω)) (hG.comp measurable_snd) (fun _ => hGb.choose_spec)
 
 /-- **Symmetry between sites** (Eq. (1.383)): for two replicas, `ν((R - T) (R - T)) =
 ν(ε_last (R - T))` where `R - T = (N+1)⁻¹ ∑_i e_i` is the centered overlap and `e_i` the centered

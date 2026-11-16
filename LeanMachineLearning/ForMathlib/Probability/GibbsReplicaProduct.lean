@@ -325,29 +325,31 @@ section Measurability
 
 variable {Ω : Type*} [MeasurableSpace Ω]
 
-/-- **Measurability of a replica Gibbs average in the random environment.** If the energy
-`E ω a` is jointly measurable, the average of a measurable function of `ι` replicas is a
-measurable function of `ω`. -/
+/-- **Measurability of a replica Gibbs average in the random environment.** The energy and
+observable may both depend jointly measurably on the environment. -/
 theorem measurable_integral_pi_tilted {E : Ω → α → ℝ} (hE : Measurable fun p : Ω × α => E p.1 p.2)
-    {G : (ι → α) → ℝ} (hG : Measurable G) :
-    Measurable fun ω => ∫ σ, G σ ∂(Measure.pi fun _ : ι => μ.tilted (E ω)) := by
-  simp_rw [pi_tilted_eq_tilted_pi]
+    {G : Ω → (ι → α) → ℝ} (hG : Measurable fun p : Ω × (ι → α) => G p.1 p.2) :
+    Measurable fun ω => ∫ σ, G ω σ ∂(Measure.pi fun _ : ι => μ.tilted (E ω)) := by
+  simp_rw [integral_pi_tilted_eq_div]
   have hJ : Measurable fun p : Ω × (ι → α) => ∑ i, E p.1 (p.2 i) :=
     Finset.measurable_sum _ fun i _ => hE.comp (measurable_fst.prodMk
       ((measurable_pi_apply i).comp measurable_snd))
-  exact measurable_integral_tilted hJ hG
+  exact ((hG.mul hJ.exp).integral_prod_right' (ν := Measure.pi fun _ : ι => μ)).div
+    (hJ.exp.integral_prod_right' (ν := Measure.pi fun _ : ι => μ))
 
-/-- A bounded replica Gibbs average is integrable in the random environment. -/
+/-- A uniformly bounded, jointly measurable replica observable has an integrable Gibbs average
+in the environment. Its dependence on the environment may be shared with the energy. -/
 theorem integrable_integral_pi_tilted {E : Ω → α → ℝ}
     (hE : Measurable fun p : Ω × α => E p.1 p.2)
     (hprob : ∀ ω, IsProbabilityMeasure (μ.tilted (E ω))) {P : Measure Ω} [IsFiniteMeasure P]
-    {G : (ι → α) → ℝ} (hG : Measurable G) {M : ℝ} (hGb : ∀ σ, |G σ| ≤ M) :
-    Integrable (fun ω => ∫ σ, G σ ∂(Measure.pi fun _ : ι => μ.tilted (E ω))) P := by
+    {G : Ω → (ι → α) → ℝ} (hG : Measurable fun p : Ω × (ι → α) => G p.1 p.2)
+    {M : ℝ} (hGb : ∀ ω σ, |G ω σ| ≤ M) :
+    Integrable (fun ω => ∫ σ, G ω σ ∂(Measure.pi fun _ : ι => μ.tilted (E ω))) P := by
   refine (integrable_const M).mono' (measurable_integral_pi_tilted hE hG).aestronglyMeasurable
     (Filter.Eventually.of_forall fun ω => ?_)
   have := hprob ω
   have := norm_integral_le_of_norm_le_const (μ := Measure.pi fun _ : ι => μ.tilted (E ω))
-    (f := G) (C := M) (Filter.Eventually.of_forall fun σ => by simpa using hGb σ)
+    (f := G ω) (C := M) (Filter.Eventually.of_forall fun σ => by simpa using hGb ω σ)
   simpa using this
 
 omit [IsFiniteMeasure μ] in

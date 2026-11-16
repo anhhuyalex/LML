@@ -188,9 +188,9 @@ theorem skVectorCavityAverage_zero_centered_mul_eq_zero {d N : ℕ} {Ω : Type*}
   have hAm : Measurable A := measurable_integral_pi_tilted
     (μ := Measure.pi fun _ : Fin N => μ) (ι := Fin 2)
     (E := fun x τ => skVectorEnergy N (β * Real.sqrt ((N : ℝ) / ((N : ℝ) + 1))) x
-      (fun j => ξ (τ j))) hEj₁ hΨ
+      (fun j => ξ (τ j))) hEj₁ (hΨ.comp measurable_snd)
   have hBm : Measurable B := measurable_integral_pi_tilted (μ := μ) (ι := Fin 2)
-    (E := fun y a => skVectorFieldExponent ξ β ρ q y a) hEj₂ hΨ₂m
+    (E := fun y a => skVectorFieldExponent ξ β ρ q y a) hEj₂ (hΨ₂m.comp measurable_snd)
   -- step 3: independence of the old couplings and the field
   have hGm : Measurable fun ω p => g p ω := measurable_pi_iff.2 hgm
   have hHm : Measurable fun ω u => Y u ω := measurable_pi_iff.2 hYm

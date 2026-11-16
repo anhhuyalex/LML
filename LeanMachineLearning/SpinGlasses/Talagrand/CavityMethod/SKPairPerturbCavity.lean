@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.MeasureTheory.MeasurableSpace.Embedding
 public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsMeasureNested
 public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityGaussian
 public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityInterpolation
@@ -42,10 +43,10 @@ theorem integral_prod_count_tilted_fin_snoc_cavity_units (N : ℕ)
         ∂((Measure.count.tilted A).prod (Measure.count.tilted A))) /
         (∫ ρ, Real.cosh (L ρ) ∂Measure.count.tilted A) ^ 2 := by
   let e : ((Fin N → ℤˣ) × ℤˣ) ≃ (Fin (N + 1) → ℤˣ) :=
-    (Equiv.prodComm (Fin N → ℤˣ) ℤˣ).trans (Fin.snocEquiv fun _ => ℤˣ)
+    (MeasurableEquiv.finSuccProd ℤˣ N).symm.toEquiv
   rw [integral_prod_count_tilted_equiv e _ (fun σ τ =>
     g (fun i => σ i.castSucc) (fun i => τ i.castSucc))]
-  simp only [e, Equiv.trans_apply, Equiv.prodComm_apply, Fin.snocEquiv_apply,
+  simp only [e, MeasurableEquiv.coe_toEquiv, MeasurableEquiv.finSuccProd_symm_apply,
     Fin.snoc_castSucc, Fin.snoc_last]
   exact integral_prod_count_tilted_units A L g
 

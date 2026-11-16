@@ -631,7 +631,7 @@ theorem integrable_integral_skVectorCavityAverage {Ω R : Type*} [MeasurableSpac
   exact integrable_integral_pi_tilted (μ := Measure.pi fun _ : Fin (N + 1) => μ)
     (measurable_skVectorCavityEnergy_joint ξ hξ N β ρ q hgm hg'm hYm t)
     (fun ω => isProbabilityMeasure_tilted_skVectorCavityEnergy μ ξ hξ hr hbound N β ρ q _ _ _ t)
-      hG hB
+      (hG.comp measurable_snd) (fun _ => hB)
 
 /-- **Proposition 1.12.4 at a fixed environment** (the algebra behind Eq. (1.376)).  For any
 probability measure `ν` on configurations of `N + 1` spins, the covariance combination of the cavity

@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.MeasureTheory.MeasurableSpace.Embedding
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenPathCalculus
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenVanishing
 public import LeanMachineLearning.SpinGlasses.Talagrand.Hanen.SKHanenIterStructure
@@ -50,8 +51,9 @@ theorem integral_skCavityPath_zero_decoupled (N R : ℕ) (β q h : ℝ) (g' : Fi
           fun y : (Fin N → ℤˣ) × ℤˣ =>
             skCavityOldEnergy N β h g' y.1 + ((y.2 : ℤˣ) : ℝ) * (β * ω.2 * Real.sqrt q + h)) := by
   let e : ((Fin N → ℤˣ) × ℤˣ) ≃ (Fin (N + 1) → ℤˣ) :=
-    (Equiv.prodComm (Fin N → ℤˣ) ℤˣ).trans (Fin.snocEquiv fun _ => ℤˣ)
-  have he (x : (Fin N → ℤˣ) × ℤˣ) : e x = Fin.snoc x.1 x.2 := rfl
+    (MeasurableEquiv.finSuccProd ℤˣ N).symm.toEquiv
+  have he (x : (Fin N → ℤˣ) × ℤˣ) : e x = Fin.snoc x.1 x.2 :=
+    MeasurableEquiv.finSuccProd_symm_apply N x
   rw [integral_pi_count_tilted_equiv (R := Fin R) e (skCavityPathEnergy N β q h 0 g' ω)]
   have hE : (fun x : (Fin N → ℤˣ) × ℤˣ => skCavityPathEnergy N β q h 0 g' ω (e x)) =
       fun x => skCavityOldEnergy N β h g' x.1 + ((x.2 : ℤˣ) : ℝ) * (β * ω.2 * Real.sqrt q + h) := by

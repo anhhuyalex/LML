@@ -136,7 +136,8 @@ theorem abs_skVectorCavityAverage_zero_overlap_le {d N : ℕ} {Ω : Type*} [Meas
     (MB := d * (d + d)) ?_ ?_ hc0 ?_).trans ?_
   · intro G hG hGb
     exact integrable_integral_pi_tilted (ι := Fin 2) (P := P)
-      (μ := Measure.pi fun _ : Fin (N + 1) => μ) hEnm hprob hG hGb.choose_spec
+      (μ := Measure.pi fun _ : Fin (N + 1) => μ) hEnm hprob (hG.comp measurable_snd)
+        (fun _ => hGb.choose_spec)
   · exact (hΨm.comp hrestr).mul hWm
   · exact hEm.mul hWm
   · intro σ

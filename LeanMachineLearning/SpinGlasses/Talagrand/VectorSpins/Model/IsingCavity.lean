@@ -256,7 +256,7 @@ theorem integrable_skVectorCavityGibbs {Ω R α : Type*} [MeasurableSpace Ω] [F
   integrable_integral_pi_tilted (μ := Measure.pi fun _ : Fin (N + 1) => μ)
     (measurable_skVectorCavityEnergy_joint ξ hξ N β ρ q hgm hg'm hYm t)
     (fun _ => isProbabilityMeasure_tilted_skVectorCavityEnergy μ ξ hξ hr hbound N β ρ q _ _ _ t)
-    hG hGb
+    (hG.comp measurable_snd) (fun _ => hGb)
 
 /-! ### S6. Disorder average equality (Milestone A1) -/
 

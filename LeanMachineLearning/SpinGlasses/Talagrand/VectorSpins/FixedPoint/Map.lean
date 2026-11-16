@@ -43,7 +43,7 @@ theorem measurable_skVectorFieldAverage {d : ℕ} {R : Type*} [Fintype R] (μ : 
     Measurable (skVectorFieldAverage μ ξ β ρ q F) :=
   measurable_integral_pi_tilted (μ := μ) (ι := R)
     (E := fun y a => skVectorFieldExponent ξ β ρ q y a)
-    (measurable_skVectorFieldExponent_joint ξ hξ β ρ q) hF
+    (measurable_skVectorFieldExponent_joint ξ hξ β ρ q) (hF.comp measurable_snd)
 
 /-- The right-hand sides of (1.372) and (1.373) as a map on pairs `(q, ρ)` of matrices:
 `T(q, ρ) = (E⟨ξᵤ⟩⟨ξᵥ⟩, E⟨ξᵤ ξᵥ⟩)` for the Gaussian field of covariance `β² q` and the field
