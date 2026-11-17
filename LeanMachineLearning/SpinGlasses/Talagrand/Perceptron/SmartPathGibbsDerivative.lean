@@ -102,30 +102,27 @@ theorem hasDerivAt_integral_pi_perceptron_smart_path {N M : ℕ} {R : Type*} [Fi
 theorem integrable_tilted_perceptron_smart_path_energy_deriv {N M : ℕ} {u : ℝ → ℝ}
     (hu : Differentiable ℝ u) {B D : ℝ} (hB : ∀ x, u x ≤ B) (hD : ∀ z, |deriv u z| ≤ D)
     (g : Fin M → Fin N → ℝ) (a : Fin M → ℝ) (y t : ℝ) (ht : t ∈ Set.Ioo 0 1) :
+    let S := fun (s : ℝ) (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) (k : Fin M) =>
+      (Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i, g k i * ((x.1.1 i : ℤ) : ℝ)) +
+        Real.sqrt (s / (N + 1)) * a k * ((x.1.2 : ℤ) : ℝ) +
+        Real.sqrt ((1 - s) / (N + 1)) * x.2 k
+    let E := fun (s : ℝ) (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) =>
+      ((x.1.2 : ℤ) : ℝ) * Real.sqrt (1 - s) * y + ∑ k, u (S s x k)
+    let E' := fun (s : ℝ) (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) =>
+      -((x.1.2 : ℤ) : ℝ) * y / (2 * Real.sqrt (1 - s)) +
+      ∑ k, deriv u (S s x k) * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
+        (a k * ((x.1.2 : ℤ) : ℝ) / Real.sqrt s - x.2 k / Real.sqrt (1 - s)))
     let μ := (Measure.count : Measure ((Fin N → ℤˣ) × ℤˣ)).prod
       (Measure.pi fun _ : Fin M => gaussianReal 0 1)
-    let E := fun (s : ℝ) (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) =>
-      ((x.1.2 : ℤ) : ℝ) * Real.sqrt (1 - s) * y +
-        ∑ k, u ((Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i, g k i * ((x.1.1 i : ℤ) : ℝ)) +
-          Real.sqrt (s / (N + 1)) * a k * ((x.1.2 : ℤ) : ℝ) +
-          Real.sqrt ((1 - s) / (N + 1)) * x.2 k)
-    let E' := fun (s : ℝ) (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) =>
-      let S := fun (k : Fin M) =>
-        (Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i, g k i * ((x.1.1 i : ℤ) : ℝ)) +
-          Real.sqrt (s / (N + 1)) * a k * ((x.1.2 : ℤ) : ℝ) +
-          Real.sqrt ((1 - s) / (N + 1)) * x.2 k
-      -((x.1.2 : ℤ) : ℝ) * y / (2 * Real.sqrt (1 - s)) +
-        ∑ k, deriv u (S k) * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
-          (a k * ((x.1.2 : ℤ) : ℝ) / Real.sqrt s - x.2 k / Real.sqrt (1 - s)))
     Integrable (E' t) (μ.tilted (E t)) := by
-  intro μ E E'
-  obtain ⟨δ, hδ, s, hs, ht_in, hts⟩ :
-      ∃ δ > 0, ∃ s, IsOpen s ∧ t ∈ s ∧ s ⊆ Set.Icc δ (1 - δ) :=
-    exists_between ht.1 ht.2
+  intro S E E' μ
+  obtain ⟨δ, hδ, hδmin⟩ := exists_between (lt_min ht.1 (sub_pos.mpr ht.2))
+  have hδt : δ < t := hδmin.trans_le (min_le_left _ _)
+  have hδ1 : δ < 1 - t := hδmin.trans_le (min_le_right _ _)
   have hmE : Measurable (E t) :=
     measurable_perceptron_smart_path_energy_slice hu.continuous.measurable g a y t
   have hmE' : Measurable (E' t) := by
-    dsimp only [E']
+    dsimp only [E', S]
     fun_prop
   have hEb (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) : E t x ≤ M * B + |y| :=
     perceptron_smart_path_energy_le_of_nonneg hB g a y t ht.1.le x
@@ -134,7 +131,7 @@ theorem integrable_tilted_perceptron_smart_path_energy_deriv {N M : ℕ} {u : �
       ((|a k| + |x.2 k|) / Real.sqrt δ)
   have hib : Integrable b μ := integrable_perceptron_smart_path_envelope D δ y a
   have hdb (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) : |E' t x| ≤ b x :=
-    abs_deriv_perceptron_smart_path_energy_le hδ (hts ht_in) hD g a x.2 x.1.1 x.1.2 y
+    abs_deriv_perceptron_smart_path_energy_le hδ ⟨hδt.le, by linarith⟩ hD g a x.2 x.1.1 x.1.2 y
   have hiE' : Integrable (E' t) μ := hib.mono' hmE'.aestronglyMeasurable
     (ae_of_all _ fun x => by simpa only [Real.norm_eq_abs] using hdb x)
   exact integrable_tilted_of_ae_le hmE.aemeasurable (ae_of_all _ hEb) hiE'
