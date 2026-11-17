@@ -6,6 +6,9 @@ Authors: LML Contributors
 module
 
 public import Mathlib.Analysis.SpecialFunctions.Pow.NNReal
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Analysis.Calculus.Deriv.Basic
+public import Mathlib.Analysis.Calculus.Deriv.Mul
 
 /-!
 # Estimates for differences of square roots
@@ -60,5 +63,13 @@ theorem sq_sqrt_sub_le {q a : ℝ} (hq : 0 < q) (ha : 0 ≤ a) :
     linarith
   have := key (Real.sqrt q) (Real.sqrt_pos.mpr hq)
   rwa [Real.sq_sqrt hq.le] at this
+
+/-- Derivative of `s ↦ √(s / L)` for `0 ≤ L` and `z ≠ 0`. -/
+theorem hasDerivAt_sqrt_div_const {L z : ℝ} (hL : 0 ≤ L) (hz : z ≠ 0) :
+    HasDerivAt (fun s : ℝ => Real.sqrt (s / L)) (1 / (2 * Real.sqrt z) / Real.sqrt L) z := by
+  have e : (fun s : ℝ => Real.sqrt (s / L)) = fun s => Real.sqrt s / Real.sqrt L :=
+    funext fun s => Real.sqrt_div' s hL
+  rw [e]
+  exact (Real.hasDerivAt_sqrt hz).div_const (Real.sqrt L)
 
 end Real

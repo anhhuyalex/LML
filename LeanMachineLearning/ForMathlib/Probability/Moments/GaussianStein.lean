@@ -150,6 +150,26 @@ theorem integrable_exp_mul_abs_gaussianReal {m : ℝ} {v : ℝ≥0} (w : ℝ) :
     refine le_add_of_nonneg_of_le (Real.exp_pos _).le (le_of_eq ?_)
     ring_nf
 
+/-- `|id|` is integrable against any real Gaussian law. -/
+theorem integrable_abs_id_gaussianReal {m : ℝ} {v : ℝ≥0} :
+    Integrable (fun t : ℝ => |t|) (gaussianReal m v) := by
+  refine (integrable_exp_mul_abs_gaussianReal (m := m) (v := v) 1).mono' (by fun_prop) ?_
+  refine Eventually.of_forall fun t => ?_
+  rw [Real.norm_eq_abs, abs_abs, one_mul]
+  exact (le_add_of_nonneg_right zero_le_one).trans (Real.add_one_le_exp |t|)
+
+/-- An affine combination of absolute coordinates is integrable against a product of
+a finite measure and standard Gaussian coordinates. -/
+theorem integrable_add_sum_mul_abs_snd {A : Type*} [MeasurableSpace A] (ν : Measure A)
+    [IsFiniteMeasure ν] {M : ℕ} (c : ℝ) (w : Fin M → ℝ) :
+    Integrable (fun x : A × (Fin M → ℝ) => c + ∑ k, w k * |x.2 k|)
+      (ν.prod (Measure.pi fun _ : Fin M => gaussianReal 0 1)) := by
+  have hξ (k : Fin M) : Integrable (fun x : A × (Fin M → ℝ) => |x.2 k|)
+      (ν.prod (Measure.pi fun _ : Fin M => gaussianReal 0 1)) :=
+    (integrable_comp_eval (integrable_abs_id_gaussianReal (m := 0) (v := 1))).comp_snd ν
+  exact (integrable_const c).add (integrable_finsetSum Finset.univ fun k _ =>
+    (hξ k).const_mul (w k))
+
 omit [DecidableEq ι] in
 /-- `exp (∑ k, w k |ξ k|)` is integrable against i.i.d. standard Gaussians. -/
 theorem integrable_exp_sum_mul_abs_pi (w : ι → ℝ) :

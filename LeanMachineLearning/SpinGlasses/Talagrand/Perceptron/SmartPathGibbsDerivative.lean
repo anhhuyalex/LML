@@ -97,9 +97,8 @@ theorem hasDerivAt_integral_pi_perceptron_smart_path {N M : ℕ} {R : Type*} [Fi
     have hr1 : r < 1 := by linarith [hr.2, hδ]
     exact hasDerivAt_perceptron_smart_path_energy ⟨hr0, hr1⟩ hu g a x.2 x.1.1 x.1.2 y
   have hdb (r : ℝ) (hr : r ∈ s) (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) :
-      |E' r x| ≤ b x := by
-    rw [← (hcalc x r hr).deriv]
-    exact abs_deriv_perceptron_smart_path_energy_le hδ ⟨hr.1.le, hr.2.le⟩ hu hD
+      |E' r x| ≤ b x :=
+    abs_deriv_perceptron_smart_path_energy_le hδ ⟨hr.1.le, hr.2.le⟩ hD
       g a x.2 x.1.1 x.1.2 y
   have hres := hasDerivAt_integral_pi_tilted_of_dominated (μ := μ) (E := E) (E' := E') hs
     (fun r _ => hmE r) (hmE' t) hEb hib hdb hcalc hF hFb

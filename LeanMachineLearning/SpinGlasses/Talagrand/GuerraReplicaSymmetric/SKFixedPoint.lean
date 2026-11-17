@@ -95,11 +95,8 @@ section Stability
 open Filter
 
 /-- `|z|` is integrable against the standard Gaussian measure. -/
-theorem integrable_abs_id_gaussianReal : Integrable (fun z : ℝ => |z|) (gaussianReal 0 1) := by
-  refine (integrable_exp_mul_abs_gaussianReal 1).mono' (by fun_prop)
-    (Eventually.of_forall fun z => ?_)
-  simp only [Real.norm_eq_abs, abs_abs, one_mul]
-  exact (le_add_of_nonneg_right zero_le_one).trans (Real.add_one_le_exp (|z|))
+theorem integrable_abs_id_gaussianReal : Integrable (fun z : ℝ => |z|) (gaussianReal 0 1) :=
+  ProbabilityTheory.integrable_abs_id_gaussianReal
 
 /-- Affine map `z ↦ w * z + h` is continuous. -/
 theorem continuous_affine (w h : ℝ) : Continuous fun z : ℝ => w * z + h :=

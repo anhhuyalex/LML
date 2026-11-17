@@ -154,10 +154,12 @@ theorem hasDerivAt_integral_pi_tilted_of_dominated {α R : Type*} [MeasurableSpa
   let J := fun (r : ℝ) (σ : R → α) => ∑ i, E r (σ i)
   let J' := fun (r : ℝ) (σ : R → α) => ∑ i, E' r (σ i)
   have ht : t ∈ s := mem_of_mem_nhds hs
-  have hJ (r : ℝ) (hr : r ∈ s) : Measurable (J r) :=
-    Finset.measurable_sum _ fun i _ => (hE r hr).comp (measurable_pi_apply i)
-  have hJ' : Measurable (J' t) :=
-    Finset.measurable_sum _ fun i _ => hE'.comp (measurable_pi_apply i)
+  have hJ (r : ℝ) (hr : r ∈ s) : Measurable (J r) := by
+    dsimp only [J]
+    fun_prop
+  have hJ' : Measurable (J' t) := by
+    dsimp only [J']
+    fun_prop
   have hJb (r : ℝ) (hr : r ∈ s) (σ : R → α) : J r σ ≤ (Fintype.card R : ℝ) * B := by
     simpa only [Finset.sum_const, Finset.card_univ, nsmul_eq_mul] using
       Finset.sum_le_sum (s := Finset.univ) (fun i _ => hEb r hr (σ i))

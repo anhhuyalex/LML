@@ -357,4 +357,10 @@ theorem sum_sq_integral_tilted_le {α ι : Type*} [MeasurableSpace α] [Fintype 
   have : IsProbabilityMeasure (μ.tilted e) := isProbabilityMeasure_tilted he
   exact sum_sq_integral_le Y hY hb
 
+/-- Pointwise bound `|x e^y| ≤ c e^B` for `|x| ≤ c` and `y ≤ B`. -/
+theorem abs_mul_exp_le {x y c B : ℝ} (hx : |x| ≤ c) (hy : y ≤ B) :
+    |x * Real.exp y| ≤ c * Real.exp B := by
+  rw [abs_mul, abs_of_pos (Real.exp_pos _)]
+  exact mul_le_mul hx (Real.exp_le_exp.mpr hy) (Real.exp_pos _).le ((abs_nonneg _).trans hx)
+
 end MeasureTheory

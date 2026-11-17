@@ -149,12 +149,8 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path {N M : ℕ}
       have hXT : (∑ k, |x.2 k|) ≤ T := by dsimp only [T]; linarith [abs_nonneg ω.2]
       exact hk.trans (hXT.trans htotal)
     have hcoef : 0 ≤ D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) := by positivity
-    have hlin := abs_deriv_perceptron_smart_path_energy_le hδ ⟨hs.1.le, hs.2.le⟩ hu hD
+    have hlin := abs_deriv_perceptron_smart_path_energy_le hδ ⟨hs.1.le, hs.2.le⟩ hD
       ω.1.1 ω.1.2 x.2 x.1.1 x.1.2 ω.2
-    change |deriv (fun q => E q ω x) s| ≤
-      |ω.2| / (2 * Real.sqrt δ) + ∑ k, D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) *
-        ((|ω.1.2 k| + |x.2 k|) / Real.sqrt δ) at hlin
-    rw [(hcalc ω x s hs).deriv] at hlin
     calc _ ≤ |ω.2| / (2 * Real.sqrt δ) + ∑ k,
           D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) *
             ((|ω.1.2 k| + |x.2 k|) / Real.sqrt δ) := hlin
