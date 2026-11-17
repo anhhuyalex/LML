@@ -65,4 +65,7 @@ Blueprint chapters: `blueprint/src/chapters/spinglasses.tex` (Panchenko) and
   for disorder-dependent replica observables.
   `AuxiliaryMarginal.lean` integrates the auxiliary Gaussian coordinates of the smart path, reusing
   `ForMathlib/MeasureTheory/Integral/ProductTiltedMarginal.lean`. `SmartPathDecoupling.lean` proves
-  both zero-endpoint factorization identities. The path derivative remains open.
+  both zero-endpoint factorization identities. `SmartPathFields.lean` gives the constant-variance
+  prior law; `SmartPathBounds.lean` gives measurable probability Gibbs laws and bounded-average
+  integrability from an upper-bounded potential, and `SmartPathEndpoints.lean` recovers the original
+  Gibbs law at one. The actual path derivative remains open.

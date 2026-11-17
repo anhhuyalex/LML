@@ -110,9 +110,10 @@ theorem abs_inv_mul_integral_log_sum_exp_potential_sub_log_two_le (hN : 0 < N) {
       Real.log 2| ≤ M / N * D := by
   have h := abs_integral_log_sum_exp_sub_log_card_le_const
     (μ := Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin N => gaussianReal 0 1)
-    (E := fun g σ => ∑ k, u ((Real.sqrt N)⁻¹ * ∑ i, g k i * ((σ i : ℤ) : ℝ)))
+    (E := fun (g : Fin M → Fin N → ℝ) (σ : Fin N → ℤˣ) =>
+      ∑ k, u ((Real.sqrt N)⁻¹ * ∑ i, g k i * ((σ i : ℤ) : ℝ))) (B := M * D)
     (fun σ => Finset.measurable_sum _ fun k _ => hu.comp (by fun_prop))
-    (fun g σ => abs_sum_potential_le hD g σ)
+    (fun g σ => abs_sum_potential_le (N := N) (M := M) hD g σ)
   have hN' : (0 : ℝ) < N := Nat.cast_pos.2 hN
   rw [← inv_mul_log_card_spin_configurations hN, ← mul_sub, abs_mul,
     abs_of_pos (inv_pos.2 hN')]

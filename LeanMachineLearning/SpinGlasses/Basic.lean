@@ -141,10 +141,6 @@ lemma log_card_spin_configurations [DecidableEq ι] :
     Real.log (Fintype.card (ι → ℤˣ)) = Fintype.card ι * Real.log 2 := by
   rw [card_spin_configurations, Nat.cast_pow, Real.log_pow, Nat.cast_ofNat]
 
-end SpinGlasses
-
-namespace SpinGlasses
-
 /-- The entropy per spin of counting measure is `log 2` for a positive number of spins. -/
 theorem inv_mul_log_card_spin_configurations {N : ℕ} (hN : 0 < N) :
     (N : ℝ)⁻¹ * Real.log (Fintype.card (Fin N → ℤˣ)) = Real.log 2 := by

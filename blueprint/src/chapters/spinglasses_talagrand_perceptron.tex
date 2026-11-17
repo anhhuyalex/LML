@@ -261,6 +261,8 @@ limit in \texttt{ForMathlib/Analysis/SpecialFunctions/FiniteExponentialPenalty.l
         Finset.abs_sum_le_card_mul_of_abs_le,
         MeasureTheory.integrable_log_sum_exp_of_abs_le,
         MeasureTheory.abs_integral_log_sum_exp_sub_log_card_le,
+        MeasureTheory.abs_integral_log_sum_exp_sub_log_card_le_const,
+        SpinGlasses.inv_mul_log_card_spin_configurations,
         SpinGlasses.abs_inv_mul_log_sum_exp_potential_sub_log_two_le,
         SpinGlasses.integrable_log_sum_exp_potential,
         SpinGlasses.abs_inv_mul_integral_log_sum_exp_potential_sub_log_two_le,
@@ -809,11 +811,15 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathFields.lean}.
 
 \begin{theorem}[Well-defined smart-path Gibbs averages]\label{thm:sg-tal:perceptron-path-bounds}
   \lean{SpinGlasses.measurable_perceptron_smart_path_energy,
+        SpinGlasses.perceptron_smart_path_energy_le,
         SpinGlasses.abs_perceptron_smart_path_energy_le,
         SpinGlasses.integrable_exp_perceptron_smart_path_energy,
         SpinGlasses.integral_exp_perceptron_smart_path_energy_pos,
         SpinGlasses.isProbabilityMeasure_tilted_perceptron_smart_path_energy,
         SpinGlasses.integrable_integral_pi_perceptron_smart_path,
+        MeasureTheory.measurable_integral_tilted_dep,
+        MeasureTheory.Measure.prod.instNeZero,
+        integral_sub_const_of_isProbabilityMeasure,
         MeasureTheory.measurable_integral_pi_tilted,
         MeasureTheory.integrable_integral_pi_tilted,
         abs_integral_integral_le_of_forall_abs_le,
@@ -821,7 +827,7 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathFields.lean}.
   \leanok
   \uses{thm:sg-tal:perceptron-pressure}
 \talsource{Eqs.~(2.15)--(2.19), (2.21)}
-Suppose $u$ is measurable and $|u|\le D$. Write $L=N+1$,
+Suppose $u$ is measurable and $u\le D$. Write $L=N+1$,
 $A=\Sigma_N\times\{-1,1\}$, $\Xi=\mathbb R^M$,
 $\mu=\mathrm{count}_A\otimes\gamma_1^{\otimes M}$ and
 \[
@@ -830,10 +836,11 @@ $\mu=\mathrm{count}_A\otimes\gamma_1^{\otimes M}$ and
 \]
 For $t\in[0,1]$, this energy is jointly measurable and
 \[
- |E_t(\omega,x)|\le MD+\sqrt{1-t}\,|y|,\qquad
+ E_t(\omega,x)\le MD+\sqrt{1-t}\,|y|,\qquad
  e^{E_t(\omega,\cdot)}\in L^1(\mu),\qquad
  0<Z_t(\omega)=\int e^{E_t(\omega,x)}\,d\mu(x)<\infty.
 \]
+If also $|u|\le D$, the same right side bounds $|E_t(\omega,x)|$.
 Thus $G_{t,\omega}=\mu^{E_t(\omega,\cdot)}$ is a probability measure. For any finite replica
 set $R$ and jointly measurable $\Phi(\omega,(x_l)_{l\in R})$ with $|\Phi|\le C$, its replica
 average is measurable in $\omega$ and integrable under every finite disorder measure $P$.
@@ -845,8 +852,12 @@ If $P$ is a probability measure, then $|\mathbb E_P\langle\Phi\rangle_t|\le C$.
 Measurability of $u$ therefore gives joint measurability of $E_t$. Also
 \[
  |\varepsilon\sqrt{1-t}\,y|=\sqrt{1-t}\,|y|,\qquad
- |E_t|\le|\varepsilon\sqrt{1-t}\,y|+\sum_{k<M}|u(S_{k,t})|
- \le\sqrt{1-t}\,|y|+MD.
+ E_t\le|\varepsilon\sqrt{1-t}\,y|+\sum_{k<M}D
+ =\sqrt{1-t}\,|y|+MD.
+\]
+Under the stronger assumption $|u|\le D$, apply this bound to $(-u,-y)$ as well:
+\[
+ -E_t\le MD+\sqrt{1-t}|y|,\qquad |E_t|\le MD+\sqrt{1-t}|y|.
 \]
 \emph{Step 2 (normalization).} For fixed $\omega$ the right side is a finite constant, and
 $\mu$ is finite and nonzero. Hence
@@ -854,7 +865,10 @@ $\mu$ is finite and nonzero. Hence
  0<e^{E_t(\omega,x)}\le e^{MD+\sqrt{1-t}|y|},\qquad
  0<\int e^{E_t(\omega,x)}\,d\mu(x)<\infty,\qquad G_{t,\omega}(A\times\Xi)=1.
 \]
-Nonzero mass also follows by projecting $\mu$ onto its nonzero counting marginal.
+The shared product-measure instance uses the nonzero masses of both factors:
+\[
+ \mu(A\times\Xi)=\mathrm{count}_A(A)\,\gamma_1^{\otimes M}(\Xi)>0.
+\]
 \emph{Step 3 (replica averages).} For $J(\omega,\mathbf x)=\sum_{l\in R}E_t(\omega,x_l)$,
 \[
  \langle\Phi\rangle_t(\omega)=
@@ -867,8 +881,9 @@ a second probability average preserves the bound $C$.
 \emph{Formalization note.} The shared replica theorems now allow the observable to depend on
 the same disorder as the energy. The argument uses the continuous auxiliary base space, not
 a finite-state shortcut. Lean's bounds hold for all real coefficient parameters; the source
-path uses $[0,1]$. No derivative hypotheses, positive $M$, positive old-spin count or positive
-variance of $Y$ are required. These results do not yet justify differentiating under an integral.
+path uses $[0,1]$. Only an upper bound on $u$ is needed for normalization and bounded averages; a two-sided
+bound is used solely for the absolute energy estimate. No derivative hypotheses, positive $M$,
+positive old-spin count or positive variance of $Y$ are required. These results do not yet justify differentiating under an integral.
 Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathBounds.lean}.
 \end{proof}
 
@@ -880,7 +895,7 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathBounds.lean}.
 Suppose $u$ is measurable and bounded above. For fixed full disorder $g$, any last field $y$,
 any finite replica set $R$ and every spin-only observable $F$,
 \[
- \langle F(\operatorname{snoc}(\sigma^l,\varepsilon_l))_{l\in R}\rangle_{t=1}
+ \left\langle F\left((\operatorname{snoc}(\sigma^l,\varepsilon_l))_{l\in R}\right)\right\rangle_{t=1}
  =\int F(\boldsymbol\tau)\,d\left(\mathrm{count}^{\sum_{k<M}
  u(L^{-1/2}\sum_{i<L}g_{k,i}\tau_i)}\right)^{\otimes R}(\boldsymbol\tau).
 \]
