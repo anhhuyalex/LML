@@ -41,8 +41,10 @@ theorem hasDerivAt_integral_pi_perceptron_smart_path {N M : ℕ} {R : Type*} [Fi
       (Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i, g k i * ((x.1.1 i : ℤ) : ℝ)) +
         Real.sqrt (s / (N + 1)) * a k * ((x.1.2 : ℤ) : ℝ) +
         Real.sqrt ((1 - s) / (N + 1)) * x.2 k
-    let E := fun (s : ℝ) (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) => ((x.1.2 : ℤ) : ℝ) * Real.sqrt (1 - s) * y + ∑ k, u (S s x k)
-    let E' := fun (s : ℝ) (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) => -((x.1.2 : ℤ) : ℝ) * y / (2 * Real.sqrt (1 - s)) +
+    let E := fun (s : ℝ) (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) =>
+      ((x.1.2 : ℤ) : ℝ) * Real.sqrt (1 - s) * y + ∑ k, u (S s x k)
+    let E' := fun (s : ℝ) (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) =>
+      -((x.1.2 : ℤ) : ℝ) * y / (2 * Real.sqrt (1 - s)) +
       ∑ k, deriv u (S s x k) * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
         (a k * ((x.1.2 : ℤ) : ℝ) / Real.sqrt s - x.2 k / Real.sqrt (1 - s)))
     let μ := (Measure.count : Measure ((Fin N → ℤˣ) × ℤˣ)).prod
@@ -86,10 +88,9 @@ theorem hasDerivAt_integral_pi_perceptron_smart_path {N M : ℕ} {R : Type*} [Fi
   let b := fun x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ) =>
     |y| / (2 * Real.sqrt δ) + ∑ k, D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) *
       ((|a k| + |x.2 k|) / Real.sqrt δ)
-  have hG : Integrable (id : ℝ → ℝ) (gaussianReal 0 1) :=
-    by
-      have h : MemLp (id : ℝ → ℝ) 1 (gaussianReal 0 1) := memLp_id_gaussianReal 1
-      exact h.integrable le_rfl
+  have hG : Integrable (id : ℝ → ℝ) (gaussianReal 0 1) := by
+    have h : MemLp (id : ℝ → ℝ) 1 (gaussianReal 0 1) := memLp_id_gaussianReal 1
+    exact h.integrable le_rfl
   have hξ (k : Fin M) : Integrable
       (fun x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ) => |x.2 k|) μ :=
     (integrable_comp_eval hG.abs).comp_snd (Measure.count : Measure ((Fin N → ℤˣ) × ℤˣ))

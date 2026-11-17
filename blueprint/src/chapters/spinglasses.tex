@@ -668,6 +668,13 @@ one-dimensional integrable functions $e^{b|t|}$ and $|t|e^{b|t|}$ against $\math
 For the extension to an auxiliary
 Gaussian family apply the first part to the concatenated vector and the function $F\circ\mathrm{pr}_2$, whose partial derivatives in
 the $W$-directions vanish.
+
+\emph{Formalization note (perceptron reuse).} The scalar estimate
+$\int e^{w|z|}\,d\mathcal N(m,v)<\infty$ is now stated for every $m\in\mathbb R$,
+$v\ge0$ and real $w$, including $v=0$. The same sign split bounds its integrand by
+$e^{wz}+e^{-wz}$, and Gaussian exponential moments give integrability. The product
+and integration-by-parts statements above retain their stated hypotheses. This broader
+scalar estimate supplies the perceptron's last field with arbitrary nonnegative variance.
 \end{proof}
 
 \begin{remark}[The assumptions on $F$ in Theorem~\ref{thm:sg:steinvec}]\label{rem:sg:steinvec-assumptions}

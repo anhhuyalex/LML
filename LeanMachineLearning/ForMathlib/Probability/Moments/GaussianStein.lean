@@ -136,11 +136,11 @@ section Growth
 
 variable {ι κ : Type*} [Fintype ι] [DecidableEq ι] [Fintype κ]
 
-/-- `exp (w |t|)` is integrable against the standard Gaussian. -/
-theorem integrable_exp_mul_abs_gaussianReal (w : ℝ) :
-    Integrable (fun t : ℝ => Real.exp (w * |t|)) (gaussianReal 0 1) := by
-  refine Integrable.mono' ((integrable_exp_mul_gaussianReal (μ := 0) (v := 1) w).add
-    (integrable_exp_mul_gaussianReal (μ := 0) (v := 1) (-w))) (by fun_prop) ?_
+/-- `exp (w |t|)` is integrable against any real Gaussian law, including zero variance. -/
+theorem integrable_exp_mul_abs_gaussianReal {m : ℝ} {v : ℝ≥0} (w : ℝ) :
+    Integrable (fun t : ℝ => Real.exp (w * |t|)) (gaussianReal m v) := by
+  refine Integrable.mono' ((integrable_exp_mul_gaussianReal (μ := m) (v := v) w).add
+    (integrable_exp_mul_gaussianReal (μ := m) (v := v) (-w))) (by fun_prop) ?_
   refine Eventually.of_forall fun t => ?_
   rw [Real.norm_eq_abs, abs_of_pos (Real.exp_pos _)]
   rcases le_total 0 t with ht | ht
