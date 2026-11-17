@@ -89,4 +89,55 @@ theorem hasDerivAt_perceptron_smart_path_energy {N M : ℕ} {t : ℝ}
   · dsimp only [id_eq]
     ring
 
+/-- On a closed interval inside `(0, 1)`, the energy derivative grows at most linearly in
+the absolute values of the auxiliary coordinates. This is an integrable Gaussian envelope. -/
+theorem abs_deriv_perceptron_smart_path_energy_le {N M : ℕ} {t δ : ℝ} (hδ : 0 < δ) (ht : t ∈ Set.Icc δ (1 - δ))
+    {u : ℝ → ℝ} (hu : Differentiable ℝ u) {D : ℝ} (hD : ∀ z, |deriv u z| ≤ D)
+    (g : Fin M → Fin N → ℝ) (a ξ : Fin M → ℝ)
+    (σ : Fin N → ℤˣ) (ε : ℤˣ) (y : ℝ) :
+    let S := fun (s : ℝ) (k : Fin M) =>
+      (Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i, g k i * ((σ i : ℤ) : ℝ)) +
+        Real.sqrt (s / (N + 1)) * a k * ((ε : ℤ) : ℝ) +
+        Real.sqrt ((1 - s) / (N + 1)) * ξ k
+    |deriv (fun s => ((ε : ℤ) : ℝ) * Real.sqrt (1 - s) * y + ∑ k, u (S s k)) t| ≤
+      |y| / (2 * Real.sqrt δ) + ∑ k, D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) *
+        ((|a k| + |ξ k|) / Real.sqrt δ) := by
+  intro S
+  have ht0 : 0 < t := hδ.trans_le ht.1
+  have ht1 : 0 < 1 - t := by linarith [ht.2]
+  have hdt : Real.sqrt δ ≤ Real.sqrt t := Real.sqrt_le_sqrt ht.1
+  have hd1 : Real.sqrt δ ≤ Real.sqrt (1 - t) := Real.sqrt_le_sqrt (by linarith [ht.2])
+  have hc0 := one_div_le_one_div_of_le (Real.sqrt_pos.2 hδ) hdt
+  have hc1 := one_div_le_one_div_of_le (Real.sqrt_pos.2 hδ) hd1
+  have hD0 : 0 ≤ D := (abs_nonneg _).trans (hD 0)
+  have hcalc := hasDerivAt_perceptron_smart_path_energy ⟨ht0, by linarith⟩ hu g a ξ σ ε y
+  dsimp only at hcalc
+  rw [hcalc.deriv]
+  have hY : |-((ε : ℤ) : ℝ) * y / (2 * Real.sqrt (1 - t))| ≤ |y| / (2 * Real.sqrt δ) := by
+    rw [abs_div, abs_mul, abs_neg, abs_units_cast_eq_one, one_mul,
+      abs_of_pos (by positivity : (0 : ℝ) < 2 * Real.sqrt (1 - t))]
+    exact div_le_div_of_nonneg_left (abs_nonneg _) (by positivity)
+      (mul_le_mul_of_nonneg_left hd1 (by norm_num))
+  have hterm (k : Fin M) :
+      |deriv u (S t k) * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
+        (a k * ((ε : ℤ) : ℝ) / Real.sqrt t - ξ k / Real.sqrt (1 - t)))| ≤
+        D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) * ((|a k| + |ξ k|) / Real.sqrt δ) := by
+    have hsub : |a k * ((ε : ℤ) : ℝ) / Real.sqrt t - ξ k / Real.sqrt (1 - t)| ≤
+        (|a k| + |ξ k|) / Real.sqrt δ := by
+      calc _ ≤ |a k * ((ε : ℤ) : ℝ) / Real.sqrt t| + |ξ k / Real.sqrt (1 - t)| := abs_sub _ _
+        _ = |a k| * (1 / Real.sqrt t) + |ξ k| * (1 / Real.sqrt (1 - t)) := by
+          simp only [abs_div, abs_mul, abs_units_cast_eq_one, mul_one,
+            abs_of_pos (Real.sqrt_pos.2 ht0), abs_of_pos (Real.sqrt_pos.2 ht1)]
+          ring
+        _ ≤ |a k| * (1 / Real.sqrt δ) + |ξ k| * (1 / Real.sqrt δ) :=
+          add_le_add (mul_le_mul_of_nonneg_left hc0 (abs_nonneg _))
+            (mul_le_mul_of_nonneg_left hc1 (abs_nonneg _))
+        _ = _ := by ring
+    rw [abs_mul, abs_mul, abs_of_nonneg (by positivity :
+      0 ≤ 1 / (2 * Real.sqrt (N + 1 : ℕ))), ← mul_assoc]
+    exact mul_le_mul (mul_le_mul_of_nonneg_right (hD _) (by positivity)) hsub
+      (abs_nonneg _) (mul_nonneg hD0 (by positivity))
+  exact (abs_add_le _ _).trans (add_le_add hY
+    ((Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun k _ => hterm k)))
+
 end SpinGlasses

@@ -24,6 +24,7 @@ This is the base-space-free analogue of the counting-measure replica API in
 @[expose] public section
 
 open MeasureTheory Finset
+open scoped Topology
 
 namespace MeasureTheory
 
@@ -133,6 +134,57 @@ theorem integral_pi_tilted_eq_div (E : α → ℝ) (Y : (ι → α) → ℝ) :
       (∫ σ, Y σ * Real.exp (∑ i, E (σ i)) ∂(Measure.pi fun _ : ι => μ)) /
         ∫ σ, Real.exp (∑ i, E (σ i)) ∂(Measure.pi fun _ : ι => μ) := by
   rw [pi_tilted_eq_tilted_pi, integral_tilted_eq_div]
+
+/-- Differentiate a bounded replica observable along a smooth energy path. A uniform upper
+energy bound and an integrable bound on the energy derivative justify the exchange with all
+replica integrals, including for a continuous base space and an empty replica index type.
+The derivative is the covariance with the sum of the replica energy derivatives. -/
+theorem hasDerivAt_integral_pi_tilted_of_dominated {α R : Type*} [MeasurableSpace α] [Fintype R]
+    {μ : Measure α} [IsFiniteMeasure μ] [NeZero μ]
+    {E E' : ℝ → α → ℝ} {t : ℝ} {s : Set ℝ} (hs : s ∈ 𝓝 t)
+    (hE : ∀ r ∈ s, Measurable (E r)) (hE' : Measurable (E' t))
+    {B : ℝ} (hEb : ∀ r ∈ s, ∀ a, E r a ≤ B)
+    {b : α → ℝ} (hb : Integrable b μ) (hdb : ∀ r ∈ s, ∀ a, |E' r a| ≤ b a)
+    (hd : ∀ a, ∀ r ∈ s, HasDerivAt (fun q => E q a) (E' r a) r)
+    {F : (R → α) → ℝ} (hF : Measurable F) {C : ℝ} (hFb : ∀ σ, |F σ| ≤ C) :
+    HasDerivAt (fun r => ∫ σ, F σ ∂(Measure.pi fun _ : R => μ.tilted (E r)))
+      ((∫ σ, F σ * (∑ i, E' t (σ i)) ∂(Measure.pi fun _ : R => μ.tilted (E t))) -
+        (∫ σ, F σ ∂(Measure.pi fun _ : R => μ.tilted (E t))) *
+          ∫ σ, (∑ i, E' t (σ i)) ∂(Measure.pi fun _ : R => μ.tilted (E t))) t := by
+  let J := fun (r : ℝ) (σ : R → α) => ∑ i, E r (σ i)
+  let J' := fun (r : ℝ) (σ : R → α) => ∑ i, E' r (σ i)
+  have ht : t ∈ s := mem_of_mem_nhds hs
+  have hJ (r : ℝ) (hr : r ∈ s) : Measurable (J r) :=
+    Finset.measurable_sum _ fun i _ => (hE r hr).comp (measurable_pi_apply i)
+  have hJ' : Measurable (J' t) :=
+    Finset.measurable_sum _ fun i _ => hE'.comp (measurable_pi_apply i)
+  have hJb (r : ℝ) (hr : r ∈ s) (σ : R → α) : J r σ ≤ (Fintype.card R : ℝ) * B := by
+    simpa only [Finset.sum_const, Finset.card_univ, nsmul_eq_mul] using
+      Finset.sum_le_sum (s := Finset.univ) (fun i _ => hEb r hr (σ i))
+  have hib : Integrable (fun σ : R → α => ∑ i, b (σ i)) (Measure.pi fun _ : R => μ) :=
+    integrable_finsetSum _ fun i _ => integrable_comp_eval hb
+  have hibJ := hib.const_mul (Real.exp ((Fintype.card R : ℝ) * B))
+  have hderb (r : ℝ) (hr : r ∈ s) (σ : R → α) : |J' r σ| ≤ ∑ i, b (σ i) :=
+    (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun i _ => hdb r hr (σ i))
+  have hweightb (r : ℝ) (hr : r ∈ s) (σ : R → α) :
+      |J' r σ * Real.exp (J r σ)| ≤
+        Real.exp ((Fintype.card R : ℝ) * B) * ∑ i, b (σ i) := by
+    calc _ = |J' r σ| * Real.exp (J r σ) := by
+          rw [abs_mul, abs_of_pos (Real.exp_pos _)]
+      _ ≤ (∑ i, b (σ i)) * Real.exp ((Fintype.card R : ℝ) * B) :=
+          mul_le_mul (hderb r hr σ) (Real.exp_le_exp.mpr (hJb r hr σ))
+            (Real.exp_pos _).le ((abs_nonneg _).trans (hderb r hr σ))
+      _ = _ := mul_comm _ _
+  have hprob : NeZero (Measure.pi fun _ : R => μ) := neZero_measure_pi μ
+  have hres := hasDerivAt_integral_tilted_of_dominated (μ := Measure.pi fun _ : R => μ)
+    (e := J) (e' := J') hs
+    (Filter.mem_of_superset hs fun r hr => (hJ r hr).exp.aestronglyMeasurable)
+    (integrable_exp_of_ae_le (hJ t ht).aemeasurable (ae_of_all _ (hJb t ht)))
+    ((hJ'.mul (hJ t ht).exp).aestronglyMeasurable) hibJ
+    (ae_of_all _ fun σ r hr => hweightb r hr σ)
+    (ae_of_all _ fun σ r hr => HasDerivAt.fun_sum fun i _ => hd (σ i) r hr)
+    hF.aestronglyMeasurable (ae_of_all _ hFb)
+  simpa only [J, J', ← pi_tilted_eq_tilted_pi] using hres
 
 /-- **Fresh replicas factorize.** A function of the replicas `e i` (`e` injective) times a function
 of one further replica `r` has the product of the two averages. -/
