@@ -1,8 +1,9 @@
 # The Talagrand book
 
-A book version of the blueprint chapter `blueprint/src/chapters/spinglasses_talagrand.tex`
+A book version of the blueprint chapters `blueprint/src/chapters/spinglasses_talagrand.tex`
 (the Sherrington–Kirkpatrick model at high temperature, following Talagrand's *Spin Glasses*,
-Volume I), typeset with [Typst](https://typst.app) and the
+Volume I, Chapter 1) and `spinglasses_talagrand_perceptron.tex` (the start of Chapter 2, the Gaussian
+binary perceptron), typeset with [Typst](https://typst.app) and the
 [TypstVerso](https://github.com/Shreyas4991/TypstVerso) Lean tooling.
 
 It is published at <https://anhhuyalex.github.io/LML/talagrand/>: one HTML page per section
@@ -31,14 +32,21 @@ and visibility are remembered in the browser. The code is `typstverso/templates/
 ## How it works
 
 ```
-blueprint/src/chapters/spinglasses_talagrand.tex      (the only source; edited by hand)
+blueprint/src/chapters/spinglasses_talagrand.tex, ..._perceptron.tex   (the only sources; edited by hand)
         │  book/talagrand/tex2typ  (LaTeX subset -> Typst; fails on anything it does not know)
         ▼
-book/talagrand/generated/   s00.typ … s14.typ, book.typ, labels.json, lean-names.json   (not committed)
+book/talagrand/generated/   s00.typ … sNN.typ, book.typ, labels.json, lean-names.json   (not committed)
         │  book/typstverso/build.py  (SubVerso/Lean `#check` of every name, Typst export)
         ▼
-home_page/talagrand/        s00.html … s14.html, spin-glasses-talagrand.pdf, index.html
+home_page/talagrand/        s00.html … sNN.html, spin-glasses-talagrand.pdf, index.html
 ```
+
+The chapter files are listed, in order, in `scripts/build_talagrand_book.sh` (`chapters=(...)`).
+Sections are numbered continuously across chapters: chapter 1 gives sections 1–15 (plus the
+introduction `s00`), the perceptron chapter 16 and 17. A later chapter's title and introduction open its
+first section's page. Statement numbers restart in each chapter, and carry the chapter number from the
+second chapter on (`Lemma 2.3`, as on the blueprint website). To add a chapter, append its file to that
+list (and to the cache key in `.github/workflows/build.yml`).
 
 Never edit `generated/`. Change the `.tex` (or the theme) and rebuild.
 

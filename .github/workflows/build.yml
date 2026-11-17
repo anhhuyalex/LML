@@ -183,7 +183,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: book/typstverso/typst/lean.json
-          key: talagrand-signatures-${{ hashFiles('LeanMachineLearning/**/*.lean', 'lean-toolchain', 'lake-manifest.json', 'blueprint/src/chapters/spinglasses_talagrand.tex', 'book/typstverso/ExportLean.lean', 'book/typstverso/build.py') }}
+          key: talagrand-signatures-${{ hashFiles('LeanMachineLearning/**/*.lean', 'lean-toolchain', 'lake-manifest.json', 'blueprint/src/chapters/spinglasses_talagrand.tex', 'blueprint/src/chapters/spinglasses_talagrand_perceptron.tex', 'book/typstverso/ExportLean.lean', 'book/typstverso/build.py') }}
 
       # Pull requests only check that the chapter still converts and compiles (no Lean needed).
       - name: Check the Talagrand book

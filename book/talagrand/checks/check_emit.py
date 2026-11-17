@@ -15,7 +15,9 @@ from tex2typ.parser import Parser
 HERE = Path(__file__).parent
 BOOK = HERE.parent
 FIXTURE = MINI_TEX
-CHAPTER = BOOK.parent.parent / "blueprint" / "src" / "chapters" / "spinglasses_talagrand.tex"
+CHAPTER_DIR = BOOK.parent.parent / "blueprint" / "src" / "chapters"
+# The chapter files of the book, in order (the same list as scripts/build_talagrand_book.sh).
+CHAPTERS = [CHAPTER_DIR / "spinglasses_talagrand.tex", CHAPTER_DIR / "spinglasses_talagrand_perceptron.tex"]
 TYPST = shutil.which("typst")
 
 
@@ -96,25 +98,25 @@ class TypstCompileChecks(unittest.TestCase):
             result = self.compile(out / entry)
             self.assertEqual(result.returncode, 0, entry + ": " + result.stderr)
 
-    @unittest.skipUnless(CHAPTER.is_file(), "blueprint chapter not found")
+    @unittest.skipUnless(all(c.is_file() for c in CHAPTERS), "blueprint chapters not found")
     def test_real_chapter_compiles(self):
         out = self.generated_dir("chapter")
-        summary = convert(CHAPTER, out)
-        # The chapter grows (a section was added after this test was written): do not pin the count,
-        # but require what the pipeline relies on, section files s00, s01, ... with part = 0, 1, ...
+        summary = convert(CHAPTERS, out)
+        # The chapters grow: do not pin the count, but require what the pipeline relies on,
+        # section files s00, s01, ... with part = 0, 1, ...
         sections = summary["sections"]
-        self.assertGreaterEqual(len(sections), 15)
+        self.assertGreaterEqual(len(sections), 17)  # chapter 1 (s00-s15) and the perceptron chapter
         self.assertEqual([s["id"] for s in sections], [f"s{i:02d}" for i in range(len(sections))])
         self.assertEqual([s["part"] for s in sections], list(range(len(sections))))
         result = self.compile(out / "book.typ")
         self.assertEqual(result.returncode, 0, result.stderr[-2000:])
 
-    @unittest.skipUnless(CHAPTER.is_file(), "blueprint chapter not found")
+    @unittest.skipUnless(all(c.is_file() for c in CHAPTERS), "blueprint chapters not found")
     def test_heading_numbers_agree_with_the_converter(self):
         """Section references are computed by the converter; Typst must number headings alike."""
         out = self.generated_dir("numbers")
-        convert(CHAPTER, out)
-        expression = """query(heading).filter(h => h.has("label")).map(h =>
+        convert(CHAPTERS, out)
+        expression = """query(heading).filter(h => h.has("label") and h.numbering != none).map(h =>
           (str(h.label), numbering(h.numbering, ..counter(heading).at(h.location()))))"""
         result = subprocess.run(
             [TYPST, "eval", "--root", str(BOOK.parent), "--input", "lean-discover=true",

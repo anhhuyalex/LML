@@ -18,15 +18,17 @@ if [[ "${1:-}" == "--check" ]]; then
 fi
 output="${1:-home_page/talagrand}"
 
-tex=blueprint/src/chapters/spinglasses_talagrand.tex
+# The chapter files of the book, in order; sections continue from one chapter to the next.
+chapters=(blueprint/src/chapters/spinglasses_talagrand.tex
+          blueprint/src/chapters/spinglasses_talagrand_perceptron.tex)
 book=book/talagrand
 viewer=book/typstverso
 pdf_name=spin-glasses-talagrand.pdf
 # Typst downloads packages on first use; a vendored copy keeps the build offline and pinned.
 export TYPST_PACKAGE_PATH="$PWD/$viewer/packages"
 
-echo "== Converting $tex to Typst"
-PYTHONPATH="$book" python3 -m tex2typ "$tex" --out "$book/generated" --overrides "$book/overrides.toml"
+echo "== Converting ${chapters[*]} to Typst"
+PYTHONPATH="$book" python3 -m tex2typ "${chapters[@]}" --out "$book/generated" --overrides "$book/overrides.toml"
 
 if $check_only; then
   echo "== Compiling without Lean results"

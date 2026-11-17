@@ -34,7 +34,7 @@ PAGE = """<!doctype html>
 <body>
 <main>
 <h1>{title}</h1>
-<p class="lead">A book version of the Lean blueprint chapter. Every statement shows its Talagrand number
+<p class="lead">A book version of the Lean blueprint chapters on Talagrand's <em>Spin Glasses</em>. Every statement shows its Talagrand number
 and the signature of the Lean declaration that proves it; hover over Lean code for types and documentation.</p>
 <ol>
 {items}

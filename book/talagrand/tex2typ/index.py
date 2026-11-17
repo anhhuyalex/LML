@@ -17,9 +17,9 @@ EXTERNAL_KIND = {"thm": "Theorem", "lem": "Lemma", "prop": "Proposition", "cor":
 @dataclass
 class LabelInfo:
     label: str
-    kind: str                 # "section" or a theorem-like kind
+    kind: str                 # "chapter", "section" or a theorem-like kind
     part: int                 # 0 = introduction, 1..n = book sections
-    number: str               # section number ("5.2") or box serial ("41")
+    number: str               # chapter ("2"), section ("5.2") or box serial ("41", "2.5")
     tal_kind: str | None = None     # "Lemma" in "Lemma 1.6.3"
     tal_number: str | None = None   # "1.6.3"
     shared: bool = False      # several boxes carry this Talagrand number
@@ -42,7 +42,7 @@ class Index:
     def __init__(self, document: Document, overrides: dict[str, str] | None = None):
         self.labels: dict[str, LabelInfo] = {}
         self.boxes: dict[int, list[str]] = {}  # part -> labels in order (for reports)
-        self.serials: dict[int, int] = {}      # id(Environment) -> serial
+        self.serials: dict[int, str] = {}      # id(Environment) -> serial text
         self._overrides = overrides or {}
         self._build(document)
         counts = Counter(i.tal_number for i in self.labels.values() if i.tal_number)
@@ -52,6 +52,7 @@ class Index:
     # ------------------------------------------------------------------- build
     def _build(self, document: Document) -> None:
         self._serial = 0
+        self._chapter = 0
         self._walk(document.front, part=0)
         for part, blocks in enumerate(document.sections, start=1):
             # Each section starts with its own level-1 heading, which increments the first counter.
@@ -67,6 +68,9 @@ class Index:
                 self._walk(block.blocks, part, counters)
 
     def _heading(self, heading: Heading, part: int, counters: list[int] | None) -> None:
+        if heading.level == 0:
+            self._chapter_heading(heading, part)
+            return
         if counters is None:
             if heading.label:
                 raise ConversionError(f"label {heading.label} on an unnumbered heading")
@@ -79,16 +83,27 @@ class Index:
             number = ".".join(str(c) for c in counters[:level])
             self._add(LabelInfo(heading.label, "section", part, number))
 
+    def _chapter_heading(self, heading: Heading, part: int) -> None:
+        """A new chapter: statement numbers start again (as the blueprint's counter does)."""
+        self._chapter += 1
+        self._serial = 0
+        if heading.label:
+            self._add(LabelInfo(heading.label, "chapter", part, str(self._chapter)))
+
+    def _serial_text(self) -> str:
+        """The blueprint's number of the current statement: "41" in chapter 1, "2.5" in chapter 2."""
+        return str(self._serial) if self._chapter <= 1 else f"{self._chapter}.{self._serial}"
+
     def _environment(self, env: Environment, part: int) -> None:
         self._serial += 1
-        self.serials[id(env)] = self._serial
+        self.serials[id(env)] = self._serial_text()
         if not env.label:
             return
         tal = talagrand_statement(env.source)
         override = self._overrides.get(env.label)
         if override is not None:
             tal = tuple(override.split(" ", 1)) if override else None
-        self._add(LabelInfo(env.label, env.kind, part, str(self._serial),
+        self._add(LabelInfo(env.label, env.kind, part, self._serial_text(),
                             tal[0] if tal else None, tal[1] if tal else None))
 
     def _add(self, info: LabelInfo) -> None:
@@ -108,7 +123,7 @@ class Index:
         if info is None:
             kind = EXTERNAL_KIND.get(label.split(":", 1)[0], "")
             return f"{kind}{nbsp if kind else ''}[{label}]"
-        if info.kind == "section":
+        if info.kind in ("chapter", "section"):
             return f"{prefix + nbsp if prefix else ''}{info.number}"
         if info.tal_number:
             text = info.tal_number + (f" [#{info.number}]" if info.shared else "")

@@ -118,6 +118,8 @@ class Emitter:
 
     def heading(self, heading: Heading) -> str:
         label = f" <{heading.label}>" if heading.label else ""
+        if heading.level == 0:  # a chapter title: not numbered, the sections are
+            return f"#heading(numbering: none)[{self.inlines(heading.title).strip()}]{label}"
         return f"{'=' * heading.level} {self.inlines(heading.title).strip()}{label}"
 
     def list_block(self, block: ListBlock) -> str:
@@ -133,7 +135,8 @@ class Emitter:
     def environment(self, env: Environment) -> str:
         info = self.index.labels.get(env.label) if env.label else None
         serial = self.index.serials[id(env)]
-        arguments = [typst_string(env.kind), str(serial)]
+        # Plain numbers stay numbers in the Typst source; "2.5" (chapter 2) must be a string.
+        arguments = [typst_string(env.kind), serial if serial.isdigit() else typst_string(serial)]
         if info and info.tal_number:
             arguments.append(f"tal: ({typst_string(info.tal_kind)}, {typst_string(info.tal_number)})")
         if env.title:

@@ -5,6 +5,7 @@ from pathlib import Path
 
 SAMPLES_DIR = Path(__file__).parent / "samples"
 MINI_TEX = SAMPLES_DIR / "mini.tex"
+MINI_SECOND_TEX = SAMPLES_DIR / "mini_second.tex"  # a second chapter, for multi-chapter books
 
 
 def git_ignore_rule(path: Path) -> str | None:

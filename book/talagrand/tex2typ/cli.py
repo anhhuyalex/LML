@@ -8,6 +8,7 @@ import re
 import tomllib
 from pathlib import Path
 
+from .chapters import merge_chapters
 from .emit import Emitter
 from .index import Index, plain_text
 from .model import Heading, Inline, Math, Text
@@ -44,25 +45,31 @@ def theme_import(directory: Path, theme: Path) -> str:
     return f'#import "{relative}": *\n'
 
 
-def convert(tex: Path, out: Path, overrides: Path | None = None, theme: Path = THEME) -> dict:
-    """Write the Typst files for ``tex`` into ``out``; return the section table."""
-    document = parse_file(tex)
+def section_title(blocks: list, part: int) -> str:
+    """The plain title of a book section: its first section heading (a chapter title may precede it)."""
+    for block in blocks:
+        if isinstance(block, Heading) and block.level == 1:
+            return title_plain(block.title)
+    return f"Section {part}"
+
+
+def convert(tex: Path | list[Path], out: Path, overrides: Path | None = None, theme: Path = THEME) -> dict:
+    """Write the Typst files for the chapter file(s) ``tex`` into ``out``; return the section table.
+
+    Several files are one book: sections and statement numbers continue (see ``chapters.py``).
+    """
+    sources = [tex] if isinstance(tex, Path) else list(tex)
+    document = merge_chapters([parse_file(source) for source in sources])
     index = Index(document, load_overrides(overrides))
-    header = HEADER.format(source=tex.name)
+    header = HEADER.format(source=", ".join(source.name for source in sources))
     (out / "body").mkdir(parents=True, exist_ok=True)
 
     parts: list[list] = [document.front] + document.sections
     sections = []
     chapter_title = title_plain(document.title)
     for part, blocks in enumerate(parts):
-        emitter = Emitter(index, part)
-        body = emitter.blocks(blocks)
-        if part == 0:
-            intro = f"#heading(numbering: none)[{emitter.inlines(document.title)}]\n\n"
-            title = "Introduction and conventions"
-            body = intro + body
-        else:
-            title = title_plain(blocks[0].title) if isinstance(blocks[0], Heading) else f"Section {part}"
+        body = Emitter(index, part).blocks(blocks)
+        title = "Introduction and conventions" if part == 0 else section_title(blocks, part)
         name = part_id(part)
         (out / "body" / f"{name}.typ").write_text(
             header + theme_import(out / "body", theme) + "\n" + body + "\n", encoding="utf-8")
@@ -106,11 +113,11 @@ def write_json(path: Path, value) -> None:
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("tex", type=Path)
+    parser.add_argument("tex", type=Path, nargs="+", help="chapter files, in book order")
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--overrides", type=Path)
     args = parser.parse_args(argv)
     summary = convert(args.tex, args.out, args.overrides)
-    print(f"Converted {args.tex.name}: {len(summary['sections'])} parts, "
+    print(f"Converted {', '.join(t.name for t in args.tex)}: {len(summary['sections'])} parts, "
           f"{summary['labels']} labels, {len(summary['lean_names'])} Lean names -> {args.out}")
     return 0
