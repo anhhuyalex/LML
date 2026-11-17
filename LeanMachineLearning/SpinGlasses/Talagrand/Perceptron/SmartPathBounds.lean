@@ -44,6 +44,18 @@ theorem measurable_perceptron_smart_path_energy {u : ℝ → ℝ} (hu : Measurab
   have hcast : Measurable (fun ε : ℤˣ => ((ε : ℤ) : ℝ)) := measurable_of_countable _
   fun_prop
 
+/-- Joint energy measurability specialized to a fixed value of the shared disorder. -/
+theorem measurable_perceptron_smart_path_energy_slice {u : ℝ → ℝ}
+    (hu : Measurable u) (g : Fin M → Fin N → ℝ) (a : Fin M → ℝ) (y t : ℝ) :
+    Measurable fun x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ) =>
+      ((x.1.2 : ℤ) : ℝ) * Real.sqrt (1 - t) * y +
+        ∑ k, u ((Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i, g k i * ((x.1.1 i : ℤ) : ℝ)) +
+          Real.sqrt (t / (N + 1)) * a k * ((x.1.2 : ℤ) : ℝ) +
+          Real.sqrt ((1 - t) / (N + 1)) * x.2 k) := by
+  simpa only [Function.comp_def, id_eq] using
+    (measurable_perceptron_smart_path_energy (N := N) (M := M) hu t).comp
+      ((measurable_const (a := ((g, a), y))).prodMk measurable_id)
+
 /-- An upper bound on the potential gives an upper bound on the smart-path energy. -/
 theorem perceptron_smart_path_energy_le {u : ℝ → ℝ} {D : ℝ} (hD : ∀ x, u x ≤ D)
     (g : Fin M → Fin N → ℝ) (a : Fin M → ℝ) (y t : ℝ)
@@ -109,8 +121,7 @@ theorem integrable_exp_perceptron_smart_path_energy {u : ℝ → ℝ} (hu : Meas
       ((Measure.count : Measure ((Fin N → ℤˣ) × ℤˣ)).prod
         (Measure.pi fun _ : Fin M => gaussianReal 0 1)) := by
   exact integrable_exp_of_ae_le (C := M * D + Real.sqrt (1 - t) * |y|)
-    (((measurable_perceptron_smart_path_energy (N := N) (M := M) hu t).comp
-      ((measurable_const (a := ((g, a), y))).prodMk measurable_id)).aemeasurable)
+    (measurable_perceptron_smart_path_energy_slice hu g a y t).aemeasurable
     (Filter.Eventually.of_forall (perceptron_smart_path_energy_le hD g a y t))
 
 /-- The partition integral is strictly positive; its finiteness follows from exponential
@@ -126,8 +137,7 @@ theorem integral_exp_perceptron_smart_path_energy_pos {u : ℝ → ℝ} (hu : Me
       ∂((Measure.count : Measure ((Fin N → ℤˣ) × ℤˣ)).prod
         (Measure.pi fun _ : Fin M => gaussianReal 0 1)) := by
   exact integral_exp_pos_of_ae_le (C := M * D + Real.sqrt (1 - t) * |y|)
-    (((measurable_perceptron_smart_path_energy (N := N) (M := M) hu t).comp
-      ((measurable_const (a := ((g, a), y))).prodMk measurable_id)).aemeasurable)
+    (measurable_perceptron_smart_path_energy_slice hu g a y t).aemeasurable
     (Filter.Eventually.of_forall (perceptron_smart_path_energy_le hD g a y t))
 
 /-- The counting-times-Gaussian tilt defines a probability measure along the entire path. -/
@@ -141,8 +151,7 @@ theorem isProbabilityMeasure_tilted_perceptron_smart_path_energy {u : ℝ → �
           Real.sqrt (t / (N + 1)) * a k * ((x.1.2 : ℤ) : ℝ) +
           Real.sqrt ((1 - t) / (N + 1)) * x.2 k))) := by
   exact isProbabilityMeasure_tilted_of_ae_le (C := M * D + Real.sqrt (1 - t) * |y|)
-    (((measurable_perceptron_smart_path_energy (N := N) (M := M) hu t).comp
-      ((measurable_const (a := ((g, a), y))).prodMk measurable_id)).aemeasurable)
+    (measurable_perceptron_smart_path_energy_slice hu g a y t).aemeasurable
     (Filter.Eventually.of_forall (perceptron_smart_path_energy_le hD g a y t))
 
 /-- A uniformly bounded jointly measurable replica observable has an integrable disorder

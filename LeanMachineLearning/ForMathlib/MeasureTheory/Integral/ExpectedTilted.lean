@@ -86,12 +86,9 @@ theorem hasDerivAt_integral_integral_tilted_of_dominated
     (hb.const_mul (B ω)).mono' (hmE' r hr ω).aestronglyMeasurable
       (ae_of_all _ fun a => by simpa only [Real.norm_eq_abs] using hdb r hr ω a)
   have hiTilt (r : ℝ) (hr : r ∈ s) (ω : Ω) :
-      Integrable (E' r ω) (μ.tilted (E r ω)) := by
-    rw [integrable_tilted_iff (hiExp r hr ω)]
-    exact (hiE' r hr ω).bdd_mul (hmE r hr ω).exp.aestronglyMeasurable
-      (ae_of_all _ fun a => by
-        rw [Real.norm_of_nonneg (Real.exp_pos _).le]
-        exact Real.exp_le_exp.mpr (le_of_abs_le (hEb r hr ω a)))
+      Integrable (E' r ω) (μ.tilted (E r ω)) :=
+    integrable_tilted_of_ae_le (hmE r hr ω).aemeasurable
+      (ae_of_all _ fun a => le_of_abs_le (hEb r hr ω a)) (hiE' r hr ω)
   have hmD (r : ℝ) (hr : r ∈ s) : Measurable (D r) := by
     exact (measurable_integral_tilted_dep (hE r hr)
       ((hF.comp measurable_snd).mul (hE' r hr))).sub

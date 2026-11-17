@@ -309,6 +309,17 @@ theorem abs_integral_tilted_le_exp_mul_integral_abs {α : Type*} [MeasurableSpac
         rw [pow_two, ← Real.exp_add, ← two_mul C]
         exact mul_comm _ _
 
+/-- An upper-bounded energy preserves base integrability under its normalized exponential
+ tilt. The base measure is finite and may be zero. -/
+theorem integrable_tilted_of_ae_le {α : Type*} [MeasurableSpace α] {μ : Measure α}
+    [IsFiniteMeasure μ] {e f : α → ℝ} {C : ℝ} (he : AEMeasurable e μ)
+    (hC : ∀ᵐ a ∂μ, e a ≤ C) (hf : Integrable f μ) : Integrable f (μ.tilted e) := by
+  refine (integrable_tilted_iff (integrable_exp_of_ae_le he hC) f).mpr ?_
+  simpa only [smul_eq_mul] using hf.bdd_mul (c := Real.exp C) he.exp.aestronglyMeasurable (by
+    filter_upwards [hC] with a ha
+    rw [Real.norm_of_nonneg (Real.exp_pos _).le]
+    exact Real.exp_le_exp.mpr ha)
+
 /-- A jointly measurable observable and random log-density have a measurable tilted integral.
 The observable may depend on the same environment as the log-density. -/
 theorem measurable_integral_tilted_dep {Ω α : Type*} [MeasurableSpace Ω] [MeasurableSpace α]

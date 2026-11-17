@@ -57,23 +57,13 @@ theorem hasDerivAt_integral_pi_perceptron_smart_path {N M : ℕ} {R : Type*} [Fi
           F (fun j => σ (some j)) * E' t (σ none)
           ∂(Measure.pi fun _ : Option R => μ.tilted (E t))) t := by
   intro S E E' μ
-  let δ := min t (1 - t) / 2
-  have hmin : 0 < min t (1 - t) := lt_min ht.1 (sub_pos.mpr ht.2)
-  have hδ : 0 < δ := div_pos hmin (by norm_num)
-  have hδt : δ < t := by
-    have := min_le_left t (1 - t)
-    dsimp only [δ]
-    linarith
-  have hδ1 : δ < 1 - t := by
-    have := min_le_right t (1 - t)
-    dsimp only [δ]
-    linarith
+  obtain ⟨δ, hδ, hδmin⟩ := exists_between (lt_min ht.1 (sub_pos.mpr ht.2))
+  have hδt : δ < t := hδmin.trans_le (min_le_left _ _)
+  have hδ1 : δ < 1 - t := hδmin.trans_le (min_le_right _ _)
   let s := Set.Ioo δ (1 - δ)
   have hs : s ∈ 𝓝 t := isOpen_Ioo.mem_nhds ⟨hδt, by linarith⟩
-  have hmE (r : ℝ) : Measurable (E r) := by
-    simpa only [E, S, Function.comp_def, id_eq] using
-      (measurable_perceptron_smart_path_energy (N := N) (M := M) hu.continuous.measurable r).comp
-        ((measurable_const (a := ((g, a), y))).prodMk measurable_id)
+  have hmE (r : ℝ) : Measurable (E r) :=
+    measurable_perceptron_smart_path_energy_slice hu.continuous.measurable g a y r
   have hmE' (r : ℝ) : Measurable (E' r) := by
     have hdu := measurable_deriv u
     have hcast : Measurable (fun ε : ℤˣ => ((ε : ℤ) : ℝ)) := measurable_of_countable _
@@ -120,13 +110,8 @@ theorem hasDerivAt_integral_pi_perceptron_smart_path {N M : ℕ} {R : Type*} [Fi
     integrable_exp_perceptron_smart_path_energy hu.continuous.measurable hB g a y t
   have hν : IsProbabilityMeasure (μ.tilted (E t)) :=
     isProbabilityMeasure_tilted_perceptron_smart_path_energy hu.continuous.measurable hB g a y t
-  have hiWeighted := hiE'.bdd_mul (hmE t).exp.aestronglyMeasurable
-    (ae_of_all _ fun x => by
-      rw [Real.norm_of_nonneg (Real.exp_pos _).le]
-      exact Real.exp_le_exp.mpr (hEb t hts x))
   have hiTilted : Integrable (E' t) (μ.tilted (E t)) :=
-    (integrable_tilted_iff hiExp (E' t)).mpr (by
-      simpa only [smul_eq_mul] using hiWeighted)
+    integrable_tilted_of_ae_le (hmE t).aemeasurable (ae_of_all _ (hEb t hts)) hiE'
   convert hres using 1
   exact (integral_pi_cov_sum_eq_sum_sub_fresh (μ.tilted (E t)) F
     hF.aestronglyMeasurable hFb (E' t) hiTilted).symm
