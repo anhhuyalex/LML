@@ -32,7 +32,8 @@ with bounded value and first derivative suffices to pass the derivative through 
 replica and disorder integrals. The observable is bounded, measurable and independent of `t`.
 The full number of spins is `N + 1`; empty replica/constraint types and zero variance are allowed.
 No Gaussian integration-by-parts identity is assumed or asserted. -/
-theorem hasDerivAt_integral_integral_pi_perceptron_smart_path {N M : ℕ} {R : Type*} [Fintype R] {t : ℝ}
+theorem hasDerivAt_integral_integral_pi_perceptron_smart_path {N M : ℕ}
+    {R : Type*} [Fintype R] {t : ℝ}
     (ht : t ∈ Set.Ioo (0 : ℝ) 1) {u : ℝ → ℝ} (hu : Differentiable ℝ u)
     {B D : ℝ} (hB : ∀ z, |u z| ≤ B) (hD : ∀ z, |deriv u z| ≤ D)
     (v : NNReal) {Pold : Measure (Fin M → Fin N → ℝ)} [IsFiniteMeasure Pold]
@@ -84,20 +85,29 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path {N M : ℕ} {R : T
   let μR := Measure.pi fun _ : R => μ
   have : NeZero μR := neZero_measure_pi μ
   have hcast : Measurable (fun ε : ℤˣ => ((ε : ℤ) : ℝ)) := measurable_of_countable _
-  have hmE (s : ℝ) : Measurable fun p : (((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ) × (((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) => E s p.1 p.2 :=
+  have hmE (s : ℝ) : Measurable fun p :
+      (((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ) ×
+        (((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) => E s p.1 p.2 :=
     measurable_perceptron_smart_path_energy (N := N) (M := M) hu.continuous.measurable s
-  have hmE' (s : ℝ) : Measurable fun p : (((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ) × (((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) => E' s p.1 p.2 := by
+  have hmE' (s : ℝ) : Measurable fun p :
+      (((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ) ×
+        (((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) => E' s p.1 p.2 := by
     have hdu := measurable_deriv u
     dsimp only [E', S]
     fun_prop
-  have hmap (i : R) : Measurable (fun p : (((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ) × (R → ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) =>
+  have hmap (i : R) : Measurable (fun p :
+      (((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ) × (R → ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) =>
       (p.1, p.2 i)) := by fun_prop
-  have hmJ (s : ℝ) : Measurable fun p : (((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ) × (R → ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) => J s p.1 p.2 := by
+  have hmJ (s : ℝ) : Measurable fun p :
+      (((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ) ×
+        (R → ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) => J s p.1 p.2 := by
     dsimp only [J]
     apply Finset.measurable_sum
     intro i _
     simpa only [Function.comp_def] using (hmE s).comp (hmap i)
-  have hmJ' (s : ℝ) : Measurable fun p : (((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ) × (R → ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) => J' s p.1 p.2 := by
+  have hmJ' (s : ℝ) : Measurable fun p :
+      (((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ) ×
+        (R → ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) => J' s p.1 p.2 := by
     dsimp only [J']
     apply Finset.measurable_sum
     intro i _
@@ -113,14 +123,17 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path {N M : ℕ} {R : T
     exact (Finset.abs_sum_le_sum_abs _ _).trans (by
       simpa only [Finset.sum_const, Finset.card_univ, nsmul_eq_mul] using
         Finset.sum_le_sum (s := Finset.univ) (fun i _ => hEb s hs ω (σ i)))
-  have hcalc (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ) (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) (s : ℝ) (hs : s ∈ V) :
+  have hcalc (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
+      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) (s : ℝ) (hs : s ∈ V) :
       HasDerivAt (fun q => E q ω x) (E' s ω x) s :=
     hasDerivAt_perceptron_smart_path_energy ⟨hδ.trans hs.1, by linarith [hs.2]⟩ hu
       ω.1.1 ω.1.2 x.2 x.1.1 x.1.2 ω.2
-  have hdb (s : ℝ) (hs : s ∈ V) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ) (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) :
+  have hdb (s : ℝ) (hs : s ∈ V) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
+      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) :
       |E' s ω x| ≤ Q ω * Real.exp (∑ k, |x.2 k|) := by
     let T := |ω.2| + (∑ k, |ω.1.2 k|) + ∑ k, |x.2 k|
-    have htotal : T ≤ Real.exp T := (le_add_of_nonneg_right zero_le_one).trans (Real.add_one_le_exp T)
+    have htotal : T ≤ Real.exp T :=
+      (le_add_of_nonneg_right zero_le_one).trans (Real.add_one_le_exp T)
     have hA0 : 0 ≤ ∑ k, |ω.1.2 k| := Finset.sum_nonneg fun _ _ => abs_nonneg _
     have hX0 : 0 ≤ ∑ k, |x.2 k| := Finset.sum_nonneg fun _ _ => abs_nonneg _
     have hyT : |ω.2| ≤ T := by dsimp only [T]; linarith

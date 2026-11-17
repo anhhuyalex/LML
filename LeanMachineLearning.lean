@@ -699,6 +699,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.RandomNormals
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathBounds
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathDecoupling
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathDifferentiation
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathDisorderDerivative
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathEndpoints
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathFields
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathGibbsDerivative
