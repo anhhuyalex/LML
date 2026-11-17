@@ -23,6 +23,7 @@ need not be finite, and bounds and measurability are only required almost everyw
 @[expose] public section
 
 open MeasureTheory ProbabilityTheory Filter Set
+open scoped Topology
 
 namespace MeasureTheory
 
@@ -201,6 +202,47 @@ theorem integral_tilted_eq_div {α : Type*} [MeasurableSpace α] {μ : Measure �
   refine integral_congr_ae (Filter.Eventually.of_forall fun a => ?_)
   simp only [smul_eq_mul]
   ring
+
+/-- The derivative of an observable under a varying exponential tilt is its covariance with
+the energy derivative. An integrable bound on the weighted derivative justifies differentiating
+numerator and normalizer. The observable is bounded and does not vary with the parameter.
+The nonzero base measure need not be finite. -/
+theorem hasDerivAt_integral_tilted_of_dominated {α : Type*} [MeasurableSpace α] {μ : Measure α} [NeZero μ]
+    {e e' : ℝ → α → ℝ} {t : ℝ} {s : Set ℝ} (hs : s ∈ 𝓝 t)
+    (hmeas : ∀ᶠ r in 𝓝 t, AEStronglyMeasurable (fun a => Real.exp (e r a)) μ)
+    (hi : Integrable (fun a => Real.exp (e t a)) μ)
+    (hdm : AEStronglyMeasurable (fun a => e' t a * Real.exp (e t a)) μ)
+    {b : α → ℝ} (hb : Integrable b μ)
+    (hdb : ∀ᵐ a ∂μ, ∀ r ∈ s, |e' r a * Real.exp (e r a)| ≤ b a)
+    (hd : ∀ᵐ a ∂μ, ∀ r ∈ s, HasDerivAt (fun q => e q a) (e' r a) r)
+    {F : α → ℝ} (hF : AEStronglyMeasurable F μ) {C : ℝ}
+    (hFb : ∀ᵐ a ∂μ, |F a| ≤ C) :
+    HasDerivAt (fun r => ∫ a, F a ∂μ.tilted (e r))
+      ((∫ a, F a * e' t a ∂μ.tilted (e t)) -
+        (∫ a, F a ∂μ.tilted (e t)) * ∫ a, e' t a ∂μ.tilted (e t)) t := by
+  have hden := hasDerivAt_integral_of_dominated_loc_of_deriv_le hs hmeas hi hdm
+    (by simpa only [Real.norm_eq_abs] using hdb) hb
+    (hd.mono fun a ha r hr => by simpa only [mul_comm] using (ha r hr).exp)
+  have hnum := hasDerivAt_integral_of_dominated_loc_of_deriv_le hs
+    (hmeas.mono fun r hr => hF.mul hr)
+    (hi.bdd_mul hF (by simpa only [Real.norm_eq_abs] using hFb)) (hF.mul hdm)
+    (bound := fun a => |C| * b a)
+    (by
+      filter_upwards [hdb, hFb] with a hda hFa r hr
+      rw [Real.norm_eq_abs, abs_mul]
+      exact mul_le_mul (hFa.trans (le_abs_self C)) (hda r hr) (abs_nonneg _) (abs_nonneg _))
+    (hb.const_mul |C|)
+    (hd.mono fun a ha r hr => by
+      simpa only [Pi.mul_apply, mul_comm] using ((ha r hr).exp.const_mul (F a)))
+  simp_rw [integral_tilted_eq_div]
+  convert hnum.2.div hden.2 (integral_exp_pos hi).ne' using 1
+  have hprod : (∫ a, F a * (e' t a * Real.exp (e t a)) ∂μ) =
+      ∫ a, F a * e' t a * Real.exp (e t a) ∂μ := by
+    apply integral_congr_ae
+    exact ae_of_all _ fun a => by ring
+  simp only [Pi.mul_apply]
+  rw [hprod]
+  field_simp [(integral_exp_pos hi).ne']
 
 /-- A jointly measurable observable and random log-density have a measurable tilted integral.
 The observable may depend on the same environment as the log-density. -/

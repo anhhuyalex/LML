@@ -32,11 +32,11 @@ namespace MeasureTheory
 instance Measure.prod.instNeZero {α β : Type*} [MeasurableSpace α] [MeasurableSpace β]
     (μ : Measure α) (ν : Measure β) [SFinite ν] [NeZero μ] [NeZero ν] : NeZero (μ.prod ν) :=
   ⟨fun h => by
-    have hh := congrArg (fun m : Measure (α × β) => m Set.univ) h
-    simp [← Set.univ_prod_univ, Measure.prod_prod] at hh
-    rcases hh with hμ | hν
-    · exact (NeZero.ne μ) hμ
-    · exact (NeZero.ne ν) hν⟩
+    have hp : μ Set.univ * ν Set.univ ≠ 0 :=
+      mul_ne_zero (NeZero.ne (μ Set.univ)) (NeZero.ne (ν Set.univ))
+    apply hp
+    simpa only [← Set.univ_prod_univ, Measure.prod_prod, FunLike.coe_zero, Pi.zero_apply] using
+      congrArg (fun m : Measure (α × β) => m Set.univ) h⟩
 
 /-- **A product measure is bounded by the sup of its sections.** If every section
 `{b | (a, b) ∈ s}` of the measurable set `s` has `ν`-measure at most `c` (for `μ`-a.e. `a`), then

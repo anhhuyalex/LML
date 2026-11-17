@@ -27,14 +27,6 @@ open scoped BigOperators
 
 namespace MeasureTheory
 
-theorem neZero_measure_pi {α J : Type*} [MeasurableSpace α] [Fintype J] (μ : Measure α)
-    [IsFiniteMeasure μ] [NeZero μ] : NeZero (Measure.pi fun _ : J => μ) :=
-  ⟨fun h => by
-    have := congrArg (fun m : Measure (J → α) => m Set.univ) h
-    simp only [Measure.pi_univ, FunLike.coe_zero, Pi.zero_apply] at this
-    rw [Finset.prod_eq_zero_iff] at this
-    obtain ⟨i, -, hi⟩ := this
-    exact (NeZero.ne μ) (Measure.measure_univ_eq_zero.mp hi)⟩
 
 variable {α K Ks R : Type*} [MeasurableSpace α] [Fintype K] [Fintype Ks] [Fintype R]
   {μ : Measure α} [IsFiniteMeasure μ] [NeZero μ]

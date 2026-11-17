@@ -29,6 +29,16 @@ namespace MeasureTheory
 
 variable {α ι : Type*} [MeasurableSpace α] [Fintype ι] {μ : Measure α} [IsFiniteMeasure μ]
 
+/-- The finite replica base measure is nonzero whenever its common finite base measure is. -/
+theorem neZero_measure_pi {α J : Type*} [MeasurableSpace α] [Fintype J] (μ : Measure α)
+    [IsFiniteMeasure μ] [NeZero μ] : NeZero (Measure.pi fun _ : J => μ) :=
+  ⟨fun h => by
+    have := congrArg (fun m : Measure (J → α) => m Set.univ) h
+    simp only [Measure.pi_univ, FunLike.coe_zero, Pi.zero_apply] at this
+    rw [Finset.prod_eq_zero_iff] at this
+    obtain ⟨i, -, hi⟩ := this
+    exact (NeZero.ne μ) (Measure.measure_univ_eq_zero.mp hi)⟩
+
 /-- The partition function of a product of replicas is the product of partition functions. -/
 theorem integral_pi_exp_sum (E : α → ℝ) :
     ∫ σ : ι → α, Real.exp (∑ i, E (σ i)) ∂(Measure.pi fun _ => μ) =
