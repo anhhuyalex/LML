@@ -109,6 +109,25 @@ theorem abs_perceptron_smart_path_energy_le {u : ℝ → ℝ} {D : ℝ} (hD : �
     simpa only [abs_neg, mul_neg, Finset.sum_neg_distrib, ← neg_add] using hn
   exact neg_le.mp hneg
 
+/-- The two-sided bound on `[0, 1]` with the `|y|` bound. -/
+theorem abs_perceptron_smart_path_energy_le_of_nonneg {u : ℝ → ℝ} {D : ℝ}
+    (hD : ∀ x, |u x| ≤ D) (g : Fin M → Fin N → ℝ) (a : Fin M → ℝ) (y t : ℝ) (ht : 0 ≤ t)
+    (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) :
+    |((x.1.2 : ℤ) : ℝ) * Real.sqrt (1 - t) * y +
+      ∑ k, u ((Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i, g k i * ((x.1.1 i : ℤ) : ℝ)) +
+        Real.sqrt (t / (N + 1)) * a k * ((x.1.2 : ℤ) : ℝ) +
+        Real.sqrt ((1 - t) / (N + 1)) * x.2 k)| ≤ M * D + |y| := by
+  have hsq : Real.sqrt (1 - t) ≤ 1 := Real.sqrt_le_one.mpr (by linarith)
+  have := mul_le_mul_of_nonneg_right hsq (abs_nonneg y)
+  exact (abs_perceptron_smart_path_energy_le hD g a y t x).trans
+    (add_le_add le_rfl (by simpa only [one_mul] using this))
+
+/-- A coordinate is bounded by the exponential of the sum of absolute coordinates. -/
+theorem abs_apply_le_exp_sum_abs {ι : Type*} [Fintype ι] (x : ι → ℝ) (k : ι) :
+    |x k| ≤ Real.exp (∑ i, |x i|) :=
+  (Finset.single_le_sum (fun i _ => abs_nonneg (x i)) (Finset.mem_univ k)).trans
+    ((le_add_of_nonneg_right zero_le_one).trans (Real.add_one_le_exp _))
+
 /-- The Gibbs weight is integrable for every fixed disorder and path parameter. -/
 theorem integrable_exp_perceptron_smart_path_energy {u : ℝ → ℝ} (hu : Measurable u)
     {D : ℝ} (hD : ∀ x, u x ≤ D) (g : Fin M → Fin N → ℝ)

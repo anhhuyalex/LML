@@ -245,6 +245,12 @@ theorem hasDerivAt_integral_tilted_of_dominated {α : Type*} [MeasurableSpace α
   rw [hprod]
   field_simp [(integral_exp_pos hi).ne']
 
+/-- Pointwise bound `|x e^y| ≤ c e^B` for `|x| ≤ c` and `y ≤ B`. -/
+theorem abs_mul_exp_le {x y c B : ℝ} (hx : |x| ≤ c) (hy : y ≤ B) :
+    |x * Real.exp y| ≤ c * Real.exp B := by
+  rw [abs_mul, abs_of_pos (Real.exp_pos _)]
+  exact mul_le_mul hx (Real.exp_le_exp.mpr hy) (Real.exp_pos _).le ((abs_nonneg _).trans hx)
+
 /-- An upper energy bound converts an unweighted integrable derivative envelope into the
 weighted envelope needed to differentiate an exponential tilt on a finite base measure. -/
 theorem hasDerivAt_integral_tilted_of_bounded
@@ -354,12 +360,6 @@ theorem sum_sq_integral_tilted_le {α ι : Type*} [MeasurableSpace α] [Fintype 
     ∑ i, (∫ a, Y i a ∂(μ.tilted e)) ^ 2 ≤ ∫ a, ∑ i, Y i a ^ 2 ∂(μ.tilted e) := by
   have : IsProbabilityMeasure (μ.tilted e) := isProbabilityMeasure_tilted he
   exact sum_sq_integral_le Y hY hb
-
-/-- Pointwise bound `|x e^y| ≤ c e^B` for `|x| ≤ c` and `y ≤ B`. -/
-theorem abs_mul_exp_le {x y c B : ℝ} (hx : |x| ≤ c) (hy : y ≤ B) :
-    |x * Real.exp y| ≤ c * Real.exp B := by
-  rw [abs_mul, abs_of_pos (Real.exp_pos _)]
-  exact mul_le_mul hx (Real.exp_le_exp.mpr hy) (Real.exp_pos _).le ((abs_nonneg _).trans hx)
 
 /-- A bounded factor controls covariance by twice its bound times the absolute first moment
 of the other factor. The inequality itself requires no measurability of the bounded factor. -/

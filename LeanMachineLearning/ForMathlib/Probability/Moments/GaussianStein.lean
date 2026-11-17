@@ -158,6 +158,12 @@ theorem integrable_abs_id_gaussianReal {m : ℝ} {v : ℝ≥0} :
   rw [Real.norm_eq_abs, abs_abs, one_mul]
   exact (le_add_of_nonneg_right zero_le_one).trans (Real.add_one_le_exp |t|)
 
+/-- `id` is integrable against any real Gaussian law. -/
+theorem integrable_id_gaussianReal {m : ℝ} {v : ℝ≥0} :
+    Integrable (fun t : ℝ => t) (gaussianReal m v) :=
+  integrable_abs_id_gaussianReal.mono' (by fun_prop)
+    (Eventually.of_forall fun t => by simp [Real.norm_eq_abs])
+
 /-- An affine combination of absolute coordinates is integrable against a product of
 a finite measure and standard Gaussian coordinates. -/
 theorem integrable_add_sum_mul_abs_snd {A : Type*} [MeasurableSpace A] (ν : Measure A)

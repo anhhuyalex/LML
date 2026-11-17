@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.SpinGlasses.Basic
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SqrtSub
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein
 public import Mathlib.Analysis.SpecialFunctions.Sqrt
 public import Mathlib.Analysis.Calculus.Deriv.Mul
 public import Mathlib.Analysis.Calculus.Deriv.Add
@@ -27,6 +28,7 @@ averages also requires integrable bounds, and is a separate statement.
 
 @[expose] public section
 
+open MeasureTheory ProbabilityTheory
 open scoped BigOperators
 namespace SpinGlasses
 
@@ -73,6 +75,56 @@ theorem hasDerivAt_perceptron_smart_path_energy {N M : ℕ} {t : ℝ}
   · rfl
   · dsimp only [id_eq]; push_cast; ring
 
+/-- Pointwise bound on the last-field energy derivative term. -/
+theorem abs_perceptron_smart_path_E'_Y_le (ε : ℤˣ) (y t δ : ℝ)
+    (hδ : 0 < δ) (ht : t ∈ Set.Icc δ (1 - δ)) :
+    |-((ε : ℤ) : ℝ) * y / (2 * Real.sqrt (1 - t))| ≤ |y| / (2 * Real.sqrt δ) := by
+  have ht1 : 0 < 1 - t := by linarith [ht.2, hδ]
+  have hd1 : Real.sqrt δ ≤ Real.sqrt (1 - t) := Real.sqrt_le_sqrt (by linarith [ht.2])
+  rw [abs_div, abs_mul, abs_neg, abs_units_cast_eq_one, one_mul,
+    abs_of_pos (by positivity : (0 : ℝ) < 2 * Real.sqrt (1 - t))]
+  exact div_le_div_of_nonneg_left (abs_nonneg _) (by positivity)
+    (mul_le_mul_of_nonneg_left hd1 (by norm_num))
+
+/-- Pointwise bound on one constraint coordinate of the disorder derivative term. -/
+theorem abs_perceptron_smart_path_E'_a_term_le {N : ℕ} {u : ℝ → ℝ} {D : ℝ}
+    (hD : ∀ z, |deriv u z| ≤ D) (S_k a_k : ℝ) (ε : ℤˣ) (t δ : ℝ)
+    (hδ : 0 < δ) (ht : t ∈ Set.Icc δ (1 - δ)) :
+    |deriv u S_k * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
+      (a_k * ((ε : ℤ) : ℝ) / Real.sqrt t))| ≤
+      D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) * (|a_k| / Real.sqrt δ) := by
+  have ht0 : 0 < t := hδ.trans_le ht.1
+  have hdt : Real.sqrt δ ≤ Real.sqrt t := Real.sqrt_le_sqrt ht.1
+  have hc0 := one_div_le_one_div_of_le (Real.sqrt_pos.2 hδ) hdt
+  have hD0 : 0 ≤ D := (abs_nonneg _).trans (hD 0)
+  have hterm : |a_k * ((ε : ℤ) : ℝ) / Real.sqrt t| ≤ |a_k| / Real.sqrt δ := by
+    rw [abs_div, abs_mul, abs_units_cast_eq_one, mul_one,
+      abs_of_pos (Real.sqrt_pos.2 ht0)]
+    exact div_le_div_of_nonneg_left (abs_nonneg _) (Real.sqrt_pos.2 hδ) hdt
+  rw [abs_mul, abs_mul, abs_of_nonneg (by positivity : 0 ≤ 1 / (2 * Real.sqrt (N + 1 : ℕ))),
+    ← mul_assoc]
+  exact mul_le_mul (mul_le_mul_of_nonneg_right (hD _) (by positivity)) hterm
+    (abs_nonneg _) (mul_nonneg hD0 (by positivity))
+
+/-- Pointwise bound on one constraint coordinate of the auxiliary spin derivative term. -/
+theorem abs_perceptron_smart_path_E'_ξ_term_le {N : ℕ} {u : ℝ → ℝ} {D : ℝ}
+    (hD : ∀ z, |deriv u z| ≤ D) (S_k ξ_k : ℝ) (t δ : ℝ)
+    (hδ : 0 < δ) (ht : t ∈ Set.Icc δ (1 - δ)) :
+    |deriv u S_k * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
+      (- ξ_k / Real.sqrt (1 - t)))| ≤
+      D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) * (|ξ_k| / Real.sqrt δ) := by
+  have ht1 : 0 < 1 - t := by linarith [ht.2]
+  have hd1 : Real.sqrt δ ≤ Real.sqrt (1 - t) := Real.sqrt_le_sqrt (by linarith [ht.2])
+  have hc1 := one_div_le_one_div_of_le (Real.sqrt_pos.2 hδ) hd1
+  have hD0 : 0 ≤ D := (abs_nonneg _).trans (hD 0)
+  have hterm : |- ξ_k / Real.sqrt (1 - t)| ≤ |ξ_k| / Real.sqrt δ := by
+    rw [abs_div, abs_neg, abs_of_pos (Real.sqrt_pos.2 ht1)]
+    exact div_le_div_of_nonneg_left (abs_nonneg _) (Real.sqrt_pos.2 hδ) hd1
+  rw [abs_mul, abs_mul, abs_of_nonneg (by positivity : 0 ≤ 1 / (2 * Real.sqrt (N + 1 : ℕ))),
+    ← mul_assoc]
+  exact mul_le_mul (mul_le_mul_of_nonneg_right (hD _) (by positivity)) hterm
+    (abs_nonneg _) (mul_nonneg hD0 (by positivity))
+
 /-- On a closed interval inside `(0, 1)`, the energy derivative grows at most linearly in
 the absolute values of the auxiliary coordinates. This is an integrable Gaussian envelope. -/
 theorem abs_deriv_perceptron_smart_path_energy_le {N M : ℕ} {t δ : ℝ}
@@ -97,11 +149,8 @@ theorem abs_deriv_perceptron_smart_path_energy_le {N M : ℕ} {t δ : ℝ}
   have hc0 := one_div_le_one_div_of_le (Real.sqrt_pos.2 hδ) hdt
   have hc1 := one_div_le_one_div_of_le (Real.sqrt_pos.2 hδ) hd1
   have hD0 : 0 ≤ D := (abs_nonneg _).trans (hD 0)
-  have hY : |-((ε : ℤ) : ℝ) * y / (2 * Real.sqrt (1 - t))| ≤ |y| / (2 * Real.sqrt δ) := by
-    rw [abs_div, abs_mul, abs_neg, abs_units_cast_eq_one, one_mul,
-      abs_of_pos (by positivity : (0 : ℝ) < 2 * Real.sqrt (1 - t))]
-    exact div_le_div_of_nonneg_left (abs_nonneg _) (by positivity)
-      (mul_le_mul_of_nonneg_left hd1 (by norm_num))
+  have hY : |-((ε : ℤ) : ℝ) * y / (2 * Real.sqrt (1 - t))| ≤ |y| / (2 * Real.sqrt δ) :=
+    abs_perceptron_smart_path_E'_Y_le ε y t δ hδ ht
   have hterm (k : Fin M) :
       |deriv u (S t k) * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
         (a k * ((ε : ℤ) : ℝ) / Real.sqrt t - ξ k / Real.sqrt (1 - t)))| ≤
@@ -123,5 +172,22 @@ theorem abs_deriv_perceptron_smart_path_energy_le {N M : ℕ} {t δ : ℝ}
       (abs_nonneg _) (mul_nonneg hD0 (by positivity))
   exact (abs_add_le _ _).trans (add_le_add hY
     ((Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun k _ => hterm k)))
+
+/-- The Gaussian derivative envelope is integrable against counting times Gaussian measure. -/
+theorem integrable_perceptron_smart_path_envelope {N M : ℕ} (D δ y : ℝ) (a : Fin M → ℝ) :
+    Integrable (fun x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ) =>
+      |y| / (2 * Real.sqrt δ) + ∑ k, D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) *
+        ((|a k| + |x.2 k|) / Real.sqrt δ))
+      ((Measure.count : Measure ((Fin N → ℤˣ) × ℤˣ)).prod
+        (Measure.pi fun _ : Fin M => gaussianReal 0 1)) := by
+  have h := integrable_add_sum_mul_abs_snd (M := M) (Measure.count : Measure ((Fin N → ℤˣ) × ℤˣ))
+    (|y| / (2 * Real.sqrt δ) +
+      ∑ k, D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) * (|a k| / Real.sqrt δ))
+    (fun _ => D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) / Real.sqrt δ)
+  refine h.congr (ae_of_all _ fun x => ?_)
+  simp only [add_div, mul_add, Finset.sum_add_distrib]
+  rw [add_assoc]
+  congr 2
+  exact Finset.sum_congr rfl fun k _ => by ring
 
 end SpinGlasses

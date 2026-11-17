@@ -65,7 +65,7 @@ theorem hasDerivAt_integral_integral_tilted_of_dominated
     (hE' : ∀ r ∈ s, Measurable fun p : Ω × α => E' r p.1 p.2)
     {A B : Ω → ℝ} {b : α → ℝ}
     (hEb : ∀ r ∈ s, ∀ ω a, |E r ω a| ≤ A ω)
-    (hB : ∀ ω, 0 ≤ B ω) (hb : Integrable b μ)
+    (hb : Integrable b μ)
     (hdb : ∀ r ∈ s, ∀ ω a, |E' r ω a| ≤ B ω * b a)
     (houter : Integrable (fun ω => Real.exp (2 * A ω) * B ω) P)
     (hd : ∀ ω a, ∀ r ∈ s, HasDerivAt (fun q => E q ω a) (E' r ω a) r)
@@ -95,8 +95,8 @@ theorem hasDerivAt_integral_integral_tilted_of_dominated
         (measurable_integral_tilted_dep (hE r hr) (hE' r hr)))
   have hcalc (ω : Ω) (r : ℝ) (hr : r ∈ s) :
       HasDerivAt (fun q => ∫ a, F a ∂μ.tilted (E q ω)) (D r ω) r :=
-    hasDerivAt_integral_tilted_of_bounded (hs.mem_nhds hr)
-      (fun q hq => hmE q hq ω) (hmE' r hr ω)
+    hasDerivAt_integral_tilted_of_bounded (E := fun q => E q ω) (E' := fun q => E' q ω)
+      (hs.mem_nhds hr) (fun q hq => hmE q hq ω) (hmE' r hr ω)
       (fun q hq a => le_of_abs_le (hEb q hq ω a)) (hb.const_mul (B ω))
       (fun q hq a => hdb q hq ω a)
       (fun a q hq => hd ω a q hq) hF hFb
@@ -130,7 +130,7 @@ theorem hasDerivAt_integral_integral_pi_tilted_of_dominated
     (hE' : ∀ r ∈ s, Measurable fun p : Ω × α => E' r p.1 p.2)
     {A B : Ω → ℝ} {b : α → ℝ}
     (hEb : ∀ r ∈ s, ∀ ω a, |E r ω a| ≤ A ω)
-    (hB : ∀ ω, 0 ≤ B ω) (hb : Integrable b μ)
+    (hb : Integrable b μ)
     (hdb : ∀ r ∈ s, ∀ ω a, |E' r ω a| ≤ B ω * b a)
     (houter : Integrable (fun ω => Real.exp (2 * ((Fintype.card R : ℝ) * A ω)) * B ω) P)
     (hd : ∀ ω a, ∀ r ∈ s, HasDerivAt (fun q => E q ω a) (E' r ω a) r)
@@ -163,7 +163,7 @@ theorem hasDerivAt_integral_integral_pi_tilted_of_dominated
       refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
       simpa only [Finset.sum_const, Finset.card_univ, nsmul_eq_mul] using
         Finset.sum_le_sum (s := Finset.univ) (fun i _ => hEb r hr ω (σ i)))
-    hB hb'
+    hb'
     (fun r hr ω σ => by
       refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
       rw [Finset.mul_sum]

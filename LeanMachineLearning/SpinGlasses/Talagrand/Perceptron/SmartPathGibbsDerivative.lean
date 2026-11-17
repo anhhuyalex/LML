@@ -75,22 +75,7 @@ theorem hasDerivAt_integral_pi_perceptron_smart_path {N M : ℕ} {R : Type*} [Fi
   let b := fun x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ) =>
     |y| / (2 * Real.sqrt δ) + ∑ k, D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) *
       ((|a k| + |x.2 k|) / Real.sqrt δ)
-  have hG : Integrable (id : ℝ → ℝ) (gaussianReal 0 1) := by
-    have h : MemLp (id : ℝ → ℝ) 1 (gaussianReal 0 1) := memLp_id_gaussianReal 1
-    exact h.integrable le_rfl
-  have hξ (k : Fin M) : Integrable
-      (fun x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ) => |x.2 k|) μ :=
-    (integrable_comp_eval hG.abs).comp_snd (Measure.count : Measure ((Fin N → ℤˣ) × ℤˣ))
-  have hterms (k : Fin M) : Integrable
-      (fun x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ) =>
-        D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) * ((|a k| + |x.2 k|) / Real.sqrt δ)) μ := by
-    simpa only [Pi.add_apply] using
-      (((integrable_const |a k|).add (hξ k)).div_const (Real.sqrt δ)).const_mul
-        (D * (1 / (2 * Real.sqrt (N + 1 : ℕ))))
-  have hib : Integrable b μ := by
-    have hraw := (integrable_const (|y| / (2 * Real.sqrt δ))).add
-      (integrable_finsetSum Finset.univ fun k _ => hterms k)
-    exact hraw.congr (ae_of_all _ fun x => rfl)
+  have hib : Integrable b μ := integrable_perceptron_smart_path_envelope D δ y a
   have hcalc (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) (r : ℝ) (hr : r ∈ s) :
       HasDerivAt (fun q => E q x) (E' r x) r := by
     have hr0 : 0 < r := hδ.trans hr.1
@@ -112,4 +97,45 @@ theorem hasDerivAt_integral_pi_perceptron_smart_path {N M : ℕ} {R : Type*} [Fi
   convert hres using 1
   exact (integral_pi_cov_sum_eq_sum_sub_fresh (μ.tilted (E t)) F
     hF.aestronglyMeasurable hFb (E' t) hiTilted).symm
+
+/-- The energy derivative is integrable against the tilted measure for any `t ∈ (0, 1)`. -/
+theorem integrable_tilted_perceptron_smart_path_energy_deriv {N M : ℕ} {u : ℝ → ℝ}
+    (hu : Differentiable ℝ u) {B D : ℝ} (hB : ∀ x, u x ≤ B) (hD : ∀ z, |deriv u z| ≤ D)
+    (g : Fin M → Fin N → ℝ) (a : Fin M → ℝ) (y t : ℝ) (ht : t ∈ Set.Ioo 0 1) :
+    let μ := (Measure.count : Measure ((Fin N → ℤˣ) × ℤˣ)).prod
+      (Measure.pi fun _ : Fin M => gaussianReal 0 1)
+    let E := fun (s : ℝ) (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) =>
+      ((x.1.2 : ℤ) : ℝ) * Real.sqrt (1 - s) * y +
+        ∑ k, u ((Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i, g k i * ((x.1.1 i : ℤ) : ℝ)) +
+          Real.sqrt (s / (N + 1)) * a k * ((x.1.2 : ℤ) : ℝ) +
+          Real.sqrt ((1 - s) / (N + 1)) * x.2 k)
+    let E' := fun (s : ℝ) (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) =>
+      let S := fun (k : Fin M) =>
+        (Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i, g k i * ((x.1.1 i : ℤ) : ℝ)) +
+          Real.sqrt (s / (N + 1)) * a k * ((x.1.2 : ℤ) : ℝ) +
+          Real.sqrt ((1 - s) / (N + 1)) * x.2 k
+      -((x.1.2 : ℤ) : ℝ) * y / (2 * Real.sqrt (1 - s)) +
+        ∑ k, deriv u (S k) * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
+          (a k * ((x.1.2 : ℤ) : ℝ) / Real.sqrt s - x.2 k / Real.sqrt (1 - s)))
+    Integrable (E' t) (μ.tilted (E t)) := by
+  intro μ E E'
+  obtain ⟨δ, hδ, s, hs, ht_in, hts⟩ :
+      ∃ δ > 0, ∃ s, IsOpen s ∧ t ∈ s ∧ s ⊆ Set.Icc δ (1 - δ) :=
+    exists_between ht.1 ht.2
+  have hmE : Measurable (E t) :=
+    measurable_perceptron_smart_path_energy_slice hu.continuous.measurable g a y t
+  have hmE' : Measurable (E' t) := by
+    dsimp only [E']
+    fun_prop
+  have hEb (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) : E t x ≤ M * B + |y| :=
+    perceptron_smart_path_energy_le_of_nonneg hB g a y t ht.1.le x
+  let b := fun x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ) =>
+    |y| / (2 * Real.sqrt δ) + ∑ k, D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) *
+      ((|a k| + |x.2 k|) / Real.sqrt δ)
+  have hib : Integrable b μ := integrable_perceptron_smart_path_envelope D δ y a
+  have hdb (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) : |E' t x| ≤ b x :=
+    abs_deriv_perceptron_smart_path_energy_le hδ (hts ht_in) hD g a x.2 x.1.1 x.1.2 y
+  have hiE' : Integrable (E' t) μ := hib.mono' hmE'.aestronglyMeasurable
+    (ae_of_all _ fun x => by simpa only [Real.norm_eq_abs] using hdb x)
+  exact integrable_tilted_of_ae_le hmE.aemeasurable (ae_of_all _ hEb) hiE'
 end SpinGlasses

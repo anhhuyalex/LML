@@ -220,6 +220,14 @@ theorem integral_pi_sum_eval (ν : Measure α) [IsProbabilityMeasure ν] {J : Ty
   simp_rw [integral_pi_eval ν _ h hh.aestronglyMeasurable]
   simp
 
+/-- The replica difference operator `∑_i ⟨F h(σ_i)⟩ - |R| ⟨F h(σ_*)⟩`. -/
+noncomputable def replicaDiff {α R : Type*} [MeasurableSpace α] [Fintype R] (ν : Measure α)
+    (F : (R → α) → ℝ) (h : α → ℝ) : ℝ :=
+  (∑ i, ∫ σ : Option R → α, F (fun j => σ (some j)) * h (σ (some i))
+      ∂(Measure.pi fun _ : Option R => ν)) -
+    (Fintype.card R : ℝ) * ∫ σ : Option R → α, F (fun j => σ (some j)) * h (σ none)
+      ∂(Measure.pi fun _ : Option R => ν)
+
 /-- A covariance with a sum over the observed replicas is a sum of observed-replica terms
 minus the cardinality times one fresh-replica term. The one-state observable only needs to be
 integrable, so this also applies to energy derivatives containing Gaussian coordinates. -/
@@ -231,10 +239,7 @@ theorem integral_pi_cov_sum_eq_sum_sub_fresh {α R : Type*} [MeasurableSpace α]
     (∫ σ, F σ * (∑ i, h (σ i)) ∂(Measure.pi fun _ : R => ν)) -
       (∫ σ, F σ ∂(Measure.pi fun _ : R => ν)) *
         (∫ σ, (∑ i, h (σ i)) ∂(Measure.pi fun _ : R => ν)) =
-    (∑ i, ∫ σ : Option R → α, F (fun j => σ (some j)) * h (σ (some i))
-      ∂(Measure.pi fun _ : Option R => ν)) -
-      (Fintype.card R : ℝ) * ∫ σ : Option R → α, F (fun j => σ (some j)) * h (σ none)
-        ∂(Measure.pi fun _ : Option R => ν) := by
+    replicaDiff ν F h := by
   have hI (i : R) : Integrable (fun σ : R → α => h (σ i)) (Measure.pi fun _ : R => ν) :=
     integrable_comp_eval hh
   have hFI (i : R) := (hI i).bdd_mul hF (ae_of_all _ fun σ => by
@@ -250,97 +255,32 @@ theorem integral_pi_cov_sum_eq_sum_sub_fresh {α R : Type*} [MeasurableSpace α]
       (fun σ : R → α => F σ * h (σ i)) (hFI i).aestronglyMeasurable).symm
   have hfresh := integral_pi_fresh_replica_mul ν (e := some) (Option.some_injective R)
     (r := none) (fun i => Option.some_ne_none i) F h hF hh.aestronglyMeasurable
+  dsimp only [replicaDiff]
   rw [hnum, integral_pi_sum_eval ν h hh, hfresh]
   ring
 
-/-- The replica difference operator `∑_i ⟨F h(σ_i)⟩ - |R| ⟨F h(σ_*)⟩` is additive in `h`. -/
-theorem integral_pi_replica_diff_add {R : Type*} [Fintype R] (ν : Measure α)
-    (F : (R → α) → ℝ) (h₁ h₂ : α → ℝ)
-    (hI1 : ∀ j : Option R, Integrable (fun σ : Option R → α => F (fun i => σ (some i)) * h₁ (σ j))
-      (Measure.pi fun _ : Option R => ν))
-    (hI2 : ∀ j : Option R, Integrable (fun σ : Option R → α => F (fun i => σ (some i)) * h₂ (σ j))
-      (Measure.pi fun _ : Option R => ν)) :
-    let μR := Measure.pi fun _ : Option R => ν
-    let diff := fun h : α → ℝ =>
-      (∑ i, ∫ σ : Option R → α, F (fun j => σ (some j)) * h (σ (some i)) ∂μR) -
-        (Fintype.card R : ℝ) * ∫ σ : Option R → α, F (fun j => σ (some j)) * h (σ none) ∂μR
-    diff (fun x => h₁ x + h₂ x) = diff h₁ + diff h₂ := by
-  intro μR diff
-  dsimp only [diff]
-  have hsplit (j : Option R) :
-      (∫ σ : Option R → α, F (fun i => σ (some i)) * (h₁ (σ j) + h₂ (σ j)) ∂μR) =
-      (∫ σ : Option R → α, F (fun i => σ (some i)) * h₁ (σ j) ∂μR) +
-      (∫ σ : Option R → α, F (fun i => σ (some i)) * h₂ (σ j) ∂μR) := by
-    have heq : (fun σ : Option R → α => F (fun i => σ (some i)) * (h₁ (σ j) + h₂ (σ j))) =
-        fun σ => F (fun i => σ (some i)) * h₁ (σ j) + F (fun i => σ (some i)) * h₂ (σ j) := by
-      ext σ; ring
-    rw [heq, integral_add (hI1 j) (hI2 j)]
-  simp_rw [hsplit]
-  simp only [Finset.sum_add_distrib]
+/-- Additivity needs only one-state integrability of `h₁, h₂`, no product integrability. -/
+theorem replicaDiff_add {α R : Type*} [MeasurableSpace α] [Fintype R] (ν : Measure α)
+    [IsProbabilityMeasure ν] (F : (R → α) → ℝ)
+    (hF : AEStronglyMeasurable F (Measure.pi fun _ : R => ν))
+    {C : ℝ} (hFb : ∀ σ, |F σ| ≤ C) {h₁ h₂ : α → ℝ}
+    (hh₁ : Integrable h₁ ν) (hh₂ : Integrable h₂ ν) :
+    replicaDiff ν F (fun x => h₁ x + h₂ x) = replicaDiff ν F h₁ + replicaDiff ν F h₂ := by
+  have hcov (h : α → ℝ) (hh : Integrable h ν) : replicaDiff ν F h =
+      (∫ σ, F σ * (∑ i, h (σ i)) ∂(Measure.pi fun _ : R => ν)) -
+      (∫ σ, F σ ∂(Measure.pi fun _ : R => ν)) *
+        (∫ σ, (∑ i, h (σ i)) ∂(Measure.pi fun _ : R => ν)) :=
+    (integral_pi_cov_sum_eq_sum_sub_fresh ν F hF hFb h hh).symm
+  have hS (h : α → ℝ) (hh : Integrable h ν) : Integrable (fun σ : R → α => ∑ i, h (σ i))
+      (Measure.pi fun _ : R => ν) := integrable_finsetSum _ fun i _ => integrable_comp_eval hh
+  have hFS (h : α → ℝ) (hh : Integrable h ν) :
+      Integrable (fun σ : R → α => F σ * ∑ i, h (σ i)) (Measure.pi fun _ : R => ν) := by
+    simpa only [mul_comm] using (hS h hh).bdd_mul hF (ae_of_all _ fun σ => by
+      simpa only [Real.norm_eq_abs] using hFb σ)
+  rw [hcov (fun x => h₁ x + h₂ x) (hh₁.add hh₂), hcov _ hh₁, hcov _ hh₂]
+  simp only [Finset.sum_add_distrib, mul_add]
+  rw [integral_add (hFS h₁ hh₁) (hFS h₂ hh₂), integral_add (hS h₁ hh₁) (hS h₂ hh₂)]
   ring
-
-/-- The replica difference operator commutes with scalar multiplication in `h`. -/
-theorem integral_pi_replica_diff_const_mul {R : Type*} [Fintype R] (ν : Measure α)
-    (F : (R → α) → ℝ) (c : ℝ) (h : α → ℝ) :
-    let μR := Measure.pi fun _ : Option R => ν
-    let diff := fun h : α → ℝ =>
-      (∑ i, ∫ σ : Option R → α, F (fun j => σ (some j)) * h (σ (some i)) ∂μR) -
-        (Fintype.card R : ℝ) * ∫ σ : Option R → α, F (fun j => σ (some j)) * h (σ none) ∂μR
-    diff (fun x => c * h x) = c * diff h := by
-  intro μR diff
-  dsimp only [diff]
-  have hmul (j : Option R) :
-      (∫ σ : Option R → α, F (fun i => σ (some i)) * (c * h (σ j)) ∂μR) =
-      c * ∫ σ : Option R → α, F (fun j => σ (some j)) * h (σ j) ∂μR := by
-    have heq : (fun σ : Option R → α => F (fun i => σ (some i)) * (c * h (σ j))) =
-        fun σ => c * (F (fun i => σ (some i)) * h (σ j)) := by
-      ext σ; ring
-    rw [heq, integral_const_mul]
-  simp_rw [hmul, ← Finset.mul_sum]
-  ring
-
-/-- The replica difference operator commutes with finite sums in `h`. -/
-theorem integral_pi_replica_diff_finsetSum {R : Type*} [Fintype R] (ν : Measure α)
-    (F : (R → α) → ℝ) {ι : Type*} (s : Finset ι) (h : ι → α → ℝ)
-    (hI : ∀ k ∈ s, ∀ j : Option R,
-      Integrable (fun σ : Option R → α => F (fun i => σ (some i)) * h k (σ j))
-        (Measure.pi fun _ : Option R => ν)) :
-    let μR := Measure.pi fun _ : Option R => ν
-    let diff := fun f : α → ℝ =>
-      (∑ i, ∫ σ : Option R → α, F (fun j => σ (some j)) * f (σ (some i)) ∂μR) -
-        (Fintype.card R : ℝ) * ∫ σ : Option R → α, F (fun j => σ (some j)) * f (σ none) ∂μR
-    diff (fun x => ∑ k ∈ s, h k x) = ∑ k ∈ s, diff (h k) := by
-  classical
-  intro μR diff
-  induction s using Finset.induction_on with
-  | empty =>
-    simp only [Finset.sum_empty]
-    dsimp only [diff]
-    simp only [mul_zero, integral_zero, Finset.sum_const_zero, sub_self]
-  | @insert k s hk ih =>
-    rw [Finset.sum_insert hk]
-    have heq : (fun x => ∑ l ∈ insert k s, h l x) = fun x => h k x + ∑ l ∈ s, h l x :=
-      funext fun x => Finset.sum_insert hk
-    rw [heq]
-    have hI_k : ∀ j : Option R, Integrable
-        (fun σ : Option R → α => F (fun i => σ (some i)) * h k (σ j)) μR :=
-      fun j => hI k (Finset.mem_insert_self k s) j
-    have hI_s : ∀ j : Option R, Integrable
-        (fun σ : Option R → α => F (fun i => σ (some i)) * (∑ l ∈ s, h l (σ j))) μR := by
-      intro j
-      have heq' : (fun σ : Option R → α => F (fun i => σ (some i)) * (∑ l ∈ s, h l (σ j))) =
-          fun σ => ∑ l ∈ s, F (fun i => σ (some i)) * h l (σ j) := by
-        ext σ; rw [Finset.mul_sum]
-      rw [heq']
-      exact integrable_finsetSum s fun l hl =>
-        hI l (Finset.mem_insert_of_mem hl) j
-    have hstep := integral_pi_replica_diff_add ν F (h k) (fun x => ∑ l ∈ s, h l x) hI_k hI_s
-    dsimp only [diff] at hstep ⊢
-    rw [hstep]
-    congr 1
-    apply ih
-    intro l hl j
-    exact hI l (Finset.mem_insert_of_mem hl) j
 
 /-- **The replica covariance identity.** For `Y` a function of the replicas `some o`
 (`o : Option R`) and `h` a function of one spin, the covariance of `Y` with the sum of `h` over all
