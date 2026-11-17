@@ -157,6 +157,7 @@ public import LeanMachineLearning.ForMathlib.Probability.EmpiricalConvergence
 public import LeanMachineLearning.ForMathlib.Probability.ExchangeableMixture
 public import LeanMachineLearning.ForMathlib.Probability.GibbsCavityPath
 public import LeanMachineLearning.ForMathlib.Probability.GibbsIBPLinear
+public import LeanMachineLearning.ForMathlib.Probability.GibbsIBPPotential
 public import LeanMachineLearning.ForMathlib.Probability.GibbsLogPartition
 public import LeanMachineLearning.ForMathlib.Probability.GibbsLogPartitionCavity
 public import LeanMachineLearning.ForMathlib.Probability.GibbsProductSplit
@@ -703,6 +704,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathDiso
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathEndpoints
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathFields
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathGibbsDerivative
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathIBP
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Maximizers.Hyperbolic
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Maximizers.Replacement
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Maximizers.Structure

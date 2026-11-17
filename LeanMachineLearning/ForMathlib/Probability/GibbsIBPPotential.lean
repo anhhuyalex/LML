@@ -1,7 +1,31 @@
-import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein
-import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.BoundedTilted
+/-
+Copyright (c) 2026 LML Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: LML Contributors
+-/
+module
+
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.BoundedTilted
+
+/-!
+# Gaussian integration by parts for Gibbs measures with potential energy
+
+This module provides the core Gaussian integration by parts (Stein identity) for
+Hamiltonians with potential terms `u(S)`, where `S` depends affinely on a Gaussian
+random variable `z ~ 𝒩(0, v)`.
+
+Differentiating `u'(S) e^{u(S)}` produces the characteristic `(u''(S) + (u'(S))²) e^{u(S)}`
+combination that appears in:
+1. Auxiliary Gaussian spin integration (Talagrand Section 2.2, Term IV);
+2. Quenched disorder integration (Talagrand Section 2.2, Term III diagonal);
+3. Cavity in $M$ (Talagrand Section 2.3, Lemma 2.3.2 and Exercise 2.3.3).
+-/
+
+@[expose] public section
 
 open MeasureTheory ProbabilityTheory Filter Topology Set
+
 namespace MeasureTheory
 
 /-- Pointwise derivative of `z ↦ u'(S₀ + c * z) * exp (u (S₀ + c * z))`. -/
@@ -61,9 +85,9 @@ theorem integral_id_mul_deriv_u_mul_exp_affine_gaussianReal (v : NNReal)
     have hsum : |u'' (S₀ + c * z) + (u' (S₀ + c * z)) ^ 2| ≤ |D₂| + D ^ 2 := by
       refine (abs_add_le _ _).trans (add_le_add ((hD₂ _).trans (le_abs_self _)) ?_)
       rw [sq, abs_mul]
-      have hDpos : 0 ≤ |D| := abs_nonneg _
+      have hD0 : 0 ≤ D := (abs_nonneg (u' 0)).trans (hD 0)
       calc |u' (S₀ + c * z)| * |u' (S₀ + c * z)|
-        _ ≤ D * D := mul_le_mul (hD _) (hD _) (abs_nonneg _) ((abs_nonneg _).trans (hD _))
+        _ ≤ D * D := mul_le_mul (hD _) (hD _) (abs_nonneg _) hD0
         _ = D ^ 2 := (sq D).symm
     exact mul_le_mul (mul_le_mul le_rfl hsum (abs_nonneg _) (abs_nonneg _))
       (Real.exp_le_exp.mpr (hB _)) (Real.exp_pos _).le (by positivity)
@@ -89,5 +113,13 @@ theorem integral_id_mul_deriv_u_mul_exp_affine_gaussianReal (v : NNReal)
     rw [hmul, integral_const_mul]
   rw [hstein, heq_c]
   ring
+
+/-- Evaluation of an observable depending only on one coordinate under a product of
+standard Gaussians. -/
+theorem integral_comp_eval_pi_gaussianReal {ι : Type*} [Fintype ι] (k : ι)
+    (f : ℝ → ℝ) (hf : Integrable f (gaussianReal 0 1)) :
+    ∫ x : ι → ℝ, f (x k) ∂(Measure.pi fun _ : ι => gaussianReal 0 1) =
+      ∫ t, f t ∂(gaussianReal 0 1) :=
+  integral_comp_eval (μ := fun _ : ι => gaussianReal 0 1) (i := k) hf.aestronglyMeasurable
 
 end MeasureTheory
