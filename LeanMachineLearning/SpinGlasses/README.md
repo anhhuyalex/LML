@@ -68,4 +68,7 @@ Blueprint chapters: `blueprint/src/chapters/spinglasses.tex` (Panchenko) and
   both zero-endpoint factorization identities. `SmartPathFields.lean` gives the constant-variance
   prior law; `SmartPathBounds.lean` gives measurable probability Gibbs laws and bounded-average
   integrability from an upper-bounded potential, and `SmartPathEndpoints.lean` recovers the original
-  Gibbs law at one. The actual path derivative remains open.
+  Gibbs law at one. `SmartPathDifferentiation.lean` proves the pointwise field/energy derivatives
+  and their Gaussian envelope. `SmartPathGibbsDerivative.lean` differentiates the fixed-disorder
+  replica average, with one fresh replica. The shared-disorder derivative and Gaussian
+  integration-by-parts cancellation remain open.

@@ -245,6 +245,68 @@ theorem hasDerivAt_integral_tilted_of_dominated {α : Type*} [MeasurableSpace α
   rw [hprod]
   field_simp [(integral_exp_pos hi).ne']
 
+/-- An upper energy bound converts an unweighted integrable derivative envelope into the
+weighted envelope needed to differentiate an exponential tilt on a finite base measure. -/
+theorem hasDerivAt_integral_tilted_of_bounded
+    {α : Type*} [MeasurableSpace α] {μ : Measure α} [IsFiniteMeasure μ] [NeZero μ]
+    {E E' : ℝ → α → ℝ} {t : ℝ} {s : Set ℝ} (hs : s ∈ 𝓝 t)
+    (hE : ∀ r ∈ s, Measurable (E r)) (hE' : Measurable (E' t))
+    {A : ℝ} (hEb : ∀ r ∈ s, ∀ a, E r a ≤ A)
+    {b : α → ℝ} (hb : Integrable b μ) (hb0 : ∀ a, 0 ≤ b a)
+    (hdb : ∀ r ∈ s, ∀ a, |E' r a| ≤ b a)
+    (hd : ∀ a, ∀ r ∈ s, HasDerivAt (fun q => E q a) (E' r a) r)
+    {F : α → ℝ} (hF : Measurable F) {C : ℝ} (hFb : ∀ a, |F a| ≤ C) :
+    HasDerivAt (fun r => ∫ a, F a ∂μ.tilted (E r))
+      ((∫ a, F a * E' t a ∂μ.tilted (E t)) -
+        (∫ a, F a ∂μ.tilted (E t)) * ∫ a, E' t a ∂μ.tilted (E t)) t := by
+  have ht := mem_of_mem_nhds hs
+  exact hasDerivAt_integral_tilted_of_dominated (e := E) (e' := E') hs
+    (Filter.mem_of_superset hs fun r hr => (hE r hr).exp.aestronglyMeasurable)
+    (integrable_exp_of_ae_le (hE t ht).aemeasurable (ae_of_all _ (hEb t ht)))
+    (hE'.mul (hE t ht).exp).aestronglyMeasurable (hb.const_mul (Real.exp A))
+    (ae_of_all _ fun a r hr => by
+      rw [abs_mul, abs_of_pos (Real.exp_pos _)]
+      exact (mul_le_mul (hdb r hr a) (Real.exp_le_exp.mpr (hEb r hr a))
+        (Real.exp_pos _).le (hb0 a)).trans_eq (mul_comm _ _))
+    (ae_of_all _ hd) hF.aestronglyMeasurable (ae_of_all _ hFb)
+
+/-- A bounded log-density controls a possibly unbounded tilted observable by its base first
+moment. The denominator bound retains the mass of a nonzero finite base measure. -/
+theorem abs_integral_tilted_le_exp_mul_integral_abs {α : Type*} [MeasurableSpace α] {μ : Measure α} [IsFiniteMeasure μ] [NeZero μ]
+    {e Y : α → ℝ} (he : AEMeasurable e μ) {C : ℝ} (heb : ∀ᵐ a ∂μ, |e a| ≤ C)
+    (hY : Integrable Y μ) :
+    |∫ a, Y a ∂μ.tilted e| ≤
+      Real.exp (2 * C) / μ.real Set.univ * ∫ a, |Y a| ∂μ := by
+  have hi := integrable_exp_of_ae_le he (heb.mono fun a ha => le_of_abs_le ha)
+  have hZ := integral_exp_pos hi
+  have hm : 0 < μ.real Set.univ := ENNReal.toReal_pos (NeZero.ne (μ Set.univ))
+    (measure_ne_top μ Set.univ)
+  have hl : μ.real Set.univ * Real.exp (-C) ≤ ∫ a, Real.exp (e a) ∂μ := by
+    calc _ = ∫ _a, Real.exp (-C) ∂μ := by rw [integral_const, smul_eq_mul]
+      _ ≤ _ := integral_mono_ae (integrable_const _) hi
+        (heb.mono fun a ha => Real.exp_le_exp.mpr (neg_le_of_abs_le ha))
+  have hu : (∫ a, |Y a| * Real.exp (e a) ∂μ) ≤ Real.exp C * ∫ a, |Y a| ∂μ := by
+    rw [← integral_const_mul]
+    refine integral_mono_of_nonneg (ae_of_all _ fun a => by positivity)
+      (hY.abs.const_mul _) ?_
+    filter_upwards [heb] with a ha
+    exact (mul_le_mul_of_nonneg_left (Real.exp_le_exp.mpr (le_of_abs_le ha)) (abs_nonneg _)).trans_eq
+      (mul_comm _ _)
+  rw [integral_tilted_eq_div, abs_div, abs_of_pos hZ]
+  calc _ ≤ (∫ a, |Y a| * Real.exp (e a) ∂μ) / (∫ a, Real.exp (e a) ∂μ) := by
+        apply div_le_div_of_nonneg_right _ hZ.le
+        simpa only [Real.norm_eq_abs, abs_mul, abs_of_pos (Real.exp_pos _)] using
+          norm_integral_le_integral_norm (fun a => Y a * Real.exp (e a))
+    _ ≤ (Real.exp C * ∫ a, |Y a| ∂μ) / (∫ a, Real.exp (e a) ∂μ) :=
+        div_le_div_of_nonneg_right hu hZ.le
+    _ ≤ (Real.exp C * ∫ a, |Y a| ∂μ) / (μ.real Set.univ * Real.exp (-C)) :=
+        div_le_div_of_nonneg_left (by positivity) (mul_pos hm (Real.exp_pos _)) hl
+    _ = _ := by
+        rw [Real.exp_neg]
+        field_simp
+        rw [pow_two, ← Real.exp_add, ← two_mul C]
+        exact mul_comm _ _
+
 /-- A jointly measurable observable and random log-density have a measurable tilted integral.
 The observable may depend on the same environment as the log-density. -/
 theorem measurable_integral_tilted_dep {Ω α : Type*} [MeasurableSpace Ω] [MeasurableSpace α]

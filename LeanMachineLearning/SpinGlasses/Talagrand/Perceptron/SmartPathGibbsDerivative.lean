@@ -80,11 +80,8 @@ theorem hasDerivAt_integral_pi_perceptron_smart_path {N M : ℕ} {R : Type*} [Fi
     dsimp only [E', S]
     fun_prop
   have hEb (r : ℝ) (hr : r ∈ s) (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) :
-      E r x ≤ M * B + |y| := by
-    have hsq : Real.sqrt (1 - r) ≤ 1 := Real.sqrt_le_one.mpr (by linarith [hr.1, hδ])
-    exact (perceptron_smart_path_energy_le hB g a y r x).trans
-      (add_le_add le_rfl (by simpa only [one_mul] using
-        mul_le_mul_of_nonneg_right hsq (abs_nonneg y)))
+      E r x ≤ M * B + |y| :=
+    perceptron_smart_path_energy_le_of_nonneg hB g a y r (hδ.trans hr.1).le x
   let b := fun x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ) =>
     |y| / (2 * Real.sqrt δ) + ∑ k, D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) *
       ((|a k| + |x.2 k|) / Real.sqrt δ)
@@ -119,9 +116,10 @@ theorem hasDerivAt_integral_pi_perceptron_smart_path {N M : ℕ} {R : Type*} [Fi
   have hts : t ∈ s := mem_of_mem_nhds hs
   have hiE' : Integrable (E' t) μ := hib.mono' (hmE' t).aestronglyMeasurable
     (ae_of_all _ fun x => by simpa only [Real.norm_eq_abs] using hdb t hts x)
-  have hiExp := integrable_exp_of_ae_le (μ := μ) (hmE t).aemeasurable
-    (ae_of_all _ (hEb t hts))
-  have hν : IsProbabilityMeasure (μ.tilted (E t)) := isProbabilityMeasure_tilted hiExp
+  have hiExp : Integrable (fun x => Real.exp (E t x)) μ :=
+    integrable_exp_perceptron_smart_path_energy hu.continuous.measurable hB g a y t
+  have hν : IsProbabilityMeasure (μ.tilted (E t)) :=
+    isProbabilityMeasure_tilted_perceptron_smart_path_energy hu.continuous.measurable hB g a y t
   have hiWeighted := hiE'.bdd_mul (hmE t).exp.aestronglyMeasurable
     (ae_of_all _ fun x => by
       rw [Real.norm_of_nonneg (Real.exp_pos _).le]

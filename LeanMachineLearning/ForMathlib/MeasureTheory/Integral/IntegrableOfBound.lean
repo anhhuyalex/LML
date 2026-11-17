@@ -103,4 +103,29 @@ theorem integral_integral_sum_sum_of_bound {Ω α ι κ : Type*} [MeasurableSpac
     (fun p _ => houter p.1 p.2)
   simpa only [Fintype.sum_prod_type] using this
 
+/-- A bounded factor controls covariance by twice its bound times the absolute first moment
+of the other factor. The inequality itself requires no measurability of the bounded factor. -/
+theorem abs_integral_mul_sub_integral_mul_le {α : Type*} [MeasurableSpace α] {μ : Measure α} [IsProbabilityMeasure μ]
+    (F h : α → ℝ) {C : ℝ} (hFb : ∀ a, |F a| ≤ C) (hh : Integrable h μ) :
+    |(∫ a, F a * h a ∂μ) - (∫ a, F a ∂μ) * (∫ a, h a ∂μ)| ≤
+      2 * |C| * ∫ a, |h a| ∂μ := by
+  have hF : |∫ a, F a ∂μ| ≤ |C| := by
+    have hx := norm_integral_le_of_norm_le_const (μ := μ) (f := F) (C := |C|)
+      (ae_of_all _ fun a => by simpa only [Real.norm_eq_abs] using (hFb a).trans (le_abs_self C))
+    simpa using hx
+  have hprod : |∫ a, F a * h a ∂μ| ≤ |C| * ∫ a, |h a| ∂μ := by
+    have hx := norm_integral_le_of_norm_le (f := fun a => F a * h a) (hh.abs.const_mul |C|)
+      (ae_of_all _ fun a => by
+        rw [Real.norm_eq_abs, abs_mul]
+        exact mul_le_mul_of_nonneg_right ((hFb a).trans (le_abs_self C)) (abs_nonneg _))
+    simpa only [Real.norm_eq_abs, integral_const_mul] using hx
+  have hhmean : |∫ a, h a ∂μ| ≤ ∫ a, |h a| ∂μ := by
+    simpa only [Real.norm_eq_abs] using norm_integral_le_integral_norm h
+  calc _ ≤ |∫ a, F a * h a ∂μ| + |(∫ a, F a ∂μ) * ∫ a, h a ∂μ| := abs_sub _ _
+    _ ≤ |C| * (∫ a, |h a| ∂μ) + |C| * ∫ a, |h a| ∂μ :=
+      add_le_add hprod (by
+        rw [abs_mul]
+        exact mul_le_mul hF hhmean (abs_nonneg _) (abs_nonneg _))
+    _ = _ := by ring
+
 end MeasureTheory

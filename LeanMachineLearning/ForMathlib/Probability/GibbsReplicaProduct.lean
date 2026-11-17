@@ -163,27 +163,13 @@ theorem hasDerivAt_integral_pi_tilted_of_dominated {α R : Type*} [MeasurableSpa
       Finset.sum_le_sum (s := Finset.univ) (fun i _ => hEb r hr (σ i))
   have hib : Integrable (fun σ : R → α => ∑ i, b (σ i)) (Measure.pi fun _ : R => μ) :=
     integrable_finsetSum _ fun i _ => integrable_comp_eval hb
-  have hibJ := hib.const_mul (Real.exp ((Fintype.card R : ℝ) * B))
   have hderb (r : ℝ) (hr : r ∈ s) (σ : R → α) : |J' r σ| ≤ ∑ i, b (σ i) :=
     (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun i _ => hdb r hr (σ i))
-  have hweightb (r : ℝ) (hr : r ∈ s) (σ : R → α) :
-      |J' r σ * Real.exp (J r σ)| ≤
-        Real.exp ((Fintype.card R : ℝ) * B) * ∑ i, b (σ i) := by
-    calc _ = |J' r σ| * Real.exp (J r σ) := by
-          rw [abs_mul, abs_of_pos (Real.exp_pos _)]
-      _ ≤ (∑ i, b (σ i)) * Real.exp ((Fintype.card R : ℝ) * B) :=
-          mul_le_mul (hderb r hr σ) (Real.exp_le_exp.mpr (hJb r hr σ))
-            (Real.exp_pos _).le ((abs_nonneg _).trans (hderb r hr σ))
-      _ = _ := mul_comm _ _
   have : NeZero (Measure.pi fun _ : R => μ) := neZero_measure_pi μ
-  have hres := hasDerivAt_integral_tilted_of_dominated (μ := Measure.pi fun _ : R => μ)
-    (e := J) (e' := J') hs
-    (Filter.mem_of_superset hs fun r hr => (hJ r hr).exp.aestronglyMeasurable)
-    (integrable_exp_of_ae_le (hJ t ht).aemeasurable (ae_of_all _ (hJb t ht)))
-    ((hJ'.mul (hJ t ht).exp).aestronglyMeasurable) hibJ
-    (ae_of_all _ fun σ r hr => hweightb r hr σ)
-    (ae_of_all _ fun σ r hr => HasDerivAt.fun_sum fun i _ => hd (σ i) r hr)
-    hF.aestronglyMeasurable (ae_of_all _ hFb)
+  have hres := hasDerivAt_integral_tilted_of_bounded
+    (μ := Measure.pi fun _ : R => μ) (E := J) (E' := J') hs hJ hJ' hJb hib
+    (fun σ => Finset.sum_nonneg fun i _ => (abs_nonneg _).trans (hdb t ht (σ i)))
+    hderb (fun σ r hr => HasDerivAt.fun_sum fun i _ => hd (σ i) r hr) hF hFb
   simpa only [J, J', ← pi_tilted_eq_tilted_pi] using hres
 
 /-- **Fresh replicas factorize.** A function of the replicas `e i` (`e` injective) times a function
@@ -223,6 +209,16 @@ theorem integral_pi_eval (ν : Measure α) [IsProbabilityMeasure ν] {J : Type*}
     ∫ σ : J → α, h (σ i) ∂(Measure.pi fun _ : J => ν) = ∫ a, h a ∂ν :=
   integral_comp_eval hh
 
+/-- The mean of a sum of copies of an integrable observable is the number of copies times
+its one-state mean. No boundedness of the observable is required. -/
+theorem integral_pi_sum_eval (ν : Measure α) [IsProbabilityMeasure ν] {J : Type*} [Fintype J]
+    (h : α → ℝ) (hh : Integrable h ν) :
+    ∫ σ : J → α, (∑ i, h (σ i)) ∂(Measure.pi fun _ : J => ν) =
+      (Fintype.card J : ℝ) * ∫ a, h a ∂ν := by
+  rw [integral_finsetSum _ fun i _ => integrable_comp_eval hh]
+  simp_rw [integral_pi_eval ν _ h hh.aestronglyMeasurable]
+  simp
+
 /-- A covariance with a sum over the observed replicas is a sum of observed-replica terms
 minus the cardinality times one fresh-replica term. The one-state observable only needs to be
 integrable, so this also applies to energy derivatives containing Gaussian coordinates. -/
@@ -251,14 +247,9 @@ theorem integral_pi_cov_sum_eq_sum_sub_fresh {α R : Type*} [MeasurableSpace α]
     intro i _
     exact (integral_pi_comp_injective ν (Option.some_injective _)
       (fun σ : R → α => F σ * h (σ i)) (hFI i).aestronglyMeasurable).symm
-  have hmean : (∫ σ : R → α, (∑ i, h (σ i)) ∂(Measure.pi fun _ : R => ν)) =
-      (Fintype.card R : ℝ) * ∫ a, h a ∂ν := by
-    rw [integral_finsetSum _ fun i _ => hI i]
-    simp_rw [integral_pi_eval ν _ h hh.aestronglyMeasurable]
-    simp
   have hfresh := integral_pi_fresh_replica_mul ν (e := some) (Option.some_injective R)
     (r := none) (fun i => Option.some_ne_none i) F h hF hh.aestronglyMeasurable
-  rw [hnum, hmean, hfresh]
+  rw [hnum, integral_pi_sum_eval ν h hh, hfresh]
   ring
 
 /-- **The replica covariance identity.** For `Y` a function of the replicas `some o`
@@ -287,8 +278,6 @@ theorem integral_replica_cov_identity {R : Type*} [Fintype R] (ν : Measure α)
     integrable_of_measurable_bound (hYm.mul (hhm i)) (M := M * B) fun σ => by
       rw [abs_mul]
       exact mul_le_mul (hYb σ) (hhb _) (abs_nonneg _) ((abs_nonneg _).trans (hYb σ))
-  have hI2 : ∀ i, Integrable (fun σ : Option (Option R) → α => h (σ i)) (Measure.pi fun _ => ν) :=
-    fun i => integrable_of_measurable_bound (hhm i) (hbd i)
   have hfresh : ∫ σ : Option (Option R) → α, Y σ * h (σ none) ∂(Measure.pi fun _ => ν) =
       (∫ τ : Option R → α, H τ ∂(Measure.pi fun _ => ν)) * ∫ a, h a ∂ν :=
     integral_pi_fresh_replica_mul ν (e := fun o : Option R => some o) (Option.some_injective _)
@@ -298,9 +287,8 @@ theorem integral_replica_cov_identity {R : Type*} [Fintype R] (ν : Measure α)
     integral_pi_comp_injective ν (Option.some_injective (Option R)) H hH.aestronglyMeasurable
   have hsum : ∫ σ : Option (Option R) → α, ∑ i, h (σ i) ∂(Measure.pi fun _ => ν) =
       (Fintype.card R + 2) * ∫ a, h a ∂ν := by
-    rw [integral_finsetSum _ fun i _ => hI2 i]
-    simp_rw [integral_pi_eval ν _ h hh.aestronglyMeasurable]
-    simp only [Finset.sum_const, Finset.card_univ, Fintype.card_option, nsmul_eq_mul]
+    rw [integral_pi_sum_eval ν h (integrable_of_measurable_bound hh hhb)]
+    simp only [Fintype.card_option]
     push_cast
     ring
   have hexp : ∫ σ : Option (Option R) → α, Y σ * ∑ i, h (σ i) ∂(Measure.pi fun _ => ν) =

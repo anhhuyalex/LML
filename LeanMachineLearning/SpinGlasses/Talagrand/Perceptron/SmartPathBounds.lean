@@ -61,6 +61,21 @@ theorem perceptron_smart_path_energy_le {u : ℝ → ℝ} {D : ℝ} (hD : ∀ x,
       add_le_add ((le_abs_self _).trans hb.le) (Finset.sum_le_sum fun k _ => hD _)
     _ = _ := by simp [add_comm]
 
+/-- For a nonnegative path parameter the last-field coefficient is at most one. This bound
+is uniform over the auxiliary coordinates and does not require `t ≤ 1`. -/
+theorem perceptron_smart_path_energy_le_of_nonneg {u : ℝ → ℝ} {D : ℝ} (hD : ∀ x, u x ≤ D)
+    (g : Fin M → Fin N → ℝ) (a : Fin M → ℝ) (y t : ℝ) (ht : 0 ≤ t)
+    (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) :
+    ((x.1.2 : ℤ) : ℝ) * Real.sqrt (1 - t) * y +
+      ∑ k, u ((Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i, g k i * ((x.1.1 i : ℤ) : ℝ)) +
+        Real.sqrt (t / (N + 1)) * a k * ((x.1.2 : ℤ) : ℝ) +
+        Real.sqrt ((1 - t) / (N + 1)) * x.2 k) ≤
+      M * D + |y| := by
+  have hsq : Real.sqrt (1 - t) ≤ 1 := Real.sqrt_le_one.mpr (by linarith)
+  exact (perceptron_smart_path_energy_le hD g a y t x).trans
+    (add_le_add le_rfl (by simpa only [one_mul] using
+      mul_le_mul_of_nonneg_right hsq (abs_nonneg y)))
+
 /-- The auxiliary coordinates do not affect the bound for a bounded potential. -/
 theorem abs_perceptron_smart_path_energy_le {u : ℝ → ℝ} {D : ℝ} (hD : ∀ x, |u x| ≤ D)
     (g : Fin M → Fin N → ℝ) (a : Fin M → ℝ) (y t : ℝ)
