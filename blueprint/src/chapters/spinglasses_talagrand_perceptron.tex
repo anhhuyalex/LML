@@ -634,9 +634,9 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/AuxiliaryMarginal.lean}.
 The auxiliary marginal identity alone does not prove the interior derivative formula or the extra term
 for the path without auxiliary spins. The zero-endpoint factorization is proved in
 Theorem~\ref{thm:sg-tal:perceptron-decoupled-endpoint} below. The field law, well-defined
-Gibbs measures and terminal endpoint are proved below as well. Differentiation of the fixed-disorder replica average is proved below. The passage through
-the disorder integral, Gaussian integration by parts and the extra term remain open in the
-Section~2.2 plan.
+Gibbs measures and terminal endpoint are proved below as well. The fixed-disorder derivative and
+its exchange with the disorder integral are proved below. The three-term expansion (2.28),
+Gaussian integration by parts and the extra term remain open in the Section~2.2 plan.
 \end{remark}
 
 \begin{lemma}[Independent disorder factors for a decoupled spin]\label{lem:sg-tal:perceptron-decoupled-disorder}
@@ -1132,8 +1132,8 @@ identity therefore gives the asserted formula.
 \emph{Formalization note.} This proves differentiation through the continuous auxiliary and
 replica integrals, not just a formula assuming that exchange. An upper bound on $u$ and a
 bound on $u'$ suffice. A spin-only observable in the source is a special case. Passing the
-derivative through the shared-disorder expectation and performing Gaussian integration by
-parts are still separate unfinished steps.
+derivative through the shared-disorder expectation is proved in
+Theorem~\ref{thm:sg-tal:perceptron-disorder-derivative}; Gaussian integration by parts remains open.
 Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathGibbsDerivative.lean}.
 \end{proof}
 
@@ -1244,4 +1244,81 @@ by Mathlib's dominated integral derivative theorem and the preceding uniform bou
 It supplies the analytic step omitted from the printed calculation. Its hypotheses are
 checked for the actual perceptron law below; they are not substitutes for that check.
 Formalized in \texttt{ForMathlib/MeasureTheory/Integral/ExpectedTilted.lean}.
+\end{proof}
+
+\begin{theorem}[Averaging the perceptron derivative over shared disorder]\label{thm:sg-tal:perceptron-disorder-derivative}
+  \lean{SpinGlasses.hasDerivAt_integral_integral_pi_perceptron_smart_path}
+  \leanok
+  \uses{thm:sg-tal:perceptron-expected-tilt-response,
+        thm:sg-tal:perceptron-gibbs-derivative,lem:sg-tal:perceptron-path-derivatives}
+\talsource{Eqs.~(2.26)--(2.27), before the three-term expansion in (2.28)}
+Suppose $u$ is differentiable, $|u|\le B$ and $|u'|\le D$. Let the old disorder $g$ have
+any finite law $P_0$, independently of $a\sim\gamma_1^{\otimes M}$ and
+$Y\sim\gamma_v$, $v\ge0$. For a finite replica set $R$, $n=|R|$, and a bounded measurable
+observable $F$ of the full replica configurations, set
+\[
+ P=(P_0\otimes\gamma_1^{\otimes M})\otimes\gamma_v,\qquad
+ \nu_t(F)=\int\langle F\rangle_{t,\omega}\,dP(\omega).
+\]
+At every $0<t<1$,
+\[
+ \nu'_t(F)=\int\left[
+   \sum_{i\in R}\left\langle F\dot E_t(x_i)\right\rangle_{t,\omega}
+   -n\left\langle F\dot E_t(x_*)\right\rangle_{t,\omega}\right]dP(\omega).
+\]
+The fresh replica $*$ has its own auxiliary vector and shares $g,a,Y$ with the observed
+replicas. Empty constraint and replica types, one full spin and $v=0$ are included.
+\end{theorem}
+\begin{proof}
+  \leanok
+\emph{Step 1 (an interval with positive square-root denominators).} By density of the real order choose
+\[
+ 0<\delta<\min(t,1-t),\qquad U=(\delta,1-\delta).
+\]
+Write $L=N+1$ and $J_s(\mathbf x)=\sum_{i\in R}E_s(x_i)$. The path bounds give
+\[
+ |E_s(\omega,x)|\le MB+|y|,\qquad
+ |J_s(\omega,\mathbf x)|\le A(\omega):=n(MB+|y|),\qquad s\in U.
+\]
+\emph{Step 2 (separate disorder and auxiliary envelopes).} Put
+\[
+ K=\frac1{2\sqrt\delta}+M\frac{D}{2\sqrt L}\frac2{\sqrt\delta},\qquad
+ Q(\omega)=K\exp\left(|y|+\sum_{k<M}|a_k|\right),\qquad
+ b(\mathbf x)=\sum_{i\in R}\exp\left(\sum_{k<M}|\xi_k^i|\right).
+\]
+The bound for $\dot E_s$ from Lemma~\ref{lem:sg-tal:perceptron-path-derivatives}, together with
+$z\le z+1\le e^z$, gives
+\[
+ |\dot E_s(\omega,x)|\le
+ Q(\omega)\exp\left(\sum_{k<M}|\xi_k|\right),\qquad
+ |\dot J_s(\omega,\mathbf x)|\le Q(\omega)b(\mathbf x).
+\]
+Indeed each of $|y|$, $|a_k|$ and $|\xi_k|$ is at most
+$|y|+\sum_k|a_k|+\sum_k|\xi_k|$. These estimates use no coordinates of $g$.
+\emph{Step 3 (check both integrability requirements).} Gaussian absolute exponential moments and
+finite counting mass give
+\[
+ b\in L^1(\mu^{\otimes R}),\qquad
+ e^{2A(\omega)}Q(\omega)
+ =K e^{2nMB}\exp\left(\sum_{k<M}|a_k|\right)e^{(2n+1)|y|}\in L^1(P).
+\]
+The scalar Gaussian moment lemma includes $v=0$. The finite law $P_0$ supplies the remaining factor.
+\emph{Step 4 (differentiate and identify the fresh-replica expression).} Energy and energy-derivative
+measurability pass to replica sums. Theorem~\ref{thm:sg-tal:perceptron-expected-tilt-response}, with
+\[
+ \bigotimes_{i\in R}\mu^{E_s}=(\mu^{\otimes R})^{J_s},
+\]
+passes the derivative through $P$. At each fixed $\omega$, the bounded-energy scalar theorem and
+Theorem~\ref{thm:sg-tal:perceptron-gibbs-derivative} differentiate this same replica average.
+Uniqueness of the derivative identifies their covariance and fresh-replica expressions,
+which proves the displayed formula.
+\emph{Formalization note.} This supplies the missing exchange with the shared-disorder integral
+in the printed argument. The upper-bound-only hypotheses of the fixed-disorder theorem are
+preserved; the two-sided bound is used here to bound the normalized density. The old disorder
+law need not be Gaussian for this exchange. A spin-only source observable is a special case;
+the later integration-by-parts computations must retain that restriction. The exponential
+envelope is for a fixed finite system and makes no claim of a size-uniform error estimate.
+The three separately integrable terms of (2.28), their constraint symmetry and the Gaussian
+integration-by-parts cancellation are not proved by this theorem.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathDisorderDerivative.lean}.
 \end{proof}

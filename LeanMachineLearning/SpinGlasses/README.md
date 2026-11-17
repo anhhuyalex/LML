@@ -70,5 +70,7 @@ Blueprint chapters: `blueprint/src/chapters/spinglasses.tex` (Panchenko) and
   integrability from an upper-bounded potential, and `SmartPathEndpoints.lean` recovers the original
   Gibbs law at one. `SmartPathDifferentiation.lean` proves the pointwise field/energy derivatives
   and their Gaussian envelope. `SmartPathGibbsDerivative.lean` differentiates the fixed-disorder
-  replica average, with one fresh replica. The shared-disorder derivative and Gaussian
-  integration-by-parts cancellation remain open.
+  replica average, with one fresh replica. `SmartPathDisorderDerivative.lean` passes that
+  derivative through the shared-disorder expectation, using the generic
+  `ForMathlib/MeasureTheory/Integral/ExpectedTilted.lean`. The three-term expansion and
+  Gaussian integration-by-parts cancellation remain open.
