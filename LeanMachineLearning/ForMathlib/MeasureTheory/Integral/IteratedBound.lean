@@ -68,6 +68,15 @@ constant. -/
     ∫ x, f x + c ∂μ = (∫ x, f x ∂μ) + c := by
   simpa only [add_comm] using integral_const_add_of_isProbabilityMeasure μ c f hf
 
+/-- Integrating an integrable function minus a constant over a probability measure preserves
+the constant. -/
+@[simp] theorem integral_sub_const_of_isProbabilityMeasure
+    {X E : Type*} [MeasurableSpace X] [NormedAddCommGroup E] [NormedSpace ℝ E]
+    [CompleteSpace E] (μ : Measure X) [IsProbabilityMeasure μ] (f : X → E) (c : E)
+    (hf : Integrable f μ) :
+    ∫ x, f x - c ∂μ = (∫ x, f x ∂μ) - c := by
+  simpa only [sub_eq_add_neg] using integral_add_const_of_isProbabilityMeasure μ f (-c) hf
+
 /-- Domination of a triple iterated integral by the iterated integral of a dominating function. -/
 theorem abs_integral_integral_integral_le {X Y Z : Type*} [MeasurableSpace X] [MeasurableSpace Y]
     [MeasurableSpace Z] (μ : Measure X) (ν : Measure Y) (κ : X → Y → Measure Z)

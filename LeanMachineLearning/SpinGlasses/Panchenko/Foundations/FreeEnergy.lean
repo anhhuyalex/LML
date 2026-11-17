@@ -121,26 +121,17 @@ theorem integrable_max (hmeas : ∀ a, Measurable fun ω => H ω a)
     Finset.sup'_le _ _ fun a _ => (le_abs_self _).trans (hle a)⟩
 
 /-- The log-partition function of a random energy landscape with integrable coordinates is
-integrable for `β > 0`, since `|log Z| ≤ β |max H| + log |α|`. -/
+integrable for `β > 0`, using the integrable envelope `∑ a, β * |H ω a|`. -/
 theorem integrable_log_sum_exp [IsFiniteMeasure μ] (hβ : 0 < β)
     (hmeas : ∀ a, Measurable fun ω => H ω a) (hint : ∀ a, Integrable (fun ω => H ω a) μ) :
     Integrable (fun ω => Real.log (∑ a, Real.exp (β * H ω a))) μ := by
-  refine Integrable.mono' (((integrable_max hmeas hint).abs.const_mul β).add
-    (integrable_const (Real.log (Fintype.card α))))
-    (measurable_log_sum_exp hmeas β).aestronglyMeasurable
-    (ae_of_all _ fun ω => ?_)
-  have h := abs_inv_mul_log_sum_exp_sub_max_le hβ (H ω)
-  have hX : |β⁻¹ * Real.log (∑ a, Real.exp (β * H ω a))| ≤ |(H ω).max| +
-      β⁻¹ * Real.log (Fintype.card α) := by
-    linarith [abs_sub_abs_le_abs_sub (β⁻¹ * Real.log (∑ a, Real.exp (β * H ω a))) (H ω).max]
-  rw [Real.norm_eq_abs]
-  calc |Real.log (∑ a, Real.exp (β * H ω a))|
-      = β * |β⁻¹ * Real.log (∑ a, Real.exp (β * H ω a))| := by
-        rw [abs_mul, abs_inv, abs_of_pos hβ, mul_inv_cancel_left₀ hβ.ne']
-    _ ≤ β * (|(H ω).max| + β⁻¹ * Real.log (Fintype.card α)) :=
-        mul_le_mul_of_nonneg_left hX hβ.le
-    _ = β * |(H ω).max| + Real.log (Fintype.card α) := by
-        rw [mul_add, mul_inv_cancel_left₀ hβ.ne']
+  exact integrable_log_sum_exp_of_abs_le (E := fun ω a => β * H ω a)
+    (fun a => (hmeas a).const_mul β)
+    (integrable_finsetSum _ fun a _ => (hint a).abs.const_mul β)
+    (ae_of_all _ fun ω a => by
+      rw [abs_mul, abs_of_pos hβ]
+      exact Finset.single_le_sum (f := fun a => β * |H ω a|)
+        (fun a _ => mul_nonneg hβ.le (abs_nonneg _)) (Finset.mem_univ a))
 
 /-- A finite log-partition function of an affine finite Gaussian family is integrable.
 The deterministic offsets are arbitrary, so this is reusable for external fields as well as

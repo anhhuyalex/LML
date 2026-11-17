@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.ProdBound
 public import Mathlib.Probability.Moments.Tilted
 public import Mathlib.Analysis.Calculus.ParametricIntegral
 public import Mathlib.Tactic.Linarith
@@ -201,16 +202,23 @@ theorem integral_tilted_eq_div {α : Type*} [MeasurableSpace α] {μ : Measure �
   simp only [smul_eq_mul]
   ring
 
-/-- The tilted integral of a measurable observable is measurable in a jointly measurable random
-log-density. -/
+/-- A jointly measurable observable and random log-density have a measurable tilted integral.
+The observable may depend on the same environment as the log-density. -/
+theorem measurable_integral_tilted_dep {Ω α : Type*} [MeasurableSpace Ω] [MeasurableSpace α]
+    {μ : Measure α} [SFinite μ] {e Y : Ω → α → ℝ}
+    (hE : Measurable fun p : Ω × α => e p.1 p.2)
+    (hY : Measurable fun p : Ω × α => Y p.1 p.2) :
+    Measurable fun ω => ∫ a, Y ω a ∂(μ.tilted (e ω)) := by
+  simp_rw [integral_tilted_eq_div]
+  exact ((hY.mul hE.exp).integral_prod_right' (ν := μ)).div
+    (hE.exp.integral_prod_right' (ν := μ))
+
+/-- The tilted integral of a fixed measurable observable is measurable in a jointly measurable
+random log-density. -/
 theorem measurable_integral_tilted {Ω α : Type*} [MeasurableSpace Ω] [MeasurableSpace α]
     {μ : Measure α} [SFinite μ] {e : Ω → α → ℝ} (hE : Measurable fun p : Ω × α => e p.1 p.2)
-    {Y : α → ℝ} (hY : Measurable Y) : Measurable fun ω => ∫ a, Y a ∂(μ.tilted (e ω)) := by
-  simp_rw [integral_tilted_eq_div]
-  have h1 : Measurable fun p : Ω × α => Y p.2 * Real.exp (e p.1 p.2) :=
-    (hY.comp measurable_snd).mul (Real.measurable_exp.comp hE)
-  have h2 : Measurable fun p : Ω × α => Real.exp (e p.1 p.2) := Real.measurable_exp.comp hE
-  exact (h1.integral_prod_right' (ν := μ)).div (h2.integral_prod_right' (ν := μ))
+    {Y : α → ℝ} (hY : Measurable Y) : Measurable fun ω => ∫ a, Y a ∂(μ.tilted (e ω)) :=
+  measurable_integral_tilted_dep hE (hY.comp measurable_snd)
 
 /-- A tilted integral of an observable bounded by `M` is bounded by `M`. -/
 theorem abs_integral_tilted_le {α : Type*} [MeasurableSpace α] {μ : Measure α} [NeZero μ]

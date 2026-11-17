@@ -78,19 +78,13 @@ theorem abs_inv_mul_log_sum_exp_potential_sub_log_two_le (hN : 0 < N) {u : ℝ �
     |(N : ℝ)⁻¹ * Real.log (∑ σ : Fin N → ℤˣ,
         Real.exp (∑ k, u ((Real.sqrt N)⁻¹ * ∑ i, g k i * ((σ i : ℤ) : ℝ)))) - Real.log 2| ≤
       M / N * D := by
-  have h := abs_log_sum_exp_sub_log_card_le
-    (fun σ : Fin N → ℤˣ => ∑ k, u ((Real.sqrt N)⁻¹ * ∑ i, g k i * ((σ i : ℤ) : ℝ)))
-    fun σ => abs_sum_potential_le hD g σ
-  rw [log_card_spin_configurations, Fintype.card_fin] at h
   have hN' : (0 : ℝ) < N := Nat.cast_pos.2 hN
-  have heq : (N : ℝ)⁻¹ * Real.log (∑ σ : Fin N → ℤˣ,
-        Real.exp (∑ k, u ((Real.sqrt N)⁻¹ * ∑ i, g k i * ((σ i : ℤ) : ℝ)))) - Real.log 2 =
-      (N : ℝ)⁻¹ * (Real.log (∑ σ : Fin N → ℤˣ,
-        Real.exp (∑ k, u ((Real.sqrt N)⁻¹ * ∑ i, g k i * ((σ i : ℤ) : ℝ)))) -
-          N * Real.log 2) := by
-    field_simp
-  rw [heq, abs_mul, abs_of_pos (inv_pos.2 hN')]
-  calc _ ≤ (N : ℝ)⁻¹ * (M * D) := by gcongr
+  rw [← inv_mul_log_card_spin_configurations hN, ← mul_sub, abs_mul,
+    abs_of_pos (inv_pos.2 hN')]
+  calc _ ≤ (N : ℝ)⁻¹ * (M * D) :=
+        mul_le_mul_of_nonneg_left
+          (abs_log_sum_exp_sub_log_card_le _ fun σ => abs_sum_potential_le hD g σ)
+          (inv_nonneg.2 hN'.le)
     _ = M / N * D := by ring
 
 /-- **The log-partition function is integrable** for a measurable bounded potential `u`: it is
@@ -114,18 +108,17 @@ theorem abs_inv_mul_integral_log_sum_exp_potential_sub_log_two_le (hN : 0 < N) {
         Real.exp (∑ k, u ((Real.sqrt N)⁻¹ * ∑ i, g k i * ((σ i : ℤ) : ℝ))))
         ∂(Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin N => gaussianReal 0 1) -
       Real.log 2| ≤ M / N * D := by
-  let P := Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin N => gaussianReal 0 1
-  have h := abs_integral_log_sum_exp_sub_log_card_le (μ := P)
-    (fun σ : Fin N → ℤˣ => Finset.measurable_sum _ fun k _ => hu.comp (by fun_prop))
-    (integrable_const (M * D)) (ae_of_all _ fun g σ => abs_sum_potential_le hD g σ)
+  have h := abs_integral_log_sum_exp_sub_log_card_le_const
+    (μ := Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin N => gaussianReal 0 1)
+    (E := fun g σ => ∑ k, u ((Real.sqrt N)⁻¹ * ∑ i, g k i * ((σ i : ℤ) : ℝ)))
+    (fun σ => Finset.measurable_sum _ fun k _ => hu.comp (by fun_prop))
+    (fun g σ => abs_sum_potential_le hD g σ)
   have hN' : (0 : ℝ) < N := Nat.cast_pos.2 hN
-  have hc : (N : ℝ)⁻¹ * Real.log (Fintype.card (Fin N → ℤˣ)) = Real.log 2 := by
-    rw [log_card_spin_configurations, Fintype.card_fin]
-    field_simp
-  rw [← hc, ← mul_sub, abs_mul, abs_of_pos (inv_pos.2 hN')]
+  rw [← inv_mul_log_card_spin_configurations hN, ← mul_sub, abs_mul,
+    abs_of_pos (inv_pos.2 hN')]
   calc _ ≤ (N : ℝ)⁻¹ * (M * D) := by
         apply mul_le_mul_of_nonneg_left _ (inv_nonneg.2 hN'.le)
-        simpa only [P, Function.comp_apply, integral_const, probReal_univ, one_smul] using h
+        exact h
     _ = M / N * D := by ring
 
 /-- **The derivative-product observable of (2.10) is bounded by `(M / N) D²`.**  If `|u'| ≤ D`, then
@@ -154,13 +147,9 @@ smaller constant in `abs_inv_mul_log_sum_exp_potential_sub_log_two_le`. -/
 theorem inv_mul_log_sum_exp_const_potential (hN : 0 < N) (c : ℝ) :
     (N : ℝ)⁻¹ * Real.log (∑ _σ : Fin N → ℤˣ, Real.exp (∑ _k : Fin M, c)) =
       Real.log 2 + M / N * c := by
-  have hN' : (N : ℝ) ≠ 0 := (Nat.cast_pos.2 hN).ne'
-  rw [Finset.sum_const, Finset.sum_const, Finset.card_univ, card_spin_configurations,
-    Finset.card_univ, Fintype.card_fin, nsmul_eq_mul, nsmul_eq_mul, Real.log_mul (by positivity)
-      (Real.exp_pos _).ne', Real.log_exp]
-  push_cast
-  rw [Real.log_pow]
-  field_simp
-  simp [mul_comm]
+  simp only [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
+  rw [Real.log_mul (by positivity) (Real.exp_pos _).ne', Real.log_exp, mul_add,
+    inv_mul_log_card_spin_configurations hN]
+  ring
 
 end SpinGlasses

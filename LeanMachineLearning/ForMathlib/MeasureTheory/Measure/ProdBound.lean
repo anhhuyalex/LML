@@ -28,6 +28,16 @@ open scoped ENNReal
 
 namespace MeasureTheory
 
+/-- A product of nonzero measures is nonzero when the second factor is s-finite. -/
+instance Measure.prod.instNeZero {α β : Type*} [MeasurableSpace α] [MeasurableSpace β]
+    (μ : Measure α) (ν : Measure β) [SFinite ν] [NeZero μ] [NeZero ν] : NeZero (μ.prod ν) :=
+  ⟨fun h => by
+    have hh := congrArg (fun m : Measure (α × β) => m Set.univ) h
+    simp [← Set.univ_prod_univ, Measure.prod_prod] at hh
+    rcases hh with hμ | hν
+    · exact (NeZero.ne μ) hμ
+    · exact (NeZero.ne ν) hν⟩
+
 /-- **A product measure is bounded by the sup of its sections.** If every section
 `{b | (a, b) ∈ s}` of the measurable set `s` has `ν`-measure at most `c` (for `μ`-a.e. `a`), then
 `(μ ⊗ ν) s ≤ c`, when `μ` is a probability measure. -/

@@ -94,8 +94,7 @@ measure). -/
 theorem sub_integral_count_tilted_eq {α : Type*} [Finite α] [Nonempty α] [MeasurableSpace α]
     [MeasurableSingletonClass α] (f g : α → ℝ) (c₀ : ℝ) :
     (∫ a, g a ∂(Measure.count.tilted f)) - c₀ = ∫ a, (g a - c₀) ∂(Measure.count.tilted f) := by
-  rw [integral_sub Integrable.of_finite (integrable_const _)]
-  simp
+  exact (integral_sub_const_of_isProbabilityMeasure _ g c₀ Integrable.of_finite).symm
 
 end Ising
 

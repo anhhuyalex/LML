@@ -331,12 +331,11 @@ observable may both depend jointly measurably on the environment. -/
 theorem measurable_integral_pi_tilted {E : Ω → α → ℝ} (hE : Measurable fun p : Ω × α => E p.1 p.2)
     {G : Ω → (ι → α) → ℝ} (hG : Measurable fun p : Ω × (ι → α) => G p.1 p.2) :
     Measurable fun ω => ∫ σ, G ω σ ∂(Measure.pi fun _ : ι => μ.tilted (E ω)) := by
-  simp_rw [integral_pi_tilted_eq_div]
+  simp_rw [pi_tilted_eq_tilted_pi]
   have hJ : Measurable fun p : Ω × (ι → α) => ∑ i, E p.1 (p.2 i) :=
     Finset.measurable_sum _ fun i _ => hE.comp (measurable_fst.prodMk
       ((measurable_pi_apply i).comp measurable_snd))
-  exact ((hG.mul hJ.exp).integral_prod_right' (ν := Measure.pi fun _ : ι => μ)).div
-    (hJ.exp.integral_prod_right' (ν := Measure.pi fun _ : ι => μ))
+  exact measurable_integral_tilted_dep hJ hG
 
 /-- A uniformly bounded, jointly measurable replica observable has an integrable Gibbs average
 in the environment. Its dependence on the environment may be shared with the energy. -/

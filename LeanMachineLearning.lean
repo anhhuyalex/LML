@@ -695,7 +695,10 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.GaussianField
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.GaussianFields
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.GibbsAverages
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.RandomNormals
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathBounds
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathDecoupling
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathEndpoints
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathFields
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Maximizers.Hyperbolic
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Maximizers.Replacement
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Maximizers.Structure

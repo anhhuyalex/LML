@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedBound
 public import Mathlib.Analysis.SpecialFunctions.Log.Basic
 public import Mathlib.Data.Fintype.BigOperators
 public import Mathlib.MeasureTheory.Integral.Bochner.Basic
@@ -98,10 +99,19 @@ theorem abs_integral_log_sum_exp_sub_log_card_le [IsProbabilityMeasure μ] {E : 
   have hi := integrable_log_sum_exp_of_abs_le hE hB hb
   have hc : (∫ ω, Real.log (∑ a, Real.exp (E ω a)) ∂μ) - Real.log (Fintype.card α) =
       ∫ ω, Real.log (∑ a, Real.exp (E ω a)) - Real.log (Fintype.card α) ∂μ := by
-    rw [integral_sub hi (integrable_const _), integral_const, probReal_univ, one_smul]
+    exact (integral_sub_const_of_isProbabilityMeasure μ _ _ hi).symm
   rw [hc, ← Real.norm_eq_abs]
   refine norm_integral_le_of_norm_le hB ?_
   filter_upwards [hb] with ω hω
   simpa only [Real.norm_eq_abs] using abs_log_sum_exp_sub_log_card_le (E ω) hω
+
+/-- A uniform energy bound bounds the expected log-partition function's difference from
+`log card` by the same constant. -/
+theorem abs_integral_log_sum_exp_sub_log_card_le_const [IsProbabilityMeasure μ]
+    {E : Ω → α → ℝ} (hE : ∀ a, Measurable fun ω => E ω a) {B : ℝ}
+    (hb : ∀ ω a, |E ω a| ≤ B) :
+    |(∫ ω, Real.log (∑ a, Real.exp (E ω a)) ∂μ) - Real.log (Fintype.card α)| ≤ B := by
+  simpa using abs_integral_log_sum_exp_sub_log_card_le (μ := μ) hE (B := fun _ => B)
+    (integrable_const B) (ae_of_all _ hb)
 
 end MeasureTheory
