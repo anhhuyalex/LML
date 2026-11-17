@@ -175,7 +175,7 @@ theorem hasDerivAt_integral_pi_tilted_of_dominated {α R : Type*} [MeasurableSpa
           mul_le_mul (hderb r hr σ) (Real.exp_le_exp.mpr (hJb r hr σ))
             (Real.exp_pos _).le ((abs_nonneg _).trans (hderb r hr σ))
       _ = _ := mul_comm _ _
-  have hprob : NeZero (Measure.pi fun _ : R => μ) := neZero_measure_pi μ
+  have : NeZero (Measure.pi fun _ : R => μ) := neZero_measure_pi μ
   have hres := hasDerivAt_integral_tilted_of_dominated (μ := Measure.pi fun _ : R => μ)
     (e := J) (e' := J') hs
     (Filter.mem_of_superset hs fun r hr => (hJ r hr).exp.aestronglyMeasurable)
@@ -222,6 +222,44 @@ theorem integral_pi_eval (ν : Measure α) [IsProbabilityMeasure ν] {J : Type*}
     (i : J) (h : α → ℝ) (hh : AEStronglyMeasurable h ν) :
     ∫ σ : J → α, h (σ i) ∂(Measure.pi fun _ : J => ν) = ∫ a, h a ∂ν :=
   integral_comp_eval hh
+
+/-- A covariance with a sum over the observed replicas is a sum of observed-replica terms
+minus the cardinality times one fresh-replica term. The one-state observable only needs to be
+integrable, so this also applies to energy derivatives containing Gaussian coordinates. -/
+theorem integral_pi_cov_sum_eq_sum_sub_fresh {α R : Type*} [MeasurableSpace α] [Fintype R]
+    (ν : Measure α)
+    [IsProbabilityMeasure ν] (F : (R → α) → ℝ)
+    (hF : AEStronglyMeasurable F (Measure.pi fun _ : R => ν))
+    {C : ℝ} (hFb : ∀ σ, |F σ| ≤ C) (h : α → ℝ) (hh : Integrable h ν) :
+    (∫ σ, F σ * (∑ i, h (σ i)) ∂(Measure.pi fun _ : R => ν)) -
+      (∫ σ, F σ ∂(Measure.pi fun _ : R => ν)) *
+        (∫ σ, (∑ i, h (σ i)) ∂(Measure.pi fun _ : R => ν)) =
+    (∑ i, ∫ σ : Option R → α, F (fun j => σ (some j)) * h (σ (some i))
+      ∂(Measure.pi fun _ : Option R => ν)) -
+      (Fintype.card R : ℝ) * ∫ σ : Option R → α, F (fun j => σ (some j)) * h (σ none)
+        ∂(Measure.pi fun _ : Option R => ν) := by
+  have hI (i : R) : Integrable (fun σ : R → α => h (σ i)) (Measure.pi fun _ : R => ν) :=
+    integrable_comp_eval hh
+  have hFI (i : R) := (hI i).bdd_mul hF (ae_of_all _ fun σ => by
+    simpa only [Real.norm_eq_abs] using hFb σ)
+  have hnum : (∫ σ, F σ * (∑ i, h (σ i)) ∂(Measure.pi fun _ : R => ν)) =
+      ∑ i, ∫ σ : Option R → α, F (fun j => σ (some j)) * h (σ (some i))
+        ∂(Measure.pi fun _ : Option R => ν) := by
+    simp_rw [Finset.mul_sum]
+    rw [integral_finsetSum _ fun i _ => hFI i]
+    apply Finset.sum_congr rfl
+    intro i _
+    exact (integral_pi_comp_injective ν (Option.some_injective _)
+      (fun σ : R → α => F σ * h (σ i)) (hFI i).aestronglyMeasurable).symm
+  have hmean : (∫ σ : R → α, (∑ i, h (σ i)) ∂(Measure.pi fun _ : R => ν)) =
+      (Fintype.card R : ℝ) * ∫ a, h a ∂ν := by
+    rw [integral_finsetSum _ fun i _ => hI i]
+    simp_rw [integral_pi_eval ν _ h hh.aestronglyMeasurable]
+    simp
+  have hfresh := integral_pi_fresh_replica_mul ν (e := some) (Option.some_injective R)
+    (r := none) (fun i => Option.some_ne_none i) F h hF hh.aestronglyMeasurable
+  rw [hnum, hmean, hfresh]
+  ring
 
 /-- **The replica covariance identity.** For `Y` a function of the replicas `some o`
 (`o : Option R`) and `h` a function of one spin, the covariance of `Y` with the sum of `h` over all

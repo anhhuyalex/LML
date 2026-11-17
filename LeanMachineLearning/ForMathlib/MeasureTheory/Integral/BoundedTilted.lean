@@ -207,7 +207,8 @@ theorem integral_tilted_eq_div {α : Type*} [MeasurableSpace α] {μ : Measure �
 the energy derivative. An integrable bound on the weighted derivative justifies differentiating
 numerator and normalizer. The observable is bounded and does not vary with the parameter.
 The nonzero base measure need not be finite. -/
-theorem hasDerivAt_integral_tilted_of_dominated {α : Type*} [MeasurableSpace α] {μ : Measure α} [NeZero μ]
+theorem hasDerivAt_integral_tilted_of_dominated {α : Type*} [MeasurableSpace α]
+    {μ : Measure α} [NeZero μ]
     {e e' : ℝ → α → ℝ} {t : ℝ} {s : Set ℝ} (hs : s ∈ 𝓝 t)
     (hmeas : ∀ᶠ r in 𝓝 t, AEStronglyMeasurable (fun a => Real.exp (e r a)) μ)
     (hi : Integrable (fun a => Real.exp (e t a)) μ)

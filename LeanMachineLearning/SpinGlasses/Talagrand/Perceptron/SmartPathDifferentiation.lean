@@ -91,7 +91,8 @@ theorem hasDerivAt_perceptron_smart_path_energy {N M : ℕ} {t : ℝ}
 
 /-- On a closed interval inside `(0, 1)`, the energy derivative grows at most linearly in
 the absolute values of the auxiliary coordinates. This is an integrable Gaussian envelope. -/
-theorem abs_deriv_perceptron_smart_path_energy_le {N M : ℕ} {t δ : ℝ} (hδ : 0 < δ) (ht : t ∈ Set.Icc δ (1 - δ))
+theorem abs_deriv_perceptron_smart_path_energy_le {N M : ℕ} {t δ : ℝ}
+    (hδ : 0 < δ) (ht : t ∈ Set.Icc δ (1 - δ))
     {u : ℝ → ℝ} (hu : Differentiable ℝ u) {D : ℝ} (hD : ∀ z, |deriv u z| ≤ D)
     (g : Fin M → Fin N → ℝ) (a ξ : Fin M → ℝ)
     (σ : Fin N → ℤˣ) (ε : ℤˣ) (y : ℝ) :

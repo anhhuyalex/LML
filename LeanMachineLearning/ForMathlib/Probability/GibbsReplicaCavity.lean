@@ -27,7 +27,6 @@ open scoped BigOperators
 
 namespace MeasureTheory
 
-
 variable {α K Ks R : Type*} [MeasurableSpace α] [Fintype K] [Fintype Ks] [Fintype R]
   {μ : Measure α} [IsFiniteMeasure μ] [NeZero μ]
 
