@@ -252,7 +252,7 @@ theorem hasDerivAt_integral_tilted_of_bounded
     {E E' : ℝ → α → ℝ} {t : ℝ} {s : Set ℝ} (hs : s ∈ 𝓝 t)
     (hE : ∀ r ∈ s, Measurable (E r)) (hE' : Measurable (E' t))
     {A : ℝ} (hEb : ∀ r ∈ s, ∀ a, E r a ≤ A)
-    {b : α → ℝ} (hb : Integrable b μ) (hb0 : ∀ a, 0 ≤ b a)
+    {b : α → ℝ} (hb : Integrable b μ)
     (hdb : ∀ r ∈ s, ∀ a, |E' r a| ≤ b a)
     (hd : ∀ a, ∀ r ∈ s, HasDerivAt (fun q => E q a) (E' r a) r)
     {F : α → ℝ} (hF : Measurable F) {C : ℝ} (hFb : ∀ a, |F a| ≤ C) :
@@ -264,10 +264,8 @@ theorem hasDerivAt_integral_tilted_of_bounded
     (Filter.mem_of_superset hs fun r hr => (hE r hr).exp.aestronglyMeasurable)
     (integrable_exp_of_ae_le (hE t ht).aemeasurable (ae_of_all _ (hEb t ht)))
     (hE'.mul (hE t ht).exp).aestronglyMeasurable (hb.const_mul (Real.exp A))
-    (ae_of_all _ fun a r hr => by
-      rw [abs_mul, abs_of_pos (Real.exp_pos _)]
-      exact (mul_le_mul (hdb r hr a) (Real.exp_le_exp.mpr (hEb r hr a))
-        (Real.exp_pos _).le (hb0 a)).trans_eq (mul_comm _ _))
+    (ae_of_all _ fun a r hr =>
+      (abs_mul_exp_le (hdb r hr a) (hEb r hr a)).trans_eq (mul_comm _ _))
     (ae_of_all _ hd) hF.aestronglyMeasurable (ae_of_all _ hFb)
 
 /-- A bounded log-density controls a possibly unbounded tilted observable by its base first
@@ -362,5 +360,31 @@ theorem abs_mul_exp_le {x y c B : ℝ} (hx : |x| ≤ c) (hy : y ≤ B) :
     |x * Real.exp y| ≤ c * Real.exp B := by
   rw [abs_mul, abs_of_pos (Real.exp_pos _)]
   exact mul_le_mul hx (Real.exp_le_exp.mpr hy) (Real.exp_pos _).le ((abs_nonneg _).trans hx)
+
+/-- A bounded factor controls covariance by twice its bound times the absolute first moment
+of the other factor. The inequality itself requires no measurability of the bounded factor. -/
+theorem abs_integral_mul_sub_integral_mul_le {α : Type*} [MeasurableSpace α]
+    {μ : Measure α} [IsProbabilityMeasure μ]
+    (F h : α → ℝ) {C : ℝ} (hFb : ∀ a, |F a| ≤ C) (hh : Integrable h μ) :
+    |(∫ a, F a * h a ∂μ) - (∫ a, F a ∂μ) * (∫ a, h a ∂μ)| ≤
+      2 * |C| * ∫ a, |h a| ∂μ := by
+  have hF : |∫ a, F a ∂μ| ≤ |C| := by
+    have hx := norm_integral_le_of_norm_le_const (μ := μ) (f := F) (C := |C|)
+      (ae_of_all _ fun a => by simpa only [Real.norm_eq_abs] using (hFb a).trans (le_abs_self C))
+    simpa using hx
+  have hprod : |∫ a, F a * h a ∂μ| ≤ |C| * ∫ a, |h a| ∂μ := by
+    have hx := norm_integral_le_of_norm_le (f := fun a => F a * h a) (hh.abs.const_mul |C|)
+      (ae_of_all _ fun a => by
+        rw [Real.norm_eq_abs, abs_mul]
+        exact mul_le_mul_of_nonneg_right ((hFb a).trans (le_abs_self C)) (abs_nonneg _))
+    simpa only [Real.norm_eq_abs, integral_const_mul] using hx
+  have hhmean : |∫ a, h a ∂μ| ≤ ∫ a, |h a| ∂μ := by
+    simpa only [Real.norm_eq_abs] using norm_integral_le_integral_norm h
+  calc _ ≤ |∫ a, F a * h a ∂μ| + |(∫ a, F a ∂μ) * ∫ a, h a ∂μ| := abs_sub _ _
+    _ ≤ |C| * (∫ a, |h a| ∂μ) + |C| * ∫ a, |h a| ∂μ :=
+      add_le_add hprod (by
+        rw [abs_mul]
+        exact mul_le_mul hF hhmean (abs_nonneg _) (abs_nonneg _))
+    _ = _ := by ring
 
 end MeasureTheory

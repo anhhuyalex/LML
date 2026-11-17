@@ -170,7 +170,6 @@ theorem hasDerivAt_integral_pi_tilted_of_dominated {α R : Type*} [MeasurableSpa
   have : NeZero (Measure.pi fun _ : R => μ) := neZero_measure_pi μ
   have hres := hasDerivAt_integral_tilted_of_bounded
     (μ := Measure.pi fun _ : R => μ) (E := J) (E' := J') hs hJ hJ' hJb hib
-    (fun σ => Finset.sum_nonneg fun i _ => (abs_nonneg _).trans (hdb t ht (σ i)))
     hderb (fun σ r hr => HasDerivAt.fun_sum fun i _ => hd (σ i) r hr) hF hFb
   simpa only [J, J', ← pi_tilted_eq_tilted_pi] using hres
 

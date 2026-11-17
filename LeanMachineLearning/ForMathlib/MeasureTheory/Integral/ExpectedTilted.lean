@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.BoundedTilted
+public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaProduct
 
 /-!
 # Differentiation of an environment-averaged exponential tilt
@@ -18,7 +19,7 @@ The outer measure is any finite measure; no Gaussian or finite-state assumption 
 @[expose] public section
 
 open MeasureTheory Filter
-open scoped Topology
+open scoped Topology BigOperators
 
 namespace MeasureTheory
 
@@ -64,7 +65,7 @@ theorem hasDerivAt_integral_integral_tilted_of_dominated
     (hE' : ∀ r ∈ s, Measurable fun p : Ω × α => E' r p.1 p.2)
     {A B : Ω → ℝ} {b : α → ℝ}
     (hEb : ∀ r ∈ s, ∀ ω a, |E r ω a| ≤ A ω)
-    (hB : ∀ ω, 0 ≤ B ω) (hb0 : ∀ a, 0 ≤ b a) (hb : Integrable b μ)
+    (hB : ∀ ω, 0 ≤ B ω) (hb : Integrable b μ)
     (hdb : ∀ r ∈ s, ∀ ω a, |E' r ω a| ≤ B ω * b a)
     (houter : Integrable (fun ω => Real.exp (2 * A ω) * B ω) P)
     (hd : ∀ ω a, ∀ r ∈ s, HasDerivAt (fun q => E q ω a) (E' r ω a) r)
@@ -74,10 +75,8 @@ theorem hasDerivAt_integral_integral_tilted_of_dominated
         (∫ a, F a ∂μ.tilted (E t ω)) * (∫ a, E' t ω a ∂μ.tilted (E t ω)) ∂P) t := by
   let D := fun r ω => (∫ a, F a * E' r ω a ∂μ.tilted (E r ω)) -
     (∫ a, F a ∂μ.tilted (E r ω)) * (∫ a, E' r ω a ∂μ.tilted (E r ω))
-  have hmE (r : ℝ) (hr : r ∈ s) (ω : Ω) : Measurable (E r ω) :=
-    (hE r hr).comp (measurable_const.prodMk measurable_id)
-  have hmE' (r : ℝ) (hr : r ∈ s) (ω : Ω) : Measurable (E' r ω) :=
-    (hE' r hr).comp (measurable_const.prodMk measurable_id)
+  have hmE (r : ℝ) (hr : r ∈ s) (ω : Ω) : Measurable (E r ω) := (hE r hr).of_uncurry_left
+  have hmE' (r : ℝ) (hr : r ∈ s) (ω : Ω) : Measurable (E' r ω) := (hE' r hr).of_uncurry_left
   have hiExp (r : ℝ) (hr : r ∈ s) (ω : Ω) : Integrable
       (fun a => Real.exp (E r ω a)) μ :=
     integrable_exp_of_ae_le (hmE r hr ω).aemeasurable
@@ -99,7 +98,7 @@ theorem hasDerivAt_integral_integral_tilted_of_dominated
     hasDerivAt_integral_tilted_of_bounded (hs.mem_nhds hr)
       (fun q hq => hmE q hq ω) (hmE' r hr ω)
       (fun q hq a => le_of_abs_le (hEb q hq ω a)) (hb.const_mul (B ω))
-      (fun a => mul_nonneg (hB ω) (hb0 a)) (fun q hq a => hdb q hq ω a)
+      (fun q hq a => hdb q hq ω a)
       (fun a q hq => hd ω a q hq) hF hFb
   have hbound (ω : Ω) (r : ℝ) (hr : r ∈ s) :
       |D r ω| ≤ (2 * |C| / μ.real Set.univ * ∫ a, b a ∂μ) *
@@ -120,5 +119,72 @@ theorem hasDerivAt_integral_integral_tilted_of_dominated
     hiF (hmD t ht).aestronglyMeasurable
     (ae_of_all _ fun ω r hr => by simpa only [Real.norm_eq_abs] using hbound ω r hr)
     (houter.const_mul _) (ae_of_all _ hcalc)).2
+
+/-- Replica version of `hasDerivAt_integral_integral_tilted_of_dominated`: only single-replica
+envelopes are assumed. -/
+theorem hasDerivAt_integral_integral_pi_tilted_of_dominated
+    {Ω α R : Type*} [MeasurableSpace Ω] [MeasurableSpace α] [Fintype R]
+    {P : Measure Ω} [IsFiniteMeasure P] {μ : Measure α} [IsFiniteMeasure μ] [NeZero μ]
+    {E E' : ℝ → Ω → α → ℝ} {t : ℝ} {s : Set ℝ} (hs : IsOpen s) (ht : t ∈ s)
+    (hE : ∀ r ∈ s, Measurable fun p : Ω × α => E r p.1 p.2)
+    (hE' : ∀ r ∈ s, Measurable fun p : Ω × α => E' r p.1 p.2)
+    {A B : Ω → ℝ} {b : α → ℝ}
+    (hEb : ∀ r ∈ s, ∀ ω a, |E r ω a| ≤ A ω)
+    (hB : ∀ ω, 0 ≤ B ω) (hb : Integrable b μ)
+    (hdb : ∀ r ∈ s, ∀ ω a, |E' r ω a| ≤ B ω * b a)
+    (houter : Integrable (fun ω => Real.exp (2 * ((Fintype.card R : ℝ) * A ω)) * B ω) P)
+    (hd : ∀ ω a, ∀ r ∈ s, HasDerivAt (fun q => E q ω a) (E' r ω a) r)
+    {F : (R → α) → ℝ} (hF : Measurable F) {C : ℝ} (hFb : ∀ σ, |F σ| ≤ C) :
+    HasDerivAt (fun r => ∫ ω, ∫ σ, F σ ∂(Measure.pi fun _ : R => μ.tilted (E r ω)) ∂P)
+      (∫ ω, (∑ i, ∫ σ : Option R → α, F (fun j => σ (some j)) * E' t ω (σ (some i))
+          ∂(Measure.pi fun _ : Option R => μ.tilted (E t ω))) -
+        (Fintype.card R : ℝ) * ∫ σ : Option R → α,
+          F (fun j => σ (some j)) * E' t ω (σ none)
+          ∂(Measure.pi fun _ : Option R => μ.tilted (E t ω)) ∂P) t := by
+  let J := fun (r : ℝ) (ω : Ω) (σ : R → α) => ∑ i, E r ω (σ i)
+  let J' := fun (r : ℝ) (ω : Ω) (σ : R → α) => ∑ i, E' r ω (σ i)
+  let b' := fun σ : R → α => ∑ i, b (σ i)
+  have : NeZero (Measure.pi fun _ : R => μ) := neZero_measure_pi μ
+  have hmJ (r : ℝ) (hr : r ∈ s) : Measurable fun p : Ω × (R → α) => J r p.1 p.2 := by
+    refine Finset.measurable_sum _ fun i _ => ?_
+    simpa only [Function.comp_def] using (hE r hr).comp
+      (measurable_fst.prodMk ((measurable_pi_apply i).comp measurable_snd))
+  have hmJ' (r : ℝ) (hr : r ∈ s) : Measurable fun p : Ω × (R → α) => J' r p.1 p.2 := by
+    refine Finset.measurable_sum _ fun i _ => ?_
+    simpa only [Function.comp_def] using (hE' r hr).comp
+      (measurable_fst.prodMk ((measurable_pi_apply i).comp measurable_snd))
+  have hb' : Integrable b' (Measure.pi fun _ : R => μ) :=
+    integrable_finsetSum _ fun i _ => integrable_comp_eval hb
+  have hres := hasDerivAt_integral_integral_tilted_of_dominated (P := P)
+    (μ := Measure.pi fun _ : R => μ) (E := J) (E' := J')
+    (A := fun ω => (Fintype.card R : ℝ) * A ω)
+    (B := B) (b := b') hs ht hmJ hmJ'
+    (fun r hr ω σ => by
+      refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
+      simpa only [Finset.sum_const, Finset.card_univ, nsmul_eq_mul] using
+        Finset.sum_le_sum (s := Finset.univ) (fun i _ => hEb r hr ω (σ i)))
+    hB hb'
+    (fun r hr ω σ => by
+      refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
+      rw [Finset.mul_sum]
+      exact Finset.sum_le_sum fun i _ => hdb r hr ω (σ i))
+    houter (fun ω σ r hr => HasDerivAt.fun_sum fun i _ => hd ω (σ i) r hr) hF hFb
+  simp only [J, ← pi_tilted_eq_tilted_pi] at hres
+  convert hres using 1
+  refine integral_congr_ae (ae_of_all _ fun ω => ?_)
+  have hmEω : Measurable (E t ω) := (hE t ht).of_uncurry_left
+  have hiE' : Integrable (E' t ω) μ :=
+    (hb.const_mul (B ω)).mono' (hE' t ht).of_uncurry_left.aestronglyMeasurable
+      (ae_of_all _ fun a => by simpa only [Real.norm_eq_abs] using hdb t ht ω a)
+  have hiTilt : Integrable (E' t ω) (μ.tilted (E t ω)) :=
+    integrable_tilted_of_ae_le hmEω.aemeasurable
+      (ae_of_all _ fun a => le_of_abs_le (hEb t ht ω a)) hiE'
+  have hprob : IsProbabilityMeasure (μ.tilted (E t ω)) :=
+    isProbabilityMeasure_tilted_of_ae_le hmEω.aemeasurable
+      (ae_of_all _ fun a => le_of_abs_le (hEb t ht ω a))
+  have := integral_pi_cov_sum_eq_sum_sub_fresh (μ.tilted (E t ω)) F hF.aestronglyMeasurable hFb
+    (E' t ω) hiTilt
+  simp only [J']
+  exact this.symm
 
 end MeasureTheory
