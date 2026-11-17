@@ -272,7 +272,8 @@ theorem hasDerivAt_integral_tilted_of_bounded
 
 /-- A bounded log-density controls a possibly unbounded tilted observable by its base first
 moment. The denominator bound retains the mass of a nonzero finite base measure. -/
-theorem abs_integral_tilted_le_exp_mul_integral_abs {α : Type*} [MeasurableSpace α] {μ : Measure α} [IsFiniteMeasure μ] [NeZero μ]
+theorem abs_integral_tilted_le_exp_mul_integral_abs {α : Type*} [MeasurableSpace α]
+    {μ : Measure α} [IsFiniteMeasure μ] [NeZero μ]
     {e Y : α → ℝ} (he : AEMeasurable e μ) {C : ℝ} (heb : ∀ᵐ a ∂μ, |e a| ≤ C)
     (hY : Integrable Y μ) :
     |∫ a, Y a ∂μ.tilted e| ≤
@@ -290,7 +291,8 @@ theorem abs_integral_tilted_le_exp_mul_integral_abs {α : Type*} [MeasurableSpac
     refine integral_mono_of_nonneg (ae_of_all _ fun a => by positivity)
       (hY.abs.const_mul _) ?_
     filter_upwards [heb] with a ha
-    exact (mul_le_mul_of_nonneg_left (Real.exp_le_exp.mpr (le_of_abs_le ha)) (abs_nonneg _)).trans_eq
+    exact (mul_le_mul_of_nonneg_left
+      (Real.exp_le_exp.mpr (le_of_abs_le ha)) (abs_nonneg _)).trans_eq
       (mul_comm _ _)
   rw [integral_tilted_eq_div, abs_div, abs_of_pos hZ]
   calc _ ≤ (∫ a, |Y a| * Real.exp (e a) ∂μ) / (∫ a, Real.exp (e a) ∂μ) := by

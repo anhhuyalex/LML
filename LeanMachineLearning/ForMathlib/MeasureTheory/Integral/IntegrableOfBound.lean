@@ -105,7 +105,8 @@ theorem integral_integral_sum_sum_of_bound {Ω α ι κ : Type*} [MeasurableSpac
 
 /-- A bounded factor controls covariance by twice its bound times the absolute first moment
 of the other factor. The inequality itself requires no measurability of the bounded factor. -/
-theorem abs_integral_mul_sub_integral_mul_le {α : Type*} [MeasurableSpace α] {μ : Measure α} [IsProbabilityMeasure μ]
+theorem abs_integral_mul_sub_integral_mul_le {α : Type*} [MeasurableSpace α]
+    {μ : Measure α} [IsProbabilityMeasure μ]
     (F h : α → ℝ) {C : ℝ} (hFb : ∀ a, |F a| ≤ C) (hh : Integrable h μ) :
     |(∫ a, F a * h a ∂μ) - (∫ a, F a ∂μ) * (∫ a, h a ∂μ)| ≤
       2 * |C| * ∫ a, |h a| ∂μ := by
