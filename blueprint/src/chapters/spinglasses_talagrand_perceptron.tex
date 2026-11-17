@@ -813,6 +813,8 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathFields.lean}.
 \begin{theorem}[Well-defined smart-path Gibbs averages]\label{thm:sg-tal:perceptron-path-bounds}
   \lean{SpinGlasses.measurable_perceptron_smart_path_energy,
         SpinGlasses.perceptron_smart_path_energy_le,
+        SpinGlasses.perceptron_smart_path_energy_le_of_nonneg,
+        SpinGlasses.measurable_perceptron_smart_path_energy_slice,
         SpinGlasses.abs_perceptron_smart_path_energy_le,
         SpinGlasses.integrable_exp_perceptron_smart_path_energy,
         SpinGlasses.integral_exp_perceptron_smart_path_energy_pos,
@@ -970,6 +972,7 @@ Formalized in \texttt{ForMathlib/MeasureTheory/Integral/BoundedTilted.lean}.
 
 \begin{lemma}[Replica response and a fresh replica]\label{lem:sg-tal:perceptron-replica-response}
   \lean{MeasureTheory.hasDerivAt_integral_pi_tilted_of_dominated,
+        MeasureTheory.integral_pi_sum_eval,
         MeasureTheory.integral_pi_cov_sum_eq_sum_sub_fresh,
         MeasureTheory.neZero_measure_pi}
   \leanok
@@ -1132,4 +1135,113 @@ bound on $u'$ suffice. A spin-only observable in the source is a special case. P
 derivative through the shared-disorder expectation and performing Gaussian integration by
 parts are still separate unfinished steps.
 Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathGibbsDerivative.lean}.
+\end{proof}
+
+\begin{lemma}[First-moment bounds for a tilt and for covariance]\label{lem:sg-tal:perceptron-tilt-first-moment}
+  \lean{MeasureTheory.abs_integral_tilted_le_exp_mul_integral_abs,
+        MeasureTheory.abs_integral_mul_sub_integral_mul_le}
+  \leanok
+\talsource{The integrability justification for averaging Eq.~(2.26)}
+Let $\mu$ be a finite nonzero base measure, $e$ an almost everywhere measurable energy,
+$|e|\le A$ almost everywhere, and $h\in L^1(\mu)$. Then
+\[
+ \left|\int h\,d\mu_e\right|
+ \le \frac{e^{2A}}{\mu(X)}\int |h|\,d\mu,
+ \qquad \mu_e=\mu.\mathrm{tilted}(e).
+\]
+Separately, for any probability measure $\nu$, $h\in L^1(\nu)$ and $|F|\le C$,
+\[
+ \left|\int Fh\,d\nu-\left(\int F\,d\nu\right)\left(\int h\,d\nu\right)\right|
+ \le 2|C|\int |h|\,d\nu.
+\]
+The second inequality does not require measurability of $F$; model observables below are measurable.
+\end{lemma}
+\begin{proof}
+  \leanok
+\emph{Step 1 (bound the numerator and normalizer).} The energy bound gives
+\[
+ 0<\mu(X)e^{-A}\le Z:=\int e^e\,d\mu,
+ \qquad \int |h|e^e\,d\mu\le e^A\int |h|\,d\mu.
+\]
+\emph{Step 2 (divide by the positive normalizer).} The quotient formula yields
+\[
+ \left|\int h\,d\mu_e\right|
+ \le\frac{\int |h|e^e\,d\mu}{Z}
+ \le\frac{e^A}{\mu(X)e^{-A}}\int |h|\,d\mu.
+\]
+\emph{Step 3 (bound both covariance terms).} On the probability space,
+\[
+ \left|\int Fh\,d\nu\right|\le |C|\int |h|\,d\nu,
+ \qquad
+ \left|\int F\,d\nu\right|\left|\int h\,d\nu\right|
+ \le |C|\int |h|\,d\nu.
+\]
+The triangle inequality gives the second assertion.
+\emph{Formalization note.} These are general estimates for integrable, possibly unbounded
+observables. The source does not state them separately. They supply a denominator bound
+when justifying the disorder expectation in (2.26); no system-size-uniform bound is claimed.
+Formalized in \texttt{ForMathlib/MeasureTheory/Integral/BoundedTilted.lean} and
+\texttt{ForMathlib/MeasureTheory/Integral/IntegrableOfBound.lean}.
+\end{proof}
+
+\begin{theorem}[Differentiating an average of random tilts]\label{thm:sg-tal:perceptron-expected-tilt-response}
+  \lean{MeasureTheory.hasDerivAt_integral_integral_tilted_of_dominated,
+        MeasureTheory.hasDerivAt_integral_tilted_of_bounded,
+        MeasureTheory.integrable_tilted_of_ae_le}
+  \leanok
+  \uses{lem:sg-tal:perceptron-tilted-response,lem:sg-tal:perceptron-tilt-first-moment}
+\talsource{The derivative exchange preceding Eq.~(2.28)}
+Let $P$ be any finite environment measure, $\mu$ a finite nonzero base measure,
+and $U$ an open neighborhood of $t$. Suppose $E_s(\omega,x)$ and $E'_s(\omega,x)$
+are jointly measurable in $(\omega,x)$ for every $s\in U$, with
+\[
+ \frac d{ds}E_s(\omega,x)=E'_s(\omega,x),\qquad
+ |E_s(\omega,x)|\le A(\omega),\qquad
+ |E'_s(\omega,x)|\le B(\omega)b(x).
+\]
+Assume $B,b\ge0$, $b\in L^1(\mu)$, $e^{2A}B\in L^1(P)$, and measurable $F$ with $|F|\le C$.
+For $\nu_{s,\omega}=\mu.\mathrm{tilted}(E_s(\omega,\cdot))$, one has
+\[
+ \frac d{dt}\int\!\int F\,d\nu_{t,\omega}\,dP(\omega)
+ =\int\left[\int FE'_t\,d\nu_{t,\omega}
+   -\left(\int F\,d\nu_{t,\omega}\right)
+    \left(\int E'_t\,d\nu_{t,\omega}\right)\right]\,dP(\omega).
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+\emph{Step 1 (integrability under each tilt).} An upper energy bound preserves base integrability:
+\[
+ h\in L^1(\mu),\ E\le A
+ \quad\Longrightarrow\quad |h|e^E\le e^A|h|,
+ \quad h\in L^1(\mu.\mathrm{tilted}(E)).
+\]
+The latter fact also holds for a zero base measure. Here the nonzero base ensures a positive normalizer.
+\emph{Step 2 (differentiate the inner integral).} The unweighted derivative envelope supplies
+\[
+ |E'_s e^{E_s}|\le e^{A(\omega)}B(\omega)b,
+ \qquad
+ D_s(\omega):=\frac d{ds}\int F\,d\nu_{s,\omega}
+ =\int FE'_s\,d\nu_{s,\omega}
+  -\left(\int F\,d\nu_{s,\omega}\right)\left(\int E'_s\,d\nu_{s,\omega}\right).
+\]
+Apply Lemma~\ref{lem:sg-tal:perceptron-tilted-response} on $U$.
+\emph{Step 3 (a common integrable outer bound).} Lemma~\ref{lem:sg-tal:perceptron-tilt-first-moment} gives
+\[
+ |D_s(\omega)|
+ \le\frac{2|C|}{\mu(X)}\left(\int b\,d\mu\right)e^{2A(\omega)}B(\omega),
+ \qquad s\in U.
+\]
+\emph{Step 4 (differentiate the environment integral).} Joint measurability gives measurable
+inner averages and covariance terms. The finite environment measure and bounded $F$ give
+\[
+ \omega\longmapsto\int F\,d\nu_{t,\omega}\in L^1(P),
+ \qquad
+ \frac d{dt}\int\!\int F\,d\nu_{t,\omega}\,dP=\int D_t\,dP
+\]
+by Mathlib's dominated integral derivative theorem and the preceding uniform bound.
+\emph{Formalization note.} No Gaussian hypothesis or finite state space enters this theorem.
+It supplies the analytic step omitted from the printed calculation. Its hypotheses are
+checked for the actual perceptron law below; they are not substitutes for that check.
+Formalized in \texttt{ForMathlib/MeasureTheory/Integral/ExpectedTilted.lean}.
 \end{proof}

@@ -85,6 +85,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.BoundedTilte
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ChebyshevAssociation
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.CoordinatePair
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ExpMoment
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ExpectedTilted
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteHyperbolic
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteProduct
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteReplicaTilted

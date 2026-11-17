@@ -106,8 +106,6 @@ theorem hasDerivAt_integral_pi_perceptron_smart_path {N M : ℕ} {R : Type*} [Fi
   have hts : t ∈ s := mem_of_mem_nhds hs
   have hiE' : Integrable (E' t) μ := hib.mono' (hmE' t).aestronglyMeasurable
     (ae_of_all _ fun x => by simpa only [Real.norm_eq_abs] using hdb t hts x)
-  have hiExp : Integrable (fun x => Real.exp (E t x)) μ :=
-    integrable_exp_perceptron_smart_path_energy hu.continuous.measurable hB g a y t
   have hν : IsProbabilityMeasure (μ.tilted (E t)) :=
     isProbabilityMeasure_tilted_perceptron_smart_path_energy hu.continuous.measurable hB g a y t
   have hiTilted : Integrable (E' t) (μ.tilted (E t)) :=
