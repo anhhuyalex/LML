@@ -284,7 +284,11 @@ theorem perceptron_smart_path_diff_eq_three_terms {N M : ℕ} {u : ℝ → ℝ} 
     replicaDiff (μ.tilted (E t ω)) F (E'_Y t ω)
   rw [← heq, hstep2, hstep1]
 
-/-- **Equation (2.28): derivative of the quenched replica average as three terms.** -/
+/-- **(2.26)--(2.27) with the three groups of (2.28), before constraint symmetry.**
+Differentiates the quenched replica average and splits the energy derivative into the
+quenched-disorder term `E'_a`, the auxiliary-spin term `E'_ξ`, and the last-field term `E'_Y`.
+This is the three-group split before the permutation symmetry in `k` that reduces the `k`-sum
+to `α√N` times the last constraint. -/
 theorem hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms {N M : ℕ}
     {R : Type*} [Fintype R] {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) 1)
     {u : ℝ → ℝ} (hu : Differentiable ℝ u) {B D : ℝ} (hB : ∀ x, |u x| ≤ B)
@@ -335,5 +339,109 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms {N M :
   have h3 := perceptron_smart_path_diff_eq_three_terms ht hu hB hD ω F hF ⟨C, hFb⟩
   dsimp only [diff] at h3 ⊢
   exact h3
+
+/-- A spin-only replica observable is automatically measurable on the configuration space. -/
+theorem measurable_spin_only {N M : ℕ} {R : Type*} [Finite R]
+    (f : (R → (Fin N → ℤˣ) × ℤˣ) → ℝ) :
+    Measurable (fun x : R → ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ) => f (fun r => (x r).1)) := by
+  have hm : Measurable (fun x : R → ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ) =>
+      fun r => (x r).1) := by
+    refine measurable_pi_iff.mpr fun r => ?_
+    exact measurable_fst.comp (measurable_pi_apply r)
+  have hf : Measurable f := measurable_of_countable f
+  exact hf.comp hm
+
+/-- A spin-only replica observable is automatically bounded. -/
+theorem exists_abs_le_spin_only {N M : ℕ} {R : Type*} [Finite R]
+    (f : (R → (Fin N → ℤˣ) × ℤˣ) → ℝ) :
+    ∃ C : ℝ, ∀ x : R → ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ),
+      |f (fun r => (x r).1)| ≤ C := by
+  have : Fintype R := Fintype.ofFinite R
+  classical
+  rcases isEmpty_or_nonempty (R → (Fin N → ℤˣ) × ℤˣ) with h | h
+  · exact ⟨0, fun x => False.elim (IsEmpty.false (fun r => (x r).1))⟩
+  · obtain ⟨σ₀⟩ := h
+    let s := Finset.univ.image (fun σ => |f σ|)
+    have hs : s.Nonempty := ⟨|f σ₀|, Finset.mem_image_of_mem _ (Finset.mem_univ _)⟩
+    refine ⟨s.max' hs, fun x => ?_⟩
+    exact Finset.le_max' s (|f (fun r => (x r).1)|) (Finset.mem_image_of_mem _ (Finset.mem_univ _))
+
+/-- **Spin-only derivative of the quenched replica average.** A spin-only observable
+requires no separate measurability or boundedness hypothesis. -/
+theorem hasDerivAt_integral_integral_pi_perceptron_smart_path_spin_only {N M : ℕ}
+    {R : Type*} [Fintype R] {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) 1)
+    {u : ℝ → ℝ} (hu : Differentiable ℝ u) {B D : ℝ} (hB : ∀ z, |u z| ≤ B)
+    (hD : ∀ z, |deriv u z| ≤ D) (v : NNReal)
+    {Pold : Measure (Fin M → Fin N → ℝ)} [IsFiniteMeasure Pold]
+    (f : (R → (Fin N → ℤˣ) × ℤˣ) → ℝ) :
+    let S := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
+      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) (k : Fin M) =>
+      (Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i, ω.1.1 k i * ((x.1.1 i : ℤ) : ℝ)) +
+        Real.sqrt (s / (N + 1)) * ω.1.2 k * ((x.1.2 : ℤ) : ℝ) +
+        Real.sqrt ((1 - s) / (N + 1)) * x.2 k
+    let E := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
+      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) =>
+      ((x.1.2 : ℤ) : ℝ) * Real.sqrt (1 - s) * ω.2 + ∑ k, u (S s ω x k)
+    let E' := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
+      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) =>
+      -((x.1.2 : ℤ) : ℝ) * ω.2 / (2 * Real.sqrt (1 - s)) +
+      ∑ k, deriv u (S s ω x k) * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
+        (ω.1.2 k * ((x.1.2 : ℤ) : ℝ) / Real.sqrt s - x.2 k / Real.sqrt (1 - s)))
+    let μ := (Measure.count : Measure ((Fin N → ℤˣ) × ℤˣ)).prod
+      (Measure.pi fun _ : Fin M => gaussianReal 0 1)
+    let P := (Pold.prod (Measure.pi fun _ : Fin M => gaussianReal 0 1)).prod (gaussianReal 0 v)
+    HasDerivAt (fun s => ∫ ω, ∫ σ, f (fun r => (σ r).1)
+        ∂(Measure.pi fun _ : R => μ.tilted (E s ω)) ∂P)
+      (∫ ω, replicaDiff (μ.tilted (E t ω)) (fun σ => f (fun r => (σ r).1)) (E' t ω) ∂P) t := by
+  intro S E E' μ P
+  obtain ⟨C, hC⟩ := exists_abs_le_spin_only (N := N) (M := M) f
+  have hm := measurable_spin_only (N := N) (M := M) f
+  exact hasDerivAt_integral_integral_pi_perceptron_smart_path ht hu hB hD v
+    (fun σ => f (fun r => (σ r).1)) hm hC
+
+/-- **Spin-only three-term expansion of the quenched replica derivative.** -/
+theorem hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms_spin_only {N M : ℕ}
+    {R : Type*} [Fintype R] {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) 1)
+    {u : ℝ → ℝ} (hu : Differentiable ℝ u) {B D : ℝ} (hB : ∀ x, |u x| ≤ B)
+    (hD : ∀ x, |deriv u x| ≤ D) (v : NNReal)
+    {Pold : Measure (Fin M → Fin N → ℝ)} [IsFiniteMeasure Pold]
+    (f : (R → (Fin N → ℤˣ) × ℤˣ) → ℝ) :
+    let S := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
+      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) (k : Fin M) =>
+      (Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i, ω.1.1 k i * ((x.1.1 i : ℤ) : ℝ)) +
+        Real.sqrt (s / (N + 1)) * ω.1.2 k * ((x.1.2 : ℤ) : ℝ) +
+        Real.sqrt ((1 - s) / (N + 1)) * x.2 k
+    let E := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
+      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) =>
+      ((x.1.2 : ℤ) : ℝ) * Real.sqrt (1 - s) * ω.2 + ∑ k, u (S s ω x k)
+    let E'_a := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
+      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) =>
+      ∑ k, deriv u (S s ω x k) * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
+        (ω.1.2 k * ((x.1.2 : ℤ) : ℝ) / Real.sqrt s))
+    let E'_ξ := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
+      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) =>
+      ∑ k, deriv u (S s ω x k) * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
+        (- x.2 k / Real.sqrt (1 - s)))
+    let E'_Y := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
+      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) =>
+      -((x.1.2 : ℤ) : ℝ) * ω.2 / (2 * Real.sqrt (1 - s))
+    let μ := (Measure.count : Measure ((Fin N → ℤˣ) × ℤˣ)).prod
+      (Measure.pi fun _ : Fin M => gaussianReal 0 1)
+    let J := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ) =>
+      ∫ σ : R → ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ), f (fun r => (σ r).1)
+        ∂(Measure.pi fun _ : R => μ.tilted (E s ω))
+    let P := (Pold.prod (Measure.pi fun _ : Fin M => gaussianReal 0 1)).prod (gaussianReal 0 v)
+    let diff := fun (H : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ) → ℝ)
+        (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ) =>
+      replicaDiff (μ.tilted (E t ω)) (fun σ => f (fun r => (σ r).1)) H
+    HasDerivAt (fun s => ∫ ω, J s ω ∂P)
+      (∫ ω, diff (E'_a t ω) ω + diff (E'_ξ t ω) ω + diff (E'_Y t ω) ω ∂P) t := by
+  intro S E E'_a E'_ξ E'_Y μ J P diff
+  obtain ⟨C, hC⟩ := exists_abs_le_spin_only (N := N) (M := M) f
+  have hm := measurable_spin_only (N := N) (M := M) f
+  have h := hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms
+    (Pold := Pold) ht hu hB hD v (fun σ => f (fun r => (σ r).1)) hm hC
+  dsimp only [S, E, E'_a, E'_ξ, E'_Y, μ, J, P] at h ⊢
+  exact h
 
 end SpinGlasses
