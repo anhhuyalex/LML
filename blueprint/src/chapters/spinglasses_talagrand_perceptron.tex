@@ -1326,10 +1326,11 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathDisorderDerivati
 \begin{theorem}[Three-term expansion of the smart-path derivative]\label{thm:sg-tal:perceptron-derivative-three-terms}
   \lean{SpinGlasses.perceptron_smart_path_E'_eq_three_terms,
         SpinGlasses.perceptron_smart_path_diff_eq_three_terms,
-        SpinGlasses.hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms}
+        SpinGlasses.hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms,
+        SpinGlasses.hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms_spin_only}
   \leanok
   \uses{thm:sg-tal:perceptron-disorder-derivative}
-\talsource{Eq.~(2.28)}
+\talsource{Eq.~(2.28) (before constraint symmetry)}
 Assume $u$ is differentiable, with $|u|\le B$ and $|u'|\le D$. For $0<t<1$ and any bounded
 measurable observable $F$, the quenched derivative splits into three terms:
 \[
@@ -1365,5 +1366,13 @@ By additivity of $\operatorname{diff}$ under one-state integrability
  \operatorname{diff}(E') = \operatorname{diff}(E'_a) + \operatorname{diff}(E'_\xi) + \operatorname{diff}(E'_Y).
 \]
 Integrating over the quenched disorder $P$ yields the result.
+\emph{Formalization note (hypothesis audit).}
+This theorem establishes (2.26)--(2.27) grouped into the three terms of (2.28) summed over
+$k < M$, before constraint permutation symmetry replaces the sum with $M$ times the $M$-th
+constraint ($\alpha\sqrt{N+1}$). The spin-only corollary
+(\texttt{hasDerivAt\_integral\_integral\_pi\_perceptron\_smart\_path\_three\_terms\_spin\_only})
+requires no measurability or boundedness hypothesis on $f$, since any function on the finite
+spin space $\Sigma_N^n$ is continuous and bounded. The Gaussian IBP prefactor cancellations
+are formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathIBP.lean}.
 Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathDisorderDerivative.lean}.
 \end{proof}
