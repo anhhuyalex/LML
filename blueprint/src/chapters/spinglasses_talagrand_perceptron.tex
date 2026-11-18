@@ -634,8 +634,8 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/AuxiliaryMarginal.lean}.
 The auxiliary marginal identity alone does not prove the interior derivative formula or the extra term
 for the path without auxiliary spins. The zero-endpoint factorization is proved in
 Theorem~\ref{thm:sg-tal:perceptron-decoupled-endpoint} below. The field law, well-defined
-Gibbs measures and terminal endpoint are proved below as well. The fixed-disorder derivative and
-its exchange with the disorder integral are proved below. The three-term expansion (2.28),
+Gibbs measures and terminal endpoint are proved below as well. The fixed-disorder derivative and its exchange with the disorder integral are proved below.
+The three-term expansion (2.28) is proved in Theorem~\ref{thm:sg-tal:perceptron-derivative-three-terms}.
 Gaussian integration by parts and the extra term remain open in the Section~2.2 plan.
 \end{remark}
 
@@ -1318,7 +1318,52 @@ preserved; the two-sided bound is used here to bound the normalized density. The
 law need not be Gaussian for this exchange. A spin-only source observable is a special case;
 the later integration-by-parts computations must retain that restriction. The exponential
 envelope is for a fixed finite system and makes no claim of a size-uniform error estimate.
-The three separately integrable terms of (2.28), their constraint symmetry and the Gaussian
-integration-by-parts cancellation are not proved by this theorem.
+The three separately integrable terms of (2.28) are proved in
+Theorem~\ref{thm:sg-tal:perceptron-derivative-three-terms}.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathDisorderDerivative.lean}.
+\end{proof}
+
+\begin{theorem}[Three-term expansion of the smart-path derivative]\label{thm:sg-tal:perceptron-derivative-three-terms}
+  \lean{SpinGlasses.perceptron_smart_path_E'_eq_three_terms,
+        SpinGlasses.perceptron_smart_path_diff_eq_three_terms,
+        SpinGlasses.hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms}
+  \leanok
+  \uses{thm:sg-tal:perceptron-disorder-derivative}
+\talsource{Eq.~(2.28)}
+Assume $u$ is differentiable, with $|u|\le B$ and $|u'|\le D$. For $0<t<1$ and any bounded
+measurable observable $F$, the quenched derivative splits into three terms:
+\[
+ \nu'_t(F) = \int \left[ \operatorname{diff}(E'_a) + \operatorname{diff}(E'_\xi) + \operatorname{diff}(E'_Y) \right] dP(\omega),
+\]
+where $\operatorname{diff}(H) = \sum_{i\in R} \langle F H(\sigma_i)\rangle - |R|\langle F H(\sigma_*)\rangle$, and
+\begin{align*}
+ E'_a(\omega, x) &= \sum_{k<M} u'(S_{k,t}) \frac{1}{2\sqrt{N+1}} \frac{a_k \varepsilon}{\sqrt{t}}, \\
+ E'_\xi(\omega, x) &= \sum_{k<M} u'(S_{k,t}) \frac{1}{2\sqrt{N+1}} \frac{-\xi_k}{\sqrt{1-t}}, \\
+ E'_Y(\omega, x) &= -\frac{\varepsilon Y}{2\sqrt{1-t}}.
+\end{align*}
+\end{theorem}
+\begin{proof}
+  \leanok
+\emph{Step 1 (algebraic decomposition of the energy derivative).}
+By grouping the terms in Eq.~(2.27),
+\[
+ E'(s,\omega,x) = E'_a(s,\omega,x) + E'_\xi(s,\omega,x) + E'_Y(s,\omega,x).
+\]
+\emph{Step 2 (one-state integrability on the tilted measure).}
+The last-field term $E'_Y$ and the disorder term $E'_a$ are uniformly bounded in $x$ for fixed disorder $\omega$:
+\[
+ |E'_Y(t,\omega,x)| \le \frac{|Y|}{2\sqrt{1-t}}, \qquad
+ |E'_a(t,\omega,x)| \le \sum_{k<M} D \frac{|a_k|}{2\sqrt{N+1}\sqrt{t}}.
+\]
+Since the tilted Gibbs law is a probability measure, $E'_Y$ and $E'_a$ are integrable.
+The total energy derivative $E'$ is integrable by Theorem~\ref{thm:sg-tal:perceptron-gibbs-derivative}.
+By linearity of integrability, $E'_\xi = E' - E'_a - E'_Y$ is also integrable.
+\emph{Step 3 (additivity of the replica difference operator).}
+By additivity of $\operatorname{diff}$ under one-state integrability
+(\texttt{replicaDiff\_add}),
+\[
+ \operatorname{diff}(E') = \operatorname{diff}(E'_a) + \operatorname{diff}(E'_\xi) + \operatorname{diff}(E'_Y).
+\]
+Integrating over the quenched disorder $P$ yields the result.
 Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathDisorderDerivative.lean}.
 \end{proof}
