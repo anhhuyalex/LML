@@ -324,6 +324,15 @@ theorem integrable_tilted_of_ae_le {α : Type*} [MeasurableSpace α] {μ : Measu
     rw [Real.norm_of_nonneg (Real.exp_pos _).le]
     exact Real.exp_le_exp.mpr ha)
 
+/-- A bounded derivative or observable bounded pointwise by an integrable envelope is
+integrable under an exponential tilt with energy bounded above. -/
+theorem integrable_tilted_of_abs_le_envelope {α : Type*} [MeasurableSpace α] {μ : Measure α}
+    [IsFiniteMeasure μ] {e g b : α → ℝ} {A : ℝ} (he : AEMeasurable e μ)
+    (hg : AEStronglyMeasurable g μ) (hb : Integrable b μ) (heb : ∀ a, e a ≤ A)
+    (hgb : ∀ a, |g a| ≤ b a) : Integrable g (μ.tilted e) :=
+  integrable_tilted_of_ae_le he (ae_of_all _ heb)
+    (hb.mono' hg (ae_of_all _ fun a => by simpa only [Real.norm_eq_abs] using hgb a))
+
 /-- A jointly measurable observable and random log-density have a measurable tilted integral.
 The observable may depend on the same environment as the log-density. -/
 theorem measurable_integral_tilted_dep {Ω α : Type*} [MeasurableSpace Ω] [MeasurableSpace α]
@@ -378,8 +387,7 @@ theorem abs_integral_mul_sub_integral_mul_le {α : Type*} [MeasurableSpace α]
         rw [Real.norm_eq_abs, abs_mul]
         exact mul_le_mul_of_nonneg_right ((hFb a).trans (le_abs_self C)) (abs_nonneg _))
     simpa only [Real.norm_eq_abs, integral_const_mul] using hx
-  have hhmean : |∫ a, h a ∂μ| ≤ ∫ a, |h a| ∂μ := by
-    simpa only [Real.norm_eq_abs] using norm_integral_le_integral_norm h
+  have hhmean : |∫ a, h a ∂μ| ≤ ∫ a, |h a| ∂μ := abs_integral_le_integral_abs
   calc _ ≤ |∫ a, F a * h a ∂μ| + |(∫ a, F a ∂μ) * ∫ a, h a ∂μ| := abs_sub _ _
     _ ≤ |C| * (∫ a, |h a| ∂μ) + |C| * ∫ a, |h a| ∂μ :=
       add_le_add hprod (by

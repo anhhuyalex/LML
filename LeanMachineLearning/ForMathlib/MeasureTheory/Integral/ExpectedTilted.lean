@@ -173,12 +173,10 @@ theorem hasDerivAt_integral_integral_pi_tilted_of_dominated
   convert hres using 1
   refine integral_congr_ae (ae_of_all _ fun ω => ?_)
   have hmEω : Measurable (E t ω) := (hE t ht).of_uncurry_left
-  have hiE' : Integrable (E' t ω) μ :=
-    (hb.const_mul (B ω)).mono' (hE' t ht).of_uncurry_left.aestronglyMeasurable
-      (ae_of_all _ fun a => by simpa only [Real.norm_eq_abs] using hdb t ht ω a)
   have hiTilt : Integrable (E' t ω) (μ.tilted (E t ω)) :=
-    integrable_tilted_of_ae_le hmEω.aemeasurable
-      (ae_of_all _ fun a => le_of_abs_le (hEb t ht ω a)) hiE'
+    integrable_tilted_of_abs_le_envelope hmEω.aemeasurable
+      (hE' t ht).of_uncurry_left.aestronglyMeasurable (hb.const_mul (B ω))
+      (fun a => le_of_abs_le (hEb t ht ω a)) (hdb t ht ω)
   have hprob : IsProbabilityMeasure (μ.tilted (E t ω)) :=
     isProbabilityMeasure_tilted_of_ae_le hmEω.aemeasurable
       (ae_of_all _ fun a => le_of_abs_le (hEb t ht ω a))

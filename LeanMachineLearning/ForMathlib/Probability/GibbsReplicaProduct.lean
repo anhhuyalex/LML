@@ -28,6 +28,14 @@ open scoped Topology
 
 namespace MeasureTheory
 
+/-- Any real-valued function on a finite type is bounded. -/
+theorem exists_abs_le_of_finite {X : Type*} [Finite X] (f : X → ℝ) :
+    ∃ C : ℝ, ∀ x : X, |f x| ≤ C := by
+  rcases isEmpty_or_nonempty X with h | h
+  · exact ⟨0, fun x => (IsEmpty.false x).elim⟩
+  · obtain ⟨C, hC⟩ := Finite.bddAbove_range fun x => |f x|
+    exact ⟨C, fun x => hC ⟨x, rfl⟩⟩
+
 variable {α ι : Type*} [MeasurableSpace α] [Fintype ι] {μ : Measure α} [IsFiniteMeasure μ]
 
 /-- The finite replica base measure is nonzero whenever its common finite base measure is. -/
@@ -234,6 +242,37 @@ theorem replicaDiff_zero {α R : Type*} [MeasurableSpace α] [Fintype R] (ν : M
     replicaDiff ν F 0 = 0 := by
   dsimp only [replicaDiff]
   simp only [Pi.zero_apply, mul_zero, integral_zero, Finset.sum_const_zero, sub_zero, mul_zero]
+
+/-- The replica difference operator is homogeneous with respect to scalar multiplication. -/
+theorem replicaDiff_const_mul {α R : Type*} [MeasurableSpace α] [Fintype R] (ν : Measure α)
+    (F : (R → α) → ℝ) (c : ℝ) (h : α → ℝ) :
+    replicaDiff ν F (fun x => c * h x) = c * replicaDiff ν F h := by
+  dsimp only [replicaDiff]
+  have h1 : (∑ i, ∫ σ : Option R → α, F (fun j => σ (some j)) * (c * h (σ (some i)))
+      ∂(Measure.pi fun _ : Option R => ν)) =
+      c * ∑ i, ∫ σ : Option R → α, F (fun j => σ (some j)) * h (σ (some i))
+        ∂(Measure.pi fun _ : Option R => ν) := by
+    rw [Finset.mul_sum]
+    refine Finset.sum_congr rfl fun i _ => ?_
+    have heq : (fun σ : Option R → α => F (fun j => σ (some j)) * (c * h (σ (some i)))) =
+        fun σ => c * (F (fun j => σ (some j)) * h (σ (some i))) := by ext σ; ring
+    rw [heq, integral_const_mul]
+  have h2 : (∫ σ : Option R → α, F (fun j => σ (some j)) * (c * h (σ none))
+      ∂(Measure.pi fun _ : Option R => ν)) =
+      c * ∫ σ : Option R → α, F (fun j => σ (some j)) * h (σ none)
+        ∂(Measure.pi fun _ : Option R => ν) := by
+    have heq : (fun σ : Option R → α => F (fun j => σ (some j)) * (c * h (σ none))) =
+        fun σ => c * (F (fun j => σ (some j)) * h (σ none)) := by ext σ; ring
+    rw [heq, integral_const_mul]
+  rw [h1, h2]
+  ring
+
+/-- Wrapper bounding and ensuring integrability of `F * f` when `|F| ≤ C`. -/
+theorem Integrable.bdd_mul_of_abs_le {α : Type*} [MeasurableSpace α]
+    {μ : Measure α} {f F : α → ℝ} {C : ℝ} (hf : Integrable f μ)
+    (hF : AEStronglyMeasurable F μ) (hFb : ∀ a, |F a| ≤ C) :
+    Integrable (fun a => F a * f a) μ :=
+  hf.bdd_mul hF (ae_of_all _ fun a => by simpa only [Real.norm_eq_abs] using hFb a)
 
 /-- A covariance with a sum over the observed replicas is a sum of observed-replica terms
 minus the cardinality times one fresh-replica term. The one-state observable only needs to be
@@ -487,6 +526,17 @@ noncomputable def replicaPairAverage {R α : Type*} [MeasurableSpace α] [Fintyp
     [LinearOrder R] (ν : Measure α) (F : (R → α) → ℝ) (U : α → α → ℝ) : ℝ :=
   ∫ τ : Option (Option R) → α, F (fun r => τ (some (some r))) * replicaPairDiff U τ
     ∂(Measure.pi fun _ => ν)
+
+/-- If a finite family of functions `f k` are integrable under `P` and all have identical
+integrals, the integral of their sum equals the cardinality of the index set times the
+integral of any fixed component `k₀`. -/
+theorem integral_sum_eq_card_mul_of_forall_eq {Ω ι : Type*} [MeasurableSpace Ω] {P : Measure Ω}
+    [Fintype ι] (f : ι → Ω → ℝ) (k₀ : ι) (hf : ∀ k, Integrable (f k) P)
+    (h : ∀ k, ∫ ω, f k ω ∂P = ∫ ω, f k₀ ω ∂P) :
+    ∫ ω, ∑ k, f k ω ∂P = (Fintype.card ι : ℝ) * ∫ ω, f k₀ ω ∂P := by
+  rw [integral_finsetSum _ fun k _ => hf k]
+  simp_rw [h]
+  simp only [Finset.sum_const, nsmul_eq_mul, Finset.card_univ]
 
 section Measurability
 

@@ -1379,11 +1379,12 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathDisorderDerivati
 \end{proof}
 
 \begin{proposition}[Derivative of the perceptron smart path]\label{prop:sg-tal:perceptron-smart-path-derivative}
-  \lean{SpinGlasses.perceptron_smart_path_auxiliary_prefactor,
-        SpinGlasses.perceptron_smart_path_quenched_prefactor,
+  \lean{SpinGlasses.smartPath_auxiliary_prefactor_eq_neg,
+        SpinGlasses.smartPath_quenched_prefactor_eq,
         MeasureTheory.replicaPairDiff,
         SpinGlasses.replicaPairDiff_eq_half_replica_covariance_combination,
-        SpinGlasses.sum_div_eq_alpha_mul_last}
+        SpinGlasses.replicaPairDiff_lastSpinKernel,
+        MeasureTheory.integral_sum_eq_card_mul_of_forall_eq}
   \uses{thm:sg-tal:perceptron-derivative-three-terms}
 \talsource{Proposition~2.2.3, Eqs.~(2.23)--(2.25)}
 Assume $u$ is twice differentiable with $|u|\le B$, $|u'|\le D$ and $|u''|\le D_2$, and let $r = \mathbb{E} Y^2$.
@@ -1401,35 +1402,37 @@ For $M+1$ constraints with exchangeable disorder, the sum over $k$ simplifies to
 \begin{proof}
 \emph{Step 1 (Gaussian integration by parts on auxiliary coordinates).}
 Integrating $\xi_k \sim \mathcal{N}(0, 1)$ by parts against the auxiliary derivative factor in $E'_\xi$ produces
-$\sqrt{(1-t)/(N+1)} (u''(S_{k,t}) + (u'(S_{k,t}))^2)$. By \texttt{perceptron\_smart\_path\_auxiliary\_prefactor},
+$\sqrt{(1-t)/(N+1)} (u''(S_{k,t}) + (u'(S_{k,t}))^2)$. By \texttt{smartPath\_auxiliary\_prefactor\_eq\_neg},
 the factor $\sqrt{1-t}$ in the denominator cancels, leaving $-1/(2(N+1)) (u'' + (u')^2)$.
 \emph{Step 2 (Gaussian integration by parts on quenched disorder).}
 Integrating $a_k \sim \mathcal{N}(0, 1)$ by parts against $E'_a$ differentiates the replica factor and the Gibbs measure:
-the diagonal terms ($\ell = \ell'$) give $+1/(2(N+1)) (u'' + (u')^2)$ via \texttt{perceptron\_smart\_path\_quenched\_prefactor},
+the diagonal terms ($\ell = \ell'$) give $+1/(2(N+1)) (u'' + (u')^2)$ via \texttt{smartPath\_quenched\_prefactor\_eq},
 while the off-diagonal terms ($\ell \neq \ell'$) and the fresh-replica normalizer derivatives produce the replica cross-interaction of potential derivatives.
 \emph{Step 3 (exact diagonal cancellation).}
 The diagonal terms $+1/(2(N+1)) (u'' + (u')^2)$ and $-1/(2(N+1)) (u'' + (u')^2)$ cancel identically.
 \emph{Step 4 (quenched field integration by parts).}
 Integrating $Y \sim \mathcal{N}(0, v)$ by parts in $E'_Y$ produces $-v$ times the replica spin cross-products, which by
-\texttt{replicaPairDiff\_eq\_half\_replica_covariance\_combination} equals $-v$ times the spin replica pair difference.
+\texttt{replicaPairDiff\_lastSpinKernel} equals $-v$ times the spin replica pair difference.
 \emph{Step 5 (constraint permutation symmetry).}
-By \texttt{sum\_div\_eq\_alpha\_mul_last}, summing $1/(N+1)$ over $M+1$ constraints with identical disorder averages yields
+By \texttt{integral\_sum\_eq\_card\_mul\_of\_forall\_eq}, summing $1/(N+1)$ over $M+1$ constraints with identical disorder averages yields
 $\alpha = (M+1)/(N+1)$ times the value at the last constraint.
 \emph{Formalization note (status and hypothesis audit).}
-The prefactor cancellations (\texttt{perceptron\_smart\_path\_auxiliary\_prefactor},
-\texttt{perceptron\_smart\_path\_quenched\_prefactor}), the two-replica difference combination
+The prefactor cancellations (\texttt{smartPath\_auxiliary\_prefactor\_eq\_neg},
+\texttt{smartPath\_quenched\_prefactor\_eq}), the two-replica difference combination
 (\texttt{MeasureTheory.replicaPairDiff}), the connection to the 4-term covariance combination
-(\texttt{replicaPairDiff\_eq\_half\_replica_covariance\_combination}), and the constraint symmetry reduction
-(\texttt{sum\_div\_eq\_alpha_mul_last}) are formalized in \texttt{SmartPathIBP.lean}.
+(\texttt{replicaPairDiff\_eq\_half\_replica_covariance\_combination}, \texttt{replicaPairDiff\_lastSpinKernel}), and the general constraint integration reduction
+(\texttt{integral\_sum\_eq\_card\_mul\_of\_forall\_eq}) are formalized in \texttt{SmartPathIBP.lean} and \texttt{GibbsReplicaProduct.lean}.
 The core definitions (\texttt{smartPathField}, \texttt{smartPathEnergy}, \texttt{smartPathBase},
-\texttt{smartPathDisorder}, \texttt{SmartPathPotential}, \texttt{smartPathPotentialKernel}, \texttt{lastSpinKernel})
+\texttt{smartPathDisorder}, \texttt{SmartPathPotential}, \texttt{SmartPathPotential₂}, \texttt{smartPathPotentialKernel}, \texttt{lastSpinKernel})
 are established. The full Gaussian integration by parts reducing the three terms of (2.28) to
 the two-replica difference combinations remains open.
 Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathIBP.lean}.
 \end{proof}
 
 \begin{exercise}[Smart path without auxiliary spins]\label{ex:sg-tal:perceptron-smart-path-without-auxiliary}
-  \lean{MeasureTheory.replicaDiff_zero}
+  \lean{SpinGlasses.smartPathFieldNoAux,
+        SpinGlasses.smartPathEnergyNoAux,
+        MeasureTheory.replicaDiff_zero}
   \uses{prop:sg-tal:perceptron-smart-path-derivative}
 \talsource{Exercise~2.2.4, Eq.~(2.34)}
 If the smart path is defined without auxiliary spins ($\xi_k = 0$), the auxiliary integration by parts is absent,

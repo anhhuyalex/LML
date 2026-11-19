@@ -59,27 +59,14 @@ theorem integral_id_mul_deriv_u_mul_exp_affine_gaussianReal_of_integrable (v : N
     ∫ z, z * (u' (S₀ + c * z) * Real.exp (u (S₀ + c * z))) ∂gaussianReal 0 v =
       (v : ℝ) * c * ∫ z, (u'' (S₀ + c * z) + (u' (S₀ + c * z)) ^ 2) *
         Real.exp (u (S₀ + c * z)) ∂gaussianReal 0 v := by
-  let F := fun t => u' (S₀ + c * t) * Real.exp (u (S₀ + c * t))
-  let F' := fun t => c * (u'' (S₀ + c * t) + (u' (S₀ + c * t)) ^ 2) * Real.exp (u (S₀ + c * t))
-  have hF' : ∀ z, HasDerivAt F (F' z) z := fun z =>
-    hasDerivAt_deriv_u_mul_exp_affine hu' hu'' S₀ c z
-  have hiF'_c : Integrable F' (gaussianReal 0 v) := by
-    have heq : F' = fun t => c * ((u'' (S₀ + c * t) + (u' (S₀ + c * t)) ^ 2) *
-        Real.exp (u (S₀ + c * t))) := by ext t; ring
-    rw [heq]
-    exact hiF'.const_mul c
-  have hstein := integral_id_mul_gaussianReal_eq v hF' hxF hiF'_c
-  have heq_c : (∫ z, F' z ∂gaussianReal 0 v) =
-      c * ∫ z, (u'' (S₀ + c * z) + (u' (S₀ + c * z)) ^ 2) *
-        Real.exp (u (S₀ + c * z)) ∂gaussianReal 0 v := by
-    dsimp only [F']
-    have hmul : (fun t => c * (u'' (S₀ + c * t) + (u' (S₀ + c * t)) ^ 2) *
-        Real.exp (u (S₀ + c * t))) =
-        fun t => c * ((u'' (S₀ + c * t) + (u' (S₀ + c * t)) ^ 2) *
-        Real.exp (u (S₀ + c * t))) := by ext t; ring
-    rw [hmul, integral_const_mul]
-  rw [hstein, heq_c]
-  ring
+  have hd (x : ℝ) : HasDerivAt (fun t => u' t * Real.exp (u t))
+      ((u'' x + (u' x) ^ 2) * Real.exp (u x)) x := by
+    have h1 : HasDerivAt u' (u'' x) x := hu'' x
+    have h2 : HasDerivAt (fun t => Real.exp (u t)) (Real.exp (u x) * u' x) x := (hu' x).exp
+    have hp := h1.mul h2
+    convert hp using 1
+    ring
+  exact integral_id_mul_comp_affine_gaussianReal v hd S₀ c hxF hiF'
 
 /-- **Gaussian integration by parts for a 1D potential (bounded form):**
 `𝔼 [g u'(S₀ + c g) e^{u(S₀ + c g)}] = v c 𝔼 [(u''(S₀ + c g) + (u'(S₀ + c g))²) e^{u(S₀ + c g)}]`
@@ -110,13 +97,10 @@ theorem integral_id_mul_deriv_u_mul_exp_affine_gaussianReal (v : NNReal)
       rw [heq]
       exact measurable_deriv u'
     fun_prop
-  have hbF (z : ℝ) : |u' (S₀ + c * z) * Real.exp (u (S₀ + c * z))| ≤ |D| * Real.exp B := by
-    rw [abs_mul, abs_of_pos (Real.exp_pos _)]
-    exact mul_le_mul ((hD _).trans (le_abs_self _)) (Real.exp_le_exp.mpr (hB _))
-      (Real.exp_pos _).le (abs_nonneg _)
+  have hbF (z : ℝ) : |u' (S₀ + c * z) * Real.exp (u (S₀ + c * z))| ≤ |D| * Real.exp B :=
+    abs_mul_exp_le ((hD _).trans (le_abs_self _)) (hB _)
   have hbF' (z : ℝ) : |(u'' (S₀ + c * z) + (u' (S₀ + c * z)) ^ 2) *
       Real.exp (u (S₀ + c * z))| ≤ (|D₂| + D ^ 2) * Real.exp B := by
-    rw [abs_mul, abs_of_pos (Real.exp_pos _)]
     have hsum : |u'' (S₀ + c * z) + (u' (S₀ + c * z)) ^ 2| ≤ |D₂| + D ^ 2 := by
       refine (abs_add_le _ _).trans (add_le_add ((hD₂ _).trans (le_abs_self _)) ?_)
       rw [sq, abs_mul]
@@ -124,10 +108,9 @@ theorem integral_id_mul_deriv_u_mul_exp_affine_gaussianReal (v : NNReal)
       calc |u' (S₀ + c * z)| * |u' (S₀ + c * z)|
         _ ≤ D * D := mul_le_mul (hD _) (hD _) (abs_nonneg _) hD0
         _ = D ^ 2 := (sq D).symm
-    exact mul_le_mul hsum (Real.exp_le_exp.mpr (hB _)) (Real.exp_pos _).le (by positivity)
-  have hG1 : Integrable (id : ℝ → ℝ) (gaussianReal 0 v) := by
-    have h : MemLp (id : ℝ → ℝ) 1 (gaussianReal 0 v) := memLp_id_gaussianReal 1
-    exact h.integrable le_rfl
+    exact abs_mul_exp_le hsum (hB _)
+  have hG1 : Integrable (id : ℝ → ℝ) (gaussianReal 0 v) :=
+    integrable_id_gaussianReal
   have hxF : Integrable (fun z => z * (u' (S₀ + c * z) * Real.exp (u (S₀ + c * z))))
       (gaussianReal 0 v) := by
     have heq : (fun z => z * (u' (S₀ + c * z) * Real.exp (u (S₀ + c * z)))) =
@@ -140,13 +123,5 @@ theorem integral_id_mul_deriv_u_mul_exp_affine_gaussianReal (v : NNReal)
       (fun z => hbF' z)
   exact integral_id_mul_deriv_u_mul_exp_affine_gaussianReal_of_integrable
     v hu' hu'' S₀ c hxF hiF'
-
-/-- Evaluation of an observable depending only on one coordinate under a product of
-standard Gaussians. -/
-theorem integral_comp_eval_pi_gaussianReal {ι : Type*} [Fintype ι] (k : ι)
-    (f : ℝ → ℝ) (hf : Integrable f (gaussianReal 0 1)) :
-    ∫ x : ι → ℝ, f (x k) ∂(Measure.pi fun _ : ι => gaussianReal 0 1) =
-      ∫ t, f t ∂(gaussianReal 0 1) :=
-  integral_comp_eval (μ := fun _ : ι => gaussianReal 0 1) (i := k) hf.aestronglyMeasurable
 
 end MeasureTheory

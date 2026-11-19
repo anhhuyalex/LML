@@ -57,9 +57,7 @@ theorem hasDerivAt_integral_pi_perceptron_smart_path {N M : ℕ} {R : Type*} [Fi
           F (fun j => σ (some j)) * E' t (σ none)
           ∂(Measure.pi fun _ : Option R => μ.tilted (E t))) t := by
   intro S E E' μ
-  obtain ⟨δ, hδ, hδmin⟩ := exists_between (lt_min ht.1 (sub_pos.mpr ht.2))
-  have hδt : δ < t := hδmin.trans_le (min_le_left _ _)
-  have hδ1 : δ < 1 - t := hδmin.trans_le (min_le_right _ _)
+  obtain ⟨δ, hδ, hδt, hδ1⟩ := exists_pos_lt_of_mem_Ioo ht
   let s := Set.Ioo δ (1 - δ)
   have hs : s ∈ 𝓝 t := isOpen_Ioo.mem_nhds ⟨hδt, by linarith⟩
   have hmE (r : ℝ) : Measurable (E r) :=
@@ -88,12 +86,11 @@ theorem hasDerivAt_integral_pi_perceptron_smart_path {N M : ℕ} {R : Type*} [Fi
   have hres := hasDerivAt_integral_pi_tilted_of_dominated (μ := μ) (E := E) (E' := E') hs
     (fun r _ => hmE r) (hmE' t) hEb hib hdb hcalc hF hFb
   have hts : t ∈ s := mem_of_mem_nhds hs
-  have hiE' : Integrable (E' t) μ := hib.mono' (hmE' t).aestronglyMeasurable
-    (ae_of_all _ fun x => by simpa only [Real.norm_eq_abs] using hdb t hts x)
   have hν : IsProbabilityMeasure (μ.tilted (E t)) :=
     isProbabilityMeasure_tilted_perceptron_smart_path_energy hu.continuous.measurable hB g a y t
   have hiTilted : Integrable (E' t) (μ.tilted (E t)) :=
-    integrable_tilted_of_ae_le (hmE t).aemeasurable (ae_of_all _ (hEb t hts)) hiE'
+    integrable_tilted_of_abs_le_envelope (hmE t).aemeasurable (hmE' t).aestronglyMeasurable
+      hib (hEb t hts) (hdb t hts)
   convert hres using 1
   exact (integral_pi_cov_sum_eq_sum_sub_fresh (μ.tilted (E t)) F
     hF.aestronglyMeasurable hFb (E' t) hiTilted).symm
@@ -116,9 +113,7 @@ theorem integrable_tilted_perceptron_smart_path_energy_deriv {N M : ℕ} {u : �
       (Measure.pi fun _ : Fin M => gaussianReal 0 1)
     Integrable (E' t) (μ.tilted (E t)) := by
   intro S E E' μ
-  obtain ⟨δ, hδ, hδmin⟩ := exists_between (lt_min ht.1 (sub_pos.mpr ht.2))
-  have hδt : δ < t := hδmin.trans_le (min_le_left _ _)
-  have hδ1 : δ < 1 - t := hδmin.trans_le (min_le_right _ _)
+  obtain ⟨δ, hδ, hδt, hδ1⟩ := exists_pos_lt_of_mem_Ioo ht
   have hmE : Measurable (E t) :=
     measurable_perceptron_smart_path_energy_slice hu.continuous.measurable g a y t
   have hmE' : Measurable (E' t) := by
@@ -132,7 +127,6 @@ theorem integrable_tilted_perceptron_smart_path_energy_deriv {N M : ℕ} {u : �
   have hib : Integrable b μ := integrable_perceptron_smart_path_envelope D δ y a
   have hdb (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) : |E' t x| ≤ b x :=
     abs_deriv_perceptron_smart_path_energy_le hδ ⟨hδt.le, by linarith⟩ hD g a x.2 x.1.1 x.1.2 y
-  have hiE' : Integrable (E' t) μ := hib.mono' hmE'.aestronglyMeasurable
-    (ae_of_all _ fun x => by simpa only [Real.norm_eq_abs] using hdb x)
-  exact integrable_tilted_of_ae_le hmE.aemeasurable (ae_of_all _ hEb) hiE'
+  exact integrable_tilted_of_abs_le_envelope hmE.aemeasurable hmE'.aestronglyMeasurable
+    hib hEb hdb
 end SpinGlasses

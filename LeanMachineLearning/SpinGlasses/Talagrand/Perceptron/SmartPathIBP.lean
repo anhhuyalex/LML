@@ -104,6 +104,27 @@ theorem hasDerivAt_smartPathEnergy {N M : ℕ} {t : ℝ} (ht : t ∈ Set.Ioo (0 
   congr 1
   exact Finset.sum_congr rfl fun k _ => by ring
 
+@[fun_prop]
+theorem measurable_smartPathField {N M : ℕ} (s : ℝ) (k : Fin M) :
+    Measurable fun p : SmartPathDisorder N M × SmartPathState N M =>
+      smartPathField s p.1 p.2 k := by
+  dsimp only [smartPathField]
+  have : Measurable (fun ε : ℤˣ => ((ε : ℤ) : ℝ)) := measurable_of_countable _
+  fun_prop
+
+@[fun_prop]
+theorem measurable_smartPathEnergy {N M : ℕ} {u : ℝ → ℝ} (hu : Measurable u) (s : ℝ) :
+    Measurable fun p : SmartPathDisorder N M × SmartPathState N M =>
+      smartPathEnergy u s p.1 p.2 := by
+  dsimp only [smartPathEnergy, smartPathField]
+  have : Measurable (fun ε : ℤˣ => ((ε : ℤ) : ℝ)) := measurable_of_countable _
+  fun_prop
+
+theorem measurable_smartPathEnergy_slice {N M : ℕ} {u : ℝ → ℝ} (hu : Measurable u)
+    (s : ℝ) (ω : SmartPathDisorder N M) :
+    Measurable (smartPathEnergy u s ω) :=
+  (measurable_smartPathEnergy hu s).comp (measurable_const.prodMk measurable_id)
+
 /-! ### D3. Base and disorder laws -/
 
 /-- Counting measure on spins times standard Gaussian auxiliary coordinates. -/
@@ -131,6 +152,26 @@ structure SmartPathPotential (u : ℝ → ℝ) (B D : ℝ) : Prop where
   abs_le : ∀ z, |u z| ≤ B
   abs_deriv_le : ∀ z, |deriv u z| ≤ D
 
+/-- Extension of `SmartPathPotential` requiring `deriv u` to be differentiable with
+its derivative `u''` bounded by `D₂`. -/
+structure SmartPathPotential₂ (u : ℝ → ℝ) (B D D₂ : ℝ) : Prop extends
+    SmartPathPotential u B D where
+  differentiable_deriv : Differentiable ℝ (deriv u)
+  abs_deriv₂_le : ∀ z, |deriv (deriv u) z| ≤ D₂
+
+/-! ### D5. Path without auxiliary spins (Exercise 2.2.4) -/
+
+/-- The smart-path field without auxiliary spins (Talagrand Eq. (2.14)). -/
+noncomputable def smartPathFieldNoAux {N M : ℕ} (s : ℝ) (ω : SmartPathDisorder N M)
+    (x : SmartPathState N M) (k : Fin M) : ℝ :=
+  (Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i, ω.1.1 k i * ((x.1.1 i : ℤ) : ℝ)) +
+    Real.sqrt (s / (N + 1)) * ω.1.2 k * ((x.1.2 : ℤ) : ℝ)
+
+/-- The smart-path energy without auxiliary spins (Talagrand Eq. (2.14)). -/
+noncomputable def smartPathEnergyNoAux {N M : ℕ} (u : ℝ → ℝ) (s : ℝ)
+    (ω : SmartPathDisorder N M) (x : SmartPathState N M) : ℝ :=
+  ((x.1.2 : ℤ) : ℝ) * Real.sqrt (1 - s) * ω.2 + ∑ k, u (smartPathFieldNoAux s ω x k)
+
 /-! ### D6. Interaction kernels -/
 
 /-- Cross-replica interaction kernel of potential derivatives (term I). -/
@@ -143,86 +184,42 @@ noncomputable def smartPathPotentialKernel {N M : ℕ} (u : ℝ → ℝ) (t : �
 def lastSpinKernel {N M : ℕ} (x y : SmartPathState N M) : ℝ :=
   ((x.1.2 : ℤ) : ℝ) * ((y.1.2 : ℤ) : ℝ)
 
-/-! ### Three-term expansion restated with the definitions -/
-
-/-- **(2.26)-(2.28)** restated with the definitions; proved from the existing theorem. -/
-theorem hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms'
-    {N M : ℕ} {R : Type*} [Fintype R] {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) 1)
-    {u : ℝ → ℝ} {B D : ℝ} (hu : SmartPathPotential u B D) (v : ℝ≥0)
-    {Pold : Measure (Fin M → Fin N → ℝ)} [IsFiniteMeasure Pold]
-    (F : (R → SmartPathState N M) → ℝ) (hF : Measurable F) {C : ℝ} (hFb : ∀ σ, |F σ| ≤ C) :
-    HasDerivAt (fun s => ∫ ω, ∫ σ, F σ
-        ∂(Measure.pi fun _ : R => (smartPathBase N M).tilted (smartPathEnergy u s ω))
-        ∂smartPathDisorder Pold v)
-      (∫ ω, replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t ω)) F
-            (smartPathEnergyDerivA u t ω) +
-          replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t ω)) F
-            (smartPathEnergyDerivXi u t ω) +
-          replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t ω)) F
-            (smartPathEnergyDerivY t ω) ∂smartPathDisorder Pold v) t :=
-  hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms ht hu.differentiable
-    hu.abs_le hu.abs_deriv_le v F hF hFb
-
-/-- **(2.26)-(2.28)** for spin-only observables restated with the definitions. -/
-theorem hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms_spin_only'
-    {N M : ℕ} {R : Type*} [Fintype R] {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) 1)
-    {u : ℝ → ℝ} {B D : ℝ} (hu : SmartPathPotential u B D) (v : ℝ≥0)
-    {Pold : Measure (Fin M → Fin N → ℝ)} [IsFiniteMeasure Pold]
-    (f : (R → PerceptronSpin N) → ℝ) :
-    HasDerivAt (fun s => ∫ ω, ∫ σ : R → SmartPathState N M, f (fun r => (σ r).1)
-        ∂(Measure.pi fun _ : R => (smartPathBase N M).tilted (smartPathEnergy u s ω))
-        ∂smartPathDisorder Pold v)
-      (∫ ω, replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t ω))
-            (fun σ => f (fun r => (σ r).1)) (smartPathEnergyDerivA u t ω) +
-          replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t ω))
-            (fun σ => f (fun r => (σ r).1)) (smartPathEnergyDerivXi u t ω) +
-          replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t ω))
-            (fun σ => f (fun r => (σ r).1)) (smartPathEnergyDerivY t ω)
-            ∂smartPathDisorder Pold v) t :=
-  hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms_spin_only ht hu.differentiable
-    hu.abs_le hu.abs_deriv_le v f (Pold := Pold)
-
 /-! ### Algebraic prefactors and replica combination identities -/
 
-/-- Simplification of the auxiliary spin prefactor: the product
-`(1 / (2 * √(N + 1))) * (- 1 / √(1 - t)) * √((1 - t) / (N + 1))` simplifies to
-`- 1 / (2 * (N + 1))`, cancelling the `√(1 - t)` denominator. -/
-theorem perceptron_smart_path_auxiliary_prefactor {N : ℕ} {t : ℝ}
-    (ht : t ∈ Set.Ioo (0 : ℝ) 1) :
-    (1 / (2 * Real.sqrt (N + 1 : ℕ))) * (- (1 / Real.sqrt (1 - t))) *
-      Real.sqrt ((1 - t) / (N + 1 : ℕ)) =
-    - (1 / (2 * (N + 1 : ℝ))) := by
+/-- Generic square-root scaling prefactor for Gaussian integration by parts on the smart path. -/
+theorem smartPath_sqrt_scaling_prefactor_eq {N : ℕ} {s : ℝ} (hs : 0 < s) :
+    (1 / (2 * Real.sqrt (N + 1 : ℕ))) * (1 / Real.sqrt s) *
+      Real.sqrt (s / (N + 1 : ℕ)) =
+    1 / (2 * (N + 1 : ℝ)) := by
   push_cast
-  have hN : (0 : ℝ) < (N : ℝ) + 1 := by positivity
-  have ht1 : 0 < 1 - t := sub_pos.mpr ht.2
-  have hsqN : (Real.sqrt ((N : ℝ) + 1)) ^ 2 = ((N : ℝ) + 1) := Real.sq_sqrt hN.le
-  have hsqrt_t : Real.sqrt (1 - t) ≠ 0 := Real.sqrt_ne_zero'.mpr ht1
-  rw [Real.sqrt_div ht1.le]
-  have hmul : (1 / (2 * Real.sqrt ((N : ℝ) + 1))) * (- (1 / Real.sqrt (1 - t))) *
-      (Real.sqrt (1 - t) / Real.sqrt ((N : ℝ) + 1)) =
-      - ((1 / (2 * (Real.sqrt ((N : ℝ) + 1) * Real.sqrt ((N : ℝ) + 1)))) *
-         (Real.sqrt (1 - t) / Real.sqrt (1 - t))) := by ring
-  rw [hmul, div_self hsqrt_t, mul_one, ← sq, hsqN]
+  have hN : (0 : ℝ) < N + 1 := by positivity
+  rw [Real.sqrt_div hs.le]
+  have h1 : Real.sqrt s ≠ 0 := (Real.sqrt_pos.2 hs).ne'
+  have h2 : Real.sqrt ((N : ℝ) + 1) ≠ 0 := (Real.sqrt_pos.2 hN).ne'
+  have h3 := Real.mul_self_sqrt hN.le
+  field_simp
+  nlinarith [h3]
 
 /-- Simplification of the quenched disorder prefactor: the product
 `(1 / (2 * √(N + 1))) * (1 / √t) * √(t / (N + 1))` simplifies to `1 / (2 * (N + 1))`,
 cancelling the `√t` denominator. -/
-theorem perceptron_smart_path_quenched_prefactor {N : ℕ} {t : ℝ}
+theorem smartPath_quenched_prefactor_eq {N : ℕ} {t : ℝ}
     (ht : t ∈ Set.Ioo (0 : ℝ) 1) :
     (1 / (2 * Real.sqrt (N + 1 : ℕ))) * (1 / Real.sqrt t) *
       Real.sqrt (t / (N + 1 : ℕ)) =
-    (1 / (2 * (N + 1 : ℝ))) := by
-  push_cast
-  have hN : (0 : ℝ) < (N : ℝ) + 1 := by positivity
-  have ht0 : 0 < t := ht.1
-  have hsqN : (Real.sqrt ((N : ℝ) + 1)) ^ 2 = ((N : ℝ) + 1) := Real.sq_sqrt hN.le
-  have hsqrt_t : Real.sqrt t ≠ 0 := Real.sqrt_ne_zero'.mpr ht0
-  rw [Real.sqrt_div ht0.le]
-  have hmul : (1 / (2 * Real.sqrt ((N : ℝ) + 1))) * (1 / Real.sqrt t) *
-      (Real.sqrt t / Real.sqrt ((N : ℝ) + 1)) =
-      ((1 / (2 * (Real.sqrt ((N : ℝ) + 1) * Real.sqrt ((N : ℝ) + 1)))) *
-       (Real.sqrt t / Real.sqrt t)) := by ring
-  rw [hmul, div_self hsqrt_t, mul_one, ← sq, hsqN]
+    1 / (2 * (N + 1 : ℝ)) :=
+  smartPath_sqrt_scaling_prefactor_eq ht.1
+
+/-- Simplification of the auxiliary spin prefactor: the product
+`(1 / (2 * √(N + 1))) * (- 1 / √(1 - t)) * √((1 - t) / (N + 1))` simplifies to
+`- 1 / (2 * (N + 1))`, cancelling the `√(1 - t)` denominator. -/
+theorem smartPath_auxiliary_prefactor_eq_neg {N : ℕ} {t : ℝ}
+    (ht : t ∈ Set.Ioo (0 : ℝ) 1) :
+    (1 / (2 * Real.sqrt (N + 1 : ℕ))) * (- (1 / Real.sqrt (1 - t))) *
+      Real.sqrt ((1 - t) / (N + 1 : ℕ)) =
+    - (1 / (2 * (N + 1 : ℝ))) := by
+  have := smartPath_sqrt_scaling_prefactor_eq (N := N) (sub_pos.2 ht.2)
+  linear_combination -this
 
 /-- Connection with the 4-term replica covariance combination from `SKCavityBounds.lean`:
 for any kernel with constant diagonal, `replicaPairDiff` is exactly half of the 4-term
@@ -242,18 +239,30 @@ theorem replicaPairDiff_eq_half_replica_covariance_combination
   dsimp only [replicaPairDiff]
   ring
 
-/-- Constraint symmetry reduction: for `M + 1` constraints, if every constraint
-yields the same value as the last constraint `Fin.last M`, the sum of `1 / (N + 1)`
-over all constraints equals `(M + 1) / (N + 1)` times the last constraint value. -/
-theorem sum_div_eq_alpha_mul_last {N M : ℕ} (f : Fin (M + 1) → ℝ)
-    (hconst : ∀ k : Fin (M + 1), f k = f (Fin.last M)) :
-    (∑ k : Fin (M + 1), (1 / (N + 1 : ℝ)) * f k) =
-      ((M + 1 : ℝ) / (N + 1 : ℝ)) * f (Fin.last M) := by
-  have hsum : (∑ k : Fin (M + 1), f k) = (M + 1 : ℝ) * f (Fin.last M) := by
-    rw [Finset.sum_congr rfl (fun k _ => hconst k)]
-    simp only [Finset.sum_const, nsmul_eq_mul, Finset.card_univ, Fintype.card_fin,
-      Nat.cast_add, Nat.cast_one]
-  rw [← Finset.mul_sum, hsum]
-  ring
+/-- For the last-spin interaction kernel `lastSpinKernel x y = x.1.2 * y.1.2`, the
+diagonal is identically 1 (since `(σ_{N+1})² = 1`), so `replicaPairDiff` is exactly half
+of the 4-term replica covariance combination. Note: `[LinearOrder R]` is used to order pairs
+`r < r'` without double counting. -/
+theorem replicaPairDiff_lastSpinKernel {N M : ℕ} {R : Type*} [Fintype R] [LinearOrder R]
+    (τ : Option (Option R) → SmartPathState N M) :
+    replicaPairDiff (lastSpinKernel (N := N) (M := M)) τ =
+      ((∑ r : R, ∑ r' : R, ((τ (some (some r))).1.2 : ℝ) * ((τ (some (some r'))).1.2 : ℝ)) -
+          2 * (Fintype.card R : ℝ) *
+            (∑ r : R, ((τ (some (some r))).1.2 : ℝ) * ((τ (some none)).1.2 : ℝ)) -
+          (Fintype.card R : ℝ) * 1 +
+          (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) *
+            (((τ (some none)).1.2 : ℝ) * ((τ none).1.2 : ℝ))) / 2 := by
+  have hdiag (a : SmartPathState N M) : lastSpinKernel a a = 1 := by
+    unfold lastSpinKernel
+    have : ((a.1.2 : ℤ) : ℝ) * ((a.1.2 : ℤ) : ℝ) = (((a.1.2 : ℤ) : ℝ) ^ 2) := by ring
+    rw [this]
+    rcases Int.units_eq_one_or a.1.2 with h1 | h1 <;> simp [h1]
+  have hsym (a b : SmartPathState N M) : lastSpinKernel a b = lastSpinKernel b a := by
+    unfold lastSpinKernel; ring
+  have h := replicaPairDiff_eq_half_replica_covariance_combination
+    (lastSpinKernel (N := N) (M := M)) 1 hdiag hsym τ
+  have hd : lastSpinKernel (τ (some none)) (τ (some none)) = 1 := hdiag _
+  rw [hd] at h
+  simpa only [lastSpinKernel] using h
 
 end SpinGlasses

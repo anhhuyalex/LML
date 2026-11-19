@@ -119,6 +119,21 @@ theorem integral_id_mul_gaussianReal_eq (v : ℝ≥0) {F F' : ℝ → ℝ}
   simp only [mul_comm]
   ring_nf
 
+/-- **Gaussian integration by parts for an affine composition:**
+`𝔼 [z F(S₀ + c z)] = v c 𝔼 [F'(S₀ + c z)]` for `z ~ 𝒩(0, v)`. -/
+theorem integral_id_mul_comp_affine_gaussianReal (v : ℝ≥0) {F F' : ℝ → ℝ}
+    (hF : ∀ x, HasDerivAt F (F' x) x) (S₀ c : ℝ)
+    (h1 : Integrable (fun z => z * F (S₀ + c * z)) (gaussianReal 0 v))
+    (h2 : Integrable (fun z => F' (S₀ + c * z)) (gaussianReal 0 v)) :
+    ∫ z, z * F (S₀ + c * z) ∂gaussianReal 0 v =
+      (v : ℝ) * c * ∫ z, F' (S₀ + c * z) ∂gaussianReal 0 v := by
+  have hd : ∀ z, HasDerivAt (fun t => F (S₀ + c * t)) (c * F' (S₀ + c * z)) z := fun z => by
+    have hl : HasDerivAt (fun t : ℝ => S₀ + c * t) c z := by
+      simpa using ((hasDerivAt_id z).const_mul c).const_add S₀
+    exact ((hF _).comp z hl).congr_deriv (mul_comm _ _)
+  have h := integral_id_mul_gaussianReal_eq v hd h1 (h2.const_mul c)
+  rw [h, integral_const_mul]
+  ring
 
 /-- **The moment recurrence of the standard Gaussian:** `𝔼 g^{k+2} = (k + 1) 𝔼 g^k`, from
 Stein's lemma with `F (x) = x^{k+1}`. -/

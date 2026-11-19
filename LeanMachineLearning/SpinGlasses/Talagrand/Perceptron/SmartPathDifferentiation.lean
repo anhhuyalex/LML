@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.SpinGlasses.Basic
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SqrtSub
+public import LeanMachineLearning.ForMathlib.Analysis.RatioBound
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein
 public import Mathlib.Analysis.SpecialFunctions.Sqrt
 public import Mathlib.Analysis.Calculus.Deriv.Mul
@@ -79,12 +80,14 @@ theorem hasDerivAt_perceptron_smart_path_energy {N M : ℕ} {t : ℝ}
 theorem abs_perceptron_smart_path_E'_Y_le (ε : ℤˣ) (y t δ : ℝ)
     (hδ : 0 < δ) (ht : t ∈ Set.Icc δ (1 - δ)) :
     |-((ε : ℤ) : ℝ) * y / (2 * Real.sqrt (1 - t))| ≤ |y| / (2 * Real.sqrt δ) := by
-  have ht1 : 0 < 1 - t := by linarith [ht.2, hδ]
-  have hd1 : Real.sqrt δ ≤ Real.sqrt (1 - t) := Real.sqrt_le_sqrt (by linarith [ht.2])
-  rw [abs_div, abs_mul, abs_neg, abs_units_cast_eq_one, one_mul,
-    abs_of_pos (by positivity : (0 : ℝ) < 2 * Real.sqrt (1 - t))]
-  exact div_le_div_of_nonneg_left (abs_nonneg _) (by positivity)
-    (mul_le_mul_of_nonneg_left hd1 (by norm_num))
+  have heq : -((ε : ℤ) : ℝ) * y / (2 * Real.sqrt (1 - t)) =
+      (-((ε : ℤ) : ℝ) / 2) * (y / Real.sqrt (1 - t)) := by ring
+  rw [heq, abs_mul, abs_div, abs_neg, abs_units_cast_eq_one,
+    abs_of_pos (by norm_num : (0 : ℝ) < 2), one_div]
+  have h := abs_div_sqrt_le_abs_div_sqrt y (1 - t) δ hδ (by linarith [ht.2])
+  have heq2 : |y| / (2 * Real.sqrt δ) = 2⁻¹ * (|y| / Real.sqrt δ) := by ring
+  rw [heq2]
+  exact mul_le_mul_of_nonneg_left h (by norm_num : (0 : ℝ) ≤ 2⁻¹)
 
 /-- Pointwise bound on one constraint coordinate of the disorder derivative term. -/
 theorem abs_perceptron_smart_path_E'_a_term_le {N : ℕ} {u : ℝ → ℝ} {D : ℝ}
@@ -93,14 +96,11 @@ theorem abs_perceptron_smart_path_E'_a_term_le {N : ℕ} {u : ℝ → ℝ} {D : 
     |deriv u S_k * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
       (a_k * ((ε : ℤ) : ℝ) / Real.sqrt t))| ≤
       D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) * (|a_k| / Real.sqrt δ) := by
-  have ht0 : 0 < t := hδ.trans_le ht.1
-  have hdt : Real.sqrt δ ≤ Real.sqrt t := Real.sqrt_le_sqrt ht.1
-  have hc0 := one_div_le_one_div_of_le (Real.sqrt_pos.2 hδ) hdt
-  have hD0 : 0 ≤ D := (abs_nonneg _).trans (hD 0)
   have hterm : |a_k * ((ε : ℤ) : ℝ) / Real.sqrt t| ≤ |a_k| / Real.sqrt δ := by
-    rw [abs_div, abs_mul, abs_units_cast_eq_one, mul_one,
-      abs_of_pos (Real.sqrt_pos.2 ht0)]
-    exact div_le_div_of_nonneg_left (abs_nonneg _) (Real.sqrt_pos.2 hδ) hdt
+    have heq : a_k * ((ε : ℤ) : ℝ) / Real.sqrt t = ((ε : ℤ) : ℝ) * (a_k / Real.sqrt t) := by ring
+    rw [heq, abs_mul, abs_units_cast_eq_one, one_mul]
+    exact abs_div_sqrt_le_abs_div_sqrt a_k t δ hδ ht.1
+  have hD0 : 0 ≤ D := (abs_nonneg _).trans (hD 0)
   rw [abs_mul, abs_mul, abs_of_nonneg (by positivity : 0 ≤ 1 / (2 * Real.sqrt (N + 1 : ℕ))),
     ← mul_assoc]
   exact mul_le_mul (mul_le_mul_of_nonneg_right (hD _) (by positivity)) hterm
@@ -113,13 +113,10 @@ theorem abs_perceptron_smart_path_E'_ξ_term_le {N : ℕ} {u : ℝ → ℝ} {D :
     |deriv u S_k * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
       (- ξ_k / Real.sqrt (1 - t)))| ≤
       D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) * (|ξ_k| / Real.sqrt δ) := by
-  have ht1 : 0 < 1 - t := by linarith [ht.2]
-  have hd1 : Real.sqrt δ ≤ Real.sqrt (1 - t) := Real.sqrt_le_sqrt (by linarith [ht.2])
-  have hc1 := one_div_le_one_div_of_le (Real.sqrt_pos.2 hδ) hd1
-  have hD0 : 0 ≤ D := (abs_nonneg _).trans (hD 0)
   have hterm : |- ξ_k / Real.sqrt (1 - t)| ≤ |ξ_k| / Real.sqrt δ := by
-    rw [abs_div, abs_neg, abs_of_pos (Real.sqrt_pos.2 ht1)]
-    exact div_le_div_of_nonneg_left (abs_nonneg _) (Real.sqrt_pos.2 hδ) hd1
+    rw [neg_div, abs_neg]
+    exact abs_div_sqrt_le_abs_div_sqrt ξ_k (1 - t) δ hδ (by linarith [ht.2])
+  have hD0 : 0 ≤ D := (abs_nonneg _).trans (hD 0)
   rw [abs_mul, abs_mul, abs_of_nonneg (by positivity : 0 ≤ 1 / (2 * Real.sqrt (N + 1 : ℕ))),
     ← mul_assoc]
   exact mul_le_mul (mul_le_mul_of_nonneg_right (hD _) (by positivity)) hterm

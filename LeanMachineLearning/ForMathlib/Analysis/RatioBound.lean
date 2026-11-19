@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.Real.Sqrt
 public import Mathlib.Tactic.Linarith
 public import Mathlib.Tactic.Ring
 public import Mathlib.Tactic.FieldSimp
@@ -27,6 +28,21 @@ theorem abs_div_le_div_of_le_abs {K : Type*} [Field K] [LinearOrder K]
     (hδ : 0 < δ) (hD : δ ≤ |D|) (hx : |x| ≤ b) : |x / D| ≤ b / δ := by
   rw [abs_div]
   exact div_le_div₀ ((abs_nonneg _).trans hx) hx hδ hD
+
+/-- A square root denominator bounded below by `√δ` for `δ ≤ s`. -/
+theorem abs_div_sqrt_le_abs_div_sqrt (x s δ : ℝ) (hδ : 0 < δ) (hs : δ ≤ s) :
+    |x / Real.sqrt s| ≤ |x| / Real.sqrt δ := by
+  refine abs_div_le_div_of_le_abs (Real.sqrt_pos.2 hδ) ?_ le_rfl
+  rw [abs_of_nonneg (Real.sqrt_nonneg _)]
+  exact Real.sqrt_le_sqrt hs
+
+/-- Given `t ∈ (0, 1)`, there exists an interior radius `δ > 0` such that
+`δ < t` and `δ < 1 - t`. -/
+theorem exists_pos_lt_of_mem_Ioo {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) 1) :
+    ∃ δ : ℝ, 0 < δ ∧ δ < t ∧ δ < 1 - t := by
+  have hpos : 0 < min t (1 - t) := lt_min ht.1 (sub_pos.2 ht.2)
+  obtain ⟨δ, hδ0, hδmin⟩ := exists_between hpos
+  exact ⟨δ, hδ0, hδmin.trans_le (min_le_left _ _), hδmin.trans_le (min_le_right _ _)⟩
 
 /-- Dividing by a coefficient bounded below by `3/4` costs at most a factor `4/3`. -/
 theorem abs_div_le_four_thirds {K : Type*} [Field K] [LinearOrder K]

@@ -64,9 +64,7 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path {N M : ℕ}
           F (fun j => σ (some j)) * E' t ω (σ none)
           ∂(Measure.pi fun _ : Option R => μ.tilted (E t ω)) ∂P) t := by
   intro S E E' μ P
-  obtain ⟨δ, hδ, hδmin⟩ := exists_between (lt_min ht.1 (sub_pos.mpr ht.2))
-  have hδt : δ < t := hδmin.trans_le (min_le_left _ _)
-  have hδ1 : δ < 1 - t := hδmin.trans_le (min_le_right _ _)
+  obtain ⟨δ, hδ, hδt, hδ1⟩ := exists_pos_lt_of_mem_Ioo ht
   let V := Set.Ioo δ (1 - δ)
   have htV : t ∈ V := ⟨hδt, by linarith⟩
   have hD0 : 0 ≤ D := (abs_nonneg _).trans (hD 0)
@@ -188,7 +186,7 @@ theorem perceptron_smart_path_diff_eq_three_terms {N M : ℕ} {u : ℝ → ℝ} 
     (ht : t ∈ Set.Ioo (0 : ℝ) 1) (hu : Differentiable ℝ u) {B D : ℝ} (hB : ∀ x, |u x| ≤ B)
     (hD : ∀ x, |deriv u x| ≤ D) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
     {R : Type*} [Fintype R] (F : (R → ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) → ℝ)
-    (hF : Measurable F) (hFb : ∃ C, ∀ σ, |F σ| ≤ C) :
+    (hF : Measurable F) {C : ℝ} (hFb : ∀ σ, |F σ| ≤ C) :
     let S := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
       (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) (k : Fin M) =>
       (Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i, ω.1.1 k i * ((x.1.1 i : ℤ) : ℝ)) +
@@ -224,7 +222,7 @@ theorem perceptron_smart_path_diff_eq_three_terms {N M : ℕ} {u : ℝ → ℝ} 
           ∂(Measure.pi fun _ : Option R => μ.tilted (E t ω))
     diff (E' t ω) = diff (E'_a t ω) + diff (E'_ξ t ω) + diff (E'_Y t ω) := by
   intro S E E' E'_a E'_ξ E'_Y μ diff
-  obtain ⟨C, hC⟩ := hFb
+  have hC := hFb
   have hν : IsProbabilityMeasure (μ.tilted (E t ω)) :=
     isProbabilityMeasure_tilted_perceptron_smart_path_energy hu.continuous.measurable
       (fun x => le_of_abs_le (hB x)) ω.1.1 ω.1.2 ω.2 t
@@ -336,7 +334,7 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms {N M :
   dsimp only [S, E, μ, P, diff] at h ⊢
   refine h.congr_deriv ?_
   refine integral_congr_ae (ae_of_all P fun ω => ?_)
-  have h3 := perceptron_smart_path_diff_eq_three_terms ht hu hB hD ω F hF ⟨C, hFb⟩
+  have h3 := perceptron_smart_path_diff_eq_three_terms ht hu hB hD ω F hF hFb
   dsimp only [diff] at h3 ⊢
   exact h3
 
@@ -356,15 +354,8 @@ theorem exists_abs_le_spin_only {N M : ℕ} {R : Type*} [Finite R]
     (f : (R → (Fin N → ℤˣ) × ℤˣ) → ℝ) :
     ∃ C : ℝ, ∀ x : R → ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ),
       |f (fun r => (x r).1)| ≤ C := by
-  have : Fintype R := Fintype.ofFinite R
-  classical
-  rcases isEmpty_or_nonempty (R → (Fin N → ℤˣ) × ℤˣ) with h | h
-  · exact ⟨0, fun x => False.elim (IsEmpty.false (fun r => (x r).1))⟩
-  · obtain ⟨σ₀⟩ := h
-    let s := Finset.univ.image (fun σ => |f σ|)
-    have hs : s.Nonempty := ⟨|f σ₀|, Finset.mem_image_of_mem _ (Finset.mem_univ _)⟩
-    refine ⟨s.max' hs, fun x => ?_⟩
-    exact Finset.le_max' s (|f (fun r => (x r).1)|) (Finset.mem_image_of_mem _ (Finset.mem_univ _))
+  obtain ⟨C, hC⟩ := exists_abs_le_of_finite f
+  exact ⟨C, fun x => hC (fun r => (x r).1)⟩
 
 /-- **Spin-only derivative of the quenched replica average.** A spin-only observable
 requires no separate measurability or boundedness hypothesis. -/
