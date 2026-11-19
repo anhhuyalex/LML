@@ -228,6 +228,13 @@ noncomputable def replicaDiff {α R : Type*} [MeasurableSpace α] [Fintype R] (�
     (Fintype.card R : ℝ) * ∫ σ : Option R → α, F (fun j => σ (some j)) * h (σ none)
       ∂(Measure.pi fun _ : Option R => ν)
 
+/-- The zero observable has zero replica difference. -/
+theorem replicaDiff_zero {α R : Type*} [MeasurableSpace α] [Fintype R] (ν : Measure α)
+    (F : (R → α) → ℝ) :
+    replicaDiff ν F 0 = 0 := by
+  dsimp only [replicaDiff]
+  simp only [Pi.zero_apply, mul_zero, integral_zero, Finset.sum_const_zero, sub_zero, mul_zero]
+
 /-- A covariance with a sum over the observed replicas is a sum of observed-replica terms
 minus the cardinality times one fresh-replica term. The one-state observable only needs to be
 integrable, so this also applies to energy derivatives containing Gaussian coordinates. -/
@@ -439,6 +446,47 @@ theorem integral_replica_cov_identity' {R : Type*} [Fintype R] (ν : Measure α)
       rw [← integral_const_mul]
       exact integral_congr_ae (Filter.Eventually.of_forall fun σ => by ring), hfresh]
   · simpa only [mul_left_comm] using (hI none).const_mul ((Fintype.card R : ℝ) + 1)
+
+/-- The two-replica difference combination appearing in the cavity and smart-path derivatives
+(Talagrand (2.24)--(2.25)):
+`∑_{r < r'} U(σ^r, σ^{r'}) - n ∑_r U(σ^r, σ^{n+1}) + n(n+1)/2 U(σ^{n+1}, σ^{n+2})`. -/
+noncomputable def replicaPairDiff {R α : Type*} [Fintype R] [LinearOrder R]
+    (U : α → α → ℝ) (τ : Option (Option R) → α) : ℝ :=
+  (∑ p : R × R with p.1 < p.2, U (τ (some (some p.1))) (τ (some (some p.2)))) -
+    (Fintype.card R : ℝ) * (∑ r : R, U (τ (some (some r))) (τ (some none))) +
+    (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) / 2 * U (τ (some none)) (τ none)
+
+theorem replicaPairDiff_const_mul {R α : Type*} [Fintype R] [LinearOrder R]
+    (c : ℝ) (U : α → α → ℝ) (τ : Option (Option R) → α) :
+    replicaPairDiff (fun a b => c * U a b) τ = c * replicaPairDiff U τ := by
+  simp only [replicaPairDiff, mul_sub, mul_add, ← Finset.mul_sum]
+  ring
+
+theorem replicaPairDiff_add {R α : Type*} [Fintype R] [LinearOrder R]
+    (U₁ U₂ : α → α → ℝ) (τ : Option (Option R) → α) :
+    replicaPairDiff (fun a b => U₁ a b + U₂ a b) τ =
+      replicaPairDiff U₁ τ + replicaPairDiff U₂ τ := by
+  simp only [replicaPairDiff, Finset.sum_add_distrib]
+  ring
+
+theorem replicaPairDiff_sum {R α ι : Type*} [Fintype R] [LinearOrder R] [Fintype ι]
+    (U : ι → α → α → ℝ) (τ : Option (Option R) → α) :
+    replicaPairDiff (fun a b => ∑ k, U k a b) τ =
+      ∑ k, replicaPairDiff (U k) τ := by
+  dsimp only [replicaPairDiff]
+  simp only [Finset.mul_sum, Finset.sum_sub_distrib, Finset.sum_add_distrib]
+  rw [Finset.sum_comm
+    (s := Finset.filter (fun p : R × R => p.1 < p.2) Finset.univ) (t := Finset.univ)]
+  congr 1
+  congr 1
+  rw [Finset.sum_comm (s := (Finset.univ : Finset R)) (t := Finset.univ)]
+
+/-- The replica average of `F` against the pair combination of the kernel `U`; the two-fresh-replica
+analogue of `replicaDiff`. -/
+noncomputable def replicaPairAverage {R α : Type*} [MeasurableSpace α] [Fintype R]
+    [LinearOrder R] (ν : Measure α) (F : (R → α) → ℝ) (U : α → α → ℝ) : ℝ :=
+  ∫ τ : Option (Option R) → α, F (fun r => τ (some (some r))) * replicaPairDiff U τ
+    ∂(Measure.pi fun _ => ν)
 
 section Measurability
 

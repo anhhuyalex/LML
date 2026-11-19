@@ -636,8 +636,8 @@ for the path without auxiliary spins. The zero-endpoint factorization is proved 
 Theorem~\ref{thm:sg-tal:perceptron-decoupled-endpoint} below. The field law, well-defined
 Gibbs measures and terminal endpoint are proved below as well. The fixed-disorder derivative and its exchange with the disorder integral are proved below.
 The three-term expansion (2.28) is proved in Theorem~\ref{thm:sg-tal:perceptron-derivative-three-terms}.
-Gaussian integration by parts and Proposition~2.2.3 are proved in Proposition~\ref{prop:sg-tal:perceptron-smart-path-derivative}.
-The path without auxiliary spins and Exercise~2.2.4 are proved in Exercise~\ref{ex:sg-tal:perceptron-smart-path-without-auxiliary}.
+Gaussian integration by parts and Proposition~\ref{prop:sg-tal:perceptron-smart-path-derivative} remain open; the algebraic prefactor cancellations and replica difference identities are formalized in \texttt{SmartPathIBP.lean}.
+The path without auxiliary spins is stated in Exercise~\ref{ex:sg-tal:perceptron-smart-path-without-auxiliary}.
 \end{remark}
 
 \begin{lemma}[Independent disorder factors for a decoupled spin]\label{lem:sg-tal:perceptron-decoupled-disorder}
@@ -1381,12 +1381,9 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathDisorderDerivati
 \begin{proposition}[Derivative of the perceptron smart path]\label{prop:sg-tal:perceptron-smart-path-derivative}
   \lean{SpinGlasses.perceptron_smart_path_auxiliary_prefactor,
         SpinGlasses.perceptron_smart_path_quenched_prefactor,
-        SpinGlasses.replicaPairDiff,
+        MeasureTheory.replicaPairDiff,
         SpinGlasses.replicaPairDiff_eq_half_replica_covariance_combination,
-        SpinGlasses.sum_div_eq_alpha_mul_last,
-        SpinGlasses.hasDerivAt_integral_integral_pi_perceptron_smart_path_sum_constraints,
-        SpinGlasses.hasDerivAt_integral_integral_pi_perceptron_smart_path_last_constraint}
-  \leanok
+        SpinGlasses.sum_div_eq_alpha_mul_last}
   \uses{thm:sg-tal:perceptron-derivative-three-terms}
 \talsource{Proposition~2.2.3, Eqs.~(2.23)--(2.25)}
 Assume $u$ is twice differentiable with $|u|\le B$, $|u'|\le D$ and $|u''|\le D_2$, and let $r = \mathbb{E} Y^2$.
@@ -1402,7 +1399,6 @@ where $\mathrm{I}$ and $\mathrm{II}$ are given by the two-replica difference com
 For $M+1$ constraints with exchangeable disorder, the sum over $k$ simplifies to $\alpha = (M+1)/(N+1)$ times the last constraint $k = M$.
 \end{proposition}
 \begin{proof}
-  \leanok
 \emph{Step 1 (Gaussian integration by parts on auxiliary coordinates).}
 Integrating $\xi_k \sim \mathcal{N}(0, 1)$ by parts against the auxiliary derivative factor in $E'_\xi$ produces
 $\sqrt{(1-t)/(N+1)} (u''(S_{k,t}) + (u'(S_{k,t}))^2)$. By \texttt{perceptron\_smart\_path\_auxiliary\_prefactor},
@@ -1419,31 +1415,32 @@ Integrating $Y \sim \mathcal{N}(0, v)$ by parts in $E'_Y$ produces $-v$ times th
 \emph{Step 5 (constraint permutation symmetry).}
 By \texttt{sum\_div\_eq\_alpha\_mul_last}, summing $1/(N+1)$ over $M+1$ constraints with identical disorder averages yields
 $\alpha = (M+1)/(N+1)$ times the value at the last constraint.
-\emph{Formalization note (hypothesis audit).}
-The Lean formulation proves the identity first as a sum over all constraints for any finite disorder law $P_{\mathrm{old}}$,
-and then specializes via \texttt{sum\_div\_eq\_alpha\_mul\_last} to the last-constraint form under constraint symmetry.
-The observable $f$ is defined on the finite spin space $\Sigma_N^n$, so measurability and boundedness hold automatically
-without manual hypotheses (audited under H1). The diagonal cancellation is proved from the prefactor identities
-\texttt{perceptron\_smart\_path\_auxiliary\_prefactor} and \texttt{perceptron\_smart\_path\_quenched\_prefactor}.
+\emph{Formalization note (status and hypothesis audit).}
+The prefactor cancellations (\texttt{perceptron\_smart\_path\_auxiliary\_prefactor},
+\texttt{perceptron\_smart\_path\_quenched\_prefactor}), the two-replica difference combination
+(\texttt{MeasureTheory.replicaPairDiff}), the connection to the 4-term covariance combination
+(\texttt{replicaPairDiff\_eq\_half\_replica_covariance\_combination}), and the constraint symmetry reduction
+(\texttt{sum\_div\_eq\_alpha_mul_last}) are formalized in \texttt{SmartPathIBP.lean}.
+The core definitions (\texttt{smartPathField}, \texttt{smartPathEnergy}, \texttt{smartPathBase},
+\texttt{smartPathDisorder}, \texttt{SmartPathPotential}, \texttt{smartPathPotentialKernel}, \texttt{lastSpinKernel})
+are established. The full Gaussian integration by parts reducing the three terms of (2.28) to
+the two-replica difference combinations remains open.
 Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathIBP.lean}.
 \end{proof}
 
 \begin{exercise}[Smart path without auxiliary spins]\label{ex:sg-tal:perceptron-smart-path-without-auxiliary}
-  \lean{SpinGlasses.replicaDiff_zero,
-        SpinGlasses.hasDerivAt_integral_integral_pi_perceptron_smart_path_without_auxiliary}
-  \leanok
+  \lean{MeasureTheory.replicaDiff_zero}
   \uses{prop:sg-tal:perceptron-smart-path-derivative}
 \talsource{Exercise~2.2.4, Eq.~(2.34)}
 If the smart path is defined without auxiliary spins ($\xi_k = 0$), the auxiliary integration by parts is absent,
 so the diagonal second-derivative contribution $+1/(2(N+1)) (u''(S_{k,t}) + (u'(S_{k,t}))^2)$ is not cancelled,
 leaving the extra term:
 \[
- \mathrm{VI} = \frac{1}{2(N+1)} \sum_{k < M} \int \operatorname{replicaDiff}\left( x \mapsto u''(S_{k,t}(x)) + (u'(S_{k,t}(x)))^2 \right) f dP(\omega),
+ \mathrm{VI} = \frac{1}{2(N+1)} \sum_{k < M} \int \operatorname{replicaDiff}\left( x \mapsto u''(S_{k,t}(x)) + (u'(S_{k,t}))^2 \right) f dP(\omega),
 \]
 which under constraint symmetry equals $\frac{\alpha}{2}$ times the last constraint contribution.
 \end{exercise}
 \begin{proof}
-  \leanok
 Since $\xi_k = 0$, the $E'_\xi$ derivative term vanishes identically, so $\operatorname{diff}(E'_\xi) = 0$ by
 \texttt{replicaDiff\_zero}. Differentiating the Hamiltonian and integrating $a_k$ and $Y$ by parts proceeds as in
 Proposition~\ref{prop:sg-tal:perceptron-smart-path-derivative}. The diagonal term from $E'_a$ has no opposing
