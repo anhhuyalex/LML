@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import Mathlib.Data.Real.Basic
+public import Mathlib.Basic.Real.Basic
 
 /-!
 # Interior points of the unit interval

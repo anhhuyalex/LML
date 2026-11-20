@@ -265,6 +265,30 @@ theorem replicaDiff_const_mul {α R : Type*} [MeasurableSpace α] [Fintype R] (�
   simp only [replicaDiff_eq, mul_left_comm _ c, integral_const_mul, ← Finset.mul_sum]
   ring
 
+/-- **The replica difference as one integral.** For bounded measurable `F` and `h`,
+`replicaDiff ν F h` is the average of `F · (∑_i h(σ_i) - |R| h(σ_*))` over `|R| + 1` replicas. -/
+theorem replicaDiff_eq_integral {α R : Type*} [MeasurableSpace α] [Fintype R] (ν : Measure α)
+    [IsProbabilityMeasure ν] (F : (R → α) → ℝ) (hF : Measurable F) {M : ℝ}
+    (hFb : ∀ σ, |F σ| ≤ M) (h : α → ℝ) (hh : Measurable h) {B : ℝ} (hhb : ∀ a, |h a| ≤ B) :
+    replicaDiff ν F h =
+      ∫ σ : Option R → α, F (fun j => σ (some j)) *
+        (∑ i, h (σ (some i)) - (Fintype.card R : ℝ) * h (σ none))
+        ∂(Measure.pi fun _ : Option R => ν) := by
+  have hFo : Measurable fun σ : Option R → α => F (fun j => σ (some j)) :=
+    hF.comp (by fun_prop)
+  have hI (o : Option R) : Integrable (fun σ : Option R → α => F (fun j => σ (some j)) * h (σ o))
+      (Measure.pi fun _ : Option R => ν) :=
+    integrable_of_measurable_bound (hFo.mul (hh.comp (measurable_pi_apply o))) (M := M * B)
+      fun σ => by
+        rw [abs_mul]
+        exact mul_le_mul (hFb _) (hhb _) (abs_nonneg _)
+          ((abs_nonneg _).trans (hFb fun j => σ (some j)))
+  have hc (σ : Option R → α) : F (fun j => σ (some j)) * ((Fintype.card R : ℝ) * h (σ none)) =
+      (Fintype.card R : ℝ) * (F (fun j => σ (some j)) * h (σ none)) := by ring
+  simp_rw [mul_sub, Finset.mul_sum, hc]
+  rw [integral_sub (integrable_finsetSum _ fun i _ => hI (some i)) ((hI none).const_mul _),
+    integral_finsetSum _ fun i _ => hI (some i), integral_const_mul, replicaDiff_eq]
+
 /-- A covariance with a sum over the observed replicas is a sum of observed-replica terms
 minus the cardinality times one fresh-replica term. The one-state observable only needs to be
 integrable, so this also applies to energy derivatives containing Gaussian coordinates. -/

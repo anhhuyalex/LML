@@ -285,7 +285,6 @@ theorem abs_two_sum_lt_combination_le {α : Type*} (n : ℕ) (U Kf : α → α �
         (n : ℝ) * ((n : ℝ) + 1) / 2 * |Kf (τ (some none)) (τ none)|) := by
   have hshift := replicaPairCombination_add_const n (fun a b => -Kf a b) κ τ
   rw [MeasureTheory.replicaPairCombination_fin, MeasureTheory.replicaPairCombination_fin] at hshift
-  beta_reduce at hshift
   have heq : 2 * (∑ p : Fin n × Fin n with p.1 < p.2,
           U (τ (some (some p.1))) (τ (some (some p.2)))) -
         2 * (n : ℝ) * ∑ r : Fin n, U (τ (some (some r))) (τ (some none)) +

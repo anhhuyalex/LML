@@ -92,4 +92,146 @@ theorem replicaPairCombination_lastSpinKernel {N M : ℕ} {R : Type*} [Fintype R
   replicaPairCombination_eq_half_replica_covariance_combination _ 1 lastSpinKernel_self
     lastSpinKernel_comm τ
 
+/-- **Second derivative of a replica average in a linear coupling** (the model-free core of the
+`E'_Y` term of Proposition 2.2.3). Let `X` be a bounded observable of one spin with `X² = C`. The
+replica difference, with the replica average over `|R| + 1` replicas, of the replica difference of
+`F · X_i` against `c X` is twice `c` times the two-fresh-replica average of `F` against the pair
+combination of the kernel `X ⊗ X`:
+`∑_i cov(F X_i, ∑ c X) - n cov(F X_*, ∑ c X) = 2 c ⟨F · replicaPairCombination (X ⊗ X)⟩`.
+The proof moves everything to `|R| + 2` replicas (`replicaDiff_eq_integral`), uses
+`replicaPairCombination_eq_half_replica_covariance_combination`, and exchanges the two fresh
+replicas (`integral_replica_swap_fresh`). -/
+theorem replicaDiffWith_replicaDiff_eq_two_mul_replicaPairAverage
+    {α R : Type*} [MeasurableSpace α] [Fintype R] [LinearOrder R] (ν : Measure α)
+    [IsProbabilityMeasure ν] (F : (R → α) → ℝ) (hF : Measurable F) {M : ℝ}
+    (hFb : ∀ σ, |F σ| ≤ M) (X : α → ℝ) (hX : Measurable X) {B : ℝ} (hXb : ∀ a, |X a| ≤ B)
+    (C c : ℝ) (hC : ∀ a, X a * X a = C) :
+    replicaDiffWith (fun G => replicaDiff ν G (fun a => c * X a)) F X =
+      2 * c * replicaPairAverage ν F (fun a b => X a * X b) := by
+  classical
+  set n : ℝ := (Fintype.card R : ℝ) with hn
+  set P2 : Measure (Option (Option R) → α) := Measure.pi fun _ => ν with hP2
+  set f : (Option (Option R) → α) → ℝ := fun σ => F fun j => σ (some (some j)) with hf
+  set S : (Option (Option R) → α) → ℝ := fun σ => ∑ r, X (σ (some (some r))) with hS
+  set Xa : (Option (Option R) → α) → ℝ := fun σ => X (σ (some none)) with hXa
+  set Xb : (Option (Option R) → α) → ℝ := fun σ => X (σ none) with hXb'
+  set W : (Option (Option R) → α) → ℝ := fun σ => ∑ o : Option R, c * X (σ (some o)) -
+    (n + 1) * (c * X (σ none)) with hW
+  -- measurability and bounds of the atoms
+  have hXm (k : Option (Option R)) : Measurable fun σ : Option (Option R) → α => X (σ k) :=
+    hX.comp (measurable_pi_apply k)
+  have hXbd (k : Option (Option R)) : ∃ K, ∀ σ : Option (Option R) → α, |X (σ k)| ≤ K :=
+    ⟨B, fun σ => hXb _⟩
+  have hfm : Measurable f := hF.comp (by fun_prop)
+  have hfbd : ∃ K, ∀ σ, |f σ| ≤ K := ⟨M, fun σ => hFb _⟩
+  have hSm : Measurable S := Finset.measurable_sum _ fun r _ => hXm _
+  have hSbd : ∃ K, ∀ σ, |S σ| ≤ K := exists_abs_le_sum _ fun r _ => hXbd _
+  have hcXm (k : Option (Option R)) : Measurable fun σ : Option (Option R) → α => c * X (σ k) :=
+    (hXm k).const_mul c
+  have hcXbd (k : Option (Option R)) : ∃ K, ∀ σ : Option (Option R) → α, |c * X (σ k)| ≤ K :=
+    exists_abs_le_mul (exists_abs_le_const c) (hXbd k)
+  have hWm : Measurable W :=
+    (Finset.measurable_sum _ fun o _ => hcXm _).sub ((hcXm _).const_mul _)
+  have hWbd : ∃ K, ∀ σ, |W σ| ≤ K :=
+    exists_abs_le_sub (exists_abs_le_sum _ fun o _ => hcXbd _)
+      (exists_abs_le_mul (exists_abs_le_const _) (hcXbd _))
+  have hint (g : (Option (Option R) → α) → ℝ) (hg : Measurable g) (hb : ∃ K, ∀ σ, |g σ| ≤ K) :
+      Integrable g P2 := by
+    obtain ⟨K, hK⟩ := hb
+    exact integrable_of_measurable_bound hg hK
+  -- step 1: each replica difference over `Option R` is one integral over `Option (Option R)`
+  have key1 (i : Option R) :
+      replicaDiff ν (fun τ : Option R → α => F (fun j => τ (some j)) * X (τ i))
+          (fun a => c * X a) =
+        ∫ σ, f σ * X (σ (some i)) * W σ ∂P2 := by
+    have hGm : Measurable fun τ : Option R → α => F (fun j => τ (some j)) * X (τ i) :=
+      (hF.comp (by fun_prop)).mul (hX.comp (measurable_pi_apply i))
+    rw [replicaDiff_eq_integral ν _ hGm (M := M * B) (fun τ => by
+        rw [abs_mul]
+        exact mul_le_mul (hFb _) (hXb _) (abs_nonneg _)
+          ((abs_nonneg _).trans (hFb fun j => τ (some j))))
+      (fun a => c * X a) (hX.const_mul c) (B := |c| * B) (fun a => by
+        rw [abs_mul]; exact mul_le_mul_of_nonneg_left (hXb a) (abs_nonneg _))]
+    refine integral_congr_ae (ae_of_all _ fun σ => ?_)
+    simp only [W, f, Fintype.card_option, Nat.cast_succ, hn]
+  simp only [replicaDiffWith]
+  rw [Finset.sum_congr rfl fun i _ => key1 (some i), key1 none]
+  -- step 2: one integral
+  have hI (k : Option (Option R)) : Integrable (fun σ => f σ * X (σ k) * W σ) P2 :=
+    hint _ ((hfm.mul (hXm k)).mul hWm) (exists_abs_le_mul (exists_abs_le_mul hfbd (hXbd k)) hWbd)
+  have hcomb : (∑ i : R, ∫ σ, f σ * X (σ (some (some i))) * W σ ∂P2) -
+      n * ∫ σ, f σ * X (σ (some none)) * W σ ∂P2 =
+      ∫ σ, (∑ i : R, f σ * X (σ (some (some i))) * W σ -
+        n * (f σ * X (σ (some none)) * W σ)) ∂P2 := by
+    rw [integral_sub (integrable_finsetSum _ fun i _ => hI _) ((hI _).const_mul n),
+      integral_finsetSum _ fun i _ => hI _, integral_const_mul]
+  rw [hcomb]
+  -- step 3: swap the two fresh replicas
+  have hK : Measurable fun p : α × α => X p.1 * X p.2 :=
+    (hX.comp measurable_fst).mul (hX.comp measurable_snd)
+  have hswap : ∫ σ, f σ * (S σ * Xb σ) ∂P2 = ∫ σ, f σ * (S σ * Xa σ) ∂P2 := by
+    have hr (k : Option (Option R)) (r : R) : Integrable
+        (fun σ => f σ * (X (σ (some (some r))) * X (σ k))) P2 :=
+      hint _ (hfm.mul ((hXm _).mul (hXm k)))
+        (exists_abs_le_mul hfbd (exists_abs_le_mul (hXbd _) (hXbd _)))
+    simp only [S, Finset.sum_mul, Finset.mul_sum]
+    rw [integral_finsetSum _ fun r _ => hr none r, integral_finsetSum _ fun r _ => hr (some none) r]
+    refine Finset.sum_congr rfl fun r _ => ?_
+    exact integral_replica_swap_fresh ν F hF (K := fun a b => X a * X b) hK r
+  -- step 4: the pair combination of `X ⊗ X` and the pointwise identity
+  have hXam : Measurable Xa := hXm _
+  have hXbm : Measurable Xb := hXm _
+  have hXabd : ∃ K, ∀ σ, |Xa σ| ≤ K := hXbd _
+  have hXbbd : ∃ K, ∀ σ, |Xb σ| ≤ K := hXbd _
+  set A : (Option (Option R) → α) → ℝ := fun σ => f σ * (S σ * S σ - 2 * n * (S σ * Xa σ) -
+    n * C + n * (n + 1) * (Xa σ * Xb σ)) with hA
+  have hAm : Measurable A :=
+    hfm.mul ((((hSm.mul hSm).sub (((hSm.mul hXam).const_mul _))).sub measurable_const).add
+      ((hXam.mul hXbm).const_mul _))
+  have hAbd : ∃ K, ∀ σ, |A σ| ≤ K :=
+    exists_abs_le_mul hfbd (exists_abs_le_add (exists_abs_le_sub (exists_abs_le_sub
+      (exists_abs_le_mul hSbd hSbd) (exists_abs_le_mul (exists_abs_le_const _)
+        (exists_abs_le_mul hSbd hXabd))) (exists_abs_le_const _))
+      (exists_abs_le_mul (exists_abs_le_const _) (exists_abs_le_mul hXabd hXbbd)))
+  have hcombpt (σ : Option (Option R) → α) :
+      f σ * replicaPairCombination (fun a b => X a * X b) σ = A σ / 2 := by
+    rw [replicaPairCombination_eq_half_replica_covariance_combination (fun a b => X a * X b) C
+      hC (fun a b => mul_comm _ _) σ]
+    have hSS : (∑ r : R, ∑ r' : R, X (σ (some (some r))) * X (σ (some (some r')))) =
+        S σ * S σ := by
+      simp only [S, Finset.sum_mul_sum]
+    have hSa : (∑ r : R, X (σ (some (some r))) * X (σ (some none))) = S σ * Xa σ := by
+      simp only [S, Xa, Finset.sum_mul]
+    simp only [A, hSS, hSa, hC, hn]
+    ring
+  -- step 5: assemble
+  have hpt (σ : Option (Option R) → α) :
+      (∑ i : R, f σ * X (σ (some (some i))) * W σ -
+        n * (f σ * X (σ (some none)) * W σ)) =
+      c * A σ + ((n + 1) * c * (f σ * (S σ * Xa σ)) - (n + 1) * c * (f σ * (S σ * Xb σ))) := by
+    have hXa2 : Xa σ * Xa σ = C := hC _
+    have hW' : W σ = c * (Xa σ + S σ) - (n + 1) * (c * Xb σ) := by
+      simp only [W, Fintype.sum_option, ← Finset.mul_sum, S, Xa, Xb]
+    simp only [← Finset.sum_mul, ← Finset.mul_sum]
+    rw [hW']
+    simp only [A]
+    change f σ * S σ * _ - _ = _
+    linear_combination (-(n * c * f σ)) * hXa2
+  have h1 : Integrable (fun σ => f σ * (S σ * Xa σ)) P2 :=
+    hint _ (hfm.mul (hSm.mul hXam)) (exists_abs_le_mul hfbd (exists_abs_le_mul hSbd hXabd))
+  have h2 : Integrable (fun σ => f σ * (S σ * Xb σ)) P2 :=
+    hint _ (hfm.mul (hSm.mul hXbm)) (exists_abs_le_mul hfbd (exists_abs_le_mul hSbd hXbbd))
+  have hA' : Integrable A P2 := hint A hAm hAbd
+  have hg : Integrable (fun σ => (n + 1) * c * (f σ * (S σ * Xa σ)) -
+      (n + 1) * c * (f σ * (S σ * Xb σ))) P2 := (h1.const_mul _).sub (h2.const_mul _)
+  rw [integral_congr_ae (ae_of_all _ hpt), integral_add (hA'.const_mul c) hg,
+    integral_sub (h1.const_mul _) (h2.const_mul _),
+    integral_const_mul, integral_const_mul, integral_const_mul, hswap]
+  have hpair : replicaPairAverage ν F (fun a b => X a * X b) = (∫ σ, A σ ∂P2) / 2 := by
+    unfold replicaPairAverage
+    rw [← integral_div]
+    exact integral_congr_ae (ae_of_all _ hcombpt)
+  rw [hpair]
+  ring
+
 end SpinGlasses
