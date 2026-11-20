@@ -34,7 +34,7 @@ The objects of the path (`smartPathEnergy`, `smartPathBase`, ...) are in `SmartP
 
 @[expose] public section
 
-open MeasureTheory ProbabilityTheory
+open MeasureTheory ProbabilityTheory Function
 open scoped BigOperators NNReal
 
 namespace SpinGlasses
@@ -441,5 +441,238 @@ theorem integral_mul_replicaDiff_update {N M : ℕ} {R : Type*} [Fintype R] [Lin
   simp only [NNReal.coe_one, one_mul] at hStein
   rw [hStein, ← integral_const_mul]
   exact integral_congr_ae (ae_of_all _ fun r => by ring)
+
+/-- **The `E'_ξ` term of Proposition 2.2.3, one replica and one constraint.** For a spin-only
+observable `f` of the replicas `some r` and any replica `i`, integrating the auxiliary coordinate
+`ξ_k` of replica `i` by parts in the base measure (the normalizer does not depend on `ξ`) gives
+`⟨f ξ_k u'(S_k)(σ_i)⟩ = √((1-t)/(N+1)) ⟨f (u'' + u'^2)(S_k)(σ_i)⟩`. -/
+theorem integral_pi_xi_mul_deriv {N M : ℕ} {R : Type*} [Fintype R] {t : ℝ} {u : ℝ → ℝ}
+    {B D D₂ : ℝ} (hu : SmartPathPotential₂ u B D D₂) (ω : SmartPathDisorder N M) (k : Fin M)
+    (f : (R → PerceptronSpin N) → ℝ) (hf : Measurable f) {C : ℝ} (hfb : ∀ ρ, |f ρ| ≤ C)
+    (i : Option R) :
+    ∫ σ : Option R → SmartPathState N M, f (fun r => (σ (some r)).1) *
+        ((σ i).2 k * deriv u (smartPathField t ω (σ i) k))
+      ∂(Measure.pi fun _ => (smartPathBase N M).tilted (smartPathEnergy u t ω)) =
+      Real.sqrt ((1 - t) / (N + 1)) * ∫ σ : Option R → SmartPathState N M,
+        f (fun r => (σ (some r)).1) *
+          (deriv (deriv u) (smartPathField t ω (σ i) k) +
+            deriv u (smartPathField t ω (σ i) k) ^ 2)
+      ∂(Measure.pi fun _ => (smartPathBase N M).tilted (smartPathEnergy u t ω)) := by
+  classical
+  simp only [smartPathBase_tilted_eq]
+  rw [integral_pi_tilted_eq_div, integral_pi_tilted_eq_div, ← mul_div_assoc]
+  congr 1
+  set Eσ : (Option R → SmartPathState N M) → ℝ := fun σ => ∑ j, smartPathEnergy u t ω (σ j)
+    with hEσ
+  let Φ : (Option R → SmartPathState N M) → ℝ := fun σ =>
+    f (fun r => (σ (some r)).1) * deriv u (smartPathField t ω (σ i) k) * Real.exp (Eσ σ)
+  let Φ' : (Option R → SmartPathState N M) → ℝ := fun σ =>
+    f (fun r => (σ (some r)).1) * (Real.sqrt ((1 - t) / (N + 1)) *
+      (deriv (deriv u) (smartPathField t ω (σ i) k) +
+        deriv u (smartPathField t ω (σ i) k) ^ 2)) * Real.exp (Eσ σ)
+  have hEsum : ∀ (σ : Option R → SmartPathState N M) (y : SmartPathState N M),
+      Eσ (update σ i y) = smartPathEnergy u t ω y +
+        ∑ j ∈ Finset.univ.erase i, smartPathEnergy u t ω (σ j) := by
+    intro σ y
+    simp only [Eσ]
+    rw [← Finset.add_sum_erase _ _ (Finset.mem_univ i), update_self]
+    congr 1
+    exact Finset.sum_congr rfl fun j hj => by rw [update_of_ne (Finset.ne_of_mem_erase hj)]
+  have hΦ : ∀ σ (s : PerceptronSpin N) (ξ : Fin M → ℝ),
+      HasDerivAt (fun τ => Φ (update σ i (s, update ξ k τ)))
+        (Φ' (update σ i (s, ξ))) (ξ k) := by
+    intro σ s ξ
+    have hspin : ∀ τ : ℝ, (fun r => ((update σ i (s, update ξ k τ)) (some r)).1) =
+        (fun r => ((update σ i (s, ξ)) (some r)).1) := fun τ => funext fun r => by
+      by_cases h : some r = i
+      · subst h; simp
+      · simp [update_of_ne h]
+    obtain ⟨A, hA⟩ : ∃ A : ℝ, A = (f fun r => ((update σ i (s, ξ)) (some r)).1) *
+        Real.exp ((((s.2 : ℤ) : ℝ) * Real.sqrt (1 - t) * ω.2 +
+          ∑ k' ∈ Finset.univ.erase k, u (smartPathField t ω (s, ξ) k')) +
+          ∑ j ∈ Finset.univ.erase i, smartPathEnergy u t ω (σ j)) := ⟨_, rfl⟩
+    have hform : ∀ τ : ℝ, Φ (update σ i (s, update ξ k τ)) =
+        A * (deriv u (smartPathField t ω (s, update ξ k 0) k +
+          Real.sqrt ((1 - t) / (N + 1)) * τ) *
+          Real.exp (u (smartPathField t ω (s, update ξ k 0) k +
+            Real.sqrt ((1 - t) / (N + 1)) * τ))) := by
+      intro τ
+      simp only [Φ]
+      rw [hspin τ, hEsum, update_self, smartPathEnergy_xi u t ω k s ξ τ,
+        smartPathField_xi_self, hA]
+      simp only [Real.exp_add]
+      ring
+    have hform' : Φ' (update σ i (s, ξ)) =
+        A * (Real.sqrt ((1 - t) / (N + 1)) *
+          (deriv (deriv u) (smartPathField t ω (s, update ξ k 0) k +
+            Real.sqrt ((1 - t) / (N + 1)) * ξ k) +
+            deriv u (smartPathField t ω (s, update ξ k 0) k +
+              Real.sqrt ((1 - t) / (N + 1)) * ξ k) ^ 2) *
+          Real.exp (u (smartPathField t ω (s, update ξ k 0) k +
+            Real.sqrt ((1 - t) / (N + 1)) * ξ k))) := by
+      have e := smartPathEnergy_xi u t ω k s ξ (ξ k)
+      have f2 := smartPathField_xi_self t ω k s ξ (ξ k)
+      rw [Function.update_eq_self] at e f2
+      simp only [Φ']
+      rw [hEsum, update_self, e, f2, hA]
+      simp only [Real.exp_add]
+      ring
+    simp only [hform]
+    rw [hform']
+    exact (hasDerivAt_deriv_u_mul_exp_affine (u := u) (u' := deriv u) (u'' := deriv (deriv u))
+      (fun x => (hu.differentiable x).hasDerivAt)
+      (fun x => (hu.differentiable_deriv x).hasDerivAt) _ _ (ξ k)).const_mul A |>.congr_deriv
+      (by ring)
+  have hum : Measurable u := hu.toSmartPathPotential.measurable
+  have hdu : Measurable (deriv u) := measurable_deriv u
+  have hddu : Measurable (deriv (deriv u)) := measurable_deriv (deriv u)
+  have hfld : Measurable fun x : SmartPathState N M => smartPathField t ω x k := by
+    unfold smartPathField smartPathFieldNoAux
+    fun_prop
+  have hfS : Measurable fun σ : Option R → SmartPathState N M =>
+      f (fun r => (σ (some r)).1) :=
+    hf.comp (measurable_pi_iff.2 fun r => measurable_fst.comp (measurable_pi_apply (some r)))
+  have hfldσ : Measurable fun σ : Option R → SmartPathState N M =>
+      smartPathField t ω (σ i) k := hfld.comp (measurable_pi_apply i)
+  have hEm : Measurable Eσ :=
+    Finset.measurable_sum _ fun j _ =>
+      (measurable_smartPathEnergy_slice hum t ω).comp (measurable_pi_apply j)
+  have hexpb (σ : Option R → SmartPathState N M) : Real.exp (Eσ σ) ≤
+      Real.exp ((Fintype.card (Option R) : ℝ) * (M * B + Real.sqrt (1 - t) * |ω.2|)) := by
+    refine Real.exp_le_exp.2 ?_
+    calc Eσ σ ≤ ∑ _j : Option R, (M * B + Real.sqrt (1 - t) * |ω.2|) :=
+          Finset.sum_le_sum fun j _ =>
+            perceptron_smart_path_energy_le (fun x => hu.toSmartPathPotential.le x) t ω (σ j)
+      _ = _ := by simp; ring
+  have hC0 : 0 ≤ C := (abs_nonneg _).trans (hfb fun _ => (fun _ => 1, 1))
+  have hD₂0 : 0 ≤ D₂ := (abs_nonneg _).trans (hu.abs_deriv₂_le 0)
+  have hΦm : Measurable Φ := (hfS.mul (hdu.comp hfldσ)).mul hEm.exp
+  have hΦ'm : Measurable Φ' :=
+    (hfS.mul (((hddu.comp hfldσ).add ((hdu.comp hfldσ).pow_const 2)).const_mul _)).mul hEm.exp
+  have hΦb : ∃ K, ∀ σ, |Φ σ| ≤ K := by
+    refine ⟨C * D * Real.exp ((Fintype.card (Option R) : ℝ) * (M * B + Real.sqrt (1 - t) * |ω.2|)),
+      fun σ => ?_⟩
+    simp only [Φ]
+    rw [abs_mul, abs_mul, abs_of_pos (Real.exp_pos _)]
+    exact mul_le_mul (mul_le_mul (hfb _) (hu.abs_deriv_le _) (abs_nonneg _)
+      ((abs_nonneg _).trans (hfb fun r => (σ (some r)).1))) (hexpb σ) (Real.exp_pos _).le
+      (mul_nonneg ((abs_nonneg _).trans (hfb fun r => (σ (some r)).1)) (by
+        exact (abs_nonneg _).trans (hu.abs_deriv_le 0)))
+  have hD₂ : 0 ≤ D₂ := (abs_nonneg _).trans (hu.abs_deriv₂_le 0)
+  have hD0 : 0 ≤ D := hu.toSmartPathPotential.D_nonneg
+  have hC0 : 0 ≤ C := (abs_nonneg _).trans (hfb fun _ => default)
+  have hΦ'b : ∃ K, ∀ σ, |Φ' σ| ≤ K := by
+    refine ⟨C * (Real.sqrt ((1 - t) / (N + 1)) * (D₂ + D ^ 2)) *
+      Real.exp ((Fintype.card (Option R) : ℝ) * (M * B + Real.sqrt (1 - t) * |ω.2|)),
+      fun σ => ?_⟩
+    simp only [Φ']
+    have hL : |deriv (deriv u) (smartPathField t ω (σ i) k) +
+        deriv u (smartPathField t ω (σ i) k) ^ 2| ≤ D₂ + D ^ 2 := by
+      refine (abs_add_le _ _).trans (add_le_add (hu.abs_deriv₂_le _) ?_)
+      rw [abs_pow]
+      exact pow_le_pow_left₀ (abs_nonneg _) (hu.abs_deriv_le _) 2
+    have hc0 : 0 ≤ Real.sqrt ((1 - t) / (N + 1)) := Real.sqrt_nonneg _
+    rw [abs_mul, abs_mul, abs_mul, abs_of_nonneg hc0, abs_of_pos (Real.exp_pos _)]
+    have hf0 := (abs_nonneg _).trans (hfb fun r => (σ (some r)).1)
+    exact mul_le_mul (mul_le_mul (hfb _) (mul_le_mul_of_nonneg_left hL hc0) (by positivity) hf0)
+      (hexpb σ) (Real.exp_pos _).le (by positivity)
+  obtain ⟨K₁, hK₁⟩ := hΦb
+  obtain ⟨K₂, hK₂⟩ := hΦ'b
+  have h1 : Integrable (fun σ : Option R → SmartPathState N M => (σ i).2 k * Φ σ)
+      (Measure.pi fun _ : Option R => (smartPathSpinProb N).prod
+        (Measure.pi fun _ : Fin M => gaussianReal 0 1)) := by
+    have hξ : Integrable (fun y : SmartPathState N M => y.2 k)
+        ((smartPathSpinProb N).prod (Measure.pi fun _ : Fin M => gaussianReal 0 1)) :=
+      (integrable_comp_eval (μ := fun _ : Fin M => gaussianReal 0 1) (i := k)
+        (f := fun x : ℝ => x) (IsGaussian.integrable_id)).comp_snd _
+    have := (integrable_comp_eval (μ := fun _ : Option R => (smartPathSpinProb N).prod
+        (Measure.pi fun _ : Fin M => gaussianReal 0 1)) (i := i) hξ).bdd_mul_of_abs_le
+      hΦm.aestronglyMeasurable (ae_of_all _ hK₁)
+    simpa only [mul_comm] using this
+  have h2 : Integrable Φ' (Measure.pi fun _ : Option R => (smartPathSpinProb N).prod
+        (Measure.pi fun _ : Fin M => gaussianReal 0 1)) :=
+    integrable_of_measurable_bound hΦ'm hK₂
+  have hstein := integral_apply_snd_mul_pi_prod_eq (J := Option R)
+    (smartPathSpinProb N) i k (Φ := Φ) (Φ' := Φ') hΦ h1 h2
+  have hL : (∫ σ : Option R → SmartPathState N M, f (fun r => (σ (some r)).1) *
+        ((σ i).2 k * deriv u (smartPathField t ω (σ i) k)) *
+        Real.exp (∑ j, smartPathEnergy u t ω (σ j))
+      ∂(Measure.pi fun _ : Option R => smartPathBaseProb N M)) =
+      ∫ σ : Option R → SmartPathState N M, (σ i).2 k * Φ σ
+        ∂(Measure.pi fun _ : Option R => (smartPathSpinProb N).prod
+          (Measure.pi fun _ : Fin M => gaussianReal 0 1)) :=
+    integral_congr_ae (ae_of_all _ fun σ => by simp only [Φ]; ring)
+  rw [hL, hstein, ← integral_const_mul]
+  exact integral_congr_ae (ae_of_all _ fun σ => by simp only [Φ']; ring)
+
+/-- **The `E'_ξ` term of Proposition 2.2.3.** For a spin-only observable, the replica difference of
+the auxiliary-spin part `E'_ξ` of the energy derivative is `-1/(2(N+1))` times the sum over the
+constraints of the replica difference of `u'' + u'^2` at the field `S_k`: it is the exact
+opposite of the diagonal contribution of the quenched-coupling term
+(`integral_mul_replicaDiff_update`). -/
+theorem replicaDiff_smartPathEnergyDerivXi {N M : ℕ} {R : Type*} [Fintype R] {t : ℝ}
+    (ht : t ∈ Set.Ioo (0 : ℝ) 1) {u : ℝ → ℝ} {B D D₂ : ℝ} (hu : SmartPathPotential₂ u B D D₂)
+    (ω : SmartPathDisorder N M) (f : (R → PerceptronSpin N) → ℝ) (hf : Measurable f) {C : ℝ}
+    (hfb : ∀ ρ, |f ρ| ≤ C) :
+    replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t ω))
+        (fun σ : R → SmartPathState N M => f (fun r => (σ r).1)) (smartPathEnergyDerivXi u t ω) =
+      -(1 / (2 * ((N : ℝ) + 1))) * ∑ k : Fin M, replicaDiff
+        ((smartPathBase N M).tilted (smartPathEnergy u t ω))
+        (fun σ : R → SmartPathState N M => f (fun r => (σ r).1))
+        (fun x => deriv (deriv u) (smartPathField t ω x k) +
+          deriv u (smartPathField t ω x k) ^ 2) := by
+  classical
+  have hum : Measurable u := hu.toSmartPathPotential.measurable
+  have hdu : Measurable (deriv u) := measurable_deriv u
+  have hν : IsProbabilityMeasure ((smartPathBase N M).tilted (smartPathEnergy u t ω)) :=
+    isProbabilityMeasure_tilted_perceptron_smart_path_energy hum
+      (fun x => hu.toSmartPathPotential.le x) ω t
+  have hFm : Measurable fun σ : R → SmartPathState N M => f (fun r => (σ r).1) :=
+    hf.comp (measurable_pi_iff.2 fun r => measurable_fst.comp (measurable_pi_apply r))
+  have hFb : ∀ σ : R → SmartPathState N M, |f (fun r => (σ r).1)| ≤ C := fun σ => hfb _
+  have hfld (k : Fin M) : Measurable fun x : SmartPathState N M => smartPathField t ω x k := by
+    unfold smartPathField smartPathFieldNoAux
+    fun_prop
+  -- integrability of `ξ_k u'(S_k)` under the Gibbs measure
+  have hint (k : Fin M) : Integrable (fun x : SmartPathState N M =>
+      x.2 k * deriv u (smartPathField t ω x k))
+      ((smartPathBase N M).tilted (smartPathEnergy u t ω)) := by
+    have hξ : Integrable (fun y : SmartPathState N M => y.2 k) (smartPathBase N M) :=
+      (integrable_comp_eval (μ := fun _ : Fin M => gaussianReal 0 1) (i := k)
+        (f := fun x : ℝ => x) (IsGaussian.integrable_id)).comp_snd _
+    refine integrable_tilted_of_abs_le_envelope
+      (measurable_smartPathEnergy_slice hum t ω).aemeasurable
+      ((((measurable_pi_apply k).comp measurable_snd).mul (hdu.comp (hfld k)))).aestronglyMeasurable
+      (hξ.norm.const_mul D) (A := M * B + Real.sqrt (1 - t) * |ω.2|)
+      (ae_of_all _ fun x => perceptron_smart_path_energy_le
+        (fun x => hu.toSmartPathPotential.le x) t ω x) (ae_of_all _ fun x => ?_)
+    rw [abs_mul, mul_comm]
+    exact mul_le_mul (by simpa [Real.norm_eq_abs] using hu.abs_deriv_le _ |>.trans le_rfl)
+      le_rfl (abs_nonneg _) hu.toSmartPathPotential.D_nonneg
+  have hxi : smartPathEnergyDerivXi u t ω = fun x => ∑ k : Fin M,
+      ((1 / (2 * Real.sqrt (N + 1 : ℕ))) * (-(1 / Real.sqrt (1 - t)))) *
+        (x.2 k * deriv u (smartPathField t ω x k)) := by
+    funext x
+    unfold smartPathEnergyDerivXi
+    exact Finset.sum_congr rfl fun k _ => by ring
+  have hstep (k : Fin M) : replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t ω))
+      (fun σ : R → SmartPathState N M => f (fun r => (σ r).1))
+      (fun x => x.2 k * deriv u (smartPathField t ω x k)) =
+      Real.sqrt ((1 - t) / (N + 1)) * replicaDiff
+        ((smartPathBase N M).tilted (smartPathEnergy u t ω))
+        (fun σ : R → SmartPathState N M => f (fun r => (σ r).1))
+        (fun x => deriv (deriv u) (smartPathField t ω x k) +
+          deriv u (smartPathField t ω x k) ^ 2) := by
+    rw [replicaDiff_eq, replicaDiff_eq]
+    simp only [integral_pi_xi_mul_deriv hu ω k f hf hfb]
+    simp only [Finset.mul_sum, ← mul_assoc, mul_sub]
+    ring
+  rw [hxi, replicaDiff_finset_sum _ _ hFm.aestronglyMeasurable hFb Finset.univ _
+    (fun k _ => (hint k).const_mul _)]
+  simp only [replicaDiff_const_mul, hstep, Finset.mul_sum]
+  refine Finset.sum_congr rfl fun k _ => ?_
+  have := smartPath_auxiliary_prefactor_eq_neg (N := N) ht
+  push_cast at this ⊢
+  rw [← mul_assoc, this]
 
 end SpinGlasses
