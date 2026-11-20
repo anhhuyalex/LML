@@ -69,7 +69,8 @@ theorem hasDerivAt_integral_pi_perceptron_smart_path {N M : ℕ} {R : Type*} [Fi
     (measurable_smartPathEnergyDeriv_slice u t ω) hEb hib hdb hcalc hF hFb
   have hts : t ∈ s := mem_of_mem_nhds hs
   have hν :=
-    isProbabilityMeasure_tilted_perceptron_smart_path_energy hu.continuous.measurable hB ω t
+    isProbabilityMeasure_tilted_perceptron_smart_path_energy (μ := smartPathBase N M)
+      hu.continuous.measurable hB ω t
   have hiTilted := integrable_tilted_of_abs_le_envelope (hmE t).aemeasurable
     (measurable_smartPathEnergyDeriv_slice u t ω).aestronglyMeasurable hib
     (ae_of_all _ (hEb t hts)) (ae_of_all _ (hdb t hts))
@@ -77,16 +78,18 @@ theorem hasDerivAt_integral_pi_perceptron_smart_path {N M : ℕ} {R : Type*} [Fi
   exact (integral_pi_cov_sum_eq_sum_sub_fresh _ F hF.aestronglyMeasurable hFb _ hiTilted).symm
 
 /-- The energy derivative is integrable against the tilted measure for any `t ∈ (0, 1)`. -/
-theorem integrable_tilted_perceptron_smart_path_energy_deriv {N M : ℕ} {u : ℝ → ℝ}
+theorem integrable_tilted_perceptron_smart_path_energy_deriv {N M : ℕ}
+    {μ : Measure (SmartPathState N M)} [IsFiniteMeasure μ]
+    (hξ : ∀ k : Fin M, Integrable (fun x : SmartPathState N M => |x.2 k|) μ) {u : ℝ → ℝ}
     (hu : Differentiable ℝ u) {B D : ℝ} (hB : ∀ x, u x ≤ B) (hD : ∀ z, |deriv u z| ≤ D)
     (ω : SmartPathDisorder N M) (t : ℝ) (ht : t ∈ Set.Ioo 0 1) :
     Integrable (fun x => smartPathEnergyDerivA u t ω x + smartPathEnergyDerivXi u t ω x +
-      smartPathEnergyDerivY t ω x) ((smartPathBase N M).tilted (smartPathEnergy u t ω)) := by
+      smartPathEnergyDerivY t ω x) (μ.tilted (smartPathEnergy u t ω)) := by
   obtain ⟨δ, hδ, hδt, hδ1⟩ := exists_pos_lt_of_mem_Ioo ht
   exact integrable_tilted_of_abs_le_envelope
     (measurable_smartPathEnergy_slice hu.continuous.measurable t ω).aemeasurable
     (measurable_smartPathEnergyDeriv_slice u t ω).aestronglyMeasurable
-    (integrable_perceptron_smart_path_envelope (N := N) (M := M) D δ ω.2 ω.1.2)
+    (integrable_perceptron_smart_path_envelope_of hξ D δ ω.2 ω.1.2)
     (ae_of_all _ (perceptron_smart_path_energy_le_of_nonneg hB t ht.1.le ω))
     (ae_of_all _ (abs_deriv_perceptron_smart_path_energy_le hδ ⟨hδt.le, by linarith⟩ hD ω))
 

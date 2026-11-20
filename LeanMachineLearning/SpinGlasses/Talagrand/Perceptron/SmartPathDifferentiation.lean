@@ -148,20 +148,30 @@ theorem abs_deriv_perceptron_smart_path_energy_le {N M : ℕ} {t δ : ℝ}
     exact Finset.sum_congr rfl fun k _ => by ring
   linarith
 
+/-- The auxiliary coordinates are integrable for the smart-path base law. -/
+theorem integrable_abs_snd_smartPathBase {N M : ℕ} (k : Fin M) :
+    Integrable (fun x : SmartPathState N M => |x.2 k|) (smartPathBase N M) :=
+  (integrable_comp_eval (μ := fun _ : Fin M => gaussianReal 0 1) (i := k)
+    (f := fun x : ℝ => |x|) (integrable_abs_id_gaussianReal (m := 0) (v := 1))).comp_snd _
+
+/-- The derivative envelope is integrable against any finite base law whose auxiliary
+coordinates are integrable. -/
+theorem integrable_perceptron_smart_path_envelope_of {N M : ℕ}
+    {μ : Measure (SmartPathState N M)} [IsFiniteMeasure μ]
+    (hξ : ∀ k : Fin M, Integrable (fun x : SmartPathState N M => |x.2 k|) μ)
+    (D δ y : ℝ) (a : Fin M → ℝ) :
+    Integrable (fun x : SmartPathState N M =>
+      |y| / (2 * Real.sqrt δ) + ∑ k, D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) *
+        ((|a k| + |x.2 k|) / Real.sqrt δ)) μ :=
+  (integrable_const _).add (integrable_finsetSum _ fun k _ =>
+    (((integrable_const (|a k|)).add (hξ k)).div_const _).const_mul _)
+
 /-- The Gaussian derivative envelope is integrable against counting times Gaussian measure. -/
 theorem integrable_perceptron_smart_path_envelope {N M : ℕ} (D δ y : ℝ) (a : Fin M → ℝ) :
     Integrable (fun x : SmartPathState N M =>
       |y| / (2 * Real.sqrt δ) + ∑ k, D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) *
-        ((|a k| + |x.2 k|) / Real.sqrt δ)) (smartPathBase N M) := by
-  have h := integrable_add_sum_mul_abs_snd (M := M) (Measure.count : Measure (PerceptronSpin N))
-    (|y| / (2 * Real.sqrt δ) +
-      ∑ k, D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) * (|a k| / Real.sqrt δ))
-    (fun _ => D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) / Real.sqrt δ)
-  refine h.congr (ae_of_all _ fun x => ?_)
-  simp only [add_div, mul_add, Finset.sum_add_distrib]
-  rw [add_assoc]
-  congr 2
-  exact Finset.sum_congr rfl fun k _ => by ring
+        ((|a k| + |x.2 k|) / Real.sqrt δ)) (smartPathBase N M) :=
+  integrable_perceptron_smart_path_envelope_of integrable_abs_snd_smartPathBase D δ y a
 
 /-- The energy is affine in the last field `y = ω.2`: its derivative is
 `√(1 - t) ε` (`ε` the last spin), at any `t`. -/

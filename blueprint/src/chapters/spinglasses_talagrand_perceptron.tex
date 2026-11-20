@@ -636,7 +636,7 @@ for the path without auxiliary spins. The zero-endpoint factorization is proved 
 Theorem~\ref{thm:sg-tal:perceptron-decoupled-endpoint} below. The field law, well-defined
 Gibbs measures and terminal endpoint are proved below as well. The fixed-disorder derivative and its exchange with the disorder integral are proved below.
 The three-term expansion (2.28) is proved in Theorem~\ref{thm:sg-tal:perceptron-derivative-three-terms}.
-Gaussian integration by parts and Proposition~\ref{prop:sg-tal:perceptron-smart-path-derivative} remain open; the algebraic prefactor cancellations and replica difference identities are formalized in \texttt{SmartPathIBP.lean}.
+The Gaussian integrations by parts and the sum form of Proposition~\ref{prop:sg-tal:perceptron-smart-path-derivative} are proved in \texttt{SmartPathIBP.lean} and \texttt{SmartPathAssembly.lean}; the exchangeable last-constraint form is proved in \texttt{SmartPathExchangeable.lean}; Exercise~\ref{ex:sg-tal:perceptron-smart-path-without-auxiliary} (the path without auxiliary spins) is proved in \texttt{SmartPathNoAux.lean}.
 The path without auxiliary spins is stated in Exercise~\ref{ex:sg-tal:perceptron-smart-path-without-auxiliary}.
 \end{remark}
 
@@ -1137,7 +1137,7 @@ identity therefore gives the asserted formula.
 replica integrals, not just a formula assuming that exchange. An upper bound on $u$ and a
 bound on $u'$ suffice. A spin-only observable in the source is a special case. Passing the
 derivative through the shared-disorder expectation is proved in
-Theorem~\ref{thm:sg-tal:perceptron-disorder-derivative}; Gaussian integration by parts remains open.
+Theorem~\ref{thm:sg-tal:perceptron-disorder-derivative}; the Gaussian integration by parts is Proposition~\ref{prop:sg-tal:perceptron-smart-path-derivative}.
 Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathGibbsDerivative.lean}.
 \end{proof}
 
@@ -1386,6 +1386,7 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathDisorderDerivati
         MeasureTheory.replicaDiffWith_replicaDiff_eq_two_mul_replicaPairAverage,
         SpinGlasses.hasDerivAt_replicaDiff_lastSpin_lastField,
         SpinGlasses.integral_replicaDiff_smartPathEnergyDerivY}
+  \leanok
   \uses{thm:sg-tal:perceptron-derivative-three-terms}
 \talsource{Proposition~2.2.3, term II of Eq.~(2.25)}
 Fix the old couplings and the last-coupling field $a$, a potential $u$ that is measurable and bounded above, and a bounded
@@ -1397,6 +1398,7 @@ Then
 \]
 \end{theorem}
 \begin{proof}
+  \leanok
 \emph{Step 1 (the derivative of the energy in $y$).} The last field enters the energy only through $\varepsilon\sqrt{1-t}\,y$, so
 $\partial_y(\text{energy})=\sqrt{1-t}\,\varepsilon$ (\texttt{hasDerivAt\_smartPathEnergy\_lastField}); it is bounded and does not
 depend on $y$.
@@ -1423,8 +1425,12 @@ $-\frac1{2\sqrt{1-t}}\cdot 2\sqrt{1-t}=-1$ gives the claim.
         MeasureTheory.replicaPairCombination_eq_half_replica_covariance_combination,
         SpinGlasses.replicaPairCombination_lastSpinKernel,
         SpinGlasses.lastSpinKernel_self,
-        MeasureTheory.integral_sum_eq_card_mul_of_forall_eq}
-  \uses{thm:sg-tal:perceptron-derivative-three-terms}
+        MeasureTheory.integral_sum_eq_card_mul_of_forall_eq,
+        SpinGlasses.hasDerivAt_integral_integral_pi_perceptron_smart_path_ibp,
+        SpinGlasses.hasDerivAt_integral_integral_pi_perceptron_smart_path_exchangeable,
+        SpinGlasses.integral_replicaPairAverage_swap}
+  \leanok
+  \uses{thm:sg-tal:perceptron-derivative-three-terms,thm:sg-tal:perceptron-last-field-ibp}
 \talsource{Proposition~2.2.3, Eqs.~(2.23)--(2.25)}
 Assume $u$ is twice differentiable with $|u|\le B$, $|u'|\le D$ and $|u''|\le D_2$, let $Y\sim\mathcal N(0,r)$
 with $r=\mathbb E Y^2$, and write $L=N+1$ for the number of spins. For $0<t<1$ and any function $f$ on
@@ -1444,6 +1450,7 @@ disorder are exchangeable and there are $M+1$ constraints, all $k$ contribute eq
 $\alpha=(M+1)/(N+1)$ times the term $k=M$, which is the form (2.24) of the book.
 \end{proposition}
 \begin{proof}
+  \leanok
 Write $c=1/(2\sqrt L)$, $S^\ell_k=S_{k,t}(\sigma^\ell,\xi^\ell)$, $D_k=u''(S_k)+u'(S_k)^2$ and, for a one-state
 function $H$,
 \[
@@ -1551,21 +1558,32 @@ $\mathbb E\langle f\operatorname{pd}(U_k)\rangle_t=\mathbb E\langle f\operatorna
  \mathrm I=\frac{M+1}{N+1}\,\mathbb E\bigl\langle f\operatorname{pd}(U_M)\bigr\rangle_t=\alpha\,\mathbb E\bigl\langle f\operatorname{pd}(U_M)\bigr\rangle_t .
 \]
 
-\emph{Formalization note (status and hypothesis audit).} Proved in Lean: the three-term expansion of the derivative
-(Theorem~\ref{thm:sg-tal:perceptron-derivative-three-terms}), the affine Stein lemma
-(\texttt{integral\_id\_mul\_comp\_affine\_gaussianReal}) and its form for $u'e^u$, both prefactor identities, the two-replica
-combination and its relation to the covariance combination, and the reduction of a sum of equal integrals. \emph{Not formalized}:
-the integration by parts of Steps 1, 2 and 5 inside the replica Gibbs average, i.e.\ the identities displayed there, and the swap
-argument of Step 6; hence this proposition has no \texttt{\textbackslash leanok}. The sum form needs no hypothesis on the old
-disorder beyond being a finite measure; the last-constraint form needs exchangeability of the rows (a hypothesis, not a
-conclusion: the book derives it from the iid property). At fixed disorder the steps need only $u\le B$, $|u'|\le D$, $|u''|\le D_2$.
-Formalized in part in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathIBP.lean}.
+\emph{Formalization note (status and hypothesis audit).} \emph{The sum form is proved in Lean} as
+\texttt{SpinGlasses.hasDerivAt\_integral\_integral\_pi\_perceptron\_smart\_path\_ibp}: for $0<t<1$, a potential with
+$|u|\le B$, $|u'|\le D$, $|u''|\le D_2$, any finite law of the old couplings, any variance $r\ge0$ of the last field and any
+spin-only $f$, the derivative of the quenched replica average is $\frac1L\sum_{k<M}\mathbb E\langle f\operatorname{pd}(U_k)\rangle_t
+-r\,\mathbb E\langle f\operatorname{pd}(\varepsilon_\sigma\varepsilon_\tau)\rangle_t$. The three terms of (2.28) are integrated by parts
+at fixed disorder (\texttt{integral\_replicaDiff\_smartPathEnergyDerivY}, \texttt{integral\_mul\_replicaDiff\_update},
+\texttt{replicaDiff\_smartPathEnergyDerivXi}) and averaged over the disorder by Fubini
+(\texttt{integral\_replicaDiff\_smartPathEnergyDerivA\_disorder}, \texttt{integral\_replicaDiff\_smartPathEnergyDerivXi\_disorder},
+\texttt{integral\_replicaDiff\_smartPathEnergyDerivY\_disorder}); the diagonal parts of $E'_a$ and $E'_\xi$ cancel exactly.
+\emph{Step 6 is proved as well}: if the law of the old rows is invariant under swapping any constraint with a fixed one
+(\texttt{hasDerivAt\_integral\_integral\_pi\_perceptron\_smart\_path\_exchangeable}), the sum is $M$ times the term of that constraint, so
+$\mathrm I=\alpha\,\mathbb E\langle f\operatorname{pd}(U_{M})\rangle_t$ with $\alpha=M/(N+1)$. The swap acts on the disorder (rows and couplings)
+and on the auxiliary coordinates; exchangeability is a hypothesis on the law of the rows (the book derives it from independence),
+never on the observable or the expectation. Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathExchangeable.lean}, with the sum form in \texttt{SmartPathAssembly.lean} and the fixed-disorder
+steps in \texttt{SmartPathIBP.lean}.
 \end{proof}
 
 \begin{exercise}[Smart path without auxiliary spins]\label{ex:sg-tal:perceptron-smart-path-without-auxiliary}
   \lean{SpinGlasses.smartPathFieldNoAux,
         SpinGlasses.smartPathEnergyNoAux,
-        MeasureTheory.replicaDiff_zero}
+        MeasureTheory.replicaDiff_zero,
+        SpinGlasses.smartPathBaseNoAux,
+        SpinGlasses.hasDerivAt_integral_integral_pi_perceptron_smart_path_noAux_base,
+        SpinGlasses.hasDerivAt_integral_integral_pi_perceptron_smart_path_noAux,
+        SpinGlasses.hasDerivAt_integral_integral_pi_perceptron_smart_path_noAux_exchangeable}
+  \leanok
   \uses{prop:sg-tal:perceptron-smart-path-derivative}
 \talsource{Exercise~2.2.4, Eq.~(2.14)}
 Replace (2.15) and (2.22) by the field without auxiliary spins
@@ -1582,6 +1600,7 @@ Proposition~\ref{prop:sg-tal:perceptron-smart-path-derivative} holds with the ex
 which for $M+1$ exchangeable constraints is $\frac\alpha2$ times the term $k=M$.
 \end{exercise}
 \begin{proof}
+  \leanok
 Write $D_k=u''(S^0_k)+u'(S^0_k)^2$ and $L=N+1$.
 
 \emph{Step 1 (derivative).} The energy has no $\xi$ coordinate, so $E'=E'_a+E'_Y$ with the same $E'_a,E'_Y$ as in
@@ -1610,8 +1629,18 @@ $\operatorname{diff}(E'_\xi)=-\frac1{2L}\sum_k\operatorname{diff}(D_k)$. Here th
 Under exchangeability, as in Step 6 of the proposition, $\sum_{k<M}$ over $M+1$ constraints becomes $(M+1)$ times the last term, and
 $\frac{M+1}{2(N+1)}=\frac\alpha2$.
 
-\emph{Formalization note.} Not formalized: Steps 2 and 3 depend on the integration by parts of Proposition~\ref{prop:sg-tal:perceptron-smart-path-derivative}.
-Defined in Lean: the field and energy of the path without auxiliary spins and \texttt{replicaDiff\_zero}. The model is the book's path
-(2.14), not the smart path with $\xi=0$ inserted into a statement about $\xi$; no hypothesis about $\xi$ is made.
-Formalized in part in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathModel.lean}.
+\emph{Formalization note.} Steps 1--3 are proved. The path is its own model (\texttt{smartPathFieldNoAux},
+\texttt{smartPathEnergyNoAux}); no hypothesis about $\xi$ is made. To reuse the integration by parts of
+Proposition~\ref{prop:sg-tal:perceptron-smart-path-derivative} verbatim, the proof runs the smart-path computation on
+the base law $\mathrm{count}\otimes\delta_0$ (\texttt{smartPathBaseNoAux}): there $\xi=0$ almost surely, so the term
+$\operatorname{diff}(E'_\xi)$ vanishes (\texttt{replicaDiff\_zero}, \texttt{smartPathEnergyDerivXi\_of\_snd\_eq\_zero}),
+and the statement \texttt{\ldots\_noAux\_base} is the derivative $\mathrm I+\mathrm{VI}+\mathrm{II}$ for that law. The
+spin-level statement \texttt{\ldots\_noAux}, on the counting measure on the spins tilted by \texttt{smartPathEnergyNoAux}, follows
+from the model-free transfer lemmas of \texttt{ForMathlib/Probability/GibbsReplicaPointMass.lean}
+(\texttt{integral\_pi\_tilted\_prod\_dirac}, \texttt{replicaPairAverage\_tilted\_prod\_dirac},
+\texttt{replicaDiff\_tilted\_prod\_dirac}) together with $S_k(a,0)=S^0_k(a)$. It is stated for a sum over the $M$ constraints
+of the model (the book's $M+1$ is the same statement with $M$ replaced by $M+1$); the exchangeable form
+\texttt{\ldots\_noAux\_exchangeable} (hypothesis on the law of the rows only, as for the proposition) gives
+$\frac{M}{N+1}\,\mathbb E\langle f\operatorname{pd}(U^0_{j_0})\rangle+\frac{M}{2(N+1)}\,\mathbb E\operatorname{diff}(D_{j_0})-r\,\mathbb E\langle f\operatorname{pd}(\varepsilon\varepsilon')\rangle$.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathNoAux.lean}.
 \end{proof}

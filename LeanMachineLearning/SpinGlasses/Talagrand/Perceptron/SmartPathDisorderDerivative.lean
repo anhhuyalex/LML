@@ -28,21 +28,31 @@ open MeasureTheory ProbabilityTheory Filter
 open scoped BigOperators Topology
 namespace SpinGlasses
 
+/-- `exp (∑ |ξ_k|)` is integrable for the smart-path base law. -/
+theorem integrable_exp_sum_abs_smartPathBase (N M : ℕ) :
+    Integrable (fun x : SmartPathState N M => Real.exp (∑ k, |x.2 k|)) (smartPathBase N M) := by
+  have hξ : Integrable (fun ξ : Fin M → ℝ => Real.exp (∑ k, |ξ k|))
+      (Measure.pi fun _ : Fin M => gaussianReal 0 1) := by
+    simpa only [one_mul] using integrable_exp_sum_mul_abs_pi (fun _ : Fin M => (1 : ℝ))
+  exact hξ.comp_snd (Measure.count : Measure (PerceptronSpin N))
+
 /-- **Disorder-averaged Talagrand (2.26), with (2.27) substituted.** A differentiable potential
 with bounded value and first derivative suffices to pass the derivative through the auxiliary,
 replica and disorder integrals. The observable is bounded, measurable and independent of `t`.
 The full number of spins is `N + 1`; empty replica/constraint types and zero variance are allowed.
 No Gaussian integration-by-parts identity is assumed or asserted. -/
 theorem hasDerivAt_integral_integral_pi_perceptron_smart_path {N M : ℕ}
+    {μ : Measure (SmartPathState N M)} [IsFiniteMeasure μ] [NeZero μ]
+    (hb : Integrable (fun x : SmartPathState N M => Real.exp (∑ k, |x.2 k|)) μ)
     {R : Type*} [Fintype R] {t : ℝ}
     (ht : t ∈ Set.Ioo (0 : ℝ) 1) {u : ℝ → ℝ} (hu : Differentiable ℝ u)
     {B D : ℝ} (hB : ∀ z, |u z| ≤ B) (hD : ∀ z, |deriv u z| ≤ D)
     (v : NNReal) {Pold : Measure (Fin M → Fin N → ℝ)} [IsFiniteMeasure Pold]
     (F : (R → SmartPathState N M) → ℝ) (hF : Measurable F) {C : ℝ} (hFb : ∀ σ, |F σ| ≤ C) :
     HasDerivAt (fun s => ∫ ω, ∫ σ, F σ
-        ∂(Measure.pi fun _ : R => (smartPathBase N M).tilted (smartPathEnergy u s ω))
+        ∂(Measure.pi fun _ : R => μ.tilted (smartPathEnergy u s ω))
         ∂smartPathDisorder Pold v)
-      (∫ ω, replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t ω)) F
+      (∫ ω, replicaDiff (μ.tilted (smartPathEnergy u t ω)) F
         (fun x => smartPathEnergyDerivA u t ω x + smartPathEnergyDerivXi u t ω x +
           smartPathEnergyDerivY t ω x) ∂smartPathDisorder Pold v) t := by
   obtain ⟨δ, hδ, hδt, hδ1⟩ := exists_pos_lt_of_mem_Ioo ht
@@ -96,8 +106,6 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path {N M : ℕ}
   have hξ : Integrable (fun ξ : Fin M → ℝ => Real.exp (∑ k, |ξ k|))
       (Measure.pi fun _ : Fin M => gaussianReal 0 1) := by
     simpa only [one_mul] using integrable_exp_sum_mul_abs_pi (fun _ : Fin M => (1 : ℝ))
-  have hb : Integrable b (smartPathBase N M) :=
-    hξ.comp_snd (Measure.count : Measure (PerceptronSpin N))
   have houter : Integrable (fun ω => Real.exp (2 * ((Fintype.card R : ℝ) * A ω)) * Q ω)
       (smartPathDisorder Pold v) := by
     have hyexp : Integrable (fun y : ℝ =>
@@ -114,7 +122,7 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path {N M : ℕ}
     simp only [Real.exp_add]
     ring
   exact hasDerivAt_integral_integral_pi_tilted_of_dominated (P := smartPathDisorder Pold v)
-    (μ := smartPathBase N M) (E := smartPathEnergy u)
+    (μ := μ) (E := smartPathEnergy u)
     (E' := fun s ω x => smartPathEnergyDerivA u s ω x + smartPathEnergyDerivXi u s ω x +
       smartPathEnergyDerivY s ω x) (A := A) (B := Q) (b := b) (s := V)
     isOpen_Ioo htV (fun s _ => measurable_smartPathEnergy hu.continuous.measurable s)
@@ -124,40 +132,43 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path {N M : ℕ}
 
 /-- Splitting of the replica difference operator for the perceptron smart path energy into
 three terms: the quenched disorder term, the auxiliary spin term, and the last-field term. -/
-theorem perceptron_smart_path_diff_eq_three_terms {N M : ℕ} {u : ℝ → ℝ} {t : ℝ}
+theorem perceptron_smart_path_diff_eq_three_terms {N M : ℕ}
+    {μ : Measure (SmartPathState N M)} [IsFiniteMeasure μ] [NeZero μ]
+    (hb : Integrable (fun x : SmartPathState N M => Real.exp (∑ k, |x.2 k|)) μ) {u : ℝ → ℝ} {t : ℝ}
     (ht : t ∈ Set.Ioo (0 : ℝ) 1) (hu : Differentiable ℝ u) {B D : ℝ} (hB : ∀ x, |u x| ≤ B)
     (hD : ∀ x, |deriv u x| ≤ D) (ω : SmartPathDisorder N M)
     {R : Type*} [Fintype R] (F : (R → SmartPathState N M) → ℝ)
     (hF : Measurable F) {C : ℝ} (hFb : ∀ σ, |F σ| ≤ C) :
-    replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t ω)) F
+    replicaDiff (μ.tilted (smartPathEnergy u t ω)) F
         (fun x => smartPathEnergyDerivA u t ω x + smartPathEnergyDerivXi u t ω x +
           smartPathEnergyDerivY t ω x) =
-      replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t ω)) F
+      replicaDiff (μ.tilted (smartPathEnergy u t ω)) F
           (smartPathEnergyDerivA u t ω) +
-        replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t ω)) F
+        replicaDiff (μ.tilted (smartPathEnergy u t ω)) F
           (smartPathEnergyDerivXi u t ω) +
-        replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t ω)) F
+        replicaDiff (μ.tilted (smartPathEnergy u t ω)) F
           (smartPathEnergyDerivY t ω) := by
-  have hν : IsProbabilityMeasure ((smartPathBase N M).tilted (smartPathEnergy u t ω)) :=
+  have hν : IsProbabilityMeasure (μ.tilted (smartPathEnergy u t ω)) :=
     isProbabilityMeasure_tilted_perceptron_smart_path_energy hu.continuous.measurable
       (fun x => le_of_abs_le (hB x)) ω t
   have hIY : Integrable (smartPathEnergyDerivY t ω)
-      ((smartPathBase N M).tilted (smartPathEnergy u t ω)) :=
+      (μ.tilted (smartPathEnergy u t ω)) :=
     integrable_of_measurable_bound (measurable_smartPathEnergyDerivY_slice t ω)
       (M := |ω.2| / (2 * Real.sqrt (1 - t)))
       (abs_smartPathEnergyDerivY_le (sub_pos.2 ht.2) le_rfl ω)
   have hIa : Integrable (smartPathEnergyDerivA u t ω)
-      ((smartPathBase N M).tilted (smartPathEnergy u t ω)) :=
+      (μ.tilted (smartPathEnergy u t ω)) :=
     integrable_of_measurable_bound (measurable_smartPathEnergyDerivA_slice u t ω)
       (M := ∑ k, D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) * (|ω.1.2 k| / Real.sqrt t))
       (abs_smartPathEnergyDerivA_le hD ht.1 le_rfl ω)
-  have hIE' := integrable_tilted_perceptron_smart_path_energy_deriv hu
+  have hIE' := integrable_tilted_perceptron_smart_path_energy_deriv
+    (integrable_abs_snd_of_exp_sum hb) hu
     (fun x => le_of_abs_le (hB x)) hD ω t ht
   have hI_aξ : Integrable (fun x => smartPathEnergyDerivA u t ω x +
-      smartPathEnergyDerivXi u t ω x) ((smartPathBase N M).tilted (smartPathEnergy u t ω)) :=
+      smartPathEnergyDerivXi u t ω x) (μ.tilted (smartPathEnergy u t ω)) :=
     (hIE'.sub hIY).congr (ae_of_all _ fun x => by simp)
   have hIξ : Integrable (smartPathEnergyDerivXi u t ω)
-      ((smartPathBase N M).tilted (smartPathEnergy u t ω)) :=
+      (μ.tilted (smartPathEnergy u t ω)) :=
     (hI_aξ.sub hIa).congr (ae_of_all _ fun x => by simp)
   rw [replicaDiff_add _ F hF.aestronglyMeasurable hFb hI_aξ hIY,
     replicaDiff_add _ F hF.aestronglyMeasurable hFb hIa hIξ]
@@ -168,23 +179,25 @@ quenched-disorder term `E'_a`, the auxiliary-spin term `E'_ξ`, and the last-fie
 This is the three-group split before the permutation symmetry in `k` that reduces the `k`-sum
 to `α√N` times the last constraint. -/
 theorem hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms {N M : ℕ}
+    {μ : Measure (SmartPathState N M)} [IsFiniteMeasure μ] [NeZero μ]
+    (hb : Integrable (fun x : SmartPathState N M => Real.exp (∑ k, |x.2 k|)) μ)
     {R : Type*} [Fintype R] {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) 1)
     {u : ℝ → ℝ} (hu : Differentiable ℝ u) {B D : ℝ} (hB : ∀ x, |u x| ≤ B)
     (hD : ∀ x, |deriv u x| ≤ D) (v : NNReal)
     {Pold : Measure (Fin M → Fin N → ℝ)} [IsFiniteMeasure Pold]
     (F : (R → SmartPathState N M) → ℝ) (hF : Measurable F) {C : ℝ} (hFb : ∀ σ, |F σ| ≤ C) :
     HasDerivAt (fun s => ∫ ω, ∫ σ, F σ
-        ∂(Measure.pi fun _ : R => (smartPathBase N M).tilted (smartPathEnergy u s ω))
+        ∂(Measure.pi fun _ : R => μ.tilted (smartPathEnergy u s ω))
         ∂smartPathDisorder Pold v)
-      (∫ ω, replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t ω)) F
+      (∫ ω, replicaDiff (μ.tilted (smartPathEnergy u t ω)) F
             (smartPathEnergyDerivA u t ω) +
-          replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t ω)) F
+          replicaDiff (μ.tilted (smartPathEnergy u t ω)) F
             (smartPathEnergyDerivXi u t ω) +
-          replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t ω)) F
+          replicaDiff (μ.tilted (smartPathEnergy u t ω)) F
             (smartPathEnergyDerivY t ω) ∂smartPathDisorder Pold v) t := by
-  refine (hasDerivAt_integral_integral_pi_perceptron_smart_path ht hu hB hD v F hF hFb).congr_deriv
-    (integral_congr_ae (ae_of_all _ fun ω => ?_))
-  exact perceptron_smart_path_diff_eq_three_terms ht hu hB hD ω F hF hFb
+  refine (hasDerivAt_integral_integral_pi_perceptron_smart_path hb ht hu hB hD v F hF
+    hFb).congr_deriv (integral_congr_ae (ae_of_all _ fun ω => ?_))
+  exact perceptron_smart_path_diff_eq_three_terms hb ht hu hB hD ω F hF hFb
 
 /-- A spin-only replica observable is automatically measurable on the configuration space. -/
 theorem measurable_spin_only {N M : ℕ} {R : Type*} [Finite R]
@@ -208,7 +221,8 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path_spin_only {N M : �
         (fun x => smartPathEnergyDerivA u t ω x + smartPathEnergyDerivXi u t ω x +
           smartPathEnergyDerivY t ω x) ∂smartPathDisorder Pold v) t := by
   obtain ⟨C, hC⟩ := exists_abs_le_of_finite f
-  exact hasDerivAt_integral_integral_pi_perceptron_smart_path ht hu hB hD v
+  exact hasDerivAt_integral_integral_pi_perceptron_smart_path
+    (integrable_exp_sum_abs_smartPathBase N M) ht hu hB hD v
     (fun σ => f (fun r => (σ r).1)) (measurable_spin_only f) fun x => hC _
 
 /-- **Spin-only three-term expansion of the quenched replica derivative.** -/
@@ -229,7 +243,8 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms_spin_o
             (fun σ => f (fun r => (σ r).1)) (smartPathEnergyDerivY t ω)
             ∂smartPathDisorder Pold v) t := by
   obtain ⟨C, hC⟩ := exists_abs_le_of_finite f
-  exact hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms ht hu hB hD v
+  exact hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms
+    (integrable_exp_sum_abs_smartPathBase N M) ht hu hB hD v
     (fun σ => f (fun r => (σ r).1)) (measurable_spin_only f) fun x => hC _
 
 end SpinGlasses

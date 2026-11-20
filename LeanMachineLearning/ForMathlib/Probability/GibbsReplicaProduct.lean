@@ -277,6 +277,21 @@ theorem replicaDiff_eq {α R : Type*} [MeasurableSpace α] [Fintype R] (ν : Mea
         (Fintype.card R : ℝ) * ∫ σ : Option R → α, F (fun j => σ (some j)) * h (σ none)
           ∂(Measure.pi fun _ : Option R => ν) := rfl
 
+/-- The replica difference only sees the observable up to `ν`-null sets: an observable that
+vanishes `ν`-almost everywhere has zero replica difference. -/
+theorem replicaDiff_eq_zero_of_ae {α R : Type*} [MeasurableSpace α] [Fintype R] (ν : Measure α)
+    [IsProbabilityMeasure ν] (F : (R → α) → ℝ) {h : α → ℝ} (hh : h =ᵐ[ν] 0) :
+    replicaDiff ν F h = 0 := by
+  have hz (i : Option R) : ∀ᵐ σ ∂(Measure.pi fun _ : Option R => ν), h (σ i) = 0 :=
+    (measurePreserving_eval (fun _ : Option R => ν) i).quasiMeasurePreserving.ae hh
+  rw [replicaDiff_eq]
+  have hi (i : Option R) : ∫ σ : Option R → α, F (fun j => σ (some j)) * h (σ i)
+      ∂(Measure.pi fun _ : Option R => ν) = 0 := by
+    rw [integral_eq_zero_of_ae]
+    filter_upwards [hz i] with σ hσ
+    simp [hσ]
+  simp [hi]
+
 /-- The zero observable has zero replica difference. -/
 theorem replicaDiff_zero {α R : Type*} [MeasurableSpace α] [Fintype R] (ν : Measure α)
     (F : (R → α) → ℝ) :
@@ -675,6 +690,53 @@ theorem abs_integral_integral_pi_tilted_le {E : Ω → α → ℝ}
   have := hprob
   exact abs_integral_integral_le_of_forall_abs_le P
     (fun ω => Measure.pi fun _ : ι => μ.tilted (E ω)) G hG
+
+/-- **Measurability of the replica difference in the environment.** For jointly measurable
+bounded energy and observable (and bounded `F`), `ω ↦ replicaDiff (μ.tilted (E ω)) F (h ω)` is
+measurable. -/
+theorem measurable_replicaDiff_tilted {R : Type*} [Fintype R] {E : Ω → α → ℝ}
+    (hE : Measurable fun p : Ω × α => E p.1 p.2)
+    (hprob : ∀ ω, IsProbabilityMeasure (μ.tilted (E ω)))
+    {h : Ω → α → ℝ} (hh : Measurable fun p : Ω × α => h p.1 p.2) {H : ℝ}
+    (hhb : ∀ ω a, |h ω a| ≤ H) {F : (R → α) → ℝ} (hF : Measurable F) {C : ℝ}
+    (hFb : ∀ σ, |F σ| ≤ C) :
+    Measurable fun ω => replicaDiff (μ.tilted (E ω)) F (h ω) := by
+  have hFo : Measurable fun σ : Option R → α => F (fun j => σ (some j)) := hF.comp (by fun_prop)
+  have : (fun ω => replicaDiff (μ.tilted (E ω)) F (h ω)) = fun ω =>
+      ∫ σ : Option R → α, F (fun j => σ (some j)) *
+        (∑ i, h ω (σ (some i)) - (Fintype.card R : ℝ) * h ω (σ none))
+        ∂(Measure.pi fun _ : Option R => μ.tilted (E ω)) := funext fun ω => by
+    have := hprob ω
+    exact replicaDiff_eq_integral _ F hF hFb _ (hh.comp (measurable_const.prodMk measurable_id))
+      (hhb ω)
+  rw [this]
+  refine measurable_integral_pi_tilted hE ?_
+  refine (hFo.comp measurable_snd).mul ?_
+  refine (Finset.measurable_sum _ fun i _ => hh.comp (measurable_fst.prodMk
+    ((measurable_pi_apply (some i)).comp measurable_snd))).sub ?_
+  exact (hh.comp (measurable_fst.prodMk
+    ((measurable_pi_apply none).comp measurable_snd))).const_mul _
+
+/-- **Measurability of the pair average in the environment.** -/
+theorem measurable_replicaPairAverage_tilted {R : Type*} [Fintype R] [LinearOrder R]
+    {E : Ω → α → ℝ} (hE : Measurable fun p : Ω × α => E p.1 p.2)
+    {U : Ω → α → α → ℝ} (hU : Measurable fun p : Ω × (α × α) => U p.1 p.2.1 p.2.2)
+    {F : (R → α) → ℝ} (hF : Measurable F) :
+    Measurable fun ω => replicaPairAverage (μ.tilted (E ω)) F (U ω) := by
+  unfold replicaPairAverage replicaPairCombination
+  refine measurable_integral_pi_tilted (ι := Option (Option R)) hE ?_
+  have hF' : Measurable fun p : Ω × (Option (Option R) → α) =>
+      F (fun r => p.2 (some (some r))) :=
+    hF.comp (measurable_pi_iff.2 fun r => (measurable_pi_apply _).comp measurable_snd)
+  have hu (i j : Option (Option R)) : Measurable fun p : Ω × (Option (Option R) → α) =>
+      U p.1 (p.2 i) (p.2 j) :=
+    (hU.comp (measurable_fst.prodMk (((measurable_pi_apply i).comp measurable_snd).prodMk
+      ((measurable_pi_apply j).comp measurable_snd)) :
+      Measurable fun p : Ω × (Option (Option R) → α) => (p.1, (p.2 i, p.2 j))))
+  refine hF'.mul ?_
+  refine (((Finset.measurable_sum _ fun p _ => hu _ _).sub
+    ((Finset.measurable_sum _ fun r _ => hu _ _).const_mul _))).add ?_
+  exact (hu _ _).const_mul _
 
 end Measurability
 

@@ -84,10 +84,22 @@ theorem abs_apply_le_exp_sum_abs {ι : Type*} [Fintype ι] (x : ι → ℝ) (k :
   (Finset.single_le_sum (fun i _ => abs_nonneg (x i)) (Finset.mem_univ k)).trans
     ((le_add_of_nonneg_right zero_le_one).trans (Real.add_one_le_exp _))
 
+/-- Integrability of `exp (∑ |ξ_k|)` gives integrability of each auxiliary coordinate. -/
+theorem integrable_abs_snd_of_exp_sum {N M : ℕ} {μ : Measure (SmartPathState N M)}
+    (hb : Integrable (fun x : SmartPathState N M => Real.exp (∑ k, |x.2 k|)) μ) (k : Fin M) :
+    Integrable (fun x : SmartPathState N M => |x.2 k|) μ :=
+  hb.mono' (by fun_prop) (ae_of_all _ fun x => by
+    rw [Real.norm_eq_abs, abs_abs]; exact abs_apply_le_exp_sum_abs x.2 k)
+
+section BaseMeasure
+
+variable {μ : Measure (SmartPathState N M)} [IsFiniteMeasure μ] [NeZero μ]
+
+omit [NeZero μ] in
 /-- The Gibbs weight is integrable for every fixed disorder and path parameter. -/
 theorem integrable_exp_perceptron_smart_path_energy {u : ℝ → ℝ} (hu : Measurable u)
     {D : ℝ} (hD : ∀ x, u x ≤ D) (ω : SmartPathDisorder N M) (t : ℝ) :
-    Integrable (fun x => Real.exp (smartPathEnergy u t ω x)) (smartPathBase N M) :=
+    Integrable (fun x => Real.exp (smartPathEnergy u t ω x)) μ :=
   integrable_exp_of_ae_le (C := M * D + Real.sqrt (1 - t) * |ω.2|)
     (measurable_smartPathEnergy_slice hu t ω).aemeasurable
     (Filter.Eventually.of_forall (perceptron_smart_path_energy_le hD t ω))
@@ -96,7 +108,7 @@ theorem integrable_exp_perceptron_smart_path_energy {u : ℝ → ℝ} (hu : Meas
 integrability. Counting mass is retained rather than normalized to a spin probability law. -/
 theorem integral_exp_perceptron_smart_path_energy_pos {u : ℝ → ℝ} (hu : Measurable u)
     {D : ℝ} (hD : ∀ x, u x ≤ D) (ω : SmartPathDisorder N M) (t : ℝ) :
-    0 < ∫ x, Real.exp (smartPathEnergy u t ω x) ∂smartPathBase N M :=
+    0 < ∫ x, Real.exp (smartPathEnergy u t ω x) ∂μ :=
   integral_exp_pos_of_ae_le (C := M * D + Real.sqrt (1 - t) * |ω.2|)
     (measurable_smartPathEnergy_slice hu t ω).aemeasurable
     (Filter.Eventually.of_forall (perceptron_smart_path_energy_le hD t ω))
@@ -104,7 +116,7 @@ theorem integral_exp_perceptron_smart_path_energy_pos {u : ℝ → ℝ} (hu : Me
 /-- The counting-times-Gaussian tilt defines a probability measure along the entire path. -/
 theorem isProbabilityMeasure_tilted_perceptron_smart_path_energy {u : ℝ → ℝ} (hu : Measurable u)
     {D : ℝ} (hD : ∀ x, u x ≤ D) (ω : SmartPathDisorder N M) (t : ℝ) :
-    IsProbabilityMeasure ((smartPathBase N M).tilted (smartPathEnergy u t ω)) :=
+    IsProbabilityMeasure (μ.tilted (smartPathEnergy u t ω)) :=
   isProbabilityMeasure_tilted_of_ae_le (C := M * D + Real.sqrt (1 - t) * |ω.2|)
     (measurable_smartPathEnergy_slice hu t ω).aemeasurable
     (Filter.Eventually.of_forall (perceptron_smart_path_energy_le hD t ω))
@@ -119,10 +131,12 @@ theorem integrable_integral_pi_perceptron_smart_path {R : Type*} [Fintype R]
     (hΦ : Measurable fun p : SmartPathDisorder N M × (R → SmartPathState N M) => Φ p.1 p.2)
     {C : ℝ} (hC : ∀ ω x, |Φ ω x| ≤ C) :
     Integrable (fun ω => ∫ x : R → SmartPathState N M, Φ ω x
-      ∂(Measure.pi fun _ : R => (smartPathBase N M).tilted (smartPathEnergy u t ω))) P :=
+      ∂(Measure.pi fun _ : R => μ.tilted (smartPathEnergy u t ω))) P :=
   integrable_integral_pi_tilted (E := smartPathEnergy u t) (G := Φ)
     (measurable_smartPathEnergy hu t)
     (fun ω => isProbabilityMeasure_tilted_perceptron_smart_path_energy hu hD ω t)
     hΦ hC
+
+end BaseMeasure
 
 end SpinGlasses

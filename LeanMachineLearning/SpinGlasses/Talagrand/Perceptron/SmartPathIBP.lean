@@ -85,25 +85,26 @@ theorem replicaPairCombination_lastSpinKernel {N M : ℕ} {R : Type*} [Fintype R
 
 /-- Derivative of the replica difference of the last spin in the last field `y`, in terms of
 the two-fresh-replica average (the `E'_Y` Stein step of Proposition 2.2.3 for fixed `y`). -/
-theorem hasDerivAt_replicaDiff_lastSpin_lastField {N M : ℕ} {R : Type*} [Fintype R]
+theorem hasDerivAt_replicaDiff_lastSpin_lastField {N M : ℕ}
+    {μ : Measure (SmartPathState N M)} [IsFiniteMeasure μ] [NeZero μ] {R : Type*} [Fintype R]
     [LinearOrder R] {t : ℝ} {u : ℝ → ℝ} (hu : Measurable u)
     {B : ℝ} (hB : ∀ x, u x ≤ B) (ω₀ : (Fin M → Fin N → ℝ) × (Fin M → ℝ))
     (F : (R → SmartPathState N M) → ℝ) (hF : Measurable F) {C : ℝ} (hFb : ∀ σ, |F σ| ≤ C)
     (y : ℝ) :
-    HasDerivAt (fun r => replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t (ω₀, r)))
+    HasDerivAt (fun r => replicaDiff (μ.tilted (smartPathEnergy u t (ω₀, r)))
         F (fun x => ((x.1.2 : ℤ) : ℝ)))
       (2 * Real.sqrt (1 - t) * replicaPairAverage
-        ((smartPathBase N M).tilted (smartPathEnergy u t (ω₀, y))) F lastSpinKernel) y := by
+        (μ.tilted (smartPathEnergy u t (ω₀, y))) F lastSpinKernel) y := by
   set q := Real.sqrt (1 - t) with hq
   have hν (r : ℝ) : IsProbabilityMeasure
-      ((smartPathBase N M).tilted (smartPathEnergy u t (ω₀, r))) :=
+      (μ.tilted (smartPathEnergy u t (ω₀, r))) :=
     isProbabilityMeasure_tilted_perceptron_smart_path_energy hu hB (ω₀, r) t
   have hε : Measurable fun x : SmartPathState N M => ((x.1.2 : ℤ) : ℝ) := by fun_prop
   have hεb (x : SmartPathState N M) : |((x.1.2 : ℤ) : ℝ)| ≤ 1 := (abs_units_cast_eq_one _).le
   have hE' : ∀ x : SmartPathState N M, |q * ((x.1.2 : ℤ) : ℝ)| ≤ q := fun x => by
     rw [abs_mul, abs_units_cast_eq_one, mul_one, abs_of_nonneg (Real.sqrt_nonneg _)]
   have hbd := hasDerivAt_replicaDiff_tilted_replicaDiff
-    (μ := smartPathBase N M) (E := fun r => smartPathEnergy u t (ω₀, r))
+    (μ := μ) (E := fun r => smartPathEnergy u t (ω₀, r))
     (E' := fun _ x => q * ((x.1.2 : ℤ) : ℝ)) (t := y) (s := Metric.ball y 1)
     (Metric.ball_mem_nhds y one_pos)
     (fun r _ => measurable_smartPathEnergy_slice hu t (ω₀, r))
@@ -121,7 +122,7 @@ theorem hasDerivAt_replicaDiff_lastSpin_lastField {N M : ℕ} {R : Type*} [Finty
     (integrable_of_measurable_bound (by fun_prop) (M := q) hE')
   have := hν y
   have hbr := replicaDiffWith_replicaDiff_eq_two_mul_replicaPairAverage
-    ((smartPathBase N M).tilted (smartPathEnergy u t (ω₀, y))) F hF hFb
+    (μ.tilted (smartPathEnergy u t (ω₀, y))) F hF hFb
     (fun x : SmartPathState N M => ((x.1.2 : ℤ) : ℝ)) hε hεb 1 q
     (fun x => by rw [← sq]; exact units_cast_sq _)
   exact hbr ▸ hbd
@@ -130,25 +131,26 @@ theorem hasDerivAt_replicaDiff_lastSpin_lastField {N M : ℕ} {R : Type*} [Finty
 `y ∼ 𝒩(0, v)` (`v = 0` allowed), the `y`-average of the replica difference of the energy
 derivative `E'_Y` is `-v` times the `y`-average of the two-fresh-replica average of the last-spin
 kernel `ε_x ε_y`, the other disorder `ω₀ = (g, a)` being fixed. -/
-theorem integral_replicaDiff_smartPathEnergyDerivY {N M : ℕ} {R : Type*} [Fintype R]
+theorem integral_replicaDiff_smartPathEnergyDerivY {N M : ℕ}
+    {μ : Measure (SmartPathState N M)} [IsFiniteMeasure μ] [NeZero μ] {R : Type*} [Fintype R]
     [LinearOrder R] {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) 1) {u : ℝ → ℝ} (hu : Measurable u)
     {B : ℝ} (hB : ∀ x, u x ≤ B) (v : ℝ≥0) (ω₀ : (Fin M → Fin N → ℝ) × (Fin M → ℝ))
     (F : (R → SmartPathState N M) → ℝ) (hF : Measurable F) {C : ℝ} (hFb : ∀ σ, |F σ| ≤ C) :
-    ∫ y, replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t (ω₀, y))) F
+    ∫ y, replicaDiff (μ.tilted (smartPathEnergy u t (ω₀, y))) F
         (smartPathEnergyDerivY t (ω₀, y)) ∂(gaussianReal 0 v) =
       -(v : ℝ) * ∫ y, replicaPairAverage
-        ((smartPathBase N M).tilted (smartPathEnergy u t (ω₀, y))) F lastSpinKernel
+        (μ.tilted (smartPathEnergy u t (ω₀, y))) F lastSpinKernel
         ∂(gaussianReal 0 v) := by
   set q := Real.sqrt (1 - t) with hq
   have hq0 : 0 < q := Real.sqrt_pos.2 (sub_pos.2 ht.2)
   have hν (r : ℝ) : IsProbabilityMeasure
-      ((smartPathBase N M).tilted (smartPathEnergy u t (ω₀, r))) :=
+      (μ.tilted (smartPathEnergy u t (ω₀, r))) :=
     isProbabilityMeasure_tilted_perceptron_smart_path_energy hu hB (ω₀, r) t
   set Gf : ℝ → ℝ := fun y => replicaDiff
-    ((smartPathBase N M).tilted (smartPathEnergy u t (ω₀, y))) F
+    (μ.tilted (smartPathEnergy u t (ω₀, y))) F
     (fun x => ((x.1.2 : ℤ) : ℝ)) with hGf
   set PA : ℝ → ℝ := fun y => replicaPairAverage
-    ((smartPathBase N M).tilted (smartPathEnergy u t (ω₀, y))) F lastSpinKernel with hPA
+    (μ.tilted (smartPathEnergy u t (ω₀, y))) F lastSpinKernel with hPA
   have hderiv (y : ℝ) : HasDerivAt Gf (2 * q * PA y) y :=
     hasDerivAt_replicaDiff_lastSpin_lastField hu hB ω₀ F hF hFb y
   have hGc : Continuous Gf := continuous_iff_continuousAt.2 fun y => (hderiv y).continuousAt
@@ -178,7 +180,7 @@ theorem integral_replicaDiff_smartPathEnergyDerivY {N M : ℕ} {R : Type*} [Fint
   have hF' : Integrable (fun y => 2 * q * PA y) (gaussianReal 0 v) :=
     integrable_of_measurable_bound hPAm hK
   have hStein := integral_id_mul_gaussianReal_eq v hderiv hxF hF'
-  have hpt (y : ℝ) : replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t (ω₀, y))) F
+  have hpt (y : ℝ) : replicaDiff (μ.tilted (smartPathEnergy u t (ω₀, y))) F
       (smartPathEnergyDerivY t (ω₀, y)) = (-(1 / (2 * q)) * y) * Gf y := by
     have hfun : smartPathEnergyDerivY t (ω₀, y) =
         fun x => (-(1 / (2 * q)) * y) * ((x.1.2 : ℤ) : ℝ) := by
@@ -200,29 +202,31 @@ of `ε u'(S_k)` has derivative, in the `k`-th quenched coupling `a_k`, equal to
 `√(t/(N+1)) (replicaDiff (u'' + u'^2)(S_k) + 2 · replicaPairAverage of the potential kernel)`: the
 moving observable contributes `u''`, the moving measure contributes the diagonal `u'^2` and the
 pair term. Only `u ≤ B`, `|u'| ≤ D`, `|u''| ≤ D₂` are used. -/
-theorem hasDerivAt_replicaDiff_update {N M : ℕ} {R : Type*} [Fintype R] [LinearOrder R]
+theorem hasDerivAt_replicaDiff_update {N M : ℕ}
+    {μ : Measure (SmartPathState N M)} [IsFiniteMeasure μ] [NeZero μ]
+    {R : Type*} [Fintype R] [LinearOrder R]
     {t : ℝ} {u : ℝ → ℝ} {B D D₂ : ℝ} (hu : SmartPathPotential₂ u B D D₂)
     (ω : SmartPathDisorder N M) (k : Fin M)
     (F : (R → SmartPathState N M) → ℝ) (hF : Measurable F) {C : ℝ} (hFb : ∀ σ, |F σ| ≤ C)
     (z : ℝ) :
     HasDerivAt (fun r => replicaDiff
-        ((smartPathBase N M).tilted (smartPathEnergy u t (smartPathDisorderUpdate ω k r))) F
+        (μ.tilted (smartPathEnergy u t (smartPathDisorderUpdate ω k r))) F
         (fun x => ((x.1.2 : ℤ) : ℝ) *
           deriv u (smartPathField t (smartPathDisorderUpdate ω k r) x k)))
       (Real.sqrt (t / (N + 1)) *
-        replicaDiff ((smartPathBase N M).tilted
+        replicaDiff (μ.tilted
           (smartPathEnergy u t (smartPathDisorderUpdate ω k z))) F
           (fun x => deriv (deriv u) (smartPathField t (smartPathDisorderUpdate ω k z) x k) +
             deriv u (smartPathField t (smartPathDisorderUpdate ω k z) x k) ^ 2) +
         2 * Real.sqrt (t / (N + 1)) * replicaPairAverage
-          ((smartPathBase N M).tilted (smartPathEnergy u t (smartPathDisorderUpdate ω k z))) F
+          (μ.tilted (smartPathEnergy u t (smartPathDisorderUpdate ω k z))) F
           (smartPathPotentialKernel u t (smartPathDisorderUpdate ω k z) k)) z := by
   have hum : Measurable u := hu.toSmartPathPotential.measurable
   have hdu : Measurable (deriv u) := measurable_deriv u
   have hddu : Measurable (deriv (deriv u)) := measurable_deriv (deriv u)
   have hκ0 : 0 ≤ Real.sqrt (t / (N + 1)) := Real.sqrt_nonneg _
   have hν (r : ℝ) : IsProbabilityMeasure
-      ((smartPathBase N M).tilted (smartPathEnergy u t (smartPathDisorderUpdate ω k r))) :=
+      (μ.tilted (smartPathEnergy u t (smartPathDisorderUpdate ω k r))) :=
     isProbabilityMeasure_tilted_perceptron_smart_path_energy hum
       (fun x => hu.toSmartPathPotential.le x) _ t
   have hε : Measurable fun x : SmartPathState N M => ((x.1.2 : ℤ) : ℝ) := by fun_prop
@@ -250,7 +254,7 @@ theorem hasDerivAt_replicaDiff_update {N M : ℕ} {R : Type*} [Fintype R] [Linea
     rw [abs_mul, abs_of_nonneg hκ0]
     exact mul_le_mul_of_nonneg_left (hXb r x) hκ0
   have hmov := hasDerivAt_replicaDiff_tilted_moving_replicaDiff
-    (μ := smartPathBase N M) (R := R)
+    (μ := μ) (R := R)
     (E := fun r => smartPathEnergy u t (smartPathDisorderUpdate ω k r))
     (E' := fun r x => Real.sqrt (t / (N + 1)) *
       (((x.1.2 : ℤ) : ℝ) * deriv u (smartPathField t (smartPathDisorderUpdate ω k r) x k)))
@@ -273,7 +277,7 @@ theorem hasDerivAt_replicaDiff_update {N M : ℕ} {R : Type*} [Fintype R] [Linea
     (integrable_of_measurable_bound ((hXm z).const_mul _) (hE'b z))
   have := hν z
   have hbr := replicaDiffWith_replicaDiff_eq
-    ((smartPathBase N M).tilted (smartPathEnergy u t (smartPathDisorderUpdate ω k z))) F hF hFb
+    (μ.tilted (smartPathEnergy u t (smartPathDisorderUpdate ω k z))) F hF hFb
     (fun x : SmartPathState N M => ((x.1.2 : ℤ) : ℝ) *
       deriv u (smartPathField t (smartPathDisorderUpdate ω k z) x k)) (hXm z) (hXb z)
     (Real.sqrt (t / (N + 1)))
@@ -298,11 +302,11 @@ theorem hasDerivAt_replicaDiff_update {N M : ℕ} {R : Type*} [Fintype R] [Linea
   rw [hbr, replicaDiff_const_mul]
   have hI1 : Integrable (fun x : SmartPathState N M =>
       deriv (deriv u) (smartPathField t (smartPathDisorderUpdate ω k z) x k))
-      ((smartPathBase N M).tilted (smartPathEnergy u t (smartPathDisorderUpdate ω k z))) :=
+      (μ.tilted (smartPathEnergy u t (smartPathDisorderUpdate ω k z))) :=
     integrable_of_measurable_bound (hddu.comp (hfm z)) (M := D₂) fun x => hu.abs_deriv₂_le _
   have hI2 : Integrable (fun x : SmartPathState N M =>
       deriv u (smartPathField t (smartPathDisorderUpdate ω k z) x k) ^ 2)
-      ((smartPathBase N M).tilted (smartPathEnergy u t (smartPathDisorderUpdate ω k z))) :=
+      (μ.tilted (smartPathEnergy u t (smartPathDisorderUpdate ω k z))) :=
     integrable_of_measurable_bound ((hdu.comp (hfm z)).pow_const 2) (M := D ^ 2) fun x => by
       rw [abs_pow]
       exact pow_le_pow_left₀ (abs_nonneg _) (hu.abs_deriv_le _) 2
@@ -314,25 +318,51 @@ theorem hasDerivAt_replicaDiff_update {N M : ℕ} {R : Type*} [Fintype R] [Linea
     replicaDiff_add _ F hF.aestronglyMeasurable hFb hI1 hI2]
   ring
 
+/-- The diagonal observable `u''(S_k) + u'(S_k)^2` is bounded by `D₂ + D²`. -/
+theorem abs_deriv₂_add_sq_le {N M : ℕ} {u : ℝ → ℝ} {B D D₂ : ℝ}
+    (hu : SmartPathPotential₂ u B D D₂) (t : ℝ) (ω : SmartPathDisorder N M) (k : Fin M)
+    (x : SmartPathState N M) :
+    |deriv (deriv u) (smartPathField t ω x k) + deriv u (smartPathField t ω x k) ^ 2| ≤
+      D₂ + D ^ 2 := by
+  refine (abs_add_le _ _).trans (add_le_add (hu.abs_deriv₂_le _) ?_)
+  rw [abs_pow]
+  exact pow_le_pow_left₀ (abs_nonneg _) (hu.abs_deriv_le _) 2
+
+/-- The potential kernel `ε ε' u'(S_k) u'(S_k)'` is bounded by `D²`. -/
+theorem abs_smartPathPotentialKernel_le {N M : ℕ} {u : ℝ → ℝ} {B D : ℝ}
+    (hu : SmartPathPotential u B D) (t : ℝ) (ω : SmartPathDisorder N M) (k : Fin M)
+    (a b : SmartPathState N M) : |smartPathPotentialKernel u t ω k a b| ≤ D * D := by
+  unfold smartPathPotentialKernel
+  rw [show ((a.1.2 : ℤ) : ℝ) * ((b.1.2 : ℤ) : ℝ) * deriv u (smartPathField t ω a k) *
+      deriv u (smartPathField t ω b k) = (((a.1.2 : ℤ) : ℝ) * deriv u (smartPathField t ω a k)) *
+      (((b.1.2 : ℤ) : ℝ) * deriv u (smartPathField t ω b k)) by ring, abs_mul]
+  have h (x : SmartPathState N M) :
+      |((x.1.2 : ℤ) : ℝ) * deriv u (smartPathField t ω x k)| ≤ D := by
+    rw [abs_mul, abs_units_cast_eq_one, one_mul]
+    exact hu.abs_deriv_le _
+  exact mul_le_mul (h a) (h b) (abs_nonneg _) ((abs_nonneg _).trans (h a))
+
 /-- **Stein in one quenched coupling `a_k ∼ 𝒩(0, 1)`** (the other disorder fixed). With
 `h = ε u'(S_k)`, `∫ z, z · replicaDiff ν_z F h_z` equals
 `√(t/(N+1)) ∫ z, [replicaDiff ν_z F (u'' + u'^2)(S_k) + 2 replicaPairAverage ν_z F U_k]`: the
 diagonal `u'^2` and the pair term of the potential kernel `U_k`. -/
-theorem integral_mul_replicaDiff_update {N M : ℕ} {R : Type*} [Fintype R] [LinearOrder R]
+theorem integral_mul_replicaDiff_update {N M : ℕ}
+    {μ : Measure (SmartPathState N M)} [IsFiniteMeasure μ] [NeZero μ]
+    {R : Type*} [Fintype R] [LinearOrder R]
     {t : ℝ} {u : ℝ → ℝ} {B D D₂ : ℝ} (hu : SmartPathPotential₂ u B D D₂)
     (ω : SmartPathDisorder N M) (k : Fin M)
     (F : (R → SmartPathState N M) → ℝ) (hF : Measurable F) {C : ℝ} (hFb : ∀ σ, |F σ| ≤ C) :
     ∫ z, z * replicaDiff
-        ((smartPathBase N M).tilted (smartPathEnergy u t (smartPathDisorderUpdate ω k z))) F
+        (μ.tilted (smartPathEnergy u t (smartPathDisorderUpdate ω k z))) F
         (fun x => ((x.1.2 : ℤ) : ℝ) *
           deriv u (smartPathField t (smartPathDisorderUpdate ω k z) x k)) ∂(gaussianReal 0 1) =
       Real.sqrt (t / (N + 1)) * ∫ z,
-        (replicaDiff ((smartPathBase N M).tilted
+        (replicaDiff (μ.tilted
             (smartPathEnergy u t (smartPathDisorderUpdate ω k z))) F
           (fun x => deriv (deriv u) (smartPathField t (smartPathDisorderUpdate ω k z) x k) +
             deriv u (smartPathField t (smartPathDisorderUpdate ω k z) x k) ^ 2) +
         2 * replicaPairAverage
-          ((smartPathBase N M).tilted (smartPathEnergy u t (smartPathDisorderUpdate ω k z))) F
+          (μ.tilted (smartPathEnergy u t (smartPathDisorderUpdate ω k z))) F
           (smartPathPotentialKernel u t (smartPathDisorderUpdate ω k z) k))
         ∂(gaussianReal 0 1) := by
   have hum : Measurable u := hu.toSmartPathPotential.measurable
@@ -340,7 +370,7 @@ theorem integral_mul_replicaDiff_update {N M : ℕ} {R : Type*} [Fintype R] [Lin
   have hddu : Measurable (deriv (deriv u)) := measurable_deriv (deriv u)
   have hκ0 : 0 ≤ Real.sqrt (t / (N + 1)) := Real.sqrt_nonneg _
   have hν (r : ℝ) : IsProbabilityMeasure
-      ((smartPathBase N M).tilted (smartPathEnergy u t (smartPathDisorderUpdate ω k r))) :=
+      (μ.tilted (smartPathEnergy u t (smartPathDisorderUpdate ω k r))) :=
     isProbabilityMeasure_tilted_perceptron_smart_path_energy hum
       (fun x => hu.toSmartPathPotential.le x) _ t
   have hε : Measurable fun x : SmartPathState N M => ((x.1.2 : ℤ) : ℝ) := by fun_prop
@@ -359,48 +389,36 @@ theorem integral_mul_replicaDiff_update {N M : ℕ} {R : Type*} [Fintype R] [Lin
       deriv (deriv u) (smartPathField t (smartPathDisorderUpdate ω k r) x k) +
         deriv u (smartPathField t (smartPathDisorderUpdate ω k r) x k) ^ 2 :=
     (hddu.comp (hfm r)).add ((hdu.comp (hfm r)).pow_const 2)
-  have hLb (r : ℝ) (x : SmartPathState N M) :
-      |deriv (deriv u) (smartPathField t (smartPathDisorderUpdate ω k r) x k) +
-        deriv u (smartPathField t (smartPathDisorderUpdate ω k r) x k) ^ 2| ≤ D₂ + D ^ 2 := by
-    refine (abs_add_le _ _).trans (add_le_add (hu.abs_deriv₂_le _) ?_)
-    rw [abs_pow]
-    exact pow_le_pow_left₀ (abs_nonneg _) (hu.abs_deriv_le _) 2
+  have hLb (r : ℝ) (x : SmartPathState N M) :=
+    abs_deriv₂_add_sq_le hu t (smartPathDisorderUpdate ω k r) k x
   -- the derivative of `G`, its bound, and Stein
-  have hderiv (r : ℝ) := hasDerivAt_replicaDiff_update (t := t) hu ω k F hF hFb r
-  have hGc : Continuous fun r => replicaDiff ((smartPathBase N M).tilted
+  have hderiv (r : ℝ) := hasDerivAt_replicaDiff_update (μ := μ) (t := t) hu ω k F hF hFb r
+  have hGc : Continuous fun r => replicaDiff (μ.tilted
       (smartPathEnergy u t (smartPathDisorderUpdate ω k r))) F
       (fun x => ((x.1.2 : ℤ) : ℝ) *
         deriv u (smartPathField t (smartPathDisorderUpdate ω k r) x k)) :=
     continuous_iff_continuousAt.2 fun r => (hderiv r).continuousAt
-  have hGb (r : ℝ) : |replicaDiff ((smartPathBase N M).tilted
+  have hGb (r : ℝ) : |replicaDiff (μ.tilted
       (smartPathEnergy u t (smartPathDisorderUpdate ω k r))) F
       (fun x => ((x.1.2 : ℤ) : ℝ) *
         deriv u (smartPathField t (smartPathDisorderUpdate ω k r) x k))| ≤
       C * ((Fintype.card R : ℝ) * D + (Fintype.card R : ℝ) * D) := by
     have := hν r
     exact abs_replicaDiff_le _ F hF hFb _ (hXm r) (hXb r)
-  have hxF : Integrable (fun r => r * replicaDiff ((smartPathBase N M).tilted
+  have hxF : Integrable (fun r => r * replicaDiff (μ.tilted
       (smartPathEnergy u t (smartPathDisorderUpdate ω k r))) F
       (fun x => ((x.1.2 : ℤ) : ℝ) *
         deriv u (smartPathField t (smartPathDisorderUpdate ω k r) x k))) (gaussianReal 0 1) := by
     have := (IsGaussian.integrable_id (μ := gaussianReal 0 1)).bdd_mul_of_abs_le
       hGc.aestronglyMeasurable (ae_of_all _ hGb)
     simpa only [mul_comm, id] using this
-  have hKb (r : ℝ) (a b : SmartPathState N M) :
-      |smartPathPotentialKernel u t (smartPathDisorderUpdate ω k r) k a b| ≤ D * D := by
-    unfold smartPathPotentialKernel
-    rw [show ((a.1.2 : ℤ) : ℝ) * ((b.1.2 : ℤ) : ℝ) *
-        deriv u (smartPathField t (smartPathDisorderUpdate ω k r) a k) *
-        deriv u (smartPathField t (smartPathDisorderUpdate ω k r) b k) =
-        (((a.1.2 : ℤ) : ℝ) * deriv u (smartPathField t (smartPathDisorderUpdate ω k r) a k)) *
-        (((b.1.2 : ℤ) : ℝ) * deriv u (smartPathField t (smartPathDisorderUpdate ω k r) b k))
-        by ring, abs_mul]
-    exact mul_le_mul (hXb r a) (hXb r b) (abs_nonneg _) ((abs_nonneg _).trans (hXb r a))
-  have hG'b (r : ℝ) : |Real.sqrt (t / (N + 1)) * replicaDiff ((smartPathBase N M).tilted
+  have hKb (r : ℝ) (a b : SmartPathState N M) :=
+    abs_smartPathPotentialKernel_le hu.toSmartPathPotential t (smartPathDisorderUpdate ω k r) k a b
+  have hG'b (r : ℝ) : |Real.sqrt (t / (N + 1)) * replicaDiff (μ.tilted
         (smartPathEnergy u t (smartPathDisorderUpdate ω k r))) F
       (fun x => deriv (deriv u) (smartPathField t (smartPathDisorderUpdate ω k r) x k) +
         deriv u (smartPathField t (smartPathDisorderUpdate ω k r) x k) ^ 2) +
-      2 * Real.sqrt (t / (N + 1)) * replicaPairAverage ((smartPathBase N M).tilted
+      2 * Real.sqrt (t / (N + 1)) * replicaPairAverage (μ.tilted
         (smartPathEnergy u t (smartPathDisorderUpdate ω k r))) F
         (smartPathPotentialKernel u t (smartPathDisorderUpdate ω k r) k)| ≤
       Real.sqrt (t / (N + 1)) * (C * ((Fintype.card R : ℝ) * (D₂ + D ^ 2) +
@@ -416,20 +434,20 @@ theorem integral_mul_replicaDiff_update {N M : ℕ} {R : Type*} [Fintype R] [Lin
       exact mul_le_mul_of_nonneg_left (abs_replicaPairAverage_le _ F hFb
         (abs_replicaPairCombination_le (hKb r))) (by positivity)
   have hG'm : Measurable fun r => Real.sqrt (t / (N + 1)) * replicaDiff
-      ((smartPathBase N M).tilted (smartPathEnergy u t (smartPathDisorderUpdate ω k r))) F
+      (μ.tilted (smartPathEnergy u t (smartPathDisorderUpdate ω k r))) F
       (fun x => deriv (deriv u) (smartPathField t (smartPathDisorderUpdate ω k r) x k) +
         deriv u (smartPathField t (smartPathDisorderUpdate ω k r) x k) ^ 2) +
-      2 * Real.sqrt (t / (N + 1)) * replicaPairAverage ((smartPathBase N M).tilted
+      2 * Real.sqrt (t / (N + 1)) * replicaPairAverage (μ.tilted
         (smartPathEnergy u t (smartPathDisorderUpdate ω k r))) F
         (smartPathPotentialKernel u t (smartPathDisorderUpdate ω k r) k) := by
-    have : (fun r => Real.sqrt (t / (N + 1)) * replicaDiff ((smartPathBase N M).tilted
+    have : (fun r => Real.sqrt (t / (N + 1)) * replicaDiff (μ.tilted
         (smartPathEnergy u t (smartPathDisorderUpdate ω k r))) F
         (fun x => deriv (deriv u) (smartPathField t (smartPathDisorderUpdate ω k r) x k) +
           deriv u (smartPathField t (smartPathDisorderUpdate ω k r) x k) ^ 2) +
-        2 * Real.sqrt (t / (N + 1)) * replicaPairAverage ((smartPathBase N M).tilted
+        2 * Real.sqrt (t / (N + 1)) * replicaPairAverage (μ.tilted
           (smartPathEnergy u t (smartPathDisorderUpdate ω k r))) F
           (smartPathPotentialKernel u t (smartPathDisorderUpdate ω k r) k)) =
-        deriv fun r => replicaDiff ((smartPathBase N M).tilted
+        deriv fun r => replicaDiff (μ.tilted
           (smartPathEnergy u t (smartPathDisorderUpdate ω k r))) F
           (fun x => ((x.1.2 : ℤ) : ℝ) *
             deriv u (smartPathField t (smartPathDisorderUpdate ω k r) x k)) :=
