@@ -141,7 +141,7 @@ theorem hasDerivAt_integral_mul_exp_mul_of_ae_abs_le
       |B| * Real.exp ((|t| + 1) * |C|) * |C|)
     (Ioo_mem_nhds (by linarith) (by linarith))
     (Eventually.of_forall fun s => (hY.mul (hX.const_mul s).exp).aestronglyMeasurable)
-    ((hi t).bdd_mul hY.aestronglyMeasurable (by simpa only [Real.norm_eq_abs] using hYbound))
+    ((hi t).bdd_mul_of_abs_le hY.aestronglyMeasurable hYbound)
     ((hY.mul (hX.const_mul t).exp).mul hX).aestronglyMeasurable ?_
     (integrable_const _) ?_).2
   · filter_upwards [hXbound, hYbound] with a hx hy
@@ -226,7 +226,7 @@ theorem hasDerivAt_integral_tilted_of_dominated {α : Type*} [MeasurableSpace α
     (hd.mono fun a ha r hr => by simpa only [mul_comm] using (ha r hr).exp)
   have hnum := hasDerivAt_integral_of_dominated_loc_of_deriv_le hs
     (hmeas.mono fun r hr => hF.mul hr)
-    (hi.bdd_mul hF (by simpa only [Real.norm_eq_abs] using hFb)) (hF.mul hdm)
+    (hi.bdd_mul_of_abs_le hF hFb) (hF.mul hdm)
     (bound := fun a => |C| * b a)
     (by
       filter_upwards [hdb, hFb] with a hda hFa r hr
@@ -328,10 +328,10 @@ theorem integrable_tilted_of_ae_le {α : Type*} [MeasurableSpace α] {μ : Measu
 integrable under an exponential tilt with energy bounded above. -/
 theorem integrable_tilted_of_abs_le_envelope {α : Type*} [MeasurableSpace α] {μ : Measure α}
     [IsFiniteMeasure μ] {e g b : α → ℝ} {A : ℝ} (he : AEMeasurable e μ)
-    (hg : AEStronglyMeasurable g μ) (hb : Integrable b μ) (heb : ∀ a, e a ≤ A)
-    (hgb : ∀ a, |g a| ≤ b a) : Integrable g (μ.tilted e) :=
-  integrable_tilted_of_ae_le he (ae_of_all _ heb)
-    (hb.mono' hg (ae_of_all _ fun a => by simpa only [Real.norm_eq_abs] using hgb a))
+    (hg : AEStronglyMeasurable g μ) (hb : Integrable b μ) (heb : ∀ᵐ a ∂μ, e a ≤ A)
+    (hgb : ∀ᵐ a ∂μ, |g a| ≤ b a) : Integrable g (μ.tilted e) :=
+  integrable_tilted_of_ae_le he heb
+    (hb.mono' hg (hgb.mono fun a ha => by simpa only [Real.norm_eq_abs] using ha))
 
 /-- A jointly measurable observable and random log-density have a measurable tilted integral.
 The observable may depend on the same environment as the log-density. -/
@@ -374,18 +374,18 @@ theorem sum_sq_integral_tilted_le {α ι : Type*} [MeasurableSpace α] [Fintype 
 of the other factor. The inequality itself requires no measurability of the bounded factor. -/
 theorem abs_integral_mul_sub_integral_mul_le {α : Type*} [MeasurableSpace α]
     {μ : Measure α} [IsProbabilityMeasure μ]
-    (F h : α → ℝ) {C : ℝ} (hFb : ∀ a, |F a| ≤ C) (hh : Integrable h μ) :
+    (F h : α → ℝ) {C : ℝ} (hFb : ∀ᵐ a ∂μ, |F a| ≤ C) (hh : Integrable h μ) :
     |(∫ a, F a * h a ∂μ) - (∫ a, F a ∂μ) * (∫ a, h a ∂μ)| ≤
       2 * |C| * ∫ a, |h a| ∂μ := by
   have hF : |∫ a, F a ∂μ| ≤ |C| := by
     have hx := norm_integral_le_of_norm_le_const (μ := μ) (f := F) (C := |C|)
-      (ae_of_all _ fun a => by simpa only [Real.norm_eq_abs] using (hFb a).trans (le_abs_self C))
+      (hFb.mono fun a ha => by simpa only [Real.norm_eq_abs] using ha.trans (le_abs_self C))
     simpa using hx
   have hprod : |∫ a, F a * h a ∂μ| ≤ |C| * ∫ a, |h a| ∂μ := by
     have hx := norm_integral_le_of_norm_le (f := fun a => F a * h a) (hh.abs.const_mul |C|)
-      (ae_of_all _ fun a => by
+      (hFb.mono fun a ha => by
         rw [Real.norm_eq_abs, abs_mul]
-        exact mul_le_mul_of_nonneg_right ((hFb a).trans (le_abs_self C)) (abs_nonneg _))
+        exact mul_le_mul_of_nonneg_right (ha.trans (le_abs_self C)) (abs_nonneg _))
     simpa only [Real.norm_eq_abs, integral_const_mul] using hx
   have hhmean : |∫ a, h a ∂μ| ≤ ∫ a, |h a| ∂μ := abs_integral_le_integral_abs
   calc _ ≤ |∫ a, F a * h a ∂μ| + |(∫ a, F a ∂μ) * ∫ a, h a ∂μ| := abs_sub _ _

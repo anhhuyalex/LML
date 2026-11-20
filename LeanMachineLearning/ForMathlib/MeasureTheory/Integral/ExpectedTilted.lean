@@ -35,7 +35,7 @@ private theorem abs_integral_mul_sub_integral_mul_tilted_le
   have hiExp := integrable_exp_of_ae_le he (ae_of_all _ fun a => le_of_abs_le (heb a))
   have : IsProbabilityMeasure (μ.tilted (e)) := isProbabilityMeasure_tilted
     hiExp
-  have hcov := abs_integral_mul_sub_integral_mul_le F (Y) hFb hiTilt
+  have hcov := abs_integral_mul_sub_integral_mul_le F (Y) (ae_of_all _ hFb) hiTilt
   have htilt := abs_integral_tilted_le_exp_mul_integral_abs he
     (ae_of_all _ heb) hiY.abs
   simp only [abs_abs] at htilt
@@ -176,7 +176,7 @@ theorem hasDerivAt_integral_integral_pi_tilted_of_dominated
   have hiTilt : Integrable (E' t ω) (μ.tilted (E t ω)) :=
     integrable_tilted_of_abs_le_envelope hmEω.aemeasurable
       (hE' t ht).of_uncurry_left.aestronglyMeasurable (hb.const_mul (B ω))
-      (fun a => le_of_abs_le (hEb t ht ω a)) (hdb t ht ω)
+      (ae_of_all _ fun a => le_of_abs_le (hEb t ht ω a)) (ae_of_all _ (hdb t ht ω))
   have hprob : IsProbabilityMeasure (μ.tilted (E t ω)) :=
     isProbabilityMeasure_tilted_of_ae_le hmEω.aemeasurable
       (ae_of_all _ fun a => le_of_abs_le (hEb t ht ω a))

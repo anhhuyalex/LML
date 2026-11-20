@@ -247,32 +247,8 @@ theorem replicaDiff_zero {α R : Type*} [MeasurableSpace α] [Fintype R] (ν : M
 theorem replicaDiff_const_mul {α R : Type*} [MeasurableSpace α] [Fintype R] (ν : Measure α)
     (F : (R → α) → ℝ) (c : ℝ) (h : α → ℝ) :
     replicaDiff ν F (fun x => c * h x) = c * replicaDiff ν F h := by
-  dsimp only [replicaDiff]
-  have h1 : (∑ i, ∫ σ : Option R → α, F (fun j => σ (some j)) * (c * h (σ (some i)))
-      ∂(Measure.pi fun _ : Option R => ν)) =
-      c * ∑ i, ∫ σ : Option R → α, F (fun j => σ (some j)) * h (σ (some i))
-        ∂(Measure.pi fun _ : Option R => ν) := by
-    rw [Finset.mul_sum]
-    refine Finset.sum_congr rfl fun i _ => ?_
-    have heq : (fun σ : Option R → α => F (fun j => σ (some j)) * (c * h (σ (some i)))) =
-        fun σ => c * (F (fun j => σ (some j)) * h (σ (some i))) := by ext σ; ring
-    rw [heq, integral_const_mul]
-  have h2 : (∫ σ : Option R → α, F (fun j => σ (some j)) * (c * h (σ none))
-      ∂(Measure.pi fun _ : Option R => ν)) =
-      c * ∫ σ : Option R → α, F (fun j => σ (some j)) * h (σ none)
-        ∂(Measure.pi fun _ : Option R => ν) := by
-    have heq : (fun σ : Option R → α => F (fun j => σ (some j)) * (c * h (σ none))) =
-        fun σ => c * (F (fun j => σ (some j)) * h (σ none)) := by ext σ; ring
-    rw [heq, integral_const_mul]
-  rw [h1, h2]
+  simp only [replicaDiff, mul_left_comm _ c, integral_const_mul, ← Finset.mul_sum]
   ring
-
-/-- Wrapper bounding and ensuring integrability of `F * f` when `|F| ≤ C`. -/
-theorem Integrable.bdd_mul_of_abs_le {α : Type*} [MeasurableSpace α]
-    {μ : Measure α} {f F : α → ℝ} {C : ℝ} (hf : Integrable f μ)
-    (hF : AEStronglyMeasurable F μ) (hFb : ∀ a, |F a| ≤ C) :
-    Integrable (fun a => F a * f a) μ :=
-  hf.bdd_mul hF (ae_of_all _ fun a => by simpa only [Real.norm_eq_abs] using hFb a)
 
 /-- A covariance with a sum over the observed replicas is a sum of observed-replica terms
 minus the cardinality times one fresh-replica term. The one-state observable only needs to be
@@ -288,8 +264,7 @@ theorem integral_pi_cov_sum_eq_sum_sub_fresh {α R : Type*} [MeasurableSpace α]
     replicaDiff ν F h := by
   have hI (i : R) : Integrable (fun σ : R → α => h (σ i)) (Measure.pi fun _ : R => ν) :=
     integrable_comp_eval hh
-  have hFI (i : R) := (hI i).bdd_mul hF (ae_of_all _ fun σ => by
-    simpa only [Real.norm_eq_abs] using hFb σ)
+  have hFI (i : R) := (hI i).bdd_mul_of_abs_le hF (ae_of_all _ hFb)
   have hnum : (∫ σ, F σ * (∑ i, h (σ i)) ∂(Measure.pi fun _ : R => ν)) =
       ∑ i, ∫ σ : Option R → α, F (fun j => σ (some j)) * h (σ (some i))
         ∂(Measure.pi fun _ : Option R => ν) := by
@@ -320,9 +295,8 @@ theorem replicaDiff_add {α R : Type*} [MeasurableSpace α] [Fintype R] (ν : Me
   have hS (h : α → ℝ) (hh : Integrable h ν) : Integrable (fun σ : R → α => ∑ i, h (σ i))
       (Measure.pi fun _ : R => ν) := integrable_finsetSum _ fun i _ => integrable_comp_eval hh
   have hFS (h : α → ℝ) (hh : Integrable h ν) :
-      Integrable (fun σ : R → α => F σ * ∑ i, h (σ i)) (Measure.pi fun _ : R => ν) := by
-    simpa only [mul_comm] using (hS h hh).bdd_mul hF (ae_of_all _ fun σ => by
-      simpa only [Real.norm_eq_abs] using hFb σ)
+      Integrable (fun σ : R → α => F σ * ∑ i, h (σ i)) (Measure.pi fun _ : R => ν) :=
+    (hS h hh).bdd_mul_of_abs_le hF (ae_of_all _ hFb)
   rw [hcov (fun x => h₁ x + h₂ x) (hh₁.add hh₂), hcov _ hh₁, hcov _ hh₂]
   simp only [Finset.sum_add_distrib, mul_add]
   rw [integral_add (hFS h₁ hh₁) (hFS h₂ hh₂), integral_add (hS h₁ hh₁) (hS h₂ hh₂)]

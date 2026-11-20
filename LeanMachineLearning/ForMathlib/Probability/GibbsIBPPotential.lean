@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.BoundedTilted
+public import Mathlib.Probability.Distributions.Gaussian.Fernique
 
 /-!
 # Gaussian integration by parts for Gibbs measures with potential energy
@@ -110,7 +111,7 @@ theorem integral_id_mul_deriv_u_mul_exp_affine_gaussianReal (v : NNReal)
         _ = D ^ 2 := (sq D).symm
     exact abs_mul_exp_le hsum (hB _)
   have hG1 : Integrable (id : ℝ → ℝ) (gaussianReal 0 v) :=
-    integrable_id_gaussianReal
+    IsGaussian.integrable_id (μ := gaussianReal 0 v)
   have hxF : Integrable (fun z => z * (u' (S₀ + c * z) * Real.exp (u (S₀ + c * z))))
       (gaussianReal 0 v) := by
     have heq : (fun z => z * (u' (S₀ + c * z) * Real.exp (u (S₀ + c * z)))) =

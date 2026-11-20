@@ -186,7 +186,9 @@ def lastSpinKernel {N M : ℕ} (x y : SmartPathState N M) : ℝ :=
 
 /-! ### Algebraic prefactors and replica combination identities -/
 
-/-- Generic square-root scaling prefactor for Gaussian integration by parts on the smart path. -/
+/-- Square-root scaling prefactor of the Gaussian integration by parts on the smart path:
+`(1 / (2 * √(N + 1))) * (1 / √s) * √(s / (N + 1)) = 1 / (2 * (N + 1))` for `s > 0`. With `s = t`
+this is the quenched-disorder prefactor, with `s = 1 - t` the auxiliary-spin one. -/
 theorem smartPath_sqrt_scaling_prefactor_eq {N : ℕ} {s : ℝ} (hs : 0 < s) :
     (1 / (2 * Real.sqrt (N + 1 : ℕ))) * (1 / Real.sqrt s) *
       Real.sqrt (s / (N + 1 : ℕ)) =
@@ -199,16 +201,6 @@ theorem smartPath_sqrt_scaling_prefactor_eq {N : ℕ} {s : ℝ} (hs : 0 < s) :
   have h3 := Real.mul_self_sqrt hN.le
   field_simp
   nlinarith [h3]
-
-/-- Simplification of the quenched disorder prefactor: the product
-`(1 / (2 * √(N + 1))) * (1 / √t) * √(t / (N + 1))` simplifies to `1 / (2 * (N + 1))`,
-cancelling the `√t` denominator. -/
-theorem smartPath_quenched_prefactor_eq {N : ℕ} {t : ℝ}
-    (ht : t ∈ Set.Ioo (0 : ℝ) 1) :
-    (1 / (2 * Real.sqrt (N + 1 : ℕ))) * (1 / Real.sqrt t) *
-      Real.sqrt (t / (N + 1 : ℕ)) =
-    1 / (2 * (N + 1 : ℝ)) :=
-  smartPath_sqrt_scaling_prefactor_eq ht.1
 
 /-- Simplification of the auxiliary spin prefactor: the product
 `(1 / (2 * √(N + 1))) * (- 1 / √(1 - t)) * √((1 - t) / (N + 1))` simplifies to

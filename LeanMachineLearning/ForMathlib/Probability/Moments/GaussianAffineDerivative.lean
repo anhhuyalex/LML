@@ -63,26 +63,19 @@ theorem integral_deriv_comp_affine_mul_id_gaussianReal (hf' : ∀ y, HasDerivAt 
     ∫ z, f' (w * z + h) * z ∂(gaussianReal 0 1) =
       w * ∫ z, f'' (w * z + h) ∂(gaussianReal 0 1) := by
   have hf'c : Continuous f' := continuous_iff_continuousAt.2 fun y => (hf' y).continuousAt
-  have hF : ∀ z, HasDerivAt (fun y => f' (w * y + h)) (w * f'' (w * z + h)) z := fun z => by
-    have hl : HasDerivAt (fun y : ℝ => w * y + h) w z := by
-      simpa using ((hasDerivAt_id' z).const_mul w).add_const h
-    exact ((hf' (w * z + h)).comp z hl).congr_deriv (mul_comm _ _)
-  have hxF : Integrable (fun z : ℝ => z * f' (w * z + h)) (gaussianReal 0 1) := by
+  have h1 : Integrable (fun z : ℝ => z * f' (h + w * z)) (gaussianReal 0 1) := by
     refine ((IsGaussian.integrable_id (μ := gaussianReal 0 1)).norm.const_mul C₁).mono'
-      (((continuous_id'.mul (hf'c.comp (by fun_prop : Continuous fun z : ℝ => w * z + h))))
+      ((continuous_id'.mul (hf'c.comp (by fun_prop : Continuous fun z : ℝ => h + w * z)))
         |>.aestronglyMeasurable)
       (Eventually.of_forall fun z => ?_)
     rw [Real.norm_eq_abs, abs_mul, mul_comm, Real.norm_eq_abs]
-    exact mul_le_mul_of_nonneg_right ((hC₁ _).trans le_rfl) (abs_nonneg _)
-  have hF' : Integrable (fun z : ℝ => w * f'' (w * z + h)) (gaussianReal 0 1) :=
-    (integrable_const (|w| * C₂)).mono'
-      ((continuous_const.mul (hf''c.comp (by fun_prop))).aestronglyMeasurable)
-      (Eventually.of_forall fun z => by
-        rw [Real.norm_eq_abs, abs_mul]
-        exact mul_le_mul_of_nonneg_left (hC₂ _) (abs_nonneg _))
-  have := integral_id_mul_gaussianReal_eq 1 hF hxF hF'
-  simp only [NNReal.coe_one, one_mul] at this
-  rw [← integral_const_mul]
+    exact mul_le_mul_of_nonneg_right (hC₁ _) (abs_nonneg _)
+  have h2 : Integrable (fun z : ℝ => f'' (h + w * z)) (gaussianReal 0 1) :=
+    (integrable_const C₂).mono'
+      ((hf''c.comp (by fun_prop : Continuous fun z : ℝ => h + w * z)).aestronglyMeasurable)
+      (Eventually.of_forall fun z => by simpa only [Real.norm_eq_abs] using hC₂ _)
+  have := integral_id_mul_comp_affine_gaussianReal 1 hf' h w h1 h2
+  simp only [NNReal.coe_one, one_mul, add_comm h] at this ⊢
   simpa [mul_comm] using this
 
 /-- **Derivative of the Gaussian average in the standard deviation:** under the assumptions of

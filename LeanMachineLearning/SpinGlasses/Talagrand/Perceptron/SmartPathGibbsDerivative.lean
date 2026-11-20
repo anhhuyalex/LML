@@ -90,7 +90,7 @@ theorem hasDerivAt_integral_pi_perceptron_smart_path {N M : ℕ} {R : Type*} [Fi
     isProbabilityMeasure_tilted_perceptron_smart_path_energy hu.continuous.measurable hB g a y t
   have hiTilted : Integrable (E' t) (μ.tilted (E t)) :=
     integrable_tilted_of_abs_le_envelope (hmE t).aemeasurable (hmE' t).aestronglyMeasurable
-      hib (hEb t hts) (hdb t hts)
+      hib (ae_of_all _ (hEb t hts)) (ae_of_all _ (hdb t hts))
   convert hres using 1
   exact (integral_pi_cov_sum_eq_sum_sub_fresh (μ.tilted (E t)) F
     hF.aestronglyMeasurable hFb (E' t) hiTilted).symm
@@ -128,5 +128,5 @@ theorem integrable_tilted_perceptron_smart_path_energy_deriv {N M : ℕ} {u : �
   have hdb (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) : |E' t x| ≤ b x :=
     abs_deriv_perceptron_smart_path_energy_le hδ ⟨hδt.le, by linarith⟩ hD g a x.2 x.1.1 x.1.2 y
   exact integrable_tilted_of_abs_le_envelope hmE.aemeasurable hmE'.aestronglyMeasurable
-    hib hEb hdb
+    hib (ae_of_all _ hEb) (ae_of_all _ hdb)
 end SpinGlasses

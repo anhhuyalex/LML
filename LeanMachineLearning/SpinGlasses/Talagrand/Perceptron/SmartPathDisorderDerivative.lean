@@ -341,21 +341,8 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms {N M :
 /-- A spin-only replica observable is automatically measurable on the configuration space. -/
 theorem measurable_spin_only {N M : ℕ} {R : Type*} [Finite R]
     (f : (R → (Fin N → ℤˣ) × ℤˣ) → ℝ) :
-    Measurable (fun x : R → ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ) => f (fun r => (x r).1)) := by
-  have hm : Measurable (fun x : R → ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ) =>
-      fun r => (x r).1) := by
-    refine measurable_pi_iff.mpr fun r => ?_
-    exact measurable_fst.comp (measurable_pi_apply r)
-  have hf : Measurable f := measurable_of_countable f
-  exact hf.comp hm
-
-/-- A spin-only replica observable is automatically bounded. -/
-theorem exists_abs_le_spin_only {N M : ℕ} {R : Type*} [Finite R]
-    (f : (R → (Fin N → ℤˣ) × ℤˣ) → ℝ) :
-    ∃ C : ℝ, ∀ x : R → ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ),
-      |f (fun r => (x r).1)| ≤ C := by
-  obtain ⟨C, hC⟩ := exists_abs_le_of_finite f
-  exact ⟨C, fun x => hC (fun r => (x r).1)⟩
+    Measurable (fun x : R → ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ) => f (fun r => (x r).1)) :=
+  (measurable_of_finite f).comp (by fun_prop)
 
 /-- **Spin-only derivative of the quenched replica average.** A spin-only observable
 requires no separate measurability or boundedness hypothesis. -/
@@ -385,10 +372,10 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path_spin_only {N M : �
         ∂(Measure.pi fun _ : R => μ.tilted (E s ω)) ∂P)
       (∫ ω, replicaDiff (μ.tilted (E t ω)) (fun σ => f (fun r => (σ r).1)) (E' t ω) ∂P) t := by
   intro S E E' μ P
-  obtain ⟨C, hC⟩ := exists_abs_le_spin_only (N := N) (M := M) f
+  obtain ⟨C, hC⟩ := exists_abs_le_of_finite f
   have hm := measurable_spin_only (N := N) (M := M) f
   exact hasDerivAt_integral_integral_pi_perceptron_smart_path ht hu hB hD v
-    (fun σ => f (fun r => (σ r).1)) hm hC
+    (fun σ => f (fun r => (σ r).1)) hm fun x => hC _
 
 /-- **Spin-only three-term expansion of the quenched replica derivative.** -/
 theorem hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms_spin_only {N M : ℕ}
@@ -428,10 +415,10 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms_spin_o
     HasDerivAt (fun s => ∫ ω, J s ω ∂P)
       (∫ ω, diff (E'_a t ω) ω + diff (E'_ξ t ω) ω + diff (E'_Y t ω) ω ∂P) t := by
   intro S E E'_a E'_ξ E'_Y μ J P diff
-  obtain ⟨C, hC⟩ := exists_abs_le_spin_only (N := N) (M := M) f
+  obtain ⟨C, hC⟩ := exists_abs_le_of_finite f
   have hm := measurable_spin_only (N := N) (M := M) f
   have h := hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms
-    (Pold := Pold) ht hu hB hD v (fun σ => f (fun r => (σ r).1)) hm hC
+    (Pold := Pold) ht hu hB hD v (fun σ => f (fun r => (σ r).1)) hm fun x => hC _
   dsimp only [S, E, E'_a, E'_ξ, E'_Y, μ, J, P] at h ⊢
   exact h
 

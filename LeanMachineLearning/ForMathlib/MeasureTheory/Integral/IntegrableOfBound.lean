@@ -103,4 +103,12 @@ theorem integral_integral_sum_sum_of_bound {Ω α ι κ : Type*} [MeasurableSpac
     (fun p _ => houter p.1 p.2)
   simpa only [Fintype.sum_prod_type] using this
 
+/-- A bounded measurable factor times an integrable function is integrable. The bound on `F`
+only needs to hold almost everywhere. -/
+theorem Integrable.bdd_mul_of_abs_le {α : Type*} [MeasurableSpace α]
+    {μ : Measure α} {f F : α → ℝ} {C : ℝ} (hf : Integrable f μ)
+    (hF : AEStronglyMeasurable F μ) (hFb : ∀ᵐ a ∂μ, |F a| ≤ C) :
+    Integrable (fun a => F a * f a) μ :=
+  hf.bdd_mul hF (hFb.mono fun a ha => by simpa only [Real.norm_eq_abs] using ha)
+
 end MeasureTheory
