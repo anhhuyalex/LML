@@ -17,9 +17,9 @@ formalized yet; this module contains the algebra it will use.
 
 * `smartPath_sqrt_scaling_prefactor_eq`, `smartPath_auxiliary_prefactor_eq_neg`: the prefactors
   that cancel the `√s` and `√(1 - s)` denominators of the energy derivative (2.27);
-* `replicaPairDiff_eq_half_replica_covariance_combination` and
-  `replicaPairDiff_lastSpinKernel`: the two-replica combination of (2.24)--(2.25) as half of the
-  four-term covariance combination of the cavity method.
+* `replicaPairCombination_eq_half_replica_covariance_combination` and
+  `replicaPairCombination_lastSpinKernel`: the two-replica combination of (2.24)--(2.25) as half of
+  the four-term covariance combination of the cavity method.
 
 The objects of the path (`smartPathEnergy`, `smartPathBase`, ...) are in `SmartPathModel.lean`.
 -/
@@ -59,13 +59,13 @@ theorem smartPath_auxiliary_prefactor_eq_neg {N : ℕ} {t : ℝ}
   linear_combination -this
 
 /-- Connection with the 4-term replica covariance combination from `SKCavityBounds.lean`:
-for any kernel with constant diagonal, `replicaPairDiff` is exactly half of the 4-term
+for any kernel with constant diagonal, `replicaPairCombination` is exactly half of the 4-term
 combination. -/
-theorem replicaPairDiff_eq_half_replica_covariance_combination
+theorem replicaPairCombination_eq_half_replica_covariance_combination
     {R α : Type*} [Fintype R] [LinearOrder R] (U : α → α → ℝ) (C : ℝ)
     (hdiag : ∀ a, U a a = C) (hsym : ∀ a b, U a b = U b a)
     (τ : Option (Option R) → α) :
-    replicaPairDiff U τ =
+    replicaPairCombination U τ =
       ((∑ r : R, ∑ r' : R, U (τ (some (some r))) (τ (some (some r')))) -
           2 * (Fintype.card R : ℝ) *
             (∑ r : R, U (τ (some (some r))) (τ (some none))) -
@@ -73,23 +73,23 @@ theorem replicaPairDiff_eq_half_replica_covariance_combination
           (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) *
             U (τ (some none)) (τ none)) / 2 := by
   rw [replica_covariance_combination_eq_two_sum_lt U C hdiag hsym τ]
-  dsimp only [replicaPairDiff]
+  dsimp only [replicaPairCombination]
   ring
 
 /-- For the last-spin interaction kernel `lastSpinKernel x y = ε_x ε_y` the diagonal is `1`
-(`σ_{N+1}² = 1`) and the kernel is symmetric, so `replicaPairDiff` is half of the four-term
+(`σ_{N+1}² = 1`) and the kernel is symmetric, so `replicaPairCombination` is half of the four-term
 replica covariance combination, with no hypothesis on the replicas. Note: `[LinearOrder R]` is
 only used to order the pairs `r < r'` without double counting. -/
-theorem replicaPairDiff_lastSpinKernel {N M : ℕ} {R : Type*} [Fintype R] [LinearOrder R]
+theorem replicaPairCombination_lastSpinKernel {N M : ℕ} {R : Type*} [Fintype R] [LinearOrder R]
     (τ : Option (Option R) → SmartPathState N M) :
-    replicaPairDiff (lastSpinKernel (N := N) (M := M)) τ =
+    replicaPairCombination (lastSpinKernel (N := N) (M := M)) τ =
       ((∑ r : R, ∑ r' : R, lastSpinKernel (τ (some (some r))) (τ (some (some r')))) -
           2 * (Fintype.card R : ℝ) *
             (∑ r : R, lastSpinKernel (τ (some (some r))) (τ (some none))) -
           (Fintype.card R : ℝ) * lastSpinKernel (τ (some none)) (τ (some none)) +
           (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) *
             lastSpinKernel (τ (some none)) (τ none)) / 2 :=
-  replicaPairDiff_eq_half_replica_covariance_combination _ 1 lastSpinKernel_self
+  replicaPairCombination_eq_half_replica_covariance_combination _ 1 lastSpinKernel_self
     lastSpinKernel_comm τ
 
 end SpinGlasses

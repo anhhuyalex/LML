@@ -463,30 +463,40 @@ theorem integral_replica_cov_identity' {R : Type*} [Fintype R] (ν : Measure α)
 /-- The two-replica difference combination appearing in the cavity and smart-path derivatives
 (Talagrand (2.24)--(2.25)):
 `∑_{r < r'} U(σ^r, σ^{r'}) - n ∑_r U(σ^r, σ^{n+1}) + n(n+1)/2 U(σ^{n+1}, σ^{n+2})`. -/
-noncomputable def replicaPairDiff {R α : Type*} [Fintype R] [LinearOrder R]
+noncomputable def replicaPairCombination {R α : Type*} [Fintype R] [LinearOrder R]
     (U : α → α → ℝ) (τ : Option (Option R) → α) : ℝ :=
   (∑ p : R × R with p.1 < p.2, U (τ (some (some p.1))) (τ (some (some p.2)))) -
     (Fintype.card R : ℝ) * (∑ r : R, U (τ (some (some r))) (τ (some none))) +
     (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) / 2 * U (τ (some none)) (τ none)
 
-theorem replicaPairDiff_const_mul {R α : Type*} [Fintype R] [LinearOrder R]
+/-- For `R = Fin n` the two-replica combination is the explicit three-family sum of the cavity
+method: `∑_{r < r'} U - n ∑_r U(r, n+1) + n(n+1)/2 U(n+1, n+2)`. -/
+theorem replicaPairCombination_fin {α : Type*} (n : ℕ) (U : α → α → ℝ)
+    (τ : Option (Option (Fin n)) → α) :
+    replicaPairCombination U τ =
+      ∑ p : Fin n × Fin n with p.1 < p.2, U (τ (some (some p.1))) (τ (some (some p.2))) -
+        (n : ℝ) * ∑ r, U (τ (some (some r))) (τ (some none)) +
+        (n : ℝ) * ((n : ℝ) + 1) / 2 * U (τ (some none)) (τ none) := by
+  simp [replicaPairCombination, Fintype.card_fin]
+
+theorem replicaPairCombination_const_mul {R α : Type*} [Fintype R] [LinearOrder R]
     (c : ℝ) (U : α → α → ℝ) (τ : Option (Option R) → α) :
-    replicaPairDiff (fun a b => c * U a b) τ = c * replicaPairDiff U τ := by
-  simp only [replicaPairDiff, mul_sub, mul_add, ← Finset.mul_sum]
+    replicaPairCombination (fun a b => c * U a b) τ = c * replicaPairCombination U τ := by
+  simp only [replicaPairCombination, mul_sub, mul_add, ← Finset.mul_sum]
   ring
 
-theorem replicaPairDiff_add {R α : Type*} [Fintype R] [LinearOrder R]
+theorem replicaPairCombination_add {R α : Type*} [Fintype R] [LinearOrder R]
     (U₁ U₂ : α → α → ℝ) (τ : Option (Option R) → α) :
-    replicaPairDiff (fun a b => U₁ a b + U₂ a b) τ =
-      replicaPairDiff U₁ τ + replicaPairDiff U₂ τ := by
-  simp only [replicaPairDiff, Finset.sum_add_distrib]
+    replicaPairCombination (fun a b => U₁ a b + U₂ a b) τ =
+      replicaPairCombination U₁ τ + replicaPairCombination U₂ τ := by
+  simp only [replicaPairCombination, Finset.sum_add_distrib]
   ring
 
-theorem replicaPairDiff_sum {R α ι : Type*} [Fintype R] [LinearOrder R] [Fintype ι]
+theorem replicaPairCombination_sum {R α ι : Type*} [Fintype R] [LinearOrder R] [Fintype ι]
     (U : ι → α → α → ℝ) (τ : Option (Option R) → α) :
-    replicaPairDiff (fun a b => ∑ k, U k a b) τ =
-      ∑ k, replicaPairDiff (U k) τ := by
-  dsimp only [replicaPairDiff]
+    replicaPairCombination (fun a b => ∑ k, U k a b) τ =
+      ∑ k, replicaPairCombination (U k) τ := by
+  dsimp only [replicaPairCombination]
   simp only [Finset.mul_sum, Finset.sum_sub_distrib, Finset.sum_add_distrib]
   rw [Finset.sum_comm
     (s := Finset.filter (fun p : R × R => p.1 < p.2) Finset.univ) (t := Finset.univ)]
@@ -498,7 +508,7 @@ theorem replicaPairDiff_sum {R α ι : Type*} [Fintype R] [LinearOrder R] [Finty
 analogue of `replicaDiff`. -/
 noncomputable def replicaPairAverage {R α : Type*} [MeasurableSpace α] [Fintype R]
     [LinearOrder R] (ν : Measure α) (F : (R → α) → ℝ) (U : α → α → ℝ) : ℝ :=
-  ∫ τ : Option (Option R) → α, F (fun r => τ (some (some r))) * replicaPairDiff U τ
+  ∫ τ : Option (Option R) → α, F (fun r => τ (some (some r))) * replicaPairCombination U τ
     ∂(Measure.pi fun _ => ν)
 
 /-- If a finite family of functions `f k` are integrable under `P` and all have identical

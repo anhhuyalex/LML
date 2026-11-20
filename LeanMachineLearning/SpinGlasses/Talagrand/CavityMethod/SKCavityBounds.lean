@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaProduct
 public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityDerivative
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.OffDiag
 
@@ -261,15 +262,11 @@ theorem abs_replica_pair_sum_le {α : Type*} (n : ℕ) (K : α → α → ℝ) (
 
 /-- The book's combination of the three replica families is unchanged when the kernel is shifted
 by a constant, because the weights `C(n,2)`, `-n²` and `C(n+1,2)` add up to zero. -/
-theorem replica_pair_sum_add_const {α : Type*} (n : ℕ) (K : α → α → ℝ) (κ : ℝ)
+theorem replicaPairCombination_add_const {α : Type*} (n : ℕ) (K : α → α → ℝ) (κ : ℝ)
     (τ : Option (Option (Fin n)) → α) :
-    (∑ p : Fin n × Fin n with p.1 < p.2,
-        (K (τ (some (some p.1))) (τ (some (some p.2))) + κ)) -
-      (n : ℝ) * ∑ r : Fin n, (K (τ (some (some r))) (τ (some none)) + κ) +
-      (n : ℝ) * ((n : ℝ) + 1) / 2 * (K (τ (some none)) (τ none) + κ) =
-    (∑ p : Fin n × Fin n with p.1 < p.2, K (τ (some (some p.1))) (τ (some (some p.2)))) -
-      (n : ℝ) * ∑ r : Fin n, K (τ (some (some r))) (τ (some none)) +
-      (n : ℝ) * ((n : ℝ) + 1) / 2 * K (τ (some none)) (τ none) := by
+    MeasureTheory.replicaPairCombination (fun a b => K a b + κ) τ =
+      MeasureTheory.replicaPairCombination K τ := by
+  rw [MeasureTheory.replicaPairCombination_fin, MeasureTheory.replicaPairCombination_fin]
   simp only [Finset.sum_add_distrib, Finset.sum_const, card_filter_lt_fin_prod, Finset.card_univ,
     Fintype.card_fin, nsmul_eq_mul, Nat.cast_choose_two]
   ring
@@ -286,7 +283,9 @@ theorem abs_two_sum_lt_combination_le {α : Type*} (n : ℕ) (U Kf : α → α �
             |Kf (τ (some (some p.1))) (τ (some (some p.2)))|) +
         (n : ℝ) * ∑ r : Fin n, |Kf (τ (some (some r))) (τ (some none))| +
         (n : ℝ) * ((n : ℝ) + 1) / 2 * |Kf (τ (some none)) (τ none)|) := by
-  have hshift := replica_pair_sum_add_const n (fun a b => -Kf a b) κ τ
+  have hshift := replicaPairCombination_add_const n (fun a b => -Kf a b) κ τ
+  rw [MeasureTheory.replicaPairCombination_fin, MeasureTheory.replicaPairCombination_fin] at hshift
+  beta_reduce at hshift
   have heq : 2 * (∑ p : Fin n × Fin n with p.1 < p.2,
           U (τ (some (some p.1))) (τ (some (some p.2)))) -
         2 * (n : ℝ) * ∑ r : Fin n, U (τ (some (some r))) (τ (some none)) +

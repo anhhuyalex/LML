@@ -1386,10 +1386,10 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathDisorderDerivati
         SpinGlasses.smartPath_sqrt_scaling_prefactor_eq,
         ProbabilityTheory.integral_id_mul_comp_affine_gaussianReal,
         MeasureTheory.integral_id_mul_deriv_u_mul_exp_affine_gaussianReal_of_integrable,
-        MeasureTheory.replicaPairDiff,
+        MeasureTheory.replicaPairCombination,
         MeasureTheory.replicaPairAverage,
-        SpinGlasses.replicaPairDiff_eq_half_replica_covariance_combination,
-        SpinGlasses.replicaPairDiff_lastSpinKernel,
+        SpinGlasses.replicaPairCombination_eq_half_replica_covariance_combination,
+        SpinGlasses.replicaPairCombination_lastSpinKernel,
         SpinGlasses.lastSpinKernel_self,
         MeasureTheory.integral_sum_eq_card_mul_of_forall_eq}
   \uses{thm:sg-tal:perceptron-derivative-three-terms}
@@ -1402,7 +1402,7 @@ $\Sigma_N^n$ (a function of the spins only), the derivative of the quenched repl
 \]
 where, with $U_k(\sigma,\tau)=\varepsilon_\sigma\varepsilon_\tau\,u'(S_{k,t}(\sigma))\,u'(S_{k,t}(\tau))$ and
 $\operatorname{pd}(U)=\sum_{\ell<\ell'}U(\sigma^\ell,\sigma^{\ell'})-n\sum_{\ell\le n}U(\sigma^\ell,\sigma^{n+1})
-+\tfrac{n(n+1)}2\,U(\sigma^{n+1},\sigma^{n+2})$ (\texttt{replicaPairDiff}),
++\tfrac{n(n+1)}2\,U(\sigma^{n+1},\sigma^{n+2})$ (\texttt{replicaPairCombination}),
 \begin{align*}
  \mathrm{I}&=\frac1L\sum_{k<M}\mathbb E\bigl\langle f\,\operatorname{pd}(U_k)\bigr\rangle_t,\\
  \mathrm{II}&=-r\,\mathbb E\bigl\langle f\,\operatorname{pd}(\varepsilon_\sigma\varepsilon_\tau)\bigr\rangle_t .
@@ -1488,7 +1488,7 @@ and therefore, with $U_k=A$,
  \operatorname{diff}(E'_a)=\frac1{2L}\sum_{k<M}\operatorname{diff}(D_k)+\frac1L\sum_{k<M}\bigl\langle f\operatorname{pd}(U_k)\bigr\rangle_t .
 \]
 The diagonal of $A$ is not constant, which is why $\operatorname{diff}(D_k)$ appears;
-\texttt{replicaPairDiff\_eq\_half\_replica\_covariance\_combination} (constant diagonal) is not used for $A$.
+\texttt{replicaPairCombination\_eq\_half\_replica\_covariance\_combination} (constant diagonal) is not used for $A$.
 
 \emph{Step 4 (cancellation of the diagonal terms).} Adding Steps 1 and 3,
 \[
@@ -1507,7 +1507,7 @@ of the prefactor:
  =-r\,\bigl\langle f\operatorname{pd}(\varepsilon_\sigma\varepsilon_\tau)\bigr\rangle_t .
 \]
 Here the kernel $\varepsilon_\sigma\varepsilon_\tau$ has constant diagonal $1$ and is symmetric, so
-\texttt{replicaPairDiff\_lastSpinKernel} (from \texttt{replicaPairDiff\_eq\_half\_replica\_covariance\_combination}
+\texttt{replicaPairCombination\_lastSpinKernel} (from \texttt{replicaPairCombination\_eq\_half\_replica\_covariance\_combination}
 and \texttt{lastSpinKernel\_self}) identifies the bracket divided by $2$ with $\operatorname{pd}(\varepsilon_\sigma\varepsilon_\tau)$.
 Taking $\mathbb E$ gives $\mathrm{II}$, and $\nu_t'(f)=\mathrm I+\mathrm{II}$.
 
@@ -2288,9 +2288,9 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathDisorderDerivati
 \begin{proposition}[Derivative of the perceptron smart path]\label{prop:sg-tal:perceptron-smart-path-derivative}
   \lean{SpinGlasses.smartPath_auxiliary_prefactor_eq_neg,
         SpinGlasses.smartPath_sqrt_scaling_prefactor_eq,
-        MeasureTheory.replicaPairDiff,
-        SpinGlasses.replicaPairDiff_eq_half_replica_covariance_combination,
-        SpinGlasses.replicaPairDiff_lastSpinKernel,
+        MeasureTheory.replicaPairCombination,
+        SpinGlasses.replicaPairCombination_eq_half_replica_covariance_combination,
+        SpinGlasses.replicaPairCombination_lastSpinKernel,
         MeasureTheory.integral_sum_eq_card_mul_of_forall_eq}
   \uses{thm:sg-tal:perceptron-derivative-three-terms}
 \talsource{Proposition~2.2.3, Eqs.~(2.23)--(2.25)}
@@ -2299,10 +2299,10 @@ For $0 < t < 1$ and any function $f$ on $\Sigma_N^n$, the derivative of the quen
 \[
  \nu'_t(f) = \mathrm{I} + \mathrm{II},
 \]
-where $\mathrm{I}$ and $\mathrm{II}$ are given by the two-replica difference combination (\texttt{replicaPairDiff}):
+where $\mathrm{I}$ and $\mathrm{II}$ are given by the two-replica difference combination (\texttt{replicaPairCombination}):
 \begin{align*}
- \mathrm{I} &= \frac{1}{N+1} \sum_{k < M} \int \operatorname{replicaPairDiff}\left( (\sigma, \tau) \mapsto \varepsilon_\sigma \varepsilon_\tau u'(S_{k,t}(\sigma)) u'(S_{k,t}(\tau)) \right) f dP(\omega), \\
- \mathrm{II} &= -r \int \operatorname{replicaPairDiff}\left( (\sigma, \tau) \mapsto \varepsilon_\sigma \varepsilon_\tau \right) f dP(\omega).
+ \mathrm{I} &= \frac{1}{N+1} \sum_{k < M} \int \operatorname{replicaPairCombination}\left( (\sigma, \tau) \mapsto \varepsilon_\sigma \varepsilon_\tau u'(S_{k,t}(\sigma)) u'(S_{k,t}(\tau)) \right) f dP(\omega), \\
+ \mathrm{II} &= -r \int \operatorname{replicaPairCombination}\left( (\sigma, \tau) \mapsto \varepsilon_\sigma \varepsilon_\tau \right) f dP(\omega).
 \end{align*}
 For $M+1$ constraints with exchangeable disorder, the sum over $k$ simplifies to $\alpha = (M+1)/(N+1)$ times the last constraint $k = M$.
 \end{proposition}
@@ -2319,15 +2319,15 @@ while the off-diagonal terms ($\ell \neq \ell'$) and the fresh-replica normalize
 The diagonal terms $+1/(2(N+1)) (u'' + (u')^2)$ and $-1/(2(N+1)) (u'' + (u')^2)$ cancel identically.
 \emph{Step 4 (quenched field integration by parts).}
 Integrating $Y \sim \mathcal{N}(0, v)$ by parts in $E'_Y$ produces $-v$ times the replica spin cross-products, which by
-\texttt{replicaPairDiff\_lastSpinKernel} equals $-v$ times the spin replica pair difference.
+\texttt{replicaPairCombination\_lastSpinKernel} equals $-v$ times the spin replica pair difference.
 \emph{Step 5 (constraint permutation symmetry).}
 By \texttt{integral\_sum\_eq\_card\_mul\_of\_forall\_eq}, summing $1/(N+1)$ over $M+1$ constraints with identical disorder averages yields
 $\alpha = (M+1)/(N+1)$ times the value at the last constraint.
 \emph{Formalization note (status and hypothesis audit).}
 The prefactor cancellations (\texttt{smartPath\_auxiliary\_prefactor\_eq\_neg},
 \texttt{smartPath\_quenched\_prefactor\_eq}), the two-replica difference combination
-(\texttt{MeasureTheory.replicaPairDiff}), the connection to the 4-term covariance combination
-(\texttt{replicaPairDiff\_eq\_half\_replica_covariance\_combination}, \texttt{replicaPairDiff\_lastSpinKernel}), and the general constraint integration reduction
+(\texttt{MeasureTheory.replicaPairCombination}), the connection to the 4-term covariance combination
+(\texttt{replicaPairCombination\_eq\_half\_replica_covariance\_combination}, \texttt{replicaPairCombination\_lastSpinKernel}), and the general constraint integration reduction
 (\texttt{integral\_sum\_eq\_card\_mul\_of\_forall\_eq}) are formalized in \texttt{SmartPathIBP.lean} and \texttt{GibbsReplicaProduct.lean}.
 The core definitions (\texttt{smartPathField}, \texttt{smartPathEnergy}, \texttt{smartPathBase},
 \texttt{smartPathDisorder}, \texttt{SmartPathPotential}, \texttt{SmartPathPotential₂}, \texttt{smartPathPotentialKernel}, \texttt{lastSpinKernel})

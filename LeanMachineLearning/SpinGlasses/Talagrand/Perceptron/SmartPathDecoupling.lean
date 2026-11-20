@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.DecoupledSpinDisorderAverage
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.AuxiliaryMarginal
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathModel
 
 /-!
 # The decoupled endpoint of the perceptron smart path
@@ -42,17 +43,11 @@ above. -/
 theorem integral_perceptron_smart_path_decoupled_endpoint {N M n : ℕ} {u : ℝ → ℝ}
     (hu : Measurable u) {D : ℝ} (hD : ∀ x, u x ≤ D) (r : ℝ≥0) (I : Finset (Fin n))
     (F : (Fin n → Fin N → ℤˣ) → ℝ) :
-    let S : (Fin M → Fin N → ℝ) → (Fin M → ℝ) → ((Fin N → ℤˣ) × ℤˣ) → Fin M → ℝ :=
-      fun g a σ k => (Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i, g k i * ((σ.1 i : ℤ) : ℝ)) +
-        Real.sqrt ((0 : ℝ) / (N + 1)) * a k * ((σ.2 : ℤ) : ℝ)
-    let ν₀ : ((Fin n → (Fin N → ℤˣ) × ℤˣ) → ℝ) → ℝ := fun G =>
+    let ν₀ : ((Fin n → PerceptronSpin N) → ℝ) → ℝ := fun G =>
       ∫ ω : (Fin M → Fin N → ℝ) × (Fin M → ℝ), ∫ y,
-        ∫ x : Fin n → ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ), G (fun l => (x l).1)
+        ∫ x : Fin n → SmartPathState N M, G (fun l => (x l).1)
           ∂(Measure.pi fun _ : Fin n =>
-            ((Measure.count : Measure ((Fin N → ℤˣ) × ℤˣ)).prod
-              (Measure.pi fun _ : Fin M => gaussianReal 0 1)).tilted
-            (fun p => ((p.1.2 : ℤ) : ℝ) * Real.sqrt (1 - 0) * y +
-              ∑ k, u (S ω.1 ω.2 p.1 k + Real.sqrt ((1 - 0) / (N + 1)) * p.2 k)))
+            (smartPathBase N M).tilted (smartPathEnergy u 0 (ω, y)))
         ∂(gaussianReal 0 r)
         ∂((Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin N => gaussianReal 0 1).prod
           (Measure.pi fun _ : Fin M => gaussianReal 0 1))
@@ -60,7 +55,7 @@ theorem integral_perceptron_smart_path_decoupled_endpoint {N M n : ℕ} {u : ℝ
         (∫ y, Real.tanh y ^ I.card ∂gaussianReal 0 r) * ν₀ (fun σ => F (fun l => (σ l).1)) ∧
       ν₀ (fun σ => F (fun l => (σ l).1) * ∏ l ∈ I, (((σ l).2 : ℤˣ) : ℝ)) =
         ν₀ (fun σ => ∏ l ∈ I, (((σ l).2 : ℤˣ) : ℝ)) * ν₀ (fun σ => F (fun l => (σ l).1)) := by
-  intro S ν₀
+  intro ν₀
   -- the effective energy of the old spins, independent of `a`
   set A : (Fin M → Fin N → ℝ) × (Fin M → ℝ) → (Fin N → ℤˣ) → ℝ := fun ω σ =>
     ∑ k, Real.log (∫ z, Real.exp (u ((Real.sqrt (N + 1 : ℕ))⁻¹ *
@@ -74,16 +69,14 @@ theorem integral_perceptron_smart_path_decoupled_endpoint {N M n : ℕ} {u : ℝ
           (Measure.pi fun _ : Fin M => gaussianReal 0 1)) := by
     intro G
     refine integral_congr_ae (ae_of_all _ fun ω => integral_congr_ae (ae_of_all _ fun y => ?_))
-    have h := integral_pi_perceptron_smart_path_auxiliary (R := Fin n) hu hD ω.1 ω.2 y 0 G
-    simp only [] at h
-    refine h.trans ?_
-    have hfun : (fun σ : (Fin N → ℤˣ) × ℤˣ => ((σ.2 : ℤ) : ℝ) * Real.sqrt (1 - 0) * y +
-        ∑ k, Real.log (∫ z, Real.exp (u (S ω.1 ω.2 σ k +
+    refine (integral_pi_perceptron_smart_path_auxiliary (R := Fin n) hu hD (ω, y) 0 G).trans ?_
+    have hfun : (fun σ : PerceptronSpin N => ((σ.2 : ℤ) : ℝ) * Real.sqrt (1 - 0) * y +
+        ∑ k, Real.log (∫ z, Real.exp (u (smartPathFieldNoAux 0 (ω, y) (σ, 0) k +
           Real.sqrt ((1 - 0) / (N + 1)) * z)) ∂gaussianReal 0 1)) =
         fun x => A ω x.1 + ((x.2 : ℤˣ) : ℝ) * y := by
       funext σ
-      simp only [S, A, zero_div, Real.sqrt_zero, zero_mul, add_zero, sub_zero, mul_one,
-        Real.sqrt_one]
+      simp only [smartPathFieldNoAux, A, zero_div, Real.sqrt_zero, zero_mul, add_zero, sub_zero,
+        mul_one, Real.sqrt_one]
       ring
     rw [hfun]
   have hfactor (G : (Fin n → Fin N → ℤˣ) → ℝ) (J : Finset (Fin n)) :

@@ -88,7 +88,7 @@ theorem integral_pi_tilted_prod_fst {E : A × B → ℝ}
 /-- Integrating independent auxiliary coordinates in a finite-state Gibbs law replaces each
 coordinate potential by its log exponential integral. The auxiliary laws and potentials may
 vary between coordinates; only measurability and upper bounds are required. -/
-theorem integral_pi_tilted_count_prod_sum {K : Type*} [Fintype K] [Fintype A]
+theorem integral_pi_tilted_count_prod_sum {K : Type*} [Fintype K] [Finite A]
     [MeasurableSingletonClass A] (νs : K → Measure B) [∀ k, IsProbabilityMeasure (νs k)]
     (D : A → ℝ) (V : A → K → B → ℝ) (hV : ∀ a k, Measurable (V a k))
     (C : K → ℝ) (hC : ∀ a k b, V a k b ≤ C k)
@@ -98,6 +98,7 @@ theorem integral_pi_tilted_count_prod_sum {K : Type*} [Fintype K] [Fintype A]
         (fun p : A × (K → B) => D p.1 + ∑ k, V p.1 k (p.2 k)))) =
       ∫ a, f a ∂(Measure.pi fun _ : R => Measure.count.tilted
         (fun a => D a + ∑ k, Real.log (∫ b, Real.exp (V a k b) ∂νs k))) := by
+  have := Fintype.ofFinite A
   have hE : Measurable (fun p : A × (K → B) => D p.1 + ∑ k, V p.1 k (p.2 k)) := by
     refine measurable_from_prod_countable_right fun a => ?_
     change Measurable (fun b : K → B => D a + ∑ k, V a k (b k))

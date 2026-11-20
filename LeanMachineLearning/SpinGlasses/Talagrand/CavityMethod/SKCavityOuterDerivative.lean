@@ -341,10 +341,13 @@ theorem hasDerivAt_integral_sk_cavity_path_square_full (N n : ℕ) (β q h t : �
   beta_reduce
   congr 1
   simp only [K, sk_cavity_kernel_full_eq]
-  exact (replica_pair_sum_add_const n
+  have h := replicaPairCombination_add_const n
     (fun a b : Fin (N + 1) → ℤˣ => β ^ 2 * (a (Fin.last N) : ℝ) * (b (Fin.last N) : ℝ) *
       ((N + 1 : ℝ)⁻¹ * ((fun i : Fin N => (a i.castSucc : ℝ)) ⬝ᵥ fun i : Fin N =>
-        (b i.castSucc : ℝ)) - q)) (β ^ 2 / (N + 1 : ℝ)) τ).symm
+        (b i.castSucc : ℝ)) - q)) (β ^ 2 / (N + 1 : ℝ)) τ
+  rw [MeasureTheory.replicaPairCombination_fin, MeasureTheory.replicaPairCombination_fin] at h
+  beta_reduce at h
+  exact h.symm
 
 /-- The weighted replica-pair sum for two observed replicas expands into four kernel terms:
 weights `1, -2, -2, +3` on `K 01`, `K 0∗`, `K 1∗`, `K ∗∗`. -/
