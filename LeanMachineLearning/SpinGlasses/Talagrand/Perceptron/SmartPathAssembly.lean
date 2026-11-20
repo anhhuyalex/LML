@@ -340,7 +340,7 @@ parts one constraint at a time (any finite `Pold`, any `v`): the result is
 `1/(2(N+1)) ∑_k 𝔼 [diag_k + 2 pair_k]`. -/
 theorem integral_replicaDiff_smartPathEnergyDerivA_disorder {N M : ℕ}
     {μ : Measure (SmartPathState N M)} [IsFiniteMeasure μ] [NeZero μ] {R : Type*} [Fintype R]
-    [LinearOrder R] {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) 1) {u : ℝ → ℝ} {B D D₂ : ℝ}
+    [LinearOrder R] {t : ℝ} (ht : 0 < t) {u : ℝ → ℝ} {B D D₂ : ℝ}
     (hu : SmartPathPotential₂ u B D D₂) (v : ℝ≥0)
     {Pold : Measure (Fin M → Fin N → ℝ)} [IsFiniteMeasure Pold]
     (F : (R → SmartPathState N M) → ℝ) (hF : Measurable F) {C : ℝ} (hFb : ∀ σ, |F σ| ≤ C) :
@@ -361,7 +361,7 @@ theorem integral_replicaDiff_smartPathEnergyDerivA_disorder {N M : ℕ}
   rw [integral_finsetSum _ fun k _ => (hI k).const_mul _, Finset.mul_sum]
   refine Finset.sum_congr rfl fun k _ => ?_
   rw [integral_const_mul, integral_coupling_mul_replicaDiff hu v k F hF hFb, ← mul_assoc]
-  have := smartPath_sqrt_scaling_prefactor_eq (N := N) ht.1
+  have := smartPath_sqrt_scaling_prefactor_eq (N := N) ht
   congr 1
   rw [div_eq_mul_one_div _ (Real.sqrt t), mul_assoc]
   push_cast at this ⊢
@@ -371,7 +371,7 @@ theorem integral_replicaDiff_smartPathEnergyDerivA_disorder {N M : ℕ}
 any variance `v ≥ 0` of the last field: `𝔼 diff(E'_Y) = -v 𝔼 ⟨F pd(ε_σ ε_τ)⟩`. -/
 theorem integral_replicaDiff_smartPathEnergyDerivY_disorder {N M : ℕ}
     {μ : Measure (SmartPathState N M)} [IsFiniteMeasure μ] [NeZero μ] {R : Type*} [Fintype R]
-    [LinearOrder R] {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) 1) {u : ℝ → ℝ} {B D : ℝ}
+    [LinearOrder R] {t : ℝ} (ht : t < 1) {u : ℝ → ℝ} {B D : ℝ}
     (hu : SmartPathPotential u B D) (v : ℝ≥0)
     {Pold : Measure (Fin M → Fin N → ℝ)} [IsFiniteMeasure Pold]
     (F : (R → SmartPathState N M) → ℝ) (hF : Measurable F) {C : ℝ} (hFb : ∀ σ, |F σ| ≤ C) :
@@ -425,7 +425,7 @@ theorem integrable_replicaDiff_smartPathEnergyDerivA {N M : ℕ}
 /-- **The `E'_ξ` term, averaged over the disorder** (spin-only observable): minus
 `1/(2(N+1))` times the sum over constraints of the expected replica difference of the diagonal. -/
 theorem integral_replicaDiff_smartPathEnergyDerivXi_disorder {N M : ℕ} {R : Type*} [Fintype R]
-    {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) 1) {u : ℝ → ℝ} {B D D₂ : ℝ}
+    {t : ℝ} (ht : t < 1) {u : ℝ → ℝ} {B D D₂ : ℝ}
     (hu : SmartPathPotential₂ u B D D₂) (v : ℝ≥0)
     {Pold : Measure (Fin M → Fin N → ℝ)} [IsFiniteMeasure Pold]
     (f : (R → PerceptronSpin N) → ℝ) :
@@ -498,7 +498,7 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path_ibp {N M : ℕ} {R
       ((smartPathBase N M).tilted (smartPathEnergy u t ω))
       (fun σ : R → SmartPathState N M => f (fun r => (σ r).1)) (smartPathEnergyDerivXi u t ω))
       (smartPathDisorder Pold v) := by
-    simp_rw [replicaDiff_smartPathEnergyDerivXi ht hu _ f]
+    simp_rw [replicaDiff_smartPathEnergyDerivXi ht.2 hu _ f]
     exact (integrable_finsetSum _ fun k _ =>
       integrable_replicaDiff_diag hu _ hFm hFb k _).const_mul _
   have hAξ : Integrable (fun ω => replicaDiff
@@ -508,9 +508,9 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path_ibp {N M : ℕ} {R
       (fun σ : R → SmartPathState N M => f (fun r => (σ r).1)) (smartPathEnergyDerivXi u t ω))
       (smartPathDisorder Pold v) := hA.add hξ
   rw [integral_add hAξ hY, integral_add hA hξ,
-    integral_replicaDiff_smartPathEnergyDerivA_disorder ht hu v _ hFm hFb,
-    integral_replicaDiff_smartPathEnergyDerivXi_disorder ht hu v f,
-    integral_replicaDiff_smartPathEnergyDerivY_disorder ht hu.toSmartPathPotential v _ hFm hFb]
+    integral_replicaDiff_smartPathEnergyDerivA_disorder ht.1 hu v _ hFm hFb,
+    integral_replicaDiff_smartPathEnergyDerivXi_disorder ht.2 hu v f,
+    integral_replicaDiff_smartPathEnergyDerivY_disorder ht.2 hu.toSmartPathPotential v _ hFm hFb]
   simp only [integral_smartPathConstraintTerm hu _ hFm hFb, Finset.sum_add_distrib,
     ← Finset.mul_sum]
   have hN : ((N : ℝ) + 1) ≠ 0 := by positivity

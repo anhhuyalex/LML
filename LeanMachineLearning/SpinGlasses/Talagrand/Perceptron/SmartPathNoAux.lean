@@ -120,9 +120,9 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path_noAux_base {R : Ty
     hu.toSmartPathPotential v (Pold := Pold) _ hFm hFb
   simp only [hξ0, add_zero]
   rw [integral_add hA hY,
-    integral_replicaDiff_smartPathEnergyDerivA_disorder (μ := smartPathBaseNoAux N M) ht hu v
+    integral_replicaDiff_smartPathEnergyDerivA_disorder (μ := smartPathBaseNoAux N M) ht.1 hu v
       _ hFm hFb,
-    integral_replicaDiff_smartPathEnergyDerivY_disorder (μ := smartPathBaseNoAux N M) ht
+    integral_replicaDiff_smartPathEnergyDerivY_disorder (μ := smartPathBaseNoAux N M) ht.2
       hu.toSmartPathPotential v _ hFm hFb]
   simp only [integral_smartPathConstraintTerm hu _ hFm hFb, Finset.sum_add_distrib,
     ← Finset.mul_sum]

@@ -84,6 +84,19 @@ theorem integral_pi_tilted_prod_fst {E : A × B → ℝ}
   have hp : Measurable (fun x : R → A × B => fun r => (x r).1) := by fun_prop
   exact (integral_map hp.aemeasurable hf.aestronglyMeasurable).symm
 
+/-- **An unused coordinate does not change the replica average.** If the energy on `A × B` does
+not depend on the second coordinate and `ν` is a probability measure, a first-coordinate replica
+observable has the same average under the product of the tilted product measures as under the
+product of `μ.tilted E₁`. -/
+theorem integral_pi_tilted_prod_fst_of_forall [IsProbabilityMeasure ν] {E₁ : A → ℝ}
+    (hi : Integrable (fun a => Real.exp (E₁ a)) μ)
+    {R : Type*} [Fintype R] {f : (R → A) → ℝ} (hf : Measurable f) :
+    (∫ x : R → A × B, f (fun r => (x r).1)
+      ∂(Measure.pi fun _ : R => (μ.prod ν).tilted fun x => E₁ x.1)) =
+      ∫ a, f a ∂(Measure.pi fun _ : R => μ.tilted E₁) := by
+  rw [integral_pi_tilted_prod_fst (hi.comp_fst ν) hf]
+  simp only [integral_const, probReal_univ, one_smul, Real.log_exp]
+
 
 /-- Integrating independent auxiliary coordinates in a finite-state Gibbs law replaces each
 coordinate potential by its log exponential integral. The auxiliary laws and potentials may

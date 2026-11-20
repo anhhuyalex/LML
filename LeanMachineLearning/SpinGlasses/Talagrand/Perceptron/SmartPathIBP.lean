@@ -58,12 +58,11 @@ theorem smartPath_sqrt_scaling_prefactor_eq {N : ℕ} {s : ℝ} (hs : 0 < s) :
 /-- Simplification of the auxiliary spin prefactor: the product
 `(1 / (2 * √(N + 1))) * (- 1 / √(1 - t)) * √((1 - t) / (N + 1))` simplifies to
 `- 1 / (2 * (N + 1))`, cancelling the `√(1 - t)` denominator. -/
-theorem smartPath_auxiliary_prefactor_eq_neg {N : ℕ} {t : ℝ}
-    (ht : t ∈ Set.Ioo (0 : ℝ) 1) :
+theorem smartPath_auxiliary_prefactor_eq_neg {N : ℕ} {t : ℝ} (ht : t < 1) :
     (1 / (2 * Real.sqrt (N + 1 : ℕ))) * (- (1 / Real.sqrt (1 - t))) *
       Real.sqrt ((1 - t) / (N + 1 : ℕ)) =
     - (1 / (2 * (N + 1 : ℝ))) := by
-  have := smartPath_sqrt_scaling_prefactor_eq (N := N) (sub_pos.2 ht.2)
+  have := smartPath_sqrt_scaling_prefactor_eq (N := N) (sub_pos.2 ht)
   linear_combination -this
 
 /-- For the last-spin interaction kernel `lastSpinKernel x y = ε_x ε_y` the diagonal is `1`
@@ -133,7 +132,7 @@ derivative `E'_Y` is `-v` times the `y`-average of the two-fresh-replica average
 kernel `ε_x ε_y`, the other disorder `ω₀ = (g, a)` being fixed. -/
 theorem integral_replicaDiff_smartPathEnergyDerivY {N M : ℕ}
     {μ : Measure (SmartPathState N M)} [IsFiniteMeasure μ] [NeZero μ] {R : Type*} [Fintype R]
-    [LinearOrder R] {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) 1) {u : ℝ → ℝ} (hu : Measurable u)
+    [LinearOrder R] {t : ℝ} (ht : t < 1) {u : ℝ → ℝ} (hu : Measurable u)
     {B : ℝ} (hB : ∀ x, u x ≤ B) (v : ℝ≥0) (ω₀ : (Fin M → Fin N → ℝ) × (Fin M → ℝ))
     (F : (R → SmartPathState N M) → ℝ) (hF : Measurable F) {C : ℝ} (hFb : ∀ σ, |F σ| ≤ C) :
     ∫ y, replicaDiff (μ.tilted (smartPathEnergy u t (ω₀, y))) F
@@ -142,7 +141,7 @@ theorem integral_replicaDiff_smartPathEnergyDerivY {N M : ℕ}
         (μ.tilted (smartPathEnergy u t (ω₀, y))) F lastSpinKernel
         ∂(gaussianReal 0 v) := by
   set q := Real.sqrt (1 - t) with hq
-  have hq0 : 0 < q := Real.sqrt_pos.2 (sub_pos.2 ht.2)
+  have hq0 : 0 < q := Real.sqrt_pos.2 (sub_pos.2 ht)
   have hν (r : ℝ) : IsProbabilityMeasure
       (μ.tilted (smartPathEnergy u t (ω₀, r))) :=
     isProbabilityMeasure_tilted_perceptron_smart_path_energy hu hB (ω₀, r) t
@@ -607,7 +606,7 @@ constraints of the replica difference of `u'' + u'^2` at the field `S_k`: it is 
 opposite of the diagonal contribution of the quenched-coupling term
 (`integral_mul_replicaDiff_update`). -/
 theorem replicaDiff_smartPathEnergyDerivXi {N M : ℕ} {R : Type*} [Fintype R] {t : ℝ}
-    (ht : t ∈ Set.Ioo (0 : ℝ) 1) {u : ℝ → ℝ} {B D D₂ : ℝ} (hu : SmartPathPotential₂ u B D D₂)
+    (ht : t < 1) {u : ℝ → ℝ} {B D D₂ : ℝ} (hu : SmartPathPotential₂ u B D D₂)
     (ω : SmartPathDisorder N M) (f : (R → PerceptronSpin N) → ℝ) :
     replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t ω))
         (fun σ : R → SmartPathState N M => f (fun r => (σ r).1)) (smartPathEnergyDerivXi u t ω) =

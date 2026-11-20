@@ -892,11 +892,12 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathBounds.lean}.
 \end{proof}
 
 \begin{theorem}[The original Gibbs law at the terminal endpoint]\label{thm:sg-tal:perceptron-path-one}
-  \lean{SpinGlasses.integral_pi_perceptron_smart_path_one}
+  \lean{SpinGlasses.integral_pi_perceptron_smart_path_one,
+        MeasureTheory.integral_pi_tilted_prod_fst_of_forall}
   \leanok
-  \uses{thm:sg-tal:perceptron-auxiliary-spins,lem:sg-tal:perceptron-field-split}
+  \uses{lem:sg-tal:perceptron-field-split}
 \talsource{Eq.~(2.21) and the paragraph defining $\nu=\nu_1$}
-Suppose $u$ is measurable and bounded above. For fixed full disorder $g$, any last field $y$,
+For an arbitrary function $u$ (no measurability or bound is needed, see the proof) and fixed full disorder $g$, any last field $y$,
 any finite replica set $R$ and every spin-only observable $F$,
 \[
  \left\langle F\left((\operatorname{snoc}(\sigma^l,\varepsilon_l))_{l\in R}\right)\right\rangle_{t=1}
@@ -907,12 +908,13 @@ The left side uses the old disorder $g_{k,i}$, $i<N$, and last coordinates $g_{k
 \end{theorem}
 \begin{proof}
   \leanok
-\emph{Step 1 (auxiliary marginal).} At $t=1$ the auxiliary coefficient and the last-field term
-are zero. Exercise~2.2.1 gives
-\[
- \log\int e^{u(S_{k,1})}\,d\gamma_1=u(S_{k,1}),\qquad
- S_{k,1}=L^{-1/2}\sum_{i<N}g_{k,i}\sigma_i+L^{-1/2}g_{k,N}\varepsilon.
-\]
+\emph{Step 1 (unused coordinates).} At $t=1$ the auxiliary coefficient and the last-field term
+are zero, so the energy is a function $H_0(\sigma,\varepsilon)=\sum_ku(S_{k,1})$ of the spin alone, with
+$S_{k,1}=L^{-1/2}\sum_{i<N}g_{k,i}\sigma_i+L^{-1/2}g_{k,N}\varepsilon$. The spin space is finite, so $e^{H_0}$ is
+integrable and a spin-only observable is measurable; since the Gaussian auxiliary law is a probability measure,
+integrating out the auxiliary coordinates leaves the Gibbs law of $H_0$
+(\texttt{integral\_pi\_tilted\_prod\_fst\_of\_forall}). This replaces the use of Exercise~2.2.1 and removes
+the measurability and upper-bound assumptions on $u$.
 \emph{Step 2 (concatenate spins).} The existing measurable equivalence has inverse
 $e(\sigma,\varepsilon)=\operatorname{snoc}(\sigma,\varepsilon)$, and the coordinate bridge gives
 \[
@@ -1560,6 +1562,12 @@ $\mathbb E\langle f\operatorname{pd}(U_k)\rangle_t=\mathbb E\langle f\operatorna
  \mathrm I=\frac{M+1}{N+1}\,\mathbb E\bigl\langle f\operatorname{pd}(U_M)\bigr\rangle_t=\alpha\,\mathbb E\bigl\langle f\operatorname{pd}(U_M)\bigr\rangle_t .
 \]
 
+\emph{Formalization note (ranges of $t$).} The Lean statement of the proposition assumes $0<t<1$, as the book does, but its two
+integration-by-parts ingredients need only one side of the interval: the last-field identity and the auxiliary-coordinate
+formula need $t<1$ (the factors $1/\sqrt{1-t}$), and the quenched-coupling identity needs $0<t$ (the factor $1/\sqrt t$)
+(\texttt{integral\_replicaDiff\_smartPathEnergyDerivY}, \texttt{replicaDiff\_smartPathEnergyDerivXi},
+\texttt{integral\_replicaDiff\_smartPathEnergyDerivA\_disorder}).
+
 \emph{Formalization note (status and hypothesis audit).} \emph{The sum form is proved in Lean} as
 \texttt{SpinGlasses.hasDerivAt\_integral\_integral\_pi\_perceptron\_smart\_path\_ibp}: for $0<t<1$, a potential with
 $|u|\le B$, $|u'|\le D$, $|u''|\le D_2$, any finite law of the old couplings, any variance $r\ge0$ of the last field and any
@@ -1647,3 +1655,190 @@ of the model (the book's $M+1$ is the same statement with $M$ replaced by $M+1$)
 $\frac{M}{N+1}\,\mathbb E\langle f\operatorname{pd}(U^0_{j_0})\rangle+\frac{M}{2(N+1)}\,\mathbb E\operatorname{diff}(D_{j_0})-r\,\mathbb E\langle f\operatorname{pd}(\varepsilon\varepsilon')\rangle$.
 Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathNoAux.lean}.
 \end{proof}
+
+\section{The cavity in $M$ (Talagrand Section~2.3)}\label{sec:sg-tal:perceptron-cavity-in-m}
+
+\medskip\noindent\textbf{Indexing.} As in Section~2.2, the book's $N$ spins are $N+1$ here ($L=N+1$, a spin is a pair
+(old spins, last spin $\varepsilon$)), and the book's $M$ constraints are $M+1$ here: the removed constraint is
+\texttt{Fin.last M} and the old system keeps the constraints \texttt{Fin.castSucc k}, $k<M$. Thus the load
+$\alpha=M_{\rm book}/N_{\rm book}$ is $(M+1)/(N+1)$. The old disorder is the restriction of $(g,a)$ by
+\texttt{Fin.init}, the last field $Y$ is unchanged, and the old state is $(\sigma,\texttt{Fin.init}\,\xi)$. The auxiliary
+coordinate $\xi_M$ stays in the base measure even though the old energy does not use it, as in the book's definition (2.31)
+of $\langle\cdot\rangle_{t,\sim}$. In this section the base measure $\mu$ is any finite measure on the configurations
+(the book's base law is \texttt{smartPathBase}); only the energy decomposition and an upper bound on $u$ are used.
+
+\begin{lemma}[The energy splits into the old energy and the last constraint, (2.30)]\label{lem:sg-tal:perceptron-cavity-energy-split}
+  \lean{SpinGlasses.smartPathField_init,
+        SpinGlasses.smartPathEnergy_eq_init_add}
+  \leanok
+\talsource{Eq.~(2.30)}
+For every $u:\mathbb R\to\mathbb R$, $t\in\mathbb R$, disorder $\omega$ for $M+1$ constraints and configuration $x$,
+\[
+ \texttt{smartPathEnergy}\,u\,t\,\omega\,x
+ =\texttt{smartPathEnergy}\,u\,t\,\omega_{<M}\,x_{<M}+u\bigl(S_{M,t}(x)\bigr),
+\]
+where $\omega_{<M}=((g_k)_{k<M},(a_k)_{k<M},Y)$, $x_{<M}=(\sigma,(\xi_k)_{k<M})$, and the field of the old system at $k<M$ equals
+the field of the full system at $k$.
+\end{lemma}
+\begin{proof}
+  \leanok
+The field $S_{k,t}$ depends on $\omega$ and $x$ only through row $k$ of $(g,a)$ and the coordinate $\xi_k$, so for $k<M$ it is the same
+for the old and the full system (\texttt{smartPathField\_init}, by definition). The last-field term $\varepsilon\sqrt{1-t}\,Y$ is also
+common. Splitting the sum over $\texttt{Fin}\,(M+1)$ into the terms $\texttt{castSucc}\,k$ and the last one
+(\texttt{Fin.sum\_univ\_castSucc}) gives the claim. No hypothesis on $u$ is needed. Formalized in
+\texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityDecomposition.lean}.
+\end{proof}
+
+\begin{lemma}[The model-free ratio identity]\label{lem:sg-tal:perceptron-cavity-ratio-model-free}
+  \lean{MeasureTheory.integral_pi_mul_exp_sum_add_eq,
+        MeasureTheory.integral_pi_tilted_add_eq_div}
+  \leanok
+Let $\mu$ be a finite measure, $E,V:\alpha\to\mathbb R$ with $e^E$ integrable, $\iota$ a finite replica index and $Y$ any function of the
+replicas. Then
+\[
+ \int Y\,d\bigl(\mu_{E+V}\bigr)^{\otimes\iota}
+ =\frac{\int Y(\sigma)\,e^{\sum_{i\in\iota}V(\sigma_i)}\,d(\mu_E)^{\otimes\iota}}{\bigl(\int e^{V}\,d\mu_E\bigr)^{|\iota|}},
+\]
+where $\mu_E$ is the Gibbs measure $\mu$ tilted by $E$. Moreover, if $\int e^{E}\,d\mu\neq0$, the replica numerator satisfies
+$\int Y\,e^{\sum_i(E+V)(\sigma_i)}\,d\mu^{\otimes\iota}=(\int e^E\,d\mu)^{|\iota|}\int Y\,e^{\sum_iV(\sigma_i)}\,d(\mu_E)^{\otimes\iota}$.
+\end{lemma}
+\begin{proof}
+  \leanok
+\emph{Step 1 (double tilt).} Since $e^E$ is integrable, $(\mu_E)_V=\mu_{E+V}$ (Mathlib's \texttt{tilted\_tilted}).
+
+\emph{Step 2 (replica quotient).} Apply \texttt{integral\_pi\_tilted\_eq\_div} to the base measure $\mu_E$ and the energy $V$: the average of $Y$ under
+$((\mu_E)_V)^{\otimes\iota}$ is the numerator $\int Ye^{\sum V}d(\mu_E)^{\otimes\iota}$ divided by $\int e^{\sum V}d(\mu_E)^{\otimes\iota}$,
+and the latter is $(\int e^V d\mu_E)^{|\iota|}$ because the replicas are independent (\texttt{integral\_pi\_exp\_sum}).
+
+\emph{Step 3 (numerator).} The second identity is the same quotient formula for $\mu_E$, with the denominator $(\int e^E d\mu)^{|\iota|}$ moved
+to the left. Formalized in \texttt{ForMathlib/Probability/GibbsReplicaProduct.lean}.
+\end{proof}
+
+\begin{proposition}[Cavity identity (2.32)]\label{prop:sg-tal:perceptron-cavity-ratio}
+  \lean{SpinGlasses.smartPathEnergy_init_le,
+        SpinGlasses.integrable_exp_smartPathEnergy_init,
+        SpinGlasses.integral_exp_smartPathEnergy_init_pos,
+        SpinGlasses.isProbabilityMeasure_tilted_smartPathEnergy_init,
+        SpinGlasses.integral_exp_lastField_tilted_pos,
+        SpinGlasses.integral_exp_smartPathEnergy_eq_mul,
+        SpinGlasses.integral_pi_mul_exp_smartPathEnergy_eq_mul,
+        SpinGlasses.integral_pi_tilted_smartPathEnergy_eq_div}
+  \leanok
+  \uses{lem:sg-tal:perceptron-cavity-energy-split, lem:sg-tal:perceptron-cavity-ratio-model-free}
+\talsource{Eqs.~(2.31)--(2.32) and the two identities below (2.31)}
+Let $u$ be measurable with $u\le D$, $\mu$ a finite nonzero measure on the $M+1$-constraint configurations, $t\in\mathbb R$, $\omega$ a disorder,
+$E_{\sim}$ the old energy of Lemma~\ref{lem:sg-tal:perceptron-cavity-energy-split} (a function of the full configuration) and $R$ any finite replica
+type. Write $Z_\sim=\int e^{E_\sim}d\mu>0$ and $\langle\cdot\rangle_{t,\sim}$ for the average against the Gibbs law $\mu_{E_\sim}$, which is a
+probability measure. Then $\langle e^{u(S_{M,t})}\rangle_{t,\sim}>0$ and
+\[
+ Z=\int e^{E}\,d\mu=Z_\sim\,\bigl\langle e^{u(S_{M,t})}\bigr\rangle_{t,\sim},\qquad
+ \int Y\,e^{\sum_\ell E(\sigma^\ell)}\,d\mu^{\otimes R}=Z_\sim^{|R|}\Bigl\langle Y\,e^{\sum_{\ell}u(S^\ell_{M,t})}\Bigr\rangle_{t,\sim},
+\]
+and, for every function $Y$ of the replicas (in particular a function of the spins and of the old auxiliary coordinates),
+\[
+ \langle Y\rangle_t=\frac{\bigl\langle Y\,e^{\sum_{\ell\le n}u(S^\ell_{M,t})}\bigr\rangle_{t,\sim}}{\bigl\langle e^{u(S_{M,t})}\bigr\rangle_{t,\sim}^{n}} .
+\]
+\end{proposition}
+\begin{proof}
+  \leanok
+\emph{Step 1 (integrability and positivity).} The old energy is the smart-path energy with $M$ constraints, so $E_\sim\le MD+\sqrt{1-t}\,|Y|$
+for every configuration (\texttt{smartPathEnergy\_init\_le}); hence $e^{E_\sim}$ is integrable, $Z_\sim>0$ and $\mu_{E_\sim}$ is a probability measure.
+The bound $u\le D$ makes $e^{u(S_{M,t})}$ integrable against this probability measure, with positive integral. This is the only place where
+$u\le D$ is used, and the last field $Y$ may be unbounded in the disorder: the bound holds at each fixed disorder.
+
+\emph{Step 2 (normalizer).} By the energy split, $e^{E}=e^{u(S_{M,t})}e^{E_\sim}$, so $Z=\int e^{u(S_{M,t})}\,d(\mu\text{ tilted by }E_\sim)\cdot Z_\sim$.
+
+\emph{Step 3 (replicas).} Apply Lemma~\ref{lem:sg-tal:perceptron-cavity-ratio-model-free} with $E=E_\sim$ and $V=u(S_{M,t})$. The case $R=\emptyset$
+($n=0$) has denominator $1$, and $M=0$ (no old constraints) is covered because only $E_\sim\le MD+\sqrt{1-t}|Y|$ is used.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityDecomposition.lean}.
+\end{proof}
+
+\begin{proposition}[The interpolating system, (2.33)--(2.35), and $\nu_{t,1}=\nu_t$]\label{prop:sg-tal:perceptron-cavity-path}
+  \lean{SpinGlasses.integral_pi_tilted_cavityPath_eq_div,
+        SpinGlasses.integral_pi_tilted_cavityPath_zero,
+        MeasureTheory.integral_pi_tilted_prod_fst_of_forall}
+  \leanok
+  \uses{prop:sg-tal:perceptron-cavity-ratio}
+\talsource{Eqs.~(2.33)--(2.35) and the sentence ``$\nu_{t,1}=\nu_t$''}
+Let $u$ be measurable with $u\le D$, $\mu$ a finite measure on the configurations of the full system ($M+1$ constraints), $\gamma=\mathcal N(0,1)$,
+$t,q,s,z\in\mathbb R$ and $\omega$ a disorder. A replica carries a configuration $x$ and one more coordinate $\xi$. Put
+$\theta=\sqrt q\,z+\sqrt{1-q}\,\xi$, $S_s=\cos s\,S_{M,t}(x)+\sin s\,\theta$ (so $v=\cos^2 s$), and let $\nu_{t,s}$ be the replica average under the
+product of $(\mu\otimes\gamma)_{E_s}$, where $E_s=E_\sim(x)+u(S_s)$ and $E_\sim$ is the old energy (a function of $x$ only). Then for every
+function $Y$ of the replicas
+\[
+ \nu_{t,s}(Y)=\frac{\bigl\langle Y\,e^{\sum_{\ell}u(S_s^\ell)}\bigr\rangle_{\sim}}{\bigl\langle e^{u(S_s)}\bigr\rangle_{\sim}^{n}},
+\]
+where $\langle\cdot\rangle_\sim$ is the average under $((\mu\otimes\gamma)_{E_\sim})^{\otimes n}$, and at $s=0$ (that is, $v=1$) the average of a
+measurable function of the configurations $x^\ell$ alone is its average under the Gibbs law $\mu_{E}$ of the full system:
+$\nu_{t,0}(f)=\nu_t(f)$.
+\end{proposition}
+\begin{proof}
+  \leanok
+\emph{Step 1 (the ratio).} The old energy does not depend on $\xi$ and $e^{E_\sim}$ is integrable against $\mu\otimes\gamma$ (Proposition~\ref{prop:sg-tal:perceptron-cavity-ratio}),
+so Lemma~\ref{lem:sg-tal:perceptron-cavity-ratio-model-free} with base $\mu\otimes\gamma$, $E=E_\sim\circ\mathrm{fst}$ and $V=u(S_s)$ gives the formula.
+
+\emph{Step 2 ($s=0$).} Here $\cos 0=1$ and $\sin0=0$, so $E_0(x,\xi)=E_\sim(x)+u(S_{M,t}(x))=E(x)$ by Lemma~\ref{lem:sg-tal:perceptron-cavity-energy-split}: the
+coordinate $\xi$ is unused. Since $\gamma$ is a probability measure, marginalizing an unused coordinate of a tilted product law leaves the
+tilted first factor (\texttt{integral\_pi\_tilted\_prod\_fst\_of\_forall}, a consequence of \texttt{integral\_pi\_tilted\_prod\_fst}).
+
+\emph{Replica consistency and symmetry.} The Gibbs laws are probability measures, so the average of a function of fewer replicas does not change
+when replicas are added, and replicas can be relabelled by any injection (\texttt{integral\_pi\_comp\_injective}); no new lemma is needed.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityPath.lean}.
+\end{proof}
+
+\begin{lemma}[Lemma 2.3.1: the endpoint $v=0$]\label{lem:sg-tal:perceptron-cavity-endpoint}
+  \lean{MeasureTheory.integral_pi_prod_mul,
+        MeasureTheory.integral_pi_tilted_prod_add_mul,
+        MeasureTheory.integral_pi_mul_of_ne,
+        SpinGlasses.cavityPath_energy_pi_div_two,
+        SpinGlasses.isProbabilityMeasure_tilted_cavityPath_new,
+        SpinGlasses.integral_pi_tilted_cavityPath_pi_div_two,
+        SpinGlasses.integral_pi_tilted_cavityPath_pi_div_two_deriv_mul,
+        SpinGlasses.integral_integral_pi_tilted_cavityPath_pi_div_two,
+        SpinGlasses.integral_integral_pi_tilted_cavityPath_pi_div_two_deriv_mul,
+        SpinGlasses.rhat_mem_Icc}
+  \leanok
+  \uses{prop:sg-tal:perceptron-cavity-path}
+\talsource{Lemma~2.3.1, Eqs.~(2.36)--(2.39)}
+Let $u$ be measurable with $u\le D$, $q,t\in\mathbb R$, $\gamma=\mathcal N(0,1)$, $\theta=\sqrt q\,z+\sqrt{1-q}\,\xi$ and
+\[
+ \rho(z)=\Bigl(\frac{\mathbb E_\xi\,u'(\theta)e^{u(\theta)}}{\mathbb E_\xi e^{u(\theta)}}\Bigr)^2,\qquad
+ \widehat r=\mathbb E_z\,\rho(z)\quad(2.36).
+\]
+Let $\nu_{t,0}$ be the average of the interpolating system at $s=\pi/2$ ($v=0$), i.e. the replica average under the product of
+$(\mu\otimes\gamma)_{E_\sim+u(\theta)}$. Let $f$ be a function of the old configurations $(\sigma,\xi_{<M})$ of $n$ replicas (it does not depend on
+$\xi_M^\ell$, the new coordinates $\xi^\ell$, or $z$). Then, at every fixed disorder and every fixed $z$,
+\[
+ \nu_{t,0}(f)=\langle f\rangle_{t,\sim}\quad(2.37),\qquad
+ \nu_{t,0}\bigl(u'(\theta^i)u'(\theta^j)f\bigr)=\rho(z)\,\langle f\rangle_{t,\sim}\quad(i\neq j),
+\]
+and, averaging over the disorder (law $P$) and over $z\sim\gamma$ independently,
+$\mathbb E\,\nu_{t,0}(u'(S_0^i)u'(S_0^j)f)=\widehat r\,\mathbb E\langle f\rangle_{t,\sim}$ (2.38). If $|u'|\le D'$ then $0\le\widehat r\le D'^2$.
+\end{lemma}
+\begin{proof}
+  \leanok
+\emph{Step 1 (the energy splits).} At $s=\pi/2$ one has $\cos s=0$, $\sin s=1$ and $S_s=\theta$, so the energy of the extended configuration $(x,\xi)$ is
+$E_\sim(x)+u(\theta(\xi))$, the sum of a function of $x$ and a function of $\xi$ (\texttt{cavityPath\_energy\_pi\_div\_two}). The law of $\xi$ tilted by $u(\theta)$
+is a probability measure because $u\le D$.
+
+\emph{Step 2 (factorization (2.39)).} For an energy $E_1(a)+E_2(b)$ the Gibbs replica average of $F(a)G(b)$ is the product of the two Gibbs replica
+averages (\texttt{integral\_pi\_tilted\_prod\_add\_mul}, from the product formula for replica spaces \texttt{integral\_pi\_prod\_mul} and the quotient
+formula \texttt{integral\_pi\_tilted\_eq\_div}). With $G\equiv1$ this gives (2.37).
+
+\emph{Step 3 (two replicas).} For $G=u'(\theta^i)u'(\theta^j)$ with $i\ne j$ the replicas are independent (\texttt{integral\_pi\_mul\_of\_ne}), so the factor is
+$(\int u'(\theta)\,d\gamma_{u(\theta)})^2=\rho(z)$, written as a quotient by \texttt{integral\_tilted\_eq\_div}.
+
+\emph{Step 4 (averaging).} The disorder and $z$ are independent, so $\mathbb E[\langle f\rangle(\omega)\rho(z)]=\mathbb E\rho\cdot\mathbb E\langle f\rangle$ (\texttt{integral\_prod\_mul});
+the first statement integrates a quantity independent of $z$. Finally $|{\rm ratio}|\le D'$ because the ratio is a Gibbs average of $u'$, so $\rho\le D'^2$.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityEndpoint.lean} and
+\texttt{ForMathlib/Probability/GibbsReplicaProdFactorization.lean}.
+\end{proof}
+
+\medskip\noindent\emph{Formalization note (hypothesis audit).} The book states (2.32) for a function $f$ on $\Sigma_N^n\times\mathbb R^{Mn}$; the
+Lean statement allows an arbitrary function $Y$ of the replicas of the full configuration, which includes the dependence on the old
+auxiliary coordinates (and on $\xi_M$, which the old energy ignores). No measurability or boundedness of $Y$ is assumed: the identities are
+equalities of integrals (with Lean's convention for non-integrable functions) obtained from the double tilt. The explicit bounds
+$|Y|\le C$ are needed only where a later result integrates the quotient. The book's range of the path parameter is $t\in[0,1]$; the
+statements hold for every real $t$ because $\sqrt{1-t}$ is only used through an upper bound. Not yet formalized in this section: the
+covariance relations and the results after Lemma~2.3.1 (Lemma~2.3.2 onward). The path parameter $s$ is real and the
+quenched variable $z$ is a fixed real number here; averaging over $z$ and over the disorder is not yet needed.

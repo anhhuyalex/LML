@@ -91,6 +91,47 @@ noncomputable def smartPathEnergyDerivY {N M : ℕ} (s : ℝ) (ω : SmartPathDis
     (x : SmartPathState N M) : ℝ :=
   -((x.1.2 : ℤ) : ℝ) * ω.2 / (2 * Real.sqrt (1 - s))
 
+/-! ### Equation lemmas
+
+These state the defining formulas once, so that proofs rewrite with a named lemma instead of
+unfolding the definitions. -/
+
+section Equations
+
+variable {N M : ℕ}
+
+theorem smartPathFieldNoAux_eq (s : ℝ) (ω : SmartPathDisorder N M) (x : SmartPathState N M)
+    (k : Fin M) : smartPathFieldNoAux s ω x k =
+      (Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i, ω.1.1 k i * ((x.1.1 i : ℤ) : ℝ)) +
+        Real.sqrt (s / (N + 1)) * ω.1.2 k * ((x.1.2 : ℤ) : ℝ) := rfl
+
+theorem smartPathField_eq (s : ℝ) (ω : SmartPathDisorder N M) (x : SmartPathState N M)
+    (k : Fin M) : smartPathField s ω x k =
+      smartPathFieldNoAux s ω x k + Real.sqrt ((1 - s) / (N + 1)) * x.2 k := rfl
+
+theorem smartPathEnergy_eq (u : ℝ → ℝ) (s : ℝ) (ω : SmartPathDisorder N M)
+    (x : SmartPathState N M) : smartPathEnergy u s ω x =
+      ((x.1.2 : ℤ) : ℝ) * Real.sqrt (1 - s) * ω.2 + ∑ k, u (smartPathField s ω x k) := rfl
+
+theorem smartPathEnergyNoAux_eq (u : ℝ → ℝ) (s : ℝ) (ω : SmartPathDisorder N M)
+    (x : SmartPathState N M) : smartPathEnergyNoAux u s ω x =
+      ((x.1.2 : ℤ) : ℝ) * Real.sqrt (1 - s) * ω.2 + ∑ k, u (smartPathFieldNoAux s ω x k) := rfl
+
+theorem smartPathEnergyDerivA_def (u : ℝ → ℝ) (s : ℝ) (ω : SmartPathDisorder N M)
+    (x : SmartPathState N M) : smartPathEnergyDerivA u s ω x =
+      ∑ k, deriv u (smartPathField s ω x k) * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
+        (ω.1.2 k * ((x.1.2 : ℤ) : ℝ) / Real.sqrt s)) := rfl
+
+theorem smartPathEnergyDerivXi_def (u : ℝ → ℝ) (s : ℝ) (ω : SmartPathDisorder N M)
+    (x : SmartPathState N M) : smartPathEnergyDerivXi u s ω x =
+      ∑ k, deriv u (smartPathField s ω x k) * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
+        (- x.2 k / Real.sqrt (1 - s))) := rfl
+
+theorem smartPathEnergyDerivY_def (s : ℝ) (ω : SmartPathDisorder N M) (x : SmartPathState N M) :
+    smartPathEnergyDerivY s ω x = -((x.1.2 : ℤ) : ℝ) * ω.2 / (2 * Real.sqrt (1 - s)) := rfl
+
+end Equations
+
 /-! ### Measurability -/
 
 section Measurability
@@ -101,28 +142,28 @@ variable {N M : ℕ}
 theorem measurable_smartPathFieldNoAux (s : ℝ) (k : Fin M) :
     Measurable fun p : SmartPathDisorder N M × SmartPathState N M =>
       smartPathFieldNoAux s p.1 p.2 k := by
-  unfold smartPathFieldNoAux
+  simp only [smartPathFieldNoAux_eq]
   fun_prop
 
 @[fun_prop]
 theorem measurable_smartPathField (s : ℝ) (k : Fin M) :
     Measurable fun p : SmartPathDisorder N M × SmartPathState N M =>
       smartPathField s p.1 p.2 k := by
-  unfold smartPathField
+  simp only [smartPathField_eq, smartPathFieldNoAux_eq]
   fun_prop
 
 @[fun_prop]
 theorem measurable_smartPathEnergy {u : ℝ → ℝ} (hu : Measurable u) (s : ℝ) :
     Measurable fun p : SmartPathDisorder N M × SmartPathState N M =>
       smartPathEnergy u s p.1 p.2 := by
-  unfold smartPathEnergy
+  simp only [smartPathEnergy_eq, smartPathField_eq, smartPathFieldNoAux_eq]
   fun_prop
 
 @[fun_prop]
 theorem measurable_smartPathEnergyNoAux {u : ℝ → ℝ} (hu : Measurable u) (s : ℝ) :
     Measurable fun p : SmartPathDisorder N M × SmartPathState N M =>
       smartPathEnergyNoAux u s p.1 p.2 := by
-  unfold smartPathEnergyNoAux
+  simp only [smartPathEnergyNoAux_eq, smartPathFieldNoAux_eq]
   fun_prop
 
 @[fun_prop]
@@ -130,7 +171,7 @@ theorem measurable_smartPathEnergyDerivA (u : ℝ → ℝ) (s : ℝ) :
     Measurable fun p : SmartPathDisorder N M × SmartPathState N M =>
       smartPathEnergyDerivA u s p.1 p.2 := by
   have hdu := measurable_deriv u
-  unfold smartPathEnergyDerivA
+  simp only [smartPathEnergyDerivA_def, smartPathField_eq, smartPathFieldNoAux_eq]
   fun_prop
 
 @[fun_prop]
@@ -138,14 +179,14 @@ theorem measurable_smartPathEnergyDerivXi (u : ℝ → ℝ) (s : ℝ) :
     Measurable fun p : SmartPathDisorder N M × SmartPathState N M =>
       smartPathEnergyDerivXi u s p.1 p.2 := by
   have hdu := measurable_deriv u
-  unfold smartPathEnergyDerivXi
+  simp only [smartPathEnergyDerivXi_def, smartPathField_eq, smartPathFieldNoAux_eq]
   fun_prop
 
 @[fun_prop]
 theorem measurable_smartPathEnergyDerivY (s : ℝ) :
     Measurable fun p : SmartPathDisorder N M × SmartPathState N M =>
       smartPathEnergyDerivY s p.1 p.2 := by
-  unfold smartPathEnergyDerivY
+  simp only [smartPathEnergyDerivY_def]
   fun_prop
 
 /-- The energy for a fixed disorder is measurable in the configuration. -/
@@ -165,23 +206,19 @@ theorem measurable_smartPathEnergyDeriv (u : ℝ → ℝ) (s : ℝ) :
 
 @[fun_prop]
 theorem measurable_smartPathEnergyDerivA_slice (u : ℝ → ℝ) (s : ℝ) (ω : SmartPathDisorder N M) :
-    Measurable (smartPathEnergyDerivA u s ω) := by
-  have hdu := measurable_deriv u
-  unfold smartPathEnergyDerivA smartPathField smartPathFieldNoAux
-  fun_prop
+    Measurable (smartPathEnergyDerivA u s ω) :=
+  Measurable.of_uncurry_left (f := smartPathEnergyDerivA u s) (measurable_smartPathEnergyDerivA u s)
 
 @[fun_prop]
 theorem measurable_smartPathEnergyDerivXi_slice (u : ℝ → ℝ) (s : ℝ) (ω : SmartPathDisorder N M) :
-    Measurable (smartPathEnergyDerivXi u s ω) := by
-  have hdu := measurable_deriv u
-  unfold smartPathEnergyDerivXi smartPathField smartPathFieldNoAux
-  fun_prop
+    Measurable (smartPathEnergyDerivXi u s ω) :=
+  Measurable.of_uncurry_left (f := smartPathEnergyDerivXi u s)
+    (measurable_smartPathEnergyDerivXi u s)
 
 @[fun_prop]
 theorem measurable_smartPathEnergyDerivY_slice (s : ℝ) (ω : SmartPathDisorder N M) :
-    Measurable (smartPathEnergyDerivY s ω) := by
-  unfold smartPathEnergyDerivY
-  fun_prop
+    Measurable (smartPathEnergyDerivY s ω) :=
+  Measurable.of_uncurry_left (f := smartPathEnergyDerivY s) (measurable_smartPathEnergyDerivY s)
 
 /-- The energy derivative for a fixed disorder is measurable in the configuration. -/
 theorem measurable_smartPathEnergyDeriv_slice (u : ℝ → ℝ) (s : ℝ) (ω : SmartPathDisorder N M) :
@@ -200,11 +237,15 @@ noncomputable def smartPathBase (N M : ℕ) : Measure (SmartPathState N M) :=
   (Measure.count : Measure (PerceptronSpin N)).prod
     (Measure.pi fun _ : Fin M => gaussianReal 0 1)
 
+theorem smartPathBase_eq (N M : ℕ) : smartPathBase N M =
+    (Measure.count : Measure (PerceptronSpin N)).prod
+      (Measure.pi fun _ : Fin M => gaussianReal 0 1) := rfl
+
 instance (N M : ℕ) : IsFiniteMeasure (smartPathBase N M) := by
-  unfold smartPathBase; infer_instance
+  rw [smartPathBase_eq]; infer_instance
 
 instance (N M : ℕ) : NeZero (smartPathBase N M) := by
-  unfold smartPathBase; infer_instance
+  rw [smartPathBase_eq]; infer_instance
 
 theorem count_univ_ne_zero (N : ℕ) :
     (Measure.count : Measure (PerceptronSpin N)) Set.univ ≠ 0 := by
@@ -218,25 +259,31 @@ noncomputable def smartPathSpinProb (N : ℕ) : Measure (PerceptronSpin N) :=
   ((Measure.count : Measure (PerceptronSpin N)) Set.univ)⁻¹ •
     (Measure.count : Measure (PerceptronSpin N))
 
+theorem smartPathSpinProb_eq (N : ℕ) : smartPathSpinProb N =
+    ((Measure.count : Measure (PerceptronSpin N)) Set.univ)⁻¹ •
+      (Measure.count : Measure (PerceptronSpin N)) := rfl
+
 instance (N : ℕ) : IsProbabilityMeasure (smartPathSpinProb N) :=
   ⟨by
-    unfold smartPathSpinProb
-    rw [smul_apply, smul_eq_mul]
+    rw [smartPathSpinProb_eq, smul_apply, smul_eq_mul]
     exact ENNReal.inv_mul_cancel (count_univ_ne_zero N) (count_univ_ne_top N)⟩
 
 /-- The smart-path base law with the spin counting measure normalized to a probability measure. -/
 noncomputable def smartPathBaseProb (N M : ℕ) : Measure (SmartPathState N M) :=
   (smartPathSpinProb N).prod (Measure.pi fun _ : Fin M => gaussianReal 0 1)
 
+theorem smartPathBaseProb_eq (N M : ℕ) : smartPathBaseProb N M =
+    (smartPathSpinProb N).prod (Measure.pi fun _ : Fin M => gaussianReal 0 1) := rfl
+
 instance (N M : ℕ) : IsProbabilityMeasure (smartPathBaseProb N M) := by
-  unfold smartPathBaseProb
+  rw [smartPathBaseProb_eq]
   infer_instance
 
 theorem smartPathBase_eq_smul (N M : ℕ) :
     smartPathBase N M =
       ((Measure.count : Measure (PerceptronSpin N)) Set.univ) • smartPathBaseProb N M := by
-  unfold smartPathBase smartPathBaseProb smartPathSpinProb
-  rw [Measure.prod_smul_left, smul_smul, ENNReal.mul_inv_cancel (count_univ_ne_zero N)
+  rw [smartPathBase_eq, smartPathBaseProb_eq, smartPathSpinProb_eq, Measure.prod_smul_left,
+    smul_smul, ENNReal.mul_inv_cancel (count_univ_ne_zero N)
     (count_univ_ne_top N), one_smul]
 
 /-- The Gibbs measure does not depend on the scale of the spin counting measure. -/
@@ -249,9 +296,13 @@ noncomputable def smartPathDisorder {N M : ℕ} (Pold : Measure (Fin M → Fin N
     (v : ℝ≥0) : Measure (SmartPathDisorder N M) :=
   (Pold.prod (Measure.pi fun _ : Fin M => gaussianReal 0 1)).prod (gaussianReal 0 v)
 
+theorem smartPathDisorder_eq {N M : ℕ} (Pold : Measure (Fin M → Fin N → ℝ)) (v : ℝ≥0) :
+    smartPathDisorder Pold v =
+      (Pold.prod (Measure.pi fun _ : Fin M => gaussianReal 0 1)).prod (gaussianReal 0 v) := rfl
+
 instance {N M : ℕ} (Pold : Measure (Fin M → Fin N → ℝ)) [IsFiniteMeasure Pold] (v : ℝ≥0) :
     IsFiniteMeasure (smartPathDisorder Pold v) := by
-  unfold smartPathDisorder; infer_instance
+  rw [smartPathDisorder_eq]; infer_instance
 
 /-! ### Potential hypotheses -/
 
@@ -299,49 +350,29 @@ noncomputable def smartPathPotentialKernel {N M : ℕ} (u : ℝ → ℝ) (t : �
 def lastSpinKernel {N M : ℕ} (x y : SmartPathState N M) : ℝ :=
   ((x.1.2 : ℤ) : ℝ) * ((y.1.2 : ℤ) : ℝ)
 
+theorem lastSpinKernel_eq {N M : ℕ} (x y : SmartPathState N M) :
+    lastSpinKernel x y = ((x.1.2 : ℤ) : ℝ) * ((y.1.2 : ℤ) : ℝ) := rfl
+
+theorem smartPathPotentialKernel_eq {N M : ℕ} (u : ℝ → ℝ) (t : ℝ) (ω : SmartPathDisorder N M)
+    (k : Fin M) (x y : SmartPathState N M) : smartPathPotentialKernel u t ω k x y =
+      ((x.1.2 : ℤ) : ℝ) * ((y.1.2 : ℤ) : ℝ) * deriv u (smartPathField t ω x k) *
+        deriv u (smartPathField t ω y k) := rfl
+
 theorem lastSpinKernel_self {N M : ℕ} (x : SmartPathState N M) : lastSpinKernel x x = 1 := by
-  unfold lastSpinKernel
+  rw [lastSpinKernel_eq]
   rw [← sq]
   exact units_cast_sq _
 
 theorem lastSpinKernel_comm {N M : ℕ} (x y : SmartPathState N M) :
     lastSpinKernel x y = lastSpinKernel y x := by
-  unfold lastSpinKernel
+  simp only [lastSpinKernel_eq]
   ring
 
-/-! ### Equation lemmas and basic API
-
-These state the defining formulas once, so that later proofs rewrite with a named lemma
-instead of unfolding the definitions. -/
+/-! ### Basic API -/
 
 section API
 
 variable {N M : ℕ}
-
-theorem smartPathField_eq (s : ℝ) (ω : SmartPathDisorder N M) (x : SmartPathState N M)
-    (k : Fin M) : smartPathField s ω x k =
-      smartPathFieldNoAux s ω x k + Real.sqrt ((1 - s) / (N + 1)) * x.2 k := rfl
-
-theorem smartPathEnergy_eq (u : ℝ → ℝ) (s : ℝ) (ω : SmartPathDisorder N M)
-    (x : SmartPathState N M) : smartPathEnergy u s ω x =
-      ((x.1.2 : ℤ) : ℝ) * Real.sqrt (1 - s) * ω.2 + ∑ k, u (smartPathField s ω x k) := rfl
-
-theorem smartPathEnergyNoAux_eq (u : ℝ → ℝ) (s : ℝ) (ω : SmartPathDisorder N M)
-    (x : SmartPathState N M) : smartPathEnergyNoAux u s ω x =
-      ((x.1.2 : ℤ) : ℝ) * Real.sqrt (1 - s) * ω.2 + ∑ k, u (smartPathFieldNoAux s ω x k) := rfl
-
-theorem smartPathEnergyDerivA_def (u : ℝ → ℝ) (s : ℝ) (ω : SmartPathDisorder N M)
-    (x : SmartPathState N M) : smartPathEnergyDerivA u s ω x =
-      ∑ k, deriv u (smartPathField s ω x k) * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
-        (ω.1.2 k * ((x.1.2 : ℤ) : ℝ) / Real.sqrt s)) := rfl
-
-theorem smartPathEnergyDerivXi_def (u : ℝ → ℝ) (s : ℝ) (ω : SmartPathDisorder N M)
-    (x : SmartPathState N M) : smartPathEnergyDerivXi u s ω x =
-      ∑ k, deriv u (smartPathField s ω x k) * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
-        (- x.2 k / Real.sqrt (1 - s))) := rfl
-
-theorem smartPathEnergyDerivY_def (s : ℝ) (ω : SmartPathDisorder N M) (x : SmartPathState N M) :
-    smartPathEnergyDerivY s ω x = -((x.1.2 : ℤ) : ℝ) * ω.2 / (2 * Real.sqrt (1 - s)) := rfl
 
 /-- The `a`-part of the energy derivative as a sum over constraints of `ε u'(S_k)`. -/
 theorem smartPathEnergyDerivA_eq_sum (u : ℝ → ℝ) (s : ℝ) (ω : SmartPathDisorder N M) :
@@ -364,7 +395,7 @@ theorem smartPathEnergyDerivY_eq_mul (s : ℝ) (ω : SmartPathDisorder N M) :
     smartPathEnergyDerivY s ω =
       fun x => (-(1 / (2 * Real.sqrt (1 - s))) * ω.2) * ((x.1.2 : ℤ) : ℝ) := by
   funext x
-  unfold smartPathEnergyDerivY
+  simp only [smartPathEnergyDerivY_def]
   ring
 
 /-- The field at a fixed disorder is measurable in the configuration. -/
@@ -374,20 +405,13 @@ theorem measurable_smartPathField_slice (s : ℝ) (ω : SmartPathDisorder N M) (
   Measurable.of_uncurry_left (f := fun ω x => smartPathField s ω x k)
     (measurable_smartPathField s k)
 
-theorem smartPathDisorder_eq {N M : ℕ} (Pold : Measure (Fin M → Fin N → ℝ)) (v : ℝ≥0) :
-    smartPathDisorder Pold v =
-      (Pold.prod (Measure.pi fun _ : Fin M => gaussianReal 0 1)).prod (gaussianReal 0 v) := rfl
-
 theorem smartPathPotentialKernel_eq_mul (u : ℝ → ℝ) (t : ℝ) (ω : SmartPathDisorder N M)
     (k : Fin M) (x y : SmartPathState N M) :
     smartPathPotentialKernel u t ω k x y =
       (((x.1.2 : ℤ) : ℝ) * deriv u (smartPathField t ω x k)) *
         (((y.1.2 : ℤ) : ℝ) * deriv u (smartPathField t ω y k)) := by
-  unfold smartPathPotentialKernel
+  rw [smartPathPotentialKernel_eq]
   ring
-
-theorem lastSpinKernel_eq (x y : SmartPathState N M) :
-    lastSpinKernel x y = ((x.1.2 : ℤ) : ℝ) * ((y.1.2 : ℤ) : ℝ) := rfl
 
 @[fun_prop]
 theorem measurable_lastSpinKernel :

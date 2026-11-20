@@ -1068,7 +1068,7 @@ theorem abs_replicaPairCombination_le {R α : Type*} [Fintype R] [LinearOrder R]
     refine (Finset.sum_le_card_nsmul _ _ c fun r _ => hU _ _).trans ?_
     simp
   have h3 := hU (τ (some none)) (τ none)
-  unfold replicaPairCombination
+  rw [replicaPairCombination_eq]
   calc _ ≤ |∑ p : R × R with p.1 < p.2, U (τ (some (some p.1))) (τ (some (some p.2)))| +
         |(Fintype.card R : ℝ) * ∑ r : R, U (τ (some (some r))) (τ (some none))| +
         |(Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) / 2 * U (τ (some none)) (τ none)| :=

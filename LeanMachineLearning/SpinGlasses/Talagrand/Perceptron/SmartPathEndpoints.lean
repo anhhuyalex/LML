@@ -14,10 +14,12 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.MeasurableSpace.Embed
 /-!
 # The original perceptron Gibbs law at the terminal smart-path endpoint
 
-At `t = 1` the auxiliary Gaussian spins and last field drop out. Integrate the unused
-auxiliary coordinates using Exercise 2.2.1 and concatenate the old and last spin with the
+At `t = 1` the auxiliary Gaussian spins and last field drop out. The energy no longer depends on
+the auxiliary coordinates, so they are integrated out with
+`integral_pi_tilted_prod_fst_of_forall`; the old and last spin are then concatenated with the
 shared measurable equivalence. This recovers the Section 2.1 Gibbs law with full normalization.
-The argument needs only a measurable upper-bounded potential, not derivative assumptions.
+The argument needs no hypothesis on the potential: the energy no longer depends on the auxiliary
+coordinates and the spin space is finite.
 -/
 
 @[expose] public section
@@ -27,9 +29,10 @@ open scoped BigOperators
 namespace SpinGlasses
 
 /-- A spin-only replica average at `t = 1` equals its original `(N + 1)`-spin Gibbs average.
-This includes empty replica and constraint types, and one full spin. -/
-theorem integral_pi_perceptron_smart_path_one {N M : ℕ} {R : Type*} [Fintype R] {u : ℝ → ℝ}
-    (hu : Measurable u) {D : ℝ} (hD : ∀ x, u x ≤ D)
+This includes empty replica and constraint types, and one full spin. No hypothesis on `u` is
+needed: at `t = 1` the energy does not depend on the auxiliary coordinates, and the spin space is
+finite, so every exponential is integrable and every observable is measurable. -/
+theorem integral_pi_perceptron_smart_path_one {N M : ℕ} {R : Type*} [Fintype R] (u : ℝ → ℝ)
     (g : Fin M → Fin (N + 1) → ℝ) (y : ℝ)
     (F : (R → Fin (N + 1) → ℤˣ) → ℝ) :
     ∫ x : R → SmartPathState N M,
@@ -48,22 +51,26 @@ theorem integral_pi_perceptron_smart_path_one {N M : ℕ} {R : Type*} [Fintype R
     ∑ k, u ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, g k i * ((τ i : ℤ) : ℝ))
   have hreindex := integral_pi_count_tilted_equiv (R := R) e H F
   refine Eq.trans ?_ hreindex.symm
-  have haux := integral_pi_perceptron_smart_path_auxiliary (N := N) (M := M) (R := R) hu hD
-    ((fun k i => g k i.castSucc, fun k => g k (Fin.last N)), y) 1
-    (fun σ : R → (Fin N → ℤˣ) × ℤˣ => F (fun r => e (σ r)))
-  let S := fun (σ : (Fin N → ℤˣ) × ℤˣ) (k : Fin M) =>
-    smartPathFieldNoAux 1 ((fun k i => g k i.castSucc, fun k => g k (Fin.last N)), y) (σ, 0) k
-  have hH : (fun σ => H (e σ)) = fun σ => ∑ k, u (S σ k) := by
+  set ω : SmartPathDisorder N M := ((fun k i => g k i.castSucc, fun k => g k (Fin.last N)), y)
+  have hH : (fun σ => H (e σ)) = fun σ => ∑ k, u (smartPathFieldNoAux 1 ω (σ, 0) k) := by
     funext σ
     dsimp only [H]
     rw [he]
     apply Finset.sum_congr rfl
     intro k _
     congr 1
-    simpa only [S, smartPathFieldNoAux, div_one, one_div, Real.sqrt_inv, Nat.cast_add,
+    simpa only [smartPathFieldNoAux, div_one, one_div, Real.sqrt_inv, Nat.cast_add,
       Nat.cast_one] using normalized_constraint_field_snoc σ.1 σ.2 (g k)
-  rw [hH]
-  simpa only [he, sub_self, zero_div, Real.sqrt_zero, mul_zero, zero_mul, add_zero, zero_add,
-    integral_const, probReal_univ, one_smul, Real.log_exp] using haux
+  have hEn : smartPathEnergy u 1 ω = fun x : SmartPathState N M =>
+      ∑ k, u (smartPathFieldNoAux 1 ω (x.1, 0) k) := by
+    funext x
+    simp [smartPathEnergy_eq, smartPathField_eq, smartPathFieldNoAux_eq]
+  rw [hH, hEn, smartPathBase_eq]
+  have := integral_pi_tilted_prod_fst_of_forall (μ := (Measure.count : Measure (PerceptronSpin N)))
+    (ν := Measure.pi fun _ : Fin M => gaussianReal 0 1) (R := R)
+    (E₁ := fun σ : PerceptronSpin N => ∑ k, u (smartPathFieldNoAux 1 ω (σ, 0) k))
+    Integrable.of_finite (f := fun σ : R → PerceptronSpin N => F (fun r => e (σ r)))
+    (measurable_of_finite _)
+  simpa only [he] using this
 
 end SpinGlasses

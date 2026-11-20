@@ -36,7 +36,8 @@ namespace SpinGlasses
 
 variable {N M : ℕ}
 
-/-- The field of the old system at constraint `k` is the field of the full system at `k.castSucc`. -/
+/-- The field of the old system at constraint `k` is the field of the full system at
+`k.castSucc`. -/
 theorem smartPathField_init (t : ℝ) (ω : SmartPathDisorder N (M + 1))
     (x : SmartPathState N (M + 1)) (k : Fin M) :
     smartPathField t ((Fin.init ω.1.1, Fin.init ω.1.2), ω.2) (x.1, Fin.init x.2) k =

@@ -168,6 +168,7 @@ public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaDiffDerivat
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaEquivariance
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaPairBridge
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaPointMass
+public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaProdFactorization
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaProduct
 public import LeanMachineLearning.ForMathlib.Probability.GibbsSiteSymmetry
 public import LeanMachineLearning.ForMathlib.Probability.GibbsTemperatureDerivative
@@ -697,6 +698,9 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKT
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKTBasisSecondMoment
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.AuxiliaryMarginal
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.BoundedPotential
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavityDecomposition
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavityEndpoint
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavityPath
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ExponentialPenalty
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.FirstMoment
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.GaussianFieldSplit
