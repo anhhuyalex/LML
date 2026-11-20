@@ -1093,6 +1093,7 @@ theorem sk_row_sum_aux (n : ℕ) (b : ℕ → ℝ) (x y a c : Fin n) (U V W : �
       (if (some (some a) = α ∧ some (some c) = β) ∨ (some (some a) = β ∧ some (some c) = α) then U
         else if some (some a) = α ∨ some (some a) = β ∨ some (some c) = α ∨ some (some c) = β
           then V else W)) id
+  rw [MeasureTheory.replicaPairCombination_fin] at this
   simp only [id] at this
   unfold skCavityReplicaPairCoincidences
   exact this.symm

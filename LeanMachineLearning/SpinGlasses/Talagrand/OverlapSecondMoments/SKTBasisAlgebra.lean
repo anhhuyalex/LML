@@ -114,6 +114,7 @@ theorem sk_cavity_replica_pair_sum_sub_third {n : ℕ} (b : ℕ → ℝ) {i₁ i
   set X : Fin n → Fin n → ℝ := fun a c => ϑ a * (cc a c * J (some (some a)) (some (some c)))
     with hXdef
   have hsum := sk_cavity_signed_pair_sum D id
+  rw [MeasureTheory.replicaPairCombination_fin] at hsum
   have hX : ∀ a c : Fin n, D (some (some a)) (some (some c)) = X a c + X c a := fun a c => by
     simp only [hD, hXdef, hϑ, hcc, Option.some.injEq, hJ (some (some c)) (some (some a)),
       or_comm (a := k = c) (b := k = a)]

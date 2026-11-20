@@ -100,6 +100,7 @@ theorem signed_sum_expand {n : ℕ} (x y : Fin n) (b : ℕ → ℝ)
   have := sk_cavity_signed_pair_sum (n := n)
     (fun α β : Option (Option (Fin n)) =>
       b (skCavityCoincidences (some (some x)) (some (some y)) α β) * G α β) id
+  rw [MeasureTheory.replicaPairCombination_fin] at this
   simp only [id] at this
   rw [coincidences_extra_extra] at this
   unfold skCavityReplicaPairCoincidences

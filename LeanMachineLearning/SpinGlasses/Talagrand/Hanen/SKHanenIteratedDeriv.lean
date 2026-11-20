@@ -78,12 +78,7 @@ noncomputable def skCavityPathDerivKernel (N n : ℕ) (β q : ℝ)
     (f : (Fin n → Fin (N + 1) → ℤˣ) → ℝ) :
     (Option (Option (Fin n)) → Fin (N + 1) → ℤˣ) → ℝ := fun τ =>
   f (fun r => τ (some (some r))) *
-    ((∑ p : Fin n × Fin n with p.1 < p.2,
-        skCavityPathKernel N β q (τ (some (some p.1))) (τ (some (some p.2)))) -
-      (n : ℝ) * ∑ r : Fin n,
-        skCavityPathKernel N β q (τ (some (some r))) (τ (some none)) +
-      (n : ℝ) * ((n : ℝ) + 1) / 2 *
-        skCavityPathKernel N β q (τ (some none)) (τ none))
+    MeasureTheory.replicaPairCombination (skCavityPathKernel N β q) τ
 
 /-- The cavity derivative kernel is the canonical signed sum over distinct replica pairs. -/
 theorem skCavityPathDerivKernel_eq_pair_sum (N n : ℕ) (β q : ℝ)

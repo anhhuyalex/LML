@@ -201,8 +201,9 @@ theorem sk_cavity_deriv_zero_pair_combo (N n : ℕ) (β q h : ℝ)
               K (τ (so p.1)) (τ (so p.2))) -
             (n : ℝ) * ∑ r : Fin n, K (τ (so r)) (τ (some none)) +
             (n : ℝ) * ((n : ℝ) + 1) / 2 * K (τ (some none)) (τ none)) =
-        ∑ j, skCavityReplicaPairWeight n j * Gj j τ := fun τ =>
-    sk_cavity_signed_pair_mul_sum K τ (f τ)
+        ∑ j, skCavityReplicaPairWeight n j * Gj j τ := fun τ => by
+    rw [← MeasureTheory.replicaPairCombination_fin n K τ]
+    exact sk_cavity_signed_pair_mul_sum K τ (f τ)
   simp_rw [hS]
   rw [integral_nested_gibbs_finset_sum (Measure.pi fun _ : FinPairs N => gaussianReal 0 1)
     ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod (gaussianReal 0 1)) (E (π / 2)) hEm

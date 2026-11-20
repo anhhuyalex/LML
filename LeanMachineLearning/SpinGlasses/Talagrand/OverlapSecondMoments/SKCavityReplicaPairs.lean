@@ -7,6 +7,7 @@ module
 
 public import Mathlib.Data.Fintype.BigOperators
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.OffDiag
+public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaProduct
 public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKFirstMoment
 
 /-!
@@ -57,29 +58,26 @@ theorem skCavityReplicaPair_ne {n : ℕ} (j : SKCavityReplicaPair n) :
   · simp [skCavityReplicaPairMap]
   · simp [skCavityReplicaPairMap]
 
-/-- **Canonical sum-reindexing theorem:** The signed three-family sum of any bivariate
-kernel `D` over lifted replicas equals the sum over `SKCavityReplicaPair n`. -/
+/-- **Canonical sum-reindexing theorem:** The signed three-family combination
+`replicaPairCombination` of any bivariate kernel `D` over lifted replicas equals the sum over
+`SKCavityReplicaPair n`. -/
 theorem sk_cavity_signed_pair_sum {n : ℕ} {α : Type*} (D : α → α → ℝ)
     (τ : Option (Option (Fin n)) → α) :
-    (∑ p : Fin n × Fin n with p.1 < p.2, D (τ (some (some p.1))) (τ (some (some p.2)))) -
-      (n : ℝ) * ∑ r : Fin n, D (τ (some (some r))) (τ (some none)) +
-      (n : ℝ) * ((n : ℝ) + 1) / 2 * D (τ (some none)) (τ none) =
+    MeasureTheory.replicaPairCombination D τ =
     ∑ j : SKCavityReplicaPair n,
       skCavityReplicaPairWeight n j *
         D (τ (skCavityReplicaPairMap j).1) (τ (skCavityReplicaPairMap j).2) := by
+  rw [MeasureTheory.replicaPairCombination_fin]
   simp only [skCavityReplicaPairWeight, skCavityReplicaPairMap, Fintype.sum_sum_type,
     Finset.univ_unique, Finset.sum_singleton, ← Finset.mul_sum]
   rw [sum_filter_lt_eq_sum_subtype fun s : Fin n × Fin n =>
     D (τ (some (some s.1))) (τ (some (some s.2)))]
   ring
 
-/-- The signed three-family sum scaled by a common factor `c`. -/
+/-- The signed three-family combination scaled by a common factor `c`. -/
 theorem sk_cavity_signed_pair_mul_sum {n : ℕ} {α : Type*} (D : α → α → ℝ)
     (τ : Option (Option (Fin n)) → α) (c : ℝ) :
-    c * ((∑ p : Fin n × Fin n with p.1 < p.2,
-            D (τ (some (some p.1))) (τ (some (some p.2)))) -
-          (n : ℝ) * ∑ r : Fin n, D (τ (some (some r))) (τ (some none)) +
-          (n : ℝ) * ((n : ℝ) + 1) / 2 * D (τ (some none)) (τ none)) =
+    c * MeasureTheory.replicaPairCombination D τ =
       ∑ j : SKCavityReplicaPair n,
         skCavityReplicaPairWeight n j *
           (c * D (τ (skCavityReplicaPairMap j).1) (τ (skCavityReplicaPairMap j).2)) := by
