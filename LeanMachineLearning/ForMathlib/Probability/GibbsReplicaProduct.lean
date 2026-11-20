@@ -691,31 +691,22 @@ theorem abs_integral_integral_pi_tilted_le {E : Ω → α → ℝ}
   exact abs_integral_integral_le_of_forall_abs_le P
     (fun ω => Measure.pi fun _ : ι => μ.tilted (E ω)) G hG
 
-/-- **Measurability of the replica difference in the environment.** For jointly measurable
-bounded energy and observable (and bounded `F`), `ω ↦ replicaDiff (μ.tilted (E ω)) F (h ω)` is
-measurable. -/
+/-- **Measurability of the replica difference in the environment.** For a jointly measurable energy
+and observable and a measurable `F`, `ω ↦ replicaDiff (μ.tilted (E ω)) F (h ω)` is measurable. No
+boundedness or normalization is needed: each of the summands in `replicaDiff_eq` is measurable by
+`measurable_integral_pi_tilted`. -/
 theorem measurable_replicaDiff_tilted {R : Type*} [Fintype R] {E : Ω → α → ℝ}
-    (hE : Measurable fun p : Ω × α => E p.1 p.2)
-    (hprob : ∀ ω, IsProbabilityMeasure (μ.tilted (E ω)))
-    {h : Ω → α → ℝ} (hh : Measurable fun p : Ω × α => h p.1 p.2) {H : ℝ}
-    (hhb : ∀ ω a, |h ω a| ≤ H) {F : (R → α) → ℝ} (hF : Measurable F) {C : ℝ}
-    (hFb : ∀ σ, |F σ| ≤ C) :
+    (hE : Measurable fun p : Ω × α => E p.1 p.2) {h : Ω → α → ℝ}
+    (hh : Measurable fun p : Ω × α => h p.1 p.2) {F : (R → α) → ℝ} (hF : Measurable F) :
     Measurable fun ω => replicaDiff (μ.tilted (E ω)) F (h ω) := by
-  have hFo : Measurable fun σ : Option R → α => F (fun j => σ (some j)) := hF.comp (by fun_prop)
-  have : (fun ω => replicaDiff (μ.tilted (E ω)) F (h ω)) = fun ω =>
-      ∫ σ : Option R → α, F (fun j => σ (some j)) *
-        (∑ i, h ω (σ (some i)) - (Fintype.card R : ℝ) * h ω (σ none))
-        ∂(Measure.pi fun _ : Option R => μ.tilted (E ω)) := funext fun ω => by
-    have := hprob ω
-    exact replicaDiff_eq_integral _ F hF hFb _ (hh.comp (measurable_const.prodMk measurable_id))
-      (hhb ω)
-  rw [this]
-  refine measurable_integral_pi_tilted hE ?_
-  refine (hFo.comp measurable_snd).mul ?_
-  refine (Finset.measurable_sum _ fun i _ => hh.comp (measurable_fst.prodMk
-    ((measurable_pi_apply (some i)).comp measurable_snd))).sub ?_
-  exact (hh.comp (measurable_fst.prodMk
-    ((measurable_pi_apply none).comp measurable_snd))).const_mul _
+  have hFo : Measurable fun p : Ω × (Option R → α) => F (fun j => p.2 (some j)) :=
+    hF.comp (measurable_pi_iff.2 fun j => (measurable_pi_apply _).comp measurable_snd)
+  have hhi (i : Option R) : Measurable fun p : Ω × (Option R → α) => h p.1 (p.2 i) :=
+    hh.comp (measurable_fst.prodMk ((measurable_pi_apply i).comp measurable_snd))
+  simp_rw [replicaDiff_eq]
+  refine (Finset.measurable_sum _ fun i _ => ?_).sub
+    ((measurable_integral_pi_tilted hE (hFo.mul (hhi none))).const_mul _)
+  exact measurable_integral_pi_tilted hE (hFo.mul (hhi (some i)))
 
 /-- **Measurability of the pair average in the environment.** -/
 theorem measurable_replicaPairAverage_tilted {R : Type*} [Fintype R] [LinearOrder R]
@@ -1054,6 +1045,21 @@ theorem exists_abs_replicaPairCombination_le {R α : Type*} [Fintype R] [LinearO
     ∃ K, ∀ τ : Option (Option R) → α, |replicaPairCombination U τ| ≤ K := by
   obtain ⟨c, hc⟩ := hU
   exact ⟨_, abs_replicaPairCombination_le hc⟩
+
+/-- **Integrability of the pair average in the environment.** A jointly measurable kernel with a
+uniform bound `K` and a bounded measurable observable give a pair average of the Gibbs measures
+`μ.tilted (E ω)` that is integrable under any finite environment law. The explicit
+replica-cardinality bound stays inside this lemma. -/
+theorem integrable_replicaPairAverage_tilted_of_bound {Ω R : Type*} [MeasurableSpace Ω]
+    [Fintype R] [LinearOrder R] {E : Ω → α → ℝ} (hE : Measurable fun p : Ω × α => E p.1 p.2)
+    (hprob : ∀ ω, IsProbabilityMeasure (μ.tilted (E ω))) {P : Measure Ω} [IsFiniteMeasure P]
+    {U : Ω → α → α → ℝ} (hU : Measurable fun p : Ω × (α × α) => U p.1 p.2.1 p.2.2) {K : ℝ}
+    (hKb : ∀ ω a b, |U ω a b| ≤ K) {F : (R → α) → ℝ} (hF : Measurable F) {C : ℝ}
+    (hFb : ∀ σ, |F σ| ≤ C) :
+    Integrable (fun ω => replicaPairAverage (μ.tilted (E ω)) F (U ω)) P :=
+  integrable_of_measurable_bound (measurable_replicaPairAverage_tilted hE hU hF) fun ω => by
+    have := hprob ω
+    exact abs_replicaPairAverage_le _ F hFb (abs_replicaPairCombination_le (hKb ω))
 
 end Bounded
 

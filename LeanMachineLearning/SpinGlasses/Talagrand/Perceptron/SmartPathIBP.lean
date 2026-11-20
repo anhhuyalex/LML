@@ -555,45 +555,31 @@ theorem integral_pi_xi_mul_deriv {N M : ℕ} {R : Type*} [Fintype R] {t : ℝ} {
   have hEm : Measurable Eσ :=
     Finset.measurable_sum _ fun j _ =>
       (measurable_smartPathEnergy_slice hum t ω).comp (measurable_pi_apply j)
-  have hexpb (σ : Option R → SmartPathState N M) : Real.exp (Eσ σ) ≤
-      Real.exp ((Fintype.card (Option R) : ℝ) * (M * B + Real.sqrt (1 - t) * |ω.2|)) := by
-    refine Real.exp_le_exp.2 ?_
+  have hEb (σ : Option R → SmartPathState N M) :
+      Eσ σ ≤ (Fintype.card (Option R) : ℝ) * (M * B + Real.sqrt (1 - t) * |ω.2|) :=
     calc Eσ σ ≤ ∑ _j : Option R, (M * B + Real.sqrt (1 - t) * |ω.2|) :=
           Finset.sum_le_sum fun j _ =>
             perceptron_smart_path_energy_le (fun x => hu.toSmartPathPotential.le x) t ω (σ j)
       _ = _ := by simp; ring
   have hC0 : 0 ≤ C := (abs_nonneg _).trans (hfb fun _ => (fun _ => 1, 1))
   have hD₂0 : 0 ≤ D₂ := (abs_nonneg _).trans (hu.abs_deriv₂_le 0)
+  have hD0 : 0 ≤ D := hu.toSmartPathPotential.D_nonneg
   have hΦm : Measurable Φ := (hfS.mul (hdu.comp hfldσ)).mul hEm.exp
   have hΦ'm : Measurable Φ' :=
     (hfS.mul (((hddu.comp hfldσ).add ((hdu.comp hfldσ).pow_const 2)).const_mul _)).mul hEm.exp
-  have hΦb : ∃ K, ∀ σ, |Φ σ| ≤ K := by
-    refine ⟨C * D * Real.exp ((Fintype.card (Option R) : ℝ) * (M * B + Real.sqrt (1 - t) * |ω.2|)),
-      fun σ => ?_⟩
-    simp only [Φ]
-    rw [abs_mul, abs_mul, abs_of_pos (Real.exp_pos _)]
-    exact mul_le_mul (mul_le_mul (hfb _) (hu.abs_deriv_le _) (abs_nonneg _)
-      ((abs_nonneg _).trans (hfb fun r => (σ (some r)).1))) (hexpb σ) (Real.exp_pos _).le
-      (mul_nonneg ((abs_nonneg _).trans (hfb fun r => (σ (some r)).1)) (by
-        exact (abs_nonneg _).trans (hu.abs_deriv_le 0)))
-  have hD₂ : 0 ≤ D₂ := (abs_nonneg _).trans (hu.abs_deriv₂_le 0)
-  have hD0 : 0 ≤ D := hu.toSmartPathPotential.D_nonneg
-  have hC0 : 0 ≤ C := (abs_nonneg _).trans (hfb fun _ => default)
-  have hΦ'b : ∃ K, ∀ σ, |Φ' σ| ≤ K := by
-    refine ⟨C * (Real.sqrt ((1 - t) / (N + 1)) * (D₂ + D ^ 2)) *
+  have hΦb : ∃ K, ∀ σ, |Φ σ| ≤ K :=
+    ⟨C * D * Real.exp ((Fintype.card (Option R) : ℝ) * (M * B + Real.sqrt (1 - t) * |ω.2|)),
+      fun σ => abs_mul_exp_le (by
+        rw [abs_mul]
+        exact mul_le_mul (hfb _) (hu.abs_deriv_le _) (abs_nonneg _) hC0) (hEb σ)⟩
+  have hΦ'b : ∃ K, ∀ σ, |Φ' σ| ≤ K :=
+    ⟨C * (Real.sqrt ((1 - t) / (N + 1)) * (D₂ + D ^ 2)) *
       Real.exp ((Fintype.card (Option R) : ℝ) * (M * B + Real.sqrt (1 - t) * |ω.2|)),
-      fun σ => ?_⟩
-    simp only [Φ']
-    have hL : |deriv (deriv u) (smartPathField t ω (σ i) k) +
-        deriv u (smartPathField t ω (σ i) k) ^ 2| ≤ D₂ + D ^ 2 := by
-      refine (abs_add_le _ _).trans (add_le_add (hu.abs_deriv₂_le _) ?_)
-      rw [abs_pow]
-      exact pow_le_pow_left₀ (abs_nonneg _) (hu.abs_deriv_le _) 2
-    have hc0 : 0 ≤ Real.sqrt ((1 - t) / (N + 1)) := Real.sqrt_nonneg _
-    rw [abs_mul, abs_mul, abs_mul, abs_of_nonneg hc0, abs_of_pos (Real.exp_pos _)]
-    have hf0 := (abs_nonneg _).trans (hfb fun r => (σ (some r)).1)
-    exact mul_le_mul (mul_le_mul (hfb _) (mul_le_mul_of_nonneg_left hL hc0) (by positivity) hf0)
-      (hexpb σ) (Real.exp_pos _).le (by positivity)
+      fun σ => abs_mul_exp_le (by
+        have hc0 : 0 ≤ Real.sqrt ((1 - t) / (N + 1)) := Real.sqrt_nonneg _
+        rw [abs_mul, abs_mul, abs_of_nonneg hc0]
+        exact mul_le_mul (hfb _) (mul_le_mul_of_nonneg_left (abs_deriv₂_add_sq_le hu t ω k (σ i))
+          hc0) (by positivity) hC0) (hEb σ)⟩
   obtain ⟨K₁, hK₁⟩ := hΦb
   obtain ⟨K₂, hK₂⟩ := hΦ'b
   have h1 : Integrable (fun σ : Option R → SmartPathState N M => (σ i).2 k * Φ σ)
