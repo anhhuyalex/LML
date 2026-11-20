@@ -177,4 +177,129 @@ theorem hasDerivAt_smartPathEnergy_lastField {N M : ℕ} (u : ℝ → ℝ) (t : 
   convert h using 1
   simp [mul_comm]
 
+/-- Replace the `k`-th quenched coupling `a_k` of the disorder by `z`. -/
+def smartPathDisorderUpdate {N M : ℕ} (ω : SmartPathDisorder N M) (k : Fin M) (z : ℝ) :
+    SmartPathDisorder N M :=
+  ((ω.1.1, Function.update ω.1.2 k z), ω.2)
+
+/-- Along `a_k`, the `k`-th field is affine with slope `√(t/(N+1)) ε`. -/
+theorem smartPathField_update_self {N M : ℕ} (t : ℝ) (ω : SmartPathDisorder N M) (k : Fin M)
+    (z : ℝ) (x : SmartPathState N M) :
+    smartPathField t (smartPathDisorderUpdate ω k z) x k =
+      (smartPathField t (smartPathDisorderUpdate ω k 0) x k) +
+        Real.sqrt (t / (N + 1)) * ((x.1.2 : ℤ) : ℝ) * z := by
+  simp [smartPathField, smartPathFieldNoAux, smartPathDisorderUpdate]
+  ring
+
+/-- The other fields do not depend on `a_k`. -/
+theorem smartPathField_update_of_ne {N M : ℕ} (t : ℝ) (ω : SmartPathDisorder N M) {k k' : Fin M}
+    (h : k' ≠ k) (z : ℝ) (x : SmartPathState N M) :
+    smartPathField t (smartPathDisorderUpdate ω k z) x k' = smartPathField t ω x k' := by
+  simp [smartPathField, smartPathFieldNoAux, smartPathDisorderUpdate, Function.update_of_ne h]
+
+/-- Chain rule for `u` along an affine path. -/
+theorem hasDerivAt_comp_const_add_mul {u : ℝ → ℝ} (hu : Differentiable ℝ u) (S₀ c z : ℝ) :
+    HasDerivAt (fun r => u (S₀ + c * r)) (c * deriv u (S₀ + c * z)) z := by
+  have hl : HasDerivAt (fun r : ℝ => S₀ + c * r) c z := by
+    simpa using ((hasDerivAt_id z).const_mul c).const_add S₀
+  exact ((hu (S₀ + c * z)).hasDerivAt.comp z hl).congr_deriv (mul_comm _ _)
+
+/-- The energy is differentiable in `a_k`, with derivative `√(t/(N+1)) ε u'(S_k)`. -/
+theorem hasDerivAt_smartPathEnergy_update {N M : ℕ} {u : ℝ → ℝ} (hu : Differentiable ℝ u)
+    (t : ℝ) (ω : SmartPathDisorder N M) (k : Fin M) (x : SmartPathState N M) (z : ℝ) :
+    HasDerivAt (fun r => smartPathEnergy u t (smartPathDisorderUpdate ω k r) x)
+      (Real.sqrt (t / (N + 1)) *
+        (((x.1.2 : ℤ) : ℝ) * deriv u (smartPathField t (smartPathDisorderUpdate ω k z) x k)))
+      z := by
+  have hterm (k' : Fin M) : HasDerivAt
+      (fun r => u (smartPathField t (smartPathDisorderUpdate ω k r) x k'))
+      (if k' = k then Real.sqrt (t / (N + 1)) * (((x.1.2 : ℤ) : ℝ) * deriv u
+        (smartPathField t (smartPathDisorderUpdate ω k z) x k)) else 0) z := by
+    by_cases h : k' = k
+    · subst h
+      have hfun : (fun r => u (smartPathField t (smartPathDisorderUpdate ω k' r) x k')) =
+          fun r => u (smartPathField t (smartPathDisorderUpdate ω k' 0) x k' +
+            (Real.sqrt (t / (N + 1)) * ((x.1.2 : ℤ) : ℝ)) * r) := funext fun r => by
+        rw [smartPathField_update_self]
+      rw [hfun]
+      simp only [ite_true]
+      have := hasDerivAt_comp_const_add_mul hu
+        (smartPathField t (smartPathDisorderUpdate ω k' 0) x k')
+        (Real.sqrt (t / (N + 1)) * ((x.1.2 : ℤ) : ℝ)) z
+      rw [← smartPathField_update_self t ω k' z x] at this
+      exact this.congr_deriv (by ring)
+    · simp only [h, ite_false]
+      have hfun : (fun r => u (smartPathField t (smartPathDisorderUpdate ω k r) x k')) =
+          fun _ => u (smartPathField t ω x k') := funext fun r => by
+        rw [smartPathField_update_of_ne t ω h]
+      rw [hfun]
+      exact hasDerivAt_const z _
+  have hsum := HasDerivAt.fun_sum (u := (Finset.univ : Finset (Fin M))) fun k' _ => hterm k'
+  have hc := (hasDerivAt_const z (((x.1.2 : ℤ) : ℝ) * Real.sqrt (1 - t) * ω.2)).add hsum
+  simp only [Finset.sum_ite_eq', Finset.mem_univ, ite_true, zero_add] at hc
+  exact hc
+
+/-- A differentiable function of the `k`-th field, along `a_k`. -/
+theorem hasDerivAt_comp_smartPathField_update {N M : ℕ} {V : ℝ → ℝ} (hV : Differentiable ℝ V)
+    (t : ℝ) (ω : SmartPathDisorder N M) (k : Fin M) (x : SmartPathState N M) (z : ℝ) :
+    HasDerivAt (fun r => V (smartPathField t (smartPathDisorderUpdate ω k r) x k))
+      (Real.sqrt (t / (N + 1)) * ((x.1.2 : ℤ) : ℝ) *
+        deriv V (smartPathField t (smartPathDisorderUpdate ω k z) x k)) z := by
+  have hfun : (fun r => V (smartPathField t (smartPathDisorderUpdate ω k r) x k)) =
+      fun r => V (smartPathField t (smartPathDisorderUpdate ω k 0) x k +
+        (Real.sqrt (t / (N + 1)) * ((x.1.2 : ℤ) : ℝ)) * r) := funext fun r => by
+    rw [smartPathField_update_self]
+  rw [hfun]
+  have := hasDerivAt_comp_const_add_mul hV (smartPathField t (smartPathDisorderUpdate ω k 0) x k)
+    (Real.sqrt (t / (N + 1)) * ((x.1.2 : ℤ) : ℝ)) z
+  rw [← smartPathField_update_self t ω k z x] at this
+  exact this
+
+/-- The observable `ε u'(S_k)` moves with `a_k` with derivative `√(t/(N+1)) u''(S_k)`. -/
+theorem hasDerivAt_lastSpin_mul_deriv_update {N M : ℕ} {u : ℝ → ℝ}
+    (hu' : Differentiable ℝ (deriv u)) (t : ℝ) (ω : SmartPathDisorder N M) (k : Fin M)
+    (x : SmartPathState N M) (z : ℝ) :
+    HasDerivAt (fun r => ((x.1.2 : ℤ) : ℝ) *
+        deriv u (smartPathField t (smartPathDisorderUpdate ω k r) x k))
+      (Real.sqrt (t / (N + 1)) *
+        deriv (deriv u) (smartPathField t (smartPathDisorderUpdate ω k z) x k)) z := by
+  refine ((hasDerivAt_comp_smartPathField_update hu' t ω k x z).const_mul
+    (((x.1.2 : ℤ) : ℝ))).congr_deriv ?_
+  have h2 : ((x.1.2 : ℤ) : ℝ) * ((x.1.2 : ℤ) : ℝ) = 1 := by
+    rw [← sq]; exact units_cast_sq _
+  linear_combination (Real.sqrt (t / (N + 1)) *
+    deriv (deriv u) (smartPathField t (smartPathDisorderUpdate ω k z) x k)) * h2
+
+/-- Along the auxiliary coordinate `ξ_k`, the `k`-th field is affine with slope
+`√((1-t)/(N+1))`. -/
+theorem smartPathField_xi_self {N M : ℕ} (t : ℝ) (ω : SmartPathDisorder N M) (k : Fin M)
+    (s : PerceptronSpin N) (ξ : Fin M → ℝ) (τ : ℝ) :
+    smartPathField t ω (s, Function.update ξ k τ) k =
+      smartPathField t ω (s, Function.update ξ k 0) k +
+        Real.sqrt ((1 - t) / (N + 1)) * τ := by
+  simp [smartPathField, smartPathFieldNoAux]
+
+/-- The other fields do not depend on `ξ_k`. -/
+theorem smartPathField_xi_of_ne {N M : ℕ} (t : ℝ) (ω : SmartPathDisorder N M) {k k' : Fin M}
+    (h : k' ≠ k) (s : PerceptronSpin N) (ξ : Fin M → ℝ) (τ : ℝ) :
+    smartPathField t ω (s, Function.update ξ k τ) k' = smartPathField t ω (s, ξ) k' := by
+  simp [smartPathField, smartPathFieldNoAux, Function.update_of_ne h]
+
+/-- The energy is a `ξ_k`-independent part plus `u (S_k)`. -/
+theorem smartPathEnergy_xi {N M : ℕ} (u : ℝ → ℝ) (t : ℝ) (ω : SmartPathDisorder N M) (k : Fin M)
+    (s : PerceptronSpin N) (ξ : Fin M → ℝ) (τ : ℝ) :
+    smartPathEnergy u t ω (s, Function.update ξ k τ) =
+      (((s.2 : ℤ) : ℝ) * Real.sqrt (1 - t) * ω.2 +
+        ∑ k' ∈ Finset.univ.erase k, u (smartPathField t ω (s, ξ) k')) +
+      u (smartPathField t ω (s, Function.update ξ k 0) k +
+        Real.sqrt ((1 - t) / (N + 1)) * τ) := by
+  unfold smartPathEnergy
+  rw [← Finset.add_sum_erase _ _ (Finset.mem_univ k), smartPathField_xi_self]
+  have : ∑ k' ∈ Finset.univ.erase k, u (smartPathField t ω (s, Function.update ξ k τ) k') =
+      ∑ k' ∈ Finset.univ.erase k, u (smartPathField t ω (s, ξ) k') :=
+    Finset.sum_congr rfl fun k' hk' => by
+      rw [smartPathField_xi_of_ne t ω (Finset.ne_of_mem_erase hk')]
+  rw [this]
+  ring
+
 end SpinGlasses

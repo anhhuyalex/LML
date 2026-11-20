@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.TiltedSmul
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.GibbsAverages
 
 /-!
@@ -204,6 +205,44 @@ instance (N M : ℕ) : IsFiniteMeasure (smartPathBase N M) := by
 
 instance (N M : ℕ) : NeZero (smartPathBase N M) := by
   unfold smartPathBase; infer_instance
+
+theorem count_univ_ne_zero (N : ℕ) :
+    (Measure.count : Measure (PerceptronSpin N)) Set.univ ≠ 0 := by
+  simp
+
+theorem count_univ_ne_top (N : ℕ) : (Measure.count : Measure (PerceptronSpin N)) Set.univ ≠ ⊤ :=
+  measure_ne_top _ _
+
+/-- The spin counting measure normalized to a probability measure. -/
+noncomputable def smartPathSpinProb (N : ℕ) : Measure (PerceptronSpin N) :=
+  ((Measure.count : Measure (PerceptronSpin N)) Set.univ)⁻¹ •
+    (Measure.count : Measure (PerceptronSpin N))
+
+instance (N : ℕ) : IsProbabilityMeasure (smartPathSpinProb N) :=
+  ⟨by
+    unfold smartPathSpinProb
+    rw [smul_apply, smul_eq_mul]
+    exact ENNReal.inv_mul_cancel (count_univ_ne_zero N) (count_univ_ne_top N)⟩
+
+/-- The smart-path base law with the spin counting measure normalized to a probability measure. -/
+noncomputable def smartPathBaseProb (N M : ℕ) : Measure (SmartPathState N M) :=
+  (smartPathSpinProb N).prod (Measure.pi fun _ : Fin M => gaussianReal 0 1)
+
+instance (N M : ℕ) : IsProbabilityMeasure (smartPathBaseProb N M) := by
+  unfold smartPathBaseProb
+  infer_instance
+
+theorem smartPathBase_eq_smul (N M : ℕ) :
+    smartPathBase N M =
+      ((Measure.count : Measure (PerceptronSpin N)) Set.univ) • smartPathBaseProb N M := by
+  unfold smartPathBase smartPathBaseProb smartPathSpinProb
+  rw [Measure.prod_smul_left, smul_smul, ENNReal.mul_inv_cancel (count_univ_ne_zero N)
+    (count_univ_ne_top N), one_smul]
+
+/-- The Gibbs measure does not depend on the scale of the spin counting measure. -/
+theorem smartPathBase_tilted_eq (N M : ℕ) (E : SmartPathState N M → ℝ) :
+    (smartPathBase N M).tilted E = (smartPathBaseProb N M).tilted E := by
+  rw [smartPathBase_eq_smul, tilted_smul _ _ (count_univ_ne_zero N) (count_univ_ne_top N)]
 
 /-- Quenched disorder law: old rows `Pold`, standard Gaussian `a`, and `y ∼ 𝒩(0, v)`. -/
 noncomputable def smartPathDisorder {N M : ℕ} (Pold : Measure (Fin M → Fin N → ℝ))

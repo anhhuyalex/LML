@@ -367,6 +367,25 @@ theorem replicaDiff_add {α R : Type*} [MeasurableSpace α] [Fintype R] (ν : Me
   rw [integral_add (hFS h₁ hh₁) (hFS h₂ hh₂), integral_add (hS h₁ hh₁) (hS h₂ hh₂)]
   ring
 
+/-- The replica difference is additive over a finite sum of one-state observables, each only
+integrable (no product integrability is needed). -/
+theorem replicaDiff_finset_sum {α R ι : Type*} [MeasurableSpace α] [Fintype R] (ν : Measure α)
+    [IsProbabilityMeasure ν] (F : (R → α) → ℝ)
+    (hF : AEStronglyMeasurable F (Measure.pi fun _ : R => ν))
+    {C : ℝ} (hFb : ∀ σ, |F σ| ≤ C) (s : Finset ι) (h : ι → α → ℝ)
+    (hh : ∀ i ∈ s, Integrable (h i) ν) :
+    replicaDiff ν F (fun x => ∑ i ∈ s, h i x) = ∑ i ∈ s, replicaDiff ν F (h i) := by
+  classical
+  induction s using Finset.induction_on with
+  | empty =>
+    simp only [Finset.sum_empty]
+    exact replicaDiff_zero ν F
+  | insert a s ha ih =>
+    simp only [Finset.sum_insert ha]
+    rw [replicaDiff_add ν F hF hFb (hh a (Finset.mem_insert_self _ _))
+      (integrable_finsetSum _ fun i hi => hh i (Finset.mem_insert_of_mem hi)),
+      ih fun i hi => hh i (Finset.mem_insert_of_mem hi)]
+
 /-- **The replica covariance identity.** For `Y` a function of the replicas `some o`
 (`o : Option R`) and `h` a function of one spin, the covariance of `Y` with the sum of `h` over all
 `|R| + 2` replicas is the sum over the replicas `some o` of `⟨Y h(σ_{some o})⟩`, minus
@@ -575,6 +594,35 @@ noncomputable def replicaPairAverage {R α : Type*} [MeasurableSpace α] [Fintyp
     [LinearOrder R] (ν : Measure α) (F : (R → α) → ℝ) (U : α → α → ℝ) : ℝ :=
   ∫ τ : Option (Option R) → α, F (fun r => τ (some (some r))) * replicaPairCombination U τ
     ∂(Measure.pi fun _ => ν)
+
+/-- A bounded replica observable and a bounded one-spin observable have a bounded replica
+difference. -/
+theorem abs_replicaDiff_le {α R : Type*} [MeasurableSpace α] [Fintype R] (ν : Measure α)
+    [IsProbabilityMeasure ν] (F : (R → α) → ℝ) (hF : Measurable F) {C : ℝ}
+    (hFb : ∀ σ, |F σ| ≤ C) (h : α → ℝ) (hh : Measurable h) {H : ℝ} (hhb : ∀ a, |h a| ≤ H) :
+    |replicaDiff ν F h| ≤ C * ((Fintype.card R : ℝ) * H + (Fintype.card R : ℝ) * H) := by
+  rw [replicaDiff_eq_integral ν F hF hFb h hh hhb]
+  refine abs_integral_le_of_forall_abs_le _ fun σ => ?_
+  rw [abs_mul]
+  refine mul_le_mul (hFb _) ?_ (abs_nonneg _) ((abs_nonneg _).trans (hFb fun j => σ (some j)))
+  refine (abs_sub _ _).trans (add_le_add ?_ ?_)
+  · refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
+    simpa using Finset.sum_le_sum (s := Finset.univ) fun i _ => hhb (σ (some i))
+  · rw [abs_mul, Nat.abs_cast]
+    exact mul_le_mul_of_nonneg_left (hhb _) (Nat.cast_nonneg _)
+
+/-- A bounded replica observable has a bounded average against any pair combination whose
+integrand is uniformly bounded; the bound does not depend on the replica law. -/
+theorem abs_replicaPairAverage_le {α R : Type*} [MeasurableSpace α] [Fintype R] [LinearOrder R]
+    (ν : Measure α) [IsProbabilityMeasure ν] (F : (R → α) → ℝ) {C : ℝ}
+    (hFb : ∀ σ, |F σ| ≤ C) {U : α → α → ℝ} {K : ℝ}
+    (hK : ∀ τ : Option (Option R) → α, |replicaPairCombination U τ| ≤ K) :
+    |replicaPairAverage ν F U| ≤ C * K := by
+  unfold replicaPairAverage
+  refine abs_integral_le_of_forall_abs_le _ fun τ => ?_
+  rw [abs_mul]
+  exact mul_le_mul (hFb _) (hK τ) (abs_nonneg _)
+    ((abs_nonneg _).trans (hFb fun j => τ (some (some j))))
 
 /-- If a finite family of functions `f k` are integrable under `P` and all have identical
 integrals, the integral of their sum equals the cardinality of the index set times the
@@ -896,21 +944,54 @@ theorem exists_abs_le_sum {ι : Type*} (s : Finset ι) {f : ι → β → ℝ}
     exact exists_abs_le_add (hf a (Finset.mem_insert_self _ _))
       (ih fun i hi => hf i (Finset.mem_insert_of_mem hi))
 
+/-- **Explicit bound for the two-replica combination.** A kernel bounded by `c` gives a combination
+bounded by `(2 n² + n (n + 1) / 2) c`, where `n = |R|`; the constant depends only on `n`. -/
+theorem abs_replicaPairCombination_le {R α : Type*} [Fintype R] [LinearOrder R]
+    {U : α → α → ℝ} {c : ℝ} (hU : ∀ a b, |U a b| ≤ c) (τ : Option (Option R) → α) :
+    |replicaPairCombination U τ| ≤
+      (2 * (Fintype.card R : ℝ) ^ 2 + (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) / 2) *
+        c := by
+  have hc : 0 ≤ c := (abs_nonneg _).trans (hU (τ none) (τ none))
+  have hn : (0 : ℝ) ≤ Fintype.card R := Nat.cast_nonneg _
+  have h1 : |∑ p : R × R with p.1 < p.2, U (τ (some (some p.1))) (τ (some (some p.2)))| ≤
+      (Fintype.card R : ℝ) ^ 2 * c := by
+    refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
+    refine (Finset.sum_le_card_nsmul _ _ c fun p _ => hU _ _).trans ?_
+    rw [nsmul_eq_mul]
+    refine mul_le_mul_of_nonneg_right ?_ hc
+    have : ((Finset.univ : Finset (R × R)).filter fun p => p.1 < p.2).card ≤
+        Fintype.card R * Fintype.card R := by
+      refine (Finset.card_filter_le _ _).trans ?_
+      simp [Finset.card_univ, Fintype.card_prod]
+    calc ((((Finset.univ : Finset (R × R)).filter fun p => p.1 < p.2).card : ℕ) : ℝ)
+        ≤ ((Fintype.card R * Fintype.card R : ℕ) : ℝ) := Nat.cast_le.2 this
+      _ = (Fintype.card R : ℝ) ^ 2 := by push_cast; ring
+  have h2 : |∑ r : R, U (τ (some (some r))) (τ (some none))| ≤ (Fintype.card R : ℝ) * c := by
+    refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
+    refine (Finset.sum_le_card_nsmul _ _ c fun r _ => hU _ _).trans ?_
+    simp
+  have h3 := hU (τ (some none)) (τ none)
+  unfold replicaPairCombination
+  calc _ ≤ |∑ p : R × R with p.1 < p.2, U (τ (some (some p.1))) (τ (some (some p.2)))| +
+        |(Fintype.card R : ℝ) * ∑ r : R, U (τ (some (some r))) (τ (some none))| +
+        |(Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) / 2 * U (τ (some none)) (τ none)| :=
+        (abs_add_le _ _).trans (add_le_add_left (abs_sub _ _) _)
+    _ ≤ (Fintype.card R : ℝ) ^ 2 * c + (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) * c) +
+        (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) / 2 * c := by
+        refine add_le_add (add_le_add h1 ?_) ?_
+        · rw [abs_mul, abs_of_nonneg hn]
+          exact mul_le_mul_of_nonneg_left h2 hn
+        · rw [abs_mul, abs_of_nonneg (by positivity : (0 : ℝ) ≤ (Fintype.card R : ℝ) *
+            ((Fintype.card R : ℝ) + 1) / 2)]
+          exact mul_le_mul_of_nonneg_left h3 (by positivity)
+    _ = _ := by ring
+
 /-- A bounded kernel has a uniformly bounded two-replica combination. -/
 theorem exists_abs_replicaPairCombination_le {R α : Type*} [Fintype R] [LinearOrder R]
     {U : α → α → ℝ} (hU : ∃ K, ∀ a b, |U a b| ≤ K) :
     ∃ K, ∀ τ : Option (Option R) → α, |replicaPairCombination U τ| ≤ K := by
-  obtain ⟨K, hK⟩ := hU
-  have hb (a b : Option (Option R) → α) (i j : Option (Option R)) :
-      |U (a i) (b j)| ≤ K := hK _ _
-  have hu : ∃ K', ∀ τ : Option (Option R) → α, ∀ i j, |U (τ i) (τ j)| ≤ K' :=
-    ⟨K, fun τ i j => hK _ _⟩
-  unfold replicaPairCombination
-  refine exists_abs_le_add (exists_abs_le_sub ?_ ?_) ?_
-  · exact exists_abs_le_sum _ fun p _ => ⟨K, fun τ => hK _ _⟩
-  · exact exists_abs_le_mul (exists_abs_le_const _)
-      (exists_abs_le_sum _ fun r _ => ⟨K, fun τ => hK _ _⟩)
-  · exact exists_abs_le_mul (exists_abs_le_const _) ⟨K, fun τ => hK _ _⟩
+  obtain ⟨c, hc⟩ := hU
+  exact ⟨_, abs_replicaPairCombination_le hc⟩
 
 end Bounded
 

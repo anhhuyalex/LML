@@ -138,6 +138,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.ProbabilityMe
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.ProdBound
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.RankedMark
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.RestrictPartition
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.TiltedSmul
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.WithDensity
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Order.Lattice
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Order.MeasurableArg
@@ -164,6 +165,7 @@ public import LeanMachineLearning.ForMathlib.Probability.GibbsLogPartitionCavity
 public import LeanMachineLearning.ForMathlib.Probability.GibbsProductSplit
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaCavity
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaDiffDerivative
+public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaPairBridge
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaProduct
 public import LeanMachineLearning.ForMathlib.Probability.GibbsSiteSymmetry
 public import LeanMachineLearning.ForMathlib.Probability.GibbsTemperatureDerivative

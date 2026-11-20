@@ -230,18 +230,17 @@ section Pi
 
 variable {ι : Type*} [Fintype ι] [DecidableEq ι]
 
-/-- **Coordinatewise Stein identity for independent centered Gaussians:**
-if `ξ` has independent coordinates `ξ i ~ 𝒩(0, v i)`, and `G` has partial derivatives `G' i`, then
-`𝔼[ξ j G(ξ)] = v j 𝔼[∂ⱼ G(ξ)]`.  The partial derivatives are expressed through
-`HasDerivAt (fun t => G (update x i t)) (G' i x) (x i)`, so that no joint differentiability of
-`G` is needed. -/
-theorem integral_eval_mul_pi_gaussianReal_eq (v : ι → ℝ≥0) (j : ι)
-    {G : (ι → ℝ) → ℝ} {G' : ι → (ι → ℝ) → ℝ}
-    (hG : ∀ x i, HasDerivAt (fun t => G (update x i t)) (G' i x) (x i))
+/-- **Coordinatewise Stein identity, derivative in the coordinate only.** If `ξ` has independent
+coordinates `ξ i ~ 𝒩(0, v i)` and `G` is differentiable along coordinate `j` with derivative
+`G' x`, i.e. `HasDerivAt (fun t => G (update x j t)) (G' x) (x j)`, then
+`𝔼[ξ j G(ξ)] = v j 𝔼[G'(ξ)]`. Nothing is assumed about the other coordinates. -/
+theorem integral_eval_mul_pi_gaussianReal_eq_of_coord (v : ι → ℝ≥0) (j : ι)
+    {G G' : (ι → ℝ) → ℝ}
+    (hG : ∀ x, HasDerivAt (fun t => G (update x j t)) (G' x) (x j))
     (hxG : Integrable (fun x => x j * G x) (Measure.pi fun i => gaussianReal 0 (v i)))
-    (hG' : Integrable (G' j) (Measure.pi fun i => gaussianReal 0 (v i))) :
+    (hG' : Integrable G' (Measure.pi fun i => gaussianReal 0 (v i))) :
     ∫ x, x j * G x ∂(Measure.pi fun i => gaussianReal 0 (v i)) =
-      v j * ∫ x, G' j x ∂(Measure.pi fun i => gaussianReal 0 (v i)) := by
+      v j * ∫ x, G' x ∂(Measure.pi fun i => gaussianReal 0 (v i)) := by
   set π := Measure.pi fun i => gaussianReal 0 (v i) with hπ
   have h1 := integrable_update_pi (fun i => gaussianReal 0 (v i)) j hxG
   have h2 := integrable_update_pi (fun i => gaussianReal 0 (v i)) j hG'
@@ -252,8 +251,66 @@ theorem integral_eval_mul_pi_gaussianReal_eq (v : ι → ℝ≥0) (j : ι)
   filter_upwards [h1.prod_right_ae, h2.prod_right_ae] with x hx1 hx2
   simp only [update_self] at hx1 ⊢
   refine integral_id_mul_gaussianReal_eq (v j) (F := fun t => G (update x j t))
-    (F' := fun t => G' j (update x j t)) (fun t => ?_) hx1 hx2
-  simpa using hG (update x j t) j
+    (F' := fun t => G' (update x j t)) (fun t => ?_) hx1 hx2
+  simpa using hG (update x j t)
+
+/-- **Coordinatewise Stein identity for independent centered Gaussians:**
+if `ξ` has independent coordinates `ξ i ~ 𝒩(0, v i)`, and `G` has partial derivatives `G' i`, then
+`𝔼[ξ j G(ξ)] = v j 𝔼[∂ⱼ G(ξ)]`.  The partial derivatives are expressed through
+`HasDerivAt (fun t => G (update x i t)) (G' i x) (x i)`, so that no joint differentiability of
+`G` is needed. -/
+theorem integral_eval_mul_pi_gaussianReal_eq (v : ι → ℝ≥0) (j : ι)
+    {G : (ι → ℝ) → ℝ} {G' : ι → (ι → ℝ) → ℝ}
+    (hG : ∀ (x : ι → ℝ) (i : ι), HasDerivAt (fun t => G (update x i t)) (G' i x) (x i))
+    (hxG : Integrable (fun x => x j * G x) (Measure.pi fun i => gaussianReal 0 (v i)))
+    (hG' : Integrable (G' j) (Measure.pi fun i => gaussianReal 0 (v i))) :
+    ∫ x, x j * G x ∂(Measure.pi fun i => gaussianReal 0 (v i)) =
+      v j * ∫ x, G' j x ∂(Measure.pi fun i => gaussianReal 0 (v i)) :=
+  integral_eval_mul_pi_gaussianReal_eq_of_coord v j (fun x => hG x j) hxG hG'
+
+
+/-- **Stein in one Gaussian coordinate with a spectator.** On `A × (K → ℝ)` with the product of an
+`s`-finite measure `μ` on `A` and independent standard Gaussians, `𝔼[ξ_k φ] = 𝔼[∂_k φ]`. -/
+theorem integral_snd_apply_mul_prod_pi_gaussianReal_eq {A K : Type*} [MeasurableSpace A]
+    [Fintype K] [DecidableEq K] (μ : Measure A) [SFinite μ] (k : K)
+    {φ φ' : A × (K → ℝ) → ℝ}
+    (hφ : ∀ s ξ, HasDerivAt (fun τ => φ (s, update ξ k τ)) (φ' (s, ξ)) (ξ k))
+    (h1 : Integrable (fun y => y.2 k * φ y) (μ.prod (Measure.pi fun _ : K => gaussianReal 0 1)))
+    (h2 : Integrable φ' (μ.prod (Measure.pi fun _ : K => gaussianReal 0 1))) :
+    ∫ y, y.2 k * φ y ∂(μ.prod (Measure.pi fun _ : K => gaussianReal 0 1)) =
+      ∫ y, φ' y ∂(μ.prod (Measure.pi fun _ : K => gaussianReal 0 1)) := by
+  rw [integral_prod _ h1, integral_prod _ h2]
+  refine integral_congr_ae ?_
+  filter_upwards [h1.prod_right_ae, h2.prod_right_ae] with s hs1 hs2
+  have := integral_eval_mul_pi_gaussianReal_eq_of_coord (fun _ : K => (1 : ℝ≥0)) k
+    (G := fun ξ => φ (s, ξ)) (G' := fun ξ => φ' (s, ξ)) (fun ξ => hφ s ξ) hs1 hs2
+  simpa using this
+
+/-- **Stein in one Gaussian coordinate of one replica.** For independent replicas drawn from
+`μ ⊗ (standard Gaussians)^K`, the coordinate `(σ i).2 k` is integrated by parts against a
+function that is differentiable along that coordinate (the other coordinates and replicas are
+spectators): `𝔼[(σ i).2 k · Φ(σ)] = 𝔼[Φ'(σ)]`. -/
+theorem integral_apply_snd_mul_pi_prod_eq {J A K : Type*} [MeasurableSpace A] [Fintype J]
+    [DecidableEq J] [Fintype K] [DecidableEq K] (μ : Measure A) [IsProbabilityMeasure μ]
+    (i : J) (k : K) {Φ Φ' : (J → A × (K → ℝ)) → ℝ}
+    (hΦ : ∀ σ s ξ, HasDerivAt (fun τ => Φ (update σ i (s, update ξ k τ)))
+      (Φ' (update σ i (s, ξ))) (ξ k))
+    (h1 : Integrable (fun σ => (σ i).2 k * Φ σ)
+      (Measure.pi fun _ : J => μ.prod (Measure.pi fun _ : K => gaussianReal 0 1)))
+    (h2 : Integrable Φ'
+      (Measure.pi fun _ : J => μ.prod (Measure.pi fun _ : K => gaussianReal 0 1))) :
+    ∫ σ, (σ i).2 k * Φ σ ∂(Measure.pi fun _ : J => μ.prod (Measure.pi fun _ : K =>
+        gaussianReal 0 1)) =
+      ∫ σ, Φ' σ ∂(Measure.pi fun _ : J => μ.prod (Measure.pi fun _ : K => gaussianReal 0 1)) := by
+  set base := μ.prod (Measure.pi fun _ : K => gaussianReal 0 1) with hbase
+  rw [integral_pi_eq_integral_update (fun _ : J => base) i h1,
+    integral_pi_eq_integral_update (fun _ : J => base) i h2]
+  refine integral_congr_ae ?_
+  filter_upwards [(integrable_update_pi (fun _ : J => base) i h1).prod_right_ae,
+    (integrable_update_pi (fun _ : J => base) i h2).prod_right_ae] with σ hσ1 hσ2
+  simp only [update_self] at hσ1 ⊢
+  exact integral_snd_apply_mul_prod_pi_gaussianReal_eq μ k (φ := fun y => Φ (update σ i y))
+    (φ' := fun y => Φ' (update σ i y)) (fun s ξ => hΦ σ s ξ) hσ1 hσ2
 
 end Pi
 

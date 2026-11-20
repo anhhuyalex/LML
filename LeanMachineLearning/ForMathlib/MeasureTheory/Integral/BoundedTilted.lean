@@ -310,29 +310,6 @@ theorem abs_mul_exp_le {x y c B : ℝ} (hx : |x| ≤ c) (hy : y ≤ B) :
   rw [abs_mul, abs_of_pos (Real.exp_pos _)]
   exact mul_le_mul hx (Real.exp_le_exp.mpr hy) (Real.exp_pos _).le ((abs_nonneg _).trans hx)
 
-/-- An upper energy bound converts an unweighted integrable derivative envelope into the
-weighted envelope needed to differentiate an exponential tilt on a finite base measure. -/
-theorem hasDerivAt_integral_tilted_of_bounded
-    {α : Type*} [MeasurableSpace α] {μ : Measure α} [IsFiniteMeasure μ] [NeZero μ]
-    {E E' : ℝ → α → ℝ} {t : ℝ} {s : Set ℝ} (hs : s ∈ 𝓝 t)
-    (hE : ∀ r ∈ s, Measurable (E r)) (hE' : Measurable (E' t))
-    {A : ℝ} (hEb : ∀ r ∈ s, ∀ a, E r a ≤ A)
-    {b : α → ℝ} (hb : Integrable b μ)
-    (hdb : ∀ r ∈ s, ∀ a, |E' r a| ≤ b a)
-    (hd : ∀ a, ∀ r ∈ s, HasDerivAt (fun q => E q a) (E' r a) r)
-    {F : α → ℝ} (hF : Measurable F) {C : ℝ} (hFb : ∀ a, |F a| ≤ C) :
-    HasDerivAt (fun r => ∫ a, F a ∂μ.tilted (E r))
-      ((∫ a, F a * E' t a ∂μ.tilted (E t)) -
-        (∫ a, F a ∂μ.tilted (E t)) * ∫ a, E' t a ∂μ.tilted (E t)) t := by
-  have ht := mem_of_mem_nhds hs
-  exact hasDerivAt_integral_tilted_of_dominated (e := E) (e' := E') hs
-    (Filter.mem_of_superset hs fun r hr => (hE r hr).exp.aestronglyMeasurable)
-    (integrable_exp_of_ae_le (hE t ht).aemeasurable (ae_of_all _ (hEb t ht)))
-    (hE'.mul (hE t ht).exp).aestronglyMeasurable (hb.const_mul (Real.exp A))
-    (ae_of_all _ fun a r hr =>
-      (abs_mul_exp_le (hdb r hr a) (hEb r hr a)).trans_eq (mul_comm _ _))
-    (ae_of_all _ hd) hF.aestronglyMeasurable (ae_of_all _ hFb)
-
 /-- **Bounded version of the moving-observable derivative.** Uniform bounds on the observable and
 its parameter derivative, and an upper bound on the energy, justify differentiating
 `r ↦ ⟨F r⟩_{E r}` on a finite base measure. -/
@@ -366,6 +343,25 @@ theorem hasDerivAt_integral_tilted_of_bounded_moving
       have := abs_mul_exp_le (hF'b r hr a) (hEb r hr a)
       rwa [abs_mul, abs_of_pos (Real.exp_pos _)] at this)
     (ae_of_all _ hFd)
+
+/-- An upper energy bound converts an unweighted integrable derivative envelope into the
+weighted envelope needed to differentiate an exponential tilt on a finite base measure. -/
+theorem hasDerivAt_integral_tilted_of_bounded
+    {α : Type*} [MeasurableSpace α] {μ : Measure α} [IsFiniteMeasure μ] [NeZero μ]
+    {E E' : ℝ → α → ℝ} {t : ℝ} {s : Set ℝ} (hs : s ∈ 𝓝 t)
+    (hE : ∀ r ∈ s, Measurable (E r)) (hE' : Measurable (E' t))
+    {A : ℝ} (hEb : ∀ r ∈ s, ∀ a, E r a ≤ A)
+    {b : α → ℝ} (hb : Integrable b μ)
+    (hdb : ∀ r ∈ s, ∀ a, |E' r a| ≤ b a)
+    (hd : ∀ a, ∀ r ∈ s, HasDerivAt (fun q => E q a) (E' r a) r)
+    {F : α → ℝ} (hF : Measurable F) {C : ℝ} (hFb : ∀ a, |F a| ≤ C) :
+    HasDerivAt (fun r => ∫ a, F a ∂μ.tilted (E r))
+      ((∫ a, F a * E' t a ∂μ.tilted (E t)) -
+        (∫ a, F a ∂μ.tilted (E t)) * ∫ a, E' t a ∂μ.tilted (E t)) t := by
+  have := hasDerivAt_integral_tilted_of_bounded_moving hs hE hE' hEb hb hdb hd
+    (F := fun _ => F) (F' := fun _ _ => 0) (fun _ _ => hF) measurable_const (C := C) (C' := 0)
+    (fun _ _ a => hFb a) (fun _ _ _ => by simp) (fun a r _ => hasDerivAt_const r (F a))
+  simpa using this
 
 /-- A bounded log-density controls a possibly unbounded tilted observable by its base first
 moment. The denominator bound retains the mass of a nonzero finite base measure. -/

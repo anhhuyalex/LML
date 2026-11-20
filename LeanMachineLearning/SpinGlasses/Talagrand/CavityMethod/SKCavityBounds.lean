@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaProduct
+public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaPairBridge
 public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityDerivative
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.OffDiag
 
@@ -141,87 +141,6 @@ theorem abs_replica_covariance_combination_le {R α : Type*} [Fintype R]
           · exact hU _ _
           · exact hU _ _
     _ = _ := by dsimp [n]; ring
-
-/-- The diagonal terms of the replica covariance combination cancel whenever the
-covariance has a constant diagonal. This is the algebraic step from the general
-Gaussian replica derivative to its cavity form; it does not assume symmetry of `U`. -/
-theorem replica_covariance_combination_cancel_diagonal
-    {R α : Type*} [Fintype R] [DecidableEq R] (U : α → α → ℝ) (C : ℝ)
-    (hdiag : ∀ a, U a a = C) (τ : Option (Option R) → α) :
-    (∑ r : R, ∑ r' : R, U (τ (some (some r))) (τ (some (some r')))) -
-        2 * (Fintype.card R : ℝ) *
-          (∑ r : R, U (τ (some (some r))) (τ (some none))) -
-        (Fintype.card R : ℝ) * U (τ (some none)) (τ (some none)) +
-        (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) *
-          U (τ (some none)) (τ none) =
-      (∑ r : R, ∑ r' : R, if r = r' then 0 else
-          U (τ (some (some r))) (τ (some (some r')))) -
-        2 * (Fintype.card R : ℝ) *
-          (∑ r : R, U (τ (some (some r))) (τ (some none))) +
-        (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) *
-          U (τ (some none)) (τ none) := by
-  have hs (r : R) :
-      (∑ r' : R, U (τ (some (some r))) (τ (some (some r')))) =
-        C + ∑ r' : R, if r = r' then 0 else
-          U (τ (some (some r))) (τ (some (some r'))) := by
-    have hh (r' : R) : U (τ (some (some r))) (τ (some (some r'))) =
-        (if r = r' then C else 0) +
-          (if r = r' then 0 else U (τ (some (some r))) (τ (some (some r')))) := by
-      split_ifs with hr
-      · subst r'; simp [hdiag]
-      · simp
-    rw [Finset.sum_congr rfl fun r' _ => hh r', Finset.sum_add_distrib]
-    simp
-  simp_rw [hs, Finset.sum_add_distrib]
-  simp only [Finset.sum_const, nsmul_eq_mul, Finset.card_univ]
-  rw [hdiag (τ (some none))]
-  ring
-
-/-- For a symmetric covariance kernel, the surviving ordered off-diagonal
-terms are twice the strictly ordered replica pairs. This combines diagonal
-cancellation with the generic finite-sum reindexing, while remaining
-independent of the cavity model. -/
-theorem replica_covariance_combination_eq_two_sum_lt
-    {R α : Type*} [Fintype R] [LinearOrder R] (U : α → α → ℝ) (C : ℝ)
-    (hdiag : ∀ a, U a a = C) (hsym : ∀ a b, U a b = U b a)
-    (τ : Option (Option R) → α) :
-    (∑ r : R, ∑ r' : R, U (τ (some (some r))) (τ (some (some r')))) -
-        2 * (Fintype.card R : ℝ) *
-          (∑ r : R, U (τ (some (some r))) (τ (some none))) -
-        (Fintype.card R : ℝ) * U (τ (some none)) (τ (some none)) +
-        (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) *
-          U (τ (some none)) (τ none) =
-      2 * ∑ p : R × R with p.1 < p.2,
-          U (τ (some (some p.1))) (τ (some (some p.2))) -
-        2 * (Fintype.card R : ℝ) *
-          (∑ r : R, U (τ (some (some r))) (τ (some none))) +
-        (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) *
-          U (τ (some none)) (τ none) := by
-  rw [replica_covariance_combination_cancel_diagonal U C hdiag τ,
-    sum_sum_offDiag_eq_two_sum_lt
-      (fun r r' => U (τ (some (some r))) (τ (some (some r'))))
-      (fun r r' => hsym _ _)]
-
-/-- The square-parameter chain rule multiplies the clean angle bracket by
-`-1 / 2`. This algebraic form reverses the covariance kernel and gives the
-three coefficients used by Talagrand's cavity derivative. -/
-theorem neg_half_replica_covariance_offDiag
-    {R α : Type*} [Fintype R] [LinearOrder R] (U : α → α → ℝ)
-    (τ : Option (Option R) → α) :
-    -(2 * ∑ p : R × R with p.1 < p.2,
-        U (τ (some (some p.1))) (τ (some (some p.2))) -
-      2 * (Fintype.card R : ℝ) * ∑ r : R,
-        U (τ (some (some r))) (τ (some none)) +
-      (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) *
-        U (τ (some none)) (τ none)) / 2 =
-    (∑ p : R × R with p.1 < p.2,
-        -U (τ (some (some p.1))) (τ (some (some p.2)))) -
-      (Fintype.card R : ℝ) * ∑ r : R,
-        -U (τ (some (some r))) (τ (some none)) +
-      (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) / 2 *
-        (-U (τ (some none)) (τ none)) := by
-  simp only [Finset.sum_neg_distrib]
-  ring
 
 /-- The number of strictly ordered pairs of replicas is `n.choose 2`. -/
 theorem card_filter_lt_fin_prod (n : ℕ) :

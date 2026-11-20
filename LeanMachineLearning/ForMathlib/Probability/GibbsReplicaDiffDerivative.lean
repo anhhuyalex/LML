@@ -92,10 +92,38 @@ theorem hasDerivAt_replicaDiff_tilted {α R : Type*} [MeasurableSpace α] [Finty
   refine this.congr_deriv ?_
   rw [show (fun _ : α => (0 : ℝ)) = 0 from rfl, replicaDiff_zero, zero_add]
 
+/-- The covariance functional of the derivative is `replicaDiff` for the `Option R` replicas
+(`integral_pi_cov_sum_eq_sum_sub_fresh`): for a probability measure `ν`, a bounded measurable
+replica observable `F`, a bounded measurable `h` and an integrable `e'`. -/
+theorem replicaDiffWith_cov_eq_replicaDiffWith {α R : Type*} [MeasurableSpace α] [Fintype R]
+    (ν : Measure α) [IsProbabilityMeasure ν] {e' : α → ℝ} (hI : Integrable e' ν)
+    {F : (R → α) → ℝ} (hF : Measurable F) {C : ℝ} (hFb : ∀ σ, |F σ| ≤ C)
+    {h : α → ℝ} (hh : Measurable h) {H : ℝ} (hhb : ∀ a, |h a| ≤ H) :
+    replicaDiffWith (fun G => (∫ σ : Option R → α, G σ * (∑ k, e' (σ k))
+        ∂(Measure.pi fun _ : Option R => ν)) -
+      (∫ σ : Option R → α, G σ ∂(Measure.pi fun _ : Option R => ν)) *
+        ∫ σ : Option R → α, (∑ k, e' (σ k)) ∂(Measure.pi fun _ : Option R => ν)) F h =
+      replicaDiffWith (fun G => replicaDiff ν G e') F h := by
+  have hL (i : Option R) :
+      ((∫ σ : Option R → α, F (fun j => σ (some j)) * h (σ i) * (∑ k, e' (σ k))
+          ∂(Measure.pi fun _ : Option R => ν)) -
+        (∫ σ : Option R → α, F (fun j => σ (some j)) * h (σ i)
+          ∂(Measure.pi fun _ : Option R => ν)) *
+          ∫ σ : Option R → α, (∑ k, e' (σ k)) ∂(Measure.pi fun _ : Option R => ν)) =
+      replicaDiff ν (fun σ : Option R → α => F (fun j => σ (some j)) * h (σ i)) e' := by
+    refine integral_pi_cov_sum_eq_sum_sub_fresh (R := Option R) ν
+      (fun σ : Option R → α => F (fun j => σ (some j)) * h (σ i)) ?_ (C := C * H) ?_ e' hI
+    · exact ((hF.comp (by fun_prop)).mul (hh.comp (measurable_pi_apply i))).aestronglyMeasurable
+    · intro σ
+      rw [abs_mul]
+      exact mul_le_mul (hFb _) (hhb _) (abs_nonneg _)
+        ((abs_nonneg _).trans (hFb fun j => σ (some j)))
+  simp only [replicaDiffWith]
+  rw [Finset.sum_congr rfl fun i _ => hL (some i), hL none]
+
 /-- **The derivative of a replica difference is a replica difference of replica differences.**
 When `μ.tilted (E t)` is a probability measure and `E' t` is integrable against it, the covariance
-functional of `hasDerivAt_replicaDiff_tilted` is `replicaDiff` for the `Option R` replicas
-(`integral_pi_cov_sum_eq_sum_sub_fresh`). -/
+functional of `hasDerivAt_replicaDiff_tilted` is `replicaDiff` for the `Option R` replicas. -/
 theorem hasDerivAt_replicaDiff_tilted_replicaDiff {α R : Type*} [MeasurableSpace α] [Fintype R]
     {μ : Measure α} [IsFiniteMeasure μ] [NeZero μ]
     {E E' : ℝ → α → ℝ} {t : ℝ} {s : Set ℝ} (hs : s ∈ 𝓝 t)
@@ -108,24 +136,29 @@ theorem hasDerivAt_replicaDiff_tilted_replicaDiff {α R : Type*} [MeasurableSpac
     [IsProbabilityMeasure (μ.tilted (E t))] (hI : Integrable (E' t) (μ.tilted (E t))) :
     HasDerivAt (fun r => replicaDiff (μ.tilted (E r)) F h)
       (replicaDiffWith (fun G => replicaDiff (μ.tilted (E t)) G (E' t)) F h) t := by
-  refine (hasDerivAt_replicaDiff_tilted hs hE hE' hEb hb hdb hd hF hFb hh hhb).congr_deriv ?_
-  have hL (i : Option R) :
-      ((∫ σ : Option R → α, F (fun j => σ (some j)) * h (σ i) * (∑ k, E' t (σ k))
-          ∂(Measure.pi fun _ : Option R => μ.tilted (E t))) -
-        (∫ σ : Option R → α, F (fun j => σ (some j)) * h (σ i)
-          ∂(Measure.pi fun _ : Option R => μ.tilted (E t))) *
-          ∫ σ : Option R → α, (∑ k, E' t (σ k))
-            ∂(Measure.pi fun _ : Option R => μ.tilted (E t))) =
-      replicaDiff (μ.tilted (E t)) (fun σ : Option R → α => F (fun j => σ (some j)) * h (σ i))
-        (E' t) := by
-    refine integral_pi_cov_sum_eq_sum_sub_fresh (R := Option R) (μ.tilted (E t))
-      (fun σ : Option R → α => F (fun j => σ (some j)) * h (σ i)) ?_ (C := C * H) ?_ (E' t) hI
-    · exact ((hF.comp (by fun_prop)).mul (hh.comp (measurable_pi_apply i))).aestronglyMeasurable
-    · intro σ
-      rw [abs_mul]
-      exact mul_le_mul (hFb _) (hhb _) (abs_nonneg _)
-        ((abs_nonneg _).trans (hFb fun j => σ (some j)))
-  simp only [replicaDiffWith]
-  rw [Finset.sum_congr rfl fun i _ => hL (some i), hL none]
+  rw [← replicaDiffWith_cov_eq_replicaDiffWith (μ.tilted (E t)) hI hF hFb hh hhb]
+  exact hasDerivAt_replicaDiff_tilted hs hE hE' hEb hb hdb hd hF hFb hh hhb
+
+/-- **Moving observable, covariance as a replica difference.** Both the energy and the one-spin
+observable move; the derivative is `replicaDiff` of `∂_r h` plus `replicaDiffWith` of the
+replica difference against the energy derivative. -/
+theorem hasDerivAt_replicaDiff_tilted_moving_replicaDiff {α R : Type*} [MeasurableSpace α]
+    [Fintype R] {μ : Measure α} [IsFiniteMeasure μ] [NeZero μ]
+    {E E' : ℝ → α → ℝ} {t : ℝ} {s : Set ℝ} (hs : s ∈ 𝓝 t)
+    (hE : ∀ r ∈ s, Measurable (E r)) (hE' : Measurable (E' t))
+    {B : ℝ} (hEb : ∀ r ∈ s, ∀ a, E r a ≤ B)
+    {b : α → ℝ} (hb : Integrable b μ) (hdb : ∀ r ∈ s, ∀ a, |E' r a| ≤ b a)
+    (hd : ∀ a, ∀ r ∈ s, HasDerivAt (fun q => E q a) (E' r a) r)
+    {F : (R → α) → ℝ} (hF : Measurable F) {C : ℝ} (hFb : ∀ σ, |F σ| ≤ C)
+    {h h' : ℝ → α → ℝ} (hh : ∀ r ∈ s, Measurable (h r)) (hh' : Measurable (h' t))
+    {H H' : ℝ} (hhb : ∀ r ∈ s, ∀ a, |h r a| ≤ H) (hh'b : ∀ r ∈ s, ∀ a, |h' r a| ≤ H')
+    (hhd : ∀ a, ∀ r ∈ s, HasDerivAt (fun q => h q a) (h' r a) r)
+    [IsProbabilityMeasure (μ.tilted (E t))] (hI : Integrable (E' t) (μ.tilted (E t))) :
+    HasDerivAt (fun r => replicaDiff (μ.tilted (E r)) F (h r))
+      (replicaDiff (μ.tilted (E t)) F (h' t) +
+        replicaDiffWith (fun G => replicaDiff (μ.tilted (E t)) G (E' t)) F (h t)) t := by
+  rw [← replicaDiffWith_cov_eq_replicaDiffWith (μ.tilted (E t)) hI hF hFb
+    (hh t (mem_of_mem_nhds hs)) (hhb t (mem_of_mem_nhds hs))]
+  exact hasDerivAt_replicaDiff_tilted_moving hs hE hE' hEb hb hdb hd hF hFb hh hh' hhb hh'b hhd
 
 end MeasureTheory
