@@ -228,26 +228,41 @@ theorem integral_pi_sum_eval (ν : Measure α) [IsProbabilityMeasure ν] {J : Ty
   simp_rw [integral_pi_eval ν _ h hh.aestronglyMeasurable]
   simp
 
+/-- The replica difference shape `∑_i L(F h(σ_i)) - |R| L(F h(σ_*))` for a functional `L` on
+observables of the `|R| + 1` replicas `Option R` (`some i` observed, `none` fresh). The replica
+difference is the case of `L` the product-measure average (`replicaDiff`); its derivative along a
+parameter is the case of `L` the covariance with the energy derivative. -/
+def replicaDiffWith {α R : Type*} [Fintype R] (L : ((Option R → α) → ℝ) → ℝ)
+    (F : (R → α) → ℝ) (h : α → ℝ) : ℝ :=
+  (∑ i, L fun σ => F (fun j => σ (some j)) * h (σ (some i))) -
+    (Fintype.card R : ℝ) * L fun σ => F (fun j => σ (some j)) * h (σ none)
+
 /-- The replica difference operator `∑_i ⟨F h(σ_i)⟩ - |R| ⟨F h(σ_*)⟩`. -/
 noncomputable def replicaDiff {α R : Type*} [MeasurableSpace α] [Fintype R] (ν : Measure α)
     (F : (R → α) → ℝ) (h : α → ℝ) : ℝ :=
-  (∑ i, ∫ σ : Option R → α, F (fun j => σ (some j)) * h (σ (some i))
-      ∂(Measure.pi fun _ : Option R => ν)) -
-    (Fintype.card R : ℝ) * ∫ σ : Option R → α, F (fun j => σ (some j)) * h (σ none)
-      ∂(Measure.pi fun _ : Option R => ν)
+  replicaDiffWith (fun G => ∫ σ : Option R → α, G σ ∂(Measure.pi fun _ : Option R => ν)) F h
+
+/-- The replica difference written out: `∑_i ⟨F h(σ_i)⟩ - |R| ⟨F h(σ_*)⟩`. -/
+theorem replicaDiff_eq {α R : Type*} [MeasurableSpace α] [Fintype R] (ν : Measure α)
+    (F : (R → α) → ℝ) (h : α → ℝ) :
+    replicaDiff ν F h =
+      (∑ i, ∫ σ : Option R → α, F (fun j => σ (some j)) * h (σ (some i))
+          ∂(Measure.pi fun _ : Option R => ν)) -
+        (Fintype.card R : ℝ) * ∫ σ : Option R → α, F (fun j => σ (some j)) * h (σ none)
+          ∂(Measure.pi fun _ : Option R => ν) := rfl
 
 /-- The zero observable has zero replica difference. -/
 theorem replicaDiff_zero {α R : Type*} [MeasurableSpace α] [Fintype R] (ν : Measure α)
     (F : (R → α) → ℝ) :
     replicaDiff ν F 0 = 0 := by
-  dsimp only [replicaDiff]
+  rw [replicaDiff_eq]
   simp only [Pi.zero_apply, mul_zero, integral_zero, Finset.sum_const_zero, sub_zero, mul_zero]
 
 /-- The replica difference operator is homogeneous with respect to scalar multiplication. -/
 theorem replicaDiff_const_mul {α R : Type*} [MeasurableSpace α] [Fintype R] (ν : Measure α)
     (F : (R → α) → ℝ) (c : ℝ) (h : α → ℝ) :
     replicaDiff ν F (fun x => c * h x) = c * replicaDiff ν F h := by
-  simp only [replicaDiff, mul_left_comm _ c, integral_const_mul, ← Finset.mul_sum]
+  simp only [replicaDiff_eq, mul_left_comm _ c, integral_const_mul, ← Finset.mul_sum]
   ring
 
 /-- A covariance with a sum over the observed replicas is a sum of observed-replica terms
@@ -276,7 +291,7 @@ theorem integral_pi_cov_sum_eq_sum_sub_fresh {α R : Type*} [MeasurableSpace α]
       (fun σ : R → α => F σ * h (σ i)) (hFI i).aestronglyMeasurable).symm
   have hfresh := integral_pi_fresh_replica_mul ν (e := some) (Option.some_injective R)
     (r := none) (fun i => Option.some_ne_none i) F h hF hh.aestronglyMeasurable
-  dsimp only [replicaDiff]
+  rw [replicaDiff_eq]
   rw [hnum, integral_pi_sum_eval ν h hh, hfresh]
   ring
 
