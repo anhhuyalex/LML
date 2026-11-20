@@ -705,6 +705,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathEndp
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathFields
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathGibbsDerivative
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathIBP
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathModel
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Maximizers.Hyperbolic
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Maximizers.Replacement
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Maximizers.Structure
