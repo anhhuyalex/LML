@@ -164,7 +164,7 @@ under swapping `i ↔ j`, then the swapped constraints have the same expected pa
 potential kernel. -/
 theorem integral_replicaPairAverage_swap {μ : Measure (SmartPathState N M)} [IsFiniteMeasure μ]
     [NeZero μ] {R : Type*} [Fintype R] [LinearOrder R] {t : ℝ}
-    {u : ℝ → ℝ} {B D D₂ : ℝ} (hu : SmartPathPotential₂ u B D D₂) (v : ℝ≥0)
+    {u : ℝ → ℝ} {B D : ℝ} (hu : SmartPathPotential u B D) (v : ℝ≥0)
     {Pold : Measure (Fin M → Fin N → ℝ)} [IsFiniteMeasure Pold] (i j : Fin M)
     (hμ : MeasurePreserving (smartPathStateSwap (N := N) i j) μ μ)
     (hP : Pold.map (fun g : Fin M → Fin N → ℝ => fun l => g (Equiv.swap i j l)) = Pold)
@@ -183,7 +183,7 @@ theorem integral_replicaPairAverage_swap {μ : Measure (SmartPathState N M)} [Is
   have h := (measurePreserving_smartPathDisorderSwap v i j hP).integral_comp_of_aestronglyMeasurable
     hmeas
   rw [← h]
-  exact integral_congr_ae (ae_of_all _ fun ω => (replicaPairAverage_swap hu.toSmartPathPotential
+  exact integral_congr_ae (ae_of_all _ fun ω => (replicaPairAverage_swap hu
     t i j hμ ω f k).symm)
 
 /-- **Equal expected diagonal terms for exchangeable constraints.** -/
@@ -245,7 +245,8 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path_exchangeable {R : 
       ∫ ω, replicaPairAverage ((smartPathBase N M).tilted (smartPathEnergy u t ω))
       (fun σ : R → SmartPathState N M => f (fun r => (σ r).1))
       (smartPathPotentialKernel u t ω j₀) ∂(smartPathDisorder Pold v) := by
-    have := integral_replicaPairAverage_swap (μ := smartPathBase N M) (t := t) hu v k j₀
+    have := integral_replicaPairAverage_swap (μ := smartPathBase N M) (t := t)
+      hu.toSmartPathPotential v k j₀
       (measurePreserving_smartPathStateSwap k j₀) (hPold k) f j₀
     simpa using this
   simp only [hk, Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]

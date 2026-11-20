@@ -238,22 +238,22 @@ theorem integrable_replicaDiff_diag {N M : ℕ}
 theorem integrable_replicaPairAverage_kernel {N M : ℕ}
     {μ : Measure (SmartPathState N M)} [IsFiniteMeasure μ] [NeZero μ]
     {R : Type*} [Fintype R] [LinearOrder R]
-    {t : ℝ} {u : ℝ → ℝ} {B D D₂ : ℝ} (hu : SmartPathPotential₂ u B D D₂)
+    {t : ℝ} {u : ℝ → ℝ} {B D : ℝ} (hu : SmartPathPotential u B D)
     (F : (R → SmartPathState N M) → ℝ) (hF : Measurable F) {C : ℝ} (hFb : ∀ σ, |F σ| ≤ C)
     (k : Fin M) (P : Measure (SmartPathDisorder N M)) [IsFiniteMeasure P] :
     Integrable (fun ω => replicaPairAverage (μ.tilted
       (smartPathEnergy u t ω)) F (smartPathPotentialKernel u t ω k)) P := by
-  have hum : Measurable u := hu.toSmartPathPotential.measurable
+  have hum : Measurable u := hu.measurable
   have hprob (ω : SmartPathDisorder N M) : IsProbabilityMeasure
       (μ.tilted (smartPathEnergy u t ω)) :=
     isProbabilityMeasure_tilted_perceptron_smart_path_energy hum
-      (fun x => hu.toSmartPathPotential.le x) ω t
+      (fun x => hu.le x) ω t
   have hE : Measurable fun p : SmartPathDisorder N M × SmartPathState N M =>
       smartPathEnergy u t p.1 p.2 := measurable_smartPathEnergy hum t
   exact integrable_replicaPairAverage_tilted_of_bound (E := fun ω x => smartPathEnergy u t ω x)
     hE hprob (U := fun ω a b => smartPathPotentialKernel u t ω k a b)
     (measurable_potentialKernel_joint t k)
-    (fun ω a b => abs_smartPathPotentialKernel_le hu.toSmartPathPotential t ω k a b) hF hFb
+    (fun ω a b => abs_smartPathPotentialKernel_le hu t ω k a b) hF hFb
 
 /-- **Stein in `a_k`, averaged over the disorder.** -/
 theorem integral_coupling_mul_replicaDiff {N M : ℕ}
@@ -271,11 +271,12 @@ theorem integral_coupling_mul_replicaDiff {N M : ℕ}
   refine integral_coupling_mul_smartPathDisorder v k
     (integrable_coupling_mul_replicaDiff hu.toSmartPathPotential v k F hF hFb)
     (((integrable_replicaDiff_diag hu F hF hFb k _).add
-      ((integrable_replicaPairAverage_kernel hu F hF hFb k _).const_mul 2)).const_mul _)
+      ((integrable_replicaPairAverage_kernel hu.toSmartPathPotential F hF hFb k _).const_mul
+        2)).const_mul _)
     fun g a y => ?_
   have h := hasDerivAt_replicaDiff_update (μ := μ) (t := t) hu ((g, a), y) k F hF hFb (a k)
-    rw [smartPathDisorderUpdate_self] at h
-    exact h.congr_deriv (by simp only [smartPathConstraintTerm]; ring)
+  rw [smartPathDisorderUpdate_self] at h
+  exact h.congr_deriv (by simp only [smartPathConstraintTerm]; ring)
 
 /-- The last-field term is `-y / (2 √(1 - t))` times the replica difference of the last spin. -/
 theorem replicaDiff_smartPathEnergyDerivY_eq {N M : ℕ}
@@ -442,7 +443,7 @@ theorem integral_replicaDiff_smartPathEnergyDerivXi_disorder {N M : ℕ} {R : Ty
   obtain ⟨C, hC⟩ := exists_abs_le_of_finite f
   have hFm := measurable_spin_only (N := N) (M := M) f
   have hFb : ∀ σ : R → SmartPathState N M, |f (fun r => (σ r).1)| ≤ C := fun σ => hC _
-  simp_rw [replicaDiff_smartPathEnergyDerivXi ht hu _ f (measurable_of_finite f) hC]
+  simp_rw [replicaDiff_smartPathEnergyDerivXi ht hu _ f]
   rw [integral_const_mul, integral_finsetSum _ fun k _ =>
     integrable_replicaDiff_diag hu _ hFm hFb k _]
 
@@ -461,7 +462,8 @@ theorem integral_smartPathConstraintTerm {N M : ℕ}
         (smartPathPotentialKernel u t ω k) ∂P := by
   unfold smartPathConstraintTerm
   rw [integral_add (integrable_replicaDiff_diag hu F hF hFb k P)
-    ((integrable_replicaPairAverage_kernel hu F hF hFb k P).const_mul 2), integral_const_mul]
+    ((integrable_replicaPairAverage_kernel hu.toSmartPathPotential F hF hFb k P).const_mul 2),
+    integral_const_mul]
 
 /-- **Proposition 2.2.3 (T17.5), sum over the constraints.** For `0 < t < 1`, a potential with
 `|u| ≤ B`, `|u'| ≤ D`, `|u''| ≤ D₂`, any finite law `Pold` of the old couplings, any variance
@@ -499,7 +501,7 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path_ibp {N M : ℕ} {R
       ((smartPathBase N M).tilted (smartPathEnergy u t ω))
       (fun σ : R → SmartPathState N M => f (fun r => (σ r).1)) (smartPathEnergyDerivXi u t ω))
       (smartPathDisorder Pold v) := by
-    simp_rw [replicaDiff_smartPathEnergyDerivXi ht hu _ f (measurable_of_finite f) hC]
+    simp_rw [replicaDiff_smartPathEnergyDerivXi ht hu _ f]
     exact (integrable_finsetSum _ fun k _ =>
       integrable_replicaDiff_diag hu _ hFm hFb k _).const_mul _
   have hAξ : Integrable (fun ω => replicaDiff

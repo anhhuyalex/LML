@@ -466,8 +466,7 @@ observable `f` of the replicas `some r` and any replica `i`, integrating the aux
 `⟨f ξ_k u'(S_k)(σ_i)⟩ = √((1-t)/(N+1)) ⟨f (u'' + u'^2)(S_k)(σ_i)⟩`. -/
 theorem integral_pi_xi_mul_deriv {N M : ℕ} {R : Type*} [Fintype R] {t : ℝ} {u : ℝ → ℝ}
     {B D D₂ : ℝ} (hu : SmartPathPotential₂ u B D D₂) (ω : SmartPathDisorder N M) (k : Fin M)
-    (f : (R → PerceptronSpin N) → ℝ) (hf : Measurable f) {C : ℝ} (hfb : ∀ ρ, |f ρ| ≤ C)
-    (i : Option R) :
+    (f : (R → PerceptronSpin N) → ℝ) (i : Option R) :
     ∫ σ : Option R → SmartPathState N M, f (fun r => (σ (some r)).1) *
         ((σ i).2 k * deriv u (smartPathField t ω (σ i) k))
       ∂(Measure.pi fun _ => (smartPathBase N M).tilted (smartPathEnergy u t ω)) =
@@ -477,6 +476,8 @@ theorem integral_pi_xi_mul_deriv {N M : ℕ} {R : Type*} [Fintype R] {t : ℝ} {
             deriv u (smartPathField t ω (σ i) k) ^ 2)
       ∂(Measure.pi fun _ => (smartPathBase N M).tilted (smartPathEnergy u t ω)) := by
   classical
+  obtain ⟨C, hfb⟩ := exists_abs_le_of_finite f
+  have hf := measurable_of_finite f
   simp only [smartPathBase_tilted_eq]
   rw [integral_pi_tilted_eq_div, integral_pi_tilted_eq_div, ← mul_div_assoc]
   congr 1
@@ -616,8 +617,7 @@ opposite of the diagonal contribution of the quenched-coupling term
 (`integral_mul_replicaDiff_update`). -/
 theorem replicaDiff_smartPathEnergyDerivXi {N M : ℕ} {R : Type*} [Fintype R] {t : ℝ}
     (ht : t ∈ Set.Ioo (0 : ℝ) 1) {u : ℝ → ℝ} {B D D₂ : ℝ} (hu : SmartPathPotential₂ u B D D₂)
-    (ω : SmartPathDisorder N M) (f : (R → PerceptronSpin N) → ℝ) (hf : Measurable f) {C : ℝ}
-    (hfb : ∀ ρ, |f ρ| ≤ C) :
+    (ω : SmartPathDisorder N M) (f : (R → PerceptronSpin N) → ℝ) :
     replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t ω))
         (fun σ : R → SmartPathState N M => f (fun r => (σ r).1)) (smartPathEnergyDerivXi u t ω) =
       -(1 / (2 * ((N : ℝ) + 1))) * ∑ k : Fin M, replicaDiff
@@ -626,6 +626,8 @@ theorem replicaDiff_smartPathEnergyDerivXi {N M : ℕ} {R : Type*} [Fintype R] {
         (fun x => deriv (deriv u) (smartPathField t ω x k) +
           deriv u (smartPathField t ω x k) ^ 2) := by
   classical
+  obtain ⟨C, hfb⟩ := exists_abs_le_of_finite f
+  have hf := measurable_of_finite f
   have hum : Measurable u := hu.toSmartPathPotential.measurable
   have hdu : Measurable (deriv u) := measurable_deriv u
   have hν : IsProbabilityMeasure ((smartPathBase N M).tilted (smartPathEnergy u t ω)) :=
@@ -668,7 +670,7 @@ theorem replicaDiff_smartPathEnergyDerivXi {N M : ℕ} {R : Type*} [Fintype R] {
         (fun x => deriv (deriv u) (smartPathField t ω x k) +
           deriv u (smartPathField t ω x k) ^ 2) := by
     rw [replicaDiff_eq, replicaDiff_eq]
-    simp only [integral_pi_xi_mul_deriv hu ω k f hf hfb]
+    simp only [integral_pi_xi_mul_deriv hu ω k f]
     simp only [Finset.mul_sum, ← mul_assoc, mul_sub]
     ring
   rw [hxi, replicaDiff_finset_sum _ _ hFm.aestronglyMeasurable hFb Finset.univ _

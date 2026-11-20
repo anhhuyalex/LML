@@ -306,7 +306,8 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path_noAux_exchangeable
       ∫ ω, replicaPairAverage
       (Measure.count.tilted (fun a => smartPathEnergyNoAux u t ω (a, 0))) f
       (smartPathPotentialKernelNoAux u t ω j₀) ∂(smartPathDisorder Pold v) := by
-    have := integral_replicaPairAverage_swap (μ := smartPathBaseNoAux N M) (t := t) hu v k j₀
+    have := integral_replicaPairAverage_swap (μ := smartPathBaseNoAux N M) (t := t)
+      hu.toSmartPathPotential v k j₀
       (measurePreserving_smartPathStateSwap_noAux k j₀) (hPold k) f j₀
     simpa only [Equiv.swap_apply_right, replicaPairAverage_potentialKernel_noAux_eq_spin hm hD t]
       using this
