@@ -38,32 +38,13 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path {N M : ℕ}
     (ht : t ∈ Set.Ioo (0 : ℝ) 1) {u : ℝ → ℝ} (hu : Differentiable ℝ u)
     {B D : ℝ} (hB : ∀ z, |u z| ≤ B) (hD : ∀ z, |deriv u z| ≤ D)
     (v : NNReal) {Pold : Measure (Fin M → Fin N → ℝ)} [IsFiniteMeasure Pold]
-    (F : (R → ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) → ℝ)
-    (hF : Measurable F) {C : ℝ} (hFb : ∀ σ, |F σ| ≤ C) :
-    let S := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
-      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) (k : Fin M) =>
-      (Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i, ω.1.1 k i * ((x.1.1 i : ℤ) : ℝ)) +
-        Real.sqrt (s / (N + 1)) * ω.1.2 k * ((x.1.2 : ℤ) : ℝ) +
-        Real.sqrt ((1 - s) / (N + 1)) * x.2 k
-    let E := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
-      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) =>
-      ((x.1.2 : ℤ) : ℝ) * Real.sqrt (1 - s) * ω.2 + ∑ k, u (S s ω x k)
-    let E' := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
-      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) =>
-      -((x.1.2 : ℤ) : ℝ) * ω.2 / (2 * Real.sqrt (1 - s)) +
-      ∑ k, deriv u (S s ω x k) * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
-        (ω.1.2 k * ((x.1.2 : ℤ) : ℝ) / Real.sqrt s - x.2 k / Real.sqrt (1 - s)))
-    let μ := (Measure.count : Measure ((Fin N → ℤˣ) × ℤˣ)).prod
-      (Measure.pi fun _ : Fin M => gaussianReal 0 1)
-    let P := (Pold.prod (Measure.pi fun _ : Fin M => gaussianReal 0 1)).prod (gaussianReal 0 v)
-    HasDerivAt (fun s => ∫ ω, ∫ σ, F σ ∂(Measure.pi fun _ : R => μ.tilted (E s ω)) ∂P)
-      (∫ ω, (∑ i, ∫ σ : Option R → ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ),
-          F (fun j => σ (some j)) * E' t ω (σ (some i))
-          ∂(Measure.pi fun _ : Option R => μ.tilted (E t ω))) -
-        (Fintype.card R : ℝ) * ∫ σ : Option R → ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ),
-          F (fun j => σ (some j)) * E' t ω (σ none)
-          ∂(Measure.pi fun _ : Option R => μ.tilted (E t ω)) ∂P) t := by
-  intro S E E' μ P
+    (F : (R → SmartPathState N M) → ℝ) (hF : Measurable F) {C : ℝ} (hFb : ∀ σ, |F σ| ≤ C) :
+    HasDerivAt (fun s => ∫ ω, ∫ σ, F σ
+        ∂(Measure.pi fun _ : R => (smartPathBase N M).tilted (smartPathEnergy u s ω))
+        ∂smartPathDisorder Pold v)
+      (∫ ω, replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t ω)) F
+        (fun x => smartPathEnergyDerivA u t ω x + smartPathEnergyDerivXi u t ω x +
+          smartPathEnergyDerivY t ω x) ∂smartPathDisorder Pold v) t := by
   obtain ⟨δ, hδ, hδt, hδ1⟩ := exists_pos_lt_of_mem_Ioo ht
   let V := Set.Ioo δ (1 - δ)
   have htV : t ∈ V := ⟨hδt, by linarith⟩
@@ -71,33 +52,15 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path {N M : ℕ}
   let K := 1 / (2 * Real.sqrt δ) +
     (M : ℝ) * (D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) * (2 / Real.sqrt δ))
   have hK : 0 ≤ K := by dsimp only [K]; positivity
-  let A := fun ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ =>
-    (M : ℝ) * B + |ω.2|
-  let Q := fun ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ =>
-    K * Real.exp (|ω.2| + ∑ k, |ω.1.2 k|)
-  let b := fun x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ) =>
-    Real.exp (∑ k, |x.2 k|)
-  have hmE (s : ℝ) : Measurable fun p :
-      (((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ) ×
-        (((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) => E s p.1 p.2 :=
-    measurable_perceptron_smart_path_energy (N := N) (M := M) hu.continuous.measurable s
-  have hmE' (s : ℝ) : Measurable fun p :
-      (((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ) ×
-        (((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) => E' s p.1 p.2 := by
-    have hdu := measurable_deriv u
-    dsimp only [E', S]
-    fun_prop
-  have hEb (s : ℝ) (hs : s ∈ V) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
-      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) : |E s ω x| ≤ A ω :=
-    abs_perceptron_smart_path_energy_le_of_nonneg hB ω.1.1 ω.1.2 ω.2 s (hδ.trans hs.1).le x
-  have hcalc (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
-      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) (s : ℝ) (hs : s ∈ V) :
-      HasDerivAt (fun q => E q ω x) (E' s ω x) s :=
-    hasDerivAt_perceptron_smart_path_energy ⟨hδ.trans hs.1, by linarith [hs.2]⟩ hu
-      ω.1.1 ω.1.2 x.2 x.1.1 x.1.2 ω.2
-  have hdb (s : ℝ) (hs : s ∈ V) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
-      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) :
-      |E' s ω x| ≤ Q ω * b x := by
+  let A := fun ω : SmartPathDisorder N M => (M : ℝ) * B + |ω.2|
+  let Q := fun ω : SmartPathDisorder N M => K * Real.exp (|ω.2| + ∑ k, |ω.1.2 k|)
+  let b := fun x : SmartPathState N M => Real.exp (∑ k, |x.2 k|)
+  have hEb (s : ℝ) (hs : s ∈ V) (ω : SmartPathDisorder N M) (x : SmartPathState N M) :
+      |smartPathEnergy u s ω x| ≤ A ω :=
+    abs_perceptron_smart_path_energy_le_of_nonneg hB s (hδ.trans hs.1).le ω x
+  have hdb (s : ℝ) (hs : s ∈ V) (ω : SmartPathDisorder N M) (x : SmartPathState N M) :
+      |smartPathEnergyDerivA u s ω x + smartPathEnergyDerivXi u s ω x +
+        smartPathEnergyDerivY s ω x| ≤ Q ω * b x := by
     let T := |ω.2| + (∑ k, |ω.1.2 k|) + ∑ k, |x.2 k|
     have htotal : T ≤ Real.exp T :=
       (le_add_of_nonneg_right zero_le_one).trans (Real.add_one_le_exp T)
@@ -112,8 +75,7 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path {N M : ℕ}
       (abs_apply_le_exp_sum_abs x.2 k).trans
         (Real.exp_le_exp.mpr (by dsimp only [T]; linarith [hA0, abs_nonneg ω.2]))
     have hcoef : 0 ≤ D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) := by positivity
-    have hlin := abs_deriv_perceptron_smart_path_energy_le hδ ⟨hs.1.le, hs.2.le⟩ hD
-      ω.1.1 ω.1.2 x.2 x.1.1 x.1.2 ω.2
+    have hlin := abs_deriv_perceptron_smart_path_energy_le hδ ⟨hs.1.le, hs.2.le⟩ hD ω x
     calc _ ≤ |ω.2| / (2 * Real.sqrt δ) + ∑ k,
           D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) *
             ((|ω.1.2 k| + |x.2 k|) / Real.sqrt δ) := hlin
@@ -134,9 +96,10 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path {N M : ℕ}
   have hξ : Integrable (fun ξ : Fin M → ℝ => Real.exp (∑ k, |ξ k|))
       (Measure.pi fun _ : Fin M => gaussianReal 0 1) := by
     simpa only [one_mul] using integrable_exp_sum_mul_abs_pi (fun _ : Fin M => (1 : ℝ))
-  have hb : Integrable b μ :=
-    hξ.comp_snd (Measure.count : Measure ((Fin N → ℤˣ) × ℤˣ))
-  have houter : Integrable (fun ω => Real.exp (2 * ((Fintype.card R : ℝ) * A ω)) * Q ω) P := by
+  have hb : Integrable b (smartPathBase N M) :=
+    hξ.comp_snd (Measure.count : Measure (PerceptronSpin N))
+  have houter : Integrable (fun ω => Real.exp (2 * ((Fintype.card R : ℝ) * A ω)) * Q ω)
+      (smartPathDisorder Pold v) := by
     have hyexp : Integrable (fun y : ℝ =>
         Real.exp ((2 * (Fintype.card R : ℝ) + 1) * |y|)) (gaussianReal 0 v) :=
       integrable_exp_mul_abs_gaussianReal _
@@ -150,137 +113,54 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path {N M : ℕ}
         2 * (Fintype.card R : ℝ) * |ω.2| + |ω.2| by ring]
     simp only [Real.exp_add]
     ring
-  exact hasDerivAt_integral_integral_pi_tilted_of_dominated (P := P) (μ := μ)
-    (E := E) (E' := E') (A := A) (B := Q) (b := b) (s := V)
-    isOpen_Ioo htV (fun s _ => hmE s) (fun s _ => hmE' s)
-    hEb hb hdb houter (fun ω x s hs => hcalc ω x s hs) hF hFb
-
-/-- The parameter derivative of the perceptron smart path energy splits algebraically into
-three terms: the quenched disorder term in `a`, the auxiliary spin term in `ξ`, and the
-quenched last-field term in `Y`. -/
-theorem perceptron_smart_path_E'_eq_three_terms {N M : ℕ} {u : ℝ → ℝ} {t : ℝ}
-    (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
-    (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) :
-    let S := fun (k : Fin M) =>
-      (Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i, ω.1.1 k i * ((x.1.1 i : ℤ) : ℝ)) +
-        Real.sqrt (t / (N + 1)) * ω.1.2 k * ((x.1.2 : ℤ) : ℝ) +
-        Real.sqrt ((1 - t) / (N + 1)) * x.2 k
-    let E' := -((x.1.2 : ℤ) : ℝ) * ω.2 / (2 * Real.sqrt (1 - t)) +
-      ∑ k, deriv u (S k) * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
-        (ω.1.2 k * ((x.1.2 : ℤ) : ℝ) / Real.sqrt t - x.2 k / Real.sqrt (1 - t)))
-    let E'_a := ∑ k, deriv u (S k) * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
-      (ω.1.2 k * ((x.1.2 : ℤ) : ℝ) / Real.sqrt t))
-    let E'_ξ := ∑ k, deriv u (S k) * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
-      (- x.2 k / Real.sqrt (1 - t)))
-    let E'_Y := -((x.1.2 : ℤ) : ℝ) * ω.2 / (2 * Real.sqrt (1 - t))
-    E' = E'_a + E'_ξ + E'_Y := by
-  intro S E' E'_a E'_ξ E'_Y
-  dsimp only [E', E'_a, E'_ξ, E'_Y]
-  rw [← Finset.sum_add_distrib, add_comm]
-  congr 1
-  exact Finset.sum_congr rfl fun k _ => by ring
+  exact hasDerivAt_integral_integral_pi_tilted_of_dominated (P := smartPathDisorder Pold v)
+    (μ := smartPathBase N M) (E := smartPathEnergy u)
+    (E' := fun s ω x => smartPathEnergyDerivA u s ω x + smartPathEnergyDerivXi u s ω x +
+      smartPathEnergyDerivY s ω x) (A := A) (B := Q) (b := b) (s := V)
+    isOpen_Ioo htV (fun s _ => measurable_smartPathEnergy hu.continuous.measurable s)
+    (fun s _ => measurable_smartPathEnergyDeriv u s) hEb hb hdb houter
+    (fun ω x s hs => hasDerivAt_smartPathEnergy ⟨hδ.trans hs.1, by linarith [hs.2]⟩ hu ω x)
+    hF hFb
 
 /-- Splitting of the replica difference operator for the perceptron smart path energy into
 three terms: the quenched disorder term, the auxiliary spin term, and the last-field term. -/
 theorem perceptron_smart_path_diff_eq_three_terms {N M : ℕ} {u : ℝ → ℝ} {t : ℝ}
     (ht : t ∈ Set.Ioo (0 : ℝ) 1) (hu : Differentiable ℝ u) {B D : ℝ} (hB : ∀ x, |u x| ≤ B)
-    (hD : ∀ x, |deriv u x| ≤ D) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
-    {R : Type*} [Fintype R] (F : (R → ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) → ℝ)
+    (hD : ∀ x, |deriv u x| ≤ D) (ω : SmartPathDisorder N M)
+    {R : Type*} [Fintype R] (F : (R → SmartPathState N M) → ℝ)
     (hF : Measurable F) {C : ℝ} (hFb : ∀ σ, |F σ| ≤ C) :
-    let S := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
-      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) (k : Fin M) =>
-      (Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i, ω.1.1 k i * ((x.1.1 i : ℤ) : ℝ)) +
-        Real.sqrt (s / (N + 1)) * ω.1.2 k * ((x.1.2 : ℤ) : ℝ) +
-        Real.sqrt ((1 - s) / (N + 1)) * x.2 k
-    let E := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
-      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) =>
-      ((x.1.2 : ℤ) : ℝ) * Real.sqrt (1 - s) * ω.2 + ∑ k, u (S s ω x k)
-    let E' := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
-      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) =>
-      -((x.1.2 : ℤ) : ℝ) * ω.2 / (2 * Real.sqrt (1 - s)) +
-      ∑ k, deriv u (S s ω x k) * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
-        (ω.1.2 k * ((x.1.2 : ℤ) : ℝ) / Real.sqrt s - x.2 k / Real.sqrt (1 - s)))
-    let E'_a := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
-      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) =>
-      ∑ k, deriv u (S s ω x k) * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
-        (ω.1.2 k * ((x.1.2 : ℤ) : ℝ) / Real.sqrt s))
-    let E'_ξ := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
-      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) =>
-      ∑ k, deriv u (S s ω x k) * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
-        (- x.2 k / Real.sqrt (1 - s)))
-    let E'_Y := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
-      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) =>
-      -((x.1.2 : ℤ) : ℝ) * ω.2 / (2 * Real.sqrt (1 - s))
-    let μ := (Measure.count : Measure ((Fin N → ℤˣ) × ℤˣ)).prod
-      (Measure.pi fun _ : Fin M => gaussianReal 0 1)
-    let diff := fun (H : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ) → ℝ) =>
-      (∑ i, ∫ σ : Option R → ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ),
-          F (fun j => σ (some j)) * H (σ (some i))
-          ∂(Measure.pi fun _ : Option R => μ.tilted (E t ω))) -
-        (Fintype.card R : ℝ) * ∫ σ : Option R → ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ),
-          F (fun j => σ (some j)) * H (σ none)
-          ∂(Measure.pi fun _ : Option R => μ.tilted (E t ω))
-    diff (E' t ω) = diff (E'_a t ω) + diff (E'_ξ t ω) + diff (E'_Y t ω) := by
-  intro S E E' E'_a E'_ξ E'_Y μ diff
-  have hC := hFb
-  have hν : IsProbabilityMeasure (μ.tilted (E t ω)) :=
+    replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t ω)) F
+        (fun x => smartPathEnergyDerivA u t ω x + smartPathEnergyDerivXi u t ω x +
+          smartPathEnergyDerivY t ω x) =
+      replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t ω)) F
+          (smartPathEnergyDerivA u t ω) +
+        replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t ω)) F
+          (smartPathEnergyDerivXi u t ω) +
+        replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t ω)) F
+          (smartPathEnergyDerivY t ω) := by
+  have hν : IsProbabilityMeasure ((smartPathBase N M).tilted (smartPathEnergy u t ω)) :=
     isProbabilityMeasure_tilted_perceptron_smart_path_energy hu.continuous.measurable
-      (fun x => le_of_abs_le (hB x)) ω.1.1 ω.1.2 ω.2 t
-  have hmE'_Y : Measurable (E'_Y t ω) := by dsimp only [E'_Y]; fun_prop
-  have hbY (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) :
-      |E'_Y t ω x| ≤ |ω.2| / (2 * Real.sqrt (1 - t)) := by
-    dsimp only [E'_Y]
-    have hpos : 0 ≤ 2 * Real.sqrt (1 - t) := by positivity
-    rw [abs_div, abs_of_nonneg hpos, neg_mul, abs_neg, abs_mul, abs_units_cast_eq_one, one_mul]
-  have hIY : Integrable (E'_Y t ω) (μ.tilted (E t ω)) :=
-    integrable_of_measurable_bound hmE'_Y (M := |ω.2| / (2 * Real.sqrt (1 - t))) hbY
-  have hmE'_a : Measurable (E'_a t ω) := by
-    have hdu := measurable_deriv u
-    dsimp only [E'_a, S]
-    fun_prop
-  have hb_a (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) :
-      |E'_a t ω x| ≤ ∑ k, D * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) * (|ω.1.2 k| / Real.sqrt t)) := by
-    dsimp only [E'_a]
-    refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun k _ => ?_)
-    have h1 : 0 ≤ 1 / (2 * Real.sqrt (N + 1 : ℕ)) := by positivity
-    have h2 : 0 ≤ Real.sqrt t := by positivity
-    rw [abs_mul, abs_mul, abs_of_nonneg h1, abs_div, abs_of_nonneg h2,
-      abs_mul, abs_units_cast_eq_one, mul_one]
-    exact mul_le_mul (hD _) le_rfl (by positivity) ((abs_nonneg _).trans (hD 0))
-  have hIa : Integrable (E'_a t ω) (μ.tilted (E t ω)) :=
-    integrable_of_measurable_bound hmE'_a
-      (M := ∑ k, D * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) * (|ω.1.2 k| / Real.sqrt t))) hb_a
-  have hIE' : Integrable (E' t ω) (μ.tilted (E t ω)) :=
-    integrable_tilted_perceptron_smart_path_energy_deriv hu
-      (fun x => le_of_abs_le (hB x)) hD ω.1.1 ω.1.2 ω.2 t ht
-  have hI_aξ : Integrable (fun x => E'_a t ω x + E'_ξ t ω x) (μ.tilted (E t ω)) := by
-    have heq : (fun x => E'_a t ω x + E'_ξ t ω x) = E' t ω - E'_Y t ω := by
-      ext x
-      simp only [Pi.sub_apply]
-      have h3 := perceptron_smart_path_E'_eq_three_terms (N := N) (M := M) (u := u) (t := t) ω x
-      dsimp only [E', E'_a, E'_ξ, E'_Y, S] at h3 ⊢
-      linarith
-    rw [heq]
-    exact hIE'.sub hIY
-  have hIξ : Integrable (E'_ξ t ω) (μ.tilted (E t ω)) := by
-    have heq : E'_ξ t ω = (fun x => E'_a t ω x + E'_ξ t ω x) - E'_a t ω := by
-      ext x
-      simp only [Pi.sub_apply]
-      ring
-    rw [heq]
-    exact hI_aξ.sub hIa
-  have hstep1 := replicaDiff_add (μ.tilted (E t ω)) F hF.aestronglyMeasurable hC hIa hIξ
-  have hstep2 := replicaDiff_add (μ.tilted (E t ω)) F hF.aestronglyMeasurable hC hI_aξ hIY
-  have heq : (fun x => E'_a t ω x + E'_ξ t ω x + E'_Y t ω x) = E' t ω := by
-    ext x
-    have h3 := perceptron_smart_path_E'_eq_three_terms (N := N) (M := M) (u := u) (t := t) ω x
-    dsimp only [E', E'_a, E'_ξ, E'_Y, S] at h3 ⊢
-    rw [h3]
-  change replicaDiff (μ.tilted (E t ω)) F (E' t ω) =
-    replicaDiff (μ.tilted (E t ω)) F (E'_a t ω) +
-    replicaDiff (μ.tilted (E t ω)) F (E'_ξ t ω) +
-    replicaDiff (μ.tilted (E t ω)) F (E'_Y t ω)
-  rw [← heq, hstep2, hstep1]
+      (fun x => le_of_abs_le (hB x)) ω t
+  have hIY : Integrable (smartPathEnergyDerivY t ω)
+      ((smartPathBase N M).tilted (smartPathEnergy u t ω)) :=
+    integrable_of_measurable_bound (measurable_smartPathEnergyDerivY_slice t ω)
+      (M := |ω.2| / (2 * Real.sqrt (1 - t)))
+      (abs_smartPathEnergyDerivY_le (sub_pos.2 ht.2) le_rfl ω)
+  have hIa : Integrable (smartPathEnergyDerivA u t ω)
+      ((smartPathBase N M).tilted (smartPathEnergy u t ω)) :=
+    integrable_of_measurable_bound (measurable_smartPathEnergyDerivA_slice u t ω)
+      (M := ∑ k, D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) * (|ω.1.2 k| / Real.sqrt t))
+      (abs_smartPathEnergyDerivA_le hD ht.1 le_rfl ω)
+  have hIE' := integrable_tilted_perceptron_smart_path_energy_deriv hu
+    (fun x => le_of_abs_le (hB x)) hD ω t ht
+  have hI_aξ : Integrable (fun x => smartPathEnergyDerivA u t ω x +
+      smartPathEnergyDerivXi u t ω x) ((smartPathBase N M).tilted (smartPathEnergy u t ω)) :=
+    (hIE'.sub hIY).congr (ae_of_all _ fun x => by simp)
+  have hIξ : Integrable (smartPathEnergyDerivXi u t ω)
+      ((smartPathBase N M).tilted (smartPathEnergy u t ω)) :=
+    (hI_aξ.sub hIa).congr (ae_of_all _ fun x => by simp)
+  rw [replicaDiff_add _ F hF.aestronglyMeasurable hFb hI_aξ hIY,
+    replicaDiff_add _ F hF.aestronglyMeasurable hFb hIa hIξ]
 
 /-- **(2.26)--(2.27) with the three groups of (2.28), before constraint symmetry.**
 Differentiates the quenched replica average and splits the energy derivative into the
@@ -292,56 +172,24 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms {N M :
     {u : ℝ → ℝ} (hu : Differentiable ℝ u) {B D : ℝ} (hB : ∀ x, |u x| ≤ B)
     (hD : ∀ x, |deriv u x| ≤ D) (v : NNReal)
     {Pold : Measure (Fin M → Fin N → ℝ)} [IsFiniteMeasure Pold]
-    (F : (R → ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) → ℝ)
-    (hF : Measurable F) {C : ℝ} (hFb : ∀ σ, |F σ| ≤ C) :
-    let S := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
-      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) (k : Fin M) =>
-      (Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i, ω.1.1 k i * ((x.1.1 i : ℤ) : ℝ)) +
-        Real.sqrt (s / (N + 1)) * ω.1.2 k * ((x.1.2 : ℤ) : ℝ) +
-        Real.sqrt ((1 - s) / (N + 1)) * x.2 k
-    let E := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
-      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) =>
-      ((x.1.2 : ℤ) : ℝ) * Real.sqrt (1 - s) * ω.2 + ∑ k, u (S s ω x k)
-    let E'_a := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
-      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) =>
-      ∑ k, deriv u (S s ω x k) * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
-        (ω.1.2 k * ((x.1.2 : ℤ) : ℝ) / Real.sqrt s))
-    let E'_ξ := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
-      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) =>
-      ∑ k, deriv u (S s ω x k) * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
-        (- x.2 k / Real.sqrt (1 - s)))
-    let E'_Y := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
-      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) =>
-      -((x.1.2 : ℤ) : ℝ) * ω.2 / (2 * Real.sqrt (1 - s))
-    let μ := (Measure.count : Measure ((Fin N → ℤˣ) × ℤˣ)).prod
-      (Measure.pi fun _ : Fin M => gaussianReal 0 1)
-    let J := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ) =>
-      ∫ σ : R → ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ), F σ ∂(Measure.pi fun _ : R => μ.tilted (E s ω))
-    let P := (Pold.prod (Measure.pi fun _ : Fin M => gaussianReal 0 1)).prod (gaussianReal 0 v)
-    let diff := fun (H : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ) → ℝ)
-        (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ) =>
-      (∑ i, ∫ σ : Option R → ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ),
-          F (fun j => σ (some j)) * H (σ (some i))
-          ∂(Measure.pi fun _ : Option R => μ.tilted (E t ω))) -
-        (Fintype.card R : ℝ) * ∫ σ : Option R → ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ),
-          F (fun j => σ (some j)) * H (σ none)
-          ∂(Measure.pi fun _ : Option R => μ.tilted (E t ω))
-    HasDerivAt (fun s => ∫ ω, J s ω ∂P)
-      (∫ ω, diff (E'_a t ω) ω + diff (E'_ξ t ω) ω + diff (E'_Y t ω) ω ∂P) t := by
-  intro S E E'_a E'_ξ E'_Y μ J P diff
-  have h := hasDerivAt_integral_integral_pi_perceptron_smart_path (Pold := Pold)
-    ht hu hB hD v F hF hFb
-  dsimp only [S, E, μ, P, diff] at h ⊢
-  refine h.congr_deriv ?_
-  refine integral_congr_ae (ae_of_all P fun ω => ?_)
-  have h3 := perceptron_smart_path_diff_eq_three_terms ht hu hB hD ω F hF hFb
-  dsimp only [diff] at h3 ⊢
-  exact h3
+    (F : (R → SmartPathState N M) → ℝ) (hF : Measurable F) {C : ℝ} (hFb : ∀ σ, |F σ| ≤ C) :
+    HasDerivAt (fun s => ∫ ω, ∫ σ, F σ
+        ∂(Measure.pi fun _ : R => (smartPathBase N M).tilted (smartPathEnergy u s ω))
+        ∂smartPathDisorder Pold v)
+      (∫ ω, replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t ω)) F
+            (smartPathEnergyDerivA u t ω) +
+          replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t ω)) F
+            (smartPathEnergyDerivXi u t ω) +
+          replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t ω)) F
+            (smartPathEnergyDerivY t ω) ∂smartPathDisorder Pold v) t := by
+  refine (hasDerivAt_integral_integral_pi_perceptron_smart_path ht hu hB hD v F hF hFb).congr_deriv
+    (integral_congr_ae (ae_of_all _ fun ω => ?_))
+  exact perceptron_smart_path_diff_eq_three_terms ht hu hB hD ω F hF hFb
 
 /-- A spin-only replica observable is automatically measurable on the configuration space. -/
 theorem measurable_spin_only {N M : ℕ} {R : Type*} [Finite R]
-    (f : (R → (Fin N → ℤˣ) × ℤˣ) → ℝ) :
-    Measurable (fun x : R → ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ) => f (fun r => (x r).1)) :=
+    (f : (R → PerceptronSpin N) → ℝ) :
+    Measurable (fun x : R → SmartPathState N M => f (fun r => (x r).1)) :=
   (measurable_of_finite f).comp (by fun_prop)
 
 /-- **Spin-only derivative of the quenched replica average.** A spin-only observable
@@ -351,31 +199,17 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path_spin_only {N M : �
     {u : ℝ → ℝ} (hu : Differentiable ℝ u) {B D : ℝ} (hB : ∀ z, |u z| ≤ B)
     (hD : ∀ z, |deriv u z| ≤ D) (v : NNReal)
     {Pold : Measure (Fin M → Fin N → ℝ)} [IsFiniteMeasure Pold]
-    (f : (R → (Fin N → ℤˣ) × ℤˣ) → ℝ) :
-    let S := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
-      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) (k : Fin M) =>
-      (Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i, ω.1.1 k i * ((x.1.1 i : ℤ) : ℝ)) +
-        Real.sqrt (s / (N + 1)) * ω.1.2 k * ((x.1.2 : ℤ) : ℝ) +
-        Real.sqrt ((1 - s) / (N + 1)) * x.2 k
-    let E := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
-      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) =>
-      ((x.1.2 : ℤ) : ℝ) * Real.sqrt (1 - s) * ω.2 + ∑ k, u (S s ω x k)
-    let E' := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
-      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) =>
-      -((x.1.2 : ℤ) : ℝ) * ω.2 / (2 * Real.sqrt (1 - s)) +
-      ∑ k, deriv u (S s ω x k) * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
-        (ω.1.2 k * ((x.1.2 : ℤ) : ℝ) / Real.sqrt s - x.2 k / Real.sqrt (1 - s)))
-    let μ := (Measure.count : Measure ((Fin N → ℤˣ) × ℤˣ)).prod
-      (Measure.pi fun _ : Fin M => gaussianReal 0 1)
-    let P := (Pold.prod (Measure.pi fun _ : Fin M => gaussianReal 0 1)).prod (gaussianReal 0 v)
-    HasDerivAt (fun s => ∫ ω, ∫ σ, f (fun r => (σ r).1)
-        ∂(Measure.pi fun _ : R => μ.tilted (E s ω)) ∂P)
-      (∫ ω, replicaDiff (μ.tilted (E t ω)) (fun σ => f (fun r => (σ r).1)) (E' t ω) ∂P) t := by
-  intro S E E' μ P
+    (f : (R → PerceptronSpin N) → ℝ) :
+    HasDerivAt (fun s => ∫ ω, ∫ σ : R → SmartPathState N M, f (fun r => (σ r).1)
+        ∂(Measure.pi fun _ : R => (smartPathBase N M).tilted (smartPathEnergy u s ω))
+        ∂smartPathDisorder Pold v)
+      (∫ ω, replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t ω))
+        (fun σ => f (fun r => (σ r).1))
+        (fun x => smartPathEnergyDerivA u t ω x + smartPathEnergyDerivXi u t ω x +
+          smartPathEnergyDerivY t ω x) ∂smartPathDisorder Pold v) t := by
   obtain ⟨C, hC⟩ := exists_abs_le_of_finite f
-  have hm := measurable_spin_only (N := N) (M := M) f
   exact hasDerivAt_integral_integral_pi_perceptron_smart_path ht hu hB hD v
-    (fun σ => f (fun r => (σ r).1)) hm fun x => hC _
+    (fun σ => f (fun r => (σ r).1)) (measurable_spin_only f) fun x => hC _
 
 /-- **Spin-only three-term expansion of the quenched replica derivative.** -/
 theorem hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms_spin_only {N M : ℕ}
@@ -383,43 +217,19 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms_spin_o
     {u : ℝ → ℝ} (hu : Differentiable ℝ u) {B D : ℝ} (hB : ∀ x, |u x| ≤ B)
     (hD : ∀ x, |deriv u x| ≤ D) (v : NNReal)
     {Pold : Measure (Fin M → Fin N → ℝ)} [IsFiniteMeasure Pold]
-    (f : (R → (Fin N → ℤˣ) × ℤˣ) → ℝ) :
-    let S := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
-      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) (k : Fin M) =>
-      (Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i, ω.1.1 k i * ((x.1.1 i : ℤ) : ℝ)) +
-        Real.sqrt (s / (N + 1)) * ω.1.2 k * ((x.1.2 : ℤ) : ℝ) +
-        Real.sqrt ((1 - s) / (N + 1)) * x.2 k
-    let E := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
-      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) =>
-      ((x.1.2 : ℤ) : ℝ) * Real.sqrt (1 - s) * ω.2 + ∑ k, u (S s ω x k)
-    let E'_a := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
-      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) =>
-      ∑ k, deriv u (S s ω x k) * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
-        (ω.1.2 k * ((x.1.2 : ℤ) : ℝ) / Real.sqrt s))
-    let E'_ξ := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
-      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) =>
-      ∑ k, deriv u (S s ω x k) * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
-        (- x.2 k / Real.sqrt (1 - s)))
-    let E'_Y := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ)
-      (x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ)) =>
-      -((x.1.2 : ℤ) : ℝ) * ω.2 / (2 * Real.sqrt (1 - s))
-    let μ := (Measure.count : Measure ((Fin N → ℤˣ) × ℤˣ)).prod
-      (Measure.pi fun _ : Fin M => gaussianReal 0 1)
-    let J := fun (s : ℝ) (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ) =>
-      ∫ σ : R → ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ), f (fun r => (σ r).1)
-        ∂(Measure.pi fun _ : R => μ.tilted (E s ω))
-    let P := (Pold.prod (Measure.pi fun _ : Fin M => gaussianReal 0 1)).prod (gaussianReal 0 v)
-    let diff := fun (H : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ) → ℝ)
-        (ω : ((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × ℝ) =>
-      replicaDiff (μ.tilted (E t ω)) (fun σ => f (fun r => (σ r).1)) H
-    HasDerivAt (fun s => ∫ ω, J s ω ∂P)
-      (∫ ω, diff (E'_a t ω) ω + diff (E'_ξ t ω) ω + diff (E'_Y t ω) ω ∂P) t := by
-  intro S E E'_a E'_ξ E'_Y μ J P diff
+    (f : (R → PerceptronSpin N) → ℝ) :
+    HasDerivAt (fun s => ∫ ω, ∫ σ : R → SmartPathState N M, f (fun r => (σ r).1)
+        ∂(Measure.pi fun _ : R => (smartPathBase N M).tilted (smartPathEnergy u s ω))
+        ∂smartPathDisorder Pold v)
+      (∫ ω, replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t ω))
+            (fun σ => f (fun r => (σ r).1)) (smartPathEnergyDerivA u t ω) +
+          replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t ω))
+            (fun σ => f (fun r => (σ r).1)) (smartPathEnergyDerivXi u t ω) +
+          replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t ω))
+            (fun σ => f (fun r => (σ r).1)) (smartPathEnergyDerivY t ω)
+            ∂smartPathDisorder Pold v) t := by
   obtain ⟨C, hC⟩ := exists_abs_le_of_finite f
-  have hm := measurable_spin_only (N := N) (M := M) f
-  have h := hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms
-    (Pold := Pold) ht hu hB hD v (fun σ => f (fun r => (σ r).1)) hm fun x => hC _
-  dsimp only [S, E, E'_a, E'_ξ, E'_Y, μ, J, P] at h ⊢
-  exact h
+  exact hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms ht hu hB hD v
+    (fun σ => f (fun r => (σ r).1)) (measurable_spin_only f) fun x => hC _
 
 end SpinGlasses

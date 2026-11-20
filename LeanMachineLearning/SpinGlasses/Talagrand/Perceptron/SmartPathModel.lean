@@ -162,13 +162,33 @@ theorem measurable_smartPathEnergyDeriv (u : ℝ → ℝ) (s : ℝ) :
   ((measurable_smartPathEnergyDerivA u s).add (measurable_smartPathEnergyDerivXi u s)).add
     (measurable_smartPathEnergyDerivY s)
 
+@[fun_prop]
+theorem measurable_smartPathEnergyDerivA_slice (u : ℝ → ℝ) (s : ℝ) (ω : SmartPathDisorder N M) :
+    Measurable (smartPathEnergyDerivA u s ω) := by
+  have hdu := measurable_deriv u
+  unfold smartPathEnergyDerivA smartPathField smartPathFieldNoAux
+  fun_prop
+
+@[fun_prop]
+theorem measurable_smartPathEnergyDerivXi_slice (u : ℝ → ℝ) (s : ℝ) (ω : SmartPathDisorder N M) :
+    Measurable (smartPathEnergyDerivXi u s ω) := by
+  have hdu := measurable_deriv u
+  unfold smartPathEnergyDerivXi smartPathField smartPathFieldNoAux
+  fun_prop
+
+@[fun_prop]
+theorem measurable_smartPathEnergyDerivY_slice (s : ℝ) (ω : SmartPathDisorder N M) :
+    Measurable (smartPathEnergyDerivY s ω) := by
+  unfold smartPathEnergyDerivY
+  fun_prop
+
 /-- The energy derivative for a fixed disorder is measurable in the configuration. -/
 theorem measurable_smartPathEnergyDeriv_slice (u : ℝ → ℝ) (s : ℝ) (ω : SmartPathDisorder N M) :
     Measurable fun x : SmartPathState N M => smartPathEnergyDerivA u s ω x +
-      smartPathEnergyDerivXi u s ω x + smartPathEnergyDerivY s ω x := by
-  have h := (measurable_smartPathEnergyDeriv (N := N) (M := M) u s).comp
-    ((measurable_const (a := ω)).prodMk measurable_id)
-  simpa only [Function.comp_def, id_eq] using h
+      smartPathEnergyDerivXi u s ω x + smartPathEnergyDerivY s ω x :=
+  ((measurable_smartPathEnergyDerivA_slice u s ω).add
+    (measurable_smartPathEnergyDerivXi_slice u s ω)).add
+    (measurable_smartPathEnergyDerivY_slice s ω)
 
 end Measurability
 
@@ -189,6 +209,10 @@ instance (N M : ℕ) : NeZero (smartPathBase N M) := by
 noncomputable def smartPathDisorder {N M : ℕ} (Pold : Measure (Fin M → Fin N → ℝ))
     (v : ℝ≥0) : Measure (SmartPathDisorder N M) :=
   (Pold.prod (Measure.pi fun _ : Fin M => gaussianReal 0 1)).prod (gaussianReal 0 v)
+
+instance {N M : ℕ} (Pold : Measure (Fin M → Fin N → ℝ)) [IsFiniteMeasure Pold] (v : ℝ≥0) :
+    IsFiniteMeasure (smartPathDisorder Pold v) := by
+  unfold smartPathDisorder; infer_instance
 
 /-! ### Potential hypotheses -/
 
