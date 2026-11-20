@@ -164,9 +164,7 @@ theorem integral_replicaDiff_smartPathEnergyDerivY {N M : ℕ}
     have := hν y
     exact abs_replicaDiff_le _ F hF hFb _ hεm fun x => (abs_units_cast_eq_one _).le
   obtain ⟨K₀, hK₀⟩ := exists_abs_replicaPairCombination_le (R := R)
-    (U := lastSpinKernel (N := N) (M := M)) ⟨1, fun a b => by
-      unfold lastSpinKernel
-      rw [abs_mul, abs_units_cast_eq_one, abs_units_cast_eq_one, mul_one]⟩
+    (U := lastSpinKernel (N := N) (M := M)) ⟨1, abs_lastSpinKernel_le⟩
   have hPAb : ∃ K, ∀ y, |2 * q * PA y| ≤ K := by
     refine ⟨2 * q * (C * K₀), fun y => ?_⟩
     have := hν y
@@ -231,9 +229,8 @@ theorem hasDerivAt_replicaDiff_update {N M : ℕ}
       (fun x => hu.toSmartPathPotential.le x) _ t
   have hε : Measurable fun x : SmartPathState N M => ((x.1.2 : ℤ) : ℝ) := by fun_prop
   have hfm (r : ℝ) : Measurable fun x : SmartPathState N M =>
-      smartPathField t (smartPathDisorderUpdate ω k r) x k := by
-    unfold smartPathField smartPathFieldNoAux
-    fun_prop
+      smartPathField t (smartPathDisorderUpdate ω k r) x k :=
+    measurable_smartPathField_slice t _ k
   have hXm (r : ℝ) : Measurable fun x : SmartPathState N M =>
       ((x.1.2 : ℤ) : ℝ) * deriv u (smartPathField t (smartPathDisorderUpdate ω k r) x k) :=
     hε.mul (hdu.comp (hfm r))
@@ -295,8 +292,7 @@ theorem hasDerivAt_replicaDiff_update {N M : ℕ}
       (((b.1.2 : ℤ) : ℝ) * deriv u (smartPathField t (smartPathDisorderUpdate ω k z) b k))) =
       smartPathPotentialKernel u t (smartPathDisorderUpdate ω k z) k := by
     funext a b
-    unfold smartPathPotentialKernel
-    ring
+    exact (smartPathPotentialKernel_eq_mul _ _ _ _ a b).symm
   rw [hsq, hker] at hbr
   refine hmov.congr_deriv ?_
   rw [hbr, replicaDiff_const_mul]
@@ -332,10 +328,7 @@ theorem abs_deriv₂_add_sq_le {N M : ℕ} {u : ℝ → ℝ} {B D D₂ : ℝ}
 theorem abs_smartPathPotentialKernel_le {N M : ℕ} {u : ℝ → ℝ} {B D : ℝ}
     (hu : SmartPathPotential u B D) (t : ℝ) (ω : SmartPathDisorder N M) (k : Fin M)
     (a b : SmartPathState N M) : |smartPathPotentialKernel u t ω k a b| ≤ D * D := by
-  unfold smartPathPotentialKernel
-  rw [show ((a.1.2 : ℤ) : ℝ) * ((b.1.2 : ℤ) : ℝ) * deriv u (smartPathField t ω a k) *
-      deriv u (smartPathField t ω b k) = (((a.1.2 : ℤ) : ℝ) * deriv u (smartPathField t ω a k)) *
-      (((b.1.2 : ℤ) : ℝ) * deriv u (smartPathField t ω b k)) by ring, abs_mul]
+  rw [smartPathPotentialKernel_eq_mul, abs_mul]
   have h (x : SmartPathState N M) :
       |((x.1.2 : ℤ) : ℝ) * deriv u (smartPathField t ω x k)| ≤ D := by
     rw [abs_mul, abs_units_cast_eq_one, one_mul]
@@ -375,9 +368,8 @@ theorem integral_mul_replicaDiff_update {N M : ℕ}
       (fun x => hu.toSmartPathPotential.le x) _ t
   have hε : Measurable fun x : SmartPathState N M => ((x.1.2 : ℤ) : ℝ) := by fun_prop
   have hfm (r : ℝ) : Measurable fun x : SmartPathState N M =>
-      smartPathField t (smartPathDisorderUpdate ω k r) x k := by
-    unfold smartPathField smartPathFieldNoAux
-    fun_prop
+      smartPathField t (smartPathDisorderUpdate ω k r) x k :=
+    measurable_smartPathField_slice t _ k
   have hXm (r : ℝ) : Measurable fun x : SmartPathState N M =>
       ((x.1.2 : ℤ) : ℝ) * deriv u (smartPathField t (smartPathDisorderUpdate ω k r) x k) :=
     hε.mul (hdu.comp (hfm r))
@@ -545,9 +537,8 @@ theorem integral_pi_xi_mul_deriv {N M : ℕ} {R : Type*} [Fintype R] {t : ℝ} {
   have hum : Measurable u := hu.toSmartPathPotential.measurable
   have hdu : Measurable (deriv u) := measurable_deriv u
   have hddu : Measurable (deriv (deriv u)) := measurable_deriv (deriv u)
-  have hfld : Measurable fun x : SmartPathState N M => smartPathField t ω x k := by
-    unfold smartPathField smartPathFieldNoAux
-    fun_prop
+  have hfld : Measurable fun x : SmartPathState N M => smartPathField t ω x k :=
+    measurable_smartPathField_slice t ω k
   have hfS : Measurable fun σ : Option R → SmartPathState N M =>
       f (fun r => (σ (some r)).1) :=
     hf.comp (measurable_pi_iff.2 fun r => measurable_fst.comp (measurable_pi_apply (some r)))
@@ -636,9 +627,8 @@ theorem replicaDiff_smartPathEnergyDerivXi {N M : ℕ} {R : Type*} [Fintype R] {
   have hFm : Measurable fun σ : R → SmartPathState N M => f (fun r => (σ r).1) :=
     hf.comp (measurable_pi_iff.2 fun r => measurable_fst.comp (measurable_pi_apply r))
   have hFb : ∀ σ : R → SmartPathState N M, |f (fun r => (σ r).1)| ≤ C := fun σ => hfb _
-  have hfld (k : Fin M) : Measurable fun x : SmartPathState N M => smartPathField t ω x k := by
-    unfold smartPathField smartPathFieldNoAux
-    fun_prop
+  have hfld (k : Fin M) : Measurable fun x : SmartPathState N M => smartPathField t ω x k :=
+    measurable_smartPathField_slice t ω k
   -- integrability of `ξ_k u'(S_k)` under the Gibbs measure
   have hint (k : Fin M) : Integrable (fun x : SmartPathState N M =>
       x.2 k * deriv u (smartPathField t ω x k))
@@ -655,12 +645,7 @@ theorem replicaDiff_smartPathEnergyDerivXi {N M : ℕ} {R : Type*} [Fintype R] {
     rw [abs_mul, mul_comm]
     exact mul_le_mul (by simpa [Real.norm_eq_abs] using hu.abs_deriv_le _ |>.trans le_rfl)
       le_rfl (abs_nonneg _) hu.toSmartPathPotential.D_nonneg
-  have hxi : smartPathEnergyDerivXi u t ω = fun x => ∑ k : Fin M,
-      ((1 / (2 * Real.sqrt (N + 1 : ℕ))) * (-(1 / Real.sqrt (1 - t)))) *
-        (x.2 k * deriv u (smartPathField t ω x k)) := by
-    funext x
-    unfold smartPathEnergyDerivXi
-    exact Finset.sum_congr rfl fun k _ => by ring
+  have hxi := smartPathEnergyDerivXi_eq_sum u t ω
   have hstep (k : Fin M) : replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t ω))
       (fun σ : R → SmartPathState N M => f (fun r => (σ r).1))
       (fun x => x.2 k * deriv u (smartPathField t ω x k)) =

@@ -64,7 +64,7 @@ theorem smartPathEnergy_swap (u : ℝ → ℝ) (t : ℝ) (i j : Fin M) (ω : Sma
     (x : SmartPathState N M) :
     smartPathEnergy u t (smartPathDisorderSwap i j ω) x =
       smartPathEnergy u t ω (smartPathStateSwap i j x) := by
-  unfold smartPathEnergy
+  simp only [smartPathEnergy_eq]
   have h := Equiv.sum_comp (Equiv.swap i j)
     (fun l => u (smartPathField t ω (smartPathStateSwap i j x) l))
   simp only [smartPathField_swap]
@@ -75,8 +75,7 @@ theorem smartPathPotentialKernel_swap (u : ℝ → ℝ) (t : ℝ) (i j : Fin M)
     smartPathPotentialKernel u t (smartPathDisorderSwap i j ω) k a b =
       smartPathPotentialKernel u t ω (Equiv.swap i j k) (smartPathStateSwap i j a)
         (smartPathStateSwap i j b) := by
-  unfold smartPathPotentialKernel
-  rw [smartPathField_swap, smartPathField_swap]
+  simp only [smartPathPotentialKernel_eq_mul, smartPathField_swap]
   rfl
 
 /-- The auxiliary-coordinate swap preserves the smart-path base law. -/

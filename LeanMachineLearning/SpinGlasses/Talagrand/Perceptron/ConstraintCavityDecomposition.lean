@@ -36,6 +36,12 @@ namespace SpinGlasses
 
 variable {N M : ℕ}
 
+/-- The field of the old system at constraint `k` is the field of the full system at `k.castSucc`. -/
+theorem smartPathField_init (t : ℝ) (ω : SmartPathDisorder N (M + 1))
+    (x : SmartPathState N (M + 1)) (k : Fin M) :
+    smartPathField t ((Fin.init ω.1.1, Fin.init ω.1.2), ω.2) (x.1, Fin.init x.2) k =
+      smartPathField t ω x k.castSucc := rfl
+
 /-- **The energy splits into the old energy and the last constraint** (2.30). The old energy
 is the smart-path energy with `M` constraints at the restricted disorder and restricted state. -/
 theorem smartPathEnergy_eq_init_add (u : ℝ → ℝ) (t : ℝ) (ω : SmartPathDisorder N (M + 1))
@@ -43,11 +49,8 @@ theorem smartPathEnergy_eq_init_add (u : ℝ → ℝ) (t : ℝ) (ω : SmartPathD
     smartPathEnergy u t ω x =
       smartPathEnergy u t ((Fin.init ω.1.1, Fin.init ω.1.2), ω.2) (x.1, Fin.init x.2) +
         u (smartPathField t ω x (Fin.last M)) := by
-  unfold smartPathEnergy
-  rw [Fin.sum_univ_castSucc]
-  have h (k : Fin M) : smartPathField t ((Fin.init ω.1.1, Fin.init ω.1.2), ω.2)
-      (x.1, Fin.init x.2) k = smartPathField t ω x k.castSucc := rfl
-  simp only [h]
+  rw [smartPathEnergy_eq, smartPathEnergy_eq, Fin.sum_univ_castSucc]
+  simp only [smartPathField_init]
   ring
 
 /-- The restriction of the state to the old coordinates is measurable. -/

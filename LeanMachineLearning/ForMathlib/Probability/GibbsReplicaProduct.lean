@@ -598,6 +598,13 @@ noncomputable def replicaPairCombination {R α : Type*} [Fintype R] [LinearOrder
     (Fintype.card R : ℝ) * (∑ r : R, U (τ (some (some r))) (τ (some none))) +
     (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) / 2 * U (τ (some none)) (τ none)
 
+theorem replicaPairCombination_eq {R α : Type*} [Fintype R] [LinearOrder R]
+    (U : α → α → ℝ) (τ : Option (Option R) → α) :
+    replicaPairCombination U τ =
+      (∑ p : R × R with p.1 < p.2, U (τ (some (some p.1))) (τ (some (some p.2)))) -
+        (Fintype.card R : ℝ) * (∑ r : R, U (τ (some (some r))) (τ (some none))) +
+        (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) / 2 * U (τ (some none)) (τ none) := rfl
+
 /-- For `R = Fin n` the two-replica combination is the explicit three-family sum of the cavity
 method: `∑_{r < r'} U - n ∑_r U(r, n+1) + n(n+1)/2 U(n+1, n+2)`. -/
 theorem replicaPairCombination_fin {α : Type*} (n : ℕ) (U : α → α → ℝ)
@@ -640,6 +647,12 @@ noncomputable def replicaPairAverage {R α : Type*} [MeasurableSpace α] [Fintyp
   ∫ τ : Option (Option R) → α, F (fun r => τ (some (some r))) * replicaPairCombination U τ
     ∂(Measure.pi fun _ => ν)
 
+theorem replicaPairAverage_eq {R α : Type*} [MeasurableSpace α] [Fintype R] [LinearOrder R]
+    (ν : Measure α) (F : (R → α) → ℝ) (U : α → α → ℝ) :
+    replicaPairAverage ν F U =
+      ∫ τ : Option (Option R) → α, F (fun r => τ (some (some r))) * replicaPairCombination U τ
+        ∂(Measure.pi fun _ => ν) := rfl
+
 /-- A bounded replica observable and a bounded one-spin observable have a bounded replica
 difference. -/
 theorem abs_replicaDiff_le {α R : Type*} [MeasurableSpace α] [Fintype R] (ν : Measure α)
@@ -663,7 +676,7 @@ theorem abs_replicaPairAverage_le {α R : Type*} [MeasurableSpace α] [Fintype R
     (hFb : ∀ σ, |F σ| ≤ C) {U : α → α → ℝ} {K : ℝ}
     (hK : ∀ τ : Option (Option R) → α, |replicaPairCombination U τ| ≤ K) :
     |replicaPairAverage ν F U| ≤ C * K := by
-  unfold replicaPairAverage
+  rw [replicaPairAverage_eq]
   refine abs_integral_le_of_forall_abs_le _ fun τ => ?_
   rw [abs_mul]
   exact mul_le_mul (hFb _) (hK τ) (abs_nonneg _)
@@ -744,7 +757,8 @@ theorem measurable_replicaPairAverage_tilted {R : Type*} [Fintype R] [LinearOrde
     {U : Ω → α → α → ℝ} (hU : Measurable fun p : Ω × (α × α) => U p.1 p.2.1 p.2.2)
     {F : (R → α) → ℝ} (hF : Measurable F) :
     Measurable fun ω => replicaPairAverage (μ.tilted (E ω)) F (U ω) := by
-  unfold replicaPairAverage replicaPairCombination
+  simp only [replicaPairAverage_eq]
+  simp only [replicaPairCombination_eq]
   refine measurable_integral_pi_tilted (ι := Option (Option R)) hE ?_
   have hF' : Measurable fun p : Ω × (Option (Option R) → α) =>
       F (fun r => p.2 (some (some r))) :=

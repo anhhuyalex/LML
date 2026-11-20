@@ -56,9 +56,8 @@ theorem measurable_potentialKernel_joint (t : ℝ) (k : Fin M) :
       (p.1, p.2.2))
   convert h1.mul h2 using 1
   funext p
-  unfold smartPathPotentialKernel
+  rw [smartPathPotentialKernel_eq_mul]
   simp only [Pi.mul_apply, Function.comp_apply]
-  ring
 
 end Joint
 
@@ -77,16 +76,10 @@ theorem replicaDiff_smartPathEnergyDerivA {N M : ℕ}
   have hdu : Measurable (deriv u) := measurable_deriv u
   have hν : IsProbabilityMeasure (μ.tilted (smartPathEnergy u t ω)) :=
     isProbabilityMeasure_tilted_perceptron_smart_path_energy hum (fun x => hu.le x) ω t
-  have hfld (k : Fin M) : Measurable fun x : SmartPathState N M => smartPathField t ω x k := by
-    unfold smartPathField smartPathFieldNoAux
-    fun_prop
+  have hfld (k : Fin M) : Measurable fun x : SmartPathState N M => smartPathField t ω x k :=
+    measurable_smartPathField_slice t ω k
   have hε : Measurable fun x : SmartPathState N M => ((x.1.2 : ℤ) : ℝ) := by fun_prop
-  have hfun : smartPathEnergyDerivA u t ω = fun x => ∑ k : Fin M,
-      ((1 / (2 * Real.sqrt (N + 1 : ℕ))) * (ω.1.2 k / Real.sqrt t)) *
-        (((x.1.2 : ℤ) : ℝ) * deriv u (smartPathField t ω x k)) := by
-    funext x
-    unfold smartPathEnergyDerivA
-    exact Finset.sum_congr rfl fun k _ => by ring
+  have hfun := smartPathEnergyDerivA_eq_sum u t ω
   have hint (k : Fin M) : Integrable (fun x : SmartPathState N M =>
       ((1 / (2 * Real.sqrt (N + 1 : ℕ))) * (ω.1.2 k / Real.sqrt t)) *
         (((x.1.2 : ℤ) : ℝ) * deriv u (smartPathField t ω x k)))
@@ -106,7 +99,7 @@ theorem replicaDiff_smartPathEnergyDerivA {N M : ℕ}
 theorem integrable_coupling_smartPathDisorder {N M : ℕ} {Pold : Measure (Fin M → Fin N → ℝ)}
     [IsFiniteMeasure Pold] (v : ℝ≥0) (k : Fin M) :
     Integrable (fun ω : SmartPathDisorder N M => ω.1.2 k) (smartPathDisorder Pold v) := by
-  unfold smartPathDisorder
+  rw [smartPathDisorder_eq]
   have hak : Integrable (fun a : Fin M → ℝ => a k) (Measure.pi fun _ : Fin M => gaussianReal 0 1) :=
     integrable_comp_eval (μ := fun _ : Fin M => gaussianReal 0 1) (i := k) (f := fun x : ℝ => x)
       IsGaussian.integrable_id
@@ -125,7 +118,7 @@ theorem integral_coupling_mul_smartPathDisorder {N M : ℕ} {Pold : Measure (Fin
       HasDerivAt (fun τ => Φ ((g, update a k τ), y)) (Φ' ((g, a), y)) (a k)) :
     ∫ ω, ω.1.2 k * Φ ω ∂(smartPathDisorder Pold v) = ∫ ω, Φ' ω ∂(smartPathDisorder Pold v) := by
   classical
-  unfold smartPathDisorder at hI1 hI2 ⊢
+  rw [smartPathDisorder_eq] at hI1 hI2 ⊢
   rw [integral_prod_symm _ hI1, integral_prod_symm _ hI2]
   refine integral_congr_ae ?_
   filter_upwards [hI1.prod_left_ae, hI2.prod_left_ae] with y hq1 hq2
@@ -255,6 +248,16 @@ theorem integrable_replicaPairAverage_kernel {N M : ℕ}
     (measurable_potentialKernel_joint t k)
     (fun ω a b => abs_smartPathPotentialKernel_le hu t ω k a b) hF hFb
 
+theorem smartPathConstraintTerm_eq {N M : ℕ} {R : Type*} [Fintype R] [LinearOrder R]
+    (μ : Measure (SmartPathState N M)) (u : ℝ → ℝ) (t : ℝ) (k : Fin M)
+    (F : (R → SmartPathState N M) → ℝ) (ω : SmartPathDisorder N M) :
+    smartPathConstraintTerm μ u t k F ω =
+      replicaDiff (μ.tilted (smartPathEnergy u t ω)) F
+        (fun x => deriv (deriv u) (smartPathField t ω x k) +
+          deriv u (smartPathField t ω x k) ^ 2) +
+      2 * replicaPairAverage (μ.tilted (smartPathEnergy u t ω)) F
+        (smartPathPotentialKernel u t ω k) := rfl
+
 /-- **Stein in `a_k`, averaged over the disorder.** -/
 theorem integral_coupling_mul_replicaDiff {N M : ℕ}
     {μ : Measure (SmartPathState N M)} [IsFiniteMeasure μ] [NeZero μ]
@@ -276,7 +279,7 @@ theorem integral_coupling_mul_replicaDiff {N M : ℕ}
     fun g a y => ?_
   have h := hasDerivAt_replicaDiff_update (μ := μ) (t := t) hu ((g, a), y) k F hF hFb (a k)
   rw [smartPathDisorderUpdate_self] at h
-  exact h.congr_deriv (by simp only [smartPathConstraintTerm]; ring)
+  exact h.congr_deriv (by simp only [smartPathConstraintTerm_eq]; ring)
 
 /-- The last-field term is `-y / (2 √(1 - t))` times the replica difference of the last spin. -/
 theorem replicaDiff_smartPathEnergyDerivY_eq {N M : ℕ}
@@ -288,18 +291,14 @@ theorem replicaDiff_smartPathEnergyDerivY_eq {N M : ℕ}
       (-(1 / (2 * Real.sqrt (1 - t))) * ω.2) * replicaDiff
         (μ.tilted (smartPathEnergy u t ω)) F
         (fun x => ((x.1.2 : ℤ) : ℝ)) := by
-  have hfun : smartPathEnergyDerivY t ω =
-      fun x => (-(1 / (2 * Real.sqrt (1 - t))) * ω.2) * ((x.1.2 : ℤ) : ℝ) := by
-    funext x
-    unfold smartPathEnergyDerivY
-    ring
+  have hfun := smartPathEnergyDerivY_eq_mul (N := N) (M := M) t ω
   rw [hfun]
   exact replicaDiff_const_mul _ F _ _
 
 theorem integrable_lastField_smartPathDisorder {N M : ℕ} {Pold : Measure (Fin M → Fin N → ℝ)}
     [IsFiniteMeasure Pold] (v : ℝ≥0) :
     Integrable (fun ω : SmartPathDisorder N M => ω.2) (smartPathDisorder Pold v) := by
-  unfold smartPathDisorder
+  rw [smartPathDisorder_eq]
   exact IsGaussian.integrable_id.comp_snd _
 
 /-- The last-field term is integrable under the disorder law. -/
@@ -388,18 +387,16 @@ theorem integral_replicaDiff_smartPathEnergyDerivY_disorder {N M : ℕ}
     isProbabilityMeasure_tilted_perceptron_smart_path_energy hum (fun x => hu.le x) ω t
   have hE : Measurable fun p : SmartPathDisorder N M × SmartPathState N M =>
       smartPathEnergy u t p.1 p.2 := measurable_smartPathEnergy hum t
-  have hKb : ∀ a b : SmartPathState N M, |lastSpinKernel a b| ≤ 1 := fun a b => by
-    unfold lastSpinKernel
-    rw [abs_mul, abs_units_cast_eq_one, abs_units_cast_eq_one, mul_one]
+  have hKb : ∀ a b : SmartPathState N M, |lastSpinKernel a b| ≤ 1 := abs_lastSpinKernel_le
   have hLi := integrable_replicaDiff_smartPathEnergyDerivY (μ := μ) (t := t) hu v (Pold := Pold)
     F hF hFb
   have hRi : Integrable (fun ω => replicaPairAverage
       (μ.tilted (smartPathEnergy u t ω)) F lastSpinKernel)
       (smartPathDisorder Pold v) :=
     integrable_replicaPairAverage_tilted_of_bound (E := fun ω x => smartPathEnergy u t ω x)
-      hE hprob (U := fun _ a b => lastSpinKernel a b) (by unfold lastSpinKernel; fun_prop)
-      (fun _ a b => hKb a b) hF hFb
-  unfold smartPathDisorder at hLi hRi ⊢
+      hE hprob (U := fun _ a b => lastSpinKernel a b)
+      (measurable_lastSpinKernel.comp measurable_snd) (fun _ a b => hKb a b) hF hFb
+  rw [smartPathDisorder_eq] at hLi hRi ⊢
   rw [integral_prod _ hLi, integral_prod _ hRi, ← integral_const_mul]
   exact integral_congr_ae (ae_of_all _ fun q =>
     integral_replicaDiff_smartPathEnergyDerivY ht hum (fun x => hu.le x) v q F hF hFb)
@@ -460,7 +457,7 @@ theorem integral_smartPathConstraintTerm {N M : ℕ}
           deriv u (smartPathField t ω x k) ^ 2) ∂P) +
       2 * ∫ ω, replicaPairAverage (μ.tilted (smartPathEnergy u t ω)) F
         (smartPathPotentialKernel u t ω k) ∂P := by
-  unfold smartPathConstraintTerm
+  simp only [smartPathConstraintTerm_eq]
   rw [integral_add (integrable_replicaDiff_diag hu F hF hFb k P)
     ((integrable_replicaPairAverage_kernel hu.toSmartPathPotential F hF hFb k P).const_mul 2),
     integral_const_mul]

@@ -309,4 +309,95 @@ theorem lastSpinKernel_comm {N M : ℕ} (x y : SmartPathState N M) :
   unfold lastSpinKernel
   ring
 
+/-! ### Equation lemmas and basic API
+
+These state the defining formulas once, so that later proofs rewrite with a named lemma
+instead of unfolding the definitions. -/
+
+section API
+
+variable {N M : ℕ}
+
+theorem smartPathField_eq (s : ℝ) (ω : SmartPathDisorder N M) (x : SmartPathState N M)
+    (k : Fin M) : smartPathField s ω x k =
+      smartPathFieldNoAux s ω x k + Real.sqrt ((1 - s) / (N + 1)) * x.2 k := rfl
+
+theorem smartPathEnergy_eq (u : ℝ → ℝ) (s : ℝ) (ω : SmartPathDisorder N M)
+    (x : SmartPathState N M) : smartPathEnergy u s ω x =
+      ((x.1.2 : ℤ) : ℝ) * Real.sqrt (1 - s) * ω.2 + ∑ k, u (smartPathField s ω x k) := rfl
+
+theorem smartPathEnergyNoAux_eq (u : ℝ → ℝ) (s : ℝ) (ω : SmartPathDisorder N M)
+    (x : SmartPathState N M) : smartPathEnergyNoAux u s ω x =
+      ((x.1.2 : ℤ) : ℝ) * Real.sqrt (1 - s) * ω.2 + ∑ k, u (smartPathFieldNoAux s ω x k) := rfl
+
+theorem smartPathEnergyDerivA_def (u : ℝ → ℝ) (s : ℝ) (ω : SmartPathDisorder N M)
+    (x : SmartPathState N M) : smartPathEnergyDerivA u s ω x =
+      ∑ k, deriv u (smartPathField s ω x k) * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
+        (ω.1.2 k * ((x.1.2 : ℤ) : ℝ) / Real.sqrt s)) := rfl
+
+theorem smartPathEnergyDerivXi_def (u : ℝ → ℝ) (s : ℝ) (ω : SmartPathDisorder N M)
+    (x : SmartPathState N M) : smartPathEnergyDerivXi u s ω x =
+      ∑ k, deriv u (smartPathField s ω x k) * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
+        (- x.2 k / Real.sqrt (1 - s))) := rfl
+
+theorem smartPathEnergyDerivY_def (s : ℝ) (ω : SmartPathDisorder N M) (x : SmartPathState N M) :
+    smartPathEnergyDerivY s ω x = -((x.1.2 : ℤ) : ℝ) * ω.2 / (2 * Real.sqrt (1 - s)) := rfl
+
+/-- The `a`-part of the energy derivative as a sum over constraints of `ε u'(S_k)`. -/
+theorem smartPathEnergyDerivA_eq_sum (u : ℝ → ℝ) (s : ℝ) (ω : SmartPathDisorder N M) :
+    smartPathEnergyDerivA u s ω = fun x => ∑ k : Fin M,
+      ((1 / (2 * Real.sqrt (N + 1 : ℕ))) * (ω.1.2 k / Real.sqrt s)) *
+        (((x.1.2 : ℤ) : ℝ) * deriv u (smartPathField s ω x k)) := by
+  funext x
+  exact Finset.sum_congr rfl fun k _ => by ring
+
+/-- The `ξ`-part of the energy derivative as a sum over constraints of `ξ_k u'(S_k)`. -/
+theorem smartPathEnergyDerivXi_eq_sum (u : ℝ → ℝ) (s : ℝ) (ω : SmartPathDisorder N M) :
+    smartPathEnergyDerivXi u s ω = fun x => ∑ k : Fin M,
+      ((1 / (2 * Real.sqrt (N + 1 : ℕ))) * (-(1 / Real.sqrt (1 - s)))) *
+        (x.2 k * deriv u (smartPathField s ω x k)) := by
+  funext x
+  exact Finset.sum_congr rfl fun k _ => by ring
+
+/-- The `y`-part of the energy derivative is a multiple of the last spin. -/
+theorem smartPathEnergyDerivY_eq_mul (s : ℝ) (ω : SmartPathDisorder N M) :
+    smartPathEnergyDerivY s ω =
+      fun x => (-(1 / (2 * Real.sqrt (1 - s))) * ω.2) * ((x.1.2 : ℤ) : ℝ) := by
+  funext x
+  unfold smartPathEnergyDerivY
+  ring
+
+/-- The field at a fixed disorder is measurable in the configuration. -/
+@[fun_prop]
+theorem measurable_smartPathField_slice (s : ℝ) (ω : SmartPathDisorder N M) (k : Fin M) :
+    Measurable fun x : SmartPathState N M => smartPathField s ω x k :=
+  Measurable.of_uncurry_left (f := fun ω x => smartPathField s ω x k)
+    (measurable_smartPathField s k)
+
+theorem smartPathDisorder_eq {N M : ℕ} (Pold : Measure (Fin M → Fin N → ℝ)) (v : ℝ≥0) :
+    smartPathDisorder Pold v =
+      (Pold.prod (Measure.pi fun _ : Fin M => gaussianReal 0 1)).prod (gaussianReal 0 v) := rfl
+
+theorem smartPathPotentialKernel_eq_mul (u : ℝ → ℝ) (t : ℝ) (ω : SmartPathDisorder N M)
+    (k : Fin M) (x y : SmartPathState N M) :
+    smartPathPotentialKernel u t ω k x y =
+      (((x.1.2 : ℤ) : ℝ) * deriv u (smartPathField t ω x k)) *
+        (((y.1.2 : ℤ) : ℝ) * deriv u (smartPathField t ω y k)) := by
+  unfold smartPathPotentialKernel
+  ring
+
+theorem lastSpinKernel_eq (x y : SmartPathState N M) :
+    lastSpinKernel x y = ((x.1.2 : ℤ) : ℝ) * ((y.1.2 : ℤ) : ℝ) := rfl
+
+@[fun_prop]
+theorem measurable_lastSpinKernel :
+    Measurable fun p : SmartPathState N M × SmartPathState N M => lastSpinKernel p.1 p.2 := by
+  simp only [lastSpinKernel_eq]
+  fun_prop
+
+theorem abs_lastSpinKernel_le (x y : SmartPathState N M) : |lastSpinKernel x y| ≤ 1 := by
+  rw [lastSpinKernel_eq, abs_mul, abs_units_cast_eq_one, abs_units_cast_eq_one, mul_one]
+
+end API
+
 end SpinGlasses

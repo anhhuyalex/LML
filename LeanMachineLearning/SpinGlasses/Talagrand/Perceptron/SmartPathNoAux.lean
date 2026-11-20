@@ -38,16 +38,20 @@ the field `S⁰` of Talagrand (2.14), with a vanishing auxiliary part. -/
 noncomputable def smartPathBaseNoAux (N M : ℕ) : Measure (SmartPathState N M) :=
   (Measure.count : Measure (PerceptronSpin N)).prod (Measure.dirac (0 : Fin M → ℝ))
 
+theorem smartPathBaseNoAux_eq (N M : ℕ) :
+    smartPathBaseNoAux N M =
+      (Measure.count : Measure (PerceptronSpin N)).prod (Measure.dirac (0 : Fin M → ℝ)) := rfl
+
 instance : IsFiniteMeasure (smartPathBaseNoAux N M) := by
-  unfold smartPathBaseNoAux; infer_instance
+  rw [smartPathBaseNoAux_eq]; infer_instance
 
 instance : NeZero (smartPathBaseNoAux N M) := by
-  unfold smartPathBaseNoAux; infer_instance
+  rw [smartPathBaseNoAux_eq]; infer_instance
 
 /-- The auxiliary coordinates vanish almost surely for the auxiliary-free base law. -/
 theorem ae_snd_eq_zero_smartPathBaseNoAux :
     ∀ᵐ x ∂(smartPathBaseNoAux N M), x.2 = (0 : Fin M → ℝ) := by
-  unfold smartPathBaseNoAux
+  rw [smartPathBaseNoAux_eq]
   have h : ∀ᵐ ξ ∂(Measure.dirac (0 : Fin M → ℝ)), ξ = 0 := by simp
   exact Measure.quasiMeasurePreserving_snd.ae h
 
@@ -129,12 +133,12 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path_noAux_base {R : Ty
 /-- At `ξ = 0` the smart-path field is the field `S⁰` of the path without auxiliary spins. -/
 theorem smartPathField_zero_aux (t : ℝ) (ω : SmartPathDisorder N M) (a : PerceptronSpin N)
     (k : Fin M) : smartPathField t ω (a, 0) k = smartPathFieldNoAux t ω (a, 0) k := by
-  simp [smartPathField]
+  simp [smartPathField_eq]
 
 /-- At `ξ = 0` the smart-path energy is the energy of the path without auxiliary spins. -/
 theorem smartPathEnergy_zero_aux (u : ℝ → ℝ) (t : ℝ) (ω : SmartPathDisorder N M)
     (a : PerceptronSpin N) : smartPathEnergy u t ω (a, 0) = smartPathEnergyNoAux u t ω (a, 0) := by
-  simp [smartPathEnergy, smartPathEnergyNoAux, smartPathField_zero_aux]
+  simp [smartPathEnergy_eq, smartPathEnergyNoAux_eq, smartPathField_zero_aux]
 
 /-- The potential kernel (2.24) of the path without auxiliary spins, on the spin space. -/
 noncomputable def smartPathPotentialKernelNoAux (u : ℝ → ℝ) (t : ℝ) (ω : SmartPathDisorder N M)

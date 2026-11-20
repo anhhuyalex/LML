@@ -283,8 +283,7 @@ theorem replicaDiffWith_replicaDiff_eq
     integral_sub (h1.const_mul _) (h2.const_mul _),
     integral_const_mul, integral_const_mul, integral_const_mul, integral_const_mul, hswap]
   have hpair : replicaPairAverage ν F (fun a b => X a * X b) = (∫ σ, A σ ∂P2) / 2 := by
-    unfold replicaPairAverage
-    rw [← integral_div]
+    rw [replicaPairAverage_eq, ← integral_div]
     exact integral_congr_ae (ae_of_all _ hcombpt)
   have hdiag : replicaDiff ν F (fun a => X a * X a) = ∫ σ, D σ ∂P2 := by
     have hG : Measurable fun τ : Option R → α => F (fun j => τ (some j)) *

@@ -91,7 +91,7 @@ theorem replicaPairAverage_tilted_prod_dirac (b₀ : B) {E : A × B → ℝ}
       replicaPairAverage (μ.tilted fun a => E (a, b₀)) f (fun a b => U (a, b₀) (b, b₀)) := by
   have hprob : IsProbabilityMeasure ((μ.prod (Measure.dirac b₀)).tilted E) :=
     isProbabilityMeasure_tilted hi
-  unfold replicaPairAverage
+  rw [replicaPairAverage_eq, replicaPairAverage_eq]
   refine integral_pi_tilted_prod_dirac b₀ hi (measurable_of_finite _) (fun τ hτ => ?_)
   have hτ' : τ = (fun a => (a, b₀)) ∘ (fun i => (τ i).1) :=
     funext fun i => Prod.ext rfl (hτ i)

@@ -81,7 +81,7 @@ theorem hasDerivAt_smartPathEnergy {N M : ℕ} {t : ℝ} (ht : t ∈ Set.Ioo (0 
 theorem abs_smartPathEnergyDerivY_le {N M : ℕ} {t δ : ℝ} (hδ : 0 < δ) (hδt : δ ≤ 1 - t)
     (ω : SmartPathDisorder N M) (x : SmartPathState N M) :
     |smartPathEnergyDerivY t ω x| ≤ |ω.2| / (2 * Real.sqrt δ) := by
-  unfold smartPathEnergyDerivY
+  rw [smartPathEnergyDerivY_def]
   have hx : |-((x.1.2 : ℤ) : ℝ) * ω.2| = |ω.2| := by
     rw [abs_mul, abs_neg, abs_units_cast_eq_one, one_mul]
   have h2 : 0 < 2 * Real.sqrt δ := by have := Real.sqrt_pos.2 hδ; positivity
@@ -96,7 +96,7 @@ theorem abs_smartPathEnergyDerivA_le {N M : ℕ} {u : ℝ → ℝ} {D : ℝ}
     (ω : SmartPathDisorder N M) (x : SmartPathState N M) :
     |smartPathEnergyDerivA u t ω x| ≤
       ∑ k, D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) * (|ω.1.2 k| / Real.sqrt δ) := by
-  unfold smartPathEnergyDerivA
+  rw [smartPathEnergyDerivA_def]
   have hD0 : 0 ≤ D := (abs_nonneg _).trans (hD 0)
   refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun k _ => ?_)
   have hterm : |ω.1.2 k * ((x.1.2 : ℤ) : ℝ) / Real.sqrt t| ≤ |ω.1.2 k| / Real.sqrt δ := by
@@ -113,7 +113,7 @@ theorem abs_smartPathEnergyDerivXi_le {N M : ℕ} {u : ℝ → ℝ} {D : ℝ}
     (ω : SmartPathDisorder N M) (x : SmartPathState N M) :
     |smartPathEnergyDerivXi u t ω x| ≤
       ∑ k, D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) * (|x.2 k| / Real.sqrt δ) := by
-  unfold smartPathEnergyDerivXi
+  rw [smartPathEnergyDerivXi_def]
   have hD0 : 0 ≤ D := (abs_nonneg _).trans (hD 0)
   refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun k _ => ?_)
   have hterm : |- x.2 k / Real.sqrt (1 - t)| ≤ |x.2 k| / Real.sqrt δ := by
@@ -303,7 +303,7 @@ theorem smartPathEnergy_xi {N M : ℕ} (u : ℝ → ℝ) (t : ℝ) (ω : SmartPa
         ∑ k' ∈ Finset.univ.erase k, u (smartPathField t ω (s, ξ) k')) +
       u (smartPathField t ω (s, Function.update ξ k 0) k +
         Real.sqrt ((1 - t) / (N + 1)) * τ) := by
-  unfold smartPathEnergy
+  simp only [smartPathEnergy_eq]
   rw [← Finset.add_sum_erase _ _ (Finset.mem_univ k), smartPathField_xi_self]
   have : ∑ k' ∈ Finset.univ.erase k, u (smartPathField t ω (s, Function.update ξ k τ) k') =
       ∑ k' ∈ Finset.univ.erase k, u (smartPathField t ω (s, ξ) k') :=

@@ -38,7 +38,7 @@ theorem perceptron_smart_path_energy_le {u : ℝ → ℝ} {D : ℝ} (hD : ∀ x,
   have hb : |((x.1.2 : ℤ) : ℝ) * Real.sqrt (1 - t) * ω.2| =
       Real.sqrt (1 - t) * |ω.2| := by
     simp only [abs_mul, abs_units_cast_eq_one, abs_of_nonneg (Real.sqrt_nonneg _), one_mul]
-  unfold smartPathEnergy
+  rw [smartPathEnergy_eq]
   calc
     _ ≤ Real.sqrt (1 - t) * |ω.2| + ∑ _k : Fin M, D :=
       add_le_add ((le_abs_self _).trans hb.le) (Finset.sum_le_sum fun k _ => hD _)
