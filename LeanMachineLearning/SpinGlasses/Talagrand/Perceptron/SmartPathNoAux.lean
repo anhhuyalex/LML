@@ -55,11 +55,11 @@ theorem ae_snd_eq_zero_smartPathBaseNoAux :
   have h : ∀ᵐ ξ ∂(Measure.dirac (0 : Fin M → ℝ)), ξ = 0 := by simp
   exact Measure.quasiMeasurePreserving_snd.ae h
 
-/-- `exp (∑ |ξ_k|)` is integrable for the auxiliary-free base law (it equals `1` almost surely). -/
-theorem integrable_exp_sum_abs_smartPathBaseNoAux :
-    Integrable (fun x : SmartPathState N M => Real.exp (∑ k, |x.2 k|))
-      (smartPathBaseNoAux N M) := by
-  refine (integrable_const (1 : ℝ)).congr ?_
+/-- Each auxiliary coordinate is integrable for the auxiliary-free base law (it vanishes almost
+surely). -/
+theorem integrable_abs_snd_smartPathBaseNoAux (k : Fin M) :
+    Integrable (fun x : SmartPathState N M => |x.2 k|) (smartPathBaseNoAux N M) := by
+  refine (integrable_zero _ _ _).congr ?_
   filter_upwards [ae_snd_eq_zero_smartPathBaseNoAux (N := N) (M := M)] with x hx
   simp [hx]
 
@@ -97,7 +97,7 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path_noAux_base {R : Ty
   have hFm := measurable_spin_only (N := N) (M := M) f
   have hFb : ∀ σ : R → SmartPathState N M, |f (fun r => (σ r).1)| ≤ C := fun σ => hC _
   refine (hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms
-    (integrable_exp_sum_abs_smartPathBaseNoAux (N := N) (M := M)) ht hu.differentiable
+    (integrable_abs_snd_smartPathBaseNoAux (N := N) (M := M)) ht hu.differentiable
     hu.abs_le hu.abs_deriv_le v (Pold := Pold)
     (fun σ => f (fun r => (σ r).1)) hFm hFb).congr_deriv ?_
   have hprob (ω : SmartPathDisorder N M) : IsProbabilityMeasure

@@ -170,6 +170,7 @@ public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaPairBridge
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaPointMass
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaProdFactorization
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaProduct
+public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaRotation
 public import LeanMachineLearning.ForMathlib.Probability.GibbsSiteSymmetry
 public import LeanMachineLearning.ForMathlib.Probability.GibbsTemperatureDerivative
 public import LeanMachineLearning.ForMathlib.Probability.HasCondDistrib
@@ -216,7 +217,9 @@ public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiExp
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiLinearForm
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianSeries
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianSeriesLaw
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianSmoothingPath
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianSteinRatio
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianVector
 public import LeanMachineLearning.ForMathlib.Probability.Moments.IidSumExpansion
 public import LeanMachineLearning.ForMathlib.Probability.Moments.IidSumMoments
@@ -452,6 +455,7 @@ public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianIBP
 public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianIBPCountable
 public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianInterpolationConditional
 public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianInterpolationNonlinear
+public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianInterpolationParam
 public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianInterpolationReplica
 public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsMeasure
 public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsMeasureNested
@@ -698,7 +702,9 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKT
 public import LeanMachineLearning.SpinGlasses.Talagrand.OverlapSecondMoments.SKTBasisSecondMoment
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.AuxiliaryMarginal
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.BoundedPotential
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavityCovariance
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavityDecomposition
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavityDerivative
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavityEndpoint
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavityPath
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ExponentialPenalty

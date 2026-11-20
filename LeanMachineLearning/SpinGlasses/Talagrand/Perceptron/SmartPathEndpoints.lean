@@ -16,7 +16,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.MeasurableSpace.Embed
 
 At `t = 1` the auxiliary Gaussian spins and last field drop out. The energy no longer depends on
 the auxiliary coordinates, so they are integrated out with
-`integral_pi_tilted_prod_fst_of_forall`; the old and last spin are then concatenated with the
+`integral_pi_tilted_prod_comp_fst`; the old and last spin are then concatenated with the
 shared measurable equivalence. This recovers the Section 2.1 Gibbs law with full normalization.
 The argument needs no hypothesis on the potential: the energy no longer depends on the auxiliary
 coordinates and the spin space is finite.
@@ -66,7 +66,7 @@ theorem integral_pi_perceptron_smart_path_one {N M : ℕ} {R : Type*} [Fintype R
     funext x
     simp [smartPathEnergy_eq, smartPathField_eq, smartPathFieldNoAux_eq]
   rw [hH, hEn, smartPathBase_eq]
-  have := integral_pi_tilted_prod_fst_of_forall (μ := (Measure.count : Measure (PerceptronSpin N)))
+  have := integral_pi_tilted_prod_comp_fst (μ := (Measure.count : Measure (PerceptronSpin N)))
     (ν := Measure.pi fun _ : Fin M => gaussianReal 0 1) (R := R)
     (E₁ := fun σ : PerceptronSpin N => ∑ k, u (smartPathFieldNoAux 1 ω (σ, 0) k))
     Integrable.of_finite (f := fun σ : R → PerceptronSpin N => F (fun r => e (σ r)))

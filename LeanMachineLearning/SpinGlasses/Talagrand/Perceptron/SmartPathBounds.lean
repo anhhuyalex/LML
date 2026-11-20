@@ -84,13 +84,6 @@ theorem abs_apply_le_exp_sum_abs {ι : Type*} [Fintype ι] (x : ι → ℝ) (k :
   (Finset.single_le_sum (fun i _ => abs_nonneg (x i)) (Finset.mem_univ k)).trans
     ((le_add_of_nonneg_right zero_le_one).trans (Real.add_one_le_exp _))
 
-/-- Integrability of `exp (∑ |ξ_k|)` gives integrability of each auxiliary coordinate. -/
-theorem integrable_abs_snd_of_exp_sum {N M : ℕ} {μ : Measure (SmartPathState N M)}
-    (hb : Integrable (fun x : SmartPathState N M => Real.exp (∑ k, |x.2 k|)) μ) (k : Fin M) :
-    Integrable (fun x : SmartPathState N M => |x.2 k|) μ :=
-  hb.mono' (by fun_prop) (ae_of_all _ fun x => by
-    rw [Real.norm_eq_abs, abs_abs]; exact abs_apply_le_exp_sum_abs x.2 k)
-
 section BaseMeasure
 
 variable {μ : Measure (SmartPathState N M)} [IsFiniteMeasure μ] [NeZero μ]

@@ -92,18 +92,14 @@ include hu hD in
 theorem integral_exp_smartPathEnergy_init_pos [NeZero μ] :
     0 < ∫ x, Real.exp
       (smartPathEnergy u t ((Fin.init ω.1.1, Fin.init ω.1.2), ω.2) (x.1, Fin.init x.2)) ∂μ :=
-  integral_exp_pos_of_ae_le (C := M * D + Real.sqrt (1 - t) * |ω.2|)
-    (measurable_smartPathEnergy_init hu t ω).aemeasurable
-    (Filter.Eventually.of_forall (smartPathEnergy_init_le hD t ω))
+  integral_exp_pos (integrable_exp_smartPathEnergy_init (μ := μ) hu hD t ω)
 
 include hu hD in
 /-- The Gibbs law of the old system is a probability measure. -/
 theorem isProbabilityMeasure_tilted_smartPathEnergy_init [NeZero μ] :
     IsProbabilityMeasure (μ.tilted fun x : SmartPathState N (M + 1) =>
       smartPathEnergy u t ((Fin.init ω.1.1, Fin.init ω.1.2), ω.2) (x.1, Fin.init x.2)) :=
-  isProbabilityMeasure_tilted_of_ae_le (C := M * D + Real.sqrt (1 - t) * |ω.2|)
-    (measurable_smartPathEnergy_init hu t ω).aemeasurable
-    (Filter.Eventually.of_forall (smartPathEnergy_init_le hD t ω))
+  isProbabilityMeasure_tilted (integrable_exp_smartPathEnergy_init (μ := μ) hu hD t ω)
 
 include hu hD in
 /-- **`⟨exp u(S_{M,t})⟩_{t,∼}` is positive.** -/
@@ -113,8 +109,7 @@ theorem integral_exp_lastField_tilted_pos [NeZero μ] :
         smartPathEnergy u t ((Fin.init ω.1.1, Fin.init ω.1.2), ω.2) (x.1, Fin.init x.2)) := by
   have := isProbabilityMeasure_tilted_smartPathEnergy_init (μ := μ) hu hD t ω
   refine integral_exp_pos_of_ae_le (C := D) ?_ (Filter.Eventually.of_forall fun x => hD _)
-  exact (hu.comp (Measurable.of_uncurry_left (f := fun ω x => smartPathField t ω x (Fin.last M))
-    (measurable_smartPathField t (Fin.last M)))).aemeasurable
+  exact (hu.comp (measurable_smartPathField_slice t ω (Fin.last M))).aemeasurable
 
 include hu hD in
 /-- **Normalizer identity** `Z = Z_∼ ⟨exp u(S_{M,t})⟩_{t,∼}` (below (2.31)). -/
@@ -126,9 +121,8 @@ theorem integral_exp_smartPathEnergy_eq_mul [NeZero μ] :
           SmartPathState N (M + 1) =>
             smartPathEnergy u t ((Fin.init ω.1.1, Fin.init ω.1.2), ω.2) (x.1, Fin.init x.2)) := by
   have hZ := (integral_exp_smartPathEnergy_init_pos (μ := μ) hu hD t ω).ne'
-  rw [integral_tilted_eq_div, mul_div_cancel₀ _ hZ]
-  refine integral_congr_ae (Filter.Eventually.of_forall fun x => ?_)
-  simp only [smartPathEnergy_eq_init_add u t ω x, Real.exp_add, mul_comm]
+  rw [integral_exp_tilted, mul_div_cancel₀ _ hZ]
+  simp only [Pi.add_apply, ← smartPathEnergy_eq_init_add u t ω]
 
 include hu hD in
 /-- **Replica numerator identity** below (2.32): the numerator of the `R`-replica average at
@@ -147,9 +141,7 @@ theorem integral_pi_mul_exp_smartPathEnergy_eq_mul [NeZero μ] {R : Type*} [Fint
     (E := fun x : SmartPathState N (M + 1) =>
       smartPathEnergy u t ((Fin.init ω.1.1, Fin.init ω.1.2), ω.2) (x.1, Fin.init x.2))
     (V := fun x => u (smartPathField t ω x (Fin.last M))) hZ Y
-  rw [← this]
-  refine integral_congr_ae (Filter.Eventually.of_forall fun σ => ?_)
-  simp only [smartPathEnergy_eq_init_add u t ω]
+  simpa only [← smartPathEnergy_eq_init_add u t ω] using this
 
 include hu hD in
 /-- **The identity (2.32).** A replica average of an arbitrary function `Y` under the Gibbs law
@@ -168,12 +160,7 @@ theorem integral_pi_tilted_smartPathEnergy_eq_div {R : Type*} [Fintype R]
   have h := integral_pi_tilted_add_eq_div (μ := μ) (ι := R)
     (integrable_exp_smartPathEnergy_init (μ := μ) hu hD t ω)
     (V := fun x => u (smartPathField t ω x (Fin.last M))) Y
-  have e : (fun x : SmartPathState N (M + 1) => smartPathEnergy u t
-      ((Fin.init ω.1.1, Fin.init ω.1.2), ω.2) (x.1, Fin.init x.2) +
-        u (smartPathField t ω x (Fin.last M))) = smartPathEnergy u t ω :=
-    funext fun x => (smartPathEnergy_eq_init_add u t ω x).symm
-  rw [e] at h
-  exact h
+  simpa only [← smartPathEnergy_eq_init_add u t ω] using h
 
 end Cavity
 

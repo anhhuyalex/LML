@@ -88,7 +88,7 @@ theorem integral_pi_tilted_prod_fst {E : A × B → ℝ}
 not depend on the second coordinate and `ν` is a probability measure, a first-coordinate replica
 observable has the same average under the product of the tilted product measures as under the
 product of `μ.tilted E₁`. -/
-theorem integral_pi_tilted_prod_fst_of_forall [IsProbabilityMeasure ν] {E₁ : A → ℝ}
+theorem integral_pi_tilted_prod_comp_fst [IsProbabilityMeasure ν] {E₁ : A → ℝ}
     (hi : Integrable (fun a => Real.exp (E₁ a)) μ)
     {R : Type*} [Fintype R] {f : (R → A) → ℝ} (hf : Measurable f) :
     (∫ x : R → A × B, f (fun r => (x r).1)

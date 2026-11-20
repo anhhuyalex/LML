@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.OffDiag
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedBound
 public import Mathlib.MeasureTheory.Integral.Pi
 public import Mathlib.MeasureTheory.Measure.Tilted
@@ -176,10 +177,12 @@ theorem integral_pi_tilted_add_eq_div {E V : α → ℝ} (hE : Integrable (fun a
 /-- Differentiate a replica observable that moves with the parameter, along a smooth energy path.
 A uniform upper energy bound and an integrable bound on the energy derivative justify the exchange
 with all replica integrals (also for a continuous base space and an empty replica index type); the
-observable and its parameter derivative are uniformly bounded. The derivative is the average of the
+observable is uniformly bounded and its parameter derivative has an integrable envelope `b₂` (with
+respect to the product base measure). The derivative is the average of the
 observable derivative plus the covariance of the observable with the sum of the replica energy
 derivatives. -/
-theorem hasDerivAt_integral_pi_tilted_moving {α R : Type*} [MeasurableSpace α] [Fintype R]
+theorem hasDerivAt_integral_pi_tilted_moving_of_integrable {α R : Type*} [MeasurableSpace α]
+    [Fintype R]
     {μ : Measure α} [IsFiniteMeasure μ] [NeZero μ]
     {E E' : ℝ → α → ℝ} {t : ℝ} {s : Set ℝ} (hs : s ∈ 𝓝 t)
     (hE : ∀ r ∈ s, Measurable (E r)) (hE' : Measurable (E' t))
@@ -187,7 +190,9 @@ theorem hasDerivAt_integral_pi_tilted_moving {α R : Type*} [MeasurableSpace α]
     {b : α → ℝ} (hb : Integrable b μ) (hdb : ∀ r ∈ s, ∀ a, |E' r a| ≤ b a)
     (hd : ∀ a, ∀ r ∈ s, HasDerivAt (fun q => E q a) (E' r a) r)
     {Ψ Ψ' : ℝ → (R → α) → ℝ} (hΨ : ∀ r ∈ s, Measurable (Ψ r)) (hΨ' : Measurable (Ψ' t))
-    {C C' : ℝ} (hΨb : ∀ r ∈ s, ∀ σ, |Ψ r σ| ≤ C) (hΨ'b : ∀ r ∈ s, ∀ σ, |Ψ' r σ| ≤ C')
+    {C : ℝ} (hΨb : ∀ r ∈ s, ∀ σ, |Ψ r σ| ≤ C)
+    {b₂ : (R → α) → ℝ} (hb₂ : Integrable b₂ (Measure.pi fun _ : R => μ))
+    (hΨ'b : ∀ r ∈ s, ∀ σ, |Ψ' r σ| ≤ b₂ σ)
     (hΨd : ∀ σ, ∀ r ∈ s, HasDerivAt (fun q => Ψ q σ) (Ψ' r σ) r) :
     HasDerivAt (fun r => ∫ σ, Ψ r σ ∂(Measure.pi fun _ : R => μ.tilted (E r)))
       ((∫ σ, Ψ' t σ ∂(Measure.pi fun _ : R => μ.tilted (E t))) +
@@ -211,10 +216,35 @@ theorem hasDerivAt_integral_pi_tilted_moving {α R : Type*} [MeasurableSpace α]
   have hderb (r : ℝ) (hr : r ∈ s) (σ : R → α) : |J' r σ| ≤ ∑ i, b (σ i) :=
     (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun i _ => hdb r hr (σ i))
   have : NeZero (Measure.pi fun _ : R => μ) := neZero_measure_pi μ
-  have hres := hasDerivAt_integral_tilted_of_bounded_moving
+  have hres := hasDerivAt_integral_tilted_of_integrable_moving
     (μ := Measure.pi fun _ : R => μ) (E := J) (E' := J') hs hJ hJ' hJb hib
-    hderb (fun σ r hr => HasDerivAt.fun_sum fun i _ => hd (σ i) r hr) hΨ hΨ' hΨb hΨ'b hΨd
+    hderb (fun σ r hr => HasDerivAt.fun_sum fun i _ => hd (σ i) r hr) hΨ hΨ' hΨb hb₂ hΨ'b hΨd
   simpa only [J, J', ← pi_tilted_eq_tilted_pi] using hres
+
+
+/-- Differentiate a replica observable that moves with the parameter, along a smooth energy path.
+A uniform upper energy bound and an integrable bound on the energy derivative justify the exchange
+with all replica integrals (also for a continuous base space and an empty replica index type); the
+observable and its parameter derivative are uniformly bounded. The derivative is the average of the
+observable derivative plus the covariance of the observable with the sum of the replica energy
+derivatives. -/
+theorem hasDerivAt_integral_pi_tilted_moving {α R : Type*} [MeasurableSpace α] [Fintype R]
+    {μ : Measure α} [IsFiniteMeasure μ] [NeZero μ]
+    {E E' : ℝ → α → ℝ} {t : ℝ} {s : Set ℝ} (hs : s ∈ 𝓝 t)
+    (hE : ∀ r ∈ s, Measurable (E r)) (hE' : Measurable (E' t))
+    {B : ℝ} (hEb : ∀ r ∈ s, ∀ a, E r a ≤ B)
+    {b : α → ℝ} (hb : Integrable b μ) (hdb : ∀ r ∈ s, ∀ a, |E' r a| ≤ b a)
+    (hd : ∀ a, ∀ r ∈ s, HasDerivAt (fun q => E q a) (E' r a) r)
+    {Ψ Ψ' : ℝ → (R → α) → ℝ} (hΨ : ∀ r ∈ s, Measurable (Ψ r)) (hΨ' : Measurable (Ψ' t))
+    {C C' : ℝ} (hΨb : ∀ r ∈ s, ∀ σ, |Ψ r σ| ≤ C) (hΨ'b : ∀ r ∈ s, ∀ σ, |Ψ' r σ| ≤ C')
+    (hΨd : ∀ σ, ∀ r ∈ s, HasDerivAt (fun q => Ψ q σ) (Ψ' r σ) r) :
+    HasDerivAt (fun r => ∫ σ, Ψ r σ ∂(Measure.pi fun _ : R => μ.tilted (E r)))
+      ((∫ σ, Ψ' t σ ∂(Measure.pi fun _ : R => μ.tilted (E t))) +
+        ((∫ σ, Ψ t σ * (∑ i, E' t (σ i)) ∂(Measure.pi fun _ : R => μ.tilted (E t))) -
+          (∫ σ, Ψ t σ ∂(Measure.pi fun _ : R => μ.tilted (E t))) *
+            ∫ σ, (∑ i, E' t (σ i)) ∂(Measure.pi fun _ : R => μ.tilted (E t)))) t :=
+  hasDerivAt_integral_pi_tilted_moving_of_integrable hs hE hE' hEb hb hdb hd hΨ hΨ' hΨb
+    (integrable_const C') hΨ'b hΨd
 
 /-- Differentiate a bounded replica observable along a smooth energy path. A uniform upper
 energy bound and an integrable bound on the energy derivative justify the exchange with all
@@ -817,24 +847,31 @@ section Exchangeability
 
 variable {J : Type*} [Fintype J] (ν : Measure α) [IsProbabilityMeasure ν]
 
+/-- **Two distinct replicas have the product law.** The average of a function of two distinct
+replicas of an i.i.d. family is the integral against `ν ⊗ ν`. -/
+theorem integral_pi_pair_eq_prod {x y : J} (hxy : x ≠ y) (φ : α → α → ℝ)
+    (hφ : Measurable fun p : α × α => φ p.1 p.2) :
+    ∫ σ : J → α, φ (σ x) (σ y) ∂(Measure.pi fun _ : J => ν) =
+      ∫ p : α × α, φ p.1 p.2 ∂(ν.prod ν) := by
+  have hm : Measurable fun τ : Fin 2 → α => φ (τ 0) (τ 1) :=
+    Measurable.comp (g := fun p : α × α => φ p.1 p.2) (f := fun τ : Fin 2 → α => (τ 0, τ 1)) hφ
+      ((measurable_pi_apply 0).prodMk (measurable_pi_apply 1))
+  have hρ : Function.Injective (![x, y] : Fin 2 → J) := by
+    intro u v huv
+    fin_cases u <;> fin_cases v <;> simp_all [Ne.symm hxy]
+  have h1 := integral_pi_comp_injective ν hρ (fun τ : Fin 2 → α => φ (τ 0) (τ 1))
+    hm.aestronglyMeasurable
+  have h2 := (measurePreserving_piFinTwo fun _ : Fin 2 => ν).integral_comp'
+    (g := fun p : α × α => φ p.1 p.2)
+  simpa using h1.trans h2
+
 /-- **Exchangeability of pairs of replicas.** A function of two distinct replicas of an i.i.d.
 family has the same average for every choice of the two replicas. -/
 theorem integral_pi_pair_eq {x y x' y' : J} (hxy : x ≠ y) (hxy' : x' ≠ y') (φ : α → α → ℝ)
     (hφ : Measurable fun p : α × α => φ p.1 p.2) :
     ∫ σ : J → α, φ (σ x) (σ y) ∂(Measure.pi fun _ : J => ν) =
       ∫ σ : J → α, φ (σ x') (σ y') ∂(Measure.pi fun _ : J => ν) := by
-  have hm : Measurable fun τ : Fin 2 → α => φ (τ 0) (τ 1) :=
-    Measurable.comp (g := fun p : α × α => φ p.1 p.2) (f := fun τ : Fin 2 → α => (τ 0, τ 1)) hφ
-      ((measurable_pi_apply 0).prodMk (measurable_pi_apply 1))
-  have key : ∀ {a b : J}, a ≠ b → ∫ σ : J → α, φ (σ a) (σ b) ∂(Measure.pi fun _ : J => ν) =
-      ∫ τ : Fin 2 → α, φ (τ 0) (τ 1) ∂(Measure.pi fun _ : Fin 2 => ν) := by
-    intro a b hab
-    have hρ : Function.Injective (![a, b] : Fin 2 → J) := by
-      intro u v huv
-      fin_cases u <;> fin_cases v <;> simp_all [Ne.symm hab]
-    simpa using integral_pi_comp_injective ν hρ (fun τ : Fin 2 → α => φ (τ 0) (τ 1))
-      hm.aestronglyMeasurable
-  rw [key hxy, key hxy']
+  rw [integral_pi_pair_eq_prod ν hxy φ hφ, integral_pi_pair_eq_prod ν hxy' φ hφ]
 
 /-- **Exchangeability of single replicas.** -/
 theorem integral_pi_diag_eq {x x' : J} (φ : α → α → ℝ)
@@ -1042,27 +1079,24 @@ theorem exists_abs_le_sum {ι : Type*} (s : Finset ι) {f : ι → β → ℝ}
       (ih fun i hi => hf i (Finset.mem_insert_of_mem hi))
 
 /-- **Explicit bound for the two-replica combination.** A kernel bounded by `c` gives a combination
-bounded by `(2 n² + n (n + 1) / 2) c`, where `n = |R|`; the constant depends only on `n`. -/
+bounded by `2 n² c`, where `n = |R|`; the constant depends only on `n`. The strictly ordered pairs
+number exactly `n (n - 1) / 2`. -/
 theorem abs_replicaPairCombination_le {R α : Type*} [Fintype R] [LinearOrder R]
     {U : α → α → ℝ} {c : ℝ} (hU : ∀ a b, |U a b| ≤ c) (τ : Option (Option R) → α) :
-    |replicaPairCombination U τ| ≤
-      (2 * (Fintype.card R : ℝ) ^ 2 + (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) / 2) *
-        c := by
+    |replicaPairCombination U τ| ≤ 2 * (Fintype.card R : ℝ) ^ 2 * c := by
   have hc : 0 ≤ c := (abs_nonneg _).trans (hU (τ none) (τ none))
   have hn : (0 : ℝ) ≤ Fintype.card R := Nat.cast_nonneg _
+  have hcard : ((((Finset.univ : Finset (R × R)).filter fun p => p.1 < p.2).card : ℕ) : ℝ) =
+      ((Fintype.card R : ℝ) ^ 2 - Fintype.card R) / 2 := by
+    have h := sum_filter_lt_add_swap (ι := R) (fun _ _ => (1 : ℝ))
+    simp only [Finset.sum_const, nsmul_eq_mul, mul_one, Finset.card_univ] at h
+    linarith [show (((Finset.univ : Finset (R × R)).filter fun p => p.1 < p.2).card : ℝ) * 2 =
+      ((Finset.univ : Finset (R × R)).filter fun p => p.1 < p.2).card * (1 + 1) by ring]
   have h1 : |∑ p : R × R with p.1 < p.2, U (τ (some (some p.1))) (τ (some (some p.2)))| ≤
-      (Fintype.card R : ℝ) ^ 2 * c := by
+      ((Fintype.card R : ℝ) ^ 2 - Fintype.card R) / 2 * c := by
     refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
     refine (Finset.sum_le_card_nsmul _ _ c fun p _ => hU _ _).trans ?_
-    rw [nsmul_eq_mul]
-    refine mul_le_mul_of_nonneg_right ?_ hc
-    have : ((Finset.univ : Finset (R × R)).filter fun p => p.1 < p.2).card ≤
-        Fintype.card R * Fintype.card R := by
-      refine (Finset.card_filter_le _ _).trans ?_
-      simp [Finset.card_univ, Fintype.card_prod]
-    calc ((((Finset.univ : Finset (R × R)).filter fun p => p.1 < p.2).card : ℕ) : ℝ)
-        ≤ ((Fintype.card R * Fintype.card R : ℕ) : ℝ) := Nat.cast_le.2 this
-      _ = (Fintype.card R : ℝ) ^ 2 := by push_cast; ring
+    rw [nsmul_eq_mul, hcard]
   have h2 : |∑ r : R, U (τ (some (some r))) (τ (some none))| ≤ (Fintype.card R : ℝ) * c := by
     refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
     refine (Finset.sum_le_card_nsmul _ _ c fun r _ => hU _ _).trans ?_
@@ -1073,7 +1107,8 @@ theorem abs_replicaPairCombination_le {R α : Type*} [Fintype R] [LinearOrder R]
         |(Fintype.card R : ℝ) * ∑ r : R, U (τ (some (some r))) (τ (some none))| +
         |(Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) / 2 * U (τ (some none)) (τ none)| :=
         (abs_add_le _ _).trans (add_le_add_left (abs_sub _ _) _)
-    _ ≤ (Fintype.card R : ℝ) ^ 2 * c + (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) * c) +
+    _ ≤ ((Fintype.card R : ℝ) ^ 2 - Fintype.card R) / 2 * c +
+          (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) * c) +
         (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) / 2 * c := by
         refine add_le_add (add_le_add h1 ?_) ?_
         · rw [abs_mul, abs_of_nonneg hn]

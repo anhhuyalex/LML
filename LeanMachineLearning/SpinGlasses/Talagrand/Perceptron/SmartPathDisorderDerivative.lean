@@ -28,14 +28,6 @@ open MeasureTheory ProbabilityTheory Filter
 open scoped BigOperators Topology
 namespace SpinGlasses
 
-/-- `exp (∑ |ξ_k|)` is integrable for the smart-path base law. -/
-theorem integrable_exp_sum_abs_smartPathBase (N M : ℕ) :
-    Integrable (fun x : SmartPathState N M => Real.exp (∑ k, |x.2 k|)) (smartPathBase N M) := by
-  have hξ : Integrable (fun ξ : Fin M → ℝ => Real.exp (∑ k, |ξ k|))
-      (Measure.pi fun _ : Fin M => gaussianReal 0 1) := by
-    simpa only [one_mul] using integrable_exp_sum_mul_abs_pi (fun _ : Fin M => (1 : ℝ))
-  exact hξ.comp_snd (Measure.count : Measure (PerceptronSpin N))
-
 /-- **Disorder-averaged Talagrand (2.26), with (2.27) substituted.** A differentiable potential
 with bounded value and first derivative suffices to pass the derivative through the auxiliary,
 replica and disorder integrals. The observable is bounded, measurable and independent of `t`.
@@ -43,7 +35,7 @@ The full number of spins is `N + 1`; empty replica/constraint types and zero var
 No Gaussian integration-by-parts identity is assumed or asserted. -/
 theorem hasDerivAt_integral_integral_pi_perceptron_smart_path {N M : ℕ}
     {μ : Measure (SmartPathState N M)} [IsFiniteMeasure μ] [NeZero μ]
-    (hb : Integrable (fun x : SmartPathState N M => Real.exp (∑ k, |x.2 k|)) μ)
+    (hb : ∀ k : Fin M, Integrable (fun x : SmartPathState N M => |x.2 k|) μ)
     {R : Type*} [Fintype R] {t : ℝ}
     (ht : t ∈ Set.Ioo (0 : ℝ) 1) {u : ℝ → ℝ} (hu : Differentiable ℝ u)
     {B D : ℝ} (hB : ∀ z, |u z| ≤ B) (hD : ∀ z, |deriv u z| ≤ D)
@@ -59,50 +51,52 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path {N M : ℕ}
   let V := Set.Ioo δ (1 - δ)
   have htV : t ∈ V := ⟨hδt, by linarith⟩
   have hD0 : 0 ≤ D := (abs_nonneg _).trans (hD 0)
-  let K := 1 / (2 * Real.sqrt δ) +
-    (M : ℝ) * (D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) * (2 / Real.sqrt δ))
+  let K := 1 / (2 * Real.sqrt δ) + D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) / Real.sqrt δ
   have hK : 0 ≤ K := by dsimp only [K]; positivity
   let A := fun ω : SmartPathDisorder N M => (M : ℝ) * B + |ω.2|
   let Q := fun ω : SmartPathDisorder N M => K * Real.exp (|ω.2| + ∑ k, |ω.1.2 k|)
-  let b := fun x : SmartPathState N M => Real.exp (∑ k, |x.2 k|)
+  let b := fun x : SmartPathState N M => 1 + ∑ k, |x.2 k|
+  have hbi : Integrable b μ :=
+    (integrable_const (1 : ℝ)).add (integrable_finsetSum _ fun k _ => hb k)
   have hEb (s : ℝ) (hs : s ∈ V) (ω : SmartPathDisorder N M) (x : SmartPathState N M) :
       |smartPathEnergy u s ω x| ≤ A ω :=
     abs_perceptron_smart_path_energy_le_of_nonneg hB s (hδ.trans hs.1).le ω x
   have hdb (s : ℝ) (hs : s ∈ V) (ω : SmartPathDisorder N M) (x : SmartPathState N M) :
       |smartPathEnergyDerivA u s ω x + smartPathEnergyDerivXi u s ω x +
         smartPathEnergyDerivY s ω x| ≤ Q ω * b x := by
-    let T := |ω.2| + (∑ k, |ω.1.2 k|) + ∑ k, |x.2 k|
-    have htotal : T ≤ Real.exp T :=
-      (le_add_of_nonneg_right zero_le_one).trans (Real.add_one_le_exp T)
-    have hA0 : 0 ≤ ∑ k, |ω.1.2 k| := Finset.sum_nonneg fun _ _ => abs_nonneg _
-    have hX0 : 0 ≤ ∑ k, |x.2 k| := Finset.sum_nonneg fun _ _ => abs_nonneg _
-    have hyT : |ω.2| ≤ T := by dsimp only [T]; linarith
-    have hy : |ω.2| ≤ Real.exp T := hyT.trans htotal
-    have ha (k : Fin M) : |ω.1.2 k| ≤ Real.exp T :=
-      (abs_apply_le_exp_sum_abs ω.1.2 k).trans
-        (Real.exp_le_exp.mpr (by dsimp only [T]; linarith [hX0, abs_nonneg ω.2]))
-    have hx (k : Fin M) : |x.2 k| ≤ Real.exp T :=
-      (abs_apply_le_exp_sum_abs x.2 k).trans
-        (Real.exp_le_exp.mpr (by dsimp only [T]; linarith [hA0, abs_nonneg ω.2]))
+    have hδ0 : 0 < Real.sqrt δ := Real.sqrt_pos.2 hδ
     have hcoef : 0 ≤ D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) := by positivity
     have hlin := abs_deriv_perceptron_smart_path_energy_le hδ ⟨hs.1.le, hs.2.le⟩ hD ω x
+    have hY0 := abs_nonneg ω.2
+    have hA0 : 0 ≤ ∑ k, |ω.1.2 k| := Finset.sum_nonneg fun _ _ => abs_nonneg _
+    have hX0 : 0 ≤ ∑ k, |x.2 k| := Finset.sum_nonneg fun _ _ => abs_nonneg _
+    have hsum : ∑ k, D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) *
+        ((|ω.1.2 k| + |x.2 k|) / Real.sqrt δ) =
+        D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) / Real.sqrt δ *
+          ((∑ k, |ω.1.2 k|) + ∑ k, |x.2 k|) := by
+      rw [← Finset.sum_add_distrib, Finset.mul_sum]
+      exact Finset.sum_congr rfl fun k _ => by ring
+    have hp : 0 ≤ 1 / (2 * Real.sqrt δ) := by positivity
+    have hr : 0 ≤ D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) / Real.sqrt δ := by positivity
+    have e1 : |ω.2| + (∑ k, |ω.1.2 k|) + ∑ k, |x.2 k| ≤
+        (1 + (|ω.2| + ∑ k, |ω.1.2 k|)) * (1 + ∑ k, |x.2 k|) := by
+      nlinarith [mul_nonneg (add_nonneg hY0 hA0) hX0]
+    have e2 : 1 + (|ω.2| + ∑ k, |ω.1.2 k|) ≤ Real.exp (|ω.2| + ∑ k, |ω.1.2 k|) := by
+      linarith [Real.add_one_le_exp (|ω.2| + ∑ k, |ω.1.2 k|)]
     calc _ ≤ |ω.2| / (2 * Real.sqrt δ) + ∑ k,
           D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) *
             ((|ω.1.2 k| + |x.2 k|) / Real.sqrt δ) := hlin
-      _ ≤ Real.exp T / (2 * Real.sqrt δ) + ∑ _k : Fin M,
-          D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) *
-            ((Real.exp T + Real.exp T) / Real.sqrt δ) :=
-        add_le_add (div_le_div_of_nonneg_right hy (by positivity))
-          (Finset.sum_le_sum fun k _ => mul_le_mul_of_nonneg_left
-            (div_le_div_of_nonneg_right (add_le_add (ha k) (hx k)) (by positivity)) hcoef)
-      _ = K * Real.exp T := by
-        simp only [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
-        dsimp only [K]
-        ring
-      _ = _ := by
-        rw [show T = (|ω.2| + ∑ k, |ω.1.2 k|) + ∑ k, |x.2 k| from rfl, Real.exp_add]
-        dsimp only [Q, b]
-        ring
+      _ = 1 / (2 * Real.sqrt δ) * |ω.2| +
+          D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) / Real.sqrt δ *
+            ((∑ k, |ω.1.2 k|) + ∑ k, |x.2 k|) := by rw [hsum]; ring
+      _ ≤ K * (|ω.2| + (∑ k, |ω.1.2 k|) + ∑ k, |x.2 k|) := by
+          dsimp only [K]
+          nlinarith [mul_nonneg hr hY0, mul_nonneg hp (add_nonneg hA0 hX0)]
+      _ ≤ K * ((1 + (|ω.2| + ∑ k, |ω.1.2 k|)) * (1 + ∑ k, |x.2 k|)) :=
+          mul_le_mul_of_nonneg_left e1 hK
+      _ ≤ K * (Real.exp (|ω.2| + ∑ k, |ω.1.2 k|) * (1 + ∑ k, |x.2 k|)) :=
+          mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_right e2 (by positivity)) hK
+      _ = _ := by dsimp only [Q, b]; ring
   have hξ : Integrable (fun ξ : Fin M → ℝ => Real.exp (∑ k, |ξ k|))
       (Measure.pi fun _ : Fin M => gaussianReal 0 1) := by
     simpa only [one_mul] using integrable_exp_sum_mul_abs_pi (fun _ : Fin M => (1 : ℝ))
@@ -126,7 +120,7 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path {N M : ℕ}
     (E' := fun s ω x => smartPathEnergyDerivA u s ω x + smartPathEnergyDerivXi u s ω x +
       smartPathEnergyDerivY s ω x) (A := A) (B := Q) (b := b) (s := V)
     isOpen_Ioo htV (fun s _ => measurable_smartPathEnergy hu.continuous.measurable s)
-    (fun s _ => measurable_smartPathEnergyDeriv u s) hEb hb hdb houter
+    (fun s _ => measurable_smartPathEnergyDeriv u s) hEb hbi hdb houter
     (fun ω x s hs => hasDerivAt_smartPathEnergy ⟨hδ.trans hs.1, by linarith [hs.2]⟩ hu ω x)
     hF hFb
 
@@ -134,7 +128,7 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path {N M : ℕ}
 three terms: the quenched disorder term, the auxiliary spin term, and the last-field term. -/
 theorem perceptron_smart_path_diff_eq_three_terms {N M : ℕ}
     {μ : Measure (SmartPathState N M)} [IsFiniteMeasure μ] [NeZero μ]
-    (hb : Integrable (fun x : SmartPathState N M => Real.exp (∑ k, |x.2 k|)) μ) {u : ℝ → ℝ} {t : ℝ}
+    (hb : ∀ k : Fin M, Integrable (fun x : SmartPathState N M => |x.2 k|) μ) {u : ℝ → ℝ} {t : ℝ}
     (ht : t ∈ Set.Ioo (0 : ℝ) 1) (hu : Differentiable ℝ u) {B D : ℝ} (hB : ∀ x, |u x| ≤ B)
     (hD : ∀ x, |deriv u x| ≤ D) (ω : SmartPathDisorder N M)
     {R : Type*} [Fintype R] (F : (R → SmartPathState N M) → ℝ)
@@ -162,7 +156,7 @@ theorem perceptron_smart_path_diff_eq_three_terms {N M : ℕ}
       (M := ∑ k, D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) * (|ω.1.2 k| / Real.sqrt t))
       (abs_smartPathEnergyDerivA_le hD ht.1 le_rfl ω)
   have hIE' := integrable_tilted_perceptron_smart_path_energy_deriv
-    (integrable_abs_snd_of_exp_sum hb) hu
+    hb hu
     (fun x => le_of_abs_le (hB x)) hD ω t ht
   have hI_aξ : Integrable (fun x => smartPathEnergyDerivA u t ω x +
       smartPathEnergyDerivXi u t ω x) (μ.tilted (smartPathEnergy u t ω)) :=
@@ -180,7 +174,7 @@ This is the three-group split before the permutation symmetry in `k` that reduce
 to `α√N` times the last constraint. -/
 theorem hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms {N M : ℕ}
     {μ : Measure (SmartPathState N M)} [IsFiniteMeasure μ] [NeZero μ]
-    (hb : Integrable (fun x : SmartPathState N M => Real.exp (∑ k, |x.2 k|)) μ)
+    (hb : ∀ k : Fin M, Integrable (fun x : SmartPathState N M => |x.2 k|) μ)
     {R : Type*} [Fintype R] {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) 1)
     {u : ℝ → ℝ} (hu : Differentiable ℝ u) {B D : ℝ} (hB : ∀ x, |u x| ≤ B)
     (hD : ∀ x, |deriv u x| ≤ D) (v : NNReal)
@@ -222,7 +216,7 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path_spin_only {N M : �
           smartPathEnergyDerivY t ω x) ∂smartPathDisorder Pold v) t := by
   obtain ⟨C, hC⟩ := exists_abs_le_of_finite f
   exact hasDerivAt_integral_integral_pi_perceptron_smart_path
-    (integrable_exp_sum_abs_smartPathBase N M) ht hu hB hD v
+    (fun k => integrable_abs_snd_smartPathBase k) ht hu hB hD v
     (fun σ => f (fun r => (σ r).1)) (measurable_spin_only f) fun x => hC _
 
 /-- **Spin-only three-term expansion of the quenched replica derivative.** -/
@@ -244,7 +238,7 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms_spin_o
             ∂smartPathDisorder Pold v) t := by
   obtain ⟨C, hC⟩ := exists_abs_le_of_finite f
   exact hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms
-    (integrable_exp_sum_abs_smartPathBase N M) ht hu hB hD v
+    (fun k => integrable_abs_snd_smartPathBase k) ht hu hB hD v
     (fun σ => f (fun r => (σ r).1)) (measurable_spin_only f) fun x => hC _
 
 end SpinGlasses

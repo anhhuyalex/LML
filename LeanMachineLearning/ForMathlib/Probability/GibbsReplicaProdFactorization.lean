@@ -54,25 +54,19 @@ theorem integral_pi_tilted_prod_add_mul {μ : Measure A} {ν : Measure B} [IsFin
         ∫ b, G b ∂(Measure.pi fun _ : ι => ν.tilted E₂) := by
   rw [integral_pi_tilted_eq_div, integral_pi_tilted_eq_div (μ := μ),
     integral_pi_tilted_eq_div (μ := ν)]
-  have hnum : ∫ σ : ι → A × B, F (fun i => (σ i).1) * G (fun i => (σ i).2) *
-      Real.exp (∑ i, (E₁ (σ i).1 + E₂ (σ i).2)) ∂(Measure.pi fun _ : ι => μ.prod ν) =
-      (∫ a, F a * Real.exp (∑ i, E₁ (a i)) ∂(Measure.pi fun _ : ι => μ)) *
-        ∫ b, G b * Real.exp (∑ i, E₂ (b i)) ∂(Measure.pi fun _ : ι => ν) := by
-    rw [← integral_pi_prod_mul (ι := ι) μ ν (fun a => F a * Real.exp (∑ i, E₁ (a i)))
-      (fun b => G b * Real.exp (∑ i, E₂ (b i)))]
+  have key (F' : (ι → A) → ℝ) (G' : (ι → B) → ℝ) :
+      ∫ σ : ι → A × B, F' (fun i => (σ i).1) * G' (fun i => (σ i).2) *
+        Real.exp (∑ i, (E₁ (σ i).1 + E₂ (σ i).2)) ∂(Measure.pi fun _ : ι => μ.prod ν) =
+      (∫ a, F' a * Real.exp (∑ i, E₁ (a i)) ∂(Measure.pi fun _ : ι => μ)) *
+        ∫ b, G' b * Real.exp (∑ i, E₂ (b i)) ∂(Measure.pi fun _ : ι => ν) := by
+    rw [← integral_pi_prod_mul (ι := ι) μ ν (fun a => F' a * Real.exp (∑ i, E₁ (a i)))
+      (fun b => G' b * Real.exp (∑ i, E₂ (b i)))]
     refine integral_congr_ae (Filter.Eventually.of_forall fun σ => ?_)
     simp only [Finset.sum_add_distrib, Real.exp_add]
     ring
-  have hden : ∫ σ : ι → A × B, Real.exp (∑ i, (E₁ (σ i).1 + E₂ (σ i).2))
-      ∂(Measure.pi fun _ : ι => μ.prod ν) =
-      (∫ a, Real.exp (∑ i, E₁ (a i)) ∂(Measure.pi fun _ : ι => μ)) *
-        ∫ b, Real.exp (∑ i, E₂ (b i)) ∂(Measure.pi fun _ : ι => ν) := by
-    have := integral_pi_prod_mul (ι := ι) μ ν (fun a => Real.exp (∑ i, E₁ (a i)))
-      (fun b => Real.exp (∑ i, E₂ (b i)))
-    rw [← this]
-    refine integral_congr_ae (Filter.Eventually.of_forall fun σ => ?_)
-    simp only [Finset.sum_add_distrib, Real.exp_add]
-  rw [hnum, hden, mul_div_mul_comm]
+  have hden := key (fun _ => 1) (fun _ => 1)
+  simp only [one_mul] at hden
+  rw [key F G, hden, mul_div_mul_comm]
 
 end
 
@@ -82,15 +76,7 @@ theorem integral_pi_mul_of_ne {X R : Type*} [MeasurableSpace X] [Fintype R] (ν 
     (hh' : Measurable h') :
     ∫ τ : R → X, h (τ i) * h' (τ j) ∂(Measure.pi fun _ : R => ν) =
       (∫ x, h x ∂ν) * ∫ x, h' x ∂ν := by
-  have hρ : Function.Injective (![i, j] : Fin 2 → R) := by
-    intro a b hab
-    fin_cases a <;> fin_cases b <;> simp_all
-  have hG : Measurable fun σ : Fin 2 → X => h (σ 0) * h' (σ 1) :=
-    (hh.comp (measurable_pi_apply 0)).mul (hh'.comp (measurable_pi_apply 1))
-  have := integral_pi_comp_injective ν hρ (fun σ : Fin 2 → X => h (σ 0) * h' (σ 1))
-    hG.aestronglyMeasurable
-  rw [integral_pi_fin_two_mul_fun] at this
-  rw [← this]
-  rfl
+  rw [integral_pi_pair_eq_prod ν hij (fun a b => h a * h' b)
+    ((hh.comp measurable_fst).mul (hh'.comp measurable_snd)), integral_prod_mul]
 
 end MeasureTheory

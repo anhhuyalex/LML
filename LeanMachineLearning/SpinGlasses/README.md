@@ -10,7 +10,7 @@ A new file goes in the directory of the topic it treats, and must be added to
 
 Blueprint chapters: `blueprint/src/chapters/spinglasses.tex` (Panchenko) and
 `blueprint/src/chapters/spinglasses_talagrand.tex` (Talagrand, *Spin Glasses*, Vol. I, Chapter 1) and
-`blueprint/src/chapters/spinglasses_talagrand_perceptron.tex` (Talagrand, Section 2.1).
+`blueprint/src/chapters/spinglasses_talagrand_perceptron.tex` (Talagrand, Sections 2.1-2.3).
 
 ## Shared tools
 
@@ -53,7 +53,7 @@ Blueprint chapters: `blueprint/src/chapters/spinglasses.tex` (Panchenko) and
   `FixedPoint/` contains the matrix fixed-point equations and their solution; `FreeEnergy/` contains
   log-partition derivatives, replica-symmetric pressure and the thermodynamic limit.
   Module and declaration names describe the mathematics; book theorem numbers belong in comments.
-* `Perceptron/` (blueprint chapter `chap:sg-talagrand-perceptron`, Talagrand Sections 2.1-2.2): the Gaussian
+* `Perceptron/` (blueprint chapter `chap:sg-talagrand-perceptron`, Talagrand Sections 2.1-2.3): the Gaussian
   binary perceptron. `GaussianFields.lean` gives the laws of the constraint fields of fixed spins and
   `FirstMoment.lean` the expected number of feasible configurations and the emptiness bound for
   `M / N → α > 1`; `ExponentialPenalty.lean` the fixed-size limit of exponential penalties, and
@@ -72,5 +72,15 @@ Blueprint chapters: `blueprint/src/chapters/spinglasses.tex` (Panchenko) and
   and their Gaussian envelope. `SmartPathGibbsDerivative.lean` differentiates the fixed-disorder
   replica average, with one fresh replica. `SmartPathDisorderDerivative.lean` passes that
   derivative through the shared-disorder expectation, using the generic
-  `ForMathlib/MeasureTheory/Integral/ExpectedTilted.lean`. The three-term expansion and
-  Gaussian integration-by-parts cancellation remain open.
+  `ForMathlib/MeasureTheory/Integral/ExpectedTilted.lean`. `SmartPathModel.lean` defines the named
+  objects with equation lemmas, `SmartPathIBP.lean` and `SmartPathAssembly.lean` prove the three-term
+  expansion and the Gaussian integration-by-parts cancellation (Proposition 2.2.3), and
+  `SmartPathExchangeable.lean` and `SmartPathNoAux.lean` the constraint-symmetric form and the
+  path without auxiliary spins (Exercise 2.2.4).
+  Section 2.3 (the cavity in `M`): `ConstraintCavityDecomposition.lean` removes the last constraint
+  and proves the ratio identity (2.32); `ConstraintCavityPath.lean` is the interpolating system
+  (2.35) and its `v = 1` endpoint; `ConstraintCavityEndpoint.lean` is Lemma 2.3.1 (the `v = 0`
+  endpoint), using the replica factorizations of
+  `ForMathlib/Probability/GibbsReplicaProdFactorization.lean`; `ConstraintCavityCovariance.lean`
+  gives the covariance relations (2.50)-(2.51) and the overlap `R^t` as dot products of
+  coefficient vectors. Lemma 2.3.2 onward remains open.

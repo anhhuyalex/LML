@@ -414,8 +414,7 @@ theorem integral_mul_replicaDiff_update {N M : ℕ}
         (smartPathPotentialKernel u t (smartPathDisorderUpdate ω k r) k)| ≤
       Real.sqrt (t / (N + 1)) * (C * ((Fintype.card R : ℝ) * (D₂ + D ^ 2) +
         (Fintype.card R : ℝ) * (D₂ + D ^ 2))) +
-      2 * Real.sqrt (t / (N + 1)) * (C * ((2 * (Fintype.card R : ℝ) ^ 2 +
-        (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) / 2) * (D * D))) := by
+      2 * Real.sqrt (t / (N + 1)) * (C * (2 * (Fintype.card R : ℝ) ^ 2 * (D * D))) := by
     have := hν r
     refine (abs_add_le _ _).trans (add_le_add ?_ ?_)
     · rw [abs_mul, abs_of_nonneg hκ0]

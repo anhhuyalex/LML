@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ProductTiltedMarginal
+public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaProdFactorization
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavityDecomposition
 
 /-!
@@ -66,12 +66,13 @@ theorem integral_pi_tilted_cavityPath_eq_div {R : Type*} [Fintype R]
       smartPathField t ω p.1 (Fin.last M) +
       Real.sin s * (Real.sqrt q * z + Real.sqrt (1 - q) * p.2))) Y
 
-include hu hD in
-/-- **`ν_{t,1} = ν_t`.** At `s = 0` the field is `S_{M,t}` and the new coordinate `ξ` does not enter
-the energy, so a function of the configurations has the same average as under the Gibbs law of the
-full system with `M + 1` constraints. -/
+/-- **`⟨·⟩_{t,1} = ⟨·⟩_t` at fixed disorder.** At `s = 0` the field is `S_{M,t}` and the new
+coordinate `ξ` does not enter the energy, so a function of the configurations has the same average
+as under the Gibbs law of the full system with `M + 1` constraints. No hypothesis on `u` or on the
+observable is needed: the new Gibbs factor is `γ.tilted 0 = γ`. Integrating this equality over the
+disorder and `z` gives `ν_{t,1} = ν_t`. -/
 theorem integral_pi_tilted_cavityPath_zero {R : Type*} [Fintype R]
-    {f : (R → SmartPathState N (M + 1)) → ℝ} (hf : Measurable f) :
+    (f : (R → SmartPathState N (M + 1)) → ℝ) :
     ∫ σ : R → SmartPathState N (M + 1) × ℝ, f (fun r => (σ r).1)
       ∂(Measure.pi fun _ : R => (μ.prod (gaussianReal 0 1)).tilted
         fun p : SmartPathState N (M + 1) × ℝ =>
@@ -83,12 +84,13 @@ theorem integral_pi_tilted_cavityPath_zero {R : Type*} [Fintype R]
       smartPathEnergy u t ((Fin.init ω.1.1, Fin.init ω.1.2), ω.2) (p.1.1, Fin.init p.1.2) +
         u (Real.cos 0 * smartPathField t ω p.1 (Fin.last M) +
           Real.sin 0 * (Real.sqrt q * z + Real.sqrt (1 - q) * p.2))) =
-      fun p => smartPathEnergy u t ω p.1 := by
+      fun p => smartPathEnergy u t ω p.1 + (0 : ℝ → ℝ) p.2 := by
     funext p
     rw [smartPathEnergy_eq_init_add u t ω p.1]
     simp
+  have h := integral_pi_tilted_prod_add_mul (μ := μ) (ν := gaussianReal 0 1) (ι := R)
+    (smartPathEnergy u t ω) (0 : ℝ → ℝ) f (fun _ => 1)
   rw [e]
-  exact integral_pi_tilted_prod_fst_of_forall
-    (integrable_exp_perceptron_smart_path_energy hu hD ω t) hf
+  simpa using h
 
 end SpinGlasses

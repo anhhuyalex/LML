@@ -893,7 +893,7 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathBounds.lean}.
 
 \begin{theorem}[The original Gibbs law at the terminal endpoint]\label{thm:sg-tal:perceptron-path-one}
   \lean{SpinGlasses.integral_pi_perceptron_smart_path_one,
-        MeasureTheory.integral_pi_tilted_prod_fst_of_forall}
+        MeasureTheory.integral_pi_tilted_prod_comp_fst}
   \leanok
   \uses{lem:sg-tal:perceptron-field-split}
 \talsource{Eq.~(2.21) and the paragraph defining $\nu=\nu_1$}
@@ -913,7 +913,7 @@ are zero, so the energy is a function $H_0(\sigma,\varepsilon)=\sum_ku(S_{k,1})$
 $S_{k,1}=L^{-1/2}\sum_{i<N}g_{k,i}\sigma_i+L^{-1/2}g_{k,N}\varepsilon$. The spin space is finite, so $e^{H_0}$ is
 integrable and a spin-only observable is measurable; since the Gaussian auxiliary law is a probability measure,
 integrating out the auxiliary coordinates leaves the Gibbs law of $H_0$
-(\texttt{integral\_pi\_tilted\_prod\_fst\_of\_forall}). This replaces the use of Exercise~2.2.1 and removes
+(\texttt{integral\_pi\_tilted\_prod\_comp\_fst}). This replaces the use of Exercise~2.2.1 and removes
 the measurability and upper-bound assumptions on $u$.
 \emph{Step 2 (concatenate spins).} The existing measurable equivalence has inverse
 $e(\sigma,\varepsilon)=\operatorname{snoc}(\sigma,\varepsilon)$, and the coordinate bridge gives
@@ -1288,27 +1288,26 @@ Write $L=N+1$ and $J_s(\mathbf x)=\sum_{i\in R}E_s(x_i)$. The path bounds give
 \]
 \emph{Step 2 (separate disorder and auxiliary envelopes).} Put
 \[
- K=\frac1{2\sqrt\delta}+M\frac{D}{2\sqrt L}\frac2{\sqrt\delta},\qquad
+ K=\frac1{2\sqrt\delta}+\frac{D}{2\sqrt L\sqrt\delta},\qquad
  Q(\omega)=K\exp\left(|y|+\sum_{k<M}|a_k|\right),\qquad
- b(\mathbf x)=\sum_{i\in R}\exp\left(\sum_{k<M}|\xi_k^i|\right).
+ b(x)=1+\sum_{k<M}|\xi_k|,
 \]
-The bound for $\dot E_s$ from Lemma~\ref{lem:sg-tal:perceptron-path-derivatives}, together with
-$z\le z+1\le e^z$, gives
+and use the replica envelope $\sum_{i\in R}b(x^i)$. Write $Y=|y|$, $A=\sum_k|a_k|$, $X=\sum_k|\xi_k|$. The bound for $\dot E_s$ from
+Lemma~\ref{lem:sg-tal:perceptron-path-derivatives} gives $|\dot E_s|\le\frac{Y}{2\sqrt\delta}+\frac{D}{2\sqrt L\sqrt\delta}(A+X)\le K(Y+A+X)$, and
+$Y+A+X\le(1+Y+A)(1+X)\le e^{Y+A}(1+X)$, so
 \[
- |\dot E_s(\omega,x)|\le
- Q(\omega)\exp\left(\sum_{k<M}|\xi_k|\right),\qquad
- |\dot J_s(\omega,\mathbf x)|\le Q(\omega)b(\mathbf x).
+ |\dot E_s(\omega,x)|\le Q(\omega)\,b(x),\qquad
+ |\dot J_s(\omega,\mathbf x)|\le Q(\omega)\sum_{i\in R}b(x^i).
 \]
-Indeed each of $|y|$, $|a_k|$ and $|\xi_k|$ is at most
-$|y|+\sum_k|a_k|+\sum_k|\xi_k|$. These estimates use no coordinates of $g$.
-\emph{Step 3 (check both integrability requirements).} Gaussian absolute exponential moments and
-finite counting mass give
+These estimates use no coordinates of $g$. The envelope in the auxiliary coordinates is linear, so only first absolute moments of each $\xi_k$ under the
+base law are needed (the exponential factor is carried by the disorder weight $Q$).
+\emph{Step 3 (check both integrability requirements).} Finite counting mass and the first moments of each $\xi_k$ give
 \[
- b\in L^1(\mu^{\otimes R}),\qquad
+ b\in L^1(\mu),\qquad
  e^{2A(\omega)}Q(\omega)
- =K e^{2nMB}\exp\left(\sum_{k<M}|a_k|\right)e^{(2n+1)|y|}\in L^1(P).
+ =K e^{2nMB}\exp\left(\sum_{k<M}|a_k|\right)e^{(2n+1)|y|}\in L^1(P),
 \]
-The scalar Gaussian moment lemma includes $v=0$. The finite law $P_0$ supplies the remaining factor.
+where $A(\omega)=MB+|y|$ is the energy bound. The scalar Gaussian moment lemma includes $v=0$. The finite law $P_0$ supplies the remaining factor.
 \emph{Step 4 (differentiate and identify the fresh-replica expression).} Energy and energy-derivative
 measurability pass to replica sums. Theorem~\ref{thm:sg-tal:perceptron-expected-tilt-response}, with
 \[
@@ -1756,30 +1755,34 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityDecomposi
 \begin{proposition}[The interpolating system, (2.33)--(2.35), and $\nu_{t,1}=\nu_t$]\label{prop:sg-tal:perceptron-cavity-path}
   \lean{SpinGlasses.integral_pi_tilted_cavityPath_eq_div,
         SpinGlasses.integral_pi_tilted_cavityPath_zero,
-        MeasureTheory.integral_pi_tilted_prod_fst_of_forall}
+        MeasureTheory.integral_pi_tilted_prod_add_mul}
   \leanok
   \uses{prop:sg-tal:perceptron-cavity-ratio}
 \talsource{Eqs.~(2.33)--(2.35) and the sentence ``$\nu_{t,1}=\nu_t$''}
-Let $u$ be measurable with $u\le D$, $\mu$ a finite measure on the configurations of the full system ($M+1$ constraints), $\gamma=\mathcal N(0,1)$,
-$t,q,s,z\in\mathbb R$ and $\omega$ a disorder. A replica carries a configuration $x$ and one more coordinate $\xi$. Put
-$\theta=\sqrt q\,z+\sqrt{1-q}\,\xi$, $S_s=\cos s\,S_{M,t}(x)+\sin s\,\theta$ (so $v=\cos^2 s$), and let $\nu_{t,s}$ be the replica average under the
-product of $(\mu\otimes\gamma)_{E_s}$, where $E_s=E_\sim(x)+u(S_s)$ and $E_\sim$ is the old energy (a function of $x$ only). Then for every
+Let $\mu$ be a finite measure on the configurations of the full system ($M+1$ constraints), $\gamma=\mathcal N(0,1)$,
+$t,q,s,z\in\mathbb R$, $\omega$ a disorder, and $u$ measurable with $u\le D$ (used only for the ratio, which needs the exponential integrability of
+the old energy). A replica carries a configuration $x$ and one more coordinate $\xi$. Put
+$\theta=\sqrt q\,z+\sqrt{1-q}\,\xi$, $S_s=\cos s\,S_{M,t}(x)+\sin s\,\theta$ (so $v=\cos^2 s$), and let $\langle\cdot\rangle_{t,s}$ be the replica average at the
+fixed disorder $\omega$ and fixed $z$ under the
+product of $(\mu\otimes\gamma)_{E_s}$, where $E_s=E_\sim(x)+u(S_s)$ and $E_\sim$ is the old energy (a function of $x$ only). The book's
+$\nu_{t,v}$ is the quenched average obtained by integrating $\langle\cdot\rangle_{t,s}$ against the law of $(\omega,z)$ ($v=\cos^2s$; the Lean
+statements are for the fixed-$(\omega,z)$ average and the quenched form follows by integrating the equalities). Then for every
 function $Y$ of the replicas
 \[
- \nu_{t,s}(Y)=\frac{\bigl\langle Y\,e^{\sum_{\ell}u(S_s^\ell)}\bigr\rangle_{\sim}}{\bigl\langle e^{u(S_s)}\bigr\rangle_{\sim}^{n}},
+ \langle Y\rangle_{t,s}=\frac{\bigl\langle Y\,e^{\sum_{\ell}u(S_s^\ell)}\bigr\rangle_{\sim}}{\bigl\langle e^{u(S_s)}\bigr\rangle_{\sim}^{n}},
 \]
-where $\langle\cdot\rangle_\sim$ is the average under $((\mu\otimes\gamma)_{E_\sim})^{\otimes n}$, and at $s=0$ (that is, $v=1$) the average of a
-measurable function of the configurations $x^\ell$ alone is its average under the Gibbs law $\mu_{E}$ of the full system:
-$\nu_{t,0}(f)=\nu_t(f)$.
+where $\langle\cdot\rangle_\sim$ is the average under $((\mu\otimes\gamma)_{E_\sim})^{\otimes n}$. At $s=0$ (that is, $v=1$; no hypothesis on $u$ and no
+measurability of the observable is needed) the average of any function of the configurations $x^\ell$ alone is its average under the Gibbs law
+$\mu_{E}$ of the full system, $\langle f\rangle_{t,s=0}=\langle f\rangle_t$; integrating over $(\omega,z)$ gives $\nu_{t,1}=\nu_t$.
 \end{proposition}
 \begin{proof}
   \leanok
 \emph{Step 1 (the ratio).} The old energy does not depend on $\xi$ and $e^{E_\sim}$ is integrable against $\mu\otimes\gamma$ (Proposition~\ref{prop:sg-tal:perceptron-cavity-ratio}),
 so Lemma~\ref{lem:sg-tal:perceptron-cavity-ratio-model-free} with base $\mu\otimes\gamma$, $E=E_\sim\circ\mathrm{fst}$ and $V=u(S_s)$ gives the formula.
 
-\emph{Step 2 ($s=0$).} Here $\cos 0=1$ and $\sin0=0$, so $E_0(x,\xi)=E_\sim(x)+u(S_{M,t}(x))=E(x)$ by Lemma~\ref{lem:sg-tal:perceptron-cavity-energy-split}: the
-coordinate $\xi$ is unused. Since $\gamma$ is a probability measure, marginalizing an unused coordinate of a tilted product law leaves the
-tilted first factor (\texttt{integral\_pi\_tilted\_prod\_fst\_of\_forall}, a consequence of \texttt{integral\_pi\_tilted\_prod\_fst}).
+\emph{Step 2 ($s=0$).} Here $\cos 0=1$ and $\sin0=0$, so $E_0(x,\xi)=E_\sim(x)+u(S_{M,t}(x))=E(x)+0\cdot\xi$ by Lemma~\ref{lem:sg-tal:perceptron-cavity-energy-split}: the
+coordinate $\xi$ is unused. Apply the factorization of the Gibbs replica average of an energy $E_1(a)+E_2(b)$ (\texttt{integral\_pi\_tilted\_prod\_add\_mul}) with
+$E_2=0$ and the constant observable $1$ in the second coordinate: $\gamma$ tilted by $0$ is $\gamma$, a probability measure, so the second factor is $1$.
 
 \emph{Replica consistency and symmetry.} The Gibbs laws are probability measures, so the average of a function of fewer replicas does not change
 when replicas are added, and replicas can be relabelled by any injection (\texttt{integral\_pi\_comp\_injective}); no new lemma is needed.
@@ -1791,6 +1794,7 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityPath.lean
         MeasureTheory.integral_pi_tilted_prod_add_mul,
         MeasureTheory.integral_pi_mul_of_ne,
         SpinGlasses.cavityPath_energy_pi_div_two,
+        SpinGlasses.integrable_exp_cavityPath_new,
         SpinGlasses.isProbabilityMeasure_tilted_cavityPath_new,
         SpinGlasses.integral_pi_tilted_cavityPath_pi_div_two,
         SpinGlasses.integral_pi_tilted_cavityPath_pi_div_two_deriv_mul,
@@ -1800,20 +1804,21 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityPath.lean
   \leanok
   \uses{prop:sg-tal:perceptron-cavity-path}
 \talsource{Lemma~2.3.1, Eqs.~(2.36)--(2.39)}
-Let $u$ be measurable with $u\le D$, $q,t\in\mathbb R$, $\gamma=\mathcal N(0,1)$, $\theta=\sqrt q\,z+\sqrt{1-q}\,\xi$ and
+Let $q,t\in\mathbb R$, $\gamma=\mathcal N(0,1)$, $\theta=\sqrt q\,z+\sqrt{1-q}\,\xi$, and assume that $e^{u(\theta)}$ is $\gamma$-integrable for every $z$ (this holds when $u$ is measurable and bounded above, which is what (2.7) gives; the Lean statements assume only the integrability) and
 \[
  \rho(z)=\Bigl(\frac{\mathbb E_\xi\,u'(\theta)e^{u(\theta)}}{\mathbb E_\xi e^{u(\theta)}}\Bigr)^2,\qquad
  \widehat r=\mathbb E_z\,\rho(z)\quad(2.36).
 \]
-Let $\nu_{t,0}$ be the average of the interpolating system at $s=\pi/2$ ($v=0$), i.e. the replica average under the product of
-$(\mu\otimes\gamma)_{E_\sim+u(\theta)}$. Let $f$ be a function of the old configurations $(\sigma,\xi_{<M})$ of $n$ replicas (it does not depend on
+Let $\langle\cdot\rangle_{t,0}$ be the average of the interpolating system at $s=\pi/2$ ($v=0$) at fixed disorder and fixed $z$, i.e. the replica average
+under the product of $(\mu\otimes\gamma)_{E_\sim+u(\theta)}$; the book's $\nu_{t,0}$ is its integral over $(\omega,z)$. Let $f$ be a function of the old configurations $(\sigma,\xi_{<M})$ of $n$ replicas (it does not depend on
 $\xi_M^\ell$, the new coordinates $\xi^\ell$, or $z$). Then, at every fixed disorder and every fixed $z$,
 \[
- \nu_{t,0}(f)=\langle f\rangle_{t,\sim}\quad(2.37),\qquad
- \nu_{t,0}\bigl(u'(\theta^i)u'(\theta^j)f\bigr)=\rho(z)\,\langle f\rangle_{t,\sim}\quad(i\neq j),
+ \langle f\rangle_{t,0}=\langle f\rangle_{t,\sim}\quad(2.37),\qquad
+ \langle u'(\theta^i)u'(\theta^j)f\rangle_{t,0}=\rho(z)\,\langle f\rangle_{t,\sim}\quad(i\neq j),
 \]
-and, averaging over the disorder (law $P$) and over $z\sim\gamma$ independently,
-$\mathbb E\,\nu_{t,0}(u'(S_0^i)u'(S_0^j)f)=\widehat r\,\mathbb E\langle f\rangle_{t,\sim}$ (2.38). If $|u'|\le D'$ then $0\le\widehat r\le D'^2$.
+and, averaging over the disorder (law $P$, any s-finite measure; the book's is the i.i.d.\ Gaussian law) and over $z\sim\gamma$ independently,
+$\nu_{t,0}(f)=\mathbb E\langle f\rangle_{t,\sim}$ (2.37) and $\nu_{t,0}(u'(S_0^i)u'(S_0^j)f)=\widehat r\,\mathbb E\langle f\rangle_{t,\sim}$ (2.38). If $|u'|\le D'$ then
+$0\le\widehat r\le D'^2$. The Lean quantity $u'$ is the total \texttt{deriv u}; (2.7) makes it the actual derivative and bounds the integrand.
 \end{lemma}
 \begin{proof}
   \leanok
@@ -1834,11 +1839,167 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityEndpoint.
 \texttt{ForMathlib/Probability/GibbsReplicaProdFactorization.lean}.
 \end{proof}
 
+\begin{lemma}[Covariance relations (2.50)--(2.51) and the overlap $R^t$]\label{lem:sg-tal:perceptron-cavity-covariance}
+  \lean{SpinGlasses.cavityVec,
+        SpinGlasses.cavityVec_dotProduct,
+        ProbabilityTheory.integral_dotProduct_mul_dotProduct_pi_gaussianReal,
+        SpinGlasses.cavity_theta_dot_theta,
+        SpinGlasses.cavity_zTilde_dot_z_of_ne,
+        SpinGlasses.cavity_zTilde_dot_z_same,
+        SpinGlasses.cavity_zTilde_dot_y,
+        SpinGlasses.cavity_z_dot_z_same,
+        SpinGlasses.cavityCoef,
+        SpinGlasses.smartPathField_last_eq_dotProduct,
+        SpinGlasses.cavityCoef_dotProduct,
+        SpinGlasses.cavityCoef_dotProduct_self_add,
+        SpinGlasses.abs_cavityCoef_dotProduct_sub_overlap_le}
+  \leanok
+  \uses{prop:sg-tal:perceptron-cavity-path}
+\talsource{Eqs.~(2.50)--(2.51) and the relations displayed before them}
+All the random variables of the interpolation are linear forms in one vector of independent standard Gaussians: the couplings
+$g_{i,M}$ ($i<N$) and $g_{N,M}$ of the removed constraint, the shared $z$, and for each replica $\ell$ the coordinates $\xi_M^\ell$ and $\xi^\ell$.
+A form $\alpha\cdot g+b\,z+c\,\xi_M^\ell+e\,\xi^\ell$ is represented by its coefficient vector (\texttt{cavityVec}); the covariance of two forms is the dot product of
+their coefficient vectors (\texttt{integral\_dotProduct\_mul\_dotProduct\_pi\_gaussianReal}), and
+\[
+ \langle\alpha,b,c,e,\ell\rangle\cdot\langle\alpha',b',c',e',\ell'\rangle=\alpha\cdot\alpha'+bb'+\mathbf 1_{\ell=\ell'}(cc'+ee').
+\]
+Let $q\in[0,1]$, $s\in\mathbb R$ ($\cos s=\sqrt v$), $a_0=\sqrt{(1-t)/(N+1)}$, $\alpha_\sigma$ the coefficients of the quenched part of $S_{M,t}(\sigma)$,
+$C(\sigma,\tau)=\alpha_\sigma\cdot\alpha_\tau$, $S^\ell_\sigma=\alpha_\sigma\cdot g+a_0\xi_M^\ell$, $\theta^\ell=\sqrt q\,z+\sqrt{1-q}\,\xi^\ell$,
+$z^\ell_\sigma=\cos s\,S^\ell_\sigma+\sin s\,\theta^\ell$, $\tilde z^\ell_\sigma=-\sin s\,S^\ell_\sigma+\cos s\,\theta^\ell$ (so $\tilde z=\partial_sz$) and
+$y_\sigma=\cos s\,\alpha_\sigma\cdot g+\sin s\sqrt q\,z$. Then
+\begin{align*}
+ &\mathbb E(\theta^\ell)^2=1,\quad \mathbb E\theta^\ell\theta^{\ell'}=q\ (\ell\ne\ell'),\\
+ &\mathbb E\,\tilde z^\ell_\sigma z^{\ell'}_\tau=\sin s\cos s\,\bigl(q-C(\sigma,\tau)\bigr)\ (\ell\neq\ell'),\qquad
+ \mathbb E\,\tilde z^\ell_\sigma z^{\ell}_\tau=\sin s\cos s\,\bigl(1-C(\sigma,\tau)-a_0^2\bigr),\\
+ &\mathbb E\,\tilde z^\ell_\sigma y_\tau=\sin s\cos s\,\bigl(q-C(\sigma,\tau)\bigr),
+\end{align*}
+and if $C(\sigma,\sigma)+a_0^2=1$ then $\mathbb E\,\tilde z^\ell_\sigma z^\ell_\sigma=0$ and $\mathbb E(z^\ell_\sigma)^2=1$. For the perceptron, $S_{M,t}$ is such a form
+(\texttt{smartPathField\_last\_eq\_dotProduct}), $C(\sigma,\tau)=R^t(\sigma,\tau)=\bigl(\sum_{i<N}\sigma_i\tau_i+t\,\varepsilon\varepsilon'\bigr)/(N+1)$ for $t\ge0$,
+$C(\sigma,\sigma)+a_0^2=1$ for $t\in[0,1]$, and $|R^t-R|\le1/(N+1)$ where $R=\bigl(\sum_{i<N}\sigma_i\tau_i+\varepsilon\varepsilon'\bigr)/(N+1)$.
+\end{lemma}
+\begin{proof}
+  \leanok
+\emph{Step 1 (dot products).} The dot product of two coefficient vectors splits over the summands of the index type; the $\xi_M$ and $\xi$ blocks are supported at the replica label,
+so they contribute only when $\ell=\ell'$ (\texttt{cavityVec\_dotProduct}).
+
+\emph{Step 2 (the relations).} Insert the coefficients of $z,\tilde z,y,\theta$ and use $\sqrt q^2=q$, $\sqrt{1-q}^2=1-q$ (hence $q\in[0,1]$). For $\ell\ne\ell'$,
+$-\sin s\cos s\,C+\cos s\sin s\,q$ is the first display; for $\ell=\ell'$ the extra term $\sin s\cos s\,\bigl((1-q)-a_0^2\bigr)$ gives the second;
+$y$ has no $\xi$-part, giving the third; and $\cos^2 s\,(C+a_0^2)+\sin^2 s\,(q+1-q)=1$ is the variance.
+
+\emph{Step 3 (the overlap).} With $\alpha_\sigma=\bigl((N+1)^{-1/2}\sigma_i,\ \sqrt{t/(N+1)}\,\varepsilon\bigr)$ the dot product is $R^t$, since $\sqrt a\sqrt a=a$.
+Using $\sigma_i^2=\varepsilon^2=1$ one gets $C(\sigma,\sigma)+a_0^2=(N+t+1-t)/(N+1)=1$, and $R^t-R=(t-1)\varepsilon\varepsilon'/(N+1)$.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityCovariance.lean}.
+\end{proof}
+
+\medskip\noindent\emph{Formalization note (relations).} The relations are stated in the $s$-form: the book's $z'=\frac1{2\sqrt v}S-\frac1{2\sqrt{1-v}}\theta$ equals
+$-\tilde z/(2\sin s\cos s)$, so $\mathbb E z'z=\frac12(R^t-q)$ is the displayed relation divided by $-2\sin s\cos s$; the $s$-form avoids the singularity at $v\in\{0,1\}$.
+Singular covariance matrices are allowed ($q\in\{0,1\}$, $t\in\{0,1\}$). The relations (2.58) and (2.60) for $S_v$ and for the derivative of $S_{k,t}$ in Exercise~2.3.3 are not yet stated.
+
+\begin{proposition}[Pathwise derivative of the cavity average, the formula (2.41) for $B_v\equiv1$]\label{prop:sg-tal:perceptron-cavity-pathwise-derivative}
+  \lean{MeasureTheory.hasDerivAt_integral_tilted_of_integrable_moving,
+        MeasureTheory.hasDerivAt_integral_pi_tilted_moving_of_integrable,
+        MeasureTheory.hasDerivAt_integral_pi_tilted_rotation,
+        MeasureTheory.hasDerivAt_integral_pi_tilted_rotation_deriv_mul,
+        SpinGlasses.integrable_abs_smartPathField_smartPathBase,
+        SpinGlasses.hasDerivAt_integral_pi_tilted_cavityPath,
+        SpinGlasses.hasDerivAt_integral_pi_tilted_cavityPath_deriv_mul}
+  \leanok
+  \uses{prop:sg-tal:perceptron-cavity-path}
+\talsource{Eq.~(2.41), the case $B_v\equiv1$}
+Let $u$ be differentiable with $u\le D$ and $|u'|\le D_1$, $\mu$ a finite nonzero measure on the configurations of the full system such that
+$|S_{M,t}|$ is $\mu$-integrable (true for the smart-path base law), $\gamma=\mathcal N(0,1)$, and $t,q,z\in\mathbb R$ and $\omega$ a disorder. For a bounded
+measurable function $f$ of $n$ replicas $(x^\ell,\xi^\ell)$ of the extended configuration, the map $s\mapsto\langle f\rangle_{t,s}$ is differentiable and, with
+$S_s=\cos s\,S_{M,t}+\sin s\,\theta$, $\tilde z=-\sin s\,S_{M,t}+\cos s\,\theta$ and $\theta=\sqrt q\,z+\sqrt{1-q}\,\xi$,
+\[
+ \frac{d}{ds}\langle f\rangle_{t,s}=\Bigl\langle f\sum_{\ell\le n}u'(S_s^\ell)\,\tilde z^\ell\Bigr\rangle_{t,s}
+ -\langle f\rangle_{t,s}\Bigl\langle\sum_{\ell\le n}u'(S_s^\ell)\,\tilde z^\ell\Bigr\rangle_{t,s}.
+\]
+\end{proposition}
+\begin{proof}
+  \leanok
+\emph{Step 1 (the energy path).} The energy is $E_\sim(x)+u(\cos s\,X+\sin s\,Y)$ with $X=S_{M,t}$ and $Y=\theta$, so its $s$-derivative is $u'(S_s)\tilde z$ pointwise (chain rule).
+
+\emph{Step 2 (domination).} $E_\sim\le M D+\sqrt{1-t}\,|y|$ and $u\le D$ bound the energy uniformly in $s$; $|\tilde z|\le|X|+|Y|$ is integrable under $\mu\otimes\gamma$ (the field is integrable by
+hypothesis, $\theta$ is Gaussian), so $|\dot E_s|\le D_1(|X|+|Y|)$ is an integrable envelope.
+
+\emph{Step 3 (differentiate).} The derivative of a replica average of a fixed bounded observable under a moving Gibbs law is the covariance of the observable with the sum of the replica
+energy derivatives (\texttt{hasDerivAt\_integral\_pi\_tilted\_moving}); \texttt{hasDerivAt\_integral\_pi\_tilted\_rotation} packages Steps 1--3 for any base measure.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityDerivative.lean} and \texttt{ForMathlib/Probability/GibbsReplicaRotation.lean}.
+\end{proof}
+
+\begin{lemma}[Gaussian integration by parts with a normalizer]\label{lem:sg-tal:perceptron-stein-ratio}
+  \lean{ProbabilityTheory.integral_mul_div_pow_eq_sum}
+  \leanok
+\talsource{The ``term created by the denominator'' in the computation after Eq.~(2.52)}
+Let $(W,X,Y)$ be a centered jointly Gaussian family, $F$ a differentiable function of $X$ that is bounded with bounded partial derivatives, and $Z$ a differentiable function of $Y$ with
+$Z\ge z_0>0$ and bounded partial derivatives. Then for every $n\in\mathbb N$
+\[
+ \mathbb E\Bigl[W\,\frac{F(X)}{Z(Y)^n}\Bigr]=\sum_l\mathbb E[WX_l]\,\mathbb E\Bigl[\frac{\partial_lF(X)}{Z(Y)^n}\Bigr]
+ -n\sum_m\mathbb E[WY_m]\,\mathbb E\Bigl[\frac{F(X)\,\partial_mZ(Y)}{Z(Y)^{n+1}}\Bigr].
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+Apply the Gaussian integration by parts of Panchenko's (1.25) (\texttt{integral\_mul\_comp\_eq\_sum\_integral\_mul\_of\_sum}) to $\Phi(x,y)=F(x)/Z(y)^n$ on the combined family $(X,Y)$.
+$\Phi$ is differentiable because $Z>0$; its partial derivatives in the $x$ and $y$ directions are $\partial_lF/Z^n$ and $-nF\partial_mZ/Z^{n+1}$ (computed along lines, with the
+convention $0\cdot Z^{-1}=0$ for $n=0$) and are bounded by $D_l/z_0^n$ and $nC\,DZ_m/z_0^{n+1}$, and $|\Phi|\le C/z_0^n$.
+Formalized in \texttt{ForMathlib/Probability/Moments/GaussianSteinRatio.lean}.
+\end{proof}
+
+\begin{lemma}[Gaussian rotation interpolation with an extra smooth parameter]\label{lem:sg-tal:perceptron-interpolation-param}
+  \lean{SpinGlasses.fderiv_section_apply,
+        SpinGlasses.hasDerivAt_integral_comp_trig_param}
+  \leanok
+  \uses{lem:sg-tal:perceptron-stein-ratio}
+\talsource{The integration by parts after Eq.~(2.52); the dependence on $v$ of the normalizer $F_1$ in (2.49)}
+Let $X,Y$ be independent centered Gaussian vectors on a finite index set $\kappa$, $F(\tau,y)$ a $C^2$ function of a parameter $\tau$ in a normed space and $y\in\mathbb R^\kappa$ with
+exponentially bounded value and partial derivatives, uniformly in $\tau$, and $s\mapsto\tau(s)$ differentiable. Then $s\mapsto\mathbb E\,F\bigl(\tau(s),\cos s\,X+\sin s\,Y\bigr)$ is differentiable at $t$
+with derivative
+\[
+ \sin t\cos t\sum_{l,k}\bigl(\mathbb E Y_lY_k-\mathbb E X_lX_k\bigr)\,\mathbb E\,\partial_k\partial_lF\bigl(\tau(t),Z_t\bigr)
+ +\mathbb E\,(\partial_\tau F)\bigl(\tau(t),Z_t\bigr)\,\tau'(t),\qquad Z_t=\cos t\,X+\sin t\,Y .
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+The proof is that of \texttt{hasDerivAt\_integral\_comp\_trig}, with $G(s,v)=F(\tau(s),\cos s\,v_X+\sin s\,v_Y)$. The pathwise derivative splits (chain rule on $T\times\mathbb R^\kappa$) into the part in the $y$-directions,
+$\sum_l(-\sin s\,v_{X,l}+\cos s\,v_{Y,l})\partial_lF$, and the part $\partial_\tau F\,\tau'(s)$ (\texttt{fderiv\_section\_apply} identifies the $y$-partials with those of the section $y\mapsto F(\tau,y)$). Differentiation under the
+integral uses the exponential bounds; the $y$-part is integrated by parts as before (Gaussian integration by parts against the rotated field), and the $\tau$-part is left as an expectation.
+Formalized in \texttt{SpinGlasses/Gaussian/GaussianInterpolationParam.lean}.
+\end{proof}
+
+\begin{lemma}[Heat equation for a two-Gaussian smoothing along a path]\label{lem:sg-tal:perceptron-smoothing-path}
+  \lean{ProbabilityTheory.hasDerivAt_integral_gaussian_pair_path}
+  \leanok
+  \uses{lem:sg-tal:perceptron-interpolation-param}
+\talsource{The dependence on $v$ of the variance of $\xi_*^\ell$ in the normalizer (2.49)}
+Let $f$ be twice differentiable with $f,f',f''$ bounded and $f''$ continuous, $\eta_1,\eta_2$ independent standard Gaussians, and $s\mapsto(a(s),b(s))$ a differentiable path with bounded derivative. Then
+\[
+ \frac d{ds}\,\mathbb E\,f\bigl(y+a(s)\eta_1+b(s)\eta_2\bigr)=\bigl(a\,a'+b\,b'\bigr)(s)\;\mathbb E\,f''\bigl(y+a(s)\eta_1+b(s)\eta_2\bigr).
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+Differentiate under the product Gaussian integral (the derivative $f'\cdot(a'\eta_1+b'\eta_2)$ is dominated by $C_1(A|\eta_1|+B|\eta_2|)$), then apply Stein's lemma
+$\mathbb E[f'(h+w\eta)\eta]=w\,\mathbb E f''(h+w\eta)$ (\texttt{integral\_deriv\_comp\_affine\_mul\_id\_gaussianReal}) to each variable conditionally on the other (Fubini). No square root of $a^2+b^2$ occurs, so the formula
+holds also where $a=b=0$. With $(a,b)=(\cos s\,a_0,\sin s\sqrt{1-q})$ this is $\sin s\cos s\,(1-q-a_0^2)\,\mathbb E f''$, the same-replica entry of $\mathrm{Cov}\,V-\mathrm{Cov}\,U$.
+Formalized in \texttt{ForMathlib/Probability/Moments/GaussianSmoothingPath.lean}.
+\end{proof}
+
+\medskip\noindent\emph{Formalization note (Lemma~2.3.2).} The pathwise derivative is proved for $B_v\equiv1$ and, in a second statement, for the moving factor
+$u'(S_s^i)u'(S_s^j)$ (any two replicas): its derivative contains the unbounded Gaussian factor $\tilde z$, which is dominated by $|S_{M,t}|+|\theta|$ through an integrable
+envelope (\texttt{hasDerivAt\_integral\_tilted\_of\_integrable\_moving}, of which the bounded version is now a corollary), so only $|u''|\le D_2$ is used in addition.
+The Gaussian integration by parts over the whole family (couplings, $z$, $\xi_M^\ell$, $\xi^\ell$), the term created by the denominator,
+the average over $(\omega,z)$ and the H\"older step of (2.40) are not formalized.
+
 \medskip\noindent\emph{Formalization note (hypothesis audit).} The book states (2.32) for a function $f$ on $\Sigma_N^n\times\mathbb R^{Mn}$; the
 Lean statement allows an arbitrary function $Y$ of the replicas of the full configuration, which includes the dependence on the old
 auxiliary coordinates (and on $\xi_M$, which the old energy ignores). No measurability or boundedness of $Y$ is assumed: the identities are
 equalities of integrals (with Lean's convention for non-integrable functions) obtained from the double tilt. The explicit bounds
 $|Y|\le C$ are needed only where a later result integrates the quotient. The book's range of the path parameter is $t\in[0,1]$; the
 statements hold for every real $t$ because $\sqrt{1-t}$ is only used through an upper bound. Not yet formalized in this section: the
-covariance relations and the results after Lemma~2.3.1 (Lemma~2.3.2 onward). The path parameter $s$ is real and the
-quenched variable $z$ is a fixed real number here; averaging over $z$ and over the disorder is not yet needed.
+relations (2.58) and (2.60) and the results after Lemma~2.3.1 (Lemma~2.3.2 onward). The path parameter $s$ is real and the
+quenched variable $z$ is a fixed real number in the pointwise statements (2.35) and $\nu_{t,1}=\nu_t$; the averaged forms over the disorder and
+$z$ are in Lemma~\ref{lem:sg-tal:perceptron-cavity-endpoint} for $v=0$, and the averaged (2.35) follows by integrating the pointwise equality.
+The endpoint theorems take a fixed observable $f$; for a family $f(\omega)$ (needed for Proposition~2.3.5) the pointwise statement applies at each $\omega$
+before integrating.
