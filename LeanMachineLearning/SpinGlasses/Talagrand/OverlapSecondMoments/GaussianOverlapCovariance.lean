@@ -54,6 +54,9 @@ theorem gaussian_overlap_reference {R : Type*} [Fintype R] [DecidableEq R]
     Real.sq_sqrt ha, Real.sq_sqrt hb, eq_comm]
   ring
 
+-- The 16 equality cases of the four endpoints each close with a different `simp` lemma set, so
+-- `simp_all only [...]` cannot be written once; the flexible `simp_all` is intentional here.
+set_option linter.flexible false in
 /-- For ordered distinct pairs, the covariance has the three cases in Talagrand's
 discussion after (1.295): identical pairs, one common endpoint, or disjoint pairs. -/
 theorem gaussian_overlap_covariance_of_lt {R : Type*} [Fintype R] [LinearOrder R]

@@ -812,10 +812,10 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathFields.lean}.
 \end{proof}
 
 \begin{theorem}[Well-defined smart-path Gibbs averages]\label{thm:sg-tal:perceptron-path-bounds}
-  \lean{SpinGlasses.measurable_perceptron_smart_path_energy,
+  \lean{SpinGlasses.measurable_smartPathEnergy,
         SpinGlasses.perceptron_smart_path_energy_le,
         SpinGlasses.perceptron_smart_path_energy_le_of_nonneg,
-        SpinGlasses.measurable_perceptron_smart_path_energy_slice,
+        SpinGlasses.measurable_smartPathEnergy_slice,
         SpinGlasses.abs_perceptron_smart_path_energy_le,
         SpinGlasses.integrable_exp_perceptron_smart_path_energy,
         SpinGlasses.integral_exp_perceptron_smart_path_energy_pos,
@@ -1034,7 +1034,10 @@ Formalized in \texttt{ForMathlib/Probability/GibbsReplicaProduct.lean}.
 
 \begin{lemma}[Pointwise path derivatives and their envelope]\label{lem:sg-tal:perceptron-path-derivatives}
   \lean{SpinGlasses.hasDerivAt_perceptron_smart_path_field,
-        SpinGlasses.hasDerivAt_perceptron_smart_path_energy,
+        SpinGlasses.hasDerivAt_smartPathEnergy,
+        SpinGlasses.abs_smartPathEnergyDerivA_le,
+        SpinGlasses.abs_smartPathEnergyDerivXi_le,
+        SpinGlasses.abs_smartPathEnergyDerivY_le,
         SpinGlasses.abs_deriv_perceptron_smart_path_energy_le}
   \leanok
 \talsource{Eqs.~(2.15), (2.22), (2.27)}
@@ -1325,7 +1328,911 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathDisorderDerivati
 \end{proof}
 
 \begin{theorem}[Three-term expansion of the smart-path derivative]\label{thm:sg-tal:perceptron-derivative-three-terms}
-  \lean{SpinGlasses.perceptron_smart_path_E'_eq_three_terms,
+  \lean{SpinGlasses.hasDerivAt_smartPathEnergy,
+        SpinGlasses.perceptron_smart_path_diff_eq_three_terms,
+        SpinGlasses.hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms,
+        SpinGlasses.hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms_spin_only}
+  \leanok
+  \uses{thm:sg-tal:perceptron-disorder-derivative}
+\talsource{Eq.~(2.28) (before constraint symmetry)}
+Assume $u$ is differentiable, with $|u|\le B$ and $|u'|\le D$. For $0<t<1$ and any bounded
+measurable observable $F$, the quenched derivative splits into three terms:
+\[
+ \nu'_t(F) = \int \left[ \operatorname{diff}(E'_a) + \operatorname{diff}(E'_\xi) + \operatorname{diff}(E'_Y) \right] dP(\omega),
+\]
+where $\operatorname{diff}(H) = \sum_{i\in R} \langle F H(\sigma_i)\rangle - |R|\langle F H(\sigma_*)\rangle$, and
+\begin{align*}
+ E'_a(\omega, x) &= \sum_{k<M} u'(S_{k,t}) \frac{1}{2\sqrt{N+1}} \frac{a_k \varepsilon}{\sqrt{t}}, \\
+ E'_\xi(\omega, x) &= \sum_{k<M} u'(S_{k,t}) \frac{1}{2\sqrt{N+1}} \frac{-\xi_k}{\sqrt{1-t}}, \\
+ E'_Y(\omega, x) &= -\frac{\varepsilon Y}{2\sqrt{1-t}}.
+\end{align*}
+\end{theorem}
+\begin{proof}
+  \leanok
+\emph{Step 1 (algebraic decomposition of the energy derivative).}
+By grouping the terms in Eq.~(2.27),
+\[
+ E'(s,\omega,x) = E'_a(s,\omega,x) + E'_\xi(s,\omega,x) + E'_Y(s,\omega,x).
+\]
+\emph{Step 2 (one-state integrability on the tilted measure).}
+The last-field term $E'_Y$ and the disorder term $E'_a$ are uniformly bounded in $x$ for fixed disorder $\omega$:
+\[
+ |E'_Y(t,\omega,x)| \le \frac{|Y|}{2\sqrt{1-t}}, \qquad
+ |E'_a(t,\omega,x)| \le \sum_{k<M} D \frac{|a_k|}{2\sqrt{N+1}\sqrt{t}}.
+\]
+Since the tilted Gibbs law is a probability measure, $E'_Y$ and $E'_a$ are integrable.
+The total energy derivative $E'$ is integrable by Theorem~\ref{thm:sg-tal:perceptron-gibbs-derivative}.
+By linearity of integrability, $E'_\xi = E' - E'_a - E'_Y$ is also integrable.
+\emph{Step 3 (additivity of the replica difference operator).}
+By additivity of $\operatorname{diff}$ under one-state integrability
+(\texttt{replicaDiff\_add}),
+\[
+ \operatorname{diff}(E') = \operatorname{diff}(E'_a) + \operatorname{diff}(E'_\xi) + \operatorname{diff}(E'_Y).
+\]
+Integrating over the quenched disorder $P$ yields the result.
+\emph{Formalization note (hypothesis audit).}
+This theorem establishes (2.26)--(2.27) grouped into the three terms of (2.28) summed over
+$k < M$, before constraint permutation symmetry replaces the sum with $M$ times the $M$-th
+constraint ($\alpha\sqrt{N+1}$). The spin-only corollary
+(\texttt{hasDerivAt\_integral\_integral\_pi\_perceptron\_smart\_path\_three\_terms\_spin\_only})
+requires no measurability or boundedness hypothesis on $f$, since any function on the finite
+spin space $\Sigma_N^n$ is continuous and bounded. The Gaussian IBP prefactor cancellations
+are formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathIBP.lean}.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathDisorderDerivative.lean}.
+\end{proof}
+
+\begin{proposition}[Derivative of the perceptron smart path]\label{prop:sg-tal:perceptron-smart-path-derivative}
+  \lean{SpinGlasses.smartPath_auxiliary_prefactor_eq_neg,
+        SpinGlasses.smartPath_sqrt_scaling_prefactor_eq,
+        ProbabilityTheory.integral_id_mul_comp_affine_gaussianReal,
+        MeasureTheory.integral_id_mul_deriv_u_mul_exp_affine_gaussianReal_of_integrable,
+        MeasureTheory.replicaPairDiff,
+        MeasureTheory.replicaPairAverage,
+        SpinGlasses.replicaPairDiff_eq_half_replica_covariance_combination,
+        SpinGlasses.replicaPairDiff_lastSpinKernel,
+        SpinGlasses.lastSpinKernel_self,
+        MeasureTheory.integral_sum_eq_card_mul_of_forall_eq}
+  \uses{thm:sg-tal:perceptron-derivative-three-terms}
+\talsource{Proposition~2.2.3, Eqs.~(2.23)--(2.25)}
+Assume $u$ is twice differentiable with $|u|\le B$, $|u'|\le D$ and $|u''|\le D_2$, let $Y\sim\mathcal N(0,r)$
+with $r=\mathbb E Y^2$, and write $L=N+1$ for the number of spins. For $0<t<1$ and any function $f$ on
+$\Sigma_N^n$ (a function of the spins only), the derivative of the quenched replica average is
+\[
+ \nu_t'(f)=\mathrm{I}+\mathrm{II},
+\]
+where, with $U_k(\sigma,\tau)=\varepsilon_\sigma\varepsilon_\tau\,u'(S_{k,t}(\sigma))\,u'(S_{k,t}(\tau))$ and
+$\operatorname{pd}(U)=\sum_{\ell<\ell'}U(\sigma^\ell,\sigma^{\ell'})-n\sum_{\ell\le n}U(\sigma^\ell,\sigma^{n+1})
++\tfrac{n(n+1)}2\,U(\sigma^{n+1},\sigma^{n+2})$ (\texttt{replicaPairDiff}),
+\begin{align*}
+ \mathrm{I}&=\frac1L\sum_{k<M}\mathbb E\bigl\langle f\,\operatorname{pd}(U_k)\bigr\rangle_t,\\
+ \mathrm{II}&=-r\,\mathbb E\bigl\langle f\,\operatorname{pd}(\varepsilon_\sigma\varepsilon_\tau)\bigr\rangle_t .
+\end{align*}
+This sum form needs no symmetry and holds for any finite law of the old disorder. If the rows of the old
+disorder are exchangeable and there are $M+1$ constraints, all $k$ contribute equally and $\mathrm{I}$ is
+$\alpha=(M+1)/(N+1)$ times the term $k=M$, which is the form (2.24) of the book.
+\end{proposition}
+\begin{proof}
+Write $c=1/(2\sqrt L)$, $S^\ell_k=S_{k,t}(\sigma^\ell,\xi^\ell)$, $D_k=u''(S_k)+u'(S_k)^2$ and, for a one-state
+function $H$,
+\[
+ \operatorname{diff}(H)=\sum_{\ell\le n}\langle f\,H(\sigma^\ell)\rangle_t-n\,\langle f\,H(\sigma^{n+1})\rangle_t
+\]
+(\texttt{replicaDiff}). By Theorem~\ref{thm:sg-tal:perceptron-derivative-three-terms}, for fixed disorder
+$\omega$,
+\[
+ \nu_t'(f)=\mathbb E\bigl[\operatorname{diff}(E'_a)+\operatorname{diff}(E'_\xi)+\operatorname{diff}(E'_Y)\bigr],
+ \qquad
+ E'_a=\sum_{k}c\,u'(S_k)\frac{a_k\varepsilon}{\sqrt t},\quad
+ E'_\xi=-\sum_{k}c\,u'(S_k)\frac{\xi_k}{\sqrt{1-t}},\quad
+ E'_Y=-\frac{\varepsilon Y}{2\sqrt{1-t}}.
+\]
+Each of the three terms is computed by one Gaussian integration by parts. All integrands are bounded by
+$D$, $D_2$ and affine functions of $|a_k|,|\xi_k|,|Y|$ times bounded exponentials, hence integrable, so
+the hypotheses of the Stein lemma hold. Below, $A(\ell,\ell')=\varepsilon_\ell\varepsilon_{\ell'}\,u'(S^\ell_k)u'(S^{\ell'}_k)$,
+and $\varepsilon_\ell^2=1$.
+
+\emph{Step 1 (auxiliary spins, term $E'_\xi$).} For fixed $\omega$ the replica $\ell$ has its own
+$\xi^\ell$, the observable $f$ does not depend on it, and the normalizer $Z$ does not depend on the integration
+variable. Apply Stein's lemma to $z\mapsto u'(s_0+\gamma z)e^{u(s_0+\gamma z)}$ with
+$\gamma=\sqrt{(1-t)/L}$ (affine Gaussian integration by parts, \texttt{integral\_id\_mul\_deriv\_u\_mul\_exp\_affine\_gaussianReal\_of\_integrable}):
+\[
+ \bigl\langle\xi^\ell_k\,u'(S^\ell_k)\,f\bigr\rangle_t=\sqrt{\tfrac{1-t}{L}}\,\bigl\langle D_k(S^\ell_k)\,f\bigr\rangle_t .
+\]
+The same holds for the fresh replica $n+1$. Multiplying by the coefficient $-c/\sqrt{1-t}$ of $E'_\xi$ and using
+\[
+ \frac{1}{2\sqrt L}\cdot\Bigl(-\frac1{\sqrt{1-t}}\Bigr)\cdot\sqrt{\frac{1-t}{L}}=-\frac1{2L}
+ \qquad\text{(\texttt{smartPath\_auxiliary\_prefactor\_eq\_neg})}
+\]
+we get
+\[
+ \operatorname{diff}(E'_\xi)=-\frac1{2L}\sum_{k<M}\operatorname{diff}(D_k).
+\]
+
+\emph{Step 2 (quenched disorder, term $E'_a$).} Fix everything except $a_k\sim\mathcal N(0,1)$. Since
+$\partial S^\ell_k/\partial a_k=\varepsilon_\ell\sqrt{t/L}$, differentiating the Gibbs average (numerator and
+normalizer) gives, for $\ell\le n$,
+\[
+ \partial_{a_k}\bigl\langle\varepsilon_\ell u'(S^\ell_k)f\bigr\rangle_t=\sqrt{\tfrac tL}\Bigl(
+ \langle u''(S^\ell_k)f\rangle_t+\sum_{\ell'\le n}\langle A(\ell,\ell')f\rangle_t
+ -n\langle A(\ell,n+1)f\rangle_t\Bigr),
+\]
+where $\varepsilon_\ell^2=1$ was used in the first term, and the analogue for the fresh replica $n+1$ with the sum
+over $\ell'\le n+1$ and the extra term $-(n+1)\langle A(n+1,n+2)f\rangle_t$. Stein's lemma
+$\mathbb E[a_kG(a_k)]=\mathbb E[G'(a_k)]$ and the prefactor
+\[
+ \frac1{2\sqrt L}\cdot\frac1{\sqrt t}\cdot\sqrt{\frac tL}=\frac1{2L}
+ \qquad\text{(\texttt{smartPath\_sqrt\_scaling\_prefactor\_eq})}
+\]
+give $\operatorname{diff}(E'_a)=\frac1{2L}\sum_{k<M}T_k$, where $T_k$ collects the two displays above:
+\[
+ T_k=\underbrace{\sum_{\ell\le n}\langle u''(S^\ell_k)f\rangle_t-n\langle u''(S^{n+1}_k)f\rangle_t}_{\operatorname{diff}(u''(S_k))}
+ +\underbrace{\sum_{\ell,\ell'\le n}\langle A(\ell,\ell')f\rangle_t-n\sum_{\ell\le n}\langle A(\ell,n+1)f\rangle_t
+ -n\sum_{\ell'\le n+1}\langle A(n+1,\ell')f\rangle_t+n(n+1)\langle A(n+1,n+2)f\rangle_t}_{P_k}.
+\]
+
+\emph{Step 3 (regrouping the pair terms).} The kernel $A$ is symmetric with diagonal $A(\ell,\ell)=u'(S^\ell_k)^2$. Write
+$\sum_{\ell,\ell'\le n}A(\ell,\ell')=2\sum_{\ell<\ell'}A(\ell,\ell')+\sum_{\ell\le n}A(\ell,\ell)$ and
+$\sum_{\ell'\le n+1}A(n+1,\ell')=\sum_{\ell\le n}A(\ell,n+1)+A(n+1,n+1)$. Then
+\[
+ P_k=\Bigl\langle f\Bigl[2\sum_{\ell<\ell'}A(\ell,\ell')-2n\sum_{\ell\le n}A(\ell,n+1)+n(n+1)A(n+1,n+2)\Bigr]\Bigr\rangle_t
+ +\Bigl(\sum_{\ell\le n}\langle A(\ell,\ell)f\rangle_t-n\langle A(n+1,n+1)f\rangle_t\Bigr).
+\]
+The first bracket is $2\operatorname{pd}(A)$ by the definition of $\operatorname{pd}$, and the second is $\operatorname{diff}(u'(S_k)^2)$. Since
+$D_k=u''(S_k)+u'(S_k)^2$ and $\operatorname{diff}$ is additive,
+\[
+ T_k=\operatorname{diff}(u''(S_k))+\operatorname{diff}(u'(S_k)^2)+2\bigl\langle f\operatorname{pd}(U_k)\bigr\rangle_t
+ =\operatorname{diff}(D_k)+2\bigl\langle f\operatorname{pd}(U_k)\bigr\rangle_t ,
+\]
+and therefore, with $U_k=A$,
+\[
+ \operatorname{diff}(E'_a)=\frac1{2L}\sum_{k<M}\operatorname{diff}(D_k)+\frac1L\sum_{k<M}\bigl\langle f\operatorname{pd}(U_k)\bigr\rangle_t .
+\]
+The diagonal of $A$ is not constant, which is why $\operatorname{diff}(D_k)$ appears;
+\texttt{replicaPairDiff\_eq\_half\_replica\_covariance\_combination} (constant diagonal) is not used for $A$.
+
+\emph{Step 4 (cancellation of the diagonal terms).} Adding Steps 1 and 3,
+\[
+ \operatorname{diff}(E'_a)+\operatorname{diff}(E'_\xi)=\Bigl(\frac1{2L}-\frac1{2L}\Bigr)\sum_{k<M}\operatorname{diff}(D_k)
+ +\frac1L\sum_{k<M}\bigl\langle f\operatorname{pd}(U_k)\bigr\rangle_t=\frac1L\sum_{k<M}\bigl\langle f\operatorname{pd}(U_k)\bigr\rangle_t .
+\]
+Taking $\mathbb E$ gives $\mathrm I$.
+
+\emph{Step 5 (last field, term $E'_Y$).} Since $\partial_Y(\text{energy})=\varepsilon\sqrt{1-t}$, differentiating
+$\langle\varepsilon_\ell f\rangle_t$ in $Y$ and applying Stein's lemma $\mathbb E[YG(Y)]=r\,\mathbb E[G'(Y)]$ ($r\ge0$, including $r=0$)
+gives the computation of Step 2 with $u'$ replaced by the constant $1$ and with $-\frac1{2\sqrt{1-t}}\cdot r\sqrt{1-t}=-\frac r2$ in place
+of the prefactor:
+\[
+ \operatorname{diff}(E'_Y)=-\frac r2\,\Bigl\langle f\Bigl[\sum_{\ell,\ell'\le n}\varepsilon_\ell\varepsilon_{\ell'}
+ -2n\sum_{\ell\le n}\varepsilon_\ell\varepsilon_{n+1}-n\,\varepsilon_{n+1}^2+n(n+1)\varepsilon_{n+1}\varepsilon_{n+2}\Bigr]\Bigr\rangle_t
+ =-r\,\bigl\langle f\operatorname{pd}(\varepsilon_\sigma\varepsilon_\tau)\bigr\rangle_t .
+\]
+Here the kernel $\varepsilon_\sigma\varepsilon_\tau$ has constant diagonal $1$ and is symmetric, so
+\texttt{replicaPairDiff\_lastSpinKernel} (from \texttt{replicaPairDiff\_eq\_half\_replica\_covariance\_combination}
+and \texttt{lastSpinKernel\_self}) identifies the bracket divided by $2$ with $\operatorname{pd}(\varepsilon_\sigma\varepsilon_\tau)$.
+Taking $\mathbb E$ gives $\mathrm{II}$, and $\nu_t'(f)=\mathrm I+\mathrm{II}$.
+
+\emph{Step 6 (symmetry in $k$).} If the old rows are exchangeable, the swap of row $k$ with the last row preserves the law of the
+disorder, the sum over constraints in the energy and the base measure, and maps the $k$-th term to the term $k=M$. So
+$\mathbb E\langle f\operatorname{pd}(U_k)\rangle_t=\mathbb E\langle f\operatorname{pd}(U_M)\rangle_t$ for every $k$, and
+\texttt{integral\_sum\_eq\_card\_mul\_of\_forall\_eq} gives
+\[
+ \mathrm I=\frac{M+1}{N+1}\,\mathbb E\bigl\langle f\operatorname{pd}(U_M)\bigr\rangle_t=\alpha\,\mathbb E\bigl\langle f\operatorname{pd}(U_M)\bigr\rangle_t .
+\]
+
+\emph{Formalization note (status and hypothesis audit).} Proved in Lean: the three-term expansion of the derivative
+(Theorem~\ref{thm:sg-tal:perceptron-derivative-three-terms}), the affine Stein lemma
+(\texttt{integral\_id\_mul\_comp\_affine\_gaussianReal}) and its form for $u'e^u$, both prefactor identities, the two-replica
+combination and its relation to the covariance combination, and the reduction of a sum of equal integrals. \emph{Not formalized}:
+the integration by parts of Steps 1, 2 and 5 inside the replica Gibbs average, i.e.\ the identities displayed there, and the swap
+argument of Step 6; hence this proposition has no \texttt{\textbackslash leanok}. The sum form needs no hypothesis on the old
+disorder beyond being a finite measure; the last-constraint form needs exchangeability of the rows (a hypothesis, not a
+conclusion: the book derives it from the iid property). At fixed disorder the steps need only $u\le B$, $|u'|\le D$, $|u''|\le D_2$.
+Formalized in part in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathIBP.lean}.
+\end{proof}
+
+\begin{exercise}[Smart path without auxiliary spins]\label{ex:sg-tal:perceptron-smart-path-without-auxiliary}
+  \lean{SpinGlasses.smartPathFieldNoAux,
+        SpinGlasses.smartPathEnergyNoAux,
+        MeasureTheory.replicaDiff_zero}
+  \uses{prop:sg-tal:perceptron-smart-path-derivative}
+\talsource{Exercise~2.2.4, Eq.~(2.14)}
+Replace (2.15) and (2.22) by the field without auxiliary spins
+\[
+ S^0_{k,t}(\sigma)=L^{-1/2}\sum_{i<N}g_{k,i}\sigma_i+\sqrt{t/L}\,a_k\varepsilon
+\]
+(\texttt{smartPathFieldNoAux}), keeping the energy $\sum_ku(S^0_{k,t})+\varepsilon\sqrt{1-t}\,Y$
+(\texttt{smartPathEnergyNoAux}). Then, for $0<t<1$ and a spin-only $f$, formula $\nu'_t(f)=\mathrm I+\mathrm{II}$ of
+Proposition~\ref{prop:sg-tal:perceptron-smart-path-derivative} holds with the extra term
+\[
+ \mathrm{VI}=\frac1{2L}\sum_{k<M}\mathbb E\Bigl[\sum_{\ell\le n}\bigl\langle(u''(S^{0,\ell}_k)+u'(S^{0,\ell}_k)^2)f\bigr\rangle_t
+ -n\bigl\langle(u''(S^{0,n+1}_k)+u'(S^{0,n+1}_k)^2)f\bigr\rangle_t\Bigr],
+\]
+which for $M+1$ exchangeable constraints is $\frac\alpha2$ times the term $k=M$.
+\end{exercise}
+\begin{proof}
+Write $D_k=u''(S^0_k)+u'(S^0_k)^2$ and $L=N+1$.
+
+\emph{Step 1 (derivative).} The energy has no $\xi$ coordinate, so $E'=E'_a+E'_Y$ with the same $E'_a,E'_Y$ as in
+Proposition~\ref{prop:sg-tal:perceptron-smart-path-derivative}. Equivalently the term $E'_\xi$ is absent,
+$\operatorname{diff}(E'_\xi)=0$ (\texttt{replicaDiff\_zero}), and
+\[
+ \nu_t'(f)=\mathbb E\bigl[\operatorname{diff}(E'_a)+\operatorname{diff}(E'_Y)\bigr].
+\]
+
+\emph{Step 2 (the $a_k$ and $Y$ terms are unchanged).} Steps 2, 3 and 5 of the proof of
+Proposition~\ref{prop:sg-tal:perceptron-smart-path-derivative} use only $\partial S_k/\partial a_k=\varepsilon\sqrt{t/L}$, the prefactor
+identity \texttt{smartPath\_sqrt\_scaling\_prefactor\_eq} and Stein's lemma in $a_k$ and $Y$; they do not involve $\xi$. Hence
+\[
+ \operatorname{diff}(E'_a)=\frac1{2L}\sum_{k<M}\operatorname{diff}(D_k)+\frac1L\sum_{k<M}\bigl\langle f\operatorname{pd}(U_k)\bigr\rangle_t,
+ \qquad
+ \operatorname{diff}(E'_Y)=-r\,\bigl\langle f\operatorname{pd}(\varepsilon_\sigma\varepsilon_\tau)\bigr\rangle_t .
+\]
+
+\emph{Step 3 (nothing cancels the diagonal term).} In the smart path the term $\frac1{2L}\sum_k\operatorname{diff}(D_k)$ was cancelled by
+$\operatorname{diff}(E'_\xi)=-\frac1{2L}\sum_k\operatorname{diff}(D_k)$. Here there is no such term, so
+\[
+ \nu_t'(f)=\underbrace{\frac1L\sum_{k<M}\mathbb E\bigl\langle f\operatorname{pd}(U_k)\bigr\rangle_t}_{\mathrm I}
+ \underbrace{{}-r\,\mathbb E\bigl\langle f\operatorname{pd}(\varepsilon_\sigma\varepsilon_\tau)\bigr\rangle_t}_{\mathrm{II}}
+ +\underbrace{\frac1{2L}\sum_{k<M}\mathbb E\operatorname{diff}(D_k)}_{\mathrm{VI}} .
+\]
+Under exchangeability, as in Step 6 of the proposition, $\sum_{k<M}$ over $M+1$ constraints becomes $(M+1)$ times the last term, and
+$\frac{M+1}{2(N+1)}=\frac\alpha2$.
+
+\emph{Formalization note.} Not formalized: Steps 2 and 3 depend on the integration by parts of Proposition~\ref{prop:sg-tal:perceptron-smart-path-derivative}.
+Defined in Lean: the field and energy of the path without auxiliary spins and \texttt{replicaDiff\_zero}. The model is the book's path
+(2.14), not the smart path with $\xi=0$ inserted into a statement about $\xi$; no hypothesis about $\xi$ is made.
+Formalized in part in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathModel.lean}.
+\end{proof}
+
+\begin{lemma}[Full fields in old and last coordinates]\label{lem:sg-tal:perceptron-field-split}
+  \lean{SpinGlasses.normalized_constraint_field_snoc,
+        SpinGlasses.map_split_constraint_field_eq_gaussianReal,
+        SpinGlasses.integral_split_constraint_field_mul_eq,
+        SpinGlasses.integrable_split_constraint_field_mul,
+        SpinGlasses.iIndepFun_split_constraint_fields,
+        SpinGlasses.map_split_constraint_fields_eq_pi_gaussianReal}
+  \leanok
+  \uses{lem:sg-tal:perceptron-fields}
+\talsource{The coordinate split preceding Eq.~(2.12)}
+For $L=N+1$ and $(\rho,\varepsilon)\in\Sigma_N\times\{-1,1\}$, append the last spin to obtain
+$\sigma\in\Sigma_L$. For every $x\in\mathbb R^L$,
+\[
+ L^{-1/2}\sum_{i<L}x_i\sigma_i
+ =L^{-1/2}\sum_{i<N}x_i\rho_i+L^{-1/2}x_N\varepsilon.
+\]
+Under independent standard Gaussian coordinates this split field is standard normal.
+The product of two such fields is integrable and their covariance is
+\[
+ L^{-1}\left(\sum_{i<N}\rho_i\tau_i+\varepsilon\delta\right).
+\]
+Fields from different constraint rows remain independent, with product standard normal law.
+These statements allow $N=0$ (one full spin) and no constraint rows.
+\end{lemma}
+\begin{proof}
+  \leanok
+\emph{Step 1 (last coordinate).} The finite sum splits exactly:
+\[
+ \sum_{i<L}x_i\sigma_i=\sum_{i<N}x_i\rho_i+x_N\varepsilon,\qquad
+ L^{-1/2}\sum_{i<L}x_i\sigma_i
+ =L^{-1/2}\sum_{i<N}x_i\rho_i+L^{-1/2}x_N\varepsilon.
+\]
+\emph{Step 2 (existing Gaussian laws).} Apply Lemma~\ref{lem:sg-tal:perceptron-fields} to the appended spins:
+\[
+ S(\sigma)\sim\mathcal N(0,1),\qquad
+ \mathbb E[S(\sigma)S(\tau)]
+ =L^{-1}\sum_{i<L}\sigma_i\tau_i
+ =L^{-1}\left(\sum_{i<N}\rho_i\tau_i+\varepsilon\delta\right).
+\]
+The same substitution transfers product integrability and the independent-row product law.
+\emph{Formalization note.} The normalization is the full size $L=N+1$ in both summands.
+No Gaussian integral is recomputed. This is a fixed-spin coordinate bridge, not a law of fields
+sampled from the Gibbs measure or the constant-variance calculation for interior $t$.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/GaussianFieldSplit.lean}.
+\end{proof}
+
+\begin{theorem}[The decoupled endpoint]\label{thm:sg-tal:perceptron-decoupled-endpoint}
+  \lean{SpinGlasses.integral_perceptron_smart_path_decoupled_endpoint}
+  \leanok
+  \uses{thm:sg-tal:perceptron-auxiliary-spins,lem:sg-tal:perceptron-decoupled-disorder}
+\talsource{Lemma~2.2.2}
+Suppose $u$ is measurable and bounded above. At $t=0$ use the counting-times-Gaussian base law,
+independent standard Gaussian disorders $g,a$, and an independent $Y\sim\mathcal N(0,r)$, $r\ge0$.
+Let $\nu_0$ be the corresponding disorder-averaged replica Gibbs integral. For a function $F$
+of the old coordinates of $n$ replicas and $I\subset\{1,\ldots,n\}$,
+\[
+ \nu_0\left(F\prod_{l\in I}\varepsilon_l\right)
+ =\mathbb E[(\tanh Y)^{|I|}]\,\nu_0(F)
+ =\nu_0\left(\prod_{l\in I}\varepsilon_l\right)\nu_0(F).
+\]
+This includes $r=0$, $I=\varnothing$, $n=0$, $M=0$, and $N=0$ old spins.
+\end{theorem}
+\begin{proof}
+  \leanok
+Write
+\[
+ B(g,\rho)=\sum_{k<M}\log\int
+ e^{u(L^{-1/2}\sum_{i<N}g_{k,i}\rho_i+\sqrt{1/L}\,z)}\,d\gamma_1(z).
+\]
+\emph{Step 1 (auxiliary marginal at zero).} Theorem~\ref{thm:sg-tal:perceptron-auxiliary-spins}
+with $t=0$ gives the effective counting energy
+\[
+ E_0^{\rm eff}(\rho,\varepsilon)=B(g,\rho)+\varepsilon y.
+\]
+It is independent of the unused last disorder $a$ except through its probability-law integration.
+
+\emph{Step 2 (disorder factors).} Lemma~\ref{lem:sg-tal:perceptron-decoupled-disorder} gives
+\[
+ \nu_0\left(F\prod_{l\in I}\varepsilon_l\right)
+ =\mathbb E[(\tanh Y)^{|I|}]\,\mathbb E_{(g,a)}\langle F\rangle_B,
+ \qquad \nu_0(F)=\mathbb E_{(g,a)}\langle F\rangle_B.
+\]
+The second equality is the same calculation with the empty replica subset.
+
+\emph{Step 3 (constant observable).} Set $F=1$ and use probability normalization:
+\[
+ \nu_0(1)=1,\qquad
+ \nu_0\left(\prod_{l\in I}\varepsilon_l\right)=\mathbb E[(\tanh Y)^{|I|}].
+\]
+Substitution in Step~2 gives both asserted equalities.
+\emph{Formalization note.} The same finite decoupling and independent-disorder calculation as in
+Chapter~1 is reused. No positive variance or derivative assumption is needed for this identity.
+The general smart-path bounds and constant-variance law are proved in the following results.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathDecoupling.lean}.
+\end{proof}
+
+
+\begin{lemma}[Constant variance of the smart-path field]\label{lem:sg-tal:perceptron-path-fields}
+  \lean{SpinGlasses.sum_sq_perceptron_smart_path_coefficients,
+        SpinGlasses.map_perceptron_smart_path_field_eq_gaussianReal}
+  \leanok
+  \uses{lem:sg-tal:perceptron-fields}
+\talsource{Eq.~(2.15) and the paragraph following it}
+Let $L=N+1$, $t\in[0,1]$ and fix $(\sigma,\varepsilon)\in\Sigma_N\times\{-1,1\}$.
+For independent standard Gaussians $(g_i)_{i<N},a,\xi$, the field
+\[
+ S_t=L^{-1/2}\sum_{i<N}g_i\sigma_i+\sqrt{t/L}\,a\varepsilon
+       +\sqrt{(1-t)/L}\,\xi
+\]
+has law $\mathcal N(0,1)$. This includes $N=0$ and both endpoints.
+\end{lemma}
+\begin{proof}
+  \leanok
+Write $c_i=L^{-1/2}\sigma_i$, $c_a=\sqrt{t/L}\,\varepsilon$ and
+$c_\xi=\sqrt{(1-t)/L}$.
+\emph{Step 1 (coefficient squares).} Since every spin has square one,
+\[
+ \sum_{i<N}c_i^2+c_a^2+c_\xi^2
+ =\frac{N}{L}+\frac{t}{L}+\frac{1-t}{L}=1.
+\]
+\emph{Step 2 (existing Gaussian linear-form law).} Group the coordinates with the sum index
+$\operatorname{Fin}N\sqcup\operatorname{Fin}2$. Then
+\[
+ S_t=c\cdot(g,a,\xi)\sim\mathcal N\left(0,\sum_jc_j^2\right)=\mathcal N(0,1).
+\]
+\emph{Formalization note.} This is the prior law of a deterministic-spin field. No assertion
+is made about its law after Gibbs tilting. The shared Gaussian theorem supplies the entire law;
+no moment integral is recomputed.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathFields.lean}.
+\end{proof}
+
+\begin{theorem}[Well-defined smart-path Gibbs averages]\label{thm:sg-tal:perceptron-path-bounds}
+  \lean{SpinGlasses.measurable_smartPathEnergy,
+        SpinGlasses.perceptron_smart_path_energy_le,
+        SpinGlasses.perceptron_smart_path_energy_le_of_nonneg,
+        SpinGlasses.measurable_smartPathEnergy_slice,
+        SpinGlasses.abs_perceptron_smart_path_energy_le,
+        SpinGlasses.integrable_exp_perceptron_smart_path_energy,
+        SpinGlasses.integral_exp_perceptron_smart_path_energy_pos,
+        SpinGlasses.isProbabilityMeasure_tilted_perceptron_smart_path_energy,
+        SpinGlasses.integrable_integral_pi_perceptron_smart_path,
+        MeasureTheory.measurable_integral_tilted_dep,
+        MeasureTheory.Measure.prod.instNeZero,
+        integral_sub_const_of_isProbabilityMeasure,
+        MeasureTheory.measurable_integral_pi_tilted,
+        MeasureTheory.integrable_integral_pi_tilted,
+        abs_integral_integral_le_of_forall_abs_le,
+        MeasureTheory.integral_exp_pos_of_ae_le}
+  \leanok
+  \uses{thm:sg-tal:perceptron-pressure}
+\talsource{Eqs.~(2.15)--(2.19), (2.21)}
+Suppose $u$ is measurable and $u\le D$. Write $L=N+1$,
+$A=\Sigma_N\times\{-1,1\}$, $\Xi=\mathbb R^M$,
+$\mu=\mathrm{count}_A\otimes\gamma_1^{\otimes M}$ and
+\[
+ \omega=(g,a,y),\quad x=(\sigma,\varepsilon,\xi),\qquad
+ E_t(\omega,x)=\varepsilon\sqrt{1-t}\,y+\sum_{k<M}u(S_{k,t}(\omega,x)).
+\]
+For $t\in[0,1]$, this energy is jointly measurable and
+\[
+ E_t(\omega,x)\le MD+\sqrt{1-t}\,|y|,\qquad
+ e^{E_t(\omega,\cdot)}\in L^1(\mu),\qquad
+ 0<Z_t(\omega)=\int e^{E_t(\omega,x)}\,d\mu(x)<\infty.
+\]
+If also $|u|\le D$, the same right side bounds $|E_t(\omega,x)|$.
+Thus $G_{t,\omega}=\mu^{E_t(\omega,\cdot)}$ is a probability measure. For any finite replica
+set $R$ and jointly measurable $\Phi(\omega,(x_l)_{l\in R})$ with $|\Phi|\le C$, its replica
+average is measurable in $\omega$ and integrable under every finite disorder measure $P$.
+If $P$ is a probability measure, then $|\mathbb E_P\langle\Phi\rangle_t|\le C$.
+\end{theorem}
+\begin{proof}
+  \leanok
+\emph{Step 1 (energy bound).} Finite sums and products of the coordinate maps are measurable.
+Measurability of $u$ therefore gives joint measurability of $E_t$. Also
+\[
+ |\varepsilon\sqrt{1-t}\,y|=\sqrt{1-t}\,|y|,\qquad
+ E_t\le|\varepsilon\sqrt{1-t}\,y|+\sum_{k<M}D
+ =\sqrt{1-t}\,|y|+MD.
+\]
+Under the stronger assumption $|u|\le D$, apply this bound to $(-u,-y)$ as well:
+\[
+ -E_t\le MD+\sqrt{1-t}|y|,\qquad |E_t|\le MD+\sqrt{1-t}|y|.
+\]
+\emph{Step 2 (normalization).} For fixed $\omega$ the right side is a finite constant, and
+$\mu$ is finite and nonzero. Hence
+\[
+ 0<e^{E_t(\omega,x)}\le e^{MD+\sqrt{1-t}|y|},\qquad
+ 0<\int e^{E_t(\omega,x)}\,d\mu(x)<\infty,\qquad G_{t,\omega}(A\times\Xi)=1.
+\]
+The shared product-measure instance uses the nonzero masses of both factors:
+\[
+ \mu(A\times\Xi)=\mathrm{count}_A(A)\,\gamma_1^{\otimes M}(\Xi)>0.
+\]
+\emph{Step 3 (replica averages).} For $J(\omega,\mathbf x)=\sum_{l\in R}E_t(\omega,x_l)$,
+\[
+ \langle\Phi\rangle_t(\omega)=
+ \frac{\int\Phi(\omega,\mathbf x)e^{J(\omega,\mathbf x)}\,d\mu^{\otimes R}}
+      {\int e^{J(\omega,\mathbf x)}\,d\mu^{\otimes R}},\qquad
+ |\langle\Phi\rangle_t(\omega)|\le\int C\,dG_{t,\omega}^{\otimes R}=C.
+\]
+The quotient is measurable in $\omega$. Its constant bound is integrable under finite $P$;
+a second probability average preserves the bound $C$.
+\emph{Formalization note.} The shared replica theorems now allow the observable to depend on
+the same disorder as the energy. The argument uses the continuous auxiliary base space, not
+a finite-state shortcut. Lean's bounds hold for all real coefficient parameters; the source
+path uses $[0,1]$. Only an upper bound on $u$ is needed for normalization and bounded averages; a two-sided
+bound is used solely for the absolute energy estimate. No derivative hypotheses, positive $M$,
+positive old-spin count or positive variance of $Y$ are required. These results do not yet justify differentiating under an integral.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathBounds.lean}.
+\end{proof}
+
+\begin{theorem}[The original Gibbs law at the terminal endpoint]\label{thm:sg-tal:perceptron-path-one}
+  \lean{SpinGlasses.integral_pi_perceptron_smart_path_one}
+  \leanok
+  \uses{thm:sg-tal:perceptron-auxiliary-spins,lem:sg-tal:perceptron-field-split}
+\talsource{Eq.~(2.21) and the paragraph defining $\nu=\nu_1$}
+Suppose $u$ is measurable and bounded above. For fixed full disorder $g$, any last field $y$,
+any finite replica set $R$ and every spin-only observable $F$,
+\[
+ \left\langle F\left((\operatorname{snoc}(\sigma^l,\varepsilon_l))_{l\in R}\right)\right\rangle_{t=1}
+ =\int F(\boldsymbol\tau)\,d\left(\mathrm{count}^{\sum_{k<M}
+ u(L^{-1/2}\sum_{i<L}g_{k,i}\tau_i)}\right)^{\otimes R}(\boldsymbol\tau).
+\]
+The left side uses the old disorder $g_{k,i}$, $i<N$, and last coordinates $g_{k,N}$.
+\end{theorem}
+\begin{proof}
+  \leanok
+\emph{Step 1 (auxiliary marginal).} At $t=1$ the auxiliary coefficient and the last-field term
+are zero. Exercise~2.2.1 gives
+\[
+ \log\int e^{u(S_{k,1})}\,d\gamma_1=u(S_{k,1}),\qquad
+ S_{k,1}=L^{-1/2}\sum_{i<N}g_{k,i}\sigma_i+L^{-1/2}g_{k,N}\varepsilon.
+\]
+\emph{Step 2 (concatenate spins).} The existing measurable equivalence has inverse
+$e(\sigma,\varepsilon)=\operatorname{snoc}(\sigma,\varepsilon)$, and the coordinate bridge gives
+\[
+ S_{k,1}=L^{-1/2}\sum_{i<L}g_{k,i}(e(\sigma,\varepsilon))_i.
+\]
+\emph{Step 3 (transport counting measure).} The finite Gibbs reindexing theorem transports
+both the energy and the observable along $e$:
+\[
+ \int F(e\boldsymbol\sigma)\,d(\mathrm{count}^{H\circ e})^{\otimes R}
+ =\int F(\boldsymbol\tau)\,d(\mathrm{count}^{H})^{\otimes R}.
+\]
+This is the Section~2.1 Gibbs average. The unused $y$ drops out before averaging disorder.
+\emph{Formalization note.} This is a fixed-disorder identity, stronger than its disorder average.
+It includes empty replica and constraint types and one full spin. No endpoint derivative is asserted.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathEndpoints.lean}.
+\end{proof}
+
+
+\begin{lemma}[Differentiation under an exponential tilt]\label{lem:sg-tal:perceptron-tilted-response}
+  \lean{MeasureTheory.hasDerivAt_integral_tilted_of_dominated}
+  \leanok
+\talsource{The differentiation step leading to Eq.~(2.26)}
+Let $\mu$ be a nonzero measure and let $F$ be a bounded measurable real observable.
+Suppose $e_s(x)$ is differentiable in $s$ on a common neighborhood $U$ of $t$, for almost every
+$x$, with derivative $\dot e_s(x)$. Assume $e^{e_t}$ is integrable, the exponential weights are
+measurable for parameters near $t$, and $\dot e_t e^{e_t}$ is measurable. If $b\in L^1(\mu)$ and
+\[
+ |\dot e_s(x)e^{e_s(x)}|\le b(x)\quad(s\in U)
+\]
+for almost every $x$, then the normalized tilted average satisfies
+\[
+ \frac{d}{dt}\langle F\rangle_t
+ =\langle F\dot e_t\rangle_t-\langle F\rangle_t\langle\dot e_t\rangle_t.
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+Write $Z(s)=\int e^{e_s}\,d\mu$ and $A(s)=\int F e^{e_s}\,d\mu$, with $|F|\le C$.
+\emph{Step 1 (normalizer).} The derivative envelope and dominated differentiation give
+\[
+ Z(t)>0,\qquad Z'(t)=\int\dot e_t e^{e_t}\,d\mu.
+\]
+\emph{Step 2 (weighted numerator).} The same theorem applies with envelope $|C|b$:
+\[
+ |F\dot e_s e^{e_s}|\le|C|b,\qquad A'(t)=\int F\dot e_t e^{e_t}\,d\mu.
+\]
+\emph{Step 3 (quotient).} Divide by the positive normalizer:
+\[
+ \left(\frac{A}{Z}\right)'(t)
+ =\frac{A'(t)}{Z(t)}-\frac{A(t)}{Z(t)}\frac{Z'(t)}{Z(t)}
+ =\langle F\dot e_t\rangle_t-\langle F\rangle_t\langle\dot e_t\rangle_t.
+\]
+\emph{Formalization note.} The measure need not be finite. Measurability and derivative bounds
+are allowed almost everywhere. The hypotheses explicitly justify the exchange of derivative
+and integral; applying this lemma to a model still requires proving them.
+Formalized in \texttt{ForMathlib/MeasureTheory/Integral/BoundedTilted.lean}.
+\end{proof}
+
+\begin{lemma}[Replica response and a fresh replica]\label{lem:sg-tal:perceptron-replica-response}
+  \lean{MeasureTheory.hasDerivAt_integral_pi_tilted_of_dominated,
+        MeasureTheory.integral_pi_sum_eval,
+        MeasureTheory.integral_pi_cov_sum_eq_sum_sub_fresh,
+        MeasureTheory.neZero_measure_pi}
+  \leanok
+  \uses{lem:sg-tal:perceptron-tilted-response}
+\talsource{The replica normalization in Eqs.~(2.19), (2.26)}
+Let $\mu$ be finite and nonzero, let $R$ be a finite replica set and let $F$ be measurable
+and bounded. Suppose $E_s$ is measurable on a neighborhood $U$ of $t$,
+$\dot E_t$ is measurable, $E_s\le B$ on $U$, and
+\[
+ \frac{d}{ds}E_s(x)=\dot E_s(x),\qquad |\dot E_s(x)|\le b(x),\qquad b\in L^1(\mu).
+\]
+Writing $G_t=\mu^{E_t}$, the $R$-replica average has derivative
+\[
+ \left\langle F\sum_{i\in R}\dot E_t(x_i)\right\rangle_t
+ -\langle F\rangle_t\left\langle\sum_{i\in R}\dot E_t(x_i)\right\rangle_t.
+\]
+For any probability law $\nu$, bounded measurable $F$ and $h\in L^1(\nu)$, one fresh replica
+$*$ gives the identity
+\begin{align*}
+ &\int F\sum_{i\in R}h(x_i)\,d\nu^{\otimes R}
+ -\left(\int F\,d\nu^{\otimes R}\right)
+  \left(\int\sum_{i\in R}h(x_i)\,d\nu^{\otimes R}\right)\\
+ &=\sum_{i\in R}\int F(\mathbf x_R)h(x_i)\,d\nu^{\otimes(R\cup\{*\})}
+   -|R|\int F(\mathbf x_R)h(x_*)\,d\nu^{\otimes(R\cup\{*\})}.
+\end{align*}
+Both statements allow $R=\varnothing$.
+\end{lemma}
+\begin{proof}
+  \leanok
+Write $J_s(\mathbf x)=\sum_{i\in R}E_s(x_i)$ and
+$\dot J_s(\mathbf x)=\sum_{i\in R}\dot E_s(x_i)$.
+\emph{Step 1 (product base).} The finite product measure is nonzero and
+\[
+ \bigotimes_{i\in R}\mu^{E_s}=(\mu^{\otimes R})^{J_s},\qquad
+ J_s\le|R|B.
+\]
+\emph{Step 2 (integrable derivative envelope).} Coordinate integrability gives
+\[
+ |\dot J_s e^{J_s}|\le e^{|R|B}\sum_{i\in R}b(x_i),\qquad
+ \sum_{i\in R}b(x_i)\in L^1(\mu^{\otimes R}).
+\]
+Lemma~\ref{lem:sg-tal:perceptron-tilted-response} now gives the covariance formula.
+\emph{Step 3 (fresh-replica algebra).} Finite sum integration, coordinate marginals and
+independence give
+\[
+ \int\sum_{i\in R}h(x_i)\,d\nu^{\otimes R}=|R|\int h\,d\nu,
+ \qquad
+ \int F(\mathbf x_R)h(x_*)\,d\nu^{\otimes(R\cup\{*\})}
+ =\left(\int F\,d\nu^{\otimes R}\right)\left(\int h\,d\nu\right).
+\]
+Adding the unused fresh coordinate to each observed-replica term yields the asserted identity.
+\emph{Formalization note.} The fresh-replica identity needs integrability of $h$, not a
+uniform bound on $h$. This distinction permits energy derivatives containing Gaussian
+coordinates. The existing finite-product nonzero lemma was moved from the cavity module
+without changing its name or proof.
+Formalized in \texttt{ForMathlib/Probability/GibbsReplicaProduct.lean}.
+\end{proof}
+
+\begin{lemma}[Pointwise path derivatives and their envelope]\label{lem:sg-tal:perceptron-path-derivatives}
+  \lean{SpinGlasses.hasDerivAt_perceptron_smart_path_field,
+        SpinGlasses.hasDerivAt_smartPathEnergy,
+        SpinGlasses.abs_smartPathEnergyDerivA_le,
+        SpinGlasses.abs_smartPathEnergyDerivXi_le,
+        SpinGlasses.abs_smartPathEnergyDerivY_le,
+        SpinGlasses.abs_deriv_perceptron_smart_path_energy_le}
+  \leanok
+\talsource{Eqs.~(2.15), (2.22), (2.27)}
+For fixed disorder and configuration, $L=N+1$ and $0<t<1$, write
+\[
+ S_{k,t}=L^{-1/2}\sum_{i<N}g_{k,i}\sigma_i+\sqrt{t/L}\,a_k\varepsilon
+        +\sqrt{(1-t)/L}\,\xi_k,\qquad
+ E_t=\varepsilon\sqrt{1-t}\,y+\sum_{k<M}u(S_{k,t}).
+\]
+If $u$ is differentiable, then
+\[
+ \dot S_{k,t}=\frac1{2\sqrt L}\left(\frac{a_k\varepsilon}{\sqrt t}
+                     -\frac{\xi_k}{\sqrt{1-t}}\right),\qquad
+ \dot E_t=-\frac{\varepsilon y}{2\sqrt{1-t}}+\sum_{k<M}u'(S_{k,t})\dot S_{k,t}.
+\]
+If $|u'|\le D$, $\delta>0$ and $\delta\le t\le1-\delta$, then
+\[
+ |\dot E_t|\le\frac{|y|}{2\sqrt\delta}
+ +\sum_{k<M}\frac{D}{2\sqrt L}\frac{|a_k|+|\xi_k|}{\sqrt\delta}.
+\]
+These assertions include $N=0$ and $M=0$.
+\end{lemma}
+\begin{proof}
+  \leanok
+\emph{Step 1 (square-root coefficients).} For $z>0$ and $L>0$,
+\[
+ \frac1L\frac1{2\sqrt{z/L}}=\frac1{2\sqrt L\sqrt z},\qquad
+ \frac d{dt}\sqrt{t/L}=\frac1{2\sqrt L\sqrt t},\quad
+ \frac d{dt}\sqrt{(1-t)/L}=-\frac1{2\sqrt L\sqrt{1-t}}.
+\]
+The constant old-spin sum differentiates to zero, giving $\dot S_{k,t}$.
+\emph{Step 2 (chain rule).} Differentiate the finite potential sum and the last-field term:
+\[
+ \frac d{dt}\sum_{k<M}u(S_{k,t})=\sum_{k<M}u'(S_{k,t})\dot S_{k,t},\qquad
+ \frac d{dt}(\varepsilon\sqrt{1-t}\,y)=-\frac{\varepsilon y}{2\sqrt{1-t}}.
+\]
+\emph{Step 3 (uniform bound inside the interval).} The square-root denominators satisfy
+\[
+ \frac1{\sqrt t}\le\frac1{\sqrt\delta},\qquad
+ \frac1{\sqrt{1-t}}\le\frac1{\sqrt\delta},\qquad |\varepsilon|=1.
+\]
+The triangle inequality and $|u'|\le D$ give the displayed envelope.
+\emph{Formalization note.} Differentiability of $u$ suffices for (2.27); no bound on $u$
+or second derivative is used in the pointwise calculation. The envelope is for a fixed
+finite system and does not assert a system-size error estimate. No endpoint derivative
+or exchange with an integral is asserted by this lemma.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathDifferentiation.lean}.
+\end{proof}
+
+\begin{theorem}[Derivative of the fixed-disorder replica average]\label{thm:sg-tal:perceptron-gibbs-derivative}
+  \lean{SpinGlasses.hasDerivAt_integral_pi_perceptron_smart_path}
+  \leanok
+  \uses{lem:sg-tal:perceptron-replica-response,lem:sg-tal:perceptron-path-derivatives,
+        thm:sg-tal:perceptron-path-bounds}
+\talsource{Eq.~(2.26), with Eq.~(2.27) substituted for the energy derivative}
+Suppose $u$ is differentiable, $u\le B$ and $|u'|\le D$. Fix $g,a,y$, a finite replica set $R$
+and a measurable bounded observable $F$ of the full replica configurations. For $0<t<1$,
+\[
+ \frac d{dt}\langle F\rangle_t
+ =\sum_{i\in R}\left\langle F\dot E_t(x_i)\right\rangle_t
+ -|R|\left\langle F\dot E_t(x_*)\right\rangle_t.
+\]
+Every average on the right uses $R$ observed replicas and one fresh replica $*$.
+The observable $F$ ignores that fresh replica. Each replica has its own auxiliary Gaussian
+vector; the disorder $g,a,y$ is shared and fixed. Empty replica and constraint types and one
+full spin are allowed.
+\end{theorem}
+\begin{proof}
+  \leanok
+\emph{Step 1 (a neighborhood away from the endpoints).} Choose
+\[
+ \delta=\tfrac12\min(t,1-t)>0,\qquad U=(\delta,1-\delta),\qquad t\in U.
+\]
+For $s\in U$, the path bounds and Lemma~\ref{lem:sg-tal:perceptron-path-derivatives} give
+\[
+ E_s(x)\le MB+|y|,\qquad
+ |\dot E_s(x)|\le b(x):=\frac{|y|}{2\sqrt\delta}
+ +\sum_{k<M}\frac D{2\sqrt L}\frac{|a_k|+|\xi_k|}{\sqrt\delta}.
+\]
+\emph{Step 2 (integrability over auxiliary coordinates).} A Gaussian coordinate has a finite
+first absolute moment. Finite sums and the finite counting factor therefore give
+\[
+ \int |\xi_k|\,d\gamma_1^{\otimes M}<\infty,\qquad
+ b\in L^1(\mathrm{count}_{\Sigma_N\times\{-1,1\}}\otimes\gamma_1^{\otimes M}).
+\]
+The energy and its derivative are measurable, using measurability of $u$ and $u'$.
+\emph{Step 3 (differentiate and introduce the fresh replica).} Apply
+Lemma~\ref{lem:sg-tal:perceptron-replica-response}. Its covariance term is
+\[
+ \left\langle F\sum_{i\in R}\dot E_t(x_i)\right\rangle_t
+ -\langle F\rangle_t\left\langle\sum_{i\in R}\dot E_t(x_i)\right\rangle_t.
+\]
+The energy derivative is integrable under the tilted law: its product with $e^{E_t}$
+is dominated by the preceding integrable envelope times $e^{MB+|y|}$. The fresh-replica
+identity therefore gives the asserted formula.
+\emph{Formalization note.} This proves differentiation through the continuous auxiliary and
+replica integrals, not just a formula assuming that exchange. An upper bound on $u$ and a
+bound on $u'$ suffice. A spin-only observable in the source is a special case. Passing the
+derivative through the shared-disorder expectation is proved in
+Theorem~\ref{thm:sg-tal:perceptron-disorder-derivative}; Gaussian integration by parts remains open.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathGibbsDerivative.lean}.
+\end{proof}
+
+\begin{lemma}[First-moment bounds for a tilt and for covariance]\label{lem:sg-tal:perceptron-tilt-first-moment}
+  \lean{MeasureTheory.abs_integral_tilted_le_exp_mul_integral_abs,
+        MeasureTheory.abs_integral_mul_sub_integral_mul_le}
+  \leanok
+\talsource{The integrability justification for averaging Eq.~(2.26)}
+Let $\mu$ be a finite nonzero base measure, $e$ an almost everywhere measurable energy,
+$|e|\le A$ almost everywhere, and $h\in L^1(\mu)$. Then
+\[
+ \left|\int h\,d\mu_e\right|
+ \le \frac{e^{2A}}{\mu(X)}\int |h|\,d\mu,
+ \qquad \mu_e=\mu.\mathrm{tilted}(e).
+\]
+Separately, for any probability measure $\nu$, $h\in L^1(\nu)$ and $|F|\le C$,
+\[
+ \left|\int Fh\,d\nu-\left(\int F\,d\nu\right)\left(\int h\,d\nu\right)\right|
+ \le 2|C|\int |h|\,d\nu.
+\]
+The second inequality does not require measurability of $F$; model observables below are measurable.
+\end{lemma}
+\begin{proof}
+  \leanok
+\emph{Step 1 (bound the numerator and normalizer).} The energy bound gives
+\[
+ 0<\mu(X)e^{-A}\le Z:=\int e^e\,d\mu,
+ \qquad \int |h|e^e\,d\mu\le e^A\int |h|\,d\mu.
+\]
+\emph{Step 2 (divide by the positive normalizer).} The quotient formula yields
+\[
+ \left|\int h\,d\mu_e\right|
+ \le\frac{\int |h|e^e\,d\mu}{Z}
+ \le\frac{e^A}{\mu(X)e^{-A}}\int |h|\,d\mu.
+\]
+\emph{Step 3 (bound both covariance terms).} On the probability space,
+\[
+ \left|\int Fh\,d\nu\right|\le |C|\int |h|\,d\nu,
+ \qquad
+ \left|\int F\,d\nu\right|\left|\int h\,d\nu\right|
+ \le |C|\int |h|\,d\nu.
+\]
+The triangle inequality gives the second assertion.
+\emph{Formalization note.} These are general estimates for integrable, possibly unbounded
+observables. The source does not state them separately. They supply a denominator bound
+when justifying the disorder expectation in (2.26); no system-size-uniform bound is claimed.
+Formalized in \texttt{ForMathlib/MeasureTheory/Integral/BoundedTilted.lean} and
+\texttt{ForMathlib/MeasureTheory/Integral/IntegrableOfBound.lean}.
+\end{proof}
+
+\begin{theorem}[Differentiating an average of random tilts]\label{thm:sg-tal:perceptron-expected-tilt-response}
+  \lean{MeasureTheory.hasDerivAt_integral_integral_tilted_of_dominated,
+        MeasureTheory.hasDerivAt_integral_tilted_of_bounded,
+        MeasureTheory.integrable_tilted_of_ae_le}
+  \leanok
+  \uses{lem:sg-tal:perceptron-tilted-response,lem:sg-tal:perceptron-tilt-first-moment}
+\talsource{The derivative exchange preceding Eq.~(2.28)}
+Let $P$ be any finite environment measure, $\mu$ a finite nonzero base measure,
+and $U$ an open neighborhood of $t$. Suppose $E_s(\omega,x)$ and $E'_s(\omega,x)$
+are jointly measurable in $(\omega,x)$ for every $s\in U$, with
+\[
+ \frac d{ds}E_s(\omega,x)=E'_s(\omega,x),\qquad
+ |E_s(\omega,x)|\le A(\omega),\qquad
+ |E'_s(\omega,x)|\le B(\omega)b(x).
+\]
+Assume $B,b\ge0$, $b\in L^1(\mu)$, $e^{2A}B\in L^1(P)$, and measurable $F$ with $|F|\le C$.
+For $\nu_{s,\omega}=\mu.\mathrm{tilted}(E_s(\omega,\cdot))$, one has
+\[
+ \frac d{dt}\int\!\int F\,d\nu_{t,\omega}\,dP(\omega)
+ =\int\left[\int FE'_t\,d\nu_{t,\omega}
+   -\left(\int F\,d\nu_{t,\omega}\right)
+    \left(\int E'_t\,d\nu_{t,\omega}\right)\right]\,dP(\omega).
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+\emph{Step 1 (integrability under each tilt).} An upper energy bound preserves base integrability:
+\[
+ h\in L^1(\mu),\ E\le A
+ \quad\Longrightarrow\quad |h|e^E\le e^A|h|,
+ \quad h\in L^1(\mu.\mathrm{tilted}(E)).
+\]
+The latter fact also holds for a zero base measure. Here the nonzero base ensures a positive normalizer.
+\emph{Step 2 (differentiate the inner integral).} The unweighted derivative envelope supplies
+\[
+ |E'_s e^{E_s}|\le e^{A(\omega)}B(\omega)b,
+ \qquad
+ D_s(\omega):=\frac d{ds}\int F\,d\nu_{s,\omega}
+ =\int FE'_s\,d\nu_{s,\omega}
+  -\left(\int F\,d\nu_{s,\omega}\right)\left(\int E'_s\,d\nu_{s,\omega}\right).
+\]
+Apply Lemma~\ref{lem:sg-tal:perceptron-tilted-response} on $U$.
+\emph{Step 3 (a common integrable outer bound).} Lemma~\ref{lem:sg-tal:perceptron-tilt-first-moment} gives
+\[
+ |D_s(\omega)|
+ \le\frac{2|C|}{\mu(X)}\left(\int b\,d\mu\right)e^{2A(\omega)}B(\omega),
+ \qquad s\in U.
+\]
+\emph{Step 4 (differentiate the environment integral).} Joint measurability gives measurable
+inner averages and covariance terms. The finite environment measure and bounded $F$ give
+\[
+ \omega\longmapsto\int F\,d\nu_{t,\omega}\in L^1(P),
+ \qquad
+ \frac d{dt}\int\!\int F\,d\nu_{t,\omega}\,dP=\int D_t\,dP
+\]
+by Mathlib's dominated integral derivative theorem and the preceding uniform bound.
+\emph{Formalization note.} No Gaussian hypothesis or finite state space enters this theorem.
+It supplies the analytic step omitted from the printed calculation. Its hypotheses are
+checked for the actual perceptron law below; they are not substitutes for that check.
+Formalized in \texttt{ForMathlib/MeasureTheory/Integral/ExpectedTilted.lean}.
+\end{proof}
+
+\begin{theorem}[Averaging the perceptron derivative over shared disorder]\label{thm:sg-tal:perceptron-disorder-derivative}
+  \lean{SpinGlasses.hasDerivAt_integral_integral_pi_perceptron_smart_path}
+  \leanok
+  \uses{thm:sg-tal:perceptron-expected-tilt-response,
+        thm:sg-tal:perceptron-gibbs-derivative,lem:sg-tal:perceptron-path-derivatives}
+\talsource{Eqs.~(2.26)--(2.27), before the three-term expansion in (2.28)}
+Suppose $u$ is differentiable, $|u|\le B$ and $|u'|\le D$. Let the old disorder $g$ have
+any finite law $P_0$, independently of $a\sim\gamma_1^{\otimes M}$ and
+$Y\sim\gamma_v$, $v\ge0$. For a finite replica set $R$, $n=|R|$, and a bounded measurable
+observable $F$ of the full replica configurations, set
+\[
+ P=(P_0\otimes\gamma_1^{\otimes M})\otimes\gamma_v,\qquad
+ \nu_t(F)=\int\langle F\rangle_{t,\omega}\,dP(\omega).
+\]
+At every $0<t<1$,
+\[
+ \nu'_t(F)=\int\left[
+   \sum_{i\in R}\left\langle F\dot E_t(x_i)\right\rangle_{t,\omega}
+   -n\left\langle F\dot E_t(x_*)\right\rangle_{t,\omega}\right]dP(\omega).
+\]
+The fresh replica $*$ has its own auxiliary vector and shares $g,a,Y$ with the observed
+replicas. Empty constraint and replica types, one full spin and $v=0$ are included.
+\end{theorem}
+\begin{proof}
+  \leanok
+\emph{Step 1 (an interval with positive square-root denominators).} By density of the real order choose
+\[
+ 0<\delta<\min(t,1-t),\qquad U=(\delta,1-\delta).
+\]
+Write $L=N+1$ and $J_s(\mathbf x)=\sum_{i\in R}E_s(x_i)$. The path bounds give
+\[
+ |E_s(\omega,x)|\le MB+|y|,\qquad
+ |J_s(\omega,\mathbf x)|\le A(\omega):=n(MB+|y|),\qquad s\in U.
+\]
+\emph{Step 2 (separate disorder and auxiliary envelopes).} Put
+\[
+ K=\frac1{2\sqrt\delta}+M\frac{D}{2\sqrt L}\frac2{\sqrt\delta},\qquad
+ Q(\omega)=K\exp\left(|y|+\sum_{k<M}|a_k|\right),\qquad
+ b(\mathbf x)=\sum_{i\in R}\exp\left(\sum_{k<M}|\xi_k^i|\right).
+\]
+The bound for $\dot E_s$ from Lemma~\ref{lem:sg-tal:perceptron-path-derivatives}, together with
+$z\le z+1\le e^z$, gives
+\[
+ |\dot E_s(\omega,x)|\le
+ Q(\omega)\exp\left(\sum_{k<M}|\xi_k|\right),\qquad
+ |\dot J_s(\omega,\mathbf x)|\le Q(\omega)b(\mathbf x).
+\]
+Indeed each of $|y|$, $|a_k|$ and $|\xi_k|$ is at most
+$|y|+\sum_k|a_k|+\sum_k|\xi_k|$. These estimates use no coordinates of $g$.
+\emph{Step 3 (check both integrability requirements).} Gaussian absolute exponential moments and
+finite counting mass give
+\[
+ b\in L^1(\mu^{\otimes R}),\qquad
+ e^{2A(\omega)}Q(\omega)
+ =K e^{2nMB}\exp\left(\sum_{k<M}|a_k|\right)e^{(2n+1)|y|}\in L^1(P).
+\]
+The scalar Gaussian moment lemma includes $v=0$. The finite law $P_0$ supplies the remaining factor.
+\emph{Step 4 (differentiate and identify the fresh-replica expression).} Energy and energy-derivative
+measurability pass to replica sums. Theorem~\ref{thm:sg-tal:perceptron-expected-tilt-response}, with
+\[
+ \bigotimes_{i\in R}\mu^{E_s}=(\mu^{\otimes R})^{J_s},
+\]
+passes the derivative through $P$. At each fixed $\omega$, the bounded-energy scalar theorem and
+Theorem~\ref{thm:sg-tal:perceptron-gibbs-derivative} differentiate this same replica average.
+Uniqueness of the derivative identifies their covariance and fresh-replica expressions,
+which proves the displayed formula.
+\emph{Formalization note.} This supplies the missing exchange with the shared-disorder integral
+in the printed argument. The upper-bound-only hypotheses of the fixed-disorder theorem are
+preserved; the two-sided bound is used here to bound the normalized density. The old disorder
+law need not be Gaussian for this exchange. A spin-only source observable is a special case;
+the later integration-by-parts computations must retain that restriction. The exponential
+envelope is for a fixed finite system and makes no claim of a size-uniform error estimate.
+The three separately integrable terms of (2.28) are proved in
+Theorem~\ref{thm:sg-tal:perceptron-derivative-three-terms}.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathDisorderDerivative.lean}.
+\end{proof}
+
+\begin{theorem}[Three-term expansion of the smart-path derivative]\label{thm:sg-tal:perceptron-derivative-three-terms}
+  \lean{SpinGlasses.hasDerivAt_smartPathEnergy,
         SpinGlasses.perceptron_smart_path_diff_eq_three_terms,
         SpinGlasses.hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms,
         SpinGlasses.hasDerivAt_integral_integral_pi_perceptron_smart_path_three_terms_spin_only}

@@ -1,5 +1,7 @@
 ## macOS
 .DS_Store
+## NFS silly-rename files (left behind when an open file is deleted)
+.nfs*
 ## Python build and validation scripts
 __pycache__/
 ## Lake

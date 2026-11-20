@@ -140,6 +140,10 @@ section Gibbs
 open unitInterval
 open scoped ENNReal RealInnerProductSpace
 
+-- Mathlib has no `MeasurableSpace` on `Lp`; the theorems below hold for any Borel structure, so it
+-- is a hypothesis and a global instance would be wrong.
+set_option linter.concreteInstances false
+
 variable [MeasurableSpace (Lp ℝ 2 (volume : Measure I))] [BorelSpace (Lp ℝ 2 (volume : Measure I))]
 
 /-- **From the Dovbysh–Sudakov representation to a random measure on `L²(0, 1)`.**  Let
