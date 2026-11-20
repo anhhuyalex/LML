@@ -428,7 +428,7 @@ theorem integrable_replicaDiff_smartPathEnergyDerivA {N M : ℕ}
 /-- **The `E'_ξ` term, averaged over the disorder** (spin-only observable): minus
 `1/(2(N+1))` times the sum over constraints of the expected replica difference of the diagonal. -/
 theorem integral_replicaDiff_smartPathEnergyDerivXi_disorder {N M : ℕ} {R : Type*} [Fintype R]
-    [LinearOrder R] {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) 1) {u : ℝ → ℝ} {B D D₂ : ℝ}
+    {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) 1) {u : ℝ → ℝ} {B D D₂ : ℝ}
     (hu : SmartPathPotential₂ u B D D₂) (v : ℝ≥0)
     {Pold : Measure (Fin M → Fin N → ℝ)} [IsFiniteMeasure Pold]
     (f : (R → PerceptronSpin N) → ℝ) :

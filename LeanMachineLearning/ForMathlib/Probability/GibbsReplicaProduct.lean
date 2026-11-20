@@ -143,6 +143,36 @@ theorem integral_pi_tilted_eq_div (E : α → ℝ) (Y : (ι → α) → ℝ) :
         ∫ σ, Real.exp (∑ i, E (σ i)) ∂(Measure.pi fun _ : ι => μ) := by
   rw [pi_tilted_eq_tilted_pi, integral_tilted_eq_div]
 
+/-- **Numerator and normalizer of a split energy.** Under the base measure `μ`, the replica
+numerator of the energy `E + V` is the `|ι|`-th power of the base normalizer times the base-`E`
+Gibbs replica average of `Y ∏ e^{V(σ_i)}`. -/
+theorem integral_pi_mul_exp_sum_add_eq {E V : α → ℝ} (hZ : ∫ a, Real.exp (E a) ∂μ ≠ 0)
+    (Y : (ι → α) → ℝ) :
+    ∫ σ, Y σ * Real.exp (∑ i, (E (σ i) + V (σ i))) ∂(Measure.pi fun _ : ι => μ) =
+      (∫ a, Real.exp (E a) ∂μ) ^ Fintype.card ι *
+        ∫ σ, Y σ * Real.exp (∑ i, V (σ i)) ∂(Measure.pi fun _ : ι => μ.tilted E) := by
+  have h := integral_pi_tilted_eq_div (μ := μ) (ι := ι) E (fun σ => Y σ * Real.exp (∑ i, V (σ i)))
+  rw [integral_pi_exp_sum, eq_div_iff (pow_ne_zero _ hZ)] at h
+  rw [mul_comm, h]
+  refine integral_congr_ae (Filter.Eventually.of_forall fun σ => ?_)
+  simp only [Finset.sum_add_distrib, Real.exp_add]
+  ring
+
+omit [IsFiniteMeasure μ] in
+/-- **Splitting an energy into a base part and a perturbation.** A replica average under the tilt
+by `E + V` is the base-`E` replica average of `Y ∏ e^{V(σ_i)}`, divided by the `|ι|`-th power of
+the one-replica average of `e^V`. Only the exponential integrability of `E` is needed: the identity
+is the double tilt `(μ.tilted E).tilted V = μ.tilted (E + V)` applied replica by replica. -/
+theorem integral_pi_tilted_add_eq_div {E V : α → ℝ} (hE : Integrable (fun a => Real.exp (E a)) μ)
+    (Y : (ι → α) → ℝ) :
+    ∫ σ, Y σ ∂(Measure.pi fun _ : ι => μ.tilted (fun a => E a + V a)) =
+      (∫ σ, Y σ * Real.exp (∑ i, V (σ i)) ∂(Measure.pi fun _ : ι => μ.tilted E)) /
+        (∫ a, Real.exp (V a) ∂(μ.tilted E)) ^ Fintype.card ι := by
+  have h := integral_pi_tilted_eq_div (μ := μ.tilted E) (ι := ι) V Y
+  rw [integral_pi_exp_sum] at h
+  have e : μ.tilted (fun a => E a + V a) = (μ.tilted E).tilted V := (tilted_tilted hE V).symm
+  rw [e, h]
+
 /-- Differentiate a replica observable that moves with the parameter, along a smooth energy path.
 A uniform upper energy bound and an integrable bound on the energy derivative justify the exchange
 with all replica integrals (also for a continuous base space and an empty replica index type); the
