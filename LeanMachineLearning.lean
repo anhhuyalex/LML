@@ -144,6 +144,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Order.MeasurableArg
 public import LeanMachineLearning.ForMathlib.MeasureTheory.OuterMeasure.Basic
 public import LeanMachineLearning.ForMathlib.Order.Interval.Finset.Basic
 public import LeanMachineLearning.ForMathlib.Order.Interval.Finset.Nat
+public import LeanMachineLearning.ForMathlib.Order.Interval.UnitIoo
 public import LeanMachineLearning.ForMathlib.Probability.ConditionalProbability
 public import LeanMachineLearning.ForMathlib.Probability.ConditionallyIID
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Gaussian.ExpSq
@@ -162,6 +163,7 @@ public import LeanMachineLearning.ForMathlib.Probability.GibbsLogPartition
 public import LeanMachineLearning.ForMathlib.Probability.GibbsLogPartitionCavity
 public import LeanMachineLearning.ForMathlib.Probability.GibbsProductSplit
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaCavity
+public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaDiffDerivative
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaProduct
 public import LeanMachineLearning.ForMathlib.Probability.GibbsSiteSymmetry
 public import LeanMachineLearning.ForMathlib.Probability.GibbsTemperatureDerivative

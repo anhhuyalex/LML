@@ -36,14 +36,6 @@ theorem abs_div_sqrt_le_abs_div_sqrt (x s δ : ℝ) (hδ : 0 < δ) (hs : δ ≤ 
   rw [abs_of_nonneg (Real.sqrt_nonneg _)]
   exact Real.sqrt_le_sqrt hs
 
-/-- Given `t ∈ (0, 1)`, there exists an interior radius `δ > 0` such that
-`δ < t` and `δ < 1 - t`. -/
-theorem exists_pos_lt_of_mem_Ioo {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) 1) :
-    ∃ δ : ℝ, 0 < δ ∧ δ < t ∧ δ < 1 - t := by
-  have hpos : 0 < min t (1 - t) := lt_min ht.1 (sub_pos.2 ht.2)
-  obtain ⟨δ, hδ0, hδmin⟩ := exists_between hpos
-  exact ⟨δ, hδ0, hδmin.trans_le (min_le_left _ _), hδmin.trans_le (min_le_right _ _)⟩
-
 /-- Dividing by a coefficient bounded below by `3/4` costs at most a factor `4/3`. -/
 theorem abs_div_le_four_thirds {K : Type*} [Field K] [LinearOrder K]
     [IsStrictOrderedRing K] {x D b : K} (hD : 3 / 4 ≤ D) (hx : |x| ≤ b) :
