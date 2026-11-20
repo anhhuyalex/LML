@@ -163,4 +163,18 @@ theorem integrable_perceptron_smart_path_envelope {N M : ℕ} (D δ y : ℝ) (a 
   congr 2
   exact Finset.sum_congr rfl fun k _ => by ring
 
+/-- The energy is affine in the last field `y = ω.2`: its derivative is
+`√(1 - t) ε` (`ε` the last spin), at any `t`. -/
+theorem hasDerivAt_smartPathEnergy_lastField {N M : ℕ} (u : ℝ → ℝ) (t : ℝ)
+    (ω₀ : (Fin M → Fin N → ℝ) × (Fin M → ℝ)) (x : SmartPathState N M) (y : ℝ) :
+    HasDerivAt (fun r => smartPathEnergy u t (ω₀, r) x)
+      (Real.sqrt (1 - t) * ((x.1.2 : ℤ) : ℝ)) y := by
+  have h := ((hasDerivAt_id y).const_mul (((x.1.2 : ℤ) : ℝ) * Real.sqrt (1 - t))).add_const
+    (∑ k, u (smartPathField t (ω₀, y) x k))
+  have hf : (fun r => smartPathEnergy u t (ω₀, r) x) = fun r =>
+      ((x.1.2 : ℤ) : ℝ) * Real.sqrt (1 - t) * id r + ∑ k, u (smartPathField t (ω₀, y) x k) := rfl
+  rw [hf]
+  convert h using 1
+  simp [mul_comm]
+
 end SpinGlasses

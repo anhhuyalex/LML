@@ -143,22 +143,27 @@ theorem integral_pi_tilted_eq_div (E : α → ℝ) (Y : (ι → α) → ℝ) :
         ∫ σ, Real.exp (∑ i, E (σ i)) ∂(Measure.pi fun _ : ι => μ) := by
   rw [pi_tilted_eq_tilted_pi, integral_tilted_eq_div]
 
-/-- Differentiate a bounded replica observable along a smooth energy path. A uniform upper
-energy bound and an integrable bound on the energy derivative justify the exchange with all
-replica integrals, including for a continuous base space and an empty replica index type.
-The derivative is the covariance with the sum of the replica energy derivatives. -/
-theorem hasDerivAt_integral_pi_tilted_of_dominated {α R : Type*} [MeasurableSpace α] [Fintype R]
+/-- Differentiate a replica observable that moves with the parameter, along a smooth energy path.
+A uniform upper energy bound and an integrable bound on the energy derivative justify the exchange
+with all replica integrals (also for a continuous base space and an empty replica index type); the
+observable and its parameter derivative are uniformly bounded. The derivative is the average of the
+observable derivative plus the covariance of the observable with the sum of the replica energy
+derivatives. -/
+theorem hasDerivAt_integral_pi_tilted_moving {α R : Type*} [MeasurableSpace α] [Fintype R]
     {μ : Measure α} [IsFiniteMeasure μ] [NeZero μ]
     {E E' : ℝ → α → ℝ} {t : ℝ} {s : Set ℝ} (hs : s ∈ 𝓝 t)
     (hE : ∀ r ∈ s, Measurable (E r)) (hE' : Measurable (E' t))
     {B : ℝ} (hEb : ∀ r ∈ s, ∀ a, E r a ≤ B)
     {b : α → ℝ} (hb : Integrable b μ) (hdb : ∀ r ∈ s, ∀ a, |E' r a| ≤ b a)
     (hd : ∀ a, ∀ r ∈ s, HasDerivAt (fun q => E q a) (E' r a) r)
-    {F : (R → α) → ℝ} (hF : Measurable F) {C : ℝ} (hFb : ∀ σ, |F σ| ≤ C) :
-    HasDerivAt (fun r => ∫ σ, F σ ∂(Measure.pi fun _ : R => μ.tilted (E r)))
-      ((∫ σ, F σ * (∑ i, E' t (σ i)) ∂(Measure.pi fun _ : R => μ.tilted (E t))) -
-        (∫ σ, F σ ∂(Measure.pi fun _ : R => μ.tilted (E t))) *
-          ∫ σ, (∑ i, E' t (σ i)) ∂(Measure.pi fun _ : R => μ.tilted (E t))) t := by
+    {Ψ Ψ' : ℝ → (R → α) → ℝ} (hΨ : ∀ r ∈ s, Measurable (Ψ r)) (hΨ' : Measurable (Ψ' t))
+    {C C' : ℝ} (hΨb : ∀ r ∈ s, ∀ σ, |Ψ r σ| ≤ C) (hΨ'b : ∀ r ∈ s, ∀ σ, |Ψ' r σ| ≤ C')
+    (hΨd : ∀ σ, ∀ r ∈ s, HasDerivAt (fun q => Ψ q σ) (Ψ' r σ) r) :
+    HasDerivAt (fun r => ∫ σ, Ψ r σ ∂(Measure.pi fun _ : R => μ.tilted (E r)))
+      ((∫ σ, Ψ' t σ ∂(Measure.pi fun _ : R => μ.tilted (E t))) +
+        ((∫ σ, Ψ t σ * (∑ i, E' t (σ i)) ∂(Measure.pi fun _ : R => μ.tilted (E t))) -
+          (∫ σ, Ψ t σ ∂(Measure.pi fun _ : R => μ.tilted (E t))) *
+            ∫ σ, (∑ i, E' t (σ i)) ∂(Measure.pi fun _ : R => μ.tilted (E t)))) t := by
   let J := fun (r : ℝ) (σ : R → α) => ∑ i, E r (σ i)
   let J' := fun (r : ℝ) (σ : R → α) => ∑ i, E' r (σ i)
   have ht : t ∈ s := mem_of_mem_nhds hs
@@ -176,10 +181,31 @@ theorem hasDerivAt_integral_pi_tilted_of_dominated {α R : Type*} [MeasurableSpa
   have hderb (r : ℝ) (hr : r ∈ s) (σ : R → α) : |J' r σ| ≤ ∑ i, b (σ i) :=
     (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun i _ => hdb r hr (σ i))
   have : NeZero (Measure.pi fun _ : R => μ) := neZero_measure_pi μ
-  have hres := hasDerivAt_integral_tilted_of_bounded
+  have hres := hasDerivAt_integral_tilted_of_bounded_moving
     (μ := Measure.pi fun _ : R => μ) (E := J) (E' := J') hs hJ hJ' hJb hib
-    hderb (fun σ r hr => HasDerivAt.fun_sum fun i _ => hd (σ i) r hr) hF hFb
+    hderb (fun σ r hr => HasDerivAt.fun_sum fun i _ => hd (σ i) r hr) hΨ hΨ' hΨb hΨ'b hΨd
   simpa only [J, J', ← pi_tilted_eq_tilted_pi] using hres
+
+/-- Differentiate a bounded replica observable along a smooth energy path. A uniform upper
+energy bound and an integrable bound on the energy derivative justify the exchange with all
+replica integrals, including for a continuous base space and an empty replica index type.
+The derivative is the covariance with the sum of the replica energy derivatives. -/
+theorem hasDerivAt_integral_pi_tilted_of_dominated {α R : Type*} [MeasurableSpace α] [Fintype R]
+    {μ : Measure α} [IsFiniteMeasure μ] [NeZero μ]
+    {E E' : ℝ → α → ℝ} {t : ℝ} {s : Set ℝ} (hs : s ∈ 𝓝 t)
+    (hE : ∀ r ∈ s, Measurable (E r)) (hE' : Measurable (E' t))
+    {B : ℝ} (hEb : ∀ r ∈ s, ∀ a, E r a ≤ B)
+    {b : α → ℝ} (hb : Integrable b μ) (hdb : ∀ r ∈ s, ∀ a, |E' r a| ≤ b a)
+    (hd : ∀ a, ∀ r ∈ s, HasDerivAt (fun q => E q a) (E' r a) r)
+    {F : (R → α) → ℝ} (hF : Measurable F) {C : ℝ} (hFb : ∀ σ, |F σ| ≤ C) :
+    HasDerivAt (fun r => ∫ σ, F σ ∂(Measure.pi fun _ : R => μ.tilted (E r)))
+      ((∫ σ, F σ * (∑ i, E' t (σ i)) ∂(Measure.pi fun _ : R => μ.tilted (E t))) -
+        (∫ σ, F σ ∂(Measure.pi fun _ : R => μ.tilted (E t))) *
+          ∫ σ, (∑ i, E' t (σ i)) ∂(Measure.pi fun _ : R => μ.tilted (E t))) t := by
+  have := hasDerivAt_integral_pi_tilted_moving hs hE hE' hEb hb hdb hd (Ψ := fun _ => F)
+    (Ψ' := fun _ _ => 0) (fun _ _ => hF) measurable_const (C := C) (C' := 0)
+    (fun _ _ σ => hFb σ) (fun _ _ _ => by simp) (fun σ r _ => hasDerivAt_const r (F σ))
+  simpa using this
 
 /-- **Fresh replicas factorize.** A function of the replicas `e i` (`e` injective) times a function
 of one further replica `r` has the product of the two averages. -/
@@ -869,6 +895,22 @@ theorem exists_abs_le_sum {ι : Type*} (s : Finset ι) {f : ι → β → ℝ}
     simp only [Finset.sum_insert ha]
     exact exists_abs_le_add (hf a (Finset.mem_insert_self _ _))
       (ih fun i hi => hf i (Finset.mem_insert_of_mem hi))
+
+/-- A bounded kernel has a uniformly bounded two-replica combination. -/
+theorem exists_abs_replicaPairCombination_le {R α : Type*} [Fintype R] [LinearOrder R]
+    {U : α → α → ℝ} (hU : ∃ K, ∀ a b, |U a b| ≤ K) :
+    ∃ K, ∀ τ : Option (Option R) → α, |replicaPairCombination U τ| ≤ K := by
+  obtain ⟨K, hK⟩ := hU
+  have hb (a b : Option (Option R) → α) (i j : Option (Option R)) :
+      |U (a i) (b j)| ≤ K := hK _ _
+  have hu : ∃ K', ∀ τ : Option (Option R) → α, ∀ i j, |U (τ i) (τ j)| ≤ K' :=
+    ⟨K, fun τ i j => hK _ _⟩
+  unfold replicaPairCombination
+  refine exists_abs_le_add (exists_abs_le_sub ?_ ?_) ?_
+  · exact exists_abs_le_sum _ fun p _ => ⟨K, fun τ => hK _ _⟩
+  · exact exists_abs_le_mul (exists_abs_le_const _)
+      (exists_abs_le_sum _ fun r _ => ⟨K, fun τ => hK _ _⟩)
+  · exact exists_abs_le_mul (exists_abs_le_const _) ⟨K, fun τ => hK _ _⟩
 
 end Bounded
 

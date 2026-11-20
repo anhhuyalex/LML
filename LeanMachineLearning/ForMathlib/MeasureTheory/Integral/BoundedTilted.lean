@@ -203,6 +203,83 @@ theorem integral_tilted_eq_div {α : Type*} [MeasurableSpace α] {μ : Measure �
   simp only [smul_eq_mul]
   ring
 
+/-- **Derivative of a moving observable under a varying exponential tilt.** For observables
+`F r` and energies `e r` differentiable in `r`, the derivative of `r ↦ ⟨F r⟩_{e r}` is
+`⟨∂_r F⟩ + cov(F, ∂_r e)`. Integrable bounds on the weighted derivatives justify differentiating
+numerator and normalizer. -/
+theorem hasDerivAt_integral_tilted_moving {α : Type*} [MeasurableSpace α]
+    {μ : Measure α} [NeZero μ]
+    {e e' : ℝ → α → ℝ} {t : ℝ} {s : Set ℝ} (hs : s ∈ 𝓝 t)
+    (hmeas : ∀ᶠ r in 𝓝 t, AEStronglyMeasurable (fun a => Real.exp (e r a)) μ)
+    (hi : Integrable (fun a => Real.exp (e t a)) μ)
+    (hdm : AEStronglyMeasurable (fun a => e' t a * Real.exp (e t a)) μ)
+    {b : α → ℝ} (hb : Integrable b μ)
+    (hdb : ∀ᵐ a ∂μ, ∀ r ∈ s, |e' r a * Real.exp (e r a)| ≤ b a)
+    (hd : ∀ᵐ a ∂μ, ∀ r ∈ s, HasDerivAt (fun q => e q a) (e' r a) r)
+    {F F' : ℝ → α → ℝ} (hFm : ∀ᶠ r in 𝓝 t, AEStronglyMeasurable (F r) μ)
+    (hF'm : AEStronglyMeasurable (F' t) μ) {C : ℝ}
+    (hFb : ∀ᵐ a ∂μ, ∀ r ∈ s, |F r a| ≤ C)
+    {b₂ : α → ℝ} (hb₂ : Integrable b₂ μ)
+    (hdb₂ : ∀ᵐ a ∂μ, ∀ r ∈ s, |F' r a| * Real.exp (e r a) ≤ b₂ a)
+    (hFd : ∀ᵐ a ∂μ, ∀ r ∈ s, HasDerivAt (fun q => F q a) (F' r a) r) :
+    HasDerivAt (fun r => ∫ a, F r a ∂μ.tilted (e r))
+      ((∫ a, F' t a ∂μ.tilted (e t)) +
+        ((∫ a, F t a * e' t a ∂μ.tilted (e t)) -
+          (∫ a, F t a ∂μ.tilted (e t)) * ∫ a, e' t a ∂μ.tilted (e t))) t := by
+  have ht : t ∈ s := mem_of_mem_nhds hs
+  have hden := hasDerivAt_integral_of_dominated_loc_of_deriv_le hs hmeas hi hdm
+    (by simpa only [Real.norm_eq_abs] using hdb) hb
+    (hd.mono fun a ha r hr => by simpa only [mul_comm] using (ha r hr).exp)
+  have hFt : AEStronglyMeasurable (F t) μ := hFm.self_of_nhds
+  have hFb' : ∀ᵐ a ∂μ, |F t a| ≤ C := hFb.mono fun a ha => ha t ht
+  have hnum := hasDerivAt_integral_of_dominated_loc_of_deriv_le (μ := μ)
+    (F := fun r a => F r a * Real.exp (e r a))
+    (F' := fun r a => F' r a * Real.exp (e r a) + F r a * (e' r a * Real.exp (e r a)))
+    hs (hFm.and hmeas |>.mono fun r hr => hr.1.mul hr.2)
+    (hi.bdd_mul_of_abs_le hFt hFb')
+    ((hF'm.mul hmeas.self_of_nhds).add (hFt.mul hdm))
+    (bound := fun a => b₂ a + |C| * b a)
+    (by
+      filter_upwards [hdb, hFb, hdb₂] with a hda hFa hdb2a r hr
+      rw [Real.norm_eq_abs]
+      refine (abs_add_le _ _).trans (add_le_add ?_ ?_)
+      · rw [abs_mul, abs_of_pos (Real.exp_pos _)]
+        exact hdb2a r hr
+      · rw [abs_mul]
+        exact mul_le_mul ((hFa r hr).trans (le_abs_self C)) (hda r hr) (abs_nonneg _)
+          (abs_nonneg _))
+    (hb₂.add (hb.const_mul |C|))
+    (by
+      filter_upwards [hd, hFd] with a ha hFa r hr
+      exact ((hFa r hr).mul (ha r hr).exp).congr_deriv (by ring))
+  have hI1 : Integrable (fun a => F' t a * Real.exp (e t a)) μ :=
+    hb₂.mono' (hF'm.mul hmeas.self_of_nhds) (by
+      filter_upwards [hdb₂] with a h
+      rw [Real.norm_eq_abs, abs_mul, abs_of_pos (Real.exp_pos _)]
+      exact h t ht)
+  have hI2 : Integrable (fun a => F t a * (e' t a * Real.exp (e t a))) μ :=
+    (hb.const_mul |C|).mono' (hFt.mul hdm) (by
+      filter_upwards [hdb, hFb] with a hda hFa
+      rw [Real.norm_eq_abs, abs_mul]
+      exact mul_le_mul ((hFa t ht).trans (le_abs_self C)) (hda t ht) (abs_nonneg _)
+        (abs_nonneg _))
+  have hnum' := hnum.2
+  rw [integral_add hI1 hI2] at hnum'
+  simp_rw [integral_tilted_eq_div]
+  convert hnum'.div hden.2 (integral_exp_pos hi).ne' using 1
+  have hN2 : (∫ a, F t a * (e' t a * Real.exp (e t a)) ∂μ) =
+      ∫ a, F t a * e' t a * Real.exp (e t a) ∂μ :=
+    integral_congr_ae (ae_of_all _ fun a => by ring)
+  rw [hN2]
+  have hZ := (integral_exp_pos hi).ne'
+  generalize (∫ a, F' t a * Real.exp (e t a) ∂μ) = N1 at *
+  generalize (∫ a, F t a * e' t a * Real.exp (e t a) ∂μ) = N2 at *
+  generalize (∫ a, F t a * Real.exp (e t a) ∂μ) = N at *
+  generalize (∫ a, e' t a * Real.exp (e t a) ∂μ) = Z' at *
+  generalize (∫ a, Real.exp (e t a) ∂μ) = Z at *
+  field_simp
+  ring
+
 /-- The derivative of an observable under a varying exponential tilt is its covariance with
 the energy derivative. An integrable bound on the weighted derivative justifies differentiating
 numerator and normalizer. The observable is bounded and does not vary with the parameter.
@@ -221,29 +298,11 @@ theorem hasDerivAt_integral_tilted_of_dominated {α : Type*} [MeasurableSpace α
     HasDerivAt (fun r => ∫ a, F a ∂μ.tilted (e r))
       ((∫ a, F a * e' t a ∂μ.tilted (e t)) -
         (∫ a, F a ∂μ.tilted (e t)) * ∫ a, e' t a ∂μ.tilted (e t)) t := by
-  have hden := hasDerivAt_integral_of_dominated_loc_of_deriv_le hs hmeas hi hdm
-    (by simpa only [Real.norm_eq_abs] using hdb) hb
-    (hd.mono fun a ha r hr => by simpa only [mul_comm] using (ha r hr).exp)
-  have hnum := hasDerivAt_integral_of_dominated_loc_of_deriv_le hs
-    (hmeas.mono fun r hr => hF.mul hr)
-    (hi.bdd_mul_of_abs_le hF hFb) (hF.mul hdm)
-    (bound := fun a => |C| * b a)
-    (by
-      filter_upwards [hdb, hFb] with a hda hFa r hr
-      rw [Real.norm_eq_abs, abs_mul]
-      exact mul_le_mul (hFa.trans (le_abs_self C)) (hda r hr) (abs_nonneg _) (abs_nonneg _))
-    (hb.const_mul |C|)
-    (hd.mono fun a ha r hr => by
-      simpa only [Pi.mul_apply, mul_comm] using ((ha r hr).exp.const_mul (F a)))
-  simp_rw [integral_tilted_eq_div]
-  convert hnum.2.div hden.2 (integral_exp_pos hi).ne' using 1
-  have hprod : (∫ a, F a * (e' t a * Real.exp (e t a)) ∂μ) =
-      ∫ a, F a * e' t a * Real.exp (e t a) ∂μ := by
-    apply integral_congr_ae
-    exact ae_of_all _ fun a => by ring
-  simp only [Pi.mul_apply]
-  rw [hprod]
-  field_simp [(integral_exp_pos hi).ne']
+  have := hasDerivAt_integral_tilted_moving hs hmeas hi hdm hb hdb hd (F := fun _ => F)
+    (F' := fun _ _ => 0) (Eventually.of_forall fun _ => hF) aestronglyMeasurable_const
+    (C := C) (hFb.mono fun a ha _ _ => ha) (integrable_zero α ℝ μ) (b₂ := 0)
+    (ae_of_all _ fun a r _ => by simp) (ae_of_all _ fun a r _ => hasDerivAt_const r (F a))
+  simpa using this
 
 /-- Pointwise bound `|x e^y| ≤ c e^B` for `|x| ≤ c` and `y ≤ B`. -/
 theorem abs_mul_exp_le {x y c B : ℝ} (hx : |x| ≤ c) (hy : y ≤ B) :
@@ -273,6 +332,40 @@ theorem hasDerivAt_integral_tilted_of_bounded
     (ae_of_all _ fun a r hr =>
       (abs_mul_exp_le (hdb r hr a) (hEb r hr a)).trans_eq (mul_comm _ _))
     (ae_of_all _ hd) hF.aestronglyMeasurable (ae_of_all _ hFb)
+
+/-- **Bounded version of the moving-observable derivative.** Uniform bounds on the observable and
+its parameter derivative, and an upper bound on the energy, justify differentiating
+`r ↦ ⟨F r⟩_{E r}` on a finite base measure. -/
+theorem hasDerivAt_integral_tilted_of_bounded_moving
+    {α : Type*} [MeasurableSpace α] {μ : Measure α} [IsFiniteMeasure μ] [NeZero μ]
+    {E E' : ℝ → α → ℝ} {t : ℝ} {s : Set ℝ} (hs : s ∈ 𝓝 t)
+    (hE : ∀ r ∈ s, Measurable (E r)) (hE' : Measurable (E' t))
+    {A : ℝ} (hEb : ∀ r ∈ s, ∀ a, E r a ≤ A)
+    {b : α → ℝ} (hb : Integrable b μ)
+    (hdb : ∀ r ∈ s, ∀ a, |E' r a| ≤ b a)
+    (hd : ∀ a, ∀ r ∈ s, HasDerivAt (fun q => E q a) (E' r a) r)
+    {F F' : ℝ → α → ℝ} (hF : ∀ r ∈ s, Measurable (F r)) (hF' : Measurable (F' t))
+    {C C' : ℝ} (hFb : ∀ r ∈ s, ∀ a, |F r a| ≤ C) (hF'b : ∀ r ∈ s, ∀ a, |F' r a| ≤ C')
+    (hFd : ∀ a, ∀ r ∈ s, HasDerivAt (fun q => F q a) (F' r a) r) :
+    HasDerivAt (fun r => ∫ a, F r a ∂μ.tilted (E r))
+      ((∫ a, F' t a ∂μ.tilted (E t)) +
+        ((∫ a, F t a * E' t a ∂μ.tilted (E t)) -
+          (∫ a, F t a ∂μ.tilted (E t)) * ∫ a, E' t a ∂μ.tilted (E t))) t := by
+  have ht := mem_of_mem_nhds hs
+  exact hasDerivAt_integral_tilted_moving (e := E) (e' := E') hs
+    (Filter.mem_of_superset hs fun r hr => (hE r hr).exp.aestronglyMeasurable)
+    (integrable_exp_of_ae_le (hE t ht).aemeasurable (ae_of_all _ (hEb t ht)))
+    (hE'.mul (hE t ht).exp).aestronglyMeasurable (hb.const_mul (Real.exp A))
+    (ae_of_all _ fun a r hr =>
+      (abs_mul_exp_le (hdb r hr a) (hEb r hr a)).trans_eq (mul_comm _ _))
+    (ae_of_all _ hd) (Filter.mem_of_superset hs fun r hr => (hF r hr).aestronglyMeasurable)
+    hF'.aestronglyMeasurable (C := C) (ae_of_all _ fun a r hr => hFb r hr a)
+    (b₂ := fun _ => C' * Real.exp A)
+    (integrable_const _)
+    (ae_of_all _ fun a r hr => by
+      have := abs_mul_exp_le (hF'b r hr a) (hEb r hr a)
+      rwa [abs_mul, abs_of_pos (Real.exp_pos _)] at this)
+    (ae_of_all _ hFd)
 
 /-- A bounded log-density controls a possibly unbounded tilted observable by its base first
 moment. The denominator bound retains the mass of a nonzero finite base measure. -/

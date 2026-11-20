@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathDisorderDerivative
 public import LeanMachineLearning.ForMathlib.Probability.GibbsIBPPotential
+public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaDiffDerivative
 public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKCavityBounds
 
 /-!
@@ -233,5 +234,134 @@ theorem replicaDiffWith_replicaDiff_eq_two_mul_replicaPairAverage
     exact integral_congr_ae (ae_of_all _ hcombpt)
   rw [hpair]
   ring
+
+/-- Derivative of the replica difference of the last spin in the last field `y`, in terms of
+the two-fresh-replica average (the `E'_Y` Stein step of Proposition 2.2.3 for fixed `y`). -/
+theorem hasDerivAt_replicaDiff_lastSpin_lastField {N M : ℕ} {R : Type*} [Fintype R]
+    [LinearOrder R] {t : ℝ} {u : ℝ → ℝ} (hu : Measurable u)
+    {B : ℝ} (hB : ∀ x, u x ≤ B) (ω₀ : (Fin M → Fin N → ℝ) × (Fin M → ℝ))
+    (F : (R → SmartPathState N M) → ℝ) (hF : Measurable F) {C : ℝ} (hFb : ∀ σ, |F σ| ≤ C)
+    (y : ℝ) :
+    HasDerivAt (fun r => replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t (ω₀, r)))
+        F (fun x => ((x.1.2 : ℤ) : ℝ)))
+      (2 * Real.sqrt (1 - t) * replicaPairAverage
+        ((smartPathBase N M).tilted (smartPathEnergy u t (ω₀, y))) F lastSpinKernel) y := by
+  set q := Real.sqrt (1 - t) with hq
+  have hν (r : ℝ) : IsProbabilityMeasure
+      ((smartPathBase N M).tilted (smartPathEnergy u t (ω₀, r))) :=
+    isProbabilityMeasure_tilted_perceptron_smart_path_energy hu hB (ω₀, r) t
+  have hε : Measurable fun x : SmartPathState N M => ((x.1.2 : ℤ) : ℝ) := by fun_prop
+  have hεb (x : SmartPathState N M) : |((x.1.2 : ℤ) : ℝ)| ≤ 1 := (abs_units_cast_eq_one _).le
+  have hE' : ∀ (r : ℝ) (x : SmartPathState N M),
+      |q * ((x.1.2 : ℤ) : ℝ)| ≤ q := fun r x => by
+    rw [abs_mul, abs_units_cast_eq_one, mul_one, abs_of_nonneg (Real.sqrt_nonneg _)]
+  have hbd := hasDerivAt_replicaDiff_tilted_replicaDiff
+    (μ := smartPathBase N M) (E := fun r => smartPathEnergy u t (ω₀, r))
+    (E' := fun _ x => q * ((x.1.2 : ℤ) : ℝ)) (t := y) (s := Metric.ball y 1)
+    (Metric.ball_mem_nhds y one_pos)
+    (fun r _ => measurable_smartPathEnergy_slice hu t (ω₀, r))
+    (by fun_prop) (B := M * B + q * (|y| + 1)) (fun r hr x => by
+      refine (perceptron_smart_path_energy_le hB t (ω₀, r) x).trans ?_
+      have : |r| ≤ |y| + 1 := by
+        have := abs_sub_abs_le_abs_sub r y
+        have h2 := Metric.mem_ball.1 hr
+        rw [Real.dist_eq] at h2
+        linarith
+      have := mul_le_mul_of_nonneg_left this (Real.sqrt_nonneg (1 - t))
+      linarith)
+    (b := fun _ => q) (integrable_const _) (fun r _ x => hE' r x)
+    (fun x r _ => hasDerivAt_smartPathEnergy_lastField u t ω₀ x r) hF hFb hε hεb
+    (integrable_of_measurable_bound (by fun_prop) (M := q) (hE' y))
+  have := hν y
+  have hbr := replicaDiffWith_replicaDiff_eq_two_mul_replicaPairAverage
+    ((smartPathBase N M).tilted (smartPathEnergy u t (ω₀, y))) F hF hFb
+    (fun x : SmartPathState N M => ((x.1.2 : ℤ) : ℝ)) hε hεb 1 q
+    (fun x => by rw [← sq]; exact units_cast_sq _)
+  exact hbr ▸ hbd
+
+/-- **The `E'_Y` term of Proposition 2.2.3 (Stein in the last field).** For the last field
+`y ∼ 𝒩(0, v)` (`v = 0` allowed), the `y`-average of the replica difference of the energy
+derivative `E'_Y` is `-v` times the `y`-average of the two-fresh-replica average of the last-spin
+kernel `ε_x ε_y`, the other disorder `ω₀ = (g, a)` being fixed. -/
+theorem integral_replicaDiff_smartPathEnergyDerivY {N M : ℕ} {R : Type*} [Fintype R]
+    [LinearOrder R] {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) 1) {u : ℝ → ℝ} (hu : Measurable u)
+    {B : ℝ} (hB : ∀ x, u x ≤ B) (v : ℝ≥0) (ω₀ : (Fin M → Fin N → ℝ) × (Fin M → ℝ))
+    (F : (R → SmartPathState N M) → ℝ) (hF : Measurable F) {C : ℝ} (hFb : ∀ σ, |F σ| ≤ C) :
+    ∫ y, replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t (ω₀, y))) F
+        (smartPathEnergyDerivY t (ω₀, y)) ∂(gaussianReal 0 v) =
+      -(v : ℝ) * ∫ y, replicaPairAverage
+        ((smartPathBase N M).tilted (smartPathEnergy u t (ω₀, y))) F lastSpinKernel
+        ∂(gaussianReal 0 v) := by
+  set q := Real.sqrt (1 - t) with hq
+  have hq0 : 0 < q := Real.sqrt_pos.2 (sub_pos.2 ht.2)
+  have hν (r : ℝ) : IsProbabilityMeasure
+      ((smartPathBase N M).tilted (smartPathEnergy u t (ω₀, r))) :=
+    isProbabilityMeasure_tilted_perceptron_smart_path_energy hu hB (ω₀, r) t
+  set Gf : ℝ → ℝ := fun y => replicaDiff
+    ((smartPathBase N M).tilted (smartPathEnergy u t (ω₀, y))) F
+    (fun x => ((x.1.2 : ℤ) : ℝ)) with hGf
+  set PA : ℝ → ℝ := fun y => replicaPairAverage
+    ((smartPathBase N M).tilted (smartPathEnergy u t (ω₀, y))) F lastSpinKernel with hPA
+  have hderiv (y : ℝ) : HasDerivAt Gf (2 * q * PA y) y :=
+    hasDerivAt_replicaDiff_lastSpin_lastField hu hB ω₀ F hF hFb y
+  have hGc : Continuous Gf := continuous_iff_continuousAt.2 fun y => (hderiv y).continuousAt
+  have hPAm : Measurable fun y => 2 * q * PA y := by
+    have : (fun y => 2 * q * PA y) = deriv Gf := funext fun y => (hderiv y).deriv.symm
+    rw [this]
+    exact measurable_deriv Gf
+  -- uniform bounds
+  have hGb (y : ℝ) : |Gf y| ≤ C * (Fintype.card R + Fintype.card R) := by
+    have := hν y
+    have hε : Measurable fun x : SmartPathState N M => ((x.1.2 : ℤ) : ℝ) := by fun_prop
+    rw [hGf]
+    dsimp only
+    rw [replicaDiff_eq_integral _ F hF hFb _ hε (B := 1) (fun x => (abs_units_cast_eq_one _).le)]
+    refine abs_integral_le_of_forall_abs_le _ fun σ => ?_
+    rw [abs_mul]
+    refine mul_le_mul (hFb _) ?_ (abs_nonneg _) ((abs_nonneg _).trans (hFb fun j => σ (some j)))
+    refine (abs_sub _ _).trans (add_le_add ?_ ?_)
+    · refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
+      simp [abs_units_cast_eq_one]
+    · rw [abs_mul, abs_units_cast_eq_one, mul_one, Nat.abs_cast]
+  have hPAb : ∃ K, ∀ y, |2 * q * PA y| ≤ K := by
+    obtain ⟨K, hK⟩ := exists_abs_replicaPairCombination_le (R := R)
+      (U := lastSpinKernel (N := N) (M := M)) ⟨1, fun a b => by
+        unfold lastSpinKernel
+        rw [abs_mul, abs_units_cast_eq_one, abs_units_cast_eq_one, mul_one]⟩
+    refine ⟨2 * q * (C * K), fun y => ?_⟩
+    have := hν y
+    rw [abs_mul, abs_of_nonneg (by positivity)]
+    refine mul_le_mul_of_nonneg_left ?_ (by positivity)
+    rw [hPA]
+    dsimp only
+    unfold replicaPairAverage
+    refine abs_integral_le_of_forall_abs_le _ fun τ => ?_
+    rw [abs_mul]
+    exact mul_le_mul (hFb _) (hK τ) (abs_nonneg _)
+      ((abs_nonneg _).trans (hFb fun j => τ (some (some j))))
+  obtain ⟨K, hK⟩ := hPAb
+  have hxF : Integrable (fun y => y * Gf y) (gaussianReal 0 v) := by
+    have := (IsGaussian.integrable_id (μ := gaussianReal 0 v)).bdd_mul_of_abs_le
+      (F := Gf) hGc.aestronglyMeasurable (ae_of_all _ hGb)
+    simpa only [mul_comm, id] using this
+  have hF' : Integrable (fun y => 2 * q * PA y) (gaussianReal 0 v) :=
+    integrable_of_measurable_bound hPAm hK
+  have hStein := integral_id_mul_gaussianReal_eq v hderiv hxF hF'
+  have hpt (y : ℝ) : replicaDiff ((smartPathBase N M).tilted (smartPathEnergy u t (ω₀, y))) F
+      (smartPathEnergyDerivY t (ω₀, y)) = (-(1 / (2 * q)) * y) * Gf y := by
+    have hfun : smartPathEnergyDerivY t (ω₀, y) =
+        fun x => (-(1 / (2 * q)) * y) * ((x.1.2 : ℤ) : ℝ) := by
+      funext x
+      simp only [smartPathEnergyDerivY, hq]
+      ring
+    rw [hfun]
+    exact replicaDiff_const_mul _ F _ _
+  simp_rw [hpt]
+  have hmul : ∫ y, (-(1 / (2 * q)) * y) * Gf y ∂(gaussianReal 0 v) =
+      -(1 / (2 * q)) * ∫ y, y * Gf y ∂(gaussianReal 0 v) := by
+    rw [← integral_const_mul]
+    exact integral_congr_ae (ae_of_all _ fun y => by ring)
+  rw [hmul, hStein, integral_const_mul]
+  field_simp
 
 end SpinGlasses

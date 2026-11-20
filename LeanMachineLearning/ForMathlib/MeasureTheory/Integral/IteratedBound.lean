@@ -131,17 +131,21 @@ theorem integral_prod_fun_snd_of_isProbabilityMeasure {X Y E : Type*} [Measurabl
     ∫ x, f x.2 ∂(μ.prod ν) = ∫ y, f y ∂ν := by
   rw [integral_fun_snd, probReal_univ, one_smul]
 
+/-- A uniform bound on an observable bounds its average over a probability measure. No
+measurability or integrability hypotheses are needed for this bound. -/
+theorem abs_integral_le_of_forall_abs_le {X : Type*} [MeasurableSpace X] (μ : Measure X)
+    [IsProbabilityMeasure μ] {f : X → ℝ} {M : ℝ} (hf : ∀ x, |f x| ≤ M) :
+    |∫ x, f x ∂μ| ≤ M := by
+  simpa using norm_integral_le_of_norm_le_const (μ := μ) (f := f) (C := M)
+    (ae_of_all _ fun x => by simpa only [Real.norm_eq_abs] using hf x)
+
 /-- A uniform bound on an environment-dependent observable bounds its iterated average over
 probability measures. No measurability or integrability hypotheses are needed for this bound. -/
 theorem abs_integral_integral_le_of_forall_abs_le {X Y : Type*} [MeasurableSpace X]
     [MeasurableSpace Y] (μ : Measure X) [IsProbabilityMeasure μ] (κ : X → Measure Y)
     [∀ x, IsProbabilityMeasure (κ x)] (F : X → Y → ℝ) {M : ℝ} (hF : ∀ x y, |F x y| ≤ M) :
-    |∫ x, ∫ y, F x y ∂κ x ∂μ| ≤ M := by
-  have hin : ∀ x, ‖∫ y, F x y ∂κ x‖ ≤ M := fun x => by
-    simpa using norm_integral_le_of_norm_le_const (μ := κ x) (f := F x) (C := M)
-      (ae_of_all _ fun y => by simpa only [Real.norm_eq_abs] using hF x y)
-  simpa using norm_integral_le_of_norm_le_const (μ := μ) (f := fun x => ∫ y, F x y ∂κ x)
-    (C := M) (ae_of_all _ hin)
+    |∫ x, ∫ y, F x y ∂κ x ∂μ| ≤ M :=
+  abs_integral_le_of_forall_abs_le μ fun x => abs_integral_le_of_forall_abs_le (κ x) (hF x)
 
 /-- A uniform bound on an observable bounds its iterated average over probability measures. -/
 theorem abs_integral_integral_le_of_forall_le {X Y : Type*} [MeasurableSpace X]
