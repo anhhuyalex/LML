@@ -5,7 +5,7 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.Basic
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathModel
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SqrtSub
 public import LeanMachineLearning.ForMathlib.Analysis.RatioBound
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein
@@ -53,70 +53,72 @@ theorem hasDerivAt_perceptron_smart_path_field {N : ℕ} {t : ℝ}
   · rfl
   · push_cast; ring
 
-/-- The fixed-state energy derivative (2.27). Only differentiability of the potential is
-needed. This statement does not exchange a derivative with a Gibbs or disorder integral. -/
-theorem hasDerivAt_perceptron_smart_path_energy {N M : ℕ} {t : ℝ}
-    (ht : t ∈ Set.Ioo (0 : ℝ) 1) {u : ℝ → ℝ} (hu : Differentiable ℝ u)
-    (g : Fin M → Fin N → ℝ) (a ξ : Fin M → ℝ)
-    (σ : Fin N → ℤˣ) (ε : ℤˣ) (y : ℝ) :
-    let S := fun (s : ℝ) (k : Fin M) =>
-      (Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i, g k i * ((σ i : ℤ) : ℝ)) +
-        Real.sqrt (s / (N + 1)) * a k * ((ε : ℤ) : ℝ) +
-        Real.sqrt ((1 - s) / (N + 1)) * ξ k
-    HasDerivAt (fun s => ((ε : ℤ) : ℝ) * Real.sqrt (1 - s) * y + ∑ k, u (S s k))
-      (-((ε : ℤ) : ℝ) * y / (2 * Real.sqrt (1 - t)) +
-        ∑ k, deriv u (S t k) * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
-          (a k * ((ε : ℤ) : ℝ) / Real.sqrt t - ξ k / Real.sqrt (1 - t)))) t := by
-  intro S
+/-- The fixed-state energy derivative (2.27), split into the three pieces `E'_a + E'_ξ + E'_Y`.
+Only differentiability of the potential is needed. This statement does not exchange a derivative
+with a Gibbs or disorder integral. -/
+theorem hasDerivAt_smartPathEnergy {N M : ℕ} {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) 1)
+    {u : ℝ → ℝ} (hu : Differentiable ℝ u) (ω : SmartPathDisorder N M)
+    (x : SmartPathState N M) :
+    HasDerivAt (fun s => smartPathEnergy u s ω x)
+      (smartPathEnergyDerivA u t ω x + smartPathEnergyDerivXi u t ω x +
+        smartPathEnergyDerivY t ω x) t := by
   have hY := ((hasDerivAt_id t).const_sub 1).sqrt (sub_pos.mpr ht.2).ne'
-  have hS (k : Fin M) := hasDerivAt_perceptron_smart_path_field ht (g k) (a k) σ ε (ξ k)
-  have hU (k : Fin M) := (hu (S t k)).hasDerivAt.comp t (hS k)
-  convert ((hY.const_mul ((ε : ℤ) : ℝ)).mul_const y).add
+  have hS (k : Fin M) := hasDerivAt_perceptron_smart_path_field ht (ω.1.1 k) (ω.1.2 k) x.1.1
+    x.1.2 (x.2 k)
+  have hU (k : Fin M) := (hu (smartPathField t ω x k)).hasDerivAt.comp t (hS k)
+  convert ((hY.const_mul ((x.1.2 : ℤ) : ℝ)).mul_const ω.2).add
     (HasDerivAt.fun_sum fun k (_ : k ∈ Finset.univ) => hU k) using 1
   · rfl
-  · dsimp only [id_eq]; push_cast; ring
+  · simp only [smartPathEnergyDerivA, smartPathEnergyDerivXi, smartPathEnergyDerivY,
+      id_eq, ← Finset.sum_add_distrib]
+    rw [add_comm]
+    push_cast
+    congr 1
+    · ring
+    · exact Finset.sum_congr rfl fun k _ => by ring
 
-/-- Pointwise bound on the last-field energy derivative term. -/
-theorem abs_perceptron_smart_path_E'_Y_le (ε : ℤˣ) (y t δ : ℝ)
-    (hδ : 0 < δ) (ht : t ∈ Set.Icc δ (1 - δ)) :
-    |-((ε : ℤ) : ℝ) * y / (2 * Real.sqrt (1 - t))| ≤ |y| / (2 * Real.sqrt δ) := by
-  have heq : -((ε : ℤ) : ℝ) * y / (2 * Real.sqrt (1 - t)) =
-      (-((ε : ℤ) : ℝ) / 2) * (y / Real.sqrt (1 - t)) := by ring
-  rw [heq, abs_mul, abs_div, abs_neg, abs_units_cast_eq_one,
-    abs_of_pos (by norm_num : (0 : ℝ) < 2), one_div]
-  have h := abs_div_sqrt_le_abs_div_sqrt y (1 - t) δ hδ (by linarith [ht.2])
-  have heq2 : |y| / (2 * Real.sqrt δ) = 2⁻¹ * (|y| / Real.sqrt δ) := by ring
-  rw [heq2]
-  exact mul_le_mul_of_nonneg_left h (by norm_num : (0 : ℝ) ≤ 2⁻¹)
+/-- Pointwise bound on the last-field term of the energy derivative on `δ ≤ 1 - t`. -/
+theorem abs_smartPathEnergyDerivY_le {N M : ℕ} {t δ : ℝ} (hδ : 0 < δ) (hδt : δ ≤ 1 - t)
+    (ω : SmartPathDisorder N M) (x : SmartPathState N M) :
+    |smartPathEnergyDerivY t ω x| ≤ |ω.2| / (2 * Real.sqrt δ) := by
+  unfold smartPathEnergyDerivY
+  have hx : |-((x.1.2 : ℤ) : ℝ) * ω.2| = |ω.2| := by
+    rw [abs_mul, abs_neg, abs_units_cast_eq_one, one_mul]
+  have h2 : 0 < 2 * Real.sqrt δ := by have := Real.sqrt_pos.2 hδ; positivity
+  refine abs_div_le_div_of_le_abs h2 ?_ hx.le
+  rw [abs_of_nonneg (by positivity)]
+  have := Real.sqrt_le_sqrt hδt
+  linarith
 
-/-- Pointwise bound on one constraint coordinate of the disorder derivative term. -/
-theorem abs_perceptron_smart_path_E'_a_term_le {N : ℕ} {u : ℝ → ℝ} {D : ℝ}
-    (hD : ∀ z, |deriv u z| ≤ D) (S_k a_k : ℝ) (ε : ℤˣ) (t δ : ℝ)
-    (hδ : 0 < δ) (ht : t ∈ Set.Icc δ (1 - δ)) :
-    |deriv u S_k * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
-      (a_k * ((ε : ℤ) : ℝ) / Real.sqrt t))| ≤
-      D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) * (|a_k| / Real.sqrt δ) := by
-  have hterm : |a_k * ((ε : ℤ) : ℝ) / Real.sqrt t| ≤ |a_k| / Real.sqrt δ := by
-    have heq : a_k * ((ε : ℤ) : ℝ) / Real.sqrt t = ((ε : ℤ) : ℝ) * (a_k / Real.sqrt t) := by ring
-    rw [heq, abs_mul, abs_units_cast_eq_one, one_mul]
-    exact abs_div_sqrt_le_abs_div_sqrt a_k t δ hδ ht.1
+/-- Pointwise bound on the quenched-disorder term of the energy derivative on `δ ≤ t`. -/
+theorem abs_smartPathEnergyDerivA_le {N M : ℕ} {u : ℝ → ℝ} {D : ℝ}
+    (hD : ∀ z, |deriv u z| ≤ D) {t δ : ℝ} (hδ : 0 < δ) (hδt : δ ≤ t)
+    (ω : SmartPathDisorder N M) (x : SmartPathState N M) :
+    |smartPathEnergyDerivA u t ω x| ≤
+      ∑ k, D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) * (|ω.1.2 k| / Real.sqrt δ) := by
+  unfold smartPathEnergyDerivA
   have hD0 : 0 ≤ D := (abs_nonneg _).trans (hD 0)
+  refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun k _ => ?_)
+  have hterm : |ω.1.2 k * ((x.1.2 : ℤ) : ℝ) / Real.sqrt t| ≤ |ω.1.2 k| / Real.sqrt δ := by
+    simpa only [abs_mul, abs_units_cast_eq_one, mul_one] using
+      abs_div_sqrt_le_abs_div_sqrt (ω.1.2 k * ((x.1.2 : ℤ) : ℝ)) t δ hδ hδt
   rw [abs_mul, abs_mul, abs_of_nonneg (by positivity : 0 ≤ 1 / (2 * Real.sqrt (N + 1 : ℕ))),
     ← mul_assoc]
   exact mul_le_mul (mul_le_mul_of_nonneg_right (hD _) (by positivity)) hterm
     (abs_nonneg _) (mul_nonneg hD0 (by positivity))
 
-/-- Pointwise bound on one constraint coordinate of the auxiliary spin derivative term. -/
-theorem abs_perceptron_smart_path_E'_ξ_term_le {N : ℕ} {u : ℝ → ℝ} {D : ℝ}
-    (hD : ∀ z, |deriv u z| ≤ D) (S_k ξ_k : ℝ) (t δ : ℝ)
-    (hδ : 0 < δ) (ht : t ∈ Set.Icc δ (1 - δ)) :
-    |deriv u S_k * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
-      (- ξ_k / Real.sqrt (1 - t)))| ≤
-      D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) * (|ξ_k| / Real.sqrt δ) := by
-  have hterm : |- ξ_k / Real.sqrt (1 - t)| ≤ |ξ_k| / Real.sqrt δ := by
-    rw [neg_div, abs_neg]
-    exact abs_div_sqrt_le_abs_div_sqrt ξ_k (1 - t) δ hδ (by linarith [ht.2])
+/-- Pointwise bound on the auxiliary-spin term of the energy derivative on `δ ≤ 1 - t`. -/
+theorem abs_smartPathEnergyDerivXi_le {N M : ℕ} {u : ℝ → ℝ} {D : ℝ}
+    (hD : ∀ z, |deriv u z| ≤ D) {t δ : ℝ} (hδ : 0 < δ) (hδt : δ ≤ 1 - t)
+    (ω : SmartPathDisorder N M) (x : SmartPathState N M) :
+    |smartPathEnergyDerivXi u t ω x| ≤
+      ∑ k, D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) * (|x.2 k| / Real.sqrt δ) := by
+  unfold smartPathEnergyDerivXi
   have hD0 : 0 ≤ D := (abs_nonneg _).trans (hD 0)
+  refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun k _ => ?_)
+  have hterm : |- x.2 k / Real.sqrt (1 - t)| ≤ |x.2 k| / Real.sqrt δ := by
+    rw [neg_div, abs_neg]
+    exact abs_div_sqrt_le_abs_div_sqrt (x.2 k) (1 - t) δ hδ hδt
   rw [abs_mul, abs_mul, abs_of_nonneg (by positivity : 0 ≤ 1 / (2 * Real.sqrt (N + 1 : ℕ))),
     ← mul_assoc]
   exact mul_le_mul (mul_le_mul_of_nonneg_right (hD _) (by positivity)) hterm
@@ -125,59 +127,33 @@ theorem abs_perceptron_smart_path_E'_ξ_term_le {N : ℕ} {u : ℝ → ℝ} {D :
 /-- On a closed interval inside `(0, 1)`, the energy derivative grows at most linearly in
 the absolute values of the auxiliary coordinates. This is an integrable Gaussian envelope. -/
 theorem abs_deriv_perceptron_smart_path_energy_le {N M : ℕ} {t δ : ℝ}
-    (hδ : 0 < δ) (ht : t ∈ Set.Icc δ (1 - δ))
-    {u : ℝ → ℝ} {D : ℝ} (hD : ∀ z, |deriv u z| ≤ D)
-    (g : Fin M → Fin N → ℝ) (a ξ : Fin M → ℝ)
-    (σ : Fin N → ℤˣ) (ε : ℤˣ) (y : ℝ) :
-    let S := fun (s : ℝ) (k : Fin M) =>
-      (Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i, g k i * ((σ i : ℤ) : ℝ)) +
-        Real.sqrt (s / (N + 1)) * a k * ((ε : ℤ) : ℝ) +
-        Real.sqrt ((1 - s) / (N + 1)) * ξ k
-    |-((ε : ℤ) : ℝ) * y / (2 * Real.sqrt (1 - t)) +
-        ∑ k, deriv u (S t k) * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
-          (a k * ((ε : ℤ) : ℝ) / Real.sqrt t - ξ k / Real.sqrt (1 - t)))| ≤
-      |y| / (2 * Real.sqrt δ) + ∑ k, D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) *
-        ((|a k| + |ξ k|) / Real.sqrt δ) := by
-  intro S
-  have ht0 : 0 < t := hδ.trans_le ht.1
-  have ht1 : 0 < 1 - t := by linarith [ht.2]
-  have hdt : Real.sqrt δ ≤ Real.sqrt t := Real.sqrt_le_sqrt ht.1
-  have hd1 : Real.sqrt δ ≤ Real.sqrt (1 - t) := Real.sqrt_le_sqrt (by linarith [ht.2])
-  have hc0 := one_div_le_one_div_of_le (Real.sqrt_pos.2 hδ) hdt
-  have hc1 := one_div_le_one_div_of_le (Real.sqrt_pos.2 hδ) hd1
-  have hD0 : 0 ≤ D := (abs_nonneg _).trans (hD 0)
-  have hY : |-((ε : ℤ) : ℝ) * y / (2 * Real.sqrt (1 - t))| ≤ |y| / (2 * Real.sqrt δ) :=
-    abs_perceptron_smart_path_E'_Y_le ε y t δ hδ ht
-  have hterm (k : Fin M) :
-      |deriv u (S t k) * ((1 / (2 * Real.sqrt (N + 1 : ℕ))) *
-        (a k * ((ε : ℤ) : ℝ) / Real.sqrt t - ξ k / Real.sqrt (1 - t)))| ≤
-        D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) * ((|a k| + |ξ k|) / Real.sqrt δ) := by
-    have hsub : |a k * ((ε : ℤ) : ℝ) / Real.sqrt t - ξ k / Real.sqrt (1 - t)| ≤
-        (|a k| + |ξ k|) / Real.sqrt δ := by
-      calc _ ≤ |a k * ((ε : ℤ) : ℝ) / Real.sqrt t| + |ξ k / Real.sqrt (1 - t)| := abs_sub _ _
-        _ = |a k| * (1 / Real.sqrt t) + |ξ k| * (1 / Real.sqrt (1 - t)) := by
-          simp only [abs_div, abs_mul, abs_units_cast_eq_one, mul_one,
-            abs_of_pos (Real.sqrt_pos.2 ht0), abs_of_pos (Real.sqrt_pos.2 ht1)]
-          ring
-        _ ≤ |a k| * (1 / Real.sqrt δ) + |ξ k| * (1 / Real.sqrt δ) :=
-          add_le_add (mul_le_mul_of_nonneg_left hc0 (abs_nonneg _))
-            (mul_le_mul_of_nonneg_left hc1 (abs_nonneg _))
-        _ = _ := by ring
-    rw [abs_mul, abs_mul, abs_of_nonneg (by positivity :
-      0 ≤ 1 / (2 * Real.sqrt (N + 1 : ℕ))), ← mul_assoc]
-    exact mul_le_mul (mul_le_mul_of_nonneg_right (hD _) (by positivity)) hsub
-      (abs_nonneg _) (mul_nonneg hD0 (by positivity))
-  exact (abs_add_le _ _).trans (add_le_add hY
-    ((Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun k _ => hterm k)))
+    (hδ : 0 < δ) (ht : t ∈ Set.Icc δ (1 - δ)) {u : ℝ → ℝ} {D : ℝ}
+    (hD : ∀ z, |deriv u z| ≤ D) (ω : SmartPathDisorder N M) (x : SmartPathState N M) :
+    |smartPathEnergyDerivA u t ω x + smartPathEnergyDerivXi u t ω x +
+        smartPathEnergyDerivY t ω x| ≤
+      |ω.2| / (2 * Real.sqrt δ) + ∑ k, D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) *
+        ((|ω.1.2 k| + |x.2 k|) / Real.sqrt δ) := by
+  have hδ1 : δ ≤ 1 - t := by linarith [ht.2]
+  have hA := abs_smartPathEnergyDerivA_le hD hδ ht.1 ω x
+  have hX := abs_smartPathEnergyDerivXi_le hD hδ hδ1 ω x
+  have hY := abs_smartPathEnergyDerivY_le hδ hδ1 ω x
+  have h1 : |smartPathEnergyDerivA u t ω x + smartPathEnergyDerivXi u t ω x +
+      smartPathEnergyDerivY t ω x| ≤ |smartPathEnergyDerivA u t ω x| +
+      |smartPathEnergyDerivXi u t ω x| + |smartPathEnergyDerivY t ω x| :=
+    (abs_add_le _ _).trans (add_le_add_left (abs_add_le _ _) _)
+  have hsum : ∑ k, D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) * (|ω.1.2 k| / Real.sqrt δ) +
+      ∑ k, D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) * (|x.2 k| / Real.sqrt δ) =
+      ∑ k, D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) * ((|ω.1.2 k| + |x.2 k|) / Real.sqrt δ) := by
+    rw [← Finset.sum_add_distrib]
+    exact Finset.sum_congr rfl fun k _ => by ring
+  linarith
 
 /-- The Gaussian derivative envelope is integrable against counting times Gaussian measure. -/
 theorem integrable_perceptron_smart_path_envelope {N M : ℕ} (D δ y : ℝ) (a : Fin M → ℝ) :
-    Integrable (fun x : ((Fin N → ℤˣ) × ℤˣ) × (Fin M → ℝ) =>
+    Integrable (fun x : SmartPathState N M =>
       |y| / (2 * Real.sqrt δ) + ∑ k, D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) *
-        ((|a k| + |x.2 k|) / Real.sqrt δ))
-      ((Measure.count : Measure ((Fin N → ℤˣ) × ℤˣ)).prod
-        (Measure.pi fun _ : Fin M => gaussianReal 0 1)) := by
-  have h := integrable_add_sum_mul_abs_snd (M := M) (Measure.count : Measure ((Fin N → ℤˣ) × ℤˣ))
+        ((|a k| + |x.2 k|) / Real.sqrt δ)) (smartPathBase N M) := by
+  have h := integrable_add_sum_mul_abs_snd (M := M) (Measure.count : Measure (PerceptronSpin N))
     (|y| / (2 * Real.sqrt δ) +
       ∑ k, D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) * (|a k| / Real.sqrt δ))
     (fun _ => D * (1 / (2 * Real.sqrt (N + 1 : ℕ))) / Real.sqrt δ)
