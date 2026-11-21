@@ -2013,7 +2013,20 @@ Formalized in \texttt{ForMathlib/Probability/GaussianSmoothingRegularity.lean}.
 \end{proof}
 
 \begin{lemma}[Regularity of the cavity smoothing $\psi$]\label{lem:sg-tal:perceptron-cavity-regularity}
-  \lean{SpinGlasses.contDiff_two_integral_exp_comp_gaussian}
+  \lean{SpinGlasses.contDiff_two_integral_exp_comp_gaussian,
+        ProbabilityTheory.hasDerivAt_integral_gaussian_smoothing_y,
+        SpinGlasses.hasDerivAt_integral_exp_comp_gaussian_y,
+        SpinGlasses.hasDerivAt_integral_exp_comp_gaussian_time,
+        SpinGlasses.fderiv_cavityRatio_time,
+        SpinGlasses.cavityVecA_dotProduct,
+        SpinGlasses.cavityVecB_dotProduct,
+        SpinGlasses.cavityVecA_dotProduct_cavityVecB,
+        SpinGlasses.hasDerivAt_integral_comp_trig_boundedC2_cavity,
+        SpinGlasses.hasDerivAt_integral_cavityRatio_theta,
+        SpinGlasses.continuous_fderiv_fderiv_section,
+        SpinGlasses.integrable_fderiv_fderiv_section,
+        SpinGlasses.integrable_fderiv_param,
+        SpinGlasses.integral_sum_hessian_add_tau_term}
   \leanok
   \uses{lem:sg-tal:perceptron-smoothing-regularity}
 \talsource{The function $\psi_s(y)=\mathbb E\,e^{u(y+a_s\eta_1+b_s\eta_2)}$ under hypothesis (2.7)}
@@ -2022,6 +2035,14 @@ Let $u$ be $C^2$ with $u\le D$, $|u'|\le D_1$ and $|u''|\le D_2$. Then $(\tau_1,
 \begin{proof}
   \leanok
 The function $g=e^u$ is $C^2$ with $g=e^u u'$ differentiated once and $g''=e^u(u'^2+u'')$, so $0<g\le e^D$, $|g'|\le e^DD_1$ and $|g''|\le e^D(D_1^2+D_2)$. Apply the preceding lemma.
+Moreover $\partial_y\psi=\mathbb E\,g'(y+\tau_1\eta_1+\tau_2\eta_2)$ and $\partial_y^2\psi=\mathbb E\,g''(\cdots)$ (differentiation under the Gaussian integral with the bounded dominating constants $e^DD_1$, $e^D(D_1^2+D_2)$; \texttt{hasDerivAt\_integral\_exp\_comp\_gaussian\_y}). These identify the derivatives $\psi',\psi''$ in the replica Hessian lemma and in the heat equation.
+Along $\tau(s)=(\cos s\,a_0,\sin s\sqrt{1-q})$ the heat equation gives $\frac d{ds}\psi_{\tau(s)}(x)=\sin s\cos s\,(1-q-a_0^2)\,\psi_{\tau(s)}''(x)$ (\texttt{hasDerivAt\_integral\_exp\_comp\_gaussian\_time}), and therefore the $\tau$-derivative of the cavity replica ratio is $D_\tau F(\tau_t,y)(\tau_t',0)=\sum_l\sin t\cos t\,(1-q-a_0^2)\,\frac{\psi_t''}{\psi_t}(y_l)\,\langle(N_l-nG_l)f\rangle$ (\texttt{fderiv\_cavityRatio\_time}), the $\tau$-term of (2.37).
+\emph{The cavity instance of the interpolation.} The quenched part $S_{M,t}(\sigma)$ is the linear form $\mathrm{cavityCoef}_\sigma\cdot(g_M,a_M)$ and the common field is $\sqrt q\,z$, with coefficient vectors $(\mathrm{cavityCoef}_\sigma,0)$ and $(0,\sqrt q)$ over the Gaussian block $\xi=((g_M,a_M),z)$ (\texttt{cavityVecA\_dotProduct}, \texttt{cavityVecB\_dotProduct}, \texttt{cavityVecA\_dotProduct\_cavityVecB}: dot products $C(\sigma,\sigma')$, $q$ and $0$). Hence for every $C^2$-bounded $F$ the derivative of $s\mapsto\mathbb E\,F(\tau(s),\cos s\,X+\sin s\,Y)$ is $\sin t\cos t\sum_{\sigma,\sigma'}(q-C(\sigma,\sigma'))\,\mathbb E\,\partial^2_{\sigma\sigma'}F+\mathbb E\,D_\tau F\,\tau'$ (\texttt{hasDerivAt\_integral\_comp\_trig\_boundedC2\_cavity}).
+\emph{The pathwise derivative of the quenched spin-only average.} Combining the instantiated derivative, the replica Hessian and $\tau$-term, the integrability of the (bounded, continuous) second and parameter derivatives along the Gaussian block, and the diagonal cancellation (\texttt{integral\_sum\_hessian\_add\_tau\_term}, which needs $C(\sigma,\sigma)=1-a_0^2$, i.e. $a_0^2=(1-t)/(N+1)$), one gets for $q\in[0,1]$, $t\in[0,1]$ and a spin-only observable $f$
+\[
+\frac d{ds}\,\mathbb E_\xi\langle f\rangle_{t,s}\Big|_{s=t}=\sin t\cos t\;\mathbb E_\xi\bigl\langle f\,\Theta\bigr\rangle,\quad \Theta=\sum_{\sigma,\sigma'}c_{\sigma\sigma'}u_\sigma u_{\sigma'}\bigl(X_\sigma X_{\sigma'}-nG_\sigma(\mathbf 1[\sigma=\sigma']-G_{\sigma'})\bigr)-\sum_\sigma c_{\sigma\sigma}u_\sigma^2X_\sigma
+\]
+with $c=q-C$, $u=\psi'/\psi$, $X_\sigma=N_\sigma-nG_\sigma$ (\texttt{hasDerivAt\_integral\_cavityRatio\_theta}).
 Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityRegularity.lean}.
 \end{proof}
 
@@ -2043,9 +2064,168 @@ The algebra follows from the Leibniz rule and the chain rule $(h\circ f)'=h'(f)f
 Formalized in \texttt{ForMathlib/Analysis/Calculus/BoundedC2.lean}, \texttt{ForMathlib/MeasureTheory/Integral/ContDiffParametric.lean}, \texttt{ForMathlib/Probability/GaussianSmoothingRegularity.lean} and \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityRegularity.lean}.
 \end{proof}
 
+\begin{lemma}[Interpolation with a parameter for bounded derivatives]\label{lem:sg-tal:perceptron-interpolation-bounded}
+  \lean{SpinGlasses.hasDerivAt_integral_comp_trig_boundedC2,
+        SpinGlasses.abs_fderiv_fderiv_section_le}
+  \leanok
+  \uses{lem:sg-tal:perceptron-interpolation-param, lem:sg-tal:boundedc2}
+\talsource{Derivative (2.37)--(2.38) of $\nu(\langle f\rangle_{t,s})$ along the interpolation for the effective spin system}
+Under the hypotheses of the interpolation lemma with a parameter, suppose $F$ is $C^2$-bounded and $\|\tau'(s)\|\le A$ for all $s$. Then the derivative formula of that lemma holds, with no exponential-growth hypothesis.
+\end{lemma}
+\begin{proof}
+  \leanok
+All growth bounds hold with exponent $0$: $|F|\le C$, $|\partial_{y_l}F|\le\|DF\|\,\|(0,e_l)\|\le C$, $|\partial_\tau F\cdot\tau'|\le CA$, and the second spin derivative is $D^2F((0,e_k))((0,e_l))$ of norm at most $C$ (differentiating $y\mapsto DF(c,y)(0,e_l)$ by the chain rule).
+Formalized in \texttt{SpinGlasses/Gaussian/GaussianInterpolationBounded.lean}.
+\end{proof}
+
+\begin{lemma}[Interpolation of linear forms of a standard Gaussian vector]\label{lem:sg-tal:perceptron-interpolation-linear}
+  \lean{SpinGlasses.hasDerivAt_integral_comp_trig_boundedC2_dotProduct}
+  \leanok
+  \uses{lem:sg-tal:perceptron-interpolation-bounded}
+\talsource{The covariance structure (2.50), (2.51), (2.58) of the cavity family, used in the derivative (2.37)}
+Let $\xi$ be a standard Gaussian vector, $X_l=a_l\cdot\xi$ and $Y_l=b_l\cdot\xi$ with $a_l\cdot b_k=0$, and $F$ be $C^2$-bounded. Then the derivative formula of the interpolation lemma with a parameter holds with $\mathbb E X_lX_k=a_l\cdot a_k$ and $\mathbb E Y_lY_k=b_l\cdot b_k$.
+\end{lemma}
+\begin{proof}
+  \leanok
+The family $(a_l\cdot\xi)_l\cup(b_l\cdot\xi)_l$ is jointly Gaussian (\texttt{hasGaussianLaw\_dotProduct\_family}), centered, and its covariances are dot products (\texttt{integral\_dotProduct\_mul\_dotProduct\_pi\_gaussianReal}); apply the previous lemma.
+Formalized in \texttt{SpinGlasses/Gaussian/GaussianInterpolationLinear.lean}.
+\end{proof}
+
+\begin{lemma}[Comparison of replica Gibbs averages under a bounded energy perturbation]\label{lem:sg-tal:perceptron-gibbs-comparison}
+  \lean{MeasureTheory.integral_pi_tilted_le_exp_mul_of_abs_sub_le,
+        SpinGlasses.integral_pi_tilted_cavityPath_le_exp_mul,
+        MeasureTheory.integral_integral_pi_tilted_le_exp_mul_of_abs_sub_le,
+        SpinGlasses.integral_integral_pi_tilted_cavityPath_le_exp_mul,
+        SpinGlasses.measurable_smartPathEnergy_init_joint}
+  \leanok
+\talsource{Lemma~2.3.4, Eq.~(2.61): $\nu(\langle f\rangle_{t,s})\le \exp(\cdot)\,\nu(\langle f\rangle_{t,0})$ for nonnegative $f$}
+Let $\mu$ be a finite nonzero measure, $E_0,E_1$ energies with $e^{E_0}$ integrable and $|E_1-E_0|\le C$ pointwise, and $Y\ge0$ integrable under the $E_0$-replica Gibbs law. Then for $n$ replicas
+\[
+\int Y\,d(\mu_{E_1})^{\otimes n}\;\le\; e^{2nC}\int Y\,d(\mu_{E_0})^{\otimes n}.
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+By \texttt{tilted\_tilted}, $\mu_{E_1}$ is the tilt of the probability measure $\mu_{E_0}$ by $E_1-E_0$; the $n$-fold product is the tilt of $(\mu_{E_0})^{\otimes n}$ by $\sum_i(E_1-E_0)(\sigma_i)$ (\texttt{pi\_tilted\_eq\_tilted\_pi}), which is bounded by $nC$. Apply the bounded-log-density estimate \texttt{abs\_integral\_tilted\_le\_exp\_mul\_integral\_abs}. In the cavity the perturbation is the new constraint's term $u(S_s)-u(S_0)$ with $|u|\le D$, so $C=2D$ and the factor is $e^{4nD}$.
+Formalized in \texttt{ForMathlib/Probability/GibbsReplicaComparison.lean}; the cavity instance (any two angles $s_1,s_2$, $|u|\le D$, nonnegative spin observable of $n$ replicas, factor $e^{4nD}$) is \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityComparison.lean}. Integrating over the disorder $(\omega,z)$ (any probability law, and an observable that may depend on the disorder, bounded and nonnegative) gives $\nu_{t,s_1}(f)\le e^{4nD}\nu_{t,s_2}(f)$, which is Lemma~2.3.4 with $K(n,D)=e^{4nD}$; the energies are jointly measurable in the disorder and the state (\texttt{measurable\_smartPathEnergy\_init\_joint}) and bounded above by $MD+\sqrt{1-t}|y|+D$, so every Gibbs law is a probability measure.
+\end{proof}
+
+\begin{lemma}[Time covariances of the fields, relations (2.60)]\label{lem:sg-tal:perceptron-time-covariance}
+  \lean{SpinGlasses.hasDerivAt_cavityTimeCoef,
+        SpinGlasses.cavityTimeCoef_dotProduct,
+        SpinGlasses.cavityTimeCoef_dotProduct_self,
+        SpinGlasses.cavityTimeCoef_dotProduct_of_ne}
+  \leanok
+  \uses{lem:sg-tal:perceptron-cavity-covariance}
+\talsource{Exercise~2.3.3, relations (2.60): $\mathrm E S_{k,t}^{\ell\prime}S_{k,t}^{\ell}=0$ and $\mathrm E S_{k,t}^{\ell\prime}S_{k,t}^{\ell'}=\varepsilon_\ell\varepsilon_{\ell'}/2N$ for $\ell\ne\ell'$}
+For $t\in(0,1)$ let $S^\ell_\sigma=\alpha_\sigma\cdot g+\sqrt{(1-t)/(N+1)}\,\xi^\ell$ be a field with the coefficient vector of the cavity, and $S^{\ell\prime}_\sigma$ its time derivative, with coefficient vector $0$ on the old couplings, $\varepsilon_\sigma/(2\sqrt{N+1}\sqrt t)$ on the last coupling $a$ and $-1/(2\sqrt{N+1}\sqrt{1-t})$ on $\xi^\ell$. Then
+\[
+\mathrm E\,S^{\ell\prime}_\sigma S^{\ell'}_\tau=\frac{\varepsilon_\sigma\varepsilon_\tau-\mathbf 1_{\ell=\ell'}}{2(N+1)},
+\]
+which vanishes for $\ell=\ell'$, $\tau=\sigma$ and equals $\varepsilon_\sigma\varepsilon_\tau/(2(N+1))$ for $\ell\ne\ell'$. Fields of distinct constraints involve disjoint independent coordinates and are uncorrelated.
+\end{lemma}
+\begin{proof}
+  \leanok
+The covariance of two linear forms of a standard Gaussian vector is the dot product of their coefficient vectors, so it suffices to compute it. The $a$-coordinates contribute $\frac{\varepsilon_\sigma}{2\sqrt{N+1}\sqrt t}\cdot\sqrt{\tfrac t{N+1}}\,\varepsilon_\tau=\frac{\varepsilon_\sigma\varepsilon_\tau}{2(N+1)}$, the $\xi^\ell$-coordinates contribute $-\frac1{2(N+1)}$ when $\ell=\ell'$ and nothing otherwise, and the old couplings contribute $0$. The derivative statement (\texttt{hasDerivAt\_cavityTimeCoef}) is the square-root derivative.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityTimeCovariance.lean}.
+\end{proof}
+
+\begin{lemma}[Hessian of a finite replica average in the energy]\label{lem:sg-tal:perceptron-replica-hessian}
+  \lean{SpinGlasses.hasDerivAt_integral_pi_count_tilted_single_path,
+        SpinGlasses.hasDerivAt_integral_pi_count_tilted_single_single,
+        SpinGlasses.hasDerivAt_integral_pi_count_tilted_site,
+        SpinGlasses.hasDerivAt_integral_pi_count_tilted_site_site}
+  \leanok
+\talsource{The two extra replicas $n+1$, $n+2$ of the replica sums (2.55)--(2.58)}
+Let $\alpha$ be a finite spin set, $n=|R|$, $\Psi$ a function of $n$ replicas and $\langle\Psi\rangle_f=\int\Psi\,d(\mathrm{count}_f)^{\otimes R}$ the replica Gibbs average of the energy $f$. With $N_\rho=\sum_r\mathbf 1[\sigma_r=\rho]$ and $G_\rho$ the Gibbs weight of $\rho$, the derivative in the direction $e_\rho$ is $\langle(N_\rho-nG_\rho)\Psi\rangle$, and the derivative of this along $f+\varepsilon e_{\rho'}$ at $\varepsilon=0$ is
+\[
+\Bigl\langle\Psi\bigl[(N_\rho-nG_\rho)(N_{\rho'}-nG_{\rho'})-nG_\rho(\mathbf 1[\rho=\rho']-G_{\rho'})\bigr]\Bigr\rangle.
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+Apply the derivative of a replica average of a moving observable along a path of energies (\texttt{hasDerivAt\_integral\_pi\_count\_tilted\_path\_moving}) to $\Psi_s=(N_\rho-nG_\rho(f+se_{\rho'}))\Psi$, whose parameter derivative is $-nG_\rho(\mathbf 1[\rho=\rho']-G_{\rho'})\Psi$ by the quotient rule for $G_\rho=e^{f_\rho}/\sum_be^{f_b}$.
+The same computation along an arbitrary smooth energy path $f_s$ gives $\langle\Psi[(N_\rho-nG_\rho)(\sum_rf'(\sigma_r)-n\langle f'\rangle)-nG_\rho(f'(\rho)-\langle f'\rangle)]\rangle$ (\texttt{\_single\_path}). For site energies $E_a=h_a+L(y_a)$ (in the cavity $L=\log\psi_\tau$) moving a single coordinate $y_c$ has first derivative $L'(y_c)\langle(N_c-nG_c)\Psi\rangle$ (\texttt{\_site}) and the derivative of $L'(y_b)\langle(N_b-nG_b)\Psi\rangle$ is $\mathbf 1[b=c]L''(y_b)\langle(N_b-nG_b)\Psi\rangle+L'(y_b)L'(y_c)\langle\Psi[(N_b-nG_b)(N_c-nG_c)-nG_b(\mathbf 1[b=c]-G_c)]\rangle$ (\texttt{\_site\_site}).
+Formalized in \texttt{SpinGlasses/Gaussian/GaussianIBPSecondDerivative.lean}.
+\end{proof}
+
+\begin{lemma}[Partial derivatives of the replica ratio in the spin fields]\label{lem:sg-tal:perceptron-ratio-hessian}
+  \lean{SpinGlasses.replicaRatio_eq_integral_pi_count_tilted,
+        SpinGlasses.differentiable_replicaRatio,
+        SpinGlasses.fderiv_replicaRatio_single,
+        SpinGlasses.fderiv_fderiv_replicaRatio_single,
+        SpinGlasses.hasDerivAt_replicaRatio_param,
+        SpinGlasses.sum_hessian_add_tau_term}
+  \leanok
+  \uses{lem:sg-tal:perceptron-replica-hessian, lem:sg-tal:perceptron-interpolation-linear}
+\talsource{The second spin derivatives $\partial^2_{y_ly_k}F$ entering the covariance-difference term of (2.37), written as the replica sums of (2.55)--(2.58)}
+Let $w>0$ and $\psi>0$ be $C^2$, $G(y)=\sum_\sigma f(\sigma)\prod_rw(\sigma_r)\psi(y_{\sigma_r})\big/\bigl(\sum_aw(a)\psi(y_a)\bigr)^n$ and $L=\log\psi$. Then $G(y)$ is the $n$-replica Gibbs average of $f$ for the site energies $\log w_a+L(y_a)$, $\partial_{y_k}G=L'(y_k)\langle(N_k-nG_k)f\rangle$ and
+\[
+\partial_{y_k}\partial_{y_l}G=\mathbf 1[l=k]\,L''(y_l)\langle(N_l-nG_l)f\rangle+L'(y_l)L'(y_k)\bigl\langle f\bigl[(N_l-nG_l)(N_k-nG_k)-nG_l(\mathbf 1[l=k]-G_k)\bigr]\bigr\rangle,
+\]
+with $N_k=\sum_r\mathbf 1[\sigma_r=k]$ and $G_k$ the Gibbs weight of $k$.
+\end{lemma}
+\begin{proof}
+  \leanok
+The ratio is the Gibbs average because $e^{\log w+\log\psi}=w\psi$ (\texttt{integral\_pi\_count\_tilted\_eq\_sum\_div}); it is differentiable (indeed $C^2$) as a quotient of finite sums with positive denominator. Its directional derivative in $e_k$ is the derivative of $\varepsilon\mapsto G(y+\varepsilon e_k)$, which the site-variable lemmas compute.
+If the smoothing $\psi_s(x)$ has $s$-derivative $\dot\psi(x)$ at $t$, the ratio built from $\psi_s$ has $s$-derivative $\sum_l\frac{\dot\psi(y_l)}{\psi_t(y_l)}\langle(N_l-nG_l)f\rangle$ (\texttt{hasDerivAt\_replicaRatio\_param}), the energy path $\log w_a+\log\psi_s(y_a)$ having velocity $\dot\psi(y_a)/\psi_t(y_a)$; with $\dot\psi=\sin s\cos s\,(1-q-a_0^2)\,\psi''$ (heat equation) this is the $\tau$-term of (2.37).
+\emph{Diagonal cancellation (2.58).} Let $c_{lk}=q-C(l,k)$ have constant diagonal $c_{ll}=-d$ with $d=1-q-a_0^2$, $u_l=\psi'/\psi(y_l)$, $X_l=N_l-nG_l$. The covariance term $\sum_{l,k}c_{lk}[\mathbf 1[l=k]L''_lX_l+u_lu_k(X_lX_k-nG_l(\mathbf 1[l=k]-G_k))]$ and the $\tau$-term $d\sum_l(L''_l+u_l^2)X_l$ add up to $\sum_{l,k}c_{lk}u_lu_k(X_lX_k-nG_l(\mathbf 1[l=k]-G_k))-\sum_lc_{ll}u_l^2X_l$: the $L''$ terms cancel and the diagonal $c_{ll}u_l^2X_l$ is removed (\texttt{sum\_hessian\_add\_tau\_term}), which is the replica sum over pairs $\ell\ne\ell'$.
+Formalized in \texttt{SpinGlasses/Gaussian/GaussianReplicaRatioHessian.lean}.
+\end{proof}
+
+\begin{lemma}[$\langle f\Theta\rangle$ as a replica sum with two extra replicas]\label{lem:sg-tal:perceptron-theta-replicas}
+  \lean{SpinGlasses.integral_pi_option_kernel,
+        SpinGlasses.integral_pi_option_option_kernel,
+        SpinGlasses.theta_eq_pair_sum,
+        SpinGlasses.integral_theta_eq_replicas,
+        SpinGlasses.abs_integral_theta_le,
+        SpinGlasses.integral_integral_pair_holder,
+        SpinGlasses.integrable_integral_pi_count_tilted',
+        SpinGlasses.integral_integral_pair_holder_affine,
+        SpinGlasses.abs_integral_integral_theta_le,
+        SpinGlasses.sum_mul_integral_eq_integral_sum,
+        SpinGlasses.abs_cavity_theta_le,
+        SpinGlasses.integral_integral_count_tilted_le_exp_mul,
+        SpinGlasses.exists_hasDerivAt_abs_le_cavityRatio,
+        SpinGlasses.integral_exp_comp_gaussian_le,
+        SpinGlasses.abs_integral_deriv_exp_comp_div_le,
+        SpinGlasses.contDiff_two_integral_exp_comp_gaussian_section,
+        SpinGlasses.integrable_integral_integral_count_tilted,
+        SpinGlasses.integral_integral_rpow_count_tilted_le,
+        MeasureTheory.aestronglyMeasurable_of_hasDerivAt_param,
+        SpinGlasses.exists_hasDerivAt_integral_abs_le_cavityRatio,
+        SpinGlasses.integral_integral_integral_count_tilted_le_exp_mul,
+        SpinGlasses.integral_exp_comp_gaussian_pos,
+        SpinGlasses.abs_log_integral_exp_comp_gaussian_sub_le,
+        SpinGlasses.measurable_integral_exp_comp_gaussian,
+        SpinGlasses.measurable_cavityField,
+        SpinGlasses.abs_integral_integral_cavityRatio_sub_le}
+  \leanok
+  \uses{lem:sg-tal:perceptron-ratio-hessian}
+\talsource{The replica sums over $1\le\ell<\ell'\le n+2$ of (2.55)--(2.58)}
+Let $\nu=\mathrm{count}_E$ be a Gibbs law on a finite spin set, $G_l=\nu\{l\}$, $N_l=\sum_r\mathbf 1[\sigma_r=l]$, $X_l=N_l-nG_l$, $c$ a kernel and $f$ a function of $n$ replicas. Then
+\[
+\sum_{l,k}c_{lk}\bigl[X_lX_k-nG_l(\mathbf 1[l=k]-G_k)\bigr]-\sum_lc_{ll}X_l=\sum_{r\ne r'}c(\sigma_r,\sigma_{r'})-n\sum_r\sum_kG_k\bigl(c(\sigma_r,k)+c(k,\sigma_r)\bigr)+n(n+1)\sum_{l,k}G_lG_kc_{lk},
+\]
+and, integrating against $f$ over the replicas, $\langle f\Theta\rangle_n=\sum_{r\ne r'}\langle fc(\sigma_r,\sigma_{r'})\rangle_n-n\sum_r\bigl(\langle fc(\sigma_r,\sigma_*)\rangle_{n+1}+\langle fc(\sigma_*,\sigma_r)\rangle_{n+1}\bigr)+n(n+1)\langle fc(\sigma_*,\sigma_{**})\rangle_{n+2}$.
+\end{lemma}
+\begin{proof}
+  \leanok
+The pointwise identity follows by expanding the products and using $\sum_lg(l)N_l=\sum_rg(\sigma_r)$. For the integrated form, an extra replica is integrated out by the factorization of a function of fresh replicas (\texttt{integral\_pi\_fresh\_replica\_mul}) after writing $c(\sigma_r,\sigma_*)=\sum_a\mathbf 1[\sigma_r=a]c(a,\sigma_*)$ (\texttt{integral\_pi\_option\_kernel}, \texttt{integral\_pi\_option\_option\_kernel}), and $\int g\,d\nu=\sum_kG_kg(k)$.
+If $|c|\le m$ pointwise, the triangle inequality gives $|\langle f\Theta\rangle_n|\le\sum_{r\ne r'}\langle|f|m(\sigma_r,\sigma_{r'})\rangle_n+n\sum_r\bigl(\langle|f|m(\sigma_r,\sigma_*)\rangle_{n+1}+\langle|f|m(\sigma_*,\sigma_r)\rangle_{n+1}\bigr)+n(n+1)\langle|f|m(\sigma_*,\sigma_{**})\rangle_{n+2}$ (\texttt{abs\_integral\_theta\_le}), and each pair average of a random Gibbs state satisfies H\"older's inequality $\mathbb E\langle|F|\,m(\sigma_i,\sigma_j)\rangle\le(\mathbb E\langle|F|^p\rangle)^{1/p}(\mathbb E\langle m(\sigma_1,\sigma_2)^r\rangle)^{1/r}$ for $i\ne j$, the pair being marginalized to two replicas (\texttt{integral\_integral\_pair\_holder}).
+For kernels with $|c|\le\alpha d+\beta$ this gives the disorder-averaged estimate $|\mathbb E\langle f\Theta\rangle|\le(4n^2+n)\bigl(\alpha\,(\mathbb E\langle|f|^p\rangle)^{1/p}(\mathbb E\langle d(\sigma_1,\sigma_2)^r\rangle)^{1/r}+\beta\,\mathbb E\langle|f|\rangle\bigr)$ (\texttt{abs\_integral\_integral\_theta\_le}); with $d=|R-q|$, $\alpha=D'^2$, $\beta=D'^2/(N+1)$ this is the bound (2.40) at fixed angle: for a spin-only $f$, with $|\psi_1/\psi|\le D'$ and $|q-C(\sigma,\tau)|\le|q-R(\sigma,\tau)|+1/(N+1)$ (\texttt{abs\_cavityCoef\_dotProduct\_sub\_overlap\_le}), $|\mathbb E_\xi\Theta_{\mathrm{int}}|\le(4n^2+n)D'^2\bigl((\mathbb E\langle|f|^p\rangle)^{1/p}(\mathbb E\langle|R_{12}-q|^r\rangle)^{1/r}+\mathbb E\langle|f|\rangle/(N+1)\bigr)$ (\texttt{abs\_cavity\_theta\_le}).
+To compare the Gibbs averages at different angles inside this bound without returning to the extended system, note that the spin-only site energies $\log w+\log\psi_{\tau(s)}(y_a)$ lie in $[\log w-B,\log w+D]$, so two angles differ by at most $B+D$; hence the disorder average of a nonnegative $n$-replica Gibbs average at one angle is at most $e^{2n(B+D)}$ times that at another (\texttt{integral\_integral\_count\_tilted\_le\_exp\_mul}).
+Combining the pathwise derivative with this estimate, at every angle $t$ the derivative of $s\mapsto\mathbb E_\xi\langle f\rangle_{p,s}$ exists and is bounded by $\tfrac12(4n^2+n)D'^2\bigl((\mathbb E\langle|f|^p\rangle)^{1/p}(\mathbb E\langle|R_{12}-q|^r\rangle)^{1/r}+\mathbb E\langle|f|\rangle/(N+1)\bigr)$ with $D'=e^{D+B}D_1$, where $|\psi'/\psi|\le e^{D+B}D_1$ because $\psi\ge e^{-B}$ and $|\psi'|\le e^DD_1$ (\texttt{exists\_hasDerivAt\_abs\_le\_cavityRatio}, \texttt{abs\_integral\_deriv\_exp\_comp\_div\_le}).
+Finally the old disorder $\omega$ (which enters only through the positive weights $w_\omega(a)$) is averaged out. Since the spin set is finite, $|G_\omega'(s)|\le\tfrac12(4n^2+n)D'^2\bigl(\max|f|\max|q-R|+\max|f|/(N+1)\bigr)$ uniformly in $\omega$ and $s$ (every Gibbs average of a bounded observable is bounded, \texttt{integral\_integral\_rpow\_count\_tilted\_le}), and $\omega\mapsto G_\omega(s)$ and $\omega\mapsto G_\omega'(t)$ are measurable (\texttt{integrable\_integral\_integral\_count\_tilted}, \texttt{aestronglyMeasurable\_of\_hasDerivAt\_param}, the latter because the derivative is the limit of the difference quotients along $t+1/(n+1)$). Dominated differentiation under $\mathbb E_\omega$ and the H\"older inequality over $\omega$ applied to $\omega\mapsto(\mathbb E_\xi\langle|f|^p\rangle)^{1/p}$ and $\omega\mapsto(\mathbb E_\xi\langle|R_{12}-q|^r\rangle)^{1/r}$ give the bound (2.40) for the fully averaged quantity $\nu_s(f)=\mathbb E_\omega\mathbb E_\xi\langle f\rangle_{p,s}$ (\texttt{exists\_hasDerivAt\_integral\_abs\_le\_cavityRatio}), with all averages at the same angle and no comparison between angles.
+The observable may be random and depend on the old disorder $\omega$ and the old auxiliary coordinates, provided it is bounded uniformly and measurable in $\omega$ (as Lemma 2.3.2 and Proposition 2.3.5 require). Finally, the mean-value theorem in the angle (the step (2.63) of Proposition 2.3.5 for $B_v\equiv1$) bounds the increment $|\nu_{s_2}(f)-\nu_{s_1}(f)|$ by $|s_2-s_1|\cdot\tfrac12(4n^2+n)D'^2\bigl(e^{2n(B+D)/p+4(B+D)/r}(\mathbb E\langle|f|^p\rangle_{s_0})^{1/p}(\mathbb E\langle|R_{12}-q|^r\rangle_{s_0})^{1/r}+e^{2n(B+D)}\mathbb E\langle|f|\rangle_{s_0}/(N+1)\bigr)$ for any reference angle $s_0$: the derivative bound holds at each angle with averages at that angle, and two angles change the site energies $\log w+\log\psi_s$ by at most $B+D$ because $\psi_s\in[e^{-B},e^D]$ (\texttt{abs\_log\_integral\_exp\_comp\_gaussian\_sub\_le}), so the comparison (2.61) \texttt{integral\_integral\_integral\_count\_tilted\_le\_exp\_mul} moves every average to $s_0$ (\texttt{abs\_integral\_integral\_cavityRatio\_sub\_le}).
+Formalized in \texttt{SpinGlasses/Gaussian/GaussianReplicaTheta.lean}.
+\end{proof}
+
 \begin{proposition}[Spin-only reduction of the interpolating system]\label{prop:sg-tal:perceptron-cavity-spin-only}
   \lean{SpinGlasses.integral_pi_tilted_cavityPath_marginal_xi,
-        SpinGlasses.integral_pi_tilted_cavityPath_spinOnly}
+        SpinGlasses.integral_pi_tilted_cavityPath_spinOnly,
+        SpinGlasses.integral_pi_tilted_cavityPath_spinOnly_eq_ratio,
+        MeasureTheory.integral_pi_count_tilted_eq_sum_div}
   \leanok
   \uses{prop:sg-tal:perceptron-cavity-path}
 \talsource{The reading of $\xi$ ``as a new spin'' and the effective spin system (Exercise~2.2.1 for the cavity)}
@@ -2063,6 +2243,7 @@ $E_\sim+\log\int e^{u(S_s)}d\gamma(\xi)$, a function of the configuration of the
 
 \emph{Step 2 (marginalize $\xi_{<M},\xi_M$).} The base is $\mathrm{count}\otimes\gamma^{M+1}$ and the energy is $\varepsilon\sqrt{1-t}y+\sum_{k<M}u(S_k)+\widetilde V(\xi_M)$, a sum of one potential per auxiliary coordinate,
 so the existing finite-state marginalization (\texttt{integral\_pi\_tilted\_count\_prod\_sum}) with $K=\mathrm{Fin}\,(M+1)$ replaces each potential by its log exponential integral.
+\emph{Step 3 (explicit ratio).} For a finite spin set the replica average under \texttt{count.tilted} is $\sum_\sigma f(\sigma)\prod_rw(\sigma_r)\psi(\sigma_r)\big/\bigl(\sum_aw(a)\psi(a)\bigr)^{|R|}$ when $e^{E}=w\psi$ (\texttt{integral\_pi\_count\_tilted\_eq\_sum\_div}); here $w(a)=e^{\varepsilon\sqrt{1-t}\,y}\prod_{k<M}\mathbb E e^{u(S_k)}$ and $\psi(a)=\mathbb E\,e^{u(y_a+b\tau_1+\xi\tau_2)}$ with $y_a=\cos s\,S_{M,t}(a,0)+\sin s\sqrt q\,z$, $\tau_1=\cos s\sqrt{(1-t)/(N+1)}$, $\tau_2=\sin s\sqrt{1-q}$, the nested Gaussian integral being the integral over the product.
 Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavitySpinOnly.lean}.
 \end{proof}
 

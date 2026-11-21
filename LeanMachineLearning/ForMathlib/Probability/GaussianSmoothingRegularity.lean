@@ -133,6 +133,29 @@ theorem contDiff_two_integral_gaussian_smoothing (hg : ContDiff ℝ 2 g) {B₀ B
       ∫ η, g (ℓ p + η.1 * A p + η.2 * B p) ∂((gaussianReal 0 1).prod (gaussianReal 0 1))) :=
   (boundedC2_integral_gaussian_smoothing ℓ A B hg h0 h1 h2).contDiff
 
+/-- **The Gaussian smoothing differentiates under the integral in the spin variable.** For `g`
+differentiable with bounded derivative and `g` continuous and bounded, the derivative in `y` of
+`y ↦ ∬ g (y + τ₁ b + τ₂ ξ) dγ dγ` is `∬ g' (y + τ₁ b + τ₂ ξ) dγ dγ`. -/
+theorem hasDerivAt_integral_gaussian_smoothing_y {g g' : ℝ → ℝ} (hg : ∀ x, HasDerivAt g (g' x) x)
+    (hg'c : Continuous g') {B₀ B₁ : ℝ} (h0 : ∀ x, |g x| ≤ B₀) (h1 : ∀ x, |g' x| ≤ B₁)
+    (τ₁ τ₂ y : ℝ) :
+    HasDerivAt (fun y : ℝ => ∫ η, g (y + η.1 * τ₁ + η.2 * τ₂)
+        ∂((gaussianReal 0 1).prod (gaussianReal 0 1)))
+      (∫ η, g' (y + η.1 * τ₁ + η.2 * τ₂) ∂((gaussianReal 0 1).prod (gaussianReal 0 1))) y := by
+  have hgc : Continuous g := continuous_iff_continuousAt.2 fun x => (hg x).continuousAt
+  refine (hasDerivAt_integral_of_dominated_loc_of_deriv_le (s := Set.univ) (bound := fun _ => B₁)
+    (F := fun (y : ℝ) (η : ℝ × ℝ) => g (y + η.1 * τ₁ + η.2 * τ₂))
+    (F' := fun (y : ℝ) (η : ℝ × ℝ) => g' (y + η.1 * τ₁ + η.2 * τ₂)) Filter.univ_mem
+    (Filter.Eventually.of_forall fun x => (hgc.comp (by fun_prop)).aestronglyMeasurable)
+    (Integrable.of_bound (C := B₀) (hgc.comp (by fun_prop)).aestronglyMeasurable
+      (ae_of_all _ fun η => by simpa using h0 _))
+    (hg'c.comp (by fun_prop)).aestronglyMeasurable
+    (ae_of_all _ fun η x _ => by simpa using h1 _) (integrable_const B₁)
+    (ae_of_all _ fun η x _ => by
+      have h := (hg (x + (η.1 * τ₁ + η.2 * τ₂))).comp x ((hasDerivAt_id x).add_const
+        (η.1 * τ₁ + η.2 * τ₂))
+      simpa [Function.comp_def, add_assoc] using h)).2
+
 end
 
 end ProbabilityTheory

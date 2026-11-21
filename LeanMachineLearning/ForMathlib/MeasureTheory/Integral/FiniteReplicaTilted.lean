@@ -36,6 +36,18 @@ theorem integral_pi_count_tilted [Fintype α] [Fintype R] [DecidableEq R] (f : �
   congr 1
   exact Finset.prod_congr rfl fun r _ => real_count_tilted_singleton f (σ r)
 
+/-- **Replica average for a factorized weight.** If `exp (E a) = w a * ψ a`, the `R`-replica Gibbs
+average of `Ψ` is `(∑_σ Ψ σ ∏_r w (σ r) ψ (σ r)) / (∑_a w a ψ a) ^ |R|`. -/
+theorem integral_pi_count_tilted_eq_sum_div [Fintype α] [Fintype R] [DecidableEq R]
+    {E w ψ : α → ℝ} (hE : ∀ a, Real.exp (E a) = w a * ψ a) (Ψ : (R → α) → ℝ) :
+    ∫ σ, Ψ σ ∂(Measure.pi fun _ : R => Measure.count.tilted E) =
+      (∑ σ : R → α, Ψ σ * ∏ r, (w (σ r) * ψ (σ r))) / (∑ a, w a * ψ a) ^ Fintype.card R := by
+  rw [integral_pi_count_tilted, Finset.sum_div]
+  refine Finset.sum_congr rfl fun σ _ => ?_
+  simp_rw [hE]
+  rw [Finset.prod_div_distrib, Finset.prod_const, Finset.card_univ]
+  ring
+
 section Parameter
 
 variable {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}

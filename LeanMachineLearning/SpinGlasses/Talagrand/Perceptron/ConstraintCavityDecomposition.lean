@@ -66,6 +66,26 @@ theorem measurable_smartPathEnergy_init {u : ℝ → ℝ} (hu : Measurable u) (t
       smartPathEnergy u t ((Fin.init ω.1.1, Fin.init ω.1.2), ω.2) (x.1, Fin.init x.2) :=
   (measurable_smartPathEnergy_slice hu t _).comp measurable_smartPathState_init
 
+/-- The restriction of the disorder to the old constraints is measurable. -/
+theorem measurable_smartPathDisorder_init :
+    Measurable fun ω : SmartPathDisorder N (M + 1) =>
+      ((Fin.init ω.1.1, Fin.init ω.1.2), ω.2) := by
+  fun_prop
+
+/-- The old energy (2.30) is jointly measurable in the disorder and the full state. -/
+theorem measurable_smartPathEnergy_init_joint {u : ℝ → ℝ} (hu : Measurable u) (t : ℝ) :
+    Measurable fun r : SmartPathDisorder N (M + 1) × SmartPathState N (M + 1) =>
+      smartPathEnergy u t ((Fin.init r.1.1.1, Fin.init r.1.1.2), r.1.2)
+        (r.2.1, Fin.init r.2.2) := by
+  have h1 : Measurable fun r : SmartPathDisorder N (M + 1) × SmartPathState N (M + 1) =>
+      (((Fin.init r.1.1.1, Fin.init r.1.1.2), r.1.2) : SmartPathDisorder N M) :=
+    measurable_smartPathDisorder_init.comp measurable_fst
+  have h2 : Measurable fun r : SmartPathDisorder N (M + 1) × SmartPathState N (M + 1) =>
+      ((r.2.1, Fin.init r.2.2) : SmartPathState N M) :=
+    measurable_smartPathState_init.comp measurable_snd
+  have h3 := measurable_smartPathEnergy (N := N) (M := M) hu t
+  exact (h3.comp (h1.prodMk h2) : _)
+
 /-- The old energy is bounded above for a potential bounded above. -/
 theorem smartPathEnergy_init_le {u : ℝ → ℝ} {D : ℝ} (hD : ∀ x, u x ≤ D) (t : ℝ)
     (ω : SmartPathDisorder N (M + 1)) (x : SmartPathState N (M + 1)) :

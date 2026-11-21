@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ProductTiltedMarginal
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteReplicaTilted
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavityPath
 
 /-!
@@ -190,6 +191,111 @@ theorem integral_pi_tilted_cavityPath_spinOnly {R : Type*} [Fintype R]
         simp only [V, (Fin.castSucc_lt_last j).ne, ite_false]
     simp only [hlast, hcast]
   rw [hRfun] at key
+  exact key
+
+include hu hD in
+/-- **The spin-only reduction as an explicit ratio.** For an observable `f` of the spins of the
+replicas `R` only, the replica average of the extended cavity system is
+`(∑_σ f σ ∏_r w (σ_r) ψ (σ_r)) / (∑_a w a ψ a) ^ |R|` with weights `w a` from the old constraints
+and the new spin sign, and `ψ a = ∬ e^{u (y_a + b τ₁ + ξ τ₂)} dγ dγ` where
+`y_a = cos s · S_{M,t}(a, 0) + sin s √q z`, `τ₁ = cos s √((1-t)/(N+1))`, `τ₂ = sin s √(1-q)`. -/
+theorem integral_pi_tilted_cavityPath_spinOnly_eq_ratio {R : Type*} [Fintype R] [DecidableEq R]
+    (f : (R → PerceptronSpin N) → ℝ) :
+    ∫ σ : R → SmartPathState N (M + 1) × ℝ, f (fun r => (σ r).1.1)
+      ∂(Measure.pi fun _ : R => ((smartPathBase N (M + 1)).prod (gaussianReal 0 1)).tilted
+        fun p : SmartPathState N (M + 1) × ℝ =>
+          smartPathEnergy u t ((Fin.init ω.1.1, Fin.init ω.1.2), ω.2) (p.1.1, Fin.init p.1.2) +
+            u (Real.cos s * smartPathField t ω p.1 (Fin.last M) +
+              Real.sin s * (Real.sqrt q * z + Real.sqrt (1 - q) * p.2))) =
+      (∑ σ : R → PerceptronSpin N, f σ * ∏ r,
+          (Real.exp (((σ r).2 : ℤ) * Real.sqrt (1 - t) * ω.2) *
+              (∏ j : Fin M, ∫ b, Real.exp (u (smartPathField t ω (σ r, fun _ => b) j.castSucc))
+                ∂gaussianReal 0 1) *
+            ∫ η, Real.exp (u (Real.cos s * smartPathFieldNoAux t ω (σ r, fun _ => 0)
+                (Fin.last M) + Real.sin s * (Real.sqrt q * z) +
+              η.1 * (Real.cos s * Real.sqrt ((1 - t) / (N + 1))) +
+              η.2 * (Real.sin s * Real.sqrt (1 - q))))
+              ∂((gaussianReal 0 1).prod (gaussianReal 0 1))))
+        / (∑ a : PerceptronSpin N,
+          Real.exp (((a.2 : ℤ) : ℝ) * Real.sqrt (1 - t) * ω.2) *
+              (∏ j : Fin M, ∫ b, Real.exp (u (smartPathField t ω (a, fun _ => b) j.castSucc))
+                ∂gaussianReal 0 1) *
+            ∫ η, Real.exp (u (Real.cos s * smartPathFieldNoAux t ω (a, fun _ => 0)
+                (Fin.last M) + Real.sin s * (Real.sqrt q * z) +
+              η.1 * (Real.cos s * Real.sqrt ((1 - t) / (N + 1))) +
+              η.2 * (Real.sin s * Real.sqrt (1 - q))))
+              ∂((gaussianReal 0 1).prod (gaussianReal 0 1)))
+          ^ Fintype.card R := by
+  rw [integral_pi_tilted_cavityPath_spinOnly hu hD t q s z ω f]
+  have hfb : ∀ a (k : Fin (M + 1)), Measurable fun b : ℝ => smartPathField t ω (a, fun _ => b) k :=
+    fun a k => by
+      simp only [smartPathField_eq, smartPathFieldNoAux_eq]
+      fun_prop
+  have hIpos : ∀ a (j : Fin M), 0 < ∫ b, Real.exp (u (smartPathField t ω (a, fun _ => b)
+      j.castSucc)) ∂gaussianReal 0 1 := fun a j =>
+    integral_exp_pos_of_ae_le (C := D) (hu.comp (hfb a _)).aemeasurable
+      (ae_of_all _ fun _ => hD _)
+  -- the nested Gaussian integral is the integral over the product
+  have hfield : ∀ (a : PerceptronSpin N) (b ξ : ℝ), Real.cos s *
+      smartPathField t ω (a, fun _ => b) (Fin.last M) +
+        Real.sin s * (Real.sqrt q * z + Real.sqrt (1 - q) * ξ) =
+      Real.cos s * smartPathFieldNoAux t ω (a, fun _ => 0) (Fin.last M) +
+        Real.sin s * (Real.sqrt q * z) +
+        b * (Real.cos s * Real.sqrt ((1 - t) / (N + 1))) +
+        ξ * (Real.sin s * Real.sqrt (1 - q)) := fun a b ξ => by
+    have hnoaux : smartPathFieldNoAux t ω (a, fun _ => b) (Fin.last M) =
+        smartPathFieldNoAux t ω (a, fun _ => 0) (Fin.last M) := rfl
+    rw [smartPathField_eq, hnoaux]
+    ring
+  have hnest : ∀ a : PerceptronSpin N,
+      ∫ b, ∫ ξ, Real.exp (u (Real.cos s * smartPathField t ω (a, fun _ => b) (Fin.last M) +
+        Real.sin s * (Real.sqrt q * z + Real.sqrt (1 - q) * ξ))) ∂gaussianReal 0 1
+        ∂gaussianReal 0 1 =
+      ∫ η, Real.exp (u (Real.cos s * smartPathFieldNoAux t ω (a, fun _ => 0) (Fin.last M) +
+        Real.sin s * (Real.sqrt q * z) + η.1 * (Real.cos s * Real.sqrt ((1 - t) / (N + 1))) +
+        η.2 * (Real.sin s * Real.sqrt (1 - q))))
+        ∂((gaussianReal 0 1).prod (gaussianReal 0 1)) := fun a => by
+    simp_rw [← hfield a]
+    have hint : Integrable (fun η : ℝ × ℝ => Real.exp (u (Real.cos s *
+        smartPathField t ω (a, fun _ => η.1) (Fin.last M) +
+        Real.sin s * (Real.sqrt q * z + Real.sqrt (1 - q) * η.2))))
+        ((gaussianReal 0 1).prod (gaussianReal 0 1)) := by
+      refine Integrable.of_bound (C := Real.exp D) ?_ (ae_of_all _ fun η => ?_)
+      · exact (Real.measurable_exp.comp (hu.comp (by
+          simp only [smartPathField_eq, smartPathFieldNoAux_eq]; fun_prop))).aestronglyMeasurable
+      · rw [Real.norm_eq_abs, abs_of_pos (Real.exp_pos _)]
+        exact Real.exp_le_exp.2 (hD _)
+    exact (integral_prod (fun η : ℝ × ℝ => Real.exp (u (Real.cos s *
+        smartPathField t ω (a, fun _ => η.1) (Fin.last M) +
+        Real.sin s * (Real.sqrt q * z + Real.sqrt (1 - q) * η.2)))) hint).symm
+  have hJpos : ∀ a : PerceptronSpin N, 0 < ∫ η, Real.exp (u (Real.cos s *
+      smartPathFieldNoAux t ω (a, fun _ => 0) (Fin.last M) + Real.sin s * (Real.sqrt q * z) +
+      η.1 * (Real.cos s * Real.sqrt ((1 - t) / (N + 1))) +
+      η.2 * (Real.sin s * Real.sqrt (1 - q)))) ∂((gaussianReal 0 1).prod (gaussianReal 0 1)) :=
+    fun a => by
+      refine integral_exp_pos_of_ae_le (C := D) ?_ (ae_of_all _ fun _ => hD _)
+      exact (hu.comp (by fun_prop)).aemeasurable
+  obtain ⟨W, hW⟩ : ∃ W : PerceptronSpin N → ℝ, ∀ a, W a = Real.exp (((a.2 : ℤ) : ℝ) *
+      Real.sqrt (1 - t) * ω.2) * ∏ j : Fin M, ∫ b, Real.exp (u (smartPathField t ω
+        (a, fun _ => b) j.castSucc)) ∂gaussianReal 0 1 := ⟨_, fun _ => rfl⟩
+  obtain ⟨J, hJ⟩ : ∃ J : PerceptronSpin N → ℝ, ∀ a, J a = ∫ η, Real.exp (u (Real.cos s *
+      smartPathFieldNoAux t ω (a, fun _ => 0) (Fin.last M) + Real.sin s * (Real.sqrt q * z) +
+      η.1 * (Real.cos s * Real.sqrt ((1 - t) / (N + 1))) +
+      η.2 * (Real.sin s * Real.sqrt (1 - q)))) ∂((gaussianReal 0 1).prod (gaussianReal 0 1)) :=
+    ⟨_, fun _ => rfl⟩
+  have hE : ∀ a : PerceptronSpin N, Real.exp (((a.2 : ℤ) : ℝ) * Real.sqrt (1 - t) * ω.2 +
+      (∑ j : Fin M, Real.log (∫ b, Real.exp (u (smartPathField t ω (a, fun _ => b)
+          j.castSucc)) ∂gaussianReal 0 1) +
+        Real.log (∫ b, ∫ ξ, Real.exp (u (Real.cos s *
+          smartPathField t ω (a, fun _ => b) (Fin.last M) +
+          Real.sin s * (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)))
+          ∂gaussianReal 0 1 ∂gaussianReal 0 1))) = W a * J a := fun a => by
+    rw [hW, hJ, ← hnest a, Real.exp_add, Real.exp_add, Real.exp_sum,
+      Finset.prod_congr rfl fun j _ => Real.exp_log (hIpos a j), Real.exp_log (by
+        rw [hnest a]; exact hJpos a)]
+    ring
+  have key := integral_pi_count_tilted_eq_sum_div (R := R) hE f
+  simp only [hW, hJ] at key
   exact key
 
 end SpinGlasses
