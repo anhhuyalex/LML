@@ -83,6 +83,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Function.UnitVectorFi
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Group.Arithmetic
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.BoundedTilted
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ChebyshevAssociation
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ContDiffParametric
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.CoordinatePair
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ExpMoment
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ExpectedTilted
@@ -157,6 +158,7 @@ public import LeanMachineLearning.ForMathlib.Probability.Distributions.Poisson.S
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Poisson.Thinning
 public import LeanMachineLearning.ForMathlib.Probability.EmpiricalConvergence
 public import LeanMachineLearning.ForMathlib.Probability.ExchangeableMixture
+public import LeanMachineLearning.ForMathlib.Probability.GaussianSmoothingRegularity
 public import LeanMachineLearning.ForMathlib.Probability.GibbsCavityPath
 public import LeanMachineLearning.ForMathlib.Probability.GibbsIBPLinear
 public import LeanMachineLearning.ForMathlib.Probability.GibbsIBPPotential
