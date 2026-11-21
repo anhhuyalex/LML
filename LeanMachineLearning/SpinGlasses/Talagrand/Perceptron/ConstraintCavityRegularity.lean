@@ -45,12 +45,13 @@ theorem deriv_deriv_exp_comp_of_contDiff_two (hu : ContDiff ℝ 2 u) (x : ℝ) :
 /-- **The cavity smoothing is `C²` with bounded derivatives.** With `g = exp ∘ u` for a `C²`
 potential `u ≤ D` with `|u'| ≤ D₁`, `|u''| ≤ D₂`, the map
 `(τ₁, τ₂, y) ↦ ∬ e^{u (y + τ₁ b + τ₂ ξ)} dγ(b) dγ(ξ)` is `BoundedC2`. -/
-theorem boundedC2_integral_exp_comp_gaussian (hu : ContDiff ℝ 2 u) {D D₁ D₂ : ℝ}
+theorem boundedC2_integral_exp_comp_gaussian {P : Type*} [NormedAddCommGroup P] [NormedSpace ℝ P]
+    (ℓ A Bf : P →L[ℝ] ℝ) (hu : ContDiff ℝ 2 u) {D D₁ D₂ : ℝ}
     (hD : ∀ x, u x ≤ D) (hD₁ : ∀ x, |deriv u x| ≤ D₁)
     (hD₂ : ∀ x, |deriv (deriv u) x| ≤ D₂) :
-    BoundedC2 (fun p : (ℝ × ℝ) × ℝ => ∫ η, Real.exp (u (p.2 + η.1 * p.1.1 + η.2 * p.1.2))
+    BoundedC2 (fun p : P => ∫ η, Real.exp (u (ℓ p + η.1 * A p + η.2 * Bf p))
       ∂((gaussianReal 0 1).prod (gaussianReal 0 1))) := by
-  refine boundedC2_integral_gaussian_smoothing (g := fun x => Real.exp (u x))
+  refine boundedC2_integral_gaussian_smoothing ℓ A Bf (g := fun x => Real.exp (u x))
     (B₀ := Real.exp D) (B₁ := Real.exp D * D₁) (B₂ := Real.exp D * (D₁ ^ 2 + D₂))
     (Real.contDiff_exp.comp hu) (fun x => ?_) (fun x => ?_) (fun x => ?_)
   · rw [abs_of_pos (Real.exp_pos _)]
@@ -64,20 +65,21 @@ theorem boundedC2_integral_exp_comp_gaussian (hu : ContDiff ℝ 2 u) {D D₁ D�
     exact pow_le_pow_left₀ (abs_nonneg _) (hD₁ x) 2
 
 /-- **The cavity smoothing is `C²`.** -/
-theorem contDiff_two_integral_exp_comp_gaussian (hu : ContDiff ℝ 2 u) {D D₁ D₂ : ℝ}
+theorem contDiff_two_integral_exp_comp_gaussian {P : Type*} [NormedAddCommGroup P]
+    [NormedSpace ℝ P] (ℓ A Bf : P →L[ℝ] ℝ) (hu : ContDiff ℝ 2 u) {D D₁ D₂ : ℝ}
     (hD : ∀ x, u x ≤ D) (hD₁ : ∀ x, |deriv u x| ≤ D₁)
     (hD₂ : ∀ x, |deriv (deriv u) x| ≤ D₂) :
-    ContDiff ℝ 2 (fun p : (ℝ × ℝ) × ℝ => ∫ η, Real.exp (u (p.2 + η.1 * p.1.1 + η.2 * p.1.2))
+    ContDiff ℝ 2 (fun p : P => ∫ η, Real.exp (u (ℓ p + η.1 * A p + η.2 * Bf p))
       ∂((gaussianReal 0 1).prod (gaussianReal 0 1))) :=
-  (boundedC2_integral_exp_comp_gaussian hu hD hD₁ hD₂).contDiff
+  (boundedC2_integral_exp_comp_gaussian ℓ A Bf hu hD hD₁ hD₂).contDiff
 
 /-- **Lower bound for the cavity smoothing.** If `-B ≤ u ≤ D` then
 `e^{-B} ≤ ∬ e^{u (y + τ₁ b + τ₂ ξ)} dγ dγ ≤ e^D`. -/
 theorem exp_neg_le_integral_exp_comp_gaussian (hu : Continuous u) {B D : ℝ}
-    (hB : ∀ x, -B ≤ u x) (hD : ∀ x, u x ≤ D) (τ₁ τ₂ y : ℝ) :
-    Real.exp (-B) ≤ ∫ η, Real.exp (u (y + η.1 * τ₁ + η.2 * τ₂))
+    (hB : ∀ x, -B ≤ u x) (hD : ∀ x, u x ≤ D) (y a b : ℝ) :
+    Real.exp (-B) ≤ ∫ η, Real.exp (u (y + η.1 * a + η.2 * b))
       ∂((gaussianReal 0 1).prod (gaussianReal 0 1)) := by
-  have hint : Integrable (fun η : ℝ × ℝ => Real.exp (u (y + η.1 * τ₁ + η.2 * τ₂)))
+  have hint : Integrable (fun η : ℝ × ℝ => Real.exp (u (y + η.1 * a + η.2 * b)))
       ((gaussianReal 0 1).prod (gaussianReal 0 1)) :=
     Integrable.of_bound (C := Real.exp D)
       ((Real.continuous_exp.comp (hu.comp (by fun_prop))).aestronglyMeasurable)
@@ -87,5 +89,33 @@ theorem exp_neg_le_integral_exp_comp_gaussian (hu : Continuous u) {B D : ℝ}
   have := integral_mono (integrable_const (Real.exp (-B))) hint
     (fun η => Real.exp_le_exp.2 (hB _))
   simpa using this
+
+/-- **The cavity replica ratio is `C²` with bounded derivatives.** For a `C²` potential with
+`-B ≤ u ≤ D`, `|u'| ≤ D₁`, `|u''| ≤ D₂`, positive weights `w` on a finite spin set `κ` and any
+observable `f` of `R`-tuples of spins, the function of the smoothing parameters `τ = (τ₁, τ₂)` and
+the spin fields `v : κ → ℝ`
+`(∑_ā f ā ∏_r w (ā r) ψ_τ (v (ā r))) / (∑_a w a ψ_τ (v a)) ^ |R|`, with
+`ψ_τ (y) = ∬ e^{u (y + τ₁ b + τ₂ ξ)} dγ dγ`, is `BoundedC2` on `ℝ² × (κ → ℝ)`. -/
+theorem boundedC2_cavityRatio {κ R : Type*} [Fintype κ] [Fintype R] [DecidableEq R] [Nonempty κ]
+    (hu : ContDiff ℝ 2 u) {B D D₁ D₂ : ℝ} (hB : ∀ x, -B ≤ u x) (hD : ∀ x, u x ≤ D)
+    (hD₁ : ∀ x, |deriv u x| ≤ D₁) (hD₂ : ∀ x, |deriv (deriv u) x| ≤ D₂)
+    {w : κ → ℝ} (hw : ∀ a, 0 < w a) (f : (R → κ) → ℝ) :
+    BoundedC2 (fun x : (ℝ × ℝ) × (κ → ℝ) =>
+      (∑ ā : R → κ, f ā * ∏ r, (w (ā r) * ∫ η, Real.exp (u (x.2 (ā r) + η.1 * x.1.1 + η.2 * x.1.2))
+        ∂((gaussianReal 0 1).prod (gaussianReal 0 1)))) /
+      (∑ a, w a * ∫ η, Real.exp (u (x.2 a + η.1 * x.1.1 + η.2 * x.1.2))
+        ∂((gaussianReal 0 1).prod (gaussianReal 0 1))) ^ Fintype.card R) := by
+  let A : ((ℝ × ℝ) × (κ → ℝ)) →L[ℝ] ℝ :=
+    (ContinuousLinearMap.fst ℝ ℝ ℝ).comp (ContinuousLinearMap.fst ℝ (ℝ × ℝ) (κ → ℝ))
+  let Bf : ((ℝ × ℝ) × (κ → ℝ)) →L[ℝ] ℝ :=
+    (ContinuousLinearMap.snd ℝ ℝ ℝ).comp (ContinuousLinearMap.fst ℝ (ℝ × ℝ) (κ → ℝ))
+  let L : κ → ((ℝ × ℝ) × (κ → ℝ)) →L[ℝ] ℝ := fun a =>
+    (ContinuousLinearMap.proj a).comp (ContinuousLinearMap.snd ℝ (ℝ × ℝ) (κ → ℝ))
+  have hψ : ∀ a, BoundedC2 (fun x : (ℝ × ℝ) × (κ → ℝ) =>
+      ∫ η, Real.exp (u (x.2 a + η.1 * x.1.1 + η.2 * x.1.2))
+        ∂((gaussianReal 0 1).prod (gaussianReal 0 1))) := fun a => by
+    simpa [L, A, Bf] using boundedC2_integral_exp_comp_gaussian (L a) A Bf hu hD hD₁ hD₂
+  exact BoundedC2.replicaRatio hψ hw (Real.exp_pos (-B)) (fun a x =>
+    exp_neg_le_integral_exp_comp_gaussian hu.continuous hB hD _ _ _) f
 
 end SpinGlasses

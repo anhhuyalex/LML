@@ -1584,7 +1584,7 @@ never on the observable or the expectation. Formalized in \texttt{SpinGlasses/Ta
 steps in \texttt{SmartPathIBP.lean}.
 \end{proof}
 
-\begin{exercise}[Smart path without auxiliary spins]\label{ex:sg-tal:perceptron-smart-path-without-auxiliary}
+\begin{lemma}[Exercise: smart path without auxiliary spins]\label{ex:sg-tal:perceptron-smart-path-without-auxiliary}
   \lean{SpinGlasses.smartPathFieldNoAux,
         SpinGlasses.smartPathEnergyNoAux,
         MeasureTheory.replicaDiff_zero,
@@ -1608,7 +1608,7 @@ Proposition~\ref{prop:sg-tal:perceptron-smart-path-derivative} holds with the ex
 \]
 which, written for the book's $M+1$ exchangeable constraints (the sum then runs over $k<M+1$), is $\frac\alpha2$ times the term $k=M$.
 Here $L=N+1$ is the total number of spins and the spins lie in $\Sigma_L$.
-\end{exercise}
+\end{lemma}
 \begin{proof}
   \leanok
 Write $D_k=u''(S^0_k)+u'(S^0_k)^2$ and $L=N+1$.
@@ -2030,11 +2030,12 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityRegularit
         MeasureTheory.boundedC2_integral_of_bounds,
         ProbabilityTheory.boundedC2_integral_gaussian_smoothing,
         SpinGlasses.boundedC2_integral_exp_comp_gaussian,
-        SpinGlasses.exp_neg_le_integral_exp_comp_gaussian}
+        SpinGlasses.exp_neg_le_integral_exp_comp_gaussian,
+        BoundedC2.replicaRatio, SpinGlasses.boundedC2_cavityRatio}
   \leanok
   \uses{lem:sg-tal:perceptron-cavity-regularity}
 \talsource{Bounds on $F$ and its first and second derivatives used in the proof of Lemma~2.3.2}
-Call a real function on a normed space \emph{$C^2$-bounded} if it is $C^2$ and it and its first and second derivative are bounded. Sums, products, finite sums and products, powers, compositions with a scalar function bounded in its first two derivatives on the range, and quotients $N/D^n$ with $D\ge c>0$ of $C^2$-bounded functions are $C^2$-bounded. A dominated parametric integral (bounds $b_0,b_1,b_2$ on $G$ and its first two parameter derivatives) is $C^2$-bounded. In particular, under $-B\le u\le D$, $|u'|\le D_1$, $|u''|\le D_2$ the smoothing $\psi(\tau,y)=\mathbb E\,e^{u(y+\tau_1\eta_1+\tau_2\eta_2)}$ is $C^2$-bounded and $e^{-B}\le\psi\le e^D$.
+Call a real function on a normed space \emph{$C^2$-bounded} if it is $C^2$ and it and its first and second derivative are bounded. Sums, products, finite sums and products, powers, compositions with a scalar function bounded in its first two derivatives on the range, and quotients $N/D^n$ with $D\ge c>0$ of $C^2$-bounded functions are $C^2$-bounded. A dominated parametric integral (bounds $b_0,b_1,b_2$ on $G$ and its first two parameter derivatives) is $C^2$-bounded. In particular, under $-B\le u\le D$, $|u'|\le D_1$, $|u''|\le D_2$ the smoothing $\psi(\tau,y)=\mathbb E\,e^{u(y+\tau_1\eta_1+\tau_2\eta_2)}$ is $C^2$-bounded with $e^{-B}\le\psi\le e^D$, and so is the replica ratio $\bigl(\sum_{\bar a}f(\bar a)\prod_{r}w(a_r)\psi_\tau(v_{a_r})\bigr)\big/\bigl(\sum_a w(a)\psi_\tau(v_a)\bigr)^{n}$ as a function of $(\tau,v)$, for positive weights $w$ on a finite spin set.
 \end{lemma}
 \begin{proof}
   \leanok

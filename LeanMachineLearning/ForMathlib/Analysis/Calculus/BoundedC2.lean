@@ -221,4 +221,25 @@ theorem div_pow (hN : BoundedC2 f) (hD : BoundedC2 g) {c : ℝ} (hc : 0 < c) (hD
   have hinv := hpow.inv (pow_pos hc n) (fun x => pow_le_pow_left₀ hc.le (hDc x) n)
   simpa [div_eq_mul_inv] using hN.mul hinv
 
+/-- **Replica ratio of bounded `C²` functions.** For positive weights `w`, values `ψ a` that are
+`BoundedC2` and bounded below by `c > 0`, and any observable `f` of `R`-tuples of the finite index
+set, the Gibbs-type ratio
+`(∑_ā f ā ∏_r w (ā r) ψ (ā r) x) / (∑_a w a ψ a x) ^ |R|` is `BoundedC2`. -/
+theorem replicaRatio {κ R : Type*} [Fintype κ] [Fintype R] [DecidableEq R] [Nonempty κ]
+    {ψ : κ → X → ℝ} (hψ : ∀ a, BoundedC2 (ψ a)) {w : κ → ℝ} (hw : ∀ a, 0 < w a) {c : ℝ}
+    (hc : 0 < c) (hψc : ∀ a x, c ≤ ψ a x) (f : (R → κ) → ℝ) :
+    BoundedC2 (fun x => (∑ ā : R → κ, f ā * ∏ r, (w (ā r) * ψ (ā r) x)) /
+      (∑ a, w a * ψ a x) ^ Fintype.card R) := by
+  have hnum : BoundedC2 (fun x => ∑ ā : R → κ, f ā * ∏ r, (w (ā r) * ψ (ā r) x)) :=
+    BoundedC2.sum _ fun ā _ => (const (f ā)).mul
+      (BoundedC2.prod _ fun r _ => (const (w (ā r))).mul (hψ (ā r)))
+  have hden : BoundedC2 (fun x => ∑ a, w a * ψ a x) :=
+    BoundedC2.sum _ fun a _ => (const (w a)).mul (hψ a)
+  have hW : 0 < ∑ a, w a := Finset.sum_pos (fun a _ => hw a) Finset.univ_nonempty
+  refine hnum.div_pow hden (c := c * ∑ a, w a) (mul_pos hc hW) (fun x => ?_) _
+  rw [Finset.mul_sum]
+  refine Finset.sum_le_sum fun a _ => ?_
+  rw [mul_comm c]
+  exact mul_le_mul_of_nonneg_left (hψc a x) (hw a).le
+
 end BoundedC2
