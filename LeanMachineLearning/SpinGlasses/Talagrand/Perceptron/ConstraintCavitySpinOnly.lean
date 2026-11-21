@@ -83,8 +83,8 @@ theorem integral_pi_tilted_cavityPath_marginal_xi {R : Type*} [Fintype R]
 
 include hu hD in
 /-- **The spin-only reduction.** For an observable `f` of the spins only, the replica average of the
-extended cavity system is the replica average on the spin set (a finite set with counting measure) of
-the Gibbs law with energy
+extended cavity system is the replica average on the spin set (a finite set with counting
+measure) of the Gibbs law with energy
 `ε √(1-t) y + ∑_{k<M} log ∫ e^{u(S_k)} dγ + log ∫∫ e^{u(S_s)} dγ dγ`,
 where every auxiliary coordinate has been integrated out. -/
 theorem integral_pi_tilted_cavityPath_spinOnly {R : Type*} [Fintype R]

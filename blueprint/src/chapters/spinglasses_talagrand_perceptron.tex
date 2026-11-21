@@ -1986,6 +1986,29 @@ holds also where $a=b=0$. With $(a,b)=(\cos s\,a_0,\sin s\sqrt{1-q})$ this is $\
 Formalized in \texttt{ForMathlib/Probability/Moments/GaussianSmoothingPath.lean}.
 \end{proof}
 
+\begin{proposition}[Spin-only reduction of the interpolating system]\label{prop:sg-tal:perceptron-cavity-spin-only}
+  \lean{SpinGlasses.integral_pi_tilted_cavityPath_marginal_xi,
+        SpinGlasses.integral_pi_tilted_cavityPath_spinOnly}
+  \leanok
+  \uses{prop:sg-tal:perceptron-cavity-path}
+\talsource{The reading of $\xi$ ``as a new spin'' and the effective spin system (Exercise~2.2.1 for the cavity)}
+Let $u$ be measurable with $u\le D$, $t,q,s,z\in\mathbb R$ and $\omega$ a disorder. For a function $f$ of the spins of $n$ replicas only, the replica average of $f$ under the extended system
+(base $\mathrm{count}\otimes\gamma^{M+1}\otimes\gamma$, energy $E_\sim+u(S_s)$) equals the replica average of $f$ on the spin set under the counting Gibbs measure with energy
+\[
+ \varepsilon\sqrt{1-t}\,y+\sum_{k<M}\log\int e^{u(S_k)}\,d\gamma+\log\iint e^{u(\cos s\,S_{M,t}+\sin s\,\theta)}\,d\gamma(\xi_M)\,d\gamma(\xi),
+\]
+where in each term the field is evaluated at the spin $\sigma$ with the corresponding auxiliary coordinate.
+\end{proposition}
+\begin{proof}
+  \leanok
+\emph{Step 1 (marginalize $\xi$).} The new coordinate does not enter the old energy, so integrating it out (\texttt{integral\_pi\_tilted\_prod\_fst}) replaces the energy by
+$E_\sim+\log\int e^{u(S_s)}d\gamma(\xi)$, a function of the configuration of the base only. The integrals are positive and the energy is bounded above because $u\le D$.
+
+\emph{Step 2 (marginalize $\xi_{<M},\xi_M$).} The base is $\mathrm{count}\otimes\gamma^{M+1}$ and the energy is $\varepsilon\sqrt{1-t}y+\sum_{k<M}u(S_k)+\widetilde V(\xi_M)$, a sum of one potential per auxiliary coordinate,
+so the existing finite-state marginalization (\texttt{integral\_pi\_tilted\_count\_prod\_sum}) with $K=\mathrm{Fin}\,(M+1)$ replaces each potential by its log exponential integral.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavitySpinOnly.lean}.
+\end{proof}
+
 \medskip\noindent\emph{Formalization note (Lemma~2.3.2).} The pathwise derivative is proved for $B_v\equiv1$ and, in a second statement, for the moving factor
 $u'(S_s^i)u'(S_s^j)$ (any two replicas): its derivative contains the unbounded Gaussian factor $\tilde z$, which is dominated by $|S_{M,t}|+|\theta|$ through an integrable
 envelope (\texttt{hasDerivAt\_integral\_tilted\_of\_integrable\_moving}, of which the bounded version is now a corollary), so only $|u''|\le D_2$ is used in addition.
