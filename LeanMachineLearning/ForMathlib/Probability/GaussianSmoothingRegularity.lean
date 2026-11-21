@@ -107,13 +107,13 @@ theorem norm_fderivLeft_fderivLeft_gaussSmoothIntegrand_le (hg : ContDiff ℝ 2 
   ring_nf
   exact le_rfl
 
-/-- **`C²` regularity of the Gaussian smoothing in the smoothing parameters.** For a `C²` function
-`g` with bounded `g, g', g''`, the map `(τ₁, τ₂, y) ↦ ∬ g (y + τ₁ b + τ₂ ξ) dγ(b) dγ(ξ)` is `C²`
-on `ℝ² × ℝ`. -/
-theorem contDiff_two_integral_gaussian_smoothing (hg : ContDiff ℝ 2 g) {B₀ B₁ B₂ : ℝ}
+/-- **The Gaussian smoothing is `C²` with bounded derivatives.** For a `C²` function `g` with
+bounded `g, g', g''`, the map `(τ₁, τ₂, y) ↦ ∬ g (y + τ₁ b + τ₂ ξ) dγ(b) dγ(ξ)` on `ℝ² × ℝ` is `C²`
+with bounded value, derivative and second derivative. -/
+theorem boundedC2_integral_gaussian_smoothing (hg : ContDiff ℝ 2 g) {B₀ B₁ B₂ : ℝ}
     (h0 : ∀ x, |g x| ≤ B₀) (h1 : ∀ x, |deriv g x| ≤ B₁)
     (h2 : ∀ x, |deriv (deriv g) x| ≤ B₂) :
-    ContDiff ℝ 2 (fun p : (ℝ × ℝ) × ℝ =>
+    BoundedC2 (fun p : (ℝ × ℝ) × ℝ =>
       ∫ η, g (p.2 + η.1 * p.1.1 + η.2 * p.1.2) ∂((gaussianReal 0 1).prod (gaussianReal 0 1))) := by
   have hG := contDiff_gaussSmoothIntegrand (n := 2) hg
   have hB₁ : 0 ≤ B₁ := (abs_nonneg _).trans (h1 0)
@@ -148,8 +148,18 @@ theorem contDiff_two_integral_gaussian_smoothing (hg : ContDiff ℝ 2 g) {B₀ B
       nlinarith [sq_abs q.2.1, sq_abs q.2.2, abs_nonneg q.2.1, abs_nonneg q.2.2,
         sq_nonneg (|q.2.1| - |q.2.2|), sq_nonneg (|q.2.1| - 1), sq_nonneg (|q.2.2| - 1)]
     exact mul_le_mul (h2 _) hn (by positivity) hB₂
-  have := contDiff_two_integral_of_bounds (ν := ν) hG hint hb₁ hb₂ hfirst hsecond
+  have h0' : ∀ q : ((ℝ × ℝ) × ℝ) × (ℝ × ℝ), |gaussSmoothIntegrand g q| ≤ B₀ := fun q => h0 _
+  have := boundedC2_integral_of_bounds (ν := ν) hG hint (integrable_const B₀) hb₁ hb₂ h0' hfirst
+    hsecond
   simpa [gaussSmoothIntegrand, gaussSmoothForm_apply] using this
+
+/-- **`C²` regularity of the Gaussian smoothing in the smoothing parameters.** -/
+theorem contDiff_two_integral_gaussian_smoothing (hg : ContDiff ℝ 2 g) {B₀ B₁ B₂ : ℝ}
+    (h0 : ∀ x, |g x| ≤ B₀) (h1 : ∀ x, |deriv g x| ≤ B₁)
+    (h2 : ∀ x, |deriv (deriv g) x| ≤ B₂) :
+    ContDiff ℝ 2 (fun p : (ℝ × ℝ) × ℝ =>
+      ∫ η, g (p.2 + η.1 * p.1.1 + η.2 * p.1.2) ∂((gaussianReal 0 1).prod (gaussianReal 0 1))) :=
+  (boundedC2_integral_gaussian_smoothing hg h0 h1 h2).contDiff
 
 end
 

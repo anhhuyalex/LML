@@ -11,6 +11,7 @@ public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.RelationFibers
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.SortedPairs
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.Weights
 public import LeanMachineLearning.ForMathlib.Analysis.Asymptotics.Theta
+public import LeanMachineLearning.ForMathlib.Analysis.Calculus.BoundedC2
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.DerivZeroOfEventuallyZero
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.Gradient.Basic
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.GronwallBackward

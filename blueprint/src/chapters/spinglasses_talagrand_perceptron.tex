@@ -2025,6 +2025,23 @@ The function $g=e^u$ is $C^2$ with $g=e^u u'$ differentiated once and $g''=e^u(u
 Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityRegularity.lean}.
 \end{proof}
 
+\begin{lemma}[Calculus of functions with bounded derivatives]\label{lem:sg-tal:boundedc2}
+  \lean{BoundedC2.add, BoundedC2.mul, BoundedC2.comp, BoundedC2.inv, BoundedC2.div_pow,
+        MeasureTheory.boundedC2_integral_of_bounds,
+        ProbabilityTheory.boundedC2_integral_gaussian_smoothing,
+        SpinGlasses.boundedC2_integral_exp_comp_gaussian,
+        SpinGlasses.exp_neg_le_integral_exp_comp_gaussian}
+  \leanok
+  \uses{lem:sg-tal:perceptron-cavity-regularity}
+\talsource{Bounds on $F$ and its first and second derivatives used in the proof of Lemma~2.3.2}
+Call a real function on a normed space \emph{$C^2$-bounded} if it is $C^2$ and it and its first and second derivative are bounded. Sums, products, finite sums and products, powers, compositions with a scalar function bounded in its first two derivatives on the range, and quotients $N/D^n$ with $D\ge c>0$ of $C^2$-bounded functions are $C^2$-bounded. A dominated parametric integral (bounds $b_0,b_1,b_2$ on $G$ and its first two parameter derivatives) is $C^2$-bounded. In particular, under $-B\le u\le D$, $|u'|\le D_1$, $|u''|\le D_2$ the smoothing $\psi(\tau,y)=\mathbb E\,e^{u(y+\tau_1\eta_1+\tau_2\eta_2)}$ is $C^2$-bounded and $e^{-B}\le\psi\le e^D$.
+\end{lemma}
+\begin{proof}
+  \leanok
+The algebra follows from the Leibniz rule and the chain rule $(h\circ f)'=h'(f)f'$, $(h\circ f)''=h'(f)f''+h''(f)f'\otimes f'$ with norm estimates $\|a\,T\|=|a|\|T\|$ and $\|c\otimes v\|=\|c\|\|v\|$; the inverse is the composition with $x\mapsto x^{-1}$ on $[c,\infty)$, where $|h|,|h'|,|h''|\le c^{-1}+c^{-2}+2c^{-3}$. The integral statement is the dominated differentiation of the $C^2$ regularity lemma with the three bounds integrated.
+Formalized in \texttt{ForMathlib/Analysis/Calculus/BoundedC2.lean}, \texttt{ForMathlib/MeasureTheory/Integral/ContDiffParametric.lean}, \texttt{ForMathlib/Probability/GaussianSmoothingRegularity.lean} and \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityRegularity.lean}.
+\end{proof}
+
 \begin{proposition}[Spin-only reduction of the interpolating system]\label{prop:sg-tal:perceptron-cavity-spin-only}
   \lean{SpinGlasses.integral_pi_tilted_cavityPath_marginal_xi,
         SpinGlasses.integral_pi_tilted_cavityPath_spinOnly}

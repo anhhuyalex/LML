@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import Mathlib.Analysis.Calculus.ParametricIntegral
+public import LeanMachineLearning.ForMathlib.Analysis.Calculus.BoundedC2
 public import Mathlib.Analysis.Calculus.ContDiff.Comp
 public import Mathlib.MeasureTheory.Integral.Bochner.Basic
 
@@ -102,5 +103,37 @@ theorem contDiff_two_integral_of_bounds {G : P × E → F} (hG : ContDiff ℝ 2 
     rw [contDiff_succ_iff_fderiv]
     exact ⟨fun p => (hder p).differentiableAt, fun h => absurd h (by simp), by rwa [hfd]⟩
   simpa [one_add_one_eq_two] using this
+
+/-- **A dominated parametric integral is `BoundedC2`.** If, in addition, `G` and its first and
+second parameter derivatives are dominated by integrable `b₀, b₁, b₂`, then
+`p ↦ ∫ G(p, η) dν` has bounded value, derivative and second derivative. -/
+theorem boundedC2_integral_of_bounds {G : P × E → ℝ} (hG : ContDiff ℝ 2 G)
+    (hint : ∀ p, Integrable (fun η => G (p, η)) ν) {b₀ b₁ b₂ : E → ℝ} (hb₀ : Integrable b₀ ν)
+    (hb₁ : Integrable b₁ ν) (hb₂ : Integrable b₂ ν) (h0 : ∀ q, |G q| ≤ b₀ q.2)
+    (h1 : ∀ q, ‖fderivLeft G q‖ ≤ b₁ q.2) (h2 : ∀ q, ‖fderivLeft (fderivLeft G) q‖ ≤ b₂ q.2) :
+    BoundedC2 (fun p => ∫ η, G (p, η) ∂ν) := by
+  refine ⟨contDiff_two_integral_of_bounds hG hint hb₁ hb₂ h1 h2, max (∫ η, b₀ η ∂ν)
+    (max (∫ η, b₁ η ∂ν) (∫ η, b₂ η ∂ν)), fun p => ⟨?_, ?_, ?_⟩⟩
+  · have := norm_integral_le_of_norm_le (f := fun η => G (p, η)) hb₀
+      (ae_of_all _ fun η => by simpa using h0 (p, η))
+    exact (Real.norm_eq_abs _ ▸ this).trans (le_max_left _ _)
+  · have hG1 : ContDiff ℝ 1 G := hG.of_le (by norm_num)
+    obtain ⟨-, hder⟩ := contDiff_one_integral_of_bound hG1 hint hb₁ h1
+    rw [(hder p).fderiv]
+    exact (norm_integral_le_of_norm_le hb₁ (ae_of_all _ fun η => h1 (p, η))).trans
+      ((le_max_left _ _).trans (le_max_right _ _))
+  · have hG1 : ContDiff ℝ 1 G := hG.of_le (by norm_num)
+    obtain ⟨-, hder⟩ := contDiff_one_integral_of_bound hG1 hint hb₁ h1
+    have hD1 : ContDiff ℝ 1 (fderivLeft G) :=
+      contDiff_fderivLeft (n := 1) (by simpa [one_add_one_eq_two] using hG)
+    have hintD : ∀ p, Integrable (fun η => fderivLeft G (p, η)) ν := fun p =>
+      hb₁.mono' ((hD1.continuous.comp (Continuous.prodMk_right p)).aestronglyMeasurable)
+        (ae_of_all _ fun η => h1 (p, η))
+    obtain ⟨-, hder2⟩ := contDiff_one_integral_of_bound hD1 hintD hb₂ h2
+    have hfd : fderiv ℝ (fun p => ∫ η, G (p, η) ∂ν) = fun p => ∫ η, fderivLeft G (p, η) ∂ν :=
+      funext fun p => (hder p).fderiv
+    rw [hfd, (hder2 p).fderiv]
+    exact (norm_integral_le_of_norm_le hb₂ (ae_of_all _ fun η => h2 (p, η))).trans
+      ((le_max_right _ _).trans (le_max_right _ _))
 
 end MeasureTheory
