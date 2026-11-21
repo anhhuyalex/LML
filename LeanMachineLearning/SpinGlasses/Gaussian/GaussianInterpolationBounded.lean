@@ -54,9 +54,19 @@ theorem abs_fderiv_fderiv_section_le {F : T × (κ → ℝ) → ℝ} (hF : Bound
   have h4 : fderiv ℝ (fun y => fderiv ℝ F (c, y) ((0 : T), (Pi.single l 1 : κ → ℝ))) y = _ :=
     h3.fderiv
   rw [hsec, h4]
-  simp only [ContinuousLinearMap.add_apply, ContinuousLinearMap.comp_apply,
-    ContinuousLinearMap.flip_apply, ContinuousLinearMap.zero_apply, add_zero]
-  trace_state
-  sorry
+  simp only [add_apply, ContinuousLinearMap.comp_apply, ContinuousLinearMap.flip_apply,
+    zero_apply, map_zero, zero_add, ContinuousLinearMap.prod_apply, ContinuousLinearMap.id_apply]
+  set A := fderiv ℝ (fderiv ℝ F) (c, y) with hA
+  have hC0 : 0 ≤ C := (ContinuousLinearMap.opNorm_nonneg _).trans (hC (c, y))
+  have e1 : ‖A ((0 : T), (Pi.single k 1 : κ → ℝ))‖ ≤ C := by
+    refine (A.le_opNorm _).trans ?_
+    calc ‖A‖ * ‖((0 : T), (Pi.single k 1 : κ → ℝ))‖ ≤ C * 1 :=
+          mul_le_mul (hC (c, y)) (norm_zero_prod_single_le k) (norm_nonneg _) hC0
+      _ = C := mul_one C
+  have e2 := (A ((0 : T), (Pi.single k 1 : κ → ℝ))).le_opNorm ((0 : T), (Pi.single l 1 : κ → ℝ))
+  rw [← Real.norm_eq_abs]
+  calc _ ≤ ‖A ((0 : T), (Pi.single k 1 : κ → ℝ))‖ * ‖((0 : T), (Pi.single l 1 : κ → ℝ))‖ := e2
+    _ ≤ C * 1 := mul_le_mul e1 (norm_zero_prod_single_le l) (norm_nonneg _) hC0
+    _ = C := mul_one C
 
 end SpinGlasses
