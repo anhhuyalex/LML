@@ -709,6 +709,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCav
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavityDerivative
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavityEndpoint
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavityPath
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavityRegularity
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavitySpinOnly
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ExponentialPenalty
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.FirstMoment

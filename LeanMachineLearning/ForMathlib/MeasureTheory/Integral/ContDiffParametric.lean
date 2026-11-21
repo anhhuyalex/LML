@@ -34,17 +34,15 @@ linear map `P →L[ℝ] F`. -/
 noncomputable def fderivLeft (G : P × E → F) (q : P × E) : P →L[ℝ] F :=
   (fderiv ℝ G q).comp (ContinuousLinearMap.inl ℝ P E)
 
-theorem fderivLeft_eq {G : P × E → F} {q : P × E} (hd : DifferentiableAt ℝ G q) :
-    fderivLeft G q = fderiv ℝ (fun p => G (p, q.2)) q.1 := by
-  have h1 : HasFDerivAt (fun p : P => (p, q.2)) (ContinuousLinearMap.inl ℝ P E) q.1 :=
-    (hasFDerivAt_id q.1).prodMk (hasFDerivAt_const q.2 q.1)
-  exact (hd.hasFDerivAt.comp q.1 (by simpa using h1)).fderiv.symm
-
 theorem hasFDerivAt_fderivLeft {G : P × E → F} {q : P × E} (hd : DifferentiableAt ℝ G q) :
     HasFDerivAt (fun p => G (p, q.2)) (fderivLeft G q) q.1 := by
   have h1 : HasFDerivAt (fun p : P => (p, q.2)) (ContinuousLinearMap.inl ℝ P E) q.1 :=
     (hasFDerivAt_id q.1).prodMk (hasFDerivAt_const q.2 q.1)
   exact hd.hasFDerivAt.comp q.1 (by simpa using h1)
+
+theorem fderivLeft_eq {G : P × E → F} {q : P × E} (hd : DifferentiableAt ℝ G q) :
+    fderivLeft G q = fderiv ℝ (fun p => G (p, q.2)) q.1 :=
+  (hasFDerivAt_fderivLeft hd).fderiv.symm
 
 theorem contDiff_fderivLeft {G : P × E → F} {n : ℕ} (hG : ContDiff ℝ (n + 1) G) :
     ContDiff ℝ n (fderivLeft G) :=
@@ -82,10 +80,10 @@ theorem contDiff_one_integral_of_bound {G : P × E → F} (hG : ContDiff ℝ 1 G
   exact continuous_of_dominated (bound := b) hmeas' (fun p => ae_of_all _ fun η => hbd (p, η)) hb
     (ae_of_all _ fun η => hcD.comp (Continuous.prodMk_left η))
 
-/-- **`C²` regularity of a real parametric integral over a non-compact space.** If `G` is `C²`
+/-- **`C²` regularity of a parametric integral over a non-compact space.** If `G` is `C²`
 jointly, each `G(p, ·)` is integrable, and the first and second parameter derivatives are bounded by
 integrable functions of the integration variable, then `p ↦ ∫ G(p, η) dν` is `C²`. -/
-theorem contDiff_two_integral_of_bounds {G : P × E → ℝ} (hG : ContDiff ℝ 2 G)
+theorem contDiff_two_integral_of_bounds {G : P × E → F} (hG : ContDiff ℝ 2 G)
     (hint : ∀ p, Integrable (fun η => G (p, η)) ν) {b₁ b₂ : E → ℝ} (hb₁ : Integrable b₁ ν)
     (hb₂ : Integrable b₂ ν) (h1 : ∀ q, ‖fderivLeft G q‖ ≤ b₁ q.2)
     (h2 : ∀ q, ‖fderivLeft (fderivLeft G) q‖ ≤ b₂ q.2) :

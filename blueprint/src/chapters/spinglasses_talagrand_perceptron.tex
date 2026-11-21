@@ -1986,6 +1986,45 @@ holds also where $a=b=0$. With $(a,b)=(\cos s\,a_0,\sin s\sqrt{1-q})$ this is $\
 Formalized in \texttt{ForMathlib/Probability/Moments/GaussianSmoothingPath.lean}.
 \end{proof}
 
+\begin{lemma}[$C^2$ regularity of a parametric integral over a non-compact space]\label{lem:sg-tal:perceptron-contdiff-parametric}
+  \lean{MeasureTheory.contDiff_one_integral_of_bound,
+        MeasureTheory.contDiff_two_integral_of_bounds}
+  \leanok
+\talsource{Differentiation under the integral sign used throughout Section~2.3}
+Let $G(p,\eta)$ be jointly $C^2$, $G(p,\cdot)$ integrable for every $p$, and suppose the first and second derivatives of $G$ in $p$ are bounded in operator norm by integrable functions $b_1(\eta)$ and $b_2(\eta)$, uniformly in $p$. Then $p\mapsto\int G(p,\eta)\,d\nu(\eta)$ is $C^2$.
+\end{lemma}
+\begin{proof}
+  \leanok
+Mathlib's \texttt{ContDiff.parametric\_integral} requires the integration domain to lie in a compact set, so it does not apply to Gaussian integrals over $\mathbb R^2$. Instead, \texttt{hasFDerivAt\_integral\_of\_dominated\_of\_fderiv\_le} gives the Fr\'echet derivative $\int \partial_pG\,d\nu$, and \texttt{continuous\_of\_dominated} (with the bound $b_1$) shows it is continuous, which is the $C^1$ statement; applying it again to $\partial_pG$ with the bound $b_2$ gives the $C^2$ statement via \texttt{contDiff\_succ\_iff\_fderiv}.
+Formalized in \texttt{ForMathlib/MeasureTheory/Integral/ContDiffParametric.lean}.
+\end{proof}
+
+\begin{lemma}[$C^2$ regularity of the Gaussian smoothing in the smoothing parameters]\label{lem:sg-tal:perceptron-smoothing-regularity}
+  \lean{ProbabilityTheory.contDiff_two_integral_gaussian_smoothing}
+  \leanok
+  \uses{lem:sg-tal:perceptron-contdiff-parametric}
+\talsource{The function $\psi_s(y)=\mathbb E\,e^{u(y+a_s\eta_1+b_s\eta_2)}$ of the cavity system, regarded as a function of $(a,b,y)$}
+Let $g$ be $C^2$ with $g,g',g''$ bounded. Then $(\tau_1,\tau_2,y)\mapsto\mathbb E\,g(y+\tau_1\eta_1+\tau_2\eta_2)$ is $C^2$ on $\mathbb R^2\times\mathbb R$, for independent standard Gaussians $\eta_1,\eta_2$.
+\end{lemma}
+\begin{proof}
+  \leanok
+The integrand is $g\circ\ell_\eta$ with $\ell_\eta(\tau,y)=y+\tau_1\eta_1+\tau_2\eta_2$ linear of norm at most $1+|\eta_1|+|\eta_2|$. Hence the first parameter derivative is $g'(\ell_\eta)\,\ell_\eta$ and the second is $g''(\ell_\eta)\,\ell_\eta\otimes\ell_\eta$, bounded by $\|g'\|_\infty(1+|\eta_1|+|\eta_2|)$ and $3\|g''\|_\infty(1+\eta_1^2+\eta_2^2)$, which are integrable for the Gaussian law. Apply the preceding lemma.
+Formalized in \texttt{ForMathlib/Probability/GaussianSmoothingRegularity.lean}.
+\end{proof}
+
+\begin{lemma}[Regularity of the cavity smoothing $\psi$]\label{lem:sg-tal:perceptron-cavity-regularity}
+  \lean{SpinGlasses.contDiff_two_integral_exp_comp_gaussian}
+  \leanok
+  \uses{lem:sg-tal:perceptron-smoothing-regularity}
+\talsource{The function $\psi_s(y)=\mathbb E\,e^{u(y+a_s\eta_1+b_s\eta_2)}$ under hypothesis (2.7)}
+Let $u$ be $C^2$ with $u\le D$, $|u'|\le D_1$ and $|u''|\le D_2$. Then $(\tau_1,\tau_2,y)\mapsto\mathbb E\,e^{u(y+\tau_1\eta_1+\tau_2\eta_2)}$ is $C^2$ on $\mathbb R^2\times\mathbb R$.
+\end{lemma}
+\begin{proof}
+  \leanok
+The function $g=e^u$ is $C^2$ with $g=e^u u'$ differentiated once and $g''=e^u(u'^2+u'')$, so $0<g\le e^D$, $|g'|\le e^DD_1$ and $|g''|\le e^D(D_1^2+D_2)$. Apply the preceding lemma.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityRegularity.lean}.
+\end{proof}
+
 \begin{proposition}[Spin-only reduction of the interpolating system]\label{prop:sg-tal:perceptron-cavity-spin-only}
   \lean{SpinGlasses.integral_pi_tilted_cavityPath_marginal_xi,
         SpinGlasses.integral_pi_tilted_cavityPath_spinOnly}

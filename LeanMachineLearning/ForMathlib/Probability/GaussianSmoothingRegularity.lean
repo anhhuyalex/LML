@@ -82,12 +82,6 @@ theorem fderivLeft_gaussSmoothIntegrand (hg : ContDiff ℝ 2 g)
   refine (hasFDerivAt_fderivLeft hd).unique ?_
   exact (hg1 _).hasDerivAt.comp_hasFDerivAt q.1 (gaussSmoothForm q.2).hasFDerivAt
 
-theorem differentiable_deriv_of_contDiff_two (hg : ContDiff ℝ 2 g) :
-    Differentiable ℝ (deriv g) := by
-  have h : ContDiff ℝ (1 + 1) g := by simpa [one_add_one_eq_two] using hg
-  rw [contDiff_succ_iff_deriv] at h
-  exact (h.2.2.differentiable (by norm_num))
-
 theorem norm_fderivLeft_fderivLeft_gaussSmoothIntegrand_le (hg : ContDiff ℝ 2 g)
     (q : ((ℝ × ℝ) × ℝ) × (ℝ × ℝ)) :
     ‖fderivLeft (fderivLeft (gaussSmoothIntegrand g)) q‖ ≤
@@ -98,7 +92,7 @@ theorem norm_fderivLeft_fderivLeft_gaussSmoothIntegrand_le (hg : ContDiff ℝ 2 
     contDiff_fderivLeft (n := 1) hG2
   have hd : DifferentiableAt ℝ (fderivLeft (gaussSmoothIntegrand g)) q :=
     (hD1.differentiable (by norm_num)) q
-  have hdg := differentiable_deriv_of_contDiff_two hg
+  have hdg := hg.differentiable_deriv_two
   have hfun : (fun p => fderivLeft (gaussSmoothIntegrand g) (p, q.2)) =
       fun p => deriv g (gaussSmoothForm q.2 p) • gaussSmoothForm q.2 :=
     funext fun p => fderivLeft_gaussSmoothIntegrand hg (p, q.2)
