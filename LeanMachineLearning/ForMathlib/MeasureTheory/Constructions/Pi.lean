@@ -58,6 +58,40 @@ theorem measurePreserving_prod_regroup {W U V X : Type*} {mW : MeasurableSpace W
   have h3 := (measurePreserving_prodAssoc μW (μU.prod μV) μX).symm
   exact h3.comp (h2.comp h1)
 
+/-- Interchanging the middle factors `((a, b), (c, d)) ↦ ((a, c), (b, d))` preserves product
+measures. -/
+theorem measurePreserving_prodProdProdComm {A B C D : Type*} {mA : MeasurableSpace A}
+    {mB : MeasurableSpace B} {mC : MeasurableSpace C} {mD : MeasurableSpace D}
+    (μA : Measure A) (μB : Measure B) (μC : Measure C) (μD : Measure D)
+    [SFinite μA] [SFinite μB] [SFinite μC] [SFinite μD] :
+    MeasurePreserving (fun p : (A × B) × (C × D) => ((p.1.1, p.2.1), (p.1.2, p.2.2)))
+      ((μA.prod μB).prod (μC.prod μD)) ((μA.prod μC).prod (μB.prod μD)) := by
+  have h1 := measurePreserving_prodAssoc μA μB (μC.prod μD)
+  have h2 := (MeasurePreserving.id μA).prod ((measurePreserving_prodAssoc μB μC μD).symm)
+  have h3 := (MeasurePreserving.id μA).prod
+    ((Measure.measurePreserving_swap (μ := μB) (ν := μC)).prod (MeasurePreserving.id μD))
+  have h4 := (MeasurePreserving.id μA).prod (measurePreserving_prodAssoc μC μB μD)
+  have h5 := (measurePreserving_prodAssoc μA μC (μB.prod μD)).symm
+  exact h5.comp (h4.comp (h3.comp (h2.comp h1)))
+
+/-- Uncurrying preserves i.i.d. product measures on finite index types. -/
+theorem measurePreserving_curry_symm {ι κ X : Type*} [Fintype ι] [Fintype κ] [MeasurableSpace X]
+    (μ : Measure X) [SigmaFinite μ] :
+    MeasurePreserving ⇑(MeasurableEquiv.curry ι κ X).symm
+      (Measure.pi fun _ : ι => Measure.pi fun _ : κ => μ)
+      (Measure.pi fun _ : ι × κ => μ) := by
+  refine ⟨(MeasurableEquiv.curry ι κ X).symm.measurable, ?_⟩
+  symm
+  refine Measure.pi_eq fun s hs => ?_
+  rw [Measure.map_apply (MeasurableEquiv.curry ι κ X).symm.measurable (MeasurableSet.univ_pi hs)]
+  have hpre : ⇑(MeasurableEquiv.curry ι κ X).symm ⁻¹' (Set.univ.pi s) =
+      Set.univ.pi (fun i : ι => Set.univ.pi fun k : κ => s (i, k)) := by
+    ext W
+    simp [Set.mem_pi]
+  rw [hpre, Measure.pi_pi]
+  simp_rw [Measure.pi_pi]
+  rw [Fintype.prod_prod_type]
+
 /-- **Fubini for two i.i.d. coordinates:** an integrable function of the two coordinates of a point
 of `Fin 2 → α` integrates against the product measure as an iterated integral. -/
 theorem integral_pi_fin_two_of_integrable {α : Type*} [MeasurableSpace α] (μ : Measure α)

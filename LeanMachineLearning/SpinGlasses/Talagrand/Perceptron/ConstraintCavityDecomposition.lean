@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.PiSnoc
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaProduct
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathBounds
 
@@ -31,6 +32,7 @@ Gibbs weight integrable at every fixed disorder, including when the last field i
 @[expose] public section
 
 open MeasureTheory ProbabilityTheory
+open scoped NNReal
 
 namespace SpinGlasses
 
@@ -183,5 +185,119 @@ theorem integral_pi_tilted_smartPathEnergy_eq_div {R : Type*} [Fintype R]
   simpa only [← smartPathEnergy_eq_init_add u t ω] using h
 
 end Cavity
+
+section MeasureSplit
+
+/-- Measurable equivalence splitting `SmartPathState N (M + 1)` into the old configuration
+`SmartPathState N M` and the last auxiliary Gaussian `ξ_M`. -/
+def smartPathStateSplit (N M : ℕ) : SmartPathState N (M + 1) ≃ᵐ SmartPathState N M × ℝ :=
+  (MeasurableEquiv.prodCongr (MeasurableEquiv.refl (PerceptronSpin N))
+    (MeasurableEquiv.finSuccProd ℝ M)).trans (MeasurableEquiv.prodAssoc).symm
+
+theorem smartPathStateSplit_apply (x : SmartPathState N (M + 1)) :
+    smartPathStateSplit N M x = ((x.1, Fin.init x.2), x.2 (Fin.last M)) := by
+  simp [smartPathStateSplit, MeasurableEquiv.prodAssoc, MeasurableEquiv.coe_prodCongr,
+    MeasurableEquiv.coe_refl, Fin.init_def]
+
+theorem smartPathStateSplit_symm_apply (q : SmartPathState N M × ℝ) :
+    (smartPathStateSplit N M).symm q = (q.1.1, Fin.snoc q.1.2 q.2) := by
+  apply (smartPathStateSplit N M).injective
+  rw [MeasurableEquiv.apply_symm_apply, smartPathStateSplit_apply]
+  simp [Fin.init_snoc, Fin.snoc_last]
+
+/-- Splitting off the last auxiliary coordinate preserves the smart-path base measure. -/
+theorem measurePreserving_smartPathStateSplit (N M : ℕ) :
+    MeasurePreserving ⇑(smartPathStateSplit N M)
+      (smartPathBase N (M + 1)) ((smartPathBase N M).prod (gaussianReal 0 1)) := by
+  rw [smartPathBase_eq, smartPathBase_eq]
+  exact (measurePreserving_prodAssoc _ _ _).symm.comp
+    ((MeasurePreserving.id _).prod (measurePreserving_finSuccProd _ M))
+
+/-- **Measure-preserving split of the concrete `(M + 1)`-constraint disorder.** Under the i.i.d.
+Gaussian law of the old rows, the couplings `a` and the last field `Y ∼ 𝒩(0, v)`, splitting off the
+removed row `(g_M, a_M)` maps `SmartPathDisorder N (M + 1)` to the product of the `M`-constraint
+disorder law (including `Y`) and the independent standard Gaussian block `(g_M, a_M)` indexed by
+`Fin N ⊕ Unit`. -/
+theorem measurePreserving_smartPathDisorder_lastSplit (N M : ℕ) (v : ℝ≥0) :
+    MeasurePreserving
+      (fun ω : SmartPathDisorder N (M + 1) =>
+        ((((Fin.init ω.1.1, Fin.init ω.1.2), ω.2) : SmartPathDisorder N M),
+          (Sum.elim (ω.1.1 (Fin.last M)) (fun _ : Unit => ω.1.2 (Fin.last M)) :
+            Fin N ⊕ Unit → ℝ)))
+      (smartPathDisorder (Measure.pi fun _ : Fin (M + 1) =>
+          Measure.pi fun _ : Fin N => gaussianReal 0 1) v)
+      ((smartPathDisorder (Measure.pi fun _ : Fin M =>
+          Measure.pi fun _ : Fin N => gaussianReal 0 1) v).prod
+        (Measure.pi fun _ : Fin N ⊕ Unit => gaussianReal 0 1)) := by
+  let γ : Measure ℝ := gaussianReal 0 1
+  let G₀ : Measure (Fin M → Fin N → ℝ) := Measure.pi fun _ => Measure.pi fun _ => γ
+  let gM : Measure (Fin N → ℝ) := Measure.pi fun _ => γ
+  let A₀ : Measure (Fin M → ℝ) := Measure.pi fun _ => γ
+  let Ym : Measure ℝ := gaussianReal 0 v
+  have hg := measurePreserving_finSuccProd gM M
+  have ha := measurePreserving_finSuccProd γ M
+  have hunit := (measurePreserving_funUnique γ Unit).symm
+  have hsum := (measurePreserving_sumPiEquivProdPi_symm (X := fun _ : Fin N ⊕ Unit => ℝ)
+    (fun _ => γ)).comp ((MeasurePreserving.id gM).prod hunit)
+  have step1 : MeasurePreserving
+      (Prod.map (Prod.map (MeasurableEquiv.finSuccProd (Fin N → ℝ) M)
+        (MeasurableEquiv.finSuccProd ℝ M)) id)
+      (smartPathDisorder (Measure.pi fun _ : Fin (M + 1) => gM) v)
+      (((G₀.prod gM).prod (A₀.prod γ)).prod Ym) := by
+    rw [smartPathDisorder_eq]
+    exact (hg.prod ha).prod (MeasurePreserving.id Ym)
+  have step2 := (measurePreserving_prodProdProdComm G₀ gM A₀ γ).prod (MeasurePreserving.id Ym)
+  have step3 := measurePreserving_prodAssoc (G₀.prod A₀) (gM.prod γ) Ym
+  have step4 := (MeasurePreserving.id (G₀.prod A₀)).prod
+    (Measure.measurePreserving_swap (μ := gM.prod γ) (ν := Ym))
+  have step5 := (measurePreserving_prodAssoc (G₀.prod A₀) Ym (gM.prod γ)).symm
+  have step6 := (MeasurePreserving.id ((G₀.prod A₀).prod Ym)).prod hsum
+  have full := step6.comp (step5.comp (step4.comp (step3.comp (step2.comp step1))))
+  rw [smartPathDisorder_eq (Measure.pi fun _ : Fin M => gM) v]
+  convert full using 1
+  ext ω : 1
+  refine Prod.ext ?_ ?_
+  · simp [MeasurableEquiv.prodAssoc, Fin.init_def]
+  · ext x
+    rcases x with i | _ <;>
+      simp [MeasurableEquiv.prodAssoc, MeasurableEquiv.coe_sumPiEquivProdPi_symm,
+        Equiv.sumPiEquivProdPi_symm_apply]
+
+/-- **Measure-preserving split of the cavity disorder `(ω, z)`.** Under the concrete i.i.d.
+disorder law for `M + 1` constraints paired with the independent shared Gaussian `z ∼ 𝒩(0, 1)`,
+splitting `(ω, z)` into the old system `ω_{<M}` (including `Y`) and the independent Gaussian block
+`((g_M, a_M), z)` indexed by `(Fin N ⊕ Unit) ⊕ Unit` is measure-preserving. -/
+theorem measurePreserving_smartPathDisorder_cavitySplit (N M : ℕ) (v : ℝ≥0) :
+    MeasurePreserving
+      (fun p : SmartPathDisorder N (M + 1) × ℝ =>
+        ((((Fin.init p.1.1.1, Fin.init p.1.1.2), p.1.2) : SmartPathDisorder N M),
+          (Sum.elim (Sum.elim (p.1.1.1 (Fin.last M)) (fun _ : Unit => p.1.1.2 (Fin.last M)))
+            (fun _ : Unit => p.2) : (Fin N ⊕ Unit) ⊕ Unit → ℝ)))
+      ((smartPathDisorder (Measure.pi fun _ : Fin (M + 1) =>
+          Measure.pi fun _ : Fin N => gaussianReal 0 1) v).prod (gaussianReal 0 1))
+      ((smartPathDisorder (Measure.pi fun _ : Fin M =>
+          Measure.pi fun _ : Fin N => gaussianReal 0 1) v).prod
+        (Measure.pi fun _ : (Fin N ⊕ Unit) ⊕ Unit => gaussianReal 0 1)) := by
+  let γ : Measure ℝ := gaussianReal 0 1
+  let P₀ : Measure (SmartPathDisorder N M) :=
+    smartPathDisorder (Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin N => γ) v
+  let K₀ : Measure (Fin N ⊕ Unit → ℝ) := Measure.pi fun _ => γ
+  have h1 := (measurePreserving_smartPathDisorder_lastSplit N M v).prod (MeasurePreserving.id γ)
+  have h2 := measurePreserving_prodAssoc P₀ K₀ γ
+  have hunit := (measurePreserving_funUnique γ Unit).symm
+  have hsum := (measurePreserving_sumPiEquivProdPi_symm
+    (X := fun _ : (Fin N ⊕ Unit) ⊕ Unit => ℝ) (fun _ => γ)).comp
+      ((MeasurePreserving.id K₀).prod hunit)
+  have h3 := (MeasurePreserving.id P₀).prod hsum
+  have full := h3.comp (h2.comp h1)
+  convert full using 1
+  ext p : 1
+  refine Prod.ext rfl ?_
+  ext x
+  rcases x with (i | _) | _ <;>
+    simp [MeasurableEquiv.prodAssoc, MeasurableEquiv.coe_sumPiEquivProdPi_symm,
+      Equiv.sumPiEquivProdPi_symm_apply]
+
+end MeasureSplit
 
 end SpinGlasses

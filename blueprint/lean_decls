@@ -5075,3 +5075,12 @@ SpinGlasses.integral_pi_tilted_cavityPath_spinOnly_eq_ratio
 MeasureTheory.integral_pi_count_tilted_eq_sum_div
 ProbabilityTheory.CondIndepFun.prod_right
 ProbabilityTheory.iIndepFun_nat_iff_forall_indepFun
+SpinGlasses.PerceptronSpin
+SpinGlasses.SmartPathState
+SpinGlasses.SmartPathDisorder
+SpinGlasses.smartPathField
+SpinGlasses.smartPathEnergy
+SpinGlasses.smartPathBase
+SpinGlasses.smartPathSpinProb
+SpinGlasses.smartPathBaseProb
+SpinGlasses.smartPathDisorder

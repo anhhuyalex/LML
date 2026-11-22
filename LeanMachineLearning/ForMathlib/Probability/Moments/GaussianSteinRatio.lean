@@ -62,7 +62,7 @@ theorem integral_mul_div_pow_eq_sum {W : κ₁ → Ω → ℝ} {X : κ₂ → Ω
       ((hZ.comp Ry.differentiable) v).fun_pow n
     have h3 : DifferentiableAt ℝ (fun w => F (Rx w) * (Z (Ry w) ^ n)⁻¹) v :=
       h1.mul (h2.inv (pow_ne_zero _ (hZne _)))
-    show DifferentiableAt ℝ (fun w => F (Rx w) / Z (Ry w) ^ n) v
+    change DifferentiableAt ℝ (fun w => F (Rx w) / Z (Ry w) ^ n) v
     simpa only [div_eq_mul_inv] using h3
   -- the directional derivative of `Φ` as an ordinary derivative along a line
   have hline (v e : κ₂ ⊕ κ₃ → ℝ) :
