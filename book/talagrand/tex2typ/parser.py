@@ -158,6 +158,13 @@ class Parser:
             flush_text()
             out.append(Meta("talsource", self.parse_inline(lo_, hi_)))
             return after
+        if name == "texorpdfstring":
+            # `\texorpdfstring{typeset}{bookmark}`: the document keeps the typeset form
+            lo_, hi_, after = self.group(skip_space(self.text, after))
+            _, _, after = self.group(skip_space(self.text, after))
+            flush_text()
+            out.extend(self.parse_inline(lo_, hi_))
+            return after
         if name in FLAG_COMMANDS:
             flush_text()
             out.append(Meta("flag", name))

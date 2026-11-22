@@ -30,6 +30,11 @@ class InlineChecks(unittest.TestCase):
     def test_escaped_characters_and_spacing(self):
         self.assertEqual(text_of(self.inline(r"50\% of \_x\_ and a\ b")), "50% of _x_ and a b")
 
+    def test_texorpdfstring_keeps_the_typeset_form(self):
+        inlines = self.inline(r"a \texorpdfstring{$\tanh$}{tanh} b")
+        self.assertEqual([type(n).__name__ for n in inlines], ["Text", "Math", "Text"])
+        self.assertEqual(inlines[1].src, r"\tanh")
+
     def test_math_is_kept_verbatim(self):
         (node,) = [n for n in self.inline(r"see $a_{ij}\le \frac12$ here") if isinstance(n, Math)]
         self.assertEqual(node.src, r"a_{ij}\le \frac12")
