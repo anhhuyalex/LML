@@ -524,6 +524,80 @@ $\gamma_M=\mathcal N(0,1)^{\otimes M}$. The energy is
 This is (2.15)--(2.16), with the two summands of the energy reordered.
 Different replicas have their own auxiliary coordinates and share the quenched variables $g,a,y$.
 
+\begin{definition}[Spins, configurations and disorder of the smart path]\label{def:sg-tal:perceptron-smartpath-types}
+  \lean{SpinGlasses.PerceptronSpin,
+        SpinGlasses.SmartPathState,
+        SpinGlasses.SmartPathDisorder}
+  \leanok
+\talsource{Section~2.2, Eqs.~(2.14)--(2.16)}
+Fix $N,M\in\mathbb N$. A \emph{spin} (\texttt{PerceptronSpin}~$N$) is a pair $\sigma=(\rho,\varepsilon)$ of $N$ \emph{old spins}
+$\rho\in\{-1,1\}^N$ and a \emph{last spin} $\varepsilon\in\{-1,1\}$; the book's $N$ spins are $N+1$ here (Lean writes
+$\{-1,1\}$ as the units $\mathbb Z^\times$). A \emph{configuration} (\texttt{SmartPathState}~$N\,M$) is a pair
+$x=(\sigma,\xi)$ of a spin and the \emph{auxiliary Gaussian coordinates} $\xi=(\xi_k)_{k<M}\in\mathbb R^M$, one per constraint.
+The \emph{disorder} (\texttt{SmartPathDisorder}~$N\,M$) is $\omega=((g,a),y)$ with the matrix of old disorder
+$g=(g_{k,i})_{k<M,\,i<N}$, the vector of last disorder coordinates $a=(a_k)_{k<M}$ and the \emph{last field} $y\in\mathbb R$. In the
+Lean code $\omega.1.1=g$, $\omega.1.2=a$, $\omega.2=y$, $x.1.1=\rho$, $x.1.2=\varepsilon$ and $x.2=\xi$.
+\end{definition}
+
+\begin{definition}[Smart-path fields and energies, (2.14)--(2.16)]\label{def:sg-tal:perceptron-smartpath-energy}
+  \lean{SpinGlasses.smartPathFieldNoAux,
+        SpinGlasses.smartPathField,
+        SpinGlasses.smartPathEnergy,
+        SpinGlasses.smartPathEnergyNoAux}
+  \leanok
+  \uses{def:sg-tal:perceptron-smartpath-types}
+\talsource{Eqs.~(2.14), (2.15), (2.16)}
+Let $L=N+1$, $u:\mathbb R\to\mathbb R$, a parameter $t\in\mathbb R$, a disorder $\omega=((g,a),y)$ and a configuration
+$x=((\rho,\varepsilon),\xi)$. For a constraint $k<M$ the \emph{field without auxiliary coordinates}
+(\texttt{smartPathFieldNoAux}) and the \emph{smart-path field} (\texttt{smartPathField}), written $S_{k,t}(x)$ when $\omega$ is
+understood, are
+\[
+ S^\circ_{k,t}=\frac1{\sqrt L}\sum_{i<N}g_{k,i}\rho_i+\sqrt{\frac tL}\,a_k\varepsilon,
+ \qquad
+ S_{k,t}=S^\circ_{k,t}+\sqrt{\frac{1-t}L}\,\xi_k .
+\]
+The \emph{smart-path energy} (\texttt{smartPathEnergy}~$u\,t\,\omega\,x$, the book's $-H_{N,M,t}$) and the \emph{energy without
+auxiliary coordinates} (\texttt{smartPathEnergyNoAux}, (2.14)) are
+\[
+ E_t(\omega,x)=\varepsilon\sqrt{1-t}\,y+\sum_{k<M}u\bigl(S_{k,t}\bigr),
+ \qquad
+ E^\circ_t(\omega,x)=\varepsilon\sqrt{1-t}\,y+\sum_{k<M}u\bigl(S^\circ_{k,t}\bigr).
+\]
+Here $u$ is the \emph{potential} (later bounded, $u\le D$): each constraint $k$ contributes $u$ of its field. The parameter $t$
+interpolates between two systems. At $t=1$ the auxiliary term vanishes, $S_{k,1}=S^\circ_{k,1}$, and $E_1$ is the energy of the
+original system. At $t=0$ the last spin $\varepsilon$ no longer enters the constraint fields (the term $\sqrt{t/L}\,a_k\varepsilon$
+disappears) and is replaced there by the independent Gaussian $\xi_k$, so $\varepsilon$ only interacts with the last field $y$.
+Lean uses real square roots, so the formulas are defined for every real $t$ (negative arguments give the value $0$); the
+analytic lemmas assume $0<t<1$ whenever a derivative in $t$ is taken. The derivatives in $t$ of $E_t$ are the three components
+$E'_a,E'_\xi,E'_y$ of (2.27) (\texttt{smartPathEnergyDerivA}, \texttt{smartPathEnergyDerivXi}, \texttt{smartPathEnergyDerivY}),
+written out in Lemma~\ref{lem:sg-tal:perceptron-path-derivatives}.
+\end{definition}
+
+\begin{definition}[Base measure, disorder law and Gibbs measure of the smart path]\label{def:sg-tal:perceptron-smartpath-laws}
+  \lean{SpinGlasses.smartPathBase,
+        SpinGlasses.smartPathSpinProb,
+        SpinGlasses.smartPathBaseProb,
+        SpinGlasses.smartPathDisorder}
+  \leanok
+  \uses{def:sg-tal:perceptron-smartpath-types, def:sg-tal:perceptron-smartpath-energy}
+\talsource{Eqs.~(2.16)--(2.17)}
+The \emph{base measure} (\texttt{smartPathBase}~$N\,M$) on configurations is
+$\mu=\mathrm{count}_{\{-1,1\}^{N+1}}\otimes\gamma_1^{\otimes M}$: counting measure on the spins times independent standard
+Gaussians $\gamma_1=\mathcal N(0,1)$ on the auxiliary coordinates; it is a finite measure. Since the counting measure has total mass
+$2^{N+1}$, \texttt{smartPathBaseProb} is the probability version with the spin counting measure normalized (\texttt{smartPathSpinProb}
+is the uniform law on spins), and $\mu=2^{N+1}\cdot$\texttt{smartPathBaseProb}; the Gibbs measure below is the same for both.
+The \emph{disorder law} (\texttt{smartPathDisorder}~$P_{\rm old}\,v$) of $\omega=((g,a),y)$ makes $g\sim P_{\rm old}$ (a law on matrices
+$g$, e.g.\ independent standard Gaussians), $a\sim\gamma_1^{\otimes M}$ and $y\sim\mathcal N(0,v)$ independent.
+For a fixed disorder $\omega$ the \emph{Gibbs measure} at parameter $t$ is the measure $\mu$ tilted by the energy,
+\[
+ G_{t,\omega}(dx)=\frac{e^{E_t(\omega,x)}}{Z_t(\omega)}\,\mu(dx),\qquad Z_t(\omega)=\int e^{E_t(\omega,x)}\,d\mu(x),
+\]
+which in Lean is \texttt{(smartPathBase N M).tilted (smartPathEnergy u t $\omega$)} (it has no separate name). The Gibbs average
+$\langle f\rangle_t=\int f\,dG_{t,\omega}$ of $n$ replicas $x^1,\dots,x^n$ uses the product measure $G_{t,\omega}^{\otimes n}$:
+the replicas are independent given $\omega$ and share the disorder $g,a,y$, but each has its own spin and its own $\xi$.
+Averages $\nu_t(f)=\mathbb E\langle f\rangle_t$ include the expectation over $\omega$. These are the objects of Sections~2.2 and~2.3.
+\end{definition}
+
 \begin{lemma}[Marginal of a tilted product measure]\label{lem:sg-tal:perceptron-auxiliary-marginal}
   \lean{MeasureTheory.integral_tilted_prod_fst,
         MeasureTheory.map_fst_tilted_prod,
@@ -1666,18 +1740,44 @@ coordinate $\xi_M$ stays in the base measure even though the old energy does not
 of $\langle\cdot\rangle_{t,\sim}$. In this section the base measure $\mu$ is any finite measure on the configurations
 (the book's base law is \texttt{smartPathBase}); only the energy decomposition and an upper bound on $u$ are used.
 
+\begin{definition}[The old system and the last constraint]\label{def:sg-tal:perceptron-cavity-old-system}
+  \leanok
+  \uses{def:sg-tal:perceptron-smartpath-types, def:sg-tal:perceptron-smartpath-energy}
+\talsource{Section~2.3, before Eq.~(2.30)}
+Let $\omega=((g,a),y)$ be a disorder and $x=((\rho,\varepsilon),\xi)$ a configuration for $M+1$ constraints (indexed by
+$\mathrm{Fin}(M+1)$). The \emph{last constraint} is the index $M$ (\texttt{Fin.last M}); its field is
+$S_{M,t}(x)=S_{M,t}(\omega,x)$, the smart-path field of Definition~\ref{def:sg-tal:perceptron-smartpath-energy} at $k=M$
+(\texttt{smartPathField t $\omega$ x (Fin.last M)}). The \emph{old system} keeps the first $M$ constraints. Its disorder is the
+restriction
+\[
+ \omega_{<M}=\bigl(((g_k)_{k<M},(a_k)_{k<M}),\,y\bigr)
+\]
+(each of $g,a$ restricted by \texttt{Fin.init}, the last field $y$ unchanged) and its configurations are
+$x_{<M}=\bigl((\rho,\varepsilon),(\xi_k)_{k<M}\bigr)$, which keeps all spins and drops the auxiliary coordinate $\xi_M$. The old
+energy is the same function \texttt{smartPathEnergy} for $M$ constraints, evaluated at $(\omega_{<M},x_{<M})$; the old fields
+are the fields $S_{k,t}$, $k<M$, of the full system: the field of the old system at $k<M$ equals the field of the full system
+at $k$ (\texttt{smartPathField\_init}). The old Gibbs measure $\langle\cdot\rangle_{t,\sim}$ of (2.31) is the Gibbs measure of the
+old energy, taken on the \emph{full} configuration space (including $\xi_M$) with the base measure $\mu$. This is the system from
+which one constraint was removed (the ``cavity''), and the aim of the section is to compare the full and the old system.
+\end{definition}
+
 \begin{lemma}[The energy splits into the old energy and the last constraint, (2.30)]\label{lem:sg-tal:perceptron-cavity-energy-split}
   \lean{SpinGlasses.smartPathField_init,
         SpinGlasses.smartPathEnergy_eq_init_add}
   \leanok
+  \uses{def:sg-tal:perceptron-cavity-old-system, def:sg-tal:perceptron-smartpath-energy}
 \talsource{Eq.~(2.30)}
-For every $u:\mathbb R\to\mathbb R$, $t\in\mathbb R$, disorder $\omega$ for $M+1$ constraints and configuration $x$,
+For every $u:\mathbb R\to\mathbb R$, $t\in\mathbb R$, disorder $\omega$ for $M+1$ constraints and configuration $x$
+(Definition~\ref{def:sg-tal:perceptron-smartpath-types}), the smart-path energy $E_t$ of
+Definition~\ref{def:sg-tal:perceptron-smartpath-energy} satisfies
 \[
  \texttt{smartPathEnergy}\,u\,t\,\omega\,x
  =\texttt{smartPathEnergy}\,u\,t\,\omega_{<M}\,x_{<M}+u\bigl(S_{M,t}(x)\bigr),
 \]
-where $\omega_{<M}=((g_k)_{k<M},(a_k)_{k<M},Y)$, $x_{<M}=(\sigma,(\xi_k)_{k<M})$, and the field of the old system at $k<M$ equals
-the field of the full system at $k$.
+that is, in the book's notation, the energy of the full system is the energy of the old system plus $u$ of the last field. Here
+$\omega_{<M}=((g_k)_{k<M},(a_k)_{k<M},y)$ and $x_{<M}=(\sigma,(\xi_k)_{k<M})$ are the old disorder and the old configuration of
+Definition~\ref{def:sg-tal:perceptron-cavity-old-system}, $S_{M,t}(x)$ is the smart-path field of the last constraint, and the field of
+the old system at $k<M$ equals the field of the full system at $k$ (\texttt{smartPathField\_init}).
 \end{lemma}
 \begin{proof}
   \leanok
