@@ -3631,6 +3631,86 @@ ensure classical differentiability of $\sqrt r$, $\sqrt q$, and $\sqrt{1-q}$.
 Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ReplicaSymmetricVariational.lean}.
 \end{proof}
 
+\begin{proposition}[Envelope formula (2.89) along the branch of Theorem~2.4.1]\label{prop:sg-tal:perceptron-rs-envelope}
+  \lean{integral_tanh_sq_sqrt_mem_Ioo,
+        integral_tanh_sq_sqrt_mem_Icc,
+        integral_tanh_sq_sqrt_le,
+        SpinGlasses.exists_abs_rs_fixed_point_sub_le,
+        SpinGlasses.hasDerivAt_integral_log_integral_exp_q,
+        SpinGlasses.exists_hasDerivAt_perceptronRSFunctional_small_load,
+        SpinGlasses.hasDerivWithinAt_perceptronRSFunctional_zero,
+        SpinGlasses.exists_branch_hasDerivAt_perceptronRSFunctional}
+  \leanok
+  \uses{thm:sg-tal:perceptron-rs-fixed-point, lem:sg-tal:perceptron-rs-variational, def:sg-tal:perceptron-rs-functional}
+\talsource{Section~2.4, Eq.~(2.89) and the sentence before it}
+Let $D\in\mathbb R$ and let $u$ satisfy (2.7).
+\begin{enumerate}
+\item \emph{Ranges.} For every $r$, $\mathbb E\tanh^2(z\sqrt r)\in[0,1]$ and $\mathbb E\tanh^2(z\sqrt r)\le r$ when $r\ge0$; for $r>0$ the value lies in $(0,1)$.
+\item \emph{Lipschitz dependence on the load.} There is $K(D)\ge0$ such that if $a\ge0$,
+$aK(D)\le1$, $(q_a,r_a)$ solves (2.68) at load $a$ and $(q_b,r_b)$ solves (2.68) at any load $b$, then
+$|q_a-q_b|\le 2D^2|a-b|$.
+\item \emph{Derivative of the cavity term in $q$.} For $q\in(0,1)$, if $u$ satisfies
+\texttt{SmartPathPotential}$_2$, then
+$\frac{d}{dq}\,\mathbb E\log\mathbb E_\xi\exp u(\sqrt q\,z+\sqrt{1-q}\,\xi)=-\frac12\widehat r(q)$.
+\item \emph{Positive load.} There is $K(D)>0$ such that for $0<\alpha$ with $\alpha K(D)<1$ and
+any functions $q,r$ with $(q(a),r(a))$ solving (2.68) for all $a$ near $\alpha$,
+\[
+ \frac{d}{da}F\bigl(a,r(a),q(a)\bigr)\Big|_{a=\alpha}
+ =\mathbb E\log\mathbb E_\xi\exp u\bigl(\sqrt{q(\alpha)}\,z+\sqrt{1-q(\alpha)}\,\xi\bigr).
+\]
+\item \emph{Zero load.} If $u$ is differentiable with $|u|\le B$ and $|u'|\le D_1$ (a first-order
+bounded potential, with no second or third derivative) and $(q(a),r(a))$ solves (2.68) for
+$a\in[0,\delta)$, then $(q(0),r(0))=(0,0)$ and $a\mapsto F(a,r(a),q(a))$ has the right derivative
+$\mathbb E\log\mathbb E_\xi\exp u(\xi)$ at $0$ within $[0,\infty)$.
+\item \emph{Branch form.} There is $K(D)>0$ and, for each $u$ satisfying (2.7), functions $q,r$ solving
+(2.68) for every $a\ge0$ with $aK(D)\le1$ (the unique solution of Theorem~\ref{thm:sg-tal:perceptron-rs-fixed-point}),
+such that (4) holds at every $\alpha\in(0,1/K(D))$ and (5) holds at $0$.
+\end{enumerate}
+\end{proposition}
+\begin{proof}
+  \leanok
+\emph{Step 1 (ranges).} The first two bounds are Gaussian integration of $0\le\tanh^2<1$ and the
+$1$-Lipschitz property of $r\mapsto\mathbb E\tanh^2(z\sqrt r)$ at $r=0$. For $r>0$,
+$\tanh^2(z\sqrt r)$ and $1-\tanh^2(z\sqrt r)$ are continuous, nonnegative and not identically
+zero, so both integrals are strictly positive.
+
+\emph{Step 2 (Lipschitz dependence).} Write $q_a=g(r_a)$ with $g(r)=\mathbb E\tanh^2(z\sqrt r)$ and
+$r_a=a\widehat r(q_a)$. Using that $g$ is $1$-Lipschitz, that $\widehat r$ is Lipschitz on $[0,1]$
+with constant $K_{\rm lip}(D)$ (Theorem~\ref{thm:sg-tal:perceptron-rs-fixed-point}), and
+$0\le\widehat r\le D^2$, one gets $|q_a-q_b|\le a K_{\rm lip}|q_a-q_b|+D^2|a-b|$. For
+$aK_{\rm lip}\le\frac12$ this gives the stated bound.
+
+\emph{Step 3 ($q$-derivative).} Differentiating the inner integral under $\mathbb E_\xi$ with a
+dominating function that is uniform for $q'$ in a neighbourhood of $q$, then the outer integral,
+and applying Lemma~\ref{lem:sg-tal:perceptron-rs-variational}(2), gives $-\frac12\widehat r(q)$
+(\texttt{hasDerivAt\_integral\_log\_integral\_exp\_q}).
+
+\emph{Step 4 (positive load).} If $\widehat r(0)=0$ then $(q(a),r(a))=(0,0)$ near $\alpha$ by
+Step~2 and $F(a,r(a),q(a))=\log 2+a\,\mathbb E\log\mathbb E_\xi e^{u(\xi)}$ is affine near $\alpha$. If
+$\widehat r(0)>0$ then $r(\alpha)>0$, hence $q(\alpha)\in(0,1)$ by Step~1. The map $b\mapsto q(b)$ is
+locally Lipschitz by Step~2 and satisfies $q(b)=g(b\,\widehat r(q(b)))$, so a first-order expansion gives
+differentiability of $q$ at $\alpha$ with derivative $g'\widehat r(q)/(1-\alpha g'\widehat r{}')$, where
+$\alpha|g'\widehat r{}'|\le\frac12$ after enlarging $K(D)$; then $r(a)=a\widehat r(q(a))$ is
+differentiable at $\alpha$ as well. Lemma~\ref{lem:sg-tal:perceptron-rs-variational}(3) now applies
+(\texttt{exists\_hasDerivAt\_perceptronRSFunctional\_small\_load}).
+
+\emph{Step 5 (zero load).} From $0\le r(a)\le aD_1^2$ and $0\le q(a)\le r(a)$, $r(a)$ and $q(a)$ tend
+to $0$ at rate $O(a)$. Expanding $\mathbb E\log(2\cosh(z\sqrt r))=\log2+\frac r2+o(r)$ (right derivative
+$\frac12$ at $0$), the term $-\frac12 r(1-q)$, and continuity of $q\mapsto\mathbb E\log\mathbb E_\xi
+e^{u(\theta)}$ on $[0,1]$ gives the stated right derivative
+(\texttt{hasDerivWithinAt\_perceptronRSFunctional\_zero}).
+
+\emph{Step 6 (branch form).} Choose $K(D)$ larger than the constants of Theorem~\ref{thm:sg-tal:perceptron-rs-fixed-point}
+and Step~4, let $(q(a),r(a))$ be the unique solution, and apply Steps~4 and~5
+(\texttt{exists\_branch\_hasDerivAt\_perceptronRSFunctional}).
+
+\emph{Formalization note (hypothesis audit).} No interiority, positivity or differentiability of the
+branch is assumed in (4)--(6): these are derived. The family $(q,r)$ is assumed to solve (2.68) only near
+the point of differentiation. The zero-load right derivative needs only $|u|\le B$ and $|u'|\le D_1$.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/RSFixedPoint.lean} and
+\texttt{ReplicaSymmetricVariational.lean}.
+\end{proof}
+
 \begin{proposition}[Discrete cavity increment and derivative of $\varphi(v)$ in the second proof, (2.90)--(2.91)]\label{prop:sg-tal:perceptron-second-proof-increment}
   \lean{SpinGlasses.perceptron_pressure_succ_sub_eq,
         SpinGlasses.hasDerivAt_second_proof_interpolation}

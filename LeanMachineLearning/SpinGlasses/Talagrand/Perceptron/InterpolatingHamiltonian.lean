@@ -888,6 +888,91 @@ theorem hasDerivAt_interpolating_pressure
       (ae_of_all _ fun ω t ht => hZ_deriv ω ht)).2
   exact hP_deriv.const_mul (((N : ℝ) + 1)⁻¹)
 
+/-- The `k`-th interpolating field is jointly measurable in the disorder and the state. -/
+lemma measurable_interpField_joint {L M : ℕ} (s q : ℝ) (k : Fin M) :
+    Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
+        ((Fin L → ℤˣ) × (Fin M → ℝ)) =>
+      Real.sqrt s * ((Real.sqrt (L : ℕ))⁻¹ * ∑ i, p.1.1.1 k i * ((p.2.1 i : ℤ) : ℝ)) +
+        Real.sqrt (1 - s) * (Real.sqrt q * p.1.1.2 k + Real.sqrt (1 - q) * p.2.2 k) := by
+  have hg_sum : Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
+      ((Fin L → ℤˣ) × (Fin M → ℝ)) => ∑ i : Fin L, p.1.1.1 k i * ((p.2.1 i : ℤ) : ℝ) := by
+    refine Finset.measurable_sum _ fun i _ => ?_
+    have hgi : Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
+        ((Fin L → ℤˣ) × (Fin M → ℝ)) => p.1.1.1 k i :=
+      (measurable_pi_apply i).comp ((measurable_pi_apply k).comp
+        (measurable_fst.comp (measurable_fst.comp measurable_fst)))
+    have hσi : Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
+        ((Fin L → ℤˣ) × (Fin M → ℝ)) => ((p.2.1 i : ℤ) : ℝ) :=
+      measurable_units_cast.comp ((measurable_pi_apply i).comp
+        (measurable_fst.comp measurable_snd))
+    exact hgi.mul hσi
+  have hzk : Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
+      ((Fin L → ℤˣ) × (Fin M → ℝ)) => p.1.1.2 k :=
+    (measurable_pi_apply k).comp (measurable_snd.comp (measurable_fst.comp measurable_fst))
+  have hξk : Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
+      ((Fin L → ℤˣ) × (Fin M → ℝ)) => p.2.2 k :=
+    (measurable_pi_apply k).comp (measurable_snd.comp measurable_snd)
+  exact ((hg_sum.const_mul _).const_mul _).add
+    (((hzk.const_mul _).add (hξk.const_mul _)).const_mul _)
+
+private lemma measurable_interpFieldDeriv_joint {L M : ℕ} (s q : ℝ) (k : Fin M) :
+    Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
+        ((Fin L → ℤˣ) × (Fin M → ℝ)) =>
+      (1 / (2 * Real.sqrt s)) *
+          ((Real.sqrt (L : ℕ))⁻¹ * ∑ i, p.1.1.1 k i * ((p.2.1 i : ℤ) : ℝ)) -
+        (1 / (2 * Real.sqrt (1 - s))) *
+          (Real.sqrt q * p.1.1.2 k + Real.sqrt (1 - q) * p.2.2 k) := by
+  have hg_sum : Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
+      ((Fin L → ℤˣ) × (Fin M → ℝ)) => ∑ i : Fin L, p.1.1.1 k i * ((p.2.1 i : ℤ) : ℝ) := by
+    refine Finset.measurable_sum _ fun i _ => ?_
+    have hgi : Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
+        ((Fin L → ℤˣ) × (Fin M → ℝ)) => p.1.1.1 k i :=
+      (measurable_pi_apply i).comp ((measurable_pi_apply k).comp
+        (measurable_fst.comp (measurable_fst.comp measurable_fst)))
+    have hσi : Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
+        ((Fin L → ℤˣ) × (Fin M → ℝ)) => ((p.2.1 i : ℤ) : ℝ) :=
+      measurable_units_cast.comp ((measurable_pi_apply i).comp
+        (measurable_fst.comp measurable_snd))
+    exact hgi.mul hσi
+  have hzk : Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
+      ((Fin L → ℤˣ) × (Fin M → ℝ)) => p.1.1.2 k :=
+    (measurable_pi_apply k).comp (measurable_snd.comp (measurable_fst.comp measurable_fst))
+  have hξk : Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
+      ((Fin L → ℤˣ) × (Fin M → ℝ)) => p.2.2 k :=
+    (measurable_pi_apply k).comp (measurable_snd.comp measurable_snd)
+  exact ((hg_sum.const_mul _).const_mul _).sub
+    (((hzk.const_mul _).add (hξk.const_mul _)).const_mul _)
+
+/-- The `k`-th interpolating field of replica `l` is jointly measurable in the disorder and the
+replica tuple. -/
+lemma measurable_interpField_replica_joint {L M : ℕ} (s q : ℝ) (k : Fin M) (l : Fin 2) :
+    Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
+        (Fin 2 → (Fin L → ℤˣ) × (Fin M → ℝ)) =>
+      Real.sqrt s * ((Real.sqrt (L : ℕ))⁻¹ * ∑ i, p.1.1.1 k i * (((p.2 l).1 i : ℤ) : ℝ)) +
+        Real.sqrt (1 - s) * (Real.sqrt q * p.1.1.2 k + Real.sqrt (1 - q) * (p.2 l).2 k) :=
+  (measurable_interpField_joint s q k).comp
+    (measurable_fst.prodMk ((measurable_pi_apply l).comp measurable_snd))
+
+/-- The interpolating energy is jointly measurable in the disorder and the state. -/
+lemma measurable_interpEnergy_joint {L M : ℕ} {u : ℝ → ℝ} (hu : Measurable u)
+    (s q r : ℝ) :
+    Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
+        ((Fin L → ℤˣ) × (Fin M → ℝ)) =>
+      (∑ k : Fin M, u (Real.sqrt s *
+          ((Real.sqrt (L : ℕ))⁻¹ * ∑ i, p.1.1.1 k i * ((p.2.1 i : ℤ) : ℝ)) +
+        Real.sqrt (1 - s) * (Real.sqrt q * p.1.1.2 k + Real.sqrt (1 - q) * p.2.2 k))) +
+      ∑ i : Fin L, ((p.2.1 i : ℤ) : ℝ) * Real.sqrt (1 - s) * p.1.2 i * Real.sqrt r := by
+  refine (Finset.measurable_sum _ fun k _ => hu.comp (measurable_interpField_joint s q k)).add ?_
+  refine Finset.measurable_sum _ fun i _ => ?_
+  have hσi : Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
+      ((Fin L → ℤˣ) × (Fin M → ℝ)) => ((p.2.1 i : ℤ) : ℝ) :=
+    measurable_units_cast.comp ((measurable_pi_apply i).comp
+      (measurable_fst.comp measurable_snd))
+  have hz'i : Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
+      ((Fin L → ℤˣ) × (Fin M → ℝ)) => p.1.2 i :=
+    (measurable_pi_apply i).comp (measurable_snd.comp measurable_fst)
+  exact ((hσi.mul_const _).mul hz'i).mul_const _
+
 /-- **Gaussian IBP on the external field `z'_i` (`r ≥ 0`, `s < 1`):**
 `(N + 1)⁻¹ ν_s((2 √(1 - s))⁻¹ ∑ᵢ σᵢ z'ᵢ √r) = (r / 2)(1 - ν_s(R_{1,2}))`. -/
 theorem integral_interpolating_external_field_ibp
@@ -1028,56 +1113,8 @@ theorem integral_interpolating_external_field_ibp
   -- Now pull the sum over `i : Fin (N + 1)` outside `∫ ω` and `∫ x` on both sides!
   have hEm_joint : Measurable fun p :
       (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-        ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => E_s p.1 p.2 := by
-    have h1_sum : Measurable fun p :
-        (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-          ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) =>
-        ∑ k : Fin M, u (Real.sqrt s *
-            ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ j, p.1.1.1 k j * ((p.2.1 j : ℤ) : ℝ)) +
-          Real.sqrt (1 - s) * (Real.sqrt q * p.1.1.2 k + Real.sqrt (1 - q) * p.2.2 k)) := by
-      refine Finset.measurable_sum _ fun k _ => hu.comp ?_
-      have hg_sum : Measurable fun p :
-          (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-            ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) =>
-          ∑ j : Fin (N + 1), p.1.1.1 k j * ((p.2.1 j : ℤ) : ℝ) := by
-        refine Finset.measurable_sum _ fun j _ => ?_
-        have hgj : Measurable fun p :
-            (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-              ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => p.1.1.1 k j :=
-          (measurable_pi_apply j).comp ((measurable_pi_apply k).comp
-            (measurable_fst.comp (measurable_fst.comp measurable_fst)))
-        have hσj : Measurable fun p :
-            (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-              ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => ((p.2.1 j : ℤ) : ℝ) :=
-          measurable_units_cast.comp ((measurable_pi_apply j).comp
-            (measurable_fst.comp measurable_snd))
-        exact hgj.mul hσj
-      have hzk : Measurable fun p :
-          (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-            ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => p.1.1.2 k :=
-        (measurable_pi_apply k).comp (measurable_snd.comp (measurable_fst.comp measurable_fst))
-      have hξk : Measurable fun p :
-          (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-            ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => p.2.2 k :=
-        (measurable_pi_apply k).comp (measurable_snd.comp measurable_snd)
-      exact ((hg_sum.const_mul _).const_mul _).add
-        (((hzk.const_mul _).add (hξk.const_mul _)).const_mul _)
-    have h2_sum : Measurable fun p :
-        (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-          ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) =>
-        ∑ j : Fin (N + 1), ((p.2.1 j : ℤ) : ℝ) * Real.sqrt (1 - s) * p.1.2 j * Real.sqrt r := by
-      refine Finset.measurable_sum _ fun j _ => ?_
-      have hσj : Measurable fun p :
-          (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-            ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => ((p.2.1 j : ℤ) : ℝ) :=
-        measurable_units_cast.comp ((measurable_pi_apply j).comp
-          (measurable_fst.comp measurable_snd))
-      have hz'j : Measurable fun p :
-          (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-            ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => p.1.2 j :=
-        (measurable_pi_apply j).comp (measurable_snd.comp measurable_fst)
-      exact ((hσj.mul_const _).mul hz'j).mul_const _
-    exact h1_sum.add h2_sum
+        ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => E_s p.1 p.2 :=
+    measurable_interpEnergy_joint (L := N + 1) (M := M) hu s q r
   have hprob_ω (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) :
       IsProbabilityMeasure (μ_s.tilted (E_s ω)) := by
     have hEm_ω : Measurable (E_s ω) := Measurable.of_uncurry_left hEm_joint
@@ -1299,81 +1336,6 @@ lemma interpConstraintStateSwap_apply {L M : ℕ} (k₁ k₂ : Fin M)
 lemma interpConstraintStateSwap_symm_apply {L M : ℕ} (k₁ k₂ : Fin M)
     (x : (Fin L → ℤˣ) × (Fin M → ℝ)) :
     (interpConstraintStateSwap k₁ k₂).symm x = (x.1, fun k => x.2 (Equiv.swap k₁ k₂ k)) := rfl
-
-/-- The `k`-th interpolating field is jointly measurable in the disorder and the state. -/
-lemma measurable_interpField_joint {L M : ℕ} (s q : ℝ) (k : Fin M) :
-    Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
-        ((Fin L → ℤˣ) × (Fin M → ℝ)) =>
-      Real.sqrt s * ((Real.sqrt (L : ℕ))⁻¹ * ∑ i, p.1.1.1 k i * ((p.2.1 i : ℤ) : ℝ)) +
-        Real.sqrt (1 - s) * (Real.sqrt q * p.1.1.2 k + Real.sqrt (1 - q) * p.2.2 k) := by
-  have hg_sum : Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
-      ((Fin L → ℤˣ) × (Fin M → ℝ)) => ∑ i : Fin L, p.1.1.1 k i * ((p.2.1 i : ℤ) : ℝ) := by
-    refine Finset.measurable_sum _ fun i _ => ?_
-    have hgi : Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
-        ((Fin L → ℤˣ) × (Fin M → ℝ)) => p.1.1.1 k i :=
-      (measurable_pi_apply i).comp ((measurable_pi_apply k).comp
-        (measurable_fst.comp (measurable_fst.comp measurable_fst)))
-    have hσi : Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
-        ((Fin L → ℤˣ) × (Fin M → ℝ)) => ((p.2.1 i : ℤ) : ℝ) :=
-      measurable_units_cast.comp ((measurable_pi_apply i).comp
-        (measurable_fst.comp measurable_snd))
-    exact hgi.mul hσi
-  have hzk : Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
-      ((Fin L → ℤˣ) × (Fin M → ℝ)) => p.1.1.2 k :=
-    (measurable_pi_apply k).comp (measurable_snd.comp (measurable_fst.comp measurable_fst))
-  have hξk : Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
-      ((Fin L → ℤˣ) × (Fin M → ℝ)) => p.2.2 k :=
-    (measurable_pi_apply k).comp (measurable_snd.comp measurable_snd)
-  exact ((hg_sum.const_mul _).const_mul _).add
-    (((hzk.const_mul _).add (hξk.const_mul _)).const_mul _)
-
-private lemma measurable_interpFieldDeriv_joint {L M : ℕ} (s q : ℝ) (k : Fin M) :
-    Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
-        ((Fin L → ℤˣ) × (Fin M → ℝ)) =>
-      (1 / (2 * Real.sqrt s)) *
-          ((Real.sqrt (L : ℕ))⁻¹ * ∑ i, p.1.1.1 k i * ((p.2.1 i : ℤ) : ℝ)) -
-        (1 / (2 * Real.sqrt (1 - s))) *
-          (Real.sqrt q * p.1.1.2 k + Real.sqrt (1 - q) * p.2.2 k) := by
-  have hg_sum : Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
-      ((Fin L → ℤˣ) × (Fin M → ℝ)) => ∑ i : Fin L, p.1.1.1 k i * ((p.2.1 i : ℤ) : ℝ) := by
-    refine Finset.measurable_sum _ fun i _ => ?_
-    have hgi : Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
-        ((Fin L → ℤˣ) × (Fin M → ℝ)) => p.1.1.1 k i :=
-      (measurable_pi_apply i).comp ((measurable_pi_apply k).comp
-        (measurable_fst.comp (measurable_fst.comp measurable_fst)))
-    have hσi : Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
-        ((Fin L → ℤˣ) × (Fin M → ℝ)) => ((p.2.1 i : ℤ) : ℝ) :=
-      measurable_units_cast.comp ((measurable_pi_apply i).comp
-        (measurable_fst.comp measurable_snd))
-    exact hgi.mul hσi
-  have hzk : Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
-      ((Fin L → ℤˣ) × (Fin M → ℝ)) => p.1.1.2 k :=
-    (measurable_pi_apply k).comp (measurable_snd.comp (measurable_fst.comp measurable_fst))
-  have hξk : Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
-      ((Fin L → ℤˣ) × (Fin M → ℝ)) => p.2.2 k :=
-    (measurable_pi_apply k).comp (measurable_snd.comp measurable_snd)
-  exact ((hg_sum.const_mul _).const_mul _).sub
-    (((hzk.const_mul _).add (hξk.const_mul _)).const_mul _)
-
-/-- The interpolating energy is jointly measurable in the disorder and the state. -/
-lemma measurable_interpEnergy_joint {L M : ℕ} {u : ℝ → ℝ} (hu : Measurable u)
-    (s q r : ℝ) :
-    Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
-        ((Fin L → ℤˣ) × (Fin M → ℝ)) =>
-      (∑ k : Fin M, u (Real.sqrt s *
-          ((Real.sqrt (L : ℕ))⁻¹ * ∑ i, p.1.1.1 k i * ((p.2.1 i : ℤ) : ℝ)) +
-        Real.sqrt (1 - s) * (Real.sqrt q * p.1.1.2 k + Real.sqrt (1 - q) * p.2.2 k))) +
-      ∑ i : Fin L, ((p.2.1 i : ℤ) : ℝ) * Real.sqrt (1 - s) * p.1.2 i * Real.sqrt r := by
-  refine (Finset.measurable_sum _ fun k _ => hu.comp (measurable_interpField_joint s q k)).add ?_
-  refine Finset.measurable_sum _ fun i _ => ?_
-  have hσi : Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
-      ((Fin L → ℤˣ) × (Fin M → ℝ)) => ((p.2.1 i : ℤ) : ℝ) :=
-    measurable_units_cast.comp ((measurable_pi_apply i).comp
-      (measurable_fst.comp measurable_snd))
-  have hz'i : Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
-      ((Fin L → ℤˣ) × (Fin M → ℝ)) => p.1.2 i :=
-    (measurable_pi_apply i).comp (measurable_snd.comp measurable_fst)
-  exact ((hσi.mul_const _).mul hz'i).mul_const _
 
 private lemma interpEnergy_le {L M : ℕ} {u : ℝ → ℝ} {B : ℝ} (hB : ∀ x, u x ≤ B)
     (s q r : ℝ)
@@ -2857,34 +2819,8 @@ theorem hasDerivAt_interpolating_pressure_regrouped
       (fun ω => ∫ σ, g_k k ω σ ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s s ω))) P := by
     have hS_l (l : Fin 2) : Measurable fun p :
         (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-          (Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => S_fn s p.1 (p.2 l) k := by
-      have hg_sum : Measurable fun p :
-          (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-            (Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) =>
-          ∑ i : Fin (N + 1), p.1.1.1 k i * ((((p.2 l).1 i : ℤ) : ℝ)) := by
-        refine Finset.measurable_sum _ fun i _ => ?_
-        have hgi : Measurable fun p :
-            (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-              (Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => p.1.1.1 k i :=
-          (measurable_pi_apply i).comp ((measurable_pi_apply k).comp
-            (measurable_fst.comp (measurable_fst.comp measurable_fst)))
-        have hσi : Measurable fun p :
-            (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-              (Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => (((p.2 l).1 i : ℤ) : ℝ) :=
-          measurable_units_cast.comp ((measurable_pi_apply i).comp
-            (measurable_fst.comp ((measurable_pi_apply l).comp measurable_snd)))
-        exact hgi.mul hσi
-      have hzk : Measurable fun p :
-          (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-            (Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => p.1.1.2 k :=
-        (measurable_pi_apply k).comp (measurable_snd.comp (measurable_fst.comp measurable_fst))
-      have hξk : Measurable fun p :
-          (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-            (Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => (p.2 l).2 k :=
-        (measurable_pi_apply k).comp (measurable_snd.comp
-          ((measurable_pi_apply l).comp measurable_snd))
-      exact ((hg_sum.const_mul _).const_mul _).add
-        (((hzk.const_mul _).add (hξk.const_mul _)).const_mul _)
+          (Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => S_fn s p.1 (p.2 l) k :=
+      measurable_interpField_replica_joint (L := N + 1) (M := M) s q k l
     have hgk_joint : Measurable fun p :
         (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
           (Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => g_k k p.1 p.2 :=

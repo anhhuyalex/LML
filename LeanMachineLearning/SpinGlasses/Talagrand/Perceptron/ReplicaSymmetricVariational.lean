@@ -789,8 +789,9 @@ private lemma hasDerivAt_of_fixed_point_contraction
 /-- **Talagrand Section 2.4, Eq. (2.89) for the small-load solution at positive load:**
 Given `D ∈ ℝ`, there exists `K(D) > 0` (chosen before `u, q, r, α`) such that whenever `u` satisfies
 (2.7), `0 < α` with `α * K(D) < 1`, and `(q a, r a)` solves (2.68) for all `a` near `α` (the unique
-small-load branch of Theorem 2.4.1 is such a family), the composite functional `a ↦ F(a, r a, q a)` is differentiable at `α` with
-derivative `𝔼 log 𝔼_ξ exp u(√(q α) z + √(1 - q α) ξ)`. This unconditionally covers both the
+small-load branch of Theorem 2.4.1 is such a family), the composite functional
+`a ↦ F(a, r a, q a)` is differentiable at `α` with derivative
+`𝔼 log 𝔼_ξ exp u(√(q α) z + √(1 - q α) ξ)`. This unconditionally covers both the
 zero branch `perceptronRhat u 0 = 0` (where `(q, r) = (0, 0)` and `F` is affine in `α`) and the
 interior branch `perceptronRhat u 0 > 0` (where `r α > 0`, `q α ∈ (0, 1)`, and `(q, r)` are
 differentiable at `α`). -/
@@ -1060,6 +1061,67 @@ theorem hasDerivWithinAt_perceptronRSFunctional_zero
   rw [hr0]
   simp only [sub_zero, smul_eq_mul, neg_mul, zero_mul]
   ring
+
+/-- **Talagrand Section 2.4, Eq. (2.89) for the solution branch of Theorem 2.4.1.**
+Given `D`, there is `K(D) > 0` such that for every `u` satisfying (2.7) there are functions
+`q, r : ℝ → ℝ` with `(q a, r a)` solving (2.68) for every load `a ≥ 0` with `a * K(D) ≤ 1` (the
+unique solution of Theorem 2.4.1), and the composite functional `a ↦ F(a, r a, q a)` has derivative
+`𝔼 log 𝔼_ξ exp u(√(q α) z + √(1 - q α) ξ)` at every `α ∈ (0, 1 / K(D))`, and the corresponding right
+derivative at `0` within `[0, ∞)`. No solution family is assumed. -/
+theorem exists_branch_hasDerivAt_perceptronRSFunctional (D : ℝ) :
+    ∃ K : ℝ, 0 < K ∧
+      ∀ {u : ℝ → ℝ} (_hd : ∀ j < 3, Differentiable ℝ (iteratedDeriv j u))
+        (_hb : ∀ j ≤ 3, ∀ x, |iteratedDeriv j u x| ≤ D),
+        ∃ q r : ℝ → ℝ,
+          (∀ a, 0 ≤ a → a * K ≤ 1 →
+            q a = (∫ z : ℝ, Real.tanh (z * Real.sqrt (r a)) ^ 2 ∂gaussianReal 0 1) ∧
+              r a = a * perceptronRhat u (q a)) ∧
+          (∀ α, 0 < α → α * K < 1 →
+            HasDerivAt (fun a => perceptronRSFunctional u a (r a) (q a))
+              (∫ z : ℝ, Real.log (∫ ξ : ℝ,
+                Real.exp (u (Real.sqrt (q α) * z + Real.sqrt (1 - q α) * ξ)) ∂gaussianReal 0 1)
+                ∂gaussianReal 0 1) α) ∧
+          HasDerivWithinAt (fun a => perceptronRSFunctional u a (r a) (q a))
+            (∫ z : ℝ, Real.log (∫ ξ : ℝ,
+              Real.exp (u (Real.sqrt (q 0) * z + Real.sqrt (1 - q 0) * ξ)) ∂gaussianReal 0 1)
+              ∂gaussianReal 0 1) (Ici 0) 0 := by
+  obtain ⟨K₁, hK₁, h_small⟩ := exists_hasDerivAt_perceptronRSFunctional_small_load D
+  obtain ⟨K₂, hK₂, h_uniq⟩ := exists_unique_rs_fixed_point D
+  let K : ℝ := max K₁ K₂
+  have hK_pos : 0 < K := lt_of_lt_of_le hK₁ (le_max_left _ _)
+  refine ⟨K, hK_pos, ?_⟩
+  intro u hd hb
+  classical
+  have hex : ∀ a : ℝ, 0 ≤ a → a * K ≤ 1 → ∃ p : ℝ × ℝ,
+      p.1 = (∫ z : ℝ, Real.tanh (z * Real.sqrt p.2) ^ 2 ∂gaussianReal 0 1) ∧
+        p.2 = a * perceptronRhat u p.1 := fun a ha0 haK =>
+    (h_uniq hd hb ha0
+      ((mul_le_mul_of_nonneg_left (le_max_right _ _) ha0).trans haK)).exists
+  let P : ℝ → ℝ × ℝ := fun a =>
+    if h : 0 ≤ a ∧ a * K ≤ 1 then Classical.choose (hex a h.1 h.2) else (0, 0)
+  have hspec : ∀ a, 0 ≤ a → a * K ≤ 1 →
+      (P a).1 = (∫ z : ℝ, Real.tanh (z * Real.sqrt (P a).2) ^ 2 ∂gaussianReal 0 1) ∧
+        (P a).2 = a * perceptronRhat u (P a).1 := by
+    intro a ha0 haK
+    have h : 0 ≤ a ∧ a * K ≤ 1 := ⟨ha0, haK⟩
+    simp only [P, h, ↓reduceDIte]
+    exact Classical.choose_spec (hex a ha0 haK)
+  obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
+  refine ⟨fun a => (P a).1, fun a => (P a).2, hspec, ?_, ?_⟩
+  · intro α hα_pos hαK
+    have hαK₁ : α * K₁ < 1 :=
+      lt_of_le_of_lt (mul_le_mul_of_nonneg_left (le_max_left _ _) hα_pos.le) hαK
+    refine h_small hd hb hα_pos hαK₁ ?_
+    have hev : ∀ᶠ a in 𝓝 α, 0 < a ∧ a * K < 1 :=
+      (eventually_gt_nhds hα_pos).and
+        ((continuous_id.mul continuous_const).continuousAt.eventually_lt
+          continuousAt_const hαK)
+    filter_upwards [hev] with a ha
+    exact hspec a ha.1.le ha.2.le
+  · refine hasDerivWithinAt_perceptronRSFunctional_zero hu.toSmartPathPotential
+      (δ := 1 / K) (by positivity) (fun a ha => (hspec a ha.1 ?_).1)
+      (fun a ha => (hspec a ha.1 ?_).2)
+    all_goals exact ((lt_div_iff₀ hK_pos).1 ha.2).le
 
 end VariationalCalculus
 
