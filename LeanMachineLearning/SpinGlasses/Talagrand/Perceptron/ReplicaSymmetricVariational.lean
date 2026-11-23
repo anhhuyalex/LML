@@ -36,7 +36,7 @@ as a function of three unrelated real variables `α`, `r`, `q`.
   small-load solution under (2.7) at positive load `α > 0` with `α * K(D) < 1`, handling both the
   affine zero branch `r̂(0) = 0` and the differentiable interior branch `r̂(0) > 0`.
 * `SpinGlasses.hasDerivWithinAt_perceptronRSFunctional_zero`: Eq. (2.89) right derivative at zero
-  load `α = 0` within `[0, ∞)` under (2.7).
+  load `α = 0` within `[0, ∞)` for a first-order bounded potential.
 * `SpinGlasses.perceptron_pressure_succ_sub_eq`: Eq. (2.90), exact discrete cavity increment
   `p_{N+1, M+1}(u) - p_{N+1, M}(u) = (N + 1)⁻¹ 𝔼 log ⟨exp u(S_M)⟩`.
 * `SpinGlasses.hasDerivAt_second_proof_interpolation`: Eq. (2.91), exact derivative and Gaussian IBP
@@ -523,7 +523,11 @@ theorem deriv_perceptronRSFunctional_eq_zero_iff
   · rw [mul_eq_zero, or_iff_right (by norm_num : (1 / 2 : ℝ) ≠ 0), sub_eq_zero]
   · rw [mul_eq_zero, or_iff_right (by norm_num : (1 / 2 : ℝ) ≠ 0), sub_eq_zero]
 
-/-- **Talagrand Section 2.4, Eq. (2.89) (envelope theorem along the critical curve):**
+/-- **Conditional envelope step of Eq. (2.89) (envelope theorem along the critical curve).**
+This is a helper: it assumes interiority (`r α > 0`, `q α ∈ (0, 1)`) and differentiability of the
+branch, which the book obtains from Theorem 2.4.1 and which
+`exists_hasDerivAt_perceptronRSFunctional_small_load` derives. Cite that theorem, not this one, as
+the statement of (2.89).
 If `q, r : ℝ → ℝ` are differentiable at `α` with `r α > 0`, `q α ∈ (0, 1)`, and `(q α, r α)`
 satisfies the critical-point system (2.87) at `α`, then `a ↦ F(a, r a, q a)` has derivative
 `𝔼 log 𝔼_ξ exp u(√(q α) z + √(1 - q α) ξ)` at `α`. -/
@@ -784,8 +788,8 @@ private lemma hasDerivAt_of_fixed_point_contraction
 
 /-- **Talagrand Section 2.4, Eq. (2.89) for the small-load solution at positive load:**
 Given `D ∈ ℝ`, there exists `K(D) > 0` (chosen before `u, q, r, α`) such that whenever `u` satisfies
-(2.7), `0 < α` with `α * K(D) < 1`, and `(q a, r a)` solves (2.68) for every `a ≥ 0` with
-`a * K(D) ≤ 1`, the composite functional `a ↦ F(a, r a, q a)` is differentiable at `α` with
+(2.7), `0 < α` with `α * K(D) < 1`, and `(q a, r a)` solves (2.68) for all `a` near `α` (the unique
+small-load branch of Theorem 2.4.1 is such a family), the composite functional `a ↦ F(a, r a, q a)` is differentiable at `α` with
 derivative `𝔼 log 𝔼_ξ exp u(√(q α) z + √(1 - q α) ξ)`. This unconditionally covers both the
 zero branch `perceptronRhat u 0 = 0` (where `(q, r) = (0, 0)` and `F` is affine in `α`) and the
 interior branch `perceptronRhat u 0 > 0` (where `r α > 0`, `q α ∈ (0, 1)`, and `(q, r)` are
@@ -795,9 +799,9 @@ theorem exists_hasDerivAt_perceptronRSFunctional_small_load (D : ℝ) :
       ∀ {u : ℝ → ℝ} (_hd : ∀ j < 3, Differentiable ℝ (iteratedDeriv j u))
         (_hb : ∀ j ≤ 3, ∀ x, |iteratedDeriv j u x| ≤ D)
         {q r : ℝ → ℝ} {α : ℝ} (_hα_pos : 0 < α) (_hα : α * K < 1)
-        (_hq_fix : ∀ a, 0 ≤ a → a * K ≤ 1 →
-          q a = ∫ z : ℝ, Real.tanh (z * Real.sqrt (r a)) ^ 2 ∂gaussianReal 0 1)
-        (_hr_fix : ∀ a, 0 ≤ a → a * K ≤ 1 → r a = a * perceptronRhat u (q a)),
+        (_hfix : ∀ᶠ a in 𝓝 α,
+          q a = (∫ z : ℝ, Real.tanh (z * Real.sqrt (r a)) ^ 2 ∂gaussianReal 0 1) ∧
+            r a = a * perceptronRhat u (q a)),
         HasDerivAt (fun a => perceptronRSFunctional u a (r a) (q a))
           (∫ z : ℝ, Real.log (∫ ξ : ℝ,
             Real.exp (u (Real.sqrt (q α) * z + Real.sqrt (1 - q α) * ξ)) ∂gaussianReal 0 1)
@@ -807,7 +811,8 @@ theorem exists_hasDerivAt_perceptronRSFunctional_small_load (D : ℝ) :
   let K : ℝ := max (2 * K_der) K_sub + 1
   have hK_pos : 0 < K := by dsimp only [K]; positivity
   refine ⟨K, hK_pos, ?_⟩
-  intro u hd hb q r α hα_pos hα hq_fix hr_fix
+  intro u hd hb q r α hα_pos hα hfix
+  obtain ⟨ε, hε, hεfix⟩ := Metric.eventually_nhds_iff.1 hfix
   obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
   have hc_rhat : ContinuousOn (perceptronRhat u) (Icc 0 1) :=
     continuousOn_rhat hu.differentiable hu.differentiable_deriv.continuous hu.abs_le hu.abs_deriv_le
@@ -816,14 +821,22 @@ theorem exists_hasDerivAt_perceptronRSFunctional_small_load (D : ℝ) :
     fun x hx y hy => abs_sub_le_of_continuousOn_Icc_of_hasDerivAt_Ioo hc_rhat
       (fun q' hq' => h_rhat_der hd hb hq') hy hx
   have hα_lt : α < 1 / K := (lt_div_iff₀ hK_pos).2 hα
-  let δ : ℝ := min (α / 2) ((1 / K - α) / 2)
-  have hδ : 0 < δ := lt_min (half_pos hα_pos) (half_pos (sub_pos.2 hα_lt))
+  let δ : ℝ := min (min (α / 2) ((1 / K - α) / 2)) ε
+  have hδ : 0 < δ :=
+    lt_min (lt_min (half_pos hα_pos) (half_pos (sub_pos.2 hα_lt))) hε
+  have hδε : δ ≤ ε := min_le_right _ _
   have hb_in {b : ℝ} (hb_mem : b ∈ Ioo (α - δ) (α + δ)) : 0 ≤ b ∧ b * K ≤ 1 := by
-    have hd1 : δ ≤ α / 2 := min_le_left _ _
-    have hd2 : δ ≤ (1 / K - α) / 2 := min_le_right _ _
+    have hd1 : δ ≤ α / 2 := (min_le_left _ _).trans (min_le_left _ _)
+    have hd2 : δ ≤ (1 / K - α) / 2 := (min_le_left _ _).trans (min_le_right _ _)
     have hb0 : 0 ≤ b := by linarith [hb_mem.1]
     have hb_ub : b ≤ 1 / K := by linarith [hb_mem.2]
     exact ⟨hb0, (le_div_iff₀ hK_pos).1 hb_ub⟩
+  have hfix_in {b : ℝ} (hb_mem : b ∈ Ioo (α - δ) (α + δ)) :
+      q b = (∫ z : ℝ, Real.tanh (z * Real.sqrt (r b)) ^ 2 ∂gaussianReal 0 1) ∧
+        r b = b * perceptronRhat u (q b) :=
+    hεfix (by
+      rw [Real.dist_eq, abs_lt]
+      exact ⟨by linarith [hb_mem.1], by linarith [hb_mem.2]⟩)
   have hK_ge_sub : K_sub ≤ K := (le_max_right _ _).trans (by dsimp only [K]; linarith)
   have hK_ge_2der : 2 * K_der ≤ K := (le_max_left _ _).trans (by dsimp only [K]; linarith)
   have hq_lip : ∀ a ∈ Ioo (α - δ) (α + δ), ∀ b ∈ Ioo (α - δ) (α + δ),
@@ -832,8 +845,8 @@ theorem exists_hasDerivAt_perceptronRSFunctional_small_load (D : ℝ) :
     obtain ⟨ha0, haK⟩ := hb_in ha_m
     obtain ⟨hb0, hbK⟩ := hb_in hb_m
     have ha_sub : a * K_sub ≤ 1 := (mul_le_mul_of_nonneg_left hK_ge_sub ha0).trans haK
-    exact h_sub_lip hd hb ha0 ha_sub (hq_fix a ha0 haK) (hr_fix a ha0 haK)
-      (hq_fix b hb0 hbK) (hr_fix b hb0 hbK)
+    exact h_sub_lip hd hb ha0 ha_sub (hfix_in ha_m).1 (hfix_in ha_m).2
+      (hfix_in hb_m).1 (hfix_in hb_m).2
   rcases (perceptronRhat_nonneg u 0).eq_or_lt with hrhat0_zero | hrhat0_pos
   · have hzero_branch : ∀ b ∈ Ioo (α - δ) (α + δ), q b = 0 ∧ r b = 0 := by
       intro b hb_m
@@ -841,11 +854,11 @@ theorem exists_hasDerivAt_perceptronRSFunctional_small_load (D : ℝ) :
       have hb_sub : b * K_sub ≤ 1 := (mul_le_mul_of_nonneg_left hK_ge_sub hb0).trans hbK
       have h0_q : (0 : ℝ) = ∫ z : ℝ, Real.tanh (z * Real.sqrt 0) ^ 2 ∂gaussianReal 0 1 := by simp
       have h0_r : (0 : ℝ) = b * perceptronRhat u 0 := by rw [← hrhat0_zero, mul_zero]
-      have hdiff := h_sub_lip hd hb hb0 hb_sub (hq_fix b hb0 hbK) (hr_fix b hb0 hbK) h0_q h0_r
+      have hdiff := h_sub_lip hd hb hb0 hb_sub (hfix_in hb_m).1 (hfix_in hb_m).2 h0_q h0_r
       rw [sub_self, abs_zero, mul_zero, sub_zero] at hdiff
       have hqb0 : q b = 0 := abs_nonpos_iff.1 hdiff
       refine ⟨hqb0, ?_⟩
-      rw [hr_fix b hb0 hbK, hqb0, ← hrhat0_zero, mul_zero]
+      rw [(hfix_in hb_m).2, hqb0, ← hrhat0_zero, mul_zero]
     have hα_mem : α ∈ Ioo (α - δ) (α + δ) := ⟨by linarith, by linarith⟩
     obtain ⟨hqα0, _⟩ := hzero_branch α hα_mem
     let c₀ : ℝ := ∫ z : ℝ, Real.log (∫ ξ : ℝ,
@@ -864,8 +877,8 @@ theorem exists_hasDerivAt_perceptronRSFunctional_small_load (D : ℝ) :
     exact hd_aff.congr_of_eventuallyEq hcongr
   · have hα_mem : α ∈ Ioo (α - δ) (α + δ) := ⟨by linarith, by linarith⟩
     obtain ⟨hα0, hαK⟩ := hb_in hα_mem
-    have hqα := hq_fix α hα0 hαK
-    have hrα := hr_fix α hα0 hαK
+    have hqα := (hfix_in hα_mem).1
+    have hrα := (hfix_in hα_mem).2
     have hrα_pos : 0 < r α := by
       have hrα_nn : 0 ≤ r α := by
         rw [hrα]; exact mul_nonneg hα0 (perceptronRhat_nonneg u (q α))
@@ -901,8 +914,8 @@ theorem exists_hasDerivAt_perceptronRSFunctional_small_load (D : ℝ) :
       obtain ⟨hb0, hbK⟩ := hb_in hb_m
       change q b = ∫ z : ℝ, Real.tanh (z * Real.sqrt (b * perceptronRhat u (q b))) ^ 2
         ∂gaussianReal 0 1
-      rw [← hr_fix b hb0 hbK]
-      exact hq_fix b hb0 hbK
+      rw [← (hfix_in hb_m).2]
+      exact (hfix_in hb_m).1
     have hq_diff : DifferentiableAt ℝ q α :=
       (hasDerivAt_of_fixed_point_contraction hδ hq_fix_loc
         (fun b hb_m => hq_lip b hb_m α hα_mem) hG_at hR_der (by linarith)).differentiableAt
@@ -911,20 +924,19 @@ theorem exists_hasDerivAt_perceptronRSFunctional_small_load (D : ℝ) :
         filter_upwards [Ioo_mem_nhds (by linarith : α - δ < α) (by linarith : α < α + δ)]
           with b hb_m
         obtain ⟨hb0, hbK⟩ := hb_in hb_m
-        exact hr_fix b hb0 hbK
+        exact (hfix_in hb_m).2
       have hd_prod : DifferentiableAt ℝ (fun b => b * R (q b)) α :=
         differentiableAt_id.mul (hR_der.differentiableAt.comp α hq_diff)
       exact hd_prod.congr_of_eventuallyEq hr_congr
     exact hasDerivAt_perceptronRSFunctional_alpha hu hrα_pos hqα_mem hqα hrα hr_diff hq_diff
 
 /-- **Talagrand Section 2.4, Eq. (2.89) right derivative at zero load `α = 0`:**
-Under (2.7), if `(q a, r a)` solves (2.68) for `a ∈ [0, δ)` (`δ > 0`), then `(q 0, r 0) = (0, 0)`
-and `a ↦ F(a, r a, q a)` has right derivative `𝔼 log 𝔼_ξ exp u(√(q 0) z + √(1 - q 0) ξ)`
-(`= log 𝔼_ξ exp u(ξ)`) at `0` within `[0, ∞)`. -/
+For a first-order bounded potential (`u` differentiable, `|u| ≤ B`, `|u'| ≤ D`; no second or third
+derivative is needed), if `(q a, r a)` solves (2.68) for `a ∈ [0, δ)` (`δ > 0`), then
+`(q 0, r 0) = (0, 0)` and `a ↦ F(a, r a, q a)` has right derivative
+`𝔼 log 𝔼_ξ exp u(√(q 0) z + √(1 - q 0) ξ)` (`= log 𝔼_ξ exp u(ξ)`) at `0` within `[0, ∞)`. -/
 theorem hasDerivWithinAt_perceptronRSFunctional_zero
-    {u : ℝ → ℝ} {D : ℝ}
-    (hd : ∀ j < 3, Differentiable ℝ (iteratedDeriv j u))
-    (hb : ∀ j ≤ 3, ∀ x, |iteratedDeriv j u x| ≤ D)
+    {u : ℝ → ℝ} {B D : ℝ} (hu : SmartPathPotential u B D)
     {q r : ℝ → ℝ} {δ : ℝ} (hδ : 0 < δ)
     (hq_fix : ∀ a ∈ Ico 0 δ,
       q a = ∫ z : ℝ, Real.tanh (z * Real.sqrt (r a)) ^ 2 ∂gaussianReal 0 1)
@@ -934,9 +946,8 @@ theorem hasDerivWithinAt_perceptronRSFunctional_zero
         Real.exp (u (Real.sqrt (q 0) * z + Real.sqrt (1 - q 0) * ξ)) ∂gaussianReal 0 1)
         ∂gaussianReal 0 1)
       (Ici 0) 0 := by
-  obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
-  have hD_le : ∀ x, u x ≤ |D| := fun x => (hu.le x).trans (le_abs_self D)
-  have hD₁ : ∀ x, |deriv u x| ≤ |D| := fun x => (hu.abs_deriv_le x).trans (le_abs_self D)
+  have hD_le : ∀ x, u x ≤ B := hu.le
+  have hD₁ : ∀ x, |deriv u x| ≤ D := hu.abs_deriv_le
   have hr0 : r 0 = 0 := by rw [hr_fix 0 ⟨le_rfl, hδ⟩, zero_mul]
   have hq0 : q 0 = 0 := by rw [hq_fix 0 ⟨le_rfl, hδ⟩, hr0]; simp
   let ψ (q' : ℝ) : ℝ :=
@@ -948,22 +959,14 @@ theorem hasDerivWithinAt_perceptronRSFunctional_zero
     rw [hr_fix a ha]
     have hm := rhat_mem_Icc hD₁ (q a)
       (fun z => integrable_exp_cavityPath_new hu.measurable hD_le (q a) z)
-    rw [sq_abs] at hm
     exact ⟨mul_nonneg ha.1 hm.1, mul_le_mul_of_nonneg_left hm.2 ha.1⟩
   have hq_mem {a : ℝ} (ha : a ∈ Ico 0 δ) : 0 ≤ q a ∧ q a ≤ r a ∧ q a ≤ 1 := by
     have hr_a := (hr_mem ha).1
     have hq_eq := hq_fix a ha
     have hmem : q a ∈ Icc (0 : ℝ) 1 := by
-      rw [hq_eq]
-      exact ⟨integral_nonneg fun _ => sq_nonneg _,
-        (integral_mono (MeasureTheory.integrable_tanh_sq _ (by fun_prop)) (integrable_const 1)
-          fun _ => (Real.tanh_sq_lt_one _).le).trans_eq (by simp)⟩
+      rw [hq_eq]; exact integral_tanh_sq_sqrt_mem_Icc _
     have hle_r : q a ≤ r a := by
-      have hlip := lipschitzWith_one_integral_tanh_sq_sqrt.dist_le_mul (r a) 0
-      simp only [NNReal.coe_one, one_mul, Real.dist_eq, Real.sqrt_zero, mul_zero, Real.tanh_zero,
-        ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true, zero_pow, integral_zero, sub_zero] at hlip
-      rw [← hq_eq, abs_of_nonneg hmem.1, abs_of_nonneg hr_a] at hlip
-      exact hlip
+      rw [hq_eq]; exact integral_tanh_sq_sqrt_le hr_a
     exact ⟨hmem.1, hle_r, hmem.2⟩
   have hr_tendsto : Tendsto r (𝓝[≥] 0) (𝓝[≥] 0) := by
     rw [tendsto_nhdsWithin_iff]

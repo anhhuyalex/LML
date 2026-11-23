@@ -178,6 +178,25 @@ theorem integral_tanh_sq_sqrt_mem_Ioo {r : ℝ} (hr : 0 < r) :
     linarith
   exact ⟨hpos, hlt1⟩
 
+/-- `𝔼 tanh²(z √r) ∈ [0, 1]` for every `r`. This is `fixedPointMap_mem_Icc` at `β = 1`, `h = 0`. -/
+theorem integral_tanh_sq_sqrt_mem_Icc (r : ℝ) :
+    (∫ z : ℝ, Real.tanh (z * Real.sqrt r) ^ 2 ∂gaussianReal 0 1) ∈ Icc (0 : ℝ) 1 := by
+  have heq : (∫ z : ℝ, Real.tanh (z * Real.sqrt r) ^ 2 ∂gaussianReal 0 1) =
+      ∫ z : ℝ, Real.tanh (1 * Real.sqrt r * z + 0) ^ 2 ∂gaussianReal 0 1 := by
+    congr 1; ext z; ring_nf
+  rw [heq]
+  exact SpinGlasses.fixedPointMap_mem_Icc 1 0 r
+
+/-- `𝔼 tanh²(z √r) ≤ r` for `r ≥ 0`: the map `r ↦ 𝔼 tanh²(z √r)` is `1`-Lipschitz and vanishes at
+`0`. -/
+theorem integral_tanh_sq_sqrt_le {r : ℝ} (hr : 0 ≤ r) :
+    (∫ z : ℝ, Real.tanh (z * Real.sqrt r) ^ 2 ∂gaussianReal 0 1) ≤ r := by
+  have hlip := lipschitzWith_one_integral_tanh_sq_sqrt.dist_le_mul r 0
+  simp only [NNReal.coe_one, one_mul, Real.dist_eq, Real.sqrt_zero, mul_zero, Real.tanh_zero,
+    ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true, zero_pow, integral_zero, sub_zero] at hlip
+  rw [abs_of_nonneg (integral_tanh_sq_sqrt_mem_Icc r).1, abs_of_nonneg hr] at hlip
+  exact hlip
+
 namespace SpinGlasses
 
 /-- **Continuity of `q ↦ r̂(q)` on `[0, 1]`** when `u` is `C¹` with bounded `|u|` and `|u'|`. -/
@@ -552,13 +571,7 @@ theorem exists_unique_rs_fixed_point (D : ℝ) :
   let rhat := perceptronRhat u
   let g_tanh (r : ℝ) : ℝ := ∫ z : ℝ, Real.tanh (z * Real.sqrt r) ^ 2 ∂gaussianReal 0 1
   let ψ (q : ℝ) : ℝ := g_tanh (α * rhat q)
-  have hg_mem (r : ℝ) : g_tanh r ∈ Icc (0 : ℝ) 1 := by
-    dsimp only [g_tanh]
-    have heq : (∫ z : ℝ, Real.tanh (z * Real.sqrt r) ^ 2 ∂gaussianReal 0 1) =
-        ∫ z : ℝ, Real.tanh (1 * Real.sqrt r * z + 0) ^ 2 ∂gaussianReal 0 1 := by
-      congr 1; ext z; ring_nf
-    rw [heq]
-    exact fixedPointMap_mem_Icc 1 0 r
+  have hg_mem (r : ℝ) : g_tanh r ∈ Icc (0 : ℝ) 1 := integral_tanh_sq_sqrt_mem_Icc r
   have hmaps : MapsTo ψ (Icc 0 1) (Icc 0 1) := fun q _ => hg_mem (α * rhat q)
   have hlip_ψ : LipschitzOnWith (1 / 2 : ℝ≥0) ψ (Icc 0 1) := by
     have hlip_g := lipschitzWith_one_integral_tanh_sq_sqrt
@@ -620,11 +633,7 @@ theorem exists_abs_rs_fixed_point_sub_le (D : ℝ) :
   obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
   have hD_le : ∀ x, u x ≤ |D| := fun x => (hu.le x).trans (le_abs_self D)
   have hD₁ : ∀ x, |deriv u x| ≤ |D| := fun x => (hu.abs_deriv_le x).trans (le_abs_self D)
-  have hg_mem (r' : ℝ) :
-      (∫ z : ℝ, Real.tanh (z * Real.sqrt r') ^ 2 ∂gaussianReal 0 1) ∈ Icc (0 : ℝ) 1 :=
-    ⟨integral_nonneg fun _ => sq_nonneg _,
-      (integral_mono (MeasureTheory.integrable_tanh_sq _ (by fun_prop)) (integrable_const 1)
-        fun _ => (Real.tanh_sq_lt_one _).le).trans_eq (by simp)⟩
+  have hg_mem := integral_tanh_sq_sqrt_mem_Icc
   have hqa_mem : qa ∈ Icc (0 : ℝ) 1 := hqa ▸ hg_mem ra
   have hqb_mem : qb ∈ Icc (0 : ℝ) 1 := hqb ▸ hg_mem rb
   have h1 : |qa - qb| ≤ |ra - rb| := by

@@ -768,26 +768,6 @@ private lemma measurePreserving_interpVarDisorder_lastSplit (N M : ℕ) :
       simp [MeasurableEquiv.prodAssoc, MeasurableEquiv.coe_sumPiEquivProdPi_symm,
         Equiv.sumPiEquivProdPi_symm_apply, Fin.init_def]
 
-/-- State split for `(M + 1)` constraints in the `s`-interpolating system. -/
-private def interpVarStateLastSplit (L M : ℕ) :
-    ((Fin L → ℤˣ) × (Fin (M + 1) → ℝ)) ≃ᵐ (((Fin L → ℤˣ) × (Fin M → ℝ)) × ℝ) :=
-  (MeasurableEquiv.prodCongr (MeasurableEquiv.refl _) (MeasurableEquiv.finSuccProd ℝ M)).trans
-    MeasurableEquiv.prodAssoc.symm
-
-private lemma interpVarStateLastSplit_apply {L M : ℕ} (x : (Fin L → ℤˣ) × (Fin (M + 1) → ℝ)) :
-    interpVarStateLastSplit L M x = ((x.1, Fin.init x.2), x.2 (Fin.last M)) := by
-  simp [interpVarStateLastSplit, MeasurableEquiv.prodAssoc, MeasurableEquiv.coe_prodCongr,
-    MeasurableEquiv.coe_refl, Fin.init_def]
-
-private lemma measurePreserving_interpVarStateLastSplit (L M : ℕ) :
-    MeasurePreserving ⇑(interpVarStateLastSplit L M)
-      ((Measure.count : Measure (Fin L → ℤˣ)).prod
-        (Measure.pi fun _ : Fin (M + 1) => gaussianReal 0 1))
-      (((Measure.count : Measure (Fin L → ℤˣ)).prod
-        (Measure.pi fun _ : Fin M => gaussianReal 0 1)).prod (gaussianReal 0 1)) :=
-  (measurePreserving_prodAssoc _ _ _).symm.comp
-    ((MeasurePreserving.id _).prod (measurePreserving_finSuccProd _ M))
-
 /-- Transport a replica average on `((μ₀ p.1).prod γ₂).tilted (fun y => u (X_fn p.2 y))` at
 smart-path `t = 1` (where coordinate `0` of `y.2 : Fin 2 → ℝ` has coefficient `0`) to the full
 `(M + 1)`-constraint `s`-interpolating Gibbs measure `ν_s ω`. -/
@@ -847,7 +827,7 @@ private lemma integral_pi_interpVar_last_split_eq.{uR}
         ∂(Measure.pi fun _ : R => ((μ₀ p.1).prod γ₂).tilted (fun y => u (X_fn p.2 y)))
         ∂(P₀.prod γ₁) =
       ∫ ω, ∫ σ : R → (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ),
-        H (splitΩ ω) (fun l => interpVarStateLastSplit (N + 1) M (σ l))
+        H (splitΩ ω) (fun l => interpStateLastSplit (N + 1) M (σ l))
         ∂(Measure.pi fun _ : R => μ_s.tilted (E_s ω)) ∂P₁ := by
   intro γ P₀ P₁ γ₁ γ₂ μ_base μ_s π_sp E₀ E_s μ₀ X_fn splitΩ
   -- Step 1: Simplify `X_fn` since `1 - 1 = 0`, so `X_fn w₁ y` depends only on `(y.1, y.2 1)`!
@@ -1067,11 +1047,11 @@ private lemma integral_pi_interpVar_last_split_eq.{uR}
   have hprob_ω : IsProbabilityMeasure (μ_s.tilted (E_s ω)) :=
     isProbabilityMeasure_tilted_of_ae_le hEs_slice.aemeasurable (ae_of_all _ hEs_bd)
   have hX₁_eq (x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) :
-      X₁ (splitΩ ω).2 (interpVarStateLastSplit (N + 1) M x) =
+      X₁ (splitΩ ω).2 (interpStateLastSplit (N + 1) M x) =
       Real.sqrt s * ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 (Fin.last M) i * ((x.1 i : ℤ) : ℝ)) +
         Real.sqrt (1 - s) *
           (Real.sqrt q * ω.1.2 (Fin.last M) + Real.sqrt (1 - q) * x.2 (Fin.last M)) := by
-    rw [interpVarStateLastSplit_apply]
+    rw [interpStateLastSplit_apply]
     dsimp only [X₁, splitΩ, π_sp, cavityCoef]
     rw [sumElim_dotProduct_sumElim, smul_dotProduct, smul_eq_mul, sumElim_dotProduct_sumElim]
     simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton]
@@ -1090,25 +1070,25 @@ private lemma integral_pi_interpVar_last_split_eq.{uR}
     rw [hsum_i]
     ring
   have htilted_st :
-      (μ_s.tilted (E_s ω)).map (interpVarStateLastSplit (N + 1) M) =
+      (μ_s.tilted (E_s ω)).map (interpStateLastSplit (N + 1) M) =
       ((μ₀ (splitΩ ω).1).prod γ).tilted (V₁ (splitΩ ω)) := by
-    rw [map_tilted_measurableEquiv (interpVarStateLastSplit (N + 1) M)
-      (measurePreserving_interpVarStateLastSplit (N + 1) M) hEs_slice]
+    rw [map_tilted_measurableEquiv (interpStateLastSplit (N + 1) M)
+      (measurePreserving_interpStateLastSplit (N + 1) M) hEs_slice]
     have hcomb : ((μ₀ (splitΩ ω).1).prod γ).tilted (V₁ (splitΩ ω)) =
         (μ_base.prod γ).tilted (fun z => E₀ (splitΩ ω).1 z.1 + V₁ (splitΩ ω) z) := by
       rw [← tilted_prod_comp_fst, tilted_tilted ((hE₀_i (splitΩ ω).1).comp_fst γ)]
       rfl
     rw [hcomb]
     congr 1; funext z
-    obtain ⟨x, rfl⟩ := (interpVarStateLastSplit (N + 1) M).surjective z
+    obtain ⟨x, rfl⟩ := (interpStateLastSplit (N + 1) M).surjective z
     dsimp only [Function.comp_apply, V₁]
-    rw [MeasurableEquiv.symm_apply_apply, hX₁_eq x, interpVarStateLastSplit_apply]
+    rw [MeasurableEquiv.symm_apply_apply, hX₁_eq x, interpStateLastSplit_apply]
     dsimp only [E_s, E₀, splitΩ]
     rw [Fin.sum_univ_castSucc]
     simp only [Fin.init_def]
     ring
   rw [← htilted_st]
-  exact integral_pi_map_equiv (μ_s.tilted (E_s ω)) (interpVarStateLastSplit (N + 1) M)
+  exact integral_pi_map_equiv (μ_s.tilted (E_s ω)) (interpStateLastSplit (N + 1) M)
     (H (splitΩ ω))
 
 /-- **Talagrand Section 2.4, Lemma 2.4.3 (Eq. (2.85)): empirical variance bound on `u'` along the
@@ -1468,8 +1448,8 @@ theorem integral_interpolating_deriv_empirical_variance_le (D : ℝ) :
         (fun _ : Unit => ω.1.2 (Fin.last M)))
   have hX₁_split (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ))
       (x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) :
-      X₁ (splitΩ ω).2 (interpVarStateLastSplit (N + 1) M x) = S_fn ω x (Fin.last M) := by
-    rw [interpVarStateLastSplit_apply]
+      X₁ (splitΩ ω).2 (interpStateLastSplit (N + 1) M x) = S_fn ω x (Fin.last M) := by
+    rw [interpStateLastSplit_apply]
     dsimp only [X₁, splitΩ, π_sp, cavityCoef, S_fn]
     rw [sumElim_dotProduct_sumElim, smul_dotProduct, smul_eq_mul, sumElim_dotProduct_sumElim]
     simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton]
@@ -1486,8 +1466,8 @@ theorem integral_interpolating_deriv_empirical_variance_le (D : ℝ) :
     rw [hsum_i]; ring
   have hf₀_split (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ))
       (σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) :
-      f₀ (splitΩ ω).1 (fun l => (interpVarStateLastSplit (N + 1) M (σ l)).1) = fMinus ω σ := by
-    simp only [interpVarStateLastSplit_apply, f₀, fMinus, splitΩ, S_fn, Fin.init_def]
+      f₀ (splitΩ ω).1 (fun l => (interpStateLastSplit (N + 1) M (σ l)).1) = fMinus ω σ := by
+    simp only [interpStateLastSplit_apply, f₀, fMinus, splitΩ, S_fn, Fin.init_def]
   have hX_fn_eq (w₁ : ((Fin N ⊕ Unit) ⊕ Unit) → ℝ)
       (y : ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Fin 2 → ℝ)) :
       Sum.elim (Real.sqrt s • cavityCoef N 1 (π_sp y.1))
@@ -1682,7 +1662,7 @@ theorem integral_interpolating_deriv_empirical_variance_le (D : ℝ) :
     refine htr_ov.trans (integral_congr_ae (ae_of_all _ fun ω =>
       integral_congr_ae (ae_of_all _ fun σ => ?_)))
     dsimp only [H_ov, d_spin, π_sp, R_obs]
-    rw [sq_abs, interpVarStateLastSplit_apply, interpVarStateLastSplit_apply]
+    rw [sq_abs, interpStateLastSplit_apply, interpStateLastSplit_apply]
     simp only [Fin.init_def]
     congr 1
     rw [Fin.sum_univ_castSucc]
@@ -1714,7 +1694,7 @@ theorem integral_interpolating_deriv_empirical_variance_le (D : ℝ) :
   have hfMinus_b (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ))
       (σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) :
       |fMinus ω σ| ≤ 2 * α * |D| ^ 2 := by
-    have h0 := hf₀_b (splitΩ ω).1 (fun l => (interpVarStateLastSplit (N + 1) M (σ l)).1)
+    have h0 := hf₀_b (splitΩ ω).1 (fun l => (interpStateLastSplit (N + 1) M (σ l)).1)
     rwa [hf₀_split ω σ] at h0
   have hI1_minus_le :
       (∫ ω, ∫ σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ),
