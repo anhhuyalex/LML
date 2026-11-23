@@ -2461,11 +2461,11 @@ Formalized in \texttt{SpinGlasses/Gaussian/GaussianTiltedSteinRatio.lean}.
 In the model-free setting at a fixed field $S(w,q)=\alpha_{\mathrm{sh}}(\pi q_1)\cdot w+\alpha_{\mathrm{aux}}(\pi q_1)\cdot q_2$ and a multiplier $W_t(w,q)=W_{\mathrm{sh}}(\pi q_1)\cdot w+W_{\mathrm{aux}}(\pi q_1)\cdot q_2$, let
 $u$ be differentiable with $|u|\le B$, $|u'|\le D_1$, and let $\psi_r$ ($r\in R$) satisfy that $\psi_r e^{u}$ is differentiable with
 $\bigl(\psi_re^{u}\bigr)'=\psi'_r e^{u}$, $|\psi_r|\le M_0$ and $|(\psi_re^u)'|\le M'$ (no continuity of $\psi'_r$). For $f\in L^1(\mu_0^{\otimes R})$ and $i_0\in R$,
-\begin{multline*}
+\begin{align*}
  \Bigl\langle f\,W_t(\sigma_{i_0})\prod_{r}\psi_r(S(\sigma_r))\Bigr\rangle_R
- =\sum_{j\in R}\Bigl\langle f\,\bigl(W_{\mathrm{sh}}(\sigma_{i_0})\cdot\alpha_{\mathrm{sh}}(\sigma_j)+\delta_{i_0j}\,W_{\mathrm{aux}}(\sigma_{i_0})\cdot\alpha_{\mathrm{aux}}(\sigma_j)\bigr)\,\psi'_j(S(\sigma_j))\prod_{r\ne j}\psi_r(S(\sigma_r))\Bigr\rangle_R\\
- -|R|\,\Bigl\langle f\,\bigl(W_{\mathrm{sh}}(\sigma_{i_0})\cdot\alpha_{\mathrm{sh}}(\sigma_*)\bigr)\prod_{r}\psi_r(S(\sigma_r))\,u'(S(\sigma_*))\Bigr\rangle_{R\cup\{*\}},
-\end{multline*}
+ &=\sum_{j\in R}\Bigl\langle f\,\bigl(W_{\mathrm{sh}}(\sigma_{i_0})\cdot\alpha_{\mathrm{sh}}(\sigma_j)+\delta_{i_0j}\,W_{\mathrm{aux}}(\sigma_{i_0})\cdot\alpha_{\mathrm{aux}}(\sigma_j)\bigr)\,\psi'_j(S(\sigma_j))\prod_{r\ne j}\psi_r(S(\sigma_r))\Bigr\rangle_R\\
+ &\quad-|R|\,\Bigl\langle f\,\bigl(W_{\mathrm{sh}}(\sigma_{i_0})\cdot\alpha_{\mathrm{sh}}(\sigma_*)\bigr)\prod_{r}\psi_r(S(\sigma_r))\,u'(S(\sigma_*))\Bigr\rangle_{R\cup\{*\}},
+\end{align*}
 where $\langle\cdot\rangle_R=\int\!\int\cdot\,d(\mu_0\otimes\gamma_{\mathrm{aux}})_{u,w}^{\otimes R}\,d\gamma_{\mathrm{sh}}(w)$ and $\langle\cdot\rangle_{R\cup\{*\}}$ is the same with one extra fresh replica $\sigma_*$.
 \end{theorem}
 \begin{proof}
@@ -3354,8 +3354,7 @@ rewrites the partition integral as $\sum_\tau\exp(E_{\rm eff}(s,\omega,\tau))$, 
 factor is bounded by $B$ and continuous in $s\in[0,1]$. Dominated convergence over $P$ gives
 continuity on $[0,1]$ (\texttt{continuousOn\_interpolating\_pressure}). Setting $s=1$ kills $z,z',\xi$
 and recovers $p_{N+1,M}(u)$ (\texttt{interpolating\_pressure\_one\_eq}); setting $s=0$ factors the
-sum over $\tau\in\{\pm 1\}^{N+1}$ into $\prod_i 2\cosh(z'_i\sqrt r)$ and decouples the $M$ i.i.d.\
-constraint expectations (\texttt{interpolating\_pressure\_zero\_eq}).
+sum over $\tau\in\{\pm 1\}^{N+1}$ into $\prod_i 2\cosh(z'_i\sqrt r)$ and decouples the $M$ i.i.d.~constraint expectations (\texttt{interpolating\_pressure\_zero\_eq}).
 
 \emph{Step 2 (raw derivative and external-field IBP, (2.81)).} On a compact subinterval of $(0,1)$,
 $\sqrt s$ and $\sqrt{1-s}$ have bounded derivatives, so differentiating under $\mathbb E\log\int$
