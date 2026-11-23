@@ -731,6 +731,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCav
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavitySpecialization
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavitySpinOnly
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavityTimeCovariance
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.EmpiricalVariance
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ExponentialPenalty
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.FirstMoment
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.GaussianFieldSplit
@@ -743,6 +744,8 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.Interpolating
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.OverlapConcentration
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.RSFixedPoint
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.RandomNormals
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ReplicaSymmetricFreeEnergy
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ReplicaSymmetricVariational
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathAssembly
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathBounds
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathCavityBound

@@ -3911,10 +3911,7 @@ theorem integral_interpolating_overlap_sub_sq_le (D : ℝ) :
     rw [heq]
     exact fixedPointMap_mem_Icc 1 0 r
   let rhat := perceptronRhat u q
-  have hrhat0 : 0 ≤ rhat :=
-    (rhat_mem_Icc (u := u) (D' := |D|)
-      (fun x => (hu.abs_deriv_le x).trans (le_abs_self D)) q
-      (fun z => integrable_exp_cavityPath_new hu.measurable (fun x => hu.le x) q z)).1
+  have hrhat0 : 0 ≤ rhat := perceptronRhat_nonneg u q
   have hr0 : 0 ≤ r := by rw [hr]; exact mul_nonneg hα0 hrhat0
   let v : ℝ≥0 := (s * (α * rhat)).toNNReal
   have hv_sr : v = (s * r).toNNReal := by rw [hr]

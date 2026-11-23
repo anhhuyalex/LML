@@ -1257,7 +1257,8 @@ theorem integral_interpolating_external_field_ibp
   field_simp
   linear_combination ((N : ℝ) + 1 - S_Q) * hsr
 
-/-- **Constraint-swap invariance for the `s`-interpolating disorder and Gibbs law.** -/
+/-- Swapping the constraints `k₁` and `k₂` in a state `(σ, ξ)` of the interpolating system:
+the spins are unchanged and the auxiliary coordinates `ξ_{k₁}`, `ξ_{k₂}` are exchanged. -/
 def interpConstraintStateSwap {L M : ℕ} (k₁ k₂ : Fin M) :
     ((Fin L → ℤˣ) × (Fin M → ℝ)) ≃ᵐ ((Fin L → ℤˣ) × (Fin M → ℝ)) where
   toFun x := (x.1, fun k => x.2 (Equiv.swap k₁ k₂ k))
@@ -1269,6 +1270,9 @@ def interpConstraintStateSwap {L M : ℕ} (k₁ k₂ : Fin M) :
   measurable_invFun := measurable_fst.prodMk (measurable_pi_iff.2 fun k =>
     (measurable_pi_apply (Equiv.swap k₁ k₂ k)).comp measurable_snd)
 
+/-- Swapping the constraints `k₁` and `k₂` in the disorder `((g, z), z')` of the interpolating
+system. The disorder of constraint `k` is its row `g k` and its shared Gaussian `z k`, and both
+are exchanged between `k₁` and `k₂`; the external field `z'` is unchanged. -/
 def interpConstraintDisorderSwap {L M : ℕ} (k₁ k₂ : Fin M)
     (ω : ((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) :
     ((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ) :=

@@ -189,28 +189,10 @@ theorem integral_theta_deriv_tilted_eq_neg_half_rhat
       deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)
       ∂((gaussianReal 0 1).tilted fun ξ => u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ))
   have hL_m : Measurable L_1d := by
-    let num_L (z : ℝ) : ℝ :=
-      ∫ ξ : ℝ, ((z / (2 * Real.sqrt q) - ξ / (2 * Real.sqrt (1 - q))) *
-        deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) *
-        Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1
-    let den_L (z : ℝ) : ℝ :=
-      ∫ ξ : ℝ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1
-    have hnum_m : Measurable num_L := by
-      have hj : Measurable fun p : ℝ × ℝ =>
-          ((p.1 / (2 * Real.sqrt q) - p.2 / (2 * Real.sqrt (1 - q))) *
-            deriv u (Real.sqrt q * p.1 + Real.sqrt (1 - q) * p.2)) *
-          Real.exp (u (Real.sqrt q * p.1 + Real.sqrt (1 - q) * p.2)) :=
-        (((measurable_fst.div_const _).sub (measurable_snd.div_const _)).mul
-          ((measurable_deriv u).comp (by fun_prop))).mul
-          (Real.measurable_exp.comp (hu.measurable.comp (by fun_prop)))
-      exact (hj.stronglyMeasurable.integral_prod_right' (ν := gaussianReal 0 1)).measurable
-    have hden_m : Measurable den_L := by
-      have hj : Measurable fun p : ℝ × ℝ =>
-          Real.exp (u (Real.sqrt q * p.1 + Real.sqrt (1 - q) * p.2)) :=
-        Real.measurable_exp.comp (hu.measurable.comp (by fun_prop))
-      exact (hj.stronglyMeasurable.integral_prod_right' (ν := gaussianReal 0 1)).measurable
-    have heq : L_1d = fun z => num_L z / den_L z := funext fun _ => integral_tilted_eq_div _ _
-    rw [heq]; exact hnum_m.div hden_m
+    apply measurable_integral_tilted_dep
+    · exact hu.measurable.comp (by fun_prop)
+    · exact ((measurable_fst.div_const _).sub (measurable_snd.div_const _)).mul
+        ((measurable_deriv u).comp (by fun_prop))
   have hlhs_w (w : Unit → ℝ) :
       (∫ σ : Unit → Unit × (Unit → ℝ),
         1 * (W_sh (σ ()).1 ⬝ᵥ w + W_aux (σ ()).1 ⬝ᵥ (σ ()).2) *
@@ -264,28 +246,10 @@ theorem integral_theta_deriv_tilted_eq_neg_half_rhat
     (∫ ξ : ℝ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)
       ∂((gaussianReal 0 1).tilted fun ξ => u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ))) ^ 2
   have hR_m : Measurable R_1d := by
-    have hθ_m : Measurable fun p : ℝ × ℝ => Real.sqrt q * p.1 + Real.sqrt (1 - q) * p.2 :=
-      (measurable_fst.const_mul _).add (measurable_snd.const_mul _)
-    have hNm : Measurable fun z : ℝ =>
-        ∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ) *
-          Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1 := by
-      have hj : Measurable fun p : ℝ × ℝ =>
-          deriv u (Real.sqrt q * p.1 + Real.sqrt (1 - q) * p.2) *
-            Real.exp (u (Real.sqrt q * p.1 + Real.sqrt (1 - q) * p.2)) :=
-        ((measurable_deriv u).comp hθ_m).mul (Real.measurable_exp.comp (hu.measurable.comp hθ_m))
-      exact (hj.stronglyMeasurable.integral_prod_right' (ν := gaussianReal 0 1)).measurable
-    have hZm : Measurable fun z : ℝ =>
-        ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1 := by
-      have hj : Measurable fun p : ℝ × ℝ =>
-          Real.exp (u (Real.sqrt q * p.1 + Real.sqrt (1 - q) * p.2)) :=
-        Real.measurable_exp.comp (hu.measurable.comp hθ_m)
-      exact (hj.stronglyMeasurable.integral_prod_right' (ν := gaussianReal 0 1)).measurable
-    have heq' : R_1d = fun z =>
-        ((∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ) *
-            Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) /
-          ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) ^ 2 :=
-      funext fun _ => by dsimp only [R_1d]; rw [integral_tilted_eq_div]
-    rw [heq']; exact (hNm.div hZm).pow_const 2
+    apply Measurable.pow_const
+    apply measurable_integral_tilted_dep
+    · exact hu.measurable.comp (by fun_prop)
+    · exact (measurable_deriv u).comp (by fun_prop)
   have hrhs_w (w : Unit → ℝ) :
       (∫ σ : Option Unit → Unit × (Unit → ℝ),
         (1 * W_sh (σ (some ())).1 ⬝ᵥ α_sh (σ none).1 *
@@ -513,25 +477,11 @@ theorem hasDerivAt_perceptronRSFunctional_q
     rw [h2] at h1
     -- Bound `∫ ξ, |ξ| ∂(γ.tilted V_t) ≤ exp(2 |B|) * ∫ ξ, |ξ| ∂γ`!
     have hdom_t : ∫ ξ, |ξ| ∂(γ.tilted V_t) ≤ Real.exp (2 * |B|) * ∫ ξ, |ξ| ∂γ := by
-      have hd0 := integral_pi_tilted_le_exp_mul_of_abs_sub_le (ι := Unit) (μ := γ)
-        (E₀ := 0) (E₁ := V_t) (by simp) (hVt_m.sub measurable_const) (C := |B|)
-        (fun ξ => by simp only [Pi.zero_apply, sub_zero]; exact (hu.abs_le _).trans (le_abs_self B))
-        (Y := fun f_u : Unit → ℝ => |f_u ()|) (fun _ => abs_nonneg _)
-        (by
-          rw [MeasureTheory.tilted_zero]
-          exact integrable_comp_eval (μ := fun _ : Unit => γ) (i := ())
-            IsGaussian.integrable_id.abs)
-      rw [MeasureTheory.tilted_zero] at hd0
-      simp only [Fintype.card_unique, Nat.cast_one, mul_one] at hd0
-      have hu1 : (∫ f_u : Unit → ℝ, |f_u ()| ∂(Measure.pi fun _ : Unit => γ.tilted V_t)) =
-          ∫ ξ, |ξ| ∂(γ.tilted V_t) :=
-        (measurePreserving_funUnique (γ.tilted V_t) Unit).integral_comp_of_aestronglyMeasurable
-          (g := fun ξ : ℝ => |ξ|) measurable_id.norm.aestronglyMeasurable
-      have hu2 : (∫ f_u : Unit → ℝ, |f_u ()| ∂(Measure.pi fun _ : Unit => γ)) =
-          ∫ ξ, |ξ| ∂γ :=
-        (measurePreserving_funUnique γ Unit).integral_comp_of_aestronglyMeasurable
-          (g := fun ξ : ℝ => |ξ|) measurable_id.norm.aestronglyMeasurable
-      rwa [hu1, hu2] at hd0
+      have hbound := abs_integral_tilted_le_exp_mul_integral_abs (Y := fun ξ => |ξ|)
+        hVt_m.aemeasurable
+        (ae_of_all _ fun ξ => (hu.abs_le _).trans (le_abs_self B))
+        (IsGaussian.integrable_id (μ := γ)).abs
+      simpa only [probReal_univ, div_one, abs_abs] using (le_abs_self _).trans hbound
     refine h1.trans (mul_le_mul_of_nonneg_left (add_le_add le_rfl ?_) (abs_nonneg D₁))
     calc (∫ ξ, |ξ| ∂(γ.tilted V_t)) / (2 * Real.sqrt δ)
         ≤ (Real.exp (2 * |B|) * ∫ ξ, |ξ| ∂γ) / (2 * Real.sqrt δ) :=
@@ -550,27 +500,11 @@ theorem hasDerivAt_perceptronRSFunctional_q
       exact (abs_log_integral_exp_le_of_ae_abs_le (hu.measurable.comp (by fun_prop)).aemeasurable
         (ae_of_all _ fun _ => hu.abs_le _)).trans (le_abs_self B))
   have hLq_m : AEStronglyMeasurable (L_q q) γ := by
-    let num_L (z : ℝ) : ℝ :=
-      ∫ ξ : ℝ, ((z / (2 * Real.sqrt q) - ξ / (2 * Real.sqrt (1 - q))) *
-        deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) *
-        Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂γ
-    let den_L (z : ℝ) : ℝ := Z_q q z
-    have hnum_m : Measurable num_L := by
-      have hj : Measurable fun p : ℝ × ℝ =>
-          ((p.1 / (2 * Real.sqrt q) - p.2 / (2 * Real.sqrt (1 - q))) *
-            deriv u (Real.sqrt q * p.1 + Real.sqrt (1 - q) * p.2)) *
-          Real.exp (u (Real.sqrt q * p.1 + Real.sqrt (1 - q) * p.2)) :=
-        (((measurable_fst.div_const _).sub (measurable_snd.div_const _)).mul
-          ((measurable_deriv u).comp (by fun_prop))).mul
-          (Real.measurable_exp.comp (hu.measurable.comp (by fun_prop)))
-      exact (hj.stronglyMeasurable.integral_prod_right' (ν := γ)).measurable
-    have hden_m : Measurable den_L := by
-      have hj : Measurable fun p : ℝ × ℝ =>
-          Real.exp (u (Real.sqrt q * p.1 + Real.sqrt (1 - q) * p.2)) :=
-        Real.measurable_exp.comp (hu.measurable.comp (by fun_prop))
-      exact (hj.stronglyMeasurable.integral_prod_right' (ν := γ)).measurable
-    have heq : L_q q = fun z => num_L z / den_L z := funext fun _ => integral_tilted_eq_div _ _
-    rw [heq]; exact (hnum_m.div hden_m).aestronglyMeasurable
+    apply Measurable.aestronglyMeasurable
+    apply measurable_integral_tilted_dep
+    · exact hu.measurable.comp (by fun_prop)
+    · exact ((measurable_fst.div_const _).sub (measurable_snd.div_const _)).mul
+        ((measurable_deriv u).comp (by fun_prop))
   have hd_pot : HasDerivAt (fun q' => ∫ z, Real.log (Z_q q' z) ∂γ) (∫ z, L_q q z ∂γ) q :=
     (hasDerivAt_integral_of_dominated_loc_of_deriv_le (μ := γ)
       (F := fun t z => Real.log (Z_q t z)) (F' := L_q) (s := U_nbhd) (bound := dom_z)
@@ -1010,31 +944,12 @@ theorem hasDerivAt_second_proof_interpolation
       integral_add (integrable_const (b_ω ω)) (hξ_t.const_mul c_ξ)
     rw [h1_add, integral_const, probReal_univ, one_smul, integral_const_mul] at h1
     refine h1.trans (add_le_add le_rfl ?_)
-    have hd0 := integral_pi_tilted_le_exp_mul_of_abs_sub_le (ι := Unit)
-      (μ := (μ_M ω.1.1).prod γ) (E₀ := 0) (E₁ := V_t)
-      (by simp) (hVt_m.sub measurable_const) (C := |B|)
-      (fun x => by simp only [Pi.zero_apply, sub_zero]; exact (hu.abs_le _).trans (le_abs_self B))
-      (Y := fun f_u : Unit → (Fin (N + 1) → ℤˣ) × ℝ => |(f_u ()).2|) (fun _ => abs_nonneg _)
-      (by
-        rw [MeasureTheory.tilted_zero]
-        exact integrable_comp_eval (μ := fun _ : Unit => (μ_M ω.1.1).prod γ) (i := ()) hξ_int)
-    rw [MeasureTheory.tilted_zero] at hd0
-    simp only [Fintype.card_unique, Nat.cast_one, mul_one] at hd0
-    have hu1 : (∫ f_u : Unit → (Fin (N + 1) → ℤˣ) × ℝ, |(f_u ()).2|
-        ∂(Measure.pi fun _ : Unit => ((μ_M ω.1.1).prod γ).tilted V_t)) =
-        ∫ x, |x.2| ∂(((μ_M ω.1.1).prod γ).tilted V_t) :=
-      (measurePreserving_funUnique (((μ_M ω.1.1).prod γ).tilted V_t)
-        Unit).integral_comp_of_aestronglyMeasurable
-        (g := fun x : (Fin (N + 1) → ℤˣ) × ℝ => |x.2|) measurable_snd.norm.aestronglyMeasurable
-    have hu2 : (∫ f_u : Unit → (Fin (N + 1) → ℤˣ) × ℝ, |(f_u ()).2|
-        ∂(Measure.pi fun _ : Unit => (μ_M ω.1.1).prod γ)) =
-        ∫ x, |x.2| ∂((μ_M ω.1.1).prod γ) :=
-      (measurePreserving_funUnique ((μ_M ω.1.1).prod γ)
-        Unit).integral_comp_of_aestronglyMeasurable
-        (g := fun x : (Fin (N + 1) → ℤˣ) × ℝ => |x.2|) measurable_snd.norm.aestronglyMeasurable
+    have hbound := abs_integral_tilted_le_exp_mul_integral_abs hVt_m.aemeasurable
+      (ae_of_all _ fun x => (hu.abs_le _).trans (le_abs_self B)) hξ_int
     have hsnd := integral_prod_fun_snd_of_isProbabilityMeasure (μ := μ_M ω.1.1) (ν := γ)
       (fun ξ : ℝ => |ξ|)
-    rw [hu1, hu2, hsnd] at hd0
+    have hd0 := (le_abs_self _).trans hbound
+    simp only [probReal_univ, div_one, abs_abs, hsnd] at hd0
     calc c_ξ * ∫ x, |x.2| ∂(((μ_M ω.1.1).prod γ).tilted V_t)
         ≤ c_ξ * (Real.exp (2 * |B|) * ∫ ξ, |ξ| ∂γ) :=
           mul_le_mul_of_nonneg_left hd0 hc_ξ0
@@ -1280,11 +1195,9 @@ theorem hasDerivAt_second_proof_interpolation
       W_sh τ ⬝ᵥ α_sh τ + W_aux τ ⬝ᵥ α_aux τ = 0 := by
     rw [hcov_sh τ τ]
     have hself : (((N : ℝ) + 1)⁻¹ * ∑ i : Fin (N + 1), ((τ i : ℤ) : ℝ) * ((τ i : ℤ) : ℝ)) = 1 := by
-      have h1 (i : Fin (N + 1)) : ((τ i : ℤ) : ℝ) * ((τ i : ℤ) : ℝ) = 1 := by
-        rw [← sq]; exact units_cast_sq _
-      simp_rw [h1, Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul, mul_one]
-      have hL : ((N : ℝ) + 1) ≠ 0 := by positivity
-      push_cast; exact inv_mul_cancel₀ hL
+      simpa only [dotProduct, Fintype.card_fin, Nat.cast_add, Nat.cast_one] using
+        card_inv_mul_dotProduct_self_eq_one (fun i : Fin (N + 1) => ((τ i : ℤ) : ℝ))
+          (fun i => units_cast_sq (τ i))
     have haux_dot : W_aux τ ⬝ᵥ α_aux τ = -(1 / 2) * (1 - q) := by
       dsimp only [W_aux, α_aux]
       simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton]

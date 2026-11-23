@@ -3553,7 +3553,9 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ReplicaSymmetricFreeEnerg
   \leanok
   \uses{def:sg-tal:perceptron-rs-functional, thm:sg-tal:perceptron-tilted-stein}
 \talsource{Lemma~2.4.4, Eqs.~(2.87)--(2.89)}
-Let $u$ be twice differentiable with $|u|\le B$, $|u'|\le D_1$, $|u''|\le D_2$. Treat
+Let $u$ be twice differentiable with $|u|\le B$, $|u'|\le D_1$, $|u''|\le D_2$ (this is
+\texttt{SmartPathPotential}$_2\,u\,B\,D_1\,D_2$; the second derivative $u''$ need not be continuous, and no
+third derivative is used, although (2.7) also bounds $u'''$). Treat
 $F(\alpha,r,q)=\operatorname{perceptronRSFunctional}\,u\,\alpha\,r\,q$ as a function of three
 independent real variables.
 \begin{enumerate}
@@ -3603,6 +3605,13 @@ $\frac{1}{2}-\frac{1}{2}=0$ and off-diagonal shared covariance $\frac{1}{2}$, so
 above equals $-\frac{1}{2}\widehat r(q)$ (\texttt{integral\_theta\_deriv\_tilted\_eq\_neg\_half\_rhat}),
 yielding~(2) (\texttt{hasDerivAt\_perceptronRSFunctional\_q},
 \texttt{deriv\_perceptronRSFunctional\_eq\_zero\_iff}).
+
+\emph{Source note on the coefficient in (2.88).} With $\theta'=\frac{z}{2\sqrt q}-\frac{\xi}{2\sqrt{1-q}}$ as printed, $\theta'$ is
+exactly $\partial\theta/\partial q$, so the chain rule gives the factor $\alpha$, and the printed $\frac\alpha2$ in (2.88) is one factor
+$\frac12$ too small for this $\theta'$; the printed integration by parts, which uses $\mathrm E(\theta' z)=1/\sqrt q$, corresponds to
+$\theta'$ without the two halves. Lean and this blueprint use $\frac r2+\alpha\,\mathbb E[\theta' u'(\theta)e^{u(\theta)}/\mathbb E_\xi e^{u(\theta)}]$ with the
+halved $\theta'$. Then $\mathrm E(\theta' z)=\frac1{2\sqrt q}$, the expectation equals $-\frac12\widehat r(q)$, and
+$\partial F/\partial q=\frac12(r-\alpha\widehat r(q))$, which is the second equation of (2.87) as in the book.
 
 \emph{Step 3 (envelope identity, (2.89)).} By the chain rule along $a\mapsto(a,r(a),q(a))$ using
 Steps~1 and~2, the coefficients multiplying $r'(\alpha)$ and $q'(\alpha)$ are
@@ -3660,6 +3669,12 @@ Theorem~\ref{thm:sg-tal:perceptron-tilted-stein} (\texttt{stein\_tilted\_replica
 $R=\mathrm{Unit}$ with shared Gaussian $(g_M,z)$ and auxiliary Gaussian $\xi$ has vanishing diagonal
 covariance $\frac12(1-q)-\frac12(1-q)=0$ and off-diagonal shared covariance $\frac12(R_{1,2}-q)$,
 leaving the fresh-replica formula~(2) (\texttt{hasDerivAt\_second\_proof\_interpolation}).
+
+\emph{Reading of (2.91).} The brackets in (2.91) are the Gibbs average of two replicas $(\tau^1,\xi^1)$, $(\tau^2,\xi^2)$ for the same
+disorder $(g,z)$: conditionally on the disorder the two replicas are independent with the tilted law
+$G_v=(\mu_M(g_0)\otimes\gamma)^{\mathrm{tilted}(u\circ S_v)}$, so the displayed $\mathrm E_\xi\langle\exp(u(S^1_v)+u(S^2_v))\rangle$ in the denominator is the
+square of the one-replica normalizer $\bigl(\int e^{u(S_v)}\,d(\mu_M(g_0)\otimes\gamma)\bigr)^2$ at fixed disorder, and the ratio is
+the integral against the product $G_v^{\otimes2}$, as in the statement above.
 
 \emph{Not formalized (scope note on the remainder of the second proof, (2.92)--(2.93)).} Completing
 the second proof of Theorem~2.4.2 from (2.90)--(2.91) requires the centered overlap bound

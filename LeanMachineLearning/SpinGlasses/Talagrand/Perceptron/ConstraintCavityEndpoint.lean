@@ -47,6 +47,12 @@ theorem perceptronRhat_eq_integral_sq_integral_tilted (u : ℝ → ℝ) (q : ℝ
         ∂gaussianReal 0 1 := by
   simp only [perceptronRhat, integral_tilted_eq_div]
 
+/-- The constant `r̂` is nonnegative for every potential and every `q`: it is the integral of a
+square. -/
+theorem perceptronRhat_nonneg (u : ℝ → ℝ) (q : ℝ) : 0 ≤ perceptronRhat u q := by
+  rw [perceptronRhat_eq_integral_sq_integral_tilted]
+  exact integral_nonneg fun z => sq_nonneg _
+
 variable {N M : ℕ} {μ : Measure (SmartPathState N (M + 1))} [IsFiniteMeasure μ] {u : ℝ → ℝ}
   {D : ℝ} (hu : Measurable u) (hD : ∀ x, u x ≤ D) (t q z : ℝ)
   (ω : SmartPathDisorder N (M + 1))
@@ -204,8 +210,8 @@ theorem rhat_mem_Icc {D' : ℝ} (hD' : ∀ x, |deriv u x| ≤ D') (q : ℝ)
     (hZ : ∀ z : ℝ, Integrable (fun ξ : ℝ =>
       Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ))) (gaussianReal 0 1)) :
     0 ≤ perceptronRhat u q ∧ perceptronRhat u q ≤ D' ^ 2 := by
+  refine ⟨perceptronRhat_nonneg u q, ?_⟩
   rw [perceptronRhat_eq_integral_sq_integral_tilted]
-  refine ⟨integral_nonneg fun z => sq_nonneg _, ?_⟩
   have hb (z : ℝ) : |(∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)
         ∂((gaussianReal 0 1).tilted fun ξ => u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ))) ^ 2| ≤
       D' ^ 2 := by

@@ -1963,53 +1963,35 @@ theorem integral_interpolating_deriv_empirical_variance_le (D : ℝ) :
       (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ)) :
       Measurable (f ω) :=
     ((Finset.measurable_sum _ fun k _ => hUk_slice k ω).const_mul _).sub_const r
-  have hμs_fin : IsFiniteMeasure μ_s := inferInstance
+  let Gw (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ))
+      (σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) : ℝ :=
+    fMinus ω σ * (deriv u (S_fn ω (σ 0) (Fin.last M)) * deriv u (S_fn ω (σ 1) (Fin.last M)))
+  have hGw_bound (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ))
+      (σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) : |Gw ω σ| ≤ 2 * α * |D| ^ 4 := by
+    dsimp only [Gw]
+    rw [abs_mul, abs_mul]
+    calc |fMinus ω σ| * (|deriv u (S_fn ω (σ 0) (Fin.last M))| *
+          |deriv u (S_fn ω (σ 1) (Fin.last M))|)
+        ≤ (2 * α * |D| ^ 2) * (|D| * |D|) :=
+          mul_le_mul (hfMinus_b ω σ)
+            (mul_le_mul (hD₁ _) (hD₁ _) (abs_nonneg _) (abs_nonneg D))
+            (by positivity) (by positivity)
+      _ = 2 * α * |D| ^ 4 := by ring
   have hw_pt_int (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ)) :
-      Integrable (fun σ => fMinus ω σ *
-        (deriv u (S_fn ω (σ 0) (Fin.last M)) * deriv u (S_fn ω (σ 1) (Fin.last M))))
-        (Measure.pi fun _ : Fin 2 => ν_s ω) :=
+      Integrable (Gw ω) (Measure.pi fun _ : Fin 2 => ν_s ω) :=
     Integrable.of_bound ((hfMinus_slice ω).mul (hUk_slice (Fin.last M) ω)).aestronglyMeasurable
-      (2 * α * |D| ^ 4) (ae_of_all _ fun σ => by
-        rw [Real.norm_eq_abs, abs_mul, abs_mul]
-        calc |fMinus ω σ| * (|deriv u (S_fn ω (σ 0) (Fin.last M))| *
-              |deriv u (S_fn ω (σ 1) (Fin.last M))|)
-            ≤ (2 * α * |D| ^ 2) * (|D| * |D|) :=
-              mul_le_mul (hfMinus_b ω σ)
-                (mul_le_mul (hD₁ _) (hD₁ _) (abs_nonneg _) (abs_nonneg D))
-                (by positivity) (by positivity)
-          _ = 2 * α * |D| ^ 4 := by ring)
+      (2 * α * |D| ^ 4) (ae_of_all _ fun σ => by simpa only [Real.norm_eq_abs] using hGw_bound ω σ)
   have hu_pt_int (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ)) :
       Integrable (fMinus ω) (Measure.pi fun _ : Fin 2 => ν_s ω) :=
     Integrable.of_bound (hfMinus_slice ω).aestronglyMeasurable (2 * α * |D| ^ 2)
       (ae_of_all _ fun σ => by rw [Real.norm_eq_abs]; exact hfMinus_b ω σ)
-  have hw_out_int : Integrable (fun ω => ∫ σ, fMinus ω σ *
-      (deriv u (S_fn ω (σ 0) (Fin.last M)) * deriv u (S_fn ω (σ 1) (Fin.last M)))
-      ∂(Measure.pi fun _ : Fin 2 => ν_s ω)) P₁ := by
-    let Gw (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ))
-        (σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) : ℝ :=
-      fMinus ω σ * (deriv u (S_fn ω (σ 0) (Fin.last M)) * deriv u (S_fn ω (σ 1) (Fin.last M)))
-    have hm := @measurable_integral_pi_tilted _ _ _ _ μ_s hμs_fin _ _ E_s hEs_joint
-      Gw (hfMinus_joint.mul (hUk_joint (Fin.last M)))
-    exact Integrable.of_bound hm.aestronglyMeasurable (2 * α * |D| ^ 4)
-      (ae_of_all _ fun ω => by
-        rw [Real.norm_eq_abs]
-        exact abs_integral_le_of_forall_abs_le (Measure.pi fun _ : Fin 2 => ν_s ω) fun σ => by
-          rw [abs_mul, abs_mul]
-          calc |fMinus ω σ| * (|deriv u (S_fn ω (σ 0) (Fin.last M))| *
-                |deriv u (S_fn ω (σ 1) (Fin.last M))|)
-              ≤ (2 * α * |D| ^ 2) * (|D| * |D|) :=
-                mul_le_mul (hfMinus_b ω σ)
-                  (mul_le_mul (hD₁ _) (hD₁ _) (abs_nonneg _) (abs_nonneg D))
-                  (by positivity) (by positivity)
-            _ = 2 * α * |D| ^ 4 := by ring)
+  have hw_out_int : Integrable (fun ω => ∫ σ, Gw ω σ
+      ∂(Measure.pi fun _ : Fin 2 => ν_s ω)) P₁ :=
+    integrable_integral_pi_tilted (μ := μ_s) hEs_joint hν_prob
+      (G := Gw) (hfMinus_joint.mul (hUk_joint (Fin.last M))) hGw_bound
   have hu_out_int : Integrable (fun ω => ∫ σ, fMinus ω σ
-      ∂(Measure.pi fun _ : Fin 2 => ν_s ω)) P₁ := by
-    have hm := @measurable_integral_pi_tilted _ _ _ _ μ_s hμs_fin _ _ E_s hEs_joint
-      fMinus hfMinus_joint
-    exact Integrable.of_bound hm.aestronglyMeasurable (2 * α * |D| ^ 2)
-      (ae_of_all _ fun ω => by
-        rw [Real.norm_eq_abs]
-        exact abs_integral_le_of_forall_abs_le (Measure.pi fun _ : Fin 2 => ν_s ω) (hfMinus_b ω))
+      ∂(Measure.pi fun _ : Fin 2 => ν_s ω)) P₁ :=
+    integrable_integral_pi_tilted (μ := μ_s) hEs_joint hν_prob hfMinus_joint hfMinus_b
   have hgminus_eq :
       (∫ ω, ∫ σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ),
         (α * (deriv u (S_fn ω (σ 0) (Fin.last M)) * deriv u (S_fn ω (σ 1) (Fin.last M))) - r) *
@@ -2146,9 +2128,7 @@ theorem integral_interpolating_deriv_empirical_variance_le (D : ℝ) :
             (mul_le_mul_of_nonneg_left hα_le1 (by norm_num)) (sq_nonneg _)
         linarith
       have hsq_sub : |(fMinus ω σ) ^ 2 - (f ω σ) ^ 2| ≤ 4 * |D| ^ 4 / ((N : ℝ) + 1) := by
-        have hfac : (fMinus ω σ) ^ 2 - (f ω σ) ^ 2 =
-            (fMinus ω σ - f ω σ) * (fMinus ω σ + f ω σ) := by ring
-        rw [hfac, abs_mul]
+        rw [sq_sub_sq, mul_comm (fMinus ω σ + f ω σ), abs_mul]
         calc |fMinus ω σ - f ω σ| * |fMinus ω σ + f ω σ|
             ≤ (|D| ^ 2 / ((N : ℝ) + 1)) * (4 * |D| ^ 2) :=
               mul_le_mul hdiff_abs hsum_abs (abs_nonneg _) (by positivity)
@@ -2174,31 +2154,17 @@ theorem integral_interpolating_deriv_empirical_variance_le (D : ℝ) :
           rw [Real.norm_of_nonneg (sq_nonneg _), ← sq_abs]
           exact pow_le_pow_left₀ (abs_nonneg _) (hfMinus_b ω σ) 2)
     have hf2_out_int : Integrable (fun ω => ∫ σ, (f ω σ) ^ 2
-        ∂(Measure.pi fun _ : Fin 2 => ν_s ω)) P₁ := by
-      let Gf2 (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ))
-          (σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) : ℝ := (f ω σ) ^ 2
-      have hm := @measurable_integral_pi_tilted _ _ _ _ μ_s hμs_fin _ _ E_s hEs_joint
-        Gf2 (hf_joint.pow_const 2)
-      exact Integrable.of_bound hm.aestronglyMeasurable ((2 * α * |D| ^ 2) ^ 2)
-        (ae_of_all _ fun ω => by
-          rw [Real.norm_of_nonneg (integral_nonneg fun _ => sq_nonneg _)]
-          exact (le_abs_self _).trans
-            (abs_integral_le_of_forall_abs_le (Measure.pi fun _ : Fin 2 => ν_s ω) fun σ => by
-              rw [abs_of_nonneg (sq_nonneg _), ← sq_abs]
-              exact pow_le_pow_left₀ (abs_nonneg _) (hf_b ω σ) 2))
+        ∂(Measure.pi fun _ : Fin 2 => ν_s ω)) P₁ :=
+      integrable_integral_pi_tilted (μ := μ_s) hEs_joint hν_prob (hf_joint.pow_const 2)
+        fun ω σ => by
+          rw [abs_of_nonneg (sq_nonneg _), ← sq_abs]
+          exact pow_le_pow_left₀ (abs_nonneg _) (hf_b ω σ) 2
     have hfm2_out_int : Integrable (fun ω => ∫ σ, (fMinus ω σ) ^ 2
-        ∂(Measure.pi fun _ : Fin 2 => ν_s ω)) P₁ := by
-      let Gfm2 (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ))
-          (σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) : ℝ := (fMinus ω σ) ^ 2
-      have hm := @measurable_integral_pi_tilted _ _ _ _ μ_s hμs_fin _ _ E_s hEs_joint
-        Gfm2 (hfMinus_joint.pow_const 2)
-      exact Integrable.of_bound hm.aestronglyMeasurable ((2 * α * |D| ^ 2) ^ 2)
-        (ae_of_all _ fun ω => by
-          rw [Real.norm_of_nonneg (integral_nonneg fun _ => sq_nonneg _)]
-          exact (le_abs_self _).trans
-            (abs_integral_le_of_forall_abs_le (Measure.pi fun _ : Fin 2 => ν_s ω) fun σ => by
-              rw [abs_of_nonneg (sq_nonneg _), ← sq_abs]
-              exact pow_le_pow_left₀ (abs_nonneg _) (hfMinus_b ω σ) 2))
+        ∂(Measure.pi fun _ : Fin 2 => ν_s ω)) P₁ :=
+      integrable_integral_pi_tilted (μ := μ_s) hEs_joint hν_prob (hfMinus_joint.pow_const 2)
+        fun ω σ => by
+          rw [abs_of_nonneg (sq_nonneg _), ← sq_abs]
+          exact pow_le_pow_left₀ (abs_nonneg _) (hfMinus_b ω σ) 2
     have hm_P : V_minus ≤
         ∫ ω, ((∫ σ, (f ω σ) ^ 2 ∂(Measure.pi fun _ : Fin 2 => ν_s ω)) + err_v) ∂P₁ := by
       refine integral_mono hfm2_out_int (hf2_out_int.add (integrable_const err_v)) fun ω => ?_

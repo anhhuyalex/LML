@@ -126,11 +126,7 @@ theorem abs_deriv_interpolating_pressure_add_le (D : ℝ) :
       congr 1; ext z; ring_nf
     rw [heq]
     exact fixedPointMap_mem_Icc 1 0 r
-  have hrhat0 : 0 ≤ perceptronRhat u q :=
-    (rhat_mem_Icc (u := u) (D' := |D|)
-      (fun x => (hu.abs_deriv_le x).trans (le_abs_self D)) q
-      (fun z => integrable_exp_cavityPath_new hu.measurable
-        (fun x => (hu.le x).trans (le_abs_self D)) q z)).1
+  have hrhat0 : 0 ≤ perceptronRhat u q := perceptronRhat_nonneg u q
   have hr0 : 0 ≤ r := by rw [hr]; exact mul_nonneg hα0 hrhat0
   have hs_cc : s ∈ Icc (0 : ℝ) 1 := ⟨hs.1.le, hs.2.le⟩
   obtain ⟨d, hd_p, hcs⟩ :=
