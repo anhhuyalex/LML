@@ -30,3 +30,22 @@ theorem lipschitzWith_iteratedDeriv_of_forall_abs_le {u : ℝ → ℝ} {n : ℕ}
   change ‖deriv (iteratedDeriv j u) x‖ ≤ (D.toNNReal : ℝ)
   rw [Real.coe_toNNReal D hD, Real.norm_eq_abs, ← iteratedDeriv_succ]
   exact hb (j + 1) (by omega) x
+
+/-- Select a function or the constant one using a predicate on a separate index. -/
+theorem differentiable_and_abs_deriv_le_ite_one {R : Type*} {p : R → Prop} [DecidablePred p]
+    {g : ℝ → ℝ} {B₀ B₁ B₂ : ℝ}
+    (hg : Differentiable ℝ g) (hg' : Differentiable ℝ (deriv g))
+    (hb₀ : ∀ x, |g x| ≤ B₀) (hb₁ : ∀ x, |deriv g x| ≤ B₁)
+    (hb₂ : ∀ x, |deriv (deriv g) x| ≤ B₂)
+    (h₀ : 1 ≤ B₀) (h₁ : 0 ≤ B₁) (h₂ : 0 ≤ B₂) :
+    let ψ (r : R) := fun x => if p r then g x else 1
+    (∀ r, Differentiable ℝ (ψ r)) ∧ (∀ r, Differentiable ℝ (deriv (ψ r))) ∧
+      (∀ r x, |ψ r x| ≤ B₀) ∧ (∀ r x, |deriv (ψ r) x| ≤ B₁) ∧
+      (∀ r x, |deriv (deriv (ψ r)) x| ≤ B₂) := by
+  dsimp only
+  simp only [← forall_and]
+  intro r
+  by_cases hp : p r
+  · simp only [hp, ite_true]
+    exact ⟨hg, hg', fun x => ⟨hb₀ x, hb₁ x, hb₂ x⟩⟩
+  · simp [hp, h₀, h₁, h₂]

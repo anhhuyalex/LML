@@ -34,6 +34,19 @@ namespace SpinGlasses
 
 universe uR
 
+private theorem smartPathPotential_two_of_iteratedDeriv_le_two {u : ℝ → ℝ} {D : ℝ}
+    (hd : ∀ j < 2, Differentiable ℝ (iteratedDeriv j u))
+    (hb : ∀ j ≤ 2, ∀ x, |iteratedDeriv j u x| ≤ D) :
+    SmartPathPotential₂ u D D D := by
+  have h0 : Differentiable ℝ u := by simpa using hd 0 (by omega)
+  have h1 : Differentiable ℝ (deriv u) := by simpa [iteratedDeriv_one] using hd 1 (by omega)
+  have hb0 : ∀ x, |u x| ≤ D := fun x => by simpa using hb 0 (by omega) x
+  have hb1 : ∀ x, |deriv u x| ≤ D := fun x => by
+    simpa [iteratedDeriv_one] using hb 1 (by omega) x
+  have hb2 : ∀ x, |deriv (deriv u) x| ≤ D := fun x => by
+    simpa [iteratedDeriv_succ, iteratedDeriv_one] using hb 2 (by omega) x
+  exact ⟨⟨h0, hb0, hb1⟩, h1, hb2⟩
+
 /-- Unpack Talagrand's chapter assumption (2.7) into `SmartPathPotential₂ u D D D` together with
 differentiability of `u''` and the uniform bound `|u'''| ≤ D`. -/
 theorem smartPathPotential_two_of_iteratedDeriv {u : ℝ → ℝ} {D : ℝ}
@@ -42,18 +55,12 @@ theorem smartPathPotential_two_of_iteratedDeriv {u : ℝ → ℝ} {D : ℝ}
     SmartPathPotential₂ u D D D ∧
       Differentiable ℝ (deriv (deriv u)) ∧
       (∀ x, |deriv (deriv (deriv u)) x| ≤ D) := by
-  have h0 : Differentiable ℝ u := by simpa using hd 0 (by omega)
-  have h1 : Differentiable ℝ (deriv u) := by simpa [iteratedDeriv_one] using hd 1 (by omega)
   have h2 : Differentiable ℝ (deriv (deriv u)) := by
     simpa [iteratedDeriv_succ, iteratedDeriv_one] using hd 2 (by omega)
-  have hb0 : ∀ x, |u x| ≤ D := fun x => by simpa using hb 0 (by omega) x
-  have hb1 : ∀ x, |deriv u x| ≤ D := fun x => by
-    simpa [iteratedDeriv_one] using hb 1 (by omega) x
-  have hb2 : ∀ x, |deriv (deriv u) x| ≤ D := fun x => by
-    simpa [iteratedDeriv_succ, iteratedDeriv_one] using hb 2 (by omega) x
   have hb3 : ∀ x, |deriv (deriv (deriv u)) x| ≤ D := fun x => by
     simpa [iteratedDeriv_succ, iteratedDeriv_one] using hb 3 (by omega) x
-  exact ⟨⟨⟨h0, hb0, hb1⟩, h1, hb2⟩, h2, hb3⟩
+  exact ⟨smartPathPotential_two_of_iteratedDeriv_le_two
+    (fun j hj => hd j (by omega)) (fun j hj => hb j (by omega)), h2, hb3⟩
 
 /-- **Fubini and split-to-full transport for the weighted cavity average.** When `f` has
 almost-everywhere integrable old-Gibbs sections and integrable old-disorder `L¹` moment, and each
@@ -617,8 +624,8 @@ theorem exists_hasDerivAt_cavity_v_unweighted_holder
     ∃ K : ℝ, 0 ≤ K ∧
       ∀ (N M : ℕ) {t q v : ℝ} (_ht : t ∈ Set.Icc (0 : ℝ) 1) (_hq : q ∈ Set.Icc (0 : ℝ) 1)
         (_hv : v ∈ Set.Ioo (0 : ℝ) 1) (variance : ℝ≥0)
-        {u : ℝ → ℝ} (_hd : ∀ j < 3, Differentiable ℝ (iteratedDeriv j u))
-        (_hb : ∀ j ≤ 3, ∀ x, |iteratedDeriv j u x| ≤ D)
+        {u : ℝ → ℝ} (_hd : ∀ j < 2, Differentiable ℝ (iteratedDeriv j u))
+        (_hb : ∀ j ≤ 2, ∀ x, |iteratedDeriv j u x| ≤ D)
         {f : SmartPathDisorder N M → (R → SmartPathState N M) → ℝ}
         (_hf : Measurable fun p : SmartPathDisorder N M × (R → SmartPathState N M) => f p.1 p.2)
         {p₁ p₂ : ℝ} (_hp : p₁.HolderConjugate p₂),
@@ -665,7 +672,7 @@ theorem exists_hasDerivAt_cavity_v_unweighted_holder
   refine ⟨(1 / 2) * ((4 * n ^ 2 + n) * L ^ (Fintype.card R + 2)), by positivity, ?_⟩
   intro N M t q v ht hq hv variance u hd hb f hf p₁ p₂ hp P₀ μ₀ Pfull S_v νfull f_ext d_spin
     hfp hfp₁
-  obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
+  have hu := smartPathPotential_two_of_iteratedDeriv_le_two hd hb
   obtain ⟨d', hd', hbd⟩ := exists_hasDerivAt_cavity_v_abs_le_holder_psi ht hq hv variance hu
     (fun _ => fun _ => 1) (fun _ => differentiable_const 1)
     (fun _ => by simp) (M₀ := 1) (M₁ := 0) (M₂ := 0)
@@ -680,8 +687,8 @@ theorem exists_hasDerivAt_cavity_v_unweighted_first_moment
     ∃ K : ℝ, 0 ≤ K ∧
       ∀ (N M : ℕ) {t q v : ℝ} (_ht : t ∈ Set.Icc (0 : ℝ) 1) (_hq : q ∈ Set.Icc (0 : ℝ) 1)
         (_hv : v ∈ Set.Ioo (0 : ℝ) 1) (variance : ℝ≥0)
-        {u : ℝ → ℝ} (_hd : ∀ j < 3, Differentiable ℝ (iteratedDeriv j u))
-        (_hb : ∀ j ≤ 3, ∀ x, |iteratedDeriv j u x| ≤ D)
+        {u : ℝ → ℝ} (_hd : ∀ j < 2, Differentiable ℝ (iteratedDeriv j u))
+        (_hb : ∀ j ≤ 2, ∀ x, |iteratedDeriv j u x| ≤ D)
         {f : SmartPathDisorder N M → (R → SmartPathState N M) → ℝ}
         (_hf : Measurable fun p : SmartPathDisorder N M × (R → SmartPathState N M) => f p.1 p.2),
         let P₀ := smartPathDisorder (Measure.pi fun _ : Fin M =>
@@ -717,7 +724,7 @@ theorem exists_hasDerivAt_cavity_v_unweighted_first_moment
   let L : ℝ := 1 + |D| + |(1 : ℝ)| + |(0 : ℝ)| + |(1 : ℝ)| * |D|
   refine ⟨(1 / 2) * ((4 * n ^ 2 + n) * L ^ (Fintype.card R + 2)), by positivity, ?_⟩
   intro N M t q v ht hq hv variance u hd hb f hf P₀ μ₀ Pfull S_v νfull f_ext hfi hfi₁
-  obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
+  have hu := smartPathPotential_two_of_iteratedDeriv_le_two hd hb
   obtain ⟨d', hd', hbd⟩ := exists_hasDerivAt_cavity_v_abs_le_first_moment_psi ht hq hv variance hu
     (fun _ => fun _ => 1) (fun _ => differentiable_const 1)
     (fun _ => by simp) (M₀ := 1) (M₁ := 0) (M₂ := 0)
@@ -732,8 +739,8 @@ theorem exists_hasDerivAt_cavity_v_unweighted_of_ae_abs_le
     ∃ K : ℝ, 0 ≤ K ∧
       ∀ (N M : ℕ) {t q v : ℝ} (_ht : t ∈ Set.Icc (0 : ℝ) 1) (_hq : q ∈ Set.Icc (0 : ℝ) 1)
         (_hv : v ∈ Set.Ioo (0 : ℝ) 1) (variance : ℝ≥0)
-        {u : ℝ → ℝ} (_hd : ∀ j < 3, Differentiable ℝ (iteratedDeriv j u))
-        (_hb : ∀ j ≤ 3, ∀ x, |iteratedDeriv j u x| ≤ D)
+        {u : ℝ → ℝ} (_hd : ∀ j < 2, Differentiable ℝ (iteratedDeriv j u))
+        (_hb : ∀ j ≤ 2, ∀ x, |iteratedDeriv j u x| ≤ D)
         {f : SmartPathDisorder N M → (R → SmartPathState N M) → ℝ}
         (_hf : Measurable fun p : SmartPathDisorder N M × (R → SmartPathState N M) => f p.1 p.2)
         {M_f : ℝ} (_hMf : 0 ≤ M_f),
@@ -775,7 +782,7 @@ theorem exists_hasDerivAt_cavity_v_unweighted_of_ae_abs_le
   let L : ℝ := 1 + |D| + |(1 : ℝ)| + |(0 : ℝ)| + |(1 : ℝ)| * |D|
   refine ⟨(1 / 2) * ((4 * n ^ 2 + n) * L ^ (Fintype.card R + 2)), by positivity, ?_⟩
   intro N M t q v ht hq hv variance u hd hb f hf M_f hMf P₀ μ₀ Pfull S_v νfull f_ext d_spin hOld
-  obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
+  have hu := smartPathPotential_two_of_iteratedDeriv_le_two hd hb
   obtain ⟨d', hd', hbd⟩ := exists_hasDerivAt_cavity_v_abs_le_of_ae_abs_le_psi ht hq hv variance hu
     (fun _ => fun _ => 1) (fun _ => differentiable_const 1)
     (fun _ => by simp) (M₀ := 1) (M₁ := 0) (M₂ := 0)
@@ -788,16 +795,8 @@ private lemma prod_two_marked_eq
     {R : Type uR} [Fintype R] [DecidableEq R] {r₁ r₂ : R} (hr : r₁ ≠ r₂)
     (g : ℝ → ℝ) (x : R → ℝ) :
     (∏ r : R, (if r = r₁ ∨ r = r₂ then g (x r) else 1)) = g (x r₁) * g (x r₂) := by
-  rw [← Finset.mul_prod_erase Finset.univ _ (Finset.mem_univ r₁)]
-  have hmem : r₂ ∈ Finset.univ.erase r₁ := Finset.mem_erase.2 ⟨hr.symm, Finset.mem_univ _⟩
-  rw [← Finset.mul_prod_erase _ _ hmem]
-  have her : ∏ r ∈ (Finset.univ.erase r₁).erase r₂, (if r = r₁ ∨ r = r₂ then g (x r) else 1) = 1 :=
-    Finset.prod_eq_one fun r hr' => by
-      have hne2 : r ≠ r₂ := Finset.ne_of_mem_erase hr'
-      have hne1 : r ≠ r₁ := Finset.ne_of_mem_erase (Finset.mem_of_mem_erase hr')
-      simp [hne1, hne2]
-  rw [her, mul_one]
-  simp
+  simpa only [Finset.mem_insert, Finset.mem_singleton, Finset.prod_pair hr] using
+    (Fintype.prod_ite_mem ({r₁, r₂} : Finset R) (fun r => g (x r)))
 
 /-- **Lemma 2.3.2, Eq. (2.40), weighted (`B_v = u'(S_v^{r₁}) u'(S_v^{r₂})`), interior Hölder
 exponents.** For two distinct replicas `r₁ ≠ r₂`, existence and boundedness of `u'''` from (2.7)
@@ -863,24 +862,13 @@ theorem exists_hasDerivAt_cavity_v_deriv_mul_holder
     f_ext d_spin hfp hfp₁
   obtain ⟨hu, h2d, hb3⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
   let ψ (r : R) (x : ℝ) : ℝ := if r = r₁ ∨ r = r₂ then deriv u x else 1
-  have hψd (r : R) : Differentiable ℝ (ψ r) := by
-    dsimp only [ψ]; split_ifs; exacts [hu.differentiable_deriv, differentiable_const 1]
-  have hψ₂d (r : R) : Differentiable ℝ (deriv (ψ r)) := by
-    dsimp only [ψ]; split_ifs
-    · exact h2d
-    · simp
-  have hM₀ (r : R) (x : ℝ) : |ψ r x| ≤ M₀ := by
-    dsimp only [ψ, M₀]; split_ifs
-    · linarith [hu.abs_deriv_le x, le_abs_self D, abs_nonneg D]
-    · rw [abs_one]; linarith [abs_nonneg D]
-  have hM₁ (r : R) (x : ℝ) : |deriv (ψ r) x| ≤ M₁ := by
-    dsimp only [ψ, M₁]; split_ifs
-    · exact (hu.abs_deriv₂_le x).trans (le_abs_self D)
-    · simp [abs_nonneg D]
-  have hM₂ (r : R) (x : ℝ) : |deriv (deriv (ψ r)) x| ≤ |D| := by
-    dsimp only [ψ]; split_ifs
-    · exact (hb3 x).trans (le_abs_self D)
-    · simp [abs_nonneg D]
+  obtain ⟨hψd, hψ₂d, hM₀, hM₁, hM₂⟩ :=
+    differentiable_and_abs_deriv_le_ite_one (p := fun i : R => i = r₁ ∨ i = r₂)
+      (B₀ := M₀) (B₁ := M₁) (B₂ := |D|) hu.differentiable_deriv h2d
+      (fun x => by dsimp [M₀]; linarith [hu.abs_deriv_le x, le_abs_self D])
+      (fun x => (hu.abs_deriv₂_le x).trans (le_abs_self D))
+      (fun x => (hb3 x).trans (le_abs_self D))
+      (by dsimp [M₀]; linarith only [abs_nonneg D]) (abs_nonneg _) (abs_nonneg _)
   obtain ⟨d', hd', hbd⟩ := exists_hasDerivAt_cavity_v_abs_le_holder_psi ht hq hv variance hu
     ψ hψd hψ₂d hM₀ hM₁ hM₂ hf hp hfp hfp₁
   refine ⟨d', hd'.congr_of_eventuallyEq (Eventually.of_forall fun v' => ?_), hbd⟩
@@ -942,24 +930,13 @@ theorem exists_hasDerivAt_cavity_v_deriv_mul_first_moment
   intro N M r₁ r₂ hr t q v ht hq hv variance u hd hb f hf P₀ μ₀ Pfull S_v νfull f_ext hfi hfi₁
   obtain ⟨hu, h2d, hb3⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
   let ψ (r : R) (x : ℝ) : ℝ := if r = r₁ ∨ r = r₂ then deriv u x else 1
-  have hψd (r : R) : Differentiable ℝ (ψ r) := by
-    dsimp only [ψ]; split_ifs; exacts [hu.differentiable_deriv, differentiable_const 1]
-  have hψ₂d (r : R) : Differentiable ℝ (deriv (ψ r)) := by
-    dsimp only [ψ]; split_ifs
-    · exact h2d
-    · simp
-  have hM₀ (r : R) (x : ℝ) : |ψ r x| ≤ M₀ := by
-    dsimp only [ψ, M₀]; split_ifs
-    · linarith [hu.abs_deriv_le x, le_abs_self D, abs_nonneg D]
-    · rw [abs_one]; linarith [abs_nonneg D]
-  have hM₁ (r : R) (x : ℝ) : |deriv (ψ r) x| ≤ M₁ := by
-    dsimp only [ψ, M₁]; split_ifs
-    · exact (hu.abs_deriv₂_le x).trans (le_abs_self D)
-    · simp [abs_nonneg D]
-  have hM₂ (r : R) (x : ℝ) : |deriv (deriv (ψ r)) x| ≤ |D| := by
-    dsimp only [ψ]; split_ifs
-    · exact (hb3 x).trans (le_abs_self D)
-    · simp [abs_nonneg D]
+  obtain ⟨hψd, hψ₂d, hM₀, hM₁, hM₂⟩ :=
+    differentiable_and_abs_deriv_le_ite_one (p := fun i : R => i = r₁ ∨ i = r₂)
+      (B₀ := M₀) (B₁ := M₁) (B₂ := |D|) hu.differentiable_deriv h2d
+      (fun x => by dsimp [M₀]; linarith [hu.abs_deriv_le x, le_abs_self D])
+      (fun x => (hu.abs_deriv₂_le x).trans (le_abs_self D))
+      (fun x => (hb3 x).trans (le_abs_self D))
+      (by dsimp [M₀]; linarith only [abs_nonneg D]) (abs_nonneg _) (abs_nonneg _)
   obtain ⟨d', hd', hbd⟩ := exists_hasDerivAt_cavity_v_abs_le_first_moment_psi ht hq hv variance hu
     ψ hψd hψ₂d hM₀ hM₁ hM₂ hf hfi hfi₁
   refine ⟨d', hd'.congr_of_eventuallyEq (Eventually.of_forall fun v' => ?_), hbd⟩
@@ -1028,24 +1005,13 @@ theorem exists_hasDerivAt_cavity_v_deriv_mul_of_ae_abs_le
     f_ext d_spin hOld
   obtain ⟨hu, h2d, hb3⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
   let ψ (r : R) (x : ℝ) : ℝ := if r = r₁ ∨ r = r₂ then deriv u x else 1
-  have hψd (r : R) : Differentiable ℝ (ψ r) := by
-    dsimp only [ψ]; split_ifs; exacts [hu.differentiable_deriv, differentiable_const 1]
-  have hψ₂d (r : R) : Differentiable ℝ (deriv (ψ r)) := by
-    dsimp only [ψ]; split_ifs
-    · exact h2d
-    · simp
-  have hM₀ (r : R) (x : ℝ) : |ψ r x| ≤ M₀ := by
-    dsimp only [ψ, M₀]; split_ifs
-    · linarith [hu.abs_deriv_le x, le_abs_self D, abs_nonneg D]
-    · rw [abs_one]; linarith [abs_nonneg D]
-  have hM₁ (r : R) (x : ℝ) : |deriv (ψ r) x| ≤ M₁ := by
-    dsimp only [ψ, M₁]; split_ifs
-    · exact (hu.abs_deriv₂_le x).trans (le_abs_self D)
-    · simp [abs_nonneg D]
-  have hM₂ (r : R) (x : ℝ) : |deriv (deriv (ψ r)) x| ≤ |D| := by
-    dsimp only [ψ]; split_ifs
-    · exact (hb3 x).trans (le_abs_self D)
-    · simp [abs_nonneg D]
+  obtain ⟨hψd, hψ₂d, hM₀, hM₁, hM₂⟩ :=
+    differentiable_and_abs_deriv_le_ite_one (p := fun i : R => i = r₁ ∨ i = r₂)
+      (B₀ := M₀) (B₁ := M₁) (B₂ := |D|) hu.differentiable_deriv h2d
+      (fun x => by dsimp [M₀]; linarith [hu.abs_deriv_le x, le_abs_self D])
+      (fun x => (hu.abs_deriv₂_le x).trans (le_abs_self D))
+      (fun x => (hb3 x).trans (le_abs_self D))
+      (by dsimp [M₀]; linarith only [abs_nonneg D]) (abs_nonneg _) (abs_nonneg _)
   obtain ⟨d', hd', hbd⟩ := exists_hasDerivAt_cavity_v_abs_le_of_ae_abs_le_psi ht hq hv variance hu
     ψ hψd hψ₂d hM₀ hM₁ hM₂ hf hMf hOld
   refine ⟨d', hd'.congr_of_eventuallyEq (Eventually.of_forall fun v' => ?_), hbd⟩

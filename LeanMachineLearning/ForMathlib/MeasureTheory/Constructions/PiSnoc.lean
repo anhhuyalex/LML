@@ -6,7 +6,7 @@ Authors: LML contributors
 module
 
 public import LeanMachineLearning.ForMathlib.MeasureTheory.MeasurableSpace.Embedding
-public import Mathlib.MeasureTheory.Constructions.Pi
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.Pi
 public import Mathlib.Probability.Independence.Basic
 
 /-!
@@ -48,3 +48,17 @@ theorem map_finSuccProd_symm_eq_pi {Ω X : Type*} [MeasurableSpace Ω] [Measurab
       (MeasurableEquiv.finSuccProd X n).symm ∘ fun ω => (Y ω, W ω) := rfl
   rw [hcomp, ← Measure.map_map (MeasurableEquiv.measurable _) h1, hpair]
   exact (measurePreserving_finSuccProd μ n).symm.map_eq
+
+/-- Splitting the last coordinate in every row preserves the product measure, with each row
+allowed its own coordinate law. -/
+theorem measurePreserving_pi_finSuccProd {ι X : Type*} [Fintype ι] [MeasurableSpace X]
+    (μ : ι → Measure X) [∀ i, SigmaFinite (μ i)] (n : ℕ) :
+    MeasurePreserving
+      ((MeasurableEquiv.piCongrRight fun _ : ι => MeasurableEquiv.finSuccProd X n).trans
+        (MeasurableEquiv.arrowProdEquivProdArrow (Fin n → X) X ι))
+      (Measure.pi fun i : ι => Measure.pi fun _ : Fin (n + 1) => μ i)
+      ((Measure.pi fun i : ι => Measure.pi fun _ : Fin n => μ i).prod (Measure.pi μ)) :=
+  (measurePreserving_arrowProdEquivProdArrow (Fin n → X) X ι
+    (fun i => Measure.pi fun _ : Fin n => μ i) μ).comp
+    (measurePreserving_pi (f := fun _ : ι => MeasurableEquiv.finSuccProd X n) _ _
+      fun i => measurePreserving_finSuccProd (μ i) n)

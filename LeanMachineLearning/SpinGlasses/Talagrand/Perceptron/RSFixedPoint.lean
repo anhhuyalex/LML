@@ -596,11 +596,9 @@ theorem exists_unique_rs_fixed_point (D : ℝ) :
   have hq₁_fix : ψ q₁ = q₁ := by
     dsimp only [ψ, g_tanh]
     rw [← hr₁_eq, ← hq₁_eq]
-  have hdist : dist q₁ q₀ ≤ (1 / 2 : ℝ) * dist q₁ q₀ := by
-    have h := hlip_ψ.dist_le_mul q₁ hq₁_mem q₀ hq₀_mem
-    rw [hq₁_fix, hq₀_fix] at h
-    simpa using h
-  have hq_eq : q₁ = q₀ := dist_le_zero.1 (by linarith [dist_nonneg (x := q₁) (y := q₀)])
+  have hq_subtype : (⟨q₁, hq₁_mem⟩ : Icc (0 : ℝ) 1) = ⟨q₀, hq₀_mem⟩ :=
+    hcontr.fixedPoint_unique' (Subtype.ext hq₁_fix) (Subtype.ext hq₀_fix)
+  have hq_eq : q₁ = q₀ := congrArg Subtype.val hq_subtype
   subst hq_eq
   exact Prod.ext rfl hr₁_eq
 

@@ -12,6 +12,7 @@ public import Mathlib.MeasureTheory.Measure.Tilted
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FreshReplicas
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteTilted
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.BoundedTilted
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ProductTiltedMarginal
 
 /-!
 # Replica Gibbs measures on an arbitrary base space
@@ -805,6 +806,32 @@ theorem measurable_replicaPairAverage_tilted {R : Type*} [Fintype R] [LinearOrde
 
 end Measurability
 
+/-- Measurability of a replica average after attaching independent coordinates to a tilted law,
+and adding a second tilt. -/
+theorem measurable_integral_pi_tilted_prod_tilted
+    {Ω W α β R : Type*} [MeasurableSpace Ω] [MeasurableSpace W] [MeasurableSpace α]
+    [MeasurableSpace β] [Fintype R]
+    (μ : Measure α) [IsFiniteMeasure μ] (γ : Measure β) [IsProbabilityMeasure γ]
+    {E : Ω → α → ℝ}
+    (hE : Measurable fun p : Ω × α => E p.1 p.2)
+    (hEi : ∀ ω, Integrable (fun a => Real.exp (E ω a)) μ)
+    {V : Ω × W → α × β → ℝ}
+    (hV : Measurable fun p : (Ω × W) × (α × β) => V p.1 p.2)
+    {F : Ω × W → (R → α × β) → ℝ}
+    (hF : Measurable fun p : (Ω × W) × (R → α × β) => F p.1 p.2) :
+    Measurable fun p => ∫ σ : R → α × β, F p σ
+      ∂(Measure.pi fun _ : R => ((μ.tilted (E p.1)).prod γ).tilted (V p)) := by
+  let H (p : Ω × W) (a : α × β) := E p.1 a.1 + V p a
+  have hH : Measurable fun p : (Ω × W) × (α × β) => H p.1 p.2 :=
+    (hE.comp ((measurable_fst.comp measurable_fst).prodMk
+      (measurable_fst.comp measurable_snd))).add hV
+  have hν (p : Ω × W) : ((μ.tilted (E p.1)).prod γ).tilted (V p) =
+      (μ.prod γ).tilted (H p) := by
+    rw [← tilted_prod_comp_fst, tilted_tilted ((hEi p.1).comp_fst γ)]
+    rfl
+  simp_rw [hν]
+  exact measurable_integral_pi_tilted hH hF
+
 /-- Integral of a nine-term linear combination of integrable functions. -/
 theorem integral_nine_combination {β : Type*} [MeasurableSpace β] {m : Measure β}
     {g₁ g₂ g₃ g₄ g₅ g₆ g₇ g₈ g₉ : β → ℝ} (h₁ : Integrable g₁ m) (h₂ : Integrable g₂ m)
@@ -1078,13 +1105,13 @@ theorem exists_abs_le_sum {ι : Type*} (s : Finset ι) {f : ι → β → ℝ}
     exact exists_abs_le_add (hf a (Finset.mem_insert_self _ _))
       (ih fun i hi => hf i (Finset.mem_insert_of_mem hi))
 
-/-- **Explicit bound for the two-replica combination.** A kernel bounded by `c` gives a combination
-bounded by `2 n² c`, where `n = |R|`; the constant depends only on `n`. The strictly ordered pairs
-number exactly `n (n - 1) / 2`. -/
-theorem abs_replicaPairCombination_le {R α : Type*} [Fintype R] [LinearOrder R]
-    {U : α → α → ℝ} {c : ℝ} (hU : ∀ a b, |U a b| ≤ c) (τ : Option (Option R) → α) :
+/-- The two-replica combination uses only pairs of distinct indices. A bound on the kernel
+at those indices suffices, even if two indices carry the same state. -/
+theorem abs_replicaPairCombination_le_of_ne {R α : Type*} [Fintype R] [LinearOrder R]
+    {U : α → α → ℝ} {c : ℝ} (τ : Option (Option R) → α)
+    (hU : ∀ i j, i ≠ j → |U (τ i) (τ j)| ≤ c) :
     |replicaPairCombination U τ| ≤ 2 * (Fintype.card R : ℝ) ^ 2 * c := by
-  have hc : 0 ≤ c := (abs_nonneg _).trans (hU (τ none) (τ none))
+  have hc : 0 ≤ c := (abs_nonneg _).trans (hU (some none) none (by simp))
   have hn : (0 : ℝ) ≤ Fintype.card R := Nat.cast_nonneg _
   have hcard : ((((Finset.univ : Finset (R × R)).filter fun p => p.1 < p.2).card : ℕ) : ℝ) =
       ((Fintype.card R : ℝ) ^ 2 - Fintype.card R) / 2 := by
@@ -1095,13 +1122,14 @@ theorem abs_replicaPairCombination_le {R α : Type*} [Fintype R] [LinearOrder R]
   have h1 : |∑ p : R × R with p.1 < p.2, U (τ (some (some p.1))) (τ (some (some p.2)))| ≤
       ((Fintype.card R : ℝ) ^ 2 - Fintype.card R) / 2 * c := by
     refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
-    refine (Finset.sum_le_card_nsmul _ _ c fun p _ => hU _ _).trans ?_
+    refine (Finset.sum_le_card_nsmul _ _ c fun p hp =>
+      hU _ _ (by simpa using (Finset.mem_filter.1 hp).2.ne)).trans ?_
     rw [nsmul_eq_mul, hcard]
   have h2 : |∑ r : R, U (τ (some (some r))) (τ (some none))| ≤ (Fintype.card R : ℝ) * c := by
     refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
-    refine (Finset.sum_le_card_nsmul _ _ c fun r _ => hU _ _).trans ?_
+    refine (Finset.sum_le_card_nsmul _ _ c fun r _ => hU _ _ (by simp)).trans ?_
     simp
-  have h3 := hU (τ (some none)) (τ none)
+  have h3 := hU (some none) none (by simp)
   rw [replicaPairCombination_eq]
   calc _ ≤ |∑ p : R × R with p.1 < p.2, U (τ (some (some p.1))) (τ (some (some p.2)))| +
         |(Fintype.card R : ℝ) * ∑ r : R, U (τ (some (some r))) (τ (some none))| +
@@ -1117,6 +1145,105 @@ theorem abs_replicaPairCombination_le {R α : Type*} [Fintype R] [LinearOrder R]
             ((Fintype.card R : ℝ) + 1) / 2)]
           exact mul_le_mul_of_nonneg_left h3 (by positivity)
     _ = _ := by ring
+
+/-- **Explicit bound for the two-replica combination.** A kernel bounded by `c` gives a combination
+bounded by `2 n² c`, where `n = |R|`; the constant depends only on `n`. The strictly ordered pairs
+number exactly `n (n - 1) / 2`. -/
+theorem abs_replicaPairCombination_le {R α : Type*} [Fintype R] [LinearOrder R]
+    {U : α → α → ℝ} {c : ℝ} (hU : ∀ a b, |U a b| ≤ c) (τ : Option (Option R) → α) :
+    |replicaPairCombination U τ| ≤ 2 * (Fintype.card R : ℝ) ^ 2 * c:=
+  abs_replicaPairCombination_le_of_ne τ fun i j _ => hU (τ i) (τ j)
+
+/-- **Linearity of an environment-averaged `replicaPairAverage`.** When each pair term
+`F (τ ∘ some ∘ some) * U ω (τ i) (τ j)` is inner- and outer-integrable, the environment integral
+of `replicaPairAverage` expands into the `replicaPairCombination` of the integrated pair terms. -/
+theorem integral_replicaPairAverage_eq_combination
+    {Ω α R : Type*} [MeasurableSpace Ω] [MeasurableSpace α] [Fintype R] [LinearOrder R]
+    (P : Measure Ω) (ν : Ω → Measure α)
+    (F : (R → α) → ℝ) (U : Ω → α → α → ℝ)
+    (h_in : ∀ (i j : Option (Option R)) (ω : Ω),
+      Integrable (fun τ : Option (Option R) → α =>
+        F (fun r => τ (some (some r))) * U ω (τ i) (τ j)) (Measure.pi fun _ => ν ω))
+    (h_out : ∀ i j : Option (Option R),
+      Integrable (fun ω => ∫ τ : Option (Option R) → α,
+        F (fun r => τ (some (some r))) * U ω (τ i) (τ j) ∂(Measure.pi fun _ => ν ω)) P) :
+    let T (i j : Option (Option R)) : ℝ :=
+      ∫ ω, ∫ τ : Option (Option R) → α,
+        F (fun r => τ (some (some r))) * U ω (τ i) (τ j) ∂(Measure.pi fun _ => ν ω) ∂P
+    (∫ ω, replicaPairAverage (ν ω) F (U ω) ∂P) =
+      (∑ p : R × R with p.1 < p.2, T (some (some p.1)) (some (some p.2))) -
+        (Fintype.card R : ℝ) * (∑ r : R, T (some (some r)) (some none)) +
+        (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) / 2 * T (some none) none := by
+  intro T
+  let φ (i j : Option (Option R)) (ω : Ω) (τ : Option (Option R) → α) : ℝ :=
+    F (fun r => τ (some (some r))) * U ω (τ i) (τ j)
+  let c₁ : ℝ := Fintype.card R
+  let c₂ : ℝ := (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) / 2
+  have hpt (ω : Ω) : replicaPairAverage (ν ω) F (U ω) =
+      (∑ p : R × R with p.1 < p.2, ∫ τ, φ (some (some p.1)) (some (some p.2)) ω τ
+        ∂(Measure.pi fun _ => ν ω)) -
+      c₁ * (∑ r : R, ∫ τ, φ (some (some r)) (some none) ω τ
+        ∂(Measure.pi fun _ => ν ω)) +
+      c₂ * ∫ τ, φ (some none) none ω τ ∂(Measure.pi fun _ => ν ω) := by
+    rw [replicaPairAverage_eq]
+    have heq (τ : Option (Option R) → α) :
+        F (fun r => τ (some (some r))) * replicaPairCombination (U ω) τ =
+        (∑ p : R × R with p.1 < p.2, φ (some (some p.1)) (some (some p.2)) ω τ) -
+        c₁ * (∑ r : R, φ (some (some r)) (some none) ω τ) +
+        c₂ * φ (some none) none ω τ := by
+      simp only [replicaPairCombination_eq, φ, c₁, c₂, mul_add, mul_sub, Finset.mul_sum]
+      refine congrArg₂ _ (congrArg₂ _ rfl ?_) (by ring)
+      exact Finset.sum_congr rfl fun r _ => by ring
+    simp_rw [heq]
+    let g₁ (τ : Option (Option R) → α) :=
+      ∑ p : R × R with p.1 < p.2, φ (some (some p.1)) (some (some p.2)) ω τ
+    let g₂ (τ : Option (Option R) → α) :=
+      ∑ r : R, φ (some (some r)) (some none) ω τ
+    let g₃ (τ : Option (Option R) → α) := φ (some none) none ω τ
+    have h1 : Integrable g₁ (Measure.pi fun _ => ν ω) :=
+      integrable_finsetSum _ fun p _ => h_in (some (some p.1)) (some (some p.2)) ω
+    have h2 : Integrable g₂ (Measure.pi fun _ => ν ω) :=
+      integrable_finsetSum _ fun r _ => h_in (some (some r)) (some none) ω
+    have h3 : Integrable g₃ (Measure.pi fun _ => ν ω) := h_in (some none) none ω
+    have hlin : (fun τ => g₁ τ - c₁ * g₂ τ + c₂ * g₃ τ) =
+        (g₁ - fun τ => c₁ * g₂ τ) + fun τ => c₂ * g₃ τ := rfl
+    change ∫ τ, g₁ τ - c₁ * g₂ τ + c₂ * g₃ τ ∂(Measure.pi fun _ => ν ω) = _
+    rw [hlin, integral_add' (h1.sub (h2.const_mul c₁)) (h3.const_mul c₂),
+      integral_sub' h1 (h2.const_mul c₁),
+      integral_const_mul, integral_const_mul,
+      integral_finsetSum _ fun p _ => h_in _ _ ω,
+      integral_finsetSum _ fun r _ => h_in _ _ ω]
+  simp_rw [hpt]
+  let G₁ (ω : Ω) := ∑ p : R × R with p.1 < p.2,
+    ∫ τ, φ (some (some p.1)) (some (some p.2)) ω τ ∂(Measure.pi fun _ => ν ω)
+  let G₂ (ω : Ω) := ∑ r : R,
+    ∫ τ, φ (some (some r)) (some none) ω τ ∂(Measure.pi fun _ => ν ω)
+  let G₃ (ω : Ω) := ∫ τ, φ (some none) none ω τ ∂(Measure.pi fun _ => ν ω)
+  have h1 : Integrable G₁ P :=
+    integrable_finsetSum _ fun p _ => h_out (some (some p.1)) (some (some p.2))
+  have h2 : Integrable G₂ P :=
+    integrable_finsetSum _ fun r _ => h_out (some (some r)) (some none)
+  have h3 : Integrable G₃ P := h_out (some none) none
+  have hlin : (fun ω => G₁ ω - c₁ * G₂ ω + c₂ * G₃ ω) =
+      (G₁ - fun ω => c₁ * G₂ ω) + fun ω => c₂ * G₃ ω := rfl
+  change ∫ ω, G₁ ω - c₁ * G₂ ω + c₂ * G₃ ω ∂P = _
+  rw [hlin, integral_add' (h1.sub (h2.const_mul c₁)) (h3.const_mul c₂),
+    integral_sub' h1 (h2.const_mul c₁),
+    integral_const_mul, integral_const_mul,
+    integral_finsetSum _ fun p _ => h_out _ _,
+    integral_finsetSum _ fun r _ => h_out _ _]
+
+/-- **Off-diagonal scalar bound for `replicaPairCombination`.** Since every pair occurring in
+`replicaPairCombination` has distinct indices, a bound `|T i j| ≤ b` for `i ≠ j` bounds the whole
+combination by `2 |R|² b`. -/
+theorem abs_replicaPairCombination_scalar_le {R : Type*} [Fintype R] [LinearOrder R]
+    (T : Option (Option R) → Option (Option R) → ℝ) {b : ℝ}
+    (hT : ∀ i j, i ≠ j → |T i j| ≤ b) :
+    |(∑ p : R × R with p.1 < p.2, T (some (some p.1)) (some (some p.2))) -
+      (Fintype.card R : ℝ) * (∑ r : R, T (some (some r)) (some none)) +
+      (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) / 2 * T (some none) none| ≤
+    2 * (Fintype.card R : ℝ) ^ 2 * b := by
+  simpa only [replicaPairCombination_eq, id_eq] using abs_replicaPairCombination_le_of_ne id hT
 
 /-- A bounded kernel has a uniformly bounded two-replica combination. -/
 theorem exists_abs_replicaPairCombination_le {R α : Type*} [Fintype R] [LinearOrder R]

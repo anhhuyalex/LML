@@ -30,11 +30,11 @@ case gives `|ν'_t(f)| ≤ α K₁(D) ν_t(f)` on `(0, 1)`. Together with contin
 and under the small-load condition `α K(D) ≤ 1` (`K(D) = K₁(D) / log 2`), `ν_t(f) ≤ 2 ν(f)`
 (Eq. (2.67)).
 
+The expansion and `2 |R|²` bound for averaged `replicaPairAverage` expressions are in
+`ForMathlib/Probability/GibbsReplicaProduct.lean`.
+
 ## Main declarations
 
-* `MeasureTheory.integral_replicaPairAverage_eq_combination`,
-  `MeasureTheory.abs_replicaPairCombination_scalar_le`: linearity and `2 |R|²` scalar bound for
-  averaged `replicaPairAverage` expressions.
 * `SpinGlasses.exists_hasDerivAt_smartPath_abs_le_holder`,
   `SpinGlasses.exists_hasDerivAt_smartPath_abs_le_first_moment`,
   `SpinGlasses.exists_hasDerivAt_smartPath_abs_le_of_ae_abs_le`: Proposition 2.3.6, Eq. (2.66),
@@ -51,124 +51,6 @@ and under the small-load condition `α K(D) ≤ 1` (`K(D) = K₁(D) / log 2`), `
 
 open MeasureTheory ProbabilityTheory Filter Set
 open scoped BigOperators NNReal ENNReal Topology
-
-namespace MeasureTheory
-
-/-- **Linearity of an environment-averaged `replicaPairAverage`.** When each pair term
-`F (τ ∘ some ∘ some) * U ω (τ i) (τ j)` is inner- and outer-integrable, the environment integral
-of `replicaPairAverage` expands into the `replicaPairCombination` of the integrated pair terms. -/
-theorem integral_replicaPairAverage_eq_combination
-    {Ω α R : Type*} [MeasurableSpace Ω] [MeasurableSpace α] [Fintype R] [LinearOrder R]
-    (P : Measure Ω) (ν : Ω → Measure α)
-    (F : (R → α) → ℝ) (U : Ω → α → α → ℝ)
-    (h_in : ∀ (i j : Option (Option R)) (ω : Ω),
-      Integrable (fun τ : Option (Option R) → α =>
-        F (fun r => τ (some (some r))) * U ω (τ i) (τ j)) (Measure.pi fun _ => ν ω))
-    (h_out : ∀ i j : Option (Option R),
-      Integrable (fun ω => ∫ τ : Option (Option R) → α,
-        F (fun r => τ (some (some r))) * U ω (τ i) (τ j) ∂(Measure.pi fun _ => ν ω)) P) :
-    let T (i j : Option (Option R)) : ℝ :=
-      ∫ ω, ∫ τ : Option (Option R) → α,
-        F (fun r => τ (some (some r))) * U ω (τ i) (τ j) ∂(Measure.pi fun _ => ν ω) ∂P
-    (∫ ω, replicaPairAverage (ν ω) F (U ω) ∂P) =
-      (∑ p : R × R with p.1 < p.2, T (some (some p.1)) (some (some p.2))) -
-        (Fintype.card R : ℝ) * (∑ r : R, T (some (some r)) (some none)) +
-        (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) / 2 * T (some none) none := by
-  intro T
-  let φ (i j : Option (Option R)) (ω : Ω) (τ : Option (Option R) → α) : ℝ :=
-    F (fun r => τ (some (some r))) * U ω (τ i) (τ j)
-  let c₁ : ℝ := Fintype.card R
-  let c₂ : ℝ := (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) / 2
-  have hpt (ω : Ω) : replicaPairAverage (ν ω) F (U ω) =
-      (∑ p : R × R with p.1 < p.2, ∫ τ, φ (some (some p.1)) (some (some p.2)) ω τ
-        ∂(Measure.pi fun _ => ν ω)) -
-      c₁ * (∑ r : R, ∫ τ, φ (some (some r)) (some none) ω τ
-        ∂(Measure.pi fun _ => ν ω)) +
-      c₂ * ∫ τ, φ (some none) none ω τ ∂(Measure.pi fun _ => ν ω) := by
-    rw [replicaPairAverage_eq]
-    have heq (τ : Option (Option R) → α) :
-        F (fun r => τ (some (some r))) * replicaPairCombination (U ω) τ =
-        (∑ p : R × R with p.1 < p.2, φ (some (some p.1)) (some (some p.2)) ω τ) -
-        c₁ * (∑ r : R, φ (some (some r)) (some none) ω τ) +
-        c₂ * φ (some none) none ω τ := by
-      simp only [replicaPairCombination_eq, φ, c₁, c₂, mul_add, mul_sub, Finset.mul_sum]
-      refine congrArg₂ _ (congrArg₂ _ rfl ?_) (by ring)
-      exact Finset.sum_congr rfl fun r _ => by ring
-    simp_rw [heq]
-    let g₁ (τ : Option (Option R) → α) :=
-      ∑ p : R × R with p.1 < p.2, φ (some (some p.1)) (some (some p.2)) ω τ
-    let g₂ (τ : Option (Option R) → α) :=
-      ∑ r : R, φ (some (some r)) (some none) ω τ
-    let g₃ (τ : Option (Option R) → α) := φ (some none) none ω τ
-    have h1 : Integrable g₁ (Measure.pi fun _ => ν ω) :=
-      integrable_finsetSum _ fun p _ => h_in (some (some p.1)) (some (some p.2)) ω
-    have h2 : Integrable g₂ (Measure.pi fun _ => ν ω) :=
-      integrable_finsetSum _ fun r _ => h_in (some (some r)) (some none) ω
-    have h3 : Integrable g₃ (Measure.pi fun _ => ν ω) := h_in (some none) none ω
-    have hlin : (fun τ => g₁ τ - c₁ * g₂ τ + c₂ * g₃ τ) =
-        (g₁ - fun τ => c₁ * g₂ τ) + fun τ => c₂ * g₃ τ := rfl
-    change ∫ τ, g₁ τ - c₁ * g₂ τ + c₂ * g₃ τ ∂(Measure.pi fun _ => ν ω) = _
-    rw [hlin, integral_add' (h1.sub (h2.const_mul c₁)) (h3.const_mul c₂),
-      integral_sub' h1 (h2.const_mul c₁),
-      integral_const_mul, integral_const_mul,
-      integral_finsetSum _ fun p _ => h_in _ _ ω,
-      integral_finsetSum _ fun r _ => h_in _ _ ω]
-  simp_rw [hpt]
-  let G₁ (ω : Ω) := ∑ p : R × R with p.1 < p.2,
-    ∫ τ, φ (some (some p.1)) (some (some p.2)) ω τ ∂(Measure.pi fun _ => ν ω)
-  let G₂ (ω : Ω) := ∑ r : R,
-    ∫ τ, φ (some (some r)) (some none) ω τ ∂(Measure.pi fun _ => ν ω)
-  let G₃ (ω : Ω) := ∫ τ, φ (some none) none ω τ ∂(Measure.pi fun _ => ν ω)
-  have h1 : Integrable G₁ P :=
-    integrable_finsetSum _ fun p _ => h_out (some (some p.1)) (some (some p.2))
-  have h2 : Integrable G₂ P :=
-    integrable_finsetSum _ fun r _ => h_out (some (some r)) (some none)
-  have h3 : Integrable G₃ P := h_out (some none) none
-  have hlin : (fun ω => G₁ ω - c₁ * G₂ ω + c₂ * G₃ ω) =
-      (G₁ - fun ω => c₁ * G₂ ω) + fun ω => c₂ * G₃ ω := rfl
-  change ∫ ω, G₁ ω - c₁ * G₂ ω + c₂ * G₃ ω ∂P = _
-  rw [hlin, integral_add' (h1.sub (h2.const_mul c₁)) (h3.const_mul c₂),
-    integral_sub' h1 (h2.const_mul c₁),
-    integral_const_mul, integral_const_mul,
-    integral_finsetSum _ fun p _ => h_out _ _,
-    integral_finsetSum _ fun r _ => h_out _ _]
-
-/-- **Off-diagonal scalar bound for `replicaPairCombination`.** Since every pair occurring in
-`replicaPairCombination` has distinct indices, a bound `|T i j| ≤ b` for `i ≠ j` bounds the whole
-combination by `2 |R|² b`. -/
-theorem abs_replicaPairCombination_scalar_le {R : Type*} [Fintype R] [LinearOrder R]
-    (T : Option (Option R) → Option (Option R) → ℝ) {b : ℝ}
-    (hT : ∀ i j, i ≠ j → |T i j| ≤ b) :
-    |(∑ p : R × R with p.1 < p.2, T (some (some p.1)) (some (some p.2))) -
-      (Fintype.card R : ℝ) * (∑ r : R, T (some (some r)) (some none)) +
-      (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) / 2 * T (some none) none| ≤
-    2 * (Fintype.card R : ℝ) ^ 2 * b := by
-  have hb0 : 0 ≤ b := (abs_nonneg _).trans (hT (some none) none (by simp))
-  let U : Option (Option R) → Option (Option R) → ℝ := fun i j => if i = j then 0 else T i j
-  have hU : ∀ i j, |U i j| ≤ b := fun i j => by
-    dsimp only [U]
-    split_ifs
-    · simpa using hb0
-    · exact hT i j ‹_›
-  have heq : (∑ p : R × R with p.1 < p.2, T (some (some p.1)) (some (some p.2))) -
-      (Fintype.card R : ℝ) * (∑ r : R, T (some (some r)) (some none)) +
-      (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) / 2 * T (some none) none =
-      replicaPairCombination U id := by
-    rw [replicaPairCombination_eq]
-    have h1 : (∑ p : R × R with p.1 < p.2, U (some (some p.1)) (some (some p.2))) =
-        ∑ p : R × R with p.1 < p.2, T (some (some p.1)) (some (some p.2)) :=
-      Finset.sum_congr rfl fun p hp => by
-        have hne : p.1 ≠ p.2 := (Finset.mem_filter.1 hp).2.ne
-        simp [U, hne]
-    have h2 : (∑ r : R, U (some (some r)) (some none)) =
-        ∑ r : R, T (some (some r)) (some none) :=
-      Finset.sum_congr rfl fun r _ => by simp [U]
-    have h3 : U (some none) none = T (some none) none := by simp [U]
-    simp only [id_eq, h1, h2, h3]
-  rw [heq]
-  exact abs_replicaPairCombination_le hU id
-
-end MeasureTheory
 
 namespace SpinGlasses
 
@@ -863,25 +745,15 @@ theorem integral_integral_pi_perceptron_smart_path_one_eq
   intro P
   let γ₁ : Measure ℝ := gaussianReal 0 1
   let e_row : (Fin (N + 1) → ℝ) ≃ᵐ (Fin N → ℝ) × ℝ := MeasurableEquiv.finSuccProd ℝ N
-  have hmp_row : MeasurePreserving ⇑e_row
-      (Measure.pi fun _ : Fin (N + 1) => γ₁)
-      ((Measure.pi fun _ : Fin N => γ₁).prod γ₁) :=
-    measurePreserving_finSuccProd γ₁ N
   let e_rows : (Fin M → Fin (N + 1) → ℝ) ≃ᵐ (Fin M → (Fin N → ℝ) × ℝ) :=
     MeasurableEquiv.piCongrRight fun _ => e_row
-  have hmp_rows : MeasurePreserving ⇑e_rows
-      (Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin (N + 1) => γ₁)
-      (Measure.pi fun _ : Fin M => (Measure.pi fun _ : Fin N => γ₁).prod γ₁) :=
-    measurePreserving_pi _ _ fun _ => hmp_row
   let e_split : (Fin M → Fin (N + 1) → ℝ) ≃ᵐ (Fin M → Fin N → ℝ) × (Fin M → ℝ) :=
     e_rows.trans (MeasurableEquiv.arrowProdEquivProdArrow _ _ _)
   have hmp_split : MeasurePreserving ⇑e_split
       (Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin (N + 1) => γ₁)
       ((Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin N => γ₁).prod
         (Measure.pi fun _ : Fin M => γ₁)) :=
-    (measurePreserving_arrowProdEquivProdArrow (Fin N → ℝ) ℝ (Fin M)
-      (fun _ => Measure.pi fun _ : Fin N => γ₁)
-      (fun _ => γ₁)).comp hmp_rows
+    measurePreserving_pi_finSuccProd (fun _ : Fin M => γ₁) N
   let Ψ : (Fin M → Fin N → ℝ) × (Fin M → ℝ) → ℝ := fun ga =>
     ∫ x : R → SmartPathState N M,
       F (fun r => Fin.snoc (α := fun _ : Fin (N + 1) => ℤˣ) (x r).1.1 (x r).1.2)

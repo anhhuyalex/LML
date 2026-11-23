@@ -2567,7 +2567,8 @@ Formalized in \texttt{SpinGlasses/Gaussian/GaussianTiltedRotationBound.lean}.
         MeasureTheory.integral_integral_pair_holder_one_top,
         MeasureTheory.integral_integral_pair_holder_top_one,
         MeasureTheory.memLp_rpow_inv_of_integrable,
-        MeasureTheory.integrable_pi_tilted_and_integrable_integral_abs_of_rpow}
+        MeasureTheory.integrable_pi_tilted_and_integrable_integral_abs_of_rpow,
+        MeasureTheory.integrable_pi_tilted_and_integrable_integral_abs_iff_of_abs_sub_le}
   \leanok
 \talsource{The H\"older step of Lemma~2.3.2, which yields (2.40) for $1/\tau_1+1/\tau_2=1$, including $(\tau_1,\tau_2)=(1,\infty)$ and $(\infty,1)$ used in Lemma~2.3.4}
 Let $P$ be a measure on $\Omega$, $\nu(\omega)$ a probability law on a state space $\alpha$ (in the cavity, the old Gibbs law with auxiliary coordinates), $e:R\to\iota$ injective, $r_1\ne r_2\in\iota$,
@@ -2592,13 +2593,18 @@ The endpoints $(1,\infty)$ and $(\infty,1)$ replace the integral H\"older step b
 For tilted replica laws on a finite disorder measure, $|x|\le 1+|x|^p$ for $p\ge1$ gives both
 first moments from the power moment. Joint measurability of the energy and observable gives
 measurability of the section integral of $|f|$.
+An energy change bounded by $C$ preserves section integrability. The disorder integral of
+the absolute section moment transfers in either direction by the factor $e^{2|R|C}$.
 Formalized in \texttt{ForMathlib/Probability/GibbsReplicaPairBound.lean} and
-\texttt{ForMathlib/MeasureTheory/Integral/IteratedHolder.lean}.
+\texttt{ForMathlib/MeasureTheory/Integral/IteratedHolder.lean}. The two-sided transfer is in
+\texttt{ForMathlib/Probability/GibbsReplicaComparison.lean}.
 \end{proof}
 
 \begin{lemma}[Splitting the extended cavity system at the last constraint]\label{lem:sg-tal:perceptron-cavity-split}
   \lean{MeasureTheory.map_tilted_measurableEquiv,
         SpinGlasses.tilted_prod_comp_fst,
+        MeasureTheory.tilted_prod_comp_fst,
+        MeasureTheory.measurable_integral_pi_tilted_prod_tilted,
         SpinGlasses.cavity_extended_replica_split_eq}
   \leanok
   \uses{prop:sg-tal:perceptron-cavity-path, rem:sg-tal:perceptron-model-free-setting}
@@ -2833,8 +2839,9 @@ square-cosine coordinate $v=\cos^2 s\in(0,1)$ ($s=\arccos\sqrt v$).
 \talsource{Lemma~2.3.2, Eq.~(2.40)}
 Let $R$ be a finite replica type ($n=|R|$) and $D\in\mathbb R$. There exists $K=K(n,D)\ge0$, chosen
 before $N,M,t,q,v,r,u,f$ and the H\"older exponents, with the following property. Let $t,q\in[0,1]$,
-$v\in(0,1)$, $r\ge0$, and assume $u$ satisfies (2.7): $u^{(j)}$ is differentiable for $j<3$ and
-$|u^{(j)}(x)|\le D$ for $j\le 3$ and all $x\in\mathbb R$. Let $f(\omega_0,a)$ be a jointly
+$v\in(0,1)$ and $r\ge0$. For the weighted case, assume (2.7), so $u^{(j)}$ is differentiable
+for $j<3$ and $|u^{(j)}(x)|\le D$ for $j\le 3$ and all $x\in\mathbb R$. For the unweighted
+case, assume differentiability for $j<2$ and the bounds for $j\le 2$. Let $f(\omega_0,a)$ be a jointly
 measurable observable of the old disorder $\omega_0=((g_k)_{k<M},(a_k)_{k<M},Y)$ ($Y\sim\mathcal N(0,r)$)
 and the old replica states $a=((\sigma^\ell,\xi_{<M}^\ell))_{\ell\in R}$ (so $f$ does not depend on
 $g_{\cdot,M},a_M,z,\xi_M^\ell,\xi^\ell$). Write $\nu_{t,v}$ for the quenched extended-cavity average at
@@ -3034,6 +3041,7 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityCompariso
 
 \begin{proposition}[Proposition 2.3.6: smart-path derivative bound at $r=\alpha\widehat r$, (2.66)]\label{prop:sg-tal:perceptron-cavity-prop-236}
   \lean{MeasureTheory.integral_replicaPairAverage_eq_combination,
+        MeasureTheory.abs_replicaPairCombination_le_of_ne,
         MeasureTheory.abs_replicaPairCombination_scalar_le,
         SpinGlasses.exists_hasDerivAt_smartPath_abs_le_of_pair_bound,
         SpinGlasses.exists_hasDerivAt_smartPath_abs_le_first_moment,
@@ -3086,6 +3094,7 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathCavityBound.lean
 
 \begin{lemma}[Lemma 2.3.7: uniform domination $\nu_t(f)\le 2\nu(f)$ at small load, (2.67)]\label{lem:sg-tal:perceptron-cavity-lemma-237}
   \lean{SpinGlasses.continuousOn_integral_integral_pi_perceptron_smart_path,
+        measurePreserving_pi_finSuccProd,
         SpinGlasses.integral_integral_pi_perceptron_smart_path_one_eq,
         SpinGlasses.integral_smartPath_le_two_mul_endpoint,
         SpinGlasses.integral_smartPath_fin_two_le_two_mul_perceptron,
@@ -3131,4 +3140,40 @@ last field $Y$), giving $g(1)=\nu(F)$ (\texttt{integral\_integral\_pi\_perceptro
 with $K(|R|,D)$, and \texttt{integral\_smartPath\_fin\_two\_le\_two\_mul\_perceptron} specializes to $R=\mathrm{Fin}\,2$ to match Lemma~2.3.7 verbatim;
 both endpoints $t=0$ and $t=1$, $q\in[0,1]$, and $N=0$ ($1$ full spin) or $M=0$ ($1$ constraint) are included, and no fixed-point hypothesis on $q$ is needed.
 Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathCavityBound.lean}.
+\end{proof}
+
+\subsection{The replica-symmetric fixed point and overlap concentration}
+\label{sub:sg-tal:perceptron-rs-fixed-point}
+
+\begin{theorem}[Theorem 2.4.1]\label{thm:sg-tal:perceptron-rs-fixed-point}
+  \lean{SpinGlasses.exists_unique_rs_fixed_point,
+        SpinGlasses.integral_perceptron_overlap_sub_sq_le,
+        SpinGlasses.exists_unique_rs_fixed_point_and_overlap_sub_sq_le}
+  \leanok
+  \uses{lem:sg-tal:perceptron-cavity-lemma-237,prop:sg-tal:perceptron-cavity-prop-236}
+\talsource{Theorem~2.4.1, Eqs.~(2.68)--(2.69)}
+Assume (2.7). For constants $K=K(D)\ge 0$ and $L\ge 0$ chosen before the spin and
+constraint counts, write $\alpha=M/(N+1)$. If $\alpha K\le 1$, there is a unique solution of
+\[
+ q=\mathbb E\tanh^2(z\sqrt r),\qquad r=\alpha\widehat r(q),
+\]
+with $\widehat r(q)$ given by (2.36). For every solution, the ordinary Gibbs measure satisfies
+\[
+ \nu\bigl((R_{1,2}-q)^2\bigr)\le \frac{L}{N+1}.
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+\emph{Step 1 (the fixed point).} The map $q\mapsto\widehat r(q)$ is Lipschitz on $[0,1]$.
+The function $r\mapsto\mathbb E\tanh^2(z\sqrt r)$ is $1$-Lipschitz. Their composition
+after scaling by $\alpha$ maps $[0,1]$ into itself and is a contraction at small load.
+Any solution has $q\in[0,1]$ and $r\ge 0$ by its defining equations.
+
+\emph{Step 2 (the overlap estimate).} Site permutation symmetry replaces one factor of
+$R_{1,2}-q$ by $\varepsilon_1\varepsilon_2-q$. At $t=0$ the resulting observable has
+average $(1-q^2)/(N+1)$ by decoupling and the first fixed-point equation.
+Proposition~\ref{prop:sg-tal:perceptron-cavity-prop-236} bounds its derivative, and
+Lemma~\ref{lem:sg-tal:perceptron-cavity-lemma-237} controls the path moments by the
+terminal overlap moment. Small load absorbs the resulting multiple of that moment.
+Taking the maximum of the two load constants proves both conclusions under one inequality.
 \end{proof}

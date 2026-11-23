@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IntegrableOfBound
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.InterpolatingCavityBound
 
 /-!
@@ -265,14 +266,10 @@ theorem integral_interpolating_overlap_mul_eq_last_site {N M : ℕ}
       integral_congr_ae (ae_of_all _ fun ω => haux ω (fun τ => Θ i (τ 0) (τ 1)))
     rw [hlhs]
     simp_rw [hrhs]
-    have e1 (ω : Ω) :
-        ∫ τ : Fin 2 → Fin (N + 1) → ℤˣ, ∑ i, Θ i (τ 0) (τ 1)
-          ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted (E_eff ω)) =
-        ∑ i, ∫ τ : Fin 2 → Fin (N + 1) → ℤˣ, Θ i (τ 0) (τ 1)
-          ∂(Measure.pi fun _ : Fin 2 => Measure.count.tilted (E_eff ω)) :=
-      integral_finsetSum _ fun _ _ => Integrable.of_finite
-    simp_rw [e1]
-    exact integral_finsetSum _ fun i _ => hint i
+    exact integral_integral_finset_sum P
+      (fun ω => Measure.pi fun _ : Fin 2 => Measure.count.tilted (E_eff ω))
+      Finset.univ (fun i (τ : Fin 2 → Fin (N + 1) → ℤˣ) => Θ i (τ 0) (τ 1))
+      (fun _ _ _ => Integrable.of_finite) (fun i _ => hint i)
   have hpt (x y : Fin (N + 1) → ℤˣ) :
       ∑ i, Θ i x y = ((N : ℝ) + 1) * ((Rf x y - q) * φ (Rf x y - q)) := by
     have hL : (0 : ℝ) < (N : ℝ) + 1 := by positivity

@@ -110,32 +110,6 @@ theorem interp_cavity_rotation_dotProducts {N : ℕ} {s t q : ℝ}
   · rw [hY_sh, hX_sh σ τ]
     ring
 
-/-- Joint measurability of a replica integral against
-`((μ_base.tilted (E₀ p.1)).prod γ).tilted (V p)`. -/
-private lemma measurable_integral_pi_tilted_prod_tilted_base
-    {Ω W α β R : Type*} [MeasurableSpace Ω] [MeasurableSpace W] [MeasurableSpace α]
-    [MeasurableSpace β] [Fintype R]
-    (μ_base : Measure α) [IsFiniteMeasure μ_base] (γ : Measure β) [IsProbabilityMeasure γ]
-    {E₀ : Ω → α → ℝ}
-    (hE₀ : Measurable fun p : Ω × α => E₀ p.1 p.2)
-    (hE₀i : ∀ ω, Integrable (fun a => Real.exp (E₀ ω a)) μ_base)
-    {V : Ω × W → α × β → ℝ}
-    (hV : Measurable fun p : (Ω × W) × (α × β) => V p.1 p.2)
-    {F : Ω × W → (R → α × β) → ℝ}
-    (hF : Measurable fun p : (Ω × W) × (R → α × β) => F p.1 p.2) :
-    Measurable fun p => ∫ σ : R → α × β, F p σ
-      ∂(Measure.pi fun _ : R => ((μ_base.tilted (E₀ p.1)).prod γ).tilted (V p)) := by
-  let H (p : Ω × W) (a : α × β) := E₀ p.1 a.1 + V p a
-  have hH : Measurable fun p : (Ω × W) × (α × β) => H p.1 p.2 :=
-    (hE₀.comp ((measurable_fst.comp measurable_fst).prodMk
-      (measurable_fst.comp measurable_snd))).add hV
-  have hν (p : Ω × W) : ((μ_base.tilted (E₀ p.1)).prod γ).tilted (V p) =
-      (μ_base.prod γ).tilted (H p) := by
-    rw [← tilted_prod_comp_fst, tilted_tilted ((hE₀i p.1).comp_fst γ)]
-    rfl
-  simp_rw [hν]
-  exact measurable_integral_pi_tilted hH hF
-
 /-- Boundedness-based domination between any two energies `V₁, V₂` on `((μ₀ p.1).prod γ)`. -/
 private lemma integral_pi_tilted_prod_nonneg_le_exp_mul
     {Ω W α β R : Type*} [MeasurableSpace Ω] [MeasurableSpace W] [MeasurableSpace α]
@@ -213,7 +187,7 @@ private lemma integral_pi_tilted_prod_nonneg_le_exp_mul
     let V_obs (p : Ω × W) (x : α × β) : ℝ := V p.2 x
     have hVm : Measurable fun q : (Ω × W) × (α × β) => V_obs q.1 q.2 :=
       hV.comp ((measurable_snd.comp measurable_fst).prodMk measurable_snd)
-    have hm := measurable_integral_pi_tilted_prod_tilted_base μ_base γ hE₀ hE₀i hVm hGm
+    have hm := measurable_integral_pi_tilted_prod_tilted μ_base γ hE₀ hE₀i hVm hGm
     refine Integrable.of_bound hm.aestronglyMeasurable |M_g| (ae_of_all _ fun p => ?_)
     have hp_prob : IsProbabilityMeasure (((μ_base.tilted (E₀ p.1)).prod γ).tilted (V p.2)) :=
       isProbabilityMeasure_tilted_of_ae_le
@@ -328,7 +302,7 @@ private lemma rotation_endpoint_zero_eq
           ((measurable_snd.comp measurable_fst).prodMk
             ((measurable_pi_apply r).comp measurable_snd)))
       exact (hf.comp hp_f).mul hpr
-    exact measurable_integral_pi_tilted_prod_tilted_base μ_base γ₂ hE₀ hE₀i hVm hFm
+    exact measurable_integral_pi_tilted_prod_tilted μ_base γ₂ hE₀ hE₀i hVm hFm
   have hIb (p : Ω₀ × (K₁ → ℝ)) : |I_fn p| ≤ |M_f| * |M₀| ^ Fintype.card R := by
     have hVx : Measurable fun x : α × (K₂ → ℝ) => u (X_fn p.2 x) :=
       hu.comp (hXm.comp (measurable_const.prodMk measurable_id))
@@ -637,7 +611,7 @@ private lemma exists_hasDerivAt_interp_rotation_abs_le_of_pair_bound
       (measurable_snd.comp measurable_fst).prodMk measurable_snd
     have hsV := (hS_m ϑ).comp hpV
     have hVm : Measurable fun p : (Ω₀ × W) × T => V_obs p.1 p.2 := hu.measurable.comp hsV
-    exact measurable_integral_pi_tilted_prod_tilted_base μ_base γ_aux hE₀ hE₀i hVm hG
+    exact measurable_integral_pi_tilted_prod_tilted μ_base γ_aux hE₀ hE₀i hVm hG
   have hfi (ω : Ω₀) : Integrable (f ω) (Measure.pi fun _ : R => μ₀ ω) := by
     have hp : Measurable fun a : R → α => (ω, a) := measurable_const.prodMk measurable_id
     have hm := hf.comp hp
@@ -863,7 +837,7 @@ private lemma exists_hasDerivAt_interp_rotation_abs_le_of_pair_bound
       have hsr := (hS_m ϑ').comp hpr_r
       exact (hψm r).comp hsr
     have hFm : Measurable fun p : (Ω₀ × W) × (R → T) => F_obs p.1 p.2 := (hfm id).mul hpr
-    have hm_int := measurable_integral_pi_tilted_prod_tilted_base μ_base γ_aux hE₀ hE₀i hVm hFm
+    have hm_int := measurable_integral_pi_tilted_prod_tilted μ_base γ_aux hE₀ hE₀i hVm hFm
     exact (hm_int.stronglyMeasurable.integral_prod_right' (ν := γ_sh)).aestronglyMeasurable
   have hvar_eq (m : PerceptronSpin N) :
       X_sh m ⬝ᵥ X_sh m + (fun _ : PerceptronSpin N => X_aux) m ⬝ᵥ
@@ -1068,7 +1042,7 @@ private lemma abs_integral_interp_deriv_mul_sub_rhat_le_of_pair_bound
         (measurable_fst.comp measurable_fst).prodMk (measurable_pi_iff.2 fun r =>
           measurable_fst.comp ((measurable_pi_apply r).comp measurable_snd))
       exact hf_abs_m.comp hp
-    have hIm := measurable_integral_pi_tilted_prod_tilted_base μ_base γ_aux hE₀ hE₀i hVm hGm
+    have hIm := measurable_integral_pi_tilted_prod_tilted μ_base γ_aux hE₀ hE₀i hVm hGm
     have hμ₀ (ω : Ω₀) : IsProbabilityMeasure (μ₀ ω) := isProbabilityMeasure_tilted (hE₀i ω)
     have hIi : Integrable (fun p => ∫ a : R → α × ((Fin 2 ⊕ Unit) → ℝ),
         |f p.1 (fun r => (a r).1)| ∂(Measure.pi fun _ : R => ν_rot 0 p)) (P₀.prod γ_sh) := by
@@ -1135,26 +1109,13 @@ private lemma abs_integral_interp_deriv_mul_sub_rhat_le_of_pair_bound
       obtain ⟨z, hz, hzb⟩ := hd_u ϑ
       exact ⟨z, hz, fun _ => hzb⟩
   let ψ_w (r : R) (x : ℝ) : ℝ := if r = r₁ ∨ r = r₂ then deriv u x else 1
-  have hψd (r : R) : Differentiable ℝ (ψ_w r) := by
-    dsimp only [ψ_w]; split_ifs
-    · exact hu.differentiable_deriv
-    · exact differentiable_const 1
-  have hψ2d (r : R) : Differentiable ℝ (deriv (ψ_w r)) := by
-    dsimp only [ψ_w]; split_ifs
-    · exact h2d
-    · simp
-  have hM₀w (r : R) (x : ℝ) : |ψ_w r x| ≤ M₀w := by
-    dsimp only [ψ_w, M₀w]; split_ifs
-    · linarith [hu.abs_deriv_le x, le_abs_self D, abs_nonneg D]
-    · rw [abs_one]; linarith [abs_nonneg D]
-  have hM₁w (r : R) (x : ℝ) : |deriv (ψ_w r) x| ≤ M₁w := by
-    dsimp only [ψ_w, M₁w]; split_ifs
-    · exact (hu.abs_deriv₂_le x).trans (le_abs_self D)
-    · simp
-  have hM₂w (r : R) (x : ℝ) : |deriv (deriv (ψ_w r)) x| ≤ |D| := by
-    dsimp only [ψ_w]; split_ifs
-    · exact (hb3 x).trans (le_abs_self D)
-    · simp
+  obtain ⟨hψd, hψ2d, hM₀w, hM₁w, hM₂w⟩ :=
+    differentiable_and_abs_deriv_le_ite_one (p := fun i : R => i = r₁ ∨ i = r₂)
+      (B₀ := M₀w) (B₁ := M₁w) (B₂ := |D|) hu.differentiable_deriv h2d
+      (fun x => by dsimp [M₀w]; linarith [hu.abs_deriv_le x, le_abs_self D])
+      (fun x => (hu.abs_deriv₂_le x).trans (le_abs_self D))
+      (fun x => (hb3 x).trans (le_abs_self D))
+      (by dsimp [M₀w]; linarith only [abs_nonneg D]) (abs_nonneg _) (abs_nonneg _)
   let φ_w (ϑ : ℝ) : ℝ :=
     ∫ ω, ∫ w, ∫ σ : R → α × ((Fin 2 ⊕ Unit) → ℝ),
       f ω (fun r => (σ r).1) * ∏ r, ψ_w r (S ϑ w (σ r))
@@ -1177,16 +1138,8 @@ private lemma abs_integral_interp_deriv_mul_sub_rhat_le_of_pair_bound
       exact ⟨z, hz, fun _ => hzb⟩
   have hprod_w (x : R → ℝ) :
       (∏ r : R, ψ_w r (x r)) = deriv u (x r₁) * deriv u (x r₂) := by
-    rw [← Finset.mul_prod_erase Finset.univ _ (Finset.mem_univ r₁)]
-    have hmem : r₂ ∈ Finset.univ.erase r₁ := Finset.mem_erase.2 ⟨hr.symm, Finset.mem_univ _⟩
-    rw [← Finset.mul_prod_erase _ _ hmem]
-    have her : ∏ r ∈ (Finset.univ.erase r₁).erase r₂, ψ_w r (x r) = 1 :=
-      Finset.prod_eq_one fun r hr' => by
-        have hne2 : r ≠ r₂ := Finset.ne_of_mem_erase hr'
-        have hne1 : r ≠ r₁ := Finset.ne_of_mem_erase (Finset.mem_of_mem_erase hr')
-        simp [ψ_w, hne1, hne2]
-    rw [her, mul_one]
-    simp [ψ_w]
+    simpa only [ψ_w, apply_ite, Finset.mem_insert, Finset.mem_singleton, Finset.prod_pair hr] using
+      (Fintype.prod_ite_mem ({r₁, r₂} : Finset R) (fun r => deriv u (x r)))
   have hφ_u_0 : φ_u 0 = ∫ p, ∫ a : R → α × (Fin 2 → ℝ),
       f p.1 (fun r => (a r).1) ∂(Measure.pi fun _ : R => ν_new p) ∂(P₀.prod γ₁) := by
     have h0 := rotation_endpoint_zero_eq P₀ μ_base hE₀ hE₀i hu.measurable hD_abs X_fn hXm
@@ -1396,7 +1349,7 @@ theorem abs_integral_interp_deriv_mul_sub_rhat_le_first_moment
         (measurable_fst.comp measurable_fst).prodMk (measurable_pi_iff.2 fun r =>
           measurable_fst.comp ((measurable_pi_apply r).comp measurable_snd))
       exact hf_abs_m.comp hp
-    have hIm := measurable_integral_pi_tilted_prod_tilted_base μ_base γ_aux hE₀ hE₀i hVm0 hGm
+    have hIm := measurable_integral_pi_tilted_prod_tilted μ_base γ_aux hE₀ hE₀i hVm0 hGm
     have hμ₀ (ω : Ω₀) : IsProbabilityMeasure (μ₀ ω) := isProbabilityMeasure_tilted (hE₀i ω)
     have hIi : Integrable (fun p => ∫ a : R → α × ((Fin 2 ⊕ Unit) → ℝ),
         |f p.1 (fun r => (a r).1)| ∂(Measure.pi fun _ : R => ν_rot 0 p)) (P₀.prod γ_sh) := by
@@ -1467,7 +1420,7 @@ theorem abs_integral_interp_deriv_mul_sub_rhat_le_first_moment
         have hm := hFm.comp hp
         exact Integrable.of_bound hm.aestronglyMeasurable |M_f|
           (ae_of_all _ fun a => by rw [Real.norm_eq_abs]; exact (hfb _ _).trans (le_abs_self _))
-    have hIm := measurable_integral_pi_tilted_prod_tilted_base μ_base γ_aux hE₀ hE₀i hVmϑ hGm
+    have hIm := measurable_integral_pi_tilted_prod_tilted μ_base γ_aux hE₀ hE₀i hVmϑ hGm
     have hF₁ : Integrable (fun p => ∫ a, |F_obs p a| ∂(Measure.pi fun _ : R => ν_rot ϑ p))
         (P₀.prod γ_sh) :=
       Integrable.of_bound hIm.aestronglyMeasurable |M_f| (ae_of_all _ fun p => by
@@ -1658,7 +1611,7 @@ theorem abs_integral_interp_deriv_mul_sub_rhat_le_l2
         (measurable_fst.comp measurable_fst).prodMk (measurable_pi_iff.2 fun r =>
           measurable_fst.comp ((measurable_pi_apply r).comp measurable_snd))
       exact hf_sq_m.comp hp
-    have hIm := measurable_integral_pi_tilted_prod_tilted_base μ_base γ_aux hE₀ hE₀i hVm0 hGm
+    have hIm := measurable_integral_pi_tilted_prod_tilted μ_base γ_aux hE₀ hE₀i hVm0 hGm
     have hIi : Integrable (fun p => ∫ a : R → α × ((Fin 2 ⊕ Unit) → ℝ),
         (f p.1 (fun r => (a r).1)) ^ 2 ∂(Measure.pi fun _ : R => ν_rot 0 p)) (P₀.prod γ_sh) :=
       Integrable.of_bound hIm.aestronglyMeasurable (|M_f| ^ 2) (ae_of_all _ fun p => by
@@ -1693,7 +1646,7 @@ theorem abs_integral_interp_deriv_mul_sub_rhat_le_l2
           (hπ.comp (measurable_fst.comp ((measurable_pi_apply 1).comp measurable_snd)))
       have hm_b := (measurable_of_finite b).comp hp
       exact hm_b
-    have hIm := measurable_integral_pi_tilted_prod_tilted_base μ_base γ_aux hE₀ hE₀i hVm0 hGm
+    have hIm := measurable_integral_pi_tilted_prod_tilted μ_base γ_aux hE₀ hE₀i hVm0 hGm
     have hIi : Integrable (fun p => ∫ a : Fin 2 → α × ((Fin 2 ⊕ Unit) → ℝ),
         (d_spin (π (a 0).1) (π (a 1).1)) ^ 2
         ∂(Measure.pi fun _ : Fin 2 => ν_rot 0 p)) (P₀.prod γ_sh) :=
@@ -1780,8 +1733,8 @@ theorem abs_integral_interp_deriv_mul_sub_rhat_le_l2
           (ae_of_all _ fun a => by
             rw [Real.norm_of_nonneg (abs_nonneg _)]
             exact abs_perceptron_overlap_sub_le_two hq _ _)
-    have hIm_F := measurable_integral_pi_tilted_prod_tilted_base μ_base γ_aux hE₀ hE₀i hVmϑ hFr_m
-    have hIm_D := measurable_integral_pi_tilted_prod_tilted_base (R := Fin 2)
+    have hIm_F := measurable_integral_pi_tilted_prod_tilted μ_base γ_aux hE₀ hE₀i hVmϑ hFr_m
+    have hIm_D := measurable_integral_pi_tilted_prod_tilted (R := Fin 2)
       μ_base γ_aux hE₀ hE₀i hVmϑ hDr_m
     have hFp_int : Integrable (fun p => ∫ a : R → T, |F_obs p a| ^ (2 : ℝ)
         ∂(Measure.pi fun _ : R => ν_rot ϑ p)) (P₀.prod γ_sh) :=

@@ -1762,13 +1762,15 @@ theorem integral_interpolating_field_deriv_ibp
       simp only [Finset.univ_unique, Finset.sum_singleton, ↓reduceIte]
       refine (integral_congr_ae (ae_of_all _ fun w =>
         integral_congr_ae (ae_of_all _ fun σ => ?_))).trans (by simp)
+      dsimp only
       rw [hcov_diag (σ ()).1.1]
       ring
-    rw [hdiag_zero, zero_sub, Fintype.card_unique, Nat.cast_one, one_mul, ← neg_mul,
-      ← integral_const_mul]
-    congr 1
+    rw [hdiag_zero, zero_sub, Fintype.card_unique, Nat.cast_one, one_mul]
+    symm
+    rw [neg_mul, ← integral_const_mul, neg_inj]
     refine integral_congr_ae (ae_of_all _ fun w =>
       integral_congr_ae (ae_of_all _ fun σ => ?_))
+    dsimp only
     simp only [Finset.univ_unique, Finset.prod_singleton, hcov_sh]
     ring
   -- Step 3: Transport both sides of `hstein_ω₀` integrated over `ω₀ ~ P₀` to `P`!
@@ -1808,8 +1810,16 @@ theorem integral_interpolating_field_deriv_ibp
     rw [he_st_apply]
     dsimp only [α_sh, α_aux, splitΩ, S_fn]
     rw [sumElim_dotProduct_sumElim]
-    simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton, Finset.mul_sum]
-    refine congrArg₂ (· + ·) (Finset.sum_congr rfl fun i _ => by ring) (by ring)
+    simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton, Finset.mul_sum,
+      Sum.elim_inl, Sum.elim_inr]
+    have h1 : (∑ i : Fin (N + 1),
+        Real.sqrt s * (Real.sqrt (N + 1 : ℕ))⁻¹ * ((x.1 i : ℤ) : ℝ) *
+          ω.1.1 (Fin.last M) i) =
+      ∑ i : Fin (N + 1),
+        Real.sqrt s * ((Real.sqrt (N + 1 : ℕ))⁻¹ *
+          (ω.1.1 (Fin.last M) i * ((x.1 i : ℤ) : ℝ))) :=
+      Finset.sum_congr rfl fun _ _ => by ring
+    rw [h1]; ring
   have hS'_last_eq (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ))
       (x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) :
       W_sh (e_st x).1.1 ⬝ᵥ (splitΩ ω).2 + W_aux (e_st x).1.1 ⬝ᵥ (e_st x).2 =
@@ -1817,7 +1827,8 @@ theorem integral_interpolating_field_deriv_ibp
     rw [he_st_apply]
     dsimp only [W_sh, W_aux, splitΩ, S'_fn]
     rw [sumElim_dotProduct_sumElim]
-    simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton, Finset.mul_sum]
+    simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton, Finset.mul_sum,
+      Sum.elim_inl, Sum.elim_inr]
     have h1 : (∑ i : Fin (N + 1),
         (1 / (2 * Real.sqrt s)) * (Real.sqrt (N + 1 : ℕ))⁻¹ * ((x.1 i : ℤ) : ℝ) *
           ω.1.1 (Fin.last M) i) =

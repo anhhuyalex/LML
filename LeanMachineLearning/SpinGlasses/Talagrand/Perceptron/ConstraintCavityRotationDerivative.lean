@@ -23,32 +23,6 @@ open scoped BigOperators NNReal
 
 namespace SpinGlasses
 
-/-- Measurability of a replica average after attaching independent coordinates to a tilted law,
-and adding a second tilt. -/
-private theorem measurable_integral_pi_tilted_prod_tilted
-    {Ω W α β R : Type*} [MeasurableSpace Ω] [MeasurableSpace W] [MeasurableSpace α]
-    [MeasurableSpace β] [Fintype R]
-    (μ : Measure α) [IsFiniteMeasure μ] (γ : Measure β) [IsProbabilityMeasure γ]
-    {E : Ω → α → ℝ}
-    (hE : Measurable fun p : Ω × α => E p.1 p.2)
-    (hEi : ∀ ω, Integrable (fun a => Real.exp (E ω a)) μ)
-    {V : Ω × W → α × β → ℝ}
-    (hV : Measurable fun p : (Ω × W) × (α × β) => V p.1 p.2)
-    {F : Ω × W → (R → α × β) → ℝ}
-    (hF : Measurable fun p : (Ω × W) × (R → α × β) => F p.1 p.2) :
-    Measurable fun p => ∫ σ : R → α × β, F p σ
-      ∂(Measure.pi fun _ : R => ((μ.tilted (E p.1)).prod γ).tilted (V p)) := by
-  let H (p : Ω × W) (a : α × β) := E p.1 a.1 + V p a
-  have hH : Measurable fun p : (Ω × W) × (α × β) => H p.1 p.2 :=
-    (hE.comp ((measurable_fst.comp measurable_fst).prodMk
-      (measurable_fst.comp measurable_snd))).add hV
-  have hν (p : Ω × W) : ((μ.tilted (E p.1)).prod γ).tilted (V p) =
-      (μ.prod γ).tilted (H p) := by
-    rw [← tilted_prod_comp_fst, tilted_tilted ((hEi p.1).comp_fst γ)]
-    rfl
-  simp_rw [hν]
-  exact measurable_integral_pi_tilted hH hF
-
 /-- Joint measurability of the last-row rotated field in the split cavity coordinates. -/
 theorem measurable_cavity_rotation_field {N M : ℕ} (t q s : ℝ) :
     let X : PerceptronSpin N → (Fin N ⊕ Unit) ⊕ Unit → ℝ :=

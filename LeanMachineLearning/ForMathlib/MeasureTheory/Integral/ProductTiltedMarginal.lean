@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.BoundedTilted
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedBound
 public import Mathlib.MeasureTheory.Measure.Real
 public import Mathlib.MeasureTheory.Integral.Pi
 
@@ -24,6 +25,31 @@ This is the common measure argument behind Talagrand's perceptron Exercise 2.2.1
 @[expose] public section
 
 namespace MeasureTheory
+
+/-- Tilting `μ.prod γ` by `E₀ ∘ Prod.fst` equals `(μ.tilted E₀).prod γ` when `γ` is a probability
+measure. -/
+theorem tilted_prod_comp_fst {α β : Type*} [MeasurableSpace α] [MeasurableSpace β]
+    (μ : Measure α) [IsFiniteMeasure μ] (γ : Measure β) [IsProbabilityMeasure γ]
+    (E₀ : α → ℝ) :
+    (μ.prod γ).tilted (fun p => E₀ p.1) = (μ.tilted E₀).prod γ := by
+  have hZ : ∫ p : α × β, Real.exp (E₀ p.1) ∂(μ.prod γ) = ∫ a, Real.exp (E₀ a) ∂μ :=
+    integral_prod_fun_fst_of_isProbabilityMeasure μ γ fun a => Real.exp (E₀ a)
+  symm
+  refine Measure.prod_eq fun s t hs ht => ?_
+  rw [tilted_apply_eq_ofReal_integral, tilted_apply_eq_ofReal_integral, hZ]
+  have hind : ∀ p : α × β,
+      (s ×ˢ t).indicator (fun p : α × β => Real.exp (E₀ p.1) / ∫ a, Real.exp (E₀ a) ∂μ) p =
+        (s.indicator (fun a => Real.exp (E₀ a) / ∫ a, Real.exp (E₀ a) ∂μ) p.1) *
+          (t.indicator (fun _ => (1 : ℝ)) p.2) := by
+    rintro ⟨a, b⟩
+    by_cases ha : a ∈ s <;> by_cases hb : b ∈ t <;> simp [Set.mem_prod, ha, hb]
+  rw [← integral_indicator (hs.prod ht)]
+  simp_rw [hind]
+  rw [integral_prod_mul, integral_indicator hs, integral_indicator_const _ ht, smul_eq_mul,
+    mul_one, ENNReal.ofReal_mul (setIntegral_nonneg hs fun _ _ => div_nonneg (Real.exp_pos _).le
+      (integral_nonneg fun _ => (Real.exp_pos _).le)),
+    Measure.real, ENNReal.ofReal_toReal (measure_ne_top γ t)]
+
 
 variable {A B : Type*} [MeasurableSpace A] [MeasurableSpace B]
   {μ : Measure A} {ν : Measure B} [SFinite μ] [SFinite ν] [NeZero ν]

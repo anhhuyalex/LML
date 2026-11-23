@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IntegrableOfBound
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.RSFixedPoint
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathDecoupling
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathCavityBound
@@ -145,16 +146,10 @@ theorem integral_perceptron_overlap_mul_eq_last_site {N M : ℕ}
       (fun _ σ => Θ i (σ 0) (σ 1)) (fun _ => measurable_const) (fun _ σ => hC σ)
   have hsum : ν (fun x y => ∑ i, Θ i x y) = ∑ i, ν (Θ i) := by
     dsimp only [ν]
-    have e1 (g : Fin M → Fin (N + 1) → ℝ) :
-        ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, ∑ i, Θ i (σ 0) (σ 1)
-          ∂(Measure.pi fun _ : Fin 2 =>
-            (Measure.count : Measure (Fin (N + 1) → ℤˣ)).tilted (E g)) =
-        ∑ i, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, Θ i (σ 0) (σ 1)
-          ∂(Measure.pi fun _ : Fin 2 =>
-            (Measure.count : Measure (Fin (N + 1) → ℤˣ)).tilted (E g)) :=
-      integral_finsetSum _ fun _ _ => Integrable.of_finite
-    simp_rw [e1]
-    exact integral_finsetSum _ fun i _ => hint i
+    exact integral_integral_finset_sum P
+      (fun g => Measure.pi fun _ : Fin 2 => Measure.count.tilted (E g))
+      Finset.univ (fun i (σ : Fin 2 → Fin (N + 1) → ℤˣ) => Θ i (σ 0) (σ 1))
+      (fun _ _ _ => Integrable.of_finite) (fun i _ => hint i)
   have hpt (x y : Fin (N + 1) → ℤˣ) :
       ∑ i, Θ i x y = ((N : ℝ) + 1) * ((Rf x y - q) * φ (Rf x y - q)) := by
     have hL : (0 : ℝ) < (N : ℝ) + 1 := by positivity
@@ -752,5 +747,42 @@ theorem integral_perceptron_overlap_sub_sq_le (D : ℝ) :
   calc Q_val = 2 * ((1 / 2) * Q_val) := by ring
     _ ≤ 2 * ((3 / 2) * invL) := mul_le_mul_of_nonneg_left hhalf zero_le_two
     _ = 3 / ((N : ℝ) + 1) := by dsimp only [invL]; ring
+
+/-- Talagrand's Theorem 2.4.1. A single small-load bound gives a unique solution of
+the replica-symmetric equations and the overlap second-moment estimate. -/
+theorem exists_unique_rs_fixed_point_and_overlap_sub_sq_le (D : ℝ) :
+    ∃ K L : ℝ, 0 ≤ K ∧ 0 ≤ L ∧
+      ∀ (N M : ℕ) {u : ℝ → ℝ},
+        (∀ j < 3, Differentiable ℝ (iteratedDeriv j u)) →
+        (∀ j ≤ 3, ∀ x, |iteratedDeriv j u x| ≤ D) →
+        let α : ℝ := (M : ℝ) / ((N : ℝ) + 1)
+        α * K ≤ 1 →
+        let P := Measure.pi fun _ : Fin M =>
+          Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1
+        let μ (g : Fin M → Fin (N + 1) → ℝ) :=
+          (Measure.count : Measure (Fin (N + 1) → ℤˣ)).tilted
+            fun τ => ∑ k, u ((Real.sqrt (N + 1 : ℕ))⁻¹ *
+                ∑ i, g k i * ((τ i : ℤ) : ℝ))
+        let rhat (q : ℝ) := ∫ z, ((∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ) *
+              Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) /
+            ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) ^ 2
+          ∂gaussianReal 0 1
+        let S (p : ℝ × ℝ) : Prop :=
+          p.1 = (∫ z : ℝ, Real.tanh (z * Real.sqrt p.2) ^ 2 ∂gaussianReal 0 1) ∧
+          p.2 = α * rhat p.1
+        (∃! p, S p) ∧ ∀ p, S p →
+          (∫ g, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ,
+            (((N : ℝ) + 1)⁻¹ * ∑ i, ((σ 0 i : ℤ) : ℝ) * ((σ 1 i : ℤ) : ℝ) - p.1) ^ 2
+              ∂(Measure.pi fun _ : Fin 2 => μ g) ∂P) ≤ L / ((N : ℝ) + 1) := by
+  obtain ⟨K₁, hK₁, hfixed⟩ := exists_unique_rs_fixed_point D
+  obtain ⟨K₂, L, hK₂, hL, hoverlap⟩ := integral_perceptron_overlap_sub_sq_le D
+  refine ⟨max K₁ K₂, L, hK₁.trans (le_max_left _ _), hL, ?_⟩
+  intro N M u hd hb α hα P μ rhat S
+  have hα₀ : 0 ≤ α := by dsimp only [α]; positivity
+  have h₁ := (mul_le_mul_of_nonneg_left (le_max_left K₁ K₂) hα₀).trans hα
+  have h₂ := (mul_le_mul_of_nonneg_left (le_max_right K₁ K₂) hα₀).trans hα
+  refine ⟨hfixed hd hb hα₀ h₁, ?_⟩
+  intro p hp
+  exact hoverlap N M hd hb h₂ hp.1 hp.2
 
 end SpinGlasses

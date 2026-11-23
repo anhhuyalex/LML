@@ -64,6 +64,63 @@ section Environment
 
 variable {Ω : Type*} [MeasurableSpace Ω]
 
+/-- A uniformly bounded change of energy preserves section integrability and integrability of
+the disorder-averaged absolute section moment. Apply this to a power of the observable to
+transport a finite quenched power moment between two cavity parameters. -/
+theorem integrable_pi_tilted_and_integrable_integral_abs_iff_of_abs_sub_le [NeZero μ]
+    (P : Measure Ω) {E₀ E₁ : Ω → α → ℝ}
+    (hE₀ : Measurable fun p : Ω × α => E₀ p.1 p.2)
+    (hE₁ : Measurable fun p : Ω × α => E₁ p.1 p.2)
+    (hZ₀ : ∀ ω, Integrable (fun a => Real.exp (E₀ ω a)) μ)
+    {C : ℝ} (hC : ∀ ω a, |E₁ ω a - E₀ ω a| ≤ C)
+    {F : Ω → (ι → α) → ℝ} (hF : Measurable fun p : Ω × (ι → α) => F p.1 p.2) :
+    let M (E : Ω → α → ℝ) : Prop :=
+      (∀ᵐ ω ∂P, Integrable (F ω) (Measure.pi fun _ : ι => μ.tilted (E ω))) ∧
+      Integrable (fun ω => ∫ a, |F ω a| ∂(Measure.pi fun _ : ι => μ.tilted (E ω))) P
+    M E₀ ↔ M E₁ := by
+  intro M
+  have transfer {E E' : Ω → α → ℝ}
+      (hE : Measurable fun p : Ω × α => E p.1 p.2)
+      (hE' : Measurable fun p : Ω × α => E' p.1 p.2)
+      (hZ : ∀ ω, Integrable (fun a => Real.exp (E ω a)) μ)
+      (hDiff : ∀ ω a, |E' ω a - E ω a| ≤ C) (h : M E) : M E' := by
+    have hm (ω : Ω) : Measurable fun a => E' ω a - E ω a :=
+      (hE'.sub hE).comp (measurable_const.prodMk measurable_id)
+    have hsec : ∀ᵐ ω ∂P, Integrable (F ω) (Measure.pi fun _ : ι => μ.tilted (E' ω)) := by
+      filter_upwards [h.1] with ω hω
+      have : IsProbabilityMeasure (μ.tilted (E ω)) := isProbabilityMeasure_tilted (hZ ω)
+      have heq : μ.tilted (E' ω) = (μ.tilted (E ω)).tilted (fun a => E' ω a - E ω a) := by
+        rw [tilted_tilted (hZ ω)]
+        congr 1
+        funext a
+        simp
+      rw [heq, pi_tilted_eq_tilted_pi]
+      refine integrable_tilted_of_ae_le (C := (Fintype.card ι : ℝ) * C)
+        (Finset.measurable_sum _ fun i _ => (hm ω).comp (measurable_pi_apply i)).aemeasurable
+        (ae_of_all _ fun σ => ?_) hω
+      exact (Finset.sum_le_sum fun i _ => le_of_abs_le (hDiff ω (σ i))).trans_eq (by simp)
+    have hmeas : Measurable fun ω => ∫ a, |F ω a|
+        ∂(Measure.pi fun _ : ι => μ.tilted (E' ω)) :=
+      measurable_integral_pi_tilted hE' (by simpa only [Real.norm_eq_abs] using hF.norm)
+    refine ⟨hsec, (h.2.const_mul (Real.exp (2 * Fintype.card ι * C))).mono'
+      hmeas.aestronglyMeasurable ?_⟩
+    filter_upwards [h.1] with ω hω
+    rw [Real.norm_of_nonneg (integral_nonneg fun _ => abs_nonneg _)]
+    exact integral_pi_tilted_le_exp_mul_of_abs_sub_le (hZ ω) (hm ω) (hDiff ω)
+      (fun _ => abs_nonneg _) hω.abs
+  have hZ₁ (ω : Ω) : Integrable (fun a => Real.exp (E₁ ω a)) μ := by
+    have hm : Measurable fun a => Real.exp (E₁ ω a - E₀ ω a) :=
+      Real.measurable_exp.comp ((hE₁.sub hE₀).comp (measurable_const.prodMk measurable_id))
+    refine ((hZ₀ ω).bdd_mul (c := Real.exp C) hm.aestronglyMeasurable ?_).congr ?_
+    · exact ae_of_all _ fun a => by
+        rw [Real.norm_of_nonneg (Real.exp_pos _).le]
+        exact Real.exp_le_exp.2 (le_of_abs_le (hC ω a))
+    · exact ae_of_all _ fun a => by
+        simp only [← Real.exp_add, sub_add_cancel]
+  exact ⟨transfer hE₀ hE₁ hZ₀ hC, transfer hE₁ hE₀ hZ₁ fun ω a => by
+    rw [abs_sub_comm]
+    exact hC ω a⟩
+
 /-- **Comparison of disorder-averaged replica Gibbs averages.** For jointly measurable random
 energies `E₀, E₁` on a probability space of environments, bounded above and with
 `|E₁ - E₀| ≤ C`, and a jointly measurable observable `0 ≤ G ≤ M` (which may depend on the

@@ -453,16 +453,8 @@ theorem integral_integral_pi_cavity_rotation_pi_div_two_deriv_mul_eq
     · rw [abs_one]; linarith [abs_nonneg D]
   have hprod_eq (x : R → ℝ) :
       (∏ r : R, ψ r (x r)) = deriv u (x r₁) * deriv u (x r₂) := by
-    rw [← Finset.mul_prod_erase Finset.univ _ (Finset.mem_univ r₁)]
-    have hmem : r₂ ∈ Finset.univ.erase r₁ := Finset.mem_erase.2 ⟨hr.symm, Finset.mem_univ _⟩
-    rw [← Finset.mul_prod_erase _ _ hmem]
-    have her : ∏ r ∈ (Finset.univ.erase r₁).erase r₂, ψ r (x r) = 1 :=
-      Finset.prod_eq_one fun r hr' => by
-        have hne2 : r ≠ r₂ := Finset.ne_of_mem_erase hr'
-        have hne1 : r ≠ r₁ := Finset.ne_of_mem_erase (Finset.mem_of_mem_erase hr')
-        simp [ψ, hne1, hne2]
-    rw [her, mul_one]
-    simp [ψ]
+    simpa only [ψ, apply_ite, Finset.mem_insert, Finset.mem_singleton, Finset.prod_pair hr] using
+      (Fintype.prod_ite_mem ({r₁, r₂} : Finset R) (fun r => deriv u (x r)))
   have h1 := integral_integral_pi_cavity_rotation_eq_extended hu t q (Real.pi / 2) variance
     ψ hψm hM₀ hf hfi hfi₁
   dsimp only at h1
@@ -639,24 +631,13 @@ theorem abs_integral_smartPath_deriv_mul_sub_rhat_le_of_split_pair_bound
   have hinc_u := Real.abs_sub_le_half_of_exists_hasDerivAt hderiv_u
   -- Weighted path φ_w(s)
   let ψ_w (r : R) (x : ℝ) : ℝ := if r = r₁ ∨ r = r₂ then deriv u x else 1
-  have hψd (r : R) : Differentiable ℝ (ψ_w r) := by
-    dsimp only [ψ_w]; split_ifs; exacts [hu.differentiable_deriv, differentiable_const 1]
-  have hψ₂d (r : R) : Differentiable ℝ (deriv (ψ_w r)) := by
-    dsimp only [ψ_w]; split_ifs
-    · exact h2d
-    · simp
-  have hM₀w (r : R) (x : ℝ) : |ψ_w r x| ≤ M₀w := by
-    dsimp only [ψ_w, M₀w]; split_ifs
-    · linarith [hu.abs_deriv_le x, le_abs_self D, abs_nonneg D]
-    · rw [abs_one]; linarith [abs_nonneg D]
-  have hM₁w (r : R) (x : ℝ) : |deriv (ψ_w r) x| ≤ M₁w := by
-    dsimp only [ψ_w, M₁w]; split_ifs
-    · exact (hu.abs_deriv₂_le x).trans (le_abs_self D)
-    · simp [abs_nonneg D]
-  have hM₂w (r : R) (x : ℝ) : |deriv (deriv (ψ_w r)) x| ≤ |D| := by
-    dsimp only [ψ_w]; split_ifs
-    · exact (hb3 x).trans (le_abs_self D)
-    · simp [abs_nonneg D]
+  obtain ⟨hψd, hψ₂d, hM₀w, hM₁w, hM₂w⟩ :=
+    differentiable_and_abs_deriv_le_ite_one (p := fun i : R => i = r₁ ∨ i = r₂)
+      (B₀ := M₀w) (B₁ := M₁w) (B₂ := |D|) hu.differentiable_deriv h2d
+      (fun x => by dsimp [M₀w]; linarith [hu.abs_deriv_le x, le_abs_self D])
+      (fun x => (hu.abs_deriv₂_le x).trans (le_abs_self D))
+      (fun x => (hb3 x).trans (le_abs_self D))
+      (by dsimp [M₀w]; linarith only [abs_nonneg D]) (abs_nonneg _) (abs_nonneg _)
   let φ_w (s : ℝ) : ℝ :=
     ∫ ω₀, ∫ w, ∫ σ : R → SmartPathState N M × (Fin 2 → ℝ),
       f ω₀ (fun r => (σ r).1) * ∏ r, ψ_w r (S s w (σ r))
@@ -675,16 +656,8 @@ theorem abs_integral_smartPath_deriv_mul_sub_rhat_le_of_split_pair_bound
   -- Identify endpoints of φ_u and φ_w!
   have hprod_w (x : R → ℝ) :
       (∏ r : R, ψ_w r (x r)) = deriv u (x r₁) * deriv u (x r₂) := by
-    rw [← Finset.mul_prod_erase Finset.univ _ (Finset.mem_univ r₁)]
-    have hmem : r₂ ∈ Finset.univ.erase r₁ := Finset.mem_erase.2 ⟨hr.symm, Finset.mem_univ _⟩
-    rw [← Finset.mul_prod_erase _ _ hmem]
-    have her : ∏ r ∈ (Finset.univ.erase r₁).erase r₂, ψ_w r (x r) = 1 :=
-      Finset.prod_eq_one fun r hr' => by
-        have hne2 : r ≠ r₂ := Finset.ne_of_mem_erase hr'
-        have hne1 : r ≠ r₁ := Finset.ne_of_mem_erase (Finset.mem_of_mem_erase hr')
-        simp [ψ_w, hne1, hne2]
-    rw [her, mul_one]
-    simp [ψ_w]
+    simpa only [ψ_w, apply_ite, Finset.mem_insert, Finset.mem_singleton, Finset.prod_pair hr] using
+      (Fintype.prod_ite_mem ({r₁, r₂} : Finset R) (fun r => deriv u (x r)))
   have hφ_u_0 : φ_u 0 = ∫ ω, ∫ a : R → SmartPathState N (M + 1), f_ext ω a
       ∂(Measure.pi fun _ : R => μ₁ ω) ∂P₁ := by
     have h := integral_integral_pi_cavity_rotation_zero_eq_smartPath hu.toSmartPathPotential

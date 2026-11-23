@@ -318,16 +318,12 @@ private lemma integral_interpSP_one_eq {N M : ℕ} {R : Type uR} [Fintype R]
     measurePreserving_finSuccProd γ₁ N
   let e_rows : (Fin M → Fin (N + 1) → ℝ) ≃ᵐ (Fin M → (Fin N → ℝ) × ℝ) :=
     MeasurableEquiv.piCongrRight fun _ => e_row
-  have hmp_rows : MeasurePreserving ⇑e_rows P_g
-      (Measure.pi fun _ : Fin M => (Measure.pi fun _ : Fin N => γ₁).prod γ₁) :=
-    measurePreserving_pi _ _ fun _ => hmp_row
   let e_split : (Fin M → Fin (N + 1) → ℝ) ≃ᵐ (Fin M → Fin N → ℝ) × (Fin M → ℝ) :=
     e_rows.trans (MeasurableEquiv.arrowProdEquivProdArrow _ _ _)
   have hmp_split : MeasurePreserving ⇑e_split P_g
       ((Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin N => γ₁).prod
         (Measure.pi fun _ : Fin M => γ₁)) :=
-    (measurePreserving_arrowProdEquivProdArrow (Fin N → ℝ) ℝ (Fin M)
-      (fun _ => Measure.pi fun _ : Fin N => γ₁) (fun _ => γ₁)).comp hmp_rows
+    measurePreserving_pi_finSuccProd (fun _ : Fin M => γ₁) N
   let e_dis : (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ≃ᵐ
       (((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × (Fin M → ℝ)) × ((Fin N → ℝ) × ℝ) :=
     MeasurableEquiv.prodCongr
@@ -2427,115 +2423,36 @@ private lemma interpSP_one_step_recovery_last
     exact Finset.sum_congr rfl fun r' _ => integral_congr_ae (ae_of_all _ (hlift_1' r'))
   dsimp only [μ, P] at hs0_eq hs1_eq herase_opt hs2_eq
   simp_rw [hs0_eq, hs1_eq, herase_opt, hs2_eq]
-  have hpull_ω (ℓ : R) :
-      (∑ j ∈ Finset.univ.erase ℓ, ∫ ω, T_pair (some (some ℓ)) (some (some j)) ω ∂P) -
-        (Fintype.card R : ℝ) * ∫ ω, T_pair (some (some ℓ)) (some none) ω ∂P =
-      ∫ ω, ((∑ j ∈ Finset.univ.erase ℓ, T_pair (some (some ℓ)) (some (some j)) ω) -
-        (Fintype.card R : ℝ) * T_pair (some (some ℓ)) (some none) ω) ∂P := by
-    rw [integral_sub (integrable_finsetSum _ fun j _ => hT_int _ _)
-      ((hT_int _ _).const_mul _), integral_finsetSum _ fun j _ => hT_int _ _, integral_const_mul]
-  have hpull_opt :
-      (∑ r' : R, ∫ ω, T_pair (some (some r')) (some none) ω ∂P) -
-        (Fintype.card (Option R) : ℝ) * ∫ ω, T_pair (some none) none ω ∂P =
-      ∫ ω, ((∑ r' : R, T_pair (some (some r')) (some none) ω) -
-        (Fintype.card (Option R) : ℝ) * T_pair (some none) none ω) ∂P := by
-    rw [integral_sub (integrable_finsetSum _ fun r' _ => hT_int _ _)
-      ((hT_int _ _).const_mul _), integral_finsetSum _ fun r' _ => hT_int _ _, integral_const_mul]
-  dsimp only [P] at hpull_ω hpull_opt hT_int ⊢
-  simp_rw [hpull_ω, hpull_opt, ← Finset.mul_sum]
-  have hI_sum : Integrable (fun ω => ∑ ℓ : R,
-      ((∑ j ∈ Finset.univ.erase ℓ, T_pair (some (some ℓ)) (some (some j)) ω) -
-        (Fintype.card R : ℝ) * T_pair (some (some ℓ)) (some none) ω)) P :=
-    integrable_finsetSum _ fun ℓ _ =>
-      (integrable_finsetSum _ fun j _ => hT_int _ _).sub ((hT_int _ _).const_mul _)
-  have hI_opt2 : Integrable (fun ω =>
-      (∑ r' : R, T_pair (some (some r')) (some none) ω) -
-        (Fintype.card (Option R) : ℝ) * T_pair (some none) none ω) P :=
-    (integrable_finsetSum _ fun r' _ => hT_int _ _).sub ((hT_int _ _).const_mul _)
-  rw [← integral_finsetSum Finset.univ (f := fun (ℓ : R) (ω : InterpSPDisorder N (M + 1)) =>
-    (∑ j ∈ Finset.univ.erase ℓ, T_pair (some (some ℓ)) (some (some j)) ω) -
-      (Fintype.card R : ℝ) * T_pair (some (some ℓ)) (some none) ω) fun ℓ _ =>
-    (integrable_finsetSum _ fun j _ => hT_int _ _).sub ((hT_int _ _).const_mul _)]
-  have hcomb_outer :
-      (s / (2 * ((N : ℝ) + 1))) * ∫ ω, (∑ ℓ : R,
-        ((∑ j ∈ Finset.univ.erase ℓ, T_pair (some (some ℓ)) (some (some j)) ω) -
-          (Fintype.card R : ℝ) * T_pair (some (some ℓ)) (some none) ω)) ∂P -
-      (Fintype.card R : ℝ) * ((s / (2 * ((N : ℝ) + 1))) * ∫ ω,
-        ((∑ r' : R, T_pair (some (some r')) (some none) ω) -
-          (Fintype.card (Option R) : ℝ) * T_pair (some none) none ω) ∂P) =
-      (s / ((N : ℝ) + 1)) * ∫ ω, (1 / 2) *
-        ((∑ ℓ : R, ((∑ j ∈ Finset.univ.erase ℓ, T_pair (some (some ℓ)) (some (some j)) ω) -
-          (Fintype.card R : ℝ) * T_pair (some (some ℓ)) (some none) ω)) -
-        (Fintype.card R : ℝ) * ((∑ r' : R, T_pair (some (some r')) (some none) ω) -
-          (Fintype.card (Option R) : ℝ) * T_pair (some none) none ω)) ∂P := by
-    have hsub_eq := integral_sub hI_sum (hI_opt2.const_mul (Fintype.card R : ℝ))
-    have hmul_eq := integral_const_mul (Fintype.card R : ℝ)
-      (fun ω => (∑ r' : R, T_pair (some (some r')) (some none) ω) -
-        (Fintype.card (Option R) : ℝ) * T_pair (some none) none ω) (μ := P)
-    rw [integral_const_mul (1 / 2), hsub_eq, hmul_eq]
-    have hN : (0 : ℝ) < (N : ℝ) + 1 := by positivity
-    field_simp
-  rw [hcomb_outer]
-  congr 1
-  refine integral_congr_ae (ae_of_all _ fun ω => ?_)
-  dsimp only [T_pair]
-  have hp_in1 (ℓ : R) :
-      (∑ j ∈ Finset.univ.erase ℓ,
-        ∫ τ, Φ (some (some ℓ)) (some (some j)) ω τ ∂(Measure.pi fun _ => μ ω)) -
-      (Fintype.card R : ℝ) *
-        ∫ τ, Φ (some (some ℓ)) (some none) ω τ ∂(Measure.pi fun _ => μ ω) =
-      ∫ τ, ((∑ j ∈ Finset.univ.erase ℓ, Φ (some (some ℓ)) (some (some j)) ω τ) -
-        (Fintype.card R : ℝ) * Φ (some (some ℓ)) (some none) ω τ) ∂(Measure.pi fun _ => μ ω) := by
-    rw [integral_sub (integrable_finsetSum _ fun j _ => hΦ_int _ _ ω)
-      ((hΦ_int _ _ ω).const_mul _), integral_finsetSum _ fun j _ => hΦ_int _ _ ω,
-      integral_const_mul]
-  have hp_in2 :
-      (∑ r' : R, ∫ τ, Φ (some (some r')) (some none) ω τ ∂(Measure.pi fun _ => μ ω)) -
-      (Fintype.card (Option R) : ℝ) *
-        ∫ τ, Φ (some none) none ω τ ∂(Measure.pi fun _ => μ ω) =
-      ∫ τ, ((∑ r' : R, Φ (some (some r')) (some none) ω τ) -
-        (Fintype.card (Option R) : ℝ) * Φ (some none) none ω τ) ∂(Measure.pi fun _ => μ ω) := by
-    rw [integral_sub (integrable_finsetSum _ fun r' _ => hΦ_int _ _ ω)
-      ((hΦ_int _ _ ω).const_mul _), integral_finsetSum _ fun r' _ => hΦ_int _ _ ω,
-      integral_const_mul]
-  simp_rw [hp_in1, hp_in2]
-  have hΦ_sum : Integrable (fun τ => ∑ ℓ : R,
-      ((∑ j ∈ Finset.univ.erase ℓ, Φ (some (some ℓ)) (some (some j)) ω τ) -
-        (Fintype.card R : ℝ) * Φ (some (some ℓ)) (some none) ω τ))
-      (Measure.pi fun _ => μ ω) :=
-    integrable_finsetSum _ fun ℓ _ =>
-      (integrable_finsetSum _ fun j _ => hΦ_int _ _ ω).sub ((hΦ_int _ _ ω).const_mul _)
-  have hΦ_opt2 : Integrable (fun τ =>
-      (∑ r' : R, Φ (some (some r')) (some none) ω τ) -
-        (Fintype.card (Option R) : ℝ) * Φ (some none) none ω τ)
-      (Measure.pi fun _ => μ ω) :=
-    (integrable_finsetSum _ fun r' _ => hΦ_int _ _ ω).sub ((hΦ_int _ _ ω).const_mul _)
-  rw [← integral_finsetSum Finset.univ (f := fun (ℓ : R) τ =>
-    (∑ j ∈ Finset.univ.erase ℓ, Φ (some (some ℓ)) (some (some j)) ω τ) -
-      (Fintype.card R : ℝ) * Φ (some (some ℓ)) (some none) ω τ) fun ℓ _ =>
-    (integrable_finsetSum _ fun j _ => hΦ_int _ _ ω).sub ((hΦ_int _ _ ω).const_mul _)]
-  rw [← integral_const_mul (Fintype.card R : ℝ),
-    ← integral_sub hΦ_sum (hΦ_opt2.const_mul _),
-    ← integral_const_mul (1 / 2), replicaPairAverage_eq]
-  refine integral_congr_ae (ae_of_all _ fun τ => ?_)
-  dsimp only [Φ]
-  have hoff_sum :
-      ∑ ℓ : R, ∑ j ∈ Finset.univ.erase ℓ, U ω (τ (some (some ℓ))) (τ (some (some j))) =
-      2 * ∑ p : R × R with p.1 < p.2, U ω (τ (some (some p.1))) (τ (some (some p.2))) := by
-    have h1_eq :
-        (∑ ℓ : R, ∑ j ∈ Finset.univ.erase ℓ, U ω (τ (some (some ℓ))) (τ (some (some j)))) =
-        ∑ ℓ : R, ∑ j : R, if ℓ = j then 0 else U ω (τ (some (some ℓ))) (τ (some (some j))) := by
-      refine Finset.sum_congr rfl fun ℓ _ => ?_
-      rw [← Finset.add_sum_erase Finset.univ
-        (fun j => if ℓ = j then 0 else U ω (τ (some (some ℓ))) (τ (some (some j))))
-        (Finset.mem_univ ℓ)]
-      simp only [↓reduceIte, zero_add]
-      exact Finset.sum_congr rfl fun j hj => by simp [(Finset.ne_of_mem_erase hj).symm]
-    rw [h1_eq]
-    exact sum_sum_offDiag_eq_two_sum_lt
-      (fun r₁ r₂ => U ω (τ (some (some r₁))) (τ (some (some r₂)))) (fun _ _ => hU_symm ω _ _)
+  rw [integral_replicaPairAverage_eq_combination P μ _ U hΦ_int hT_int]
+  let A (i j : Option (Option R)) : ℝ := ∫ ω, T_pair i j ω ∂P
+  have hsym (i j : Option (Option R)) : A i j = A j i := by
+    apply integral_congr_ae
+    filter_upwards with ω
+    apply integral_congr_ae
+    filter_upwards with τ
+    exact congrArg (fun x => f (fun r => (τ (some (some r))).1) * x) (hU_symm ω _ _)
+  have hoff :
+      ∑ i : R, ∑ j ∈ Finset.univ.erase i, A (some (some i)) (some (some j)) =
+        2 * ∑ p : R × R with p.1 < p.2, A (some (some p.1)) (some (some p.2)) := by
+    convert sum_sum_offDiag_eq_two_sum_lt
+      (fun i j : R => A (some (some i)) (some (some j))) (fun i j => hsym _ _) using 1
+    refine Finset.sum_congr rfl fun i _ => ?_
+    rw [← Finset.filter_ne, Finset.sum_filter]
+    simp only [ne_eq, ite_not]
+  change (∑ ℓ : R, (s / (2 * ((N : ℝ) + 1))) *
+      ((∑ j ∈ Finset.univ.erase ℓ, A (some (some ℓ)) (some (some j))) -
+        (Fintype.card R : ℝ) * A (some (some ℓ)) (some none))) -
+      (Fintype.card R : ℝ) * ((s / (2 * ((N : ℝ) + 1))) *
+        ((∑ r : R, A (some (some r)) (some none)) -
+          (Fintype.card (Option R) : ℝ) * A (some none) none)) =
+      (s / ((N : ℝ) + 1)) *
+        ((∑ p : R × R with p.1 < p.2, A (some (some p.1)) (some (some p.2))) -
+          (Fintype.card R : ℝ) * (∑ r : R, A (some (some r)) (some none)) +
+          (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) / 2 * A (some none) none)
   simp only [← Finset.mul_sum, Finset.sum_sub_distrib, Fintype.card_option,
-    Nat.cast_succ, replicaPairCombination_eq, hoff_sum]
+    Nat.cast_succ, hoff]
+  have hN : (N : ℝ) + 1 ≠ 0 := by positivity
+  field_simp
   ring
 
 private lemma interpSPStateSwap_swap {N M : ℕ} (k₁ k₂ : Fin M) (x : InterpSPState N M) :
