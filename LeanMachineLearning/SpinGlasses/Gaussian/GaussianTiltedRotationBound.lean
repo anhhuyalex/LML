@@ -411,8 +411,7 @@ theorem hasDerivAt_integral_integral_gaussian_tilted_rotation_ibp
       calc _ ≤ (Fintype.card R : ℝ) * ∑ _i : R,
             ((M_cov * P_ψ * |D₁| * Real.exp (2 * ((Fintype.card R : ℝ) + 1) * B)) * I_f) :=
             mul_le_mul_of_nonneg_left
-              ((Finset.abs_sum_le_sum_abs _ _).trans
-                (Finset.sum_le_sum fun i _ => ht2 C_cov hcov_le i))
+              (Finset.abs_sum_le_sum_of_abs_le _ fun i _ => ht2 C_cov hcov_le i)
               (Nat.cast_nonneg _)
         _ = _ := by simp [sq, mul_assoc]
     have hsum3 : |(Fintype.card R : ℝ) * ∑ j : R,
@@ -429,9 +428,8 @@ theorem hasDerivAt_integral_integral_gaussian_tilted_rotation_ibp
       calc _ ≤ (Fintype.card R : ℝ) * ∑ _j : R,
             ((M_cov * P_ψ * |D₁| * Real.exp (2 * ((Fintype.card R : ℝ) + 1) * B)) * I_f) :=
             mul_le_mul_of_nonneg_left
-              ((Finset.abs_sum_le_sum_abs _ _).trans
-                (Finset.sum_le_sum fun j _ =>
-                  ht2 (fun m m' => C_cov m' m) (fun m m' => hcov_le m' m) j))
+              (Finset.abs_sum_le_sum_of_abs_le _ fun j _ =>
+                ht2 (fun m m' => C_cov m' m) (fun m m' => hcov_le m' m) j)
               (Nat.cast_nonneg _)
         _ = _ := by simp [sq, mul_assoc]
     have hsum4 : |(Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) *
@@ -533,9 +531,7 @@ theorem integral_integral_pair_holder_prob
       exact (le_abs_self _).trans (by simpa using this)
     calc B ω ^ (1 / q) ≤ (Md ^ q) ^ (1 / q) := Real.rpow_le_rpow (hB0 ω) h1 (by positivity)
       _ = Md := by rw [← Real.rpow_mul hMd0, mul_one_div_cancel hq.ne', Real.rpow_one]
-  have hρ : Function.Injective (![r₁, r₂] : Fin 2 → ι) := by
-    intro i j hij
-    fin_cases i <;> fin_cases j <;> simp_all [Ne.symm hr]
+  have hρ : Function.Injective (![r₁, r₂] : Fin 2 → ι) := Matrix.injective_pair_iff_ne.2 hr
   have hinner : ∀ ω, ∫ σ : ι → α, |f ω (fun r => σ (e r))| * d (σ r₁) (σ r₂)
         ∂(Measure.pi fun _ : ι => ν ω) ≤ A ω ^ (1 / p) * B ω ^ (1 / q) := by
     intro ω
@@ -544,8 +540,7 @@ theorem integral_integral_pair_holder_prob
         (Measure.pi fun _ : ι => ν ω) :=
       ((hfp_mem ω).abs).comp_measurePreserving hmp_e
     have hd_m : Measurable fun σ : ι → α => d (σ r₁) (σ r₂) :=
-      hdm.comp ((measurable_pi_apply r₁).prodMk (measurable_pi_apply r₂) :
-        Measurable fun σ : ι → α => (σ r₁, σ r₂))
+      hdm.comp (by fun_prop : Measurable fun σ : ι → α => (σ r₁, σ r₂))
     have hd_ι : MemLp (fun σ : ι → α => d (σ r₁) (σ r₂)) (ENNReal.ofReal q)
         (Measure.pi fun _ : ι => ν ω) :=
       MemLp.of_bound hd_m.aestronglyMeasurable Md (ae_of_all _ fun σ => by
@@ -612,9 +607,7 @@ theorem integral_integral_pair_holder_one_top
     ∫ ω, ∫ σ : ι → α, |f ω (fun r => σ (e r))| * d (σ r₁) (σ r₂)
         ∂(Measure.pi fun _ : ι => ν ω) ∂P ≤
       (∫ ω, ∫ a : R → α, |f ω a| ∂(Measure.pi fun _ : R => ν ω) ∂P) * Md := by
-  have hρ : Function.Injective (![r₁, r₂] : Fin 2 → ι) := by
-    intro i j hij
-    fin_cases i <;> fin_cases j <;> simp_all [Ne.symm hr]
+  have hρ : Function.Injective (![r₁, r₂] : Fin 2 → ι) := Matrix.injective_pair_iff_ne.2 hr
   have hinner : ∀ᵐ ω ∂P,
       ∫ σ : ι → α, |f ω (fun r => σ (e r))| * d (σ r₁) (σ r₂) ∂(Measure.pi fun _ : ι => ν ω) ≤
         (∫ a : R → α, |f ω a| ∂(Measure.pi fun _ : R => ν ω)) * Md := by
@@ -627,8 +620,7 @@ theorem integral_integral_pair_holder_one_top
         (Measure.pi fun _ : ι => ν ω) :=
       hmp_e.integrable_comp_of_integrable (hf1_mem ω).abs
     have hd_m : Measurable fun σ : ι → α => d (σ r₁) (σ r₂) :=
-      hdm.comp ((measurable_pi_apply r₁).prodMk (measurable_pi_apply r₂) :
-        Measurable fun σ : ι → α => (σ r₁, σ r₂))
+      hdm.comp (by fun_prop : Measurable fun σ : ι → α => (σ r₁, σ r₂))
     calc ∫ σ : ι → α, |f ω (fun r => σ (e r))| * d (σ r₁) (σ r₂) ∂(Measure.pi fun _ : ι => ν ω)
         ≤ ∫ σ : ι → α, |f ω (fun r => σ (e r))| * Md ∂(Measure.pi fun _ : ι => ν ω) := by
           refine integral_mono_ae
@@ -667,9 +659,7 @@ theorem integral_integral_pair_holder_top_one
     ∫ ω, ∫ σ : ι → α, |f ω (fun r => σ (e r))| * d (σ r₁) (σ r₂)
         ∂(Measure.pi fun _ : ι => ν ω) ∂P ≤
       Mf * ∫ ω, ∫ τ : Fin 2 → α, d (τ 0) (τ 1) ∂(Measure.pi fun _ : Fin 2 => ν ω) ∂P := by
-  have hρ : Function.Injective (![r₁, r₂] : Fin 2 → ι) := by
-    intro i j hij
-    fin_cases i <;> fin_cases j <;> simp_all [Ne.symm hr]
+  have hρ : Function.Injective (![r₁, r₂] : Fin 2 → ι) := Matrix.injective_pair_iff_ne.2 hr
   have hd1_int : Integrable
       (fun ω => ∫ τ : Fin 2 → α, d (τ 0) (τ 1) ∂(Measure.pi fun _ : Fin 2 => ν ω)) P :=
     Integrable.of_bound hd1_m Md (ae_of_all _ fun ω => by
@@ -685,8 +675,7 @@ theorem integral_integral_pair_holder_top_one
     have hf_ι_ae : ∀ᵐ σ : ι → α ∂(Measure.pi fun _ : ι => ν ω), |f ω (fun r => σ (e r))| ≤ Mf :=
       hmp_e.quasiMeasurePreserving.ae hω
     have hd_m : Measurable fun σ : ι → α => d (σ r₁) (σ r₂) :=
-      hdm.comp ((measurable_pi_apply r₁).prodMk (measurable_pi_apply r₂) :
-        Measurable fun σ : ι → α => (σ r₁, σ r₂))
+      hdm.comp (by fun_prop : Measurable fun σ : ι → α => (σ r₁, σ r₂))
     have hd_ι : Integrable (fun σ : ι → α => d (σ r₁) (σ r₂)) (Measure.pi fun _ : ι => ν ω) :=
       Integrable.of_bound hd_m.aestronglyMeasurable Md (ae_of_all _ fun σ => by
         rw [Real.norm_of_nonneg (hd0 _ _)]

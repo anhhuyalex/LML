@@ -11,7 +11,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.WithDensity
 /-!
 # Equivariance of Gibbs replica averages under a measurable equivalence
 
-* `map_tilted_equiv`: the pushforward of `μ.tilted e` under a `μ`-preserving measurable
+* `map_tilted_measurableEquiv`: the pushforward of `μ.tilted e` under a `μ`-preserving measurable
   equivalence `ψ` is `μ.tilted (e ∘ ψ.symm)`;
 * `replicaDiff_map_equiv`, `replicaPairAverage_map_equiv`: the replica difference and the
   two-fresh-replica average against `ν.map ψ` are those against `ν` of the observable (and kernel)
@@ -27,12 +27,14 @@ open MeasureTheory
 
 namespace MeasureTheory
 
-/-- **Tilting commutes with a measure-preserving equivalence.** -/
-theorem map_tilted_equiv {α : Type*} [MeasurableSpace α] {μ : Measure α} (ψ : α ≃ᵐ α)
-    (hψ : MeasurePreserving ψ μ μ) {e : α → ℝ} (he : Measurable e) :
-    (μ.tilted e).map ψ = μ.tilted (e ∘ ψ.symm) := by
-  have hψ' : MeasurePreserving ψ.symm μ μ := hψ.symm ψ
-  have hZ : ∫ x, Real.exp ((e ∘ ψ.symm) x) ∂μ = ∫ x, Real.exp (e x) ∂μ :=
+/-- **Tilting commutes with a measure-preserving equivalence between arbitrary measurable
+spaces.** With `β = α` and `ν = μ` this is the symmetry statement used for exchangeability. -/
+theorem map_tilted_measurableEquiv {α β : Type*} [MeasurableSpace α] [MeasurableSpace β]
+    {μ : Measure α} {ν : Measure β} (ψ : α ≃ᵐ β) (hψ : MeasurePreserving ⇑ψ μ ν)
+    {e : α → ℝ} (he : Measurable e) :
+    (μ.tilted e).map ψ = ν.tilted (e ∘ ψ.symm) := by
+  have hψ' : MeasurePreserving ⇑ψ.symm ν μ := hψ.symm ψ
+  have hZ : ∫ y, Real.exp ((e ∘ ψ.symm) y) ∂ν = ∫ x, Real.exp (e x) ∂μ :=
     hψ'.integral_comp_of_aestronglyMeasurable (g := fun x => Real.exp (e x))
       he.exp.aestronglyMeasurable
   unfold Measure.tilted

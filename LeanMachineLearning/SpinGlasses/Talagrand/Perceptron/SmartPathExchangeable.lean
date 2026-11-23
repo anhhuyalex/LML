@@ -114,7 +114,7 @@ theorem tilted_swap {μ : Measure (SmartPathState N M)} {u : ℝ → ℝ} (hu : 
     (ω : SmartPathDisorder N M) :
     μ.tilted (smartPathEnergy u t (smartPathDisorderSwap i j ω)) =
       (μ.tilted (smartPathEnergy u t ω)).map (smartPathStateSwap i j) := by
-  rw [map_tilted_equiv (smartPathStateSwap i j) hμ (measurable_smartPathEnergy_slice hu t ω)]
+  rw [map_tilted_measurableEquiv (smartPathStateSwap i j) hμ (measurable_smartPathEnergy_slice hu t ω)]
   congr 1
   funext x
   exact smartPathEnergy_swap u t i j ω x

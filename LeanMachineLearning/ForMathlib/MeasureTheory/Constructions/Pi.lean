@@ -74,12 +74,13 @@ theorem measurePreserving_prodProdProdComm {A B C D : Type*} {mA : MeasurableSpa
   have h5 := (measurePreserving_prodAssoc μA μC (μB.prod μD)).symm
   exact h5.comp (h4.comp (h3.comp (h2.comp h1)))
 
-/-- Uncurrying preserves i.i.d. product measures on finite index types. -/
+/-- Uncurrying preserves product measures on finite index types: the iterated product of a
+family `μ i k` is the product over index pairs. Taking `μ i k = ν` gives the i.i.d. statement. -/
 theorem measurePreserving_curry_symm {ι κ X : Type*} [Fintype ι] [Fintype κ] [MeasurableSpace X]
-    (μ : Measure X) [SigmaFinite μ] :
+    (μ : ι → κ → Measure X) [∀ i k, SigmaFinite (μ i k)] :
     MeasurePreserving ⇑(MeasurableEquiv.curry ι κ X).symm
-      (Measure.pi fun _ : ι => Measure.pi fun _ : κ => μ)
-      (Measure.pi fun _ : ι × κ => μ) := by
+      (Measure.pi fun i : ι => Measure.pi (μ i))
+      (Measure.pi fun x : ι × κ => μ x.1 x.2) := by
   refine ⟨(MeasurableEquiv.curry ι κ X).symm.measurable, ?_⟩
   symm
   refine Measure.pi_eq fun s hs => ?_

@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Data.Finset.SumBound
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaProduct
 
 /-!
@@ -48,9 +49,7 @@ theorem integral_pi_tilted_le_exp_mul_of_abs_sub_le [NeZero μ] {E₀ E₁ : α 
   have hem : Measurable fun σ : ι → α => ∑ i, (E₁ (σ i) - E₀ (σ i)) :=
     Finset.measurable_sum _ fun i _ => hm.comp (measurable_pi_apply i)
   have hbound : ∀ σ : ι → α, |∑ i, (E₁ (σ i) - E₀ (σ i))| ≤ Fintype.card ι * C := fun σ =>
-    (Finset.abs_sum_le_sum_abs _ _).trans <| by
-      calc ∑ i, |E₁ (σ i) - E₀ (σ i)| ≤ ∑ _i : ι, C := Finset.sum_le_sum fun i _ => hC _
-        _ = Fintype.card ι * C := by simp
+    Finset.abs_sum_le_card_mul_of_abs_le _ fun _ => hC _
   have := abs_integral_tilted_le_exp_mul_integral_abs (μ := ν)
     (e := fun σ : ι → α => ∑ i, (E₁ (σ i) - E₀ (σ i))) (Y := Y) hem.aemeasurable
     (ae_of_all _ hbound) hY

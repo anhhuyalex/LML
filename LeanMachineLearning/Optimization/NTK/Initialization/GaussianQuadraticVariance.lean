@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.Optimization.Renormalization.Quartic
 public import LeanMachineLearning.Optimization.NTK.Initialization.GaussianMatrixAlgebra
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.Pi
 
 /-!
 # Second Moment of Gaussian Quadratic Forms
@@ -56,16 +57,8 @@ lemma map_gaussianInit_pairIndex (n p : ℕ) :
     (Measure.pi fun _ : Fin n => Measure.pi fun _ : Fin p => gaussianReal 0 1).map (fun W : Fin n →
         Fin p → ℝ => Function.uncurry W) =
       Measure.pi (fun _ : Fin n × Fin p => gaussianReal 0 1) := by
-  symm
-  refine Measure.pi_eq fun s hs => ?_
-  have hg : Measurable (fun W : Fin n → Fin p → ℝ => Function.uncurry W) := measurable_uncurry
-  rw [Measure.map_apply hg (MeasurableSet.univ_pi hs)]
-  have hpre : (fun W : Fin n → Fin p → ℝ => Function.uncurry W) ⁻¹'
-      (Set.univ.pi s) = Set.univ.pi (fun i : Fin n => Set.univ.pi fun k : Fin p => s (i, k)) := by
-    ext W; simp [Set.mem_pi]
-  rw [hpre, Measure.pi_pi]
-  simp_rw [Measure.pi_pi]
-  rw [Fintype.prod_prod_type]
+  exact (measurePreserving_curry_symm (ι := Fin n) (κ := Fin p)
+    (fun _ _ => gaussianReal 0 1)).map_eq
 
 /-- The entries of `W ~ 𝒩(0,1)^{n×p}` form a standard Gaussian vector on `ℝ^{n × p}`. -/
 lemma map_gaussianInit_toLp_uncurry (n p : ℕ) :

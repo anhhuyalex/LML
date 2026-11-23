@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Data.Finset.SumBound
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianSteinRatio
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianGram
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaProdFactorization
@@ -157,7 +158,7 @@ private lemma hasFDerivAt_prod_ϕ {R : Type*} [Fintype R] [DecidableEq R]
 /-- **First-order Gaussian integration by parts of a normalized replica ratio at fixed spin
 labels.** -/
 theorem stein_ratio_fixed_spins
-    {L K_sh K_aux R : Type*} [Fintype L] [Nonempty L]
+    {L K_sh K_aux R : Type*} [Fintype L]
     [Fintype K_sh] [Fintype K_aux] [Fintype R] [DecidableEq R]
     (p : L → ℝ) (hp : ∀ m, 0 ≤ p m) (hp1 : ∑ m, p m = 1)
     (α_sh W_sh : L → K_sh → ℝ) (α_aux W_aux : L → K_aux → ℝ)
@@ -196,7 +197,7 @@ theorem stein_ratio_fixed_spins
   have hmp_aux : MeasurePreserving ⇑(MeasurableEquiv.curry R K_aux ℝ)
       (Measure.pi fun _ : R × K_aux => gaussianReal 0 1)
       (Measure.pi fun _ : R => γ_aux) :=
-    (measurePreserving_curry_symm (ι := R) (κ := K_aux) (gaussianReal 0 1)).symm
+    (measurePreserving_curry_symm (ι := R) (κ := K_aux) fun _ _ => gaussianReal 0 1).symm
   let e_tot : (K_tot → ℝ) ≃ᵐ (K_sh → ℝ) × (R → K_aux → ℝ) :=
     (MeasurableEquiv.sumPiEquivProdPi (fun _ : K_tot => ℝ)).trans
       (MeasurableEquiv.prodCongr (MeasurableEquiv.refl _) (MeasurableEquiv.curry R K_aux ℝ))
@@ -542,32 +543,24 @@ theorem integral_tilted_replica_fubini
   have hZ_eq : ∀ w, ∫ q : α × (K_aux → ℝ),
       Real.exp (u (α_sh (π q.1) ⬝ᵥ w + α_aux (π q.1) ⬝ᵥ q.2)) ∂(μ₀.prod γ_aux) = Z w :=
     fun w => integral_Z_eq_sum_fiber μ₀ π hπ hu hB α_aux (fun m => α_sh m ⬝ᵥ w)
-  have hp1 : ∑ m : L, (μ₀.map π).real {m} = 1 := by
-    have : IsProbabilityMeasure (μ₀.map π) :=
-      (Measure.isProbabilityMeasure_map_iff hπ.aemeasurable).2 inferInstance
-    have hsum := integral_fintype (μ := μ₀.map π) (f := fun _ : L => (1 : ℝ)) Integrable.of_finite
-    simp only [smul_eq_mul, mul_one, integral_const, probReal_univ] at hsum
-    exact hsum.symm
-  have hZ_ge : ∀ w, Real.exp (-B) ≤ Z w := by
-    intro w
-    have hlow : ∀ m : L, Real.exp (-B) ≤
-        ∫ η, Real.exp (u (α_sh m ⬝ᵥ w + α_aux m ⬝ᵥ η)) ∂γ_aux :=
-      fun m => by
-        have hm1 : Measurable fun η : K_aux → ℝ => α_sh m ⬝ᵥ w + α_aux m ⬝ᵥ η :=
-          measurable_const.add (Finset.measurable_sum _ fun k _ => by fun_prop)
-        have hint : Integrable (fun η => Real.exp (u (α_sh m ⬝ᵥ w + α_aux m ⬝ᵥ η))) γ_aux :=
-          Integrable.of_bound (C := Real.exp B)
-            (Real.measurable_exp.comp (hu.comp hm1)).aestronglyMeasurable
-            (ae_of_all _ fun η => by
-              rw [Real.norm_eq_abs, abs_of_pos (Real.exp_pos _)]
-              exact Real.exp_le_exp.2 (le_of_abs_le (hB _)))
-        have hm := integral_mono (integrable_const (Real.exp (-B))) hint
-          fun η => Real.exp_le_exp.2 (neg_le_of_abs_le (hB _))
-        simpa [γ_aux] using hm
-    calc Real.exp (-B) = (∑ m : L, (μ₀.map π).real {m}) * Real.exp (-B) := by rw [hp1, one_mul]
-      _ = ∑ m : L, (μ₀.map π).real {m} * Real.exp (-B) := Finset.sum_mul _ _ _
-      _ ≤ Z w := Finset.sum_le_sum fun m _ =>
-          mul_le_mul_of_nonneg_left (hlow m) ENNReal.toReal_nonneg
+  have hZ_ge (w : K_sh → ℝ) : Real.exp (-B) ≤ Z w := by
+    let E (q : α × (K_aux → ℝ)) :=
+      u (α_sh (π q.1) ⬝ᵥ w + α_aux (π q.1) ⬝ᵥ q.2)
+    have hj : Measurable (fun q : L × (K_aux → ℝ) =>
+        u (α_sh q.1 ⬝ᵥ w + α_aux q.1 ⬝ᵥ q.2)) := by
+      apply measurable_from_prod_countable_right
+      intro l
+      apply hu.comp
+      simp only [dotProduct]
+      fun_prop
+    have hm : Measurable E :=
+      hj.comp ((hπ.comp measurable_fst).prodMk measurable_snd)
+    have hz := integral_exp_pos_of_ae_le (μ := μ₀.prod γ_aux)
+      hm.aemeasurable (ae_of_all _ fun q => le_of_abs_le (hB _))
+    have hl := abs_log_integral_exp_le_of_ae_abs_le (μ := μ₀.prod γ_aux)
+      hm.aemeasurable (ae_of_all _ fun q => hB (α_sh (π q.1) ⬝ᵥ w + α_aux (π q.1) ⬝ᵥ q.2))
+    rw [← hZ_eq w]
+    exact (Real.le_log_iff_exp_le hz).mp (neg_le_of_abs_le hl)
   have hZm : Measurable Z := by
     refine Finset.measurable_sum _ fun m _ => ?_
     have hj : Measurable fun p' : (K_sh → ℝ) × (K_aux → ℝ) =>
@@ -580,9 +573,9 @@ theorem integral_tilted_replica_fubini
     exact (hj.stronglyMeasurable.integral_prod_right' (ν := γ_aux)).measurable.const_mul _
   have hπa_m : Measurable fun a : ι → α => (fun r => π (a r)) :=
     measurable_pi_iff.2 fun r => hπ.comp (measurable_pi_apply r)
-  have hK_sum : ∀ (a : ι → α) w η, K (fun r => π (a r)) w η =
-      ∑ s : ι → L, (if (fun r => π (a r)) = s then (1 : ℝ) else 0) * K s w η :=
-    fun a w η => by simp
+  have hK_joint : Measurable (fun p : (ι → L) × ((K_sh → ℝ) × (ι → K_aux → ℝ)) =>
+      K p.1 p.2.1 p.2.2) :=
+    measurable_from_prod_countable_right hKm
   have hw_step : ∀ w : K_sh → ℝ,
       ∫ σ : ι → α × (K_aux → ℝ), F (fun r => (σ r).1) * H w σ
           ∂(Measure.pi fun _ : ι => (μ₀.prod γ_aux).tilted
@@ -599,17 +592,9 @@ theorem integral_tilted_replica_fubini
     have hmp := measurePreserving_arrowProdEquivProdArrow α (K_aux → ℝ) ι
       (fun _ => μ₀) (fun _ => γ_aux)
     have hK_meas_w : Measurable fun p' : (ι → α) × (ι → K_aux → ℝ) =>
-        K (fun r => π (p'.1 r)) w p'.2 := by
-      have : (fun p' : (ι → α) × (ι → K_aux → ℝ) => K (fun r => π (p'.1 r)) w p'.2) =
-          fun p' => ∑ s : ι → L, (if (fun r => π (p'.1 r)) = s then (1 : ℝ) else 0) *
-            K s w p'.2 := funext fun p' => hK_sum p'.1 w p'.2
-      rw [this]
-      refine Finset.measurable_sum _ fun s _ => ?_
-      have hs1 : Measurable fun p' : (ι → α) × (ι → K_aux → ℝ) =>
-          (if (fun r => π (p'.1 r)) = s then (1 : ℝ) else 0) :=
-        (measurable_of_finite fun t : ι → L => if t = s then (1 : ℝ) else 0).comp
-          (hπa_m.comp measurable_fst)
-      exact hs1.mul ((hKm s).comp (measurable_const.prodMk measurable_snd))
+        K (fun r => π (p'.1 r)) w p'.2 :=
+      hK_joint.comp ((hπa_m.comp measurable_fst).prodMk
+        (measurable_const.prodMk measurable_snd))
     have hnum_int : Integrable (fun p' : (ι → α) × (ι → K_aux → ℝ) =>
         F p'.1 * K (fun r => π (p'.1 r)) w p'.2)
         ((Measure.pi fun _ : ι => μ₀).prod (Measure.pi fun _ : ι => γ_aux)) := by
@@ -659,26 +644,11 @@ theorem integral_tilted_replica_fubini
         (γ_sh.prod (Measure.pi fun _ : ι => μ₀)) := by
       refine (hFi.aestronglyMeasurable.comp_snd).mul ?_
       refine Measurable.aestronglyMeasurable ?_
-      have h_inner_eq : (fun q : (K_sh → ℝ) × (ι → α) =>
-          ∫ η : ι → K_aux → ℝ, K (fun r => π (q.2 r)) q.1 η
-            ∂(Measure.pi fun _ : ι => γ_aux)) =
-          fun q => ∑ s : ι → L, (if (fun r => π (q.2 r)) = s then (1 : ℝ) else 0) *
-            ∫ η : ι → K_aux → ℝ, K s q.1 η ∂(Measure.pi fun _ : ι => γ_aux) := by
-        ext q
-        rw [Finset.sum_eq_single (fun r => π (q.2 r))
-          (fun s' _ hs' => by simp [Ne.symm hs']) (by simp)]
-        simp
-      rw [show (fun q : (K_sh → ℝ) × (ι → α) =>
-          (∫ η : ι → K_aux → ℝ, K (fun r => π (q.2 r)) q.1 η
-              ∂(Measure.pi fun _ : ι => γ_aux)) /
-            Z q.1 ^ Fintype.card ι) =
-          fun q => (∑ s : ι → L, (if (fun r => π (q.2 r)) = s then (1 : ℝ) else 0) *
-            ∫ η : ι → K_aux → ℝ, K s q.1 η ∂(Measure.pi fun _ : ι => γ_aux)) /
-            Z q.1 ^ Fintype.card ι from funext fun q => by rw [← congrFun h_inner_eq q]]
-      refine (Finset.measurable_sum _ fun s _ => ?_).div
+      have hKi : Measurable (fun q : (ι → L) × (K_sh → ℝ) =>
+          ∫ η : ι → K_aux → ℝ, K q.1 q.2 η ∂(Measure.pi fun _ : ι => γ_aux)) :=
+        measurable_from_prod_countable_right hK_int_m
+      exact (hKi.comp ((hπa_m.comp measurable_snd).prodMk measurable_fst)).div
         ((hZm.comp measurable_fst).pow_const _)
-      exact ((measurable_of_finite fun t : ι → L => if t = s then (1 : ℝ) else 0).comp
-        (hπa_m.comp measurable_snd)).mul ((hK_int_m s).comp measurable_fst)
     refine hdom_wa.mono' hmeas_wa (ae_of_all _ fun q => ?_)
     dsimp only [Function.uncurry, G_wa]
     rw [Real.norm_eq_abs, abs_mul, abs_div,
@@ -720,7 +690,7 @@ replica term created by differentiating the normalizer. Only `Integrable f (pi �
 `f`. -/
 theorem stein_tilted_replica_ratio
     {α L K_sh K_aux R : Type*} [MeasurableSpace α]
-    [Finite L] [Nonempty L] [MeasurableSpace L] [MeasurableSingletonClass L]
+    [Finite L] [MeasurableSpace L] [MeasurableSingletonClass L]
     [Fintype K_sh] [Fintype K_aux] [Fintype R] [DecidableEq R]
     (μ₀ : Measure α) [IsProbabilityMeasure μ₀]
     (π : α → L) (hπ : Measurable π)
@@ -765,9 +735,7 @@ theorem stein_tilted_replica_ratio
   have hp1 : ∑ m : L, p m = 1 := by
     have : IsProbabilityMeasure (μ₀.map π) :=
       (Measure.isProbabilityMeasure_map_iff hπ.aemeasurable).2 inferInstance
-    have hsum := integral_fintype (μ := μ₀.map π) (f := fun _ : L => (1 : ℝ)) Integrable.of_finite
-    simp only [smul_eq_mul, mul_one, integral_const, probReal_univ] at hsum
-    exact hsum.symm
+    simp [p]
   let Z : (K_sh → ℝ) → ℝ := fun w =>
     ∑ m : L, p m * ∫ η, Real.exp (u (α_sh m ⬝ᵥ w + α_aux m ⬝ᵥ η)) ∂γ_aux
   obtain ⟨hZd, hZb, -, -⟩ := hasFDerivAt_Z_sum hu hB hD₁ p hp0 hp1 α_aux
@@ -1791,10 +1759,10 @@ private lemma hasDerivAt_integral_w_ratio_fixed_spins
     (ae_of_all _ fun w s _ => by
       rw [Real.norm_eq_abs]
       refine (abs_sub _ _).trans (add_le_add ?_ ?_)
-      · exact (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun i _ => hD1w_bd i s w)
+      · exact Finset.abs_sum_le_sum_of_abs_le _ fun i _ => hD1w_bd i s w
       · rw [abs_mul, abs_of_nonneg (Nat.cast_nonneg _)]
         refine mul_le_mul_of_nonneg_left ?_ (Nat.cast_nonneg _)
-        refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun m _ => ?_)
+        refine Finset.abs_sum_le_sum_of_abs_le _ fun m _ => ?_
         rw [abs_mul, abs_of_nonneg (hp0 m)]
         exact mul_le_mul_of_nonneg_left (hD2w_bd m s w) (hp0 m))
     ((integrable_finsetSum _ fun i _ =>

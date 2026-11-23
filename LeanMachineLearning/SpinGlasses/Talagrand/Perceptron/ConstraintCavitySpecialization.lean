@@ -40,19 +40,6 @@ open scoped BigOperators NNReal ENNReal
 
 namespace SpinGlasses
 
-/-- Tilting commutes with a measure-preserving equivalence between arbitrary measurable spaces. -/
-theorem map_tilted_measurableEquiv {α β : Type*} [MeasurableSpace α] [MeasurableSpace β]
-    {μ : Measure α} {ν : Measure β} (ψ : α ≃ᵐ β) (hψ : MeasurePreserving ⇑ψ μ ν)
-    {e : α → ℝ} (he : Measurable e) :
-    (μ.tilted e).map ψ = ν.tilted (e ∘ ψ.symm) := by
-  have hψ' : MeasurePreserving ⇑ψ.symm ν μ := hψ.symm ψ
-  have hZ : ∫ y, Real.exp ((e ∘ ψ.symm) y) ∂ν = ∫ x, Real.exp (e x) ∂μ :=
-    hψ'.integral_comp_of_aestronglyMeasurable (g := fun x => Real.exp (e x))
-      he.exp.aestronglyMeasurable
-  unfold Measure.tilted
-  rw [map_equiv_withDensity (by fun_prop), hψ.map_eq, hZ]
-  rfl
-
 /-- Tilting `μ.prod γ` by `E₀ ∘ Prod.fst` equals `(μ.tilted E₀).prod γ` when `γ` is a probability
 measure. -/
 theorem tilted_prod_comp_fst {α β : Type*} [MeasurableSpace α] [MeasurableSpace β]

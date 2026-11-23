@@ -320,14 +320,14 @@ theorem abs_integral_theta_le (E : κ → ℝ) (c m : κ → κ → ℝ) (hcm : 
       rw [abs_mul]
       exact mul_le_mul_of_nonneg_left (hcm _ _) (abs_nonneg _)
   refine (abs_add_le _ _).trans (add_le_add ((abs_sub _ _).trans (add_le_add ?_ ?_)) ?_)
-  · refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun r _ => ?_)
-    refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun r' _ => ?_)
+  · refine Finset.abs_sum_le_sum_of_abs_le _ fun r _ => ?_
+    refine Finset.abs_sum_le_sum_of_abs_le _ fun r' _ => ?_
     by_cases h : r = r'
     · simp [h]
     · simpa [h] using b1 r r'
   · rw [abs_mul, abs_of_nonneg hn0]
-    refine mul_le_mul_of_nonneg_left ((Finset.abs_sum_le_sum_abs _ _).trans
-      (Finset.sum_le_sum fun r _ => (abs_add_le _ _).trans (add_le_add (b2 r) (b3 r)))) hn0
+    refine mul_le_mul_of_nonneg_left (Finset.abs_sum_le_sum_of_abs_le _ fun r _ =>
+      (abs_add_le _ _).trans (add_le_add (b2 r) (b3 r))) hn0
   · rw [abs_mul, abs_of_nonneg (by positivity)]
     exact mul_le_mul_of_nonneg_left b4 (by positivity)
 
