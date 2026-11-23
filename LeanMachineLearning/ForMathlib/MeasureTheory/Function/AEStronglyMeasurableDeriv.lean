@@ -13,8 +13,9 @@ public import Mathlib.MeasureTheory.Function.StronglyMeasurable.AEStronglyMeasur
 /-!
 # Measurability of a parametric derivative
 
-If `s ↦ G ω s` has a derivative at `x` for almost every parameter `ω` and `ω ↦ G ω s` is a.e. strongly
-measurable for every `s`, then the derivative `ω ↦ G' ω` at `x` is a.e. strongly measurable: it is
+If `s ↦ G ω s` has a derivative at `x` for almost every parameter `ω` and `ω ↦ G ω s` is
+a.e. strongly measurable for every `s`, then the derivative `ω ↦ G' ω` at `x` is a.e. strongly
+measurable: it is
 the limit of the measurable difference quotients along `x + 1/(n+1)`.
 
 * `MeasureTheory.aestronglyMeasurable_of_hasDerivAt_param`.

@@ -1503,6 +1503,7 @@ $-\frac1{2\sqrt{1-t}}\cdot 2\sqrt{1-t}=-1$ gives the claim.
         MeasureTheory.integral_sum_eq_card_mul_of_forall_eq,
         SpinGlasses.hasDerivAt_integral_integral_pi_perceptron_smart_path_ibp,
         SpinGlasses.hasDerivAt_integral_integral_pi_perceptron_smart_path_exchangeable,
+        SpinGlasses.hasDerivAt_integral_integral_pi_perceptron_smart_path_gaussian_rows,
         SpinGlasses.integral_replicaPairAverage_swap}
   \leanok
   \uses{thm:sg-tal:perceptron-derivative-three-terms,thm:sg-tal:perceptron-last-field-ibp}
@@ -1524,7 +1525,8 @@ This sum form is stated for $M$ constraints, needs no symmetry and holds for any
 The spins are those of $\Sigma_L$ with $L=N+1$ (the old spins $\Sigma_N$ and the last spin $\varepsilon$). For the book's
 $M+1$ constraints, use the statement with $M+1$ constraints, so that the sum is over $k<M+1$. If the rows of the old
 disorder are exchangeable, all $k$ contribute equally and $\mathrm{I}$ is
-$\alpha=(M+1)/(N+1)$ times the term $k=M$, which is the form (2.24) of the book.
+$\alpha=(M+1)/(N+1)$ times the term $k=M$, which is the form (2.24) of the book. The Gaussian-row
+corollary derives the swap invariance of the product law.
 \end{proposition}
 \begin{proof}
   \leanok
@@ -1653,8 +1655,9 @@ at fixed disorder (\texttt{integral\_replicaDiff\_smartPathEnergyDerivY}, \textt
 \emph{Step 6 is proved as well}: if the law of the old rows is invariant under swapping any constraint with a fixed one
 (\texttt{hasDerivAt\_integral\_integral\_pi\_perceptron\_smart\_path\_exchangeable}), the sum is $M$ times the term of that constraint, so
 $\mathrm I=\alpha\,\mathbb E\langle f\operatorname{pd}(U_{M})\rangle_t$ with $\alpha=M/(N+1)$. The swap acts on the disorder (rows and couplings)
-and on the auxiliary coordinates; exchangeability is a hypothesis on the law of the rows (the book derives it from independence),
-never on the observable or the expectation. Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathExchangeable.lean}, with the sum form in \texttt{SmartPathAssembly.lean} and the fixed-disorder
+and on the auxiliary coordinates. In the Gaussian-row corollary, the permutation of the rows
+preserves their product law because each row has the same Gaussian law. The general derivative
+formula applies to any law invariant under the required swaps. Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathExchangeable.lean}, with the sum form in \texttt{SmartPathAssembly.lean} and the fixed-disorder
 steps in \texttt{SmartPathIBP.lean}.
 \end{proof}
 
@@ -1665,7 +1668,8 @@ steps in \texttt{SmartPathIBP.lean}.
         SpinGlasses.smartPathBaseNoAux,
         SpinGlasses.hasDerivAt_integral_integral_pi_perceptron_smart_path_noAux_base,
         SpinGlasses.hasDerivAt_integral_integral_pi_perceptron_smart_path_noAux,
-        SpinGlasses.hasDerivAt_integral_integral_pi_perceptron_smart_path_noAux_exchangeable}
+        SpinGlasses.hasDerivAt_integral_integral_pi_perceptron_smart_path_noAux_exchangeable,
+        SpinGlasses.hasDerivAt_integral_integral_pi_perceptron_smart_path_noAux_gaussian_rows}
   \leanok
   \uses{prop:sg-tal:perceptron-smart-path-derivative}
 \talsource{Exercise~2.2.4, Eq.~(2.14)}
@@ -1681,7 +1685,8 @@ Proposition~\ref{prop:sg-tal:perceptron-smart-path-derivative} holds with the ex
  -n\bigl\langle(u''(S^{0,n+1}_k)+u'(S^{0,n+1}_k)^2)f\bigr\rangle_t\Bigr],
 \]
 which, written for the book's $M+1$ exchangeable constraints (the sum then runs over $k<M+1$), is $\frac\alpha2$ times the term $k=M$.
-Here $L=N+1$ is the total number of spins and the spins lie in $\Sigma_L$.
+Here $L=N+1$ is the total number of spins. The Gaussian-row corollary uses the same product-law
+invariance as Proposition~\ref{prop:sg-tal:perceptron-smart-path-derivative}.
 \end{lemma}
 \begin{proof}
   \leanok
@@ -1952,7 +1957,10 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityEndpoint.
         SpinGlasses.smartPathField_last_eq_dotProduct,
         SpinGlasses.cavityCoef_dotProduct,
         SpinGlasses.cavityCoef_dotProduct_self_add,
-        SpinGlasses.abs_cavityCoef_dotProduct_sub_overlap_le}
+        SpinGlasses.abs_cavityCoef_dotProduct_sub_overlap_le,
+        SpinGlasses.cavity_rotation_dotProducts,
+        SpinGlasses.abs_sub_cavityCoef_dotProduct_le,
+        SpinGlasses.abs_perceptron_overlap_sub_le_two}
   \leanok
   \uses{prop:sg-tal:perceptron-cavity-path}
 \talsource{Eqs.~(2.50)--(2.51) and the relations displayed before them}
@@ -1988,6 +1996,22 @@ $y$ has no $\xi$-part, giving the third; and $\cos^2 s\,(C+a_0^2)+\sin^2 s\,(q+1
 
 \emph{Step 3 (the overlap).} With $\alpha_\sigma=\bigl((N+1)^{-1/2}\sigma_i,\ \sqrt{t/(N+1)}\,\varepsilon\bigr)$ the dot product is $R^t$, since $\sqrt a\sqrt a=a$.
 Using $\sigma_i^2=\varepsilon^2=1$ one gets $C(\sigma,\sigma)+a_0^2=(N+t+1-t)/(N+1)=1$, and $R^t-R=(t-1)\varepsilon\varepsilon'/(N+1)$.
+\emph{Step 4 (coefficients for the Gaussian derivative).} Write $X$ and $Y$ for the shared
+coefficient vectors of $S_{M,t}$ and $\theta$, and $A,B$ for their respective auxiliary vectors.
+Splitting the shared dot product by coordinate block gives
+\[
+ X_\sigma\cdot Y=A\cdot B=0,\qquad
+ X_\sigma\cdot X_\sigma+A\cdot A=Y\cdot Y+B\cdot B=1.
+\]
+The two auxiliary coefficients are supported on distinct coordinates, with squares
+$(1-t)/(N+1)$ and $1-q$. For the shared covariance difference $\Delta$ one gets
+\[
+ \Delta(\sigma,\tau)=Y\cdot Y-X_\sigma\cdot X_\tau=q-R^t(\sigma,\tau),\qquad
+ |\Delta|\le |R-q|+1/(N+1),\qquad |R-q|\le 2.
+\]
+The last inequality uses the normalized dot product bound after appending the last spin.
+The parameter ranges are $t,q\in[0,1]$, including the endpoints where coefficients can vanish.
+
 Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityCovariance.lean}.
 \end{proof}
 
@@ -2502,8 +2526,11 @@ Formalized in \texttt{SpinGlasses/Gaussian/GaussianTiltedRotationBound.lean}.
   \leanok
   \uses{thm:sg-tal:perceptron-tilted-rotation-ibp, lem:sg-tal:perceptron-tilted-l1-bound}
 \talsource{The averaging over the old disorder $\omega$ (the randomness other than $g_{i,M},\xi_M^\ell,z,\xi^\ell$) in the proof of Lemma~2.3.2}
-Let $(\Omega_0,P_0)$ be a probability space and $\omega_0\mapsto\mu_0(\omega_0)$ a family of old-state laws (the old disorder indexes the old Gibbs law), with a common finite label map $\pi$, and let $f(\omega_0,\cdot)$ be an observable such that
-$\omega_0\mapsto\int|f(\omega_0,a)|\,d\mu_0(\omega_0)^{\otimes R}(a)$ is $P_0$-integrable and the quenched expectation is measurable in $\omega_0$ at each angle. Under the hypotheses of Theorem~\ref{thm:sg-tal:perceptron-tilted-rotation-ibp} (uniform in $\omega_0$),
+Let $P_0$ be a measure on $\Omega_0$ and $\omega_0\mapsto\mu_0(\omega_0)$ a family of old-state laws (the old disorder indexes the old Gibbs law), with a common finite label map $\pi$, and let $f(\omega_0,\cdot)$ be an observable such that
+$f(\omega_0,\cdot)$ is integrable under $\mu_0(\omega_0)^{\otimes R}$ for $P_0$-almost every
+$\omega_0$, the function $\omega_0\mapsto\int|f(\omega_0,a)|\,d\mu_0(\omega_0)^{\otimes R}(a)$
+is $P_0$-integrable, and the quenched expectation is almost everywhere measurable in $\omega_0$
+at each angle. Under the hypotheses of Theorem~\ref{thm:sg-tal:perceptron-tilted-rotation-ibp} (uniform in $\omega_0$),
 $s\mapsto\int\langle f(\omega_0)\prod_r\psi_r(S_s(\sigma_r))\rangle_{R,s}\,dP_0(\omega_0)$ is differentiable at $s_0$ and its derivative is the integral over $\omega_0$ of the four-group formula.
 \end{theorem}
 \begin{proof}
@@ -2522,7 +2549,10 @@ Formalized in \texttt{SpinGlasses/Gaussian/GaussianTiltedRotationBound.lean}.
   \leanok
 \talsource{The H\"older step of Lemma~2.3.2, which yields (2.40) for $1/\tau_1+1/\tau_2=1$, including $(\tau_1,\tau_2)=(1,\infty)$ and $(\infty,1)$ used in Lemma~2.3.4}
 Let $(\Omega,P)$ be a probability space, $\nu(\omega)$ a probability law on a state space $\alpha$ (in the cavity: the old Gibbs law for the old disorder $\omega$ together with the auxiliary coordinates), $e:R\to\iota$ injective, $r_1\ne r_2\in\iota$,
-$f(\omega)$ an observable of the $R$ replicas, and $d\ge0$ a measurable bounded kernel on $\alpha\times\alpha$ (in the cavity $d=|R^t_{12}-q|$). Then
+$f(\omega)$ an observable of the $R$ replicas, and $d\ge0$ a function of two states
+(in the cavity, $d=|R_{12}-q|$). For the interior exponents, assume the two indicated
+$L^p$ and $L^q$ memberships on almost every Gibbs section and integrability of the corresponding
+outer moments. Then
 \[
  \mathbb E\int|f(\omega)(\sigma\circ e)|\,d(\sigma_{r_1},\sigma_{r_2})\,d\nu(\omega)^{\otimes\iota}\le\Bigl(\mathbb E\!\int|f|^p\Bigr)^{1/p}\Bigl(\mathbb E\!\int d(\tau_0,\tau_1)^q\,d\nu(\omega)^{\otimes2}\Bigr)^{1/q}
 \]
@@ -2533,8 +2563,9 @@ $\le\mathbb E\int|f|\cdot\|d\|_\infty$ and $\le\|f\|_\infty\,\mathbb E\int d(\ta
   \leanok
 Work on the full $\iota$-replica space $(\alpha^\iota,\nu(\omega)^{\otimes\iota})$. There the functions $\sigma\mapsto|f(\omega)(\sigma\circ e)|$ and $\sigma\mapsto d(\sigma_{r_1},\sigma_{r_2})$ depend on the replicas $e(R)$ and on the two replicas $r_1,r_2$ only; because $e$ and $r\mapsto r_{1,2}$ (the map $\mathrm{Fin}\,2\to\iota$, injective by $r_1\ne r_2$, \texttt{Matrix.injective\_pair\_iff\_ne}) are injective, their $p$-th and $q$-th moments equal
 $A(\omega)=\int|f(\omega)|^p\,d\nu(\omega)^{\otimes R}$ and $B(\omega)=\int d(\tau_0,\tau_1)^q\,d\nu(\omega)^{\otimes2}$ (\texttt{integral\_pi\_comp\_injective}, the marginal of a product measure on an injective subfamily of the coordinates).
-For fixed $\omega$, H\"older's inequality on $\alpha^\iota$ then bounds the pair average by $A(\omega)^{1/p}B(\omega)^{1/q}$. For the outer expectation, $A^{1/p}\in L^p(P)$ (\texttt{memLp\_rpow\_inv\_of\_integrable}: $A\ge0$ integrable) and $B^{1/q}\in L^q(P)$ (it is bounded since $d\le M_d$),
-so H\"older over $P$ gives $\mathbb E\,A^{1/p}B^{1/q}\le(\mathbb E A)^{1/p}(\mathbb E B)^{1/q}$; this is the bound (2.40) once $d=|R^t_{12}-q|$.
+For fixed $\omega$, H\"older's inequality on $\alpha^\iota$ then bounds the pair average by $A(\omega)^{1/p}B(\omega)^{1/q}$. For the outer expectation, $A^{1/p}\in L^p(P)$ and $B^{1/q}\in L^q(P)$ by \texttt{memLp\_rpow\_inv\_of\_integrable}
+applied to each nonnegative integrable moment,
+so H\"older over $P$ gives $\mathbb E\,A^{1/p}B^{1/q}\le(\mathbb E A)^{1/p}(\mathbb E B)^{1/q}$. This is the pair estimate used in (2.40) with $d=|R_{12}-q|$.
 The endpoints $(1,\infty)$ and $(\infty,1)$ replace the integral H\"older step by the trivial estimates $\int|f|\,d\le\|d\|_\infty\int|f|$ and $\int|f|\,d\le\|f\|_\infty\int d$ with the same marginalizations; a.e.\ bounds under $P$-a.e.\ replica laws suffice.
 Formalized in \texttt{SpinGlasses/Gaussian/GaussianTiltedRotationBound.lean}.
 \end{proof}
@@ -2584,7 +2615,9 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavitySpecializ
 \begin{remark}[Status of Lemma~2.3.2 and the arithmetic still to be done]\label{rem:sg-tal:perceptron-lemma-232-status}
 The Gaussian analysis of Lemma~2.3.2 is now formalized \emph{in the model-free form}: Theorems~\ref{thm:sg-tal:perceptron-tilted-rotation-ibp}, \ref{thm:sg-tal:perceptron-tilted-rotation-ibp-avg} and~\ref{thm:sg-tal:perceptron-pair-holder} give, for any old-state family, an exact formula for the angle derivative of the quenched average
 and the H\"older step. What remains before (2.40) is stated for the cavity is purely the assembly:
-(a) instantiate $X,Y,C$ with the cavity coefficients and check the hypotheses of Remark~\ref{rem:sg-tal:perceptron-model-free-setting} (the two relations (2.50)), identifying $C(\sigma,\tau)=q-R^t(\sigma,\tau)$ up to the $1/(N+1)$ correction already controlled by \texttt{abs\_cavityCoef\_dotProduct\_sub\_overlap\_le};
+(a) apply the averaged formula to the split cavity law, using the coefficient identities proved above.
+They give $C(\sigma,\tau)=q-R^t(\sigma,\tau)$ exactly, with a $1/(N+1)$ bound on the change from
+$R^t$ to $R$;
 (b) bound each of the four groups using $|\psi_{d,i}|\le D'$, $|u'|\le D_1$, the pair H\"older estimate with $d=|C|$ and the first-moment bound of Lemma~\ref{lem:sg-tal:perceptron-tilt-first-moment}-type terms for the fresh replicas, with the constant $K(n,D)$ growing like $(4n^2+n)$;
 (c) the change of the angle $s$ into the book's $v=\cos^2s$, for which $\sin s\cos s$ cancels against $dv/ds=-2\sin s\cos s$ by \texttt{HasDerivAt.comp\_arccos\_sqrt\_of\_sin\_cos}, giving $-\tfrac12$ times the four groups, i.e.\ the form (2.53) with $R^t-q=-C$.
 The moving factor $B_v=u'(S_v^1)u'(S_v^2)$ is the case $\psi_1=\psi_2=u'$ of the same theorem.

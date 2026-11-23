@@ -139,9 +139,9 @@ theorem abs_integral_pi_tilted_prod_fst_mul_le
           ∫ a, |f a| ∂(Measure.pi fun _ : R => μ₀) := by ring
 
 /-- **Disorder-averaged Gaussian rotation derivative and integration by parts.** Averaging
-`hasDerivAt_integral_gaussian_tilted_rotation_ibp` over an outer probability measure `P₀` requires
-only `L¹`-integrability of `ω₀ ↦ ∫ a, |f ω₀ a| ∂pi(μ₀ ω₀)` and outer measurability of the quenched
-expectation at each angle `s`. -/
+`hasDerivAt_integral_gaussian_tilted_rotation_ibp` over an outer measure `P₀` uses integrability of
+almost every section `f ω₀` under `pi(μ₀ ω₀)`, integrability of its first absolute moment under
+`P₀`, and almost-everywhere measurability of the quenched expectation at every angle. -/
 theorem hasDerivAt_integral_integral_gaussian_tilted_rotation_ibp
     {Ω₀ α L K_sh K_aux R : Type*} [MeasurableSpace Ω₀] [MeasurableSpace α]
     [Finite L] [MeasurableSpace L] [MeasurableSingletonClass L]
@@ -517,9 +517,8 @@ theorem hasDerivAt_integral_integral_gaussian_tilted_rotation_ibp
 /-- **Iterated Hölder for a random replica Gibbs law on an arbitrary state space.**
 For interior conjugate exponents `Real.HolderConjugate p q`, if `f ω` is in `L^p` under `pi (ν ω)`
 and `d` is in `L^q` for almost every two-replica law, with integrable conditional moments,
-then the expected
-pair average of `|f ω (σ ∘ e)| * d (σ r₁) (σ r₂)` (`r₁ ≠ r₂`) is bounded by the product of the
-iterated `L^p` and `L^q` moments. -/
+the expected pair average of `|f ω (σ ∘ e)| * d (σ r₁) (σ r₂)` (`r₁ ≠ r₂`) is bounded by the
+product of the iterated `L^p` and `L^q` moments. -/
 theorem integral_integral_pair_holder_prob
     {Ω α R ι : Type*} [MeasurableSpace Ω] [MeasurableSpace α] [Fintype R] [Fintype ι]
     (P : Measure Ω)
@@ -571,7 +570,7 @@ theorem integral_integral_pair_holder_prob
   have hB_mem : MemLp (fun ω => B ω ^ (1 / q)) (ENNReal.ofReal q) P :=
     memLp_rpow_inv_of_integrable hq hB0 hdq_int
   have hAB_int : Integrable (fun ω => A ω ^ (1 / p) * B ω ^ (1 / q)) P := by
-    haveI := hpq.ennrealOfReal
+    have := hpq.ennrealOfReal
     exact hA_mem.integrable_mul hB_mem
   calc ∫ ω, ∫ σ : ι → α, |f ω (fun r => σ (e r))| * d (σ r₁) (σ r₂)
           ∂(Measure.pi fun _ : ι => ν ω) ∂P
