@@ -24,20 +24,20 @@ open scoped BigOperators NNReal
 namespace SpinGlasses
 
 /-- Measurability of a replica average after attaching independent coordinates to a tilted law,
-adding a second tilt and integrating over the new environment. -/
-private theorem measurable_integral_integral_pi_tilted_prod_tilted
+and adding a second tilt. -/
+private theorem measurable_integral_pi_tilted_prod_tilted
     {Ω W α β R : Type*} [MeasurableSpace Ω] [MeasurableSpace W] [MeasurableSpace α]
     [MeasurableSpace β] [Fintype R]
     (μ : Measure α) [IsFiniteMeasure μ] (γ : Measure β) [IsProbabilityMeasure γ]
-    (P : Measure W) [SFinite P] {E : Ω → α → ℝ}
+    {E : Ω → α → ℝ}
     (hE : Measurable fun p : Ω × α => E p.1 p.2)
     (hEi : ∀ ω, Integrable (fun a => Real.exp (E ω a)) μ)
     {V : Ω × W → α × β → ℝ}
     (hV : Measurable fun p : (Ω × W) × (α × β) => V p.1 p.2)
     {F : Ω × W → (R → α × β) → ℝ}
     (hF : Measurable fun p : (Ω × W) × (R → α × β) => F p.1 p.2) :
-    Measurable fun ω => ∫ w, ∫ σ : R → α × β, F (ω, w) σ
-      ∂(Measure.pi fun _ : R => ((μ.tilted (E ω)).prod γ).tilted (V (ω, w))) ∂P := by
+    Measurable fun p => ∫ σ : R → α × β, F p σ
+      ∂(Measure.pi fun _ : R => ((μ.tilted (E p.1)).prod γ).tilted (V p)) := by
   let H (p : Ω × W) (a : α × β) := E p.1 a.1 + V p a
   have hH : Measurable fun p : (Ω × W) × (α × β) => H p.1 p.2 :=
     (hE.comp ((measurable_fst.comp measurable_fst).prodMk
@@ -46,11 +46,83 @@ private theorem measurable_integral_integral_pi_tilted_prod_tilted
       (μ.prod γ).tilted (H p) := by
     rw [← tilted_prod_comp_fst, tilted_tilted ((hEi p.1).comp_fst γ)]
     rfl
-  have hν' (ω : Ω) (w : W) : ((μ.tilted (E ω)).prod γ).tilted (V (ω, w)) =
-      (μ.prod γ).tilted (H (ω, w)) := hν (ω, w)
-  simp_rw [hν']
-  exact ((measurable_integral_pi_tilted hH hF).stronglyMeasurable.integral_prod_right'
-    (ν := P)).measurable
+  simp_rw [hν]
+  exact measurable_integral_pi_tilted hH hF
+
+/-- Joint measurability of the last-row rotated field in the split cavity coordinates. -/
+theorem measurable_cavity_rotation_field {N M : ℕ} (t q s : ℝ) :
+    let X : PerceptronSpin N → (Fin N ⊕ Unit) ⊕ Unit → ℝ :=
+      fun σ => Sum.elim (cavityCoef N t σ) 0
+    let Y : (Fin N ⊕ Unit) ⊕ Unit → ℝ := Sum.elim 0 (fun _ => Real.sqrt q)
+    let A : Fin 2 → ℝ := Pi.single 0 (Real.sqrt ((1 - t) / (N + 1)))
+    let E : Fin 2 → ℝ := Pi.single 1 (Real.sqrt (1 - q))
+    Measurable fun p : ((Fin N ⊕ Unit) ⊕ Unit → ℝ) ×
+        (SmartPathState N M × (Fin 2 → ℝ)) =>
+      Real.cos s * (X p.2.1.1 ⬝ᵥ p.1 + A ⬝ᵥ p.2.2) +
+        Real.sin s * (Y ⬝ᵥ p.1 + E ⬝ᵥ p.2.2) := by
+  intro X Y A E
+  let W := (Fin N ⊕ Unit) ⊕ Unit → ℝ
+  let T := SmartPathState N M × (Fin 2 → ℝ)
+  have hX (j : (Fin N ⊕ Unit) ⊕ Unit) :
+      Measurable fun p : W × T => X p.2.1.1 j :=
+    (measurable_of_finite fun a => X a j).comp
+      (measurable_fst.comp (measurable_fst.comp measurable_snd))
+  have hdot : Measurable fun p : W × T => X p.2.1.1 ⬝ᵥ p.1 := by
+    simp only [dotProduct]
+    exact Finset.measurable_sum _ fun j _ => (hX j).mul
+      ((measurable_pi_apply j).comp measurable_fst)
+  have hdotY : Measurable fun p : W × T => Y ⬝ᵥ p.1 := by
+    simp only [dotProduct]
+    exact Finset.measurable_sum _ fun j _ => measurable_const.mul
+      ((measurable_pi_apply j).comp measurable_fst)
+  have hdotA : Measurable fun p : W × T => A ⬝ᵥ p.2.2 := by
+    simp only [dotProduct]
+    exact Finset.measurable_sum _ fun j _ => measurable_const.mul
+      ((measurable_pi_apply j).comp (measurable_snd.comp measurable_snd))
+  have hdotE : Measurable fun p : W × T => E ⬝ᵥ p.2.2 := by
+    simp only [dotProduct]
+    exact Finset.measurable_sum _ fun j _ => measurable_const.mul
+      ((measurable_pi_apply j).comp (measurable_snd.comp measurable_snd))
+  exact ((hdot.add hdotA).const_mul _).add ((hdotY.add hdotE).const_mul _)
+
+/-- A split-cavity replica average is jointly measurable in the old disorder and the
+fresh shared coordinates. The observable may depend on both. -/
+theorem measurable_integral_pi_cavity_rotation
+    {N M : ℕ} {R : Type*} [Fintype R] (t q s : ℝ)
+    {u : ℝ → ℝ} (hu : Measurable u) {D : ℝ} (hD : ∀ x, u x ≤ D)
+    {F : (SmartPathDisorder N M × ((Fin N ⊕ Unit) ⊕ Unit → ℝ)) →
+      (R → SmartPathState N M × (Fin 2 → ℝ)) → ℝ}
+    (hF : Measurable fun p : (SmartPathDisorder N M × ((Fin N ⊕ Unit) ⊕ Unit → ℝ)) ×
+      (R → SmartPathState N M × (Fin 2 → ℝ)) => F p.1 p.2) :
+    let μ₀ (ω : SmartPathDisorder N M) :=
+      (smartPathBase N M).tilted (smartPathEnergy u t ω)
+    let γ_aux := Measure.pi fun _ : Fin 2 => gaussianReal 0 1
+    let X : PerceptronSpin N → (Fin N ⊕ Unit) ⊕ Unit → ℝ :=
+      fun σ => Sum.elim (cavityCoef N t σ) 0
+    let Y : (Fin N ⊕ Unit) ⊕ Unit → ℝ := Sum.elim 0 (fun _ => Real.sqrt q)
+    let A : Fin 2 → ℝ := Pi.single 0 (Real.sqrt ((1 - t) / (N + 1)))
+    let E : Fin 2 → ℝ := Pi.single 1 (Real.sqrt (1 - q))
+    let S (s : ℝ) (w : (Fin N ⊕ Unit) ⊕ Unit → ℝ)
+        (x : SmartPathState N M × (Fin 2 → ℝ)) : ℝ :=
+      Real.cos s * (X x.1.1 ⬝ᵥ w + A ⬝ᵥ x.2) +
+        Real.sin s * (Y ⬝ᵥ w + E ⬝ᵥ x.2)
+    Measurable fun p => ∫ σ : R → SmartPathState N M × (Fin 2 → ℝ), F p σ
+      ∂(Measure.pi fun _ : R => ((μ₀ p.1).prod γ_aux).tilted (fun x => u (S s p.2 x))) := by
+  intro μ₀ γ_aux X Y A E S
+  let W := (Fin N ⊕ Unit) ⊕ Unit → ℝ
+  let T := SmartPathState N M × (Fin 2 → ℝ)
+  let Ω := SmartPathDisorder N M
+  have hs : Measurable fun p : W × T => S s p.1 p.2 :=
+    measurable_cavity_rotation_field (N := N) (M := M) t q s
+  let V (p : Ω × W) (x : T) := u (S s p.2 x)
+  have hp : Measurable (fun p : (Ω × W) × T => (p.1.2, p.2)) :=
+    ((measurable_snd.comp measurable_fst).prodMk measurable_snd)
+  have hV₀ := (hu.comp hs).comp hp
+  have hV : Measurable fun p : (Ω × W) × T => V p.1 p.2 := hV₀
+  exact measurable_integral_pi_tilted_prod_tilted (smartPathBase N M) γ_aux
+    (E := smartPathEnergy u t) (V := V) (F := F)
+    (measurable_smartPathEnergy hu t) (fun ω =>
+      integrable_exp_perceptron_smart_path_energy hu hD ω t) hV hF
 
 /-- Joint measurability of the rotated cavity Gibbs average after integrating the fresh
 shared Gaussian coordinates. The observable can use the full old Gibbs state. -/
@@ -84,34 +156,8 @@ theorem measurable_integral_integral_pi_cavity_rotation
   let Ω := SmartPathDisorder N M
   let ν (s : ℝ) (p : Ω × W) : Measure T :=
     ((μ₀ p.1).prod γ_aux).tilted (fun x => u (S s p.2 x))
-  have hs : ∀ s, Measurable fun p : W × T => S s p.1 p.2 := by
-    intro s
-    have hX (j : (Fin N ⊕ Unit) ⊕ Unit) :
-        Measurable fun p : W × T => X p.2.1.1 j :=
-      (measurable_of_finite fun a => X a j).comp
-        (measurable_fst.comp (measurable_fst.comp measurable_snd))
-    have hdot : Measurable fun p : W × T => X p.2.1.1 ⬝ᵥ p.1 := by
-      simp only [dotProduct]
-      exact Finset.measurable_sum _ fun j _ => (hX j).mul
-        ((measurable_pi_apply j).comp measurable_fst)
-    have hdotY : Measurable fun p : W × T => Y ⬝ᵥ p.1 := by
-      simp only [dotProduct]
-      exact Finset.measurable_sum _ fun j _ => measurable_const.mul
-        ((measurable_pi_apply j).comp measurable_fst)
-    have hdotA : Measurable fun p : W × T => A ⬝ᵥ p.2.2 := by
-      simp only [dotProduct]
-      exact Finset.measurable_sum _ fun j _ => measurable_const.mul
-        ((measurable_pi_apply j).comp (measurable_snd.comp measurable_snd))
-    have hdotE : Measurable fun p : W × T => E ⬝ᵥ p.2.2 := by
-      simp only [dotProduct]
-      exact Finset.measurable_sum _ fun j _ => measurable_const.mul
-        ((measurable_pi_apply j).comp (measurable_snd.comp measurable_snd))
-    exact ((hdot.add hdotA).const_mul _).add ((hdotY.add hdotE).const_mul _)
-  let V (p : Ω × W) (x : T) := u (S s p.2 x)
-  have hp : Measurable (fun p : (Ω × W) × T => (p.1.2, p.2)) :=
-    ((measurable_snd.comp measurable_fst).prodMk measurable_snd)
-  have hV₀ := (hu.comp (hs s)).comp hp
-  have hV : Measurable fun p : (Ω × W) × T => V p.1 p.2 := hV₀
+  have hs (s : ℝ) : Measurable fun p : W × T => S s p.1 p.2 :=
+    measurable_cavity_rotation_field (N := N) (M := M) t q s
   let F (s : ℝ) (p : Ω × W) (σ : R → T) :=
     f p.1 (fun r => (σ r).1) * ∏ r, ψ r (S s p.2 (σ r))
   have hFm (s : ℝ) : Measurable fun p : (Ω × W) × (R → T) => F s p.1 p.2 := by
@@ -131,10 +177,8 @@ theorem measurable_integral_integral_pi_cavity_rotation
     exact h1.mul h3
   change Measurable fun ω : Ω => ∫ w : W, ∫ σ : R → T, F s (ω, w) σ
     ∂(Measure.pi fun _ : R => ν s (ω, w)) ∂γ_sh
-  exact measurable_integral_integral_pi_tilted_prod_tilted (smartPathBase N M) γ_aux γ_sh
-    (E := smartPathEnergy u t) (V := V) (F := F s)
-    (measurable_smartPathEnergy hu t) (fun ω =>
-      integrable_exp_perceptron_smart_path_energy hu hD ω t) hV (hFm s)
+  have hm := measurable_integral_pi_cavity_rotation t q s hu hD (F := F s) (hFm s)
+  exact (hm.stronglyMeasurable.integral_prod_right' (ν := γ_sh)).measurable
 
 /-- The four-group derivative for the Gaussian perceptron in the split cavity coordinates.
 The observable may depend on the old disorder and all old auxiliary coordinates. The shared

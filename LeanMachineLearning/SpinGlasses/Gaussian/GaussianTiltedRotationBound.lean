@@ -67,20 +67,22 @@ theorem measurable_rotation_field {α L K_sh K_aux : Type*} [MeasurableSpace α]
   have := fun k => h2 Y_aux k
   fun_prop
 
-/-- Tilted replica integral of `f(σ ∘ e).1 * H σ` bounded by `M_H * exp(2 |ι| B)` times the
-`L¹`-norm of `f` under the untitled product law `pi μ₀`. -/
-theorem abs_integral_pi_tilted_prod_fst_mul_le
+/-- An old-state observable remains integrable after attaching independent coordinates,
+adding fresh replicas and applying a bounded tilt. Its absolute first moment increases
+by at most `exp (2 |ι| B)`. -/
+theorem integrable_pi_tilted_prod_fst_abs_and_le
     {α β R ι : Type*} [MeasurableSpace α] [MeasurableSpace β] [Fintype R] [Fintype ι]
     (μ₀ : Measure α) [IsProbabilityMeasure μ₀]
     (γ : Measure β) [IsProbabilityMeasure γ]
     {V : α × β → ℝ} (hVm : Measurable V) {B : ℝ} (hVb : ∀ q, |V q| ≤ B)
     {e : R → ι} (he : Function.Injective e)
-    {f : (R → α) → ℝ} (hfi : Integrable f (Measure.pi fun _ : R => μ₀))
-    (H : (ι → α × β) → ℝ) {M_H : ℝ} (hMH0 : 0 ≤ M_H) (hHb : ∀ σ, |H σ| ≤ M_H) :
-    |∫ σ : ι → α × β, f (fun r => (σ (e r)).1) * H σ
-      ∂(Measure.pi fun _ : ι => (μ₀.prod γ).tilted V)| ≤
-    M_H * Real.exp (2 * (Fintype.card ι : ℝ) * B) *
-      ∫ a, |f a| ∂(Measure.pi fun _ : R => μ₀) := by
+    {f : (R → α) → ℝ} (hfi : Integrable f (Measure.pi fun _ : R => μ₀)) :
+    Integrable (fun σ : ι → α × β => |f (fun r => (σ (e r)).1)|)
+        (Measure.pi fun _ : ι => (μ₀.prod γ).tilted V) ∧
+      (∫ σ : ι → α × β, |f (fun r => (σ (e r)).1)|
+          ∂(Measure.pi fun _ : ι => (μ₀.prod γ).tilted V)) ≤
+        Real.exp (2 * (Fintype.card ι : ℝ) * B) *
+          ∫ a, |f a| ∂(Measure.pi fun _ : R => μ₀) := by
   have : IsProbabilityMeasure ((μ₀.prod γ).tilted V) :=
     isProbabilityMeasure_tilted_of_ae_le hVm.aemeasurable
       (ae_of_all _ fun q => le_of_abs_le (hVb q))
@@ -117,6 +119,23 @@ theorem abs_integral_pi_tilted_prod_fst_mul_le
     exact integrable_tilted_of_ae_le (C := (Fintype.card ι : ℝ) * B) hE_sum_m.aemeasurable
       (ae_of_all _ fun σ => (Finset.sum_le_sum fun r _ => le_of_abs_le (hVb _)).trans_eq (by simp))
       hf_ι
+  exact ⟨hf_tilt, hcomp⟩
+
+/-- Tilted replica integral of `f(σ ∘ e).1 * H σ` bounded by `M_H * exp(2 |ι| B)` times the
+`L¹`-norm of `f` under the untitled product law `pi μ₀`. -/
+theorem abs_integral_pi_tilted_prod_fst_mul_le
+    {α β R ι : Type*} [MeasurableSpace α] [MeasurableSpace β] [Fintype R] [Fintype ι]
+    (μ₀ : Measure α) [IsProbabilityMeasure μ₀]
+    (γ : Measure β) [IsProbabilityMeasure γ]
+    {V : α × β → ℝ} (hVm : Measurable V) {B : ℝ} (hVb : ∀ q, |V q| ≤ B)
+    {e : R → ι} (he : Function.Injective e)
+    {f : (R → α) → ℝ} (hfi : Integrable f (Measure.pi fun _ : R => μ₀))
+    (H : (ι → α × β) → ℝ) {M_H : ℝ} (hMH0 : 0 ≤ M_H) (hHb : ∀ σ, |H σ| ≤ M_H) :
+    |∫ σ : ι → α × β, f (fun r => (σ (e r)).1) * H σ
+      ∂(Measure.pi fun _ : ι => (μ₀.prod γ).tilted V)| ≤
+    M_H * Real.exp (2 * (Fintype.card ι : ℝ) * B) *
+      ∫ a, |f a| ∂(Measure.pi fun _ : R => μ₀) := by
+  obtain ⟨hf_tilt, hcomp⟩ := integrable_pi_tilted_prod_fst_abs_and_le μ₀ γ hVm hVb he hfi
   calc |∫ σ : ι → α × β, f (fun r => (σ (e r)).1) * H σ
           ∂(Measure.pi fun _ : ι => (μ₀.prod γ).tilted V)|
       ≤ ∫ σ, |f (fun r => (σ (e r)).1) * H σ|
