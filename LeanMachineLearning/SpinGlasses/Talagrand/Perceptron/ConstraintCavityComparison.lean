@@ -1381,9 +1381,10 @@ theorem abs_integral_smartPath_deriv_mul_sub_rhat_le_of_ae_abs_le
         (Measure.pi fun _ : Fin 2 => νs s p) :=
       ae_of_all _ fun _ => Integrable.of_bound hd₂m.aestronglyMeasurable 2 (ae_of_all _ hd_bound)
     have hd_int : Integrable (fun p => ∫ a : Fin 2 → T, d_spin (a 0).1.1 (a 1).1.1
-        ∂(Measure.pi fun _ : Fin 2 => νs s p)) (P₀.prod γ_sh) :=
-      Integrable.of_bound hZ.aestronglyMeasurable 2 (ae_of_all _ fun _ =>
-        norm_integral_le_of_norm_le_const (ae_of_all _ hd_bound))
+        ∂(Measure.pi fun _ : Fin 2 => νs s p)) (P₀.prod γ_sh) := by
+      refine Integrable.of_bound hZ.aestronglyMeasurable 2 (ae_of_all _ fun p => ?_)
+      simpa only [probReal_univ, mul_one] using
+        norm_integral_le_of_norm_le_const (ae_of_all (Measure.pi fun _ : Fin 2 => νs s p) hd_bound)
     have hh := integral_integral_pair_holder_top_one (P₀.prod γ_sh) (νs s) he hij
       (f := fun p a => f p.1 (fun r => (a r).1)) (ae_of_all _ hFm) hFa
       (d := fun a b => d_spin a.1.1 b.1.1) (fun _ _ => abs_nonneg _) hd_mem hd_int

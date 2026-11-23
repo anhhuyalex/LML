@@ -1944,7 +1944,7 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityEndpoint.
 \texttt{ForMathlib/Probability/GibbsReplicaProdFactorization.lean}.
 \end{proof}
 
-\begin{lemma}[Covariance relations (2.50)--(2.51) and the overlap $R^t$]\label{lem:sg-tal:perceptron-cavity-covariance}
+\begin{lemma}[Covariance relations (2.50), (2.51), and (2.58)]\label{lem:sg-tal:perceptron-cavity-covariance}
   \lean{SpinGlasses.cavityVec,
         SpinGlasses.cavityVec_dotProduct,
         ProbabilityTheory.integral_dotProduct_mul_dotProduct_pi_gaussianReal,
@@ -1957,13 +1957,14 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityEndpoint.
         SpinGlasses.smartPathField_last_eq_dotProduct,
         SpinGlasses.cavityCoef_dotProduct,
         SpinGlasses.cavityCoef_dotProduct_self_add,
+        SpinGlasses.integral_cavity_zDeriv_mul_z,
         SpinGlasses.abs_cavityCoef_dotProduct_sub_overlap_le,
         SpinGlasses.cavity_rotation_dotProducts,
         SpinGlasses.abs_sub_cavityCoef_dotProduct_le,
         SpinGlasses.abs_perceptron_overlap_sub_le_two}
   \leanok
   \uses{prop:sg-tal:perceptron-cavity-path}
-\talsource{Eqs.~(2.50)--(2.51) and the relations displayed before them}
+\talsource{Eqs.~(2.50), (2.51), and (2.58)}
 All the random variables of the interpolation are linear forms in one vector of independent standard Gaussians: the couplings
 $g_{i,M}$ ($i<N$) and $g_{N,M}$ of the removed constraint, the shared $z$, and for each replica $\ell$ the coordinates $\xi_M^\ell$ and $\xi^\ell$.
 A form $\alpha\cdot g+b\,z+c\,\xi_M^\ell+e\,\xi^\ell$ is represented by its coefficient vector (\texttt{cavityVec}); the covariance of two forms is the dot product of
@@ -1984,6 +1985,15 @@ $y_\sigma=\cos s\,\alpha_\sigma\cdot g+\sin s\sqrt q\,z$. Then
 and if $C(\sigma,\sigma)+a_0^2=1$ then $\mathbb E\,\tilde z^\ell_\sigma z^\ell_\sigma=0$ and $\mathbb E(z^\ell_\sigma)^2=1$. For the perceptron, $S_{M,t}$ is such a form
 (\texttt{smartPathField\_last\_eq\_dotProduct}), $C(\sigma,\tau)=R^t(\sigma,\tau)=\bigl(\sum_{i<N}\sigma_i\tau_i+t\,\varepsilon\varepsilon'\bigr)/(N+1)$ for $t\ge0$,
 $C(\sigma,\sigma)+a_0^2=1$ for $t\in[0,1]$, and $|R^t-R|\le1/(N+1)$ where $R=\bigl(\sum_{i<N}\sigma_i\tau_i+\varepsilon\varepsilon'\bigr)/(N+1)$.
+For $v=\cos^2s$ with $0<s<\pi/2$, assign each replica $\ell$ a fixed configuration $\sigma^\ell$.
+Writing $z'=-\tilde z/(2\sin s\cos s)$ yields the Gaussian expectation in (2.58),
+\[
+ \mathbb E\, z'^\ell_{\sigma^\ell}z^{\ell'}_{\sigma^{\ell'}}=
+ \begin{cases}
+ 0 & \ell=\ell',\\
+ \tfrac12\bigl(R^t(\sigma^\ell,\sigma^{\ell'})-q\bigr) & \ell\ne\ell'.
+ \end{cases}
+\]
 \end{lemma}
 \begin{proof}
   \leanok
@@ -2012,12 +2022,18 @@ $(1-t)/(N+1)$ and $1-q$. For the shared covariance difference $\Delta$ one gets
 The last inequality uses the normalized dot product bound after appending the last spin.
 The parameter ranges are $t,q\in[0,1]$, including the endpoints where coefficients can vanish.
 
+\emph{Step 5 (square parameter).} Multiply the angle covariance by $-1/(2\sin s\cos s)$.
+Equal labels have the same fixed spin configuration, so the unit-variance identity gives zero.
+For distinct labels the factor $\sin s\cos s$ cancels and the sign reverses.
+
 Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityCovariance.lean}.
 \end{proof}
 
-\medskip\noindent\emph{Formalization note (relations).} The relations are stated in the $s$-form: the book's $z'=\frac1{2\sqrt v}S-\frac1{2\sqrt{1-v}}\theta$ equals
-$-\tilde z/(2\sin s\cos s)$ on $(0,\pi/2)$, so $\mathbb E z'z=\frac12(R^t-q)$ is the displayed relation divided by $-2\sin s\cos s$; the $s$-form avoids the singularity at $v\in\{0,1\}$.
-Singular covariance matrices are allowed ($q\in\{0,1\}$, $t\in\{0,1\}$). Evaluating along replica spin labels gives (2.58), and Lemma~\ref{lem:sg-tal:perceptron-time-covariance} proves the full Gaussian expectation form of (2.60) across all rows and replicas.
+\medskip\noindent\emph{Formalization note.} The proof of (2.58) holds the spin configurations
+fixed during Gaussian averaging. The Gibbs calculation then evaluates the resulting covariance
+at the replica configurations. The angle form also applies at $v\in\{0,1\}$. Singular covariance
+matrices are allowed at $q\in\{0,1\}$ and $t\in\{0,1\}$.
+Lemma~\ref{lem:sg-tal:perceptron-time-covariance} gives (2.60) across all rows and replicas.
 
 \begin{proposition}[Pathwise derivative of the cavity average, the formula (2.41) for $B_v\equiv1$]\label{prop:sg-tal:perceptron-cavity-pathwise-derivative}
   \lean{MeasureTheory.hasDerivAt_integral_tilted_of_integrable_moving,
@@ -2547,13 +2563,14 @@ Formalized in \texttt{SpinGlasses/Gaussian/GaussianTiltedRotationBound.lean}.
 \end{proof}
 
 \begin{theorem}[H\"older bounds for replica pair averages of a random Gibbs law]\label{thm:sg-tal:perceptron-pair-holder}
-  \lean{SpinGlasses.integral_integral_pair_holder_prob,
-        SpinGlasses.integral_integral_pair_holder_one_top,
-        SpinGlasses.integral_integral_pair_holder_top_one,
-        SpinGlasses.memLp_rpow_inv_of_integrable}
+  \lean{MeasureTheory.integral_integral_pair_holder_prob,
+        MeasureTheory.integral_integral_pair_holder_one_top,
+        MeasureTheory.integral_integral_pair_holder_top_one,
+        MeasureTheory.memLp_rpow_inv_of_integrable,
+        MeasureTheory.integrable_pi_tilted_and_integrable_integral_abs_of_rpow}
   \leanok
 \talsource{The H\"older step of Lemma~2.3.2, which yields (2.40) for $1/\tau_1+1/\tau_2=1$, including $(\tau_1,\tau_2)=(1,\infty)$ and $(\infty,1)$ used in Lemma~2.3.4}
-Let $(\Omega,P)$ be a probability space, $\nu(\omega)$ a probability law on a state space $\alpha$ (in the cavity: the old Gibbs law for the old disorder $\omega$ together with the auxiliary coordinates), $e:R\to\iota$ injective, $r_1\ne r_2\in\iota$,
+Let $P$ be a measure on $\Omega$, $\nu(\omega)$ a probability law on a state space $\alpha$ (in the cavity, the old Gibbs law with auxiliary coordinates), $e:R\to\iota$ injective, $r_1\ne r_2\in\iota$,
 $f(\omega)$ an observable of the $R$ replicas, and $d\ge0$ a function of two states
 (in the cavity, $d=|R_{12}-q|$). For the interior exponents, assume the two indicated
 $L^p$ and $L^q$ memberships on almost every Gibbs section and integrability of the corresponding
@@ -2562,7 +2579,7 @@ outer moments. Then
  \mathbb E\int|f(\omega)(\sigma\circ e)|\,d(\sigma_{r_1},\sigma_{r_2})\,d\nu(\omega)^{\otimes\iota}\le\Bigl(\mathbb E\!\int|f|^p\Bigr)^{1/p}\Bigl(\mathbb E\!\int d(\tau_0,\tau_1)^q\,d\nu(\omega)^{\otimes2}\Bigr)^{1/q}
 \]
 for conjugate exponents $\tfrac1p+\tfrac1q=1$ with $1<p<\infty$ and finite moments, and the two endpoint versions
-$\le\mathbb E\int|f|\cdot\|d\|_\infty$ and $\le\|f\|_\infty\,\mathbb E\int d(\tau_0,\tau_1)\,d\nu(\omega)^{\otimes2}$, where $\|\cdot\|_\infty$ is an a.e.\ bound.
+$\le\mathbb E\int|f|\cdot\|d\|_\infty$ and $\le\|f\|_\infty\,\mathbb E\int d(\tau_0,\tau_1)\,d\nu(\omega)^{\otimes2}$, where $\|\cdot\|_\infty$ is an a.e.\ bound. For the second endpoint, $f$ is a.e.\ measurable on almost every section and $d$ has integrable sections and an integrable average under $P$.
 \end{theorem}
 \begin{proof}
   \leanok
@@ -2572,7 +2589,11 @@ For fixed $\omega$, H\"older's inequality on $\alpha^\iota$ then bounds the pair
 applied to each nonnegative integrable moment,
 so H\"older over $P$ gives $\mathbb E\,A^{1/p}B^{1/q}\le(\mathbb E A)^{1/p}(\mathbb E B)^{1/q}$. This is the pair estimate used in (2.40) with $d=|R_{12}-q|$.
 The endpoints $(1,\infty)$ and $(\infty,1)$ replace the integral H\"older step by the trivial estimates $\int|f|\,d\le\|d\|_\infty\int|f|$ and $\int|f|\,d\le\|f\|_\infty\int d$ with the same marginalizations; a.e.\ bounds under $P$-a.e.\ replica laws suffice.
-Formalized in \texttt{SpinGlasses/Gaussian/GaussianTiltedRotationBound.lean}.
+For tilted replica laws on a finite disorder measure, $|x|\le 1+|x|^p$ for $p\ge1$ gives both
+first moments from the power moment. Joint measurability of the energy and observable gives
+measurability of the section integral of $|f|$.
+Formalized in \texttt{ForMathlib/Probability/GibbsReplicaPairBound.lean} and
+\texttt{ForMathlib/MeasureTheory/Integral/IteratedHolder.lean}.
 \end{proof}
 
 \begin{lemma}[Splitting the extended cavity system at the last constraint]\label{lem:sg-tal:perceptron-cavity-split}
@@ -2820,9 +2841,9 @@ $g_{\cdot,M},a_M,z,\xi_M^\ell,\xi^\ell$). Write $\nu_{t,v}$ for the quenched ext
 $S_v^\ell=\sqrt v\,S_{M,t}^\ell+\sqrt{1-v}\,(z\sqrt q+\xi^\ell\sqrt{1-q})$, and let either $B_v\equiv1$
 or $B_v=u'(S_v^{r_1})u'(S_v^{r_2})$ for two distinct replicas $r_1\ne r_2\in R$.
 \begin{enumerate}
-\item \emph{Interior conjugate exponents ($1/p_1+1/p_2=1$, $1<p_1,p_2<\infty$).} If $f(\omega_0,\cdot)$ and
-$|f(\omega_0,\cdot)|^{p_1}$ are integrable under $P_0$-almost every old Gibbs replica law $\mu_0(\omega_0)^{\otimes R}$
-and their old-Gibbs integrals are $P_0$-integrable, then $v'\mapsto\nu_{t,v'}(B_{v'}f)$ is differentiable at $v$ with
+\item \emph{Interior conjugate exponents ($1/p_1+1/p_2=1$, $1<p_1,p_2<\infty$).} If
+$|f(\omega_0,\cdot)|^{p_1}$ is integrable under $P_0$-almost every old Gibbs replica law $\mu_0(\omega_0)^{\otimes R}$
+and its old-Gibbs integral is $P_0$-integrable, then $v'\mapsto\nu_{t,v'}(B_{v'}f)$ is differentiable at $v$ with
 \[
  \Bigl|\frac{d}{dv}\nu_{t,v}(B_vf)\Bigr|\le K\left(\nu_{t,v}\bigl(|f|^{p_1}\bigr)^{1/p_1}
    \nu_{t,v}\bigl(|R_{1,2}-q|^{p_2}\bigr)^{1/p_2}+\frac{1}{N+1}\nu_{t,v}(|f|)\right).
@@ -2958,7 +2979,7 @@ H\"older exponents, such that for any $N,M\in\mathbb N$, distinct replicas $r_1\
 potential $u$ satisfying (2.7) with constant $D$, and jointly measurable observable $f(\omega_0,a)$ of the old disorder and old replica states:
 write $\nu_t$ for the quenched $(M+1)$-constraint smart-path average and $\widehat r$ for the quantity (2.36) of Lemma~\ref{lem:sg-tal:perceptron-cavity-endpoint}.
 \begin{enumerate}
-\item \emph{Interior conjugate exponents ($1/p_1+1/p_2=1$, $1<p_1,p_2<\infty$).} Under the old-Gibbs $L^1$ and $L^{p_1}$ integrability
+\item \emph{Interior conjugate exponents ($1/p_1+1/p_2=1$, $1<p_1,p_2<\infty$).} Under the old-Gibbs $L^{p_1}$ integrability
 hypotheses of Theorem~\ref{thm:sg-tal:perceptron-cavity-lemma-232},
 \[
  \bigl|\nu_t\bigl(f\,u'(S_{M,t}^{r_1})\,u'(S_{M,t}^{r_2})\bigr)-\widehat r\,\nu_t(f)\bigr|

@@ -713,9 +713,10 @@ theorem exists_hasDerivAt_cavity_rotation_abs_le_of_ae_abs_le
       (Measure.pi fun _ : Fin 2 => ν p) :=
     ae_of_all _ fun _ => Integrable.of_bound hd₂m.aestronglyMeasurable 2 (ae_of_all _ hd_bound)
   have hd_int : Integrable (fun p => ∫ a : Fin 2 → T, d (a 0) (a 1)
-      ∂(Measure.pi fun _ : Fin 2 => ν p)) P :=
-    Integrable.of_bound hZ.aestronglyMeasurable 2 (ae_of_all _ fun _ =>
-      norm_integral_le_of_norm_le_const (ae_of_all _ hd_bound))
+      ∂(Measure.pi fun _ : Fin 2 => ν p)) P := by
+    refine Integrable.of_bound hZ.aestronglyMeasurable 2 (ae_of_all _ fun p => ?_)
+    simpa only [probReal_univ, mul_one] using
+      norm_integral_le_of_norm_le_const (ae_of_all (Measure.pi fun _ : Fin 2 => ν p) hd_bound)
   have hpair (ι : Type v) [Fintype ι] (e : R → ι) (he : Function.Injective e)
       (i j : ι) (hij : i ≠ j) :
       ∫ p, ∫ a : ι → T, |F p (a ∘ e)| * d (a i) (a j)
