@@ -177,6 +177,7 @@ public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaPointMass
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaProdFactorization
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaProduct
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaRotation
+public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaSecondMoment
 public import LeanMachineLearning.ForMathlib.Probability.GibbsSiteSymmetry
 public import LeanMachineLearning.ForMathlib.Probability.GibbsTemperatureDerivative
 public import LeanMachineLearning.ForMathlib.Probability.HasCondDistrib

@@ -1907,6 +1907,7 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityPath.lean
         SpinGlasses.integral_integral_pi_tilted_cavityPath_pi_div_two_deriv_mul,
         SpinGlasses.perceptronRhat,
         SpinGlasses.perceptronRhat_eq_integral_sq_integral_tilted,
+        SpinGlasses.perceptronRhat_nonneg,
         SpinGlasses.rhat_mem_Icc}
   \leanok
   \uses{prop:sg-tal:perceptron-cavity-path}
@@ -3312,8 +3313,11 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/InterpolatingCavityBound.
         SpinGlasses.measurePreserving_interpConstraintStateSwap,
         SpinGlasses.interpConstraintStateSwap_apply,
         SpinGlasses.interpConstraintStateSwap_symm_apply,
+        SpinGlasses.interp_stein_cov_shared,
+        SpinGlasses.interp_stein_cov_diag,
         SpinGlasses.integral_interpolating_field_deriv_ibp,
-        SpinGlasses.hasDerivAt_interpolating_pressure_regrouped}
+        SpinGlasses.hasDerivAt_interpolating_pressure_regrouped,
+        MeasureTheory.hasDerivAt_log_integral_exp_of_dominated}
   \leanok
   \uses{thm:sg-tal:perceptron-tilted-stein, lem:sg-tal:perceptron-interpolating-overlap}
 \talsource{Section~2.4, Eqs.~(2.81)--(2.83)}
@@ -3406,6 +3410,7 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/InterpolatingHamiltonian.
   \lean{MeasureTheory.integral_integral_finset_sum_dep,
         SpinGlasses.abs_deriv_interpolating_pressure_add_le_cauchy_schwarz,
         SpinGlasses.integral_empirical_variance_split_le,
+        MeasureTheory.integral_integral_pi_tilted_sq_le_add,
         SpinGlasses.integral_interpolating_deriv_empirical_variance_le}
   \leanok
   \uses{lem:sg-tal:perceptron-interpolating-overlap, prop:sg-tal:perceptron-interpolating-pressure-deriv, thm:sg-tal:perceptron-pair-holder}
@@ -3455,7 +3460,8 @@ for $\alpha K_{\rm cav}\le 1$ and $\alpha\le 1$, using $V_-^{1/2}Q_{\rm ov}^{1/2
 
 \emph{Step 3 (replacing $V_-$ by $V_f$ and absorbing $\frac12 V_f$).} Pointwise,
 $|f^--f|\le|D|^2/(N+1)$ and $|f^-+f|\le 4\alpha|D|^2\le 4|D|^2$, so
-$|(f^-)^2-f^2|\le 4|D|^4/(N+1)$ and $V_-\le V_f+5|D|^4/(N+1)$. Substituting this and Step~2 into
+$|(f^-)^2-f^2|\le 4|D|^4/(N+1)$, and the general comparison of replica second moments
+(\texttt{integral\_integral\_pi\_tilted\_sq\_le\_add}) gives $V_-\le V_f+5|D|^4/(N+1)$. Substituting this and Step~2 into
 Step~1 gives
 \[
  V_f\le\frac{1}{2}Q_{\rm ov}+\frac{1}{2}V_f+\frac{9|D|^4+4|D|^2}{2(N+1)}.
@@ -3662,7 +3668,7 @@ $(g_0,g_M)$ via \texttt{measurePreserving\_finSuccProd} writes $Z_{N+1,M+1}=Z_{N
 \int\exp u(S_M)\,d\mu_M(g_0)$; taking $(N+1)^{-1}\mathbb E\log$ and integrating out $g_M$ in the
 $\log Z_{N+1,M}$ term gives~(1) (\texttt{perceptron\_pressure\_succ\_sub\_eq}). Integrability of the three logarithms follows from \texttt{integrable\_log\_sum\_exp} (a finite sum of exponentials of integrable energies): each spin field $(N+1)^{-1/2}\sum_ig_i\tau_i$ is $\mathcal N(0,1)$ (\texttt{map\_normalized\_constraint\_field\_eq\_gaussianReal}), so $u$ of it is integrable, and $\log R=\log Z_{M+1}-\log Z_M$ is integrable as a difference. No bound on $u$ is needed.
 
-\emph{Step 2 (differentiation and Stein ratio IBP, (2.91)).} Differentiating $\varphi(v)$ on a
+\emph{Step 2 (differentiation and Stein ratio IBP, (2.91)).} The Lean proof has three parts: the dominated differentiation of $\varphi$ with its integrable derivative (\texttt{hasDerivAt\_secondProof\_logPartition}, which uses the general \texttt{hasDerivAt\_log\_integral\_exp\_of\_dominated}), the Stein identity at a fixed old disorder (\texttt{secondProof\_stein\_fixed\_disorder}, whose covariances are \texttt{interp\_stein\_cov\_shared} and \texttt{interp\_stein\_cov\_diag}, shared with (2.82)), and the transport of the disorder and of the state to the Stein coordinates (\texttt{integral\_secondProof\_stein}). Differentiating $\varphi(v)$ on a
 compact subinterval of $(0,1)$ brings down $S'_v u'(S_v)$ under the tilted product law
 $(\mu_M(g_0)\otimes\gamma)^{\mathrm{tilted}(u\circ S_v)}$. At fixed $g_0$, applying
 Theorem~\ref{thm:sg-tal:perceptron-tilted-stein} (\texttt{stein\_tilted\_replica\_ratio}) on

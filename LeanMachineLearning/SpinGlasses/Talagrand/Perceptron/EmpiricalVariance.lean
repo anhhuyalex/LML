@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.InterpolatingHamiltonian
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.InterpolatingSmartPath
+import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaSecondMoment
 
 /-!
 # Empirical variance of `u'` along the `s`-interpolating path (Talagrand Section 2.4, Lemma 2.4.3)
@@ -2117,52 +2118,8 @@ theorem integral_interpolating_deriv_empirical_variance_le (D : ℝ) :
           (mul_le_mul_of_nonneg_right (by norm_num) (pow_nonneg (abs_nonneg D) 4)) (by positivity)
       have hle := ((le_abs_self _).trans hsq_sub).trans h45
       exact sub_le_iff_le_add'.1 hle
-    have hf2_pt_int
-        (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ)) :
-        Integrable (fun σ => (f ω σ) ^ 2) (Measure.pi fun _ : Fin 2 => ν_s ω) :=
-      Integrable.of_bound ((hf_slice ω).pow_const 2).aestronglyMeasurable ((2 * α * |D| ^ 2) ^ 2)
-        (ae_of_all _ fun σ => by
-          rw [Real.norm_of_nonneg (sq_nonneg _), ← sq_abs]
-          exact pow_le_pow_left₀ (abs_nonneg _) (hf_b ω σ) 2)
-    have hfm2_pt_int
-        (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ)) :
-        Integrable (fun σ => (fMinus ω σ) ^ 2) (Measure.pi fun _ : Fin 2 => ν_s ω) :=
-      Integrable.of_bound ((hfMinus_slice ω).pow_const 2).aestronglyMeasurable
-        ((2 * α * |D| ^ 2) ^ 2) (ae_of_all _ fun σ => by
-          rw [Real.norm_of_nonneg (sq_nonneg _), ← sq_abs]
-          exact pow_le_pow_left₀ (abs_nonneg _) (hfMinus_b ω σ) 2)
-    have hf2_out_int : Integrable (fun ω => ∫ σ, (f ω σ) ^ 2
-        ∂(Measure.pi fun _ : Fin 2 => ν_s ω)) P₁ :=
-      integrable_integral_pi_tilted (μ := μ_s) hEs_joint hν_prob (hf_joint.pow_const 2)
-        fun ω σ => by
-          rw [abs_of_nonneg (sq_nonneg _), ← sq_abs]
-          exact pow_le_pow_left₀ (abs_nonneg _) (hf_b ω σ) 2
-    have hfm2_out_int : Integrable (fun ω => ∫ σ, (fMinus ω σ) ^ 2
-        ∂(Measure.pi fun _ : Fin 2 => ν_s ω)) P₁ :=
-      integrable_integral_pi_tilted (μ := μ_s) hEs_joint hν_prob (hfMinus_joint.pow_const 2)
-        fun ω σ => by
-          rw [abs_of_nonneg (sq_nonneg _), ← sq_abs]
-          exact pow_le_pow_left₀ (abs_nonneg _) (hfMinus_b ω σ) 2
-    have hm_P : V_minus ≤
-        ∫ ω, ((∫ σ, (f ω σ) ^ 2 ∂(Measure.pi fun _ : Fin 2 => ν_s ω)) + err_v) ∂P₁ := by
-      refine integral_mono hfm2_out_int (hf2_out_int.add (integrable_const err_v)) fun ω => ?_
-      have h1 : (∫ σ, (fMinus ω σ) ^ 2 ∂(Measure.pi fun _ : Fin 2 => ν_s ω)) ≤
-          ∫ σ, ((f ω σ) ^ 2 + err_v) ∂(Measure.pi fun _ : Fin 2 => ν_s ω) :=
-        integral_mono (hfm2_pt_int ω) ((hf2_pt_int ω).add (integrable_const err_v)) (hpt_sq ω)
-      have h_add_pt : (∫ σ, ((f ω σ) ^ 2 + err_v) ∂(Measure.pi fun _ : Fin 2 => ν_s ω)) =
-          (∫ σ, (f ω σ) ^ 2 ∂(Measure.pi fun _ : Fin 2 => ν_s ω)) +
-          ∫ _σ, err_v ∂(Measure.pi fun _ : Fin 2 => ν_s ω) :=
-        integral_add (hf2_pt_int ω) (integrable_const err_v)
-      rw [h_add_pt, integral_const, probReal_univ, one_smul] at h1
-      exact h1
-    have h_add_P : (∫ ω, ((∫ σ, (f ω σ) ^ 2 ∂(Measure.pi fun _ : Fin 2 => ν_s ω)) + err_v) ∂P₁) =
-        V_f + ∫ _ω, err_v ∂P₁ :=
-      integral_add hf2_out_int (integrable_const err_v)
-    have hm_P' : V_minus ≤
-        ∫ ω, ((∫ σ, (f ω σ) ^ 2 ∂(Measure.pi fun _ : Fin 2 => ν_s ω)) + err_v) ∂P₁ :=
-      hm_P
-    rw [h_add_P, integral_const, probReal_univ, one_smul] at hm_P'
-    exact hm_P'
+    exact integral_integral_pi_tilted_sq_le_add (μ := μ_s) hEs_joint hν_prob hfMinus_joint
+      hf_joint (fun ω σ => hfMinus_b ω σ) hf_b hpt_sq
   -- Step 4: Assemble and absorb `(1 / 2) * V_f`!
   have herr_split : (α * |(|D|)| ^ 2 + |r|) * |(|D|)| ^ 2 / ((N : ℝ) + 1) ≤
       2 * |D| ^ 4 / ((N : ℝ) + 1) := by

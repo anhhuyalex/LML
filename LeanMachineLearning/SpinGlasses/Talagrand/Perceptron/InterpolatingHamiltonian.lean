@@ -1451,6 +1451,82 @@ private lemma measurePreserving_interpStateLastSplit (L M : ℕ) :
   (measurePreserving_prodAssoc _ _ _).symm.comp
     ((MeasurePreserving.id _).prod (measurePreserving_finSuccProd _ M))
 
+/-- **Covariance of the shared Gaussian block in the Stein step** (Talagrand (2.82), (2.91)):
+for the coefficient vectors of `S_s'` and `S_s` over the shared Gaussians `(g, z)`, the covariance of
+the derivative of the field of `τ₁` with the field of `τ₂` is `(R(τ₁, τ₂) - q) / 2`. -/
+theorem interp_stein_cov_shared {N : ℕ} {s q : ℝ} (hs : s ∈ Ioo (0 : ℝ) 1) (hq : 0 ≤ q)
+    (τ₁ τ₂ : Fin (N + 1) → ℤˣ) :
+    Sum.elim (fun i : Fin (N + 1) =>
+        (1 / (2 * Real.sqrt s)) * (Real.sqrt (N + 1 : ℕ))⁻¹ * ((τ₁ i : ℤ) : ℝ))
+      (fun _ : Unit => -(1 / (2 * Real.sqrt (1 - s))) * Real.sqrt q) ⬝ᵥ
+    Sum.elim (fun i : Fin (N + 1) =>
+        Real.sqrt s * (Real.sqrt (N + 1 : ℕ))⁻¹ * ((τ₂ i : ℤ) : ℝ))
+      (fun _ : Unit => Real.sqrt (1 - s) * Real.sqrt q) =
+      (1 / 2) * ((((N : ℝ) + 1)⁻¹ * ∑ i, ((τ₁ i : ℤ) : ℝ) * ((τ₂ i : ℤ) : ℝ)) - q) := by
+    rw [sumElim_dotProduct_sumElim]
+    have hs_ne : Real.sqrt s ≠ 0 := (Real.sqrt_pos.2 hs.1).ne'
+    have h1s_ne : Real.sqrt (1 - s) ≠ 0 := (Real.sqrt_pos.2 (sub_pos.2 hs.2)).ne'
+    have hL_pos : (0 : ℝ) < (N : ℝ) + 1 := by positivity
+    have hsq_L : (Real.sqrt (N + 1 : ℕ))⁻¹ * (Real.sqrt (N + 1 : ℕ))⁻¹ = ((N : ℝ) + 1)⁻¹ := by
+      rw [← mul_inv, Real.mul_self_sqrt (Nat.cast_nonneg _)]; push_cast; rfl
+    have hsq_q : Real.sqrt q * Real.sqrt q = q := Real.mul_self_sqrt hq
+    have h1 : (fun i : Fin (N + 1) =>
+        (1 / (2 * Real.sqrt s)) * (Real.sqrt (N + 1 : ℕ))⁻¹ * ((τ₁ i : ℤ) : ℝ)) ⬝ᵥ
+      (fun i : Fin (N + 1) =>
+        Real.sqrt s * (Real.sqrt (N + 1 : ℕ))⁻¹ * ((τ₂ i : ℤ) : ℝ)) =
+      (1 / 2) * (((N : ℝ) + 1)⁻¹ * ∑ i, ((τ₁ i : ℤ) : ℝ) * ((τ₂ i : ℤ) : ℝ)) := by
+      simp only [dotProduct]
+      rw [Finset.mul_sum, Finset.mul_sum]
+      refine Finset.sum_congr rfl fun i _ => ?_
+      have hc : (1 / (2 * Real.sqrt s)) * Real.sqrt s = 1 / 2 := by field_simp
+      calc (1 / (2 * Real.sqrt s)) * (Real.sqrt (N + 1 : ℕ))⁻¹ * ((τ₁ i : ℤ) : ℝ) *
+            (Real.sqrt s * (Real.sqrt (N + 1 : ℕ))⁻¹ * ((τ₂ i : ℤ) : ℝ))
+          = ((1 / (2 * Real.sqrt s)) * Real.sqrt s) *
+              ((Real.sqrt (N + 1 : ℕ))⁻¹ * (Real.sqrt (N + 1 : ℕ))⁻¹) *
+              (((τ₁ i : ℤ) : ℝ) * ((τ₂ i : ℤ) : ℝ)) := by ring
+        _ = (1 / 2) * (((N : ℝ) + 1)⁻¹ * (((τ₁ i : ℤ) : ℝ) * ((τ₂ i : ℤ) : ℝ))) := by
+            rw [hc, hsq_L]; ring
+    have h2 : (fun _ : Unit => -(1 / (2 * Real.sqrt (1 - s))) * Real.sqrt q) ⬝ᵥ
+        (fun _ : Unit => Real.sqrt (1 - s) * Real.sqrt q) = -(1 / 2) * q := by
+      simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton]
+      have hc : (1 / (2 * Real.sqrt (1 - s))) * Real.sqrt (1 - s) = 1 / 2 := by field_simp
+      calc -(1 / (2 * Real.sqrt (1 - s))) * Real.sqrt q * (Real.sqrt (1 - s) * Real.sqrt q)
+          = -((1 / (2 * Real.sqrt (1 - s))) * Real.sqrt (1 - s)) * (Real.sqrt q * Real.sqrt q) := by
+            ring
+        _ = -(1 / 2) * q := by rw [hc, hsq_q]
+    rw [h1, h2]; ring
+
+/-- **The diagonal covariance vanishes in the Stein step:** the shared and the auxiliary Gaussian
+contributions to `⟨S_s', S_s⟩` of one spin configuration cancel, which kills the diagonal term. -/
+theorem interp_stein_cov_diag {N : ℕ} {s q : ℝ} (hs : s ∈ Ioo (0 : ℝ) 1) (hq : q ∈ Icc (0 : ℝ) 1)
+    (τ : Fin (N + 1) → ℤˣ) :
+    Sum.elim (fun i : Fin (N + 1) =>
+        (1 / (2 * Real.sqrt s)) * (Real.sqrt (N + 1 : ℕ))⁻¹ * ((τ i : ℤ) : ℝ))
+      (fun _ : Unit => -(1 / (2 * Real.sqrt (1 - s))) * Real.sqrt q) ⬝ᵥ
+    Sum.elim (fun i : Fin (N + 1) =>
+        Real.sqrt s * (Real.sqrt (N + 1 : ℕ))⁻¹ * ((τ i : ℤ) : ℝ))
+      (fun _ : Unit => Real.sqrt (1 - s) * Real.sqrt q) +
+    (fun _ : Unit => -(1 / (2 * Real.sqrt (1 - s))) * Real.sqrt (1 - q)) ⬝ᵥ
+      (fun _ : Unit => Real.sqrt (1 - s) * Real.sqrt (1 - q)) = 0 := by
+    rw [interp_stein_cov_shared hs hq.1 τ τ]
+    have hself : (((N : ℝ) + 1)⁻¹ * ∑ i : Fin (N + 1), ((τ i : ℤ) : ℝ) * ((τ i : ℤ) : ℝ)) = 1 := by
+      simpa only [dotProduct, Fintype.card_fin, Nat.cast_add, Nat.cast_one] using
+        card_inv_mul_dotProduct_self_eq_one (fun i : Fin (N + 1) => ((τ i : ℤ) : ℝ))
+          (fun i => units_cast_sq (τ i))
+    have haux_dot : (fun _ : Unit => -(1 / (2 * Real.sqrt (1 - s))) * Real.sqrt (1 - q)) ⬝ᵥ
+        (fun _ : Unit => Real.sqrt (1 - s) * Real.sqrt (1 - q)) = -(1 / 2) * (1 - q) := by
+      simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton]
+      have h1s_ne : Real.sqrt (1 - s) ≠ 0 := (Real.sqrt_pos.2 (sub_pos.2 hs.2)).ne'
+      have hc : (1 / (2 * Real.sqrt (1 - s))) * Real.sqrt (1 - s) = 1 / 2 := by field_simp
+      have hsq_1q : Real.sqrt (1 - q) * Real.sqrt (1 - q) = 1 - q :=
+        Real.mul_self_sqrt (sub_nonneg.2 hq.2)
+      calc -(1 / (2 * Real.sqrt (1 - s))) * Real.sqrt (1 - q) *
+            (Real.sqrt (1 - s) * Real.sqrt (1 - q))
+          = -((1 / (2 * Real.sqrt (1 - s))) * Real.sqrt (1 - s)) *
+              (Real.sqrt (1 - q) * Real.sqrt (1 - q)) := by ring
+        _ = -(1 / 2) * (1 - q) := by rw [hc, hsq_1q]
+    rw [hself, haux_dot]; ring
+
 /-- **Gaussian IBP on a single `s`-interpolating constraint field (Eq. (2.82)):**
 for `s ∈ (0, 1)`, `q ∈ [0, 1]`, and any constraint `k : Fin M`,
 `ν_s(S'_{k, s} u'(S_{k, s})) = - (1 / 2) ν_s((R_{1,2} - q) u'(S^1_{k, s}) u'(S^2_{k, s}))`. -/
@@ -1642,59 +1718,10 @@ theorem integral_interpolating_field_deriv_ibp
     fun _ => -(1 / (2 * Real.sqrt (1 - s))) * Real.sqrt (1 - q)
   have hcov_sh (τ₁ τ₂ : Fin (N + 1) → ℤˣ) :
       W_sh τ₁ ⬝ᵥ α_sh τ₂ =
-        (1 / 2) * ((((N : ℝ) + 1)⁻¹ * ∑ i, ((τ₁ i : ℤ) : ℝ) * ((τ₂ i : ℤ) : ℝ)) - q) := by
-    dsimp only [W_sh, α_sh]
-    rw [sumElim_dotProduct_sumElim]
-    have hs_ne : Real.sqrt s ≠ 0 := (Real.sqrt_pos.2 hs.1).ne'
-    have h1s_ne : Real.sqrt (1 - s) ≠ 0 := (Real.sqrt_pos.2 (sub_pos.2 hs.2)).ne'
-    have hL_pos : (0 : ℝ) < (N : ℝ) + 1 := by positivity
-    have hsq_L : (Real.sqrt (N + 1 : ℕ))⁻¹ * (Real.sqrt (N + 1 : ℕ))⁻¹ = ((N : ℝ) + 1)⁻¹ := by
-      rw [← mul_inv, Real.mul_self_sqrt (Nat.cast_nonneg _)]; push_cast; rfl
-    have hsq_q : Real.sqrt q * Real.sqrt q = q := Real.mul_self_sqrt hq.1
-    have h1 : (fun i : Fin (N + 1) =>
-        (1 / (2 * Real.sqrt s)) * (Real.sqrt (N + 1 : ℕ))⁻¹ * ((τ₁ i : ℤ) : ℝ)) ⬝ᵥ
-      (fun i : Fin (N + 1) =>
-        Real.sqrt s * (Real.sqrt (N + 1 : ℕ))⁻¹ * ((τ₂ i : ℤ) : ℝ)) =
-      (1 / 2) * (((N : ℝ) + 1)⁻¹ * ∑ i, ((τ₁ i : ℤ) : ℝ) * ((τ₂ i : ℤ) : ℝ)) := by
-      simp only [dotProduct]
-      rw [Finset.mul_sum, Finset.mul_sum]
-      refine Finset.sum_congr rfl fun i _ => ?_
-      have hc : (1 / (2 * Real.sqrt s)) * Real.sqrt s = 1 / 2 := by field_simp
-      calc (1 / (2 * Real.sqrt s)) * (Real.sqrt (N + 1 : ℕ))⁻¹ * ((τ₁ i : ℤ) : ℝ) *
-            (Real.sqrt s * (Real.sqrt (N + 1 : ℕ))⁻¹ * ((τ₂ i : ℤ) : ℝ))
-          = ((1 / (2 * Real.sqrt s)) * Real.sqrt s) *
-              ((Real.sqrt (N + 1 : ℕ))⁻¹ * (Real.sqrt (N + 1 : ℕ))⁻¹) *
-              (((τ₁ i : ℤ) : ℝ) * ((τ₂ i : ℤ) : ℝ)) := by ring
-        _ = (1 / 2) * (((N : ℝ) + 1)⁻¹ * (((τ₁ i : ℤ) : ℝ) * ((τ₂ i : ℤ) : ℝ))) := by
-            rw [hc, hsq_L]; ring
-    have h2 : (fun _ : Unit => -(1 / (2 * Real.sqrt (1 - s))) * Real.sqrt q) ⬝ᵥ
-        (fun _ : Unit => Real.sqrt (1 - s) * Real.sqrt q) = -(1 / 2) * q := by
-      simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton]
-      have hc : (1 / (2 * Real.sqrt (1 - s))) * Real.sqrt (1 - s) = 1 / 2 := by field_simp
-      calc -(1 / (2 * Real.sqrt (1 - s))) * Real.sqrt q * (Real.sqrt (1 - s) * Real.sqrt q)
-          = -((1 / (2 * Real.sqrt (1 - s))) * Real.sqrt (1 - s)) * (Real.sqrt q * Real.sqrt q) := by
-            ring
-        _ = -(1 / 2) * q := by rw [hc, hsq_q]
-    rw [h1, h2]; ring
+        (1 / 2) * ((((N : ℝ) + 1)⁻¹ * ∑ i, ((τ₁ i : ℤ) : ℝ) * ((τ₂ i : ℤ) : ℝ)) - q) :=
+    interp_stein_cov_shared hs hq.1 τ₁ τ₂
   have hcov_diag (τ : Fin (N + 1) → ℤˣ) :
-      W_sh τ ⬝ᵥ α_sh τ + W_aux τ ⬝ᵥ α_aux τ = 0 := by
-    rw [hcov_sh τ τ]
-    have hself : (((N : ℝ) + 1)⁻¹ * ∑ i : Fin (N + 1), ((τ i : ℤ) : ℝ) * ((τ i : ℤ) : ℝ)) = 1 := by
-      simpa only [dotProduct, Fintype.card_fin, Nat.cast_add, Nat.cast_one] using
-        card_inv_mul_dotProduct_self_eq_one (fun i : Fin (N + 1) => ((τ i : ℤ) : ℝ))
-    have haux_dot : W_aux τ ⬝ᵥ α_aux τ = -(1 / 2) * (1 - q) := by
-      dsimp only [W_aux, α_aux]
-      simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton]
-      have h1s_ne : Real.sqrt (1 - s) ≠ 0 := (Real.sqrt_pos.2 (sub_pos.2 hs.2)).ne'
-      have hc : (1 / (2 * Real.sqrt (1 - s))) * Real.sqrt (1 - s) = 1 / 2 := by field_simp
-      have hsq_1q : Real.sqrt (1 - q) * Real.sqrt (1 - q) = 1 - q :=
-        Real.mul_self_sqrt (sub_nonneg.2 hq.2)
-      calc -(1 / (2 * Real.sqrt (1 - s))) * Real.sqrt (1 - q) *
-            (Real.sqrt (1 - s) * Real.sqrt (1 - q))
-          = -((1 / (2 * Real.sqrt (1 - s))) * Real.sqrt (1 - s)) *
-              (Real.sqrt (1 - q) * Real.sqrt (1 - q)) := by ring
-        _ = -(1 / 2) * (1 - q) := by rw [hc, hsq_1q]
-    rw [hself, haux_dot]; ring
+      W_sh τ ⬝ᵥ α_sh τ + W_aux τ ⬝ᵥ α_aux τ = 0 := interp_stein_cov_diag hs hq τ
   -- Pointwise Stein identity at fixed `ω₀`!
   have hstein_ω₀ (ω₀ : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) :
       ∫ w, ∫ σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ),
