@@ -76,11 +76,15 @@ Blueprint chapters: `blueprint/src/chapters/spinglasses.tex` (Panchenko) and
   objects with equation lemmas, `SmartPathIBP.lean` and `SmartPathAssembly.lean` prove the three-term
   expansion and the Gaussian integration-by-parts cancellation (Proposition 2.2.3), and
   `SmartPathExchangeable.lean` and `SmartPathNoAux.lean` the constraint-symmetric form and the
-  path without auxiliary spins (Exercise 2.2.4).
+  path without auxiliary spins (Exercise 2.2.4). The Gaussian-row corollaries derive the row
+  symmetry directly from the product law.
   Section 2.3 (the cavity in `M`): `ConstraintCavityDecomposition.lean` removes the last constraint
   and proves the ratio identity (2.32); `ConstraintCavityPath.lean` is the interpolating system
   (2.35) and its `v = 1` endpoint; `ConstraintCavityEndpoint.lean` is Lemma 2.3.1 (the `v = 0`
   endpoint), using the replica factorizations of
   `ForMathlib/Probability/GibbsReplicaProdFactorization.lean`; `ConstraintCavityCovariance.lean`
   gives the covariance relations (2.50)-(2.51) and the overlap `R^t` as dot products of
-  coefficient vectors. Lemma 2.3.2 onward remains open.
+  coefficient vectors. `ConstraintCavityRotationDerivative.lean` gives the disorder-averaged
+  angle derivative in the split cavity coordinates, allowing observables that use the old
+  auxiliary coordinates. The overlap-moment estimate (2.40) and the results that use it
+  remain open.

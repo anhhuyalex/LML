@@ -2397,7 +2397,7 @@ Two relations of the book are the hypotheses on $X,Y$: the \emph{orthogonality} 
 The shared part of the covariance is $C(m,m')=Y_{\mathrm{sh}}(m)\cdot Y_{\mathrm{sh}}(m')-X_{\mathrm{sh}}(m)\cdot X_{\mathrm{sh}}(m')$, which in the cavity is $q-R^t(\boldsymbol\sigma,\boldsymbol\tau)$ up to the term $1/(N+1)$
 absorbed in (2.40).
 The book's (2.50)--(2.51) say precisely that the covariance of the angular derivative $z'$ with the fields of two \emph{different} replicas is $\tfrac12(R^t-q)$.
-The instantiation of this dictionary in the cavity (the assembly of (2.40)) is \emph{not yet formalized}.
+Theorem~\ref{thm:sg-tal:perceptron-split-cavity-rotation} applies this dictionary in the split cavity.
 
 Three differences with the book are deliberate. (i)~The observable $f$ is a function of the old state only and is assumed merely $L^1$ for the product law, not bounded
 (a bounded $f$ is a special case); the bounds below carry $\int|f|$. (ii)~The hypothesis (2.7) is used as $|u|\le B$, $|u'|\le D_1$, $|u''|\le D_2$ with $u'$ differentiable. For a constant factor $\psi\equiv1$ nothing about $u'''$ is used. For the moving factor $B_v=u'(S^1)u'(S^2)$ one has $\psi=u'$, and the theorem then asks that $\psi'=u''$ be differentiable with $|\psi''|=|u'''|\le M_2$, which is exactly the book's (2.7) for $\ell=3$; the continuity of $u'''$ is never needed.
@@ -2612,12 +2612,80 @@ For the $C^2$ statement: $u'$ is differentiable (second hypothesis, $j=1$), so $
 Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavitySpecialization.lean}.
 \end{proof}
 
+\begin{theorem}[Gaussian derivative in the split constraint cavity]\label{thm:sg-tal:perceptron-split-cavity-rotation}
+  \lean{SpinGlasses.measurable_integral_integral_pi_cavity_rotation,
+        SpinGlasses.hasDerivAt_integral_integral_pi_cavity_rotation_ibp}
+  \leanok
+  \uses{thm:sg-tal:perceptron-tilted-rotation-ibp-avg,lem:sg-tal:perceptron-cavity-split}
+Fix $t,q\in[0,1]$. Let $\mu_0(\omega_0)$ be the Gibbs law of the old system at time $t$.
+The shared Gaussian block is $w=(g_M,a_M,z)$, and each replica has a fresh auxiliary pair
+$(\xi_M,\xi)$ independent of the old state. Write $S_s=\cos s\,S_{M,t}+\sin s\,\theta$ and let
+$\gamma_{\rm sh}$ and $\gamma_{\rm aux}$ be the standard Gaussian product laws on these two blocks.
+The state space of one replica is the full old state space times the fresh auxiliary pair. For
+the one-replica probability $\nu_{s,w,\omega_0}=(\mu_0(\omega_0)\otimes
+\gamma_{\rm aux})^{u(S_s)}$, the superscript denotes the exponential tilt.
+
+The observable $f(\omega_0,\cdot)$ can use the old disorder and the old auxiliary coordinates.
+Assume joint measurability, integrability under almost every old Gibbs replica law, and
+integrability of its old-Gibbs absolute first moment over the old disorder. For $u,\psi_r$ use
+the differentiability and bounds through order two of
+Theorem~\ref{thm:sg-tal:perceptron-tilted-rotation-ibp}. Then for every real $s$,
+\[
+ \frac{d}{ds}\int\!\int \nu_{s,w,\omega_0}^{\otimes R}
+ \left(f\prod_{r\in R}\psi_r(S_s^r)\right)\,d\gamma_{\rm sh}\,dP_0
+ =\sin s\cos s\int D_s(\omega_0)\,dP_0(\omega_0),
+\]
+where $D_s$ is the four-group sum of
+Theorem~\ref{thm:sg-tal:perceptron-tilted-rotation-ibp} using $C(\sigma,\tau)=q-R^t(\sigma,\tau)$.
+\end{theorem}
+\begin{proof}
+  \leanok
+Write $E_0$ for the old energy and $\mu$ for its counting-times-Gaussian base measure.
+
+\emph{Step 1 (two tilts).} Attach the fresh auxiliary pair to the old Gibbs law. At any fixed
+$(s,w,\omega_0)$ its tilt by $u(S_s)$ is
+\[
+ \nu_{s,w,\omega_0}
+ =\bigl(\mu^{E_0}\otimes\gamma_{\rm aux}\bigr)^{u(S_s)}
+ =\bigl(\mu\otimes\gamma_{\rm aux}\bigr)^{E_0+u(S_s)} .
+\]
+The old energy uses only the old state. Its exponential is integrable by the smart-path bound.
+The last equality follows from product tilt transport and the double-tilt identity.
+
+\emph{Step 2 (measurability).} The combined energy is jointly measurable in $(\omega_0,w,x)$
+and the observable times $\prod_r\psi_r(S_s^r)$ is jointly measurable in $(\omega_0,w,\sigma)$.
+Apply measurability of the replica tilt and then integration in $w$ to obtain
+\[
+ \omega_0\longmapsto
+ \int \nu_{s,w,\omega_0}^{\otimes R}\!
+ \left(f\prod_{r\in R}\psi_r(S_s^r)\right)\,d\gamma_{\rm sh}(w)
+ \quad\text{measurable.}
+\]
+
+\emph{Step 3 (covariance).} The shared blocks for $S_{M,t}$ and $\theta$ are supported on
+disjoint indices, as are the two auxiliary coefficients. The cavity coefficient identities give
+\[
+ X_\sigma\cdot Y=A\cdot B=0,\qquad
+ |X_\sigma|^2+|A|^2=|Y|^2+|B|^2=1,\qquad
+ Y\cdot Y-X_\sigma\cdot X_\tau=q-R^t(\sigma,\tau).
+\]
+The averaged four-group theorem now gives the derivative. This supplies the derivative in the
+split coordinates for the proof of Lemma~2.3.2. Bounding the groups and changing from $s$ to
+$v=\cos^2s$ remain to obtain (2.40).
+
+\emph{Difference from the printed calculation.} Differentiating the denominator $Z^{-n}$ in
+(2.35) introduces a factor $-n$ and one fresh replica. The coefficient in that step follows
+from the power in (2.35). The printed (2.41) has $-(n+1)$ in the corresponding term, where
+$n+1$ is the index of the fresh replica.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityRotationDerivative.lean}.
+\end{proof}
+
 \begin{remark}[Status of Lemma~2.3.2 and the arithmetic still to be done]\label{rem:sg-tal:perceptron-lemma-232-status}
 The Gaussian analysis of Lemma~2.3.2 is now formalized \emph{in the model-free form}: Theorems~\ref{thm:sg-tal:perceptron-tilted-rotation-ibp}, \ref{thm:sg-tal:perceptron-tilted-rotation-ibp-avg} and~\ref{thm:sg-tal:perceptron-pair-holder} give, for any old-state family, an exact formula for the angle derivative of the quenched average
-and the H\"older step. What remains before (2.40) is stated for the cavity is purely the assembly:
-(a) apply the averaged formula to the split cavity law, using the coefficient identities proved above.
-They give $C(\sigma,\tau)=q-R^t(\sigma,\tau)$ exactly, with a $1/(N+1)$ bound on the change from
-$R^t$ to $R$;
+and the H\"older step. The remaining estimates for (2.40) are:
+(a) transport the split-law derivative of Theorem~\ref{thm:sg-tal:perceptron-split-cavity-rotation}
+and the moment expressions along the cavity state and disorder splits; the covariance is
+$C(\sigma,\tau)=q-R^t(\sigma,\tau)$ exactly, and $|R^t-R|\le1/(N+1)$;
 (b) bound each of the four groups using $|\psi_{d,i}|\le D'$, $|u'|\le D_1$, the pair H\"older estimate with $d=|C|$ and the first-moment bound of Lemma~\ref{lem:sg-tal:perceptron-tilt-first-moment}-type terms for the fresh replicas, with the constant $K(n,D)$ growing like $(4n^2+n)$;
 (c) the change of the angle $s$ into the book's $v=\cos^2s$, for which $\sin s\cos s$ cancels against $dv/ds=-2\sin s\cos s$ by \texttt{HasDerivAt.comp\_arccos\_sqrt\_of\_sin\_cos}, giving $-\tfrac12$ times the four groups, i.e.\ the form (2.53) with $R^t-q=-C$.
 The moving factor $B_v=u'(S_v^1)u'(S_v^2)$ is the case $\psi_1=\psi_2=u'$ of the same theorem.
@@ -2630,7 +2698,8 @@ envelope (\texttt{hasDerivAt\_integral\_tilted\_of\_integrable\_moving}, of whic
 The Gaussian integration by parts over the whole family (couplings, $z$, $\xi_M^\ell$, $\xi^\ell$), the term created by the denominator,
 the average over the old disorder and the H\"older step of (2.40) are formalized in the model-free form of Section~\ref{sub:sg-tal:perceptron-model-free-ibp}
 (Theorems~\ref{thm:sg-tal:perceptron-tilted-stein}--\ref{thm:sg-tal:perceptron-pair-holder} and Remark~\ref{rem:sg-tal:perceptron-lemma-232-status});
-what is not yet formalized is the instantiation with the cavity coefficients and the resulting bound (2.40) itself.
+the split cavity derivative now uses those coefficients in
+Theorem~\ref{thm:sg-tal:perceptron-split-cavity-rotation}. The resulting bound (2.40) remains open.
 
 \medskip\noindent\emph{Formalization note (hypothesis audit).} The book states (2.32) for a function $f$ on $\Sigma_N^n\times\mathbb R^{Mn}$; the
 Lean statement allows an arbitrary function $Y$ of the replicas of the full configuration, which includes the dependence on the old
