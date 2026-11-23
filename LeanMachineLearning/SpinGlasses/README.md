@@ -84,7 +84,12 @@ Blueprint chapters: `blueprint/src/chapters/spinglasses.tex` (Panchenko) and
   endpoint), using the replica factorizations of
   `ForMathlib/Probability/GibbsReplicaProdFactorization.lean`; `ConstraintCavityCovariance.lean`
   gives the covariance relations (2.50)-(2.51) and the overlap `R^t` as dot products of
-  coefficient vectors. `ConstraintCavityRotationDerivative.lean` gives the disorder-averaged
-  angle derivative in the split cavity coordinates, allowing observables that use the old
-  auxiliary coordinates. The overlap-moment estimate (2.40) and the results that use it
-  remain open.
+  coefficient vectors. `ConstraintCavityRotationDerivative.lean` and
+  `ConstraintCavityOverlapBound.lean` give the disorder-averaged angle derivative and its four-group
+  Hölder bounds in split cavity coordinates, allowing observables of the old disorder and old
+  auxiliary coordinates. `ConstraintCavityInterpolationBound.lean` converts these to Talagrand's
+  `v = cos² s` coordinate to prove Lemma 2.3.2 (Eq. (2.40)). `ConstraintCavityTimeCovariance.lean`
+  proves the full Gaussian time covariances (2.60) and Exercise 2.3.3 (one-step Stein formula and
+  recovery of term I of (2.23)). `ConstraintCavityComparison.lean` proves Lemma 2.3.4 (Eq. (2.61))
+  and Proposition 2.3.5 (Eq. (2.62)), and `SmartPathCavityBound.lean` proves Proposition 2.3.6
+  (Eq. (2.66)) and Lemma 2.3.7 (Eq. (2.67)).

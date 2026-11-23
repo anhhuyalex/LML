@@ -2016,8 +2016,8 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityCovarianc
 \end{proof}
 
 \medskip\noindent\emph{Formalization note (relations).} The relations are stated in the $s$-form: the book's $z'=\frac1{2\sqrt v}S-\frac1{2\sqrt{1-v}}\theta$ equals
-$-\tilde z/(2\sin s\cos s)$, so $\mathbb E z'z=\frac12(R^t-q)$ is the displayed relation divided by $-2\sin s\cos s$; the $s$-form avoids the singularity at $v\in\{0,1\}$.
-Singular covariance matrices are allowed ($q\in\{0,1\}$, $t\in\{0,1\}$). The relations (2.58) and (2.60) for $S_v$ and for the derivative of $S_{k,t}$ in Exercise~2.3.3 are not yet stated.
+$-\tilde z/(2\sin s\cos s)$ on $(0,\pi/2)$, so $\mathbb E z'z=\frac12(R^t-q)$ is the displayed relation divided by $-2\sin s\cos s$; the $s$-form avoids the singularity at $v\in\{0,1\}$.
+Singular covariance matrices are allowed ($q\in\{0,1\}$, $t\in\{0,1\}$). Evaluating along replica spin labels gives (2.58), and Lemma~\ref{lem:sg-tal:perceptron-time-covariance} proves the full Gaussian expectation form of (2.60) across all rows and replicas.
 
 \begin{proposition}[Pathwise derivative of the cavity average, the formula (2.41) for $B_v\equiv1$]\label{prop:sg-tal:perceptron-cavity-pathwise-derivative}
   \lean{MeasureTheory.hasDerivAt_integral_tilted_of_integrable_moving,
@@ -2238,19 +2238,24 @@ Formalized in \texttt{ForMathlib/Probability/GibbsReplicaComparison.lean}; the c
   \lean{SpinGlasses.hasDerivAt_cavityTimeCoef,
         SpinGlasses.cavityTimeCoef_dotProduct,
         SpinGlasses.cavityTimeCoef_dotProduct_self,
-        SpinGlasses.cavityTimeCoef_dotProduct_of_ne}
+        SpinGlasses.cavityTimeCoef_dotProduct_of_ne,
+        SpinGlasses.integral_cavityTimeDeriv_mul_smartPathField}
   \leanok
   \uses{lem:sg-tal:perceptron-cavity-covariance}
-\talsource{Exercise~2.3.3, relations (2.60): $\mathrm E S_{k,t}^{\ell\prime}S_{k,t}^{\ell}=0$ and $\mathrm E S_{k,t}^{\ell\prime}S_{k,t}^{\ell'}=\varepsilon_\ell\varepsilon_{\ell'}/2N$ for $\ell\ne\ell'$}
-For $t\in(0,1)$ let $S^\ell_\sigma=\alpha_\sigma\cdot g+\sqrt{(1-t)/(N+1)}\,\xi^\ell$ be a field with the coefficient vector of the cavity, and $S^{\ell\prime}_\sigma$ its time derivative, with coefficient vector $0$ on the old couplings, $\varepsilon_\sigma/(2\sqrt{N+1}\sqrt t)$ on the last coupling $a$ and $-1/(2\sqrt{N+1}\sqrt{1-t})$ on $\xi^\ell$. Then
+\talsource{Exercise~2.3.3, relations (2.60): $\mathrm E S_{k,t}^{\ell\prime}S_{k,t}^{\ell}=0$, $\mathrm E S_{k,t}^{\ell\prime}S_{k,t}^{\ell'}=\varepsilon_\ell\varepsilon_{\ell'}/2N$ for $\ell\ne\ell'$, and $\mathrm E S_{k,t}^{\ell\prime}S_{k',t}^{\ell'}=0$ for $k\ne k'$}
+For $t\in(0,1)$ let $S^\ell_{k,t}(\sigma)$ be the smart-path field of constraint $k$ and $S^{\ell\prime}_{k,t}(\sigma)=(2\sqrt{N+1})^{-1}(a_k\varepsilon_\sigma/\sqrt t-\xi^\ell_k/\sqrt{1-t})$ its time derivative, viewed over the joint i.i.d.\ standard Gaussian vector $(g_{k,i},a_k,\xi^\ell_k)$. Then
 \[
-\mathrm E\,S^{\ell\prime}_\sigma S^{\ell'}_\tau=\frac{\varepsilon_\sigma\varepsilon_\tau-\mathbf 1_{\ell=\ell'}}{2(N+1)},
+\mathbb E\bigl[S^{\ell\prime}_{k,t}(\sigma)\,S^{\ell'}_{k',t}(\tau)\bigr]
+ =\begin{cases}
+   \dfrac{\varepsilon_\sigma\varepsilon_\tau-\mathbf 1_{\ell=\ell'}}{2(N+1)}, & k=k',\\
+   0, & k\ne k',
+  \end{cases}
 \]
-which vanishes for $\ell=\ell'$, $\tau=\sigma$ and equals $\varepsilon_\sigma\varepsilon_\tau/(2(N+1))$ for $\ell\ne\ell'$. Fields of distinct constraints involve disjoint independent coordinates and are uncorrelated.
+which vanishes for $k=k'$, $\ell=\ell'$, $\tau=\sigma$ and equals $\varepsilon_\sigma\varepsilon_\tau/(2(N+1))$ for $k=k'$, $\ell\ne\ell'$.
 \end{lemma}
 \begin{proof}
   \leanok
-The covariance of two linear forms of a standard Gaussian vector is the dot product of their coefficient vectors, so it suffices to compute it. The $a$-coordinates contribute $\frac{\varepsilon_\sigma}{2\sqrt{N+1}\sqrt t}\cdot\sqrt{\tfrac t{N+1}}\,\varepsilon_\tau=\frac{\varepsilon_\sigma\varepsilon_\tau}{2(N+1)}$, the $\xi^\ell$-coordinates contribute $-\frac1{2(N+1)}$ when $\ell=\ell'$ and nothing otherwise, and the old couplings contribute $0$. The derivative statement (\texttt{hasDerivAt\_cavityTimeCoef}) is the square-root derivative.
+Write $S^{\ell\prime}_{k,t}(\sigma)=c'\cdot w$ and $S^{\ell'}_{k',t}(\tau)=c\cdot w$ on the combined Gaussian index type $(\mathrm{Fin}\,M\times\mathrm{Fin}\,N)\oplus(\mathrm{Fin}\,M\oplus(R\times\mathrm{Fin}\,M))$. By \texttt{integral\_dotProduct\_mul\_dotProduct\_pi\_gaussianReal}, $\mathbb E[(c'\cdot w)(c\cdot w)]=c'\cdot c$. When $k\ne k'$ the supports of $c'$ (row $k$) and $c$ (row $k'$) are disjoint, so $c'\cdot c=0$. When $k=k'$, the $a_k$-coordinate contributes $\frac{\varepsilon_\sigma}{2\sqrt{N+1}\sqrt t}\cdot\sqrt{\tfrac t{N+1}}\,\varepsilon_\tau=\frac{\varepsilon_\sigma\varepsilon_\tau}{2(N+1)}$, the $\xi^\ell_k$-coordinate contributes $-\frac1{2(N+1)}$ when $\ell=\ell'$ and $0$ otherwise, and the old couplings contribute $0$ (\texttt{cavityTimeCoef\_dotProduct}, \texttt{integral\_cavityTimeDeriv\_mul\_smartPathField}). The derivative statement (\texttt{hasDerivAt\_cavityTimeCoef}) is the square-root derivative.
 Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityTimeCovariance.lean}.
 \end{proof}
 
@@ -2708,14 +2713,10 @@ $\sin s\cos s\,z_s$ with
 In particular the estimate holds with $m=2I$, giving the $(1,\infty)$ endpoint in split
 coordinates, with $N+1$ the full spin count. For conjugate finite exponents
 $p_1,p_2>1$, if the old Gibbs law has integrable $p_1$-moment of $f$, one may take
-[
- m=left(mathbb E_{
-m split}|f|^{p_1}
-ight)^{1/p_1}
-   left(mathbb E_{
-m split}|R_{12}-q|^{p_2}
-ight)^{1/p_2}.
-]
+\[
+ m=\left(\mathbb E_{\rm split}|f|^{p_1}\right)^{1/p_1}
+   \left(\mathbb E_{\rm split}|R_{12}-q|^{p_2}\right)^{1/p_2}.
+\]
 The second moment expression uses only two replicas. If $|f|\le M_f$ almost
 everywhere under the old law, one may take $m=M_f\mathbb E_{\rm split}|R_{12}-q|$,
 the $(\infty,1)$ endpoint.
@@ -2782,37 +2783,331 @@ split disorder. Composing with the measure-preserving disorder split therefore g
 the same integral against the full disorder law.
 \end{proof}
 
+\subsection{Source statements of Section 2.3: Lemma 2.3.2 through Lemma 2.3.7}\label{sub:sg-tal:perceptron-cavity-source-results}
+
+We now assemble the source-facing theorems of Section~2.3 in the book's coordinates:
+Lemma~2.3.2 (Eq.~(2.40)), Exercise~2.3.3, Proposition~2.3.5 (Eq.~(2.62)),
+Proposition~2.3.6 (Eq.~(2.66)) and Lemma~2.3.7 (Eq.~(2.67)). Throughout, the full spin count
+is $N+1$ ($L=N+1$, a spin is $(\sigma,\varepsilon)\in\Sigma_N\times\{\pm1\}$) and the full
+constraint count is $M+1$, with the removed constraint at \texttt{Fin.last M} and load
+$\alpha=(M+1)/(N+1)$. Care is taken to distinguish the smart-path time parameter $t\in[0,1]$
+(held fixed during the cavity interpolation) from the rotation angle $s\in[0,\pi/2]$ and its
+square-cosine coordinate $v=\cos^2 s\in(0,1)$ ($s=\arccos\sqrt v$).
+
+\begin{theorem}[Lemma 2.3.2: cavity derivative bound in the book's $v$ coordinate, (2.40)]\label{thm:sg-tal:perceptron-cavity-lemma-232}
+  \lean{SpinGlasses.smartPathPotential_two_of_iteratedDeriv,
+        SpinGlasses.integral_integral_pi_cavity_rotation_eq_extended,
+        SpinGlasses.hasDerivAt_cavity_v_of_angle,
+        SpinGlasses.exists_hasDerivAt_cavity_v_abs_le_holder_psi,
+        SpinGlasses.exists_hasDerivAt_cavity_v_abs_le_first_moment_psi,
+        SpinGlasses.exists_hasDerivAt_cavity_v_abs_le_of_ae_abs_le_psi,
+        SpinGlasses.exists_hasDerivAt_cavity_v_unweighted_holder,
+        SpinGlasses.exists_hasDerivAt_cavity_v_unweighted_first_moment,
+        SpinGlasses.exists_hasDerivAt_cavity_v_unweighted_of_ae_abs_le,
+        SpinGlasses.exists_hasDerivAt_cavity_v_deriv_mul_holder,
+        SpinGlasses.exists_hasDerivAt_cavity_v_deriv_mul_first_moment,
+        SpinGlasses.exists_hasDerivAt_cavity_v_deriv_mul_of_ae_abs_le}
+  \leanok
+  \uses{thm:sg-tal:perceptron-split-cavity-pair-bound, thm:sg-tal:perceptron-split-cavity-transport}
+\talsource{Lemma~2.3.2, Eq.~(2.40)}
+Let $R$ be a finite replica type ($n=|R|$) and $D\in\mathbb R$. There exists $K=K(n,D)\ge0$, chosen
+before $N,M,t,q,v,r,u,f$ and the H\"older exponents, with the following property. Let $t,q\in[0,1]$,
+$v\in(0,1)$, $r\ge0$, and assume $u$ satisfies (2.7): $u^{(j)}$ is differentiable for $j<3$ and
+$|u^{(j)}(x)|\le D$ for $j\le 3$ and all $x\in\mathbb R$. Let $f(\omega_0,a)$ be a jointly
+measurable observable of the old disorder $\omega_0=((g_k)_{k<M},(a_k)_{k<M},Y)$ ($Y\sim\mathcal N(0,r)$)
+and the old replica states $a=((\sigma^\ell,\xi_{<M}^\ell))_{\ell\in R}$ (so $f$ does not depend on
+$g_{\cdot,M},a_M,z,\xi_M^\ell,\xi^\ell$). Write $\nu_{t,v}$ for the quenched extended-cavity average at
+$S_v^\ell=\sqrt v\,S_{M,t}^\ell+\sqrt{1-v}\,(z\sqrt q+\xi^\ell\sqrt{1-q})$, and let either $B_v\equiv1$
+or $B_v=u'(S_v^{r_1})u'(S_v^{r_2})$ for two distinct replicas $r_1\ne r_2\in R$.
+\begin{enumerate}
+\item \emph{Interior conjugate exponents ($1/p_1+1/p_2=1$, $1<p_1,p_2<\infty$).} If $f(\omega_0,\cdot)$ and
+$|f(\omega_0,\cdot)|^{p_1}$ are integrable under $P_0$-almost every old Gibbs replica law $\mu_0(\omega_0)^{\otimes R}$
+and their old-Gibbs integrals are $P_0$-integrable, then $v'\mapsto\nu_{t,v'}(B_{v'}f)$ is differentiable at $v$ with
+\[
+ \Bigl|\frac{d}{dv}\nu_{t,v}(B_vf)\Bigr|\le K\left(\nu_{t,v}\bigl(|f|^{p_1}\bigr)^{1/p_1}
+   \nu_{t,v}\bigl(|R_{1,2}-q|^{p_2}\bigr)^{1/p_2}+\frac{1}{N+1}\nu_{t,v}(|f|)\right).
+\]
+\item \emph{Endpoint $(1,\infty)$.} Under the $L^1$ old-Gibbs hypotheses on $f$,
+\[
+ \Bigl|\frac{d}{dv}\nu_{t,v}(B_vf)\Bigr|\le K\left(2+\frac{1}{N+1}\right)\nu_{t,v}(|f|).
+\]
+\item \emph{Endpoint $(\infty,1)$.} If $|f(\omega_0,a)|\le M_f$ ($M_f\ge0$) for $P_0$-a.e.\ $\omega_0$ and
+$\mu_0(\omega_0)^{\otimes R}$-a.e.\ $a$, then
+\[
+ \Bigl|\frac{d}{dv}\nu_{t,v}(B_vf)\Bigr|\le K\left(M_f\,\nu_{t,v}\bigl(|R_{1,2}-q|\bigr)+\frac{1}{N+1}\nu_{t,v}(|f|)\right).
+\]
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+  \leanok
+Write $s_0=\arccos\sqrt v\in(0,\pi/2)$, so $\cos s_0=\sqrt v$ and $\sin s_0=\sqrt{1-v}$, and write $P_0$, $\gamma_{\rm sh}$
+for the old and fresh shared disorder laws.
+
+\emph{Step 1 (unpacking (2.7) and moving factors).} From $u^{(j)}$ differentiable ($j<3$) and $|u^{(j)}|\le D$ ($j\le 3$) we
+obtain \texttt{SmartPathPotential}$_2\,u\,D\,D\,D$ together with $u''$ differentiable and $|u'''|\le D$
+(\texttt{smartPathPotential\_two\_of\_iteratedDeriv}). For $B_v\equiv1$ take $\psi_r\equiv1$ ($M_0=1$, $M_1=M_2=0$). For
+$B_v=u'(S_v^{r_1})u'(S_v^{r_2})$ ($r_1\ne r_2$) take $\psi_r=u'$ on $\{r_1,r_2\}$ and $\psi_r=1$ elsewhere ($M_0=1+|D|$,
+$M_1=|D|$, $M_2=|D|$), so $\prod_{r\in R}\psi_r(S_v^r)=u'(S_v^{r_1})u'(S_v^{r_2})$. Set $L=1+|D|+|M_0|+|M_1|+|M_0||D|$ and
+\[
+ K=\frac12\bigl(4n^2+n\bigr)L^{n+2},
+\]
+which depends only on $n=|R|$ and $D$.
+
+\emph{Step 2 (Fubini and split-to-full transport).} By Step~1 of Theorem~\ref{thm:sg-tal:perceptron-split-cavity-pair-bound} and
+$|\prod_r\psi_r|\le|M_0|^n$, the quenched split average $J(\omega_0,w)$ is integrable on $P_0\otimes\gamma_{\rm sh}$. Fubini
+(\texttt{integral\_prod}) and Theorem~\ref{thm:sg-tal:perceptron-split-cavity-transport} therefore give, for every angle $s$,
+\[
+ \int\!\int \nu_{s,w,\omega_0}^{\otimes R}\Bigl(f\prod_{r\in R}\psi_r(S_s^r)\Bigr)\,d\gamma_{\rm sh}(w)\,dP_0(\omega_0)
+ =\nu_{t,\cos^2 s}\Bigl(f\prod_{r\in R}\psi_r(S_{\cos^2 s}^r)\Bigr)
+\]
+(\texttt{integral\_integral\_pi\_cavity\_rotation\_eq\_extended}), and similarly identify the split $L^1$, $L^{p_1}$ and
+two-replica overlap moments at $s_0$ with the full-cavity moments at $v$.
+
+\emph{Step 3 (change of variable $v=\cos^2 s$ on $(0,1)$).} Theorem~\ref{thm:sg-tal:perceptron-split-cavity-pair-bound} gives
+at $s_0$ an angle derivative $\sin s_0\cos s_0\cdot z$ with $|z|\le(4n^2+n)L^{n+2}(\text{moment bound})$. On the open neighbourhood
+$(0,1)$ of $v$, composing $s\mapsto\text{split average}(s)$ with $v'\mapsto\arccos\sqrt{v'}$ via
+\texttt{HasDerivAt.comp\_arccos\_sqrt\_of\_sin\_cos} cancels the singular square-root derivative against $\sin s_0\cos s_0$:
+\[
+ \frac{d}{dv}\nu_{t,v}\Bigl(f\prod_{r\in R}\psi_r(S_v^r)\Bigr)=-\frac{z}{2},\qquad
+ \Bigl|-\frac{z}{2}\Bigr|\le\frac12(4n^2+n)L^{n+2}\bigl(\text{moment bound}\bigr)
+\]
+(\texttt{hasDerivAt\_cavity\_v\_of\_angle}). Substituting the full-cavity moment identities from Step~2 completes all three cases.
+
+\emph{Formalization note (hypothesis audit).} The book allows $f$ to depend on the old auxiliary variables $\xi_k^\ell$ ($k<M$) and
+implicitly assumes $f$ is measurable with finite moments; the Lean statements allow dependence on the old disorder $\omega_0$ as well
+(needed in Proposition~2.3.5) and make the old-Gibbs section and outer integrability hypotheses explicit because Lean evaluates
+non-integrable Bochner integrals to $0$. No continuity of $u'''$ is assumed, and $t,q\in[0,1]$ include both endpoints.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityInterpolationBound.lean}.
+\end{proof}
+
 \begin{remark}[Status of Lemma~2.3.2]\label{rem:sg-tal:perceptron-lemma-232-status}
-Theorems~\ref{thm:sg-tal:perceptron-split-cavity-rotation}
-and~\ref{thm:sg-tal:perceptron-split-cavity-pair-bound} give the exact angle derivative
-and its bound under the split disorder law. The moving factor $B_v=u'(S_v^1)u'(S_v^2)$
-is the case $\psi_1=\psi_2=u'$ with the other factors equal to one.
-To obtain (2.40), use Theorem~\ref{thm:sg-tal:perceptron-split-cavity-transport}
-and Fubini to express the iterated average and moments in the full cavity law. Under the
-change of variable $v=\cos^2s$, the factor $\sin s\cos s$ cancels against
-$dv/ds=-2\sin s\cos s$, leaving $-\tfrac12$ times the four groups. This gives the sign
-in (2.53) since $R^t-q=-C$. The change of variable is available as
-\texttt{HasDerivAt.comp\_arccos\_sqrt\_of\_sin\_cos}.
+Theorem~\ref{thm:sg-tal:perceptron-cavity-lemma-232} completes Lemma~2.3.2 in the book's $v\in(0,1)$ coordinate for both
+$B_v\equiv1$ and $B_v=u'(S_v^{r_1})u'(S_v^{r_2})$ ($r_1\ne r_2$), covering conjugate interior exponents and both $(1,\infty)$ and
+$(\infty,1)$ endpoints. For endpoint increments between $v=0$ and $v=1$, Proposition~\ref{prop:sg-tal:perceptron-cavity-prop-235}
+integrates directly along $s\in[0,\pi/2]$ using the smooth $\sin s\cos s$ angle derivative, avoiding improper integrals at $v\in\{0,1\}$.
 \end{remark}
 
+\begin{lemma}[Exercise 2.3.3: one-step Gaussian integration by parts and recovery of term I]\label{lem:sg-tal:perceptron-exercise-233}
+  \lean{SpinGlasses.smartPath_last_replica_split_eq,
+        SpinGlasses.integral_pi_last_split_eq_smartPath,
+        SpinGlasses.stein_cavity_last_constraint_split,
+        SpinGlasses.integral_smartPathFieldDeriv_mul_deriv_last,
+        SpinGlasses.integral_smartPathFieldDeriv_mul_deriv_constraint,
+        SpinGlasses.smartPath_one_step_recovery_last}
+  \leanok
+  \uses{lem:sg-tal:perceptron-time-covariance, thm:sg-tal:perceptron-tilted-stein, prop:sg-tal:perceptron-smart-path-derivative}
+\talsource{Exercise~2.3.3, after Eq.~(2.60)}
+Let $t\in(0,1)$, $v\ge0$, and assume $u$ is twice differentiable with $|u|\le B$, $|u'|\le D$, $|u''|\le D_2$. Write $\nu_t$ for the
+quenched smart-path average with $M+1$ i.i.d.\ Gaussian constraints and last-field variance $v$, and
+$S^{\ell\prime}_{k,t}=(2\sqrt{N+1})^{-1}(a_k\varepsilon_\ell/\sqrt t-\xi^\ell_k/\sqrt{1-t})$.
+\begin{enumerate}
+\item For the last constraint $k=\texttt{Fin.last M}$, any finite replica type $J$, $\ell\in J$, and any bounded jointly measurable
+observable $f(\omega_0,a)$ of the old disorder and old replica states,
+\[
+ \nu_t\bigl(f\,S^{\ell\prime}_{M,t}\,u'(S^\ell_{M,t})\bigr)
+ =\frac{1}{2(N+1)}\Biggl(\sum_{j\in J\setminus\{\ell\}}\nu_t\bigl(f\,\varepsilon_\ell\varepsilon_j\,u'(S^\ell_{M,t})\,u'(S^j_{M,t})\bigr)
+ -|J|\,\nu_t\bigl(f\,\varepsilon_\ell\varepsilon_*\,u'(S^\ell_{M,t})\,u'(S^*_{M,t})\bigr)\Biggr),
+\]
+where $*$ is a fresh replica in $\mathrm{Option}\,J$.
+\item For any constraint $k\in\mathrm{Fin}(M+1)$ and any spin-only observable $f$ on $J$ replicas, the same identity holds with $k$ in place of $M$.
+\item Summing part~1 over $\ell\in R$ ($J=R$) and subtracting $|R|$ times part~1 at $\ell=\mathrm{none}\in\mathrm{Option}\,R$ recovers
+term~$\mathrm{I}$ of Proposition~\ref{prop:sg-tal:perceptron-smart-path-derivative} in one step:
+\[
+ \sum_{\ell\in R}\nu_t\bigl(f\,S^{\ell\prime}_{M,t}\,u'(S^\ell_{M,t})\bigr)
+ -|R|\,\nu_t\bigl(f\,S^{*\prime}_{M,t}\,u'(S^*_{M,t})\bigr)
+ =\frac{1}{N+1}\int\operatorname{replicaPairAverage}\bigl(\mu_\omega,f,U_M(\omega)\bigr)\,dP(\omega).
+\]
+\end{enumerate}
+\end{lemma}
+\begin{proof}
+  \leanok
+\emph{Step 1 (state and disorder split at the last row).} Split each $(M+1)$-constraint state into its old state and $\xi_M\in\mathbb R^{\mathrm{Unit}}$,
+and split the disorder into $\omega_0$ and $w=(g_M,a_M)$ (\texttt{smartPath\_last\_replica\_split\_eq},
+\texttt{integral\_pi\_last\_split\_eq\_smartPath}).
 
-\medskip\noindent\emph{Formalization note (Lemma~2.3.2).} The pathwise derivative is proved for $B_v\equiv1$ and, in a second statement, for the moving factor
-$u'(S_s^i)u'(S_s^j)$ (any two replicas): its derivative contains the unbounded Gaussian factor $\tilde z$, which is dominated by $|S_{M,t}|+|\theta|$ through an integrable
-envelope (\texttt{hasDerivAt\_integral\_tilted\_of\_integrable\_moving}, of which the bounded version is now a corollary), so only $|u''|\le D_2$ is used in addition.
-The Gaussian integration by parts over the whole family (couplings, $z$, $\xi_M^\ell$, $\xi^\ell$), the term created by the denominator,
-the average over the old disorder and the H\"older step of (2.40) are formalized in the model-free form of Section~\ref{sub:sg-tal:perceptron-model-free-ibp}
-(Theorems~\ref{thm:sg-tal:perceptron-tilted-stein}--\ref{thm:sg-tal:perceptron-pair-holder} and Remark~\ref{rem:sg-tal:perceptron-lemma-232-status});
-the split cavity derivative now uses those coefficients in
-Theorem~\ref{thm:sg-tal:perceptron-split-cavity-rotation}. The resulting bound (2.40) remains open.
+\emph{Step 2 (model-free Stein with one marked factor).} At fixed $\omega_0$, apply Theorem~\ref{thm:sg-tal:perceptron-tilted-stein}
+(\texttt{stein\_tilted\_replica\_ratio}) with $\psi_\ell=u'$ and $\psi_r=1$ ($r\ne\ell$). By Lemma~\ref{lem:sg-tal:perceptron-time-covariance},
+the diagonal covariance $j=\ell$ is $\mathbb E[S^{\ell\prime}_{M,t}S^\ell_{M,t}]=0$, killing the $u''+(u')^2$ diagonal term without separate
+integrations by parts in $a_M$ and $\xi_M$; for $j\ne\ell$ and for the fresh replica $*$ from the denominator, the covariance is
+$\varepsilon_\ell\varepsilon_j/(2(N+1))$ (\texttt{stein\_cavity\_last\_constraint\_split}). Integrating over $\omega_0$ via Fubini (dominated using
+Gaussian first moments of $|a_M|$ and $|\xi_M^\ell|$) yields~(1) (\texttt{integral\_smartPathFieldDeriv\_mul\_deriv\_last}).
 
-\medskip\noindent\emph{Formalization note (hypothesis audit).} The book states (2.32) for a function $f$ on $\Sigma_N^n\times\mathbb R^{Mn}$; the
-Lean statement allows an arbitrary function $Y$ of the replicas of the full configuration, which includes the dependence on the old
-auxiliary coordinates (and on $\xi_M$, which the old energy ignores). No measurability or boundedness of $Y$ is assumed: the identities are
-equalities of integrals (with Lean's convention for non-integrable functions) obtained from the double tilt. The explicit bounds
-$|Y|\le C$ are needed only where a later result integrates the quotient. The book's range of the path parameter is $t\in[0,1]$; the
-statements hold for every real $t$ because $\sqrt{1-t}$ is only used through an upper bound. Not yet formalized in this section: the
-relations (2.58) and (2.60) and the results after Lemma~2.3.1 (Lemma~2.3.2 onward). The path parameter $s$ is real and the
-quenched variable $z$ is a fixed real number in the pointwise statements (2.35) and $\nu_{t,1}=\nu_t$; the averaged forms over the disorder and
-$z$ are in Lemma~\ref{lem:sg-tal:perceptron-cavity-endpoint} for $v=0$, and the averaged (2.35) follows by integrating the pointwise equality.
-The endpoint theorems take a fixed observable $f$; for a family $f(\omega)$ (needed for Proposition~2.3.5) the pointwise statement applies at each $\omega$
-before integrating.
+\emph{Step 3 (arbitrary row $k$ and recovery of term I).} For spin-only $f$ ($|f|\le C_f$ automatic by finiteness), swapping row $k$ with
+\texttt{Fin.last M} via \texttt{smartPathDisorderSwap} and \texttt{smartPathStateSwap} preserves the Gaussian product law and transports~(1)
+to row $k$ (\texttt{integral\_smartPathFieldDeriv\_mul\_deriv\_constraint}). Finally, substituting~(1) for $J=R$ and for $(J,\ell)=(\mathrm{Option}\,R,\mathrm{none})$,
+lifting all terms to $\mathrm{Option}(\mathrm{Option}\,R)$ by \texttt{integral\_pi\_comp\_injective}, and rewriting the off-diagonal sum over ordered
+pairs $p_1<p_2$ by symmetry of $U_M$ (\texttt{sum\_sum\_offDiag\_eq\_two\_sum\_lt}) gives~(3) (\texttt{smartPath\_one\_step\_recovery\_last});
+multiplying by $M+1$ produces $\alpha=(M+1)/(N+1)$ times the expected pair average, i.e.\ term~$\mathrm{I}$ of (2.23)--(2.24).
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityTimeCovariance.lean}.
+\end{proof}
+
+\begin{proposition}[Proposition 2.3.5: decoupling of the last-constraint potential derivatives, (2.62)]\label{prop:sg-tal:perceptron-cavity-prop-235}
+  \lean{SpinGlasses.integral_pi_cavity_rotation_nonneg_le_exp_mul,
+        SpinGlasses.integral_integral_pi_cavity_rotation_zero_eq_smartPath,
+        SpinGlasses.integral_integral_pi_cavity_rotation_pi_div_two_unweighted_eq,
+        SpinGlasses.integral_integral_pi_cavity_rotation_pi_div_two_deriv_mul_eq,
+        SpinGlasses.abs_integral_smartPath_deriv_mul_sub_rhat_le_of_split_pair_bound,
+        SpinGlasses.abs_integral_smartPath_deriv_mul_sub_rhat_le_first_moment,
+        SpinGlasses.abs_integral_smartPath_deriv_mul_sub_rhat_le_holder,
+        SpinGlasses.abs_integral_smartPath_deriv_mul_sub_rhat_le_of_ae_abs_le}
+  \leanok
+  \uses{lem:sg-tal:perceptron-cavity-endpoint, lem:sg-tal:perceptron-gibbs-comparison, thm:sg-tal:perceptron-split-cavity-pair-bound, thm:sg-tal:perceptron-cavity-lemma-232}
+\talsource{Proposition~2.3.5, Eqs.~(2.62)--(2.65)}
+Let $R$ be a finite replica type ($n=|R|$) and $D\in\mathbb R$. There exists $K=K(n,D)\ge0$, chosen before $N,M,r_1,r_2,t,q,r,u,f$ and the
+H\"older exponents, such that for any $N,M\in\mathbb N$, distinct replicas $r_1\ne r_2\in R$, $t,q\in[0,1]$, last-field variance $r\ge0$,
+potential $u$ satisfying (2.7) with constant $D$, and jointly measurable observable $f(\omega_0,a)$ of the old disorder and old replica states:
+write $\nu_t$ for the quenched $(M+1)$-constraint smart-path average and $\widehat r$ for the quantity (2.36) of Lemma~\ref{lem:sg-tal:perceptron-cavity-endpoint}.
+\begin{enumerate}
+\item \emph{Interior conjugate exponents ($1/p_1+1/p_2=1$, $1<p_1,p_2<\infty$).} Under the old-Gibbs $L^1$ and $L^{p_1}$ integrability
+hypotheses of Theorem~\ref{thm:sg-tal:perceptron-cavity-lemma-232},
+\[
+ \bigl|\nu_t\bigl(f\,u'(S_{M,t}^{r_1})\,u'(S_{M,t}^{r_2})\bigr)-\widehat r\,\nu_t(f)\bigr|
+ \le K\left(\nu_t\bigl(|f|^{p_1}\bigr)^{1/p_1}\nu_t\bigl(|R_{1,2}-q|^{p_2}\bigr)^{1/p_2}+\frac{1}{N+1}\nu_t(|f|)\right).
+\]
+\item \emph{Endpoint $(1,\infty)$.} Under the old-Gibbs $L^1$ hypotheses on $f$,
+\[
+ \bigl|\nu_t\bigl(f\,u'(S_{M,t}^{r_1})\,u'(S_{M,t}^{r_2})\bigr)-\widehat r\,\nu_t(f)\bigr|
+ \le K\left(2+\frac{1}{N+1}\right)\nu_t(|f|).
+\]
+\item \emph{Endpoint $(\infty,1)$.} If $|f(\omega_0,a)|\le M_f$ ($M_f\ge0$) $P_0$- and $\mu_0(\omega_0)^{\otimes R}$-almost everywhere, then
+\[
+ \bigl|\nu_t\bigl(f\,u'(S_{M,t}^{r_1})\,u'(S_{M,t}^{r_2})\bigr)-\widehat r\,\nu_t(f)\bigr|
+ \le K\left(M_f\,\nu_t\bigl(|R_{1,2}-q|\bigr)+\frac{1}{N+1}\nu_t(|f|)\right).
+\]
+\end{enumerate}
+\end{proposition}
+\begin{proof}
+  \leanok
+Write $\varphi_u(s)$ and $\varphi_w(s)$ for the split-cavity quenched averages of $f$ and of $f\,u'(S_s^{r_1})u'(S_s^{r_2})$ at angle $s\in\mathbb R$.
+
+\emph{Step 1 (domination of split moments by $s=0$, (2.61)).} For any nonnegative integrable old-state observable $g(\omega_0,a)$, the rotated
+perturbation $u(S_{s_1})-u(S_{s_2})$ has absolute value at most $2|D|$, so \texttt{integral\_pi\_tilted\_le\_exp\_mul\_of\_abs\_sub\_le} gives
+\[
+ \mathbb E_{\rm split}\langle g\rangle_{s}\le e^{4|R||D|}\,\mathbb E_{\rm split}\langle g\rangle_{0}
+ =e^{4|R||D|}\,\nu_t(g)
+\]
+(\texttt{integral\_pi\_cavity\_rotation\_nonneg\_le\_exp\_mul}, \texttt{integral\_integral\_pi\_cavity\_rotation\_zero\_eq\_smartPath}). Applied to
+$|f|$, $|f|^{p_1}$, and $|R_{1,2}-q|^{p_2}$ (on two replicas, factor $e^{8|D|}$), this bounds the split pair moments at every angle $s$ uniformly
+by $e^{(4n+8)|D|}$ times the $\nu_t$ endpoint moments $\mathcal B$.
+
+\emph{Step 2 (angle increments, (2.63)--(2.64)).} By Theorem~\ref{thm:sg-tal:perceptron-split-cavity-pair-bound} and Step~1, $\varphi_u'(s)=\sin s\cos s\cdot z_u(s)$
+and $\varphi_w'(s)=\sin s\cos s\cdot z_w(s)$ with $|z_u(s)|\le K_u\mathcal B'$ and $|z_w(s)|\le K_w\mathcal B'$ on $[0,\pi/2]$. Applying
+\texttt{Real.abs\_sub\_le\_half\_of\_exists\_hasDerivAt} yields
+\[
+ \bigl|\varphi_u(\pi/2)-\varphi_u(0)\bigr|\le\frac{K_u}{2}\mathcal B',\qquad
+ \bigl|\varphi_w(\pi/2)-\varphi_w(0)\bigr|\le\frac{K_w}{2}\mathcal B'.
+\]
+
+\emph{Step 3 (endpoint identification via Lemma 2.3.1, (2.65)).} At $s=0$ ($v=1$), \texttt{integral\_pi\_tilted\_cavityPath\_zero} gives
+$\varphi_u(0)=\nu_t(f)$ and $\varphi_w(0)=\nu_t(f\,u'(S_{M,t}^{r_1})u'(S_{M,t}^{r_2}))$. At $s=\pi/2$ ($v=0$), Lemma~\ref{lem:sg-tal:perceptron-cavity-endpoint}
+gives $\varphi_u(\pi/2)=\mathbb E\langle f\rangle_{t,\sim}$ and $\varphi_w(\pi/2)=\widehat r\,\mathbb E\langle f\rangle_{t,\sim}=\widehat r\,\varphi_u(\pi/2)$
+(\texttt{integral\_integral\_pi\_cavity\_rotation\_pi\_div\_two\_unweighted\_eq}, \texttt{...\_deriv\_mul\_eq}). Using $0\le\widehat r\le|D|^2$
+(\texttt{rhat\_mem\_Icc}),
+\[
+ \bigl|\varphi_w(0)-\widehat r\,\varphi_u(0)\bigr|
+ =\bigl|-(\varphi_w(\pi/2)-\varphi_w(0))+\widehat r\,(\varphi_u(\pi/2)-\varphi_u(0))\bigr|
+ \le\Bigl(\frac{K_w}{2}+|D|^2\frac{K_u}{2}\Bigr)\mathcal B'.
+\]
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityComparison.lean}.
+\end{proof}
+
+\begin{proposition}[Proposition 2.3.6: smart-path derivative bound at $r=\alpha\widehat r$, (2.66)]\label{prop:sg-tal:perceptron-cavity-prop-236}
+  \lean{MeasureTheory.integral_replicaPairAverage_eq_combination,
+        MeasureTheory.abs_replicaPairCombination_scalar_le,
+        SpinGlasses.exists_hasDerivAt_smartPath_abs_le_of_pair_bound,
+        SpinGlasses.exists_hasDerivAt_smartPath_abs_le_first_moment,
+        SpinGlasses.exists_hasDerivAt_smartPath_abs_le_holder,
+        SpinGlasses.exists_hasDerivAt_smartPath_abs_le_of_ae_abs_le}
+  \leanok
+  \uses{prop:sg-tal:perceptron-smart-path-derivative, prop:sg-tal:perceptron-cavity-prop-235}
+\talsource{Proposition~2.3.6, Eq.~(2.66)}
+Let $R$ be a finite linearly ordered replica type ($n=|R|$) and $D\in\mathbb R$. There exists $K=K(n,D)\ge0$, chosen before $N,M,t,q,u,f$ and the
+H\"older exponents, with the following property. Let $N,M\in\mathbb N$, $\alpha=(M+1)/(N+1)$, $t\in(0,1)$, $q\in[0,1]$, $u$ satisfy (2.7) with
+constant $D$, $\widehat r$ be given by (2.36), and take the last-field variance in the $(M+1)$-constraint smart path $\nu_t$ to be $r=\alpha\widehat r$
+(written \texttt{($\alpha$ * rhat).toNNReal}, since $\alpha\widehat r\ge0$). Then for any spin-only observable $f:(\Sigma_N\times\{\pm1\})^R\to\mathbb R$,
+$s\mapsto\nu_s(f)$ is differentiable at $t$ and its derivative $\nu'_t(f)$ satisfies:
+\begin{enumerate}
+\item for conjugate exponents $1/p_1+1/p_2=1$ ($1<p_1,p_2<\infty$),
+\[
+ |\nu'_t(f)|\le\alpha K\left(\nu_t\bigl(|f|^{p_1}\bigr)^{1/p_1}\nu_t\bigl(|R_{1,2}-q|^{p_2}\bigr)^{1/p_2}+\frac{1}{N+1}\nu_t(|f|)\right);
+\]
+\item at $(1,\infty)$, $|\nu'_t(f)|\le\alpha K\bigl(2+\frac{1}{N+1}\bigr)\nu_t(|f|)$;
+\item at $(\infty,1)$, if $|f(\sigma)|\le M_f$ ($M_f\ge0$) for all $\sigma$, $|\nu'_t(f)|\le\alpha K\bigl(M_f\,\nu_t(|R_{1,2}-q|)+\frac{1}{N+1}\nu_t(|f|)\bigr)$.
+\end{enumerate}
+\end{proposition}
+\begin{proof}
+  \leanok
+\emph{Step 1 (smart-path derivative at the last constraint).} Since $\widehat r\ge0$ and $\alpha\ge0$, \texttt{(($\alpha$ * rhat).toNNReal : $\mathbb R$) = $\alpha\widehat r$}.
+By the Gaussian-row form of Proposition~\ref{prop:sg-tal:perceptron-smart-path-derivative}
+(\texttt{hasDerivAt\_integral\_integral\_pi\_perceptron\_smart\_path\_gaussian\_rows}) at $j_0=\texttt{Fin.last M}$,
+\[
+ \nu'_t(f)=\alpha\,\mathbb E\bigl[\operatorname{replicaPairAverage}(\mu_\omega,f,U_M(\omega))\bigr]
+ -\alpha\widehat r\,\mathbb E\bigl[\operatorname{replicaPairAverage}(\mu_\omega,f,\varepsilon\varepsilon')\bigr].
+\]
+
+\emph{Step 2 (pair expansion on $\mathrm{Option}(\mathrm{Option}\,R)$).} By \texttt{integral\_replicaPairAverage\_eq\_combination}, $\nu'_t(f)=\alpha\bigl(\sum_{p_1<p_2}T(\mathrm{some}(\mathrm{some}\,p_1),\mathrm{some}(\mathrm{some}\,p_2))-n\sum_r T(\mathrm{some}(\mathrm{some}\,r),\mathrm{some}\,\mathrm{none})+\frac{n(n+1)}{2}T(\mathrm{some}\,\mathrm{none},\mathrm{none})\bigr)$, where for $i\ne j\in\mathrm{Option}(\mathrm{Option}\,R)$,
+\[
+ T(i,j)=\nu_t\bigl(f\,\varepsilon_i\varepsilon_j\,u'(S_{M,t}^i)\,u'(S_{M,t}^j)\bigr)-\widehat r\,\nu_t(f\,\varepsilon_i\varepsilon_j).
+\]
+
+\emph{Step 3 (applying Proposition 2.3.5 to $f\varepsilon_i\varepsilon_j$).} Apply Proposition~\ref{prop:sg-tal:perceptron-cavity-prop-235} on the
+replica type $\mathrm{Option}(\mathrm{Option}\,R)$ (cardinality $n+2$) to the spin-only observable $g_{ij}(\tau)=f(\tau\circ\mathrm{some}\circ\mathrm{some})\varepsilon_i\varepsilon_j$.
+Because $|\varepsilon_i\varepsilon_j|=1$, $|g_{ij}|=|f\circ(\mathrm{some}\circ\mathrm{some})|$, so \texttt{integral\_pi\_comp\_injective} projects
+its $L^1$ and $L^{p_1}$ moments back to the $R$-replica moments of $|f|$ (and $|g_{ij}|\le M_f$ when $|f|\le M_f$). Thus $|T(i,j)|\le K_2\mathcal B$
+for every $i\ne j$, and \texttt{abs\_replicaPairCombination\_scalar\_le} sums the coefficients to $2n^2 K_2\mathcal B$
+(\texttt{exists\_hasDerivAt\_smartPath\_abs\_le\_of\_pair\_bound}).
+
+\emph{Formalization note (hypothesis audit).} Because $f$ is a deterministic function on the finite spin space $(\Sigma_N\times\{\pm1\})^R$,
+measurability, boundedness and all old-Gibbs integrability hypotheses hold automatically; the Lean statements assume none of them. Constraint
+permutation symmetry (Step~1) is valid because $f$ is spin-only and the disorder rows are i.i.d.\ Gaussian.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathCavityBound.lean}.
+\end{proof}
+
+\begin{lemma}[Lemma 2.3.7: uniform domination $\nu_t(f)\le 2\nu(f)$ at small load, (2.67)]\label{lem:sg-tal:perceptron-cavity-lemma-237}
+  \lean{SpinGlasses.continuousOn_integral_integral_pi_perceptron_smart_path,
+        SpinGlasses.integral_integral_pi_perceptron_smart_path_one_eq,
+        SpinGlasses.integral_smartPath_le_two_mul_endpoint,
+        SpinGlasses.integral_smartPath_fin_two_le_two_mul_perceptron,
+        le_exp_mul_endpoint_of_exists_hasDerivAt}
+  \leanok
+  \uses{thm:sg-tal:perceptron-auxiliary-spins, thm:sg-tal:perceptron-path-one, prop:sg-tal:perceptron-cavity-prop-236}
+\talsource{Lemma~2.3.7, Eq.~(2.67)}
+For every $D\in\mathbb R$ (and any finite linearly ordered replica type $R$, in particular $R=\mathrm{Fin}\,2$), there exists a constant
+$K(D)\ge0$, chosen before $N,M,t,q,u,f$, with the following property. Let $N,M\in\mathbb N$, $\alpha=(M+1)/(N+1)$, $t\in[0,1]$, $q\in[0,1]$,
+and assume $u$ satisfies (2.7) with constant $D$ and $\alpha K(D)\le1$. Take $r=\alpha\widehat r$ in the $(M+1)$-constraint smart path $\nu_t$.
+Then for every nonnegative spin-only observable $F\ge0$ on two replicas of $\Sigma_{N+1}$,
+\[
+ \nu_t(F)\le 2\,\nu_1(F)=2\,\nu(F),
+\]
+where $\nu(F)$ is the Section~2.1 perceptron Gibbs average for $N+1$ spins and $M+1$ i.i.d.\ Gaussian constraints.
+\end{lemma}
+\begin{proof}
+  \leanok
+\emph{Step 1 (continuity on $[0,1]$).} Let $g(s)=\nu_s(F)\ge0$. By Exercise~2.2.1 (Theorem~\ref{thm:sg-tal:perceptron-auxiliary-spins}), at each
+fixed disorder $\omega$ the replica average of $F$ equals a finite quotient of sums over spins of products of
+$e^{\varepsilon\sqrt{1-s}\,y}$ and $\int e^{u(S^0_{k,s}+\sqrt{(1-s)/(N+1)}\,z)}\,d\gamma(z)>0$. Dominated convergence makes each factor continuous
+in $s\in\mathbb R$ (including $s=0,1$), and bounded convergence over $\omega$ (bounded by $\max|F|$) makes $g$ continuous on $[0,1]$
+(\texttt{continuousOn\_integral\_integral\_pi\_perceptron\_smart\_path}).
+
+\emph{Step 2 (differential inequality on $(0,1)$ and backward Gr\"onwall).} By Proposition~\ref{prop:sg-tal:perceptron-cavity-prop-236}(2), there is
+$K_0\ge0$ depending only on $|R|$ and $D$ such that on $(0,1)$, since $F\ge0$ and $2+1/(N+1)\le3$,
+\[
+ |g'(s)|\le\alpha K_0\Bigl(2+\frac{1}{N+1}\Bigr)g(s)\le\alpha\,(3K_0)\,g(s),
+\]
+in particular $g'(s)\ge-\alpha K_1 g(s)$ with $K_1=3K_0$. Applying backward Gr\"onwall from $s=1$
+(\texttt{le\_exp\_mul\_endpoint\_of\_exists\_hasDerivAt}) gives, for every $t\in[0,1]$,
+\[
+ g(t)\le e^{\alpha K_1(1-t)}\,g(1).
+\]
+
+\emph{Step 3 (small-load threshold and terminal identity).} Put $K=K_1/\log 2$. When $\alpha K\le1$ and $t\in[0,1]$, $\alpha K_1(1-t)\le\alpha K_1\le\log 2$,
+so $e^{\alpha K_1(1-t)}\le2$ and $g(t)\le2\,g(1)$ (\texttt{integral\_smartPath\_le\_two\_mul\_endpoint}). At $s=1$, Theorem~\ref{thm:sg-tal:perceptron-path-one}
+and \texttt{MeasurableEquiv.finSuccProd} merge the old and last coupling columns into the full $(M+1)\times(N+1)$ Gaussian matrix (integrating out the unused
+last field $Y$), giving $g(1)=\nu(F)$ (\texttt{integral\_integral\_pi\_perceptron\_smart\_path\_one\_eq},
+\texttt{integral\_smartPath\_fin\_two\_le\_two\_mul\_perceptron}).
+
+\emph{Formalization note (hypothesis audit).} The general theorem \texttt{integral\_smartPath\_le\_two\_mul\_endpoint} holds for any finite replica type $R$
+with $K(|R|,D)$, and \texttt{integral\_smartPath\_fin\_two\_le\_two\_mul\_perceptron} specializes to $R=\mathrm{Fin}\,2$ to match Lemma~2.3.7 verbatim;
+both endpoints $t=0$ and $t=1$, $q\in[0,1]$, and $N=0$ ($1$ full spin) or $M=0$ ($1$ constraint) are included, and no fixed-point hypothesis on $q$ is needed.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathCavityBound.lean}.
+\end{proof}

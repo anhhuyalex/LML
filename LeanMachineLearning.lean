@@ -722,6 +722,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCav
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavityDecomposition
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavityDerivative
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavityEndpoint
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavityInterpolationBound
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavityOldDisorder
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavityOverlapBound
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavityPath
@@ -738,6 +739,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.GibbsAverages
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.RandomNormals
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathAssembly
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathBounds
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathCavityBound
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathDecoupling
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathDifferentiation
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathDisorderDerivative
