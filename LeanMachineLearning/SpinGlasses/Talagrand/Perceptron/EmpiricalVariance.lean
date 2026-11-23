@@ -214,12 +214,7 @@ theorem abs_deriv_interpolating_pressure_add_le_cauchy_schwarz
     exact ((measurable_deriv u).comp (hS_l 0 k)).mul ((measurable_deriv u).comp (hS_l 1 k))
   have hp22 : (2 : ℝ).HolderConjugate 2 := by rw [Real.holderConjugate_iff]; norm_num
   have hf_m (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) :
-      Measurable (f ω) := by
-    have hS_l (l : Fin 2) (k : Fin M) :
-        Measurable fun σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ) => S_fn s ω (σ l) k := by
-      dsimp only [S_fn]; fun_prop
-    refine ((Finset.measurable_sum _ fun k _ => ?_).const_mul _).sub_const r
-    exact ((measurable_deriv u).comp (hS_l 0 k)).mul ((measurable_deriv u).comp (hS_l 1 k))
+      Measurable (f ω) := hf_joint_m.comp (measurable_const.prodMk measurable_id)
   have hfp_mem : ∀ᵐ ω ∂P,
       MemLp (f ω) (ENNReal.ofReal 2) (Measure.pi fun _ : Fin 2 => ν_s ω) :=
     ae_of_all _ fun ω => MemLp.of_bound (hf_m ω).aestronglyMeasurable M_f
@@ -239,66 +234,35 @@ theorem abs_deriv_interpolating_pressure_add_le_cauchy_schwarz
     ae_of_all _ fun _ => MemLp.of_bound hm_d_tau.aestronglyMeasurable 2
       (ae_of_all _ fun τ => by
         rw [Real.norm_of_nonneg (abs_nonneg _)]; exact hd_pair_b (τ 0) (τ 1))
-  have hμ_fin : IsFiniteMeasure μ_s := inferInstance
+  have hf_abs_joint : Measurable fun p :
+      (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
+        (Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => |f p.1 p.2| := by
+    simpa only [Real.norm_eq_abs] using hf_joint_m.norm
   have hfp_int : Integrable
       (fun ω => ∫ a : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ),
-        |f ω a| ^ (2 : ℝ) ∂(Measure.pi fun _ : Fin 2 => ν_s ω)) P := by
-    let F_sq (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
-        (a : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : ℝ := |f ω a| ^ (2 : ℝ)
-    have hFsq_m : Measurable fun p :
-        (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-          (Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => F_sq p.1 p.2 := by
-      have habs : Measurable fun p :
-          (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-            (Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => |f p.1 p.2| := by
-        simpa only [Real.norm_eq_abs] using hf_joint_m.norm
-      exact habs.pow_const (2 : ℝ)
-    have hm := @measurable_integral_pi_tilted _ _ _ _ μ_s hμ_fin _ _ (E_s s) hEm_joint F_sq hFsq_m
-    exact Integrable.of_bound hm.aestronglyMeasurable (M_f ^ 2) (ae_of_all _ fun ω => by
-      rw [Real.norm_of_nonneg (integral_nonneg fun _ => Real.rpow_nonneg (abs_nonneg _) _)]
-      exact (le_abs_self _).trans (abs_integral_le_of_forall_abs_le _ fun a => by
+        |f ω a| ^ (2 : ℝ) ∂(Measure.pi fun _ : Fin 2 => ν_s ω)) P :=
+    integrable_integral_pi_tilted (μ := μ_s) hEm_joint hν_prob
+      (hf_abs_joint.pow_const (2 : ℝ)) fun ω a => by
         rw [Real.rpow_two, abs_of_nonneg (sq_nonneg _)]
-        exact pow_le_pow_left₀ (abs_nonneg _) (hf_b ω a) 2))
+        exact pow_le_pow_left₀ (abs_nonneg _) (hf_b ω a) 2
   have hdq_int : Integrable
       (fun ω => ∫ τ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ),
-        d_pair (τ 0) (τ 1) ^ (2 : ℝ) ∂(Measure.pi fun _ : Fin 2 => ν_s ω)) P := by
-    let D_sq (_ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
-        (τ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : ℝ := d_pair (τ 0) (τ 1) ^ (2 : ℝ)
-    have hDsq_m : Measurable fun p :
-        (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-          (Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => D_sq p.1 p.2 :=
-      (hm_d_tau.pow_const (2 : ℝ)).comp measurable_snd
-    have hm := @measurable_integral_pi_tilted _ _ _ _ μ_s hμ_fin _ _ (E_s s) hEm_joint D_sq hDsq_m
-    exact Integrable.of_bound hm.aestronglyMeasurable 4 (ae_of_all _ fun ω => by
-      rw [Real.norm_of_nonneg (integral_nonneg fun _ => Real.rpow_nonneg (abs_nonneg _) _)]
-      exact (le_abs_self _).trans (abs_integral_le_of_forall_abs_le _ fun τ => by
+        d_pair (τ 0) (τ 1) ^ (2 : ℝ) ∂(Measure.pi fun _ : Fin 2 => ν_s ω)) P :=
+    integrable_integral_pi_tilted (μ := μ_s) hEm_joint hν_prob
+      ((hm_d_tau.pow_const (2 : ℝ)).comp measurable_snd) (C := 4) fun _ τ => by
         rw [Real.rpow_two, abs_of_nonneg (sq_nonneg _), show (4 : ℝ) = 2 ^ 2 by norm_num]
-        exact pow_le_pow_left₀ (abs_nonneg _) (hd_pair_b (τ 0) (τ 1)) 2))
+        exact pow_le_pow_left₀ (abs_nonneg _) (hd_pair_b (τ 0) (τ 1)) 2
   have hcs := integral_integral_pair_holder_prob P ν_s
     (e := (id : Fin 2 → Fin 2)) Function.injective_id (by decide : (0 : Fin 2) ≠ 1)
     (f := f) (d := d_pair) (fun _ _ => abs_nonneg _) hp22 hfp_mem hfp_int hdq_mem hdq_int
   have hprod_int : Integrable
       (fun ω => ∫ σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ),
-        |f ω σ| * d_pair (σ 0) (σ 1) ∂(Measure.pi fun _ : Fin 2 => ν_s ω)) P := by
-    let G_prod (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
-        (σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : ℝ :=
-      |f ω σ| * d_pair (σ 0) (σ 1)
-    have hGp_m : Measurable fun p :
-        (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-          (Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => G_prod p.1 p.2 := by
-      have habs : Measurable fun p :
-          (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-            (Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => |f p.1 p.2| := by
-        simpa only [Real.norm_eq_abs] using hf_joint_m.norm
-      exact habs.mul (hm_d_tau.comp measurable_snd)
-    have hm := @measurable_integral_pi_tilted _ _ _ _ μ_s hμ_fin _ _ (E_s s) hEm_joint
-      G_prod hGp_m
-    exact Integrable.of_bound hm.aestronglyMeasurable (|M_f| * 2) (ae_of_all _ fun ω => by
-      rw [Real.norm_of_nonneg (integral_nonneg fun _ => mul_nonneg (abs_nonneg _) (abs_nonneg _))]
-      exact (le_abs_self _).trans (abs_integral_le_of_forall_abs_le _ fun σ => by
+        |f ω σ| * d_pair (σ 0) (σ 1) ∂(Measure.pi fun _ : Fin 2 => ν_s ω)) P :=
+    integrable_integral_pi_tilted (μ := μ_s) hEm_joint hν_prob
+      (hf_abs_joint.mul (hm_d_tau.comp measurable_snd)) (C := |M_f| * 2) fun ω σ => by
         rw [abs_of_nonneg (mul_nonneg (abs_nonneg _) (abs_nonneg _))]
         exact mul_le_mul ((hf_b ω σ).trans (le_abs_self _)) (hd_pair_b (σ 0) (σ 1))
-          (abs_nonneg _) (abs_nonneg _)))
+          (abs_nonneg _) (abs_nonneg _)
   have hraw_int (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) :
       Integrable (fun σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ) =>
         (R_obs σ - q) * f ω σ) (Measure.pi fun _ : Fin 2 => ν_s ω) :=
@@ -317,30 +281,12 @@ theorem abs_deriv_interpolating_pressure_add_le_cauchy_schwarz
           (abs_nonneg _) (abs_nonneg _))
   have hraw_P_int : Integrable
       (fun ω => ∫ σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ),
-        (R_obs σ - q) * f ω σ ∂(Measure.pi fun _ : Fin 2 => ν_s ω)) P := by
-    let G_raw (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
-        (σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : ℝ := (R_obs σ - q) * f ω σ
-    have hGr_m : Measurable fun p :
-        (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-          (Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => G_raw p.1 p.2 := by
-      have hm_R : Measurable fun p :
-          (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-            (Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => R_obs p.2 - q := by
-        refine ((Finset.measurable_sum _ fun i _ => ?_).const_mul _).sub_const q
-        exact (measurable_units_cast.comp ((measurable_pi_apply i).comp
-          (measurable_fst.comp ((measurable_pi_apply 0).comp measurable_snd)))).mul
-          (measurable_units_cast.comp ((measurable_pi_apply i).comp
-            (measurable_fst.comp ((measurable_pi_apply 1).comp measurable_snd))))
-      exact hm_R.mul hf_joint_m
-    have hm := @measurable_integral_pi_tilted _ _ _ _ μ_s hμ_fin _ _ (E_s s) hEm_joint
-      G_raw hGr_m
-    exact hprod_int.mono hm.aestronglyMeasurable (ae_of_all _ fun ω => by
-      rw [Real.norm_eq_abs,
-        Real.norm_of_nonneg (integral_nonneg fun _ => mul_nonneg (abs_nonneg _) (abs_nonneg _))]
-      refine (abs_integral_le_integral_abs).trans
-        (integral_mono (hraw_int ω).abs (hprod_pt_int ω) fun σ => ?_)
-      dsimp only [d_pair, R_obs]
-      rw [abs_mul, mul_comm])
+        (R_obs σ - q) * f ω σ ∂(Measure.pi fun _ : Fin 2 => ν_s ω)) P :=
+    integrable_integral_pi_tilted (μ := μ_s) hEm_joint hν_prob
+      ((hm_R_sub.comp measurable_snd).mul hf_joint_m) (C := 2 * |M_f|) fun ω σ => by
+        rw [abs_mul]
+        exact mul_le_mul (hd_pair_b (σ 0) (σ 1)) ((hf_b ω σ).trans (le_abs_self _))
+          (abs_nonneg _) zero_le_two
   have habs_le :
       |∫ ω, ∫ σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ),
           (R_obs σ - q) * f ω σ ∂(Measure.pi fun _ : Fin 2 => ν_s ω) ∂P| ≤
