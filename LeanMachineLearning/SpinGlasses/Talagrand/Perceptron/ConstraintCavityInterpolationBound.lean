@@ -387,8 +387,6 @@ theorem exists_hasDerivAt_cavity_v_abs_le_holder_psi
         ((σ.2 : ℤ) : ℝ) * ((τ.2 : ℤ) : ℝ)) / (N + 1) - q|
     let n : ℝ := Fintype.card R
     let L := 1 + |D| + |M₀| + |M₁| + |M₀| * |D|
-    (∀ᵐ ω ∂P₀, Integrable (f ω) (Measure.pi fun _ : R => μ₀ ω)) →
-    Integrable (fun ω => ∫ a, |f ω a| ∂(Measure.pi fun _ : R => μ₀ ω)) P₀ →
     (∀ᵐ ω ∂P₀, Integrable (fun a => |f ω a| ^ p₁) (Measure.pi fun _ : R => μ₀ ω)) →
     Integrable (fun ω => ∫ a, |f ω a| ^ p₁ ∂(Measure.pi fun _ : R => μ₀ ω)) P₀ →
     ∃ d',
@@ -406,10 +404,18 @@ theorem exists_hasDerivAt_cavity_v_abs_le_holder_psi
           1 / (N + 1) *
             ∫ p, ∫ a : R → SmartPathState N (M + 1) × ℝ,
               |f_ext p a| ∂(Measure.pi fun _ : R => νfull v p) ∂Pfull) := by
-  intro P₀ μ₀ Pfull S_v νfull f_ext d_spin n L hfi hfi₁ hfp hfp₁
+  intro P₀ μ₀ Pfull S_v νfull f_ext d_spin n L hfp hfp₁
+  have hP₀ : IsProbabilityMeasure P₀ := by
+    dsimp [P₀]
+    rw [smartPathDisorder_eq]
+    infer_instance
+  have hμ₀ (ω : SmartPathDisorder N M) : IsProbabilityMeasure (μ₀ ω) :=
+    isProbabilityMeasure_tilted_perceptron_smart_path_energy hu.measurable (fun x => hu.le x) ω t
+  obtain ⟨hfi, hfi₁⟩ := integrable_pi_tilted_and_integrable_integral_abs_of_rpow P₀
+    (μ := smartPathBase N M) (measurable_smartPathEnergy hu.measurable t) hf hp.lt.le hfp hfp₁
   let s₀ := Real.arccos (Real.sqrt v)
   obtain ⟨z, hz, hb⟩ := exists_hasDerivAt_cavity_rotation_abs_le_holder ht hq variance hu ψ
-    hψd hψ₂d hM₀ hM₁ hM₂ hf s₀ hp hfi hfi₁ hfp hfp₁
+    hψd hψ₂d hM₀ hM₁ hM₂ hf s₀ hp hfp hfp₁
   have hv_deriv := hasDerivAt_cavity_v_of_angle hu.toSmartPathPotential t q hv variance ψ
     (fun r => (hψd r).continuous.measurable) hM₀ hf hfi hfi₁ hz
   have hcos : Real.cos s₀ = Real.sqrt v :=
@@ -638,8 +644,6 @@ theorem exists_hasDerivAt_cavity_v_unweighted_holder
         let d_spin (σ τ : PerceptronSpin N) : ℝ :=
           |((∑ i, ((σ.1 i : ℤ) : ℝ) * ((τ.1 i : ℤ) : ℝ)) +
             ((σ.2 : ℤ) : ℝ) * ((τ.2 : ℤ) : ℝ)) / (N + 1) - q|
-        (∀ᵐ ω ∂P₀, Integrable (f ω) (Measure.pi fun _ : R => μ₀ ω)) →
-        Integrable (fun ω => ∫ a, |f ω a| ∂(Measure.pi fun _ : R => μ₀ ω)) P₀ →
         (∀ᵐ ω ∂P₀, Integrable (fun a => |f ω a| ^ p₁) (Measure.pi fun _ : R => μ₀ ω)) →
         Integrable (fun ω => ∫ a, |f ω a| ^ p₁ ∂(Measure.pi fun _ : R => μ₀ ω)) P₀ →
         ∃ d',
@@ -660,13 +664,13 @@ theorem exists_hasDerivAt_cavity_v_unweighted_holder
   let L : ℝ := 1 + |D| + |(1 : ℝ)| + |(0 : ℝ)| + |(1 : ℝ)| * |D|
   refine ⟨(1 / 2) * ((4 * n ^ 2 + n) * L ^ (Fintype.card R + 2)), by positivity, ?_⟩
   intro N M t q v ht hq hv variance u hd hb f hf p₁ p₂ hp P₀ μ₀ Pfull S_v νfull f_ext d_spin
-    hfi hfi₁ hfp hfp₁
+    hfp hfp₁
   obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
   obtain ⟨d', hd', hbd⟩ := exists_hasDerivAt_cavity_v_abs_le_holder_psi ht hq hv variance hu
     (fun _ => fun _ => 1) (fun _ => differentiable_const 1)
     (fun _ => by simp) (M₀ := 1) (M₁ := 0) (M₂ := 0)
     (fun _ _ => by simp) (fun _ _ => by simp) (fun _ _ => by simp)
-    hf hp hfi hfi₁ hfp hfp₁
+    hf hp hfp hfp₁
   refine ⟨d', ?_, hbd⟩
   simpa only [Finset.prod_const_one, mul_one] using hd'
 
@@ -832,8 +836,6 @@ theorem exists_hasDerivAt_cavity_v_deriv_mul_holder
         let d_spin (σ τ : PerceptronSpin N) : ℝ :=
           |((∑ i, ((σ.1 i : ℤ) : ℝ) * ((τ.1 i : ℤ) : ℝ)) +
             ((σ.2 : ℤ) : ℝ) * ((τ.2 : ℤ) : ℝ)) / (N + 1) - q|
-        (∀ᵐ ω ∂P₀, Integrable (f ω) (Measure.pi fun _ : R => μ₀ ω)) →
-        Integrable (fun ω => ∫ a, |f ω a| ∂(Measure.pi fun _ : R => μ₀ ω)) P₀ →
         (∀ᵐ ω ∂P₀, Integrable (fun a => |f ω a| ^ p₁) (Measure.pi fun _ : R => μ₀ ω)) →
         Integrable (fun ω => ∫ a, |f ω a| ^ p₁ ∂(Measure.pi fun _ : R => μ₀ ω)) P₀ →
         ∃ d',
@@ -858,7 +860,7 @@ theorem exists_hasDerivAt_cavity_v_deriv_mul_holder
   let L : ℝ := 1 + |D| + |M₀| + |M₁| + |M₀| * |D|
   refine ⟨(1 / 2) * ((4 * n ^ 2 + n) * L ^ (Fintype.card R + 2)), by positivity, ?_⟩
   intro N M r₁ r₂ hr t q v ht hq hv variance u hd hb f hf p₁ p₂ hp P₀ μ₀ Pfull S_v νfull
-    f_ext d_spin hfi hfi₁ hfp hfp₁
+    f_ext d_spin hfp hfp₁
   obtain ⟨hu, h2d, hb3⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
   let ψ (r : R) (x : ℝ) : ℝ := if r = r₁ ∨ r = r₂ then deriv u x else 1
   have hψd (r : R) : Differentiable ℝ (ψ r) := by
@@ -880,7 +882,7 @@ theorem exists_hasDerivAt_cavity_v_deriv_mul_holder
     · exact (hb3 x).trans (le_abs_self D)
     · simp [abs_nonneg D]
   obtain ⟨d', hd', hbd⟩ := exists_hasDerivAt_cavity_v_abs_le_holder_psi ht hq hv variance hu
-    ψ hψd hψ₂d hM₀ hM₁ hM₂ hf hp hfi hfi₁ hfp hfp₁
+    ψ hψd hψ₂d hM₀ hM₁ hM₂ hf hp hfp hfp₁
   refine ⟨d', hd'.congr_of_eventuallyEq (Eventually.of_forall fun v' => ?_), hbd⟩
   refine integral_congr_ae (ae_of_all _ fun p => integral_congr_ae (ae_of_all _ fun a => ?_))
   change f_ext p a * (deriv u (S_v v' p (a r₁)) * deriv u (S_v v' p (a r₂))) =

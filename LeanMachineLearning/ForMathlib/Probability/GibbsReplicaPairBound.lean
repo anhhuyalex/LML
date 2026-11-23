@@ -7,6 +7,8 @@ module
 
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaProduct
 public import LeanMachineLearning.ForMathlib.Data.Finset.SumBound
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedHolder
+public import Mathlib.MeasureTheory.Function.LpSeminorm.LpNorm
 
 /-!
 # Bounds for replica pair terms
@@ -18,7 +20,7 @@ correction. The finite-sum estimate counts the ordered pairs in a replica deriva
 @[expose] public section
 
 open MeasureTheory
-open scoped BigOperators
+open scoped BigOperators ENNReal
 
 namespace MeasureTheory
 
@@ -104,6 +106,220 @@ theorem integral_pi_pair_mul_bound
   rw [Real.norm_eq_abs, integral_const_mul, integral_add hMint (hf₁.const_mul ε),
     integral_const_mul] at h
   exact h
+
+/-- The section and disorder first moments of a replica observable follow from its power
+moments when the section laws are probabilities and the disorder measure is finite. -/
+theorem integrable_pi_tilted_and_integrable_integral_abs_of_rpow
+    {Ω α R : Type*} [MeasurableSpace Ω] [MeasurableSpace α] [Fintype R]
+    (P : Measure Ω) [IsFiniteMeasure P] {μ : Measure α} [IsFiniteMeasure μ]
+    {E : Ω → α → ℝ} [∀ ω, IsProbabilityMeasure (μ.tilted (E ω))]
+    (hE : Measurable fun x : Ω × α => E x.1 x.2)
+    {f : Ω → (R → α) → ℝ} (hf : Measurable fun x : Ω × (R → α) => f x.1 x.2)
+    {p : ℝ} (hp : 1 ≤ p)
+    (hpi : ∀ᵐ ω ∂P, Integrable (fun a => |f ω a| ^ p)
+      (Measure.pi fun _ : R => μ.tilted (E ω)))
+    (hpow : Integrable (fun ω => ∫ a, |f ω a| ^ p
+      ∂(Measure.pi fun _ : R => μ.tilted (E ω))) P) :
+    (∀ᵐ ω ∂P, Integrable (f ω) (Measure.pi fun _ : R => μ.tilted (E ω))) ∧
+      Integrable (fun ω => ∫ a, |f ω a| ∂(Measure.pi fun _ : R => μ.tilted (E ω))) P := by
+  have hb (x : ℝ) : |x| ≤ 1 + |x| ^ p := by
+    rcases le_or_gt |x| 1 with h | h
+    · linarith [Real.rpow_nonneg (abs_nonneg x) p]
+    · have hpow : |x| ≤ |x| ^ p := by
+        simpa only [Real.rpow_one] using Real.rpow_le_rpow_of_exponent_le h.le hp
+      linarith
+  have hf_section (ω : Ω) : Measurable (f ω) :=
+    hf.comp (measurable_const.prodMk measurable_id)
+  have habs : Measurable (fun ω => ∫ a, |f ω a| ∂(Measure.pi fun _ : R => μ.tilted (E ω))) :=
+    measurable_integral_pi_tilted hE (by simpa only [Real.norm_eq_abs] using hf.norm)
+  have hfi : ∀ᵐ ω ∂P, Integrable (f ω) (Measure.pi fun _ : R => μ.tilted (E ω)) :=
+    hpi.mono fun ω hω =>
+      ((integrable_const (1 : ℝ)).add hω).mono' (hf_section ω).aestronglyMeasurable
+        (ae_of_all _ fun a => by simpa only [Real.norm_eq_abs, Pi.add_apply] using hb (f ω a))
+  refine ⟨hfi, ((integrable_const (1 : ℝ)).add hpow).mono' habs.aestronglyMeasurable ?_⟩
+  filter_upwards [hfi, hpi] with ω hω hωp
+  rw [Real.norm_of_nonneg (integral_nonneg fun a => abs_nonneg (f ω a))]
+  calc
+    _ ≤ ∫ a, (1 + |f ω a| ^ p) ∂(Measure.pi fun _ : R => μ.tilted (E ω)) :=
+      integral_mono hω.abs ((integrable_const _).add hωp) (fun a => hb (f ω a))
+    _ = _ := by
+      rw [integral_add (integrable_const _) hωp]
+      simp
+
+/-- **Iterated Hölder for a random replica Gibbs law on an arbitrary state space.**
+For interior conjugate exponents `Real.HolderConjugate p q`, if `f ω` is in `L^p` under `pi (ν ω)`
+and `d` is in `L^q` for almost every two-replica law, with integrable conditional moments,
+the expected pair average of `|f ω (σ ∘ e)| * d (σ r₁) (σ r₂)` (`r₁ ≠ r₂`) is bounded by the
+product of the iterated `L^p` and `L^q` moments. -/
+theorem integral_integral_pair_holder_prob
+    {Ω α R ι : Type*} [MeasurableSpace Ω] [MeasurableSpace α] [Fintype R] [Fintype ι]
+    (P : Measure Ω)
+    (ν : Ω → Measure α) [∀ ω, IsProbabilityMeasure (ν ω)]
+    {e : R → ι} (he : Function.Injective e) {r₁ r₂ : ι} (hr : r₁ ≠ r₂)
+    {f : Ω → (R → α) → ℝ}
+    {d : α → α → ℝ} (hd0 : ∀ a b, 0 ≤ d a b)
+    {p q : ℝ} (hpq : p.HolderConjugate q)
+    (hfp_mem : ∀ᵐ ω ∂P, MemLp (f ω) (ENNReal.ofReal p) (Measure.pi fun _ : R => ν ω))
+    (hfp_int : Integrable (fun ω => ∫ a, |f ω a| ^ p ∂(Measure.pi fun _ : R => ν ω)) P)
+    (hdq_mem : ∀ᵐ ω ∂P, MemLp (fun τ : Fin 2 → α => d (τ 0) (τ 1)) (ENNReal.ofReal q)
+      (Measure.pi fun _ : Fin 2 => ν ω))
+    (hdq_int : Integrable
+      (fun ω => ∫ τ : Fin 2 → α, d (τ 0) (τ 1) ^ q ∂(Measure.pi fun _ : Fin 2 => ν ω)) P) :
+    ∫ ω, ∫ σ : ι → α, |f ω (fun r => σ (e r))| * d (σ r₁) (σ r₂)
+        ∂(Measure.pi fun _ : ι => ν ω) ∂P ≤
+      (∫ ω, ∫ a : R → α, |f ω a| ^ p ∂(Measure.pi fun _ : R => ν ω) ∂P) ^ (1 / p) *
+      (∫ ω, ∫ τ : Fin 2 → α, d (τ 0) (τ 1) ^ q
+        ∂(Measure.pi fun _ : Fin 2 => ν ω) ∂P) ^ (1 / q) := by
+  have hp : 0 < p := hpq.pos
+  have hq : 0 < q := hpq.symm.pos
+  set A : Ω → ℝ := fun ω => ∫ a : R → α, |f ω a| ^ p ∂(Measure.pi fun _ : R => ν ω)
+  set B : Ω → ℝ :=
+    fun ω => ∫ τ : Fin 2 → α, d (τ 0) (τ 1) ^ q ∂(Measure.pi fun _ : Fin 2 => ν ω)
+  have hA0 : ∀ ω, 0 ≤ A ω := fun ω => integral_nonneg fun _ => Real.rpow_nonneg (abs_nonneg _) _
+  have hB0 : ∀ ω, 0 ≤ B ω := fun ω => integral_nonneg fun _ => Real.rpow_nonneg (hd0 _ _) _
+  have hρ : Function.Injective (![r₁, r₂] : Fin 2 → ι) := Matrix.injective_pair_iff_ne.2 hr
+  have hinner : ∀ᵐ ω ∂P, ∫ σ : ι → α, |f ω (fun r => σ (e r))| * d (σ r₁) (σ r₂)
+        ∂(Measure.pi fun _ : ι => ν ω) ≤ A ω ^ (1 / p) * B ω ^ (1 / q) := by
+    filter_upwards [hfp_mem, hdq_mem] with ω hf hd
+    have hmp_e := measurePreserving_pi_comp_injective (ν ω) he
+    have hf_ι : MemLp (fun σ : ι → α => |f ω (fun r => σ (e r))|) (ENNReal.ofReal p)
+        (Measure.pi fun _ : ι => ν ω) :=
+      hf.abs.comp_measurePreserving hmp_e
+    have hd_ι : MemLp (fun σ : ι → α => d (σ r₁) (σ r₂)) (ENNReal.ofReal q)
+        (Measure.pi fun _ : ι => ν ω) :=
+      hd.comp_measurePreserving (measurePreserving_pi_comp_injective (ν ω) hρ)
+    have hhold := integral_mul_le_Lp_mul_Lq_of_nonneg (μ := Measure.pi fun _ : ι => ν ω) hpq
+      (ae_of_all _ fun _ => abs_nonneg _) (ae_of_all _ fun _ => hd0 _ _) hf_ι hd_ι
+    have he1 : ∫ σ : ι → α, |f ω (fun r => σ (e r))| ^ p ∂(Measure.pi fun _ : ι => ν ω) = A ω :=
+      integral_pi_comp_injective (ν ω) he (fun a => |f ω a| ^ p)
+        (hf.abs.aestronglyMeasurable.aemeasurable.pow_const p).aestronglyMeasurable
+    have he2 : ∫ σ : ι → α, d (σ r₁) (σ r₂) ^ q ∂(Measure.pi fun _ : ι => ν ω) = B ω :=
+      integral_pi_comp_injective (ν ω) hρ (fun τ : Fin 2 → α => d (τ 0) (τ 1) ^ q)
+        (hd.aestronglyMeasurable.aemeasurable.pow_const q).aestronglyMeasurable
+    simpa only [he1, he2] using hhold
+  have hA_mem : MemLp (fun ω => A ω ^ (1 / p)) (ENNReal.ofReal p) P :=
+    memLp_rpow_inv_of_integrable hp hA0 hfp_int
+  have hB_mem : MemLp (fun ω => B ω ^ (1 / q)) (ENNReal.ofReal q) P :=
+    memLp_rpow_inv_of_integrable hq hB0 hdq_int
+  have hAB_int : Integrable (fun ω => A ω ^ (1 / p) * B ω ^ (1 / q)) P := by
+    have := hpq.ennrealOfReal
+    exact hA_mem.integrable_mul hB_mem
+  calc ∫ ω, ∫ σ : ι → α, |f ω (fun r => σ (e r))| * d (σ r₁) (σ r₂)
+          ∂(Measure.pi fun _ : ι => ν ω) ∂P
+      ≤ ∫ ω, A ω ^ (1 / p) * B ω ^ (1 / q) ∂P :=
+        integral_mono_of_nonneg
+          (ae_of_all _ fun ω => integral_nonneg fun _ => mul_nonneg (abs_nonneg _) (hd0 _ _))
+          hAB_int hinner
+    _ ≤ (∫ ω, (A ω ^ (1 / p)) ^ p ∂P) ^ (1 / p) * (∫ ω, (B ω ^ (1 / q)) ^ q ∂P) ^ (1 / q) :=
+        integral_mul_le_Lp_mul_Lq_of_nonneg hpq
+          (ae_of_all _ fun ω => Real.rpow_nonneg (hA0 ω) _)
+          (ae_of_all _ fun ω => Real.rpow_nonneg (hB0 ω) _) hA_mem hB_mem
+    _ = _ := by
+        simp only [one_div, Real.rpow_inv_rpow (hA0 _) hp.ne', Real.rpow_inv_rpow (hB0 _) hq.ne']
+
+/-- **Endpoint `(1, ∞)` of Hölder for a random replica Gibbs law:** if `d ≤ Md` almost everywhere
+under `P`-a.e. two-replica law and `f` is `L¹`, the expected pair average is at most the `L¹`
+moment of `f` times `Md`. -/
+theorem integral_integral_pair_holder_one_top
+    {Ω α R ι : Type*} [MeasurableSpace Ω] [MeasurableSpace α] [Fintype R] [Fintype ι]
+    (P : Measure Ω)
+    (ν : Ω → Measure α) [∀ ω, IsProbabilityMeasure (ν ω)]
+    {e : R → ι} (he : Function.Injective e) {r₁ r₂ : ι} (hr : r₁ ≠ r₂)
+    {f : Ω → (R → α) → ℝ}
+    {d : α → α → ℝ} (hd0 : ∀ a b, 0 ≤ d a b) (hdm : Measurable fun p : α × α => d p.1 p.2)
+    {Md : ℝ}
+    (hd_ae : ∀ᵐ ω ∂P, ∀ᵐ τ : Fin 2 → α ∂(Measure.pi fun _ : Fin 2 => ν ω), d (τ 0) (τ 1) ≤ Md)
+    (hf1_mem : ∀ᵐ ω ∂P, Integrable (f ω) (Measure.pi fun _ : R => ν ω))
+    (hf1_int : Integrable (fun ω => ∫ a, |f ω a| ∂(Measure.pi fun _ : R => ν ω)) P) :
+    ∫ ω, ∫ σ : ι → α, |f ω (fun r => σ (e r))| * d (σ r₁) (σ r₂)
+        ∂(Measure.pi fun _ : ι => ν ω) ∂P ≤
+      (∫ ω, ∫ a : R → α, |f ω a| ∂(Measure.pi fun _ : R => ν ω) ∂P) * Md := by
+  have hρ : Function.Injective (![r₁, r₂] : Fin 2 → ι) := Matrix.injective_pair_iff_ne.2 hr
+  have hinner : ∀ᵐ ω ∂P,
+      ∫ σ : ι → α, |f ω (fun r => σ (e r))| * d (σ r₁) (σ r₂) ∂(Measure.pi fun _ : ι => ν ω) ≤
+        (∫ a : R → α, |f ω a| ∂(Measure.pi fun _ : R => ν ω)) * Md := by
+    filter_upwards [hd_ae, hf1_mem] with ω hω hfi
+    have hmp_ρ := measurePreserving_pi_comp_injective (ν ω) hρ
+    have hd_ι_ae : ∀ᵐ σ : ι → α ∂(Measure.pi fun _ : ι => ν ω), d (σ r₁) (σ r₂) ≤ Md :=
+      hmp_ρ.quasiMeasurePreserving.ae hω
+    have hmp_e := measurePreserving_pi_comp_injective (ν ω) he
+    have hf_ι : Integrable (fun σ : ι → α => |f ω (fun r => σ (e r))|)
+        (Measure.pi fun _ : ι => ν ω) :=
+      hmp_e.integrable_comp_of_integrable hfi.abs
+    have hd_m : Measurable fun σ : ι → α => d (σ r₁) (σ r₂) :=
+      hdm.comp (by fun_prop : Measurable fun σ : ι → α => (σ r₁, σ r₂))
+    calc ∫ σ : ι → α, |f ω (fun r => σ (e r))| * d (σ r₁) (σ r₂) ∂(Measure.pi fun _ : ι => ν ω)
+        ≤ ∫ σ : ι → α, |f ω (fun r => σ (e r))| * Md ∂(Measure.pi fun _ : ι => ν ω) := by
+          refine integral_mono_ae
+            ((hf_ι.bdd_mul_of_abs_le (C := Md) hd_m.aestronglyMeasurable
+              (hd_ι_ae.mono fun σ hσ => by rw [abs_of_nonneg (hd0 _ _)]; exact hσ)).congr
+              (ae_of_all _ fun σ => mul_comm _ _))
+            (hf_ι.mul_const Md)
+            (hd_ι_ae.mono fun σ hσ => mul_le_mul_of_nonneg_left hσ (abs_nonneg _))
+      _ = (∫ a : R → α, |f ω a| ∂(Measure.pi fun _ : R => ν ω)) * Md := by
+          rw [integral_mul_const, integral_pi_comp_injective (ν ω) he (fun a => |f ω a|)
+            hfi.abs.aestronglyMeasurable]
+  calc ∫ ω, ∫ σ : ι → α, |f ω (fun r => σ (e r))| * d (σ r₁) (σ r₂)
+          ∂(Measure.pi fun _ : ι => ν ω) ∂P
+      ≤ ∫ ω, (∫ a : R → α, |f ω a| ∂(Measure.pi fun _ : R => ν ω)) * Md ∂P :=
+        integral_mono_of_nonneg
+          (ae_of_all _ fun ω => integral_nonneg fun _ => mul_nonneg (abs_nonneg _) (hd0 _ _))
+          (hf1_int.mul_const Md) hinner
+    _ = (∫ ω, ∫ a : R → α, |f ω a| ∂(Measure.pi fun _ : R => ν ω) ∂P) * Md :=
+        integral_mul_const _ _
+
+/-- **Endpoint `(∞, 1)` of Hölder for a random replica Gibbs law:** if `|f ω| ≤ Mf` almost
+everywhere under `P`-a.e. replica law and `d` is bounded and measurable, the expected pair average
+is at most `Mf` times the `L¹` moment of `d`. -/
+theorem integral_integral_pair_holder_top_one
+    {Ω α R ι : Type*} [MeasurableSpace Ω] [MeasurableSpace α] [Fintype R] [Fintype ι]
+    (P : Measure Ω)
+    (ν : Ω → Measure α) [∀ ω, IsProbabilityMeasure (ν ω)]
+    {e : R → ι} (he : Function.Injective e) {r₁ r₂ : ι} (hr : r₁ ≠ r₂)
+    {f : Ω → (R → α) → ℝ}
+    (hf_m : ∀ᵐ ω ∂P, AEStronglyMeasurable (f ω) (Measure.pi fun _ : R => ν ω))
+    {Mf : ℝ}
+    (hf_ae : ∀ᵐ ω ∂P, ∀ᵐ a : R → α ∂(Measure.pi fun _ : R => ν ω), |f ω a| ≤ Mf)
+    {d : α → α → ℝ} (hd0 : ∀ a b, 0 ≤ d a b)
+    (hd_mem : ∀ᵐ ω ∂P, Integrable
+      (fun τ : Fin 2 → α => d (τ 0) (τ 1)) (Measure.pi fun _ : Fin 2 => ν ω))
+    (hd1_int : Integrable
+      (fun ω => ∫ τ : Fin 2 → α, d (τ 0) (τ 1) ∂(Measure.pi fun _ : Fin 2 => ν ω)) P) :
+    ∫ ω, ∫ σ : ι → α, |f ω (fun r => σ (e r))| * d (σ r₁) (σ r₂)
+        ∂(Measure.pi fun _ : ι => ν ω) ∂P ≤
+      Mf * ∫ ω, ∫ τ : Fin 2 → α, d (τ 0) (τ 1) ∂(Measure.pi fun _ : Fin 2 => ν ω) ∂P := by
+  have hρ : Function.Injective (![r₁, r₂] : Fin 2 → ι) := Matrix.injective_pair_iff_ne.2 hr
+  have hinner : ∀ᵐ ω ∂P,
+      ∫ σ : ι → α, |f ω (fun r => σ (e r))| * d (σ r₁) (σ r₂) ∂(Measure.pi fun _ : ι => ν ω) ≤
+        Mf * ∫ τ : Fin 2 → α, d (τ 0) (τ 1) ∂(Measure.pi fun _ : Fin 2 => ν ω) := by
+    filter_upwards [hf_ae, hf_m, hd_mem] with ω hω hfm hdi
+    have hmp_e := measurePreserving_pi_comp_injective (ν ω) he
+    have hf_ι_ae : ∀ᵐ σ : ι → α ∂(Measure.pi fun _ : ι => ν ω), |f ω (fun r => σ (e r))| ≤ Mf :=
+      hmp_e.quasiMeasurePreserving.ae hω
+    have hd_ι : Integrable (fun σ : ι → α => d (σ r₁) (σ r₂)) (Measure.pi fun _ => ν ω) := by
+      have hmp := measurePreserving_pi_comp_injective (ν ω) hρ
+      simpa [Function.comp_def] using hmp.integrable_comp_of_integrable hdi
+    calc ∫ σ : ι → α, |f ω (fun r => σ (e r))| * d (σ r₁) (σ r₂) ∂(Measure.pi fun _ : ι => ν ω)
+        ≤ ∫ σ : ι → α, Mf * d (σ r₁) (σ r₂) ∂(Measure.pi fun _ : ι => ν ω) := by
+          refine integral_mono_ae
+            (hd_ι.bdd_mul_of_abs_le (C := Mf)
+              ((hfm.norm).comp_quasiMeasurePreserving hmp_e.quasiMeasurePreserving)
+              (hf_ι_ae.mono fun σ hσ => by rw [abs_abs]; exact hσ))
+            (hd_ι.const_mul Mf)
+            (hf_ι_ae.mono fun σ hσ => mul_le_mul_of_nonneg_right hσ (hd0 _ _))
+      _ = Mf * ∫ τ : Fin 2 → α, d (τ 0) (τ 1) ∂(Measure.pi fun _ : Fin 2 => ν ω) := by
+          rw [integral_const_mul]
+          congr 1
+          exact integral_pi_comp_injective (ν ω) hρ (fun τ => d (τ 0) (τ 1))
+            hdi.aestronglyMeasurable
+  calc ∫ ω, ∫ σ : ι → α, |f ω (fun r => σ (e r))| * d (σ r₁) (σ r₂)
+          ∂(Measure.pi fun _ : ι => ν ω) ∂P
+      ≤ ∫ ω, Mf * ∫ τ : Fin 2 → α, d (τ 0) (τ 1) ∂(Measure.pi fun _ : Fin 2 => ν ω) ∂P :=
+        integral_mono_of_nonneg
+          (ae_of_all _ fun ω => integral_nonneg fun _ => mul_nonneg (abs_nonneg _) (hd0 _ _))
+          (hd1_int.const_mul Mf) hinner
+    _ = Mf * ∫ ω, ∫ τ : Fin 2 → α, d (τ 0) (τ 1) ∂(Measure.pi fun _ : Fin 2 => ν ω) ∂P :=
+        integral_const_mul _ _
 
 end MeasureTheory
 

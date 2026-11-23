@@ -602,19 +602,6 @@ theorem exists_hasDerivAt_smartPath_abs_le_holder
         |(|g_ij ω a| ^ p₁)| ≤ |C_f| ^ p₁ := by
       rw [abs_of_nonneg (Real.rpow_nonneg (abs_nonneg _) _)]
       exact Real.rpow_le_rpow (abs_nonneg _) (hg_b ω a) hp.pos.le
-    have hgi : ∀ᵐ ω ∂P₀, Integrable (g_ij ω) (Measure.pi fun _ => μ₀ ω) :=
-      ae_of_all _ fun ω => Integrable.of_bound
-        (hg_m.comp (measurable_const (a := ω).prodMk measurable_id)).aestronglyMeasurable
-        |C_f| (ae_of_all _ fun a => by simpa using hg_b ω a)
-    have hg_m1 := measurable_integral_pi_tilted (μ := smartPathBase N M)
-      (E := fun ω => smartPathEnergy u t ω) (G := fun ω a => |g_ij ω a|)
-      (measurable_smartPathEnergy hu.measurable t)
-      (by simpa only [Real.norm_eq_abs] using hg_m.norm)
-    have hgi₁ : Integrable (fun ω => ∫ a, |g_ij ω a| ∂(Measure.pi fun _ => μ₀ ω)) P₀ :=
-      Integrable.of_bound hg_m1.aestronglyMeasurable |C_f| (ae_of_all _ fun ω => by
-        rw [Real.norm_eq_abs]
-        exact abs_integral_le_of_forall_abs_le _ fun a => by
-          rw [abs_abs]; exact hg_b ω a)
     have hg_pm : Measurable fun p : SmartPathDisorder N M ×
         (Option (Option R) → SmartPathState N M) => |g_ij p.1 p.2| ^ p₁ :=
       (by simpa only [Real.norm_eq_abs] using hg_m.norm : Measurable _).pow_const p₁
@@ -629,7 +616,7 @@ theorem exists_hasDerivAt_smartPath_abs_le_holder
       Integrable.of_bound hg_pm1.aestronglyMeasurable (|C_f| ^ p₁) (ae_of_all _ fun ω => by
         rw [Real.norm_eq_abs]
         exact abs_integral_le_of_forall_abs_le _ fun a => hg_pb ω a)
-    have hb262 := hK₂ N M hij ⟨ht.1.le, ht.2.le⟩ hq variance hd hb hg_m hp hgi hgi₁ hgp hgp₁
+    have hb262 := hK₂ N M hij ⟨ht.1.le, ht.2.le⟩ hq variance hd hb hg_m hp hgp hgp₁
     dsimp only [g_ij] at hb262
     have hm1_eq : (∫ ω, ∫ τ : Option (Option R) → SmartPathState N (M + 1),
         |f (fun r => (τ (some (some r))).1) * (((τ i).1.2 : ℤ) : ℝ) * (((τ j).1.2 : ℤ) : ℝ)|

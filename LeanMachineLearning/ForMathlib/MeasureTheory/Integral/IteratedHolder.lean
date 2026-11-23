@@ -87,3 +87,20 @@ theorem integral_integral_mul_le_Lp_mul_Lq {Ω Z : Type*} [MeasurableSpace Ω] [
           (ae_of_all _ fun g => Real.rpow_nonneg (hb0 g) _) hLa hLb
     _ = _ := by
         simp only [one_div, Real.rpow_inv_rpow (ha0 _) hp.ne', Real.rpow_inv_rpow (hb0 _) hr.ne']
+
+namespace MeasureTheory
+
+/-- **`A ^ (1 / p)` is in `L^p` when `A ≥ 0` is integrable.** -/
+theorem memLp_rpow_inv_of_integrable {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω}
+    {A : Ω → ℝ} {p : ℝ} (hp : 0 < p) (hA0 : ∀ ω, 0 ≤ A ω) (hA : Integrable A P) :
+    MemLp (fun ω => A ω ^ (1 / p)) (ENNReal.ofReal p) P := by
+  have hm : AEStronglyMeasurable (fun ω => A ω ^ (1 / p)) P :=
+    (hA.aestronglyMeasurable.aemeasurable.pow_const _).aestronglyMeasurable
+  refine (integrable_norm_rpow_iff hm (by positivity) ENNReal.ofReal_ne_top).mp ?_
+  rw [ENNReal.toReal_ofReal hp.le]
+  refine hA.congr (ae_of_all _ fun ω => ?_)
+  dsimp only
+  rw [Real.norm_of_nonneg (Real.rpow_nonneg (hA0 ω) _), ← Real.rpow_mul (hA0 ω),
+    one_div_mul_cancel hp.ne', Real.rpow_one]
+
+end MeasureTheory

@@ -24,6 +24,12 @@ namespace SpinGlasses
 
 universe v
 
+private theorem measurable_pair_comp {α L : Type*} [MeasurableSpace α] [MeasurableSpace L]
+    [Finite L] [MeasurableSingletonClass L] {π : α → L} (hπ : Measurable π) (d : L → L → ℝ) :
+    Measurable (fun p : α × α => d (π p.1) (π p.2)) :=
+  (measurable_of_finite (fun p : L × L => d p.1 p.2)).comp
+    ((hπ.comp measurable_fst).prodMk (hπ.comp measurable_snd))
+
 /-- A bounded change of the cavity energy preserves an old observable's integrable
 sections and disorder-averaged absolute first moment. Applying it to a power of the
 observable gives the corresponding moment transfer. -/
@@ -196,14 +202,9 @@ theorem exists_hasDerivAt_cavity_rotation_abs_le_of_pair_bound
       from hcov _ _]
     exact abs_sub_cavityCoef_dotProduct_le ht q _ _
   have hd (a b : T) : d a b ≤ 2 := abs_perceptron_overlap_sub_le_two hq _ _
-  have hdm : Measurable fun p : T × T => d p.1 p.2 := by
-    let b : PerceptronSpin N × PerceptronSpin N → ℝ :=
-      fun p => d ((p.1, 0), 0) ((p.2, 0), 0)
-    have hproj : Measurable fun p : T × T => (p.1.1.1, p.2.1.1) :=
-      (measurable_fst.comp (measurable_fst.comp measurable_fst)).prodMk
-        (measurable_fst.comp (measurable_fst.comp measurable_snd))
-    have h := (measurable_of_finite b).comp hproj
-    exact h
+  have hdm : Measurable fun p : T × T => d p.1 p.2 :=
+    measurable_pair_comp (π := fun a : T => a.1.1) (measurable_fst.comp measurable_fst)
+      (fun a b => d ((a, 0), 0) ((b, 0), 0))
   have hcm : Measurable fun p : T × T => c p.1 p.2 := by
     let b : PerceptronSpin N × PerceptronSpin N → ℝ :=
       fun p => C_cov p.1 p.2
@@ -428,14 +429,9 @@ theorem exists_hasDerivAt_cavity_rotation_abs_le_first_moment
   obtain ⟨hFI, hF₁⟩ :=
     integrable_integral_pi_cavity_rotation_abs t q s₀ variance hu.toSmartPathPotential hf hfi hfi₁
   have hd (a b : T) : d a b ≤ 2 := abs_perceptron_overlap_sub_le_two hq _ _
-  have hdm : Measurable fun p : T × T => d p.1 p.2 := by
-    let b : PerceptronSpin N × PerceptronSpin N → ℝ :=
-      fun p => d ((p.1, 0), 0) ((p.2, 0), 0)
-    have hproj : Measurable fun p : T × T => (p.1.1.1, p.2.1.1) :=
-      (measurable_fst.comp (measurable_fst.comp measurable_fst)).prodMk
-        (measurable_fst.comp (measurable_fst.comp measurable_snd))
-    have h := (measurable_of_finite b).comp hproj
-    exact h
+  have hdm : Measurable fun p : T × T => d p.1 p.2 :=
+    measurable_pair_comp (π := fun a : T => a.1.1) (measurable_fst.comp measurable_fst)
+      (fun a b => d ((a, 0), 0) ((b, 0), 0))
   let I := ∫ p, ∫ a, |F p a| ∂(Measure.pi fun _ : R => ν p) ∂P
   have hI₀ : 0 ≤ I := integral_nonneg fun _ => integral_nonneg fun _ => abs_nonneg _
   have hpair (ι : Type v) [Fintype ι] (e : R → ι) (he : Function.Injective e)
@@ -492,8 +488,6 @@ theorem exists_hasDerivAt_cavity_rotation_abs_le_holder
         ((a.1.1.2 : ℤ) : ℝ) * ((b.1.1.2 : ℤ) : ℝ)) / (N + 1) - q|
     let n : ℝ := Fintype.card R
     let L := 1 + |D| + |M₀| + |M₁| + |M₀| * |D|
-    (∀ᵐ ω ∂P₀, Integrable (f ω) (Measure.pi fun _ : R => μ₀ ω)) →
-    Integrable (fun ω => ∫ a, |f ω a| ∂(Measure.pi fun _ : R => μ₀ ω)) P₀ →
     (∀ᵐ ω ∂P₀, Integrable (fun a => |f ω a| ^ p₁) (Measure.pi fun _ : R => μ₀ ω)) →
     Integrable (fun ω => ∫ a, |f ω a| ^ p₁ ∂(Measure.pi fun _ : R => μ₀ ω)) P₀ →
     let P := P₀.prod γ_sh
@@ -509,7 +503,7 @@ theorem exists_hasDerivAt_cavity_rotation_abs_le_holder
       |z| ≤ (4 * n ^ 2 + n) * L ^ (Fintype.card R + 2) *
         (Aₚ ^ (1 / p₁) * Bₚ ^ (1 / p₂) + 1 / (N + 1) *
           ∫ p, ∫ a, |F p a| ∂(Measure.pi fun _ : R => ν p) ∂P) := by
-  intro P₀ μ₀ γ_sh γ_aux X Y A E S Ω W T ν F d n L hfi hfi₁ hfp hfp₁ P Aₚ Bₚ
+  intro P₀ μ₀ γ_sh γ_aux X Y A E S Ω W T ν F d n L hfp hfp₁ P Aₚ Bₚ
   have hS := measurable_cavity_rotation_field (N := N) (M := M) t q s₀
   have hV (p : Ω × W) : Measurable fun x : T => u (S s₀ p.2 x) := by
     have hp : Measurable fun x : T => (p.2, x) := measurable_const.prodMk measurable_id
@@ -521,17 +515,16 @@ theorem exists_hasDerivAt_cavity_rotation_abs_le_holder
       hu.measurable (fun x => hu.le x) ω t
   have : ∀ p, IsProbabilityMeasure (ν p) := fun p =>
     isProbabilityMeasure_tilted_of_ae_le (hV p).aemeasurable (ae_of_all _ fun _ => hu.le _)
+  have hP₀ : IsProbabilityMeasure P₀ := by
+    dsimp [P₀]; rw [smartPathDisorder_eq]; infer_instance
+  obtain ⟨hfi, hfi₁⟩ := integrable_pi_tilted_and_integrable_integral_abs_of_rpow P₀
+    (μ := smartPathBase N M) (measurable_smartPathEnergy hu.measurable t) hf hp.lt.le hfp hfp₁
   obtain ⟨hFI, hF₁⟩ :=
     integrable_integral_pi_cavity_rotation_abs t q s₀ variance hu.toSmartPathPotential hf hfi hfi₁
   have hd (a b : T) : d a b ≤ 2 := abs_perceptron_overlap_sub_le_two hq _ _
-  have hdm : Measurable fun p : T × T => d p.1 p.2 := by
-    let b : PerceptronSpin N × PerceptronSpin N → ℝ :=
-      fun p => d ((p.1, 0), 0) ((p.2, 0), 0)
-    have hproj : Measurable fun p : T × T => (p.1.1.1, p.2.1.1) :=
-      (measurable_fst.comp (measurable_fst.comp measurable_fst)).prodMk
-        (measurable_fst.comp (measurable_fst.comp measurable_snd))
-    have h := (measurable_of_finite b).comp hproj
-    exact h
+  have hdm : Measurable fun p : T × T => d p.1 p.2 :=
+    measurable_pair_comp (π := fun a : T => a.1.1) (measurable_fst.comp measurable_fst)
+      (fun a b => d ((a, 0), 0) ((b, 0), 0))
   let fₚ (ω : Ω) (a : R → SmartPathState N M) := |f ω a| ^ p₁
   have hfm₀ : Measurable fun x : Ω × (R → SmartPathState N M) => |f x.1 x.2| := by
     simpa only [Real.norm_eq_abs] using hf.norm
@@ -654,14 +647,9 @@ theorem exists_hasDerivAt_cavity_rotation_abs_le_of_ae_abs_le
   have : ∀ p, IsProbabilityMeasure (ν p) := fun p =>
     isProbabilityMeasure_tilted_of_ae_le (hV p).aemeasurable (ae_of_all _ fun _ => hu.le _)
   have hd (a b : T) : d a b ≤ 2 := abs_perceptron_overlap_sub_le_two hq _ _
-  have hdm : Measurable fun p : T × T => d p.1 p.2 := by
-    let b : PerceptronSpin N × PerceptronSpin N → ℝ :=
-      fun p => d ((p.1, 0), 0) ((p.2, 0), 0)
-    have hproj : Measurable fun p : T × T => (p.1.1.1, p.2.1.1) :=
-      (measurable_fst.comp (measurable_fst.comp measurable_fst)).prodMk
-        (measurable_fst.comp (measurable_fst.comp measurable_snd))
-    have h := (measurable_of_finite b).comp hproj
-    exact h
+  have hdm : Measurable fun p : T × T => d p.1 p.2 :=
+    measurable_pair_comp (π := fun a : T => a.1.1) (measurable_fst.comp measurable_fst)
+      (fun a b => d ((a, 0), 0) ((b, 0), 0))
   have hd₂m : Measurable fun a : Fin 2 → T => d (a 0) (a 1) := by
     have hpair : Measurable fun a : Fin 2 → T => (a 0, a 1) :=
       (measurable_pi_apply 0).prodMk (measurable_pi_apply 1)
@@ -718,12 +706,22 @@ theorem exists_hasDerivAt_cavity_rotation_abs_le_of_ae_abs_le
       measurable_const.prodMk (Measurable.of_eval fun r =>
         measurable_fst.comp (measurable_pi_apply r))
     exact (hf.comp ha).aestronglyMeasurable
+  have hd_bound (a : Fin 2 → T) : ‖d (a 0) (a 1)‖ ≤ 2 := by
+    rw [Real.norm_of_nonneg (abs_nonneg _)]
+    exact hd _ _
+  have hd_mem : ∀ᵐ p ∂P, Integrable (fun a : Fin 2 → T => d (a 0) (a 1))
+      (Measure.pi fun _ : Fin 2 => ν p) :=
+    ae_of_all _ fun _ => Integrable.of_bound hd₂m.aestronglyMeasurable 2 (ae_of_all _ hd_bound)
+  have hd_int : Integrable (fun p => ∫ a : Fin 2 → T, d (a 0) (a 1)
+      ∂(Measure.pi fun _ : Fin 2 => ν p)) P :=
+    Integrable.of_bound hZ.aestronglyMeasurable 2 (ae_of_all _ fun _ =>
+      norm_integral_le_of_norm_le_const (ae_of_all _ hd_bound))
   have hpair (ι : Type v) [Fintype ι] (e : R → ι) (he : Function.Injective e)
       (i j : ι) (hij : i ≠ j) :
       ∫ p, ∫ a : ι → T, |F p (a ∘ e)| * d (a i) (a j)
         ∂(Measure.pi fun _ : ι => ν p) ∂P ≤ M_f * J :=
-    integral_integral_pair_holder_top_one P ν he hij (f := F) hFm hFa
-      (d := d) (fun _ _ => abs_nonneg _) hdm hd hZ.aestronglyMeasurable
+    integral_integral_pair_holder_top_one P ν he hij (f := F) (ae_of_all _ hFm) hFa
+      (d := d) (fun _ _ => abs_nonneg _) hd_mem hd_int
   exact exists_hasDerivAt_cavity_rotation_abs_le_of_pair_bound ht hq variance hu ψ
     hψd hψ₂d hM₀ hM₁ hM₂ hf s₀ (mul_nonneg hMf hJ₀) hfi hfi₁ hpair
 

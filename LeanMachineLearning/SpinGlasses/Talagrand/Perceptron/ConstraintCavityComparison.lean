@@ -910,8 +910,6 @@ theorem abs_integral_smartPath_deriv_mul_sub_rhat_le_holder
               Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) /
             ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) ^ 2
             ∂gaussianReal 0 1
-        (∀ᵐ ω ∂P₀, Integrable (f ω) (Measure.pi fun _ : R => μ₀ ω)) →
-        Integrable (fun ω => ∫ a, |f ω a| ∂(Measure.pi fun _ : R => μ₀ ω)) P₀ →
         (∀ᵐ ω ∂P₀, Integrable (fun a => |f ω a| ^ p₁) (Measure.pi fun _ : R => μ₀ ω)) →
         Integrable (fun ω => ∫ a, |f ω a| ^ p₁ ∂(Measure.pi fun _ : R => μ₀ ω)) P₀ →
         |(∫ ω, ∫ a : R → SmartPathState N (M + 1),
@@ -940,8 +938,13 @@ theorem abs_integral_smartPath_deriv_mul_sub_rhat_le_holder
   let K : ℝ := (K_w / 2 + |D| ^ 2 * (K_u / 2)) * E_dom
   refine ⟨K, by positivity, ?_⟩
   intro N M r₁ r₂ hr t q ht hq variance u hd hb f hf p₁ p₂ hp P₀ μ₀ P₁ μ₁ f_ext d_spin rhat
-    hfi hfi₁ hfp hfp₁
+    hfp hfp₁
   obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
+  have hP₀ : IsProbabilityMeasure P₀ := by dsimp [P₀]; rw [smartPathDisorder_eq]; infer_instance
+  have hμ₀ (ω : SmartPathDisorder N M) : IsProbabilityMeasure (μ₀ ω) :=
+    isProbabilityMeasure_tilted_perceptron_smart_path_energy hu.measurable (fun x => hu.le x) ω t
+  obtain ⟨hfi, hfi₁⟩ := integrable_pi_tilted_and_integrable_integral_abs_of_rpow P₀
+    (μ := smartPathBase N M) (measurable_smartPathEnergy hu.measurable t) hf hp.lt.le hfp hfp₁
   have hD_abs : ∀ x, |u x| ≤ |D| := fun x => (hu.abs_le x).trans (le_abs_self D)
   have hhp1 : 0 ≤ 1 / p₁ := div_nonneg zero_le_one hp.pos.le
   have hhp2 : 0 ≤ 1 / p₂ := div_nonneg zero_le_one hp.symm.pos.le
@@ -999,9 +1002,6 @@ theorem abs_integral_smartPath_deriv_mul_sub_rhat_le_holder
     dsimp only at h0
     simp only [Finset.prod_const_one, mul_one] at h0
     exact (integral_prod _ hFp₁).trans h0
-  have hP₀ : IsProbabilityMeasure P₀ := by dsimp [P₀]; rw [smartPathDisorder_eq]; infer_instance
-  have hμ₀ (ω : SmartPathDisorder N M) : IsProbabilityMeasure (μ₀ ω) :=
-    isProbabilityMeasure_tilted_perceptron_smart_path_energy hu.measurable (fun x => hu.le x) ω t
   have hdo_b (a : Fin 2 → SmartPathState N M) : |d_spin (a 0).1 (a 1).1 ^ p₂| ≤ 2 ^ p₂ := by
     rw [abs_of_nonneg (Real.rpow_nonneg (abs_nonneg _) _)]
     exact Real.rpow_le_rpow (abs_nonneg _) (abs_perceptron_overlap_sub_le_two hq _ _)
@@ -1373,10 +1373,20 @@ theorem abs_integral_smartPath_deriv_mul_sub_rhat_le_of_ae_abs_le
       hd₂m.comp measurable_snd
     have hZ := measurable_integral_pi_cavity_rotation t q s hu.measurable (fun x => hu.le x)
       (F := G) hGm
+    have hd_bound (a : Fin 2 → T) : ‖d_spin (a 0).1.1 (a 1).1.1‖ ≤ 2 := by
+      rw [Real.norm_of_nonneg (abs_nonneg _)]
+      exact abs_perceptron_overlap_sub_le_two hq _ _
+    have hd_mem : ∀ᵐ p ∂(P₀.prod γ_sh), Integrable
+        (fun a : Fin 2 → T => d_spin (a 0).1.1 (a 1).1.1)
+        (Measure.pi fun _ : Fin 2 => νs s p) :=
+      ae_of_all _ fun _ => Integrable.of_bound hd₂m.aestronglyMeasurable 2 (ae_of_all _ hd_bound)
+    have hd_int : Integrable (fun p => ∫ a : Fin 2 → T, d_spin (a 0).1.1 (a 1).1.1
+        ∂(Measure.pi fun _ : Fin 2 => νs s p)) (P₀.prod γ_sh) :=
+      Integrable.of_bound hZ.aestronglyMeasurable 2 (ae_of_all _ fun _ =>
+        norm_integral_le_of_norm_le_const (ae_of_all _ hd_bound))
     have hh := integral_integral_pair_holder_top_one (P₀.prod γ_sh) (νs s) he hij
-      (f := fun p a => f p.1 (fun r => (a r).1)) hFm hFa
-      (d := fun a b => d_spin a.1.1 b.1.1) (fun _ _ => abs_nonneg _) hdm
-      (fun _ _ => abs_perceptron_overlap_sub_le_two hq _ _) hZ.aestronglyMeasurable
+      (f := fun p a => f p.1 (fun r => (a r).1)) (ae_of_all _ hFm) hFa
+      (d := fun a b => d_spin a.1.1 b.1.1) (fun _ _ => abs_nonneg _) hd_mem hd_int
     have hdom_B : ∫ p, ∫ a : Fin 2 → T, d_spin (a 0).1.1 (a 1).1.1
         ∂(Measure.pi fun _ : Fin 2 => νs s p) ∂(P₀.prod γ_sh) ≤
         Real.exp (8 * |D|) * J₀ := by
