@@ -101,6 +101,23 @@ theorem abs_sub_le_half_of_exists_hasDerivAt {φ : ℝ → ℝ} {K : ℝ}
   have := mul_le_mul_of_nonneg_left (hDb s hs) (mul_nonneg hsin hcos)
   linarith
 
+/-- Control the error between two curves at zero when they agree up to a scalar at the
+decoupled endpoint. Each derivative has the same trigonometric factor. -/
+theorem abs_sub_mul_le_half_of_exists_hasDerivAt {f g : ℝ → ℝ} {c C Kf Kg : ℝ}
+    (hfg : f (π / 2) = c * g (π / 2)) (hc : |c| ≤ C)
+    (hf : ∀ s, ∃ d, HasDerivAt f (sin s * cos s * d) s ∧ (s ∈ Icc 0 (π / 2) → |d| ≤ Kf))
+    (hg : ∀ s, ∃ d, HasDerivAt g (sin s * cos s * d) s ∧ (s ∈ Icc 0 (π / 2) → |d| ≤ Kg)) :
+    |f 0 - c * g 0| ≤ Kf / 2 + C * (Kg / 2) := by
+  have heq : f 0 - c * g 0 = -(f (π / 2) - f 0) + c * (g (π / 2) - g 0) := by
+    rw [hfg]
+    ring
+  rw [heq]
+  refine (abs_add_le _ _).trans (add_le_add ?_ ?_)
+  · simpa only [abs_neg] using abs_sub_le_half_of_exists_hasDerivAt hf
+  · rw [abs_mul]
+    exact mul_le_mul hc (abs_sub_le_half_of_exists_hasDerivAt hg) (abs_nonneg _) (le_trans
+      (abs_nonneg c) hc)
+
 /-- Interval form of `abs_sub_le_half_of_exists_hasDerivAt`: for `0 ≤ a ≤ b ≤ π/2`,
 `|φ b - φ a| ≤ K (sin² b - sin² a) / 2`. -/
 theorem abs_sub_le_of_exists_hasDerivAt_Icc {φ : ℝ → ℝ} {K a b : ℝ}

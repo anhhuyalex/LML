@@ -517,10 +517,7 @@ theorem integral_perceptron_overlap_sub_sq_le (D : ℝ) :
         {q r : ℝ}
         (_hq : q = ∫ z : ℝ, Real.tanh (z * Real.sqrt r) ^ 2 ∂gaussianReal 0 1)
         (_hr : r = ((M : ℝ) / ((N : ℝ) + 1)) *
-          ∫ z, ((∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ) *
-                Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) /
-              ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) ^ 2
-            ∂gaussianReal 0 1),
+          perceptronRhat u q),
         ∫ g : Fin M → Fin (N + 1) → ℝ, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ,
             (((N : ℝ) + 1)⁻¹ * ∑ i, ((σ 0 i : ℤ) : ℝ) * ((σ 1 i : ℤ) : ℝ) - q) ^ 2
             ∂(Measure.pi fun _ : Fin 2 =>
@@ -555,10 +552,7 @@ theorem integral_perceptron_overlap_sub_sq_le (D : ℝ) :
       congr 1; ext z; ring_nf
     rw [heq]
     exact fixedPointMap_mem_Icc 1 0 r
-  let rhat := ∫ z, ((∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ) *
-        Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) /
-      ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) ^ 2
-      ∂gaussianReal 0 1
+  let rhat := perceptronRhat u q
   have hrhat0 : 0 ≤ rhat :=
     (rhat_mem_Icc (u := u) (D' := |D|)
       (fun x => (hu.abs_deriv_le x).trans (le_abs_self D)) q
@@ -763,10 +757,7 @@ theorem exists_unique_rs_fixed_point_and_overlap_sub_sq_le (D : ℝ) :
           (Measure.count : Measure (Fin (N + 1) → ℤˣ)).tilted
             fun τ => ∑ k, u ((Real.sqrt (N + 1 : ℕ))⁻¹ *
                 ∑ i, g k i * ((τ i : ℤ) : ℝ))
-        let rhat (q : ℝ) := ∫ z, ((∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ) *
-              Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) /
-            ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) ^ 2
-          ∂gaussianReal 0 1
+        let rhat (q : ℝ) := perceptronRhat u q
         let S (p : ℝ × ℝ) : Prop :=
           p.1 = (∫ z : ℝ, Real.tanh (z * Real.sqrt p.2) ^ 2 ∂gaussianReal 0 1) ∧
           p.2 = α * rhat p.1

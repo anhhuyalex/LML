@@ -69,10 +69,7 @@ theorem exists_hasDerivAt_smartPath_abs_le_of_pair_bound
     (f : (R → PerceptronSpin N) → ℝ)
     {B_err K_pair : ℝ} :
     let α : ℝ := ((M : ℝ) + 1) / ((N : ℝ) + 1)
-    let rhat := ∫ z, ((∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ) *
-          Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) /
-        ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) ^ 2
-        ∂gaussianReal 0 1
+    let rhat := perceptronRhat u q
     let variance : ℝ≥0 := (α * rhat).toNNReal
     let P := smartPathDisorder
       (Measure.pi fun _ : Fin (M + 1) => Measure.pi fun _ : Fin N => gaussianReal 0 1) variance
@@ -284,10 +281,7 @@ theorem exists_hasDerivAt_smartPath_abs_le_first_moment
         (_hb : ∀ j ≤ 3, ∀ x, |iteratedDeriv j u x| ≤ D)
         (f : (R → PerceptronSpin N) → ℝ),
         let α : ℝ := ((M : ℝ) + 1) / ((N : ℝ) + 1)
-        let rhat := ∫ z, ((∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ) *
-              Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) /
-            ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) ^ 2
-            ∂gaussianReal 0 1
+        let rhat := perceptronRhat u q
         let variance : ℝ≥0 := (α * rhat).toNNReal
         let P := smartPathDisorder
           (Measure.pi fun _ : Fin (M + 1) => Measure.pi fun _ : Fin N => gaussianReal 0 1) variance
@@ -403,10 +397,7 @@ theorem exists_hasDerivAt_smartPath_abs_le_holder
         let d_spin (σ τ : PerceptronSpin N) : ℝ :=
           |((∑ i, ((σ.1 i : ℤ) : ℝ) * ((τ.1 i : ℤ) : ℝ)) +
             ((σ.2 : ℤ) : ℝ) * ((τ.2 : ℤ) : ℝ)) / (N + 1) - q|
-        let rhat := ∫ z, ((∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ) *
-              Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) /
-            ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) ^ 2
-            ∂gaussianReal 0 1
+        let rhat := perceptronRhat u q
         let variance : ℝ≥0 := (α * rhat).toNNReal
         let P := smartPathDisorder
           (Measure.pi fun _ : Fin (M + 1) => Measure.pi fun _ : Fin N => gaussianReal 0 1) variance
@@ -550,10 +541,7 @@ theorem exists_hasDerivAt_smartPath_abs_le_of_ae_abs_le
         let d_spin (σ τ : PerceptronSpin N) : ℝ :=
           |((∑ i, ((σ.1 i : ℤ) : ℝ) * ((τ.1 i : ℤ) : ℝ)) +
             ((σ.2 : ℤ) : ℝ) * ((τ.2 : ℤ) : ℝ)) / (N + 1) - q|
-        let rhat := ∫ z, ((∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ) *
-              Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) /
-            ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) ^ 2
-            ∂gaussianReal 0 1
+        let rhat := perceptronRhat u q
         let variance : ℝ≥0 := (α * rhat).toNNReal
         let P := smartPathDisorder
           (Measure.pi fun _ : Fin (M + 1) => Measure.pi fun _ : Fin N => gaussianReal 0 1) variance
@@ -800,10 +788,7 @@ theorem integral_smartPath_le_two_mul_endpoint
         (_hα : ((M : ℝ) + 1) / ((N : ℝ) + 1) * K ≤ 1)
         (f : (R → PerceptronSpin N) → ℝ) (_hf0 : ∀ σ, 0 ≤ f σ),
         let α : ℝ := ((M : ℝ) + 1) / ((N : ℝ) + 1)
-        let rhat := ∫ z, ((∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ) *
-              Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) /
-            ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) ^ 2
-            ∂gaussianReal 0 1
+        let rhat := perceptronRhat u q
         let variance : ℝ≥0 := (α * rhat).toNNReal
         let P := smartPathDisorder
           (Measure.pi fun _ : Fin (M + 1) => Measure.pi fun _ : Fin N => gaussianReal 0 1) variance
@@ -875,10 +860,7 @@ theorem integral_smartPath_fin_two_le_two_mul_perceptron (D : ℝ) :
         (_hα : ((M : ℝ) + 1) / ((N : ℝ) + 1) * K ≤ 1)
         (F : (Fin 2 → Fin (N + 1) → ℤˣ) → ℝ) (_hF0 : ∀ σ, 0 ≤ F σ),
         let α : ℝ := ((M : ℝ) + 1) / ((N : ℝ) + 1)
-        let rhat := ∫ z, ((∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ) *
-              Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) /
-            ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) ^ 2
-            ∂gaussianReal 0 1
+        let rhat := perceptronRhat u q
         let variance : ℝ≥0 := (α * rhat).toNNReal
         let P := smartPathDisorder
           (Measure.pi fun _ : Fin (M + 1) => Measure.pi fun _ : Fin N => gaussianReal 0 1) variance

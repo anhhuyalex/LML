@@ -151,10 +151,7 @@ namespace SpinGlasses
 theorem continuousOn_rhat {u : ℝ → ℝ} (hu : Differentiable ℝ u) (hdu : Continuous (deriv u))
     {B D₁ : ℝ} (hB : ∀ x, |u x| ≤ B) (hD₁ : ∀ x, |deriv u x| ≤ D₁) :
     ContinuousOn
-      (fun q : ℝ => ∫ z, ((∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ) *
-            Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) /
-          ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) ^ 2
-        ∂gaussianReal 0 1)
+      (fun q : ℝ => perceptronRhat u q)
       (Icc 0 1) := by
   let γ : Measure ℝ := gaussianReal 0 1
   have hum : Measurable u := hu.continuous.measurable
@@ -328,12 +325,7 @@ theorem exists_hasDerivAt_rhat_abs_le (D : ℝ) :
         {q : ℝ} (_hq : q ∈ Ioo (0 : ℝ) 1),
         ∃ d,
           HasDerivAt
-            (fun q' => ∫ z, ((∫ ξ, deriv u (Real.sqrt q' * z + Real.sqrt (1 - q') * ξ) *
-                  Real.exp (u (Real.sqrt q' * z + Real.sqrt (1 - q') * ξ))
-                  ∂gaussianReal 0 1) /
-                ∫ ξ, Real.exp (u (Real.sqrt q' * z + Real.sqrt (1 - q') * ξ))
-                  ∂gaussianReal 0 1) ^ 2
-              ∂gaussianReal 0 1)
+            (fun q' => perceptronRhat u q')
             d q ∧
           |d| ≤ K := by
   let L_w : ℝ := 1 + |D| + |D| ^ 2
@@ -476,10 +468,7 @@ theorem exists_hasDerivAt_rhat_abs_le (D : ℝ) :
     exact hgrp.trans_eq (by ring)
   have hcomp := HasDerivAt.comp_arccos_sqrt_of_sin_cos hq.1 hq.2 hrot'
   have hcongr : (fun u' => φ (Real.arccos (Real.sqrt u'))) =ᶠ[𝓝 q]
-      fun q' => ∫ z, ((∫ ξ, deriv u (Real.sqrt q' * z + Real.sqrt (1 - q') * ξ) *
-            Real.exp (u (Real.sqrt q' * z + Real.sqrt (1 - q') * ξ)) ∂gaussianReal 0 1) /
-          ∫ ξ, Real.exp (u (Real.sqrt q' * z + Real.sqrt (1 - q') * ξ)) ∂gaussianReal 0 1) ^ 2
-        ∂gaussianReal 0 1 := by
+      fun q' => perceptronRhat u q' := by
     filter_upwards [Ioo_mem_nhds hq.1 hq.2] with q' hq'
     dsimp only [φ]
     let s' := Real.arccos (Real.sqrt q')
@@ -503,20 +492,14 @@ theorem exists_lipschitzOnWith_rhat (D : ℝ) :
       ∀ {u : ℝ → ℝ} (_hd : ∀ j < 3, Differentiable ℝ (iteratedDeriv j u))
         (_hb : ∀ j ≤ 3, ∀ x, |iteratedDeriv j u x| ≤ D),
         LipschitzOnWith K
-          (fun q : ℝ => ∫ z, ((∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ) *
-                Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) /
-              ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) ^ 2
-            ∂gaussianReal 0 1)
+          (fun q : ℝ => perceptronRhat u q)
           (Icc 0 1) := by
   obtain ⟨K, hK0, hK⟩ := exists_hasDerivAt_rhat_abs_le D
   refine ⟨K.toNNReal, ?_⟩
   intro u hd hb
   obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
   let rhat (q : ℝ) : ℝ :=
-    ∫ z, ((∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ) *
-          Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) /
-        ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) ^ 2
-      ∂gaussianReal 0 1
+    perceptronRhat u q
   have hc : ContinuousOn rhat (Icc 0 1) :=
     continuousOn_rhat hu.differentiable hu.differentiable_deriv.continuous hu.abs_le hu.abs_deriv_le
   refine LipschitzOnWith.of_dist_le_mul fun x hx y hy => ?_
@@ -538,22 +521,14 @@ theorem exists_unique_rs_fixed_point (D : ℝ) :
         {α : ℝ} (_hα0 : 0 ≤ α) (_hα : α * K ≤ 1),
         ∃! p : ℝ × ℝ,
           p.1 = (∫ z : ℝ, Real.tanh (z * Real.sqrt p.2) ^ 2 ∂gaussianReal 0 1) ∧
-          p.2 = α * ∫ z, ((∫ ξ, deriv u (Real.sqrt p.1 * z + Real.sqrt (1 - p.1) * ξ) *
-                Real.exp (u (Real.sqrt p.1 * z + Real.sqrt (1 - p.1) * ξ))
-                ∂gaussianReal 0 1) /
-              ∫ ξ, Real.exp (u (Real.sqrt p.1 * z + Real.sqrt (1 - p.1) * ξ))
-                ∂gaussianReal 0 1) ^ 2
-            ∂gaussianReal 0 1 := by
+          p.2 = α * perceptronRhat u p.1 := by
   obtain ⟨K_lip, hlip_rhat⟩ := exists_lipschitzOnWith_rhat D
   let K : ℝ := 2 * (K_lip : ℝ)
   refine ⟨K, by positivity, ?_⟩
   intro u hd hb α hα0 hα
   obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
   let rhat (q : ℝ) : ℝ :=
-    ∫ z, ((∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ) *
-          Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) /
-        ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) ^ 2
-      ∂gaussianReal 0 1
+    perceptronRhat u q
   let g_tanh (r : ℝ) : ℝ := ∫ z : ℝ, Real.tanh (z * Real.sqrt r) ^ 2 ∂gaussianReal 0 1
   let ψ (q : ℝ) : ℝ := g_tanh (α * rhat q)
   have hg_mem (r : ℝ) : g_tanh r ∈ Icc (0 : ℝ) 1 := by

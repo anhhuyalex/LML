@@ -754,6 +754,33 @@ theorem integrable_integral_pi_tilted {E : Ω → α → ℝ}
     (f := G ω) (C := M) (Filter.Eventually.of_forall fun σ => by simpa using hGb ω σ)
   simpa using this
 
+/-- An essential bound on the replica sections gives both section integrability and
+integrability of the absolute section moment over the environment. -/
+theorem integrable_pi_tilted_and_integrable_integral_abs_of_ae_abs_le
+    {E : Ω → α → ℝ} (hE : Measurable fun p : Ω × α => E p.1 p.2)
+    {P : Measure Ω} [IsFiniteMeasure P]
+    (hprob : ∀ᵐ ω ∂P, IsProbabilityMeasure (μ.tilted (E ω)))
+    {G : Ω → (ι → α) → ℝ} (hG : Measurable fun p : Ω × (ι → α) => G p.1 p.2)
+    {M : ℝ}
+    (hGb : ∀ᵐ ω ∂P, ∀ᵐ a ∂(Measure.pi fun _ : ι => μ.tilted (E ω)), |G ω a| ≤ M) :
+    (∀ᵐ ω ∂P, Integrable (G ω) (Measure.pi fun _ : ι => μ.tilted (E ω))) ∧
+      Integrable (fun ω => ∫ a, |G ω a| ∂(Measure.pi fun _ : ι => μ.tilted (E ω))) P := by
+  constructor
+  · filter_upwards [hprob, hGb] with ω hω hb
+    have := hω
+    exact Integrable.of_bound
+      (hG.comp (measurable_const.prodMk measurable_id)).aestronglyMeasurable M
+      (by simpa only [Real.norm_eq_abs] using hb)
+  · have hm : Measurable fun p : Ω × (ι → α) => |G p.1 p.2| := by
+      simpa only [Real.norm_eq_abs] using hG.norm
+    refine (integrable_const M).mono'
+      (measurable_integral_pi_tilted hE hm).aestronglyMeasurable ?_
+    filter_upwards [hprob, hGb] with ω hω hb
+    have := hω
+    simpa only [probReal_univ, mul_one] using
+      norm_integral_le_of_norm_le_const (μ := Measure.pi fun _ : ι => μ.tilted (E ω))
+        (f := fun a => |G ω a|) (by simpa only [Real.norm_eq_abs, abs_abs] using hb)
+
 omit [IsFiniteMeasure μ] in
 /-- A uniform bound on a function of the disorder and replicas bounds its disorder-averaged
 Gibbs average. The observable may depend on the same disorder as the energy. -/
@@ -805,6 +832,26 @@ theorem measurable_replicaPairAverage_tilted {R : Type*} [Fintype R] [LinearOrde
   exact (hu _ _).const_mul _
 
 end Measurability
+
+/-- An almost-everywhere property of the old disorder and replica states is preserved by
+attaching independent coordinates and tilting the extended replica law. -/
+theorem ae_pi_tilted_prod_fst {Ω W α β R : Type*} [MeasurableSpace Ω] [MeasurableSpace W]
+    [MeasurableSpace α] [MeasurableSpace β] [Fintype R]
+    (P : Measure Ω) [SFinite P] (η : Measure W) [IsProbabilityMeasure η]
+    (ν : Ω → Measure α) [∀ ω, IsProbabilityMeasure (ν ω)]
+    (γ : Measure β) [IsProbabilityMeasure γ]
+    (E : Ω × W → α × β → ℝ) {p : Ω → (R → α) → Prop}
+    (hp : ∀ᵐ ω ∂P, ∀ᵐ a ∂(Measure.pi fun _ : R => ν ω), p ω a) :
+    ∀ᵐ w ∂(P.prod η),
+      ∀ᵐ a ∂(Measure.pi fun _ : R => ((ν w.1).prod γ).tilted (E w)),
+        p w.1 (fun r => (a r).1) := by
+  filter_upwards [(measurePreserving_fst (μ := P) (ν := η)).quasiMeasurePreserving.ae hp]
+    with w hw
+  have hproj : MeasurePreserving (fun a : R → α × β => fun r => (a r).1)
+      (Measure.pi fun _ : R => (ν w.1).prod γ) (Measure.pi fun _ : R => ν w.1) :=
+    measurePreserving_pi _ _ fun _ => measurePreserving_fst
+  rw [pi_tilted_eq_tilted_pi]
+  exact (tilted_absolutelyContinuous _ _).ae_le (hproj.quasiMeasurePreserving.ae hw)
 
 /-- Measurability of a replica average after attaching independent coordinates to a tilted law,
 and adding a second tilt. -/

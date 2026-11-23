@@ -2959,10 +2959,7 @@ private lemma exists_hasDerivAt_interpSP_abs_le_of_pair_bound
     (hb : ∀ j ≤ 3, ∀ x, |iteratedDeriv j u x| ≤ D)
     (f : (R → PerceptronSpin N) → ℝ) {B_err K_pair : ℝ} (hB_err0 : 0 ≤ B_err) (hKp0 : 0 ≤ K_pair) :
     let α : ℝ := ((M : ℝ) + 1) / ((N : ℝ) + 1)
-    let rhat := ∫ z, ((∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ) *
-          Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) /
-        ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) ^ 2
-        ∂gaussianReal 0 1
+    let rhat := perceptronRhat u q
     let v : ℝ≥0 := (s * (α * rhat)).toNNReal
     let P := interpSPDisorder N (M + 1) v
     let μ (ω : InterpSPDisorder N (M + 1)) :=
@@ -3187,10 +3184,7 @@ private lemma exists_hasDerivAt_interpSP_abs_le_first_moment
         (_hb : ∀ j ≤ 3, ∀ x, |iteratedDeriv j u x| ≤ D)
         (f : (R → PerceptronSpin N) → ℝ),
         let α : ℝ := ((M : ℝ) + 1) / ((N : ℝ) + 1)
-        let rhat := ∫ z, ((∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ) *
-              Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) /
-            ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) ^ 2
-            ∂gaussianReal 0 1
+        let rhat := perceptronRhat u q
         let v : ℝ≥0 := (s * (α * rhat)).toNNReal
         let P := interpSPDisorder N (M + 1) v
         let μ (ω : InterpSPDisorder N (M + 1)) :=
@@ -3419,10 +3413,7 @@ private lemma exists_hasDerivAt_interpSP_abs_le_l2
         let d_spin (σ τ : PerceptronSpin N) : ℝ :=
           |((∑ i, ((σ.1 i : ℤ) : ℝ) * ((τ.1 i : ℤ) : ℝ)) +
             ((σ.2 : ℤ) : ℝ) * ((τ.2 : ℤ) : ℝ)) / (N + 1) - q|
-        let rhat := ∫ z, ((∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ) *
-              Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) /
-            ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) ^ 2
-            ∂gaussianReal 0 1
+        let rhat := perceptronRhat u q
         let v : ℝ≥0 := (s * (α * rhat)).toNNReal
         let P := interpSPDisorder N (M + 1) v
         let μ (ω : InterpSPDisorder N (M + 1)) :=
@@ -3690,10 +3681,7 @@ private lemma integral_interpSP_fin_two_le_two_mul_interpolating (D : ℝ) :
         (_hα : ((M : ℝ) + 1) / ((N : ℝ) + 1) * K ≤ 1)
         (F : (Fin 2 → Fin (N + 1) → ℤˣ) → ℝ) (_hF0 : ∀ σ, 0 ≤ F σ),
         let α : ℝ := ((M : ℝ) + 1) / ((N : ℝ) + 1)
-        let rhat := ∫ z, ((∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ) *
-              Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) /
-            ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) ^ 2
-            ∂gaussianReal 0 1
+        let rhat := perceptronRhat u q
         let v : ℝ≥0 := (s * (α * rhat)).toNNReal
         let P_g := Measure.pi fun _ : Fin (M + 1) =>
           Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1
@@ -3876,10 +3864,7 @@ theorem integral_interpolating_overlap_sub_sq_le (D : ℝ) :
         {q r : ℝ}
         (_hq : q = ∫ z : ℝ, Real.tanh (z * Real.sqrt r) ^ 2 ∂gaussianReal 0 1)
         (_hr : r = ((M : ℝ) / ((N : ℝ) + 1)) *
-          ∫ z, ((∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ) *
-                Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) /
-              ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) ^ 2
-            ∂gaussianReal 0 1),
+          perceptronRhat u q),
         let P_g := Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1
         let P_z := Measure.pi fun _ : Fin M => gaussianReal 0 1
         let P_z' := Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1
@@ -3925,10 +3910,7 @@ theorem integral_interpolating_overlap_sub_sq_le (D : ℝ) :
       congr 1; ext z; ring_nf
     rw [heq]
     exact fixedPointMap_mem_Icc 1 0 r
-  let rhat := ∫ z, ((∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ) *
-        Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) /
-      ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) ^ 2
-      ∂gaussianReal 0 1
+  let rhat := perceptronRhat u q
   have hrhat0 : 0 ≤ rhat :=
     (rhat_mem_Icc (u := u) (D' := |D|)
       (fun x => (hu.abs_deriv_le x).trans (le_abs_self D)) q

@@ -668,38 +668,10 @@ theorem exists_hasDerivAt_cavity_rotation_abs_le_of_ae_abs_le
   have : IsProbabilityMeasure P := by
     change IsProbabilityMeasure (P₀.prod γ_sh)
     infer_instance
-  have hfωm (ω : Ω) : Measurable (f ω) := by
-    have hProd : Measurable fun a : R → SmartPathState N M => (ω, a) :=
-      measurable_const.prodMk measurable_id
-    exact hf.comp hProd
-  have hfi : ∀ᵐ ω ∂P₀, Integrable (f ω) (Measure.pi fun _ : R => μ₀ ω) := by
-    filter_upwards [hOld] with ω hω
-    exact Integrable.of_bound (hfωm ω).aestronglyMeasurable M_f (by simpa using hω)
-  have hfAbsM : Measurable fun p : Ω × (R → SmartPathState N M) => |f p.1 p.2| := by
-    simpa only [Real.norm_eq_abs] using hf.norm
-  have hOld₁ := measurable_integral_pi_tilted (μ := smartPathBase N M)
-    (E := fun ω => smartPathEnergy u t ω) (G := fun ω a => |f ω a|)
-    (measurable_smartPathEnergy hu.measurable t) hfAbsM
-  have hfi₁ : Integrable (fun ω => ∫ a, |f ω a| ∂(Measure.pi fun _ : R => μ₀ ω)) P₀ := by
-    refine Integrable.of_bound hOld₁.aestronglyMeasurable M_f ?_
-    filter_upwards [hOld] with ω hω
-    have hω' : ∀ᵐ a ∂(Measure.pi fun _ : R => μ₀ ω), ‖|f ω a|‖ ≤ M_f := by
-      simpa only [Real.norm_eq_abs, abs_abs] using hω
-    simpa using norm_integral_le_of_norm_le_const hω'
-  have hFa : ∀ᵐ p ∂P, ∀ᵐ a ∂(Measure.pi fun _ : R => ν p), |F p a| ≤ M_f := by
-    have hproj : MeasurePreserving Prod.fst P P₀ := measurePreserving_fst
-    filter_upwards [hproj.quasiMeasurePreserving.ae hOld] with p hp
-    have hprojT : MeasurePreserving Prod.fst ((μ₀ p.1).prod γ_aux) (μ₀ p.1) :=
-      measurePreserving_fst
-    have hprojR : MeasurePreserving (fun a : R → T => fun r => (a r).1)
-        (Measure.pi fun _ : R => (μ₀ p.1).prod γ_aux) (Measure.pi fun _ : R => μ₀ p.1) :=
-      measurePreserving_pi _ _ fun _ => hprojT
-    have hbase : ∀ᵐ a : R → T ∂(Measure.pi fun _ : R => (μ₀ p.1).prod γ_aux),
-        |F p a| ≤ M_f := hprojR.quasiMeasurePreserving.ae hp
-    change ∀ᵐ a ∂(Measure.pi fun _ : R =>
-      ((μ₀ p.1).prod γ_aux).tilted fun x => u (S s₀ p.2 x)), |F p a| ≤ M_f
-    rw [pi_tilted_eq_tilted_pi]
-    exact (tilted_absolutelyContinuous _ _).ae_le hbase
+  obtain ⟨hfi, hfi₁⟩ := integrable_pi_tilted_and_integrable_integral_abs_of_ae_abs_le
+    (measurable_smartPathEnergy hu.measurable t) (ae_of_all P₀ hμ) hf hOld
+  have hFa : ∀ᵐ p ∂P, ∀ᵐ a ∂(Measure.pi fun _ : R => ν p), |F p a| ≤ M_f :=
+    ae_pi_tilted_prod_fst P₀ γ_sh μ₀ γ_aux (fun p x => u (S s₀ p.2 x)) hOld
   have hFm (p : Ω × W) :
       AEStronglyMeasurable (F p) (Measure.pi fun _ : R => ν p) := by
     have ha : Measurable fun a : R → T => (p.1, fun r : R => (a r).1) :=

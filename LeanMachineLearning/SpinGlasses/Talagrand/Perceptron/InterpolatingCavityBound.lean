@@ -334,9 +334,8 @@ private lemma rotation_endpoint_zero_eq
 private lemma rotation_endpoint_pi_div_two_eq
     {Ω₀ : Type uΩ} {α : Type uα} {K₁ K₂ : Type} {R : Type uR}
     [MeasurableSpace Ω₀] [MeasurableSpace α] [Fintype K₁] [Fintype K₂] [Fintype R]
-    (P₀ : Measure Ω₀) [IsProbabilityMeasure P₀]
-    (μ_base : Measure α) [IsFiniteMeasure μ_base] [NeZero μ_base]
-    {E₀ : Ω₀ → α → ℝ} (_hE₀ : Measurable fun p : Ω₀ × α => E₀ p.1 p.2)
+    (P₀ : Measure Ω₀) (μ_base : Measure α) [NeZero μ_base]
+    {E₀ : Ω₀ → α → ℝ}
     (hE₀i : ∀ ω, Integrable (fun a => Real.exp (E₀ ω a)) μ_base)
     {u : ℝ → ℝ} (hu : Measurable u) {B : ℝ} (hB : ∀ x, |u x| ≤ B)
     (q : ℝ) (f : Ω₀ → (R → α) → ℝ) :
@@ -345,10 +344,7 @@ private lemma rotation_endpoint_pi_div_two_eq
     let μ₀ (ω : Ω₀) := μ_base.tilted (E₀ ω)
     let Y_fn (w : K₁ ⊕ Unit → ℝ) (y : α × (K₂ ⊕ Unit → ℝ)) : ℝ :=
       Real.sqrt q * w (Sum.inr ()) + Real.sqrt (1 - q) * y.2 (Sum.inr ())
-    let rhat := ∫ z, ((∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ) *
-          Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) /
-        ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) ^ 2
-        ∂gaussianReal 0 1
+    let rhat := perceptronRhat u q
     (∫ ω, ∫ w : K₁ ⊕ Unit → ℝ, ∫ σ : R → α × (K₂ ⊕ Unit → ℝ),
         f ω (fun r => (σ r).1)
         ∂(Measure.pi fun _ : R => ((μ₀ ω).prod γ_aux).tilted (fun y => u (Y_fn w y)))
@@ -949,10 +945,7 @@ private lemma abs_integral_interp_deriv_mul_sub_rhat_le_of_pair_bound
     let d_spin (σ τ : PerceptronSpin N) : ℝ :=
       |((∑ i, ((σ.1 i : ℤ) : ℝ) * ((τ.1 i : ℤ) : ℝ)) +
         ((σ.2 : ℤ) : ℝ) * ((τ.2 : ℤ) : ℝ)) / (N + 1) - q|
-    let rhat := ∫ z, ((∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ) *
-          Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) /
-        ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) ^ 2
-        ∂gaussianReal 0 1
+    let rhat := perceptronRhat u q
     let n : ℝ := Fintype.card R
     let M₀w : ℝ := 1 + |D|
     let M₁w : ℝ := |D|
@@ -1104,10 +1097,6 @@ private lemma abs_integral_interp_deriv_mul_sub_rhat_le_of_pair_bound
     calc 1 / (N + 1 : ℝ) * _ ≤ 1 / (N + 1 : ℝ) * (Real.exp (4 * n * |D|) * I₁) :=
           mul_le_mul_of_nonneg_left (hm1_le ϑ) (by positivity)
       _ = 1 / (N + 1 : ℝ) * Real.exp (4 * n * |D|) * I₁ := by ring
-  have hinc_u : |φ_u (Real.pi / 2) - φ_u 0| ≤ K_u * B_err / 2 :=
-    Real.abs_sub_le_half_of_exists_hasDerivAt fun ϑ => by
-      obtain ⟨z, hz, hzb⟩ := hd_u ϑ
-      exact ⟨z, hz, fun _ => hzb⟩
   let ψ_w (r : R) (x : ℝ) : ℝ := if r = r₁ ∨ r = r₂ then deriv u x else 1
   obtain ⟨hψd, hψ2d, hM₀w, hM₁w, hM₂w⟩ :=
     differentiable_and_abs_deriv_le_ite_one (p := fun i : R => i = r₁ ∨ i = r₂)
@@ -1132,10 +1121,6 @@ private lemma abs_integral_interp_deriv_mul_sub_rhat_le_of_pair_bound
     calc 1 / (N + 1 : ℝ) * _ ≤ 1 / (N + 1 : ℝ) * (Real.exp (4 * n * |D|) * I₁) :=
           mul_le_mul_of_nonneg_left (hm1_le ϑ) (by positivity)
       _ = 1 / (N + 1 : ℝ) * Real.exp (4 * n * |D|) * I₁ := by ring
-  have hinc_w : |φ_w (Real.pi / 2) - φ_w 0| ≤ K_w * B_err / 2 :=
-    Real.abs_sub_le_half_of_exists_hasDerivAt fun ϑ => by
-      obtain ⟨z, hz, hzb⟩ := hd_w ϑ
-      exact ⟨z, hz, fun _ => hzb⟩
   have hprod_w (x : R → ℝ) :
       (∏ r : R, ψ_w r (x r)) = deriv u (x r₁) * deriv u (x r₂) := by
     simpa only [ψ_w, apply_ite, Finset.mem_insert, Finset.mem_singleton, Finset.prod_pair hr] using
@@ -1173,7 +1158,7 @@ private lemma abs_integral_interp_deriv_mul_sub_rhat_le_of_pair_bound
     exact integral_congr_ae (ae_of_all _ fun _ => integral_congr_ae (ae_of_all _ fun a => by
       dsimp only; rw [hprod_w]))
   have hpi := rotation_endpoint_pi_div_two_eq (K₁ := (Fin N ⊕ Unit) ⊕ Unit) (K₂ := Fin 2)
-    P₀ μ_base hE₀ hE₀i hu.measurable hD_abs q f
+    P₀ μ_base hE₀i hu.measurable hD_abs q f
   dsimp only at hpi
   have hφ_u_pi : φ_u (Real.pi / 2) =
       ∫ ω, ∫ a : R → α, f ω a ∂(Measure.pi fun _ : R => μ₀ ω) ∂P₀ := by
@@ -1204,19 +1189,11 @@ private lemma abs_integral_interp_deriv_mul_sub_rhat_le_of_pair_bound
   have hrhat_b := rhat_mem_Icc (u := u) (D' := |D|)
     (fun x => (hu.abs_deriv_le x).trans (le_abs_self D)) q
     (fun z => integrable_exp_cavityPath_new hu.measurable (fun x => hu.le x) q z)
-  have htri : |φ_w 0 - rhat * φ_u 0| ≤ |φ_w (Real.pi / 2) - φ_w 0| +
-      rhat * |φ_u (Real.pi / 2) - φ_u 0| := by
-    have h_eq : φ_w 0 - rhat * φ_u 0 =
-        -(φ_w (Real.pi / 2) - φ_w 0) + rhat * (φ_u (Real.pi / 2) - φ_u 0) := by
-      rw [hφ_w_pi]; ring
-    rw [h_eq]
-    refine (abs_add_le _ _).trans (add_le_add (by rw [abs_neg]) ?_)
-    rw [abs_mul, abs_of_nonneg hrhat_b.1]
   rw [← hφ_w_0, ← hφ_u_0]
-  calc |φ_w 0 - rhat * φ_u 0|
-      ≤ |φ_w (Real.pi / 2) - φ_w 0| + rhat * |φ_u (Real.pi / 2) - φ_u 0| := htri
-    _ ≤ K_w * B_err / 2 + |D| ^ 2 * (K_u * B_err / 2) :=
-        add_le_add hinc_w (mul_le_mul hrhat_b.2 hinc_u (abs_nonneg _) (sq_nonneg _))
+  calc |φ_w 0 - rhat * φ_u 0| ≤ K_w * B_err / 2 + |D| ^ 2 * (K_u * B_err / 2) :=
+        Real.abs_sub_mul_le_half_of_exists_hasDerivAt hφ_w_pi (by rwa [abs_of_nonneg hrhat_b.1])
+          (fun s => let ⟨d, hd, hb⟩ := hd_w s; ⟨d, hd, fun _ => hb⟩)
+          (fun s => let ⟨d, hd, hb⟩ := hd_u s; ⟨d, hd, fun _ => hb⟩)
     _ = (K_w / 2 + |D| ^ 2 * (K_u / 2)) * B_err := by ring
 
 /-- **Proposition 2.3.5 for the `s`-interpolating constraint field, `(1, ∞)` endpoint.** -/
@@ -1247,10 +1224,7 @@ theorem abs_integral_interp_deriv_mul_sub_rhat_le_first_moment
             Real.sqrt (1 - s) * Real.sqrt (1 - q)] ⬝ᵥ x.2
         let ν_new (p : Ω₀ × (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) :=
           ((μ₀ p.1).prod γ₂).tilted fun x => u (X_fn p.2 x)
-        let rhat := ∫ z, ((∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ) *
-              Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) /
-            ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) ^ 2
-            ∂gaussianReal 0 1
+        let rhat := perceptronRhat u q
         |(∫ p, ∫ a : R → α × (Fin 2 → ℝ),
             f p.1 (fun r => (a r).1) * (deriv u (X_fn p.2 (a r₁)) * deriv u (X_fn p.2 (a r₂)))
             ∂(Measure.pi fun _ : R => ν_new p) ∂(P₀.prod γ₁)) -
@@ -1483,10 +1457,7 @@ theorem abs_integral_interp_deriv_mul_sub_rhat_le_l2
         let d_spin (σ τ : PerceptronSpin N) : ℝ :=
           |((∑ i, ((σ.1 i : ℤ) : ℝ) * ((τ.1 i : ℤ) : ℝ)) +
             ((σ.2 : ℤ) : ℝ) * ((τ.2 : ℤ) : ℝ)) / (N + 1) - q|
-        let rhat := ∫ z, ((∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ) *
-              Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) /
-            ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) ^ 2
-            ∂gaussianReal 0 1
+        let rhat := perceptronRhat u q
         |(∫ p, ∫ a : R → α × (Fin 2 → ℝ),
             f p.1 (fun r => (a r).1) * (deriv u (X_fn p.2 (a r₁)) * deriv u (X_fn p.2 (a r₂)))
             ∂(Measure.pi fun _ : R => ν_new p) ∂(P₀.prod γ₁)) -

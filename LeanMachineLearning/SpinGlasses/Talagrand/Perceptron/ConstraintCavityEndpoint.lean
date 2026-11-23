@@ -32,6 +32,21 @@ open MeasureTheory ProbabilityTheory
 
 namespace SpinGlasses
 
+/-- The squared, tilted Gaussian derivative averaged over the shared Gaussian, as in
+Talagrand (2.36) and (2.68). -/
+noncomputable def perceptronRhat (u : ℝ → ℝ) (q : ℝ) : ℝ :=
+  ∫ z, ((∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ) *
+        Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) /
+      ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) ^ 2
+    ∂gaussianReal 0 1
+
+theorem perceptronRhat_eq_integral_sq_integral_tilted (u : ℝ → ℝ) (q : ℝ) :
+    perceptronRhat u q =
+      ∫ z, (∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)
+          ∂((gaussianReal 0 1).tilted fun ξ => u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ))) ^ 2
+        ∂gaussianReal 0 1 := by
+  simp only [perceptronRhat, integral_tilted_eq_div]
+
 variable {N M : ℕ} {μ : Measure (SmartPathState N (M + 1))} [IsFiniteMeasure μ] {u : ℝ → ℝ}
   {D : ℝ} (hu : Measurable u) (hD : ∀ x, u x ≤ D) (t q z : ℝ)
   (ω : SmartPathDisorder N (M + 1))
@@ -143,10 +158,7 @@ theorem integral_integral_pi_tilted_cavityPath_pi_div_two_deriv_mul {R : Type*} 
               u (Real.cos (Real.pi / 2) * smartPathField t p.1 x.1 (Fin.last M) +
                 Real.sin (Real.pi / 2) * (Real.sqrt q * p.2 + Real.sqrt (1 - q) * x.2))))
       ∂(P.prod (gaussianReal 0 1)) =
-    (∫ z, ((∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ) *
-          Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) /
-        ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) ^ 2
-        ∂gaussianReal 0 1) *
+    (perceptronRhat u q) *
       ∫ ω, (∫ a : R → SmartPathState N (M + 1), f ω (fun r => ((a r).1, Fin.init (a r).2))
         ∂(Measure.pi fun _ : R => μ.tilted fun x : SmartPathState N (M + 1) =>
           smartPathEnergy u t ((Fin.init ω.1.1, Fin.init ω.1.2), ω.2) (x.1, Fin.init x.2))) ∂P := by
@@ -191,25 +203,17 @@ of a Gibbs average of `u'`. -/
 theorem rhat_mem_Icc {D' : ℝ} (hD' : ∀ x, |deriv u x| ≤ D') (q : ℝ)
     (hZ : ∀ z : ℝ, Integrable (fun ξ : ℝ =>
       Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ))) (gaussianReal 0 1)) :
-    0 ≤ ∫ z, ((∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ) *
-          Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) /
-        ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) ^ 2
-        ∂gaussianReal 0 1 ∧
-    (∫ z, ((∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ) *
-          Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) /
-        ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) ^ 2
-        ∂gaussianReal 0 1) ≤ D' ^ 2 := by
+    0 ≤ perceptronRhat u q ∧ perceptronRhat u q ≤ D' ^ 2 := by
+  rw [perceptronRhat_eq_integral_sq_integral_tilted]
   refine ⟨integral_nonneg fun z => sq_nonneg _, ?_⟩
-  have hb (z : ℝ) : |((∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ) *
-          Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) /
-        ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) ^ 2| ≤
+  have hb (z : ℝ) : |(∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)
+        ∂((gaussianReal 0 1).tilted fun ξ => u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ))) ^ 2| ≤
       D' ^ 2 := by
     have hprob := isProbabilityMeasure_tilted (hZ z)
     have h := abs_integral_le_of_forall_abs_le
       ((gaussianReal 0 1).tilted fun ξ : ℝ => u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ))
       (f := fun ξ => deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) (M := D')
       fun ξ => hD' _
-    rw [integral_tilted_eq_div] at h
     rw [abs_pow]
     exact pow_le_pow_left₀ (abs_nonneg _) h 2
   exact (le_abs_self _).trans (abs_integral_le_of_forall_abs_le (gaussianReal 0 1) hb)
