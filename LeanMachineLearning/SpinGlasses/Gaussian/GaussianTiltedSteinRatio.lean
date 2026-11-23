@@ -25,7 +25,6 @@ shared analytical engine behind:
 
 ## Main declarations
 
-* `SpinGlasses.stein_ratio_fixed_spins`: first-order Stein ratio identity at fixed spin labels;
 * `SpinGlasses.stein_tilted_replica_ratio`: first-order Stein identity integrated over an
   arbitrary old-state probability law `μ₀` and an integrable `R`-replica observable `f`.
 -/
@@ -36,6 +35,23 @@ open MeasureTheory ProbabilityTheory
 open scoped BigOperators NNReal
 
 namespace SpinGlasses
+
+/-- **Lower bound for a mixture of Gaussian exponential moments.** If `|G m η| ≤ B` and the weights
+`p` form a probability vector, then `∑ m, p m * ∫ exp (G m η) dγ ≥ exp (-B)`. -/
+private lemma exp_neg_le_sum_mul_integral_exp {L K : Type*} [Fintype L] [Fintype K]
+    (p : L → ℝ) (hp : ∀ m, 0 ≤ p m) (hp1 : ∑ m, p m = 1) {B : ℝ}
+    (G : L → (K → ℝ) → ℝ) (hB : ∀ m η, |G m η| ≤ B)
+    (hint : ∀ m, Integrable (fun η => Real.exp (G m η)) (Measure.pi fun _ : K => gaussianReal 0 1)) :
+    Real.exp (-B) ≤
+      ∑ m, p m * ∫ η, Real.exp (G m η) ∂(Measure.pi fun _ : K => gaussianReal 0 1) := by
+  have hlow : ∀ m, Real.exp (-B) ≤
+      ∫ η, Real.exp (G m η) ∂(Measure.pi fun _ : K => gaussianReal 0 1) := fun m => by
+    have hm := integral_mono (integrable_const (Real.exp (-B))) (hint m)
+      fun η => Real.exp_le_exp.2 (neg_le_of_abs_le (hB m η))
+    simpa using hm
+  calc Real.exp (-B) = (∑ m, p m) * Real.exp (-B) := by rw [hp1, one_mul]
+    _ = ∑ m, p m * Real.exp (-B) := Finset.sum_mul _ _ _
+    _ ≤ _ := Finset.sum_le_sum fun m _ => mul_le_mul_of_nonneg_left (hlow m) (hp m)
 
 private lemma hasFDerivAt_Z_sum {L K_aux : Type*} [Fintype L] [DecidableEq L] [Fintype K_aux]
     {u : ℝ → ℝ} (hu : Differentiable ℝ u) {B D₁ : ℝ} (hB : ∀ x, |u x| ≤ B)
@@ -94,14 +110,8 @@ private lemma hasFDerivAt_Z_sum {L K_aux : Type*} [Fintype L] [DecidableEq L] [F
     HasFDerivAt.fun_sum fun m _ => (hterm m y).const_smul (p m)
   refine ⟨fun y => (hZd y).differentiableAt, ?_, ?_, ?_⟩
   · intro y
-    have hlow : ∀ m : L, Real.exp (-B) ≤ ∫ η, Real.exp (u (y m + c m ⬝ᵥ η)) ∂γ_aux := fun m => by
-      have hm := integral_mono (integrable_const (Real.exp (-B))) (hexpi m (y m))
-        fun η => Real.exp_le_exp.2 (neg_le_of_abs_le (hB _))
-      simpa [γ_aux] using hm
-    calc Real.exp (-B) = (∑ m : L, p m) * Real.exp (-B) := by rw [hp1, one_mul]
-      _ = ∑ m : L, p m * Real.exp (-B) := Finset.sum_mul _ _ _
-      _ ≤ ∑ m : L, p m * ∫ η, Real.exp (u (y m + c m ⬝ᵥ η)) ∂γ_aux :=
-          Finset.sum_le_sum fun m _ => mul_le_mul_of_nonneg_left (hlow m) (hp m)
+    exact exp_neg_le_sum_mul_integral_exp p hp hp1 (fun m η => u (y m + c m ⬝ᵥ η))
+      (fun _ _ => hB _) fun m => hexpi m (y m)
   · intro m y
     rw [(hZd y).fderiv]
     simp [Pi.single_apply, mul_comm (p m)]
@@ -156,8 +166,8 @@ private lemma hasFDerivAt_prod_ϕ {R : Type*} [Fintype R] [DecidableEq R]
       (Finset.prod_nonneg fun _ _ => abs_nonneg _) (abs_nonneg _)
 
 /-- **First-order Gaussian integration by parts of a normalized replica ratio at fixed spin
-labels.** -/
-theorem stein_ratio_fixed_spins
+labels.** The reusable interface is `stein_tilted_replica_ratio`. -/
+private theorem stein_ratio_fixed_spins
     {L K_sh K_aux R : Type*} [Fintype L]
     [Fintype K_sh] [Fintype K_aux] [Fintype R] [DecidableEq R]
     (p : L → ℝ) (hp : ∀ m, 0 ≤ p m) (hp1 : ∑ m, p m = 1)
@@ -1370,20 +1380,14 @@ private lemma hasDerivAt_ratio_fixed_spins_w
     simp only [g_r, ↓reduceIte]
     congr 1
     exact Finset.prod_congr rfl fun r hr => by simp [Finset.ne_of_mem_erase hr]
-  have hZ_pos : 0 < Z s₀ := by
-    have hlow : ∀ m : L, Real.exp (-B) ≤ ∫ η, Real.exp (u (S s₀ m η)) ∂γ_aux := fun m => by
-      have hm := integral_mono (μ := γ_aux) (integrable_const (Real.exp (-B)))
-        (Integrable.of_bound (C := Real.exp B)
+  have hZ_pos : 0 < Z s₀ :=
+    (Real.exp_pos (-B)).trans_le <|
+      exp_neg_le_sum_mul_integral_exp p hp0 hp1 (fun m η => u (S s₀ m η)) (fun _ _ => hB _)
+        fun m => Integrable.of_bound (C := Real.exp B)
           (h1_m (fun x => Real.exp (u x)) (Real.measurable_exp.comp hum) s₀ m).aestronglyMeasurable
           (ae_of_all _ fun η => by
             rw [Real.norm_eq_abs, abs_of_pos (Real.exp_pos _)]
-            exact Real.exp_le_exp.2 (le_of_abs_le (hB _))))
-        fun η => Real.exp_le_exp.2 (neg_le_of_abs_le (hB _))
-      simpa [γ_aux] using hm
-    refine (Real.exp_pos (-B)).trans_le ?_
-    calc Real.exp (-B) = (∑ m : L, p m) * Real.exp (-B) := by rw [hp1, one_mul]
-      _ = ∑ m : L, p m * Real.exp (-B) := Finset.sum_mul _ _ _
-      _ ≤ Z s₀ := Finset.sum_le_sum fun m _ => mul_le_mul_of_nonneg_left (hlow m) (hp0 m)
+            exact Real.exp_le_exp.2 (le_of_abs_le (hB _)))
   simp_rw [hNum_prod_eq]
   have hNum_d : HasDerivAt (fun s => ∏ r : R, ∫ η, ϕ r (S s (st r) η) ∂γ_aux)
       (∑ i : R, (∏ j ∈ Finset.univ.erase i, ∫ η, ϕ j (S s₀ (st j) η) ∂γ_aux) *

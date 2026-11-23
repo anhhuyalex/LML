@@ -20,7 +20,7 @@ is then `M` times the term of one fixed constraint (the book's `α` times the la
 
 * `smartPathStateSwap`, `smartPathDisorderSwap`: the two involutions;
 * `smartPathEnergy_swap`, `smartPathPotentialKernel_swap`: the transformation rules;
-* `replicaPairAverage_swap`: the pair average is equivariant (`map_tilted_equiv`,
+* `replicaPairAverage_swap`: the pair average is equivariant (`map_tilted_measurableEquiv`,
   `replicaPairAverage_map_equiv`).
 -/
 

@@ -467,6 +467,8 @@ public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianInterpolationPara
 public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianInterpolationReplica
 public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianReplicaRatioHessian
 public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianReplicaTheta
+public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianTiltedRotationBound
+public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianTiltedSteinRatio
 public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsMeasure
 public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsMeasureNested
 public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsReplicaMarginal
@@ -722,6 +724,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCav
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavityOldDisorder
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavityPath
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavityRegularity
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavitySpecialization
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavitySpinOnly
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavityTimeCovariance
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ExponentialPenalty

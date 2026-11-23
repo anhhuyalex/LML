@@ -32,6 +32,41 @@ open scoped BigOperators NNReal ENNReal
 
 namespace SpinGlasses
 
+/-- **`A ^ (1 / p)` is in `L^p` when `A ≥ 0` is integrable.** -/
+theorem memLp_rpow_inv_of_integrable {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω}
+    {A : Ω → ℝ} {p : ℝ} (hp : 0 < p) (hA0 : ∀ ω, 0 ≤ A ω) (hA : Integrable A P) :
+    MemLp (fun ω => A ω ^ (1 / p)) (ENNReal.ofReal p) P := by
+  have hm : AEStronglyMeasurable (fun ω => A ω ^ (1 / p)) P :=
+    (hA.aestronglyMeasurable.aemeasurable.pow_const _).aestronglyMeasurable
+  refine (integrable_norm_rpow_iff hm (by positivity) ENNReal.ofReal_ne_top).mp ?_
+  rw [ENNReal.toReal_ofReal hp.le]
+  refine hA.congr (ae_of_all _ fun ω => ?_)
+  dsimp only
+  rw [Real.norm_of_nonneg (Real.rpow_nonneg (hA0 ω) _), ← Real.rpow_mul (hA0 ω),
+    one_div_mul_cancel hp.ne', Real.rpow_one]
+
+/-- **The rotated field `cos s * X + sin s * Y` is measurable** in the old state and the auxiliary
+Gaussian coordinates, when the old state enters only through a finite label `π`. -/
+theorem measurable_rotation_field {α L K_sh K_aux : Type*} [MeasurableSpace α]
+    [Finite L] [MeasurableSpace L] [MeasurableSingletonClass L] [Fintype K_sh] [Fintype K_aux]
+    {π : α → L} (hπ : Measurable π) (X_sh Y_sh : L → K_sh → ℝ) (X_aux Y_aux : L → K_aux → ℝ)
+    (s : ℝ) (w : K_sh → ℝ) :
+    Measurable fun q : α × (K_aux → ℝ) =>
+      Real.cos s * (X_sh (π q.1) ⬝ᵥ w + X_aux (π q.1) ⬝ᵥ q.2) +
+        Real.sin s * (Y_sh (π q.1) ⬝ᵥ w + Y_aux (π q.1) ⬝ᵥ q.2) := by
+  have h1 : ∀ (F : L → K_sh → ℝ) (k : K_sh),
+      Measurable fun q : α × (K_aux → ℝ) => F (π q.1) k := fun F k =>
+    (measurable_of_finite fun m => F m k).comp (hπ.comp measurable_fst)
+  have h2 : ∀ (F : L → K_aux → ℝ) (k : K_aux),
+      Measurable fun q : α × (K_aux → ℝ) => F (π q.1) k := fun F k =>
+    (measurable_of_finite fun m => F m k).comp (hπ.comp measurable_fst)
+  simp only [dotProduct]
+  have := fun k => h1 X_sh k
+  have := fun k => h1 Y_sh k
+  have := fun k => h2 X_aux k
+  have := fun k => h2 Y_aux k
+  fun_prop
+
 /-- Tilted replica integral of `f(σ ∘ e).1 * H σ` bounded by `M_H * exp(2 |ι| B)` times the
 `L¹`-norm of `f` under the untitled product law `pi μ₀`. -/
 theorem abs_integral_pi_tilted_prod_fst_mul_le
@@ -190,18 +225,7 @@ theorem hasDerivAt_integral_integral_gaussian_tilted_rotation_ibp
   intro γ_sh γ_aux S C_cov ψ_d D_ω
   have hum : Measurable u := hu.continuous.measurable
   have hSw_m : ∀ s w, Measurable fun q : α × (K_aux → ℝ) => S s w q := fun s w =>
-    (((Finset.measurable_sum _ fun k _ =>
-        ((measurable_of_finite fun m => X_sh m k).comp (hπ.comp measurable_fst)).mul
-          measurable_const).add
-      (Finset.measurable_sum _ fun k _ =>
-        ((measurable_of_finite fun m => X_aux m k).comp (hπ.comp measurable_fst)).mul
-          ((measurable_pi_apply k).comp measurable_snd))).const_mul _).add
-    (((Finset.measurable_sum _ fun k _ =>
-        ((measurable_of_finite fun m => Y_sh m k).comp (hπ.comp measurable_fst)).mul
-          measurable_const).add
-      (Finset.measurable_sum _ fun k _ =>
-        ((measurable_of_finite fun m => Y_aux m k).comp (hπ.comp measurable_fst)).mul
-          ((measurable_pi_apply k).comp measurable_snd))).const_mul _)
+    measurable_rotation_field hπ X_sh Y_sh X_aux Y_aux s w
   let M_cov : ℝ := ∑ m : L, ∑ m' : L, |C_cov m m'|
   have hMcov0 : 0 ≤ M_cov :=
     Finset.sum_nonneg fun _ _ => Finset.sum_nonneg fun _ _ => abs_nonneg _
@@ -556,15 +580,8 @@ theorem integral_integral_pair_holder_prob
         ((hdm.comp ((measurable_pi_apply 0).prodMk (measurable_pi_apply 1) :
           Measurable fun τ : Fin 2 → α => (τ 0, τ 1))).pow_const q).aestronglyMeasurable
     simpa only [he1, he2] using hhold
-  have hA_mem : MemLp (fun ω => A ω ^ (1 / p)) (ENNReal.ofReal p) P := by
-    have hm : AEStronglyMeasurable (fun ω => A ω ^ (1 / p)) P :=
-      (hfp_int.aestronglyMeasurable.aemeasurable.pow_const _).aestronglyMeasurable
-    refine (integrable_norm_rpow_iff hm (by positivity) ENNReal.ofReal_ne_top).mp ?_
-    rw [ENNReal.toReal_ofReal hp.le]
-    refine hfp_int.congr (ae_of_all _ fun ω => ?_)
-    dsimp only
-    rw [Real.norm_of_nonneg (Real.rpow_nonneg (hA0 ω) _), ← Real.rpow_mul (hA0 ω),
-      one_div_mul_cancel hp.ne', Real.rpow_one]
+  have hA_mem : MemLp (fun ω => A ω ^ (1 / p)) (ENNReal.ofReal p) P :=
+    memLp_rpow_inv_of_integrable hp hA0 hfp_int
   have hB_mem : MemLp (fun ω => B ω ^ (1 / q)) (ENNReal.ofReal q) P := by
     have hm : AEStronglyMeasurable (fun ω => B ω ^ (1 / q)) P :=
       (hdq_m.aemeasurable.pow_const _).aestronglyMeasurable
