@@ -44,6 +44,52 @@ namespace SpinGlasses
 
 section CauchySchwarz
 
+/-- The overlap of two states, normalised by `N + 1`, lies in `[-1, 1]`, so its distance to
+`q ∈ [0, 1]` is at most `2`. -/
+private lemma abs_overlap_sub_le_two {N M : ℕ} {q : ℝ} (hq : q ∈ Icc (0 : ℝ) 1)
+    (a b : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) :
+    |((N : ℝ) + 1)⁻¹ * ∑ i, ((a.1 i : ℤ) : ℝ) * ((b.1 i : ℤ) : ℝ) - q| ≤ 2 := by
+  have h1 : |((N : ℝ) + 1)⁻¹ * ∑ i, ((a.1 i : ℤ) : ℝ) * ((b.1 i : ℤ) : ℝ)| ≤ 1 := by
+    rw [abs_mul, abs_inv, abs_of_pos (by positivity : (0 : ℝ) < (N : ℝ) + 1)]
+    have hs_b : |∑ i : Fin (N + 1), ((a.1 i : ℤ) : ℝ) * ((b.1 i : ℤ) : ℝ)| ≤ (N : ℝ) + 1 :=
+      ((Finset.abs_sum_le_card_mul_of_abs_le _ (C := 1) fun i => by
+        rw [abs_mul, abs_units_cast_eq_one, abs_units_cast_eq_one, mul_one]).trans_eq (by simp))
+    exact (inv_mul_le_iff₀ (by positivity)).2 (by linarith)
+  have h2 := abs_sub (((N : ℝ) + 1)⁻¹ * ∑ i, ((a.1 i : ℤ) : ℝ) * ((b.1 i : ℤ) : ℝ)) q
+  rw [abs_of_nonneg hq.1] at h2
+  linarith [hq.2]
+
+/-- The observable `(N + 1)⁻¹ ∑_k u'(a_k) u'(b_k) - r` is bounded when `|u'| ≤ D₁`. -/
+private lemma abs_empVar_obs_le {N M : ℕ} {u : ℝ → ℝ} {D₁ : ℝ} (hD : ∀ x, |deriv u x| ≤ D₁)
+    (r : ℝ) (a b : Fin M → ℝ) :
+    |((N : ℝ) + 1)⁻¹ * ∑ k : Fin M, deriv u (a k) * deriv u (b k) - r| ≤
+      ((M : ℝ) / ((N : ℝ) + 1)) * |D₁| ^ 2 + |r| := by
+  refine (abs_sub _ _).trans (add_le_add ?_ le_rfl)
+  rw [abs_mul, abs_inv, abs_of_pos (by positivity : (0 : ℝ) < (N : ℝ) + 1)]
+  have hsum : |∑ k : Fin M, deriv u (a k) * deriv u (b k)| ≤ (M : ℝ) * |D₁| ^ 2 := by
+    refine ((Finset.abs_sum_le_card_mul_of_abs_le _ (C := |D₁| ^ 2) fun k => ?_).trans_eq
+      (by simp))
+    rw [abs_mul, sq]
+    exact mul_le_mul ((hD _).trans (le_abs_self D₁)) ((hD _).trans (le_abs_self D₁))
+      (abs_nonneg _) (abs_nonneg D₁)
+  calc ((N : ℝ) + 1)⁻¹ * |∑ k : Fin M, deriv u (a k) * deriv u (b k)|
+      ≤ ((N : ℝ) + 1)⁻¹ * ((M : ℝ) * |D₁| ^ 2) :=
+        mul_le_mul_of_nonneg_left hsum (by positivity)
+    _ = ((M : ℝ) / ((N : ℝ) + 1)) * |D₁| ^ 2 := by ring
+
+/-- Joint measurability of the two-replica observable `c * ∑_k u'(S_k(x⁰)) u'(S_k(x¹)) - r`
+from joint measurability of each field `S_k`. -/
+private lemma measurable_empVar_obs_joint {Ω X : Type*} [MeasurableSpace Ω] [MeasurableSpace X]
+    {M : ℕ} (u : ℝ → ℝ) (c r : ℝ) {S : Ω → X → Fin M → ℝ}
+    (hS : ∀ k, Measurable fun p : Ω × X => S p.1 p.2 k) :
+    Measurable fun p : Ω × (Fin 2 → X) =>
+      c * ∑ k : Fin M, deriv u (S p.1 (p.2 0) k) * deriv u (S p.1 (p.2 1) k) - r := by
+  have hS_l (l : Fin 2) (k : Fin M) :
+      Measurable fun p : Ω × (Fin 2 → X) => S p.1 (p.2 l) k :=
+    (hS k).comp (measurable_fst.prodMk ((measurable_pi_apply l).comp measurable_snd))
+  refine ((Finset.measurable_sum _ fun k _ => ?_).const_mul _).sub_const r
+  exact ((measurable_deriv u).comp (hS_l 0 k)).mul ((measurable_deriv u).comp (hS_l 1 k))
+
 /-- **Eq. (2.84): Cauchy-Schwarz bound on the regrouped `s`-interpolating pressure derivative.**
 If `p'(s)` satisfies `hasDerivAt_interpolating_pressure_regrouped` (so `s ∈ (0, 1)`, `q ∈ [0, 1]`,
 `r ≥ 0`), then by `integral_integral_pair_holder_prob` with conjugate exponents `2` and `2`,
@@ -86,45 +132,8 @@ theorem abs_deriv_interpolating_pressure_add_le_cauchy_schwarz
   refine ⟨_, hd, ?_⟩
   have hEm_joint : Measurable fun p :
       (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-        ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => E_s s p.1 p.2 := by
-    refine (Finset.measurable_sum _ fun k _ => hu.measurable.comp ?_).add ?_
-    · have hg_sum : Measurable fun p :
-          (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-            ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) =>
-          ∑ i : Fin (N + 1), p.1.1.1 k i * ((p.2.1 i : ℤ) : ℝ) := by
-        refine Finset.measurable_sum _ fun i _ => ?_
-        have hgi : Measurable fun p :
-            (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-              ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => p.1.1.1 k i :=
-          (measurable_pi_apply i).comp ((measurable_pi_apply k).comp
-            (measurable_fst.comp (measurable_fst.comp measurable_fst)))
-        have hσi : Measurable fun p :
-            (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-              ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => ((p.2.1 i : ℤ) : ℝ) :=
-          measurable_units_cast.comp ((measurable_pi_apply i).comp
-            (measurable_fst.comp measurable_snd))
-        exact hgi.mul hσi
-      have hzk : Measurable fun p :
-          (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-            ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => p.1.1.2 k :=
-        (measurable_pi_apply k).comp (measurable_snd.comp (measurable_fst.comp measurable_fst))
-      have hξk : Measurable fun p :
-          (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-            ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => p.2.2 k :=
-        (measurable_pi_apply k).comp (measurable_snd.comp measurable_snd)
-      exact ((hg_sum.const_mul _).const_mul _).add
-        (((hzk.const_mul _).add (hξk.const_mul _)).const_mul _)
-    · refine Finset.measurable_sum _ fun i _ => ?_
-      have hσi : Measurable fun p :
-          (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-            ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => ((p.2.1 i : ℤ) : ℝ) :=
-        measurable_units_cast.comp ((measurable_pi_apply i).comp
-          (measurable_fst.comp measurable_snd))
-      have hz'i : Measurable fun p :
-          (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-            ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => p.1.2 i :=
-        (measurable_pi_apply i).comp (measurable_snd.comp measurable_fst)
-      exact ((hσi.mul_const _).mul hz'i).mul_const _
+        ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => E_s s p.1 p.2 :=
+    measurable_interpEnergy_joint (L := N + 1) (M := M) hu.measurable s q r
   have hEb_ω (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
       (x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) :
       E_s s ω x ≤ M * B + ∑ i : Fin (N + 1), |Real.sqrt (1 - s) * ω.2 i * Real.sqrt r| := by
@@ -138,83 +147,20 @@ theorem abs_deriv_interpolating_pressure_add_le_cauchy_schwarz
   have hP_prob : IsProbabilityMeasure P := by dsimp only [P, P_g, P_z, P_z']; infer_instance
   let d_pair (a b : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : ℝ :=
     |(((N : ℝ) + 1)⁻¹ * ∑ i, ((a.1 i : ℤ) : ℝ) * ((b.1 i : ℤ) : ℝ)) - q|
-  have hd_pair_m : Measurable fun p : ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) ×
-      ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => d_pair p.1 p.2 := by
-    have hsum_m : Measurable fun p : ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) ×
-        ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) =>
-        ∑ i : Fin (N + 1), ((p.1.1 i : ℤ) : ℝ) * ((p.2.1 i : ℤ) : ℝ) :=
-      Finset.measurable_sum _ fun i _ =>
-        (measurable_units_cast.comp ((measurable_pi_apply i).comp
-          (measurable_fst.comp measurable_fst))).mul
-          (measurable_units_cast.comp ((measurable_pi_apply i).comp
-            (measurable_fst.comp measurable_snd)))
-    simpa only [d_pair, Real.norm_eq_abs] using ((hsum_m.const_mul _).sub_const q).norm
-  have hd_pair_b (a b : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : d_pair a b ≤ 2 := by
-    dsimp only [d_pair]
-    have h1 : |((N : ℝ) + 1)⁻¹ * ∑ i, ((a.1 i : ℤ) : ℝ) * ((b.1 i : ℤ) : ℝ)| ≤ 1 := by
-      rw [abs_mul, abs_inv, abs_of_pos (by positivity : (0 : ℝ) < (N : ℝ) + 1)]
-      have hs_b : |∑ i : Fin (N + 1), ((a.1 i : ℤ) : ℝ) * ((b.1 i : ℤ) : ℝ)| ≤ (N : ℝ) + 1 :=
-        ((Finset.abs_sum_le_card_mul_of_abs_le _ (C := 1) fun i => by
-          rw [abs_mul, abs_units_cast_eq_one, abs_units_cast_eq_one, mul_one]).trans_eq (by simp))
-      exact (inv_mul_le_iff₀ (by positivity)).2 (by linarith)
-    have h2 := abs_sub (((N : ℝ) + 1)⁻¹ * ∑ i, ((a.1 i : ℤ) : ℝ) * ((b.1 i : ℤ) : ℝ)) q
-    rw [abs_of_nonneg hq.1] at h2
-    linarith [hq.2]
+  have hd_pair_b (a b : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : d_pair a b ≤ 2 :=
+    abs_overlap_sub_le_two hq a b
   let M_f : ℝ := ((M : ℝ) / ((N : ℝ) + 1)) * |D₁| ^ 2 + |r|
   have hf_b (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
-      (σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : |f ω σ| ≤ M_f := by
-    dsimp only [f, M_f]
-    refine (abs_sub _ _).trans (add_le_add ?_ le_rfl)
-    rw [abs_mul, abs_inv, abs_of_pos (by positivity : (0 : ℝ) < (N : ℝ) + 1)]
-    have hsum : |∑ k : Fin M, deriv u (S_fn s ω (σ 0) k) * deriv u (S_fn s ω (σ 1) k)| ≤
-        (M : ℝ) * |D₁| ^ 2 := by
-      refine ((Finset.abs_sum_le_card_mul_of_abs_le _ (C := |D₁| ^ 2) fun k => ?_).trans_eq
-        (by simp))
-      rw [abs_mul, sq]
-      exact mul_le_mul ((hu.abs_deriv_le _).trans (le_abs_self D₁))
-        ((hu.abs_deriv_le _).trans (le_abs_self D₁)) (abs_nonneg _) (abs_nonneg D₁)
-    calc ((N : ℝ) + 1)⁻¹ * |∑ k : Fin M, deriv u (S_fn s ω (σ 0) k) * deriv u (S_fn s ω (σ 1) k)|
-        ≤ ((N : ℝ) + 1)⁻¹ * ((M : ℝ) * |D₁| ^ 2) :=
-          mul_le_mul_of_nonneg_left hsum (by positivity)
-      _ = ((M : ℝ) / ((N : ℝ) + 1)) * |D₁| ^ 2 := by ring
+      (σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : |f ω σ| ≤ M_f :=
+    abs_empVar_obs_le (N := N) hu.abs_deriv_le r (S_fn s ω (σ 0)) (S_fn s ω (σ 1))
   have hf_joint_m : Measurable fun p :
       (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-        (Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => f p.1 p.2 := by
-    have hS_l (l : Fin 2) (k : Fin M) : Measurable fun p :
-        (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-          (Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => S_fn s p.1 (p.2 l) k := by
-      have hg_sum : Measurable fun p :
-          (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-            (Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) =>
-          ∑ i : Fin (N + 1), p.1.1.1 k i * ((((p.2 l).1 i : ℤ) : ℝ)) := by
-        refine Finset.measurable_sum _ fun i _ => ?_
-        have hgi : Measurable fun p :
-            (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-              (Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => p.1.1.1 k i :=
-          (measurable_pi_apply i).comp ((measurable_pi_apply k).comp
-            (measurable_fst.comp (measurable_fst.comp measurable_fst)))
-        have hσi : Measurable fun p :
-            (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-              (Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => (((p.2 l).1 i : ℤ) : ℝ) :=
-          measurable_units_cast.comp ((measurable_pi_apply i).comp
-            (measurable_fst.comp ((measurable_pi_apply l).comp measurable_snd)))
-        exact hgi.mul hσi
-      have hzk : Measurable fun p :
-          (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-            (Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => p.1.1.2 k :=
-        (measurable_pi_apply k).comp (measurable_snd.comp (measurable_fst.comp measurable_fst))
-      have hξk : Measurable fun p :
-          (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-            (Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => (p.2 l).2 k :=
-        (measurable_pi_apply k).comp (measurable_snd.comp
-          ((measurable_pi_apply l).comp measurable_snd))
-      exact ((hg_sum.const_mul _).const_mul _).add
-        (((hzk.const_mul _).add (hξk.const_mul _)).const_mul _)
-    refine ((Finset.measurable_sum _ fun k _ => ?_).const_mul _).sub_const r
-    exact ((measurable_deriv u).comp (hS_l 0 k)).mul ((measurable_deriv u).comp (hS_l 1 k))
+        (Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => f p.1 p.2 :=
+    measurable_empVar_obs_joint u ((N : ℝ) + 1)⁻¹ r (S := S_fn s)
+      fun k => measurable_interpField_joint (L := N + 1) (M := M) s q k
   have hp22 : (2 : ℝ).HolderConjugate 2 := by rw [Real.holderConjugate_iff]; norm_num
   have hf_m (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) :
-      Measurable (f ω) := hf_joint_m.comp (measurable_const.prodMk measurable_id)
+      Measurable (f ω) := Measurable.of_uncurry_left hf_joint_m
   have hfp_mem : ∀ᵐ ω ∂P,
       MemLp (f ω) (ENNReal.ofReal 2) (Measure.pi fun _ : Fin 2 => ν_s ω) :=
     ae_of_all _ fun ω => MemLp.of_bound (hf_m ω).aestronglyMeasurable M_f
@@ -242,14 +188,16 @@ theorem abs_deriv_interpolating_pressure_add_le_cauchy_schwarz
       (fun ω => ∫ a : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ),
         |f ω a| ^ (2 : ℝ) ∂(Measure.pi fun _ : Fin 2 => ν_s ω)) P :=
     integrable_integral_pi_tilted (μ := μ_s) hEm_joint hν_prob
-      (hf_abs_joint.pow_const (2 : ℝ)) fun ω a => by
+      (G := fun ω a => |f ω a| ^ (2 : ℝ))
+      (hf_abs_joint.pow_const (2 : ℝ)) (M := M_f ^ 2) fun ω a => by
         rw [Real.rpow_two, abs_of_nonneg (sq_nonneg _)]
         exact pow_le_pow_left₀ (abs_nonneg _) (hf_b ω a) 2
   have hdq_int : Integrable
       (fun ω => ∫ τ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ),
         d_pair (τ 0) (τ 1) ^ (2 : ℝ) ∂(Measure.pi fun _ : Fin 2 => ν_s ω)) P :=
     integrable_integral_pi_tilted (μ := μ_s) hEm_joint hν_prob
-      ((hm_d_tau.pow_const (2 : ℝ)).comp measurable_snd) (C := 4) fun _ τ => by
+      (G := fun _ τ => d_pair (τ 0) (τ 1) ^ (2 : ℝ))
+      ((hm_d_tau.pow_const (2 : ℝ)).comp measurable_snd) (M := 4) fun _ τ => by
         rw [Real.rpow_two, abs_of_nonneg (sq_nonneg _), show (4 : ℝ) = 2 ^ 2 by norm_num]
         exact pow_le_pow_left₀ (abs_nonneg _) (hd_pair_b (τ 0) (τ 1)) 2
   have hcs := integral_integral_pair_holder_prob P ν_s
@@ -259,7 +207,8 @@ theorem abs_deriv_interpolating_pressure_add_le_cauchy_schwarz
       (fun ω => ∫ σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ),
         |f ω σ| * d_pair (σ 0) (σ 1) ∂(Measure.pi fun _ : Fin 2 => ν_s ω)) P :=
     integrable_integral_pi_tilted (μ := μ_s) hEm_joint hν_prob
-      (hf_abs_joint.mul (hm_d_tau.comp measurable_snd)) (C := |M_f| * 2) fun ω σ => by
+      (G := fun ω σ => |f ω σ| * d_pair (σ 0) (σ 1))
+      (hf_abs_joint.mul (hm_d_tau.comp measurable_snd)) (M := |M_f| * 2) fun ω σ => by
         rw [abs_of_nonneg (mul_nonneg (abs_nonneg _) (abs_nonneg _))]
         exact mul_le_mul ((hf_b ω σ).trans (le_abs_self _)) (hd_pair_b (σ 0) (σ 1))
           (abs_nonneg _) (abs_nonneg _)
@@ -283,7 +232,8 @@ theorem abs_deriv_interpolating_pressure_add_le_cauchy_schwarz
       (fun ω => ∫ σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ),
         (R_obs σ - q) * f ω σ ∂(Measure.pi fun _ : Fin 2 => ν_s ω)) P :=
     integrable_integral_pi_tilted (μ := μ_s) hEm_joint hν_prob
-      ((hm_R_sub.comp measurable_snd).mul hf_joint_m) (C := 2 * |M_f|) fun ω σ => by
+      (G := fun ω σ => (R_obs σ - q) * f ω σ)
+      ((hm_R_sub.comp measurable_snd).mul hf_joint_m) (M := 2 * |M_f|) fun ω σ => by
         rw [abs_mul]
         exact mul_le_mul (hd_pair_b (σ 0) (σ 1)) ((hf_b ω σ).trans (le_abs_self _))
           (abs_nonneg _) zero_le_two

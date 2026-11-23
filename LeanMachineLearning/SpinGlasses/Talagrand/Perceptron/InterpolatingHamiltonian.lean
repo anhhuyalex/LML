@@ -1300,7 +1300,8 @@ lemma interpConstraintStateSwap_symm_apply {L M : ℕ} (k₁ k₂ : Fin M)
     (x : (Fin L → ℤˣ) × (Fin M → ℝ)) :
     (interpConstraintStateSwap k₁ k₂).symm x = (x.1, fun k => x.2 (Equiv.swap k₁ k₂ k)) := rfl
 
-private lemma measurable_interpField_joint {L M : ℕ} (s q : ℝ) (k : Fin M) :
+/-- The `k`-th interpolating field is jointly measurable in the disorder and the state. -/
+lemma measurable_interpField_joint {L M : ℕ} (s q : ℝ) (k : Fin M) :
     Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
         ((Fin L → ℤˣ) × (Fin M → ℝ)) =>
       Real.sqrt s * ((Real.sqrt (L : ℕ))⁻¹ * ∑ i, p.1.1.1 k i * ((p.2.1 i : ℤ) : ℝ)) +
@@ -1354,7 +1355,8 @@ private lemma measurable_interpFieldDeriv_joint {L M : ℕ} (s q : ℝ) (k : Fin
   exact ((hg_sum.const_mul _).const_mul _).sub
     (((hzk.const_mul _).add (hξk.const_mul _)).const_mul _)
 
-private lemma measurable_interpEnergy_joint {L M : ℕ} {u : ℝ → ℝ} (hu : Measurable u)
+/-- The interpolating energy is jointly measurable in the disorder and the state. -/
+lemma measurable_interpEnergy_joint {L M : ℕ} {u : ℝ → ℝ} (hu : Measurable u)
     (s q r : ℝ) :
     Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
         ((Fin L → ℤˣ) × (Fin M → ℝ)) =>
