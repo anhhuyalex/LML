@@ -11,7 +11,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKDecou
 public import LeanMachineLearning.ForMathlib.Probability.GibbsIBPLinear
 
 /-!
-# The `s`-interpolating free energy and derivative identity (Talagrand Section 2.4, Eqs. (2.76)--(2.83))
+# The `s`-interpolating free energy and derivative identity (Talagrand Section 2.4)
 
 Talagrand, *Spin Glasses: A Challenge for Mathematicians*, Vol. I, Section 2.4, Eqs. (2.76),
 (2.81)--(2.83) and endpoint evaluations at `s = 0` and `s = 1`.
@@ -27,7 +27,8 @@ $$p_{N+1, M, s}(u) = \frac{1}{N + 1}\,\mathbb{E}\log\int_{\mathbb{R}^M}\sum_\sig
 
 ## Main declarations
 
-* `SpinGlasses.continuousOn_interpolating_pressure`: continuity of `s ↦ p_{N+1, M, s}(u)` on `[0, 1]`.
+* `SpinGlasses.continuousOn_interpolating_pressure`: continuity of `s ↦ p_{N+1, M, s}(u)` on
+  `[0, 1]`.
 * `SpinGlasses.interpolating_pressure_one_eq`: at `s = 1`, `p_{N+1, M, 1}(u)` equals the Section 2.1
   perceptron pressure `p_{N+1, M}(u)`.
 * `SpinGlasses.interpolating_pressure_zero_eq`: at `s = 0` (when `r ≥ 0`), `p_{N+1, M, 0}(u)` equals
@@ -142,7 +143,8 @@ theorem continuousOn_interpolating_pressure
   have hE_eff_m (s : ℝ) (τ : Fin (N + 1) → ℤˣ) : Measurable fun ω => E_eff s ω τ := by
     refine (Finset.measurable_sum _ fun i _ => by fun_prop).add ?_
     refine Finset.measurable_sum _ fun k _ => Real.measurable_log.comp ?_
-    have hj : Measurable fun p : (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) × ℝ =>
+    have hj : Measurable fun p :
+        (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) × ℝ =>
         Real.exp (u (Real.sqrt s *
           ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, p.1.1.1 k i * ((τ i : ℤ) : ℝ)) +
           Real.sqrt (1 - s) * (Real.sqrt q * p.1.1.2 k + Real.sqrt (1 - q) * p.2))) :=
@@ -152,7 +154,8 @@ theorem continuousOn_interpolating_pressure
     have heq : Φ s = fun ω => Real.log (∑ τ, Real.exp (E_eff s ω τ)) := funext (hΦ_eq s)
     rw [heq]
     exact (Real.measurable_log.comp
-      (Finset.measurable_sum _ fun τ _ => Real.measurable_exp.comp (hE_eff_m s τ))).aestronglyMeasurable
+      (Finset.measurable_sum _ fun τ _ =>
+        Real.measurable_exp.comp (hE_eff_m s τ))).aestronglyMeasurable
   let dom (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) : ℝ :=
     ((N : ℝ) + 1) * Real.log 2 + M * B + ∑ i : Fin (N + 1), |ω.2 i| * Real.sqrt r
   have hdom_int : Integrable dom P := by
@@ -206,7 +209,8 @@ theorem continuousOn_interpolating_pressure
           Real.sqrt (1 - s) * (Real.sqrt q * ω.1.2 k + Real.sqrt (1 - q) * ξ)))
           ∂gaussianReal 0 1 := by
       refine continuous_of_dominated (bound := fun _ => Real.exp B)
-        (fun s => (Real.continuous_exp.comp (hu.comp (by fun_prop))).measurable.aestronglyMeasurable)
+        (fun s =>
+          (Real.continuous_exp.comp (hu.comp (by fun_prop))).measurable.aestronglyMeasurable)
         (fun s => ae_of_all _ fun _ => by
           rw [Real.norm_of_nonneg (Real.exp_pos _).le]; exact Real.exp_le_exp.2 (hB_le _))
         (integrable_const _)
@@ -237,7 +241,8 @@ theorem continuousOn_interpolating_pressure
       exact h1.add h2
     have hsum_cont : Continuous fun s : ℝ => ∑ τ, Real.exp (E_eff s ω τ) := by
       fun_prop
-    exact hsum_cont.log fun s => (Finset.sum_pos (fun _ _ => Real.exp_pos _) Finset.univ_nonempty).ne'
+    exact hsum_cont.log fun s =>
+      (Finset.sum_pos (fun _ _ => Real.exp_pos _) Finset.univ_nonempty).ne'
   refine continuousOn_const.mul ?_
   exact continuousOn_of_dominated (fun s _ => hΦm s) (fun s hs => ae_of_all _ (hΦb s hs))
     hdom_int (ae_of_all _ fun ω => (hΦ_cont ω).continuousOn)
@@ -269,7 +274,8 @@ theorem interpolating_pressure_one_eq
   have hpt (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) :
       Real.log (∫ x, Real.exp (E_1 ω x) ∂μ_s) =
       Real.log (∑ τ : Fin (N + 1) → ℤˣ,
-        Real.exp (∑ k : Fin M, u ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 k i * ((τ i : ℤ) : ℝ)))) := by
+        Real.exp (∑ k : Fin M,
+          u ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 k i * ((τ i : ℤ) : ℝ)))) := by
     rw [integral_sum_exp_interpolating_eq hu hB_le 1 q r ω]
     congr 1; refine Finset.sum_congr rfl fun τ _ => congrArg Real.exp ?_
     simp only [sub_self, Real.sqrt_zero, Real.sqrt_one, one_mul, mul_zero, zero_mul, add_zero,
@@ -396,8 +402,8 @@ theorem interpolating_pressure_zero_eq
     have heach (i : Fin (N + 1)) :
         (∫ z' : Fin (N + 1) → ℝ, Real.log (Real.cosh (z' i * Real.sqrt r)) ∂P_z') =
         ∫ z : ℝ, Real.log (Real.cosh (z * Real.sqrt r)) ∂γ₁ := by
-      have h := (measurePreserving_eval (fun _ : Fin (N + 1) => γ₁) i).integral_comp_of_aestronglyMeasurable
-        hlc_m.aestronglyMeasurable
+      have h := (measurePreserving_eval (fun _ : Fin (N + 1) => γ₁)
+        i).integral_comp_of_aestronglyMeasurable hlc_m.aestronglyMeasurable
       exact h
     rw [Finset.sum_congr rfl fun i _ => heach i,
       Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
@@ -415,8 +421,8 @@ theorem interpolating_pressure_zero_eq
     rw [integral_finsetSum _ fun k _ =>
       integrable_comp_eval (μ := fun _ : Fin M => γ₁) (i := k) hk1]
     have heach (k : Fin M) : (∫ z : Fin M → ℝ, ψ_z (z k) ∂P_z) = ∫ z, ψ_z z ∂γ₁ := by
-      have h := (measurePreserving_eval (fun _ : Fin M => γ₁) k).integral_comp_of_aestronglyMeasurable
-        hψ_m.aestronglyMeasurable
+      have h := (measurePreserving_eval (fun _ : Fin M => γ₁)
+        k).integral_comp_of_aestronglyMeasurable hψ_m.aestronglyMeasurable
       exact h
     rw [Finset.sum_congr rfl fun k _ => heach k,
       Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
@@ -603,7 +609,8 @@ theorem hasDerivAt_interpolating_pressure
                   Real.sqrt q * |ω.1.2 k|) + Real.sqrt (1 - q) * |x.2 k|)) :=
               mul_le_mul hd_le hS'_le (abs_nonneg _) hD₁0
           _ = _ := by ring
-      refine ((Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun k _ => hk_bd k)).trans_eq ?_
+      refine ((Finset.abs_sum_le_sum_abs _ _).trans
+        (Finset.sum_le_sum fun k _ => hk_bd k)).trans_eq ?_
       dsimp only [b_ξ]
       rw [← Finset.mul_sum, Finset.sum_add_distrib, mul_add]
     have hterm2 : |(1 / (2 * Real.sqrt (1 - s'))) *
@@ -615,7 +622,7 @@ theorem hasDerivAt_interpolating_pressure
       rw [abs_mul, abs_mul, abs_units_cast_eq_one, one_mul, abs_of_nonneg (Real.sqrt_nonneg _)]
     dsimp only [b_ω]
     linarith
-  -- Differentiate `s' ↦ log (∫ x, exp (E_s s' ω x) ∂μ_s)` at fixed `ω`!
+  -- Differentiate `s' ↦ log (∫ x, exp (E_s s' ω x) ∂μ_s)` at fixed `ω`.
   let Z_fn (s' : ℝ) (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) : ℝ :=
     ∫ x, Real.exp (E_s s' ω x) ∂μ_s
   have hEm (s' : ℝ) : Measurable fun p :
@@ -657,14 +664,15 @@ theorem hasDerivAt_interpolating_pressure
     have hZ_d : HasDerivAt (fun t => Z_fn t ω)
         (∫ x, E'_s s' ω x * Real.exp (E_s s' ω x) ∂μ_s) s' := by
       have hm_ev : ∀ᶠ t in 𝓝 s', AEStronglyMeasurable (fun x => Real.exp (E_s t ω x)) μ_s :=
-        Eventually.of_forall fun t =>
-          (Real.measurable_exp.comp ((hEm t).comp (measurable_const.prodMk measurable_id))).aestronglyMeasurable
+        Eventually.of_forall fun t => (Real.measurable_exp.comp
+          ((hEm t).comp (measurable_const.prodMk measurable_id))).aestronglyMeasurable
       have hi_s' : Integrable (fun x => Real.exp (E_s s' ω x)) μ_s :=
         integrable_exp_of_ae_le ((hEm s').comp (measurable_const.prodMk measurable_id)).aemeasurable
           (ae_of_all _ fun x => le_of_abs_le (hE_abs_bd hs' ω x))
       have hdm : AEStronglyMeasurable (fun x => E'_s s' ω x * Real.exp (E_s s' ω x)) μ_s :=
         (((hE'm s').comp (measurable_const.prodMk measurable_id)).mul
-          (Real.measurable_exp.comp ((hEm s').comp (measurable_const.prodMk measurable_id)))).aestronglyMeasurable
+          (Real.measurable_exp.comp
+            ((hEm s').comp (measurable_const.prodMk measurable_id)))).aestronglyMeasurable
       let dom_x (x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : ℝ :=
         (b_ω ω + b_ξ x.2) * Real.exp C_E
       have hdom_x_i : Integrable dom_x μ_s :=
@@ -687,11 +695,8 @@ theorem hasDerivAt_interpolating_pressure
     have hZ_pos : 0 < Z_fn s' ω := integral_exp_pos hi_s'
     exact (hZ_d.log hZ_pos.ne').congr_deriv
       (by rw [integral_tilted_eq_div, div_eq_mul_inv, mul_comm])
-  -- Bound on `|∫ x, E'_s s' ω x ∂(μ_s.tilted (E_s s' ω))|` for `s' ∈ U_nbhd`:
-  -- using `integral_tilted_le_exp_mul` or bounding `exp(E_s) / Z`?
-  -- Wait! Notice `|E_s s' ω x - ∑_i x_i √(1-s') ω.2_i √r| ≤ M * B`!
-  -- Even simpler: `Z_fn s' ω ≥ 2^(N+1) * exp(-C_E)`? No, `C_E` has `∑ |ω.2 i| √r`, and `exp(2 C_E) * ∫ b_ξ` is integrable over Gaussian `ω.2` (`Fernique` / `integrable_exp_mul_abs`)!
-  -- Wait: EVEN SIMPLER! On `x = (τ, ξ)`, for fixed `τ`, the spin part `∑_i τ_i √(1-s') ω.2_i √r` cancels if we bound `∫_ξ |b_ξ ξ| exp(u_sum) / ∫_ξ exp(u_sum) ≤ exp(2 M B) * ∫_ξ b_ξ ξ`!
+  -- Bound `|∫ x, E'_s s' ω x ∂(μ_s.tilted (E_s s' ω))|` on `U_nbhd` by cancelling the spin factor
+  -- per `τ` and bounding the `ξ`-ratio by `exp(2 M B) * ∫ b_ξ`.
   have htilted_ξ_bd (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
       {s' : ℝ} (hs' : s' ∈ U_nbhd) :
       |∫ x, E'_s s' ω x ∂(μ_s.tilted (E_s s' ω))| ≤
@@ -829,7 +834,8 @@ theorem hasDerivAt_interpolating_pressure
     let dom_Z (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) : ℝ :=
       ((N : ℝ) + 1) * Real.log 2 + M * B + ∑ i : Fin (N + 1), |ω.2 i| * Real.sqrt r
     have hdom_Z_i : Integrable dom_Z P := by
-      refine ((integrable_const _).add (integrable_const _)).add (integrable_finsetSum _ fun i _ => ?_)
+      refine ((integrable_const _).add (integrable_const _)).add
+        (integrable_finsetSum _ fun i _ => ?_)
       exact ((integrable_comp_eval (μ := fun _ : Fin (N + 1) => γ₁) (i := i)
         IsGaussian.integrable_id.abs).mul_const _).comp_snd _
     refine hdom_Z_i.mono' hm_log.aestronglyMeasurable (ae_of_all _ fun ω => ?_)
@@ -1335,7 +1341,8 @@ private lemma measurable_interpFieldDeriv_joint {L M : ℕ} (s q : ℝ) (k : Fin
         ((Fin L → ℤˣ) × (Fin M → ℝ)) =>
       (1 / (2 * Real.sqrt s)) *
           ((Real.sqrt (L : ℕ))⁻¹ * ∑ i, p.1.1.1 k i * ((p.2.1 i : ℤ) : ℝ)) -
-        (1 / (2 * Real.sqrt (1 - s))) * (Real.sqrt q * p.1.1.2 k + Real.sqrt (1 - q) * p.2.2 k) := by
+        (1 / (2 * Real.sqrt (1 - s))) *
+          (Real.sqrt q * p.1.1.2 k + Real.sqrt (1 - q) * p.2.2 k) := by
   have hg_sum : Measurable fun p : (((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) ×
       ((Fin L → ℤˣ) × (Fin M → ℝ)) => ∑ i : Fin L, p.1.1.1 k i * ((p.2.1 i : ℤ) : ℝ) := by
     refine Finset.measurable_sum _ fun i _ => ?_
@@ -1759,17 +1766,21 @@ theorem integral_interpolating_field_deriv_ibp
                 deriv u (α_sh (σ r_u).1.1 ⬝ᵥ w + α_aux (σ r_u).1.1 ⬝ᵥ (σ r_u).2))
           ∂(Measure.pi fun _ : Unit => ((μ₀ ω₀).prod γ_aux).tilted
             (fun q_1 => u (α_sh q_1.1.1 ⬝ᵥ w + α_aux q_1.1.1 ⬝ᵥ q_1.2))) ∂γ_sh) = 0 := by
-      simp only [Finset.univ_unique, Finset.sum_singleton, ↓reduceIte]
-      refine (integral_congr_ae (ae_of_all _ fun w =>
-        integral_congr_ae (ae_of_all _ fun σ => ?_))).trans (by simp)
+      rw [show (Finset.univ : Finset Unit) = {()} from rfl, Finset.sum_singleton]
+      refine (integral_congr_ae (g := fun _ => (0 : ℝ)) (ae_of_all _ fun w => ?_)).trans
+        (integral_zero _ ℝ)
+      refine (integral_congr_ae (g := fun _ => (0 : ℝ)) (ae_of_all _ fun σ => ?_)).trans
+        (integral_zero _ ℝ)
       dsimp only
-      rw [hcov_diag (σ ()).1.1]
+      simp only [↓reduceIte, hcov_diag (σ ()).1.1]
       ring
     rw [hdiag_zero, zero_sub, Fintype.card_unique, Nat.cast_one, one_mul]
     symm
     rw [neg_mul, ← integral_const_mul, neg_inj]
-    refine integral_congr_ae (ae_of_all _ fun w =>
-      integral_congr_ae (ae_of_all _ fun σ => ?_))
+    refine integral_congr_ae (ae_of_all _ fun w => ?_)
+    dsimp only
+    rw [← integral_const_mul]
+    refine integral_congr_ae (ae_of_all _ fun σ => ?_)
     dsimp only
     simp only [Finset.univ_unique, Finset.prod_singleton, hcov_sh]
     ring
@@ -1810,8 +1821,7 @@ theorem integral_interpolating_field_deriv_ibp
     rw [he_st_apply]
     dsimp only [α_sh, α_aux, splitΩ, S_fn]
     rw [sumElim_dotProduct_sumElim]
-    simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton, Finset.mul_sum,
-      Sum.elim_inl, Sum.elim_inr]
+    simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton, Finset.mul_sum]
     have h1 : (∑ i : Fin (N + 1),
         Real.sqrt s * (Real.sqrt (N + 1 : ℕ))⁻¹ * ((x.1 i : ℤ) : ℝ) *
           ω.1.1 (Fin.last M) i) =
@@ -1827,8 +1837,7 @@ theorem integral_interpolating_field_deriv_ibp
     rw [he_st_apply]
     dsimp only [W_sh, W_aux, splitΩ, S'_fn]
     rw [sumElim_dotProduct_sumElim]
-    simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton, Finset.mul_sum,
-      Sum.elim_inl, Sum.elim_inr]
+    simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton, Finset.mul_sum]
     have h1 : (∑ i : Fin (N + 1),
         (1 / (2 * Real.sqrt s)) * (Real.sqrt (N + 1 : ℕ))⁻¹ * ((x.1 i : ℤ) : ℝ) *
           ω.1.1 (Fin.last M) i) =
@@ -1855,6 +1864,7 @@ theorem integral_interpolating_field_deriv_ibp
     rw [hcomb]
     congr 1; funext y
     obtain ⟨x, rfl⟩ := e_st.surjective y
+    dsimp only [Function.comp_apply]
     rw [MeasurableEquiv.symm_apply_apply, hS_last_eq ω x, he_st_apply]
     dsimp only [E_s, E₀, splitΩ, S_fn]
     rw [Fin.sum_univ_castSucc]
@@ -1879,17 +1889,19 @@ theorem integral_interpolating_field_deriv_ibp
         deriv u (α_sh (σ none).1.1 ⬝ᵥ p.2 + α_aux (σ none).1.1 ⬝ᵥ (σ none).2)
       ∂(Measure.pi fun _ : Option Unit => ((μ₀ p.1).prod γ_aux).tilted
         (fun y => u (α_sh y.1.1 ⬝ᵥ p.2 + α_aux y.1.1 ⬝ᵥ y.2)))
-  have hH_comb_m : Measurable fun q_p :
+  have hE₀i_all (ω₀ : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) :
+      Integrable (fun x₀ => Real.exp (E₀ ω₀ x₀)) μ₀_base :=
+    integrable_exp_of_ae_le
+      (Measurable.of_uncurry_left hEm_joint).aemeasurable
+      (ae_of_all _ (interpEnergy_le (fun x => hu.le x) s q r ω₀))
+  let V_split (p : (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
+      ((Fin (N + 1) ⊕ Unit) → ℝ))
+      (y : ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ)) : ℝ :=
+    u (α_sh y.1.1 ⬝ᵥ p.2 + α_aux y.1.1 ⬝ᵥ y.2)
+  have hV_split_m : Measurable fun q_p :
       ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
         ((Fin (N + 1) ⊕ Unit) → ℝ)) ×
-      (((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ)) =>
-      E₀ q_p.1.1 q_p.2.1 + u (α_sh q_p.2.1.1 ⬝ᵥ q_p.1.2 + α_aux q_p.2.1.1 ⬝ᵥ q_p.2.2) := by
-    have hp0 : Measurable fun q_p :
-        ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-          ((Fin (N + 1) ⊕ Unit) → ℝ)) ×
-        (((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ)) => (q_p.1.1, q_p.2.1) :=
-      (measurable_fst.comp measurable_fst).prodMk (measurable_fst.comp measurable_snd)
-    have hE0_m := hEm_joint.comp hp0
+      (((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ)) => V_split q_p.1 q_p.2 := by
     have hd1 : Measurable fun q_p :
         ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
           ((Fin (N + 1) ⊕ Unit) → ℝ)) ×
@@ -1910,35 +1922,26 @@ theorem integral_interpolating_field_deriv_ibp
         (((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ)) =>
         α_aux q_p.2.1.1 ⬝ᵥ q_p.2.2 := by
       simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton]
-      exact measurable_const.mul ((measurable_pi_apply ()).comp (measurable_snd.comp measurable_snd))
-    exact hE0_m.add (hu.measurable.comp (hd1.add hd2))
-  have hν_comb (p : (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-      ((Fin (N + 1) ⊕ Unit) → ℝ)) :
-      ((μ₀ p.1).prod γ_aux).tilted (fun y => u (α_sh y.1.1 ⬝ᵥ p.2 + α_aux y.1.1 ⬝ᵥ y.2)) =
-      (μ₀_base.prod γ_aux).tilted
-        (fun y => E₀ p.1 y.1 + u (α_sh y.1.1 ⬝ᵥ p.2 + α_aux y.1.1 ⬝ᵥ y.2)) := by
-    have hE₀_i : Integrable (fun x₀ => Real.exp (E₀ p.1 x₀)) μ₀_base :=
-      integrable_exp_of_ae_le
-        (Measurable.of_uncurry_left hEm_joint).aemeasurable
-        (ae_of_all _ (interpEnergy_le (fun x => hu.le x) s q r p.1))
-    rw [← tilted_prod_comp_fst, tilted_tilted (hE₀_i.comp_fst γ_aux)]
-    rfl
+      exact measurable_const.mul
+        ((measurable_pi_apply ()).comp (measurable_snd.comp measurable_snd))
+    exact hu.measurable.comp (hd1.add hd2)
   have hIL_m : Measurable I_L := by
-    have heq : I_L = fun p => ∫ σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ),
-        1 * (W_sh (σ ()).1.1 ⬝ᵥ p.2 + W_aux (σ ()).1.1 ⬝ᵥ (σ ()).2) *
-          (∏ r_u : Unit, deriv u (α_sh (σ r_u).1.1 ⬝ᵥ p.2 + α_aux (σ r_u).1.1 ⬝ᵥ (σ r_u).2))
-        ∂(Measure.pi fun _ : Unit => (μ₀_base.prod γ_aux).tilted
-          (fun y => E₀ p.1 y.1 + u (α_sh y.1.1 ⬝ᵥ p.2 + α_aux y.1.1 ⬝ᵥ y.2))) :=
-      funext fun p => by dsimp only [I_L]; simp_rw [hν_comb p]
-    rw [heq]
+    let F_L (p : (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
+        ((Fin (N + 1) ⊕ Unit) → ℝ))
+        (σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ)) : ℝ :=
+      1 * (W_sh (σ ()).1.1 ⬝ᵥ p.2 + W_aux (σ ()).1.1 ⬝ᵥ (σ ()).2) *
+        (∏ r_u : Unit, deriv u (α_sh (σ r_u).1.1 ⬝ᵥ p.2 + α_aux (σ r_u).1.1 ⬝ᵥ (σ r_u).2))
     have hG_m : Measurable fun q_p :
         ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
           ((Fin (N + 1) ⊕ Unit) → ℝ)) ×
-        (Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ)) =>
-        1 * (W_sh (q_p.2 ()).1.1 ⬝ᵥ q_p.1.2 + W_aux (q_p.2 ()).1.1 ⬝ᵥ (q_p.2 ()).2) *
-          (∏ r_u : Unit,
-            deriv u (α_sh (q_p.2 r_u).1.1 ⬝ᵥ q_p.1.2 + α_aux (q_p.2 r_u).1.1 ⬝ᵥ (q_p.2 r_u).2)) := by
+        (Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ)) => F_L q_p.1 q_p.2 := by
+      dsimp only [F_L]
       simp only [Finset.univ_unique, Finset.prod_singleton, one_mul]
+      have h_ev : Measurable fun q_p :
+          ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
+            ((Fin (N + 1) ⊕ Unit) → ℝ)) ×
+          (Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ)) => q_p.2 () :=
+        (measurable_pi_apply ()).comp measurable_snd
       have hw1 : Measurable fun q_p :
           ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
             ((Fin (N + 1) ⊕ Unit) → ℝ)) ×
@@ -1946,13 +1949,8 @@ theorem integral_interpolating_field_deriv_ibp
           W_sh (q_p.2 ()).1.1 ⬝ᵥ q_p.1.2 := by
         simp only [dotProduct]
         refine Finset.measurable_sum _ fun idx _ => ?_
-        have hw_idx : Measurable fun q_p :
-            ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-              ((Fin (N + 1) ⊕ Unit) → ℝ)) ×
-            (Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ)) =>
-            W_sh (q_p.2 ()).1.1 idx :=
-          (measurable_of_finite fun τ => W_sh τ idx).comp
-            (measurable_fst.comp (measurable_fst.comp ((measurable_pi_apply ()).comp measurable_snd)))
+        have hw_idx := (measurable_of_finite fun τ => W_sh τ idx).comp
+          (measurable_fst.comp (measurable_fst.comp h_ev))
         exact hw_idx.mul ((measurable_pi_apply idx).comp (measurable_snd.comp measurable_fst))
       have hw2 : Measurable fun q_p :
           ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
@@ -1960,8 +1958,7 @@ theorem integral_interpolating_field_deriv_ibp
           (Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ)) =>
           W_aux (q_p.2 ()).1.1 ⬝ᵥ (q_p.2 ()).2 := by
         simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton]
-        exact measurable_const.mul ((measurable_pi_apply ()).comp
-          (measurable_snd.comp ((measurable_pi_apply ()).comp measurable_snd)))
+        exact measurable_const.mul ((measurable_pi_apply ()).comp (measurable_snd.comp h_ev))
       have ha1 : Measurable fun q_p :
           ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
             ((Fin (N + 1) ⊕ Unit) → ℝ)) ×
@@ -1969,13 +1966,8 @@ theorem integral_interpolating_field_deriv_ibp
           α_sh (q_p.2 ()).1.1 ⬝ᵥ q_p.1.2 := by
         simp only [dotProduct]
         refine Finset.measurable_sum _ fun idx _ => ?_
-        have ha_idx : Measurable fun q_p :
-            ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-              ((Fin (N + 1) ⊕ Unit) → ℝ)) ×
-            (Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ)) =>
-            α_sh (q_p.2 ()).1.1 idx :=
-          (measurable_of_finite fun τ => α_sh τ idx).comp
-            (measurable_fst.comp (measurable_fst.comp ((measurable_pi_apply ()).comp measurable_snd)))
+        have ha_idx := (measurable_of_finite fun τ => α_sh τ idx).comp
+          (measurable_fst.comp (measurable_fst.comp h_ev))
         exact ha_idx.mul ((measurable_pi_apply idx).comp (measurable_snd.comp measurable_fst))
       have ha2 : Measurable fun q_p :
           ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
@@ -1983,26 +1975,27 @@ theorem integral_interpolating_field_deriv_ibp
           (Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ)) =>
           α_aux (q_p.2 ()).1.1 ⬝ᵥ (q_p.2 ()).2 := by
         simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton]
-        exact measurable_const.mul ((measurable_pi_apply ()).comp
-          (measurable_snd.comp ((measurable_pi_apply ()).comp measurable_snd)))
+        exact measurable_const.mul ((measurable_pi_apply ()).comp (measurable_snd.comp h_ev))
       exact (hw1.add hw2).mul ((measurable_deriv u).comp (ha1.add ha2))
-    have hμ_fin : IsFiniteMeasure (μ₀_base.prod γ_aux) := inferInstance
-    exact @measurable_integral_pi_tilted _ _ _ _ (μ₀_base.prod γ_aux) hμ_fin _ _ _ hH_comb_m _ hG_m
+    exact measurable_integral_pi_tilted_prod_tilted μ₀_base γ_aux hEm_joint hE₀i_all hV_split_m hG_m
   have hIR_m : Measurable I_R := by
-    have heq : I_R = fun p => ∫ σ : Option Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ),
-        ((((N : ℝ) + 1)⁻¹ * ∑ i,
-            (((σ (some ())).1.1 i : ℤ) : ℝ) * (((σ none).1.1 i : ℤ) : ℝ)) - q) *
-          deriv u (α_sh (σ (some ())).1.1 ⬝ᵥ p.2 + α_aux (σ (some ())).1.1 ⬝ᵥ (σ (some ())).2) *
-          deriv u (α_sh (σ none).1.1 ⬝ᵥ p.2 + α_aux (σ none).1.1 ⬝ᵥ (σ none).2)
-        ∂(Measure.pi fun _ : Option Unit => (μ₀_base.prod γ_aux).tilted
-          (fun y => E₀ p.1 y.1 + u (α_sh y.1.1 ⬝ᵥ p.2 + α_aux y.1.1 ⬝ᵥ y.2))) :=
-      funext fun p => by dsimp only [I_R]; simp_rw [hν_comb p]
-    rw [heq]
+    let F_R (p : (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
+        ((Fin (N + 1) ⊕ Unit) → ℝ))
+        (σ : Option Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ)) : ℝ :=
+      ((((N : ℝ) + 1)⁻¹ * ∑ i,
+          (((σ (some ())).1.1 i : ℤ) : ℝ) * (((σ none).1.1 i : ℤ) : ℝ)) - q) *
+        deriv u (α_sh (σ (some ())).1.1 ⬝ᵥ p.2 + α_aux (σ (some ())).1.1 ⬝ᵥ (σ (some ())).2) *
+        deriv u (α_sh (σ none).1.1 ⬝ᵥ p.2 + α_aux (σ none).1.1 ⬝ᵥ (σ none).2)
     have hfl_o (o : Option Unit) : Measurable fun q_p :
         ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
           ((Fin (N + 1) ⊕ Unit) → ℝ)) ×
         (Option Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ)) =>
         deriv u (α_sh (q_p.2 o).1.1 ⬝ᵥ q_p.1.2 + α_aux (q_p.2 o).1.1 ⬝ᵥ (q_p.2 o).2) := by
+      have h_ev : Measurable fun q_p :
+          ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
+            ((Fin (N + 1) ⊕ Unit) → ℝ)) ×
+          (Option Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ)) => q_p.2 o :=
+        (measurable_pi_apply o).comp measurable_snd
       have ha1 : Measurable fun q_p :
           ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
             ((Fin (N + 1) ⊕ Unit) → ℝ)) ×
@@ -2010,13 +2003,8 @@ theorem integral_interpolating_field_deriv_ibp
           α_sh (q_p.2 o).1.1 ⬝ᵥ q_p.1.2 := by
         simp only [dotProduct]
         refine Finset.measurable_sum _ fun idx _ => ?_
-        have ha_idx : Measurable fun q_p :
-            ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-              ((Fin (N + 1) ⊕ Unit) → ℝ)) ×
-            (Option Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ)) =>
-            α_sh (q_p.2 o).1.1 idx :=
-          (measurable_of_finite fun τ => α_sh τ idx).comp
-            (measurable_fst.comp (measurable_fst.comp ((measurable_pi_apply o).comp measurable_snd)))
+        have ha_idx := (measurable_of_finite fun τ => α_sh τ idx).comp
+          (measurable_fst.comp (measurable_fst.comp h_ev))
         exact ha_idx.mul ((measurable_pi_apply idx).comp (measurable_snd.comp measurable_fst))
       have ha2 : Measurable fun q_p :
           ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
@@ -2024,8 +2012,7 @@ theorem integral_interpolating_field_deriv_ibp
           (Option Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ)) =>
           α_aux (q_p.2 o).1.1 ⬝ᵥ (q_p.2 o).2 := by
         simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton]
-        exact measurable_const.mul ((measurable_pi_apply ()).comp
-          (measurable_snd.comp ((measurable_pi_apply o).comp measurable_snd)))
+        exact measurable_const.mul ((measurable_pi_apply ()).comp (measurable_snd.comp h_ev))
       exact (measurable_deriv u).comp (ha1.add ha2)
     have hR_o : Measurable fun q_p :
         ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
@@ -2033,59 +2020,77 @@ theorem integral_interpolating_field_deriv_ibp
         (Option Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ)) =>
         ((((N : ℝ) + 1)⁻¹ * ∑ i,
           ((((q_p.2 (some ())).1.1 i : ℤ) : ℝ) * (((q_p.2 none).1.1 i : ℤ) : ℝ))) - q) := by
+      have h_some : Measurable fun q_p :
+          ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
+            ((Fin (N + 1) ⊕ Unit) → ℝ)) ×
+          (Option Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ)) =>
+          (q_p.2 (some ())).1.1 :=
+        measurable_fst.comp (measurable_fst.comp
+          ((measurable_pi_apply (some ())).comp measurable_snd))
+      have h_none : Measurable fun q_p :
+          ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
+            ((Fin (N + 1) ⊕ Unit) → ℝ)) ×
+          (Option Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ)) =>
+          (q_p.2 none).1.1 :=
+        measurable_fst.comp (measurable_fst.comp
+          ((measurable_pi_apply none).comp measurable_snd))
       refine ((Finset.measurable_sum _ fun i _ => ?_).const_mul _).sub_const _
-      exact (measurable_units_cast.comp ((measurable_pi_apply i).comp
-        (measurable_fst.comp ((measurable_pi_apply (some ())).comp measurable_snd)))).mul
-        (measurable_units_cast.comp ((measurable_pi_apply i).comp
-          (measurable_fst.comp ((measurable_pi_apply none).comp measurable_snd))))
-    have hμ_fin : IsFiniteMeasure (μ₀_base.prod γ_aux) := inferInstance
-    exact @measurable_integral_pi_tilted _ _ _ _ (μ₀_base.prod γ_aux) hμ_fin _ _ _ hH_comb_m _
+      exact (measurable_units_cast.comp ((measurable_pi_apply i).comp h_some)).mul
+        (measurable_units_cast.comp ((measurable_pi_apply i).comp h_none))
+    exact measurable_integral_pi_tilted_prod_tilted μ₀_base γ_aux hEm_joint hE₀i_all hV_split_m
       ((hR_o.mul (hfl_o (some ()))).mul (hfl_o none))
   -- Pointwise correspondence `I_L (splitΩ ω) = LHS(ω)` and `I_R (splitΩ ω) = RHS(ω)`!
   have hIL_split (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ)) :
       I_L (splitΩ ω) =
         ∫ x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ),
           S'_fn ω x (Fin.last M) * deriv u (S_fn ω x (Fin.last M)) ∂(μ_s.tilted (E_s ω)) := by
-    have hprob_ω : IsProbabilityMeasure (μ_s.tilted (E_s ω)) :=
+    let ν_ω := μ_s.tilted (E_s ω)
+    have hprob_ω : IsProbabilityMeasure ν_ω :=
       isProbabilityMeasure_tilted_of_ae_le
         (Measurable.of_uncurry_left hEm_joint).aemeasurable
         (ae_of_all _ (interpEnergy_le (fun x => hu.le x) s q r ω))
-    dsimp only [I_L]
-    rw [← htilted_st ω, integral_pi_map_equiv (μ_s.tilted (E_s ω)) e_st]
-    have h_u := (measurePreserving_funUnique (μ_s.tilted (E_s ω)) Unit).integral_comp_of_aestronglyMeasurable
-      (g := fun x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ) =>
-        S'_fn ω x (Fin.last M) * deriv u (S_fn ω x (Fin.last M)))
-      (by
-        have hS_x : Measurable fun x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ) =>
-            S_fn ω x (Fin.last M) := by dsimp only [S_fn]; fun_prop
-        have hS'_x : Measurable fun x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ) =>
-            S'_fn ω x (Fin.last M) := by dsimp only [S'_fn]; fun_prop
-        exact (hS'_x.mul ((measurable_deriv u).comp hS_x)).aestronglyMeasurable)
-    refine (integral_congr_ae (ae_of_all _ fun f_u => ?_)).trans h_u
-    simp only [Finset.univ_unique, Finset.prod_singleton, one_mul]
-    rw [hS_last_eq ω (f_u ()), hS'_last_eq ω (f_u ())]
-    rfl
+    let g_L (x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) : ℝ :=
+      S'_fn ω x (Fin.last M) * deriv u (S_fn ω x (Fin.last M))
+    have hg_Lm : Measurable g_L := by
+      have hS_x : Measurable fun x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ) =>
+          S_fn ω x (Fin.last M) := by dsimp only [S_fn]; fun_prop
+      have hS'_x : Measurable fun x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ) =>
+          S'_fn ω x (Fin.last M) := by dsimp only [S'_fn]; fun_prop
+      exact hS'_x.mul ((measurable_deriv u).comp hS_x)
+    let F_split_L (σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ)) : ℝ :=
+      1 * (W_sh (σ ()).1.1 ⬝ᵥ (splitΩ ω).2 + W_aux (σ ()).1.1 ⬝ᵥ (σ ()).2) *
+        (∏ r_u : Unit,
+          deriv u (α_sh (σ r_u).1.1 ⬝ᵥ (splitΩ ω).2 + α_aux (σ r_u).1.1 ⬝ᵥ (σ r_u).2))
+    have ht1 : I_L (splitΩ ω) =
+        ∫ f_u : Unit → (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ),
+          F_split_L (fun r_u => e_st (f_u r_u)) ∂(Measure.pi fun _ : Unit => ν_ω) := by
+      dsimp only [I_L, F_split_L, ν_ω]
+      rw [← htilted_st ω]
+      exact integral_pi_map_equiv (μ_s.tilted (E_s ω)) e_st F_split_L
+    have ht2 : ∀ f_u : Unit → (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ),
+        F_split_L (fun r_u => e_st (f_u r_u)) = g_L (f_u ()) := fun f_u => by
+      dsimp only [F_split_L, g_L]
+      simp only [Finset.univ_unique, Finset.prod_singleton, one_mul]
+      rw [hS_last_eq ω (f_u ()), hS'_last_eq ω (f_u ())]
+    have h_u := (measurePreserving_funUnique ν_ω Unit).integral_comp_of_aestronglyMeasurable
+      (g := g_L) hg_Lm.aestronglyMeasurable
+    rw [ht1]
+    exact (integral_congr_ae (ae_of_all _ ht2)).trans h_u
   have hIR_split (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ)) :
       I_R (splitΩ ω) =
         ∫ σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ),
           ((((N : ℝ) + 1)⁻¹ * ∑ i, (((σ 0).1 i : ℤ) : ℝ) * (((σ 1).1 i : ℤ) : ℝ)) - q) *
             deriv u (S_fn ω (σ 0) (Fin.last M)) * deriv u (S_fn ω (σ 1) (Fin.last M))
           ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s ω)) := by
-    have hprob_ω : IsProbabilityMeasure (μ_s.tilted (E_s ω)) :=
+    let ν_ω := μ_s.tilted (E_s ω)
+    have hprob_ω : IsProbabilityMeasure ν_ω :=
       isProbabilityMeasure_tilted_of_ae_le
         (Measurable.of_uncurry_left hEm_joint).aemeasurable
         (ae_of_all _ (interpEnergy_le (fun x => hu.le x) s q r ω))
-    dsimp only [I_R]
-    rw [← htilted_st ω, integral_pi_map_equiv (μ_s.tilted (E_s ω)) e_st]
-    have hmp_opt2 : MeasurePreserving
-        ⇑(MeasurableEquiv.piCongrLeft (fun _ : Fin 2 => (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ))
-          e_opt2)
-        (Measure.pi fun _ : Option Unit => μ_s.tilted (E_s ω))
-        (Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s ω)) :=
-      measurePreserving_piCongrLeft _ e_opt2
-    have hG2_m : Measurable fun σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ) =>
-        ((((N : ℝ) + 1)⁻¹ * ∑ i, (((σ 0).1 i : ℤ) : ℝ) * (((σ 1).1 i : ℤ) : ℝ)) - q) *
-          deriv u (S_fn ω (σ 0) (Fin.last M)) * deriv u (S_fn ω (σ 1) (Fin.last M)) := by
+    let G₂ (σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) : ℝ :=
+      ((((N : ℝ) + 1)⁻¹ * ∑ i, (((σ 0).1 i : ℤ) : ℝ) * (((σ 1).1 i : ℤ) : ℝ)) - q) *
+        deriv u (S_fn ω (σ 0) (Fin.last M)) * deriv u (S_fn ω (σ 1) (Fin.last M))
+    have hG2_m : Measurable G₂ := by
       have hS_l (l : Fin 2) : Measurable fun σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ) =>
           S_fn ω (σ l) (Fin.last M) := by dsimp only [S_fn]; fun_prop
       have hR_2 : Measurable fun σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ) =>
@@ -2097,31 +2102,59 @@ theorem integral_interpolating_field_deriv_ibp
             (measurable_fst.comp (measurable_pi_apply 1))))
       exact (hR_2.mul ((measurable_deriv u).comp (hS_l 0))).mul
         ((measurable_deriv u).comp (hS_l 1))
+    let F_split_R (σ : Option Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ)) : ℝ :=
+      ((((N : ℝ) + 1)⁻¹ * ∑ i,
+          (((σ (some ())).1.1 i : ℤ) : ℝ) * (((σ none).1.1 i : ℤ) : ℝ)) - q) *
+        deriv u
+          (α_sh (σ (some ())).1.1 ⬝ᵥ (splitΩ ω).2 + α_aux (σ (some ())).1.1 ⬝ᵥ (σ (some ())).2) *
+        deriv u (α_sh (σ none).1.1 ⬝ᵥ (splitΩ ω).2 + α_aux (σ none).1.1 ⬝ᵥ (σ none).2)
+    have ht1 : I_R (splitΩ ω) =
+        ∫ τ_o : Option Unit → (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ),
+          F_split_R (fun o => e_st (τ_o o)) ∂(Measure.pi fun _ : Option Unit => ν_ω) := by
+      dsimp only [I_R, F_split_R, ν_ω]
+      rw [← htilted_st ω]
+      exact integral_pi_map_equiv (μ_s.tilted (E_s ω)) e_st F_split_R
+    let e_pi := MeasurableEquiv.piCongrLeft
+      (fun _ : Fin 2 => (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) e_opt2
+    have hmp_opt2 : MeasurePreserving ⇑e_pi
+        (Measure.pi fun _ : Option Unit => ν_ω) (Measure.pi fun _ : Fin 2 => ν_ω) :=
+      measurePreserving_piCongrLeft (fun _ : Fin 2 => ν_ω) e_opt2
     have h_opt := hmp_opt2.integral_comp_of_aestronglyMeasurable hG2_m.aestronglyMeasurable
-    refine (integral_congr_ae (ae_of_all _ fun τ_o => ?_)).trans h_opt
-    have h0 : (MeasurableEquiv.piCongrLeft
-        (fun _ : Fin 2 => (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) e_opt2 τ_o) 0 =
-        τ_o (some ()) := by
-      change (Equiv.piCongrLeft _ e_opt2 τ_o) 0 = _
-      rw [Equiv.piCongrLeft_apply]; rfl
-    have h1 : (MeasurableEquiv.piCongrLeft
-        (fun _ : Fin 2 => (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) e_opt2 τ_o) 1 =
-        τ_o none := by
-      change (Equiv.piCongrLeft _ e_opt2 τ_o) 1 = _
-      rw [Equiv.piCongrLeft_apply]; rfl
-    dsimp only [Function.comp_apply]
-    rw [h0, h1, hS_last_eq ω (τ_o (some ())), hS_last_eq ω (τ_o none),
-      he_st_apply (τ_o (some ())), he_st_apply (τ_o none)]
+    have ht2 : ∀ τ_o : Option Unit → (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ),
+        F_split_R (fun o => e_st (τ_o o)) = (G₂ ∘ ⇑e_pi) τ_o := fun τ_o => by
+      have h0 : e_pi τ_o 0 = τ_o (some ()) := by
+        change (Equiv.piCongrLeft (fun _ : Fin 2 => (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ))
+          e_opt2 τ_o) 0 = _
+        rw [Equiv.piCongrLeft_apply]; rfl
+      have h1 : e_pi τ_o 1 = τ_o none := by
+        change (Equiv.piCongrLeft (fun _ : Fin 2 => (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ))
+          e_opt2 τ_o) 1 = _
+        rw [Equiv.piCongrLeft_apply]; rfl
+      dsimp only [F_split_R, G₂, Function.comp_apply]
+      rw [h0, h1, hS_last_eq ω (τ_o (some ())), hS_last_eq ω (τ_o none),
+        he_st_apply (τ_o (some ())), he_st_apply (τ_o none)]
+    rw [ht1]
+    exact (integral_congr_ae (ae_of_all _ ht2)).trans h_opt
   -- Integrability of `I_L` and `I_R` on `P₀.prod γ_sh`!
+  have hVp_m_all (p : (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
+      ((Fin (N + 1) ⊕ Unit) → ℝ)) :
+      Measurable (V_split p) := by
+    have ha1 : Measurable fun y : ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) =>
+        α_sh y.1.1 ⬝ᵥ p.2 :=
+      Finset.measurable_sum _ fun idx _ =>
+        ((measurable_of_finite fun τ => α_sh τ idx).comp
+          (measurable_fst.comp measurable_fst)).mul_const _
+    have ha2 : Measurable fun y : ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) =>
+        α_aux y.1.1 ⬝ᵥ y.2 := by
+      simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton]
+      exact measurable_const.mul ((measurable_pi_apply ()).comp measurable_snd)
+    exact hu.measurable.comp (ha1.add ha2)
   have hIR_int : Integrable I_R (P₀.prod γ_sh) := by
     refine Integrable.of_bound hIR_m.aestronglyMeasurable (2 * |D₁| ^ 2) (ae_of_all _ fun p => ?_)
-    have hprob_p : IsProbabilityMeasure
-        (((μ₀ p.1).prod γ_aux).tilted (fun y => u (α_sh y.1.1 ⬝ᵥ p.2 + α_aux y.1.1 ⬝ᵥ y.2))) := by
-      rw [hν_comb p]
-      exact isProbabilityMeasure_tilted_of_ae_le
-        (Measurable.of_uncurry_left hH_comb_m).aemeasurable
-        (ae_of_all _ fun y => add_le_add (interpEnergy_le (fun x => hu.le x) s q r p.1 y.1)
-          (hu.le _))
+    have hμ₀_p : IsProbabilityMeasure (μ₀ p.1) := isProbabilityMeasure_tilted (hE₀i_all p.1)
+    have hprob_p : IsProbabilityMeasure (((μ₀ p.1).prod γ_aux).tilted (V_split p)) :=
+      isProbabilityMeasure_tilted_of_ae_le (hVp_m_all p).aemeasurable
+        (ae_of_all _ fun _ => hu.le _)
     rw [Real.norm_eq_abs]
     exact abs_integral_le_of_forall_abs_le _ fun σ => by
       rw [abs_mul, abs_mul, sq]
@@ -2239,7 +2272,6 @@ theorem integral_interpolating_field_deriv_ibp
           simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton]
           exact measurable_const.mul ((measurable_pi_apply ()).comp
             (measurable_snd.comp (measurable_pi_apply ())))
-        have hv1 := hVp_m.comp (measurable_pi_apply ())
         have ha1 : Measurable fun σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) =>
             α_sh (σ ()).1.1 ⬝ᵥ p.2 + α_aux (σ ()).1.1 ⬝ᵥ (σ ()).2 := by
           have ha_sh : Measurable fun σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) =>
@@ -2272,7 +2304,7 @@ theorem integral_interpolating_field_deriv_ibp
       exact (measurePreserving_funUnique (((μ₀ p.1).prod γ_aux).tilted V_p)
         Unit).integral_comp_of_aestronglyMeasurable
         ((measurable_pi_apply ()).comp measurable_snd).norm.aestronglyMeasurable
-    -- Domination `∫ y, |y.2 ()| ∂(((μ₀ p.1).prod γ_aux).tilted V_p) ≤ exp(2|B|) * ∫ η, |η ()| ∂γ_aux`!
+    -- Bound `∫ y, |y.2 ()| ∂(((μ₀ p.1).prod γ_aux).tilted V_p)` by `exp(2|B|) * ∫ η, |η ()|`.
     have hdom_y : ∫ y, |y.2 ()| ∂(((μ₀ p.1).prod γ_aux).tilted V_p) ≤
         Real.exp (2 * |B|) * ∫ η : Unit → ℝ, |η ()| ∂γ_aux := by
       have hd0 := integral_pi_tilted_le_exp_mul_of_abs_sub_le (ι := Unit)
@@ -2283,19 +2315,27 @@ theorem integral_interpolating_field_deriv_ibp
         (Y := fun f_u : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) => |(f_u ()).2 ()|)
         (fun _ => abs_nonneg _)
         (by
-          rw [tilted_zero_of_isProbabilityMeasure]
+          rw [MeasureTheory.tilted_zero]
           exact integrable_comp_eval (μ := fun _ : Unit => (μ₀ p.1).prod γ_aux) (i := ()) hη_int)
-      rw [tilted_zero_of_isProbabilityMeasure] at hd0
+      rw [MeasureTheory.tilted_zero] at hd0
       simp only [Fintype.card_unique, Nat.cast_one, mul_one] at hd0
-      have hu1 := (measurePreserving_funUnique (((μ₀ p.1).prod γ_aux).tilted V_p)
-        Unit).integral_comp_of_aestronglyMeasurable
-        (g := fun y : ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) => |y.2 ()|)
-        ((measurable_pi_apply ()).comp measurable_snd).norm.aestronglyMeasurable
-      have hu2 := (measurePreserving_funUnique ((μ₀ p.1).prod γ_aux)
-        Unit).integral_comp_of_aestronglyMeasurable
-        (g := fun y : ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) => |y.2 ()|)
-        ((measurable_pi_apply ()).comp measurable_snd).norm.aestronglyMeasurable
-      rw [hu1, hu2, integral_prod_fun_snd_of_isProbabilityMeasure] at hd0
+      have hu1 : (∫ σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ), |(σ ()).2 ()|
+          ∂(Measure.pi fun _ : Unit => ((μ₀ p.1).prod γ_aux).tilted V_p)) =
+          ∫ y, |y.2 ()| ∂(((μ₀ p.1).prod γ_aux).tilted V_p) :=
+        (measurePreserving_funUnique (((μ₀ p.1).prod γ_aux).tilted V_p)
+          Unit).integral_comp_of_aestronglyMeasurable
+          (g := fun y : ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) => |y.2 ()|)
+          ((measurable_pi_apply ()).comp measurable_snd).norm.aestronglyMeasurable
+      have hu2 : (∫ σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ), |(σ ()).2 ()|
+          ∂(Measure.pi fun _ : Unit => (μ₀ p.1).prod γ_aux)) =
+          ∫ y, |y.2 ()| ∂((μ₀ p.1).prod γ_aux) :=
+        (measurePreserving_funUnique ((μ₀ p.1).prod γ_aux)
+          Unit).integral_comp_of_aestronglyMeasurable
+          (g := fun y : ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) => |y.2 ()|)
+          ((measurable_pi_apply ()).comp measurable_snd).norm.aestronglyMeasurable
+      have h_snd := integral_prod_fun_snd_of_isProbabilityMeasure (μ := μ₀ p.1) (ν := γ_aux)
+        (fun η : Unit → ℝ => |η ()|)
+      rw [hu1, hu2, h_snd] at hd0
       exact hd0
     rw [h2] at h1
     refine h1.trans ?_
@@ -2326,7 +2366,8 @@ theorem integral_interpolating_field_deriv_ibp
 
 /-- **Regrouped derivative formula for the `s`-interpolating pressure (Eq. (2.83)):**
 for `s ∈ (0, 1)`, `q ∈ [0, 1]`, `r ≥ 0`, and `u` satisfying `SmartPathPotential₂`,
-`d/ds p_{N+1, M, s}(u) = -(r / 2)(1 - q) - (1 / 2) ν_s((R_{1,2} - q)((N + 1)⁻¹ ∑ₖ u'(S¹_{k,s}) u'(S²_{k,s}) - r))`. -/
+`d/ds p_{N+1, M, s}(u) = -(r / 2)(1 - q)`
+`- (1 / 2) ν_s((R_{1,2} - q)((N + 1)⁻¹ ∑ₖ u'(S¹_{k,s}) u'(S²_{k,s}) - r))`. -/
 theorem hasDerivAt_interpolating_pressure_regrouped
     {N M : ℕ} {u : ℝ → ℝ} {B D₁ D₂ : ℝ} (hu : SmartPathPotential₂ u B D₁ D₂)
     {q : ℝ} (hq : q ∈ Icc (0 : ℝ) 1) {r : ℝ} (hr0 : 0 ≤ r) {s : ℝ} (hs : s ∈ Ioo (0 : ℝ) 1) :
@@ -2400,7 +2441,8 @@ theorem hasDerivAt_interpolating_pressure_regrouped
     have hS'_b : |S'_fn ω x k| ≤
         (1 / (2 * Real.sqrt s)) *
           ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i : Fin (N + 1), |ω.1.1 k i|) +
-        (1 / (2 * Real.sqrt (1 - s))) * (Real.sqrt q * |ω.1.2 k| + Real.sqrt (1 - q) * |x.2 k|) := by
+        (1 / (2 * Real.sqrt (1 - s))) *
+          (Real.sqrt q * |ω.1.2 k| + Real.sqrt (1 - q) * |x.2 k|) := by
       dsimp only [S'_fn]
       refine (abs_sub _ _).trans (add_le_add ?_ ?_)
       · rw [abs_mul (1 / (2 * Real.sqrt s)), abs_of_nonneg (by positivity),
@@ -2434,10 +2476,12 @@ theorem hasDerivAt_interpolating_pressure_regrouped
           abs_of_nonneg (by positivity)]
         refine mul_le_mul_of_nonneg_left ?_ (by positivity)
         exact (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun i _ => by
-          rw [abs_mul, abs_mul, abs_units_cast_eq_one, one_mul, abs_of_nonneg (Real.sqrt_nonneg _)]))
+          rw [abs_mul, abs_mul, abs_units_cast_eq_one, one_mul,
+            abs_of_nonneg (Real.sqrt_nonneg _)]))
   -- Outer integrability of each constraint piece and external piece!
   have hS'_in_P (k : Fin M) :
-      Integrable (fun ω => ∫ x, S'_fn ω x k * deriv u (S_fn s ω x k) ∂(μ_s.tilted (E_s s ω))) P := by
+      Integrable (fun ω =>
+        ∫ x, S'_fn ω x k * deriv u (S_fn s ω x k) ∂(μ_s.tilted (E_s s ω))) P := by
     let num_k (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) :=
       ∫ x, (S'_fn ω x k * deriv u (S_fn s ω x k)) * Real.exp (E_s s ω x) ∂μ_s
     let den_k (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) :=
@@ -2497,7 +2541,8 @@ theorem hasDerivAt_interpolating_pressure_regrouped
       have hS'_b : |S'_fn ω x k| ≤
           (1 / (2 * Real.sqrt s)) *
             ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i : Fin (N + 1), |ω.1.1 k i|) +
-          (1 / (2 * Real.sqrt (1 - s))) * (Real.sqrt q * |ω.1.2 k| + Real.sqrt (1 - q) * |x.2 k|) := by
+          (1 / (2 * Real.sqrt (1 - s))) *
+            (Real.sqrt q * |ω.1.2 k| + Real.sqrt (1 - q) * |x.2 k|) := by
         dsimp only [S'_fn]
         refine (abs_sub _ _).trans (add_le_add ?_ ?_)
         · rw [abs_mul (1 / (2 * Real.sqrt s)), abs_of_nonneg (by positivity),
@@ -2506,7 +2551,8 @@ theorem hasDerivAt_interpolating_pressure_regrouped
             ((Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun i _ => by
               rw [abs_mul, abs_units_cast_eq_one, mul_one])) (by positivity)) (by positivity)
         · rw [abs_mul (1 / (2 * Real.sqrt (1 - s))), abs_of_nonneg (by positivity)]
-          refine mul_le_mul_of_nonneg_left ((abs_add_le _ _).trans (add_le_add ?_ ?_)) (by positivity)
+          refine mul_le_mul_of_nonneg_left
+            ((abs_add_le _ _).trans (add_le_add ?_ ?_)) (by positivity)
           · rw [abs_mul, abs_of_nonneg (Real.sqrt_nonneg _)]
           · rw [abs_mul, abs_of_nonneg (Real.sqrt_nonneg _)]
       calc |deriv u (S_fn s ω x k)| * |S'_fn ω x k|
@@ -2602,7 +2648,8 @@ theorem hasDerivAt_interpolating_pressure_regrouped
             (c1 * ∫ ξ : Fin M → ℝ, |ξ k| ∂(Measure.pi fun _ => gaussianReal 0 1)) := by ring
   have hext_in_P :
       Integrable (fun ω => ∫ x, (1 / (2 * Real.sqrt (1 - s))) *
-        (∑ i : Fin (N + 1), ((x.1 i : ℤ) : ℝ) * ω.2 i * Real.sqrt r) ∂(μ_s.tilted (E_s s ω))) P := by
+        (∑ i : Fin (N + 1), ((x.1 i : ℤ) : ℝ) * ω.2 i * Real.sqrt r)
+        ∂(μ_s.tilted (E_s s ω))) P := by
     let num_e (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) :=
       ∫ x, ((1 / (2 * Real.sqrt (1 - s))) *
         ∑ i : Fin (N + 1), ((x.1 i : ℤ) : ℝ) * ω.2 i * Real.sqrt r) * Real.exp (E_s s ω x) ∂μ_s
@@ -2631,7 +2678,8 @@ theorem hasDerivAt_interpolating_pressure_regrouped
           ∂(μ_s.tilted (E_s s ω))) = fun ω => num_e ω / den_e ω :=
         funext fun _ => integral_tilted_eq_div _ _
       rw [heq]
-      exact (((hg_e.mul (Real.measurable_exp.comp hEm_joint)).stronglyMeasurable.integral_prod_right'
+      exact (((hg_e.mul
+          (Real.measurable_exp.comp hEm_joint)).stronglyMeasurable.integral_prod_right'
         (ν := μ_s)).measurable).div
         (((Real.measurable_exp.comp hEm_joint).stronglyMeasurable.integral_prod_right'
           (ν := μ_s)).measurable)
@@ -2648,7 +2696,8 @@ theorem hasDerivAt_interpolating_pressure_regrouped
       rw [abs_mul (1 / (2 * Real.sqrt (1 - s))), abs_of_nonneg (by positivity)]
       exact mul_le_mul_of_nonneg_left
         ((Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun i _ => by
-          rw [abs_mul, abs_mul, abs_units_cast_eq_one, one_mul, abs_of_nonneg (Real.sqrt_nonneg _)]))
+          rw [abs_mul, abs_mul, abs_units_cast_eq_one, one_mul,
+            abs_of_nonneg (Real.sqrt_nonneg _)]))
         (by positivity)
   -- Split LHS integral!
   have hlhs_split :
@@ -2704,10 +2753,12 @@ theorem hasDerivAt_interpolating_pressure_regrouped
     ((N : ℝ) + 1)⁻¹ * ∑ i, (((σ 0).1 i : ℤ) : ℝ) * (((σ 1).1 i : ℤ) : ℝ)
   have hR_obs_m : Measurable R_obs := by
     refine (Finset.measurable_sum _ fun i _ => ?_).const_mul _
-    have h0 : Measurable fun σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ) => (((σ 0).1 i : ℤ) : ℝ) :=
+    have h0 : Measurable fun σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ) =>
+        (((σ 0).1 i : ℤ) : ℝ) :=
       measurable_units_cast.comp ((measurable_pi_apply i).comp
         (measurable_fst.comp (measurable_pi_apply 0)))
-    have h1 : Measurable fun σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ) => (((σ 1).1 i : ℤ) : ℝ) :=
+    have h1 : Measurable fun σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ) =>
+        (((σ 1).1 i : ℤ) : ℝ) :=
       measurable_units_cast.comp ((measurable_pi_apply i).comp
         (measurable_fst.comp (measurable_pi_apply 1)))
     exact h0.mul h1
@@ -2745,13 +2796,13 @@ theorem hasDerivAt_interpolating_pressure_regrouped
       exact (hr_p.mul ((measurable_deriv u).comp (hS_l 0))).mul
         ((measurable_deriv u).comp (hS_l 1))
     have hμ_fin : IsFiniteMeasure μ_s := inferInstance
-    have hm : Measurable fun ω => ∫ σ, G_U ω σ ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s s ω)) :=
+    have hm : Measurable fun ω =>
+        ∫ σ, G_U ω σ ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s s ω)) :=
       @measurable_integral_pi_tilted _ _ _ _ μ_s hμ_fin _ _ (E_s s) hEm_joint G_U hG_m
     exact Integrable.of_bound hm.aestronglyMeasurable (2 * |D₁| ^ 2) (ae_of_all _ fun ω => by
       have := hprob_ω ω
       rw [Real.norm_eq_abs]
       exact abs_integral_le_of_forall_abs_le _ fun σ => by
-        dsimp only [G_U]
         rw [abs_mul, abs_mul, sq]
         have hd2 : |R_obs σ - q| ≤ 2 := by
           have h := abs_sub (R_obs σ) q
@@ -2768,7 +2819,8 @@ theorem hasDerivAt_interpolating_pressure_regrouped
     have hμ_fin : IsFiniteMeasure μ_s := inferInstance
     let G_R (_ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
         (σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : ℝ := R_obs σ
-    have hm : Measurable fun ω => ∫ σ, G_R ω σ ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s s ω)) :=
+    have hm : Measurable fun ω =>
+        ∫ σ, G_R ω σ ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s s ω)) :=
       @measurable_integral_pi_tilted _ _ _ _ μ_s hμ_fin _ _ (E_s s) hEm_joint G_R
         (hR_obs_m.comp measurable_snd)
     exact Integrable.of_bound hm.aestronglyMeasurable 1 (ae_of_all _ fun ω => by
@@ -2835,17 +2887,53 @@ theorem hasDerivAt_interpolating_pressure_regrouped
         · congr 1; exact Finset.sum_congr rfl fun _ _ => by ring
         · ring
       simp_rw [h_alg]
-      rw [integral_sub ((integrable_finsetSum _ fun k _ => hUk_int_pt ω k).const_mul _)
-        (((hR_int_pt ω).sub (integrable_const q)).const_mul r),
-        integral_const_mul, integral_finsetSum _ fun k _ => hUk_int_pt ω k,
-        integral_const_mul, integral_sub (hR_int_pt ω) (integrable_const q),
-        integral_const, probReal_univ, one_smul]
+      have h1_int : Integrable (fun σ => ((N : ℝ) + 1)⁻¹ *
+          ∑ k : Fin M, (R_obs σ - q) * deriv u (S_fn s ω (σ 0) k) * deriv u (S_fn s ω (σ 1) k))
+          (Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s s ω)) :=
+        (integrable_finsetSum _ fun k _ => hUk_int_pt ω k).const_mul _
+      have h2_int : Integrable (fun σ => r * (R_obs σ - q))
+          (Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s s ω)) :=
+        ((hR_int_pt ω).sub (integrable_const q)).const_mul r
+      have hsub_pt : (∫ σ, (((N : ℝ) + 1)⁻¹ *
+            ∑ k : Fin M, (R_obs σ - q) * deriv u (S_fn s ω (σ 0) k) * deriv u (S_fn s ω (σ 1) k) -
+          r * (R_obs σ - q)) ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s s ω))) =
+          (∫ σ, ((N : ℝ) + 1)⁻¹ *
+            ∑ k : Fin M, (R_obs σ - q) * deriv u (S_fn s ω (σ 0) k) * deriv u (S_fn s ω (σ 1) k)
+            ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s s ω))) -
+          ∫ σ, r * (R_obs σ - q) ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s s ω)) :=
+        integral_sub h1_int h2_int
+      rw [hsub_pt, integral_const_mul, integral_finsetSum _ fun k _ => hUk_int_pt ω k,
+        integral_const_mul]
+      have hsub_R : (∫ σ, (R_obs σ - q) ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s s ω))) =
+          (∫ σ, R_obs σ ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s s ω))) -
+          ∫ _σ, q ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s s ω)) :=
+        integral_sub (hR_int_pt ω) (integrable_const q)
+      rw [hsub_R, integral_const, probReal_univ, one_smul]
     simp_rw [hpt]
-    rw [integral_sub ((integrable_finsetSum _ fun k _ => hUk_int_P k).const_mul _)
-      ((hR_int_P.sub (integrable_const q)).const_mul r),
-      integral_const_mul, integral_finsetSum _ fun k _ => hUk_int_P k,
-      integral_const_mul, integral_sub hR_int_P (integrable_const q),
-      integral_const, probReal_univ, one_smul]
+    have h1_P : Integrable (fun ω => ((N : ℝ) + 1)⁻¹ *
+        ∑ k : Fin M, ∫ σ, (R_obs σ - q) * deriv u (S_fn s ω (σ 0) k) * deriv u (S_fn s ω (σ 1) k)
+          ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s s ω))) P :=
+      (integrable_finsetSum _ fun k _ => hUk_int_P k).const_mul _
+    have h2_P : Integrable (fun ω => r *
+        ((∫ σ, R_obs σ ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s s ω))) - q)) P :=
+      (hR_int_P.sub (integrable_const q)).const_mul r
+    have hsub_P : (∫ ω, (((N : ℝ) + 1)⁻¹ *
+          (∑ k : Fin M, ∫ σ, (R_obs σ - q) * deriv u (S_fn s ω (σ 0) k) *
+            deriv u (S_fn s ω (σ 1) k) ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s s ω))) -
+        r * ((∫ σ, R_obs σ ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s s ω))) - q)) ∂P) =
+        (∫ ω, ((N : ℝ) + 1)⁻¹ *
+          (∑ k : Fin M, ∫ σ, (R_obs σ - q) * deriv u (S_fn s ω (σ 0) k) *
+            deriv u (S_fn s ω (σ 1) k) ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s s ω))) ∂P) -
+        ∫ ω, r * ((∫ σ, R_obs σ ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s s ω))) - q) ∂P :=
+      integral_sub h1_P h2_P
+    rw [hsub_P, integral_const_mul, integral_finsetSum _ fun k _ => hUk_int_P k,
+      integral_const_mul]
+    have hsub_RP : (∫ ω,
+        ((∫ σ, R_obs σ ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s s ω))) - q) ∂P) =
+        (∫ ω, (∫ σ, R_obs σ ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s s ω))) ∂P) -
+        ∫ _ω, q ∂P :=
+      integral_sub hR_int_P (integrable_const q)
+    rw [hsub_RP, integral_const, probReal_univ, one_smul]
   dsimp only [R_obs] at hrhs_expand
   refine hlhs_ibp.trans ?_
   rw [hrhs_expand, ← Finset.mul_sum]

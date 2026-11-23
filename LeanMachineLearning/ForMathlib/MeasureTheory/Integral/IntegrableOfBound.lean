@@ -46,6 +46,21 @@ theorem integrable_integral_of_bound {Ω α E : Type*} [MeasurableSpace Ω] [Mea
     ((integral_mono_of_nonneg (ae_of_all _ fun x => norm_nonneg (f x))
       (integrable_const C) (ae_of_all _ hC)).trans (by simp))
 
+/-- A finite sum of functions depending on both the outer and inner variables can be moved
+through an inner integral against a measure depending on the outer variable, then through the
+outer integral. Only integrability of the summands is needed. -/
+theorem integral_integral_finset_sum_dep {Ω α ι : Type*} [MeasurableSpace Ω] [MeasurableSpace α]
+    (P : Measure Ω) (κ : Ω → Measure α) (s : Finset ι) (f : ι → Ω → α → ℝ)
+    (hinner : ∀ i ∈ s, ∀ ω, Integrable (f i ω) (κ ω))
+    (houter : ∀ i ∈ s, Integrable (fun ω => ∫ x, f i ω x ∂κ ω) P) :
+    ∫ ω, ∫ x, ∑ i ∈ s, f i ω x ∂κ ω ∂P =
+      ∑ i ∈ s, ∫ ω, ∫ x, f i ω x ∂κ ω ∂P := by
+  have h (ω : Ω) : ∫ x, ∑ i ∈ s, f i ω x ∂κ ω =
+      ∑ i ∈ s, ∫ x, f i ω x ∂κ ω :=
+    integral_finsetSum s fun i hi => hinner i hi ω
+  simp_rw [h]
+  exact integral_finsetSum s houter
+
 /-- A finite sum can be moved through an inner integral against a measure that depends on the
 outer variable, then through the outer integral. Only integrability of the summands is needed. -/
 theorem integral_integral_finset_sum {Ω α ι : Type*} [MeasurableSpace Ω] [MeasurableSpace α]
@@ -53,12 +68,8 @@ theorem integral_integral_finset_sum {Ω α ι : Type*} [MeasurableSpace Ω] [Me
     (hinner : ∀ i ∈ s, ∀ ω, Integrable (f i) (κ ω))
     (houter : ∀ i ∈ s, Integrable (fun ω => ∫ x, f i x ∂κ ω) P) :
     ∫ ω, ∫ x, ∑ i ∈ s, f i x ∂κ ω ∂P =
-      ∑ i ∈ s, ∫ ω, ∫ x, f i x ∂κ ω ∂P := by
-  have h (ω : Ω) : ∫ x, ∑ i ∈ s, f i x ∂κ ω =
-      ∑ i ∈ s, ∫ x, f i x ∂κ ω :=
-    integral_finsetSum s fun i hi => hinner i hi ω
-  simp_rw [h]
-  exact integral_finsetSum s houter
+      ∑ i ∈ s, ∫ ω, ∫ x, f i x ∂κ ω ∂P :=
+  integral_integral_finset_sum_dep P κ s (fun i _ x => f i x) hinner houter
 
 /-- A finite sum with scalar coefficients can be moved through an inner integral against a
 measure depending on the outer variable, then through the outer integral. -/
