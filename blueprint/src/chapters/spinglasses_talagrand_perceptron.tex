@@ -2347,11 +2347,257 @@ so the existing finite-state marginalization (\texttt{integral\_pi\_tilted\_coun
 Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavitySpinOnly.lean}.
 \end{proof}
 
+\subsection{Integration by parts over the whole Gibbs family (Lemma 2.3.2, model-free form)}\label{sub:sg-tal:perceptron-model-free-ibp}
+
+The proof of Lemma~2.3.2 in the book computes $\frac{d}{dv}\nu_{t,v}(B_vf)$ by one long Gaussian integration by parts (2.52)--(2.58) in a family
+that contains the coupling vector, the quenched variable $z$ and the auxiliary variables of every replica, and then bounds the result by H\"older's inequality (2.40).
+The Lean formalization isolates the analytical content in a \emph{model-free} setting in which none of the cavity notation appears, so that the same engine also serves
+Exercise~2.3.3 and the later chapters.
+
+\begin{remark}[The model-free setting and its dictionary with the cavity]\label{rem:sg-tal:perceptron-model-free-setting}
+The setting consists of the following data.
+\begin{itemize}
+\item An \emph{old-state space} $\alpha$ with a probability law $\mu_0$ (the old Gibbs law of the cavity, which already contains the old disorder and the old auxiliary coordinates $\xi_k$, $k<M$,
+and is held fixed) and a measurable \emph{spin label} $\pi:\alpha\to L$ onto a finite set $L$; the book's spin $\boldsymbol\sigma$ is $\pi(a)$.
+\item A \emph{shared} standard Gaussian vector $w\in\mathbb R^{K_{\mathrm{sh}}}$ (in the cavity: the couplings $g_{i,M}$ and the quenched variable $z$, common to all replicas) and a \emph{per-replica}
+standard Gaussian vector $\eta\in\mathbb R^{K_{\mathrm{aux}}}$ (in the cavity: $(\xi_M^\ell,\xi^\ell)$).
+\item Two label-dependent coefficient families $X,Y$, each with a shared and an auxiliary part, and for an angle $s$ the \emph{rotated field}
+\[
+ S_s(w,(a,\eta))=\cos s\,\bigl(X_{\mathrm{sh}}(\pi a)\cdot w+X_{\mathrm{aux}}(\pi a)\cdot\eta\bigr)+\sin s\,\bigl(Y_{\mathrm{sh}}(\pi a)\cdot w+Y_{\mathrm{aux}}(\pi a)\cdot\eta\bigr)
+\]
+(in the cavity: $X=S_{M,t}$ with the shared coefficients $\mathrm{cavityCoef}$ and the auxiliary coefficient $\sqrt{(1-t)/(N+1)}$, and $Y=\theta=\sqrt q\,z+\sqrt{1-q}\,\xi$).
+\item A potential $u$ and, for $R$ replicas, the Gibbs law $\bigl((\mu_0\otimes\gamma_{\mathrm{aux}}).\mathrm{tilted}(u\circ S_s(w,\cdot))\bigr)^{\otimes R}$ at fixed $w$; the quenched average integrates over $w$ \emph{outside} the Gibbs average.
+\end{itemize}
+Two relations of the book are the hypotheses on $X,Y$: the \emph{orthogonality} $X_{\mathrm{sh}}(m)\cdot Y_{\mathrm{sh}}(m')=0=X_{\mathrm{aux}}(m)\cdot Y_{\mathrm{aux}}(m')$
+(the coupling part of $S_{M,t}$ is independent of $\theta$) and the \emph{equal variance} $|X(m)|^2=|Y(m)|^2$ (both fields have variance~$1$, the first relation of (2.50)).
+The shared part of the covariance is $C(m,m')=Y_{\mathrm{sh}}(m)\cdot Y_{\mathrm{sh}}(m')-X_{\mathrm{sh}}(m)\cdot X_{\mathrm{sh}}(m')$, which in the cavity is $q-R^t(\boldsymbol\sigma,\boldsymbol\tau)$ up to the term $1/(N+1)$
+absorbed in (2.40).
+The book's (2.50)--(2.51) say precisely that the covariance of the angular derivative $z'$ with the fields of two \emph{different} replicas is $\tfrac12(R^t-q)$.
+The instantiation of this dictionary in the cavity (the assembly of (2.40)) is \emph{not yet formalized}.
+
+Three differences with the book are deliberate. (i)~The observable $f$ is a function of the old state only and is assumed merely $L^1$ for the product law, not bounded
+(a bounded $f$ is a special case); the bounds below carry $\int|f|$. (ii)~The hypothesis (2.7) is used as $|u|\le B$, $|u'|\le D_1$, $|u''|\le D_2$ with $u'$ differentiable; no continuity of $u'''$ and no bound on $u'''$ enters.
+(iii)~Neither the replicas nor the labels are assumed to be exchangeable.
+\end{remark}
+
+\begin{lemma}[Fubini reduction of a quenched tilted replica average to fixed spin labels]\label{lem:sg-tal:perceptron-tilted-fubini}
+  \lean{SpinGlasses.integral_tilted_replica_fubini}
+  \leanok
+  \uses{rem:sg-tal:perceptron-model-free-setting}
+\talsource{The rewriting of $\mathrm E_0\langle\cdot\rangle$ as $\mathrm E_0\,C/Z^n$ before Eq.~(2.52)}
+In the model-free setting let $|u|\le B$, let $F$ be $L^1$ on $\alpha^\iota$ (for $\mu_0^{\otimes\iota}$) and let $H(w,\sigma)$ be such that $H\cdot\exp\bigl(\sum_ru(S(\sigma_r))\bigr)=K(\pi\circ\sigma,w,\eta)$ depends on the replicas only through
+their labels and auxiliary coordinates, with $|K|\le b_w(w)+b_\eta(\eta)$, $b_w,b_\eta$ integrable. Put
+$Z(w)=\sum_{m\in L}\mu_0(\pi=m)\int e^{u(\alpha_{\mathrm{sh}}(m)\cdot w+\alpha_{\mathrm{aux}}(m)\cdot\eta)}\,d\gamma_{\mathrm{aux}}(\eta)$. Then
+\[
+ \int\!\!\int F(\sigma_{\cdot,1})\,H(w,\sigma)\,d\bigl(\mu_0\otimes\gamma_{\mathrm{aux}}\bigr)_{u,w}^{\otimes\iota}\,d\gamma_{\mathrm{sh}}(w)
+ =\int F(a)\int\frac{\int K(\pi\circ a,w,\eta)\,d\gamma_{\mathrm{aux}}^{\otimes\iota}(\eta)}{Z(w)^{|\iota|}}\,d\gamma_{\mathrm{sh}}(w)\,d\mu_0^{\otimes\iota}(a).
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+The tilted law has density $e^{u(S(q))}/\int e^{u(S)}\,d(\mu_0\otimes\gamma_{\mathrm{aux}})$ with respect to $\mu_0\otimes\gamma_{\mathrm{aux}}$, and the normalizer is the same for every replica,
+so the $\iota$-fold product contributes the common factor $Z(w)^{-|\iota|}$; the normalizer equals the displayed $Z(w)$ because the integrand depends on $a$ only through $\pi a$
+(\texttt{integral\_Z\_eq\_sum\_fiber}: push $\mu_0$ forward by $\pi$ and use that $L$ is finite). Because $|u|\le B$ we have $Z(w)\ge e^{-B}$ (\texttt{exp\_neg\_le\_sum\_mul\_integral\_exp}),
+hence the quotient is dominated by $e^{|\iota|B}(b_w+b_\eta)$, which is integrable, and Fubini's theorem exchanges the integrals over $(w,\eta)$ with the integral over the old states.
+The measurability needed for Fubini holds because $L$ is finite (a function of a finite label is measurable for every $\sigma$-algebra) and $(a,\eta)\mapsto K$ is jointly measurable in $(w,\eta)$ for each label.
+Formalized in \texttt{SpinGlasses/Gaussian/GaussianTiltedSteinRatio.lean}.
+\end{proof}
+
+\begin{theorem}[Gaussian integration by parts for a tilted replica average, the term created by the denominator]\label{thm:sg-tal:perceptron-tilted-stein}
+  \lean{SpinGlasses.stein_tilted_replica_ratio}
+  \leanok
+  \uses{lem:sg-tal:perceptron-tilted-fubini, lem:sg-tal:perceptron-stein-ratio}
+\talsource{The integration by parts (2.52), including the term created by the denominator, (2.54)}
+In the model-free setting at a fixed field $S(w,q)=\alpha_{\mathrm{sh}}(\pi q_1)\cdot w+\alpha_{\mathrm{aux}}(\pi q_1)\cdot q_2$ and a multiplier $W_t(w,q)=W_{\mathrm{sh}}(\pi q_1)\cdot w+W_{\mathrm{aux}}(\pi q_1)\cdot q_2$, let
+$u$ be differentiable with $|u|\le B$, $|u'|\le D_1$, and let $\psi_r$ ($r\in R$) satisfy that $\psi_r e^{u}$ is differentiable with
+$\bigl(\psi_re^{u}\bigr)'=\psi'_r e^{u}$, $|\psi_r|\le M_0$ and $|(\psi_re^u)'|\le M'$ (no continuity of $\psi'_r$). For $f\in L^1(\mu_0^{\otimes R})$ and $i_0\in R$,
+\begin{multline*}
+ \Bigl\langle f\,W_t(\sigma_{i_0})\prod_{r}\psi_r(S(\sigma_r))\Bigr\rangle_R
+ =\sum_{j\in R}\Bigl\langle f\,\bigl(W_{\mathrm{sh}}(\sigma_{i_0})\cdot\alpha_{\mathrm{sh}}(\sigma_j)+\delta_{i_0j}\,W_{\mathrm{aux}}(\sigma_{i_0})\cdot\alpha_{\mathrm{aux}}(\sigma_j)\bigr)\,\psi'_j(S(\sigma_j))\prod_{r\ne j}\psi_r(S(\sigma_r))\Bigr\rangle_R\\
+ -|R|\,\Bigl\langle f\,\bigl(W_{\mathrm{sh}}(\sigma_{i_0})\cdot\alpha_{\mathrm{sh}}(\sigma_*)\bigr)\prod_{r}\psi_r(S(\sigma_r))\,u'(S(\sigma_*))\Bigr\rangle_{R\cup\{*\}},
+\end{multline*}
+where $\langle\cdot\rangle_R=\int\!\int\cdot\,d(\mu_0\otimes\gamma_{\mathrm{aux}})_{u,w}^{\otimes R}\,d\gamma_{\mathrm{sh}}(w)$ and $\langle\cdot\rangle_{R\cup\{*\}}$ is the same with one extra fresh replica $\sigma_*$.
+\end{theorem}
+\begin{proof}
+  \leanok
+By Lemma~\ref{lem:sg-tal:perceptron-tilted-fubini} the left side is $\mathrm E_{a}f(a)\,\mathrm E_w\bigl[(\int_\eta (W_{\mathrm{sh}}\cdot w+W_{\mathrm{aux}}\cdot\eta_{i_0})\prod_r G_r(w,\eta_r))/Z(w)^{|R|}\bigr]$ with $G_r=\psi_re^{u\circ S}$.
+For fixed labels this is a Gaussian expectation of $W_{\mathrm{sh}}\cdot w$ times a function of $(F(w),Z(w))$, handled by Lemma~\ref{lem:sg-tal:perceptron-stein-ratio} (the combined family is $w$ itself, so $X=Y=w$) and a one-dimensional integration by parts in
+$\eta_{i_0}$ for $W_{\mathrm{aux}}\cdot\eta_{i_0}$ (\texttt{stein\_ratio\_fixed\_spins}). The numerator derivative produces $W_{\mathrm{sh}}\cdot\alpha_{\mathrm{sh}}(\sigma_j)\,\psi'_j$ for each replica $j$ (because $\partial_w e^{u(S)}\psi_j=\alpha_{\mathrm{sh}}(\sigma_j)\,(\psi_je^{u})'$), and
+the $\eta_{i_0}$-integration by parts produces the auxiliary term for $j=i_0$ only: the auxiliary vectors of different replicas are independent.
+The normalizer contributes $-|R|\,\mathrm E[\,\cdot\,\partial_wZ/Z^{|R|+1}]$ with $\partial_{w}Z=\sum_m\mu_0(\pi=m)\int\alpha_{\mathrm{sh}}(m)\,u'(S)e^{u(S)}\,d\gamma_{\mathrm{aux}}$ (differentiating under the integral because $|u'|\le D_1$ and $|u|\le B$; \texttt{hasFDerivAt\_Z\_sum}). Reading $\partial_wZ\cdot Z^{-|R|-1}$ backwards through Lemma~\ref{lem:sg-tal:perceptron-tilted-fubini} with one more replica identifies it with the $(|R|+1)$-replica average carrying the factor $u'(S(\sigma_*))$: this is exactly the passage from (2.54) to the last display of the book, ``changing the name of $\boldsymbol\tau$ into $\boldsymbol\sigma^{n+1}$''.
+The bound on $\psi'_j$, $|\partial_w(G_r)|\le M'|\alpha_{\mathrm{sh}}|$, makes every derivative uniformly bounded in $w$ by a polynomial in $|w|$, so the Gaussian integration by parts applies. Formalized in \texttt{SpinGlasses/Gaussian/GaussianTiltedSteinRatio.lean}.
+\end{proof}
+
+\begin{theorem}[Derivative of a quenched tilted replica average along a Gaussian rotation]\label{thm:sg-tal:perceptron-tilted-rotation}
+  \lean{SpinGlasses.hasDerivAt_integral_gaussian_tilted_rotation}
+  \leanok
+  \uses{rem:sg-tal:perceptron-model-free-setting, thm:sg-tal:perceptron-tilted-stein}
+\talsource{The derivative (2.42)--(2.44) of $\nu_{t,v}(B_vf)$, written for the angle $s$}
+In the model-free setting let $|u|\le B$, $|u'|\le D_1$, $\psi_r$ differentiable with $|\psi_r|\le M_0$, $|\psi_r'|\le M_1$ and $f\in L^1(\mu_0^{\otimes R})$. Let
+$S'_s=-\sin s\,(X\cdot(w,\eta))+\cos s\,(Y\cdot(w,\eta))$ be the $s$-derivative of $S_s$. Then
+$s\mapsto\bigl\langle f\prod_r\psi_r(S_s(\sigma_r))\bigr\rangle_{R,s}$ is differentiable at every $s_0$ with derivative
+\[
+ \sum_{i\in R}\Bigl\langle f\,S'_{s_0}(\sigma_i)\bigl(\psi_i'+\psi_iu'\bigr)(S_{s_0}(\sigma_i))\prod_{r\ne i}\psi_r(S_{s_0}(\sigma_r))\Bigr\rangle_{R,s_0}
+ -|R|\Bigl\langle f\,S'_{s_0}(\sigma_*)\,u'(S_{s_0}(\sigma_*))\prod_r\psi_r(S_{s_0}(\sigma_r))\Bigr\rangle_{R\cup\{*\},s_0}.
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+This is the covariance form of the derivative of a Gibbs average under a moving energy, with the fresh replica $\sigma_*$ standing for the derivative of the normalizer, as in Proposition~\ref{prop:sg-tal:perceptron-cavity-pathwise-derivative}
+but now with the exact quenched structure. After Lemma~\ref{lem:sg-tal:perceptron-tilted-fubini} the quantity is $\mathrm E_a f(a)\,\mathrm E_w\bigl[N_s(w)/Z_s(w)^{|R|}\bigr]$ at fixed labels, where both the numerator $N_s$ and the normalizer $Z_s$ are Gaussian integrals of functions smooth in $s$.
+The quotient rule gives the stated derivative at fixed $(a,w)$ (\texttt{hasDerivAt\_ratio\_fixed\_spins\_w}); the derivative is integrated in $w$ (\texttt{hasDerivAt\_integral\_w\_ratio\_fixed\_spins}) by dominated differentiation, the dominating function being
+a polynomial in $|w|,|\eta|$ times $e^{|R|B}$, uniform in $s$ because $|S'_s|\le|X|+|Y|$ and $Z_s\ge e^{-B}$; finally Fubini over the old state uses only $f\in L^1$.
+Formalized in \texttt{SpinGlasses/Gaussian/GaussianTiltedSteinRatio.lean}.
+\end{proof}
+
+\begin{theorem}[The four-group covariance formula, relations (2.50)--(2.58)]\label{thm:sg-tal:perceptron-tilted-rotation-ibp}
+  \lean{SpinGlasses.hasDerivAt_integral_gaussian_tilted_rotation_ibp,
+        SpinGlasses.measurable_rotation_field}
+  \leanok
+  \uses{thm:sg-tal:perceptron-tilted-rotation, thm:sg-tal:perceptron-tilted-stein}
+\talsource{Eqs.~(2.50)--(2.58): the computation of the derivative of $\nu_{t,v}(B_vf)$ by integration by parts}
+In the model-free setting assume in addition the orthogonality and equal-variance relations of Remark~\ref{rem:sg-tal:perceptron-model-free-setting}, $u'$ differentiable with $|u''|\le D_2$ and $\psi_r'$ differentiable with $|\psi_r''|\le M_2$. Put $\psi_{d,r}=\psi_r'+\psi_ru'$.
+Then the derivative at $s_0$ of the quenched average of Theorem~\ref{thm:sg-tal:perceptron-tilted-rotation} is
+\begin{align*}
+ \sin s_0\cos s_0\Bigl(&\sum_{i\ne j}\Bigl\langle f\,C(\sigma_i,\sigma_j)\,\psi_{d,i}(S(\sigma_i))\,\psi_{d,j}(S(\sigma_j))\prod_{r\ne i,j}\psi_r(S(\sigma_r))\Bigr\rangle_{R}\\
+ &-|R|\sum_{i}\Bigl\langle f\,C(\sigma_i,\sigma_*)\,\psi_{d,i}(S(\sigma_i))\prod_{r\ne i}\psi_r(S(\sigma_r))\,u'(S(\sigma_*))\Bigr\rangle_{R\cup\{*\}}\\
+ &-|R|\sum_{j}\Bigl\langle f\,C(\sigma_*,\sigma_j)\,\psi_{d,j}(S(\sigma_j))\prod_{r\ne j}\psi_r(S(\sigma_r))\,u'(S(\sigma_*))\Bigr\rangle_{R\cup\{*\}}\\
+ &+|R|(|R|+1)\Bigl\langle f\,C(\sigma_*,\sigma_{**})\prod_r\psi_r(S(\sigma_r))\,u'(S(\sigma_*))\,u'(S(\sigma_{**}))\Bigr\rangle_{R\cup\{*,**\}}\Bigr).
+\end{align*}
+In particular no term involves two factors with the \emph{same} replica: the same-replica covariance vanishes identically.
+\end{theorem}
+\begin{proof}
+  \leanok
+Start from Theorem~\ref{thm:sg-tal:perceptron-tilted-rotation}; each term has the form $\langle f\,S'_{s_0}(\sigma_i)\,\Phi\rangle$ with $S'_{s_0}=W_{\mathrm{sh}}\cdot w+W_{\mathrm{aux}}\cdot\eta$, $W=-\sin s_0X+\cos s_0Y$. Apply Theorem~\ref{thm:sg-tal:perceptron-tilted-stein} with
+$\alpha=\cos s_0X+\sin s_0Y$. It remains to compute the covariances of the multiplier with the field. By orthogonality,
+\[
+ W_{\mathrm{sh}}(m)\cdot\alpha_{\mathrm{sh}}(m')=\sin s_0\cos s_0\,\bigl(Y_{\mathrm{sh}}(m)\cdot Y_{\mathrm{sh}}(m')-X_{\mathrm{sh}}(m)\cdot X_{\mathrm{sh}}(m')\bigr)=\sin s_0\cos s_0\,C(m,m'),
+\]
+the cross terms $\cos^2s_0\,Y\cdot X$ and $-\sin^2s_0\,X\cdot Y$ vanishing. The auxiliary term appears only for the same replica and equals $\sin s_0\cos s_0\,(|Y_{\mathrm{aux}}|^2-|X_{\mathrm{aux}}|^2)$, so that for the same replica the total covariance is $\sin s_0\cos s_0\,(|Y|^2-|X|^2)=0$ by the equal-variance relation (this is the relation $\mathrm E\,z'^{\ell}_{\boldsymbol\sigma}z^{\ell}_{\boldsymbol\sigma}=0$ of (2.50)); this kills the diagonal terms $i=j$ in the first group of terms and leaves the displayed sums over pairs $i\ne j$.
+The term created by the denominator in Theorem~\ref{thm:sg-tal:perceptron-tilted-stein} (the $(|R|+1)$-replica term with $u'(\sigma_*)$) is then differentiated once more in the same way, its multiplier being $S'(\sigma_*)$, which produces the second and third groups and, after Theorem~\ref{thm:sg-tal:perceptron-tilted-stein} is applied a second time to the $(|R|+1)$-replica term, the last group with two fresh replicas and the factor $|R|(|R|+1)$.
+No continuity of $u''$ or $\psi_r''$ is needed because differentiability and boundedness suffice for the Gaussian integration by parts of Lemma~\ref{lem:sg-tal:perceptron-stein-ratio}. This is the book's ``magic formula'' of the proof of Lemma~2.3.2: the terms (2.53), each a replica average of $f\,(R^t_{\ell\ell'}-q)\,A$ with $A$ a monomial in $u',u'',u'''$, are the four groups above, and they are the pairs and the fresh-replica sums of the expansion of $\langle f\Theta\rangle$ of Lemma~\ref{lem:sg-tal:perceptron-theta-replicas}.
+Formalized in \texttt{SpinGlasses/Gaussian/GaussianTiltedSteinRatio.lean}; the measurability of the rotated field in the old state and the auxiliary coordinates is \texttt{measurable\_rotation\_field} (\texttt{SpinGlasses/Gaussian/GaussianTiltedRotationBound.lean}).
+\end{proof}
+
+\begin{lemma}[Tilted replica average of an $L^1$ observable]\label{lem:sg-tal:perceptron-tilted-l1-bound}
+  \lean{SpinGlasses.abs_integral_pi_tilted_prod_fst_mul_le}
+  \leanok
+  \uses{rem:sg-tal:perceptron-model-free-setting}
+\talsource{The reduction of $\nu_{t,v}(f\,A)$, $|A|$ bounded, to $\nu(|f|)$ in the proof of Lemma~2.3.2}
+Let $V$ be measurable on $\alpha\times\beta$ with $|V|\le B$, $e:R\to\iota$ injective, $f\in L^1(\mu_0^{\otimes R})$ and $|H|\le M_H$. Then
+\[
+ \Bigl|\int f(\sigma_{e(\cdot),1})\,H(\sigma)\,d\bigl((\mu_0\otimes\gamma).\mathrm{tilted}\,V\bigr)^{\otimes\iota}\Bigr|\le M_H\,e^{2|\iota|B}\int|f|\,d\mu_0^{\otimes R}.
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+Take absolute values and bound $|H|\le M_H$. The tilted law with $|V|\le B$ has density between $e^{-2B}$ and $e^{2B}$ with respect to $\mu_0\otimes\gamma$, so the product over $\iota$ replicas changes the integral of a nonnegative function by at most $e^{2|\iota|B}$
+(\texttt{MeasureTheory.integral\_pi\_tilted\_le\_exp\_mul\_of\_abs\_sub\_le}, the comparison (2.61)). The integral of $|f(\sigma_{e(\cdot),1})|$ under the untilted product measure is $\int|f|\,d\mu_0^{\otimes R}$ by measure preservation of an injective restriction of a product
+(\texttt{measurePreserving\_pi\_comp\_injective}) and of the regrouping $(\alpha\times\beta)^\iota\simeq\alpha^\iota\times\beta^\iota$ (\texttt{measurePreserving\_arrowProdEquivProdArrow}); the factors of $\gamma$ integrate to one.
+Formalized in \texttt{SpinGlasses/Gaussian/GaussianTiltedRotationBound.lean}.
+\end{proof}
+
+\begin{theorem}[Averaging the four-group formula over a random old system]\label{thm:sg-tal:perceptron-tilted-rotation-ibp-avg}
+  \lean{SpinGlasses.hasDerivAt_integral_integral_gaussian_tilted_rotation_ibp}
+  \leanok
+  \uses{thm:sg-tal:perceptron-tilted-rotation-ibp, lem:sg-tal:perceptron-tilted-l1-bound}
+\talsource{The averaging over the old disorder $\omega$ (the randomness other than $g_{i,M},\xi_M^\ell,z,\xi^\ell$) in the proof of Lemma~2.3.2}
+Let $(\Omega_0,P_0)$ be a probability space and $\omega_0\mapsto\mu_0(\omega_0)$ a family of old-state laws (the old disorder indexes the old Gibbs law), with a common finite label map $\pi$, and let $f(\omega_0,\cdot)$ be an observable such that
+$\omega_0\mapsto\int|f(\omega_0,a)|\,d\mu_0(\omega_0)^{\otimes R}(a)$ is $P_0$-integrable and the quenched expectation is measurable in $\omega_0$ at each angle. Under the hypotheses of Theorem~\ref{thm:sg-tal:perceptron-tilted-rotation-ibp} (uniform in $\omega_0$),
+$s\mapsto\int\langle f(\omega_0)\prod_r\psi_r(S_s(\sigma_r))\rangle_{R,s}\,dP_0(\omega_0)$ is differentiable at $s_0$ and its derivative is the integral over $\omega_0$ of the four-group formula.
+\end{theorem}
+\begin{proof}
+  \leanok
+Each of the four groups is a finite sum of replica averages of $f$ times a bounded factor, because $C$ is bounded (finitely many labels), $|\psi_{d,i}|\le M_1+M_0D_1$ and $|u'|\le D_1$. By Lemma~\ref{lem:sg-tal:perceptron-tilted-l1-bound}, the $\omega_0$-derivative is dominated by
+$K_{\mathrm{dom}}\int|f(\omega_0,a)|\,d\mu_0(\omega_0)^{\otimes R}$ with $K_{\mathrm{dom}}$ independent of $\omega_0$ and $s$ (the factor $|\sin s\cos s|\le1$ is absorbed); that function is $P_0$-integrable by hypothesis. Differentiation under $\int dP_0$ is the classical dominated-differentiation theorem; no pointwise bound on $f$ is used, which is
+what allows $f$ to depend on the old disorder through an unbounded Gibbs observable. The measurability of the pointwise derivative in $\omega_0$ is obtained from that of the quenched expectation at each angle (\texttt{aestronglyMeasurable\_of\_hasDerivAt\_param}).
+Formalized in \texttt{SpinGlasses/Gaussian/GaussianTiltedRotationBound.lean}.
+\end{proof}
+
+\begin{theorem}[H\"older bounds for replica pair averages of a random Gibbs law]\label{thm:sg-tal:perceptron-pair-holder}
+  \lean{SpinGlasses.integral_integral_pair_holder_prob,
+        SpinGlasses.integral_integral_pair_holder_one_top,
+        SpinGlasses.integral_integral_pair_holder_top_one,
+        SpinGlasses.memLp_rpow_inv_of_integrable}
+  \leanok
+\talsource{The H\"older step of Lemma~2.3.2, which yields (2.40) for $1/\tau_1+1/\tau_2=1$, including $(\tau_1,\tau_2)=(1,\infty)$ and $(\infty,1)$ used in Lemma~2.3.4}
+Let $(\Omega,P)$ be a probability space, $\nu(\omega)$ a probability law on a state space $\alpha$ (in the cavity: the old Gibbs law for the old disorder $\omega$ together with the auxiliary coordinates), $e:R\to\iota$ injective, $r_1\ne r_2\in\iota$,
+$f(\omega)$ an observable of the $R$ replicas, and $d\ge0$ a measurable bounded kernel on $\alpha\times\alpha$ (in the cavity $d=|R^t_{12}-q|$). Then
+\[
+ \mathbb E\int|f(\omega)(\sigma\circ e)|\,d(\sigma_{r_1},\sigma_{r_2})\,d\nu(\omega)^{\otimes\iota}\le\Bigl(\mathbb E\!\int|f|^p\Bigr)^{1/p}\Bigl(\mathbb E\!\int d(\tau_0,\tau_1)^q\,d\nu(\omega)^{\otimes2}\Bigr)^{1/q}
+\]
+for conjugate exponents $\tfrac1p+\tfrac1q=1$ with $1<p<\infty$ and finite moments, and the two endpoint versions
+$\le\mathbb E\int|f|\cdot\|d\|_\infty$ and $\le\|f\|_\infty\,\mathbb E\int d(\tau_0,\tau_1)\,d\nu(\omega)^{\otimes2}$, where $\|\cdot\|_\infty$ is an a.e.\ bound.
+\end{theorem}
+\begin{proof}
+  \leanok
+Work on the full $\iota$-replica space $(\alpha^\iota,\nu(\omega)^{\otimes\iota})$. There the functions $\sigma\mapsto|f(\omega)(\sigma\circ e)|$ and $\sigma\mapsto d(\sigma_{r_1},\sigma_{r_2})$ depend on the replicas $e(R)$ and on the two replicas $r_1,r_2$ only; because $e$ and $r\mapsto r_{1,2}$ (the map $\mathrm{Fin}\,2\to\iota$, injective by $r_1\ne r_2$, \texttt{Matrix.injective\_pair\_iff\_ne}) are injective, their $p$-th and $q$-th moments equal
+$A(\omega)=\int|f(\omega)|^p\,d\nu(\omega)^{\otimes R}$ and $B(\omega)=\int d(\tau_0,\tau_1)^q\,d\nu(\omega)^{\otimes2}$ (\texttt{integral\_pi\_comp\_injective}, the marginal of a product measure on an injective subfamily of the coordinates).
+For fixed $\omega$, H\"older's inequality on $\alpha^\iota$ then bounds the pair average by $A(\omega)^{1/p}B(\omega)^{1/q}$. For the outer expectation, $A^{1/p}\in L^p(P)$ (\texttt{memLp\_rpow\_inv\_of\_integrable}: $A\ge0$ integrable) and $B^{1/q}\in L^q(P)$ (it is bounded since $d\le M_d$),
+so H\"older over $P$ gives $\mathbb E\,A^{1/p}B^{1/q}\le(\mathbb E A)^{1/p}(\mathbb E B)^{1/q}$; this is the bound (2.40) once $d=|R^t_{12}-q|$.
+The endpoints $(1,\infty)$ and $(\infty,1)$ replace the integral H\"older step by the trivial estimates $\int|f|\,d\le\|d\|_\infty\int|f|$ and $\int|f|\,d\le\|f\|_\infty\int d$ with the same marginalizations; a.e.\ bounds under $P$-a.e.\ replica laws suffice.
+Formalized in \texttt{SpinGlasses/Gaussian/GaussianTiltedRotationBound.lean}.
+\end{proof}
+
+\begin{lemma}[Splitting the extended cavity system at the last constraint]\label{lem:sg-tal:perceptron-cavity-split}
+  \lean{MeasureTheory.map_tilted_measurableEquiv,
+        SpinGlasses.tilted_prod_comp_fst,
+        SpinGlasses.cavity_extended_replica_split_eq}
+  \leanok
+  \uses{prop:sg-tal:perceptron-cavity-path, rem:sg-tal:perceptron-model-free-setting}
+\talsource{The decomposition of the configuration into the old system and the new variables $(\xi_M,\xi)$ used throughout Section~2.3}
+Let $\mu_0$ be a probability law and $E_0$ a measurable energy on $\alpha$, $\gamma$ a probability law. Then $(\mu_0\otimes\gamma).\mathrm{tilted}(E_0\circ\mathrm{fst})=(\mu_0.\mathrm{tilted}\,E_0)\otimes\gamma$.
+For a $\mu$-preserving measurable equivalence $\psi:\alpha\simeq\beta$ and a measurable $e$, $(\mu.\mathrm{tilted}\,e)\circ\psi^{-1}=\nu.\mathrm{tilted}(e\circ\psi^{-1})$.
+Consequently, at fixed disorder $(\omega,z)$ the replica average of any function of the old state and the two new auxiliary Gaussians $\bigl(\xi_M,\xi\bigr)=\bigl(x_{\mathrm{last}},\xi\bigr)$ in the extended cavity system equals the replica average in the model-free system with
+$\alpha=$ old state $\times\{\text{old auxiliary law}\}$, old law $\mu_0=\mathrm{base}_M.\mathrm{tilted}\,(E_{\mathrm{old}})$, $K_{\mathrm{aux}}=\mathrm{Fin}\,2$ and $u(S_s)$ with
+$S_s=\cos s\bigl(\mathrm{cavityCoef}\cdot(\text{old couplings, last row})+\sqrt{(1-t)/(N+1)}\,\eta_0\bigr)+\sin s\,(\sqrt q\,z+\sqrt{1-q}\,\eta_1)$.
+\end{lemma}
+\begin{proof}
+  \leanok
+For the first claim, write the density $e^{E_0(a)}/Z$; the extra factor $\gamma$ is a probability measure so it does not change the normalizer (\texttt{integral\_prod\_fun\_fst\_of\_isProbabilityMeasure}) and the tilted measure on rectangles $s\times t$ is the product of the tilted measure of $s$ and $\gamma(t)$.
+The second claim compares the density of the pushed-forward measure with the density of the tilted target, using that the normalizers agree because $\psi$ preserves the measures; it is a two-space version of the symmetry statement used for exchangeability in Proposition~\ref{prop:sg-tal:perceptron-smart-path-derivative}, and it replaces a private duplicate that previously existed in the cavity files.
+For the third claim split $(x,\xi)\in\mathrm{State}_{M+1}\times\mathbb R$ by the measurable equivalence $(\text{old state},\ x_{\mathrm{last}},\ \xi)$ and reassociate the product (\texttt{smartPathStateSplit}, \texttt{prodAssoc}, \texttt{piFinTwo}); the tilt energy $E_{\mathrm{old}}(x_{<M})+u(S_s)$ is a function of $(\text{old state},(x_{\mathrm{last}},\xi))$ through the formulas for the cavity coefficients, so the tilt of the product splits as the old tilt times the tilt by $u\circ S_s$ in the second factor.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavitySpecialization.lean} and \texttt{ForMathlib/Probability/GibbsReplicaEquivariance.lean}.
+\end{proof}
+
+\begin{theorem}[Concrete cavity average equals the abstract cavity ratio]\label{thm:sg-tal:perceptron-cavity-concrete-ratio}
+  \lean{SpinGlasses.integral_cavityPath_spinOnly_eq_cavityRatio,
+        SpinGlasses.contDiff_two_of_forall_lt_three_differentiable}
+  \leanok
+  \uses{lem:sg-tal:perceptron-cavity-split, prop:sg-tal:perceptron-cavity-spin-only}
+\talsource{The identification of $\nu_{t,s}(f)$ with the ratio $\mathrm E\,\langle f\rangle$ over $(\omega,\xi)$ in the proof of Lemma~2.3.2, and the standing hypothesis (2.7)}
+Let $u$ be measurable with $u\le D$ and $f(\omega_0,\sigma)$ a spin-only observable of $R$ replicas that is integrable in the old disorder $\omega_0$ for each spin tuple. Under the product law of the $M+1$ constraints paired with the quenched variable $z\sim\mathcal N(0,1)$, the concrete quenched average of $f(\omega_0,\sigma)$ in the extended system
+(the old disorder $\omega_0$ being the first $M$ constraints and the shared last field of variance $r$) equals the iterated integral over $(\omega_0,\xi)$ of the counting-measure Gibbs average of $f(\omega_0,\cdot)$ with weights
+$w_{\omega_0}(a)=e^{\varepsilon_a\sqrt{1-t}\,y}\prod_{k<M}\mathbb E\,e^{u(S_k(a))}$ and smoothing $\psi_s(Y_s(a,\xi))=\int e^{u(Y_s+\eta_0\cos s\sqrt{(1-t)/(N+1)}+\eta_1\sin s\sqrt{1-q})}\,d(\gamma\otimes\gamma)(\eta)$, where
+$Y_s(a,\xi)=\cos s\,\mathrm{cavityCoef}(a)\cdot\xi+\sin s\sqrt q\,\xi_{\mathrm{last}}$ is the field of the spin $a$ at the new coordinates $\xi=((g_M,a_M),z)\sim\gamma^{(N+1)+1}$.
+Moreover, Talagrand's hypothesis (2.7), in the form that $u,u',u''$ are differentiable with $|u^{(j)}|\le D$ for $j\le 3$, implies $u\in C^2$ (\texttt{contDiff\_two\_of\_forall\_lt\_three\_differentiable}); only $C^2$ and the bounds are used by the later proofs, not the continuity of $u'''$.
+\end{theorem}
+\begin{proof}
+  \leanok
+The disorder law of the $M+1$ constraints splits measure-preservingly into the old disorder $\omega_0$ (with the shared last field) and an independent standard Gaussian block $\xi$ indexed by $(\mathrm{Fin}\,N\oplus\mathrm{Unit})\oplus\mathrm{Unit}$ (\texttt{measurePreserving\_smartPathDisorder\_cavitySplit}). For fixed $(\omega_0,\xi)$, Lemma~\ref{lem:sg-tal:perceptron-cavity-split}
+rewrites the extended system as the old Gibbs system tensored with the two fresh Gaussians, and Proposition~\ref{prop:sg-tal:perceptron-cavity-spin-only} (together with \texttt{smartPathField\_last\_eq\_dotProduct}, which identifies the last field with $\mathrm{cavityCoef}\cdot\xi$) integrates out
+the old auxiliary coordinates to the spin-only ratio with the weights $w_{\omega_0}$ and $\psi$; positivity of $w$ and $\psi$ and measurability in $\omega_0$ follow from $u\le D$ and the measurability statements already proved for the spin-only reduction.
+For the $C^2$ statement: $u'$ is differentiable (second hypothesis, $j=1$), so $u'$ is $C^1$ because its derivative $u''$ is differentiable, hence continuous ($j=2$); then $u$ is differentiable with $C^1$ derivative, i.e.\ $u\in C^2$.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavitySpecialization.lean}.
+\end{proof}
+
+\begin{remark}[Status of Lemma~2.3.2 and the arithmetic still to be done]\label{rem:sg-tal:perceptron-lemma-232-status}
+The Gaussian analysis of Lemma~2.3.2 is now formalized \emph{in the model-free form}: Theorems~\ref{thm:sg-tal:perceptron-tilted-rotation-ibp}, \ref{thm:sg-tal:perceptron-tilted-rotation-ibp-avg} and~\ref{thm:sg-tal:perceptron-pair-holder} give, for any old-state family, an exact formula for the angle derivative of the quenched average
+and the H\"older step. What remains before (2.40) is stated for the cavity is purely the assembly:
+(a) instantiate $X,Y,C$ with the cavity coefficients and check the hypotheses of Remark~\ref{rem:sg-tal:perceptron-model-free-setting} (the two relations (2.50)), identifying $C(\sigma,\tau)=q-R^t(\sigma,\tau)$ up to the $1/(N+1)$ correction already controlled by \texttt{abs\_cavityCoef\_dotProduct\_sub\_overlap\_le};
+(b) bound each of the four groups using $|\psi_{d,i}|\le D'$, $|u'|\le D_1$, the pair H\"older estimate with $d=|C|$ and the first-moment bound of Lemma~\ref{lem:sg-tal:perceptron-tilt-first-moment}-type terms for the fresh replicas, with the constant $K(n,D)$ growing like $(4n^2+n)$;
+(c) the change of the angle $s$ into the book's $v=\cos^2s$, for which $\sin s\cos s$ cancels against $dv/ds=-2\sin s\cos s$ by \texttt{HasDerivAt.comp\_arccos\_sqrt\_of\_sin\_cos}, giving $-\tfrac12$ times the four groups, i.e.\ the form (2.53) with $R^t-q=-C$.
+The moving factor $B_v=u'(S_v^1)u'(S_v^2)$ is the case $\psi_1=\psi_2=u'$ of the same theorem.
+\end{remark}
+
+
 \medskip\noindent\emph{Formalization note (Lemma~2.3.2).} The pathwise derivative is proved for $B_v\equiv1$ and, in a second statement, for the moving factor
 $u'(S_s^i)u'(S_s^j)$ (any two replicas): its derivative contains the unbounded Gaussian factor $\tilde z$, which is dominated by $|S_{M,t}|+|\theta|$ through an integrable
 envelope (\texttt{hasDerivAt\_integral\_tilted\_of\_integrable\_moving}, of which the bounded version is now a corollary), so only $|u''|\le D_2$ is used in addition.
 The Gaussian integration by parts over the whole family (couplings, $z$, $\xi_M^\ell$, $\xi^\ell$), the term created by the denominator,
-the average over $(\omega,z)$ and the H\"older step of (2.40) are not formalized.
+the average over the old disorder and the H\"older step of (2.40) are formalized in the model-free form of Section~\ref{sub:sg-tal:perceptron-model-free-ibp}
+(Theorems~\ref{thm:sg-tal:perceptron-tilted-stein}--\ref{thm:sg-tal:perceptron-pair-holder} and Remark~\ref{rem:sg-tal:perceptron-lemma-232-status});
+what is not yet formalized is the instantiation with the cavity coefficients and the resulting bound (2.40) itself.
 
 \medskip\noindent\emph{Formalization note (hypothesis audit).} The book states (2.32) for a function $f$ on $\Sigma_N^n\times\mathbb R^{Mn}$; the
 Lean statement allows an arbitrary function $Y$ of the replicas of the full configuration, which includes the dependence on the old
