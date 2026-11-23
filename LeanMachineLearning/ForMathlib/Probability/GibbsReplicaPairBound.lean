@@ -268,9 +268,9 @@ theorem integral_integral_pair_holder_one_top
     _ = (∫ ω, ∫ a : R → α, |f ω a| ∂(Measure.pi fun _ : R => ν ω) ∂P) * Md :=
         integral_mul_const _ _
 
-/-- **Endpoint `(∞, 1)` of Hölder for a random replica Gibbs law:** if `|f ω| ≤ Mf` almost
-everywhere under `P`-a.e. replica law and `d` is bounded and measurable, the expected pair average
-is at most `Mf` times the `L¹` moment of `d`. -/
+/-- **Endpoint `(∞, 1)` of Hölder for a random replica Gibbs law.** The pair average is bounded by
+`Mf` times the first moment of `d` when the original observable has a.e. bound `Mf` and the
+nonnegative pair function has integrable sections and an integrable disorder average. -/
 theorem integral_integral_pair_holder_top_one
     {Ω α R ι : Type*} [MeasurableSpace Ω] [MeasurableSpace α] [Fintype R] [Fintype ι]
     (P : Measure Ω)

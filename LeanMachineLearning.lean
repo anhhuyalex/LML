@@ -736,6 +736,12 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.FirstMoment
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.GaussianFieldSplit
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.GaussianFields
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.GibbsAverages
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.InterpolatingCavityBound
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.InterpolatingHamiltonian
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.InterpolatingOverlap
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.InterpolatingSmartPath
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.OverlapConcentration
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.RSFixedPoint
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.RandomNormals
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathAssembly
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathBounds

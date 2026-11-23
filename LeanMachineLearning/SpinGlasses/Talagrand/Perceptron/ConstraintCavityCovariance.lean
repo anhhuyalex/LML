@@ -191,6 +191,36 @@ theorem cavityCoef_dotProduct_self_add (ht : t ∈ Set.Icc (0 : ℝ) 1) (σ : Pe
   field_simp
   ring
 
+/-- The Gaussian expectation of the square-parameter field derivative times a field in (2.58).
+Each replica label is assigned a fixed spin configuration before averaging over the Gaussians. -/
+theorem integral_cavity_zDeriv_mul_z {N : ℕ} {t q s : ℝ}
+    (ht : t ∈ Set.Icc (0 : ℝ) 1) (hq : q ∈ Set.Icc (0 : ℝ) 1)
+    (hs : Real.sin s * Real.cos s ≠ 0) (σ : R → PerceptronSpin N) (ℓ ℓ' : R) :
+    let α := fun r => cavityCoef N t (σ r)
+    let a₀ := Real.sqrt ((1 - t) / (N + 1))
+    let w := cavityVec ((-Real.sin s) • α ℓ) (Real.cos s * Real.sqrt q) (-Real.sin s * a₀)
+      (Real.cos s * Real.sqrt (1 - q)) ℓ
+    let x := cavityVec (Real.cos s • α ℓ') (Real.sin s * Real.sqrt q) (Real.cos s * a₀)
+      (Real.sin s * Real.sqrt (1 - q)) ℓ'
+    ∫ g, (-(2 * (Real.sin s * Real.cos s))⁻¹ * (w ⬝ᵥ g)) * (x ⬝ᵥ g)
+        ∂(Measure.pi fun _ : (Fin N ⊕ Unit) ⊕ (Unit ⊕ (R ⊕ R)) => gaussianReal 0 1) =
+      if ℓ = ℓ' then 0 else (α ℓ ⬝ᵥ α ℓ' - q) / 2 := by
+  intro α a₀ w x
+  simp_rw [mul_assoc]
+  rw [integral_const_mul, integral_dotProduct_mul_dotProduct_pi_gaussianReal]
+  by_cases h : ℓ = ℓ'
+  · subst ℓ'
+    simp only [ite_true]
+    rw [show w ⬝ᵥ x = Real.sin s * Real.cos s * (1 - (α ℓ ⬝ᵥ α ℓ + a₀ ^ 2)) from
+      cavity_zTilde_dot_z_same (α ℓ) (α ℓ) ℓ hq, cavityCoef_dotProduct_self_add ht (σ ℓ)]
+    simp
+  · simp only [h, ite_false]
+    rw [show w ⬝ᵥ x = Real.sin s * Real.cos s * (q - α ℓ ⬝ᵥ α ℓ') from
+      cavity_zTilde_dot_z_of_ne (α ℓ) (α ℓ') ℓ ℓ' hq h]
+    field_simp [show Real.sin s ≠ 0 from fun hz => hs (by simp [hz]),
+      show Real.cos s ≠ 0 from fun hz => hs (by simp [hz])]
+    ring
+
 /-- **`R^t - R = (t - 1) ε ε' / (N + 1)`**, hence **`|R^t - R| ≤ 1/(N + 1)`** for `t ∈ [0,1]`, where
 `R(σ,τ) = (Σ_{i<N} σ_i τ_i + ε ε')/(N + 1)` is the overlap of the full spins. -/
 theorem abs_cavityCoef_dotProduct_sub_overlap_le (ht : t ∈ Set.Icc (0 : ℝ) 1)

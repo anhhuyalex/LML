@@ -9,8 +9,6 @@ public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianTiltedSteinRatio
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaComparison
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaPairBound
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Function.AEStronglyMeasurableDeriv
-public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedHolder
-public import Mathlib.MeasureTheory.Function.LpSeminorm.LpNorm
 
 /-!
 # Disorder-averaged rotation derivative and Hölder bounds for replica Gibbs states
