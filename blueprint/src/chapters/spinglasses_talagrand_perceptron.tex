@@ -2670,8 +2670,7 @@ disjoint indices, as are the two auxiliary coefficients. The cavity coefficient 
  Y\cdot Y-X_\sigma\cdot X_\tau=q-R^t(\sigma,\tau).
 \]
 The averaged four-group theorem now gives the derivative. This supplies the derivative in the
-split coordinates for the proof of Lemma~2.3.2. Bounding the groups and changing from $s$ to
-$v=\cos^2s$ remain to obtain (2.40).
+split coordinates for the proof of Lemma~2.3.2. The next theorem estimates the four groups.
 
 \emph{Difference from the printed calculation.} Differentiating the denominator $Z^{-n}$ in
 (2.35) introduces a factor $-n$ and one fresh replica. The coefficient in that step follows
@@ -2680,13 +2679,74 @@ $n+1$ is the index of the fresh replica.
 Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityRotationDerivative.lean}.
 \end{proof}
 
+\begin{theorem}[Bounds for the four groups in the split cavity]\label{thm:sg-tal:perceptron-split-cavity-pair-bound}
+  \lean{SpinGlasses.measurable_cavity_rotation_field,
+        SpinGlasses.measurable_integral_pi_cavity_rotation,
+        SpinGlasses.integrable_pi_tilted_prod_fst_abs_and_le,
+        MeasureTheory.integral_pi_pair_mul_bound,
+        MeasureTheory.integrable_integral_pi_pair_mul_and_abs_le,
+        Finset.abs_replica_groups_le,
+        MeasureTheory.abs_integral_replica_groups_le,
+        SpinGlasses.integrable_integral_pi_cavity_rotation_abs,
+        SpinGlasses.exists_hasDerivAt_cavity_rotation_abs_le_of_pair_bound,
+        SpinGlasses.exists_hasDerivAt_cavity_rotation_abs_le_first_moment}
+  \leanok
+  \uses{thm:sg-tal:perceptron-split-cavity-rotation,thm:sg-tal:perceptron-pair-holder}
+Keep the hypotheses and split law of Theorem~\ref{thm:sg-tal:perceptron-split-cavity-rotation},
+with uniform bounds $|\psi_r|\le M_0$, $|\psi_r'|\le M_1$, $|\psi_r''|\le M_2$, and
+$|u'|\le D$. At fixed angle $s$ let $I$ be the split average of $|f|$ and let
+$m\ge0$ bound the split average of $|f|\,|R_{ij}-q|$ for each pair of distinct
+replicas. The latter average uses the same original coordinates of $f$ and permits fresh
+replicas. Write $n=|R|$ for the number of replicas of the observable, and put
+$L=1+|D|+|M_0|+|M_1|+|M_0||D|$. Then its weighted split average has angle derivative
+$\sin s\cos s\,z_s$ with
+\[
+ |z_s|\le (4n^2+n)L^{n+2}\left(m+\frac{I}{N+1}\right).
+\]
+In particular the estimate holds with $m=2I$, giving the $(1,\infty)$ endpoint in split
+coordinates, with $N+1$ the full spin count.
+\end{theorem}
+\begin{proof}
+  \leanok
+Write $P=P_0\otimes\gamma_{\rm sh}$ for the product law of the old and fresh disorder.
+\emph{Step 1 (integrability after rotation).} Attaching independent coordinates, taking
+the replica marginal and tilting by the bounded energy $u(S_s)$ gives
+\[
+ \int |f|\,d\nu_{s,w,\omega_0}^{\otimes n}
+ \le e^{2n\|u\|_\infty}\int |f|\,d\mu_0(\omega_0)^{\otimes n}.
+\]
+The joint measurability of the split average and this bound make $I$ finite.
+
+\emph{Step 2 (one covariance term).} Its product of field factors has absolute value at
+most $L^{n+2}$. This uses $|\psi_r'+\psi_r u'|\le L$, $|\psi_r|\le L$, $|u'|\le L$
+and at most $n$ factors in the remaining product. The full overlap corrects the covariance:
+\[
+ |q-R^t_{ij}|\le |R_{ij}-q|+\frac{1}{N+1}.
+\]
+Thus the term's absolute integral is at most $L^{n+2}(m+I/(N+1))$.
+The first-moment correction uses the projection of a replica product law to its original
+replicas. The bounded multiplier and bounded overlap make the signed term integrable,
+so Fubini gives the corresponding iterate over $P_0$ and $\gamma_{\rm sh}$.
+
+\emph{Step 3 (counting).} The first group has at most $n^2$ ordered pairs. Each one-fresh
+group has $n$ summands with coefficient $n$. The last term has coefficient $n(n+1)$. Hence
+\[
+ n^2+n^2+n^2+n(n+1)=4n^2+n.
+\]
+The endpoint uses $|R_{ij}-q|\le2$ and the same replica marginal. This estimates the
+angle derivative in split coordinates. The book's derivative is in $v=\cos^2s$ and its
+moments are written in the original cavity coordinates.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityOverlapBound.lean}
+and \texttt{ForMathlib/Probability/GibbsReplicaPairBound.lean}.
+\end{proof}
+
 \begin{remark}[Status of Lemma~2.3.2 and the arithmetic still to be done]\label{rem:sg-tal:perceptron-lemma-232-status}
 The Gaussian analysis of Lemma~2.3.2 is now formalized \emph{in the model-free form}: Theorems~\ref{thm:sg-tal:perceptron-tilted-rotation-ibp}, \ref{thm:sg-tal:perceptron-tilted-rotation-ibp-avg} and~\ref{thm:sg-tal:perceptron-pair-holder} give, for any old-state family, an exact formula for the angle derivative of the quenched average
 and the H\"older step. The remaining estimates for (2.40) are:
 (a) transport the split-law derivative of Theorem~\ref{thm:sg-tal:perceptron-split-cavity-rotation}
 and the moment expressions along the cavity state and disorder splits; the covariance is
 $C(\sigma,\tau)=q-R^t(\sigma,\tau)$ exactly, and $|R^t-R|\le1/(N+1)$;
-(b) bound each of the four groups using $|\psi_{d,i}|\le D'$, $|u'|\le D_1$, the pair H\"older estimate with $d=|C|$ and the first-moment bound of Lemma~\ref{lem:sg-tal:perceptron-tilt-first-moment}-type terms for the fresh replicas, with the constant $K(n,D)$ growing like $(4n^2+n)$;
+(b) apply the remaining H\"older exponents to the mixed moment in Theorem~\ref{thm:sg-tal:perceptron-split-cavity-pair-bound};
 (c) the change of the angle $s$ into the book's $v=\cos^2s$, for which $\sin s\cos s$ cancels against $dv/ds=-2\sin s\cos s$ by \texttt{HasDerivAt.comp\_arccos\_sqrt\_of\_sin\_cos}, giving $-\tfrac12$ times the four groups, i.e.\ the form (2.53) with $R^t-q=-C$.
 The moving factor $B_v=u'(S_v^1)u'(S_v^2)$ is the case $\psi_1=\psi_2=u'$ of the same theorem.
 \end{remark}
