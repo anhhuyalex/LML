@@ -3146,11 +3146,32 @@ both endpoints $t=0$ and $t=1$, $q\in[0,1]$, and $N=0$ ($1$ full spin) or $M=0$ 
 Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/SmartPathCavityBound.lean}.
 \end{proof}
 
+\section{The replica-symmetric solution (Talagrand Section~2.4)}\label{sec:sg-tal:perceptron-replica-symmetric}
+
+In this section we formalize Talagrand Section~2.4: the replica-symmetric fixed-point system
+(2.68) and overlap concentration (Theorem~2.4.1), the $s$-interpolating Hamiltonian (2.76) and its
+derivative identity (2.81)--(2.83), the empirical variance estimate for $u'$ (Lemma~2.4.3), the
+unconditional convergence of the finite-size perceptron pressure to the replica-symmetric formula
+(2.74) at rate $O(1/(N+1))$ (Theorem~2.4.2, first proof), and the critical-point calculus and
+discrete cavity increment of the second proof (Lemma~2.4.4 and Eqs.~(2.87)--(2.91)). Throughout
+this section, Lean indexes the full spin system by $\mathrm{Fin}(N+1)\to\mathbb Z^\times$ ($N+1$
+spins, matching the cavity decomposition $(\sigma,\varepsilon)\in\Sigma_N\times\{\pm 1\}$ of
+Sections~2.2--2.3) and $M$ constraints, with load $\alpha=M/(N+1)$.
+
 \subsection{The replica-symmetric fixed point and overlap concentration}
 \label{sub:sg-tal:perceptron-rs-fixed-point}
 
 \begin{theorem}[Theorem 2.4.1]\label{thm:sg-tal:perceptron-rs-fixed-point}
-  \lean{SpinGlasses.exists_unique_rs_fixed_point,
+  \lean{abs_sub_le_of_continuousOn_Icc_of_hasDerivAt_Ioo,
+        hasDerivAt_integral_tanh_sq_sqrt_and_abs_le,
+        lipschitzWith_one_integral_tanh_sq_sqrt,
+        SpinGlasses.continuousOn_rhat,
+        SpinGlasses.exists_hasDerivAt_rhat_abs_le,
+        SpinGlasses.exists_lipschitzOnWith_rhat,
+        SpinGlasses.exists_unique_rs_fixed_point,
+        SpinGlasses.perceptron_replica_site_perm,
+        SpinGlasses.integral_perceptron_overlap_mul_eq_last_site,
+        SpinGlasses.integral_smartPath_zero_last_spin_eq,
         SpinGlasses.integral_perceptron_overlap_sub_sq_le,
         SpinGlasses.exists_unique_rs_fixed_point_and_overlap_sub_sq_le}
   \leanok
@@ -3180,4 +3201,471 @@ Proposition~\ref{prop:sg-tal:perceptron-cavity-prop-236} bounds its derivative, 
 Lemma~\ref{lem:sg-tal:perceptron-cavity-lemma-237} controls the path moments by the
 terminal overlap moment. Small load absorbs the resulting multiple of that moment.
 Taking the maximum of the two load constants proves both conclusions under one inequality.
+
+\emph{Formalization note (hypothesis audit).} Uniqueness is proved over all $(q,r)\in\mathbb R^2$
+without restricting to $[0,1]\times[0,\infty)$ in the statement, because $\tanh^2\in[0,1]$ and
+$\widehat r(q)\ge 0$ force any solution of (2.68) with $\alpha\ge 0$ into $[0,1]\times[0,\infty)$.
+Overlap concentration is proved in \texttt{integral\_perceptron\_overlap\_sub\_sq\_le} for any
+solution $(q,r)$ of (2.68) without using uniqueness, matching Talagrand's remark after the proof;
+both $M=0$ and $N=0$ ($1$ spin) are covered, with $N+1$ in place of the book's $N$.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/RSFixedPoint.lean} and
+\texttt{SpinGlasses/Talagrand/Perceptron/OverlapConcentration.lean}.
+\end{proof}
+
+\subsection{The $s$-interpolating Hamiltonian, overlap bound, and pressure derivative}
+\label{sub:sg-tal:perceptron-interpolating-hamiltonian}
+
+\begin{lemma}[Cavity-in-$M$ comparison and overlap concentration along the $s$-interpolation, (2.80)]\label{lem:sg-tal:perceptron-interpolating-overlap}
+  \lean{SpinGlasses.interp_cavity_rotation_dotProducts,
+        SpinGlasses.abs_integral_interp_deriv_mul_sub_rhat_le_first_moment,
+        SpinGlasses.abs_integral_interp_deriv_mul_sub_rhat_le_l2,
+        SpinGlasses.interpolating_replica_site_perm,
+        SpinGlasses.integral_interpolating_overlap_mul_eq_last_site,
+        SpinGlasses.integral_interpolating_overlap_sub_sq_le}
+  \leanok
+  \uses{thm:sg-tal:perceptron-tilted-rotation-ibp-avg, thm:sg-tal:perceptron-pair-holder, lem:sg-tal:perceptron-cavity-endpoint}
+\talsource{Section~2.4, Eqs.~(2.76)--(2.80)}
+For $N+1$ spins, $M$ constraints, and $s\in[0,1]$, define the $s$-interpolating energy on
+$(\sigma,\xi)\in\Sigma_{N+1}\times\mathbb R^M$ under quenched standard Gaussians
+$(g_{k,i}),(z_k),(z'_i)$ by
+\[
+ -H_{M,N+1,s}(\sigma,\xi)
+ =\sum_{k<M} u\bigl(\sqrt s\,S_k(\sigma)+\sqrt{1-s}\,(\sqrt q\,z_k+\sqrt{1-q}\,\xi_k)\bigr)
+  +\sum_{i<N+1}\sigma_i\sqrt{1-s}\,z'_i\sqrt r,
+\]
+where $S_k(\sigma)=(N+1)^{-1/2}\sum_{i<N+1}g_{k,i}\sigma_i$, and write $\nu_s$ for the disorder
+expectation of its tilted Gibbs replica state on $\Sigma_{N+1}\times\mathbb R^M$.
+\begin{enumerate}
+\item \emph{Interpolating cavity-in-$M$ $L^2$ comparison.} For any finite replica type $R$, distinct
+$r_1\ne r_2\in R$, and $D\in\mathbb R$, there is $K=K(|R|,D)\ge 0$ such that for any old-state base
+system $(P_0,\mu_{\rm base},E_0)$, $s,t,q\in[0,1]$, $u$ satisfying (2.7), and bounded jointly
+measurable old-state observable $f(\omega_0,a)$, attaching one $s$-interpolating smart-path
+constraint $X_{\rm fn}$ gives
+\[
+ \bigl|\nu_{\rm new}\bigl(f\,u'(X_{\rm fn}^{r_1})\,u'(X_{\rm fn}^{r_2})\bigr)
+   -\widehat r(q)\,\nu_{\rm new}(f)\bigr|
+ \le K\left(\nu_{\rm new}(f^2)^{1/2}\,\nu_{\rm new}\bigl((R_{1,2}-q)^2\bigr)^{1/2}
+   +\frac{1}{N+1}\nu_{\rm new}(|f|)\right).
+\]
+\item \emph{Uniform overlap concentration (2.80).} Given $D\in\mathbb R$, there exist $K=K(D)\ge 0$
+and $L\ge 0$ (chosen before $N,M,s,u,q,r$) such that whenever $u$ satisfies (2.7),
+$\alpha=M/(N+1)$ satisfies $\alpha K\le 1$, $(q,r)$ solves (2.68) for load $\alpha$, and
+$s\in[0,1]$,
+\[
+ \nu_s\bigl((R_{1,2}-q)^2\bigr)\le\frac{L}{N+1}.
+\]
+\end{enumerate}
+\end{lemma}
+\begin{proof}
+  \leanok
+Write $X_{\rm sh}(\sigma)=(\sqrt s\,\operatorname{cavityCoef}_{N,t}(\sigma),\sqrt{1-s}\sqrt q,0)$
+and $Y_{\rm sh}=(0,\sqrt q)$ for the shared Gaussian coefficient blocks, and similarly $X_{\rm aux}$,
+$Y_{\rm aux}$ for the auxiliary Gaussian blocks.
+
+\emph{Step 1 (unit-variance rotation of the $s$-interpolating constraint).} Direct dot-product
+evaluation gives orthogonality, unit total variance, and scaled covariance difference:
+\[
+ X_{\rm sh}(\sigma)\cdot Y_{\rm sh}=0,\quad
+ |X_{\rm sh}(\sigma)|^2+|X_{\rm aux}|^2=|Y_{\rm sh}|^2+|Y_{\rm aux}|^2=1,\quad
+ Y_{\rm sh}\cdot Y_{\rm sh}-X_{\rm sh}(\sigma)\cdot X_{\rm sh}(\tau)
+ =s\bigl(q-R^t(\sigma,\tau)\bigr)
+\]
+(\texttt{interp\_cavity\_rotation\_dotProducts}). Since $0\le s\le 1$,
+$|s(q-R^t_{ij})|\le |R_{ij}-q|+1/(N+1)$. Rotating from $\vartheta=0$ ($X_{\rm fn}$) to
+$\vartheta=\pi/2$ ($\theta=\sqrt q\,z+\sqrt{1-q}\,\xi$, where Lemma~\ref{lem:sg-tal:perceptron-cavity-endpoint}
+evaluates the ratio to $\widehat r(q)$) and bounding the four covariance groups by
+Theorem~\ref{thm:sg-tal:perceptron-pair-holder} yields~(1)
+(\texttt{abs\_integral\_interp\_deriv\_mul\_sub\_rhat\_le\_l2}).
+
+\emph{Step 2 (two-parameter smart path and site symmetry for (2.80)).} Under relabelling of spin
+sites $\mathrm{Fin}(N+1)$, $\nu_s$ is invariant (\texttt{interpolating\_replica\_site\_perm}), so
+\[
+ \nu_s\bigl((R_{1,2}-q)^2\bigr)=\nu_s\bigl((\varepsilon_1\varepsilon_2-q)(R_{1,2}-q)\bigr)
+\]
+(\texttt{integral\_interpolating\_overlap\_mul\_eq\_last\_site}). Embedding $\nu_s$ at $t=1$ of an
+$(s,t)$-interpolating smart path with last-spin field variance $s r=s\alpha\widehat r(q)$, two-block
+Gaussian rotation at $t=0$ combines $\sqrt{s r}\,z+\sqrt{(1-s)r}\,z'$ into $\mathcal N(0,r)$, so
+$q=\mathbb E\tanh^2(z\sqrt r)$ kills the off-diagonal term at $t=0$ just as in (2.72) and leaves
+$(1-q^2)/(N+1)$. Part~(1) bounds the $t$-derivative and backward Gr\"onwall dominates the $t$-path
+overlap moment by $2\,\nu_s((R_{1,2}-q)^2)$, yielding~(2) for $\alpha K\le 1$ (and for $M=0$,
+$r=q=0$ gives exact decoupling).
+
+\emph{Formalization note (applying the old-row estimate at fixed $s$).} Part~(1) takes an arbitrary
+base measure $(P_0,\mu_{\rm base},E_0)$ and smart-path parameter $t\in[0,1]$. In Step~2 it is
+applied along $t\in(0,1)$ to the $(s,t)$-smart-path old system; in Lemma~\ref{lem:sg-tal:perceptron-empirical-variance}
+below it is applied at $t=1$ and fixed $s\in[0,1]$ directly to the $M$-constraint $s$-interpolating
+system, where the $t=1$ auxiliary coefficient $\sqrt{s(1-1)/(N+1)}$ vanishes and the unused
+Gaussian coordinate integrates out.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/InterpolatingCavityBound.lean},
+\texttt{InterpolatingOverlap.lean}, and \texttt{InterpolatingSmartPath.lean}.
+\end{proof}
+
+\begin{proposition}[Continuity, endpoints, and regrouped derivative of the $s$-interpolating pressure, (2.81)--(2.83)]\label{prop:sg-tal:perceptron-interpolating-pressure-deriv}
+  \lean{SpinGlasses.continuousOn_interpolating_pressure,
+        SpinGlasses.interpolating_pressure_one_eq,
+        SpinGlasses.interpolating_pressure_zero_eq,
+        SpinGlasses.hasDerivAt_interpolating_pressure,
+        SpinGlasses.integral_interpolating_external_field_ibp,
+        SpinGlasses.interpConstraintStateSwap,
+        SpinGlasses.interpConstraintDisorderSwap,
+        SpinGlasses.measurePreserving_interpConstraintDisorderSwap,
+        SpinGlasses.measurePreserving_interpConstraintStateSwap,
+        SpinGlasses.interpConstraintStateSwap_apply,
+        SpinGlasses.interpConstraintStateSwap_symm_apply,
+        SpinGlasses.integral_interpolating_field_deriv_ibp,
+        SpinGlasses.hasDerivAt_interpolating_pressure_regrouped}
+  \leanok
+  \uses{thm:sg-tal:perceptron-tilted-stein, lem:sg-tal:perceptron-interpolating-overlap}
+\talsource{Section~2.4, Eqs.~(2.81)--(2.83)}
+For $s\in[0,1]$, define the $s$-interpolating pressure
+\[
+ p_{N+1,M,s}(u)=\frac{1}{N+1}\,\mathbb E\log\int_{\mathbb R^M}\sum_{\sigma\in\Sigma_{N+1}}
+   \exp\bigl(-H_{M,N+1,s}(\sigma,\xi)\bigr)\,d\gamma(\xi),
+\]
+and write $S_{k,s}(\sigma,\xi)=\sqrt s\,S_k(\sigma)+\sqrt{1-s}\,(\sqrt q\,z_k+\sqrt{1-q}\,\xi_k)$.
+\begin{enumerate}
+\item \emph{Continuity and endpoints.} If $u$ is continuous with $|u|\le B$, then
+$s\mapsto p_{N+1,M,s}(u)$ is continuous on $[0,1]$. Moreover, for measurable $u$ with $|u|\le B$,
+$p_{N+1,M,1}(u)=p_{N+1,M}(u)$ is the Section~2.1 perceptron pressure, and at $s=0$,
+\[
+ p_{N+1,M,0}(u)=\log 2+\mathbb E\log\cosh(z\sqrt r)
+   +\frac{M}{N+1}\,\mathbb E\log\mathbb E_\xi\exp u(\sqrt q\,z+\sqrt{1-q}\,\xi).
+\]
+\item \emph{Regrouped derivative on $(0,1)$, Eq.~(2.83).} Assume $u$ is twice differentiable with
+$|u|\le B$, $|u'|\le D_1$, $|u''|\le D_2$, and let $q\in[0,1]$, $r\ge 0$, and $s\in(0,1)$. Then
+$s'\mapsto p_{N+1,M,s'}(u)$ has derivative at $s$ equal to
+\[
+ -\frac{r}{2}(1-q)-\frac{1}{2}\,\nu_s\!\left((R_{1,2}-q)
+   \left(\frac{1}{N+1}\sum_{k<M}u'(S_{k,s}^1)\,u'(S_{k,s}^2)-r\right)\right).
+\]
+\end{enumerate}
+\end{proposition}
+\begin{proof}
+  \leanok
+Write $\mu_s=\mathrm{count}\otimes\gamma^{\otimes M}$ for the base state measure and $P$ for the
+quenched product Gaussian law of $(g,z,z')$.
+
+\emph{Step 1 (continuity and endpoints).} Integrating out $\xi\in\mathbb R^M$ for each spin $\tau$
+rewrites the partition integral as $\sum_\tau\exp(E_{\rm eff}(s,\omega,\tau))$, where each log-Gaussian
+factor is bounded by $B$ and continuous in $s\in[0,1]$. Dominated convergence over $P$ gives
+continuity on $[0,1]$ (\texttt{continuousOn\_interpolating\_pressure}). Setting $s=1$ kills $z,z',\xi$
+and recovers $p_{N+1,M}(u)$ (\texttt{interpolating\_pressure\_one\_eq}); setting $s=0$ factors the
+sum over $\tau\in\{\pm 1\}^{N+1}$ into $\prod_i 2\cosh(z'_i\sqrt r)$ and decouples the $M$ i.i.d.\
+constraint expectations (\texttt{interpolating\_pressure\_zero\_eq}).
+
+\emph{Step 2 (raw derivative and external-field IBP, (2.81)).} On a compact subinterval of $(0,1)$,
+$\sqrt s$ and $\sqrt{1-s}$ have bounded derivatives, so differentiating under $\mathbb E\log\int$
+gives
+\[
+ \frac{d}{ds}p_{N+1,M,s}(u)
+ =\frac{1}{N+1}\,\nu_s\!\left(\sum_{k<M}S'_{k,s}\,u'(S_{k,s})
+   -\frac{1}{2\sqrt{1-s}}\sum_{i<N+1}\sigma_i z'_i\sqrt r\right)
+\]
+(\texttt{hasDerivAt\_interpolating\_pressure}), where
+$S'_{k,s}=\frac{1}{2\sqrt s}S_k-\frac{1}{2\sqrt{1-s}}(\sqrt q\,z_k+\sqrt{1-q}\,\xi_k)$. Applying
+Gaussian IBP in $z'_i$ at fixed $(g,z)$ gives, since $(\sqrt r)^2=r$ for $r\ge 0$,
+\[
+ \frac{1}{N+1}\,\nu_s\!\left(\frac{1}{2\sqrt{1-s}}\sum_{i<N+1}\sigma_i z'_i\sqrt r\right)
+ =\frac{r}{2}\bigl(1-\nu_s(R_{1,2})\bigr)
+\]
+(\texttt{integral\_interpolating\_external\_field\_ibp}).
+
+\emph{Step 3 (constraint-field IBP via denominator shift, (2.82), and regrouping, (2.83)).} For
+$M=0$ the constraint sum is empty; for $M+1$ constraints, swapping row $k$ with $\mathrm{Fin.last}\,M$
+via \texttt{interpConstraintDisorderSwap} and \texttt{interpConstraintStateSwap} reduces row $k$ to
+the last constraint. Splitting off the last row's quenched disorder $w=(g_M,z_M)$ and auxiliary
+Gaussian $\xi_M$, the field and its $s$-derivative satisfy
+\[
+ W_{\rm sh}(\tau)\cdot\alpha_{\rm sh}(\tau')=\frac{1}{2}\bigl(R(\tau,\tau')-q\bigr),\qquad
+ W_{\rm sh}(\tau)\cdot\alpha_{\rm sh}(\tau)+W_{\rm aux}(\tau)\cdot\alpha_{\rm aux}(\tau)=0.
+\]
+Applying Theorem~\ref{thm:sg-tal:perceptron-tilted-stein} (\texttt{stein\_tilted\_replica\_ratio}) on
+$R=\mathrm{Unit}$ kills the diagonal $u''+(u')^2$ sum and leaves only the fresh-replica denominator
+term:
+\[
+ \nu_s\bigl(S'_{k,s}\,u'(S_{k,s})\bigr)
+ =-\frac{1}{2}\,\nu_s\bigl((R_{1,2}-q)\,u'(S_{k,s}^1)\,u'(S_{k,s}^2)\bigr)
+\]
+(\texttt{integral\_interpolating\_field\_deriv\_ibp}). Summing over $k<M$ and combining with Step~2
+by writing $1-R_{1,2}=(1-q)+(q-R_{1,2})$ yields (2.83)
+(\texttt{hasDerivAt\_interpolating\_pressure\_regrouped}).
+
+\emph{Formalization note (open versus closed interval for the derivative).} The factors
+$(2\sqrt s)^{-1}$ and $(2\sqrt{1-s})^{-1}$ in $S'_{k,s}$ diverge as $s\to 0^+$ or $s\to 1^-$, so
+the pointwise derivative identity (2.81)--(2.83) is stated on the open interval $s\in(0,1)$, whereas
+continuity in part~(1) holds on the closed interval $[0,1]$. In Theorem~\ref{thm:sg-tal:perceptron-rs-convergence},
+Mathlib's mean-value theorem \texttt{exists\_hasDerivAt\_eq\_slope} bridges continuous $[0,1]$
+endpoints with the $(0,1)$ interior derivative without improper integrals.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/InterpolatingHamiltonian.lean}.
+\end{proof}
+
+\subsection{Empirical variance of $u'$ and first proof of Theorem 2.4.2}
+\label{sub:sg-tal:perceptron-rs-convergence}
+
+\begin{lemma}[Lemma 2.4.3: empirical variance of $u'$ along the $s$-interpolation, (2.85)--(2.86)]\label{lem:sg-tal:perceptron-empirical-variance}
+  \lean{MeasureTheory.integral_integral_finset_sum_dep,
+        SpinGlasses.abs_deriv_interpolating_pressure_add_le_cauchy_schwarz,
+        SpinGlasses.integral_empirical_variance_split_le,
+        SpinGlasses.integral_interpolating_deriv_empirical_variance_le}
+  \leanok
+  \uses{lem:sg-tal:perceptron-interpolating-overlap, prop:sg-tal:perceptron-interpolating-pressure-deriv, thm:sg-tal:perceptron-pair-holder}
+\talsource{Lemma~2.4.3, Eqs.~(2.84)--(2.86)}
+Given $D\in\mathbb R$, there exist constants $K=K(D)\ge 0$ and $L_{\rm var}\ge 0$ (chosen before
+$N,M,s,u,q,r$) with the following property. Assume $u$ satisfies (2.7) with constant $D$, write
+$\alpha=M/(N+1)$, assume $\alpha K\le 1$, let $(q,r)$ solve the replica-symmetric system (2.68) for
+load $\alpha$, and let $s\in[0,1]$. Then
+\[
+ \nu_s\!\left(\left(\frac{1}{N+1}\sum_{k<M}u'(S_{k,s}^1)\,u'(S_{k,s}^2)-r\right)^2\right)
+ \le\frac{L_{\rm var}}{N+1}.
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+For $M=0$, both the empty sum and $r=0\cdot\widehat r(q)=0$ vanish, so the left-hand side is $0$.
+Assume now $M+1$ constraints with $\alpha=(M+1)/(N+1)$, and write
+\[
+ f=\frac{1}{N+1}\sum_{k<M+1}u'(S_{k,s}^1)\,u'(S_{k,s}^2)-r,\qquad
+ f^-=\frac{1}{N+1}\sum_{k<M}u'(S_{k,s}^1)\,u'(S_{k,s}^2)-r,
+\]
+and $V_f=\nu_s(f^2)$, $V_-=\nu_s((f^-)^2)$, $Q_{\rm ov}=\nu_s((R_{1,2}-q)^2)$.
+
+\emph{Step 1 (constraint exchangeability and splitting off the last row, (2.86)).} Under
+\texttt{interpConstraintDisorderSwap} and \texttt{interpConstraintStateSwap}, every constraint
+$k<M+1$ has the same expectation $\nu_s((\alpha u'(S_{k,s}^1)u'(S_{k,s}^2)-r)f)$. Summing over
+$k<M+1$ via \texttt{integral\_integral\_finset\_sum\_dep} and dividing by $M+1$, then writing
+$f=f^-+(N+1)^{-1}u'(S_{M,s}^1)u'(S_{M,s}^2)$, gives
+\[
+ V_f=\nu_s\bigl((\alpha u'(S_{M,s}^1)u'(S_{M,s}^2)-r)f\bigr)
+ \le\nu_s\bigl((\alpha u'(S_{M,s}^1)u'(S_{M,s}^2)-r)f^-\bigr)
+   +\frac{(\alpha|D|^2+|r|)|D|^2}{N+1}
+\]
+(\texttt{integral\_empirical\_variance\_split\_le}).
+
+\emph{Step 2 (cavity-in-$M$ estimate on $f^-$ at fixed $s$).} Since $r=\alpha\widehat r(q)$ and
+$0\le\widehat r(q)\le|D|^2$, we have $0\le r\le\alpha|D|^2$ and $|f^-|\le 2\alpha|D|^2$. Transporting
+to old-state coordinates via \texttt{interpVarStateLastSplit} and applying
+Lemma~\ref{lem:sg-tal:perceptron-interpolating-overlap}(1) at smart-path parameter $t=1$ and fixed
+$s\in[0,1]$ yields, since $\alpha u'(S_{M,s}^1)u'(S_{M,s}^2)-r=\alpha(u'(S_{M,s}^1)u'(S_{M,s}^2)-\widehat r(q))$,
+\begin{align*}
+ \nu_s\bigl((\alpha u'(S_{M,s}^1)u'(S_{M,s}^2)-r)f^-\bigr)
+ &\le\alpha K_{\rm cav}\left(V_-^{1/2}Q_{\rm ov}^{1/2}+\frac{1}{N+1}\nu_s(|f^-|)\right)\\
+ &\le\frac{1}{2}Q_{\rm ov}+\frac{1}{2}V_-+\frac{2|D|^2}{N+1}
+\end{align*}
+for $\alpha K_{\rm cav}\le 1$ and $\alpha\le 1$, using $V_-^{1/2}Q_{\rm ov}^{1/2}\le\frac12(Q_{\rm ov}+V_-)$.
+
+\emph{Step 3 (replacing $V_-$ by $V_f$ and absorbing $\frac12 V_f$).} Pointwise,
+$|f^--f|\le|D|^2/(N+1)$ and $|f^-+f|\le 4\alpha|D|^2\le 4|D|^2$, so
+$|(f^-)^2-f^2|\le 4|D|^4/(N+1)$ and $V_-\le V_f+5|D|^4/(N+1)$. Substituting this and Step~2 into
+Step~1 gives
+\[
+ V_f\le\frac{1}{2}Q_{\rm ov}+\frac{1}{2}V_f+\frac{9|D|^4+4|D|^2}{2(N+1)}.
+\]
+Subtracting $\frac12 V_f$, multiplying by $2$, and bounding $Q_{\rm ov}\le L_{\rm ov}/(N+1)$ by
+Lemma~\ref{lem:sg-tal:perceptron-interpolating-overlap}(2) concludes the proof
+(\texttt{integral\_interpolating\_deriv\_empirical\_variance\_le}).
+
+\emph{Formalization note (hypothesis audit).} Lemma~2.4.3 holds on the entire closed interval
+$s\in[0,1]$ (because neither $S_{k,s}$ nor the cavity rotation uses $S'_{k,s}$) and for all
+$N,M\in\mathbb N$, assuming only (2.7), $\alpha K(D)\le 1$, and the fixed-point equations (2.68).
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/EmpiricalVariance.lean}.
+\end{proof}
+
+\begin{definition}[Replica-symmetric functional for the perceptron, (2.74)]\label{def:sg-tal:perceptron-rs-functional}
+  \lean{SpinGlasses.perceptronRSFunctional, SpinGlasses.perceptronRSFunctional_eq_log_two_add}
+  \leanok
+\talsource{Section~2.4, Eq.~(2.74) and before Lemma~2.4.4}
+For a potential $u:\mathbb R\to\mathbb R$ and real parameters $\alpha,r,q\in\mathbb R$, define
+\[
+ F(\alpha,r,q)
+ =-\frac{1}{2}r(1-q)+\mathbb E\log\bigl(2\cosh(z\sqrt r)\bigr)
+  +\alpha\,\mathbb E\log\mathbb E_\xi\exp u\bigl(\sqrt q\,z+\sqrt{1-q}\,\xi\bigr),
+\]
+where $z,\xi\sim\mathcal N(0,1)$ are independent standard Gaussians.
+\end{definition}
+
+\begin{theorem}[Theorem 2.4.2: convergence of the perceptron pressure to the replica-symmetric formula, (2.75)]\label{thm:sg-tal:perceptron-rs-convergence}
+  \lean{SpinGlasses.abs_deriv_interpolating_pressure_add_le,
+        SpinGlasses.abs_perceptron_pressure_sub_rs_free_energy_le,
+        SpinGlasses.exists_unique_rs_fixed_point_and_abs_pressure_sub_le}
+  \leanok
+  \uses{thm:sg-tal:perceptron-rs-fixed-point, lem:sg-tal:perceptron-interpolating-overlap, prop:sg-tal:perceptron-interpolating-pressure-deriv, lem:sg-tal:perceptron-empirical-variance, def:sg-tal:perceptron-rs-functional}
+\talsource{Theorem~2.4.2, Eqs.~(2.74)--(2.75)}
+Given $D\in\mathbb R$, there exist constants $K=K(D)\ge 0$ and $C=C(D)\ge 0$, chosen before
+$N,M,u$, with the following property. Assume $u$ satisfies (2.7) with constant $D$, write
+$\alpha=M/(N+1)$ and assume $\alpha K\le 1$, and write
+\[
+ p_{N+1,M}(u)=\frac{1}{N+1}\,\mathbb E\log\sum_{\tau\in\Sigma_{N+1}}
+   \exp\left(\sum_{k<M}u\Bigl(\frac{1}{\sqrt{N+1}}\sum_{i<N+1}g_{k,i}\tau_i\Bigr)\right).
+\]
+Then the fixed-point system (2.68) has a unique solution $(q,r)\in\mathbb R^2$, and for every
+solution $(q,r)$ of (2.68),
+\[
+ \bigl|p_{N+1,M}(u)-F(\alpha,r,q)\bigr|\le\frac{C}{N+1}.
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+Write $\varphi(s)=p_{N+1,M,s}(u)+s\cdot\frac{r}{2}(1-q)$ for $s\in[0,1]$.
+
+\emph{Step 1 (Cauchy--Schwarz on $\nu_s$ and $O(1/(N+1))$ derivative bound, (2.84)).} For every
+$s\in(0,1)$, Proposition~\ref{prop:sg-tal:perceptron-interpolating-pressure-deriv}(2) and
+Theorem~\ref{thm:sg-tal:perceptron-pair-holder} (\texttt{integral\_integral\_pair\_holder\_prob}
+with conjugate exponents $2,2$) give
+\[
+ \bigl|\varphi'(s)\bigr|
+ =\left|\frac{d}{ds}p_{N+1,M,s}(u)+\frac{r}{2}(1-q)\right|
+ \le\frac{1}{2}\,\nu_s\bigl((R_{1,2}-q)^2\bigr)^{1/2}
+   \,\nu_s\!\left(\left(\frac{1}{N+1}\sum_{k<M}u'(S_{k,s}^1)\,u'(S_{k,s}^2)-r\right)^2\right)^{1/2}
+\]
+(\texttt{abs\_deriv\_interpolating\_pressure\_add\_le\_cauchy\_schwarz}). Combining
+Lemma~\ref{lem:sg-tal:perceptron-interpolating-overlap}(2) and
+Lemma~\ref{lem:sg-tal:perceptron-empirical-variance} gives $|\varphi'(s)|\le C/(N+1)$ uniformly on
+$s\in(0,1)$ (\texttt{abs\_deriv\_interpolating\_pressure\_add\_le}).
+
+\emph{Step 2 (mean-value theorem and endpoint evaluation).} By
+Proposition~\ref{prop:sg-tal:perceptron-interpolating-pressure-deriv}(1), $\varphi$ is continuous
+on $[0,1]$, so \texttt{exists\_hasDerivAt\_eq\_slope} gives $c\in(0,1)$ with
+$|\varphi(1)-\varphi(0)|=|\varphi'(c)|\le C/(N+1)$. Substituting $p_{N+1,M,1}(u)=p_{N+1,M}(u)$,
+the decoupled formula for $p_{N+1,M,0}(u)$, and $\log 2+\mathbb E\log\cosh(z\sqrt r)
+=\mathbb E\log(2\cosh(z\sqrt r))$ (\texttt{perceptronRSFunctional\_eq\_log\_two\_add}) gives
+$\varphi(1)-\varphi(0)=p_{N+1,M}(u)-F(\alpha,r,q)$
+(\texttt{abs\_perceptron\_pressure\_sub\_rs\_free\_energy\_le}). Taking the maximum of the load
+constants from Theorem~\ref{thm:sg-tal:perceptron-rs-fixed-point} and Step~1 yields existence,
+uniqueness, and the pressure bound under one small-load condition
+(\texttt{exists\_unique\_rs\_fixed\_point\_and\_abs\_pressure\_sub\_le}).
+
+\emph{Formalization note (hypothesis audit).} The Lean statement matches Theorem~2.4.2 verbatim
+under (2.7) and $\alpha K(D)\le 1$, with $N+1$ spins in place of $N$ and both $M=0$ and $N=0$
+included without extra hypotheses. No Chapter~9 input is used because this formalizes Talagrand's
+self-contained first proof.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ReplicaSymmetricFreeEnergy.lean}.
+\end{proof}
+
+\subsection{Critical-point characterization and discrete cavity increment (Lemma 2.4.4 and Eqs.~(2.87)--(2.91))}
+\label{sub:sg-tal:perceptron-rs-variational}
+
+\begin{lemma}[Lemma 2.4.4 and envelope formula (2.89): stationary calculus of $F(\alpha,r,q)$]\label{lem:sg-tal:perceptron-rs-variational}
+  \lean{SpinGlasses.hasDerivAt_perceptronRSFunctional_r,
+        SpinGlasses.integral_theta_deriv_tilted_eq_neg_half_rhat,
+        SpinGlasses.hasDerivAt_perceptronRSFunctional_q,
+        SpinGlasses.deriv_perceptronRSFunctional_eq_zero_iff,
+        SpinGlasses.hasDerivAt_perceptronRSFunctional_alpha}
+  \leanok
+  \uses{def:sg-tal:perceptron-rs-functional, thm:sg-tal:perceptron-tilted-stein}
+\talsource{Lemma~2.4.4, Eqs.~(2.87)--(2.89)}
+Let $u$ be twice differentiable with $|u|\le B$, $|u'|\le D_1$, $|u''|\le D_2$. Treat
+$F(\alpha,r,q)=\operatorname{perceptronRSFunctional}\,u\,\alpha\,r\,q$ as a function of three
+independent real variables.
+\begin{enumerate}
+\item For $r>0$ and any $\alpha,q\in\mathbb R$,
+\[
+ \frac{\partial F}{\partial r}(\alpha,r,q)
+ =\frac{1}{2}\bigl(q-\mathbb E\tanh^2(z\sqrt r)\bigr),
+\]
+so $\partial F/\partial r=0\iff q=\mathbb E\tanh^2(z\sqrt r)$.
+\item For $q\in(0,1)$ and any $\alpha,r\in\mathbb R$,
+\[
+ \frac{\partial F}{\partial q}(\alpha,r,q)
+ =\frac{1}{2}\bigl(r-\alpha\widehat r(q)\bigr),
+\]
+so $\partial F/\partial q=0\iff r=\alpha\widehat r(q)$.
+\item \emph{Envelope theorem (2.89).} If $a\mapsto(q(a),r(a))$ is differentiable at $\alpha$ with
+$r(\alpha)>0$, $q(\alpha)\in(0,1)$, and $(q(\alpha),r(\alpha))$ solving (2.87) at $\alpha$, then
+\[
+ \left.\frac{d}{da}F\bigl(a,r(a),q(a)\bigr)\right|_{a=\alpha}
+ =\mathbb E\log\mathbb E_\xi\exp u\bigl(\sqrt{q(\alpha)}\,z+\sqrt{1-q(\alpha)}\,\xi\bigr).
+\]
+\end{enumerate}
+\end{lemma}
+\begin{proof}
+  \leanok
+\emph{Step 1 (derivative in $r$).} Writing $\mathbb E\log(2\cosh(z\sqrt r))
+=\log 2+\mathbb E\log\cosh(\sqrt r\,z)$ and applying \texttt{hasDerivAt\_integral\_log\_cosh\_sqrt}
+(Gaussian IBP on $z\sim\mathcal N(0,1)$) for $r>0$ gives
+\[
+ \frac{\partial F}{\partial r}(\alpha,r,q)
+ =-\frac{1}{2}(1-q)+\frac{1}{2}\mathbb E\bigl[1-\tanh^2(z\sqrt r)\bigr]
+ =\frac{1}{2}\bigl(q-\mathbb E\tanh^2(z\sqrt r)\bigr)
+\]
+(\texttt{hasDerivAt\_perceptronRSFunctional\_r}).
+
+\emph{Step 2 (derivative in $q$ and Gaussian IBP, (2.88)).} For $q\in(0,1)$, differentiating
+$\log\mathbb E_\xi\exp u(\theta)$ under $\mathbb E_z$ with $\theta=\sqrt q\,z+\sqrt{1-q}\,\xi$ and
+$\theta'=\frac{z}{2\sqrt q}-\frac{\xi}{2\sqrt{1-q}}$ gives
+\[
+ \frac{\partial F}{\partial q}(\alpha,r,q)
+ =\frac{r}{2}+\alpha\,\mathbb E_z\!\left[\frac{\mathbb E_\xi[\theta' u'(\theta)e^{u(\theta)}]}{\mathbb E_\xi[e^{u(\theta)}]}\right].
+\]
+Applying Theorem~\ref{thm:sg-tal:perceptron-tilted-stein} (\texttt{stein\_tilted\_replica\_ratio})
+with $R=\mathrm{Unit}$, $\alpha_{\rm sh}=\sqrt q$, $W_{\rm sh}=\frac{1}{2\sqrt q}$,
+$\alpha_{\rm aux}=\sqrt{1-q}$, $W_{\rm aux}=-\frac{1}{2\sqrt{1-q}}$ gives diagonal covariance
+$\frac{1}{2}-\frac{1}{2}=0$ and off-diagonal shared covariance $\frac{1}{2}$, so the expectation
+above equals $-\frac{1}{2}\widehat r(q)$ (\texttt{integral\_theta\_deriv\_tilted\_eq\_neg\_half\_rhat}),
+yielding~(2) (\texttt{hasDerivAt\_perceptronRSFunctional\_q},
+\texttt{deriv\_perceptronRSFunctional\_eq\_zero\_iff}).
+
+\emph{Step 3 (envelope identity, (2.89)).} By the chain rule along $a\mapsto(a,r(a),q(a))$ using
+Steps~1 and~2, the coefficients multiplying $r'(\alpha)$ and $q'(\alpha)$ are
+$\frac{\partial F}{\partial r}(\alpha,r(\alpha),q(\alpha))=0$ and
+$\frac{\partial F}{\partial q}(\alpha,r(\alpha),q(\alpha))=0$, leaving
+$\frac{\partial F}{\partial\alpha}=\mathbb E\log\mathbb E_\xi\exp u(\theta)$
+(\texttt{hasDerivAt\_perceptronRSFunctional\_alpha}).
+
+\emph{Formalization note (hypothesis audit).} Only $C^2$ boundedness of $u$ (\texttt{SmartPathPotential}$_2$)
+is needed for Lemma~2.4.4 (no third derivative $u'''$), and interior hypotheses $r>0$, $q\in(0,1)$
+ensure classical differentiability of $\sqrt r$, $\sqrt q$, and $\sqrt{1-q}$.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ReplicaSymmetricVariational.lean}.
+\end{proof}
+
+\begin{proposition}[Discrete cavity increment and derivative of $\varphi(v)$ in the second proof, (2.90)--(2.91)]\label{prop:sg-tal:perceptron-second-proof-increment}
+  \lean{SpinGlasses.perceptron_pressure_succ_sub_eq,
+        SpinGlasses.hasDerivAt_second_proof_interpolation}
+  \leanok
+  \uses{thm:sg-tal:perceptron-tilted-stein}
+\talsource{Section~2.4, Eqs.~(2.90)--(2.91)}
+Write $\mu_M(g_0)$ for the quenched $M$-constraint perceptron Gibbs measure on $\Sigma_{N+1}$.
+\begin{enumerate}
+\item \emph{Exact discrete increment (2.90).} If $u$ is measurable with $|u|\le B$, then
+\[
+ p_{N+1,M+1}(u)-p_{N+1,M}(u)
+ =\frac{1}{N+1}\,\mathbb E\log\int_{\Sigma_{N+1}}
+   \exp u\Bigl(\frac{1}{\sqrt{N+1}}\sum_{i<N+1}g_{M,i}\tau_i\Bigr)\,d\mu_M(g_0)(\tau).
+\]
+\item \emph{Derivative and IBP of $\varphi(v)$, (2.91).} Assume $u$ satisfies
+\texttt{SmartPathPotential}$_2\,u\,B\,D_1\,D_2$, let $q\in[0,1]$, and for $v\in(0,1)$ set
+$S_v(\tau,\xi)=\sqrt v\,S_M(\tau)+\sqrt{1-v}\,(\sqrt q\,z+\sqrt{1-q}\,\xi)$ and
+\[
+ \varphi(v)=\mathbb E\log\int_{\Sigma_{N+1}\times\mathbb R}\exp u\bigl(S_v(\tau,\xi)\bigr)\,
+   d\bigl(\mu_M(g_0)\otimes\gamma\bigr)(\tau,\xi).
+\]
+Then $\varphi$ has derivative at $v$ equal to
+\[
+ \varphi'(v)=-\frac{1}{2}\,\mathbb E\!\left[\int_{(\Sigma_{N+1}\times\mathbb R)^2}
+   (R_{1,2}-q)\,u'(S_v^1)\,u'(S_v^2)\,
+   d\bigl((\mu_M(g_0)\otimes\gamma)^{\mathrm{tilted}(u\circ S_v)}\bigr)^{\otimes 2}\right].
+\]
+\end{enumerate}
+\end{proposition}
+\begin{proof}
+  \leanok
+\emph{Step 1 (ratio of partition functions, (2.90)).} Splitting the $(M+1)$-row Gaussian matrix into
+$(g_0,g_M)$ via \texttt{measurePreserving\_finSuccProd} writes $Z_{N+1,M+1}=Z_{N+1,M}\cdot
+\int\exp u(S_M)\,d\mu_M(g_0)$; taking $(N+1)^{-1}\mathbb E\log$ and integrating out $g_M$ in the
+$\log Z_{N+1,M}$ term gives~(1) (\texttt{perceptron\_pressure\_succ\_sub\_eq}).
+
+\emph{Step 2 (differentiation and Stein ratio IBP, (2.91)).} Differentiating $\varphi(v)$ on a
+compact subinterval of $(0,1)$ brings down $S'_v u'(S_v)$ under the tilted product law
+$(\mu_M(g_0)\otimes\gamma)^{\mathrm{tilted}(u\circ S_v)}$. At fixed $g_0$, applying
+Theorem~\ref{thm:sg-tal:perceptron-tilted-stein} (\texttt{stein\_tilted\_replica\_ratio}) on
+$R=\mathrm{Unit}$ with shared Gaussian $(g_M,z)$ and auxiliary Gaussian $\xi$ has vanishing diagonal
+covariance $\frac12(1-q)-\frac12(1-q)=0$ and off-diagonal shared covariance $\frac12(R_{1,2}-q)$,
+leaving the fresh-replica formula~(2) (\texttt{hasDerivAt\_second\_proof\_interpolation}).
+
+\emph{Not formalized (scope note on the remainder of the second proof, (2.92)--(2.93)).} Completing
+the second proof of Theorem~2.4.2 from (2.90)--(2.91) requires the centered overlap bound
+$|\nu(R_{1,2}-q)|\le K(D)/(N+1)$ (to control $\varphi'(0)=-\frac12\widehat r(q)\nu(R_{1,2}-q)$ at
+rate $1/(N+1)$ rather than $1/\sqrt{N+1}$), which Talagrand defers to the central limit theorems of
+Chapter~9. Theorem~\ref{thm:sg-tal:perceptron-rs-convergence} already establishes Theorem~2.4.2
+unconditionally via the self-contained first proof.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ReplicaSymmetricVariational.lean}.
 \end{proof}
