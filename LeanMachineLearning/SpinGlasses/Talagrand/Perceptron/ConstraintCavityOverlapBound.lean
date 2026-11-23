@@ -18,7 +18,7 @@ first moment. The moment bound comes from Hölder after combining the two disord
 @[expose] public section
 
 open MeasureTheory ProbabilityTheory
-open scoped BigOperators NNReal
+open scoped BigOperators NNReal ENNReal
 
 namespace SpinGlasses
 
@@ -395,9 +395,6 @@ theorem exists_hasDerivAt_cavity_rotation_abs_le_first_moment
     let T := SmartPathState N M × (Fin 2 → ℝ)
     let ν (p : Ω × W) := ((μ₀ p.1).prod γ_aux).tilted fun x => u (S s₀ p.2 x)
     let F (p : Ω × W) (a : R → T) := f p.1 (fun r => (a r).1)
-    let d (a b : T) :=
-      |((∑ i, ((a.1.1.1 i : ℤ) : ℝ) * ((b.1.1.1 i : ℤ) : ℝ)) +
-        ((a.1.1.2 : ℤ) : ℝ) * ((b.1.1.2 : ℤ) : ℝ)) / (N + 1) - q|
     let n : ℝ := Fintype.card R
     let L := 1 + |D| + |M₀| + |M₁| + |M₀| * |D|
     (∀ᵐ ω ∂P₀, Integrable (f ω) (Measure.pi fun _ : R => μ₀ ω)) →
@@ -412,7 +409,10 @@ theorem exists_hasDerivAt_cavity_rotation_abs_le_first_moment
       |z| ≤ (4 * n ^ 2 + n) * L ^ (Fintype.card R + 2) *
         ((2 + 1 / (N + 1)) *
           ∫ p, ∫ a, |F p a| ∂(Measure.pi fun _ : R => ν p) ∂(P₀.prod γ_sh)) := by
-  intro P₀ μ₀ γ_sh γ_aux X Y A E S Ω W T ν F d n L hfi hfi₁
+  intro P₀ μ₀ γ_sh γ_aux X Y A E S Ω W T ν F n L hfi hfi₁
+  let d (a b : T) :=
+    |((∑ i, ((a.1.1.1 i : ℤ) : ℝ) * ((b.1.1.1 i : ℤ) : ℝ)) +
+      ((a.1.1.2 : ℤ) : ℝ) * ((b.1.1.2 : ℤ) : ℝ)) / (N + 1) - q|
   have hS := measurable_cavity_rotation_field (N := N) (M := M) t q s₀
   have hV (p : Ω × W) : Measurable fun x : T => u (S s₀ p.2 x) := by
     have hp : Measurable fun x : T => (p.2, x) := measurable_const.prodMk measurable_id
@@ -452,5 +452,279 @@ theorem exists_hasDerivAt_cavity_rotation_abs_le_first_moment
   change (4 * n ^ 2 + n) * L ^ (Fintype.card R + 2) * (2 * I + 1 / (N + 1) * I) =
     (4 * n ^ 2 + n) * L ^ (Fintype.card R + 2) * ((2 + 1 / (N + 1)) * I)
   ring
+
+/-- Interior Hölder exponents for the split angle estimate. The input power moment is
+taken in the old Gibbs law, and the bound uses the two moments at the current angle. -/
+theorem exists_hasDerivAt_cavity_rotation_abs_le_holder
+    {N M : ℕ} {R : Type v} [Fintype R]
+    {t q : ℝ} (ht : t ∈ Set.Icc (0 : ℝ) 1) (hq : q ∈ Set.Icc (0 : ℝ) 1)
+    (variance : ℝ≥0) {u : ℝ → ℝ} {B D D₂ : ℝ} (hu : SmartPathPotential₂ u B D D₂)
+    (ψ : R → ℝ → ℝ) (hψd : ∀ r, Differentiable ℝ (ψ r))
+    (hψ₂d : ∀ r, Differentiable ℝ (deriv (ψ r)))
+    {M₀ M₁ M₂ : ℝ} (hM₀ : ∀ r x, |ψ r x| ≤ M₀)
+    (hM₁ : ∀ r x, |deriv (ψ r) x| ≤ M₁)
+    (hM₂ : ∀ r x, |deriv (deriv (ψ r)) x| ≤ M₂)
+    {f : SmartPathDisorder N M → (R → SmartPathState N M) → ℝ}
+    (hf : Measurable fun p : SmartPathDisorder N M × (R → SmartPathState N M) => f p.1 p.2)
+    (s₀ : ℝ) {p₁ p₂ : ℝ} (hp : p₁.HolderConjugate p₂) :
+    let P₀ := smartPathDisorder (Measure.pi fun _ : Fin M =>
+      Measure.pi fun _ : Fin N => gaussianReal 0 1) variance
+    let μ₀ (ω : SmartPathDisorder N M) :=
+      (smartPathBase N M).tilted (smartPathEnergy u t ω)
+    let γ_sh := Measure.pi fun _ : (Fin N ⊕ Unit) ⊕ Unit => gaussianReal 0 1
+    let γ_aux := Measure.pi fun _ : Fin 2 => gaussianReal 0 1
+    let X : PerceptronSpin N → (Fin N ⊕ Unit) ⊕ Unit → ℝ :=
+      fun σ => Sum.elim (cavityCoef N t σ) 0
+    let Y : (Fin N ⊕ Unit) ⊕ Unit → ℝ := Sum.elim 0 (fun _ => Real.sqrt q)
+    let A : Fin 2 → ℝ := Pi.single 0 (Real.sqrt ((1 - t) / (N + 1)))
+    let E : Fin 2 → ℝ := Pi.single 1 (Real.sqrt (1 - q))
+    let S (s : ℝ) (w : (Fin N ⊕ Unit) ⊕ Unit → ℝ)
+        (x : SmartPathState N M × (Fin 2 → ℝ)) : ℝ :=
+      Real.cos s * (X x.1.1 ⬝ᵥ w + A ⬝ᵥ x.2) +
+        Real.sin s * (Y ⬝ᵥ w + E ⬝ᵥ x.2)
+    let Ω := SmartPathDisorder N M
+    let W := (Fin N ⊕ Unit) ⊕ Unit → ℝ
+    let T := SmartPathState N M × (Fin 2 → ℝ)
+    let ν (p : Ω × W) := ((μ₀ p.1).prod γ_aux).tilted fun x => u (S s₀ p.2 x)
+    let F (p : Ω × W) (a : R → T) := f p.1 (fun r => (a r).1)
+    let d (a b : T) :=
+      |((∑ i, ((a.1.1.1 i : ℤ) : ℝ) * ((b.1.1.1 i : ℤ) : ℝ)) +
+        ((a.1.1.2 : ℤ) : ℝ) * ((b.1.1.2 : ℤ) : ℝ)) / (N + 1) - q|
+    let n : ℝ := Fintype.card R
+    let L := 1 + |D| + |M₀| + |M₁| + |M₀| * |D|
+    (∀ᵐ ω ∂P₀, Integrable (f ω) (Measure.pi fun _ : R => μ₀ ω)) →
+    Integrable (fun ω => ∫ a, |f ω a| ∂(Measure.pi fun _ : R => μ₀ ω)) P₀ →
+    (∀ᵐ ω ∂P₀, Integrable (fun a => |f ω a| ^ p₁) (Measure.pi fun _ : R => μ₀ ω)) →
+    Integrable (fun ω => ∫ a, |f ω a| ^ p₁ ∂(Measure.pi fun _ : R => μ₀ ω)) P₀ →
+    let P := P₀.prod γ_sh
+    let Aₚ := ∫ p, ∫ a, |F p a| ^ p₁ ∂(Measure.pi fun _ : R => ν p) ∂P
+    let Bₚ := ∫ p, ∫ a : Fin 2 → T, d (a 0) (a 1) ^ p₂ ∂(Measure.pi fun _ => ν p) ∂P
+    ∃ z,
+      HasDerivAt
+      (fun s => ∫ ω₀, ∫ w, ∫ σ : R → SmartPathState N M × (Fin 2 → ℝ),
+          f ω₀ (fun r => (σ r).1) * ∏ r, ψ r (S s w (σ r))
+          ∂(Measure.pi fun _ : R => ((μ₀ ω₀).prod γ_aux).tilted (fun q => u (S s w q)))
+          ∂γ_sh ∂P₀)
+        (Real.sin s₀ * Real.cos s₀ * z) s₀ ∧
+      |z| ≤ (4 * n ^ 2 + n) * L ^ (Fintype.card R + 2) *
+        (Aₚ ^ (1 / p₁) * Bₚ ^ (1 / p₂) + 1 / (N + 1) *
+          ∫ p, ∫ a, |F p a| ∂(Measure.pi fun _ : R => ν p) ∂P) := by
+  intro P₀ μ₀ γ_sh γ_aux X Y A E S Ω W T ν F d n L hfi hfi₁ hfp hfp₁ P Aₚ Bₚ
+  have hS := measurable_cavity_rotation_field (N := N) (M := M) t q s₀
+  have hV (p : Ω × W) : Measurable fun x : T => u (S s₀ p.2 x) := by
+    have hp : Measurable fun x : T => (p.2, x) := measurable_const.prodMk measurable_id
+    have hs := hS.comp hp
+    have h := hu.measurable.comp hs
+    exact h
+  have hμ : ∀ ω, IsProbabilityMeasure (μ₀ ω) := fun ω =>
+    isProbabilityMeasure_tilted_perceptron_smart_path_energy (μ := smartPathBase N M)
+      hu.measurable (fun x => hu.le x) ω t
+  have : ∀ p, IsProbabilityMeasure (ν p) := fun p =>
+    isProbabilityMeasure_tilted_of_ae_le (hV p).aemeasurable (ae_of_all _ fun _ => hu.le _)
+  obtain ⟨hFI, hF₁⟩ :=
+    integrable_integral_pi_cavity_rotation_abs t q s₀ variance hu.toSmartPathPotential hf hfi hfi₁
+  have hd (a b : T) : d a b ≤ 2 := abs_perceptron_overlap_sub_le_two hq _ _
+  have hdm : Measurable fun p : T × T => d p.1 p.2 := by
+    let b : PerceptronSpin N × PerceptronSpin N → ℝ :=
+      fun p => d ((p.1, 0), 0) ((p.2, 0), 0)
+    have hproj : Measurable fun p : T × T => (p.1.1.1, p.2.1.1) :=
+      (measurable_fst.comp (measurable_fst.comp measurable_fst)).prodMk
+        (measurable_fst.comp (measurable_fst.comp measurable_snd))
+    have h := (measurable_of_finite b).comp hproj
+    exact h
+  let fₚ (ω : Ω) (a : R → SmartPathState N M) := |f ω a| ^ p₁
+  have hfm₀ : Measurable fun x : Ω × (R → SmartPathState N M) => |f x.1 x.2| := by
+    simpa only [Real.norm_eq_abs] using hf.norm
+  have hfmₚ : Measurable fun x : Ω × (R → SmartPathState N M) => fₚ x.1 x.2 :=
+    hfm₀.pow_const p₁
+  have habs (ω : Ω) (a : R → SmartPathState N M) : |fₚ ω a| = fₚ ω a :=
+    abs_of_nonneg (Real.rpow_nonneg (abs_nonneg _) _)
+  have hfp₁' : Integrable (fun ω => ∫ a, |fₚ ω a| ∂(Measure.pi fun _ : R => μ₀ ω)) P₀ := by
+    simpa only [habs] using hfp₁
+  obtain ⟨hFn, hFnI⟩ :=
+    integrable_integral_pi_cavity_rotation_abs t q s₀ variance hu.toSmartPathPotential
+      hfmₚ hfp hfp₁'
+  have hfp_mem : ∀ᵐ z ∂P, MemLp (F z) (ENNReal.ofReal p₁) (Measure.pi fun _ : R => ν z) := by
+    filter_upwards [hFI, hFn] with z hzi hzn
+    refine (integrable_norm_rpow_iff hzi.aestronglyMeasurable
+      (by simp [hp.pos]) ENNReal.ofReal_ne_top).mp ?_
+    rw [ENNReal.toReal_ofReal hp.pos.le]
+    change Integrable (fun a : R → T => |F z a| ^ p₁) (Measure.pi fun _ : R => ν z) at hzn
+    simpa only [Real.norm_eq_abs] using hzn
+  have hfp_int : Integrable (fun z => ∫ a, |F z a| ^ p₁ ∂(Measure.pi fun _ : R => ν z)) P := by
+    change Integrable (fun z => ∫ a : R → T, |fₚ z.1 (fun r => (a r).1)|
+      ∂(Measure.pi fun _ : R => ν z)) P at hFnI
+    simpa only [habs] using hFnI
+  have hd₂m : Measurable fun a : Fin 2 → T => d (a 0) (a 1) := by
+    have hpair : Measurable fun a : Fin 2 → T => (a 0, a 1) :=
+      (measurable_pi_apply 0).prodMk (measurable_pi_apply 1)
+    have h := hdm.comp hpair
+    exact h
+  have hdq_mem : ∀ᵐ z ∂P, MemLp (fun a : Fin 2 → T => d (a 0) (a 1))
+      (ENNReal.ofReal p₂) (Measure.pi fun _ : Fin 2 => ν z) := by
+    exact ae_of_all _ fun z => MemLp.of_bound hd₂m.aestronglyMeasurable 2
+      (ae_of_all _ fun a => by rw [Real.norm_of_nonneg (abs_nonneg _)]; exact hd _ _)
+  let G (_ : Ω × W) (a : Fin 2 → T) := d (a 0) (a 1) ^ p₂
+  have hGm : Measurable fun z : (Ω × W) × (Fin 2 → T) => G z.1 z.2 :=
+    (hd₂m.pow_const p₂).comp measurable_snd
+  have hZ := measurable_integral_pi_cavity_rotation t q s₀ hu.measurable (fun x => hu.le x)
+    (F := G) hGm
+  have hdq_int : Integrable (fun z => ∫ a : Fin 2 → T, d (a 0) (a 1) ^ p₂
+      ∂(Measure.pi fun _ : Fin 2 => ν z)) P := by
+    refine Integrable.of_bound hZ.aestronglyMeasurable (2 ^ p₂) (ae_of_all _ fun z => ?_)
+    rw [Real.norm_eq_abs]
+    exact abs_integral_le_of_forall_abs_le _ fun a => by
+      rw [abs_of_nonneg (Real.rpow_nonneg (abs_nonneg _) _)]
+      exact Real.rpow_le_rpow (abs_nonneg _) (hd _ _) hp.symm.pos.le
+  have hAₚ : 0 ≤ Aₚ := integral_nonneg fun _ => integral_nonneg fun _ =>
+    Real.rpow_nonneg (abs_nonneg _) _
+  have hBₚ : 0 ≤ Bₚ := integral_nonneg fun _ => integral_nonneg fun _ =>
+    Real.rpow_nonneg (abs_nonneg _) _
+  have hpair (ι : Type v) [Fintype ι] (e : R → ι) (he : Function.Injective e)
+      (i j : ι) (hij : i ≠ j) :
+      ∫ z, ∫ a : ι → T, |F z (a ∘ e)| * d (a i) (a j)
+        ∂(Measure.pi fun _ : ι => ν z) ∂P ≤ Aₚ ^ (1 / p₁) * Bₚ ^ (1 / p₂) :=
+    integral_integral_pair_holder_prob P ν he hij (f := F) (d := d) (fun _ _ => abs_nonneg _) hp
+      hfp_mem hfp_int hdq_mem hdq_int
+  exact exists_hasDerivAt_cavity_rotation_abs_le_of_pair_bound ht hq variance hu ψ
+    hψd hψ₂d hM₀ hM₁ hM₂ hf s₀
+    (mul_nonneg (Real.rpow_nonneg hAₚ _) (Real.rpow_nonneg hBₚ _)) hfi hfi₁ hpair
+
+/-- The split angle bound when the observable is essentially bounded. -/
+theorem exists_hasDerivAt_cavity_rotation_abs_le_of_ae_abs_le
+    {N M : ℕ} {R : Type v} [Fintype R]
+    {t q : ℝ} (ht : t ∈ Set.Icc (0 : ℝ) 1) (hq : q ∈ Set.Icc (0 : ℝ) 1)
+    (variance : ℝ≥0) {u : ℝ → ℝ} {B D D₂ : ℝ} (hu : SmartPathPotential₂ u B D D₂)
+    (ψ : R → ℝ → ℝ) (hψd : ∀ r, Differentiable ℝ (ψ r))
+    (hψ₂d : ∀ r, Differentiable ℝ (deriv (ψ r)))
+    {M₀ M₁ M₂ : ℝ} (hM₀ : ∀ r x, |ψ r x| ≤ M₀)
+    (hM₁ : ∀ r x, |deriv (ψ r) x| ≤ M₁)
+    (hM₂ : ∀ r x, |deriv (deriv (ψ r)) x| ≤ M₂)
+    {f : SmartPathDisorder N M → (R → SmartPathState N M) → ℝ}
+    (hf : Measurable fun p : SmartPathDisorder N M × (R → SmartPathState N M) => f p.1 p.2)
+    (s₀ : ℝ) {M_f : ℝ} (hMf : 0 ≤ M_f) :
+    let P₀ := smartPathDisorder (Measure.pi fun _ : Fin M =>
+      Measure.pi fun _ : Fin N => gaussianReal 0 1) variance
+    let μ₀ (ω : SmartPathDisorder N M) :=
+      (smartPathBase N M).tilted (smartPathEnergy u t ω)
+    let γ_sh := Measure.pi fun _ : (Fin N ⊕ Unit) ⊕ Unit => gaussianReal 0 1
+    let γ_aux := Measure.pi fun _ : Fin 2 => gaussianReal 0 1
+    let X : PerceptronSpin N → (Fin N ⊕ Unit) ⊕ Unit → ℝ :=
+      fun σ => Sum.elim (cavityCoef N t σ) 0
+    let Y : (Fin N ⊕ Unit) ⊕ Unit → ℝ := Sum.elim 0 (fun _ => Real.sqrt q)
+    let A : Fin 2 → ℝ := Pi.single 0 (Real.sqrt ((1 - t) / (N + 1)))
+    let E : Fin 2 → ℝ := Pi.single 1 (Real.sqrt (1 - q))
+    let S (s : ℝ) (w : (Fin N ⊕ Unit) ⊕ Unit → ℝ)
+        (x : SmartPathState N M × (Fin 2 → ℝ)) : ℝ :=
+      Real.cos s * (X x.1.1 ⬝ᵥ w + A ⬝ᵥ x.2) +
+        Real.sin s * (Y ⬝ᵥ w + E ⬝ᵥ x.2)
+    let Ω := SmartPathDisorder N M
+    let W := (Fin N ⊕ Unit) ⊕ Unit → ℝ
+    let T := SmartPathState N M × (Fin 2 → ℝ)
+    let ν (p : Ω × W) := ((μ₀ p.1).prod γ_aux).tilted fun x => u (S s₀ p.2 x)
+    let F (p : Ω × W) (a : R → T) := f p.1 (fun r => (a r).1)
+    let d (a b : T) :=
+      |((∑ i, ((a.1.1.1 i : ℤ) : ℝ) * ((b.1.1.1 i : ℤ) : ℝ)) +
+        ((a.1.1.2 : ℤ) : ℝ) * ((b.1.1.2 : ℤ) : ℝ)) / (N + 1) - q|
+    let n : ℝ := Fintype.card R
+    let L := 1 + |D| + |M₀| + |M₁| + |M₀| * |D|
+    (∀ᵐ ω ∂P₀, ∀ᵐ a ∂(Measure.pi fun _ : R => μ₀ ω), |f ω a| ≤ M_f) →
+    let P := P₀.prod γ_sh
+    let J := ∫ p, ∫ a : Fin 2 → T, d (a 0) (a 1) ∂(Measure.pi fun _ => ν p) ∂P
+    ∃ z,
+      HasDerivAt
+      (fun s => ∫ ω₀, ∫ w, ∫ σ : R → SmartPathState N M × (Fin 2 → ℝ),
+          f ω₀ (fun r => (σ r).1) * ∏ r, ψ r (S s w (σ r))
+          ∂(Measure.pi fun _ : R => ((μ₀ ω₀).prod γ_aux).tilted (fun q => u (S s w q)))
+          ∂γ_sh ∂P₀)
+        (Real.sin s₀ * Real.cos s₀ * z) s₀ ∧
+      |z| ≤ (4 * n ^ 2 + n) * L ^ (Fintype.card R + 2) *
+        (M_f * J + 1 / (N + 1) *
+          ∫ p, ∫ a, |F p a| ∂(Measure.pi fun _ : R => ν p) ∂P) := by
+  intro P₀ μ₀ γ_sh γ_aux X Y A E S Ω W T ν F d n L hOld P J
+  have hS := measurable_cavity_rotation_field (N := N) (M := M) t q s₀
+  have hV (p : Ω × W) : Measurable fun x : T => u (S s₀ p.2 x) := by
+    have hp : Measurable fun x : T => (p.2, x) := measurable_const.prodMk measurable_id
+    have hs := hS.comp hp
+    have h := hu.measurable.comp hs
+    exact h
+  have hμ : ∀ ω, IsProbabilityMeasure (μ₀ ω) := fun ω =>
+    isProbabilityMeasure_tilted_perceptron_smart_path_energy (μ := smartPathBase N M)
+      hu.measurable (fun x => hu.le x) ω t
+  have : ∀ p, IsProbabilityMeasure (ν p) := fun p =>
+    isProbabilityMeasure_tilted_of_ae_le (hV p).aemeasurable (ae_of_all _ fun _ => hu.le _)
+  have hd (a b : T) : d a b ≤ 2 := abs_perceptron_overlap_sub_le_two hq _ _
+  have hdm : Measurable fun p : T × T => d p.1 p.2 := by
+    let b : PerceptronSpin N × PerceptronSpin N → ℝ :=
+      fun p => d ((p.1, 0), 0) ((p.2, 0), 0)
+    have hproj : Measurable fun p : T × T => (p.1.1.1, p.2.1.1) :=
+      (measurable_fst.comp (measurable_fst.comp measurable_fst)).prodMk
+        (measurable_fst.comp (measurable_fst.comp measurable_snd))
+    have h := (measurable_of_finite b).comp hproj
+    exact h
+  have hd₂m : Measurable fun a : Fin 2 → T => d (a 0) (a 1) := by
+    have hpair : Measurable fun a : Fin 2 → T => (a 0, a 1) :=
+      (measurable_pi_apply 0).prodMk (measurable_pi_apply 1)
+    have h := hdm.comp hpair
+    exact h
+  let G (_ : Ω × W) (a : Fin 2 → T) := d (a 0) (a 1)
+  have hGm : Measurable fun z : (Ω × W) × (Fin 2 → T) => G z.1 z.2 :=
+    hd₂m.comp measurable_snd
+  have hZ := measurable_integral_pi_cavity_rotation t q s₀ hu.measurable (fun x => hu.le x)
+    (F := G) hGm
+  have hJ₀ : 0 ≤ J := integral_nonneg fun _ => integral_nonneg fun _ => abs_nonneg _
+  have hP₀ : IsProbabilityMeasure P₀ := by
+    dsimp [P₀]
+    rw [smartPathDisorder_eq]
+    infer_instance
+  have : IsProbabilityMeasure P := by
+    change IsProbabilityMeasure (P₀.prod γ_sh)
+    infer_instance
+  have hfωm (ω : Ω) : Measurable (f ω) := by
+    have hProd : Measurable fun a : R → SmartPathState N M => (ω, a) :=
+      measurable_const.prodMk measurable_id
+    exact hf.comp hProd
+  have hfi : ∀ᵐ ω ∂P₀, Integrable (f ω) (Measure.pi fun _ : R => μ₀ ω) := by
+    filter_upwards [hOld] with ω hω
+    exact Integrable.of_bound (hfωm ω).aestronglyMeasurable M_f (by simpa using hω)
+  have hfAbsM : Measurable fun p : Ω × (R → SmartPathState N M) => |f p.1 p.2| := by
+    simpa only [Real.norm_eq_abs] using hf.norm
+  have hOld₁ := measurable_integral_pi_tilted (μ := smartPathBase N M)
+    (E := fun ω => smartPathEnergy u t ω) (G := fun ω a => |f ω a|)
+    (measurable_smartPathEnergy hu.measurable t) hfAbsM
+  have hfi₁ : Integrable (fun ω => ∫ a, |f ω a| ∂(Measure.pi fun _ : R => μ₀ ω)) P₀ := by
+    refine Integrable.of_bound hOld₁.aestronglyMeasurable M_f ?_
+    filter_upwards [hOld] with ω hω
+    have hω' : ∀ᵐ a ∂(Measure.pi fun _ : R => μ₀ ω), ‖|f ω a|‖ ≤ M_f := by
+      simpa only [Real.norm_eq_abs, abs_abs] using hω
+    simpa using norm_integral_le_of_norm_le_const hω'
+  have hFa : ∀ᵐ p ∂P, ∀ᵐ a ∂(Measure.pi fun _ : R => ν p), |F p a| ≤ M_f := by
+    have hproj : MeasurePreserving Prod.fst P P₀ := measurePreserving_fst
+    filter_upwards [hproj.quasiMeasurePreserving.ae hOld] with p hp
+    have hprojT : MeasurePreserving Prod.fst ((μ₀ p.1).prod γ_aux) (μ₀ p.1) :=
+      measurePreserving_fst
+    have hprojR : MeasurePreserving (fun a : R → T => fun r => (a r).1)
+        (Measure.pi fun _ : R => (μ₀ p.1).prod γ_aux) (Measure.pi fun _ : R => μ₀ p.1) :=
+      measurePreserving_pi _ _ fun _ => hprojT
+    have hbase : ∀ᵐ a : R → T ∂(Measure.pi fun _ : R => (μ₀ p.1).prod γ_aux),
+        |F p a| ≤ M_f := hprojR.quasiMeasurePreserving.ae hp
+    change ∀ᵐ a ∂(Measure.pi fun _ : R =>
+      ((μ₀ p.1).prod γ_aux).tilted fun x => u (S s₀ p.2 x)), |F p a| ≤ M_f
+    rw [pi_tilted_eq_tilted_pi]
+    exact (tilted_absolutelyContinuous _ _).ae_le hbase
+  have hFm (p : Ω × W) :
+      AEStronglyMeasurable (F p) (Measure.pi fun _ : R => ν p) := by
+    have ha : Measurable fun a : R → T => (p.1, fun r : R => (a r).1) :=
+      measurable_const.prodMk (Measurable.of_eval fun r =>
+        measurable_fst.comp (measurable_pi_apply r))
+    exact (hf.comp ha).aestronglyMeasurable
+  have hpair (ι : Type v) [Fintype ι] (e : R → ι) (he : Function.Injective e)
+      (i j : ι) (hij : i ≠ j) :
+      ∫ p, ∫ a : ι → T, |F p (a ∘ e)| * d (a i) (a j)
+        ∂(Measure.pi fun _ : ι => ν p) ∂P ≤ M_f * J :=
+    integral_integral_pair_holder_top_one P ν he hij (f := F) hFm hFa
+      (d := d) (fun _ _ => abs_nonneg _) hdm hd hZ.aestronglyMeasurable
+  exact exists_hasDerivAt_cavity_rotation_abs_le_of_pair_bound ht hq variance hu ψ
+    hψd hψ₂d hM₀ hM₁ hM₂ hf s₀ (mul_nonneg hMf hJ₀) hfi hfi₁ hpair
 
 end SpinGlasses

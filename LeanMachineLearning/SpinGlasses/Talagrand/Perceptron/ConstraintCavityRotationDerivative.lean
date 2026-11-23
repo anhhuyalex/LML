@@ -269,4 +269,76 @@ theorem hasDerivAt_integral_integral_pi_cavity_rotation_ibp
     ψ hψd hψ₂d hM₀ hM₁ hM₂ hfi hfi' hGm s₀
   exact h
 
+/-- The state split followed by the disorder split transports the full cavity average,
+including observables of both the original and the fresh coordinates. -/
+theorem integral_pi_cavity_rotation_eq_integral_cavity_extended
+    {N M : ℕ} {R : Type*} [Fintype R]
+    {u : ℝ → ℝ} (hu : Measurable u) {D : ℝ} (hD : ∀ x, u x ≤ D)
+    (t q s : ℝ) (variance : ℝ≥0)
+    {G : (SmartPathDisorder N M × ((Fin N ⊕ Unit) ⊕ Unit → ℝ)) →
+        (R → SmartPathState N M × (Fin 2 → ℝ)) → ℝ}
+    (hG : Measurable fun p : (SmartPathDisorder N M × ((Fin N ⊕ Unit) ⊕ Unit → ℝ)) ×
+          (R → SmartPathState N M × (Fin 2 → ℝ)) => G p.1 p.2) :
+    let Ω := SmartPathDisorder N M
+    let W := (Fin N ⊕ Unit) ⊕ Unit → ℝ
+    let T := SmartPathState N M × (Fin 2 → ℝ)
+    let Ωfull := SmartPathDisorder N (M + 1) × ℝ
+    let Tfull := SmartPathState N (M + 1) × ℝ
+    let splitΩ (p : Ωfull) : Ω × W :=
+      (((Fin.init p.1.1.1, Fin.init p.1.1.2), p.1.2),
+        Sum.elim (Sum.elim (p.1.1.1 (Fin.last M)) (fun _ => p.1.1.2 (Fin.last M)))
+          (fun _ => p.2))
+    let splitT (x : Tfull) : T :=
+      ((x.1.1, Fin.init x.1.2), ![x.1.2 (Fin.last M), x.2])
+    let P₀ : Measure Ω := smartPathDisorder (Measure.pi fun _ : Fin M =>
+      Measure.pi fun _ : Fin N => gaussianReal 0 1) variance
+    let Pfull : Measure Ωfull := (smartPathDisorder (Measure.pi fun _ : Fin (M + 1) =>
+      Measure.pi fun _ : Fin N => gaussianReal 0 1) variance).prod (gaussianReal 0 1)
+    let γ_sh : Measure W := Measure.pi fun _ => gaussianReal 0 1
+    let γ_aux : Measure (Fin 2 → ℝ) := Measure.pi fun _ => gaussianReal 0 1
+    let μ₀ (ω : Ω) := (smartPathBase N M).tilted (smartPathEnergy u t ω)
+    let X : PerceptronSpin N → W := fun σ => Sum.elim (cavityCoef N t σ) 0
+    let Y : W := Sum.elim 0 (fun _ => Real.sqrt q)
+    let A : Fin 2 → ℝ := Pi.single 0 (Real.sqrt ((1 - t) / (N + 1)))
+    let E : Fin 2 → ℝ := Pi.single 1 (Real.sqrt (1 - q))
+    let S (w : W) (x : T) : ℝ :=
+      Real.cos s * (X x.1.1 ⬝ᵥ w + A ⬝ᵥ x.2) +
+        Real.sin s * (Y ⬝ᵥ w + E ⬝ᵥ x.2)
+    let ν (p : Ω × W) := ((μ₀ p.1).prod γ_aux).tilted fun x => u (S p.2 x)
+    let νfull (p : Ωfull) := ((smartPathBase N (M + 1)).prod (gaussianReal 0 1)).tilted
+      fun x : Tfull => smartPathEnergy u t (splitΩ p).1 (splitT x).1 +
+        u (Real.cos s * smartPathField t p.1 x.1 (Fin.last M) +
+          Real.sin s * (Real.sqrt q * p.2 + Real.sqrt (1 - q) * x.2))
+    ∫ p, ∫ a, G p a ∂(Measure.pi fun _ : R => ν p) ∂(P₀.prod γ_sh) =
+      ∫ p, ∫ a, G (splitΩ p) (fun r => splitT (a r))
+        ∂(Measure.pi fun _ : R => νfull p) ∂Pfull := by
+  intro Ω W T Ωfull Tfull splitΩ splitT P₀ Pfull γ_sh γ_aux μ₀ X Y A E S ν νfull
+  let J (p : Ω × W) := ∫ a, G p a ∂(Measure.pi fun _ : R => ν p)
+  have hJ : Measurable J := measurable_integral_pi_cavity_rotation t q s hu hD (F := G) hG
+  have hmp : MeasurePreserving splitΩ Pfull (P₀.prod γ_sh) :=
+    measurePreserving_smartPathDisorder_cavitySplit N M variance
+  have htransport : ∫ p, J (splitΩ p) ∂Pfull = ∫ p, J p ∂(P₀.prod γ_sh) :=
+    hmp.integral_comp_of_aestronglyMeasurable hJ.aestronglyMeasurable
+  rw [← htransport]
+  refine integral_congr_ae (ae_of_all _ fun p => ?_)
+  have hs (x : T) : S (splitΩ p).2 x = Real.cos s *
+        (cavityCoef N t x.1.1 ⬝ᵥ
+          Sum.elim (p.1.1.1 (Fin.last M)) (fun _ : Unit => p.1.1.2 (Fin.last M)) +
+          Real.sqrt ((1 - t) / (N + 1)) * x.2 0) +
+        Real.sin s * (Real.sqrt q * p.2 + Real.sqrt (1 - q) * x.2 1) := by
+    simp [S, X, Y, A, E, splitΩ, dotProduct]
+  have hν : ν (splitΩ p) = (((μ₀ (splitΩ p).1).prod γ_aux).tilted
+      fun x : T => u (Real.cos s *
+        (cavityCoef N t x.1.1 ⬝ᵥ
+          Sum.elim (p.1.1.1 (Fin.last M)) (fun _ : Unit => p.1.1.2 (Fin.last M)) +
+          Real.sqrt ((1 - t) / (N + 1)) * x.2 0) +
+        Real.sin s * (Real.sqrt q * p.2 + Real.sqrt (1 - q) * x.2 1))) := by
+    change (((μ₀ (splitΩ p).1).prod γ_aux).tilted fun x => u (S (splitΩ p).2 x)) = _
+    simp only [hs]
+    rfl
+  change (∫ a, G (splitΩ p) a ∂(Measure.pi fun _ : R => ν (splitΩ p))) =
+    ∫ a, G (splitΩ p) (fun r => splitT (a r)) ∂(Measure.pi fun _ : R => νfull p)
+  rw [hν]
+  exact (cavity_extended_replica_split_eq hu hD t q s p.1 p.2 (G (splitΩ p))).symm
+
 end SpinGlasses

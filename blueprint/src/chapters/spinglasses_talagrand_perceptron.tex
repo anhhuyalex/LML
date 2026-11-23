@@ -2689,7 +2689,9 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityRotationD
         MeasureTheory.abs_integral_replica_groups_le,
         SpinGlasses.integrable_integral_pi_cavity_rotation_abs,
         SpinGlasses.exists_hasDerivAt_cavity_rotation_abs_le_of_pair_bound,
-        SpinGlasses.exists_hasDerivAt_cavity_rotation_abs_le_first_moment}
+        SpinGlasses.exists_hasDerivAt_cavity_rotation_abs_le_first_moment,
+        SpinGlasses.exists_hasDerivAt_cavity_rotation_abs_le_holder,
+        SpinGlasses.exists_hasDerivAt_cavity_rotation_abs_le_of_ae_abs_le}
   \leanok
   \uses{thm:sg-tal:perceptron-split-cavity-rotation,thm:sg-tal:perceptron-pair-holder}
 Keep the hypotheses and split law of Theorem~\ref{thm:sg-tal:perceptron-split-cavity-rotation},
@@ -2704,7 +2706,19 @@ $\sin s\cos s\,z_s$ with
  |z_s|\le (4n^2+n)L^{n+2}\left(m+\frac{I}{N+1}\right).
 \]
 In particular the estimate holds with $m=2I$, giving the $(1,\infty)$ endpoint in split
-coordinates, with $N+1$ the full spin count.
+coordinates, with $N+1$ the full spin count. For conjugate finite exponents
+$p_1,p_2>1$, if the old Gibbs law has integrable $p_1$-moment of $f$, one may take
+[
+ m=left(mathbb E_{
+m split}|f|^{p_1}
+ight)^{1/p_1}
+   left(mathbb E_{
+m split}|R_{12}-q|^{p_2}
+ight)^{1/p_2}.
+]
+The second moment expression uses only two replicas. If $|f|\le M_f$ almost
+everywhere under the old law, one may take $m=M_f\mathbb E_{\rm split}|R_{12}-q|$,
+the $(\infty,1)$ endpoint.
 \end{theorem}
 \begin{proof}
   \leanok
@@ -2733,22 +2747,52 @@ group has $n$ summands with coefficient $n$. The last term has coefficient $n(n+
 \[
  n^2+n^2+n^2+n(n+1)=4n^2+n.
 \]
-The endpoint uses $|R_{ij}-q|\le2$ and the same replica marginal. This estimates the
-angle derivative in split coordinates. The book's derivative is in $v=\cos^2s$ and its
+The first-moment endpoint uses $|R_{ij}-q|\le2$ and the same replica marginal.
+For finite exponents apply Step~1 to $|f|^{p_1}$. The $p_2$-moment of the overlap
+deviation is finite by $|R_{ij}-q|\le2$. Apply
+Theorem~\ref{thm:sg-tal:perceptron-pair-holder} to the two moments, projecting out unused replicas.
+For $(\infty,1)$, the almost-everywhere bound persists after attaching independent
+coordinates and tilting by $u(S_s)$, since the tilted replica law is absolutely continuous
+with respect to the base product law. The same bound gives integrability of $f$, and
+taking the two-replica marginal gives the first moment of the overlap deviation.
+These estimates concern the angle derivative in split coordinates. The book's derivative is in $v=\cos^2s$ and its
 moments are written in the original cavity coordinates.
 Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityOverlapBound.lean}
 and \texttt{ForMathlib/Probability/GibbsReplicaPairBound.lean}.
 \end{proof}
 
-\begin{remark}[Status of Lemma~2.3.2 and the arithmetic still to be done]\label{rem:sg-tal:perceptron-lemma-232-status}
-The Gaussian analysis of Lemma~2.3.2 is now formalized \emph{in the model-free form}: Theorems~\ref{thm:sg-tal:perceptron-tilted-rotation-ibp}, \ref{thm:sg-tal:perceptron-tilted-rotation-ibp-avg} and~\ref{thm:sg-tal:perceptron-pair-holder} give, for any old-state family, an exact formula for the angle derivative of the quenched average
-and the H\"older step. The remaining estimates for (2.40) are:
-(a) transport the split-law derivative of Theorem~\ref{thm:sg-tal:perceptron-split-cavity-rotation}
-and the moment expressions along the cavity state and disorder splits; the covariance is
-$C(\sigma,\tau)=q-R^t(\sigma,\tau)$ exactly, and $|R^t-R|\le1/(N+1)$;
-(b) apply the remaining H\"older exponents to the mixed moment in Theorem~\ref{thm:sg-tal:perceptron-split-cavity-pair-bound};
-(c) the change of the angle $s$ into the book's $v=\cos^2s$, for which $\sin s\cos s$ cancels against $dv/ds=-2\sin s\cos s$ by \texttt{HasDerivAt.comp\_arccos\_sqrt\_of\_sin\_cos}, giving $-\tfrac12$ times the four groups, i.e.\ the form (2.53) with $R^t-q=-C$.
-The moving factor $B_v=u'(S_v^1)u'(S_v^2)$ is the case $\psi_1=\psi_2=u'$ of the same theorem.
+\begin{theorem}[Transport of the split cavity average]\label{thm:sg-tal:perceptron-split-cavity-transport}
+  \lean{SpinGlasses.integral_pi_cavity_rotation_eq_integral_cavity_extended}
+  \leanok
+  \uses{thm:sg-tal:perceptron-split-cavity-rotation}
+Let $G$ be jointly measurable in the split disorder and replica coordinates. Assume $u$
+is measurable and bounded above. Its split cavity average, with the old and fresh disorder
+integrated against their product law, equals the full cavity average of $G$ composed with
+the disorder and replica splits.
+\end{theorem}
+\begin{proof}
+  \leanok
+\emph{Step 1 (replicas).} At each full disorder point, split the old state and the two
+fresh auxiliary Gaussians in each replica. The inner tilted integral changes by the
+state-space identity. The sums of the two disjoint coefficient blocks give the same
+last-row and replacement fields in these coordinates.
+
+\emph{Step 2 (disorder).} The joint split average is a measurable function of the
+split disorder. Composing with the measure-preserving disorder split therefore gives
+the same integral against the full disorder law.
+\end{proof}
+
+\begin{remark}[Status of Lemma~2.3.2]\label{rem:sg-tal:perceptron-lemma-232-status}
+Theorems~\ref{thm:sg-tal:perceptron-split-cavity-rotation}
+and~\ref{thm:sg-tal:perceptron-split-cavity-pair-bound} give the exact angle derivative
+and its bound under the split disorder law. The moving factor $B_v=u'(S_v^1)u'(S_v^2)$
+is the case $\psi_1=\psi_2=u'$ with the other factors equal to one.
+To obtain (2.40), use Theorem~\ref{thm:sg-tal:perceptron-split-cavity-transport}
+and Fubini to express the iterated average and moments in the full cavity law. Under the
+change of variable $v=\cos^2s$, the factor $\sin s\cos s$ cancels against
+$dv/ds=-2\sin s\cos s$, leaving $-\tfrac12$ times the four groups. This gives the sign
+in (2.53) since $R^t-q=-C$. The change of variable is available as
+\texttt{HasDerivAt.comp\_arccos\_sqrt\_of\_sin\_cos}.
 \end{remark}
 
 
