@@ -210,6 +210,66 @@ theorem abs_cavityCoef_dotProduct_sub_overlap_le (ht : t ∈ Set.Icc (0 : ℝ) 1
   rw [this, abs_div, abs_of_pos hN, abs_mul, hεε, mul_one, abs_of_nonpos (by linarith [ht.2])]
   exact div_le_div_of_nonneg_right (by linarith [ht.1]) hN.le
 
+/-- The shared and replica-specific coefficient vectors for `S_{M,t}` and `θ` have disjoint
+supports. Each field has unit total variance. The difference of the shared covariances is
+`q - R^t(σ, τ)`. These are the covariance hypotheses for the rotation in Lemma 2.3.2. -/
+theorem cavity_rotation_dotProducts {q : ℝ} (ht : t ∈ Set.Icc (0 : ℝ) 1)
+    (hq : q ∈ Set.Icc (0 : ℝ) 1) :
+    let X : PerceptronSpin N → (Fin N ⊕ Unit) ⊕ Unit → ℝ :=
+      fun σ => Sum.elim (cavityCoef N t σ) 0
+    let Y : (Fin N ⊕ Unit) ⊕ Unit → ℝ := Sum.elim 0 (fun _ => Real.sqrt q)
+    let A : Fin 2 → ℝ := Pi.single 0 (Real.sqrt ((1 - t) / (N + 1)))
+    let B : Fin 2 → ℝ := Pi.single 1 (Real.sqrt (1 - q))
+    (∀ σ, X σ ⬝ᵥ Y = 0) ∧ A ⬝ᵥ B = 0 ∧
+      (∀ σ, X σ ⬝ᵥ X σ + A ⬝ᵥ A = 1) ∧ Y ⬝ᵥ Y + B ⬝ᵥ B = 1 ∧
+      (∀ σ τ, Y ⬝ᵥ Y - X σ ⬝ᵥ X τ = q - cavityCoef N t σ ⬝ᵥ cavityCoef N t τ) := by
+  intro X Y A B
+  have hY : Y ⬝ᵥ Y = q := by
+    dsimp only [Y]
+    rw [sumElim_dotProduct_sumElim, zero_dotProduct, zero_add]
+    simpa [dotProduct, sq] using Real.sq_sqrt hq.1
+  have hX (σ τ : PerceptronSpin N) : X σ ⬝ᵥ X τ = cavityCoef N t σ ⬝ᵥ cavityCoef N t τ := by
+    simp [X, sumElim_dotProduct_sumElim]
+  refine ⟨fun σ => ?_, ?_, fun σ => ?_, ?_, fun σ τ => by rw [hY, hX]⟩
+  · simp [X, Y, sumElim_dotProduct_sumElim]
+  · simp [A, B]
+  · rw [hX]
+    simpa [A, single_dotProduct, sq] using cavityCoef_dotProduct_self_add ht σ
+  · rw [hY]
+    have hb : B ⬝ᵥ B = 1 - q := by
+      simpa [B, single_dotProduct, sq] using Real.sq_sqrt (sub_nonneg.mpr hq.2)
+    rw [hb, add_sub_cancel]
+
+/-- The covariance difference in the cavity rotation is bounded by the deviation of the full
+overlap from `q` plus the contribution of the last spin. -/
+theorem abs_sub_cavityCoef_dotProduct_le (ht : t ∈ Set.Icc (0 : ℝ) 1)
+    (q : ℝ) (σ τ : PerceptronSpin N) :
+    |q - cavityCoef N t σ ⬝ᵥ cavityCoef N t τ| ≤
+      |((∑ i, ((σ.1 i : ℤ) : ℝ) * ((τ.1 i : ℤ) : ℝ)) +
+        ((σ.2 : ℤ) : ℝ) * ((τ.2 : ℤ) : ℝ)) / (N + 1) - q| + 1 / (N + 1) := by
+  rw [abs_sub_comm q]
+  refine (abs_sub_le _ _ _).trans ((add_le_add
+    (abs_cavityCoef_dotProduct_sub_overlap_le ht σ τ) le_rfl).trans_eq ?_)
+  exact add_comm _ _
+
+/-- In the cavity coordinates the full overlap stays within distance two of any `q ∈ [0,1]`.
+Apply the usual normalized dot product bound after appending the last spin. -/
+theorem abs_perceptron_overlap_sub_le_two {q : ℝ} (hq : q ∈ Set.Icc (0 : ℝ) 1)
+    (σ τ : PerceptronSpin N) :
+    |((∑ i, ((σ.1 i : ℤ) : ℝ) * ((τ.1 i : ℤ) : ℝ)) +
+      ((σ.2 : ℤ) : ℝ) * ((τ.2 : ℤ) : ℝ)) / (N + 1) - q| ≤ 2 := by
+  let σ' : Fin (N + 1) → ℤˣ := Fin.snoc σ.1 σ.2
+  let τ' : Fin (N + 1) → ℤˣ := Fin.snoc τ.1 τ.2
+  have h := abs_card_inv_mul_dotProduct_le_one
+    (fun i => ((σ' i : ℤ) : ℝ)) (fun i => ((τ' i : ℤ) : ℝ))
+    (fun i => (abs_units_cast_eq_one (σ' i)).le)
+    (fun i => (abs_units_cast_eq_one (τ' i)).le)
+  have hR : |((∑ i, ((σ.1 i : ℤ) : ℝ) * ((τ.1 i : ℤ) : ℝ)) +
+      ((σ.2 : ℤ) : ℝ) * ((τ.2 : ℤ) : ℝ)) / (N + 1)| ≤ 1 := by
+    simpa [σ', τ', dotProduct, Fin.sum_univ_castSucc, div_eq_mul_inv, mul_comm] using h
+  have hq' : |q| ≤ 1 := by simpa [abs_of_nonneg hq.1] using hq.2
+  exact (abs_sub _ _).trans ((add_le_add hR hq').trans_eq (by norm_num))
+
 end Perceptron
 
 end SpinGlasses

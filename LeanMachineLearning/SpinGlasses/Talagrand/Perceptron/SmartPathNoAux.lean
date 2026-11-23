@@ -329,4 +329,30 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path_noAux_exchangeable
   simp only [hk, hd, Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
   ring
 
+/-- **Exercise 2.2.4, Gaussian rows.** Every row gives the same contribution as the
+chosen row `j₀` because the product disorder law is unchanged by the row swap. -/
+theorem hasDerivAt_integral_integral_pi_perceptron_smart_path_noAux_gaussian_rows {R : Type*}
+    [Fintype R] [LinearOrder R] {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) 1) {u : ℝ → ℝ}
+    {B D D₂ : ℝ} (hu : SmartPathPotential₂ u B D D₂) (v : ℝ≥0)
+    (j₀ : Fin M)
+    (f : (R → PerceptronSpin N) → ℝ) :
+    let Pold := Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin N => gaussianReal 0 1
+    HasDerivAt (fun s => ∫ ω, ∫ σ : R → PerceptronSpin N, f σ
+        ∂(Measure.pi fun _ : R => Measure.count.tilted
+          (fun a => smartPathEnergyNoAux u s ω (a, 0)))
+        ∂smartPathDisorder Pold v)
+      ((M : ℝ) / ((N : ℝ) + 1) * ∫ ω, replicaPairAverage
+          (Measure.count.tilted (fun a => smartPathEnergyNoAux u t ω (a, 0))) f
+          (smartPathPotentialKernelNoAux u t ω j₀) ∂(smartPathDisorder Pold v) +
+        (M : ℝ) / (2 * ((N : ℝ) + 1)) * ∫ ω, replicaDiff
+          (Measure.count.tilted (fun a => smartPathEnergyNoAux u t ω (a, 0))) f
+          (fun a => deriv (deriv u) (smartPathFieldNoAux t ω (a, 0) j₀) +
+            deriv u (smartPathFieldNoAux t ω (a, 0) j₀) ^ 2) ∂(smartPathDisorder Pold v) -
+        (v : ℝ) * ∫ ω, replicaPairAverage
+          (Measure.count.tilted (fun a => smartPathEnergyNoAux u t ω (a, 0))) f
+          (fun a b => ((a.2 : ℤ) : ℝ) * ((b.2 : ℤ) : ℝ)) ∂(smartPathDisorder Pold v)) t := by
+  exact hasDerivAt_integral_integral_pi_perceptron_smart_path_noAux_exchangeable ht hu v j₀
+    (fun k => (measurePreserving_pi_comp_injective
+      (Measure.pi fun _ : Fin N => gaussianReal 0 1) (Equiv.swap k j₀).injective).map_eq) f
+
 end SpinGlasses

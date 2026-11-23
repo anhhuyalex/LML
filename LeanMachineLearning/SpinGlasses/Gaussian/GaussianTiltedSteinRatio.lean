@@ -1226,7 +1226,7 @@ theorem stein_tilted_replica_ratio
 /-- Differentiating `s ↦ (∫ η : R → K_aux → ℝ, ∏_r ϕ_r(S_s(w, st_r, η_r))) / Z_s(w)^|R|`
 at fixed spin labels `st : R → L` and fixed `w : K_sh → ℝ`. -/
 private lemma hasDerivAt_ratio_fixed_spins_w
-    {L K_sh K_aux R : Type*} [Fintype L] [Nonempty L]
+    {L K_sh K_aux R : Type*} [Fintype L]
     [Fintype K_sh] [Fintype K_aux] [Fintype R] [DecidableEq R]
     (p : L → ℝ) (hp0 : ∀ m, 0 ≤ p m) (hp1 : ∑ m, p m = 1)
     (X_sh Y_sh : L → K_sh → ℝ) (X_aux Y_aux : L → K_aux → ℝ)
@@ -1450,7 +1450,7 @@ private lemma hasDerivAt_ratio_fixed_spins_w
 
 /-- Integrating `hasDerivAt_ratio_fixed_spins_w` over `w ∼ γ_sh` at fixed `st : R → L`. -/
 private lemma hasDerivAt_integral_w_ratio_fixed_spins
-    {L K_sh K_aux R : Type*} [Fintype L] [Nonempty L]
+    {L K_sh K_aux R : Type*} [Fintype L]
     [Fintype K_sh] [Fintype K_aux] [Fintype R] [DecidableEq R]
     (p : L → ℝ) (hp0 : ∀ m, 0 ≤ p m) (hp1 : ∑ m, p m = 1)
     (X_sh Y_sh : L → K_sh → ℝ) (X_aux Y_aux : L → K_aux → ℝ)
@@ -1805,7 +1805,7 @@ given by the `R` replica terms plus the fresh-replica normalizer term. Only `Int
 is assumed of `f`. -/
 theorem hasDerivAt_integral_gaussian_tilted_rotation
     {α L K_sh K_aux R : Type*} [MeasurableSpace α]
-    [Finite L] [Nonempty L] [MeasurableSpace L] [MeasurableSingletonClass L]
+    [Finite L] [MeasurableSpace L] [MeasurableSingletonClass L]
     [Fintype K_sh] [Fintype K_aux] [Fintype R] [DecidableEq R]
     (μ₀ : Measure α) [IsProbabilityMeasure μ₀]
     (π : α → L) (hπ : Measurable π)
@@ -2477,7 +2477,7 @@ off-diagonal covariance formula over `R`, `Option R` and `Option (Option R)` wit
 `sin s₀ * cos s₀`. Neither `deriv (deriv u)` nor `deriv (deriv (ψ r))` needs to be continuous. -/
 theorem hasDerivAt_integral_gaussian_tilted_rotation_ibp
     {α L K_sh K_aux R : Type*} [MeasurableSpace α]
-    [Finite L] [Nonempty L] [MeasurableSpace L] [MeasurableSingletonClass L]
+    [Finite L] [MeasurableSpace L] [MeasurableSingletonClass L]
     [Fintype K_sh] [Fintype K_aux] [Fintype R] [DecidableEq R]
     (μ₀ : Measure α) [IsProbabilityMeasure μ₀]
     (π : α → L) (hπ : Measurable π)

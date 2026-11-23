@@ -251,4 +251,26 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path_exchangeable {R : 
   simp only [hk, Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
   ring
 
+/-- **Proposition 2.2.3, Gaussian rows.** Every row gives the same contribution as the
+chosen row `j₀` because the product disorder law is unchanged by the row swap. -/
+theorem hasDerivAt_integral_integral_pi_perceptron_smart_path_gaussian_rows {R : Type*}
+    [Fintype R] [LinearOrder R] {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) 1) {u : ℝ → ℝ}
+    {B D D₂ : ℝ} (hu : SmartPathPotential₂ u B D D₂) (v : ℝ≥0)
+    (j₀ : Fin M)
+    (f : (R → PerceptronSpin N) → ℝ) :
+    let Pold := Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin N => gaussianReal 0 1
+    HasDerivAt (fun s => ∫ ω, ∫ σ : R → SmartPathState N M, f (fun r => (σ r).1)
+        ∂(Measure.pi fun _ : R => (smartPathBase N M).tilted (smartPathEnergy u s ω))
+        ∂smartPathDisorder Pold v)
+      ((M : ℝ) / ((N : ℝ) + 1) * ∫ ω, replicaPairAverage
+          ((smartPathBase N M).tilted (smartPathEnergy u t ω))
+          (fun σ : R → SmartPathState N M => f (fun r => (σ r).1))
+          (smartPathPotentialKernel u t ω j₀) ∂(smartPathDisorder Pold v) -
+        (v : ℝ) * ∫ ω, replicaPairAverage ((smartPathBase N M).tilted (smartPathEnergy u t ω))
+          (fun σ : R → SmartPathState N M => f (fun r => (σ r).1)) lastSpinKernel
+          ∂(smartPathDisorder Pold v)) t := by
+  exact hasDerivAt_integral_integral_pi_perceptron_smart_path_exchangeable ht hu v j₀
+    (fun k => (measurePreserving_pi_comp_injective
+      (Measure.pi fun _ : Fin N => gaussianReal 0 1) (Equiv.swap k j₀).injective).map_eq) f
+
 end SpinGlasses

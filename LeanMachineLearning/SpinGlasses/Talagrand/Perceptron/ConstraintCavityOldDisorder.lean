@@ -246,7 +246,7 @@ theorem exists_hasDerivAt_integral_abs_le_cavityRatio {Ω₀ : Type*} [Measurabl
     (F := fun s ω => Gm ω s) (x₀ := t) (s := Set.univ) Filter.univ_mem
     (Filter.Eventually.of_forall fun s => (hGint s).aestronglyMeasurable) (hGint t)
     (F' := fun s ω => deriv (Gm ω) s)
-    (aestronglyMeasurable_of_hasDerivAt_param (fun ω => hderiv ω t)
+    (aestronglyMeasurable_of_hasDerivAt_param (ae_of_all _ fun ω => hderiv ω t)
       fun s => (hGint s).aestronglyMeasurable)
     (bound := fun _ => 1 / 2 * ((4 * (Fintype.card R : ℝ) ^ 2 + Fintype.card R) *
         ((Real.exp (D + B) * D₁) ^ 2 * (Fm * Dm) +
