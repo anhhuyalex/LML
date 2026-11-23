@@ -627,7 +627,7 @@ section SecondProofIncrement
 quenched Gibbs measure on `Fin (N + 1) → ℤˣ` and `S_M(τ) = (√(N + 1))⁻¹ ∑ᵢ g_{M, i} τᵢ` is the
 fresh constraint field. -/
 theorem perceptron_pressure_succ_sub_eq
-    {N M : ℕ} {u : ℝ → ℝ} (hu : Measurable u) {B : ℝ} (hB : ∀ x, |u x| ≤ B) :
+    {N M : ℕ} {u : ℝ → ℝ} (hu : Measurable u) (hi : Integrable u (gaussianReal 0 1)) :
     let γ : Measure ℝ := gaussianReal 0 1
     let P_M := Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin (N + 1) => γ
     let P_M1 := Measure.pi fun _ : Fin (M + 1) => Measure.pi fun _ : Fin (N + 1) => γ
@@ -717,17 +717,44 @@ theorem perceptron_pressure_succ_sub_eq
     refine Finset.sum_congr rfl fun τ _ => congrArg Real.exp ?_
     rw [Fin.sum_univ_castSucc]
     simp [MeasurableEquiv.finSuccProd_apply]
+  let H (g : Fin (N + 1) → ℝ) (τ : Fin (N + 1) → ℤˣ) : ℝ :=
+    (Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, g i * ((τ i : ℤ) : ℝ)
+  have hH_m (τ : Fin (N + 1) → ℤˣ) : Measurable fun g => H g τ := by
+    dsimp only [H]
+    fun_prop
+  have hH_i (τ : Fin (N + 1) → ℤˣ) : Integrable (fun g => u (H g τ)) γ_row := by
+    have hm : Measure.map (fun g => H g τ) γ_row = gaussianReal 0 1 :=
+      map_normalized_constraint_field_eq_gaussianReal (Nat.succ_pos N) τ
+    have hm_i : Integrable u (Measure.map (fun g => H g τ) γ_row) := by
+      rw [hm]
+      exact hi
+    exact hm_i.comp_measurable (hH_m τ)
+  let pEnergy (p : (Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ))
+      (τ : Fin (N + 1) → ℤˣ) : ℝ := ∑ k : Fin M, u (H (p.1 k) τ)
+  have hE_m (τ : Fin (N + 1) → ℤˣ) : Measurable fun p => pEnergy p τ :=
+    Finset.measurable_sum _ fun k _ => ((hu.comp (hH_m τ)).comp
+      ((measurable_pi_apply k).comp measurable_fst))
+  have hE_i (τ : Fin (N + 1) → ℤˣ) :
+      Integrable (fun p => pEnergy p τ) (P_M.prod γ_row) :=
+    integrable_finsetSum _ fun k _ =>
+      (integrable_comp_eval (μ := fun _ : Fin M => γ_row) (i := k) (hH_i τ)).comp_fst γ_row
   have hZM_int : Integrable (fun p : (Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ) =>
-      Real.log (Z_M p.1)) (P_M.prod γ_row) :=
-    (integrable_log_sum_exp_potential (N := N + 1) (M := M) hu hB).comp_fst γ_row
+      Real.log (Z_M p.1)) (P_M.prod γ_row) := by
+    simpa only [one_mul] using
+      integrable_log_sum_exp (μ := P_M.prod γ_row) (H := pEnergy)
+        (β := 1) one_pos hE_m hE_i
   have hR_int : Integrable (fun p : (Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ) =>
       Real.log (R_inc p)) (P_M.prod γ_row) := by
-    refine Integrable.of_bound hR_m.aestronglyMeasurable |B| (ae_of_all _ fun p => ?_)
-    have hprob : IsProbabilityMeasure (μ_M p.1) :=
-      isProbabilityMeasure_tilted Integrable.of_finite
-    rw [Real.norm_eq_abs]
-    exact (abs_log_integral_exp_le_of_ae_abs_le
-      (measurable_of_finite _).aemeasurable (ae_of_all _ fun _ => hB _)).trans (le_abs_self B)
+    have hNew := integrable_log_sum_exp (μ := P_M.prod γ_row)
+      (H := fun p τ => pEnergy p τ + u (H p.2 τ)) (β := 1) one_pos
+      (fun τ => (hE_m τ).add ((hu.comp (hH_m τ)).comp measurable_snd))
+      (fun τ => (hE_i τ).add ((hH_i τ).comp_snd P_M))
+    simp only [one_mul] at hNew
+    refine (hNew.sub hZM_int).congr (ae_of_all _ fun p => ?_)
+    change Real.log (∑ τ, Real.exp (pEnergy p τ + u (H p.2 τ))) -
+      Real.log (Z_M p.1) = Real.log (R_inc p)
+    rw [hR_eq p, Real.log_div _ (hZM_pos p.1).ne']
+    exact (Finset.sum_pos (fun _ _ => Real.exp_pos _) Finset.univ_nonempty).ne'
   have hZM_fst :
       (∫ p : (Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ), Real.log (Z_M p.1)
         ∂(P_M.prod γ_row)) =

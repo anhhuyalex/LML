@@ -506,4 +506,28 @@ theorem abs_integral_mul_sub_integral_mul_le {α : Type*} [MeasurableSpace α]
         exact mul_le_mul hF hhmean (abs_nonneg _) (abs_nonneg _))
     _ = _ := by ring
 
+open Filter Topology in
+/-- **Derivative of a log-partition function under dominated differentiation.** If the energies
+`E r a` have `r`-derivative `E' r a` for `r` in a neighborhood `s` of `t`, with
+`|E' r a * exp (E r a)|` dominated by an integrable function, then
+`r ↦ log ∫ exp (E r a) ∂μ` has at `t` the derivative `∫ E' t a` against the Gibbs measure
+`μ.tilted (E t)`. Both the energy and its derivative may be unbounded and the state space need not
+be finite. -/
+theorem hasDerivAt_log_integral_exp_of_dominated
+    {α : Type*} [MeasurableSpace α] {μ : Measure α} [NeZero μ]
+    {E E' : ℝ → α → ℝ} {t : ℝ} {s : Set ℝ} (hs : s ∈ 𝓝 t)
+    (hmeas : ∀ᶠ r in 𝓝 t, AEStronglyMeasurable (fun a => Real.exp (E r a)) μ)
+    (hi : Integrable (fun a => Real.exp (E t a)) μ)
+    (hdm : AEStronglyMeasurable (fun a => E' t a * Real.exp (E t a)) μ)
+    {b : α → ℝ} (hb : Integrable b μ)
+    (hdb : ∀ᵐ a ∂μ, ∀ r ∈ s, |E' r a * Real.exp (E r a)| ≤ b a)
+    (hd : ∀ᵐ a ∂μ, ∀ r ∈ s, HasDerivAt (fun q => E q a) (E' r a) r) :
+    HasDerivAt (fun r => Real.log (∫ a, Real.exp (E r a) ∂μ))
+      (∫ a, E' t a ∂μ.tilted (E t)) t := by
+  have hden := (hasDerivAt_integral_of_dominated_loc_of_deriv_le hs hmeas hi hdm
+    (by simpa only [Real.norm_eq_abs] using hdb) hb
+    (hd.mono fun a ha r hr => by simpa only [mul_comm] using (ha r hr).exp)).2
+  exact (hden.log (integral_exp_pos hi).ne').congr_deriv (by
+    rw [integral_tilted_eq_div, div_eq_mul_inv, mul_comm])
+
 end MeasureTheory

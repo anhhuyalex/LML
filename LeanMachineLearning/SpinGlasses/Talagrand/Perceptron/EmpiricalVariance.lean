@@ -1264,33 +1264,11 @@ theorem integral_interpolating_deriv_empirical_variance_le (D : ℝ) :
   -- Case `M = 0`: both the sum and `r` vanish!
   rcases M with _ | M
   · have hr0 : r = 0 := by simp [hr]
-    dsimp only
-    have hzero :
-        (∫ ω : ((Fin 0 → Fin (N + 1) → ℝ) × (Fin 0 → ℝ)) × (Fin (N + 1) → ℝ),
-          ∫ σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin 0 → ℝ),
-            ((((N : ℝ) + 1)⁻¹ *
-              ∑ k : Fin 0, deriv u
-                (Real.sqrt s *
-                    ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 k i * (((σ 0).1 i : ℤ) : ℝ)) +
-                  Real.sqrt (1 - s) * (Real.sqrt q * ω.1.2 k + Real.sqrt (1 - q) * (σ 0).2 k)) *
-                deriv u
-                (Real.sqrt s *
-                    ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 k i * (((σ 1).1 i : ℤ) : ℝ)) +
-                  Real.sqrt (1 - s) * (Real.sqrt q * ω.1.2 k + Real.sqrt (1 - q) * (σ 1).2 k))) -
-              r) ^ 2
-            ∂(Measure.pi fun _ : Fin 2 =>
-              ((Measure.count : Measure (Fin (N + 1) → ℤˣ)).prod
-                (Measure.pi fun _ : Fin 0 => gaussianReal 0 1)).tilted
-                (fun x => (∑ k : Fin 0, u
-                    (Real.sqrt s *
-                        ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 k i * ((x.1 i : ℤ) : ℝ)) +
-                      Real.sqrt (1 - s) * (Real.sqrt q * ω.1.2 k + Real.sqrt (1 - q) * x.2 k))) +
-                  ∑ i : Fin (N + 1), ((x.1 i : ℤ) : ℝ) * Real.sqrt (1 - s) * ω.2 i * Real.sqrt r))
-          ∂(((Measure.pi fun _ : Fin 0 => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1).prod
-            (Measure.pi fun _ : Fin 0 => gaussianReal 0 1)).prod
-            (Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1))) = 0 := by
-      simp [hr0]
-    rw [hzero]
+    intro P_g P_z P_z' P_s μ_s S_fn E_s f
+    have hf0 (ω : ((Fin 0 → Fin (N + 1) → ℝ) × (Fin 0 → ℝ)) × (Fin (N + 1) → ℝ))
+        (σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin 0 → ℝ)) : f ω σ = 0 := by
+      simp [f, hr0]
+    simp only [hf0, ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true, zero_pow, integral_zero]
     exact div_nonneg (by dsimp only [L_var]; positivity) (by positivity)
   -- Case `M + 1`:
   dsimp only

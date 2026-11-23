@@ -3634,7 +3634,7 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ReplicaSymmetricVariation
 \talsource{Section~2.4, Eqs.~(2.90)--(2.91)}
 Write $\mu_M(g_0)$ for the quenched $M$-constraint perceptron Gibbs measure on $\Sigma_{N+1}$.
 \begin{enumerate}
-\item \emph{Exact discrete increment (2.90).} If $u$ is measurable with $|u|\le B$, then
+\item \emph{Exact discrete increment (2.90).} If $u$ is measurable and integrable against $\mathcal N(0,1)$ (for instance bounded), then
 \[
  p_{N+1,M+1}(u)-p_{N+1,M}(u)
  =\frac{1}{N+1}\,\mathbb E\log\int_{\Sigma_{N+1}}
@@ -3660,7 +3660,7 @@ Then $\varphi$ has derivative at $v$ equal to
 \emph{Step 1 (ratio of partition functions, (2.90)).} Splitting the $(M+1)$-row Gaussian matrix into
 $(g_0,g_M)$ via \texttt{measurePreserving\_finSuccProd} writes $Z_{N+1,M+1}=Z_{N+1,M}\cdot
 \int\exp u(S_M)\,d\mu_M(g_0)$; taking $(N+1)^{-1}\mathbb E\log$ and integrating out $g_M$ in the
-$\log Z_{N+1,M}$ term gives~(1) (\texttt{perceptron\_pressure\_succ\_sub\_eq}).
+$\log Z_{N+1,M}$ term gives~(1) (\texttt{perceptron\_pressure\_succ\_sub\_eq}). Integrability of the three logarithms follows from \texttt{integrable\_log\_sum\_exp} (a finite sum of exponentials of integrable energies): each spin field $(N+1)^{-1/2}\sum_ig_i\tau_i$ is $\mathcal N(0,1)$ (\texttt{map\_normalized\_constraint\_field\_eq\_gaussianReal}), so $u$ of it is integrable, and $\log R=\log Z_{M+1}-\log Z_M$ is integrable as a difference. No bound on $u$ is needed.
 
 \emph{Step 2 (differentiation and Stein ratio IBP, (2.91)).} Differentiating $\varphi(v)$ on a
 compact subinterval of $(0,1)$ brings down $S'_v u'(S_v)$ under the tilted product law

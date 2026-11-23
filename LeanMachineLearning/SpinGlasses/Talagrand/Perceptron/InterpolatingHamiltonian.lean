@@ -661,40 +661,26 @@ theorem hasDerivAt_interpolating_pressure
       HasDerivAt (fun t => Real.log (Z_fn t ω))
         (∫ x, E'_s s' ω x ∂(μ_s.tilted (E_s s' ω))) s' := by
     let C_E : ℝ := M * B + ∑ i : Fin (N + 1), |ω.2 i| * Real.sqrt r
-    have hZ_d : HasDerivAt (fun t => Z_fn t ω)
-        (∫ x, E'_s s' ω x * Real.exp (E_s s' ω x) ∂μ_s) s' := by
-      have hm_ev : ∀ᶠ t in 𝓝 s', AEStronglyMeasurable (fun x => Real.exp (E_s t ω x)) μ_s :=
-        Eventually.of_forall fun t => (Real.measurable_exp.comp
-          ((hEm t).comp (measurable_const.prodMk measurable_id))).aestronglyMeasurable
-      have hi_s' : Integrable (fun x => Real.exp (E_s s' ω x)) μ_s :=
-        integrable_exp_of_ae_le ((hEm s').comp (measurable_const.prodMk measurable_id)).aemeasurable
-          (ae_of_all _ fun x => le_of_abs_le (hE_abs_bd hs' ω x))
-      have hdm : AEStronglyMeasurable (fun x => E'_s s' ω x * Real.exp (E_s s' ω x)) μ_s :=
-        (((hE'm s').comp (measurable_const.prodMk measurable_id)).mul
-          (Real.measurable_exp.comp
-            ((hEm s').comp (measurable_const.prodMk measurable_id)))).aestronglyMeasurable
-      let dom_x (x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : ℝ :=
-        (b_ω ω + b_ξ x.2) * Real.exp C_E
-      have hdom_x_i : Integrable dom_x μ_s :=
-        ((integrable_const (b_ω ω)).add (hb_ξ_int.comp_snd _)).mul_const (Real.exp C_E)
-      exact (hasDerivAt_integral_of_dominated_loc_of_deriv_le (μ := μ_s)
-        (F := fun t x => Real.exp (E_s t ω x))
-        (F' := fun t x => E'_s t ω x * Real.exp (E_s t ω x))
-        (s := U_nbhd) (bound := dom_x)
-        (IsOpen.mem_nhds isOpen_Ioo hs') hm_ev hi_s' hdm
-        (ae_of_all _ fun x t ht => by
-          rw [Real.norm_eq_abs, abs_mul, abs_of_pos (Real.exp_pos _)]
-          exact mul_le_mul (hE'_bd ω x ht)
-            (Real.exp_le_exp.2 (le_of_abs_le (hE_abs_bd ht ω x)))
-            (Real.exp_pos _).le (add_nonneg (hb_ω0 ω) (hb_ξ0 x.2)))
-        hdom_x_i
-        (ae_of_all _ fun x t ht => ((hd_E ω x ht).exp).congr_deriv (mul_comm _ _))).2
+    have hm_ev : ∀ᶠ t in 𝓝 s', AEStronglyMeasurable (fun x => Real.exp (E_s t ω x)) μ_s :=
+      Eventually.of_forall fun t => (Real.measurable_exp.comp
+        ((hEm t).comp (measurable_const.prodMk measurable_id))).aestronglyMeasurable
     have hi_s' : Integrable (fun x => Real.exp (E_s s' ω x)) μ_s :=
       integrable_exp_of_ae_le ((hEm s').comp (measurable_const.prodMk measurable_id)).aemeasurable
         (ae_of_all _ fun x => le_of_abs_le (hE_abs_bd hs' ω x))
-    have hZ_pos : 0 < Z_fn s' ω := integral_exp_pos hi_s'
-    exact (hZ_d.log hZ_pos.ne').congr_deriv
-      (by rw [integral_tilted_eq_div, div_eq_mul_inv, mul_comm])
+    have hdm : AEStronglyMeasurable (fun x => E'_s s' ω x * Real.exp (E_s s' ω x)) μ_s :=
+      (((hE'm s').comp (measurable_const.prodMk measurable_id)).mul
+        (Real.measurable_exp.comp
+          ((hEm s').comp (measurable_const.prodMk measurable_id)))).aestronglyMeasurable
+    exact hasDerivAt_log_integral_exp_of_dominated (μ := μ_s) (E := fun t x => E_s t ω x)
+      (E' := fun t x => E'_s t ω x) (IsOpen.mem_nhds isOpen_Ioo hs') hm_ev hi_s' hdm
+      (b := fun x => (b_ω ω + b_ξ x.2) * Real.exp C_E)
+      (((integrable_const (b_ω ω)).add (hb_ξ_int.comp_snd _)).mul_const (Real.exp C_E))
+      (ae_of_all _ fun x t ht => by
+        rw [abs_mul, abs_of_pos (Real.exp_pos _)]
+        exact mul_le_mul (hE'_bd ω x ht)
+          (Real.exp_le_exp.2 (le_of_abs_le (hE_abs_bd ht ω x)))
+          (Real.exp_pos _).le (add_nonneg (hb_ω0 ω) (hb_ξ0 x.2)))
+      (ae_of_all _ fun x t ht => hd_E ω x ht)
   -- Bound `|∫ x, E'_s s' ω x ∂(μ_s.tilted (E_s s' ω))|` on `U_nbhd` by cancelling the spin factor
   -- per `τ` and bounding the `ξ`-ratio by `exp(2 M B) * ∫ b_ξ`.
   have htilted_ξ_bd (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
@@ -1694,11 +1680,8 @@ theorem integral_interpolating_field_deriv_ibp
       W_sh τ ⬝ᵥ α_sh τ + W_aux τ ⬝ᵥ α_aux τ = 0 := by
     rw [hcov_sh τ τ]
     have hself : (((N : ℝ) + 1)⁻¹ * ∑ i : Fin (N + 1), ((τ i : ℤ) : ℝ) * ((τ i : ℤ) : ℝ)) = 1 := by
-      have h1 (i : Fin (N + 1)) : ((τ i : ℤ) : ℝ) * ((τ i : ℤ) : ℝ) = 1 := by
-        rw [← sq]; exact units_cast_sq _
-      simp_rw [h1, Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul, mul_one]
-      have hL : ((N : ℝ) + 1) ≠ 0 := by positivity
-      push_cast; exact inv_mul_cancel₀ hL
+      simpa only [dotProduct, Fintype.card_fin, Nat.cast_add, Nat.cast_one] using
+        card_inv_mul_dotProduct_self_eq_one (fun i : Fin (N + 1) => ((τ i : ℤ) : ℝ))
     have haux_dot : W_aux τ ⬝ᵥ α_aux τ = -(1 / 2) * (1 - q) := by
       dsimp only [W_aux, α_aux]
       simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton]
