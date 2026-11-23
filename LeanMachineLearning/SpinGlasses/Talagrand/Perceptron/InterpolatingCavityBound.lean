@@ -479,6 +479,7 @@ private lemma rotation_endpoint_pi_div_two_eq
         (g := fun p : (K₁ → ℝ) × ℝ => ρ_z p.2)
         (hρ_m.comp measurable_snd).aestronglyMeasurable
       have h2 : ∫ p : (K₁ → ℝ) × ℝ, ρ_z p.2 ∂(γ₁.prod (gaussianReal 0 1)) = rhat := by
+        change _ = ∫ z, ρ_z z ∂gaussianReal 0 1
         have hp := integral_prod_mul (μ := γ₁) (ν := gaussianReal 0 1) (fun _ => (1 : ℝ)) ρ_z
         simpa using hp
       exact h1.trans h2

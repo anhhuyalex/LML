@@ -837,7 +837,7 @@ end Measurability
 attaching independent coordinates and tilting the extended replica law. -/
 theorem ae_pi_tilted_prod_fst {Ω W α β R : Type*} [MeasurableSpace Ω] [MeasurableSpace W]
     [MeasurableSpace α] [MeasurableSpace β] [Fintype R]
-    (P : Measure Ω) [SFinite P] (η : Measure W) [IsProbabilityMeasure η]
+    (P : Measure Ω) (η : Measure W) [IsProbabilityMeasure η]
     (ν : Ω → Measure α) [∀ ω, IsProbabilityMeasure (ν ω)]
     (γ : Measure β) [IsProbabilityMeasure γ]
     (E : Ω × W → α × β → ℝ) {p : Ω → (R → α) → Prop}
