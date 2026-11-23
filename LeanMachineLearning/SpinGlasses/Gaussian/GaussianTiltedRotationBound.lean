@@ -7,6 +7,7 @@ module
 
 public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianTiltedSteinRatio
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaComparison
+public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaPairBound
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Function.AEStronglyMeasurableDeriv
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedHolder
 public import Mathlib.MeasureTheory.Function.LpSeminorm.LpNorm
@@ -419,79 +420,17 @@ theorem hasDerivAt_integral_integral_gaussian_tilted_rotation_ibp
         integral_congr_ae (ae_of_all _ fun σ => by ring)
       rw [heq]
       exact hb_w
+    let n : ℝ := Fintype.card R
+    let a := (M_cov * P_ψ * Real.exp (2 * n * B)) * I_f
+    let b := (M_cov * P_ψ * |D₁| * Real.exp (2 * (n + 1) * B)) * I_f
+    let d := (M_cov * P_ψ * |D₁| ^ 2 * Real.exp (2 * (n + 2) * B)) * I_f
     dsimp only [D_ω]
-    have hsum1 : |∑ i : R, ∑ j ∈ Finset.univ.erase i,
-        ∫ w, ∫ σ : R → α × (K_aux → ℝ),
-          f ω₀ (fun r => (σ r).1) * C_cov (π (σ i).1) (π (σ j).1) *
-            (ψ_d i (S s w (σ i)) * ψ_d j (S s w (σ j)) *
-              ∏ r ∈ (Finset.univ.erase i).erase j, ψ r (S s w (σ r)))
-          ∂(Measure.pi fun _ : R => ((μ₀ ω₀).prod γ_aux).tilted (fun q => u (S s w q))) ∂γ_sh| ≤
-        (Fintype.card R : ℝ) ^ 2 *
-          ((M_cov * P_ψ * Real.exp (2 * (Fintype.card R : ℝ) * B)) * I_f) := by
-      refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
-      calc _ ≤ ∑ i : R, (Fintype.card R : ℝ) *
-            ((M_cov * P_ψ * Real.exp (2 * (Fintype.card R : ℝ) * B)) * I_f) := by
-            refine Finset.sum_le_sum fun i _ => (Finset.abs_sum_le_sum_abs _ _).trans ?_
-            calc _ ≤ ∑ _j ∈ Finset.univ.erase i,
-                  ((M_cov * P_ψ * Real.exp (2 * (Fintype.card R : ℝ) * B)) * I_f) :=
-                  Finset.sum_le_sum fun j hj => ht1 i j hj
-              _ ≤ (Fintype.card R : ℝ) *
-                  ((M_cov * P_ψ * Real.exp (2 * (Fintype.card R : ℝ) * B)) * I_f) := by
-                  simp only [Finset.sum_const, nsmul_eq_mul]
-                  refine mul_le_mul_of_nonneg_right ?_ (by positivity)
-                  exact_mod_cast Finset.card_le_univ _
-        _ = _ := by simp [sq, mul_assoc]
-    have hsum2 : |(Fintype.card R : ℝ) * ∑ i : R,
-        ∫ w, ∫ σ : Option R → α × (K_aux → ℝ),
-          f ω₀ (fun r => (σ (some r)).1) * C_cov (π (σ (some i)).1) (π (σ none).1) *
-            (ψ_d i (S s w (σ (some i))) *
-              ∏ r ∈ Finset.univ.erase i, ψ r (S s w (σ (some r)))) *
-            deriv u (S s w (σ none))
-          ∂(Measure.pi fun _ : Option R =>
-            ((μ₀ ω₀).prod γ_aux).tilted (fun q => u (S s w q))) ∂γ_sh| ≤
-        (Fintype.card R : ℝ) ^ 2 *
-          ((M_cov * P_ψ * |D₁| * Real.exp (2 * ((Fintype.card R : ℝ) + 1) * B)) * I_f) := by
-      rw [abs_mul, abs_of_nonneg (Nat.cast_nonneg _)]
-      calc _ ≤ (Fintype.card R : ℝ) * ∑ _i : R,
-            ((M_cov * P_ψ * |D₁| * Real.exp (2 * ((Fintype.card R : ℝ) + 1) * B)) * I_f) :=
-            mul_le_mul_of_nonneg_left
-              (Finset.abs_sum_le_sum_of_abs_le _ fun i _ => ht2 C_cov hcov_le i)
-              (Nat.cast_nonneg _)
-        _ = _ := by simp [sq, mul_assoc]
-    have hsum3 : |(Fintype.card R : ℝ) * ∑ j : R,
-        ∫ w, ∫ σ : Option R → α × (K_aux → ℝ),
-          f ω₀ (fun r => (σ (some r)).1) * C_cov (π (σ none).1) (π (σ (some j)).1) *
-            (ψ_d j (S s w (σ (some j))) *
-              ∏ r ∈ Finset.univ.erase j, ψ r (S s w (σ (some r)))) *
-            deriv u (S s w (σ none))
-          ∂(Measure.pi fun _ : Option R =>
-            ((μ₀ ω₀).prod γ_aux).tilted (fun q => u (S s w q))) ∂γ_sh| ≤
-        (Fintype.card R : ℝ) ^ 2 *
-          ((M_cov * P_ψ * |D₁| * Real.exp (2 * ((Fintype.card R : ℝ) + 1) * B)) * I_f) := by
-      rw [abs_mul, abs_of_nonneg (Nat.cast_nonneg _)]
-      calc _ ≤ (Fintype.card R : ℝ) * ∑ _j : R,
-            ((M_cov * P_ψ * |D₁| * Real.exp (2 * ((Fintype.card R : ℝ) + 1) * B)) * I_f) :=
-            mul_le_mul_of_nonneg_left
-              (Finset.abs_sum_le_sum_of_abs_le _ fun j _ =>
-                ht2 (fun m m' => C_cov m' m) (fun m m' => hcov_le m' m) j)
-              (Nat.cast_nonneg _)
-        _ = _ := by simp [sq, mul_assoc]
-    have hsum4 : |(Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) *
-        ∫ w, ∫ σ : Option (Option R) → α × (K_aux → ℝ),
-          f ω₀ (fun r => (σ (some (some r))).1) * C_cov (π (σ (some none)).1) (π (σ none).1) *
-            (∏ r : R, ψ r (S s w (σ (some (some r))))) *
-            deriv u (S s w (σ (some none))) * deriv u (S s w (σ none))
-          ∂(Measure.pi fun _ : Option (Option R) =>
-            ((μ₀ ω₀).prod γ_aux).tilted (fun q => u (S s w q))) ∂γ_sh| ≤
-        (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) *
-          ((M_cov * P_ψ * |D₁| ^ 2 * Real.exp (2 * ((Fintype.card R : ℝ) + 2) * B)) * I_f) := by
-      rw [abs_mul, abs_of_nonneg (by positivity)]
-      exact mul_le_mul_of_nonneg_left ht4 (by positivity)
-    have h_tri : ∀ a b c d : ℝ, |a - b - c + d| ≤ |a| + |b| + |c| + |d| := fun a b c d => by
-      linarith [abs_add_le (a - b - c) d, abs_sub (a - b) c, abs_sub a b]
-    calc _ ≤ _ := h_tri _ _ _ _
-      _ ≤ _ := add_le_add (add_le_add (add_le_add hsum1 hsum2) hsum3) hsum4
-      _ = K_dom * I_f := by dsimp only [K_dom]; ring
+    calc
+      _ ≤ n ^ 2 * a + n ^ 2 * b + n ^ 2 * b + n * (n + 1) * d :=
+        Finset.abs_replica_groups_le _ _ _ _ (by positivity)
+          (fun i j hij => ht1 i j (Finset.mem_erase.2 ⟨hij.symm, Finset.mem_univ _⟩))
+          (ht2 C_cov hcov_le) (ht2 (fun m m' => C_cov m' m) (fun m m' => hcov_le m' m)) ht4
+      _ = _ := by dsimp only [a, b, d, n, K_dom]; ring
   let G_ω : ℝ → Ω₀ → ℝ := fun s ω₀ =>
     ∫ w, ∫ σ : R → α × (K_aux → ℝ),
       f ω₀ (fun r => (σ r).1) * ∏ r, ψ r (S s w (σ r))
@@ -616,7 +555,7 @@ theorem integral_integral_pair_holder_one_top
     {d : α → α → ℝ} (hd0 : ∀ a b, 0 ≤ d a b) (hdm : Measurable fun p : α × α => d p.1 p.2)
     {Md : ℝ}
     (hd_ae : ∀ᵐ ω ∂P, ∀ᵐ τ : Fin 2 → α ∂(Measure.pi fun _ : Fin 2 => ν ω), d (τ 0) (τ 1) ≤ Md)
-    (hf1_mem : ∀ ω, Integrable (f ω) (Measure.pi fun _ : R => ν ω))
+    (hf1_mem : ∀ᵐ ω ∂P, Integrable (f ω) (Measure.pi fun _ : R => ν ω))
     (hf1_int : Integrable (fun ω => ∫ a, |f ω a| ∂(Measure.pi fun _ : R => ν ω)) P) :
     ∫ ω, ∫ σ : ι → α, |f ω (fun r => σ (e r))| * d (σ r₁) (σ r₂)
         ∂(Measure.pi fun _ : ι => ν ω) ∂P ≤
@@ -625,14 +564,14 @@ theorem integral_integral_pair_holder_one_top
   have hinner : ∀ᵐ ω ∂P,
       ∫ σ : ι → α, |f ω (fun r => σ (e r))| * d (σ r₁) (σ r₂) ∂(Measure.pi fun _ : ι => ν ω) ≤
         (∫ a : R → α, |f ω a| ∂(Measure.pi fun _ : R => ν ω)) * Md := by
-    filter_upwards [hd_ae] with ω hω
+    filter_upwards [hd_ae, hf1_mem] with ω hω hfi
     have hmp_ρ := measurePreserving_pi_comp_injective (ν ω) hρ
     have hd_ι_ae : ∀ᵐ σ : ι → α ∂(Measure.pi fun _ : ι => ν ω), d (σ r₁) (σ r₂) ≤ Md :=
       hmp_ρ.quasiMeasurePreserving.ae hω
     have hmp_e := measurePreserving_pi_comp_injective (ν ω) he
     have hf_ι : Integrable (fun σ : ι → α => |f ω (fun r => σ (e r))|)
         (Measure.pi fun _ : ι => ν ω) :=
-      hmp_e.integrable_comp_of_integrable (hf1_mem ω).abs
+      hmp_e.integrable_comp_of_integrable hfi.abs
     have hd_m : Measurable fun σ : ι → α => d (σ r₁) (σ r₂) :=
       hdm.comp (by fun_prop : Measurable fun σ : ι → α => (σ r₁, σ r₂))
     calc ∫ σ : ι → α, |f ω (fun r => σ (e r))| * d (σ r₁) (σ r₂) ∂(Measure.pi fun _ : ι => ν ω)
@@ -645,7 +584,7 @@ theorem integral_integral_pair_holder_one_top
             (hd_ι_ae.mono fun σ hσ => mul_le_mul_of_nonneg_left hσ (abs_nonneg _))
       _ = (∫ a : R → α, |f ω a| ∂(Measure.pi fun _ : R => ν ω)) * Md := by
           rw [integral_mul_const, integral_pi_comp_injective (ν ω) he (fun a => |f ω a|)
-            (hf1_mem ω).abs.aestronglyMeasurable]
+            hfi.abs.aestronglyMeasurable]
   calc ∫ ω, ∫ σ : ι → α, |f ω (fun r => σ (e r))| * d (σ r₁) (σ r₂)
           ∂(Measure.pi fun _ : ι => ν ω) ∂P
       ≤ ∫ ω, (∫ a : R → α, |f ω a| ∂(Measure.pi fun _ : R => ν ω)) * Md ∂P :=
