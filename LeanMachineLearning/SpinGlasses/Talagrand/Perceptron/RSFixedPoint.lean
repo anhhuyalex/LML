@@ -150,9 +150,7 @@ namespace SpinGlasses
 /-- **Continuity of `q ↦ r̂(q)` on `[0, 1]`** when `u` is `C¹` with bounded `|u|` and `|u'|`. -/
 theorem continuousOn_rhat {u : ℝ → ℝ} (hu : Differentiable ℝ u) (hdu : Continuous (deriv u))
     {B D₁ : ℝ} (hB : ∀ x, |u x| ≤ B) (hD₁ : ∀ x, |deriv u x| ≤ D₁) :
-    ContinuousOn
-      (fun q : ℝ => perceptronRhat u q)
-      (Icc 0 1) := by
+    ContinuousOn (perceptronRhat u) (Icc 0 1) := by
   let γ : Measure ℝ := gaussianReal 0 1
   have hum : Measurable u := hu.continuous.measurable
   have hB_le : ∀ x, u x ≤ B := fun x => le_of_abs_le (hB x)
@@ -224,12 +222,7 @@ private lemma rhat_cos_sq_eq_rotation_integral {u : ℝ → ℝ} (hu : Measurabl
     let S (s' : ℝ) (w : Unit → ℝ) (q : Unit × (Unit → ℝ)) : ℝ :=
       Real.cos s' * ((fun _ : Unit => (1 : ℝ)) ⬝ᵥ w + (0 : Unit → ℝ) ⬝ᵥ q.2) +
         Real.sin s' * ((0 : Unit → ℝ) ⬝ᵥ w + (fun _ : Unit => (1 : ℝ)) ⬝ᵥ q.2)
-    ∫ z, ((∫ ξ, deriv u (Real.sqrt (Real.cos s ^ 2) * z +
-            Real.sqrt (1 - Real.cos s ^ 2) * ξ) *
-          Real.exp (u (Real.sqrt (Real.cos s ^ 2) * z +
-            Real.sqrt (1 - Real.cos s ^ 2) * ξ)) ∂gaussianReal 0 1) /
-        ∫ ξ, Real.exp (u (Real.sqrt (Real.cos s ^ 2) * z +
-          Real.sqrt (1 - Real.cos s ^ 2) * ξ)) ∂gaussianReal 0 1) ^ 2 ∂gaussianReal 0 1 =
+    perceptronRhat u (Real.cos s ^ 2) =
       ∫ w, ∫ σ : Fin 2 → Unit × (Unit → ℝ),
         (1 : ℝ) * ∏ r : Fin 2, deriv u (S s w (σ r))
         ∂(Measure.pi fun _ : Fin 2 => (μ₀.prod γ_aux).tilted (fun q => u (S s w q))) ∂γ_sh := by
@@ -240,7 +233,7 @@ private lemma rhat_cos_sq_eq_rotation_integral {u : ℝ → ℝ} (hu : Measurabl
   have hsc1 : Real.sqrt (Real.cos s ^ 2) = Real.cos s := Real.sqrt_sq hcos
   have hsc2 : Real.sqrt (1 - Real.cos s ^ 2) = Real.sin s := by
     rw [← Real.sin_sq s, Real.sqrt_sq hsin]
-  rw [hsc1, hsc2]
+  rw [perceptronRhat, hsc1, hsc2]
   let e_u : (Unit → ℝ) ≃ᵐ ℝ := MeasurableEquiv.funUnique Unit ℝ
   have hmp_u : MeasurePreserving ⇑e_u γ_sh (gaussianReal 0 1) :=
     measurePreserving_funUnique (gaussianReal 0 1) Unit
@@ -491,16 +484,12 @@ theorem exists_lipschitzOnWith_rhat (D : ℝ) :
     ∃ K : ℝ≥0,
       ∀ {u : ℝ → ℝ} (_hd : ∀ j < 3, Differentiable ℝ (iteratedDeriv j u))
         (_hb : ∀ j ≤ 3, ∀ x, |iteratedDeriv j u x| ≤ D),
-        LipschitzOnWith K
-          (fun q : ℝ => perceptronRhat u q)
-          (Icc 0 1) := by
+        LipschitzOnWith K (perceptronRhat u) (Icc 0 1) := by
   obtain ⟨K, hK0, hK⟩ := exists_hasDerivAt_rhat_abs_le D
   refine ⟨K.toNNReal, ?_⟩
   intro u hd hb
   obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
-  let rhat (q : ℝ) : ℝ :=
-    perceptronRhat u q
-  have hc : ContinuousOn rhat (Icc 0 1) :=
+  have hc : ContinuousOn (perceptronRhat u) (Icc 0 1) :=
     continuousOn_rhat hu.differentiable hu.differentiable_deriv.continuous hu.abs_le hu.abs_deriv_le
   refine LipschitzOnWith.of_dist_le_mul fun x hx y hy => ?_
   rw [Real.coe_toNNReal K hK0, Real.dist_eq, Real.dist_eq]
@@ -527,8 +516,7 @@ theorem exists_unique_rs_fixed_point (D : ℝ) :
   refine ⟨K, by positivity, ?_⟩
   intro u hd hb α hα0 hα
   obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
-  let rhat (q : ℝ) : ℝ :=
-    perceptronRhat u q
+  let rhat := perceptronRhat u
   let g_tanh (r : ℝ) : ℝ := ∫ z : ℝ, Real.tanh (z * Real.sqrt r) ^ 2 ∂gaussianReal 0 1
   let ψ (q : ℝ) : ℝ := g_tanh (α * rhat q)
   have hg_mem (r : ℝ) : g_tanh r ∈ Icc (0 : ℝ) 1 := by

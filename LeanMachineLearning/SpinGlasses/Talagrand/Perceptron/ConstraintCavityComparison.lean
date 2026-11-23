@@ -700,7 +700,7 @@ theorem abs_integral_smartPath_deriv_mul_sub_rhat_le_of_split_pair_bound
   rw [← hφ_w_0, ← hφ_u_0]
   calc |φ_w 0 - rhat * φ_u 0| ≤ K_w * B_err / 2 + |D| ^ 2 * (K_u * B_err / 2) :=
         Real.abs_sub_mul_le_half_of_exists_hasDerivAt hφ_w_pi
-          (by rwa [abs_of_nonneg hrhat_b.1]) hderiv_w hderiv_u
+          (by rw [abs_of_nonneg hrhat_b.1]; exact hrhat_b.2) hderiv_w hderiv_u
     _ = (K_w / 2 + |D| ^ 2 * (K_u / 2)) * B_err := by ring
 
 /-- **Proposition 2.3.5, Eq. (2.62), `(1, ∞)` endpoint.** -/
@@ -724,19 +724,16 @@ theorem abs_integral_smartPath_deriv_mul_sub_rhat_le_first_moment
           (smartPathBase N (M + 1)).tilted (smartPathEnergy u t ω)
         let f_ext (ω : SmartPathDisorder N (M + 1)) (a : R → SmartPathState N (M + 1)) : ℝ :=
           f ((Fin.init ω.1.1, Fin.init ω.1.2), ω.2) (fun r => ((a r).1, Fin.init (a r).2))
-        let rhat := perceptronRhat u q
+        let average (g : SmartPathDisorder N (M + 1) → (R → SmartPathState N (M + 1)) → ℝ) :=
+          ∫ ω, ∫ a, g ω a ∂(Measure.pi fun _ : R => μ₁ ω) ∂P₁
+        let weighted := average fun ω a =>
+          f_ext ω a * (deriv u (smartPathField t ω (a r₁) (Fin.last M)) *
+            deriv u (smartPathField t ω (a r₂) (Fin.last M)))
+        let unweighted := average f_ext
+        let firstMoment := average fun ω a => |f_ext ω a|
         (∀ᵐ ω ∂P₀, Integrable (f ω) (Measure.pi fun _ : R => μ₀ ω)) →
         Integrable (fun ω => ∫ a, |f ω a| ∂(Measure.pi fun _ : R => μ₀ ω)) P₀ →
-        |(∫ ω, ∫ a : R → SmartPathState N (M + 1),
-            f_ext ω a *
-              (deriv u (smartPathField t ω (a r₁) (Fin.last M)) *
-                deriv u (smartPathField t ω (a r₂) (Fin.last M)))
-            ∂(Measure.pi fun _ : R => μ₁ ω) ∂P₁) -
-          rhat * (∫ ω, ∫ a : R → SmartPathState N (M + 1), f_ext ω a
-            ∂(Measure.pi fun _ : R => μ₁ ω) ∂P₁)| ≤
-          K * ((2 + 1 / (N + 1)) *
-            ∫ ω, ∫ a : R → SmartPathState N (M + 1),
-              |f_ext ω a| ∂(Measure.pi fun _ : R => μ₁ ω) ∂P₁) := by
+        |weighted - perceptronRhat u q * unweighted| ≤ K * ((2 + 1 / (N + 1)) * firstMoment) := by
   let n : ℝ := Fintype.card R
   let M₀w : ℝ := 1 + |D|
   let M₁w : ℝ := |D|
@@ -746,13 +743,12 @@ theorem abs_integral_smartPath_deriv_mul_sub_rhat_le_first_moment
   let K_w : ℝ := (4 * n ^ 2 + n) * L_w ^ (Fintype.card R + 2)
   let K : ℝ := (K_w / 2 + |D| ^ 2 * (K_u / 2)) * Real.exp (4 * n * |D|)
   refine ⟨K, by positivity, ?_⟩
-  intro N M r₁ r₂ hr t q ht hq variance u hd hb f hf P₀ μ₀ P₁ μ₁ f_ext rhat hfi hfi₁
+  intro N M r₁ r₂ hr t q ht hq variance u hd hb f hf P₀ μ₀ P₁ μ₁ f_ext
+    average weighted unweighted I₁ hfi hfi₁
   obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
   have hD_abs : ∀ x, |u x| ≤ |D| := fun x => (hu.abs_le x).trans (le_abs_self D)
   have hf_abs_m : Measurable fun p : SmartPathDisorder N M × (R → SmartPathState N M) =>
       |f p.1 p.2| := by simpa only [Real.norm_eq_abs] using hf.norm
-  let I₁ : ℝ := ∫ ω, ∫ a : R → SmartPathState N (M + 1),
-    |f_ext ω a| ∂(Measure.pi fun _ : R => μ₁ ω) ∂P₁
   have hI₁_0 : 0 ≤ I₁ := integral_nonneg fun _ => integral_nonneg fun _ => abs_nonneg _
   let m : ℝ := 2 * Real.exp (4 * n * |D|) * I₁
   have hm0 : 0 ≤ m := by positivity
@@ -859,24 +855,22 @@ theorem abs_integral_smartPath_deriv_mul_sub_rhat_le_holder
         let d_spin (σ τ : PerceptronSpin N) : ℝ :=
           |((∑ i, ((σ.1 i : ℤ) : ℝ) * ((τ.1 i : ℤ) : ℝ)) +
             ((σ.2 : ℤ) : ℝ) * ((τ.2 : ℤ) : ℝ)) / (N + 1) - q|
-        let rhat := perceptronRhat u q
+        let average (g : SmartPathDisorder N (M + 1) → (R → SmartPathState N (M + 1)) → ℝ) :=
+          ∫ ω, ∫ a, g ω a ∂(Measure.pi fun _ : R => μ₁ ω) ∂P₁
+        let weighted := average fun ω a =>
+          f_ext ω a * (deriv u (smartPathField t ω (a r₁) (Fin.last M)) *
+            deriv u (smartPathField t ω (a r₂) (Fin.last M)))
+        let unweighted := average f_ext
+        let firstMoment := average fun ω a => |f_ext ω a|
+        let observableMoment := average fun ω a => |f_ext ω a| ^ p₁
+        let overlapMoment : ℝ :=
+          ∫ ω, ∫ a : Fin 2 → SmartPathState N (M + 1),
+            d_spin (a 0).1 (a 1).1 ^ p₂ ∂(Measure.pi fun _ : Fin 2 => μ₁ ω) ∂P₁
         (∀ᵐ ω ∂P₀, Integrable (fun a => |f ω a| ^ p₁) (Measure.pi fun _ : R => μ₀ ω)) →
         Integrable (fun ω => ∫ a, |f ω a| ^ p₁ ∂(Measure.pi fun _ : R => μ₀ ω)) P₀ →
-        |(∫ ω, ∫ a : R → SmartPathState N (M + 1),
-            f_ext ω a *
-              (deriv u (smartPathField t ω (a r₁) (Fin.last M)) *
-                deriv u (smartPathField t ω (a r₂) (Fin.last M)))
-            ∂(Measure.pi fun _ : R => μ₁ ω) ∂P₁) -
-          rhat * (∫ ω, ∫ a : R → SmartPathState N (M + 1), f_ext ω a
-            ∂(Measure.pi fun _ : R => μ₁ ω) ∂P₁)| ≤
-          K * ((∫ ω, ∫ a : R → SmartPathState N (M + 1),
-                |f_ext ω a| ^ p₁ ∂(Measure.pi fun _ : R => μ₁ ω) ∂P₁) ^ (1 / p₁) *
-              (∫ ω, ∫ a : Fin 2 → SmartPathState N (M + 1),
-                d_spin (a 0).1 (a 1).1 ^ p₂
-                ∂(Measure.pi fun _ : Fin 2 => μ₁ ω) ∂P₁) ^ (1 / p₂) +
-              1 / (N + 1) *
-                ∫ ω, ∫ a : R → SmartPathState N (M + 1),
-                  |f_ext ω a| ∂(Measure.pi fun _ : R => μ₁ ω) ∂P₁) := by
+        |weighted - perceptronRhat u q * unweighted| ≤
+          K * (observableMoment ^ (1 / p₁) * overlapMoment ^ (1 / p₂) +
+            1 / (N + 1) * firstMoment) := by
   let n : ℝ := Fintype.card R
   let M₀w : ℝ := 1 + |D|
   let M₁w : ℝ := |D|
@@ -887,8 +881,8 @@ theorem abs_integral_smartPath_deriv_mul_sub_rhat_le_holder
   let E_dom : ℝ := Real.exp ((4 * n + 8) * |D|)
   let K : ℝ := (K_w / 2 + |D| ^ 2 * (K_u / 2)) * E_dom
   refine ⟨K, by positivity, ?_⟩
-  intro N M r₁ r₂ hr t q ht hq variance u hd hb f hf p₁ p₂ hp P₀ μ₀ P₁ μ₁ f_ext d_spin rhat
-    hfp hfp₁
+  intro N M r₁ r₂ hr t q ht hq variance u hd hb f hf p₁ p₂ hp P₀ μ₀ P₁ μ₁ f_ext d_spin
+    average weighted unweighted I₁ A₀ B₀ hfp hfp₁
   obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
   have hP₀ : IsProbabilityMeasure P₀ := by dsimp [P₀]; rw [smartPathDisorder_eq]; infer_instance
   have hμ₀ (ω : SmartPathDisorder N M) : IsProbabilityMeasure (μ₀ ω) :=
@@ -911,12 +905,6 @@ theorem abs_integral_smartPath_deriv_mul_sub_rhat_le_holder
         (measurable_fst.comp ((measurable_pi_apply 1).comp measurable_snd))
     have hb' := (measurable_of_finite b).comp hproj
     exact hb'
-  let A₀ : ℝ := ∫ ω, ∫ a : R → SmartPathState N (M + 1),
-    |f_ext ω a| ^ p₁ ∂(Measure.pi fun _ : R => μ₁ ω) ∂P₁
-  let B₀ : ℝ := ∫ ω, ∫ a : Fin 2 → SmartPathState N (M + 1),
-    d_spin (a 0).1 (a 1).1 ^ p₂ ∂(Measure.pi fun _ : Fin 2 => μ₁ ω) ∂P₁
-  let I₁ : ℝ := ∫ ω, ∫ a : R → SmartPathState N (M + 1),
-    |f_ext ω a| ∂(Measure.pi fun _ : R => μ₁ ω) ∂P₁
   have hA₀ : 0 ≤ A₀ := integral_nonneg fun _ => integral_nonneg fun _ =>
     Real.rpow_nonneg (abs_nonneg _) _
   have hB₀ : 0 ≤ B₀ := integral_nonneg fun _ => integral_nonneg fun _ =>
@@ -1152,20 +1140,19 @@ theorem abs_integral_smartPath_deriv_mul_sub_rhat_le_of_ae_abs_le
         let d_spin (σ τ : PerceptronSpin N) : ℝ :=
           |((∑ i, ((σ.1 i : ℤ) : ℝ) * ((τ.1 i : ℤ) : ℝ)) +
             ((σ.2 : ℤ) : ℝ) * ((τ.2 : ℤ) : ℝ)) / (N + 1) - q|
-        let rhat := perceptronRhat u q
+        let average (g : SmartPathDisorder N (M + 1) → (R → SmartPathState N (M + 1)) → ℝ) :=
+          ∫ ω, ∫ a, g ω a ∂(Measure.pi fun _ : R => μ₁ ω) ∂P₁
+        let weighted := average fun ω a =>
+          f_ext ω a * (deriv u (smartPathField t ω (a r₁) (Fin.last M)) *
+            deriv u (smartPathField t ω (a r₂) (Fin.last M)))
+        let unweighted := average f_ext
+        let firstMoment := average fun ω a => |f_ext ω a|
+        let overlapMoment : ℝ :=
+          ∫ ω, ∫ a : Fin 2 → SmartPathState N (M + 1),
+            d_spin (a 0).1 (a 1).1 ∂(Measure.pi fun _ : Fin 2 => μ₁ ω) ∂P₁
         (∀ᵐ ω ∂P₀, ∀ᵐ a ∂(Measure.pi fun _ : R => μ₀ ω), |f ω a| ≤ M_f) →
-        |(∫ ω, ∫ a : R → SmartPathState N (M + 1),
-            f_ext ω a *
-              (deriv u (smartPathField t ω (a r₁) (Fin.last M)) *
-                deriv u (smartPathField t ω (a r₂) (Fin.last M)))
-            ∂(Measure.pi fun _ : R => μ₁ ω) ∂P₁) -
-          rhat * (∫ ω, ∫ a : R → SmartPathState N (M + 1), f_ext ω a
-            ∂(Measure.pi fun _ : R => μ₁ ω) ∂P₁)| ≤
-          K * (M_f * (∫ ω, ∫ a : Fin 2 → SmartPathState N (M + 1),
-                d_spin (a 0).1 (a 1).1 ∂(Measure.pi fun _ : Fin 2 => μ₁ ω) ∂P₁) +
-              1 / (N + 1) *
-                ∫ ω, ∫ a : R → SmartPathState N (M + 1),
-                  |f_ext ω a| ∂(Measure.pi fun _ : R => μ₁ ω) ∂P₁) := by
+        |weighted - perceptronRhat u q * unweighted| ≤
+          K * (M_f * overlapMoment + 1 / (N + 1) * firstMoment) := by
   let n : ℝ := Fintype.card R
   let M₀w : ℝ := 1 + |D|
   let M₁w : ℝ := |D|
@@ -1176,7 +1163,8 @@ theorem abs_integral_smartPath_deriv_mul_sub_rhat_le_of_ae_abs_le
   let E_dom : ℝ := Real.exp ((4 * n + 8) * |D|)
   let K : ℝ := (K_w / 2 + |D| ^ 2 * (K_u / 2)) * E_dom
   refine ⟨K, by positivity, ?_⟩
-  intro N M r₁ r₂ hr t q ht hq variance u hd hb f hf M_f hMf P₀ μ₀ P₁ μ₁ f_ext d_spin rhat hOld
+  intro N M r₁ r₂ hr t q ht hq variance u hd hb f hf M_f hMf P₀ μ₀ P₁ μ₁ f_ext d_spin
+    average weighted unweighted I₁ J₀ hOld
   obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
   have hD_abs : ∀ x, |u x| ≤ |D| := fun x => (hu.abs_le x).trans (le_abs_self D)
   have hP₀ : IsProbabilityMeasure P₀ := by dsimp [P₀]; rw [smartPathDisorder_eq]; infer_instance
@@ -1184,10 +1172,6 @@ theorem abs_integral_smartPath_deriv_mul_sub_rhat_le_of_ae_abs_le
     isProbabilityMeasure_tilted_perceptron_smart_path_energy hu.measurable (fun x => hu.le x) ω t
   obtain ⟨hfi, hfi₁⟩ := integrable_pi_tilted_and_integrable_integral_abs_of_ae_abs_le
     (measurable_smartPathEnergy hu.measurable t) (ae_of_all P₀ hμ₀) hf hOld
-  let J₀ : ℝ := ∫ ω, ∫ a : Fin 2 → SmartPathState N (M + 1),
-    d_spin (a 0).1 (a 1).1 ∂(Measure.pi fun _ : Fin 2 => μ₁ ω) ∂P₁
-  let I₁ : ℝ := ∫ ω, ∫ a : R → SmartPathState N (M + 1),
-    |f_ext ω a| ∂(Measure.pi fun _ : R => μ₁ ω) ∂P₁
   have hJ₀ : 0 ≤ J₀ := integral_nonneg fun _ => integral_nonneg fun _ => abs_nonneg _
   have hI₁ : 0 ≤ I₁ := integral_nonneg fun _ => integral_nonneg fun _ => abs_nonneg _
   let m : ℝ := Real.exp (8 * |D|) * (M_f * J₀)

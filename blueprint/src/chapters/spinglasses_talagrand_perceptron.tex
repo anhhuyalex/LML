@@ -1905,6 +1905,8 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityPath.lean
         SpinGlasses.integral_pi_tilted_cavityPath_pi_div_two_deriv_mul,
         SpinGlasses.integral_integral_pi_tilted_cavityPath_pi_div_two,
         SpinGlasses.integral_integral_pi_tilted_cavityPath_pi_div_two_deriv_mul,
+        SpinGlasses.perceptronRhat,
+        SpinGlasses.perceptronRhat_eq_integral_sq_integral_tilted,
         SpinGlasses.rhat_mem_Icc}
   \leanok
   \uses{prop:sg-tal:perceptron-cavity-path}
@@ -1914,6 +1916,8 @@ Let $q,t\in\mathbb R$, $\gamma=\mathcal N(0,1)$, $\theta=\sqrt q\,z+\sqrt{1-q}\,
  \rho(z)=\Bigl(\frac{\mathbb E_\xi\,u'(\theta)e^{u(\theta)}}{\mathbb E_\xi e^{u(\theta)}}\Bigr)^2,\qquad
  \widehat r=\mathbb E_z\,\rho(z)\quad(2.36).
 \]
+\emph{Formalization note.} The endpoint identities and the replica-symmetric equations use the
+same Lean definition \texttt{perceptronRhat}. It is the iterated Gaussian integral in (2.36).
 Let $\langle\cdot\rangle_{t,0}$ be the average of the interpolating system at $s=\pi/2$ ($v=0$) at fixed disorder and fixed $z$, i.e. the replica average
 under the product of $(\mu\otimes\gamma)_{E_\sim+u(\theta)}$; the book's $\nu_{t,0}$ is its integral over $(\omega,z)$. Let $f$ be a function of the old configurations $(\sigma,\xi_{<M})$ of $n$ replicas (it does not depend on
 $\xi_M^\ell$, the new coordinates $\xi^\ell$, or $z$). Then, at every fixed disorder and every fixed $z$,

@@ -1079,7 +1079,7 @@ private lemma abs_integral_interp_deriv_mul_sub_rhat_le_of_pair_bound
       ∂(Measure.pi fun _ : R => ((μ₀ ω).prod γ_aux).tilted (fun x => u (S ϑ w x)))
       ∂γ_sh ∂P₀
   have hd_u (ϑ : ℝ) : ∃ z, HasDerivAt φ_u (Real.sin ϑ * Real.cos ϑ * z) ϑ ∧
-      |z| ≤ K_u * B_err := by
+      (ϑ ∈ Icc 0 (Real.pi / 2) → |z| ≤ K_u * B_err) := by
     obtain ⟨z, hz, hzb⟩ := exists_hasDerivAt_interp_rotation_abs_le_of_pair_bound
       P₀ μ_base hE₀ hE₀i π hπ hs ht hq hu
       (fun _ _ => 1) (fun _ => differentiable_const 1) (fun _ => by simp)
@@ -1092,7 +1092,7 @@ private lemma abs_integral_interp_deriv_mul_sub_rhat_le_of_pair_bound
         ∂γ_sh ∂P₀) = φ_u := by
       funext ϑ'; simp [φ_u]
     rw [heq_φ] at hz
-    refine ⟨z, hz, hzb.trans ?_⟩
+    refine ⟨z, hz, fun _ => hzb.trans ?_⟩
     refine mul_le_mul_of_nonneg_left (add_le_add le_rfl ?_) (by positivity)
     calc 1 / (N + 1 : ℝ) * _ ≤ 1 / (N + 1 : ℝ) * (Real.exp (4 * n * |D|) * I₁) :=
           mul_le_mul_of_nonneg_left (hm1_le ϑ) (by positivity)
@@ -1111,12 +1111,12 @@ private lemma abs_integral_interp_deriv_mul_sub_rhat_le_of_pair_bound
       ∂(Measure.pi fun _ : R => ((μ₀ ω).prod γ_aux).tilted (fun x => u (S ϑ w x)))
       ∂γ_sh ∂P₀
   have hd_w (ϑ : ℝ) : ∃ z, HasDerivAt φ_w (Real.sin ϑ * Real.cos ϑ * z) ϑ ∧
-      |z| ≤ K_w * B_err := by
+      (ϑ ∈ Icc 0 (Real.pi / 2) → |z| ≤ K_w * B_err) := by
     obtain ⟨z, hz, hzb⟩ := exists_hasDerivAt_interp_rotation_abs_le_of_pair_bound
       P₀ μ_base hE₀ hE₀i π hπ hs ht hq hu
       ψ_w hψd hψ2d hM₀w hM₁w hM₂w
       hf hfb ϑ hm0 (hpair ϑ)
-    refine ⟨z, hz, hzb.trans ?_⟩
+    refine ⟨z, hz, fun _ => hzb.trans ?_⟩
     refine mul_le_mul_of_nonneg_left (add_le_add le_rfl ?_) (by positivity)
     calc 1 / (N + 1 : ℝ) * _ ≤ 1 / (N + 1 : ℝ) * (Real.exp (4 * n * |D|) * I₁) :=
           mul_le_mul_of_nonneg_left (hm1_le ϑ) (by positivity)
@@ -1191,9 +1191,8 @@ private lemma abs_integral_interp_deriv_mul_sub_rhat_le_of_pair_bound
     (fun z => integrable_exp_cavityPath_new hu.measurable (fun x => hu.le x) q z)
   rw [← hφ_w_0, ← hφ_u_0]
   calc |φ_w 0 - rhat * φ_u 0| ≤ K_w * B_err / 2 + |D| ^ 2 * (K_u * B_err / 2) :=
-        Real.abs_sub_mul_le_half_of_exists_hasDerivAt hφ_w_pi (by rwa [abs_of_nonneg hrhat_b.1])
-          (fun s => let ⟨d, hd, hb⟩ := hd_w s; ⟨d, hd, fun _ => hb⟩)
-          (fun s => let ⟨d, hd, hb⟩ := hd_u s; ⟨d, hd, fun _ => hb⟩)
+        Real.abs_sub_mul_le_half_of_exists_hasDerivAt hφ_w_pi
+          (by rw [abs_of_nonneg hrhat_b.1]; exact hrhat_b.2) hd_w hd_u
     _ = (K_w / 2 + |D| ^ 2 * (K_u / 2)) * B_err := by ring
 
 /-- **Proposition 2.3.5 for the `s`-interpolating constraint field, `(1, ∞)` endpoint.** -/
@@ -1224,16 +1223,15 @@ theorem abs_integral_interp_deriv_mul_sub_rhat_le_first_moment
             Real.sqrt (1 - s) * Real.sqrt (1 - q)] ⬝ᵥ x.2
         let ν_new (p : Ω₀ × (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) :=
           ((μ₀ p.1).prod γ₂).tilted fun x => u (X_fn p.2 x)
-        let rhat := perceptronRhat u q
-        |(∫ p, ∫ a : R → α × (Fin 2 → ℝ),
-            f p.1 (fun r => (a r).1) * (deriv u (X_fn p.2 (a r₁)) * deriv u (X_fn p.2 (a r₂)))
-            ∂(Measure.pi fun _ : R => ν_new p) ∂(P₀.prod γ₁)) -
-          rhat * (∫ p, ∫ a : R → α × (Fin 2 → ℝ),
-            f p.1 (fun r => (a r).1)
-            ∂(Measure.pi fun _ : R => ν_new p) ∂(P₀.prod γ₁))| ≤
-          K * ((2 + 1 / (N + 1)) *
-            ∫ p, ∫ a : R → α × (Fin 2 → ℝ),
-              |f p.1 (fun r => (a r).1)| ∂(Measure.pi fun _ : R => ν_new p) ∂(P₀.prod γ₁)) := by
+        let average (g : Ω₀ × (((Fin N ⊕ Unit) ⊕ Unit) → ℝ) → (R → α × (Fin 2 → ℝ)) → ℝ) :=
+          ∫ p, ∫ a, g p a ∂(Measure.pi fun _ : R => ν_new p) ∂(P₀.prod γ₁)
+        let oldObservable (p : Ω₀ × (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) (a : R → α × (Fin 2 → ℝ)) :=
+          f p.1 (fun r => (a r).1)
+        let weighted := average fun p a =>
+          oldObservable p a * (deriv u (X_fn p.2 (a r₁)) * deriv u (X_fn p.2 (a r₂)))
+        let unweighted := average oldObservable
+        let firstMoment := average fun p a => |oldObservable p a|
+        |weighted - perceptronRhat u q * unweighted| ≤ K * ((2 + 1 / (N + 1)) * firstMoment) := by
   let n : ℝ := Fintype.card R
   let M₀w : ℝ := 1 + |D|
   let M₁w : ℝ := |D|
@@ -1244,7 +1242,7 @@ theorem abs_integral_interp_deriv_mul_sub_rhat_le_first_moment
   let K : ℝ := (K_w / 2 + |D| ^ 2 * (K_u / 2)) * Real.exp (4 * n * |D|)
   refine ⟨K, by positivity, ?_⟩
   intro N Ω₀ α _ _ P₀ _ μ_base _ _ E₀ hE₀ hE₀i π hπ r₁ r₂ hr s t q hs ht hq u hd hb f hf M_f hfb
-    γ₁ γ₂ μ₀ X_fn ν_new rhat
+    γ₁ γ₂ μ₀ X_fn ν_new average oldObservable weighted unweighted I₁
   obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
   have hD_abs : ∀ x, |u x| ≤ |D| := fun x => (hu.abs_le x).trans (le_abs_self D)
   let f_abs (ω : Ω₀) (a : R → α) : ℝ := |f ω a|
@@ -1273,8 +1271,6 @@ theorem abs_integral_interp_deriv_mul_sub_rhat_le_first_moment
       exact Finset.measurable_sum _ fun j _ =>
         measurable_const.mul ((measurable_pi_apply j).comp (measurable_snd.comp measurable_snd))
     exact hd1.add hd2
-  let I₁ : ℝ := ∫ p, ∫ a : R → α × (Fin 2 → ℝ),
-    |f p.1 (fun r => (a r).1)| ∂(Measure.pi fun _ : R => ν_new p) ∂(P₀.prod γ₁)
   have hI₁_0 : 0 ≤ I₁ := integral_nonneg fun _ => integral_nonneg fun _ => abs_nonneg _
   let m : ℝ := 2 * Real.exp (4 * n * |D|) * I₁
   have hm0 : 0 ≤ m := by positivity
@@ -1457,22 +1453,22 @@ theorem abs_integral_interp_deriv_mul_sub_rhat_le_l2
         let d_spin (σ τ : PerceptronSpin N) : ℝ :=
           |((∑ i, ((σ.1 i : ℤ) : ℝ) * ((τ.1 i : ℤ) : ℝ)) +
             ((σ.2 : ℤ) : ℝ) * ((τ.2 : ℤ) : ℝ)) / (N + 1) - q|
-        let rhat := perceptronRhat u q
-        |(∫ p, ∫ a : R → α × (Fin 2 → ℝ),
-            f p.1 (fun r => (a r).1) * (deriv u (X_fn p.2 (a r₁)) * deriv u (X_fn p.2 (a r₂)))
-            ∂(Measure.pi fun _ : R => ν_new p) ∂(P₀.prod γ₁)) -
-          rhat * (∫ p, ∫ a : R → α × (Fin 2 → ℝ),
-            f p.1 (fun r => (a r).1)
-            ∂(Measure.pi fun _ : R => ν_new p) ∂(P₀.prod γ₁))| ≤
-          K * ((∫ p, ∫ a : R → α × (Fin 2 → ℝ),
-                (f p.1 (fun r => (a r).1)) ^ 2
-                ∂(Measure.pi fun _ : R => ν_new p) ∂(P₀.prod γ₁)) ^ (1 / (2 : ℝ)) *
-              (∫ p, ∫ a : Fin 2 → α × (Fin 2 → ℝ),
-                (d_spin (π (a 0).1) (π (a 1).1)) ^ 2
-                ∂(Measure.pi fun _ : Fin 2 => ν_new p) ∂(P₀.prod γ₁)) ^ (1 / (2 : ℝ)) +
-            1 / (N + 1) *
-              ∫ p, ∫ a : R → α × (Fin 2 → ℝ),
-                |f p.1 (fun r => (a r).1)| ∂(Measure.pi fun _ : R => ν_new p) ∂(P₀.prod γ₁)) := by
+        let average (g : Ω₀ × (((Fin N ⊕ Unit) ⊕ Unit) → ℝ) → (R → α × (Fin 2 → ℝ)) → ℝ) :=
+          ∫ p, ∫ a, g p a ∂(Measure.pi fun _ : R => ν_new p) ∂(P₀.prod γ₁)
+        let oldObservable (p : Ω₀ × (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) (a : R → α × (Fin 2 → ℝ)) :=
+          f p.1 (fun r => (a r).1)
+        let weighted := average fun p a =>
+          oldObservable p a * (deriv u (X_fn p.2 (a r₁)) * deriv u (X_fn p.2 (a r₂)))
+        let unweighted := average oldObservable
+        let firstMoment := average fun p a => |oldObservable p a|
+        let observableSecondMoment := average fun p a => (oldObservable p a) ^ 2
+        let overlapSecondMoment : ℝ :=
+          ∫ p, ∫ a : Fin 2 → α × (Fin 2 → ℝ),
+            (d_spin (π (a 0).1) (π (a 1).1)) ^ 2
+            ∂(Measure.pi fun _ : Fin 2 => ν_new p) ∂(P₀.prod γ₁)
+        |weighted - perceptronRhat u q * unweighted| ≤
+          K * (observableSecondMoment ^ (1 / (2 : ℝ)) * overlapSecondMoment ^ (1 / (2 : ℝ)) +
+            1 / (N + 1) * firstMoment) := by
   let n : ℝ := Fintype.card R
   let M₀w : ℝ := 1 + |D|
   let M₁w : ℝ := |D|
@@ -1484,7 +1480,7 @@ theorem abs_integral_interp_deriv_mul_sub_rhat_le_l2
   let K : ℝ := (K_w / 2 + |D| ^ 2 * (K_u / 2)) * C_dom
   refine ⟨K, by positivity, ?_⟩
   intro N Ω₀ α _ _ P₀ _ μ_base _ _ E₀ hE₀ hE₀i π hπ r₁ r₂ hr s t q hs ht hq u hd hb f hf M_f hfb
-    γ₁ γ₂ μ₀ X_fn ν_new d_spin rhat
+    γ₁ γ₂ μ₀ X_fn ν_new d_spin average oldObservable weighted unweighted I₁ A₀ B₀
   obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
   have hD_abs : ∀ x, |u x| ≤ |D| := fun x => (hu.abs_le x).trans (le_abs_self D)
   let f_sq (ω : Ω₀) (a : R → α) : ℝ := (f ω a) ^ 2
@@ -1520,10 +1516,6 @@ theorem abs_integral_interp_deriv_mul_sub_rhat_le_l2
       exact Finset.measurable_sum _ fun j _ =>
         measurable_const.mul ((measurable_pi_apply j).comp (measurable_snd.comp measurable_snd))
     exact hd1.add hd2
-  let A₀ : ℝ := ∫ p, ∫ a : R → α × (Fin 2 → ℝ),
-    (f p.1 (fun r => (a r).1)) ^ 2 ∂(Measure.pi fun _ : R => ν_new p) ∂(P₀.prod γ₁)
-  let B₀ : ℝ := ∫ p, ∫ a : Fin 2 → α × (Fin 2 → ℝ),
-    (d_spin (π (a 0).1) (π (a 1).1)) ^ 2 ∂(Measure.pi fun _ : Fin 2 => ν_new p) ∂(P₀.prod γ₁)
   have hA₀_0 : 0 ≤ A₀ := integral_nonneg fun _ => integral_nonneg fun _ => sq_nonneg _
   have hB₀_0 : 0 ≤ B₀ := integral_nonneg fun _ => integral_nonneg fun _ => sq_nonneg _
   let m : ℝ := Real.exp ((2 * n + 4) * |D|) * (A₀ ^ (1 / (2 : ℝ)) * B₀ ^ (1 / (2 : ℝ)))
@@ -1798,8 +1790,6 @@ theorem abs_integral_interp_deriv_mul_sub_rhat_le_l2
   refine hmain.trans ?_
   have hC1 : Real.exp ((2 * n + 4) * |D|) ≤ C_dom := le_max_left _ _
   have hC2 : Real.exp (4 * n * |D|) ≤ C_dom := le_max_right _ _
-  let I₁ : ℝ := ∫ p, ∫ a : R → α × (Fin 2 → ℝ),
-    |f p.1 (fun r => (a r).1)| ∂(Measure.pi fun _ : R => ν_new p) ∂(P₀.prod γ₁)
   have hI₁_0 : 0 ≤ I₁ := integral_nonneg fun _ => integral_nonneg fun _ => abs_nonneg _
   have hm_le : m ≤ C_dom * (A₀ ^ (1 / (2 : ℝ)) * B₀ ^ (1 / (2 : ℝ))) :=
     mul_le_mul_of_nonneg_right hC1 (by positivity)
