@@ -224,4 +224,55 @@ theorem rhat_mem_Icc {D' : ℝ} (hD' : ∀ x, |deriv u x| ≤ D') (q : ℝ)
     exact pow_le_pow_left₀ (abs_nonneg _) h 2
   exact (le_abs_self _).trans (abs_integral_le_of_forall_abs_le (gaussianReal 0 1) hb)
 
+/-- The cavity-path partition function `∫ ξ, exp (u (√q z + √(1 - q) ξ)) ∂𝒩(0, 1)` is strictly
+positive when `u` is measurable and bounded above. -/
+theorem integral_exp_cavityPath_pos (hu : Measurable u) (hD : ∀ x, u x ≤ D) (q z : ℝ) :
+    0 < ∫ ξ : ℝ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1 :=
+  integral_exp_pos (integrable_exp_cavityPath_new hu hD q z)
+
+/-- Measurability of `z ↦ ∫ ξ, exp (u (√q z + √(1 - q) ξ)) ∂𝒩(0, 1)` for measurable `u`. -/
+theorem measurable_integral_exp_cavityPath (hu : Measurable u) (q : ℝ) :
+    Measurable fun z : ℝ =>
+      ∫ ξ : ℝ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1 := by
+  have hj : Measurable fun p : ℝ × ℝ =>
+      Real.exp (u (Real.sqrt q * p.1 + Real.sqrt (1 - q) * p.2)) :=
+    Real.measurable_exp.comp (hu.comp (by fun_prop))
+  exact (hj.stronglyMeasurable.integral_prod_right' (ν := gaussianReal 0 1)).measurable
+
+/-- Measurability of `z ↦ ∫ ξ, u'(√q z + √(1 - q) ξ) exp (u (√q z + √(1 - q) ξ)) ∂𝒩(0, 1)` for
+measurable `u`. -/
+theorem measurable_integral_deriv_mul_exp_cavityPath (hu : Measurable u) (q : ℝ) :
+    Measurable fun z : ℝ =>
+      ∫ ξ : ℝ, deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ) *
+        Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1 := by
+  have hj : Measurable fun p : ℝ × ℝ =>
+      deriv u (Real.sqrt q * p.1 + Real.sqrt (1 - q) * p.2) *
+        Real.exp (u (Real.sqrt q * p.1 + Real.sqrt (1 - q) * p.2)) :=
+    ((measurable_deriv u).comp (by fun_prop)).mul
+      (Real.measurable_exp.comp (hu.comp (by fun_prop)))
+  exact (hj.stronglyMeasurable.integral_prod_right' (ν := gaussianReal 0 1)).measurable
+
+/-- Pointwise bound on the cavity-path log-partition function: if `|u x| ≤ B`, then
+`|log ∫ ξ, exp (u (√q z + √(1 - q) ξ)) ∂𝒩(0, 1)| ≤ B`. -/
+theorem abs_log_integral_exp_cavityPath_le {B : ℝ} (hu : Measurable u) (hB : ∀ x, |u x| ≤ B)
+    (q z : ℝ) :
+    |Real.log (∫ ξ : ℝ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ))
+      ∂gaussianReal 0 1)| ≤ B :=
+  abs_log_integral_exp_le_of_ae_abs_le (hu.comp (by fun_prop)).aemeasurable
+    (ae_of_all _ fun _ => hB _)
+
+/-- Gaussian integrability of `z ↦ log ∫ ξ, exp (u (√q z + √(1 - q) ξ)) ∂𝒩(0, 1)` when `u` is
+measurable and `|u x| ≤ B`. -/
+theorem integrable_log_integral_exp_cavityPath {B : ℝ} (hu : Measurable u) (hB : ∀ x, |u x| ≤ B)
+    (q : ℝ) :
+    Integrable
+      (fun z : ℝ => Real.log (∫ ξ : ℝ,
+        Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1))
+      (gaussianReal 0 1) :=
+  Integrable.of_bound
+    (Real.measurable_log.comp (measurable_integral_exp_cavityPath hu q)).aestronglyMeasurable |B|
+    (ae_of_all _ fun z => by
+      rw [Real.norm_eq_abs]
+      exact (abs_log_integral_exp_cavityPath_le hu hB q z).trans (le_abs_self B))
+
 end SpinGlasses

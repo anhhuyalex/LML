@@ -328,6 +328,12 @@ theorem B_nonneg (h : SmartPathPotential u B D) : 0 ≤ B := (abs_nonneg _).tran
 theorem D_nonneg (h : SmartPathPotential u B D) : 0 ≤ D :=
   (abs_nonneg _).trans (h.abs_deriv_le 0)
 
+theorem le_abs (h : SmartPathPotential u B D) (z : ℝ) : u z ≤ |B| :=
+  (h.le z).trans (le_abs_self B)
+
+theorem abs_deriv_le_abs (h : SmartPathPotential u B D) (z : ℝ) : |deriv u z| ≤ |D| :=
+  (h.abs_deriv_le z).trans (le_abs_self D)
+
 end SmartPathPotential
 
 /-- Extension of `SmartPathPotential` requiring `deriv u` to be differentiable with
@@ -336,6 +342,21 @@ structure SmartPathPotential₂ (u : ℝ → ℝ) (B D D₂ : ℝ) : Prop extend
     SmartPathPotential u B D where
   differentiable_deriv : Differentiable ℝ (deriv u)
   abs_deriv₂_le : ∀ z, |deriv (deriv u) z| ≤ D₂
+
+namespace SmartPathPotential₂
+
+/-- Derivative of `t ↦ u'(t) * exp (u t)` under `SmartPathPotential₂`:
+equals `(u''(x) + u'(x) * u'(x)) * exp (u x)`. -/
+theorem hasDerivAt_deriv_mul_exp {u : ℝ → ℝ} {B D D₂ : ℝ} (hu : SmartPathPotential₂ u B D D₂)
+    (x : ℝ) :
+    HasDerivAt (fun t => deriv u t * Real.exp (u t))
+      ((deriv (deriv u) x + deriv u x * deriv u x) * Real.exp (u x)) x := by
+  have h1 : HasDerivAt (deriv u) (deriv (deriv u) x) x := (hu.differentiable_deriv x).hasDerivAt
+  have h2 : HasDerivAt (fun t => Real.exp (u t)) (Real.exp (u x) * deriv u x) x :=
+    (hu.differentiable x).hasDerivAt.exp
+  exact (h1.mul h2).congr_deriv (by ring)
+
+end SmartPathPotential₂
 
 /-! ### Interaction kernels of Proposition 2.2.3 -/
 

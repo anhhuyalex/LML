@@ -483,28 +483,22 @@ theorem hasDerivAt_interpolating_pressure
     (∑ k : Fin M, S'_fn s' ω x k * deriv u (S_fn s' ω x k)) -
       (1 / (2 * Real.sqrt (1 - s'))) *
         ∑ i : Fin (N + 1), ((x.1 i : ℤ) : ℝ) * ω.2 i * Real.sqrt r
-  let δ : ℝ := min (s / 2) ((1 - s) / 2)
-  have hδ : 0 < δ := lt_min (half_pos hs.1) (half_pos (sub_pos.2 hs.2))
+  obtain ⟨δ, hδ, hδ_bd⟩ := exists_Ioo_nhds_bound hs
   let U_nbhd : Set ℝ := Ioo (s - δ) (s + δ)
   have hU_nhds : U_nbhd ∈ 𝓝 s := Ioo_mem_nhds (by linarith) (by linarith)
   have hs'_b {s' : ℝ} (hs' : s' ∈ U_nbhd) : δ ≤ s' ∧ δ ≤ 1 - s' ∧ 0 < s' ∧ s' < 1 := by
-    have h1 : δ ≤ s / 2 := min_le_left _ _
-    have h2 : δ ≤ (1 - s) / 2 := min_le_right _ _
-    refine ⟨by linarith [hs'.1], by linarith [hs'.2], by linarith [hs'.1], by linarith [hs'.2]⟩
+    obtain ⟨h1, h2⟩ := hδ_bd s' hs'
+    exact ⟨h1, h2, hδ.trans_le h1, by linarith⟩
   -- Pointwise derivative of `E_s s' ω x` on `U_nbhd`!
   have hd_E (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
       (x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) {s' : ℝ} (hs' : s' ∈ U_nbhd) :
       HasDerivAt (fun t => E_s t ω x) (E'_s s' ω x) s' := by
     obtain ⟨-, -, hs'0, hs'1⟩ := hs'_b hs'
-    have hsq1 := Real.hasDerivAt_sqrt hs'0.ne'
-    have hsq2 := ((hasDerivAt_id s').const_sub 1).sqrt (sub_pos.2 hs'1).ne'
     have hsq2' : HasDerivAt (fun t : ℝ => Real.sqrt (1 - t)) (-1 / (2 * Real.sqrt (1 - s'))) s' :=
-      hsq2
-    have hS_k (k : Fin M) : HasDerivAt (fun t => S_fn t ω x k) (S'_fn s' ω x k) s' := by
-      have h := (hsq1.mul_const ((Real.sqrt (N + 1 : ℕ))⁻¹ *
-          ∑ i, ω.1.1 k i * ((x.1 i : ℤ) : ℝ))).add
-        (hsq2'.mul_const (Real.sqrt q * ω.1.2 k + Real.sqrt (1 - q) * x.2 k))
-      exact h.congr_deriv (by dsimp only [S'_fn]; ring)
+      ((hasDerivAt_id s').const_sub 1).sqrt (sub_pos.2 hs'1).ne'
+    have hS_k (k : Fin M) : HasDerivAt (fun t => S_fn t ω x k) (S'_fn s' ω x k) s' :=
+      (hasDerivAt_sqrt_mul_add_sqrt_one_sub_mul ⟨hs'0, hs'1⟩ _ _).congr_deriv
+        (by dsimp only [S'_fn]; ring)
     have hU_k (k : Fin M) : HasDerivAt (fun t => u (S_fn t ω x k))
         (S'_fn s' ω x k * deriv u (S_fn s' ω x k)) s' := by
       have h := (hu (S_fn s' ω x k)).hasDerivAt.comp s' (hS_k k)
@@ -1363,37 +1357,9 @@ lemma measurePreserving_interpConstraintDisorder_lastSplit (L M : ℕ) :
         (((Fin.init ω.1.1, Fin.init ω.1.2), ω.2),
           (Sum.elim (ω.1.1 (Fin.last M)) (fun _ : Unit => ω.1.2 (Fin.last M)) :
             (Fin L ⊕ Unit) → ℝ)))
-      P_M1 (P_M.prod (Measure.pi fun _ : Fin L ⊕ Unit => γ)) := by
-  intro γ P_M P_M1
-  let G₀ := Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin L => γ
-  let gM := Measure.pi fun _ : Fin L => γ
-  let Z₀ := Measure.pi fun _ : Fin M => γ
-  let Zp := Measure.pi fun _ : Fin L => γ
-  have hg := measurePreserving_finSuccProd gM M
-  have hz := measurePreserving_finSuccProd γ M
-  have hunit := (measurePreserving_funUnique γ Unit).symm
-  have hsum := (measurePreserving_sumPiEquivProdPi_symm (X := fun _ : Fin L ⊕ Unit => ℝ)
-    (fun _ => γ)).comp ((MeasurePreserving.id gM).prod hunit)
-  have step1 : MeasurePreserving
-      (Prod.map (Prod.map (MeasurableEquiv.finSuccProd (Fin L → ℝ) M)
-        (MeasurableEquiv.finSuccProd ℝ M)) id)
-      P_M1 (((G₀.prod gM).prod (Z₀.prod γ)).prod Zp) :=
-    (hg.prod hz).prod (MeasurePreserving.id Zp)
-  have step2 := (measurePreserving_prodProdProdComm G₀ gM Z₀ γ).prod (MeasurePreserving.id Zp)
-  have step3 := measurePreserving_prodAssoc (G₀.prod Z₀) (gM.prod γ) Zp
-  have step4 := (MeasurePreserving.id (G₀.prod Z₀)).prod
-    (Measure.measurePreserving_swap (μ := gM.prod γ) (ν := Zp))
-  have step5 := (measurePreserving_prodAssoc (G₀.prod Z₀) Zp (gM.prod γ)).symm
-  have step6 := (MeasurePreserving.id P_M).prod hsum
-  have full := step6.comp (step5.comp (step4.comp (step3.comp (step2.comp step1))))
-  convert full using 1
-  ext ω : 1
-  refine Prod.ext ?_ ?_
-  · simp [MeasurableEquiv.prodAssoc, Fin.init_def]
-  · ext idx
-    rcases idx with i | _ <;>
-      simp [MeasurableEquiv.prodAssoc, MeasurableEquiv.coe_sumPiEquivProdPi_symm,
-        Equiv.sumPiEquivProdPi_symm_apply]
+      P_M1 (P_M.prod (Measure.pi fun _ : Fin L ⊕ Unit => γ)) :=
+  measurePreserving_lastRow_sumPi_split (ι := Fin L) (gaussianReal 0 1)
+    (Measure.pi fun _ : Fin L => gaussianReal 0 1) M
 
 /-- Splitting the `(M + 1)`-constraint state `(σ, ξ)` of the `s`-interpolating system into the
 `M`-constraint state `(σ, Fin.init ξ)` and the last auxiliary coordinate `ξ_M`. -/
@@ -1493,6 +1459,86 @@ theorem interp_stein_cov_diag {N : ℕ} {s q : ℝ} (hs : s ∈ Ioo (0 : ℝ) 1)
         _ = -(1 / 2) * (1 - q) := by rw [hc, hsq_1q]
     rw [hself, haux_dot]; ring
 
+/-- **Single-replica Gaussian integration by parts with factor `deriv u` and zero diagonal
+covariance.** For `R = Unit` and observable `1`, when `W_sh τ ⬝ᵥ α_sh τ + W_aux τ ⬝ᵥ α_aux τ = 0`
+and `W_sh τ₁ ⬝ᵥ α_sh τ₂ = (1 / 2) * c τ₁ τ₂`, `stein_tilted_replica_ratio` kills the diagonal term
+and leaves `-(1 / 2)` times the `Option Unit` two-replica expectation of `c * u' * u'`. -/
+theorem stein_tilted_unit_replica_deriv
+    {α L K_sh K_aux : Type*} [MeasurableSpace α]
+    [Finite L] [MeasurableSpace L] [MeasurableSingletonClass L]
+    [Fintype K_sh] [Fintype K_aux]
+    (μ₀ : Measure α) [IsProbabilityMeasure μ₀]
+    (π : α → L) (hπ : Measurable π)
+    (α_sh W_sh : L → K_sh → ℝ) (α_aux W_aux : L → K_aux → ℝ)
+    {u : ℝ → ℝ} {B D₁ D₂ : ℝ} (hu : SmartPathPotential₂ u B D₁ D₂)
+    (c : L → L → ℝ)
+    (hcov_sh : ∀ τ₁ τ₂, W_sh τ₁ ⬝ᵥ α_sh τ₂ = (1 / 2) * c τ₁ τ₂)
+    (hcov_diag : ∀ τ, W_sh τ ⬝ᵥ α_sh τ + W_aux τ ⬝ᵥ α_aux τ = 0) :
+    let γ_sh := Measure.pi fun _ : K_sh => gaussianReal 0 1
+    let γ_aux := Measure.pi fun _ : K_aux => gaussianReal 0 1
+    ∫ w, ∫ σ : Unit → α × (K_aux → ℝ),
+        1 * (W_sh (π (σ ()).1) ⬝ᵥ w + W_aux (π (σ ()).1) ⬝ᵥ (σ ()).2) *
+          (∏ r_u : Unit, deriv u (α_sh (π (σ r_u).1) ⬝ᵥ w + α_aux (π (σ r_u).1) ⬝ᵥ (σ r_u).2))
+        ∂(Measure.pi fun _ : Unit => (μ₀.prod γ_aux).tilted
+          (fun y => u (α_sh (π y.1) ⬝ᵥ w + α_aux (π y.1) ⬝ᵥ y.2))) ∂γ_sh =
+      -(1 / 2) * ∫ w, ∫ σ : Option Unit → α × (K_aux → ℝ),
+        c (π (σ (some ())).1) (π (σ none).1) *
+          deriv u (α_sh (π (σ (some ())).1) ⬝ᵥ w + α_aux (π (σ (some ())).1) ⬝ᵥ (σ (some ())).2) *
+          deriv u (α_sh (π (σ none).1) ⬝ᵥ w + α_aux (π (σ none).1) ⬝ᵥ (σ none).2)
+        ∂(Measure.pi fun _ : Option Unit => (μ₀.prod γ_aux).tilted
+          (fun y => u (α_sh (π y.1) ⬝ᵥ w + α_aux (π y.1) ⬝ᵥ y.2))) ∂γ_sh := by
+  intro γ_sh γ_aux
+  have hψ_deriv := hu.hasDerivAt_deriv_mul_exp
+  have hst := stein_tilted_replica_ratio (R := Unit) (μ₀ := μ₀)
+    (π := π) hπ α_sh W_sh α_aux W_aux
+    hu.differentiable hu.abs_le hu.abs_deriv_le
+    (fun _ => deriv u)
+    (fun _ x => (hψ_deriv x).differentiableAt)
+    (M₀ := fun _ => |D₁|) (M' := fun _ => (|D₂| + |D₁| ^ 2) * Real.exp |B|)
+    (fun _ x => hu.abs_deriv_le_abs x)
+    (fun _ x => by
+      rw [(hψ_deriv x).deriv, abs_mul, abs_of_pos (Real.exp_pos _)]
+      refine mul_le_mul ?_ (Real.exp_le_exp.2 (hu.le_abs x)) (Real.exp_pos _).le (by positivity)
+      refine (abs_add_le _ _).trans (add_le_add
+        ((hu.abs_deriv₂_le x).trans (le_abs_self D₂)) ?_)
+      rw [abs_mul, sq]
+      exact mul_le_mul (hu.abs_deriv_le_abs x) (hu.abs_deriv_le_abs x)
+        (abs_nonneg _) (abs_nonneg _))
+    (fun _ x => deriv (deriv u) x + deriv u x * deriv u x)
+    (fun _ x => (hψ_deriv x).deriv)
+    () (f := fun _ => (1 : ℝ)) (integrable_const 1)
+  dsimp only at hst
+  rw [hst]
+  have hdiag_zero :
+      (∑ j : Unit, ∫ w, ∫ σ : Unit → α × (K_aux → ℝ),
+        1 * (W_sh (π (σ ()).1) ⬝ᵥ α_sh (π (σ j).1) +
+            if () = j then W_aux (π (σ ()).1) ⬝ᵥ α_aux (π (σ j).1) else 0) *
+          ((deriv (deriv u) (α_sh (π (σ j).1) ⬝ᵥ w + α_aux (π (σ j).1) ⬝ᵥ (σ j).2) +
+              deriv u (α_sh (π (σ j).1) ⬝ᵥ w + α_aux (π (σ j).1) ⬝ᵥ (σ j).2) *
+                deriv u (α_sh (π (σ j).1) ⬝ᵥ w + α_aux (π (σ j).1) ⬝ᵥ (σ j).2)) *
+            ∏ r_u ∈ Finset.univ.erase j,
+              deriv u (α_sh (π (σ r_u).1) ⬝ᵥ w + α_aux (π (σ r_u).1) ⬝ᵥ (σ r_u).2))
+        ∂(Measure.pi fun _ : Unit => (μ₀.prod γ_aux).tilted
+          (fun q_1 => u (α_sh (π q_1.1) ⬝ᵥ w + α_aux (π q_1.1) ⬝ᵥ q_1.2))) ∂γ_sh) = 0 := by
+    rw [show (Finset.univ : Finset Unit) = {()} from rfl, Finset.sum_singleton]
+    refine (integral_congr_ae (g := fun _ => (0 : ℝ)) (ae_of_all _ fun w => ?_)).trans
+      (integral_zero _ ℝ)
+    refine (integral_congr_ae (g := fun _ => (0 : ℝ)) (ae_of_all _ fun σ => ?_)).trans
+      (integral_zero _ ℝ)
+    dsimp only
+    simp only [↓reduceIte, hcov_diag (π (σ ()).1)]
+    ring
+  rw [hdiag_zero, zero_sub, Fintype.card_unique, Nat.cast_one, one_mul]
+  symm
+  rw [neg_mul, ← integral_const_mul, neg_inj]
+  refine integral_congr_ae (ae_of_all _ fun w => ?_)
+  dsimp only
+  rw [← integral_const_mul]
+  refine integral_congr_ae (ae_of_all _ fun σ => ?_)
+  dsimp only
+  simp only [Finset.univ_unique, Finset.prod_singleton, hcov_sh]
+  ring
+
 /-- **Stein identity at fixed old disorder for the last constraint of (2.82).** For a fixed
 `M`-constraint disorder `ω₀`, Gaussian integration by parts over the last constraint's shared
 Gaussian `(g_M, z_M)` and auxiliary Gaussian `ξ_M` turns the single-replica derivative term into
@@ -1546,70 +1592,9 @@ private theorem interp_field_deriv_stein_fixed_disorder
   have hμ₀_prob : IsProbabilityMeasure μ₀ :=
     isProbabilityMeasure_tilted_of_ae_le hE₀_m.aemeasurable
       (ae_of_all _ (interpEnergy_le (fun x => hu.le x) s q r ω₀))
-  have hcov_sh (τ₁ τ₂ : Fin (N + 1) → ℤˣ) :
-      W_sh τ₁ ⬝ᵥ α_sh τ₂ =
-        (1 / 2) * ((((N : ℝ) + 1)⁻¹ * ∑ i, ((τ₁ i : ℤ) : ℝ) * ((τ₂ i : ℤ) : ℝ)) - q) :=
-    interp_stein_cov_shared hs hq.1 τ₁ τ₂
-  have hcov_diag (τ : Fin (N + 1) → ℤˣ) :
-      W_sh τ ⬝ᵥ α_sh τ + W_aux τ ⬝ᵥ α_aux τ = 0 := interp_stein_cov_diag hs hq τ
-  have hψ_deriv (x : ℝ) :
-      HasDerivAt (fun t => deriv u t * Real.exp (u t))
-        ((deriv (deriv u) x + deriv u x * deriv u x) * Real.exp (u x)) x := by
-    have h1 : HasDerivAt (deriv u) (deriv (deriv u) x) x :=
-      (hu.differentiable_deriv x).hasDerivAt
-    have h2 : HasDerivAt (fun t => Real.exp (u t)) (Real.exp (u x) * deriv u x) x :=
-      (hu.differentiable x).hasDerivAt.exp
-    exact (h1.mul h2).congr_deriv (by ring)
-  have hst := stein_tilted_replica_ratio (R := Unit) (μ₀ := μ₀)
-    (π := Prod.fst) measurable_fst α_sh W_sh α_aux W_aux
-    hu.differentiable hu.abs_le hu.abs_deriv_le
-    (fun _ => deriv u)
-    (fun _ x => (hψ_deriv x).differentiableAt)
-    (M₀ := fun _ => |D₁|) (M' := fun _ => (|D₂| + |D₁| ^ 2) * Real.exp |B|)
-    (fun _ x => (hu.abs_deriv_le x).trans (le_abs_self D₁))
-    (fun _ x => by
-      rw [(hψ_deriv x).deriv, abs_mul, abs_of_pos (Real.exp_pos _)]
-      refine mul_le_mul ?_ (Real.exp_le_exp.2 ((hu.le x).trans (le_abs_self B)))
-        (Real.exp_pos _).le (by positivity)
-      refine (abs_add_le _ _).trans (add_le_add
-        ((hu.abs_deriv₂_le x).trans (le_abs_self D₂)) ?_)
-      rw [abs_mul, sq]
-      exact mul_le_mul ((hu.abs_deriv_le x).trans (le_abs_self D₁))
-        ((hu.abs_deriv_le x).trans (le_abs_self D₁)) (abs_nonneg _) (abs_nonneg _))
-    (fun _ x => deriv (deriv u) x + deriv u x * deriv u x)
-    (fun _ x => (hψ_deriv x).deriv)
-    () (f := fun _ => (1 : ℝ)) (integrable_const 1)
-  dsimp only at hst
-  rw [hst]
-  have hdiag_zero :
-      (∑ j : Unit, ∫ w, ∫ σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ),
-        1 * (W_sh (σ ()).1.1 ⬝ᵥ α_sh (σ j).1.1 +
-            if () = j then W_aux (σ ()).1.1 ⬝ᵥ α_aux (σ j).1.1 else 0) *
-          ((deriv (deriv u) (α_sh (σ j).1.1 ⬝ᵥ w + α_aux (σ j).1.1 ⬝ᵥ (σ j).2) +
-              deriv u (α_sh (σ j).1.1 ⬝ᵥ w + α_aux (σ j).1.1 ⬝ᵥ (σ j).2) *
-                deriv u (α_sh (σ j).1.1 ⬝ᵥ w + α_aux (σ j).1.1 ⬝ᵥ (σ j).2)) *
-            ∏ r_u ∈ Finset.univ.erase j,
-              deriv u (α_sh (σ r_u).1.1 ⬝ᵥ w + α_aux (σ r_u).1.1 ⬝ᵥ (σ r_u).2))
-        ∂(Measure.pi fun _ : Unit => (μ₀.prod γ_aux).tilted
-          (fun q_1 => u (α_sh q_1.1.1 ⬝ᵥ w + α_aux q_1.1.1 ⬝ᵥ q_1.2))) ∂γ_sh) = 0 := by
-    rw [show (Finset.univ : Finset Unit) = {()} from rfl, Finset.sum_singleton]
-    refine (integral_congr_ae (g := fun _ => (0 : ℝ)) (ae_of_all _ fun w => ?_)).trans
-      (integral_zero _ ℝ)
-    refine (integral_congr_ae (g := fun _ => (0 : ℝ)) (ae_of_all _ fun σ => ?_)).trans
-      (integral_zero _ ℝ)
-    dsimp only
-    simp only [↓reduceIte, hcov_diag (σ ()).1.1]
-    ring
-  rw [hdiag_zero, zero_sub, Fintype.card_unique, Nat.cast_one, one_mul]
-  symm
-  rw [neg_mul, ← integral_const_mul, neg_inj]
-  refine integral_congr_ae (ae_of_all _ fun w => ?_)
-  dsimp only
-  rw [← integral_const_mul]
-  refine integral_congr_ae (ae_of_all _ fun σ => ?_)
-  dsimp only
-  simp only [Finset.univ_unique, Finset.prod_singleton, hcov_sh]
-  ring
+  exact stein_tilted_unit_replica_deriv μ₀ Prod.fst measurable_fst α_sh W_sh α_aux W_aux hu
+    (fun τ₁ τ₂ => (((N : ℝ) + 1)⁻¹ * ∑ i, ((τ₁ i : ℤ) : ℝ) * ((τ₂ i : ℤ) : ℝ)) - q)
+    (interp_stein_cov_shared hs hq.1) (interp_stein_cov_diag hs hq)
 
 /-- **Last-constraint Gaussian IBP and measure transport for (2.82).** Splitting `(M + 1)`
 constraints into the `M` old constraints and `Fin.last M`, transporting the disorder and state,

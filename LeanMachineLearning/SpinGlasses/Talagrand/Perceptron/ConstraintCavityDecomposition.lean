@@ -229,39 +229,9 @@ theorem measurePreserving_smartPathDisorder_lastSplit (N M : ℕ) (v : ℝ≥0) 
       ((smartPathDisorder (Measure.pi fun _ : Fin M =>
           Measure.pi fun _ : Fin N => gaussianReal 0 1) v).prod
         (Measure.pi fun _ : Fin N ⊕ Unit => gaussianReal 0 1)) := by
-  let γ : Measure ℝ := gaussianReal 0 1
-  let G₀ : Measure (Fin M → Fin N → ℝ) := Measure.pi fun _ => Measure.pi fun _ => γ
-  let gM : Measure (Fin N → ℝ) := Measure.pi fun _ => γ
-  let A₀ : Measure (Fin M → ℝ) := Measure.pi fun _ => γ
-  let Ym : Measure ℝ := gaussianReal 0 v
-  have hg := measurePreserving_finSuccProd gM M
-  have ha := measurePreserving_finSuccProd γ M
-  have hunit := (measurePreserving_funUnique γ Unit).symm
-  have hsum := (measurePreserving_sumPiEquivProdPi_symm (X := fun _ : Fin N ⊕ Unit => ℝ)
-    (fun _ => γ)).comp ((MeasurePreserving.id gM).prod hunit)
-  have step1 : MeasurePreserving
-      (Prod.map (Prod.map (MeasurableEquiv.finSuccProd (Fin N → ℝ) M)
-        (MeasurableEquiv.finSuccProd ℝ M)) id)
-      (smartPathDisorder (Measure.pi fun _ : Fin (M + 1) => gM) v)
-      (((G₀.prod gM).prod (A₀.prod γ)).prod Ym) := by
-    rw [smartPathDisorder_eq]
-    exact (hg.prod ha).prod (MeasurePreserving.id Ym)
-  have step2 := (measurePreserving_prodProdProdComm G₀ gM A₀ γ).prod (MeasurePreserving.id Ym)
-  have step3 := measurePreserving_prodAssoc (G₀.prod A₀) (gM.prod γ) Ym
-  have step4 := (MeasurePreserving.id (G₀.prod A₀)).prod
-    (Measure.measurePreserving_swap (μ := gM.prod γ) (ν := Ym))
-  have step5 := (measurePreserving_prodAssoc (G₀.prod A₀) Ym (gM.prod γ)).symm
-  have step6 := (MeasurePreserving.id ((G₀.prod A₀).prod Ym)).prod hsum
-  have full := step6.comp (step5.comp (step4.comp (step3.comp (step2.comp step1))))
-  rw [smartPathDisorder_eq (Measure.pi fun _ : Fin M => gM) v]
-  convert full using 1
-  ext ω : 1
-  refine Prod.ext ?_ ?_
-  · simp [MeasurableEquiv.prodAssoc, Fin.init_def]
-  · ext x
-    rcases x with i | _ <;>
-      simp [MeasurableEquiv.prodAssoc, MeasurableEquiv.coe_sumPiEquivProdPi_symm,
-        Equiv.sumPiEquivProdPi_symm_apply]
+  rw [smartPathDisorder_eq, smartPathDisorder_eq]
+  exact measurePreserving_lastRow_sumPi_split (ι := Fin N) (gaussianReal 0 1)
+    (gaussianReal 0 v) M
 
 /-- **Measure-preserving split of the cavity disorder `(ω, z)`.** Under the concrete i.i.d.
 disorder law for `M + 1` constraints paired with the independent shared Gaussian `z ∼ 𝒩(0, 1)`,

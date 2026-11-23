@@ -7,6 +7,7 @@ module
 
 public import Mathlib.Analysis.SpecialFunctions.Pow.NNReal
 public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Analysis.Calculus.Deriv.Add
 public import Mathlib.Analysis.Calculus.Deriv.Basic
 public import Mathlib.Analysis.Calculus.Deriv.Mul
 
@@ -73,3 +74,45 @@ theorem hasDerivAt_sqrt_div_const {L z : ℝ} (hL : 0 ≤ L) (hz : z ≠ 0) :
   exact (Real.hasDerivAt_sqrt hz).div_const (Real.sqrt L)
 
 end Real
+
+/-- Derivative of `s ↦ √s * a + √(1 - s) * b` at an interior point `t ∈ (0, 1)`. -/
+theorem hasDerivAt_sqrt_mul_add_sqrt_one_sub_mul {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) 1) (a b : ℝ) :
+    HasDerivAt (fun s : ℝ => Real.sqrt s * a + Real.sqrt (1 - s) * b)
+      (a / (2 * Real.sqrt t) - b / (2 * Real.sqrt (1 - t))) t := by
+  have h1 := (Real.hasDerivAt_sqrt ht.1.ne').mul_const a
+  have h2 := (((hasDerivAt_id t).const_sub 1).sqrt (sub_pos.2 ht.2).ne').mul_const b
+  exact (h1.add h2).congr_deriv (by dsimp only [id_eq]; ring)
+
+/-- Given `t ∈ (0, 1)`, there is `δ > 0` such that `(t - δ, t + δ)` stays at distance at least `δ`
+from both endpoints `0` and `1` (and in particular lies inside `(0, 1)`). -/
+theorem exists_Ioo_nhds_bound {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) 1) :
+    ∃ δ > 0, ∀ t' ∈ Set.Ioo (t - δ) (t + δ), δ ≤ t' ∧ δ ≤ 1 - t' := by
+  refine ⟨min (t / 2) ((1 - t) / 2), lt_min (half_pos ht.1) (half_pos (sub_pos.2 ht.2)),
+    fun t' ht' => ?_⟩
+  have h1 : min (t / 2) ((1 - t) / 2) ≤ t / 2 := min_le_left _ _
+  have h2 : min (t / 2) ((1 - t) / 2) ≤ (1 - t) / 2 := min_le_right _ _
+  exact ⟨by linarith [ht'.1], by linarith [ht'.2]⟩
+
+/-- Uniform inverse-square-root bound on `|a / (2 √t) - b / (2 √(1 - t))|` when `δ ≤ t` and
+`δ ≤ 1 - t` (`δ > 0`). -/
+theorem abs_div_two_sqrt_sub_le {δ t a b : ℝ} (hδ : 0 < δ) (h1 : δ ≤ t) (h2 : δ ≤ 1 - t) :
+    |a / (2 * Real.sqrt t) - b / (2 * Real.sqrt (1 - t))| ≤ (|a| + |b|) / (2 * Real.sqrt δ) := by
+  have ht0 : 0 < t := hδ.trans_le h1
+  have ht1 : 0 < 1 - t := hδ.trans_le h2
+  have hpos : 0 < 2 * Real.sqrt δ := by positivity
+  have hi1 : 1 / (2 * Real.sqrt t) ≤ 1 / (2 * Real.sqrt δ) :=
+    one_div_le_one_div_of_le hpos (mul_le_mul_of_nonneg_left (Real.sqrt_le_sqrt h1) zero_le_two)
+  have hi2 : 1 / (2 * Real.sqrt (1 - t)) ≤ 1 / (2 * Real.sqrt δ) :=
+    one_div_le_one_div_of_le hpos (mul_le_mul_of_nonneg_left (Real.sqrt_le_sqrt h2) zero_le_two)
+  have hsub := abs_sub (a / (2 * Real.sqrt t)) (b / (2 * Real.sqrt (1 - t)))
+  rw [abs_div, abs_div, abs_of_pos (by positivity : 0 < 2 * Real.sqrt t),
+    abs_of_pos (by positivity : 0 < 2 * Real.sqrt (1 - t))] at hsub
+  have ha_le : |a| / (2 * Real.sqrt t) ≤ |a| / (2 * Real.sqrt δ) := by
+    simpa only [div_eq_mul_inv, one_div, one_mul] using
+      mul_le_mul_of_nonneg_left hi1 (abs_nonneg a)
+  have hb_le : |b| / (2 * Real.sqrt (1 - t)) ≤ |b| / (2 * Real.sqrt δ) := by
+    simpa only [div_eq_mul_inv, one_div, one_mul] using
+      mul_le_mul_of_nonneg_left hi2 (abs_nonneg b)
+  calc |a / (2 * Real.sqrt t) - b / (2 * Real.sqrt (1 - t))|
+      ≤ |a| / (2 * Real.sqrt δ) + |b| / (2 * Real.sqrt δ) := hsub.trans (add_le_add ha_le hb_le)
+    _ = (|a| + |b|) / (2 * Real.sqrt δ) := by ring

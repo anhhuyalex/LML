@@ -62,3 +62,47 @@ theorem measurePreserving_pi_finSuccProd {ι X : Type*} [Fintype ι] [Measurable
     (fun i => Measure.pi fun _ : Fin n => μ i) μ).comp
     (measurePreserving_pi (f := fun _ : ι => MeasurableEquiv.finSuccProd X n) _ _
       fun i => measurePreserving_finSuccProd (μ i) n)
+
+/-- **Splitting off the last row of an `(M + 1)`-row i.i.d. array and an auxiliary `(M + 1)`-vector
+while keeping an independent extra coordinate:** under product laws, mapping `((g, z), y)` to
+`(((Fin.init g, Fin.init z), y), Sum.elim (g (Fin.last M)) (fun _ : Unit => z (Fin.last M)))`
+preserves the product measure, grouping the removed row and scalar into `(ι ⊕ Unit) → X`. -/
+theorem measurePreserving_lastRow_sumPi_split {ι X Y : Type*} [Fintype ι] [MeasurableSpace X]
+    [MeasurableSpace Y] (μ : Measure X) [SigmaFinite μ] (ν : Measure Y) [SigmaFinite ν] (M : ℕ) :
+    MeasurePreserving
+      (fun ω : ((Fin (M + 1) → ι → X) × (Fin (M + 1) → X)) × Y =>
+        (((Fin.init ω.1.1, Fin.init ω.1.2), ω.2),
+          (Sum.elim (ω.1.1 (Fin.last M)) (fun _ : Unit => ω.1.2 (Fin.last M)) : ι ⊕ Unit → X)))
+      (((Measure.pi fun _ : Fin (M + 1) => Measure.pi fun _ : ι => μ).prod
+        (Measure.pi fun _ : Fin (M + 1) => μ)).prod ν)
+      ((((Measure.pi fun _ : Fin M => Measure.pi fun _ : ι => μ).prod
+        (Measure.pi fun _ : Fin M => μ)).prod ν).prod (Measure.pi fun _ : ι ⊕ Unit => μ)) := by
+  let G₀ := Measure.pi fun _ : Fin M => Measure.pi fun _ : ι => μ
+  let gM := Measure.pi fun _ : ι => μ
+  let Z₀ := Measure.pi fun _ : Fin M => μ
+  have hg := measurePreserving_finSuccProd gM M
+  have hz := measurePreserving_finSuccProd μ M
+  have hunit := (measurePreserving_funUnique μ Unit).symm
+  have hsum := (measurePreserving_sumPiEquivProdPi_symm (X := fun _ : ι ⊕ Unit => X)
+    (fun _ => μ)).comp ((MeasurePreserving.id gM).prod hunit)
+  have step1 : MeasurePreserving
+      (Prod.map (Prod.map (MeasurableEquiv.finSuccProd (ι → X) M)
+        (MeasurableEquiv.finSuccProd X M)) id)
+      (((Measure.pi fun _ : Fin (M + 1) => gM).prod (Measure.pi fun _ : Fin (M + 1) => μ)).prod ν)
+      (((G₀.prod gM).prod (Z₀.prod μ)).prod ν) :=
+    (hg.prod hz).prod (MeasurePreserving.id ν)
+  have step2 := (measurePreserving_prodProdProdComm G₀ gM Z₀ μ).prod (MeasurePreserving.id ν)
+  have step3 := measurePreserving_prodAssoc (G₀.prod Z₀) (gM.prod μ) ν
+  have step4 := (MeasurePreserving.id (G₀.prod Z₀)).prod
+    (Measure.measurePreserving_swap (μ := gM.prod μ) (ν := ν))
+  have step5 := (measurePreserving_prodAssoc (G₀.prod Z₀) ν (gM.prod μ)).symm
+  have step6 := (MeasurePreserving.id ((G₀.prod Z₀).prod ν)).prod hsum
+  have full := step6.comp (step5.comp (step4.comp (step3.comp (step2.comp step1))))
+  convert full using 1
+  ext ω : 1
+  refine Prod.ext ?_ ?_
+  · simp [MeasurableEquiv.prodAssoc, Fin.init_def]
+  · ext idx
+    rcases idx with i | _ <;>
+      simp [MeasurableEquiv.prodAssoc, MeasurableEquiv.coe_sumPiEquivProdPi_symm,
+        Equiv.sumPiEquivProdPi_symm_apply]
