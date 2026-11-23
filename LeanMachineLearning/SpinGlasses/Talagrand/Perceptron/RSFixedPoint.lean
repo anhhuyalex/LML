@@ -46,6 +46,9 @@ $r \ge 0$.
   uniqueness of `(q, r) ∈ ℝ × ℝ` solving (2.68) (with `q ∈ [0, 1]` and `r ≥ 0` derived, not
   restricted) when `α ≥ 0` and `α * K(D) ≤ 1`, via Banach's contraction mapping theorem
   (`ContractingWith.exists_fixedPoint'`) on `[0, 1]`.
+* `integral_tanh_sq_sqrt_mem_Ioo`: for `r > 0`, `𝔼 tanh²(z √r) ∈ (0, 1)`.
+* `SpinGlasses.exists_abs_rs_fixed_point_sub_le`: comparing two solutions of (2.68) at small loads
+  `a, b` gives `|qa - qb| ≤ 2 * D ^ 2 * |a - b|`.
 -/
 
 @[expose] public section
@@ -144,6 +147,36 @@ theorem lipschitzWith_one_integral_tanh_sq_sqrt :
     linarith
   · rw [hg_nonpos hx, hg_nonpos hy, sub_self, abs_zero]
     exact abs_nonneg _
+
+/-- **Strict interiority of `r ↦ 𝔼 tanh²(z √r)` for `r > 0`:** when `r > 0`, both `tanh²(z √r)`
+and `1 - tanh²(z √r)` are continuous, nonnegative, and nonzero against `𝒩(0, 1)`, so
+`𝔼 tanh²(z √r) ∈ (0, 1)`. -/
+theorem integral_tanh_sq_sqrt_mem_Ioo {r : ℝ} (hr : 0 < r) :
+    (∫ z : ℝ, Real.tanh (z * Real.sqrt r) ^ 2 ∂gaussianReal 0 1) ∈ Ioo (0 : ℝ) 1 := by
+  have hcont_t : Continuous fun z : ℝ => Real.tanh (z * Real.sqrt r) ^ 2 :=
+    (Real.continuous_tanh.comp (continuous_id.mul continuous_const)).pow 2
+  have hint_t : Integrable (fun z : ℝ => Real.tanh (z * Real.sqrt r) ^ 2) (gaussianReal 0 1) := by
+    have heq : (fun z : ℝ => Real.tanh (z * Real.sqrt r) ^ 2) =
+        fun z : ℝ => Real.tanh (Real.sqrt r * z + 0) ^ 2 := by funext z; ring_nf
+    rw [heq]; exact SpinGlasses.integrable_tanh_sq_affine (Real.sqrt r) 0
+  have hpos : 0 < ∫ z : ℝ, Real.tanh (z * Real.sqrt r) ^ 2 ∂gaussianReal 0 1 := by
+    refine integral_pos_of_integrable_nonneg_ne_zero (x := 1) hcont_t hint_t
+      (fun z => sq_nonneg _) ?_
+    have hs : Real.sqrt r ≠ 0 := (Real.sqrt_pos.2 hr).ne'
+    have ht1 : Real.tanh (1 * Real.sqrt r) ≠ 0 := by
+      rw [one_mul, Real.tanh_eq_sinh_div_cosh]
+      exact div_ne_zero (Real.sinh_ne_zero.2 hs) (Real.cosh_pos _).ne'
+    exact pow_ne_zero 2 ht1
+  have hlt1 : (∫ z : ℝ, Real.tanh (z * Real.sqrt r) ^ 2 ∂gaussianReal 0 1) < 1 := by
+    have hgap_pos : 0 < ∫ z : ℝ, (1 - Real.tanh (z * Real.sqrt r) ^ 2) ∂gaussianReal 0 1 := by
+      refine integral_pos_of_integrable_nonneg_ne_zero (x := 0)
+        (continuous_const.sub hcont_t) ((integrable_const 1).sub hint_t)
+        (fun z => sub_nonneg.2 (Real.tanh_sq_lt_one _).le) ?_
+      simp
+    rw [integral_sub (integrable_const 1) hint_t, integral_const, probReal_univ, one_smul]
+      at hgap_pos
+    linarith
+  exact ⟨hpos, hlt1⟩
 
 namespace SpinGlasses
 
@@ -564,5 +597,64 @@ theorem exists_unique_rs_fixed_point (D : ℝ) :
   have hq_eq : q₁ = q₀ := congrArg Subtype.val hq_subtype
   subst hq_eq
   exact Prod.ext rfl hr₁_eq
+
+/-- **Lipschitz comparison of two solutions of the replica-symmetric system (2.68) at small
+loads:** under (2.7), when `0 ≤ a` and `a * K(D) ≤ 1` (with `K(D)` chosen before `u, a, b`), any
+solution `(qa, ra)` at load `a` and any solution `(qb, rb)` at load `b` satisfy
+`|qa - qb| ≤ 2 * D ^ 2 * |a - b|`. -/
+theorem exists_abs_rs_fixed_point_sub_le (D : ℝ) :
+    ∃ K : ℝ, 0 ≤ K ∧
+      ∀ {u : ℝ → ℝ} (_hd : ∀ j < 3, Differentiable ℝ (iteratedDeriv j u))
+        (_hb : ∀ j ≤ 3, ∀ x, |iteratedDeriv j u x| ≤ D)
+        {a b : ℝ} (_ha0 : 0 ≤ a) (_ha : a * K ≤ 1)
+        {qa ra qb rb : ℝ}
+        (_hqa : qa = ∫ z : ℝ, Real.tanh (z * Real.sqrt ra) ^ 2 ∂gaussianReal 0 1)
+        (_hra : ra = a * perceptronRhat u qa)
+        (_hqb : qb = ∫ z : ℝ, Real.tanh (z * Real.sqrt rb) ^ 2 ∂gaussianReal 0 1)
+        (_hrb : rb = b * perceptronRhat u qb),
+        |qa - qb| ≤ 2 * D ^ 2 * |a - b| := by
+  obtain ⟨K_lip, hlip_rhat⟩ := exists_lipschitzOnWith_rhat D
+  let K : ℝ := 2 * (K_lip : ℝ)
+  refine ⟨K, by positivity, ?_⟩
+  intro u hd hb a b ha0 ha qa ra qb rb hqa hra hqb hrb
+  obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
+  have hD_le : ∀ x, u x ≤ |D| := fun x => (hu.le x).trans (le_abs_self D)
+  have hD₁ : ∀ x, |deriv u x| ≤ |D| := fun x => (hu.abs_deriv_le x).trans (le_abs_self D)
+  have hg_mem (r' : ℝ) :
+      (∫ z : ℝ, Real.tanh (z * Real.sqrt r') ^ 2 ∂gaussianReal 0 1) ∈ Icc (0 : ℝ) 1 :=
+    ⟨integral_nonneg fun _ => sq_nonneg _,
+      (integral_mono (MeasureTheory.integrable_tanh_sq _ (by fun_prop)) (integrable_const 1)
+        fun _ => (Real.tanh_sq_lt_one _).le).trans_eq (by simp)⟩
+  have hqa_mem : qa ∈ Icc (0 : ℝ) 1 := hqa ▸ hg_mem ra
+  have hqb_mem : qb ∈ Icc (0 : ℝ) 1 := hqb ▸ hg_mem rb
+  have h1 : |qa - qb| ≤ |ra - rb| := by
+    rw [hqa, hqb, ← Real.dist_eq, ← Real.dist_eq]
+    simpa only [NNReal.coe_one, one_mul] using
+      lipschitzWith_one_integral_tanh_sq_sqrt.dist_le_mul ra rb
+  have h2 : |ra - rb| ≤
+      a * |perceptronRhat u qa - perceptronRhat u qb| + |a - b| * perceptronRhat u qb := by
+    have heq : ra - rb =
+        a * (perceptronRhat u qa - perceptronRhat u qb) + (a - b) * perceptronRhat u qb := by
+      rw [hra, hrb]; ring
+    rw [heq]
+    refine (abs_add_le _ _).trans (add_le_add ?_ ?_)
+    · rw [abs_mul, abs_of_nonneg ha0]
+    · rw [abs_mul, abs_of_nonneg (perceptronRhat_nonneg u qb)]
+  have h3 : |perceptronRhat u qa - perceptronRhat u qb| ≤ (K_lip : ℝ) * |qa - qb| := by
+    rw [← Real.dist_eq, ← Real.dist_eq]
+    exact (hlip_rhat hd hb).dist_le_mul qa hqa_mem qb hqb_mem
+  have haK_half : a * (K_lip : ℝ) ≤ 1 / 2 := by dsimp only [K] at ha; linarith
+  have h4 : a * |perceptronRhat u qa - perceptronRhat u qb| ≤ (1 / 2) * |qa - qb| := by
+    calc a * _ ≤ a * ((K_lip : ℝ) * |qa - qb|) := mul_le_mul_of_nonneg_left h3 ha0
+      _ = (a * (K_lip : ℝ)) * |qa - qb| := by ring
+      _ ≤ (1 / 2) * |qa - qb| := mul_le_mul_of_nonneg_right haK_half (abs_nonneg _)
+  have hR_le : perceptronRhat u qb ≤ D ^ 2 := by
+    have hm := rhat_mem_Icc hD₁ qb
+      (fun z => integrable_exp_cavityPath_new hu.measurable hD_le qb z)
+    simpa only [sq_abs] using hm.2
+  have h5 : |a - b| * perceptronRhat u qb ≤ D ^ 2 * |a - b| := by
+    calc |a - b| * _ ≤ |a - b| * D ^ 2 := mul_le_mul_of_nonneg_left hR_le (abs_nonneg _)
+      _ = D ^ 2 * |a - b| := mul_comm _ _
+  linarith
 
 end SpinGlasses

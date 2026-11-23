@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ReplicaSymmetricFreeEnergy
+public import LeanMachineLearning.ForMathlib.Analysis.Calculus.IntervalDerivative
 
 /-!
 # Variational stationary structure and discrete cavity increment (Talagrand Section 2.4)
@@ -22,6 +23,8 @@ as a function of three unrelated real variables `α`, `r`, `q`.
 
 * `SpinGlasses.hasDerivAt_perceptronRSFunctional_r`: for `r > 0`,
   `∂F / ∂r = (1 / 2)(q - 𝔼 tanh²(z √r))`.
+* `SpinGlasses.hasDerivAt_integral_log_integral_exp_q`: for `q ∈ (0, 1)`, under `C²` boundedness of
+  `u`, `(d/dq) 𝔼 log 𝔼_ξ exp u(√q z + √(1 - q) ξ) = -(1 / 2) r̂(q)`.
 * `SpinGlasses.hasDerivAt_perceptronRSFunctional_q`: for `q ∈ (0, 1)`, under `C²` boundedness of
   `u`, `∂F / ∂q = (1 / 2)(r - α r̂(q))` via Gaussian integration by parts.
 * `SpinGlasses.deriv_perceptronRSFunctional_eq_zero_iff`: Lemma 2.4.4, characterizing the critical
@@ -29,6 +32,11 @@ as a function of three unrelated real variables `α`, `r`, `q`.
   the replica-symmetric fixed-point equations (2.87).
 * `SpinGlasses.hasDerivAt_perceptronRSFunctional_alpha`: Eq. (2.89), envelope theorem along any
   differentiable critical curve `a ↦ (q a, r a)` with `r α > 0` and `q α ∈ (0, 1)`.
+* `SpinGlasses.exists_hasDerivAt_perceptronRSFunctional_small_load`: Eq. (2.89) for the unique
+  small-load solution under (2.7) at positive load `α > 0` with `α * K(D) < 1`, handling both the
+  affine zero branch `r̂(0) = 0` and the differentiable interior branch `r̂(0) > 0`.
+* `SpinGlasses.hasDerivWithinAt_perceptronRSFunctional_zero`: Eq. (2.89) right derivative at zero
+  load `α = 0` within `[0, ∞)` under (2.7).
 * `SpinGlasses.perceptron_pressure_succ_sub_eq`: Eq. (2.90), exact discrete cavity increment
   `p_{N+1, M+1}(u) - p_{N+1, M}(u) = (N + 1)⁻¹ 𝔼 log ⟨exp u(S_M)⟩`.
 * `SpinGlasses.hasDerivAt_second_proof_interpolation`: Eq. (2.91), exact derivative and Gaussian IBP
@@ -305,14 +313,17 @@ theorem integral_theta_deriv_tilted_eq_neg_half_rhat
   rw [hlhs_eq, hrhs_eq] at hst
   exact hst
 
-/-- **Partial derivative `∂F / ∂q` of `perceptronRSFunctional` (Eq. (2.88) + Gaussian IBP):**
-for `q ∈ (0, 1)` and `u` satisfying `SmartPathPotential₂`, `q' ↦ F(α, r, q')` has derivative
-`(1 / 2) * (r - α * perceptronRhat u q)` at `q`. -/
-theorem hasDerivAt_perceptronRSFunctional_q
+/-- **`q`-derivative of the nested Gaussian log-partition integral**
+`q' ↦ 𝔼_z log 𝔼_ξ exp u(√q' z + √(1 - q') ξ)` on `q ∈ (0, 1)`: under `SmartPathPotential₂`, its
+derivative at `q` equals `-(1 / 2) * perceptronRhat u q`. -/
+theorem hasDerivAt_integral_log_integral_exp_q
     {u : ℝ → ℝ} {B D₁ D₂ : ℝ} (hu : SmartPathPotential₂ u B D₁ D₂)
-    (α r : ℝ) {q : ℝ} (hq : q ∈ Ioo (0 : ℝ) 1) :
-    HasDerivAt (fun q' => perceptronRSFunctional u α r q')
-      ((1 / 2) * (r - α * perceptronRhat u q)) q := by
+    {q : ℝ} (hq : q ∈ Ioo (0 : ℝ) 1) :
+    HasDerivAt
+      (fun q' => ∫ z : ℝ, Real.log (∫ ξ : ℝ,
+        Real.exp (u (Real.sqrt q' * z + Real.sqrt (1 - q') * ξ)) ∂gaussianReal 0 1)
+        ∂gaussianReal 0 1)
+      (-(1 / 2) * perceptronRhat u q) q := by
   let γ : Measure ℝ := gaussianReal 0 1
   let δ : ℝ := min (q / 2) ((1 - q) / 2)
   have hδ : 0 < δ := lt_min (half_pos hq.1) (half_pos (sub_pos.2 hq.2))
@@ -322,7 +333,37 @@ theorem hasDerivAt_perceptronRSFunctional_q
     have h1 : δ ≤ q / 2 := min_le_left _ _
     have h2 : δ ≤ (1 - q) / 2 := min_le_right _ _
     refine ⟨by linarith [hq'.1], by linarith [hq'.2], by linarith [hq'.1], by linarith [hq'.2]⟩
-  -- Differentiate `q' ↦ log (∫ ξ, exp (u (√q' z + √(1 - q') ξ)) ∂γ)` at fixed `z`, then integrate!
+  have hinv_bd {t : ℝ} (ht : t ∈ U_nbhd) :
+      1 / (2 * Real.sqrt t) ≤ 1 / (2 * Real.sqrt δ) ∧
+        1 / (2 * Real.sqrt (1 - t)) ≤ 1 / (2 * Real.sqrt δ) := by
+    obtain ⟨hd_t, hd_1t, -, -⟩ := hq'_b ht
+    have hpos : 0 < 2 * Real.sqrt δ := by positivity
+    exact ⟨one_div_le_one_div_of_le hpos
+        (mul_le_mul_of_nonneg_left (Real.sqrt_le_sqrt hd_t) zero_le_two),
+      one_div_le_one_div_of_le hpos
+        (mul_le_mul_of_nonneg_left (Real.sqrt_le_sqrt hd_1t) zero_le_two)⟩
+  have hpt_bd (z ξ : ℝ) {t : ℝ} (ht : t ∈ U_nbhd) :
+      |(z / (2 * Real.sqrt t) - ξ / (2 * Real.sqrt (1 - t))) *
+        deriv u (Real.sqrt t * z + Real.sqrt (1 - t) * ξ)| ≤
+      |D₁| * ((|z| + |ξ|) / (2 * Real.sqrt δ)) := by
+    obtain ⟨hi1, hi2⟩ := hinv_bd ht
+    obtain ⟨-, -, ht0, ht1⟩ := hq'_b ht
+    rw [abs_mul, mul_comm _ |deriv u _|]
+    refine mul_le_mul ((hu.abs_deriv_le _).trans (le_abs_self D₁)) ?_
+      (abs_nonneg _) (abs_nonneg D₁)
+    have hsub_le := abs_sub (z / (2 * Real.sqrt t)) (ξ / (2 * Real.sqrt (1 - t)))
+    rw [abs_div, abs_div, abs_of_pos (by positivity : 0 < 2 * Real.sqrt t),
+      abs_of_pos (by positivity : 0 < 2 * Real.sqrt (1 - t))] at hsub_le
+    have hz_le : |z| / (2 * Real.sqrt t) ≤ |z| / (2 * Real.sqrt δ) := by
+      simpa only [div_eq_mul_inv, one_div, one_mul] using
+        mul_le_mul_of_nonneg_left hi1 (abs_nonneg z)
+    have hξ_le : |ξ| / (2 * Real.sqrt (1 - t)) ≤ |ξ| / (2 * Real.sqrt δ) := by
+      simpa only [div_eq_mul_inv, one_div, one_mul] using
+        mul_le_mul_of_nonneg_left hi2 (abs_nonneg ξ)
+    calc |z / (2 * Real.sqrt t) - ξ / (2 * Real.sqrt (1 - t))|
+        ≤ |z| / (2 * Real.sqrt δ) + |ξ| / (2 * Real.sqrt δ) :=
+          hsub_le.trans (add_le_add hz_le hξ_le)
+      _ = (|z| + |ξ|) / (2 * Real.sqrt δ) := by ring
   let Z_q (q' z : ℝ) : ℝ :=
     ∫ ξ : ℝ, Real.exp (u (Real.sqrt q' * z + Real.sqrt (1 - q') * ξ)) ∂γ
   let L_q (q' z : ℝ) : ℝ :=
@@ -332,10 +373,9 @@ theorem hasDerivAt_perceptronRSFunctional_q
   have hZq_deriv (z : ℝ) {q' : ℝ} (hq' : q' ∈ U_nbhd) :
       HasDerivAt (fun t => Real.log (Z_q t z)) (L_q q' z) q' := by
     have hpt_ξ (ξ : ℝ) {t : ℝ} (ht : t ∈ U_nbhd) :
-        HasDerivAt (fun s => Real.exp (u (Real.sqrt s * z + Real.sqrt (1 - s) * ξ)))
-          (((z / (2 * Real.sqrt t) - ξ / (2 * Real.sqrt (1 - t))) *
-            deriv u (Real.sqrt t * z + Real.sqrt (1 - t) * ξ)) *
-            Real.exp (u (Real.sqrt t * z + Real.sqrt (1 - t) * ξ))) t := by
+        HasDerivAt (fun s => u (Real.sqrt s * z + Real.sqrt (1 - s) * ξ))
+          ((z / (2 * Real.sqrt t) - ξ / (2 * Real.sqrt (1 - t))) *
+            deriv u (Real.sqrt t * z + Real.sqrt (1 - t) * ξ)) t := by
       obtain ⟨-, -, ht0, ht1⟩ := hq'_b ht
       have h1 : HasDerivAt (fun s => Real.sqrt s * z) ((1 / (2 * Real.sqrt t)) * z) t :=
         (Real.hasDerivAt_sqrt ht0.ne').mul_const z
@@ -348,87 +388,34 @@ theorem hasDerivAt_perceptronRSFunctional_q
       have hθ : HasDerivAt (fun s => Real.sqrt s * z + Real.sqrt (1 - s) * ξ)
           (z / (2 * Real.sqrt t) - ξ / (2 * Real.sqrt (1 - t))) t :=
         (h1.add h2).congr_deriv (by ring)
-      have hu_d := ((hu.differentiable _).hasDerivAt.comp t hθ).exp
-      exact hu_d.congr_deriv (by dsimp only [Function.comp_apply]; ring)
-    have hinv_bd {t : ℝ} (ht : t ∈ U_nbhd) :
-        1 / (2 * Real.sqrt t) ≤ 1 / (2 * Real.sqrt δ) ∧
-          1 / (2 * Real.sqrt (1 - t)) ≤ 1 / (2 * Real.sqrt δ) := by
-      obtain ⟨hd_t, hd_1t, -, -⟩ := hq'_b ht
-      have hpos : 0 < 2 * Real.sqrt δ := by positivity
-      exact ⟨one_div_le_one_div_of_le hpos
-          (mul_le_mul_of_nonneg_left (Real.sqrt_le_sqrt hd_t) zero_le_two),
-        one_div_le_one_div_of_le hpos
-          (mul_le_mul_of_nonneg_left (Real.sqrt_le_sqrt hd_1t) zero_le_two)⟩
+      exact ((hu.differentiable _).hasDerivAt.comp t hθ).congr_deriv (mul_comm _ _)
     let dom_ξ (ξ : ℝ) : ℝ :=
       (|D₁| * ((|z| + |ξ|) / (2 * Real.sqrt δ))) * Real.exp |B|
     have hdom_ξ_i : Integrable dom_ξ γ :=
       ((((integrable_const |z|).add IsGaussian.integrable_id.abs).div_const _).const_mul
         |D₁|).mul_const _
-    have hm_ev : ∀ᶠ t in 𝓝 q',
-        AEStronglyMeasurable (fun ξ => Real.exp (u (Real.sqrt t * z + Real.sqrt (1 - t) * ξ))) γ :=
-      Eventually.of_forall fun t =>
-        (Real.measurable_exp.comp (hu.measurable.comp (by fun_prop))).aestronglyMeasurable
-    have hi_q' : Integrable (fun ξ => Real.exp (u (Real.sqrt q' * z + Real.sqrt (1 - q') * ξ))) γ :=
-      integrable_exp_cavityPath_new hu.measurable (fun x => hu.le x) q' z
-    have hdm_q' : AEStronglyMeasurable
-        (fun ξ => ((z / (2 * Real.sqrt q') - ξ / (2 * Real.sqrt (1 - q'))) *
-          deriv u (Real.sqrt q' * z + Real.sqrt (1 - q') * ξ)) *
-          Real.exp (u (Real.sqrt q' * z + Real.sqrt (1 - q') * ξ))) γ :=
+    exact hasDerivAt_log_integral_exp_of_dominated (μ := γ)
+      (E := fun s ξ => u (Real.sqrt s * z + Real.sqrt (1 - s) * ξ))
+      (E' := fun s ξ => (z / (2 * Real.sqrt s) - ξ / (2 * Real.sqrt (1 - s))) *
+        deriv u (Real.sqrt s * z + Real.sqrt (1 - s) * ξ))
+      (IsOpen.mem_nhds isOpen_Ioo hq')
+      (Eventually.of_forall fun t =>
+        (Real.measurable_exp.comp (hu.measurable.comp (by fun_prop))).aestronglyMeasurable)
+      (integrable_exp_cavityPath_new hu.measurable (fun x => hu.le x) q' z)
       ((((measurable_const.sub (measurable_id.div_const _)).mul
         ((measurable_deriv u).comp (by fun_prop))).mul
         (Real.measurable_exp.comp (hu.measurable.comp (by fun_prop))))).aestronglyMeasurable
-    have hZd : HasDerivAt (fun t => Z_q t z)
-        (∫ ξ, ((z / (2 * Real.sqrt q') - ξ / (2 * Real.sqrt (1 - q'))) *
-          deriv u (Real.sqrt q' * z + Real.sqrt (1 - q') * ξ)) *
-          Real.exp (u (Real.sqrt q' * z + Real.sqrt (1 - q') * ξ)) ∂γ) q' :=
-      (hasDerivAt_integral_of_dominated_loc_of_deriv_le (μ := γ)
-        (F := fun t ξ => Real.exp (u (Real.sqrt t * z + Real.sqrt (1 - t) * ξ)))
-        (F' := fun t ξ => ((z / (2 * Real.sqrt t) - ξ / (2 * Real.sqrt (1 - t))) *
-          deriv u (Real.sqrt t * z + Real.sqrt (1 - t) * ξ)) *
-          Real.exp (u (Real.sqrt t * z + Real.sqrt (1 - t) * ξ)))
-        (s := U_nbhd) (bound := dom_ξ)
-        (IsOpen.mem_nhds isOpen_Ioo hq') hm_ev hi_q' hdm_q'
-        (ae_of_all _ fun ξ t ht => by
-          obtain ⟨hi1, hi2⟩ := hinv_bd ht
-          rw [Real.norm_eq_abs, abs_mul, abs_of_pos (Real.exp_pos _), abs_mul,
-            mul_comm _ |deriv u _|]
-          refine mul_le_mul ?_ (Real.exp_le_exp.2 ((hu.le _).trans (le_abs_self B)))
-            (Real.exp_pos _).le (by positivity)
-          refine mul_le_mul ((hu.abs_deriv_le _).trans (le_abs_self D₁)) ?_
-            (abs_nonneg _) (abs_nonneg D₁)
-          have hsub_le := (abs_sub (z / (2 * Real.sqrt t)) (ξ / (2 * Real.sqrt (1 - t))))
-          obtain ⟨-, -, ht0, ht1⟩ := hq'_b ht
-          rw [abs_div, abs_div, abs_of_pos (by positivity : 0 < 2 * Real.sqrt t),
-            abs_of_pos (by positivity : 0 < 2 * Real.sqrt (1 - t))] at hsub_le
-          have hz_le : |z| / (2 * Real.sqrt t) ≤ |z| / (2 * Real.sqrt δ) := by
-            simpa only [div_eq_mul_inv, one_div, one_mul] using
-              mul_le_mul_of_nonneg_left hi1 (abs_nonneg z)
-          have hξ_le : |ξ| / (2 * Real.sqrt (1 - t)) ≤ |ξ| / (2 * Real.sqrt δ) := by
-            simpa only [div_eq_mul_inv, one_div, one_mul] using
-              mul_le_mul_of_nonneg_left hi2 (abs_nonneg ξ)
-          calc |z / (2 * Real.sqrt t) - ξ / (2 * Real.sqrt (1 - t))|
-              ≤ |z| / (2 * Real.sqrt δ) + |ξ| / (2 * Real.sqrt δ) :=
-                hsub_le.trans (add_le_add hz_le hξ_le)
-            _ = (|z| + |ξ|) / (2 * Real.sqrt δ) := by ring)
-        hdom_ξ_i
-        (ae_of_all _ fun ξ t ht => hpt_ξ ξ ht)).2
-    have hZ_pos : 0 < Z_q q' z := integral_exp_pos hi_q'
-    exact (hZd.log hZ_pos.ne').congr_deriv
-      (by dsimp only [L_q, Z_q]; rw [integral_tilted_eq_div, div_eq_mul_inv, mul_comm])
-  -- Bound `|L_q t z|` uniformly on `t ∈ U_nbhd` by an integrable function of `z`!
+      (b := dom_ξ) hdom_ξ_i
+      (ae_of_all _ fun ξ t ht =>
+        abs_mul_exp_le (hpt_bd z ξ ht) ((hu.le _).trans (le_abs_self B)))
+      (ae_of_all _ fun ξ t ht => hpt_ξ ξ ht)
   let dom_z (z : ℝ) : ℝ :=
     |D₁| * (|z| / (2 * Real.sqrt δ) +
       Real.exp (2 * |B|) * ((∫ ξ : ℝ, |ξ| ∂γ) / (2 * Real.sqrt δ)))
   have hdom_z_i : Integrable dom_z γ :=
     ((IsGaussian.integrable_id.abs.div_const _).add (integrable_const _)).const_mul |D₁|
   have hLq_bd (z : ℝ) {t : ℝ} (ht : t ∈ U_nbhd) : |L_q t z| ≤ dom_z z := by
-    obtain ⟨hd_t, hd_1t, ht0, ht1⟩ := hq'_b ht
     have hpos : 0 < 2 * Real.sqrt δ := by positivity
-    have hi1 : 1 / (2 * Real.sqrt t) ≤ 1 / (2 * Real.sqrt δ) :=
-      one_div_le_one_div_of_le hpos (mul_le_mul_of_nonneg_left (Real.sqrt_le_sqrt hd_t) zero_le_two)
-    have hi2 : 1 / (2 * Real.sqrt (1 - t)) ≤ 1 / (2 * Real.sqrt δ) :=
-      one_div_le_one_div_of_le hpos
-        (mul_le_mul_of_nonneg_left (Real.sqrt_le_sqrt hd_1t) zero_le_two)
     let V_t (ξ : ℝ) : ℝ := u (Real.sqrt t * z + Real.sqrt (1 - t) * ξ)
     have hVt_m : Measurable V_t := hu.measurable.comp (by fun_prop)
     have hprob_t : IsProbabilityMeasure (γ.tilted V_t) :=
@@ -440,20 +427,8 @@ theorem hasDerivAt_perceptronRSFunctional_q
     have hpt_L (ξ : ℝ) :
         |(z / (2 * Real.sqrt t) - ξ / (2 * Real.sqrt (1 - t))) *
           deriv u (Real.sqrt t * z + Real.sqrt (1 - t) * ξ)| ≤
-        |D₁| * (|z| / (2 * Real.sqrt δ) + |ξ| / (2 * Real.sqrt δ)) := by
-      rw [abs_mul, mul_comm _ |deriv u _|]
-      refine mul_le_mul ((hu.abs_deriv_le _).trans (le_abs_self D₁)) ?_
-        (abs_nonneg _) (abs_nonneg D₁)
-      have hsub_le := abs_sub (z / (2 * Real.sqrt t)) (ξ / (2 * Real.sqrt (1 - t)))
-      rw [abs_div, abs_div, abs_of_pos (by positivity : 0 < 2 * Real.sqrt t),
-        abs_of_pos (by positivity : 0 < 2 * Real.sqrt (1 - t))] at hsub_le
-      have hz_le : |z| / (2 * Real.sqrt t) ≤ |z| / (2 * Real.sqrt δ) := by
-        simpa only [div_eq_mul_inv, one_div, one_mul] using
-          mul_le_mul_of_nonneg_left hi1 (abs_nonneg z)
-      have hξ_le : |ξ| / (2 * Real.sqrt (1 - t)) ≤ |ξ| / (2 * Real.sqrt δ) := by
-        simpa only [div_eq_mul_inv, one_div, one_mul] using
-          mul_le_mul_of_nonneg_left hi2 (abs_nonneg ξ)
-      exact hsub_le.trans (add_le_add hz_le hξ_le)
+        |D₁| * (|z| / (2 * Real.sqrt δ) + |ξ| / (2 * Real.sqrt δ)) :=
+      (hpt_bd z ξ ht).trans_eq (by ring)
     have hint_L : Integrable
         (fun ξ => (z / (2 * Real.sqrt t) - ξ / (2 * Real.sqrt (1 - t))) *
           deriv u (Real.sqrt t * z + Real.sqrt (1 - t) * ξ)) (γ.tilted V_t) := by
@@ -462,8 +437,9 @@ theorem hasDerivAt_perceptronRSFunctional_q
             deriv u (Real.sqrt t * z + Real.sqrt (1 - t) * ξ) :=
         (measurable_const.sub (measurable_id.div_const _)).mul
           ((measurable_deriv u).comp (by fun_prop))
-      exact (((integrable_const _).add (hξ_tilted.div_const _)).const_mul |D₁|).mono'
-        hm.aestronglyMeasurable (ae_of_all _ fun ξ => by rw [Real.norm_eq_abs]; exact hpt_L ξ)
+      exact integrable_tilted_of_abs_le_envelope hVt_m.aemeasurable hm.aestronglyMeasurable
+        (((integrable_const _).add (IsGaussian.integrable_id.abs.div_const _)).const_mul |D₁|)
+        (ae_of_all _ fun _ => hu.le _) (ae_of_all _ hpt_L)
     have h1 : |L_q t z| ≤
         ∫ ξ : ℝ, |D₁| * (|z| / (2 * Real.sqrt δ) + |ξ| / (2 * Real.sqrt δ)) ∂(γ.tilted V_t) :=
       (abs_integral_le_integral_abs).trans
@@ -475,7 +451,6 @@ theorem hasDerivAt_perceptronRSFunctional_q
       rw [integral_const_mul, integral_add (integrable_const _) (hξ_tilted.div_const _),
         integral_const, probReal_univ, one_smul, integral_div]
     rw [h2] at h1
-    -- Bound `∫ ξ, |ξ| ∂(γ.tilted V_t) ≤ exp(2 |B|) * ∫ ξ, |ξ| ∂γ`!
     have hdom_t : ∫ ξ, |ξ| ∂(γ.tilted V_t) ≤ Real.exp (2 * |B|) * ∫ ξ, |ξ| ∂γ := by
       have hbound := abs_integral_tilted_le_exp_mul_integral_abs (Y := fun ξ => |ξ|)
         hVt_m.aemeasurable
@@ -487,7 +462,6 @@ theorem hasDerivAt_perceptronRSFunctional_q
         ≤ (Real.exp (2 * |B|) * ∫ ξ, |ξ| ∂γ) / (2 * Real.sqrt δ) :=
           div_le_div_of_nonneg_right hdom_t hpos.le
       _ = Real.exp (2 * |B|) * ((∫ ξ, |ξ| ∂γ) / (2 * Real.sqrt δ)) := by ring
-  -- Differentiate `q' ↦ ∫ z, log (Z_q q' z) ∂γ` at `q`!
   have hlogZ_int (t : ℝ) : Integrable (fun z => Real.log (Z_q t z)) γ := by
     have hm : Measurable fun z => Real.log (Z_q t z) := by
       refine Real.measurable_log.comp ?_
@@ -512,10 +486,17 @@ theorem hasDerivAt_perceptronRSFunctional_q
       (hlogZ_int q) hLq_m
       (ae_of_all _ fun z t ht => by rw [Real.norm_eq_abs]; exact hLq_bd z ht)
       hdom_z_i (ae_of_all _ fun z t ht => hZq_deriv z ht)).2
-  have hibp := integral_theta_deriv_tilted_eq_neg_half_rhat hu hq
-  change ∫ z, L_q q z ∂γ = -(1 / 2) * perceptronRhat u q at hibp
-  rw [hibp] at hd_pot
-  -- Combine with `-(1 / 2) * r * (1 - q') + const`!
+  exact hd_pot.congr_deriv (integral_theta_deriv_tilted_eq_neg_half_rhat hu hq)
+
+/-- **Partial derivative `∂F / ∂q` of `perceptronRSFunctional` (Eq. (2.88) + Gaussian IBP):**
+for `q ∈ (0, 1)` and `u` satisfying `SmartPathPotential₂`, `q' ↦ F(α, r, q')` has derivative
+`(1 / 2) * (r - α * perceptronRhat u q)` at `q`. -/
+theorem hasDerivAt_perceptronRSFunctional_q
+    {u : ℝ → ℝ} {B D₁ D₂ : ℝ} (hu : SmartPathPotential₂ u B D₁ D₂)
+    (α r : ℝ) {q : ℝ} (hq : q ∈ Ioo (0 : ℝ) 1) :
+    HasDerivAt (fun q' => perceptronRSFunctional u α r q')
+      ((1 / 2) * (r - α * perceptronRhat u q)) q := by
+  have hd_pot := hasDerivAt_integral_log_integral_exp_q hu hq
   unfold perceptronRSFunctional
   have hd_lin : HasDerivAt (fun q' : ℝ => -(1 / 2) * r * (1 - q')) ((1 / 2) * r) q := by
     have hsub : HasDerivAt (fun q' : ℝ => 1 - q') (-1) q := by
@@ -557,37 +538,32 @@ theorem hasDerivAt_perceptronRSFunctional_alpha
       (∫ z : ℝ, Real.log (∫ ξ : ℝ,
         Real.exp (u (Real.sqrt (q α) * z + Real.sqrt (1 - q α) * ξ)) ∂gaussianReal 0 1)
         ∂gaussianReal 0 1) α := by
-  -- Decompose `perceptronRSFunctional u a (r a) (q a)` into:
-  -- `g₁(a) = -(1 / 2) * r a * (1 - q a) + ∫ z, log(2 cosh(z √(r a)))`
-  -- `g₂(a) = a * ψ(q a)` where `ψ(q') = ∫ z, log ∫ ξ, exp u(√q' z + √(1 - q') ξ)`!
   let ψ (q' : ℝ) : ℝ :=
     ∫ z : ℝ, Real.log (∫ ξ : ℝ,
       Real.exp (u (Real.sqrt q' * z + Real.sqrt (1 - q') * ξ)) ∂gaussianReal 0 1)
       ∂gaussianReal 0 1
-  -- Extract `HasDerivAt ψ (-(1 / 2) * perceptronRhat u (q α)) (q α)` from `α = 1, r = 0`!
-  have hd_F1 := hasDerivAt_perceptronRSFunctional_q hu 1 0 hq_mem
-  have hψ_eq : (fun q' => perceptronRSFunctional u 1 0 q') =
-      fun q' => (∫ z : ℝ, Real.log (2 * Real.cosh 0) ∂gaussianReal 0 1) + ψ q' := by
-    funext q'
-    unfold perceptronRSFunctional
-    simp [ψ]
-  rw [hψ_eq] at hd_F1
-  have hd_ψ : HasDerivAt ψ (-(1 / 2) * perceptronRhat u (q α)) (q α) := by
-    have h1 := (hd_F1.sub_const (∫ z : ℝ, Real.log (2 * Real.cosh 0) ∂gaussianReal 0 1))
-    have hfun : (fun x => (∫ z : ℝ, Real.log (2 * Real.cosh 0) ∂gaussianReal 0 1) + ψ x -
-        ∫ z : ℝ, Real.log (2 * Real.cosh 0) ∂gaussianReal 0 1) = ψ := by
-      funext x; ring
-    rw [hfun] at h1
-    exact h1.congr_deriv (by ring)
-  -- Extract `HasDerivAt (fun r' => ∫ z, log(2 cosh(z √r'))) ... (r α)` from `α = 0, q = 1`!
-  have hd_Fr := hasDerivAt_perceptronRSFunctional_r u 0 hr_pos 1
-  have hcosh_eq : (fun r' => perceptronRSFunctional u 0 r' 1) =
-      fun r' => ∫ z : ℝ, Real.log (2 * Real.cosh (z * Real.sqrt r')) ∂gaussianReal 0 1 := by
-    funext r'
-    unfold perceptronRSFunctional
-    simp
-  rw [hcosh_eq] at hd_Fr
-  -- Chain rule on `a ↦ F(a, r a, q a)`:
+  have hd_ψ : HasDerivAt ψ (-(1 / 2) * perceptronRhat u (q α)) (q α) :=
+    hasDerivAt_integral_log_integral_exp_q hu hq_mem
+  have hd_cosh := hasDerivAt_integral_log_cosh_sqrt 1 0 hr_pos
+  have hsub : (∫ z : ℝ, (1 - Real.tanh (1 * Real.sqrt (r α) * z + 0) ^ 2) ∂gaussianReal 0 1) =
+      1 - ∫ z : ℝ, Real.tanh (z * Real.sqrt (r α)) ^ 2 ∂gaussianReal 0 1 := by
+    rw [integral_sub (integrable_const 1) (integrable_tanh_sq_affine (1 * Real.sqrt (r α)) 0),
+      integral_const, probReal_univ, one_smul]
+    congr 1; exact integral_congr_ae (ae_of_all _ fun z => by ring_nf)
+  have hd_Fr : HasDerivAt
+      (fun r' => ∫ z : ℝ, Real.log (2 * Real.cosh (z * Real.sqrt r')) ∂gaussianReal 0 1)
+      ((1 / 2) * (1 - ∫ z : ℝ, Real.tanh (z * Real.sqrt (r α)) ^ 2 ∂gaussianReal 0 1)) (r α) := by
+    have hfun : (fun r' => ∫ z : ℝ, Real.log (2 * Real.cosh (z * Real.sqrt r')) ∂gaussianReal 0 1) =
+        fun r' => Real.log 2 +
+          ∫ z : ℝ, Real.log (Real.cosh (1 * Real.sqrt r' * z + 0)) ∂gaussianReal 0 1 := by
+      funext r'
+      have h0 := perceptronRSFunctional_eq_log_two_add u 0 r' 1
+      unfold perceptronRSFunctional at h0
+      simp only [sub_self, mul_zero, zero_mul, add_zero, zero_add] at h0
+      rw [h0]
+      congr 1; exact integral_congr_ae (ae_of_all _ fun z => by ring_nf)
+    rw [hfun]
+    exact (hd_cosh.const_add (Real.log 2)).congr_deriv (by rw [hsub]; ring)
   have hd_term1 : HasDerivAt (fun a => -(1 / 2) * r a * (1 - q a))
       ((-(1 / 2) * deriv r α) * (1 - q α) + (-(1 / 2) * r α) * (-deriv q α)) α := by
     have hr_a := hr_diff.hasDerivAt
@@ -603,11 +579,6 @@ theorem hasDerivAt_perceptronRSFunctional_alpha
       (1 * ψ (q α) + α * ((-(1 / 2) * perceptronRhat u (q α)) * deriv q α)) α :=
     (hasDerivAt_id α).mul (hd_ψ.comp α hq_diff.hasDerivAt)
   have hd_all := (hd_term1.add hd_term2).add hd_term3
-  have hF_fun : (fun a => perceptronRSFunctional u a (r a) (q a)) =
-      fun a => -(1 / 2) * r a * (1 - q a) +
-        (∫ z : ℝ, Real.log (2 * Real.cosh (z * Real.sqrt (r a))) ∂gaussianReal 0 1) +
-        a * ψ (q a) := by
-    funext a; rfl
   have hF_fun' : (((fun a => -(1 / 2) * r a * (1 - q a)) +
       fun a => ∫ z : ℝ, Real.log (2 * Real.cosh (z * Real.sqrt (r a))) ∂gaussianReal 0 1) +
       fun a => a * ψ (q a)) = fun a => perceptronRSFunctional u a (r a) (q a) := by
@@ -616,6 +587,475 @@ theorem hasDerivAt_perceptronRSFunctional_alpha
   refine hd_all.congr_deriv ?_
   rw [← hq_crit, hr_crit]
   dsimp only [ψ]
+  ring
+
+/-- Right derivative of `r ↦ 𝔼 log(2 cosh(z √r))` at `0` within `[0, ∞)`: equals `1 / 2`. -/
+private lemma hasDerivWithinAt_integral_log_two_cosh_sqrt_zero :
+    HasDerivWithinAt
+      (fun r : ℝ => ∫ z : ℝ, Real.log (2 * Real.cosh (z * Real.sqrt r)) ∂gaussianReal 0 1)
+      (1 / 2) (Ici 0) 0 := by
+  let F (r : ℝ) : ℝ := ∫ z : ℝ, Real.log (2 * Real.cosh (z * Real.sqrt r)) ∂gaussianReal 0 1
+  let G (r : ℝ) : ℝ := (1 / 2) * (1 - ∫ z : ℝ, Real.tanh (z * Real.sqrt r) ^ 2 ∂gaussianReal 0 1)
+  have hF_pt (r : ℝ) : F r = Real.log 2 +
+      ∫ z : ℝ, Real.log (Real.cosh (z * Real.sqrt r)) ∂gaussianReal 0 1 := by
+    dsimp only [F]
+    have hpt (z : ℝ) : Real.log (2 * Real.cosh (z * Real.sqrt r)) =
+        Real.log 2 + Real.log (Real.cosh (z * Real.sqrt r)) :=
+      Real.log_mul two_ne_zero (Real.cosh_pos _).ne'
+    have hint_c : Integrable (fun z : ℝ => Real.log (Real.cosh (z * Real.sqrt r)))
+        (gaussianReal 0 1) := by
+      have heq : (fun z : ℝ => Real.log (Real.cosh (z * Real.sqrt r))) =
+          fun z : ℝ => Real.log (Real.cosh (Real.sqrt r * z + 0)) := by funext z; ring_nf
+      rw [heq]; exact integrable_log_cosh_affine_gaussianReal (Real.sqrt r) 0
+    simp_rw [hpt]
+    rw [integral_add (integrable_const (Real.log 2)) hint_c, integral_const, probReal_univ,
+      one_smul]
+  have hF_cont : ContinuousOn F (Icc 0 1) := by
+    have hc_cosh : ContinuousOn
+        (fun r : ℝ => ∫ z : ℝ, Real.log (Real.cosh (z * Real.sqrt r)) ∂gaussianReal 0 1)
+        (Icc 0 1) := by
+      refine continuousOn_of_dominated (bound := fun z => |z|)
+        (fun r _ => ?_) (fun r hr => ae_of_all _ fun z => ?_)
+        IsGaussian.integrable_id.abs (ae_of_all _ fun z => ?_)
+      · exact ((Real.continuous_cosh.comp (continuous_id.mul continuous_const)).log
+          fun _ => (Real.cosh_pos _).ne').aestronglyMeasurable
+      · rw [Real.norm_eq_abs, abs_of_nonneg (Real.log_cosh_nonneg _)]
+        calc Real.log (Real.cosh (z * Real.sqrt r)) ≤ |z * Real.sqrt r| := Real.log_cosh_le_abs _
+          _ = |z| * Real.sqrt r := by rw [abs_mul, abs_of_nonneg (Real.sqrt_nonneg _)]
+          _ ≤ |z| * 1 := mul_le_mul_of_nonneg_left (Real.sqrt_le_one.2 hr.2) (abs_nonneg _)
+          _ = |z| := mul_one _
+      · exact ((Real.continuous_cosh.comp
+          (continuous_const.mul Real.continuous_sqrt)).log
+          fun _ => (Real.cosh_pos _).ne').continuousOn
+    exact ((continuousOn_const (s := Icc 0 1) (c := Real.log 2)).add hc_cosh).congr
+      fun r _ => hF_pt r
+  have hG_cont : Continuous G := by
+    have hg : Continuous fun r : ℝ =>
+        ∫ z : ℝ, Real.tanh (z * Real.sqrt r) ^ 2 ∂gaussianReal 0 1 :=
+      lipschitzWith_one_integral_tanh_sq_sqrt.continuous
+    exact continuous_const.mul (continuous_const.sub hg)
+  have hd_oo : ∀ r ∈ Ioo (0 : ℝ) 1, HasDerivAt F (G r) r := by
+    intro r hr
+    have hd_Fr := hasDerivAt_perceptronRSFunctional_r (fun _ => 0) 0 hr.1 1
+    have hcosh_eq : (fun r' => perceptronRSFunctional (fun _ => 0) 0 r' 1) = F := by
+      funext r'; unfold perceptronRSFunctional; simp [F]
+    rwa [hcosh_eq] at hd_Fr
+  have hdiff : DifferentiableOn ℝ F (Ioo 0 1) :=
+    fun r hr => (hd_oo r hr).differentiableAt.differentiableWithinAt
+  have heq : deriv F =ᶠ[𝓝[>] (0 : ℝ)] G := by
+    filter_upwards [Ioo_mem_nhdsGT zero_lt_one] with t ht
+    exact (hd_oo t ht).deriv
+  have hG0 : G 0 = 1 / 2 := by simp [G]
+  have hlim : Tendsto (deriv F) (𝓝[>] (0 : ℝ)) (𝓝 (1 / 2)) := by
+    rw [← hG0]
+    exact (hG_cont.continuousAt.tendsto.mono_left nhdsWithin_le_nhds).congr' heq.symm
+  have hc0 : ContinuousWithinAt F (Ioo 0 1) 0 :=
+    (hF_cont 0 ⟨le_rfl, zero_le_one⟩).mono Ioo_subset_Icc_self
+  exact hasDerivWithinAt_Ici_of_tendsto_deriv hdiff hc0 (Ioo_mem_nhdsGT zero_lt_one) hlim
+
+/-- Continuity of `q ↦ 𝔼_z log 𝔼_ξ exp u(√q z + √(1 - q) ξ)` on `[0, 1]` for bounded continuous
+`u`. -/
+private lemma continuousOn_integral_log_integral_exp {u : ℝ → ℝ} (hu : Continuous u)
+    {B : ℝ} (hB : ∀ x, |u x| ≤ B) :
+    ContinuousOn
+      (fun q : ℝ => ∫ z : ℝ, Real.log (∫ ξ : ℝ,
+        Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1)
+        ∂gaussianReal 0 1)
+      (Icc 0 1) := by
+  let γ : Measure ℝ := gaussianReal 0 1
+  have hum : Measurable u := hu.measurable
+  have hB_le : ∀ x, u x ≤ B := fun x => le_of_abs_le (hB x)
+  let Z_fn (q z : ℝ) : ℝ :=
+    ∫ ξ : ℝ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂γ
+  have hZ_pos (q z : ℝ) : 0 < Z_fn q z :=
+    integral_exp_pos (integrable_exp_cavityPath_new hum hB_le q z)
+  have hZ_cont (z : ℝ) : Continuous fun q => Z_fn q z := by
+    refine continuous_of_dominated (bound := fun _ => Real.exp B)
+      (fun q => (Real.continuous_exp.comp (hu.comp (by fun_prop))).measurable.aestronglyMeasurable)
+      (fun q => ae_of_all _ fun _ => by
+        rw [Real.norm_of_nonneg (Real.exp_pos _).le]; exact Real.exp_le_exp.2 (hB_le _))
+      (integrable_const _)
+      (ae_of_all _ fun _ => Real.continuous_exp.comp (hu.comp (by fun_prop)))
+  have hlog_cont (z : ℝ) : Continuous fun q => Real.log (Z_fn q z) :=
+    (hZ_cont z).log fun q => (hZ_pos q z).ne'
+  have hlog_meas (q : ℝ) : AEStronglyMeasurable (fun z => Real.log (Z_fn q z)) γ := by
+    have hj : Measurable fun p : ℝ × ℝ =>
+        Real.exp (u (Real.sqrt q * p.1 + Real.sqrt (1 - q) * p.2)) :=
+      Real.measurable_exp.comp (hum.comp (by fun_prop))
+    exact (Real.measurable_log.comp
+      (hj.stronglyMeasurable.integral_prod_right' (ν := γ)).measurable).aestronglyMeasurable
+  have hlog_bd (q z : ℝ) : ‖Real.log (Z_fn q z)‖ ≤ |B| := by
+    rw [Real.norm_eq_abs]
+    exact (abs_log_integral_exp_le_of_ae_abs_le (hum.comp (by fun_prop)).aemeasurable
+      (ae_of_all _ fun _ => hB _)).trans (le_abs_self B)
+  exact (continuous_of_dominated (bound := fun _ => |B|) hlog_meas
+    (fun q => ae_of_all _ (hlog_bd q)) (integrable_const _) (ae_of_all _ hlog_cont)).continuousOn
+
+/-- First-order differentiability of a locally Lipschitz fixed-point branch `x b = G (b * R (x b))`
+when `1 - a * G' * R' ≠ 0`. -/
+private lemma hasDerivAt_of_fixed_point_contraction
+    {G R x : ℝ → ℝ} {a G' R' δ L : ℝ} (hδ : 0 < δ)
+    (hx_fix : ∀ b ∈ Ioo (a - δ) (a + δ), x b = G (b * R (x b)))
+    (hx_lip : ∀ b ∈ Ioo (a - δ) (a + δ), |x b - x a| ≤ L * |b - a|)
+    (hG : HasDerivAt G G' (a * R (x a)))
+    (hR : HasDerivAt R R' (x a))
+    (hden : 1 - a * G' * R' ≠ 0) :
+    HasDerivAt x ((G' * R (x a)) / (1 - a * G' * R')) a := by
+  let L' : ℝ := max L 0 + 1
+  have hL' : 0 < L' := by dsimp only [L']; positivity
+  have hx_cont : ContinuousAt x a := by
+    rw [Metric.continuousAt_iff]
+    intro ε hε
+    refine ⟨min (δ / 2) (ε / L'), by positivity, fun b hb => ?_⟩
+    rw [Real.dist_eq] at hb ⊢
+    have hb_mem : b ∈ Ioo (a - δ) (a + δ) := by
+      have h1 : |b - a| < δ / 2 := hb.trans_le (min_le_left _ _)
+      rw [abs_lt] at h1
+      exact ⟨by linarith, by linarith⟩
+    have hb_lt : |b - a| < ε / L' := hb.trans_le (min_le_right _ _)
+    calc |x b - x a| ≤ L * |b - a| := hx_lip b hb_mem
+      _ ≤ L' * |b - a| :=
+          mul_le_mul_of_nonneg_right (by dsimp only [L']; linarith [le_max_left L 0])
+            (abs_nonneg _)
+      _ < L' * (ε / L') := mul_lt_mul_of_pos_left hb_lt hL'
+      _ = ε := mul_div_cancel₀ ε hL'.ne'
+  have hx_bigO : Asymptotics.IsBigO (𝓝 a) (fun b => x b - x a) (fun b => b - a) := by
+    refine Asymptotics.IsBigO.of_bound L' ?_
+    filter_upwards [Ioo_mem_nhds (by linarith : a - δ < a) (by linarith : a < a + δ)] with b hb
+    rw [Real.norm_eq_abs, Real.norm_eq_abs]
+    exact (hx_lip b hb).trans (mul_le_mul_of_nonneg_right
+      (by dsimp only [L']; linarith [le_max_left L 0]) (abs_nonneg _))
+  have hR_o : Asymptotics.IsLittleO (𝓝 a)
+      (fun b => R (x b) - R (x a) - (x b - x a) * R') (fun b => b - a) := by
+    have h1 : Asymptotics.IsLittleO (𝓝 (x a))
+        (fun y => R y - R (x a) - (y - x a) * R') (fun y => y - x a) := by
+      simpa only [smul_eq_mul] using hR.isLittleO
+    exact (h1.comp_tendsto hx_cont).trans_isBigO hx_bigO
+  let u_fn (b : ℝ) : ℝ := b * R (x b)
+  have hu_cont : ContinuousAt u_fn a := continuousAt_id.mul (hR.continuousAt.comp hx_cont)
+  have hu_bigO : Asymptotics.IsBigO (𝓝 a) (fun b => u_fn b - u_fn a) (fun b => b - a) := by
+    have hR_lin : Asymptotics.IsBigO (𝓝 a) (fun b => R' * (x b - x a)) (fun b => b - a) :=
+      hx_bigO.const_mul_left R'
+    have hR_bigO : Asymptotics.IsBigO (𝓝 a) (fun b => R (x b) - R (x a)) (fun b => b - a) :=
+      (hR_o.isBigO.add hR_lin).congr' (Eventually.of_forall fun b => by ring) EventuallyEq.rfl
+    have hid_bigO : Asymptotics.IsBigO (𝓝 a) (fun b => b - a) (fun b => b - a) :=
+      Asymptotics.isBigO_refl _ _
+    have hR_bdd : Asymptotics.IsBigO (𝓝 a) (fun b => R (x b)) (fun _ => (1 : ℝ)) :=
+      (hR.continuousAt.comp hx_cont).norm.isBoundedUnder_le.isBigO_const (one_ne_zero' ℝ)
+    have hp1 : Asymptotics.IsBigO (𝓝 a) (fun b => (b - a) * R (x b)) (fun b => (b - a) * 1) :=
+      hid_bigO.mul hR_bdd
+    simp only [mul_one] at hp1
+    exact (hp1.add (hR_bigO.const_mul_left a)).congr'
+      (Eventually.of_forall fun b => by dsimp only [u_fn]; ring) EventuallyEq.rfl
+  have hu_o : Asymptotics.IsLittleO (𝓝 a)
+      (fun b => u_fn b - u_fn a - ((b - a) * R (x a) + a * R' * (x b - x a)))
+      (fun b => b - a) := by
+    have hp1 : Asymptotics.IsLittleO (𝓝 a)
+        (fun b => (b - a) * (R (x b) - R (x a))) (fun b => (b - a) * 1) := by
+      refine (Asymptotics.isBigO_refl (fun b => b - a) (𝓝 a)).mul_isLittleO ?_
+      rw [Asymptotics.isLittleO_one_iff]
+      have hc := (hR.continuousAt.comp hx_cont).tendsto
+      simpa using hc.sub_const (R (x a))
+    simp only [mul_one] at hp1
+    exact (hp1.add (hR_o.const_mul_left a)).congr'
+      (Eventually.of_forall fun b => by dsimp only [u_fn]; ring) EventuallyEq.rfl
+  have hG_o : Asymptotics.IsLittleO (𝓝 a)
+      (fun b => G (u_fn b) - G (u_fn a) - (u_fn b - u_fn a) * G') (fun b => b - a) := by
+    have h1 : Asymptotics.IsLittleO (𝓝 (u_fn a))
+        (fun u => G u - G (u_fn a) - (u - u_fn a) * G') (fun u => u - u_fn a) := by
+      simpa only [smul_eq_mul] using hG.isLittleO
+    exact (h1.comp_tendsto hu_cont).trans_isBigO hu_bigO
+  have hlin_o : Asymptotics.IsLittleO (𝓝 a)
+      (fun b => (1 - a * G' * R') * (x b - x a) - (b - a) * (G' * R (x a)))
+      (fun b => b - a) := by
+    have hsum := hG_o.add (hu_o.const_mul_left G')
+    refine hsum.congr' ?_ EventuallyEq.rfl
+    filter_upwards [Ioo_mem_nhds (by linarith : a - δ < a) (by linarith : a < a + δ)] with b hb
+    have hxa : x a = G (u_fn a) := hx_fix a ⟨by linarith, by linarith⟩
+    have hxb : x b = G (u_fn b) := hx_fix b hb
+    rw [← hxa, ← hxb]
+    ring
+  rw [hasDerivAt_iff_isLittleO]
+  have hdiv := hlin_o.const_mul_left (1 - a * G' * R')⁻¹
+  refine hdiv.congr' ?_ EventuallyEq.rfl
+  refine Eventually.of_forall fun b => ?_
+  simp only [smul_eq_mul]
+  field_simp
+
+/-- **Talagrand Section 2.4, Eq. (2.89) for the small-load solution at positive load:**
+Given `D ∈ ℝ`, there exists `K(D) > 0` (chosen before `u, q, r, α`) such that whenever `u` satisfies
+(2.7), `0 < α` with `α * K(D) < 1`, and `(q a, r a)` solves (2.68) for every `a ≥ 0` with
+`a * K(D) ≤ 1`, the composite functional `a ↦ F(a, r a, q a)` is differentiable at `α` with
+derivative `𝔼 log 𝔼_ξ exp u(√(q α) z + √(1 - q α) ξ)`. This unconditionally covers both the
+zero branch `perceptronRhat u 0 = 0` (where `(q, r) = (0, 0)` and `F` is affine in `α`) and the
+interior branch `perceptronRhat u 0 > 0` (where `r α > 0`, `q α ∈ (0, 1)`, and `(q, r)` are
+differentiable at `α`). -/
+theorem exists_hasDerivAt_perceptronRSFunctional_small_load (D : ℝ) :
+    ∃ K : ℝ, 0 < K ∧
+      ∀ {u : ℝ → ℝ} (_hd : ∀ j < 3, Differentiable ℝ (iteratedDeriv j u))
+        (_hb : ∀ j ≤ 3, ∀ x, |iteratedDeriv j u x| ≤ D)
+        {q r : ℝ → ℝ} {α : ℝ} (_hα_pos : 0 < α) (_hα : α * K < 1)
+        (_hq_fix : ∀ a, 0 ≤ a → a * K ≤ 1 →
+          q a = ∫ z : ℝ, Real.tanh (z * Real.sqrt (r a)) ^ 2 ∂gaussianReal 0 1)
+        (_hr_fix : ∀ a, 0 ≤ a → a * K ≤ 1 → r a = a * perceptronRhat u (q a)),
+        HasDerivAt (fun a => perceptronRSFunctional u a (r a) (q a))
+          (∫ z : ℝ, Real.log (∫ ξ : ℝ,
+            Real.exp (u (Real.sqrt (q α) * z + Real.sqrt (1 - q α) * ξ)) ∂gaussianReal 0 1)
+            ∂gaussianReal 0 1) α := by
+  obtain ⟨K_der, hKder0, h_rhat_der⟩ := exists_hasDerivAt_rhat_abs_le D
+  obtain ⟨K_sub, hKsub0, h_sub_lip⟩ := exists_abs_rs_fixed_point_sub_le D
+  let K : ℝ := max (2 * K_der) K_sub + 1
+  have hK_pos : 0 < K := by dsimp only [K]; positivity
+  refine ⟨K, hK_pos, ?_⟩
+  intro u hd hb q r α hα_pos hα hq_fix hr_fix
+  obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
+  have hc_rhat : ContinuousOn (perceptronRhat u) (Icc 0 1) :=
+    continuousOn_rhat hu.differentiable hu.differentiable_deriv.continuous hu.abs_le hu.abs_deriv_le
+  have hlip_rhat : ∀ x ∈ Icc (0 : ℝ) 1, ∀ y ∈ Icc (0 : ℝ) 1,
+      |perceptronRhat u x - perceptronRhat u y| ≤ K_der * |x - y| :=
+    fun x hx y hy => abs_sub_le_of_continuousOn_Icc_of_hasDerivAt_Ioo hc_rhat
+      (fun q' hq' => h_rhat_der hd hb hq') hy hx
+  have hα_lt : α < 1 / K := (lt_div_iff₀ hK_pos).2 hα
+  let δ : ℝ := min (α / 2) ((1 / K - α) / 2)
+  have hδ : 0 < δ := lt_min (half_pos hα_pos) (half_pos (sub_pos.2 hα_lt))
+  have hb_in {b : ℝ} (hb_mem : b ∈ Ioo (α - δ) (α + δ)) : 0 ≤ b ∧ b * K ≤ 1 := by
+    have hd1 : δ ≤ α / 2 := min_le_left _ _
+    have hd2 : δ ≤ (1 / K - α) / 2 := min_le_right _ _
+    have hb0 : 0 ≤ b := by linarith [hb_mem.1]
+    have hb_ub : b ≤ 1 / K := by linarith [hb_mem.2]
+    exact ⟨hb0, (le_div_iff₀ hK_pos).1 hb_ub⟩
+  have hK_ge_sub : K_sub ≤ K := (le_max_right _ _).trans (by dsimp only [K]; linarith)
+  have hK_ge_2der : 2 * K_der ≤ K := (le_max_left _ _).trans (by dsimp only [K]; linarith)
+  have hq_lip : ∀ a ∈ Ioo (α - δ) (α + δ), ∀ b ∈ Ioo (α - δ) (α + δ),
+      |q a - q b| ≤ 2 * D ^ 2 * |a - b| := by
+    intro a ha_m b hb_m
+    obtain ⟨ha0, haK⟩ := hb_in ha_m
+    obtain ⟨hb0, hbK⟩ := hb_in hb_m
+    have ha_sub : a * K_sub ≤ 1 := (mul_le_mul_of_nonneg_left hK_ge_sub ha0).trans haK
+    exact h_sub_lip hd hb ha0 ha_sub (hq_fix a ha0 haK) (hr_fix a ha0 haK)
+      (hq_fix b hb0 hbK) (hr_fix b hb0 hbK)
+  rcases (perceptronRhat_nonneg u 0).eq_or_lt with hrhat0_zero | hrhat0_pos
+  · have hzero_branch : ∀ b ∈ Ioo (α - δ) (α + δ), q b = 0 ∧ r b = 0 := by
+      intro b hb_m
+      obtain ⟨hb0, hbK⟩ := hb_in hb_m
+      have hb_sub : b * K_sub ≤ 1 := (mul_le_mul_of_nonneg_left hK_ge_sub hb0).trans hbK
+      have h0_q : (0 : ℝ) = ∫ z : ℝ, Real.tanh (z * Real.sqrt 0) ^ 2 ∂gaussianReal 0 1 := by simp
+      have h0_r : (0 : ℝ) = b * perceptronRhat u 0 := by rw [← hrhat0_zero, mul_zero]
+      have hdiff := h_sub_lip hd hb hb0 hb_sub (hq_fix b hb0 hbK) (hr_fix b hb0 hbK) h0_q h0_r
+      rw [sub_self, abs_zero, mul_zero, sub_zero] at hdiff
+      have hqb0 : q b = 0 := abs_nonpos_iff.1 hdiff
+      refine ⟨hqb0, ?_⟩
+      rw [hr_fix b hb0 hbK, hqb0, ← hrhat0_zero, mul_zero]
+    have hα_mem : α ∈ Ioo (α - δ) (α + δ) := ⟨by linarith, by linarith⟩
+    obtain ⟨hqα0, _⟩ := hzero_branch α hα_mem
+    let c₀ : ℝ := ∫ z : ℝ, Real.log (∫ ξ : ℝ,
+      Real.exp (u (Real.sqrt 0 * z + Real.sqrt (1 - 0) * ξ)) ∂gaussianReal 0 1) ∂gaussianReal 0 1
+    let c_cosh : ℝ := ∫ z : ℝ, Real.log (2 * Real.cosh 0) ∂gaussianReal 0 1
+    have hcongr : (fun a => perceptronRSFunctional u a (r a) (q a)) =ᶠ[𝓝 α]
+        fun a => c_cosh + a * c₀ := by
+      filter_upwards [Ioo_mem_nhds (by linarith : α - δ < α) (by linarith : α < α + δ)] with b hb_m
+      obtain ⟨hqb0, hrb0⟩ := hzero_branch b hb_m
+      unfold perceptronRSFunctional
+      rw [hqb0, hrb0]
+      simp [c_cosh, c₀]
+    have hd_aff : HasDerivAt (fun a : ℝ => c_cosh + a * c₀) c₀ α := by
+      simpa using ((hasDerivAt_id α).mul_const c₀).const_add c_cosh
+    rw [hqα0]
+    exact hd_aff.congr_of_eventuallyEq hcongr
+  · have hα_mem : α ∈ Ioo (α - δ) (α + δ) := ⟨by linarith, by linarith⟩
+    obtain ⟨hα0, hαK⟩ := hb_in hα_mem
+    have hqα := hq_fix α hα0 hαK
+    have hrα := hr_fix α hα0 hαK
+    have hrα_pos : 0 < r α := by
+      have hrα_nn : 0 ≤ r α := by
+        rw [hrα]; exact mul_nonneg hα0 (perceptronRhat_nonneg u (q α))
+      rcases hrα_nn.eq_or_lt with hr0_eq | hpos
+      · exfalso
+        have hq0_eq : q α = 0 := by rw [hqα, ← hr0_eq]; simp
+        have hr_pos' : 0 < r α := by rw [hrα, hq0_eq]; exact mul_pos hα_pos hrhat0_pos
+        linarith
+      · exact hpos
+    have hqα_mem : q α ∈ Ioo (0 : ℝ) 1 := by
+      rw [hqα]; exact integral_tanh_sq_sqrt_mem_Ioo hrα_pos
+    let G (r' : ℝ) : ℝ := ∫ z : ℝ, Real.tanh (z * Real.sqrt r') ^ 2 ∂gaussianReal 0 1
+    let R := perceptronRhat u
+    obtain ⟨hG_der, hG_bd⟩ := hasDerivAt_integral_tanh_sq_sqrt_and_abs_le hrα_pos
+    obtain ⟨R', hR_der, hR_bd⟩ := h_rhat_der hd hb hqα_mem
+    let G' : ℝ := ∫ z : ℝ, (1 - Real.tanh (z * Real.sqrt (r α)) ^ 2) *
+      (1 - 3 * Real.tanh (z * Real.sqrt (r α)) ^ 2) ∂gaussianReal 0 1
+    have hden_pos : 1 / 2 ≤ 1 - α * G' * R' := by
+      have hprod : |α * G' * R'| ≤ α * K_der := by
+        rw [abs_mul, abs_mul, abs_of_pos hα_pos]
+        calc α * |G'| * |R'| ≤ α * 1 * K_der :=
+              mul_le_mul (mul_le_mul_of_nonneg_left hG_bd hα_pos.le) hR_bd
+                (abs_nonneg _) (mul_nonneg hα_pos.le zero_le_one)
+          _ = α * K_der := by ring
+      have haK_half : α * K_der ≤ 1 / 2 := by
+        have h2 : α * (2 * K_der) ≤ 1 := (mul_le_mul_of_nonneg_left hK_ge_2der hα0).trans hαK
+        linarith
+      have hle : α * G' * R' ≤ 1 / 2 := (le_abs_self _).trans (hprod.trans haK_half)
+      linarith
+    have hG_at : HasDerivAt G G' (α * R (q α)) := by rwa [← hrα]
+    have hq_fix_loc : ∀ b ∈ Ioo (α - δ) (α + δ), q b = G (b * R (q b)) := by
+      intro b hb_m
+      obtain ⟨hb0, hbK⟩ := hb_in hb_m
+      change q b = ∫ z : ℝ, Real.tanh (z * Real.sqrt (b * perceptronRhat u (q b))) ^ 2
+        ∂gaussianReal 0 1
+      rw [← hr_fix b hb0 hbK]
+      exact hq_fix b hb0 hbK
+    have hq_diff : DifferentiableAt ℝ q α :=
+      (hasDerivAt_of_fixed_point_contraction hδ hq_fix_loc
+        (fun b hb_m => hq_lip b hb_m α hα_mem) hG_at hR_der (by linarith)).differentiableAt
+    have hr_diff : DifferentiableAt ℝ r α := by
+      have hr_congr : r =ᶠ[𝓝 α] fun b => b * R (q b) := by
+        filter_upwards [Ioo_mem_nhds (by linarith : α - δ < α) (by linarith : α < α + δ)]
+          with b hb_m
+        obtain ⟨hb0, hbK⟩ := hb_in hb_m
+        exact hr_fix b hb0 hbK
+      have hd_prod : DifferentiableAt ℝ (fun b => b * R (q b)) α :=
+        differentiableAt_id.mul (hR_der.differentiableAt.comp α hq_diff)
+      exact hd_prod.congr_of_eventuallyEq hr_congr
+    exact hasDerivAt_perceptronRSFunctional_alpha hu hrα_pos hqα_mem hqα hrα hr_diff hq_diff
+
+/-- **Talagrand Section 2.4, Eq. (2.89) right derivative at zero load `α = 0`:**
+Under (2.7), if `(q a, r a)` solves (2.68) for `a ∈ [0, δ)` (`δ > 0`), then `(q 0, r 0) = (0, 0)`
+and `a ↦ F(a, r a, q a)` has right derivative `𝔼 log 𝔼_ξ exp u(√(q 0) z + √(1 - q 0) ξ)`
+(`= log 𝔼_ξ exp u(ξ)`) at `0` within `[0, ∞)`. -/
+theorem hasDerivWithinAt_perceptronRSFunctional_zero
+    {u : ℝ → ℝ} {D : ℝ}
+    (hd : ∀ j < 3, Differentiable ℝ (iteratedDeriv j u))
+    (hb : ∀ j ≤ 3, ∀ x, |iteratedDeriv j u x| ≤ D)
+    {q r : ℝ → ℝ} {δ : ℝ} (hδ : 0 < δ)
+    (hq_fix : ∀ a ∈ Ico 0 δ,
+      q a = ∫ z : ℝ, Real.tanh (z * Real.sqrt (r a)) ^ 2 ∂gaussianReal 0 1)
+    (hr_fix : ∀ a ∈ Ico 0 δ, r a = a * perceptronRhat u (q a)) :
+    HasDerivWithinAt (fun a => perceptronRSFunctional u a (r a) (q a))
+      (∫ z : ℝ, Real.log (∫ ξ : ℝ,
+        Real.exp (u (Real.sqrt (q 0) * z + Real.sqrt (1 - q 0) * ξ)) ∂gaussianReal 0 1)
+        ∂gaussianReal 0 1)
+      (Ici 0) 0 := by
+  obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
+  have hD_le : ∀ x, u x ≤ |D| := fun x => (hu.le x).trans (le_abs_self D)
+  have hD₁ : ∀ x, |deriv u x| ≤ |D| := fun x => (hu.abs_deriv_le x).trans (le_abs_self D)
+  have hr0 : r 0 = 0 := by rw [hr_fix 0 ⟨le_rfl, hδ⟩, zero_mul]
+  have hq0 : q 0 = 0 := by rw [hq_fix 0 ⟨le_rfl, hδ⟩, hr0]; simp
+  let ψ (q' : ℝ) : ℝ :=
+    ∫ z : ℝ, Real.log (∫ ξ : ℝ,
+      Real.exp (u (Real.sqrt q' * z + Real.sqrt (1 - q') * ξ)) ∂gaussianReal 0 1)
+      ∂gaussianReal 0 1
+  let C (r' : ℝ) : ℝ := ∫ z : ℝ, Real.log (2 * Real.cosh (z * Real.sqrt r')) ∂gaussianReal 0 1
+  have hr_mem {a : ℝ} (ha : a ∈ Ico 0 δ) : 0 ≤ r a ∧ r a ≤ a * D ^ 2 := by
+    rw [hr_fix a ha]
+    have hm := rhat_mem_Icc hD₁ (q a)
+      (fun z => integrable_exp_cavityPath_new hu.measurable hD_le (q a) z)
+    rw [sq_abs] at hm
+    exact ⟨mul_nonneg ha.1 hm.1, mul_le_mul_of_nonneg_left hm.2 ha.1⟩
+  have hq_mem {a : ℝ} (ha : a ∈ Ico 0 δ) : 0 ≤ q a ∧ q a ≤ r a ∧ q a ≤ 1 := by
+    have hr_a := (hr_mem ha).1
+    have hq_eq := hq_fix a ha
+    have hmem : q a ∈ Icc (0 : ℝ) 1 := by
+      rw [hq_eq]
+      exact ⟨integral_nonneg fun _ => sq_nonneg _,
+        (integral_mono (MeasureTheory.integrable_tanh_sq _ (by fun_prop)) (integrable_const 1)
+          fun _ => (Real.tanh_sq_lt_one _).le).trans_eq (by simp)⟩
+    have hle_r : q a ≤ r a := by
+      have hlip := lipschitzWith_one_integral_tanh_sq_sqrt.dist_le_mul (r a) 0
+      simp only [NNReal.coe_one, one_mul, Real.dist_eq, Real.sqrt_zero, mul_zero, Real.tanh_zero,
+        ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true, zero_pow, integral_zero, sub_zero] at hlip
+      rw [← hq_eq, abs_of_nonneg hmem.1, abs_of_nonneg hr_a] at hlip
+      exact hlip
+    exact ⟨hmem.1, hle_r, hmem.2⟩
+  have hr_tendsto : Tendsto r (𝓝[≥] 0) (𝓝[≥] 0) := by
+    rw [tendsto_nhdsWithin_iff]
+    refine ⟨?_, ?_⟩
+    · rw [Metric.tendsto_nhdsWithin_nhds]
+      intro ε hε
+      refine ⟨min δ (ε / (D ^ 2 + 1)), by positivity, fun a ha0 ha_lt => ?_⟩
+      rw [Real.dist_eq] at ha_lt ⊢
+      rw [sub_zero, abs_of_nonneg ha0] at ha_lt
+      have ha_mem : a ∈ Ico 0 δ := ⟨ha0, ha_lt.trans_le (min_le_left _ _)⟩
+      rw [sub_zero, abs_of_nonneg (hr_mem ha_mem).1]
+      calc r a ≤ a * D ^ 2 := (hr_mem ha_mem).2
+        _ ≤ a * (D ^ 2 + 1) := mul_le_mul_of_nonneg_left (by linarith) ha0
+        _ < (ε / (D ^ 2 + 1)) * (D ^ 2 + 1) :=
+            mul_lt_mul_of_pos_right (ha_lt.trans_le (min_le_right _ _)) (by positivity)
+        _ = ε := div_mul_cancel₀ ε (by positivity)
+    · filter_upwards [Ico_mem_nhdsGE hδ] with a ha
+      exact (hr_mem ha).1
+  have hr_bigO : Asymptotics.IsBigO (𝓝[≥] 0) (fun a => r a - 0) (fun a => a - 0) := by
+    refine Asymptotics.IsBigO.of_bound (D ^ 2) ?_
+    filter_upwards [Ico_mem_nhdsGE hδ] with a ha
+    rw [sub_zero, sub_zero, Real.norm_eq_abs, Real.norm_eq_abs,
+      abs_of_nonneg (hr_mem ha).1, abs_of_nonneg ha.1]
+    linarith [(hr_mem ha).2]
+  have hC_o : Asymptotics.IsLittleO (𝓝[≥] 0)
+      (fun a => C (r a) - C 0 - (1 / 2) * r a) (fun a => a - 0) := by
+    have h1 := hasDerivWithinAt_integral_log_two_cosh_sqrt_zero.isLittleO
+    have h2 := (h1.comp_tendsto hr_tendsto).trans_isBigO hr_bigO
+    refine h2.congr' ?_ EventuallyEq.rfl
+    refine Eventually.of_forall fun a => ?_
+    dsimp only [C, Function.comp_apply]
+    simp only [sub_zero, smul_eq_mul]
+    ring
+  have hrq_o : Asymptotics.IsLittleO (𝓝[≥] 0)
+      (fun a => (1 / 2) * r a * q a) (fun a => a - 0) := by
+    rw [Asymptotics.isLittleO_iff]
+    intro c hc
+    filter_upwards [Ico_mem_nhdsGE (lt_min hδ (show 0 < c / (D ^ 4 + 1) by positivity))] with a ha
+    have ha_δ : a ∈ Ico 0 δ := ⟨ha.1, ha.2.trans_le (min_le_left _ _)⟩
+    obtain ⟨hr_nn, hr_ub⟩ := hr_mem ha_δ
+    obtain ⟨hq_nn, hq_ub, -⟩ := hq_mem ha_δ
+    rw [sub_zero, Real.norm_eq_abs, Real.norm_eq_abs,
+      abs_of_nonneg (by positivity), abs_of_nonneg ha.1]
+    have hq_d : q a ≤ a * D ^ 2 := hq_ub.trans hr_ub
+    have hprod : (1 / 2) * r a * q a ≤ a * (a * D ^ 4) := by
+      have ha_d2 : 0 ≤ 1 * (a * D ^ 2) := mul_nonneg zero_le_one (mul_nonneg ha.1 (sq_nonneg D))
+      calc (1 / 2) * r a * q a ≤ 1 * (a * D ^ 2) * (a * D ^ 2) :=
+            mul_le_mul (mul_le_mul (by norm_num) hr_ub hr_nn zero_le_one) hq_d hq_nn ha_d2
+        _ = a * (a * D ^ 4) := by ring
+    have ha_c : a * (D ^ 4 + 1) ≤ c := by
+      have hlt : a < c / (D ^ 4 + 1) := ha.2.trans_le (min_le_right _ _)
+      exact (le_div_iff₀ (by positivity)).1 hlt.le
+    have had4 : a * D ^ 4 ≤ c :=
+      (mul_le_mul_of_nonneg_left (by linarith) ha.1).trans ha_c
+    exact hprod.trans (by rw [mul_comm c a]; exact mul_le_mul_of_nonneg_left had4 ha.1)
+  have hψ_cont : ContinuousOn ψ (Icc 0 1) :=
+    continuousOn_integral_log_integral_exp hu.continuous hu.abs_le
+  have hq_tendsto : Tendsto q (𝓝[≥] 0) (nhdsWithin (q 0) (Icc 0 1)) := by
+    rw [tendsto_nhdsWithin_iff]
+    refine ⟨?_, ?_⟩
+    · rw [hq0, Metric.tendsto_nhdsWithin_nhds]
+      intro ε hε
+      refine ⟨min δ (ε / (D ^ 2 + 1)), by positivity, fun a ha0 ha_lt => ?_⟩
+      rw [Real.dist_eq, sub_zero, abs_of_nonneg ha0] at ha_lt
+      have ha_mem : a ∈ Ico 0 δ := ⟨ha0, ha_lt.trans_le (min_le_left _ _)⟩
+      rw [Real.dist_eq, sub_zero, abs_of_nonneg (hq_mem ha_mem).1]
+      calc q a ≤ r a := (hq_mem ha_mem).2.1
+        _ ≤ a * D ^ 2 := (hr_mem ha_mem).2
+        _ ≤ a * (D ^ 2 + 1) := mul_le_mul_of_nonneg_left (by linarith) ha0
+        _ < (ε / (D ^ 2 + 1)) * (D ^ 2 + 1) :=
+            mul_lt_mul_of_pos_right (ha_lt.trans_le (min_le_right _ _)) (by positivity)
+        _ = ε := div_mul_cancel₀ ε (by positivity)
+    · filter_upwards [Ico_mem_nhdsGE hδ] with a ha
+      exact ⟨(hq_mem ha).1, (hq_mem ha).2.2⟩
+  have hψ_o : Asymptotics.IsLittleO (𝓝[≥] 0)
+      (fun a => a * (ψ (q a) - ψ (q 0))) (fun a => a - 0) := by
+    have h1 : Asymptotics.IsLittleO (𝓝[≥] 0)
+        (fun a => (a - 0) * (ψ (q a) - ψ (q 0))) (fun a => (a - 0) * 1) := by
+      refine (Asymptotics.isBigO_refl (fun a => a - 0) (𝓝[≥] 0)).mul_isLittleO ?_
+      rw [Asymptotics.isLittleO_one_iff]
+      have hq0_mem : q 0 ∈ Icc (0 : ℝ) 1 := by rw [hq0]; exact ⟨le_rfl, zero_le_one⟩
+      have hc := (hψ_cont (q 0) hq0_mem).tendsto.comp hq_tendsto
+      simpa using hc.sub_const (ψ (q 0))
+    simpa only [sub_zero, mul_one] using h1
+  rw [hasDerivWithinAt_iff_isLittleO]
+  have htot := (hC_o.add hrq_o).add hψ_o
+  refine htot.congr' ?_ EventuallyEq.rfl
+  refine Eventually.of_forall fun a => ?_
+  unfold perceptronRSFunctional
+  dsimp only [C, ψ]
+  rw [hr0]
+  simp only [sub_zero, smul_eq_mul, neg_mul, zero_mul]
   ring
 
 end VariationalCalculus
@@ -649,91 +1089,52 @@ theorem perceptron_pressure_succ_sub_eq
           Real.exp (u ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, p.2 i * ((τ i : ℤ) : ℝ)))
           ∂(μ_M p.1)) ∂(P_M.prod γ_row) := by
   intro γ P_M P_M1 γ_row μ_M p_M1 p_M
-  let Z_M (g₀ : Fin M → Fin (N + 1) → ℝ) : ℝ :=
-    ∑ τ : Fin (N + 1) → ℤˣ,
-      Real.exp (∑ k : Fin M, u ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, g₀ k i * ((τ i : ℤ) : ℝ)))
-  let R_inc (p : (Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) : ℝ :=
-    ∫ τ : Fin (N + 1) → ℤˣ,
-      Real.exp (u ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, p.2 i * ((τ i : ℤ) : ℝ))) ∂(μ_M p.1)
-  have hZM_pos (g₀ : Fin M → Fin (N + 1) → ℝ) : 0 < Z_M g₀ :=
-    Finset.sum_pos (fun _ _ => Real.exp_pos _) Finset.univ_nonempty
-  have hR_eq (p : (Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) :
-      R_inc p =
-        (∑ τ : Fin (N + 1) → ℤˣ,
-          Real.exp ((∑ k : Fin M, u ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, p.1 k i * ((τ i : ℤ) : ℝ))) +
-            u ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, p.2 i * ((τ i : ℤ) : ℝ)))) / Z_M p.1 := by
-    dsimp only [R_inc, μ_M, Z_M]
-    rw [integral_tilted_eq_div, integral_fintype Integrable.of_finite,
-      integral_fintype Integrable.of_finite]
-    simp only [Measure.real, Measure.count_singleton, ENNReal.toReal_one, one_smul]
-    congr 1
-    refine Finset.sum_congr rfl fun τ _ => ?_
-    rw [Real.exp_add, mul_comm]
-  have hR_pos (p : (Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) : 0 < R_inc p := by
-    rw [hR_eq p]
-    exact div_pos (Finset.sum_pos (fun _ _ => Real.exp_pos _) Finset.univ_nonempty) (hZM_pos p.1)
-  have hmp := measurePreserving_finSuccProd γ_row M
-  let F_M1 (p : (Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) : ℝ :=
-    Real.log (Z_M p.1) + Real.log (R_inc p)
-  have hZM_m : Measurable fun p : (Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ) =>
-      Real.log (Z_M p.1) := by
-    refine Real.measurable_log.comp (Finset.measurable_sum _ fun τ _ => Real.measurable_exp.comp ?_)
-    refine Finset.measurable_sum _ fun k _ => hu.comp ?_
-    refine (Finset.measurable_sum _ fun i _ => ?_).const_mul _
-    exact ((measurable_pi_apply i).comp ((measurable_pi_apply k).comp measurable_fst)).mul_const _
-  have hR_m : Measurable fun p : (Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ) =>
-      Real.log (R_inc p) := by
-    have heq : (fun p => Real.log (R_inc p)) = fun p =>
-        Real.log ((∑ τ : Fin (N + 1) → ℤˣ,
-          Real.exp ((∑ k : Fin M, u ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, p.1 k i * ((τ i : ℤ) : ℝ))) +
-            u ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, p.2 i * ((τ i : ℤ) : ℝ)))) / Z_M p.1) :=
-      funext fun p => congrArg Real.log (hR_eq p)
-    rw [heq]
-    refine Real.measurable_log.comp (Measurable.div ?_ ?_)
-    · refine Finset.measurable_sum _ fun τ _ => Real.measurable_exp.comp (Measurable.add ?_ ?_)
-      · refine Finset.measurable_sum _ fun k _ => hu.comp ?_
-        refine (Finset.measurable_sum _ fun i _ => ?_).const_mul _
-        exact ((measurable_pi_apply i).comp
-          ((measurable_pi_apply k).comp measurable_fst)).mul_const _
-      · refine hu.comp ((Finset.measurable_sum _ fun i _ => ?_).const_mul _)
-        exact ((measurable_pi_apply i).comp measurable_snd).mul_const _
-    · refine Finset.measurable_sum _ fun τ _ => Real.measurable_exp.comp ?_
-      refine Finset.measurable_sum _ fun k _ => hu.comp ?_
-      refine (Finset.measurable_sum _ fun i _ => ?_).const_mul _
-      exact ((measurable_pi_apply i).comp ((measurable_pi_apply k).comp measurable_fst)).mul_const _
-  have hp_M1_eq :
-      (∫ g : Fin (M + 1) → Fin (N + 1) → ℝ,
-        Real.log (∑ τ : Fin (N + 1) → ℤˣ,
-          Real.exp (∑ k : Fin (M + 1),
-            u ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, g k i * ((τ i : ℤ) : ℝ)))) ∂P_M1) =
-      ∫ p, F_M1 p ∂(P_M.prod γ_row) := by
-    have hcomp := hmp.integral_comp_of_aestronglyMeasurable (g := F_M1)
-      (hZM_m.add hR_m).aestronglyMeasurable
-    refine (integral_congr_ae (ae_of_all _ fun g => ?_)).trans hcomp
-    dsimp only [F_M1, Function.comp_apply]
-    rw [← Real.log_mul (hZM_pos _).ne' (hR_pos _).ne', hR_eq,
-      mul_div_cancel₀ _ (hZM_pos _).ne']
-    congr 1
-    refine Finset.sum_congr rfl fun τ _ => congrArg Real.exp ?_
-    rw [Fin.sum_univ_castSucc]
-    simp [MeasurableEquiv.finSuccProd_apply]
   let H (g : Fin (N + 1) → ℝ) (τ : Fin (N + 1) → ℤˣ) : ℝ :=
     (Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, g i * ((τ i : ℤ) : ℝ)
-  have hH_m (τ : Fin (N + 1) → ℤˣ) : Measurable fun g => H g τ := by
-    dsimp only [H]
-    fun_prop
+  have hH_m (τ : Fin (N + 1) → ℤˣ) : Measurable fun g => H g τ := by dsimp only [H]; fun_prop
   have hH_i (τ : Fin (N + 1) → ℤˣ) : Integrable (fun g => u (H g τ)) γ_row := by
     have hm : Measure.map (fun g => H g τ) γ_row = gaussianReal 0 1 :=
       map_normalized_constraint_field_eq_gaussianReal (Nat.succ_pos N) τ
-    have hm_i : Integrable u (Measure.map (fun g => H g τ) γ_row) := by
-      rw [hm]
-      exact hi
+    have hm_i : Integrable u (Measure.map (fun g => H g τ) γ_row) := by rwa [hm]
     exact hm_i.comp_measurable (hH_m τ)
   let pEnergy (p : (Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ))
       (τ : Fin (N + 1) → ℤˣ) : ℝ := ∑ k : Fin M, u (H (p.1 k) τ)
+  let Z_M (g₀ : Fin M → Fin (N + 1) → ℝ) : ℝ :=
+    ∑ τ : Fin (N + 1) → ℤˣ, Real.exp (∑ k : Fin M, u (H (g₀ k) τ))
+  let R_inc (p : (Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) : ℝ :=
+    ∫ τ : Fin (N + 1) → ℤˣ, Real.exp (u (H p.2 τ)) ∂(μ_M p.1)
+  have hlog_add (p : (Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) :
+      Real.log (∑ τ : Fin (N + 1) → ℤˣ, Real.exp (pEnergy p τ + u (H p.2 τ))) =
+        Real.log (Z_M p.1) + Real.log (R_inc p) :=
+    log_sum_exp_add_eq_log_sum_exp_add_log_integral_exp (pEnergy p) (fun τ => u (H p.2 τ))
   have hE_m (τ : Fin (N + 1) → ℤˣ) : Measurable fun p => pEnergy p τ :=
     Finset.measurable_sum _ fun k _ => ((hu.comp (hH_m τ)).comp
       ((measurable_pi_apply k).comp measurable_fst))
+  have hE1_m (τ : Fin (N + 1) → ℤˣ) :
+      Measurable fun p : (Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ) =>
+        pEnergy p τ + u (H p.2 τ) :=
+    (hE_m τ).add ((hu.comp (hH_m τ)).comp measurable_snd)
+  have hZM_m : Measurable fun p : (Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ) =>
+      Real.log (Z_M p.1) := by
+    simpa only [one_mul] using measurable_log_sum_exp hE_m 1
+  have hFM1_m : Measurable fun p : (Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ) =>
+      Real.log (∑ τ, Real.exp (pEnergy p τ + u (H p.2 τ))) := by
+    simpa only [one_mul] using measurable_log_sum_exp hE1_m 1
+  have hp_M1_eq :
+      (∫ g : Fin (M + 1) → Fin (N + 1) → ℝ,
+        Real.log (∑ τ : Fin (N + 1) → ℤˣ,
+          Real.exp (∑ k : Fin (M + 1), u (H (g k) τ))) ∂P_M1) =
+      ∫ p, (Real.log (Z_M p.1) + Real.log (R_inc p)) ∂(P_M.prod γ_row) := by
+    have hmp := measurePreserving_finSuccProd γ_row M
+    have hcomp := hmp.integral_comp_of_aestronglyMeasurable
+      (g := fun p => Real.log (∑ τ, Real.exp (pEnergy p τ + u (H p.2 τ))))
+      hFM1_m.aestronglyMeasurable
+    refine (integral_congr_ae (ae_of_all _ fun g => ?_)).trans
+      (hcomp.trans (integral_congr_ae (ae_of_all _ hlog_add)))
+    dsimp only [Function.comp_apply, pEnergy]
+    congr 1; refine Finset.sum_congr rfl fun τ _ => congrArg Real.exp ?_
+    rw [Fin.sum_univ_castSucc]
+    simp [MeasurableEquiv.finSuccProd_apply]
   have hE_i (τ : Fin (N + 1) → ℤˣ) :
       Integrable (fun p => pEnergy p τ) (P_M.prod γ_row) :=
     integrable_finsetSum _ fun k _ =>
@@ -741,28 +1142,26 @@ theorem perceptron_pressure_succ_sub_eq
   have hZM_int : Integrable (fun p : (Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ) =>
       Real.log (Z_M p.1)) (P_M.prod γ_row) := by
     simpa only [one_mul] using
-      integrable_log_sum_exp (μ := P_M.prod γ_row) (H := pEnergy)
-        (β := 1) one_pos hE_m hE_i
+      integrable_log_sum_exp (μ := P_M.prod γ_row) (H := pEnergy) (β := 1) one_pos hE_m hE_i
   have hR_int : Integrable (fun p : (Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ) =>
       Real.log (R_inc p)) (P_M.prod γ_row) := by
     have hNew := integrable_log_sum_exp (μ := P_M.prod γ_row)
-      (H := fun p τ => pEnergy p τ + u (H p.2 τ)) (β := 1) one_pos
-      (fun τ => (hE_m τ).add ((hu.comp (hH_m τ)).comp measurable_snd))
+      (H := fun p τ => pEnergy p τ + u (H p.2 τ)) (β := 1) one_pos hE1_m
       (fun τ => (hE_i τ).add ((hH_i τ).comp_snd P_M))
     simp only [one_mul] at hNew
-    refine (hNew.sub hZM_int).congr (ae_of_all _ fun p => ?_)
-    change Real.log (∑ τ, Real.exp (pEnergy p τ + u (H p.2 τ))) -
-      Real.log (Z_M p.1) = Real.log (R_inc p)
-    rw [hR_eq p, Real.log_div _ (hZM_pos p.1).ne']
-    exact (Finset.sum_pos (fun _ _ => Real.exp_pos _) Finset.univ_nonempty).ne'
+    exact (hNew.sub hZM_int).congr (ae_of_all _ fun p => by
+      simp only [Pi.sub_apply]; linarith [hlog_add p])
   have hZM_fst :
       (∫ p : (Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ), Real.log (Z_M p.1)
         ∂(P_M.prod γ_row)) =
       ∫ g₀ : Fin M → Fin (N + 1) → ℝ, Real.log (Z_M g₀) ∂P_M :=
     integral_prod_fun_fst_of_isProbabilityMeasure P_M γ_row (fun g₀ => Real.log (Z_M g₀))
   dsimp only [p_M1, p_M]
+  change ((N : ℝ) + 1)⁻¹ * (∫ g : Fin (M + 1) → Fin (N + 1) → ℝ,
+        Real.log (∑ τ, Real.exp (∑ k, u (H (g k) τ))) ∂P_M1) -
+      ((N : ℝ) + 1)⁻¹ * (∫ g₀ : Fin M → Fin (N + 1) → ℝ, Real.log (Z_M g₀) ∂P_M) =
+    ((N : ℝ) + 1)⁻¹ * ∫ p, Real.log (R_inc p) ∂(P_M.prod γ_row)
   rw [hp_M1_eq, integral_add hZM_int hR_int, hZM_fst]
-  dsimp only [Z_M, R_inc]
   ring
 
 /-- **Dominated differentiation step of (2.91).** The function

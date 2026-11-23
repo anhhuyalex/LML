@@ -225,15 +225,10 @@ theorem abs_perceptron_pressure_sub_rs_free_energy_le (D : ℝ) :
     have hd_lin := ((hasDerivAt_id s).mul_const ((r / 2) * (1 - q))).congr_deriv
       (one_mul ((r / 2) * (1 - q)))
     exact hd_p.add hd_lin
-  -- Apply `exists_hasDerivAt_eq_slope` on `[0, 1]`!
-  choose! φ' hφ' hφ'_bd using hφ_deriv
-  obtain ⟨c, hc, hslope⟩ := exists_hasDerivAt_eq_slope φ φ' zero_lt_one hφ_cont hφ'
   have hinc : |φ 1 - φ 0| ≤ C / ((N : ℝ) + 1) := by
-    have heq : φ 1 - φ 0 = φ' c := by
-      rw [sub_zero, div_one] at hslope
-      exact hslope.symm
-    rw [heq]
-    exact hφ'_bd c hc
+    simpa only [sub_zero, abs_one, mul_one] using
+      abs_sub_le_of_continuousOn_Icc_of_hasDerivAt_Ioo hφ_cont hφ_deriv
+        (left_mem_Icc.2 zero_le_one) (right_mem_Icc.2 zero_le_one)
   have hp1 : p_path 1 = p_NM :=
     interpolating_pressure_one_eq hu.measurable hu.abs_le q r
   have hp0 : p_path 0 =
