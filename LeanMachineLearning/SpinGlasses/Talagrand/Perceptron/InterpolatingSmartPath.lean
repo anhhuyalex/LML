@@ -840,51 +840,11 @@ private lemma measurePreserving_interpSPDisorder_lastSplit (N M : ℕ) (v : ℝ�
       (interpSPDisorder N (M + 1) v)
       ((interpSPDisorder N M v).prod
         (Measure.pi fun _ : ((Fin N ⊕ Unit) ⊕ Unit) => gaussianReal 0 1)) := by
-  let γ : Measure ℝ := gaussianReal 0 1
-  let G₀ := Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin N => γ
-  let gM := Measure.pi fun _ : Fin N => γ
-  let A₀ := Measure.pi fun _ : Fin M => γ
-  let Z₀ := Measure.pi fun _ : Fin M => γ
-  let Rest := (Measure.pi fun _ : Fin N => γ).prod ((gaussianReal 0 v).prod γ)
-  have hg := measurePreserving_finSuccProd gM M
-  have ha := measurePreserving_finSuccProd γ M
-  have hz := measurePreserving_finSuccProd γ M
-  have hunit := (measurePreserving_funUnique γ Unit).symm
-  have hsum1 := (measurePreserving_sumPiEquivProdPi_symm (X := fun _ : Fin N ⊕ Unit => ℝ)
-    (fun _ => γ)).comp ((MeasurePreserving.id gM).prod hunit)
-  have hsum2 := (measurePreserving_sumPiEquivProdPi_symm
-    (X := fun _ : (Fin N ⊕ Unit) ⊕ Unit => ℝ) (fun _ => γ)).comp
-    (hsum1.prod hunit)
-  have step1 : MeasurePreserving
-      (Prod.map (Prod.map (Prod.map (MeasurableEquiv.finSuccProd (Fin N → ℝ) M)
-        (MeasurableEquiv.finSuccProd ℝ M)) (MeasurableEquiv.finSuccProd ℝ M)) id)
-      (interpSPDisorder N (M + 1) v)
-      ((((G₀.prod gM).prod (A₀.prod γ)).prod (Z₀.prod γ)).prod Rest) := by
-    unfold interpSPDisorder
-    exact ((hg.prod ha).prod hz).prod (MeasurePreserving.id Rest)
-  have step2 := ((measurePreserving_prodProdProdComm G₀ gM A₀ γ).prod
-    (MeasurePreserving.id (Z₀.prod γ))).prod (MeasurePreserving.id Rest)
-  have step3 := (measurePreserving_prodProdProdComm (G₀.prod A₀) (gM.prod γ) Z₀ γ).prod
-    (MeasurePreserving.id Rest)
-  have step4 := measurePreserving_prodAssoc ((G₀.prod A₀).prod Z₀) ((gM.prod γ).prod γ) Rest
-  have step5 := (MeasurePreserving.id ((G₀.prod A₀).prod Z₀)).prod
-    (Measure.measurePreserving_swap (μ := (gM.prod γ).prod γ) (ν := Rest))
-  have step6 := (measurePreserving_prodAssoc ((G₀.prod A₀).prod Z₀) Rest ((gM.prod γ).prod γ)).symm
-  have step7 := (MeasurePreserving.id (((G₀.prod A₀).prod Z₀).prod Rest)).prod hsum2
-  have full := step7.comp (step6.comp (step5.comp (step4.comp (step3.comp (step2.comp step1)))))
-  have hcod : ((((G₀.prod A₀).prod Z₀).prod Rest).prod
-      (Measure.pi fun _ : (Fin N ⊕ Unit) ⊕ Unit => γ)) =
-      (interpSPDisorder N M v).prod
-        (Measure.pi fun _ : (Fin N ⊕ Unit) ⊕ Unit => gaussianReal 0 1) := rfl
-  rw [hcod] at full
-  convert full using 1
-  ext ω : 1
-  refine Prod.ext ?_ ?_
-  · simp [MeasurableEquiv.prodAssoc, Fin.init_def]
-  · ext idx
-    rcases idx with (i | _) | _ <;>
-      simp [MeasurableEquiv.prodAssoc, MeasurableEquiv.coe_sumPiEquivProdPi_symm,
-        Equiv.sumPiEquivProdPi_symm_apply]
+  unfold interpSPDisorder
+  exact measurePreserving_lastRow_twoAux_sumPi_split (ι := Fin N) (X := ℝ)
+    (gaussianReal 0 1)
+    ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod
+      ((gaussianReal 0 v).prod (gaussianReal 0 1))) M
 
 /-- Energy split of `interpSPEnergy` at `Fin.last M`, matching `X_fn` of
 `InterpolatingCavityBound`. -/

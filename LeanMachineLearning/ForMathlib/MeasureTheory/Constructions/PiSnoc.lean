@@ -126,26 +126,9 @@ theorem measurePreserving_lastRow_twoAux_sumPi_split {ι X Y : Type*} [Fintype �
         (Measure.pi fun _ : Fin M => μ)).prod
         (Measure.pi fun _ : Fin M => μ)).prod ν).prod
         (Measure.pi fun _ : (ι ⊕ Unit) ⊕ Unit => μ)) := by
-  let GA₁ := (Measure.pi fun _ : Fin (M + 1) => Measure.pi fun _ : ι => μ).prod
-    (Measure.pi fun _ : Fin (M + 1) => μ)
   let GA₀ := (Measure.pi fun _ : Fin M => Measure.pi fun _ : ι => μ).prod
     (Measure.pi fun _ : Fin M => μ)
-  let Z₁ := Measure.pi fun _ : Fin (M + 1) => μ
   let Z₀ := Measure.pi fun _ : Fin M => μ
-  let gM := Measure.pi fun _ : ι ⊕ Unit => μ
-  have step1 := (measurePreserving_prodAssoc GA₁ Z₁ ν).comp
-    (((MeasurePreserving.id GA₁).prod (measurePreserving_finSuccProd μ M)).prod
-      (MeasurePreserving.id ν))
-  have step2 := (MeasurePreserving.id GA₁).prod
-    (measurePreserving_prodAssoc Z₀ μ ν)
-  have step3 := (measurePreserving_prodAssoc GA₁ Z₀ (μ.prod ν)).symm
-  have step4 := measurePreserving_lastRow_sumPi_split (ι := ι) μ (Z₀.prod (μ.prod ν)) M
-  have step5 := (MeasurePreserving.prod
-    ((measurePreserving_prodAssoc GA₀ Z₀ (μ.prod ν)).symm.trans
-      (MeasurePreserving.prod (MeasurePreserving.id (GA₀.prod Z₀))
-        (Measure.measurePreserving_swap (μ := μ) (ν := ν))))
-    (MeasurePreserving.id gM))
-  -- Let's use `measurePreserving_lastRow_sumPi_split` directly via `finSuccProd` on `Z₁`!
   let g₀ := Measure.pi fun _ : ι => μ
   have hg := measurePreserving_finSuccProd g₀ M
   have ha := measurePreserving_finSuccProd μ M
