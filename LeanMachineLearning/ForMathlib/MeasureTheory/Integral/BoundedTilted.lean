@@ -7,6 +7,8 @@ module
 
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.ProdBound
 public import Mathlib.Probability.Moments.Tilted
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SqrtSub
+public import LeanMachineLearning.ForMathlib.Order.Interval.UnitIoo
 public import Mathlib.Analysis.Calculus.ParametricIntegral
 public import Mathlib.Tactic.Linarith
 public import LeanMachineLearning.ForMathlib.Algebra.BigOperators.Weights
@@ -529,5 +531,48 @@ theorem hasDerivAt_log_integral_exp_of_dominated
     (hd.mono fun a ha r hr => by simpa only [mul_comm] using (ha r hr).exp)).2
   exact (hden.log (integral_exp_pos hi).ne').congr_deriv (by
     rw [integral_tilted_eq_div, div_eq_mul_inv, mul_comm])
+
+open Filter Topology in
+/-- **Derivative of a square-root interpolation log-partition function.** For a differentiable
+potential `u ≤ B` with `|u'| ≤ D₁`, a probability measure `μ` and integrable measurable `A, C`, the
+function `s ↦ log ∫ exp (u (√s A + √(1 - s) C)) ∂μ` has at `t ∈ (0, 1)` the derivative
+`∫ (A / (2 √t) - C / (2 √(1 - t))) u' (√t A + √(1 - t) C)` against the corresponding Gibbs
+measure. -/
+theorem hasDerivAt_log_integral_exp_sqrt_path
+    {α : Type*} [MeasurableSpace α] {μ : Measure α} [IsProbabilityMeasure μ]
+    {u : ℝ → ℝ} {B D₁ : ℝ} (hu : Differentiable ℝ u) (hB : ∀ x, u x ≤ B)
+    (hD : ∀ x, |deriv u x| ≤ D₁) {A C : α → ℝ} (hAm : Measurable A) (hCm : Measurable C)
+    (hA : Integrable A μ) (hC : Integrable C μ) {t : ℝ} (ht : t ∈ Ioo (0 : ℝ) 1) :
+    HasDerivAt (fun s => Real.log (∫ x, Real.exp (u (√s * A x + √(1 - s) * C x)) ∂μ))
+      (∫ x, (A x / (2 * √t) - C x / (2 * √(1 - t))) *
+          deriv u (√t * A x + √(1 - t) * C x)
+        ∂μ.tilted (fun x => u (√t * A x + √(1 - t) * C x))) t := by
+  obtain ⟨δ, hδ, hδ_bd⟩ := exists_Ioo_nhds_bound ht
+  have hD₁ : 0 ≤ D₁ := (abs_nonneg _).trans (hD 0)
+  have hum : Measurable u := hu.continuous.measurable
+  have hmE (s : ℝ) : Measurable fun x => u (√s * A x + √(1 - s) * C x) :=
+    hum.comp ((hAm.const_mul _).add (hCm.const_mul _))
+  have hmE' (s : ℝ) : Measurable fun x => (A x / (2 * √s) - C x / (2 * √(1 - s))) *
+      deriv u (√s * A x + √(1 - s) * C x) :=
+    ((hAm.div_const _).sub (hCm.div_const _)).mul
+      ((measurable_deriv u).comp ((hAm.const_mul _).add (hCm.const_mul _)))
+  refine hasDerivAt_log_integral_exp_of_dominated (μ := μ)
+    (E := fun s x => u (√s * A x + √(1 - s) * C x))
+    (E' := fun s x => (A x / (2 * √s) - C x / (2 * √(1 - s))) *
+      deriv u (√s * A x + √(1 - s) * C x))
+    (s := Ioo (t - δ) (t + δ)) (Ioo_mem_nhds (by linarith) (by linarith))
+    (Eventually.of_forall fun s => (Real.measurable_exp.comp (hmE s)).aestronglyMeasurable)
+    (integrable_exp_of_ae_le (hmE t).aemeasurable (ae_of_all _ fun _ => hB _))
+    ((hmE' t).mul (Real.measurable_exp.comp (hmE t))).aestronglyMeasurable
+    (b := fun x => (D₁ * ((|A x| + |C x|) / (2 * √δ))) * Real.exp B)
+    ((((hA.abs.add hC.abs).div_const _).const_mul D₁).mul_const _) ?_ ?_
+  · refine ae_of_all _ fun x r hr => abs_mul_exp_le ?_ (hB _)
+    obtain ⟨h1, h2⟩ := hδ_bd r hr
+    rw [abs_mul, mul_comm]
+    exact mul_le_mul (hD _) (abs_div_two_sqrt_sub_le hδ h1 h2) (abs_nonneg _) hD₁
+  · refine ae_of_all _ fun x r hr => ?_
+    obtain ⟨h1, h2⟩ := hδ_bd r hr
+    have hθ := hasDerivAt_sqrt_mul_add_sqrt_one_sub_mul ⟨hδ.trans_le h1, by linarith⟩ (A x) (C x)
+    exact ((hu _).hasDerivAt.comp r hθ).congr_deriv (mul_comm _ _)
 
 end MeasureTheory

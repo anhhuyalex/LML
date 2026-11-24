@@ -317,32 +317,10 @@ theorem hasDerivAt_integral_log_integral_exp_q
       ∂(γ.tilted fun ξ => u (Real.sqrt q' * z + Real.sqrt (1 - q') * ξ))
   have hZq_deriv (z : ℝ) {q' : ℝ} (hq' : q' ∈ U_nbhd) :
       HasDerivAt (fun t => Real.log (Z_q t z)) (L_q q' z) q' := by
-    have hpt_ξ (ξ : ℝ) {t : ℝ} (ht : t ∈ U_nbhd) :
-        HasDerivAt (fun s => u (Real.sqrt s * z + Real.sqrt (1 - s) * ξ))
-          ((z / (2 * Real.sqrt t) - ξ / (2 * Real.sqrt (1 - t))) *
-            deriv u (Real.sqrt t * z + Real.sqrt (1 - t) * ξ)) t := by
-      obtain ⟨hd_t, hd_1t⟩ := hδ_bd t ht
-      have hθ := hasDerivAt_sqrt_mul_add_sqrt_one_sub_mul ⟨hδ.trans_le hd_t, by linarith⟩ z ξ
-      exact ((hu.differentiable _).hasDerivAt.comp t hθ).congr_deriv (mul_comm _ _)
-    let dom_ξ (ξ : ℝ) : ℝ :=
-      (|D₁| * ((|z| + |ξ|) / (2 * Real.sqrt δ))) * Real.exp |B|
-    have hdom_ξ_i : Integrable dom_ξ γ :=
-      ((((integrable_const |z|).add IsGaussian.integrable_id.abs).div_const _).const_mul
-        |D₁|).mul_const _
-    exact hasDerivAt_log_integral_exp_of_dominated (μ := γ)
-      (E := fun s ξ => u (Real.sqrt s * z + Real.sqrt (1 - s) * ξ))
-      (E' := fun s ξ => (z / (2 * Real.sqrt s) - ξ / (2 * Real.sqrt (1 - s))) *
-        deriv u (Real.sqrt s * z + Real.sqrt (1 - s) * ξ))
-      (IsOpen.mem_nhds isOpen_Ioo hq')
-      (Eventually.of_forall fun t =>
-        (Real.measurable_exp.comp (hu.measurable.comp (by fun_prop))).aestronglyMeasurable)
-      (integrable_exp_cavityPath_new hu.measurable hu.le q' z)
-      ((((measurable_const.sub (measurable_id.div_const _)).mul
-        ((measurable_deriv u).comp (by fun_prop))).mul
-        (Real.measurable_exp.comp (hu.measurable.comp (by fun_prop))))).aestronglyMeasurable
-      (b := dom_ξ) hdom_ξ_i
-      (ae_of_all _ fun ξ t ht => abs_mul_exp_le (hpt_bd z ξ ht) (hu.le_abs _))
-      (ae_of_all _ fun ξ t ht => hpt_ξ ξ ht)
+    obtain ⟨hd_t, hd_1t⟩ := hδ_bd q' hq'
+    exact hasDerivAt_log_integral_exp_sqrt_path (μ := γ) hu.differentiable hu.le
+      hu.abs_deriv_le (A := fun _ => z) (C := id) measurable_const measurable_id
+      (integrable_const z) IsGaussian.integrable_id ⟨hδ.trans_le hd_t, by linarith⟩
   let dom_z (z : ℝ) : ℝ :=
     |D₁| * (|z| / (2 * Real.sqrt δ) +
       Real.exp (2 * |B|) * ((∫ ξ : ℝ, |ξ| ∂γ) / (2 * Real.sqrt δ)))

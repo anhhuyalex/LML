@@ -18,6 +18,9 @@ public import Mathlib.Analysis.Calculus.Deriv.Mul
 * `Real.sq_sqrt_sub_le_abs_sub`: `(√a - √b)² ≤ |a - b|` for `a, b ≥ 0`.
 * `Real.sq_sqrt_sub_le`: `(√q - a)² ≤ (q - a²)² / q` for `q > 0`, `a ≥ 0`.
 * `Real.inv_sqrt_mul_self`: `(√n)⁻¹ * (√n)⁻¹ = n⁻¹` for `n ≥ 0`.
+* `hasDerivAt_sqrt_mul_add_sqrt_one_sub_mul`: derivative of `s ↦ √s a + √(1 - s) b` on `(0, 1)`.
+* `abs_div_two_sqrt_sub_le`: `|a / (2 √t) - b / (2 √(1 - t))| ≤ (|a| + |b|) / (2 √δ)` when
+  `δ ≤ t ≤ 1 - δ`.
 -/
 
 @[expose] public section
@@ -82,16 +85,6 @@ theorem hasDerivAt_sqrt_mul_add_sqrt_one_sub_mul {t : ℝ} (ht : t ∈ Set.Ioo (
   have h1 := (Real.hasDerivAt_sqrt ht.1.ne').mul_const a
   have h2 := (((hasDerivAt_id t).const_sub 1).sqrt (sub_pos.2 ht.2).ne').mul_const b
   exact (h1.add h2).congr_deriv (by dsimp only [id_eq]; ring)
-
-/-- Given `t ∈ (0, 1)`, there is `δ > 0` such that `(t - δ, t + δ)` stays at distance at least `δ`
-from both endpoints `0` and `1` (and in particular lies inside `(0, 1)`). -/
-theorem exists_Ioo_nhds_bound {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) 1) :
-    ∃ δ > 0, ∀ t' ∈ Set.Ioo (t - δ) (t + δ), δ ≤ t' ∧ δ ≤ 1 - t' := by
-  refine ⟨min (t / 2) ((1 - t) / 2), lt_min (half_pos ht.1) (half_pos (sub_pos.2 ht.2)),
-    fun t' ht' => ?_⟩
-  have h1 : min (t / 2) ((1 - t) / 2) ≤ t / 2 := min_le_left _ _
-  have h2 : min (t / 2) ((1 - t) / 2) ≤ (1 - t) / 2 := min_le_right _ _
-  exact ⟨by linarith [ht'.1], by linarith [ht'.2]⟩
 
 /-- Uniform inverse-square-root bound on `|a / (2 √t) - b / (2 √(1 - t))|` when `δ ≤ t` and
 `δ ≤ 1 - t` (`δ > 0`). -/

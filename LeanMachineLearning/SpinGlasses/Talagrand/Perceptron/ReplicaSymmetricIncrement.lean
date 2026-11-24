@@ -237,32 +237,28 @@ private theorem hasDerivAt_secondProof_logPartition
   have hZ_deriv (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) × ℝ)
       {t : ℝ} (ht : t ∈ U_nbhd) :
       HasDerivAt (fun v' => Real.log (Z_fn v' ω)) (F'_fn t ω) t := by
-    have hpt_x (x : (Fin (N + 1) → ℤˣ) × ℝ) {s' : ℝ} (hs' : s' ∈ U_nbhd) :
-        HasDerivAt (fun v' => u (S_v v' ω x)) (S'_v s' ω x * deriv u (S_v s' ω x)) s' := by
-      obtain ⟨hd_s, hd_1s⟩ := hδ_bd s' hs'
-      have hS_d : HasDerivAt (fun v' => S_v v' ω x) (S'_v s' ω x) s' :=
-        (hasDerivAt_sqrt_mul_add_sqrt_one_sub_mul ⟨hδ.trans_le hd_s, by linarith⟩ _ _).congr_deriv
-          (by dsimp only [S'_v]; ring)
-      exact ((hu.differentiable _).hasDerivAt.comp s' hS_d).congr_deriv (mul_comm _ _)
-    let dom_x (x : (Fin (N + 1) → ℤˣ) × ℝ) : ℝ := (b_ω ω + c_ξ * |x.2|) * Real.exp |B|
-    have hdom_xi : Integrable dom_x ((μ_M ω.1.1).prod γ) :=
-      ((integrable_const (b_ω ω)).add
-        ((IsGaussian.integrable_id.abs.const_mul c_ξ).comp_snd _)).mul_const _
-    have hi_t : Integrable (fun x => Real.exp (u (S_v t ω x))) ((μ_M ω.1.1).prod γ) :=
-      integrable_exp_of_ae_le (hu.measurable.comp (hSv_m t ω)).aemeasurable
-        (ae_of_all _ fun _ => hu.le _)
-    exact hasDerivAt_log_integral_exp_of_dominated (μ := (μ_M ω.1.1).prod γ)
-      (E := fun s' x => u (S_v s' ω x))
-      (E' := fun s' x => S'_v s' ω x * deriv u (S_v s' ω x))
-      (IsOpen.mem_nhds isOpen_Ioo ht)
-      (Eventually.of_forall fun s' =>
-        (Real.measurable_exp.comp (hu.measurable.comp (hSv_m s' ω))).aestronglyMeasurable)
-      hi_t
-      (((hS'v_m t ω).mul ((measurable_deriv u).comp (hSv_m t ω))).mul
-        (Real.measurable_exp.comp (hu.measurable.comp (hSv_m t ω)))).aestronglyMeasurable
-      (b := dom_x) hdom_xi
-      (ae_of_all _ fun x s' hs' => abs_mul_exp_le (hpt_bd ω x hs') (hu.le_abs _))
-      (ae_of_all _ fun x s' hs' => hpt_x x hs')
+    obtain ⟨hd_t, hd_1t⟩ := hδ_bd t ht
+    have hA_m : Measurable fun x : (Fin (N + 1) → ℤˣ) × ℝ =>
+        (Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.2 i * ((x.1 i : ℤ) : ℝ) :=
+      (Finset.measurable_sum _ fun i _ => measurable_const.mul
+        (measurable_units_cast.comp ((measurable_pi_apply i).comp measurable_fst))).const_mul _
+    have hC_m : Measurable fun x : (Fin (N + 1) → ℤˣ) × ℝ =>
+        Real.sqrt q * ω.2 + Real.sqrt (1 - q) * x.2 :=
+      measurable_const.add (measurable_snd.const_mul _)
+    have hA_i : Integrable (fun x : (Fin (N + 1) → ℤˣ) × ℝ =>
+        (Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.2 i * ((x.1 i : ℤ) : ℝ)) ((μ_M ω.1.1).prod γ) :=
+      Integrable.of_bound hA_m.aestronglyMeasurable
+        ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, |ω.1.2 i|) (ae_of_all _ fun x => by
+          rw [Real.norm_eq_abs, abs_mul, abs_of_pos (by positivity)]
+          exact mul_le_mul_of_nonneg_left
+            ((Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun i _ => by
+              rw [abs_mul, abs_units_cast_eq_one, mul_one])) (by positivity))
+    have hC_i : Integrable (fun x : (Fin (N + 1) → ℤˣ) × ℝ =>
+        Real.sqrt q * ω.2 + Real.sqrt (1 - q) * x.2) ((μ_M ω.1.1).prod γ) :=
+      (integrable_const _).add (IsGaussian.integrable_id.comp_snd _ |>.const_mul _)
+    exact (hasDerivAt_log_integral_exp_sqrt_path (μ := (μ_M ω.1.1).prod γ) hu.differentiable
+      hu.le hu.abs_deriv_le hA_m hC_m hA_i hC_i ⟨hδ.trans_le hd_t, by linarith⟩).congr_deriv
+      (integral_congr_ae (ae_of_all _ fun x => by dsimp only [S'_v, S_v]; ring))
   have hF'_bd (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) × ℝ)
       {t : ℝ} (ht : t ∈ U_nbhd) :
       |F'_fn t ω| ≤ b_ω ω + Real.exp (2 * |B|) * (c_ξ * ∫ ξ, |ξ| ∂γ) := by

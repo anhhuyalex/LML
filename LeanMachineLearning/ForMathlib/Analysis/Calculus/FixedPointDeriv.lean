@@ -14,6 +14,7 @@ public import Mathlib.Topology.MetricSpace.Basic
 
 Model-free analysis helpers for parameter-dependent fixed-point equations:
 
+* `tendsto_nhdsGE_zero_of_le`: squeeze `0 ≤ f ≤ g → 0` into `𝓝[≥] 0`.
 * `tendsto_nhdsGE_of_le_mul`: if `0 ≤ f a ≤ C * a` for `a ∈ [0, δ)` (`δ > 0`), then `f` tends to
   `0` within `[0, ∞)` as `a → 0⁺`.
 * `hasDerivAt_of_fixed_point_contraction`: first-order differentiability of a locally Lipschitz
@@ -25,6 +26,13 @@ Model-free analysis helpers for parameter-dependent fixed-point equations:
 open Filter Set
 open scoped Topology
 
+/-- **Squeeze into `[0, ∞)`:** if `0 ≤ f ≤ g` eventually along `l` and `g → 0`, then `f` tends
+to `0` within `[0, ∞)`. -/
+theorem tendsto_nhdsGE_zero_of_le {α : Type*} {l : Filter α} {f g : α → ℝ}
+    (h0 : ∀ᶠ x in l, 0 ≤ f x) (hle : ∀ᶠ x in l, f x ≤ g x) (hg : Tendsto g l (𝓝 0)) :
+    Tendsto f l (𝓝[≥] 0) :=
+  tendsto_nhdsWithin_iff.2 ⟨squeeze_zero' h0 hle hg, h0⟩
+
 /-- **Right-hand limit at `0` within `[0, ∞)` from a linear upper bound:** if `0 ≤ f a` and
 `f a ≤ C * a` on `[0, δ)` (`δ > 0`), then `f` tends to `0` in `𝓝[≥] 0` as `a → 0⁺`. -/
 theorem tendsto_nhdsGE_of_le_mul {f : ℝ → ℝ} {C δ : ℝ} (hδ : 0 < δ)
@@ -34,14 +42,11 @@ theorem tendsto_nhdsGE_of_le_mul {f : ℝ → ℝ} {C δ : ℝ} (hδ : 0 < δ)
   have h0 : Tendsto (fun a : ℝ => max C 0 * a) (𝓝[≥] 0) (𝓝 0) := by
     have h1 := (hc.continuousAt (x := (0 : ℝ))).tendsto.mono_left (nhdsWithin_le_nhds (s := Ici 0))
     simpa only [mul_zero] using h1
-  rw [tendsto_nhdsWithin_iff]
-  refine ⟨squeeze_zero' ?_ ?_ h0, ?_⟩
+  refine tendsto_nhdsGE_zero_of_le ?_ ?_ h0
   · filter_upwards [Ico_mem_nhdsGE hδ] with a ha
     exact (h a ha).1
   · filter_upwards [Ico_mem_nhdsGE hδ] with a ha
     exact (h a ha).2.trans (mul_le_mul_of_nonneg_right (le_max_left C 0) ha.1)
-  · filter_upwards [Ico_mem_nhdsGE hδ] with a ha
-    exact (h a ha).1
 
 /-- **First-order differentiability of a locally Lipschitz fixed-point branch:** if
 `x b = G (b * R (x b))` and `|x b - x a| ≤ L * |b - a|` on `(a - δ, a + δ)` (`δ > 0`), `G` has
