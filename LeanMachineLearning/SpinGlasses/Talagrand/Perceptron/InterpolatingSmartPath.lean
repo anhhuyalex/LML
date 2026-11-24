@@ -3314,7 +3314,8 @@ private lemma exists_hasDerivAt_interpSP_abs_le_first_moment
         ∃ d',
           HasDerivAt
             (fun t' => ∫ ω, ∫ x : R → InterpSPState N (M + 1), f (fun l => (x l).1)
-              ∂(Measure.pi fun _ : R => (interpSPBase N (M + 1)).tilted (interpSPEnergy u s t' q r ω))
+              ∂(Measure.pi fun _ : R =>
+                (interpSPBase N (M + 1)).tilted (interpSPEnergy u s t' q r ω))
               ∂P)
             d' t ∧
           |d'| ≤ α * K * ((2 + 1 / (N + 1)) *
@@ -3400,7 +3401,8 @@ private lemma exists_hasDerivAt_interpSP_abs_le_first_moment
       (integrable_exp_interpSPEnergy hu.measurable (fun x => hu.le x) s t q r)
       Prod.fst measurable_fst hij hs ⟨ht.1.le, ht.2.le⟩ hq hd hb hg_m hg_b
     dsimp only at hb235
-    -- Transport the three split integrals in `hb235` to `P` via `integral_pi_interpSP_last_split_eq`!
+    -- Transport the three split integrals in `hb235` to `P` via
+    -- `integral_pi_interpSP_last_split_eq`!
     have hXm : Measurable fun p : (((Fin N ⊕ Unit) ⊕ Unit) → ℝ) ×
         (InterpSPState N M × (Fin 2 → ℝ)) => X_fn p.1 p.2 := by
       have hX1 (idx : (Fin N ⊕ Unit) ⊕ Unit) :
@@ -3453,7 +3455,8 @@ private lemma exists_hasDerivAt_interpSP_abs_le_first_moment
               deriv u (X_fn p.1.2 (p.2 k)) := by
           have hpk : Measurable fun p : (InterpSPDisorder N M × (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) ×
               (Option (Option R) → InterpSPState N M × (Fin 2 → ℝ)) => (p.1.2, p.2 k) :=
-            (measurable_snd.comp measurable_fst).prodMk ((measurable_pi_apply k).comp measurable_snd)
+            (measurable_snd.comp measurable_fst).prodMk
+              ((measurable_pi_apply k).comp measurable_snd)
           have hxf := hXm.comp hpk
           exact (measurable_deriv u).comp hxf
         exact (hg_m.comp hg_p).mul ((hfl i).mul (hfl j))
