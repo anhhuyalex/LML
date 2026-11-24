@@ -28,9 +28,12 @@ Rotating the entire `s`-interpolating field `S_{M, t, s}` into an independent
   `s * (q - cavityCoef N t σ ⬝ᵥ cavityCoef N t τ)` for the `s`-interpolating cavity rotation.
 * `SpinGlasses.abs_integral_interp_deriv_mul_sub_rhat_le_first_moment`: `(1, ∞)` endpoint of
   Proposition 2.3.5 for an arbitrary old-state base system with an `s`-interpolating new constraint.
+* `SpinGlasses.abs_integral_interp_deriv_mul_sub_rhat_le_holder`: general interior Hölder
+  conjugate-exponent (`p₁.HolderConjugate p₂`) case of Proposition 2.3.5 for an arbitrary
+  old-state base system with an `s`-interpolating new constraint (used in Theorems 2.5.1 and 2.5.2).
 * `SpinGlasses.abs_integral_interp_deriv_mul_sub_rhat_le_l2`: `L²` Cauchy-Schwarz (`p₁ = p₂ = 2`)
-  case of Proposition 2.3.5 for an arbitrary old-state base system with an `s`-interpolating new
-  constraint (used in both Eq. (2.80) and Lemma 2.4.3).
+  corollary of `abs_integral_interp_deriv_mul_sub_rhat_le_holder` (used in Eq. (2.80) and
+  Lemma 2.4.3).
 -/
 
 @[expose] public section
@@ -1422,8 +1425,371 @@ theorem abs_integral_interp_deriv_mul_sub_rhat_le_first_moment
   dsimp only [K, m, I₁]
   ring
 
+/-- **Proposition 2.3.5 (Eq. (2.62)) for the `s`-interpolating constraint field, general interior
+Hölder exponents (`p₁.HolderConjugate p₂`).**
+The constant `K` depends only on `|R|` and `D` (chosen before `N, P₀, μ_base, E₀, π, s, t, q, u,
+f, p₁, p₂`). -/
+theorem abs_integral_interp_deriv_mul_sub_rhat_le_holder
+    (R : Type uR) [Fintype R] (D : ℝ) :
+    ∃ K : ℝ, 0 ≤ K ∧
+      ∀ (N : ℕ) {Ω₀ : Type uΩ} {α : Type uα}
+        [MeasurableSpace Ω₀] [MeasurableSpace α]
+        (P₀ : Measure Ω₀) [IsProbabilityMeasure P₀]
+        (μ_base : Measure α) [IsFiniteMeasure μ_base] [NeZero μ_base]
+        {E₀ : Ω₀ → α → ℝ} (_hE₀ : Measurable fun p : Ω₀ × α => E₀ p.1 p.2)
+        (_hE₀i : ∀ ω, Integrable (fun a => Real.exp (E₀ ω a)) μ_base)
+        (π : α → PerceptronSpin N) (_hπ : Measurable π)
+        {r₁ r₂ : R} (_hr : r₁ ≠ r₂)
+        {s t q : ℝ} (_hs : s ∈ Icc (0 : ℝ) 1) (_ht : t ∈ Icc (0 : ℝ) 1) (_hq : q ∈ Icc (0 : ℝ) 1)
+        {u : ℝ → ℝ}
+        (_hd : ∀ j < 3, Differentiable ℝ (iteratedDeriv j u))
+        (_hb : ∀ j ≤ 3, ∀ x, |iteratedDeriv j u x| ≤ D)
+        {f : Ω₀ → (R → α) → ℝ} (_hf : Measurable fun p : Ω₀ × (R → α) => f p.1 p.2)
+        {M_f : ℝ} (_hfb : ∀ ω a, |f ω a| ≤ M_f)
+        {p₁ p₂ : ℝ} (_hp : p₁.HolderConjugate p₂),
+        let γ₁ := Measure.pi fun _ : ((Fin N ⊕ Unit) ⊕ Unit) => gaussianReal 0 1
+        let γ₂ := Measure.pi fun _ : Fin 2 => gaussianReal 0 1
+        let μ₀ (ω : Ω₀) := μ_base.tilted (E₀ ω)
+        let X_fn (w₁ : ((Fin N ⊕ Unit) ⊕ Unit) → ℝ) (x : α × (Fin 2 → ℝ)) : ℝ :=
+          Sum.elim (Real.sqrt s • cavityCoef N t (π x.1))
+            (fun _ => Real.sqrt (1 - s) * Real.sqrt q) ⬝ᵥ w₁ +
+          ![Real.sqrt s * Real.sqrt ((1 - t) / (N + 1)),
+            Real.sqrt (1 - s) * Real.sqrt (1 - q)] ⬝ᵥ x.2
+        let ν_new (p : Ω₀ × (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) :=
+          ((μ₀ p.1).prod γ₂).tilted fun x => u (X_fn p.2 x)
+        let d_spin (σ τ : PerceptronSpin N) : ℝ :=
+          |((∑ i, ((σ.1 i : ℤ) : ℝ) * ((τ.1 i : ℤ) : ℝ)) +
+            ((σ.2 : ℤ) : ℝ) * ((τ.2 : ℤ) : ℝ)) / (N + 1) - q|
+        let average (g : Ω₀ × (((Fin N ⊕ Unit) ⊕ Unit) → ℝ) → (R → α × (Fin 2 → ℝ)) → ℝ) :=
+          ∫ p, ∫ a, g p a ∂(Measure.pi fun _ : R => ν_new p) ∂(P₀.prod γ₁)
+        let oldObservable (p : Ω₀ × (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) (a : R → α × (Fin 2 → ℝ)) :=
+          f p.1 (fun r => (a r).1)
+        let weighted := average fun p a =>
+          oldObservable p a * (deriv u (X_fn p.2 (a r₁)) * deriv u (X_fn p.2 (a r₂)))
+        let unweighted := average oldObservable
+        let firstMoment := average fun p a => |oldObservable p a|
+        let observableMoment := average fun p a => |oldObservable p a| ^ p₁
+        let overlapMoment : ℝ :=
+          ∫ p, ∫ a : Fin 2 → α × (Fin 2 → ℝ),
+            d_spin (π (a 0).1) (π (a 1).1) ^ p₂
+            ∂(Measure.pi fun _ : Fin 2 => ν_new p) ∂(P₀.prod γ₁)
+        |weighted - perceptronRhat u q * unweighted| ≤
+          K * (observableMoment ^ (1 / p₁) * overlapMoment ^ (1 / p₂) +
+            1 / (N + 1) * firstMoment) := by
+  let n : ℝ := Fintype.card R
+  let M₀w : ℝ := 1 + |D|
+  let M₁w : ℝ := |D|
+  let L_u : ℝ := 1 + |D| + |(1 : ℝ)| + |(0 : ℝ)| + |(1 : ℝ)| * |D|
+  let L_w : ℝ := 1 + |D| + |M₀w| + |M₁w| + |M₀w| * |D|
+  let K_u : ℝ := (4 * n ^ 2 + n) * L_u ^ (Fintype.card R + 2)
+  let K_w : ℝ := (4 * n ^ 2 + n) * L_w ^ (Fintype.card R + 2)
+  let E_dom : ℝ := Real.exp ((4 * n + 8) * |D|)
+  let K : ℝ := (K_w / 2 + |D| ^ 2 * (K_u / 2)) * E_dom
+  refine ⟨K, by positivity, ?_⟩
+  intro N Ω₀ α _ _ P₀ _ μ_base _ _ E₀ hE₀ hE₀i π hπ r₁ r₂ hr s t q hs ht hq u hd hb f hf M_f hfb
+    p₁ p₂ hp γ₁ γ₂ μ₀ X_fn ν_new d_spin average oldObservable weighted unweighted I₁ A₀ B₀
+  obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
+  have hD_abs : ∀ x, |u x| ≤ |D| := fun x => (hu.abs_le x).trans (le_abs_self D)
+  have hhp1 : 0 ≤ 1 / p₁ := div_nonneg zero_le_one hp.pos.le
+  have hhp2 : 0 ≤ 1 / p₂ := div_nonneg zero_le_one hp.symm.pos.le
+  let f_pow (ω : Ω₀) (a : R → α) : ℝ := |f ω a| ^ p₁
+  have hf_pow_m : Measurable fun p : Ω₀ × (R → α) => f_pow p.1 p.2 := by
+    have habs : Measurable fun p : Ω₀ × (R → α) => |f p.1 p.2| := by
+      simpa only [Real.norm_eq_abs] using hf.norm
+    exact habs.pow_const p₁
+  let d_pow_old (_ω : Ω₀) (a : Fin 2 → α) : ℝ := d_spin (π (a 0)) (π (a 1)) ^ p₂
+  have hd_pow_m : Measurable fun p : Ω₀ × (Fin 2 → α) => d_pow_old p.1 p.2 := by
+    let b : PerceptronSpin N × PerceptronSpin N → ℝ := fun p => d_spin p.1 p.2 ^ p₂
+    have hproj : Measurable fun p : Ω₀ × (Fin 2 → α) => (π (p.2 0), π (p.2 1)) :=
+      (hπ.comp ((measurable_pi_apply 0).comp measurable_snd)).prodMk
+        (hπ.comp ((measurable_pi_apply 1).comp measurable_snd))
+    exact (measurable_of_finite b).comp hproj
+  have hXm : Measurable fun p : (((Fin N ⊕ Unit) ⊕ Unit) → ℝ) × (α × (Fin 2 → ℝ)) =>
+      X_fn p.1 p.2 := by
+    have hX1 (j : (Fin N ⊕ Unit) ⊕ Unit) :
+        Measurable fun p : (((Fin N ⊕ Unit) ⊕ Unit) → ℝ) × (α × (Fin 2 → ℝ)) =>
+          (Sum.elim (Real.sqrt s • cavityCoef N t (π p.2.1))
+            (fun _ => Real.sqrt (1 - s) * Real.sqrt q)) j :=
+      (measurable_of_finite fun σ =>
+        (Sum.elim (Real.sqrt s • cavityCoef N t σ)
+          (fun _ => Real.sqrt (1 - s) * Real.sqrt q)) j).comp
+        (hπ.comp (measurable_fst.comp measurable_snd))
+    have hd1 : Measurable fun p : (((Fin N ⊕ Unit) ⊕ Unit) → ℝ) × (α × (Fin 2 → ℝ)) =>
+        Sum.elim (Real.sqrt s • cavityCoef N t (π p.2.1))
+          (fun _ => Real.sqrt (1 - s) * Real.sqrt q) ⬝ᵥ p.1 := by
+      simp only [dotProduct]
+      exact Finset.measurable_sum _ fun j _ =>
+        (hX1 j).mul ((measurable_pi_apply j).comp measurable_fst)
+    have hd2 : Measurable fun p : (((Fin N ⊕ Unit) ⊕ Unit) → ℝ) × (α × (Fin 2 → ℝ)) =>
+        ![Real.sqrt s * Real.sqrt ((1 - t) / (N + 1)),
+          Real.sqrt (1 - s) * Real.sqrt (1 - q)] ⬝ᵥ p.2.2 := by
+      simp only [dotProduct]
+      exact Finset.measurable_sum _ fun j _ =>
+        measurable_const.mul ((measurable_pi_apply j).comp (measurable_snd.comp measurable_snd))
+    exact hd1.add hd2
+  have hA₀_0 : 0 ≤ A₀ :=
+    integral_nonneg fun _ => integral_nonneg fun _ => Real.rpow_nonneg (abs_nonneg _) _
+  have hB₀_0 : 0 ≤ B₀ :=
+    integral_nonneg fun _ => integral_nonneg fun _ => Real.rpow_nonneg (abs_nonneg _) _
+  let m : ℝ := E_dom * (A₀ ^ (1 / p₁) * B₀ ^ (1 / p₂))
+  have hm0 : 0 ≤ m := by positivity
+  let γ_sh := Measure.pi fun _ : (((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) => gaussianReal 0 1
+  let γ_aux := Measure.pi fun _ : (Fin 2 ⊕ Unit) => gaussianReal 0 1
+  let X_sh : PerceptronSpin N → (((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ :=
+    fun σ => Sum.elim
+      (Sum.elim (Real.sqrt s • cavityCoef N t σ) (fun _ => Real.sqrt (1 - s) * Real.sqrt q)) 0
+  let Y_sh : (((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ := Sum.elim 0 (fun _ => Real.sqrt q)
+  let X_aux : (Fin 2 ⊕ Unit) → ℝ :=
+    Sum.elim ![Real.sqrt s * Real.sqrt ((1 - t) / (N + 1)),
+      Real.sqrt (1 - s) * Real.sqrt (1 - q)] 0
+  let Y_aux : (Fin 2 ⊕ Unit) → ℝ := Sum.elim 0 (fun _ => Real.sqrt (1 - q))
+  let S (ϑ : ℝ) (w : (((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)
+      (x : α × ((Fin 2 ⊕ Unit) → ℝ)) : ℝ :=
+    Real.cos ϑ * (X_sh (π x.1) ⬝ᵥ w + X_aux ⬝ᵥ x.2) +
+      Real.sin ϑ * (Y_sh ⬝ᵥ w + Y_aux ⬝ᵥ x.2)
+  let ν_rot (ϑ : ℝ) (p : Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) :=
+    ((μ₀ p.1).prod γ_aux).tilted fun x => u (S ϑ p.2 x)
+  have hS0 (w : (((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ) (x : α × ((Fin 2 ⊕ Unit) → ℝ)) :
+      S 0 w x = X_fn (w ∘ Sum.inl) (x.1, x.2 ∘ Sum.inl) := by
+    simp [S, X_sh, X_aux, X_fn, dotProduct, Fintype.sum_sum_type, Fin.sum_univ_two]
+  let V_obs0 (p : Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ))
+      (x : α × ((Fin 2 ⊕ Unit) → ℝ)) : ℝ := u (S 0 p.2 x)
+  have hVm0 : Measurable fun p : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) ×
+      (α × ((Fin 2 ⊕ Unit) → ℝ)) => V_obs0 p.1 p.2 := by
+    have hp_m : Measurable fun p : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) ×
+        (α × ((Fin 2 ⊕ Unit) → ℝ)) => (p.1.2, p.2) :=
+      (measurable_snd.comp measurable_fst).prodMk measurable_snd
+    have hs0 := (measurable_interp_rotation_field hπ s t q 0).comp hp_m
+    exact hu.measurable.comp hs0
+  have hμ₀_p (ω : Ω₀) : IsProbabilityMeasure (μ₀ ω) := isProbabilityMeasure_tilted (hE₀i ω)
+  have hprob_rot0 (p : Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) :
+      IsProbabilityMeasure (ν_rot 0 p) := by
+    have hp0 : Measurable fun x : α × ((Fin 2 ⊕ Unit) → ℝ) => (p.2, x) :=
+      measurable_const.prodMk measurable_id
+    have hs0 := (measurable_interp_rotation_field hπ s t q 0).comp hp0
+    exact isProbabilityMeasure_tilted_of_ae_le (hu.measurable.comp hs0).aemeasurable
+      (ae_of_all _ fun _ => le_of_abs_le (hD_abs _))
+  have hf_pow_b (ω : Ω₀) (a : R → α) : f_pow ω a ≤ |M_f| ^ p₁ :=
+    Real.rpow_le_rpow (abs_nonneg _) ((hfb ω a).trans (le_abs_self _)) hp.pos.le
+  have hd_pow_b (ω : Ω₀) (a : Fin 2 → α) : d_pow_old ω a ≤ 2 ^ p₂ :=
+    Real.rpow_le_rpow (abs_nonneg _) (abs_perceptron_overlap_sub_le_two hq _ _) hp.symm.pos.le
+  have hA₀_eq : ∫ p, ∫ a : R → α × ((Fin 2 ⊕ Unit) → ℝ),
+      |f p.1 (fun r => (a r).1)| ^ p₁
+      ∂(Measure.pi fun _ : R => ν_rot 0 p) ∂(P₀.prod γ_sh) = A₀ := by
+    have h0 := rotation_endpoint_zero_eq P₀ μ_base hE₀ hE₀i hu.measurable hD_abs X_fn hXm
+      (fun _ _ => 1) (fun _ => measurable_const) (M₀ := 1) (fun _ _ => by simp) hf_pow_m
+      (M_f := |M_f| ^ p₁) fun ω a => by
+        rw [abs_of_nonneg (Real.rpow_nonneg (abs_nonneg _) _)]; exact hf_pow_b ω a
+    dsimp only [f_pow] at h0
+    simp only [Finset.prod_const_one, mul_one] at h0
+    let G_obs (p : Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ))
+        (a : R → α × ((Fin 2 ⊕ Unit) → ℝ)) : ℝ := |f p.1 (fun r => (a r).1)| ^ p₁
+    have hGm : Measurable fun q : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) ×
+        (R → α × ((Fin 2 ⊕ Unit) → ℝ)) => G_obs q.1 q.2 := by
+      have hp_m : Measurable fun q : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) ×
+          (R → α × ((Fin 2 ⊕ Unit) → ℝ)) => (q.1.1, fun r => (q.2 r).1) :=
+        (measurable_fst.comp measurable_fst).prodMk (measurable_pi_iff.2 fun r =>
+          measurable_fst.comp ((measurable_pi_apply r).comp measurable_snd))
+      exact hf_pow_m.comp hp_m
+    have hIm := measurable_integral_pi_tilted_prod_tilted μ_base γ_aux hE₀ hE₀i hVm0 hGm
+    have hIi : Integrable (fun p => ∫ a : R → α × ((Fin 2 ⊕ Unit) → ℝ),
+        |f p.1 (fun r => (a r).1)| ^ p₁ ∂(Measure.pi fun _ : R => ν_rot 0 p)) (P₀.prod γ_sh) :=
+      Integrable.of_bound hIm.aestronglyMeasurable (|M_f| ^ p₁) (ae_of_all _ fun p => by
+        rw [Real.norm_of_nonneg (integral_nonneg fun _ => Real.rpow_nonneg (abs_nonneg _) _)]
+        exact (le_abs_self _).trans (abs_integral_le_of_forall_abs_le _ fun a => by
+          rw [abs_of_nonneg (Real.rpow_nonneg (abs_nonneg _) _)]; exact hf_pow_b _ _))
+    rw [integral_prod (fun p => ∫ a : R → α × ((Fin 2 ⊕ Unit) → ℝ),
+        |f p.1 (fun r => (a r).1)| ^ p₁ ∂(Measure.pi fun _ : R => ν_rot 0 p)) hIi]
+    refine (integral_congr_ae (ae_of_all _ fun ω =>
+      integral_congr_ae (ae_of_all _ fun w => ?_))).trans h0
+    dsimp only [ν_rot]; simp_rw [hS0]; rfl
+  have hB₀_eq : ∫ p, ∫ a : Fin 2 → α × ((Fin 2 ⊕ Unit) → ℝ),
+      d_spin (π (a 0).1) (π (a 1).1) ^ p₂
+      ∂(Measure.pi fun _ : Fin 2 => ν_rot 0 p) ∂(P₀.prod γ_sh) = B₀ := by
+    have h0 := rotation_endpoint_zero_eq P₀ μ_base hE₀ hE₀i hu.measurable hD_abs X_fn hXm
+      (fun _ _ => 1) (fun _ => measurable_const) (M₀ := 1) (fun _ _ => by simp) hd_pow_m
+      (M_f := 2 ^ p₂) fun ω a => by
+        rw [abs_of_nonneg (Real.rpow_nonneg (abs_nonneg _) _)]; exact hd_pow_b ω a
+    dsimp only [d_pow_old] at h0
+    simp only [Finset.prod_const_one, mul_one] at h0
+    let G_obs (_p : Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ))
+        (a : Fin 2 → α × ((Fin 2 ⊕ Unit) → ℝ)) : ℝ := d_spin (π (a 0).1) (π (a 1).1) ^ p₂
+    have hGm : Measurable fun q : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) ×
+        (Fin 2 → α × ((Fin 2 ⊕ Unit) → ℝ)) => G_obs q.1 q.2 := by
+      let b : PerceptronSpin N × PerceptronSpin N → ℝ := fun p => d_spin p.1 p.2 ^ p₂
+      have hp_m : Measurable fun q : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) ×
+          (Fin 2 → α × ((Fin 2 ⊕ Unit) → ℝ)) => (π (q.2 0).1, π (q.2 1).1) :=
+        (hπ.comp (measurable_fst.comp ((measurable_pi_apply 0).comp measurable_snd))).prodMk
+          (hπ.comp (measurable_fst.comp ((measurable_pi_apply 1).comp measurable_snd)))
+      exact (measurable_of_finite b).comp hp_m
+    have hIm := measurable_integral_pi_tilted_prod_tilted μ_base γ_aux hE₀ hE₀i hVm0 hGm
+    have hIi : Integrable (fun p => ∫ a : Fin 2 → α × ((Fin 2 ⊕ Unit) → ℝ),
+        d_spin (π (a 0).1) (π (a 1).1) ^ p₂
+        ∂(Measure.pi fun _ : Fin 2 => ν_rot 0 p)) (P₀.prod γ_sh) :=
+      Integrable.of_bound hIm.aestronglyMeasurable (2 ^ p₂) (ae_of_all _ fun p => by
+        rw [Real.norm_of_nonneg (integral_nonneg fun _ => Real.rpow_nonneg (abs_nonneg _) _)]
+        exact (le_abs_self _).trans (abs_integral_le_of_forall_abs_le _ fun a => by
+          rw [abs_of_nonneg (Real.rpow_nonneg (abs_nonneg _) _)]; exact hd_pow_b p.1 _))
+    rw [integral_prod (fun p => ∫ a : Fin 2 → α × ((Fin 2 ⊕ Unit) → ℝ),
+        d_spin (π (a 0).1) (π (a 1).1) ^ p₂
+        ∂(Measure.pi fun _ : Fin 2 => ν_rot 0 p)) hIi]
+    refine (integral_congr_ae (ae_of_all _ fun ω =>
+      integral_congr_ae (ae_of_all _ fun w => ?_))).trans h0
+    dsimp only [ν_rot]; simp_rw [hS0]; rfl
+  let T := α × ((Fin 2 ⊕ Unit) → ℝ)
+  have hdm : Measurable fun p : T × T => d_spin (π p.1.1) (π p.2.1) := by
+    let b : PerceptronSpin N × PerceptronSpin N → ℝ := fun p => d_spin p.1 p.2
+    have hproj : Measurable fun p : T × T => (π p.1.1, π p.2.1) :=
+      (hπ.comp (measurable_fst.comp measurable_fst)).prodMk
+        (hπ.comp (measurable_fst.comp measurable_snd))
+    exact (measurable_of_finite b).comp hproj
+  have hpair (ϑ : ℝ) (ι : Type uR) [Fintype ι] (e : R → ι) (he : Function.Injective e)
+      (i j : ι) (hij : i ≠ j) :
+      ∫ p, ∫ a : ι → T, |f p.1 (fun r => (a (e r)).1)| * d_spin (π (a i).1) (π (a j).1)
+        ∂(Measure.pi fun _ : ι => ν_rot ϑ p) ∂(P₀.prod γ_sh) ≤ m := by
+    have hμ₀ (ω : Ω₀) : IsProbabilityMeasure (μ₀ ω) := isProbabilityMeasure_tilted (hE₀i ω)
+    have hSϑ := measurable_interp_rotation_field hπ s t q ϑ
+    have hprob_rot : ∀ p, IsProbabilityMeasure (ν_rot ϑ p) := fun p => by
+      have hp_m : Measurable fun x : T => (p.2, x) := measurable_const.prodMk measurable_id
+      have hsϑ := hSϑ.comp hp_m
+      exact isProbabilityMeasure_tilted_of_ae_le (hu.measurable.comp hsϑ).aemeasurable
+        (ae_of_all _ fun _ => hu.le _)
+    let V_obsϑ (p : Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) (x : T) : ℝ := u (S ϑ p.2 x)
+    have hVmϑ : Measurable fun p : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) × T =>
+        V_obsϑ p.1 p.2 := by
+      have hp_m : Measurable fun p : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) × T =>
+          (p.1.2, p.2) :=
+        (measurable_snd.comp measurable_fst).prodMk measurable_snd
+      have hsϑ := hSϑ.comp hp_m
+      exact hu.measurable.comp hsϑ
+    let F_obs (p : Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) (a : R → T) : ℝ :=
+      f p.1 (fun r => (a r).1)
+    let F_rpow (p : Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) (a : R → T) : ℝ :=
+      |f p.1 (fun r => (a r).1)| ^ p₁
+    let D_rpow (_p : Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) (a : Fin 2 → T) : ℝ :=
+      d_spin (π (a 0).1) (π (a 1).1) ^ p₂
+    have hFm : Measurable fun q : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) × (R → T) =>
+        F_obs q.1 q.2 := by
+      have hp_m : Measurable fun q : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) × (R → T) =>
+          (q.1.1, fun r => (q.2 r).1) :=
+        (measurable_fst.comp measurable_fst).prodMk (measurable_pi_iff.2 fun r =>
+          measurable_fst.comp ((measurable_pi_apply r).comp measurable_snd))
+      exact hf.comp hp_m
+    have hFr_m : Measurable fun q : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) × (R → T) =>
+        F_rpow q.1 q.2 := by
+      have habs : Measurable fun q : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) × (R → T) =>
+          |F_obs q.1 q.2| := by simpa only [Real.norm_eq_abs] using hFm.norm
+      exact habs.pow_const p₁
+    have hDr_m : Measurable fun q : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) × (Fin 2 → T) =>
+        D_rpow q.1 q.2 := by
+      have hp2 : Measurable fun q : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) × (Fin 2 → T) =>
+          (q.2 0, q.2 1) :=
+        ((measurable_pi_apply 0).comp measurable_snd).prodMk
+          ((measurable_pi_apply 1).comp measurable_snd)
+      exact (hdm.comp hp2).pow_const p₂
+    have hFp_mem : ∀ᵐ p ∂P₀.prod γ_sh,
+        MemLp (F_obs p) (ENNReal.ofReal p₁) (Measure.pi fun _ : R => ν_rot ϑ p) :=
+      ae_of_all _ fun p => by
+        have hm := Measurable.of_uncurry_left hFm (x := p)
+        exact MemLp.of_bound hm.aestronglyMeasurable |M_f|
+          (ae_of_all _ fun a => by rw [Real.norm_eq_abs]; exact (hfb _ _).trans (le_abs_self _))
+    have hDp_mem : ∀ᵐ p ∂P₀.prod γ_sh,
+        MemLp (fun a : Fin 2 → T => d_spin (π (a 0).1) (π (a 1).1)) (ENNReal.ofReal p₂)
+          (Measure.pi fun _ : Fin 2 => ν_rot ϑ p) :=
+      ae_of_all _ fun p => by
+        have hp_m : Measurable fun a : Fin 2 → T => (a 0, a 1) :=
+          (measurable_pi_apply 0).prodMk (measurable_pi_apply 1)
+        exact MemLp.of_bound (hdm.comp hp_m).aestronglyMeasurable 2
+          (ae_of_all _ fun a => by
+            rw [Real.norm_of_nonneg (abs_nonneg _)]
+            exact abs_perceptron_overlap_sub_le_two hq _ _)
+    have hIm_F := measurable_integral_pi_tilted_prod_tilted μ_base γ_aux hE₀ hE₀i hVmϑ hFr_m
+    have hIm_D := measurable_integral_pi_tilted_prod_tilted (R := Fin 2)
+      μ_base γ_aux hE₀ hE₀i hVmϑ hDr_m
+    have hFp_int : Integrable (fun p => ∫ a : R → T, |F_obs p a| ^ p₁
+        ∂(Measure.pi fun _ : R => ν_rot ϑ p)) (P₀.prod γ_sh) :=
+      Integrable.of_bound hIm_F.aestronglyMeasurable (|M_f| ^ p₁) (ae_of_all _ fun p => by
+        rw [Real.norm_of_nonneg (integral_nonneg fun _ => Real.rpow_nonneg (abs_nonneg _) _)]
+        exact (le_abs_self _).trans (abs_integral_le_of_forall_abs_le _ fun a => by
+          rw [abs_of_nonneg (Real.rpow_nonneg (abs_nonneg _) _)]
+          exact hf_pow_b _ _))
+    have hDp_int : Integrable (fun p => ∫ a : Fin 2 → T, d_spin (π (a 0).1) (π (a 1).1) ^ p₂
+        ∂(Measure.pi fun _ : Fin 2 => ν_rot ϑ p)) (P₀.prod γ_sh) :=
+      Integrable.of_bound hIm_D.aestronglyMeasurable (2 ^ p₂) (ae_of_all _ fun p => by
+        rw [Real.norm_of_nonneg (integral_nonneg fun _ => Real.rpow_nonneg (abs_nonneg _) _)]
+        exact (le_abs_self _).trans (abs_integral_le_of_forall_abs_le _ fun a => by
+          rw [abs_of_nonneg (Real.rpow_nonneg (abs_nonneg _) _)]
+          exact hd_pow_b p.1 _))
+    have hh := integral_integral_pair_holder_prob (P₀.prod γ_sh) (ν_rot ϑ) he hij
+      (f := F_obs) (d := fun a b => d_spin (π a.1) (π b.1))
+      (fun _ _ => abs_nonneg _) hp hFp_mem hFp_int hDp_mem hDp_int
+    let V_fn (ϑ' : ℝ) (w : (((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ) (x : T) : ℝ := u (S ϑ' w x)
+    have hVm_fn (ϑ' : ℝ) : Measurable fun p : ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ) × T =>
+        V_fn ϑ' p.1 p.2 :=
+      hu.measurable.comp (measurable_interp_rotation_field hπ s t q ϑ')
+    have hdom_A := integral_pi_tilted_prod_nonneg_le_exp_mul P₀ μ_base γ_sh γ_aux hE₀ hE₀i
+      (hVm_fn ϑ) (hVm_fn 0) (fun _ _ => hD_abs _) (fun _ _ => hD_abs _) hf_pow_m
+      (fun _ _ => Real.rpow_nonneg (abs_nonneg _) _) (M_g := |M_f| ^ p₁) hf_pow_b
+    have hdom_B := integral_pi_tilted_prod_nonneg_le_exp_mul P₀ μ_base γ_sh γ_aux hE₀ hE₀i
+      (hVm_fn ϑ) (hVm_fn 0) (fun _ _ => hD_abs _) (fun _ _ => hD_abs _) hd_pow_m
+      (fun _ _ => Real.rpow_nonneg (abs_nonneg _) _) (M_g := 2 ^ p₂) hd_pow_b
+    dsimp only [f_pow] at hdom_A
+    dsimp only [d_pow_old] at hdom_B
+    rw [hA₀_eq] at hdom_A
+    rw [hB₀_eq, Fintype.card_fin] at hdom_B
+    have hA_rpow : (∫ p, ∫ a : R → T, |F_obs p a| ^ p₁
+        ∂(Measure.pi fun _ : R => ν_rot ϑ p) ∂(P₀.prod γ_sh)) ^ (1 / p₁) ≤
+        E_dom ^ (1 / p₁) * A₀ ^ (1 / p₁) := by
+      have hle_E : Real.exp (4 * n * |D|) ≤ E_dom :=
+        Real.exp_le_exp.2 (by linarith [abs_nonneg D])
+      have h1 := Real.rpow_le_rpow
+        (integral_nonneg fun _ => integral_nonneg fun _ => Real.rpow_nonneg (abs_nonneg _) _)
+        (hdom_A.trans (mul_le_mul_of_nonneg_right hle_E hA₀_0)) hhp1
+      rwa [Real.mul_rpow (Real.exp_pos _).le hA₀_0] at h1
+    have hB_rpow : (∫ p, ∫ a : Fin 2 → T, d_spin (π (a 0).1) (π (a 1).1) ^ p₂
+        ∂(Measure.pi fun _ : Fin 2 => ν_rot ϑ p) ∂(P₀.prod γ_sh)) ^ (1 / p₂) ≤
+        E_dom ^ (1 / p₂) * B₀ ^ (1 / p₂) := by
+      have hle_E : Real.exp (4 * ((2 : ℕ) : ℝ) * |D|) ≤ E_dom :=
+        Real.exp_le_exp.2 (by
+          dsimp only [n]
+          push_cast
+          nlinarith [abs_nonneg D, (Nat.cast_nonneg (Fintype.card R) : (0 : ℝ) ≤ Fintype.card R)])
+      have h1 := Real.rpow_le_rpow
+        (integral_nonneg fun _ => integral_nonneg fun _ => Real.rpow_nonneg (abs_nonneg _) _)
+        (hdom_B.trans (mul_le_mul_of_nonneg_right hle_E hB₀_0)) hhp2
+      rwa [Real.mul_rpow (Real.exp_pos _).le hB₀_0] at h1
+    have hE_sum : E_dom ^ (1 / p₁) * E_dom ^ (1 / p₂) = E_dom := by
+      rw [← Real.rpow_add (Real.exp_pos _)]
+      have hsum : 1 / p₁ + 1 / p₂ = 1 := by simpa [one_div] using hp.inv_add_inv_eq_one
+      rw [hsum, Real.rpow_one]
+    calc _ ≤ (E_dom ^ (1 / p₁) * A₀ ^ (1 / p₁)) * (E_dom ^ (1 / p₂) * B₀ ^ (1 / p₂)) :=
+          hh.trans (mul_le_mul hA_rpow hB_rpow
+            (Real.rpow_nonneg (integral_nonneg fun _ => integral_nonneg fun _ =>
+              Real.rpow_nonneg (abs_nonneg _) _) _)
+            (mul_nonneg (Real.rpow_nonneg (Real.exp_pos _).le _) (Real.rpow_nonneg hA₀_0 _)))
+      _ = E_dom ^ (1 / p₁) * E_dom ^ (1 / p₂) * (A₀ ^ (1 / p₁) * B₀ ^ (1 / p₂)) := by ring
+      _ = m := by rw [hE_sum]
+  have hmain := abs_integral_interp_deriv_mul_sub_rhat_le_of_pair_bound
+    P₀ μ_base hE₀ hE₀i π hπ hr hs ht hq hd hb hf hfb hm0 hpair
+  refine hmain.trans ?_
+  have hle_E1 : Real.exp (4 * n * |D|) ≤ E_dom :=
+    Real.exp_le_exp.2 (by linarith [abs_nonneg D])
+  have hI₁_0 : 0 ≤ I₁ := integral_nonneg fun _ => integral_nonneg fun _ => abs_nonneg _
+  have herr_le : 1 / (N + 1 : ℝ) * Real.exp (4 * n * |D|) * I₁ ≤
+      E_dom * (1 / (N + 1 : ℝ) * I₁) := by
+    calc 1 / (N + 1 : ℝ) * Real.exp (4 * n * |D|) * I₁
+        = Real.exp (4 * n * |D|) * (1 / (N + 1 : ℝ) * I₁) := by ring
+      _ ≤ E_dom * (1 / (N + 1 : ℝ) * I₁) := mul_le_mul_of_nonneg_right hle_E1 (by positivity)
+  calc (K_w / 2 + |D| ^ 2 * (K_u / 2)) * (m + 1 / (N + 1) * Real.exp (4 * n * |D|) * I₁)
+      ≤ (K_w / 2 + |D| ^ 2 * (K_u / 2)) *
+          (E_dom * (A₀ ^ (1 / p₁) * B₀ ^ (1 / p₂)) + E_dom * (1 / (N + 1) * I₁)) :=
+        mul_le_mul_of_nonneg_left (add_le_add le_rfl herr_le) (by positivity)
+    _ = K * (A₀ ^ (1 / p₁) * B₀ ^ (1 / p₂) + 1 / (N + 1) * I₁) := by
+        dsimp only [K]; ring
+
 /-- **Proposition 2.3.5 for the `s`-interpolating constraint field, `L²` Cauchy-Schwarz
-(`p₁ = p₂ = 2`).** -/
+(`p₁ = p₂ = 2`).** Derived as the `(2, 2)` specialization of
+`abs_integral_interp_deriv_mul_sub_rhat_le_holder`. -/
 theorem abs_integral_interp_deriv_mul_sub_rhat_le_l2
     (R : Type uR) [Fintype R] (D : ℝ) :
     ∃ K : ℝ, 0 ≤ K ∧
@@ -1470,341 +1836,23 @@ theorem abs_integral_interp_deriv_mul_sub_rhat_le_l2
         |weighted - perceptronRhat u q * unweighted| ≤
           K * (observableSecondMoment ^ (1 / (2 : ℝ)) * overlapSecondMoment ^ (1 / (2 : ℝ)) +
             1 / (N + 1) * firstMoment) := by
-  let n : ℝ := Fintype.card R
-  let M₀w : ℝ := 1 + |D|
-  let M₁w : ℝ := |D|
-  let L_u : ℝ := 1 + |D| + |(1 : ℝ)| + |(0 : ℝ)| + |(1 : ℝ)| * |D|
-  let L_w : ℝ := 1 + |D| + |M₀w| + |M₁w| + |M₀w| * |D|
-  let K_u : ℝ := (4 * n ^ 2 + n) * L_u ^ (Fintype.card R + 2)
-  let K_w : ℝ := (4 * n ^ 2 + n) * L_w ^ (Fintype.card R + 2)
-  let C_dom : ℝ := max (Real.exp ((2 * n + 4) * |D|)) (Real.exp (4 * n * |D|))
-  let K : ℝ := (K_w / 2 + |D| ^ 2 * (K_u / 2)) * C_dom
-  refine ⟨K, by positivity, ?_⟩
+  obtain ⟨K, hK0, hK⟩ := abs_integral_interp_deriv_mul_sub_rhat_le_holder R D
+  refine ⟨K, hK0, ?_⟩
   intro N Ω₀ α _ _ P₀ _ μ_base _ _ E₀ hE₀ hE₀i π hπ r₁ r₂ hr s t q hs ht hq u hd hb f hf M_f hfb
     γ₁ γ₂ μ₀ X_fn ν_new d_spin average oldObservable weighted unweighted I₁ A₀ B₀
-  obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
-  have hD_abs : ∀ x, |u x| ≤ |D| := fun x => (hu.abs_le x).trans (le_abs_self D)
-  let f_sq (ω : Ω₀) (a : R → α) : ℝ := (f ω a) ^ 2
-  have hf_sq_m : Measurable fun p : Ω₀ × (R → α) => f_sq p.1 p.2 := hf.pow_const 2
-  let d_sq_old (_ω : Ω₀) (a : Fin 2 → α) : ℝ := (d_spin (π (a 0)) (π (a 1))) ^ 2
-  have hd_sq_m : Measurable fun p : Ω₀ × (Fin 2 → α) => d_sq_old p.1 p.2 := by
-    let b : PerceptronSpin N × PerceptronSpin N → ℝ := fun p => (d_spin p.1 p.2) ^ 2
-    have hproj : Measurable fun p : Ω₀ × (Fin 2 → α) => (π (p.2 0), π (p.2 1)) :=
-      (hπ.comp ((measurable_pi_apply 0).comp measurable_snd)).prodMk
-        (hπ.comp ((measurable_pi_apply 1).comp measurable_snd))
-    have h := (measurable_of_finite b).comp hproj
-    exact h
-  have hXm : Measurable fun p : (((Fin N ⊕ Unit) ⊕ Unit) → ℝ) × (α × (Fin 2 → ℝ)) =>
-      X_fn p.1 p.2 := by
-    have hX1 (j : (Fin N ⊕ Unit) ⊕ Unit) :
-        Measurable fun p : (((Fin N ⊕ Unit) ⊕ Unit) → ℝ) × (α × (Fin 2 → ℝ)) =>
-          (Sum.elim (Real.sqrt s • cavityCoef N t (π p.2.1))
-            (fun _ => Real.sqrt (1 - s) * Real.sqrt q)) j :=
-      (measurable_of_finite fun σ =>
-        (Sum.elim (Real.sqrt s • cavityCoef N t σ)
-          (fun _ => Real.sqrt (1 - s) * Real.sqrt q)) j).comp
-        (hπ.comp (measurable_fst.comp measurable_snd))
-    have hd1 : Measurable fun p : (((Fin N ⊕ Unit) ⊕ Unit) → ℝ) × (α × (Fin 2 → ℝ)) =>
-        Sum.elim (Real.sqrt s • cavityCoef N t (π p.2.1))
-          (fun _ => Real.sqrt (1 - s) * Real.sqrt q) ⬝ᵥ p.1 := by
-      simp only [dotProduct]
-      exact Finset.measurable_sum _ fun j _ =>
-        (hX1 j).mul ((measurable_pi_apply j).comp measurable_fst)
-    have hd2 : Measurable fun p : (((Fin N ⊕ Unit) ⊕ Unit) → ℝ) × (α × (Fin 2 → ℝ)) =>
-        ![Real.sqrt s * Real.sqrt ((1 - t) / (N + 1)),
-          Real.sqrt (1 - s) * Real.sqrt (1 - q)] ⬝ᵥ p.2.2 := by
-      simp only [dotProduct]
-      exact Finset.measurable_sum _ fun j _ =>
-        measurable_const.mul ((measurable_pi_apply j).comp (measurable_snd.comp measurable_snd))
-    exact hd1.add hd2
-  have hA₀_0 : 0 ≤ A₀ := integral_nonneg fun _ => integral_nonneg fun _ => sq_nonneg _
-  have hB₀_0 : 0 ≤ B₀ := integral_nonneg fun _ => integral_nonneg fun _ => sq_nonneg _
-  let m : ℝ := Real.exp ((2 * n + 4) * |D|) * (A₀ ^ (1 / (2 : ℝ)) * B₀ ^ (1 / (2 : ℝ)))
-  have hm0 : 0 ≤ m := by positivity
-  let γ_sh := Measure.pi fun _ : (((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) => gaussianReal 0 1
-  let γ_aux := Measure.pi fun _ : (Fin 2 ⊕ Unit) => gaussianReal 0 1
-  let X_sh : PerceptronSpin N → (((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ :=
-    fun σ => Sum.elim
-      (Sum.elim (Real.sqrt s • cavityCoef N t σ) (fun _ => Real.sqrt (1 - s) * Real.sqrt q)) 0
-  let Y_sh : (((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ := Sum.elim 0 (fun _ => Real.sqrt q)
-  let X_aux : (Fin 2 ⊕ Unit) → ℝ :=
-    Sum.elim ![Real.sqrt s * Real.sqrt ((1 - t) / (N + 1)),
-      Real.sqrt (1 - s) * Real.sqrt (1 - q)] 0
-  let Y_aux : (Fin 2 ⊕ Unit) → ℝ := Sum.elim 0 (fun _ => Real.sqrt (1 - q))
-  let S (ϑ : ℝ) (w : (((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)
-      (x : α × ((Fin 2 ⊕ Unit) → ℝ)) : ℝ :=
-    Real.cos ϑ * (X_sh (π x.1) ⬝ᵥ w + X_aux ⬝ᵥ x.2) +
-      Real.sin ϑ * (Y_sh ⬝ᵥ w + Y_aux ⬝ᵥ x.2)
-  let ν_rot (ϑ : ℝ) (p : Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) :=
-    ((μ₀ p.1).prod γ_aux).tilted fun x => u (S ϑ p.2 x)
-  have hS0 (w : (((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ) (x : α × ((Fin 2 ⊕ Unit) → ℝ)) :
-      S 0 w x = X_fn (w ∘ Sum.inl) (x.1, x.2 ∘ Sum.inl) := by
-    simp [S, X_sh, X_aux, X_fn, dotProduct, Fintype.sum_sum_type, Fin.sum_univ_two]
-  let V_obs0 (p : Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ))
-      (x : α × ((Fin 2 ⊕ Unit) → ℝ)) : ℝ := u (S 0 p.2 x)
-  have hVm0 : Measurable fun p : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) ×
-      (α × ((Fin 2 ⊕ Unit) → ℝ)) => V_obs0 p.1 p.2 := by
-    have hp : Measurable fun p : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) ×
-        (α × ((Fin 2 ⊕ Unit) → ℝ)) => (p.1.2, p.2) :=
-      (measurable_snd.comp measurable_fst).prodMk measurable_snd
-    have hs0 := (measurable_interp_rotation_field hπ s t q 0).comp hp
-    exact hu.measurable.comp hs0
-  have hμ₀_p (ω : Ω₀) : IsProbabilityMeasure (μ₀ ω) := isProbabilityMeasure_tilted (hE₀i ω)
-  have hprob_rot0 (p : Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) :
-      IsProbabilityMeasure (ν_rot 0 p) := by
-    have hp0 : Measurable fun x : α × ((Fin 2 ⊕ Unit) → ℝ) => (p.2, x) :=
-      measurable_const.prodMk measurable_id
-    have hs0 := (measurable_interp_rotation_field hπ s t q 0).comp hp0
-    exact isProbabilityMeasure_tilted_of_ae_le (hu.measurable.comp hs0).aemeasurable
-      (ae_of_all _ fun _ => le_of_abs_le (hD_abs _))
-  have hA₀_eq : ∫ p, ∫ a : R → α × ((Fin 2 ⊕ Unit) → ℝ),
-      (f p.1 (fun r => (a r).1)) ^ 2 ∂(Measure.pi fun _ : R => ν_rot 0 p) ∂(P₀.prod γ_sh) = A₀ := by
-    have h0 := rotation_endpoint_zero_eq P₀ μ_base hE₀ hE₀i hu.measurable hD_abs X_fn hXm
-      (fun _ _ => 1) (fun _ => measurable_const) (M₀ := 1) (fun _ _ => by simp) hf_sq_m
-      (M_f := |M_f| ^ 2) fun ω a => by
-        dsimp only [f_sq]; rw [abs_pow]
-        exact pow_le_pow_left₀ (abs_nonneg _) ((hfb ω a).trans (le_abs_self _)) 2
-    dsimp only [f_sq] at h0
-    simp only [Finset.prod_const_one, mul_one] at h0
-    let G_obs (p : Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ))
-        (a : R → α × ((Fin 2 ⊕ Unit) → ℝ)) : ℝ := (f p.1 (fun r => (a r).1)) ^ 2
-    have hGm : Measurable fun q : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) ×
-        (R → α × ((Fin 2 ⊕ Unit) → ℝ)) => G_obs q.1 q.2 := by
-      have hp : Measurable fun q : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) ×
-          (R → α × ((Fin 2 ⊕ Unit) → ℝ)) => (q.1.1, fun r => (q.2 r).1) :=
-        (measurable_fst.comp measurable_fst).prodMk (measurable_pi_iff.2 fun r =>
-          measurable_fst.comp ((measurable_pi_apply r).comp measurable_snd))
-      exact hf_sq_m.comp hp
-    have hIm := measurable_integral_pi_tilted_prod_tilted μ_base γ_aux hE₀ hE₀i hVm0 hGm
-    have hIi : Integrable (fun p => ∫ a : R → α × ((Fin 2 ⊕ Unit) → ℝ),
-        (f p.1 (fun r => (a r).1)) ^ 2 ∂(Measure.pi fun _ : R => ν_rot 0 p)) (P₀.prod γ_sh) :=
-      Integrable.of_bound hIm.aestronglyMeasurable (|M_f| ^ 2) (ae_of_all _ fun p => by
-        rw [Real.norm_of_nonneg (integral_nonneg fun _ => sq_nonneg _)]
-        exact (le_abs_self _).trans (abs_integral_le_of_forall_abs_le _ fun a => by
-          rw [abs_of_nonneg (sq_nonneg _), ← sq_abs]
-          exact pow_le_pow_left₀ (abs_nonneg _) ((hfb _ _).trans (le_abs_self _)) 2))
-    rw [integral_prod (fun p => ∫ a : R → α × ((Fin 2 ⊕ Unit) → ℝ),
-        (f p.1 (fun r => (a r).1)) ^ 2 ∂(Measure.pi fun _ : R => ν_rot 0 p)) hIi]
-    refine (integral_congr_ae (ae_of_all _ fun ω =>
-      integral_congr_ae (ae_of_all _ fun w => ?_))).trans h0
-    dsimp only [ν_rot]; simp_rw [hS0]; rfl
-  have hB₀_eq : ∫ p, ∫ a : Fin 2 → α × ((Fin 2 ⊕ Unit) → ℝ),
-      (d_spin (π (a 0).1) (π (a 1).1)) ^ 2
-      ∂(Measure.pi fun _ : Fin 2 => ν_rot 0 p) ∂(P₀.prod γ_sh) = B₀ := by
-    have h0 := rotation_endpoint_zero_eq P₀ μ_base hE₀ hE₀i hu.measurable hD_abs X_fn hXm
-      (fun _ _ => 1) (fun _ => measurable_const) (M₀ := 1) (fun _ _ => by simp) hd_sq_m
-      (M_f := 4) fun _ a => by
-        dsimp only [d_sq_old]
-        rw [abs_of_nonneg (sq_nonneg _), show (4 : ℝ) = 2 ^ 2 by norm_num]
-        exact pow_le_pow_left₀ (abs_nonneg _) (abs_perceptron_overlap_sub_le_two hq _ _) 2
-    dsimp only [d_sq_old] at h0
-    simp only [Finset.prod_const_one, mul_one] at h0
-    let G_obs (_p : Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ))
-        (a : Fin 2 → α × ((Fin 2 ⊕ Unit) → ℝ)) : ℝ := (d_spin (π (a 0).1) (π (a 1).1)) ^ 2
-    have hGm : Measurable fun q : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) ×
-        (Fin 2 → α × ((Fin 2 ⊕ Unit) → ℝ)) => G_obs q.1 q.2 := by
-      let b : PerceptronSpin N × PerceptronSpin N → ℝ := fun p => (d_spin p.1 p.2) ^ 2
-      have hp : Measurable fun q : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) ×
-          (Fin 2 → α × ((Fin 2 ⊕ Unit) → ℝ)) => (π (q.2 0).1, π (q.2 1).1) :=
-        (hπ.comp (measurable_fst.comp ((measurable_pi_apply 0).comp measurable_snd))).prodMk
-          (hπ.comp (measurable_fst.comp ((measurable_pi_apply 1).comp measurable_snd)))
-      have hm_b := (measurable_of_finite b).comp hp
-      exact hm_b
-    have hIm := measurable_integral_pi_tilted_prod_tilted μ_base γ_aux hE₀ hE₀i hVm0 hGm
-    have hIi : Integrable (fun p => ∫ a : Fin 2 → α × ((Fin 2 ⊕ Unit) → ℝ),
-        (d_spin (π (a 0).1) (π (a 1).1)) ^ 2
-        ∂(Measure.pi fun _ : Fin 2 => ν_rot 0 p)) (P₀.prod γ_sh) :=
-      Integrable.of_bound hIm.aestronglyMeasurable 4 (ae_of_all _ fun p => by
-        rw [Real.norm_of_nonneg (integral_nonneg fun _ => sq_nonneg _)]
-        exact (le_abs_self _).trans (abs_integral_le_of_forall_abs_le _ fun a => by
-          rw [abs_of_nonneg (sq_nonneg _), show (4 : ℝ) = 2 ^ 2 by norm_num]
-          exact pow_le_pow_left₀ (abs_nonneg _) (abs_perceptron_overlap_sub_le_two hq _ _) 2))
-    rw [integral_prod (fun p => ∫ a : Fin 2 → α × ((Fin 2 ⊕ Unit) → ℝ),
-        (d_spin (π (a 0).1) (π (a 1).1)) ^ 2
-        ∂(Measure.pi fun _ : Fin 2 => ν_rot 0 p)) hIi]
-    refine (integral_congr_ae (ae_of_all _ fun ω =>
-      integral_congr_ae (ae_of_all _ fun w => ?_))).trans h0
-    dsimp only [ν_rot]; simp_rw [hS0]; rfl
-  let T := α × ((Fin 2 ⊕ Unit) → ℝ)
-  have hdm : Measurable fun p : T × T => d_spin (π p.1.1) (π p.2.1) := by
-    let b : PerceptronSpin N × PerceptronSpin N → ℝ := fun p => d_spin p.1 p.2
-    have hproj : Measurable fun p : T × T => (π p.1.1, π p.2.1) :=
-      (hπ.comp (measurable_fst.comp measurable_fst)).prodMk
-        (hπ.comp (measurable_fst.comp measurable_snd))
-    have h := (measurable_of_finite b).comp hproj
-    exact h
   have hp22 : (2 : ℝ).HolderConjugate 2 := by rw [Real.holderConjugate_iff]; norm_num
-  have hpair (ϑ : ℝ) (ι : Type uR) [Fintype ι] (e : R → ι) (he : Function.Injective e)
-      (i j : ι) (hij : i ≠ j) :
-      ∫ p, ∫ a : ι → T, |f p.1 (fun r => (a (e r)).1)| * d_spin (π (a i).1) (π (a j).1)
-        ∂(Measure.pi fun _ : ι => ν_rot ϑ p) ∂(P₀.prod γ_sh) ≤ m := by
-    have hμ₀ (ω : Ω₀) : IsProbabilityMeasure (μ₀ ω) := isProbabilityMeasure_tilted (hE₀i ω)
-    have hSϑ := measurable_interp_rotation_field hπ s t q ϑ
-    have hprob_rot : ∀ p, IsProbabilityMeasure (ν_rot ϑ p) := fun p => by
-      have hp : Measurable fun x : T => (p.2, x) := measurable_const.prodMk measurable_id
-      have hsϑ := hSϑ.comp hp
-      exact isProbabilityMeasure_tilted_of_ae_le (hu.measurable.comp hsϑ).aemeasurable
-        (ae_of_all _ fun _ => hu.le _)
-    let V_obsϑ (p : Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) (x : T) : ℝ := u (S ϑ p.2 x)
-    have hVmϑ : Measurable fun p : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) × T =>
-        V_obsϑ p.1 p.2 := by
-      have hp : Measurable fun p : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) × T =>
-          (p.1.2, p.2) :=
-        (measurable_snd.comp measurable_fst).prodMk measurable_snd
-      have hsϑ := hSϑ.comp hp
-      exact hu.measurable.comp hsϑ
-    let F_obs (p : Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) (a : R → T) : ℝ :=
-      f p.1 (fun r => (a r).1)
-    let F_rpow (p : Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) (a : R → T) : ℝ :=
-      |f p.1 (fun r => (a r).1)| ^ (2 : ℝ)
-    let D_rpow (_p : Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) (a : Fin 2 → T) : ℝ :=
+  have h := hK N P₀ μ_base hE₀ hE₀i π hπ hr hs ht hq hd hb hf hfb hp22
+  dsimp only at h
+  have hA : (∫ p, ∫ a : R → α × (Fin 2 → ℝ),
+      |f p.1 (fun r => (a r).1)| ^ (2 : ℝ) ∂(Measure.pi fun _ : R => ν_new p) ∂(P₀.prod γ₁)) = A₀ :=
+    integral_congr_ae (ae_of_all _ fun _ => integral_congr_ae (ae_of_all _ fun _ => by
+      rw [Real.rpow_two, sq_abs]))
+  have hB : (∫ p, ∫ a : Fin 2 → α × (Fin 2 → ℝ),
       d_spin (π (a 0).1) (π (a 1).1) ^ (2 : ℝ)
-    have hFm : Measurable fun q : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) × (R → T) =>
-        F_obs q.1 q.2 := by
-      have hp : Measurable fun q : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) × (R → T) =>
-          (q.1.1, fun r => (q.2 r).1) :=
-        (measurable_fst.comp measurable_fst).prodMk (measurable_pi_iff.2 fun r =>
-          measurable_fst.comp ((measurable_pi_apply r).comp measurable_snd))
-      exact hf.comp hp
-    have hFr_m : Measurable fun q : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) × (R → T) =>
-        F_rpow q.1 q.2 := by
-      have habs : Measurable fun q : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) × (R → T) =>
-          |F_obs q.1 q.2| := by simpa only [Real.norm_eq_abs] using hFm.norm
-      exact habs.pow_const (2 : ℝ)
-    have hDr_m : Measurable fun q : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) × (Fin 2 → T) =>
-        D_rpow q.1 q.2 := by
-      have hp2 : Measurable fun q : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) × (Fin 2 → T) =>
-          (q.2 0, q.2 1) :=
-        ((measurable_pi_apply 0).comp measurable_snd).prodMk
-          ((measurable_pi_apply 1).comp measurable_snd)
-      have hd2 := hdm.comp hp2
-      exact hd2.pow_const (2 : ℝ)
-    have hFp_mem : ∀ᵐ p ∂P₀.prod γ_sh,
-        MemLp (F_obs p) (ENNReal.ofReal 2) (Measure.pi fun _ : R => ν_rot ϑ p) :=
-      ae_of_all _ fun p => by
-        have hp : Measurable fun a : R → T => (p, a) := measurable_const.prodMk measurable_id
-        have hm := hFm.comp hp
-        exact MemLp.of_bound hm.aestronglyMeasurable |M_f|
-          (ae_of_all _ fun a => by rw [Real.norm_eq_abs]; exact (hfb _ _).trans (le_abs_self _))
-    have hDp_mem : ∀ᵐ p ∂P₀.prod γ_sh,
-        MemLp (fun a : Fin 2 → T => d_spin (π (a 0).1) (π (a 1).1)) (ENNReal.ofReal 2)
-          (Measure.pi fun _ : Fin 2 => ν_rot ϑ p) :=
-      ae_of_all _ fun p => by
-        have hp : Measurable fun a : Fin 2 → T => (a 0, a 1) :=
-          (measurable_pi_apply 0).prodMk (measurable_pi_apply 1)
-        have hm := hdm.comp hp
-        exact MemLp.of_bound hm.aestronglyMeasurable 2
-          (ae_of_all _ fun a => by
-            rw [Real.norm_of_nonneg (abs_nonneg _)]
-            exact abs_perceptron_overlap_sub_le_two hq _ _)
-    have hIm_F := measurable_integral_pi_tilted_prod_tilted μ_base γ_aux hE₀ hE₀i hVmϑ hFr_m
-    have hIm_D := measurable_integral_pi_tilted_prod_tilted (R := Fin 2)
-      μ_base γ_aux hE₀ hE₀i hVmϑ hDr_m
-    have hFp_int : Integrable (fun p => ∫ a : R → T, |F_obs p a| ^ (2 : ℝ)
-        ∂(Measure.pi fun _ : R => ν_rot ϑ p)) (P₀.prod γ_sh) :=
-      Integrable.of_bound hIm_F.aestronglyMeasurable (|M_f| ^ 2) (ae_of_all _ fun p => by
-        rw [Real.norm_of_nonneg (integral_nonneg fun _ => Real.rpow_nonneg (abs_nonneg _) _)]
-        exact (le_abs_self _).trans (abs_integral_le_of_forall_abs_le _ fun a => by
-          rw [Real.rpow_two, abs_of_nonneg (sq_nonneg _)]
-          exact pow_le_pow_left₀ (abs_nonneg _) ((hfb _ _).trans (le_abs_self _)) 2))
-    have hDp_int : Integrable (fun p => ∫ a : Fin 2 → T, d_spin (π (a 0).1) (π (a 1).1) ^ (2 : ℝ)
-        ∂(Measure.pi fun _ : Fin 2 => ν_rot ϑ p)) (P₀.prod γ_sh) :=
-      Integrable.of_bound hIm_D.aestronglyMeasurable 4 (ae_of_all _ fun p => by
-        rw [Real.norm_of_nonneg (integral_nonneg fun _ => Real.rpow_nonneg (abs_nonneg _) _)]
-        exact (le_abs_self _).trans (abs_integral_le_of_forall_abs_le _ fun a => by
-          rw [Real.rpow_two, abs_of_nonneg (sq_nonneg _), show (4 : ℝ) = 2 ^ 2 by norm_num]
-          exact pow_le_pow_left₀ (abs_nonneg _) (abs_perceptron_overlap_sub_le_two hq _ _) 2))
-    have hh := integral_integral_pair_holder_prob (P₀.prod γ_sh) (ν_rot ϑ) he hij
-      (f := F_obs) (d := fun a b => d_spin (π a.1) (π b.1))
-      (fun _ _ => abs_nonneg _) hp22 hFp_mem hFp_int hDp_mem hDp_int
-    let V_fn (ϑ' : ℝ) (w : (((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ) (x : T) : ℝ := u (S ϑ' w x)
-    have hVm_fn (ϑ' : ℝ) : Measurable fun p : ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ) × T =>
-        V_fn ϑ' p.1 p.2 := by
-      have hs_m := measurable_interp_rotation_field hπ s t q ϑ'
-      exact hu.measurable.comp hs_m
-    have hdom_A := integral_pi_tilted_prod_nonneg_le_exp_mul P₀ μ_base γ_sh γ_aux hE₀ hE₀i
-      (hVm_fn ϑ) (hVm_fn 0) (fun _ _ => hD_abs _) (fun _ _ => hD_abs _) hf_sq_m
-      (fun _ _ => sq_nonneg _) (M_g := |M_f| ^ 2)
-      (fun ω a => by
-        dsimp only [f_sq]; rw [← sq_abs]
-        exact pow_le_pow_left₀ (abs_nonneg _) ((hfb ω a).trans (le_abs_self _)) 2)
-    have hdom_B := integral_pi_tilted_prod_nonneg_le_exp_mul P₀ μ_base γ_sh γ_aux hE₀ hE₀i
-      (hVm_fn ϑ) (hVm_fn 0) (fun _ _ => hD_abs _) (fun _ _ => hD_abs _) hd_sq_m
-      (fun _ _ => sq_nonneg _) (M_g := 4)
-      (fun _ _ => by
-        dsimp only [d_sq_old]
-        rw [show (4 : ℝ) = 2 ^ 2 by norm_num]
-        exact pow_le_pow_left₀ (abs_nonneg _) (abs_perceptron_overlap_sub_le_two hq _ _) 2)
-    dsimp only [f_sq] at hdom_A
-    dsimp only [d_sq_old] at hdom_B
-    rw [hA₀_eq] at hdom_A
-    rw [hB₀_eq] at hdom_B
-    have hrpow_eq_A : (∫ p, ∫ a : R → T, |F_obs p a| ^ (2 : ℝ)
-        ∂(Measure.pi fun _ : R => ν_rot ϑ p) ∂(P₀.prod γ_sh)) =
-      ∫ p, ∫ a : R → T, (f p.1 (fun r => (a r).1)) ^ 2
-        ∂(Measure.pi fun _ : R => ν_rot ϑ p) ∂(P₀.prod γ_sh) :=
-      integral_congr_ae (ae_of_all _ fun _ => integral_congr_ae (ae_of_all _ fun _ => by
-        dsimp only [F_obs]; rw [Real.rpow_two, sq_abs]))
-    have hrpow_eq_B : (∫ p, ∫ a : Fin 2 → T, d_spin (π (a 0).1) (π (a 1).1) ^ (2 : ℝ)
-        ∂(Measure.pi fun _ : Fin 2 => ν_rot ϑ p) ∂(P₀.prod γ_sh)) =
-      ∫ p, ∫ a : Fin 2 → T, (d_spin (π (a 0).1) (π (a 1).1)) ^ 2
-        ∂(Measure.pi fun _ : Fin 2 => ν_rot ϑ p) ∂(P₀.prod γ_sh) :=
-      integral_congr_ae (ae_of_all _ fun _ => integral_congr_ae (ae_of_all _ fun a =>
-        Real.rpow_two (d_spin (π (a 0).1) (π (a 1).1))))
-    rw [hrpow_eq_A, hrpow_eq_B] at hh
-    have hA_rpow : (∫ p, ∫ a : R → T, (f p.1 (fun r => (a r).1)) ^ 2
-        ∂(Measure.pi fun _ : R => ν_rot ϑ p) ∂(P₀.prod γ_sh)) ^ (1 / (2 : ℝ)) ≤
-        Real.exp (2 * n * |D|) * A₀ ^ (1 / (2 : ℝ)) := by
-      have h0 : 0 ≤ ∫ p, ∫ a : R → T, (f p.1 (fun r => (a r).1)) ^ 2
-          ∂(Measure.pi fun _ : R => ν_rot ϑ p) ∂(P₀.prod γ_sh) :=
-        integral_nonneg fun _ => integral_nonneg fun _ => sq_nonneg _
-      calc _ ≤ (Real.exp (4 * n * |D|) * A₀) ^ (1 / (2 : ℝ)) :=
-            Real.rpow_le_rpow h0 hdom_A (by positivity)
-        _ = (Real.exp (4 * n * |D|)) ^ (1 / (2 : ℝ)) * A₀ ^ (1 / (2 : ℝ)) :=
-            Real.mul_rpow (Real.exp_nonneg _) hA₀_0
-        _ = Real.exp (2 * n * |D|) * A₀ ^ (1 / (2 : ℝ)) := by
-            rw [← Real.exp_mul]; congr 2; ring
-    have hB_rpow : (∫ p, ∫ a : Fin 2 → T, (d_spin (π (a 0).1) (π (a 1).1)) ^ 2
-        ∂(Measure.pi fun _ : Fin 2 => ν_rot ϑ p) ∂(P₀.prod γ_sh)) ^ (1 / (2 : ℝ)) ≤
-        Real.exp (4 * |D|) * B₀ ^ (1 / (2 : ℝ)) := by
-      have h0 : 0 ≤ ∫ p, ∫ a : Fin 2 → T, (d_spin (π (a 0).1) (π (a 1).1)) ^ 2
-          ∂(Measure.pi fun _ : Fin 2 => ν_rot ϑ p) ∂(P₀.prod γ_sh) :=
-        integral_nonneg fun _ => integral_nonneg fun _ => sq_nonneg _
-      have hc2 : (Fintype.card (Fin 2) : ℝ) = 2 := by simp
-      rw [hc2] at hdom_B
-      calc _ ≤ (Real.exp (4 * 2 * |D|) * B₀) ^ (1 / (2 : ℝ)) :=
-            Real.rpow_le_rpow h0 hdom_B (by positivity)
-        _ = (Real.exp (4 * 2 * |D|)) ^ (1 / (2 : ℝ)) * B₀ ^ (1 / (2 : ℝ)) :=
-            Real.mul_rpow (Real.exp_nonneg _) hB₀_0
-        _ = Real.exp (4 * |D|) * B₀ ^ (1 / (2 : ℝ)) := by
-            rw [← Real.exp_mul]; congr 2; ring
-    calc _ ≤ (Real.exp (2 * n * |D|) * A₀ ^ (1 / (2 : ℝ))) *
-            (Real.exp (4 * |D|) * B₀ ^ (1 / (2 : ℝ))) :=
-          hh.trans (mul_le_mul hA_rpow hB_rpow
-            (Real.rpow_nonneg (integral_nonneg fun _ => integral_nonneg fun _ => sq_nonneg _) _)
-            (by positivity))
-      _ = (Real.exp (2 * n * |D|) * Real.exp (4 * |D|)) *
-            (A₀ ^ (1 / (2 : ℝ)) * B₀ ^ (1 / (2 : ℝ))) := by ring
-      _ = m := by dsimp only [m]; rw [← Real.exp_add]; congr 2; ring
-  have hmain := abs_integral_interp_deriv_mul_sub_rhat_le_of_pair_bound
-    P₀ μ_base hE₀ hE₀i π hπ hr hs ht hq hd hb hf hfb hm0 hpair
-  refine hmain.trans ?_
-  have hC1 : Real.exp ((2 * n + 4) * |D|) ≤ C_dom := le_max_left _ _
-  have hC2 : Real.exp (4 * n * |D|) ≤ C_dom := le_max_right _ _
-  have hI₁_0 : 0 ≤ I₁ := integral_nonneg fun _ => integral_nonneg fun _ => abs_nonneg _
-  have hm_le : m ≤ C_dom * (A₀ ^ (1 / (2 : ℝ)) * B₀ ^ (1 / (2 : ℝ))) :=
-    mul_le_mul_of_nonneg_right hC1 (by positivity)
-  have herr_le : 1 / (N + 1 : ℝ) * Real.exp (4 * n * |D|) * I₁ ≤
-      C_dom * (1 / (N + 1 : ℝ) * I₁) := by
-    calc 1 / (N + 1 : ℝ) * Real.exp (4 * n * |D|) * I₁
-        = Real.exp (4 * n * |D|) * (1 / (N + 1 : ℝ) * I₁) := by ring
-      _ ≤ C_dom * (1 / (N + 1 : ℝ) * I₁) := mul_le_mul_of_nonneg_right hC2 (by positivity)
-  calc (K_w / 2 + |D| ^ 2 * (K_u / 2)) * (m + 1 / (N + 1) * Real.exp (4 * n * |D|) * I₁)
-      ≤ (K_w / 2 + |D| ^ 2 * (K_u / 2)) *
-          (C_dom * (A₀ ^ (1 / (2 : ℝ)) * B₀ ^ (1 / (2 : ℝ))) + C_dom * (1 / (N + 1) * I₁)) :=
-        mul_le_mul_of_nonneg_left (add_le_add hm_le herr_le) (by positivity)
-    _ = K * (A₀ ^ (1 / (2 : ℝ)) * B₀ ^ (1 / (2 : ℝ)) + 1 / (N + 1) * I₁) := by
-        dsimp only [K]; ring
+      ∂(Measure.pi fun _ : Fin 2 => ν_new p) ∂(P₀.prod γ₁)) = B₀ :=
+    integral_congr_ae (ae_of_all _ fun _ => integral_congr_ae (ae_of_all _ fun a =>
+      Real.rpow_two (d_spin (π (a 0).1) (π (a 1).1))))
+  rwa [hA, hB] at h
 
 end MasterComparison
 

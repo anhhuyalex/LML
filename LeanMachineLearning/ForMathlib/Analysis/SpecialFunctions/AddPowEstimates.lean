@@ -11,6 +11,7 @@ public import Mathlib.Algebra.BigOperators.Field
 public import Mathlib.Analysis.SpecialFunctions.Pow.Real
 public import Mathlib.Basic.Real.ConjExponents
 public import Mathlib.Analysis.Complex.ExponentialBounds
+public import Mathlib.Analysis.MeanInequalities
 
 /-!
 # Elementary estimates for powers of a sum
@@ -346,3 +347,68 @@ theorem abs_inv_succ_mul_sum_sub_le {U : Type*} [Fintype U] (X Y C : U → ℝ) 
       rw [← Finset.sum_div, hrpow]
       simp only [div_eq_mul_inv, mul_inv_rev]
       ring
+
+/-- **Power difference bounded by difference times sum of powers:**
+`|x^{n+1} - y^{n+1}| ≤ (n + 1) |x - y| (|x|^n + |y|^n)`, a corollary of `abs_pow_sub_pow_le`. -/
+theorem abs_pow_sub_pow_le_mul_add (n : ℕ) (x y : ℝ) :
+    |x ^ (n + 1) - y ^ (n + 1)| ≤ ((n : ℝ) + 1) * |x - y| * (|x| ^ n + |y| ^ n) := by
+  have h := abs_pow_sub_pow_le x y (n + 1)
+  have hmax : max |x| |y| ^ n ≤ |x| ^ n + |y| ^ n := by
+    rcases max_cases |x| |y| with ⟨heq, _⟩ | ⟨heq, _⟩
+    · rw [heq]; exact le_add_of_nonneg_right (pow_nonneg (abs_nonneg y) n)
+    · rw [heq]; exact le_add_of_nonneg_left (pow_nonneg (abs_nonneg x) n)
+  calc |x ^ (n + 1) - y ^ (n + 1)|
+      ≤ |x - y| * ↑(n + 1) * max |x| |y| ^ n := by simpa using h
+    _ = ((n : ℝ) + 1) * |x - y| * max |x| |y| ^ n := by push_cast; ring
+    _ ≤ ((n : ℝ) + 1) * |x - y| * (|x| ^ n + |y| ^ n) :=
+        mul_le_mul_of_nonneg_left hmax (by positivity)
+
+/-- **Odd-power difference inequality (Talagrand Section 2.5, Eq. (2.102)):**
+`|x^{2k+1} - y^{2k+1}| ≤ (2k + 1) |x - y| (x^{2k} + y^{2k})`. -/
+theorem abs_pow_odd_sub_pow_odd_le (k : ℕ) (x y : ℝ) :
+    |x ^ (2 * k + 1) - y ^ (2 * k + 1)| ≤
+      (2 * (k : ℝ) + 1) * |x - y| * (x ^ (2 * k) + y ^ (2 * k)) := by
+  have h := abs_pow_sub_pow_le_mul_add (2 * k) x y
+  have he : Even (2 * k) := ⟨k, by ring⟩
+  rw [he.pow_abs x, he.pow_abs y] at h
+  exact h.trans_eq (by push_cast; ring)
+
+/-- **Even-power difference inequality:**
+`|x^{2k+2} - y^{2k+2}| ≤ (2k + 2) |x - y| (|x|^{2k+1} + |y|^{2k+1})`. -/
+theorem abs_pow_even_sub_pow_even_le (k : ℕ) (x y : ℝ) :
+    |x ^ (2 * k + 2) - y ^ (2 * k + 2)| ≤
+      (2 * (k : ℝ) + 2) * |x - y| * (|x| ^ (2 * k + 1) + |y| ^ (2 * k + 1)) :=
+  (abs_pow_sub_pow_le_mul_add (2 * k + 1) x y).trans_eq (by push_cast; ring)
+
+/-- **Young's inequality without denominators:** for conjugate exponents `(p, q)` and `x, y ≥ 0`,
+`x^{1/p} y^{1/q} ≤ x + y`. -/
+theorem rpow_inv_mul_rpow_inv_le_add {p q : ℝ} (hpq : p.HolderConjugate q)
+    {x y : ℝ} (hx : 0 ≤ x) (hy : 0 ≤ y) :
+    x ^ (1 / p) * y ^ (1 / q) ≤ x + y := by
+  have hp : 1 ≤ p := hpq.lt.le
+  have hq : 1 ≤ q := hpq.symm.lt.le
+  have hyoung := Real.young_inequality_of_nonneg (Real.rpow_nonneg hx (1 / p))
+    (Real.rpow_nonneg hy (1 / q)) hpq
+  have hxp : (x ^ (1 / p)) ^ p = x := by
+    rw [← Real.rpow_mul hx, one_div_mul_cancel hpq.ne_zero, Real.rpow_one]
+  have hyq : (y ^ (1 / q)) ^ q = y := by
+    rw [← Real.rpow_mul hy, one_div_mul_cancel hpq.symm.ne_zero, Real.rpow_one]
+  rw [hxp, hyq] at hyoung
+  exact hyoung.trans (add_le_add (div_le_self hx hp) (div_le_self hy hq))
+
+/-- **Weighted Young inequality (Talagrand Section 2.5, proof of Theorem 2.5.2):**
+for conjugate exponents `(p, q)`, `A > 0`, and `x, y ≥ 0`,
+`x^{1/p} y^{1/q} ≤ x / A + A^{q/p} y`. -/
+theorem rpow_inv_mul_rpow_inv_le_div_add_mul {p q : ℝ} (hpq : p.HolderConjugate q)
+    {A x y : ℝ} (hA : 0 < A) (hx : 0 ≤ x) (hy : 0 ≤ y) :
+    x ^ (1 / p) * y ^ (1 / q) ≤ x / A + A ^ (q / p) * y := by
+  have h := rpow_inv_mul_rpow_inv_le_add hpq (div_nonneg hx hA.le)
+    (mul_nonneg (Real.rpow_nonneg hA.le (q / p)) hy)
+  refine le_trans (le_of_eq ?_) h
+  rw [Real.div_rpow hx hA.le, Real.mul_rpow (Real.rpow_nonneg hA.le _) hy,
+    ← Real.rpow_mul hA.le,
+    show q / p * (1 / q) = 1 / p by
+      have hq_ne : q ≠ 0 := hpq.symm.ne_zero
+      field_simp]
+  have hA_ne : A ^ (1 / p) ≠ 0 := (Real.rpow_pos_of_pos hA _).ne'
+  field_simp

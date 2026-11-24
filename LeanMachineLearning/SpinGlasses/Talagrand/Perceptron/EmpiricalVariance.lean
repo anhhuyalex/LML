@@ -281,7 +281,8 @@ section EmpiricalVariance
 
 /-- **Constraint exchangeability identity in Eq. (2.86):** for `(M + 1)` constraints with load
 `α = (M + 1) / (N + 1)`, row-swap invariance under `interpConstraintDisorderSwap` and
-`interpConstraintStateSwap` identifies `ν_s(f²)` with `ν_s((α u'(S_{M,s}^1) u'(S_{M,s}^2) - r) f)`. -/
+`interpConstraintStateSwap` identifies `ν_s(f²)` with
+`ν_s((α u'(S_{M,s}^1) u'(S_{M,s}^2) - r) f)`. -/
 private lemma integral_empirical_variance_sq_eq_last_row
     {N M : ℕ} {u : ℝ → ℝ} (hu : Measurable u) {B D₁ : ℝ}
     (hB : ∀ x, u x ≤ B) (hD₁ : ∀ x, |deriv u x| ≤ D₁) (s q r : ℝ) :
