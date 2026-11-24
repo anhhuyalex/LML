@@ -28,14 +28,8 @@ theorem sum_Ici_erase_last_eq_sum_Ici_succ_swap {L : ℕ} {β : Type*} [AddCommM
       ∑ j ∈ Ici (⟨n.1 + 1, by omega⟩ : Fin (L + 1)), g (Equiv.swap n (Fin.last L) j) := by
   symm
   refine Finset.sum_equiv (Equiv.swap n (Fin.last L)) (fun j => ?_) (fun j _ => rfl)
-  have hnl : n ≠ Fin.last L := fun h => by simp [h] at hn
   rw [Finset.mem_Ici, Finset.mem_erase, Finset.mem_Ici, Equiv.swap_apply_def]
-  by_cases h1 : j = n
-  · subst h1; simp [hnl, Fin.le_def]
-  · by_cases h2 : j = Fin.last L
-    · subst h2; simp [h1, hnl, Fin.le_def, Fin.last]; omega
-    · simp only [h1, h2, if_false, ne_eq, not_false_eq_true, true_and, Fin.le_def]
-      have : j.1 ≠ n.1 := fun h => h1 (Fin.ext h)
-      omega
+  simp only [Fin.le_iff_val_le_val, ne_eq, Fin.ext_iff, Fin.val_last]
+  split_ifs <;> simp_all [Fin.ext_iff] <;> omega
 
 end Finset

@@ -59,65 +59,9 @@ private lemma abs_partial_constraint_sub_le {M : ℕ} {u : ℝ → ℝ} {D rhat 
     (hD₁ : ∀ x, |deriv u x| ≤ |D|) (hrhat : rhat ∈ Icc (0 : ℝ) (|D| ^ 2))
     (S : Finset (Fin (M + 1))) (v₀ v₁ : Fin (M + 1) → ℝ) :
     |((M + 1 : ℕ) : ℝ)⁻¹ * ∑ j ∈ S, (deriv u (v₀ j) * deriv u (v₁ j) - rhat)| ≤ 2 * |D| ^ 2 := by
-  have hM_pos : (0 : ℝ) < (M + 1 : ℕ) := by positivity
-  have hcard : (S.card : ℝ) ≤ (M + 1 : ℕ) := by
-    have hc : S.card ≤ Fintype.card (Fin (M + 1)) := S.card_le_univ
-    rw [Fintype.card_fin] at hc
-    exact_mod_cast hc
-  rw [abs_mul, abs_of_pos (inv_pos.2 hM_pos)]
-  calc ((M + 1 : ℕ) : ℝ)⁻¹ * |∑ j ∈ S, (deriv u (v₀ j) * deriv u (v₁ j) - rhat)|
-      ≤ ((M + 1 : ℕ) : ℝ)⁻¹ * ∑ j ∈ S, |deriv u (v₀ j) * deriv u (v₁ j) - rhat| :=
-        mul_le_mul_of_nonneg_left (Finset.abs_sum_le_sum_abs _ _) (inv_pos.2 hM_pos).le
-    _ ≤ ((M + 1 : ℕ) : ℝ)⁻¹ * ∑ _j ∈ S, (2 * |D| ^ 2) :=
-        mul_le_mul_of_nonneg_left (Finset.sum_le_sum fun j _ =>
-          abs_deriv_mul_sub_rhat_le hD₁ hrhat (v₀ j) (v₁ j)) (inv_pos.2 hM_pos).le
-    _ = ((M + 1 : ℕ) : ℝ)⁻¹ * ((S.card : ℝ) * (2 * |D| ^ 2)) := by
-        rw [Finset.sum_const, nsmul_eq_mul]
-    _ ≤ ((M + 1 : ℕ) : ℝ)⁻¹ * (((M + 1 : ℕ) : ℝ) * (2 * |D| ^ 2)) :=
-        mul_le_mul_of_nonneg_left
-          (mul_le_mul_of_nonneg_right hcard (by positivity)) (inv_pos.2 hM_pos).le
-    _ = 2 * |D| ^ 2 := by field_simp
-
-/-- Swapping `n` (`n < M`) with `Fin.last M` bijects `(Finset.Ici n).erase (Fin.last M)` onto
-`Finset.Ici ⟨n.1 + 1, ...⟩`. -/
-private lemma sum_Ici_erase_last_constraint_eq_swap {M : ℕ} (n : Fin (M + 1)) (hn : n.1 < M)
-    (g : Fin (M + 1) → ℝ) :
-    ∑ j ∈ (Finset.Ici n).erase (Fin.last M), g j =
-      ∑ l ∈ Finset.Ici (⟨n.1 + 1, by omega⟩ : Fin (M + 1)),
-        g (Equiv.swap n (Fin.last M) l) := by
-  symm
-  refine Finset.sum_bij (fun l _ => Equiv.swap n (Fin.last M) l) ?_ ?_ ?_ ?_
-  · intro l hl
-    rw [Finset.mem_Ici] at hl
-    have hl_val : n.1 + 1 ≤ l.1 := hl
-    have hl_ne_n : l ≠ n := fun h => by subst h; omega
-    rw [Finset.mem_erase, Finset.mem_Ici]
-    refine ⟨?_, ?_⟩
-    · intro hswap
-      have hln : l = n := by
-        have := congrArg (Equiv.swap n (Fin.last M)) hswap
-        simpa [Equiv.swap_apply_right] using this
-      exact hl_ne_n hln
-    · by_cases hll : l = Fin.last M
-      · subst hll; simp
-      · rw [Equiv.swap_apply_of_ne_of_ne hl_ne_n hll]
-        exact Fin.le_def.2 (by omega)
-  · intro l₁ _ l₂ _ h
-    exact (Equiv.swap n (Fin.last M)).injective h
-  · intro j hj
-    rw [Finset.mem_erase, Finset.mem_Ici] at hj
-    rcases hj with ⟨hj_ne_last, hj_ge⟩
-    refine ⟨Equiv.swap n (Fin.last M) j, ?_, by simp⟩
-    rw [Finset.mem_Ici]
-    by_cases hjn : j = n
-    · subst hjn
-      rw [Equiv.swap_apply_left]
-      exact Fin.le_def.2 (by simp [Fin.last]; omega)
-    · rw [Equiv.swap_apply_of_ne_of_ne hjn hj_ne_last]
-      have hj_val : n.1 ≤ j.1 := hj_ge
-      have hlt : n.1 < j.1 := lt_of_le_of_ne hj_val (fun h => hjn (Fin.ext h.symm))
-      exact Fin.le_def.2 (show n.1 + 1 ≤ j.1 by omega)
-  · intros; rfl
+  exact Finset.abs_inv_card_mul_sum_le S
+    (f := fun j => deriv u (v₀ j) * deriv u (v₁ j) - rhat)
+    (fun j => abs_deriv_mul_sub_rhat_le hD₁ hrhat (v₀ j) (v₁ j))
 
 /-- **Row-swap invariance of any measurable constraint-field observable** under
 `(interpConstraintDisorderSwap j₁ j₂, interpConstraintStateSwap j₁ j₂)`. -/
@@ -425,7 +369,7 @@ private lemma integral_partial_constraint_erase_last_eq_succ
   rw [← hsw]
   refine integral_congr_ae (ae_of_all _ fun ω => integral_congr_ae (ae_of_all _ fun σ => ?_))
   dsimp only [Ψ]
-  rw [← sum_Ici_erase_last_constraint_eq_swap n hn
+  rw [← Finset.sum_Ici_erase_last_eq_sum_Ici_succ_swap n hn
     (fun j => deriv u (S_fn ω (σ 0) j) * deriv u (S_fn ω (σ 1) j) - rhat)]
 
 /-! ### Cavity-in-`M` step Eq. (2.106), induction Eq. (2.100), and Theorem 2.5.2 -/

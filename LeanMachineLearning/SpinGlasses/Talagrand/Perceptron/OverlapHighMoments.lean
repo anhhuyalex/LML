@@ -9,6 +9,8 @@ public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.AddPowEst
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.InterpolatingSmartPath
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.InterpolatingHamiltonian
 public import LeanMachineLearning.SpinGlasses.Talagrand.CavityMethod.SKOverlapMoments
+public import LeanMachineLearning.ForMathlib.Data.Finset.SumBound
+public import LeanMachineLearning.ForMathlib.Order.Interval.Finset.FinSwap
 
 /-!
 # Higher moments and exponential concentration of the overlap (Talagrand Section 2.5, Theorem 2.5.1)
@@ -43,63 +45,9 @@ namespace SpinGlasses
 private lemma abs_partial_overlap_sub_le_two {N : ℕ} {q : ℝ} (hq : q ∈ Icc (0 : ℝ) 1)
     (S : Finset (Fin (N + 1))) (x y : Fin (N + 1) → ℤˣ) :
     |((N : ℝ) + 1)⁻¹ * ∑ i ∈ S, (((x i : ℤ) : ℝ) * ((y i : ℤ) : ℝ) - q)| ≤ 2 := by
-  rw [abs_mul, abs_of_nonneg (by positivity : (0 : ℝ) ≤ ((N : ℝ) + 1)⁻¹)]
-  have hcard : (S.card : ℝ) ≤ (N : ℝ) + 1 := by
-    have hc : S.card ≤ Fintype.card (Fin (N + 1)) := S.card_le_univ
-    rw [Fintype.card_fin] at hc
-    exact_mod_cast hc
-  calc ((N : ℝ) + 1)⁻¹ * |∑ i ∈ S, (((x i : ℤ) : ℝ) * ((y i : ℤ) : ℝ) - q)|
-      ≤ ((N : ℝ) + 1)⁻¹ * ∑ i ∈ S, |((x i : ℤ) : ℝ) * ((y i : ℤ) : ℝ) - q| :=
-        mul_le_mul_of_nonneg_left (Finset.abs_sum_le_sum_abs _ _) (by positivity)
-    _ ≤ ((N : ℝ) + 1)⁻¹ * ∑ _i ∈ S, (2 : ℝ) :=
-        mul_le_mul_of_nonneg_left (Finset.sum_le_sum fun i _ =>
-          abs_units_cast_mul_sub_le_two (x i) (y i) hq) (by positivity)
-    _ = ((N : ℝ) + 1)⁻¹ * (2 * (S.card : ℝ)) := by
-        rw [Finset.sum_const, nsmul_eq_mul]; ring
-    _ ≤ ((N : ℝ) + 1)⁻¹ * (2 * ((N : ℝ) + 1)) :=
-        mul_le_mul_of_nonneg_left (by linarith) (by positivity)
-    _ = 2 := by field_simp
-
-/-- Swapping `n` (`n < Fin.last N`) with `Fin.last N` bijects `Finset.Ici n \ {Fin.last N}` onto
-`Finset.Ici ⟨n.1 + 1, ...⟩`. -/
-private lemma sum_Ici_erase_last_eq_swap {N : ℕ} (n : Fin (N + 1)) (hn : n.1 < N)
-    (g : Fin (N + 1) → ℝ) :
-    ∑ i ∈ (Finset.Ici n).erase (Fin.last N), g i =
-      ∑ j ∈ Finset.Ici (⟨n.1 + 1, by omega⟩ : Fin (N + 1)),
-        g (Equiv.swap n (Fin.last N) j) := by
-  symm
-  refine Finset.sum_bij (fun j _ => Equiv.swap n (Fin.last N) j) ?_ ?_ ?_ ?_
-  · intro j hj
-    rw [Finset.mem_Ici] at hj
-    have hj_val : n.1 + 1 ≤ j.1 := hj
-    have hj_ne_n : j ≠ n := fun h => by subst h; omega
-    rw [Finset.mem_erase, Finset.mem_Ici]
-    refine ⟨?_, ?_⟩
-    · intro hswap
-      have hjn : j = n := by
-        have := congrArg (Equiv.swap n (Fin.last N)) hswap
-        simpa [Equiv.swap_apply_right] using this
-      exact hj_ne_n hjn
-    · by_cases hjl : j = Fin.last N
-      · subst hjl; simp
-      · rw [Equiv.swap_apply_of_ne_of_ne hj_ne_n hjl]
-        exact Fin.le_def.2 (by omega)
-  · intro j₁ _ j₂ _ h
-    exact (Equiv.swap n (Fin.last N)).injective h
-  · intro i hi
-    rw [Finset.mem_erase, Finset.mem_Ici] at hi
-    rcases hi with ⟨hi_ne_last, hi_ge⟩
-    refine ⟨Equiv.swap n (Fin.last N) i, ?_, by simp⟩
-    rw [Finset.mem_Ici]
-    by_cases hin : i = n
-    · subst hin
-      rw [Equiv.swap_apply_left]
-      exact Fin.le_def.2 (by simp [Fin.last]; omega)
-    · rw [Equiv.swap_apply_of_ne_of_ne hin hi_ne_last]
-      have hi_val : n.1 ≤ i.1 := hi_ge
-      have hlt : n.1 < i.1 := lt_of_le_of_ne hi_val (fun h => hin (Fin.ext h.symm))
-      exact Fin.le_def.2 (show n.1 + 1 ≤ i.1 by omega)
-  · intros; rfl
+  simpa using Finset.abs_inv_card_mul_sum_le S
+    (f := fun i => ((x i : ℤ) : ℝ) * ((y i : ℤ) : ℝ) - q)
+    (fun i => abs_units_cast_mul_sub_le_two (x i) (y i) hq)
 
 /-- **Site-symmetry identity on `Finset.Ici n` for the `s`-interpolating Gibbs measure:**
 for any `n : Fin (N + 1)` and `k : ℕ`, with `A_n = (N + 1)⁻¹ ∑_{i ≥ n} (σ₀_i σ₁_i - q)`,
@@ -333,7 +281,7 @@ private lemma integral_interpolating_partial_erase_last_eq_succ {N M : ℕ}
   rw [← hperm]
   refine integral_congr_ae (ae_of_all _ fun _ => integral_congr_ae (ae_of_all _ fun σ => ?_))
   dsimp only [Θ]
-  rw [← sum_Ici_erase_last_eq_swap n hn
+  rw [← Finset.sum_Ici_erase_last_eq_sum_Ici_succ_swap n hn
     (fun i => ((((σ 0).1 i : ℤ) : ℝ) * (((σ 1).1 i : ℤ) : ℝ) - q))]
 
 /-! ### Induction step for `ν_s(A_n^{2k})` -/
