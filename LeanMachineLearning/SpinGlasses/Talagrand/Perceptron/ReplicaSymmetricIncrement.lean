@@ -512,13 +512,16 @@ private theorem secondProof_stein_fixed_disorder
     (fun τ₁ τ₂ => (((N : ℝ) + 1)⁻¹ * ∑ i, ((τ₁ i : ℤ) : ℝ) * ((τ₂ i : ℤ) : ℝ)) - q)
     (interp_stein_cov_shared hv hq.1) (interp_stein_cov_diag hv hq)
 
-/-- **Measurability of the split one-replica and two-replica Stein integrands for (2.91).** -/
-private lemma measurable_secondProof_stein_split
-    {N M : ℕ} {u : ℝ → ℝ} (hu : Measurable u) (q v : ℝ) :
+/-- **Measurability and `I_R`-integrability of the split Stein integrands for (2.91).** -/
+private lemma measurable_and_integrable_secondProof_stein_split
+    {N M : ℕ} {u : ℝ → ℝ} {B D₁ D₂ : ℝ} (hu : SmartPathPotential₂ u B D₁ D₂)
+    {q : ℝ} (hq : q ∈ Icc (0 : ℝ) 1) (v : ℝ) :
     let γ : Measure ℝ := gaussianReal 0 1
+    let P_M := Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin (N + 1) => γ
     let μ_M (g₀ : Fin M → Fin (N + 1) → ℝ) :=
       (Measure.count : Measure (Fin (N + 1) → ℤˣ)).tilted
         (fun τ => ∑ k : Fin M, u ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, g₀ k i * ((τ i : ℤ) : ℝ)))
+    let γ_sh := Measure.pi fun _ : Fin (N + 1) ⊕ Unit => γ
     let γ_aux := Measure.pi fun _ : Unit => γ
     let α_sh (τ : Fin (N + 1) → ℤˣ) : (Fin (N + 1) ⊕ Unit) → ℝ :=
       Sum.elim (fun i => Real.sqrt v * (Real.sqrt (N + 1 : ℕ))⁻¹ * ((τ i : ℤ) : ℝ))
@@ -543,13 +546,13 @@ private lemma measurable_secondProof_stein_split
           deriv u (α_sh (σ none).1 ⬝ᵥ p.2 + α_aux (σ none).1 ⬝ᵥ (σ none).2)
         ∂(Measure.pi fun _ : Option Unit => ((μ_M p.1).prod γ_aux).tilted
           (fun y => u (α_sh y.1 ⬝ᵥ p.2 + α_aux y.1 ⬝ᵥ y.2)))
-    Measurable I_L ∧ Measurable I_R := by
-  intro γ μ_M γ_aux α_sh W_sh α_aux W_aux I_L I_R
+    Measurable I_L ∧ Measurable I_R ∧ Integrable I_R (P_M.prod γ_sh) := by
+  intro γ P_M μ_M γ_sh γ_aux α_sh W_sh α_aux W_aux I_L I_R
   let E_M (g₀ : Fin M → Fin (N + 1) → ℝ) (τ : Fin (N + 1) → ℤˣ) : ℝ :=
     ∑ k : Fin M, u ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, g₀ k i * ((τ i : ℤ) : ℝ))
   have hEM_m : Measurable fun p : (Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℤˣ) =>
       E_M p.1 p.2 := by
-    refine Finset.measurable_sum _ fun k _ => hu.comp ?_
+    refine Finset.measurable_sum _ fun k _ => hu.measurable.comp ?_
     refine (Finset.measurable_sum _ fun i _ => ?_).const_mul _
     have h1 : Measurable fun p : (Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℤˣ) =>
         p.1 k i := (measurable_pi_apply i).comp ((measurable_pi_apply k).comp measurable_fst)
@@ -579,7 +582,7 @@ private lemma measurable_secondProof_stein_split
       simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton]
       exact measurable_const.mul
         ((measurable_pi_apply ()).comp (measurable_snd.comp measurable_snd))
-    exact hu.comp (hd1.add hd2)
+    exact hu.measurable.comp (hd1.add hd2)
   have hIL_m : Measurable I_L := by
     let F_L (p : (Fin M → Fin (N + 1) → ℝ) × ((Fin (N + 1) ⊕ Unit) → ℝ))
         (σ : Unit → (Fin (N + 1) → ℤˣ) × (Unit → ℝ)) : ℝ :=
@@ -654,7 +657,31 @@ private lemma measurable_secondProof_stein_split
     exact measurable_integral_pi_tilted_prod_tilted
       (Measure.count : Measure (Fin (N + 1) → ℤˣ)) γ_aux hEM_m hEM_i hVsp_m
       ((hR_o.mul (hfl_o (some ()))).mul (hfl_o none))
-  exact ⟨hIL_m, hIR_m⟩
+  have hIR_int : Integrable I_R (P_M.prod γ_sh) := by
+    refine Integrable.of_bound hIR_m.aestronglyMeasurable (2 * |D₁| ^ 2) (ae_of_all _ fun p => ?_)
+    have hμM_prob : IsProbabilityMeasure (μ_M p.1) := isProbabilityMeasure_tilted (hEM_i p.1)
+    have hVp_m : Measurable fun y : (Fin (N + 1) → ℤˣ) × (Unit → ℝ) =>
+        u (α_sh y.1 ⬝ᵥ p.2 + α_aux y.1 ⬝ᵥ y.2) := by
+      have ha1 : Measurable fun y : (Fin (N + 1) → ℤˣ) × (Unit → ℝ) => α_sh y.1 ⬝ᵥ p.2 :=
+        Finset.measurable_sum _ fun idx _ =>
+          ((measurable_of_finite fun τ => α_sh τ idx).comp measurable_fst).mul_const _
+      have ha2 : Measurable fun y : (Fin (N + 1) → ℤˣ) × (Unit → ℝ) => α_aux y.1 ⬝ᵥ y.2 := by
+        simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton]
+        exact measurable_const.mul ((measurable_pi_apply ()).comp measurable_snd)
+      exact hu.measurable.comp (ha1.add ha2)
+    have hprob_p : IsProbabilityMeasure
+        (((μ_M p.1).prod γ_aux).tilted fun y => u (α_sh y.1 ⬝ᵥ p.2 + α_aux y.1 ⬝ᵥ y.2)) :=
+      isProbabilityMeasure_tilted_of_ae_le hVp_m.aemeasurable (ae_of_all _ fun _ => hu.le _)
+    rw [Real.norm_eq_abs]
+    exact abs_integral_le_of_forall_abs_le _ fun σ => by
+      rw [abs_mul, abs_mul, sq]
+      have hd_ov := abs_spin_overlap_sub_le_two hq (σ (some ())).1 (σ none).1
+      calc _ ≤ 2 * |D₁| * |D₁| :=
+            mul_le_mul (mul_le_mul hd_ov (hu.abs_deriv_le_abs _)
+              (abs_nonneg _) zero_le_two) (hu.abs_deriv_le_abs _)
+              (abs_nonneg _) (by positivity)
+        _ = 2 * (|D₁| * |D₁|) := by ring
+  exact ⟨hIL_m, hIR_m, hIR_int⟩
 
 /-- **Gaussian integration by parts step of (2.91).** The integral over the disorder of
 `⟨S'_v u'(S_v)⟩` equals `-(1/2)` times the overlap-weighted two-replica term. The
@@ -706,20 +733,19 @@ private theorem integral_secondProof_stein
   let α_aux (_ : Fin (N + 1) → ℤˣ) : Unit → ℝ := fun _ => Real.sqrt (1 - v) * Real.sqrt (1 - q)
   let W_aux (_ : Fin (N + 1) → ℤˣ) : Unit → ℝ :=
     fun _ => -(1 / (2 * Real.sqrt (1 - v))) * Real.sqrt (1 - q)
-  obtain ⟨hIL_m, hIR_m⟩ := measurable_secondProof_stein_split (N := N) (M := M) hu.measurable q v
+  obtain ⟨hIL_m, hIR_m, hIR_int⟩ :=
+    measurable_and_integrable_secondProof_stein_split (N := N) (M := M) hu hq v
   let split_ext (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) × ℝ) :
       (Fin M → Fin (N + 1) → ℝ) × ((Fin (N + 1) ⊕ Unit) → ℝ) :=
     (ω.1.1, Sum.elim ω.1.2 (fun _ : Unit => ω.2))
   have hmp_ext : MeasurePreserving split_ext P_ext (P_M.prod γ_sh) := by
-    have h1 := measurePreserving_prodAssoc P_M (Measure.pi fun _ : Fin (N + 1) => γ) γ
     have hunit := (measurePreserving_funUnique γ Unit).symm
     have hsum := (measurePreserving_sumPiEquivProdPi_symm (X := fun _ : Fin (N + 1) ⊕ Unit => ℝ)
       (fun _ => γ)).comp ((MeasurePreserving.id (Measure.pi fun _ : Fin (N + 1) => γ)).prod hunit)
-    have full := ((MeasurePreserving.id P_M).prod hsum).comp h1
-    convert full using 1
+    convert (((MeasurePreserving.id P_M).prod hsum).comp
+      (measurePreserving_prodAssoc P_M (Measure.pi fun _ : Fin (N + 1) => γ) γ)) using 1
     ext ω : 1
-    refine Prod.ext rfl ?_
-    ext idx
+    refine Prod.ext rfl (funext fun idx => ?_)
     rcases idx with i | _ <;>
       simp [split_ext, MeasurableEquiv.prodAssoc, MeasurableEquiv.coe_sumPiEquivProdPi_symm,
         Equiv.sumPiEquivProdPi_symm_apply]
@@ -870,29 +896,6 @@ private theorem integral_secondProof_stein
   have hIL_int : Integrable I_L (P_M.prod γ_sh) :=
     (hmp_ext.integrable_comp hIL_m.aestronglyMeasurable).1
       (hF'_int.congr (ae_of_all _ fun ω => (hIL_split ω).symm))
-  have hIR_int : Integrable I_R (P_M.prod γ_sh) := by
-    refine Integrable.of_bound hIR_m.aestronglyMeasurable (2 * |D₁| ^ 2) (ae_of_all _ fun p => ?_)
-    have hVp_m : Measurable fun y : (Fin (N + 1) → ℤˣ) × (Unit → ℝ) =>
-        u (α_sh y.1 ⬝ᵥ p.2 + α_aux y.1 ⬝ᵥ y.2) := by
-      have ha1 : Measurable fun y : (Fin (N + 1) → ℤˣ) × (Unit → ℝ) => α_sh y.1 ⬝ᵥ p.2 :=
-        Finset.measurable_sum _ fun idx _ =>
-          ((measurable_of_finite fun τ => α_sh τ idx).comp measurable_fst).mul_const _
-      have ha2 : Measurable fun y : (Fin (N + 1) → ℤˣ) × (Unit → ℝ) => α_aux y.1 ⬝ᵥ y.2 := by
-        simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton]
-        exact measurable_const.mul ((measurable_pi_apply ()).comp measurable_snd)
-      exact hu.measurable.comp (ha1.add ha2)
-    have hprob_p : IsProbabilityMeasure
-        (((μ_M p.1).prod γ_aux).tilted fun y => u (α_sh y.1 ⬝ᵥ p.2 + α_aux y.1 ⬝ᵥ y.2)) :=
-      isProbabilityMeasure_tilted_of_ae_le hVp_m.aemeasurable (ae_of_all _ fun _ => hu.le _)
-    rw [Real.norm_eq_abs]
-    exact abs_integral_le_of_forall_abs_le _ fun σ => by
-      rw [abs_mul, abs_mul, sq]
-      have hd_ov := abs_spin_overlap_sub_le_two hq (σ (some ())).1 (σ none).1
-      calc _ ≤ 2 * |D₁| * |D₁| :=
-            mul_le_mul (mul_le_mul hd_ov (hu.abs_deriv_le_abs _)
-              (abs_nonneg _) zero_le_two) (hu.abs_deriv_le_abs _)
-              (abs_nonneg _) (by positivity)
-        _ = 2 * (|D₁| * |D₁|) := by ring
   have hlhs_eq : (∫ ω, F'_stmt ω ∂P_ext) = ∫ p, I_L p ∂(P_M.prod γ_sh) :=
     (integral_congr_ae (ae_of_all _ fun ω => (hIL_split ω).symm)).trans
       (hmp_ext.integral_comp_of_aestronglyMeasurable hIL_m.aestronglyMeasurable)

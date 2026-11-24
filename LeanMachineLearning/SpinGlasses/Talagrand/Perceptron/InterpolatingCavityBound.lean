@@ -932,6 +932,97 @@ private lemma measurable_interp_new_field
       measurable_const.mul ((measurable_pi_apply j).comp (measurable_snd.comp measurable_snd))
   exact hd1.add hd2
 
+/-- Transport a bounded nonnegative old-state observable from `ϑ = 0` of the rotated law to
+`ν_new` in the `s`-interpolating cavity rotation. -/
+private lemma interp_rotation_zero_nonneg_eq
+    {N : ℕ} {Ω₀ : Type uΩ} {α : Type uα} {ι : Type uR}
+    [MeasurableSpace Ω₀] [MeasurableSpace α] [Fintype ι]
+    (P₀ : Measure Ω₀) [IsProbabilityMeasure P₀]
+    (μ_base : Measure α) [IsFiniteMeasure μ_base] [NeZero μ_base]
+    {E₀ : Ω₀ → α → ℝ} (hE₀ : Measurable fun p : Ω₀ × α => E₀ p.1 p.2)
+    (hE₀i : ∀ ω, Integrable (fun a => Real.exp (E₀ ω a)) μ_base)
+    (π : α → PerceptronSpin N) (hπ : Measurable π)
+    (s t q : ℝ) {u : ℝ → ℝ} (hu : Measurable u) {B : ℝ} (hB : ∀ x, |u x| ≤ B)
+    {g : Ω₀ → (ι → α) → ℝ} (hg : Measurable fun p : Ω₀ × (ι → α) => g p.1 p.2)
+    (hg0 : ∀ ω a, 0 ≤ g ω a) {M_g : ℝ} (hgb : ∀ ω a, g ω a ≤ M_g) :
+    let γ₁ := Measure.pi fun _ : ((Fin N ⊕ Unit) ⊕ Unit) => gaussianReal 0 1
+    let γ₂ := Measure.pi fun _ : Fin 2 => gaussianReal 0 1
+    let γ_sh := Measure.pi fun _ : (((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) => gaussianReal 0 1
+    let γ_aux := Measure.pi fun _ : (Fin 2 ⊕ Unit) => gaussianReal 0 1
+    let μ₀ (ω : Ω₀) := μ_base.tilted (E₀ ω)
+    let X_fn (w₁ : ((Fin N ⊕ Unit) ⊕ Unit) → ℝ) (x : α × (Fin 2 → ℝ)) : ℝ :=
+      Sum.elim (Real.sqrt s • cavityCoef N t (π x.1))
+        (fun _ => Real.sqrt (1 - s) * Real.sqrt q) ⬝ᵥ w₁ +
+      ![Real.sqrt s * Real.sqrt ((1 - t) / (N + 1)),
+        Real.sqrt (1 - s) * Real.sqrt (1 - q)] ⬝ᵥ x.2
+    let X_sh : PerceptronSpin N → (((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ :=
+      fun σ => Sum.elim
+        (Sum.elim (Real.sqrt s • cavityCoef N t σ) (fun _ => Real.sqrt (1 - s) * Real.sqrt q)) 0
+    let Y_sh : (((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ := Sum.elim 0 (fun _ => Real.sqrt q)
+    let X_aux : (Fin 2 ⊕ Unit) → ℝ :=
+      Sum.elim ![Real.sqrt s * Real.sqrt ((1 - t) / (N + 1)),
+        Real.sqrt (1 - s) * Real.sqrt (1 - q)] 0
+    let Y_aux : (Fin 2 ⊕ Unit) → ℝ := Sum.elim 0 (fun _ => Real.sqrt (1 - q))
+    let S₀ (w : (((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)
+        (x : α × ((Fin 2 ⊕ Unit) → ℝ)) : ℝ :=
+      Real.cos 0 * (X_sh (π x.1) ⬝ᵥ w + X_aux ⬝ᵥ x.2) +
+        Real.sin 0 * (Y_sh ⬝ᵥ w + Y_aux ⬝ᵥ x.2)
+    ∫ p, ∫ a : ι → α × ((Fin 2 ⊕ Unit) → ℝ), g p.1 (fun r => (a r).1)
+        ∂(Measure.pi fun _ : ι => ((μ₀ p.1).prod γ_aux).tilted (fun x => u (S₀ p.2 x)))
+        ∂(P₀.prod γ_sh) =
+      ∫ p, ∫ a : ι → α × (Fin 2 → ℝ), g p.1 (fun r => (a r).1)
+        ∂(Measure.pi fun _ : ι => ((μ₀ p.1).prod γ₂).tilted (fun x => u (X_fn p.2 x)))
+        ∂(P₀.prod γ₁) := by
+  intro γ₁ γ₂ γ_sh γ_aux μ₀ X_fn X_sh Y_sh X_aux Y_aux S₀
+  have hXm : Measurable fun p : (((Fin N ⊕ Unit) ⊕ Unit) → ℝ) × (α × (Fin 2 → ℝ)) =>
+      X_fn p.1 p.2 :=
+    measurable_interp_new_field π hπ s t q
+  have hS0 (w : (((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ) (x : α × ((Fin 2 ⊕ Unit) → ℝ)) :
+      S₀ w x = X_fn (w ∘ Sum.inl) (x.1, x.2 ∘ Sum.inl) := by
+    simp [S₀, X_sh, X_aux, X_fn, dotProduct, Fintype.sum_sum_type, Fin.sum_univ_two]
+  have h0 := rotation_endpoint_zero_eq P₀ μ_base hE₀ hE₀i hu hB X_fn hXm
+    (fun _ _ => 1) (fun _ => measurable_const) (M₀ := 1) (fun _ _ => by simp)
+    (f := g) hg (M_f := M_g) fun ω a => by rw [abs_of_nonneg (hg0 ω a)]; exact hgb ω a
+  simp only [Finset.prod_const_one, mul_one] at h0
+  let V_obs0 (p : Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ))
+      (x : α × ((Fin 2 ⊕ Unit) → ℝ)) : ℝ := u (S₀ p.2 x)
+  have hVm0 : Measurable fun p : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) ×
+      (α × ((Fin 2 ⊕ Unit) → ℝ)) => V_obs0 p.1 p.2 := by
+    have hp_m : Measurable fun p : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) ×
+        (α × ((Fin 2 ⊕ Unit) → ℝ)) => (p.1.2, p.2) :=
+      (measurable_snd.comp measurable_fst).prodMk measurable_snd
+    have hs0 := (measurable_interp_rotation_field hπ s t q 0).comp hp_m
+    exact hu.comp hs0
+  have hμ₀_p (ω : Ω₀) : IsProbabilityMeasure (μ₀ ω) := isProbabilityMeasure_tilted (hE₀i ω)
+  let G_obs (p : Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ))
+      (a : ι → α × ((Fin 2 ⊕ Unit) → ℝ)) : ℝ := g p.1 (fun r => (a r).1)
+  have hGm : Measurable fun q : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) ×
+      (ι → α × ((Fin 2 ⊕ Unit) → ℝ)) => G_obs q.1 q.2 := by
+    have hp_m : Measurable fun q : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) ×
+        (ι → α × ((Fin 2 ⊕ Unit) → ℝ)) => (q.1.1, fun r => (q.2 r).1) :=
+      (measurable_fst.comp measurable_fst).prodMk (measurable_pi_iff.2 fun r =>
+        measurable_fst.comp ((measurable_pi_apply r).comp measurable_snd))
+    exact hg.comp hp_m
+  have hIm := measurable_integral_pi_tilted_prod_tilted μ_base γ_aux hE₀ hE₀i hVm0 hGm
+  have hIi : Integrable (fun p => ∫ a : ι → α × ((Fin 2 ⊕ Unit) → ℝ),
+      g p.1 (fun r => (a r).1)
+      ∂(Measure.pi fun _ : ι => ((μ₀ p.1).prod γ_aux).tilted (fun x => u (S₀ p.2 x))))
+      (P₀.prod γ_sh) :=
+    Integrable.of_bound hIm.aestronglyMeasurable |M_g| (ae_of_all _ fun p => by
+      have hp0 : Measurable fun x : α × ((Fin 2 ⊕ Unit) → ℝ) => (p.2, x) :=
+        measurable_const.prodMk measurable_id
+      have hs0 := (measurable_interp_rotation_field hπ s t q 0).comp hp0
+      have : IsProbabilityMeasure (((μ₀ p.1).prod γ_aux).tilted (fun x => u (S₀ p.2 x))) :=
+        isProbabilityMeasure_tilted_of_ae_le (hu.comp hs0).aemeasurable
+          (ae_of_all _ fun _ => le_of_abs_le (hB _))
+      rw [Real.norm_of_nonneg (integral_nonneg fun _ => hg0 _ _)]
+      exact (le_abs_self _).trans (abs_integral_le_of_forall_abs_le _ fun _ => by
+        rw [abs_of_nonneg (hg0 _ _)]; exact (hgb _ _).trans (le_abs_self _)))
+  rw [integral_prod _ hIi]
+  refine (integral_congr_ae (ae_of_all _ fun _ =>
+    integral_congr_ae (ae_of_all _ fun _ => ?_))).trans h0
+  simp_rw [hS0]; rfl
+
 /-- **Master endpoint comparison for the `s`-interpolating cavity constraint (`s, t, q ∈ [0, 1]`).**
 Generalizes `abs_integral_smartPath_deriv_mul_sub_rhat_le_of_split_pair_bound` to an arbitrary
 old-state system `(Ω₀, P₀, μ_base, E₀)` and arbitrary interpolation parameter `s ∈ [0, 1]`. -/
@@ -1025,53 +1116,9 @@ private lemma abs_integral_interp_deriv_mul_sub_rhat_le_of_pair_bound
     |f p.1 (fun r => (a r).1)| ∂(Measure.pi fun _ : R => ν_new p) ∂(P₀.prod γ₁)
   have hI₁_0 : 0 ≤ I₁ := integral_nonneg fun _ => integral_nonneg fun _ => abs_nonneg _
   have hm1_0 : ∫ p, ∫ a : R → α × ((Fin 2 ⊕ Unit) → ℝ),
-      |f p.1 (fun r => (a r).1)| ∂(Measure.pi fun _ : R => ν_rot 0 p) ∂(P₀.prod γ_sh) = I₁ := by
-    have h0 := rotation_endpoint_zero_eq P₀ μ_base hE₀ hE₀i hu.measurable hD_abs X_fn hXm
-      (fun _ _ => 1) (fun _ => measurable_const) (M₀ := 1) (fun _ _ => by simp)
-      hf_abs_m (M_f := |M_f|) (fun ω a => by
-        dsimp only [f_abs]; rw [abs_abs]; exact (hfb ω a).trans (le_abs_self _))
-    dsimp only [f_abs] at h0
-    simp only [Finset.prod_const_one, mul_one] at h0
-    let V_obs0 (p : Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ))
-        (x : α × ((Fin 2 ⊕ Unit) → ℝ)) : ℝ := u (S 0 p.2 x)
-    have hVm : Measurable fun p : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) ×
-        (α × ((Fin 2 ⊕ Unit) → ℝ)) => V_obs0 p.1 p.2 := by
-      have hp : Measurable fun p : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) ×
-          (α × ((Fin 2 ⊕ Unit) → ℝ)) => (p.1.2, p.2) :=
-        (measurable_snd.comp measurable_fst).prodMk measurable_snd
-      have hs0 := (measurable_interp_rotation_field hπ s t q 0).comp hp
-      exact hu.measurable.comp hs0
-    let G_abs (p : Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ))
-        (a : R → α × ((Fin 2 ⊕ Unit) → ℝ)) : ℝ := |f p.1 (fun r => (a r).1)|
-    have hGm : Measurable fun q : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) ×
-        (R → α × ((Fin 2 ⊕ Unit) → ℝ)) => G_abs q.1 q.2 := by
-      have hp : Measurable fun q : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) ×
-          (R → α × ((Fin 2 ⊕ Unit) → ℝ)) => (q.1.1, fun r => (q.2 r).1) :=
-        (measurable_fst.comp measurable_fst).prodMk (measurable_pi_iff.2 fun r =>
-          measurable_fst.comp ((measurable_pi_apply r).comp measurable_snd))
-      exact hf_abs_m.comp hp
-    have hIm := measurable_integral_pi_tilted_prod_tilted μ_base γ_aux hE₀ hE₀i hVm hGm
-    have hμ₀ (ω : Ω₀) : IsProbabilityMeasure (μ₀ ω) := isProbabilityMeasure_tilted (hE₀i ω)
-    have hIi : Integrable (fun p => ∫ a : R → α × ((Fin 2 ⊕ Unit) → ℝ),
-        |f p.1 (fun r => (a r).1)| ∂(Measure.pi fun _ : R => ν_rot 0 p)) (P₀.prod γ_sh) := by
-      refine Integrable.of_bound hIm.aestronglyMeasurable |M_f| (ae_of_all _ fun p => ?_)
-      have hp0 : Measurable fun x : α × ((Fin 2 ⊕ Unit) → ℝ) => (p.2, x) :=
-        measurable_const.prodMk measurable_id
-      have hs0 := (measurable_interp_rotation_field hπ s t q 0).comp hp0
-      have hVp : Measurable fun x : α × ((Fin 2 ⊕ Unit) → ℝ) => u (S 0 p.2 x) :=
-        hu.measurable.comp hs0
-      have : IsProbabilityMeasure (ν_rot 0 p) :=
-        isProbabilityMeasure_tilted_of_ae_le hVp.aemeasurable
-          (ae_of_all _ fun _ => le_of_abs_le (hD_abs _))
-      rw [Real.norm_of_nonneg (integral_nonneg fun _ => abs_nonneg _)]
-      exact (le_abs_self _).trans (abs_integral_le_of_forall_abs_le _ fun _ => by
-        rw [abs_abs]; exact (hfb _ _).trans (le_abs_self _))
-    rw [integral_prod (fun p => ∫ a : R → α × ((Fin 2 ⊕ Unit) → ℝ),
-        |f p.1 (fun r => (a r).1)| ∂(Measure.pi fun _ : R => ν_rot 0 p)) hIi]
-    refine (integral_congr_ae (ae_of_all _ fun ω =>
-      integral_congr_ae (ae_of_all _ fun w => ?_))).trans h0
-    dsimp only [ν_rot]
-    simp_rw [hS0]; rfl
+      |f p.1 (fun r => (a r).1)| ∂(Measure.pi fun _ : R => ν_rot 0 p) ∂(P₀.prod γ_sh) = I₁ :=
+    interp_rotation_zero_nonneg_eq P₀ μ_base hE₀ hE₀i π hπ s t q hu.measurable hD_abs hf_abs_m
+      (fun _ _ => abs_nonneg _) hfb
   have hm1_le (ϑ : ℝ) :
       ∫ p, ∫ a : R → α × ((Fin 2 ⊕ Unit) → ℝ),
         |f p.1 (fun r => (a r).1)| ∂(Measure.pi fun _ : R => ν_rot ϑ p) ∂(P₀.prod γ_sh) ≤
@@ -1293,57 +1340,10 @@ theorem abs_integral_interp_deriv_mul_sub_rhat_le_first_moment
       Real.sin ϑ * (Y_sh ⬝ᵥ w + Y_aux ⬝ᵥ x.2)
   let ν_rot (ϑ : ℝ) (p : Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) :=
     ((μ₀ p.1).prod γ_aux).tilted fun x => u (S ϑ p.2 x)
-  have hS0 (w : (((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ) (x : α × ((Fin 2 ⊕ Unit) → ℝ)) :
-      S 0 w x = X_fn (w ∘ Sum.inl) (x.1, x.2 ∘ Sum.inl) := by
-    simp [S, X_sh, X_aux, X_fn, dotProduct, Fintype.sum_sum_type, Fin.sum_univ_two]
   have hm1_0 : ∫ p, ∫ a : R → α × ((Fin 2 ⊕ Unit) → ℝ),
-      |f p.1 (fun r => (a r).1)| ∂(Measure.pi fun _ : R => ν_rot 0 p) ∂(P₀.prod γ_sh) = I₁ := by
-    have h0 := rotation_endpoint_zero_eq P₀ μ_base hE₀ hE₀i hu.measurable hD_abs X_fn hXm
-      (fun _ _ => 1) (fun _ => measurable_const) (M₀ := 1) (fun _ _ => by simp)
-      hf_abs_m (M_f := |M_f|) (fun ω a => by
-        dsimp only [f_abs]; rw [abs_abs]; exact (hfb ω a).trans (le_abs_self _))
-    dsimp only [f_abs] at h0
-    simp only [Finset.prod_const_one, mul_one] at h0
-    let V_obs0 (p : Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ))
-        (x : α × ((Fin 2 ⊕ Unit) → ℝ)) : ℝ := u (S 0 p.2 x)
-    have hVm0 : Measurable fun p : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) ×
-        (α × ((Fin 2 ⊕ Unit) → ℝ)) => V_obs0 p.1 p.2 := by
-      have hp : Measurable fun p : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) ×
-          (α × ((Fin 2 ⊕ Unit) → ℝ)) => (p.1.2, p.2) :=
-        (measurable_snd.comp measurable_fst).prodMk measurable_snd
-      have hs0 := (measurable_interp_rotation_field hπ s t q 0).comp hp
-      exact hu.measurable.comp hs0
-    let G_abs (p : Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ))
-        (a : R → α × ((Fin 2 ⊕ Unit) → ℝ)) : ℝ := |f p.1 (fun r => (a r).1)|
-    have hGm : Measurable fun q : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) ×
-        (R → α × ((Fin 2 ⊕ Unit) → ℝ)) => G_abs q.1 q.2 := by
-      have hp : Measurable fun q : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) ×
-          (R → α × ((Fin 2 ⊕ Unit) → ℝ)) => (q.1.1, fun r => (q.2 r).1) :=
-        (measurable_fst.comp measurable_fst).prodMk (measurable_pi_iff.2 fun r =>
-          measurable_fst.comp ((measurable_pi_apply r).comp measurable_snd))
-      exact hf_abs_m.comp hp
-    have hIm := measurable_integral_pi_tilted_prod_tilted μ_base γ_aux hE₀ hE₀i hVm0 hGm
-    have hμ₀ (ω : Ω₀) : IsProbabilityMeasure (μ₀ ω) := isProbabilityMeasure_tilted (hE₀i ω)
-    have hIi : Integrable (fun p => ∫ a : R → α × ((Fin 2 ⊕ Unit) → ℝ),
-        |f p.1 (fun r => (a r).1)| ∂(Measure.pi fun _ : R => ν_rot 0 p)) (P₀.prod γ_sh) := by
-      refine Integrable.of_bound hIm.aestronglyMeasurable |M_f| (ae_of_all _ fun p => ?_)
-      have hp0 : Measurable fun x : α × ((Fin 2 ⊕ Unit) → ℝ) => (p.2, x) :=
-        measurable_const.prodMk measurable_id
-      have hs0 := (measurable_interp_rotation_field hπ s t q 0).comp hp0
-      have hVp : Measurable fun x : α × ((Fin 2 ⊕ Unit) → ℝ) => u (S 0 p.2 x) :=
-        hu.measurable.comp hs0
-      have : IsProbabilityMeasure (ν_rot 0 p) :=
-        isProbabilityMeasure_tilted_of_ae_le hVp.aemeasurable
-          (ae_of_all _ fun _ => le_of_abs_le (hD_abs _))
-      rw [Real.norm_of_nonneg (integral_nonneg fun _ => abs_nonneg _)]
-      exact (le_abs_self _).trans (abs_integral_le_of_forall_abs_le _ fun _ => by
-        rw [abs_abs]; exact (hfb _ _).trans (le_abs_self _))
-    rw [integral_prod (fun p => ∫ a : R → α × ((Fin 2 ⊕ Unit) → ℝ),
-        |f p.1 (fun r => (a r).1)| ∂(Measure.pi fun _ : R => ν_rot 0 p)) hIi]
-    refine (integral_congr_ae (ae_of_all _ fun ω =>
-      integral_congr_ae (ae_of_all _ fun w => ?_))).trans h0
-    dsimp only [ν_rot]
-    simp_rw [hS0]; rfl
+      |f p.1 (fun r => (a r).1)| ∂(Measure.pi fun _ : R => ν_rot 0 p) ∂(P₀.prod γ_sh) = I₁ :=
+    interp_rotation_zero_nonneg_eq P₀ μ_base hE₀ hE₀i π hπ s t q hu.measurable hD_abs hf_abs_m
+      (fun _ _ => abs_nonneg _) hfb
   let d_spin (σ τ : PerceptronSpin N) : ℝ :=
     |((∑ i, ((σ.1 i : ℤ) : ℝ) * ((τ.1 i : ℤ) : ℝ)) +
       ((σ.2 : ℤ) : ℝ) * ((τ.2 : ℤ) : ℝ)) / (N + 1) - q|
@@ -1423,98 +1423,6 @@ theorem abs_integral_interp_deriv_mul_sub_rhat_le_first_moment
   refine hmain.trans_eq ?_
   dsimp only [K, m, I₁]
   ring
-
-/-- Transport a bounded nonnegative old-state observable from `ϑ = 0` of the rotated law to
-`ν_new` in the `s`-interpolating cavity rotation. -/
-private lemma interp_rotation_zero_nonneg_eq
-    {N : ℕ} {Ω₀ : Type uΩ} {α : Type uα} {ι : Type uR}
-    [MeasurableSpace Ω₀] [MeasurableSpace α] [Fintype ι]
-    (P₀ : Measure Ω₀) [IsProbabilityMeasure P₀]
-    (μ_base : Measure α) [IsFiniteMeasure μ_base] [NeZero μ_base]
-    {E₀ : Ω₀ → α → ℝ} (hE₀ : Measurable fun p : Ω₀ × α => E₀ p.1 p.2)
-    (hE₀i : ∀ ω, Integrable (fun a => Real.exp (E₀ ω a)) μ_base)
-    (π : α → PerceptronSpin N) (hπ : Measurable π)
-    (s t q : ℝ) {u : ℝ → ℝ} (hu : Measurable u) {B : ℝ} (hB : ∀ x, |u x| ≤ B)
-    {g : Ω₀ → (ι → α) → ℝ} (hg : Measurable fun p : Ω₀ × (ι → α) => g p.1 p.2)
-    (hg0 : ∀ ω a, 0 ≤ g ω a) {M_g : ℝ} (hgb : ∀ ω a, g ω a ≤ M_g) :
-    let γ₁ := Measure.pi fun _ : ((Fin N ⊕ Unit) ⊕ Unit) => gaussianReal 0 1
-    let γ₂ := Measure.pi fun _ : Fin 2 => gaussianReal 0 1
-    let γ_sh := Measure.pi fun _ : (((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) => gaussianReal 0 1
-    let γ_aux := Measure.pi fun _ : (Fin 2 ⊕ Unit) => gaussianReal 0 1
-    let μ₀ (ω : Ω₀) := μ_base.tilted (E₀ ω)
-    let X_fn (w₁ : ((Fin N ⊕ Unit) ⊕ Unit) → ℝ) (x : α × (Fin 2 → ℝ)) : ℝ :=
-      Sum.elim (Real.sqrt s • cavityCoef N t (π x.1))
-        (fun _ => Real.sqrt (1 - s) * Real.sqrt q) ⬝ᵥ w₁ +
-      ![Real.sqrt s * Real.sqrt ((1 - t) / (N + 1)),
-        Real.sqrt (1 - s) * Real.sqrt (1 - q)] ⬝ᵥ x.2
-    let X_sh : PerceptronSpin N → (((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ :=
-      fun σ => Sum.elim
-        (Sum.elim (Real.sqrt s • cavityCoef N t σ) (fun _ => Real.sqrt (1 - s) * Real.sqrt q)) 0
-    let Y_sh : (((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ := Sum.elim 0 (fun _ => Real.sqrt q)
-    let X_aux : (Fin 2 ⊕ Unit) → ℝ :=
-      Sum.elim ![Real.sqrt s * Real.sqrt ((1 - t) / (N + 1)),
-        Real.sqrt (1 - s) * Real.sqrt (1 - q)] 0
-    let Y_aux : (Fin 2 ⊕ Unit) → ℝ := Sum.elim 0 (fun _ => Real.sqrt (1 - q))
-    let S₀ (w : (((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)
-        (x : α × ((Fin 2 ⊕ Unit) → ℝ)) : ℝ :=
-      Real.cos 0 * (X_sh (π x.1) ⬝ᵥ w + X_aux ⬝ᵥ x.2) +
-        Real.sin 0 * (Y_sh ⬝ᵥ w + Y_aux ⬝ᵥ x.2)
-    ∫ p, ∫ a : ι → α × ((Fin 2 ⊕ Unit) → ℝ), g p.1 (fun r => (a r).1)
-        ∂(Measure.pi fun _ : ι => ((μ₀ p.1).prod γ_aux).tilted (fun x => u (S₀ p.2 x)))
-        ∂(P₀.prod γ_sh) =
-      ∫ p, ∫ a : ι → α × (Fin 2 → ℝ), g p.1 (fun r => (a r).1)
-        ∂(Measure.pi fun _ : ι => ((μ₀ p.1).prod γ₂).tilted (fun x => u (X_fn p.2 x)))
-        ∂(P₀.prod γ₁) := by
-  intro γ₁ γ₂ γ_sh γ_aux μ₀ X_fn X_sh Y_sh X_aux Y_aux S₀
-  have hXm : Measurable fun p : (((Fin N ⊕ Unit) ⊕ Unit) → ℝ) × (α × (Fin 2 → ℝ)) =>
-      X_fn p.1 p.2 :=
-    measurable_interp_new_field π hπ s t q
-  have hS0 (w : (((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ) (x : α × ((Fin 2 ⊕ Unit) → ℝ)) :
-      S₀ w x = X_fn (w ∘ Sum.inl) (x.1, x.2 ∘ Sum.inl) := by
-    simp [S₀, X_sh, X_aux, X_fn, dotProduct, Fintype.sum_sum_type, Fin.sum_univ_two]
-  have h0 := rotation_endpoint_zero_eq P₀ μ_base hE₀ hE₀i hu hB X_fn hXm
-    (fun _ _ => 1) (fun _ => measurable_const) (M₀ := 1) (fun _ _ => by simp)
-    (f := g) hg (M_f := M_g) fun ω a => by rw [abs_of_nonneg (hg0 ω a)]; exact hgb ω a
-  simp only [Finset.prod_const_one, mul_one] at h0
-  let V_obs0 (p : Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ))
-      (x : α × ((Fin 2 ⊕ Unit) → ℝ)) : ℝ := u (S₀ p.2 x)
-  have hVm0 : Measurable fun p : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) ×
-      (α × ((Fin 2 ⊕ Unit) → ℝ)) => V_obs0 p.1 p.2 := by
-    have hp_m : Measurable fun p : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) ×
-        (α × ((Fin 2 ⊕ Unit) → ℝ)) => (p.1.2, p.2) :=
-      (measurable_snd.comp measurable_fst).prodMk measurable_snd
-    have hs0 := (measurable_interp_rotation_field hπ s t q 0).comp hp_m
-    exact hu.comp hs0
-  have hμ₀_p (ω : Ω₀) : IsProbabilityMeasure (μ₀ ω) := isProbabilityMeasure_tilted (hE₀i ω)
-  let G_obs (p : Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ))
-      (a : ι → α × ((Fin 2 ⊕ Unit) → ℝ)) : ℝ := g p.1 (fun r => (a r).1)
-  have hGm : Measurable fun q : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) ×
-      (ι → α × ((Fin 2 ⊕ Unit) → ℝ)) => G_obs q.1 q.2 := by
-    have hp_m : Measurable fun q : (Ω₀ × ((((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ)) ×
-        (ι → α × ((Fin 2 ⊕ Unit) → ℝ)) => (q.1.1, fun r => (q.2 r).1) :=
-      (measurable_fst.comp measurable_fst).prodMk (measurable_pi_iff.2 fun r =>
-        measurable_fst.comp ((measurable_pi_apply r).comp measurable_snd))
-    have hm := hg.comp hp_m
-    exact hm
-  have hIm := measurable_integral_pi_tilted_prod_tilted μ_base γ_aux hE₀ hE₀i hVm0 hGm
-  have hIi : Integrable (fun p => ∫ a : ι → α × ((Fin 2 ⊕ Unit) → ℝ),
-      g p.1 (fun r => (a r).1)
-      ∂(Measure.pi fun _ : ι => ((μ₀ p.1).prod γ_aux).tilted (fun x => u (S₀ p.2 x))))
-      (P₀.prod γ_sh) :=
-    Integrable.of_bound hIm.aestronglyMeasurable |M_g| (ae_of_all _ fun p => by
-      have hp0 : Measurable fun x : α × ((Fin 2 ⊕ Unit) → ℝ) => (p.2, x) :=
-        measurable_const.prodMk measurable_id
-      have hs0 := (measurable_interp_rotation_field hπ s t q 0).comp hp0
-      have : IsProbabilityMeasure (((μ₀ p.1).prod γ_aux).tilted (fun x => u (S₀ p.2 x))) :=
-        isProbabilityMeasure_tilted_of_ae_le (hu.comp hs0).aemeasurable
-          (ae_of_all _ fun _ => le_of_abs_le (hB _))
-      rw [Real.norm_of_nonneg (integral_nonneg fun _ => hg0 _ _)]
-      exact (le_abs_self _).trans (abs_integral_le_of_forall_abs_le _ fun _ => by
-        rw [abs_of_nonneg (hg0 _ _)]; exact (hgb _ _).trans (le_abs_self _)))
-  rw [integral_prod _ hIi]
-  refine (integral_congr_ae (ae_of_all _ fun _ =>
-    integral_congr_ae (ae_of_all _ fun _ => ?_))).trans h0
-  simp_rw [hS0]; rfl
 
 /-- Angle-wise Hölder pair bound in the `s`-interpolating cavity rotation. -/
 private lemma interp_rotation_pair_le_holder

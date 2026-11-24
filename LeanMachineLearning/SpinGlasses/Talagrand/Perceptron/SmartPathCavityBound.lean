@@ -45,6 +45,12 @@ The expansion and `2 |R|²` bound for averaged `replicaPairAverage` expressions 
   with the Section 2.1 perceptron Gibbs average.
 * `SpinGlasses.integral_smartPath_le_two_mul_endpoint`,
   `SpinGlasses.integral_smartPath_fin_two_le_two_mul_perceptron`: Lemma 2.3.7, Eq. (2.67).
+
+**Conventions.** This file formalizes the spin-only observable form `f : (R → PerceptronSpin N) → ℝ`
+of Proposition 2.3.6 (disorder-dependent old-row observables are handled directly by the
+Proposition 2.3.5 variants in `ConstraintCavityComparison` and `InterpolatingCavityBound`). The
+cavity step has `N + 1` spins and `M + 1` constraints (`α = (M + 1) / (N + 1)`); Section 2.4/2.5
+callers at total constraint count `M` instantiate these lemmas at `M - 1` when `M ≥ 1`.
 -/
 
 @[expose] public section

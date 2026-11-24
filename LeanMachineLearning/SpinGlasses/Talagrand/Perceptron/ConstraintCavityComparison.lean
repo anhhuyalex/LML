@@ -20,6 +20,10 @@ bounded by `2 D`. This is a pointwise comparison of Gibbs weights, so no derivat
 needed.
 
 * `SpinGlasses.integral_pi_tilted_cavityPath_le_exp_mul`.
+
+**Convention.** As throughout Section 2.3, the cavity step goes from `M` old constraints to
+`M + 1` constraints on `N + 1` spins (`PerceptronSpin N`); downstream Section 2.4/2.5 results at
+total constraint count `M` shift `M` by `1` when instantiating these lemmas.
 -/
 
 @[expose] public section

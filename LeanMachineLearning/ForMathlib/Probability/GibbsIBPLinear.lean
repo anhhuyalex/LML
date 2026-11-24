@@ -469,11 +469,9 @@ theorem continuous_gibbs_ratio_linear [NeZero μ] (R : (α → ℝ) → (K → �
     (hDb : ∀ a, |D a| ≤ Eb) (hXb : ∀ k a, |X k a| ≤ B) (hYb : ∀ a, |Y a| ≤ M) :
     Continuous (R Y) := by
   classical
+  rw [funext (hR Y)]
   refine continuous_iff_continuousAt.2 fun z₀ => ?_
   obtain ⟨L, hL, -⟩ := hasFDerivAt_gibbs_ratio_linear (μ := μ) hD hX hY hB hM hDb hXb hYb z₀
-  have hRfun : R Y = fun z => (∫ a, Y a * Real.exp (D a + ∑ k, z k * X k a) ∂μ) /
-      ∫ a, Real.exp (D a + ∑ k, z k * X k a) ∂μ := funext (hR Y)
-  rw [hRfun]
   exact hL.continuousAt
 
 omit [DecidableEq K] in
@@ -489,10 +487,8 @@ theorem hasDerivAt_gibbs_ratio_path [NeZero μ] (R : (α → ℝ) → (K → ℝ
     HasDerivAt (fun s => R Y (z s))
       (∑ l, z' l * (R (fun a => Y a * X l a) (z t) - R Y (z t) * R (X l) (z t))) t := by
   classical
-  have hRfun : R Y = fun z => (∫ a, Y a * Real.exp (D a + ∑ k, z k * X k a) ∂μ) /
-      ∫ a, Real.exp (D a + ∑ k, z k * X k a) ∂μ := funext (hR Y)
   obtain ⟨L, hL, hLl⟩ := hasFDerivAt_gibbs_ratio_linear (μ := μ) hD hX hY hB hM hDb hXb hYb (z t)
-  rw [← hRfun] at hL
+  rw [← funext (hR Y)] at hL
   refine (hL.comp_hasDerivAt t hz).congr_deriv ?_
   have hz' : z' = ∑ l, z' l • (Pi.single l 1 : K → ℝ) := by
     funext k

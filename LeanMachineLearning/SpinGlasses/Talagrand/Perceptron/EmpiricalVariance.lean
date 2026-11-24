@@ -1050,6 +1050,160 @@ theorem integral_pi_interpVar_last_split_eq.{uR}
   exact integral_pi_map_equiv (μ_s.tilted (E_s ω)) (interpStateLastSplit (N + 1) M)
     (H (splitΩ ω))
 
+/-- Measurability of the lifted old-row observables (`f₀ * u'(X₁ 0) * u'(X₁ 1)`, `f₀`, and
+`d_spin²`) in the `(M + 1)`-to-`M` last-constraint split of Lemma 2.4.3. -/
+private lemma measurable_empirical_variance_last_split_observables
+    {N M : ℕ} {u : ℝ → ℝ} (s q r : ℝ) :
+    let π_sp (x₀ : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : PerceptronSpin N :=
+      (Fin.init x₀.1, x₀.1 (Fin.last N))
+    let f₀ (ω₀ : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
+        (a : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : ℝ :=
+      (((N : ℝ) + 1)⁻¹ *
+        ∑ k : Fin M,
+          deriv u (Real.sqrt s *
+              ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω₀.1.1 k i * (((a 0).1 i : ℤ) : ℝ)) +
+            Real.sqrt (1 - s) * (Real.sqrt q * ω₀.1.2 k + Real.sqrt (1 - q) * (a 0).2 k)) *
+          deriv u (Real.sqrt s *
+              ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω₀.1.1 k i * (((a 1).1 i : ℤ) : ℝ)) +
+            Real.sqrt (1 - s) * (Real.sqrt q * ω₀.1.2 k + Real.sqrt (1 - q) * (a 1).2 k))) - r
+    let X₁ (w₁ : ((Fin N ⊕ Unit) ⊕ Unit) → ℝ)
+        (z : ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ) : ℝ :=
+      Sum.elim (Real.sqrt s • cavityCoef N 1 (π_sp z.1))
+        (fun _ => Real.sqrt (1 - s) * Real.sqrt q) ⬝ᵥ w₁ +
+        Real.sqrt (1 - s) * Real.sqrt (1 - q) * z.2
+    let d_spin (σ τ : PerceptronSpin N) : ℝ :=
+      |((∑ i, ((σ.1 i : ℤ) : ℝ) * ((τ.1 i : ℤ) : ℝ)) +
+        ((σ.2 : ℤ) : ℝ) * ((τ.2 : ℤ) : ℝ)) / (N + 1) - q|
+    (Measurable fun q_p :
+        ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
+          (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) ×
+        (Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ) =>
+      f₀ q_p.1.1 (fun l => (q_p.2 l).1)) ∧
+    (Measurable fun q_p :
+        ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
+          (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) ×
+        (Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ) =>
+      f₀ q_p.1.1 (fun l => (q_p.2 l).1) *
+        (deriv u (X₁ q_p.1.2 (q_p.2 0)) * deriv u (X₁ q_p.1.2 (q_p.2 1)))) ∧
+    (Measurable fun q_p :
+        ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
+          (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) ×
+        (Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ) =>
+      (d_spin (π_sp (q_p.2 0).1) (π_sp (q_p.2 1).1)) ^ 2) := by
+  intro π_sp f₀ X₁ d_spin
+  have hcoef_idx (idx : (Fin N ⊕ Unit) ⊕ Unit) :
+      Measurable fun τ : Fin (N + 1) → ℤˣ =>
+        (Sum.elim (Real.sqrt s • cavityCoef N 1 (Fin.init τ, τ (Fin.last N)))
+          (fun _ => Real.sqrt (1 - s) * Real.sqrt q)) idx := by
+    rcases idx with (i | _) | _
+    · dsimp only [cavityCoef, Sum.elim_inl, Pi.smul_apply, smul_eq_mul, Fin.init_def]
+      exact measurable_const.mul
+        (measurable_const.mul (measurable_units_cast.comp (measurable_pi_apply i.castSucc)))
+    · dsimp only [cavityCoef, Sum.elim_inl, Sum.elim_inr, Pi.smul_apply, smul_eq_mul]
+      exact measurable_const.mul
+        (measurable_const.mul (measurable_units_cast.comp (measurable_pi_apply (Fin.last N))))
+    · exact measurable_const
+  have hf₀_lift_m : Measurable fun q_p :
+      ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
+        (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) ×
+      (Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ) =>
+      f₀ q_p.1.1 (fun l => (q_p.2 l).1) := by
+    have hl (l : Fin 2) (k : Fin M) : Measurable fun q_p :
+        ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
+          (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) ×
+        (Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ) =>
+        Real.sqrt s *
+            ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, q_p.1.1.1.1 k i * ((((q_p.2 l).1.1 i : ℤ) : ℝ))) +
+          Real.sqrt (1 - s) *
+            (Real.sqrt q * q_p.1.1.1.2 k + Real.sqrt (1 - q) * (q_p.2 l).1.2 k) := by
+      have hg_sum : Measurable fun q_p :
+          ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
+            (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) ×
+          (Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ) =>
+          ∑ i : Fin (N + 1), q_p.1.1.1.1 k i * ((((q_p.2 l).1.1 i : ℤ) : ℝ)) := by
+        refine Finset.measurable_sum _ fun i _ => ?_
+        have hgi : Measurable fun q_p :
+            ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
+              (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) ×
+            (Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ) => q_p.1.1.1.1 k i :=
+          (measurable_pi_apply i).comp ((measurable_pi_apply k).comp
+            (measurable_fst.comp (measurable_fst.comp (measurable_fst.comp measurable_fst))))
+        have hσi : Measurable fun q_p :
+            ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
+              (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) ×
+            (Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ) => (((q_p.2 l).1.1 i : ℤ) : ℝ) :=
+          measurable_units_cast.comp ((measurable_pi_apply i).comp
+            (measurable_fst.comp
+              (measurable_fst.comp ((measurable_pi_apply l).comp measurable_snd))))
+        exact hgi.mul hσi
+      have hzk : Measurable fun q_p :
+          ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
+            (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) ×
+          (Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ) => q_p.1.1.1.2 k :=
+        (measurable_pi_apply k).comp
+          (measurable_snd.comp (measurable_fst.comp (measurable_fst.comp measurable_fst)))
+      have hξk : Measurable fun q_p :
+          ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
+            (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) ×
+          (Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ) => (q_p.2 l).1.2 k :=
+        (measurable_pi_apply k).comp
+          (measurable_snd.comp (measurable_fst.comp ((measurable_pi_apply l).comp measurable_snd)))
+      exact ((hg_sum.const_mul _).const_mul _).add
+        (((hzk.const_mul _).add (hξk.const_mul _)).const_mul _)
+    refine ((Finset.measurable_sum _ fun k _ => ?_).const_mul _).sub_const r
+    exact ((measurable_deriv u).comp (hl 0 k)).mul ((measurable_deriv u).comp (hl 1 k))
+  have hzl (l : Fin 2) : Measurable fun q_p :
+      ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
+        (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) ×
+      (Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ) => deriv u (X₁ q_p.1.2 (q_p.2 l)) := by
+    have hd1 : Measurable fun q_p :
+        ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
+          (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) ×
+        (Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ) =>
+        Sum.elim (Real.sqrt s • cavityCoef N 1 (π_sp (q_p.2 l).1))
+          (fun _ => Real.sqrt (1 - s) * Real.sqrt q) ⬝ᵥ q_p.1.2 := by
+      simp only [dotProduct]
+      refine Finset.measurable_sum _ fun idx _ => ?_
+      exact ((hcoef_idx idx).comp (measurable_fst.comp
+          (measurable_fst.comp ((measurable_pi_apply l).comp measurable_snd)))).mul
+        ((measurable_pi_apply idx).comp (measurable_snd.comp measurable_fst))
+    have hd2 : Measurable fun q_p :
+        ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
+          (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) ×
+        (Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ) =>
+        Real.sqrt (1 - s) * Real.sqrt (1 - q) * (q_p.2 l).2 :=
+      measurable_const.mul (measurable_snd.comp ((measurable_pi_apply l).comp measurable_snd))
+    exact (measurable_deriv u).comp (hd1.add hd2)
+  have hHov_m : Measurable fun q_p :
+      ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
+        (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) ×
+      (Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ) =>
+      (d_spin (π_sp (q_p.2 0).1) (π_sp (q_p.2 1).1)) ^ 2 := by
+    have hsum_sp : Measurable fun z : Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ =>
+        ((∑ i : Fin N,
+            ((((z 0).1.1 i.castSucc : ℤ) : ℝ) * (((z 1).1.1 i.castSucc : ℤ) : ℝ))) +
+          ((((z 0).1.1 (Fin.last N) : ℤ) : ℝ) * (((z 1).1.1 (Fin.last N) : ℤ) : ℝ))) /
+          (N + 1) - q := by
+      have hs1 : Measurable fun z : Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ =>
+          ∑ i : Fin N, ((((z 0).1.1 i.castSucc : ℤ) : ℝ) * (((z 1).1.1 i.castSucc : ℤ) : ℝ)) :=
+        Finset.measurable_sum _ fun i _ =>
+          (measurable_units_cast.comp ((measurable_pi_apply i.castSucc).comp
+            (measurable_fst.comp (measurable_fst.comp (measurable_pi_apply 0))))).mul
+          (measurable_units_cast.comp ((measurable_pi_apply i.castSucc).comp
+            (measurable_fst.comp (measurable_fst.comp (measurable_pi_apply 1)))))
+      have hs2 : Measurable fun z : Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ =>
+          ((((z 0).1.1 (Fin.last N) : ℤ) : ℝ) * (((z 1).1.1 (Fin.last N) : ℤ) : ℝ)) :=
+        (measurable_units_cast.comp ((measurable_pi_apply (Fin.last N)).comp
+          (measurable_fst.comp (measurable_fst.comp (measurable_pi_apply 0))))).mul
+        (measurable_units_cast.comp ((measurable_pi_apply (Fin.last N)).comp
+          (measurable_fst.comp (measurable_fst.comp (measurable_pi_apply 1)))))
+      exact ((hs1.add hs2).div_const _).sub_const q
+    have hsq_z : Measurable fun z : Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ =>
+        (d_spin (π_sp (z 0).1) (π_sp (z 1).1)) ^ 2 := by
+      simpa only [d_spin, π_sp, Fin.init_def, Real.norm_eq_abs] using hsum_sp.norm.pow_const 2
+    exact hsq_z.comp measurable_snd
+  exact ⟨hf₀_lift_m, hf₀_lift_m.mul ((hzl 0).mul (hzl 1)), hHov_m⟩
+
 /-- **Old-row cavity-in-`M` cross-term estimate in Lemma 2.4.3.** Transporting the `L²`
 cavity-in-`M` bound `abs_integral_interp_deriv_mul_sub_rhat_le_l2` at `t = 1` from the
 `M`-constraint split coordinates to the `(M + 1)` interpolating Gibbs state `ν_s` and absorbing
@@ -1119,23 +1273,10 @@ private theorem exists_empirical_variance_cross_term_le (D : ℝ) :
       ((measurable_pi_apply (Fin.last N)).comp measurable_fst)
   have hE₀_m := measurable_interpEnergy_joint (L := N + 1) (M := M) hu.measurable s q r
   have hE₀_i (ω₀ : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) :
-      Integrable (fun x₀ => Real.exp (E₀ ω₀ x₀)) μ_base := by
-    have hm : Measurable (E₀ ω₀) := by
-      refine (Finset.measurable_sum _ fun k _ => hu.measurable.comp ?_).add ?_
-      · refine (((Finset.measurable_sum _ fun i _ =>
-          measurable_const.mul (measurable_units_cast.comp
-            ((measurable_pi_apply i).comp measurable_fst))).const_mul _).const_mul _).add
-          ((measurable_const.add
-            (((measurable_pi_apply k).comp measurable_snd).const_mul _)).const_mul _)
-      · exact Finset.measurable_sum _ fun i _ =>
-          (((measurable_units_cast.comp
-            ((measurable_pi_apply i).comp measurable_fst)).mul_const _).mul_const _).mul_const _
-    have hbd_0 (x₀ : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) :
-        E₀ ω₀ x₀ ≤ M * |D| + ∑ i : Fin (N + 1), |Real.sqrt (1 - s) * ω₀.2 i * Real.sqrt r| := by
-      refine add_le_add ((Finset.sum_le_sum fun _ _ => hD_le _).trans_eq (by simp))
-        (Finset.sum_le_sum fun i _ => (le_abs_self _).trans ?_)
-      rw [abs_mul, abs_mul, abs_mul, abs_units_cast_eq_one, one_mul, abs_mul, abs_mul]
-    exact integrable_exp_of_ae_le hm.aemeasurable (ae_of_all _ hbd_0)
+      Integrable (fun x₀ => Real.exp (E₀ ω₀ x₀)) μ_base :=
+    integrable_exp_of_ae_le
+      (measurable_interpEnergy_slice (L := N + 1) (M := M) hu.measurable s q r ω₀).aemeasurable
+      (ae_of_all _ (interpEnergy_le hD_le s q r ω₀))
   let f₀ (ω₀ : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
       (a : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : ℝ :=
     (((N : ℝ) + 1)⁻¹ *
@@ -1181,67 +1322,8 @@ private theorem exists_empirical_variance_cross_term_le (D : ℝ) :
     Sum.elim (Real.sqrt s • cavityCoef N 1 (π_sp z.1))
       (fun _ => Real.sqrt (1 - s) * Real.sqrt q) ⬝ᵥ w₁ +
       Real.sqrt (1 - s) * Real.sqrt (1 - q) * z.2
-  have hcoef_idx (idx : (Fin N ⊕ Unit) ⊕ Unit) :
-      Measurable fun τ : Fin (N + 1) → ℤˣ =>
-        (Sum.elim (Real.sqrt s • cavityCoef N 1 (Fin.init τ, τ (Fin.last N)))
-          (fun _ => Real.sqrt (1 - s) * Real.sqrt q)) idx := by
-    rcases idx with (i | _) | _
-    · dsimp only [cavityCoef, Sum.elim_inl, Pi.smul_apply, smul_eq_mul, Fin.init_def]
-      exact measurable_const.mul
-        (measurable_const.mul (measurable_units_cast.comp (measurable_pi_apply i.castSucc)))
-    · dsimp only [cavityCoef, Sum.elim_inl, Sum.elim_inr, Pi.smul_apply, smul_eq_mul]
-      exact measurable_const.mul
-        (measurable_const.mul (measurable_units_cast.comp (measurable_pi_apply (Fin.last N))))
-    · exact measurable_const
-  have hf₀_lift_m : Measurable fun q_p :
-      ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-        (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) ×
-      (Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ) =>
-      f₀ q_p.1.1 (fun l => (q_p.2 l).1) := by
-    have hl (l : Fin 2) (k : Fin M) : Measurable fun q_p :
-        ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-          (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) ×
-        (Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ) =>
-        Real.sqrt s *
-            ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, q_p.1.1.1.1 k i * ((((q_p.2 l).1.1 i : ℤ) : ℝ))) +
-          Real.sqrt (1 - s) *
-            (Real.sqrt q * q_p.1.1.1.2 k + Real.sqrt (1 - q) * (q_p.2 l).1.2 k) := by
-      have hg_sum : Measurable fun q_p :
-          ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-            (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) ×
-          (Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ) =>
-          ∑ i : Fin (N + 1), q_p.1.1.1.1 k i * ((((q_p.2 l).1.1 i : ℤ) : ℝ)) := by
-        refine Finset.measurable_sum _ fun i _ => ?_
-        have hgi : Measurable fun q_p :
-            ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-              (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) ×
-            (Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ) => q_p.1.1.1.1 k i :=
-          (measurable_pi_apply i).comp ((measurable_pi_apply k).comp
-            (measurable_fst.comp (measurable_fst.comp (measurable_fst.comp measurable_fst))))
-        have hσi : Measurable fun q_p :
-            ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-              (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) ×
-            (Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ) => (((q_p.2 l).1.1 i : ℤ) : ℝ) :=
-          measurable_units_cast.comp ((measurable_pi_apply i).comp
-            (measurable_fst.comp
-              (measurable_fst.comp ((measurable_pi_apply l).comp measurable_snd))))
-        exact hgi.mul hσi
-      have hzk : Measurable fun q_p :
-          ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-            (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) ×
-          (Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ) => q_p.1.1.1.2 k :=
-        (measurable_pi_apply k).comp
-          (measurable_snd.comp (measurable_fst.comp (measurable_fst.comp measurable_fst)))
-      have hξk : Measurable fun q_p :
-          ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-            (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) ×
-          (Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ) => (q_p.2 l).1.2 k :=
-        (measurable_pi_apply k).comp
-          (measurable_snd.comp (measurable_fst.comp ((measurable_pi_apply l).comp measurable_snd)))
-      exact ((hg_sum.const_mul _).const_mul _).add
-        (((hzk.const_mul _).add (hξk.const_mul _)).const_mul _)
-    refine ((Finset.measurable_sum _ fun k _ => ?_).const_mul _).sub_const r
-    exact ((measurable_deriv u).comp (hl 0 k)).mul ((measurable_deriv u).comp (hl 1 k))
+  obtain ⟨hf₀_lift_m, hHw_m, hHov_m⟩ :=
+    measurable_empirical_variance_last_split_observables (N := N) (M := M) (u := u) s q r
   let splitΩ (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ)) :
       (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
         (((Fin N ⊕ Unit) ⊕ Unit) → ℝ) :=
@@ -1282,39 +1364,6 @@ private theorem exists_empirical_variance_cross_term_le (D : ℝ) :
       (((Fin N ⊕ Unit) ⊕ Unit) → ℝ))
       (z : Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ) : ℝ :=
     f₀ p.1 (fun l => (z l).1) * (deriv u (X₁ p.2 (z 0)) * deriv u (X₁ p.2 (z 1)))
-  have hHw_m : Measurable fun q_p :
-      ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-        (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) ×
-      (Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ) => H_w q_p.1 q_p.2 := by
-    have hzl (l : Fin 2) : Measurable fun q_p :
-        ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-          (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) ×
-        (Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ) => deriv u (X₁ q_p.1.2 (q_p.2 l)) := by
-      have hd1 : Measurable fun q_p :
-          ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-            (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) ×
-          (Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ) =>
-          Sum.elim (Real.sqrt s • cavityCoef N 1 (π_sp (q_p.2 l).1))
-            (fun _ => Real.sqrt (1 - s) * Real.sqrt q) ⬝ᵥ q_p.1.2 := by
-        simp only [dotProduct]
-        refine Finset.measurable_sum _ fun idx _ => ?_
-        have ha : Measurable fun q_p :
-            ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-              (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) ×
-            (Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ) =>
-            (Sum.elim (Real.sqrt s • cavityCoef N 1 (π_sp (q_p.2 l).1))
-              (fun _ => Real.sqrt (1 - s) * Real.sqrt q)) idx :=
-          (hcoef_idx idx).comp (measurable_fst.comp
-            (measurable_fst.comp ((measurable_pi_apply l).comp measurable_snd)))
-        exact ha.mul ((measurable_pi_apply idx).comp (measurable_snd.comp measurable_fst))
-      have hd2 : Measurable fun q_p :
-          ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-            (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) ×
-          (Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ) =>
-          Real.sqrt (1 - s) * Real.sqrt (1 - q) * (q_p.2 l).2 :=
-        measurable_const.mul (measurable_snd.comp ((measurable_pi_apply l).comp measurable_snd))
-      exact (measurable_deriv u).comp (hd1.add hd2)
-    exact hf₀_lift_m.mul ((hzl 0).mul (hzl 1))
   have htr_w := integral_pi_interpVar_last_split_eq (N := N) (M := M) (R := Fin 2)
     hu.measurable hD_le s q r (H := H_w) hHw_m
   let H_u (p : (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
@@ -1347,34 +1396,6 @@ private theorem exists_empirical_variance_cross_term_le (D : ℝ) :
       (((Fin N ⊕ Unit) ⊕ Unit) → ℝ))
       (z : Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ) : ℝ :=
     (d_spin (π_sp (z 0).1) (π_sp (z 1).1)) ^ 2
-  have hHov_m : Measurable fun q_p :
-      ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-        (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) ×
-      (Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ) => H_ov q_p.1 q_p.2 := by
-    have hsum_sp : Measurable fun z : Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ =>
-        ((∑ i : Fin N,
-            ((((z 0).1.1 i.castSucc : ℤ) : ℝ) * (((z 1).1.1 i.castSucc : ℤ) : ℝ))) +
-          ((((z 0).1.1 (Fin.last N) : ℤ) : ℝ) * (((z 1).1.1 (Fin.last N) : ℤ) : ℝ))) /
-          (N + 1) - q := by
-      have hs1 : Measurable fun z : Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ =>
-          ∑ i : Fin N, ((((z 0).1.1 i.castSucc : ℤ) : ℝ) * (((z 1).1.1 i.castSucc : ℤ) : ℝ)) :=
-        Finset.measurable_sum _ fun i _ =>
-          (measurable_units_cast.comp ((measurable_pi_apply i.castSucc).comp
-            (measurable_fst.comp (measurable_fst.comp (measurable_pi_apply 0))))).mul
-          (measurable_units_cast.comp ((measurable_pi_apply i.castSucc).comp
-            (measurable_fst.comp (measurable_fst.comp (measurable_pi_apply 1)))))
-      have hs2 : Measurable fun z : Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ =>
-          ((((z 0).1.1 (Fin.last N) : ℤ) : ℝ) * (((z 1).1.1 (Fin.last N) : ℤ) : ℝ)) :=
-        (measurable_units_cast.comp ((measurable_pi_apply (Fin.last N)).comp
-          (measurable_fst.comp (measurable_fst.comp (measurable_pi_apply 0))))).mul
-        (measurable_units_cast.comp ((measurable_pi_apply (Fin.last N)).comp
-          (measurable_fst.comp (measurable_fst.comp (measurable_pi_apply 1)))))
-      exact ((hs1.add hs2).div_const _).sub_const q
-    have hsq_z : Measurable fun z : Fin 2 → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × ℝ =>
-        (d_spin (π_sp (z 0).1) (π_sp (z 1).1)) ^ 2 := by
-      have habs := hsum_sp.norm
-      simpa only [d_spin, π_sp, Fin.init_def, Real.norm_eq_abs] using habs.pow_const 2
-    exact hsq_z.comp measurable_snd
   have htr_ov := integral_pi_interpVar_last_split_eq (N := N) (M := M) (R := Fin 2)
     hu.measurable hD_le s q r (H := H_ov) hHov_m
   dsimp only at htr_w htr_u htr_1 htr_2 htr_ov

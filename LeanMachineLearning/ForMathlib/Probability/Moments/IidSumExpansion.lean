@@ -357,4 +357,71 @@ theorem abs_integral_pow_avg_sub_le (hint : ∀ j, Integrable (fun x => f x ^ j)
 
 end Main
 
+/-- **Uniform moment bound for a centered i.i.d. sum under moment bounds `B`:** for any sequence
+`B : ℕ → ℝ` (`B j ≥ 0`) and exponent `k : ℕ`, there exists `C ≥ 0` depending only on `B` and `k`
+such that for every probability space `(Ω, ν)`, every centered `g : Ω → ℝ` with all powers
+integrable and `|∫ g^j dν| ≤ B j`, and every `n : ℕ`,
+`|𝔼 (∑_{i < n} g(y_i))^k| ≤ C (√(n + 1))^k`. -/
+theorem exists_abs_integral_pow_sum_pi_le (B : ℕ → ℝ) (hB0 : ∀ j, 0 ≤ B j) (k : ℕ) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ {Ω : Type*} [MeasurableSpace Ω] (ν : Measure Ω) [IsProbabilityMeasure ν] {g : Ω → ℝ},
+        (∀ j, Integrable (fun x => g x ^ j) ν) →
+        ∫ x, g x ∂ν = 0 →
+        (∀ j, |∫ x, g x ^ j ∂ν| ≤ B j) →
+        ∀ n : ℕ,
+          |∫ y : Fin n → Ω, (∑ i, g (y i)) ^ k ∂(Measure.pi fun _ : Fin n => ν)| ≤
+            C * Real.sqrt ((n : ℝ) + 1) ^ k := by
+  induction k using Nat.strong_induction_on with
+  | _ k ih =>
+    rcases k with _ | _ | k'
+    · refine ⟨1, zero_le_one, fun ν _ _ _ _ n => ?_⟩
+      simp
+    · refine ⟨0, le_rfl, fun {Ω} _ ν _ {g} hint h0 _ n => ?_⟩
+      have hM1 : ∀ m : ℕ, ∫ y : Fin m → Ω, (∑ i, g (y i)) ^ 1 ∂(Measure.pi fun _ => ν) = 0 := by
+        intro m
+        induction m with
+        | zero => simp
+        | succ m ihm =>
+          rw [integral_pow_sum_pi_succ hint m 1]
+          simp only [pow_one] at ihm
+          simp [Finset.sum_range_succ, h0, ihm]
+      rw [hM1 n]; simp
+    · choose! C hC0 hC using ih
+      let c : ℝ := ∑ j ∈ Ico 2 (k' + 3), ((k' + 2).choose j : ℝ) * B j * C (k' + 2 - j)
+      have hc0 : 0 ≤ c := Finset.sum_nonneg fun j hj => by
+        have hlt : k' + 2 - j < k' + 2 := by
+          have hj2 := (Finset.mem_Ico.1 hj).1
+          omega
+        exact mul_nonneg (mul_nonneg (Nat.cast_nonneg _) (hB0 j)) (hC0 _ hlt)
+      refine ⟨c, hc0, fun {Ω} _ ν _ {g} hint h0 hBg n => ?_⟩
+      let M_n (m : ℕ) : ℝ := ∫ y : Fin m → Ω, (∑ i, g (y i)) ^ (k' + 2) ∂(Measure.pi fun _ => ν)
+      have hM0 : M_n 0 = 0 := by simp [M_n]
+      have hstep (m : ℕ) : |M_n (m + 1) - M_n m| ≤ c * Real.sqrt ((m : ℝ) + 1) ^ k' := by
+        have hrec := integral_pow_sum_pi_succ hint m (k' + 2)
+        have hsplit : M_n (m + 1) - M_n m =
+            ∑ j ∈ Ico 2 (k' + 3),
+              ((k' + 2).choose j : ℝ) * (∫ x, g x ^ j ∂ν) *
+                ∫ y : Fin m → Ω, (∑ i, g (y i)) ^ (k' + 2 - j) ∂(Measure.pi fun _ => ν) := by
+          dsimp only [M_n]
+          rw [hrec, ← Finset.sum_range_add_sum_Ico _ (show 2 ≤ k' + 2 + 1 by omega)]
+          simp [Finset.sum_range_succ, h0]
+        rw [hsplit, Finset.sum_mul]
+        refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun j hj => ?_)
+        have hj2 : 2 ≤ j := (Finset.mem_Ico.1 hj).1
+        have hlt : k' + 2 - j < k' + 2 := by omega
+        have h1 := hC (k' + 2 - j) hlt ν hint h0 hBg m
+        have hpow : Real.sqrt ((m : ℝ) + 1) ^ (k' + 2 - j) ≤ Real.sqrt ((m : ℝ) + 1) ^ k' :=
+          pow_le_pow_right₀ (one_le_sqrt_natCast_add_one m) (by omega)
+        rw [abs_mul, abs_mul, Nat.abs_cast]
+        calc ((k' + 2).choose j : ℝ) * |∫ x, g x ^ j ∂ν| *
+              |∫ y : Fin m → Ω, (∑ i, g (y i)) ^ (k' + 2 - j) ∂(Measure.pi fun _ => ν)|
+            ≤ ((k' + 2).choose j : ℝ) * B j *
+                (C (k' + 2 - j) * Real.sqrt ((m : ℝ) + 1) ^ k') :=
+              mul_le_mul (mul_le_mul_of_nonneg_left (hBg j) (Nat.cast_nonneg _))
+                (h1.trans (mul_le_mul_of_nonneg_left hpow (hC0 _ hlt)))
+                (abs_nonneg _) (mul_nonneg (Nat.cast_nonneg _) (hB0 j))
+          _ = ((k' + 2).choose j : ℝ) * B j * C (k' + 2 - j) * Real.sqrt ((m : ℝ) + 1) ^ k' := by
+              ring
+      exact abs_le_of_abs_sub_le_sqrt_pow hM0 hc0 hstep n
+
 end ProbabilityTheory

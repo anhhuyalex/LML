@@ -5,7 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavityRotationDerivative
+public import
+  LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavityRotationDerivative
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaPairBound
 
 /-!
