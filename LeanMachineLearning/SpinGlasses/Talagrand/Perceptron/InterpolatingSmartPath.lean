@@ -36,48 +36,48 @@ section DefinitionsAndBasic
 
 /-- Type of quenched disorders for the `(s, t)`-interpolating smart path on `N` old spins + `1`
 last spin and `M` constraints: `(((g_old, a), z), z'_old)` paired with `(y, z'_last)`. -/
-private abbrev InterpSPDisorder (N M : ℕ) :=
+abbrev InterpSPDisorder (N M : ℕ) :=
   (((Fin M → Fin N → ℝ) × (Fin M → ℝ)) × (Fin M → ℝ)) × ((Fin N → ℝ) × (ℝ × ℝ))
 
 /-- Type of per-replica states for the `(s, t)`-interpolating smart path. -/
-private abbrev InterpSPState (N M : ℕ) :=
+abbrev InterpSPState (N M : ℕ) :=
   PerceptronSpin N × (Fin M → Fin 2 → ℝ)
 
 /-- Base measure on `InterpSPState N M`: counting measure on `PerceptronSpin N` times standard
 Gaussian measure on `Fin M → Fin 2 → ℝ`. -/
-private noncomputable def interpSPBase (N M : ℕ) : Measure (InterpSPState N M) :=
+noncomputable def interpSPBase (N M : ℕ) : Measure (InterpSPState N M) :=
   (Measure.count : Measure (PerceptronSpin N)).prod
     (Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin 2 => gaussianReal 0 1)
 
-private instance (N M : ℕ) : IsFiniteMeasure (interpSPBase N M) := by
+instance (N M : ℕ) : IsFiniteMeasure (interpSPBase N M) := by
   unfold interpSPBase; infer_instance
 
-private instance (N M : ℕ) : NeZero (interpSPBase N M) := by
+instance (N M : ℕ) : NeZero (interpSPBase N M) := by
   unfold interpSPBase
   have : NeZero (Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin 2 => gaussianReal 0 1) :=
     inferInstance
   infer_instance
 
 /-- Quenched disorder measure on `InterpSPDisorder N M` with last-field variance `v : ℝ≥0`. -/
-private noncomputable def interpSPDisorder (N M : ℕ) (v : ℝ≥0) : Measure (InterpSPDisorder N M) :=
+noncomputable def interpSPDisorder (N M : ℕ) (v : ℝ≥0) : Measure (InterpSPDisorder N M) :=
   (((Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin N => gaussianReal 0 1).prod
     (Measure.pi fun _ : Fin M => gaussianReal 0 1)).prod
     (Measure.pi fun _ : Fin M => gaussianReal 0 1)).prod
     ((Measure.pi fun _ : Fin N => gaussianReal 0 1).prod
       ((gaussianReal 0 v).prod (gaussianReal 0 1)))
 
-private instance (N M : ℕ) (v : ℝ≥0) : IsProbabilityMeasure (interpSPDisorder N M v) := by
+instance (N M : ℕ) (v : ℝ≥0) : IsProbabilityMeasure (interpSPDisorder N M v) := by
   unfold interpSPDisorder; infer_instance
 
 /-- Constraint field `S_{k, s, t}` of the `(s, t)`-interpolating smart path. -/
-private noncomputable def interpSPField {N M : ℕ} (s t q : ℝ)
+noncomputable def interpSPField {N M : ℕ} (s t q : ℝ)
     (ω : InterpSPDisorder N M) (x : InterpSPState N M) (k : Fin M) : ℝ :=
   Real.sqrt s * (smartPathFieldNoAux t (ω.1.1, ω.2.2.1) (x.1, 0) k +
       Real.sqrt ((1 - t) / (N + 1)) * x.2 k 0) +
     Real.sqrt (1 - s) * (Real.sqrt q * ω.1.2 k + Real.sqrt (1 - q) * x.2 k 1)
 
 /-- Energy `E_{s, t}` of the `(s, t)`-interpolating smart path. -/
-private noncomputable def interpSPEnergy {N M : ℕ} (u : ℝ → ℝ) (s t q r : ℝ)
+noncomputable def interpSPEnergy {N M : ℕ} (u : ℝ → ℝ) (s t q r : ℝ)
     (ω : InterpSPDisorder N M) (x : InterpSPState N M) : ℝ :=
   (∑ k : Fin M, u (interpSPField s t q ω x k)) +
     (∑ i : Fin N, ((x.1.1 i : ℤ) : ℝ) * Real.sqrt (1 - s) * ω.2.1 i * Real.sqrt r) +
@@ -123,7 +123,7 @@ private lemma integrable_exp_interpSPEnergy {N M : ℕ} {u : ℝ → ℝ} (hu : 
   integrable_exp_of_ae_le (measurable_interpSPEnergy_slice hu s t q r ω).aemeasurable
     (ae_of_all _ (interpSPEnergy_le hB s t q r ω))
 
-private lemma isProbabilityMeasure_tilted_interpSPEnergy {N M : ℕ} {u : ℝ → ℝ} (hu : Measurable u)
+theorem isProbabilityMeasure_tilted_interpSPEnergy {N M : ℕ} {u : ℝ → ℝ} (hu : Measurable u)
     {B : ℝ} (hB : ∀ x, u x ≤ B) (s t q r : ℝ) (ω : InterpSPDisorder N M) :
     IsProbabilityMeasure ((interpSPBase N M).tilted (interpSPEnergy u s t q r ω)) :=
   isProbabilityMeasure_tilted (integrable_exp_interpSPEnergy hu hB s t q r ω)
@@ -166,7 +166,7 @@ private lemma integral_pi_interpSP_auxiliary {N M : ℕ} {R : Type uR} [Fintype 
     (fun σ k => hu.comp (by fun_prop)) (fun _ => B) (fun _ _ _ => hB _) F
 
 /-- Continuity of `t ↦ ν_{t, s}(f)` on `[0, 1]`. -/
-private lemma continuousOn_integral_interpSP {N M : ℕ} {R : Type uR} [Fintype R]
+theorem continuousOn_integral_interpSP {N M : ℕ} {R : Type uR} [Fintype R]
     {u : ℝ → ℝ} (hu : Continuous u) {B : ℝ} (hB : ∀ x, |u x| ≤ B)
     (s q r : ℝ) (v : ℝ≥0) (f : (R → PerceptronSpin N) → ℝ) :
     ContinuousOn
@@ -251,7 +251,7 @@ private lemma continuousOn_integral_interpSP {N M : ℕ} {R : Type uR} [Fintype 
 
 /-- **Terminal identity at `t = 1`:** the `(s, t = 1)` smart-path average of any spin-only
 observable equals the `s`-interpolating Gibbs average (2.76). -/
-private lemma integral_interpSP_one_eq {N M : ℕ} {R : Type uR} [Fintype R]
+theorem integral_interpSP_one_eq {N M : ℕ} {R : Type uR} [Fintype R]
     {u : ℝ → ℝ} (hu : Measurable u) {B : ℝ} (hB : ∀ x, u x ≤ B)
     (s q r : ℝ) (v : ℝ≥0) (F : (R → Fin (N + 1) → ℤˣ) → ℝ) :
     let P_g := Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1
@@ -449,10 +449,11 @@ private lemma integral_interpSP_one_eq {N M : ℕ} {R : Type uR} [Fintype R]
     simpa only [smartPathFieldNoAux, div_one, one_div, Real.sqrt_inv, Nat.cast_add,
       Nat.cast_one] using (normalized_constraint_field_snoc σ.1 σ.2 (ω.1.1 k)).symm
 
-/-- **Decoupled endpoint `t = 0` for the `(s, t)`-interpolating smart path:**
+/-- **Decoupling at `t = 0` for any old-spin observable along the `(s, t)`-smart path:**
 when `s ∈ [0, 1]`, `r ≥ 0`, `v = (s * r).toNNReal`, and `q = 𝔼 tanh²(z √r)`, the `t = 0` average of
-`f = (ε₁ ε₂ - q)(R_{1,2} - q)` equals `(1 - q²) / (N + 1)`. -/
-private lemma integral_interpSP_zero_last_spin_eq {N M : ℕ}
+`(ε₁ ε₂ - q) F_old(ρ₁, ρ₂)` vanishes (`ν_{0,s}(F_old · ε₁ ε₂) = q · ν_{0,s}(F_old)`), and the
+`t = 0` average of `(ε₁ ε₂ - q)(R_{1,2} - q)` equals `(1 - q²) / (N + 1)`. -/
+theorem integral_interpSP_zero_decoupled_and_last_spin_eq {N M : ℕ}
     {u : ℝ → ℝ} (hu : Measurable u) {B : ℝ} (hB : ∀ x, u x ≤ B)
     {s : ℝ} (hs : s ∈ Icc (0 : ℝ) 1) {r : ℝ} (hr0 : 0 ≤ r)
     {q : ℝ} (hq : q = ∫ z : ℝ, Real.tanh (z * Real.sqrt r) ^ 2 ∂gaussianReal 0 1) :
@@ -460,12 +461,20 @@ private lemma integral_interpSP_zero_last_spin_eq {N M : ℕ}
     let R_spin (a b : PerceptronSpin N) : ℝ :=
       ((∑ i, ((a.1 i : ℤ) : ℝ) * ((b.1 i : ℤ) : ℝ)) +
         ((a.2 : ℤ) : ℝ) * ((b.2 : ℤ) : ℝ)) / (N + 1)
-    ∫ ω, ∫ x : Fin 2 → InterpSPState N M,
+    (∀ F_old : (Fin 2 → Fin N → ℤˣ) → ℝ,
+      ∫ ω, ∫ x : Fin 2 → InterpSPState N M,
+        (F_old (fun l => (x l).1.1) * ((((x 0).1.2 : ℤ) : ℝ) * (((x 1).1.2 : ℤ) : ℝ)))
+        ∂(Measure.pi fun _ : Fin 2 => (interpSPBase N M).tilted (interpSPEnergy u s 0 q r ω))
+        ∂(interpSPDisorder N M v) =
+      q * ∫ ω, ∫ x : Fin 2 → InterpSPState N M, F_old (fun l => (x l).1.1)
+        ∂(Measure.pi fun _ : Fin 2 => (interpSPBase N M).tilted (interpSPEnergy u s 0 q r ω))
+        ∂(interpSPDisorder N M v)) ∧
+    (∫ ω, ∫ x : Fin 2 → InterpSPState N M,
         ((((x 0).1.2 : ℤ) : ℝ) * (((x 1).1.2 : ℤ) : ℝ) - q) *
           (R_spin (x 0).1 (x 1).1 - q)
         ∂(Measure.pi fun _ : Fin 2 => (interpSPBase N M).tilted (interpSPEnergy u s 0 q r ω))
         ∂(interpSPDisorder N M v) =
-      (1 - q ^ 2) / (N + 1) := by
+      (1 - q ^ 2) / (N + 1)) := by
   intro v R_spin
   let γ₁ : Measure ℝ := gaussianReal 0 1
   have h_tanh_yz : ∫ p : ℝ × ℝ,
@@ -625,6 +634,7 @@ private lemma integral_interpSP_zero_last_spin_eq {N M : ℕ}
     have hyz_q : ∫ ω₁, Real.tanh (Y_last ω₁) ^ 2 ∂P₁ = q := h_tanh_yz
     rw [hyz_q] at h1
     rw [h1, h2]
+  exact ⟨hdec, by
   have h_alg (σ : Fin 2 → PerceptronSpin N) :
       ((((σ 0).2 : ℤ) : ℝ) * (((σ 1).2 : ℤ) : ℝ) - q) * (R_spin (σ 0) (σ 1) - q) =
       (R_old (fun l => (σ l).1) * ((((σ 0).2 : ℤ) : ℝ) * (((σ 1).2 : ℤ) : ℝ)) -
@@ -701,7 +711,96 @@ private lemma integral_interpSP_zero_last_spin_eq {N M : ℕ}
       (-(q / ((N : ℝ) + 1))) * G_B2 σ from rfl,
     hlin G_A1 G_A2 1 (-q), hlin (fun _ => (1 : ℝ)) G_B2 _ _,
     hdec R_old, hdec (fun _ => (1 : ℝ)), hone]
-  ring
+  ring⟩
+
+/-- **Decoupled endpoint `t = 0` for the `(s, t)`-interpolating smart path:**
+when `s ∈ [0, 1]`, `r ≥ 0`, `v = (s * r).toNNReal`, and `q = 𝔼 tanh²(z √r)`, the `t = 0` average of
+`f = (ε₁ ε₂ - q)(R_{1,2} - q)` equals `(1 - q²) / (N + 1)`. -/
+theorem integral_interpSP_zero_last_spin_eq {N M : ℕ}
+    {u : ℝ → ℝ} (hu : Measurable u) {B : ℝ} (hB : ∀ x, u x ≤ B)
+    {s : ℝ} (hs : s ∈ Icc (0 : ℝ) 1) {r : ℝ} (hr0 : 0 ≤ r)
+    {q : ℝ} (hq : q = ∫ z : ℝ, Real.tanh (z * Real.sqrt r) ^ 2 ∂gaussianReal 0 1) :
+    let v : ℝ≥0 := (s * r).toNNReal
+    let R_spin (a b : PerceptronSpin N) : ℝ :=
+      ((∑ i, ((a.1 i : ℤ) : ℝ) * ((b.1 i : ℤ) : ℝ)) +
+        ((a.2 : ℤ) : ℝ) * ((b.2 : ℤ) : ℝ)) / (N + 1)
+    ∫ ω, ∫ x : Fin 2 → InterpSPState N M,
+        ((((x 0).1.2 : ℤ) : ℝ) * (((x 1).1.2 : ℤ) : ℝ) - q) *
+          (R_spin (x 0).1 (x 1).1 - q)
+        ∂(Measure.pi fun _ : Fin 2 => (interpSPBase N M).tilted (interpSPEnergy u s 0 q r ω))
+        ∂(interpSPDisorder N M v) =
+      (1 - q ^ 2) / (N + 1) :=
+  (integral_interpSP_zero_decoupled_and_last_spin_eq hu hB hs hr0 hq).2
+
+/-- **Decoupled centering at `t = 0` along the `(s, t)`-smart path:**
+`ν_{0,s}((ε₁ ε₂ - q) F_old) = 0` for any function `F_old` of the first `N` spin coordinates. -/
+theorem integral_interpSP_zero_old_spin_mul_sub_eq_zero {N M : ℕ}
+    {u : ℝ → ℝ} (hu : Measurable u) {B : ℝ} (hB : ∀ x, u x ≤ B)
+    {s : ℝ} (hs : s ∈ Icc (0 : ℝ) 1) {r : ℝ} (hr0 : 0 ≤ r)
+    {q : ℝ} (hq : q = ∫ z : ℝ, Real.tanh (z * Real.sqrt r) ^ 2 ∂gaussianReal 0 1)
+    (F_old : (Fin 2 → Fin N → ℤˣ) → ℝ) :
+    let v : ℝ≥0 := (s * r).toNNReal
+    ∫ ω, ∫ x : Fin 2 → InterpSPState N M,
+        ((((x 0).1.2 : ℤ) : ℝ) * (((x 1).1.2 : ℤ) : ℝ) - q) * F_old (fun l => (x l).1.1)
+        ∂(Measure.pi fun _ : Fin 2 => (interpSPBase N M).tilted (interpSPEnergy u s 0 q r ω))
+        ∂(interpSPDisorder N M v) = 0 := by
+  intro v
+  have hdec :=
+    (integral_interpSP_zero_decoupled_and_last_spin_eq (M := M) hu hB hs hr0 hq).1 F_old
+  obtain ⟨C, hC⟩ := exists_abs_le_of_finite F_old
+  have hμ (ω : InterpSPDisorder N M) :
+      IsProbabilityMeasure ((interpSPBase N M).tilted (interpSPEnergy u s 0 q r ω)) :=
+    isProbabilityMeasure_tilted_interpSPEnergy hu hB s 0 q r ω
+  have hint {G : (Fin 2 → PerceptronSpin N) → ℝ} {C' : ℝ} (hC' : ∀ a, |G a| ≤ C') :
+      Integrable (fun ω => ∫ x : Fin 2 → InterpSPState N M, G (fun l => (x l).1)
+        ∂(Measure.pi fun _ : Fin 2 => (interpSPBase N M).tilted (interpSPEnergy u s 0 q r ω)))
+        (interpSPDisorder N M v) := by
+    let F_obs (_ : InterpSPDisorder N M) (x : Fin 2 → InterpSPState N M) : ℝ :=
+      G (fun l => (x l).1)
+    have hFm :
+        Measurable fun p : InterpSPDisorder N M × (Fin 2 → InterpSPState N M) => F_obs p.1 p.2 :=
+      (measurable_of_finite G).comp (measurable_pi_iff.2 fun l =>
+        measurable_fst.comp ((measurable_pi_apply l).comp measurable_snd))
+    exact Integrable.of_bound
+      (measurable_integral_pi_tilted (μ := interpSPBase N M)
+        (measurable_interpSPEnergy hu s 0 q r) hFm).aestronglyMeasurable
+      |C'| (ae_of_all _ fun _ => by
+        rw [Real.norm_eq_abs]
+        exact abs_integral_le_of_forall_abs_le _ fun _ => (hC' _).trans (le_abs_self _))
+  have hin {G : (Fin 2 → PerceptronSpin N) → ℝ} {C' : ℝ} (hC' : ∀ a, |G a| ≤ C')
+      (ω : InterpSPDisorder N M) :
+      Integrable (fun x : Fin 2 → InterpSPState N M => G (fun l => (x l).1))
+        (Measure.pi fun _ : Fin 2 => (interpSPBase N M).tilted (interpSPEnergy u s 0 q r ω)) :=
+    Integrable.of_bound
+      ((measurable_of_finite G).comp (measurable_pi_iff.2 fun l =>
+        measurable_fst.comp (measurable_pi_apply l))).aestronglyMeasurable
+      |C'| (ae_of_all _ fun _ => by rw [Real.norm_eq_abs]; exact (hC' _).trans (le_abs_self _))
+  let G₁ (σ : Fin 2 → PerceptronSpin N) : ℝ :=
+    F_old (fun l => (σ l).1) * ((((σ 0).2 : ℤ) : ℝ) * (((σ 1).2 : ℤ) : ℝ))
+  let G₂ (σ : Fin 2 → PerceptronSpin N) : ℝ := F_old (fun l => (σ l).1)
+  have hC₁ (σ : Fin 2 → PerceptronSpin N) : |G₁ σ| ≤ C := by
+    dsimp only [G₁]; rw [abs_mul, abs_mul, abs_units_cast_eq_one, abs_units_cast_eq_one,
+      mul_one, mul_one]
+    exact hC _
+  have hC₂ (σ : Fin 2 → PerceptronSpin N) : |G₂ σ| ≤ C := hC _
+  have hpt (ω : InterpSPDisorder N M) :
+      ∫ x : Fin 2 → InterpSPState N M,
+        ((((x 0).1.2 : ℤ) : ℝ) * (((x 1).1.2 : ℤ) : ℝ) - q) * F_old (fun l => (x l).1.1)
+        ∂(Measure.pi fun _ : Fin 2 => (interpSPBase N M).tilted (interpSPEnergy u s 0 q r ω)) =
+      (∫ x : Fin 2 → InterpSPState N M, G₁ (fun l => (x l).1)
+        ∂(Measure.pi fun _ : Fin 2 => (interpSPBase N M).tilted (interpSPEnergy u s 0 q r ω))) -
+      q * (∫ x : Fin 2 → InterpSPState N M, G₂ (fun l => (x l).1)
+        ∂(Measure.pi fun _ : Fin 2 => (interpSPBase N M).tilted (interpSPEnergy u s 0 q r ω))) := by
+    have heq (x : Fin 2 → InterpSPState N M) :
+        ((((x 0).1.2 : ℤ) : ℝ) * (((x 1).1.2 : ℤ) : ℝ) - q) * F_old (fun l => (x l).1.1) =
+        G₁ (fun l => (x l).1) - q * G₂ (fun l => (x l).1) := by
+      dsimp only [G₁, G₂]; ring
+    simp_rw [heq]
+    rw [integral_sub (hin hC₁ ω) ((hin hC₂ ω).const_mul q), integral_const_mul]
+  simp_rw [hpt]
+  rw [integral_sub (hint hC₁) ((hint hC₂).const_mul q), integral_const_mul]
+  dsimp only [G₁, G₂]
+  linarith
 
 end DefinitionsAndBasic
 
@@ -2912,7 +3011,7 @@ end TimeDerivative
 section OverlapBoundAlongS
 
 /-- Monotonicity of a spin-only `(s, t)`-smart-path Gibbs average. -/
-private lemma integral_interpSP_mono {N M : ℕ} {R : Type uR} [Fintype R]
+theorem integral_interpSP_mono {N M : ℕ} {R : Type uR} [Fintype R]
     {u : ℝ → ℝ} (hu : Measurable u) {B : ℝ} (hB : ∀ x, u x ≤ B)
     (s t q r : ℝ) (v : ℝ≥0) {G₁ G₂ : (R → PerceptronSpin N) → ℝ} (hle : ∀ a, G₁ a ≤ G₂ a) :
     (∫ ω, ∫ x : R → InterpSPState N M, G₁ (fun l => (x l).1)
@@ -3400,15 +3499,18 @@ private lemma exists_hasDerivAt_interpSP_abs_le_first_moment
     exists_hasDerivAt_interpSP_abs_le_of_pair_bound hs ht q r hd hb f hB0 hK₂0 hterm
   exact ⟨d', hd', hbd.trans_eq (by ring)⟩
 
-/-- **`L²` Cauchy-Schwarz (`p₁ = p₂ = 2`) derivative bound for `t ↦ ν_{t, s}(f)`.** -/
-private lemma exists_hasDerivAt_interpSP_abs_le_l2
+/-- **General Hölder (`p₁.HolderConjugate p₂`) derivative bound for `t ↦ ν_{t, s}(f)`**
+(Proposition 2.3.6 along the `(s, t)`-smart path). The constant `K` depends only on `|R|` and `D`
+(chosen before `N, M, s, t, q, r, u, f, p₁, p₂`). -/
+theorem exists_hasDerivAt_interpSP_abs_le_holder
     (R : Type uR) [Fintype R] [LinearOrder R] (D : ℝ) :
     ∃ K : ℝ, 0 ≤ K ∧
       ∀ (N M : ℕ) {s t q : ℝ} (_hs : s ∈ Icc (0 : ℝ) 1) (_ht : t ∈ Ioo (0 : ℝ) 1)
         (_hq : q ∈ Icc (0 : ℝ) 1) (r : ℝ)
         {u : ℝ → ℝ} (_hd : ∀ j < 3, Differentiable ℝ (iteratedDeriv j u))
         (_hb : ∀ j ≤ 3, ∀ x, |iteratedDeriv j u x| ≤ D)
-        (f : (R → PerceptronSpin N) → ℝ),
+        (f : (R → PerceptronSpin N) → ℝ)
+        {p₁ p₂ : ℝ} (_hp : p₁.HolderConjugate p₂),
         let α : ℝ := ((M : ℝ) + 1) / ((N : ℝ) + 1)
         let d_spin (σ τ : PerceptronSpin N) : ℝ :=
           |((∑ i, ((σ.1 i : ℤ) : ℝ) * ((τ.1 i : ℤ) : ℝ)) +
@@ -3421,21 +3523,22 @@ private lemma exists_hasDerivAt_interpSP_abs_le_l2
         ∃ d',
           HasDerivAt
             (fun t' => ∫ ω, ∫ x : R → InterpSPState N (M + 1), f (fun l => (x l).1)
-              ∂(Measure.pi fun _ : R => (interpSPBase N (M + 1)).tilted (interpSPEnergy u s t' q r ω))
+              ∂(Measure.pi fun _ : R =>
+                (interpSPBase N (M + 1)).tilted (interpSPEnergy u s t' q r ω))
               ∂P)
             d' t ∧
           |d'| ≤ α * K *
             ((∫ ω, ∫ x : R → InterpSPState N (M + 1),
-                (f (fun l => (x l).1)) ^ 2 ∂(Measure.pi fun _ : R => μ ω) ∂P) ^ (1 / (2 : ℝ)) *
+                |f (fun l => (x l).1)| ^ p₁ ∂(Measure.pi fun _ : R => μ ω) ∂P) ^ (1 / p₁) *
               (∫ ω, ∫ a : Fin 2 → InterpSPState N (M + 1),
-                (d_spin (a 0).1 (a 1).1) ^ 2 ∂(Measure.pi fun _ : Fin 2 => μ ω) ∂P) ^ (1 / (2 : ℝ)) +
+                d_spin (a 0).1 (a 1).1 ^ p₂ ∂(Measure.pi fun _ : Fin 2 => μ ω) ∂P) ^ (1 / p₂) +
               1 / (N + 1) *
                 ∫ ω, ∫ x : R → InterpSPState N (M + 1),
                   |f (fun l => (x l).1)| ∂(Measure.pi fun _ : R => μ ω) ∂P) := by
   obtain ⟨K₂, hK₂0, hK₂⟩ :=
-    abs_integral_interp_deriv_mul_sub_rhat_le_l2 (Option (Option R)) D
+    abs_integral_interp_deriv_mul_sub_rhat_le_holder (Option (Option R)) D
   refine ⟨2 * (Fintype.card R : ℝ) ^ 2 * K₂, by positivity, ?_⟩
-  intro N M s t q hs ht hq r u hd hb f α d_spin rhat v P μ
+  intro N M s t q hs ht hq r u hd hb f p₁ p₂ hp α d_spin rhat v P μ
   obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
   obtain ⟨C_f, hCf⟩ := exists_abs_le_of_finite f
   have hμ (ω : InterpSPDisorder N (M + 1)) : IsProbabilityMeasure (μ ω) :=
@@ -3443,15 +3546,17 @@ private lemma exists_hasDerivAt_interpSP_abs_le_l2
   let e₂ : R → Option (Option R) := fun l => some (some l)
   have he₂ : Function.Injective e₂ := (Option.some_injective _).comp (Option.some_injective _)
   let A₀ : ℝ := ∫ ω, ∫ x : R → InterpSPState N (M + 1),
-    (f (fun l => (x l).1)) ^ 2 ∂(Measure.pi fun _ : R => μ ω) ∂P
+    |f (fun l => (x l).1)| ^ p₁ ∂(Measure.pi fun _ : R => μ ω) ∂P
   let B₀ : ℝ := ∫ ω, ∫ a : Fin 2 → InterpSPState N (M + 1),
-    (d_spin (a 0).1 (a 1).1) ^ 2 ∂(Measure.pi fun _ : Fin 2 => μ ω) ∂P
+    d_spin (a 0).1 (a 1).1 ^ p₂ ∂(Measure.pi fun _ : Fin 2 => μ ω) ∂P
   let I₁ : ℝ := ∫ ω, ∫ x : R → InterpSPState N (M + 1),
     |f (fun l => (x l).1)| ∂(Measure.pi fun _ : R => μ ω) ∂P
-  have hA₀0 : 0 ≤ A₀ := integral_nonneg fun _ => integral_nonneg fun _ => sq_nonneg _
-  have hB₀0 : 0 ≤ B₀ := integral_nonneg fun _ => integral_nonneg fun _ => sq_nonneg _
+  have hA₀0 : 0 ≤ A₀ :=
+    integral_nonneg fun _ => integral_nonneg fun _ => Real.rpow_nonneg (abs_nonneg _) _
+  have hB₀0 : 0 ≤ B₀ :=
+    integral_nonneg fun _ => integral_nonneg fun _ => Real.rpow_nonneg (abs_nonneg _) _
   have hI₁0 : 0 ≤ I₁ := integral_nonneg fun _ => integral_nonneg fun _ => abs_nonneg _
-  let B_err : ℝ := A₀ ^ (1 / (2 : ℝ)) * B₀ ^ (1 / (2 : ℝ)) + 1 / (N + 1) * I₁
+  let B_err : ℝ := A₀ ^ (1 / p₁) * B₀ ^ (1 / p₂) + 1 / (N + 1) * I₁
   have hB0 : 0 ≤ B_err := by positivity
   let P₀ := interpSPDisorder N M v
   let γ₁ := Measure.pi fun _ : ((Fin N ⊕ Unit) ⊕ Unit) => gaussianReal 0 1
@@ -3509,11 +3614,11 @@ private lemma exists_hasDerivAt_interpSP_abs_le_l2
         measurable_const.mul ((measurable_pi_apply idx).comp (measurable_snd.comp measurable_snd))
     exact hd1.add hd2
   have htr_B₀ : (∫ p, ∫ a : Fin 2 → InterpSPState N M × (Fin 2 → ℝ),
-      (d_spin (a 0).1.1 (a 1).1.1) ^ 2
+      d_spin (a 0).1.1 (a 1).1.1 ^ p₂
       ∂(Measure.pi fun _ => ((μ₀ p.1).prod γ₂).tilted (fun y => u (X_fn p.2 y)))
       ∂(P₀.prod γ₁)) = B₀ :=
     integral_pi_interpSP_last_split_spinOnly_eq hu.measurable (fun x => hu.le x)
-      s t q r v (fun s_pair : Fin 2 → PerceptronSpin N => (d_spin (s_pair 0) (s_pair 1)) ^ 2)
+      s t q r v (fun s_pair : Fin 2 → PerceptronSpin N => d_spin (s_pair 0) (s_pair 1) ^ p₂)
   have hterm (i j : Option (Option R)) (hij : i ≠ j) :
       |(∫ ω, ∫ τ : Option (Option R) → InterpSPState N (M + 1),
           (f (fun l => (τ (some (some l))).1) *
@@ -3548,7 +3653,7 @@ private lemma exists_hasDerivAt_interpSP_abs_le_l2
     have hb235 := hK₂ N P₀ (interpSPBase N M)
       (measurable_interpSPEnergy hu.measurable s t q r)
       (integrable_exp_interpSPEnergy hu.measurable (fun x => hu.le x) s t q r)
-      Prod.fst measurable_fst hij hs ⟨ht.1.le, ht.2.le⟩ hq hd hb hg_m hg_b
+      Prod.fst measurable_fst hij hs ⟨ht.1.le, ht.2.le⟩ hq hd hb hg_m hg_b hp
     dsimp only at hb235
     have htr1 : (∫ p, ∫ a : Option (Option R) → InterpSPState N M × (Fin 2 → ℝ),
         g_ij p.1 (fun l => (a l).1) * (deriv u (X_fn p.2 (a i)) * deriv u (X_fn p.2 (a j)))
@@ -3576,7 +3681,8 @@ private lemma exists_hasDerivAt_interpSP_abs_le_l2
               deriv u (X_fn p.1.2 (p.2 k)) := by
           have hpk : Measurable fun p : (InterpSPDisorder N M × (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) ×
               (Option (Option R) → InterpSPState N M × (Fin 2 → ℝ)) => (p.1.2, p.2 k) :=
-            (measurable_snd.comp measurable_fst).prodMk ((measurable_pi_apply k).comp measurable_snd)
+            (measurable_snd.comp measurable_fst).prodMk
+              ((measurable_pi_apply k).comp measurable_snd)
           have hxf := hXm.comp hpk
           exact (measurable_deriv u).comp hxf
         exact (hg_m.comp hg_p).mul ((hfl i).mul (hfl j))
@@ -3611,16 +3717,16 @@ private lemma exists_hasDerivAt_interpSP_abs_le_l2
       refine heq2.trans
         (integral_congr_ae (ae_of_all _ fun _ => integral_congr_ae (ae_of_all _ fun _ => ?_)))
       simp [G₂, g_ij, interpSPStateSplit_apply]
+    let G₃ (p : InterpSPDisorder N M × (((Fin N ⊕ Unit) ⊕ Unit) → ℝ))
+        (a : Option (Option R) → InterpSPState N M × (Fin 2 → ℝ)) : ℝ :=
+      |g_ij p.1 (fun l => (a l).1)|
+    have hgm3 : Measurable fun p : (InterpSPDisorder N M × (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) ×
+        (Option (Option R) → InterpSPState N M × (Fin 2 → ℝ)) => G₃ p.1 p.2 := by
+      simpa only [G₃, Real.norm_eq_abs] using hgm2.norm
     have htr3 : (∫ p, ∫ a : Option (Option R) → InterpSPState N M × (Fin 2 → ℝ),
         |g_ij p.1 (fun l => (a l).1)|
         ∂(Measure.pi fun _ => ((μ₀ p.1).prod γ₂).tilted (fun y => u (X_fn p.2 y)))
         ∂(P₀.prod γ₁)) = I₁ := by
-      let G₃ (p : InterpSPDisorder N M × (((Fin N ⊕ Unit) ⊕ Unit) → ℝ))
-          (a : Option (Option R) → InterpSPState N M × (Fin 2 → ℝ)) : ℝ :=
-        |g_ij p.1 (fun l => (a l).1)|
-      have hgm3 : Measurable fun p : (InterpSPDisorder N M × (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) ×
-          (Option (Option R) → InterpSPState N M × (Fin 2 → ℝ)) => G₃ p.1 p.2 :=
-        continuous_abs.measurable.comp hgm2
       have heq3 := integral_pi_interpSP_last_split_eq hu.measurable (fun x => hu.le x)
         s t q r v (G := G₃) hgm3
       refine heq3.trans (integral_congr_ae (ae_of_all _ fun ω => ?_))
@@ -3639,15 +3745,15 @@ private lemma exists_hasDerivAt_interpSP_abs_le_l2
       exact integral_pi_comp_injective (μ ω) he₂
         (fun x => |f (fun l => (x l).1)|) hfm.aestronglyMeasurable
     have htr_A₀ : (∫ p, ∫ a : Option (Option R) → InterpSPState N M × (Fin 2 → ℝ),
-        (g_ij p.1 (fun l => (a l).1)) ^ 2
+        |g_ij p.1 (fun l => (a l).1)| ^ p₁
         ∂(Measure.pi fun _ => ((μ₀ p.1).prod γ₂).tilted (fun y => u (X_fn p.2 y)))
         ∂(P₀.prod γ₁)) = A₀ := by
       let G₄ (p : InterpSPDisorder N M × (((Fin N ⊕ Unit) ⊕ Unit) → ℝ))
           (a : Option (Option R) → InterpSPState N M × (Fin 2 → ℝ)) : ℝ :=
-        (g_ij p.1 (fun l => (a l).1)) ^ 2
+        |g_ij p.1 (fun l => (a l).1)| ^ p₁
       have hgm_a : Measurable fun p : (InterpSPDisorder N M × (((Fin N ⊕ Unit) ⊕ Unit) → ℝ)) ×
           (Option (Option R) → InterpSPState N M × (Fin 2 → ℝ)) => G₄ p.1 p.2 :=
-        hgm2.pow_const 2
+        hgm3.pow_const p₁
       have heq4 := integral_pi_interpSP_last_split_eq hu.measurable (fun x => hu.le x)
         s t q r v (G := G₄) hgm_a
       refine heq4.trans (integral_congr_ae (ae_of_all _ fun ω => ?_))
@@ -3656,23 +3762,82 @@ private lemma exists_hasDerivAt_interpSP_abs_le_l2
             Sum.elim (Sum.elim (ω.1.1.1 (Fin.last M)) (fun _ => ω.1.1.2 (Fin.last M)))
               (fun _ => ω.1.2 (Fin.last M)))
             (fun l => interpSPStateSplit N M (τ l)) =
-          (f (fun l => (τ (e₂ l)).1)) ^ 2 := by
+          |f (fun l => (τ (e₂ l)).1)| ^ p₁ := by
         dsimp only [G₄, g_ij]; simp only [interpSPStateSplit_apply]
-        rw [mul_pow, mul_pow, units_cast_sq, units_cast_sq, mul_one, mul_one]
+        rw [abs_mul, abs_mul, abs_units_cast_eq_one, abs_units_cast_eq_one, mul_one, mul_one]
       simp_rw [hpt]
-      have hfm : Measurable fun x : R → InterpSPState N (M + 1) => (f (fun l => (x l).1)) ^ 2 :=
-        ((measurable_of_finite f).comp (measurable_pi_iff.2 fun l =>
-          measurable_fst.comp (measurable_pi_apply l))).pow_const 2
+      have hfm : Measurable fun x : R → InterpSPState N (M + 1) =>
+          |f (fun l => (x l).1)| ^ p₁ := by
+        have habs : Measurable fun x : R → InterpSPState N (M + 1) => |f (fun l => (x l).1)| :=
+          continuous_abs.measurable.comp
+            ((measurable_of_finite f).comp (measurable_pi_iff.2 fun l =>
+              measurable_fst.comp (measurable_pi_apply l)))
+        exact habs.pow_const p₁
       exact integral_pi_comp_injective (μ ω) he₂
-        (fun x => (f (fun l => (x l).1)) ^ 2) hfm.aestronglyMeasurable
+        (fun x => |f (fun l => (x l).1)| ^ p₁) hfm.aestronglyMeasurable
     rw [htr1, htr2, htr3, htr_A₀, htr_B₀] at hb235
     exact hb235
   obtain ⟨d', hd', hbd⟩ :=
     exists_hasDerivAt_interpSP_abs_le_of_pair_bound hs ht q r hd hb f hB0 hK₂0 hterm
   exact ⟨d', hd', hbd.trans_eq (by ring)⟩
 
+/-- **`L²` Cauchy-Schwarz (`p₁ = p₂ = 2`) derivative bound for `t ↦ ν_{t, s}(f)`.** -/
+private lemma exists_hasDerivAt_interpSP_abs_le_l2
+    (R : Type uR) [Fintype R] [LinearOrder R] (D : ℝ) :
+    ∃ K : ℝ, 0 ≤ K ∧
+      ∀ (N M : ℕ) {s t q : ℝ} (_hs : s ∈ Icc (0 : ℝ) 1) (_ht : t ∈ Ioo (0 : ℝ) 1)
+        (_hq : q ∈ Icc (0 : ℝ) 1) (r : ℝ)
+        {u : ℝ → ℝ} (_hd : ∀ j < 3, Differentiable ℝ (iteratedDeriv j u))
+        (_hb : ∀ j ≤ 3, ∀ x, |iteratedDeriv j u x| ≤ D)
+        (f : (R → PerceptronSpin N) → ℝ),
+        let α : ℝ := ((M : ℝ) + 1) / ((N : ℝ) + 1)
+        let d_spin (σ τ : PerceptronSpin N) : ℝ :=
+          |((∑ i, ((σ.1 i : ℤ) : ℝ) * ((τ.1 i : ℤ) : ℝ)) +
+            ((σ.2 : ℤ) : ℝ) * ((τ.2 : ℤ) : ℝ)) / (N + 1) - q|
+        let rhat := perceptronRhat u q
+        let v : ℝ≥0 := (s * (α * rhat)).toNNReal
+        let P := interpSPDisorder N (M + 1) v
+        let μ (ω : InterpSPDisorder N (M + 1)) :=
+          (interpSPBase N (M + 1)).tilted (interpSPEnergy u s t q r ω)
+        ∃ d',
+          HasDerivAt
+            (fun t' => ∫ ω, ∫ x : R → InterpSPState N (M + 1), f (fun l => (x l).1)
+              ∂(Measure.pi fun _ : R =>
+                (interpSPBase N (M + 1)).tilted (interpSPEnergy u s t' q r ω))
+              ∂P)
+            d' t ∧
+          |d'| ≤ α * K *
+            ((∫ ω, ∫ x : R → InterpSPState N (M + 1),
+                (f (fun l => (x l).1)) ^ 2 ∂(Measure.pi fun _ : R => μ ω) ∂P) ^ (1 / (2 : ℝ)) *
+              (∫ ω, ∫ a : Fin 2 → InterpSPState N (M + 1),
+                (d_spin (a 0).1 (a 1).1) ^ 2
+                  ∂(Measure.pi fun _ : Fin 2 => μ ω) ∂P) ^ (1 / (2 : ℝ)) +
+              1 / (N + 1) *
+                ∫ ω, ∫ x : R → InterpSPState N (M + 1),
+                  |f (fun l => (x l).1)| ∂(Measure.pi fun _ : R => μ ω) ∂P) := by
+  obtain ⟨K, hK0, hK⟩ := exists_hasDerivAt_interpSP_abs_le_holder R D
+  refine ⟨K, hK0, ?_⟩
+  intro N M s t q hs ht hq r u hd hb f α d_spin rhat v P μ
+  have hp22 : (2 : ℝ).HolderConjugate 2 := by rw [Real.holderConjugate_iff]; norm_num
+  obtain ⟨d', hd', hbd⟩ := hK N M hs ht hq r hd hb f hp22
+  refine ⟨d', hd', hbd.trans_eq ?_⟩
+  have hA : (∫ ω, ∫ x : R → InterpSPState N (M + 1),
+      |f (fun l => (x l).1)| ^ (2 : ℝ) ∂(Measure.pi fun _ : R => μ ω) ∂P) =
+    ∫ ω, ∫ x : R → InterpSPState N (M + 1),
+      (f (fun l => (x l).1)) ^ 2 ∂(Measure.pi fun _ : R => μ ω) ∂P :=
+    integral_congr_ae (ae_of_all _ fun _ => integral_congr_ae (ae_of_all _ fun _ => by
+      dsimp only; rw [Real.rpow_two, sq_abs]))
+  have hB : (∫ ω, ∫ a : Fin 2 → InterpSPState N (M + 1),
+      d_spin (a 0).1 (a 1).1 ^ (2 : ℝ) ∂(Measure.pi fun _ : Fin 2 => μ ω) ∂P) =
+    ∫ ω, ∫ a : Fin 2 → InterpSPState N (M + 1),
+      (d_spin (a 0).1 (a 1).1) ^ 2 ∂(Measure.pi fun _ : Fin 2 => μ ω) ∂P :=
+    integral_congr_ae (ae_of_all _ fun _ => integral_congr_ae (ae_of_all _ fun _ => by
+      dsimp only; exact Real.rpow_two _))
+  dsimp only [α, d_spin, rhat, v, P, μ] at hA hB ⊢
+  rw [hA, hB]
+
 /-- **Uniform domination `ν_{t, s}(F) ≤ 2 ν_s(F)` along `t ∈ [0, 1]` at small load.** -/
-private lemma integral_interpSP_fin_two_le_two_mul_interpolating (D : ℝ) :
+theorem integral_interpSP_fin_two_le_two_mul_interpolating (D : ℝ) :
     ∃ K : ℝ, 0 ≤ K ∧
       ∀ (N M : ℕ) {s t q : ℝ} (_hs : s ∈ Icc (0 : ℝ) 1) (_ht : t ∈ Icc (0 : ℝ) 1)
         (_hq : q ∈ Icc (0 : ℝ) 1) (r : ℝ)

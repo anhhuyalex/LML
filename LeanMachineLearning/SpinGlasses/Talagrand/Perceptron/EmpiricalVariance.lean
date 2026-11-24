@@ -60,7 +60,7 @@ private lemma abs_overlap_sub_le_two {N M : ℕ} {q : ℝ} (hq : q ∈ Icc (0 : 
   linarith [hq.2]
 
 /-- The observable `(N + 1)⁻¹ ∑_k u'(a_k) u'(b_k) - r` is bounded when `|u'| ≤ D₁`. -/
-private lemma abs_empVar_obs_le {N M : ℕ} {u : ℝ → ℝ} {D₁ : ℝ} (hD : ∀ x, |deriv u x| ≤ D₁)
+theorem abs_empVar_obs_le {N M : ℕ} {u : ℝ → ℝ} {D₁ : ℝ} (hD : ∀ x, |deriv u x| ≤ D₁)
     (r : ℝ) (a b : Fin M → ℝ) :
     |((N : ℝ) + 1)⁻¹ * ∑ k : Fin M, deriv u (a k) * deriv u (b k) - r| ≤
       ((M : ℝ) / ((N : ℝ) + 1)) * |D₁| ^ 2 + |r| := by
@@ -890,7 +890,7 @@ private lemma measurePreserving_interpVarDisorder_lastSplit (N M : ℕ) :
 /-- Transport a replica average on `((μ₀ p.1).prod γ₂).tilted (fun y => u (X_fn p.2 y))` at
 smart-path `t = 1` (where coordinate `0` of `y.2 : Fin 2 → ℝ` has coefficient `0`) to the full
 `(M + 1)`-constraint `s`-interpolating Gibbs measure `ν_s ω`. -/
-private lemma integral_pi_interpVar_last_split_eq.{uR}
+theorem integral_pi_interpVar_last_split_eq.{uR}
     {N M : ℕ} {R : Type uR} [Fintype R]
     {u : ℝ → ℝ} (hu : Measurable u) {B : ℝ} (hB : ∀ x, u x ≤ B)
     (s q r : ℝ)
