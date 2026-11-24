@@ -135,6 +135,25 @@ theorem perceptron_pressure_succ_sub_eq
   rw [hp_M1_eq, integral_add hZM_int hR_int, hZM_fst]
   ring
 
+/-- The second-proof field `√v' (√(N+1))⁻¹ ∑ᵢ g'ᵢ εᵢ + √(1-v') (√q z + √(1-q) ξ)` is measurable in the
+state `(ε, ξ)` for a fixed disorder. -/
+private lemma measurable_secondProof_field {N M : ℕ} (q v' : ℝ) (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) × ℝ) :
+    Measurable fun x : (Fin (N + 1) → ℤˣ) × ℝ =>
+      Real.sqrt v' * ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.2 i * ((x.1 i : ℤ) : ℝ)) +
+        Real.sqrt (1 - v') * (Real.sqrt q * ω.2 + Real.sqrt (1 - q) * x.2) :=
+  (((Finset.measurable_sum _ fun i _ => measurable_const.mul
+    (measurable_units_cast.comp ((measurable_pi_apply i).comp measurable_fst))).const_mul _
+    ).const_mul _).add ((measurable_const.add (measurable_snd.const_mul _)).const_mul _)
+
+/-- The `v'`-derivative of the second-proof field is measurable in the state. -/
+private lemma measurable_secondProof_field_deriv {N M : ℕ} (q v' : ℝ) (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) × ℝ) :
+    Measurable fun x : (Fin (N + 1) → ℤˣ) × ℝ =>
+      (1 / (2 * Real.sqrt v')) * ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.2 i * ((x.1 i : ℤ) : ℝ)) -
+        (1 / (2 * Real.sqrt (1 - v'))) * (Real.sqrt q * ω.2 + Real.sqrt (1 - q) * x.2) :=
+  (((Finset.measurable_sum _ fun i _ => measurable_const.mul
+    (measurable_units_cast.comp ((measurable_pi_apply i).comp measurable_fst))).const_mul _
+    ).const_mul _).sub ((measurable_const.add (measurable_snd.const_mul _)).const_mul _)
+
 /-- **Dominated differentiation step of (2.91).** The function
 `v' ↦ 𝔼 log ∫ exp u(S_{v'})` is differentiable at `v ∈ (0, 1)` with derivative the
 integral of `⟨S'_v u'(S_v)⟩` over the disorder, and this derivative is integrable. -/
@@ -173,23 +192,11 @@ private theorem hasDerivAt_secondProof_logPartition
     ∫ x, (S'_v v' ω x * deriv u (S_v v' ω x))
       ∂(((μ_M ω.1.1).prod γ).tilted (fun x => u (S_v v' ω x)))
   have hSv_m (v' : ℝ) (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) × ℝ) :
-      Measurable fun x : (Fin (N + 1) → ℤˣ) × ℝ => S_v v' ω x := by
-    have h1 : Measurable fun x : (Fin (N + 1) → ℤˣ) × ℝ =>
-        ∑ i : Fin (N + 1), ω.1.2 i * ((x.1 i : ℤ) : ℝ) :=
-      Finset.measurable_sum _ fun i _ =>
-        measurable_const.mul
-          (measurable_units_cast.comp ((measurable_pi_apply i).comp measurable_fst))
-    exact ((h1.const_mul _).const_mul _).add
-      ((measurable_const.add (measurable_snd.const_mul _)).const_mul _)
+      Measurable fun x : (Fin (N + 1) → ℤˣ) × ℝ => S_v v' ω x :=
+    measurable_secondProof_field q v' ω
   have hS'v_m (v' : ℝ) (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) × ℝ) :
-      Measurable fun x : (Fin (N + 1) → ℤˣ) × ℝ => S'_v v' ω x := by
-    have h1 : Measurable fun x : (Fin (N + 1) → ℤˣ) × ℝ =>
-        ∑ i : Fin (N + 1), ω.1.2 i * ((x.1 i : ℤ) : ℝ) :=
-      Finset.measurable_sum _ fun i _ =>
-        measurable_const.mul
-          (measurable_units_cast.comp ((measurable_pi_apply i).comp measurable_fst))
-    exact ((h1.const_mul _).const_mul _).sub
-      ((measurable_const.add (measurable_snd.const_mul _)).const_mul _)
+      Measurable fun x : (Fin (N + 1) → ℤˣ) × ℝ => S'_v v' ω x :=
+    measurable_secondProof_field_deriv q v' ω
   let b_ω (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) × ℝ) : ℝ :=
     |D₁| * ((1 / (2 * Real.sqrt δ)) *
       ((Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i : Fin (N + 1), |ω.1.2 i|) + Real.sqrt q * |ω.2|))
@@ -681,23 +688,11 @@ private theorem integral_secondProof_stein
   have hμM_prob (g₀ : Fin M → Fin (N + 1) → ℝ) : IsProbabilityMeasure (μ_M g₀) :=
     isProbabilityMeasure_tilted Integrable.of_finite
   have hSv_m (v' : ℝ) (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) × ℝ) :
-      Measurable fun x : (Fin (N + 1) → ℤˣ) × ℝ => S_v v' ω x := by
-    have h1 : Measurable fun x : (Fin (N + 1) → ℤˣ) × ℝ =>
-        ∑ i : Fin (N + 1), ω.1.2 i * ((x.1 i : ℤ) : ℝ) :=
-      Finset.measurable_sum _ fun i _ =>
-        measurable_const.mul
-          (measurable_units_cast.comp ((measurable_pi_apply i).comp measurable_fst))
-    exact ((h1.const_mul _).const_mul _).add
-      ((measurable_const.add (measurable_snd.const_mul _)).const_mul _)
+      Measurable fun x : (Fin (N + 1) → ℤˣ) × ℝ => S_v v' ω x :=
+    measurable_secondProof_field q v' ω
   have hS'v_m (v' : ℝ) (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) × ℝ) :
-      Measurable fun x : (Fin (N + 1) → ℤˣ) × ℝ => S'_v v' ω x := by
-    have h1 : Measurable fun x : (Fin (N + 1) → ℤˣ) × ℝ =>
-        ∑ i : Fin (N + 1), ω.1.2 i * ((x.1 i : ℤ) : ℝ) :=
-      Finset.measurable_sum _ fun i _ =>
-        measurable_const.mul
-          (measurable_units_cast.comp ((measurable_pi_apply i).comp measurable_fst))
-    exact ((h1.const_mul _).const_mul _).sub
-      ((measurable_const.add (measurable_snd.const_mul _)).const_mul _)
+      Measurable fun x : (Fin (N + 1) → ℤˣ) × ℝ => S'_v v' ω x :=
+    measurable_secondProof_field_deriv q v' ω
   let γ_sh := Measure.pi fun _ : Fin (N + 1) ⊕ Unit => γ
   let γ_aux := Measure.pi fun _ : Unit => γ
   let α_sh (τ : Fin (N + 1) → ℤˣ) : (Fin (N + 1) ⊕ Unit) → ℝ :=

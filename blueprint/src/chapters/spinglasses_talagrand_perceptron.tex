@@ -3219,6 +3219,7 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/RSFixedPoint.lean} and
 \begin{lemma}[Cavity-in-$M$ comparison and overlap concentration along the $s$-interpolation, (2.80)]\label{lem:sg-tal:perceptron-interpolating-overlap}
   \lean{SpinGlasses.interp_cavity_rotation_dotProducts,
         SpinGlasses.abs_integral_interp_deriv_mul_sub_rhat_le_first_moment,
+        SpinGlasses.abs_integral_interp_deriv_mul_sub_rhat_le_holder,
         SpinGlasses.abs_integral_interp_deriv_mul_sub_rhat_le_l2,
         SpinGlasses.interpolating_replica_site_perm,
         SpinGlasses.integral_interpolating_overlap_mul_eq_last_site,
@@ -3248,6 +3249,11 @@ constraint $X_{\rm fn}$ gives
  \le K\left(\nu_{\rm new}(f^2)^{1/2}\,\nu_{\rm new}\bigl((R_{1,2}-q)^2\bigr)^{1/2}
    +\frac{1}{N+1}\nu_{\rm new}(|f|)\right).
 \]
+The same constant $K$ works for conjugate exponents $p_1,p_2\in(1,\infty)$,
+$1/p_1+1/p_2=1$, with the bound
+$K\bigl(\nu_{\rm new}(|f|^{p_1})^{1/p_1}\nu_{\rm new}(|R_{1,2}-q|^{p_2})^{1/p_2}
++\frac{1}{N+1}\nu_{\rm new}(|f|)\bigr)$; the $L^2$ statement above is the case
+$p_1=p_2=2$ and is a corollary of the H\"older version.
 \item \emph{Uniform overlap concentration (2.80).} Given $D\in\mathbb R$, there exist $K=K(D)\ge 0$
 and $L\ge 0$ (chosen before $N,M,s,u,q,r$) such that whenever $u$ satisfies (2.7),
 $\alpha=M/(N+1)$ satisfies $\alpha K\le 1$, $(q,r)$ solves (2.68) for load $\alpha$, and
@@ -4031,10 +4037,10 @@ $c\in[0,1/200]$,
   \leanok
 Expanding the exponential and using Theorem~\ref{thm:sg-tal:perceptron-overlap-high-moments} termwise (all terms
 are nonnegative, so the sum and the expectation may be exchanged),
-\[
- \nu_s\bigl(e^{c(N+1)(R_{1,2}-q)^2}\bigr)=\sum_{k\ge0}\frac{(c(N+1))^k}{k!}\,\nu_s\bigl((R_{1,2}-q)^{2k}\bigr)
- \le\sum_{k\ge0}\frac{(64\,c\,k)^k}{k!}\le\sum_{k\ge0}(64\,c\,e)^k\le\frac{1}{1-7/8}=8,
-\]
+\begin{align*}
+ \nu_s\bigl(e^{c(N+1)(R_{1,2}-q)^2}\bigr)&=\sum_{k\ge0}\frac{(c(N+1))^k}{k!}\,\nu_s\bigl((R_{1,2}-q)^{2k}\bigr)\\
+ &\le\sum_{k\ge0}\frac{(64\,c\,k)^k}{k!}\le\sum_{k\ge0}(64\,c\,e)^k\le\frac{1}{1-7/8}=8,
+\end{align*}
 using $k^k\le k!\,e^k$ and $64ce\le 64e/200\le 7/8$. \emph{Formalization note.} This statement is an addition: the
 book does not state an exponential bound. The series converges exactly when $64ce<1$; the range $c<1/64$ is
 therefore not claimed. Formalized in \texttt{OverlapHighMoments.lean}.
@@ -4124,7 +4130,7 @@ $M/(N+1)$; the constants of the cavity bound and of the Young step are explicit 
 $L$ built from $K_{\rm cav}$ and $|D|$) instead of ``$K(D)$''. The condition $\alpha\le1$ that the book
 adds (``we can as well assume'') is derived from $\alpha K\le1$ with $K\ge1$.
 \end{enumerate}
-Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/EmpiricalVarianceHighMoments.lean}.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/}\texttt{EmpiricalVarianceHighMoments.lean}.
 \end{proof}
 
 \begin{remark}[Scope of Section~2.5 in this blueprint]\label{rem:sg-tal:perceptron-exponential-scope}

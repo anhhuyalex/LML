@@ -86,23 +86,13 @@ private lemma integral_interpolating_partial_overlap_succ_eq_last {N M : ℕ}
         (fun j => y (Equiv.swap i (Fin.last N) j)) = A_fn x y := by
     dsimp only [A_fn]
     congr 1
-    refine Finset.sum_bij (fun j _ => Equiv.swap i (Fin.last N) j) ?_ ?_ ?_ ?_
-    · intro j hj
-      by_cases hji : j = i
-      · subst hji; simpa using hlast_mem
-      · by_cases hjl : j = Fin.last N
-        · subst hjl; simpa using hi
-        · rwa [Equiv.swap_apply_of_ne_of_ne hji hjl]
-    · intro j₁ _ j₂ _ h
-      exact (Equiv.swap i (Fin.last N)).injective h
-    · intro j hj
-      refine ⟨Equiv.swap i (Fin.last N) j, ?_, by simp⟩
-      by_cases hji : j = i
-      · subst hji; simpa using hlast_mem
-      · by_cases hjl : j = Fin.last N
-        · subst hjl; simpa using hi
-        · rwa [Equiv.swap_apply_of_ne_of_ne hji hjl]
-    · intros; rfl
+    refine Equiv.Perm.sum_comp (Equiv.swap i (Fin.last N)) (Finset.Ici n)
+      (fun j => ((x j : ℤ) : ℝ) * ((y j : ℤ) : ℝ) - q) fun a ha => ?_
+    by_cases hai : a = i
+    · exact Finset.mem_coe.2 (hai ▸ hi)
+    · by_cases hal : a = Fin.last N
+      · exact Finset.mem_coe.2 (hal ▸ hlast_mem)
+      · exact absurd (Equiv.swap_apply_of_ne_of_ne hai hal) ha
   have hsite {i : Fin (N + 1)} (hi : i ∈ Finset.Ici n) :
       (∫ ω, ∫ σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ),
           Θ i (σ 0).1 (σ 1).1 ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s ω)) ∂P_s) =
