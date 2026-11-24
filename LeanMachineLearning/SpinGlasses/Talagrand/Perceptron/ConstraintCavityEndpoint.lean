@@ -143,15 +143,14 @@ theorem integral_pi_tilted_cavityPath_pi_div_two_deriv_mul {R : Type*} [Fintype 
       deriv u (Real.sqrt q * z + Real.sqrt (1 - q) * τ j))
   rw [h, integral_pi_mul_of_ne _ hij hθ hθ, integral_tilted_eq_div, sq]
 
+include hu hD in
 /-- **Lemma 2.3.1 (2.38), averaged over the disorder and `z`.** For the product law `P ⊗ 𝒩(0,1)` of
 the disorder and the shared Gaussian `z`, the average of `f u'(θ^i) u'(θ^j)` under the extended
 system at `v = 0` is `r̂` times the disorder average of `⟨f⟩_{t,∼}`, where
 `r̂ = E_z (E_ξ u'(θ) e^{u(θ)} / E_ξ e^{u(θ)})²` is (2.36). -/
 theorem integral_integral_pi_tilted_cavityPath_pi_div_two_deriv_mul {R : Type*} [Fintype R]
     {i j : R} (hij : i ≠ j) (f : SmartPathDisorder N (M + 1) → (R → SmartPathState N M) → ℝ)
-    (P : Measure (SmartPathDisorder N (M + 1))) [SFinite P]
-    (hZ : ∀ z : ℝ, Integrable (fun ξ : ℝ =>
-      Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ))) (gaussianReal 0 1)) :
+    (P : Measure (SmartPathDisorder N (M + 1))) [SFinite P] :
     ∫ p : SmartPathDisorder N (M + 1) × ℝ,
       (∫ σ : R → SmartPathState N (M + 1) × ℝ,
         f p.1 (fun r => ((σ r).1.1, Fin.init (σ r).1.2)) *
@@ -168,7 +167,8 @@ theorem integral_integral_pi_tilted_cavityPath_pi_div_two_deriv_mul {R : Type*} 
       ∫ ω, (∫ a : R → SmartPathState N (M + 1), f ω (fun r => ((a r).1, Fin.init (a r).2))
         ∂(Measure.pi fun _ : R => μ.tilted fun x : SmartPathState N (M + 1) =>
           smartPathEnergy u t ((Fin.init ω.1.1, Fin.init ω.1.2), ω.2) (x.1, Fin.init x.2))) ∂P := by
-  simp_rw [integral_pi_tilted_cavityPath_pi_div_two_deriv_mul t q _ _ hij (f _) (hZ _)]
+  simp_rw [integral_pi_tilted_cavityPath_pi_div_two_deriv_mul t q _ _ hij (f _)
+    (integrable_exp_cavityPath_new hu hD q _)]
   exact (integral_prod_mul (μ := P) (ν := gaussianReal 0 1)
     (fun ω : SmartPathDisorder N (M + 1) =>
       ∫ a : R → SmartPathState N (M + 1), f ω (fun r => ((a r).1, Fin.init (a r).2))
@@ -179,12 +179,11 @@ theorem integral_integral_pi_tilted_cavityPath_pi_div_two_deriv_mul {R : Type*} 
         ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) ^ 2)).trans
     (mul_comm _ _)
 
+include hu hD in
 /-- **Lemma 2.3.1 (2.37), averaged over the disorder and `z`.** -/
 theorem integral_integral_pi_tilted_cavityPath_pi_div_two {R : Type*} [Fintype R]
     (f : SmartPathDisorder N (M + 1) → (R → SmartPathState N M) → ℝ)
-    (P : Measure (SmartPathDisorder N (M + 1))) [SFinite P]
-    (hZ : ∀ z : ℝ, Integrable (fun ξ : ℝ =>
-      Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ))) (gaussianReal 0 1)) :
+    (P : Measure (SmartPathDisorder N (M + 1))) [SFinite P] :
     ∫ p : SmartPathDisorder N (M + 1) × ℝ,
       (∫ σ : R → SmartPathState N (M + 1) × ℝ, f p.1 (fun r => ((σ r).1.1, Fin.init (σ r).1.2))
         ∂(Measure.pi fun _ : R => (μ.prod (gaussianReal 0 1)).tilted
@@ -197,7 +196,8 @@ theorem integral_integral_pi_tilted_cavityPath_pi_div_two {R : Type*} [Fintype R
     ∫ ω, (∫ a : R → SmartPathState N (M + 1), f ω (fun r => ((a r).1, Fin.init (a r).2))
         ∂(Measure.pi fun _ : R => μ.tilted fun x : SmartPathState N (M + 1) =>
           smartPathEnergy u t ((Fin.init ω.1.1, Fin.init ω.1.2), ω.2) (x.1, Fin.init x.2))) ∂P := by
-  simp_rw [integral_pi_tilted_cavityPath_pi_div_two t q _ _ (f _) (hZ _)]
+  simp_rw [integral_pi_tilted_cavityPath_pi_div_two t q _ _ (f _)
+    (integrable_exp_cavityPath_new hu hD q _)]
   exact integral_prod_fun_fst_of_isProbabilityMeasure (E := ℝ) P (gaussianReal 0 1)
     (fun ω : SmartPathDisorder N (M + 1) =>
       ∫ a : R → SmartPathState N (M + 1), f ω (fun r => ((a r).1, Fin.init (a r).2))

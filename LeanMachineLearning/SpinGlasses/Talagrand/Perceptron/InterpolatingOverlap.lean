@@ -142,6 +142,51 @@ theorem interpolating_replica_site_perm {L M : ℕ} {R : Type uR} [Fintype R]
     (fun ω => ∫ σ : R → (Fin L → ℤˣ) × (Fin M → ℝ), Θ (fun l => (σ l).1)
       ∂(Measure.pi fun _ : R => μ_base.tilted (E ω)))
 
+/-- **Site-swap invariance for a two-replica spin observable under the `s`-interpolating Gibbs
+measure.** If `Θ (Fin.last N)` conjugated on both replicas by `Equiv.swap i (Fin.last N)` equals
+`Θ i`, then `ν_s(Θ i) = ν_s(Θ (Fin.last N))`. -/
+theorem integral_interpolating_two_replica_site_swap {N M : ℕ}
+    {u : ℝ → ℝ} (hu : Measurable u) {B : ℝ} (hB : ∀ x, u x ≤ B)
+    (s q r : ℝ) (Θ : Fin (N + 1) → (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ)
+    (i : Fin (N + 1))
+    (hΘ : ∀ x y : Fin (N + 1) → ℤˣ,
+      Θ (Fin.last N) (fun j => x (Equiv.swap i (Fin.last N) j))
+        (fun j => y (Equiv.swap i (Fin.last N) j)) = Θ i x y) :
+    ∫ ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ),
+      ∫ σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ),
+        Θ i (σ 0).1 (σ 1).1
+        ∂(Measure.pi fun _ : Fin 2 =>
+          ((Measure.count : Measure (Fin (N + 1) → ℤˣ)).prod
+            (Measure.pi fun _ : Fin M => gaussianReal 0 1)).tilted
+            fun x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ) =>
+              (∑ k : Fin M, u (Real.sqrt s *
+                  ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ j, ω.1.1 k j * ((x.1 j : ℤ) : ℝ)) +
+                Real.sqrt (1 - s) * (Real.sqrt q * ω.1.2 k + Real.sqrt (1 - q) * x.2 k))) +
+              ∑ j : Fin (N + 1), ((x.1 j : ℤ) : ℝ) * Real.sqrt (1 - s) * ω.2 j * Real.sqrt r)
+        ∂(((Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1).prod
+            (Measure.pi fun _ : Fin M => gaussianReal 0 1)).prod
+          (Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1)) =
+      ∫ ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ),
+        ∫ σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ),
+          Θ (Fin.last N) (σ 0).1 (σ 1).1
+          ∂(Measure.pi fun _ : Fin 2 =>
+            ((Measure.count : Measure (Fin (N + 1) → ℤˣ)).prod
+              (Measure.pi fun _ : Fin M => gaussianReal 0 1)).tilted
+              fun x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ) =>
+                (∑ k : Fin M, u (Real.sqrt s *
+                    ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ j, ω.1.1 k j * ((x.1 j : ℤ) : ℝ)) +
+                  Real.sqrt (1 - s) * (Real.sqrt q * ω.1.2 k + Real.sqrt (1 - q) * x.2 k))) +
+                ∑ j : Fin (N + 1), ((x.1 j : ℤ) : ℝ) * Real.sqrt (1 - s) * ω.2 j * Real.sqrt r)
+          ∂(((Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1).prod
+              (Measure.pi fun _ : Fin M => gaussianReal 0 1)).prod
+            (Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1)) := by
+  have h1 := interpolating_replica_site_perm (L := N + 1) (M := M) (R := Fin 2) hu hB s q r
+    (Equiv.swap i (Fin.last N)) (fun σ => Θ (Fin.last N) (σ 0) (σ 1))
+  dsimp only at h1
+  rw [← h1]
+  exact integral_congr_ae (ae_of_all _ fun _ =>
+    integral_congr_ae (ae_of_all _ fun σ => (hΘ (σ 0).1 (σ 1).1).symm))
+
 /-- **Eq. (2.70) for the `s`-interpolating Gibbs measure:**
 `ν_s((R_{1,2} - q) φ(R_{1,2} - q)) = ν_s((ε₁ ε₂ - q) φ(R_{1,2} - q))` where `ε_l = σ_l(Fin.last N)`
 is the last spin. -/
@@ -179,17 +224,9 @@ theorem integral_interpolating_overlap_mul_eq_last_site {N M : ℕ}
       Rf (fun i => x (pm i)) (fun i => y (pm i)) = Rf x y := by
     dsimp only [Rf]
     rw [Equiv.sum_comp pm fun i => ((x i : ℤ) : ℝ) * ((y i : ℤ) : ℝ)]
-  have hsite (i : Fin (N + 1)) : ν (Θ i) = ν (Θ (Fin.last N)) := by
-    have h1 := interpolating_replica_site_perm (L := N + 1) (M := M) (R := Fin 2) hu hB s q r
-      (Equiv.swap i (Fin.last N)) (fun σ => Θ (Fin.last N) (σ 0) (σ 1))
-    have h2 (x y : Fin (N + 1) → ℤˣ) :
-        Θ (Fin.last N) (fun j => x (Equiv.swap i (Fin.last N) j))
-          (fun j => y (Equiv.swap i (Fin.last N) j)) = Θ i x y := by
+  have hsite (i : Fin (N + 1)) : ν (Θ i) = ν (Θ (Fin.last N)) :=
+    integral_interpolating_two_replica_site_swap hu hB s q r Θ i fun x y => by
       simp only [Θ, hRperm, Equiv.swap_apply_right]
-    dsimp only [ν]
-    rw [← h1]
-    exact integral_congr_ae (ae_of_all _ fun _ =>
-      integral_congr_ae (ae_of_all _ fun σ => (h2 (σ 0).1 (σ 1).1).symm))
   let Ω := ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)
   let E_eff (ω : Ω) (τ : Fin (N + 1) → ℤˣ) : ℝ :=
     (∑ i : Fin (N + 1), ((τ i : ℤ) : ℝ) * Real.sqrt (1 - s) * ω.2 i * Real.sqrt r) +

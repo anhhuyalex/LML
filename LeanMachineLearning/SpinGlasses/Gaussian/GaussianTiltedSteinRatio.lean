@@ -38,7 +38,7 @@ namespace SpinGlasses
 
 /-- **Lower bound for a mixture of Gaussian exponential moments.** If `|G m η| ≤ B` and the weights
 `p` form a probability vector, then `∑ m, p m * ∫ exp (G m η) dγ ≥ exp (-B)`. -/
-private lemma exp_neg_le_sum_mul_integral_exp {L K : Type*} [Fintype L] [Fintype K]
+lemma exp_neg_le_sum_mul_integral_exp {L K : Type*} [Fintype L] [Fintype K]
     (p : L → ℝ) (hp : ∀ m, 0 ≤ p m) (hp1 : ∑ m, p m = 1) {B : ℝ}
     (G : L → (K → ℝ) → ℝ) (hB : ∀ m η, |G m η| ≤ B)
     (hint : ∀ m, Integrable (fun η => Real.exp (G m η))
@@ -54,7 +54,27 @@ private lemma exp_neg_le_sum_mul_integral_exp {L K : Type*} [Fintype L] [Fintype
     _ = ∑ m, p m * Real.exp (-B) := Finset.sum_mul _ _ _
     _ ≤ _ := Finset.sum_le_sum fun m _ => mul_le_mul_of_nonneg_left (hlow m) (hp m)
 
-private lemma hasFDerivAt_Z_sum {L K_aux : Type*} [Fintype L] [DecidableEq L] [Fintype K_aux]
+/-- **Upper bound for a mixture of Gaussian exponential moments.** If `|G m η| ≤ B` and the weights
+`p` form a probability vector, then `∑ m, p m * ∫ exp (G m η) dγ ≤ exp B`. -/
+lemma sum_mul_integral_exp_le_exp {L K : Type*} [Fintype L] [Fintype K]
+    (p : L → ℝ) (hp : ∀ m, 0 ≤ p m) (hp1 : ∑ m, p m = 1) {B : ℝ}
+    (G : L → (K → ℝ) → ℝ) (hB : ∀ m η, |G m η| ≤ B)
+    (hint : ∀ m, Integrable (fun η => Real.exp (G m η))
+      (Measure.pi fun _ : K => gaussianReal 0 1)) :
+    (∑ m, p m * ∫ η, Real.exp (G m η) ∂(Measure.pi fun _ : K => gaussianReal 0 1)) ≤
+      Real.exp B := by
+  have hup : ∀ m,
+      ∫ η, Real.exp (G m η) ∂(Measure.pi fun _ : K => gaussianReal 0 1) ≤ Real.exp B := fun m => by
+    have hm := integral_mono (hint m) (integrable_const (Real.exp B))
+      fun η => Real.exp_le_exp.2 (le_of_abs_le (hB m η))
+    simpa using hm
+  calc (∑ m, p m * ∫ η, Real.exp (G m η) ∂(Measure.pi fun _ : K => gaussianReal 0 1))
+      ≤ ∑ m, p m * Real.exp B := Finset.sum_le_sum fun m _ =>
+          mul_le_mul_of_nonneg_left (hup m) (hp m)
+    _ = (∑ m, p m) * Real.exp B := (Finset.sum_mul _ _ _).symm
+    _ = Real.exp B := by rw [hp1, one_mul]
+
+lemma hasFDerivAt_Z_sum {L K_aux : Type*} [Fintype L] [DecidableEq L] [Fintype K_aux]
     {u : ℝ → ℝ} (hu : Differentiable ℝ u) {B D₁ : ℝ} (hB : ∀ x, |u x| ≤ B)
     (hD₁ : ∀ x, |deriv u x| ≤ D₁)
     (p : L → ℝ) (hp : ∀ m, 0 ≤ p m) (hp1 : ∑ m, p m = 1) (c : L → K_aux → ℝ) :
@@ -63,6 +83,7 @@ private lemma hasFDerivAt_Z_sum {L K_aux : Type*} [Fintype L] [DecidableEq L] [F
       ∑ m : L, p m * ∫ η, Real.exp (u (y m + c m ⬝ᵥ η)) ∂γ_aux
     Differentiable ℝ Z ∧
       (∀ y, Real.exp (-B) ≤ Z y) ∧
+      (∀ y, Z y ≤ Real.exp B) ∧
       (∀ m y, fderiv ℝ Z y (Pi.single m 1) =
         p m * ∫ η, deriv u (y m + c m ⬝ᵥ η) * Real.exp (u (y m + c m ⬝ᵥ η)) ∂γ_aux) ∧
       (∀ m y, |fderiv ℝ Z y (Pi.single m 1)| ≤ p m * (|D₁| * Real.exp B)) := by
@@ -109,9 +130,12 @@ private lemma hasFDerivAt_Z_sum {L K_aux : Type*} [Fintype L] [DecidableEq L] [F
       (∑ m : L, p m • ((∫ η, deriv u (y m + c m ⬝ᵥ η) * Real.exp (u (y m + c m ⬝ᵥ η)) ∂γ_aux) •
         ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : L => ℝ) m)) y := fun y =>
     HasFDerivAt.fun_sum fun m _ => (hterm m y).const_smul (p m)
-  refine ⟨fun y => (hZd y).differentiableAt, ?_, ?_, ?_⟩
+  refine ⟨fun y => (hZd y).differentiableAt, ?_, ?_, ?_, ?_⟩
   · intro y
     exact exp_neg_le_sum_mul_integral_exp p hp hp1 (fun m η => u (y m + c m ⬝ᵥ η))
+      (fun _ _ => hB _) fun m => hexpi m (y m)
+  · intro y
+    exact sum_mul_integral_exp_le_exp p hp hp1 (fun m η => u (y m + c m ⬝ᵥ η))
       (fun _ _ => hB _) fun m => hexpi m (y m)
   · intro m y
     rw [(hZd y).fderiv]
@@ -166,9 +190,10 @@ private lemma hasFDerivAt_prod_ϕ {R : Type*} [Fintype R] [DecidableEq R]
       (Finset.prod_le_prod₀ (fun _ _ => abs_nonneg _) fun r _ => (hM r _).trans (le_abs_self _))
       (Finset.prod_nonneg fun _ _ => abs_nonneg _) (abs_nonneg _)
 
-/-- **First-order Gaussian integration by parts of a normalized replica ratio at fixed spin
-labels.** The reusable interface is `stein_tilted_replica_ratio`. -/
-private theorem stein_ratio_fixed_spins
+/-- **First-order Gaussian integration by parts of a normalized replica ratio multiplied by
+`G(log Z(w))` at fixed spin labels.** The reusable interface is
+`stein_tilted_replica_ratio_mul_comp_log` (and `stein_tilted_replica_ratio` for `G = 1`). -/
+theorem stein_ratio_comp_log_fixed_spins
     {L K_sh K_aux R : Type*} [Fintype L]
     [Fintype K_sh] [Fintype K_aux] [Fintype R] [DecidableEq R]
     (p : L → ℝ) (hp : ∀ m, 0 ≤ p m) (hp1 : ∑ m, p m = 1)
@@ -177,30 +202,35 @@ private theorem stein_ratio_fixed_spins
     (hD₁ : ∀ x, |deriv u x| ≤ D₁)
     (ϕ : R → ℝ → ℝ) (hϕ : ∀ r, Differentiable ℝ (ϕ r))
     {M M' : R → ℝ} (hM : ∀ r x, |ϕ r x| ≤ M r) (hM' : ∀ r x, |deriv (ϕ r) x| ≤ M' r)
+    {G : ℝ → ℝ} (hG : Differentiable ℝ G) {CG CG' : ℝ}
+    (hGb : ∀ t ∈ Set.Icc (-B) B, |G t| ≤ CG)
+    (hGd : ∀ t ∈ Set.Icc (-B) B, |deriv G t| ≤ CG')
     (i₀ : R) (s : R → L) :
     let γ_sh := Measure.pi fun _ : K_sh => gaussianReal 0 1
     let γ_aux := Measure.pi fun _ : K_aux => gaussianReal 0 1
     let Z (w : K_sh → ℝ) : ℝ :=
       ∑ m : L, p m * ∫ η, Real.exp (u (α_sh m ⬝ᵥ w + α_aux m ⬝ᵥ η)) ∂γ_aux
-    ∫ w, (∫ η : R → K_aux → ℝ,
+    ∫ w, ((∫ η : R → K_aux → ℝ,
         (W_sh (s i₀) ⬝ᵥ w + W_aux (s i₀) ⬝ᵥ η i₀) *
           (∏ r, ϕ r (α_sh (s r) ⬝ᵥ w + α_aux (s r) ⬝ᵥ η r))
-        ∂(Measure.pi fun _ : R => γ_aux)) / Z w ^ Fintype.card R ∂γ_sh =
+        ∂(Measure.pi fun _ : R => γ_aux)) / Z w ^ Fintype.card R) *
+        G (Real.log (Z w)) ∂γ_sh =
       ∑ j : R, (W_sh (s i₀) ⬝ᵥ α_sh (s j) +
           if i₀ = j then W_aux (s i₀) ⬝ᵥ α_aux (s j) else 0) *
-        ∫ w, (∫ η : R → K_aux → ℝ,
+        ∫ w, ((∫ η : R → K_aux → ℝ,
           deriv (ϕ j) (α_sh (s j) ⬝ᵥ w + α_aux (s j) ⬝ᵥ η j) *
             ∏ r ∈ Finset.univ.erase j, ϕ r (α_sh (s r) ⬝ᵥ w + α_aux (s r) ⬝ᵥ η r)
-          ∂(Measure.pi fun _ : R => γ_aux)) / Z w ^ Fintype.card R ∂γ_sh -
-      (Fintype.card R : ℝ) *
-        ∑ m : L, p m * (W_sh (s i₀) ⬝ᵥ α_sh m) *
-          ∫ w, ((∫ η : R → K_aux → ℝ,
+          ∂(Measure.pi fun _ : R => γ_aux)) / Z w ^ Fintype.card R) *
+          G (Real.log (Z w)) ∂γ_sh +
+      ∑ m : L, p m * (W_sh (s i₀) ⬝ᵥ α_sh m) *
+        ∫ w, (((∫ η : R → K_aux → ℝ,
               ∏ r, ϕ r (α_sh (s r) ⬝ᵥ w + α_aux (s r) ⬝ᵥ η r)
               ∂(Measure.pi fun _ : R => γ_aux)) *
             ∫ η₀ : K_aux → ℝ,
               deriv u (α_sh m ⬝ᵥ w + α_aux m ⬝ᵥ η₀) *
                 Real.exp (u (α_sh m ⬝ᵥ w + α_aux m ⬝ᵥ η₀))
-              ∂γ_aux) / Z w ^ (Fintype.card R + 1) ∂γ_sh := by
+              ∂γ_aux) / Z w ^ (Fintype.card R + 1)) *
+          (deriv G (Real.log (Z w)) - (Fintype.card R : ℝ) * G (Real.log (Z w))) ∂γ_sh := by
   classical
   intro γ_sh γ_aux Z
   let K_tot := K_sh ⊕ (R × K_aux)
@@ -233,8 +263,13 @@ private theorem stein_ratio_fixed_spins
     ext ξ idx
     rcases idx with k | (r | m) <;> rfl
   obtain ⟨hFd, hFb, hFder, hFdb⟩ := hasFDerivAt_prod_ϕ ϕ hϕ hM hM'
-  obtain ⟨hZd, hZb, hZder, hZdb⟩ := hasFDerivAt_Z_sum hu hB hD₁ p hp hp1 α_aux
-  have hstein := integral_mul_div_pow_eq_sum (P := γ_tot)
+  obtain ⟨hZd, hZb, hZu, hZder, hZdb⟩ := hasFDerivAt_Z_sum hu hB hD₁ p hp hp1 α_aux
+  have hGb' : ∀ t ∈ Set.Icc (Real.log (Real.exp (-B))) (Real.log (Real.exp B)), |G t| ≤ CG := by
+    simpa only [Real.log_exp] using hGb
+  have hGd' : ∀ t ∈ Set.Icc (Real.log (Real.exp (-B))) (Real.log (Real.exp B)),
+      |deriv G t| ≤ CG' := by
+    simpa only [Real.log_exp] using hGd
+  have hstein := integral_mul_div_pow_mul_comp_log_eq_sum (P := γ_tot)
     (W := fun k ξ => cW k ⬝ᵥ ξ) (X := fun r ξ => cX r ⬝ᵥ ξ) (Y := fun m ξ => cY m ⬝ᵥ ξ)
     hgauss
     (fun k => integral_dotProduct_pi_gaussianReal _)
@@ -242,7 +277,8 @@ private theorem stein_ratio_fixed_spins
     (fun m => integral_dotProduct_pi_gaussianReal _)
     ()
     hFd hFb hFdb
-    hZd (Real.exp_pos (-B)) hZb hZdb
+    hZd (Real.exp_pos (-B)) hZb hZu hZdb
+    hG hGb' hGd'
     (Fintype.card R)
   have hcovX : ∀ j : R, ∫ ξ, cW () ⬝ᵥ ξ * (cX j ⬝ᵥ ξ) ∂γ_tot =
       W_sh (s i₀) ⬝ᵥ α_sh (s j) + if i₀ = j then W_aux (s i₀) ⬝ᵥ α_aux (s j) else 0 := by
@@ -296,17 +332,17 @@ private theorem stein_ratio_fixed_spins
     change (∑ x : K_sh ⊕ (R × K_aux), cY m x * ξ x) = _
     rw [Fintype.sum_sum_type, he_fst]
     simp [cY, dotProduct]
-  have h_push : ∀ (G : (K_sh → ℝ) × (R → K_aux → ℝ) → ℝ),
-      Measurable G → Integrable (fun ξ => G (e_tot ξ)) γ_tot →
-      ∫ ξ, G (e_tot ξ) ∂γ_tot =
-        ∫ w, ∫ η, G (w, η) ∂(Measure.pi fun _ : R => γ_aux) ∂γ_sh := by
-    intro G hGm hGi
-    have hGi' : Integrable G (γ_sh.prod (Measure.pi fun _ : R => γ_aux)) := by
-      rw [← hmp_tot.map_eq, integrable_map_measure hGm.aestronglyMeasurable
+  have h_push : ∀ (H : (K_sh → ℝ) × (R → K_aux → ℝ) → ℝ),
+      Measurable H → Integrable (fun ξ => H (e_tot ξ)) γ_tot →
+      ∫ ξ, H (e_tot ξ) ∂γ_tot =
+        ∫ w, ∫ η, H (w, η) ∂(Measure.pi fun _ : R => γ_aux) ∂γ_sh := by
+    intro H hHm hHi
+    have hHi' : Integrable H (γ_sh.prod (Measure.pi fun _ : R => γ_aux)) := by
+      rw [← hmp_tot.map_eq, integrable_map_measure hHm.aestronglyMeasurable
         e_tot.measurable.aemeasurable]
-      exact hGi
-    rw [hmp_tot.integral_comp_of_aestronglyMeasurable hGi'.aestronglyMeasurable,
-      integral_prod _ hGi']
+      exact hHi
+    rw [hmp_tot.integral_comp_of_aestronglyMeasurable hHi'.aestronglyMeasurable,
+      integral_prod _ hHi']
   have hZm : Measurable Z := by
     have hm_lin : Measurable fun (w : K_sh → ℝ) (m : L) => α_sh m ⬝ᵥ w :=
       measurable_pi_iff.2 fun m => by simp only [dotProduct]; fun_prop
@@ -314,9 +350,16 @@ private theorem stein_ratio_fixed_spins
   have hZ_tot : ∀ ξ : K_tot → ℝ,
       (∑ m : L, p m * ∫ η, Real.exp (u (cY m ⬝ᵥ ξ + α_aux m ⬝ᵥ η)) ∂γ_aux) = Z (e_tot ξ).1 :=
     fun ξ => Finset.sum_congr rfl fun m _ => by rw [hY_e]
+  have hZ_pos : ∀ w, 0 < Z w := fun w => (Real.exp_pos (-B)).trans_le (hZb (fun m => α_sh m ⬝ᵥ w))
+  have hZ_mem : ∀ w, Real.log (Z w) ∈ Set.Icc (-B) B := fun w =>
+    ⟨by simpa using Real.log_le_log (Real.exp_pos (-B)) (hZb (fun m => α_sh m ⬝ᵥ w)),
+     by simpa using Real.log_le_log (hZ_pos w) (hZu (fun m => α_sh m ⬝ᵥ w))⟩
+  have hCG0 : 0 ≤ CG := (abs_nonneg _).trans (hGb _ (hZ_mem 0))
+  have hCG'0 : 0 ≤ CG' := (abs_nonneg _).trans (hGd _ (hZ_mem 0))
   obtain ⟨lhsFun, hlhsFun⟩ : ∃ lhsFun : (K_sh → ℝ) × (R → K_aux → ℝ) → ℝ, ∀ q, lhsFun q =
       (W_sh (s i₀) ⬝ᵥ q.1 + W_aux (s i₀) ⬝ᵥ q.2 i₀) *
-        ((∏ r, ϕ r (α_sh (s r) ⬝ᵥ q.1 + α_aux (s r) ⬝ᵥ q.2 r)) / Z q.1 ^ Fintype.card R) :=
+        (((∏ r, ϕ r (α_sh (s r) ⬝ᵥ q.1 + α_aux (s r) ⬝ᵥ q.2 r)) / Z q.1 ^ Fintype.card R) *
+          G (Real.log (Z q.1))) :=
     ⟨_, fun _ => rfl⟩
   have hlhs_m : Measurable lhsFun := by
     rw [show lhsFun = _ from funext hlhsFun]
@@ -327,61 +370,78 @@ private theorem stein_ratio_fixed_spins
         ∏ r, ϕ r (α_sh (s r) ⬝ᵥ q.1 + α_aux (s r) ⬝ᵥ q.2 r) := by
       refine Finset.measurable_prod _ fun r _ => (hϕ r).continuous.measurable.comp ?_
       simp only [dotProduct]; fun_prop
-    exact h1.mul (h2.div ((hZm.comp measurable_fst).pow_const _))
-  have hlhs_eq : ∀ ξ, cW () ⬝ᵥ ξ * ((∏ r, ϕ r (cX r ⬝ᵥ ξ)) /
-      (∑ m : L, p m * ∫ η, Real.exp (u (cY m ⬝ᵥ ξ + α_aux m ⬝ᵥ η)) ∂γ_aux) ^ Fintype.card R) =
+    have hZ1 : Measurable fun q : (K_sh → ℝ) × (R → K_aux → ℝ) => Z q.1 := hZm.comp measurable_fst
+    exact h1.mul ((h2.div (hZ1.pow_const _)).mul
+      (hG.continuous.measurable.comp (Real.measurable_log.comp hZ1)))
+  have hlhs_eq : ∀ ξ, cW () ⬝ᵥ ξ * (((∏ r, ϕ r (cX r ⬝ᵥ ξ)) /
+      (∑ m : L, p m * ∫ η, Real.exp (u (cY m ⬝ᵥ ξ + α_aux m ⬝ᵥ η)) ∂γ_aux) ^ Fintype.card R) *
+      G (Real.log (∑ m : L, p m * ∫ η, Real.exp (u (cY m ⬝ᵥ ξ + α_aux m ⬝ᵥ η)) ∂γ_aux))) =
       lhsFun (e_tot ξ) := fun ξ => by
     rw [hlhsFun, hW_e, hZ_tot]
-    congr 2
+    congr 3
     exact Finset.prod_congr rfl fun r _ => by rw [hX_e]
   have hlhs_i : Integrable (fun ξ => lhsFun (e_tot ξ)) γ_tot := by
     have hw_int : Integrable (fun ξ : K_tot → ℝ => cW () ⬝ᵥ ξ) γ_tot :=
       ((hasGaussianLaw_dotProduct_family cW).eval ()).integrable
-    have hrm : Measurable fun ξ : K_tot → ℝ => (∏ r, ϕ r (cX r ⬝ᵥ ξ)) /
+    have hrm : Measurable fun ξ : K_tot → ℝ => ((∏ r, ϕ r (cX r ⬝ᵥ ξ)) /
         (∑ m : L, p m * ∫ η, Real.exp (u (cY m ⬝ᵥ ξ + α_aux m ⬝ᵥ η)) ∂γ_aux) ^
-          Fintype.card R := by
+          Fintype.card R) *
+        G (Real.log (∑ m : L, p m * ∫ η, Real.exp (u (cY m ⬝ᵥ ξ + α_aux m ⬝ᵥ η)) ∂γ_aux)) := by
       have h1 : Measurable fun ξ : K_tot → ℝ => ∏ r, ϕ r (cX r ⬝ᵥ ξ) :=
         Finset.measurable_prod _ fun r _ =>
           (hϕ r).continuous.measurable.comp
             (by refine Finset.measurable_sum _ fun x _ => ?_; fun_prop)
-      have h2 : Measurable fun ξ : K_tot → ℝ => Z (e_tot ξ).1 ^ Fintype.card R :=
-        (hZm.comp (measurable_fst.comp e_tot.measurable)).pow_const _
+      have h2 : Measurable fun ξ : K_tot → ℝ => Z (e_tot ξ).1 :=
+        hZm.comp (measurable_fst.comp e_tot.measurable)
       simp_rw [hZ_tot]
-      exact h1.div h2
-    have hrb : ∀ ξ : K_tot → ℝ, |(∏ r, ϕ r (cX r ⬝ᵥ ξ)) /
+      exact (h1.div (h2.pow_const _)).mul
+        (hG.continuous.measurable.comp (Real.measurable_log.comp h2))
+    have hrb : ∀ ξ : K_tot → ℝ, |((∏ r, ϕ r (cX r ⬝ᵥ ξ)) /
         (∑ m : L, p m * ∫ η, Real.exp (u (cY m ⬝ᵥ ξ + α_aux m ⬝ᵥ η)) ∂γ_aux) ^
-          Fintype.card R| ≤
-        (∏ r, |M r|) / Real.exp (-B) ^ Fintype.card R := fun ξ => by
-      rw [abs_div, abs_of_pos (pow_pos (Real.exp_pos (-B) |>.trans_le (hZb _)) _)]
-      exact div_le_div₀ (Finset.prod_nonneg fun _ _ => abs_nonneg _) (hFb _)
-        (pow_pos (Real.exp_pos _) _) (pow_le_pow_left₀ (Real.exp_pos _).le (hZb _) _)
+          Fintype.card R) *
+        G (Real.log (∑ m : L, p m * ∫ η, Real.exp (u (cY m ⬝ᵥ ξ + α_aux m ⬝ᵥ η)) ∂γ_aux))| ≤
+        ((∏ r, |M r|) / Real.exp (-B) ^ Fintype.card R) * CG := fun ξ => by
+      simp_rw [hZ_tot]
+      rw [abs_mul, abs_div, abs_of_pos (pow_pos (hZ_pos _) _)]
+      exact mul_le_mul
+        (div_le_div₀ (Finset.prod_nonneg fun _ _ => abs_nonneg _) (hFb _)
+          (pow_pos (Real.exp_pos _) _) (pow_le_pow_left₀ (Real.exp_pos _).le (hZb _) _))
+        (hGb _ (hZ_mem _)) (abs_nonneg _) (by positivity)
     have := hw_int.bdd_mul_of_abs_le hrm.aestronglyMeasurable (ae_of_all _ hrb)
     exact this.congr (ae_of_all _ fun ξ => by dsimp; rw [mul_comm, hlhs_eq])
-  have hLHS : ∫ ξ, cW () ⬝ᵥ ξ * ((∏ r, ϕ r (cX r ⬝ᵥ ξ)) /
-      (∑ m : L, p m * ∫ η, Real.exp (u (cY m ⬝ᵥ ξ + α_aux m ⬝ᵥ η)) ∂γ_aux) ^ Fintype.card R)
+  have hLHS : ∫ ξ, cW () ⬝ᵥ ξ * (((∏ r, ϕ r (cX r ⬝ᵥ ξ)) /
+      (∑ m : L, p m * ∫ η, Real.exp (u (cY m ⬝ᵥ ξ + α_aux m ⬝ᵥ η)) ∂γ_aux) ^ Fintype.card R) *
+      G (Real.log (∑ m : L, p m * ∫ η, Real.exp (u (cY m ⬝ᵥ ξ + α_aux m ⬝ᵥ η)) ∂γ_aux)))
       ∂γ_tot =
-    ∫ w, (∫ η : R → K_aux → ℝ,
+    ∫ w, ((∫ η : R → K_aux → ℝ,
         (W_sh (s i₀) ⬝ᵥ w + W_aux (s i₀) ⬝ᵥ η i₀) *
           (∏ r, ϕ r (α_sh (s r) ⬝ᵥ w + α_aux (s r) ⬝ᵥ η r))
-        ∂(Measure.pi fun _ : R => γ_aux)) / Z w ^ Fintype.card R ∂γ_sh := by
+        ∂(Measure.pi fun _ : R => γ_aux)) / Z w ^ Fintype.card R) *
+      G (Real.log (Z w)) ∂γ_sh := by
     simp_rw [hlhs_eq]
     rw [h_push lhsFun hlhs_m hlhs_i]
     refine integral_congr_ae (ae_of_all _ fun w => ?_)
-    simp_rw [hlhsFun, ← mul_div_assoc]
-    rw [integral_div]
+    have hpt : ∀ η, lhsFun (w, η) =
+        (((W_sh (s i₀) ⬝ᵥ w + W_aux (s i₀) ⬝ᵥ η i₀) *
+          ∏ r, ϕ r (α_sh (s r) ⬝ᵥ w + α_aux (s r) ⬝ᵥ η r)) / Z w ^ Fintype.card R) *
+          G (Real.log (Z w)) := fun η => by rw [hlhsFun]; ring
+    simp_rw [hpt]
+    rw [integral_mul_const, integral_div]
   have hRHS1 : ∀ j : R, ∫ ξ,
-      (fderiv ℝ (fun x => ∏ r, ϕ r (x r)) (fun k => cX k ⬝ᵥ ξ)) (Pi.single j 1) /
-      (∑ m : L, p m * ∫ η, Real.exp (u (cY m ⬝ᵥ ξ + α_aux m ⬝ᵥ η)) ∂γ_aux) ^ Fintype.card R
+      ((fderiv ℝ (fun x => ∏ r, ϕ r (x r)) (fun k => cX k ⬝ᵥ ξ)) (Pi.single j 1) /
+        (∑ m : L, p m * ∫ η, Real.exp (u (cY m ⬝ᵥ ξ + α_aux m ⬝ᵥ η)) ∂γ_aux) ^ Fintype.card R) *
+      G (Real.log (∑ m : L, p m * ∫ η, Real.exp (u (cY m ⬝ᵥ ξ + α_aux m ⬝ᵥ η)) ∂γ_aux))
       ∂γ_tot =
-    ∫ w, (∫ η : R → K_aux → ℝ,
+    ∫ w, ((∫ η : R → K_aux → ℝ,
         deriv (ϕ j) (α_sh (s j) ⬝ᵥ w + α_aux (s j) ⬝ᵥ η j) *
           ∏ r ∈ Finset.univ.erase j, ϕ r (α_sh (s r) ⬝ᵥ w + α_aux (s r) ⬝ᵥ η r)
-        ∂(Measure.pi fun _ : R => γ_aux)) / Z w ^ Fintype.card R ∂γ_sh := by
+        ∂(Measure.pi fun _ : R => γ_aux)) / Z w ^ Fintype.card R) *
+      G (Real.log (Z w)) ∂γ_sh := by
     intro j
     obtain ⟨rhs1Fun, hrhs1Fun⟩ : ∃ rhs1Fun : (K_sh → ℝ) × (R → K_aux → ℝ) → ℝ, ∀ q, rhs1Fun q =
-        (deriv (ϕ j) (α_sh (s j) ⬝ᵥ q.1 + α_aux (s j) ⬝ᵥ q.2 j) *
+        ((deriv (ϕ j) (α_sh (s j) ⬝ᵥ q.1 + α_aux (s j) ⬝ᵥ q.2 j) *
           ∏ r ∈ Finset.univ.erase j, ϕ r (α_sh (s r) ⬝ᵥ q.1 + α_aux (s r) ⬝ᵥ q.2 r)) /
-          Z q.1 ^ Fintype.card R := ⟨_, fun _ => rfl⟩
+          Z q.1 ^ Fintype.card R) * G (Real.log (Z q.1)) := ⟨_, fun _ => rfl⟩
     have hr1_m : Measurable rhs1Fun := by
       rw [show rhs1Fun = _ from funext hrhs1Fun]
       have h1 : Measurable fun q : (K_sh → ℝ) × (R → K_aux → ℝ) =>
@@ -391,47 +451,59 @@ private theorem stein_ratio_fixed_spins
           ∏ r ∈ Finset.univ.erase j, ϕ r (α_sh (s r) ⬝ᵥ q.1 + α_aux (s r) ⬝ᵥ q.2 r) :=
         Finset.measurable_prod _ fun r _ =>
           (hϕ r).continuous.measurable.comp (by simp only [dotProduct]; fun_prop)
-      exact (h1.mul h2).div ((hZm.comp measurable_fst).pow_const _)
+      have hZ1 : Measurable fun q : (K_sh → ℝ) × (R → K_aux → ℝ) => Z q.1 := hZm.comp measurable_fst
+      exact ((h1.mul h2).div (hZ1.pow_const _)).mul
+        (hG.continuous.measurable.comp (Real.measurable_log.comp hZ1))
     have hr1_eq : ∀ ξ,
-        (fderiv ℝ (fun x => ∏ r, ϕ r (x r)) (fun k => cX k ⬝ᵥ ξ)) (Pi.single j 1) /
+        ((fderiv ℝ (fun x => ∏ r, ϕ r (x r)) (fun k => cX k ⬝ᵥ ξ)) (Pi.single j 1) /
           (∑ m : L, p m * ∫ η, Real.exp (u (cY m ⬝ᵥ ξ + α_aux m ⬝ᵥ η)) ∂γ_aux) ^
-            Fintype.card R =
+            Fintype.card R) *
+        G (Real.log (∑ m : L, p m * ∫ η, Real.exp (u (cY m ⬝ᵥ ξ + α_aux m ⬝ᵥ η)) ∂γ_aux)) =
         rhs1Fun (e_tot ξ) := fun ξ => by
-      rw [hFder, hrhs1Fun]
-      simp only [hX_e, hY_e]
-      rfl
+      rw [hFder, hrhs1Fun, hZ_tot]
+      simp only [hX_e]
     have hr1_i : Integrable (fun ξ => rhs1Fun (e_tot ξ)) γ_tot := by
-      refine Integrable.of_bound (C := (|M' j| * ∏ r ∈ Finset.univ.erase j, |M r|) /
-          Real.exp (-B) ^ Fintype.card R)
+      refine Integrable.of_bound (C := ((|M' j| * ∏ r ∈ Finset.univ.erase j, |M r|) /
+          Real.exp (-B) ^ Fintype.card R) * CG)
         (hr1_m.comp e_tot.measurable).aestronglyMeasurable (ae_of_all _ fun ξ => ?_)
-      rw [Real.norm_eq_abs, ← hr1_eq, abs_div,
+      rw [Real.norm_eq_abs, ← hr1_eq, abs_mul, abs_div,
         abs_of_pos (pow_pos (Real.exp_pos (-B) |>.trans_le (hZb _)) _)]
-      exact div_le_div₀ (by positivity) (hFdb j _) (pow_pos (Real.exp_pos _) _)
-        (pow_le_pow_left₀ (Real.exp_pos _).le (hZb _) _)
+      simp_rw [hZ_tot]
+      exact mul_le_mul
+        (div_le_div₀ (by positivity) (hFdb j _) (pow_pos (Real.exp_pos _) _)
+          (pow_le_pow_left₀ (Real.exp_pos _).le (hZb _) _))
+        (hGb _ (hZ_mem _)) (abs_nonneg _) (by positivity)
     simp_rw [hr1_eq]
     rw [h_push rhs1Fun hr1_m hr1_i]
     refine integral_congr_ae (ae_of_all _ fun w => ?_)
     simp_rw [hrhs1Fun]
-    rw [integral_div]
+    rw [integral_mul_const, integral_div]
   have hRHS2 : ∀ m : L, ∫ ξ,
-      (∏ r, ϕ r (cX r ⬝ᵥ ξ)) *
+      ((∏ r, ϕ r (cX r ⬝ᵥ ξ)) *
         (fderiv ℝ (fun y => ∑ m' : L, p m' * ∫ η, Real.exp (u (y m' + α_aux m' ⬝ᵥ η)) ∂γ_aux)
           (fun k => cY k ⬝ᵥ ξ)) (Pi.single m 1) /
       (∑ m' : L, p m' * ∫ η, Real.exp (u (cY m' ⬝ᵥ ξ + α_aux m' ⬝ᵥ η)) ∂γ_aux) ^
-        (Fintype.card R + 1) ∂γ_tot =
-    p m * ∫ w, ((∫ η : R → K_aux → ℝ,
+        (Fintype.card R + 1)) *
+      (deriv G (Real.log (∑ m' : L, p m' * ∫ η,
+          Real.exp (u (cY m' ⬝ᵥ ξ + α_aux m' ⬝ᵥ η)) ∂γ_aux)) -
+        (Fintype.card R : ℝ) * G (Real.log (∑ m' : L, p m' * ∫ η,
+          Real.exp (u (cY m' ⬝ᵥ ξ + α_aux m' ⬝ᵥ η)) ∂γ_aux))) ∂γ_tot =
+    p m * ∫ w, (((∫ η : R → K_aux → ℝ,
           ∏ r, ϕ r (α_sh (s r) ⬝ᵥ w + α_aux (s r) ⬝ᵥ η r) ∂(Measure.pi fun _ : R => γ_aux)) *
         ∫ η₀ : K_aux → ℝ,
           deriv u (α_sh m ⬝ᵥ w + α_aux m ⬝ᵥ η₀) *
             Real.exp (u (α_sh m ⬝ᵥ w + α_aux m ⬝ᵥ η₀))
-          ∂γ_aux) / Z w ^ (Fintype.card R + 1) ∂γ_sh := by
+          ∂γ_aux) / Z w ^ (Fintype.card R + 1)) *
+      (deriv G (Real.log (Z w)) - (Fintype.card R : ℝ) * G (Real.log (Z w))) ∂γ_sh := by
     intro m
     obtain ⟨rhs2Fun, hrhs2Fun⟩ : ∃ rhs2Fun : (K_sh → ℝ) × (R → K_aux → ℝ) → ℝ, ∀ q, rhs2Fun q =
-        p m * ((∏ r, ϕ r (α_sh (s r) ⬝ᵥ q.1 + α_aux (s r) ⬝ᵥ q.2 r)) *
+        p m * ((((∏ r, ϕ r (α_sh (s r) ⬝ᵥ q.1 + α_aux (s r) ⬝ᵥ q.2 r)) *
           (∫ η₀ : K_aux → ℝ,
             deriv u (α_sh m ⬝ᵥ q.1 + α_aux m ⬝ᵥ η₀) *
               Real.exp (u (α_sh m ⬝ᵥ q.1 + α_aux m ⬝ᵥ η₀))
-            ∂γ_aux) / Z q.1 ^ (Fintype.card R + 1)) := ⟨_, fun _ => rfl⟩
+            ∂γ_aux)) / Z q.1 ^ (Fintype.card R + 1)) *
+          (deriv G (Real.log (Z q.1)) - (Fintype.card R : ℝ) * G (Real.log (Z q.1)))) :=
+      ⟨_, fun _ => rfl⟩
     have hr2_m : Measurable rhs2Fun := by
       rw [show rhs2Fun = _ from funext hrhs2Fun]
       have h1 : Measurable fun q : (K_sh → ℝ) × (R → K_aux → ℝ) =>
@@ -451,43 +523,127 @@ private theorem stein_ratio_fixed_spins
           exact ((measurable_deriv u).comp hl).mul
             (Real.measurable_exp.comp (hu.continuous.measurable.comp hl))
         exact (hj.stronglyMeasurable.integral_prod_right' (ν := γ_aux)).measurable
-      exact ((h1.mul h2).div ((hZm.comp measurable_fst).pow_const _)).const_mul _
-    have hr2_eq : ∀ ξ, (∏ r, ϕ r (cX r ⬝ᵥ ξ)) *
+      have hZ1 : Measurable fun q : (K_sh → ℝ) × (R → K_aux → ℝ) => Z q.1 := hZm.comp measurable_fst
+      have hGsub : Measurable fun q : (K_sh → ℝ) × (R → K_aux → ℝ) =>
+          deriv G (Real.log (Z q.1)) - (Fintype.card R : ℝ) * G (Real.log (Z q.1)) :=
+        ((measurable_deriv G).comp (Real.measurable_log.comp hZ1)).sub
+          ((hG.continuous.measurable.comp (Real.measurable_log.comp hZ1)).const_mul _)
+      exact (((h1.mul h2).div (hZ1.pow_const _)).mul hGsub).const_mul _
+    have hr2_eq : ∀ ξ, ((∏ r, ϕ r (cX r ⬝ᵥ ξ)) *
         (fderiv ℝ (fun y => ∑ m' : L, p m' * ∫ η, Real.exp (u (y m' + α_aux m' ⬝ᵥ η)) ∂γ_aux)
           (fun k => cY k ⬝ᵥ ξ)) (Pi.single m 1) /
         (∑ m' : L, p m' * ∫ η, Real.exp (u (cY m' ⬝ᵥ ξ + α_aux m' ⬝ᵥ η)) ∂γ_aux) ^
-          (Fintype.card R + 1) = rhs2Fun (e_tot ξ) := fun ξ => by
-      rw [hZder, hrhs2Fun]
+          (Fintype.card R + 1)) *
+        (deriv G (Real.log (∑ m' : L, p m' * ∫ η,
+            Real.exp (u (cY m' ⬝ᵥ ξ + α_aux m' ⬝ᵥ η)) ∂γ_aux)) -
+          (Fintype.card R : ℝ) * G (Real.log (∑ m' : L, p m' * ∫ η,
+            Real.exp (u (cY m' ⬝ᵥ ξ + α_aux m' ⬝ᵥ η)) ∂γ_aux))) =
+        rhs2Fun (e_tot ξ) := fun ξ => by
+      rw [hZder, hrhs2Fun, hZ_tot]
       simp only [hX_e, hY_e]
-      change _ / Z (e_tot ξ).1 ^ (Fintype.card R + 1) = _
       ring
     have hr2_i : Integrable (fun ξ => rhs2Fun (e_tot ξ)) γ_tot := by
-      refine Integrable.of_bound (C := (∏ r, |M r|) * (p m * (|D₁| * Real.exp B)) /
-          Real.exp (-B) ^ (Fintype.card R + 1))
+      refine Integrable.of_bound (C := ((∏ r, |M r|) * (p m * (|D₁| * Real.exp B)) /
+          Real.exp (-B) ^ (Fintype.card R + 1)) * (CG' + (Fintype.card R : ℝ) * CG))
         (hr2_m.comp e_tot.measurable).aestronglyMeasurable (ae_of_all _ fun ξ => ?_)
-      rw [Real.norm_eq_abs, ← hr2_eq, abs_div, abs_mul,
-        abs_of_pos (pow_pos (Real.exp_pos (-B) |>.trans_le (hZb _)) _)]
-      exact div_le_div₀ (mul_nonneg (Finset.prod_nonneg fun _ _ => abs_nonneg _)
-          (mul_nonneg (hp m) (by positivity)))
-        (mul_le_mul (hFb _) (hZdb m _) (abs_nonneg _)
-          (Finset.prod_nonneg fun _ _ => abs_nonneg _))
-        (pow_pos (Real.exp_pos _) _)
-        (pow_le_pow_left₀ (Real.exp_pos _).le (hZb _) _)
+      rw [Real.norm_eq_abs, ← hr2_eq]
+      simp_rw [hZ_tot]
+      rw [abs_mul, abs_div, abs_mul, abs_of_pos (pow_pos (hZ_pos _) _)]
+      have hfrac : |(∏ r, ϕ r (cX r ⬝ᵥ ξ))| *
+          |(fderiv ℝ (fun y => ∑ m' : L, p m' * ∫ η, Real.exp (u (y m' + α_aux m' ⬝ᵥ η)) ∂γ_aux)
+            (fun k => cY k ⬝ᵥ ξ)) (Pi.single m 1)| /
+          Z (e_tot ξ).1 ^ (Fintype.card R + 1) ≤
+          (∏ r, |M r|) * (p m * (|D₁| * Real.exp B)) / Real.exp (-B) ^ (Fintype.card R + 1) :=
+        div_le_div₀ (mul_nonneg (Finset.prod_nonneg fun _ _ => abs_nonneg _)
+            (mul_nonneg (hp m) (by positivity)))
+          (mul_le_mul (hFb _) (hZdb m _) (abs_nonneg _)
+            (Finset.prod_nonneg fun _ _ => abs_nonneg _))
+          (pow_pos (Real.exp_pos _) _)
+          (pow_le_pow_left₀ (Real.exp_pos _).le (hZb _) _)
+      have hdG_sub : |deriv G (Real.log (Z (e_tot ξ).1)) -
+          (Fintype.card R : ℝ) * G (Real.log (Z (e_tot ξ).1))| ≤
+          CG' + (Fintype.card R : ℝ) * CG := by
+        refine (abs_sub _ _).trans (add_le_add (hGd _ (hZ_mem _)) ?_)
+        rw [abs_mul, Nat.abs_cast]
+        exact mul_le_mul_of_nonneg_left (hGb _ (hZ_mem _)) (Nat.cast_nonneg _)
+      have hnum_nn : 0 ≤ (∏ r, |M r|) * (p m * (|D₁| * Real.exp B)) /
+          Real.exp (-B) ^ (Fintype.card R + 1) :=
+        div_nonneg (mul_nonneg (Finset.prod_nonneg fun _ _ => abs_nonneg _)
+          (mul_nonneg (hp m) (by positivity))) (pow_nonneg (Real.exp_pos _).le _)
+      exact mul_le_mul hfrac hdG_sub (abs_nonneg _) hnum_nn
     simp_rw [hr2_eq]
     rw [h_push rhs2Fun hr2_m hr2_i]
     simp_rw [hrhs2Fun, integral_const_mul]
     congr 1
     refine integral_congr_ae (ae_of_all _ fun w => ?_)
     dsimp only
-    rw [integral_div, integral_mul_const]
+    rw [integral_mul_const, integral_div, integral_mul_const]
   rw [← hLHS, hstein]
   congr 1
   · refine Finset.sum_congr rfl fun j _ => ?_
     rw [hcovX j, hRHS1 j]
-  · congr 1
-    refine Finset.sum_congr rfl fun m _ => ?_
+  · refine Finset.sum_congr rfl fun m _ => ?_
     rw [hcovY m, hRHS2 m]
     ring
+
+/-- **First-order Gaussian integration by parts of a normalized replica ratio at fixed spin
+labels** (`G = 1` specialization). -/
+private theorem stein_ratio_fixed_spins
+    {L K_sh K_aux R : Type*} [Fintype L]
+    [Fintype K_sh] [Fintype K_aux] [Fintype R] [DecidableEq R]
+    (p : L → ℝ) (hp : ∀ m, 0 ≤ p m) (hp1 : ∑ m, p m = 1)
+    (α_sh W_sh : L → K_sh → ℝ) (α_aux W_aux : L → K_aux → ℝ)
+    {u : ℝ → ℝ} (hu : Differentiable ℝ u) {B D₁ : ℝ} (hB : ∀ x, |u x| ≤ B)
+    (hD₁ : ∀ x, |deriv u x| ≤ D₁)
+    (ϕ : R → ℝ → ℝ) (hϕ : ∀ r, Differentiable ℝ (ϕ r))
+    {M M' : R → ℝ} (hM : ∀ r x, |ϕ r x| ≤ M r) (hM' : ∀ r x, |deriv (ϕ r) x| ≤ M' r)
+    (i₀ : R) (s : R → L) :
+    let γ_sh := Measure.pi fun _ : K_sh => gaussianReal 0 1
+    let γ_aux := Measure.pi fun _ : K_aux => gaussianReal 0 1
+    let Z (w : K_sh → ℝ) : ℝ :=
+      ∑ m : L, p m * ∫ η, Real.exp (u (α_sh m ⬝ᵥ w + α_aux m ⬝ᵥ η)) ∂γ_aux
+    ∫ w, (∫ η : R → K_aux → ℝ,
+        (W_sh (s i₀) ⬝ᵥ w + W_aux (s i₀) ⬝ᵥ η i₀) *
+          (∏ r, ϕ r (α_sh (s r) ⬝ᵥ w + α_aux (s r) ⬝ᵥ η r))
+        ∂(Measure.pi fun _ : R => γ_aux)) / Z w ^ Fintype.card R ∂γ_sh =
+      ∑ j : R, (W_sh (s i₀) ⬝ᵥ α_sh (s j) +
+          if i₀ = j then W_aux (s i₀) ⬝ᵥ α_aux (s j) else 0) *
+        ∫ w, (∫ η : R → K_aux → ℝ,
+          deriv (ϕ j) (α_sh (s j) ⬝ᵥ w + α_aux (s j) ⬝ᵥ η j) *
+            ∏ r ∈ Finset.univ.erase j, ϕ r (α_sh (s r) ⬝ᵥ w + α_aux (s r) ⬝ᵥ η r)
+          ∂(Measure.pi fun _ : R => γ_aux)) / Z w ^ Fintype.card R ∂γ_sh -
+      (Fintype.card R : ℝ) *
+        ∑ m : L, p m * (W_sh (s i₀) ⬝ᵥ α_sh m) *
+          ∫ w, ((∫ η : R → K_aux → ℝ,
+              ∏ r, ϕ r (α_sh (s r) ⬝ᵥ w + α_aux (s r) ⬝ᵥ η r)
+              ∂(Measure.pi fun _ : R => γ_aux)) *
+            ∫ η₀ : K_aux → ℝ,
+              deriv u (α_sh m ⬝ᵥ w + α_aux m ⬝ᵥ η₀) *
+                Real.exp (u (α_sh m ⬝ᵥ w + α_aux m ⬝ᵥ η₀))
+              ∂γ_aux) / Z w ^ (Fintype.card R + 1) ∂γ_sh := by
+  intro γ_sh γ_aux Z
+  have h := stein_ratio_comp_log_fixed_spins p hp hp1 α_sh W_sh α_aux W_aux hu hB hD₁ ϕ hϕ hM hM'
+    (G := fun _ => (1 : ℝ)) (differentiable_const 1)
+    (CG := 1) (CG' := 0) (fun _ _ => by simp) (fun _ _ => by simp) i₀ s
+  dsimp only at h
+  simp only [deriv_const', mul_one, zero_sub, mul_neg, integral_neg, Finset.sum_neg_distrib] at h
+  rw [h, sub_eq_add_neg, Finset.mul_sum]
+  congr 2
+  refine Finset.sum_congr rfl fun m _ => ?_
+  have heq : (∫ w, (((∫ η : R → K_aux → ℝ,
+        ∏ r, ϕ r (α_sh (s r) ⬝ᵥ w + α_aux (s r) ⬝ᵥ η r) ∂(Measure.pi fun _ : R => γ_aux)) *
+      ∫ η₀ : K_aux → ℝ,
+        deriv u (α_sh m ⬝ᵥ w + α_aux m ⬝ᵥ η₀) *
+          Real.exp (u (α_sh m ⬝ᵥ w + α_aux m ⬝ᵥ η₀)) ∂γ_aux) /
+      Z w ^ (Fintype.card R + 1)) * (Fintype.card R : ℝ) ∂γ_sh) =
+    (Fintype.card R : ℝ) * ∫ w, ((∫ η : R → K_aux → ℝ,
+        ∏ r, ϕ r (α_sh (s r) ⬝ᵥ w + α_aux (s r) ⬝ᵥ η r) ∂(Measure.pi fun _ : R => γ_aux)) *
+      ∫ η₀ : K_aux → ℝ,
+        deriv u (α_sh m ⬝ᵥ w + α_aux m ⬝ᵥ η₀) *
+          Real.exp (u (α_sh m ⬝ᵥ w + α_aux m ⬝ᵥ η₀)) ∂γ_aux) /
+      Z w ^ (Fintype.card R + 1) ∂γ_sh := by
+    rw [integral_mul_const]; ring
+  rw [heq]; ring
 
 private lemma integral_Z_eq_sum_fiber {α L K_aux : Type*} [MeasurableSpace α]
     [Fintype L] [MeasurableSpace L] [MeasurableSingletonClass L] [Fintype K_aux]
@@ -690,16 +846,11 @@ theorem integral_tilted_replica_fubini
   dsimp only [G_wa]
   rw [integral_const_mul]
 
-/-- **Model-free Gaussian integration by parts for a tilted replica average.** Let `μ₀` be a
-probability measure on an old-state space `α` with a measurable projection `π : α → L` onto a
-finite spin-label set `L`. With shared Gaussian vector `w` and per-replica auxiliary Gaussian
-vectors `η`, field `S w q = α_sh (π q.1) ⬝ᵥ w + α_aux (π q.1) ⬝ᵥ q.2`, multiplier
-`Wt w q = W_sh (π q.1) ⬝ᵥ w + W_aux (π q.1) ⬝ᵥ q.2`, and per-replica factors `ψ r` such that
-`(ψ r * exp ∘ u)' = ψ' r * exp ∘ u` is bounded (requiring no continuity of `ψ' r`), the quenched
-expectation of `⟨f · Wt(σ_{i₀}) · ∏_r ψ_r(S(σ_r))⟩` expands into `R` replica terms plus the fresh
-replica term created by differentiating the normalizer. Only `Integrable f (pi μ₀)` is required of
-`f`. -/
-theorem stein_tilted_replica_ratio
+/-- **Model-free Gaussian integration by parts for a tilted replica average multiplied by
+`G(log Z_w(w))`.** Generalizes `stein_tilted_replica_ratio` (recovered at `G = 1`) by allowing an
+arbitrary differentiable disorder-normalizer weight `G(log Z_w(w))` with bounded value and
+derivative on `[-B, B]`. -/
+theorem stein_tilted_replica_ratio_mul_comp_log
     {α L K_sh K_aux R : Type*} [MeasurableSpace α]
     [Finite L] [MeasurableSpace L] [MeasurableSingletonClass L]
     [Fintype K_sh] [Fintype K_aux] [Fintype R] [DecidableEq R]
@@ -715,6 +866,9 @@ theorem stein_tilted_replica_ratio
     (hM' : ∀ r x, |deriv (fun x => ψ r x * Real.exp (u x)) x| ≤ M' r)
     (ψ' : R → ℝ → ℝ)
     (hψ' : ∀ r x, deriv (fun x => ψ r x * Real.exp (u x)) x = ψ' r x * Real.exp (u x))
+    {G : ℝ → ℝ} (hG : Differentiable ℝ G) {CG CG' : ℝ}
+    (hGb : ∀ t ∈ Set.Icc (-B) B, |G t| ≤ CG)
+    (hGd : ∀ t ∈ Set.Icc (-B) B, |deriv G t| ≤ CG')
     (i₀ : R)
     {f : (R → α) → ℝ} (hfi : Integrable f (Measure.pi fun _ : R => μ₀)) :
     let γ_sh := Measure.pi fun _ : K_sh => gaussianReal 0 1
@@ -723,23 +877,27 @@ theorem stein_tilted_replica_ratio
       α_sh (π q.1) ⬝ᵥ w + α_aux (π q.1) ⬝ᵥ q.2
     let Wt (w : K_sh → ℝ) (q : α × (K_aux → ℝ)) : ℝ :=
       W_sh (π q.1) ⬝ᵥ w + W_aux (π q.1) ⬝ᵥ q.2
-    ∫ w, ∫ σ : R → α × (K_aux → ℝ),
+    let Z_w (w : K_sh → ℝ) : ℝ := ∫ q, Real.exp (u (S w q)) ∂(μ₀.prod γ_aux)
+    ∫ w, (∫ σ : R → α × (K_aux → ℝ),
         f (fun r => (σ r).1) * Wt w (σ i₀) * (∏ r, ψ r (S w (σ r)))
-        ∂(Measure.pi fun _ : R => (μ₀.prod γ_aux).tilted (fun q => u (S w q))) ∂γ_sh =
-      ∑ j : R, ∫ w, ∫ σ : R → α × (K_aux → ℝ),
+        ∂(Measure.pi fun _ : R => (μ₀.prod γ_aux).tilted (fun q => u (S w q)))) *
+        G (Real.log (Z_w w)) ∂γ_sh =
+      ∑ j : R, ∫ w, (∫ σ : R → α × (K_aux → ℝ),
           f (fun r => (σ r).1) *
             (W_sh (π (σ i₀).1) ⬝ᵥ α_sh (π (σ j).1) +
               if i₀ = j then W_aux (π (σ i₀).1) ⬝ᵥ α_aux (π (σ j).1) else 0) *
             (ψ' j (S w (σ j)) * ∏ r ∈ Finset.univ.erase j, ψ r (S w (σ r)))
-          ∂(Measure.pi fun _ : R => (μ₀.prod γ_aux).tilted (fun q => u (S w q))) ∂γ_sh -
-      (Fintype.card R : ℝ) * ∫ w, ∫ σ : Option R → α × (K_aux → ℝ),
+          ∂(Measure.pi fun _ : R => (μ₀.prod γ_aux).tilted (fun q => u (S w q)))) *
+          G (Real.log (Z_w w)) ∂γ_sh +
+      ∫ w, (∫ σ : Option R → α × (K_aux → ℝ),
           f (fun r => (σ (some r)).1) *
             (W_sh (π (σ (some i₀)).1) ⬝ᵥ α_sh (π (σ none).1)) *
             (∏ r : R, ψ r (S w (σ (some r)))) * deriv u (S w (σ none))
-          ∂(Measure.pi fun _ : Option R => (μ₀.prod γ_aux).tilted (fun q => u (S w q))) ∂γ_sh := by
+          ∂(Measure.pi fun _ : Option R => (μ₀.prod γ_aux).tilted (fun q => u (S w q)))) *
+          (deriv G (Real.log (Z_w w)) - (Fintype.card R : ℝ) * G (Real.log (Z_w w))) ∂γ_sh := by
   classical
   have := Fintype.ofFinite L
-  intro γ_sh γ_aux S Wt
+  intro γ_sh γ_aux S Wt Z_w
   have hum : Measurable u := hu.continuous.measurable
   let p : L → ℝ := fun m => (μ₀.map π).real {m}
   have hp0 : ∀ m, 0 ≤ p m := fun m => ENNReal.toReal_nonneg
@@ -749,19 +907,50 @@ theorem stein_tilted_replica_ratio
     simp [p]
   let Z : (K_sh → ℝ) → ℝ := fun w =>
     ∑ m : L, p m * ∫ η, Real.exp (u (α_sh m ⬝ᵥ w + α_aux m ⬝ᵥ η)) ∂γ_aux
-  obtain ⟨hZd, hZb, -, -⟩ := hasFDerivAt_Z_sum hu hB hD₁ p hp0 hp1 α_aux
-  have hZ_ge : ∀ w, Real.exp (-B) ≤ Z w := fun w => hZb (fun m => α_sh m ⬝ᵥ w)
+  have hZ_eq : ∀ w, Z_w w = Z w :=
+    fun w => integral_Z_eq_sum_fiber μ₀ π hπ hum hB α_aux (fun m => α_sh m ⬝ᵥ w)
+  obtain ⟨hZd, hZb, hZu, -, -⟩ := hasFDerivAt_Z_sum hu hB hD₁ p hp0 hp1 α_aux
+  have hZm : Measurable Z := by
+    have hm_lin : Measurable fun (w : K_sh → ℝ) (m : L) => α_sh m ⬝ᵥ w :=
+      measurable_pi_iff.2 fun m => by simp only [dotProduct]; fun_prop
+    exact hZd.continuous.measurable.comp hm_lin
+  have hZ_pos : ∀ w, 0 < Z w := fun w => (Real.exp_pos (-B)).trans_le (hZb (fun m => α_sh m ⬝ᵥ w))
+  have hZ_mem : ∀ w, Real.log (Z w) ∈ Set.Icc (-B) B := fun w =>
+    ⟨by simpa using Real.log_le_log (Real.exp_pos (-B)) (hZb (fun m => α_sh m ⬝ᵥ w)),
+     by simpa using Real.log_le_log (hZ_pos w) (hZu (fun m => α_sh m ⬝ᵥ w))⟩
+  have hCG0 : 0 ≤ CG := (abs_nonneg _).trans (hGb _ (hZ_mem 0))
+  have hCG'0 : 0 ≤ CG' := (abs_nonneg _).trans (hGd _ (hZ_mem 0))
+  have hGm : Measurable fun w => G (Real.log (Z w)) :=
+    hG.continuous.measurable.comp (Real.measurable_log.comp hZm)
+  have hGsub_m : Measurable fun w =>
+      deriv G (Real.log (Z w)) - (Fintype.card R : ℝ) * G (Real.log (Z w)) :=
+    ((measurable_deriv G).comp (Real.measurable_log.comp hZm)).sub (hGm.const_mul _)
+  have hG_bd : ∀ w, |G (Real.log (Z w))| ≤ CG := fun w => hGb _ (hZ_mem w)
+  have hGsub_bd : ∀ w,
+      |deriv G (Real.log (Z w)) - (Fintype.card R : ℝ) * G (Real.log (Z w))| ≤
+        CG' + (Fintype.card R : ℝ) * CG := fun w => by
+    refine (abs_sub _ _).trans (add_le_add (hGd _ (hZ_mem w)) ?_)
+    rw [abs_mul, Nat.abs_cast]
+    exact mul_le_mul_of_nonneg_left (hGb _ (hZ_mem w)) (Nat.cast_nonneg _)
   let ϕ : R → ℝ → ℝ := fun r x => ψ r x * Real.exp (u x)
   have hM : ∀ r x, |ϕ r x| ≤ |M₀ r| * Real.exp B := fun r x =>
     abs_mul_exp_le ((hM₀ r x).trans (le_abs_self _)) (le_of_abs_le (hB x))
   let C_ϕ : ℝ := ∏ r, (|M₀ r| * Real.exp B)
   have hCϕ0 : 0 ≤ C_ϕ := Finset.prod_nonneg fun _ _ => by positivity
   have hLHS := integral_tilted_replica_fubini μ₀ π hπ α_sh α_aux hum hB hfi
-    (fun w σ => Wt w (σ i₀) * ∏ r, ψ r (S w (σ r)))
-    (fun s w η => (W_sh (s i₀) ⬝ᵥ w + W_aux (s i₀) ⬝ᵥ η i₀) *
-      ∏ r, ϕ r (α_sh (s r) ⬝ᵥ w + α_aux (s r) ⬝ᵥ η r))
+    (fun w σ => (Wt w (σ i₀) * ∏ r, ψ r (S w (σ r))) * G (Real.log (Z w)))
+    (fun s w η => ((W_sh (s i₀) ⬝ᵥ w + W_aux (s i₀) ⬝ᵥ η i₀) *
+      ∏ r, ϕ r (α_sh (s r) ⬝ᵥ w + α_aux (s r) ⬝ᵥ η r)) * G (Real.log (Z w)))
     (fun w σ => by
-      simp only [Wt, S, ϕ, mul_assoc, Real.exp_sum, ← Finset.prod_mul_distrib])
+      have hp : (∏ r, ψ r (S w (σ r))) * Real.exp (∑ r, u (S w (σ r))) =
+          ∏ r, ϕ r (S w (σ r)) := by
+        rw [Real.exp_sum, ← Finset.prod_mul_distrib]
+      dsimp only [Wt, S, ϕ] at hp ⊢
+      calc _ = ((W_sh (π (σ i₀).1) ⬝ᵥ w + W_aux (π (σ i₀).1) ⬝ᵥ (σ i₀).2) *
+                ((∏ r, ψ r (α_sh (π (σ r).1) ⬝ᵥ w + α_aux (π (σ r).1) ⬝ᵥ (σ r).2)) *
+                  Real.exp (∑ r, u (α_sh (π (σ r).1) ⬝ᵥ w + α_aux (π (σ r).1) ⬝ᵥ (σ r).2)))) *
+                G (Real.log (Z w)) := by ring
+        _ = _ := by rw [hp])
     (fun s => by
       have h1 : Measurable fun q : (K_sh → ℝ) × (R → K_aux → ℝ) =>
           W_sh (s i₀) ⬝ᵥ q.1 + W_aux (s i₀) ⬝ᵥ q.2 i₀ :=
@@ -778,16 +967,16 @@ theorem stein_tilted_replica_ratio
             (Finset.measurable_sum _ fun k _ =>
               measurable_const.mul
                 ((measurable_pi_apply k).comp ((measurable_pi_apply r).comp measurable_snd))))
-      exact h1.mul h2)
-    (bw := fun w : K_sh → ℝ => C_ϕ * ∑ m : L, ∑ k : K_sh, |W_sh m k| * |w k|)
+      exact (h1.mul h2).mul (hGm.comp measurable_fst))
+    (bw := fun w : K_sh → ℝ => (C_ϕ * CG) * ∑ m : L, ∑ k : K_sh, |W_sh m k| * |w k|)
     (by
       have hsum_i : Integrable (fun w : K_sh → ℝ =>
           ∑ m : L, ∑ k : K_sh, |W_sh m k| * |w k|) γ_sh :=
         integrable_finsetSum _ fun m _ => integrable_finsetSum _ fun k _ =>
           (integrable_comp_eval (μ := fun _ : K_sh => gaussianReal 0 1) (i := k)
             (integrable_abs_id_gaussianReal (m := 0) (v := 1))).const_mul |W_sh m k|
-      exact hsum_i.const_mul C_ϕ)
-    (bη := fun η : R → K_aux → ℝ => C_ϕ * ∑ m : L, ∑ k : K_aux, |W_aux m k| * |η i₀ k|)
+      exact hsum_i.const_mul (C_ϕ * CG))
+    (bη := fun η : R → K_aux → ℝ => (C_ϕ * CG) * ∑ m : L, ∑ k : K_aux, |W_aux m k| * |η i₀ k|)
     (by
       have hsum_i : Integrable (fun η : R → K_aux → ℝ =>
           ∑ m : L, ∑ k : K_aux, |W_aux m k| * |η i₀ k|) (Measure.pi fun _ : R => γ_aux) := by
@@ -796,9 +985,9 @@ theorem stein_tilted_replica_ratio
           integrable_comp_eval (μ := fun _ : K_aux => gaussianReal 0 1) (i := k)
             (integrable_abs_id_gaussianReal (m := 0) (v := 1))
         exact (integrable_comp_eval (μ := fun _ : R => γ_aux) (i := i₀) hk).const_mul |W_aux m k|
-      exact hsum_i.const_mul C_ϕ)
+      exact hsum_i.const_mul (C_ϕ * CG))
     (fun s w η => by
-      rw [abs_mul]
+      rw [abs_mul, abs_mul]
       have hp_bd : |∏ r, ϕ r (α_sh (s r) ⬝ᵥ w + α_aux (s r) ⬝ᵥ η r)| ≤ C_ϕ := by
         rw [Finset.abs_prod]
         exact Finset.prod_le_prod₀ (fun _ _ => abs_nonneg _) fun r _ => hM r _
@@ -815,37 +1004,42 @@ theorem stein_tilted_replica_ratio
           exact Finset.single_le_sum (f := fun m : L => ∑ k : K_aux, |W_aux m k| * |η i₀ k|)
             (fun _ _ => Finset.sum_nonneg fun _ _ => by positivity) (Finset.mem_univ (s i₀))
       calc _ ≤ ((∑ m : L, ∑ k : K_sh, |W_sh m k| * |w k|) +
-                (∑ m : L, ∑ k : K_aux, |W_aux m k| * |η i₀ k|)) * C_ϕ :=
-            mul_le_mul hw_bd hp_bd (abs_nonneg _) (by positivity)
+                (∑ m : L, ∑ k : K_aux, |W_aux m k| * |η i₀ k|)) * C_ϕ * CG :=
+            mul_le_mul (mul_le_mul hw_bd hp_bd (abs_nonneg _) (by positivity))
+              (hG_bd w) (abs_nonneg _) (by positivity)
         _ = _ := by ring)
   have hRHS1 : ∀ j : R,
-      ∫ w, ∫ σ : R → α × (K_aux → ℝ),
+      ∫ w, (∫ σ : R → α × (K_aux → ℝ),
           f (fun r => (σ r).1) *
             (W_sh (π (σ i₀).1) ⬝ᵥ α_sh (π (σ j).1) +
               if i₀ = j then W_aux (π (σ i₀).1) ⬝ᵥ α_aux (π (σ j).1) else 0) *
             (ψ' j (S w (σ j)) * ∏ r ∈ Finset.univ.erase j, ψ r (S w (σ r)))
-          ∂(Measure.pi fun _ : R => (μ₀.prod γ_aux).tilted (fun q => u (S w q))) ∂γ_sh =
+          ∂(Measure.pi fun _ : R => (μ₀.prod γ_aux).tilted (fun q => u (S w q)))) *
+          G (Real.log (Z_w w)) ∂γ_sh =
         ∫ a : R → α, f a *
           ((W_sh (π (a i₀)) ⬝ᵥ α_sh (π (a j)) +
               if i₀ = j then W_aux (π (a i₀)) ⬝ᵥ α_aux (π (a j)) else 0) *
-            ∫ w, (∫ η : R → K_aux → ℝ,
+            ∫ w, ((∫ η : R → K_aux → ℝ,
                 deriv (ϕ j) (α_sh (π (a j)) ⬝ᵥ w + α_aux (π (a j)) ⬝ᵥ η j) *
                   ∏ r ∈ Finset.univ.erase j,
                     ϕ r (α_sh (π (a r)) ⬝ᵥ w + α_aux (π (a r)) ⬝ᵥ η r)
-                ∂(Measure.pi fun _ : R => γ_aux)) / Z w ^ Fintype.card R ∂γ_sh)
+                ∂(Measure.pi fun _ : R => γ_aux)) / Z w ^ Fintype.card R) *
+              G (Real.log (Z w)) ∂γ_sh)
           ∂(Measure.pi fun _ : R => μ₀) := by
     intro j
     let C_j : ℝ := (∑ m : L, ∑ m' : L,
         (|W_sh m ⬝ᵥ α_sh m'| + |W_aux m ⬝ᵥ α_aux m'|)) *
-      (|M' j| * ∏ r ∈ Finset.univ.erase j, (|M₀ r| * Real.exp B))
+      (|M' j| * ∏ r ∈ Finset.univ.erase j, (|M₀ r| * Real.exp B)) * CG
     have hj_fub := integral_tilted_replica_fubini μ₀ π hπ α_sh α_aux hum hB hfi
-      (fun w σ => (W_sh (π (σ i₀).1) ⬝ᵥ α_sh (π (σ j).1) +
+      (fun w σ => ((W_sh (π (σ i₀).1) ⬝ᵥ α_sh (π (σ j).1) +
           if i₀ = j then W_aux (π (σ i₀).1) ⬝ᵥ α_aux (π (σ j).1) else 0) *
-        (ψ' j (S w (σ j)) * ∏ r ∈ Finset.univ.erase j, ψ r (S w (σ r))))
-      (fun s w η => (W_sh (s i₀) ⬝ᵥ α_sh (s j) +
+        (ψ' j (S w (σ j)) * ∏ r ∈ Finset.univ.erase j, ψ r (S w (σ r)))) *
+        G (Real.log (Z w)))
+      (fun s w η => ((W_sh (s i₀) ⬝ᵥ α_sh (s j) +
           if i₀ = j then W_aux (s i₀) ⬝ᵥ α_aux (s j) else 0) *
         (deriv (ϕ j) (α_sh (s j) ⬝ᵥ w + α_aux (s j) ⬝ᵥ η j) *
-          ∏ r ∈ Finset.univ.erase j, ϕ r (α_sh (s r) ⬝ᵥ w + α_aux (s r) ⬝ᵥ η r)))
+          ∏ r ∈ Finset.univ.erase j, ϕ r (α_sh (s r) ⬝ᵥ w + α_aux (s r) ⬝ᵥ η r))) *
+        G (Real.log (Z w)))
       (fun w σ => by
         rw [Real.exp_sum, ← Finset.mul_prod_erase Finset.univ _ (Finset.mem_univ j)]
         have hd_eq : deriv (ϕ j) (S w (σ j)) = ψ' j (S w (σ j)) * Real.exp (u (S w (σ j))) :=
@@ -855,10 +1049,17 @@ theorem stein_tilted_replica_ratio
             ∏ r ∈ Finset.univ.erase j, ϕ r (S w (σ r)) := by
           rw [← Finset.prod_mul_distrib]
         dsimp only [S] at hd_eq hprod_eq ⊢
-        rw [hd_eq, ← hprod_eq]
-        ring)
+        calc _ = (W_sh (π (σ i₀).1) ⬝ᵥ α_sh (π (σ j).1) +
+                    if i₀ = j then W_aux (π (σ i₀).1) ⬝ᵥ α_aux (π (σ j).1) else 0) *
+                  (ψ' j (α_sh (π (σ j).1) ⬝ᵥ w + α_aux (π (σ j).1) ⬝ᵥ (σ j).2) *
+                    Real.exp (u (α_sh (π (σ j).1) ⬝ᵥ w + α_aux (π (σ j).1) ⬝ᵥ (σ j).2))) *
+                  ((∏ r ∈ Finset.univ.erase j,
+                      ψ r (α_sh (π (σ r).1) ⬝ᵥ w + α_aux (π (σ r).1) ⬝ᵥ (σ r).2)) *
+                    ∏ r ∈ Finset.univ.erase j,
+                      Real.exp (u (α_sh (π (σ r).1) ⬝ᵥ w + α_aux (π (σ r).1) ⬝ᵥ (σ r).2))) *
+                  G (Real.log (Z w)) := by ring
+          _ = _ := by rw [← hd_eq, hprod_eq]; ring)
       (fun s => by
-        refine measurable_const.mul ?_
         have hlin : ∀ r : R, Measurable fun q : (K_sh → ℝ) × (R → K_aux → ℝ) =>
             α_sh (s r) ⬝ᵥ q.1 + α_aux (s r) ⬝ᵥ q.2 r := fun r =>
           (Finset.measurable_sum _ fun k _ =>
@@ -866,12 +1067,13 @@ theorem stein_tilted_replica_ratio
             (Finset.measurable_sum _ fun k _ =>
               measurable_const.mul
                 ((measurable_pi_apply k).comp ((measurable_pi_apply r).comp measurable_snd)))
-        exact ((measurable_deriv _).comp (hlin j)).mul
-          (Finset.measurable_prod _ fun r _ => (hψd r).continuous.measurable.comp (hlin r)))
+        exact (measurable_const.mul (((measurable_deriv _).comp (hlin j)).mul
+          (Finset.measurable_prod _ fun r _ =>
+            (hψd r).continuous.measurable.comp (hlin r)))).mul (hGm.comp measurable_fst))
       (bw := fun _ => C_j) (integrable_const _)
       (bη := fun _ => 0) (integrable_const _)
       (fun s w η => by
-        rw [add_zero, abs_mul, abs_mul]
+        rw [add_zero, abs_mul, abs_mul, abs_mul]
         have hc1 : |W_sh (s i₀) ⬝ᵥ α_sh (s j) +
             if i₀ = j then W_aux (s i₀) ⬝ᵥ α_aux (s j) else 0| ≤
             ∑ m : L, ∑ m' : L, (|W_sh m ⬝ᵥ α_sh m'| + |W_aux m ⬝ᵥ α_aux m'|) := by
@@ -894,57 +1096,72 @@ theorem stein_tilted_replica_ratio
           exact mul_le_mul ((hM' j _).trans (le_abs_self _))
             (Finset.prod_le_prod₀ (fun _ _ => abs_nonneg _) fun r _ => hM r _)
             (Finset.prod_nonneg fun _ _ => abs_nonneg _) (abs_nonneg _)
-        rw [← mul_assoc]
-        simpa only [mul_assoc] using mul_le_mul hc1 hc2 (by positivity)
-          (Finset.sum_nonneg fun _ _ => Finset.sum_nonneg fun _ _ => by positivity))
+        exact mul_le_mul
+          (mul_le_mul hc1 hc2 (by positivity)
+            (Finset.sum_nonneg fun _ _ => Finset.sum_nonneg fun _ _ => by positivity))
+          (hG_bd w) (abs_nonneg _) (by positivity))
     dsimp only at hj_fub
-    have heq_lhs : (fun w => ∫ σ : R → α × (K_aux → ℝ),
+    have heq_lhs : (fun w => (∫ σ : R → α × (K_aux → ℝ),
           f (fun r => (σ r).1) *
             (W_sh (π (σ i₀).1) ⬝ᵥ α_sh (π (σ j).1) +
               if i₀ = j then W_aux (π (σ i₀).1) ⬝ᵥ α_aux (π (σ j).1) else 0) *
             (ψ' j (S w (σ j)) * ∏ r ∈ Finset.univ.erase j, ψ r (S w (σ r)))
-          ∂(Measure.pi fun _ : R => (μ₀.prod γ_aux).tilted (fun q => u (S w q)))) =
+          ∂(Measure.pi fun _ : R => (μ₀.prod γ_aux).tilted (fun q => u (S w q)))) *
+          G (Real.log (Z_w w))) =
         fun w => ∫ σ : R → α × (K_aux → ℝ),
           f (fun r => (σ r).1) *
-            ((W_sh (π (σ i₀).1) ⬝ᵥ α_sh (π (σ j).1) +
+            (((W_sh (π (σ i₀).1) ⬝ᵥ α_sh (π (σ j).1) +
               if i₀ = j then W_aux (π (σ i₀).1) ⬝ᵥ α_aux (π (σ j).1) else 0) *
-            (ψ' j (S w (σ j)) * ∏ r ∈ Finset.univ.erase j, ψ r (S w (σ r))))
-          ∂(Measure.pi fun _ : R => (μ₀.prod γ_aux).tilted (fun q => u (S w q))) :=
-      funext fun w => integral_congr_ae (ae_of_all _ fun σ => by ring)
+            (ψ' j (S w (σ j)) * ∏ r ∈ Finset.univ.erase j, ψ r (S w (σ r)))) *
+            G (Real.log (Z w)))
+          ∂(Measure.pi fun _ : R => (μ₀.prod γ_aux).tilted (fun q => u (S w q))) := by
+      funext w
+      rw [hZ_eq w, ← integral_mul_const]
+      exact integral_congr_ae (ae_of_all _ fun σ => by ring)
     rw [heq_lhs, hj_fub]
     refine integral_congr_ae (ae_of_all _ fun a => ?_)
     dsimp only
-    simp_rw [integral_const_mul, mul_div_assoc]
-    rw [integral_const_mul]
+    congr 1
+    rw [← integral_const_mul]
+    refine integral_congr_ae (ae_of_all _ fun w => ?_)
+    dsimp only
+    rw [integral_mul_const, integral_const_mul]
+    change (_ * _) * G (Real.log (Z w)) / Z w ^ Fintype.card R = _
+    ring
   have hf_opt : Integrable (fun a : Option R → α => f (fun r => a (some r)))
       (Measure.pi fun _ : Option R => μ₀) :=
     (measurePreserving_pi_comp_injective μ₀
       (Option.some_injective R)).integrable_comp_of_integrable hfi
   have hRHS2 :
-      ∫ w, ∫ σ : Option R → α × (K_aux → ℝ),
+      ∫ w, (∫ σ : Option R → α × (K_aux → ℝ),
           f (fun r => (σ (some r)).1) *
             (W_sh (π (σ (some i₀)).1) ⬝ᵥ α_sh (π (σ none).1)) *
             (∏ r : R, ψ r (S w (σ (some r)))) * deriv u (S w (σ none))
-          ∂(Measure.pi fun _ : Option R => (μ₀.prod γ_aux).tilted (fun q => u (S w q))) ∂γ_sh =
+          ∂(Measure.pi fun _ : Option R => (μ₀.prod γ_aux).tilted (fun q => u (S w q)))) *
+          (deriv G (Real.log (Z_w w)) - (Fintype.card R : ℝ) * G (Real.log (Z_w w))) ∂γ_sh =
         ∫ a : R → α, f a *
           (∑ m : L, p m * (W_sh (π (a i₀)) ⬝ᵥ α_sh m) *
-            ∫ w, ((∫ η : R → K_aux → ℝ,
+            ∫ w, (((∫ η : R → K_aux → ℝ,
                   ∏ r, ϕ r (α_sh (π (a r)) ⬝ᵥ w + α_aux (π (a r)) ⬝ᵥ η r)
                   ∂(Measure.pi fun _ : R => γ_aux)) *
                 ∫ η₀ : K_aux → ℝ,
                   deriv u (α_sh m ⬝ᵥ w + α_aux m ⬝ᵥ η₀) *
                     Real.exp (u (α_sh m ⬝ᵥ w + α_aux m ⬝ᵥ η₀))
-                  ∂γ_aux) / Z w ^ (Fintype.card R + 1) ∂γ_sh)
+                  ∂γ_aux) / Z w ^ (Fintype.card R + 1)) *
+              (deriv G (Real.log (Z w)) - (Fintype.card R : ℝ) * G (Real.log (Z w))) ∂γ_sh)
           ∂(Measure.pi fun _ : R => μ₀) := by
-    let C_opt : ℝ := (∑ m : L, ∑ m' : L, |W_sh m ⬝ᵥ α_sh m'|) * (C_ϕ * (|D₁| * Real.exp B))
+    let C_opt : ℝ := (∑ m : L, ∑ m' : L, |W_sh m ⬝ᵥ α_sh m'|) * (C_ϕ * (|D₁| * Real.exp B)) *
+      (CG' + (Fintype.card R : ℝ) * CG)
     have hopt_fub :=
       integral_tilted_replica_fubini (ι := Option R) μ₀ π hπ α_sh α_aux hum hB hf_opt
-      (fun w σ => (W_sh (π (σ (some i₀)).1) ⬝ᵥ α_sh (π (σ none).1)) *
-        (∏ r : R, ψ r (S w (σ (some r)))) * deriv u (S w (σ none)))
-      (fun s w η => (W_sh (s (some i₀)) ⬝ᵥ α_sh (s none)) *
+      (fun w σ => ((W_sh (π (σ (some i₀)).1) ⬝ᵥ α_sh (π (σ none).1)) *
+        (∏ r : R, ψ r (S w (σ (some r)))) * deriv u (S w (σ none))) *
+        (deriv G (Real.log (Z w)) - (Fintype.card R : ℝ) * G (Real.log (Z w))))
+      (fun s w η => ((W_sh (s (some i₀)) ⬝ᵥ α_sh (s none)) *
         (∏ r : R, ϕ r (α_sh (s (some r)) ⬝ᵥ w + α_aux (s (some r)) ⬝ᵥ η (some r))) *
         (deriv u (α_sh (s none) ⬝ᵥ w + α_aux (s none) ⬝ᵥ η none) *
-          Real.exp (u (α_sh (s none) ⬝ᵥ w + α_aux (s none) ⬝ᵥ η none))))
+          Real.exp (u (α_sh (s none) ⬝ᵥ w + α_aux (s none) ⬝ᵥ η none)))) *
+        (deriv G (Real.log (Z w)) - (Fintype.card R : ℝ) * G (Real.log (Z w))))
       (fun w σ => by
         rw [Fintype.sum_option, Real.exp_add, Real.exp_sum]
         have hprod_eq : (∏ r : R, ψ r (S w (σ (some r)))) *
@@ -952,8 +1169,15 @@ theorem stein_tilted_replica_ratio
             ∏ r : R, ϕ r (S w (σ (some r))) := by
           rw [← Finset.prod_mul_distrib]
         dsimp only [S] at hprod_eq ⊢
-        rw [← hprod_eq]
-        ring)
+        calc _ = (W_sh (π (σ (some i₀)).1) ⬝ᵥ α_sh (π (σ none).1)) *
+                  ((∏ r : R, ψ r (α_sh (π (σ (some r)).1) ⬝ᵥ w +
+                      α_aux (π (σ (some r)).1) ⬝ᵥ (σ (some r)).2)) *
+                    ∏ r : R, Real.exp (u (α_sh (π (σ (some r)).1) ⬝ᵥ w +
+                      α_aux (π (σ (some r)).1) ⬝ᵥ (σ (some r)).2))) *
+                  (deriv u (α_sh (π (σ none).1) ⬝ᵥ w + α_aux (π (σ none).1) ⬝ᵥ (σ none).2) *
+                    Real.exp (u (α_sh (π (σ none).1) ⬝ᵥ w + α_aux (π (σ none).1) ⬝ᵥ (σ none).2))) *
+                  (deriv G (Real.log (Z w)) - (Fintype.card R : ℝ) * G (Real.log (Z w))) := by ring
+          _ = _ := by rw [hprod_eq])
       (fun s => by
         have hlin : ∀ r : Option R, Measurable fun q : (K_sh → ℝ) × (Option R → K_aux → ℝ) =>
             α_sh (s r) ⬝ᵥ q.1 + α_aux (s r) ⬝ᵥ q.2 r := fun r =>
@@ -962,15 +1186,15 @@ theorem stein_tilted_replica_ratio
             (Finset.measurable_sum _ fun k _ =>
               measurable_const.mul
                 ((measurable_pi_apply k).comp ((measurable_pi_apply r).comp measurable_snd)))
-        exact (measurable_const.mul
+        exact ((measurable_const.mul
           (Finset.measurable_prod _ fun r _ =>
             (hψd r).continuous.measurable.comp (hlin (some r)))).mul
           (((measurable_deriv u).comp (hlin none)).mul
-            (Real.measurable_exp.comp (hum.comp (hlin none)))))
+            (Real.measurable_exp.comp (hum.comp (hlin none))))).mul (hGsub_m.comp measurable_fst))
       (bw := fun _ => C_opt) (integrable_const _)
       (bη := fun _ => 0) (integrable_const _)
       (fun s w η => by
-        rw [add_zero, abs_mul, abs_mul]
+        rw [add_zero, abs_mul, abs_mul, abs_mul]
         have hc1 : |W_sh (s (some i₀)) ⬝ᵥ α_sh (s none)| ≤
             ∑ m : L, ∑ m' : L, |W_sh m ⬝ᵥ α_sh m'| := by
           have h1 := Finset.single_le_sum (f := fun m' : L => |W_sh (s (some i₀)) ⬝ᵥ α_sh m'|)
@@ -985,31 +1209,39 @@ theorem stein_tilted_replica_ratio
         have hc3 : |deriv u (α_sh (s none) ⬝ᵥ w + α_aux (s none) ⬝ᵥ η none) *
             Real.exp (u (α_sh (s none) ⬝ᵥ w + α_aux (s none) ⬝ᵥ η none))| ≤ |D₁| * Real.exp B :=
           abs_mul_exp_le ((hD₁ _).trans (le_abs_self _)) (le_of_abs_le (hB _))
-        calc _ ≤ (∑ m : L, ∑ m' : L, |W_sh m ⬝ᵥ α_sh m'|) * C_ϕ * (|D₁| * Real.exp B) := by
-              refine mul_le_mul (mul_le_mul hc1 hc2 (abs_nonneg _)
-                (Finset.sum_nonneg fun _ _ => Finset.sum_nonneg fun _ _ => abs_nonneg _))
-                hc3 (abs_nonneg _) (by positivity)
-          _ = C_opt := by ring)
+        calc _ ≤ (∑ m : L, ∑ m' : L, |W_sh m ⬝ᵥ α_sh m'|) * C_ϕ * (|D₁| * Real.exp B) *
+                  (CG' + (Fintype.card R : ℝ) * CG) :=
+              mul_le_mul
+                (mul_le_mul (mul_le_mul hc1 hc2 (abs_nonneg _)
+                  (Finset.sum_nonneg fun _ _ => Finset.sum_nonneg fun _ _ => abs_nonneg _))
+                  hc3 (abs_nonneg _) (by positivity))
+                (hGsub_bd w) (abs_nonneg _) (by positivity)
+          _ = C_opt := by dsimp only [C_opt]; ring)
     dsimp only at hopt_fub
-    have heq_lhs : (fun w => ∫ σ : Option R → α × (K_aux → ℝ),
+    have heq_lhs : (fun w => (∫ σ : Option R → α × (K_aux → ℝ),
           f (fun r => (σ (some r)).1) *
             (W_sh (π (σ (some i₀)).1) ⬝ᵥ α_sh (π (σ none).1)) *
             (∏ r : R, ψ r (S w (σ (some r)))) * deriv u (S w (σ none))
-          ∂(Measure.pi fun _ : Option R => (μ₀.prod γ_aux).tilted (fun q => u (S w q)))) =
+          ∂(Measure.pi fun _ : Option R => (μ₀.prod γ_aux).tilted (fun q => u (S w q)))) *
+          (deriv G (Real.log (Z_w w)) - (Fintype.card R : ℝ) * G (Real.log (Z_w w)))) =
         fun w => ∫ σ : Option R → α × (K_aux → ℝ),
           f (fun r => (σ (some r)).1) *
-            ((W_sh (π (σ (some i₀)).1) ⬝ᵥ α_sh (π (σ none).1)) *
-              (∏ r : R, ψ r (S w (σ (some r)))) * deriv u (S w (σ none)))
-          ∂(Measure.pi fun _ : Option R => (μ₀.prod γ_aux).tilted (fun q => u (S w q))) :=
-      funext fun w => integral_congr_ae (ae_of_all _ fun σ => by ring)
+            (((W_sh (π (σ (some i₀)).1) ⬝ᵥ α_sh (π (σ none).1)) *
+              (∏ r : R, ψ r (S w (σ (some r)))) * deriv u (S w (σ none))) *
+            (deriv G (Real.log (Z w)) - (Fintype.card R : ℝ) * G (Real.log (Z w))))
+          ∂(Measure.pi fun _ : Option R => (μ₀.prod γ_aux).tilted (fun q => u (S w q))) := by
+      funext w
+      rw [hZ_eq w, ← integral_mul_const]
+      exact integral_congr_ae (ae_of_all _ fun σ => by ring)
     rw [heq_lhs, hopt_fub]
     have h_eta_split : ∀ (a : Option R → α) (w : K_sh → ℝ),
         ∫ η : Option R → K_aux → ℝ,
-          (W_sh (π (a (some i₀))) ⬝ᵥ α_sh (π (a none))) *
+          ((W_sh (π (a (some i₀))) ⬝ᵥ α_sh (π (a none))) *
             (∏ r : R,
               ϕ r (α_sh (π (a (some r))) ⬝ᵥ w + α_aux (π (a (some r))) ⬝ᵥ η (some r))) *
             (deriv u (α_sh (π (a none)) ⬝ᵥ w + α_aux (π (a none)) ⬝ᵥ η none) *
-              Real.exp (u (α_sh (π (a none)) ⬝ᵥ w + α_aux (π (a none)) ⬝ᵥ η none)))
+              Real.exp (u (α_sh (π (a none)) ⬝ᵥ w + α_aux (π (a none)) ⬝ᵥ η none)))) *
+          (deriv G (Real.log (Z w)) - (Fintype.card R : ℝ) * G (Real.log (Z w)))
           ∂(Measure.pi fun _ : Option R => γ_aux) =
         (W_sh (π (a (some i₀))) ⬝ᵥ α_sh (π (a none))) *
           ((∫ η : R → K_aux → ℝ,
@@ -1018,8 +1250,11 @@ theorem stein_tilted_replica_ratio
             ∫ η₀ : K_aux → ℝ,
               deriv u (α_sh (π (a none)) ⬝ᵥ w + α_aux (π (a none)) ⬝ᵥ η₀) *
                 Real.exp (u (α_sh (π (a none)) ⬝ᵥ w + α_aux (π (a none)) ⬝ᵥ η₀))
-              ∂γ_aux) := by
+              ∂γ_aux) *
+          (deriv G (Real.log (Z w)) - (Fintype.card R : ℝ) * G (Real.log (Z w))) := by
       intro a w
+      rw [integral_mul_const]
+      congr 1
       simp_rw [mul_assoc]
       rw [integral_const_mul]
       congr 1
@@ -1041,21 +1276,23 @@ theorem stein_tilted_replica_ratio
           (Real.measurable_exp.comp (hum.comp hl))).aestronglyMeasurable
     let I_m : (R → L) → L → ℝ := fun s m =>
       (W_sh (s i₀) ⬝ᵥ α_sh m) *
-        ∫ w, ((∫ η : R → K_aux → ℝ,
+        ∫ w, (((∫ η : R → K_aux → ℝ,
               ∏ r : R, ϕ r (α_sh (s r) ⬝ᵥ w + α_aux (s r) ⬝ᵥ η r)
               ∂(Measure.pi fun _ : R => γ_aux)) *
             ∫ η₀ : K_aux → ℝ,
               deriv u (α_sh m ⬝ᵥ w + α_aux m ⬝ᵥ η₀) *
                 Real.exp (u (α_sh m ⬝ᵥ w + α_aux m ⬝ᵥ η₀))
-              ∂γ_aux) / Z w ^ (Fintype.card R + 1) ∂γ_sh
+              ∂γ_aux) / Z w ^ (Fintype.card R + 1)) *
+          (deriv G (Real.log (Z w)) - (Fintype.card R : ℝ) * G (Real.log (Z w))) ∂γ_sh
     have h_a_eq : ∀ a : Option R → α,
         f (fun r => a (some r)) *
           ∫ w, (∫ η : Option R → K_aux → ℝ,
-              (W_sh (π (a (some i₀))) ⬝ᵥ α_sh (π (a none))) *
+              ((W_sh (π (a (some i₀))) ⬝ᵥ α_sh (π (a none))) *
                 (∏ r : R,
                   ϕ r (α_sh (π (a (some r))) ⬝ᵥ w + α_aux (π (a (some r))) ⬝ᵥ η (some r))) *
                 (deriv u (α_sh (π (a none)) ⬝ᵥ w + α_aux (π (a none)) ⬝ᵥ η none) *
-                  Real.exp (u (α_sh (π (a none)) ⬝ᵥ w + α_aux (π (a none)) ⬝ᵥ η none)))
+                  Real.exp (u (α_sh (π (a none)) ⬝ᵥ w + α_aux (π (a none)) ⬝ᵥ η none)))) *
+              (deriv G (Real.log (Z w)) - (Fintype.card R : ℝ) * G (Real.log (Z w)))
               ∂(Measure.pi fun _ : Option R => γ_aux)) /
             Z w ^ Fintype.card (Option R) ∂γ_sh =
         f (fun r => a (some r)) * I_m (fun r => π (a (some r))) (π (a none)) := by
@@ -1065,15 +1302,17 @@ theorem stein_tilted_replica_ratio
       rw [← integral_const_mul]
       refine integral_congr_ae (ae_of_all _ fun w => ?_)
       dsimp only
-      rw [h_eta_split a w, Fintype.card_option, mul_div_assoc]
+      rw [h_eta_split a w, Fintype.card_option]
+      ring
     have h_a_congr : ∫ a : Option R → α,
           f (fun r => a (some r)) *
             ∫ w, (∫ η : Option R → K_aux → ℝ,
-                (W_sh (π (a (some i₀))) ⬝ᵥ α_sh (π (a none))) *
+                ((W_sh (π (a (some i₀))) ⬝ᵥ α_sh (π (a none))) *
                   (∏ r : R,
                     ϕ r (α_sh (π (a (some r))) ⬝ᵥ w + α_aux (π (a (some r))) ⬝ᵥ η (some r))) *
                   (deriv u (α_sh (π (a none)) ⬝ᵥ w + α_aux (π (a none)) ⬝ᵥ η none) *
-                    Real.exp (u (α_sh (π (a none)) ⬝ᵥ w + α_aux (π (a none)) ⬝ᵥ η none)))
+                    Real.exp (u (α_sh (π (a none)) ⬝ᵥ w + α_aux (π (a none)) ⬝ᵥ η none)))) *
+                (deriv G (Real.log (Z w)) - (Fintype.card R : ℝ) * G (Real.log (Z w)))
                 ∂(Measure.pi fun _ : Option R => γ_aux)) /
               Z w ^ Fintype.card (Option R) ∂γ_sh
           ∂(Measure.pi fun _ : Option R => μ₀) =
@@ -1151,56 +1390,79 @@ theorem stein_tilted_replica_ratio
     congr 1
     exact Finset.sum_congr rfl fun m _ => by dsimp only [I_m]; ring
   dsimp only at hLHS
-  have hLHS' : ∫ w, ∫ σ : R → α × (K_aux → ℝ),
+  have hLHS' : ∫ w, (∫ σ : R → α × (K_aux → ℝ),
         f (fun r => (σ r).1) * Wt w (σ i₀) * (∏ r, ψ r (S w (σ r)))
-        ∂(Measure.pi fun _ : R => (μ₀.prod γ_aux).tilted (fun q => u (S w q))) ∂γ_sh =
+        ∂(Measure.pi fun _ : R => (μ₀.prod γ_aux).tilted (fun q => u (S w q)))) *
+        G (Real.log (Z_w w)) ∂γ_sh =
       ∫ a : R → α, f a *
-        ∫ w, (∫ η : R → K_aux → ℝ,
+        ∫ w, ((∫ η : R → K_aux → ℝ,
             (W_sh (π (a i₀)) ⬝ᵥ w + W_aux (π (a i₀)) ⬝ᵥ η i₀) *
               (∏ r, ϕ r (α_sh (π (a r)) ⬝ᵥ w + α_aux (π (a r)) ⬝ᵥ η r))
-            ∂(Measure.pi fun _ : R => γ_aux)) / Z w ^ Fintype.card R ∂γ_sh
-        ∂(Measure.pi fun _ : R => μ₀) :=
-    (integral_congr_ae (ae_of_all _ fun w =>
-      integral_congr_ae (ae_of_all _ fun σ => mul_assoc _ _ _))).trans hLHS
+            ∂(Measure.pi fun _ : R => γ_aux)) / Z w ^ Fintype.card R) *
+          G (Real.log (Z w)) ∂γ_sh
+        ∂(Measure.pi fun _ : R => μ₀) := by
+    have heq : (fun w => (∫ σ : R → α × (K_aux → ℝ),
+          f (fun r => (σ r).1) * Wt w (σ i₀) * (∏ r, ψ r (S w (σ r)))
+          ∂(Measure.pi fun _ : R => (μ₀.prod γ_aux).tilted (fun q => u (S w q)))) *
+          G (Real.log (Z_w w))) =
+        fun w => ∫ σ : R → α × (K_aux → ℝ),
+          f (fun r => (σ r).1) * ((Wt w (σ i₀) * ∏ r, ψ r (S w (σ r))) * G (Real.log (Z w)))
+          ∂(Measure.pi fun _ : R => (μ₀.prod γ_aux).tilted (fun q => u (S w q))) := by
+      funext w
+      rw [hZ_eq w, ← integral_mul_const]
+      exact integral_congr_ae (ae_of_all _ fun σ => by ring)
+    rw [heq, hLHS]
+    refine integral_congr_ae (ae_of_all _ fun a => ?_)
+    dsimp only
+    congr 1
+    refine integral_congr_ae (ae_of_all _ fun w => ?_)
+    dsimp only
+    rw [integral_mul_const]
+    change _ / Z w ^ Fintype.card R = _
+    ring
   rw [hLHS', Finset.sum_congr rfl fun j _ => hRHS1 j, hRHS2]
   obtain ⟨g₁, hg₁⟩ : ∃ g₁ : R → (R → L) → ℝ, ∀ j s, g₁ j s =
       (W_sh (s i₀) ⬝ᵥ α_sh (s j) + if i₀ = j then W_aux (s i₀) ⬝ᵥ α_aux (s j) else 0) *
-        ∫ w, (∫ η : R → K_aux → ℝ,
+        ∫ w, ((∫ η : R → K_aux → ℝ,
             deriv (ϕ j) (α_sh (s j) ⬝ᵥ w + α_aux (s j) ⬝ᵥ η j) *
               ∏ r ∈ Finset.univ.erase j, ϕ r (α_sh (s r) ⬝ᵥ w + α_aux (s r) ⬝ᵥ η r)
-            ∂(Measure.pi fun _ : R => γ_aux)) / Z w ^ Fintype.card R ∂γ_sh :=
+            ∂(Measure.pi fun _ : R => γ_aux)) / Z w ^ Fintype.card R) *
+          G (Real.log (Z w)) ∂γ_sh :=
     ⟨_, fun _ _ => rfl⟩
   obtain ⟨g₂, hg₂⟩ : ∃ g₂ : (R → L) → ℝ, ∀ s, g₂ s =
       ∑ m : L, p m * (W_sh (s i₀) ⬝ᵥ α_sh m) *
-        ∫ w, ((∫ η : R → K_aux → ℝ,
+        ∫ w, (((∫ η : R → K_aux → ℝ,
               ∏ r, ϕ r (α_sh (s r) ⬝ᵥ w + α_aux (s r) ⬝ᵥ η r)
               ∂(Measure.pi fun _ : R => γ_aux)) *
             ∫ η₀ : K_aux → ℝ,
               deriv u (α_sh m ⬝ᵥ w + α_aux m ⬝ᵥ η₀) *
                 Real.exp (u (α_sh m ⬝ᵥ w + α_aux m ⬝ᵥ η₀))
-              ∂γ_aux) / Z w ^ (Fintype.card R + 1) ∂γ_sh :=
+              ∂γ_aux) / Z w ^ (Fintype.card R + 1)) *
+          (deriv G (Real.log (Z w)) - (Fintype.card R : ℝ) * G (Real.log (Z w))) ∂γ_sh :=
     ⟨_, fun _ => rfl⟩
   have hR1_fold : ∀ j : R,
       (∫ a : R → α, f a *
         ((W_sh (π (a i₀)) ⬝ᵥ α_sh (π (a j)) +
             if i₀ = j then W_aux (π (a i₀)) ⬝ᵥ α_aux (π (a j)) else 0) *
-          ∫ w, (∫ η : R → K_aux → ℝ,
+          ∫ w, ((∫ η : R → K_aux → ℝ,
               deriv (ϕ j) (α_sh (π (a j)) ⬝ᵥ w + α_aux (π (a j)) ⬝ᵥ η j) *
                 ∏ r ∈ Finset.univ.erase j, ϕ r (α_sh (π (a r)) ⬝ᵥ w + α_aux (π (a r)) ⬝ᵥ η r)
-              ∂(Measure.pi fun _ : R => γ_aux)) / Z w ^ Fintype.card R ∂γ_sh)
+              ∂(Measure.pi fun _ : R => γ_aux)) / Z w ^ Fintype.card R) *
+            G (Real.log (Z w)) ∂γ_sh)
         ∂(Measure.pi fun _ : R => μ₀)) =
       ∫ a : R → α, f a * g₁ j (fun r => π (a r)) ∂(Measure.pi fun _ : R => μ₀) :=
     fun j => integral_congr_ae (ae_of_all _ fun a => by dsimp only; rw [hg₁])
   have hR2_fold :
       (∫ a : R → α, f a *
         (∑ m : L, p m * (W_sh (π (a i₀)) ⬝ᵥ α_sh m) *
-          ∫ w, ((∫ η : R → K_aux → ℝ,
+          ∫ w, (((∫ η : R → K_aux → ℝ,
                 ∏ r, ϕ r (α_sh (π (a r)) ⬝ᵥ w + α_aux (π (a r)) ⬝ᵥ η r)
                 ∂(Measure.pi fun _ : R => γ_aux)) *
               ∫ η₀ : K_aux → ℝ,
                 deriv u (α_sh m ⬝ᵥ w + α_aux m ⬝ᵥ η₀) *
                   Real.exp (u (α_sh m ⬝ᵥ w + α_aux m ⬝ᵥ η₀))
-                ∂γ_aux) / Z w ^ (Fintype.card R + 1) ∂γ_sh)
+                ∂γ_aux) / Z w ^ (Fintype.card R + 1)) *
+            (deriv G (Real.log (Z w)) - (Fintype.card R : ℝ) * G (Real.log (Z w))) ∂γ_sh)
         ∂(Measure.pi fun _ : R => μ₀)) =
       ∫ a : R → α, f a * g₂ (fun r => π (a r)) ∂(Measure.pi fun _ : R => μ₀) :=
     integral_congr_ae (ae_of_all _ fun a => by dsimp only; rw [hg₂])
@@ -1213,16 +1475,72 @@ theorem stein_tilted_replica_ratio
       (ae_of_all _ fun a => Finset.single_le_sum (f := fun s => |g s|)
         (fun _ _ => abs_nonneg _) (Finset.mem_univ _))).congr
       (ae_of_all _ fun a => mul_comm _ _)
-  rw [← integral_finsetSum _ fun j _ => h_bdd_int (g₁ j), ← integral_const_mul,
-    ← integral_sub (integrable_finsetSum _ fun j _ => h_bdd_int (g₁ j))
-      ((h_bdd_int g₂).const_mul _)]
+  rw [← integral_finsetSum _ fun j _ => h_bdd_int (g₁ j),
+    ← integral_add (integrable_finsetSum _ fun j _ => h_bdd_int (g₁ j)) (h_bdd_int g₂)]
   refine integral_congr_ae (ae_of_all _ fun a => ?_)
   dsimp only
-  rw [← Finset.mul_sum, mul_left_comm (Fintype.card R : ℝ) (f a), ← mul_sub]
+  rw [← Finset.mul_sum, ← mul_add]
   congr 1
   simp_rw [hg₁, hg₂]
-  exact stein_ratio_fixed_spins p hp0 hp1 α_sh W_sh α_aux W_aux hu hB hD₁ ϕ hψd hM hM' i₀
-    (fun r => π (a r))
+  exact stein_ratio_comp_log_fixed_spins p hp0 hp1 α_sh W_sh α_aux W_aux hu hB hD₁ ϕ hψd hM hM'
+    hG hGb hGd i₀ (fun r => π (a r))
+
+/-- **Model-free Gaussian integration by parts for a tilted replica average.** Let `μ₀` be a
+probability measure on an old-state space `α` with a measurable projection `π : α → L` onto a
+finite spin-label set `L`. With shared Gaussian vector `w` and per-replica auxiliary Gaussian
+vectors `η`, field `S w q = α_sh (π q.1) ⬝ᵥ w + α_aux (π q.1) ⬝ᵥ q.2`, multiplier
+`Wt w q = W_sh (π q.1) ⬝ᵥ w + W_aux (π q.1) ⬝ᵥ q.2`, and per-replica factors `ψ r` such that
+`(ψ r * exp ∘ u)' = ψ' r * exp ∘ u` is bounded (requiring no continuity of `ψ' r`), the quenched
+expectation of `⟨f · Wt(σ_{i₀}) · ∏_r ψ_r(S(σ_r))⟩` expands into `R` replica terms plus the fresh
+replica term created by differentiating the normalizer. Only `Integrable f (pi μ₀)` is required of
+`f` (`G = 1` specialization of `stein_tilted_replica_ratio_mul_comp_log`). -/
+theorem stein_tilted_replica_ratio
+    {α L K_sh K_aux R : Type*} [MeasurableSpace α]
+    [Finite L] [MeasurableSpace L] [MeasurableSingletonClass L]
+    [Fintype K_sh] [Fintype K_aux] [Fintype R] [DecidableEq R]
+    (μ₀ : Measure α) [IsProbabilityMeasure μ₀]
+    (π : α → L) (hπ : Measurable π)
+    (α_sh W_sh : L → K_sh → ℝ) (α_aux W_aux : L → K_aux → ℝ)
+    {u : ℝ → ℝ} (hu : Differentiable ℝ u) {B D₁ : ℝ} (hB : ∀ x, |u x| ≤ B)
+    (hD₁ : ∀ x, |deriv u x| ≤ D₁)
+    (ψ : R → ℝ → ℝ)
+    (hψd : ∀ r, Differentiable ℝ fun x => ψ r x * Real.exp (u x))
+    {M₀ M' : R → ℝ}
+    (hM₀ : ∀ r x, |ψ r x| ≤ M₀ r)
+    (hM' : ∀ r x, |deriv (fun x => ψ r x * Real.exp (u x)) x| ≤ M' r)
+    (ψ' : R → ℝ → ℝ)
+    (hψ' : ∀ r x, deriv (fun x => ψ r x * Real.exp (u x)) x = ψ' r x * Real.exp (u x))
+    (i₀ : R)
+    {f : (R → α) → ℝ} (hfi : Integrable f (Measure.pi fun _ : R => μ₀)) :
+    let γ_sh := Measure.pi fun _ : K_sh => gaussianReal 0 1
+    let γ_aux := Measure.pi fun _ : K_aux => gaussianReal 0 1
+    let S (w : K_sh → ℝ) (q : α × (K_aux → ℝ)) : ℝ :=
+      α_sh (π q.1) ⬝ᵥ w + α_aux (π q.1) ⬝ᵥ q.2
+    let Wt (w : K_sh → ℝ) (q : α × (K_aux → ℝ)) : ℝ :=
+      W_sh (π q.1) ⬝ᵥ w + W_aux (π q.1) ⬝ᵥ q.2
+    ∫ w, ∫ σ : R → α × (K_aux → ℝ),
+        f (fun r => (σ r).1) * Wt w (σ i₀) * (∏ r, ψ r (S w (σ r)))
+        ∂(Measure.pi fun _ : R => (μ₀.prod γ_aux).tilted (fun q => u (S w q))) ∂γ_sh =
+      ∑ j : R, ∫ w, ∫ σ : R → α × (K_aux → ℝ),
+          f (fun r => (σ r).1) *
+            (W_sh (π (σ i₀).1) ⬝ᵥ α_sh (π (σ j).1) +
+              if i₀ = j then W_aux (π (σ i₀).1) ⬝ᵥ α_aux (π (σ j).1) else 0) *
+            (ψ' j (S w (σ j)) * ∏ r ∈ Finset.univ.erase j, ψ r (S w (σ r)))
+          ∂(Measure.pi fun _ : R => (μ₀.prod γ_aux).tilted (fun q => u (S w q))) ∂γ_sh -
+      (Fintype.card R : ℝ) * ∫ w, ∫ σ : Option R → α × (K_aux → ℝ),
+          f (fun r => (σ (some r)).1) *
+            (W_sh (π (σ (some i₀)).1) ⬝ᵥ α_sh (π (σ none).1)) *
+            (∏ r : R, ψ r (S w (σ (some r)))) * deriv u (S w (σ none))
+          ∂(Measure.pi fun _ : Option R => (μ₀.prod γ_aux).tilted (fun q => u (S w q))) ∂γ_sh := by
+  intro γ_sh γ_aux S Wt
+  have h := stein_tilted_replica_ratio_mul_comp_log μ₀ π hπ α_sh W_sh α_aux W_aux hu hB hD₁
+    ψ hψd hM₀ hM' ψ' hψ' (G := fun _ => (1 : ℝ)) (differentiable_const 1)
+    (CG := 1) (CG' := 0) (fun _ _ => by simp) (fun _ _ => by simp) i₀ hfi
+  dsimp only at h
+  simp only [deriv_const', mul_one, zero_sub, mul_neg, integral_neg] at h
+  rw [h, sub_eq_add_neg]
+  congr 2
+  rw [integral_mul_const]; ring
 
 /-- Differentiating `s ↦ (∫ η : R → K_aux → ℝ, ∏_r ϕ_r(S_s(w, st_r, η_r))) / Z_s(w)^|R|`
 at fixed spin labels `st : R → L` and fixed `w : K_sh → ℝ`. -/

@@ -595,7 +595,7 @@ theorem exists_hasDerivAt_cavity_rotation_abs_le_of_ae_abs_le
     (hM₂ : ∀ r x, |deriv (deriv (ψ r)) x| ≤ M₂)
     {f : SmartPathDisorder N M → (R → SmartPathState N M) → ℝ}
     (hf : Measurable fun p : SmartPathDisorder N M × (R → SmartPathState N M) => f p.1 p.2)
-    (s₀ : ℝ) {M_f : ℝ} (hMf : 0 ≤ M_f) :
+    (s₀ : ℝ) {M_f : ℝ} :
     let P₀ := smartPathDisorder (Measure.pi fun _ : Fin M =>
       Measure.pi fun _ : Fin N => gaussianReal 0 1) variance
     let μ₀ (ω : SmartPathDisorder N M) :=
@@ -665,6 +665,11 @@ theorem exists_hasDerivAt_cavity_rotation_abs_le_of_ae_abs_le
     dsimp [P₀]
     rw [smartPathDisorder_eq]
     infer_instance
+  have hMf : 0 ≤ M_f := by
+    obtain ⟨ω₀, hω₀⟩ := hOld.exists
+    have := hμ ω₀
+    obtain ⟨a₀, ha₀⟩ := hω₀.exists
+    exact (abs_nonneg _).trans ha₀
   have : IsProbabilityMeasure P := by
     change IsProbabilityMeasure (P₀.prod γ_sh)
     infer_instance

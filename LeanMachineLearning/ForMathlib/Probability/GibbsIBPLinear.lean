@@ -266,7 +266,6 @@ theorem integral_mul_gibbs_ratio_mul_comp_log_eq_sum [NeZero μ] {Ω : Type*} [M
     (hZ_part : ∀ z, Z_part z = ∫ a, Real.exp (D a + ∑ k, z k * X k a) ∂μ)
     (hZ : HasGaussianLaw (fun ω k => Z k ω) P) (hmean : ∀ k, ∫ ω, Z k ω ∂P = 0) (i : K)
     (hD : Measurable D) (hX : ∀ k, Measurable (X k)) (hY : Measurable Y)
-    (hB : 0 ≤ B) (hM : 0 ≤ M)
     (hDb : ∀ a, |D a| ≤ Eb) (hXb : ∀ k a, |X k a| ≤ B) (hYb : ∀ a, |Y a| ≤ M)
     {G : ℝ → ℝ} (hG : Differentiable ℝ G) {CG cG CG' cG' : ℝ}
     (hGb : ∀ t, |G t| ≤ CG * Real.exp (cG * |t|))
@@ -280,24 +279,23 @@ theorem integral_mul_gibbs_ratio_mul_comp_log_eq_sum [NeZero μ] {Ω : Type*} [M
             deriv G (Real.log (Z_part (fun k => Z k ω)))) ∂P := by
   classical
   have hμ_pos : 0 < μ.real Set.univ := measureReal_univ_pos
-  have hEb : 0 ≤ Eb := by
-    by_contra hlt
-    have hempty : ∀ a : α, False := fun a => by linarith [abs_nonneg (D a), hDb a]
-    have : μ = 0 := Measure.measure_univ_eq_zero.1 (by
-      have hu : (Set.univ : Set α) = ∅ := Set.eq_empty_iff_forall_notMem.2 fun a _ => hempty a
-      rw [hu, measure_empty])
-    exact NeZero.ne μ this
+  obtain ⟨a₀⟩ := Measure.nonempty_of_neZero μ
+  have hEb : 0 ≤ Eb := (abs_nonneg _).trans (hDb a₀)
+  have hM : 0 ≤ M := (abs_nonneg _).trans (hYb a₀)
+  let B' : ℝ := max B 0
+  have hB' : 0 ≤ B' := le_max_right B 0
+  have hXb' : ∀ k a, |X k a| ≤ B' := fun k a => (hXb k a).trans (le_max_left B 0)
   have hCG0 : 0 ≤ CG := nonneg_of_mul_nonneg_left ((abs_nonneg _).trans (hGb 0)) (Real.exp_pos _)
   have hCG'0 : 0 ≤ CG' := nonneg_of_mul_nonneg_left ((abs_nonneg _).trans (hGd 0)) (Real.exp_pos _)
   have hZ_pos : ∀ z : K → ℝ, 0 < Z_part z := fun z => by
-    rw [hZ_part]; exact integral_exp_pos (integrable_exp_linear hD hX hDb hXb z)
+    rw [hZ_part]; exact integral_exp_pos (integrable_exp_linear hD hX hDb hXb' z)
   have hlog_Z_bd : ∀ z : K → ℝ, |Real.log (Z_part z)| ≤
-      (|Real.log (μ.real Set.univ)| + Eb) + B * ∑ k, |z k| := by
+      (|Real.log (μ.real Set.univ)| + Eb) + B' * ∑ k, |z k| := by
     intro z
-    let C_z : ℝ := Eb + ∑ k, |z k| * B
-    have hexp_i := integrable_exp_linear (μ := μ) hD hX hDb hXb z
+    let C_z : ℝ := Eb + ∑ k, |z k| * B'
+    have hexp_i := integrable_exp_linear (μ := μ) hD hX hDb hXb' z
     have hE_abs : ∀ a, |D a + ∑ k, z k * X k a| ≤ C_z := fun a =>
-      abs_add_sum_mul_le (D a) z (fun k => X k a) (hDb a) (fun k => hXb k a)
+      abs_add_sum_mul_le (D a) z (fun k => X k a) (hDb a) (fun k => hXb' k a)
     have hup : Z_part z ≤ μ.real Set.univ * Real.exp C_z := by
       rw [hZ_part]
       calc (∫ a, Real.exp (D a + ∑ k, z k * X k a) ∂μ)
@@ -323,6 +321,8 @@ theorem integral_mul_gibbs_ratio_mul_comp_log_eq_sum [NeZero μ] {Ω : Type*} [M
         by linarith [le_abs_self (Real.log (μ.real Set.univ))]⟩
     refine habs.trans_eq ?_
     dsimp only [C_z]; rw [← Finset.sum_mul]; ring
+  have hRfun : ∀ Y', R Y' = fun z => (∫ a, Y' a * Real.exp (D a + ∑ k, z k * X k a) ∂μ) /
+      ∫ a, Real.exp (D a + ∑ k, z k * X k a) ∂μ := fun Y' => funext (hR Y')
   let Φ (z : K → ℝ) : ℝ := R Y z * G (Real.log (Z_part z))
   have hder : ∀ z₀ : K → ℝ, ∃ L : (K → ℝ) →L[ℝ] ℝ, HasFDerivAt Φ L z₀ ∧ ∀ l,
       L (Pi.single l 1) =
@@ -330,12 +330,10 @@ theorem integral_mul_gibbs_ratio_mul_comp_log_eq_sum [NeZero μ] {Ω : Type*} [M
           R Y z₀ * R (X l) z₀ * deriv G (Real.log (Z_part z₀)) := by
     intro z₀
     obtain ⟨L_R, hLR, hLR_l⟩ :=
-      hasFDerivAt_gibbs_ratio_linear (μ := μ) hD hX hY hB hM hDb hXb hYb z₀
-    have hRfun : R Y = fun z => (∫ a, Y a * Real.exp (D a + ∑ k, z k * X k a) ∂μ) /
-        ∫ a, Real.exp (D a + ∑ k, z k * X k a) ∂μ := funext (hR Y)
-    rw [← hRfun] at hLR
+      hasFDerivAt_gibbs_ratio_linear (μ := μ) hD hX hY hB' hM hDb hXb' hYb z₀
+    rw [← hRfun Y] at hLR
     obtain ⟨L_Z, hLZ, hLZ_l⟩ := hasFDerivAt_integral_mul_exp_linear (μ := μ) (Y := fun _ => 1)
-      hD hX measurable_const hB zero_le_one hDb hXb (fun _ => by simp) z₀
+      hD hX measurable_const hB' zero_le_one hDb hXb' (fun _ => by simp) z₀
     have hZfun : Z_part = fun z => ∫ a, 1 * Real.exp (D a + ∑ k, z k * X k a) ∂μ := by
       funext z; rw [hZ_part]; simp
     rw [← hZfun] at hLZ
@@ -366,91 +364,91 @@ theorem integral_mul_gibbs_ratio_mul_comp_log_eq_sum [NeZero μ] {Ω : Type*} [M
   have hdiff : Differentiable ℝ Φ := fun z₀ => (hder z₀).choose_spec.1.differentiableAt
   let A₀ : ℝ := |Real.log (μ.real Set.univ)| + Eb
   have hG_z_bd : ∀ z : K → ℝ, |G (Real.log (Z_part z))| ≤
-      (CG * Real.exp (|cG| * A₀)) * Real.exp ((|cG| * B) * ∑ k, |z k|) := fun z => by
+      (CG * Real.exp (|cG| * A₀)) * Real.exp ((|cG| * B') * ∑ k, |z k|) := fun z => by
     calc |G (Real.log (Z_part z))|
         ≤ CG * Real.exp (cG * |Real.log (Z_part z)|) := hGb _
       _ ≤ CG * Real.exp (|cG| * |Real.log (Z_part z)|) :=
           mul_le_mul_of_nonneg_left
             (Real.exp_le_exp.2 (mul_le_mul_of_nonneg_right (le_abs_self cG) (abs_nonneg _))) hCG0
-      _ ≤ CG * Real.exp (|cG| * (A₀ + B * ∑ k, |z k|)) :=
+      _ ≤ CG * Real.exp (|cG| * (A₀ + B' * ∑ k, |z k|)) :=
           mul_le_mul_of_nonneg_left
             (Real.exp_le_exp.2 (mul_le_mul_of_nonneg_left (hlog_Z_bd z) (abs_nonneg cG))) hCG0
-      _ = (CG * Real.exp (|cG| * A₀)) * Real.exp ((|cG| * B) * ∑ k, |z k|) := by
-          rw [mul_add, Real.exp_add, mul_assoc (|cG|) B, ← mul_assoc CG]
+      _ = (CG * Real.exp (|cG| * A₀)) * Real.exp ((|cG| * B') * ∑ k, |z k|) := by
+          rw [mul_add, Real.exp_add, mul_assoc (|cG|) B', ← mul_assoc CG]
   have hG'_z_bd : ∀ z : K → ℝ, |deriv G (Real.log (Z_part z))| ≤
-      (CG' * Real.exp (|cG'| * A₀)) * Real.exp ((|cG'| * B) * ∑ k, |z k|) := fun z => by
+      (CG' * Real.exp (|cG'| * A₀)) * Real.exp ((|cG'| * B') * ∑ k, |z k|) := fun z => by
     calc |deriv G (Real.log (Z_part z))|
         ≤ CG' * Real.exp (cG' * |Real.log (Z_part z)|) := hGd _
       _ ≤ CG' * Real.exp (|cG'| * |Real.log (Z_part z)|) :=
           mul_le_mul_of_nonneg_left
             (Real.exp_le_exp.2 (mul_le_mul_of_nonneg_right (le_abs_self cG') (abs_nonneg _))) hCG'0
-      _ ≤ CG' * Real.exp (|cG'| * (A₀ + B * ∑ k, |z k|)) :=
+      _ ≤ CG' * Real.exp (|cG'| * (A₀ + B' * ∑ k, |z k|)) :=
           mul_le_mul_of_nonneg_left
             (Real.exp_le_exp.2 (mul_le_mul_of_nonneg_left (hlog_Z_bd z) (abs_nonneg cG'))) hCG'0
-      _ = (CG' * Real.exp (|cG'| * A₀)) * Real.exp ((|cG'| * B) * ∑ k, |z k|) := by
-          rw [mul_add, Real.exp_add, mul_assoc (|cG'|) B, ← mul_assoc CG']
+      _ = (CG' * Real.exp (|cG'| * A₀)) * Real.exp ((|cG'| * B') * ∑ k, |z k|) := by
+          rw [mul_add, Real.exp_add, mul_assoc (|cG'|) B', ← mul_assoc CG']
   have hbound1 : ∀ z : K → ℝ, |Φ z| ≤
-      (M * (CG * Real.exp (|cG| * A₀))) * Real.exp ((|cG| * B) * ∑ k, |z k|) := fun z => by
+      (M * (CG * Real.exp (|cG| * A₀))) * Real.exp ((|cG| * B') * ∑ k, |z k|) := fun z => by
     dsimp only [Φ]
     rw [abs_mul]
-    have hRY : |R Y z| ≤ M := by rw [hR]; exact abs_gibbs_ratio_le hD hX hDb hXb hYb z
+    have hRY : |R Y z| ≤ M := by rw [hR]; exact abs_gibbs_ratio_le hD hX hDb hXb' hYb z
     calc |R Y z| * |G (Real.log (Z_part z))|
-        ≤ M * ((CG * Real.exp (|cG| * A₀)) * Real.exp ((|cG| * B) * ∑ k, |z k|)) :=
+        ≤ M * ((CG * Real.exp (|cG| * A₀)) * Real.exp ((|cG| * B') * ∑ k, |z k|)) :=
           mul_le_mul hRY (hG_z_bd z) (abs_nonneg _) hM
       _ = _ := by ring
-  let c_max : ℝ := max (|cG| * B) (|cG'| * B)
+  let c_max : ℝ := max (|cG| * B') (|cG'| * B')
   have hbound2 : ∀ (l : K) (z : K → ℝ), |fderiv ℝ Φ z (Pi.single l 1)| ≤
-      (2 * M * B * (CG * Real.exp (|cG| * A₀)) +
-        M * B * (CG' * Real.exp (|cG'| * A₀))) * Real.exp (c_max * ∑ k, |z k|) := by
+      (2 * M * B' * (CG * Real.exp (|cG| * A₀)) +
+        M * B' * (CG' * Real.exp (|cG'| * A₀))) * Real.exp (c_max * ∑ k, |z k|) := by
     intro l z
     obtain ⟨L, hL, hLl⟩ := hder z
     rw [hL.fderiv, hLl l]
-    have h1 : |R (fun a => Y a * X l a) z| ≤ M * B := by
-      rw [hR]; exact abs_gibbs_ratio_le hD hX hDb hXb (fun a => by
-        rw [abs_mul]; exact mul_le_mul (hYb a) (hXb l a) (abs_nonneg _) hM) z
-    have h2 : |R Y z| ≤ M := by rw [hR]; exact abs_gibbs_ratio_le hD hX hDb hXb hYb z
-    have h3 : |R (X l) z| ≤ B := by rw [hR]; exact abs_gibbs_ratio_le hD hX hDb hXb (hXb l) z
-    have hcov_bd : |R (fun a => Y a * X l a) z - R Y z * R (X l) z| ≤ 2 * M * B := by
+    have h1 : |R (fun a => Y a * X l a) z| ≤ M * B' := by
+      rw [hR]; exact abs_gibbs_ratio_le hD hX hDb hXb' (fun a => by
+        rw [abs_mul]; exact mul_le_mul (hYb a) (hXb' l a) (abs_nonneg _) hM) z
+    have h2 : |R Y z| ≤ M := by rw [hR]; exact abs_gibbs_ratio_le hD hX hDb hXb' hYb z
+    have h3 : |R (X l) z| ≤ B' := by rw [hR]; exact abs_gibbs_ratio_le hD hX hDb hXb' (hXb' l) z
+    have hcov_bd : |R (fun a => Y a * X l a) z - R Y z * R (X l) z| ≤ 2 * M * B' := by
       calc |R (fun a => Y a * X l a) z - R Y z * R (X l) z|
           ≤ |R (fun a => Y a * X l a) z| + |R Y z| * |R (X l) z| :=
             (abs_sub _ _).trans (by rw [abs_mul])
-        _ ≤ M * B + M * B := add_le_add h1 (mul_le_mul h2 h3 (abs_nonneg _) hM)
-        _ = 2 * M * B := by ring
-    have hprod_bd : |R Y z * R (X l) z| ≤ M * B := by
+        _ ≤ M * B' + M * B' := add_le_add h1 (mul_le_mul h2 h3 (abs_nonneg _) hM)
+        _ = 2 * M * B' := by ring
+    have hprod_bd : |R Y z * R (X l) z| ≤ M * B' := by
       rw [abs_mul]; exact mul_le_mul h2 h3 (abs_nonneg _) hM
     have hsum_nn : 0 ≤ ∑ k, |z k| := Finset.sum_nonneg fun _ _ => abs_nonneg _
-    have hexp1 : Real.exp ((|cG| * B) * ∑ k, |z k|) ≤ Real.exp (c_max * ∑ k, |z k|) :=
+    have hexp1 : Real.exp ((|cG| * B') * ∑ k, |z k|) ≤ Real.exp (c_max * ∑ k, |z k|) :=
       Real.exp_le_exp.2 (mul_le_mul_of_nonneg_right (le_max_left _ _) hsum_nn)
-    have hexp2 : Real.exp ((|cG'| * B) * ∑ k, |z k|) ≤ Real.exp (c_max * ∑ k, |z k|) :=
+    have hexp2 : Real.exp ((|cG'| * B') * ∑ k, |z k|) ≤ Real.exp (c_max * ∑ k, |z k|) :=
       Real.exp_le_exp.2 (mul_le_mul_of_nonneg_right (le_max_right _ _) hsum_nn)
     refine (abs_add_le _ _).trans ?_
     rw [abs_mul, abs_mul]
     have ht1 : |R (fun a => Y a * X l a) z - R Y z * R (X l) z| * |G (Real.log (Z_part z))| ≤
-        2 * M * B * (CG * Real.exp (|cG| * A₀)) * Real.exp (c_max * ∑ k, |z k|) := by
-      calc _ ≤ (2 * M * B) * ((CG * Real.exp (|cG| * A₀)) *
-              Real.exp ((|cG| * B) * ∑ k, |z k|)) :=
+        2 * M * B' * (CG * Real.exp (|cG| * A₀)) * Real.exp (c_max * ∑ k, |z k|) := by
+      calc _ ≤ (2 * M * B') * ((CG * Real.exp (|cG| * A₀)) *
+              Real.exp ((|cG| * B') * ∑ k, |z k|)) :=
             mul_le_mul hcov_bd (hG_z_bd z) (abs_nonneg _) (by positivity)
-        _ ≤ (2 * M * B) * ((CG * Real.exp (|cG| * A₀)) * Real.exp (c_max * ∑ k, |z k|)) :=
+        _ ≤ (2 * M * B') * ((CG * Real.exp (|cG| * A₀)) * Real.exp (c_max * ∑ k, |z k|)) :=
             mul_le_mul_of_nonneg_left
               (mul_le_mul_of_nonneg_left hexp1 (by positivity)) (by positivity)
         _ = _ := by ring
     have ht2 : |R Y z * R (X l) z| * |deriv G (Real.log (Z_part z))| ≤
-        M * B * (CG' * Real.exp (|cG'| * A₀)) * Real.exp (c_max * ∑ k, |z k|) := by
-      calc _ ≤ (M * B) * ((CG' * Real.exp (|cG'| * A₀)) *
-              Real.exp ((|cG'| * B) * ∑ k, |z k|)) :=
+        M * B' * (CG' * Real.exp (|cG'| * A₀)) * Real.exp (c_max * ∑ k, |z k|) := by
+      calc _ ≤ (M * B') * ((CG' * Real.exp (|cG'| * A₀)) *
+              Real.exp ((|cG'| * B') * ∑ k, |z k|)) :=
             mul_le_mul hprod_bd (hG'_z_bd z) (abs_nonneg _) (by positivity)
-        _ ≤ (M * B) * ((CG' * Real.exp (|cG'| * A₀)) * Real.exp (c_max * ∑ k, |z k|)) :=
+        _ ≤ (M * B') * ((CG' * Real.exp (|cG'| * A₀)) * Real.exp (c_max * ∑ k, |z k|)) :=
             mul_le_mul_of_nonneg_left
               (mul_le_mul_of_nonneg_left hexp2 (by positivity)) (by positivity)
         _ = _ := by ring
-    calc _ ≤ 2 * M * B * (CG * Real.exp (|cG| * A₀)) * Real.exp (c_max * ∑ k, |z k|) +
-            M * B * (CG' * Real.exp (|cG'| * A₀)) * Real.exp (c_max * ∑ k, |z k|) :=
+    calc _ ≤ 2 * M * B' * (CG * Real.exp (|cG| * A₀)) * Real.exp (c_max * ∑ k, |z k|) +
+            M * B' * (CG' * Real.exp (|cG'| * A₀)) * Real.exp (c_max * ∑ k, |z k|) :=
           add_le_add ht1 ht2
       _ = _ := by ring
   have h := integral_mul_comp_eq_sum_integral_mul hZ hmean i hdiff
-    (C := M * (CG * Real.exp (|cG| * A₀))) (c := |cG| * B) hbound1
-    (D := fun _ => 2 * M * B * (CG * Real.exp (|cG| * A₀)) +
-      M * B * (CG' * Real.exp (|cG'| * A₀)))
+    (C := M * (CG * Real.exp (|cG| * A₀))) (c := |cG| * B') hbound1
+    (D := fun _ => 2 * M * B' * (CG * Real.exp (|cG| * A₀)) +
+      M * B' * (CG' * Real.exp (|cG'| * A₀)))
     (d := fun _ => c_max) hbound2
   dsimp only [Φ] at h
   rw [h]
@@ -527,14 +525,8 @@ theorem hasDerivAt_integral_gibbs_ratio_path [NeZero μ] {Ω : Type*} [Measurabl
         R Y (z t ω) * R (X l) (z t ω)) ∂P) t := by
   classical
   have hcont : ∀ (Y' : α → ℝ) (M' : ℝ), 0 ≤ M' → Measurable Y' → (∀ a, |Y' a| ≤ M') →
-      Continuous (R Y') := by
-    intro Y' M' hM' hY' hY'b
-    refine continuous_iff_continuousAt.2 fun z₀ => ?_
-    obtain ⟨L, hL, -⟩ := hasFDerivAt_gibbs_ratio_linear (μ := μ) hD hX hY' hB hM' hDb hXb hY'b z₀
-    have hRfun : R Y' = fun z => (∫ a, Y' a * Real.exp (D a + ∑ k, z k * X k a) ∂μ) /
-        ∫ a, Real.exp (D a + ∑ k, z k * X k a) ∂μ := funext (hR Y')
-    rw [hRfun]
-    exact hL.continuousAt
+      Continuous (R Y') := fun _ _ hM' hY' hY'b =>
+    continuous_gibbs_ratio_linear R hR hD hX hY' hB hM' hDb hXb hY'b
   have hYX : ∀ l, Measurable (fun a => Y a * X l a) := fun l => hY.mul (hX l)
   have hYXb : ∀ l a, |Y a * X l a| ≤ M * B := fun l a => by
     rw [abs_mul]; exact mul_le_mul (hYb a) (hXb l a) (abs_nonneg _) hM

@@ -98,16 +98,9 @@ private lemma integral_interpolating_partial_overlap_succ_eq_last {N M : ℕ}
           Θ i (σ 0).1 (σ 1).1 ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s ω)) ∂P_s) =
         ∫ ω, ∫ σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ),
           Θ (Fin.last N) (σ 0).1 (σ 1).1
-            ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s ω)) ∂P_s := by
-    have h1 := interpolating_replica_site_perm (L := N + 1) (M := M) (R := Fin 2) hu hB s q r
-      (Equiv.swap i (Fin.last N)) (fun σ => Θ (Fin.last N) (σ 0) (σ 1))
-    have h2 (x y : Fin (N + 1) → ℤˣ) :
-        Θ (Fin.last N) (fun j => x (Equiv.swap i (Fin.last N) j))
-          (fun j => y (Equiv.swap i (Fin.last N) j)) = Θ i x y := by
+            ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s ω)) ∂P_s :=
+    integral_interpolating_two_replica_site_swap hu hB s q r Θ i fun x y => by
       simp only [Θ, hA_swap hi, Equiv.swap_apply_right]
-    rw [← h1]
-    exact integral_congr_ae (ae_of_all _ fun _ =>
-      integral_congr_ae (ae_of_all _ fun σ => (h2 (σ 0).1 (σ 1).1).symm))
   let Ω := ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)
   let E_eff (ω : Ω) (τ : Fin (N + 1) → ℤˣ) : ℝ :=
     (∑ i : Fin (N + 1), ((τ i : ℤ) : ℝ) * Real.sqrt (1 - s) * ω.2 i * Real.sqrt r) +

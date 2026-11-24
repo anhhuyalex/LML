@@ -96,6 +96,33 @@ theorem perceptron_replica_site_perm {L M : ℕ} {R : Type uR} [Fintype R]
     (fun g => ∫ σ : R → Fin L → ℤˣ, Θ σ
       ∂(Measure.pi fun _ : R => (Measure.count : Measure (Fin L → ℤˣ)).tilted (E g)))
 
+/-- **Site-swap invariance for a two-replica spin observable under the perceptron Gibbs
+measure.** -/
+theorem integral_perceptron_two_replica_site_swap {N M : ℕ}
+    (u : ℝ → ℝ) (Θ : Fin (N + 1) → (Fin (N + 1) → ℤˣ) → (Fin (N + 1) → ℤˣ) → ℝ)
+    (i : Fin (N + 1))
+    (hΘ : ∀ x y : Fin (N + 1) → ℤˣ,
+      Θ (Fin.last N) (fun j => x (Equiv.swap i (Fin.last N) j))
+        (fun j => y (Equiv.swap i (Fin.last N) j)) = Θ i x y) :
+    ∫ g : Fin M → Fin (N + 1) → ℝ,
+      ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, Θ i (σ 0) (σ 1)
+        ∂(Measure.pi fun _ : Fin 2 =>
+          (Measure.count : Measure (Fin (N + 1) → ℤˣ)).tilted
+            fun τ => ∑ k, u ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ j, g k j * ((τ j : ℤ) : ℝ)))
+        ∂(Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1) =
+      ∫ g : Fin M → Fin (N + 1) → ℝ,
+        ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, Θ (Fin.last N) (σ 0) (σ 1)
+          ∂(Measure.pi fun _ : Fin 2 =>
+            (Measure.count : Measure (Fin (N + 1) → ℤˣ)).tilted
+              fun τ => ∑ k, u ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ j, g k j * ((τ j : ℤ) : ℝ)))
+          ∂(Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1) := by
+  have h1 := perceptron_replica_site_perm (L := N + 1) (M := M) (R := Fin 2) u
+    (Equiv.swap i (Fin.last N)) (fun σ => Θ (Fin.last N) (σ 0) (σ 1))
+  dsimp only at h1
+  rw [← h1]
+  exact integral_congr_ae (ae_of_all _ fun _ =>
+    integral_congr_ae (ae_of_all _ fun σ => (hΘ (σ 0) (σ 1)).symm))
+
 /-- **Talagrand Section 2.4, Eq. (2.70), for an arbitrary function `φ` of the overlap deviation.**
 For `N + 1` spins and `M` constraints, site-permutation symmetry implies
 `ν((R_{1,2} - q) φ(R_{1,2} - q)) = ν((ε₁ ε₂ - q) φ(R_{1,2} - q))` where `ε_r = σ_r(Fin.last N)` is
@@ -126,17 +153,9 @@ theorem integral_perceptron_overlap_mul_eq_last_site {N M : ℕ}
       Rf (fun i => x (pm i)) (fun i => y (pm i)) = Rf x y := by
     dsimp only [Rf]
     rw [Equiv.sum_comp pm fun i => ((x i : ℤ) : ℝ) * ((y i : ℤ) : ℝ)]
-  have hsite (i : Fin (N + 1)) : ν (Θ i) = ν (Θ (Fin.last N)) := by
-    have h1 := perceptron_replica_site_perm (L := N + 1) (M := M) (R := Fin 2) u
-      (Equiv.swap i (Fin.last N)) (fun σ => Θ (Fin.last N) (σ 0) (σ 1))
-    have h2 (x y : Fin (N + 1) → ℤˣ) :
-        Θ (Fin.last N) (fun j => x (Equiv.swap i (Fin.last N) j))
-          (fun j => y (Equiv.swap i (Fin.last N) j)) = Θ i x y := by
+  have hsite (i : Fin (N + 1)) : ν (Θ i) = ν (Θ (Fin.last N)) :=
+    integral_perceptron_two_replica_site_swap u Θ i fun x y => by
       simp only [Θ, hRperm, Equiv.swap_apply_right]
-    dsimp only [ν]
-    rw [← h1]
-    exact integral_congr_ae (ae_of_all _ fun g =>
-      integral_congr_ae (ae_of_all _ fun σ => (h2 (σ 0) (σ 1)).symm))
   have hint (i : Fin (N + 1)) :
       Integrable (fun g => ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, Θ i (σ 0) (σ 1)
         ∂(Measure.pi fun _ : Fin 2 => (Measure.count : Measure (Fin (N + 1) → ℤˣ)).tilted (E g)))

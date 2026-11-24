@@ -1578,9 +1578,10 @@ private lemma integral_partial_constraint_step_lt
   linarith
 
 /-- **Talagrand Theorem 2.5.2 (Eq. (2.99)), uniformly along the `s`-interpolating path:**
-Given `D ∈ ℝ`, there exist constants `K, L ≥ 0` (chosen before `N, M, s, u, q, r, k`) such that
-whenever `u` satisfies (2.7), `(M / (N + 1)) * K ≤ 1`, `(q, r)` solves (2.68), and `s ∈ [0, 1]`,
-for every `k : ℕ`:
+Given `D ∈ ℝ`, there exist constants `K, L ≥ 0` (chosen before `N, M, s, u, q, r, k`, with
+`K = max K_0 1` built from the constant `K_0` of Theorem 2.5.1 so that `α ≤ 1` holds under
+`α * K ≤ 1`) such that whenever `u` satisfies (2.7), `(M / (N + 1)) * K ≤ 1`, `(q, r)` solves
+(2.68), and `s ∈ [0, 1]`, for every `k : ℕ`:
 $$\nu_s\!\left(\left(\frac{1}{N + 1} \sum_{j < M}
     u'(S_{j, s}^1) u'(S_{j, s}^2) - r\right)^{2k}\right)
   \le \left(\frac{\alpha k L}{N + 1}\right)^k, \quad \alpha = \frac{M}{N + 1}$$
@@ -1617,11 +1618,9 @@ theorem integral_interpolating_empirical_variance_pow_le (D : ℝ) :
           ((M : ℝ) / ((N : ℝ) + 1) * (k : ℝ) * L / ((N : ℝ) + 1)) ^ k := by
   obtain ⟨K_ov, hKov0, h_ov⟩ := integral_interpolating_overlap_pow_le D
   obtain ⟨K_cav, hKcav0, h_cav_step⟩ := exists_abs_integral_constraint_last_cavity_le D
-  obtain ⟨K_k1, L_k1, hKk10, hLk10, h_k1⟩ := integral_interpolating_deriv_empirical_variance_le D
-  let K : ℝ := max (max K_ov K_k1) 1
+  let K : ℝ := max K_ov 1
   let L_ind : ℝ := 512 * (K_cav + 1) ^ 2 + 64 * |D| ^ 2 * (K_cav + 1) + 128 * |D| ^ 4 + 64
-  let L : ℝ := max L_ind L_k1
-  refine ⟨K, L, by positivity, by positivity, ?_⟩
+  refine ⟨K, L_ind, by positivity, by positivity, ?_⟩
   intro N M s hs u hd hb hα q r hq hr k
   obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
   have hD_le : ∀ x, u x ≤ |D| := hu.le_abs
@@ -1656,9 +1655,8 @@ theorem integral_interpolating_empirical_variance_pow_le (D : ℝ) :
     linarith [hα]
   have hMN : ((M + 1 : ℕ) : ℝ) ≤ (N : ℝ) + 1 := by
     exact (div_le_one (by positivity : (0 : ℝ) < (N : ℝ) + 1)).1 hα_le1
-  have hα_ov : ((M + 1 : ℕ) : ℝ) / ((N : ℝ) + 1) * K_ov ≤ 1 := by
-    have hle : K_ov ≤ K := (le_max_left K_ov K_k1).trans (le_max_left _ 1)
-    exact (mul_le_mul_of_nonneg_left hle hα0).trans hα
+  have hα_ov : ((M + 1 : ℕ) : ℝ) / ((N : ℝ) + 1) * K_ov ≤ 1 :=
+    (mul_le_mul_of_nonneg_left (le_max_left K_ov 1) hα0).trans hα
   have hq_mem : q ∈ Icc (0 : ℝ) 1 := by
     rw [hq]; exact integral_tanh_sq_sqrt_mem_Icc r
   let rhat := perceptronRhat u q
@@ -1780,20 +1778,14 @@ theorem integral_interpolating_empirical_variance_pow_le (D : ℝ) :
     dsimp only [rhat]
     field_simp
   simp_rw [hpt_scale, integral_const_mul]
-  have hL_le : L_ind ≤ L := le_max_left L_ind L_k1
   calc α ^ (2 * (k + 1)) *
         (∫ ω, ∫ σ, C_fn 0 (S_fn ω (σ 0)) (S_fn ω (σ 1)) ^ (2 * (k + 1))
           ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s ω)) ∂P_s)
       ≤ α ^ (2 * (k + 1)) *
           (((k + 1 : ℕ) : ℝ) * L_ind / ((M + 1 : ℕ) : ℝ)) ^ (k + 1) :=
         mul_le_mul_of_nonneg_left hC0 (by positivity)
-    _ ≤ α ^ (2 * (k + 1)) *
-          (((k + 1 : ℕ) : ℝ) * L / ((M + 1 : ℕ) : ℝ)) ^ (k + 1) := by
-        refine mul_le_mul_of_nonneg_left (pow_le_pow_left₀ (by positivity) ?_ (k + 1))
-          (by positivity)
-        exact div_le_div_of_nonneg_right
-          (mul_le_mul_of_nonneg_left hL_le (by positivity)) (by positivity)
-    _ = (((M + 1 : ℕ) : ℝ) / ((N : ℝ) + 1) * ((k + 1 : ℕ) : ℝ) * L / ((N : ℝ) + 1)) ^ (k + 1) := by
+    _ = (((M + 1 : ℕ) : ℝ) / ((N : ℝ) + 1) * ((k + 1 : ℕ) : ℝ) * L_ind /
+          ((N : ℝ) + 1)) ^ (k + 1) := by
         rw [pow_mul, ← mul_pow]
         congr 1
         dsimp only [α]

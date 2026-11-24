@@ -530,7 +530,7 @@ theorem exists_hasDerivAt_cavity_v_abs_le_of_ae_abs_le_psi
     (hM₂ : ∀ r x, |deriv (deriv (ψ r)) x| ≤ M₂)
     {f : SmartPathDisorder N M → (R → SmartPathState N M) → ℝ}
     (hf : Measurable fun p : SmartPathDisorder N M × (R → SmartPathState N M) => f p.1 p.2)
-    {M_f : ℝ} (hMf : 0 ≤ M_f) :
+    {M_f : ℝ} :
     let P₀ := smartPathDisorder (Measure.pi fun _ : Fin M =>
       Measure.pi fun _ : Fin N => gaussianReal 0 1) variance
     let μ₀ (ω : SmartPathDisorder N M) :=
@@ -592,7 +592,7 @@ theorem exists_hasDerivAt_cavity_v_abs_le_of_ae_abs_le_psi
       simpa only [Real.norm_eq_abs, abs_abs] using hω
     simpa using norm_integral_le_of_norm_le_const hω'
   obtain ⟨z, hz, hb⟩ := exists_hasDerivAt_cavity_rotation_abs_le_of_ae_abs_le ht hq variance hu ψ
-    hψd hψ₂d hM₀ hM₁ hM₂ hf s₀ hMf hOld
+    hψd hψ₂d hM₀ hM₁ hM₂ hf s₀ hOld
   have hv_deriv := hasDerivAt_cavity_v_of_angle hu.toSmartPathPotential t q hv variance ψ
     (fun r => (hψd r).continuous.measurable) hM₀ hf hfi hfi₁ hz
   have hcos : Real.cos s₀ = Real.sqrt v :=
@@ -668,7 +668,7 @@ theorem exists_hasDerivAt_cavity_v_unweighted_holder
                 ∫ p, ∫ a : R → SmartPathState N (M + 1) × ℝ,
                   |f_ext p a| ∂(Measure.pi fun _ : R => νfull v p) ∂Pfull) := by
   let n : ℝ := Fintype.card R
-  let L : ℝ := 1 + |D| + |(1 : ℝ)| + |(0 : ℝ)| + |(1 : ℝ)| * |D|
+  let L : ℝ := 2 + 2 * |D|
   refine ⟨(1 / 2) * ((4 * n ^ 2 + n) * L ^ (Fintype.card R + 2)), by positivity, ?_⟩
   intro N M t q v ht hq hv variance u hd hb f hf p₁ p₂ hp P₀ μ₀ Pfull S_v νfull f_ext d_spin
     hfp hfp₁
@@ -678,7 +678,9 @@ theorem exists_hasDerivAt_cavity_v_unweighted_holder
     (fun _ => by simp) (M₀ := 1) (M₁ := 0) (M₂ := 0)
     (fun _ _ => by simp) (fun _ _ => by simp) (fun _ _ => by simp)
     hf hp hfp hfp₁
-  refine ⟨d', ?_, hbd⟩
+  have hL_eq : 1 + |D| + |(1 : ℝ)| + |(0 : ℝ)| + |(1 : ℝ)| * |D| = L := by
+    dsimp only [L]; simp only [abs_one, abs_zero]; ring
+  refine ⟨d', ?_, by dsimp only at *; rwa [hL_eq] at hbd⟩
   simpa only [Finset.prod_const_one, mul_one] using hd'
 
 /-- **Lemma 2.3.2, Eq. (2.40), unweighted (`B_v ≡ 1`), `(1, ∞)` endpoint.** -/
@@ -721,7 +723,7 @@ theorem exists_hasDerivAt_cavity_v_unweighted_first_moment
             ∫ p, ∫ a : R → SmartPathState N (M + 1) × ℝ,
               |f_ext p a| ∂(Measure.pi fun _ : R => νfull v p) ∂Pfull) := by
   let n : ℝ := Fintype.card R
-  let L : ℝ := 1 + |D| + |(1 : ℝ)| + |(0 : ℝ)| + |(1 : ℝ)| * |D|
+  let L : ℝ := 2 + 2 * |D|
   refine ⟨(1 / 2) * ((4 * n ^ 2 + n) * L ^ (Fintype.card R + 2)), by positivity, ?_⟩
   intro N M t q v ht hq hv variance u hd hb f hf P₀ μ₀ Pfull S_v νfull f_ext hfi hfi₁
   have hu := smartPathPotential_two_of_iteratedDeriv_le_two hd hb
@@ -730,7 +732,9 @@ theorem exists_hasDerivAt_cavity_v_unweighted_first_moment
     (fun _ => by simp) (M₀ := 1) (M₁ := 0) (M₂ := 0)
     (fun _ _ => by simp) (fun _ _ => by simp) (fun _ _ => by simp)
     hf hfi hfi₁
-  refine ⟨d', ?_, hbd⟩
+  have hL_eq : 1 + |D| + |(1 : ℝ)| + |(0 : ℝ)| + |(1 : ℝ)| * |D| = L := by
+    dsimp only [L]; simp only [abs_one, abs_zero]; ring
+  refine ⟨d', ?_, by dsimp only at *; rwa [hL_eq] at hbd⟩
   simpa only [Finset.prod_const_one, mul_one] using hd'
 
 /-- **Lemma 2.3.2, Eq. (2.40), unweighted (`B_v ≡ 1`), `(∞, 1)` endpoint.** -/
@@ -743,7 +747,7 @@ theorem exists_hasDerivAt_cavity_v_unweighted_of_ae_abs_le
         (_hb : ∀ j ≤ 2, ∀ x, |iteratedDeriv j u x| ≤ D)
         {f : SmartPathDisorder N M → (R → SmartPathState N M) → ℝ}
         (_hf : Measurable fun p : SmartPathDisorder N M × (R → SmartPathState N M) => f p.1 p.2)
-        {M_f : ℝ} (_hMf : 0 ≤ M_f),
+        {M_f : ℝ},
         let P₀ := smartPathDisorder (Measure.pi fun _ : Fin M =>
           Measure.pi fun _ : Fin N => gaussianReal 0 1) variance
         let μ₀ (ω : SmartPathDisorder N M) :=
@@ -779,16 +783,18 @@ theorem exists_hasDerivAt_cavity_v_unweighted_of_ae_abs_le
                 ∫ p, ∫ a : R → SmartPathState N (M + 1) × ℝ,
                   |f_ext p a| ∂(Measure.pi fun _ : R => νfull v p) ∂Pfull) := by
   let n : ℝ := Fintype.card R
-  let L : ℝ := 1 + |D| + |(1 : ℝ)| + |(0 : ℝ)| + |(1 : ℝ)| * |D|
+  let L : ℝ := 2 + 2 * |D|
   refine ⟨(1 / 2) * ((4 * n ^ 2 + n) * L ^ (Fintype.card R + 2)), by positivity, ?_⟩
-  intro N M t q v ht hq hv variance u hd hb f hf M_f hMf P₀ μ₀ Pfull S_v νfull f_ext d_spin hOld
+  intro N M t q v ht hq hv variance u hd hb f hf M_f P₀ μ₀ Pfull S_v νfull f_ext d_spin hOld
   have hu := smartPathPotential_two_of_iteratedDeriv_le_two hd hb
   obtain ⟨d', hd', hbd⟩ := exists_hasDerivAt_cavity_v_abs_le_of_ae_abs_le_psi ht hq hv variance hu
     (fun _ => fun _ => 1) (fun _ => differentiable_const 1)
     (fun _ => by simp) (M₀ := 1) (M₁ := 0) (M₂ := 0)
     (fun _ _ => by simp) (fun _ _ => by simp) (fun _ _ => by simp)
-    hf hMf hOld
-  refine ⟨d', ?_, hbd⟩
+    hf hOld
+  have hL_eq : 1 + |D| + |(1 : ℝ)| + |(0 : ℝ)| + |(1 : ℝ)| * |D| = L := by
+    dsimp only [L]; simp only [abs_one, abs_zero]; ring
+  refine ⟨d', ?_, by dsimp only at *; rwa [hL_eq] at hbd⟩
   simpa only [Finset.prod_const_one, mul_one] using hd'
 
 private lemma prod_two_marked_eq
@@ -959,7 +965,7 @@ theorem exists_hasDerivAt_cavity_v_deriv_mul_of_ae_abs_le
         (_hb : ∀ j ≤ 3, ∀ x, |iteratedDeriv j u x| ≤ D)
         {f : SmartPathDisorder N M → (R → SmartPathState N M) → ℝ}
         (_hf : Measurable fun p : SmartPathDisorder N M × (R → SmartPathState N M) => f p.1 p.2)
-        {M_f : ℝ} (_hMf : 0 ≤ M_f),
+        {M_f : ℝ},
         let P₀ := smartPathDisorder (Measure.pi fun _ : Fin M =>
           Measure.pi fun _ : Fin N => gaussianReal 0 1) variance
         let μ₀ (ω : SmartPathDisorder N M) :=
@@ -1001,7 +1007,7 @@ theorem exists_hasDerivAt_cavity_v_deriv_mul_of_ae_abs_le
   let M₁ : ℝ := |D|
   let L : ℝ := 1 + |D| + |M₀| + |M₁| + |M₀| * |D|
   refine ⟨(1 / 2) * ((4 * n ^ 2 + n) * L ^ (Fintype.card R + 2)), by positivity, ?_⟩
-  intro N M r₁ r₂ hr t q v ht hq hv variance u hd hb f hf M_f hMf P₀ μ₀ Pfull S_v νfull
+  intro N M r₁ r₂ hr t q v ht hq hv variance u hd hb f hf M_f P₀ μ₀ Pfull S_v νfull
     f_ext d_spin hOld
   obtain ⟨hu, h2d, hb3⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
   let ψ (r : R) (x : ℝ) : ℝ := if r = r₁ ∨ r = r₂ then deriv u x else 1
@@ -1013,7 +1019,7 @@ theorem exists_hasDerivAt_cavity_v_deriv_mul_of_ae_abs_le
       (fun x => (hb3 x).trans (le_abs_self D))
       (by dsimp [M₀]; linarith only [abs_nonneg D]) (abs_nonneg _) (abs_nonneg _)
   obtain ⟨d', hd', hbd⟩ := exists_hasDerivAt_cavity_v_abs_le_of_ae_abs_le_psi ht hq hv variance hu
-    ψ hψd hψ₂d hM₀ hM₁ hM₂ hf hMf hOld
+    ψ hψd hψ₂d hM₀ hM₁ hM₂ hf hOld
   refine ⟨d', hd'.congr_of_eventuallyEq (Eventually.of_forall fun v' => ?_), hbd⟩
   refine integral_congr_ae (ae_of_all _ fun p => integral_congr_ae (ae_of_all _ fun a => ?_))
   change f_ext p a * (deriv u (S_v v' p (a r₁)) * deriv u (S_v v' p (a r₂))) =

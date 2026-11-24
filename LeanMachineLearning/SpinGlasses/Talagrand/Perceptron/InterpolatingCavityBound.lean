@@ -901,6 +901,37 @@ end RotationDerivative
 
 section MasterComparison
 
+/-- Joint measurability of the `s`-interpolating new-constraint field `X_fn` in `(w₁, x)`. -/
+private lemma measurable_interp_new_field
+    {N : ℕ} {α : Type uα} [MeasurableSpace α]
+    (π : α → PerceptronSpin N) (hπ : Measurable π) (s t q : ℝ) :
+    Measurable fun p : (((Fin N ⊕ Unit) ⊕ Unit) → ℝ) × (α × (Fin 2 → ℝ)) =>
+      Sum.elim (Real.sqrt s • cavityCoef N t (π p.2.1))
+          (fun _ => Real.sqrt (1 - s) * Real.sqrt q) ⬝ᵥ p.1 +
+        ![Real.sqrt s * Real.sqrt ((1 - t) / (N + 1)),
+          Real.sqrt (1 - s) * Real.sqrt (1 - q)] ⬝ᵥ p.2.2 := by
+  have hX1 (j : (Fin N ⊕ Unit) ⊕ Unit) :
+      Measurable fun p : (((Fin N ⊕ Unit) ⊕ Unit) → ℝ) × (α × (Fin 2 → ℝ)) =>
+        (Sum.elim (Real.sqrt s • cavityCoef N t (π p.2.1))
+          (fun _ => Real.sqrt (1 - s) * Real.sqrt q)) j :=
+    (measurable_of_finite fun σ =>
+      (Sum.elim (Real.sqrt s • cavityCoef N t σ)
+        (fun _ => Real.sqrt (1 - s) * Real.sqrt q)) j).comp
+      (hπ.comp (measurable_fst.comp measurable_snd))
+  have hd1 : Measurable fun p : (((Fin N ⊕ Unit) ⊕ Unit) → ℝ) × (α × (Fin 2 → ℝ)) =>
+      Sum.elim (Real.sqrt s • cavityCoef N t (π p.2.1))
+        (fun _ => Real.sqrt (1 - s) * Real.sqrt q) ⬝ᵥ p.1 := by
+    simp only [dotProduct]
+    exact Finset.measurable_sum _ fun j _ =>
+      (hX1 j).mul ((measurable_pi_apply j).comp measurable_fst)
+  have hd2 : Measurable fun p : (((Fin N ⊕ Unit) ⊕ Unit) → ℝ) × (α × (Fin 2 → ℝ)) =>
+      ![Real.sqrt s * Real.sqrt ((1 - t) / (N + 1)),
+        Real.sqrt (1 - s) * Real.sqrt (1 - q)] ⬝ᵥ p.2.2 := by
+    simp only [dotProduct]
+    exact Finset.measurable_sum _ fun j _ =>
+      measurable_const.mul ((measurable_pi_apply j).comp (measurable_snd.comp measurable_snd))
+  exact hd1.add hd2
+
 /-- **Master endpoint comparison for the `s`-interpolating cavity constraint (`s, t, q ∈ [0, 1]`).**
 Generalizes `abs_integral_smartPath_deriv_mul_sub_rhat_le_of_split_pair_bound` to an arbitrary
 old-state system `(Ω₀, P₀, μ_base, E₀)` and arbitrary interpolation parameter `s ∈ [0, 1]`. -/
@@ -951,10 +982,8 @@ private lemma abs_integral_interp_deriv_mul_sub_rhat_le_of_pair_bound
         ((σ.2 : ℤ) : ℝ) * ((τ.2 : ℤ) : ℝ)) / (N + 1) - q|
     let rhat := perceptronRhat u q
     let n : ℝ := Fintype.card R
-    let M₀w : ℝ := 1 + |D|
-    let M₁w : ℝ := |D|
-    let L_u : ℝ := 1 + |D| + |(1 : ℝ)| + |(0 : ℝ)| + |(1 : ℝ)| * |D|
-    let L_w : ℝ := 1 + |D| + |M₀w| + |M₁w| + |M₀w| * |D|
+    let L_u : ℝ := 2 + 2 * |D|
+    let L_w : ℝ := 2 + 4 * |D| + |D| ^ 2
     let K_u : ℝ := (4 * n ^ 2 + n) * L_u ^ (Fintype.card R + 2)
     let K_w : ℝ := (4 * n ^ 2 + n) * L_w ^ (Fintype.card R + 2)
     (∀ (ϑ : ℝ) (ι : Type uR) [Fintype ι] (e : R → ι), Function.Injective e → ∀ i j, i ≠ j →
@@ -973,35 +1002,17 @@ private lemma abs_integral_interp_deriv_mul_sub_rhat_le_of_pair_bound
             |f p.1 (fun r => (a r).1)| ∂(Measure.pi fun _ : R => ν_new p) ∂(P₀.prod γ₁)) := by
   classical
   intro γ₁ γ₂ γ_sh γ_aux μ₀ X_fn X_sh Y_sh X_aux Y_aux S ν_rot ν_new d_spin rhat
-    n M₀w M₁w L_u L_w K_u K_w hpair
+    n L_u L_w K_u K_w hpair
+  let M₀w : ℝ := 1 + |D|
+  let M₁w : ℝ := |D|
   obtain ⟨hu, h2d, hb3⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
   have hD_abs : ∀ x, |u x| ≤ |D| := fun x => (hu.abs_le x).trans (le_abs_self D)
   let f_abs (ω : Ω₀) (a : R → α) : ℝ := |f ω a|
   have hf_abs_m : Measurable fun p : Ω₀ × (R → α) => f_abs p.1 p.2 := by
     simpa only [f_abs, Real.norm_eq_abs] using hf.norm
   have hXm : Measurable fun p : (((Fin N ⊕ Unit) ⊕ Unit) → ℝ) × (α × (Fin 2 → ℝ)) =>
-      X_fn p.1 p.2 := by
-    have hX1 (j : (Fin N ⊕ Unit) ⊕ Unit) :
-        Measurable fun p : (((Fin N ⊕ Unit) ⊕ Unit) → ℝ) × (α × (Fin 2 → ℝ)) =>
-          (Sum.elim (Real.sqrt s • cavityCoef N t (π p.2.1))
-            (fun _ => Real.sqrt (1 - s) * Real.sqrt q)) j :=
-      (measurable_of_finite fun σ =>
-        (Sum.elim (Real.sqrt s • cavityCoef N t σ)
-          (fun _ => Real.sqrt (1 - s) * Real.sqrt q)) j).comp
-        (hπ.comp (measurable_fst.comp measurable_snd))
-    have hd1 : Measurable fun p : (((Fin N ⊕ Unit) ⊕ Unit) → ℝ) × (α × (Fin 2 → ℝ)) =>
-        Sum.elim (Real.sqrt s • cavityCoef N t (π p.2.1))
-          (fun _ => Real.sqrt (1 - s) * Real.sqrt q) ⬝ᵥ p.1 := by
-      simp only [dotProduct]
-      exact Finset.measurable_sum _ fun j _ =>
-        (hX1 j).mul ((measurable_pi_apply j).comp measurable_fst)
-    have hd2 : Measurable fun p : (((Fin N ⊕ Unit) ⊕ Unit) → ℝ) × (α × (Fin 2 → ℝ)) =>
-        ![Real.sqrt s * Real.sqrt ((1 - t) / (N + 1)),
-          Real.sqrt (1 - s) * Real.sqrt (1 - q)] ⬝ᵥ p.2.2 := by
-      simp only [dotProduct]
-      exact Finset.measurable_sum _ fun j _ =>
-        measurable_const.mul ((measurable_pi_apply j).comp (measurable_snd.comp measurable_snd))
-    exact hd1.add hd2
+      X_fn p.1 p.2 :=
+    measurable_interp_new_field π hπ s t q
   have hS0 (w : (((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ) (x : α × ((Fin 2 ⊕ Unit) → ℝ)) :
       S 0 w x = X_fn (w ∘ Sum.inl) (x.1, x.2 ∘ Sum.inl) := by
     simp [S, X_sh, X_aux, X_fn, dotProduct, Fintype.sum_sum_type, Fin.sum_univ_two]
@@ -1096,7 +1107,11 @@ private lemma abs_integral_interp_deriv_mul_sub_rhat_le_of_pair_bound
         ∂γ_sh ∂P₀) = φ_u := by
       funext ϑ'; simp [φ_u]
     rw [heq_φ] at hz
+    have hL_u_eq : 1 + |D| + |(1 : ℝ)| + |(0 : ℝ)| + |(1 : ℝ)| * |D| = L_u := by
+      dsimp only [L_u]; simp only [abs_one, abs_zero]; ring
     refine ⟨z, hz, fun _ => hzb.trans ?_⟩
+    dsimp only at *
+    rw [hL_u_eq]
     refine mul_le_mul_of_nonneg_left (add_le_add le_rfl ?_) (by positivity)
     calc 1 / (N + 1 : ℝ) * _ ≤ 1 / (N + 1 : ℝ) * (Real.exp (4 * n * |D|) * I₁) :=
           mul_le_mul_of_nonneg_left (hm1_le ϑ) (by positivity)
@@ -1120,7 +1135,13 @@ private lemma abs_integral_interp_deriv_mul_sub_rhat_le_of_pair_bound
       P₀ μ_base hE₀ hE₀i π hπ hs ht hq hu
       ψ_w hψd hψ2d hM₀w hM₁w hM₂w
       hf hfb ϑ hm0 (hpair ϑ)
+    have hL_w_eq : 1 + |D| + |M₀w| + |M₁w| + |M₀w| * |D| = L_w := by
+      dsimp only [M₀w, M₁w, L_w]
+      rw [abs_of_nonneg (by positivity : 0 ≤ 1 + |D|), abs_abs]
+      ring
     refine ⟨z, hz, fun _ => hzb.trans ?_⟩
+    dsimp only at *
+    rw [hL_w_eq]
     refine mul_le_mul_of_nonneg_left (add_le_add le_rfl ?_) (by positivity)
     calc 1 / (N + 1 : ℝ) * _ ≤ 1 / (N + 1 : ℝ) * (Real.exp (4 * n * |D|) * I₁) :=
           mul_le_mul_of_nonneg_left (hm1_le ϑ) (by positivity)
@@ -1237,10 +1258,8 @@ theorem abs_integral_interp_deriv_mul_sub_rhat_le_first_moment
         let firstMoment := average fun p a => |oldObservable p a|
         |weighted - perceptronRhat u q * unweighted| ≤ K * ((2 + 1 / (N + 1)) * firstMoment) := by
   let n : ℝ := Fintype.card R
-  let M₀w : ℝ := 1 + |D|
-  let M₁w : ℝ := |D|
-  let L_u : ℝ := 1 + |D| + |(1 : ℝ)| + |(0 : ℝ)| + |(1 : ℝ)| * |D|
-  let L_w : ℝ := 1 + |D| + |M₀w| + |M₁w| + |M₀w| * |D|
+  let L_u : ℝ := 2 + 2 * |D|
+  let L_w : ℝ := 2 + 4 * |D| + |D| ^ 2
   let K_u : ℝ := (4 * n ^ 2 + n) * L_u ^ (Fintype.card R + 2)
   let K_w : ℝ := (4 * n ^ 2 + n) * L_w ^ (Fintype.card R + 2)
   let K : ℝ := (K_w / 2 + |D| ^ 2 * (K_u / 2)) * Real.exp (4 * n * |D|)
@@ -1253,28 +1272,8 @@ theorem abs_integral_interp_deriv_mul_sub_rhat_le_first_moment
   have hf_abs_m : Measurable fun p : Ω₀ × (R → α) => f_abs p.1 p.2 := by
     simpa only [f_abs, Real.norm_eq_abs] using hf.norm
   have hXm : Measurable fun p : (((Fin N ⊕ Unit) ⊕ Unit) → ℝ) × (α × (Fin 2 → ℝ)) =>
-      X_fn p.1 p.2 := by
-    have hX1 (j : (Fin N ⊕ Unit) ⊕ Unit) :
-        Measurable fun p : (((Fin N ⊕ Unit) ⊕ Unit) → ℝ) × (α × (Fin 2 → ℝ)) =>
-          (Sum.elim (Real.sqrt s • cavityCoef N t (π p.2.1))
-            (fun _ => Real.sqrt (1 - s) * Real.sqrt q)) j :=
-      (measurable_of_finite fun σ =>
-        (Sum.elim (Real.sqrt s • cavityCoef N t σ)
-          (fun _ => Real.sqrt (1 - s) * Real.sqrt q)) j).comp
-        (hπ.comp (measurable_fst.comp measurable_snd))
-    have hd1 : Measurable fun p : (((Fin N ⊕ Unit) ⊕ Unit) → ℝ) × (α × (Fin 2 → ℝ)) =>
-        Sum.elim (Real.sqrt s • cavityCoef N t (π p.2.1))
-          (fun _ => Real.sqrt (1 - s) * Real.sqrt q) ⬝ᵥ p.1 := by
-      simp only [dotProduct]
-      exact Finset.measurable_sum _ fun j _ =>
-        (hX1 j).mul ((measurable_pi_apply j).comp measurable_fst)
-    have hd2 : Measurable fun p : (((Fin N ⊕ Unit) ⊕ Unit) → ℝ) × (α × (Fin 2 → ℝ)) =>
-        ![Real.sqrt s * Real.sqrt ((1 - t) / (N + 1)),
-          Real.sqrt (1 - s) * Real.sqrt (1 - q)] ⬝ᵥ p.2.2 := by
-      simp only [dotProduct]
-      exact Finset.measurable_sum _ fun j _ =>
-        measurable_const.mul ((measurable_pi_apply j).comp (measurable_snd.comp measurable_snd))
-    exact hd1.add hd2
+      X_fn p.1 p.2 :=
+    measurable_interp_new_field π hπ s t q
   have hI₁_0 : 0 ≤ I₁ := integral_nonneg fun _ => integral_nonneg fun _ => abs_nonneg _
   let m : ℝ := 2 * Real.exp (4 * n * |D|) * I₁
   have hm0 : 0 ≤ m := by positivity
@@ -1468,28 +1467,8 @@ private lemma interp_rotation_zero_nonneg_eq
         ∂(P₀.prod γ₁) := by
   intro γ₁ γ₂ γ_sh γ_aux μ₀ X_fn X_sh Y_sh X_aux Y_aux S₀
   have hXm : Measurable fun p : (((Fin N ⊕ Unit) ⊕ Unit) → ℝ) × (α × (Fin 2 → ℝ)) =>
-      X_fn p.1 p.2 := by
-    have hX1 (j : (Fin N ⊕ Unit) ⊕ Unit) :
-        Measurable fun p : (((Fin N ⊕ Unit) ⊕ Unit) → ℝ) × (α × (Fin 2 → ℝ)) =>
-          (Sum.elim (Real.sqrt s • cavityCoef N t (π p.2.1))
-            (fun _ => Real.sqrt (1 - s) * Real.sqrt q)) j :=
-      (measurable_of_finite fun σ =>
-        (Sum.elim (Real.sqrt s • cavityCoef N t σ)
-          (fun _ => Real.sqrt (1 - s) * Real.sqrt q)) j).comp
-        (hπ.comp (measurable_fst.comp measurable_snd))
-    have hd1 : Measurable fun p : (((Fin N ⊕ Unit) ⊕ Unit) → ℝ) × (α × (Fin 2 → ℝ)) =>
-        Sum.elim (Real.sqrt s • cavityCoef N t (π p.2.1))
-          (fun _ => Real.sqrt (1 - s) * Real.sqrt q) ⬝ᵥ p.1 := by
-      simp only [dotProduct]
-      exact Finset.measurable_sum _ fun j _ =>
-        (hX1 j).mul ((measurable_pi_apply j).comp measurable_fst)
-    have hd2 : Measurable fun p : (((Fin N ⊕ Unit) ⊕ Unit) → ℝ) × (α × (Fin 2 → ℝ)) =>
-        ![Real.sqrt s * Real.sqrt ((1 - t) / (N + 1)),
-          Real.sqrt (1 - s) * Real.sqrt (1 - q)] ⬝ᵥ p.2.2 := by
-      simp only [dotProduct]
-      exact Finset.measurable_sum _ fun j _ =>
-        measurable_const.mul ((measurable_pi_apply j).comp (measurable_snd.comp measurable_snd))
-    exact hd1.add hd2
+      X_fn p.1 p.2 :=
+    measurable_interp_new_field π hπ s t q
   have hS0 (w : (((Fin N ⊕ Unit) ⊕ Unit) ⊕ Unit) → ℝ) (x : α × ((Fin 2 ⊕ Unit) → ℝ)) :
       S₀ w x = X_fn (w ∘ Sum.inl) (x.1, x.2 ∘ Sum.inl) := by
     simp [S₀, X_sh, X_aux, X_fn, dotProduct, Fintype.sum_sum_type, Fin.sum_univ_two]
@@ -1831,10 +1810,8 @@ theorem abs_integral_interp_deriv_mul_sub_rhat_le_holder
           K * (observableMoment ^ (1 / p₁) * overlapMoment ^ (1 / p₂) +
             1 / (N + 1) * firstMoment) := by
   let n : ℝ := Fintype.card R
-  let M₀w : ℝ := 1 + |D|
-  let M₁w : ℝ := |D|
-  let L_u : ℝ := 1 + |D| + |(1 : ℝ)| + |(0 : ℝ)| + |(1 : ℝ)| * |D|
-  let L_w : ℝ := 1 + |D| + |M₀w| + |M₁w| + |M₀w| * |D|
+  let L_u : ℝ := 2 + 2 * |D|
+  let L_w : ℝ := 2 + 4 * |D| + |D| ^ 2
   let K_u : ℝ := (4 * n ^ 2 + n) * L_u ^ (Fintype.card R + 2)
   let K_w : ℝ := (4 * n ^ 2 + n) * L_w ^ (Fintype.card R + 2)
   let E_dom : ℝ := Real.exp ((4 * n + 8) * |D|)

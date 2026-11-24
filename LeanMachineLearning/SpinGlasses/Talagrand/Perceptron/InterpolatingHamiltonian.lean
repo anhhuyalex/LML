@@ -50,7 +50,7 @@ section PressureAndEndpoints
 
 /-- Marginalization of the auxiliary Gaussian vector `ξ : Fin M → ℝ` inside the partition function:
 `∫ ξ, ∑ σ, exp (E_s ω (σ, ξ)) dγ_M = ∑ σ, exp (E_eff ω σ)`. -/
-private lemma integral_sum_exp_interpolating_eq
+lemma integral_sum_exp_interpolating_eq
     {L M : ℕ} {u : ℝ → ℝ} (hu : Measurable u) {B : ℝ} (hB : ∀ x, u x ≤ B)
     (s q r : ℝ) (ω : ((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) :
     let γ_M := Measure.pi fun _ : Fin M => gaussianReal 0 1
@@ -439,6 +439,399 @@ end PressureAndEndpoints
 
 section DerivativeAndIBP
 
+/-- Measurability and disorder-envelope bound for the `s`-interpolating log-partition function
+`log ∫ exp (E_s s ω x) dμ_s` when `0 ≤ s`. -/
+lemma measurable_and_abs_log_interpPartition_le
+    {N M : ℕ} {u : ℝ → ℝ} (hu : Measurable u) {B : ℝ} (hB : ∀ x, |u x| ≤ B)
+    (q r : ℝ) {s : ℝ} (hs0 : 0 ≤ s) :
+    let μ_s := (Measure.count : Measure (Fin (N + 1) → ℤˣ)).prod
+      (Measure.pi fun _ : Fin M => gaussianReal 0 1)
+    let E_s (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
+        (x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : ℝ :=
+      (∑ k : Fin M, u (Real.sqrt s *
+          ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 k i * ((x.1 i : ℤ) : ℝ)) +
+        Real.sqrt (1 - s) * (Real.sqrt q * ω.1.2 k + Real.sqrt (1 - q) * x.2 k))) +
+      ∑ i : Fin (N + 1), ((x.1 i : ℤ) : ℝ) * Real.sqrt (1 - s) * ω.2 i * Real.sqrt r
+    (Measurable fun ω => Real.log (∫ x, Real.exp (E_s ω x) ∂μ_s)) ∧
+    ∀ ω, |Real.log (∫ x, Real.exp (E_s ω x) ∂μ_s)| ≤
+      ((N : ℝ) + 1) * Real.log 2 + M * B + ∑ i : Fin (N + 1), |ω.2 i| * Real.sqrt r := by
+  intro μ_s E_s
+  have hB_le : ∀ x, u x ≤ B := fun x => le_of_abs_le (hB x)
+  let γ₁ : Measure ℝ := gaussianReal 0 1
+  let E_eff (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
+      (τ : Fin (N + 1) → ℤˣ) : ℝ :=
+    (∑ i : Fin (N + 1), ((τ i : ℤ) : ℝ) * Real.sqrt (1 - s) * ω.2 i * Real.sqrt r) +
+      ∑ k : Fin M, Real.log (∫ ξ, Real.exp (u (Real.sqrt s *
+          ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 k i * ((τ i : ℤ) : ℝ)) +
+        Real.sqrt (1 - s) * (Real.sqrt q * ω.1.2 k + Real.sqrt (1 - q) * ξ))) ∂γ₁)
+  have hZ_eq (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) :
+      Real.log (∫ x, Real.exp (E_s ω x) ∂μ_s) = Real.log (∑ τ, Real.exp (E_eff ω τ)) := by
+    dsimp only [E_eff, E_s, γ₁]
+    rw [integral_sum_exp_interpolating_eq hu hB_le s q r ω]
+  have hEm_τ (τ : Fin (N + 1) → ℤˣ) : Measurable fun ω => E_eff ω τ := by
+    refine (Finset.measurable_sum _ fun i _ => by fun_prop).add ?_
+    refine Finset.measurable_sum _ fun k _ => Real.measurable_log.comp ?_
+    have hj : Measurable fun p :
+        (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) × ℝ =>
+        Real.exp (u (Real.sqrt s *
+          ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, p.1.1.1 k i * ((τ i : ℤ) : ℝ)) +
+          Real.sqrt (1 - s) * (Real.sqrt q * p.1.1.2 k + Real.sqrt (1 - q) * p.2))) :=
+      Real.measurable_exp.comp (hu.comp (by fun_prop))
+    exact (hj.stronglyMeasurable.integral_prod_right' (ν := γ₁)).measurable
+  refine ⟨?_, fun ω => ?_⟩
+  · rw [funext hZ_eq]
+    exact Real.measurable_log.comp (Finset.measurable_sum _ fun τ _ =>
+      Real.measurable_exp.comp (hEm_τ τ))
+  · rw [hZ_eq ω]
+    have hsq1 : Real.sqrt (1 - s) ≤ 1 := Real.sqrt_le_one.2 (by linarith)
+    have hEb_τ (τ : Fin (N + 1) → ℤˣ) :
+        |E_eff ω τ| ≤ M * B + ∑ i : Fin (N + 1), |ω.2 i| * Real.sqrt r := by
+      dsimp only [E_eff]
+      refine (abs_add_le _ _).trans ?_
+      rw [add_comm ((M : ℝ) * B)]
+      refine add_le_add ?_ ?_
+      · refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun i _ => ?_)
+        rw [abs_mul, abs_mul, abs_mul, abs_units_cast_eq_one, one_mul,
+          abs_of_nonneg (Real.sqrt_nonneg _), abs_of_nonneg (Real.sqrt_nonneg _)]
+        calc Real.sqrt (1 - s) * |ω.2 i| * Real.sqrt r
+            ≤ 1 * |ω.2 i| * Real.sqrt r :=
+              mul_le_mul_of_nonneg_right (mul_le_mul_of_nonneg_right hsq1 (abs_nonneg _))
+                (Real.sqrt_nonneg _)
+          _ = |ω.2 i| * Real.sqrt r := by ring
+      · refine ((Finset.abs_sum_le_card_mul_of_abs_le _ (C := B) fun k => ?_).trans_eq (by simp))
+        exact abs_log_integral_exp_le_of_ae_abs_le (hu.comp (by fun_prop)).aemeasurable
+          (ae_of_all _ fun _ => hB _)
+    have hsub := abs_log_sum_exp_sub_log_card_le (E_eff ω) hEb_τ
+    have hcard : Real.log (Fintype.card (Fin (N + 1) → ℤˣ) : ℝ) = ((N : ℝ) + 1) * Real.log 2 := by
+      rw [card_spin_configurations, Fintype.card_fin]
+      push_cast; rw [Real.log_pow]; push_cast; ring
+    rw [hcard] at hsub
+    have htri := abs_add_le (Real.log (∑ τ, Real.exp (E_eff ω τ)) - ((N : ℝ) + 1) * Real.log 2)
+      (((N : ℝ) + 1) * Real.log 2)
+    rw [sub_add_cancel, abs_of_nonneg (mul_nonneg (by positivity) (Real.log_nonneg one_le_two))]
+      at htri
+    linarith
+
+/-- **Pointwise `s`-derivative and disorder-envelope bound for `log ∫ exp (E_s s' ω x) dμ_s`** on
+any subinterval `[δ, 1 - δ]` (`δ > 0`). Reusable for `hasDerivAt_interpolating_pressure` and for
+higher centered moments (`hasDerivAt_interpolating_centered_moment_pow`). -/
+lemma hasDerivAt_and_abs_le_log_interpPartition
+    {N M : ℕ} {u : ℝ → ℝ} (hu : Differentiable ℝ u)
+    {B D₁ : ℝ} (hB : ∀ x, |u x| ≤ B) (hD₁ : ∀ x, |deriv u x| ≤ D₁)
+    (q r : ℝ) {δ : ℝ} (hδ : 0 < δ) :
+    let γ₁ : Measure ℝ := gaussianReal 0 1
+    let γ_M := Measure.pi fun _ : Fin M => γ₁
+    let μ_s := (Measure.count : Measure (Fin (N + 1) → ℤˣ)).prod γ_M
+    let S_fn (s' : ℝ) (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
+        (x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) (k : Fin M) : ℝ :=
+      Real.sqrt s' * ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 k i * ((x.1 i : ℤ) : ℝ)) +
+        Real.sqrt (1 - s') * (Real.sqrt q * ω.1.2 k + Real.sqrt (1 - q) * x.2 k)
+    let S'_fn (s' : ℝ) (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
+        (x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) (k : Fin M) : ℝ :=
+      (1 / (2 * Real.sqrt s')) *
+          ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 k i * ((x.1 i : ℤ) : ℝ)) -
+        (1 / (2 * Real.sqrt (1 - s'))) * (Real.sqrt q * ω.1.2 k + Real.sqrt (1 - q) * x.2 k)
+    let E_s (s' : ℝ) (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
+        (x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : ℝ :=
+      (∑ k : Fin M, u (S_fn s' ω x k)) +
+        ∑ i : Fin (N + 1), ((x.1 i : ℤ) : ℝ) * Real.sqrt (1 - s') * ω.2 i * Real.sqrt r
+    let E'_s (s' : ℝ) (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
+        (x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : ℝ :=
+      (∑ k : Fin M, S'_fn s' ω x k * deriv u (S_fn s' ω x k)) -
+        (1 / (2 * Real.sqrt (1 - s'))) *
+          ∑ i : Fin (N + 1), ((x.1 i : ℤ) : ℝ) * ω.2 i * Real.sqrt r
+    let b_ω (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) : ℝ :=
+      |D₁| * (1 / (2 * Real.sqrt δ)) *
+        (∑ k : Fin M, ((Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i : Fin (N + 1), |ω.1.1 k i|) +
+          Real.sqrt q * |ω.1.2 k|)) +
+        (1 / (2 * Real.sqrt δ)) * ∑ i : Fin (N + 1), |ω.2 i| * Real.sqrt r
+    let b_ξ (ξ : Fin M → ℝ) : ℝ :=
+      |D₁| * (1 / (2 * Real.sqrt δ)) * ∑ k : Fin M, Real.sqrt (1 - q) * |ξ k|
+    (∀ s', Measurable fun ω => ∫ x, E'_s s' ω x ∂(μ_s.tilted (E_s s' ω))) ∧
+    (∀ ω {s'}, δ ≤ s' → δ ≤ 1 - s' →
+      HasDerivAt (fun t => Real.log (∫ x, Real.exp (E_s t ω x) ∂μ_s))
+        (∫ x, E'_s s' ω x ∂(μ_s.tilted (E_s s' ω))) s' ∧
+      |∫ x, E'_s s' ω x ∂(μ_s.tilted (E_s s' ω))| ≤
+        b_ω ω + Real.exp (2 * M * B) * ∫ ξ, b_ξ ξ ∂γ_M) := by
+  intro γ₁ γ_M μ_s S_fn S'_fn E_s E'_s b_ω b_ξ
+  have hum : Measurable u := hu.continuous.measurable
+  have hD₁0 : 0 ≤ |D₁| := abs_nonneg D₁
+  have hb_ω0 (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) : 0 ≤ b_ω ω := by
+    dsimp only [b_ω]; positivity
+  have hb_ξ0 (ξ : Fin M → ℝ) : 0 ≤ b_ξ ξ := by dsimp only [b_ξ]; positivity
+  have hb_ξ_int : Integrable b_ξ γ_M := by
+    refine (integrable_finsetSum _ fun k _ => ?_).const_mul _
+    exact (integrable_comp_eval (μ := fun _ : Fin M => γ₁) (i := k)
+      IsGaussian.integrable_id.abs).const_mul _
+  have hEm (s' : ℝ) : Measurable fun p :
+      (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
+        ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => E_s s' p.1 p.2 := by
+    refine (Finset.measurable_sum _ fun k _ => hum.comp (by fun_prop)).add ?_
+    fun_prop
+  have hE'm (s' : ℝ) : Measurable fun p :
+      (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
+        ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => E'_s s' p.1 p.2 := by
+    refine (Finset.measurable_sum _ fun k _ => ?_).sub ?_
+    · refine (by fun_prop : Measurable fun p :
+        (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
+          ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => S'_fn s' p.1 p.2 k).mul ?_
+      exact (measurable_deriv u).comp (by fun_prop)
+    · fun_prop
+  have hF'_m (s' : ℝ) : Measurable fun ω => ∫ x, E'_s s' ω x ∂(μ_s.tilted (E_s s' ω)) := by
+    let num_fn (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) : ℝ :=
+      ∫ x, E'_s s' ω x * Real.exp (E_s s' ω x) ∂μ_s
+    let den_fn (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) : ℝ :=
+      ∫ x, Real.exp (E_s s' ω x) ∂μ_s
+    have hnum_m : Measurable num_fn :=
+      (((hE'm s').mul (Real.measurable_exp.comp (hEm s'))).stronglyMeasurable.integral_prod_right'
+        (ν := μ_s)).measurable
+    have hden_m : Measurable den_fn :=
+      ((Real.measurable_exp.comp (hEm s')).stronglyMeasurable.integral_prod_right'
+        (ν := μ_s)).measurable
+    rw [show (fun ω => ∫ x, E'_s s' ω x ∂(μ_s.tilted (E_s s' ω))) =
+      fun ω => num_fn ω / den_fn ω from funext fun _ => integral_tilted_eq_div _ _]
+    exact hnum_m.div hden_m
+  have hd_E (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
+      (x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) {t : ℝ} (ht0 : 0 < t) (ht1 : t < 1) :
+      HasDerivAt (fun τ => E_s τ ω x) (E'_s t ω x) t := by
+    have hsq2' : HasDerivAt (fun τ : ℝ => Real.sqrt (1 - τ)) (-1 / (2 * Real.sqrt (1 - t))) t :=
+      ((hasDerivAt_id t).const_sub 1).sqrt (sub_pos.2 ht1).ne'
+    have hS_k (k : Fin M) : HasDerivAt (fun τ => S_fn τ ω x k) (S'_fn t ω x k) t :=
+      (hasDerivAt_sqrt_mul_add_sqrt_one_sub_mul ⟨ht0, ht1⟩ _ _).congr_deriv
+        (by dsimp only [S'_fn]; ring)
+    have hU_k (k : Fin M) : HasDerivAt (fun τ => u (S_fn τ ω x k))
+        (S'_fn t ω x k * deriv u (S_fn t ω x k)) t :=
+      ((hu (S_fn t ω x k)).hasDerivAt.comp t (hS_k k)).congr_deriv (mul_comm _ _)
+    have h_ext (i : Fin (N + 1)) :
+        HasDerivAt (fun τ => ((x.1 i : ℤ) : ℝ) * Real.sqrt (1 - τ) * ω.2 i * Real.sqrt r)
+          (-(1 / (2 * Real.sqrt (1 - t))) * (((x.1 i : ℤ) : ℝ) * ω.2 i * Real.sqrt r)) t :=
+      (((hsq2'.const_mul ((x.1 i : ℤ) : ℝ)).mul_const (ω.2 i)).mul_const (Real.sqrt r)).congr_deriv
+        (by ring)
+    exact ((HasDerivAt.fun_sum fun k (_ : k ∈ Finset.univ) => hU_k k).add
+      (HasDerivAt.fun_sum fun i (_ : i ∈ Finset.univ) => h_ext i)).congr_deriv
+      (by dsimp only [E'_s]; rw [← Finset.mul_sum]; ring)
+  have hE'_bd_δ (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
+      (x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) {δ₀ t : ℝ} (hδ₀ : 0 < δ₀)
+      (ht_l : δ₀ ≤ t) (ht_r : δ₀ ≤ 1 - t) :
+      |E'_s t ω x| ≤
+        (|D₁| * (1 / (2 * Real.sqrt δ₀)) *
+          (∑ k : Fin M, ((Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i : Fin (N + 1), |ω.1.1 k i|) +
+            Real.sqrt q * |ω.1.2 k|)) +
+          (1 / (2 * Real.sqrt δ₀)) * ∑ i : Fin (N + 1), |ω.2 i| * Real.sqrt r) +
+        (|D₁| * (1 / (2 * Real.sqrt δ₀)) * ∑ k : Fin M, Real.sqrt (1 - q) * |x.2 k|) := by
+    have hinv_s : 1 / (2 * Real.sqrt t) ≤ 1 / (2 * Real.sqrt δ₀) :=
+      one_div_le_one_div_of_le (mul_pos zero_lt_two (Real.sqrt_pos.2 hδ₀))
+        (mul_le_mul_of_nonneg_left (Real.sqrt_le_sqrt ht_l) zero_le_two)
+    have hinv_1s : 1 / (2 * Real.sqrt (1 - t)) ≤ 1 / (2 * Real.sqrt δ₀) :=
+      one_div_le_one_div_of_le (mul_pos zero_lt_two (Real.sqrt_pos.2 hδ₀))
+        (mul_le_mul_of_nonneg_left (Real.sqrt_le_sqrt ht_r) zero_le_two)
+    dsimp only [E'_s]
+    refine (abs_sub _ _).trans ?_
+    have hterm1 : |∑ k : Fin M, S'_fn t ω x k * deriv u (S_fn t ω x k)| ≤
+        |D₁| * (1 / (2 * Real.sqrt δ₀)) *
+          (∑ k : Fin M, ((Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i : Fin (N + 1), |ω.1.1 k i|) +
+            Real.sqrt q * |ω.1.2 k|)) +
+        (|D₁| * (1 / (2 * Real.sqrt δ₀)) * ∑ k : Fin M, Real.sqrt (1 - q) * |x.2 k|) := by
+      have hk_bd (k : Fin M) : |S'_fn t ω x k * deriv u (S_fn t ω x k)| ≤
+          |D₁| * (1 / (2 * Real.sqrt δ₀)) *
+            (((Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i : Fin (N + 1), |ω.1.1 k i|) +
+              Real.sqrt q * |ω.1.2 k|) + Real.sqrt (1 - q) * |x.2 k|) := by
+        rw [abs_mul, mul_comm _ |deriv u (S_fn t ω x k)|]
+        have hd_le : |deriv u (S_fn t ω x k)| ≤ |D₁| := (hD₁ _).trans (le_abs_self D₁)
+        have hS'_le : |S'_fn t ω x k| ≤ (1 / (2 * Real.sqrt δ₀)) *
+            (((Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i : Fin (N + 1), |ω.1.1 k i|) +
+              Real.sqrt q * |ω.1.2 k|) + Real.sqrt (1 - q) * |x.2 k|) := by
+          dsimp only [S'_fn]
+          refine (abs_sub _ _).trans ?_
+          have ht0 : 0 < t := hδ₀.trans_le ht_l
+          have ht1 : 0 < 1 - t := hδ₀.trans_le ht_r
+          rw [abs_mul (1 / (2 * Real.sqrt t)),
+            abs_mul (1 / (2 * Real.sqrt (1 - t))),
+            abs_of_nonneg (by positivity : 0 ≤ 1 / (2 * Real.sqrt t)),
+            abs_of_nonneg (by positivity : 0 ≤ 1 / (2 * Real.sqrt (1 - t))),
+            abs_mul ((Real.sqrt (N + 1 : ℕ))⁻¹),
+            abs_of_nonneg (by positivity : 0 ≤ (Real.sqrt (N + 1 : ℕ))⁻¹)]
+          have hsum_g : |∑ i : Fin (N + 1), ω.1.1 k i * ((x.1 i : ℤ) : ℝ)| ≤
+              ∑ i : Fin (N + 1), |ω.1.1 k i| :=
+            (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun i _ => by
+              rw [abs_mul, abs_units_cast_eq_one, mul_one])
+          have hθ : |Real.sqrt q * ω.1.2 k + Real.sqrt (1 - q) * x.2 k| ≤
+              Real.sqrt q * |ω.1.2 k| + Real.sqrt (1 - q) * |x.2 k| := by
+            refine (abs_add_le _ _).trans (add_le_add ?_ ?_)
+            · rw [abs_mul, abs_of_nonneg (Real.sqrt_nonneg _)]
+            · rw [abs_mul, abs_of_nonneg (Real.sqrt_nonneg _)]
+          have hp1 : (1 / (2 * Real.sqrt t)) *
+              ((Real.sqrt (N + 1 : ℕ))⁻¹ * |∑ i, ω.1.1 k i * ((x.1 i : ℤ) : ℝ)|) ≤
+              (1 / (2 * Real.sqrt δ₀)) * ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, |ω.1.1 k i|) :=
+            mul_le_mul hinv_s (mul_le_mul_of_nonneg_left hsum_g (by positivity))
+              (by positivity) (by positivity)
+          have hp2 : (1 / (2 * Real.sqrt (1 - t))) *
+              |Real.sqrt q * ω.1.2 k + Real.sqrt (1 - q) * x.2 k| ≤
+              (1 / (2 * Real.sqrt δ₀)) *
+                (Real.sqrt q * |ω.1.2 k| + Real.sqrt (1 - q) * |x.2 k|) :=
+            mul_le_mul hinv_1s hθ (abs_nonneg _) (by positivity)
+          linarith
+        calc |deriv u (S_fn t ω x k)| * |S'_fn t ω x k|
+            ≤ |D₁| * ((1 / (2 * Real.sqrt δ₀)) *
+                (((Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i : Fin (N + 1), |ω.1.1 k i|) +
+                  Real.sqrt q * |ω.1.2 k|) + Real.sqrt (1 - q) * |x.2 k|)) :=
+              mul_le_mul hd_le hS'_le (abs_nonneg _) hD₁0
+          _ = _ := by ring
+      refine ((Finset.abs_sum_le_sum_abs _ _).trans
+        (Finset.sum_le_sum fun k _ => hk_bd k)).trans_eq ?_
+      rw [← Finset.mul_sum, Finset.sum_add_distrib, mul_add]
+    have hterm2 : |(1 / (2 * Real.sqrt (1 - t))) *
+        ∑ i : Fin (N + 1), ((x.1 i : ℤ) : ℝ) * ω.2 i * Real.sqrt r| ≤
+        (1 / (2 * Real.sqrt δ₀)) * ∑ i : Fin (N + 1), |ω.2 i| * Real.sqrt r := by
+      have ht1 : 0 < 1 - t := hδ₀.trans_le ht_r
+      rw [abs_mul, abs_of_nonneg (by positivity : 0 ≤ 1 / (2 * Real.sqrt (1 - t)))]
+      refine mul_le_mul hinv_1s ?_ (abs_nonneg _) (by positivity)
+      refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun i _ => ?_)
+      rw [abs_mul, abs_mul, abs_units_cast_eq_one, one_mul, abs_of_nonneg (Real.sqrt_nonneg _)]
+    linarith
+  have hE_abs_bd {t : ℝ} (ht0 : 0 ≤ t)
+      (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
+      (x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) :
+      |E_s t ω x| ≤ M * B + ∑ i : Fin (N + 1), |ω.2 i| * Real.sqrt r := by
+    have hsq1 : Real.sqrt (1 - t) ≤ 1 := Real.sqrt_le_one.2 (by linarith)
+    dsimp only [E_s]
+    refine (abs_add_le _ _).trans (add_le_add ?_ ?_)
+    · exact (Finset.abs_sum_le_card_mul_of_abs_le _ fun _ => hB _).trans_eq (by simp)
+    · refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun i _ => ?_)
+      rw [abs_mul, abs_mul, abs_mul, abs_units_cast_eq_one, one_mul,
+        abs_of_nonneg (Real.sqrt_nonneg _), abs_of_nonneg (Real.sqrt_nonneg _)]
+      calc Real.sqrt (1 - t) * |ω.2 i| * Real.sqrt r
+          ≤ 1 * |ω.2 i| * Real.sqrt r :=
+            mul_le_mul_of_nonneg_right (mul_le_mul_of_nonneg_right hsq1 (abs_nonneg _))
+              (Real.sqrt_nonneg _)
+        _ = |ω.2 i| * Real.sqrt r := by ring
+  refine ⟨hF'_m, fun ω {s'} hs'l hs'r => ⟨?_, ?_⟩⟩
+  · have hs'_Ioo : s' ∈ Ioo (0 : ℝ) 1 := ⟨hδ.trans_le hs'l, by linarith⟩
+    obtain ⟨δ', hδ', hδ'_bd⟩ := exists_Ioo_nhds_bound hs'_Ioo
+    let C_E : ℝ := M * B + ∑ i : Fin (N + 1), |ω.2 i| * Real.sqrt r
+    let b_ω' : ℝ := |D₁| * (1 / (2 * Real.sqrt δ')) *
+        (∑ k : Fin M, ((Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i : Fin (N + 1), |ω.1.1 k i|) +
+          Real.sqrt q * |ω.1.2 k|)) +
+        (1 / (2 * Real.sqrt δ')) * ∑ i : Fin (N + 1), |ω.2 i| * Real.sqrt r
+    let b_ξ' (ξ : Fin M → ℝ) : ℝ :=
+      |D₁| * (1 / (2 * Real.sqrt δ')) * ∑ k : Fin M, Real.sqrt (1 - q) * |ξ k|
+    have hb_ξ'_int : Integrable b_ξ' γ_M := by
+      refine (integrable_finsetSum _ fun k _ => ?_).const_mul _
+      exact (integrable_comp_eval (μ := fun _ : Fin M => γ₁) (i := k)
+        IsGaussian.integrable_id.abs).const_mul _
+    have hm_ev : ∀ᶠ t in 𝓝 s', AEStronglyMeasurable (fun x => Real.exp (E_s t ω x)) μ_s :=
+      Eventually.of_forall fun t => (Real.measurable_exp.comp
+        ((hEm t).comp (measurable_const.prodMk measurable_id))).aestronglyMeasurable
+    have hi_s' : Integrable (fun x => Real.exp (E_s s' ω x)) μ_s :=
+      integrable_exp_of_ae_le ((hEm s').comp (measurable_const.prodMk measurable_id)).aemeasurable
+        (ae_of_all _ fun x => le_of_abs_le (hE_abs_bd hs'_Ioo.1.le ω x))
+    have hdm : AEStronglyMeasurable (fun x => E'_s s' ω x * Real.exp (E_s s' ω x)) μ_s :=
+      (((hE'm s').comp (measurable_const.prodMk measurable_id)).mul
+        (Real.measurable_exp.comp
+          ((hEm s').comp (measurable_const.prodMk measurable_id)))).aestronglyMeasurable
+    exact hasDerivAt_log_integral_exp_of_dominated (μ := μ_s) (E := fun t x => E_s t ω x)
+      (E' := fun t x => E'_s t ω x) (s := Ioo (s' - δ') (s' + δ'))
+      (Ioo_mem_nhds (by linarith) (by linarith)) hm_ev hi_s' hdm
+      (b := fun x => (b_ω' + b_ξ' x.2) * Real.exp C_E)
+      (((integrable_const b_ω').add (hb_ξ'_int.comp_snd _)).mul_const (Real.exp C_E))
+      (ae_of_all _ fun x t ht => by
+        obtain ⟨h1, h2⟩ := hδ'_bd t ht
+        rw [abs_mul, abs_of_pos (Real.exp_pos _)]
+        exact mul_le_mul (hE'_bd_δ ω x hδ' h1 h2)
+          (Real.exp_le_exp.2 (le_of_abs_le (hE_abs_bd (hδ'.trans_le h1).le ω x)))
+          (Real.exp_pos _).le (by dsimp only [b_ω', b_ξ']; positivity))
+      (ae_of_all _ fun x t ht => by
+        obtain ⟨h1, h2⟩ := hδ'_bd t ht
+        exact hd_E ω x (hδ'.trans_le h1) (by linarith))
+  · have hs'0 : 0 ≤ s' := (hδ.trans_le hs'l).le
+    have hi_s' : Integrable (fun x => Real.exp (E_s s' ω x)) μ_s :=
+      integrable_exp_of_ae_le ((hEm s').comp (measurable_const.prodMk measurable_id)).aemeasurable
+        (ae_of_all _ fun x => le_of_abs_le (hE_abs_bd hs'0 ω x))
+    have hprob_t : IsProbabilityMeasure (μ_s.tilted (E_s s' ω)) :=
+      isProbabilityMeasure_tilted hi_s'
+    have hb_t : Integrable (fun x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ) => b_ω ω + b_ξ x.2)
+        (μ_s.tilted (E_s s' ω)) :=
+      integrable_tilted_of_ae_le
+        ((hEm s').comp (measurable_const.prodMk measurable_id)).aemeasurable
+        (ae_of_all _ fun x => le_of_abs_le (hE_abs_bd hs'0 ω x))
+        ((integrable_const (b_ω ω)).add (hb_ξ_int.comp_snd _))
+    have hE'i : Integrable (E'_s s' ω) (μ_s.tilted (E_s s' ω)) :=
+      hb_t.mono' ((hE'm s').comp (measurable_const.prodMk measurable_id)).aestronglyMeasurable
+        (ae_of_all _ fun x => by rw [Real.norm_eq_abs]; exact hE'_bd_δ ω x hδ hs'l hs'r)
+    have h1 : |∫ x, E'_s s' ω x ∂(μ_s.tilted (E_s s' ω))| ≤
+        b_ω ω + ∫ x, b_ξ x.2 ∂(μ_s.tilted (E_s s' ω)) := by
+      refine (abs_integral_le_integral_abs).trans ?_
+      refine (integral_mono hE'i.abs hb_t fun x => hE'_bd_δ ω x hδ hs'l hs'r).trans_eq ?_
+      have hb_ξ_t : Integrable (fun x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ) => b_ξ x.2)
+          (μ_s.tilted (E_s s' ω)) :=
+        integrable_tilted_of_ae_le
+          ((hEm s').comp (measurable_const.prodMk measurable_id)).aemeasurable
+          (ae_of_all _ fun x => le_of_abs_le (hE_abs_bd hs'0 ω x))
+          (hb_ξ_int.comp_snd _)
+      rw [integral_add (integrable_const (b_ω ω)) hb_ξ_t, integral_const, probReal_univ, one_smul]
+    refine h1.trans (add_le_add le_rfl ?_)
+    let E_0_spin (x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : ℝ :=
+      ∑ i : Fin (N + 1), ((x.1 i : ℤ) : ℝ) * Real.sqrt (1 - s') * ω.2 i * Real.sqrt r
+    have hE0_m : Measurable E_0_spin := by dsimp only [E_0_spin]; fun_prop
+    have hE0_b (x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) :
+        E_0_spin x ≤ ∑ i : Fin (N + 1), |Real.sqrt (1 - s') * ω.2 i * Real.sqrt r| :=
+      Finset.sum_le_sum fun i _ => (le_abs_self _).trans (by
+        rw [abs_mul, abs_mul, abs_mul, abs_units_cast_eq_one, one_mul, abs_mul, abs_mul])
+    have hi0 : Integrable (fun x => Real.exp (E_0_spin x)) μ_s :=
+      integrable_exp_of_ae_le hE0_m.aemeasurable (ae_of_all _ hE0_b)
+    have hdiff_E (x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) :
+        |E_s s' ω x - E_0_spin x| ≤ M * B := by
+      rw [show E_s s' ω x - E_0_spin x = ∑ k : Fin M, u (S_fn s' ω x k) by
+        dsimp only [E_s, E_0_spin]; ring]
+      exact (Finset.abs_sum_le_card_mul_of_abs_le _ fun _ => hB _).trans_eq (by simp)
+    have hdom_1 := integral_pi_tilted_le_exp_mul_of_abs_sub_le (ι := Unit) (μ := μ_s)
+      (E₀ := E_0_spin) (E₁ := E_s s' ω) hi0
+      (((hEm s').comp (measurable_const.prodMk measurable_id)).sub hE0_m)
+      (C := M * B) hdiff_E
+      (Y := fun f : Unit → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ) => b_ξ (f ()).2)
+      (fun f => hb_ξ0 (f ()).2)
+      (by
+        have : IsProbabilityMeasure (μ_s.tilted E_0_spin) := isProbabilityMeasure_tilted hi0
+        exact integrable_comp_eval (μ := fun _ : Unit => μ_s.tilted E_0_spin) (i := ())
+          (integrable_tilted_of_ae_le hE0_m.aemeasurable (ae_of_all _ hE0_b)
+            (hb_ξ_int.comp_snd _)))
+    have h_unit (ν : Measure ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ))) [SigmaFinite ν] :
+        (∫ f : Unit → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ), b_ξ (f ()).2
+          ∂(Measure.pi fun _ : Unit => ν)) =
+        ∫ x, b_ξ x.2 ∂ν :=
+      (measurePreserving_funUnique ν Unit).integral_comp_of_aestronglyMeasurable
+        (by dsimp only [b_ξ]; fun_prop :
+          Measurable fun x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ) => b_ξ x.2).aestronglyMeasurable
+    have : SigmaFinite (μ_s.tilted (E_s s' ω)) := inferInstance
+    have : IsProbabilityMeasure (μ_s.tilted E_0_spin) := isProbabilityMeasure_tilted hi0
+    rw [h_unit (μ_s.tilted (E_s s' ω)), h_unit (μ_s.tilted E_0_spin)] at hdom_1
+    simp only [Fintype.card_unique, Nat.cast_one, mul_one] at hdom_1
+    have hE0_indep : ∫ x, b_ξ x.2 ∂(μ_s.tilted E_0_spin) = ∫ ξ, b_ξ ξ ∂γ_M := by
+      rw [integral_tilted_eq_div]
+      have hnum : (∫ x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ),
+          b_ξ x.2 * Real.exp (E_0_spin x) ∂μ_s) =
+          (∫ τ : Fin (N + 1) → ℤˣ,
+            Real.exp (∑ i : Fin (N + 1), ((τ i : ℤ) : ℝ) * Real.sqrt (1 - s') * ω.2 i * Real.sqrt r)
+            ∂Measure.count) * (∫ ξ, b_ξ ξ ∂γ_M) := by
+        dsimp only [μ_s, E_0_spin]
+        exact (integral_congr_ae (ae_of_all _ fun _ => mul_comm _ _)).trans
+          (integral_prod_mul (μ := (Measure.count : Measure (Fin (N + 1) → ℤˣ))) (ν := γ_M)
+            (fun τ => Real.exp (∑ i : Fin (N + 1),
+              ((τ i : ℤ) : ℝ) * Real.sqrt (1 - s') * ω.2 i * Real.sqrt r)) b_ξ)
+      have hden : (∫ x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ), Real.exp (E_0_spin x) ∂μ_s) =
+          ∫ τ : Fin (N + 1) → ℤˣ,
+            Real.exp (∑ i : Fin (N + 1), ((τ i : ℤ) : ℝ) * Real.sqrt (1 - s') * ω.2 i * Real.sqrt r)
+            ∂Measure.count := by
+        dsimp only [μ_s, E_0_spin]
+        simpa using integral_prod_mul (μ := (Measure.count : Measure (Fin (N + 1) → ℤˣ))) (ν := γ_M)
+          (fun τ => Real.exp (∑ i : Fin (N + 1),
+            ((τ i : ℤ) : ℝ) * Real.sqrt (1 - s') * ω.2 i * Real.sqrt r)) (fun _ => (1 : ℝ))
+      have hden_pos : 0 < ∫ x, Real.exp (E_0_spin x) ∂μ_s := integral_exp_pos hi0
+      rw [hden] at hden_pos
+      rw [hnum, hden, mul_div_cancel_left₀ _ hden_pos.ne']
+    rw [hE0_indep, ← mul_assoc] at hdom_1
+    exact hdom_1
+
 /-- **Differentiation of the `s`-interpolating pressure (Eq. (2.81)):**
 for `s ∈ (0, 1)`, `d/ds p_{N+1, M, s}(u) = (N + 1)⁻¹ * ν_s(∂_s(-H_{M, N+1, s}))`. -/
 theorem hasDerivAt_interpolating_pressure
@@ -472,46 +865,12 @@ theorem hasDerivAt_interpolating_pressure
             ∑ i : Fin (N + 1), ((x.1 i : ℤ) : ℝ) * ω.2 i * Real.sqrt r)
         ∂(μ_s.tilted (E_s s ω)) ∂P) s := by
   intro P_g P_z P_z' P μ_s S_fn S'_fn E_s
-  have hum : Measurable u := hu.continuous.measurable
-  have hB_le : ∀ x, u x ≤ B := fun x => le_of_abs_le (hB x)
-  have hB0 : 0 ≤ B := (abs_nonneg _).trans (hB 0)
-  have hD₁0 : 0 ≤ |D₁| := abs_nonneg D₁
-  let γ₁ : Measure ℝ := gaussianReal 0 1
-  let γ_M := Measure.pi fun _ : Fin M => γ₁
-  let E'_s (s' : ℝ) (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
-      (x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : ℝ :=
-    (∑ k : Fin M, S'_fn s' ω x k * deriv u (S_fn s' ω x k)) -
-      (1 / (2 * Real.sqrt (1 - s'))) *
-        ∑ i : Fin (N + 1), ((x.1 i : ℤ) : ℝ) * ω.2 i * Real.sqrt r
   obtain ⟨δ, hδ, hδ_bd⟩ := exists_Ioo_nhds_bound hs
   let U_nbhd : Set ℝ := Ioo (s - δ) (s + δ)
   have hU_nhds : U_nbhd ∈ 𝓝 s := Ioo_mem_nhds (by linarith) (by linarith)
-  have hs'_b {s' : ℝ} (hs' : s' ∈ U_nbhd) : δ ≤ s' ∧ δ ≤ 1 - s' ∧ 0 < s' ∧ s' < 1 := by
-    obtain ⟨h1, h2⟩ := hδ_bd s' hs'
-    exact ⟨h1, h2, hδ.trans_le h1, by linarith⟩
-  -- Pointwise derivative of `E_s s' ω x` on `U_nbhd`!
-  have hd_E (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
-      (x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) {s' : ℝ} (hs' : s' ∈ U_nbhd) :
-      HasDerivAt (fun t => E_s t ω x) (E'_s s' ω x) s' := by
-    obtain ⟨-, -, hs'0, hs'1⟩ := hs'_b hs'
-    have hsq2' : HasDerivAt (fun t : ℝ => Real.sqrt (1 - t)) (-1 / (2 * Real.sqrt (1 - s'))) s' :=
-      ((hasDerivAt_id s').const_sub 1).sqrt (sub_pos.2 hs'1).ne'
-    have hS_k (k : Fin M) : HasDerivAt (fun t => S_fn t ω x k) (S'_fn s' ω x k) s' :=
-      (hasDerivAt_sqrt_mul_add_sqrt_one_sub_mul ⟨hs'0, hs'1⟩ _ _).congr_deriv
-        (by dsimp only [S'_fn]; ring)
-    have hU_k (k : Fin M) : HasDerivAt (fun t => u (S_fn t ω x k))
-        (S'_fn s' ω x k * deriv u (S_fn s' ω x k)) s' := by
-      have h := (hu (S_fn s' ω x k)).hasDerivAt.comp s' (hS_k k)
-      exact h.congr_deriv (mul_comm _ _)
-    have h_ext (i : Fin (N + 1)) :
-        HasDerivAt (fun t => ((x.1 i : ℤ) : ℝ) * Real.sqrt (1 - t) * ω.2 i * Real.sqrt r)
-          (-(1 / (2 * Real.sqrt (1 - s'))) * (((x.1 i : ℤ) : ℝ) * ω.2 i * Real.sqrt r)) s' := by
-      have h := ((hsq2'.const_mul ((x.1 i : ℤ) : ℝ)).mul_const (ω.2 i)).mul_const (Real.sqrt r)
-      exact h.congr_deriv (by ring)
-    have htot := (HasDerivAt.fun_sum fun k (_ : k ∈ Finset.univ) => hU_k k).add
-      (HasDerivAt.fun_sum fun i (_ : i ∈ Finset.univ) => h_ext i)
-    exact htot.congr_deriv (by dsimp only [E'_s]; rw [← Finset.mul_sum]; ring)
-  -- Bound on `|E'_s s' ω x|` for `s' ∈ U_nbhd`: `≤ b_ω ω + b_ξ x.2`!
+  obtain ⟨hF'_m, hpt_δ⟩ := hasDerivAt_and_abs_le_log_interpPartition (N := N) (M := M)
+    hu hB hD₁ q r hδ
+  let γ₁ : Measure ℝ := gaussianReal 0 1
   let b_ω (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) : ℝ :=
     |D₁| * (1 / (2 * Real.sqrt δ)) *
       (∑ k : Fin M, ((Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i : Fin (N + 1), |ω.1.1 k i|) +
@@ -519,367 +878,56 @@ theorem hasDerivAt_interpolating_pressure
       (1 / (2 * Real.sqrt δ)) * ∑ i : Fin (N + 1), |ω.2 i| * Real.sqrt r
   let b_ξ (ξ : Fin M → ℝ) : ℝ :=
     |D₁| * (1 / (2 * Real.sqrt δ)) * ∑ k : Fin M, Real.sqrt (1 - q) * |ξ k|
-  have hb_ω0 (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) : 0 ≤ b_ω ω := by
-    dsimp only [b_ω]; positivity
-  have hb_ξ0 (ξ : Fin M → ℝ) : 0 ≤ b_ξ ξ := by dsimp only [b_ξ]; positivity
-  have hb_ξ_int : Integrable b_ξ γ_M := by
-    refine (integrable_finsetSum _ fun k _ => ?_).const_mul _
-    exact (integrable_comp_eval (μ := fun _ : Fin M => γ₁) (i := k)
-      IsGaussian.integrable_id.abs).const_mul _
   have hb_ω_int : Integrable b_ω P := by
     refine Integrable.add ?_ ?_
     · refine (integrable_finsetSum _ fun k _ => Integrable.add ?_ ?_).const_mul _
       · refine (integrable_finsetSum _ fun i _ => ?_).const_mul _
-        have hi1 : Integrable (fun g : Fin M → Fin (N + 1) → ℝ => |g k i|) P_g := by
-          have hc := integrable_comp_eval (μ := fun _ : Fin (N + 1) => γ₁) (i := i)
-            IsGaussian.integrable_id.abs
-          exact integrable_comp_eval (μ := fun _ : Fin M => Measure.pi fun _ => γ₁) (i := k) hc
-        exact (hi1.comp_fst _).comp_fst _
-      · have hk1 : Integrable (fun z : Fin M → ℝ => Real.sqrt q * |z k|) P_z :=
-          (integrable_comp_eval (μ := fun _ : Fin M => γ₁) (i := k)
-            IsGaussian.integrable_id.abs).const_mul _
-        exact (hk1.comp_snd _).comp_fst _
+        exact ((integrable_comp_eval (μ := fun _ : Fin M => Measure.pi fun _ => γ₁) (i := k)
+          (integrable_comp_eval (μ := fun _ : Fin (N + 1) => γ₁) (i := i)
+            IsGaussian.integrable_id.abs)).comp_fst _).comp_fst _
+      · exact (((integrable_comp_eval (μ := fun _ : Fin M => γ₁) (i := k)
+          IsGaussian.integrable_id.abs).const_mul _).comp_snd _).comp_fst _
     · refine (integrable_finsetSum _ fun i _ => ?_).const_mul _
-      have hi1 : Integrable (fun z' : Fin (N + 1) → ℝ => |z' i| * Real.sqrt r) P_z' :=
-        (integrable_comp_eval (μ := fun _ : Fin (N + 1) => γ₁) (i := i)
-          IsGaussian.integrable_id.abs).mul_const _
-      exact hi1.comp_snd _
-  have hE'_bd (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
-      (x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) {s' : ℝ} (hs' : s' ∈ U_nbhd) :
-      |E'_s s' ω x| ≤ b_ω ω + b_ξ x.2 := by
-    obtain ⟨hδs, hδ1s, -, -⟩ := hs'_b hs'
-    have hinv_s : 1 / (2 * Real.sqrt s') ≤ 1 / (2 * Real.sqrt δ) :=
-      one_div_le_one_div_of_le (mul_pos zero_lt_two (Real.sqrt_pos.2 hδ))
-        (mul_le_mul_of_nonneg_left (Real.sqrt_le_sqrt hδs) zero_le_two)
-    have hinv_1s : 1 / (2 * Real.sqrt (1 - s')) ≤ 1 / (2 * Real.sqrt δ) :=
-      one_div_le_one_div_of_le (mul_pos zero_lt_two (Real.sqrt_pos.2 hδ))
-        (mul_le_mul_of_nonneg_left (Real.sqrt_le_sqrt hδ1s) zero_le_two)
-    dsimp only [E'_s]
-    refine (abs_sub _ _).trans ?_
-    have hterm1 : |∑ k : Fin M, S'_fn s' ω x k * deriv u (S_fn s' ω x k)| ≤
-        |D₁| * (1 / (2 * Real.sqrt δ)) *
-          (∑ k : Fin M, ((Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i : Fin (N + 1), |ω.1.1 k i|) +
-            Real.sqrt q * |ω.1.2 k|)) + b_ξ x.2 := by
-      have hk_bd (k : Fin M) : |S'_fn s' ω x k * deriv u (S_fn s' ω x k)| ≤
-          |D₁| * (1 / (2 * Real.sqrt δ)) *
-            (((Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i : Fin (N + 1), |ω.1.1 k i|) +
-              Real.sqrt q * |ω.1.2 k|) + Real.sqrt (1 - q) * |x.2 k|) := by
-        rw [abs_mul, mul_comm _ |deriv u (S_fn s' ω x k)|]
-        have hd_le : |deriv u (S_fn s' ω x k)| ≤ |D₁| := (hD₁ _).trans (le_abs_self D₁)
-        have hS'_le : |S'_fn s' ω x k| ≤ (1 / (2 * Real.sqrt δ)) *
-            (((Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i : Fin (N + 1), |ω.1.1 k i|) +
-              Real.sqrt q * |ω.1.2 k|) + Real.sqrt (1 - q) * |x.2 k|) := by
-          dsimp only [S'_fn]
-          refine (abs_sub _ _).trans ?_
-          rw [abs_mul (1 / (2 * Real.sqrt s')),
-            abs_mul (1 / (2 * Real.sqrt (1 - s'))),
-            abs_of_nonneg (by positivity : 0 ≤ 1 / (2 * Real.sqrt s')),
-            abs_of_nonneg (by positivity : 0 ≤ 1 / (2 * Real.sqrt (1 - s'))),
-            abs_mul ((Real.sqrt (N + 1 : ℕ))⁻¹),
-            abs_of_nonneg (by positivity : 0 ≤ (Real.sqrt (N + 1 : ℕ))⁻¹)]
-          have hsum_g : |∑ i : Fin (N + 1), ω.1.1 k i * ((x.1 i : ℤ) : ℝ)| ≤
-              ∑ i : Fin (N + 1), |ω.1.1 k i| :=
-            (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun i _ => by
-              rw [abs_mul, abs_units_cast_eq_one, mul_one])
-          have hθ : |Real.sqrt q * ω.1.2 k + Real.sqrt (1 - q) * x.2 k| ≤
-              Real.sqrt q * |ω.1.2 k| + Real.sqrt (1 - q) * |x.2 k| := by
-            refine (abs_add_le _ _).trans (add_le_add ?_ ?_)
-            · rw [abs_mul, abs_of_nonneg (Real.sqrt_nonneg _)]
-            · rw [abs_mul, abs_of_nonneg (Real.sqrt_nonneg _)]
-          have hp1 : (1 / (2 * Real.sqrt s')) *
-              ((Real.sqrt (N + 1 : ℕ))⁻¹ * |∑ i, ω.1.1 k i * ((x.1 i : ℤ) : ℝ)|) ≤
-              (1 / (2 * Real.sqrt δ)) * ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, |ω.1.1 k i|) :=
-            mul_le_mul hinv_s (mul_le_mul_of_nonneg_left hsum_g (by positivity))
-              (by positivity) (by positivity)
-          have hp2 : (1 / (2 * Real.sqrt (1 - s'))) *
-              |Real.sqrt q * ω.1.2 k + Real.sqrt (1 - q) * x.2 k| ≤
-              (1 / (2 * Real.sqrt δ)) *
-                (Real.sqrt q * |ω.1.2 k| + Real.sqrt (1 - q) * |x.2 k|) :=
-            mul_le_mul hinv_1s hθ (abs_nonneg _) (by positivity)
-          linarith
-        calc |deriv u (S_fn s' ω x k)| * |S'_fn s' ω x k|
-            ≤ |D₁| * ((1 / (2 * Real.sqrt δ)) *
-                (((Real.sqrt (N + 1 : ℕ))⁻¹ * (∑ i : Fin (N + 1), |ω.1.1 k i|) +
-                  Real.sqrt q * |ω.1.2 k|) + Real.sqrt (1 - q) * |x.2 k|)) :=
-              mul_le_mul hd_le hS'_le (abs_nonneg _) hD₁0
-          _ = _ := by ring
-      refine ((Finset.abs_sum_le_sum_abs _ _).trans
-        (Finset.sum_le_sum fun k _ => hk_bd k)).trans_eq ?_
-      dsimp only [b_ξ]
-      rw [← Finset.mul_sum, Finset.sum_add_distrib, mul_add]
-    have hterm2 : |(1 / (2 * Real.sqrt (1 - s'))) *
-        ∑ i : Fin (N + 1), ((x.1 i : ℤ) : ℝ) * ω.2 i * Real.sqrt r| ≤
-        (1 / (2 * Real.sqrt δ)) * ∑ i : Fin (N + 1), |ω.2 i| * Real.sqrt r := by
-      rw [abs_mul, abs_of_nonneg (by positivity : 0 ≤ 1 / (2 * Real.sqrt (1 - s')))]
-      refine mul_le_mul hinv_1s ?_ (abs_nonneg _) (by positivity)
-      refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun i _ => ?_)
-      rw [abs_mul, abs_mul, abs_units_cast_eq_one, one_mul, abs_of_nonneg (Real.sqrt_nonneg _)]
-    dsimp only [b_ω]
-    linarith
-  -- Differentiate `s' ↦ log (∫ x, exp (E_s s' ω x) ∂μ_s)` at fixed `ω`.
-  let Z_fn (s' : ℝ) (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) : ℝ :=
-    ∫ x, Real.exp (E_s s' ω x) ∂μ_s
-  have hEm (s' : ℝ) : Measurable fun p :
-      (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-        ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => E_s s' p.1 p.2 := by
-    refine (Finset.measurable_sum _ fun k _ => hum.comp (by fun_prop)).add ?_
-    fun_prop
-  have hE'm (s' : ℝ) : Measurable fun p :
-      (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-        ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => E'_s s' p.1 p.2 := by
-    refine (Finset.measurable_sum _ fun k _ => ?_).sub ?_
-    · refine (by fun_prop : Measurable fun p :
-        (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-          ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => S'_fn s' p.1 p.2 k).mul ?_
-      exact (measurable_deriv u).comp (by fun_prop)
-    · fun_prop
-  have hE_abs_bd {s' : ℝ} (hs' : s' ∈ U_nbhd)
-      (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
-      (x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) :
-      |E_s s' ω x| ≤ M * B + ∑ i : Fin (N + 1), |ω.2 i| * Real.sqrt r := by
-    obtain ⟨-, -, hs'0, _⟩ := hs'_b hs'
-    have hsq1 : Real.sqrt (1 - s') ≤ 1 := Real.sqrt_le_one.2 (by linarith)
-    dsimp only [E_s]
-    refine (abs_add_le _ _).trans (add_le_add ?_ ?_)
-    · exact (Finset.abs_sum_le_card_mul_of_abs_le _ fun _ => hB _).trans_eq (by simp)
-    · refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun i _ => ?_)
-      rw [abs_mul, abs_mul, abs_mul, abs_units_cast_eq_one, one_mul,
-        abs_of_nonneg (Real.sqrt_nonneg _), abs_of_nonneg (Real.sqrt_nonneg _)]
-      calc Real.sqrt (1 - s') * |ω.2 i| * Real.sqrt r
-          ≤ 1 * |ω.2 i| * Real.sqrt r :=
-            mul_le_mul_of_nonneg_right (mul_le_mul_of_nonneg_right hsq1 (abs_nonneg _))
-              (Real.sqrt_nonneg _)
-        _ = |ω.2 i| * Real.sqrt r := by ring
-  have hZ_deriv (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
-      {s' : ℝ} (hs' : s' ∈ U_nbhd) :
-      HasDerivAt (fun t => Real.log (Z_fn t ω))
-        (∫ x, E'_s s' ω x ∂(μ_s.tilted (E_s s' ω))) s' := by
-    let C_E : ℝ := M * B + ∑ i : Fin (N + 1), |ω.2 i| * Real.sqrt r
-    have hm_ev : ∀ᶠ t in 𝓝 s', AEStronglyMeasurable (fun x => Real.exp (E_s t ω x)) μ_s :=
-      Eventually.of_forall fun t => (Real.measurable_exp.comp
-        ((hEm t).comp (measurable_const.prodMk measurable_id))).aestronglyMeasurable
-    have hi_s' : Integrable (fun x => Real.exp (E_s s' ω x)) μ_s :=
-      integrable_exp_of_ae_le ((hEm s').comp (measurable_const.prodMk measurable_id)).aemeasurable
-        (ae_of_all _ fun x => le_of_abs_le (hE_abs_bd hs' ω x))
-    have hdm : AEStronglyMeasurable (fun x => E'_s s' ω x * Real.exp (E_s s' ω x)) μ_s :=
-      (((hE'm s').comp (measurable_const.prodMk measurable_id)).mul
-        (Real.measurable_exp.comp
-          ((hEm s').comp (measurable_const.prodMk measurable_id)))).aestronglyMeasurable
-    exact hasDerivAt_log_integral_exp_of_dominated (μ := μ_s) (E := fun t x => E_s t ω x)
-      (E' := fun t x => E'_s t ω x) (IsOpen.mem_nhds isOpen_Ioo hs') hm_ev hi_s' hdm
-      (b := fun x => (b_ω ω + b_ξ x.2) * Real.exp C_E)
-      (((integrable_const (b_ω ω)).add (hb_ξ_int.comp_snd _)).mul_const (Real.exp C_E))
-      (ae_of_all _ fun x t ht => by
-        rw [abs_mul, abs_of_pos (Real.exp_pos _)]
-        exact mul_le_mul (hE'_bd ω x ht)
-          (Real.exp_le_exp.2 (le_of_abs_le (hE_abs_bd ht ω x)))
-          (Real.exp_pos _).le (add_nonneg (hb_ω0 ω) (hb_ξ0 x.2)))
-      (ae_of_all _ fun x t ht => hd_E ω x ht)
-  -- Bound `|∫ x, E'_s s' ω x ∂(μ_s.tilted (E_s s' ω))|` on `U_nbhd` by cancelling the spin factor
-  -- per `τ` and bounding the `ξ`-ratio by `exp(2 M B) * ∫ b_ξ`.
-  have htilted_ξ_bd (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
-      {s' : ℝ} (hs' : s' ∈ U_nbhd) :
-      |∫ x, E'_s s' ω x ∂(μ_s.tilted (E_s s' ω))| ≤
-        b_ω ω + Real.exp (2 * M * B) * ∫ ξ, b_ξ ξ ∂γ_M := by
-    have hs'_mem := hs'
-    obtain ⟨-, -, hs'0, _⟩ := hs'_b hs'
-    let C_E : ℝ := M * B + ∑ i : Fin (N + 1), |ω.2 i| * Real.sqrt r
-    have hi_s' : Integrable (fun x => Real.exp (E_s s' ω x)) μ_s :=
-      integrable_exp_of_ae_le ((hEm s').comp (measurable_const.prodMk measurable_id)).aemeasurable
-        (ae_of_all _ fun x => le_of_abs_le (hE_abs_bd hs' ω x))
-    have hprob_t : IsProbabilityMeasure (μ_s.tilted (E_s s' ω)) :=
-      isProbabilityMeasure_tilted hi_s'
-    have hE'i : Integrable (E'_s s' ω) (μ_s.tilted (E_s s' ω)) := by
-      have hb_t : Integrable (fun x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ) => b_ω ω + b_ξ x.2)
-          (μ_s.tilted (E_s s' ω)) :=
-        integrable_tilted_of_ae_le
-          ((hEm s').comp (measurable_const.prodMk measurable_id)).aemeasurable
-          (ae_of_all _ fun x => le_of_abs_le (hE_abs_bd hs' ω x))
-          ((integrable_const (b_ω ω)).add (hb_ξ_int.comp_snd _))
-      exact hb_t.mono'
-        ((hE'm s').comp (measurable_const.prodMk measurable_id)).aestronglyMeasurable
-        (ae_of_all _ fun x => by rw [Real.norm_eq_abs]; exact hE'_bd ω x hs')
-    have hb_t : Integrable (fun x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ) => b_ω ω + b_ξ x.2)
-        (μ_s.tilted (E_s s' ω)) :=
-      integrable_tilted_of_ae_le
-        ((hEm s').comp (measurable_const.prodMk measurable_id)).aemeasurable
-        (ae_of_all _ fun x => le_of_abs_le (hE_abs_bd hs' ω x))
-        ((integrable_const (b_ω ω)).add (hb_ξ_int.comp_snd _))
-    have h1 : |∫ x, E'_s s' ω x ∂(μ_s.tilted (E_s s' ω))| ≤
-        b_ω ω + ∫ x, b_ξ x.2 ∂(μ_s.tilted (E_s s' ω)) := by
-      refine (abs_integral_le_integral_abs).trans ?_
-      refine (integral_mono hE'i.abs hb_t fun x => hE'_bd ω x hs').trans_eq ?_
-      have hb_ξ_t : Integrable (fun x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ) => b_ξ x.2)
-          (μ_s.tilted (E_s s' ω)) :=
-        integrable_tilted_of_ae_le
-          ((hEm s').comp (measurable_const.prodMk measurable_id)).aemeasurable
-          (ae_of_all _ fun x => le_of_abs_le (hE_abs_bd hs' ω x))
-          (hb_ξ_int.comp_snd _)
-      rw [integral_add (integrable_const (b_ω ω)) hb_ξ_t, integral_const, probReal_univ, one_smul]
-    refine h1.trans (add_le_add le_rfl ?_)
-    -- Bound `∫ x, b_ξ x.2 ∂(μ_s.tilted (E_s s' ω)) ≤ exp(2 M B) * ∫ ξ, b_ξ ξ ∂γ_M`!
-    let E_0_spin (x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : ℝ :=
-      ∑ i : Fin (N + 1), ((x.1 i : ℤ) : ℝ) * Real.sqrt (1 - s') * ω.2 i * Real.sqrt r
-    have hE0_m : Measurable E_0_spin := by dsimp only [E_0_spin]; fun_prop
-    have hE0_b (x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) :
-        E_0_spin x ≤ ∑ i : Fin (N + 1), |Real.sqrt (1 - s') * ω.2 i * Real.sqrt r| :=
-      Finset.sum_le_sum fun i _ => (le_abs_self _).trans (by
-        rw [abs_mul, abs_mul, abs_mul, abs_units_cast_eq_one, one_mul, abs_mul, abs_mul])
-    have hi0 : Integrable (fun x => Real.exp (E_0_spin x)) μ_s :=
-      integrable_exp_of_ae_le hE0_m.aemeasurable (ae_of_all _ hE0_b)
-    have hdiff_E (x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) :
-        |E_s s' ω x - E_0_spin x| ≤ M * B := by
-      have heq_sub : E_s s' ω x - E_0_spin x = ∑ k : Fin M, u (S_fn s' ω x k) := by
-        dsimp only [E_s, E_0_spin]; ring
-      rw [heq_sub]
-      exact (Finset.abs_sum_le_card_mul_of_abs_le _ fun _ => hB _).trans_eq (by simp)
-    have hdom_1 := integral_pi_tilted_le_exp_mul_of_abs_sub_le (ι := Unit) (μ := μ_s)
-      (E₀ := E_0_spin) (E₁ := E_s s' ω) hi0
-      (((hEm s').comp (measurable_const.prodMk measurable_id)).sub hE0_m)
-      (C := M * B) hdiff_E
-      (Y := fun f : Unit → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ) => b_ξ (f ()).2)
-      (fun f => hb_ξ0 (f ()).2)
-      (by
-        have : IsProbabilityMeasure (μ_s.tilted E_0_spin) := isProbabilityMeasure_tilted hi0
-        exact integrable_comp_eval (μ := fun _ : Unit => μ_s.tilted E_0_spin) (i := ())
-          (integrable_tilted_of_ae_le hE0_m.aemeasurable (ae_of_all _ hE0_b)
-            (hb_ξ_int.comp_snd _)))
-    have h_unit (ν : Measure ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ))) [SigmaFinite ν] :
-        (∫ f : Unit → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ), b_ξ (f ()).2
-          ∂(Measure.pi fun _ : Unit => ν)) =
-        ∫ x, b_ξ x.2 ∂ν := by
-      have hm : Measurable fun x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ) => b_ξ x.2 := by
-        dsimp only [b_ξ]; fun_prop
-      exact (measurePreserving_funUnique ν Unit).integral_comp_of_aestronglyMeasurable
-        hm.aestronglyMeasurable
-    have : SigmaFinite (μ_s.tilted (E_s s' ω)) := inferInstance
-    have : IsProbabilityMeasure (μ_s.tilted E_0_spin) := isProbabilityMeasure_tilted hi0
-    rw [h_unit (μ_s.tilted (E_s s' ω)), h_unit (μ_s.tilted E_0_spin)] at hdom_1
-    simp only [Fintype.card_unique, Nat.cast_one, mul_one] at hdom_1
-    -- Finally, under `μ_s.tilted E_0_spin`, `x.2` is independent of `x.1` and has law `γ_M`!
-    have hE0_indep : ∫ x, b_ξ x.2 ∂(μ_s.tilted E_0_spin) = ∫ ξ, b_ξ ξ ∂γ_M := by
-      rw [integral_tilted_eq_div]
-      have hnum : (∫ x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ),
-          b_ξ x.2 * Real.exp (E_0_spin x) ∂μ_s) =
-          (∫ τ : Fin (N + 1) → ℤˣ,
-            Real.exp (∑ i : Fin (N + 1), ((τ i : ℤ) : ℝ) * Real.sqrt (1 - s') * ω.2 i * Real.sqrt r)
-            ∂Measure.count) * (∫ ξ, b_ξ ξ ∂γ_M) := by
-        dsimp only [μ_s, E_0_spin]
-        have hp := integral_prod_mul (μ := (Measure.count : Measure (Fin (N + 1) → ℤˣ))) (ν := γ_M)
-          (fun τ => Real.exp (∑ i : Fin (N + 1),
-            ((τ i : ℤ) : ℝ) * Real.sqrt (1 - s') * ω.2 i * Real.sqrt r)) b_ξ
-        exact (integral_congr_ae (ae_of_all _ fun _ => mul_comm _ _)).trans hp
-      have hden : (∫ x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ), Real.exp (E_0_spin x) ∂μ_s) =
-          ∫ τ : Fin (N + 1) → ℤˣ,
-            Real.exp (∑ i : Fin (N + 1), ((τ i : ℤ) : ℝ) * Real.sqrt (1 - s') * ω.2 i * Real.sqrt r)
-            ∂Measure.count := by
-        dsimp only [μ_s, E_0_spin]
-        have hp := integral_prod_mul (μ := (Measure.count : Measure (Fin (N + 1) → ℤˣ))) (ν := γ_M)
-          (fun τ => Real.exp (∑ i : Fin (N + 1),
-            ((τ i : ℤ) : ℝ) * Real.sqrt (1 - s') * ω.2 i * Real.sqrt r)) (fun _ => (1 : ℝ))
-        simpa using hp
-      have hden_pos : 0 < ∫ x, Real.exp (E_0_spin x) ∂μ_s := integral_exp_pos hi0
-      rw [hden] at hden_pos
-      rw [hnum, hden, mul_div_cancel_left₀ _ hden_pos.ne']
-    rw [hE0_indep, ← mul_assoc] at hdom_1
-    exact hdom_1
-  -- Differentiate under `∫ ω ... ∂P`!
-  have hlogZ_int (s' : ℝ) (hs' : s' ∈ U_nbhd) :
-      Integrable (fun ω => Real.log (Z_fn s' ω)) P := by
-    let E_eff (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
-        (τ : Fin (N + 1) → ℤˣ) : ℝ :=
-      (∑ i : Fin (N + 1), ((τ i : ℤ) : ℝ) * Real.sqrt (1 - s') * ω.2 i * Real.sqrt r) +
-        ∑ k : Fin M, Real.log (∫ ξ, Real.exp (u (Real.sqrt s' *
-            ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 k i * ((τ i : ℤ) : ℝ)) +
-          Real.sqrt (1 - s') * (Real.sqrt q * ω.1.2 k + Real.sqrt (1 - q) * ξ))) ∂γ₁)
-    have hZ_eq (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) :
-        Real.log (Z_fn s' ω) = Real.log (∑ τ, Real.exp (E_eff ω τ)) := by
-      dsimp only [Z_fn, E_eff, E_s, S_fn, γ₁]
-      rw [integral_sum_exp_interpolating_eq hum hB_le s' q r ω]
-    have hEm_τ (τ : Fin (N + 1) → ℤˣ) : Measurable fun ω => E_eff ω τ := by
-      refine (Finset.measurable_sum _ fun i _ => by fun_prop).add ?_
-      refine Finset.measurable_sum _ fun k _ => Real.measurable_log.comp ?_
-      have hj : Measurable fun p :
-          (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) × ℝ =>
-          Real.exp (u (Real.sqrt s' *
-            ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, p.1.1.1 k i * ((τ i : ℤ) : ℝ)) +
-            Real.sqrt (1 - s') * (Real.sqrt q * p.1.1.2 k + Real.sqrt (1 - q) * p.2))) :=
-        Real.measurable_exp.comp (hum.comp (by fun_prop))
-      exact (hj.stronglyMeasurable.integral_prod_right' (ν := γ₁)).measurable
-    have hm_log : Measurable fun ω => Real.log (Z_fn s' ω) := by
-      have heq := funext hZ_eq
-      rw [heq]
-      exact Real.measurable_log.comp (Finset.measurable_sum _ fun τ _ =>
-        Real.measurable_exp.comp (hEm_τ τ))
-    let dom_Z (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) : ℝ :=
-      ((N : ℝ) + 1) * Real.log 2 + M * B + ∑ i : Fin (N + 1), |ω.2 i| * Real.sqrt r
-    have hdom_Z_i : Integrable dom_Z P := by
-      refine ((integrable_const _).add (integrable_const _)).add
-        (integrable_finsetSum _ fun i _ => ?_)
       exact ((integrable_comp_eval (μ := fun _ : Fin (N + 1) => γ₁) (i := i)
         IsGaussian.integrable_id.abs).mul_const _).comp_snd _
-    refine hdom_Z_i.mono' hm_log.aestronglyMeasurable (ae_of_all _ fun ω => ?_)
-    rw [Real.norm_eq_abs, hZ_eq ω]
-    obtain ⟨-, -, hs'0, _⟩ := hs'_b hs'
-    have hsq1 : Real.sqrt (1 - s') ≤ 1 := Real.sqrt_le_one.2 (by linarith)
-    have hEb_τ (τ : Fin (N + 1) → ℤˣ) :
-        |E_eff ω τ| ≤ M * B + ∑ i : Fin (N + 1), |ω.2 i| * Real.sqrt r := by
-      dsimp only [E_eff]
-      refine (abs_add_le _ _).trans ?_
-      rw [add_comm ((M : ℝ) * B)]
-      refine add_le_add ?_ ?_
-      · refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun i _ => ?_)
-        rw [abs_mul, abs_mul, abs_mul, abs_units_cast_eq_one, one_mul,
-          abs_of_nonneg (Real.sqrt_nonneg _), abs_of_nonneg (Real.sqrt_nonneg _)]
-        calc Real.sqrt (1 - s') * |ω.2 i| * Real.sqrt r
-            ≤ 1 * |ω.2 i| * Real.sqrt r :=
-              mul_le_mul_of_nonneg_right (mul_le_mul_of_nonneg_right hsq1 (abs_nonneg _))
-                (Real.sqrt_nonneg _)
-          _ = |ω.2 i| * Real.sqrt r := by ring
-      · refine ((Finset.abs_sum_le_card_mul_of_abs_le _ (C := B) fun k => ?_).trans_eq (by simp))
-        exact abs_log_integral_exp_le_of_ae_abs_le (hum.comp (by fun_prop)).aemeasurable
-          (ae_of_all _ fun _ => hB _)
-    have hsub := abs_log_sum_exp_sub_log_card_le (E_eff ω) hEb_τ
-    have hcard : Real.log (Fintype.card (Fin (N + 1) → ℤˣ) : ℝ) = ((N : ℝ) + 1) * Real.log 2 := by
-      rw [card_spin_configurations, Fintype.card_fin]
-      push_cast; rw [Real.log_pow]; push_cast; ring
-    rw [hcard] at hsub
-    have htri := abs_add_le (Real.log (∑ τ, Real.exp (E_eff ω τ)) - ((N : ℝ) + 1) * Real.log 2)
-      (((N : ℝ) + 1) * Real.log 2)
-    rw [sub_add_cancel, abs_of_nonneg (mul_nonneg (by positivity) (Real.log_nonneg one_le_two))]
-      at htri
-    dsimp only [dom_Z]; linarith
-  have hF'_m : AEStronglyMeasurable (fun ω => ∫ x, E'_s s ω x ∂(μ_s.tilted (E_s s ω))) P := by
-    let num_fn (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) : ℝ :=
-      ∫ x, E'_s s ω x * Real.exp (E_s s ω x) ∂μ_s
-    let den_fn (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) : ℝ :=
-      ∫ x, Real.exp (E_s s ω x) ∂μ_s
-    have hnum_m : Measurable num_fn :=
-      (((hE'm s).mul (Real.measurable_exp.comp (hEm s))).stronglyMeasurable.integral_prod_right'
-        (ν := μ_s)).measurable
-    have hden_m : Measurable den_fn :=
-      ((Real.measurable_exp.comp (hEm s)).stronglyMeasurable.integral_prod_right'
-        (ν := μ_s)).measurable
-    have heq : (fun ω => ∫ x, E'_s s ω x ∂(μ_s.tilted (E_s s ω))) =
-        fun ω => num_fn ω / den_fn ω :=
-      funext fun ω => integral_tilted_eq_div _ _
-    rw [heq]
-    exact (hnum_m.div hden_m).aestronglyMeasurable
-  have hP_deriv : HasDerivAt (fun s' => ∫ ω, Real.log (Z_fn s' ω) ∂P)
-      (∫ ω, ∫ x, E'_s s ω x ∂(μ_s.tilted (E_s s ω)) ∂P) s := by
-    have hs_mem : s ∈ U_nbhd := ⟨by linarith, by linarith⟩
-    have hm_ev : ∀ᶠ t in 𝓝 s, AEStronglyMeasurable (fun ω => Real.log (Z_fn t ω)) P :=
-      Filter.eventually_of_mem hU_nhds fun t ht => (hlogZ_int t ht).aestronglyMeasurable
-    exact (hasDerivAt_integral_of_dominated_loc_of_deriv_le (μ := P)
-      (F := fun t ω => Real.log (Z_fn t ω))
-      (F' := fun t ω => ∫ x, E'_s t ω x ∂(μ_s.tilted (E_s t ω)))
+  have hlogZ_int {s' : ℝ} (hs' : s' ∈ U_nbhd) :
+      Integrable (fun ω => Real.log (∫ x, Real.exp (E_s s' ω x) ∂μ_s)) P := by
+    have hs'0 : 0 ≤ s' := (hδ.trans_le (hδ_bd s' hs').1).le
+    obtain ⟨hm_log, hbd_log⟩ := measurable_and_abs_log_interpPartition_le (N := N) (M := M)
+      hu.continuous.measurable hB q r hs'0
+    have hdom : Integrable
+        (fun ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ) =>
+          ((N : ℝ) + 1) * Real.log 2 + M * B + ∑ i : Fin (N + 1), |ω.2 i| * Real.sqrt r) P :=
+      ((integrable_const _).add (integrable_const _)).add
+        (integrable_finsetSum _ fun i _ =>
+          ((integrable_comp_eval (μ := fun _ : Fin (N + 1) => γ₁) (i := i)
+            IsGaussian.integrable_id.abs).mul_const _).comp_snd _)
+    exact hdom.mono' hm_log.aestronglyMeasurable
+      (ae_of_all _ fun ω => (Real.norm_eq_abs _).trans_le (hbd_log ω))
+  have hs_mem : s ∈ U_nbhd := ⟨by linarith, by linarith⟩
+  have hP_deriv : HasDerivAt (fun s' => ∫ ω, Real.log (∫ x, Real.exp (E_s s' ω x) ∂μ_s) ∂P)
+      (∫ ω, ∫ x,
+        ((∑ k : Fin M, S'_fn s ω x k * deriv u (S_fn s ω x k)) -
+          (1 / (2 * Real.sqrt (1 - s))) *
+            ∑ i : Fin (N + 1), ((x.1 i : ℤ) : ℝ) * ω.2 i * Real.sqrt r)
+        ∂(μ_s.tilted (E_s s ω)) ∂P) s :=
+    (hasDerivAt_integral_of_dominated_loc_of_deriv_le (μ := P)
+      (F := fun t ω => Real.log (∫ x, Real.exp (E_s t ω x) ∂μ_s))
+      (F' := fun t ω => ∫ x,
+        ((∑ k : Fin M, S'_fn t ω x k * deriv u (S_fn t ω x k)) -
+          (1 / (2 * Real.sqrt (1 - t))) *
+            ∑ i : Fin (N + 1), ((x.1 i : ℤ) : ℝ) * ω.2 i * Real.sqrt r)
+        ∂(μ_s.tilted (E_s t ω)))
       (s := U_nbhd)
-      (bound := fun ω => b_ω ω + Real.exp (2 * M * B) * ∫ ξ, b_ξ ξ ∂γ_M)
-      hU_nhds hm_ev (hlogZ_int s hs_mem) hF'_m
+      (bound := fun ω => b_ω ω + Real.exp (2 * M * B) *
+        ∫ ξ, b_ξ ξ ∂(Measure.pi fun _ : Fin M => γ₁))
+      hU_nhds
+      (Filter.eventually_of_mem hU_nhds fun _ ht => (hlogZ_int ht).aestronglyMeasurable)
+      (hlogZ_int hs_mem) (hF'_m s).aestronglyMeasurable
       (ae_of_all _ fun ω t ht => by
-        rw [Real.norm_eq_abs]; exact htilted_ξ_bd ω ht)
+        rw [Real.norm_eq_abs]; exact (hpt_δ ω (hδ_bd t ht).1 (hδ_bd t ht).2).2)
       (hb_ω_int.add (integrable_const _))
-      (ae_of_all _ fun ω t ht => hZ_deriv ω ht)).2
+      (ae_of_all _ fun ω t ht => (hpt_δ ω (hδ_bd t ht).1 (hδ_bd t ht).2).1)).2
   exact hP_deriv.const_mul (((N : ℝ) + 1)⁻¹)
 
 /-- The `k`-th interpolating field is jointly measurable in the disorder and the state. -/

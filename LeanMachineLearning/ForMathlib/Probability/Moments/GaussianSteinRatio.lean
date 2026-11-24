@@ -185,13 +185,190 @@ theorem integral_mul_div_pow_eq_sum {W : κ₁ → Ω → ℝ} {X : κ₂ → Ω
   rw [Finset.sum_neg_distrib, ← Finset.mul_sum]
   ring
 
-/-- **Gaussian integration by parts for `(F(X) / Z(Y)) * G(log Z(Y))`.**
+/-- **Gaussian integration by parts for `(F(X) / Z(Y)^n) * G(log Z(Y))`.**
 With `(W, X, Y)` jointly centered Gaussian, `F` bounded with bounded partials, `Z ∈ [z₀, z₁]`
 (`z₀ > 0`) with bounded partials, and `G : ℝ → ℝ` differentiable with `|G|`, `|deriv G|`
 bounded on `[log z₀, log z₁]`,
-`𝔼[W (F(X) / Z(Y)) G(log Z(Y))] =
-  ∑_l 𝔼[W X_l] 𝔼[(∂_l F(X) / Z(Y)) G(log Z(Y))]
-  + ∑_m 𝔼[W Y_m] 𝔼[(F(X) ∂_m Z(Y) / Z(Y)²) (G'(log Z(Y)) - G(log Z(Y)))]`. -/
+`𝔼[W (F(X) / Z(Y)^n) G(log Z(Y))] =
+  ∑_l 𝔼[W X_l] 𝔼[(∂_l F(X) / Z(Y)^n) G(log Z(Y))]
+  + ∑_m 𝔼[W Y_m] 𝔼[(F(X) ∂_m Z(Y) / Z(Y)^{n+1}) (G'(log Z(Y)) - n G(log Z(Y)))]`. -/
+theorem integral_mul_div_pow_mul_comp_log_eq_sum
+    {W : κ₁ → Ω → ℝ} {X : κ₂ → Ω → ℝ} {Y : κ₃ → Ω → ℝ}
+    (hWXY : HasGaussianLaw (fun ω s => Sum.elim W (Sum.elim X Y) s ω) P)
+    (hW : ∀ k, ∫ ω, W k ω ∂P = 0) (hX : ∀ l, ∫ ω, X l ω ∂P = 0)
+    (hY : ∀ m, ∫ ω, Y m ω ∂P = 0) (i : κ₁)
+    {F : (κ₂ → ℝ) → ℝ} (hF : Differentiable ℝ F) {CF : ℝ} (hFb : ∀ x, |F x| ≤ CF)
+    {DF : κ₂ → ℝ} (hFd : ∀ l x, |fderiv ℝ F x (Pi.single l 1)| ≤ DF l)
+    {Z : (κ₃ → ℝ) → ℝ} (hZ : Differentiable ℝ Z) {z₀ z₁ : ℝ} (hz₀ : 0 < z₀)
+    (hZb : ∀ y, z₀ ≤ Z y) (hZu : ∀ y, Z y ≤ z₁)
+    {DZ : κ₃ → ℝ} (hZd : ∀ m y, |fderiv ℝ Z y (Pi.single m 1)| ≤ DZ m)
+    {G : ℝ → ℝ} (hG : Differentiable ℝ G) {CG CG' : ℝ}
+    (hGb : ∀ t ∈ Set.Icc (Real.log z₀) (Real.log z₁), |G t| ≤ CG)
+    (hGd : ∀ t ∈ Set.Icc (Real.log z₀) (Real.log z₁), |deriv G t| ≤ CG')
+    (n : ℕ) :
+    ∫ ω, W i ω * ((F (fun l => X l ω) / Z (fun m => Y m ω) ^ n) *
+        G (Real.log (Z (fun m => Y m ω)))) ∂P =
+      (∑ l, (∫ ω, W i ω * X l ω ∂P) *
+        ∫ ω, (fderiv ℝ F (fun k => X k ω) (Pi.single l 1) / Z (fun m => Y m ω) ^ n) *
+          G (Real.log (Z (fun m => Y m ω))) ∂P) +
+      (∑ m, (∫ ω, W i ω * Y m ω ∂P) *
+        ∫ ω, (F (fun l => X l ω) * fderiv ℝ Z (fun k => Y k ω) (Pi.single m 1) /
+          Z (fun k => Y k ω) ^ (n + 1)) *
+            (deriv G (Real.log (Z (fun k => Y k ω))) -
+              (n : ℝ) * G (Real.log (Z (fun k => Y k ω)))) ∂P) := by
+  classical
+  let Rx : (κ₂ ⊕ κ₃ → ℝ) →L[ℝ] (κ₂ → ℝ) :=
+    ContinuousLinearMap.pi fun l => ContinuousLinearMap.proj (Sum.inl l)
+  let Ry : (κ₂ ⊕ κ₃ → ℝ) →L[ℝ] (κ₃ → ℝ) :=
+    ContinuousLinearMap.pi fun m => ContinuousLinearMap.proj (Sum.inr m)
+  have hRx : ∀ v, Rx v = fun l => v (Sum.inl l) := fun _ => rfl
+  have hRy : ∀ v, Ry v = fun m => v (Sum.inr m) := fun _ => rfl
+  have hZpos : ∀ y, 0 < Z y := fun y => hz₀.trans_le (hZb y)
+  have hZne : ∀ y, Z y ≠ 0 := fun y => (hZpos y).ne'
+  have hlog_mem : ∀ y, Real.log (Z y) ∈ Set.Icc (Real.log z₀) (Real.log z₁) := fun y =>
+    ⟨Real.log_le_log hz₀ (hZb y), Real.log_le_log (hZpos y) (hZu y)⟩
+  let Φ : (κ₂ ⊕ κ₃ → ℝ) → ℝ := fun v => (F (Rx v) / Z (Ry v) ^ n) * G (Real.log (Z (Ry v)))
+  have hΦd : Differentiable ℝ Φ := by
+    intro v
+    have h1 : DifferentiableAt ℝ (fun w => F (Rx w)) v := (hF.comp Rx.differentiable) v
+    have h2 : DifferentiableAt ℝ (fun w => Z (Ry w)) v := (hZ.comp Ry.differentiable) v
+    have h2p : DifferentiableAt ℝ (fun w => Z (Ry w) ^ n) v := h2.fun_pow n
+    have h12 : DifferentiableAt ℝ (fun w => F (Rx w) * (Z (Ry w) ^ n)⁻¹) v :=
+      h1.mul (h2p.inv (pow_ne_zero _ (hZne (Ry v))))
+    have h12' : DifferentiableAt ℝ (fun w => F (Rx w) / Z (Ry w) ^ n) v := by
+      simpa only [div_eq_mul_inv] using h12
+    have h3 : DifferentiableAt ℝ (fun w => G (Real.log (Z (Ry w)))) v :=
+      (hG (Real.log (Z (Ry v)))).comp v (h2.log (hZne (Ry v)))
+    exact h12'.mul h3
+  have hline (v e : κ₂ ⊕ κ₃ → ℝ) :
+      HasDerivAt (fun t : ℝ => Φ (v + t • e)) (fderiv ℝ Φ v e) 0 := by
+    have hf : HasDerivAt (fun t : ℝ => v + t • e) e 0 := by
+      simpa using ((hasDerivAt_id (0 : ℝ)).smul_const e).const_add v
+    have := (hΦd (v + (0 : ℝ) • e)).hasFDerivAt.comp_hasDerivAt (0 : ℝ) hf
+    simp only [zero_smul, add_zero] at this
+    exact this
+  have hdx (v : κ₂ ⊕ κ₃ → ℝ) (l : κ₂) :
+      fderiv ℝ Φ v (Pi.single (Sum.inl l) 1) =
+        (fderiv ℝ F (Rx v) (Pi.single l 1) / Z (Ry v) ^ n) * G (Real.log (Z (Ry v))) := by
+    refine (hline v _).unique ?_
+    have hRe : Rx (Pi.single (Sum.inl l) (1 : ℝ)) = Pi.single l 1 := by
+      ext m; simp [hRx, Pi.single_apply]
+    have hRe' : Ry (Pi.single (Sum.inl l) (1 : ℝ)) = 0 := by
+      ext m; simp [hRy]
+    have hfun : (fun t : ℝ => Φ (v + t • Pi.single (Sum.inl l) (1 : ℝ))) =
+        fun t => (F (Rx v + t • Pi.single l 1) / Z (Ry v) ^ n) * G (Real.log (Z (Ry v))) := by
+      funext t; simp [Φ, map_add, map_smul, hRe, hRe']
+    rw [hfun]
+    have hl : HasDerivAt (fun t : ℝ => Rx v + t • (Pi.single l (1 : ℝ) : κ₂ → ℝ))
+        (Pi.single l 1) 0 := by
+      simpa using ((hasDerivAt_id (0 : ℝ)).smul_const (Pi.single l (1 : ℝ) : κ₂ → ℝ)).const_add
+        (Rx v)
+    have := (((hF (Rx v + (0 : ℝ) • (Pi.single l (1 : ℝ) : κ₂ → ℝ))).hasFDerivAt.comp_hasDerivAt
+      (0 : ℝ) hl).div_const (Z (Ry v) ^ n)).mul_const (G (Real.log (Z (Ry v))))
+    simpa using this
+  have hdy (v : κ₂ ⊕ κ₃ → ℝ) (m : κ₃) :
+      fderiv ℝ Φ v (Pi.single (Sum.inr m) 1) =
+        (F (Rx v) * fderiv ℝ Z (Ry v) (Pi.single m 1) / Z (Ry v) ^ (n + 1)) *
+          (deriv G (Real.log (Z (Ry v))) - (n : ℝ) * G (Real.log (Z (Ry v)))) := by
+    refine (hline v _).unique ?_
+    have hRe : Ry (Pi.single (Sum.inr m) (1 : ℝ)) = Pi.single m 1 := by
+      ext k; simp [hRy, Pi.single_apply]
+    have hRe' : Rx (Pi.single (Sum.inr m) (1 : ℝ)) = 0 := by
+      ext k; simp [hRx]
+    have hfun : (fun t : ℝ => Φ (v + t • Pi.single (Sum.inr m) (1 : ℝ))) =
+        fun t => (F (Rx v) / Z (Ry v + t • Pi.single m 1) ^ n) *
+          G (Real.log (Z (Ry v + t • Pi.single m 1))) := by
+      funext t; simp [Φ, map_add, map_smul, hRe, hRe']
+    rw [hfun]
+    have hl : HasDerivAt (fun t : ℝ => Ry v + t • (Pi.single m (1 : ℝ) : κ₃ → ℝ))
+        (Pi.single m 1) 0 := by
+      simpa using ((hasDerivAt_id (0 : ℝ)).smul_const (Pi.single m (1 : ℝ) : κ₃ → ℝ)).const_add
+        (Ry v)
+    have hZl := (hZ (Ry v + (0 : ℝ) • (Pi.single m (1 : ℝ) : κ₃ → ℝ))).hasFDerivAt.comp_hasDerivAt
+      (0 : ℝ) hl
+    have hg : HasDerivAt (fun t : ℝ => Z (Ry v + t • (Pi.single m (1 : ℝ) : κ₃ → ℝ)))
+        (fderiv ℝ Z (Ry v) (Pi.single m 1)) 0 := by
+      simpa [Function.comp_def] using hZl
+    have hg0 : Z (Ry v + (0 : ℝ) • (Pi.single m (1 : ℝ) : κ₃ → ℝ)) = Z (Ry v) := by simp
+    have hdiv : HasDerivAt (fun t : ℝ => F (Rx v) / Z (Ry v + t • (Pi.single m 1 : κ₃ → ℝ)) ^ n)
+        (-((n : ℝ) * (F (Rx v) * fderiv ℝ Z (Ry v) (Pi.single m 1) / Z (Ry v) ^ (n + 1)))) 0 := by
+      have hp := hg.fun_pow n
+      have hi := (hp.inv (by rw [hg0]; exact pow_ne_zero _ (hZne (Ry v)))).const_mul (F (Rx v))
+      simp only [hg0] at hi
+      have hfun2 : (fun t : ℝ => F (Rx v) / Z (Ry v + t • (Pi.single m (1 : ℝ) : κ₃ → ℝ)) ^ n) =
+          fun t => F (Rx v) * (Z (Ry v + t • (Pi.single m (1 : ℝ) : κ₃ → ℝ)) ^ n)⁻¹ := by
+        funext t; rw [div_eq_mul_inv]
+      rw [hfun2]
+      refine hi.congr_deriv ?_
+      rcases n with _ | k
+      · simp
+      · have hz := hZne (Ry v)
+        simp only [Nat.add_sub_cancel]
+        field_simp
+        ring
+    have hGcomp : HasDerivAt
+        (fun t : ℝ => G (Real.log (Z (Ry v + t • (Pi.single m (1 : ℝ) : κ₃ → ℝ)))))
+        (deriv G (Real.log (Z (Ry v))) * (fderiv ℝ Z (Ry v) (Pi.single m 1) / Z (Ry v))) 0 := by
+      have hlog := hg.log (by rw [hg0]; exact hZne (Ry v))
+      have hG0 : HasDerivAt G (deriv G (Real.log (Z (Ry v))))
+          (Real.log (Z (Ry v + (0 : ℝ) • (Pi.single m (1 : ℝ) : κ₃ → ℝ)))) := by
+        rw [hg0]; exact (hG (Real.log (Z (Ry v)))).hasDerivAt
+      have hc := hG0.comp 0 hlog
+      simp only [hg0] at hc
+      exact hc
+    have hprod := hdiv.mul hGcomp
+    simp only [hg0] at hprod
+    refine hprod.congr_deriv ?_
+    have hz := hZne (Ry v)
+    field_simp
+    ring
+  have hCF : 0 ≤ CF := (abs_nonneg _).trans (hFb 0)
+  have hCG : 0 ≤ CG := (abs_nonneg _).trans (hGb _ (hlog_mem 0))
+  have hCG' : 0 ≤ CG' := (abs_nonneg _).trans (hGd _ (hlog_mem 0))
+  have hzn : 0 < z₀ ^ n := pow_pos hz₀ n
+  have hzn1 : 0 < z₀ ^ (n + 1) := pow_pos hz₀ (n + 1)
+  have hΦg : ∀ v : κ₂ ⊕ κ₃ → ℝ,
+      |Φ v| ≤ (CF / z₀ ^ n * CG) * Real.exp (0 * ∑ s, |v s|) := fun v => by
+    simp only [Φ, zero_mul, Real.exp_zero, mul_one, abs_mul, abs_div,
+      abs_of_pos (pow_pos (hZpos (Ry v)) n)]
+    exact mul_le_mul (div_le_div₀ hCF (hFb _) hzn (pow_le_pow_left₀ hz₀.le (hZb _) n))
+      (hGb _ (hlog_mem _)) (abs_nonneg _) (div_nonneg hCF hzn.le)
+  have hΦ' : ∀ (s : κ₂ ⊕ κ₃) (v : κ₂ ⊕ κ₃ → ℝ),
+      |fderiv ℝ Φ v (Pi.single s 1)| ≤
+        Sum.elim (fun l => DF l / z₀ ^ n * CG)
+          (fun m => CF * DZ m / z₀ ^ (n + 1) * (CG' + (n : ℝ) * CG)) s *
+            Real.exp (0 * ∑ s, |v s|) := by
+    rintro (l | m) v
+    · simp only [hdx, Sum.elim_inl, zero_mul, Real.exp_zero, mul_one, abs_mul, abs_div,
+        abs_of_pos (pow_pos (hZpos (Ry v)) n)]
+      have hDF : 0 ≤ DF l := (abs_nonneg _).trans (hFd l (Rx v))
+      exact mul_le_mul (div_le_div₀ hDF (hFd l _) hzn (pow_le_pow_left₀ hz₀.le (hZb _) n))
+        (hGb _ (hlog_mem _)) (abs_nonneg _) (div_nonneg hDF hzn.le)
+    · simp only [hdy, Sum.elim_inr, zero_mul, Real.exp_zero, mul_one, abs_mul]
+      have hDZ : 0 ≤ DZ m := (abs_nonneg _).trans (hZd m (Ry v))
+      have hfrac : |F (Rx v) * fderiv ℝ Z (Ry v) (Pi.single m 1) / Z (Ry v) ^ (n + 1)| ≤
+          CF * DZ m / z₀ ^ (n + 1) := by
+        rw [abs_div, abs_mul, abs_of_pos (pow_pos (hZpos (Ry v)) (n + 1))]
+        exact div_le_div₀ (mul_nonneg hCF hDZ)
+          (mul_le_mul (hFb _) (hZd m _) (abs_nonneg _) hCF) hzn1
+          (pow_le_pow_left₀ hz₀.le (hZb _) (n + 1))
+      have hdG_sub : |deriv G (Real.log (Z (Ry v))) - (n : ℝ) * G (Real.log (Z (Ry v)))| ≤
+          CG' + (n : ℝ) * CG := by
+        refine (abs_sub _ _).trans (add_le_add (hGd _ (hlog_mem _)) ?_)
+        rw [abs_mul, Nat.abs_cast]
+        exact mul_le_mul_of_nonneg_left (hGb _ (hlog_mem _)) (Nat.cast_nonneg n)
+      exact mul_le_mul hfrac hdG_sub (abs_nonneg _) (by positivity)
+  have h := integral_mul_comp_eq_sum_integral_mul_of_sum (W := W) (X := Sum.elim X Y) hWXY hW
+    (by rintro (l | m); exacts [hX l, hY m]) i hΦd (C := CF / z₀ ^ n * CG) (c := 0) hΦg
+    (D := Sum.elim (fun l => DF l / z₀ ^ n * CG)
+      (fun m => CF * DZ m / z₀ ^ (n + 1) * (CG' + (n : ℝ) * CG)))
+    (d := fun _ => 0) (fun s v => by simpa using hΦ' s v)
+  have hvx : ∀ ω, Rx (fun k => Sum.elim X Y k ω) = fun l => X l ω := fun _ => rfl
+  have hvy : ∀ ω, Ry (fun k => Sum.elim X Y k ω) = fun m => Y m ω := fun _ => rfl
+  simp only [Fintype.sum_sum_type, Sum.elim_inl, Sum.elim_inr, hdx, hdy, hvx, hvy] at h
+  exact h
+
+/-- **Gaussian integration by parts for `(F(X) / Z(Y)) * G(log Z(Y))`** (`n = 1` specialization). -/
 theorem integral_mul_div_mul_comp_log_eq_sum
     {W : κ₁ → Ω → ℝ} {X : κ₂ → Ω → ℝ} {Y : κ₃ → Ω → ℝ}
     (hWXY : HasGaussianLaw (fun ω s => Sum.elim W (Sum.elim X Y) s ω) P)
@@ -214,144 +391,8 @@ theorem integral_mul_div_mul_comp_log_eq_sum
         ∫ ω, (F (fun l => X l ω) * fderiv ℝ Z (fun k => Y k ω) (Pi.single m 1) /
           Z (fun k => Y k ω) ^ 2) *
             (deriv G (Real.log (Z (fun k => Y k ω))) - G (Real.log (Z (fun k => Y k ω)))) ∂P) := by
-  classical
-  let Rx : (κ₂ ⊕ κ₃ → ℝ) →L[ℝ] (κ₂ → ℝ) :=
-    ContinuousLinearMap.pi fun l => ContinuousLinearMap.proj (Sum.inl l)
-  let Ry : (κ₂ ⊕ κ₃ → ℝ) →L[ℝ] (κ₃ → ℝ) :=
-    ContinuousLinearMap.pi fun m => ContinuousLinearMap.proj (Sum.inr m)
-  have hRx : ∀ v, Rx v = fun l => v (Sum.inl l) := fun _ => rfl
-  have hRy : ∀ v, Ry v = fun m => v (Sum.inr m) := fun _ => rfl
-  have hZpos : ∀ y, 0 < Z y := fun y => hz₀.trans_le (hZb y)
-  have hZne : ∀ y, Z y ≠ 0 := fun y => (hZpos y).ne'
-  have hlog_mem : ∀ y, Real.log (Z y) ∈ Set.Icc (Real.log z₀) (Real.log z₁) := fun y =>
-    ⟨Real.log_le_log hz₀ (hZb y), Real.log_le_log (hZpos y) (hZu y)⟩
-  let Φ : (κ₂ ⊕ κ₃ → ℝ) → ℝ := fun v => (F (Rx v) / Z (Ry v)) * G (Real.log (Z (Ry v)))
-  have hΦd : Differentiable ℝ Φ := by
-    intro v
-    have h1 : DifferentiableAt ℝ (fun w => F (Rx w)) v := (hF.comp Rx.differentiable) v
-    have h2 : DifferentiableAt ℝ (fun w => Z (Ry w)) v := (hZ.comp Ry.differentiable) v
-    have h12 : DifferentiableAt ℝ (fun w => F (Rx w) * (Z (Ry w))⁻¹) v :=
-      h1.mul (h2.inv (hZne (Ry v)))
-    have h12' : DifferentiableAt ℝ (fun w => F (Rx w) / Z (Ry w)) v := by
-      simpa only [div_eq_mul_inv] using h12
-    have h3 : DifferentiableAt ℝ (fun w => G (Real.log (Z (Ry w)))) v :=
-      (hG (Real.log (Z (Ry v)))).comp v (h2.log (hZne (Ry v)))
-    exact h12'.mul h3
-  have hline (v e : κ₂ ⊕ κ₃ → ℝ) :
-      HasDerivAt (fun t : ℝ => Φ (v + t • e)) (fderiv ℝ Φ v e) 0 := by
-    have hf : HasDerivAt (fun t : ℝ => v + t • e) e 0 := by
-      simpa using ((hasDerivAt_id (0 : ℝ)).smul_const e).const_add v
-    have := (hΦd (v + (0 : ℝ) • e)).hasFDerivAt.comp_hasDerivAt (0 : ℝ) hf
-    simp only [zero_smul, add_zero] at this
-    exact this
-  have hdx (v : κ₂ ⊕ κ₃ → ℝ) (l : κ₂) :
-      fderiv ℝ Φ v (Pi.single (Sum.inl l) 1) =
-        (fderiv ℝ F (Rx v) (Pi.single l 1) / Z (Ry v)) * G (Real.log (Z (Ry v))) := by
-    refine (hline v _).unique ?_
-    have hRe : Rx (Pi.single (Sum.inl l) (1 : ℝ)) = Pi.single l 1 := by
-      ext m; simp [hRx, Pi.single_apply]
-    have hRe' : Ry (Pi.single (Sum.inl l) (1 : ℝ)) = 0 := by
-      ext m; simp [hRy]
-    have hfun : (fun t : ℝ => Φ (v + t • Pi.single (Sum.inl l) (1 : ℝ))) =
-        fun t => (F (Rx v + t • Pi.single l 1) / Z (Ry v)) * G (Real.log (Z (Ry v))) := by
-      funext t; simp [Φ, map_add, map_smul, hRe, hRe']
-    rw [hfun]
-    have hl : HasDerivAt (fun t : ℝ => Rx v + t • (Pi.single l (1 : ℝ) : κ₂ → ℝ))
-        (Pi.single l 1) 0 := by
-      simpa using ((hasDerivAt_id (0 : ℝ)).smul_const (Pi.single l (1 : ℝ) : κ₂ → ℝ)).const_add
-        (Rx v)
-    have := (((hF (Rx v + (0 : ℝ) • (Pi.single l (1 : ℝ) : κ₂ → ℝ))).hasFDerivAt.comp_hasDerivAt
-      (0 : ℝ) hl).div_const (Z (Ry v))).mul_const (G (Real.log (Z (Ry v))))
-    simpa using this
-  have hdy (v : κ₂ ⊕ κ₃ → ℝ) (m : κ₃) :
-      fderiv ℝ Φ v (Pi.single (Sum.inr m) 1) =
-        (F (Rx v) * fderiv ℝ Z (Ry v) (Pi.single m 1) / Z (Ry v) ^ 2) *
-          (deriv G (Real.log (Z (Ry v))) - G (Real.log (Z (Ry v)))) := by
-    refine (hline v _).unique ?_
-    have hRe : Ry (Pi.single (Sum.inr m) (1 : ℝ)) = Pi.single m 1 := by
-      ext k; simp [hRy, Pi.single_apply]
-    have hRe' : Rx (Pi.single (Sum.inr m) (1 : ℝ)) = 0 := by
-      ext k; simp [hRx]
-    have hfun : (fun t : ℝ => Φ (v + t • Pi.single (Sum.inr m) (1 : ℝ))) =
-        fun t => (F (Rx v) / Z (Ry v + t • Pi.single m 1)) *
-          G (Real.log (Z (Ry v + t • Pi.single m 1))) := by
-      funext t; simp [Φ, map_add, map_smul, hRe, hRe']
-    rw [hfun]
-    have hl : HasDerivAt (fun t : ℝ => Ry v + t • (Pi.single m (1 : ℝ) : κ₃ → ℝ))
-        (Pi.single m 1) 0 := by
-      simpa using ((hasDerivAt_id (0 : ℝ)).smul_const (Pi.single m (1 : ℝ) : κ₃ → ℝ)).const_add
-        (Ry v)
-    have hZl := (hZ (Ry v + (0 : ℝ) • (Pi.single m (1 : ℝ) : κ₃ → ℝ))).hasFDerivAt.comp_hasDerivAt
-      (0 : ℝ) hl
-    have hg : HasDerivAt (fun t : ℝ => Z (Ry v + t • (Pi.single m (1 : ℝ) : κ₃ → ℝ)))
-        (fderiv ℝ Z (Ry v) (Pi.single m 1)) 0 := by
-      simpa [Function.comp_def] using hZl
-    have hg0 : Z (Ry v + (0 : ℝ) • (Pi.single m (1 : ℝ) : κ₃ → ℝ)) = Z (Ry v) := by simp
-    have hdiv : HasDerivAt (fun t : ℝ => F (Rx v) / Z (Ry v + t • (Pi.single m 1 : κ₃ → ℝ)))
-        (-(F (Rx v) * fderiv ℝ Z (Ry v) (Pi.single m 1) / Z (Ry v) ^ 2)) 0 := by
-      have hi := (hg.inv (by rw [hg0]; exact hZne (Ry v))).const_mul (F (Rx v))
-      simp only [hg0] at hi
-      have hfun2 : (fun t : ℝ => F (Rx v) / Z (Ry v + t • (Pi.single m (1 : ℝ) : κ₃ → ℝ))) =
-          fun t => F (Rx v) * (Z (Ry v + t • (Pi.single m (1 : ℝ) : κ₃ → ℝ)))⁻¹ := by
-        funext t; rw [div_eq_mul_inv]
-      rw [hfun2]
-      refine hi.congr_deriv ?_
-      have hz := hZne (Ry v)
-      field_simp
-    have hGcomp : HasDerivAt
-        (fun t : ℝ => G (Real.log (Z (Ry v + t • (Pi.single m (1 : ℝ) : κ₃ → ℝ)))))
-        (deriv G (Real.log (Z (Ry v))) * (fderiv ℝ Z (Ry v) (Pi.single m 1) / Z (Ry v))) 0 := by
-      have hlog := hg.log (by rw [hg0]; exact hZne (Ry v))
-      have hG0 : HasDerivAt G (deriv G (Real.log (Z (Ry v))))
-          (Real.log (Z (Ry v + (0 : ℝ) • (Pi.single m (1 : ℝ) : κ₃ → ℝ)))) := by
-        rw [hg0]; exact (hG (Real.log (Z (Ry v)))).hasDerivAt
-      have hc := hG0.comp 0 hlog
-      simp only [hg0] at hc
-      exact hc
-    have hprod := hdiv.mul hGcomp
-    simp only [hg0] at hprod
-    refine hprod.congr_deriv ?_
-    have hz := hZne (Ry v)
-    field_simp
-    ring
-  have hCF : 0 ≤ CF := (abs_nonneg _).trans (hFb 0)
-  have hCG : 0 ≤ CG := (abs_nonneg _).trans (hGb _ (hlog_mem 0))
-  have hCG' : 0 ≤ CG' := (abs_nonneg _).trans (hGd _ (hlog_mem 0))
-  have hz0_sq : 0 < z₀ ^ 2 := sq_pos_of_pos hz₀
-  have hΦg : ∀ v : κ₂ ⊕ κ₃ → ℝ, |Φ v| ≤ (CF / z₀ * CG) * Real.exp (0 * ∑ s, |v s|) := fun v => by
-    simp only [Φ, zero_mul, Real.exp_zero, mul_one, abs_mul, abs_div, abs_of_pos (hZpos (Ry v))]
-    exact mul_le_mul (div_le_div₀ hCF (hFb _) hz₀ (hZb _)) (hGb _ (hlog_mem _))
-      (abs_nonneg _) (div_nonneg hCF hz₀.le)
-  have hΦ' : ∀ (s : κ₂ ⊕ κ₃) (v : κ₂ ⊕ κ₃ → ℝ),
-      |fderiv ℝ Φ v (Pi.single s 1)| ≤
-        Sum.elim (fun l => DF l / z₀ * CG)
-          (fun m => CF * DZ m / z₀ ^ 2 * (CG + CG')) s * Real.exp (0 * ∑ s, |v s|) := by
-    rintro (l | m) v
-    · simp only [hdx, Sum.elim_inl, zero_mul, Real.exp_zero, mul_one, abs_mul, abs_div,
-        abs_of_pos (hZpos (Ry v))]
-      have hDF : 0 ≤ DF l := (abs_nonneg _).trans (hFd l (Rx v))
-      exact mul_le_mul (div_le_div₀ hDF (hFd l _) hz₀ (hZb _)) (hGb _ (hlog_mem _))
-        (abs_nonneg _) (div_nonneg hDF hz₀.le)
-    · simp only [hdy, Sum.elim_inr, zero_mul, Real.exp_zero, mul_one, abs_mul]
-      have hDZ : 0 ≤ DZ m := (abs_nonneg _).trans (hZd m (Ry v))
-      have hfrac : |F (Rx v) * fderiv ℝ Z (Ry v) (Pi.single m 1) / Z (Ry v) ^ 2| ≤
-          CF * DZ m / z₀ ^ 2 := by
-        rw [abs_div, abs_mul, abs_of_pos (sq_pos_of_pos (hZpos (Ry v)))]
-        exact div_le_div₀ (mul_nonneg hCF hDZ)
-          (mul_le_mul (hFb _) (hZd m _) (abs_nonneg _) hCF) hz0_sq
-          (pow_le_pow_left₀ hz₀.le (hZb _) 2)
-      have hdG_sub : |deriv G (Real.log (Z (Ry v))) - G (Real.log (Z (Ry v)))| ≤ CG + CG' := by
-        have h := abs_sub (deriv G (Real.log (Z (Ry v)))) (G (Real.log (Z (Ry v))))
-        linarith [hGb (Real.log (Z (Ry v))) (hlog_mem (Ry v)),
-          hGd (Real.log (Z (Ry v))) (hlog_mem (Ry v))]
-      exact mul_le_mul hfrac hdG_sub (abs_nonneg _) (by positivity)
-  have h := integral_mul_comp_eq_sum_integral_mul_of_sum (W := W) (X := Sum.elim X Y) hWXY hW
-    (by rintro (l | m); exacts [hX l, hY m]) i hΦd (C := CF / z₀ * CG) (c := 0) hΦg
-    (D := Sum.elim (fun l => DF l / z₀ * CG) (fun m => CF * DZ m / z₀ ^ 2 * (CG + CG')))
-    (d := fun _ => 0) (fun s v => by simpa using hΦ' s v)
-  have hvx : ∀ ω, Rx (fun k => Sum.elim X Y k ω) = fun l => X l ω := fun _ => rfl
-  have hvy : ∀ ω, Ry (fun k => Sum.elim X Y k ω) = fun m => Y m ω := fun _ => rfl
-  simp only [Fintype.sum_sum_type, Sum.elim_inl, Sum.elim_inr, hdx, hdy, hvx, hvy] at h
-  exact h
+  simpa only [pow_one, Nat.cast_one, one_mul] using
+    integral_mul_div_pow_mul_comp_log_eq_sum hWXY hW hX hY i hF hFb hFd hZ hz₀ hZb hZu hZd
+      hG hGb hGd 1
 
 end ProbabilityTheory

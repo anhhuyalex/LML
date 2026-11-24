@@ -535,7 +535,7 @@ theorem exists_hasDerivAt_smartPath_abs_le_of_ae_abs_le
       ∀ (N M : ℕ) {t q : ℝ} (_ht : t ∈ Set.Ioo (0 : ℝ) 1) (_hq : q ∈ Set.Icc (0 : ℝ) 1)
         {u : ℝ → ℝ} (_hd : ∀ j < 3, Differentiable ℝ (iteratedDeriv j u))
         (_hb : ∀ j ≤ 3, ∀ x, |iteratedDeriv j u x| ≤ D)
-        (f : (R → PerceptronSpin N) → ℝ) {M_f : ℝ} (_hMf : 0 ≤ M_f)
+        (f : (R → PerceptronSpin N) → ℝ) {M_f : ℝ}
         (_hfb : ∀ σ, |f σ| ≤ M_f),
         let α : ℝ := ((M : ℝ) + 1) / ((N : ℝ) + 1)
         let d_spin (σ τ : PerceptronSpin N) : ℝ :=
@@ -562,7 +562,7 @@ theorem exists_hasDerivAt_smartPath_abs_le_of_ae_abs_le
   obtain ⟨K₂, hK₂0, hK₂⟩ :=
     abs_integral_smartPath_deriv_mul_sub_rhat_le_of_ae_abs_le (Option (Option R)) D
   refine ⟨2 * (Fintype.card R : ℝ) ^ 2 * K₂, by positivity, ?_⟩
-  intro N M t q ht hq u hd hb f M_f hMf hfb α d_spin rhat variance P μ
+  intro N M t q ht hq u hd hb f M_f hfb α d_spin rhat variance P μ
   obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
   let P₀ := smartPathDisorder (Measure.pi fun _ : Fin M =>
     Measure.pi fun _ : Fin N => gaussianReal 0 1) variance
@@ -607,7 +607,7 @@ theorem exists_hasDerivAt_smartPath_abs_le_of_ae_abs_le
         dsimp only [g_ij]
         rw [abs_mul, abs_mul, abs_units_cast_eq_one, abs_units_cast_eq_one, mul_one, mul_one]
         exact hfb _
-    have hb262 := hK₂ N M hij ⟨ht.1.le, ht.2.le⟩ hq variance hd hb hg_m hMf hOld
+    have hb262 := hK₂ N M hij ⟨ht.1.le, ht.2.le⟩ hq variance hd hb hg_m hOld
     dsimp only [g_ij] at hb262
     have hm1_eq : (∫ ω, ∫ τ : Option (Option R) → SmartPathState N (M + 1),
         |f (fun r => (τ (some (some r))).1) * (((τ i).1.2 : ℤ) : ℝ) * (((τ j).1.2 : ℤ) : ℝ)|
