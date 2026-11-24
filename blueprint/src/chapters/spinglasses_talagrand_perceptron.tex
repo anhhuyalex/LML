@@ -3769,3 +3769,374 @@ Chapter~9. Theorem~\ref{thm:sg-tal:perceptron-rs-convergence} already establishe
 unconditionally via the self-contained first proof.
 Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ReplicaSymmetricVariational.lean}.
 \end{proof}
+
+
+\section{Exponential inequalities (Talagrand Section~2.5)}\label{sec:sg-tal:perceptron-exponential-inequalities}
+
+Section~2.5 improves the second-moment control $\nu((R_{1,2}-q)^2)\le L/N$ of Theorem~2.4.1 to control
+of all even moments, both of the overlap (Theorem~2.5.1) and of the empirical variance of $u'$
+(Theorem~2.5.2). Theorem~2.5.3, the central limit theorem for the pressure, needs these bounds
+\emph{uniformly along the interpolation} $s\in[0,1]$ of Lemma~\ref{lem:sg-tal:perceptron-interpolating-overlap},
+a fact that the book leaves as an exercise. This blueprint therefore proves Theorems~2.5.1 and~2.5.2 directly
+for the $s$-interpolating system, and obtains the book's statements as the case $s=1$. Theorem~2.5.3 itself is
+not yet formalized (see Remark~\ref{rem:sg-tal:perceptron-exponential-scope}).
+
+\emph{Conventions of this section.} There are $N+1$ spins and $M$ constraints, the load is
+$\alpha=M/(N+1)$, and $u$ satisfies~(2.7) with constant $D$, stated in Lean as
+$\forall j<3,\ \mathrm{iteratedDeriv}^{j}u$ is differentiable and $\forall j\le 3,\ |u^{(j)}|\le D$.
+The pair $(q,r)$ solves the replica-symmetric system~(2.68), $q=\mathbb E\tanh^2(z\sqrt r)$ and
+$r=\alpha\widehat r(q)$, with $\widehat r$ as in~(2.36). The state $\nu_s$ is the Gibbs state of the
+$s$-interpolating Hamiltonian~(2.76) (Lemma~\ref{lem:sg-tal:perceptron-interpolating-overlap}); $\nu=\nu_1$ is
+the Gibbs state of the original perceptron after $z,z',\xi$ are integrated out. We write
+$R_{1,2}=(N+1)^{-1}\sum_{i<N+1}\sigma^1_i\sigma^2_i$ and $\varepsilon_\ell=\sigma^\ell_N$ for the last spin.
+All constants are chosen before $N$, $M$, $s$, $u$, $q$, $r$, $k$, as in Section~2.4.
+
+\subsection{Elementary inequalities}\label{sub:sg-tal:perceptron-exponential-elementary}
+
+\begin{lemma}[Power differences and Young's inequality, (2.102)]\label{lem:sg-tal:perceptron-power-difference}
+  \lean{abs_pow_sub_pow_le_mul_add,
+        abs_pow_odd_sub_pow_odd_le,
+        abs_pow_even_sub_pow_even_le,
+        rpow_inv_mul_rpow_inv_le_add,
+        rpow_inv_mul_rpow_inv_le_div_add_mul}
+  \leanok
+\talsource{Eq.~(2.102), the inequality $x^{1/\tau_1}y^{1/\tau_2}\le x+y$ and its weighted form in the proof of Theorem~2.5.2}
+For all real $x,y$ and all $k\in\mathbb N$,
+\begin{align*}
+ \bigl|x^{n+1}-y^{n+1}\bigr| &\le (n+1)\,|x-y|\,\bigl(|x|^{n}+|y|^{n}\bigr)\quad(n\in\mathbb N),\\
+ \bigl|x^{2k+1}-y^{2k+1}\bigr| &\le (2k+1)\,|x-y|\,\bigl(x^{2k}+y^{2k}\bigr),\\
+ \bigl|x^{2k+2}-y^{2k+2}\bigr| &\le (2k+2)\,|x-y|\,\bigl(|x|^{2k+1}+|y|^{2k+1}\bigr).
+\end{align*}
+If $\tau_1,\tau_2$ are conjugate exponents ($1/\tau_1+1/\tau_2=1$, both positive) and $x,y\ge 0$, then
+$x^{1/\tau_1}y^{1/\tau_2}\le x+y$, and for every $A>0$
+\[
+ x^{1/\tau_1}\,y^{1/\tau_2}\le \frac{x}{A}+A^{\tau_2/\tau_1}\,y .
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+\emph{Step 1 (power differences).} Mathlib's \texttt{abs\_pow\_sub\_pow\_le} gives
+$|x^{n+1}-y^{n+1}|\le|x-y|\,(n+1)\max(|x|,|y|)^{n}$, and $\max(|x|,|y|)^n\le|x|^n+|y|^n$
+(\texttt{abs\_pow\_sub\_pow\_le\_mul\_add}). For $n=2k$ the powers $|x|^{2k}$ and $x^{2k}$ agree, which
+gives the odd case (\texttt{abs\_pow\_odd\_sub\_pow\_odd\_le}); for $n=2k+1$ the statement is the first line
+(\texttt{abs\_pow\_even\_sub\_pow\_even\_le}).
+
+\emph{Step 2 (Young without denominators).} Young's inequality in Mathlib
+(\texttt{Real.young\_inequality\_of\_nonneg}) applied to $a=x^{1/\tau_1}$, $b=y^{1/\tau_2}$ gives
+$ab\le x/\tau_1+y/\tau_2\le x+y$ because $\tau_1,\tau_2\ge1$
+(\texttt{rpow\_inv\_mul\_rpow\_inv\_le\_add}).
+
+\emph{Step 3 (weighted form).} Apply Step~2 to $x/A$ and $A^{\tau_2/\tau_1}y$; since
+$(x/A)^{1/\tau_1}(A^{\tau_2/\tau_1}y)^{1/\tau_2}=x^{1/\tau_1}y^{1/\tau_2}$
+(\texttt{rpow\_inv\_mul\_rpow\_inv\_le\_div\_add\_mul}), the weighted form follows.
+Formalized in \texttt{ForMathlib/Analysis/SpecialFunctions/AddPowEstimates.lean}.
+\end{proof}
+
+\subsection{H\"older form of the cavity bounds along the interpolation}\label{sub:sg-tal:perceptron-exponential-holder}
+
+Proposition~2.3.6 was used in Section~2.4 only with $\tau_1=\tau_2=2$ and $\tau_1=1,\tau_2=\infty$. The proofs
+of Theorems~2.5.1 and~2.5.2 need conjugate exponents $\tau_1=(2k+2)/(2k+1)$, $\tau_2=2k+2$, for the
+$s$-interpolating system. Here $\nu_{s,t}$, $t\in[0,1]$, is the state of the $(s,t)$-smart path of
+Section~2.2 built on the $s$-interpolating system with $M+1$ constraints: $t=1$ is $\nu_s$, and $t=0$
+decouples the last spin; $\alpha=(M+1)/(N+1)$ in items~(2) and~(3), as in Section~2.3.
+
+\begin{proposition}[Cavity bounds in H\"older form along the $s$-interpolation, (2.62), (2.66), (2.67), Lemma~2.2.2]\label{prop:sg-tal:perceptron-interpolating-holder}
+  \lean{SpinGlasses.abs_integral_interp_deriv_mul_sub_rhat_le_holder,
+        SpinGlasses.exists_hasDerivAt_interpSP_abs_le_holder,
+        SpinGlasses.integral_interpSP_fin_two_le_two_mul_interpolating,
+        SpinGlasses.integral_interpSP_zero_old_spin_mul_sub_eq_zero}
+  \leanok
+  \uses{lem:sg-tal:perceptron-interpolating-overlap, prop:sg-tal:perceptron-cavity-prop-235,
+        prop:sg-tal:perceptron-cavity-prop-236, lem:sg-tal:perceptron-cavity-lemma-237,
+        thm:sg-tal:perceptron-decoupled-endpoint}
+\talsource{Section~2.3, Eqs.~(2.62), (2.66), (2.67), and Lemma~2.2.2, for the Hamiltonian~(2.76)}
+Let $D\in\mathbb R$, let $u$ satisfy~(2.7), and let $q\in[0,1]$, $s\in[0,1]$. No fixed-point equation is
+assumed in~(1)--(3).
+\begin{enumerate}
+\item \emph{(2.62), conjugate exponents.} For a finite replica type $R$ and distinct $r_1\ne r_2\in R$ there
+is $K=K(|R|,D)\ge 0$ such that, for conjugate $\tau_1,\tau_2\in(1,\infty)$, $t\in[0,1]$, every old-state
+base system and every bounded jointly measurable old-state observable $f$,
+\[
+ \bigl|\nu_{\rm new}\bigl(f\,u'(X^{r_1})\,u'(X^{r_2})\bigr)-\widehat r(q)\,\nu_{\rm new}(f)\bigr|
+ \le K\Bigl(\nu_{\rm new}\bigl(|f|^{\tau_1}\bigr)^{1/\tau_1}\,\nu_{\rm new}\bigl(|R_{1,2}-q|^{\tau_2}\bigr)^{1/\tau_2}
+ +\frac{1}{N+1}\,\nu_{\rm new}(|f|)\Bigr).
+\]
+For $\tau_1=\tau_2=2$ this is part~(1) of Lemma~\ref{lem:sg-tal:perceptron-interpolating-overlap}.
+\item \emph{(2.66).} For a finite linearly ordered replica type $R$ there is $K=K(|R|,D)\ge 0$ such that for
+every spin-only observable $f$ on $R$ replicas, conjugate $\tau_1,\tau_2$, $t\in(0,1)$ and every real $r$,
+the map $t'\mapsto\nu_{s,t'}(f)$ is differentiable at $t$ with
+\[
+ \Bigl|\frac{d}{dt}\nu_{s,t}(f)\Bigr|\le\alpha K\Bigl(\nu_{s,t}\bigl(|f|^{\tau_1}\bigr)^{1/\tau_1}\,
+ \nu_{s,t}\bigl(|R_{1,2}-q|^{\tau_2}\bigr)^{1/\tau_2}+\frac{1}{N+1}\,\nu_{s,t}(|f|)\Bigr).
+\]
+\item \emph{(2.67).} There is $K=K(D)\ge0$ such that if $\alpha K\le 1$, then for every $t\in[0,1]$ and every
+$F\ge 0$ on pairs of spin configurations, $\nu_{s,t}(F)\le 2\,\nu_s(F)$.
+\item \emph{Lemma~2.2.2 at $t=0$.} If $r\ge 0$ and $q=\mathbb E\tanh^2(z\sqrt r)$, the last field has variance
+$sr$, and $F_{\rm old}$ is a function of the first $N$ spins of two replicas, then
+$\nu_{s,0}\bigl((\varepsilon_1\varepsilon_2-q)\,F_{\rm old}\bigr)=0$.
+\end{enumerate}
+\end{proposition}
+\begin{proof}
+  \leanok
+\emph{Step 1 (part (1)).} The proof of Lemma~\ref{lem:sg-tal:perceptron-interpolating-overlap}(1) bounds the
+four covariance groups of the rotation $\vartheta\in[0,\pi/2]$ pairwise; the H\"older estimate of each pair
+(\texttt{interp\_rotation\_pair\_le\_holder}) holds for any conjugate exponents, and the master bound
+(\texttt{abs\_integral\_interp\_deriv\_mul\_sub\_rhat\_le\_of\_pair\_bound}) assembles them. The constant is
+an explicit polynomial in $|R|$ and $|D|$ (from the master bound) times $\exp((4|R|+8)|D|)$ (from the
+comparison of the Gibbs weights); only its dependence on $|R|$ and $D$ matters.
+The $L^2$ statement of the lemma is the case $\tau_1=\tau_2=2$ (\texttt{abs\_integral\_interp\_deriv\_mul\_sub\_rhat\_le\_l2}).
+
+\emph{Step 2 (part (2)).} The derivative of $t\mapsto\nu_{s,t}(f)$ is the sum of the terms~I and~II of
+Proposition~2.2.3 for the interpolating path. Part~(1), applied with the replica set enlarged by the two
+replicas that the derivative creates ($\mathrm{Option}(\mathrm{Option}\,R)$), bounds every off-diagonal pair
+by the right-hand side, and $r=\alpha\widehat r$ in the variance of the last field turns
+$\alpha\nu(\varepsilon\varepsilon' u'u' f)-r\nu(\varepsilon\varepsilon' f)$ into
+$\alpha(\nu(\varepsilon\varepsilon' u'u' f)-\widehat r\nu(\varepsilon\varepsilon' f))$
+(\texttt{exists\_hasDerivAt\_interpSP\_abs\_le\_holder}).
+
+\emph{Step 3 (part (3)).} The case $\tau_1=1$, $\tau_2=\infty$ of part~(2) gives
+$|\tfrac{d}{dt}\nu_{s,t}(F)|\le\alpha K_1\,\nu_{s,t}(F)$ for $F\ge0$, hence
+$\nu_{s,t}(F)\le e^{\alpha K_1(1-t)}\nu_{s,1}(F)$ by Gr\"onwall, and $\nu_{s,1}=\nu_s$. If $\alpha K_1\le\log 2$ this
+is at most $2\nu_s(F)$ (\texttt{integral\_interpSP\_fin\_two\_le\_two\_mul\_interpolating}).
+
+\emph{Step 4 (part (4)).} At $t=0$ the last spin is decoupled from the first $N$ spins and sees the field
+$\sqrt{s r}\,z+\sqrt{(1-s)r}\,z'\sim\mathcal N(0,r)$, so $\mathbb E\tanh\bigl(\text{field}\bigr)^2=q$ kills the
+correlation exactly as Lemma~2.2.2 does (\texttt{integral\_interpSP\_zero\_old\_spin\_mul\_sub\_eq\_zero}).
+
+\emph{Formalization note (hypothesis audit).} The book states Proposition~2.3.5 for
+$f$ on $\Sigma_N^n$ and an arbitrary variance of $Y$; the Lean statements add none of
+$(2.68)$, $(2.69)$, $(2.80)$ or $r=\alpha\widehat r$ (the last enters only through the variance of the last
+field in parts~(2) and~(3), as in the book's ``we now set $r=\alpha\widehat r$''), and need $q\in[0,1]$ only.
+The only hypotheses on $f$ beyond the book are measurability and boundedness in~(1), which are automatic
+for $f$ on a finite spin space and are required here because $f$ may depend on the disorder.
+The statement is more general than the book in the base system (any finite old-state measure) and the replica
+set (any finite $R$ instead of $n=2$). The normalization is $N+1$ spins; parts~(2) and~(3) use $M+1$ constraints, so
+$\alpha=(M+1)/(N+1)$, as in Section~2.3.
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/InterpolatingCavityBound.lean} and
+\texttt{InterpolatingSmartPath.lean}.
+\end{proof}
+
+\subsection{Theorem 2.5.1: higher moments of the overlap}\label{sub:sg-tal:perceptron-exponential-overlap}
+
+\begin{theorem}[Theorem 2.5.1: higher moments of $R_{1,2}-q$, (2.94), uniformly along the $s$-interpolation]\label{thm:sg-tal:perceptron-overlap-high-moments}
+  \lean{SpinGlasses.integral_interpolating_overlap_pow_le,
+        SpinGlasses.integral_perceptron_overlap_pow_le}
+  \leanok
+  \uses{prop:sg-tal:perceptron-interpolating-holder, lem:sg-tal:perceptron-power-difference,
+        lem:sg-tal:perceptron-interpolating-overlap, thm:sg-tal:perceptron-rs-fixed-point}
+\talsource{Theorem~2.5.1, Eqs.~(2.94)--(2.98)}
+Given $D\in\mathbb R$ there is $K=K(D)\ge0$ with the following property. Let $N,M\in\mathbb N$, let $u$
+satisfy~(2.7), let $\alpha=M/(N+1)$ satisfy $\alpha K\le 1$, and let $(q,r)$ solve~(2.68) for the load $\alpha$.
+Then for every $s\in[0,1]$ and every $k\in\mathbb N$,
+\[
+ \nu_s\Bigl(\bigl(R_{1,2}-q\bigr)^{2k}\Bigr)\le\Bigl(\frac{64\,k}{N+1}\Bigr)^{k},
+\]
+and in particular, for $s=1$, the same bound holds for the Gibbs average $\nu$ of the perceptron
+Hamiltonian~(2.6).
+\end{theorem}
+\begin{proof}
+  \leanok
+Write $L=N+1$ and, for $n\in\mathrm{Fin}(N+1)$,
+\[
+ A_n=\frac1L\sum_{i\in\{n,\dots,N\}}\bigl(\sigma_i^1\sigma_i^2-q\bigr),\qquad V_n(k)=\nu_s\bigl(A_n^{2k}\bigr),
+\]
+so that $A_0=R_{1,2}-q$ and $|A_n|\le 2$. We prove $V_n(k)\le(64k/L)^k$ for all $n$ and $k$.
+
+\emph{Step 0 (no constraints).} If $M=0$ then $\alpha=0$, so $r=0$, $q=0$, and the energy vanishes: the spin law
+is uniform, and the bound is the zero-temperature case of the Sherrington--Kirkpatrick moment bound
+(\texttt{sk\_overlap\_moment\_le} with $\beta=h=0$). For $k=0$ both sides are $1$. Assume now that the system has
+$M+1$ constraints, $k\ge0$, and that $V_m(k)\le(64k/L)^k$ for all $m$ (induction on $k$).
+
+\emph{Step 1 (the last site).} For $n=N$ we have $|A_N|\le 2/L$, so $A_N^{2k+2}\le(2/L)^{2k+2}\le(64(k+1)/L)^{k+1}$.
+Let $n<N$ from now on and write $X=(64(k+1)/L)^{k+1}$.
+
+\emph{Step 2 (site symmetry).} Relabelling the sites swaps $n$ with the last site and leaves $\nu_s$
+invariant (\texttt{interpolating\_replica\_site\_perm}), so with $f=(\varepsilon_1\varepsilon_2-q)A_n^{2k+1}$,
+\[
+ V_n(k+1)=\frac{N+1-n}{L}\,\nu_s(f)\le\nu_s(f)=\nu_{s,1}(f)
+\]
+(\texttt{integral\_interpolating\_partial\_overlap\_succ\_eq\_last}). Put $g(t)=\nu_{s,t}(f)$; then
+$V_n(k+1)\le g(1)\le|g(0)|+\sup_{0<t<1}|g'(t)|$ by the mean value theorem.
+
+\emph{Step 3 (the endpoint $t=0$, (2.97)).} Let $A'=A_n-L^{-1}(\varepsilon_1\varepsilon_2-q)$, which does not
+depend on the last spin. By Proposition~\ref{prop:sg-tal:perceptron-interpolating-holder}(4),
+$g_0:=\nu_{s,0}((\varepsilon_1\varepsilon_2-q)A'^{2k+1})=0$. Lemma~\ref{lem:sg-tal:perceptron-power-difference}
+with $x=A_n$, $y=A'$, $|x-y|\le 2/L$ and $|\varepsilon_1\varepsilon_2-q|\le 2$ gives
+\[
+ |g(0)|\le\frac{4(2k+1)}{L}\Bigl(\nu_{s,0}(A_n^{2k})+\nu_{s,0}(A'^{2k})\Bigr)
+ \le\frac{16(2k+1)}{L}\Bigl(\frac{64k}{L}\Bigr)^{k}\le\frac{2k+1}{4(k+1)}\,X,
+\]
+where the middle step uses $\nu_{s,0}\le 2\nu_s$ (Proposition~\ref{prop:sg-tal:perceptron-interpolating-holder}(3)),
+the symmetry $\nu_s(A'^{2k})=V_{n+1}(k)$ (\texttt{integral\_interpolating\_partial\_erase\_last\_eq\_succ}) and the
+induction hypothesis, and the last step is elementary arithmetic.
+
+\emph{Step 4 (the derivative, $0<t<1$).} Apply Proposition~\ref{prop:sg-tal:perceptron-interpolating-holder}(2) to
+$f$ with $R=\{1,2\}$ and $\tau_1=\frac{2k+2}{2k+1}$, $\tau_2=2k+2$ (conjugate, since
+$\frac{2k+1}{2k+2}+\frac1{2k+2}=1$). Pointwise $|f|^{\tau_1}\le 2^{\tau_1}A_n^{2k+2}$, hence by part~(3)
+$\nu_{s,t}(|f|^{\tau_1})^{1/\tau_1}\le 4\,V_n(k+1)^{1/\tau_1}$, and
+$\nu_{s,t}(|R_{1,2}-q|^{\tau_2})^{1/\tau_2}\le 2\,V_0(k+1)^{1/\tau_2}$. Young's inequality
+$x^{1/\tau_1}y^{1/\tau_2}\le x+y$ (Lemma~\ref{lem:sg-tal:perceptron-power-difference}) and the choice of the
+constant, $K\ge 32K_{\rm der}$ so that $\alpha K_{\rm der}\le 1/32$, give for the first term of~(2.66) the bound
+$\tfrac14\bigl(V_n(k+1)+V_0(k+1)\bigr)$. For the second term, $|A_n|^{2k+1}\le 2A_n^{2k}$, part~(3) and the
+induction hypothesis bound it by $\tfrac{1}{256(k+1)}X$. Altogether
+\[
+ \sup_{0<t<1}|g'(t)|\le\frac14V_n(k+1)+\frac14V_0(k+1)+\frac{1}{256(k+1)}X .
+\]
+
+\emph{Step 5 (closing the induction, (2.98)).} Steps~2--4 give
+\[
+ V_n(k+1)\le\frac14V_n(k+1)+\frac14V_0(k+1)+\frac12X,
+\]
+since $\frac{2k+1}{4(k+1)}+\frac1{256(k+1)}\le\frac12$. For $n=0$ the two $V$-terms combine to $\frac12V_0(k+1)$,
+so $V_0(k+1)\le X$. Substituting $V_0(k+1)\le X$ back, $\frac34V_n(k+1)\le\frac34X$ for every $n$. Taking $n=0$ in
+the case of the induction proves the theorem for $s\in[0,1]$
+(\texttt{integral\_interpolating\_overlap\_pow\_le}); for $s=1$ the variables $z,z',\xi$ drop out of the average
+(\texttt{integral\_perceptron\_overlap\_pow\_le}).
+
+\emph{Formalization note (hypothesis audit).}
+\begin{enumerate}
+\item \emph{Hypotheses assumed by the book.} The Lean statement assumes exactly~(2.7), $\alpha K\le1$ and that
+$(q,r)$ solves~(2.68). It does not assume (2.67), (2.69), (2.80) or the existence of the solution; the case
+$k=1$ needed from (2.80) is proved, not assumed
+(Lemma~\ref{lem:sg-tal:perceptron-interpolating-overlap}). Quantifying over every solution of~(2.68) is
+equivalent to the book's ``the solution'', because Theorem~\ref{thm:sg-tal:perceptron-rs-fixed-point} gives
+uniqueness, and is slightly stronger since existence is not needed.
+\item \emph{Needed hypotheses.} $q=\mathbb E\tanh^2(z\sqrt r)$ is used only in Step~3
+(Proposition~\ref{prop:sg-tal:perceptron-interpolating-holder}(4)); $r=\alpha\widehat r(q)$ is the book's ``we now set $r=\alpha\widehat r$'', which makes the variance
+$s\alpha\widehat r(q)$ of the last field in Steps~3--4 agree with the variance $sr$ used in Step~3; $\alpha K\le1$ is used for parts~(2) and~(3). The
+positivity facts $q\in[0,1]$, $r\ge0$ are consequences of~(2.68), not hypotheses.
+\item \emph{Differences from the book.} The bound is proved for all $s\in[0,1]$, not only $s=1$ (the book
+leaves uniformity in $s$ as an exercise, Theorem~2.5.3, proof). The power is $2k$ for every $k\in\mathbb N$,
+including $k=0$ and the case $M=0$. The normalization is $N+1$ spins and load $M/(N+1)$, so the right-hand side
+is $(64k/(N+1))^k$. The intermediate constants differ from the printed ones (for example $\frac1{256(k+1)}$
+instead of $\frac1{32(k+1)}$ in the last term of (2.98)), because the proof tracks the factors $2$ and $4$ of the
+domination step; the printed constant $64$ is unchanged.
+\item \emph{Sets of parameters.} The statement is uniform in the size: $K$ depends only on $D$.
+\end{enumerate}
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/OverlapHighMoments.lean}.
+\end{proof}
+
+\begin{proposition}[Exponential moment of the overlap (addition to Section~2.5)]\label{prop:sg-tal:perceptron-overlap-exponential}
+  \lean{SpinGlasses.integral_interpolating_exp_overlap_sub_sq_le}
+  \leanok
+  \uses{thm:sg-tal:perceptron-overlap-high-moments}
+\talsource{Section~2.5; not stated in the book}
+With the hypotheses of Theorem~\ref{thm:sg-tal:perceptron-overlap-high-moments}, for every $s\in[0,1]$ and every
+$c\in[0,1/200]$,
+\[
+ \nu_s\Bigl(\exp\bigl(c\,(N+1)\,(R_{1,2}-q)^2\bigr)\Bigr)\le 8 .
+\]
+\end{proposition}
+\begin{proof}
+  \leanok
+Expanding the exponential and using Theorem~\ref{thm:sg-tal:perceptron-overlap-high-moments} termwise (all terms
+are nonnegative, so the sum and the expectation may be exchanged),
+\[
+ \nu_s\bigl(e^{c(N+1)(R_{1,2}-q)^2}\bigr)=\sum_{k\ge0}\frac{(c(N+1))^k}{k!}\,\nu_s\bigl((R_{1,2}-q)^{2k}\bigr)
+ \le\sum_{k\ge0}\frac{(64\,c\,k)^k}{k!}\le\sum_{k\ge0}(64\,c\,e)^k\le\frac{1}{1-7/8}=8,
+\]
+using $k^k\le k!\,e^k$ and $64ce\le 64e/200\le 7/8$. \emph{Formalization note.} This statement is an addition: the
+book does not state an exponential bound. The series converges exactly when $64ce<1$; the range $c<1/64$ is
+therefore not claimed. Formalized in \texttt{OverlapHighMoments.lean}.
+\end{proof}
+
+\subsection{Theorem 2.5.2: higher moments of the empirical variance of $u'$}\label{sub:sg-tal:perceptron-exponential-variance}
+
+\begin{theorem}[Theorem 2.5.2: higher moments of the empirical variance of $u'$, (2.99), uniformly along the $s$-interpolation]\label{thm:sg-tal:perceptron-empirical-high-moments}
+  \lean{SpinGlasses.integral_interpolating_empirical_variance_pow_le,
+        SpinGlasses.integral_perceptron_empirical_variance_pow_le}
+  \leanok
+  \uses{thm:sg-tal:perceptron-overlap-high-moments, prop:sg-tal:perceptron-interpolating-holder,
+        lem:sg-tal:perceptron-power-difference}
+\talsource{Theorem~2.5.2, Eqs.~(2.99)--(2.106)}
+Given $D\in\mathbb R$ there are constants $K=K(D)\ge0$ and $L=L(D)\ge0$ with the following property. Let $u$
+satisfy~(2.7), let $\alpha=M/(N+1)$ satisfy $\alpha K\le 1$, let $(q,r)$ solve~(2.68), and let $s\in[0,1]$.
+Writing $S^\ell_{j,s}$ for the interpolating fields, for every $k\in\mathbb N$,
+\[
+ \nu_s\Biggl(\Bigl(\frac1{N+1}\sum_{j<M}u'\bigl(S^1_{j,s}\bigr)\,u'\bigl(S^2_{j,s}\bigr)-r\Bigr)^{2k}\Biggr)
+ \le\Bigl(\frac{\alpha\,k\,L}{N+1}\Bigr)^{k},
+\]
+with the convention $0^0=1$ at $k=0$; the same holds for $\nu$ at $s=1$.
+\end{theorem}
+\begin{proof}
+  \leanok
+Write $\widehat r=\widehat r(q)$, so that $0\le\widehat r\le|D|^2$, $r=\alpha\widehat r$, and
+$|u'(a)u'(b)-\widehat r|\le 2|D|^2$. For $k=0$ both sides are $1$, and for $M=0$ the sum is empty and
+$r=0$, so the left side is $0$. Assume $M+1$ constraints, $\alpha=(M+1)/(N+1)\le 1$ (a consequence of
+$\alpha K\le 1$ with $K\ge1$), and put, for $n\in\mathrm{Fin}(M+1)$,
+\[
+ C_n=\frac1{M+1}\sum_{j\in\{n,\dots,M\}}\bigl(u'(S^1_{j,s})\,u'(S^2_{j,s})-\widehat r\bigr),\qquad
+ W_n(k)=\nu_s\bigl(C_n^{2k}\bigr).
+\]
+
+\emph{Step 1 (reduction).} The quantity in the statement is $\alpha^{2k}W_0(k)$, and
+$\alpha^{2k}\bigl(kL/(M+1)\bigr)^k=\bigl(\alpha kL/(N+1)\bigr)^k$ because $\alpha/(M+1)=1/(N+1)$. So it suffices to
+show $W_n(k)\le(kL/(M+1))^k$ for all $n$ and $k$, by induction on $k$ (the case $k=0$ is trivial).
+
+\emph{Step 2 (the last constraint).} For $n=M$, $|C_M|\le 2|D|^2/(M+1)$, so
+$C_M^{2k+2}\le(4|D|^4/(M+1)^2)^{k+1}\le((k+1)L/(M+1))^{k+1}$ once $L\ge4|D|^4$. Let $n<M$ and put
+$B_{\rm prev}=(kL/(M+1))^k$ and $B_{\rm next}=((k+1)L/(M+1))^{k+1}$.
+
+\emph{Step 3 (constraint symmetry, (2.101)).} Swapping constraint $n$ with the last one leaves $\nu_s$ invariant
+(\texttt{integral\_interpolating\_constraint\_swap}), so
+$W_n(k+1)=\frac{M+1-n}{M+1}\,\nu_s(\widetilde f)\le\nu_s(\widetilde f)$, with
+$\widetilde f=(u'(S^1_{M,s})u'(S^2_{M,s})-\widehat r)\,C_n^{2k+1}$.
+
+\emph{Step 4 (removing the last term from $C_n$, (2.103)--(2.104)).} With $C'=C_n-(M+1)^{-1}(u'u'-\widehat r)_M$
+and $f^*=(u'(S^1_{M,s})u'(S^2_{M,s})-\widehat r)\,C'^{2k+1}$, the power difference estimate (2.102) with
+$|C_n-C'|\le 2|D|^2/(M+1)$ gives
+\[
+ \nu_s(\widetilde f)\le|\nu_s(f^*)|+\frac{8(2k+1)|D|^4}{M+1}\,B_{\rm prev},
+\]
+using the induction hypothesis and $\nu_s(C'^{2k})=W_{n+1}(k)$ by symmetry.
+
+\emph{Step 5 (cavity in $M$ and weighted Young, (2.106)).} The observable $C'^{2k+1}$ does not depend on the
+last constraint. Proposition~\ref{prop:sg-tal:perceptron-interpolating-holder}(1) at $t=1$, with $\tau_1=\frac{2k+2}{2k+1}$
+and $\tau_2=2k+2$, followed by the weighted Young inequality of Lemma~\ref{lem:sg-tal:perceptron-power-difference} with
+$A=2(K_{\rm cav}+1)$, gives
+\[
+ |\nu_s(f^*)|\le\frac12\nu_s\bigl(C'^{2k+2}\bigr)+(K_{\rm cav}+1)\bigl(2(K_{\rm cav}+1)\bigr)^{2k+1}
+ \nu_s\bigl((R_{1,2}-q)^{2k+2}\bigr)+\frac{K_{\rm cav}}{N+1}\,\nu_s\bigl(|C'|^{2k+1}\bigr).
+\]
+
+\emph{Step 6 (assembling).} The even power difference of Lemma~\ref{lem:sg-tal:perceptron-power-difference} compares
+$\nu_s(C'^{2k+2})$ with $W_n(k+1)$ up to terms of order $B_{\rm prev}/(M+1)$, since
+$|C|^{2k+1}\le 2|D|^2C^{2k}$. Since $M+1\le N+1$, Theorem~\ref{thm:sg-tal:perceptron-overlap-high-moments} gives
+$\nu_s((R_{1,2}-q)^{2k+2})\le(64(k+1)/(M+1))^{k+1}$, and for $L$ large enough in terms of $K_{\rm cav}$ and $|D|$ this
+overlap contribution is at most $\frac14B_{\rm next}$, and the remaining terms in $B_{\rm prev}/(M+1)$ are at most
+$\frac14B_{\rm next}$. Together with Steps~3--5,
+\[
+ W_n(k+1)\le\frac12W_n(k+1)+\frac14B_{\rm next}+\frac14B_{\rm next},
+\]
+so $W_n(k+1)\le B_{\rm next}$ (\texttt{integral\_partial\_constraint\_step\_lt}). The induction on $k$ and
+Step~1 give the theorem (\texttt{integral\_interpolating\_empirical\_variance\_pow\_le}); the case $s=1$ is
+\texttt{integral\_perceptron\_empirical\_variance\_pow\_le}.
+
+\emph{Formalization note (hypothesis audit).}
+\begin{enumerate}
+\item \emph{Hypotheses assumed by the book.} Exactly (2.7), a small-load condition $\alpha K\le 1$ (the book
+writes $\alpha K_0(D)\le1$ with $K_0$ the constant of Theorem~2.5.1) and a solution of~(2.68). The Lean proof
+starts the induction at $k=0$ and obtains the case $k=1$ from the induction step, using Theorem~2.5.1 for
+$k+1=1$; it does not cite Lemma~2.4.3, so the book's phrase ``repeat the proof of Lemma~2.4.3'' is carried out
+inside the step rather than assumed. No derived fact is assumed.
+\item \emph{Differences from the book.} Uniformity in $s\in[0,1]$; the normalization $N+1$ spins and load
+$M/(N+1)$; the constants of the cavity bound and of the Young step are explicit ($A=2(K_{\rm cav}+1)$,
+$L$ built from $K_{\rm cav}$ and $|D|$) instead of ``$K(D)$''. The condition $\alpha\le1$ that the book
+adds (``we can as well assume'') is derived from $\alpha K\le1$ with $K\ge1$.
+\end{enumerate}
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/EmpiricalVarianceHighMoments.lean}.
+\end{proof}
+
+\begin{remark}[Scope of Section~2.5 in this blueprint]\label{rem:sg-tal:perceptron-exponential-scope}
+\talsource{Section~2.5, Theorem~2.5.3, Eqs.~(2.107)--(2.110)}
+\emph{Not formalized.} Theorem~2.5.3 (the central limit theorem
+$\mathbb E(p_{N,M}(u)-p(u))^k=(b/N)^{k/2}a(k)+O(k+1)$) is not formalized. Its proof needs the derivative of
+$\psi(s)=\mathbb E\,V(s)^k$ along the interpolation, the decomposition $\psi'=\mathrm{VII}+\mathrm{VIII}+\mathrm{IX}$
+of~(2.108), the a priori bound $\mathbb E|V(s)|^k=O(N^{-k/2})$ obtained from (2.109)--(2.110) and a Gr\"onwall
+argument, and an induction in steps of two using $a(k+2)=(k+1)a(k)$. Theorems~2.5.1 and~2.5.2, proved here
+uniformly in $s$, are the two inputs of that argument; the printed bound
+$\psi(0)\le K(k)N^{k/2}$ must read $N^{-k/2}$ for the conclusion to follow. The only groundwork so far is
+model-free: Gaussian integration by parts for a Gibbs average multiplied by a function of the logarithm of the
+partition function (\texttt{integral\_mul\_gibbs\_ratio\_mul\_comp\_log\_eq\_sum}). The fixed-point equations are
+not needed for the derivative formula~(2.108) itself, only for the estimates of VII and VIII.
+\end{remark}

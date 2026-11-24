@@ -44,21 +44,6 @@ namespace SpinGlasses
 
 section CauchySchwarz
 
-/-- The overlap of two states, normalised by `N + 1`, lies in `[-1, 1]`, so its distance to
-`q ∈ [0, 1]` is at most `2`. -/
-private lemma abs_overlap_sub_le_two {N M : ℕ} {q : ℝ} (hq : q ∈ Icc (0 : ℝ) 1)
-    (a b : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) :
-    |((N : ℝ) + 1)⁻¹ * ∑ i, ((a.1 i : ℤ) : ℝ) * ((b.1 i : ℤ) : ℝ) - q| ≤ 2 := by
-  have h1 : |((N : ℝ) + 1)⁻¹ * ∑ i, ((a.1 i : ℤ) : ℝ) * ((b.1 i : ℤ) : ℝ)| ≤ 1 := by
-    rw [abs_mul, abs_inv, abs_of_pos (by positivity : (0 : ℝ) < (N : ℝ) + 1)]
-    have hs_b : |∑ i : Fin (N + 1), ((a.1 i : ℤ) : ℝ) * ((b.1 i : ℤ) : ℝ)| ≤ (N : ℝ) + 1 :=
-      ((Finset.abs_sum_le_card_mul_of_abs_le _ (C := 1) fun i => by
-        rw [abs_mul, abs_units_cast_eq_one, abs_units_cast_eq_one, mul_one]).trans_eq (by simp))
-    exact (inv_mul_le_iff₀ (by positivity)).2 (by linarith)
-  have h2 := abs_sub (((N : ℝ) + 1)⁻¹ * ∑ i, ((a.1 i : ℤ) : ℝ) * ((b.1 i : ℤ) : ℝ)) q
-  rw [abs_of_nonneg hq.1] at h2
-  linarith [hq.2]
-
 /-- The observable `(N + 1)⁻¹ ∑_k u'(a_k) u'(b_k) - r` is bounded when `|u'| ≤ D₁`. -/
 theorem abs_empVar_obs_le {N M : ℕ} {u : ℝ → ℝ} {D₁ : ℝ} (hD : ∀ x, |deriv u x| ≤ D₁)
     (r : ℝ) (a b : Fin M → ℝ) :
@@ -134,21 +119,14 @@ theorem abs_deriv_interpolating_pressure_add_le_cauchy_schwarz
       (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
         ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) => E_s s p.1 p.2 :=
     measurable_interpEnergy_joint (L := N + 1) (M := M) hu.measurable s q r
-  have hEb_ω (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
-      (x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) :
-      E_s s ω x ≤ M * B + ∑ i : Fin (N + 1), |Real.sqrt (1 - s) * ω.2 i * Real.sqrt r| := by
-    refine add_le_add ((Finset.sum_le_sum fun _ _ => hu.le _).trans_eq (by simp))
-      (Finset.sum_le_sum fun i _ => (le_abs_self _).trans ?_)
-    rw [abs_mul, abs_mul, abs_mul, abs_units_cast_eq_one, one_mul, abs_mul, abs_mul]
   have hν_prob (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) :
       IsProbabilityMeasure (ν_s ω) :=
-    isProbabilityMeasure_tilted_of_ae_le
-      (Measurable.of_uncurry_left hEm_joint).aemeasurable (ae_of_all _ (hEb_ω ω))
+    isProbabilityMeasure_tilted_interpEnergy (L := N + 1) hu.measurable hu.le s q r ω
   have hP_prob : IsProbabilityMeasure P := by dsimp only [P, P_g, P_z, P_z']; infer_instance
   let d_pair (a b : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : ℝ :=
     |(((N : ℝ) + 1)⁻¹ * ∑ i, ((a.1 i : ℤ) : ℝ) * ((b.1 i : ℤ) : ℝ)) - q|
   have hd_pair_b (a b : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : d_pair a b ≤ 2 :=
-    abs_overlap_sub_le_two hq a b
+    abs_spin_overlap_sub_le_two hq a.1 b.1
   let M_f : ℝ := ((M : ℝ) / ((N : ℝ) + 1)) * |D₁| ^ 2 + |r|
   have hf_b (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
       (σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : |f ω σ| ≤ M_f :=
@@ -318,33 +296,16 @@ private lemma integral_empirical_variance_sq_eq_last_row
   have hμ_fin : IsFiniteMeasure μ_s := inferInstance
   have hα0 : 0 ≤ α := by dsimp only [α]; positivity
   have hEm_joint := measurable_interpEnergy_joint (L := N + 1) (M := M + 1) hu s q r
-  have hEb_ω (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ))
-      (x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) :
-      E_s ω x ≤ (M + 1 : ℕ) * B + ∑ i : Fin (N + 1), |Real.sqrt (1 - s) * ω.2 i * Real.sqrt r| := by
-    refine add_le_add ((Finset.sum_le_sum fun _ _ => hB _).trans_eq (by simp))
-      (Finset.sum_le_sum fun i _ => (le_abs_self _).trans ?_)
-    rw [abs_mul, abs_mul, abs_mul, abs_units_cast_eq_one, one_mul, abs_mul, abs_mul]
   have hS_slice (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ))
       (k : Fin (M + 1)) :
-      Measurable fun x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ) => S_fn ω x k := by
-    have h1 : Measurable fun x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ) =>
-        ∑ i : Fin (N + 1), ω.1.1 k i * ((x.1 i : ℤ) : ℝ) :=
-      Finset.measurable_sum _ fun i _ =>
-        measurable_const.mul
-          (measurable_units_cast.comp ((measurable_pi_apply i).comp measurable_fst))
-    have h2 : Measurable fun x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ) => x.2 k :=
-      (measurable_pi_apply k).comp measurable_snd
-    exact ((h1.const_mul _).const_mul _).add
-      ((measurable_const.add (h2.const_mul _)).const_mul _)
+      Measurable fun x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ) => S_fn ω x k :=
+    measurable_interpField_slice (L := N + 1) (M := M + 1) s q ω k
   have hEm_slice (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ)) :
-      Measurable (E_s ω) := by
-    refine (Finset.measurable_sum _ fun k _ => hu.comp (hS_slice ω k)).add ?_
-    exact Finset.measurable_sum _ fun i _ =>
-      (((measurable_units_cast.comp
-        ((measurable_pi_apply i).comp measurable_fst)).mul_const _).mul_const _).mul_const _
+      Measurable (E_s ω) :=
+    measurable_interpEnergy_slice (L := N + 1) (M := M + 1) hu s q r ω
   have hν_prob (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ)) :
       IsProbabilityMeasure (ν_s ω) :=
-    isProbabilityMeasure_tilted_of_ae_le (hEm_slice ω).aemeasurable (ae_of_all _ (hEb_ω ω))
+    isProbabilityMeasure_tilted_interpEnergy (L := N + 1) hu hB s q r ω
   let U_k (k : Fin (M + 1))
       (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ))
       (σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) : ℝ :=
@@ -540,33 +501,16 @@ theorem integral_empirical_variance_split_le
   have hα0 : 0 ≤ α := by dsimp only [α]; positivity
   have hS_joint (k : Fin (M + 1)) := measurable_interpField_joint (L := N + 1) (M := M + 1) s q k
   have hEm_joint := measurable_interpEnergy_joint (L := N + 1) (M := M + 1) hu s q r
-  have hEb_ω (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ))
-      (x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) :
-      E_s ω x ≤ (M + 1 : ℕ) * B + ∑ i : Fin (N + 1), |Real.sqrt (1 - s) * ω.2 i * Real.sqrt r| := by
-    refine add_le_add ((Finset.sum_le_sum fun _ _ => hB _).trans_eq (by simp))
-      (Finset.sum_le_sum fun i _ => (le_abs_self _).trans ?_)
-    rw [abs_mul, abs_mul, abs_mul, abs_units_cast_eq_one, one_mul, abs_mul, abs_mul]
   have hS_slice (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ))
       (k : Fin (M + 1)) :
-      Measurable fun x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ) => S_fn ω x k := by
-    have h1 : Measurable fun x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ) =>
-        ∑ i : Fin (N + 1), ω.1.1 k i * ((x.1 i : ℤ) : ℝ) :=
-      Finset.measurable_sum _ fun i _ =>
-        measurable_const.mul
-          (measurable_units_cast.comp ((measurable_pi_apply i).comp measurable_fst))
-    have h2 : Measurable fun x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ) => x.2 k :=
-      (measurable_pi_apply k).comp measurable_snd
-    exact ((h1.const_mul _).const_mul _).add
-      ((measurable_const.add (h2.const_mul _)).const_mul _)
+      Measurable fun x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ) => S_fn ω x k :=
+    measurable_interpField_slice (L := N + 1) (M := M + 1) s q ω k
   have hEm_slice (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ)) :
-      Measurable (E_s ω) := by
-    refine (Finset.measurable_sum _ fun k _ => hu.comp (hS_slice ω k)).add ?_
-    refine Finset.measurable_sum _ fun i _ => ?_
-    exact (((measurable_units_cast.comp
-      ((measurable_pi_apply i).comp measurable_fst)).mul_const _).mul_const _).mul_const _
+      Measurable (E_s ω) :=
+    measurable_interpEnergy_slice (L := N + 1) (M := M + 1) hu s q r ω
   have hν_prob (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ)) :
       IsProbabilityMeasure (ν_s ω) :=
-    isProbabilityMeasure_tilted_of_ae_le (hEm_slice ω).aemeasurable (ae_of_all _ (hEb_ω ω))
+    isProbabilityMeasure_tilted_interpEnergy (L := N + 1) hu hB s q r ω
   let U_k (k : Fin (M + 1))
       (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ))
       (σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) : ℝ :=
@@ -656,101 +600,10 @@ theorem integral_empirical_variance_split_le
       (ae_of_all _ fun ω => by
         rw [Real.norm_eq_abs]
         exact abs_integral_le_of_forall_abs_le (Measure.pi fun _ : Fin 2 => ν_s ω) (hgk_b k ω))
-  -- Swap invariance of `g_k k` with `g_k (Fin.last M)`!
-  have htilted_swap (k : Fin (M + 1))
-      (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ)) :
-      ν_s (interpConstraintDisorderSwap k (Fin.last M) ω) =
-        (ν_s ω).map (interpConstraintStateSwap k (Fin.last M)) := by
-    dsimp only [ν_s]
-    rw [map_tilted_measurableEquiv (interpConstraintStateSwap k (Fin.last M))
-      (measurePreserving_interpConstraintStateSwap k (Fin.last M)) (hEm_slice ω)]
-    congr 1; funext x
-    dsimp only [Function.comp_apply]
-    rw [interpConstraintStateSwap_symm_apply]
-    dsimp only [E_s, S_fn, interpConstraintDisorderSwap]
-    congr 1
-    rw [← Equiv.sum_comp (Equiv.swap k (Fin.last M))]
-    refine Finset.sum_congr rfl fun k' _ => ?_
-    simp
-  have hsym (k : Fin (M + 1)) :
-      (∫ ω, ∫ σ, g_k k ω σ ∂(Measure.pi fun _ : Fin 2 => ν_s ω) ∂P) =
-        ∫ ω, ∫ σ, g_k (Fin.last M) ω σ ∂(Measure.pi fun _ : Fin 2 => ν_s ω) ∂P := by
-    let Ψ_last
-        (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ)) : ℝ :=
-      ∫ σ, g_k (Fin.last M) ω σ ∂(Measure.pi fun _ : Fin 2 => ν_s ω)
-    have hΨ_m : Measurable Ψ_last :=
-      @measurable_integral_pi_tilted _ _ _ _ μ_s hμ_fin _ _ E_s hEm_joint
-        (g_k (Fin.last M)) (hgk_joint (Fin.last M))
-    have hpt_sw (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ)) :
-        Ψ_last (interpConstraintDisorderSwap k (Fin.last M) ω) =
-          ∫ σ, g_k k ω σ ∂(Measure.pi fun _ : Fin 2 => ν_s ω) := by
-      dsimp only [Ψ_last]
-      rw [htilted_swap k ω,
-        integral_pi_map_equiv (ν_s ω) (interpConstraintStateSwap k (Fin.last M))]
-      refine integral_congr_ae (ae_of_all _ fun σ => ?_)
-      have hU_sw (k' : Fin (M + 1)) :
-          U_k k' (interpConstraintDisorderSwap k (Fin.last M) ω)
-            (fun l => interpConstraintStateSwap k (Fin.last M) (σ l)) =
-          U_k (Equiv.swap k (Fin.last M) k') ω σ := by
-        dsimp only [U_k, S_fn, interpConstraintDisorderSwap]
-        simp [interpConstraintStateSwap_apply]
-      have hf_sw :
-          f (interpConstraintDisorderSwap k (Fin.last M) ω)
-            (fun l => interpConstraintStateSwap k (Fin.last M) (σ l)) = f ω σ := by
-        change (((N : ℝ) + 1)⁻¹ *
-            ∑ k' : Fin (M + 1), U_k k' (interpConstraintDisorderSwap k (Fin.last M) ω)
-              (fun l => interpConstraintStateSwap k (Fin.last M) (σ l))) - r =
-          (((N : ℝ) + 1)⁻¹ * ∑ k' : Fin (M + 1), U_k k' ω σ) - r
-        congr 2
-        simp_rw [hU_sw]
-        exact Equiv.sum_comp (Equiv.swap k (Fin.last M)) (fun k' => U_k k' ω σ)
-      dsimp only [g_k]
-      rw [hU_sw (Fin.last M), Equiv.swap_apply_right, hf_sw]
-    have hmp := measurePreserving_interpConstraintDisorderSwap (L := N + 1) k (Fin.last M)
-    have heq : (∫ ω, Ψ_last (interpConstraintDisorderSwap k (Fin.last M) ω) ∂P) =
-        ∫ ω, Ψ_last ω ∂P :=
-      hmp.integral_comp_of_aestronglyMeasurable (g := Ψ_last) hΨ_m.aestronglyMeasurable
-    have hcongr : (∫ ω, ∫ σ, g_k k ω σ ∂(Measure.pi fun _ : Fin 2 => ν_s ω) ∂P) =
-        ∫ ω, Ψ_last (interpConstraintDisorderSwap k (Fin.last M) ω) ∂P :=
-      integral_congr_ae (ae_of_all _ fun ω => (hpt_sw ω).symm)
-    exact hcongr.trans heq
-  -- Sum over `k : Fin (M + 1)` gives `(M + 1) * f²`!
-  have hsum_pt (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ))
-      (σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) :
-      ∑ k : Fin (M + 1), g_k k ω σ = ((M + 1 : ℕ) : ℝ) * (f ω σ) ^ 2 := by
-    dsimp only [g_k]
-    rw [← Finset.sum_mul]
-    have hsum_sub : (∑ k : Fin (M + 1), (α * U_k k ω σ - r)) =
-        ((M + 1 : ℕ) : ℝ) * f ω σ := by
-      rw [Finset.sum_sub_distrib, ← Finset.mul_sum, Finset.sum_const, Finset.card_univ,
-        Fintype.card_fin, nsmul_eq_mul]
-      dsimp only [α, f, U_k]
-      have hL : ((N : ℝ) + 1) ≠ 0 := by positivity
-      field_simp
-    rw [hsum_sub, sq]
-    ring
-  have hsum_int := integral_integral_finset_sum_dep P
-    (fun ω => Measure.pi fun _ : Fin 2 => ν_s ω) Finset.univ g_k
-    (fun k _ ω => hgk_in k ω) (fun k _ => hgk_out k)
-  have hlhs_eq :
-      ((M + 1 : ℕ) : ℝ) *
-        (∫ ω, ∫ σ, (f ω σ) ^ 2 ∂(Measure.pi fun _ : Fin 2 => ν_s ω) ∂P) =
-      ((M + 1 : ℕ) : ℝ) *
-        ∫ ω, ∫ σ, g_k (Fin.last M) ω σ ∂(Measure.pi fun _ : Fin 2 => ν_s ω) ∂P := by
-    have h1 : (∫ ω, ∫ σ, ∑ k : Fin (M + 1), g_k k ω σ ∂(Measure.pi fun _ : Fin 2 => ν_s ω) ∂P) =
-        ((M + 1 : ℕ) : ℝ) * ∫ ω, ∫ σ, (f ω σ) ^ 2 ∂(Measure.pi fun _ : Fin 2 => ν_s ω) ∂P := by
-      simp_rw [hsum_pt, integral_const_mul]
-    have h2 : (∑ k : Fin (M + 1),
-        ∫ ω, ∫ σ, g_k k ω σ ∂(Measure.pi fun _ : Fin 2 => ν_s ω) ∂P) =
-        ((M + 1 : ℕ) : ℝ) *
-          ∫ ω, ∫ σ, g_k (Fin.last M) ω σ ∂(Measure.pi fun _ : Fin 2 => ν_s ω) ∂P := by
-      simp_rw [hsym, Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
-    exact h1.symm.trans (hsum_int.trans h2)
-  have hM1_ne : ((M + 1 : ℕ) : ℝ) ≠ 0 := Nat.cast_ne_zero.2 (Nat.succ_ne_zero M)
   have hf2_eq_gk :
       (∫ ω, ∫ σ, (f ω σ) ^ 2 ∂(Measure.pi fun _ : Fin 2 => ν_s ω) ∂P) =
       ∫ ω, ∫ σ, g_k (Fin.last M) ω σ ∂(Measure.pi fun _ : Fin 2 => ν_s ω) ∂P :=
-    mul_left_cancel₀ hM1_ne hlhs_eq
+    integral_empirical_variance_sq_eq_last_row hu hB hD₁ s q r
   -- Now bound `g_k (Fin.last M) ω σ ≤ (α U_M - r) fMinus + (α |D₁|² + |r|) |D₁|² / (N + 1)`!
   let g_minus (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ))
       (σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) : ℝ :=
@@ -1148,23 +1001,10 @@ theorem integral_pi_interpVar_last_split_eq.{uR}
   rw [← hmp_dis.integral_comp_of_aestronglyMeasurable hIm.aestronglyMeasurable]
   refine integral_congr_ae (ae_of_all _ fun ω => ?_)
   dsimp only [I_fn, Function.comp_apply]
-  have hEs_slice : Measurable (E_s ω) := by
-    refine (Finset.measurable_sum _ fun k _ => hu.comp ?_).add ?_
-    · refine (((Finset.measurable_sum _ fun i _ =>
-        measurable_const.mul (measurable_units_cast.comp
-          ((measurable_pi_apply i).comp measurable_fst))).const_mul _).const_mul _).add
-        ((measurable_const.add
-          (((measurable_pi_apply k).comp measurable_snd).const_mul _)).const_mul _)
-    · exact Finset.measurable_sum _ fun i _ =>
-        (((measurable_units_cast.comp
-          ((measurable_pi_apply i).comp measurable_fst)).mul_const _).mul_const _).mul_const _
-  have hEs_bd (x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) :
-      E_s ω x ≤ (M + 1 : ℕ) * B + ∑ i : Fin (N + 1), |Real.sqrt (1 - s) * ω.2 i * Real.sqrt r| := by
-    refine add_le_add ((Finset.sum_le_sum fun _ _ => hB _).trans_eq (by simp))
-      (Finset.sum_le_sum fun i _ => (le_abs_self _).trans ?_)
-    rw [abs_mul, abs_mul, abs_mul, abs_units_cast_eq_one, one_mul, abs_mul, abs_mul]
   have hprob_ω : IsProbabilityMeasure (μ_s.tilted (E_s ω)) :=
-    isProbabilityMeasure_tilted_of_ae_le hEs_slice.aemeasurable (ae_of_all _ hEs_bd)
+    isProbabilityMeasure_tilted_interpEnergy (L := N + 1) hu hB s q r ω
+  have hEs_slice : Measurable (E_s ω) :=
+    measurable_interpEnergy_slice (L := N + 1) (M := M + 1) hu s q r ω
   have hX₁_eq (x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) :
       X₁ (splitΩ ω).2 (interpStateLastSplit (N + 1) M x) =
       Real.sqrt s * ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 (Fin.last M) i * ((x.1 i : ℤ) : ℝ)) +
@@ -1623,26 +1463,9 @@ private theorem exists_empirical_variance_cross_term_le (D : ℝ) :
   rw [hw_eq, hu_eq, h1_eq, h2_eq, hov_eq] at hcav_raw
   have hP₁_prob : IsProbabilityMeasure P₁ := by dsimp only [P₁, γ]; infer_instance
   have hEs_joint := measurable_interpEnergy_joint (L := N + 1) (M := M + 1) hu.measurable s q r
-  have hEs_slice (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ)) :
-      Measurable (E_s ω) := by
-    refine (Finset.measurable_sum _ fun k _ => hu.measurable.comp ?_).add ?_
-    · refine (((Finset.measurable_sum _ fun i _ =>
-        measurable_const.mul (measurable_units_cast.comp
-          ((measurable_pi_apply i).comp measurable_fst))).const_mul _).const_mul _).add
-        ((measurable_const.add
-          (((measurable_pi_apply k).comp measurable_snd).const_mul _)).const_mul _)
-    · exact Finset.measurable_sum _ fun i _ =>
-        (((measurable_units_cast.comp
-          ((measurable_pi_apply i).comp measurable_fst)).mul_const _).mul_const _).mul_const _
   have hν_prob (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ)) :
-      IsProbabilityMeasure (ν_s ω) := by
-    have hbd (x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) :
-        E_s ω x ≤ (M + 1 : ℕ) * |D| +
-          ∑ i : Fin (N + 1), |Real.sqrt (1 - s) * ω.2 i * Real.sqrt r| := by
-      refine add_le_add ((Finset.sum_le_sum fun _ _ => hD_le _).trans_eq (by simp))
-        (Finset.sum_le_sum fun i _ => (le_abs_self _).trans ?_)
-      rw [abs_mul, abs_mul, abs_mul, abs_units_cast_eq_one, one_mul, abs_mul, abs_mul]
-    exact isProbabilityMeasure_tilted_of_ae_le (hEs_slice ω).aemeasurable (ae_of_all _ hbd)
+      IsProbabilityMeasure (ν_s ω) :=
+    isProbabilityMeasure_tilted_interpEnergy (L := N + 1) hu.measurable hD_le s q r ω
   have hfMinus_b (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ))
       (σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) :
       |fMinus ω σ| ≤ 2 * α * |D| ^ 2 := by
@@ -1683,16 +1506,8 @@ private theorem exists_empirical_variance_cross_term_le (D : ℝ) :
       _ = 2 * α * |D| ^ 4 := by ring
   have hS_slice (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ))
       (k : Fin (M + 1)) :
-      Measurable fun x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ) => S_fn ω x k := by
-    have h1 : Measurable fun x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ) =>
-        ∑ i : Fin (N + 1), ω.1.1 k i * ((x.1 i : ℤ) : ℝ) :=
-      Finset.measurable_sum _ fun i _ =>
-        measurable_const.mul
-          (measurable_units_cast.comp ((measurable_pi_apply i).comp measurable_fst))
-    have h2 : Measurable fun x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ) => x.2 k :=
-      (measurable_pi_apply k).comp measurable_snd
-    exact ((h1.const_mul _).const_mul _).add
-      ((measurable_const.add (h2.const_mul _)).const_mul _)
+      Measurable fun x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ) => S_fn ω x k :=
+    measurable_interpField_slice (L := N + 1) (M := M + 1) s q ω k
   have hUk_slice (k : Fin (M + 1))
       (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ)) :
       Measurable fun σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ) =>
@@ -1842,15 +1657,8 @@ private lemma integral_empirical_variance_minus_le_add
   have hP₁_prob : IsProbabilityMeasure P₁ := by dsimp only [P₁, γ]; infer_instance
   have hEs_joint := measurable_interpEnergy_joint (L := N + 1) (M := M + 1) hu s q r
   have hν_prob (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ)) :
-      IsProbabilityMeasure (ν_s ω) := by
-    have hbd (x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) :
-        E_s ω x ≤ (M + 1 : ℕ) * B +
-          ∑ i : Fin (N + 1), |Real.sqrt (1 - s) * ω.2 i * Real.sqrt r| := by
-      refine add_le_add ((Finset.sum_le_sum fun _ _ => hB _).trans_eq (by simp))
-        (Finset.sum_le_sum fun i _ => (le_abs_self _).trans ?_)
-      rw [abs_mul, abs_mul, abs_mul, abs_units_cast_eq_one, one_mul, abs_mul, abs_mul]
-    exact isProbabilityMeasure_tilted_of_ae_le
-      (Measurable.of_uncurry_left hEs_joint).aemeasurable (ae_of_all _ hbd)
+      IsProbabilityMeasure (ν_s ω) :=
+    isProbabilityMeasure_tilted_interpEnergy (L := N + 1) hu hB s q r ω
   have hUk_joint (k : Fin (M + 1)) :
       Measurable fun p : (((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) ×
           (Fin (N + 1) → ℝ)) × (Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) =>

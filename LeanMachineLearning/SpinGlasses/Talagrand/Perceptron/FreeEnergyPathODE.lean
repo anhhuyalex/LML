@@ -41,7 +41,7 @@ $$\mathrm{RS}(s) = \mathrm{perceptronRSFunctional}(u, \alpha, r, q) +
 
 @[expose] public section
 
-open MeasureTheory ProbabilityTheory Set Filter Finset
+open MeasureTheory ProbabilityTheory Set Filter
 open scoped BigOperators NNReal ENNReal Topology
 
 namespace SpinGlasses
@@ -940,8 +940,8 @@ private lemma polynomial_power_shift_bounds (A₀ a L : ℝ) (hL : 0 < L) (m : �
       (∀ t, |deriv G t| ≤ ((m : ℝ) * L⁻¹ *
           (2 ^ (m - 1) * (|A₀ - a| ^ (m - 1) + (L⁻¹) ^ (m - 1) * (Nat.factorial (m - 1) : ℝ)))) *
         Real.exp |t|) ∧
-      (∀ B ≥ 0, ∀ t ∈ Icc (-B) B, |G t| ≤ (|A₀ - a| + L⁻¹ * B) ^ m) ∧
-      (∀ B ≥ 0, ∀ t ∈ Icc (-B) B,
+      (∀ {B : ℝ}, 0 ≤ B → ∀ t ∈ Icc (-B) B, |G t| ≤ (|A₀ - a| + L⁻¹ * B) ^ m) ∧
+      (∀ {B : ℝ}, 0 ≤ B → ∀ t ∈ Icc (-B) B,
         |deriv G t| ≤ (m : ℝ) * L⁻¹ * (|A₀ - a| + L⁻¹ * B) ^ (m - 1)) := by
   intro G
   have hhd : ∀ t : ℝ, HasDerivAt G ((m : ℝ) * L⁻¹ * (A₀ + L⁻¹ * t - a) ^ (m - 1)) t := by
@@ -969,7 +969,7 @@ private lemma polynomial_power_shift_bounds (A₀ a L : ℝ) (hL : 0 < L) (m : �
               (pow_le_pow_right₀ one_le_two (Nat.sub_le p 1)) (by positivity)
     have hexp_ge1 : 1 ≤ Real.exp |t| := Real.one_le_exp (abs_nonneg t)
     have hfac := abs_pow_le_factorial_mul_exp_abs p t
-    rw [mul_pow, abs_abs] at h1 ⊢
+    rw [mul_pow] at h1
     calc |A₀ + L⁻¹ * t - a| ^ p
         ≤ 2 ^ p * (|A₀ - a| ^ p * 1 + (L⁻¹) ^ p * |t| ^ p) := by linarith
       _ ≤ 2 ^ p * (|A₀ - a| ^ p * Real.exp |t| +

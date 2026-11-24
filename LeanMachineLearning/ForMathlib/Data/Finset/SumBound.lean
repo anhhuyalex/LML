@@ -41,6 +41,19 @@ theorem abs_sum_le_card_mul_of_abs_le {ι : Type*} [Fintype ι] (f : ι → ℝ)
     (h : ∀ i, |f i| ≤ C) : |∑ i, f i| ≤ (Fintype.card ι : ℝ) * C := by
   simpa using abs_sum_sub_card_mul_le_of_abs_sub_le f 0 C (by simpa using h)
 
+/-- **Normalized partial sums of bounded terms.** For `f` bounded by `c` on `Fin (L + 1)`, the
+`(L + 1)⁻¹`-normalized sum over any subset `S` is bounded by `c`. -/
+theorem abs_inv_card_mul_sum_le {L : ℕ} (S : Finset (Fin (L + 1))) {f : Fin (L + 1) → ℝ} {c : ℝ}
+    (hf : ∀ i, |f i| ≤ c) : |((L + 1 : ℕ) : ℝ)⁻¹ * ∑ i ∈ S, f i| ≤ c := by
+  have hc : 0 ≤ c := (abs_nonneg _).trans (hf 0)
+  have hL : (0 : ℝ) < ((L + 1 : ℕ) : ℝ) := by positivity
+  have hcard : (S.card : ℝ) ≤ ((L + 1 : ℕ) : ℝ) := by
+    exact_mod_cast (S.card_le_univ).trans_eq (Fintype.card_fin _)
+  rw [abs_mul, abs_of_pos (inv_pos.2 hL), inv_mul_le_iff₀ hL]
+  calc |∑ i ∈ S, f i| ≤ ∑ _i ∈ S, c := abs_sum_le_sum_of_abs_le S fun i _ => hf i
+    _ = (S.card : ℝ) * c := by rw [sum_const, nsmul_eq_mul]
+    _ ≤ ((L + 1 : ℕ) : ℝ) * c := mul_le_mul_of_nonneg_right hcard hc
+
 /-- **A replica combination of bounded terms:** if `|f j| ≤ b` for all `j` and `|g| ≤ b`, then
 `|∑ⱼ f j - |ι| g| ≤ 2 |ι| b`. -/
 theorem abs_sum_sub_card_mul_le_of_abs_le {ι : Type*} [Fintype ι] (f : ι → ℝ) (g b : ℝ)

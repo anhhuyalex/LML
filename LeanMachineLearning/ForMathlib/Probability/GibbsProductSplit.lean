@@ -25,19 +25,14 @@ namespace MeasureTheory
 
 variable {α : Type*} [MeasurableSpace α] {N : ℕ}
 
-/-- The map `σ ↦ (σ last, σ ∘ castSucc)` is measure preserving for i.i.d. sites. -/
-theorem measurePreserving_piFinSuccLast (μ : Measure α) [IsProbabilityMeasure μ] :
-    MeasurePreserving (MeasurableEquiv.piFinSuccAbove (fun _ : Fin (N + 1) => α) (Fin.last N))
-      (Measure.pi fun _ : Fin (N + 1) => μ) (μ.prod (Measure.pi fun _ : Fin N => μ)) :=
-  measurePreserving_piFinSuccAbove (fun _ : Fin (N + 1) => μ) (Fin.last N)
-
 /-- Splitting off the last site of an i.i.d. configuration. -/
 theorem integral_pi_succ_last (μ : Measure α) [IsProbabilityMeasure μ]
     (G : α × (Fin N → α) → ℝ) :
     ∫ σ : Fin (N + 1) → α, G (σ (Fin.last N), fun j => σ j.castSucc)
         ∂(Measure.pi fun _ : Fin (N + 1) => μ) =
       ∫ p, G p ∂(μ.prod (Measure.pi fun _ : Fin N => μ)) := by
-  have h := (measurePreserving_piFinSuccLast (N := N) μ).integral_comp' (g := G)
+  have h := (measurePreserving_piFinSuccAbove (fun _ : Fin (N + 1) => μ) (Fin.last N)).integral_comp'
+    (g := G)
   have he : ∀ σ : Fin (N + 1) → α,
       MeasurableEquiv.piFinSuccAbove (fun _ : Fin (N + 1) => α) (Fin.last N) σ =
         (σ (Fin.last N), fun j => σ j.castSucc) := fun σ =>

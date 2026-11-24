@@ -890,20 +890,7 @@ private theorem integral_secondProof_stein
     rw [Real.norm_eq_abs]
     exact abs_integral_le_of_forall_abs_le _ fun σ => by
       rw [abs_mul, abs_mul, sq]
-      have hd_ov : |(((N : ℝ) + 1)⁻¹ * ∑ i,
-          (((σ (some ())).1 i : ℤ) : ℝ) * (((σ none).1 i : ℤ) : ℝ)) - q| ≤ 2 := by
-        have h1 : |((N : ℝ) + 1)⁻¹ * ∑ i,
-            (((σ (some ())).1 i : ℤ) : ℝ) * (((σ none).1 i : ℤ) : ℝ)| ≤ 1 := by
-          rw [abs_mul, abs_inv, abs_of_pos (by positivity : (0 : ℝ) < (N : ℝ) + 1)]
-          have hs_b : |∑ i : Fin (N + 1),
-              (((σ (some ())).1 i : ℤ) : ℝ) * (((σ none).1 i : ℤ) : ℝ)| ≤ (N : ℝ) + 1 :=
-            ((Finset.abs_sum_le_card_mul_of_abs_le _ (C := 1) fun i => by
-              rw [abs_mul, abs_units_cast_eq_one, abs_units_cast_eq_one, mul_one]).trans_eq
-              (by simp))
-          exact (inv_mul_le_iff₀ (by positivity)).2 (by linarith)
-        have h2 := abs_sub (((N : ℝ) + 1)⁻¹ * ∑ i,
-          (((σ (some ())).1 i : ℤ) : ℝ) * (((σ none).1 i : ℤ) : ℝ)) q
-        rw [abs_of_nonneg hq.1] at h2; linarith [hq.2]
+      have hd_ov := abs_spin_overlap_sub_le_two hq (σ (some ())).1 (σ none).1
       calc _ ≤ 2 * |D₁| * |D₁| :=
             mul_le_mul (mul_le_mul hd_ov (hu.abs_deriv_le_abs _)
               (abs_nonneg _) zero_le_two) (hu.abs_deriv_le_abs _)

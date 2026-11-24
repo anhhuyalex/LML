@@ -127,6 +127,16 @@ theorem abs_units_cast_mul_sub_le_two (u v : ℤˣ) {q : ℝ} (hq : q ∈ Set.Ic
     rw [hx, abs_of_nonneg hq.1]
     exact ((add_le_add_right hq.2 1).trans_eq one_add_one_eq_two))
 
+/-- The normalized overlap of two `(N + 1)`-spin configurations differs from any `q ∈ [0, 1]` by at
+most two. -/
+theorem abs_spin_overlap_sub_le_two {N : ℕ} {q : ℝ} (hq : q ∈ Set.Icc (0 : ℝ) 1)
+    (x y : Fin (N + 1) → ℤˣ) :
+    |((N : ℝ) + 1)⁻¹ * ∑ i, ((x i : ℤ) : ℝ) * ((y i : ℤ) : ℝ) - q| ≤ 2 := by
+  have h := abs_card_inv_mul_dotProduct_sub_le_two (fun i => ((x i : ℤ) : ℝ))
+    (fun i => ((y i : ℤ) : ℝ)) (fun i => abs_units_cast_le_one _)
+    (fun i => abs_units_cast_le_one _) q hq
+  simpa [dotProduct, Fintype.card_fin] using h
+
 /-- The coordinates of a hypercube configuration square to `1`. -/
 theorem units_cast_sq (u : ℤˣ) : ((u : ℤ) : ℝ) ^ 2 = 1 := by
   rcases Int.units_eq_one_or u with h | h <;> simp [h]

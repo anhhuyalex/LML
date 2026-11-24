@@ -937,6 +937,15 @@ private lemma measurable_interpFieldDeriv_joint {L M : ℕ} (s q : ℝ) (k : Fin
   exact ((hg_sum.const_mul _).const_mul _).sub
     (((hzk.const_mul _).add (hξk.const_mul _)).const_mul _)
 
+/-- For a fixed disorder `ω`, the `k`-th interpolating field is measurable in the state. -/
+lemma measurable_interpField_slice {L M : ℕ} (s q : ℝ) (ω : ((Fin M → Fin L → ℝ) × (Fin M → ℝ)) ×
+    (Fin L → ℝ)) (k : Fin M) :
+    Measurable fun x : (Fin L → ℤˣ) × (Fin M → ℝ) =>
+      Real.sqrt s * ((Real.sqrt (L : ℕ))⁻¹ * ∑ i, ω.1.1 k i * ((x.1 i : ℤ) : ℝ)) +
+        Real.sqrt (1 - s) * (Real.sqrt q * ω.1.2 k + Real.sqrt (1 - q) * x.2 k) :=
+  (measurable_interpField_joint (L := L) (M := M) s q k).comp
+    (measurable_const (a := ω) |>.prodMk measurable_id)
+
 /-- The `k`-th interpolating field of replica `l` is jointly measurable in the disorder and the
 replica tuple. -/
 lemma measurable_interpField_replica_joint {L M : ℕ} (s q : ℝ) (k : Fin M) (l : Fin 2) :
@@ -966,6 +975,19 @@ lemma measurable_interpEnergy_joint {L M : ℕ} {u : ℝ → ℝ} (hu : Measurab
       ((Fin L → ℤˣ) × (Fin M → ℝ)) => p.1.2 i :=
     (measurable_pi_apply i).comp (measurable_snd.comp measurable_fst)
   exact ((hσi.mul_const _).mul hz'i).mul_const _
+
+/-- For a fixed disorder `ω`, the interpolating energy is measurable in the state. -/
+lemma measurable_interpEnergy_slice {L M : ℕ} {u : ℝ → ℝ} (hu : Measurable u) (s q r : ℝ)
+    (ω : ((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) :
+    Measurable fun x : (Fin L → ℤˣ) × (Fin M → ℝ) =>
+      (∑ k : Fin M, u (Real.sqrt s *
+          ((Real.sqrt (L : ℕ))⁻¹ * ∑ i, ω.1.1 k i * ((x.1 i : ℤ) : ℝ)) +
+        Real.sqrt (1 - s) * (Real.sqrt q * ω.1.2 k + Real.sqrt (1 - q) * x.2 k))) +
+      ∑ i : Fin L, ((x.1 i : ℤ) : ℝ) * Real.sqrt (1 - s) * ω.2 i * Real.sqrt r :=
+  (Finset.measurable_sum _ fun k _ => hu.comp (measurable_interpField_slice s q ω k)).add
+    (Finset.measurable_sum _ fun i _ =>
+      (((measurable_units_cast.comp
+        ((measurable_pi_apply i).comp measurable_fst)).mul_const _).mul_const _).mul_const _)
 
 /-- **Gaussian IBP on the external field `z'_i` (`r ≥ 0`, `s < 1`):**
 `(N + 1)⁻¹ ν_s((2 √(1 - s))⁻¹ ∑ᵢ σᵢ z'ᵢ √r) = (r / 2)(1 - ν_s(R_{1,2}))`. -/
@@ -1331,7 +1353,8 @@ lemma interpConstraintStateSwap_symm_apply {L M : ℕ} (k₁ k₂ : Fin M)
     (x : (Fin L → ℤˣ) × (Fin M → ℝ)) :
     (interpConstraintStateSwap k₁ k₂).symm x = (x.1, fun k => x.2 (Equiv.swap k₁ k₂ k)) := rfl
 
-private lemma interpEnergy_le {L M : ℕ} {u : ℝ → ℝ} {B : ℝ} (hB : ∀ x, u x ≤ B)
+/-- Upper bound on the `s`-interpolating energy: `(M · B + ∑ᵢ |√(1 - s) z'ᵢ √r|)` when `u ≤ B`. -/
+lemma interpEnergy_le {L M : ℕ} {u : ℝ → ℝ} {B : ℝ} (hB : ∀ x, u x ≤ B)
     (s q r : ℝ)
     (ω : ((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ))
     (x : (Fin L → ℤˣ) × (Fin M → ℝ)) :
@@ -1343,6 +1366,21 @@ private lemma interpEnergy_le {L M : ℕ} {u : ℝ → ℝ} {B : ℝ} (hB : ∀ 
   refine add_le_add ((Finset.sum_le_sum fun _ _ => hB _).trans_eq (by simp))
     (Finset.sum_le_sum fun i _ => (le_abs_self _).trans ?_)
   rw [abs_mul, abs_mul, abs_mul, abs_units_cast_eq_one, one_mul, abs_mul, abs_mul]
+
+/-- The Gibbs measure of the `s`-interpolating energy is a probability measure when `u` is
+measurable and bounded above. -/
+lemma isProbabilityMeasure_tilted_interpEnergy {L M : ℕ} {u : ℝ → ℝ} (hu : Measurable u) {B : ℝ}
+    (hB : ∀ x, u x ≤ B) (s q r : ℝ) (ω : ((Fin M → Fin L → ℝ) × (Fin M → ℝ)) × (Fin L → ℝ)) :
+    IsProbabilityMeasure (((Measure.count : Measure (Fin L → ℤˣ)).prod
+      (Measure.pi fun _ : Fin M => gaussianReal 0 1)).tilted
+      fun x : (Fin L → ℤˣ) × (Fin M → ℝ) =>
+        (∑ k : Fin M, u (Real.sqrt s *
+            ((Real.sqrt (L : ℕ))⁻¹ * ∑ i, ω.1.1 k i * ((x.1 i : ℤ) : ℝ)) +
+          Real.sqrt (1 - s) * (Real.sqrt q * ω.1.2 k + Real.sqrt (1 - q) * x.2 k))) +
+        ∑ i : Fin L, ((x.1 i : ℤ) : ℝ) * Real.sqrt (1 - s) * ω.2 i * Real.sqrt r) :=
+  isProbabilityMeasure_tilted_of_ae_le
+    (measurable_interpEnergy_slice hu s q r ω).aemeasurable
+    (ae_of_all _ fun x => interpEnergy_le hB s q r ω x)
 
 /-- **Splitting the `(M + 1)`-constraint `s`-interpolating disorder into the `M`-constraint
 disorder and the last constraint's shared Gaussian vector `(g_M, z_M) : (Fin L ⊕ Unit) → ℝ`.** -/
@@ -1811,21 +1849,7 @@ private lemma measurable_and_integrable_interp_stein_split
     rw [Real.norm_eq_abs]
     exact abs_integral_le_of_forall_abs_le _ fun σ => by
       rw [abs_mul, abs_mul, sq]
-      have hd_ov : |(((N : ℝ) + 1)⁻¹ * ∑ i,
-          (((σ (some ())).1.1 i : ℤ) : ℝ) * (((σ none).1.1 i : ℤ) : ℝ)) - q| ≤ 2 := by
-        have h1 : |((N : ℝ) + 1)⁻¹ * ∑ i,
-            (((σ (some ())).1.1 i : ℤ) : ℝ) * (((σ none).1.1 i : ℤ) : ℝ)| ≤ 1 := by
-          rw [abs_mul, abs_inv, abs_of_pos (by positivity : (0 : ℝ) < (N : ℝ) + 1)]
-          have hs_b : |∑ i : Fin (N + 1),
-              (((σ (some ())).1.1 i : ℤ) : ℝ) * (((σ none).1.1 i : ℤ) : ℝ)| ≤ (N : ℝ) + 1 := by
-            refine ((Finset.abs_sum_le_card_mul_of_abs_le _ (C := 1) fun i => ?_).trans_eq ?_)
-            · rw [abs_mul, abs_units_cast_eq_one, abs_units_cast_eq_one, mul_one]
-            · simp
-          exact (inv_mul_le_iff₀ (by positivity)).2 (by linarith)
-        have h2 := abs_sub (((N : ℝ) + 1)⁻¹ * ∑ i,
-          (((σ (some ())).1.1 i : ℤ) : ℝ) * (((σ none).1.1 i : ℤ) : ℝ)) q
-        rw [abs_of_nonneg hq.1] at h2
-        linarith [hq.2]
+      have hd_ov := abs_spin_overlap_sub_le_two hq (σ (some ())).1.1 (σ none).1.1
       calc _ ≤ 2 * |D₁| * |D₁| :=
             mul_le_mul (mul_le_mul hd_ov (hu.abs_deriv_le_abs _)
               (abs_nonneg _) zero_le_two) (hu.abs_deriv_le_abs _)

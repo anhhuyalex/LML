@@ -38,15 +38,6 @@ namespace SpinGlasses
 
 /-! ### Elementary partial-sum bounds and permutation symmetry on `Finset.Ici n` -/
 
-/-- Each spin-product deviation `σ₀_i σ₁_i - q` has modulus at most `2` when `q ∈ [0, 1]`. -/
-private lemma abs_spin_mul_sub_le_two {q : ℝ} (hq : q ∈ Icc (0 : ℝ) 1) (a b : ℤˣ) :
-    |((a : ℤ) : ℝ) * ((b : ℤ) : ℝ) - q| ≤ 2 := by
-  have h1 : |((a : ℤ) : ℝ) * ((b : ℤ) : ℝ)| = 1 := by
-    rw [abs_mul, abs_units_cast_eq_one, abs_units_cast_eq_one, mul_one]
-  have h2 := abs_sub (((a : ℤ) : ℝ) * ((b : ℤ) : ℝ)) q
-  rw [h1, abs_of_nonneg hq.1] at h2
-  linarith [hq.2]
-
 /-- Any partial sum `((N + 1)⁻¹) * ∑ i ∈ S, (σ₀_i σ₁_i - q)` over a subset `S ⊆ Finset.univ` of
 `Fin (N + 1)` has modulus at most `2` when `q ∈ [0, 1]`. -/
 private lemma abs_partial_overlap_sub_le_two {N : ℕ} {q : ℝ} (hq : q ∈ Icc (0 : ℝ) 1)
@@ -62,7 +53,7 @@ private lemma abs_partial_overlap_sub_le_two {N : ℕ} {q : ℝ} (hq : q ∈ Icc
         mul_le_mul_of_nonneg_left (Finset.abs_sum_le_sum_abs _ _) (by positivity)
     _ ≤ ((N : ℝ) + 1)⁻¹ * ∑ _i ∈ S, (2 : ℝ) :=
         mul_le_mul_of_nonneg_left (Finset.sum_le_sum fun i _ =>
-          abs_spin_mul_sub_le_two hq (x i) (y i)) (by positivity)
+          abs_units_cast_mul_sub_le_two (x i) (y i) hq) (by positivity)
     _ = ((N : ℝ) + 1)⁻¹ * (2 * (S.card : ℝ)) := by
         rw [Finset.sum_const, nsmul_eq_mul]; ring
     _ ≤ ((N : ℝ) + 1)⁻¹ * (2 * ((N : ℝ) + 1)) :=
@@ -677,7 +668,7 @@ private lemma integral_interpolating_partial_overlap_step_lt
       dsimp only [f_diff, H_dom]
       rw [abs_mul]
       have heps : |(((a 0).2 : ℤ) : ℝ) * (((a 1).2 : ℤ) : ℝ) - q| ≤ 2 :=
-        abs_spin_mul_sub_le_two hq_mem (a 0).2 (a 1).2
+        abs_units_cast_mul_sub_le_two (a 0).2 (a 1).2 hq_mem
       have hsub_le : |A_sp a - A'_old (fun l => (a l).1)| ≤ 2 / L := by
         rw [hA_diff a, abs_mul, abs_of_pos (inv_pos.2 hL)]
         calc L⁻¹ * |(((a 0).2 : ℤ) : ℝ) * (((a 1).2 : ℤ) : ℝ) - q|
@@ -839,7 +830,7 @@ private lemma integral_interpolating_partial_overlap_step_lt
       dsimp only [f_sp]
       rw [abs_mul, abs_pow]
       have heps : |(((a 0).2 : ℤ) : ℝ) * (((a 1).2 : ℤ) : ℝ) - q| ≤ 2 :=
-        abs_spin_mul_sub_le_two hq_mem (a 0).2 (a 1).2
+        abs_units_cast_mul_sub_le_two (a 0).2 (a 1).2 hq_mem
       have h1 : (|(((a 0).2 : ℤ) : ℝ) * (((a 1).2 : ℤ) : ℝ) - q| * |A_sp a| ^ (2 * k + 1)) ^ τ₁ ≤
           (2 * |A_sp a| ^ (2 * k + 1)) ^ τ₁ :=
         Real.rpow_le_rpow (by positivity)
@@ -938,7 +929,7 @@ private lemma integral_interpolating_partial_overlap_step_lt
       dsimp only [f_sp]
       rw [abs_mul, abs_pow, pow_succ, Even.pow_abs ⟨k, by ring⟩]
       have heps : |(((a 0).2 : ℤ) : ℝ) * (((a 1).2 : ℤ) : ℝ) - q| ≤ 2 :=
-        abs_spin_mul_sub_le_two hq_mem (a 0).2 (a 1).2
+        abs_units_cast_mul_sub_le_two (a 0).2 (a 1).2 hq_mem
       have hA_le2 : |A_sp a| ≤ 2 :=
         abs_partial_overlap_sub_le_two hq_mem (Finset.Ici n) (snoc_pair a 0) (snoc_pair a 1)
       have hAn_nn : 0 ≤ A_sp a ^ (2 * k) := Even.pow_nonneg ⟨k, by ring⟩ _
@@ -1164,7 +1155,7 @@ private lemma integral_interpolating_partial_overlap_pow_le_succ_constraints
               abs_of_pos (inv_pos.2 (by positivity : (0 : ℝ) < (N : ℝ) + 1))]
             calc ((N : ℝ) + 1)⁻¹ * |((x (Fin.last N) : ℤ) : ℝ) * ((y (Fin.last N) : ℤ) : ℝ) - q|
                 ≤ ((N : ℝ) + 1)⁻¹ * 2 :=
-                  mul_le_mul_of_nonneg_left (abs_spin_mul_sub_le_two hq_mem _ _) (by positivity)
+                  mul_le_mul_of_nonneg_left (abs_units_cast_mul_sub_le_two _ _ hq_mem) (by positivity)
               _ = 2 / ((N : ℝ) + 1) := by ring
           have hsq : A_fn (Fin.last N) x y ^ 2 ≤ 64 * ((k' + 1 : ℕ) : ℝ) / ((N : ℝ) + 1) := by
             rw [← sq_abs]
@@ -1507,15 +1498,7 @@ theorem integral_interpolating_exp_overlap_sub_sq_le (D : ℝ) :
   have hd_le4 (τ : Fin 2 → Fin (N + 1) → ℤˣ) : d_pair τ ≤ 4 := by
     dsimp only [d_pair]
     rw [← sq_abs]
-    have habs : |((N : ℝ) + 1)⁻¹ * ∑ i, ((τ 0 i : ℤ) : ℝ) * ((τ 1 i : ℤ) : ℝ) - q| ≤ 2 := by
-      have h1 := abs_partial_overlap_sub_le_two hq_mem Finset.univ (τ 0) (τ 1)
-      have heq : ((N : ℝ) + 1)⁻¹ * ∑ i ∈ Finset.univ, (((τ 0 i : ℤ) : ℝ) * ((τ 1 i : ℤ) : ℝ) - q) =
-          ((N : ℝ) + 1)⁻¹ * ∑ i, ((τ 0 i : ℤ) : ℝ) * ((τ 1 i : ℤ) : ℝ) - q := by
-        rw [Finset.sum_sub_distrib, Finset.sum_const, Finset.card_univ, Fintype.card_fin,
-          nsmul_eq_mul]
-        have hL_ne : ((N : ℝ) + 1) ≠ 0 := by positivity
-        push_cast; field_simp
-      rwa [heq] at h1
+    have habs := abs_spin_overlap_sub_le_two hq_mem (τ 0) (τ 1)
     calc |((N : ℝ) + 1)⁻¹ * ∑ i, ((τ 0 i : ℤ) : ℝ) * ((τ 1 i : ℤ) : ℝ) - q| ^ 2
         ≤ 2 ^ 2 := pow_le_pow_left₀ (abs_nonneg _) habs 2
       _ = 4 := by norm_num
