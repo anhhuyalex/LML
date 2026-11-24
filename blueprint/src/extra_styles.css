@@ -40,3 +40,33 @@ span.expand-remark {
 div.remark_thmcontent {
 	border-left: .08rem solid grey;
 }
+
+
+/* Use the available width. The stock theme caps the text column at 75ch, which is too narrow
+ * for this blueprint's long display equations and leaves a large empty margin on wide screens. */
+div.content-wrapper {
+	max-width: min(130ch, 100%);
+}
+
+@media (min-width: 1024px) {
+	div.content-wrapper {
+		margin-left: 0;
+		margin-right: 0;
+		flex: 1 1 auto;
+	}
+}
+
+/* Wide display equations: scroll horizontally instead of being clipped. `safe center` centres a
+ * short equation but left-aligns one that overflows, so its beginning stays reachable. */
+div.displaymath {
+	display: flex;
+	justify-content: safe center;
+	overflow-x: auto;
+	overflow-y: hidden;
+	max-width: 100%;
+}
+
+div.displaymath mjx-container[display="true"] {
+	max-width: none;
+	margin: 0.5em 0;
+}

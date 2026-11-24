@@ -1176,9 +1176,10 @@ In the variable $t=\cos^2 s$ (with $t=1$ the SK end) this is Talagrand's Eq.~(1.
 \talsource{Lemma~1.4.5, Eq.~(1.98); Corollary~1.4.6, Eq.~(1.100); the $n=2$ derivative is Eq.~(1.97)}
 Let $\mu$ be a Gibbs measure on a finite set $\alpha$, $A : \alpha\times\alpha\to[0,\infty)$ symmetric with constant diagonal, $U(\sigma,\tau) = -\kappa (A(\sigma,\tau) - c)$ with $\kappa\ge0$, and $u\ge 0$.
 Let $\mu=\mu_f$ be the Gibbs measure of an energy $f:\alpha\to\mathbb R$, i.e.\ $\mu(\sigma)\propto e^{f(\sigma)}$, and $\Phi(\sigma^1,\sigma^2) = \exp(u A(\sigma^1,\sigma^2))$. Writing $\tau=(\sigma^1,\sigma^2,\sigma^3,\sigma^4)$ for the four replicas indexed by $\mathrm{Option}(\mathrm{Option}\,\mathrm{Fin}\,2)$, the combination of Lemma~\ref{lem:sg-tal:replica-deriv} (for $n=2$) and the moving-observable term for $u'=8\kappa\sin s\cos s$ is nonnegative:
-\[
-\int \Phi(\sigma^1,\sigma^2)\Big(\sum_{\ell,\ell'\le2} U(\sigma^\ell,\sigma^{\ell'}) - 4\sum_{\ell\le2} U(\sigma^\ell,\sigma^{3}) - 2\,U(\sigma^{3},\sigma^{3}) + 6\,U(\sigma^{3},\sigma^{4})\Big)\,d\mu^{\otimes4} + 8\kappa\int A(\sigma^1,\sigma^2)\,\Phi(\sigma^1,\sigma^2)\,d\mu^{\otimes2} \ge 0 .
-\]
+\begin{align*}
+&\int \Phi(\sigma^1,\sigma^2)\Big(\sum_{\ell,\ell'\le2} U(\sigma^\ell,\sigma^{\ell'}) - 4\sum_{\ell\le2} U(\sigma^\ell,\sigma^{3}) - 2\,U(\sigma^{3},\sigma^{3}) + 6\,U(\sigma^{3},\sigma^{4})\Big)\,d\mu^{\otimes4}\\
+&\qquad{}+ 8\kappa\int A(\sigma^1,\sigma^2)\,\Phi(\sigma^1,\sigma^2)\,d\mu^{\otimes2} \ge 0 .
+\end{align*}
 (For $A=(R_{1,2}-q)^2$ this contains the book's Lemma~1.4.5 and Corollary~1.4.6; see Remark~\ref{rem:sg-tal:dev-14}.)
 \end{lemma}
 \begin{proof}
@@ -6132,12 +6133,12 @@ monotonicity of the integral.
   \leanok
 \talsource{Section~1.8, proof of Proposition~1.8.7 (the technique ``replace each occurrence of $\mathbf b$ by a replica never used before'')}
 Let $\mu$ be a Gibbs measure on $\{\pm1\}^M$ (the tilt of the counting measure by any energy $A$), $b_i=\langle\sigma_i\rangle$ and $C_{ij}=\langle\sigma_i\sigma_j\rangle-b_ib_j$.  Then
-\[
+\begin{align*}
 \Bigl\langle\Bigl(\tfrac1M\sum_i(\sigma^1_i-b_i)(\sigma^2_i-b_i)\Bigr)^2\Bigr\rangle
-=\frac1{M^2}\sum_{i,j}C_{ij}^2=
-\Bigl\langle\tfrac1M(\boldsymbol\sigma^1-\boldsymbol\sigma^2)\cdot(\boldsymbol\sigma^4-\boldsymbol\sigma^5)\;
+&=\frac1{M^2}\sum_{i,j}C_{ij}^2\\
+&=\Bigl\langle\tfrac1M(\boldsymbol\sigma^1-\boldsymbol\sigma^2)\cdot(\boldsymbol\sigma^4-\boldsymbol\sigma^5)\;
 \tfrac1M(\boldsymbol\sigma^1-\boldsymbol\sigma^3)\cdot(\boldsymbol\sigma^4-\boldsymbol\sigma^6)\Bigr\rangle,
-\]
+\end{align*}
 the left side over two independent replicas and the right side over six.  The left side is the Gibbs average of $T_{1,2}^2$ of Eq.~(1.245).  The same identity holds after averaging over any disorder $\eta$ with energies $E_\eta$ and means $b_\eta$.  The right side has the shape of Proposition~1.8.5 (with $f=R_{1,4}-R_{1,6}-R_{3,4}+R_{3,6}$ after relabelling), which is what the remaining proof of Proposition~1.8.7 will use.
 \end{theorem}
 \begin{proof}
@@ -11389,10 +11390,10 @@ Hence the exponent equals $\frac{\beta^2}4n(N-n)+\frac{\beta^2}{2N}\sum_{\ell<\e
 \exp\Big(\frac{\beta^2}{2N}\sum_{\ell<\ell'}(\sigma^\ell\cdot\sigma^{\ell'})^2\Big)=\mathbb E_x\exp\Big(\frac\beta{\sqrt N}\sum_{\ell<\ell'}x_{\ell\ell'}\,\sigma^\ell\cdot\sigma^{\ell'}\Big).
 \]
 \emph{Step 4 (the sum over $\sigma$ factorizes over the sites).} Since $\sigma^\ell\cdot\sigma^{\ell'}=\sum_i\sigma^\ell_i\sigma^{\ell'}_i$,
-\[
-\sum_{\sigma^1,\dots,\sigma^n}\exp\Big(\sum_i\Big[\tfrac\beta{\sqrt N}\sum_{\ell<\ell'}x_{\ell\ell'}\sigma^\ell_i\sigma^{\ell'}_i+h\sum_\ell\sigma^\ell_i\Big]\Big)
-=\Big(\sum_{\varepsilon\in\{\pm1\}^n}\exp\Big(\tfrac\beta{\sqrt N}\sum_{\ell<\ell'}x_{\ell\ell'}\varepsilon_\ell\varepsilon_{\ell'}+h\sum_\ell\varepsilon_\ell\Big)\Big)^N=e^{NA(x/\sqrt N)} .
-\]
+\begin{align*}
+&\sum_{\sigma^1,\dots,\sigma^n}\exp\Big(\sum_i\Big[\tfrac\beta{\sqrt N}\sum_{\ell<\ell'}x_{\ell\ell'}\sigma^\ell_i\sigma^{\ell'}_i+h\sum_\ell\sigma^\ell_i\Big]\Big)\\
+&\qquad=\Big(\sum_{\varepsilon\in\{\pm1\}^n}\exp\Big(\tfrac\beta{\sqrt N}\sum_{\ell<\ell'}x_{\ell\ell'}\varepsilon_\ell\varepsilon_{\ell'}+h\sum_\ell\varepsilon_\ell\Big)\Big)^N=e^{NA(x/\sqrt N)} .
+\end{align*}
 Combining Steps~1--4 gives $\mathbb EZ_N^n=\exp\big(\frac{\beta^2}4n(N-n)\big)\,\mathbb E\exp\big(NA(x/\sqrt N)\big)$.
 \end{proof}
 
@@ -11401,10 +11402,11 @@ Combining Steps~1--4 gives $\mathbb EZ_N^n=\exp\big(\frac{\beta^2}4n(N-n)\big)\,
 \leanok
 \talsource{Lemma~1.13.4, Eq.~(1.400); source lines 5800--5827}
 For real $a_1,a_2,g$,
-\[
-\operatorname{ch}a_1\operatorname{ch}a_2\operatorname{ch}g+\operatorname{sh}a_1\operatorname{sh}a_2\operatorname{sh}g\le
+\begin{align*}
+&\operatorname{ch}a_1\operatorname{ch}a_2\operatorname{ch}g+\operatorname{sh}a_1\operatorname{sh}a_2\operatorname{sh}g\\
+&\qquad\le
 \bigl(\operatorname{ch}^2a_1\operatorname{ch}|g|+\operatorname{sh}^2a_1\operatorname{sh}|g|\bigr)^{1/2}\bigl(\operatorname{ch}^2a_2\operatorname{ch}|g|+\operatorname{sh}^2a_2\operatorname{sh}|g|\bigr)^{1/2}.
-\]
+\end{align*}
 If equality holds and $g\ne0$, then $a_1=a_2$ for $g>0$ and $a_1=-a_2$ for $g<0$. The same holds for weighted sums $\sum_s w_s(\cdots)$ with positive weights, with the conclusion at every $s$.
 \end{lemma}
 \begin{proof}
