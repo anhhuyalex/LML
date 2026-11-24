@@ -1596,177 +1596,56 @@ private theorem interp_field_deriv_stein_fixed_disorder
     (fun τ₁ τ₂ => (((N : ℝ) + 1)⁻¹ * ∑ i, ((τ₁ i : ℤ) : ℝ) * ((τ₂ i : ℤ) : ℝ)) - q)
     (interp_stein_cov_shared hs hq.1) (interp_stein_cov_diag hs hq)
 
-/-- **Last-constraint Gaussian IBP and measure transport for (2.82).** Splitting `(M + 1)`
-constraints into the `M` old constraints and `Fin.last M`, transporting the disorder and state,
-and applying `interp_field_deriv_stein_fixed_disorder` yields Eq. (2.82) at `Fin.last M`. -/
-private theorem integral_interpolating_field_deriv_ibp_last
+/-- **Measurability and product-disorder integrability of the split Stein integrands for
+(2.82).** -/
+private lemma measurable_and_integrable_interp_stein_split
     {N M : ℕ} {u : ℝ → ℝ} {B D₁ D₂ : ℝ} (hu : SmartPathPotential₂ u B D₁ D₂)
-    {q : ℝ} (hq : q ∈ Icc (0 : ℝ) 1) (r : ℝ) {s : ℝ} (hs : s ∈ Ioo (0 : ℝ) 1) :
-    let P_g := Measure.pi fun _ : Fin (M + 1) =>
-      Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1
-    let P_z := Measure.pi fun _ : Fin (M + 1) => gaussianReal 0 1
-    let P_z' := Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1
-    let P := (P_g.prod P_z).prod P_z'
-    let μ_s := (Measure.count : Measure (Fin (N + 1) → ℤˣ)).prod
-      (Measure.pi fun _ : Fin (M + 1) => gaussianReal 0 1)
-    let S_fn (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ))
-        (x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) (k' : Fin (M + 1)) : ℝ :=
-      Real.sqrt s * ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 k' i * ((x.1 i : ℤ) : ℝ)) +
-        Real.sqrt (1 - s) * (Real.sqrt q * ω.1.2 k' + Real.sqrt (1 - q) * x.2 k')
-    let S'_fn (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ))
-        (x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) (k' : Fin (M + 1)) : ℝ :=
-      (1 / (2 * Real.sqrt s)) *
-          ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 k' i * ((x.1 i : ℤ) : ℝ)) -
-        (1 / (2 * Real.sqrt (1 - s))) * (Real.sqrt q * ω.1.2 k' + Real.sqrt (1 - q) * x.2 k')
-    let E_s (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ))
-        (x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) : ℝ :=
-      (∑ k' : Fin (M + 1), u (S_fn ω x k')) +
-        ∑ i : Fin (N + 1), ((x.1 i : ℤ) : ℝ) * Real.sqrt (1 - s) * ω.2 i * Real.sqrt r
-    ∫ ω, ∫ x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ),
-        S'_fn ω x (Fin.last M) * deriv u (S_fn ω x (Fin.last M)) ∂(μ_s.tilted (E_s ω)) ∂P =
-      -(1 / 2) * ∫ ω, ∫ σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ),
-        ((((N : ℝ) + 1)⁻¹ * ∑ i, (((σ 0).1 i : ℤ) : ℝ) * (((σ 1).1 i : ℤ) : ℝ)) - q) *
-          deriv u (S_fn ω (σ 0) (Fin.last M)) * deriv u (S_fn ω (σ 1) (Fin.last M))
-        ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s ω)) ∂P := by
-  intro P_g P_z P_z' P μ_s S_fn S'_fn E_s
-  have hEm_joint {M' : ℕ} : Measurable fun p :
-      (((Fin M' → Fin (N + 1) → ℝ) × (Fin M' → ℝ)) × (Fin (N + 1) → ℝ)) ×
-        ((Fin (N + 1) → ℤˣ) × (Fin M' → ℝ)) =>
-      (∑ k' : Fin M', u (Real.sqrt s *
-          ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, p.1.1.1 k' i * ((p.2.1 i : ℤ) : ℝ)) +
-        Real.sqrt (1 - s) * (Real.sqrt q * p.1.1.2 k' + Real.sqrt (1 - q) * p.2.2 k'))) +
-      ∑ i : Fin (N + 1), ((p.2.1 i : ℤ) : ℝ) * Real.sqrt (1 - s) * p.1.2 i * Real.sqrt r :=
-    measurable_interpEnergy_joint (L := N + 1) (M := M') hu.measurable s q r
-  let P₀ := (((Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1).prod
-    (Measure.pi fun _ : Fin M => gaussianReal 0 1)).prod
-    (Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1))
-  let μ₀_base := (Measure.count : Measure (Fin (N + 1) → ℤˣ)).prod
-    (Measure.pi fun _ : Fin M => gaussianReal 0 1)
-  let E₀ (ω₀ : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
-      (x₀ : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : ℝ :=
-    (∑ k' : Fin M, u (Real.sqrt s *
-        ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω₀.1.1 k' i * ((x₀.1 i : ℤ) : ℝ)) +
-      Real.sqrt (1 - s) * (Real.sqrt q * ω₀.1.2 k' + Real.sqrt (1 - q) * x₀.2 k'))) +
-    ∑ i : Fin (N + 1), ((x₀.1 i : ℤ) : ℝ) * Real.sqrt (1 - s) * ω₀.2 i * Real.sqrt r
-  let μ₀ (ω₀ : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) :=
-    μ₀_base.tilted (E₀ ω₀)
-  let γ_sh := Measure.pi fun _ : Fin (N + 1) ⊕ Unit => gaussianReal 0 1
-  let γ_aux := Measure.pi fun _ : Unit => gaussianReal 0 1
-  let α_sh (τ : Fin (N + 1) → ℤˣ) : (Fin (N + 1) ⊕ Unit) → ℝ :=
-    Sum.elim (fun i => Real.sqrt s * (Real.sqrt (N + 1 : ℕ))⁻¹ * ((τ i : ℤ) : ℝ))
-      (fun _ => Real.sqrt (1 - s) * Real.sqrt q)
-  let W_sh (τ : Fin (N + 1) → ℤˣ) : (Fin (N + 1) ⊕ Unit) → ℝ :=
-    Sum.elim (fun i => (1 / (2 * Real.sqrt s)) * (Real.sqrt (N + 1 : ℕ))⁻¹ * ((τ i : ℤ) : ℝ))
-      (fun _ => -(1 / (2 * Real.sqrt (1 - s))) * Real.sqrt q)
-  let α_aux (_ : Fin (N + 1) → ℤˣ) : Unit → ℝ := fun _ => Real.sqrt (1 - s) * Real.sqrt (1 - q)
-  let W_aux (_ : Fin (N + 1) → ℤˣ) : Unit → ℝ :=
-    fun _ => -(1 / (2 * Real.sqrt (1 - s))) * Real.sqrt (1 - q)
-  have hstein_ω₀ := fun ω₀ =>
-    interp_field_deriv_stein_fixed_disorder (N := N) (M := M) hu hq r hs ω₀
-  -- First build the equivalence between `Option Unit` and `Fin 2`:
-  let e_opt2 : Option Unit ≃ Fin 2 :=
-    { toFun := fun o => match o with | some () => 0 | none => 1
-      invFun := fun i => if i = 0 then some () else none
-      left_inv := fun o => by cases o <;> simp
-      right_inv := fun i => by fin_cases i <;> simp }
-  -- Transport `((μ₀ ω₀).prod γ_aux).tilted (...)` to `μ_s.tilted (E_s ω)` via `e_st_u`!
-  let e_u : ℝ ≃ᵐ (Unit → ℝ) := (MeasurableEquiv.funUnique Unit ℝ).symm
-  have hmp_u : MeasurePreserving ⇑e_u (gaussianReal 0 1) γ_aux :=
-    (measurePreserving_funUnique (gaussianReal 0 1) Unit).symm
-  let e_st : ((Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) ≃ᵐ
-      ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) :=
-    (interpStateLastSplit (N + 1) M).trans
-      (MeasurableEquiv.prodCongr (MeasurableEquiv.refl _) e_u)
-  have hmp_st : MeasurePreserving ⇑e_st μ_s (μ₀_base.prod γ_aux) :=
-    ((MeasurePreserving.id μ₀_base).prod hmp_u).comp
-      (measurePreserving_interpStateLastSplit (N + 1) M)
-  have he_st_apply (x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) :
-      e_st x = ((x.1, Fin.init x.2), fun _ => x.2 (Fin.last M)) := by
-    change (MeasurableEquiv.prodCongr (MeasurableEquiv.refl _) e_u
-      (interpStateLastSplit (N + 1) M x)) = _
-    rw [interpStateLastSplit_apply]
-    rfl
-  let splitΩ (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ)) :
-      (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-        ((Fin (N + 1) ⊕ Unit) → ℝ) :=
-    (((Fin.init ω.1.1, Fin.init ω.1.2), ω.2),
-      Sum.elim (ω.1.1 (Fin.last M)) (fun _ => ω.1.2 (Fin.last M)))
-  have hmp_dis := measurePreserving_interpConstraintDisorder_lastSplit (N + 1) M
-  have hS_last_eq (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ))
-      (x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) :
-      α_sh (e_st x).1.1 ⬝ᵥ (splitΩ ω).2 + α_aux (e_st x).1.1 ⬝ᵥ (e_st x).2 =
-      S_fn ω x (Fin.last M) := by
-    rw [he_st_apply]
-    dsimp only [α_sh, α_aux, splitΩ, S_fn]
-    rw [sumElim_dotProduct_sumElim]
-    simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton, Finset.mul_sum]
-    have h1 : (∑ i : Fin (N + 1),
-        Real.sqrt s * (Real.sqrt (N + 1 : ℕ))⁻¹ * ((x.1 i : ℤ) : ℝ) *
-          ω.1.1 (Fin.last M) i) =
-      ∑ i : Fin (N + 1),
-        Real.sqrt s * ((Real.sqrt (N + 1 : ℕ))⁻¹ *
-          (ω.1.1 (Fin.last M) i * ((x.1 i : ℤ) : ℝ))) :=
-      Finset.sum_congr rfl fun _ _ => by ring
-    rw [h1]; ring
-  have hS'_last_eq (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ))
-      (x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) :
-      W_sh (e_st x).1.1 ⬝ᵥ (splitΩ ω).2 + W_aux (e_st x).1.1 ⬝ᵥ (e_st x).2 =
-      S'_fn ω x (Fin.last M) := by
-    rw [he_st_apply]
-    dsimp only [W_sh, W_aux, splitΩ, S'_fn]
-    rw [sumElim_dotProduct_sumElim]
-    simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton, Finset.mul_sum]
-    have h1 : (∑ i : Fin (N + 1),
-        (1 / (2 * Real.sqrt s)) * (Real.sqrt (N + 1 : ℕ))⁻¹ * ((x.1 i : ℤ) : ℝ) *
-          ω.1.1 (Fin.last M) i) =
-      ∑ i : Fin (N + 1),
-        (1 / (2 * Real.sqrt s)) * ((Real.sqrt (N + 1 : ℕ))⁻¹ *
-          (ω.1.1 (Fin.last M) i * ((x.1 i : ℤ) : ℝ))) :=
-      Finset.sum_congr rfl fun _ _ => by ring
-    rw [h1]; ring
-  have htilted_st (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ)) :
-      (μ_s.tilted (E_s ω)).map e_st =
-      ((μ₀ (splitΩ ω).1).prod γ_aux).tilted
-        (fun y => u (α_sh y.1.1 ⬝ᵥ (splitΩ ω).2 + α_aux y.1.1 ⬝ᵥ y.2)) := by
-    rw [map_tilted_measurableEquiv e_st hmp_st (Measurable.of_uncurry_left hEm_joint)]
-    have hE₀_int : Integrable (fun x₀ => Real.exp (E₀ (splitΩ ω).1 x₀)) μ₀_base :=
-      integrable_exp_of_ae_le
-        (Measurable.of_uncurry_left hEm_joint).aemeasurable
-        (ae_of_all _ (interpEnergy_le (fun x => hu.le x) s q r (splitΩ ω).1))
-    have hcomb : ((μ₀ (splitΩ ω).1).prod γ_aux).tilted
-        (fun y => u (α_sh y.1.1 ⬝ᵥ (splitΩ ω).2 + α_aux y.1.1 ⬝ᵥ y.2)) =
-        (μ₀_base.prod γ_aux).tilted
-          (fun y => E₀ (splitΩ ω).1 y.1 + u (α_sh y.1.1 ⬝ᵥ (splitΩ ω).2 + α_aux y.1.1 ⬝ᵥ y.2)) := by
-      rw [← tilted_prod_comp_fst, tilted_tilted (hE₀_int.comp_fst γ_aux)]
-      rfl
-    rw [hcomb]
-    congr 1; funext y
-    obtain ⟨x, rfl⟩ := e_st.surjective y
-    dsimp only [Function.comp_apply]
-    rw [MeasurableEquiv.symm_apply_apply, hS_last_eq ω x, he_st_apply]
-    dsimp only [E_s, E₀, splitΩ, S_fn]
-    rw [Fin.sum_univ_castSucc]
-    simp only [Fin.init_def]
-    ring
-  -- Now define `I_L (ω₀, w)` and `I_R (ω₀, w)` on `P₀.prod γ_sh`, prove their integrability on
-  -- `P₀.prod γ_sh` by pulling back from `P` via `hmp_dis` (or bounding directly on `P₀.prod γ_sh`),
-  -- and use Fubini (`integral_prod`)!
-  let I_L (p : (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-      ((Fin (N + 1) ⊕ Unit) → ℝ)) : ℝ :=
-    ∫ σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ),
-      1 * (W_sh (σ ()).1.1 ⬝ᵥ p.2 + W_aux (σ ()).1.1 ⬝ᵥ (σ ()).2) *
-        (∏ r_u : Unit, deriv u (α_sh (σ r_u).1.1 ⬝ᵥ p.2 + α_aux (σ r_u).1.1 ⬝ᵥ (σ r_u).2))
-      ∂(Measure.pi fun _ : Unit => ((μ₀ p.1).prod γ_aux).tilted
-        (fun y => u (α_sh y.1.1 ⬝ᵥ p.2 + α_aux y.1.1 ⬝ᵥ y.2)))
-  let I_R (p : (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-      ((Fin (N + 1) ⊕ Unit) → ℝ)) : ℝ :=
-    ∫ σ : Option Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ),
-      ((((N : ℝ) + 1)⁻¹ * ∑ i,
-          (((σ (some ())).1.1 i : ℤ) : ℝ) * (((σ none).1.1 i : ℤ) : ℝ)) - q) *
-        deriv u (α_sh (σ (some ())).1.1 ⬝ᵥ p.2 + α_aux (σ (some ())).1.1 ⬝ᵥ (σ (some ())).2) *
-        deriv u (α_sh (σ none).1.1 ⬝ᵥ p.2 + α_aux (σ none).1.1 ⬝ᵥ (σ none).2)
-      ∂(Measure.pi fun _ : Option Unit => ((μ₀ p.1).prod γ_aux).tilted
-        (fun y => u (α_sh y.1.1 ⬝ᵥ p.2 + α_aux y.1.1 ⬝ᵥ y.2)))
+    {q : ℝ} (hq : q ∈ Icc (0 : ℝ) 1) (r s : ℝ) :
+    let P₀ :=
+      (((Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1).prod
+      (Measure.pi fun _ : Fin M => gaussianReal 0 1)).prod
+      (Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1))
+    let μ₀_base := (Measure.count : Measure (Fin (N + 1) → ℤˣ)).prod
+      (Measure.pi fun _ : Fin M => gaussianReal 0 1)
+    let E₀ (ω₀ : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
+        (x₀ : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : ℝ :=
+      (∑ k' : Fin M, u (Real.sqrt s *
+          ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω₀.1.1 k' i * ((x₀.1 i : ℤ) : ℝ)) +
+        Real.sqrt (1 - s) * (Real.sqrt q * ω₀.1.2 k' + Real.sqrt (1 - q) * x₀.2 k'))) +
+      ∑ i : Fin (N + 1), ((x₀.1 i : ℤ) : ℝ) * Real.sqrt (1 - s) * ω₀.2 i * Real.sqrt r
+    let μ₀ (ω₀ : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) :=
+      μ₀_base.tilted (E₀ ω₀)
+    let γ_sh := Measure.pi fun _ : Fin (N + 1) ⊕ Unit => gaussianReal 0 1
+    let γ_aux := Measure.pi fun _ : Unit => gaussianReal 0 1
+    let α_sh (τ : Fin (N + 1) → ℤˣ) : (Fin (N + 1) ⊕ Unit) → ℝ :=
+      Sum.elim (fun i => Real.sqrt s * (Real.sqrt (N + 1 : ℕ))⁻¹ * ((τ i : ℤ) : ℝ))
+        (fun _ => Real.sqrt (1 - s) * Real.sqrt q)
+    let W_sh (τ : Fin (N + 1) → ℤˣ) : (Fin (N + 1) ⊕ Unit) → ℝ :=
+      Sum.elim (fun i => (1 / (2 * Real.sqrt s)) * (Real.sqrt (N + 1 : ℕ))⁻¹ * ((τ i : ℤ) : ℝ))
+        (fun _ => -(1 / (2 * Real.sqrt (1 - s))) * Real.sqrt q)
+    let α_aux (_ : Fin (N + 1) → ℤˣ) : Unit → ℝ := fun _ => Real.sqrt (1 - s) * Real.sqrt (1 - q)
+    let W_aux (_ : Fin (N + 1) → ℤˣ) : Unit → ℝ :=
+      fun _ => -(1 / (2 * Real.sqrt (1 - s))) * Real.sqrt (1 - q)
+    let I_L (p : (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
+        ((Fin (N + 1) ⊕ Unit) → ℝ)) : ℝ :=
+      ∫ σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ),
+        1 * (W_sh (σ ()).1.1 ⬝ᵥ p.2 + W_aux (σ ()).1.1 ⬝ᵥ (σ ()).2) *
+          (∏ r_u : Unit, deriv u (α_sh (σ r_u).1.1 ⬝ᵥ p.2 + α_aux (σ r_u).1.1 ⬝ᵥ (σ r_u).2))
+        ∂(Measure.pi fun _ : Unit => ((μ₀ p.1).prod γ_aux).tilted
+          (fun y => u (α_sh y.1.1 ⬝ᵥ p.2 + α_aux y.1.1 ⬝ᵥ y.2)))
+    let I_R (p : (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
+        ((Fin (N + 1) ⊕ Unit) → ℝ)) : ℝ :=
+      ∫ σ : Option Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ),
+        ((((N : ℝ) + 1)⁻¹ * ∑ i,
+            (((σ (some ())).1.1 i : ℤ) : ℝ) * (((σ none).1.1 i : ℤ) : ℝ)) - q) *
+          deriv u (α_sh (σ (some ())).1.1 ⬝ᵥ p.2 + α_aux (σ (some ())).1.1 ⬝ᵥ (σ (some ())).2) *
+          deriv u (α_sh (σ none).1.1 ⬝ᵥ p.2 + α_aux (σ none).1.1 ⬝ᵥ (σ none).2)
+        ∂(Measure.pi fun _ : Option Unit => ((μ₀ p.1).prod γ_aux).tilted
+          (fun y => u (α_sh y.1.1 ⬝ᵥ p.2 + α_aux y.1.1 ⬝ᵥ y.2)))
+    Measurable I_L ∧ Measurable I_R ∧ Integrable I_L (P₀.prod γ_sh) ∧
+      Integrable I_R (P₀.prod γ_sh) := by
+  intro P₀ μ₀_base E₀ μ₀ γ_sh γ_aux α_sh W_sh α_aux W_aux I_L I_R
+  have hEm_joint := measurable_interpEnergy_joint (L := N + 1) (M := M) hu.measurable s q r
   have hE₀i_all (ω₀ : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) :
       Integrable (fun x₀ => Real.exp (E₀ ω₀ x₀)) μ₀_base :=
     integrable_exp_of_ae_le
@@ -1857,13 +1736,6 @@ private theorem integral_interpolating_field_deriv_ibp_last
       exact (hw1.add hw2).mul ((measurable_deriv u).comp (ha1.add ha2))
     exact measurable_integral_pi_tilted_prod_tilted μ₀_base γ_aux hEm_joint hE₀i_all hV_split_m hG_m
   have hIR_m : Measurable I_R := by
-    let F_R (p : (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-        ((Fin (N + 1) ⊕ Unit) → ℝ))
-        (σ : Option Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ)) : ℝ :=
-      ((((N : ℝ) + 1)⁻¹ * ∑ i,
-          (((σ (some ())).1.1 i : ℤ) : ℝ) * (((σ none).1.1 i : ℤ) : ℝ)) - q) *
-        deriv u (α_sh (σ (some ())).1.1 ⬝ᵥ p.2 + α_aux (σ (some ())).1.1 ⬝ᵥ (σ (some ())).2) *
-        deriv u (α_sh (σ none).1.1 ⬝ᵥ p.2 + α_aux (σ none).1.1 ⬝ᵥ (σ none).2)
     have hfl_o (o : Option Unit) : Measurable fun q_p :
         ((((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
           ((Fin (N + 1) ⊕ Unit) → ℝ)) ×
@@ -1917,7 +1789,360 @@ private theorem integral_interpolating_field_deriv_ibp_last
         (measurable_units_cast.comp ((measurable_pi_apply i).comp h_none))
     exact measurable_integral_pi_tilted_prod_tilted μ₀_base γ_aux hEm_joint hE₀i_all hV_split_m
       ((hR_o.mul (hfl_o (some ()))).mul (hfl_o none))
-  -- Pointwise correspondence `I_L (splitΩ ω) = LHS(ω)` and `I_R (splitΩ ω) = RHS(ω)`!
+  have hVp_m_all (p : (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
+      ((Fin (N + 1) ⊕ Unit) → ℝ)) :
+      Measurable (V_split p) := by
+    have ha1 : Measurable fun y : ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) =>
+        α_sh y.1.1 ⬝ᵥ p.2 :=
+      Finset.measurable_sum _ fun idx _ =>
+        ((measurable_of_finite fun τ => α_sh τ idx).comp
+          (measurable_fst.comp measurable_fst)).mul_const _
+    have ha2 : Measurable fun y : ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) =>
+        α_aux y.1.1 ⬝ᵥ y.2 := by
+      simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton]
+      exact measurable_const.mul ((measurable_pi_apply ()).comp measurable_snd)
+    exact hu.measurable.comp (ha1.add ha2)
+  have hIR_int : Integrable I_R (P₀.prod γ_sh) := by
+    refine Integrable.of_bound hIR_m.aestronglyMeasurable (2 * |D₁| ^ 2) (ae_of_all _ fun p => ?_)
+    have hμ₀_p : IsProbabilityMeasure (μ₀ p.1) := isProbabilityMeasure_tilted (hE₀i_all p.1)
+    have hprob_p : IsProbabilityMeasure (((μ₀ p.1).prod γ_aux).tilted (V_split p)) :=
+      isProbabilityMeasure_tilted_of_ae_le (hVp_m_all p).aemeasurable
+        (ae_of_all _ fun _ => hu.le _)
+    rw [Real.norm_eq_abs]
+    exact abs_integral_le_of_forall_abs_le _ fun σ => by
+      rw [abs_mul, abs_mul, sq]
+      have hd_ov : |(((N : ℝ) + 1)⁻¹ * ∑ i,
+          (((σ (some ())).1.1 i : ℤ) : ℝ) * (((σ none).1.1 i : ℤ) : ℝ)) - q| ≤ 2 := by
+        have h1 : |((N : ℝ) + 1)⁻¹ * ∑ i,
+            (((σ (some ())).1.1 i : ℤ) : ℝ) * (((σ none).1.1 i : ℤ) : ℝ)| ≤ 1 := by
+          rw [abs_mul, abs_inv, abs_of_pos (by positivity : (0 : ℝ) < (N : ℝ) + 1)]
+          have hs_b : |∑ i : Fin (N + 1),
+              (((σ (some ())).1.1 i : ℤ) : ℝ) * (((σ none).1.1 i : ℤ) : ℝ)| ≤ (N : ℝ) + 1 := by
+            refine ((Finset.abs_sum_le_card_mul_of_abs_le _ (C := 1) fun i => ?_).trans_eq ?_)
+            · rw [abs_mul, abs_units_cast_eq_one, abs_units_cast_eq_one, mul_one]
+            · simp
+          exact (inv_mul_le_iff₀ (by positivity)).2 (by linarith)
+        have h2 := abs_sub (((N : ℝ) + 1)⁻¹ * ∑ i,
+          (((σ (some ())).1.1 i : ℤ) : ℝ) * (((σ none).1.1 i : ℤ) : ℝ)) q
+        rw [abs_of_nonneg hq.1] at h2
+        linarith [hq.2]
+      calc _ ≤ 2 * |D₁| * |D₁| :=
+            mul_le_mul (mul_le_mul hd_ov (hu.abs_deriv_le_abs _)
+              (abs_nonneg _) zero_le_two) (hu.abs_deriv_le_abs _)
+              (abs_nonneg _) (by positivity)
+        _ = 2 * (|D₁| * |D₁|) := by ring
+  have hIL_int : Integrable I_L (P₀.prod γ_sh) := by
+    let c_sh : ℝ := max ((1 / (2 * Real.sqrt s)) * (Real.sqrt (N + 1 : ℕ))⁻¹)
+      ((1 / (2 * Real.sqrt (1 - s))) * Real.sqrt q)
+    let c_aux : ℝ := (1 / (2 * Real.sqrt (1 - s))) * Real.sqrt (1 - q)
+    have hc_sh0 : 0 ≤ c_sh := le_max_of_le_left (by positivity)
+    have hc_aux0 : 0 ≤ c_aux := by dsimp only [c_aux]; positivity
+    let dom_p (p : (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
+        ((Fin (N + 1) ⊕ Unit) → ℝ)) : ℝ :=
+      |D₁| * (c_sh * (∑ idx : Fin (N + 1) ⊕ Unit, |p.2 idx|) +
+        Real.exp (2 * |B|) * (c_aux * ∫ η : Unit → ℝ, |η ()| ∂γ_aux))
+    have hdom_i : Integrable dom_p (P₀.prod γ_sh) := by
+      refine (Integrable.add ?_ (integrable_const _)).const_mul |D₁|
+      refine (integrable_finsetSum _ fun idx _ => ?_).const_mul c_sh
+      exact (integrable_comp_eval (μ := fun _ : Fin (N + 1) ⊕ Unit => gaussianReal 0 1) (i := idx)
+        IsGaussian.integrable_id.abs).comp_snd _
+    refine hdom_i.mono' hIL_m.aestronglyMeasurable (ae_of_all _ fun p => ?_)
+    rw [Real.norm_eq_abs]
+    dsimp only [I_L]
+    have hμ₀_p : IsProbabilityMeasure (μ₀ p.1) := isProbabilityMeasure_tilted (hE₀i_all p.1)
+    let V_p := V_split p
+    have hVp_m : Measurable V_p := hVp_m_all p
+    have hprob_ν : IsProbabilityMeasure (((μ₀ p.1).prod γ_aux).tilted V_p) :=
+      isProbabilityMeasure_tilted_of_ae_le hVp_m.aemeasurable (ae_of_all _ fun _ => hu.le _)
+    have hpt_bd (σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ)) :
+        |1 * (W_sh (σ ()).1.1 ⬝ᵥ p.2 + W_aux (σ ()).1.1 ⬝ᵥ (σ ()).2) *
+          (∏ r_u : Unit, deriv u (α_sh (σ r_u).1.1 ⬝ᵥ p.2 + α_aux (σ r_u).1.1 ⬝ᵥ (σ r_u).2))| ≤
+        |D₁| * (c_sh * (∑ idx, |p.2 idx|) + c_aux * |(σ ()).2 ()|) := by
+      simp only [Finset.univ_unique, Finset.prod_singleton, one_mul]
+      rw [abs_mul, mul_comm _ |deriv u _|]
+      refine mul_le_mul (hu.abs_deriv_le_abs _) ?_ (abs_nonneg _) (abs_nonneg D₁)
+      refine (abs_add_le _ _).trans (add_le_add ?_ ?_)
+      · rw [Finset.mul_sum]
+        refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun idx _ => ?_)
+        rw [abs_mul]
+        refine mul_le_mul_of_nonneg_right ?_ (abs_nonneg _)
+        rcases idx with i | _
+        · dsimp only [W_sh]
+          rw [Sum.elim_inl, abs_mul, abs_units_cast_eq_one, mul_one,
+            abs_of_nonneg (by positivity)]
+          exact le_max_left _ _
+        · dsimp only [W_sh]
+          rw [Sum.elim_inr, neg_mul, abs_neg, abs_of_nonneg (by positivity)]
+          exact le_max_right _ _
+      · dsimp only [W_aux, c_aux]
+        simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton]
+        rw [neg_mul, abs_mul, abs_neg, abs_of_nonneg (by positivity)]
+    have hη_int : Integrable (fun y : ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) =>
+        |y.2 ()|) ((μ₀ p.1).prod γ_aux) :=
+      (integrable_comp_eval (μ := fun _ : Unit => gaussianReal 0 1) (i := ())
+        IsGaussian.integrable_id.abs).comp_snd _
+    have hη_tilted : Integrable
+        (fun σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) =>
+          |D₁| * (c_sh * (∑ idx, |p.2 idx|) + c_aux * |(σ ()).2 ()|))
+        (Measure.pi fun _ : Unit => ((μ₀ p.1).prod γ_aux).tilted V_p) := by
+      have hy_t := integrable_tilted_of_ae_le hVp_m.aemeasurable (ae_of_all _ fun _ => hu.le _)
+        hη_int
+      have hu_t := integrable_comp_eval
+        (μ := fun _ : Unit => ((μ₀ p.1).prod γ_aux).tilted V_p) (i := ()) hy_t
+      exact ((integrable_const _).add (hu_t.const_mul c_aux)).const_mul |D₁|
+    have hint_lhs : Integrable
+        (fun σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) =>
+          1 * (W_sh (σ ()).1.1 ⬝ᵥ p.2 + W_aux (σ ()).1.1 ⬝ᵥ (σ ()).2) *
+            (∏ r_u : Unit, deriv u (α_sh (σ r_u).1.1 ⬝ᵥ p.2 + α_aux (σ r_u).1.1 ⬝ᵥ (σ r_u).2)))
+        (Measure.pi fun _ : Unit => ((μ₀ p.1).prod γ_aux).tilted V_p) := by
+      have hm_σ : Measurable fun σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) =>
+          1 * (W_sh (σ ()).1.1 ⬝ᵥ p.2 + W_aux (σ ()).1.1 ⬝ᵥ (σ ()).2) *
+            (∏ r_u : Unit, deriv u (α_sh (σ r_u).1.1 ⬝ᵥ p.2 + α_aux (σ r_u).1.1 ⬝ᵥ (σ r_u).2)) := by
+        simp only [Finset.univ_unique, Finset.prod_singleton, one_mul]
+        have hw1 : Measurable fun σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) =>
+            W_sh (σ ()).1.1 ⬝ᵥ p.2 :=
+          Finset.measurable_sum _ fun idx _ =>
+            ((measurable_of_finite fun τ => W_sh τ idx).comp
+              (measurable_fst.comp (measurable_fst.comp (measurable_pi_apply ())))).mul_const _
+        have hw2 : Measurable fun σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) =>
+            W_aux (σ ()).1.1 ⬝ᵥ (σ ()).2 := by
+          simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton]
+          exact measurable_const.mul ((measurable_pi_apply ()).comp
+            (measurable_snd.comp (measurable_pi_apply ())))
+        have ha1 : Measurable fun σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) =>
+            α_sh (σ ()).1.1 ⬝ᵥ p.2 + α_aux (σ ()).1.1 ⬝ᵥ (σ ()).2 := by
+          have ha_sh : Measurable fun σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) =>
+              α_sh (σ ()).1.1 ⬝ᵥ p.2 :=
+            Finset.measurable_sum _ fun idx _ =>
+              ((measurable_of_finite fun τ => α_sh τ idx).comp
+                (measurable_fst.comp (measurable_fst.comp (measurable_pi_apply ())))).mul_const _
+          have ha_aux : Measurable fun σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) =>
+              α_aux (σ ()).1.1 ⬝ᵥ (σ ()).2 := by
+            simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton]
+            exact measurable_const.mul ((measurable_pi_apply ()).comp
+              (measurable_snd.comp (measurable_pi_apply ())))
+          exact ha_sh.add ha_aux
+        exact (hw1.add hw2).mul ((measurable_deriv u).comp ha1)
+      exact hη_tilted.mono' hm_σ.aestronglyMeasurable
+        (ae_of_all _ fun σ => by rw [Real.norm_eq_abs]; exact hpt_bd σ)
+    have h1 := (abs_integral_le_integral_abs).trans (integral_mono hint_lhs.abs hη_tilted hpt_bd)
+    have hy_t := integrable_tilted_of_ae_le hVp_m.aemeasurable (ae_of_all _ fun _ => hu.le _)
+      hη_int
+    have hu_t := integrable_comp_eval
+      (μ := fun _ : Unit => ((μ₀ p.1).prod γ_aux).tilted V_p) (i := ()) hy_t
+    have h2 : (∫ σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ),
+        |D₁| * (c_sh * (∑ idx, |p.2 idx|) + c_aux * |(σ ()).2 ()|)
+        ∂(Measure.pi fun _ : Unit => ((μ₀ p.1).prod γ_aux).tilted V_p)) =
+        |D₁| * (c_sh * (∑ idx, |p.2 idx|) +
+          c_aux * ∫ y, |y.2 ()| ∂(((μ₀ p.1).prod γ_aux).tilted V_p)) := by
+      rw [integral_const_mul, integral_add (integrable_const _) (hu_t.const_mul c_aux),
+        integral_const, probReal_univ, one_smul, integral_const_mul]
+      congr 3
+      exact (measurePreserving_funUnique (((μ₀ p.1).prod γ_aux).tilted V_p)
+        Unit).integral_comp_of_aestronglyMeasurable
+        ((measurable_pi_apply ()).comp measurable_snd).norm.aestronglyMeasurable
+    have hdom_y : ∫ y, |y.2 ()| ∂(((μ₀ p.1).prod γ_aux).tilted V_p) ≤
+        Real.exp (2 * |B|) * ∫ η : Unit → ℝ, |η ()| ∂γ_aux := by
+      have hd0 := integral_pi_tilted_le_exp_mul_of_abs_sub_le (ι := Unit)
+        (μ := (μ₀ p.1).prod γ_aux) (E₀ := 0) (E₁ := V_p)
+        (by simp : Integrable (fun _ => Real.exp 0) ((μ₀ p.1).prod γ_aux))
+        (hVp_m.sub measurable_const) (C := |B|)
+        (fun y => by simp only [Pi.zero_apply, sub_zero]; exact (hu.abs_le _).trans (le_abs_self B))
+        (Y := fun f_u : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) => |(f_u ()).2 ()|)
+        (fun _ => abs_nonneg _)
+        (by
+          rw [MeasureTheory.tilted_zero]
+          exact integrable_comp_eval (μ := fun _ : Unit => (μ₀ p.1).prod γ_aux) (i := ()) hη_int)
+      rw [MeasureTheory.tilted_zero] at hd0
+      simp only [Fintype.card_unique, Nat.cast_one, mul_one] at hd0
+      have hu1 : (∫ σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ), |(σ ()).2 ()|
+          ∂(Measure.pi fun _ : Unit => ((μ₀ p.1).prod γ_aux).tilted V_p)) =
+          ∫ y, |y.2 ()| ∂(((μ₀ p.1).prod γ_aux).tilted V_p) :=
+        (measurePreserving_funUnique (((μ₀ p.1).prod γ_aux).tilted V_p)
+          Unit).integral_comp_of_aestronglyMeasurable
+          (g := fun y : ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) => |y.2 ()|)
+          ((measurable_pi_apply ()).comp measurable_snd).norm.aestronglyMeasurable
+      have hu2 : (∫ σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ), |(σ ()).2 ()|
+          ∂(Measure.pi fun _ : Unit => (μ₀ p.1).prod γ_aux)) =
+          ∫ y, |y.2 ()| ∂((μ₀ p.1).prod γ_aux) :=
+        (measurePreserving_funUnique ((μ₀ p.1).prod γ_aux)
+          Unit).integral_comp_of_aestronglyMeasurable
+          (g := fun y : ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) => |y.2 ()|)
+          ((measurable_pi_apply ()).comp measurable_snd).norm.aestronglyMeasurable
+      have h_snd := integral_prod_fun_snd_of_isProbabilityMeasure (μ := μ₀ p.1) (ν := γ_aux)
+        (fun η : Unit → ℝ => |η ()|)
+      rw [hu1, hu2, h_snd] at hd0
+      exact hd0
+    rw [h2] at h1
+    refine h1.trans ?_
+    dsimp only [dom_p]
+    refine mul_le_mul_of_nonneg_left (add_le_add le_rfl ?_) (abs_nonneg D₁)
+    calc c_aux * ∫ y, |y.2 ()| ∂(((μ₀ p.1).prod γ_aux).tilted V_p)
+        ≤ c_aux * (Real.exp (2 * |B|) * ∫ η, |η ()| ∂γ_aux) :=
+          mul_le_mul_of_nonneg_left hdom_y hc_aux0
+      _ = Real.exp (2 * |B|) * (c_aux * ∫ η, |η ()| ∂γ_aux) := by ring
+  exact ⟨hIL_m, hIR_m, hIL_int, hIR_int⟩
+
+/-- **Last-constraint Gaussian IBP and measure transport for (2.82).** Splitting `(M + 1)`
+constraints into the `M` old constraints and `Fin.last M`, transporting the disorder and state,
+and applying `interp_field_deriv_stein_fixed_disorder` yields Eq. (2.82) at `Fin.last M`. -/
+private theorem integral_interpolating_field_deriv_ibp_last
+    {N M : ℕ} {u : ℝ → ℝ} {B D₁ D₂ : ℝ} (hu : SmartPathPotential₂ u B D₁ D₂)
+    {q : ℝ} (hq : q ∈ Icc (0 : ℝ) 1) (r : ℝ) {s : ℝ} (hs : s ∈ Ioo (0 : ℝ) 1) :
+    let P_g := Measure.pi fun _ : Fin (M + 1) =>
+      Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1
+    let P_z := Measure.pi fun _ : Fin (M + 1) => gaussianReal 0 1
+    let P_z' := Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1
+    let P := (P_g.prod P_z).prod P_z'
+    let μ_s := (Measure.count : Measure (Fin (N + 1) → ℤˣ)).prod
+      (Measure.pi fun _ : Fin (M + 1) => gaussianReal 0 1)
+    let S_fn (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ))
+        (x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) (k' : Fin (M + 1)) : ℝ :=
+      Real.sqrt s * ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 k' i * ((x.1 i : ℤ) : ℝ)) +
+        Real.sqrt (1 - s) * (Real.sqrt q * ω.1.2 k' + Real.sqrt (1 - q) * x.2 k')
+    let S'_fn (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ))
+        (x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) (k' : Fin (M + 1)) : ℝ :=
+      (1 / (2 * Real.sqrt s)) *
+          ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 k' i * ((x.1 i : ℤ) : ℝ)) -
+        (1 / (2 * Real.sqrt (1 - s))) * (Real.sqrt q * ω.1.2 k' + Real.sqrt (1 - q) * x.2 k')
+    let E_s (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ))
+        (x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) : ℝ :=
+      (∑ k' : Fin (M + 1), u (S_fn ω x k')) +
+        ∑ i : Fin (N + 1), ((x.1 i : ℤ) : ℝ) * Real.sqrt (1 - s) * ω.2 i * Real.sqrt r
+    ∫ ω, ∫ x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ),
+        S'_fn ω x (Fin.last M) * deriv u (S_fn ω x (Fin.last M)) ∂(μ_s.tilted (E_s ω)) ∂P =
+      -(1 / 2) * ∫ ω, ∫ σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ),
+        ((((N : ℝ) + 1)⁻¹ * ∑ i, (((σ 0).1 i : ℤ) : ℝ) * (((σ 1).1 i : ℤ) : ℝ)) - q) *
+          deriv u (S_fn ω (σ 0) (Fin.last M)) * deriv u (S_fn ω (σ 1) (Fin.last M))
+        ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s ω)) ∂P := by
+  intro P_g P_z P_z' P μ_s S_fn S'_fn E_s
+  have hEm_joint {M' : ℕ} :=
+    measurable_interpEnergy_joint (L := N + 1) (M := M') hu.measurable s q r
+  let P₀ :=
+    (((Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1).prod
+    (Measure.pi fun _ : Fin M => gaussianReal 0 1)).prod
+    (Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1))
+  let μ₀_base := (Measure.count : Measure (Fin (N + 1) → ℤˣ)).prod
+    (Measure.pi fun _ : Fin M => gaussianReal 0 1)
+  let E₀ (ω₀ : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
+      (x₀ : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : ℝ :=
+    (∑ k' : Fin M, u (Real.sqrt s *
+        ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω₀.1.1 k' i * ((x₀.1 i : ℤ) : ℝ)) +
+      Real.sqrt (1 - s) * (Real.sqrt q * ω₀.1.2 k' + Real.sqrt (1 - q) * x₀.2 k'))) +
+    ∑ i : Fin (N + 1), ((x₀.1 i : ℤ) : ℝ) * Real.sqrt (1 - s) * ω₀.2 i * Real.sqrt r
+  let μ₀ (ω₀ : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) :=
+    μ₀_base.tilted (E₀ ω₀)
+  let γ_sh := Measure.pi fun _ : Fin (N + 1) ⊕ Unit => gaussianReal 0 1
+  let γ_aux := Measure.pi fun _ : Unit => gaussianReal 0 1
+  let α_sh (τ : Fin (N + 1) → ℤˣ) : (Fin (N + 1) ⊕ Unit) → ℝ :=
+    Sum.elim (fun i => Real.sqrt s * (Real.sqrt (N + 1 : ℕ))⁻¹ * ((τ i : ℤ) : ℝ))
+      (fun _ => Real.sqrt (1 - s) * Real.sqrt q)
+  let W_sh (τ : Fin (N + 1) → ℤˣ) : (Fin (N + 1) ⊕ Unit) → ℝ :=
+    Sum.elim (fun i => (1 / (2 * Real.sqrt s)) * (Real.sqrt (N + 1 : ℕ))⁻¹ * ((τ i : ℤ) : ℝ))
+      (fun _ => -(1 / (2 * Real.sqrt (1 - s))) * Real.sqrt q)
+  let α_aux (_ : Fin (N + 1) → ℤˣ) : Unit → ℝ := fun _ => Real.sqrt (1 - s) * Real.sqrt (1 - q)
+  let W_aux (_ : Fin (N + 1) → ℤˣ) : Unit → ℝ :=
+    fun _ => -(1 / (2 * Real.sqrt (1 - s))) * Real.sqrt (1 - q)
+  obtain ⟨hIL_m, hIR_m, hIL_int, hIR_int⟩ :=
+    measurable_and_integrable_interp_stein_split (N := N) (M := M) hu hq r s
+  let I_L (p : (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
+      ((Fin (N + 1) ⊕ Unit) → ℝ)) : ℝ :=
+    ∫ σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ),
+      1 * (W_sh (σ ()).1.1 ⬝ᵥ p.2 + W_aux (σ ()).1.1 ⬝ᵥ (σ ()).2) *
+        (∏ r_u : Unit, deriv u (α_sh (σ r_u).1.1 ⬝ᵥ p.2 + α_aux (σ r_u).1.1 ⬝ᵥ (σ r_u).2))
+      ∂(Measure.pi fun _ : Unit => ((μ₀ p.1).prod γ_aux).tilted
+        (fun y => u (α_sh y.1.1 ⬝ᵥ p.2 + α_aux y.1.1 ⬝ᵥ y.2)))
+  let I_R (p : (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
+      ((Fin (N + 1) ⊕ Unit) → ℝ)) : ℝ :=
+    ∫ σ : Option Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ),
+      ((((N : ℝ) + 1)⁻¹ * ∑ i,
+          (((σ (some ())).1.1 i : ℤ) : ℝ) * (((σ none).1.1 i : ℤ) : ℝ)) - q) *
+        deriv u (α_sh (σ (some ())).1.1 ⬝ᵥ p.2 + α_aux (σ (some ())).1.1 ⬝ᵥ (σ (some ())).2) *
+        deriv u (α_sh (σ none).1.1 ⬝ᵥ p.2 + α_aux (σ none).1.1 ⬝ᵥ (σ none).2)
+      ∂(Measure.pi fun _ : Option Unit => ((μ₀ p.1).prod γ_aux).tilted
+        (fun y => u (α_sh y.1.1 ⬝ᵥ p.2 + α_aux y.1.1 ⬝ᵥ y.2)))
+  let e_opt2 : Option Unit ≃ Fin 2 :=
+    { toFun := fun o => match o with | some () => 0 | none => 1
+      invFun := fun i => if i = 0 then some () else none
+      left_inv := fun o => by cases o <;> simp
+      right_inv := fun i => by fin_cases i <;> simp }
+  let e_u : ℝ ≃ᵐ (Unit → ℝ) := (MeasurableEquiv.funUnique Unit ℝ).symm
+  have hmp_u : MeasurePreserving ⇑e_u (gaussianReal 0 1) γ_aux :=
+    (measurePreserving_funUnique (gaussianReal 0 1) Unit).symm
+  let e_st : ((Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) ≃ᵐ
+      ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) :=
+    (interpStateLastSplit (N + 1) M).trans
+      (MeasurableEquiv.prodCongr (MeasurableEquiv.refl _) e_u)
+  have hmp_st : MeasurePreserving ⇑e_st μ_s (μ₀_base.prod γ_aux) :=
+    ((MeasurePreserving.id μ₀_base).prod hmp_u).comp
+      (measurePreserving_interpStateLastSplit (N + 1) M)
+  have he_st_apply (x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) :
+      e_st x = ((x.1, Fin.init x.2), fun _ => x.2 (Fin.last M)) := by
+    change (MeasurableEquiv.prodCongr (MeasurableEquiv.refl _) e_u
+      (interpStateLastSplit (N + 1) M x)) = _
+    rw [interpStateLastSplit_apply]; rfl
+  let splitΩ (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ)) :
+      (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
+        ((Fin (N + 1) ⊕ Unit) → ℝ) :=
+    (((Fin.init ω.1.1, Fin.init ω.1.2), ω.2),
+      Sum.elim (ω.1.1 (Fin.last M)) (fun _ => ω.1.2 (Fin.last M)))
+  have hmp_dis := measurePreserving_interpConstraintDisorder_lastSplit (N + 1) M
+  have hS_last_eq (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ))
+      (x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) :
+      α_sh (e_st x).1.1 ⬝ᵥ (splitΩ ω).2 + α_aux (e_st x).1.1 ⬝ᵥ (e_st x).2 =
+      S_fn ω x (Fin.last M) := by
+    rw [he_st_apply]
+    dsimp only [α_sh, α_aux, splitΩ, S_fn]
+    rw [sumElim_dotProduct_sumElim]
+    simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton, Finset.mul_sum]
+    have h1 : (∑ i : Fin (N + 1),
+        Real.sqrt s * (Real.sqrt (N + 1 : ℕ))⁻¹ * ((x.1 i : ℤ) : ℝ) *
+          ω.1.1 (Fin.last M) i) =
+      ∑ i : Fin (N + 1),
+        Real.sqrt s * ((Real.sqrt (N + 1 : ℕ))⁻¹ *
+          (ω.1.1 (Fin.last M) i * ((x.1 i : ℤ) : ℝ))) :=
+      Finset.sum_congr rfl fun _ _ => by ring
+    rw [h1]; ring
+  have hS'_last_eq (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ))
+      (x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ)) :
+      W_sh (e_st x).1.1 ⬝ᵥ (splitΩ ω).2 + W_aux (e_st x).1.1 ⬝ᵥ (e_st x).2 =
+      S'_fn ω x (Fin.last M) := by
+    rw [he_st_apply]
+    dsimp only [W_sh, W_aux, splitΩ, S'_fn]
+    rw [sumElim_dotProduct_sumElim]
+    simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton, Finset.mul_sum]
+    have h1 : (∑ i : Fin (N + 1),
+        (1 / (2 * Real.sqrt s)) * (Real.sqrt (N + 1 : ℕ))⁻¹ * ((x.1 i : ℤ) : ℝ) *
+          ω.1.1 (Fin.last M) i) =
+      ∑ i : Fin (N + 1),
+        (1 / (2 * Real.sqrt s)) * ((Real.sqrt (N + 1 : ℕ))⁻¹ *
+          (ω.1.1 (Fin.last M) i * ((x.1 i : ℤ) : ℝ))) :=
+      Finset.sum_congr rfl fun _ _ => by ring
+    rw [h1]; ring
+  have htilted_st (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ)) :
+      (μ_s.tilted (E_s ω)).map e_st =
+      ((μ₀ (splitΩ ω).1).prod γ_aux).tilted
+        (fun y => u (α_sh y.1.1 ⬝ᵥ (splitΩ ω).2 + α_aux y.1.1 ⬝ᵥ y.2)) := by
+    rw [map_tilted_measurableEquiv e_st hmp_st (Measurable.of_uncurry_left hEm_joint)]
+    have hE₀_int : Integrable (fun x₀ => Real.exp (E₀ (splitΩ ω).1 x₀)) μ₀_base :=
+      integrable_exp_of_ae_le
+        (Measurable.of_uncurry_left hEm_joint).aemeasurable
+        (ae_of_all _ (interpEnergy_le (fun x => hu.le x) s q r (splitΩ ω).1))
+    have hcomb : ((μ₀ (splitΩ ω).1).prod γ_aux).tilted
+        (fun y => u (α_sh y.1.1 ⬝ᵥ (splitΩ ω).2 + α_aux y.1.1 ⬝ᵥ y.2)) =
+        (μ₀_base.prod γ_aux).tilted
+          (fun y => E₀ (splitΩ ω).1 y.1 + u (α_sh y.1.1 ⬝ᵥ (splitΩ ω).2 + α_aux y.1.1 ⬝ᵥ y.2)) := by
+      rw [← tilted_prod_comp_fst, tilted_tilted (hE₀_int.comp_fst γ_aux)]
+      rfl
+    rw [hcomb]
+    congr 1; funext y
+    obtain ⟨x, rfl⟩ := e_st.surjective y
+    dsimp only [Function.comp_apply]
+    rw [MeasurableEquiv.symm_apply_apply, hS_last_eq ω x, he_st_apply]
+    dsimp only [E_s, E₀, splitΩ, S_fn]
+    rw [Fin.sum_univ_castSucc]
+    simp only [Fin.init_def]
+    ring
   have hIL_split (ω : ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (M + 1) → ℝ)) × (Fin (N + 1) → ℝ)) :
       I_L (splitΩ ω) =
         ∫ x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ),
@@ -2013,234 +2238,22 @@ private theorem integral_interpolating_field_deriv_ibp_last
         he_st_apply (τ_o (some ())), he_st_apply (τ_o none)]
     rw [ht1]
     exact (integral_congr_ae (ae_of_all _ ht2)).trans h_opt
-  -- Integrability of `I_L` and `I_R` on `P₀.prod γ_sh`!
-  have hVp_m_all (p : (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-      ((Fin (N + 1) ⊕ Unit) → ℝ)) :
-      Measurable (V_split p) := by
-    have ha1 : Measurable fun y : ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) =>
-        α_sh y.1.1 ⬝ᵥ p.2 :=
-      Finset.measurable_sum _ fun idx _ =>
-        ((measurable_of_finite fun τ => α_sh τ idx).comp
-          (measurable_fst.comp measurable_fst)).mul_const _
-    have ha2 : Measurable fun y : ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) =>
-        α_aux y.1.1 ⬝ᵥ y.2 := by
-      simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton]
-      exact measurable_const.mul ((measurable_pi_apply ()).comp measurable_snd)
-    exact hu.measurable.comp (ha1.add ha2)
-  have hIR_int : Integrable I_R (P₀.prod γ_sh) := by
-    refine Integrable.of_bound hIR_m.aestronglyMeasurable (2 * |D₁| ^ 2) (ae_of_all _ fun p => ?_)
-    have hμ₀_p : IsProbabilityMeasure (μ₀ p.1) := isProbabilityMeasure_tilted (hE₀i_all p.1)
-    have hprob_p : IsProbabilityMeasure (((μ₀ p.1).prod γ_aux).tilted (V_split p)) :=
-      isProbabilityMeasure_tilted_of_ae_le (hVp_m_all p).aemeasurable
-        (ae_of_all _ fun _ => hu.le _)
-    rw [Real.norm_eq_abs]
-    exact abs_integral_le_of_forall_abs_le _ fun σ => by
-      rw [abs_mul, abs_mul, sq]
-      have hd_ov : |(((N : ℝ) + 1)⁻¹ * ∑ i,
-          (((σ (some ())).1.1 i : ℤ) : ℝ) * (((σ none).1.1 i : ℤ) : ℝ)) - q| ≤ 2 := by
-        have h1 : |((N : ℝ) + 1)⁻¹ * ∑ i,
-            (((σ (some ())).1.1 i : ℤ) : ℝ) * (((σ none).1.1 i : ℤ) : ℝ)| ≤ 1 := by
-          rw [abs_mul, abs_inv, abs_of_pos (by positivity : (0 : ℝ) < (N : ℝ) + 1)]
-          have hs_b : |∑ i : Fin (N + 1),
-              (((σ (some ())).1.1 i : ℤ) : ℝ) * (((σ none).1.1 i : ℤ) : ℝ)| ≤ (N : ℝ) + 1 := by
-            refine ((Finset.abs_sum_le_card_mul_of_abs_le _ (C := 1) fun i => ?_).trans_eq ?_)
-            · rw [abs_mul, abs_units_cast_eq_one, abs_units_cast_eq_one, mul_one]
-            · simp
-          exact (inv_mul_le_iff₀ (by positivity)).2 (by linarith)
-        have h2 := abs_sub (((N : ℝ) + 1)⁻¹ * ∑ i,
-          (((σ (some ())).1.1 i : ℤ) : ℝ) * (((σ none).1.1 i : ℤ) : ℝ)) q
-        rw [abs_of_nonneg hq.1] at h2
-        linarith [hq.2]
-      calc _ ≤ 2 * |D₁| * |D₁| :=
-            mul_le_mul (mul_le_mul hd_ov ((hu.abs_deriv_le _).trans (le_abs_self D₁))
-              (abs_nonneg _) zero_le_two) ((hu.abs_deriv_le _).trans (le_abs_self D₁))
-              (abs_nonneg _) (by positivity)
-        _ = 2 * (|D₁| * |D₁|) := by ring
-  have hIL_int : Integrable I_L (P₀.prod γ_sh) := by
-    -- Bound `|I_L p|` by `|D₁| * (c_w * ∑ |p.2| + c_η * exp(2|B|) * ∫ |η|)`!
-    let c_sh : ℝ := max ((1 / (2 * Real.sqrt s)) * (Real.sqrt (N + 1 : ℕ))⁻¹)
-      ((1 / (2 * Real.sqrt (1 - s))) * Real.sqrt q)
-    let c_aux : ℝ := (1 / (2 * Real.sqrt (1 - s))) * Real.sqrt (1 - q)
-    have hc_sh0 : 0 ≤ c_sh := le_max_of_le_left (by positivity)
-    have hc_aux0 : 0 ≤ c_aux := by dsimp only [c_aux]; positivity
-    let dom_p (p : (((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) ×
-        ((Fin (N + 1) ⊕ Unit) → ℝ)) : ℝ :=
-      |D₁| * (c_sh * (∑ idx : Fin (N + 1) ⊕ Unit, |p.2 idx|) +
-        Real.exp (2 * |B|) * (c_aux * ∫ η : Unit → ℝ, |η ()| ∂γ_aux))
-    have hdom_i : Integrable dom_p (P₀.prod γ_sh) := by
-      refine (Integrable.add ?_ (integrable_const _)).const_mul |D₁|
-      refine (integrable_finsetSum _ fun idx _ => ?_).const_mul c_sh
-      exact (integrable_comp_eval (μ := fun _ : Fin (N + 1) ⊕ Unit => gaussianReal 0 1) (i := idx)
-        IsGaussian.integrable_id.abs).comp_snd _
-    refine hdom_i.mono' hIL_m.aestronglyMeasurable (ae_of_all _ fun p => ?_)
-    rw [Real.norm_eq_abs]
-    dsimp only [I_L]
-    have hμ₀_p : IsProbabilityMeasure (μ₀ p.1) :=
-      isProbabilityMeasure_tilted_of_ae_le
-        (Measurable.of_uncurry_left hEm_joint).aemeasurable
-        (ae_of_all _ (interpEnergy_le (fun x => hu.le x) s q r p.1))
-    let V_p (y : ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ)) : ℝ :=
-      u (α_sh y.1.1 ⬝ᵥ p.2 + α_aux y.1.1 ⬝ᵥ y.2)
-    have hVp_m : Measurable V_p := by
-      have ha1 : Measurable fun y : ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) =>
-          α_sh y.1.1 ⬝ᵥ p.2 :=
-        Finset.measurable_sum _ fun idx _ =>
-          ((measurable_of_finite fun τ => α_sh τ idx).comp
-            (measurable_fst.comp measurable_fst)).mul_const _
-      have ha2 : Measurable fun y : ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) =>
-          α_aux y.1.1 ⬝ᵥ y.2 := by
-        simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton]
-        exact measurable_const.mul ((measurable_pi_apply ()).comp measurable_snd)
-      exact hu.measurable.comp (ha1.add ha2)
-    have hprob_ν : IsProbabilityMeasure (((μ₀ p.1).prod γ_aux).tilted V_p) :=
-      isProbabilityMeasure_tilted_of_ae_le hVp_m.aemeasurable (ae_of_all _ fun _ => hu.le _)
-    have hpt_bd (σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ)) :
-        |1 * (W_sh (σ ()).1.1 ⬝ᵥ p.2 + W_aux (σ ()).1.1 ⬝ᵥ (σ ()).2) *
-          (∏ r_u : Unit, deriv u (α_sh (σ r_u).1.1 ⬝ᵥ p.2 + α_aux (σ r_u).1.1 ⬝ᵥ (σ r_u).2))| ≤
-        |D₁| * (c_sh * (∑ idx, |p.2 idx|) + c_aux * |(σ ()).2 ()|) := by
-      simp only [Finset.univ_unique, Finset.prod_singleton, one_mul]
-      rw [abs_mul, mul_comm _ |deriv u _|]
-      refine mul_le_mul ((hu.abs_deriv_le _).trans (le_abs_self D₁)) ?_
-        (abs_nonneg _) (abs_nonneg D₁)
-      refine (abs_add_le _ _).trans (add_le_add ?_ ?_)
-      · rw [Finset.mul_sum]
-        refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun idx _ => ?_)
-        rw [abs_mul]
-        refine mul_le_mul_of_nonneg_right ?_ (abs_nonneg _)
-        rcases idx with i | _
-        · dsimp only [W_sh]
-          rw [Sum.elim_inl, abs_mul, abs_units_cast_eq_one, mul_one,
-            abs_of_nonneg (by positivity)]
-          exact le_max_left _ _
-        · dsimp only [W_sh]
-          rw [Sum.elim_inr, neg_mul, abs_neg, abs_of_nonneg (by positivity)]
-          exact le_max_right _ _
-      · dsimp only [W_aux, c_aux]
-        simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton]
-        rw [neg_mul, abs_mul, abs_neg, abs_of_nonneg (by positivity)]
-    have hη_int : Integrable (fun y : ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) =>
-        |y.2 ()|) ((μ₀ p.1).prod γ_aux) :=
-      (integrable_comp_eval (μ := fun _ : Unit => gaussianReal 0 1) (i := ())
-        IsGaussian.integrable_id.abs).comp_snd _
-    have hη_tilted : Integrable
-        (fun σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) =>
-          |D₁| * (c_sh * (∑ idx, |p.2 idx|) + c_aux * |(σ ()).2 ()|))
-        (Measure.pi fun _ : Unit => ((μ₀ p.1).prod γ_aux).tilted V_p) := by
-      have hy_t := integrable_tilted_of_ae_le hVp_m.aemeasurable (ae_of_all _ fun _ => hu.le _)
-        hη_int
-      have hu_t := integrable_comp_eval
-        (μ := fun _ : Unit => ((μ₀ p.1).prod γ_aux).tilted V_p) (i := ()) hy_t
-      exact ((integrable_const _).add (hu_t.const_mul c_aux)).const_mul |D₁|
-    have hint_lhs : Integrable
-        (fun σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) =>
-          1 * (W_sh (σ ()).1.1 ⬝ᵥ p.2 + W_aux (σ ()).1.1 ⬝ᵥ (σ ()).2) *
-            (∏ r_u : Unit, deriv u (α_sh (σ r_u).1.1 ⬝ᵥ p.2 + α_aux (σ r_u).1.1 ⬝ᵥ (σ r_u).2)))
-        (Measure.pi fun _ : Unit => ((μ₀ p.1).prod γ_aux).tilted V_p) := by
-      have hm_σ : Measurable fun σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) =>
-          1 * (W_sh (σ ()).1.1 ⬝ᵥ p.2 + W_aux (σ ()).1.1 ⬝ᵥ (σ ()).2) *
-            (∏ r_u : Unit, deriv u (α_sh (σ r_u).1.1 ⬝ᵥ p.2 + α_aux (σ r_u).1.1 ⬝ᵥ (σ r_u).2)) := by
-        simp only [Finset.univ_unique, Finset.prod_singleton, one_mul]
-        have hw1 : Measurable fun σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) =>
-            W_sh (σ ()).1.1 ⬝ᵥ p.2 :=
-          Finset.measurable_sum _ fun idx _ =>
-            ((measurable_of_finite fun τ => W_sh τ idx).comp
-              (measurable_fst.comp (measurable_fst.comp (measurable_pi_apply ())))).mul_const _
-        have hw2 : Measurable fun σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) =>
-            W_aux (σ ()).1.1 ⬝ᵥ (σ ()).2 := by
-          simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton]
-          exact measurable_const.mul ((measurable_pi_apply ()).comp
-            (measurable_snd.comp (measurable_pi_apply ())))
-        have ha1 : Measurable fun σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) =>
-            α_sh (σ ()).1.1 ⬝ᵥ p.2 + α_aux (σ ()).1.1 ⬝ᵥ (σ ()).2 := by
-          have ha_sh : Measurable fun σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) =>
-              α_sh (σ ()).1.1 ⬝ᵥ p.2 :=
-            Finset.measurable_sum _ fun idx _ =>
-              ((measurable_of_finite fun τ => α_sh τ idx).comp
-                (measurable_fst.comp (measurable_fst.comp (measurable_pi_apply ())))).mul_const _
-          have ha_aux : Measurable fun σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) =>
-              α_aux (σ ()).1.1 ⬝ᵥ (σ ()).2 := by
-            simp only [dotProduct, Finset.univ_unique, Finset.sum_singleton]
-            exact measurable_const.mul ((measurable_pi_apply ()).comp
-              (measurable_snd.comp (measurable_pi_apply ())))
-          exact ha_sh.add ha_aux
-        exact (hw1.add hw2).mul ((measurable_deriv u).comp ha1)
-      exact hη_tilted.mono' hm_σ.aestronglyMeasurable
-        (ae_of_all _ fun σ => by rw [Real.norm_eq_abs]; exact hpt_bd σ)
-    have h1 := (abs_integral_le_integral_abs).trans (integral_mono hint_lhs.abs hη_tilted hpt_bd)
-    have hy_t := integrable_tilted_of_ae_le hVp_m.aemeasurable (ae_of_all _ fun _ => hu.le _)
-      hη_int
-    have hu_t := integrable_comp_eval
-      (μ := fun _ : Unit => ((μ₀ p.1).prod γ_aux).tilted V_p) (i := ()) hy_t
-    have h2 : (∫ σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ),
-        |D₁| * (c_sh * (∑ idx, |p.2 idx|) + c_aux * |(σ ()).2 ()|)
-        ∂(Measure.pi fun _ : Unit => ((μ₀ p.1).prod γ_aux).tilted V_p)) =
-        |D₁| * (c_sh * (∑ idx, |p.2 idx|) +
-          c_aux * ∫ y, |y.2 ()| ∂(((μ₀ p.1).prod γ_aux).tilted V_p)) := by
-      rw [integral_const_mul, integral_add (integrable_const _) (hu_t.const_mul c_aux),
-        integral_const, probReal_univ, one_smul, integral_const_mul]
-      congr 3
-      exact (measurePreserving_funUnique (((μ₀ p.1).prod γ_aux).tilted V_p)
-        Unit).integral_comp_of_aestronglyMeasurable
-        ((measurable_pi_apply ()).comp measurable_snd).norm.aestronglyMeasurable
-    -- Bound `∫ y, |y.2 ()| ∂(((μ₀ p.1).prod γ_aux).tilted V_p)` by `exp(2|B|) * ∫ η, |η ()|`.
-    have hdom_y : ∫ y, |y.2 ()| ∂(((μ₀ p.1).prod γ_aux).tilted V_p) ≤
-        Real.exp (2 * |B|) * ∫ η : Unit → ℝ, |η ()| ∂γ_aux := by
-      have hd0 := integral_pi_tilted_le_exp_mul_of_abs_sub_le (ι := Unit)
-        (μ := (μ₀ p.1).prod γ_aux) (E₀ := 0) (E₁ := V_p)
-        (by simp : Integrable (fun _ => Real.exp 0) ((μ₀ p.1).prod γ_aux))
-        (hVp_m.sub measurable_const) (C := |B|)
-        (fun y => by simp only [Pi.zero_apply, sub_zero]; exact (hu.abs_le _).trans (le_abs_self B))
-        (Y := fun f_u : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) => |(f_u ()).2 ()|)
-        (fun _ => abs_nonneg _)
-        (by
-          rw [MeasureTheory.tilted_zero]
-          exact integrable_comp_eval (μ := fun _ : Unit => (μ₀ p.1).prod γ_aux) (i := ()) hη_int)
-      rw [MeasureTheory.tilted_zero] at hd0
-      simp only [Fintype.card_unique, Nat.cast_one, mul_one] at hd0
-      have hu1 : (∫ σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ), |(σ ()).2 ()|
-          ∂(Measure.pi fun _ : Unit => ((μ₀ p.1).prod γ_aux).tilted V_p)) =
-          ∫ y, |y.2 ()| ∂(((μ₀ p.1).prod γ_aux).tilted V_p) :=
-        (measurePreserving_funUnique (((μ₀ p.1).prod γ_aux).tilted V_p)
-          Unit).integral_comp_of_aestronglyMeasurable
-          (g := fun y : ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) => |y.2 ()|)
-          ((measurable_pi_apply ()).comp measurable_snd).norm.aestronglyMeasurable
-      have hu2 : (∫ σ : Unit → ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ), |(σ ()).2 ()|
-          ∂(Measure.pi fun _ : Unit => (μ₀ p.1).prod γ_aux)) =
-          ∫ y, |y.2 ()| ∂((μ₀ p.1).prod γ_aux) :=
-        (measurePreserving_funUnique ((μ₀ p.1).prod γ_aux)
-          Unit).integral_comp_of_aestronglyMeasurable
-          (g := fun y : ((Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) × (Unit → ℝ) => |y.2 ()|)
-          ((measurable_pi_apply ()).comp measurable_snd).norm.aestronglyMeasurable
-      have h_snd := integral_prod_fun_snd_of_isProbabilityMeasure (μ := μ₀ p.1) (ν := γ_aux)
-        (fun η : Unit → ℝ => |η ()|)
-      rw [hu1, hu2, h_snd] at hd0
-      exact hd0
-    rw [h2] at h1
-    refine h1.trans ?_
-    dsimp only [dom_p]
-    refine mul_le_mul_of_nonneg_left (add_le_add le_rfl ?_) (abs_nonneg D₁)
-    calc c_aux * ∫ y, |y.2 ()| ∂(((μ₀ p.1).prod γ_aux).tilted V_p)
-        ≤ c_aux * (Real.exp (2 * |B|) * ∫ η, |η ()| ∂γ_aux) :=
-          mul_le_mul_of_nonneg_left hdom_y hc_aux0
-      _ = Real.exp (2 * |B|) * (c_aux * ∫ η, |η ()| ∂γ_aux) := by ring
-  -- Assemble via `hmp_dis` and Fubini (`integral_prod`)!
   have hlhs_eq : (∫ ω, ∫ x : (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ),
       S'_fn ω x (Fin.last M) * deriv u (S_fn ω x (Fin.last M)) ∂(μ_s.tilted (E_s ω)) ∂P) =
-      ∫ p, I_L p ∂(P₀.prod γ_sh) := by
-    have h1 := hmp_dis.integral_comp_of_aestronglyMeasurable hIL_m.aestronglyMeasurable
-    refine (integral_congr_ae (ae_of_all _ fun ω => (hIL_split ω).symm)).trans ?_
-    exact h1
+      ∫ p, I_L p ∂(P₀.prod γ_sh) :=
+    (integral_congr_ae (ae_of_all _ fun ω => (hIL_split ω).symm)).trans
+      (hmp_dis.integral_comp_of_aestronglyMeasurable hIL_m.aestronglyMeasurable)
   have hrhs_eq : (∫ ω, ∫ σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin (M + 1) → ℝ),
       ((((N : ℝ) + 1)⁻¹ * ∑ i, (((σ 0).1 i : ℤ) : ℝ) * (((σ 1).1 i : ℤ) : ℝ)) - q) *
         deriv u (S_fn ω (σ 0) (Fin.last M)) * deriv u (S_fn ω (σ 1) (Fin.last M))
       ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s ω)) ∂P) =
-      ∫ p, I_R p ∂(P₀.prod γ_sh) := by
-    have h1 := hmp_dis.integral_comp_of_aestronglyMeasurable hIR_m.aestronglyMeasurable
-    refine (integral_congr_ae (ae_of_all _ fun ω => (hIR_split ω).symm)).trans ?_
-    exact h1
+      ∫ p, I_R p ∂(P₀.prod γ_sh) :=
+    (integral_congr_ae (ae_of_all _ fun ω => (hIR_split ω).symm)).trans
+      (hmp_dis.integral_comp_of_aestronglyMeasurable hIR_m.aestronglyMeasurable)
   rw [hlhs_eq, hrhs_eq, integral_prod I_L hIL_int, integral_prod I_R hIR_int,
     ← integral_const_mul]
-  exact integral_congr_ae (ae_of_all _ fun ω₀ => hstein_ω₀ ω₀)
+  exact integral_congr_ae (ae_of_all _ fun ω₀ =>
+    interp_field_deriv_stein_fixed_disorder (N := N) (M := M) hu hq r hs ω₀)
 
 /-- **Gaussian IBP on a single `s`-interpolating constraint field (Eq. (2.82)):**
 for `s ∈ (0, 1)`, `q ∈ [0, 1]`, and any constraint `k : Fin M`,

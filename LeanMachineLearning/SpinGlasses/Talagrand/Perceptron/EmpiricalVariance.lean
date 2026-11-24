@@ -734,39 +734,23 @@ private lemma measurePreserving_interpVarDisorder_lastSplit (N M : ℕ) :
             (fun _ : Unit => ω.1.2 (Fin.last M)) : ((Fin N ⊕ Unit) ⊕ Unit) → ℝ)))
       P₁ (P₀.prod (Measure.pi fun _ : ((Fin N ⊕ Unit) ⊕ Unit) => γ)) := by
   intro γ P₀ P₁
-  let G₀ := Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin (N + 1) => γ
-  let gM1 := Measure.pi fun _ : Fin (N + 1) => γ
-  let gM0 := Measure.pi fun _ : Fin N => γ
-  let Z₀ := Measure.pi fun _ : Fin M => γ
-  let Zp := Measure.pi fun _ : Fin (N + 1) => γ
-  have hg := measurePreserving_finSuccProd gM1 M
+  have h1 := measurePreserving_interpConstraintDisorder_lastSplit (N + 1) M
   have hg_col := measurePreserving_finSuccProd γ N
-  have hz := measurePreserving_finSuccProd γ M
   have hunit := (measurePreserving_funUnique γ Unit).symm
   have hsum1 := (measurePreserving_sumPiEquivProdPi_symm (X := fun _ : Fin N ⊕ Unit => ℝ)
-    (fun _ => γ)).comp (((MeasurePreserving.id gM0).prod hunit).comp hg_col)
-  have hsum2 := (measurePreserving_sumPiEquivProdPi_symm
-    (X := fun _ : (Fin N ⊕ Unit) ⊕ Unit => ℝ) (fun _ => γ)).comp (hsum1.prod hunit)
-  have step1 : MeasurePreserving
-      (Prod.map (Prod.map (MeasurableEquiv.finSuccProd (Fin (N + 1) → ℝ) M)
-        (MeasurableEquiv.finSuccProd ℝ M)) id)
-      P₁ (((G₀.prod gM1).prod (Z₀.prod γ)).prod Zp) :=
-    (hg.prod hz).prod (MeasurePreserving.id Zp)
-  have step2 := (measurePreserving_prodProdProdComm G₀ gM1 Z₀ γ).prod (MeasurePreserving.id Zp)
-  have step3 := measurePreserving_prodAssoc (G₀.prod Z₀) (gM1.prod γ) Zp
-  have step4 := (MeasurePreserving.id (G₀.prod Z₀)).prod
-    (Measure.measurePreserving_swap (μ := gM1.prod γ) (ν := Zp))
-  have step5 := (measurePreserving_prodAssoc (G₀.prod Z₀) Zp (gM1.prod γ)).symm
-  have step6 := (MeasurePreserving.id P₀).prod hsum2
-  have full := step6.comp (step5.comp (step4.comp (step3.comp (step2.comp step1))))
+    (fun _ => γ)).comp (((MeasurePreserving.id (Measure.pi fun _ : Fin N => γ)).prod hunit).comp
+      hg_col)
+  have hsplit := (measurePreserving_sumPiEquivProdPi_symm
+    (X := fun _ : (Fin N ⊕ Unit) ⊕ Unit => ℝ) (fun _ => γ)).comp
+    ((hsum1.prod (MeasurePreserving.id (Measure.pi fun _ : Unit => γ))).comp
+      (measurePreserving_sumPiEquivProdPi (fun _ : Fin (N + 1) ⊕ Unit => γ)))
+  have full := ((MeasurePreserving.id P₀).prod hsplit).comp h1
   convert full using 1
   ext ω : 1
-  refine Prod.ext ?_ ?_
-  · simp [MeasurableEquiv.prodAssoc, Fin.init_def]
-  · ext idx
-    rcases idx with (i | _) | _ <;>
-      simp [MeasurableEquiv.prodAssoc, MeasurableEquiv.coe_sumPiEquivProdPi_symm,
-        Equiv.sumPiEquivProdPi_symm_apply, Fin.init_def]
+  refine Prod.ext rfl ?_
+  ext idx
+  rcases idx with (i | _) | _ <;>
+    simp [Equiv.sumPiEquivProdPi_symm_apply, MeasurableEquiv.sumPiEquivProdPi, Fin.init_def]
 
 /-- Transport a replica average on `((μ₀ p.1).prod γ₂).tilted (fun y => u (X_fn p.2 y))` at
 smart-path `t = 1` (where coordinate `0` of `y.2 : Fin 2 → ℝ` has coefficient `0`) to the full

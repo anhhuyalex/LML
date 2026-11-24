@@ -211,8 +211,7 @@ theorem continuousOn_rhat {u : ℝ → ℝ} (hu : Differentiable ℝ u) (hdu : C
       Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂γ
   let Z_fn (q z : ℝ) : ℝ :=
     ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂γ
-  have hZ_pos (q z : ℝ) : 0 < Z_fn q z :=
-    integral_exp_pos (integrable_exp_cavityPath_new hum hB_le q z)
+  have hZ_pos (q z : ℝ) : 0 < Z_fn q z := integral_exp_cavityPath_pos hum hB_le q z
   have hN_cont (z : ℝ) : Continuous fun q => N_fn q z := by
     refine continuous_of_dominated (bound := fun _ => |D₁| * Real.exp B)
       (fun q => ?_) (fun q => ae_of_all _ fun ξ => ?_) (integrable_const _)
@@ -237,19 +236,9 @@ theorem continuousOn_rhat {u : ℝ → ℝ} (hu : Differentiable ℝ u) (hdu : C
   let ρ (q z : ℝ) : ℝ := (N_fn q z / Z_fn q z) ^ 2
   have hρ_cont (z : ℝ) : Continuous fun q => ρ q z :=
     ((hN_cont z).div (hZ_cont z) fun q => (hZ_pos q z).ne').pow 2
-  have hρ_meas (q : ℝ) : AEStronglyMeasurable (ρ q) γ := by
-    have hNm : Measurable fun z => N_fn q z := by
-      have hj : Measurable fun p : ℝ × ℝ =>
-          deriv u (Real.sqrt q * p.1 + Real.sqrt (1 - q) * p.2) *
-            Real.exp (u (Real.sqrt q * p.1 + Real.sqrt (1 - q) * p.2)) :=
-        (hdu.measurable.comp (by fun_prop)).mul (Real.measurable_exp.comp (hum.comp (by fun_prop)))
-      exact (hj.stronglyMeasurable.integral_prod_right' (ν := γ)).measurable
-    have hZm : Measurable fun z => Z_fn q z := by
-      have hj : Measurable fun p : ℝ × ℝ =>
-          Real.exp (u (Real.sqrt q * p.1 + Real.sqrt (1 - q) * p.2)) :=
-        Real.measurable_exp.comp (hum.comp (by fun_prop))
-      exact (hj.stronglyMeasurable.integral_prod_right' (ν := γ)).measurable
-    exact ((hNm.div hZm).pow_const 2).aestronglyMeasurable
+  have hρ_meas (q : ℝ) : AEStronglyMeasurable (ρ q) γ :=
+    (((measurable_integral_deriv_mul_exp_cavityPath hum q).div
+      (measurable_integral_exp_cavityPath hum q)).pow_const 2).aestronglyMeasurable
   have hρ_bd (q z : ℝ) : ‖ρ q z‖ ≤ |D₁| ^ 2 := by
     have hprob := isProbabilityMeasure_tilted (integrable_exp_cavityPath_new hum hB_le q z)
     have h := abs_integral_le_of_forall_abs_le
@@ -378,7 +367,7 @@ theorem exists_hasDerivAt_rhat_abs_le (D : ℝ) :
   intro u hd hb q hq
   obtain ⟨hu, hu2, hb3⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
   have hB : ∀ x, |u x| ≤ |D| := fun x => (hu.abs_le x).trans (le_abs_self D)
-  have hD₁ : ∀ x, |deriv u x| ≤ |D| := fun x => (hu.abs_deriv_le x).trans (le_abs_self D)
+  have hD₁ : ∀ x, |deriv u x| ≤ |D| := hu.abs_deriv_le_abs
   have hD₂ : ∀ x, |deriv (deriv u) x| ≤ |D| := fun x => (hu.abs_deriv₂_le x).trans (le_abs_self D)
   have hD₃ : ∀ x, |deriv (deriv (deriv u)) x| ≤ |D| := fun x => (hb3 x).trans (le_abs_self D)
   let γ_sh := Measure.pi fun _ : Unit => gaussianReal 0 1
@@ -631,8 +620,8 @@ theorem exists_abs_rs_fixed_point_sub_le (D : ℝ) :
   refine ⟨K, by positivity, ?_⟩
   intro u hd hb a b ha0 ha qa ra qb rb hqa hra hqb hrb
   obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
-  have hD_le : ∀ x, u x ≤ |D| := fun x => (hu.le x).trans (le_abs_self D)
-  have hD₁ : ∀ x, |deriv u x| ≤ |D| := fun x => (hu.abs_deriv_le x).trans (le_abs_self D)
+  have hD_le : ∀ x, u x ≤ |D| := hu.le_abs
+  have hD₁ : ∀ x, |deriv u x| ≤ |D| := hu.abs_deriv_le_abs
   have hg_mem := integral_tanh_sq_sqrt_mem_Icc
   have hqa_mem : qa ∈ Icc (0 : ℝ) 1 := hqa ▸ hg_mem ra
   have hqb_mem : qb ∈ Icc (0 : ℝ) 1 := hqb ▸ hg_mem rb
