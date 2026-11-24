@@ -30,6 +30,6 @@ theorem sum_Ici_erase_last_eq_sum_Ici_succ_swap {L : ℕ} {β : Type*} [AddCommM
   refine Finset.sum_equiv (Equiv.swap n (Fin.last L)) (fun j => ?_) (fun j _ => rfl)
   rw [Finset.mem_Ici, Finset.mem_erase, Finset.mem_Ici, Equiv.swap_apply_def]
   simp only [Fin.le_iff_val_le_val, ne_eq, Fin.ext_iff, Fin.val_last]
-  split_ifs <;> simp_all [Fin.ext_iff] <;> omega
+  split_ifs <;> simp_all <;> omega
 
 end Finset

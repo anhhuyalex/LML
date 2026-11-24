@@ -150,7 +150,8 @@ theorem cavity_extended_replica_split_eq
   exact hrhs
 
 /-- Derive `ContDiff ℝ 2 u` and the bounds `|u|, |u'|, |u''| ≤ D` from Talagrand's hypothesis
-(2.7): `∀ j < 3, Differentiable ℝ (iteratedDeriv j u)` and `∀ j ≤ 3, ∀ x, |iteratedDeriv j u x| ≤ D`. -/
+(2.7): `∀ j < 3, Differentiable ℝ (iteratedDeriv j u)` and
+`∀ j ≤ 3, ∀ x, |iteratedDeriv j u x| ≤ D`. -/
 theorem contDiff_two_of_forall_lt_three_differentiable {u : ℝ → ℝ}
     (hd : ∀ j < 3, Differentiable ℝ (iteratedDeriv j u)) :
     ContDiff ℝ 2 u := by
@@ -230,7 +231,8 @@ theorem integral_cavityPath_spinOnly_eq_cavityRatio {N M : ℕ} {R : Type*} [Fin
     rw [hw]
     refine mul_pos (Real.exp_pos _) (Finset.prod_pos fun j _ => ?_)
     refine integral_exp_pos_of_ae_le (C := D) ?_ (ae_of_all _ fun _ => hD _)
-    exact (hu.comp (by simp only [smartPathField_eq, smartPathFieldNoAux_eq]; fun_prop)).aemeasurable
+    exact (hu.comp
+      (by simp only [smartPathField_eq, smartPathFieldNoAux_eq]; fun_prop)).aemeasurable
   have hψpos : ∀ y, 0 < ψ y := fun y => by
     rw [hψ]
     refine integral_exp_pos_of_ae_le (C := D) ?_ (ae_of_all _ fun _ => hD _)

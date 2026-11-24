@@ -41,7 +41,8 @@ namespace SpinGlasses
 private lemma exp_neg_le_sum_mul_integral_exp {L K : Type*} [Fintype L] [Fintype K]
     (p : L → ℝ) (hp : ∀ m, 0 ≤ p m) (hp1 : ∑ m, p m = 1) {B : ℝ}
     (G : L → (K → ℝ) → ℝ) (hB : ∀ m η, |G m η| ≤ B)
-    (hint : ∀ m, Integrable (fun η => Real.exp (G m η)) (Measure.pi fun _ : K => gaussianReal 0 1)) :
+    (hint : ∀ m, Integrable (fun η => Real.exp (G m η))
+      (Measure.pi fun _ : K => gaussianReal 0 1)) :
     Real.exp (-B) ≤
       ∑ m, p m * ∫ η, Real.exp (G m η) ∂(Measure.pi fun _ : K => gaussianReal 0 1) := by
   have hlow : ∀ m, Real.exp (-B) ≤

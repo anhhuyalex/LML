@@ -753,7 +753,6 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.RandomNormals
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ReplicaSymmetricFreeEnergy
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ReplicaSymmetricIncrement
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ReplicaSymmetricVariational
-public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ScratchODE
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathAssembly
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathBounds
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathCavityBound

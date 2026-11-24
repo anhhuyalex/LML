@@ -978,7 +978,7 @@ private lemma polynomial_power_shift_bounds (A₀ a L : ℝ) (hL : 0 < L) (m : �
             (mul_le_mul_of_nonneg_left hexp_ge1 (by positivity))
             (mul_le_mul_of_nonneg_left hfac (by positivity))) (by positivity)
       _ = (2 ^ p * (|A₀ - a| ^ p + (L⁻¹) ^ p * (Nat.factorial p : ℝ))) * Real.exp |t| := by ring
-  refine ⟨hdiff, hhd, hpow_exp m, ?_, ?_, ?_⟩
+  refine ⟨hdiff, hhd, fun t => by dsimp only [G]; rw [abs_pow]; exact hpow_exp m t, ?_, ?_, ?_⟩
   · intro t
     rw [(hhd t).deriv, abs_mul, abs_mul, abs_of_nonneg (Nat.cast_nonneg m),
       abs_of_pos (inv_pos.2 hL), abs_pow]

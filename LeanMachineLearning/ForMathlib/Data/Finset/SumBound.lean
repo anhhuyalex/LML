@@ -30,7 +30,8 @@ theorem abs_sum_sub_card_mul_le_of_abs_sub_le {ι : Type*} [Fintype ι] (W : ι 
   calc ∑ i, |W i - L| ≤ ∑ _i : ι, B := sum_le_sum fun i _ => h i
     _ = _ := by simp
 
-/-- **Termwise bound on a finite sum.** If `|f i| ≤ g i` on `s` then `|∑ i ∈ s, f i| ≤ ∑ i ∈ s, g i`. -/
+/-- **Termwise bound on a finite sum.** If `|f i| ≤ g i` on `s` then
+`|∑ i ∈ s, f i| ≤ ∑ i ∈ s, g i`. -/
 theorem abs_sum_le_sum_of_abs_le {ι G : Type*} [AddCommGroup G] [LinearOrder G]
     [IsOrderedAddMonoid G] (s : Finset ι) {f g : ι → G} (h : ∀ i ∈ s, |f i| ≤ g i) :
     |∑ i ∈ s, f i| ≤ ∑ i ∈ s, g i :=

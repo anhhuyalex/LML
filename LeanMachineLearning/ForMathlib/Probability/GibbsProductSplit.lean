@@ -31,8 +31,9 @@ theorem integral_pi_succ_last (μ : Measure α) [IsProbabilityMeasure μ]
     ∫ σ : Fin (N + 1) → α, G (σ (Fin.last N), fun j => σ j.castSucc)
         ∂(Measure.pi fun _ : Fin (N + 1) => μ) =
       ∫ p, G p ∂(μ.prod (Measure.pi fun _ : Fin N => μ)) := by
-  have h := (measurePreserving_piFinSuccAbove (fun _ : Fin (N + 1) => μ) (Fin.last N)).integral_comp'
-    (g := G)
+  have h :=
+    (measurePreserving_piFinSuccAbove (fun _ : Fin (N + 1) => μ) (Fin.last N)).integral_comp'
+      (g := G)
   have he : ∀ σ : Fin (N + 1) → α,
       MeasurableEquiv.piFinSuccAbove (fun _ : Fin (N + 1) => α) (Fin.last N) σ =
         (σ (Fin.last N), fun j => σ j.castSucc) := fun σ =>

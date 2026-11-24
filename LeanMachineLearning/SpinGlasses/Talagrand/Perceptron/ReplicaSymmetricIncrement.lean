@@ -135,9 +135,10 @@ theorem perceptron_pressure_succ_sub_eq
   rw [hp_M1_eq, integral_add hZM_int hR_int, hZM_fst]
   ring
 
-/-- The second-proof field `√v' (√(N+1))⁻¹ ∑ᵢ g'ᵢ εᵢ + √(1-v') (√q z + √(1-q) ξ)` is measurable in the
-state `(ε, ξ)` for a fixed disorder. -/
-private lemma measurable_secondProof_field {N M : ℕ} (q v' : ℝ) (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) × ℝ) :
+/-- The second-proof field `√v' (√(N+1))⁻¹ ∑ᵢ g'ᵢ εᵢ + √(1-v') (√q z + √(1-q) ξ)` is measurable in
+the state `(ε, ξ)` for a fixed disorder. -/
+private lemma measurable_secondProof_field {N M : ℕ} (q v' : ℝ)
+    (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) × ℝ) :
     Measurable fun x : (Fin (N + 1) → ℤˣ) × ℝ =>
       Real.sqrt v' * ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.2 i * ((x.1 i : ℤ) : ℝ)) +
         Real.sqrt (1 - v') * (Real.sqrt q * ω.2 + Real.sqrt (1 - q) * x.2) :=
@@ -146,7 +147,8 @@ private lemma measurable_secondProof_field {N M : ℕ} (q v' : ℝ) (ω : ((Fin 
     ).const_mul _).add ((measurable_const.add (measurable_snd.const_mul _)).const_mul _)
 
 /-- The `v'`-derivative of the second-proof field is measurable in the state. -/
-private lemma measurable_secondProof_field_deriv {N M : ℕ} (q v' : ℝ) (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) × ℝ) :
+private lemma measurable_secondProof_field_deriv {N M : ℕ} (q v' : ℝ)
+    (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) × ℝ) :
     Measurable fun x : (Fin (N + 1) → ℤˣ) × ℝ =>
       (1 / (2 * Real.sqrt v')) * ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.2 i * ((x.1 i : ℤ) : ℝ)) -
         (1 / (2 * Real.sqrt (1 - v'))) * (Real.sqrt q * ω.2 + Real.sqrt (1 - q) * x.2) :=

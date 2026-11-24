@@ -1093,7 +1093,8 @@ private lemma integral_interpolating_partial_overlap_pow_le_succ_constraints
               abs_of_pos (inv_pos.2 (by positivity : (0 : ℝ) < (N : ℝ) + 1))]
             calc ((N : ℝ) + 1)⁻¹ * |((x (Fin.last N) : ℤ) : ℝ) * ((y (Fin.last N) : ℤ) : ℝ) - q|
                 ≤ ((N : ℝ) + 1)⁻¹ * 2 :=
-                  mul_le_mul_of_nonneg_left (abs_units_cast_mul_sub_le_two _ _ hq_mem) (by positivity)
+                  mul_le_mul_of_nonneg_left
+                    (abs_units_cast_mul_sub_le_two _ _ hq_mem) (by positivity)
               _ = 2 / ((N : ℝ) + 1) := by ring
           have hsq : A_fn (Fin.last N) x y ^ 2 ≤ 64 * ((k' + 1 : ℕ) : ℝ) / ((N : ℝ) + 1) := by
             rw [← sq_abs]
