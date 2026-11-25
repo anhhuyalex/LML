@@ -37,8 +37,8 @@ $$\mathrm{RS}(s) = \mathrm{perceptronRSFunctional}(u, \alpha, r, q) +
 * `SpinGlasses.hasDerivAt_interpolating_centered_moment_pow`: Eqs. (2.107)--(2.108), differentiating
   `s' ↦ 𝔼[(A(s', ω) - RS(s'))^k]` on `s ∈ (0, 1)` into `VII + VIII + IX` under free `(q, r)`
   (`q ∈ [0, 1]`, `r ≥ 0`, `SmartPathPotential₂`).
-* `SpinGlasses.abs_interpolating_term_VII_le_uniform_in_moment_order` and
-  `SpinGlasses.abs_interpolating_term_VIII_le_uniform_in_moment_order`:
+* `SpinGlasses.abs_interpolating_overlap_product_mul_pow_sub_one_le` and
+  `SpinGlasses.abs_interpolating_overlap_product_mul_pow_sub_two_le`:
   Eq. (2.109), bounding `|VII|` and `|VIII|` uniformly in `s ∈ [0, 1]` via Hölder and
   Theorems 2.5.1--2.5.2.
 
@@ -2835,11 +2835,9 @@ private lemma measurable_and_integrable_interp_pair_pow_moments
           (abs_empVar_obs_le (N := N) hu.abs_deriv_le r (S_fn ω (σ 0)) (S_fn ω (σ 1))) _)
   exact ⟨hAm, hBm_slice, hQ_m, hA2k_int, hB2k_int⟩
 
-/-- **Talagrand Section 2.5, Eq. (2.109), first inequality (`|VII|` bound):**
-Given `D`, choose `K ≥ 1` before the order `k` and the bound constant `C`. Under (2.7),
-`α K ≤ 1`, `(q, r)` solving (2.68), and `s ∈ [0, 1]`,
-`|VII| ≤ (C / (N + 1)) * (𝔼|V(s)|^k)^{((k - 1 : ℕ) : ℝ) / k}`. -/
-theorem abs_interpolating_term_VII_le_uniform_in_moment_order (D : ℝ) :
+/-- The common weighted overlap product in the moment ODE. The weight can be any lower
+power of the centered free energy. -/
+private theorem abs_integral_interpolating_overlap_product_mul_pow_le (D : ℝ) :
     ∃ K : ℝ, 1 ≤ K ∧ ∀ k : ℕ, ∃ C : ℝ, 0 ≤ C ∧
       ∀ (N M : ℕ) {s : ℝ} (_hs : s ∈ Icc (0 : ℝ) 1)
         {u : ℝ → ℝ}
@@ -2848,7 +2846,8 @@ theorem abs_interpolating_term_VII_le_uniform_in_moment_order (D : ℝ) :
         (_hα : (M : ℝ) / ((N : ℝ) + 1) * K ≤ 1)
         {q r : ℝ}
         (_hq : q = ∫ z : ℝ, Real.tanh (z * Real.sqrt r) ^ 2 ∂gaussianReal 0 1)
-        (_hr : r = ((M : ℝ) / ((N : ℝ) + 1)) * perceptronRhat u q),
+        (_hr : r = ((M : ℝ) / ((N : ℝ) + 1)) * perceptronRhat u q)
+        {m : ℕ} (_hm : m < k),
         let P_g := Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1
         let P_z := Measure.pi fun _ : Fin M => gaussianReal 0 1
         let P_z' := Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1
@@ -2867,24 +2866,23 @@ theorem abs_interpolating_term_VII_le_uniform_in_moment_order (D : ℝ) :
           ((N : ℝ) + 1)⁻¹ * Real.log (∫ x, Real.exp (E_s ω x) ∂μ_s)
         let RS : ℝ :=
           perceptronRSFunctional u ((M : ℝ) / ((N : ℝ) + 1)) r q + ((1 - s) / 2) * r * (1 - q)
-        |-(k : ℝ) / 2 * ∫ ω,
+        |∫ ω,
             (∫ σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ),
               ((((N : ℝ) + 1)⁻¹ * ∑ i, (((σ 0).1 i : ℤ) : ℝ) * (((σ 1).1 i : ℤ) : ℝ)) - q) *
                 ((((N : ℝ) + 1)⁻¹ * ∑ j : Fin M,
                   deriv u (S_fn ω (σ 0) j) * deriv u (S_fn ω (σ 1) j)) - r)
               ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s ω))) *
-            (A ω - RS) ^ (k - 1) ∂P| ≤
-          C / ((N : ℝ) + 1) * (∫ ω, |A ω - RS| ^ k ∂P) ^ (((k - 1 : ℕ) : ℝ) / (k : ℝ)) := by
+            (A ω - RS) ^ m ∂P| ≤
+          C / ((N : ℝ) + 1) * (∫ ω, |A ω - RS| ^ k ∂P) ^ ((m : ℝ) / (k : ℝ)) := by
   obtain ⟨K_ov, hKov0, h_ov⟩ := integral_interpolating_overlap_pow_le D
   obtain ⟨K_emp, L_emp, hKemp0, hLemp0, h_emp⟩ := integral_interpolating_empirical_variance_pow_le D
   let K : ℝ := max (max K_ov K_emp) 1
   refine ⟨K, le_max_right _ _, ?_⟩
   intro k
-  let C : ℝ := ((k : ℝ) / 2) * Real.sqrt (64 * (k : ℝ) * ((k : ℝ) * L_emp))
+  let C : ℝ := Real.sqrt (64 * (k : ℝ) * ((k : ℝ) * L_emp))
   refine ⟨C, by positivity, ?_⟩
-  intro N M s hs u hd hb hα q r hq hr P_g P_z P_z' P μ_s S_fn E_s A RS
-  rcases Nat.eq_zero_or_pos k with rfl | hk_pos
-  · simp [C]
+  intro N M s hs u hd hb hα q r hq hr m hm P_g P_z P_z' P μ_s S_fn E_s A RS
+  have hk_pos : 1 ≤ k := by omega
   obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
   have hP_prob : IsProbabilityMeasure P := by dsimp only [P, P_g, P_z, P_z']; infer_instance
   let α : ℝ := (M : ℝ) / ((N : ℝ) + 1)
@@ -2925,7 +2923,7 @@ theorem abs_interpolating_term_VII_le_uniform_in_moment_order (D : ℝ) :
         (abs_empVar_obs_le (N := N) hu.abs_deriv_le r (S_fn ω (σ 0)) (S_fn ω (σ 1)))
         (abs_nonneg _) zero_le_two
   have hstep2 := abs_integral_mul_pow_le_rpow_inv_mul_rpow_div hQ_bd hQ_m.aestronglyMeasurable
-    hVm.aestronglyMeasurable (m := k - 1) (by omega : k - 1 < k) hVk_int
+    hVm.aestronglyMeasurable hm hVk_int
   have hstep1 := rpow_inv_integral_abs_pow_gibbs_mul_le (P := P)
     (ν := fun ω => Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s ω))
     (A := fun _ σ => (((N : ℝ) + 1)⁻¹ * ∑ i, (((σ 0).1 i : ℤ) : ℝ) * (((σ 1).1 i : ℤ) : ℝ)) - q)
@@ -2944,19 +2942,67 @@ theorem abs_interpolating_term_VII_le_uniform_in_moment_order (D : ℝ) :
     (integral_nonneg fun _ => integral_nonneg fun _ => Even.pow_nonneg ⟨k, by ring⟩ _)
     (integral_nonneg fun _ => integral_nonneg fun _ => Even.pow_nonneg ⟨k, by ring⟩ _)
     h_ov_k h_emp_k
-  rw [abs_mul, abs_div, abs_neg, abs_of_nonneg (Nat.cast_nonneg k), abs_of_pos zero_lt_two]
-  calc ((k : ℝ) / 2) * _
-      ≤ ((k : ℝ) / 2) *
-          ((Real.sqrt (64 * (k : ℝ) * ((k : ℝ) * L_emp)) / ((N : ℝ) + 1)) *
-            (∫ ω, |A ω - RS| ^ k ∂P) ^ (((k - 1 : ℕ) : ℝ) / (k : ℝ))) :=
-        mul_le_mul_of_nonneg_left
-          (hstep2.trans (mul_le_mul_of_nonneg_right (hstep1.trans hprod)
-            (Real.rpow_nonneg (integral_nonneg fun _ => by positivity) _)))
-          (by positivity)
-    _ = C / ((N : ℝ) + 1) * (∫ ω, |A ω - RS| ^ k ∂P) ^ (((k - 1 : ℕ) : ℝ) / (k : ℝ)) := by
-        dsimp only [C]; ring
+  exact hstep2.trans (mul_le_mul_of_nonneg_right (hstep1.trans hprod)
+    (Real.rpow_nonneg (integral_nonneg fun _ => by positivity) _))
 
-/-- The fixed-order form of `abs_interpolating_term_VII_le_uniform_in_moment_order`. -/
+/-- **Talagrand Section 2.5, Eq. (2.109), first inequality (`|VII|` bound):**
+Given `D`, choose `K ≥ 1` before the order `k` and the bound constant `C`. Under (2.7),
+`α K ≤ 1`, `(q, r)` solving (2.68), and `s ∈ [0, 1]`,
+`|VII| ≤ (C / (N + 1)) * (𝔼|V(s)|^k)^{((k - 1 : ℕ) : ℝ) / k}`. -/
+theorem abs_interpolating_overlap_product_mul_pow_sub_one_le (D : ℝ) :
+    ∃ K : ℝ, 1 ≤ K ∧ ∀ k : ℕ, ∃ C : ℝ, 0 ≤ C ∧
+      ∀ (N M : ℕ) {s : ℝ} (_hs : s ∈ Icc (0 : ℝ) 1)
+        {u : ℝ → ℝ}
+        (_hd : ∀ j < 3, Differentiable ℝ (iteratedDeriv j u))
+        (_hb : ∀ j ≤ 3, ∀ x, |iteratedDeriv j u x| ≤ D)
+        (_hα : (M : ℝ) / ((N : ℝ) + 1) * K ≤ 1)
+        {q r : ℝ}
+        (_hq : q = ∫ z : ℝ, Real.tanh (z * Real.sqrt r) ^ 2 ∂gaussianReal 0 1)
+        (_hr : r = ((M : ℝ) / ((N : ℝ) + 1)) * perceptronRhat u q),
+        let P_g := Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1
+        let P_z := Measure.pi fun _ : Fin M => gaussianReal 0 1
+        let P_z' := Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1
+        let P := (P_g.prod P_z).prod P_z'
+        let μ_s := (Measure.count : Measure (Fin (N + 1) → ℤˣ)).prod
+          (Measure.pi fun _ : Fin M => gaussianReal 0 1)
+        let S_fn (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
+            (x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) (j : Fin M) : ℝ :=
+          Real.sqrt s * ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 j i * ((x.1 i : ℤ) : ℝ)) +
+            Real.sqrt (1 - s) * (Real.sqrt q * ω.1.2 j + Real.sqrt (1 - q) * x.2 j)
+        let E_s (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
+            (x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : ℝ :=
+          (∑ j : Fin M, u (S_fn ω x j)) +
+            ∑ i : Fin (N + 1), ((x.1 i : ℤ) : ℝ) * Real.sqrt (1 - s) * ω.2 i * Real.sqrt r
+        let A (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) : ℝ :=
+          ((N : ℝ) + 1)⁻¹ * Real.log (∫ x, Real.exp (E_s ω x) ∂μ_s)
+        let RS : ℝ :=
+          perceptronRSFunctional u ((M : ℝ) / ((N : ℝ) + 1)) r q + ((1 - s) / 2) * r * (1 - q)
+        |-(k : ℝ) / 2 * ∫ ω,
+            (∫ σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ),
+              ((((N : ℝ) + 1)⁻¹ * ∑ i, (((σ 0).1 i : ℤ) : ℝ) * (((σ 1).1 i : ℤ) : ℝ)) - q) *
+                ((((N : ℝ) + 1)⁻¹ * ∑ j : Fin M,
+                  deriv u (S_fn ω (σ 0) j) * deriv u (S_fn ω (σ 1) j)) - r)
+              ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s ω))) *
+            (A ω - RS) ^ (k - 1) ∂P| ≤
+          C / ((N : ℝ) + 1) * (∫ ω, |A ω - RS| ^ k ∂P) ^ (((k - 1 : ℕ) : ℝ) / (k : ℝ)) := by
+  obtain ⟨K, hK, h⟩ := abs_integral_interpolating_overlap_product_mul_pow_le D
+  refine ⟨K, hK, ?_⟩
+  intro k
+  obtain ⟨C, hC, hbound⟩ := h k
+  let C' : ℝ := ((k : ℝ) / 2) * C
+  refine ⟨C', by dsimp only [C']; positivity, ?_⟩
+  intro N M s hs u hd hb hα q r hq hr P_g P_z P_z' P μ_s S_fn E_s A RS
+  rcases Nat.eq_zero_or_pos k with rfl | hk
+  · simp [C']
+  have hbnd := hbound N M hs hd hb hα hq hr (m := k - 1) (by omega)
+  dsimp only at hbnd
+  rw [abs_mul, abs_div, abs_neg, abs_of_nonneg (Nat.cast_nonneg k), abs_of_pos zero_lt_two]
+  calc ((k : ℝ) / 2) * _ ≤ ((k : ℝ) / 2) *
+      (C / ((N : ℝ) + 1) * (∫ ω, |A ω - RS| ^ k ∂P) ^ (((k - 1 : ℕ) : ℝ) / k)) :=
+        mul_le_mul_of_nonneg_left hbnd (by positivity)
+    _ = _ := by dsimp only [C']; ring
+
+/-- The fixed-order form of `abs_interpolating_overlap_product_mul_pow_sub_one_le`. -/
 theorem abs_interpolating_term_VII_le (D : ℝ) (k : ℕ) :
     ∃ K C : ℝ, 0 ≤ K ∧ 0 ≤ C ∧
       ∀ (N M : ℕ) {s : ℝ} (_hs : s ∈ Icc (0 : ℝ) 1)
@@ -2993,7 +3039,7 @@ theorem abs_interpolating_term_VII_le (D : ℝ) (k : ℕ) :
               ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s ω))) *
             (A ω - RS) ^ (k - 1) ∂P| ≤
           C / ((N : ℝ) + 1) * (∫ ω, |A ω - RS| ^ k ∂P) ^ (((k - 1 : ℕ) : ℝ) / (k : ℝ)) := by
-  obtain ⟨K, hK, h⟩ := abs_interpolating_term_VII_le_uniform_in_moment_order D
+  obtain ⟨K, hK, h⟩ := abs_interpolating_overlap_product_mul_pow_sub_one_le D
   obtain ⟨C, hC, hbound⟩ := h k
   exact ⟨K, C, zero_le_one.trans hK, hC, hbound⟩
 
@@ -3001,7 +3047,7 @@ theorem abs_interpolating_term_VII_le (D : ℝ) (k : ℕ) :
 Given `D`, choose `K ≥ 1` before the order `k` and the bound constant `C`. Under (2.7),
 `α K ≤ 1`, `(q, r)` solving (2.68), and `s ∈ [0, 1]`,
 `|VIII| ≤ (C / (N + 1)²) * (𝔼|V(s)|^k)^{((k - 2 : ℕ) : ℝ) / k}`. -/
-theorem abs_interpolating_term_VIII_le_uniform_in_moment_order (D : ℝ) :
+theorem abs_interpolating_overlap_product_mul_pow_sub_two_le (D : ℝ) :
     ∃ K : ℝ, 1 ≤ K ∧ ∀ k : ℕ, ∃ C : ℝ, 0 ≤ C ∧
       ∀ (N M : ℕ) {s : ℝ} (_hs : s ∈ Icc (0 : ℝ) 1)
         {u : ℝ → ℝ}
@@ -3037,93 +3083,32 @@ theorem abs_interpolating_term_VIII_le_uniform_in_moment_order (D : ℝ) :
               ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s ω))) *
             (A ω - RS) ^ (k - 2) ∂P| ≤
           C / ((N : ℝ) + 1) ^ 2 * (∫ ω, |A ω - RS| ^ k ∂P) ^ (((k - 2 : ℕ) : ℝ) / (k : ℝ)) := by
-  obtain ⟨K_ov, hKov0, h_ov⟩ := integral_interpolating_overlap_pow_le D
-  obtain ⟨K_emp, L_emp, hKemp0, hLemp0, h_emp⟩ := integral_interpolating_empirical_variance_pow_le D
-  let K : ℝ := max (max K_ov K_emp) 1
-  refine ⟨K, le_max_right _ _, ?_⟩
+  obtain ⟨K, hK, h⟩ := abs_integral_interpolating_overlap_product_mul_pow_le D
+  refine ⟨K, hK, ?_⟩
   intro k
-  let C : ℝ := ((k : ℝ) * ((k - 1 : ℕ) : ℝ) / 2) * Real.sqrt (64 * (k : ℝ) * ((k : ℝ) * L_emp))
-  refine ⟨C, by positivity, ?_⟩
+  obtain ⟨C, hC, hbound⟩ := h k
+  let C' : ℝ := ((k : ℝ) * ((k - 1 : ℕ) : ℝ) / 2) * C
+  refine ⟨C', by dsimp only [C']; positivity, ?_⟩
   intro N M s hs u hd hb hα q r hq hr P_g P_z P_z' P μ_s S_fn E_s A RS
-  rcases Nat.lt_or_ge k 2 with hk2 | hk2
-  · have hC0 : C = 0 := by dsimp only [C]; interval_cases k <;> simp
-    rw [hC0]; interval_cases k <;> simp
-  have hk_pos : 1 ≤ k := by omega
-  have hsub1 : (k : ℝ) - 1 = ((k - 1 : ℕ) : ℝ) := by rw [Nat.cast_sub hk_pos, Nat.cast_one]
-  obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
-  have hP_prob : IsProbabilityMeasure P := by dsimp only [P, P_g, P_z, P_z']; infer_instance
-  let α : ℝ := (M : ℝ) / ((N : ℝ) + 1)
-  have hα0 : 0 ≤ α := by dsimp only [α]; positivity
-  have hα1 : α ≤ 1 := by
-    have h1 : α * 1 ≤ α * K := mul_le_mul_of_nonneg_left (le_max_right _ 1) hα0
-    linarith [hα]
-  have hα_ov : α * K_ov ≤ 1 :=
-    (mul_le_mul_of_nonneg_left ((le_max_left _ _).trans (le_max_left _ _)) hα0).trans hα
-  have hα_emp : α * K_emp ≤ 1 :=
-    (mul_le_mul_of_nonneg_left ((le_max_right _ _).trans (le_max_left _ _)) hα0).trans hα
-  have hq_mem : q ∈ Icc (0 : ℝ) 1 := by rw [hq]; exact integral_tanh_sq_sqrt_mem_Icc r
-  have hprob_ω (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) :
-      IsProbabilityMeasure (Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s ω)) := by
-    have := isProbabilityMeasure_tilted_interpEnergy (L := N + 1) hu.measurable
-      (fun x => hu.le x) s q r ω
-    infer_instance
-  obtain ⟨hAm_obs, hBm_obs, hQ_m, hA2k_P, hB2k_P⟩ :=
-    measurable_and_integrable_interp_pair_pow_moments (N := N) (M := M) hu hq_mem r s k
-  obtain ⟨hm_log, -⟩ := measurable_and_abs_log_interpPartition_le (N := N) (M := M)
-    hu.measurable hu.abs_le q r hs.1
-  have hVm : Measurable fun ω => A ω - RS := (hm_log.const_mul _).sub_const RS
-  have hVk_int : Integrable (fun ω => |A ω - RS| ^ k) P :=
-    (integrable_pow_of_memLp k
-      ((memLp_interp_log_partition_and_deriv (N := N) (M := M) hu.measurable hu.abs_le (D₁ := D)
-        q r RS 1 hs.1 ((max k 1 : ℕ) : ℝ≥0)).2.2)).2
-  let MA : ℝ := 2
-  let MB : ℝ := α * |D| ^ 2 + |r|
-  have hQ_bd (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) :
-      |∫ σ : Fin 2 → (Fin (N + 1) → ℤˣ) × (Fin M → ℝ),
-        ((((N : ℝ) + 1)⁻¹ * ∑ i, (((σ 0).1 i : ℤ) : ℝ) * (((σ 1).1 i : ℤ) : ℝ)) - q) *
-          ((((N : ℝ) + 1)⁻¹ * ∑ j : Fin M,
-            deriv u (S_fn ω (σ 0) j) * deriv u (S_fn ω (σ 1) j)) - r)
-        ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s ω))| ≤ MA * MB :=
-    abs_integral_le_of_forall_abs_le _ fun σ => by
-      rw [abs_mul]
-      exact mul_le_mul (abs_spin_overlap_sub_le_two hq_mem (σ 0).1 (σ 1).1)
-        (abs_empVar_obs_le (N := N) hu.abs_deriv_le r (S_fn ω (σ 0)) (S_fn ω (σ 1)))
-        (abs_nonneg _) zero_le_two
-  have hstep2 := abs_integral_mul_pow_le_rpow_inv_mul_rpow_div hQ_bd hQ_m.aestronglyMeasurable
-    hVm.aestronglyMeasurable (m := k - 2) (by omega : k - 2 < k) hVk_int
-  have hstep1 := rpow_inv_integral_abs_pow_gibbs_mul_le (P := P)
-    (ν := fun ω => Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s ω))
-    (A := fun _ σ => (((N : ℝ) + 1)⁻¹ * ∑ i, (((σ 0).1 i : ℤ) : ℝ) * (((σ 1).1 i : ℤ) : ℝ)) - q)
-    (B := fun ω σ => (((N : ℝ) + 1)⁻¹ * ∑ j : Fin M,
-      deriv u (S_fn ω (σ 0) j) * deriv u (S_fn ω (σ 1) j)) - r)
-    (fun _ σ => abs_spin_overlap_sub_le_two hq_mem (σ 0).1 (σ 1).1)
-    (fun ω σ => abs_empVar_obs_le (N := N) hu.abs_deriv_le_abs r (S_fn ω (σ 0)) (S_fn ω (σ 1)))
-    hQ_m.aestronglyMeasurable hk_pos
-    (fun _ => hAm_obs.aestronglyMeasurable) (fun ω => (hBm_obs ω).aestronglyMeasurable)
-    hA2k_P hB2k_P
-  have h_ov_k := h_ov N M hs hd hb hα_ov hq hr k
-  have h_emp_k := h_emp N M hs hd hb hα_emp hq hr k
-  dsimp only at h_ov_k h_emp_k
-  have hprod := rpow_inv_two_mul_product_le hk_pos (by positivity : (0 : ℝ) < (N : ℝ) + 1)
-    hLemp0 hα0 hα1
-    (integral_nonneg fun _ => integral_nonneg fun _ => Even.pow_nonneg ⟨k, by ring⟩ _)
-    (integral_nonneg fun _ => integral_nonneg fun _ => Even.pow_nonneg ⟨k, by ring⟩ _)
-    h_ov_k h_emp_k
+  rcases Nat.lt_or_ge k 2 with hk | hk
+  · have hcoeff : (k : ℝ) * ((k : ℝ) - 1) = 0 := by interval_cases k <;> norm_num
+    rw [hcoeff, zero_div, zero_mul, abs_zero]
+    dsimp only [C']
+    positivity
+  have hsub1 : (k : ℝ) - 1 = ((k - 1 : ℕ) : ℝ) := by
+    rw [Nat.cast_sub (by omega), Nat.cast_one]
+  have hbnd := hbound N M hs hd hb hα hq hr (m := k - 2) (by omega)
+  dsimp only at hbnd
   rw [hsub1, abs_mul, abs_div,
     abs_of_nonneg (mul_nonneg (Nat.cast_nonneg k) (Nat.cast_nonneg (k - 1))),
     abs_of_pos (by positivity : (0 : ℝ) < 2 * ((N : ℝ) + 1))]
   calc ((k : ℝ) * ((k - 1 : ℕ) : ℝ) / (2 * ((N : ℝ) + 1))) * _
       ≤ ((k : ℝ) * ((k - 1 : ℕ) : ℝ) / (2 * ((N : ℝ) + 1))) *
-          ((Real.sqrt (64 * (k : ℝ) * ((k : ℝ) * L_emp)) / ((N : ℝ) + 1)) *
-            (∫ ω, |A ω - RS| ^ k ∂P) ^ (((k - 2 : ℕ) : ℝ) / (k : ℝ))) :=
-        mul_le_mul_of_nonneg_left
-          (hstep2.trans (mul_le_mul_of_nonneg_right (hstep1.trans hprod)
-            (Real.rpow_nonneg (integral_nonneg fun _ => by positivity) _)))
-          (by positivity)
-    _ = C / ((N : ℝ) + 1) ^ 2 * (∫ ω, |A ω - RS| ^ k ∂P) ^ (((k - 2 : ℕ) : ℝ) / (k : ℝ)) := by
-        dsimp only [C]; field_simp
+        (C / ((N : ℝ) + 1) * (∫ ω, |A ω - RS| ^ k ∂P) ^ (((k - 2 : ℕ) : ℝ) / k)) :=
+          mul_le_mul_of_nonneg_left hbnd (by positivity)
+    _ = _ := by dsimp only [C']; field_simp
 
-/-- The fixed-order form of `abs_interpolating_term_VIII_le_uniform_in_moment_order`. -/
+/-- The fixed-order form of `abs_interpolating_overlap_product_mul_pow_sub_two_le`. -/
 theorem abs_interpolating_term_VIII_le (D : ℝ) (k : ℕ) :
     ∃ K C : ℝ, 0 ≤ K ∧ 0 ≤ C ∧
       ∀ (N M : ℕ) {s : ℝ} (_hs : s ∈ Icc (0 : ℝ) 1)
@@ -3160,7 +3145,7 @@ theorem abs_interpolating_term_VIII_le (D : ℝ) (k : ℕ) :
               ∂(Measure.pi fun _ : Fin 2 => μ_s.tilted (E_s ω))) *
             (A ω - RS) ^ (k - 2) ∂P| ≤
           C / ((N : ℝ) + 1) ^ 2 * (∫ ω, |A ω - RS| ^ k ∂P) ^ (((k - 2 : ℕ) : ℝ) / (k : ℝ)) := by
-  obtain ⟨K, hK, h⟩ := abs_interpolating_term_VIII_le_uniform_in_moment_order D
+  obtain ⟨K, hK, h⟩ := abs_interpolating_overlap_product_mul_pow_sub_two_le D
   obtain ⟨C, hC, hbound⟩ := h k
   exact ⟨K, C, zero_le_one.trans hK, hC, hbound⟩
 

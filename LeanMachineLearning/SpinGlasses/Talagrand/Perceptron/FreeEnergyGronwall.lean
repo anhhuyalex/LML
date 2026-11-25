@@ -470,8 +470,8 @@ private theorem integral_interpolating_centered_even_pow_le (D : ℝ) :
         let RS : ℝ :=
           perceptronRSFunctional u ((M : ℝ) / ((N : ℝ) + 1)) r q + ((1 - s) / 2) * r * (1 - q)
         ∫ ω, (A ω - RS) ^ (2 * p) ∂P ≤ C * ((Real.sqrt ((N : ℝ) + 1))⁻¹) ^ (2 * p) := by
-  obtain ⟨K_VII, _, h_VII_all⟩ := abs_interpolating_term_VII_le_uniform_in_moment_order D
-  obtain ⟨K_VIII, _, h_VIII_all⟩ := abs_interpolating_term_VIII_le_uniform_in_moment_order D
+  obtain ⟨K_VII, _, h_VII_all⟩ := abs_interpolating_overlap_product_mul_pow_sub_one_le D
+  obtain ⟨K_VIII, _, h_VIII_all⟩ := abs_interpolating_overlap_product_mul_pow_sub_two_le D
   let K : ℝ := max (max K_VII K_VIII) 1
   refine ⟨K, le_max_right _ _, ?_⟩
   intro p

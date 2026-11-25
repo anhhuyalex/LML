@@ -345,8 +345,8 @@ private lemma exists_hasDerivAt_interpolating_centered_moment_sub_le (D : ℝ) :
             (((m : ℝ) * ((m : ℝ) - 1) / 2 * ε ^ 2 * (-(r * q))) *
               (∫ ω, V s ω ^ (m - 2) ∂P) + D_rem) s ∧
           |D_rem| ≤ C_rem * ε ^ (m + 1) := by
-  obtain ⟨K_7, _, h_7_all⟩ := abs_interpolating_term_VII_le_uniform_in_moment_order D
-  obtain ⟨K_8, _, h_8_all⟩ := abs_interpolating_term_VIII_le_uniform_in_moment_order D
+  obtain ⟨K_7, _, h_7_all⟩ := abs_interpolating_overlap_product_mul_pow_sub_one_le D
+  obtain ⟨K_8, _, h_8_all⟩ := abs_interpolating_overlap_product_mul_pow_sub_two_le D
   obtain ⟨K_ap, _, h_ap_all⟩ := integral_interpolating_centered_abs_pow_le_uniform_in_moment_order D
   let K : ℝ := max (max K_7 K_8) (max K_ap 1)
   refine ⟨K, (le_max_right K_ap 1).trans (le_max_right _ _), ?_⟩
