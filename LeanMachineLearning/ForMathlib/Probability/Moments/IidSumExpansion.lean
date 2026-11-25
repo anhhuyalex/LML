@@ -754,7 +754,7 @@ theorem exists_abs_integral_add_pow_avg_two_pi_sub_le_all_orders
 theorem exists_abs_integral_add_pow_avg_two_pi_sub_le
     (B₁ B₂ : ℕ → ℝ) (hB₁ : ∀ j, 0 ≤ B₁ j) (hB₂ : ∀ j, 0 ≤ B₂ j)
     {a : ℕ → ℝ} (ha0 : a 0 = 1) (ha1 : a 1 = 0) (ha : ∀ n, a (n + 2) = (n + 1) * a n)
-    (m : ℕ) (_hm : 1 ≤ m) :
+    (m : ℕ) (hm : 1 ≤ m) :
     ∃ C : ℝ, 0 ≤ C ∧
       ∀ {Ω₁ Ω₂ : Type*} [MeasurableSpace Ω₁] [MeasurableSpace Ω₂]
         (ν₁ : Measure Ω₁) [IsProbabilityMeasure ν₁]
@@ -772,8 +772,12 @@ theorem exists_abs_integral_add_pow_avg_two_pi_sub_le
               ∂((Measure.pi fun _ : Fin L => ν₁).prod (Measure.pi fun _ : Fin M => ν₂)) -
             ((Real.sqrt L)⁻¹) ^ m * a m *
               ((∫ x, f₁ x ^ 2 ∂ν₁) + ((M : ℝ) / L) * (∫ x, f₂ x ^ 2 ∂ν₂)) ^ (m / 2)| ≤
-            C * ((Real.sqrt L)⁻¹) ^ (m + 1) :=
-  exists_abs_integral_add_pow_avg_two_pi_sub_le_all_orders B₁ B₂ hB₁ hB₂ ha0 ha1 ha m
+            C * ((Real.sqrt L)⁻¹) ^ (m + 1) := by
+  cases m with
+  | zero => omega
+  | succ m =>
+    exact exists_abs_integral_add_pow_avg_two_pi_sub_le_all_orders
+      B₁ B₂ hB₁ hB₂ ha0 ha1 ha (m + 1)
 
 section Main
 

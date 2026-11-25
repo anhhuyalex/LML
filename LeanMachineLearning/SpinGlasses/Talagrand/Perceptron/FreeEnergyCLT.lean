@@ -45,7 +45,8 @@ vanishes, including at `q = 0`, or when the Gaussian moment is zero in odd order
 ## Main declarations
 
 * `SpinGlasses.interpolating_free_energy_clt_uniform_in_moment_order`: moment CLT on `s ∈ [0, 1]`.
-* `SpinGlasses.perceptron_free_energy_clt_uniform_in_moment_order`: Theorem 2.5.3 with the corrected variance.
+* `SpinGlasses.perceptron_free_energy_clt_uniform_in_moment_order`: Theorem 2.5.3 with
+  the corrected variance.
 * `SpinGlasses.perceptron_free_energy_clt_of_zero_constraint_var`: specialization to the printed
   `b = 𝔼(log cosh(z √r))² - (𝔼 log cosh(z √r))² - q r` when the constraint `z`-variance vanishes.
 -/
@@ -250,7 +251,8 @@ private lemma abs_integral_interpolating_zero_pow_sub_le (D : ℝ) (m : ℕ) :
       A_0 ω - RS_0 =
         ((N + 1 : ℕ) : ℝ)⁻¹ * (∑ i : Fin (N + 1), f₁ (ω.2 i)) +
           ((N + 1 : ℕ) : ℝ)⁻¹ * (∑ j : Fin M, f₂ (ω.1.2 j)) := by
-    simpa only [Nat.cast_add, Nat.cast_one] using sub_rs_interpolating_zero_eq hu hB_le q r ω
+    rw [Nat.cast_add, Nat.cast_one]
+    exact sub_rs_interpolating_zero_eq hu hB_le q r ω
   obtain ⟨hLX2, hf₁_0, hf₁_int, hf₁_mom⟩ := centered_log_cosh_gaussianReal_moments hsr_le
   obtain ⟨hψu2, hf₂_0, hf₂_int, hf₂_mom⟩ := centered_log_integral_exp_cavityPath_moments hu hB q
   have hv₁_eq : ∫ z, f₁ z ^ 2 ∂γ = (∫ z, L_X z ^ 2 ∂γ) - c_X ^ 2 := by
@@ -272,6 +274,10 @@ private lemma abs_integral_interpolating_zero_pow_sub_le (D : ℝ) (m : ℕ) :
       (((N + 1 : ℕ) : ℝ)⁻¹ * ∑ i, f₁ (p.1 i) +
         ((N + 1 : ℕ) : ℝ)⁻¹ * ∑ j, f₂ (p.2 j)) ^ m
     have hHm : Measurable H := by
+      have hLX_m : Measurable L_X :=
+        (Real.continuous_cosh.comp (by fun_prop)).log (fun _ => (Real.cosh_pos _).ne') |>.measurable
+      have hψu_m : Measurable ψ_u :=
+        Real.measurable_log.comp (measurable_integral_exp_cavityPath hu q)
       have hm1 : Measurable fun p : (Fin (N + 1) → ℝ) × (Fin M → ℝ) =>
           ((N + 1 : ℕ) : ℝ)⁻¹ * ∑ i, f₁ (p.1 i) :=
         (Finset.measurable_sum _ fun i _ =>

@@ -297,7 +297,8 @@ theorem interpolating_pressure_one_eq
       Real.log (∫ x, Real.exp (E_1 ω x) ∂μ_s) =
       Real.log (∑ τ : Fin (N + 1) → ℤˣ,
         Real.exp (∑ k : Fin M,
-          u ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 k i * ((τ i : ℤ) : ℝ)))) := log_interpPartition_one_eq hu hB_le q r ω
+          u ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 k i * ((τ i : ℤ) : ℝ)))) :=
+    log_interpPartition_one_eq hu hB_le q r ω
   simp_rw [hpt]
   have h1 := integral_prod_fun_fst_of_isProbabilityMeasure (μ := P_g.prod P_z) (ν := P_z')
     (fun gz : (Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ) =>

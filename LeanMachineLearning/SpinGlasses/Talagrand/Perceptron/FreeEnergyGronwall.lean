@@ -337,23 +337,20 @@ private lemma integral_interpolating_zero_even_pow_le (D : ℝ) (p : ℕ) :
     ((N : ℝ) + 1)⁻¹ * ∑ i : Fin (N + 1), f_X (ω.2 i)
   let S_Y (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) : ℝ :=
     ((N : ℝ) + 1)⁻¹ * ∑ j : Fin M, f_Y (ω.1.2 j)
-  have hSX_int : Integrable (fun ω => S_X ω ^ (2 * (p + 1))) P := by
-    have hpi := (integrable_pow_sum_pi hfX_int (N + 1) (2 * (p + 1))).const_mul
-      ((((N : ℝ) + 1)⁻¹) ^ (2 * (p + 1)))
+  have hSX_pow_int (n : ℕ) : Integrable (fun ω => S_X ω ^ n) P := by
+    have hpi := (integrable_pow_sum_pi hfX_int (N + 1) n).const_mul (((N : ℝ) + 1)⁻¹ ^ n)
     exact (hpi.comp_snd (P_g.prod P_z)).congr
       (ae_of_all _ fun ω => by dsimp only [S_X]; rw [mul_pow])
-  have hSY_int : Integrable (fun ω => S_Y ω ^ (2 * (p + 1))) P := by
-    have hpi := (integrable_pow_sum_pi hfY_int M (2 * (p + 1))).const_mul
-      ((((N : ℝ) + 1)⁻¹) ^ (2 * (p + 1)))
+  have hSY_pow_int (n : ℕ) : Integrable (fun ω => S_Y ω ^ n) P := by
+    have hpi := (integrable_pow_sum_pi hfY_int M n).const_mul (((N : ℝ) + 1)⁻¹ ^ n)
     exact ((hpi.comp_snd P_g).comp_fst P_z').congr
       (ae_of_all _ fun ω => by dsimp only [S_Y]; rw [mul_pow])
-  have hSX_m : Measurable S_X :=
-    (Finset.measurable_sum _ fun i _ =>
-      (hlc_m.sub_const c_X).comp ((measurable_pi_apply i).comp measurable_snd)).const_mul _
-  have hSY_m : Measurable S_Y :=
-    (Finset.measurable_sum _ fun j _ =>
-      (hψu_m.sub_const c_Y).comp
-        ((measurable_pi_apply j).comp (measurable_snd.comp measurable_fst))).const_mul _
+  have hSX_int := hSX_pow_int (2 * (p + 1))
+  have hSY_int := hSY_pow_int (2 * (p + 1))
+  have hSX_m : AEStronglyMeasurable S_X P := by
+    simpa only [pow_one] using (hSX_pow_int 1).aestronglyMeasurable
+  have hSY_m : AEStronglyMeasurable S_Y P := by
+    simpa only [pow_one] using (hSY_pow_int 1).aestronglyMeasurable
   have hsum_le :
       ∫ ω, (A_0 ω - RS_0) ^ (2 * (p + 1)) ∂P ≤
         2 ^ (2 * (p + 1) - 1) *
@@ -362,13 +359,13 @@ private lemma integral_interpolating_zero_even_pow_le (D : ℝ) (p : ℕ) :
         (A_0 ω - RS_0) ^ (2 * (p + 1)) ≤
           2 ^ (2 * (p + 1) - 1) * (S_X ω ^ (2 * (p + 1)) + S_Y ω ^ (2 * (p + 1))) := by
       rw [hpt_V ω]; exact add_pow_two_mul_le (Nat.succ_pos p) (S_X ω) (S_Y ω)
-    have hVm : Measurable fun ω => (A_0 ω - RS_0) ^ (2 * (p + 1)) := by
+    have hVm : AEStronglyMeasurable (fun ω => (A_0 ω - RS_0) ^ (2 * (p + 1))) P := by
       have heq_V : (fun ω => (A_0 ω - RS_0) ^ (2 * (p + 1))) =
           fun ω => (S_X ω + S_Y ω) ^ (2 * (p + 1)) := funext fun ω => by rw [hpt_V ω]
-      rw [heq_V]; exact (hSX_m.add hSY_m).pow_const _
+      rw [heq_V]; exact (hSX_m.add hSY_m).pow _
     refine (integral_mono
       (g := fun ω => 2 ^ (2 * (p + 1) - 1) * (S_X ω ^ (2 * (p + 1)) + S_Y ω ^ (2 * (p + 1))))
-      (((hSX_int.add hSY_int).const_mul _).mono' hVm.aestronglyMeasurable
+      (((hSX_int.add hSY_int).const_mul _).mono' hVm
         (ae_of_all _ fun ω => by
           rw [Real.norm_of_nonneg (Even.pow_nonneg ⟨p + 1, by ring⟩ _)]
           exact hpt ω))
