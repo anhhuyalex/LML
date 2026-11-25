@@ -35,6 +35,24 @@ public import Mathlib.Analysis.MeanInequalities
 
 @[expose] public section
 
+/-- Weighted AM-GM for a natural power and its complementary real exponent. -/
+theorem Real.pow_mul_rpow_sub_div_le_add {x y : ℝ} {m n : ℕ}
+    (hx : 0 ≤ x) (hy : 0 ≤ y) (hn : 0 < n) (hmn : m ≤ n) :
+    x ^ m * y ^ (((n - m : ℕ) : ℝ) / n) ≤ x ^ n + y := by
+  have hnR : (0 : ℝ) < n := Nat.cast_pos.mpr hn
+  have hw : (m : ℝ) / n ≤ 1 := (div_le_one hnR).2 (Nat.cast_le.mpr hmn)
+  have h := Real.geom_mean_le_arith_mean2_weighted (div_nonneg (Nat.cast_nonneg m) hnR.le)
+    (sub_nonneg.mpr hw) (pow_nonneg hx n) hy
+    (show (m : ℝ) / n + (1 - (m : ℝ) / n) = 1 by ring)
+  have hxw : (x ^ n) ^ ((m : ℝ) / n) = x ^ m := by
+    rw [← Real.rpow_natCast x n, ← Real.rpow_mul hx,
+      show (n : ℝ) * ((m : ℝ) / n) = m by field_simp, Real.rpow_natCast]
+  have hsub : 1 - (m : ℝ) / n = ((n - m : ℕ) : ℝ) / n := by
+    rw [Nat.cast_sub hmn]; field_simp
+  rw [hxw, hsub] at h
+  exact h.trans (add_le_add (mul_le_of_le_one_left (pow_nonneg hx n) hw)
+    (mul_le_of_le_one_left hy ((div_le_one hnR).2 (Nat.cast_le.mpr (Nat.sub_le n m)))))
+
 /-- Square roots commute with natural powers on the nonnegative reals. -/
 theorem Real.sqrt_pow_nat {x : ℝ} (hx : 0 ≤ x) (n : ℕ) :
     Real.sqrt (x ^ n) = Real.sqrt x ^ n := by

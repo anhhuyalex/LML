@@ -290,6 +290,59 @@ theorem integral_pi_cavity_rotation_nonneg_le_exp_mul
   rw [heq] at hcomp
   exact hcomp
 
+/-- **Lemma 2.3.4 (2.61), spin-only form.** For a nonnegative function `f` of the spins of `n`
+replicas (no measurability, boundedness or integrability hypothesis is needed, because the set of
+spin configurations is finite), any two angles `s₁, s₂` of the cavity rotation satisfy
+`ν_{t,s₁}(f) ≤ exp (4 n B) ν_{t,s₂}(f)` when `u` is measurable with `|u| ≤ B`. -/
+theorem integral_pi_cavity_rotation_spin_only_le_exp_mul
+    {N M : ℕ} {R : Type uR} [Fintype R]
+    {u : ℝ → ℝ} (hu : Measurable u) {B : ℝ} (hB : ∀ x, |u x| ≤ B)
+    (t q s₁ s₂ : ℝ) (variance : ℝ≥0)
+    (f : (R → PerceptronSpin N) → ℝ) (hf0 : ∀ σ, 0 ≤ f σ) :
+    let P₀ := smartPathDisorder (Measure.pi fun _ : Fin M =>
+      Measure.pi fun _ : Fin N => gaussianReal 0 1) variance
+    let μ₀ (ω : SmartPathDisorder N M) :=
+      (smartPathBase N M).tilted (smartPathEnergy u t ω)
+    let γ_sh := Measure.pi fun _ : (Fin N ⊕ Unit) ⊕ Unit => gaussianReal 0 1
+    let γ_aux := Measure.pi fun _ : Fin 2 => gaussianReal 0 1
+    let X : PerceptronSpin N → (Fin N ⊕ Unit) ⊕ Unit → ℝ :=
+      fun σ => Sum.elim (cavityCoef N t σ) 0
+    let Y : (Fin N ⊕ Unit) ⊕ Unit → ℝ := Sum.elim 0 (fun _ => Real.sqrt q)
+    let A : Fin 2 → ℝ := Pi.single 0 (Real.sqrt ((1 - t) / (N + 1)))
+    let E : Fin 2 → ℝ := Pi.single 1 (Real.sqrt (1 - q))
+    let S (s : ℝ) (w : (Fin N ⊕ Unit) ⊕ Unit → ℝ)
+        (x : SmartPathState N M × (Fin 2 → ℝ)) : ℝ :=
+      Real.cos s * (X x.1.1 ⬝ᵥ w + A ⬝ᵥ x.2) +
+        Real.sin s * (Y ⬝ᵥ w + E ⬝ᵥ x.2)
+    let ν (s : ℝ) (p : SmartPathDisorder N M × ((Fin N ⊕ Unit) ⊕ Unit → ℝ)) :=
+      ((μ₀ p.1).prod γ_aux).tilted fun x => u (S s p.2 x)
+    ∫ p, ∫ a : R → SmartPathState N M × (Fin 2 → ℝ),
+        f (fun r => (a r).1.1) ∂(Measure.pi fun _ : R => ν s₁ p) ∂(P₀.prod γ_sh) ≤
+      Real.exp (4 * Fintype.card R * B) *
+      ∫ p, ∫ a : R → SmartPathState N M × (Fin 2 → ℝ),
+        f (fun r => (a r).1.1) ∂(Measure.pi fun _ : R => ν s₂ p) ∂(P₀.prod γ_sh) := by
+  intro P₀ μ₀ γ_sh γ_aux X Y A E S ν
+  have hB' : ∀ x, u x ≤ B := fun x => le_of_abs_le (hB x)
+  obtain ⟨C, hC⟩ := exists_abs_le_of_finite f
+  have hμ (ω : SmartPathDisorder N M) : IsProbabilityMeasure (μ₀ ω) :=
+    isProbabilityMeasure_tilted_perceptron_smart_path_energy (μ := smartPathBase N M)
+      hu hB' ω t
+  have hgm : Measurable fun p : SmartPathDisorder N M × (R → SmartPathState N M) =>
+      f (fun r => (p.2 r).1) := (measurable_of_finite f).comp (by fun_prop)
+  refine integral_pi_cavity_rotation_nonneg_le_exp_mul hu hB t q s₁ s₂ variance
+    (g := fun _ σ => f (fun r => (σ r).1)) hgm (fun _ _ => hf0 _) ?_ ?_
+  · exact ae_of_all _ fun ω => integrable_of_measurable_bound
+      ((measurable_of_finite f).comp (by fun_prop)) (M := C) fun σ => hC _
+  · have hm : Measurable fun ω : SmartPathDisorder N M =>
+        ∫ σ : R → SmartPathState N M, f (fun r => (σ r).1)
+          ∂(Measure.pi fun _ : R => μ₀ ω) :=
+      measurable_integral_pi_tilted (measurable_smartPathEnergy hu t)
+        (G := fun _ σ => f (fun r => (σ r).1)) hgm
+    refine integrable_of_measurable_bound hm (M := C) fun ω => ?_
+    have := hμ ω
+    exact abs_integral_le_of_forall_abs_le _ fun σ => hC _
+
+
 theorem integral_integral_pi_cavity_rotation_zero_eq_smartPath
     {N M : ℕ} {R : Type uR} [Fintype R]
     {u : ℝ → ℝ} {B D : ℝ} (hu : SmartPathPotential u B D)

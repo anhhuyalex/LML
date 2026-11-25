@@ -23,6 +23,21 @@ open scoped BigOperators Nat
 
 namespace ProbabilityTheory
 
+/-- The first absolute moment of the standard Gaussian is at most one. -/
+theorem integral_abs_gaussianReal_le_one : ∫ z : ℝ, |z| ∂gaussianReal 0 1 ≤ 1 := by
+  have hm : MemLp id 2 (gaussianReal 0 1) := memLp_id_gaussianReal 2
+  have hsq : Integrable (fun z : ℝ => z ^ 2) (gaussianReal 0 1) := hm.integrable_sq
+  have habs : Integrable (fun z : ℝ => |z|) (gaussianReal 0 1) :=
+    (hm.integrable (by norm_num)).abs
+  have hvar : ∫ z : ℝ, z ^ 2 ∂gaussianReal 0 1 = 1 :=
+    by simpa using integral_pow_add_two_gaussianReal 0
+  calc ∫ z : ℝ, |z| ∂gaussianReal 0 1 ≤ ∫ z : ℝ, (1 + z ^ 2) / 2 ∂gaussianReal 0 1 :=
+        integral_mono habs ((integrable_const (1 : ℝ)).add hsq |>.div_const 2) fun z => by
+          nlinarith [sq_abs z, sq_nonneg (|z| - 1)]
+    _ = 1 := by
+        rw [integral_div, integral_add (integrable_const _) hsq, hvar]
+        simp
+
 /-- The moments of the standard Gaussian satisfy `|𝔼 g^n| ≤ n!`. -/
 theorem abs_integral_pow_gaussianReal_le (n : ℕ) :
     |∫ x : ℝ, x ^ n ∂(gaussianReal 0 1)| ≤ (n ! : ℝ) := by

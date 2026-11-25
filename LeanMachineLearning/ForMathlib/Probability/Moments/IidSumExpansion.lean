@@ -66,23 +66,16 @@ theorem abs_le_of_abs_sub_le_sqrt_pow {e : ℕ → ℝ} (he0 : e 0 = 0) {c : ℝ
     mul_le_mul_of_nonneg_right (by linarith) (by positivity)
   nlinarith
 
-/-- **The leading terms cancel in the increment of the Gaussian reference.**  For a sequence `a`
-with `a 1 = 0` and `a (k + 2) = (k + 1) a k` and `σ2 ≥ 0`, the quantity
-`Θ = C(k, 2) σ2 · ref_{k-2}(n) - (ref_k(n + 1) - ref_k(n))`, where
-`ref_j(n) = a j σ2^{j/2} n^{j/2}`, satisfies `|Θ| ≤ c (√(n + 1))^{k-3}` for some `c ≥ 0` and all
-`n`, for each `k ≥ 3`.  (For odd `k` it vanishes; for even `k` the leading terms cancel because
-`C(2m, 2) a_{2m-2} = m a_{2m}` and the remainder is the Taylor remainder of `n ↦ n^m`.) -/
-theorem exists_abs_cancellation_le {a : ℕ → ℝ} (ha1 : a 1 = 0) (ha : ∀ k, a (k + 2) = (k + 1) * a k)
-    {σ2 : ℝ} (hσ : 0 ≤ σ2) {k : ℕ} (hk : 3 ≤ k) :
-    ∃ c : ℝ, 0 ≤ c ∧ ∀ n : ℕ,
-      |(k.choose 2 : ℝ) * σ2 * (a (k - 2) * σ2 ^ ((k - 2) / 2) * (n : ℝ) ^ ((k - 2) / 2)) -
-        (a k * σ2 ^ (k / 2) * (((n + 1 : ℕ) : ℝ)) ^ (k / 2) -
-          a k * σ2 ^ (k / 2) * (n : ℝ) ^ (k / 2))|
-        ≤ c * Real.sqrt ((n : ℝ) + 1) ^ (k - 3) := by
+private theorem abs_gaussian_moment_increment_sub_le
+    {a : ℕ → ℝ} (ha1 : a 1 = 0) (ha : ∀ k, a (k + 2) = (k + 1) * a k)
+    {σ2 : ℝ} (hσ : 0 ≤ σ2) {k : ℕ} (hk : 3 ≤ k) (n : ℕ) :
+    |(k.choose 2 : ℝ) * σ2 * (a (k - 2) * σ2 ^ ((k - 2) / 2) * (n : ℝ) ^ ((k - 2) / 2)) -
+      (a k * σ2 ^ (k / 2) * (((n + 1 : ℕ) : ℝ)) ^ (k / 2) -
+        a k * σ2 ^ (k / 2) * (n : ℝ) ^ (k / 2))|
+        ≤ ((k : ℝ) * (k - 1) * |a k| * σ2 ^ (k / 2)) *
+          Real.sqrt ((n : ℝ) + 1) ^ (k - 3) := by
   obtain ⟨m, rfl | rfl⟩ := Nat.even_or_odd' k
   · obtain ⟨p, rfl⟩ : ∃ p, m = p + 2 := ⟨m - 2, by omega⟩
-    refine ⟨|(2 * (p : ℝ) + 3) * a (2 * p + 2)| * σ2 ^ (p + 2) * ((p + 2 : ℝ) * (p + 1 : ℝ)), by
-      positivity, fun n => ?_⟩
     have e1 : 2 * (p + 2) - 2 = 2 * p + 2 := by omega
     have e2 : 2 * (p + 2) / 2 = p + 2 := by omega
     have e3 : (2 * p + 2) / 2 = p + 1 := by omega
@@ -126,11 +119,37 @@ theorem exists_abs_cancellation_le {a : ℕ → ℝ} (ha1 : a 1 = 0) (ha : ∀ k
             (by positivity : 0 ≤ |(2 * (p : ℝ) + 3) * a (2 * p + 2)| * σ2 ^ (p + 2) *
               ((p + 2 : ℝ) * (p + 1 : ℝ)))
           nlinarith [this]
-  · refine ⟨0, le_rfl, fun n => ?_⟩
-    have h1 : a (2 * m + 1) = 0 := Nat.eq_zero_of_odd_of_two_step_mul ha1 ha ⟨m, rfl⟩
+      _ ≤ _ := by
+          have hcoeff : (p + 2 : ℝ) * (p + 1 : ℝ) ≤
+              ((2 * (p + 2) : ℕ) : ℝ) * (((2 * (p + 2) : ℕ) : ℝ) - 1) := by
+            push_cast; nlinarith
+          calc _ = (((p + 2 : ℝ) * (p + 1 : ℝ)) *
+              (|(2 * (p : ℝ) + 3) * a (2 * p + 2)| * σ2 ^ (p + 2))) *
+                Real.sqrt ((n : ℝ) + 1) ^ (2 * p + 1) := by ring
+            _ ≤ _ := mul_le_mul_of_nonneg_right
+                (mul_le_mul_of_nonneg_right hcoeff (by positivity)) (by positivity)
+  · have h1 : a (2 * m + 1) = 0 := Nat.eq_zero_of_odd_of_two_step_mul ha1 ha ⟨m, rfl⟩
     have h2 : a (2 * m + 1 - 2) = 0 := Nat.eq_zero_of_odd_of_two_step_mul ha1 ha ⟨m - 1, by omega⟩
-    rw [h1, h2]
-    simp
+    simp [h1, h2]
+
+/-- **The leading terms cancel in the increment of the Gaussian reference.**  For a sequence `a`
+with `a 1 = 0` and `a (k + 2) = (k + 1) a k` and `σ2 ≥ 0`, the quantity
+`Θ = C(k, 2) σ2 · ref_{k-2}(n) - (ref_k(n + 1) - ref_k(n))`, where
+`ref_j(n) = a j σ2^{j/2} n^{j/2}`, satisfies `|Θ| ≤ c (√(n + 1))^{k-3}` for some `c ≥ 0` and all
+`n`, for each `k ≥ 3`.  (For odd `k` it vanishes; for even `k` the leading terms cancel because
+`C(2m, 2) a_{2m-2} = m a_{2m}` and the remainder is the Taylor remainder of `n ↦ n^m`.) -/
+theorem exists_abs_cancellation_le {a : ℕ → ℝ} (ha1 : a 1 = 0) (ha : ∀ k, a (k + 2) = (k + 1) * a k)
+    {σ2 : ℝ} (hσ : 0 ≤ σ2) {k : ℕ} (hk : 3 ≤ k) :
+    ∃ c : ℝ, 0 ≤ c ∧ ∀ n : ℕ,
+      |(k.choose 2 : ℝ) * σ2 * (a (k - 2) * σ2 ^ ((k - 2) / 2) * (n : ℝ) ^ ((k - 2) / 2)) -
+        (a k * σ2 ^ (k / 2) * (((n + 1 : ℕ) : ℝ)) ^ (k / 2) -
+          a k * σ2 ^ (k / 2) * (n : ℝ) ^ (k / 2))|
+        ≤ c * Real.sqrt ((n : ℝ) + 1) ^ (k - 3) := by
+  have hk1 : (1 : ℝ) ≤ k := Nat.one_le_cast.mpr (by omega)
+  exact ⟨(k : ℝ) * (k - 1) * |a k| * σ2 ^ (k / 2),
+    mul_nonneg (mul_nonneg (mul_nonneg (Nat.cast_nonneg k) (sub_nonneg.mpr hk1))
+      (abs_nonneg _)) (pow_nonneg hσ _),
+    abs_gaussian_moment_increment_sub_le ha1 ha hσ hk⟩
 
 /-- `n^{⌊j/2⌋} ≤ (√(n + 1))^j`. -/
 theorem natCast_pow_div_two_le_sqrt_pow (n j : ℕ) :
@@ -141,221 +160,6 @@ theorem natCast_pow_div_two_le_sqrt_pow (n j : ℕ) :
     _ = Real.sqrt ((n : ℝ) + 1) ^ (2 * (j / 2)) := by
         rw [pow_mul, Real.sq_sqrt (by positivity)]
     _ ≤ Real.sqrt ((n : ℝ) + 1) ^ j := pow_le_pow_right₀ hs1 (Nat.mul_div_le j 2)
-
-section Main
-
-variable {Ω : Type*} [MeasurableSpace Ω]
-  {ν : Measure Ω} [IsProbabilityMeasure ν] {f : Ω → ℝ}
-
-/-- **Moment expansion of an i.i.d. centered sum** (Talagrand, Eq. (1.122)).  Let `f` be centered
-under `ν` with all powers integrable, and let `a` satisfy `a 0 = 1`, `a 1 = 0`,
-`a (k + 2) = (k + 1) a k` (the moments of a standard Gaussian).  Then for every `k` there is `C`
-with `|𝔼 (∑_{i<n} f (yᵢ))^k - a k σ2^{⌊k/2⌋} n^{⌊k/2⌋}| ≤ C (√(n + 1))^{k-1}` for all `n`, where
-`σ2 = ∫ f² dν`. -/
-theorem iid_sum_moment_expansion (hint : ∀ j, Integrable (fun x => f x ^ j) ν)
-    (h0 : ∫ x, f x ∂ν = 0) {a : ℕ → ℝ} (ha0 : a 0 = 1) (ha1 : a 1 = 0)
-    (ha : ∀ k, a (k + 2) = (k + 1) * a k) (k : ℕ) :
-    ∃ C : ℝ, 0 ≤ C ∧ ∀ n : ℕ,
-      |∫ y : Fin n → Ω, (∑ i, f (y i)) ^ k ∂(Measure.pi fun _ : Fin n => ν) -
-        a k * (∫ x, f x ^ 2 ∂ν) ^ (k / 2) * (n : ℝ) ^ (k / 2)| ≤
-      C * Real.sqrt ((n : ℝ) + 1) ^ (k - 1) := by
-  obtain ⟨M, hM⟩ : ∃ M : ℕ → ℕ → ℝ, ∀ n j, M n j =
-      ∫ y : Fin n → Ω, (∑ i, f (y i)) ^ j ∂(Measure.pi fun _ : Fin n => ν) := ⟨_, fun _ _ => rfl⟩
-  obtain ⟨μ, hμ⟩ : ∃ μ : ℕ → ℝ, ∀ j, μ j = ∫ x, f x ^ j ∂ν := ⟨_, fun _ => rfl⟩
-  simp only [← hM, ← hμ]
-  have hμ0 : μ 0 = 1 := by simp [hμ]
-  have hμ1 : μ 1 = 0 := by simpa [hμ] using h0
-  have hσ : 0 ≤ μ 2 := by rw [hμ]; exact integral_nonneg fun x => sq_nonneg _
-  have hrec : ∀ n j, M (n + 1) j = ∑ i ∈ range (j + 1), (j.choose i : ℝ) * μ i * M n (j - i) :=
-    fun n j => by
-      rw [hM, integral_pow_sum_pi_succ hint]
-      simp only [hM, hμ]
-  have hM0 : ∀ n, M n 0 = 1 := fun n => by simp [hM]
-  have hMz : ∀ j, 1 ≤ j → M 0 j = 0 := fun j hj => by
-    simp [hM, zero_pow (by omega : j ≠ 0)]
-  have hM1 : ∀ n, M n 1 = 0 := fun n => by
-    induction n with
-    | zero => exact hMz 1 le_rfl
-    | succ n ih => rw [hrec]; simp [Finset.sum_range_succ, hμ0, hμ1, ih]
-  have hrec2 : ∀ n k, 2 ≤ k → M (n + 1) k = M n k + (k.choose 2 : ℝ) * μ 2 * M n (k - 2) +
-      ∑ i ∈ Ico 3 (k + 1), (k.choose i : ℝ) * μ i * M n (k - i) := fun n k hk => by
-    rw [hrec, ← Finset.sum_range_add_sum_Ico _ (show 3 ≤ k + 1 by omega)]
-    simp [Finset.sum_range_succ, hμ0, hμ1, add_assoc]
-  have hM2 : ∀ n, M n 2 = n * μ 2 := fun n => by
-    induction n with
-    | zero => simpa using hMz 2 (by norm_num)
-    | succ n ih =>
-      rw [hrec2 n 2 le_rfl]
-      simp [hM0, ih]
-      ring
-  have main : ∀ k, ∃ C : ℝ, 0 ≤ C ∧ ∀ n : ℕ,
-      |M n k - a k * μ 2 ^ (k / 2) * (n : ℝ) ^ (k / 2)| ≤
-        C * Real.sqrt ((n : ℝ) + 1) ^ (k - 1) := by
-    intro k
-    induction k using Nat.strong_induction_on with
-    | _ k ih =>
-      rcases lt_or_ge k 3 with hk3 | hk3
-      · interval_cases k
-        · exact ⟨0, le_rfl, fun n => by simp [hM0, ha0]⟩
-        · exact ⟨0, le_rfl, fun n => by simp [hM1, ha1]⟩
-        · have h2 : a 2 = 1 := by
-            rw [show (2 : ℕ) = 0 + 2 from rfl, ha, ha0]; simp
-          exact ⟨0, le_rfl, fun n => by simp [hM2, h2]; ring⟩
-      · have hk2 : 2 ≤ k := by omega
-        choose! C hC0 hC using ih
-        set B : ℝ := ∑ i ∈ range k, (C i + |a i| * |μ 2| ^ (i / 2)) with hB
-        have hB0 : 0 ≤ B := Finset.sum_nonneg fun i hi =>
-          add_nonneg (hC0 i (Finset.mem_range.1 hi)) (by positivity)
-        have hpri : ∀ i < k, ∀ n : ℕ, |M n i| ≤ B * Real.sqrt ((n : ℝ) + 1) ^ i := by
-          intro i hi n
-          have hs1 := one_le_sqrt_natCast_add_one n
-          have h1 := hC i hi n
-          have h2 : Real.sqrt ((n : ℝ) + 1) ^ (i - 1) ≤ Real.sqrt ((n : ℝ) + 1) ^ i :=
-            pow_le_pow_right₀ hs1 (Nat.sub_le i 1)
-          have h3 := natCast_pow_div_two_le_sqrt_pow n i
-          have hle : C i + |a i| * |μ 2| ^ (i / 2) ≤ B :=
-            Finset.single_le_sum (f := fun i => C i + |a i| * |μ 2| ^ (i / 2))
-              (fun j hj => add_nonneg (hC0 j (Finset.mem_range.1 hj)) (by positivity))
-              (Finset.mem_range.2 hi)
-          calc |M n i| = |(M n i - a i * μ 2 ^ (i / 2) * (n : ℝ) ^ (i / 2)) +
-                a i * μ 2 ^ (i / 2) * (n : ℝ) ^ (i / 2)| := by ring_nf
-            _ ≤ |M n i - a i * μ 2 ^ (i / 2) * (n : ℝ) ^ (i / 2)| +
-                |a i * μ 2 ^ (i / 2) * (n : ℝ) ^ (i / 2)| := abs_add_le _ _
-            _ ≤ C i * Real.sqrt ((n : ℝ) + 1) ^ i + |a i| * |μ 2| ^ (i / 2) *
-                Real.sqrt ((n : ℝ) + 1) ^ i := by
-                refine add_le_add (h1.trans (mul_le_mul_of_nonneg_left h2 (hC0 i hi))) ?_
-                rw [abs_mul, abs_mul, abs_pow, abs_pow, Nat.abs_cast]
-                exact mul_le_mul_of_nonneg_left h3 (by positivity)
-            _ = (C i + |a i| * |μ 2| ^ (i / 2)) * Real.sqrt ((n : ℝ) + 1) ^ i := by ring
-            _ ≤ B * Real.sqrt ((n : ℝ) + 1) ^ i :=
-                mul_le_mul_of_nonneg_right hle (by positivity)
-        obtain ⟨cT, hcT0, hT⟩ := exists_abs_cancellation_le ha1 ha hσ hk3
-        set cR : ℝ := ∑ i ∈ Ico 3 (k + 1), (k.choose i : ℝ) * |μ i| * B with hcR
-        have hcR0 : 0 ≤ cR := Finset.sum_nonneg fun i _ => by positivity
-        set c : ℝ := (k.choose 2 : ℝ) * |μ 2| * C (k - 2) + cR + cT with hc
-        have hCk2 : 0 ≤ C (k - 2) := hC0 _ (by omega)
-        have hc0 : 0 ≤ c := by positivity
-        have hΔ : ∀ n : ℕ, |(M (n + 1) k - a k * μ 2 ^ (k / 2) * (((n + 1 : ℕ) : ℝ)) ^ (k / 2)) -
-            (M n k - a k * μ 2 ^ (k / 2) * (n : ℝ) ^ (k / 2))| ≤
-            c * Real.sqrt ((n : ℝ) + 1) ^ (k - 3) := by
-          intro n
-          have hs1 := one_le_sqrt_natCast_add_one n
-          set R := ∑ i ∈ Ico 3 (k + 1), (k.choose i : ℝ) * μ i * M n (k - i) with hR
-          have hRb : |R| ≤ cR * Real.sqrt ((n : ℝ) + 1) ^ (k - 3) := by
-            rw [hR, hcR, Finset.sum_mul]
-            refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun i hi => ?_)
-            have hi3 : 3 ≤ i := (Finset.mem_Ico.1 hi).1
-            have hik : i < k + 1 := (Finset.mem_Ico.1 hi).2
-            have h1 := hpri (k - i) (by omega) n
-            have h2 : Real.sqrt ((n : ℝ) + 1) ^ (k - i) ≤ Real.sqrt ((n : ℝ) + 1) ^ (k - 3) :=
-              pow_le_pow_right₀ hs1 (by omega)
-            rw [abs_mul, abs_mul, Nat.abs_cast]
-            calc (k.choose i : ℝ) * |μ i| * |M n (k - i)|
-                ≤ (k.choose i : ℝ) * |μ i| * (B * Real.sqrt ((n : ℝ) + 1) ^ (k - 3)) :=
-                  mul_le_mul_of_nonneg_left (h1.trans (mul_le_mul_of_nonneg_left h2 hB0))
-                    (by positivity)
-              _ = _ := by ring
-          have hEb : (k.choose 2 : ℝ) * |μ 2| * |M n (k - 2) - a (k - 2) * μ 2 ^ ((k - 2) / 2) *
-              (n : ℝ) ^ ((k - 2) / 2)| ≤ (k.choose 2 : ℝ) * |μ 2| * C (k - 2) *
-                Real.sqrt ((n : ℝ) + 1) ^ (k - 3) := by
-            have := hC (k - 2) (by omega) n
-            rw [show k - 2 - 1 = k - 3 by omega] at this
-            calc _ ≤ (k.choose 2 : ℝ) * |μ 2| * (C (k - 2) * Real.sqrt ((n : ℝ) + 1) ^ (k - 3)) :=
-                  mul_le_mul_of_nonneg_left this (by positivity)
-              _ = _ := by ring
-          have hid : (M (n + 1) k - a k * μ 2 ^ (k / 2) * (((n + 1 : ℕ) : ℝ)) ^ (k / 2)) -
-              (M n k - a k * μ 2 ^ (k / 2) * (n : ℝ) ^ (k / 2)) =
-              (k.choose 2 : ℝ) * μ 2 * (M n (k - 2) - a (k - 2) * μ 2 ^ ((k - 2) / 2) *
-                (n : ℝ) ^ ((k - 2) / 2)) + R +
-              ((k.choose 2 : ℝ) * μ 2 * (a (k - 2) * μ 2 ^ ((k - 2) / 2) *
-                (n : ℝ) ^ ((k - 2) / 2)) -
-                (a k * μ 2 ^ (k / 2) * (((n + 1 : ℕ) : ℝ)) ^ (k / 2) -
-                  a k * μ 2 ^ (k / 2) * (n : ℝ) ^ (k / 2))) := by
-            rw [hrec2 n k hk2]
-            ring
-          rw [hid]
-          have hT' := hT n
-          calc _ ≤ |(k.choose 2 : ℝ) * μ 2 * (M n (k - 2) - a (k - 2) * μ 2 ^ ((k - 2) / 2) *
-                (n : ℝ) ^ ((k - 2) / 2)) + R| + |(k.choose 2 : ℝ) * μ 2 * (a (k - 2) *
-                  μ 2 ^ ((k - 2) / 2) * (n : ℝ) ^ ((k - 2) / 2)) -
-                    (a k * μ 2 ^ (k / 2) * (((n + 1 : ℕ) : ℝ)) ^ (k / 2) -
-                      a k * μ 2 ^ (k / 2) * (n : ℝ) ^ (k / 2))| := abs_add_le _ _
-            _ ≤ (|(k.choose 2 : ℝ) * μ 2 * (M n (k - 2) - a (k - 2) * μ 2 ^ ((k - 2) / 2) *
-                (n : ℝ) ^ ((k - 2) / 2))| + |R|) + cT * Real.sqrt ((n : ℝ) + 1) ^ (k - 3) :=
-                add_le_add (abs_add_le _ _) hT'
-            _ ≤ _ := by
-                rw [abs_mul, abs_mul, Nat.abs_cast] at *
-                nlinarith [hEb, hRb]
-        have he0 : M 0 k - a k * μ 2 ^ (k / 2) * ((0 : ℕ) : ℝ) ^ (k / 2) = 0 := by
-          rw [hMz k (by omega), Nat.cast_zero, zero_pow (by omega : k / 2 ≠ 0)]
-          ring
-        refine ⟨c, hc0, fun n => ?_⟩
-        have := abs_le_of_abs_sub_le_sqrt_pow (e := fun n : ℕ => M n k - a k * μ 2 ^ (k / 2) *
-          (n : ℝ) ^ (k / 2)) he0 hc0 hΔ n
-        rwa [show k - 3 + 2 = k - 1 by omega] at this
-  simpa only [hM, hμ] using main k
-
-/-- **The moments of the normalized i.i.d. sum** (Talagrand, Eq. (1.122)).  Under the hypotheses
-of `iid_sum_moment_expansion`, for every `m ≥ 1` there is `C` such that for all `N > 0`,
-`|𝔼 (N⁻¹ ∑_{i<N} f (yᵢ))^m - N^{-m/2} a m σ2^{⌊m/2⌋}| ≤ C N^{-(m+1)/2}`, where
-`N^{-1/2}` is written `(√N)⁻¹`. -/
-theorem abs_integral_pow_avg_sub_le (hint : ∀ j, Integrable (fun x => f x ^ j) ν)
-    (h0 : ∫ x, f x ∂ν = 0) {a : ℕ → ℝ} (ha0 : a 0 = 1) (ha1 : a 1 = 0)
-    (ha : ∀ k, a (k + 2) = (k + 1) * a k) {m : ℕ} (hm : 1 ≤ m) :
-    ∃ C : ℝ, 0 ≤ C ∧ ∀ N : ℕ, 0 < N →
-      |∫ y : Fin N → Ω, ((N : ℝ)⁻¹ * ∑ i, f (y i)) ^ m ∂(Measure.pi fun _ : Fin N => ν) -
-        ((Real.sqrt N)⁻¹) ^ m * a m * (∫ x, f x ^ 2 ∂ν) ^ (m / 2)| ≤
-      C * ((Real.sqrt N)⁻¹) ^ (m + 1) := by
-  obtain ⟨C, hC0, hC⟩ := iid_sum_moment_expansion hint h0 ha0 ha1 ha m
-  refine ⟨C * Real.sqrt 2 ^ (m - 1), by positivity, fun N hN => ?_⟩
-  have hNpos : (0 : ℝ) < N := Nat.cast_pos.2 hN
-  have hsN : 0 < Real.sqrt N := Real.sqrt_pos.2 hNpos
-  set ε : ℝ := (Real.sqrt N)⁻¹ with hε
-  have hε2 : ε ^ 2 = (N : ℝ)⁻¹ := by rw [hε, inv_pow, Real.sq_sqrt hNpos.le]
-  -- pull the scalar out of the integral
-  have e1 : ∫ y : Fin N → Ω, ((N : ℝ)⁻¹ * ∑ i, f (y i)) ^ m ∂(Measure.pi fun _ : Fin N => ν) =
-      ((N : ℝ)⁻¹) ^ m * ∫ y : Fin N → Ω, (∑ i, f (y i)) ^ m ∂(Measure.pi fun _ : Fin N => ν) := by
-    simp_rw [mul_pow]
-    exact integral_const_mul _ _
-  -- the reference term, parity by parity
-  have e2 : ε ^ m * a m * (∫ x, f x ^ 2 ∂ν) ^ (m / 2) = ((N : ℝ)⁻¹) ^ m *
-      (a m * (∫ x, f x ^ 2 ∂ν) ^ (m / 2) * (N : ℝ) ^ (m / 2)) := by
-    obtain ⟨j, rfl | rfl⟩ := Nat.even_or_odd' m
-    · have hj : 2 * j / 2 = j := by omega
-      rw [hj, pow_mul, hε2, pow_mul]
-      have : ((N : ℝ)⁻¹ ^ 2) ^ j * (N : ℝ) ^ j = ((N : ℝ)⁻¹) ^ j := by
-        rw [sq, ← mul_pow, show (N : ℝ)⁻¹ * (N : ℝ)⁻¹ * N = (N : ℝ)⁻¹ by field_simp]
-      calc ((N : ℝ)⁻¹) ^ j * a (2 * j) * (∫ x, f x ^ 2 ∂ν) ^ j = a (2 * j) *
-            (∫ x, f x ^ 2 ∂ν) ^ j * ((N : ℝ)⁻¹) ^ j := by ring
-        _ = _ := by rw [← this]; ring
-    · rw [Nat.eq_zero_of_odd_of_two_step_mul ha1 ha ⟨j, rfl⟩]
-      simp
-  rw [e1, e2, ← mul_sub, abs_mul, abs_of_nonneg (by positivity : 0 ≤ ((N : ℝ)⁻¹) ^ m)]
-  have hs : Real.sqrt ((N : ℝ) + 1) ≤ Real.sqrt 2 * Real.sqrt N := by
-    have h1N : (1 : ℝ) ≤ N := Nat.one_le_cast.2 hN
-    rw [← Real.sqrt_mul (by norm_num)]
-    exact Real.sqrt_le_sqrt (by linarith)
-  have hpow : Real.sqrt ((N : ℝ) + 1) ^ (m - 1) ≤
-      Real.sqrt 2 ^ (m - 1) * Real.sqrt N ^ (m - 1) := by
-    rw [← mul_pow]
-    exact pow_le_pow_left₀ (Real.sqrt_nonneg _) hs _
-  have hfin : ((N : ℝ)⁻¹) ^ m * Real.sqrt N ^ (m - 1) = ε ^ (m + 1) := by
-    rw [← hε2, ← pow_mul, show 2 * m = (m + 1) + (m - 1) by omega, pow_add]
-    have : ε ^ (m - 1) * Real.sqrt N ^ (m - 1) = 1 := by
-      rw [← mul_pow, hε, inv_mul_cancel₀ hsN.ne', one_pow]
-    calc ε ^ (m + 1) * ε ^ (m - 1) * Real.sqrt N ^ (m - 1)
-        = ε ^ (m + 1) * (ε ^ (m - 1) * Real.sqrt N ^ (m - 1)) := by ring
-      _ = _ := by rw [this, mul_one]
-  calc ((N : ℝ)⁻¹) ^ m * |∫ y : Fin N → Ω, (∑ i, f (y i)) ^ m ∂(Measure.pi fun _ : Fin N => ν) -
-        a m * (∫ x, f x ^ 2 ∂ν) ^ (m / 2) * (N : ℝ) ^ (m / 2)|
-      ≤ ((N : ℝ)⁻¹) ^ m * (C * Real.sqrt ((N : ℝ) + 1) ^ (m - 1)) :=
-        mul_le_mul_of_nonneg_left (hC N) (by positivity)
-    _ ≤ ((N : ℝ)⁻¹) ^ m * (C * (Real.sqrt 2 ^ (m - 1) * Real.sqrt N ^ (m - 1))) :=
-        mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_left hpow hC0) (by positivity)
-    _ = C * Real.sqrt 2 ^ (m - 1) * (((N : ℝ)⁻¹) ^ m * Real.sqrt N ^ (m - 1)) := by ring
-    _ = _ := by rw [hfin]
-
-end Main
 
 /-- **Uniform moment bound for a centered i.i.d. sum under moment bounds `B`:** for any sequence
 `B : ℕ → ℝ` (`B j ≥ 0`) and exponent `k : ℕ`, there exists `C ≥ 0` depending only on `B` and `k`
@@ -614,59 +418,10 @@ theorem exists_abs_integral_pow_sum_pi_sub_le (B : ℕ → ℝ) (hB0 : ∀ j, 0 
             (a k * μ2 ^ (k / 2) * (((m + 1 : ℕ) : ℝ)) ^ (k / 2) -
               a k * μ2 ^ (k / 2) * (m : ℝ) ^ (k / 2))| ≤
             c_T * Real.sqrt ((m : ℝ) + 1) ^ (k - 3) := by
-        obtain ⟨l, rfl | rfl⟩ := Nat.even_or_odd' k
-        · obtain ⟨p, rfl⟩ : ∃ p, l = p + 2 := ⟨l - 2, by omega⟩
-          have e1 : 2 * (p + 2) - 2 = 2 * p + 2 := by omega
-          have e2 : 2 * (p + 2) / 2 = p + 2 := by omega
-          have e3 : (2 * p + 2) / 2 = p + 1 := by omega
-          have e4 : 2 * (p + 2) - 3 = 2 * p + 1 := by omega
-          have hch : ((2 * (p + 2)).choose 2 : ℝ) = (p + 2 : ℝ) * (2 * (p : ℝ) + 3) := by
-            rw [Nat.cast_choose_two]; push_cast; ring
-          have hak : a (2 * (p + 2)) = (2 * (p : ℝ) + 3) * a (2 * p + 2) := by
-            rw [show 2 * (p + 2) = (2 * p + 2) + 2 by ring, ha]; push_cast; ring
-          rw [e1, e2, e3, e4, hch]
-          obtain ⟨hg0, hg1⟩ := pow_succ_sub_pow_sub_mul_le (Nat.cast_nonneg (α := ℝ) m) p
-          set g_rem := ((m : ℝ) + 1) ^ (p + 2) - (m : ℝ) ^ (p + 2) - (p + 2 : ℝ) * (m : ℝ) ^ (p + 1)
-            with hg_def
-          have hΘ : (p + 2 : ℝ) * (2 * (p : ℝ) + 3) * μ2 * (a (2 * p + 2) * μ2 ^ (p + 1) *
-              (m : ℝ) ^ (p + 1)) - (a (2 * (p + 2)) * μ2 ^ (p + 2) *
-                (((m + 1 : ℕ) : ℝ)) ^ (p + 2) - a (2 * (p + 2)) * μ2 ^ (p + 2) *
-                  (m : ℝ) ^ (p + 2)) = -(a (2 * (p + 2)) * μ2 ^ (p + 2) * g_rem) := by
-            rw [hak, hg_def]; push_cast; ring
-          rw [hΘ, abs_neg, abs_mul, abs_mul, abs_of_nonneg (pow_nonneg hμ2_0 _), abs_of_nonneg hg0]
-          have hs : ((m : ℝ) + 1) ^ p ≤ Real.sqrt ((m : ℝ) + 1) ^ (2 * p + 1) := by
-            have h1 : Real.sqrt ((m : ℝ) + 1) ^ (2 * p) = ((m : ℝ) + 1) ^ p := by
-              rw [pow_mul, Real.sq_sqrt (by positivity)]
-            calc ((m : ℝ) + 1) ^ p = Real.sqrt ((m : ℝ) + 1) ^ (2 * p) := h1.symm
-              _ ≤ Real.sqrt ((m : ℝ) + 1) ^ (2 * p) * Real.sqrt ((m : ℝ) + 1) :=
-                  le_mul_of_one_le_right (by positivity) (one_le_sqrt_natCast_add_one m)
-              _ = _ := by ring
-          have hcoeff : (p + 2 : ℝ) * (p + 1 : ℝ) ≤
-              ((2 * (p + 2) : ℕ) : ℝ) * (((2 * (p + 2) : ℕ) : ℝ) - 1) := by
-            push_cast; nlinarith
-          have hμ_pow : μ2 ^ (p + 2) ≤ B 2 ^ (p + 2) := pow_le_pow_left₀ hμ2_0 hμ2_le _
-          dsimp only [c_T]
-          rw [e2]
-          calc |a (2 * (p + 2))| * μ2 ^ (p + 2) * g_rem
-              ≤ |a (2 * (p + 2))| * B 2 ^ (p + 2) *
-                  ((p + 2 : ℝ) * (p + 1 : ℝ) * Real.sqrt ((m : ℝ) + 1) ^ (2 * p + 1)) := by
-                refine mul_le_mul (mul_le_mul_of_nonneg_left hμ_pow (abs_nonneg _))
-                  (hg1.trans (mul_le_mul_of_nonneg_left hs (by positivity)))
-                  hg0 (by positivity)
-            _ ≤ (((2 * (p + 2) : ℕ) : ℝ) * (((2 * (p + 2) : ℕ) : ℝ) - 1) *
-                  |a (2 * (p + 2))| * B 2 ^ (p + 2)) *
-                  Real.sqrt ((m : ℝ) + 1) ^ (2 * p + 1) := by
-                have := mul_le_mul_of_nonneg_right
-                  (mul_le_mul_of_nonneg_right hcoeff
-                    (mul_nonneg (abs_nonneg (a (2 * (p + 2)))) (pow_nonneg (hB0 2) (p + 2))))
-                  (pow_nonneg (Real.sqrt_nonneg ((m : ℝ) + 1)) (2 * p + 1))
-                linarith
-        · have h1 : a (2 * l + 1) = 0 := Nat.eq_zero_of_odd_of_two_step_mul ha1 ha ⟨l, rfl⟩
-          have h2 : a (2 * l + 1 - 2) = 0 :=
-            Nat.eq_zero_of_odd_of_two_step_mul ha1 ha ⟨l - 1, by omega⟩
-          rw [h1, h2]
-          simp only [zero_mul, mul_zero, sub_self, abs_zero]
-          exact mul_nonneg hcT0 (pow_nonneg (Real.sqrt_nonneg _) _)
+        refine (abs_gaussian_moment_increment_sub_le ha1 ha hμ2_0 hk3 m).trans ?_
+        dsimp only [c_T]
+        gcongr
+        exact pow_le_pow_left₀ hμ2_0 hμ2_le _
       have hΔ (m : ℕ) :
           |(M_fn (m + 1) k - a k * μ2 ^ (k / 2) * (((m + 1 : ℕ) : ℝ)) ^ (k / 2)) -
             (M_fn m k - a k * μ2 ^ (k / 2) * (m : ℝ) ^ (k / 2))| ≤
@@ -740,10 +495,10 @@ If `X` is a sum of `L` i.i.d. variables under `ν₁` (`L ≥ 1`, moments bounde
 independent sum of `M` i.i.d. variables under `ν₂` (`M ≤ L`, moments bounded by `B₂`), then
 `|𝔼[(L⁻¹ X + L⁻¹ Y)^m] - (√L)⁻¹^m a(m) (v₁ + (M / L) v₂)^{m/2}| ≤ C (√L)⁻¹^{m+1}` uniformly in
 `L ≥ 1` and `M ≤ L`. -/
-theorem exists_abs_integral_add_pow_avg_two_pi_sub_le
+theorem exists_abs_integral_add_pow_avg_two_pi_sub_le_all_orders
     (B₁ B₂ : ℕ → ℝ) (hB₁ : ∀ j, 0 ≤ B₁ j) (hB₂ : ∀ j, 0 ≤ B₂ j)
     {a : ℕ → ℝ} (ha0 : a 0 = 1) (ha1 : a 1 = 0) (ha : ∀ n, a (n + 2) = (n + 1) * a n)
-    (m : ℕ) (hm : 1 ≤ m) :
+    (m : ℕ) :
     ∃ C : ℝ, 0 ≤ C ∧
       ∀ {Ω₁ Ω₂ : Type*} [MeasurableSpace Ω₁] [MeasurableSpace Ω₂]
         (ν₁ : Measure Ω₁) [IsProbabilityMeasure ν₁]
@@ -762,6 +517,10 @@ theorem exists_abs_integral_add_pow_avg_two_pi_sub_le
             ((Real.sqrt L)⁻¹) ^ m * a m *
               ((∫ x, f₁ x ^ 2 ∂ν₁) + ((M : ℝ) / L) * (∫ x, f₂ x ^ 2 ∂ν₂)) ^ (m / 2)| ≤
             C * ((Real.sqrt L)⁻¹) ^ (m + 1) := by
+  rcases Nat.eq_zero_or_pos m with rfl | hm
+  · refine ⟨0, le_rfl, ?_⟩
+    intros
+    simp [ha0]
   choose! C₁ hC₁0 hC₁ using fun j => exists_abs_integral_pow_sum_pi_sub_le B₁ hB₁ ha0 ha1 ha j
   choose! C₂ hC₂0 hC₂ using fun j => exists_abs_integral_pow_sum_pi_sub_le B₂ hB₂ ha0 ha1 ha j
   choose! K₂ hK₂0 hK₂ using fun j => exists_abs_integral_pow_sum_pi_le B₂ hB₂ j
@@ -982,5 +741,113 @@ theorem exists_abs_integral_add_pow_avg_two_pi_sub_le
         dsimp only [C]; rw [← Finset.sum_mul]; ring
     _ = C * ε ^ (m + 1) := by rw [hscale_m1]
 
+
+/-- The positive-order form of the two-sum moment expansion. -/
+theorem exists_abs_integral_add_pow_avg_two_pi_sub_le
+    (B₁ B₂ : ℕ → ℝ) (hB₁ : ∀ j, 0 ≤ B₁ j) (hB₂ : ∀ j, 0 ≤ B₂ j)
+    {a : ℕ → ℝ} (ha0 : a 0 = 1) (ha1 : a 1 = 0) (ha : ∀ n, a (n + 2) = (n + 1) * a n)
+    (m : ℕ) (hm : 1 ≤ m) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ {Ω₁ Ω₂ : Type*} [MeasurableSpace Ω₁] [MeasurableSpace Ω₂]
+        (ν₁ : Measure Ω₁) [IsProbabilityMeasure ν₁]
+        (ν₂ : Measure Ω₂) [IsProbabilityMeasure ν₂]
+        {f₁ : Ω₁ → ℝ} {f₂ : Ω₂ → ℝ},
+        (∀ j, Integrable (fun x => f₁ x ^ j) ν₁) →
+        ∫ x, f₁ x ∂ν₁ = 0 →
+        (∀ j, |∫ x, f₁ x ^ j ∂ν₁| ≤ B₁ j) →
+        (∀ j, Integrable (fun x => f₂ x ^ j) ν₂) →
+        ∫ x, f₂ x ∂ν₂ = 0 →
+        (∀ j, |∫ x, f₂ x ^ j ∂ν₂| ≤ B₂ j) →
+        ∀ (L M : ℕ), 1 ≤ L → (M : ℝ) ≤ L →
+          |∫ p : (Fin L → Ω₁) × (Fin M → Ω₂),
+              ((L : ℝ)⁻¹ * ∑ i, f₁ (p.1 i) + (L : ℝ)⁻¹ * ∑ j, f₂ (p.2 j)) ^ m
+              ∂((Measure.pi fun _ : Fin L => ν₁).prod (Measure.pi fun _ : Fin M => ν₂)) -
+            ((Real.sqrt L)⁻¹) ^ m * a m *
+              ((∫ x, f₁ x ^ 2 ∂ν₁) + ((M : ℝ) / L) * (∫ x, f₂ x ^ 2 ∂ν₂)) ^ (m / 2)| ≤
+            C * ((Real.sqrt L)⁻¹) ^ (m + 1) :=
+  exists_abs_integral_add_pow_avg_two_pi_sub_le_all_orders B₁ B₂ hB₁ hB₂ ha0 ha1 ha m
+
+section Main
+
+variable {Ω : Type*} [MeasurableSpace Ω]
+  {ν : Measure Ω} [IsProbabilityMeasure ν] {f : Ω → ℝ}
+
+/-- **Moment expansion of an i.i.d. centered sum** (Talagrand, Eq. (1.122)).  Let `f` be centered
+under `ν` with all powers integrable, and let `a` satisfy `a 0 = 1`, `a 1 = 0`,
+`a (k + 2) = (k + 1) a k` (the moments of a standard Gaussian).  Then for every `k` there is `C`
+with `|𝔼 (∑_{i<n} f (yᵢ))^k - a k σ2^{⌊k/2⌋} n^{⌊k/2⌋}| ≤ C (√(n + 1))^{k-1}` for all `n`, where
+`σ2 = ∫ f² dν`. -/
+theorem iid_sum_moment_expansion (hint : ∀ j, Integrable (fun x => f x ^ j) ν)
+    (h0 : ∫ x, f x ∂ν = 0) {a : ℕ → ℝ} (ha0 : a 0 = 1) (ha1 : a 1 = 0)
+    (ha : ∀ k, a (k + 2) = (k + 1) * a k) (k : ℕ) :
+    ∃ C : ℝ, 0 ≤ C ∧ ∀ n : ℕ,
+      |∫ y : Fin n → Ω, (∑ i, f (y i)) ^ k ∂(Measure.pi fun _ : Fin n => ν) -
+        a k * (∫ x, f x ^ 2 ∂ν) ^ (k / 2) * (n : ℝ) ^ (k / 2)| ≤
+      C * Real.sqrt ((n : ℝ) + 1) ^ (k - 1) := by
+  obtain ⟨C, hC, hbound⟩ := exists_abs_integral_pow_sum_pi_sub_le
+    (fun j => |∫ x, f x ^ j ∂ν|) (fun _ => abs_nonneg _) ha0 ha1 ha k
+  exact ⟨C, hC, hbound ν hint h0 (fun _ => le_rfl)⟩
+
+/-- **The moments of the normalized i.i.d. sum** (Talagrand, Eq. (1.122)).  Under the hypotheses
+of `iid_sum_moment_expansion`, for every `m ≥ 1` there is `C` such that for all `N > 0`,
+`|𝔼 (N⁻¹ ∑_{i<N} f (yᵢ))^m - N^{-m/2} a m σ2^{⌊m/2⌋}| ≤ C N^{-(m+1)/2}`, where
+`N^{-1/2}` is written `(√N)⁻¹`. -/
+theorem abs_integral_pow_avg_sub_le (hint : ∀ j, Integrable (fun x => f x ^ j) ν)
+    (h0 : ∫ x, f x ∂ν = 0) {a : ℕ → ℝ} (ha0 : a 0 = 1) (ha1 : a 1 = 0)
+    (ha : ∀ k, a (k + 2) = (k + 1) * a k) {m : ℕ} (hm : 1 ≤ m) :
+    ∃ C : ℝ, 0 ≤ C ∧ ∀ N : ℕ, 0 < N →
+      |∫ y : Fin N → Ω, ((N : ℝ)⁻¹ * ∑ i, f (y i)) ^ m ∂(Measure.pi fun _ : Fin N => ν) -
+        ((Real.sqrt N)⁻¹) ^ m * a m * (∫ x, f x ^ 2 ∂ν) ^ (m / 2)| ≤
+      C * ((Real.sqrt N)⁻¹) ^ (m + 1) := by
+  obtain ⟨C, hC0, hC⟩ := iid_sum_moment_expansion hint h0 ha0 ha1 ha m
+  refine ⟨C * Real.sqrt 2 ^ (m - 1), by positivity, fun N hN => ?_⟩
+  have hNpos : (0 : ℝ) < N := Nat.cast_pos.2 hN
+  have hsN : 0 < Real.sqrt N := Real.sqrt_pos.2 hNpos
+  set ε : ℝ := (Real.sqrt N)⁻¹ with hε
+  have hε2 : ε ^ 2 = (N : ℝ)⁻¹ := by rw [hε, inv_pow, Real.sq_sqrt hNpos.le]
+  -- pull the scalar out of the integral
+  have e1 : ∫ y : Fin N → Ω, ((N : ℝ)⁻¹ * ∑ i, f (y i)) ^ m ∂(Measure.pi fun _ : Fin N => ν) =
+      ((N : ℝ)⁻¹) ^ m * ∫ y : Fin N → Ω, (∑ i, f (y i)) ^ m ∂(Measure.pi fun _ : Fin N => ν) := by
+    simp_rw [mul_pow]
+    exact integral_const_mul _ _
+  -- the reference term, parity by parity
+  have e2 : ε ^ m * a m * (∫ x, f x ^ 2 ∂ν) ^ (m / 2) = ((N : ℝ)⁻¹) ^ m *
+      (a m * (∫ x, f x ^ 2 ∂ν) ^ (m / 2) * (N : ℝ) ^ (m / 2)) := by
+    obtain ⟨j, rfl | rfl⟩ := Nat.even_or_odd' m
+    · have hj : 2 * j / 2 = j := by omega
+      rw [hj, pow_mul, hε2, pow_mul]
+      have : ((N : ℝ)⁻¹ ^ 2) ^ j * (N : ℝ) ^ j = ((N : ℝ)⁻¹) ^ j := by
+        rw [sq, ← mul_pow, show (N : ℝ)⁻¹ * (N : ℝ)⁻¹ * N = (N : ℝ)⁻¹ by field_simp]
+      calc ((N : ℝ)⁻¹) ^ j * a (2 * j) * (∫ x, f x ^ 2 ∂ν) ^ j = a (2 * j) *
+            (∫ x, f x ^ 2 ∂ν) ^ j * ((N : ℝ)⁻¹) ^ j := by ring
+        _ = _ := by rw [← this]; ring
+    · rw [Nat.eq_zero_of_odd_of_two_step_mul ha1 ha ⟨j, rfl⟩]
+      simp
+  rw [e1, e2, ← mul_sub, abs_mul, abs_of_nonneg (by positivity : 0 ≤ ((N : ℝ)⁻¹) ^ m)]
+  have hs : Real.sqrt ((N : ℝ) + 1) ≤ Real.sqrt 2 * Real.sqrt N := by
+    have h1N : (1 : ℝ) ≤ N := Nat.one_le_cast.2 hN
+    rw [← Real.sqrt_mul (by norm_num)]
+    exact Real.sqrt_le_sqrt (by linarith)
+  have hpow : Real.sqrt ((N : ℝ) + 1) ^ (m - 1) ≤
+      Real.sqrt 2 ^ (m - 1) * Real.sqrt N ^ (m - 1) := by
+    rw [← mul_pow]
+    exact pow_le_pow_left₀ (Real.sqrt_nonneg _) hs _
+  have hfin : ((N : ℝ)⁻¹) ^ m * Real.sqrt N ^ (m - 1) = ε ^ (m + 1) := by
+    rw [← hε2, ← pow_mul, show 2 * m = (m + 1) + (m - 1) by omega, pow_add]
+    have : ε ^ (m - 1) * Real.sqrt N ^ (m - 1) = 1 := by
+      rw [← mul_pow, hε, inv_mul_cancel₀ hsN.ne', one_pow]
+    calc ε ^ (m + 1) * ε ^ (m - 1) * Real.sqrt N ^ (m - 1)
+        = ε ^ (m + 1) * (ε ^ (m - 1) * Real.sqrt N ^ (m - 1)) := by ring
+      _ = _ := by rw [this, mul_one]
+  calc ((N : ℝ)⁻¹) ^ m * |∫ y : Fin N → Ω, (∑ i, f (y i)) ^ m ∂(Measure.pi fun _ : Fin N => ν) -
+        a m * (∫ x, f x ^ 2 ∂ν) ^ (m / 2) * (N : ℝ) ^ (m / 2)|
+      ≤ ((N : ℝ)⁻¹) ^ m * (C * Real.sqrt ((N : ℝ) + 1) ^ (m - 1)) :=
+        mul_le_mul_of_nonneg_left (hC N) (by positivity)
+    _ ≤ ((N : ℝ)⁻¹) ^ m * (C * (Real.sqrt 2 ^ (m - 1) * Real.sqrt N ^ (m - 1))) :=
+        mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_left hpow hC0) (by positivity)
+    _ = C * Real.sqrt 2 ^ (m - 1) * (((N : ℝ)⁻¹) ^ m * Real.sqrt N ^ (m - 1)) := by ring
+    _ = _ := by rw [hfin]
+
+end Main
 
 end ProbabilityTheory

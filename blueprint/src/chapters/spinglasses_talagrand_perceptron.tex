@@ -1522,10 +1522,11 @@ $\operatorname{pd}(U)=\sum_{\ell<\ell'}U(\sigma^\ell,\sigma^{\ell'})-n\sum_{\ell
  \mathrm{II}&=-r\,\mathbb E\bigl\langle f\,\operatorname{pd}(\varepsilon_\sigma\varepsilon_\tau)\bigr\rangle_t .
 \end{align*}
 This sum form is stated for $M$ constraints, needs no symmetry and holds for any finite law of the old disorder.
-The spins are those of $\Sigma_L$ with $L=N+1$ (the old spins $\Sigma_N$ and the last spin $\varepsilon$). For the book's
-$M+1$ constraints, use the statement with $M+1$ constraints, so that the sum is over $k<M+1$. If the rows of the old
-disorder are exchangeable, all $k$ contribute equally and $\mathrm{I}$ is
-$\alpha=(M+1)/(N+1)$ times the term $k=M$, which is the form (2.24) of the book. The Gaussian-row
+The spins are those of $\Sigma_L$ with $L=N+1$ (the old spins $\Sigma_N$ and the last spin $\varepsilon$), so Lean's $N+1$ is the
+book's $N$, and the constraints $k<M$ are the book's $M$ constraints, with the same load $\alpha=M/L$. If the rows of the old
+disorder are exchangeable (swapping any constraint $j_0$ with any other preserves the law), all $k$ contribute equally and $\mathrm{I}$ is
+$\alpha=M/(N+1)$ times the term of $j_0$, which is the form (2.24) of the book, where $j_0$ plays the role of the last constraint $S_{M,t}$
+(it needs $M\ge1$ to exist; for $M=0$ the sum form applies and $\mathrm I=0$). The Gaussian-row
 corollary derives the swap invariance of the product law.
 \end{proposition}
 \begin{proof}
@@ -1629,13 +1630,15 @@ Here the kernel $\varepsilon_\sigma\varepsilon_\tau$ has constant diagonal $1$ a
 and \texttt{lastSpinKernel\_self}) identifies the bracket divided by $2$ with $\operatorname{pd}(\varepsilon_\sigma\varepsilon_\tau)$.
 Taking $\mathbb E$ gives $\mathrm{II}$, and $\nu_t'(f)=\mathrm I+\mathrm{II}$.
 
-\emph{Step 6 (symmetry in $k$).} Take $M+1$ constraints, indexed by $k<M+1$ with last index $M$. If the old rows are exchangeable, the swap of row $k$ with the last row preserves the law of the
-disorder, the sum over constraints in the energy and the base measure, and maps the $k$-th term to the term $k=M$. So
-$\mathbb E\langle f\operatorname{pd}(U_k)\rangle_t=\mathbb E\langle f\operatorname{pd}(U_M)\rangle_t$ for every $k$, and
+\emph{Step 6 (symmetry in $k$).} Fix a constraint $j_0<M$ (the book's ``last'' constraint $k=M$). If the old rows are exchangeable, the swap of row $k$ with row $j_0$ preserves the law of the
+disorder, the sum over constraints in the energy and the base measure, and maps the $k$-th term to the term of $j_0$. So
+$\mathbb E\langle f\operatorname{pd}(U_k)\rangle_t=\mathbb E\langle f\operatorname{pd}(U_{j_0})\rangle_t$ for every $k$, and
 \texttt{integral\_sum\_eq\_card\_mul\_of\_forall\_eq} gives
 \[
- \mathrm I=\frac{M+1}{N+1}\,\mathbb E\bigl\langle f\operatorname{pd}(U_M)\bigr\rangle_t=\alpha\,\mathbb E\bigl\langle f\operatorname{pd}(U_M)\bigr\rangle_t .
+ \mathrm I=\frac{M}{N+1}\,\mathbb E\bigl\langle f\operatorname{pd}(U_{j_0})\bigr\rangle_t=\alpha\,\mathbb E\bigl\langle f\operatorname{pd}(U_{j_0})\bigr\rangle_t .
 \]
+(In Section~2.3 the old system has $M$ constraints and one more is added, so there the Lean system has $M+1$ constraints and
+$\alpha=(M+1)/(N+1)$; the book's $M$ of Section~2.3 is Lean's $M+1$.)
 
 \emph{Formalization note (ranges of $t$).} The Lean statement of the proposition assumes $0<t<1$, as the book does, but its two
 integration-by-parts ingredients need only one side of the interval: the last-field identity and the auxiliary-coordinate
@@ -1744,6 +1747,17 @@ $\alpha=M_{\rm book}/N_{\rm book}$ is $(M+1)/(N+1)$. The old disorder is the res
 coordinate $\xi_M$ stays in the base measure even though the old energy does not use it, as in the book's definition (2.31)
 of $\langle\cdot\rangle_{t,\sim}$. In this section the base measure $\mu$ is any finite measure on the configurations
 (the book's base law is \texttt{smartPathBase}); only the energy decomposition and an upper bound on $u$ are used.
+
+\medskip\noindent\textbf{Parametrization, constants and hypothesis~(2.7).} The book's interpolation variable $v\in[0,1]$
+($S_v^\ell=\sqrt v\,S_{M,t}^\ell+\sqrt{1-v}\,\theta^\ell$, (2.34)) is written with an angle $s$, $v=\cos^2 s$, so that the Gaussian
+rotation lemmas apply; derivative bounds are proved for $v\in(0,1)$ and continuity at $v=0,1$ separately, which is what the
+mean-value arguments of (2.63)--(2.65) need. Every constant $K(n,D)$, $K(D)$ of the book is stated as
+$\exists K\,\forall N,M,t,q,\dots$ (chosen before the sizes, the parameters, $u$ except through $D$, the observable and the H\"older
+exponents), which is the book's meaning of ``depends on $n$ and $D$ only''. Hypothesis (2.7) is written in Lean as
+``$u^{(j)}$ is differentiable for $j<3$ and $|u^{(j)}|\le D$ for $j\le3$'' (\texttt{iteratedDeriv}); several statements below need
+less, and then say so. The observables $f$ of Lemma~2.3.2 and Proposition~2.3.5 depend on the old disorder and old auxiliary
+coordinates, hence are not functions on a finite set: the book leaves their measurability and integrability implicit, and Lean
+assumes both. A spin-only $f$ needs neither, and the spin-only statements (Proposition~2.3.6, Lemma~2.3.7) say so.
 
 \begin{definition}[The old system and the last constraint]\label{def:sg-tal:perceptron-cavity-old-system}
   \leanok
@@ -2214,7 +2228,7 @@ Formalized in \texttt{ForMathlib/Analysis/Calculus/BoundedC2.lean}, \texttt{ForM
         SpinGlasses.abs_fderiv_fderiv_section_le}
   \leanok
   \uses{lem:sg-tal:perceptron-interpolation-param, lem:sg-tal:boundedc2}
-\talsource{Derivative (2.37)--(2.38) of $\nu(\langle f\rangle_{t,s})$ along the interpolation for the effective spin system}
+\talsource{The derivative (2.41) of $\nu_{t,v}(B_vf)$ and the Gaussian interpolation behind (2.40); not a printed lemma (a model-free calculus statement for the rotation of Gaussian vectors)}
 Under the hypotheses of the interpolation lemma with a parameter, suppose $F$ is $C^2$-bounded and $\|\tau'(s)\|\le A$ for all $s$. Then the derivative formula of that lemma holds, with no exponential-growth hypothesis.
 \end{lemma}
 \begin{proof}
@@ -2227,7 +2241,7 @@ Formalized in \texttt{SpinGlasses/Gaussian/GaussianInterpolationBounded.lean}.
   \lean{SpinGlasses.hasDerivAt_integral_comp_trig_boundedC2_dotProduct}
   \leanok
   \uses{lem:sg-tal:perceptron-interpolation-bounded}
-\talsource{The covariance structure (2.50), (2.51), (2.58) of the cavity family, used in the derivative (2.37)}
+\talsource{The covariance structure (2.50), (2.51), (2.58) of the cavity family, used in the derivative (2.41)}
 Let $\xi$ be a standard Gaussian vector, $X_l=a_l\cdot\xi$ and $Y_l=b_l\cdot\xi$ with $a_l\cdot b_k=0$, and $F$ be $C^2$-bounded. Then the derivative formula of the interpolation lemma with a parameter holds with $\mathbb E X_lX_k=a_l\cdot a_k$ and $\mathbb E Y_lY_k=b_l\cdot b_k$.
 \end{lemma}
 \begin{proof}
@@ -2238,12 +2252,14 @@ Formalized in \texttt{SpinGlasses/Gaussian/GaussianInterpolationLinear.lean}.
 
 \begin{lemma}[Comparison of replica Gibbs averages under a bounded energy perturbation]\label{lem:sg-tal:perceptron-gibbs-comparison}
   \lean{MeasureTheory.integral_pi_tilted_le_exp_mul_of_abs_sub_le,
+        SpinGlasses.integral_pi_cavity_rotation_nonneg_le_exp_mul,
+        SpinGlasses.integral_pi_cavity_rotation_spin_only_le_exp_mul,
         SpinGlasses.integral_pi_tilted_cavityPath_le_exp_mul,
         MeasureTheory.integral_integral_pi_tilted_le_exp_mul_of_abs_sub_le,
         SpinGlasses.integral_integral_pi_tilted_cavityPath_le_exp_mul,
         SpinGlasses.measurable_smartPathEnergy_init_joint}
   \leanok
-\talsource{Lemma~2.3.4, Eq.~(2.61): $\nu(\langle f\rangle_{t,s})\le \exp(\cdot)\,\nu(\langle f\rangle_{t,0})$ for nonnegative $f$}
+\talsource{Lemma~2.3.4, Eq.~(2.61): $\nu_{t,v}(f)\le K(n,D)\,\nu_t(f)$ for nonnegative $f$, where $\nu_t=\nu_{t,1}$}
 Let $\mu$ be a finite nonzero measure, $E_0,E_1$ energies with $e^{E_0}$ integrable and $|E_1-E_0|\le C$ pointwise, and $Y\ge0$ integrable under the $E_0$-replica Gibbs law. Then for $n$ replicas
 \[
 \int Y\,d(\mu_{E_1})^{\otimes n}\;\le\; e^{2nC}\int Y\,d(\mu_{E_0})^{\otimes n}.
@@ -2253,6 +2269,19 @@ Let $\mu$ be a finite nonzero measure, $E_0,E_1$ energies with $e^{E_0}$ integra
   \leanok
 By \texttt{tilted\_tilted}, $\mu_{E_1}$ is the tilt of the probability measure $\mu_{E_0}$ by $E_1-E_0$; the $n$-fold product is the tilt of $(\mu_{E_0})^{\otimes n}$ by $\sum_i(E_1-E_0)(\sigma_i)$ (\texttt{pi\_tilted\_eq\_tilted\_pi}), which is bounded by $nC$. Apply the bounded-log-density estimate \texttt{abs\_integral\_tilted\_le\_exp\_mul\_integral\_abs}. In the cavity the perturbation is the new constraint's term $u(S_s)-u(S_0)$ with $|u|\le D$, so $C=2D$ and the factor is $e^{4nD}$.
 Formalized in \texttt{ForMathlib/Probability/GibbsReplicaComparison.lean}; the cavity instance (any two angles $s_1,s_2$, $|u|\le D$, nonnegative spin observable of $n$ replicas, factor $e^{4nD}$) is \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityComparison.lean}. Integrating over the disorder $(\omega,z)$ (any probability law, and an observable that may depend on the disorder, bounded and nonnegative) gives $\nu_{t,s_1}(f)\le e^{4nD}\nu_{t,s_2}(f)$, which is Lemma~2.3.4 with $K(n,D)=e^{4nD}$; the energies are jointly measurable in the disorder and the state (\texttt{measurable\_smartPathEnergy\_init\_joint}) and bounded above by $MD+\sqrt{1-t}|y|+D$, so every Gibbs law is a probability measure.
+\emph{Formalization note (hypothesis audit and divergence from the proof of Lemma~2.3.4).} The book proves (2.61) by
+integrating the derivative bound (2.40) with $B_v\equiv1$ and $(\tau_1,\tau_2)=(1,\infty)$, which gives
+$|\tfrac{d}{dv}\nu_{t,v}(f)|\le K(n,D)\,\nu_{t,v}(f)$ and hence $\nu_{t,v}(f)\le e^{K(n,D)}\nu_{t,1}(f)$; this route
+uses the whole of~(2.7) (through Lemma~2.3.2). The Lean proof is elementary and different: all the extended Gibbs
+laws $\nu_{t,v}$ differ from each other by a bounded change of energy (one term $u(S_v)$ per replica, $|u|\le D$), so only
+\emph{$u$ measurable with $|u|\le D$} is needed (strictly weaker than~(2.7)), with the explicit constant $K(n,D)=e^{4nD}$.
+The angles $s_1,s_2$ are arbitrary reals (the book's $v$ is $\cos^2 s$ in the Lean parametrization of the rotation);
+$t,q$ are arbitrary reals and the variance of the last field is an arbitrary $\mathbb R_{\ge0}$-valued parameter.
+The observable is allowed to depend on the old disorder and on the old auxiliary coordinates, as in the book's setting for
+Lemma~2.3.2, and the Lean statement then asks it to be nonnegative, jointly measurable and integrable against the old
+Gibbs law (\texttt{integral\_pi\_cavity\_rotation\_nonneg\_le\_exp\_mul}); the book's $f$ on the finite set $\Sigma_N^n$ satisfies
+these three conditions automatically, and the spin-only statement without them is
+\texttt{integral\_pi\_cavity\_rotation\_spin\_only\_le\_exp\_mul}.
 \end{proof}
 
 \begin{lemma}[Time covariances of the fields, relations (2.60)]\label{lem:sg-tal:perceptron-time-covariance}
@@ -2308,7 +2337,7 @@ Formalized in \texttt{SpinGlasses/Gaussian/GaussianIBPSecondDerivative.lean}.
         SpinGlasses.sum_hessian_add_tau_term}
   \leanok
   \uses{lem:sg-tal:perceptron-replica-hessian, lem:sg-tal:perceptron-interpolation-linear}
-\talsource{The second spin derivatives $\partial^2_{y_ly_k}F$ entering the covariance-difference term of (2.37), written as the replica sums of (2.55)--(2.58)}
+\talsource{The second spin derivatives $\partial^2_{y_ly_k}F$ entering the covariance-difference term of the derivative (2.41), written as the replica sums of (2.55)--(2.58)}
 Let $w>0$ and $\psi>0$ be $C^2$, $G(y)=\sum_\sigma f(\sigma)\prod_rw(\sigma_r)\psi(y_{\sigma_r})\big/\bigl(\sum_aw(a)\psi(y_a)\bigr)^n$ and $L=\log\psi$. Then $G(y)$ is the $n$-replica Gibbs average of $f$ for the site energies $\log w_a+L(y_a)$, $\partial_{y_k}G=L'(y_k)\langle(N_k-nG_k)f\rangle$ and
 \[
 \partial_{y_k}\partial_{y_l}G=\mathbf 1[l=k]\,L''(y_l)\langle(N_l-nG_l)f\rangle+L'(y_l)L'(y_k)\bigl\langle f\bigl[(N_l-nG_l)(N_k-nG_k)-nG_l(\mathbf 1[l=k]-G_k)\bigr]\bigr\rangle,
@@ -2575,7 +2604,7 @@ Formalized in \texttt{SpinGlasses/Gaussian/GaussianTiltedRotationBound.lean}.
         MeasureTheory.integrable_pi_tilted_and_integrable_integral_abs_of_rpow,
         MeasureTheory.integrable_pi_tilted_and_integrable_integral_abs_iff_of_abs_sub_le}
   \leanok
-\talsource{The H\"older step of Lemma~2.3.2, which yields (2.40) for $1/\tau_1+1/\tau_2=1$, including $(\tau_1,\tau_2)=(1,\infty)$ and $(\infty,1)$ used in Lemma~2.3.4}
+\talsource{The H\"older step of Lemma~2.3.2, which yields (2.40) for $1/\tau_1+1/\tau_2=1$, including the endpoint $(\tau_1,\tau_2)=(1,\infty)$ used in the proof of Lemma~2.3.4 and the extra endpoint $(\infty,1)$ for bounded $f$}
 Let $P$ be a measure on $\Omega$, $\nu(\omega)$ a probability law on a state space $\alpha$ (in the cavity, the old Gibbs law with auxiliary coordinates), $e:R\to\iota$ injective, $r_1\ne r_2\in\iota$,
 $f(\omega)$ an observable of the $R$ replicas, and $d\ge0$ a function of two states
 (in the cavity, $d=|R_{12}-q|$). For the interior exponents, assume the two indicated
@@ -2972,6 +3001,15 @@ lifting all terms to $\mathrm{Option}(\mathrm{Option}\,R)$ by \texttt{integral\_
 pairs $p_1<p_2$ by symmetry of $U_M$ (\texttt{sum\_sum\_offDiag\_eq\_two\_sum\_lt}) gives~(3) (\texttt{smartPath\_one\_step\_recovery\_last});
 multiplying by $M+1$ produces $\alpha=(M+1)/(N+1)$ times the expected pair average, i.e.\ term~$\mathrm{I}$ of (2.23)--(2.24).
 Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityTimeCovariance.lean}.
+\emph{Formalization note (hypothesis audit; the exercise is an exercise).} The book only asks the reader to ``get convinced''
+that the stated formula holds (when $\ell\le n+1$, with $n+2$ the extra replica) and that term~I of (2.23) can be
+obtained in one step. The Lean statement proves both: the replica type $J$ is arbitrary (the book's $\{1,\dots,n+1\}$ with
+the fresh replica $n+2$ is $\mathrm{Option}\,J$), part~(1) is for the last constraint of $M+1$ and part~(2) for every
+constraint with a spin-only $f$ (no measurability or boundedness hypothesis on $f$ is needed). Hypotheses on $u$:
+twice differentiable with $|u|\le B$, $|u'|\le D$, $|u''|\le D_2$ (\texttt{SmartPathPotential}$_2$), weaker than~(2.7),
+since the bounds are only used to make each Gaussian integration by parts legitimate; the last-field variance $v\ge0$
+and $t\in(0,1)$ are arbitrary. Index shift: Lean's $M+1$ constraints are the book's $M$ constraints (the old system has
+$M$ constraints and the new last constraint has index $M$), and Lean's $N+1$ spins are the book's $N$.
 \end{proof}
 
 \begin{proposition}[Proposition 2.3.5: decoupling of the last-constraint potential derivatives, (2.62)]\label{prop:sg-tal:perceptron-cavity-prop-235}
@@ -3042,6 +3080,16 @@ gives $\varphi_u(\pi/2)=\mathbb E\langle f\rangle_{t,\sim}$ and $\varphi_w(\pi/2
  \le\Bigl(\frac{K_w}{2}+|D|^2\frac{K_u}{2}\Bigr)\mathcal B'.
 \]
 Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityComparison.lean}.
+\emph{Formalization note (hypothesis audit).} Hypotheses beyond the book's: none that restrict a statement the book makes,
+and the following that the book leaves implicit. (a) $f$ is jointly measurable in the old disorder and the old replica
+states and $|f|^{p_1}$ is integrable against the old Gibbs law ($L^1$ for the endpoint $(1,\infty)$); for a spin-only $f$
+on the finite set $\Sigma_N^n$ these are automatic (the spin-only form is Proposition~\ref{prop:sg-tal:perceptron-cavity-prop-236}
+and Lemma~\ref{lem:sg-tal:perceptron-cavity-lemma-237}, which carry no such hypotheses). (b) $r$ is arbitrary: (2.62) is a bound for
+every last-field variance, and $r=\alpha\widehat r$ is only imposed in Proposition~\ref{prop:sg-tal:perceptron-cavity-prop-236}, as in the book
+(``we now set $r=\alpha\widehat r$''). (c) $K=K(n,D)$ is chosen before $N,M,t,q,r,f$ and the exponents, as in the book.
+Differences: the endpoint $(\infty,1)$ for a bounded $f$ is an addition (used by the spin-only corollaries). The book obtains (2.62) from (2.63)--(2.65),
+i.e.\ from the integrated derivative bound (2.40) together with Lemma~2.3.4; the Lean proof follows the same route, with Lemma~2.3.4 replaced by the
+elementary exponential comparison of Lemma~\ref{lem:sg-tal:perceptron-gibbs-comparison} (which needs only $|u|\le D$).
 \end{proof}
 
 \begin{proposition}[Proposition 2.3.6: smart-path derivative bound at $r=\alpha\widehat r$, (2.66)]\label{prop:sg-tal:perceptron-cavity-prop-236}
@@ -3546,9 +3594,11 @@ constants from Theorem~\ref{thm:sg-tal:perceptron-rs-fixed-point} and Step~1 yie
 uniqueness, and the pressure bound under one small-load condition
 (\texttt{exists\_unique\_rs\_fixed\_point\_and\_abs\_pressure\_sub\_le}).
 
-\emph{Formalization note (hypothesis audit).} The Lean statement matches Theorem~2.4.2 verbatim
-under (2.7) and $\alpha K(D)\le 1$, with $N+1$ spins in place of $N$ and both $M=0$ and $N=0$
-included without extra hypotheses. No Chapter~9 input is used because this formalizes Talagrand's
+\emph{Formalization note (hypothesis audit).} The hypotheses are those of Theorem~2.4.2 (``under the conditions of
+Theorem~2.4.1'', i.e.\ (2.7) and $\alpha K(D)\le1$, with $K$ chosen before $N,M,u$), with $N+1$ spins in place of $N$; both $M=0$ and
+$N=0$ are included without extra hypotheses. The Lean statement packages the existence and uniqueness of the solution of (2.68) from Theorem~2.4.1 together with the
+bound for \emph{every} solution $(q,r)$ of (2.68). Along the proof the derivative bound uses the exact factor $\tfrac12$ of (2.83); the
+printed inequality (2.84) drops this factor, which costs nothing. No Chapter~9 input is used because this formalizes Talagrand's
 self-contained first proof.
 Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ReplicaSymmetricFreeEnergy.lean}.
 \end{proof}
@@ -4306,8 +4356,8 @@ $s\in[0,1]$, then:
 \item \emph{Remainder bounds (2.109).} Writing $\mathrm{VII}$ and $\mathrm{VIII}$ as in
 Lemma~\ref{lem:sg-tal:perceptron-centered-moment-ode},
 \[
- |\mathrm{VII}|\le\frac{C}{N+1}\bigl(\mathbb E|V(s)|^k\bigr)^{\lfloor k-1\rfloor/k},\qquad
- |\mathrm{VIII}|\le\frac{C}{(N+1)^2}\bigl(\mathbb E|V(s)|^k\bigr)^{\lfloor k-2\rfloor/k}.
+ |\mathrm{VII}|\le\frac{C}{N+1}\bigl(\mathbb E|V(s)|^k\bigr)^{\max(k-1,0)/k},\qquad
+ |\mathrm{VIII}|\le\frac{C}{(N+1)^2}\bigl(\mathbb E|V(s)|^k\bigr)^{\max(k-2,0)/k}.
 \]
 \item \emph{A priori fluctuation bound.}
 \[
@@ -4352,6 +4402,16 @@ $\psi(0)\le K(k)N^{k/2}$).
  \mathbb E|V(s)|^k\le\bigl(\mathbb E[V(s)^{2k}]\bigr)^{1/2}\le\sqrt{C_{2k}}\,L^{-k/2}.
 \]
 Formalized in \texttt{FreeEnergyPathODE.lean} and \texttt{FreeEnergyGronwall.lean}.
+\emph{Formalization note (hypothesis audit and divergence).} The hypotheses are exactly the book's: (2.7) with constant $D$,
+$\alpha K\le 1$, $(q,r)$ solving (2.68), and $s\in[0,1]$. Nothing derived in the book is assumed: the bounds $q\in[0,1]$, $0\le r\le D^2$ and $\alpha\le1$ are
+proved from (2.68) and $\alpha K\le1$ (as in the proof of Theorem~\ref{thm:sg-tal:perceptron-free-energy-clt}). (i) The book ``takes for granted''
+that Theorems~2.5.1 and~2.5.2 hold uniformly in $s$ (``a good exercise''); this is proved here
+(Theorems~\ref{thm:sg-tal:perceptron-overlap-high-moments} and~\ref{thm:sg-tal:perceptron-empirical-high-moments} are stated along the
+interpolation). (ii) The exponents in (2.109) are written with natural-number subtraction in Lean, $(k-1)/k$ and $(k-2)/k$ read as
+$\max(k-1,0)/k$ and $\max(k-2,0)/k$; for $k\le 2$ the corresponding coefficient $k$ or $k(k-1)$ vanishes, so no information is lost.
+(iii) As in the book, the differential inequality (2.110) is proved for even $k=2p$ (so that $|V|^k=V^k$) and the bound for every $k$ follows from
+$\mathbb E|V|^k\le(\mathbb E V^{2k})^{1/2}$. (iv) The decoupled endpoint bound $\psi_{2p}(0)\le C L^{-p}$ is printed in the book as ``$\psi(0)\le K(k)N^{k/2}$'' (a misprint for $N^{-k/2}$)
+and is dismissed as easy ``as the spins decouple''; the Lean proof expands the two independent centered i.i.d.\ sums (\texttt{IidSumExpansion.lean}).
 \end{proof}
 
 \begin{theorem}[Theorem 2.5.3: free energy moment CLT]\label{thm:sg-tal:perceptron-free-energy-clt}

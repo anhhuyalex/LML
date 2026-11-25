@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.FreeEnergyPathODE
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianMomentBound
 
 /-!
 # A priori Grönwall bounds on the interpolating free energy fluctuations
@@ -14,8 +15,8 @@ Talagrand, *Spin Glasses: A Challenge for Mathematicians*, Vol. I, Section 2.5, 
 2.5.3, Eq. (2.110) and the decoupled endpoint bound at `s = 0`.
 
 Combining the centered-moment ODE `hasDerivAt_interpolating_centered_moment_pow` (Eq. (2.108))
-with the Hölder remainder bounds `abs_interpolating_term_VII_le` and
-`abs_interpolating_term_VIII_le` (Eq. (2.109)) and Young's inequality yields the differential
+with the Hölder remainder bounds `abs_interpolating_term_VII_le_uniform_in_moment_order` and
+`abs_interpolating_term_VIII_le_uniform_in_moment_order` (Eq. (2.109)) and Young's inequality yields the differential
 inequality `ψ'(s) ≤ K(k)((N + 1)^{-k/2} + ψ(s))` for even `k`, where `ψ(s) = 𝔼[V(s)^k]`. Forward
 Grönwall comparison (`le_exp_mul_add_of_exists_hasDerivAt_Ioo`) and the uniform centered i.i.d.
 moment bound `exists_abs_integral_pow_sum_pi_le` at the decoupled endpoint `s = 0` give
@@ -24,7 +25,7 @@ moment bound `exists_abs_integral_pow_sum_pi_le` at the decoupled endpoint `s = 
 
 ## Main declarations
 
-* `SpinGlasses.integral_interpolating_centered_abs_pow_le`: a priori bound
+* `SpinGlasses.integral_interpolating_centered_abs_pow_le_uniform_in_moment_order`: a priori bound
   `𝔼[|A(s) - RS(s)|^k] ≤ C (√(N + 1))⁻¹ ^ k` uniformly in `s ∈ [0, 1]`, with `K, C ≥ 0` chosen
   after `D` and `k` and before `N, M, s, u, q, r`.
 -/
@@ -36,75 +37,18 @@ open scoped BigOperators NNReal ENNReal Topology
 
 namespace SpinGlasses
 
-/-- Young's inequality step for `VII` in Eq. (2.110):
-`L⁻¹ * ψ ^ ((2 * p - 1) / (2 * p)) ≤ (√L)⁻¹ ^ (2 * p) + ψ` for `p ≥ 1`, `L ≥ 1`, `ψ ≥ 0`. -/
-private lemma inv_mul_rpow_sub_one_div_two_mul_le
-    {L ψ : ℝ} {p : ℕ} (hp : 1 ≤ p) (hL : 1 ≤ L) (hψ : 0 ≤ ψ) :
-    L⁻¹ * ψ ^ (((2 * p - 1 : ℕ) : ℝ) / ((2 * p : ℕ) : ℝ)) ≤
-      ((Real.sqrt L)⁻¹) ^ (2 * p) + ψ := by
-  have hp1 : (1 : ℝ) ≤ p := Nat.one_le_cast.2 hp
-  have hL_pos : 0 < L := zero_lt_one.trans_le hL
-  let τ₁ : ℝ := ((2 * p : ℕ) : ℝ)
-  let τ₂ : ℝ := ((2 * p : ℕ) : ℝ) / ((2 * p - 1 : ℕ) : ℝ)
-  have hsub : ((2 * p - 1 : ℕ) : ℝ) = ((2 * p : ℕ) : ℝ) - 1 := by
-    rw [Nat.cast_sub (by omega : 1 ≤ 2 * p), Nat.cast_one]
-  have hconj : τ₁.HolderConjugate τ₂ := by
-    rw [Real.holderConjugate_iff]
-    refine ⟨?_, ?_⟩
-    · dsimp only [τ₁]; push_cast; linarith
-    · dsimp only [τ₁, τ₂]; rw [inv_div, hsub]; field_simp; ring
-  have hyoung := rpow_inv_mul_rpow_inv_le_add hconj
-    (pow_nonneg (inv_nonneg.2 hL_pos.le) (2 * p)) hψ
-  have hx : ((L⁻¹ ^ (2 * p)) ^ (1 / τ₁)) = L⁻¹ := by
-    rw [← Real.rpow_natCast _ (2 * p), ← Real.rpow_mul (inv_nonneg.2 hL_pos.le)]
-    dsimp only [τ₁]
-    rw [mul_one_div_cancel (by positivity), Real.rpow_one]
-  have hy : 1 / τ₂ = ((2 * p - 1 : ℕ) : ℝ) / ((2 * p : ℕ) : ℝ) := by
-    dsimp only [τ₂]; rw [one_div_div]
-  rw [hx, hy] at hyoung
-  have hpow_le : L⁻¹ ^ (2 * p) ≤ ((Real.sqrt L)⁻¹) ^ (2 * p) := by
-    have hsqrt_eq : ((Real.sqrt L)⁻¹) ^ (2 * p) = L⁻¹ ^ p := by
-      rw [pow_mul, inv_pow, Real.sq_sqrt hL_pos.le]
-    rw [hsqrt_eq]
-    exact pow_le_pow_of_le_one (inv_nonneg.2 hL_pos.le) (inv_le_one_of_one_le₀ hL) (by omega)
-  linarith
-
-/-- Young's inequality step for `VIII` and `IX` in Eq. (2.110):
-`L⁻¹ * ψ ^ ((2 * p - 2) / (2 * p)) ≤ (√L)⁻¹ ^ (2 * p) + ψ` for `p ≥ 1`, `L ≥ 1`, `ψ ≥ 0`. -/
-private lemma inv_mul_rpow_sub_two_div_two_mul_le
-    {L ψ : ℝ} {p : ℕ} (hp : 1 ≤ p) (hL : 1 ≤ L) (hψ : 0 ≤ ψ) :
-    L⁻¹ * ψ ^ (((2 * p - 2 : ℕ) : ℝ) / ((2 * p : ℕ) : ℝ)) ≤
-      ((Real.sqrt L)⁻¹) ^ (2 * p) + ψ := by
-  have hL_pos : 0 < L := zero_lt_one.trans_le hL
-  have hsqrt_eq : ((Real.sqrt L)⁻¹) ^ (2 * p) = L⁻¹ ^ p := by
-    rw [pow_mul, inv_pow, Real.sq_sqrt hL_pos.le]
-  rcases eq_or_lt_of_le hp with rfl | hp2
-  · simp only [Nat.sub_self, Nat.cast_zero, zero_div, Real.rpow_zero, mul_one]
-    rw [hsqrt_eq, pow_one]
-    exact le_add_of_nonneg_right hψ
-  · let τ₁ : ℝ := (p : ℝ)
-    let τ₂ : ℝ := (p : ℝ) / ((p - 1 : ℕ) : ℝ)
-    have hsub : ((p - 1 : ℕ) : ℝ) = (p : ℝ) - 1 := by
-      rw [Nat.cast_sub hp, Nat.cast_one]
-    have hconj : τ₁.HolderConjugate τ₂ := by
-      rw [Real.holderConjugate_iff]
-      refine ⟨by dsimp only [τ₁]; exact_mod_cast hp2, ?_⟩
-      dsimp only [τ₁, τ₂]
-      rw [inv_div, hsub]
-      have hp_ne : (p : ℝ) ≠ 0 := by positivity
-      field_simp; ring
-    have hyoung := rpow_inv_mul_rpow_inv_le_add hconj
-      (pow_nonneg (inv_nonneg.2 hL_pos.le) p) hψ
-    have hx : ((L⁻¹ ^ p) ^ (1 / τ₁)) = L⁻¹ := by
-      rw [← Real.rpow_natCast _ p, ← Real.rpow_mul (inv_nonneg.2 hL_pos.le)]
-      dsimp only [τ₁]
-      rw [mul_one_div_cancel (by positivity), Real.rpow_one]
-    have hy : 1 / τ₂ = ((2 * p - 2 : ℕ) : ℝ) / ((2 * p : ℕ) : ℝ) := by
-      dsimp only [τ₂]
-      rw [one_div_div, show 2 * p - 2 = 2 * (p - 1) by omega]
-      push_cast; field_simp
-    rw [hx, hy, ← hsqrt_eq] at hyoung
-    exact hyoung
+/-- Absorb the sublinear moment powers in the differential inequality (2.110). -/
+private lemma inv_mul_rpow_sub_div_le
+    {L ψ : ℝ} {j n : ℕ} (hn : 0 < n) (hj : j ≤ 2) (hjn : j ≤ n)
+    (hL : 1 ≤ L) (hψ : 0 ≤ ψ) :
+    L⁻¹ * ψ ^ (((n - j : ℕ) : ℝ) / n) ≤ ((Real.sqrt L)⁻¹) ^ n + ψ := by
+  let x := (Real.sqrt L)⁻¹
+  have hx : 0 ≤ x := by dsimp only [x]; positivity
+  have hx1 : x ≤ 1 := inv_le_one_of_one_le₀ (Real.one_le_sqrt.2 hL)
+  have hx2 : x ^ 2 = L⁻¹ := by dsimp only [x]; rw [inv_pow, Real.sq_sqrt (by linarith)]
+  rw [← hx2]
+  exact (mul_le_mul_of_nonneg_right (pow_le_pow_of_le_one hx hx1 hj)
+    (Real.rpow_nonneg hψ _)).trans (Real.pow_mul_rpow_sub_div_le_add hx hψ hn hjn)
 
 /-- Continuity of `s ↦ 𝔼[(A(s) - RS(s))^m]` on `[0, 1]`. -/
 lemma continuousOn_interpolating_centered_moment_pow
@@ -156,14 +100,10 @@ lemma continuousOn_interpolating_centered_moment_pow
     have hdom_mem : MemLp dom_base ((max m 1 : ℕ) : ℝ≥0) P :=
       (((memLp_const (((N : ℝ) + 1) * Real.log 2 + M * B)).add hsum_z').const_mul _).add
         (memLp_const M_RS)
-    rcases m with _ | m
-    · simp
-    · have hm : max (m + 1) 1 = m + 1 := Nat.max_eq_left (Nat.succ_pos m)
-      rw [hm] at hdom_mem
-      have hY' : MemLp dom_base (m + 1 : ℕ) P := by simpa using hdom_mem
-      have habs := hY'.integrable_norm_pow (Nat.succ_ne_zero m)
-      exact habs.mono' (hY'.aestronglyMeasurable.pow (m + 1)) (ae_of_all _ fun ω => by
-        rw [Real.norm_eq_abs, Real.norm_eq_abs, abs_pow])
+    have hm : MemLp dom_base (m : ℕ) P :=
+      hdom_mem.mono_exponent (by exact_mod_cast Nat.le_max_left m 1)
+    exact hm.integrable_norm_pow'.mono' (hm.aestronglyMeasurable.pow m) (ae_of_all _ fun ω => by
+      rw [Real.norm_eq_abs, Real.norm_eq_abs, abs_pow])
   have hVm {s : ℝ} (hs : s ∈ Icc (0 : ℝ) 1) :
       AEStronglyMeasurable (fun ω => (A s ω - RS s) ^ m) P := by
     obtain ⟨hm_log, -⟩ := measurable_and_abs_log_interpPartition_le (N := N) (M := M)
@@ -237,18 +177,109 @@ lemma continuousOn_interpolating_centered_moment_pow
   exact continuousOn_of_dominated (fun _ hs => hVm hs) (fun _ hs => ae_of_all _ (hVb hs))
     hdom_int (ae_of_all _ fun ω => (hV_cont ω).continuousOn)
 
-private lemma integrable_mul_abs_add_one_pow_gaussianReal (D : ℝ) (j : ℕ) :
-    Integrable (fun z : ℝ => (|D| * (|z| + 1)) ^ j) (gaussianReal 0 1) := by
-  have heq : (fun z : ℝ => (|D| * (|z| + 1)) ^ j) =
-      fun z => |D| ^ j * ∑ l ∈ Finset.range (j + 1), (j.choose l : ℝ) * |z ^ l| := by
-    funext z
-    rw [mul_pow, add_pow]
-    congr 1
-    refine Finset.sum_congr rfl fun l _ => ?_
-    rw [one_pow, mul_one, abs_pow, mul_comm]
-  rw [heq]
-  exact (integrable_finsetSum (Finset.range (j + 1)) fun l _ =>
-    (integrable_pow_gaussianReal 0 1 l).abs.const_mul (j.choose l : ℝ)).const_mul (|D| ^ j)
+/-- The centered spin-field summand has Gaussian moments bounded by the powers of its linear
+envelope. The uncentered summand is in `L²` for computing its variance. -/
+lemma centered_log_cosh_gaussianReal_moments {D r : ℝ} (hr : Real.sqrt r ≤ |D|) :
+    let γ := gaussianReal 0 1
+    let L_X (z : ℝ) := Real.log (Real.cosh (z * Real.sqrt r))
+    let c_X := ∫ z, L_X z ∂γ
+    let f₁ (z : ℝ) := L_X z - c_X
+    let B₁ (j : ℕ) := ∫ z : ℝ, (|D| * (|z| + 1)) ^ j ∂γ
+    MemLp L_X 2 γ ∧
+      (∫ z, f₁ z ∂γ) = 0 ∧
+      (∀ j, Integrable (fun z => f₁ z ^ j) γ) ∧
+      ∀ j, |∫ z, f₁ z ^ j ∂γ| ≤ B₁ j := by
+  intro γ L_X c_X f₁ B₁
+  have hLX_m : Measurable L_X :=
+    (Real.continuous_cosh.comp (by fun_prop)).log (fun _ => (Real.cosh_pos _).ne') |>.measurable
+  have hLX_bd (z : ℝ) : |L_X z| ≤ |D| * |z| := by
+    dsimp only [L_X]
+    rw [abs_of_nonneg (Real.log_cosh_nonneg _)]
+    refine (Real.log_cosh_le_abs _).trans ?_
+    rw [abs_mul, abs_of_nonneg (Real.sqrt_nonneg _), mul_comm]
+    exact mul_le_mul_of_nonneg_right hr (abs_nonneg z)
+  have hz1_int : Integrable (fun z : ℝ => |z|) γ :=
+    by simpa [pow_one] using (integrable_pow_gaussianReal 0 1 1).abs
+  have hcX_bd : |c_X| ≤ |D| := by
+    have hz_int : Integrable (fun z : ℝ => |D| * |z|) γ := hz1_int.const_mul |D|
+    have h1 : |c_X| ≤ ∫ z : ℝ, |D| * |z| ∂γ :=
+      abs_integral_le_integral_abs.trans (integral_mono
+        (f := fun z => |L_X z|) (g := fun z => |D| * |z|)
+        (hz_int.mono' hLX_m.norm.aestronglyMeasurable
+          (ae_of_all _ fun z => by rw [Real.norm_of_nonneg (abs_nonneg _)]; exact hLX_bd z))
+        hz_int hLX_bd)
+    have h_abs_z_le : ∫ z : ℝ, |z| ∂γ ≤ 1 :=
+      ProbabilityTheory.integral_abs_gaussianReal_le_one
+    rw [integral_const_mul] at h1
+    nlinarith [abs_nonneg D]
+  have hf₁_bd (z : ℝ) : |f₁ z| ≤ |D| * (|z| + 1) := by
+    dsimp only [f₁]
+    calc |L_X z - c_X| ≤ |L_X z| + |c_X| := abs_sub _ _
+      _ ≤ |D| * |z| + |D| := add_le_add (hLX_bd z) hcX_bd
+      _ = |D| * (|z| + 1) := by ring
+  have hB₁_int (j : ℕ) : Integrable (fun z : ℝ => (|D| * (|z| + 1)) ^ j) γ :=
+    by
+      have hz : MemLp id (j : ℕ) γ := IsGaussian.memLp_id _ _ (by simp)
+      have h := ((hz.norm.add (memLp_const (1 : ℝ))).const_mul |D|).integrable_norm_pow'
+      exact h.congr (ae_of_all _ fun z => by
+        dsimp only [Pi.add_apply, Function.id_def, Real.norm_eq_abs]
+        rw [abs_of_nonneg (by positivity : 0 ≤ |D| * (|z| + 1))])
+  have hf₁_int (j : ℕ) : Integrable (fun z : ℝ => f₁ z ^ j) γ :=
+    (hB₁_int j).mono' ((hLX_m.sub_const c_X).pow_const j).aestronglyMeasurable
+      (ae_of_all _ fun z => by
+        rw [Real.norm_eq_abs, abs_pow]
+        exact pow_le_pow_left₀ (abs_nonneg _) (hf₁_bd z) j)
+  have hLX1_int : Integrable L_X γ :=
+    (hz1_int.const_mul |D|).mono' hLX_m.aestronglyMeasurable
+      (ae_of_all _ fun z => by rw [Real.norm_eq_abs]; exact hLX_bd z)
+  have hLX2_int : Integrable (fun z => L_X z ^ 2) γ :=
+    ((integrable_pow_gaussianReal 0 1 2).const_mul (D ^ 2)).mono'
+      (hLX_m.pow_const 2).aestronglyMeasurable
+      (ae_of_all _ fun z => by
+        rw [Real.norm_of_nonneg (sq_nonneg _), ← sq_abs]
+        calc |L_X z| ^ 2 ≤ (|D| * |z|) ^ 2 := pow_le_pow_left₀ (abs_nonneg _) (hLX_bd z) 2
+          _ = D ^ 2 * z ^ 2 := by rw [mul_pow, sq_abs, sq_abs])
+  have hf₁_0 : ∫ z, f₁ z ∂γ = 0 := by
+    dsimp only [f₁]
+    rw [integral_sub hLX1_int (integrable_const c_X), integral_const, probReal_univ, one_smul,
+      sub_self]
+  have hf₁_mom (j : ℕ) : |∫ z, f₁ z ^ j ∂γ| ≤ B₁ j :=
+    abs_integral_le_integral_abs.trans (integral_mono (f := fun z => |f₁ z ^ j|)
+      (g := fun z => (|D| * (|z| + 1)) ^ j) (hf₁_int j).abs (hB₁_int j) fun z => by
+        dsimp only; rw [abs_pow]; exact pow_le_pow_left₀ (abs_nonneg _) (hf₁_bd z) j)
+  exact ⟨(memLp_two_iff_integrable_sq hLX_m.aestronglyMeasurable).2 hLX2_int,
+    hf₁_0, hf₁_int, hf₁_mom⟩
+
+/-- The centered constraint summand is bounded by twice the bound on the potential. -/
+lemma centered_log_integral_exp_cavityPath_moments
+    {u : ℝ → ℝ} {D : ℝ} (hu : Measurable u) (hB : ∀ x, |u x| ≤ |D|) (q : ℝ) :
+    let γ := gaussianReal 0 1
+    let ψ (z : ℝ) :=
+      Real.log (∫ ξ : ℝ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂γ)
+    let f (z : ℝ) := ψ z - ∫ y, ψ y ∂γ
+    MemLp ψ 2 γ ∧
+      (∫ z, f z ∂γ) = 0 ∧
+      (∀ j, Integrable (fun z => f z ^ j) γ) ∧
+      ∀ j, |∫ z, f z ^ j ∂γ| ≤ (2 * |D|) ^ j := by
+  intro γ ψ f
+  have hψ_m : Measurable ψ :=
+    Real.measurable_log.comp (measurable_integral_exp_cavityPath hu q)
+  have hψ_bd (z : ℝ) : |ψ z| ≤ |D| := abs_log_integral_exp_cavityPath_le hu hB q z
+  have hψ_int : Integrable ψ γ := integrable_log_integral_exp_cavityPath hu hB q
+  have hc : |∫ z, ψ z ∂γ| ≤ |D| := abs_integral_le_of_forall_abs_le _ hψ_bd
+  have hf_bd (z : ℝ) : |f z| ≤ 2 * |D| := by
+    dsimp only [f]
+    linarith [abs_sub (ψ z) (∫ y, ψ y ∂γ), hψ_bd z]
+  have hf_m : Measurable f := hψ_m.sub_const _
+  have hf_0 : ∫ z, f z ∂γ = 0 := by
+    dsimp only [f]
+    rw [integral_sub hψ_int (integrable_const _), integral_const, probReal_univ, one_smul,
+      sub_self]
+  exact ⟨(memLp_two_iff_integrable_sq hψ_m.aestronglyMeasurable).2
+    (integrable_sq_of_abs_le hψ_m hψ_bd), hf_0, fun j => integrable_pow_of_abs_le hf_m j hf_bd,
+    fun j => abs_integral_le_of_forall_abs_le _ fun z => by
+      rw [abs_pow]
+      exact pow_le_pow_left₀ (abs_nonneg _) (hf_bd z) j⟩
 
 /-- Decoupled endpoint `s = 0` bound for even moments `2 * p`: since `A_0 - RS_0` splits into the
 sum of `N + 1` centered i.i.d. spin terms `log cosh(z'_i √r) - 𝔼 log cosh` and `M` centered i.i.d.
@@ -305,124 +336,9 @@ private lemma integral_interpolating_zero_even_pow_le (D : ℝ) (p : ℕ) :
       A_0 ω - RS_0 =
         ((N : ℝ) + 1)⁻¹ * (∑ i : Fin (N + 1), f_X (ω.2 i)) +
           ((N : ℝ) + 1)⁻¹ * (∑ j : Fin M, f_Y (ω.1.2 j)) := by
-    have hlogZ : Real.log (∫ x, Real.exp (E_0 ω x) ∂μ_s) =
-        (((N : ℝ) + 1) * Real.log 2 +
-            ∑ i : Fin (N + 1), Real.log (Real.cosh (ω.2 i * Real.sqrt r))) +
-          ∑ j : Fin M, ψ_u (ω.1.2 j) := by
-      rw [integral_sum_exp_interpolating_eq hu hB_le 0 q r ω]
-      have hsimp (τ : Fin (N + 1) → ℤˣ) :
-          Real.exp ((∑ i : Fin (N + 1), ((τ i : ℤ) : ℝ) * Real.sqrt (1 - 0) * ω.2 i * Real.sqrt r) +
-            ∑ j : Fin M, Real.log (∫ ξ, Real.exp (u (Real.sqrt 0 *
-                ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 j i * ((τ i : ℤ) : ℝ)) +
-              Real.sqrt (1 - 0) * (Real.sqrt q * ω.1.2 j + Real.sqrt (1 - q) * ξ))) ∂γ)) =
-          Real.exp (∑ i : Fin (N + 1), ((τ i : ℤ) : ℝ) * (ω.2 i * Real.sqrt r)) *
-            Real.exp (∑ j : Fin M, ψ_u (ω.1.2 j)) := by
-        rw [← Real.exp_add]
-        refine congrArg Real.exp (congrArg₂ (· + ·)
-          (Finset.sum_congr rfl fun _ _ => by rw [sub_zero, Real.sqrt_one]; ring)
-          (Finset.sum_congr rfl fun _ _ => ?_))
-        dsimp only [ψ_u, γ]
-        exact congrArg Real.log (integral_congr_ae (ae_of_all _ fun ξ => by
-          dsimp only; rw [Real.sqrt_zero, zero_mul, zero_add, sub_zero, Real.sqrt_one, one_mul]))
-      rw [Finset.sum_congr rfl fun τ _ => hsimp τ, ← Finset.sum_mul]
-      have hsum_pos : 0 < ∑ τ : Fin (N + 1) → ℤˣ,
-          Real.exp (∑ i : Fin (N + 1), ((τ i : ℤ) : ℝ) * (ω.2 i * Real.sqrt r)) :=
-        Finset.sum_pos (fun _ _ => Real.exp_pos _) Finset.univ_nonempty
-      rw [Real.log_mul hsum_pos.ne' (Real.exp_pos _).ne', Real.log_exp,
-        log_decoupled_partition_function_eq (fun i : Fin (N + 1) => ω.2 i * Real.sqrt r),
-        Fintype.card_fin]
-      push_cast; rfl
-    have hRS0 : RS_0 = Real.log 2 + c_X + ((M : ℝ) / ((N : ℝ) + 1)) * c_Y := by
-      dsimp only [RS_0, c_X, c_Y, ψ_u, γ]
-      rw [perceptronRSFunctional_eq_log_two_add]
-      ring
-    dsimp only [A_0, f_X, f_Y]
-    rw [hlogZ, hRS0, Finset.sum_sub_distrib, Finset.sum_sub_distrib]
-    simp only [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
-    have hL : ((N : ℝ) + 1) ≠ 0 := by positivity
-    push_cast
-    generalize (∑ i : Fin (N + 1), Real.log (Real.cosh (ω.2 i * Real.sqrt r))) = SX_sum
-    generalize (∑ j : Fin M, ψ_u (ω.1.2 j)) = SY_sum
-    field_simp; ring
-  have hlc_m : Measurable fun z : ℝ => Real.log (Real.cosh (z * Real.sqrt r)) :=
-    (Real.continuous_cosh.comp (by fun_prop)).log (fun _ => (Real.cosh_pos _).ne') |>.measurable
-  have hlc_bd (z : ℝ) : |Real.log (Real.cosh (z * Real.sqrt r))| ≤ |D| * |z| := by
-    rw [abs_of_nonneg (Real.log_cosh_nonneg _)]
-    refine (Real.log_cosh_le_abs _).trans ?_
-    rw [abs_mul, abs_of_nonneg (Real.sqrt_nonneg _), mul_comm]
-    exact mul_le_mul_of_nonneg_right hsr_le (abs_nonneg z)
-  have hz1_int : Integrable (fun z : ℝ => |z|) γ :=
-    by simpa [pow_one] using (integrable_pow_gaussianReal 0 1 1).abs
-  have hcX_bd : |c_X| ≤ |D| := by
-    have hz_int : Integrable (fun z : ℝ => |D| * |z|) γ := hz1_int.const_mul |D|
-    have h1 : |c_X| ≤ ∫ z : ℝ, |D| * |z| ∂γ := by
-      refine abs_integral_le_integral_abs.trans ?_
-      exact integral_mono (f := fun z => |Real.log (Real.cosh (z * Real.sqrt r))|)
-        (g := fun z => |D| * |z|)
-        (hz_int.mono' hlc_m.norm.aestronglyMeasurable
-          (ae_of_all _ fun z => by rw [Real.norm_of_nonneg (abs_nonneg _)]; exact hlc_bd z))
-        hz_int hlc_bd
-    have h_abs_z_le : ∫ z : ℝ, |z| ∂γ ≤ 1 := by
-      have hsq : (∫ z : ℝ, |z| ∂γ) ^ 2 ≤ ∫ z : ℝ, |z| ^ 2 ∂γ :=
-        MeasureTheory.sq_integral_le_integral_sq continuous_abs.measurable
-          (by simpa only [sq_abs] using integrable_pow_gaussianReal 0 1 2)
-      have hvar : ∫ z : ℝ, |z| ^ 2 ∂γ = 1 := by
-        simp_rw [sq_abs]
-        simpa using integral_pow_add_two_gaussianReal 0
-      rw [hvar] at hsq
-      nlinarith [integral_nonneg (μ := γ) fun z => abs_nonneg z]
-    rw [integral_const_mul] at h1
-    nlinarith [abs_nonneg D]
-  have hfX_bd (z : ℝ) : |f_X z| ≤ |D| * (|z| + 1) := by
-    dsimp only [f_X]
-    calc |Real.log (Real.cosh (z * Real.sqrt r)) - c_X|
-        ≤ |Real.log (Real.cosh (z * Real.sqrt r))| + |c_X| := abs_sub _ _
-      _ ≤ |D| * |z| + |D| := add_le_add (hlc_bd z) hcX_bd
-      _ = |D| * (|z| + 1) := by ring
-  have hBX_int (j : ℕ) : Integrable (fun z : ℝ => (|D| * (|z| + 1)) ^ j) γ :=
-    integrable_mul_abs_add_one_pow_gaussianReal D j
-  have hfX_int (j : ℕ) : Integrable (fun z : ℝ => f_X z ^ j) γ :=
-    (hBX_int j).mono' ((hlc_m.sub_const c_X).pow_const j).aestronglyMeasurable
-      (ae_of_all _ fun z => by
-        rw [Real.norm_eq_abs, abs_pow]
-        exact pow_le_pow_left₀ (abs_nonneg _) (hfX_bd z) j)
-  have hfX_0 : ∫ z, f_X z ∂γ = 0 := by
-    have h1 : Integrable (fun z => Real.log (Real.cosh (z * Real.sqrt r))) γ :=
-      (hz1_int.const_mul |D|).mono' hlc_m.aestronglyMeasurable
-        (ae_of_all _ fun z => by rw [Real.norm_eq_abs]; exact hlc_bd z)
-    dsimp only [f_X]
-    rw [integral_sub (f := fun z => Real.log (Real.cosh (z * Real.sqrt r))) (g := fun _ => c_X)
-      h1 (integrable_const c_X), integral_const, probReal_univ, one_smul, sub_self]
-  have hfX_mom (j : ℕ) : |∫ z, f_X z ^ j ∂γ| ≤ B_X j :=
-    abs_integral_le_integral_abs.trans (integral_mono (f := fun z => |f_X z ^ j|)
-      (g := fun z => (|D| * (|z| + 1)) ^ j) (hfX_int j).abs (hBX_int j) fun z => by
-        dsimp only; rw [abs_pow]; exact pow_le_pow_left₀ (abs_nonneg _) (hfX_bd z) j)
-  have hψu_m : Measurable ψ_u := by
-    refine Real.measurable_log.comp ?_
-    have hj : Measurable fun p : ℝ × ℝ =>
-        Real.exp (u (Real.sqrt q * p.1 + Real.sqrt (1 - q) * p.2)) :=
-      Real.measurable_exp.comp (hu.comp (by fun_prop))
-    exact (hj.stronglyMeasurable.integral_prod_right' (ν := γ)).measurable
-  have hψu_bd (z : ℝ) : |ψ_u z| ≤ |D| :=
-    abs_log_integral_exp_le_of_ae_abs_le (hu.comp (by fun_prop)).aemeasurable
-      (ae_of_all _ fun _ => hB _)
-  have hfY_bd (z : ℝ) : |f_Y z| ≤ 2 * |D| := by
-    dsimp only [f_Y]
-    have hcY_bd : |c_Y| ≤ |D| := abs_integral_le_of_forall_abs_le _ hψu_bd
-    linarith [abs_sub (ψ_u z) c_Y, hψu_bd z]
-  have hfY_int (j : ℕ) : Integrable (fun z : ℝ => f_Y z ^ j) γ :=
-    Integrable.of_bound ((hψu_m.sub_const c_Y).pow_const j).aestronglyMeasurable
-      ((2 * |D|) ^ j) (ae_of_all _ fun z => by
-        rw [Real.norm_eq_abs, abs_pow]
-        exact pow_le_pow_left₀ (abs_nonneg _) (hfY_bd z) j)
-  have hfY_0 : ∫ z, f_Y z ∂γ = 0 := by
-    have h1 : Integrable ψ_u γ := Integrable.of_bound hψu_m.aestronglyMeasurable |D|
-      (ae_of_all _ fun z => by rw [Real.norm_eq_abs]; exact hψu_bd z)
-    dsimp only [f_Y]
-    rw [integral_sub h1 (integrable_const c_Y), integral_const, probReal_univ, one_smul, sub_self]
-  have hfY_mom (j : ℕ) : |∫ z, f_Y z ^ j ∂γ| ≤ B_Y j :=
-    abs_integral_le_of_forall_abs_le _ fun z => by
-      rw [abs_pow]; exact pow_le_pow_left₀ (abs_nonneg _) (hfY_bd z) j
+    exact sub_rs_interpolating_zero_eq hu hB_le q r ω
+  obtain ⟨-, hfX_0, hfX_int, hfX_mom⟩ := centered_log_cosh_gaussianReal_moments hsr_le
+  obtain ⟨-, hfY_0, hfY_int, hfY_mom⟩ := centered_log_integral_exp_cavityPath_moments hu hB q
   let S_X (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) : ℝ :=
     ((N : ℝ) + 1)⁻¹ * ∑ i : Fin (N + 1), f_X (ω.2 i)
   let S_Y (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) : ℝ :=
@@ -536,8 +452,8 @@ private lemma integral_interpolating_zero_even_pow_le (D : ℝ) (p : ℕ) :
           ((Real.sqrt ((N : ℝ) + 1))⁻¹) ^ (2 * (p + 1)) := by ring
 
 /-- Differential inequality Eq. (2.110) and forward Grönwall bound for even moments `k = 2 * p`. -/
-private theorem integral_interpolating_centered_even_pow_le (D : ℝ) (p : ℕ) :
-    ∃ K C : ℝ, 0 ≤ K ∧ 0 ≤ C ∧
+private theorem integral_interpolating_centered_even_pow_le (D : ℝ) :
+    ∃ K : ℝ, 1 ≤ K ∧ ∀ p : ℕ, ∃ C : ℝ, 0 ≤ C ∧
       ∀ (N M : ℕ) {s : ℝ} (_hs : s ∈ Icc (0 : ℝ) 1)
         {u : ℝ → ℝ}
         (_hd : ∀ j < 3, Differentiable ℝ (iteratedDeriv j u))
@@ -563,20 +479,24 @@ private theorem integral_interpolating_centered_even_pow_le (D : ℝ) (p : ℕ) 
         let RS : ℝ :=
           perceptronRSFunctional u ((M : ℝ) / ((N : ℝ) + 1)) r q + ((1 - s) / 2) * r * (1 - q)
         ∫ ω, (A ω - RS) ^ (2 * p) ∂P ≤ C * ((Real.sqrt ((N : ℝ) + 1))⁻¹) ^ (2 * p) := by
+  obtain ⟨K_VII, _, h_VII_all⟩ := abs_interpolating_term_VII_le_uniform_in_moment_order D
+  obtain ⟨K_VIII, _, h_VIII_all⟩ := abs_interpolating_term_VIII_le_uniform_in_moment_order D
+  let K : ℝ := max (max K_VII K_VIII) 1
+  refine ⟨K, le_max_right _ _, ?_⟩
+  intro p
   rcases p with _ | p
-  · refine ⟨1, 1, zero_le_one, zero_le_one, ?_⟩
+  · refine ⟨1, zero_le_one, ?_⟩
     intro N M s _ u _ _ _ q r _ _ P_g P_z P_z' P _ _ _ _
     have : IsProbabilityMeasure P := by dsimp only [P, P_g, P_z, P_z']; infer_instance
     simp
   let k : ℕ := 2 * (p + 1)
   have hk_even : Even k := ⟨p + 1, by dsimp only [k]; ring⟩
-  obtain ⟨K_VII, C_VII, hK7_0, hC7_0, h_VII⟩ := abs_interpolating_term_VII_le D k
-  obtain ⟨K_VIII, C_VIII, hK8_0, hC8_0, h_VIII⟩ := abs_interpolating_term_VIII_le D k
+  obtain ⟨C_VII, hC7_0, h_VII⟩ := h_VII_all k
+  obtain ⟨C_VIII, hC8_0, h_VIII⟩ := h_VIII_all k
   obtain ⟨C_0, hC0_0, h_zero⟩ := integral_interpolating_zero_even_pow_le D (p + 1)
-  let K : ℝ := max (max K_VII K_VIII) 1
   let K_ode : ℝ := C_VII + C_VIII
   let C : ℝ := Real.exp (K_ode + 1) * (C_0 + K_ode)
-  refine ⟨K, C, by positivity, by positivity, ?_⟩
+  refine ⟨C, by positivity, ?_⟩
   intro N M s hs u hd hb hα q r hq hr P_g P_z P_z' P μ_s E_s_s A_s RS_s
   obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
   have hP_prob : IsProbabilityMeasure P := by dsimp only [P, P_g, P_z, P_z']; infer_instance
@@ -651,14 +571,16 @@ private theorem integral_interpolating_centered_even_pow_le (D : ℝ) (p : ℕ) 
       linarith
     have hy7 : C_VII / L * ψ t ^ (((k - 1 : ℕ) : ℝ) / (k : ℝ)) ≤
         C_VII * (ε_N + ψ t) := by
-      have h1 := inv_mul_rpow_sub_one_div_two_mul_le (Nat.succ_pos p) hL1 (hψ_nonneg t ht_cc)
+      have h1 := inv_mul_rpow_sub_div_le (j := 1) (by omega : 0 < 2 * (p + 1))
+        (by decide) (by omega) hL1 (hψ_nonneg t ht_cc)
       calc C_VII / L * ψ t ^ (((k - 1 : ℕ) : ℝ) / (k : ℝ))
           = C_VII * (L⁻¹ * ψ t ^ (((2 * (p + 1) - 1 : ℕ) : ℝ) / ((2 * (p + 1) : ℕ) : ℝ))) := by
             dsimp only [k]; ring
         _ ≤ C_VII * (ε_N + ψ t) := mul_le_mul_of_nonneg_left h1 hC7_0
     have hy8 : C_VIII / L ^ 2 * ψ t ^ (((k - 2 : ℕ) : ℝ) / (k : ℝ)) ≤
         C_VIII * (ε_N + ψ t) := by
-      have h1 := inv_mul_rpow_sub_two_div_two_mul_le (Nat.succ_pos p) hL1 (hψ_nonneg t ht_cc)
+      have h1 := inv_mul_rpow_sub_div_le (j := 2) (by omega : 0 < 2 * (p + 1))
+        (by decide) (by omega) hL1 (hψ_nonneg t ht_cc)
       have hL2 : L⁻¹ ^ 2 ≤ L⁻¹ := by
         rw [sq]
         exact mul_le_of_le_one_left (inv_nonneg.2 hL_pos.le) (inv_le_one_of_one_le₀ hL1)
@@ -685,8 +607,8 @@ private theorem integral_interpolating_centered_even_pow_le (D : ℝ) (p : ℕ) 
 Given `D` and `k`, there exist `K, C ≥ 0` (chosen before `N, M, s, u, q, r`) such that under (2.7),
 `α K ≤ 1`, `(q, r)` solving (2.68), and `s ∈ [0, 1]`,
 `𝔼[|A(s) - RS(s)|^k] ≤ C * (√(N + 1))⁻¹ ^ k`. -/
-theorem integral_interpolating_centered_abs_pow_le (D : ℝ) (k : ℕ) :
-    ∃ K C : ℝ, 0 ≤ K ∧ 0 ≤ C ∧
+theorem integral_interpolating_centered_abs_pow_le_uniform_in_moment_order (D : ℝ) :
+    ∃ K : ℝ, 1 ≤ K ∧ ∀ k : ℕ, ∃ C : ℝ, 0 ≤ C ∧
       ∀ (N M : ℕ) {s : ℝ} (_hs : s ∈ Icc (0 : ℝ) 1)
         {u : ℝ → ℝ}
         (_hd : ∀ j < 3, Differentiable ℝ (iteratedDeriv j u))
@@ -712,8 +634,11 @@ theorem integral_interpolating_centered_abs_pow_le (D : ℝ) (k : ℕ) :
         let RS : ℝ :=
           perceptronRSFunctional u ((M : ℝ) / ((N : ℝ) + 1)) r q + ((1 - s) / 2) * r * (1 - q)
         ∫ ω, |A ω - RS| ^ k ∂P ≤ C * ((Real.sqrt ((N : ℝ) + 1))⁻¹) ^ k := by
-  obtain ⟨K_2k, C_2k, hK0, hC0, h_even⟩ := integral_interpolating_centered_even_pow_le D k
-  refine ⟨K_2k, Real.sqrt C_2k, hK0, Real.sqrt_nonneg _, ?_⟩
+  obtain ⟨K_2k, hK1, h_even_all⟩ := integral_interpolating_centered_even_pow_le D
+  refine ⟨K_2k, hK1, ?_⟩
+  intro k
+  obtain ⟨C_2k, hC0, h_even⟩ := h_even_all k
+  refine ⟨Real.sqrt C_2k, Real.sqrt_nonneg _, ?_⟩
   intro N M s hs u hd hb hα q r hq hr P_g P_z P_z' P μ_s E_s A RS
   obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
   have hP_prob : IsProbabilityMeasure P := by dsimp only [P, P_g, P_z, P_z']; infer_instance
@@ -768,5 +693,37 @@ theorem integral_interpolating_centered_abs_pow_le (D : ℝ) (k : ℕ) :
     hsq_le.trans (hb_even.trans_eq hsq_rhs)
   nlinarith [sq_nonneg (∫ ω, |A ω - RS| ^ k ∂P - Real.sqrt C_2k * ε),
     mul_nonneg (Real.sqrt_nonneg C_2k) hε0]
+
+/-- The fixed-order form of `integral_interpolating_centered_abs_pow_le_uniform_in_moment_order`. -/
+theorem integral_interpolating_centered_abs_pow_le (D : ℝ) (k : ℕ) :
+    ∃ K C : ℝ, 0 ≤ K ∧ 0 ≤ C ∧
+      ∀ (N M : ℕ) {s : ℝ} (_hs : s ∈ Icc (0 : ℝ) 1)
+        {u : ℝ → ℝ}
+        (_hd : ∀ j < 3, Differentiable ℝ (iteratedDeriv j u))
+        (_hb : ∀ j ≤ 3, ∀ x, |iteratedDeriv j u x| ≤ D)
+        (_hα : (M : ℝ) / ((N : ℝ) + 1) * K ≤ 1)
+        {q r : ℝ}
+        (_hq : q = ∫ z : ℝ, Real.tanh (z * Real.sqrt r) ^ 2 ∂gaussianReal 0 1)
+        (_hr : r = ((M : ℝ) / ((N : ℝ) + 1)) * perceptronRhat u q),
+        let P_g := Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1
+        let P_z := Measure.pi fun _ : Fin M => gaussianReal 0 1
+        let P_z' := Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1
+        let P := (P_g.prod P_z).prod P_z'
+        let μ_s := (Measure.count : Measure (Fin (N + 1) → ℤˣ)).prod
+          (Measure.pi fun _ : Fin M => gaussianReal 0 1)
+        let E_s (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
+            (x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : ℝ :=
+          (∑ j : Fin M, u (Real.sqrt s *
+              ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 j i * ((x.1 i : ℤ) : ℝ)) +
+            Real.sqrt (1 - s) * (Real.sqrt q * ω.1.2 j + Real.sqrt (1 - q) * x.2 j))) +
+            ∑ i : Fin (N + 1), ((x.1 i : ℤ) : ℝ) * Real.sqrt (1 - s) * ω.2 i * Real.sqrt r
+        let A (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) : ℝ :=
+          ((N : ℝ) + 1)⁻¹ * Real.log (∫ x, Real.exp (E_s ω x) ∂μ_s)
+        let RS : ℝ :=
+          perceptronRSFunctional u ((M : ℝ) / ((N : ℝ) + 1)) r q + ((1 - s) / 2) * r * (1 - q)
+        ∫ ω, |A ω - RS| ^ k ∂P ≤ C * ((Real.sqrt ((N : ℝ) + 1))⁻¹) ^ k := by
+  obtain ⟨K, hK, h⟩ := integral_interpolating_centered_abs_pow_le_uniform_in_moment_order D
+  obtain ⟨C, hC, hbound⟩ := h k
+  exact ⟨K, C, zero_le_one.trans hK, hC, hbound⟩
 
 end SpinGlasses

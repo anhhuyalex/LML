@@ -18,8 +18,8 @@ For `N + 1` spins and `M` constraints with load `α = M / (N + 1)`, let `(q, r)`
 replica-symmetric fixed-point system (2.68) under (2.7) and `α K ≤ 1`. Along the interpolating path
 `s ∈ [0, 1]`, the centered random free energy `V(s) = A(s) - RS(s)` has moments
 `ψ_k(s) = 𝔼[V(s)^k]` satisfying `hasDerivAt_interpolating_centered_moment_pow` (Eq. (2.108)).
-Feeding the a priori Grönwall bound `integral_interpolating_centered_abs_pow_le` into
-`abs_interpolating_term_VII_le` and `abs_interpolating_term_VIII_le` (Eq. (2.109)) reduces
+Feeding the a priori Grönwall bound `integral_interpolating_centered_abs_pow_le_uniform_in_moment_order` into
+`abs_interpolating_term_VII_le_uniform_in_moment_order` and `abs_interpolating_term_VIII_le_uniform_in_moment_order` (Eq. (2.109)) reduces
 Eq. (2.108) to
 $$\psi_k'(s) = -\frac{r q}{2 (N + 1)}\,k (k - 1)\,\psi_{k - 2}(s) +
   O\bigl((N + 1)^{-(k + 1)/2}\bigr).$$
@@ -33,26 +33,23 @@ At the decoupled endpoint `s = 0`, `V(0)` is the sum of two independent centered
 
 Thus `b(s) = v_X + α v_Y - r q s` satisfies `b'(s) = -r q` and matches the decoupled variance
 `v_X + α v_Y` at `s = 0` (`exists_abs_integral_add_pow_avg_two_pi_sub_le`). Integrating from `0` to
-`s` by two-step induction on `k` yields `interpolating_free_energy_clt` for all `s ∈ [0, 1]` and,
-at `s = 1`, `perceptron_free_energy_clt` with fluctuation variance
+`s` by two-step induction on `k` yields `interpolating_free_energy_clt_uniform_in_moment_order` for all `s ∈ [0, 1]` and,
+at `s = 1`, `perceptron_free_energy_clt_uniform_in_moment_order` with fluctuation variance
 $$b = \mathbb{E}\bigl(\log \cosh(z\sqrt{r})\bigr)^2 -
   \bigl(\mathbb{E}\log \cosh(z\sqrt{r})\bigr)^2 +
   \alpha\Bigl(\mathbb{E}\bigl(\log\mathbb{E}_\xi \exp u(\theta)\bigr)^2 -
     \bigl(\mathbb{E}\log\mathbb{E}_\xi \exp u(\theta)\bigr)^2\Bigr) - q r.$$
 Note on Talagrand's printed formula: Talagrand's display in Theorem 2.5.3 omits the constraint
 variance term `α Var_z(log 𝔼_ξ exp u(θ))` from `b` (and prints `p_{N, M}(u)` for the random free
-energy `(N + 1)⁻¹ log Z_{N+1, M}(u)`, matching Theorem 1.4.11's `N⁻¹ log Z_N`). For e.g.
-`u(x) = x` at `M = N + 1`, `q = 0` (`r̂(0) = 1`), direct calculation gives `Var(p_{N, M}) > 0`
-even when `M = N + 1` and `u(x)` has non-zero `z`-variance at `q > 0`: for `u(x) = tanh x` and
-`M = N + 1` small load, `q > 0` and `Var_z(log 𝔼_ξ exp u(θ)) > 0`, whereas `b(0)` must equal
-`L * Var(V(0)) = v_X + α v_Y`. When `Var_z(log 𝔼_ξ exp u(θ)) = 0` (for example when `q = 0`), the
-two formulas agree (`perceptron_free_energy_clt_of_zero_constraint_var`).
+energy `(N + 1)⁻¹ log Z_{N+1, M}(u)`, matching Theorem 1.4.11's `N⁻¹ log Z_N`). The constraint contribution comes from the variance of the independent
+constraint sum at `s = 0`. The printed reference is recovered when the weighted correction
+vanishes, including at `q = 0`, or when the Gaussian moment is zero in odd order.
 
 ## Main declarations
 
-* `SpinGlasses.interpolating_free_energy_clt`: quantitative moment CLT along the `s`-interpolation
+* `SpinGlasses.interpolating_free_energy_clt_uniform_in_moment_order`: quantitative moment CLT along the `s`-interpolation
   uniformly in `s ∈ [0, 1]`.
-* `SpinGlasses.perceptron_free_energy_clt`: Theorem 2.5.3 (corrected variance formula, valid for
+* `SpinGlasses.perceptron_free_energy_clt_uniform_in_moment_order`: Theorem 2.5.3 (corrected variance formula, valid for
   all `u` satisfying (2.7)).
 * `SpinGlasses.perceptron_free_energy_clt_of_zero_constraint_var`: specialization to the printed
   `b = 𝔼(log cosh(z √r))² - (𝔼 log cosh(z √r))² - q r` when the constraint `z`-variance vanishes.
@@ -199,10 +196,10 @@ private lemma exists_linear_clt_const (B_max : ℝ) (hBmax0 : 0 ≤ B_max)
 /-! ### Section 2: Decoupled endpoint `s = 0` moment expansion and ODE remainder `O(k + 1)` -/
 
 /-- **Quantitative moment expansion at the decoupled endpoint `s = 0`:**
-for `m ≥ 1`, `|𝔼[(A(0) - RS(0))^m] - (√(N + 1))⁻¹^m a(m) b₀^{m/2}| ≤ C (√(N + 1))⁻¹^{m+1}`,
+`|𝔼[(A(0) - RS(0))^m] - (√(N + 1))⁻¹^m a(m) b₀^{m/2}| ≤ C (√(N + 1))⁻¹^{m+1}`,
 uniformly over `N, M, u, q, r` satisfying `|u| ≤ |D|`, `M ≤ N + 1`, and `r ≤ |D|²`, where
 `b₀ = Var_z(log cosh(z √r)) + α Var_z(log 𝔼_ξ exp u(θ))`. -/
-private lemma abs_integral_interpolating_zero_pow_sub_le (D : ℝ) {m : ℕ} (hm : 1 ≤ m) :
+private lemma abs_integral_interpolating_zero_pow_sub_le (D : ℝ) (m : ℕ) :
     ∃ C : ℝ, 0 ≤ C ∧
       ∀ (N M : ℕ) {u : ℝ → ℝ} (_hu : Measurable u) (_hB : ∀ x, |u x| ≤ |D|)
         (_hMN : (M : ℝ) ≤ (N : ℝ) + 1) {q r : ℝ} (_hr_le : r ≤ |D| ^ 2),
@@ -242,7 +239,7 @@ private lemma abs_integral_interpolating_zero_pow_sub_le (D : ℝ) {m : ℕ} (hm
   have hB₁0 (j : ℕ) : 0 ≤ B₁ j := integral_nonneg fun _ => by positivity
   have hB₂0 (j : ℕ) : 0 ≤ B₂ j := by positivity
   obtain ⟨C, hC0, hC_two⟩ :=
-    exists_abs_integral_add_pow_avg_two_pi_sub_le B₁ B₂ hB₁0 hB₂0 ha0 ha1 ha m hm
+    exists_abs_integral_add_pow_avg_two_pi_sub_le_all_orders B₁ B₂ hB₁0 hB₂0 ha0 ha1 ha m
   refine ⟨C, hC0, ?_⟩
   intro N M u hu hB hMN q r hr_le γ' P_g P_z P_z' P μ_s E_0 A_0 α RS_0 ψ_u b₀
   have hP_prob : IsProbabilityMeasure P := by dsimp only [P, P_g, P_z, P_z', γ']; infer_instance
@@ -258,148 +255,16 @@ private lemma abs_integral_interpolating_zero_pow_sub_le (D : ℝ) {m : ℕ} (hm
       A_0 ω - RS_0 =
         ((N + 1 : ℕ) : ℝ)⁻¹ * (∑ i : Fin (N + 1), f₁ (ω.2 i)) +
           ((N + 1 : ℕ) : ℝ)⁻¹ * (∑ j : Fin M, f₂ (ω.1.2 j)) := by
-    have hlogZ : Real.log (∫ x, Real.exp (E_0 ω x) ∂μ_s) =
-        (((N : ℝ) + 1) * Real.log 2 + ∑ i : Fin (N + 1), L_X (ω.2 i)) +
-          ∑ j : Fin M, ψ_u (ω.1.2 j) := by
-      rw [integral_sum_exp_interpolating_eq hu hB_le 0 q r ω]
-      have hsimp (τ : Fin (N + 1) → ℤˣ) :
-          Real.exp ((∑ i : Fin (N + 1), ((τ i : ℤ) : ℝ) * Real.sqrt (1 - 0) * ω.2 i * Real.sqrt r) +
-            ∑ j : Fin M, Real.log (∫ ξ, Real.exp (u (Real.sqrt 0 *
-                ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 j i * ((τ i : ℤ) : ℝ)) +
-              Real.sqrt (1 - 0) * (Real.sqrt q * ω.1.2 j + Real.sqrt (1 - q) * ξ))) ∂γ')) =
-          Real.exp (∑ i : Fin (N + 1), ((τ i : ℤ) : ℝ) * (ω.2 i * Real.sqrt r)) *
-            Real.exp (∑ j : Fin M, ψ_u (ω.1.2 j)) := by
-        rw [← Real.exp_add]
-        refine congrArg Real.exp (congrArg₂ (· + ·)
-          (Finset.sum_congr rfl fun _ _ => by rw [sub_zero, Real.sqrt_one]; ring)
-          (Finset.sum_congr rfl fun _ _ => ?_))
-        dsimp only [ψ_u, γ']
-        exact congrArg Real.log (integral_congr_ae (ae_of_all _ fun ξ => by
-          dsimp only; rw [Real.sqrt_zero, zero_mul, zero_add, sub_zero, Real.sqrt_one, one_mul]))
-      rw [Finset.sum_congr rfl fun τ _ => hsimp τ, ← Finset.sum_mul]
-      have hsum_pos : 0 < ∑ τ : Fin (N + 1) → ℤˣ,
-          Real.exp (∑ i : Fin (N + 1), ((τ i : ℤ) : ℝ) * (ω.2 i * Real.sqrt r)) :=
-        Finset.sum_pos (fun _ _ => Real.exp_pos _) Finset.univ_nonempty
-      rw [Real.log_mul hsum_pos.ne' (Real.exp_pos _).ne', Real.log_exp,
-        log_decoupled_partition_function_eq (fun i : Fin (N + 1) => ω.2 i * Real.sqrt r),
-        Fintype.card_fin]
-      push_cast; rfl
-    have hRS0 : RS_0 = Real.log 2 + c_X + α * c_Y := by
-      dsimp only [RS_0, c_X, c_Y, L_X, ψ_u, γ, γ']
-      rw [perceptronRSFunctional_eq_log_two_add]
-      ring
-    dsimp only [A_0, f₁, f₂]
-    rw [hlogZ, hRS0, Finset.sum_sub_distrib, Finset.sum_sub_distrib]
-    simp only [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
-    dsimp only [α]
-    have hL : ((N : ℝ) + 1) ≠ 0 := by positivity
-    push_cast
-    generalize (∑ i : Fin (N + 1), L_X (ω.2 i)) = SX_sum
-    generalize (∑ j : Fin M, ψ_u (ω.1.2 j)) = SY_sum
-    field_simp; ring
-  have hLX_m : Measurable L_X :=
-    (Real.continuous_cosh.comp (by fun_prop)).log (fun _ => (Real.cosh_pos _).ne') |>.measurable
-  have hLX_bd (z : ℝ) : |L_X z| ≤ |D| * |z| := by
-    dsimp only [L_X]
-    rw [abs_of_nonneg (Real.log_cosh_nonneg _)]
-    refine (Real.log_cosh_le_abs _).trans ?_
-    rw [abs_mul, abs_of_nonneg (Real.sqrt_nonneg _), mul_comm]
-    exact mul_le_mul_of_nonneg_right hsr_le (abs_nonneg z)
-  have hz1_int : Integrable (fun z : ℝ => |z|) γ :=
-    by simpa [pow_one] using (integrable_pow_gaussianReal 0 1 1).abs
-  have hcX_bd : |c_X| ≤ |D| := by
-    have hz_int : Integrable (fun z : ℝ => |D| * |z|) γ := hz1_int.const_mul |D|
-    have h1 : |c_X| ≤ ∫ z : ℝ, |D| * |z| ∂γ :=
-      abs_integral_le_integral_abs.trans (integral_mono
-        (f := fun z => |L_X z|) (g := fun z => |D| * |z|)
-        (hz_int.mono' hLX_m.norm.aestronglyMeasurable
-          (ae_of_all _ fun z => by rw [Real.norm_of_nonneg (abs_nonneg _)]; exact hLX_bd z))
-        hz_int hLX_bd)
-    have h_abs_z_le : ∫ z : ℝ, |z| ∂γ ≤ 1 := by
-      have hsq : (∫ z : ℝ, |z| ∂γ) ^ 2 ≤ ∫ z : ℝ, |z| ^ 2 ∂γ :=
-        MeasureTheory.sq_integral_le_integral_sq continuous_abs.measurable
-          (by simpa only [sq_abs] using integrable_pow_gaussianReal 0 1 2)
-      have hvar : ∫ z : ℝ, |z| ^ 2 ∂γ = 1 := by
-        simp_rw [sq_abs]; simpa using integral_pow_add_two_gaussianReal 0
-      rw [hvar] at hsq
-      nlinarith [integral_nonneg (μ := γ) fun z => abs_nonneg z]
-    rw [integral_const_mul] at h1
-    nlinarith [abs_nonneg D]
-  have hf₁_bd (z : ℝ) : |f₁ z| ≤ |D| * (|z| + 1) := by
-    dsimp only [f₁]
-    calc |L_X z - c_X| ≤ |L_X z| + |c_X| := abs_sub _ _
-      _ ≤ |D| * |z| + |D| := add_le_add (hLX_bd z) hcX_bd
-      _ = |D| * (|z| + 1) := by ring
-  have hB₁_int (j : ℕ) : Integrable (fun z : ℝ => (|D| * (|z| + 1)) ^ j) γ := by
-    have heq : (fun z : ℝ => (|D| * (|z| + 1)) ^ j) =
-        fun z => |D| ^ j * ∑ l ∈ Finset.range (j + 1), (j.choose l : ℝ) * |z ^ l| := by
-      funext z; rw [mul_pow, add_pow]; congr 1
-      refine Finset.sum_congr rfl fun l _ => ?_
-      rw [one_pow, mul_one, abs_pow, mul_comm]
-    rw [heq]
-    exact (integrable_finsetSum (Finset.range (j + 1)) fun l _ =>
-      (integrable_pow_gaussianReal 0 1 l).abs.const_mul (j.choose l : ℝ)).const_mul (|D| ^ j)
-  have hf₁_int (j : ℕ) : Integrable (fun z : ℝ => f₁ z ^ j) γ :=
-    (hB₁_int j).mono' ((hLX_m.sub_const c_X).pow_const j).aestronglyMeasurable
-      (ae_of_all _ fun z => by
-        rw [Real.norm_eq_abs, abs_pow]
-        exact pow_le_pow_left₀ (abs_nonneg _) (hf₁_bd z) j)
-  have hLX1_int : Integrable L_X γ :=
-    (hz1_int.const_mul |D|).mono' hLX_m.aestronglyMeasurable
-      (ae_of_all _ fun z => by rw [Real.norm_eq_abs]; exact hLX_bd z)
-  have hLX2_int : Integrable (fun z => L_X z ^ 2) γ :=
-    ((integrable_pow_gaussianReal 0 1 2).const_mul (D ^ 2)).mono'
-      (hLX_m.pow_const 2).aestronglyMeasurable
-      (ae_of_all _ fun z => by
-        rw [Real.norm_of_nonneg (sq_nonneg _), ← sq_abs]
-        calc |L_X z| ^ 2 ≤ (|D| * |z|) ^ 2 := pow_le_pow_left₀ (abs_nonneg _) (hLX_bd z) 2
-          _ = D ^ 2 * z ^ 2 := by rw [mul_pow, sq_abs, sq_abs])
-  have hf₁_0 : ∫ z, f₁ z ∂γ = 0 := by
-    dsimp only [f₁]
-    rw [integral_sub hLX1_int (integrable_const c_X), integral_const, probReal_univ, one_smul,
-      sub_self]
-  have hf₁_mom (j : ℕ) : |∫ z, f₁ z ^ j ∂γ| ≤ B₁ j :=
-    abs_integral_le_integral_abs.trans (integral_mono (f := fun z => |f₁ z ^ j|)
-      (g := fun z => (|D| * (|z| + 1)) ^ j) (hf₁_int j).abs (hB₁_int j) fun z => by
-        dsimp only; rw [abs_pow]; exact pow_le_pow_left₀ (abs_nonneg _) (hf₁_bd z) j)
-  have hψu_m : Measurable ψ_u :=
-    Real.measurable_log.comp (measurable_integral_exp_cavityPath hu q)
-  have hψu_bd (z : ℝ) : |ψ_u z| ≤ |D| :=
-    abs_log_integral_exp_le_of_ae_abs_le (hu.comp (by fun_prop)).aemeasurable
-      (ae_of_all _ fun _ => hB _)
-  have hf₂_bd (z : ℝ) : |f₂ z| ≤ 2 * |D| := by
-    dsimp only [f₂]
-    have hcY_bd : |c_Y| ≤ |D| := abs_integral_le_of_forall_abs_le _ hψu_bd
-    linarith [abs_sub (ψ_u z) c_Y, hψu_bd z]
-  have hf₂_int (j : ℕ) : Integrable (fun z : ℝ => f₂ z ^ j) γ :=
-    Integrable.of_bound ((hψu_m.sub_const c_Y).pow_const j).aestronglyMeasurable
-      ((2 * |D|) ^ j) (ae_of_all _ fun z => by
-        rw [Real.norm_eq_abs, abs_pow]
-        exact pow_le_pow_left₀ (abs_nonneg _) (hf₂_bd z) j)
-  have hψu1_int : Integrable ψ_u γ :=
-    Integrable.of_bound hψu_m.aestronglyMeasurable |D|
-      (ae_of_all _ fun z => by rw [Real.norm_eq_abs]; exact hψu_bd z)
-  have hψu2_int : Integrable (fun z => ψ_u z ^ 2) γ :=
-    Integrable.of_bound (hψu_m.pow_const 2).aestronglyMeasurable (|D| ^ 2)
-      (ae_of_all _ fun z => by
-        rw [Real.norm_of_nonneg (sq_nonneg _), ← sq_abs]
-        exact pow_le_pow_left₀ (abs_nonneg _) (hψu_bd z) 2)
-  have hf₂_0 : ∫ z, f₂ z ∂γ = 0 := by
-    dsimp only [f₂]
-    rw [integral_sub hψu1_int (integrable_const c_Y), integral_const, probReal_univ, one_smul,
-      sub_self]
-  have hf₂_mom (j : ℕ) : |∫ z, f₂ z ^ j ∂γ| ≤ B₂ j :=
-    abs_integral_le_of_forall_abs_le _ fun z => by
-      rw [abs_pow]; exact pow_le_pow_left₀ (abs_nonneg _) (hf₂_bd z) j
+    simpa only [Nat.cast_add, Nat.cast_one] using sub_rs_interpolating_zero_eq hu hB_le q r ω
+  obtain ⟨hLX2, hf₁_0, hf₁_int, hf₁_mom⟩ := centered_log_cosh_gaussianReal_moments hsr_le
+  obtain ⟨hψu2, hf₂_0, hf₂_int, hf₂_mom⟩ := centered_log_integral_exp_cavityPath_moments hu hB q
   have hv₁_eq : ∫ z, f₁ z ^ 2 ∂γ = (∫ z, L_X z ^ 2 ∂γ) - c_X ^ 2 := by
-    have hL2 : MemLp L_X 2 γ := (memLp_two_iff_integrable_sq hLX_m.aestronglyMeasurable).2 hLX2_int
     change (∫ z, (L_X z - ∫ y, L_X y ∂γ) ^ 2 ∂γ) = (∫ z, L_X z ^ 2 ∂γ) - (∫ z, L_X z ∂γ) ^ 2
-    rw [← variance_eq_integral hL2.aemeasurable, variance_eq_sub hL2]
+    rw [← variance_eq_integral hLX2.aemeasurable, variance_eq_sub hLX2]
     rfl
   have hv₂_eq : ∫ z, f₂ z ^ 2 ∂γ = (∫ z, ψ_u z ^ 2 ∂γ) - c_Y ^ 2 := by
-    have hL2 : MemLp ψ_u 2 γ := (memLp_two_iff_integrable_sq hψu_m.aestronglyMeasurable).2 hψu2_int
     change (∫ z, (ψ_u z - ∫ y, ψ_u y ∂γ) ^ 2 ∂γ) = (∫ z, ψ_u z ^ 2 ∂γ) - (∫ z, ψ_u z ∂γ) ^ 2
-    rw [← variance_eq_integral hL2.aemeasurable, variance_eq_sub hL2]
+    rw [← variance_eq_integral hψu2.aemeasurable, variance_eq_sub hψu2]
     rfl
   -- Rewrite the expectation over `P = (P_g × P_z) × P_z'` as an integral over `P_z' × P_z`.
   have hint_eq :
@@ -442,11 +307,11 @@ private lemma abs_integral_interpolating_zero_pow_sub_le (D : ℝ) {m : ℕ} (hm
   rw [hv₁_eq, hv₂_eq]
 
 /-- **ODE with higher-order remainder `O((N + 1)^{-(m+1)/2})`:**
-feeding `integral_interpolating_centered_abs_pow_le` into `abs_interpolating_term_VII_le` and
-`abs_interpolating_term_VIII_le` gives `ψ_m'(s) = -(r q / (2 (N + 1))) m (m - 1) ψ_{m-2}(s) + D`
+feeding `integral_interpolating_centered_abs_pow_le_uniform_in_moment_order` into `abs_interpolating_term_VII_le_uniform_in_moment_order` and
+`abs_interpolating_term_VIII_le_uniform_in_moment_order` gives `ψ_m'(s) = -(r q / (2 (N + 1))) m (m - 1) ψ_{m-2}(s) + D`
 with `|D| ≤ C_rem (√(N + 1))⁻¹^{m+1}` uniformly on `s ∈ (0, 1)`. -/
-private lemma exists_hasDerivAt_interpolating_centered_moment_sub_le (D : ℝ) (m : ℕ) :
-    ∃ K C_rem : ℝ, 0 ≤ K ∧ 0 ≤ C_rem ∧
+private lemma exists_hasDerivAt_interpolating_centered_moment_sub_le (D : ℝ) :
+    ∃ K : ℝ, 1 ≤ K ∧ ∀ m : ℕ, ∃ C_rem : ℝ, 0 ≤ C_rem ∧
       ∀ (N M : ℕ) {s : ℝ} (_hs : s ∈ Ioo (0 : ℝ) 1)
         {u : ℝ → ℝ}
         (_hd : ∀ j < 3, Differentiable ℝ (iteratedDeriv j u))
@@ -479,12 +344,17 @@ private lemma exists_hasDerivAt_interpolating_centered_moment_sub_le (D : ℝ) (
             (((m : ℝ) * ((m : ℝ) - 1) / 2 * ε ^ 2 * (-(r * q))) *
               (∫ ω, V s ω ^ (m - 2) ∂P) + D_rem) s ∧
           |D_rem| ≤ C_rem * ε ^ (m + 1) := by
-  obtain ⟨K_7, C_7, hK7_0, hC7_0, h_7⟩ := abs_interpolating_term_VII_le D m
-  obtain ⟨K_8, C_8, hK8_0, hC8_0, h_8⟩ := abs_interpolating_term_VIII_le D m
-  obtain ⟨K_ap, C_ap, hKap_0, hCap_0, h_ap⟩ := integral_interpolating_centered_abs_pow_le D m
+  obtain ⟨K_7, _, h_7_all⟩ := abs_interpolating_term_VII_le_uniform_in_moment_order D
+  obtain ⟨K_8, _, h_8_all⟩ := abs_interpolating_term_VIII_le_uniform_in_moment_order D
+  obtain ⟨K_ap, _, h_ap_all⟩ := integral_interpolating_centered_abs_pow_le_uniform_in_moment_order D
   let K : ℝ := max (max K_7 K_8) (max K_ap 1)
+  refine ⟨K, (le_max_right K_ap 1).trans (le_max_right _ _), ?_⟩
+  intro m
+  obtain ⟨C_7, hC7_0, h_7⟩ := h_7_all m
+  obtain ⟨C_8, hC8_0, h_8⟩ := h_8_all m
+  obtain ⟨C_ap, hCap_0, h_ap⟩ := h_ap_all m
   let C_rem : ℝ := C_7 * (C_ap + 1) + C_8 * (C_ap + 1)
-  refine ⟨K, C_rem, by positivity, by positivity, ?_⟩
+  refine ⟨C_rem, by positivity, ?_⟩
   intro N M s hs u hd hb hα q r hq hr P_g P_z P_z' P μ_s E_s A RS V ε
   obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
   have hs_cc : s ∈ Icc (0 : ℝ) 1 := ⟨hs.1.le, hs.2.le⟩
@@ -603,8 +473,8 @@ Given `D` and `k`, there exist `K, C ≥ 0` (chosen before `N, M, s, u, q, r`) s
 `α K ≤ 1`, `(q, r)` solving (2.68), and `s ∈ [0, 1]`,
 `|𝔼[(A(s) - RS(s))^k] - (√(N + 1))⁻¹^k a(k) b(s)^{k/2}| ≤ C (√(N + 1))⁻¹^{k+1}`,
 where `b(s) = Var_z(log cosh(z √r)) + α Var_z(log 𝔼_ξ exp u(θ)) - r q s`. -/
-theorem interpolating_free_energy_clt (D : ℝ) (k : ℕ) :
-    ∃ K C : ℝ, 0 ≤ K ∧ 0 ≤ C ∧
+theorem interpolating_free_energy_clt_uniform_in_moment_order (D : ℝ) :
+    ∃ K : ℝ, 1 ≤ K ∧ ∀ k : ℕ, ∃ C : ℝ, 0 ≤ C ∧
       ∀ (N M : ℕ) {s : ℝ} (_hs : s ∈ Icc (0 : ℝ) 1)
         {u : ℝ → ℝ}
         (_hd : ∀ j < 3, Differentiable ℝ (iteratedDeriv j u))
@@ -639,52 +509,16 @@ theorem interpolating_free_energy_clt (D : ℝ) (k : ℕ) :
         |∫ ω, (A ω - RS) ^ k ∂P -
             ((Real.sqrt ((N : ℝ) + 1))⁻¹) ^ k * (∫ x : ℝ, x ^ k ∂γ) * b_s ^ (k / 2)| ≤
           C * ((Real.sqrt ((N : ℝ) + 1))⁻¹) ^ (k + 1) := by
-  choose! K_ode C_rem hKode0 hCrem0 h_ode using
-    fun m => exists_hasDerivAt_interpolating_centered_moment_sub_le D m
-  have hex_dec : ∀ m : ℕ, ∃ C_d : ℝ, 0 ≤ C_d ∧
-      (1 ≤ m → ∀ (N M : ℕ) {u : ℝ → ℝ} (_hu : Measurable u) (_hB : ∀ x, |u x| ≤ |D|)
-        (_hMN : (M : ℝ) ≤ (N : ℝ) + 1) {q r : ℝ} (_hr_le : r ≤ |D| ^ 2),
-        let γ := gaussianReal 0 1
-        let P_g := Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin (N + 1) => γ
-        let P_z := Measure.pi fun _ : Fin M => γ
-        let P_z' := Measure.pi fun _ : Fin (N + 1) => γ
-        let P := (P_g.prod P_z).prod P_z'
-        let μ_s := (Measure.count : Measure (Fin (N + 1) → ℤˣ)).prod
-          (Measure.pi fun _ : Fin M => γ)
-        let E_0 (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
-            (x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : ℝ :=
-          (∑ j : Fin M, u (Real.sqrt 0 *
-              ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 j i * ((x.1 i : ℤ) : ℝ)) +
-            Real.sqrt (1 - 0) * (Real.sqrt q * ω.1.2 j + Real.sqrt (1 - q) * x.2 j))) +
-          ∑ i : Fin (N + 1), ((x.1 i : ℤ) : ℝ) * Real.sqrt (1 - 0) * ω.2 i * Real.sqrt r
-        let A_0 (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) : ℝ :=
-          ((N : ℝ) + 1)⁻¹ * Real.log (∫ x, Real.exp (E_0 ω x) ∂μ_s)
-        let α : ℝ := (M : ℝ) / ((N : ℝ) + 1)
-        let RS_0 : ℝ := perceptronRSFunctional u α r q + ((1 - 0) / 2) * r * (1 - q)
-        let ψ_u (z : ℝ) : ℝ :=
-          Real.log (∫ ξ : ℝ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂γ)
-        let b₀ : ℝ :=
-          ((∫ z : ℝ, Real.log (Real.cosh (z * Real.sqrt r)) ^ 2 ∂γ) -
-              (∫ z : ℝ, Real.log (Real.cosh (z * Real.sqrt r)) ∂γ) ^ 2) +
-            α * ((∫ z : ℝ, ψ_u z ^ 2 ∂γ) - (∫ z : ℝ, ψ_u z ∂γ) ^ 2)
-        |∫ ω, (A_0 ω - RS_0) ^ m ∂P -
-            ((Real.sqrt ((N : ℝ) + 1))⁻¹) ^ m * (∫ x : ℝ, x ^ m ∂γ) * b₀ ^ (m / 2)| ≤
-          C_d * ((Real.sqrt ((N : ℝ) + 1))⁻¹) ^ (m + 1)) := by
-    intro m
-    rcases Nat.eq_zero_or_pos m with rfl | hm
-    · exact ⟨0, le_rfl, fun h => by omega⟩
-    · obtain ⟨C_d, hCd0, hCd⟩ := abs_integral_interpolating_zero_pow_sub_le D hm
-      exact ⟨C_d, hCd0, fun _ => hCd⟩
-  choose! C_dec hCdec0 h_dec using hex_dec
+  obtain ⟨K, hK_ge1, h_ode_all⟩ := exists_hasDerivAt_interpolating_centered_moment_sub_le D
+  choose! C_rem hCrem0 h_ode using h_ode_all
+  refine ⟨K, hK_ge1, ?_⟩
+  intro k
+  choose! C_dec hCdec0 h_dec using abs_integral_interpolating_zero_pow_sub_le D
   let B_max : ℝ := |D| ^ 2
   obtain ⟨C_seq, _, hC_nn, hC_rec⟩ :=
     exists_linear_clt_const B_max (by positivity)
-      (fun m => if m ≤ k then C_rem m else 0) C_dec
-      (fun m => by split_ifs <;> [exact hCrem0 m; exact le_rfl]) hCdec0
-  let K : ℝ := 1 + ∑ m ∈ Finset.range (k + 1), K_ode m
-  have hK_ge1 : 1 ≤ K :=
-    le_add_of_nonneg_right (Finset.sum_nonneg fun m _ => hKode0 m)
-  refine ⟨K, C_seq k, zero_le_one.trans hK_ge1, hC_nn k, ?_⟩
+      C_rem C_dec hCrem0 hCdec0
+  refine ⟨C_seq k, hC_nn k, ?_⟩
   intro N M s hs u hd hb hα q r hq hr γ P_g P_z P_z' P μ_s E_s_s A_s α RS_s ψ_u b_s
   obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
   have hP_prob : IsProbabilityMeasure P := by dsimp only [P, P_g, P_z, P_z', γ]; infer_instance
@@ -729,26 +563,18 @@ theorem interpolating_free_energy_clt (D : ℝ) (k : ℕ) :
   have ha0 : a 0 = 1 := by simp [a, γ]
   have ha1 : a 1 = 0 := by simp [a, γ, integral_id_gaussianReal]
   have ha : ∀ n, a (n + 2) = (n + 1) * a n := fun n => integral_pow_add_two_gaussianReal n
-  -- Apply `linear_clt_induction` up to degree `k` by restricting `ψ` above `k` to the reference
-  -- (or simpler: prove by strong induction on `m ≤ k` directly using `abs_sub_linear_clt_ref_le`!).
-  have hind_k : ∀ m ≤ k, ∀ t ∈ Icc (0 : ℝ) 1,
+  have hind : ∀ m, ∀ t ∈ Icc (0 : ℝ) 1,
       |ψ m t - ε ^ m * a m * (b₀ + (-(r * q)) * t) ^ (m / 2)| ≤
         C_seq m * ε ^ (m + 1) := by
     intro m
     induction m using Nat.strong_induction_on with
     | _ m ih =>
-      intro hmk t ht
+      intro t ht
       rcases Nat.eq_zero_or_pos m with rfl | hm_pos
       · have h0 : ψ 0 t = 1 := by simp [ψ]
         rw [h0, ha0, pow_zero, one_mul, Nat.zero_div, pow_zero, mul_one, sub_self, abs_zero]
         exact mul_nonneg (hC_nn 0) (by positivity)
-      · have hKode_le : K_ode m ≤ K := by
-          dsimp only [K]
-          have hmem : m ∈ Finset.range (k + 1) := Finset.mem_range.2 (Nat.lt_succ_of_le hmk)
-          have hs := Finset.single_le_sum (fun j _ => hKode0 j) hmem
-          linarith
-        have hα_m : α * K_ode m ≤ 1 := (mul_le_mul_of_nonneg_left hKode_le hα0).trans hα
-        have hprev : ∀ t' ∈ Icc (0 : ℝ) 1,
+      · have hprev : ∀ t' ∈ Icc (0 : ℝ) 1,
             |ψ (m - 2) t' - ε ^ (m - 2) * a (m - 2) * (b₀ + (-(r * q)) * t') ^ ((m - 2) / 2)| ≤
               C_seq (m - 2) * ε ^ (m - 1) := by
           intro t' ht'
@@ -758,30 +584,70 @@ theorem interpolating_free_energy_clt (D : ℝ) (k : ℕ) :
             rw [show 1 - 2 = 0 by rfl, h0, ha0]
             simp only [pow_zero, Nat.zero_div, mul_one, sub_self, abs_zero]
             exact hC_nn 0
-          · have h := ih (m - 2) (by omega) (by omega) t' ht'
+          · have h := ih (m - 2) (by omega) t' ht'
             rwa [show m - 2 + 1 = m - 1 by omega] at h
         have hode_m : ∀ t' ∈ Ioo (0 : ℝ) 1, ∃ D_rem,
             HasDerivAt (ψ m)
               (((m : ℝ) * ((m : ℝ) - 1) / 2 * ε ^ 2 * (-(r * q))) * ψ (m - 2) t' + D_rem) t' ∧
-            |D_rem| ≤ (if m ≤ k then C_rem m else 0) * ε ^ (m + 1) := by
+            |D_rem| ≤ C_rem m * ε ^ (m + 1) := by
           intro t' ht'
-          rw [ite_eq_left_iff.2 fun h => absurd hmk h]
-          exact h_ode m N M ht' hd hb hα_m hq hr
+          exact h_ode m N M ht' hd hb hα hq hr
         have hdec_m : |ψ m 0 - ε ^ m * a m * b₀ ^ (m / 2)| ≤ C_dec m * ε ^ (m + 1) :=
-          h_dec m hm_pos N M hu.measurable (fun x => (hu.abs_le x).trans (le_abs_self D))
+          h_dec m N M hu.measurable (fun x => (hu.abs_le x).trans (le_abs_self D))
             hMN hr_le
         have hψm_cont : ContinuousOn (ψ m) (Icc 0 1) :=
           continuousOn_interpolating_centered_moment_pow (N := N) (M := M)
             hu.differentiable.continuous hu.abs_le q r m
         have hstep := abs_sub_linear_clt_ref_le hε_pos hB_le (by positivity) ha1 ha hm_pos
-          hψm_cont (by rw [ite_eq_left_iff.2 fun h => absurd hmk h]; exact hCrem0 m)
+          hψm_cont (hCrem0 m)
           (hC_nn (m - 2)) hode_m hprev hdec_m ht
         exact hstep.trans (mul_le_mul_of_nonneg_right (hC_rec m hm_pos) (by positivity))
-  have hres := hind_k k le_rfl s hs
+  have hres := hind k s hs
   refine (le_of_eq ?_).trans hres
   congr 2
   have hb_eq : b_s = b₀ + -(r * q) * s := by dsimp only [b_s, b₀]; ring
   rw [hb_eq]
+
+/-- The fixed-order form of `interpolating_free_energy_clt_uniform_in_moment_order`. -/
+theorem interpolating_free_energy_clt (D : ℝ) (k : ℕ) :
+    ∃ K C : ℝ, 0 ≤ K ∧ 0 ≤ C ∧
+      ∀ (N M : ℕ) {s : ℝ} (_hs : s ∈ Icc (0 : ℝ) 1)
+        {u : ℝ → ℝ}
+        (_hd : ∀ j < 3, Differentiable ℝ (iteratedDeriv j u))
+        (_hb : ∀ j ≤ 3, ∀ x, |iteratedDeriv j u x| ≤ D)
+        (_hα : (M : ℝ) / ((N : ℝ) + 1) * K ≤ 1)
+        {q r : ℝ}
+        (_hq : q = ∫ z : ℝ, Real.tanh (z * Real.sqrt r) ^ 2 ∂gaussianReal 0 1)
+        (_hr : r = ((M : ℝ) / ((N : ℝ) + 1)) * perceptronRhat u q),
+        let γ := gaussianReal 0 1
+        let P_g := Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin (N + 1) => γ
+        let P_z := Measure.pi fun _ : Fin M => γ
+        let P_z' := Measure.pi fun _ : Fin (N + 1) => γ
+        let P := (P_g.prod P_z).prod P_z'
+        let μ_s := (Measure.count : Measure (Fin (N + 1) → ℤˣ)).prod
+          (Measure.pi fun _ : Fin M => γ)
+        let E_s (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
+            (x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : ℝ :=
+          (∑ j : Fin M, u (Real.sqrt s *
+              ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 j i * ((x.1 i : ℤ) : ℝ)) +
+            Real.sqrt (1 - s) * (Real.sqrt q * ω.1.2 j + Real.sqrt (1 - q) * x.2 j))) +
+            ∑ i : Fin (N + 1), ((x.1 i : ℤ) : ℝ) * Real.sqrt (1 - s) * ω.2 i * Real.sqrt r
+        let A (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) : ℝ :=
+          ((N : ℝ) + 1)⁻¹ * Real.log (∫ x, Real.exp (E_s ω x) ∂μ_s)
+        let α : ℝ := (M : ℝ) / ((N : ℝ) + 1)
+        let RS : ℝ := perceptronRSFunctional u α r q + ((1 - s) / 2) * r * (1 - q)
+        let ψ_u (z : ℝ) : ℝ :=
+          Real.log (∫ ξ : ℝ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂γ)
+        let b_s : ℝ :=
+          ((∫ z : ℝ, Real.log (Real.cosh (z * Real.sqrt r)) ^ 2 ∂γ) -
+              (∫ z : ℝ, Real.log (Real.cosh (z * Real.sqrt r)) ∂γ) ^ 2) +
+            α * ((∫ z : ℝ, ψ_u z ^ 2 ∂γ) - (∫ z : ℝ, ψ_u z ∂γ) ^ 2) - r * q * s
+        |∫ ω, (A ω - RS) ^ k ∂P -
+            ((Real.sqrt ((N : ℝ) + 1))⁻¹) ^ k * (∫ x : ℝ, x ^ k ∂γ) * b_s ^ (k / 2)| ≤
+          C * ((Real.sqrt ((N : ℝ) + 1))⁻¹) ^ (k + 1) := by
+  obtain ⟨K, hK, h⟩ := interpolating_free_energy_clt_uniform_in_moment_order D
+  obtain ⟨C, hC, hbound⟩ := h k
+  exact ⟨K, C, zero_le_one.trans hK, hC, hbound⟩
 
 /-- **Talagrand Theorem 2.5.3 (Central Limit Theorem for the Free Energy Moments):**
 Given `D` and `k`, there exist constants `K, C ≥ 0` (chosen before `N, M, u, q, r`) such that
@@ -799,8 +665,8 @@ $$b = \mathbb{E}\bigl(\log \cosh(z\sqrt{r})\bigr)^2 -
 with `θ = √q z + √(1 - q) ξ` (including the constraint variance term
 `α Var_z(log 𝔼_ξ e^{u(θ)})` omitted in Talagrand's printed display). No sign assumption on `b` is
 needed. -/
-theorem perceptron_free_energy_clt (D : ℝ) (k : ℕ) :
-    ∃ K C : ℝ, 0 ≤ K ∧ 0 ≤ C ∧
+theorem perceptron_free_energy_clt_uniform_in_moment_order (D : ℝ) :
+    ∃ K : ℝ, 1 ≤ K ∧ ∀ k : ℕ, ∃ C : ℝ, 0 ≤ C ∧
       ∀ (N M : ℕ) {u : ℝ → ℝ}
         (_hd : ∀ j < 3, Differentiable ℝ (iteratedDeriv j u))
         (_hb : ∀ j ≤ 3, ∀ x, |iteratedDeriv j u x| ≤ D)
@@ -824,8 +690,11 @@ theorem perceptron_free_energy_clt (D : ℝ) (k : ℕ) :
               perceptronRSFunctional u α r q) ^ k ∂P_g -
             ((Real.sqrt ((N : ℝ) + 1))⁻¹) ^ k * (∫ x : ℝ, x ^ k ∂γ) * b ^ (k / 2)| ≤
           C * ((Real.sqrt ((N : ℝ) + 1))⁻¹) ^ (k + 1) := by
-  obtain ⟨K, C, hK0, hC0, h_interp⟩ := interpolating_free_energy_clt D k
-  refine ⟨K, C, hK0, hC0, ?_⟩
+  obtain ⟨K, hK1, h_all⟩ := interpolating_free_energy_clt_uniform_in_moment_order D
+  refine ⟨K, hK1, ?_⟩
+  intro k
+  obtain ⟨C, hC0, h_interp⟩ := h_all k
+  refine ⟨C, hC0, ?_⟩
   intro N M u hd hb hα q r hq hr γ P_g α ψ_u b
   obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
   have hs1 : (1 : ℝ) ∈ Icc (0 : ℝ) 1 := ⟨zero_le_one, le_rfl⟩
@@ -894,10 +763,85 @@ theorem perceptron_free_energy_clt (D : ℝ) (k : ℕ) :
       dsimp only [b]; ring
     rw [hb_eq]
 
-/-- **Talagrand Theorem 2.5.3 with the printed `b` when the constraint `z`-variance vanishes**
-(for instance whenever `q = 0`, i.e., `r̂(0) = 0` or `M = 0`):
-under `(∫ ψ_u(z)² dγ) - (∫ ψ_u(z) dγ)² = 0`, `b` reduces to
-`𝔼(log cosh(z √r))² - (𝔼 log cosh(z √r))² - q r`. -/
+/-- The fixed-order form of `perceptron_free_energy_clt_uniform_in_moment_order`. -/
+theorem perceptron_free_energy_clt (D : ℝ) (k : ℕ) :
+    ∃ K C : ℝ, 0 ≤ K ∧ 0 ≤ C ∧
+      ∀ (N M : ℕ) {u : ℝ → ℝ}
+        (_hd : ∀ j < 3, Differentiable ℝ (iteratedDeriv j u))
+        (_hb : ∀ j ≤ 3, ∀ x, |iteratedDeriv j u x| ≤ D)
+        (_hα : (M : ℝ) / ((N : ℝ) + 1) * K ≤ 1)
+        {q r : ℝ}
+        (_hq : q = ∫ z : ℝ, Real.tanh (z * Real.sqrt r) ^ 2 ∂gaussianReal 0 1)
+        (_hr : r = ((M : ℝ) / ((N : ℝ) + 1)) * perceptronRhat u q),
+        let γ := gaussianReal 0 1
+        let P_g := Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin (N + 1) => γ
+        let α : ℝ := (M : ℝ) / ((N : ℝ) + 1)
+        let ψ_u (z : ℝ) : ℝ :=
+          Real.log (∫ ξ : ℝ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂γ)
+        let b : ℝ :=
+          ((∫ z : ℝ, Real.log (Real.cosh (z * Real.sqrt r)) ^ 2 ∂γ) -
+              (∫ z : ℝ, Real.log (Real.cosh (z * Real.sqrt r)) ∂γ) ^ 2) +
+            α * ((∫ z : ℝ, ψ_u z ^ 2 ∂γ) - (∫ z : ℝ, ψ_u z ∂γ) ^ 2) - q * r
+        |∫ g : Fin M → Fin (N + 1) → ℝ,
+            (((N : ℝ) + 1)⁻¹ * Real.log (∑ τ : Fin (N + 1) → ℤˣ,
+                Real.exp (∑ j : Fin M,
+                  u ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, g j i * ((τ i : ℤ) : ℝ)))) -
+              perceptronRSFunctional u α r q) ^ k ∂P_g -
+            ((Real.sqrt ((N : ℝ) + 1))⁻¹) ^ k * (∫ x : ℝ, x ^ k ∂γ) * b ^ (k / 2)| ≤
+          C * ((Real.sqrt ((N : ℝ) + 1))⁻¹) ^ (k + 1) := by
+  obtain ⟨K, hK, h⟩ := perceptron_free_energy_clt_uniform_in_moment_order D
+  obtain ⟨C, hC, hbound⟩ := h k
+  exact ⟨K, C, zero_le_one.trans hK, hC, hbound⟩
+
+/-- The moment bound with the printed variance when the constraint contribution is zero
+or the moment order is odd. In odd order the Gaussian reference vanishes. -/
+theorem perceptron_free_energy_clt_of_constraint_var_contribution_eq_zero_or_odd (D : ℝ) :
+    ∃ K : ℝ, 1 ≤ K ∧ ∀ k : ℕ, ∃ C : ℝ, 0 ≤ C ∧
+      ∀ (N M : ℕ) {u : ℝ → ℝ}
+        (_hd : ∀ j < 3, Differentiable ℝ (iteratedDeriv j u))
+        (_hb : ∀ j ≤ 3, ∀ x, |iteratedDeriv j u x| ≤ D)
+        (_hα : (M : ℝ) / ((N : ℝ) + 1) * K ≤ 1)
+        {q r : ℝ}
+        (_hq : q = ∫ z : ℝ, Real.tanh (z * Real.sqrt r) ^ 2 ∂gaussianReal 0 1)
+        (_hr : r = ((M : ℝ) / ((N : ℝ) + 1)) * perceptronRhat u q)
+        (_hvar :
+          ((M : ℝ) / ((N : ℝ) + 1)) * ((∫ z : ℝ, Real.log (∫ ξ : ℝ,
+              Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1) ^ 2
+              ∂gaussianReal 0 1) -
+            (∫ z : ℝ, Real.log (∫ ξ : ℝ,
+              Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1)
+              ∂gaussianReal 0 1) ^ 2) = 0 ∨ Odd k),
+        let γ := gaussianReal 0 1
+        let P_g := Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin (N + 1) => γ
+        let α : ℝ := (M : ℝ) / ((N : ℝ) + 1)
+        let b : ℝ :=
+          (∫ z : ℝ, Real.log (Real.cosh (z * Real.sqrt r)) ^ 2 ∂γ) -
+            (∫ z : ℝ, Real.log (Real.cosh (z * Real.sqrt r)) ∂γ) ^ 2 - q * r
+        |∫ g : Fin M → Fin (N + 1) → ℝ,
+            (((N : ℝ) + 1)⁻¹ * Real.log (∑ τ : Fin (N + 1) → ℤˣ,
+                Real.exp (∑ j : Fin M,
+                  u ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, g j i * ((τ i : ℤ) : ℝ)))) -
+              perceptronRSFunctional u α r q) ^ k ∂P_g -
+            ((Real.sqrt ((N : ℝ) + 1))⁻¹) ^ k * (∫ x : ℝ, x ^ k ∂γ) * b ^ (k / 2)| ≤
+          C * ((Real.sqrt ((N : ℝ) + 1))⁻¹) ^ (k + 1) := by
+  obtain ⟨K, hK1, h_all⟩ := perceptron_free_energy_clt_uniform_in_moment_order D
+  refine ⟨K, hK1, ?_⟩
+  intro k
+  obtain ⟨C, hC0, h_clt⟩ := h_all k
+  refine ⟨C, hC0, ?_⟩
+  intro N M u hd hb hα q r hq hr hvar γ P_g α b
+  have h := h_clt N M hd hb hα hq hr
+  dsimp only at h
+  rcases hvar with hvar | hk
+  · rwa [hvar, add_zero] at h
+  · have hz : (∫ z : ℝ, z ^ k ∂gaussianReal 0 1) = 0 :=
+      Nat.eq_zero_of_odd_of_two_step_mul
+        (a := fun n : ℕ => ∫ z : ℝ, z ^ n ∂gaussianReal 0 1)
+        (by simp [integral_id_gaussianReal])
+        (fun n => integral_pow_add_two_gaussianReal n) hk
+    simpa only [γ, hz, mul_zero, zero_mul, sub_zero] using h
+
+/-- The fixed-order bound with the printed variance when the constraint variance is zero. -/
 theorem perceptron_free_energy_clt_of_zero_constraint_var (D : ℝ) (k : ℕ) :
     ∃ K C : ℝ, 0 ≤ K ∧ 0 ≤ C ∧
       ∀ (N M : ℕ) {u : ℝ → ℝ}
@@ -927,11 +871,11 @@ theorem perceptron_free_energy_clt_of_zero_constraint_var (D : ℝ) (k : ℕ) :
               perceptronRSFunctional u α r q) ^ k ∂P_g -
             ((Real.sqrt ((N : ℝ) + 1))⁻¹) ^ k * (∫ x : ℝ, x ^ k ∂γ) * b ^ (k / 2)| ≤
           C * ((Real.sqrt ((N : ℝ) + 1))⁻¹) ^ (k + 1) := by
-  obtain ⟨K, C, hK0, hC0, h_clt⟩ := perceptron_free_energy_clt D k
-  refine ⟨K, C, hK0, hC0, ?_⟩
-  intro N M u hd hb hα q r hq hr hvar γ P_g α b
-  have h := h_clt N M hd hb hα hq hr
-  dsimp only at h
-  rwa [hvar, mul_zero, add_zero] at h
+  obtain ⟨K, hK, h⟩ :=
+    perceptron_free_energy_clt_of_constraint_var_contribution_eq_zero_or_odd D
+  obtain ⟨C, hC, hbound⟩ := h k
+  refine ⟨K, C, zero_le_one.trans hK, hC, ?_⟩
+  intro N M u hd hb hα q r hq hr hvar
+  exact hbound N M hd hb hα hq hr (Or.inl (by rw [hvar, mul_zero]))
 
 end SpinGlasses
