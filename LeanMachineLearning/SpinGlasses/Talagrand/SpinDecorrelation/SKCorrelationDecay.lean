@@ -63,15 +63,10 @@ theorem sk_gibbsWeight_siteSymmetric {N : ℕ} (β h : ℝ) (E : (FinPairs N →
           (Measure.pi fun _ : FinPairs N => gaussianReal 0 1) ∧
         ∀ g σ, Real.exp (E (φ g) σ) / ∑ b, Real.exp (E (φ g) b) =
           Real.exp (E g (Equiv.arrowCongr π.symm (Equiv.refl ℤˣ) σ)) / ∑ b, Real.exp (E g b) := by
-  have hZ : ∀ g, 0 < ∑ b, Real.exp (E g b) := fun g =>
-    Finset.sum_pos (fun _ _ => Real.exp_pos _) Finset.univ_nonempty
   have hEm : ∀ a, Measurable fun g => E g a := fun a => by
     simp only [hE]; fun_prop
-  exact ⟨fun g σ => div_nonneg (Real.exp_pos _).le (hZ g).le,
-    fun g => by rw [← Finset.sum_div, div_self (hZ g).ne'],
-    fun σ => (Real.measurable_exp.comp (hEm σ)).div
-      (Finset.measurable_sum _ fun b _ => Real.measurable_exp.comp (hEm b)),
-    fun π => exists_measurePreserving_sk_gibbsWeight β h π E hE⟩
+  obtain ⟨hw0, hw1, hwm⟩ := gibbsWeight_nonneg_sum_measurable hEm
+  exact ⟨hw0, hw1, hwm, fun π => exists_measurePreserving_sk_gibbsWeight β h π E hE⟩
 
 /-- **The overlap bound in terms of the Gibbs weights.**  For an energy `E g a` of the SK form, the
 expected squared overlap dispersion `𝔼 ∑_{σ,τ} G(σ) G(τ) (R(σ, τ) - q)²` is at most `K / N` for

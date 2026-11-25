@@ -141,11 +141,8 @@ theorem gibbsWeight_comp_pairPerm (β h : ℝ) (π : Equiv.Perm (Fin N))
       Equiv.sum_comp π fun i => ((τ i : ℤ) : ℝ)
     simp only [Function.comp_apply]
     rw [h2, ← h1]
-  simp only [hEc, hact]
-  congr 1
-  have := Equiv.sum_comp (Equiv.arrowCongr π.symm (Equiv.refl (ℤˣ))) fun b => Real.exp (E g b)
-  simp only [hact] at this
-  exact this
+  exact gibbsWeight_comp_equiv (E g) (E (g ∘ (pairPerm π).symm))
+    (Equiv.arrowCongr π.symm (Equiv.refl ℤˣ)) (fun τ => by rw [hEc, hact]) σ
 
 /-- **The Gibbs weights of the SK model are site-symmetric in law.**  For every permutation `π` of
 the sites there is a measure-preserving relabelling `φ` of the Gaussian couplings under which the

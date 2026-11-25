@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IntegrableOfBound
+public import LeanMachineLearning.ForMathlib.Probability.GibbsSiteSymmetry
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.RSFixedPoint
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathDecoupling
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.SmartPathCavityBound
@@ -44,6 +45,18 @@ universe uR
 
 /-! ### Site-permutation symmetry on `Fin L` and Eq. (2.70) -/
 
+/-- **Relabelling the sites of the perceptron disorder.** Permuting the site index of every row of
+`g` by `pm` has the same effect on the energy as relabelling the spin configuration. -/
+theorem perceptron_energy_comp_perm {L M : ℕ} (u : ℝ → ℝ) (pm : Equiv.Perm (Fin L))
+    (g : Fin M → Fin L → ℝ) (τ : Fin L → ℤˣ) :
+    ∑ k, u ((Real.sqrt (L : ℕ))⁻¹ * ∑ i, g k (pm i) * ((τ i : ℤ) : ℝ)) =
+      ∑ k, u ((Real.sqrt (L : ℕ))⁻¹ *
+        ∑ i, g k i * (((Equiv.arrowCongr pm (Equiv.refl ℤˣ) τ) i : ℤ) : ℝ)) := by
+  refine Finset.sum_congr rfl fun k _ => congrArg u (congrArg _ ?_)
+  refine Eq.trans ?_ (Equiv.sum_comp pm fun j =>
+    g k j * (((Equiv.arrowCongr pm (Equiv.refl ℤˣ) τ) j : ℤ) : ℝ))
+  exact Finset.sum_congr rfl fun i _ => by simp [Equiv.arrowCongr_apply]
+
 /-- **Site permutation symmetry of the perceptron Gibbs average.** Relabelling the spin sites of all
 replicas by `pm : Equiv.Perm (Fin L)` leaves the disorder-averaged `R`-replica Gibbs expectation
 invariant. No hypothesis on `u` or `Θ` is required. -/
@@ -60,27 +73,14 @@ theorem perceptron_replica_site_perm {L M : ℕ} {R : Type uR} [Fintype R]
   let e_spin : (Fin L → ℤˣ) ≃ (Fin L → ℤˣ) := Equiv.arrowCongr pm (Equiv.refl ℤˣ)
   have he_spin (τ : Fin L → ℤˣ) : (fun i => (e_spin τ) (pm i)) = τ :=
     funext fun i => by simp [e_spin]
-  let e_col : (Fin L → ℝ) ≃ᵐ (Fin L → ℝ) :=
-    MeasurableEquiv.piCongrLeft (fun _ => ℝ) pm.symm
-  have hmp_col : MeasurePreserving ⇑e_col
-      (Measure.pi fun _ : Fin L => gaussianReal 0 1)
-      (Measure.pi fun _ : Fin L => gaussianReal 0 1) :=
-    measurePreserving_piCongrLeft (fun _ => gaussianReal 0 1) pm.symm
   let e_mat : (Fin M → Fin L → ℝ) ≃ᵐ (Fin M → Fin L → ℝ) :=
-    MeasurableEquiv.piCongrRight fun _ => e_col
+    MeasurableEquiv.arrowCongr' (Equiv.refl (Fin M))
+      (MeasurableEquiv.arrowCongr' pm.symm (MeasurableEquiv.refl ℝ))
   have hmp_mat : MeasurePreserving ⇑e_mat P P :=
-    measurePreserving_pi _ _ fun _ => hmp_col
+    measurePreserving_replica_perm (R := Fin M) (gaussianReal 0 1) pm.symm
   have hE_eq (g : Fin M → Fin L → ℝ) (τ : Fin L → ℤˣ) :
-      E g (e_spin τ) = E (e_mat g) τ := by
-    dsimp only [E]
-    refine Finset.sum_congr rfl fun k _ => congrArg u (congrArg _ ?_)
-    rw [← Equiv.sum_comp pm fun i => g k i * (((e_spin τ) i : ℤ) : ℝ)]
-    refine Finset.sum_congr rfl fun i _ => ?_
-    have hg_i : (e_mat g) k i = g k (pm i) := by
-      change (Equiv.piCongrLeft (fun _ : Fin L => ℝ) pm.symm (g k)) i = g k (pm i)
-      rw [Equiv.piCongrLeft_apply]; simp
-    have hτ_i : (e_spin τ) (pm i) = τ i := congrFun (he_spin τ) i
-    rw [hg_i, hτ_i]
+      E g (e_spin τ) = E (e_mat g) τ :=
+    (perceptron_energy_comp_perm u pm g τ).symm
   have hpt (g : Fin M → Fin L → ℝ) :
       ∫ σ : R → Fin L → ℤˣ, Θ (fun r i => σ r (pm i))
         ∂(Measure.pi fun _ : R => (Measure.count : Measure (Fin L → ℤˣ)).tilted (E g)) =

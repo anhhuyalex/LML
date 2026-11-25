@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.Pi
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaProduct
 
 /-!
@@ -30,10 +31,7 @@ theorem measurePreserving_replica_perm {R M : Type*} [Fintype R] [Fintype M] (μ
       (MeasurableEquiv.arrowCongr' π (MeasurableEquiv.refl α)))
       (Measure.pi fun _ : R => Measure.pi fun _ : M => μ)
       (Measure.pi fun _ : R => Measure.pi fun _ : M => μ) :=
-  measurePreserving_arrowCongr' (fun _ => Measure.pi fun _ : M => μ)
-    (fun _ => Measure.pi fun _ : M => μ) (Equiv.refl R) _
-    (fun _ => measurePreserving_arrowCongr' (fun _ => μ) (fun _ => μ) π _
-      (fun _ => MeasurePreserving.id μ))
+  measurePreserving_pi_pi_comp_perm (fun _ : R => μ) π.symm
 
 /-- **Site relabelling of a replica Gibbs average.**  Relabelling the sites of all `R` replicas by
 `π` is the same as relabelling the energy by `π⁻¹`. -/

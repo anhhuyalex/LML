@@ -750,6 +750,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.Interpolating
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.InterpolatingSmartPath
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.OverlapConcentration
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.OverlapHighMoments
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.OverlapVariances
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.RSFixedPoint
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.RandomNormals
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ReplicaSymmetricFreeEnergy
@@ -793,6 +794,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKCova
 public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKRandomProjectionCLT
 public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKSiteSymmetry
 public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKSpinDecorrelation
+public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SpinDecorrelation
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Cavity.Bounds
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Cavity.Comparison
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Cavity.DecoupledOverlap

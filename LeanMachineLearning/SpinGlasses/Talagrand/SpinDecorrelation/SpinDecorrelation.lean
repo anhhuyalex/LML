@@ -642,4 +642,28 @@ theorem integral_sq_prod_sub_prod_le_finset (hN : 0 < N) (hξ : ∀ i a, |ξ i a
 
 end Proposition
 
+/-! ### Finite Gibbs weights as a random state -/
+
+/-- The Gibbs weights `exp (E ω a) / ∑_b exp (E ω b)` of a measurable random energy on a finite
+nonempty state space are nonnegative, sum to one and depend measurably on `ω`. These are the
+random-state hypotheses of `integral_sq_prod_sub_prod_le_finset`. -/
+theorem gibbsWeight_nonneg_sum_measurable {Ω α : Type*} [MeasurableSpace Ω] [Fintype α]
+    [Nonempty α] {E : Ω → α → ℝ} (hE : ∀ a, Measurable fun ω => E ω a) :
+    (∀ ω a, 0 ≤ Real.exp (E ω a) / ∑ b, Real.exp (E ω b)) ∧
+      (∀ ω, ∑ a, Real.exp (E ω a) / ∑ b, Real.exp (E ω b) = 1) ∧
+      ∀ a, Measurable fun ω => Real.exp (E ω a) / ∑ b, Real.exp (E ω b) := by
+  have hZ : ∀ ω, 0 < ∑ b, Real.exp (E ω b) := fun ω =>
+    Finset.sum_pos (fun _ _ => Real.exp_pos _) Finset.univ_nonempty
+  exact ⟨fun ω a => div_nonneg (Real.exp_pos _).le (hZ ω).le,
+    fun ω => by rw [← Finset.sum_div, div_self (hZ ω).ne'],
+    fun a => (Real.measurable_exp.comp (hE a)).div
+      (Finset.measurable_sum _ fun b _ => Real.measurable_exp.comp (hE b))⟩
+
+/-- Relabelling the configurations of a finite energy relabels its Gibbs weights. -/
+theorem gibbsWeight_comp_equiv {α : Type*} [Fintype α] (E E' : α → ℝ) (e : α ≃ α)
+    (h : ∀ a, E' a = E (e a)) (a : α) :
+    Real.exp (E' a) / ∑ b, Real.exp (E' b) = Real.exp (E (e a)) / ∑ b, Real.exp (E b) := by
+  simp_rw [h]
+  rw [Equiv.sum_comp e fun b => Real.exp (E b)]
+
 end SpinGlasses

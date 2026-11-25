@@ -7,6 +7,7 @@ module
 
 public import Mathlib.Analysis.Calculus.Deriv.Prod
 
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteReplicaTilted
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ParametrizedL2
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SecondMoment
 public import LeanMachineLearning.SpinGlasses.Gaussian.GaussianIBP
@@ -308,6 +309,46 @@ theorem integrable_integral_pi_count_tilted_det [Finite α] [Nonempty α] [Finty
     |>.aestronglyMeasurable) M (ae_of_all _ fun ω => by
       rw [Real.norm_eq_abs]; exact abs_integral_pi_count_tilted_le _ hM)
 
+/-- **Integrated Jensen for a finite random Gibbs state, disorder-dependent observable.** For a
+bounded observable `Φ ω σ` that may depend on the disorder and any constant `q`,
+`𝔼 (⟨Φ⟩ - q)² ≤ 𝔼 ⟨(Φ - q)²⟩`. -/
+theorem integral_sq_integral_pi_count_tilted_sub_le_of_bound {α R Ω : Type*} [Finite α]
+    [Nonempty α] [MeasurableSpace α] [MeasurableSingletonClass α] [Fintype R] [MeasurableSpace Ω]
+    {P : Measure Ω} [IsFiniteMeasure P] {E : α → Ω → ℝ}
+    (hE : ∀ a, AEMeasurable (E a) P) {Φ : Ω → (R → α) → ℝ}
+    (hΦm : ∀ σ, AEMeasurable (fun ω => Φ ω σ) P) {C : ℝ} (hΦ : ∀ᵐ ω ∂P, ∀ σ, |Φ ω σ| ≤ C)
+    (q : ℝ) :
+    ∫ ω, (∫ σ : R → α, Φ ω σ ∂(Measure.pi fun _ : R =>
+      Measure.count.tilted fun a => E a ω) - q) ^ 2 ∂P ≤
+    ∫ ω, ∫ σ : R → α, (Φ ω σ - q) ^ 2 ∂(Measure.pi fun _ : R =>
+      Measure.count.tilted fun a => E a ω) ∂P := by
+  have hm : AEMeasurable (fun ω => ∫ σ : R → α, Φ ω σ ∂(Measure.pi fun _ : R =>
+      Measure.count.tilted fun a => E a ω)) P :=
+    aemeasurable_integral_pi_count_tilted (R := R) (g := fun ω a => E a ω) hE hΦm
+  have hi : Integrable (fun ω => ∫ σ : R → α, (Φ ω σ - q) ^ 2 ∂(Measure.pi fun _ : R =>
+      Measure.count.tilted fun a => E a ω)) P :=
+    (memLp_integral_pi_count_tilted_of_bound 1 (fun ω a => E a ω) hE
+      (fun ω σ => (Φ ω σ - q) ^ 2) (fun σ => ((hΦm σ).sub_const q).pow_const 2)
+      ((C + |q|) ^ 2) (hΦ.mono fun ω h σ => by
+        rw [abs_pow]
+        exact pow_le_pow_left₀ (abs_nonneg _)
+          ((abs_sub _ _).trans (add_le_add (h σ) le_rfl)) 2)).integrable le_rfl
+  have hpt : ∀ ω, (∫ σ : R → α, Φ ω σ ∂(Measure.pi fun _ : R =>
+      Measure.count.tilted fun a => E a ω) - q) ^ 2 ≤
+      ∫ σ : R → α, (Φ ω σ - q) ^ 2 ∂(Measure.pi fun _ : R =>
+        Measure.count.tilted fun a => E a ω) := fun ω => by
+    have hsub : ∫ σ : R → α, Φ ω σ ∂(Measure.pi fun _ : R =>
+          Measure.count.tilted fun a => E a ω) - q =
+        ∫ σ : R → α, (Φ ω σ - q) ∂(Measure.pi fun _ : R =>
+          Measure.count.tilted fun a => E a ω) := by
+      simp only [integral_sub Integrable.of_finite (integrable_const q), integral_const,
+        probReal_univ, one_smul]
+    rw [hsub]
+    exact sq_integral_le_integral_sq (measurable_of_finite _) Integrable.of_finite
+  refine integral_mono_ae (hi.mono' ((hm.sub_const q).pow_const 2).aestronglyMeasurable
+    (ae_of_all _ fun ω => ?_)) hi (ae_of_all _ hpt)
+  simpa only [Real.norm_eq_abs, abs_sq] using hpt ω
+
 /-- **Integrated Jensen for a finite random Gibbs state.** The squared mean of any
 deterministic replica observable is bounded in expectation by its second moment. -/
 theorem integral_sq_integral_pi_count_tilted_le {α R Ω : Type*} [Finite α] [Nonempty α]
@@ -318,20 +359,39 @@ theorem integral_sq_integral_pi_count_tilted_le {α R Ω : Type*} [Finite α] [N
       Measure.count.tilted fun a => E a ω)) ^ 2 ∂P ≤
     ∫ ω, ∫ σ : R → α, Φ σ ^ 2 ∂(Measure.pi fun _ : R =>
       Measure.count.tilted fun a => E a ω) ∂P := by
-  have hm : AEMeasurable (fun ω => ∫ σ : R → α, Φ σ ∂(Measure.pi fun _ : R =>
-      Measure.count.tilted fun a => E a ω)) P :=
-    aemeasurable_integral_pi_count_tilted (R := R) (g := fun ω a => E a ω)
-      hE (fun _ => aemeasurable_const)
-  have hi := integrable_integral_pi_count_tilted_det (R := R) (P := P)
-    (g := E) hE (fun σ => Φ σ ^ 2)
-  have hpt : ∀ ω, (∫ σ : R → α, Φ σ ∂(Measure.pi fun _ : R =>
-      Measure.count.tilted fun a => E a ω)) ^ 2 ≤
-      ∫ σ : R → α, Φ σ ^ 2 ∂(Measure.pi fun _ : R =>
-        Measure.count.tilted fun a => E a ω) := fun ω =>
-    sq_integral_le_integral_sq (measurable_of_finite Φ) Integrable.of_finite
-  refine integral_mono_ae (hi.mono' (hm.pow_const 2).aestronglyMeasurable
-    (ae_of_all _ fun ω => ?_)) hi (ae_of_all _ hpt)
-  simpa only [Real.norm_eq_abs, abs_sq] using hpt ω
+  classical
+  have := Fintype.ofFinite α
+  simpa only [sub_zero] using integral_sq_integral_pi_count_tilted_sub_le_of_bound (P := P)
+    hE (Φ := fun _ => Φ) (fun _ => aemeasurable_const) (C := ∑ σ, |Φ σ|)
+    (ae_of_all _ fun _ σ =>
+      Finset.single_le_sum (f := fun τ => |Φ τ|) (fun _ _ => abs_nonneg _) (Finset.mem_univ σ)) 0
+
+/-- **Integrated Gibbs variance for a finite random Gibbs state, disorder-dependent
+observable.** For a bounded observable `Φ ω σ` that may depend on the disorder,
+`𝔼 ⟨(Φ - ⟨Φ⟩)²⟩ ≤ 𝔼 ⟨(Φ - q)²⟩` for every constant `q`. -/
+theorem integral_integral_sub_integral_sq_pi_count_tilted_le_of_bound {α R Ω : Type*} [Finite α]
+    [Nonempty α] [MeasurableSpace α] [MeasurableSingletonClass α] [Fintype R]
+    [MeasurableSpace Ω] {P : Measure Ω} [IsFiniteMeasure P] {E : α → Ω → ℝ}
+    (hE : ∀ a, AEMeasurable (E a) P) {Φ : Ω → (R → α) → ℝ}
+    (hΦm : ∀ σ, AEMeasurable (fun ω => Φ ω σ) P) {C : ℝ} (hΦ : ∀ᵐ ω ∂P, ∀ σ, |Φ ω σ| ≤ C)
+    (q : ℝ) :
+    ∫ ω, ∫ σ : R → α, (Φ ω σ - ∫ τ : R → α, Φ ω τ ∂(Measure.pi fun _ : R =>
+        Measure.count.tilted fun a => E a ω)) ^ 2
+      ∂(Measure.pi fun _ : R => Measure.count.tilted fun a => E a ω) ∂P ≤
+    ∫ ω, ∫ σ : R → α, (Φ ω σ - q) ^ 2
+      ∂(Measure.pi fun _ : R => Measure.count.tilted fun a => E a ω) ∂P := by
+  refine integral_mono_of_nonneg
+    (ae_of_all _ fun _ => integral_nonneg fun _ => sq_nonneg _)
+    ((memLp_integral_pi_count_tilted_of_bound 1 (fun ω a => E a ω) hE
+      (fun ω σ => (Φ ω σ - q) ^ 2) (fun σ => ((hΦm σ).sub_const q).pow_const 2)
+      ((C + |q|) ^ 2) (hΦ.mono fun ω h σ => by
+        rw [abs_pow]
+        exact pow_le_pow_left₀ (abs_nonneg _)
+          ((abs_sub _ _).trans (add_le_add (h σ) le_rfl)) 2)).integrable le_rfl)
+    (ae_of_all _ fun ω => ?_)
+  exact integral_sub_integral_sq_le_integral_sub_const_sq
+    ((memLp_two_iff_integrable_sq (measurable_of_finite _).aestronglyMeasurable).2
+      Integrable.of_finite) q
 
 /-- **Integrated Gibbs variance for a finite random Gibbs state.** For the product Gibbs measure
 `G_ω` of any a.e. measurable energy `E`, the expected Gibbs variance of a deterministic replica
@@ -347,13 +407,12 @@ theorem integral_integral_sub_integral_sq_pi_count_tilted_le {α R Ω : Type*} [
       ∂(Measure.pi fun _ : R => Measure.count.tilted fun a => E a ω) ∂P ≤
     ∫ ω, ∫ σ : R → α, (Φ σ - q) ^ 2
       ∂(Measure.pi fun _ : R => Measure.count.tilted fun a => E a ω) ∂P := by
-  refine integral_mono_of_nonneg
-    (ae_of_all _ fun _ => integral_nonneg fun _ => sq_nonneg _)
-    (integrable_integral_pi_count_tilted_det hE (fun σ => (Φ σ - q) ^ 2))
-    (ae_of_all _ fun ω => ?_)
-  exact integral_sub_integral_sq_le_integral_sub_const_sq
-    ((memLp_two_iff_integrable_sq (measurable_of_finite Φ).aestronglyMeasurable).2
-      Integrable.of_finite) q
+  classical
+  have := Fintype.ofFinite α
+  exact integral_integral_sub_integral_sq_pi_count_tilted_le_of_bound hE (Φ := fun _ => Φ)
+    (fun _ => aemeasurable_const) (C := ∑ σ, |Φ σ|)
+    (ae_of_all _ fun _ σ =>
+      Finset.single_le_sum (f := fun τ => |Φ τ|) (fun _ _ => abs_nonneg _) (Finset.mem_univ σ)) q
 
 /-- **Marginalizing an extra replica.** A function of `n + 1` replicas that does not depend on the
 last one has the same average as the `n`-replica function. -/

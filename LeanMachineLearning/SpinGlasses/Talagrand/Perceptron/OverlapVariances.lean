@@ -68,6 +68,24 @@ private lemma measurable_perceptron_energy {L M : ℕ} {u : ℝ → ℝ} (hu : M
       ∑ k : Fin M, u ((Real.sqrt (L : ℕ))⁻¹ * ∑ i, g k i * ((τ i : ℤ) : ℝ)) :=
   Finset.measurable_sum _ fun k _ => hu.comp (measurable_perceptron_field τ k)
 
+private lemma measurable_perceptron_derivProduct {L M : ℕ} (u : ℝ → ℝ) (c : ℝ)
+    (σ τ : Fin L → ℤˣ) :
+    Measurable fun g : Fin M → Fin L → ℝ =>
+      c * ∑ j : Fin M, deriv u ((Real.sqrt (L : ℕ))⁻¹ * ∑ i, g j i * ((σ i : ℤ) : ℝ)) *
+        deriv u ((Real.sqrt (L : ℕ))⁻¹ * ∑ i, g j i * ((τ i : ℤ) : ℝ)) :=
+  (Finset.measurable_sum _ fun j _ =>
+    ((measurable_deriv u).comp (measurable_perceptron_field σ j)).mul
+      ((measurable_deriv u).comp (measurable_perceptron_field τ j))).const_mul _
+
+private lemma abs_perceptron_derivProduct_le {N M : ℕ} {u : ℝ → ℝ} {D : ℝ}
+    (hD : ∀ x, |deriv u x| ≤ D) (g : Fin M → Fin (N + 1) → ℝ) (σ τ : Fin (N + 1) → ℤˣ) :
+    |((N : ℝ) + 1)⁻¹ * ∑ j : Fin M,
+        deriv u ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, g j i * ((σ i : ℤ) : ℝ)) *
+          deriv u ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, g j i * ((τ i : ℤ) : ℝ))| ≤
+      (M : ℝ) / ((N : ℝ) + 1) * D ^ 2 := by
+  simpa only [Nat.cast_add, Nat.cast_one] using
+    abs_inv_mul_sum_deriv_mul_deriv_le (N := N + 1) hD g σ τ
+
 /-! ### Site symmetry of the perceptron Gibbs weights and correlation decay -/
 
 /-- **The perceptron Gibbs weights as a site-symmetric random state.** For any measurable potential
@@ -87,30 +105,15 @@ theorem perceptron_gibbsWeight_siteSymmetric {L M : ℕ} {u : ℝ → ℝ} (hu :
           (Measure.pi fun k : Fin M => Measure.pi fun _ : Fin L => μ k) ∧
         ∀ g σ, Real.exp (E (φ g) σ) / ∑ b, Real.exp (E (φ g) b) =
           Real.exp (E g (Equiv.arrowCongr π.symm (Equiv.refl ℤˣ) σ)) / ∑ b, Real.exp (E g b) := by
-  have hZ : ∀ g, 0 < ∑ b, Real.exp (E g b) := fun g =>
-    Finset.sum_pos (fun _ _ => Real.exp_pos _) Finset.univ_nonempty
   have hEm : ∀ τ, Measurable fun g => E g τ := fun τ => by
     simp only [hE]
     exact measurable_perceptron_energy hu τ
-  refine ⟨fun g σ => div_nonneg (Real.exp_pos _).le (hZ g).le,
-    fun g => by rw [← Finset.sum_div, div_self (hZ g).ne'],
-    fun σ => (Real.measurable_exp.comp (hEm σ)).div
-      (Finset.measurable_sum _ fun b _ => Real.measurable_exp.comp (hEm b)),
-    fun π => ⟨fun g k i => g k (π.symm i), measurePreserving_pi_pi_comp_perm μ π.symm,
-      fun g σ => ?_⟩⟩
-  have hEc : ∀ τ : Fin L → ℤˣ,
-      E (fun k i => g k (π.symm i)) τ = E g (Equiv.arrowCongr π.symm (Equiv.refl ℤˣ) τ) :=
-    fun τ => by
-      rw [hE, hE]
-      refine Finset.sum_congr rfl fun k _ => congrArg u (congrArg _ ?_)
-      have hsum := Equiv.sum_comp π.symm
-        (fun j => g k j * (((Equiv.arrowCongr π.symm (Equiv.refl ℤˣ) τ) j : ℤ) : ℝ))
-      refine Eq.trans ?_ hsum
-      exact Finset.sum_congr rfl fun i _ => by simp [Equiv.arrowCongr_apply]
-  rw [hEc σ]
-  congr 1
-  simp_rw [hEc]
-  exact Equiv.sum_comp (Equiv.arrowCongr π.symm (Equiv.refl ℤˣ)) fun b => Real.exp (E g b)
+  obtain ⟨hw0, hw1, hwm⟩ := gibbsWeight_nonneg_sum_measurable hEm
+  refine ⟨hw0, hw1, hwm, fun π =>
+    ⟨fun g k i => g k (π.symm i), measurePreserving_pi_pi_comp_perm μ π.symm, fun g σ => ?_⟩⟩
+  exact gibbsWeight_comp_equiv (E g) (E fun k i => g k (π.symm i))
+    (Equiv.arrowCongr π.symm (Equiv.refl ℤˣ))
+    (fun τ => by rw [hE, hE, perceptron_energy_comp_perm]) σ
 
 /-- **Truncated spin correlation decay for the perceptron (analogue of Eq. (1.132)).**
 Given `D ∈ ℝ`, there exist constants `K ≥ 0` and `L ≥ 0` (independent of `N, M, u, q, r, S`) such
@@ -389,74 +392,16 @@ theorem perceptron_expected_gibbs_empirical_variance_sub_sq_le (D : ℝ) :
   refine ⟨K, L, hK0, hL0, ?_⟩
   intro N M u hd hb hα q r hq hr P_g S_perc
   obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
-  have hD₁ : ∀ x, |deriv u x| ≤ |D| := hu.abs_deriv_le_abs
-  let E (g : Fin M → Fin (N + 1) → ℝ) (τ : Fin (N + 1) → ℤˣ) : ℝ :=
-    ∑ j : Fin M, u (S_perc g τ j)
-  let C_obs (g : Fin M → Fin (N + 1) → ℝ) (σ : Fin 2 → Fin (N + 1) → ℤˣ) : ℝ :=
-    ((N : ℝ) + 1)⁻¹ * ∑ j : Fin M, deriv u (S_perc g (σ 0) j) * deriv u (S_perc g (σ 1) j)
-  have hSm (τ : Fin (N + 1) → ℤˣ) (j : Fin M) : Measurable fun g => S_perc g τ j :=
-    measurable_perceptron_field τ j
-  have hEm (τ : Fin (N + 1) → ℤˣ) : Measurable fun g => E g τ :=
-    measurable_perceptron_energy hu.measurable τ
-  have hCm (σ : Fin 2 → Fin (N + 1) → ℤˣ) : Measurable fun g => C_obs g σ :=
-    (Finset.measurable_sum _ fun j _ =>
-      ((measurable_deriv u).comp (hSm (σ 0) j)).mul
-        ((measurable_deriv u).comp (hSm (σ 1) j))).const_mul _
-  have hC_b (g : Fin M → Fin (N + 1) → ℝ) (σ : Fin 2 → Fin (N + 1) → ℤˣ) :
-      |C_obs g σ - r| ^ 2 ≤ ((M : ℝ) / ((N : ℝ) + 1) * |D| ^ 2 + |r|) ^ 2 := by
-    have hcb : |C_obs g σ| ≤ (M : ℝ) / ((N : ℝ) + 1) * |D| ^ 2 := by
-      dsimp only [C_obs]
-      have hpos : 0 < (N : ℝ) + 1 := by positivity
-      rw [abs_mul, abs_of_pos (inv_pos.2 hpos)]
-      calc ((N : ℝ) + 1)⁻¹ * |∑ j : Fin M, _|
-          ≤ ((N : ℝ) + 1)⁻¹ * ∑ j : Fin M, |deriv u (S_perc g (σ 0) j) *
-              deriv u (S_perc g (σ 1) j)| :=
-            mul_le_mul_of_nonneg_left (Finset.abs_sum_le_sum_abs _ _) (inv_pos.2 hpos).le
-        _ ≤ ((N : ℝ) + 1)⁻¹ * ∑ _j : Fin M, |D| ^ 2 :=
-            mul_le_mul_of_nonneg_left (Finset.sum_le_sum fun j _ => by
-              rw [abs_mul, sq]
-              exact mul_le_mul (hD₁ _) (hD₁ _) (abs_nonneg _) (abs_nonneg D))
-              (inv_pos.2 hpos).le
-        _ = (M : ℝ) / ((N : ℝ) + 1) * |D| ^ 2 := by
-            rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]; ring
-    exact pow_le_pow_left₀ (abs_nonneg _) ((abs_sub _ _).trans (add_le_add hcb le_rfl)) 2
-  have hi_rhs : Integrable (fun g => ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, (C_obs g σ - r) ^ 2
-      ∂(Measure.pi fun _ : Fin 2 =>
-        (Measure.count : Measure (Fin (N + 1) → ℤˣ)).tilted (E g))) P_g :=
-    integrable_integral_pi_count_tilted_of_bound E hEm (fun g σ => (C_obs g σ - r) ^ 2)
-      (fun σ => ((hCm σ).sub_const r).pow_const 2)
-      (((M : ℝ) / ((N : ℝ) + 1) * |D| ^ 2 + |r|) ^ 2)
-      (fun g σ => by rw [abs_pow]; exact hC_b g σ)
-  have hm_lhs : Measurable (fun g =>
-      (∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, C_obs g σ ∂(Measure.pi fun _ : Fin 2 =>
-        (Measure.count : Measure (Fin (N + 1) → ℤˣ)).tilted (E g)) - r) ^ 2) :=
-    ((measurable_integral_pi_count_tilted hEm hCm).sub_const r).pow_const 2
-  have hpt (g : Fin M → Fin (N + 1) → ℝ) :
-      (∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, C_obs g σ ∂(Measure.pi fun _ : Fin 2 =>
-          (Measure.count : Measure (Fin (N + 1) → ℤˣ)).tilted (E g)) - r) ^ 2 ≤
-        ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, (C_obs g σ - r) ^ 2
-          ∂(Measure.pi fun _ : Fin 2 =>
-            (Measure.count : Measure (Fin (N + 1) → ℤˣ)).tilted (E g)) := by
-    have hsub : (∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, C_obs g σ ∂(Measure.pi fun _ : Fin 2 =>
-        (Measure.count : Measure (Fin (N + 1) → ℤˣ)).tilted (E g))) - r =
-        ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, (C_obs g σ - r) ∂(Measure.pi fun _ : Fin 2 =>
-          (Measure.count : Measure (Fin (N + 1) → ℤˣ)).tilted (E g)) := by
-      simp only [integral_sub Integrable.of_finite (integrable_const r), integral_const,
-        probReal_univ, one_smul]
-    rw [hsub]
-    exact sq_integral_le_integral_sq (measurable_of_finite _) Integrable.of_finite
-  have hjensen :
-      ∫ g, (∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, C_obs g σ ∂(Measure.pi fun _ : Fin 2 =>
-          (Measure.count : Measure (Fin (N + 1) → ℤˣ)).tilted (E g)) - r) ^ 2 ∂P_g ≤
-        ∫ g, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, (C_obs g σ - r) ^ 2
-          ∂(Measure.pi fun _ : Fin 2 =>
-            (Measure.count : Measure (Fin (N + 1) → ℤˣ)).tilted (E g)) ∂P_g :=
-    integral_mono_ae (hi_rhs.mono' hm_lhs.aestronglyMeasurable
-      (ae_of_all _ fun g => by simpa only [Real.norm_eq_abs, abs_sq] using hpt g))
-      hi_rhs (ae_of_all _ hpt)
   have h1 := hemp N M hd hb hα hq hr 1
-  dsimp only at h1
-  simpa only [Nat.cast_one, Nat.mul_one, pow_one, one_mul, mul_one] using hjensen.trans h1
+  simp only [Nat.cast_one, pow_one, mul_one] at h1
+  exact (integral_sq_integral_pi_count_tilted_sub_le_of_bound
+    (P := P_g) (E := fun τ g => ∑ j, u (S_perc g τ j))
+    (fun τ => (measurable_perceptron_energy hu.measurable τ).aemeasurable)
+    (Φ := fun g (σ : Fin 2 → Fin (N + 1) → ℤˣ) => ((N : ℝ) + 1)⁻¹ *
+      ∑ j : Fin M, deriv u (S_perc g (σ 0) j) * deriv u (S_perc g (σ 1) j))
+    (fun σ => (measurable_perceptron_derivProduct u _ (σ 0) (σ 1)).aemeasurable)
+    (ae_of_all _ fun g σ =>
+      abs_perceptron_derivProduct_le hu.abs_deriv_le_abs g (σ 0) (σ 1)) r).trans h1
 
 /-- **Disorder variance of the quenched empirical derivative product `⟨C⟩_g`:**
 with `C(g, σ¹, σ²) = (N + 1)⁻¹ ∑_{k < M} u'(S_k¹) u'(S_k²)` and `α = M / (N + 1)`, under the
@@ -487,43 +432,16 @@ theorem perceptron_var_gibbs_empirical_variance_le (D : ℝ) :
   refine ⟨K, L, hK0, hL0, ?_⟩
   intro N M u hd hb hα q r hq hr P_g S_perc
   obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
-  have hD₁ : ∀ x, |deriv u x| ≤ |D| := hu.abs_deriv_le_abs
-  let E (g : Fin M → Fin (N + 1) → ℝ) (τ : Fin (N + 1) → ℤˣ) : ℝ :=
-    ∑ j : Fin M, u (S_perc g τ j)
-  let C_obs (g : Fin M → Fin (N + 1) → ℝ) (σ : Fin 2 → Fin (N + 1) → ℤˣ) : ℝ :=
-    ((N : ℝ) + 1)⁻¹ * ∑ j : Fin M, deriv u (S_perc g (σ 0) j) * deriv u (S_perc g (σ 1) j)
-  have hSm (τ : Fin (N + 1) → ℤˣ) (j : Fin M) : Measurable fun g => S_perc g τ j :=
-    measurable_perceptron_field τ j
-  have hE_ae (τ : Fin (N + 1) → ℤˣ) : AEMeasurable (fun g => E g τ) P_g :=
-    (measurable_perceptron_energy hu.measurable τ).aemeasurable
-  have hC_ae (σ : Fin 2 → Fin (N + 1) → ℤˣ) : AEMeasurable (fun g => C_obs g σ) P_g :=
-    ((Finset.measurable_sum _ fun j _ =>
-      ((measurable_deriv u).comp (hSm (σ 0) j)).mul
-        ((measurable_deriv u).comp (hSm (σ 1) j))).const_mul _).aemeasurable
-  have hC_b (g : Fin M → Fin (N + 1) → ℝ) (σ : Fin 2 → Fin (N + 1) → ℤˣ) :
-      |C_obs g σ| ≤ (M : ℝ) / ((N + 1) : ℝ) * |D| ^ 2 := by
-    dsimp only [C_obs]
-    have hpos : 0 < (N : ℝ) + 1 := by positivity
-    rw [abs_mul, abs_of_pos (inv_pos.2 hpos)]
-    calc ((N : ℝ) + 1)⁻¹ * |∑ j : Fin M, _|
-        ≤ ((N : ℝ) + 1)⁻¹ * ∑ j : Fin M, |deriv u (S_perc g (σ 0) j) *
-            deriv u (S_perc g (σ 1) j)| :=
-          mul_le_mul_of_nonneg_left (Finset.abs_sum_le_sum_abs _ _) (inv_pos.2 hpos).le
-      _ ≤ ((N : ℝ) + 1)⁻¹ * ∑ _j : Fin M, |D| ^ 2 :=
-          mul_le_mul_of_nonneg_left (Finset.sum_le_sum fun j _ => by
-            rw [abs_mul, sq]
-            exact mul_le_mul (hD₁ _) (hD₁ _) (abs_nonneg _) (abs_nonneg D))
-            (inv_pos.2 hpos).le
-      _ = (M : ℝ) / ((N : ℝ) + 1) * |D| ^ 2 := by
-          rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]; ring
-  have hP_prob : IsProbabilityMeasure P_g := by dsimp only [P_g]; infer_instance
-  have hY_mem : MemLp (fun g =>
-      ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, C_obs g σ ∂(Measure.pi fun _ : Fin 2 =>
-        (Measure.count : Measure (Fin (N + 1) → ℤˣ)).tilted (E g))) 2 P_g :=
-    memLp_integral_pi_count_tilted_of_bound 2 E hE_ae C_obs hC_ae
-      ((M : ℝ) / ((N : ℝ) + 1) * |D| ^ 2) (ae_of_all _ hC_b)
-  have hvar := variance_le_integral_sub_const_sq hY_mem r
-  exact hvar.trans (hemp N M hd hb hα hq hr)
+  have : IsProbabilityMeasure P_g := by dsimp only [P_g]; infer_instance
+  have hY_mem := memLp_integral_pi_count_tilted_of_bound (μ := P_g) 2
+    (fun g τ => ∑ j, u (S_perc g τ j))
+    (fun τ => (measurable_perceptron_energy hu.measurable τ).aemeasurable)
+    (fun g (σ : Fin 2 → Fin (N + 1) → ℤˣ) => ((N : ℝ) + 1)⁻¹ *
+      ∑ j : Fin M, deriv u (S_perc g (σ 0) j) * deriv u (S_perc g (σ 1) j))
+    (fun σ => (measurable_perceptron_derivProduct u _ (σ 0) (σ 1)).aemeasurable) _
+    (ae_of_all _ fun g σ =>
+      abs_perceptron_derivProduct_le hu.abs_deriv_le_abs g (σ 0) (σ 1))
+  exact (variance_le_integral_sub_const_sq hY_mem r).trans (hemp N M hd hb hα hq hr)
 
 /-- **Expected Gibbs variance of the empirical derivative product `C(g, σ¹, σ²)`:**
 under the standing hypotheses of Theorem 2.5.2, `𝔼 ⟨(C - ⟨C⟩_g)²⟩_g ≤ α L / (N + 1)`. -/
@@ -558,73 +476,16 @@ theorem perceptron_expected_gibbs_var_empirical_variance_le (D : ℝ) :
   refine ⟨K, L, hK0, hL0, ?_⟩
   intro N M u hd hb hα q r hq hr P_g S_perc
   obtain ⟨hu, -, -⟩ := smartPathPotential_two_of_iteratedDeriv hd hb
-  have hD₁ : ∀ x, |deriv u x| ≤ |D| := hu.abs_deriv_le_abs
-  let E (g : Fin M → Fin (N + 1) → ℝ) (τ : Fin (N + 1) → ℤˣ) : ℝ :=
-    ∑ j : Fin M, u (S_perc g τ j)
-  let C_obs (g : Fin M → Fin (N + 1) → ℝ) (σ : Fin 2 → Fin (N + 1) → ℤˣ) : ℝ :=
-    ((N : ℝ) + 1)⁻¹ * ∑ j : Fin M, deriv u (S_perc g (σ 0) j) * deriv u (S_perc g (σ 1) j)
-  have hSm (τ : Fin (N + 1) → ℤˣ) (j : Fin M) : Measurable fun g => S_perc g τ j :=
-    measurable_perceptron_field τ j
-  have hEm (τ : Fin (N + 1) → ℤˣ) : Measurable fun g => E g τ :=
-    measurable_perceptron_energy hu.measurable τ
-  have hCm (σ : Fin 2 → Fin (N + 1) → ℤˣ) : Measurable fun g => C_obs g σ :=
-    (Finset.measurable_sum _ fun j _ =>
-      ((measurable_deriv u).comp (hSm (σ 0) j)).mul
-        ((measurable_deriv u).comp (hSm (σ 1) j))).const_mul _
-  have hC_b (g : Fin M → Fin (N + 1) → ℝ) (σ : Fin 2 → Fin (N + 1) → ℤˣ) :
-      |C_obs g σ - r| ^ 2 ≤ ((M : ℝ) / ((N + 1 : ℕ) : ℝ) * |D| ^ 2 + |r|) ^ 2 := by
-    have hcb : |C_obs g σ| ≤ (M : ℝ) / ((N + 1 : ℕ) : ℝ) * |D| ^ 2 := by
-      dsimp only [C_obs]
-      have hpos : 0 < (N : ℝ) + 1 := by positivity
-      have hcast : ((N + 1 : ℕ) : ℝ) = (N : ℝ) + 1 := by push_cast; ring
-      rw [hcast, abs_mul, abs_of_pos (inv_pos.2 hpos)]
-      calc ((N : ℝ) + 1)⁻¹ * |∑ j : Fin M, _|
-          ≤ ((N : ℝ) + 1)⁻¹ * ∑ j : Fin M, |deriv u (S_perc g (σ 0) j) *
-              deriv u (S_perc g (σ 1) j)| :=
-            mul_le_mul_of_nonneg_left (Finset.abs_sum_le_sum_abs _ _) (inv_pos.2 hpos).le
-        _ ≤ ((N : ℝ) + 1)⁻¹ * ∑ _j : Fin M, |D| ^ 2 :=
-            mul_le_mul_of_nonneg_left (Finset.sum_le_sum fun j _ => by
-              rw [abs_mul, sq]
-              exact mul_le_mul (hD₁ _) (hD₁ _) (abs_nonneg _) (abs_nonneg D))
-              (inv_pos.2 hpos).le
-        _ = (M : ℝ) / ((N : ℝ) + 1) * |D| ^ 2 := by
-            rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]; ring
-    exact pow_le_pow_left₀ (abs_nonneg _) ((abs_sub _ _).trans (add_le_add hcb le_rfl)) 2
-  have hP_fin : IsFiniteMeasure P_g := by dsimp only [P_g]; infer_instance
-  have hi_rhs : Integrable (fun g => ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, (C_obs g σ - r) ^ 2
-      ∂(Measure.pi fun _ : Fin 2 =>
-        (Measure.count : Measure (Fin (N + 1) → ℤˣ)).tilted (E g))) P_g :=
-    integrable_integral_pi_count_tilted_of_bound E hEm (fun g σ => (C_obs g σ - r) ^ 2)
-      (fun σ => ((hCm σ).sub_const r).pow_const 2)
-      (((M : ℝ) / ((N + 1 : ℕ) : ℝ) * |D| ^ 2 + |r|) ^ 2)
-      (fun g σ => by rw [abs_pow]; exact hC_b g σ)
-  have hpt (g : Fin M → Fin (N + 1) → ℝ) :
-      ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ,
-          (C_obs g σ - ∫ τ : Fin 2 → Fin (N + 1) → ℤˣ, C_obs g τ
-            ∂(Measure.pi fun _ : Fin 2 =>
-              (Measure.count : Measure (Fin (N + 1) → ℤˣ)).tilted (E g))) ^ 2
-        ∂(Measure.pi fun _ : Fin 2 =>
-          (Measure.count : Measure (Fin (N + 1) → ℤˣ)).tilted (E g)) ≤
-      ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, (C_obs g σ - r) ^ 2
-        ∂(Measure.pi fun _ : Fin 2 =>
-          (Measure.count : Measure (Fin (N + 1) → ℤˣ)).tilted (E g)) :=
-    integral_sub_integral_sq_le_integral_sub_const_sq
-      ((memLp_two_iff_integrable_sq (measurable_of_finite _).aestronglyMeasurable).2
-        Integrable.of_finite) r
-  have hgibbs :
-      ∫ g, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ,
-          (C_obs g σ - ∫ τ : Fin 2 → Fin (N + 1) → ℤˣ, C_obs g τ
-            ∂(Measure.pi fun _ : Fin 2 =>
-              (Measure.count : Measure (Fin (N + 1) → ℤˣ)).tilted (E g))) ^ 2
-          ∂(Measure.pi fun _ : Fin 2 =>
-            (Measure.count : Measure (Fin (N + 1) → ℤˣ)).tilted (E g)) ∂P_g ≤
-        ∫ g, ∫ σ : Fin 2 → Fin (N + 1) → ℤˣ, (C_obs g σ - r) ^ 2
-          ∂(Measure.pi fun _ : Fin 2 =>
-            (Measure.count : Measure (Fin (N + 1) → ℤˣ)).tilted (E g)) ∂P_g :=
-    integral_mono_of_nonneg (ae_of_all _ fun _ => integral_nonneg fun _ => sq_nonneg _)
-      hi_rhs (ae_of_all _ hpt)
+  have : IsProbabilityMeasure P_g := by dsimp only [P_g]; infer_instance
   have h1 := hemp N M hd hb hα hq hr 1
-  dsimp only at h1
-  simpa only [Nat.cast_one, Nat.mul_one, pow_one, one_mul, mul_one] using hgibbs.trans h1
+  simp only [Nat.cast_one, pow_one, mul_one] at h1
+  exact (integral_integral_sub_integral_sq_pi_count_tilted_le_of_bound
+    (P := P_g) (E := fun τ g => ∑ j, u (S_perc g τ j))
+    (fun τ => (measurable_perceptron_energy hu.measurable τ).aemeasurable)
+    (Φ := fun g (σ : Fin 2 → Fin (N + 1) → ℤˣ) => ((N : ℝ) + 1)⁻¹ *
+      ∑ j : Fin M, deriv u (S_perc g (σ 0) j) * deriv u (S_perc g (σ 1) j))
+    (fun σ => (measurable_perceptron_derivProduct u _ (σ 0) (σ 1)).aemeasurable)
+    (ae_of_all _ fun g σ =>
+      abs_perceptron_derivProduct_le hu.abs_deriv_le_abs g (σ 0) (σ 1)) r).trans h1
 
 end SpinGlasses

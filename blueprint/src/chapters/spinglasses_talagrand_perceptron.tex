@@ -4532,3 +4532,247 @@ of Proposition~\ref{prop:sg-tal:perceptron-free-energy-gronwall} in place of Lem
 formalized in Chapter~1 via Lemma~1.4.12). Research Problems~2.5.5 and~2.5.6 (sharp $1/N$ rate for non-smooth
 potentials and TAP equations for the binary perceptron) are open/Volume~II research problems outside Chapter~2.
 \end{remark}
+
+\section{Notes and Comments (Talagrand Section~2.6)}\label{sec:sg-tal:perceptron-notes-and-comments}
+
+Section~2.6 of the book is six sentences of historical comment and contains no formula. This section records
+them, adds three consequences of Theorems~\ref{thm:sg-tal:perceptron-rs-fixed-point}
+and~\ref{thm:sg-tal:perceptron-empirical-high-moments} that are \emph{not printed} there, and closes the chapter
+with the hypotheses added in the formalization and the corrections to the printed text.
+
+\begin{remark}[The literature of the chapter]\label{rem:sg-tal:perceptron-notes-literature}
+\talsource{Section~2.6}
+The problems of the chapter are studied in the book's references [63] (E. Gardner, \emph{The space of
+interactions in neural network models}, J. Phys.~A~21, 1988) and [52] (B. Derrida and E. Gardner, \emph{Optimal
+storage properties of neural network models}, J. Phys.~A~21, 1988).
+\end{remark}
+
+\begin{remark}[Research Problem 2.1.1]\label{rem:sg-tal:perceptron-notes-problem-211}
+\talsource{Section~2.6 and Research Problem~2.1.1}
+The book reports that it is predicted in [90] (W. Krauth and M. M\'ezard, \emph{Storage capacity of memory
+network with binary couplings}, J. Phys.~50, 1989) that the replica-symmetric solution holds up to
+$\alpha^*$, so that Problem~2.1.1 amounts to controlling the entire replica-symmetric (``high-temperature'')
+region, typically a very difficult task. Problem~2.1.1 asks to prove that there are a number $\alpha^*$ and a
+function $\varphi:[0,\alpha^*)\to\mathbb R$ such that, as $N\to\infty$ and $M/N\to\alpha$: (1) if $\alpha>\alpha^*$, the
+probability that the set (2.1) is not empty is at most $\exp(-N/K(\alpha))$; (2) if $\alpha<\alpha^*$, the quantity
+$N^{-1}\log\mathrm{card}\bigl(\Sigma_N\cap\bigcap_{k\le M}U_k\bigr)$ converges to $\varphi(\alpha)$ in probability; and to
+compute $\alpha^*$ and $\varphi$.
+
+\emph{Open research problem, not formalized.} What this chapter proves is a small-load result for smooth
+potentials: Theorems~\ref{thm:sg-tal:perceptron-rs-fixed-point}, \ref{thm:sg-tal:perceptron-rs-convergence}
+and~\ref{thm:sg-tal:perceptron-free-energy-clt} require $\alpha K(D)\le1$. It does not determine $\alpha^*$.
+\end{remark}
+
+\begin{remark}[The smart path and the earlier methods]\label{rem:sg-tal:perceptron-notes-smart-path}
+\talsource{Section~2.6}
+The book states that it took a long time to discover the proof of Theorem~2.4.1: the weaker methods developed
+previously in [148] (M. Talagrand, \emph{Intersecting random half-spaces: towards the Derrida--Gardner formula},
+Ann. Probab.~28, 2000) for this model, or for the SK and the Hopfield models, just would not work, and during
+this struggle it became clear that the smart path method was a better way to go for these three models. The
+smart path used in the formalization, with auxiliary Gaussian spins, is that of
+Section~\ref{sec:sg-tal:perceptron-smart-path}.
+\end{remark}
+
+\begin{remark}[Transition to Chapter 3]\label{rem:sg-tal:perceptron-notes-chapter3}
+\talsource{Section~2.6 and the opening of Section~3.1}
+In the next chapter the configuration space is $\mathbb R^N$, the Hamiltonian (3.1) contains the term
+$-\kappa\|\boldsymbol\sigma\|^2$ with $\kappa>0$ and an external field with $h\ge0$, and the potential satisfies
+(3.2): $u\le0$ and $u$ is concave. The book then uses the resulting convexity of the Hamiltonian. Nothing from
+Chapter~3 is used or formalized here.
+\end{remark}
+
+\subsection{Correlation decay and variances (not printed in the book)}
+
+Throughout, $u$ satisfies~(2.7), $\alpha=M/(N+1)$ satisfies $\alpha K\le1$, $(q,r)$ solves~(2.68), the spins are
+$\sigma\in\{-1,1\}^{N+1}$, $\langle\cdot\rangle$ is the Gibbs average for the disorder $g$ (on one spin or on two
+independent replicas), and $\mathbb E$ is the average over the i.i.d. standard Gaussian $g$. The constants are
+chosen after $D$ and before $N,M,u,q,r$.
+
+\begin{theorem}[Spin correlation decay and pair covariance]\label{thm:sg-tal:perceptron-pair-covariance}
+  \lean{SpinGlasses.perceptron_correlation_decay_le,
+        SpinGlasses.perceptron_gibbs_pair_covariance_sq_le,
+        SpinGlasses.perceptron_gibbsWeight_siteSymmetric,
+        SpinGlasses.perceptron_energy_comp_perm,
+        SpinGlasses.gibbsWeight_nonneg_sum_measurable,
+        SpinGlasses.gibbsWeight_comp_equiv,
+        MeasureTheory.measurePreserving_pi_pi_comp_perm}
+  \leanok
+  \uses{thm:sg-tal:perceptron-rs-fixed-point, prop:sg-tal:spin-decorr}
+\talsource{Not printed; analogue of Section~1.14, Eqs.~(1.412)--(1.414)}
+There are constants $K,L\ge0$ such that for every set $S$ of sites
+\[
+ \mathbb E\Bigl(\Bigl\langle\prod_{i\in S}\sigma_i\Bigr\rangle-\prod_{i\in S}\langle\sigma_i\rangle\Bigr)^2
+ \le c(|S|)\,\frac{L}{N+1},
+\]
+where $c(p)$ is the constant of Proposition~\ref{prop:sg-tal:spin-decorr}. In particular there are $K,L'\ge0$ with
+$\mathbb E(\langle\sigma_i\sigma_j\rangle-\langle\sigma_i\rangle\langle\sigma_j\rangle)^2\le L'/(N+1)$ for all $i\ne j$.
+\end{theorem}
+\begin{proof}
+\leanok
+\emph{Step 1 (site symmetry).} Permuting the site index in every row of $g$ preserves the law of $g$, and the
+energy of the permuted disorder at $\sigma$ is the energy of $g$ at the relabelled configuration. Hence the
+Gibbs weights form a site-symmetric random state.
+
+\emph{Step 2 (decorrelation).} Proposition~\ref{prop:sg-tal:spin-decorr}, which does not use the form of the
+Hamiltonian, applies with $\xi_i=\sigma_i$ and the centering $q\in[0,1]$:
+\[
+ \mathbb E\Bigl(\Bigl\langle\prod_{i\in S}\sigma_i\Bigr\rangle-\prod_{i\in S}\langle\sigma_i\rangle\Bigr)^2
+ \le c(|S|)\,\mathbb E\bigl\langle(R_{1,2}-q)^2\bigr\rangle .
+\]
+
+\emph{Step 3 (overlap bound).} Theorem~\ref{thm:sg-tal:perceptron-rs-fixed-point} gives
+$\mathbb E\langle(R_{1,2}-q)^2\rangle\le L/(N+1)$. For $S=\{i,j\}$ set $L'=c(2)L$.
+
+\emph{Formalization note (hypothesis audit).} The hypotheses are those of Theorem~2.4.1 and $i\ne j$; none is a
+conclusion that the book derives. The spin observables need no measurability or boundedness assumption. The
+statement is not printed in the book. It uses $N+1$ spins and load $M/(N+1)$, includes $M=0$, and the constant of
+the pair bound is $c(2)L$.
+
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/OverlapVariances.lean}.
+\end{proof}
+
+\begin{theorem}[Variances of the Gibbs overlap]\label{thm:sg-tal:perceptron-overlap-variances}
+  \lean{SpinGlasses.perceptron_expected_gibbs_overlap_sub_sq_le,
+        SpinGlasses.perceptron_var_gibbs_overlap_le,
+        SpinGlasses.perceptron_expected_gibbs_var_overlap_le,
+        SpinGlasses.integral_sq_integral_pi_count_tilted_le,
+        SpinGlasses.integral_integral_sub_integral_sq_pi_count_tilted_le}
+  \leanok
+  \uses{thm:sg-tal:perceptron-rs-fixed-point}
+\talsource{Not printed; analogue of Section~1.14, Eqs.~(1.412)--(1.414)}
+There are constants $K,L\ge0$ such that
+\[
+ \mathbb E\bigl(\langle R_{1,2}\rangle-q\bigr)^2\le\frac{L}{N+1},\qquad
+ \mathrm{Var}_g\bigl(\langle R_{1,2}\rangle\bigr)\le\frac{L}{N+1},\qquad
+ \mathbb E\bigl\langle(R_{1,2}-\langle R_{1,2}\rangle)^2\bigr\rangle\le\frac{L}{N+1}.
+\]
+\end{theorem}
+\begin{proof}
+\leanok
+\emph{Step 1 (Jensen).} For each $g$, $(\langle R_{1,2}\rangle-q)^2\le\langle(R_{1,2}-q)^2\rangle$; integrate and
+apply Theorem~\ref{thm:sg-tal:perceptron-rs-fixed-point}.
+
+\emph{Step 2 (variance over the disorder).} A variance is at most the mean square distance to any constant:
+\[
+ \mathrm{Var}_g\bigl(\langle R_{1,2}\rangle\bigr)\le\mathbb E\bigl(\langle R_{1,2}\rangle-q\bigr)^2 .
+\]
+
+\emph{Step 3 (Gibbs variance).} The same inequality under the Gibbs measure for fixed $g$ gives
+\[
+ \mathbb E\bigl\langle(R_{1,2}-\langle R_{1,2}\rangle)^2\bigr\rangle\le\mathbb E\bigl\langle(R_{1,2}-q)^2\bigr\rangle .
+\]
+
+\emph{Formalization note (hypothesis audit).} The hypotheses are those of Theorem~2.4.1. The statements are not
+printed in the book; they use $N+1$ spins and include $M=0$. Lean proves boundedness and square integrability of
+$\langle R_{1,2}\rangle$ before using its variance.
+
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/OverlapVariances.lean}.
+\end{proof}
+
+\begin{theorem}[Variances of the empirical derivative product]\label{thm:sg-tal:perceptron-constraint-variances}
+  \lean{SpinGlasses.perceptron_expected_gibbs_empirical_variance_sub_sq_le,
+        SpinGlasses.perceptron_var_gibbs_empirical_variance_le,
+        SpinGlasses.perceptron_expected_gibbs_var_empirical_variance_le,
+        SpinGlasses.integral_sq_integral_pi_count_tilted_sub_le_of_bound,
+        SpinGlasses.integral_integral_sub_integral_sq_pi_count_tilted_le_of_bound}
+  \leanok
+  \uses{thm:sg-tal:perceptron-empirical-high-moments}
+\talsource{Not printed; analogue of Section~1.14, Eqs.~(1.412)--(1.414)}
+Write $C=(N+1)^{-1}\sum_{k<M}u'(S^1_k)\,u'(S^2_k)$. There are constants $K,L\ge0$ such that
+\[
+ \mathbb E\bigl(\langle C\rangle-r\bigr)^2\le\frac{\alpha L}{N+1},\qquad
+ \mathrm{Var}_g\bigl(\langle C\rangle\bigr)\le\frac{\alpha L}{N+1},\qquad
+ \mathbb E\bigl\langle(C-\langle C\rangle)^2\bigr\rangle\le\frac{\alpha L}{N+1}.
+\]
+\end{theorem}
+\begin{proof}
+\leanok
+\emph{Step 1 (second moment).} The case $k=1$ of Theorem~\ref{thm:sg-tal:perceptron-empirical-high-moments} reads
+\[
+ \mathbb E\bigl\langle(C-r)^2\bigr\rangle\le\frac{\alpha L}{N+1}.
+\]
+
+\emph{Step 2 (the observable depends on the disorder).} Since $|C|\le\alpha D^2$, Jensen's inequality and the
+variance inequality hold for this disorder-dependent observable:
+\[
+ \mathbb E\bigl(\langle C\rangle-r\bigr)^2\le\mathbb E\bigl\langle(C-r)^2\bigr\rangle,\qquad
+ \mathbb E\bigl\langle(C-\langle C\rangle)^2\bigr\rangle\le\mathbb E\bigl\langle(C-r)^2\bigr\rangle .
+\]
+
+\emph{Step 3 (variance over the disorder).} $\mathrm{Var}_g(\langle C\rangle)\le\mathbb E(\langle C\rangle-r)^2$.
+
+\emph{Formalization note (hypothesis audit).} The hypotheses are those of Theorem~2.5.2. The statements are not
+printed in the book. The constant $K$ of the load condition and the moment constant $L$ are different.
+
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/OverlapVariances.lean}.
+\end{proof}
+
+\subsection{Retrospective on Chapter 2}
+
+\begin{remark}[Hypotheses and conventions added to the book]\label{rem:sg-tal:perceptron-chapter2-hypotheses}
+\talsource{Chapter~2, Sections~2.1--2.5}
+The audit of each statement is in its \emph{Formalization note}. The recurring differences are as follows.
+\begin{center}
+\begin{tabular}{|p{0.34\textwidth}|p{0.56\textwidth}|}
+\hline
+\textbf{Difference} & \textbf{Where and why} \\
+\hline
+Measurability and integrability & Left implicit in the book; stated or proved where an integral, a quotient or a
+logarithm needs it. \\
+\hline
+$N+1$ spins, load $M/(N+1)$ & All of the chapter; the system is never empty. In Section~2.3 the constraint being
+removed is the last of $M+1$. \\
+\hline
+Open interpolation intervals & The rotation estimates of Section~2.3 use the angle form of $v\in(0,1)$; the
+endpoints would need one-sided derivatives (Lemma~\ref{lem:sg-tal:perceptron-gibbs-comparison} and
+Theorem~\ref{thm:sg-tal:perceptron-split-cavity-rotation}). \\
+\hline
+Second proof of Theorem~2.4.2 & Uses the overlap bound that the book obtains in Chapter~9; the dependent step is
+conditional and labelled as such
+(Proposition~\ref{prop:sg-tal:perceptron-second-proof-increment}). \\
+\hline
+\end{tabular}
+\end{center}
+\end{remark}
+
+\begin{remark}[Corrections to the printed text]\label{rem:sg-tal:perceptron-chapter2-printed-corrections}
+\talsource{Chapter~2, Sections~2.1--2.5}
+\begin{center}
+\begin{tabular}{|p{0.13\textwidth}|p{0.36\textwidth}|p{0.41\textwidth}|}
+\hline
+\textbf{Place} & \textbf{Printed} & \textbf{Formalized} \\
+\hline
+(2.6), (2.11) & The energy is written $H_{N,M}$ and $H_{M,N}$ & One energy is used
+(Remark~\ref{rem:sg-tal:perceptron-comparison}). \\
+\hline
+(2.41) & Coefficient $-(n+1)$ from differentiating $Z^{-n}$ & Coefficient $-n$ and one fresh replica
+(Theorem~\ref{thm:sg-tal:perceptron-split-cavity-rotation}). \\
+\hline
+(2.84) & The factor $\frac12$ of (2.83) is dropped & The factor is kept; the printed bound follows
+(Theorem~\ref{thm:sg-tal:perceptron-rs-convergence}). \\
+\hline
+(2.88) & Coefficient $\alpha/2$ & Coefficient $\alpha$ for the printed $\theta'$
+(Lemma~\ref{lem:sg-tal:perceptron-rs-variational}). \\
+\hline
+(2.92) & $\sup|\varphi''|$ & The sharper $\frac12\sup|\varphi''|$
+(Proposition~\ref{prop:sg-tal:perceptron-second-proof-increment}). \\
+\hline
+(2.98) & Last constant $1/(32(k+1))$ & $1/(256(k+1))$; the constant $64$ is unchanged
+(Theorem~\ref{thm:sg-tal:perceptron-overlap-high-moments}). \\
+\hline
+Thm.~2.5.3 & $\mathbb E(p_{N,M}(u)-p(u))^k$, with $p_{N,M}$ defined in (2.11) as an expectation & The random free
+energy is written explicitly (Theorem~\ref{thm:sg-tal:perceptron-free-energy-clt}). \\
+\hline
+Thm.~2.5.3 & Variance parameter without the constraint term & $v_X+\alpha v_Y-qr$; the printed value is
+recovered when $\alpha v_Y=0$ or $k$ is odd
+(Theorem~\ref{thm:sg-tal:perceptron-free-energy-clt}). \\
+\hline
+Gr\"onwall step & $\psi(0)\le K(k)N^{k/2}$ & $(N+1)^{-k/2}$
+(Proposition~\ref{prop:sg-tal:perceptron-free-energy-gronwall}). \\
+\hline
+\end{tabular}
+\end{center}
+Not corrections but conventions: $N+1$ spins; the exponents $\max(k-1,0)/k$ and $\max(k-2,0)/k$ in the
+Gr\"onwall estimate, which cover $k=0,1$; and $b^{\lfloor k/2\rfloor}$, which needs no sign of $b$ since odd
+moments of a Gaussian vanish.
+\end{remark}
