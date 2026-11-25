@@ -77,7 +77,8 @@ theorem lintegral_exp_infDist_sq_mul_le (hC : Convex ℝ C) (hCm : MeasurableSet
   have hhalf : (1 - 1 / 2 : ℝ) = 1 / 2 := by norm_num
   have key := lintegral_prekopa_leindler_addHaar μ₀ (s := 1 / 2) (by norm_num) (by norm_num)
     (U := B.indicator W) (V := C.indicator V) (W := C.indicator W)
-    (hWm.indicator hBm) (hVm.indicator hCm) (hWm.indicator hCm) fun x y => by
+    (hWm.indicator hBm).aemeasurable (hVm.indicator hCm).aemeasurable
+    (hWm.indicator hCm).aemeasurable fun x y => by
       rw [hhalf]
       by_cases hx : x ∈ B
       swap

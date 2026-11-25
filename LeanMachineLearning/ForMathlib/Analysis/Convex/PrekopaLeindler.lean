@@ -14,7 +14,7 @@ public import Mathlib.Topology.Algebra.Module.FiniteDimension
 /-!
 # The Prékopa--Leindler and Brunn--Minkowski inequalities
 
-For `0 < s < 1` and measurable functions `U, V, W ≥ 0` with
+For `0 < s < 1` and a.e.-measurable functions `U, V, W ≥ 0` with
 `U x ^ s * V y ^ (1 - s) ≤ W (s • x + (1 - s) • y)` for all `x, y`, one has
 `(∫ U) ^ s * (∫ V) ^ (1 - s) ≤ ∫ W` (Talagrand, *Spin Glasses*, Vol. I, Theorem 3.1.3).
 The integrals are lower Lebesgue integrals, so no integrability is assumed.
@@ -29,9 +29,8 @@ uniqueness of Haar measures.
 
 * `MeasureTheory.volume_add_volume_le_volume_add`: `|A| + |B| ≤ |A + B|` for nonempty compact
   subsets of `ℝ`.
-* `MeasureTheory.lintegral_prekopa_leindler_real`: the inequality on `ℝ`.
-* `MeasureTheory.lintegral_prekopa_leindler_pi`: the inequality on `Fin n → ℝ`.
-* `MeasureTheory.lintegral_prekopa_leindler_addHaar`: the inequality for an additive Haar measure.
+* `MeasureTheory.lintegral_prekopa_leindler_addHaar`: the inequality for any additive Haar
+  measure on any finite-dimensional real topological vector space.
 * `MeasureTheory.measure_rpow_mul_measure_rpow_le`: the multiplicative Brunn--Minkowski
   inequality, `μ A ^ s * μ B ^ (1 - s) ≤ μ C` whenever `s • A + (1 - s) • B ⊆ C`.
 -/
@@ -220,8 +219,8 @@ private theorem lintegral_prekopa_leindler_real_of_iSup_ne_top {s : ℝ} (hs0 : 
   exact (ENNReal.mul_le_mul_iff_left (ENNReal.inv_ne_zero.2 hct)
     (ENNReal.inv_ne_top.2 hc0)).1 key'
 
-/-- **Prékopa--Leindler inequality on `ℝ`** (Talagrand, Theorem 3.1.3 for `N = 1`). -/
-theorem lintegral_prekopa_leindler_real {s : ℝ} (hs0 : 0 < s) (hs1 : s < 1)
+/-- Prékopa--Leindler on `ℝ`, the base case of the induction on the dimension. -/
+private theorem lintegral_prekopa_leindler_real {s : ℝ} (hs0 : 0 < s) (hs1 : s < 1)
     {U V W : ℝ → ℝ≥0∞} (hU : Measurable U) (hV : Measurable V) (hW : Measurable W)
     (h : ∀ x y, U x ^ s * V y ^ (1 - s) ≤ W (s * x + (1 - s) * y)) :
     (∫⁻ x, U x) ^ s * (∫⁻ y, V y) ^ (1 - s) ≤ ∫⁻ z, W z := by
@@ -249,9 +248,8 @@ theorem lintegral_prekopa_leindler_real {s : ℝ} (hs0 : 0 < s) (hs1 : s < 1)
 
 /-! ### Higher dimensions -/
 
-/-- **Prékopa--Leindler inequality on `Fin n → ℝ`** (Talagrand, Theorem 3.1.3), by induction on
-the dimension (Eq. (A.86)). -/
-theorem lintegral_prekopa_leindler_pi {s : ℝ} (hs0 : 0 < s) (hs1 : s < 1) :
+/-- Prékopa--Leindler on `Fin n → ℝ`, by induction on the dimension (Talagrand, Eq. (A.86)). -/
+private theorem lintegral_prekopa_leindler_pi {s : ℝ} (hs0 : 0 < s) (hs1 : s < 1) :
     ∀ (n : ℕ) {U V W : (Fin n → ℝ) → ℝ≥0∞}, Measurable U → Measurable V → Measurable W →
       (∀ x y, U x ^ s * V y ^ (1 - s) ≤ W (s • x + (1 - s) • y)) →
       (∫⁻ x, U x) ^ s * (∫⁻ y, V y) ^ (1 - s) ≤ ∫⁻ z, W z := by
@@ -302,10 +300,10 @@ variable {E : Type*} [AddCommGroup E] [Module ℝ E] [TopologicalSpace E] [IsTop
   [ContinuousSMul ℝ E] [T2Space E] [FiniteDimensional ℝ E] [MeasurableSpace E] [BorelSpace E]
   (μ : Measure E) [μ.IsAddHaarMeasure]
 
-/-- **Prékopa--Leindler inequality** for an additive Haar measure on a finite-dimensional real
-topological vector space (Talagrand, Theorem 3.1.3, Eqs. (3.11)--(3.12)). -/
-theorem lintegral_prekopa_leindler_addHaar {s : ℝ} (hs0 : 0 < s) (hs1 : s < 1)
-    {U V W : E → ℝ≥0∞} (hU : Measurable U) (hV : Measurable V) (hW : Measurable W)
+/-- Prékopa--Leindler for measurable functions, transported from `Fin n → ℝ` through a basis and
+the uniqueness of Haar measure. -/
+private theorem lintegral_prekopa_leindler_addHaar_of_measurable {s : ℝ} (hs0 : 0 < s)
+    (hs1 : s < 1) {U V W : E → ℝ≥0∞} (hU : Measurable U) (hV : Measurable V) (hW : Measurable W)
     (h : ∀ x y, U x ^ s * V y ^ (1 - s) ≤ W (s • x + (1 - s) • y)) :
     (∫⁻ x, U x ∂μ) ^ s * (∫⁻ y, V y ∂μ) ^ (1 - s) ≤ ∫⁻ z, W z ∂μ := by
   have h1s : 0 < 1 - s := sub_pos.2 hs1
@@ -334,6 +332,51 @@ theorem lintegral_prekopa_leindler_addHaar {s : ℝ} (hs0 : 0 < s) (hs1 : s < 1)
     ENNReal.mul_rpow_of_nonneg _ _ h1s.le, mul_mul_mul_comm, hcc]
   exact mul_le_mul_right hpi _
 
+/-- **Prékopa--Leindler inequality** for an additive Haar measure on a finite-dimensional real
+topological vector space (Talagrand, Theorem 3.1.3, Eqs. (3.11)--(3.12)). -/
+theorem lintegral_prekopa_leindler_addHaar {s : ℝ} (hs0 : 0 < s) (hs1 : s < 1)
+    {U V W : E → ℝ≥0∞} (hU : AEMeasurable U μ) (hV : AEMeasurable V μ)
+    (hW : AEMeasurable W μ)
+    (h : ∀ x y, U x ^ s * V y ^ (1 - s) ≤ W (s • x + (1 - s) • y)) :
+    (∫⁻ x, U x ∂μ) ^ s * (∫⁻ y, V y ∂μ) ^ (1 - s) ≤ ∫⁻ z, W z ∂μ := by
+  have h1s : 0 < 1 - s := sub_pos.2 hs1
+  -- measurable minorants of `U`, `V` and a measurable majorant of `W`, all a.e. equal to them
+  have hminor : ∀ f : E → ℝ≥0∞, AEMeasurable f μ →
+      ∃ g : E → ℝ≥0∞, Measurable g ∧ g ≤ f ∧ f =ᵐ[μ] g := fun f hf => by
+    obtain ⟨S, hS, hSm, hSae⟩ : ∃ S : Set E, (∀ x ∈ S, f x = hf.mk f x) ∧ MeasurableSet S ∧
+        ∀ᵐ x ∂μ, x ∈ S := by
+      obtain ⟨T, hT, hTm, hT0⟩ := exists_measurable_superset_of_null (ae_iff.1 hf.ae_eq_mk)
+      refine ⟨Tᶜ, fun x hx => ?_, hTm.compl, compl_mem_ae_iff.2 hT0⟩
+      by_contra hne
+      exact hx (hT hne)
+    refine ⟨S.indicator (hf.mk f), hf.measurable_mk.indicator hSm, fun x => ?_, ?_⟩
+    · by_cases hx : x ∈ S
+      · rw [indicator_of_mem hx, hS x hx]
+      · simp [hx]
+    · filter_upwards [hSae] with x hx
+      rw [indicator_of_mem hx, hS x hx]
+  obtain ⟨U', hU'm, hU'le, hU'ae⟩ := hminor U hU
+  obtain ⟨V', hV'm, hV'le, hV'ae⟩ := hminor V hV
+  obtain ⟨T, hT, hTm, hT0⟩ := exists_measurable_superset_of_null (ae_iff.1 hW.ae_eq_mk)
+  classical
+  set W' : E → ℝ≥0∞ := T.piecewise (fun _ => ∞) (hW.mk W) with hW'
+  have hW'm : Measurable W' := measurable_const.piecewise hTm hW.measurable_mk
+  have hW'le : ∀ z, W z ≤ W' z := fun z => by
+    by_cases hz : z ∈ T
+    · simp [hW', hz]
+    · have : W z = hW.mk W z := by
+        by_contra hne
+        exact hz (hT hne)
+      simp [hW', hz, this]
+  have hW'ae : W =ᵐ[μ] W' := by
+    have : ∀ᵐ z ∂μ, z ∉ T := compl_mem_ae_iff.2 hT0
+    filter_upwards [this, hW.ae_eq_mk] with z hz hz'
+    simp [hW', hz, hz']
+  rw [lintegral_congr_ae hU'ae, lintegral_congr_ae hV'ae, lintegral_congr_ae hW'ae]
+  exact lintegral_prekopa_leindler_addHaar_of_measurable μ hs0 hs1 hU'm hV'm hW'm fun x y =>
+    (mul_le_mul' (ENNReal.rpow_le_rpow (hU'le x) hs0.le)
+      (ENNReal.rpow_le_rpow (hV'le y) h1s.le)).trans ((h x y).trans (hW'le _))
+
 /-- **Multiplicative Brunn--Minkowski inequality** (Talagrand, Eq. (3.13)):
 `μ A ^ s * μ B ^ (1 - s) ≤ μ C` whenever `s • a + (1 - s) • b ∈ C` for `a ∈ A`, `b ∈ B`.
 The set `C` need not be measurable. -/
@@ -345,8 +388,8 @@ theorem measure_rpow_mul_measure_rpow_le {s : ℝ} (hs0 : 0 < s) (hs1 : s < 1) {
   have hC := measurableSet_toMeasurable μ C
   have key := lintegral_prekopa_leindler_addHaar μ hs0 hs1 (U := A.indicator 1)
     (V := B.indicator 1) (W := (toMeasurable μ C).indicator 1)
-    (measurable_one.indicator hA) (measurable_one.indicator hB) (measurable_one.indicator hC)
-    fun x y => by
+    (measurable_one.indicator hA).aemeasurable (measurable_one.indicator hB).aemeasurable
+    (measurable_one.indicator hC).aemeasurable fun x y => by
       by_cases hx : x ∈ A
       · by_cases hy : y ∈ B
         · simp [hx, hy, indicator_of_mem (subset_toMeasurable μ C (h x hx y hy))]
