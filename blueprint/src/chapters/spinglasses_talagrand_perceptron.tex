@@ -4354,7 +4354,7 @@ if $u$ satisfies~(2.7), $\alpha=M/(N+1)$ satisfies $\alpha K\le 1$, $(q,r)$ solv
 $s\in[0,1]$, then:
 \begin{enumerate}
 \item \emph{Remainder bounds (2.109).} Writing $\mathrm{VII}$ and $\mathrm{VIII}$ as in
-Lemma~\ref{lem:sg-tal:perceptron-centered-moment-ode},
+Lemma~\ref{lem:sg-tal:perceptron-centered-moment-ode}, for $k\ge1$,
 \[
  |\mathrm{VII}|\le\frac{C}{N+1}\bigl(\mathbb E|V(s)|^k\bigr)^{\max(k-1,0)/k},\qquad
  |\mathrm{VIII}|\le\frac{C}{(N+1)^2}\bigl(\mathbb E|V(s)|^k\bigr)^{\max(k-2,0)/k}.
@@ -4423,6 +4423,7 @@ and is dismissed as easy ``as the spins decouple''; the Lean proof expands the t
         ProbabilityTheory.exists_abs_integral_pow_sum_pi_sub_le,
         ProbabilityTheory.exists_abs_integral_add_pow_avg_two_pi_sub_le_all_orders,
         SpinGlasses.log_interpPartition_zero_eq,
+        SpinGlasses.log_interpPartition_one_eq,
         SpinGlasses.sub_rs_interpolating_zero_eq,
         SpinGlasses.centered_log_cosh_gaussianReal_moments,
         SpinGlasses.centered_log_integral_exp_cavityPath_moments}
@@ -4502,6 +4503,8 @@ part~(1). At $s=1$ the auxiliary Gaussians $z,z',\xi$ drop out of $A(1)$, giving
 and $(q,r)$ solving~(2.68). None of $b\ge 0$, $0\le r$, $q\in[0,1]$, (2.69), or~(2.80) is assumed in Lean:
 $q\in[0,1]$ and $0\le r\le|D|^2$ are derived from~(2.68) and $\alpha K\le 1$, and writing $b^{\lfloor k/2\rfloor}$
 with natural-number division avoids any sign requirement on $b$ (for odd $k$, $a(k)=0$).
+The Lean theorem uses $N+1$ spins for the book's $N$. It includes $k=0$, where both moments are $1$,
+and proves the estimate for all $s\in[0,1]$ before taking the book's endpoint $s=1$.
 \item \emph{Random free energy vs.\ quenched expectation.} In Section~2.1 (Eq.~(2.11)), $p_{N,M}(u)$ denotes the
 deterministic expectation $\frac1N\mathbb E\log Z_{N,M}(u)$, whereas Theorem~2.5.3 writes $\mathbb E(p_{N,M}(u)-p(u))^k$
 as shorthand for $\mathbb E(\frac1N\log Z_{N,M}(u)-p(u))^k$ (matching $A(1)$ in its proof and Theorem~1.4.11).

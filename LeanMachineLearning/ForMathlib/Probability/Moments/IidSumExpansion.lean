@@ -130,7 +130,8 @@ private theorem abs_gaussian_moment_increment_sub_le
               convert mul_le_mul_of_nonneg_right
                 (mul_le_mul_of_nonneg_right hcoeff
                   (by positivity : 0 ≤ |(2 * (p : ℝ) + 3) * a (2 * p + 2)| * σ2 ^ (p + 2)))
-                (by positivity : 0 ≤ Real.sqrt ((n : ℝ) + 1) ^ (2 * p + 1)) using 1 <;> ring
+                (by positivity : 0 ≤ Real.sqrt ((n : ℝ) + 1) ^ (2 * p + 1)) using 1
+              ring
   · have h1 : a (2 * m + 1) = 0 := Nat.eq_zero_of_odd_of_two_step_mul ha1 ha ⟨m, rfl⟩
     have h2 : a (2 * m + 1 - 2) = 0 := Nat.eq_zero_of_odd_of_two_step_mul ha1 ha ⟨m - 1, by omega⟩
     rw [h1, h2]

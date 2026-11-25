@@ -5286,3 +5286,4 @@ SpinGlasses.log_interpPartition_zero_eq
 SpinGlasses.sub_rs_interpolating_zero_eq
 SpinGlasses.centered_log_cosh_gaussianReal_moments
 SpinGlasses.centered_log_integral_exp_cavityPath_moments
+SpinGlasses.log_interpPartition_one_eq

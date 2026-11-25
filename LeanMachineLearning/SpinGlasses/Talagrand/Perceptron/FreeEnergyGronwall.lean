@@ -197,11 +197,11 @@ lemma centered_log_cosh_gaussianReal_moments {D r : ℝ} (hr : Real.sqrt r ≤ |
     refine (Real.log_cosh_le_abs _).trans ?_
     rw [abs_mul, abs_of_nonneg (Real.sqrt_nonneg _), mul_comm]
     exact mul_le_mul_of_nonneg_right hr (abs_nonneg z)
-  have hdom : MemLp (fun z : ℝ => |D| * z) 2 γ :=
-    (IsGaussian.memLp_id γ 2 (by simp)).const_mul |D|
+  have hdom : MemLp (fun z : ℝ => |D| * |z|) 2 γ :=
+    (IsGaussian.memLp_id γ 2 (by simp)).norm.const_mul |D|
   have hLX2 : MemLp L_X 2 γ :=
     hdom.mono' hLX_m.aestronglyMeasurable (ae_of_all _ fun z => by
-      simp only [Real.norm_eq_abs, abs_mul, abs_abs]
+      rw [Real.norm_eq_abs]
       exact hLX_bd z)
   have hLX1_int := hLX2.integrable one_le_two
   have hz1_int : Integrable (fun z : ℝ => |z|) γ :=

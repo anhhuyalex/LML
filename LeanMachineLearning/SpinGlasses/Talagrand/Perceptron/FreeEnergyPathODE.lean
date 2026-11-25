@@ -2564,11 +2564,11 @@ private lemma rpow_inv_integral_abs_pow_gibbs_mul_le
         rw [Real.norm_of_nonneg (pow_nonneg (abs_nonneg _) _)]
         exact pow_le_pow_left₀ (abs_nonneg _) (hC z) k)
     have hCS := integral_mul_norm_le_Lp_mul_Lq Real.HolderConjugate.two_two
-      (hLp (hA_m ω) fun z => (hA_bd ω z).trans (le_max_left _ _))
-      (hLp (hB_m ω) fun z => (hB_bd ω z).trans (le_max_left _ _))
+      (hLp (C := MA) (hA_m ω) fun z => (hA_bd ω z).trans (le_max_left _ _))
+      (hLp (C := MB) (hB_m ω) fun z => (hB_bd ω z).trans (le_max_left _ _))
     have habs (x : ℝ) : ‖|x| ^ k‖ = |x| ^ k := Real.norm_of_nonneg (by positivity)
     have hpow (x : ℝ) : (|x| ^ k) ^ (2 : ℝ) = x ^ (2 * k) := by
-      rw [Real.rpow_two, ← pow_mul, Nat.mul_comm k 2, pow_mul, sq_abs]
+      rw [Real.rpow_two, ← pow_mul, Nat.mul_comm k 2, pow_mul, sq_abs, ← pow_mul]
     simp_rw [habs, hpow] at hCS
     exact hJ.trans hCS
   have hA2k_0 (ω : Ω) : 0 ≤ ∫ z, A ω z ^ (2 * k) ∂ν ω :=
