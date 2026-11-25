@@ -27,6 +27,7 @@ namespace SpinGlasses
 
 variable {N : ℕ} {R : Type*} [Fintype R] [DecidableEq R]
 
+omit [DecidableEq R] in
 /-- **The bound (2.40) at a fixed angle for a spin-only observable.** Let `Y ξ σ` be the spin
 fields of the Gaussian block `ξ`, `ψ` the smoothing with `|ψ₁/ψ| ≤ D'`, and `Θint ξ` the replica
 expression of `hasDerivAt_integral_cavityRatio_theta`. Then
@@ -98,6 +99,7 @@ theorem abs_cavity_theta_le {w : PerceptronSpin N → ℝ} {ψ ψ₁ : ℝ → �
           ((a.2 : ℤ) : ℝ) * ((b.2 : ℤ) : ℝ)) / (N + 1)| + 1 / (N + 1)) * D' ^ 2 :=
         mul_le_mul h2 hu (by positivity) (by positivity)
       _ = _ := by ring
+  classical
   have key := abs_integral_integral_theta_le (R := R)
     (μ := Measure.pi fun _ : (Fin N ⊕ Unit) ⊕ Unit => gaussianReal 0 1)
     (fun ξ a => Real.log (w a) + Real.log (ψ (Y ξ a))) hE

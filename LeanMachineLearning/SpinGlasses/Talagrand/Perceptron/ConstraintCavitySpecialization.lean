@@ -173,7 +173,7 @@ integrable in `L¹` at each spin tuple, the concrete extended cavity average equ
 integral over `(ω₀, ξ)` of the counting-measure Gibbs average with weights `w ω₀` and smoothing
 `ψ_s(Y_s ξ)`. -/
 theorem integral_cavityPath_spinOnly_eq_cavityRatio {N M : ℕ} {R : Type*} [Fintype R]
-    [DecidableEq R] {u : ℝ → ℝ} (hu : Measurable u) {D : ℝ} (hD : ∀ x, u x ≤ D)
+    {u : ℝ → ℝ} (hu : Measurable u) {D : ℝ} (hD : ∀ x, u x ≤ D)
     (t q s : ℝ) (v : ℝ≥0)
     {f : SmartPathDisorder N M → (R → PerceptronSpin N) → ℝ}
     (hfi : ∀ σ, Integrable (fun ω₀ => f ω₀ σ)
@@ -208,6 +208,7 @@ theorem integral_cavityPath_spinOnly_eq_cavityRatio {N M : ℕ} {R : Type*} [Fin
         ∂(Measure.pi fun _ : (Fin N ⊕ Unit) ⊕ Unit => gaussianReal 0 1)
       ∂(smartPathDisorder (Measure.pi fun _ : Fin M =>
           Measure.pi fun _ : Fin N => gaussianReal 0 1) v) := by
+  classical
   let P₀ : Measure (SmartPathDisorder N M) :=
     smartPathDisorder (Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin N => gaussianReal 0 1) v
   let Ξ : Measure ((Fin N ⊕ Unit) ⊕ Unit → ℝ) :=
