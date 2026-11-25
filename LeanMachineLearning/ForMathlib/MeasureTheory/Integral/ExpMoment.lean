@@ -9,16 +9,29 @@ public import Mathlib.Analysis.SpecialFunctions.Exponential
 public import Mathlib.MeasureTheory.Integral.Bochner.Basic
 
 /-!
-# First moments from exponential moments
+# Moments from exponential moments
 
 On a probability space, `1 + c x ≤ exp (c x)` turns an exponential moment bound
 `∫ exp (c X) ≤ C` into the first moment bound `c ∫ X ≤ C - 1`.  The pointwise inequality is
 stated for an arbitrary integrand `Z`, so that it also applies to conditional expectations.
+
+All moments of a nonnegative variable `X` are controlled by its exponential moment: if
+`∫ exp X ≤ exp C` then `∫ X ^ k ≤ 2 ^ k (k ^ k + C ^ k)`
+(`MeasureTheory.integral_pow_le_of_integral_exp_le`), from the pointwise bound
+`x ^ k ≤ k ^ k exp x` (`Real.pow_le_natCast_pow_mul_exp`).
 -/
 
 @[expose] public section
 
 open MeasureTheory
+
+/-- `x ^ k ≤ k ^ k * exp x` for `x ≥ 0` (Talagrand, Eq. (3.20)). -/
+theorem Real.pow_le_natCast_pow_mul_exp {x : ℝ} (hx : 0 ≤ x) (k : ℕ) :
+    x ^ k ≤ (k : ℝ) ^ k * Real.exp x := by
+  have h := Real.pow_div_factorial_le_exp x hx k
+  rw [div_le_iff₀ (by positivity), mul_comm] at h
+  exact h.trans (mul_le_mul_of_nonneg_right (by exact_mod_cast Nat.factorial_le_pow k)
+    (Real.exp_pos _).le)
 
 namespace MeasureTheory
 
@@ -51,5 +64,82 @@ theorem one_add_mul_integral_integral_le {Ω Γ : Type*} {mΩ : MeasurableSpace 
     1 + c * ∫ ω, ∫ σ, X σ ∂μ ω ∂P ≤ ∫ ω, ∫ σ, Real.exp (c * X σ) ∂μ ω ∂P :=
   one_add_mul_integral_le_integral c hJX hJexp fun ω =>
     one_add_mul_integral_le_integral_exp c (hX ω) (hexp ω)
+
+/-- **Moments from the exponential moment** (Talagrand, Lemma 3.1.8, Eq. (3.29)): on a
+probability space, if `X ≥ 0` and `∫ exp X ≤ exp C`, then `∫ X ^ k ≤ 2 ^ k (k ^ k + C ^ k)`.
+The inequality `0 ≤ C` is a consequence of the hypotheses. -/
+theorem integral_pow_le_of_integral_exp_le {Ω : Type*} {m : MeasurableSpace Ω} {μ : Measure Ω}
+    [IsProbabilityMeasure μ] {X : Ω → ℝ} (hX0 : 0 ≤ᵐ[μ] X)
+    (hint : Integrable (fun ω => Real.exp (X ω)) μ) {C : ℝ}
+    (hC : ∫ ω, Real.exp (X ω) ∂μ ≤ Real.exp C) (k : ℕ) :
+    Integrable (fun ω => X ω ^ k) μ ∧
+      ∫ ω, X ω ^ k ∂μ ≤ 2 ^ k * ((k : ℝ) ^ k + C ^ k) := by
+  have hXm : AEMeasurable X μ := Real.aemeasurable_of_aemeasurable_exp hint.1.aemeasurable
+  have hC0 : 0 ≤ C := by
+    have h1 : (1 : ℝ) ≤ ∫ ω, Real.exp (X ω) ∂μ := by
+      have := integral_mono_ae (integrable_const (1 : ℝ)) hint
+        (hX0.mono fun ω h => Real.one_le_exp h)
+      simpa using this
+    exact Real.one_le_exp_iff.1 (h1.trans hC)
+  have hXk : AEStronglyMeasurable (fun ω => X ω ^ k) μ := (hXm.pow_const k).aestronglyMeasurable
+  set Y : Ω → ℝ := fun ω => max (X ω - C) 0 with hY
+  have hYm : AEMeasurable Y μ := (hXm.sub_const C).max aemeasurable_const
+  have hY0 : ∀ ω, 0 ≤ Y ω := fun ω => le_max_right _ _
+  have hexpY : ∀ ω, Real.exp (Y ω) ≤ 1 + Real.exp (-C) * Real.exp (X ω) := fun ω => by
+    rw [← Real.exp_add, neg_add_eq_sub]
+    rcases le_total (X ω - C) 0 with h | h
+    · rw [hY]; simp only [max_eq_right h, Real.exp_zero]
+      exact le_add_of_nonneg_right (Real.exp_pos _).le
+    · rw [hY]; simp only [max_eq_left h]
+      exact le_add_of_nonneg_left zero_le_one
+  have hdom : Integrable (fun ω => 1 + Real.exp (-C) * Real.exp (X ω)) μ :=
+    (integrable_const 1).add (hint.const_mul _)
+  have hexpYi : Integrable (fun ω => Real.exp (Y ω)) μ :=
+    Integrable.mono' hdom (Real.measurable_exp.comp_aemeasurable hYm).aestronglyMeasurable
+      (ae_of_all _ fun ω => by
+        rw [Real.norm_of_nonneg (Real.exp_pos _).le]
+        exact hexpY ω)
+  have hexpY2 : ∫ ω, Real.exp (Y ω) ∂μ ≤ 2 := by
+    refine (integral_mono hexpYi hdom hexpY).trans ?_
+    rw [integral_add (integrable_const 1) (hint.const_mul _), integral_const_mul]
+    have : Real.exp (-C) * ∫ ω, Real.exp (X ω) ∂μ ≤ 1 := by
+      refine (mul_le_mul_of_nonneg_left hC (Real.exp_pos _).le).trans_eq ?_
+      rw [← Real.exp_add, neg_add_cancel, Real.exp_zero]
+    simp only [integral_const, probReal_univ, one_smul]
+    linarith
+  have hYk : ∀ ω, Y ω ^ k ≤ (k : ℝ) ^ k * Real.exp (Y ω) := fun ω =>
+    Real.pow_le_natCast_pow_mul_exp (hY0 ω) k
+  have hYki : Integrable (fun ω => Y ω ^ k) μ :=
+    Integrable.mono' (hexpYi.const_mul ((k : ℝ) ^ k)) (hYm.pow_const k).aestronglyMeasurable
+      (ae_of_all _ fun ω => by
+        rw [Real.norm_of_nonneg (pow_nonneg (hY0 ω) k)]
+        exact hYk ω)
+  have hYkI : ∫ ω, Y ω ^ k ∂μ ≤ (k : ℝ) ^ k * 2 := by
+    refine (integral_mono hYki (hexpYi.const_mul _) hYk).trans ?_
+    rw [integral_const_mul]
+    exact mul_le_mul_of_nonneg_left hexpY2 (by positivity)
+  have hpt : ∀ᵐ ω ∂μ, X ω ^ k ≤ 2 ^ (k - 1) * (Y ω ^ k + C ^ k) := hX0.mono fun ω h => by
+    have hle : X ω ≤ Y ω + C := by
+      have := le_max_left (X ω - C) 0
+      simp only [hY]; linarith
+    exact (pow_le_pow_left₀ h hle k).trans (add_pow_le (hY0 ω) hC0 k)
+  have hdom2 : Integrable (fun ω => 2 ^ (k - 1) * (Y ω ^ k + C ^ k)) μ :=
+    (hYki.add (integrable_const _)).const_mul _
+  have hXki : Integrable (fun ω => X ω ^ k) μ :=
+    Integrable.mono' hdom2 hXk (by
+      filter_upwards [hpt, hX0] with ω h h0
+      rwa [Real.norm_of_nonneg (pow_nonneg h0 k)])
+  refine ⟨hXki, ?_⟩
+  rcases Nat.eq_zero_or_pos k with rfl | hk
+  · norm_num
+  refine (integral_mono_ae hXki hdom2 hpt).trans ?_
+  rw [integral_const_mul, integral_add hYki (integrable_const _), integral_const, probReal_univ,
+    one_smul]
+  have h2 : (2 : ℝ) ^ k = 2 ^ (k - 1) * 2 := by
+    rw [← pow_succ]; congr 1; omega
+  rw [h2, mul_assoc]
+  refine mul_le_mul_of_nonneg_left ?_ (by positivity)
+  have := pow_nonneg hC0 k
+  linarith
 
 end MeasureTheory

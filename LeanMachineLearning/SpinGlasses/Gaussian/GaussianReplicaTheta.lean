@@ -31,13 +31,16 @@ namespace SpinGlasses
 variable {κ R : Type*} [Fintype κ] [Fintype R] [DecidableEq κ] [MeasurableSpace κ]
   [MeasurableSingletonClass κ]
 
+omit [Fintype κ] [DecidableEq κ] in
 /-- **One extra replica.** For a probability law `ν` on a finite spin set,
 `⟨f K(σ_r, σ_*)⟩_{n+1} = ⟨f ∫ K(σ_r, b) dν(b)⟩_n`. -/
-theorem integral_pi_option_kernel (ν : Measure κ) [IsProbabilityMeasure ν]
+theorem integral_pi_option_kernel [Finite κ] (ν : Measure κ) [IsProbabilityMeasure ν]
     (f : (R → κ) → ℝ) (r : R) (K : κ → κ → ℝ) :
     ∫ σ : Option R → κ, f (fun i => σ (some i)) * K (σ (some r)) (σ none)
         ∂(Measure.pi fun _ : Option R => ν) =
       ∫ σ : R → κ, f σ * ∫ b, K (σ r) b ∂ν ∂(Measure.pi fun _ : R => ν) := by
+  classical
+  have := Fintype.ofFinite κ
   have hexp : ∀ (σ : Option R → κ), f (fun i => σ (some i)) * K (σ (some r)) (σ none) =
       ∑ a : κ, (f (fun i => σ (some i)) * if σ (some r) = a then (1 : ℝ) else 0) *
         K a (σ none) := fun σ => by
@@ -55,8 +58,9 @@ theorem integral_pi_option_kernel (ν : Measure κ) [IsProbabilityMeasure ν]
     (measurable_of_finite _).aestronglyMeasurable (measurable_of_finite _).aestronglyMeasurable,
     integral_mul_const]
 
+omit [Fintype κ] [DecidableEq κ] in
 /-- **Two extra replicas.** `⟨f K(σ_*, σ_{**})⟩_{n+2} = ⟨f⟩_n ∬ K dν dν`. -/
-theorem integral_pi_option_option_kernel (ν : Measure κ) [IsProbabilityMeasure ν]
+theorem integral_pi_option_option_kernel [Finite κ] (ν : Measure κ) [IsProbabilityMeasure ν]
     (f : (R → κ) → ℝ) (K : κ → κ → ℝ) :
     ∫ σ : Option (Option R) → κ, f (fun i => σ (some (some i))) * K (σ (some none)) (σ none)
         ∂(Measure.pi fun _ : Option (Option R) => ν) =
@@ -331,11 +335,11 @@ theorem abs_integral_theta_le (E : κ → ℝ) (c m : κ → κ → ℝ) (hcm : 
   · rw [abs_mul, abs_of_nonneg (by positivity)]
     exact mul_le_mul_of_nonneg_left b4 (by positivity)
 
-omit [Nonempty κ] [DecidableEq R] [DecidableEq κ] in
+omit [Nonempty κ] [DecidableEq R] [DecidableEq κ] [Fintype R] in
 /-- **Constants under the replica average.** The kernel sums with coefficients outside the replica
 integral are the replica average of the kernel sum: for any finite measure `μ` on the replicas,
 `∑_{l,k} c_{lk} ⟨T_{lk} f⟩ - ∑_l c_{ll} ⟨X_l f⟩ = ⟨(∑_{l,k} c_{lk} T_{lk} - ∑_l c_{ll} X_l) f⟩`. -/
-theorem sum_mul_integral_eq_integral_sum (μ : Measure (R → κ)) [IsFiniteMeasure μ]
+theorem sum_mul_integral_eq_integral_sum [Finite R] (μ : Measure (R → κ)) [IsFiniteMeasure μ]
     (c : κ → κ → ℝ) (T : κ → κ → (R → κ) → ℝ) (X : κ → (R → κ) → ℝ) (f : (R → κ) → ℝ) :
     ∑ l, ∑ k, c l k * ∫ σ, T l k σ * f σ ∂μ - ∑ l, c l l * ∫ σ, X l σ * f σ ∂μ =
       ∫ σ, (∑ l, ∑ k, c l k * T l k σ - ∑ l, c l l * X l σ) * f σ ∂μ := by
@@ -351,14 +355,14 @@ section Holder
 
 variable {Ω ι : Type*} [MeasurableSpace Ω] [Fintype ι] [Nonempty κ]
 
-omit [DecidableEq κ] in
+omit [DecidableEq κ] [Fintype κ] in
 /-- **Hölder for a pair average of a random Gibbs state.** For a replica family `ι` containing the
 `R` replicas of an observable `F` (via an injection `e`) and two distinct replicas `i ≠ j`,
 `𝔼⟨|F| m(σ_i, σ_j)⟩ ≤ (𝔼⟨|F|^p⟩)^{1/p} (𝔼⟨m(σ_1, σ_2)^r⟩)^{1/r}` with the pair average reduced to
 two replicas. -/
-theorem integral_integral_pair_holder (μ : Measure Ω) [IsProbabilityMeasure μ] (E : Ω → κ → ℝ)
-    (hE : ∀ a, Measurable fun ω => E ω a) {e : R → ι} (he : Function.Injective e) {i j : ι}
-    (hij : i ≠ j) (F : (R → κ) → ℝ) (m : κ → κ → ℝ) (hm : ∀ a b, 0 ≤ m a b) {p r : ℝ}
+theorem integral_integral_pair_holder [Finite κ] (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (E : Ω → κ → ℝ) (hE : ∀ a, Measurable fun ω => E ω a) {e : R → ι} (he : Function.Injective e)
+    {i j : ι} (hij : i ≠ j) (F : (R → κ) → ℝ) (m : κ → κ → ℝ) (hm : ∀ a b, 0 ≤ m a b) {p r : ℝ}
     (hpr : p.HolderConjugate r) :
     ∫ ω, ∫ σ : ι → κ, |F (fun s => σ (e s))| * m (σ i) (σ j)
         ∂(Measure.pi fun _ : ι => Measure.count.tilted (E ω)) ∂μ ≤
@@ -390,12 +394,14 @@ theorem integral_integral_pair_holder (μ : Measure Ω) [IsProbabilityMeasure μ
       (measurable_of_finite _).aestronglyMeasurable
   simpa only [e1, e2] using key
 
-omit [DecidableEq κ] in
+omit [DecidableEq κ] [Fintype κ] in
 /-- A bounded replica observable has an integrable average over a measurable random Gibbs state. -/
-theorem integrable_integral_pi_count_tilted' (μ : Measure Ω) [IsFiniteMeasure μ] (E : Ω → κ → ℝ)
-    (hE : ∀ a, Measurable fun ω => E ω a) {ι' : Type*} [Fintype ι'] [DecidableEq ι']
+theorem integrable_integral_pi_count_tilted' [Finite κ] (μ : Measure Ω) [IsFiniteMeasure μ]
+    (E : Ω → κ → ℝ) (hE : ∀ a, Measurable fun ω => E ω a) {ι' : Type*} [Fintype ι']
     (g : (ι' → κ) → ℝ) :
     Integrable (fun ω => ∫ σ, g σ ∂(Measure.pi fun _ : ι' => Measure.count.tilted (E ω))) μ := by
+  classical
+  have := Fintype.ofFinite κ
   have hm : Measurable fun ω => ∫ σ, g σ ∂(Measure.pi fun _ : ι' => Measure.count.tilted (E ω)) :=
     measurable_integral_pi_count_tilted (Θ := fun _ τ => g τ) hE fun _ => measurable_const
   refine Integrable.of_bound (C := ∑ σ, |g σ|) hm.aestronglyMeasurable (ae_of_all _ fun ω => ?_)
@@ -403,10 +409,10 @@ theorem integrable_integral_pi_count_tilted' (μ : Measure Ω) [IsFiniteMeasure 
   exact abs_integral_pi_count_tilted_le _ fun σ =>
     Finset.single_le_sum (f := fun σ => |g σ|) (fun _ _ => abs_nonneg _) (Finset.mem_univ σ)
 
-omit [DecidableEq κ] in
+omit [DecidableEq κ] [Fintype κ] in
 /-- **Hölder for a pair average against `α d + β`.** For `α ≥ 0` and a nonnegative kernel `d`,
 `𝔼⟨|F| (α d(σ_i,σ_j) + β)⟩ ≤ α (𝔼⟨|F|^p⟩)^{1/p} (𝔼⟨d^r⟩)^{1/r} + β 𝔼⟨|F|⟩`. -/
-theorem integral_integral_pair_holder_affine (μ : Measure Ω) [IsProbabilityMeasure μ]
+theorem integral_integral_pair_holder_affine [Finite κ] (μ : Measure Ω) [IsProbabilityMeasure μ]
     (E : Ω → κ → ℝ) (hE : ∀ a, Measurable fun ω => E ω a) {e : R → ι} (he : Function.Injective e)
     {i j : ι} (hij : i ≠ j) (F : (R → κ) → ℝ) (d : κ → κ → ℝ) (hd : ∀ a b, 0 ≤ d a b)
     {α β : ℝ} (hα : 0 ≤ α) {p r : ℝ} (hpr : p.HolderConjugate r) :
@@ -453,7 +459,7 @@ omit [DecidableEq κ] in
 (`d ≥ 0`, `α, β ≥ 0`), then
 `|𝔼⟨fΘ_{c ω}⟩| ≤ (4 n² + n) (α (𝔼⟨|f|^p⟩)^{1/p} (𝔼⟨d(σ_1,σ_2)^r⟩)^{1/r} + β 𝔼⟨|f|⟩)`,
 the replica estimate behind Talagrand's (2.40). -/
-theorem abs_integral_integral_theta_le [DecidableEq κ] [DecidableEq R] (μ : Measure Ω)
+theorem abs_integral_integral_theta_le [DecidableEq κ] (μ : Measure Ω)
     [IsProbabilityMeasure μ] (E : Ω → κ → ℝ) (hE : ∀ a, Measurable fun ω => E ω a)
     (c : Ω → κ → κ → ℝ) (d : κ → κ → ℝ) (hd : ∀ a b, 0 ≤ d a b) {α β : ℝ} (hα : 0 ≤ α)
     (hβ : 0 ≤ β) (hcm : ∀ ω a b, |c ω a b| ≤ α * d a b + β) (f : (R → κ) → ℝ) {p r : ℝ}
@@ -631,18 +637,19 @@ theorem abs_integral_integral_theta_le [DecidableEq κ] [DecidableEq R] (μ : Me
       nlinarith [mul_le_mul_of_nonneg_left hB' hn0, mul_le_mul_of_nonneg_left hC'
         (by positivity : (0 : ℝ) ≤ Fintype.card R * (Fintype.card R + 1))]
 
-omit [DecidableEq κ] in
+omit [DecidableEq κ] [Fintype κ] in
 /-- **Comparison of finite Gibbs averages for site energies at bounded distance.** If
 `|E₁ ω a - E₀ ω a| ≤ C`, the disorder average of an `R`-replica Gibbs average of `g ≥ 0` under
 `E₁` is at most `exp (2 |R| C)` times that under `E₀`. -/
-theorem integral_integral_count_tilted_le_exp_mul (μ : Measure Ω) [IsProbabilityMeasure μ]
-    (E₀ E₁ : Ω → κ → ℝ) (hE₀ : ∀ a, Measurable fun ω => E₀ ω a)
+theorem integral_integral_count_tilted_le_exp_mul [Finite κ] (μ : Measure Ω)
+    [IsProbabilityMeasure μ] (E₀ E₁ : Ω → κ → ℝ) (hE₀ : ∀ a, Measurable fun ω => E₀ ω a)
     (hE₁ : ∀ a, Measurable fun ω => E₁ ω a) {C : ℝ} (hC : ∀ ω a, |E₁ ω a - E₀ ω a| ≤ C)
-    [DecidableEq R] (g : (R → κ) → ℝ) (hg : ∀ σ, 0 ≤ g σ) :
+    (g : (R → κ) → ℝ) (hg : ∀ σ, 0 ≤ g σ) :
     ∫ ω, ∫ σ : R → κ, g σ ∂(Measure.pi fun _ : R => Measure.count.tilted (E₁ ω)) ∂μ ≤
       Real.exp (2 * Fintype.card R * C) *
         ∫ ω, ∫ σ : R → κ, g σ ∂(Measure.pi fun _ : R => Measure.count.tilted (E₀ ω)) ∂μ := by
   classical
+  have := Fintype.ofFinite κ
   have hm : ∀ E : Ω → κ → ℝ, (∀ a, Measurable fun ω => E ω a) →
       Measurable fun p : Ω × κ => E p.1 p.2 := fun E hE =>
     measurable_from_prod_countable_left (fun a => hE a)
@@ -661,11 +668,11 @@ theorem integral_integral_count_tilted_le_exp_mul (μ : Measure Ω) [IsProbabili
   · exact (le_abs_self _).trans (Finset.single_le_sum (f := fun σ => |g σ|)
       (fun _ _ => abs_nonneg _) (Finset.mem_univ σ))
 
-omit [DecidableEq κ] in
+omit [DecidableEq κ] [Fintype κ] in
 /-- A bounded random replica observable `g ω` has an integrable Gibbs average over a measurable
 random Gibbs state that depends on two independent environments, and the average over the second
 environment is integrable in the first. -/
-theorem integrable_integral_integral_count_tilted {Ω₀ Ξ : Type*} [MeasurableSpace Ω₀]
+theorem integrable_integral_integral_count_tilted [Finite κ] {Ω₀ Ξ : Type*} [MeasurableSpace Ω₀]
     [MeasurableSpace Ξ] (P₀ : Measure Ω₀) [IsFiniteMeasure P₀] (P : Measure Ξ) [IsFiniteMeasure P]
     (E : Ω₀ → Ξ → κ → ℝ) (hE : ∀ a, Measurable fun z : Ω₀ × Ξ => E z.1 z.2 a) {ι' : Type*}
     [Fintype ι'] (g : Ω₀ → (ι' → κ) → ℝ) (hg : ∀ σ, Measurable fun ω => g ω σ)
@@ -684,17 +691,17 @@ theorem integrable_integral_integral_count_tilted {Ω₀ Ξ : Type*} [Measurable
       exact abs_integral_pi_count_tilted_le _ fun σ => hgb _ σ)
   exact hI.integral_prod_left
 
-omit [DecidableEq κ] in
+omit [DecidableEq κ] [Fintype κ] in
 /-- **Comparison of nested disorder-averaged Gibbs averages.** If the site energies of two random
 Gibbs states, depending on two independent environments `ω, ξ`, differ by at most `C`, then for a
 bounded nonnegative observable `g ω` of `|R|` replicas the average over `(ω, ξ)` under the second
 is at most `exp (2 |R| C)` times that under the first. -/
-theorem integral_integral_integral_count_tilted_le_exp_mul {Ω₀ Ξ : Type*} [MeasurableSpace Ω₀]
-    [MeasurableSpace Ξ] (P₀ : Measure Ω₀) [IsProbabilityMeasure P₀] (P : Measure Ξ)
-    [IsProbabilityMeasure P] (E₀ E₁ : Ω₀ → Ξ → κ → ℝ)
+theorem integral_integral_integral_count_tilted_le_exp_mul [Finite κ] {Ω₀ Ξ : Type*}
+    [MeasurableSpace Ω₀] [MeasurableSpace Ξ] (P₀ : Measure Ω₀) [IsProbabilityMeasure P₀]
+    (P : Measure Ξ) [IsProbabilityMeasure P] (E₀ E₁ : Ω₀ → Ξ → κ → ℝ)
     (hE₀ : ∀ a, Measurable fun z : Ω₀ × Ξ => E₀ z.1 z.2 a)
     (hE₁ : ∀ a, Measurable fun z : Ω₀ × Ξ => E₁ z.1 z.2 a) {C : ℝ}
-    (hC : ∀ ω ξ a, |E₁ ω ξ a - E₀ ω ξ a| ≤ C) [DecidableEq R] (g : Ω₀ → (R → κ) → ℝ)
+    (hC : ∀ ω ξ a, |E₁ ω ξ a - E₀ ω ξ a| ≤ C) (g : Ω₀ → (R → κ) → ℝ)
     (hg : ∀ σ, Measurable fun ω => g ω σ) (hg0 : ∀ ω σ, 0 ≤ g ω σ) {M : ℝ}
     (hgM : ∀ ω σ, g ω σ ≤ M) :
     ∫ ω, ∫ ξ, ∫ σ, g ω σ ∂(Measure.pi fun _ : R => Measure.count.tilted (E₁ ω ξ)) ∂P ∂P₀ ≤
@@ -710,10 +717,10 @@ theorem integral_integral_integral_count_tilted_le_exp_mul {Ω₀ Ξ : Type*} [M
     (fun a => (hE₀ a).comp (measurable_const.prodMk measurable_id))
     (fun a => (hE₁ a).comp (measurable_const.prodMk measurable_id)) (hC ω) (g ω) (hg0 ω)
 
-omit [DecidableEq κ] in
+omit [DecidableEq κ] [Fintype κ] in
 /-- **Moments of a bounded observable.** For `0 ≤ h ≤ M` and `p ≥ 0`, the average of `h ^ p`
 over a random Gibbs state is at most `M ^ p`. -/
-theorem integral_integral_rpow_count_tilted_le (μ : Measure Ω) [IsProbabilityMeasure μ]
+theorem integral_integral_rpow_count_tilted_le [Finite κ] (μ : Measure Ω) [IsProbabilityMeasure μ]
     (E : Ω → κ → ℝ) {ι' : Type*} [Fintype ι'] (h : (ι' → κ) → ℝ) {M p : ℝ} (hp : 0 ≤ p)
     (h0 : ∀ σ, 0 ≤ h σ) (hM : ∀ σ, h σ ≤ M) :
     ∫ ω, ∫ σ, h σ ^ p ∂(Measure.pi fun _ : ι' => Measure.count.tilted (E ω)) ∂μ ≤ M ^ p := by

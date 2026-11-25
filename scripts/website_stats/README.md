@@ -95,6 +95,41 @@ modules, kinds, documentation/source links and source lines; and `metrics` store
 each metric's explanation, subject, method, display and values keyed by declaration ID.
 The URL records the selected metric, number of bars, selected range, search and page.
 
+### Declaration processing time
+
+Beam runs the full declaration three times with its imports already loaded. The
+chart uses the middle reading for each declaration and shows the median and
+90th percentile across the measured group. Timings depend on the runner and
+include the overhead of profiling. A command shared by two declarations has no
+individual timing. Failures and declarations skipped when time runs out stay
+out of the chart. The JSON download records every result, in tenths of a
+millisecond, or the reason a measurement is missing.
+
+1. Find the successful **Build** run for the current `main` commit. It uploads
+   the `exposition-catalog` artifact.
+2. Start **Profile exposition declarations** on `main` and enter that Build
+   run's numeric ID. The workflow builds the matching Beam runtime, checks a
+   few files, then collects timings for up to four hours. It uploads
+   `exposition-profiles`.
+3. Rerun all jobs in the original **Build** run while that commit is still at
+   the tip of `main`. The build validates the report against its catalog and
+   includes it in the existing Pages deployment. Choose **Declaration processing
+   time** in Stats or open `exposition/stats/?metric=declaration-time#stats`.
+
+For a local collection, use a clean, built LML checkout and the installed
+profiling-enabled `lean-beam-mcp` from the revision pinned in the profiling
+workflow. Pass a `data.json` from that checkout's Stats build.
+
+```bash
+python3 scripts/profile_stats.py --catalog /path/to/stats/data.json \
+  --beam /path/to/lean-beam-mcp --output /tmp/exposition-profiles.json
+python3 scripts/build_stats.py --data /path/to/dataset \
+  --repository https://github.com/anhhuyalex/LML --profiles /tmp/exposition-profiles.json
+```
+
+Use `--pilot 3 --seconds 300` for a quick check on three files. Pilot reports
+stay out of the published chart.
+
 Later results from
 [lean-quality-indicators](https://github.com/RemyDegenne/lean-quality-indicators)
 must enter as separately recorded review results, not as ordinary reuse counts.

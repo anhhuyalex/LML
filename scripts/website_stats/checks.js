@@ -1,6 +1,11 @@
 "use strict";
 const assert = require("node:assert/strict");
-const {histogram} = require("./assets/stats.js");
+const {histogram, timingHistogram} = require("./assets/stats.js");
+
+assert.deepEqual(timingHistogram({A: 0, B: 99, C: 100, D: 499, E: 500, F: 49999,
+  G: 50000, H: 999999}).map(bin => bin.count), [2, 2, 1, 0, 0, 1, 2]);
+assert.ok(timingHistogram({}).every(bin => bin.count === 0));
+assert.throws(() => timingHistogram({bad: null}));
 
 assert.deepEqual(histogram({A: 0, B: 0}, "20"), [{min: 0, max: 0, count: 2}]);
 assert.deepEqual(histogram({A: 0, B: 2, C: 2, D: 1000}, "exact"), [

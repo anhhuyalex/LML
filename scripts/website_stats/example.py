@@ -7,6 +7,19 @@ from __future__ import annotations
 import json
 import pathlib
 
+from .profiling import report_header
+
+
+def sample_report(bundle):
+    declarations = bundle["declarations"]
+    return {
+        **report_header(bundle["build"], declarations), "mode": "full", "beam": "example",
+        "beam_revision": "example", "runner": "example",
+        "readings": {**dict.fromkeys((d["id"] for d in declarations), "budget"),
+                     "A": [99, 0, 0], "B": [100, 150, 125], "C": [50000, 61000, 59000],
+                     "D": "timeout", "E": "rejected"},
+    }
+
 REVISION = "1234567890abcdef1234567890abcdef12345678"
 REPOSITORY = "https://github.com/anhhuyalex/LML"
 

@@ -29,10 +29,12 @@ namespace SpinGlasses
 variable {κ Ω T : Type*} [Fintype κ] {mΩ : MeasurableSpace Ω} {P : Measure Ω}
   [NormedAddCommGroup T] [NormedSpace ℝ T] {X Y : κ → Ω → ℝ}
 
+omit [Fintype κ] in
 /-- Partial derivatives of a function of `(τ, y)` in the `y`-direction are those of the section
 `y ↦ F (c, y)`. -/
-theorem fderiv_section_apply {F : T × (κ → ℝ) → ℝ} (hF : Differentiable ℝ F) (c : T)
+theorem fderiv_section_apply [Finite κ] {F : T × (κ → ℝ) → ℝ} (hF : Differentiable ℝ F) (c : T)
     (y w : κ → ℝ) : fderiv ℝ (fun y => F (c, y)) y w = fderiv ℝ F (c, y) (0, w) := by
+  have := Fintype.ofFinite κ
   have h1 : HasFDerivAt (fun y : κ → ℝ => (c, y))
       ((0 : (κ → ℝ) →L[ℝ] T).prod (ContinuousLinearMap.id ℝ (κ → ℝ))) y :=
     (hasFDerivAt_const c y).prodMk (hasFDerivAt_id y)

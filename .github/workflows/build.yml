@@ -198,9 +198,32 @@ jobs:
         if: github.event_name == 'push'
         env:
           REFEREE_DATA: ${{ steps.referee.outputs.dataset }}
+          GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
+          profile_dir=$(mktemp -d "$RUNNER_TEMP/exposition-profiles.XXXXXX")
+          profile_args=()
+          if run_id=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/profile-exposition.yml/runs" \
+              -f head_sha="$GITHUB_SHA" -f branch=main -f event=workflow_dispatch -f status=success \
+              -F per_page=1 --method GET --jq '.workflow_runs[0].id // empty') &&
+              [[ "$run_id" =~ ^[0-9]+$ ]] &&
+              gh run download "$run_id" --repo "$GITHUB_REPOSITORY" \
+                --name exposition-profiles --dir "$profile_dir"; then
+            profile_args=(--profiles "$profile_dir/exposition-profiles.json")
+          else
+            echo "No Beam timing report available for $GITHUB_SHA."
+          fi
           python3 scripts/build_stats.py --data "$REFEREE_DATA" \
-            --repository "https://github.com/$GITHUB_REPOSITORY"
+            --repository "https://github.com/$GITHUB_REPOSITORY" "${profile_args[@]}"
+
+      - name: Upload the declaration catalog for profiling
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: exposition-catalog
+          path: home_page/exposition/stats/data.json
+          if-no-files-found: error
+          overwrite: true
 
       - name: Set up .NET for leanviz
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
@@ -223,13 +246,27 @@ jobs:
             python3 scripts/check_stats.py
           fi
 
-      - name: "Upload website (API documentation, exposition, Stats, leanviz and home page)"
+      - name: Check that the Pages source is still current
+        id: pages-source
         if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
+          if [[ "$current" == "$GITHUB_SHA" ]]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Skipping deployment because main moved to $current."
+          fi
+
+      - name: "Upload website (API documentation, exposition, Stats, leanviz and home page)"
+        if: steps.pages-source.outputs.current == 'true'
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: home_page/
 
       - name: Deploy to GitHub Pages
-        if: github.event_name == 'push'
+        if: steps.pages-source.outputs.current == 'true'
         id: deployment
         uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0

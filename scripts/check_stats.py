@@ -18,7 +18,8 @@ import time
 
 from build_stats import build
 from website_stats.browser import Page
-from website_stats.example import REPOSITORY, REVISION, make_fixture
+from website_stats.example import REPOSITORY, REVISION, make_fixture, sample_report
+from website_stats.profiling import PROFILE_METRIC, timing_metric, validate_report
 from website_stats.reader import local_target, require
 from website_stats.render import PageParts
 
@@ -33,6 +34,12 @@ def validate(site):
     require(len(names) + sum(bundle["population"]["excluded"].values()) ==
             bundle["population"]["collected"], "Population counts do not add up")
     for metric in bundle["metrics"]:
+        if metric["id"] == PROFILE_METRIC:
+            report = bundle.get("profiling")
+            if report is not None:
+                validate_report(report, bundle["build"], declarations)
+            require(metric == timing_metric(report, declarations), "Incorrect timing statistics")
+            continue
         require(set(metric["values"]) == names, f"Incomplete metric: {metric['id']}")
         require(all(type(value) is int and value >= 0
                     for value in metric["values"].values()), "Invalid reuse counts")
@@ -70,6 +77,49 @@ def wait(page, expression):
             return
         time.sleep(.1)
     raise AssertionError(f"Browser check did not finish: {expression}")
+
+
+def timing_browser_checks(page, base, bundle, fixture):
+    metric = next((m for m in bundle["metrics"] if m["id"] == PROFILE_METRIC), None)
+    if metric is None:
+        return
+    ready = "document.documentElement.dataset.statsReady === 'true'"
+    page.visit(f"{base}/stats/?metric={PROFILE_METRIC}#stats", ready)
+    read = page.value
+    n = len(metric["values"])
+    require(read("document.querySelector('#stats-bin-control').hidden"), "Timing has fixed bins")
+    summary = read("document.querySelector('#stats-timing-summary').textContent")
+    if not n:
+        message = (f"Measured 0 of {metric['eligible']} declarations." if "profiling" in bundle
+                   else "No timing data for this revision.")
+        require(summary == message and read("document.querySelector('#stats-chart-content').hidden"),
+                "Missing timings shown as measurements")
+        return
+    require(summary.startswith(f"Measured {n} of {metric['eligible']} declarations."),
+            "Incorrect timing coverage")
+    require(read("[...document.querySelectorAll('.stats-bar')].reduce((s,b) => s + Number(b.dataset.count), 0)")
+            == n, "Unmeasured declarations appear in the timing chart")
+    if fixture:
+        require(read("document.querySelector('#stats-declarations tbody tr').dataset.name") == "C",
+                "Slowest declaration should be first")
+        require(read("document.querySelector('[data-name=A] td:nth-child(4)').textContent") == "0 ms",
+                "Zero reading was discarded")
+        page.value("document.querySelector('.stats-bar[data-max=open]').focus()")
+        page.ws.send("Input.dispatchKeyEvent", {"type": "keyDown", "key": "Enter", "code": "Enter",
+                                               "windowsVirtualKeyCode": 13, "text": "\r",
+                                               "unmodifiedText": "\r"})
+        page.ws.send("Input.dispatchKeyEvent", {"type": "keyUp", "key": "Enter", "code": "Enter"})
+        wait(page, "new URLSearchParams(location.search).get('max') === 'open'")
+        selection = read("location.href")
+        page.visit(selection, ready)
+        require(read("document.querySelector('.stats-bar[aria-pressed=true]').dataset.max") == "open",
+                "Shared timing range was lost")
+        require(read("document.querySelectorAll('#stats-declarations tbody tr').length") == 1,
+                "Timing range selected the wrong declarations")
+        require(read("document.querySelector('[data-name=C] a').href") ==
+                base + "/" + next(d["documentation"] for d in bundle["declarations"] if d["id"] == "C"),
+                "Timing row lost its documentation link")
+    require(read("document.documentElement.scrollWidth <= innerWidth + 1"), "Timing view overflows")
 
 
 def browser_checks(base, bundle, fixture, screenshots):
@@ -131,6 +181,7 @@ def browser_checks(base, bundle, fixture, screenshots):
                 screenshots.mkdir(parents=True, exist_ok=True)
                 page.value("document.querySelector('#stats-clear').click()")
                 page.screenshot(screenshots / f"stats-{width}.png")
+            timing_browser_checks(page, base, bundle, fixture)
             # Open the actual documentation destination in the served exposition.
             selector = ('#nav-links a[data-lml-stats]' if bundle["build"].get("format") ==
                         "ltb-dataset/2" else '#toc a[href="stats/#stats"]')
@@ -175,7 +226,11 @@ def main():
     subprocess.run(["node", str(pathlib.Path(__file__).parent / "website_stats/checks.js")], check=True)
     with tempfile.TemporaryDirectory(prefix="lml-stats-example-") as temp:
         project, site, data, _ = make_fixture(pathlib.Path(temp))
-        build(data, site, project, REPOSITORY, REVISION)
+        bundle = build(data, site, project, REPOSITORY, REVISION)
+        check(site, fixture=True)
+        report = project / "profile.json"
+        report.write_text(json.dumps(sample_report(bundle)))
+        build(data, site, project, REPOSITORY, REVISION, profiles=report)
         check(site, fixture=True, screenshots=args.screenshots)
     if args.site:
         check(args.site)

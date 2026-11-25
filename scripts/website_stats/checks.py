@@ -9,10 +9,13 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import Mock, call
 
 from build_stats import build
-from .example import REPOSITORY, REVISION, make_fixture, make_dataset_fixture
+from profile_stats import measure_command
+from .example import REPOSITORY, REVISION, make_fixture, make_dataset_fixture, sample_report
 from .metrics import reuse
+from .profiling import timing_metric, validate_report
 from .reader import authored, catalog, decode
 from .render import PageParts, add_navigation
 
@@ -84,6 +87,49 @@ class StatsChecks(unittest.TestCase):
         self.assertTrue(authored("Ns.right", 'alias ⟨Ns.left, Ns.right⟩ := pair_iff'))
         self.assertTrue(authored("Ns.Object", 'class inductive Object : Type | unit'))
 
+    def test_timing_statistics_and_missing_reports(self):
+        bundle = build(self.path, self.site, self.project, REPOSITORY, REVISION)
+        self.assertIsNone(bundle["metrics"][1]["summary"])
+        report = sample_report(bundle)
+        path = self.project / "profile.json"
+        path.write_text(json.dumps(report))
+        with_timings = build(self.path, self.site, self.project, REPOSITORY, REVISION, profiles=path)
+        self.assertEqual(with_timings["profiling"], report)
+        self.assertEqual(with_timings["metrics"][0], bundle["metrics"][0])
+        timing = with_timings["metrics"][1]
+        self.assertEqual(timing["values"], {"A": 0, "B": 125, "C": 59000})
+        self.assertEqual(timing["summary"], {"median": 125, "p90": 59000})
+        self.assertEqual(timing["eligible"], len(bundle["declarations"]))
+        for field in ("revision", "catalog_sha256", "mode"):
+            path.write_text(json.dumps({**report, field: "wrong"}))
+            without = build(self.path, self.site, self.project, REPOSITORY, REVISION, profiles=path)
+            self.assertNotIn("profiling", without)
+            self.assertEqual(without["metrics"], bundle["metrics"])
+        for bad in (None, [1, 2], [True, 0, 0], "pilot", "made_up"):
+            invalid = {**report, "readings": {**report["readings"], "A": bad}}
+            with self.assertRaises(ValueError):
+                validate_report(invalid, bundle["build"], bundle["declarations"])
+        report["readings"] = dict.fromkeys(report["readings"], "budget")
+        validate_report(report, bundle["build"], bundle["declarations"])
+        self.assertEqual(timing_metric(report, bundle["declarations"])["values"], {})
+        self.assertIsNone(timing_metric(report, bundle["declarations"])["summary"])
+
+    def test_collector_reads_beam_profile_time(self):
+        beam = Mock()
+        snippet = "@[simp] theorem A : True := by trivial"
+        row = {"id": "A", "line": 3, "character": 1}
+        beam.file_call.side_effect = [
+            {"success": True, "elapsed_ms": 999, "profile": {"elapsed_ms": value}}
+            for value in (2.1, 0, 1.8)
+        ]
+        self.assertEqual(measure_command(beam, "Example.lean", 2, row, snippet, 0), [21, 0, 18])
+        self.assertEqual(beam.file_call.call_args_list, [
+            call("lean_run_at", "Example.lean", 0, version=2, line=3, character=1,
+                 text=snippet, profile=True),
+        ] * 3)
+        beam.file_call.side_effect = [{"success": False}]
+        self.assertEqual(measure_command(beam, "Example.lean", 2, row, snippet, 0), "rejected")
+
     def test_navigation_after_sorries_and_repeatable_build(self):
         original = (self.site / "index.html").read_text()
         updated = add_navigation(original)
@@ -106,7 +152,7 @@ class StatsChecks(unittest.TestCase):
         scripts = pathlib.Path(__file__).resolve().parent.parent
         environment = {key: value for key, value in os.environ.items()
                        if key not in ("PYTHONPATH", "PYTHONHOME")}
-        for command in ("build_stats.py", "check_stats.py"):
+        for command in ("build_stats.py", "check_stats.py", "profile_stats.py"):
             with self.subTest(command=command):
                 completed = subprocess.run(
                     [sys.executable, "-B", "-E", "-s", str(scripts / command), "--help"],

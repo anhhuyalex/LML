@@ -92,18 +92,22 @@ CONTENT = """<main><div class="content-wrapper lml-stats">
 <p id="stats-version"></p><p id="stats-population"></p>
 <p>These counts describe the library's shape. They are not a quality score.</p>
 <div id="stats-controls"><label>Statistic <select id="stats-metric"></select></label>
-<label>Number of bars <select id="stats-bins"><option>10</option>
+<label id="stats-bin-control">Number of bars <select id="stats-bins"><option>10</option>
 <option selected>20</option><option>50</option><option value="exact">One per exact count</option>
 </select></label></div>
 <h2 id="stats-chart-title"></h2><p id="stats-explanation"></p>
-<details><summary>How the counts work</summary><p id="stats-notes"></p></details>
+<p id="stats-timing-summary" hidden></p>
+<details><summary id="stats-method-label">How the counts work</summary><p id="stats-notes"></p></details>
+<div id="stats-chart-content">
 <p id="stats-y-label"></p><div id="stats-chart" aria-labelledby="stats-chart-title"></div>
 <p id="stats-x-label"></p>
 <details><summary>Show the chart as a table</summary>
 <table id="stats-counts"><caption>Histogram counts</caption><thead><tr>
-<th scope="col">Uses</th><th scope="col">Number of declarations</th></tr></thead><tbody></tbody></table>
+<th id="stats-range-heading" scope="col">Uses</th><th scope="col">Number of declarations</th></tr></thead><tbody></tbody></table>
 </details>
+</div>
 <p><a href="stats/data.json" download="lml-statistics.json">Download statistics as JSON</a></p>
+<div id="stats-list-content">
 <h2 id="stats-selection" tabindex="-1">Declarations</h2>
 <div id="stats-list-controls"><label>Search declarations
 <input type="search" id="stats-search" placeholder="Name or module"></label>
@@ -111,9 +115,10 @@ CONTENT = """<main><div class="content-wrapper lml-stats">
 <p id="stats-count" role="status" aria-live="polite"></p>
 <div class="stats-table-scroll"><table id="stats-declarations"><thead><tr>
 <th scope="col">Declaration</th><th scope="col">Kind</th><th scope="col">Module</th>
-<th scope="col">Uses</th><th scope="col">Links</th></tr></thead><tbody></tbody></table></div>
+<th id="stats-value-heading" scope="col">Uses</th><th scope="col">Links</th></tr></thead><tbody></tbody></table></div>
 <nav id="stats-pagination" aria-label="Declaration list pages"><button id="stats-prev">Previous</button>
 <span id="stats-page"></span><button id="stats-next">Next</button></nav>
+</div>
 <noscript>Enable JavaScript to use the interactive chart. The JSON download contains every count.</noscript>
 <p id="stats-error" role="alert" hidden></p>
 </section></div></main>"""

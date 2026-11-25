@@ -7,6 +7,7 @@ module
 
 public import Mathlib.Analysis.Calculus.MeanValue
 public import Mathlib.Topology.MetricSpace.Contracting
+public import LeanMachineLearning.ForMathlib.Analysis.Calculus.IntervalDerivative
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.TrigSquareParam
 public import LeanMachineLearning.SpinGlasses.Talagrand.GuerraReplicaSymmetric.SKFixedPointRS
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ConstraintCavityEndpoint
@@ -32,8 +33,6 @@ $r \ge 0$.
 
 ## Main declarations
 
-* `abs_sub_le_of_continuousOn_Icc_of_hasDerivAt_Ioo`: mean-value Lipschitz bound on `[a, b]` from
-  `ContinuousOn` on `[a, b]` and bounded derivative on `(a, b)`.
 * `hasDerivAt_integral_tanh_sq_sqrt_and_abs_le`: on `(0, ∞)`, `r ↦ 𝔼 tanh²(z √r)` has derivative
   `𝔼[(1 - tanh²)(1 - 3 tanh²)]` bounded in absolute value by `1`.
 * `lipschitzWith_one_integral_tanh_sq_sqrt`: `r ↦ 𝔼 tanh²(z √r)` is `1`-Lipschitz on `ℝ`.
@@ -56,29 +55,7 @@ $r \ge 0$.
 open MeasureTheory ProbabilityTheory Set Filter
 open scoped BigOperators NNReal ENNReal Topology
 
-/-! ### Model-free MVT Lipschitz helper and `r ↦ 𝔼 tanh²(z √r)` regularity -/
-
-/-- If `f : ℝ → ℝ` is continuous on `[a, b]` and has derivative bounded by `C` on `(a, b)`,
-then `|f y - f x| ≤ C * |y - x|` for all `x, y ∈ [a, b]`. -/
-theorem abs_sub_le_of_continuousOn_Icc_of_hasDerivAt_Ioo
-    {f : ℝ → ℝ} {a b C : ℝ} (hfc : ContinuousOn f (Icc a b))
-    (hfd : ∀ x ∈ Ioo a b, ∃ d, HasDerivAt f d x ∧ |d| ≤ C)
-    {x y : ℝ} (hx : x ∈ Icc a b) (hy : y ∈ Icc a b) :
-    |f y - f x| ≤ C * |y - x| := by
-  wlog hxy : x ≤ y generalizing x y
-  · rw [abs_sub_comm (f y) (f x), abs_sub_comm y x]
-    exact this hy hx (le_of_not_ge hxy)
-  rcases eq_or_lt_of_le hxy with rfl | hlt
-  · simp
-  have hsub : Icc x y ⊆ Icc a b := Icc_subset_Icc hx.1 hy.2
-  have hsub_oo : Ioo x y ⊆ Ioo a b := Ioo_subset_Ioo hx.1 hy.2
-  choose! f' hf' hfb using hfd
-  obtain ⟨c, hc, hslope⟩ := exists_hasDerivAt_eq_slope f f' hlt (hfc.mono hsub)
-    (fun t ht => hf' t (hsub_oo ht))
-  have hpos : 0 < y - x := sub_pos.2 hlt
-  have heq : f y - f x = f' c * (y - x) := ((eq_div_iff hpos.ne').1 hslope).symm
-  rw [heq, abs_mul, abs_of_pos hpos]
-  exact mul_le_mul_of_nonneg_right (hfb c (hsub_oo hc)) hpos.le
+/-! ### Regularity of `r ↦ 𝔼 tanh²(z √r)` -/
 
 /-- **Uniform derivative bound on `(0, ∞)` for `r ↦ 𝔼 tanh²(z √r)`:** at `r > 0`, the derivative
 equals `𝔼[(1 - tanh²(z √r))(1 - 3 tanh²(z √r))]`, whose absolute value is at most `1`. -/

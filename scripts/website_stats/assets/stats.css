@@ -5,6 +5,7 @@
   display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; margin: 1rem 0;
 }
 .lml-stats label { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.lml-stats [hidden] { display: none !important; }
 .lml-stats button, .lml-stats select, .lml-stats input {
   font: inherit; color: inherit; background-color: transparent; border: 1px solid #888;
   border-radius: .3rem; padding: .5rem; min-height: 44px; max-width: 100%;

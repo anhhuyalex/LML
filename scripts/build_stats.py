@@ -6,14 +6,16 @@ import argparse
 import json
 import pathlib
 import subprocess
+import sys
 
 from website_stats.metrics import results
 from website_stats.reader import catalog
 from website_stats.dataset import load
 from website_stats.render import build_site
+from website_stats.profiling import timing_metric, validate_report
 
 
-def build(data_path, site, project, repository, revision):
+def build(data_path, site, project, repository, revision, *, profiles=None):
     data, producer = load(data_path, project, revision)
     declarations, excluded = catalog(data, site, project, repository, revision)
     bundle = {"schema_version": 1,
@@ -24,6 +26,17 @@ def build(data_path, site, project, repository, revision):
                              "collected": len(data["decls"]), "included": len(declarations),
                              "excluded": excluded},
               "declarations": declarations, "metrics": results(declarations, data)}
+    report = None
+    if profiles is not None:
+        try:
+            candidate = json.loads(profiles.read_text())
+            validate_report(candidate, bundle["build"], declarations)
+            report = candidate
+        except (OSError, ValueError) as error:
+            print(f"Skipping Beam timings: {error}", file=sys.stderr)
+    if report is not None:
+        bundle["profiling"] = report
+    bundle["metrics"].append(timing_metric(report, declarations))
     pages = build_site(site, bundle)
     print(f"Stats: {len(declarations)} declarations; exclusions {excluded}; {pages} pages updated")
     return bundle
@@ -35,9 +48,11 @@ if __name__ == "__main__":
     parser.add_argument("--site", type=pathlib.Path, default=pathlib.Path("home_page/exposition"))
     parser.add_argument("--project", type=pathlib.Path, default=pathlib.Path.cwd())
     parser.add_argument("--repository", required=True)
+    parser.add_argument("--profiles", type=pathlib.Path, help="Optional Beam timing report")
     args = parser.parse_args()
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=args.project, text=True).strip()
     try:
-        build(args.data, args.site, args.project, args.repository.rstrip("/"), revision)
+        build(args.data, args.site, args.project, args.repository.rstrip("/"), revision,
+              profiles=args.profiles)
     except (ValueError, KeyError, TypeError) as error:
         parser.exit(1, f"Stats build failed: {error}\n")

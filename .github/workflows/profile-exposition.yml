@@ -1,0 +1,85 @@
+name: Profile exposition declarations
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_run:
+        description: Successful Build run ID for the main commit to measure
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  profile:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    env:
+      BEAM_REVISION: 8bcac69d31e4738542a8278af524a816b99b5400
+    steps:
+      - name: Find the source revision and catalog
+        id: source
+        env:
+          BUILD_RUN: ${{ inputs.build_run }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "$BUILD_RUN" =~ ^[0-9]+$ ]]
+          revision=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$BUILD_RUN" --jq '
+            select(.path == ".github/workflows/build.yml" and .head_branch == "main"
+              and .event == "push" and .conclusion == "success") | .head_sha')
+          [[ "$revision" == "$GITHUB_SHA" ]]
+          echo "revision=$revision" >> "$GITHUB_OUTPUT"
+          gh run download "$BUILD_RUN" --repo "$GITHUB_REPOSITORY" --name exposition-catalog \
+            --dir "$RUNNER_TEMP/exposition-catalog"
+
+      - name: Check out the measured source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.source.outputs.revision }}
+          persist-credentials: false
+
+      - name: Build LML
+        uses: leanprover/lean-action@fe408643ea7367d8c0404a8be3975bb145f5fb64 # v1.7.0
+        with:
+          build: true
+          lint: false
+          mk_all-check: false
+
+      - name: Check out the profiling version of Beam
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: leanprover/lean-beam
+          ref: ${{ env.BEAM_REVISION }}
+          path: beam-source
+          persist-credentials: false
+
+      - name: Build Beam for the project's Lean version
+        run: |
+          set -euo pipefail
+          toolchain=$(cat lean-toolchain)
+          cd beam-source
+          export BEAM_INSTALL_ROOT="$RUNNER_TEMP/exposition-beam"
+          export BEAM_BIN_HOME="$RUNNER_TEMP/exposition-beam-bin"
+          ./scripts/install-beam.sh --yes --toolchain "$toolchain"
+
+      - name: Measure declarations
+        run: |
+          set -euo pipefail
+          beam="$RUNNER_TEMP/exposition-beam-bin/lean-beam-mcp"
+          catalog="$RUNNER_TEMP/exposition-catalog/data.json"
+          python3 scripts/profile_stats.py --catalog "$catalog" --beam "$beam" \
+            --pilot 3 --seconds 300 --output "$RUNNER_TEMP/exposition-pilot.json"
+          python3 scripts/profile_stats.py --catalog "$catalog" --beam "$beam" \
+            --output "$RUNNER_TEMP/exposition-profiles.json"
+
+      - name: Upload the timing report
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: exposition-profiles
+          path: ${{ runner.temp }}/exposition-profiles.json
+          if-no-files-found: error
+          overwrite: true

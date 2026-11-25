@@ -24,6 +24,14 @@ Two general facts about the sub-Gaussian moment-generating function `HasSubgauss
 Together with Chernoff's bound (`HasSubgaussianMGF.measure_ge_le`, `measure_le_le`) these turn an
 exponential-moment bound for a pair of independent copies into a two-sided tail bound and a
 variance bound.
+
+Two centering bounds go the other way: from a bound around an arbitrary number `m` (for instance a
+median) to a bound around the mean.
+
+* `integral_sub_integral_pow_two_mul_le`:
+  `𝔼 (f - 𝔼 f) ^ (2 k) ≤ 2 ^ (2 k) 𝔼 (f - m) ^ (2 k)`.
+* `integral_exp_mul_sq_sub_integral_le`:
+  `𝔼 exp (c (f - 𝔼 f)² / 4) ≤ 𝔼 exp (c (f - m)²)`.
 -/
 
 @[expose] public section
@@ -144,5 +152,125 @@ theorem hasSubgaussianMGF_sub_integral_of_integral_exp_sub_le {F : Ω → ℝ} (
           exact (integral_prod_mul (μ := μ) (ν := μ) (fun ω => Real.exp (t * F ω))
             (fun ω => Real.exp (-t * F ω))).symm
       _ ≤ Real.exp (c * t ^ 2 / 2) := h t
+
+/-- **Centering at the mean costs a factor `2 ^ (2 k)`** (Talagrand, Eq. (3.22)):
+`𝔼 (f - 𝔼 f) ^ (2 k) ≤ 2 ^ (2 k) 𝔼 (f - m) ^ (2 k)` for every number `m`. -/
+theorem integral_sub_integral_pow_two_mul_le {f : Ω → ℝ} (hf : AEStronglyMeasurable f μ) {m : ℝ}
+    {k : ℕ} (hint : Integrable (fun ω => (f ω - m) ^ (2 * k)) μ) :
+    Integrable (fun ω => (f ω - ∫ ω', f ω' ∂μ) ^ (2 * k)) μ ∧
+      ∫ ω, (f ω - ∫ ω', f ω' ∂μ) ^ (2 * k) ∂μ ≤
+        2 ^ (2 * k) * ∫ ω, (f ω - m) ^ (2 * k) ∂μ := by
+  rcases Nat.eq_zero_or_pos k with rfl | hk
+  · simp
+  have heven : Even (2 * k) := even_two_mul k
+  set g : Ω → ℝ := fun ω => f ω - m with hg
+  have hgm : AEStronglyMeasurable g μ := hf.sub aestronglyMeasurable_const
+  have hgi : Integrable g μ := by
+    refine Integrable.mono' (hint.add (integrable_const 1)) hgm (ae_of_all _ fun ω => ?_)
+    rw [Real.norm_eq_abs, Pi.add_apply, ← heven.pow_abs]
+    rcases le_total |g ω| 1 with h | h
+    · linarith [pow_nonneg (abs_nonneg (g ω)) (2 * k)]
+    · linarith [le_self_pow₀ h (show 2 * k ≠ 0 by omega)]
+  have hfi : Integrable f μ :=
+    (hgi.add (integrable_const m)).congr (ae_of_all _ fun ω => by simp [hg])
+  set e := ∫ ω, g ω ∂μ with he
+  have hmean : ∀ ω, f ω - ∫ ω', f ω' ∂μ = g ω - e := fun ω => by
+    have : e = (∫ ω', f ω' ∂μ) - m := by
+      rw [he, integral_sub hfi (integrable_const m), integral_const, probReal_univ, one_smul]
+    simp only [hg, this]
+    ring
+  have hJ : e ^ (2 * k) ≤ ∫ ω, g ω ^ (2 * k) ∂μ :=
+    ConvexOn.map_integral_le (heven.convexOn_pow (𝕜 := ℝ)) (continuous_pow _).continuousOn
+      isClosed_univ (ae_of_all _ fun _ => Set.mem_univ _) hgi hint
+  have hpt : ∀ ω, (g ω - e) ^ (2 * k) ≤ 2 ^ (2 * k - 1) * (g ω ^ (2 * k) + e ^ (2 * k)) :=
+    fun ω => by
+      rw [← heven.pow_abs (g ω - e), ← heven.pow_abs (g ω), ← heven.pow_abs e]
+      exact (pow_le_pow_left₀ (abs_nonneg _) (abs_sub _ _) _).trans
+        (add_pow_le (abs_nonneg _) (abs_nonneg _) _)
+  have hdom : Integrable (fun ω => 2 ^ (2 * k - 1) * (g ω ^ (2 * k) + e ^ (2 * k))) μ :=
+    (hint.add (integrable_const _)).const_mul _
+  have hi : Integrable (fun ω => (g ω - e) ^ (2 * k)) μ := by
+    refine Integrable.mono' hdom ((continuous_pow _).comp_aestronglyMeasurable
+      (hgm.sub aestronglyMeasurable_const)) (ae_of_all _ fun ω => ?_)
+    rw [Real.norm_of_nonneg (heven.pow_nonneg _)]
+    exact hpt ω
+  simp only [hmean]
+  refine ⟨hi, (integral_mono hi hdom hpt).trans ?_⟩
+  rw [integral_const_mul, integral_add hint (integrable_const _), integral_const, probReal_univ,
+    one_smul]
+  have h2 : (2 : ℝ) ^ (2 * k) = 2 ^ (2 * k - 1) * 2 := by
+    rw [← pow_succ]; congr 1; omega
+  rw [h2, mul_assoc]
+  exact mul_le_mul_of_nonneg_left (by linarith) (by positivity)
+
+/-- **Exponential square integrability centered at the mean**: if `exp (c (f - m)²)` is
+integrable for some number `m` and `c > 0`, then
+`𝔼 exp (c (f - 𝔼 f)² / 4) ≤ 𝔼 exp (c (f - m)²)`. The integrability hypothesis is necessary for
+the inequality to carry information. -/
+theorem integral_exp_mul_sq_sub_integral_le {f : Ω → ℝ} (hf : AEStronglyMeasurable f μ)
+    {m c : ℝ} (hc : 0 < c) (hint : Integrable (fun ω => Real.exp (c * (f ω - m) ^ 2)) μ) :
+    Integrable (fun ω => Real.exp (c / 4 * (f ω - ∫ ω', f ω' ∂μ) ^ 2)) μ ∧
+      ∫ ω, Real.exp (c / 4 * (f ω - ∫ ω', f ω' ∂μ) ^ 2) ∂μ ≤
+        ∫ ω, Real.exp (c * (f ω - m) ^ 2) ∂μ := by
+  set g : Ω → ℝ := fun ω => f ω - m with hg
+  have hgm : AEStronglyMeasurable g μ := hf.sub aestronglyMeasurable_const
+  have hg2m : AEStronglyMeasurable (fun ω => g ω ^ 2) μ :=
+    (continuous_pow 2).comp_aestronglyMeasurable hgm
+  have hg2 : Integrable (fun ω => g ω ^ 2) μ := by
+    refine Integrable.mono' (hint.const_mul c⁻¹) hg2m (ae_of_all _ fun ω => ?_)
+    rw [Real.norm_of_nonneg (sq_nonneg _), inv_mul_eq_div, le_div_iff₀ hc]
+    exact (mul_comm _ _).trans_le ((le_add_of_nonneg_right zero_le_one).trans
+      (Real.add_one_le_exp _))
+  have hgL : MemLp g 2 μ := (memLp_two_iff_integrable_sq hgm).2 hg2
+  have hgi : Integrable g μ := hgL.integrable one_le_two
+  have hfi : Integrable f μ :=
+    (hgi.add (integrable_const m)).congr (ae_of_all _ fun ω => by simp [hg])
+  set e := ∫ ω, g ω ∂μ with he
+  have hmean : ∀ ω, f ω - ∫ ω', f ω' ∂μ = g ω - e := fun ω => by
+    have : e = (∫ ω', f ω' ∂μ) - m := by
+      rw [he, integral_sub hfi (integrable_const m), integral_const, probReal_univ, one_smul]
+    simp only [hg, this]
+    ring
+  have hexpm : ∀ {h : Ω → ℝ}, AEStronglyMeasurable h μ →
+      AEStronglyMeasurable (fun ω => Real.exp (h ω)) μ := fun hh =>
+    Real.continuous_exp.comp_aestronglyMeasurable hh
+  have hhalf : Integrable (fun ω => Real.exp (c / 2 * g ω ^ 2)) μ := by
+    refine Integrable.mono' hint (hexpm (hg2m.const_mul _)) (ae_of_all _ fun ω => ?_)
+    rw [Real.norm_of_nonneg (Real.exp_pos _).le, Real.exp_le_exp]
+    exact mul_le_mul_of_nonneg_right (by linarith) (sq_nonneg _)
+  -- Jensen twice: `exp (c e² / 2) ≤ 𝔼 exp (c g² / 2)`
+  have he2 : e ^ 2 ≤ ∫ ω, g ω ^ 2 ∂μ :=
+    ConvexOn.map_integral_le ((even_two).convexOn_pow (𝕜 := ℝ)) (continuous_pow 2).continuousOn
+      isClosed_univ (ae_of_all _ fun _ => Set.mem_univ _) hgi hg2
+  have hJ : Real.exp (c / 2 * e ^ 2) ≤ ∫ ω, Real.exp (c / 2 * g ω ^ 2) ∂μ := by
+    refine (Real.exp_le_exp.2 (mul_le_mul_of_nonneg_left he2 (by linarith))).trans ?_
+    rw [← integral_const_mul]
+    exact ConvexOn.map_integral_le convexOn_exp Real.continuous_exp.continuousOn isClosed_univ
+      (ae_of_all _ fun _ => Set.mem_univ _) (hg2.const_mul _) hhalf
+  have hpt : ∀ ω, Real.exp (c / 4 * (g ω - e) ^ 2) ≤
+      Real.exp (c / 2 * e ^ 2) * Real.exp (c / 2 * g ω ^ 2) := fun ω => by
+    rw [← Real.exp_add, Real.exp_le_exp]
+    nlinarith [mul_nonneg hc.le (sq_nonneg (g ω + e))]
+  have hi : Integrable (fun ω => Real.exp (c / 4 * (g ω - e) ^ 2)) μ := by
+    refine Integrable.mono' (hhalf.const_mul (Real.exp (c / 2 * e ^ 2)))
+      (hexpm (((continuous_pow 2).comp_aestronglyMeasurable
+        (hgm.sub aestronglyMeasurable_const)).const_mul _)) (ae_of_all _ fun ω => ?_)
+    rw [Real.norm_of_nonneg (Real.exp_pos _).le]
+    exact hpt ω
+  simp only [hmean]
+  refine ⟨hi, (integral_mono hi (hhalf.const_mul _) hpt).trans ?_⟩
+  rw [integral_const_mul]
+  -- `(𝔼 exp (c g² / 2))² ≤ 𝔼 exp (c g²)`
+  have hsq : ∀ ω, Real.exp (c / 2 * g ω ^ 2) ^ 2 = Real.exp (c * g ω ^ 2) := fun ω => by
+    rw [← Real.exp_nat_mul]; congr 1; push_cast; ring
+  have hJ2 : (∫ ω, Real.exp (c / 2 * g ω ^ 2) ∂μ) ^ 2 ≤ ∫ ω, Real.exp (c * g ω ^ 2) ∂μ := by
+    have := ConvexOn.map_integral_le ((even_two).convexOn_pow (𝕜 := ℝ)) (μ := μ)
+      (f := fun ω => Real.exp (c / 2 * g ω ^ 2)) (continuous_pow 2).continuousOn
+      isClosed_univ (ae_of_all _ fun _ => Set.mem_univ _) hhalf
+      (hint.congr (ae_of_all _ fun ω => (hsq ω).symm))
+    simpa only [Function.comp_def, hsq] using this
+  refine le_trans ?_ hJ2
+  rw [sq (∫ ω, Real.exp (c / 2 * g ω ^ 2) ∂μ)]
+  exact mul_le_mul_of_nonneg_right hJ (integral_nonneg fun _ => (Real.exp_pos _).le)
 
 end ProbabilityTheory
