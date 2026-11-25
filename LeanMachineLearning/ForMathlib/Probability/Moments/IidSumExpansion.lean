@@ -126,11 +126,15 @@ private theorem abs_gaussian_moment_increment_sub_le
           calc _ = (((p + 2 : ℝ) * (p + 1 : ℝ)) *
               (|(2 * (p : ℝ) + 3) * a (2 * p + 2)| * σ2 ^ (p + 2))) *
                 Real.sqrt ((n : ℝ) + 1) ^ (2 * p + 1) := by ring
-            _ ≤ _ := mul_le_mul_of_nonneg_right
-                (mul_le_mul_of_nonneg_right hcoeff (by positivity)) (by positivity)
+            _ ≤ _ := by
+              convert mul_le_mul_of_nonneg_right
+                (mul_le_mul_of_nonneg_right hcoeff
+                  (by positivity : 0 ≤ |(2 * (p : ℝ) + 3) * a (2 * p + 2)| * σ2 ^ (p + 2)))
+                (by positivity : 0 ≤ Real.sqrt ((n : ℝ) + 1) ^ (2 * p + 1)) using 1 <;> ring
   · have h1 : a (2 * m + 1) = 0 := Nat.eq_zero_of_odd_of_two_step_mul ha1 ha ⟨m, rfl⟩
     have h2 : a (2 * m + 1 - 2) = 0 := Nat.eq_zero_of_odd_of_two_step_mul ha1 ha ⟨m - 1, by omega⟩
-    simp [h1, h2]
+    rw [h1, h2]
+    simp
 
 /-- **The leading terms cancel in the increment of the Gaussian reference.**  For a sequence `a`
 with `a 1 = 0` and `a (k + 2) = (k + 1) a k` and `σ2 ≥ 0`, the quantity
@@ -420,8 +424,11 @@ theorem exists_abs_integral_pow_sum_pi_sub_le (B : ℕ → ℝ) (hB0 : ∀ j, 0 
             c_T * Real.sqrt ((m : ℝ) + 1) ^ (k - 3) := by
         refine (abs_gaussian_moment_increment_sub_le ha1 ha hμ2_0 hk3 m).trans ?_
         dsimp only [c_T]
-        gcongr
-        exact pow_le_pow_left₀ hμ2_0 hμ2_le _
+        have hcoeff : 0 ≤ (k : ℝ) * (k - 1) * |a k| := by
+          have hk1 : (1 : ℝ) ≤ k := Nat.one_le_cast.mpr (by omega)
+          positivity
+        exact mul_le_mul_of_nonneg_right
+          (mul_le_mul_of_nonneg_left (pow_le_pow_left₀ hμ2_0 hμ2_le _) hcoeff) (by positivity)
       have hΔ (m : ℕ) :
           |(M_fn (m + 1) k - a k * μ2 ^ (k / 2) * (((m + 1 : ℕ) : ℝ)) ^ (k / 2)) -
             (M_fn m k - a k * μ2 ^ (k / 2) * (m : ℝ) ^ (k / 2))| ≤
@@ -746,7 +753,7 @@ theorem exists_abs_integral_add_pow_avg_two_pi_sub_le_all_orders
 theorem exists_abs_integral_add_pow_avg_two_pi_sub_le
     (B₁ B₂ : ℕ → ℝ) (hB₁ : ∀ j, 0 ≤ B₁ j) (hB₂ : ∀ j, 0 ≤ B₂ j)
     {a : ℕ → ℝ} (ha0 : a 0 = 1) (ha1 : a 1 = 0) (ha : ∀ n, a (n + 2) = (n + 1) * a n)
-    (m : ℕ) (hm : 1 ≤ m) :
+    (m : ℕ) (_hm : 1 ≤ m) :
     ∃ C : ℝ, 0 ≤ C ∧
       ∀ {Ω₁ Ω₂ : Type*} [MeasurableSpace Ω₁] [MeasurableSpace Ω₂]
         (ν₁ : Measure Ω₁) [IsProbabilityMeasure ν₁]

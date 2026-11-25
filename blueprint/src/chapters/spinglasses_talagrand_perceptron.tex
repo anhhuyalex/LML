@@ -4339,17 +4339,17 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/FreeEnergyPathODE.lean}.
 \end{proof}
 
 \begin{proposition}[Gr\"onwall fluctuation bound, (2.109)--(2.110)]\label{prop:sg-tal:perceptron-free-energy-gronwall}
-  \lean{SpinGlasses.abs_interpolating_term_VII_le,
-        SpinGlasses.abs_interpolating_term_VIII_le,
+  \lean{SpinGlasses.abs_interpolating_term_VII_le_uniform_in_moment_order,
+        SpinGlasses.abs_interpolating_term_VIII_le_uniform_in_moment_order,
         SpinGlasses.continuousOn_interpolating_centered_moment_pow,
-        SpinGlasses.integral_interpolating_centered_abs_pow_le,
+        SpinGlasses.integral_interpolating_centered_abs_pow_le_uniform_in_moment_order,
         le_exp_mul_add_of_exists_hasDerivAt_Ioo,
         ProbabilityTheory.exists_abs_integral_pow_sum_pi_le}
   \leanok
   \uses{lem:sg-tal:perceptron-centered-moment-ode, thm:sg-tal:perceptron-overlap-high-moments,
         thm:sg-tal:perceptron-empirical-high-moments, lem:sg-tal:perceptron-power-difference}
 \talsource{Section~2.5, Eqs.~(2.109)--(2.110)}
-For any $D\in\mathbb R$ and $k\in\mathbb N$ there exist $K=K(D,k)\ge 0$ and $C=C(D,k)\ge 0$ such that
+For each $D\in\mathbb R$ there is a $K=K(D)\ge 1$. For every $k\in\mathbb N$ there is a $C=C(D,k)\ge 0$ such that
 if $u$ satisfies~(2.7), $\alpha=M/(N+1)$ satisfies $\alpha K\le 1$, $(q,r)$ solves~(2.68), and
 $s\in[0,1]$, then:
 \begin{enumerate}
@@ -4408,24 +4408,29 @@ proved from (2.68) and $\alpha K\le1$ (as in the proof of Theorem~\ref{thm:sg-ta
 that Theorems~2.5.1 and~2.5.2 hold uniformly in $s$ (``a good exercise''); this is proved here
 (Theorems~\ref{thm:sg-tal:perceptron-overlap-high-moments} and~\ref{thm:sg-tal:perceptron-empirical-high-moments} are stated along the
 interpolation). (ii) The exponents in (2.109) are written with natural-number subtraction in Lean, $(k-1)/k$ and $(k-2)/k$ read as
-$\max(k-1,0)/k$ and $\max(k-2,0)/k$; for $k\le 2$ the corresponding coefficient $k$ or $k(k-1)$ vanishes, so no information is lost.
+$\max(k-1,0)/k$ and $\max(k-2,0)/k$. At $k=0$ term VII vanishes, and at $k=0,1$ term VIII vanishes.
+One load threshold works at all orders, as in the standing condition of the chapter.
 (iii) As in the book, the differential inequality (2.110) is proved for even $k=2p$ (so that $|V|^k=V^k$) and the bound for every $k$ follows from
 $\mathbb E|V|^k\le(\mathbb E V^{2k})^{1/2}$. (iv) The decoupled endpoint bound $\psi_{2p}(0)\le C L^{-p}$ is printed in the book as ``$\psi(0)\le K(k)N^{k/2}$'' (a misprint for $N^{-k/2}$)
 and is dismissed as easy ``as the spins decouple''; the Lean proof expands the two independent centered i.i.d.\ sums (\texttt{IidSumExpansion.lean}).
 \end{proof}
 
 \begin{theorem}[Theorem 2.5.3: free energy moment CLT]\label{thm:sg-tal:perceptron-free-energy-clt}
-  \lean{SpinGlasses.interpolating_free_energy_clt,
-        SpinGlasses.perceptron_free_energy_clt,
-        SpinGlasses.perceptron_free_energy_clt_of_zero_constraint_var,
+  \lean{SpinGlasses.interpolating_free_energy_clt_uniform_in_moment_order,
+        SpinGlasses.perceptron_free_energy_clt_uniform_in_moment_order,
+        SpinGlasses.perceptron_free_energy_clt_of_constraint_var_contribution_eq_zero_or_odd,
         ProbabilityTheory.sum_choose_mul_gaussian_moments_eq,
         ProbabilityTheory.exists_abs_integral_pow_sum_pi_sub_le,
-        ProbabilityTheory.exists_abs_integral_add_pow_avg_two_pi_sub_le}
+        ProbabilityTheory.exists_abs_integral_add_pow_avg_two_pi_sub_le_all_orders,
+        SpinGlasses.log_interpPartition_zero_eq,
+        SpinGlasses.sub_rs_interpolating_zero_eq,
+        SpinGlasses.centered_log_cosh_gaussianReal_moments,
+        SpinGlasses.centered_log_integral_exp_cavityPath_moments}
   \leanok
   \uses{lem:sg-tal:perceptron-centered-moment-ode, prop:sg-tal:perceptron-free-energy-gronwall,
         def:sg-tal:perceptron-rs-functional}
 \talsource{Theorem~2.5.3}
-For any $D\in\mathbb R$ and $k\in\mathbb N$ there exist $K=K(D,k)\ge 0$ and $C=C(D,k)\ge 0$ with the
+For each $D\in\mathbb R$ there is a $K=K(D)\ge 1$. For every $k\in\mathbb N$ there is a $C=C(D,k)\ge 0$ with the
 following property. Let $u$ satisfy~(2.7), let $\alpha=M/(N+1)$ satisfy $\alpha K\le 1$, and let $(q,r)$
 solve~(2.68). Put $a(k)=\int_{\mathbb R}x^k\,d\gamma(x)$,
 $\psi_u(z)=\log\int_{\mathbb R}\exp u(\sqrt q\,z+\sqrt{1-q}\,\xi)\,d\gamma(\xi)$, and
@@ -4450,8 +4455,9 @@ we have
  \Bigl|\mathbb E\bigl[\bigl(F_{N+1,M}(g)-F(\alpha,r,q)\bigr)^k\bigr]-(N+1)^{-k/2}a(k)\,b^{\lfloor k/2\rfloor}\Bigr|
  \le C\,(N+1)^{-(k+1)/2}.
 \]
-When $\mathrm{Var}_z(\psi_u)=0$ (for instance whenever $q=0$), $b$ simplifies to Talagrand's printed expression
+When $\alpha\,\mathrm{Var}_z(\psi_u)=0$ (for instance when $q=0$), $b$ simplifies to the printed expression
 $\mathbb E(\log\cosh(z\sqrt r))^2-(\mathbb E\log\cosh(z\sqrt r))^2-qr$.
+The same moment estimate uses the printed expression in odd order, since $a(k)=0$ then.
 \end{enumerate}
 \end{theorem}
 \begin{proof}
@@ -4470,7 +4476,8 @@ Lemma~\ref{lem:sg-tal:perceptron-centered-moment-ode} becomes
 \[
  V(0)=L^{-1}\sum_{i<L}f_X(z'_i)+L^{-1}\sum_{j<M}f_Y(z_j)
 \]
-with independent centered variables $f_X(z)=\log\cosh(z\sqrt r)-\mathbb E\log\cosh(z\sqrt r)$ of variance $v_X$
+by the pointwise endpoint decomposition also used for the pressure and the Gr\"onwall bound.
+The independent centered variables are $f_X(z)=\log\cosh(z\sqrt r)-\mathbb E\log\cosh(z\sqrt r)$ of variance $v_X$
 and $f_Y(z)=\psi_u(z)-\mathbb E\psi_u(z)$ of variance $v_Y$. Expanding each centered i.i.d.\ sum to order
 $\varepsilon^{j+1}$ uniformly in $u,q,r$ and recombining the binomial convolution via
 \[
@@ -4505,11 +4512,12 @@ $\mathrm{Var}(V(0))=L^{-1}(v_X+\alpha v_Y)$, not $L^{-1}v_X$ (unlike the SK mode
 Theorem~1.4.11, where only spin terms appear at $t=0$). Since $b'(s)=-rq$ along $(0,1)$, the true variance parameter
 at $s=1$ is $b(1)=v_X+\alpha v_Y-qr$. Indeed, for $u(x)=\tanh x$ at positive small load $\alpha>0$, $\widehat r(0)>0$
 implies $q>0$, so $\psi_u(z)$ is non-constant and $\alpha v_Y>0$. Both the general theorem with $v_X+\alpha v_Y-qr$
-and the specialization under $v_Y=0$ are formalized.
+and the printed-reference estimate for $\alpha v_Y=0$ or odd $k$ are formalized.
 \item \emph{Misprint at $s=0$.} In the Gr\"onwall step, the book prints $\psi(0)\le K(k)N^{k/2}$; the proof uses and
 proves $(N+1)^{-k/2}$.
-\item \emph{Uniformity of constants.} Both $K$ and $C$ depend only on $D$ and $k$ and are chosen before $N,M,s,u,q,r$,
-strengthening the book's $u$-dependent $O(k+1)$.
+\item \emph{Uniformity of constants.} As in the chapter's standing load assumption, one $K(D)$ works
+for every moment order. The overlap and empirical variance estimates give this common threshold
+before the Gr\"onwall argument. The error constant $C(D,k)$ is uniform in $N,M,s,u,q,r$.
 \end{enumerate}
 Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/FreeEnergyCLT.lean}.
 \end{proof}

@@ -76,6 +76,45 @@ theorem perceptronRSFunctional_eq_log_two_add (u : ℝ → ℝ) (α r q : ℝ) :
     one_smul]
   ring
 
+/-- At zero interpolation time the centered free energy is a sum of two centered averages. -/
+lemma sub_rs_interpolating_zero_eq
+    {N M : ℕ} {u : ℝ → ℝ} (hu : Measurable u) {B : ℝ} (hB : ∀ x, u x ≤ B)
+    (q r : ℝ) (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) :
+    let μ_s := (Measure.count : Measure (Fin (N + 1) → ℤˣ)).prod
+      (Measure.pi fun _ : Fin M => gaussianReal 0 1)
+    let E_0 (x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : ℝ :=
+      (∑ k : Fin M, u (Real.sqrt 0 *
+          ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 k i * ((x.1 i : ℤ) : ℝ)) +
+        Real.sqrt (1 - 0) * (Real.sqrt q * ω.1.2 k + Real.sqrt (1 - q) * x.2 k))) +
+      ∑ i : Fin (N + 1), ((x.1 i : ℤ) : ℝ) * Real.sqrt (1 - 0) * ω.2 i * Real.sqrt r
+    let ψ_z (z : ℝ) : ℝ :=
+      Real.log (∫ ξ : ℝ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1)
+    let L : ℝ := (N : ℝ) + 1
+    let a (z : ℝ) := Real.log (Real.cosh (z * Real.sqrt r))
+    L⁻¹ * Real.log (∫ x, Real.exp (E_0 x) ∂μ_s) -
+        (perceptronRSFunctional u (M / L) r q + ((1 - 0) / 2) * r * (1 - q)) =
+      L⁻¹ * (∑ i : Fin (N + 1), (a (ω.2 i) - ∫ z, a z ∂gaussianReal 0 1)) +
+        L⁻¹ * (∑ j : Fin M, (ψ_z (ω.1.2 j) - ∫ z, ψ_z z ∂gaussianReal 0 1)) := by
+  intro μ_s E_0 ψ_z L a
+  have hlogZ := log_interpPartition_zero_eq hu hB q r ω
+  have hRS : perceptronRSFunctional u (M / L) r q + ((1 - 0) / 2) * r * (1 - q) =
+      Real.log 2 + (∫ z, a z ∂gaussianReal 0 1) +
+        (M / L) * ∫ z, ψ_z z ∂gaussianReal 0 1 := by
+    dsimp only [a, ψ_z]
+    rw [perceptronRSFunctional_eq_log_two_add]
+    ring
+  change Real.log (∫ x, Real.exp (E_0 x) ∂μ_s) =
+    L * Real.log 2 + ∑ i : Fin (N + 1), a (ω.2 i) + ∑ j : Fin M, ψ_z (ω.1.2 j) at hlogZ
+  rw [hlogZ, hRS, Finset.sum_sub_distrib, Finset.sum_sub_distrib]
+  simp only [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
+  have hL : L ≠ 0 := by dsimp only [L]; positivity
+  dsimp only [L] at hL ⊢
+  push_cast
+  generalize (∑ i : Fin (N + 1), a (ω.2 i)) = sx
+  generalize (∑ j : Fin M, ψ_z (ω.1.2 j)) = sy
+  field_simp
+  ring
+
 /-- **Uniform `O(1 / (N + 1))` bound on `|p'_{N+1, M, s}(u) + (r / 2)(1 - q)|` along `s ∈ (0, 1)`.**
 Combines Cauchy-Schwarz Eq. (2.84) (`abs_deriv_interpolating_pressure_add_le_cauchy_schwarz`),
 overlap concentration Eq. (2.80) (`integral_interpolating_overlap_sub_sq_le`), and Lemma 2.4.3

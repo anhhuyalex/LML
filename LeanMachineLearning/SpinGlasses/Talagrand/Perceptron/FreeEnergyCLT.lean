@@ -18,9 +18,7 @@ For `N + 1` spins and `M` constraints with load `α = M / (N + 1)`, let `(q, r)`
 replica-symmetric fixed-point system (2.68) under (2.7) and `α K ≤ 1`. Along the interpolating path
 `s ∈ [0, 1]`, the centered random free energy `V(s) = A(s) - RS(s)` has moments
 `ψ_k(s) = 𝔼[V(s)^k]` satisfying `hasDerivAt_interpolating_centered_moment_pow` (Eq. (2.108)).
-Feeding the a priori Grönwall bound `integral_interpolating_centered_abs_pow_le_uniform_in_moment_order` into
-`abs_interpolating_term_VII_le_uniform_in_moment_order` and `abs_interpolating_term_VIII_le_uniform_in_moment_order` (Eq. (2.109)) reduces
-Eq. (2.108) to
+The a priori Grönwall bound and the remainder estimates (2.109) reduce Eq. (2.108) to
 $$\psi_k'(s) = -\frac{r q}{2 (N + 1)}\,k (k - 1)\,\psi_{k - 2}(s) +
   O\bigl((N + 1)^{-(k + 1)/2}\bigr).$$
 
@@ -32,25 +30,22 @@ At the decoupled endpoint `s = 0`, `V(0)` is the sum of two independent centered
    scaled variance of `V(0)`.
 
 Thus `b(s) = v_X + α v_Y - r q s` satisfies `b'(s) = -r q` and matches the decoupled variance
-`v_X + α v_Y` at `s = 0` (`exists_abs_integral_add_pow_avg_two_pi_sub_le`). Integrating from `0` to
-`s` by two-step induction on `k` yields `interpolating_free_energy_clt_uniform_in_moment_order` for all `s ∈ [0, 1]` and,
-at `s = 1`, `perceptron_free_energy_clt_uniform_in_moment_order` with fluctuation variance
+`v_X + α v_Y` at `s = 0`. Two-step induction on `k` gives the bound uniform in `s ∈ [0, 1]`.
+Evaluating at `s = 1` gives the perceptron fluctuation variance
 $$b = \mathbb{E}\bigl(\log \cosh(z\sqrt{r})\bigr)^2 -
   \bigl(\mathbb{E}\log \cosh(z\sqrt{r})\bigr)^2 +
   \alpha\Bigl(\mathbb{E}\bigl(\log\mathbb{E}_\xi \exp u(\theta)\bigr)^2 -
     \bigl(\mathbb{E}\log\mathbb{E}_\xi \exp u(\theta)\bigr)^2\Bigr) - q r.$$
 Note on Talagrand's printed formula: Talagrand's display in Theorem 2.5.3 omits the constraint
 variance term `α Var_z(log 𝔼_ξ exp u(θ))` from `b` (and prints `p_{N, M}(u)` for the random free
-energy `(N + 1)⁻¹ log Z_{N+1, M}(u)`, matching Theorem 1.4.11's `N⁻¹ log Z_N`). The constraint contribution comes from the variance of the independent
-constraint sum at `s = 0`. The printed reference is recovered when the weighted correction
+energy `(N + 1)⁻¹ log Z_{N+1, M}(u)`). The independent constraint sum contributes its variance at
+`s = 0`. The printed reference is recovered when the weighted correction
 vanishes, including at `q = 0`, or when the Gaussian moment is zero in odd order.
 
 ## Main declarations
 
-* `SpinGlasses.interpolating_free_energy_clt_uniform_in_moment_order`: quantitative moment CLT along the `s`-interpolation
-  uniformly in `s ∈ [0, 1]`.
-* `SpinGlasses.perceptron_free_energy_clt_uniform_in_moment_order`: Theorem 2.5.3 (corrected variance formula, valid for
-  all `u` satisfying (2.7)).
+* `SpinGlasses.interpolating_free_energy_clt_uniform_in_moment_order`: moment CLT on `s ∈ [0, 1]`.
+* `SpinGlasses.perceptron_free_energy_clt_uniform_in_moment_order`: Theorem 2.5.3 with the corrected variance.
 * `SpinGlasses.perceptron_free_energy_clt_of_zero_constraint_var`: specialization to the printed
   `b = 𝔼(log cosh(z √r))² - (𝔼 log cosh(z √r))² - q r` when the constraint `z`-variance vanishes.
 -/
@@ -307,8 +302,8 @@ private lemma abs_integral_interpolating_zero_pow_sub_le (D : ℝ) (m : ℕ) :
   rw [hv₁_eq, hv₂_eq]
 
 /-- **ODE with higher-order remainder `O((N + 1)^{-(m+1)/2})`:**
-feeding `integral_interpolating_centered_abs_pow_le_uniform_in_moment_order` into `abs_interpolating_term_VII_le_uniform_in_moment_order` and
-`abs_interpolating_term_VIII_le_uniform_in_moment_order` gives `ψ_m'(s) = -(r q / (2 (N + 1))) m (m - 1) ψ_{m-2}(s) + D`
+The a priori moment bound and the two remainder bounds give
+`ψ_m'(s) = -(r q / (2 (N + 1))) m (m - 1) ψ_{m-2}(s) + D`
 with `|D| ≤ C_rem (√(N + 1))⁻¹^{m+1}` uniformly on `s ∈ (0, 1)`. -/
 private lemma exists_hasDerivAt_interpolating_centered_moment_sub_le (D : ℝ) :
     ∃ K : ℝ, 1 ≤ K ∧ ∀ m : ℕ, ∃ C_rem : ℝ, 0 ≤ C_rem ∧
@@ -725,31 +720,8 @@ theorem perceptron_free_energy_clt_uniform_in_moment_order (D : ℝ) :
       have hRS : perceptronRSFunctional u α r q + ((1 - 1) / 2) * r * (1 - q) =
           perceptronRSFunctional u α r q := by ring
       rw [hRS]
-      congr 1
-      congr 1
-      rw [integral_sum_exp_interpolating_eq hu.measurable hu.le 1 q r ω]
-      congr 1
-      refine Finset.sum_congr rfl fun τ _ => congrArg Real.exp ?_
-      have hterm1 : (∑ i : Fin (N + 1), ((τ i : ℤ) : ℝ) * Real.sqrt (1 - 1) * ω.2 i * Real.sqrt r) =
-          0 := by
-        refine Finset.sum_eq_zero fun i _ => ?_
-        rw [sub_self, Real.sqrt_zero]; ring
-      rw [hterm1, zero_add]
-      refine Finset.sum_congr rfl fun j _ => ?_
-      have hint_exp : (∫ ξ : ℝ, Real.exp (u (Real.sqrt 1 *
-            ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 j i * ((τ i : ℤ) : ℝ)) +
-          Real.sqrt (1 - 1) * (Real.sqrt q * ω.1.2 j + Real.sqrt (1 - q) * ξ))) ∂γ) =
-          Real.exp (u ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 j i * ((τ i : ℤ) : ℝ))) := by
-        have hcongr : (fun ξ : ℝ => Real.exp (u (Real.sqrt 1 *
-              ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 j i * ((τ i : ℤ) : ℝ)) +
-            Real.sqrt (1 - 1) * (Real.sqrt q * ω.1.2 j + Real.sqrt (1 - q) * ξ)))) =
-            fun _ : ℝ =>
-              Real.exp (u ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 j i * ((τ i : ℤ) : ℝ))) := by
-          funext ξ
-          rw [Real.sqrt_one, one_mul, sub_self, Real.sqrt_zero, zero_mul, add_zero]
-        have : IsProbabilityMeasure γ := by dsimp only [γ]; infer_instance
-        rw [hcongr, integral_const, probReal_univ, one_smul]
-      rw [hint_exp, Real.log_exp]
+      congr 2
+      exact log_interpPartition_one_eq hu.measurable hu.le q r ω
     symm
     refine (integral_congr_ae (ae_of_all _ hpt)).trans ?_
     have h1 := integral_prod_fun_fst_of_isProbabilityMeasure (μ := P_g.prod P_z) (ν := P_z')

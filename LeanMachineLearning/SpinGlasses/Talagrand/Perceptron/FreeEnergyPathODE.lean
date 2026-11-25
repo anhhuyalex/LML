@@ -37,12 +37,14 @@ $$\mathrm{RS}(s) = \mathrm{perceptronRSFunctional}(u, \alpha, r, q) +
 * `SpinGlasses.hasDerivAt_interpolating_centered_moment_pow`: Eqs. (2.107)--(2.108), differentiating
   `s' ↦ 𝔼[(A(s', ω) - RS(s'))^k]` on `s ∈ (0, 1)` into `VII + VIII + IX` under free `(q, r)`
   (`q ∈ [0, 1]`, `r ≥ 0`, `SmartPathPotential₂`).
-* `SpinGlasses.abs_interpolating_term_VII_le_uniform_in_moment_order` and `SpinGlasses.abs_interpolating_term_VIII_le_uniform_in_moment_order`:
+* `SpinGlasses.abs_interpolating_term_VII_le_uniform_in_moment_order` and
+  `SpinGlasses.abs_interpolating_term_VIII_le_uniform_in_moment_order`:
   Eq. (2.109), bounding `|VII|` and `|VIII|` uniformly in `s ∈ [0, 1]` via Hölder and
   Theorems 2.5.1--2.5.2.
 
 The differential inequality Eq. (2.110) and the a priori Grönwall bound
-`integral_interpolating_centered_abs_pow_le_uniform_in_moment_order` are in `FreeEnergyGronwall.lean`.
+`integral_interpolating_centered_abs_pow_le_uniform_in_moment_order` are in
+`FreeEnergyGronwall.lean`.
 -/
 
 @[expose] public section
@@ -2834,7 +2836,7 @@ private lemma measurable_and_integrable_interp_pair_pow_moments
   exact ⟨hAm, hBm_slice, hQ_m, hA2k_int, hB2k_int⟩
 
 /-- **Talagrand Section 2.5, Eq. (2.109), first inequality (`|VII|` bound):**
-Given `D` and `k`, there exist `K, C ≥ 0` (chosen before `N, M, s, u, q, r`) such that under (2.7),
+Given `D`, choose `K ≥ 1` before the order `k` and the bound constant `C`. Under (2.7),
 `α K ≤ 1`, `(q, r)` solving (2.68), and `s ∈ [0, 1]`,
 `|VII| ≤ (C / (N + 1)) * (𝔼|V(s)|^k)^{((k - 1 : ℕ) : ℝ) / k}`. -/
 theorem abs_interpolating_term_VII_le_uniform_in_moment_order (D : ℝ) :
@@ -2993,10 +2995,10 @@ theorem abs_interpolating_term_VII_le (D : ℝ) (k : ℕ) :
           C / ((N : ℝ) + 1) * (∫ ω, |A ω - RS| ^ k ∂P) ^ (((k - 1 : ℕ) : ℝ) / (k : ℝ)) := by
   obtain ⟨K, hK, h⟩ := abs_interpolating_term_VII_le_uniform_in_moment_order D
   obtain ⟨C, hC, hbound⟩ := h k
-  exact ⟨K, C, hK, hC, hbound⟩
+  exact ⟨K, C, zero_le_one.trans hK, hC, hbound⟩
 
 /-- **Talagrand Section 2.5, Eq. (2.109), second inequality (`|VIII|` bound):**
-Given `D` and `k`, there exist `K, C ≥ 0` (chosen before `N, M, s, u, q, r`) such that under (2.7),
+Given `D`, choose `K ≥ 1` before the order `k` and the bound constant `C`. Under (2.7),
 `α K ≤ 1`, `(q, r)` solving (2.68), and `s ∈ [0, 1]`,
 `|VIII| ≤ (C / (N + 1)²) * (𝔼|V(s)|^k)^{((k - 2 : ℕ) : ℝ) / k}`. -/
 theorem abs_interpolating_term_VIII_le_uniform_in_moment_order (D : ℝ) :
@@ -3160,6 +3162,6 @@ theorem abs_interpolating_term_VIII_le (D : ℝ) (k : ℕ) :
           C / ((N : ℝ) + 1) ^ 2 * (∫ ω, |A ω - RS| ^ k ∂P) ^ (((k - 2 : ℕ) : ℝ) / (k : ℝ)) := by
   obtain ⟨K, hK, h⟩ := abs_interpolating_term_VIII_le_uniform_in_moment_order D
   obtain ⟨C, hC, hbound⟩ := h k
-  exact ⟨K, C, hK, hC, hbound⟩
+  exact ⟨K, C, zero_le_one.trans hK, hC, hbound⟩
 
 end SpinGlasses

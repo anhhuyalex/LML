@@ -15,8 +15,7 @@ Talagrand, *Spin Glasses: A Challenge for Mathematicians*, Vol. I, Section 2.5, 
 2.5.3, Eq. (2.110) and the decoupled endpoint bound at `s = 0`.
 
 Combining the centered-moment ODE `hasDerivAt_interpolating_centered_moment_pow` (Eq. (2.108))
-with the Hölder remainder bounds `abs_interpolating_term_VII_le_uniform_in_moment_order` and
-`abs_interpolating_term_VIII_le_uniform_in_moment_order` (Eq. (2.109)) and Young's inequality yields the differential
+with the Hölder remainder bounds (2.109) and Young's inequality yields the differential
 inequality `ψ'(s) ≤ K(k)((N + 1)^{-k/2} + ψ(s))` for even `k`, where `ψ(s) = 𝔼[V(s)^k]`. Forward
 Grönwall comparison (`le_exp_mul_add_of_exists_hasDerivAt_Ioo`) and the uniform centered i.i.d.
 moment bound `exists_abs_integral_pow_sum_pi_le` at the decoupled endpoint `s = 0` give
@@ -26,8 +25,8 @@ moment bound `exists_abs_integral_pow_sum_pi_le` at the decoupled endpoint `s = 
 ## Main declarations
 
 * `SpinGlasses.integral_interpolating_centered_abs_pow_le_uniform_in_moment_order`: a priori bound
-  `𝔼[|A(s) - RS(s)|^k] ≤ C (√(N + 1))⁻¹ ^ k` uniformly in `s ∈ [0, 1]`, with `K, C ≥ 0` chosen
-  after `D` and `k` and before `N, M, s, u, q, r`.
+  `𝔼[|A(s) - RS(s)|^k] ≤ C (√(N + 1))⁻¹ ^ k` uniformly in `s ∈ [0, 1]`, with `K` depending on `D`
+  and `C` depending on `D, k`.
 -/
 
 @[expose] public section
@@ -198,6 +197,13 @@ lemma centered_log_cosh_gaussianReal_moments {D r : ℝ} (hr : Real.sqrt r ≤ |
     refine (Real.log_cosh_le_abs _).trans ?_
     rw [abs_mul, abs_of_nonneg (Real.sqrt_nonneg _), mul_comm]
     exact mul_le_mul_of_nonneg_right hr (abs_nonneg z)
+  have hdom : MemLp (fun z : ℝ => |D| * z) 2 γ :=
+    (IsGaussian.memLp_id γ 2 (by simp)).const_mul |D|
+  have hLX2 : MemLp L_X 2 γ :=
+    hdom.mono' hLX_m.aestronglyMeasurable (ae_of_all _ fun z => by
+      simp only [Real.norm_eq_abs, abs_mul, abs_abs]
+      exact hLX_bd z)
+  have hLX1_int := hLX2.integrable one_le_two
   have hz1_int : Integrable (fun z : ℝ => |z|) γ :=
     by simpa [pow_one] using (integrable_pow_gaussianReal 0 1 1).abs
   have hcX_bd : |c_X| ≤ |D| := by
@@ -205,8 +211,7 @@ lemma centered_log_cosh_gaussianReal_moments {D r : ℝ} (hr : Real.sqrt r ≤ |
     have h1 : |c_X| ≤ ∫ z : ℝ, |D| * |z| ∂γ :=
       abs_integral_le_integral_abs.trans (integral_mono
         (f := fun z => |L_X z|) (g := fun z => |D| * |z|)
-        (hz_int.mono' hLX_m.norm.aestronglyMeasurable
-          (ae_of_all _ fun z => by rw [Real.norm_of_nonneg (abs_nonneg _)]; exact hLX_bd z))
+        hLX1_int.abs
         hz_int hLX_bd)
     have h_abs_z_le : ∫ z : ℝ, |z| ∂γ ≤ 1 :=
       ProbabilityTheory.integral_abs_gaussianReal_le_one
@@ -229,16 +234,6 @@ lemma centered_log_cosh_gaussianReal_moments {D r : ℝ} (hr : Real.sqrt r ≤ |
       (ae_of_all _ fun z => by
         rw [Real.norm_eq_abs, abs_pow]
         exact pow_le_pow_left₀ (abs_nonneg _) (hf₁_bd z) j)
-  have hLX1_int : Integrable L_X γ :=
-    (hz1_int.const_mul |D|).mono' hLX_m.aestronglyMeasurable
-      (ae_of_all _ fun z => by rw [Real.norm_eq_abs]; exact hLX_bd z)
-  have hLX2_int : Integrable (fun z => L_X z ^ 2) γ :=
-    ((integrable_pow_gaussianReal 0 1 2).const_mul (D ^ 2)).mono'
-      (hLX_m.pow_const 2).aestronglyMeasurable
-      (ae_of_all _ fun z => by
-        rw [Real.norm_of_nonneg (sq_nonneg _), ← sq_abs]
-        calc |L_X z| ^ 2 ≤ (|D| * |z|) ^ 2 := pow_le_pow_left₀ (abs_nonneg _) (hLX_bd z) 2
-          _ = D ^ 2 * z ^ 2 := by rw [mul_pow, sq_abs, sq_abs])
   have hf₁_0 : ∫ z, f₁ z ∂γ = 0 := by
     dsimp only [f₁]
     rw [integral_sub hLX1_int (integrable_const c_X), integral_const, probReal_univ, one_smul,
@@ -247,8 +242,7 @@ lemma centered_log_cosh_gaussianReal_moments {D r : ℝ} (hr : Real.sqrt r ≤ |
     abs_integral_le_integral_abs.trans (integral_mono (f := fun z => |f₁ z ^ j|)
       (g := fun z => (|D| * (|z| + 1)) ^ j) (hf₁_int j).abs (hB₁_int j) fun z => by
         dsimp only; rw [abs_pow]; exact pow_le_pow_left₀ (abs_nonneg _) (hf₁_bd z) j)
-  exact ⟨(memLp_two_iff_integrable_sq hLX_m.aestronglyMeasurable).2 hLX2_int,
-    hf₁_0, hf₁_int, hf₁_mom⟩
+  exact ⟨hLX2, hf₁_0, hf₁_int, hf₁_mom⟩
 
 /-- The centered constraint summand is bounded by twice the bound on the potential. -/
 lemma centered_log_integral_exp_cavityPath_moments

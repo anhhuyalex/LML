@@ -247,6 +247,28 @@ theorem continuousOn_interpolating_pressure
   exact continuousOn_of_dominated (fun s _ => hΦm s) (fun s hs => ae_of_all _ (hΦb s hs))
     hdom_int (ae_of_all _ fun ω => (hΦ_cont ω).continuousOn)
 
+/-- At the right endpoint the log partition depends only on the original Gaussian disorder. -/
+lemma log_interpPartition_one_eq
+    {N M : ℕ} {u : ℝ → ℝ} (hu : Measurable u) {B : ℝ} (hB : ∀ x, u x ≤ B)
+    (q r : ℝ) (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) :
+    let μ_s := (Measure.count : Measure (Fin (N + 1) → ℤˣ)).prod
+      (Measure.pi fun _ : Fin M => gaussianReal 0 1)
+    let E_1 (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ))
+        (x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : ℝ :=
+      (∑ k : Fin M, u (Real.sqrt 1 *
+          ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 k i * ((x.1 i : ℤ) : ℝ)) +
+        Real.sqrt (1 - 1) * (Real.sqrt q * ω.1.2 k + Real.sqrt (1 - q) * x.2 k))) +
+      ∑ i : Fin (N + 1), ((x.1 i : ℤ) : ℝ) * Real.sqrt (1 - 1) * ω.2 i * Real.sqrt r
+    Real.log (∫ x, Real.exp (E_1 ω x) ∂μ_s) =
+    Real.log (∑ τ : Fin (N + 1) → ℤˣ,
+      Real.exp (∑ k : Fin M,
+        u ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 k i * ((τ i : ℤ) : ℝ)))) := by
+  intro μ_s E_1
+  rw [integral_sum_exp_interpolating_eq hu hB 1 q r ω]
+  congr 1; refine Finset.sum_congr rfl fun τ _ => congrArg Real.exp ?_
+  simp only [sub_self, Real.sqrt_zero, Real.sqrt_one, one_mul, mul_zero, zero_mul, add_zero,
+    Finset.sum_const_zero, zero_add, integral_const, probReal_univ, one_smul, Real.log_exp]
+
 /-- **Endpoint `s = 1`:** `p_{N+1, M, 1}(u)` equals the Section 2.1 perceptron pressure
 `p_{N+1, M}(u)`. -/
 theorem interpolating_pressure_one_eq
@@ -275,11 +297,7 @@ theorem interpolating_pressure_one_eq
       Real.log (∫ x, Real.exp (E_1 ω x) ∂μ_s) =
       Real.log (∑ τ : Fin (N + 1) → ℤˣ,
         Real.exp (∑ k : Fin M,
-          u ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 k i * ((τ i : ℤ) : ℝ)))) := by
-    rw [integral_sum_exp_interpolating_eq hu hB_le 1 q r ω]
-    congr 1; refine Finset.sum_congr rfl fun τ _ => congrArg Real.exp ?_
-    simp only [sub_self, Real.sqrt_zero, Real.sqrt_one, one_mul, mul_zero, zero_mul, add_zero,
-      Finset.sum_const_zero, zero_add, integral_const, probReal_univ, one_smul, Real.log_exp]
+          u ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 k i * ((τ i : ℤ) : ℝ)))) := log_interpPartition_one_eq hu hB_le q r ω
   simp_rw [hpt]
   have h1 := integral_prod_fun_fst_of_isProbabilityMeasure (μ := P_g.prod P_z) (ν := P_z')
     (fun gz : (Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ) =>
@@ -315,7 +333,8 @@ lemma log_interpPartition_zero_eq
       Real.exp ((∑ i : Fin (N + 1), ((τ i : ℤ) : ℝ) * Real.sqrt (1 - 0) * ω.2 i * Real.sqrt r) +
         ∑ k : Fin M, Real.log (∫ ξ, Real.exp (u (Real.sqrt 0 *
             ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 k i * ((τ i : ℤ) : ℝ)) +
-          Real.sqrt (1 - 0) * (Real.sqrt q * ω.1.2 k + Real.sqrt (1 - q) * ξ))) ∂gaussianReal 0 1)) =
+          Real.sqrt (1 - 0) * (Real.sqrt q * ω.1.2 k + Real.sqrt (1 - q) * ξ)))
+          ∂gaussianReal 0 1)) =
       Real.exp (∑ i : Fin (N + 1), ((τ i : ℤ) : ℝ) * (ω.2 i * Real.sqrt r)) *
         Real.exp (∑ k : Fin M, ψ_z (ω.1.2 k)) := by
     rw [← Real.exp_add]
@@ -335,45 +354,6 @@ lemma log_interpPartition_zero_eq
     log_decoupled_partition_function_eq (fun i : Fin (N + 1) => ω.2 i * Real.sqrt r),
     Fintype.card_fin]
   push_cast; rfl
-
-/-- At zero interpolation time the centered free energy is a sum of two centered averages. -/
-lemma sub_rs_interpolating_zero_eq
-    {N M : ℕ} {u : ℝ → ℝ} (hu : Measurable u) {B : ℝ} (hB : ∀ x, u x ≤ B)
-    (q r : ℝ) (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) :
-    let μ_s := (Measure.count : Measure (Fin (N + 1) → ℤˣ)).prod
-      (Measure.pi fun _ : Fin M => gaussianReal 0 1)
-    let E_0 (x : (Fin (N + 1) → ℤˣ) × (Fin M → ℝ)) : ℝ :=
-      (∑ k : Fin M, u (Real.sqrt 0 *
-          ((Real.sqrt (N + 1 : ℕ))⁻¹ * ∑ i, ω.1.1 k i * ((x.1 i : ℤ) : ℝ)) +
-        Real.sqrt (1 - 0) * (Real.sqrt q * ω.1.2 k + Real.sqrt (1 - q) * x.2 k))) +
-      ∑ i : Fin (N + 1), ((x.1 i : ℤ) : ℝ) * Real.sqrt (1 - 0) * ω.2 i * Real.sqrt r
-    let ψ_z (z : ℝ) : ℝ :=
-      Real.log (∫ ξ : ℝ, Real.exp (u (Real.sqrt q * z + Real.sqrt (1 - q) * ξ)) ∂gaussianReal 0 1)
-    let L : ℝ := (N : ℝ) + 1
-    let a (z : ℝ) := Real.log (Real.cosh (z * Real.sqrt r))
-    L⁻¹ * Real.log (∫ x, Real.exp (E_0 x) ∂μ_s) -
-        (perceptronRSFunctional u (M / L) r q + ((1 - 0) / 2) * r * (1 - q)) =
-      L⁻¹ * (∑ i : Fin (N + 1), (a (ω.2 i) - ∫ z, a z ∂gaussianReal 0 1)) +
-        L⁻¹ * (∑ j : Fin M, (ψ_z (ω.1.2 j) - ∫ z, ψ_z z ∂gaussianReal 0 1)) := by
-  intro μ_s E_0 ψ_z L a
-  have hlogZ := log_interpPartition_zero_eq hu hB q r ω
-  have hRS : perceptronRSFunctional u (M / L) r q + ((1 - 0) / 2) * r * (1 - q) =
-      Real.log 2 + (∫ z, a z ∂gaussianReal 0 1) +
-        (M / L) * ∫ z, ψ_z z ∂gaussianReal 0 1 := by
-    dsimp only [a, ψ_z]
-    rw [perceptronRSFunctional_eq_log_two_add]
-    ring
-  change Real.log (∫ x, Real.exp (E_0 x) ∂μ_s) =
-    L * Real.log 2 + ∑ i : Fin (N + 1), a (ω.2 i) + ∑ j : Fin M, ψ_z (ω.1.2 j) at hlogZ
-  rw [hlogZ, hRS, Finset.sum_sub_distrib, Finset.sum_sub_distrib]
-  simp only [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
-  have hL : L ≠ 0 := by dsimp only [L]; positivity
-  dsimp only [L] at hL ⊢
-  push_cast
-  generalize (∑ i : Fin (N + 1), a (ω.2 i)) = sx
-  generalize (∑ j : Fin M, ψ_z (ω.1.2 j)) = sy
-  field_simp
-  ring
 
 /-- **Endpoint `s = 0`:** the spins decouple into i.i.d. local fields `z'_i √r` and the
 constraints decouple into `M` i.i.d. copies of `log 𝔼_ξ exp u(√q z + √(1 - q) ξ)`, giving
@@ -413,7 +393,10 @@ theorem interpolating_pressure_zero_eq
   have hψ_b (z : ℝ) : |ψ_z z| ≤ |B| :=
     (abs_log_integral_exp_le_of_ae_abs_le (hu.comp (by fun_prop)).aemeasurable
       (ae_of_all _ fun _ => hB _)).trans (le_abs_self B)
-  have hpt := log_interpPartition_zero_eq hu hB_le q r (N := N) (M := M)
+  have hpt (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) :
+      Real.log (∫ x, Real.exp (E_0 ω x) ∂μ_s) =
+      (((N : ℝ) + 1) * Real.log 2 + ∑ i : Fin (N + 1), Real.log (Real.cosh (ω.2 i * Real.sqrt r))) +
+        ∑ k : Fin M, ψ_z (ω.1.2 k) := log_interpPartition_zero_eq hu hB_le q r ω
   simp_rw [hpt]
   have hlc_m : Measurable (fun x : ℝ => Real.log (Real.cosh (x * Real.sqrt r))) :=
     (Real.continuous_cosh.comp (by fun_prop)).log (fun _ => (Real.cosh_pos _).ne') |>.measurable
