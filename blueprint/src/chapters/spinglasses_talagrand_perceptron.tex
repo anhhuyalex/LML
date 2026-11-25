@@ -3153,8 +3153,9 @@ In this section we formalize Talagrand Section~2.4: the replica-symmetric fixed-
 (2.68) and overlap concentration (Theorem~2.4.1), the $s$-interpolating Hamiltonian (2.76) and its
 derivative identity (2.81)--(2.83), the empirical variance estimate for $u'$ (Lemma~2.4.3), the
 unconditional convergence of the finite-size perceptron pressure to the replica-symmetric formula
-(2.74) at rate $O(1/(N+1))$ (Theorem~2.4.2, first proof), and the critical-point calculus and
-discrete cavity increment of the second proof (Lemma~2.4.4 and Eqs.~(2.87)--(2.91)). Throughout
+(2.74) at rate $O(1/(N+1))$ (Theorem~2.4.2, first proof), and the critical-point calculus,
+discrete cavity increment, Taylor bound, and conditional summation step of the second proof
+(Lemma~2.4.4 and Eqs.~(2.87)--(2.93)). Throughout
 this section, Lean indexes the full spin system by $\mathrm{Fin}(N+1)\to\mathbb Z^\times$ ($N+1$
 spins, matching the cavity decomposition $(\sigma,\varepsilon)\in\Sigma_N\times\{\pm 1\}$ of
 Sections~2.2--2.3) and $M$ constraints, with load $\alpha=M/(N+1)$.
@@ -3637,15 +3638,17 @@ ensure classical differentiability of $\sqrt r$, $\sqrt q$, and $\sqrt{1-q}$.
 Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ReplicaSymmetricVariational.lean}.
 \end{proof}
 
-\begin{proposition}[Envelope formula (2.89) along the branch of Theorem~2.4.1]\label{prop:sg-tal:perceptron-rs-envelope}
+\begin{proposition}[Envelope formula (2.89) and Taylor increment along the branch of Theorem~2.4.1]\label{prop:sg-tal:perceptron-rs-envelope}
   \lean{integral_tanh_sq_sqrt_mem_Ioo,
         integral_tanh_sq_sqrt_mem_Icc,
         integral_tanh_sq_sqrt_le,
         SpinGlasses.exists_abs_rs_fixed_point_sub_le,
         SpinGlasses.hasDerivAt_integral_log_integral_exp_q,
+        SpinGlasses.abs_integral_log_integral_exp_sub_le,
         SpinGlasses.exists_hasDerivAt_perceptronRSFunctional_small_load,
         SpinGlasses.hasDerivWithinAt_perceptronRSFunctional_zero,
-        SpinGlasses.exists_branch_hasDerivAt_perceptronRSFunctional}
+        SpinGlasses.exists_branch_hasDerivAt_perceptronRSFunctional,
+        SpinGlasses.exists_branch_taylor_perceptronRSFunctional_le}
   \leanok
   \uses{thm:sg-tal:perceptron-rs-fixed-point, lem:sg-tal:perceptron-rs-variational, def:sg-tal:perceptron-rs-functional}
 \talsource{Section~2.4, Eq.~(2.89) and the sentence before it}
@@ -3668,9 +3671,15 @@ any functions $q,r$ with $(q(a),r(a))$ solving (2.68) for all $a$ near $\alpha$,
 bounded potential, with no second or third derivative) and $(q(a),r(a))$ solves (2.68) for
 $a\in[0,\delta)$, then $(q(0),r(0))=(0,0)$ and $a\mapsto F(a,r(a),q(a))$ has the right derivative
 $\mathbb E\log\mathbb E_\xi\exp u(\xi)$ at $0$ within $[0,\infty)$.
-\item \emph{Branch form.} There is $K(D)>0$ and, for each $u$ satisfying (2.7), functions $q,r$ solving
-(2.68) for every $a\ge0$ with $aK(D)\le1$ (the unique solution of Theorem~\ref{thm:sg-tal:perceptron-rs-fixed-point}),
-such that (4) holds at every $\alpha\in(0,1/K(D))$ and (5) holds at $0$.
+\item \emph{Branch form and Taylor remainder.} There is $K(D)>0$ and, for each $u$ satisfying (2.7),
+functions $q,r$ solving (2.68) for every $a\ge0$ with $aK(D)\le1$ (the unique solution of
+Theorem~\ref{thm:sg-tal:perceptron-rs-fixed-point}), such that (4) holds at every $\alpha\in(0,1/K(D))$,
+(5) holds at $0$, and for all $a,b\in[0,1/K(D)]$, writing $F_{\rm br}(a)=F(a,r(a),q(a))$ and
+$F'_{\rm br}(a)=\mathbb E\log\mathbb E_\xi\exp u(\sqrt{q(a)}\,z+\sqrt{1-q(a)}\,\xi)$,
+\[
+ |F'_{\rm br}(a)-F'_{\rm br}(b)|\le D^4|a-b|,\qquad
+ \bigl|F_{\rm br}(b)-F_{\rm br}(a)-(b-a)F'_{\rm br}(a)\bigr|\le\frac{D^4}{2}(b-a)^2 .
+\]
 \end{enumerate}
 \end{proposition}
 \begin{proof}
@@ -3706,9 +3715,13 @@ $\frac12$ at $0$), the term $-\frac12 r(1-q)$, and continuity of $q\mapsto\mathb
 e^{u(\theta)}$ on $[0,1]$ gives the stated right derivative
 (\texttt{hasDerivWithinAt\_perceptronRSFunctional\_zero}).
 
-\emph{Step 6 (branch form).} Choose $K(D)$ larger than the constants of Theorem~\ref{thm:sg-tal:perceptron-rs-fixed-point}
-and Step~4, let $(q(a),r(a))$ be the unique solution, and apply Steps~4 and~5
-(\texttt{exists\_branch\_hasDerivAt\_perceptronRSFunctional}).
+\emph{Step 6 (branch form and Taylor remainder).} Choose $K(D)$ larger than the constants of
+Theorem~\ref{thm:sg-tal:perceptron-rs-fixed-point} and Step~4, let $(q(a),r(a))$ be the unique solution,
+and apply Steps~4 and~5. Since $q\mapsto\mathbb E\log\mathbb E_\xi\exp u(\sqrt q\,z+\sqrt{1-q}\,\xi)$ is
+$\frac12D^2$-Lipschitz on $[0,1]$ by Step~3 and $|\widehat r(q)|\le D^2$, while $a\mapsto q(a)$ is
+$2D^2$-Lipschitz by Step~2, the derivative $F'_{\rm br}$ is $D^4$-Lipschitz on $[0,1/K(D)]$; integrating
+along the segment from $a$ to $b$ via the right-derivative mean-value bound gives the second-order Taylor
+remainder.
 
 \emph{Formalization note (hypothesis audit).} No interiority, positivity or differentiability of the
 branch is assumed in (4)--(6): these are derived. The family $(q,r)$ is assumed to solve (2.68) only near
@@ -3717,13 +3730,21 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/RSFixedPoint.lean} and
 \texttt{ReplicaSymmetricVariational.lean}.
 \end{proof}
 
-\begin{proposition}[Discrete cavity increment and derivative of $\varphi(v)$ in the second proof, (2.90)--(2.91)]\label{prop:sg-tal:perceptron-second-proof-increment}
+\begin{proposition}[Discrete cavity increment, second-derivative bound, and conditional summation step in the second proof, (2.90)--(2.93)]\label{prop:sg-tal:perceptron-second-proof-increment}
   \lean{SpinGlasses.perceptron_pressure_succ_sub_eq,
-        SpinGlasses.hasDerivAt_second_proof_interpolation}
+        SpinGlasses.hasDerivAt_second_proof_interpolation,
+        abs_sub_sub_deriv_zero_le_half_of_Ioo,
+        SpinGlasses.exists_hasDerivAt_second_proof_deriv_abs_le,
+        SpinGlasses.secondProof_continuity_and_endpoints,
+        SpinGlasses.exists_abs_perceptron_pressure_succ_sub_add_le,
+        SpinGlasses.abs_perceptron_pressure_succ_sub_le_of_centered_overlap,
+        SpinGlasses.abs_perceptron_pressure_sub_rs_le_of_centered_overlap}
   \leanok
-  \uses{thm:sg-tal:perceptron-tilted-stein}
-\talsource{Section~2.4, Eqs.~(2.90)--(2.91)}
-Write $\mu_M(g_0)$ for the quenched $M$-constraint perceptron Gibbs measure on $\Sigma_{N+1}$.
+  \uses{thm:sg-tal:perceptron-tilted-stein, thm:sg-tal:perceptron-tilted-rotation-ibp-avg,
+        thm:sg-tal:perceptron-rs-fixed-point, prop:sg-tal:perceptron-rs-envelope}
+\talsource{Section~2.4, Eqs.~(2.90)--(2.93) and completion of the second proof of Theorem~2.4.2}
+Write $\mu_M(g_0)$ for the quenched $M$-constraint perceptron Gibbs measure on $\Sigma_{N+1}$ and
+$\nu$ for its quenched two-replica expectation.
 \begin{enumerate}
 \item \emph{Exact discrete increment (2.90).} If $u$ is measurable and integrable against $\mathcal N(0,1)$ (for instance bounded), then
 \[
@@ -3744,6 +3765,33 @@ Then $\varphi$ has derivative at $v$ equal to
    (R_{1,2}-q)\,u'(S_v^1)\,u'(S_v^2)\,
    d\bigl((\mu_M(g_0)\otimes\gamma)^{\mathrm{tilted}(u\circ S_v)}\bigr)^{\otimes 2}\right].
 \]
+\item \emph{Unconditional second-derivative and increment bound, (2.92).} Given $D\in\mathbb R$, there
+is $K_{\rm sec}=K_{\rm sec}(D)\ge 0$ such that under~(2.7) and $q\in[0,1]$, $\varphi'(v)$ is
+differentiable at every $v\in(0,1)$ with $|\varphi''(v)|\le K_{\rm sec}\,\nu((R_{1,2}-q)^2)$, and
+\begin{align*}
+ \Bigl|p_{N+1,M+1}(u)-p_{N+1,M}(u)
+   &-\frac{1}{N+1}\,\mathbb E\log\mathbb E_\xi\exp u\bigl(\sqrt q\,z+\sqrt{1-q}\,\xi\bigr)\\
+   &+\frac{\widehat r(q)}{2(N+1)}\,\nu(R_{1,2}-q)\Bigr|
+ \le\frac{K_{\rm sec}}{2(N+1)}\,\nu\bigl((R_{1,2}-q)^2\bigr).
+\end{align*}
+\item \emph{Conditional discrete increment (2.93) and summation step.} Given $D\in\mathbb R$, there are
+$K=K(D)\ge 0$ and $C=C(D)\ge 0$ with the following properties:
+\begin{itemize}
+\item If $u$ satisfies~(2.7), $\alpha=M/(N+1)$ satisfies $\alpha K\le 1$, $(q,r)$ solves~(2.68) at load
+$\alpha$, and the Chapter~9 centered-overlap hypothesis $|\nu(R_{1,2}-q)|\le K_{\rm bias}/(N+1)$ holds,
+then
+\[
+ \Bigl|p_{N+1,M+1}(u)-p_{N+1,M}(u)
+   -\frac{1}{N+1}\,\mathbb E\log\mathbb E_\xi\exp u\bigl(\sqrt q\,z+\sqrt{1-q}\,\xi\bigr)\Bigr|
+ \le\frac{C+\frac12 D^2 K_{\rm bias}}{(N+1)^2}.
+\]
+\item If this centered-overlap bound holds for every intermediate constraint count $m<M$ at its
+fixed-point parameter $(q_m,r_m)$ ($K_{\rm bias}\ge 0$), then summing over $m<M$ gives
+\[
+ \bigl|p_{N+1,M}(u)-F(\alpha,r,q)\bigr|
+ \le\frac{\alpha}{N+1}\,\Bigl(C+\frac12 D^2 K_{\rm bias}\Bigr).
+\]
+\end{itemize}
 \end{enumerate}
 \end{proposition}
 \begin{proof}
@@ -3761,31 +3809,70 @@ $R=\mathrm{Unit}$ with shared Gaussian $(g_M,z)$ and auxiliary Gaussian $\xi$ ha
 covariance $\frac12(1-q)-\frac12(1-q)=0$ and off-diagonal shared covariance $\frac12(R_{1,2}-q)$,
 leaving the fresh-replica formula~(2) (\texttt{hasDerivAt\_second\_proof\_interpolation}).
 
+\emph{Step 3 (second derivative via angle reparameterization, (2.92)).} Reparameterizing
+$v=\cos^2 s$ on $v\in(0,1)$ ($s=\arccos\sqrt v$) removes the endpoint square-root singularity: by
+Theorem~\ref{thm:sg-tal:perceptron-tilted-rotation-ibp-avg}, differentiating the angle form of $\varphi'$
+has prefactor $\sin s\cos s$, which cancels $(-2\sin s\cos s)^{-1}$ from $\frac{d}{dv}\arccos\sqrt v$.
+In each of the four replica covariance groups ($|R|\le 4$), a second factor $q-R_{\ell,\ell'}$ appears;
+estimating $|R_{1,2}-q|\,|R_{\ell,\ell'}-q|$ by $\frac12\bigl((R_{1,2}-q)^2+(R_{\ell,\ell'}-q)^2\bigr)$
+and removing the bounded cavity tilt via $\exp(8|D|)$ gives
+$|\varphi''(v)|\le K_{\rm sec}\,\nu((R_{1,2}-q)^2)$. Continuity of $\varphi$ and $\varphi'$ on $[0,1]$,
+together with the endpoint formulas
+\[
+ \varphi(1)=(N+1)\bigl(p_{N+1,M+1}-p_{N+1,M}\bigr),\quad
+ \varphi(0)=\mathbb E\log\mathbb E_\xi\exp u(\theta),\quad
+ \varphi'(0)=-\frac12\widehat r(q)\,\nu(R_{1,2}-q),
+\]
+and the Taylor remainder bound
+\[
+ \bigl|\varphi(1)-\varphi(0)-\varphi'(0)\bigr|\le\frac12\sup_{v\in(0,1)}\bigl|\varphi''(v)\bigr|
+\]
+give~(3).
+
+\emph{Step 4 (conditional (2.93) and summation over $m<M$).} Feeding
+$\nu((R_{1,2}-q)^2)\le L_{\rm ov}/(N+1)$ from Theorem~\ref{thm:sg-tal:perceptron-rs-fixed-point},
+$\widehat r(q)\le D^2$, and the explicit hypothesis $|\nu(R_{1,2}-q)|\le K_{\rm bias}/(N+1)$ into~(3)
+proves~(2.93). At each $m<M$, write $a_m=\frac{m}{N+1}$ and $b_m=\frac{m+1}{N+1}$; subtracting the
+branch Taylor estimate
+\[
+ \Bigl|F_{\rm br}(b_m)-F_{\rm br}(a_m)-\frac{1}{N+1}F'_{\rm br}(a_m)\Bigr|\le\frac{D^4}{2(N+1)^2}
+\]
+of Proposition~\ref{prop:sg-tal:perceptron-rs-envelope}(6) and telescoping from
+$p_{N+1,0}(u)=\log 2=F(0,0,0)$ to $m=M$, where uniqueness identifies $(q,r)$ with
+$(q_{\rm br}(\alpha),r_{\rm br}(\alpha))$, yields the $\alpha/(N+1)$ rate in~(4).
+
 \emph{Reading of (2.91).} The brackets in (2.91) are the Gibbs average of two replicas $(\tau^1,\xi^1)$, $(\tau^2,\xi^2)$ for the same
 disorder $(g,z)$: conditionally on the disorder the two replicas are independent with the tilted law
 $G_v=(\mu_M(g_0)\otimes\gamma)^{\mathrm{tilted}(u\circ S_v)}$, so the displayed $\mathrm E_\xi\langle\exp(u(S^1_v)+u(S^2_v))\rangle$ in the denominator is the
 square of the one-replica normalizer $\bigl(\int e^{u(S_v)}\,d(\mu_M(g_0)\otimes\gamma)\bigr)^2$ at fixed disorder, and the ratio is
 the integral against the product $G_v^{\otimes2}$, as in the statement above.
 
-\emph{Not formalized (scope note on the remainder of the second proof, (2.92)--(2.93)).} Completing
-the second proof of Theorem~2.4.2 from (2.90)--(2.91) requires the centered overlap bound
-$|\nu(R_{1,2}-q)|\le K(D)/(N+1)$ (to control $\varphi'(0)=-\frac12\widehat r(q)\nu(R_{1,2}-q)$ at
-rate $1/(N+1)$ rather than $1/\sqrt{N+1}$), which Talagrand defers to the central limit theorems of
-Chapter~9. Theorem~\ref{thm:sg-tal:perceptron-rs-convergence} already establishes Theorem~2.4.2
-unconditionally via the self-contained first proof.
-Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ReplicaSymmetricVariational.lean}.
+\emph{Formalization note (hypothesis audit on (2.92)--(2.93)).}
+\begin{enumerate}
+\item \emph{Unconditional vs.\ conditional steps.} Parts~(1)--(3) assume no derived facts: part~(1) needs only
+measurability and Gaussian integrability of $u$, part~(2) needs $C^2$ boundedness and $q\in[0,1]$, and part~(3)
+needs~(2.7) and $q\in[0,1]$ without~(2.68). Part~(4) isolates the centered overlap bound
+$|\nu(R_{1,2}-q)|\le K_{\rm bias}/(N+1)$ --- which Talagrand defers to Chapter~9 --- as an explicit conditional
+hypothesis of~(2.93) and of the summation step alone, keeping the unconditional Theorem~2.4.2
+(Theorem~\ref{thm:sg-tal:perceptron-rs-convergence}, proved via the self-contained first proof) completely free
+of Chapter~9 inputs.
+\item \emph{Factor $1/2$ and $\alpha/(N+1)$ rate.} The Taylor lemma gives the sharp factor $\frac12\sup|\varphi''|$
+(stronger than the printed $\sup|\varphi''|$ in~(2.92)), and summing $M$ increments of size $O((N+1)^{-2})$
+produces the sharper $\alpha/(N+1)$ rate noted at the end of Talagrand's second proof.
+\end{enumerate}
+Formalized in \texttt{IntervalDerivative.lean} and in \texttt{ReplicaSymmetricIncrement.lean}.
 \end{proof}
 
 
-\section{Exponential inequalities (Talagrand Section~2.5)}\label{sec:sg-tal:perceptron-exponential-inequalities}
+\section{Exponential inequalities and free energy CLT (Talagrand Section~2.5)}\label{sec:sg-tal:perceptron-exponential-inequalities}
 
 Section~2.5 improves the second-moment control $\nu((R_{1,2}-q)^2)\le L/N$ of Theorem~2.4.1 to control
 of all even moments, both of the overlap (Theorem~2.5.1) and of the empirical variance of $u'$
-(Theorem~2.5.2). Theorem~2.5.3, the central limit theorem for the pressure, needs these bounds
-\emph{uniformly along the interpolation} $s\in[0,1]$ of Lemma~\ref{lem:sg-tal:perceptron-interpolating-overlap},
-a fact that the book leaves as an exercise. This blueprint therefore proves Theorems~2.5.1 and~2.5.2 directly
-for the $s$-interpolating system, and obtains the book's statements as the case $s=1$. Theorem~2.5.3 itself is
-not yet formalized (see Remark~\ref{rem:sg-tal:perceptron-exponential-scope}).
+(Theorem~2.5.2), and deduces the quantitative central limit theorem for all moments of the free energy
+(Theorem~2.5.3). Theorem~2.5.3 needs Theorems~2.5.1 and~2.5.2 \emph{uniformly along the interpolation}
+$s\in[0,1]$ of Lemma~\ref{lem:sg-tal:perceptron-interpolating-overlap}, a fact that the book leaves as
+an exercise. This blueprint proves Theorems~2.5.1, 2.5.2, the a priori fluctuation bound, and
+Theorem~2.5.3 along the entire $s$-interpolating path, obtaining the perceptron statements at $s=1$.
 
 \emph{Conventions of this section.} There are $N+1$ spins and $M$ constraints, the load is
 $\alpha=M/(N+1)$, and $u$ satisfies~(2.7) with constant $D$, stated in Lean as
@@ -4130,19 +4217,247 @@ $M/(N+1)$; the constants of the cavity bound and of the Young step are explicit 
 $L$ built from $K_{\rm cav}$ and $|D|$) instead of ``$K(D)$''. The condition $\alpha\le1$ that the book
 adds (``we can as well assume'') is derived from $\alpha K\le1$ with $K\ge1$.
 \end{enumerate}
-Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/}\texttt{EmpiricalVarianceHighMoments.lean}.
+Formalized in \texttt{EmpiricalVarianceHighMoments.lean}.
 \end{proof}
 
-\begin{remark}[Scope of Section~2.5 in this blueprint]\label{rem:sg-tal:perceptron-exponential-scope}
-\talsource{Section~2.5, Theorem~2.5.3, Eqs.~(2.107)--(2.110)}
-\emph{Not formalized.} Theorem~2.5.3 (the central limit theorem
-$\mathbb E(p_{N,M}(u)-p(u))^k=(b/N)^{k/2}a(k)+O(k+1)$) is not formalized. Its proof needs the derivative of
-$\psi(s)=\mathbb E\,V(s)^k$ along the interpolation, the decomposition $\psi'=\mathrm{VII}+\mathrm{VIII}+\mathrm{IX}$
-of~(2.108), the a priori bound $\mathbb E|V(s)|^k=O(N^{-k/2})$ obtained from (2.109)--(2.110) and a Gr\"onwall
-argument, and an induction in steps of two using $a(k+2)=(k+1)a(k)$. Theorems~2.5.1 and~2.5.2, proved here
-uniformly in $s$, are the two inputs of that argument; the printed bound
-$\psi(0)\le K(k)N^{k/2}$ must read $N^{-k/2}$ for the conclusion to follow. The only groundwork so far is
-model-free: Gaussian integration by parts for a Gibbs average multiplied by a function of the logarithm of the
-partition function (\texttt{integral\_mul\_gibbs\_ratio\_mul\_comp\_log\_eq\_sum}). The fixed-point equations are
-not needed for the derivative formula~(2.108) itself, only for the estimates of VII and VIII.
+\subsection{Theorem 2.5.3: free energy central limit theorem}\label{sub:sg-tal:perceptron-free-energy-clt}
+
+To compute the moments of the random free energy along $s\in[0,1]$, write
+\[
+ A(s)=\frac{1}{N+1}\log\int_{\Sigma_{N+1}\times\mathbb R^M}\exp\bigl(E_s(\omega,x)\bigr)\,d\mu_s(x),\qquad
+ \mathrm{RS}(s)=F(\alpha,r,q)+\frac{1-s}{2}\,r(1-q),
+\]
+and set $V(s)=A(s)-\mathrm{RS}(s)$ and $\psi_k(s)=\mathbb E[V(s)^k]$.
+
+\begin{lemma}[Centered-moment ODE along $s$, (2.107)--(2.108)]\label{lem:sg-tal:perceptron-centered-moment-ode}
+  \lean{SpinGlasses.stein_tilted_replica_ratio_mul_comp_log,
+        SpinGlasses.stein_tilted_unit_replica_deriv_mul_comp_log,
+        SpinGlasses.hasDerivAt_interpolating_centered_moment_pow,
+        Finset.sum_choose_mul_deriv_pow_zero}
+  \leanok
+  \uses{thm:sg-tal:perceptron-tilted-stein, lem:sg-tal:perceptron-interpolating-overlap,
+        def:sg-tal:perceptron-rs-functional}
+\talsource{Section~2.5, Eqs.~(2.107)--(2.108)}
+Suppose $u$ is $C^2$ with $|u|\le B$, $|u'|\le D_1$, and $|u''|\le D_2$, and let $q\in[0,1]$, $r\ge 0$,
+and $s\in(0,1)$. For every $k\in\mathbb N$, $s'\mapsto\mathbb E[V(s')^k]$ has derivative at $s$ equal to
+$\mathrm{VII}+\mathrm{VIII}+\mathrm{IX}$, where
+\begin{align*}
+ \mathrm{VII} &= -\frac{k}{2}\,\mathbb E\!\left[\Bigl\langle(R_{1,2}-q)\Bigl(\frac{1}{N+1}\sum_{j<M}u'(S^1_{j,s})\,u'(S^2_{j,s})-r\Bigr)\Bigr\rangle_s V(s)^{k-1}\right],\\
+ \mathrm{VIII} &= \frac{k(k-1)}{2(N+1)}\,\mathbb E\!\left[\Bigl\langle(R_{1,2}-q)\Bigl(\frac{1}{N+1}\sum_{j<M}u'(S^1_{j,s})\,u'(S^2_{j,s})-r\Bigr)\Bigr\rangle_s V(s)^{k-2}\right],\\
+ \mathrm{IX} &= -\frac{rq}{2(N+1)}\,k(k-1)\,\mathbb E\bigl[V(s)^{k-2}\bigr].
+\end{align*}
+\end{lemma}
+\begin{proof}
+  \leanok
+Write $L=N+1$, $a_0=\mathrm{RS}(s)$, and $\varphi_m(s')=\mathbb E[(A(s')-a_0)^m]$.
+
+\emph{Step 1 (differentiating $\varphi_m$ at fixed center $a_0$).} Dominated differentiation along
+$s'\in(0,1)$ gives
+\[
+ \varphi_m'(s)=\frac{m}{L}\,\mathbb E\!\left[\Bigl\langle\sum_{j<M}S'_{j,s}u'(S_{j,s})
+   -\frac{1}{2\sqrt{1-s}}\sum_{i<L}\sigma_i z'_i\sqrt r\Bigr\rangle_s\bigl(A(s)-a_0\bigr)^{m-1}\right].
+\]
+
+\emph{Step 2 (Gaussian IBP in $z'_i$ and $S_{M-1,s}$).} In each coordinate $z'_i$, applying model-free
+Gaussian integration by parts with a $G(\log Z)$ factor to $G(t)=(L^{-1}t-a_0)^{m-1}$ produces a bracket
+term proportional to $(1-R_{1,2})(A-a_0)^{m-1}$ and a partition-function term proportional to
+$L^{-1}R_{1,2}(A-a_0)^{m-2}$. For each constraint $j$, swapping $j$ with the last constraint and applying
+the log-weighted single-replica Stein identity in \texttt{FreeEnergyPathODE.lean} (built from the replica
+Stein ratio lemma in \texttt{GaussianTiltedSteinRatio.lean} using the shared and diagonal covariances of
+Section~2.4) gives
+\[
+ -\frac12\mathbb E\bigl[\langle(R_{1,2}-q)u'(S^1_{j,s})u'(S^2_{j,s})\rangle_s(A-a_0)^{m-1}\bigr]
+ +\frac{m-1}{2L}\mathbb E\bigl[\langle(R_{1,2}-q)u'(S^1_{j,s})u'(S^2_{j,s})\rangle_s(A-a_0)^{m-2}\bigr].
+\]
+
+\emph{Step 3 (regrouping and moving-center cancellation, (2.107)--(2.108)).} Adding and subtracting $r$ inside the
+two-replica brackets splits $\varphi_k'(s)$ into $\mathrm{VII}+\mathrm{VIII}+\mathrm{IX}-\frac12kr(1-q)\varphi_{k-1}(s)$.
+Expanding $V(s')^k=\sum_{i=0}^k\binom{k}{i}(a_0-\mathrm{RS}(s'))^i(A(s')-a_0)^{k-i}$ and differentiating at
+$s'=s$, where $a_0-\mathrm{RS}(s)=0$ and $(a_0-\mathrm{RS})'(s)=\frac12r(1-q)$, adds $+\frac12kr(1-q)\varphi_{k-1}(s)$
+via the binomial-derivative lemma in \texttt{Binomial.lean}, cancelling term IV and leaving
+$\mathrm{VII}+\mathrm{VIII}+\mathrm{IX}$.
+
+\emph{Formalization note (hypothesis audit).}
+\begin{enumerate}
+\item \emph{Hypotheses.} Only $C^2$ boundedness ($|u|\le B$, $|u'|\le D_1$, $|u''|\le D_2$, no $u'''$),
+$q\in[0,1]$, $r\ge 0$, and $s\in(0,1)$ are assumed: neither the fixed-point equations~(2.68) nor a small-load
+condition $\alpha K\le 1$ is needed for the identity~(2.108).
+\item \emph{Exponent discipline.} No hypothesis $k\ge 2$ is assumed: for $k=0,1$ the coefficient $k(k-1)$ vanishes,
+so natural-number subtraction $k-2$ in the exponent never contributes.
+\end{enumerate}
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/FreeEnergyPathODE.lean}.
+\end{proof}
+
+\begin{proposition}[Gr\"onwall fluctuation bound, (2.109)--(2.110)]\label{prop:sg-tal:perceptron-free-energy-gronwall}
+  \lean{SpinGlasses.abs_interpolating_term_VII_le,
+        SpinGlasses.abs_interpolating_term_VIII_le,
+        SpinGlasses.continuousOn_interpolating_centered_moment_pow,
+        SpinGlasses.integral_interpolating_centered_abs_pow_le,
+        le_exp_mul_add_of_exists_hasDerivAt_Ioo,
+        ProbabilityTheory.exists_abs_integral_pow_sum_pi_le}
+  \leanok
+  \uses{lem:sg-tal:perceptron-centered-moment-ode, thm:sg-tal:perceptron-overlap-high-moments,
+        thm:sg-tal:perceptron-empirical-high-moments, lem:sg-tal:perceptron-power-difference}
+\talsource{Section~2.5, Eqs.~(2.109)--(2.110)}
+For any $D\in\mathbb R$ and $k\in\mathbb N$ there exist $K=K(D,k)\ge 0$ and $C=C(D,k)\ge 0$ such that
+if $u$ satisfies~(2.7), $\alpha=M/(N+1)$ satisfies $\alpha K\le 1$, $(q,r)$ solves~(2.68), and
+$s\in[0,1]$, then:
+\begin{enumerate}
+\item \emph{Remainder bounds (2.109).} Writing $\mathrm{VII}$ and $\mathrm{VIII}$ as in
+Lemma~\ref{lem:sg-tal:perceptron-centered-moment-ode},
+\[
+ |\mathrm{VII}|\le\frac{C}{N+1}\bigl(\mathbb E|V(s)|^k\bigr)^{\lfloor k-1\rfloor/k},\qquad
+ |\mathrm{VIII}|\le\frac{C}{(N+1)^2}\bigl(\mathbb E|V(s)|^k\bigr)^{\lfloor k-2\rfloor/k}.
+\]
+\item \emph{A priori fluctuation bound.}
+\[
+ \mathbb E\bigl|V(s)\bigr|^k\le C\,(N+1)^{-k/2}.
+\]
+\end{enumerate}
+\end{proposition}
+\begin{proof}
+  \leanok
+Write $L=N+1$, $A_{\rm ov}=R_{1,2}-q$, and $B_{\rm emp}=L^{-1}\sum_{j<M}u'(S^1_{j,s})u'(S^2_{j,s})-r$.
+
+\emph{Step 1 (H\"older bounds on $\mathrm{VII}$ and $\mathrm{VIII}$, (2.109)).} By H\"older's inequality over $P$
+with exponents $(k/(k-m),k/m)$ ($m\in\{k-1,k-2\}$) followed by Cauchy--Schwarz and Jensen under $\nu_s$,
+\[
+ \bigl|\mathbb E\bigl[\langle A_{\rm ov}B_{\rm emp}\rangle_s V(s)^m\bigr]\bigr|
+ \le\bigl(\nu_s(A_{\rm ov}^{2k})\bigr)^{1/(2k)}\bigl(\nu_s(B_{\rm emp}^{2k})\bigr)^{1/(2k)}
+   \bigl(\mathbb E|V(s)|^k\bigr)^{m/k}.
+\]
+Applying Theorems~\ref{thm:sg-tal:perceptron-overlap-high-moments} and
+\ref{thm:sg-tal:perceptron-empirical-high-moments} (with $\alpha\le 1$ from $\alpha K\le 1$, $K\ge 1$) bounds the
+product of the first two factors by $O(L^{-1})$, giving part~(1).
+
+\emph{Step 2 (differential inequality for even $k=2p$, (2.110)).} When $k=2p$ ($p\ge 1$), $|V(s)|^k=V(s)^k$, so
+$\mathbb E|V(s)|^k=\psi_{2p}(s)\ge 0$, and $\mathrm{IX}=-(rq/(2L))2p(2p-1)\psi_{2p-2}(s)\le 0$ because
+$q,r\ge 0$ and $\psi_{2p-2}(s)=\mathbb E[V(s)^{2(p-1)}]\ge 0$. Applying Young's inequality
+(Lemma~\ref{lem:sg-tal:perceptron-power-difference}) with $(2p,2p/(2p-1))$ to $|\mathrm{VII}|$ and with
+$(p,p/(p-1))$ to $|\mathrm{VIII}|$ gives $\psi'_{2p}(s)\le K_{\rm ode}(L^{-p}+\psi_{2p}(s))$ on $(0,1)$.
+
+\emph{Step 3 (Gr\"onwall and decoupled endpoint $s=0$).} Continuity of $\psi_{2p}$ on $[0,1]$ and forward affine
+Gr\"onwall comparison in \texttt{GronwallBackward.lean} yield
+\[
+ \psi_{2p}(s)\le e^{K_{\rm ode}+1}\bigl(\psi_{2p}(0)+K_{\rm ode}L^{-p}\bigr).
+\]
+At $s=0$, we have $V(0)=L^{-1}\sum_{i<L}f_X(z'_i)+L^{-1}\sum_{j<M}f_Y(z_j)$, a sum of two independent
+centered i.i.d.\ sums whose moments are bounded in terms of $|D|$ alone (since
+$r=\alpha\widehat r(q)\le|D|^2$ and $M\le L$). Applying the uniform i.i.d.\ moment bound in
+\texttt{IidSumExpansion.lean} gives $\psi_{2p}(0)\le C_0 L^{-p}$ (correcting the book's misprint
+$\psi(0)\le K(k)N^{k/2}$).
+
+\emph{Step 4 (all $k$ via Cauchy--Schwarz).} By Cauchy--Schwarz, for every $k\in\mathbb N$ we have
+\[
+ \mathbb E|V(s)|^k\le\bigl(\mathbb E[V(s)^{2k}]\bigr)^{1/2}\le\sqrt{C_{2k}}\,L^{-k/2}.
+\]
+Formalized in \texttt{FreeEnergyPathODE.lean} and \texttt{FreeEnergyGronwall.lean}.
+\end{proof}
+
+\begin{theorem}[Theorem 2.5.3: free energy moment CLT]\label{thm:sg-tal:perceptron-free-energy-clt}
+  \lean{SpinGlasses.interpolating_free_energy_clt,
+        SpinGlasses.perceptron_free_energy_clt,
+        SpinGlasses.perceptron_free_energy_clt_of_zero_constraint_var,
+        ProbabilityTheory.sum_choose_mul_gaussian_moments_eq,
+        ProbabilityTheory.exists_abs_integral_pow_sum_pi_sub_le,
+        ProbabilityTheory.exists_abs_integral_add_pow_avg_two_pi_sub_le}
+  \leanok
+  \uses{lem:sg-tal:perceptron-centered-moment-ode, prop:sg-tal:perceptron-free-energy-gronwall,
+        def:sg-tal:perceptron-rs-functional}
+\talsource{Theorem~2.5.3}
+For any $D\in\mathbb R$ and $k\in\mathbb N$ there exist $K=K(D,k)\ge 0$ and $C=C(D,k)\ge 0$ with the
+following property. Let $u$ satisfy~(2.7), let $\alpha=M/(N+1)$ satisfy $\alpha K\le 1$, and let $(q,r)$
+solve~(2.68). Put $a(k)=\int_{\mathbb R}x^k\,d\gamma(x)$,
+$\psi_u(z)=\log\int_{\mathbb R}\exp u(\sqrt q\,z+\sqrt{1-q}\,\xi)\,d\gamma(\xi)$, and
+\[
+ b(s)=\Bigl(\mathbb E\bigl(\log\cosh(z\sqrt r)\bigr)^2-\bigl(\mathbb E\log\cosh(z\sqrt r)\bigr)^2\Bigr)
+   +\alpha\Bigl(\mathbb E\bigl[\psi_u(z)^2\bigr]-\bigl(\mathbb E[\psi_u(z)]\bigr)^2\Bigr)-rqs
+\]
+with $b=b(1)$. Then:
+\begin{enumerate}
+\item \emph{Along the interpolation ($s\in[0,1]$).}
+\[
+ \Bigl|\mathbb E\bigl[\bigl(A(s)-\mathrm{RS}(s)\bigr)^k\bigr]-(N+1)^{-k/2}a(k)\,b(s)^{\lfloor k/2\rfloor}\Bigr|
+ \le C\,(N+1)^{-(k+1)/2}.
+\]
+\item \emph{For the perceptron ($s=1$).} Writing the random finite-size free energy as
+\[
+ F_{N+1,M}(g)=\frac{1}{N+1}\log\sum_{\tau\in\Sigma_{N+1}}
+   \exp\Bigl(\sum_{j<M}u\bigl((N+1)^{-1/2}\sum_{i<N+1}g_{j,i}\tau_i\bigr)\Bigr),
+\]
+we have
+\[
+ \Bigl|\mathbb E\bigl[\bigl(F_{N+1,M}(g)-F(\alpha,r,q)\bigr)^k\bigr]-(N+1)^{-k/2}a(k)\,b^{\lfloor k/2\rfloor}\Bigr|
+ \le C\,(N+1)^{-(k+1)/2}.
+\]
+When $\mathrm{Var}_z(\psi_u)=0$ (for instance whenever $q=0$), $b$ simplifies to Talagrand's printed expression
+$\mathbb E(\log\cosh(z\sqrt r))^2-(\mathbb E\log\cosh(z\sqrt r))^2-qr$.
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+  \leanok
+Write $L=N+1$ and $\varepsilon=L^{-1/2}$.
+
+\emph{Step 1 (ODE with remainder $O(\varepsilon^{m+1})$).} Feeding $\mathbb E|V(s)|^m\le C_{\rm ap}\varepsilon^m$
+from Proposition~\ref{prop:sg-tal:perceptron-free-energy-gronwall}(2) into part~(1) of that proposition gives
+$|\mathrm{VII}|\le C'_7\varepsilon^{m+1}$ and $|\mathrm{VIII}|\le C'_8\varepsilon^{m+2}\le C'_8\varepsilon^{m+1}$, so
+Lemma~\ref{lem:sg-tal:perceptron-centered-moment-ode} becomes
+\[
+ \psi'_m(s)=\frac{m(m-1)}{2}\,\varepsilon^2(-rq)\,\psi_{m-2}(s)+D_m(s),\qquad |D_m(s)|\le C_{\rm rem}(m)\varepsilon^{m+1}.
+\]
+
+\emph{Step 2 (decoupled endpoint CLT at $s=0$).} At $s=0$, we have
+\[
+ V(0)=L^{-1}\sum_{i<L}f_X(z'_i)+L^{-1}\sum_{j<M}f_Y(z_j)
+\]
+with independent centered variables $f_X(z)=\log\cosh(z\sqrt r)-\mathbb E\log\cosh(z\sqrt r)$ of variance $v_X$
+and $f_Y(z)=\psi_u(z)-\mathbb E\psi_u(z)$ of variance $v_Y$. Expanding each centered i.i.d.\ sum to order
+$\varepsilon^{j+1}$ uniformly in $u,q,r$ and recombining the binomial convolution via
+\[
+ \sum_{j=0}^m\binom{m}{j}a(j)v_1^{\lfloor j/2\rfloor}a(m-j)v_2^{\lfloor(m-j)/2\rfloor}
+ =a(m)(v_1+v_2)^{\lfloor m/2\rfloor}
+\]
+(formalized in \texttt{IidSumExpansion.lean}) gives
+\[
+ \bigl|\psi_m(0)-\varepsilon^m a(m)\,b(0)^{\lfloor m/2\rfloor}\bigr|\le C_{\rm dec}(m)\varepsilon^{m+1},
+ \qquad b(0)=v_X+\alpha v_Y .
+\]
+
+\emph{Step 3 (two-step induction on $m$ and evaluation at $s=1$).} Since $a(1)=0$ and $a(n+2)=(n+1)a(n)$, the
+reference $R_m(s)=\varepsilon^m a(m)b(s)^{\lfloor m/2\rfloor}$ has derivative
+$\frac{m(m-1)}{2}\varepsilon^2(-rq)R_{m-2}(s)$ (vanishing identically for odd $m$, exact power rule for even $m$).
+Integrating $\psi_m-R_m$ from $0$ to $s\in[0,1]$ using $|{-rq}|\le|D|^2$ closes the two-step induction for
+part~(1). At $s=1$ the auxiliary Gaussians $z,z',\xi$ drop out of $A(1)$, giving part~(2).
+
+\emph{Formalization note (hypothesis audit and two corrections to the printed text).}
+\begin{enumerate}
+\item \emph{Hypotheses assumed by the book.} Theorem~2.5.3 states no extra hypotheses beyond~(2.7), $\alpha K\le 1$,
+and $(q,r)$ solving~(2.68). None of $b\ge 0$, $0\le r$, $q\in[0,1]$, (2.69), or~(2.80) is assumed in Lean:
+$q\in[0,1]$ and $0\le r\le|D|^2$ are derived from~(2.68) and $\alpha K\le 1$, and writing $b^{\lfloor k/2\rfloor}$
+with natural-number division avoids any sign requirement on $b$ (for odd $k$, $a(k)=0$).
+\item \emph{Random free energy vs.\ quenched expectation.} In Section~2.1 (Eq.~(2.11)), $p_{N,M}(u)$ denotes the
+deterministic expectation $\frac1N\mathbb E\log Z_{N,M}(u)$, whereas Theorem~2.5.3 writes $\mathbb E(p_{N,M}(u)-p(u))^k$
+as shorthand for $\mathbb E(\frac1N\log Z_{N,M}(u)-p(u))^k$ (matching $A(1)$ in its proof and Theorem~1.4.11).
+The Lean statement writes the random free energy explicitly.
+\item \emph{Missing constraint-variance term in the printed $b$.} At $s=0$ the interpolating Hamiltonian~(2.76)
+retains the $M$ independent Gaussian shifts $z_j$ inside $\theta_j=\sqrt q\,z_j+\sqrt{1-q}\,\xi_j$, so
+$\mathrm{Var}(V(0))=L^{-1}(v_X+\alpha v_Y)$, not $L^{-1}v_X$ (unlike the SK model's deterministic external field in
+Theorem~1.4.11, where only spin terms appear at $t=0$). Since $b'(s)=-rq$ along $(0,1)$, the true variance parameter
+at $s=1$ is $b(1)=v_X+\alpha v_Y-qr$. Indeed, for $u(x)=\tanh x$ at positive small load $\alpha>0$, $\widehat r(0)>0$
+implies $q>0$, so $\psi_u(z)$ is non-constant and $\alpha v_Y>0$. Both the general theorem with $v_X+\alpha v_Y-qr$
+and the specialization under $v_Y=0$ are formalized.
+\item \emph{Misprint at $s=0$.} In the Gr\"onwall step, the book prints $\psi(0)\le K(k)N^{k/2}$; the proof uses and
+proves $(N+1)^{-k/2}$.
+\item \emph{Uniformity of constants.} Both $K$ and $C$ depend only on $D$ and $k$ and are chosen before $N,M,s,u,q,r$,
+strengthening the book's $u$-dependent $O(k+1)$.
+\end{enumerate}
+Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/FreeEnergyCLT.lean}.
+\end{proof}
+
+\begin{remark}[Exercises and research problems at the end of Section~2.5]\label{rem:sg-tal:perceptron-sec25-problems}
+\talsource{Exercise~2.5.4, Research Problems~2.5.5--2.5.6}
+\emph{Excluded by scope.} Exercise~2.5.4 asks to rewrite the SK Theorem~1.4.11 proof using the Gr\"onwall argument
+of Proposition~\ref{prop:sg-tal:perceptron-free-energy-gronwall} in place of Lemma~1.4.12 (Theorem~1.4.11 is already
+formalized in Chapter~1 via Lemma~1.4.12). Research Problems~2.5.5 and~2.5.6 (sharp $1/N$ rate for non-smooth
+potentials and TAP equations for the binary perceptron) are open/Volume~II research problems outside Chapter~2.
 \end{remark}

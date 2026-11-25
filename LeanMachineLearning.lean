@@ -738,6 +738,8 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.EmpiricalVari
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.EmpiricalVarianceHighMoments
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.ExponentialPenalty
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.FirstMoment
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.FreeEnergyCLT
+public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.FreeEnergyGronwall
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.FreeEnergyPathODE
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.GaussianFieldSplit
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.GaussianFields
