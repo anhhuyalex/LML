@@ -149,4 +149,26 @@ theorem measurePreserving_pi_comp_injective {R R' X : Type*} [Fintype R] [Fintyp
     Finset.prod_image (fun a _ b _ h => hρ h)]
   simp [hρ.extend_apply]
 
+/-- **Permuting the inner index in every row of an iterated product measure preserves its law:**
+each row `k : ι` may carry its own coordinate measure `μ k`. -/
+theorem measurePreserving_pi_pi_comp_perm {ι κ X : Type*} [Fintype ι] [Fintype κ]
+    [MeasurableSpace X] (μ : ι → Measure X) [∀ k, SigmaFinite (μ k)] (π : Equiv.Perm κ) :
+    MeasurePreserving (fun (g : ι → κ → X) (k : ι) (j : κ) => g k (π j))
+      (Measure.pi fun k : ι => Measure.pi fun _ : κ => μ k)
+      (Measure.pi fun k : ι => Measure.pi fun _ : κ => μ k) := by
+  let e_col : (κ → X) ≃ᵐ (κ → X) := MeasurableEquiv.piCongrLeft (fun _ : κ => X) π.symm
+  have hrow (k : ι) : MeasurePreserving ⇑e_col
+      (Measure.pi fun _ : κ => μ k) (Measure.pi fun _ : κ => μ k) :=
+    measurePreserving_piCongrLeft (fun _ : κ => μ k) π.symm
+  let e_mat : (ι → κ → X) ≃ᵐ (ι → κ → X) := MeasurableEquiv.piCongrRight fun _ : ι => e_col
+  have hmp : MeasurePreserving ⇑e_mat
+      (Measure.pi fun k : ι => Measure.pi fun _ : κ => μ k)
+      (Measure.pi fun k : ι => Measure.pi fun _ : κ => μ k) :=
+    measurePreserving_pi _ _ hrow
+  convert hmp using 1
+  ext g k j
+  change g k (π j) = (Equiv.piCongrLeft (fun _ : κ => X) π.symm (g k)) j
+  rw [Equiv.piCongrLeft_apply]
+  simp
+
 end MeasureTheory
