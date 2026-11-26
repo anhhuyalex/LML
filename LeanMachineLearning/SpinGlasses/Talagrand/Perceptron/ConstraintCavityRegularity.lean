@@ -259,14 +259,6 @@ theorem hasDerivAt_integral_exp_comp_gaussian_time (hu : ContDiff ℝ 2 u) {D D�
   have hg : ContDiff ℝ 2 fun x => Real.exp (u x) := Real.contDiff_exp.comp hu
   have hg1 : Differentiable ℝ fun x => Real.exp (u x) := hg.differentiable (by norm_num)
   have hdg : Differentiable ℝ (deriv fun x => Real.exp (u x)) := hg.differentiable_deriv_two
-  have hdg' : ContDiff ℝ 1 (deriv fun x => Real.exp (u x)) := by
-    have h : ContDiff ℝ (1 + 1) fun x => Real.exp (u x) := by simpa [one_add_one_eq_two] using hg
-    exact (contDiff_succ_iff_deriv.1 h).2.2
-  have b0 : ∀ x, |Real.exp (u x)| ≤ Real.exp D := fun x => by
-    rw [abs_of_pos (Real.exp_pos _)]; exact Real.exp_le_exp.2 (hD x)
-  have b1 : ∀ x, |deriv (fun x => Real.exp (u x)) x| ≤ Real.exp D * D₁ := fun x => by
-    rw [deriv_exp_comp_of_contDiff_two hu, abs_mul, abs_of_pos (Real.exp_pos _)]
-    exact mul_le_mul (Real.exp_le_exp.2 (hD x)) (hD₁ x) (abs_nonneg _) (Real.exp_pos _).le
   have b2 : ∀ x, |deriv (deriv fun x => Real.exp (u x)) x| ≤ Real.exp D * (D₁ ^ 2 + D₂) :=
     fun x => by
     rw [deriv_deriv_exp_comp_of_contDiff_two hu, abs_mul, abs_of_pos (Real.exp_pos _)]
@@ -281,14 +273,8 @@ theorem hasDerivAt_integral_exp_comp_gaussian_time (hu : ContDiff ℝ 2 u) {D D�
     simpa using (Real.hasDerivAt_sin s).mul_const (Real.sqrt (1 - q))
   have key := hasDerivAt_integral_gaussian_pair_path (f := fun x => Real.exp (u x))
     (f' := deriv fun x => Real.exp (u x)) (f'' := deriv (deriv fun x => Real.exp (u x)))
-    (fun x => (hg1 x).hasDerivAt) (fun x => (hdg x).hasDerivAt) (hdg'.continuous_deriv le_rfl)
-    b0 b1 b2 (A := |a₀|) (B := Real.sqrt (1 - q)) ha hb
-    (fun s => by
-      rw [abs_neg, abs_mul]
-      exact mul_le_of_le_one_left (abs_nonneg _) (Real.abs_sin_le_one s))
-    (fun s => by
-      rw [abs_mul, abs_of_nonneg (Real.sqrt_nonneg _)]
-      exact mul_le_of_le_one_left (Real.sqrt_nonneg _) (Real.abs_cos_le_one s)) x t
+    (fun x => (hg1 x).hasDerivAt) (fun x => (hdg x).hasDerivAt) b2 (s₀ := t)
+    (Filter.Eventually.of_forall ha) (Filter.Eventually.of_forall hb) (by fun_prop) (by fun_prop) x
   refine key.congr_deriv ?_
   have hs : Real.sqrt (1 - q) * Real.sqrt (1 - q) = 1 - q :=
     Real.mul_self_sqrt (sub_nonneg.2 hq)

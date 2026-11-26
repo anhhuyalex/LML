@@ -53,9 +53,7 @@ theorem hasDerivAt_integral_log_cosh_sqrt (β h : ℝ) {x : ℝ} (hx : 0 < x) :
   exact hasDerivAt_comp_mul_sqrt hx (hasDerivAt_integral_comp_affine_gaussianReal
     (f := fun y => Real.log (Real.cosh y)) (f' := Real.tanh)
     (f'' := fun y => 1 - Real.tanh y ^ 2) Real.hasDerivAt_log_cosh
-    Real.hasDerivAt_tanh (by have := Real.continuous_tanh; fun_prop)
-    (fun y => (Real.abs_tanh_lt_one y).le) Real.abs_one_sub_tanh_sq_le h (β * Real.sqrt x)
-    (integrable_log_cosh_affine_gaussianReal _ _))
+    Real.hasDerivAt_tanh Real.abs_one_sub_tanh_sq_le h (β * Real.sqrt x))
 
 /-- **The derivative of the replica-symmetric functional:** for `x > 0`,
 `RS'(x) = (β² / 2) (x - 𝔼 tanh² (β √x z + h))` (Talagrand, after Eq. (1.75)). -/

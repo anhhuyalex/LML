@@ -350,7 +350,7 @@ theorem hasDerivAt_integral_sq_comp_affine (hc1 : ContDiff ℝ 1 φ) (hodd : ∀
     refine (((hc1.differentiable one_ne_zero) y).hasDerivAt.pow 2).congr_deriv ?_
     push_cast
     ring
-  refine hasDerivAt_integral_comp_mul_add (C₁ := 2 * (B * deriv φ 0)) hf (by fun_prop) (fun y => ?_)
+  refine hasDerivAt_integral_comp_mul_add (C₁ := 2 * (B * deriv φ 0)) hf (fun y => ?_)
     integrable_abs_id_gaussianReal h w ((integrable_const (B ^ 2)).mono'
       (by fun_prop : Continuous fun z : ℝ => φ (w * z + h) ^ 2).aestronglyMeasurable
       (Filter.Eventually.of_forall fun z => by
