@@ -30,6 +30,9 @@ class InlineChecks(unittest.TestCase):
     def test_escaped_characters_and_spacing(self):
         self.assertEqual(text_of(self.inline(r"50\% of \_x\_ and a\ b")), "50% of _x_ and a b")
 
+    def test_backslash_at_the_end_of_a_line_is_a_space(self):
+        self.assertEqual(text_of(self.inline("a.e.\\\nbounded")), "a.e. bounded")
+
     def test_texorpdfstring_keeps_the_typeset_form(self):
         inlines = self.inline(r"a \texorpdfstring{$\tanh$}{tanh} b")
         self.assertEqual([type(n).__name__ for n in inlines], ["Text", "Math", "Text"])

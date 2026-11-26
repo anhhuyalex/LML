@@ -20,7 +20,8 @@ output="${1:-home_page/talagrand}"
 
 # The chapter files of the book, in order; sections continue from one chapter to the next.
 chapters=(blueprint/src/chapters/spinglasses_talagrand.tex
-          blueprint/src/chapters/spinglasses_talagrand_perceptron.tex)
+          blueprint/src/chapters/spinglasses_talagrand_perceptron.tex
+          blueprint/src/chapters/spinglasses_talagrand_shcherbina_tirozzi.tex)
 book=book/talagrand
 viewer=book/typstverso
 pdf_name=spin-glasses-talagrand.pdf

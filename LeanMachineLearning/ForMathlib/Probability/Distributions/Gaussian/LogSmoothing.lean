@@ -451,7 +451,7 @@ theorem concaveOn_and_bounds_log_integral_exp_comp_add_gaussianReal {u : ℝ →
         ((∫ ξ, deriv u (y + c * ξ) * Real.exp (u (y + c * ξ)) ∂(gaussianReal 0 1)) /
           ∫ ξ, Real.exp (u (y + c * ξ)) ∂(gaussianReal 0 1)) ^ 2) y := fun y => by
     have h := (hasDerivAt_log_integral_exp_comp_add_gaussianReal hu1 hu2 hu0 hD hD₂ c y).2.2
-    exact h.congr_of_eventuallyEq (Eventually.of_forall fun z => (hd z).deriv.symm)
+    exact h.congr_of_eventuallyEq (Filter.Eventually.of_forall fun z => (hd z).deriv)
   have hv_diff : Differentiable ℝ v := fun y => (hd y).differentiableAt
   have hv_conc : ConcaveOn ℝ univ v := by
     have hanti : AntitoneOn (deriv v) univ :=
@@ -460,7 +460,7 @@ theorem concaveOn_and_bounds_log_integral_exp_comp_add_gaussianReal {u : ℝ →
         (fun y _ => (hd2 y).differentiableAt.differentiableWithinAt) fun y _ => by
           rw [(hd2 y).deriv]
           linarith [integral_deriv_two_add_sq_mul_exp_div_le_sq huc hu1 hu2 hD hD₂ y c]
-    exact hanti.concaveOn_of_deriv convex_univ hv_diff.continuous.continuousOn
+    exact (hanti.mono interior_subset).concaveOn_of_deriv convex_univ hv_diff.continuous.continuousOn
       hv_diff.differentiableOn
   have hv0 : ∀ y, v y ≤ 0 := fun y => by
     have hZ1 : ∫ ξ, Real.exp (u (y + c * ξ)) ∂(gaussianReal 0 1) ≤ 1 :=
@@ -479,8 +479,8 @@ theorem concaveOn_and_bounds_log_integral_exp_comp_add_gaussianReal {u : ℝ →
       rw [sub_zero, Real.norm_eq_abs, Real.norm_eq_abs] at h1
       linarith [(abs_le.1 h1).1, neg_abs_le (u 0)]
     have hξ1 : ∫ ξ, |ξ| ∂(gaussianReal 0 1) ≤ 1 := by
-      have h1 := sq_norm_integral_le_integral_sq_norm (f := fun ξ : ℝ => |ξ|)
-        (memLp_id_gaussianReal 2).abs
+      have h1 := sq_norm_integral_le_integral_sq_norm (μ := gaussianReal 0 1)
+        (f := fun ξ : ℝ => |ξ|) (memLp_id_gaussianReal (μ := 0) (v := 1) 2).abs
       have h2 : ∫ ξ : ℝ, ‖|ξ|‖ ^ 2 ∂(gaussianReal 0 1) = 1 := by
         simp only [Real.norm_eq_abs, abs_abs, sq_abs]
         simpa using integral_pow_add_two_gaussianReal 0
@@ -492,14 +492,24 @@ theorem concaveOn_and_bounds_log_integral_exp_comp_add_gaussianReal {u : ℝ →
         integrable_abs_id_gaussianReal
       have hg_i : Integrable (fun ξ : ℝ => -(|u 0| + D * |y| + D * |c| * |ξ|))
           (gaussianReal 0 1) := ((integrable_const _).add (hid_i.const_mul _)).neg
-      have hjensen := Real.exp_integral_le_integral_exp hg_i
+      have hge_i : Integrable (fun ξ : ℝ => Real.exp (-(|u 0| + D * |y| + D * |c| * |ξ|)))
+          (gaussianReal 0 1) := by
+        refine (integrable_const (1 : ℝ)).mono'
+          (by fun_prop : Measurable fun ξ : ℝ =>
+            Real.exp (-(|u 0| + D * |y| + D * |c| * |ξ|))).aestronglyMeasurable
+          (ae_of_all _ fun ξ => ?_)
+        rw [Real.norm_of_nonneg (Real.exp_pos _).le, Real.exp_le_one_iff, neg_nonpos]
+        positivity
+      have hjensen := convexOn_exp.map_integral_le (μ := gaussianReal 0 1)
+        Real.continuous_exp.continuousOn isClosed_univ (ae_of_all _ fun _ => mem_univ _)
+        hg_i hge_i
       have hint_ge : -(|u 0| + D * |y| + D * |c|) ≤
           ∫ ξ, -(|u 0| + D * |y| + D * |c| * |ξ|) ∂(gaussianReal 0 1) := by
         rw [integral_neg, integral_add (integrable_const _) (hid_i.const_mul _),
           integral_const, probReal_univ, one_smul, integral_const_mul]
         nlinarith [mul_nonneg hD0 (abs_nonneg c)]
       refine (Real.exp_le_exp.2 hint_ge).trans (hjensen.trans ?_)
-      refine integral_mono hg_i.exp (integrable_exp_comp_add_gaussianReal hum hu0 y c) fun ξ => ?_
+      refine integral_mono hge_i (integrable_exp_comp_add_gaussianReal hum hu0 y c) fun ξ => ?_
       refine Real.exp_le_exp.2 (le_trans ?_ (hlip (y + c * ξ)))
       have : |y + c * ξ| ≤ |y| + |c| * |ξ| := (abs_add_le _ _).trans_eq (by rw [abs_mul])
       nlinarith [mul_le_mul_of_nonneg_left this hD0]

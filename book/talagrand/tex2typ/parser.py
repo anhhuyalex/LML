@@ -27,7 +27,8 @@ ACCENTS = {'"': "\u0308", "'": "\u0301", "`": "\u0300", "^": "\u0302", "~": "\u0
            "H": "\u030b", "c": "\u0327", "v": "\u030c"}
 LETTER_SYMBOLS = {"l": "ł", "L": "Ł", "o": "ø", "O": "Ø", "ss": "ß", "dots": "…", "ldots": "…"}
 ESCAPED_CHARACTERS = set("_{}%&#$")
-SPACING = {" ": " ", ",": "\u2009", ";": " ", ":": " ", "-": "", "/": ""}
+# A backslash at the end of a line is TeX's control space (``a.e.\`` before a newline).
+SPACING = {" ": " ", "\n": " ", ",": "\u2009", ";": " ", ":": " ", "-": "", "/": ""}
 REF_PREFIX = re.compile(r"\b(Theorem|Lemma|Proposition|Corollary|Definition|Remark|Section)" + NBSP + r"$")
 
 # Tokens that end a run of plain text: math (to be skipped over), environments, headings.

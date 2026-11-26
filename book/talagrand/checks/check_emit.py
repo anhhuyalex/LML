@@ -17,7 +17,9 @@ BOOK = HERE.parent
 FIXTURE = MINI_TEX
 CHAPTER_DIR = BOOK.parent.parent / "blueprint" / "src" / "chapters"
 # The chapter files of the book, in order (the same list as scripts/build_talagrand_book.sh).
-CHAPTERS = [CHAPTER_DIR / "spinglasses_talagrand.tex", CHAPTER_DIR / "spinglasses_talagrand_perceptron.tex"]
+CHAPTERS = [CHAPTER_DIR / name for name in (
+    "spinglasses_talagrand.tex", "spinglasses_talagrand_perceptron.tex",
+    "spinglasses_talagrand_shcherbina_tirozzi.tex")]
 TYPST = shutil.which("typst")
 
 

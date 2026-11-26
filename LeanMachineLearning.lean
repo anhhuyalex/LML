@@ -21,6 +21,7 @@ public import LeanMachineLearning.ForMathlib.Analysis.Calculus.IntervalIntegralD
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.IteratedDerivBounds
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.LinearODEScalar
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.QuadraticBounds
+public import LeanMachineLearning.ForMathlib.Analysis.Calculus.SaddleEnvelope
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.TaylorCoefficient
 public import LeanMachineLearning.ForMathlib.Analysis.Cesaro
 public import LeanMachineLearning.ForMathlib.Analysis.Complex.Exponential
@@ -807,6 +808,8 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.Fixe
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.LargeReplicas
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.Limit
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.Stationarity
+public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.AuxiliaryCavity
+public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.CavityDerivative
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.CavityEndpoint
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.Convexity
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.DisorderConcentration
@@ -816,6 +819,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.LastSp
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.Moments
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.OverlapConcentration
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.RSEquations
+public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.RSFreeEnergyEnvelope
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.ReplicaSymmetricBounds
 public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKAsymptoticProduct
 public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKCorrelationDecay

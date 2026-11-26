@@ -319,22 +319,55 @@ quotient $\int\Psi_re^{\sum_\ell e_r(\sigma^\ell)}\big/\int e^{\sum_\ell e_r(\si
 sign with this domination. The last identity is the independence of the further replica from the others.
 \end{proof}
 
-\begin{lemma}[Second derivative of a replica average]\label{lem:sg-tal:st-replica-second}
+\begin{lemma}[Second derivative and moment bounds of replica differences]\label{lem:sg-tal:st-replica-second}
   \lean{MeasureTheory.memLp_mul_of_forall_memLp,
-        MeasureTheory.replicaDiffWith_replicaDiff_eq_of_memLp}
+        MeasureTheory.replicaDiffWith_replicaDiff_eq_of_memLp,
+        MeasureTheory.exists_integral_one_add_norm_pow_tilted_le,
+        MeasureTheory.abs_comp_some_le_prod,
+        MeasureTheory.integrable_replicaDiff_term_of_confining,
+        MeasureTheory.replicaDiff_add_of_confining,
+        MeasureTheory.replicaDiff_finsetSum_of_confining,
+        MeasureTheory.abs_integral_pi_tilted_le_of_confining,
+        MeasureTheory.abs_replicaDiff_le_of_confining,
+        MeasureTheory.abs_replicaPairAverage_kernel_le_of_confining,
+        MeasureTheory.abs_replicaPairAverage_le_of_confining,
+        MeasureTheory.hasDerivAt_replicaDiff_tilted_of_confining,
+        MeasureTheory.measurable_integral_pi_tilted_of_sigmaFinite,
+        MeasureTheory.measurable_replicaDiff_tilted_of_sigmaFinite,
+        MeasureTheory.measurable_replicaPairAverage_tilted_of_sigmaFinite}
   \leanok
-  \uses{lem:sg-tal:gibbs-replica-product}
-\talsource{the terms II and III of Proposition~3.2.1}
-Functions with finite moments of every order are stable under products. Hence the identity expressing the
-replica difference of replica differences against $cX$ as
-$2c$ times the two-fresh-replica average of $X\otimes X$ plus $c$ times the replica difference of $X^2$ holds
-whenever the replica observable and $X$ have finite moments of every order, and not only when they are
-bounded.
+  \uses{lem:sg-tal:gibbs-replica-product, lem:sg-tal:st-confined}
+\talsource{the terms I--III of Proposition~3.2.1}
+Let $E$, $\lambda$, $R$ and $\kappa>0$ be as in Lemma~\ref{lem:sg-tal:st-confined}.
+\begin{enumerate}
+\item Functions with finite moments of every order are stable under products, so the identity expressing the
+replica difference of replica differences against $cX$ as $2c$ times the two-fresh-replica average of $X\otimes X$
+plus $c$ times the replica difference of $X^2$ holds whenever the replica observable and $X$ have finite moments of
+every order.
+\item For every $k$ there is $K\ge0$ such that if $e(x)\le B\|x\|-\kappa\|x\|^2$ everywhere and $e(x)\ge-c$ on the
+unit ball ($B,c\ge0$), then $\int(1+\|x\|)^k\,d(\lambda.\mathrm{tilted}\,e)\le K(1+B+c)^k$.
+\item For a confined energy $e$, $\mathrm{replicaDiff}$ is additive in polynomially growing one-replica observables,
+and both $|\mathrm{replicaDiff}|$ and $|\mathrm{replicaPairAverage}|$ (for any polynomially growing two-variable
+kernel $K(a,b)$) are controlled by a single moment $\langle(1+\|x\|)^N\rangle$ of the Gibbs measure.
+\item If $\partial_r e_r=ch_r$ and $\partial_r h_r=ch_{2,r}$ with uniform confinement and polynomial growth near
+$t$, and $|F(\sigma)|\le C\prod_\ell(1+\|\sigma^\ell\|)^m$, then
+\[
+\frac d{dt}\,\mathrm{replicaDiff}(\mu_t,F,h_t)
+=c\Bigl(\mathrm{replicaDiff}\bigl(\mu_t,F,h_{2,t}+h_t^2\bigr)
++2\,\mathrm{replicaPairAverage}(\mu_t,F,h_t\otimes h_t)\Bigr).
+\]
+\end{enumerate}
 \end{lemma}
 \begin{proof}
   \leanok
-H\"older's inequality with exponents $2p$ and $2p$ gives the product statement. The algebra is that of the
-bounded case, every integrability now following from finiteness of moments.
+  \uses{lem:sg-tal:gibbs-replica-product, lem:sg-tal:st-confined}
+(1) H\"older's inequality with exponents $2p$ and $2p$ gives stability under products, which discharges all
+integrability premises in the bounded two-replica identity. (2) Bound the normalizer below on the unit ball by
+$\lambda(B_1)e^{-c}$, split $(1+\|x\|)^ke^{e(x)}$ at radius $T=2+2B/\kappa+c/\kappa$, and bound the tail by
+$e^{-c}\int(1+\|x\|)^ke^{-\kappa\|x\|^2/4}\,d\lambda$. (3) Factor the replica product of $(1+\|\sigma^\ell\|)^N$.
+(4) Differentiate each of the $|R|+1$ terms of $\mathrm{replicaDiff}$ via Lemma~\ref{lem:sg-tal:st-confined} and
+combine the resulting replica differences via (1). Formalized in
+\texttt{ForMathlib/Probability/GibbsReplicaConfined.lean} and \texttt{GibbsReplicaConfinedPair.lean}.
 \end{proof}
 
 \section{The model and its moment bounds (Talagrand Section~3.1)}\label{sec:sg-tal:st-model}
@@ -579,9 +612,10 @@ coefficient of $\sum g_{i,k}^2$ is $1/(8N)$.
 
 \section{Tools for the replica-symmetric equations (Talagrand Section~3.2)}\label{sec:sg-tal:st-rs-tools}
 
-This section starts Section~3.2: the analytic lemmas it uses, the cavity Hamiltonian and
-Proposition~3.2.4 and Lemma~3.2.6. Proposition~3.2.1 and the statements from Lemma~3.2.7 to
-Theorem~3.2.14 are not formalized yet.
+This section covers Section~3.2 up to Lemma~3.2.7 and the smoothed representation~(3.99): the analytic
+lemmas, the cavity Hamiltonian, Proposition~3.2.1, Proposition~3.2.4, Lemma~3.2.6, and the auxiliary cavity
+path $\nu_{t,v}$ with Lemma~3.2.7. Lemmas~3.2.8--3.2.9, Proposition~3.2.10, Lemma~3.2.11,
+Proposition~3.2.12 and Theorem~3.2.14 are not formalized yet.
 
 \begin{lemma}[Marginals of log-concave densities]\label{lem:sg-tal:st-marginal}
   \lean{MeasureTheory.concaveOn_log_integral_exp}
@@ -969,6 +1003,154 @@ differences between the values at $t=1$ and $t=0$. The system has $N+1$ spins, s
 other than the last one is $N$.
 \end{remark}
 
+\begin{theorem}[Derivative along the cavity path]\label{thm:sg-tal:st-cavity-derivative}
+  \lean{SpinGlasses.hasDerivAt_neg_shcherbinaTirozziCavityHamiltonian,
+        SpinGlasses.neg_shcherbinaTirozziCavityHamiltonian_le,
+        SpinGlasses.le_neg_shcherbinaTirozziCavityHamiltonian_of_norm_le_one,
+        ProbabilityTheory.integral_apply_apply_mul_pi_pi_gaussianReal_eq,
+        SpinGlasses.hasDerivAt_integral_integral_pi_shcherbinaTirozziCavity}
+  \leanok
+  \uses{def:sg-tal:st-cavity, lem:sg-tal:st-confined, lem:sg-tal:st-replica-second}
+\talsource{Proposition~3.2.1, Eqs.~(3.62)--(3.66)}
+Let $R$ be a finite linearly ordered set of replicas, $\kappa>0$, $r\ge0$, $\bar r\le r$, $t\in(0,1)$, and let
+$u\le0$ be twice differentiable with $|u'|\le D$ and $|u''|\le D_2$. Let $f:(\mathbb R^{N+1})^R\to\mathbb R$ be
+measurable with $|f(\sigma)|\le C\prod_{\ell\in R}(1+\|\sigma^\ell\|)^m$. Write $G_t$ for the cavity Gibbs
+measure on $\mathbb R^{N+1}$, $P$ for the law of $(y,(g,g_0))$ with $y\sim\mathcal N(0,r)$ and standard
+Gaussian $g,g_0$, $\varepsilon=\sigma_{N+1}$ for the last spin,
+$U_k(\sigma)=u'(S_{k,t}(\sigma))\,\varepsilon$, $V_k(\sigma)=\bigl(u''(S_{k,t}(\sigma))+u'(S_{k,t}(\sigma))^2\bigr)\,\varepsilon^2$,
+and $D(h)=\mathrm{replicaDiff}(G_t,f,h)$, $\mathcal P(K)=\mathrm{replicaPairAverage}(G_t,f,K)$. Then each
+expectation on the right is $P$-integrable and
+\[
+\frac d{dt}\,\mathbb E\int f\,dG_t^{\otimes R}
+=\frac1{N+1}\sum_{k<M}\mathbb E\Bigl[\frac{D(V_k)}2+\mathcal P(U_k\otimes U_k)\Bigr]
+-\mathbb E\Bigl[r\,\mathcal P(\varepsilon\otimes\varepsilon)+\bar r\,\frac{D(\varepsilon^2)}2\Bigr].
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+  \uses{def:sg-tal:st-cavity, lem:sg-tal:st-confined, lem:sg-tal:st-replica-second}
+Write $\mathrm{size}(y,g,g_0)=1+|y|+\sum_{k,i}|g_{k,i}|+\sum_i|g_{0,i}|$.
+
+\emph{Step 1 (confinement and polynomial moments).} Uniformly in $t\in[0,1]$,
+\[
+-H_t(\sigma)\le\Bigl(|h|\sum_i|g_{0,i}|+|y|\Bigr)\|\sigma\|-\kappa\|\sigma\|^2,
+\]
+and on $\|\sigma\|\le1$, $-H_t(\sigma)\ge-c$ with $c$ linear in $\mathrm{size}(y,g,g_0)$. By
+Lemma~\ref{lem:sg-tal:st-replica-second}(2), $\langle(1+\|\sigma\|)^k\rangle_t\le A_k\,\mathrm{size}^k$, which
+is $P$-integrable of every polynomial degree.
+
+\emph{Step 2 (differentiating under the disorder average).} Pointwise in $(y,g,g_0)$ and $\sigma$,
+\[
+\partial_t(-H_t)(\sigma)=\sum_{k<M}\frac{(N+1)^{-1/2}g_{k,N+1}}{2\sqrt t}\,U_k(\sigma)
+-\frac{y}{2\sqrt{1-t}}\,\varepsilon+\frac{r-\bar r}{2}\,\varepsilon^2.
+\]
+Lemma~\ref{lem:sg-tal:st-confined} and dominated differentiation in $(y,g,g_0)$ give
+$\frac d{dt}\mathbb E\langle f\rangle_t=\mathbb E[D(\partial_t(-H_t))]$.
+
+\emph{Step 3 (integration by parts in $g_{k,N+1}$ and $y$).} Applying Lemma~\ref{lem:sg-tal:st-replica-second}(4)
+along $g_{k,N+1}$ (with scale $c=(N+1)^{-1/2}\sqrt t$) and Gaussian integration by parts in that matrix entry
+yields
+\[
+\mathbb E\bigl[g_{k,N+1}\,D(U_k)\bigr]=\sqrt{\frac t{N+1}}\,\mathbb E\bigl[D(V_k)+2\,\mathcal P(U_k\otimes U_k)\bigr].
+\]
+Similarly, differentiating $D(\varepsilon)$ in $y$ (with scale $\sqrt{1-t}$) and integrating by parts against
+$\mathcal N(0,r)$ gives
+\[
+\mathbb E\bigl[y\,D(\varepsilon)\bigr]=r\sqrt{1-t}\,\mathbb E\bigl[D(\varepsilon^2)+2\,\mathcal P(\varepsilon\otimes\varepsilon)\bigr].
+\]
+
+\emph{Step 4 (combining the five terms).} Splitting $D(\partial_t(-H_t))$ by
+Lemma~\ref{lem:sg-tal:st-replica-second}(3) and substituting Step~3 cancels $\sqrt t$ and $\sqrt{1-t}$, while
+$-\frac r2 D(\varepsilon^2)+\frac{r-\bar r}2 D(\varepsilon^2)=-\frac{\bar r}2 D(\varepsilon^2)$.
+Formalized in \texttt{SpinGlasses/Talagrand/ShcherbinaTirozzi/CavityDerivative.lean}.
+\end{proof}
+
+\begin{remark}[Hypotheses and form of Proposition~3.2.1]\label{rem:sg-tal:st-prop-321}
+\talsource{Proposition~3.2.1}
+The book states Proposition~3.2.1 for an arbitrary function $f$ on $(\mathbb R^N)^n$ without explicit growth
+conditions; because spins are unbounded on $\mathbb R^{N+1}$, the formal statement assumes $f$ measurable of
+polynomial growth, $\kappa>0$, $\bar r\le r$, $u\le0$, and bounded $u',u''$ (from (3.7), without needing third
+or fourth derivatives). In the book's Equations~(3.62)--(3.66), the constraint sum is already collapsed by row
+symmetry to $\alpha=M/(N+1)$ times the last constraint $S_{M,t}$, and Terms~IV and~V are kept separate; the
+formal statement keeps the sum $(N+1)^{-1}\sum_{k<M}$ over all constraints (before row symmetry) and combines
+Terms~IV and~V into $-\bar r\,\mathbb E[D(\varepsilon^2)/2]$.
+\end{remark}
+
+\begin{lemma}[The auxiliary cavity path and its $v=0$ factorization]\label{lem:sg-tal:st-aux-cavity}
+  \lean{SpinGlasses.integral_pi_tilted_prod_gaussian_zero_observable,
+        SpinGlasses.integral_pi_tilted_prod_gaussian_zero_deriv_mul,
+        SpinGlasses.integral_pi_tilted_prod_gaussian_zero_deriv_two,
+        SpinGlasses.neg_shcherbinaTirozziCavityHamiltonian_succ,
+        SpinGlasses.integral_pi_shcherbinaTirozziAuxCavity_eq_div,
+        SpinGlasses.integral_pi_shcherbinaTirozziAuxCavity_one,
+        SpinGlasses.integral_shcherbinaTirozziAuxCavity_zero,
+        SpinGlasses.integral_shcherbinaTirozziAuxCavity_zero_deriv_mul,
+        SpinGlasses.integral_shcherbinaTirozziAuxCavity_zero_deriv_two,
+        SpinGlasses.integral_pi_shcherbinaTirozziAuxCavity_eq_smoothed,
+        ProbabilityTheory.concaveOn_and_bounds_log_integral_exp_comp_add_gaussianReal}
+  \leanok
+  \uses{def:sg-tal:st-cavity, lem:sg-tal:st-marginal, lem:sg-tal:st-smoothing}
+\talsource{Eqs.~(3.88)--(3.94), (3.99); Lemma~3.2.7}
+Consider $M+1$ constraints on $\mathbb R^{N+1}$, write $-H_{M,t}$ for the cavity Hamiltonian of the first $M$
+constraints and $G_{t,\sim}$ for its Gibbs measure, attach an independent standard Gaussian $z$ to the disorder
+and independent standard Gaussians $\xi^\ell$ to the replicas $\ell\in R$, and put
+$\theta^\ell=z\sqrt q+\xi^\ell\sqrt{\rho-q}$,
+$S_v^\ell=\sqrt v\,S_{M+1,t}(\sigma^\ell)+\sqrt{1-v}\,\theta^\ell$.
+\begin{enumerate}
+\item For $\kappa>0$, $(1-t)(r-\bar r)\ge0$ and measurable $u\le0$, the replica average $\nu_{t,v}(Y)$ of
+Eq.~(3.91) equals the disorder-and-$z$ expectation of the $R$-replica tilted average on
+$(\mathbb R^{N+1}\times\mathbb R)^R$ with exponent $-H_{M,t}(\sigma)+u(S_v(\sigma,\xi))$. At $v=1$,
+$\nu_{t,1}(f)=\nu_t(f)$ for spin observables $f$.
+\item (Lemma~3.2.7.) For measurable $u\le0$ and any spin observable $f:(\mathbb R^{N+1})^R\to\mathbb R$,
+at $v=0$ one has $\nu_{t,0}(f)=\mathbb E\langle f\rangle_{t,\sim}$; for $\ell_1\ne\ell_2$,
+$\alpha\,\nu_{t,0}\bigl(u'(S_0^{\ell_1})u'(S_0^{\ell_2})f\bigr)=r\,\mathbb E\langle f\rangle_{t,\sim}$; and
+$\alpha\,\nu_{t,0}\bigl((u''(S_0^{\ell_1})+u'(S_0^{\ell_1})^2)f\bigr)=\bar r\,\mathbb E\langle f\rangle_{t,\sim}$,
+where $r,\bar r$ are given by (3.69). The fixed-$(z,\text{disorder})$ factorization holds on any $\sigma$-finite
+state space.
+\item (Eq.~(3.99).) For measurable spin observables $f$, integrating out $\xi^\ell$ rewrites the quenched
+average at $(t,v)$ as the replica average for $-H_{M,t}(\sigma)+u_v(\sqrt v\,S_{M+1,t}(\sigma)+\sqrt{1-v}\sqrt q\,z)$,
+where $u_v(x)=\log\mathbb E_\xi\exp u(x+\sqrt{1-v}\sqrt{\rho-q}\,\xi)$ is concave, nonpositive, differentiable
+with $|u_v'|\le D$, and satisfies $u_v(x)\ge-(|u(0)|+D(1+|\sqrt{1-v}\sqrt{\rho-q}|))(1+|x|)$ when $u\le0$ is
+concave with $|u'|\le D$ and $|u''|\le D_2$.
+\end{enumerate}
+\end{lemma}
+\begin{proof}
+  \leanok
+  \uses{def:sg-tal:st-cavity, lem:sg-tal:st-marginal, lem:sg-tal:st-smoothing}
+\emph{Step 1 (ratio and $v=1$).} Double tilting of $\mathrm{volume}\times\mathcal N(0,1)$ first by $-H_{M,t}$
+and then by $u(S_v)$ gives the ratio (3.91). At $v=1$, $S_1$ is independent of $\xi$ and
+$-H_{M,t}+u(S_{M+1,t})=-H_{M+1,t}$, so the $\xi$ and $z$ factors integrate to $1$.
+
+\emph{Step 2 ($v=0$ factorization).} At $v=0$, $S_0^\ell=\theta^\ell$ depends only on $(z,\xi^\ell)$, so the
+tilted measure on $\mathbb R^{N+1}\times\mathbb R$ splits as the product of $G_{t,\sim}$ and
+$\mathcal N(0,1).\mathrm{tilted}(u(z\sqrt q+\cdot\sqrt{\rho-q}))$:
+\begin{align*}
+\bigl\langle u'(\theta^{\ell_1})u'(\theta^{\ell_2})f\bigr\rangle_{t,0,z}
+&=V(z\sqrt q)^2\langle f\rangle_{t,\sim},\\
+\bigl\langle(u''(\theta^{\ell_1})+u'(\theta^{\ell_1})^2)f\bigr\rangle_{t,0,z}
+&=W(z\sqrt q)\langle f\rangle_{t,\sim},
+\end{align*}
+and taking expectations over $z$ and the independent old disorder gives (3.92)--(3.94).
+
+\emph{Step 3 (marginalization).} Integrating out $\xi$ in each replica replaces $u(S_v)$ by $\log\mathbb E_\xi e^{u(S_v)}=u_v(\dots)$.
+By Lemma~\ref{lem:sg-tal:st-smoothing}(3) and Lemma~\ref{lem:sg-tal:st-rbar-le-r}, $u_v''=W-V^2\le0$, so $u_v$ is
+concave; Jensen's inequality gives the linear lower bound.
+Formalized in \texttt{SpinGlasses/Talagrand/ShcherbinaTirozzi/AuxiliaryCavity.lean} and
+\texttt{ForMathlib/Probability/Distributions/Gaussian/LogSmoothing.lean}.
+\end{proof}
+
+\begin{remark}[Differences in Lemma~3.2.7 and Research Problem~3.2.13]\label{rem:sg-tal:st-problem-3213}
+\talsource{Lemma~3.2.7; Research Problem~3.2.13}
+In Lemma~3.2.7 (and Lemmas~3.2.8--3.2.9) the book prints $\Sigma_N^n$ by carry-over from Chapters~1--2; the
+configurations lie in $(\mathbb R^{N+1})^R$. Here the total constraint count is $M+1$ ($M$ old constraints plus
+one isolated constraint), whereas the book writes $M-1$ and $M$. Only measurability and $u\le0$ are used in
+Lemma~3.2.7 (not (3.95)).
+
+\emph{Not formalized (Research Problem~3.2.13).} Level~2 open problem in the book asking for general conditions
+on $u$ under which the replica-symmetric system (3.69), (3.76) and (3.77) (printed there as (3.104)) has a
+unique solution; it has no Lean statement.
+\end{remark}
+
 \begin{remark}[Research Problem~3.1.2]\label{rem:sg-tal:st-problem-312}
 \talsource{Eq.~(3.10)}
 \emph{Not formalized.} The book asks to compute, under the conditions of Theorem~3.1.1 and as
@@ -982,9 +1164,10 @@ It is an open problem in the book and has no Lean statement.
 \section{Replica-symmetric solutions (Talagrand Section~3.3)}
 \label{sec:sg-tal:st-rs-bounds}
 
-This section proves Lemmas~3.3.7--3.3.10, Proposition~3.3.3, Lemma~3.3.13, Proposition~3.3.11,
-Corollary~3.3.12 and the uniqueness part of Theorem~3.3.1. The existence part of Theorem~3.3.1,
-Corollary~3.3.4, Lemmas~3.3.5 and~3.3.6 and the free-energy formula (Theorem~3.3.2) are not formalized yet.
+This section proves Lemmas~3.3.6--3.3.10, Proposition~3.3.3, Lemma~3.3.13, Proposition~3.3.11,
+Corollary~3.3.12, the uniqueness part of Theorem~3.3.1, and the zero-constraint ($M=0$) base case of
+Theorem~3.3.2. The existence part of Theorem~3.3.1, Corollary~3.3.4, Lemma~3.3.5 and the full telescoping
+step of Theorem~3.3.2 (which depend on Lemmas~3.2.8--3.2.9 and Proposition~3.2.12) are not formalized yet.
 Throughout, $\xi$ is a standard Gaussian, $p(v)=e^{-v^2/2}/\sqrt{2\pi}$ and
 $T(v)=\mathbb P(\xi\ge v)$.
 
@@ -1392,4 +1575,92 @@ $q=0$ are outside the statement (for $\alpha=h=0$ the solution of the replica-sy
 The strict inequality (3.150) of Proposition~3.3.11 needs $(\alpha,h)\ne(0,0)$: for $\alpha=h=0$ the quantity
 $2\frac{1+x}{x}\partial G/\partial x$ is identically $1$. The hypothesis $\tau\ge0$ is the one fixed in the book. The monotonicity in $\rho$ is proved without computing
 $\partial^2G/\partial\rho^2$.
+\end{remark}
+
+\begin{lemma}[Envelope derivative along a saddle-point curve]\label{lem:sg-tal:st-saddle-envelope}
+  \lean{hasDerivWithinAt_saddle_envelope,
+        hasDerivAt_saddle_envelope,
+        integral_rpow_le_rpow_integral,
+        le_exp_mul_add_endpoint_of_exists_hasDerivAt_Ioo}
+  \leanok
+Let $A\subset\mathbb R$ be convex with $a_0\in A$, let $S\subset X$ and $T\subset Y$ be subsets of topological
+spaces, and suppose that for $a\in A$ near $a_0$, $(x(a),y(a))\in S\times T$ is a saddle point of $G(a,\cdot,\cdot)$
+(minimizer over $S$ in the first variable, maximizer over $T$ in the second). If $(x,y)$ is continuous within $A$ at
+$a_0$, $b\mapsto G(b,u,v)$ has derivative $G'(b,u,v)$ near $(a_0,x(a_0),y(a_0))$, and $G'$ is continuous at
+$(a_0,x(a_0),y(a_0))$, then $a\mapsto G(a,x(a),y(a))$ has derivative $G'(a_0,x(a_0),y(a_0))$ within $A$ at $a_0$
+(and two-sided derivative when $A$ is a neighbourhood of $a_0$). Neither differentiability of $(x,y)$ nor second
+derivatives of $G$ are needed.
+\end{lemma}
+\begin{proof}
+  \leanok
+For $a\in A$ near $a_0$ the saddle inequalities give
+\[
+G(a,x(a),y(a_0))-G(a_0,x(a),y(a_0))
+\le G(a,x(a),y(a))-G(a_0,x(a_0),y(a_0))
+\le G(a,x(a_0),y(a))-G(a_0,x(a_0),y(a)).
+\]
+Divide by $a-a_0$ (reversing the inequalities when $a<a_0$), apply the mean value theorem to $c\mapsto G(c,x(a),y(a_0))$
+and $c\mapsto G(c,x(a_0),y(a))$, and pass to the limit using the continuity of $(x,y)$ and $G'$.
+Formalized in \texttt{ForMathlib/Analysis/Calculus/SaddleEnvelope.lean}.
+\end{proof}
+
+\begin{lemma}[Derivative of $\mathrm{RS}_0(\alpha)$ and the $M=0$ free energy]\label{lem:sg-tal:st-rs-envelope}
+  \lean{SpinGlasses.continuousOn_integral_log_gaussianTail_ratio,
+        SpinGlasses.hasDerivWithinAt_shcherbinaTirozziHardFunctional_branch,
+        SpinGlasses.hasDerivAt_shcherbinaTirozziHardFunctional_branch,
+        SpinGlasses.shcherbinaTirozziHardFunctional_zero_load,
+        SpinGlasses.integral_log_integral_exp_neg_shcherbinaTirozziHamiltonian_zero}
+  \leanok
+  \uses{def:sg-tal:st-hard-functional, lem:sg-tal:st-hard-derivatives, lem:sg-tal:st-hard-saddle,
+    lem:sg-tal:st-saddle-envelope, lem:sg-tal:st-quadratic, lem:sg-tal:st-mills-affine}
+\talsource{Lemma~3.3.6, Eq.~(3.130); Theorem~3.3.2, $M=0$ step}
+\begin{enumerate}
+\item (Lemma~3.3.6.) Let $\tau\ge0$, let $A\subset[0,\infty)$ be convex with $\alpha_0\in A$, and let $(q(a),\rho(a))$
+be continuous within $A$ at $\alpha_0$ and satisfy $0<q(a)<\rho(a)$ and
+$\partial_q F(a,q(a),\rho(a))=0=\partial_\rho F(a,q(a),\rho(a))$ for $a\in A$ near $\alpha_0$. Then
+$a\mapsto F(a,q(a),\rho(a))$ has derivative
+\[
+\mathbb E_z\log T\Bigl(\frac{\tau-z\sqrt{q(\alpha_0)}}{\sqrt{\rho(\alpha_0)-q(\alpha_0)}}\Bigr)
+\]
+within $A$ at $\alpha_0$ (and two-sided derivative when $\alpha_0>0$ and the hypotheses hold on a neighbourhood of
+$\alpha_0$).
+\item (Zero load and $M=0$.) For $\kappa>0$, at $q_0=h^2/(4\kappa^2)$ and $\rho_0=(2\kappa)^{-1}+h^2/(4\kappa^2)$
+one has $0\le q_0<\rho_0$ and
+\[
+F(0,q_0,\rho_0)=\frac12\log\frac1{2\kappa}-\frac12+\frac{h^2}{4\kappa},\qquad
+F(0,q_0,\rho_0)+\frac12\log(2e\pi)=\frac12\log\frac\pi\kappa+\frac{h^2}{4\kappa}.
+\]
+For $N\ge1$ and $M=0$ constraints,
+\[
+\frac1N\,\mathbb E\log\int_{\mathbb R^N}e^{-H_{N,0}(\sigma)}\,d\sigma
+=\frac12\log\frac\pi\kappa+\frac{h^2}{4\kappa}.
+\]
+\end{enumerate}
+\end{lemma}
+\begin{proof}
+  \leanok
+  \uses{def:sg-tal:st-hard-functional, lem:sg-tal:st-hard-derivatives, lem:sg-tal:st-hard-saddle,
+    lem:sg-tal:st-saddle-envelope, lem:sg-tal:st-quadratic, lem:sg-tal:st-mills-affine}
+\emph{Step 1 (Lemma~3.3.6).} Set $x(a)=q(a)/(\rho(a)-q(a))>0$. As in the proof of
+Theorem~\ref{thm:sg-tal:st-hard-uniqueness}, $(x(a),\rho(a))$ is a critical point of $G(a,\cdot,\cdot)$, hence a
+saddle point on $(0,\infty)\times(0,\infty)$ by Lemma~\ref{lem:sg-tal:st-hard-saddle}. Dominated convergence with the
+quadratic bound $|\log T(v)|\le C(1+|v|)^2$ gives continuity of $(u,v)\mapsto\partial_a G(a,u,v)$; apply
+Lemma~\ref{lem:sg-tal:st-saddle-envelope}.
+
+\emph{Step 2 ($M=0$).} For $M=0$, Lemma~\ref{lem:sg-tal:st-quadratic} evaluates the Gaussian integral
+\[
+\log\int_{\mathbb R^N}e^{-\kappa\|\sigma\|^2+h\langle g_0,\sigma\rangle}\,d\sigma
+=\frac N2\log\frac\pi\kappa+\frac{h^2}{4\kappa}\sum_{i=1}^N g_{0,i}^2,
+\]
+and $\mathbb E\,g_{0,i}^2=1$.
+Formalized in \texttt{SpinGlasses/Talagrand/ShcherbinaTirozzi/RSFreeEnergyEnvelope.lean}.
+\end{proof}
+
+\begin{remark}[Hypotheses of Lemma~3.3.6]\label{rem:sg-tal:st-lemma-336}
+\talsource{Lemma~3.3.6}
+The book writes ``Obvious by~(3.122)'', leaving implicit why the critical branch $(q_0(\alpha),\rho_0(\alpha))$ is
+differentiable (or why differentiability is unnecessary). Because existence of the hard solution branch is still open
+until Section~3.2's $K/\sqrt N$ residuals and Corollary~3.3.4 are formalized, Lemma~3.3.6 is stated conditionally on a
+continuous critical branch $(q(a),\rho(a))$ with $0<q(a)<\rho(a)$; thanks to the saddle-envelope lemma, neither
+differentiability of $(q,\rho)$ nor $\partial^2G/\partial\rho^2$ is needed.
 \end{remark}
