@@ -154,6 +154,78 @@ private theorem mul_sq_le_of_sq_mul_le {V : ℝ → ℝ} {α q c r τ L a : ℝ}
   rw [hr, mul_assoc, mul_comm (∫ z, V (Real.sqrt q * z) ^ 2 ∂γ)]
   exact mul_le_mul_of_nonneg_left hint hα
 
+/-- For `α₁ ∈ (0, 2)` there are a slope `a < 1 / α₁` and a neighbourhood of `0` on which
+`𝔼 (min (z - b) 0)² < a`: the choice of constants behind (3.147). -/
+private theorem exists_slope_lt_inv_and_threshold {α₁ : ℝ} (hα₁0 : 0 < α₁) (hα₁2 : α₁ < 2) :
+    ∃ a δ : ℝ, 0 < a ∧ a * α₁ < 1 ∧ 0 < δ ∧
+      ∀ b, |b| < δ → ∫ z, min (z - b) 0 ^ 2 ∂(gaussianReal 0 1) < a := by
+  set a : ℝ := (1 / 2 + α₁⁻¹) / 2 with ha
+  have hinv : 1 / 2 < α₁⁻¹ := by
+    rw [one_div]
+    exact inv_strictAnti₀ hα₁0 hα₁2
+  have haα : a * α₁ < 1 := by
+    have : a < α₁⁻¹ := by rw [ha]; linarith
+    calc a * α₁ < α₁⁻¹ * α₁ := mul_lt_mul_of_pos_right this hα₁0
+      _ = 1 := inv_mul_cancel₀ hα₁0.ne'
+  have hc := (continuous_integral_min_sub_zero_sq (μ := gaussianReal 0 1)
+    (memLp_id_gaussianReal' 2 (by simp))).continuousAt (x := 0)
+  have h0 : ∫ z, min (z - 0) 0 ^ 2 ∂(gaussianReal 0 1) < a := by
+    simp only [sub_zero, integral_min_zero_sq_gaussianReal]
+    rw [ha]; linarith
+  obtain ⟨δ, hδ0, hδ⟩ := Metric.eventually_nhds_iff.1 (hc.eventually_lt_const h0)
+  exact ⟨a, δ, by rw [ha]; linarith [inv_pos.2 hα₁0], haα, hδ0,
+    fun b hb => hδ (by rwa [Real.dist_eq, sub_zero])⟩
+
+/-- The bound (3.147) on `q`: from `q = (r + h²) s²`, `r = α 𝔼 V (√q z)²`, the estimate of
+Lemma 3.3.8 on `V` with `c² = s ≤ (2 κ₀)⁻¹`, and the constants of
+`exists_slope_lt_inv_and_threshold`. -/
+private theorem q_le_of_replicaSymmetric_equation {V : ℝ → ℝ}
+    {α α₁ a δ τ L c s q r h h₀ κ₀ : ℝ} (hα0 : 0 ≤ α) (hα : α ≤ α₁) (hα₁0 : 0 < α₁) (ha0 : 0 ≤ a)
+    (haα : a * α₁ < 1) (hδ0 : 0 < δ)
+    (hδ : ∀ b, |b| < δ → ∫ z, min (z - b) 0 ^ 2 ∂(gaussianReal 0 1) < a) (hτ : 0 ≤ τ)
+    (hL0 : 0 ≤ L) (hc0 : 0 < c) (hc2 : c ^ 2 = s) (hs0 : 0 < s) (hsκ : s ≤ (2 * κ₀)⁻¹)
+    (hh : |h| ≤ h₀) (hq : 0 ≤ q) (hqs : q = (r + h ^ 2) * s ^ 2)
+    (hV : ∀ y, (c * V y) ^ 2 ≤ max ((τ - y) / c) 0 ^ 2 + L)
+    (hr : r = α * ∫ z, V (Real.sqrt q * z) ^ 2 ∂(gaussianReal 0 1)) :
+    q ≤ max ((τ / δ) ^ 2 + 1)
+      ((h₀ ^ 2 / (2 * κ₀) ^ 2 + α₁ * L / (2 * κ₀)) / (1 - a * α₁)) := by
+  by_contra hcon
+  push Not at hcon
+  have hqτ : (τ / δ) ^ 2 + 1 < q := (le_max_left _ _).trans_lt hcon
+  have hqpos : 0 < q := lt_of_le_of_lt (by positivity) hqτ
+  have hsq0 : 0 < Real.sqrt q := Real.sqrt_pos.2 hqpos
+  have hbδ : |τ / Real.sqrt q| < δ := by
+    rw [abs_of_nonneg (div_nonneg hτ hsq0.le), div_lt_iff₀ hsq0]
+    have h1 : τ / δ < Real.sqrt q := by
+      rw [Real.lt_sqrt (div_nonneg hτ hδ0.le)]
+      linarith
+    rw [div_lt_iff₀ hδ0] at h1
+    linarith
+  have hrs := mul_sq_le_of_sq_mul_le hα0 hqpos hc0 hV hr (hδ _ hbδ).le
+  rw [hc2] at hrs
+  have hhs : h ^ 2 * s ^ 2 ≤ h₀ ^ 2 / (2 * κ₀) ^ 2 := by
+    have h1 : h ^ 2 ≤ h₀ ^ 2 := by
+      rw [← sq_abs h]
+      exact pow_le_pow_left₀ (abs_nonneg _) hh 2
+    have h2 := pow_le_pow_left₀ hs0.le hsκ 2
+    rw [inv_pow] at h2
+    rw [div_eq_mul_inv]
+    exact mul_le_mul h1 h2 (sq_nonneg _) (sq_nonneg _)
+  have hLs : α * (L * s) ≤ α₁ * L / (2 * κ₀) := by
+    rw [div_eq_mul_inv, mul_assoc α₁]
+    exact mul_le_mul hα (mul_le_mul_of_nonneg_left hsκ hL0) (mul_nonneg hL0 hs0.le) hα₁0.le
+  have haq : α * (q * a) ≤ a * α₁ * q := by
+    refine (mul_le_mul_of_nonneg_right hα (mul_nonneg hq ha0)).trans_eq ?_
+    ring
+  have hfin : (1 - a * α₁) * q ≤ h₀ ^ 2 / (2 * κ₀) ^ 2 + α₁ * L / (2 * κ₀) := by
+    have h1 : q = r * s ^ 2 + h ^ 2 * s ^ 2 := by rw [← add_mul]; exact hqs
+    rw [mul_add] at hrs
+    linarith
+  have h1 : q ≤ (h₀ ^ 2 / (2 * κ₀) ^ 2 + α₁ * L / (2 * κ₀)) / (1 - a * α₁) := by
+    rw [le_div_iff₀ (sub_pos.2 haα), mul_comm]
+    exact hfin
+  exact (h1.trans (le_max_right _ _)).not_gt hcon
+
 /-- **Proposition 3.3.3** (with the necessary upper bound `κ ≤ κ₁`): every solution of the
 replica-symmetric equations satisfies `0 ≤ q < ρ`, `q ≤ C`, `ρ ≤ C` and `(ρ - q)⁻¹ ≤ C`,
 uniformly over the concave potentials `u ≤ 0` vanishing on `[τ, ∞)`. The inequalities
@@ -181,24 +253,7 @@ theorem exists_bound_of_shcherbinaTirozzi_replicaSymmetric_equations (κ₀ κ�
   set α₁ : ℝ := max α₀ 1 with hα₁
   have hα₁2 : α₁ < 2 := max_lt hα₀ one_lt_two
   have hα₁0 : 0 < α₁ := one_pos.trans_le (le_max_right _ _)
-  set a : ℝ := (1 / 2 + α₁⁻¹) / 2 with ha
-  have hinv : 1 / 2 < α₁⁻¹ := by
-    rw [one_div]
-    exact inv_strictAnti₀ hα₁0 hα₁2
-  have haα : a * α₁ < 1 := by
-    have : a < α₁⁻¹ := by rw [ha]; linarith
-    calc a * α₁ < α₁⁻¹ * α₁ := mul_lt_mul_of_pos_right this hα₁0
-      _ = 1 := inv_mul_cancel₀ hα₁0.ne'
-  have ha0 : 0 < a := by rw [ha]; linarith [inv_pos.2 hα₁0]
-  obtain ⟨δ, hδ0, hδ⟩ : ∃ δ > (0 : ℝ), ∀ b, |b| < δ →
-      ∫ z, min (z - b) 0 ^ 2 ∂(gaussianReal 0 1) < a := by
-    have hc := (continuous_integral_min_sub_zero_sq (μ := gaussianReal 0 1)
-      (memLp_id_gaussianReal' 2 (by simp))).continuousAt (x := 0)
-    have h0 : ∫ z, min (z - 0) 0 ^ 2 ∂(gaussianReal 0 1) < a := by
-      simp only [sub_zero, integral_min_zero_sq_gaussianReal]
-      rw [ha]; linarith
-    obtain ⟨δ, hδ0, hδ⟩ := Metric.eventually_nhds_iff.1 (hc.eventually_lt_const h0)
-    exact ⟨δ, hδ0, fun b hb => hδ (by rwa [Real.dist_eq, sub_zero])⟩
+  obtain ⟨a, δ, ha0, haα, hδ0, hδ⟩ := exists_slope_lt_inv_and_threshold hα₁0 hα₁2
   set Q : ℝ := max ((τ / δ) ^ 2 + 1)
     ((h₀ ^ 2 / (2 * κ₀) ^ 2 + α₁ * L / (2 * κ₀)) / (1 - a * α₁)) with hQ
   set C₁ : ℝ := 2 * κ₁ / (1 - Real.sqrt (α₁ / 2)) with hC₁
@@ -268,47 +323,11 @@ theorem exists_bound_of_shcherbinaTirozzi_replicaSymmetric_equations (κ₀ κ�
     linarith
   -- second bound: `q`
   have hqQ : q ≤ Q := by
-    by_contra hcon
-    push Not at hcon
-    have hqτ : (τ / δ) ^ 2 + 1 < q := (le_max_left _ _).trans_lt hcon
-    have hqpos : 0 < q := lt_of_le_of_lt (by positivity) hqτ
-    have hsq0 : 0 < Real.sqrt q := Real.sqrt_pos.2 hqpos
-    have hbδ : |τ / Real.sqrt q| < δ := by
-      rw [abs_of_nonneg (div_nonneg hτ hsq0.le), div_lt_iff₀ hsq0]
-      have h1 : τ / δ < Real.sqrt q := by
-        rw [Real.lt_sqrt (div_nonneg hτ hδ0.le)]
-        linarith
-      rw [div_lt_iff₀ hδ0] at h1
-      linarith
     have humono : Monotone u := monotone_of_deriv_nonneg hu1 hu'0
-    have h8 : ∀ y, (c * V y) ^ 2 ≤ max ((τ - y) / c) 0 ^ 2 + L := fun y => by
-      have := h338 u hu1 humono hu0 τ huτ D hD c hc0 y
-      rwa [mul_div_assoc] at this
-    have hrs := mul_sq_le_of_sq_mul_le hα0 hqpos hc0 h8 hrV (hδ _ hbδ).le
-    rw [hc2] at hrs
-    have hhs : h ^ 2 * s ^ 2 ≤ h₀ ^ 2 / (2 * κ₀) ^ 2 := by
-      have h1 : h ^ 2 ≤ h₀ ^ 2 := by
-        rw [← sq_abs h]
-        exact pow_le_pow_left₀ (abs_nonneg _) hh 2
-      have h2 := pow_le_pow_left₀ hs0.le hsκ 2
-      rw [inv_pow] at h2
-      rw [div_eq_mul_inv]
-      exact mul_le_mul h1 h2 (sq_nonneg _) (sq_nonneg _)
-    have hLs : α * (L * s) ≤ α₁ * L / (2 * κ₀) := by
-      rw [div_eq_mul_inv, mul_assoc α₁]
-      exact mul_le_mul hαα₁ (mul_le_mul_of_nonneg_left hsκ hL0) (mul_nonneg hL0 hs0.le)
-        hα₁0.le
-    have haq : α * (q * a) ≤ a * α₁ * q := by
-      refine (mul_le_mul_of_nonneg_right hαα₁ (mul_nonneg hq ha0.le)).trans_eq ?_
-      ring
-    have hfin : (1 - a * α₁) * q ≤ h₀ ^ 2 / (2 * κ₀) ^ 2 + α₁ * L / (2 * κ₀) := by
-      have h1 : q = r * s ^ 2 + h ^ 2 * s ^ 2 := by rw [← add_mul]; exact hqs
-      rw [mul_add] at hrs
-      linarith
-    have h1 : q ≤ (h₀ ^ 2 / (2 * κ₀) ^ 2 + α₁ * L / (2 * κ₀)) / (1 - a * α₁) := by
-      rw [le_div_iff₀ (sub_pos.2 haα), mul_comm]
-      exact hfin
-    exact (h1.trans (le_max_right _ _)).not_gt hcon
+    refine q_le_of_replicaSymmetric_equation hα0 hαα₁ hα₁0 ha0.le haα hδ0 hδ hτ hL0 hc0 hc2
+      hs0 hsκ hh hq hqs (fun y => ?_) hrV
+    have := h338 u hu1 humono hu0 τ huτ D hD c hc0 y
+    rwa [mul_div_assoc] at this
   have hρq : ρ = q + s := by rw [hs]; ring
   refine ⟨hq, hqρ,
     hqQ.trans ((le_add_of_nonneg_right (by positivity)).trans (le_max_left _ _)), ?_,

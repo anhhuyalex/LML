@@ -41,28 +41,25 @@ local notation "ℝ^" n:arg => EuclideanSpace ℝ (Fin n)
 
 variable {N M : ℕ}
 
-/-- Maurey's inequality for the second moment of a linear image: if the projections `⟪F σ, y⟫`
-are `A ‖y‖`-Lipschitz, then `⟨⟪F - ⟨F⟩, y⟫²⟩ ≤ 32 A² ‖y‖² / κ`. -/
-private theorem integral_inner_sub_mean_sq_le {κ h : ℝ} (hκ : 0 < κ) {u : ℝ → ℝ}
+/-- The covariance bound for a Lipschitz vector function of the configuration under the Gibbs
+measure: `‖⟨f (F - ⟨F⟩)⟩‖ ≤ A √(32 ⟨f²⟩ / κ)`. -/
+private theorem norm_integral_smul_sub_mean_le_of_lipschitz {κ h : ℝ} (hκ : 0 < κ) {u : ℝ → ℝ}
     (hu : ConcaveOn ℝ Set.univ u) (hu0 : ∀ x, u x ≤ 0) (g : Fin M → Fin N → ℝ)
-    (g₀ : Fin N → ℝ) {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H] [CompleteSpace H]
-    {F : ℝ^N → H} (hFm : ∀ y : H, Measurable fun σ => ⟪F σ, y⟫)
-    (hF : Integrable F (volume.tilted fun σ => -shcherbinaTirozziHamiltonian κ h u g g₀ σ))
-    {A : ℝ} (hA : 0 ≤ A) (hlip : ∀ (y : H) σ τ, |⟪F σ, y⟫ - ⟪F τ, y⟫| ≤ A * ‖y‖ * ‖σ - τ‖)
-    (y : H) :
-    ∫ σ, ⟪F σ - ∫ τ, F τ
-          ∂(volume.tilted fun σ => -shcherbinaTirozziHamiltonian κ h u g g₀ σ), y⟫ ^ 2
-        ∂(volume.tilted fun σ => -shcherbinaTirozziHamiltonian κ h u g g₀ σ) ≤
-      32 * A ^ 2 / κ * ‖y‖ ^ 2 := by
-  have key := (integral_sub_integral_pow_shcherbinaTirozziGibbs_le (h := h) hκ hu hu0 g g₀
-    (hFm y) (mul_nonneg hA (norm_nonneg y)) (hlip y) 1).2
-  have hmean : ∫ τ, ⟪F τ, y⟫ ∂(volume.tilted fun σ => -shcherbinaTirozziHamiltonian κ h u g g₀ σ)
-      = ⟪∫ τ, F τ ∂(volume.tilted fun σ => -shcherbinaTirozziHamiltonian κ h u g g₀ σ), y⟫ := by
-    simp_rw [real_inner_comm y]
-    exact integral_inner hF y
-  simp_rw [hmean, ← inner_sub_left] at key
-  simp only [mul_one, pow_one, Nat.cast_one] at key
-  exact key.trans_eq (by ring)
+    (g₀ : Fin N → ℝ) (G : Measure (ℝ^N))
+    (hG : G = volume.tilted fun σ => -shcherbinaTirozziHamiltonian κ h u g g₀ σ)
+    {V : Type*} [NormedAddCommGroup V] [NormedSpace ℝ V] [CompleteSpace V]
+    {F : ℝ^N → V} (hFm : StronglyMeasurable F) (hF : MemLp F 2 G) {A : ℝ} (hA : 0 ≤ A)
+    (hlip : ∀ σ τ, ‖F σ - F τ‖ ≤ A * ‖σ - τ‖) {f : ℝ^N → ℝ} (hf : MemLp f 2 G) :
+    ‖∫ σ, f σ • (F σ - ∫ τ, F τ ∂G) ∂G‖ ≤ A * Real.sqrt (32 / κ * ∫ σ, f σ ^ 2 ∂G) := by
+  have hum := hu.measurable_of_univ
+  have key := norm_integral_smul_sub_integral_le_of_lipschitz (μ₀ := volume) (C := Set.univ)
+    (H := shcherbinaTirozziHamiltonian κ h u g g₀) convex_univ MeasurableSet.univ
+    (NeZero.ne _) (measurable_shcherbinaTirozziHamiltonian_apply κ h hum g g₀)
+    (integrableOn_univ.2 (integrable_exp_neg_shcherbinaTirozziHamiltonian hκ hum hu0 g g₀))
+    (fun x _ y _ => shcherbinaTirozziHamiltonian_midpoint_gap κ h hu g g₀ x y) hκ hFm
+    (A := A) (f := f)
+  simp only [Measure.restrict_univ, ← hG] at key
+  exact key hF hA (fun x _ y _ => hlip x y) hf
 
 /-- **Lemma 3.1.13:** for `f ∈ L²(G)`, `‖⟨(σ - ⟨σ⟩) f⟩‖ ≤ √(32 ⟨f²⟩ / κ)`. -/
 theorem norm_integral_smul_sub_mean_shcherbinaTirozziGibbs_le {κ h : ℝ} (hκ : 0 < κ)
@@ -71,20 +68,12 @@ theorem norm_integral_smul_sub_mean_shcherbinaTirozziGibbs_le {κ h : ℝ} (hκ 
     (hG : G = volume.tilted fun σ => -shcherbinaTirozziHamiltonian κ h u g g₀ σ)
     {f : ℝ^N → ℝ} (hf : MemLp f 2 G) :
     ‖∫ σ, f σ • (σ - ∫ τ, τ ∂G) ∂G‖ ≤ Real.sqrt (32 / κ * ∫ σ, f σ ^ 2 ∂G) := by
-  have hum := hu.measurable_of_univ
-  have : IsProbabilityMeasure G := by
-    rw [hG]; exact isProbabilityMeasure_shcherbinaTirozziGibbs hκ hum hu0 g g₀
   have hid : MemLp (fun σ : ℝ^N => σ) 2 G := by
-    rw [hG]; exact memLp_id_shcherbinaTirozziGibbs hκ hum hu0 g g₀
-  refine norm_integral_smul_sub_le_of_integral_inner_sq_le hf (hid.sub (memLp_const _))
-    fun y => ?_
-  have key := integral_inner_sub_mean_sq_le (h := h) hκ hu hu0 g g₀
-    (F := fun σ : ℝ^N => σ) (fun y => by fun_prop)
-    (hG ▸ hid.integrable one_le_two) (A := 1) zero_le_one (fun y σ τ => by
-      rw [← inner_sub_left, one_mul, mul_comm]
-      exact abs_real_inner_le_norm _ _) y
-  rw [← hG] at key
-  simpa using key
+    rw [hG]; exact memLp_id_shcherbinaTirozziGibbs hκ hu.measurable_of_univ hu0 g g₀
+  have key := norm_integral_smul_sub_mean_le_of_lipschitz (h := h) hκ hu hu0 g g₀ G hG
+    (F := fun σ : ℝ^N => σ) stronglyMeasurable_id hid zero_le_one
+    (fun σ τ => (one_mul _).ge) hf
+  rwa [one_mul] at key
 
 /-- The difference of the constraint fields of two configurations is the image of their
 difference under the disorder matrix. -/
@@ -194,19 +183,8 @@ theorem norm_integral_smul_deriv_field_sub_mean_le {κ h : ℝ} (hκ : 0 < κ) {
     have h2 := hUnorm σ 0
     rw [sub_zero] at h2
     exact (norm_le_norm_add_norm_sub' (U σ) (U 0)).trans (add_le_add le_rfl h2)
-  have key : ‖∫ σ, f σ • (U σ - ∫ τ, U τ ∂G) ∂G‖ ≤
-      Real.sqrt (32 * L ^ 2 / κ * ∫ σ, f σ ^ 2 ∂G) := by
-    refine norm_integral_smul_sub_le_of_integral_inner_sq_le hf (hUL.sub (memLp_const _))
-      fun y => ?_
-    have h := integral_inner_sub_mean_sq_le (h := h) hκ hu hu0 g g₀ (F := U)
-      (fun y => by
-        simp_rw [hinner y]
-        exact Finset.measurable_sum _ fun k _ => (hfield k).mul_const _)
-      (hG ▸ hUL.integrable one_le_two) hL0 hlip y
-    rwa [← hG] at h
-  refine key.trans_eq ?_
-  rw [show 32 * L ^ 2 / κ * ∫ σ, f σ ^ 2 ∂G = L ^ 2 * (32 / κ * ∫ σ, f σ ^ 2 ∂G) by ring,
-    Real.sqrt_mul (sq_nonneg L), Real.sqrt_sq hL0]
+  exact norm_integral_smul_sub_mean_le_of_lipschitz (h := h) hκ hu hu0 g g₀ G hG
+    hUm.stronglyMeasurable hUL hL0 hUnorm hf
 
 /-- **Differentiation along a line of the disorder.** For an observable of at most quadratic
 growth, `t ↦ ⟨F⟩_{g + t Δ, g₀ + t Δ₀}` has derivative `⟨F X⟩ - ⟨F⟩ ⟨X⟩` at `t`, where
@@ -324,15 +302,6 @@ theorem abs_integral_mul_disorderDerivative_le {κ h : ℝ} (hκ : 0 < κ) (hh :
   set z : ℝ^N := ∫ σ, f σ • (σ - b) ∂G with hz
   have hzn : ‖z‖ ≤ Φ :=
     norm_integral_smul_sub_mean_shcherbinaTirozziGibbs_le hκ hu hu0 g g₀ G hG hf
-  have hsmul : ∀ {a : ℝ^N → ℝ}, MemLp a 2 G →
-      Integrable (fun σ => a σ • σ) G := fun ha =>
-    memLp_one_iff_integrable.1 (ha.smul hid (p := 2) (q := 2) (r := 1))
-  have hshift : ∀ {a : ℝ^N → ℝ}, MemLp a 2 G →
-      ∫ σ, a σ • σ ∂G = (∫ σ, a σ • (σ - b) ∂G) + (∫ σ, a σ ∂G) • b := fun {a} ha => by
-    have h1 : Integrable (fun σ => a σ • b) G := (ha.integrable one_le_two).smul_const b
-    have e : (fun σ => a σ • (σ - b)) = fun σ => a σ • σ - a σ • b := by
-      funext σ; exact smul_sub _ _ _
-    rw [e, integral_sub (hsmul ha) h1, integral_smul_const, sub_add_cancel]
   -- Lemma 3.1.15
   set U : ℝ^N → ℝ^M := fun σ =>
     WithLp.toLp 2 fun k => deriv u ((Real.sqrt N)⁻¹ * ∑ i, g k i * σ i) with hU
@@ -349,32 +318,19 @@ theorem abs_integral_mul_disorderDerivative_le {κ h : ℝ} (hκ : 0 < κ) (hh :
       pow_le_pow_left₀ (norm_nonneg _) (show ‖U σ k‖ ≤ D from hD1 _) 2).trans_eq ?_)
     simp
   have hVk : ∀ k, V k = ∫ σ, φ k σ ∂G := fun k => by
-    have hint : Integrable (fun σ => f σ • (U σ - ∫ τ, U τ ∂G)) G :=
-      memLp_one_iff_integrable.1
-        (hf.smul (hUL.sub (memLp_const _)) (p := 2) (q := 2) (r := 1))
-    have hUk : (∫ τ, U τ ∂G) k =
-        ∫ τ, deriv u ((Real.sqrt N)⁻¹ * ∑ i, g k i * τ i) ∂G :=
-      ((EuclideanSpace.proj (𝕜 := ℝ) k).integral_comp_comm (hUL.integrable one_le_two)).symm
-    have h1 : V k = ∫ σ, (φ k σ - f σ * (∫ τ, U τ ∂G) k) ∂G := by
-      refine ((EuclideanSpace.proj (𝕜 := ℝ) k).integral_comp_comm hint).symm.trans
-        (integral_congr_ae (ae_of_all _ fun σ => ?_))
-      change f σ * (deriv u ((Real.sqrt N)⁻¹ * ∑ i, g k i * σ i) - (∫ τ, U τ ∂G) k) = _
-      rw [mul_sub]
-    rw [h1, integral_sub ((hφL k).integrable one_le_two)
-      ((hf.integrable one_le_two).mul_const _), integral_mul_const, hf0, zero_mul, sub_zero]
+    have h := (integral_smul_apply_eq_apply_integral_smul_sub_add hf hUL
+      (EuclideanSpace.proj (𝕜 := ℝ) k) (∫ τ, U τ ∂G)).2
+    rw [hf0, zero_smul, add_zero] at h
+    exact h.symm
   -- expand `⟨f X⟩`
   have hterm : ∀ k, Integrable (fun σ => φ k σ * ⟪v k, σ⟫) G ∧
       ∫ σ, φ k σ * ⟪v k, σ⟫ ∂G = ⟪v k, w k⟫ + V k * ⟪v k, b⟫ := fun k => by
-    have e : (fun σ => φ k σ * ⟪v k, σ⟫) = fun σ => ⟪v k, φ k σ • σ⟫ := by
-      funext σ; rw [real_inner_smul_right]
-    refine ⟨e ▸ (hsmul (hφL k)).const_inner (v k), ?_⟩
-    rw [e, integral_inner (hsmul (hφL k)), hshift (hφL k), inner_add_right,
-      real_inner_smul_right, hVk]
+    rw [hVk]
+    exact integral_smul_apply_eq_apply_integral_smul_sub_add (hφL k) hid (innerSL ℝ (v k)) b
   have hlast : Integrable (fun σ => f σ * ⟪d₀, σ⟫) G ∧ ∫ σ, f σ * ⟪d₀, σ⟫ ∂G = ⟪d₀, z⟫ := by
-    have e : (fun σ => f σ * ⟪d₀, σ⟫) = fun σ => ⟪d₀, f σ • σ⟫ := by
-      funext σ; rw [real_inner_smul_right]
-    refine ⟨e ▸ (hsmul hf).const_inner d₀, ?_⟩
-    rw [e, integral_inner (hsmul hf), hshift hf, hf0, zero_smul, add_zero]
+    have h := integral_smul_apply_eq_apply_integral_smul_sub_add hf hid (innerSL ℝ d₀) b
+    rw [hf0, zero_smul, add_zero] at h
+    exact h
   have hfX : ∫ σ, f σ * X σ ∂G =
       (∑ k, (⟪v k, w k⟫ + V k * ⟪v k, b⟫)) + h * ⟪d₀, z⟫ := by
     have e : (fun σ => f σ * X σ) = fun σ =>

@@ -11,6 +11,7 @@ public import Mathlib.Topology.MetricSpace.HausdorffDistance
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.PrekopaLeindler
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ExpMoment
 public import LeanMachineLearning.ForMathlib.Probability.Median
+public import LeanMachineLearning.ForMathlib.Probability.Moments.SecondMoment
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SubGaussianSymmetrization
 
 /-!
@@ -32,6 +33,8 @@ Eq. (3.21)). The proof applies the Prékopa--Leindler inequality.
   `∫ exp (κ (f - ∫ f)² / (8 A²)) dμ ≤ 4` for `A`-Lipschitz `f`.
 * `MeasureTheory.integral_sub_integral_pow_le_of_lipschitz`: Eq. (3.17),
   `∫ (f - ∫ f) ^ (2 k) dμ ≤ 4 (8 k A² / κ) ^ k`.
+* `MeasureTheory.norm_integral_smul_sub_integral_le_of_lipschitz`: the covariance bound with a
+  Lipschitz function with values in a Banach space (Lemmas 3.1.13 and 3.1.15).
 * `StrongConvexOn.midpoint_gap_le`: strong convexity implies the midpoint hypothesis.
 -/
 
@@ -358,6 +361,38 @@ theorem memLp_two_of_lipschitz (hκ : 0 < κ) {f : E → ℝ} (hf : Measurable f
     funext x
     simp
   rwa [e] at h3
+
+/-- **Maurey's inequality for covariances with a Lipschitz vector function:** if `F`, with
+values in a real Banach space, is `A`-Lipschitz on `C`, then every `f ∈ L²` satisfies
+`‖∫ f (F - ∫ F) dμ‖ ≤ A √(32 ∫ f² dμ / κ)`. -/
+theorem norm_integral_smul_sub_integral_le_of_lipschitz {V : Type*} [NormedAddCommGroup V]
+    [NormedSpace ℝ V] [CompleteSpace V] (hκ : 0 < κ) {F : E → V} (hFm : StronglyMeasurable F)
+    (hF : MemLp F 2 ((μ₀.restrict C).tilted fun x => -H x)) {A : ℝ} (hA : 0 ≤ A)
+    (hlip : ∀ x ∈ C, ∀ y ∈ C, ‖F x - F y‖ ≤ A * ‖x - y‖) {f : E → ℝ}
+    (hf : MemLp f 2 ((μ₀.restrict C).tilted fun x => -H x)) :
+    ‖∫ x, f x • (F x - ∫ y, F y ∂((μ₀.restrict C).tilted fun x => -H x))
+        ∂((μ₀.restrict C).tilted fun x => -H x)‖ ≤
+      A * Real.sqrt (32 / κ * ∫ x, f x ^ 2 ∂((μ₀.restrict C).tilted fun x => -H x)) := by
+  have := isProbabilityMeasure_tilted_restrict hC0 hint
+  set G := (μ₀.restrict C).tilted fun x => -H x with hG
+  refine (ProbabilityTheory.norm_integral_smul_sub_le_of_integral_dual_sq_le hf
+    (hF.sub (memLp_const _)) (C := 32 * A ^ 2 / κ) fun φ => ?_).trans_eq ?_
+  · -- Maurey's inequality for the composition with `φ`
+    have hlipφ : ∀ x ∈ C, ∀ y ∈ C, |φ (F x) - φ (F y)| ≤ A * ‖φ‖ * ‖x - y‖ :=
+      fun x hx y hy => by
+        rw [← map_sub, ← Real.norm_eq_abs]
+        refine (φ.le_opNorm _).trans ?_
+        refine (mul_le_mul_of_nonneg_left (hlip x hx y hy) (norm_nonneg φ)).trans_eq ?_
+        ring
+    have key := (integral_sub_integral_pow_le_of_lipschitz hC hCm hC0 hH hint hconv hκ
+      (f := fun x => φ (F x)) (φ.continuous.comp_stronglyMeasurable hFm).measurable
+      (mul_nonneg hA (norm_nonneg φ)) hlipφ 1).2
+    rw [← hG, φ.integral_comp_comm (hF.integrable one_le_two)] at key
+    simp_rw [← map_sub] at key
+    simp only [mul_one, pow_one, Nat.cast_one] at key
+    exact key.trans_eq (by ring)
+  · rw [show 32 * A ^ 2 / κ * ∫ x, f x ^ 2 ∂G = A ^ 2 * (32 / κ * ∫ x, f x ^ 2 ∂G) by ring,
+      Real.sqrt_mul (sq_nonneg A), Real.sqrt_sq hA]
 
 end Probability
 

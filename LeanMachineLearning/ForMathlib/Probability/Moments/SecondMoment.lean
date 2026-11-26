@@ -10,6 +10,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SqSub
 public import Mathlib.MeasureTheory.Integral.Bochner.Basic
 public import Mathlib.MeasureTheory.Function.L2Space
 public import Mathlib.Probability.Moments.Variance
+public import Mathlib.Analysis.Normed.Module.DoubleDual
 public import Mathlib.LinearAlgebra.Matrix.Trace
 public import Mathlib.Algebra.Order.BigOperators.Ring.Finset
 
@@ -25,13 +26,16 @@ For a random vector `x : Ω → p → ℝ` with square-integrable coordinates an
   `|E[X Y]| ≤ (l E[X²] + l⁻¹ E[Y²]) / 2`;
 * `ProbabilityTheory.integral_mul_le_half_add`: AM-GM, `E[X Y] ≤ (E[X²] + E[Y²]) / 2`;
 * `ProbabilityTheory.abs_integral_mul_le_of_integral_sq_le`: Cauchy-Schwarz with explicit scales.
+* `ProbabilityTheory.norm_setIntegral_le_mul_of_integral_sq_le`: Cauchy-Schwarz on a small set.
 * `ProbabilityTheory.variance_le_of_moment_errors`: control of variance from two moment errors.
 * `ProbabilityTheory.integral_sub_const_sq_le_of_moment_errors`: the corresponding
   mean-square bound.
 
 * `ProbabilityTheory.integral_add_pow_two_mul_le`: even moments of a sum.
-* `ProbabilityTheory.norm_integral_smul_sub_le_of_integral_inner_sq_le`: if every one-dimensional
-  projection of `F - m` has second moment at most `C ‖y‖²`, then
+* `ProbabilityTheory.integral_smul_apply_eq_apply_integral_smul_sub_add`: centring a weighted
+  integral of a linear image of a square-integrable vector.
+* `ProbabilityTheory.norm_integral_smul_sub_le_of_integral_dual_sq_le`: if every continuous
+  linear form `φ` of `F - m` has second moment at most `C ‖φ‖²`, then
   `‖∫ f • (F - m)‖ ≤ √(C ∫ f²)`.
 
 They reduce every bilinear second-moment computation to the coordinate covariances (used for the
@@ -194,6 +198,30 @@ theorem abs_integral_mul_le_of_integral_sq_le {X Y : Ω → ℝ} (hX : MemLp X 2
   have h4 : (γ / α)⁻¹ * γ ^ 2 = α * γ := by field_simp
   linarith
 
+/-- **Cauchy-Schwarz on a small set:** if `μ S ≤ α²` and `E[‖X‖²] ≤ γ²`, then
+`‖∫_S X‖ ≤ α γ`. -/
+theorem norm_setIntegral_le_mul_of_integral_sq_le {V : Type*} [NormedAddCommGroup V]
+    [NormedSpace ℝ V] {S : Set Ω} (hS : MeasurableSet S) (hSfin : μ S ≠ ⊤) {X : Ω → V}
+    (hX : MemLp X 2 μ) {α γ : ℝ} (hα : 0 ≤ α) (hγ : 0 ≤ γ) (hSb : μ.real S ≤ α ^ 2)
+    (hXb : ∫ ω, ‖X ω‖ ^ 2 ∂μ ≤ γ ^ 2) : ‖∫ ω in S, X ω ∂μ‖ ≤ α * γ := by
+  have h1 : MemLp (S.indicator fun _ => (1 : ℝ)) 2 μ :=
+    memLp_indicator_const 2 hS.nullMeasurableSet 1 (Or.inr hSfin)
+  have hCS := integral_mul_norm_le_Lp_mul_Lq (μ := μ) (f := S.indicator fun _ => (1 : ℝ))
+    (g := fun ω => ‖X ω‖) Real.HolderConjugate.two_two (by rwa [ENNReal.ofReal_ofNat])
+    (by rw [ENNReal.ofReal_ofNat]; exact hX.norm)
+  simp only [Real.rpow_two, norm_norm, ← Real.sqrt_eq_rpow] at hCS
+  have h2 : ∫ ω, ‖S.indicator (fun _ => (1 : ℝ)) ω‖ ^ 2 ∂μ = μ.real S := by
+    rw [← integral_indicator_one hS]
+    exact integral_congr_ae (ae_of_all _ fun ω => by by_cases h : ω ∈ S <;> simp [h])
+  have h3 : ‖∫ ω in S, X ω ∂μ‖ ≤ ∫ ω, ‖S.indicator (fun _ => (1 : ℝ)) ω‖ * ‖X ω‖ ∂μ := by
+    refine (norm_integral_le_integral_norm _).trans_eq ?_
+    rw [← integral_indicator hS]
+    exact integral_congr_ae (ae_of_all _ fun ω => by by_cases h : ω ∈ S <;> simp [h])
+  refine h3.trans (hCS.trans (mul_le_mul ?_ ?_ (Real.sqrt_nonneg _) hα))
+  · rw [h2]
+    exact Real.sqrt_le_iff.2 ⟨hα, hSb⟩
+  · exact Real.sqrt_le_iff.2 ⟨hγ, hXb⟩
+
 /-- A mixed-power Cauchy-Schwarz bound on an arbitrary measure: an order-`2p` moment for
 `V` and an `L²` bound of order `ε⁴` for `Q` give order `ε^(p+2)` for `∫ V^p Q`. -/
 theorem abs_integral_pow_mul_le {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω}
@@ -242,44 +270,51 @@ theorem integral_add_pow_two_mul_le {Ω : Type*} [MeasurableSpace Ω] {μ : Meas
   simp only [Pi.add_apply]
   rw [integral_const_mul, integral_add hXi hYi]
 
-/-- **Covariance control in norm.** Let `F` take values in a real Hilbert space and `m` be a
-vector. If `∫ ⟪F - m, y⟫² ≤ C ‖y‖²` for every `y`, then every `f ∈ L²` satisfies
-`‖∫ f • (F - m)‖ ≤ √(C ∫ f²)`. No finiteness of the measure is needed. -/
-theorem norm_integral_smul_sub_le_of_integral_inner_sq_le {Ω H : Type*} [MeasurableSpace Ω]
-    {μ : Measure Ω} [NormedAddCommGroup H] [InnerProductSpace ℝ H] [CompleteSpace H]
-    {F : Ω → H} {m : H} {f : Ω → ℝ} (hf : MemLp f 2 μ) (hF : MemLp (fun ω => F ω - m) 2 μ)
-    {C : ℝ} (hC : ∀ y : H, ∫ ω, (inner ℝ (F ω - m) y) ^ 2 ∂μ ≤ C * ‖y‖ ^ 2) :
+/-- **Centring a weighted integral.** For `a, X ∈ L²`, a continuous linear map `ℓ` and any
+vector `b`, `∫ a • ℓ X = ℓ (∫ a • (X - b)) + (∫ a) • ℓ b`, with integrability of the left-hand
+side. -/
+theorem integral_smul_apply_eq_apply_integral_smul_sub_add {Ω V W : Type*} [MeasurableSpace Ω]
+    {μ : Measure Ω} [IsFiniteMeasure μ] [NormedAddCommGroup V] [NormedSpace ℝ V]
+    [CompleteSpace V] [NormedAddCommGroup W] [NormedSpace ℝ W] [CompleteSpace W] {a : Ω → ℝ}
+    (ha : MemLp a 2 μ) {X : Ω → V} (hX : MemLp X 2 μ) (ℓ : V →L[ℝ] W) (b : V) :
+    Integrable (fun ω => a ω • ℓ (X ω)) μ ∧
+      ∫ ω, a ω • ℓ (X ω) ∂μ = ℓ (∫ ω, a ω • (X ω - b) ∂μ) + (∫ ω, a ω ∂μ) • ℓ b := by
+  have haX : Integrable (fun ω => a ω • X ω) μ :=
+    memLp_one_iff_integrable.1 (ha.smul hX (p := 2) (q := 2) (r := 1))
+  have hab : Integrable (fun ω => a ω • b) μ := (ha.integrable one_le_two).smul_const b
+  have e : (fun ω => a ω • ℓ (X ω)) = fun ω => ℓ (a ω • X ω) := by
+    funext ω
+    rw [map_smul]
+  have e' : (fun ω => a ω • (X ω - b)) = fun ω => a ω • X ω - a ω • b := by
+    funext ω
+    exact smul_sub _ _ _
+  refine ⟨e ▸ ℓ.integrable_comp haX, ?_⟩
+  rw [e, ℓ.integral_comp_comm haX, e', integral_sub haX hab, integral_smul_const, map_sub,
+    map_smul, sub_add_cancel]
+
+/-- **Covariance control in norm.** Let `F` take values in a real Banach space and `m` be a
+vector. If `∫ φ (F - m)² ≤ C ‖φ‖²` for every continuous linear form `φ`, then every `f ∈ L²`
+satisfies `‖∫ f • (F - m)‖ ≤ √(C ∫ f²)`. No finiteness of the measure is needed. -/
+theorem norm_integral_smul_sub_le_of_integral_dual_sq_le {Ω V : Type*} [MeasurableSpace Ω]
+    {μ : Measure Ω} [NormedAddCommGroup V] [NormedSpace ℝ V] [CompleteSpace V]
+    {F : Ω → V} {m : V} {f : Ω → ℝ} (hf : MemLp f 2 μ) (hF : MemLp (fun ω => F ω - m) 2 μ)
+    {C : ℝ} (hC : ∀ φ : StrongDual ℝ V, ∫ ω, φ (F ω - m) ^ 2 ∂μ ≤ C * ‖φ‖ ^ 2) :
     ‖∫ ω, f ω • (F ω - m) ∂μ‖ ≤ Real.sqrt (C * ∫ ω, f ω ^ 2 ∂μ) := by
-  set v : H := ∫ ω, f ω • (F ω - m) ∂μ with hv
   have hint : Integrable (fun ω => f ω • (F ω - m)) μ :=
     memLp_one_iff_integrable.1 (hf.smul hF (p := 2) (q := 2) (r := 1))
-  have hg : MemLp (fun ω => inner ℝ (F ω - m) v) 2 μ := hF.inner_const v
-  have h1 : ‖v‖ ^ 2 = ∫ ω, f ω * inner ℝ (F ω - m) v ∂μ := by
-    rw [← real_inner_self_eq_norm_sq]
-    conv_lhs => arg 3; rw [hv]
-    rw [real_inner_comm, ← integral_inner hint]
-    refine integral_congr_ae (ae_of_all _ fun ω => ?_)
-    change inner ℝ v (f ω • (F ω - m)) = f ω * inner ℝ (F ω - m) v
-    rw [real_inner_smul_right, real_inner_comm]
-  have hCS : (∫ ω, f ω * inner ℝ (F ω - m) v ∂μ) ^ 2 ≤
-      (∫ ω, f ω ^ 2 ∂μ) * ∫ ω, (inner ℝ (F ω - m) v) ^ 2 ∂μ := by
-    have h := integral_mul_norm_le_Lp_mul_Lq (μ := μ) (f := f)
-      (g := fun ω => inner ℝ (F ω - m) v) Real.HolderConjugate.two_two
-      (by rwa [ENNReal.ofReal_ofNat]) (by rwa [ENNReal.ofReal_ofNat])
-    simp only [Real.rpow_two, Real.norm_eq_abs, sq_abs, ← Real.sqrt_eq_rpow, ← abs_mul] at h
-    rw [← sq_abs]
-    refine (pow_le_pow_left₀ (abs_nonneg _) (abs_integral_le_integral_abs.trans h) 2).trans_eq ?_
-    rw [mul_pow, Real.sq_sqrt (integral_nonneg fun _ => sq_nonneg _),
-      Real.sq_sqrt (integral_nonneg fun _ => sq_nonneg _)]
+  refine NormedSpace.norm_le_dual_bound ℝ _ (Real.sqrt_nonneg _) fun φ => ?_
+  have h := integral_mul_norm_le_Lp_mul_Lq (μ := μ) (f := f) (g := fun ω => φ (F ω - m))
+    Real.HolderConjugate.two_two (by rwa [ENNReal.ofReal_ofNat])
+    (by rw [ENNReal.ofReal_ofNat]; exact φ.comp_memLp' hF)
+  simp only [Real.rpow_two, Real.norm_eq_abs, sq_abs, ← Real.sqrt_eq_rpow, ← abs_mul] at h
+  have e : φ (∫ ω, f ω • (F ω - m) ∂μ) = ∫ ω, f ω * φ (F ω - m) ∂μ := by
+    rw [← φ.integral_comp_comm hint]
+    simp only [map_smul, smul_eq_mul]
+  rw [e, Real.norm_eq_abs]
+  refine (abs_integral_le_integral_abs.trans h).trans ?_
   have hf0 : 0 ≤ ∫ ω, f ω ^ 2 ∂μ := integral_nonneg fun ω => sq_nonneg _
-  rcases eq_or_lt_of_le (norm_nonneg v) with h0 | h0
-  · rw [← h0]; exact Real.sqrt_nonneg _
-  refine Real.le_sqrt_of_sq_le ?_
-  have h2 : (‖v‖ ^ 2) ^ 2 ≤ (C * ∫ ω, f ω ^ 2 ∂μ) * ‖v‖ ^ 2 := by
-    rw [h1]
-    refine le_trans (le_of_eq ?_) (hCS.trans ((mul_le_mul_of_nonneg_left (hC v) hf0).trans_eq ?_))
-    · rfl
-    · rw [← h1]; ring
-  exact le_of_mul_le_mul_right (by rw [← sq]; exact h2) (pow_pos h0 2)
+  refine (mul_le_mul_of_nonneg_left (Real.sqrt_le_sqrt (hC φ)) (Real.sqrt_nonneg _)).trans_eq ?_
+  rw [Real.sqrt_mul' _ (sq_nonneg _), Real.sqrt_sq (norm_nonneg _), Real.sqrt_mul' C hf0]
+  ring
 
 end ProbabilityTheory

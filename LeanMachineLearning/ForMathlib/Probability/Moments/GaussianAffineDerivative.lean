@@ -22,6 +22,7 @@ differentiation under the integral sign then gives `G'(w) = w 𝔼 f''(w z + h)`
 * `ProbabilityTheory.integral_deriv_comp_affine_mul_id_gaussianReal`: the Stein identity.
 * `ProbabilityTheory.hasDerivAt_integral_comp_affine_gaussianReal`: the derivative in `w`.
 * `ProbabilityTheory.integrable_gaussianReal_of_norm_le_pow`,
+  `ProbabilityTheory.integrable_comp_add_mul_mul_add_mul_gaussianReal`,
   `ProbabilityTheory.hasDerivAt_integral_comp_add_mul_gaussianReal`: integrability and
   differentiation of `t ↦ 𝔼 f (m t + σ t z)` for `f, f'` of polynomial growth.
 -/
@@ -105,6 +106,31 @@ theorem integrable_gaussianReal_of_norm_le_pow {E : Type*} [NormedAddCommGroup E
     (memLp_const 1).add (memLp_id_gaussianReal (μ := 0) (v := 1) k).norm
   refine (hm.integrable_norm_pow'.const_mul C).mono' hg (ae_of_all _ fun z => (h z).trans_eq ?_)
   rw [Real.norm_of_nonneg (by positivity), Real.norm_eq_abs]
+
+/-- A function of polynomial growth at an affine argument, times an affine factor, is integrable
+against a standard Gaussian. -/
+theorem integrable_comp_add_mul_mul_add_mul_gaussianReal {g : ℝ → ℝ} (hg : Measurable g) {C : ℝ}
+    {k : ℕ} (hC : ∀ y, |g y| ≤ C * (1 + |y|) ^ k) (a b c d : ℝ) :
+    Integrable (fun z => g (a + b * z) * (c + d * z)) (gaussianReal 0 1) := by
+  have hC0 : 0 ≤ C := by simpa using (abs_nonneg _).trans (hC 0)
+  have haff : ∀ (a b z : ℝ), |a + b * z| ≤ |a| + |b| * |z| := fun a b z =>
+    (abs_add_le _ _).trans_eq (by rw [abs_mul])
+  have hm : Measurable fun z : ℝ => g (a + b * z) * (c + d * z) :=
+    (hg.comp (by fun_prop : Measurable fun z : ℝ => a + b * z)).mul (by fun_prop)
+  refine integrable_gaussianReal_of_norm_le_pow hm.aestronglyMeasurable
+    (C := C * (1 + |a| + |b|) ^ k * (|c| + |d|)) (k := k + 1) fun z => ?_
+  have h1 : 1 + |a + b * z| ≤ (1 + |a| + |b|) * (1 + |z|) := by
+    nlinarith [haff a b z, abs_nonneg a, abs_nonneg b, abs_nonneg z,
+      mul_nonneg (abs_nonneg a) (abs_nonneg z)]
+  have h2 : |c + d * z| ≤ (|c| + |d|) * (1 + |z|) := by
+    nlinarith [haff c d z, abs_nonneg c, abs_nonneg d, abs_nonneg z,
+      mul_nonneg (abs_nonneg c) (abs_nonneg z)]
+  rw [Real.norm_eq_abs, abs_mul]
+  have h3 := (hC (a + b * z)).trans (mul_le_mul_of_nonneg_left
+    (pow_le_pow_left₀ (by positivity) h1 k) hC0)
+  refine (mul_le_mul h3 h2 (abs_nonneg _) (by positivity)).trans_eq ?_
+  rw [mul_pow (1 + |a| + |b|), pow_succ (1 + |z|)]
+  ring
 
 /-- **Differentiation of a Gaussian average along a curve of affine maps:** if `f` has derivative
 `f'` and both are of polynomial growth, then

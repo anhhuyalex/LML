@@ -11,6 +11,7 @@ public import Mathlib.Algebra.Order.Chebyshev
 public import Mathlib.Analysis.Convex.Continuous
 public import Mathlib.Analysis.Convex.Integral
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Gaussian.QuadraticTilt
+public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaConfined
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianExp
 
 /-!
@@ -186,20 +187,21 @@ theorem integral_exp_half_sq_norm_shcherbinaTirozziGibbs_le {κ h : ℝ} (hκ : 
       ring
   rwa [hnorm] at key
 
-/-- Under the Gibbs measure the configuration is square integrable (by Lemma 3.1.5). -/
+/-- Under the Gibbs measure the configuration is square integrable. -/
 theorem memLp_id_shcherbinaTirozziGibbs {κ h : ℝ} (hκ : 0 < κ) {u : ℝ → ℝ} (hu : Measurable u)
     (hu0 : ∀ x, u x ≤ 0) (g : Fin M → Fin N → ℝ) (g₀ : Fin N → ℝ) :
     MemLp (fun σ : ℝ^N => σ) 2
       (volume.tilted fun σ => -shcherbinaTirozziHamiltonian κ h u g g₀ σ) := by
-  have hexp := (integral_exp_half_sq_norm_shcherbinaTirozziGibbs_le (h := h) hκ hu hu0 g g₀).1
-  refine (memLp_two_iff_integrable_sq_norm aestronglyMeasurable_id).2 ?_
-  refine Integrable.mono' (hexp.const_mul (2 / κ))
-    (continuous_norm.pow 2).aestronglyMeasurable (ae_of_all _ fun σ => ?_)
-  rw [Real.norm_of_nonneg (sq_nonneg _)]
-  have h1 := Real.add_one_le_exp (κ / 2 * ‖σ‖ ^ 2)
-  rw [div_mul_eq_mul_div, le_div_iff₀ hκ]
-  simp only [id_eq]
-  nlinarith
+  have hconf : ∀ σ : ℝ^N, -shcherbinaTirozziHamiltonian κ h u g g₀ σ ≤
+      0 + ‖WithLp.toLp 2 (fun i => h * g₀ i)‖ * ‖σ‖ - κ * ‖σ‖ ^ 2 := fun σ => by
+    have h1 := Finset.sum_nonpos fun k (_ : k ∈ Finset.univ) =>
+      hu0 ((Real.sqrt N)⁻¹ * ∑ i, g k i * σ i)
+    have h2 := real_inner_le_norm (WithLp.toLp 2 (fun i => h * g₀ i)) σ
+    rw [neg_shcherbinaTirozziHamiltonian_eq]
+    linarith
+  exact_mod_cast memLp_of_poly_bound_of_confining hκ
+    (measurable_shcherbinaTirozziHamiltonian_apply κ h hu g g₀).neg hconf (f := fun σ => σ)
+    aestronglyMeasurable_id (C := 1) (m := 1) (fun σ => by simp) 2
 
 /-- **Lemma 3.1.6:** if `-D (1 + |x|) ≤ u x ≤ 0`, then
 `1 / Z ≤ (κ / π) ^ (N / 2) exp (D (M + √(M / (κ N) ∑_{k,i} g_{k,i}²)))`. -/

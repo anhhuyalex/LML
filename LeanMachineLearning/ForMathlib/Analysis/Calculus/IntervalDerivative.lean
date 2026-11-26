@@ -8,6 +8,7 @@ module
 public import Mathlib.Analysis.Calculus.FDeriv.Extend
 public import Mathlib.Analysis.Calculus.Deriv.MeanValue
 public import Mathlib.Analysis.Calculus.Deriv.Pow
+public import Mathlib.Analysis.Calculus.Deriv.Shift
 public import Mathlib.Analysis.Convex.Deriv
 public import Mathlib.Analysis.Convex.Slope
 
@@ -21,6 +22,8 @@ public import Mathlib.Analysis.Convex.Slope
   `|φ''| ≤ C` on `(0, 1)`.
 * `abs_sub_le_of_continuousOn_Icc_of_hasDerivAt_Ioo`: mean-value Lipschitz bound on `[a, b]` from
   continuity on `[a, b]` and a bounded derivative on `(a, b)`.
+* `Convex.norm_sub_le_of_forall_hasDerivAt_line`: the analogue for a vector-valued function on a
+  convex set, from bounds on directional derivatives.
 * `ConcaveOn.deriv_nonneg_of_forall_ge_eq`: a concave function which is constant on a half-line
   `[τ, ∞)` has a nonnegative derivative.
 -/
@@ -141,6 +144,28 @@ theorem abs_sub_le_of_continuousOn_Icc_of_hasDerivAt_Ioo
   have heq : f y - f x = f' c * (y - x) := ((eq_div_iff hpos.ne').1 hslope).symm
   rw [heq, abs_mul, abs_of_pos hpos]
   exact mul_le_mul_of_nonneg_right (hfb c (hsub_oo hc)) hpos.le
+
+/-- A function on a convex set satisfies `‖g y - g x‖ ≤ B` if at every point `z` of the set its
+derivative along `y - x` exists and has norm at most `B`. No topology on the domain is needed. -/
+theorem Convex.norm_sub_le_of_forall_hasDerivAt_line {E F : Type*} [AddCommGroup E] [Module ℝ E]
+    [NormedAddCommGroup F] [NormedSpace ℝ F] {C : Set E} (hC : Convex ℝ C) {g : E → F} {x y : E}
+    (hx : x ∈ C) (hy : y ∈ C) {B : ℝ}
+    (h : ∀ z ∈ C, ∃ d, HasDerivAt (fun t : ℝ => g (z + t • (y - x))) d 0 ∧ ‖d‖ ≤ B) :
+    ‖g y - g x‖ ≤ B := by
+  have hder : ∀ t ∈ Icc (0 : ℝ) 1, ∃ d,
+      HasDerivAt (fun t : ℝ => g (x + t • (y - x))) d t ∧ ‖d‖ ≤ B := fun t ht => by
+    obtain ⟨d, hd, hdb⟩ := h _ (hC.add_smul_sub_mem hx hy ht)
+    refine ⟨d, ?_, hdb⟩
+    have h1 : HasDerivAt (fun s : ℝ => g (x + t • (y - x) + s • (y - x))) d (t - t) := by
+      rwa [sub_self]
+    refine (h1.comp_sub_const t t).congr_of_eventuallyEq (Eventually.of_forall fun s => ?_)
+    change g (x + s • (y - x)) = g (x + t • (y - x) + (s - t) • (y - x))
+    rw [add_assoc, ← add_smul, add_sub_cancel]
+  choose! d hd hdb using hder
+  have h01 := norm_image_sub_le_of_norm_deriv_le_segment_01'
+    (f := fun t : ℝ => g (x + t • (y - x))) (fun t ht => (hd t ht).hasDerivWithinAt)
+    (fun t ht => hdb t (Ico_subset_Icc_self ht))
+  simpa using h01
 
 /-- A concave function on `ℝ` which is constant on a half-line `[τ, ∞)` is nondecreasing. -/
 theorem ConcaveOn.monotone_of_forall_ge_eq {u : ℝ → ℝ} (huc : ConcaveOn ℝ univ u) {τ b : ℝ}

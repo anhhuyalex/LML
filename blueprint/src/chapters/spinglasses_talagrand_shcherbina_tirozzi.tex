@@ -119,7 +119,9 @@ states integrability as part of its conclusion.
         MeasureTheory.integral_exp_sq_sub_median_le_four,
         MeasureTheory.integral_exp_sq_sub_integral_le_four,
         MeasureTheory.integral_sub_integral_pow_le_of_lipschitz,
-        MeasureTheory.memLp_two_of_lipschitz}
+        MeasureTheory.memLp_two_of_lipschitz,
+        ProbabilityTheory.norm_integral_smul_sub_le_of_integral_dual_sq_le,
+        MeasureTheory.norm_integral_smul_sub_integral_le_of_lipschitz}
   \leanok
   \uses{thm:sg-tal:st-prekopa-leindler, lem:sg-tal:st-centering}
 \talsource{Theorem~3.1.4}
@@ -138,6 +140,9 @@ $\int\exp(\frac{\kappa}{2A^2}(f-m)^2)\,d\mu\le4$.
 $\int\exp(\frac{\kappa}{8A^2}(f-\int f\,d\mu)^2)\,d\mu\le4$.
 \item If $\kappa>0$ and $A\ge0$, then for every $k$,
 $\int(f-\int f\,d\mu)^{2k}\,d\mu\le4(8kA^2/\kappa)^k$.
+\item If $\kappa>0$, $F\in L^2(\mu)$ is strongly measurable with values in a real Banach space $V$ and
+$A$-Lipschitz on $C$, then for every $f\in L^2(\mu)$,
+$\|\int f\,(F-\int F\,d\mu)\,d\mu\|\le A\sqrt{(32/\kappa)\int f^2\,d\mu}$.
 \end{enumerate}
 All integrands are integrable.
 \end{theorem}
@@ -154,6 +159,10 @@ Adding the two bounds of Step~1 gives (2).
 
 \emph{Step 3 (mean).} Lemma~\ref{lem:sg-tal:st-centering}(3) gives (3), and Lemma~\ref{lem:sg-tal:st-centering}(4)
 applied to $c(f-\int f)^2$ with $c=\kappa/(8A^2)$ gives (4). For $A=0$ the function is constant on $C$.
+
+For the last item: for every $F$ and $m$ with $\int\varphi(F-m)^2\le C\|\varphi\|^2$ for all
+$\varphi\in V^*$, the Cauchy--Schwarz inequality and duality give $\|\int f(F-m)\|^2\le C\int f^2$; here
+$\varphi\circ F$ is $A\|\varphi\|$-Lipschitz, so the moment bound with $k=1$ gives $C=32A^2/\kappa$.
 
 Formalized in \texttt{ForMathlib/Probability/Moments/LogConcaveConcentration.lean}.
 \end{proof}
@@ -213,8 +222,7 @@ Section~3.1. The formalization proves the rectangular form.
         integral_abs_inner_stdGaussian_le,
         integral_tilted_restrict_neg_half_sq_norm,
         integrable_exp_add_neg_mul_sq_norm_add_inner,
-        integral_exp_half_sq_norm_tilted_le,
-        integrable_one_add_norm_pow_mul_exp}
+        integral_exp_half_sq_norm_tilted_le}
   \leanok
 \talsource{Eqs.~(3.23)--(3.24) and Lemma~3.1.5}
 Let $E$ be a $d$-dimensional real inner product space, $b>0$, $a\in E$.
@@ -271,12 +279,22 @@ $e^{-\kappa\|\sigma\|^2/2}$.
         MeasureTheory.hasDerivAt_integral_pi_tilted_of_confining,
         MeasureTheory.hasDerivAt_integral_pi_tilted_of_confining_replicaDiff,
         MeasureTheory.integral_pi_cov_sum_eq_sum_sub_fresh_of_integrable,
-        MeasureTheory.replicaDiff_eq_integral_of_integrable}
+        MeasureTheory.replicaDiff_eq_integral_of_integrable,
+        integrable_one_add_norm_pow_mul_exp,
+        MeasureTheory.abs_comp_eval_le_prod,
+        MeasureTheory.abs_mul_le_mul_prod_one_add_norm_pow,
+        MeasureTheory.abs_mul_exp_sum_le_of_confining,
+        MeasureTheory.memLp_of_poly_bound_of_confining,
+        MeasureTheory.memLp_pi_tilted_of_confining}
   \leanok
-  \uses{lem:sg-tal:st-quadratic, lem:sg-tal:gibbs-replica-product}
+  \uses{lem:sg-tal:gibbs-replica-product}
 \talsource{the derivative in Proposition~3.2.1}
-Let $E$ be a finite-dimensional real inner product space, $R$ a finite set of replicas and $\kappa>0$.
-Let the energies $e_r$ satisfy $e_r(x)\le A+B\|x\|-\kappa\|x\|^2$ for $r$ near $t$, let
+Let $E$ be a finite-dimensional real normed space with an additive Haar measure $\lambda$, $R$ a finite set of
+replicas and $\kappa>0$. Then $(1+\|x\|)^ne^{B\|x\|-\kappa\|x\|^2}$ is $\lambda$-integrable for all $n$ and $B$.
+If $e(x)\le A+B\|x\|-\kappa\|x\|^2$ and $\mu$ has density proportional to $e^{e}$ with respect to $\lambda$, then
+functions of polynomial growth, with values in a normed space, have finite moments of every order for $\mu$,
+and so do functions on $E^R$ bounded by $C\prod_{\ell}(1+\|\sigma^\ell\|)^m$ for $\mu^{\otimes R}$.
+Let moreover the energies $e_r$ satisfy $e_r(x)\le A+B\|x\|-\kappa\|x\|^2$ for $r$ near $t$, let
 $|\partial_re_r(x)|\le L(1+\|x\|)^n$, and let $\mu_r$ be the probability measure with density proportional to
 $e^{e_r}$. Let $\Psi_r$ be a function on $E^R$ with
 \[
@@ -293,9 +311,9 @@ with one further replica $\sigma^{*}$.
 \end{lemma}
 \begin{proof}
   \leanok
-  \uses{lem:sg-tal:st-quadratic}
-Since $(1+\|x\|)^k\le e^{k\|x\|}$, every product of a polynomial weight with $e^{e_r}$ is bounded, replica by
-replica, by a constant times $e^{-\kappa\|x\|^2/2}$. Differentiate the numerator and the normalizer of the
+Since $(1+\|x\|)^k\le e^{k\|x\|}$, the product $(1+\|x\|)^{n+d}e^{B\|x\|-\kappa\|x\|^2}$, $d=\dim E+1$, is bounded,
+and $(1+\|x\|)^{-d}$ is integrable. Consequently every product of a polynomial weight with $e^{e_r}$ is dominated,
+replica by replica, by an integrable function. Differentiate the numerator and the normalizer of the
 quotient $\int\Psi_re^{\sum_\ell e_r(\sigma^\ell)}\big/\int e^{\sum_\ell e_r(\sigma^\ell)}$ under the integral
 sign with this domination. The last identity is the independence of the further replica from the others.
 \end{proof}
@@ -406,7 +424,9 @@ Lemma~\ref{lem:sg-tal:st-exp-moment} to $B^*/4$.
 \section{Concentration of the overlaps (Talagrand Section~3.1)}\label{sec:sg-tal:st-overlaps}
 
 \begin{theorem}[Overlaps under the Gibbs measure]\label{thm:sg-tal:st-gibbs-overlaps}
-  \lean{SpinGlasses.integral_sub_integral_pow_shcherbinaTirozziGibbs_le,
+  \lean{abs_min_norm_sq_sub_le,
+        ProbabilityTheory.norm_setIntegral_le_mul_of_integral_sq_le,
+        SpinGlasses.integral_sub_integral_pow_shcherbinaTirozziGibbs_le,
         SpinGlasses.exists_integral_shcherbinaTirozzi_overlap_sub_mean_pow_le,
         SpinGlasses.exists_integral_shcherbinaTirozzi_selfOverlap_sub_mean_pow_le,
         SpinGlasses.exists_integral_integral_shcherbinaTirozzi_overlap_sub_mean_pow_le,
@@ -434,7 +454,7 @@ $G(\|\sigma\|\ge a)\le e^{-2B^*}$. Average with Lemma~\ref{lem:sg-tal:st-moments
 \end{proof}
 
 \begin{lemma}[Covariance control and gradient bound]\label{lem:sg-tal:st-gradient}
-  \lean{ProbabilityTheory.norm_integral_smul_sub_le_of_integral_inner_sq_le,
+  \lean{ProbabilityTheory.integral_smul_apply_eq_apply_integral_smul_sub_add,
         SpinGlasses.memLp_id_shcherbinaTirozziGibbs,
         SpinGlasses.norm_integral_smul_sub_mean_shcherbinaTirozziGibbs_le,
         SpinGlasses.abs_sum_deriv_field_mul_sub_le,
@@ -462,9 +482,8 @@ d^2\le K\Bigl(\frac{B^*}{N^2}+\frac{B^{*2}\|g\|^2}{N^4}\Bigr)\bigl(\|\Delta\|^2+
 \begin{proof}
   \leanok
   \uses{thm:sg-tal:st-gibbs-overlaps, lem:sg-tal:st-differentiation, thm:sg-tal:st-maurey}
-(1) and (2): if every projection satisfies $\langle(F-m)\cdot y\rangle^2\le C\|y\|^2$ in mean square, then
-$\|\langle f(F-m)\rangle\|^2\le C\langle f^2\rangle$; the projections are Lipschitz and
-Theorem~\ref{thm:sg-tal:st-maurey} with $k=1$ applies. (3): by Lemma~\ref{lem:sg-tal:st-differentiation} the
+(1) and (2) are the covariance bound of Theorem~\ref{thm:sg-tal:st-maurey} for $F=\sigma$, which is
+$1$-Lipschitz, and for $F=U$. (3): by Lemma~\ref{lem:sg-tal:st-differentiation} the
 derivative is $\langle fX\rangle$ with $\langle f\rangle=0$, where $f=R_{1,1}-\langle R_{1,1}\rangle$, respectively
 $f=2(\langle\sigma\rangle\cdot\sigma-\|\langle\sigma\rangle\|^2)/N$. Splitting
 $\sigma=(\sigma-\langle\sigma\rangle)+\langle\sigma\rangle$ and using (1), (2) and $\sum_k\|\Delta_k\|/\sqrt N\le4\|\Delta\|$
@@ -477,7 +496,8 @@ and $\langle f^2\rangle\le KB^*/N^2$, $\|\langle\sigma\rangle\|^2\le KB^*$.
 \end{proof}
 
 \begin{theorem}[The overlaps are nearly constant]\label{thm:sg-tal:st-overlaps}
-  \lean{SpinGlasses.measurePreserving_stdGaussian_shcherbinaTirozziDisorder,
+  \lean{Convex.norm_sub_le_of_forall_hasDerivAt_line,
+        SpinGlasses.measurePreserving_stdGaussian_shcherbinaTirozziDisorder,
         SpinGlasses.exists_integral_sub_integral_pow_le_of_disorder_gradient,
         SpinGlasses.exists_integral_shcherbinaTirozzi_selfOverlap_sub_pow_le,
         SpinGlasses.exists_integral_shcherbinaTirozzi_overlap_sub_pow_le}
@@ -560,7 +580,7 @@ $F$, and take logarithms.
 
 \begin{lemma}[Variance around the mode]\label{lem:sg-tal:st-mode-variance}
   \lean{MeasureTheory.mul_integral_sub_sq_mul_exp_le,
-        MeasureTheory.exists_mode_concave_sub_mul_sq,
+        MeasureTheory.exists_integral_sub_sq_mul_exp_concave_sub_mul_sq_le,
         ProbabilityTheory.exists_integral_sub_sq_mul_exp_le_gaussianReal,
         ProbabilityTheory.variance_id_tilted_gaussianReal_le_one}
   \leanok
@@ -571,7 +591,8 @@ $e^{w}$ and $(x-x_0)^2e^{w}$ are integrable and $c\int(x-x_0)^2e^{w}\le\int e^{w
 \item If $v$ is differentiable and concave with $e^{v}$ integrable for the standard Gaussian, the Gaussian
 measure tilted by $v$ has variance at most $1$.
 \item If $v$ is differentiable and concave, $\kappa>0$ and $w(x)=v(x)-\kappa x^2+dx$, there is $x_0$ with
-$2\kappa(x-x_0)^2\le-w'(x)(x-x_0)$ for all $x$.
+$|x_0|\le|v'(0)+d|/(2\kappa)$ such that $e^{w}$ and $(x-x_0)^2e^{w}$ are integrable and
+$2\kappa\int(x-x_0)^2e^{w}\le\int e^{w}$.
 \end{enumerate}
 \end{lemma}
 \begin{proof}
@@ -587,10 +608,11 @@ $\Phi(x)=\int_{x_0}^xf-(x-x_0)e^{w(x)}$. Then
 so $\int_a^bf\ge0$ whenever $a\le x_0\le b$; let $a\to-\infty$, $b\to\infty$.
 
 \emph{Step 3 (the mode).} The function $w$ tends to $-\infty$ and attains its maximum at some $x_0$, where
-$w'(x_0)=0$; since $v'$ is nonincreasing, this gives (3).
+$w'(x_0)=0$; since $v'$ is nonincreasing, $2\kappa(x-x_0)^2\le-w'(x)(x-x_0)$ for all $x$. This inequality at
+$x=0$ gives the bound on $|x_0|$, and (1) with $c=2\kappa$ gives (3).
 
-\emph{Step 4 (Gaussian case).} Apply (3) with $\kappa=1/2$, $d=0$ and then (1) with $c=1$; the variance is at
-most the second moment around $x_0$.
+\emph{Step 4 (Gaussian case).} Apply (3) with $\kappa=1/2$, $d=0$; the variance is at most the second moment
+around $x_0$.
 \end{proof}
 
 \begin{lemma}[The inequality $\bar r\le r$]\label{lem:sg-tal:st-rbar-le-r}
@@ -767,10 +789,9 @@ where $\langle\cdot\rangle_x$ is the average for the normalized weight.
 \begin{proof}
   \leanok
   \uses{lem:sg-tal:st-mode-variance}
-(1) The exponent $w$ tends to $-\infty$, so it has a maximum $x_0$, with $w'(x_0)=0$. Since $f'$ is
-nonincreasing, $2\kappa(x-x_0)^2\le-w'(x)(x-x_0)$, so Lemma~\ref{lem:sg-tal:st-mode-variance} gives
-$\langle(x-x_0)^2\rangle\le(2\kappa)^{-1}$ and $|m-x_0|\le(2\kappa)^{-1/2}$. The same inequality at $x=0$ gives
-$|x_0|\le|w'(0)|/(2\kappa)$. (2) Differentiate under the integral, dominated by a constant multiple of $e^V$.
+(1) By Lemma~\ref{lem:sg-tal:st-mode-variance}(3) there is $x_0$ with $|x_0|\le|f'(0)+d|/(2\kappa)$ and
+$\langle(x-x_0)^2\rangle\le(2\kappa)^{-1}$, hence $|m-x_0|\le(2\kappa)^{-1/2}$.
+(2) Differentiate under the integral, dominated by a constant multiple of $e^V$.
 \end{proof}
 
 \begin{lemma}[The cavity Gibbs measure]\label{lem:sg-tal:st-cavity-regular}
@@ -1151,6 +1172,7 @@ gives the quadratic bound on $\log T$.
 
 \begin{lemma}[Differentiating a Gaussian average along affine maps]\label{lem:sg-tal:st-affine-curve}
   \lean{ProbabilityTheory.integrable_gaussianReal_of_norm_le_pow,
+        ProbabilityTheory.integrable_comp_add_mul_mul_add_mul_gaussianReal,
         ProbabilityTheory.hasDerivAt_integral_comp_add_mul_gaussianReal}
   \leanok
 Let $z$ be a standard Gaussian. A measurable function bounded by $C(1+|z|)^k$ is integrable. Let $f$ be
@@ -1165,6 +1187,28 @@ near $t$ with derivatives continuous at $t$. Then
   \leanok
 Near $t$ the functions $m,\sigma,m',\sigma'$ are bounded, so the derivative of the integrand is dominated by a
 constant multiple of $(1+|z|)^{k+1}$; differentiate under the integral sign.
+\end{proof}
+
+\begin{lemma}[The inverse Mills ratio at an affine argument]\label{lem:sg-tal:st-mills-affine}
+  \lean{ProbabilityTheory.integrable_gaussianPDFReal_div_measureReal_Ici_comp,
+        ProbabilityTheory.integral_id_mul_gaussianPDFReal_div_measureReal_Ici_comp,
+        ProbabilityTheory.one_add_sq_mul_integral_id_mul_gaussianPDFReal_div_measureReal_Ici,
+        ProbabilityTheory.exists_abs_sq_gaussianPDFReal_div_measureReal_Ici_le}
+  \leanok
+  \uses{lem:sg-tal:st-mills-growth, lem:sg-tal:st-affine-curve}
+\talsource{the integrations by parts of Section~3.3}
+Let $z$ be a standard Gaussian, $A=p/T$ and $W=m+\sigma z$. Then $A(W)$, $zA(W)$ and $A(W)^2$ are integrable,
+\[
+\mathbb E\,zA(W)=\sigma\,\mathbb E\bigl[A(W)^2-WA(W)\bigr],\qquad
+(1+\sigma^2)\,\mathbb E\,zA(W)=\sigma\bigl(\mathbb E A(W)^2-m\,\mathbb E A(W)\bigr),
+\]
+and both $A^2$ and its derivative $2A(A^2-vA)$ are bounded by a constant times $(1+|v|)^3$.
+\end{lemma}
+\begin{proof}
+  \leanok
+  \uses{lem:sg-tal:st-mills-growth, lem:sg-tal:st-affine-curve}
+The bounds follow from $0\le A(v)\le C+|v|$. The first identity is Gaussian integration by parts with
+$A'=A^2-vA$; the second solves it for $\mathbb E\,zA(W)$.
 \end{proof}
 
 \begin{definition}[The functional of the hard constraint]\label{def:sg-tal:st-hard-functional}
@@ -1183,7 +1227,8 @@ F(q,\rho)=\alpha\,\mathbb E\log T\Bigl(\frac{\tau-z\sqrt q}{\sqrt{\rho-q}}\Bigr)
         SpinGlasses.hasDerivAt_shcherbinaTirozziHardFunctional_self,
         SpinGlasses.hasDerivAt_shcherbinaTirozziHardFunctional_ratio}
   \leanok
-  \uses{def:sg-tal:st-hard-functional, lem:sg-tal:st-mills-growth, lem:sg-tal:st-affine-curve}
+  \uses{def:sg-tal:st-hard-functional, lem:sg-tal:st-mills-growth, lem:sg-tal:st-affine-curve,
+    lem:sg-tal:st-mills-affine}
 \talsource{Lemma~3.3.13, Eqs.~(3.149), (3.151), (3.152)}
 Let $G(x,\rho)=F\bigl(x\rho/(1+x),\rho\bigr)$ and $W=\tau\sqrt{1+x}/\sqrt\rho-z\sqrt x$. For $x\ge0$ and $\rho>0$,
 \[
@@ -1201,7 +1246,8 @@ and for $x>0$,
 \end{lemma}
 \begin{proof}
   \leanok
-  \uses{def:sg-tal:st-hard-functional, lem:sg-tal:st-mills-growth, lem:sg-tal:st-affine-curve}
+  \uses{def:sg-tal:st-hard-functional, lem:sg-tal:st-mills-growth, lem:sg-tal:st-affine-curve,
+    lem:sg-tal:st-mills-affine}
 The first identity is a substitution. Both derivatives follow from Lemma~\ref{lem:sg-tal:st-affine-curve}
 applied to $f=\log T$. For the derivative in $x$, integration by parts in $z$ and $A'=A^2-vA$ give
 $(1+x)\,\mathbb E[zA(W)]=-\sqrt x\,\bigl(\mathbb EA(W)^2-\tau\sqrt{1+x}\,\rho^{-1/2}\,\mathbb EA(W)\bigr)$, and

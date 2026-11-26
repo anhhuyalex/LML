@@ -25,7 +25,7 @@ namespace MeasureTheory
 
 /-- The inner product of integrable functions of two independent variables is integrable. -/
 theorem Integrable.inner_fst_snd {α β E : Type*} [MeasurableSpace α] [MeasurableSpace β]
-    {μ : Measure α} {ν : Measure β} [SFinite μ] [NormedAddCommGroup E] [InnerProductSpace ℝ E]
+    {μ : Measure α} {ν : Measure β} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
     {f : α → E} {g : β → E} (hf : Integrable f μ) (hg : Integrable g ν) :
     Integrable (fun z : α × β => ⟪f z.1, g z.2⟫_ℝ) (μ.prod ν) :=
   hf.op_fst_snd (op := fun x y : E => ⟪x, y⟫_ℝ) continuous_inner

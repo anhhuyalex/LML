@@ -5,6 +5,8 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Analysis.Convex.Integral
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianAffineDerivative
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein
 
 /-!
@@ -33,6 +35,12 @@ Lemmas 3.3.7--3.3.9).
 * `ProbabilityTheory.integral_min_zero_sq_gaussianReal`: Eq. (3.143).
 * `ProbabilityTheory.neg_integral_id_mul_le_sqrt`: Cauchy--Schwarz on the negative half-line.
 * `ProbabilityTheory.exists_sq_integral_id_mul_exp_div_le`: Lemma 3.3.8.
+* `ProbabilityTheory.integrable_gaussianPDFReal_div_measureReal_Ici_comp`,
+  `ProbabilityTheory.integral_id_mul_gaussianPDFReal_div_measureReal_Ici_comp`,
+  `ProbabilityTheory.one_add_sq_mul_integral_id_mul_gaussianPDFReal_div_measureReal_Ici`:
+  integrability and integration by parts at an affine Gaussian argument.
+* `ProbabilityTheory.exists_abs_sq_gaussianPDFReal_div_measureReal_Ici_le`: cubic growth of the
+  squared ratio and of its derivative.
 -/
 
 @[expose] public section
@@ -478,9 +486,8 @@ theorem exists_sq_integral_id_mul_exp_div_le :
         have habs : MemLp (fun x : ℝ => |x|) 2 γ := by
           have h : MemLp (id : ℝ → ℝ) 2 γ := memLp_id_gaussianReal' 2 (by simp)
           exact h.norm.ae_eq (ae_of_all _ fun x => Real.norm_eq_abs x)
-        have hv' := variance_nonneg (fun x : ℝ => |x|) γ
-        rw [variance_eq_sub habs] at hv'
-        simp only [Pi.pow_apply, sq_abs] at hv'
+        have hv' := sq_norm_integral_le_integral_sq_norm habs
+        simp only [Real.norm_eq_abs, sq_abs] at hv'
         have h4 : ∫ x, x ^ 2 ∂γ = 1 := by
           have h := variance_of_integral_eq_zero (μ := γ) (X := id) aemeasurable_id
             integral_id_gaussianReal
@@ -501,5 +508,158 @@ theorem exists_sq_integral_id_mul_exp_div_le :
       exact hZge
     have hsq := pow_le_pow_left₀ (div_nonneg hN0 hZ0.le) hratio 2
     exact hsq.trans ((le_max_right _ _).trans (le_add_of_nonneg_left (sq_nonneg _)))
+
+section AffineArgument
+
+local notation "mills " v:arg =>
+  gaussianPDFReal 0 1 v / Measure.real (gaussianReal 0 1) (Ici v)
+
+/-- The inverse Mills ratio at an affine Gaussian argument `A (m + σ z)`, its product with `z`
+and its square are integrable. -/
+theorem integrable_gaussianPDFReal_div_measureReal_Ici_comp (m σ : ℝ) :
+    Integrable (fun z => mills (m + σ * z)) (gaussianReal 0 1) ∧
+      Integrable (fun z => z * mills (m + σ * z)) (gaussianReal 0 1) ∧
+      Integrable (fun z => mills (m + σ * z) ^ 2) (gaussianReal 0 1) := by
+  obtain ⟨C, hC0, hC⟩ := exists_gaussianPDFReal_div_measureReal_Ici_le
+  have hAm : Measurable fun v : ℝ => mills v :=
+    monotone_gaussianPDFReal_div_measureReal_Ici.measurable
+  have hWm : Measurable fun z : ℝ => m + σ * z := by fun_prop
+  set B : ℝ := C + |m| + |σ| + 1 with hB
+  have hAb : ∀ z : ℝ, ‖mills (m + σ * z)‖ ≤ B * (1 + |z|) := fun z => by
+    rw [Real.norm_of_nonneg (gaussianPDFReal_div_measureReal_Ici_nonneg _)]
+    refine (hC _).trans ?_
+    have h1 : |m + σ * z| ≤ |m| + |σ| * |z| := (abs_add_le _ _).trans_eq (by rw [abs_mul])
+    have h2 := abs_nonneg z
+    rw [hB]
+    nlinarith [mul_nonneg hC0 h2, mul_nonneg (abs_nonneg m) h2, abs_nonneg σ]
+  refine ⟨?_, ?_, ?_⟩
+  · refine integrable_gaussianReal_of_norm_le_pow (hAm.comp hWm).aestronglyMeasurable
+      (C := B) (k := 1) fun z => ?_
+    rw [pow_one]; exact hAb z
+  · refine integrable_gaussianReal_of_norm_le_pow
+      (measurable_id.mul (hAm.comp hWm)).aestronglyMeasurable (C := B) (k := 2) fun z => ?_
+    rw [norm_mul, Real.norm_eq_abs, sq,
+      show B * ((1 + |z|) * (1 + |z|)) = (1 + |z|) * (B * (1 + |z|)) by ring]
+    exact mul_le_mul (le_add_of_nonneg_left zero_le_one) (hAb z) (norm_nonneg _) (by positivity)
+  · refine integrable_gaussianReal_of_norm_le_pow
+      ((hAm.comp hWm).pow_const 2).aestronglyMeasurable (C := B ^ 2) (k := 2) fun z => ?_
+    rw [norm_pow, ← mul_pow]
+    exact pow_le_pow_left₀ (norm_nonneg _) (hAb z) 2
+
+/-- Gaussian integration by parts for the inverse Mills ratio:
+`𝔼 [z A (m + σ z)] = σ 𝔼 [A² - W A]` at `W = m + σ z`. -/
+theorem integral_id_mul_gaussianPDFReal_div_measureReal_Ici_comp (m σ : ℝ) :
+    ∫ z, z * mills (m + σ * z) ∂(gaussianReal 0 1) =
+      σ * ∫ z, (mills (m + σ * z) ^ 2 - (m + σ * z) * mills (m + σ * z))
+        ∂(gaussianReal 0 1) := by
+  obtain ⟨C, hC0, hC⟩ := exists_gaussianPDFReal_div_measureReal_Ici_le
+  have hd := fun v => (hasDerivAt_gaussianPDFReal_div_measureReal_Ici v _ fun _ => rfl).1
+  have hAm : Measurable fun v : ℝ => mills v :=
+    monotone_gaussianPDFReal_div_measureReal_Ici.measurable
+  set B : ℝ := C + |m| + |σ| + 1 with hB
+  have hW : ∀ z : ℝ, |m + σ * z| ≤ (|m| + |σ|) * (1 + |z|) := fun z => by
+    refine (abs_add_le _ _).trans ?_
+    rw [abs_mul]
+    nlinarith [mul_nonneg (abs_nonneg m) (abs_nonneg z), abs_nonneg σ]
+  have hAb : ∀ z : ℝ, |mills (m + σ * z)| ≤ B * (1 + |z|) := fun z => by
+    rw [abs_of_nonneg (gaussianPDFReal_div_measureReal_Ici_nonneg _)]
+    refine (hC _).trans ?_
+    have h1 := hW z
+    have h2 := abs_nonneg z
+    rw [hB]
+    nlinarith [mul_nonneg hC0 h2]
+  have hWm : Measurable fun z : ℝ => m + σ * z := by fun_prop
+  have hdiff : ∀ z, HasDerivAt (fun z => mills (m + σ * z))
+      (σ * (mills (m + σ * z) ^ 2 - (m + σ * z) * mills (m + σ * z))) z := fun z => by
+    have h1 : HasDerivAt (fun z => m + σ * z) σ z := by
+      simpa using ((hasDerivAt_id z).const_mul σ).const_add m
+    exact ((hd _).comp z h1).congr_deriv (mul_comm _ _)
+  have h1 : Integrable (fun z => z * mills (m + σ * z)) (gaussianReal 0 1) := by
+    refine integrable_gaussianReal_of_norm_le_pow (measurable_id.mul
+      (hAm.comp hWm)).aestronglyMeasurable (C := B) (k := 2) fun z => ?_
+    rw [norm_mul, Real.norm_eq_abs, Real.norm_eq_abs, sq,
+      show B * ((1 + |z|) * (1 + |z|)) = (1 + |z|) * (B * (1 + |z|)) by ring]
+    exact mul_le_mul (le_add_of_nonneg_left zero_le_one) (hAb z) (abs_nonneg _) (by positivity)
+  have h2 : Integrable (fun z => σ * (mills (m + σ * z) ^ 2 -
+      (m + σ * z) * mills (m + σ * z))) (gaussianReal 0 1) := by
+    refine (integrable_gaussianReal_of_norm_le_pow (((hAm.comp hWm).pow_const 2).sub
+      (hWm.mul (hAm.comp hWm))).aestronglyMeasurable (C := B ^ 2 + (|m| + |σ|) * B) (k := 2)
+      fun z => ?_).const_mul σ
+    simp only [Function.comp_apply, Pi.sub_apply, Pi.mul_apply]
+    rw [Real.norm_eq_abs]
+    refine (abs_sub _ _).trans ?_
+    rw [abs_pow, abs_mul, add_mul]
+    refine add_le_add ?_ ?_
+    · rw [← mul_pow]
+      exact pow_le_pow_left₀ (abs_nonneg _) (hAb z) 2
+    · rw [show (|m| + |σ|) * B * (1 + |z|) ^ 2 =
+        ((|m| + |σ|) * (1 + |z|)) * (B * (1 + |z|)) by ring]
+      exact mul_le_mul (hW z) (hAb z) (abs_nonneg _) (by positivity)
+  rw [integral_id_mul_gaussianReal_eq 1 hdiff h1 h2, NNReal.coe_one, one_mul, integral_const_mul]
+
+/-- The integration by parts identity solved for `J = 𝔼 [z A (m + σ z)]`:
+`(1 + σ²) J = σ (𝔼 A² - m 𝔼 A)`. -/
+theorem one_add_sq_mul_integral_id_mul_gaussianPDFReal_div_measureReal_Ici (m σ : ℝ) :
+    (1 + σ ^ 2) * ∫ z, z * mills (m + σ * z) ∂(gaussianReal 0 1) =
+      σ * ((∫ z, mills (m + σ * z) ^ 2 ∂(gaussianReal 0 1)) -
+        m * ∫ z, mills (m + σ * z) ∂(gaussianReal 0 1)) := by
+  obtain ⟨hi, hzi, hi2⟩ := integrable_gaussianPDFReal_div_measureReal_Ici_comp m σ
+  have hWA : Integrable (fun z => (m + σ * z) * mills (m + σ * z)) (gaussianReal 0 1) := by
+    refine ((hi.const_mul m).add (hzi.const_mul σ)).congr (ae_of_all _ fun z => ?_)
+    simp only [Pi.add_apply]
+    ring
+  have hWAeq : ∫ z, (m + σ * z) * mills (m + σ * z) ∂(gaussianReal 0 1) =
+      m * (∫ z, mills (m + σ * z) ∂(gaussianReal 0 1)) +
+        σ * ∫ z, z * mills (m + σ * z) ∂(gaussianReal 0 1) := by
+    rw [← integral_const_mul, ← integral_const_mul,
+      ← integral_add (hi.const_mul _) (hzi.const_mul _)]
+    exact integral_congr_ae (ae_of_all _ fun z => by ring)
+  have h := integral_id_mul_gaussianPDFReal_div_measureReal_Ici_comp m σ
+  rw [integral_sub hi2 hWA, hWAeq] at h
+  linear_combination h
+
+/-- The square of the inverse Mills ratio and its derivative grow at most cubically. -/
+theorem exists_abs_sq_gaussianPDFReal_div_measureReal_Ici_le :
+    ∃ K : ℝ, ∀ v, |mills v ^ 2| ≤ K * (1 + |v|) ^ 3 ∧
+      |2 * mills v * (mills v ^ 2 - v * mills v)| ≤ K * (1 + |v|) ^ 3 := by
+  obtain ⟨C, hC0, hC⟩ := exists_gaussianPDFReal_div_measureReal_Ici_le
+  have hA0 : ∀ v, 0 ≤ mills v := gaussianPDFReal_div_measureReal_Ici_nonneg
+  set A' : ℝ → ℝ := fun v => mills v ^ 2 - v * mills v with hA'
+  have hAC : ∀ v, mills v ≤ (C + 1) * (1 + |v|) := fun v => by
+    refine (hC v).trans ?_
+    nlinarith [mul_nonneg hC0 (abs_nonneg v), abs_nonneg v]
+  set K : ℝ := 2 * (C + 1) ^ 2 * (C + 2) + (C + 1) ^ 2 with hK
+  have hg1 : ∀ v, |mills v ^ 2| ≤ K * (1 + |v|) ^ 3 := fun v => by
+    rw [abs_of_nonneg (sq_nonneg _)]
+    have h1 := pow_le_pow_left₀ (hA0 v) (hAC v) 2
+    rw [mul_pow] at h1
+    have h2 : (1 + |v|) ^ 2 ≤ (1 + |v|) ^ 3 :=
+      pow_le_pow_right₀ (le_add_of_nonneg_right (abs_nonneg _)) (by norm_num)
+    refine h1.trans (mul_le_mul ?_ h2 (by positivity) (by positivity))
+    rw [hK]
+    exact le_add_of_nonneg_left (by positivity)
+  have hg2 : ∀ v, |2 * mills v * A' v| ≤ K * (1 + |v|) ^ 3 := fun v => by
+    have h1 : |A' v| ≤ mills v * ((C + 2) * (1 + |v|)) := by
+      have e : A' v = mills v * (mills v - v) := by simp only [hA']; ring
+      rw [e, abs_mul, abs_of_nonneg (hA0 v)]
+      refine mul_le_mul_of_nonneg_left ((abs_sub _ _).trans ?_) (hA0 v)
+      rw [abs_of_nonneg (hA0 v)]
+      have := hC v
+      nlinarith [mul_nonneg hC0 (abs_nonneg v), abs_nonneg v]
+    rw [abs_mul, abs_of_nonneg (mul_nonneg two_pos.le (hA0 v))]
+    refine (mul_le_mul_of_nonneg_left h1 (mul_nonneg two_pos.le (hA0 v))).trans ?_
+    have h2 := pow_le_pow_left₀ (hA0 v) (hAC v) 2
+    calc 2 * mills v * (mills v * ((C + 2) * (1 + |v|)))
+        = 2 * (C + 2) * (1 + |v|) * mills v ^ 2 := by ring
+      _ ≤ 2 * (C + 2) * (1 + |v|) * ((C + 1) * (1 + |v|)) ^ 2 :=
+          mul_le_mul_of_nonneg_left h2 (by positivity)
+      _ = 2 * (C + 1) ^ 2 * (C + 2) * (1 + |v|) ^ 3 := by ring
+      _ ≤ K * (1 + |v|) ^ 3 := by
+          refine mul_le_mul_of_nonneg_right ?_ (by positivity)
+          rw [hK]
+          exact le_add_of_nonneg_right (sq_nonneg _)
+  exact ⟨K, fun v => ⟨hg1 v, hg2 v⟩⟩
+
+end AffineArgument
 
 end ProbabilityTheory

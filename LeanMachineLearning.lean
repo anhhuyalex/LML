@@ -28,6 +28,7 @@ public import LeanMachineLearning.ForMathlib.Analysis.Convex.Bregman.Basic
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.DerivConvergence
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.Integral
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.LogConcaveMarginal
+public import LeanMachineLearning.ForMathlib.Analysis.Convex.Measurable
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.PointwiseLimitKink
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.PrekopaLeindler
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.Subgradient.Basic
@@ -35,6 +36,7 @@ public import LeanMachineLearning.ForMathlib.Analysis.Convex.Subgradient.Deriv
 public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.GramIsometry
 public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.ProjectionDistance
 public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.UltrametricEmbed
+public import LeanMachineLearning.ForMathlib.Analysis.Normed.TruncatedNorm
 public import LeanMachineLearning.ForMathlib.Analysis.Normed.UnitBallNet
 public import LeanMachineLearning.ForMathlib.Analysis.RatioBound
 public import LeanMachineLearning.ForMathlib.Analysis.RpowTsum

@@ -7,6 +7,7 @@ module
 
 public import Mathlib.MeasureTheory.Integral.Prod
 public import Mathlib.Probability.Moments.Variance
+public import LeanMachineLearning.ForMathlib.Analysis.Convex.Integral
 
 /-!
 # Partial integrals of square-integrable functions
@@ -51,11 +52,8 @@ theorem integrable_section_of_integrable_sq {g : X → ℝ} (hg : Measurable g)
 /-- **Jensen on a section:** `(∫ f)² ≤ ∫ f²` for a probability measure. -/
 theorem sq_integral_le_integral_sq {g : X → ℝ} (hg : Measurable g)
     (h : Integrable (fun x => g x ^ 2) μX) : (∫ x, g x ∂μX) ^ 2 ≤ ∫ x, g x ^ 2 ∂μX := by
-  have hm : MemLp g 2 μX := (memLp_two_iff_integrable_sq hg.aestronglyMeasurable).2 h
-  have := variance_nonneg g μX
-  rw [variance_eq_sub hm] at this
-  simp only [Pi.pow_apply] at this
-  linarith
+  simpa only [Real.norm_eq_abs, sq_abs] using sq_norm_integral_le_integral_sq_norm
+    ((memLp_two_iff_integrable_sq hg.aestronglyMeasurable).2 h)
 
 variable {f f' : V × X → ℝ}
 

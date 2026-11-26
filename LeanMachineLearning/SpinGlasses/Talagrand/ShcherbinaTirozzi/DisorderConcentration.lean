@@ -64,56 +64,33 @@ theorem measurePreserving_stdGaussian_shcherbinaTirozziDisorder (N M : ℕ) :
     (Measure.pi fun _ : Fin N => gaussianReal 0 1))).comp (h2.comp h1)
   exact h4
 
-/-- **Concentration of a function of the disorder.** Suppose `|f| ≤ K₉ B^* / N` and that along
-every line of the disorder the derivative `f'` of `f` satisfies
-`f'² ≤ K₁₆ (B^* / N² + B^{*2} ‖g‖² / N⁴) ‖(Δ, Δ₀)‖²`. Then for `4 k ≤ N`,
-`𝔼 (f - 𝔼 f) ^ (2 k) ≤ (K k / N) ^ k`, with `K` depending only on `K₉, K₁₆`. This is the proof
-of Talagrand's Proposition 3.1.17. -/
-theorem exists_integral_sub_integral_pow_le_of_disorder_gradient (K₉ K₁₆ : ℝ) (hK₉ : 0 ≤ K₉)
-    (hK₁₆ : 0 ≤ K₁₆) :
-    ∃ K : ℝ, 0 ≤ K ∧ ∀ (N M k : ℕ), M ≤ 10 * N → 1 ≤ N → 4 * k ≤ N →
-      ∀ f : (Fin M → Fin N → ℝ) × (Fin N → ℝ) → ℝ, Measurable f →
-      (∀ d, |f d| ≤ K₉ * (N + Real.sqrt (∑ k, ∑ i, d.1 k i ^ 2) + ∑ i, d.2 i ^ 2) / N) →
-      (∀ d Δ : (Fin M → Fin N → ℝ) × (Fin N → ℝ), ∃ f' : ℝ,
-        HasDerivAt (fun t : ℝ => f (d + t • Δ)) f' 0 ∧
-        f' ^ 2 ≤ K₁₆ * ((N + Real.sqrt (∑ k, ∑ i, d.1 k i ^ 2) + ∑ i, d.2 i ^ 2) / (N : ℝ) ^ 2 +
-          (N + Real.sqrt (∑ k, ∑ i, d.1 k i ^ 2) + ∑ i, d.2 i ^ 2) ^ 2 * ‖Matrix.of d.1‖ ^ 2 /
-            (N : ℝ) ^ 4) * ((∑ k, ∑ i, Δ.1 k i ^ 2) + ∑ i, Δ.2 i ^ 2)) →
-      ∀ P : Measure ((Fin M → Fin N → ℝ) × (Fin N → ℝ)),
-      P = (Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin N => gaussianReal 0 1).prod
-        (Measure.pi fun _ : Fin N => gaussianReal 0 1) →
-      Integrable (fun d => (f d - ∫ e, f e ∂P) ^ (2 * k)) P ∧
-        ∫ d, (f d - ∫ e, f e ∂P) ^ (2 * k) ∂P ≤ (K * k / N) ^ k := by
-  set L : ℝ := 768 with hL
-  set Q : ℝ := 2 * (K₉ * (40 + L)) + 1 with hQ
-  have hQ1 : 1 ≤ Q := by
-    have : 0 ≤ K₉ * (40 + L) := mul_nonneg hK₉ (by rw [hL]; norm_num)
-    rw [hQ]; linarith
-  set Kg : ℝ := K₁₆ * (L + L ^ 3) with hKg
-  have hKg0 : 0 ≤ Kg := mul_nonneg hK₁₆ (by rw [hL]; norm_num)
-  refine ⟨4 * (64 * Kg + 2 * Q ^ 2), by positivity,
-    fun N M k hM hN hk f hf hgrowth hgrad P hP => ?_⟩
-  have : IsProbabilityMeasure P := by rw [hP]; infer_instance
-  rcases eq_or_ne k 0 with rfl | hk0
-  · simp
+/-- The good set of the disorder, where `B^* ≤ 768 N` and the operator norm of `g` is at most
+`√(768 N)`, is convex, measurable, of positive Gaussian mass, and carries all but
+`3 e^{-2N}` of the mass. -/
+private theorem goodDisorderSet_props (hM : M ≤ 10 * N) (hN : 1 ≤ N)
+    (C : Set (EuclideanSpace ℝ ((Fin M × Fin N) ⊕ Fin N)))
+    (hC : C = {ω | (N : ℝ) + Real.sqrt (∑ k, ∑ i, ω (Sum.inl (k, i)) ^ 2) +
+          ∑ i, ω (Sum.inr i) ^ 2 ≤ 768 * N ∧
+        ‖Matrix.of fun k i => ω (Sum.inl (k, i))‖ ≤ Real.sqrt (768 * N)}) :
+    Convex ℝ C ∧ MeasurableSet C ∧
+      (stdGaussian (EuclideanSpace ℝ ((Fin M × Fin N) ⊕ Fin N))).real Cᶜ ≤
+        3 * Real.exp (-(2 * N)) ∧
+      0 < (stdGaussian (EuclideanSpace ℝ ((Fin M × Fin N) ⊕ Fin N))).real C := by
   have hN0 : (0 : ℝ) < N := by exact_mod_cast hN
-  have heven : Even (2 * k) := even_two_mul k
+  set L : ℝ := 768 with hL
   set B : (Fin M → Fin N → ℝ) × (Fin N → ℝ) → ℝ := fun d =>
     N + Real.sqrt (∑ k, ∑ i, d.1 k i ^ 2) + ∑ i, d.2 i ^ 2 with hB
   have hBm : Measurable B := by fun_prop
-  have hB0 : ∀ d, 0 ≤ B d := fun d =>
-    add_nonneg (by positivity) (Finset.sum_nonneg fun i _ => sq_nonneg _)
   set T : EuclideanSpace ℝ ((Fin M × Fin N) ⊕ Fin N) →
       (Fin M → Fin N → ℝ) × (Fin N → ℝ) := fun ω =>
     (fun k i => ω (Sum.inl (k, i)), fun i => ω (Sum.inr i)) with hT
+  set P := (Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin N => gaussianReal 0 1).prod
+    (Measure.pi fun _ : Fin N => gaussianReal 0 1) with hP
   have hmp : MeasurePreserving T
-      (stdGaussian (EuclideanSpace ℝ ((Fin M × Fin N) ⊕ Fin N))) P := by
-    rw [hP]; exact measurePreserving_stdGaussian_shcherbinaTirozziDisorder N M
+      (stdGaussian (EuclideanSpace ℝ ((Fin M × Fin N) ⊕ Fin N))) P :=
+    measurePreserving_stdGaussian_shcherbinaTirozziDisorder N M
   set γ := stdGaussian (EuclideanSpace ℝ ((Fin M × Fin N) ⊕ Fin N)) with hγ
-  have htrans : ∀ F : (Fin M → Fin N → ℝ) × (Fin N → ℝ) → ℝ, Measurable F →
-      ∫ ω, F (T ω) ∂γ = ∫ d, F d ∂P := fun F hF => by
-    rw [← hmp.map_eq, integral_map hmp.measurable.aemeasurable hF.aestronglyMeasurable]
-  -- the good set of the disorder
+  subst hC
   set C : Set (EuclideanSpace ℝ ((Fin M × Fin N) ⊕ Fin N)) :=
     {ω | B (T ω) ≤ L * N ∧ ‖Matrix.of (T ω).1‖ ≤ Real.sqrt (L * N)} with hC
   have hnc : Continuous fun ω : EuclideanSpace ℝ ((Fin M × Fin N) ⊕ Fin N) =>
@@ -225,15 +202,6 @@ theorem exists_integral_sub_integral_pow_le_of_disorder_gradient (K₉ K₁₆ :
       _ ≤ 3 * Real.exp (-(2 * N)) := by
           rw [hpre S₁ hS₁m, hpre _ (hS₂m.prod MeasurableSet.univ)]
           linarith
-  have hbad2 : γ.real Cᶜ ≤ (2 * Real.exp (-N)) ^ 2 := by
-    refine hbad.trans ?_
-    have e : (2 * Real.exp (-N)) ^ 2 = 4 * Real.exp (-(2 * N)) := by
-      rw [mul_pow, ← Real.exp_nat_mul]
-      congr 1
-      · norm_num
-      · congr 1; push_cast; ring
-    rw [e]
-    exact mul_le_mul_of_nonneg_right (by norm_num) (Real.exp_pos _).le
   have hCpos : 0 < γ.real C := by
     have h1 : γ.real Cᶜ < 1 := by
       refine hbad.trans_lt ?_
@@ -247,6 +215,139 @@ theorem exists_integral_sub_integral_pow_le_of_disorder_gradient (K₉ K₁₆ :
       linarith
     rw [probReal_compl_eq_one_sub hCm] at h1
     linarith
+  exact ⟨hCconv, hCm, hbad, hCpos⟩
+
+
+/-- Fourth-order moments around a centre: if `|f| ≤ K₉ B^* / N` and `|m| ≤ 768 K₉`, then for
+`4 k ≤ N` the moment of order `4 k` of `f - m` is at most the square of `Q^{2k}`, where
+`Q = 2 K₉ (40 + 768) + 1`. -/
+private theorem integral_sub_pow_four_mul_le_of_disorder_growth {K₉ : ℝ} (hK₉ : 0 ≤ K₉) {k : ℕ}
+    (hM : M ≤ 10 * N) (hN : 1 ≤ N) (hk0 : k ≠ 0) (hk : 4 * k ≤ N)
+    {f : (Fin M → Fin N → ℝ) × (Fin N → ℝ) → ℝ} (hf : Measurable f)
+    (hgrowth : ∀ d,
+      |f d| ≤ K₉ * (N + Real.sqrt (∑ k, ∑ i, d.1 k i ^ 2) + ∑ i, d.2 i ^ 2) / N)
+    {m : ℝ} (hmb : |m| ≤ K₉ * 768) :
+    Integrable (fun d => (f d - m) ^ (4 * k))
+        ((Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin N => gaussianReal 0 1).prod
+          (Measure.pi fun _ : Fin N => gaussianReal 0 1)) ∧
+      ∫ d, (f d - m) ^ (4 * k) ∂((Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin N =>
+          gaussianReal 0 1).prod (Measure.pi fun _ : Fin N => gaussianReal 0 1)) ≤
+        ((2 * (K₉ * (40 + 768)) + 1) ^ (2 * k)) ^ 2 := by
+  have hN0 : (0 : ℝ) < N := by exact_mod_cast hN
+  set L : ℝ := 768 with hL
+  set Q : ℝ := 2 * (K₉ * (40 + L)) + 1 with hQ
+  set B : (Fin M → Fin N → ℝ) × (Fin N → ℝ) → ℝ := fun d =>
+    N + Real.sqrt (∑ k, ∑ i, d.1 k i ^ 2) + ∑ i, d.2 i ^ 2 with hB
+  have hB0 : ∀ d, 0 ≤ B d := fun d =>
+    add_nonneg (by positivity) (Finset.sum_nonneg fun i _ => sq_nonneg _)
+  set P := (Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin N => gaussianReal 0 1).prod
+    (Measure.pi fun _ : Fin N => gaussianReal 0 1) with hP
+  have hKL : 0 ≤ K₉ * L := mul_nonneg hK₉ (by rw [hL]; norm_num)
+  have hrad := integral_shcherbinaTirozzi_radius_pow_le (N := N) (M := M) hM hk
+  have heven4 : Even (4 * k) := ⟨2 * k, by ring⟩
+  have hpt4 : ∀ d, (f d - m) ^ (4 * k) ≤
+      2 ^ (4 * k - 1) * ((K₉ / N) ^ (4 * k) * B d ^ (4 * k) + (K₉ * L) ^ (4 * k)) := fun d => by
+    rw [← heven4.pow_abs]
+    have h1 : |f d - m| ≤ K₉ / N * B d + K₉ * L := by
+      refine (abs_sub _ _).trans (add_le_add ((hgrowth d).trans_eq ?_) hmb)
+      rw [hB]; ring
+    refine (pow_le_pow_left₀ (abs_nonneg _) h1 _).trans ?_
+    rw [← mul_pow]
+    exact add_pow_le (mul_nonneg (div_nonneg hK₉ hN0.le) (hB0 d)) hKL _
+  have hdom4 : Integrable (fun d => 2 ^ (4 * k - 1) *
+      ((K₉ / N) ^ (4 * k) * B d ^ (4 * k) + (K₉ * L) ^ (4 * k))) P :=
+    ((hrad.1.const_mul _).add (integrable_const _)).const_mul _
+  have hi4 : Integrable (fun d => (f d - m) ^ (4 * k)) P :=
+    Integrable.mono' hdom4 ((hf.sub_const m).pow_const _).aestronglyMeasurable
+      (ae_of_all _ fun d => by
+        rw [Real.norm_of_nonneg (heven4.pow_nonneg _)]
+        exact hpt4 d)
+  refine ⟨hi4, ?_⟩
+  refine (integral_mono hi4 hdom4 hpt4).trans ?_
+  rw [integral_const_mul, integral_add (hrad.1.const_mul _) (integrable_const _),
+    integral_const_mul, integral_const, probReal_univ, one_smul, ← pow_mul,
+    show 2 * k * 2 = 4 * k by ring]
+  have h1 : (K₉ / N) ^ (4 * k) * ∫ d, B d ^ (4 * k) ∂P ≤ (40 * K₉) ^ (4 * k) := by
+    refine (mul_le_mul_of_nonneg_left hrad.2 (pow_nonneg (div_nonneg hK₉ hN0.le) _)).trans_eq ?_
+    rw [← mul_pow]
+    congr 1
+    field_simp
+  have h2 : (40 * K₉) ^ (4 * k) + (K₉ * L) ^ (4 * k) ≤ (K₉ * (40 + L)) ^ (4 * k) := by
+    refine (pow_add_pow_le (mul_nonneg (by norm_num) hK₉) hKL (by omega)).trans_eq ?_
+    ring
+  refine (mul_le_mul_of_nonneg_left ((add_le_add h1 le_rfl).trans h2) (by positivity)).trans ?_
+  have h3 : (2 : ℝ) ^ (4 * k - 1) ≤ 2 ^ (4 * k) := pow_le_pow_right₀ one_le_two (by omega)
+  refine (mul_le_mul_of_nonneg_right h3
+    (pow_nonneg (mul_nonneg hK₉ (by rw [hL]; norm_num)) _)).trans ?_
+  rw [← mul_pow]
+  refine pow_le_pow_left₀ (mul_nonneg zero_le_two (mul_nonneg hK₉ (by rw [hL]; norm_num))) ?_ _
+  rw [hQ]; linarith
+
+
+/-- **Concentration of a function of the disorder.** Suppose `|f| ≤ K₉ B^* / N` and that along
+every line of the disorder the derivative `f'` of `f` satisfies
+`f'² ≤ K₁₆ (B^* / N² + B^{*2} ‖g‖² / N⁴) ‖(Δ, Δ₀)‖²`. Then for `4 k ≤ N`,
+`𝔼 (f - 𝔼 f) ^ (2 k) ≤ (K k / N) ^ k`, with `K` depending only on `K₉, K₁₆`. This is the proof
+of Talagrand's Proposition 3.1.17. -/
+theorem exists_integral_sub_integral_pow_le_of_disorder_gradient (K₉ K₁₆ : ℝ) (hK₉ : 0 ≤ K₉)
+    (hK₁₆ : 0 ≤ K₁₆) :
+    ∃ K : ℝ, 0 ≤ K ∧ ∀ (N M k : ℕ), M ≤ 10 * N → 1 ≤ N → 4 * k ≤ N →
+      ∀ f : (Fin M → Fin N → ℝ) × (Fin N → ℝ) → ℝ, Measurable f →
+      (∀ d, |f d| ≤ K₉ * (N + Real.sqrt (∑ k, ∑ i, d.1 k i ^ 2) + ∑ i, d.2 i ^ 2) / N) →
+      (∀ d Δ : (Fin M → Fin N → ℝ) × (Fin N → ℝ), ∃ f' : ℝ,
+        HasDerivAt (fun t : ℝ => f (d + t • Δ)) f' 0 ∧
+        f' ^ 2 ≤ K₁₆ * ((N + Real.sqrt (∑ k, ∑ i, d.1 k i ^ 2) + ∑ i, d.2 i ^ 2) / (N : ℝ) ^ 2 +
+          (N + Real.sqrt (∑ k, ∑ i, d.1 k i ^ 2) + ∑ i, d.2 i ^ 2) ^ 2 * ‖Matrix.of d.1‖ ^ 2 /
+            (N : ℝ) ^ 4) * ((∑ k, ∑ i, Δ.1 k i ^ 2) + ∑ i, Δ.2 i ^ 2)) →
+      ∀ P : Measure ((Fin M → Fin N → ℝ) × (Fin N → ℝ)),
+      P = (Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin N => gaussianReal 0 1).prod
+        (Measure.pi fun _ : Fin N => gaussianReal 0 1) →
+      Integrable (fun d => (f d - ∫ e, f e ∂P) ^ (2 * k)) P ∧
+        ∫ d, (f d - ∫ e, f e ∂P) ^ (2 * k) ∂P ≤ (K * k / N) ^ k := by
+  set L : ℝ := 768 with hL
+  set Q : ℝ := 2 * (K₉ * (40 + L)) + 1 with hQ
+  have hQ1 : 1 ≤ Q := by
+    have : 0 ≤ K₉ * (40 + L) := mul_nonneg hK₉ (by rw [hL]; norm_num)
+    rw [hQ]; linarith
+  set Kg : ℝ := K₁₆ * (L + L ^ 3) with hKg
+  have hKg0 : 0 ≤ Kg := mul_nonneg hK₁₆ (by rw [hL]; norm_num)
+  refine ⟨4 * (64 * Kg + 2 * Q ^ 2), by positivity,
+    fun N M k hM hN hk f hf hgrowth hgrad P hP => ?_⟩
+  have : IsProbabilityMeasure P := by rw [hP]; infer_instance
+  rcases eq_or_ne k 0 with rfl | hk0
+  · simp
+  have hN0 : (0 : ℝ) < N := by exact_mod_cast hN
+  have heven : Even (2 * k) := even_two_mul k
+  set B : (Fin M → Fin N → ℝ) × (Fin N → ℝ) → ℝ := fun d =>
+    N + Real.sqrt (∑ k, ∑ i, d.1 k i ^ 2) + ∑ i, d.2 i ^ 2 with hB
+  have hBm : Measurable B := by fun_prop
+  have hB0 : ∀ d, 0 ≤ B d := fun d =>
+    add_nonneg (by positivity) (Finset.sum_nonneg fun i _ => sq_nonneg _)
+  set T : EuclideanSpace ℝ ((Fin M × Fin N) ⊕ Fin N) →
+      (Fin M → Fin N → ℝ) × (Fin N → ℝ) := fun ω =>
+    (fun k i => ω (Sum.inl (k, i)), fun i => ω (Sum.inr i)) with hT
+  have hmp : MeasurePreserving T
+      (stdGaussian (EuclideanSpace ℝ ((Fin M × Fin N) ⊕ Fin N))) P := by
+    rw [hP]; exact measurePreserving_stdGaussian_shcherbinaTirozziDisorder N M
+  set γ := stdGaussian (EuclideanSpace ℝ ((Fin M × Fin N) ⊕ Fin N)) with hγ
+  have htrans : ∀ F : (Fin M → Fin N → ℝ) × (Fin N → ℝ) → ℝ, Measurable F →
+      ∫ ω, F (T ω) ∂γ = ∫ d, F d ∂P := fun F hF => by
+    rw [← hmp.map_eq, integral_map hmp.measurable.aemeasurable hF.aestronglyMeasurable]
+  -- the good set of the disorder
+  set C : Set (EuclideanSpace ℝ ((Fin M × Fin N) ⊕ Fin N)) :=
+    {ω | B (T ω) ≤ L * N ∧ ‖Matrix.of (T ω).1‖ ≤ Real.sqrt (L * N)} with hC
+  obtain ⟨hCconv, hCm, hbad, hCpos⟩ : Convex ℝ C ∧ MeasurableSet C ∧
+      γ.real Cᶜ ≤ 3 * Real.exp (-(2 * N)) ∧ 0 < γ.real C :=
+    goodDisorderSet_props hM hN C rfl
+  have hbad2 : γ.real Cᶜ ≤ (2 * Real.exp (-N)) ^ 2 := by
+    refine hbad.trans ?_
+    have e : (2 * Real.exp (-N)) ^ 2 = 4 * Real.exp (-(2 * N)) := by
+      rw [mul_pow, ← Real.exp_nat_mul]
+      congr 1
+      · norm_num
+      · congr 1; push_cast; ring
+    rw [e]
+    exact mul_le_mul_of_nonneg_right (by norm_num) (Real.exp_pos _).le
   have hCvol : volume C ≠ 0 := fun h0 => by
     have h1 : γ C = 0 := by
       have hac : γ ≪ volume := by
@@ -260,64 +361,38 @@ theorem exists_integral_sub_integral_pow_le_of_disorder_gradient (K₉ K₁₆ :
   have hA2 : A ^ 2 = Kg / N := by rw [hA, Real.sq_sqrt (div_nonneg hKg0 hN0.le)]
   have hlip : ∀ x ∈ C, ∀ y ∈ C, |f (T x) - f (T y)| ≤ A * ‖x - y‖ := by
     intro x hx y hy
-    set Δ := T y - T x with hΔ
-    set φ : ℝ → ℝ := fun t => f (T x + t • Δ) with hφ
-    have hδ : (∑ k, ∑ i, Δ.1 k i ^ 2) + ∑ i, Δ.2 i ^ 2 = ‖x - y‖ ^ 2 := by
+    have hδ : (∑ k, ∑ i, (T y - T x).1 k i ^ 2) + ∑ i, (T y - T x).2 i ^ 2 = ‖x - y‖ ^ 2 := by
       rw [norm_sub_rev, EuclideanSpace.real_norm_sq_eq, Fintype.sum_sum_type,
         Fintype.sum_prod_type]
       rfl
-    have hder : ∀ t ∈ Set.Icc (0 : ℝ) 1, ∃ d, HasDerivAt φ d t ∧ |d| ≤ A * ‖x - y‖ := by
-      intro t ht
-      obtain ⟨d, hd, hdb⟩ := hgrad (T x + t • Δ) Δ
-      have hmem : (1 - t) • x + t • y ∈ C :=
-        hCconv hx hy (sub_nonneg.2 ht.2) ht.1 (sub_add_cancel _ _)
-      have hpt : T x + t • Δ = T ((1 - t) • x + t • y) := by
-        have : T ((1 - t) • x + t • y) = (1 - t) • T x + t • T y := rfl
-        rw [this, hΔ, sub_smul, one_smul, smul_sub]
-        abel
-      have hshift : HasDerivAt φ d t := by
-        have h1 : HasDerivAt (fun s : ℝ => f (T x + t • Δ + s • Δ)) d (t - t) := by
-          rwa [sub_self]
-        refine (h1.comp_sub_const t t).congr_of_eventuallyEq
-          (Filter.Eventually.of_forall fun s => ?_)
-        change f (T x + s • Δ) = f (T x + t • Δ + (s - t) • Δ)
-        rw [add_assoc, ← add_smul, add_sub_cancel]
-      refine ⟨d, hshift, abs_le_of_sq_le_sq ?_ (by positivity)⟩
-      rw [mul_pow, hA2]
-      refine hdb.trans ?_
-      rw [hδ]
-      refine mul_le_mul_of_nonneg_right ?_ (sq_nonneg _)
-      have hB1 : B (T x + t • Δ) ≤ L * N := hpt ▸ hmem.1
-      have hn1 : ‖Matrix.of (T x + t • Δ).1‖ ^ 2 ≤ L * N := by
-        have h := pow_le_pow_left₀ (norm_nonneg _)
-          (show ‖Matrix.of (T x + t • Δ).1‖ ≤ Real.sqrt (L * N) from hpt ▸ hmem.2) 2
-        rwa [Real.sq_sqrt (by rw [hL]; positivity)] at h
-      have h2 : B (T x + t • Δ) / (N : ℝ) ^ 2 +
-          B (T x + t • Δ) ^ 2 * ‖Matrix.of (T x + t • Δ).1‖ ^ 2 / (N : ℝ) ^ 4 ≤
-            (L + L ^ 3) / N := by
-        have h3 : B (T x + t • Δ) / (N : ℝ) ^ 2 ≤ L / N := by
-          refine (div_le_div_of_nonneg_right hB1 (by positivity)).trans_eq ?_
-          field_simp
-        have h4 : B (T x + t • Δ) ^ 2 * ‖Matrix.of (T x + t • Δ).1‖ ^ 2 / (N : ℝ) ^ 4 ≤
-            L ^ 3 / N := by
-          refine (div_le_div_of_nonneg_right (mul_le_mul
-            (pow_le_pow_left₀ (hB0 _) hB1 2) hn1 (sq_nonneg _) (sq_nonneg _))
-            (by positivity)).trans_eq ?_
-          field_simp
-        rw [add_div L]
-        exact add_le_add h3 h4
-      refine (mul_le_mul_of_nonneg_left h2 hK₁₆).trans_eq ?_
-      rw [hKg]; ring
-    have hcont : ContinuousOn φ (Set.Icc 0 1) := fun t ht =>
-      (hder t ht).choose_spec.1.continuousAt.continuousWithinAt
-    have h := abs_sub_le_of_continuousOn_Icc_of_hasDerivAt_Ioo hcont
-      (fun t ht => hder t (Set.Ioo_subset_Icc_self ht))
-      (Set.left_mem_Icc.2 zero_le_one) (Set.right_mem_Icc.2 zero_le_one)
-    have e1 : φ 1 = f (T y) := by
-      simp only [hφ, one_smul, hΔ, add_sub_cancel]
-    have e0 : φ 0 = f (T x) := by simp only [hφ, zero_smul, add_zero]
-    rw [e1, e0, sub_zero, abs_one, mul_one, abs_sub_comm] at h
-    exact h
+    rw [abs_sub_comm]
+    refine hCconv.norm_sub_le_of_forall_hasDerivAt_line (g := fun ω => f (T ω)) hx hy
+      fun z hz => ?_
+    obtain ⟨d, hd, hdb⟩ := hgrad (T z) (T y - T x)
+    refine ⟨d, hd, abs_le_of_sq_le_sq ?_ (by positivity)⟩
+    rw [mul_pow, hA2]
+    refine hdb.trans ?_
+    rw [hδ]
+    refine mul_le_mul_of_nonneg_right ?_ (sq_nonneg _)
+    have hB1 : B (T z) ≤ L * N := hz.1
+    have hn1 : ‖Matrix.of (T z).1‖ ^ 2 ≤ L * N := by
+      have h := pow_le_pow_left₀ (norm_nonneg _)
+        (show ‖Matrix.of (T z).1‖ ≤ Real.sqrt (L * N) from hz.2) 2
+      rwa [Real.sq_sqrt (by rw [hL]; positivity)] at h
+    have h2 : B (T z) / (N : ℝ) ^ 2 + B (T z) ^ 2 * ‖Matrix.of (T z).1‖ ^ 2 / (N : ℝ) ^ 4 ≤
+        (L + L ^ 3) / N := by
+      have h3 : B (T z) / (N : ℝ) ^ 2 ≤ L / N := by
+        refine (div_le_div_of_nonneg_right hB1 (by positivity)).trans_eq ?_
+        field_simp
+      have h4 : B (T z) ^ 2 * ‖Matrix.of (T z).1‖ ^ 2 / (N : ℝ) ^ 4 ≤ L ^ 3 / N := by
+        refine (div_le_div_of_nonneg_right (mul_le_mul
+          (pow_le_pow_left₀ (hB0 _) hB1 2) hn1 (sq_nonneg _) (sq_nonneg _))
+          (by positivity)).trans_eq ?_
+        field_simp
+      rw [add_div L]
+      exact add_le_add h3 h4
+    refine (mul_le_mul_of_nonneg_left h2 hK₁₆).trans_eq ?_
+    rw [hKg]; ring
   -- Maurey's inequality for the conditioned Gaussian measure
   set γ' := (volume.restrict C).tilted
     (fun ω : EuclideanSpace ℝ ((Fin M × Fin N) ⊕ Fin N) => -(‖ω‖ ^ 2 / 2)) with hγ'
@@ -353,48 +428,11 @@ theorem exists_integral_sub_integral_pow_le_of_disorder_gradient (K₉ K₁₆ :
           simpa only [Real.norm_eq_abs] using hfC ω hω)
     simpa only [Real.norm_eq_abs, probReal_univ, mul_one] using h
   -- fourth-order moments from Lemma 3.1.10
-  have hKL : 0 ≤ K₉ * L := mul_nonneg hK₉ (by rw [hL]; norm_num)
-  have h4k : 4 * k ≤ N := hk
-  have hrad := integral_shcherbinaTirozzi_radius_pow_le (N := N) (M := M) hM h4k
-  rw [← hP] at hrad
-  have heven4 : Even (4 * k) := ⟨2 * k, by ring⟩
-  have hpt4 : ∀ d, (f d - m) ^ (4 * k) ≤
-      2 ^ (4 * k - 1) * ((K₉ / N) ^ (4 * k) * B d ^ (4 * k) + (K₉ * L) ^ (4 * k)) := fun d => by
-    rw [← heven4.pow_abs]
-    have h1 : |f d - m| ≤ K₉ / N * B d + K₉ * L := by
-      refine (abs_sub _ _).trans (add_le_add ((hgrowth d).trans_eq ?_) hmb)
-      rw [hB]; ring
-    refine (pow_le_pow_left₀ (abs_nonneg _) h1 _).trans ?_
-    rw [← mul_pow]
-    exact add_pow_le (mul_nonneg (div_nonneg hK₉ hN0.le) (hB0 d)) hKL _
-  have hdom4 : Integrable (fun d => 2 ^ (4 * k - 1) *
-      ((K₉ / N) ^ (4 * k) * B d ^ (4 * k) + (K₉ * L) ^ (4 * k))) P :=
-    ((hrad.1.const_mul _).add (integrable_const _)).const_mul _
-  have hi4 : Integrable (fun d => (f d - m) ^ (4 * k)) P :=
-    Integrable.mono' hdom4 ((hf.sub_const m).pow_const _).aestronglyMeasurable
-      (ae_of_all _ fun d => by
-        rw [Real.norm_of_nonneg (heven4.pow_nonneg _)]
-        exact hpt4 d)
-  have hI4 : ∫ d, (f d - m) ^ (4 * k) ∂P ≤ (Q ^ (2 * k)) ^ 2 := by
-    refine (integral_mono hi4 hdom4 hpt4).trans ?_
-    rw [integral_const_mul, integral_add (hrad.1.const_mul _) (integrable_const _),
-      integral_const_mul, integral_const, probReal_univ, one_smul, ← pow_mul,
-      show 2 * k * 2 = 4 * k by ring]
-    have h1 : (K₉ / N) ^ (4 * k) * ∫ d, B d ^ (4 * k) ∂P ≤ (40 * K₉) ^ (4 * k) := by
-      refine (mul_le_mul_of_nonneg_left hrad.2 (pow_nonneg (div_nonneg hK₉ hN0.le) _)).trans_eq ?_
-      rw [← mul_pow]
-      congr 1
-      field_simp
-    have h2 : (40 * K₉) ^ (4 * k) + (K₉ * L) ^ (4 * k) ≤ (K₉ * (40 + L)) ^ (4 * k) := by
-      refine (pow_add_pow_le (mul_nonneg (by norm_num) hK₉) hKL (by omega)).trans_eq ?_
-      ring
-    refine (mul_le_mul_of_nonneg_left ((add_le_add h1 le_rfl).trans h2) (by positivity)).trans ?_
-    have h3 : (2 : ℝ) ^ (4 * k - 1) ≤ 2 ^ (4 * k) := pow_le_pow_right₀ one_le_two (by omega)
-    refine (mul_le_mul_of_nonneg_right h3
-      (pow_nonneg (mul_nonneg hK₉ (by rw [hL]; norm_num)) _)).trans ?_
-    rw [← mul_pow]
-    refine pow_le_pow_left₀ (mul_nonneg zero_le_two (mul_nonneg hK₉ (by rw [hL]; norm_num))) ?_ _
-    rw [hQ]; linarith
+  obtain ⟨hi4, hI4⟩ : Integrable (fun d => (f d - m) ^ (4 * k)) P ∧
+      ∫ d, (f d - m) ^ (4 * k) ∂P ≤ (Q ^ (2 * k)) ^ 2 := by
+    rw [hP, hQ, hL]
+    exact integral_sub_pow_four_mul_le_of_disorder_growth hK₉ hM hN hk0 hk hf hgrowth
+      (by rw [← hL]; exact hmb)
   have hi2 : Integrable (fun d => (f d - m) ^ (2 * k)) P := by
     refine Integrable.mono' (hi4.add (integrable_const 1))
       ((hf.sub_const m).pow_const _).aestronglyMeasurable (ae_of_all _ fun d => ?_)
@@ -418,35 +456,16 @@ theorem exists_integral_sub_integral_pow_le_of_disorder_gradient (K₉ K₁₆ :
     congr 2
     ring
   have hfar : ∫ ω in Cᶜ, (f (T ω) - m) ^ (2 * k) ∂γ ≤ 2 * Real.exp (-N) * Q ^ (2 * k) := by
-    have h1 : MemLp (Cᶜ.indicator (1 : EuclideanSpace ℝ ((Fin M × Fin N) ⊕ Fin N) → ℝ)) 2 γ :=
-      (memLp_const (1 : ℝ)).indicator hCm.compl.nullMeasurableSet
     have h2 : MemLp (fun ω => (f (T ω) - m) ^ (2 * k)) 2 γ := by
       refine (memLp_two_iff_integrable_sq ((hfT.sub_const m).pow_const _).aestronglyMeasurable).2
         ?_
       simp_rw [← pow_mul, show 2 * k * 2 = 4 * k by ring]
       exact hiγ _ hi4
-    have h3 := abs_integral_mul_le_of_integral_sq_le h1 h2 (α := 2 * Real.exp (-N))
-      (γ := Q ^ (2 * k)) (by positivity)
-      (pow_pos (lt_of_lt_of_le (zero_lt_one : (0 : ℝ) < 1) hQ1) _) (by
-        have e : ∀ ω, Cᶜ.indicator (1 : EuclideanSpace ℝ ((Fin M × Fin N) ⊕ Fin N) → ℝ) ω ^ 2 =
-            Cᶜ.indicator 1 ω := fun ω => by
-          by_cases h : ω ∈ Cᶜ
-          · rw [Set.indicator_of_mem h, Pi.one_apply, one_pow]
-          · rw [Set.indicator_of_notMem h, zero_pow two_ne_zero]
-        simp_rw [e]
-        rw [integral_indicator_one hCm.compl]
-        exact hbad2) (by
-        simp_rw [← pow_mul, show 2 * k * 2 = 4 * k by ring]
-        rw [htrans (fun d => (f d - m) ^ (4 * k)) ((hf.sub_const m).pow_const _)]
-        exact hI4.trans_eq (by rw [← pow_mul, show 2 * k * 2 = 4 * k by ring]))
-    have e : (fun ω => Cᶜ.indicator 1 ω * (f (T ω) - m) ^ (2 * k)) =
-        Cᶜ.indicator fun ω => (f (T ω) - m) ^ (2 * k) := by
-      funext ω
-      by_cases h : ω ∈ Cᶜ
-      · rw [Set.indicator_of_mem h, Set.indicator_of_mem h, Pi.one_apply, one_mul]
-      · rw [Set.indicator_of_notMem h, Set.indicator_of_notMem h, zero_mul]
-    rw [e, integral_indicator hCm.compl] at h3
-    exact (le_abs_self _).trans h3
+    refine (Real.le_norm_self _).trans (norm_setIntegral_le_mul_of_integral_sq_le hCm.compl
+      (measure_ne_top _ _) h2 (by positivity) (pow_nonneg (zero_le_one.trans hQ1) _) hbad2 ?_)
+    simp_rw [Real.norm_eq_abs, sq_abs, ← pow_mul, show 2 * k * 2 = 4 * k by ring]
+    rw [htrans (fun d => (f d - m) ^ (4 * k)) ((hf.sub_const m).pow_const _)]
+    exact hI4.trans_eq (by rw [← pow_mul, show 2 * k * 2 = 4 * k by ring])
   have hmed : ∫ d, (f d - m) ^ (2 * k) ∂P ≤ ((64 * Kg + 2 * Q ^ 2) * k / N) ^ k := by
     rw [← htrans (fun d => (f d - m) ^ (2 * k)) ((hf.sub_const m).pow_const _),
       ← integral_add_compl hCm (hiγ _ hi2)]
@@ -481,6 +500,7 @@ theorem exists_integral_sub_integral_pow_le_of_disorder_gradient (K₉ K₁₆ :
   rw [pow_mul, ← mul_pow]
   congr 1
   ring
+
 
 /-- **Combining the two concentrations.** If the Gibbs fluctuations `𝔼⟨(R - ⟨R⟩)^{2k}⟩` are at
 most `a ^ k` and the disorder fluctuations `𝔼 (⟨R⟩ - 𝔼⟨R⟩)^{2k}` at most `b ^ k`, then

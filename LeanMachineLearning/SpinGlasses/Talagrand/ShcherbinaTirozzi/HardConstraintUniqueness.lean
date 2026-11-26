@@ -76,57 +76,6 @@ theorem shcherbinaTirozziHardFunctional_ratio_eq (α κ h τ : ℝ) {x ρ : ℝ}
   rw [Real.log_div hρ.ne' h1x.ne']
   field_simp
 
-/-- Gaussian integration by parts for the inverse Mills ratio:
-`𝔼 [z A (m + σ z)] = σ 𝔼 [A² - W A]` at `W = m + σ z`. -/
-private theorem integral_id_mul_mills (m σ : ℝ) :
-    ∫ z, z * mills (m + σ * z) ∂(gaussianReal 0 1) =
-      σ * ∫ z, (mills (m + σ * z) ^ 2 - (m + σ * z) * mills (m + σ * z))
-        ∂(gaussianReal 0 1) := by
-  obtain ⟨C, hC0, hC⟩ := exists_gaussianPDFReal_div_measureReal_Ici_le
-  have hd := fun v => (hasDerivAt_gaussianPDFReal_div_measureReal_Ici v _ fun _ => rfl).1
-  have hAm : Measurable fun v : ℝ => mills v :=
-    monotone_gaussianPDFReal_div_measureReal_Ici.measurable
-  set B : ℝ := C + |m| + |σ| + 1 with hB
-  have hW : ∀ z : ℝ, |m + σ * z| ≤ (|m| + |σ|) * (1 + |z|) := fun z => by
-    refine (abs_add_le _ _).trans ?_
-    rw [abs_mul]
-    nlinarith [mul_nonneg (abs_nonneg m) (abs_nonneg z), abs_nonneg σ]
-  have hAb : ∀ z : ℝ, |mills (m + σ * z)| ≤ B * (1 + |z|) := fun z => by
-    rw [abs_of_nonneg (gaussianPDFReal_div_measureReal_Ici_nonneg _)]
-    refine (hC _).trans ?_
-    have h1 := hW z
-    have h2 := abs_nonneg z
-    rw [hB]
-    nlinarith [mul_nonneg hC0 h2]
-  have hWm : Measurable fun z : ℝ => m + σ * z := by fun_prop
-  have hdiff : ∀ z, HasDerivAt (fun z => mills (m + σ * z))
-      (σ * (mills (m + σ * z) ^ 2 - (m + σ * z) * mills (m + σ * z))) z := fun z => by
-    have h1 : HasDerivAt (fun z => m + σ * z) σ z := by
-      simpa using ((hasDerivAt_id z).const_mul σ).const_add m
-    exact ((hd _).comp z h1).congr_deriv (mul_comm _ _)
-  have h1 : Integrable (fun z => z * mills (m + σ * z)) (gaussianReal 0 1) := by
-    refine integrable_gaussianReal_of_norm_le_pow (measurable_id.mul
-      (hAm.comp hWm)).aestronglyMeasurable (C := B) (k := 2) fun z => ?_
-    rw [norm_mul, Real.norm_eq_abs, Real.norm_eq_abs, sq,
-      show B * ((1 + |z|) * (1 + |z|)) = (1 + |z|) * (B * (1 + |z|)) by ring]
-    exact mul_le_mul (le_add_of_nonneg_left zero_le_one) (hAb z) (abs_nonneg _) (by positivity)
-  have h2 : Integrable (fun z => σ * (mills (m + σ * z) ^ 2 -
-      (m + σ * z) * mills (m + σ * z))) (gaussianReal 0 1) := by
-    refine (integrable_gaussianReal_of_norm_le_pow (((hAm.comp hWm).pow_const 2).sub
-      (hWm.mul (hAm.comp hWm))).aestronglyMeasurable (C := B ^ 2 + (|m| + |σ|) * B) (k := 2)
-      fun z => ?_).const_mul σ
-    simp only [Function.comp_apply, Pi.sub_apply, Pi.mul_apply]
-    rw [Real.norm_eq_abs]
-    refine (abs_sub _ _).trans ?_
-    rw [abs_pow, abs_mul, add_mul]
-    refine add_le_add ?_ ?_
-    · rw [← mul_pow]
-      exact pow_le_pow_left₀ (abs_nonneg _) (hAb z) 2
-    · rw [show (|m| + |σ|) * B * (1 + |z|) ^ 2 =
-        ((|m| + |σ|) * (1 + |z|)) * (B * (1 + |z|)) by ring]
-      exact mul_le_mul (hW z) (hAb z) (abs_nonneg _) (by positivity)
-  rw [integral_id_mul_gaussianReal_eq 1 hdiff h1 h2, NNReal.coe_one, one_mul, integral_const_mul]
-
 /-- Differentiation of `t ↦ 𝔼 log ℙ (ξ ≥ m t + σ t z)`. -/
 private theorem hasDerivAt_integral_log_gaussianTail {m σ m' σ' : ℝ → ℝ} {t : ℝ}
     (hm : ∀ᶠ s in 𝓝 t, HasDerivAt m (m' s) s) (hσ : ∀ᶠ s in 𝓝 t, HasDerivAt σ (σ' s) s)
@@ -147,37 +96,6 @@ private theorem hasDerivAt_integral_log_gaussianTail {m σ m' σ' : ℝ → ℝ}
     have h1 := abs_nonneg y
     nlinarith [mul_nonneg hC0 h1, mul_nonneg hC'0 h1, mul_nonneg hC0 (sq_nonneg |y|),
       mul_nonneg hC'0 (sq_nonneg |y|), sq_nonneg |y|]
-
-/-- Linear growth of `A (W)` and integrability facts used below. -/
-private theorem integrable_mills_comp (m σ : ℝ) :
-    Integrable (fun z => mills (m + σ * z)) (gaussianReal 0 1) ∧
-      Integrable (fun z => z * mills (m + σ * z)) (gaussianReal 0 1) ∧
-      Integrable (fun z => mills (m + σ * z) ^ 2) (gaussianReal 0 1) := by
-  obtain ⟨C, hC0, hC⟩ := exists_gaussianPDFReal_div_measureReal_Ici_le
-  have hAm : Measurable fun v : ℝ => mills v :=
-    monotone_gaussianPDFReal_div_measureReal_Ici.measurable
-  have hWm : Measurable fun z : ℝ => m + σ * z := by fun_prop
-  set B : ℝ := C + |m| + |σ| + 1 with hB
-  have hAb : ∀ z : ℝ, ‖mills (m + σ * z)‖ ≤ B * (1 + |z|) := fun z => by
-    rw [Real.norm_of_nonneg (gaussianPDFReal_div_measureReal_Ici_nonneg _)]
-    refine (hC _).trans ?_
-    have h1 : |m + σ * z| ≤ |m| + |σ| * |z| := (abs_add_le _ _).trans_eq (by rw [abs_mul])
-    have h2 := abs_nonneg z
-    rw [hB]
-    nlinarith [mul_nonneg hC0 h2, mul_nonneg (abs_nonneg m) h2, abs_nonneg σ]
-  refine ⟨?_, ?_, ?_⟩
-  · refine integrable_gaussianReal_of_norm_le_pow (hAm.comp hWm).aestronglyMeasurable
-      (C := B) (k := 1) fun z => ?_
-    rw [pow_one]; exact hAb z
-  · refine integrable_gaussianReal_of_norm_le_pow
-      (measurable_id.mul (hAm.comp hWm)).aestronglyMeasurable (C := B) (k := 2) fun z => ?_
-    rw [norm_mul, Real.norm_eq_abs, sq,
-      show B * ((1 + |z|) * (1 + |z|)) = (1 + |z|) * (B * (1 + |z|)) by ring]
-    exact mul_le_mul (le_add_of_nonneg_left zero_le_one) (hAb z) (norm_nonneg _) (by positivity)
-  · refine integrable_gaussianReal_of_norm_le_pow
-      ((hAm.comp hWm).pow_const 2).aestronglyMeasurable (C := B ^ 2) (k := 2) fun z => ?_
-    rw [norm_pow, ← mul_pow]
-    exact pow_le_pow_left₀ (norm_nonneg _) (hAb z) 2
 
 /-- **Lemma 3.3.13, Eq. (3.151):** the derivative in `ρ` of
 `G (x, ρ) = F (x ρ / (1 + x), ρ)`. -/
@@ -288,8 +206,8 @@ theorem hasDerivAt_shcherbinaTirozziHardFunctional_ratio (α κ h τ : ℝ) {x �
     ring
   refine (hsum.congr_of_eventuallyEq heq).congr_deriv ?_
   -- Gaussian integration by parts
-  obtain ⟨hi, hzi, hi2⟩ := integrable_mills_comp (m x) (σ x)
-  have hIBP := integral_id_mul_mills (m x) (σ x)
+  obtain ⟨hi, hzi, hi2⟩ := integrable_gaussianPDFReal_div_measureReal_Ici_comp (m x) (σ x)
+  have hIBP := integral_id_mul_gaussianPDFReal_div_measureReal_Ici_comp (m x) (σ x)
   have hWA : Integrable (fun z => (m x + σ x * z) * mills (m x + σ x * z))
       (gaussianReal 0 1) := by
     refine ((hi.const_mul (m x)).add (hzi.const_mul (σ x))).congr (ae_of_all _ fun z => ?_)
@@ -361,7 +279,6 @@ theorem strictMonoOn_shcherbinaTirozziHardFunctional_ratio_deriv {α h τ ρ : �
     (hτ : 0 ≤ τ) (hρ : 0 < ρ) (hαh : α ≠ 0 ∨ h ≠ 0) :
     StrictMonoOn (fun x => 1 - α * (∫ z, mills (τ * Real.sqrt (1 + x) / Real.sqrt ρ +
         -Real.sqrt x * z) ^ 2 ∂(gaussianReal 0 1)) / x - h ^ 2 * ρ / (x * (1 + x))) (Ioi 0) := by
-  obtain ⟨C, hC0, hC⟩ := exists_gaussianPDFReal_div_measureReal_Ici_le
   have hd := fun v => (hasDerivAt_gaussianPDFReal_div_measureReal_Ici v _ fun _ => rfl)
   have hAm : Measurable fun v : ℝ => mills v :=
     monotone_gaussianPDFReal_div_measureReal_Ici.measurable
@@ -373,39 +290,9 @@ theorem strictMonoOn_shcherbinaTirozziHardFunctional_ratio_deriv {α h τ ρ : �
     simp only [hA']
     push_cast
     ring
-  have hAC : ∀ v, mills v ≤ (C + 1) * (1 + |v|) := fun v => by
-    refine (hC v).trans ?_
-    nlinarith [mul_nonneg hC0 (abs_nonneg v), abs_nonneg v]
-  set K : ℝ := 2 * (C + 1) ^ 2 * (C + 2) + (C + 1) ^ 2 with hK
-  have hg1 : ∀ v, |mills v ^ 2| ≤ K * (1 + |v|) ^ 3 := fun v => by
-    rw [abs_of_nonneg (sq_nonneg _)]
-    have h1 := pow_le_pow_left₀ (hA0 v) (hAC v) 2
-    rw [mul_pow] at h1
-    have h2 : (1 + |v|) ^ 2 ≤ (1 + |v|) ^ 3 :=
-      pow_le_pow_right₀ (le_add_of_nonneg_right (abs_nonneg _)) (by norm_num)
-    refine h1.trans (mul_le_mul ?_ h2 (by positivity) (by positivity))
-    rw [hK]
-    exact le_add_of_nonneg_left (by positivity)
-  have hg2 : ∀ v, |2 * mills v * A' v| ≤ K * (1 + |v|) ^ 3 := fun v => by
-    have h1 : |A' v| ≤ mills v * ((C + 2) * (1 + |v|)) := by
-      have e : A' v = mills v * (mills v - v) := by simp only [hA']; ring
-      rw [e, abs_mul, abs_of_nonneg (hA0 v)]
-      refine mul_le_mul_of_nonneg_left ((abs_sub _ _).trans ?_) (hA0 v)
-      rw [abs_of_nonneg (hA0 v)]
-      have := hC v
-      nlinarith [mul_nonneg hC0 (abs_nonneg v), abs_nonneg v]
-    rw [abs_mul, abs_of_nonneg (mul_nonneg two_pos.le (hA0 v))]
-    refine (mul_le_mul_of_nonneg_left h1 (mul_nonneg two_pos.le (hA0 v))).trans ?_
-    have h2 := pow_le_pow_left₀ (hA0 v) (hAC v) 2
-    calc 2 * mills v * (mills v * ((C + 2) * (1 + |v|)))
-        = 2 * (C + 2) * (1 + |v|) * mills v ^ 2 := by ring
-      _ ≤ 2 * (C + 2) * (1 + |v|) * ((C + 1) * (1 + |v|)) ^ 2 :=
-          mul_le_mul_of_nonneg_left h2 (by positivity)
-      _ = 2 * (C + 1) ^ 2 * (C + 2) * (1 + |v|) ^ 3 := by ring
-      _ ≤ K * (1 + |v|) ^ 3 := by
-          refine mul_le_mul_of_nonneg_right ?_ (by positivity)
-          rw [hK]
-          exact le_add_of_nonneg_right (sq_nonneg _)
+  obtain ⟨K, hK⟩ := exists_abs_sq_gaussianPDFReal_div_measureReal_Ici_le
+  have hg1 : ∀ v, |mills v ^ 2| ≤ K * (1 + |v|) ^ 3 := fun v => (hK v).1
+  have hg2 : ∀ v, |2 * mills v * A' v| ≤ K * (1 + |v|) ^ 3 := fun v => (hK v).2
   -- derivative at every `x > 0`
   have key : ∀ x ∈ Ioi (0 : ℝ), ∃ D, 0 < D ∧ HasDerivAt (fun x => 1 - α *
       (∫ z, mills (τ * Real.sqrt (1 + x) / Real.sqrt ρ + -Real.sqrt x * z) ^ 2
@@ -480,29 +367,11 @@ theorem strictMonoOn_shcherbinaTirozziHardFunctional_ratio_deriv {α h τ ρ : �
       exact add_pos_of_pos_of_nonneg (mul_pos (pow_pos hpos 2) (by linarith))
         (mul_nonneg he0 (mul_nonneg hpos.le (hd v).2))
     have hMi : Integrable (fun z => mills (m x + σ x * z) ^ 2) (gaussianReal 0 1) :=
-      (integrable_mills_comp (m x) (σ x)).2.2
+      (integrable_gaussianPDFReal_div_measureReal_Ici_comp (m x) (σ x)).2.2
     have hM'i : Integrable (fun z => 2 * mills (m x + σ x * z) * A' (m x + σ x * z) *
         (m' x + σ' x * z)) (gaussianReal 0 1) := by
-      have hWm : Measurable fun z : ℝ => m x + σ x * z := by fun_prop
-      set B : ℝ := 1 + |m x| + |σ x| with hB
-      refine integrable_gaussianReal_of_norm_le_pow ((((measurable_const.mul (hAm.comp hWm)).mul
-        (hA'm.comp hWm)).mul (by fun_prop : Measurable fun z : ℝ => m' x + σ' x * z))
-        ).aestronglyMeasurable (C := K * B ^ 3 * (|m' x| + |σ' x|)) (k := 4) fun z => ?_
-      have h1 : 1 + |m x + σ x * z| ≤ B * (1 + |z|) := by
-        have : |m x + σ x * z| ≤ |m x| + |σ x| * |z| :=
-          (abs_add_le _ _).trans_eq (by rw [abs_mul])
-        rw [hB]
-        nlinarith [mul_nonneg (abs_nonneg (m x)) (abs_nonneg z), abs_nonneg (σ x),
-          abs_nonneg z]
-      have h2 : |m' x + σ' x * z| ≤ (|m' x| + |σ' x|) * (1 + |z|) := by
-        refine (abs_add_le _ _).trans ?_
-        rw [abs_mul]
-        nlinarith [mul_nonneg (abs_nonneg (m' x)) (abs_nonneg z), abs_nonneg (σ' x)]
-      rw [Real.norm_eq_abs, abs_mul]
-      have h3 := (hg2 (m x + σ x * z)).trans (mul_le_mul_of_nonneg_left
-        (pow_le_pow_left₀ (by positivity) h1 3) (by positivity))
-      refine (mul_le_mul h3 h2 (abs_nonneg _) (by positivity)).trans_eq ?_
-      ring
+      exact integrable_comp_add_mul_mul_add_mul_gaussianReal
+        (g := fun v => 2 * mills v * A' v) ((measurable_const.mul hAm).mul hA'm) hg2 _ _ _ _
     have hGi : Integrable G (gaussianReal 0 1) := hMi.sub (hM'i.const_mul x)
     have hGint : ∫ z, G z ∂(gaussianReal 0 1) = M - x * M' := by
       rw [hMdef, hM', ← integral_const_mul]
@@ -548,7 +417,8 @@ theorem strictAntiOn_shcherbinaTirozziHardFunctional_self_deriv {α τ x : ℝ} 
         ∂(gaussianReal 0 1) ≤
       ∫ z, mills (τ * Real.sqrt (1 + x) / Real.sqrt ρ + -Real.sqrt x * z)
         ∂(gaussianReal 0 1) := by
-    refine integral_mono (integrable_mills_comp _ _).1 (integrable_mills_comp _ _).1 fun z =>
+    refine integral_mono (integrable_gaussianPDFReal_div_measureReal_Ici_comp _ _).1
+      (integrable_gaussianPDFReal_div_measureReal_Ici_comp _ _).1 fun z =>
       monotone_gaussianPDFReal_div_measureReal_Ici (add_le_add ?_ le_rfl)
     exact div_le_div_of_nonneg_left (mul_nonneg hτ (Real.sqrt_nonneg _)) hsρ hs
   have hc : α * τ * Real.sqrt (1 + x) / (ρ' * Real.sqrt ρ') ≤
@@ -653,20 +523,7 @@ private theorem hasDerivAt_snd (α κ h τ : ℝ) {x ρ : ℝ} (hx : 0 ≤ x) (h
       rw [neg_div (Real.sqrt (ρ - q)) (Real.sqrt q), neg_neg, div_div,
         mul_comm (Real.sqrt (ρ - q))]
     rw [this, hσρ, neg_neg]
-  obtain ⟨hi, hzi, hi2⟩ := integrable_mills_comp (m ρ) (σ ρ)
-  have hIBP := integral_id_mul_mills (m ρ) (σ ρ)
-  have hWA : Integrable (fun z => (m ρ + σ ρ * z) * mills (m ρ + σ ρ * z))
-      (gaussianReal 0 1) := by
-    refine ((hi.const_mul (m ρ)).add (hzi.const_mul (σ ρ))).congr (ae_of_all _ fun z => ?_)
-    simp only [Pi.add_apply]
-    ring
-  have hWAeq : ∫ z, (m ρ + σ ρ * z) * mills (m ρ + σ ρ * z) ∂(gaussianReal 0 1) =
-      m ρ * (∫ z, mills (m ρ + σ ρ * z) ∂(gaussianReal 0 1)) +
-        σ ρ * ∫ z, z * mills (m ρ + σ ρ * z) ∂(gaussianReal 0 1) := by
-    rw [← integral_const_mul, ← integral_const_mul,
-      ← integral_add (hi.const_mul _) (hzi.const_mul _)]
-    exact integral_congr_ae (ae_of_all _ fun z => by ring)
-  rw [integral_sub hi2 hWA, hWAeq] at hIBP
+  obtain ⟨hi, hzi, -⟩ := integrable_gaussianPDFReal_div_measureReal_Ici_comp (m ρ) (σ ρ)
   have hder : ∫ z, -(mills (m ρ + σ ρ * z)) * (m' ρ + σ' ρ * z) ∂(gaussianReal 0 1) =
       -(m' ρ) * (∫ z, mills (m ρ + σ ρ * z) ∂(gaussianReal 0 1)) +
         -(σ' ρ) * ∫ z, z * mills (m ρ + σ ρ * z) ∂(gaussianReal 0 1) := by
@@ -681,8 +538,10 @@ private theorem hasDerivAt_snd (α κ h τ : ℝ) {x ρ : ℝ} (hx : 0 ≤ x) (h
   -- solve the integration by parts identity for `J`
   have hJeq : J = -Real.sqrt x * (I2 - m ρ * I1) / (1 + x) := by
     rw [eq_div_iff h1x.ne', ← hσρ]
+    have h : (1 + σ ρ ^ 2) * J = σ ρ * (I2 - m ρ * I1) :=
+      one_add_sq_mul_integral_id_mul_gaussianPDFReal_div_measureReal_Ici (m ρ) (σ ρ)
     have h2 : σ ρ ^ 2 = x := by rw [hσρ, neg_sq, hsx2]
-    linear_combination hIBP - J * h2
+    linear_combination h - J * h2
   have e1 : -(m' ρ) * I1 + -(σ' ρ) * J = (m ρ * I1 + x * I2) / (2 * ρ) := by
     rw [hm'ρ, hσ'ρ, hJeq, hs]
     calc _ = ((1 + x) * (m ρ * I1) + Real.sqrt x ^ 2 * (I2 - m ρ * I1)) / (2 * ρ) := by

@@ -5,6 +5,8 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Analysis.Convex.Measurable
+public import LeanMachineLearning.ForMathlib.Analysis.Normed.TruncatedNorm
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.BoundedTilted
 public import LeanMachineLearning.ForMathlib.Probability.Moments.LogConcaveConcentration
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SecondMoment
@@ -35,10 +37,6 @@ the disorder, at rate `(K k / N)^k` (Proposition 3.1.12). The constants depend o
 
 open MeasureTheory ProbabilityTheory Module
 open scoped RealInnerProductSpace Real
-
-/-- A concave function on the whole real line is measurable. -/
-theorem ConcaveOn.measurable_of_univ {u : ℝ → ℝ} (hu : ConcaveOn ℝ Set.univ u) : Measurable u :=
-  (continuousOn_univ.1 (hu.continuousOn isOpen_univ)).measurable
 
 namespace SpinGlasses
 
@@ -226,6 +224,32 @@ theorem _root_.Real.exp_neg_le_natCast_div_pow {B : ℝ} (hB : 0 < B) (k : ℕ) 
   rw [div_pow, le_div_iff₀ (pow_pos hB k), Real.exp_neg]
   rwa [inv_mul_le_iff₀ (Real.exp_pos _), mul_comm]
 
+/-- The recombination `2^{2k-1} (4 x^k + (4 y)^k) ≤ (8 x + 16 y)^k` of the truncated part and
+the tail in the proof of Theorem 3.1.11. -/
+private theorem two_pow_mul_four_mul_pow_add_le {x y : ℝ} (hx : 0 ≤ x) (hy : 0 ≤ y) {k : ℕ}
+    (hk : k ≠ 0) : (2 : ℝ) ^ (2 * k - 1) * (4 * x ^ k + (4 * y) ^ k) ≤ (8 * x + 16 * y) ^ k := by
+  have h8 : (2 : ℝ) ^ (2 * k - 1) * (4 * x ^ k) ≤ (8 * x) ^ k := by
+    have h4 : (2 : ℝ) ^ (2 * k - 1) * 4 = 4 ^ k * 2 := by
+      have : (2 : ℝ) ^ (2 * k - 1) * 2 = 4 ^ k := by
+        rw [← pow_succ, show 2 * k - 1 + 1 = 2 * k by omega, pow_mul]
+        norm_num
+      linear_combination 2 * this
+    have h2 : (2 : ℝ) ≤ 2 ^ k := le_self_pow₀ (by norm_num) hk
+    rw [← mul_assoc, h4, mul_pow]
+    refine mul_le_mul_of_nonneg_right ?_ (pow_nonneg hx _)
+    calc (4 : ℝ) ^ k * 2 ≤ 4 ^ k * 2 ^ k := mul_le_mul_of_nonneg_left h2 (by positivity)
+      _ = 8 ^ k := by rw [← mul_pow]; norm_num
+  have h16 : (2 : ℝ) ^ (2 * k - 1) * (4 * y) ^ k ≤ (16 * y) ^ k := by
+    have h2 : (2 : ℝ) ^ (2 * k - 1) ≤ 4 ^ k := by
+      rw [show (4 : ℝ) ^ k = 2 ^ (2 * k) by rw [pow_mul]; norm_num]
+      exact pow_le_pow_right₀ one_le_two (by omega)
+    refine (mul_le_mul_of_nonneg_right h2 (pow_nonneg (by linarith) _)).trans_eq ?_
+    rw [← mul_pow]
+    congr 1
+    ring
+  rw [mul_add]
+  exact (add_le_add h8 h16).trans (pow_add_pow_le (by linarith) (by linarith) hk)
+
 /-- **Theorem 3.1.11, Eq. (3.35):** for `k ≤ N`,
 `⟨(R_{1,1} - ⟨R_{1,1}⟩) ^ (2 k)⟩ ≤ (K k B^* / N²) ^ k`. -/
 theorem exists_integral_shcherbinaTirozzi_selfOverlap_sub_mean_pow_le (κ₀ h₀ D : ℝ)
@@ -273,21 +297,11 @@ theorem exists_integral_shcherbinaTirozzi_selfOverlap_sub_mean_pow_le (κ₀ h�
   set φ : ℝ^N → ℝ := fun σ => (N : ℝ)⁻¹ * ‖σ‖ ^ 2 - f σ with hφ
   have hfm : Measurable f := by fun_prop
   have hφm : Measurable φ := by fun_prop
-  have hlip : ∀ x y : ℝ^N, |f x - f y| ≤ 2 * a / N * ‖x - y‖ :=
-    fun x y => by
-      have h1 : |min ‖x‖ a - min ‖y‖ a| ≤ ‖x - y‖ := by
-        refine (abs_min_sub_min_le_max _ _ _ _).trans (max_le (abs_norm_sub_norm_le x y) ?_)
-        rw [sub_self, abs_zero]
-        exact norm_nonneg _
-      have h2 : |min ‖x‖ a + min ‖y‖ a| ≤ 2 * a := by
-        rw [abs_of_nonneg (add_nonneg (le_min (norm_nonneg _) ha0) (le_min (norm_nonneg _) ha0))]
-        linarith [min_le_right ‖x‖ a, min_le_right ‖y‖ a]
-      have e : f x - f y = (N : ℝ)⁻¹ *
-          ((min ‖x‖ a + min ‖y‖ a) * (min ‖x‖ a - min ‖y‖ a)) := by
-        rw [hf]; ring
-      rw [e, abs_mul, abs_of_pos (inv_pos.2 hN0), abs_mul, div_eq_inv_mul, mul_assoc]
-      exact mul_le_mul_of_nonneg_left
-        (mul_le_mul h2 h1 (abs_nonneg _) (by positivity)) (inv_pos.2 hN0).le
+  have hlip : ∀ x y : ℝ^N, |f x - f y| ≤ 2 * a / N * ‖x - y‖ := fun x y => by
+    rw [hf]
+    simp only [← mul_sub, abs_mul, abs_of_pos (inv_pos.2 hN0), div_eq_inv_mul, mul_assoc]
+    exact mul_le_mul_of_nonneg_left ((abs_min_norm_sq_sub_le ha0 x y).trans_eq (mul_assoc _ _ _))
+      (inv_pos.2 hN0).le
   have hfMau := integral_sub_integral_pow_shcherbinaTirozziGibbs_le (h := h) hκ0 hu hu0 g g₀
     hfm (by positivity : 0 ≤ 2 * a / N) hlip k
   rw [← hG] at hfMau
@@ -328,11 +342,13 @@ theorem exists_integral_shcherbinaTirozzi_selfOverlap_sub_mean_pow_le (κ₀ h�
     rw [← Real.exp_add]
     congr 1
     ring
-  have hφpt : ∀ σ, φ σ ^ (2 * k) ≤
-      S.indicator 1 σ * ((N : ℝ)⁻¹ ^ (2 * k) * ‖σ‖ ^ (2 * (2 * k))) := fun σ => by
+  set Q : ℝ^N → ℝ := fun σ => (N : ℝ)⁻¹ ^ (2 * k) * ‖σ‖ ^ (2 * (2 * k))
+    with hQ
+  have hφpt : ∀ σ, φ σ ^ (2 * k) ≤ S.indicator Q σ := fun σ => by
     by_cases hσ : a ≤ ‖σ‖
-    · rw [Set.indicator_of_mem (show σ ∈ S from hσ), Pi.one_apply, one_mul, pow_mul ‖σ‖,
-        ← mul_pow]
+    · rw [Set.indicator_of_mem (show σ ∈ S from hσ)]
+      simp only [hQ]
+      rw [pow_mul ‖σ‖, ← mul_pow]
       have h0 : 0 ≤ φ σ := by
         have : min ‖σ‖ a ^ 2 ≤ ‖σ‖ ^ 2 :=
           pow_le_pow_left₀ (le_min (norm_nonneg _) ha0) (min_le_left _ _) 2
@@ -343,72 +359,40 @@ theorem exists_integral_shcherbinaTirozzi_selfOverlap_sub_mean_pow_le (κ₀ h�
       exact sub_le_self _ (mul_nonneg (inv_pos.2 hN0).le (sq_nonneg _))
     · have h0 : φ σ = 0 := by
         simp only [hφ, hf, min_eq_left (le_of_not_ge hσ), sub_self]
-      rw [h0, zero_pow (by omega),
-        Set.indicator_of_notMem (show σ ∉ S from hσ), zero_mul]
-  have h4k : 2 * k ≤ 4 * N := by omega
+      rw [h0, zero_pow (by omega), Set.indicator_of_notMem (show σ ∉ S from hσ)]
   have h4k' : 4 * k ≤ 4 * N := by omega
-  set Q : ℝ^N → ℝ := fun σ => (N : ℝ)⁻¹ ^ (2 * k) * ‖σ‖ ^ (2 * (2 * k))
-    with hQ
+  have eQ : ∀ σ, Q σ ^ 2 = ((N : ℝ)⁻¹ ^ (2 * k)) ^ 2 * ‖σ‖ ^ (2 * (4 * k)) := fun σ => by
+    simp only [hQ]
+    rw [mul_pow, ← pow_mul ‖σ‖]
+    congr 2
+    ring
   have hQL : MemLp Q 2 G := by
     refine (memLp_two_iff_integrable_sq (by fun_prop)).2 ?_
-    have e : (fun σ => Q σ ^ 2) = fun σ =>
-        ((N : ℝ)⁻¹ ^ (2 * k)) ^ 2 * ‖σ‖ ^ (2 * (4 * k)) := by
-      funext σ
-      rw [hQ]
-      simp only
-      rw [mul_pow, ← pow_mul ‖σ‖]
-      congr 2
-      ring
-    rw [e]
+    simp_rw [eQ]
     exact (hmom _ h4k').1.const_mul _
-  have h1S : MemLp (S.indicator (1 : ℝ^N → ℝ)) 2 G :=
-    (memLp_const (1 : ℝ)).indicator hSm.nullMeasurableSet
-  have hdom : Integrable (fun σ => S.indicator 1 σ * Q σ) G := h1S.integrable_mul hQL
+  have hQi : Integrable (S.indicator Q) G := (hQL.integrable one_le_two).indicator hSm
   have hφki : Integrable (fun σ => φ σ ^ (2 * k)) G :=
-    Integrable.mono' hdom (hφm.pow_const _).aestronglyMeasurable (ae_of_all _ fun σ => by
+    Integrable.mono' hQi (hφm.pow_const _).aestronglyMeasurable (ae_of_all _ fun σ => by
       rw [Real.norm_of_nonneg (heven.pow_nonneg _)]
       exact hφpt σ)
   set T : ℝ := (K₉ * B / N) ^ (2 * k) with hT
   have hKB : 0 ≤ K₉ * B := mul_nonneg hK₉ hB0.le
   have hQ2 : ∫ σ, Q σ ^ 2 ∂G ≤ T ^ 2 := by
-    have e : ∀ σ, Q σ ^ 2 = ((N : ℝ)⁻¹ ^ (2 * k)) ^ 2 * ‖σ‖ ^ (2 * (4 * k)) := fun σ => by
-      rw [hQ]
-      simp only
-      rw [mul_pow, ← pow_mul ‖σ‖]
-      congr 2
-      ring
-    simp_rw [e]
+    simp_rw [eQ]
     rw [integral_const_mul]
     refine (mul_le_mul_of_nonneg_left (hmom _ h4k').2 (by positivity)).trans_eq ?_
     rw [hT, div_eq_inv_mul]
     ring_nf
-  have h1S2 : ∫ σ, S.indicator (1 : ℝ^N → ℝ) σ ^ 2 ∂G ≤
-      Real.exp (-B) ^ 2 := by
-    have e : ∀ σ, S.indicator (1 : ℝ^N → ℝ) σ ^ 2 = S.indicator 1 σ :=
-      fun σ => by
-        by_cases hσ : σ ∈ S <;> simp [hσ]
-    simp_rw [e]
-    rw [integral_indicator_one hSm]
-    refine hGS.trans_eq ?_
+  have hφI : ∫ σ, φ σ ^ (2 * k) ∂G ≤ Real.exp (-B) * T := by
+    refine (integral_mono hφki hQi hφpt).trans ?_
+    rw [integral_indicator hSm]
+    refine (Real.le_norm_self _).trans (norm_setIntegral_le_mul_of_integral_sq_le hSm
+      (measure_ne_top _ _) hQL (Real.exp_pos _).le (pow_nonneg (div_nonneg hKB hN0.le) _)
+      (hGS.trans_eq ?_) (by simpa only [Real.norm_eq_abs, sq_abs] using hQ2))
     rw [← Real.exp_nat_mul]
     congr 1
     push_cast
     ring
-  have hφI : ∫ σ, φ σ ^ (2 * k) ∂G ≤ Real.exp (-B) * T := by
-    refine (integral_mono hφki hdom hφpt).trans ((le_abs_self _).trans ?_)
-    have hTnn : 0 ≤ T := pow_nonneg (div_nonneg hKB hN0.le) (2 * k)
-    rcases hTnn.eq_or_lt with hT0 | hT0
-    · have hQ0 : (fun σ => Q σ ^ 2) =ᵐ[G] 0 := by
-        refine (integral_eq_zero_iff_of_nonneg (fun σ => sq_nonneg _) hQL.integrable_sq).1
-          (le_antisymm ?_ (integral_nonneg fun σ => sq_nonneg _))
-        rw [← hT0] at hQ2
-        simpa using hQ2
-      have : (fun σ => S.indicator 1 σ * Q σ) =ᵐ[G] 0 := hQ0.mono fun σ hσ => by
-        have : Q σ = 0 := pow_eq_zero_iff two_ne_zero |>.1 hσ
-        simp [this]
-      rw [integral_congr_ae this, ← hT0]
-      simp
-    · exact abs_integral_mul_le_of_integral_sq_le h1S hQL (Real.exp_pos _) hT0 h1S2 hQ2
   have hφsym := integral_sub_integral_pow_two_mul_le (μ := G) (f := φ) (m := 0) (k := k)
     hφm.aestronglyMeasurable (by simpa only [sub_zero] using hφki)
   simp only [sub_zero] at hφsym
@@ -453,32 +437,11 @@ theorem exists_integral_shcherbinaTirozzi_selfOverlap_sub_mean_pow_le (κ₀ h�
     refine (mul_le_mul_of_nonneg_left (hφI.trans h1) (by positivity)).trans_eq ?_
     rw [pow_mul, ← mul_pow]
     norm_num
-  have h8 : (2 : ℝ) ^ (2 * k - 1) * (4 * x ^ k) ≤ (8 * x) ^ k := by
-    have h4 : (2 : ℝ) ^ (2 * k - 1) * 4 = 4 ^ k * 2 := by
-      have : (2 : ℝ) ^ (2 * k - 1) * 2 = 4 ^ k := by
-        rw [← pow_succ, show 2 * k - 1 + 1 = 2 * k by omega, pow_mul]
-        norm_num
-      linear_combination 2 * this
-    have h2 : (2 : ℝ) ≤ 2 ^ k := le_self_pow₀ (by norm_num) hk0
-    rw [← mul_assoc, h4, mul_pow]
-    refine mul_le_mul_of_nonneg_right ?_ (pow_nonneg hx0 _)
-    calc (4 : ℝ) ^ k * 2 ≤ 4 ^ k * 2 ^ k := mul_le_mul_of_nonneg_left h2 (by positivity)
-      _ = 8 ^ k := by rw [← mul_pow]; norm_num
-  have h16 : (2 : ℝ) ^ (2 * k - 1) * (4 * y) ^ k ≤ (16 * y) ^ k := by
-    have h2 : (2 : ℝ) ^ (2 * k - 1) ≤ 4 ^ k := by
-      rw [show (4 : ℝ) ^ k = 2 ^ (2 * k) by rw [pow_mul]; norm_num]
-      exact pow_le_pow_right₀ one_le_two (by omega)
-    refine (mul_le_mul_of_nonneg_right h2 (pow_nonneg (by linarith) _)).trans_eq ?_
-    rw [← mul_pow]
-    congr 1
-    ring
   calc (2 : ℝ) ^ (2 * k - 1) * ((∫ σ, (f σ - ∫ τ, f τ ∂G) ^ (2 * k) ∂G) +
         ∫ σ, (φ σ - ∫ τ, φ τ ∂G) ^ (2 * k) ∂G)
       ≤ 2 ^ (2 * k - 1) * (4 * x ^ k + (4 * y) ^ k) :=
         mul_le_mul_of_nonneg_left (add_le_add hX hY) (by positivity)
-    _ ≤ (8 * x) ^ k + (16 * y) ^ k := by
-        rw [mul_add]; exact add_le_add h8 h16
-    _ ≤ (8 * x + 16 * y) ^ k := pow_add_pow_le (by linarith) (by linarith) hk0
+    _ ≤ (8 * x + 16 * y) ^ k := two_pow_mul_four_mul_pow_add_le hx0 hy0 hk0
     _ ≤ ((512 * (K₁ + 2) / κ₀ ^ 2 + 16 * K₉ ^ 2) * k * B / (N : ℝ) ^ 2) ^ k := by
         refine pow_le_pow_left₀ (by linarith) ?_ k
         have e1 : (512 * (K₁ + 2) / κ₀ ^ 2 + 16 * K₉ ^ 2) * k * B / (N : ℝ) ^ 2 =

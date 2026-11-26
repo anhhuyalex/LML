@@ -648,6 +648,30 @@ private theorem exp_mul_sq_add_sq_le {L h₀ h t y g W : ℝ} (hL : 0 ≤ L) (hh
   refine (exp_add_le_half _ _).trans (div_le_div_of_nonneg_right
     (add_le_add (le_of_eq (by rw [mul_assoc])) h5) two_pos.le)
 
+/-- The majorant in the proof of Lemma 3.2.6: if the exponential moments `a`, `b`, `c` have
+means at most `2`, then `C (a + b) / 4 + C c / 2` has mean at most `2 C` for the product law. -/
+private theorem integrable_and_integral_cavity_majorant_le {α β : Type*} [MeasurableSpace α]
+    [MeasurableSpace β] {μ : Measure α} {ν : Measure β} [IsProbabilityMeasure μ]
+    [IsProbabilityMeasure ν] {a c : β → ℝ} {b : α → ℝ}
+    (ha : Integrable a ν ∧ ∫ d, a d ∂ν ≤ 2) (hb : Integrable b μ ∧ ∫ y, b y ∂μ ≤ 2)
+    (hc : Integrable c ν ∧ ∫ d, c d ∂ν ≤ 2) {C : ℝ} (hC : 0 ≤ C) :
+    Integrable (fun p : α × β => C / 4 * (a p.2 + b p.1) + C / 2 * c p.2) (μ.prod ν) ∧
+      ∫ p, (C / 4 * (a p.2 + b p.1) + C / 2 * c p.2) ∂(μ.prod ν) ≤ 2 * C := by
+  have hi1 := ha.1.comp_snd μ
+  have hi2 := hb.1.comp_fst ν
+  have hi3 := hc.1.comp_snd μ
+  have h12 : Integrable (fun p : α × β => C / 4 * (a p.2 + b p.1)) (μ.prod ν) :=
+    (hi1.add hi2).const_mul _
+  refine ⟨h12.add (hi3.const_mul _), ?_⟩
+  rw [integral_add h12 (hi3.const_mul _), integral_const_mul, integral_const_mul,
+    integral_add hi1 hi2, integral_fun_snd (μ := μ) (ν := ν) a,
+    integral_fun_fst (μ := μ) (ν := ν) b, integral_fun_snd (μ := μ) (ν := ν) c]
+  simp only [probReal_univ, one_smul]
+  have h1 := mul_le_mul_of_nonneg_left (add_le_add ha.2 hb.2)
+    (div_nonneg hC (by norm_num : (0 : ℝ) ≤ 4))
+  have h2 := mul_le_mul_of_nonneg_left hc.2 (div_nonneg hC two_pos.le)
+  linarith
+
 /-- **Lemma 3.2.6:** `ν_t (exp (ε² / K)) ≤ K` for every `t ∈ [0, 1]`, where `K` depends only on
 `κ₀`, `h₀`, `D` and a bound `R` on the variance `r` of the field `y`. -/
 theorem exists_integral_exp_sq_shcherbinaTirozziCavity_last_le (κ₀ h₀ D R : ℝ) (hκ₀ : 0 < κ₀)
@@ -748,33 +772,8 @@ theorem exists_integral_exp_sq_shcherbinaTirozziCavity_last_le (κ₀ h₀ D R :
   set H : ℝ × ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) → ℝ := fun p =>
     C / 4 * (Real.exp (8 * L * h₀ ^ 2 * p.2.2 (Fin.last N) ^ 2) + Real.exp (8 * L * p.1 ^ 2)) +
       C / 2 * Real.exp (2 * L * W p.2 ^ 2) with hH
-  have hi1 := hA1.1.comp_snd (gaussianReal 0 r)
-  have hi2 := hA2.1.comp_fst P
-  have hi3 := hB.1.comp_snd (gaussianReal 0 r)
-  have h12 : Integrable (fun p : ℝ × ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) =>
-      C / 4 * (Real.exp (8 * L * h₀ ^ 2 * p.2.2 (Fin.last N) ^ 2) +
-        Real.exp (8 * L * p.1 ^ 2))) ((gaussianReal 0 r).prod P) :=
-    (hi1.add hi2).const_mul _
-  have hHi : Integrable H ((gaussianReal 0 r).prod P) := h12.add (hi3.const_mul _)
-  have hHle : ∫ p, H p ∂((gaussianReal 0 r).prod P) ≤ 2 * C := by
-    have e : ∫ p, H p ∂((gaussianReal 0 r).prod P) =
-        C / 4 * ((∫ d, Real.exp (8 * L * h₀ ^ 2 * d.2 (Fin.last N) ^ 2) ∂P) +
-            ∫ y, Real.exp (8 * L * y ^ 2) ∂(gaussianReal 0 r)) +
-          C / 2 * ∫ d, Real.exp (2 * L * W d ^ 2) ∂P := by
-      simp only [hH]
-      rw [integral_add h12 (hi3.const_mul _), integral_const_mul, integral_const_mul,
-        integral_add hi1 hi2,
-        integral_fun_snd (μ := gaussianReal 0 r) (ν := P)
-          (fun d => Real.exp (8 * L * h₀ ^ 2 * d.2 (Fin.last N) ^ 2)),
-        integral_fun_fst (μ := gaussianReal 0 r) (ν := P) (fun y => Real.exp (8 * L * y ^ 2)),
-        integral_fun_snd (μ := gaussianReal 0 r) (ν := P)
-          (fun d => Real.exp (2 * L * W d ^ 2))]
-      simp only [probReal_univ, one_smul]
-    rw [e]
-    have h1 := mul_le_mul_of_nonneg_left (add_le_add hA1.2 hA2.2)
-      (div_nonneg hC0 (by norm_num : (0 : ℝ) ≤ 4))
-    have h2 := mul_le_mul_of_nonneg_left hB.2 (div_nonneg hC0 two_pos.le)
-    linarith
+  obtain ⟨hHi, hHle⟩ := integrable_and_integral_cavity_majorant_le (μ := gaussianReal 0 r)
+    (ν := P) hA1 hA2 hB hC0
   -- the pointwise bound
   have hpt : ∀ p : ℝ × ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)),
       ∫ σ, Real.exp (σ (Fin.last N) ^ 2 / K) ∂((volume : Measure (ℝ^(N + 1))).tilted fun σ =>

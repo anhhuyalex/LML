@@ -9,14 +9,18 @@ public import LeanMachineLearning.ForMathlib.Probability.Distributions.Gaussian.
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaProduct
 
 /-!
-# Replica averages under a confined energy on a Euclidean space
+# Replica averages under a confined energy
 
-The energies are bounded by `A + B ‖x‖ - κ ‖x‖²` with `κ > 0`, so the Gibbs densities relative to
-the volume measure have Gaussian tails. Observables and energy derivatives may grow polynomially
+The space is a finite-dimensional real normed space with an additive Haar measure `μ`. The energies
+are bounded by `A + B ‖x‖ - κ ‖x‖²` with `κ > 0`, so the Gibbs densities relative to `μ` have
+Gaussian tails. Observables and energy derivatives may grow polynomially
 in each replica, which covers the unbounded spins of continuous spin glass models.
 
 ## Main statements
 
+* `MeasureTheory.memLp_of_poly_bound_of_confining`,
+  `MeasureTheory.memLp_pi_tilted_of_confining`: observables of polynomial growth have finite
+  moments of every order, for one replica and for finitely many.
 * `MeasureTheory.integrable_pi_mul_exp_of_confining`: integrability of replica observables of
   polynomial growth against the product weight.
 * `MeasureTheory.hasDerivAt_integral_pi_tilted_of_confining`: the derivative of a replica average
@@ -27,7 +31,7 @@ in each replica, which covers the unbounded spins of continuous spin glass model
 @[expose] public section
 
 open MeasureTheory Filter
-open scoped Topology
+open scoped Topology NNReal ENNReal
 
 namespace MeasureTheory
 
@@ -66,56 +70,132 @@ theorem abs_sum_le_mul_prod_one_add_norm_pow {f : E → ℝ} {L : ℝ} {n : ℕ}
   rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
   ring
 
+/-- A one-replica observable of polynomial growth, evaluated at one replica, grows polynomially
+in the replicas. -/
+theorem abs_comp_eval_le_prod {f : E → ℝ} {L : ℝ} {n : ℕ}
+    (hf : ∀ x, |f x| ≤ L * (1 + ‖x‖) ^ n) (σ : R → E) (i : R) :
+    |f (σ i)| ≤ L * ∏ j, (1 + ‖σ j‖) ^ n := by
+  have hL : 0 ≤ L := by simpa using (abs_nonneg _).trans (hf 0)
+  exact (hf (σ i)).trans (mul_le_mul_of_nonneg_left (one_add_norm_pow_le_prod σ n i) hL)
+
+/-- The growth bounds of two replica observables multiply. -/
+theorem abs_mul_le_mul_prod_one_add_norm_pow {σ : R → E} {a b C D : ℝ} {m n : ℕ}
+    (ha : |a| ≤ C * ∏ i, (1 + ‖σ i‖) ^ m) (hb : |b| ≤ D * ∏ i, (1 + ‖σ i‖) ^ n) :
+    |a * b| ≤ C * D * ∏ i, (1 + ‖σ i‖) ^ (m + n) := by
+  simp only [pow_add, Finset.prod_mul_distrib]
+  rw [abs_mul, mul_mul_mul_comm]
+  exact mul_le_mul ha hb (abs_nonneg _) ((abs_nonneg _).trans ha)
+
+/-- A replica observable of polynomial growth times the product weight of confined energies is
+dominated by a product of one-replica functions. -/
+theorem abs_mul_exp_sum_le_of_confining {κ A B : ℝ} {e : E → ℝ}
+    (hconf : ∀ x, e x ≤ A + B * ‖x‖ - κ * ‖x‖ ^ 2) {σ : R → E} {a C : ℝ} {m : ℕ}
+    (ha : |a| ≤ C * ∏ i, (1 + ‖σ i‖) ^ m) :
+    |a * Real.exp (∑ i, e (σ i))| ≤
+      C * ∏ i, Real.exp A * ((1 + ‖σ i‖) ^ m * Real.exp (B * ‖σ i‖ - κ * ‖σ i‖ ^ 2)) := by
+  rw [abs_mul, abs_of_pos (Real.exp_pos _)]
+  refine (mul_le_mul ha (exp_sum_le_prod_of_confining hconf σ) (Real.exp_pos _).le
+    ((abs_nonneg _).trans ha)).trans_eq ?_
+  rw [mul_assoc, ← Finset.prod_mul_distrib]
+  exact congrArg _ (Finset.prod_congr rfl fun i _ => by ring)
+
 end ReplicaSum
 
-variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [FiniteDimensional ℝ E]
-  [MeasurableSpace E] [BorelSpace E] {R : Type*} [Fintype R]
+variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [FiniteDimensional ℝ E]
+  [MeasurableSpace E] [BorelSpace E] {μ : Measure E} [μ.IsAddHaarMeasure] {R : Type*} [Fintype R]
 
 /-- Replica observables of polynomial growth are integrable against the confined product
 weight. -/
 theorem integrable_pi_mul_exp_of_confining {κ : ℝ} (hκ : 0 < κ) {e : E → ℝ} (he : Measurable e)
     {A B : ℝ} (hconf : ∀ x, e x ≤ A + B * ‖x‖ - κ * ‖x‖ ^ 2) {Ψ : (R → E) → ℝ}
     (hΨ : Measurable Ψ) {C : ℝ} {m : ℕ} (hΨb : ∀ σ, |Ψ σ| ≤ C * ∏ i, (1 + ‖σ i‖) ^ m) :
-    Integrable (fun σ => Ψ σ * Real.exp (∑ i, e (σ i))) (Measure.pi fun _ : R => volume) := by
+    Integrable (fun σ => Ψ σ * Real.exp (∑ i, e (σ i))) (Measure.pi fun _ : R => μ) := by
   have hprod : Integrable (fun σ : R → E => ∏ i,
       Real.exp A * ((1 + ‖σ i‖) ^ m * Real.exp (B * ‖σ i‖ - κ * ‖σ i‖ ^ 2)))
-      (Measure.pi fun _ : R => volume) :=
+      (Measure.pi fun _ : R => μ) :=
     Integrable.fintype_prod (f := fun _ : R => fun x : E =>
       Real.exp A * ((1 + ‖x‖) ^ m * Real.exp (B * ‖x‖ - κ * ‖x‖ ^ 2)))
-      fun _ => (integrable_one_add_norm_pow_mul_exp hκ B m).const_mul _
-  refine (hprod.const_mul C).mono' (hΨ.mul (by fun_prop)).aestronglyMeasurable
-    (ae_of_all _ fun σ => ?_)
-  rw [Real.norm_eq_abs, abs_mul, abs_of_pos (Real.exp_pos _)]
-  refine (mul_le_mul (hΨb σ) (exp_sum_le_prod_of_confining hconf σ) (Real.exp_pos _).le
-    ((abs_nonneg _).trans (hΨb σ))).trans_eq ?_
-  rw [mul_assoc, ← Finset.prod_mul_distrib]
-  congr 1
-  exact Finset.prod_congr rfl fun i _ => by ring
+      fun _ => (integrable_one_add_norm_pow_mul_exp (μ := μ) hκ B m).const_mul _
+  exact (hprod.const_mul C).mono' (hΨ.mul (by fun_prop)).aestronglyMeasurable
+    (ae_of_all _ fun σ => abs_mul_exp_sum_le_of_confining hconf (hΨb σ))
 
 /-- The Gibbs weight of a confined energy is integrable. -/
 theorem integrable_exp_of_confining {κ : ℝ} (hκ : 0 < κ) {e : E → ℝ} (he : Measurable e)
     {A B : ℝ} (hconf : ∀ x, e x ≤ A + B * ‖x‖ - κ * ‖x‖ ^ 2) :
-    Integrable fun x => Real.exp (e x) := by
-  refine ((integrable_one_add_norm_pow_mul_exp (E := E) hκ B 0).const_mul
+    Integrable (fun x => Real.exp (e x)) μ := by
+  refine ((integrable_one_add_norm_pow_mul_exp (μ := μ) hκ B 0).const_mul
     (Real.exp A)).mono' he.exp.aestronglyMeasurable (ae_of_all _ fun x => ?_)
   rw [Real.norm_of_nonneg (Real.exp_pos _).le, pow_zero, one_mul, ← Real.exp_add,
     Real.exp_le_exp, ← add_sub_assoc]
   exact hconf x
+
+/-- Under the Gibbs measure of a confined energy, observables of polynomial growth have finite
+moments of every order. -/
+theorem memLp_of_poly_bound_of_confining {F : Type*} [NormedAddCommGroup F] {κ : ℝ} (hκ : 0 < κ)
+    {e : E → ℝ} (he : Measurable e) {A B : ℝ}
+    (hconf : ∀ x, e x ≤ A + B * ‖x‖ - κ * ‖x‖ ^ 2) {f : E → F}
+    (hf : AEStronglyMeasurable f μ) {C : ℝ} {m : ℕ} (hfb : ∀ x, ‖f x‖ ≤ C * (1 + ‖x‖) ^ m)
+    (p : ℝ≥0) : MemLp f p (μ.tilted e) := by
+  have hexp := integrable_exp_of_confining (μ := μ) hκ he hconf
+  have : IsProbabilityMeasure (μ.tilted e) := isProbabilityMeasure_tilted hexp
+  have hfm : AEStronglyMeasurable f (μ.tilted e) :=
+    hf.mono_ac (tilted_absolutelyContinuous _ _)
+  obtain ⟨k, hk⟩ := exists_nat_ge p
+  have hpk : (p : ℝ≥0∞) ≤ ((k + 1 : ℕ) : ℝ≥0∞) := by
+    exact_mod_cast hk.trans (Nat.cast_le.2 k.le_succ)
+  refine MemLp.mono_exponent ?_ hpk
+  refine (integrable_norm_rpow_iff hfm (by simp) (ENNReal.natCast_ne_top _)).1 ?_
+  simp only [ENNReal.toReal_natCast, Real.rpow_natCast]
+  rw [integrable_tilted_iff hexp]
+  refine ((integrable_one_add_norm_pow_mul_exp (μ := μ) hκ B (m * (k + 1))).const_mul
+    (Real.exp A * C ^ (k + 1))).mono' (he.exp.aestronglyMeasurable.smul (hf.norm.pow _))
+    (ae_of_all _ fun x => ?_)
+  rw [norm_smul, Real.norm_of_nonneg (Real.exp_pos _).le, norm_pow, norm_norm]
+  have h1 : Real.exp (e x) ≤ Real.exp A * Real.exp (B * ‖x‖ - κ * ‖x‖ ^ 2) := by
+    rw [← Real.exp_add, Real.exp_le_exp, ← add_sub_assoc]
+    exact hconf x
+  refine (mul_le_mul h1 (pow_le_pow_left₀ (norm_nonneg _) (hfb x) (k + 1)) (by positivity)
+    (by positivity)).trans_eq ?_
+  rw [mul_pow, ← pow_mul]
+  ring
 
 /-- Replica observables of polynomial growth are integrable for the replicated Gibbs measure of a
 confined energy. -/
 theorem integrable_pi_tilted_of_confining {κ : ℝ} (hκ : 0 < κ) {e : E → ℝ} (he : Measurable e)
     {A B : ℝ} (hconf : ∀ x, e x ≤ A + B * ‖x‖ - κ * ‖x‖ ^ 2) {Ψ : (R → E) → ℝ}
     (hΨ : Measurable Ψ) {C : ℝ} {m : ℕ} (hΨb : ∀ σ, |Ψ σ| ≤ C * ∏ i, (1 + ‖σ i‖) ^ m) :
-    Integrable Ψ (Measure.pi fun _ : R => volume.tilted e) := by
-  have hi : Integrable (fun σ : R → E => Real.exp (∑ i, e (σ i)))
-      (Measure.pi fun _ : R => volume) := by
-    simp_rw [Real.exp_sum]
-    exact Integrable.fintype_prod (f := fun _ : R => fun x : E => Real.exp (e x))
-      fun _ => integrable_exp_of_confining hκ he hconf
-  rw [pi_tilted_eq_tilted_pi, integrable_tilted_iff hi]
-  simpa only [smul_eq_mul, mul_comm] using
-    integrable_pi_mul_exp_of_confining hκ he hconf hΨ hΨb
+    Integrable Ψ (Measure.pi fun _ : R => μ.tilted e) := by
+  have : IsProbabilityMeasure (μ.tilted e) :=
+    isProbabilityMeasure_tilted (integrable_exp_of_confining (μ := μ) hκ he hconf)
+  have h1 : Integrable (fun x : E => (1 + ‖x‖) ^ m) (μ.tilted e) :=
+    (memLp_of_poly_bound_of_confining hκ he hconf (f := fun x : E => (1 + ‖x‖) ^ m)
+      (by fun_prop) (C := 1) (m := m)
+      (fun x => by rw [Real.norm_of_nonneg (by positivity), one_mul]) 1).integrable (by simp)
+  exact ((Integrable.fintype_prod (f := fun _ : R => fun x : E => (1 + ‖x‖) ^ m)
+    fun _ => h1).const_mul C).mono' hΨ.aestronglyMeasurable (ae_of_all _ hΨb)
+
+/-- Replica observables of polynomial growth have finite moments of every order for the
+replicated Gibbs measure of a confined energy. -/
+theorem memLp_pi_tilted_of_confining {κ : ℝ} (hκ : 0 < κ) {e : E → ℝ} (he : Measurable e)
+    {A B : ℝ} (hconf : ∀ x, e x ≤ A + B * ‖x‖ - κ * ‖x‖ ^ 2) {Ψ : (R → E) → ℝ}
+    (hΨ : Measurable Ψ) {C : ℝ} {m : ℕ} (hΨb : ∀ σ, |Ψ σ| ≤ C * ∏ i, (1 + ‖σ i‖) ^ m)
+    (p : ℝ≥0) : MemLp Ψ p (Measure.pi fun _ : R => μ.tilted e) := by
+  have : IsProbabilityMeasure (μ.tilted e) :=
+    isProbabilityMeasure_tilted (integrable_exp_of_confining (μ := μ) hκ he hconf)
+  obtain ⟨k, hk⟩ := exists_nat_ge p
+  have hpk : (p : ℝ≥0∞) ≤ ((k + 1 : ℕ) : ℝ≥0∞) := by
+    exact_mod_cast hk.trans (Nat.cast_le.2 k.le_succ)
+  refine MemLp.mono_exponent ?_ hpk
+  refine (integrable_norm_rpow_iff hΨ.aestronglyMeasurable (by simp)
+    (ENNReal.natCast_ne_top _)).1 ?_
+  simp only [ENNReal.toReal_natCast, Real.rpow_natCast, Real.norm_eq_abs]
+  refine integrable_pi_tilted_of_confining hκ he hconf
+    ((continuous_abs.measurable.comp hΨ).pow_const _) (C := C ^ (k + 1)) (m := m * (k + 1))
+    fun σ => ?_
+  rw [abs_pow, abs_abs]
+  refine (pow_le_pow_left₀ (abs_nonneg _) (hΨb σ) _).trans_eq ?_
+  rw [mul_pow, ← Finset.prod_pow]
+  exact congrArg _ (Finset.prod_congr rfl fun i _ => (pow_mul _ _ _).symm)
 
 /-- **Differentiation of a replica average under a confined energy.** Let the energies `e r` be
 bounded by `A + B ‖x‖ - κ ‖x‖²` with `κ > 0`, uniformly for `r` near `t`, with derivative of
@@ -132,11 +212,11 @@ theorem hasDerivAt_integral_pi_tilted_of_confining {κ : ℝ} (hκ : 0 < κ) {e 
     {C : ℝ} {m : ℕ} (hΨb : ∀ r ∈ s, ∀ σ, |Ψ r σ| ≤ C * ∏ i, (1 + ‖σ i‖) ^ m)
     (hΨ'b : ∀ r ∈ s, ∀ σ, |Ψ' r σ| ≤ C * ∏ i, (1 + ‖σ i‖) ^ m)
     (hΨd : ∀ σ, ∀ r ∈ s, HasDerivAt (fun q => Ψ q σ) (Ψ' r σ) r) :
-    HasDerivAt (fun r => ∫ σ, Ψ r σ ∂(Measure.pi fun _ : R => volume.tilted (e r)))
-      ((∫ σ, Ψ' t σ ∂(Measure.pi fun _ : R => volume.tilted (e t))) +
-        ((∫ σ, Ψ t σ * (∑ i, e' t (σ i)) ∂(Measure.pi fun _ : R => volume.tilted (e t))) -
-          (∫ σ, Ψ t σ ∂(Measure.pi fun _ : R => volume.tilted (e t))) *
-            ∫ σ, (∑ i, e' t (σ i)) ∂(Measure.pi fun _ : R => volume.tilted (e t)))) t := by
+    HasDerivAt (fun r => ∫ σ, Ψ r σ ∂(Measure.pi fun _ : R => μ.tilted (e r)))
+      ((∫ σ, Ψ' t σ ∂(Measure.pi fun _ : R => μ.tilted (e t))) +
+        ((∫ σ, Ψ t σ * (∑ i, e' t (σ i)) ∂(Measure.pi fun _ : R => μ.tilted (e t))) -
+          (∫ σ, Ψ t σ ∂(Measure.pi fun _ : R => μ.tilted (e t))) *
+            ∫ σ, (∑ i, e' t (σ i)) ∂(Measure.pi fun _ : R => μ.tilted (e t)))) t := by
   have ht : t ∈ s := mem_of_mem_nhds hs
   -- it suffices to treat a nonnegative constant
   obtain ⟨C, hC, hΨb, hΨ'b⟩ : ∃ C : ℝ, 1 ≤ C ∧
@@ -157,24 +237,18 @@ theorem hasDerivAt_integral_pi_tilted_of_confining {κ : ℝ} (hκ : 0 < κ) {e 
   -- the product of an observable with the replica sum of the energy derivatives
   have hPX : ∀ r ∈ s, ∀ Φ : (R → E) → ℝ, (∀ σ, |Φ σ| ≤ C * ∏ i, (1 + ‖σ i‖) ^ m) → ∀ σ,
       |Φ σ * ∑ i, e' r (σ i)| ≤
-        C * (L * Fintype.card R) * ∏ i, (1 + ‖σ i‖) ^ (m + n) := fun r hr Φ hΦ σ => by
-    have hQ : (∏ i, (1 + ‖σ i‖) ^ m) * ∏ i, (1 + ‖σ i‖) ^ n =
-        ∏ i, (1 + ‖σ i‖) ^ (m + n) := by
-      rw [← Finset.prod_mul_distrib]
-      exact Finset.prod_congr rfl fun i _ => (pow_add _ _ _).symm
-    rw [abs_mul, ← hQ]
-    refine (mul_le_mul (hΦ σ) (abs_sum_le_mul_prod_one_add_norm_pow (he'b r hr) σ)
-      (abs_nonneg _) ((abs_nonneg _).trans (hΦ σ))).trans_eq ?_
-    ring
+        C * (L * Fintype.card R) * ∏ i, (1 + ‖σ i‖) ^ (m + n) := fun r hr Φ hΦ σ =>
+    abs_mul_le_mul_prod_one_add_norm_pow (hΦ σ)
+      (abs_sum_le_mul_prod_one_add_norm_pow (he'b r hr) σ)
   -- differentiate an unnormalized integral
   have hnum : ∀ (Φ Φ' : ℝ → (R → E) → ℝ), (∀ r ∈ s, Measurable (Φ r)) → Measurable (Φ' t) →
       (∀ r ∈ s, ∀ σ, |Φ r σ| ≤ C * ∏ i, (1 + ‖σ i‖) ^ m) →
       (∀ r ∈ s, ∀ σ, |Φ' r σ| ≤ C * ∏ i, (1 + ‖σ i‖) ^ m) →
       (∀ σ, ∀ r ∈ s, HasDerivAt (fun q => Φ q σ) (Φ' r σ) r) →
       HasDerivAt (fun r => ∫ σ, Φ r σ * Real.exp (∑ i, e r (σ i))
-          ∂(Measure.pi fun _ : R => volume))
+          ∂(Measure.pi fun _ : R => μ))
         (∫ σ, (Φ' t σ + Φ t σ * ∑ i, e' t (σ i)) * Real.exp (∑ i, e t (σ i))
-          ∂(Measure.pi fun _ : R => volume)) t := by
+          ∂(Measure.pi fun _ : R => μ)) t := by
     intro Φ Φ' hΦ hΦ' hΦb hΦ'b hΦd
     set K : ℝ := C * (1 + L * Fintype.card R) with hK
     have hbd : ∀ r ∈ s, ∀ σ : R → E, |Φ' r σ + Φ r σ * ∑ i, e' r (σ i)| ≤
@@ -189,10 +263,10 @@ theorem hasDerivAt_integral_pi_tilted_of_confining {κ : ℝ} (hκ : 0 < κ) {e 
       ring
     have hbi : Integrable (fun σ : R → E => ∏ i, Real.exp A *
         ((1 + ‖σ i‖) ^ (m + n) * Real.exp (B * ‖σ i‖ - κ * ‖σ i‖ ^ 2)))
-        (Measure.pi fun _ : R => volume) :=
+        (Measure.pi fun _ : R => μ) :=
       Integrable.fintype_prod (f := fun _ : R => fun x : E =>
         Real.exp A * ((1 + ‖x‖) ^ (m + n) * Real.exp (B * ‖x‖ - κ * ‖x‖ ^ 2)))
-        fun _ => (integrable_one_add_norm_pow_mul_exp hκ B (m + n)).const_mul _
+        fun _ => (integrable_one_add_norm_pow_mul_exp (μ := μ) hκ B (m + n)).const_mul _
     refine (hasDerivAt_integral_of_dominated_loc_of_deriv_le
       (F := fun r σ => Φ r σ * Real.exp (∑ i, e r (σ i)))
       (F' := fun r σ => (Φ' r σ + Φ r σ * ∑ i, e' r (σ i)) * Real.exp (∑ i, e r (σ i)))
@@ -203,12 +277,7 @@ theorem hasDerivAt_integral_pi_tilted_of_confining {κ : ℝ} (hκ : 0 < κ) {e 
       ((hΦ'.add ((hΦ t ht).mul hXm)).mul (hem t ht)).aestronglyMeasurable
       (ae_of_all _ fun σ r hr => ?_) (hbi.const_mul K)
       (ae_of_all _ fun σ r hr => ?_)).2
-    · rw [Real.norm_eq_abs, abs_mul, abs_of_pos (Real.exp_pos _)]
-      refine (mul_le_mul (hbd r hr σ) (exp_sum_le_prod_of_confining (hconf r hr) σ)
-        (Real.exp_pos _).le ((abs_nonneg _).trans (hbd r hr σ))).trans_eq ?_
-      rw [mul_assoc, ← Finset.prod_mul_distrib]
-      congr 1
-      exact Finset.prod_congr rfl fun i _ => by ring
+    · exact abs_mul_exp_sum_le_of_confining (hconf r hr) (hbd r hr σ)
     · have h1 : HasDerivAt (fun q => ∑ i, e q (σ i)) (∑ i, e' r (σ i)) r :=
         HasDerivAt.fun_sum fun i _ => hd (σ i) r hr
       exact ((hΦd σ r hr).mul h1.exp).congr_deriv (by ring)
@@ -223,15 +292,15 @@ theorem hasDerivAt_integral_pi_tilted_of_confining {κ : ℝ} (hκ : 0 < κ) {e 
       exact mul_nonneg hC0 (by positivity))
     (fun σ r _ => hasDerivAt_const r 1)
   simp only [one_mul, zero_add] at hD
-  have hZ : (0 : ℝ) < ∫ σ, Real.exp (∑ i, e t (σ i)) ∂(Measure.pi fun _ : R => volume) := by
-    rw [integral_pi_exp_sum (μ := (volume : Measure E))]
+  have hZ : (0 : ℝ) < ∫ σ, Real.exp (∑ i, e t (σ i)) ∂(Measure.pi fun _ : R => μ) := by
+    rw [integral_pi_exp_sum (μ := μ)]
     exact pow_pos (integral_exp_pos
-      (integrable_exp_of_confining hκ (he t ht) (hconf t ht))) _
+      (integrable_exp_of_confining (μ := μ) hκ (he t ht) (hconf t ht))) _
   have hI1 : Integrable (fun σ => Ψ' t σ * Real.exp (∑ i, e t (σ i)))
-      (Measure.pi fun _ : R => volume) :=
+      (Measure.pi fun _ : R => μ) :=
     integrable_pi_mul_exp_of_confining hκ (he t ht) (hconf t ht) hΨ' (hΨ'b t ht)
   have hI2 : Integrable (fun σ => (Ψ t σ * ∑ i, e' t (σ i)) * Real.exp (∑ i, e t (σ i)))
-      (Measure.pi fun _ : R => volume) :=
+      (Measure.pi fun _ : R => μ) :=
     integrable_pi_mul_exp_of_confining hκ (he t ht) (hconf t ht) ((hΨ t ht).mul hXm)
       (hPX t ht _ (hΨb t ht))
   have hsplit := integral_add hI1 hI2
@@ -255,35 +324,22 @@ theorem hasDerivAt_integral_pi_tilted_of_confining_replicaDiff {κ : ℝ} (hκ :
     {C : ℝ} {m : ℕ} (hΨb : ∀ r ∈ s, ∀ σ, |Ψ r σ| ≤ C * ∏ i, (1 + ‖σ i‖) ^ m)
     (hΨ'b : ∀ r ∈ s, ∀ σ, |Ψ' r σ| ≤ C * ∏ i, (1 + ‖σ i‖) ^ m)
     (hΨd : ∀ σ, ∀ r ∈ s, HasDerivAt (fun q => Ψ q σ) (Ψ' r σ) r) :
-    HasDerivAt (fun r => ∫ σ, Ψ r σ ∂(Measure.pi fun _ : R => volume.tilted (e r)))
-      ((∫ σ, Ψ' t σ ∂(Measure.pi fun _ : R => volume.tilted (e t))) +
-        replicaDiff (volume.tilted (e t)) (Ψ t) (e' t)) t := by
+    HasDerivAt (fun r => ∫ σ, Ψ r σ ∂(Measure.pi fun _ : R => μ.tilted (e r)))
+      ((∫ σ, Ψ' t σ ∂(Measure.pi fun _ : R => μ.tilted (e t))) +
+        replicaDiff (μ.tilted (e t)) (Ψ t) (e' t)) t := by
   have ht : t ∈ s := mem_of_mem_nhds hs
   refine (hasDerivAt_integral_pi_tilted_of_confining hκ hs he he' hconf he'b hd hΨ hΨ' hΨb
     hΨ'b hΨd).congr_deriv ?_
-  have : IsProbabilityMeasure (volume.tilted (e t)) :=
-    isProbabilityMeasure_tilted (integrable_exp_of_confining hκ (he t ht) (hconf t ht))
-  have hh : Integrable (e' t) (volume.tilted (e t)) := by
-    have h := integrable_pi_tilted_of_confining (R := Unit) hκ (he t ht) (hconf t ht)
-      (Ψ := fun σ => e' t (σ ())) (he'.comp (measurable_pi_apply _)) (C := L) (m := n)
-      fun σ => by simpa using he'b t ht (σ ())
-    exact (measurePreserving_eval (fun _ : Unit => volume.tilted (e t)) ()).integrable_comp
-      he'.aestronglyMeasurable |>.1 h
+  have : IsProbabilityMeasure (μ.tilted (e t)) :=
+    isProbabilityMeasure_tilted (integrable_exp_of_confining (μ := μ) hκ (he t ht) (hconf t ht))
+  have hh : Integrable (e' t) (μ.tilted (e t)) :=
+    (memLp_of_poly_bound_of_confining hκ (he t ht) (hconf t ht) he'.aestronglyMeasurable
+      (he'b t ht) 1).integrable (by simp)
   have hFI : ∀ i : R, Integrable (fun σ => Ψ t σ * e' t (σ i))
-      (Measure.pi fun _ : R => volume.tilted (e t)) := fun i => by
-    refine integrable_pi_tilted_of_confining hκ (he t ht) (hconf t ht)
-      (C := C * L) (m := m + n) ((hΨ t ht).mul (he'.comp (measurable_pi_apply i))) fun σ => ?_
-    have hL : 0 ≤ L := by simpa using (abs_nonneg _).trans (he'b t ht 0)
-    rw [abs_mul]
-    refine (mul_le_mul (hΨb t ht σ) ((he'b t ht (σ i)).trans
-      (mul_le_mul_of_nonneg_left (one_add_norm_pow_le_prod σ n i) hL)) (abs_nonneg _)
-      ((abs_nonneg _).trans (hΨb t ht σ))).trans_eq ?_
-    have hQ : ∏ j, (1 + ‖σ j‖) ^ (m + n) =
-        (∏ j, (1 + ‖σ j‖) ^ m) * ∏ j, (1 + ‖σ j‖) ^ n := by
-      rw [← Finset.prod_mul_distrib]
-      exact Finset.prod_congr rfl fun j _ => pow_add _ _ _
-    rw [hQ]
-    ring
+      (Measure.pi fun _ : R => μ.tilted (e t)) := fun i =>
+    integrable_pi_tilted_of_confining hκ (he t ht) (hconf t ht)
+      ((hΨ t ht).mul (he'.comp (measurable_pi_apply i))) fun σ =>
+        abs_mul_le_mul_prod_one_add_norm_pow (hΨb t ht σ) (abs_comp_eval_le_prod (he'b t ht) σ i)
   rw [integral_pi_cov_sum_eq_sum_sub_fresh_of_integrable _ _
     (hΨ t ht).aestronglyMeasurable _ hh hFI]
 

@@ -6,6 +6,8 @@ Authors: LML Contributors
 module
 
 public import Mathlib.MeasureTheory.Measure.Tilted
+public import Mathlib.Analysis.SpecialFunctions.JapaneseBracket
+public import LeanMachineLearning.ForMathlib.Analysis.Convex.Integral
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.BoundedTilted
 public import LeanMachineLearning.ForMathlib.Probability.StdGaussianRadial
 
@@ -18,7 +20,8 @@ Integrals against `exp (-b ‖v‖² + ⟪a, v⟫)` on a finite-dimensional real
 
 * `integrable_exp_neg_mul_sq_norm_add_inner`, `integral_exp_neg_mul_sq_norm_add_inner`:
   the Gaussian integral with a linear term.
-* `integrable_one_add_norm_pow_mul_exp`: polynomials are integrable against a confining weight.
+* `integrable_one_add_norm_pow_mul_exp`: polynomials are integrable against a confining weight,
+  on any finite-dimensional real normed space.
 * `integral_mul_exp_neg_mul_sq_norm`: the weight `exp (-b ‖v‖²)` is a rescaled standard Gaussian.
 * `integral_abs_inner_stdGaussian_le`: `𝔼 |⟪a, z⟫| ≤ ‖a‖`.
 * `integral_tilted_restrict_neg_half_sq_norm`: conditioning a standard Gaussian on a set.
@@ -36,6 +39,34 @@ Integrals against `exp (-b ‖v‖² + ⟪a, v⟫)` on a finite-dimensional real
 
 open MeasureTheory ProbabilityTheory Module
 open scoped RealInnerProductSpace Real
+
+/-- A polynomial times the exponential of a confining quadratic is integrable for a Haar measure
+on a finite-dimensional real normed space. -/
+theorem integrable_one_add_norm_pow_mul_exp {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F]
+    [FiniteDimensional ℝ F] [MeasurableSpace F] [BorelSpace F] {μ : Measure F}
+    [μ.IsAddHaarMeasure] {κ : ℝ} (hκ : 0 < κ) (B : ℝ) (n : ℕ) :
+    Integrable (fun x : F => (1 + ‖x‖) ^ n * Real.exp (B * ‖x‖ - κ * ‖x‖ ^ 2)) μ := by
+  set d : ℕ := finrank ℝ F + 1 with hd
+  have hbase : Integrable (fun x : F => (1 + ‖x‖) ^ (-(d : ℝ))) μ :=
+    integrable_one_add_norm (by rw [hd]; exact_mod_cast Nat.lt_succ_self _)
+  refine (hbase.const_mul (Real.exp ((B + (n + d : ℕ)) ^ 2 / (4 * κ)))).mono'
+    (by fun_prop : Continuous fun x : F =>
+      (1 + ‖x‖) ^ n * Real.exp (B * ‖x‖ - κ * ‖x‖ ^ 2)).aestronglyMeasurable
+    (ae_of_all _ fun x => ?_)
+  have h0 : (0 : ℝ) < 1 + ‖x‖ := by positivity
+  rw [Real.norm_of_nonneg (by positivity), Real.rpow_neg h0.le, Real.rpow_natCast,
+    ← div_eq_mul_inv, le_div_iff₀ (pow_pos h0 _), mul_right_comm, ← pow_add]
+  have h1 : (1 + ‖x‖) ^ (n + d) ≤ Real.exp ((n + d : ℕ) * ‖x‖) := by
+    rw [Real.exp_nat_mul]
+    exact pow_le_pow_left₀ h0.le (by linarith [Real.add_one_le_exp ‖x‖]) _
+  refine (mul_le_mul_of_nonneg_right h1 (Real.exp_pos _).le).trans ?_
+  rw [← Real.exp_add, Real.exp_le_exp]
+  have h2 : 0 ≤ (2 * κ * ‖x‖ - (B + (n + d : ℕ))) ^ 2 / (4 * κ) := by positivity
+  have h3 : (2 * κ * ‖x‖ - (B + (n + d : ℕ))) ^ 2 / (4 * κ) =
+      κ * ‖x‖ ^ 2 - (B + (n + d : ℕ)) * ‖x‖ + (B + (n + d : ℕ)) ^ 2 / (4 * κ) := by
+    field_simp
+    ring
+  linarith
 
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [FiniteDimensional ℝ E]
   [MeasurableSpace E] [BorelSpace E]
@@ -56,28 +87,6 @@ theorem integrable_exp_neg_mul_sq_norm_add_inner {b : ℝ} (hb : 0 < b) (a : E) 
     (by simpa using hb) 1 a
   refine h.re.congr (ae_of_all _ fun v => ?_)
   exact (congrArg Complex.re (cexp_neg_mul_sq_norm_add_inner b a v)).trans (Complex.ofReal_re _)
-
-/-- A polynomial times the exponential of a confining quadratic is integrable. -/
-theorem integrable_one_add_norm_pow_mul_exp {κ : ℝ} (hκ : 0 < κ) (B : ℝ) (n : ℕ) :
-    Integrable fun x : E => (1 + ‖x‖) ^ n * Real.exp (B * ‖x‖ - κ * ‖x‖ ^ 2) := by
-  have hbase := integrable_exp_neg_mul_sq_norm_add_inner (E := E) (half_pos hκ) 0
-  simp only [inner_zero_left, add_zero] at hbase
-  refine (hbase.const_mul (Real.exp ((B + n) ^ 2 / (2 * κ)))).mono'
-    (by fun_prop : Continuous fun x : E =>
-      (1 + ‖x‖) ^ n * Real.exp (B * ‖x‖ - κ * ‖x‖ ^ 2)).aestronglyMeasurable
-    (ae_of_all _ fun x => ?_)
-  rw [Real.norm_of_nonneg (by positivity), ← Real.exp_add]
-  have h1 : (1 + ‖x‖) ^ n ≤ Real.exp (n * ‖x‖) := by
-    rw [Real.exp_nat_mul]
-    exact pow_le_pow_left₀ (by positivity) (by linarith [Real.add_one_le_exp ‖x‖]) n
-  refine (mul_le_mul_of_nonneg_right h1 (Real.exp_pos _).le).trans ?_
-  rw [← Real.exp_add, Real.exp_le_exp]
-  have h2 : 0 ≤ (κ * ‖x‖ - (B + n)) ^ 2 / (2 * κ) := by positivity
-  have h3 : (κ * ‖x‖ - (B + n)) ^ 2 / (2 * κ) =
-      κ / 2 * ‖x‖ ^ 2 - (B + n) * ‖x‖ + (B + n) ^ 2 / (2 * κ) := by
-    field_simp
-    ring
-  linarith
 
 /-- **Gaussian integral with a linear term:**
 `∫ exp (-b ‖v‖² + ⟪a, v⟫) = (π / b) ^ (d / 2) exp (‖a‖² / (4 b))`. -/
@@ -151,10 +160,9 @@ theorem integral_abs_inner_stdGaussian_le (a : E) :
     simpa only [hLz] using hv
   have habs : MemLp (fun z => |⟪a, z⟫|) 2 (stdGaussian E) := by
     simpa only [Real.norm_eq_abs, hLz] using hmem.norm
-  have hvar := variance_nonneg (fun z => |⟪a, z⟫|) (stdGaussian E)
-  rw [variance_eq_sub habs] at hvar
-  simp only [Pi.pow_apply, sq_abs, h2] at hvar
-  exact le_of_sq_le_sq (by linarith) (norm_nonneg a)
+  have h := sq_norm_integral_le_integral_sq_norm habs
+  simp only [Real.norm_eq_abs, sq_abs, h2] at h
+  exact le_of_sq_le_sq h (norm_nonneg a)
 
 /-- **Conditioning a standard Gaussian on a measurable set** is the probability measure with
 density proportional to `exp (-‖v‖² / 2)` on that set. -/
