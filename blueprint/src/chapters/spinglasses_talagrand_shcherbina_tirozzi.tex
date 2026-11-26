@@ -53,11 +53,11 @@ functions replace $U,V$ by measurable minorants and $W$ by a measurable majorant
 Formalized in \texttt{ForMathlib/Analysis/Convex/PrekopaLeindler.lean}.
 \end{proof}
 
-\begin{remark}[Difference from the printed proof of Theorem~3.1.3]\label{rem:sg-tal:st-prekopa-method}
+\begin{remark}[The printed proof of Theorem~3.1.3]\label{rem:sg-tal:st-prekopa-method}
 \talsource{Appendix~A.15}
 For $N=1$ the book uses a monotone transport of $U$ onto $V$, for continuous positive functions,
-and reduces the general case to this one ``by approximation'' without saying how the pointwise hypothesis is preserved. The
-formalization uses the one-dimensional sumset inequality and super-level sets instead (Steps~1--3). The
+and reduces the general case to this one ``by approximation'' without saying how the pointwise
+hypothesis is preserved. The formalization uses the one-dimensional sumset inequality and super-level sets instead (Steps~1--3). The
 heading of Appendix~A.15 says Theorem~3.1.4; the appendix proves Theorem~3.1.3.
 \end{remark}
 
@@ -122,7 +122,7 @@ states integrability as part of its conclusion.
         MeasureTheory.memLp_two_of_lipschitz}
   \leanok
   \uses{thm:sg-tal:st-prekopa-leindler, lem:sg-tal:st-centering}
-\talsource{Theorem~3.1.4, Eqs.~(3.14)--(3.19) and (3.21)}
+\talsource{Theorem~3.1.4}
 Fix a normed space $E$ of finite real dimension, an additive Haar measure on it, a convex measurable
 set $C\subset E$ of positive measure, and a measurable function $H$ with $e^{-H}$ integrable on $C$ and, for $x,y\in C$,
 \[
@@ -162,7 +162,7 @@ Formalized in \texttt{ForMathlib/Probability/Moments/LogConcaveConcentration.lea
   \lean{MeasureTheory.integral_pow_le_of_integral_exp_le}
   \leanok
   \uses{lem:sg-tal:st-centering}
-\talsource{Lemma~3.1.8, Eq.~(3.29)}
+\talsource{Lemma~3.1.8}
 Let $X$ be an a.e.\ nonnegative random variable such that $\mathbb Ee^X\le e^C$. Then $X^k$ is integrable and
 $\mathbb EX^k\le2^k(k^k+C^k)$ for every $k$. The inequality $C\ge0$ follows from the hypotheses.
 \end{lemma}
@@ -529,11 +529,38 @@ $x_0$, where $v'(x_0)=x_0$. Since $v'$ is nonincreasing, Step~2 applies with $c=
 most the second moment around $x_0$.
 \end{proof}
 
+\begin{lemma}[The inequality $\bar r\le r$]\label{lem:sg-tal:st-rbar-le-r}
+  \lean{ProbabilityTheory.integral_deriv_two_add_sq_mul_exp_div_le_sq,
+        ProbabilityTheory.integral_deriv_two_add_sq_div_le_integral_sq_div}
+  \leanok
+  \uses{lem:sg-tal:st-mode-variance}
+\talsource{Lemma~3.2.3}
+Let $u\le0$ be concave and twice differentiable with $|u'|\le D$ and $|u''|\le D_2$, and let $\xi$ be a
+standard Gaussian. Put $\theta=a+c\,\xi$ and
+\[
+Z=\mathbb E\,e^{u(\theta)},\qquad A=\mathbb E\,u'(\theta)e^{u(\theta)},\qquad
+K=\mathbb E\,\bigl(u''(\theta)+u'(\theta)^2\bigr)e^{u(\theta)} .
+\]
+Then $K/Z\le(A/Z)^2$ for all real $a,c$. Consequently, if $a=a(\omega)$ is a measurable function on a finite
+measure space, both $K/Z$ and $(A/Z)^2$ are integrable and $\int K/Z\le\int(A/Z)^2$. With $a=z\sqrt q$,
+$c=\sqrt{\rho-q}$ this is $\bar r\le r$.
+\end{lemma}
+\begin{proof}
+  \leanok
+  \uses{lem:sg-tal:st-mode-variance}
+For $c=0$ the claim reads $u''(a)+u'(a)^2\le u'(a)^2$, which holds by concavity. For $c\ne0$, apply the
+variance bound of Lemma~\ref{lem:sg-tal:st-mode-variance} to $v(\xi)=u(a+c\xi)$ and integrate by parts twice:
+$\mathbb E\,\xi e^{v}=cA$ and $\mathbb E\,\xi^2e^{v}=Z+c^2K$, so the variance bound
+$\mathbb E\,\xi^2e^v/Z-(\mathbb E\,\xi e^v/Z)^2\le1$ becomes $c^2\bigl(K/Z-(A/Z)^2\bigr)\le0$. Both ratios are
+bounded, so integrating in $\omega$ preserves the inequality.
+\end{proof}
+
 \begin{remark}[Differences from Lemmas~3.2.2, 3.2.3 and 3.2.5]\label{rem:sg-tal:st-rs-tools-diff}
 \talsource{Section~3.2}
 Lemma~3.2.2 assumes $w''\le-c<0$; the formal statement assumes only the one-sided inequality which the
-book's proof derives from it, and needs no second derivative. Lemma~3.2.3 is stated as the variance bound
-equivalent to (3.73); the inequality $\bar r\le r$ itself is not formalized yet. Of Lemma~3.2.5 the concavity
+book's proof derives from it, and needs no second derivative. Lemma~3.2.3 is stated both as the variance
+bound equivalent to (3.73) and as the inequality $\bar r\le r$, which is also valid when $\rho=q$ and does not
+need the integration-by-parts forms (3.67)--(3.68) of $\Psi$ and $\bar\Psi$. Of Lemma~3.2.5 the concavity
 statement is formalized, in a general form; the description of the law of $\sigma_N$ is not.
 \end{remark}
 
@@ -551,11 +578,354 @@ Complete the square in the Gaussian density and use the Gaussian moments.
 \end{proof}
 
 \begin{remark}[Research Problem~3.1.2]\label{rem:sg-tal:st-problem-312}
-\talsource{Research Problem~3.1.2, Eq.~(3.10)}
+\talsource{Eq.~(3.10)}
 \emph{Not formalized.} The book asks to compute, under the conditions of Theorem~3.1.1 and as
 $N\to\infty$ with $M/N\to\alpha$, the limit of
 \[
 \frac1N\,\mathbb E\log\int e^{-H_{N,M}(\sigma)}\,d\sigma .
 \]
 It is an open problem in the book and has no Lean statement.
+\end{remark}
+
+\section{Replica-symmetric solutions (Talagrand Section~3.3)}
+\label{sec:sg-tal:st-rs-bounds}
+
+This section proves Lemmas~3.3.7--3.3.10, Proposition~3.3.3, Lemma~3.3.13, Proposition~3.3.11,
+Corollary~3.3.12 and the uniqueness part of Theorem~3.3.1. The existence part of Theorem~3.3.1,
+Corollary~3.3.4, Lemmas~3.3.5 and~3.3.6 and the free-energy formula (Theorem~3.3.2) are not formalized yet.
+Throughout, $\xi$ is a standard Gaussian, $p(v)=e^{-v^2/2}/\sqrt{2\pi}$ and
+$T(v)=\mathbb P(\xi\ge v)$.
+
+\begin{lemma}[The inverse Mills ratio]\label{lem:sg-tal:st-mills}
+  \lean{ProbabilityTheory.integrable_mul_gaussianPDFReal_of_integrable,
+        ProbabilityTheory.setIntegral_Ici_gaussianReal,
+        ProbabilityTheory.measureReal_gaussianReal_Ici,
+        ProbabilityTheory.measureReal_gaussianReal_Ici_pos,
+        ProbabilityTheory.integral_Ioi_id_mul_gaussianPDFReal,
+        ProbabilityTheory.integral_Ioi_sq_mul_gaussianPDFReal,
+        ProbabilityTheory.mul_measureReal_gaussianReal_Ici_le,
+        ProbabilityTheory.mul_gaussianPDFReal_le_one_add_sq_mul,
+        ProbabilityTheory.hasDerivAt_measureReal_gaussianReal_Ici,
+        ProbabilityTheory.hasDerivAt_gaussianPDFReal_div_measureReal_Ici}
+  \leanok
+\talsource{Lemma~3.3.7}
+For every real $v$ one has $T(v)>0$,
+\[
+\int_v^\infty tp(t)\,dt=p(v),\qquad\int_v^\infty t^2p(t)\,dt=vp(v)+T(v),
+\]
+\[
+v\,T(v)\le p(v),\qquad v\,p(v)\le(1+v^2)\,T(v),\qquad T'(v)=-p(v),
+\]
+and the ratio $A=p/T$ satisfies $A'=A^2-vA\ge0$.
+\end{lemma}
+\begin{proof}
+  \leanok
+The two integrals follow from $p'(t)=-tp(t)$ and integration by parts. Then
+$vT(v)\le\int_v^\infty tp=p(v)$, and expanding
+$0\le\int_v^\infty(t-v)^2p(t)\,dt=(1+v^2)T(v)-vp(v)$ gives the second inequality. The derivative of $T$ is the
+fundamental theorem of calculus, and the quotient rule gives $A'=A^2-vA=A(A-v)$, which is nonnegative because
+$A\ge0$ and $A\ge v$.
+\end{proof}
+
+\begin{lemma}[A ratio of Gaussian integrals]\label{lem:sg-tal:st-ratio}
+  \lean{ProbabilityTheory.exists_sq_integral_id_mul_exp_div_le}
+  \leanok
+  \uses{lem:sg-tal:st-mills}
+\talsource{Lemma~3.3.8}
+There is a universal constant $L$ such that for every nondecreasing $v\le0$ which vanishes on $[Y,\infty)$,
+\[
+\left(\frac{\mathbb E\,\xi e^{v(\xi)}}{\mathbb E\,e^{v(\xi)}}\right)^2\le\max(Y,0)^2+L .
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+  \uses{lem:sg-tal:st-mills}
+Write $N$ and $Z$ for the numerator and the denominator. Since $e^v-e^{v(0)}$ has the sign of $\xi$,
+$N\ge0$. If $Y\ge1$, set $U=\mathbb E\,\mathbf 1_{\{\xi<Y\}}e^{v(\xi)}$. Then $N\le YU+p(Y)$ and $Z=U+T(Y)$,
+and Lemma~\ref{lem:sg-tal:st-mills} gives $p(Y)\le(Y+1/Y)T(Y)$; hence $N/Z\le Y+1/Y$ and
+$(N/Z)^2\le Y^2+3$. If $Y\le1$, then $N\le\mathbb E|\xi|\le1$ and $Z\ge T(1)$, so $(N/Z)^2\le T(1)^{-2}$.
+Take $L=\max(3,T(1)^{-2})$.
+\end{proof}
+
+\begin{lemma}[The negative half-line]\label{lem:sg-tal:st-half-line}
+  \lean{ProbabilityTheory.continuous_integral_min_sub_zero_sq,
+        ProbabilityTheory.integral_min_zero_sq_of_map_neg_eq,
+        ProbabilityTheory.integral_min_zero_sq_gaussianReal,
+        ProbabilityTheory.neg_integral_id_mul_le_sqrt}
+  \leanok
+\talsource{Lemma~3.3.9}
+Let $\mu$ be a finite measure on $\mathbb R$ with a finite second moment.
+\begin{enumerate}
+\item $b\mapsto\int\min(z-b,0)^2\,d\mu(z)$ is continuous.
+\item If $\mu$ is symmetric, $\int\min(z,0)^2\,d\mu=\tfrac12\int z^2\,d\mu$; for the standard Gaussian the value
+is $\tfrac12$.
+\item For $V\ge0$ in $L^2(\mu)$,
+$-\int zV(z)\,d\mu\le\bigl(\int\min(z,0)^2d\mu\cdot\int V^2d\mu\bigr)^{1/2}$
+(here $\mu$ need not be finite).
+\end{enumerate}
+\end{lemma}
+\begin{proof}
+  \leanok
+(1) Dominated convergence, the integrand being at most $(|z|+|b_0|+1)^2$ for $b$ near $b_0$. (2) Split
+$z^2=\min(z,0)^2+\min(-z,0)^2$ and use symmetry. (3) Since $V\ge0$ and $-z\le-\min(z,0)$, we have
+$-\int zV\le\int(-\min(z,0))V$; apply the Cauchy--Schwarz inequality.
+\end{proof}
+
+\begin{lemma}[Gaussian smoothing of a potential]\label{lem:sg-tal:st-smoothing}
+  \lean{ProbabilityTheory.integrable_mul_exp_comp_add_gaussianReal,
+        ProbabilityTheory.integral_exp_comp_add_gaussianReal_pos,
+        ProbabilityTheory.abs_integral_mul_exp_comp_add_div_le,
+        ProbabilityTheory.measurable_integral_mul_exp_comp_add_gaussianReal,
+        ProbabilityTheory.hasDerivAt_integral_mul_exp_comp_add_gaussianReal,
+        ProbabilityTheory.hasDerivAt_log_integral_exp_comp_add_gaussianReal,
+        ProbabilityTheory.exists_sq_mul_integral_deriv_mul_exp_div_le}
+  \leanok
+  \uses{lem:sg-tal:st-ratio}
+\talsource{Lemma~3.3.10}
+Let $u\le0$ be differentiable with $|u'|\le D$, let $c$ be real, and let $Z(x),A(x),K(x)$ be as in
+Lemma~\ref{lem:sg-tal:st-rbar-le-r} with $\theta=x+c\,\xi$.
+\begin{enumerate}
+\item $Z>0$; for a bounded measurable $f$ the ratio $\mathbb E[f(\theta)e^{u(\theta)}]/Z$ is bounded by
+$\sup|f|$, and its numerator is measurable in any measurable shift.
+\item If $f$ is differentiable with $f$ and $f'$ bounded, then
+$\frac{d}{dx}\mathbb E[f(\theta)e^{u(\theta)}]=\mathbb E[(f'+fu')(\theta)e^{u(\theta)}]$.
+\item If moreover $u'$ is differentiable with $u''$ bounded, then $v=\log Z$ satisfies $v'=A/Z$ and
+$v''=(A/Z)'=K/Z-(A/Z)^2$.
+\item There is a universal constant $L$ such that, if $c>0$, $u$ is nondecreasing and $u=0$ on
+$[\tau,\infty)$, then for every $x$
+\[
+\Bigl(c\,\frac{A(x)}{Z(x)}\Bigr)^2\le\max\Bigl(\frac{\tau-x}{c},0\Bigr)^2+L .
+\]
+\end{enumerate}
+\end{lemma}
+\begin{proof}
+  \leanok
+  \uses{lem:sg-tal:st-ratio}
+(1) uses $0<e^{u}\le1$ and Fubini's theorem. (2) is differentiation under the integral sign with a constant
+dominating function. (3) applies (2) to $f=1$ and $f=u'$, then the chain and quotient rules. (4) Integration by
+parts gives $\mathbb E\,\xi e^{u(x+c\xi)}=c\,A(x)$; apply Lemma~\ref{lem:sg-tal:st-ratio} to
+$v(\xi)=u(x+c\xi)$, which vanishes for $\xi\ge(\tau-x)/c$.
+\end{proof}
+
+\begin{theorem}[A priori bounds]\label{thm:sg-tal:st-rs-bounds}
+  \lean{ConcaveOn.deriv_nonneg_of_forall_ge_eq,
+        SpinGlasses.exists_bound_of_shcherbinaTirozzi_replicaSymmetric_equations}
+  \leanok
+  \uses{lem:sg-tal:st-rbar-le-r, lem:sg-tal:st-half-line, lem:sg-tal:st-smoothing}
+\talsource{Proposition~3.3.3}
+Let $0<\kappa_0$, $\kappa_1$, $\alpha_0<2$, $h_0$ and $\tau\ge0$. There is a constant $C$, depending only on
+these numbers, with the following property. Let $0\le\alpha\le\alpha_0$, $\kappa_0\le\kappa\le\kappa_1$,
+$|h|\le h_0$ and $0\le q<\rho$; let $u\le0$ be concave, twice differentiable with bounded $u'$ and $u''$, and
+$u=0$ on $[\tau,\infty)$. With $\theta=z\sqrt q+\xi\sqrt{\rho-q}$ set
+\[
+r=\alpha\,\mathbb E_z\Bigl(\frac{\mathbb E_\xi u'(\theta)e^{u(\theta)}}{\mathbb E_\xi e^{u(\theta)}}\Bigr)^2,\qquad
+\bar r=\alpha\,\mathbb E_z\frac{\mathbb E_\xi(u''+u'^2)(\theta)e^{u(\theta)}}{\mathbb E_\xi e^{u(\theta)}} .
+\]
+If
+\[
+\rho=\frac1{2\kappa+r-\bar r}+\frac{r+h^2}{(2\kappa+r-\bar r)^2},\qquad
+q=\frac{r+h^2}{(2\kappa+r-\bar r)^2},
+\]
+then $q\le C$, $\rho\le C$ and $(\rho-q)^{-1}\le C$.
+\end{theorem}
+\begin{proof}
+  \leanok
+  \uses{lem:sg-tal:st-rbar-le-r, lem:sg-tal:st-half-line, lem:sg-tal:st-smoothing}
+Put $s=\rho-q$, $V(y)=A(y)/Z(y)$ and $W(y)=K(y)/Z(y)$ with $c=\sqrt s$. A concave function which is constant on
+a half-line is nondecreasing, so $u'\ge0$ and $V\ge0$; moreover $V'=W-V^2$,
+$r=\alpha\,\mathbb E\,V(z\sqrt q)^2$ and $\bar r=\alpha\,\mathbb E\,W(z\sqrt q)$. By
+Lemma~\ref{lem:sg-tal:st-rbar-le-r}, $\bar r\le r$. The two equations give $s^{-1}=2\kappa+r-\bar r\ge2\kappa$,
+so $s\le(2\kappa_0)^{-1}$, and $q=(r+h^2)s^2\ge rs^2$.
+
+\emph{Step 1: $s^{-1}$.} We claim $r-\bar r\le\sqrt{\alpha/2}\,s^{-1}$. This is clear if $\alpha=0$. If
+$\alpha>0$ and $q=0$, then $r=0$, so $V(0)=0$ is a minimum of $V$ and $W(0)=V'(0)=0$; hence $\bar r=0$. If
+$q>0$, integration by parts in $z$ gives
+\[
+r-\bar r=-\frac{\alpha}{\sqrt q}\,\mathbb E\,zV(z\sqrt q)
+\le\frac{\alpha}{\sqrt q}\Bigl(\tfrac12\,\mathbb E\,V(z\sqrt q)^2\Bigr)^{1/2}
+\]
+by Lemma~\ref{lem:sg-tal:st-half-line}, and $\alpha\,\mathbb E\,V^2\,s^2=rs^2\le q$ bounds the right side by
+$\sqrt{\alpha/2}\,s^{-1}$. Consequently $(1-\sqrt{\alpha/2})\,s^{-1}\le2\kappa\le2\kappa_1$.
+
+\emph{Step 2: $q$.} Let $\alpha_1=\max(\alpha_0,1)<2$ and $a=\tfrac12(\tfrac12+\alpha_1^{-1})$, so that
+$a>\tfrac12$ and $a\alpha_1<1$. By Lemma~\ref{lem:sg-tal:st-half-line} there is $\delta>0$ with
+$\mathbb E\min(z-b,0)^2<a$ for $|b|<\delta$. If $q>(\tau/\delta)^2+1$ then $b=\tau/\sqrt q$ satisfies
+$b<\delta$, and Lemma~\ref{lem:sg-tal:st-smoothing}(4) at $x=z\sqrt q$ gives
+\[
+s^2V(z\sqrt q)^2\le q\min(z-b,0)^2+Ls .
+\]
+Hence $rs^2\le\alpha(qa+Ls)$, and $q=rs^2+h^2s^2$ yields
+\[
+(1-a\alpha_1)\,q\le\frac{h_0^2}{(2\kappa_0)^2}+\frac{\alpha_1L}{2\kappa_0}.
+\]
+This bounds $q$ in all cases; finally $\rho=q+s$.
+\end{proof}
+
+\begin{remark}[Differences from Section~3.3 and printed corrections]\label{rem:sg-tal:st-section33-bounds}
+\talsource{Proposition~3.3.3, Lemmas~3.3.7--3.3.9}
+The printed Proposition~3.3.3 assumes only $\kappa\ge\kappa_0$. This is not sufficient: for $u=0$ one has
+$r=\bar r=0$ and $(\rho-q)^{-1}=2\kappa$, so the upper bound $\kappa\le\kappa_1$ is needed; correspondingly the
+bound printed after (3.146) as $2\kappa_0(1-\sqrt{\alpha_0/2})^{-1}$ should read
+$2\kappa_1(1-\sqrt{\alpha_0/2})^{-1}$. The theorem uses the equation (3.77) for $q$, where the book prints
+(3.104). The formal statement assumes two bounded derivatives of $u$ rather than four. Lemma~3.3.8 needs
+only that $u$ is nondecreasing, not concave. Inequality (3.135) is equivalent to (3.136) and has no separate
+Lean statement.
+\end{remark}
+
+\begin{lemma}[Growth of the Gaussian tail]\label{lem:sg-tal:st-mills-growth}
+  \lean{ProbabilityTheory.mul_gaussianPDFReal_lt_one_add_sq_mul,
+        ProbabilityTheory.gaussianPDFReal_div_measureReal_Ici_nonneg,
+        ProbabilityTheory.monotone_gaussianPDFReal_div_measureReal_Ici,
+        ProbabilityTheory.exists_gaussianPDFReal_div_measureReal_Ici_le,
+        ProbabilityTheory.hasDerivAt_log_measureReal_gaussianReal_Ici,
+        ProbabilityTheory.exists_abs_log_measureReal_gaussianReal_Ici_le}
+  \leanok
+  \uses{lem:sg-tal:st-mills}
+\talsource{Eqs.~(3.132), (3.136)}
+With the notation of Lemma~\ref{lem:sg-tal:st-mills}: $v\,p(v)<(1+v^2)\,T(v)$ strictly; $A=p/T$ is nonnegative
+and nondecreasing, and $A(v)\le C+|v|$ for a constant $C$; $(\log T)'=-A$; and $|\log T(v)|\le C'(1+|v|)^2$.
+\end{lemma}
+\begin{proof}
+  \leanok
+  \uses{lem:sg-tal:st-mills}
+Equality $v\,p(v)=(1+v^2)T(v)$ at one point would make that point a minimum of the nonnegative function
+$(1+x^2)T(x)-x\,p(x)$, whose derivative is $2(xT(x)-p(x))$; this forces $T(v)=0$, which is impossible.
+Monotonicity is $A'\ge0$. For $v\le1$ the growth bound follows from monotonicity, and for $v\ge1$ from
+$vA(v)\le1+v^2$. The derivative of $\log T$ is the chain rule, and integrating the linear bound on $A$ from $0$
+gives the quadratic bound on $\log T$.
+\end{proof}
+
+\begin{lemma}[Differentiating a Gaussian average along affine maps]\label{lem:sg-tal:st-affine-curve}
+  \lean{ProbabilityTheory.integrable_gaussianReal_of_norm_le_pow,
+        ProbabilityTheory.hasDerivAt_integral_comp_add_mul_gaussianReal}
+  \leanok
+Let $z$ be a standard Gaussian. A measurable function bounded by $C(1+|z|)^k$ is integrable. Let $f$ be
+differentiable with $f'$ measurable and $|f(y)|,|f'(y)|\le C(1+|y|)^k$, and let $m,\sigma$ be differentiable
+near $t$ with derivatives continuous at $t$. Then
+\[
+\frac{d}{dt}\,\mathbb E f\bigl(m(t)+\sigma(t)z\bigr)
+=\mathbb E\Bigl[f'\bigl(m(t)+\sigma(t)z\bigr)\bigl(m'(t)+\sigma'(t)z\bigr)\Bigr].
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+Near $t$ the functions $m,\sigma,m',\sigma'$ are bounded, so the derivative of the integrand is dominated by a
+constant multiple of $(1+|z|)^{k+1}$; differentiate under the integral sign.
+\end{proof}
+
+\begin{definition}[The functional of the hard constraint]\label{def:sg-tal:st-hard-functional}
+  \lean{SpinGlasses.shcherbinaTirozziHardFunctional}
+  \leanok
+\talsource{Eq.~(3.121)}
+For $0\le q<\rho$ and a standard Gaussian $z$, with $T$ as above,
+\[
+F(q,\rho)=\alpha\,\mathbb E\log T\Bigl(\frac{\tau-z\sqrt q}{\sqrt{\rho-q}}\Bigr)+\frac{q}{2(\rho-q)}
++\frac12\log(\rho-q)-\kappa\rho+\frac{h^2}{2}(\rho-q).
+\]
+\end{definition}
+
+\begin{lemma}[Derivatives of the functional]\label{lem:sg-tal:st-hard-derivatives}
+  \lean{SpinGlasses.shcherbinaTirozziHardFunctional_ratio_eq,
+        SpinGlasses.hasDerivAt_shcherbinaTirozziHardFunctional_self,
+        SpinGlasses.hasDerivAt_shcherbinaTirozziHardFunctional_ratio}
+  \leanok
+  \uses{def:sg-tal:st-hard-functional, lem:sg-tal:st-mills-growth, lem:sg-tal:st-affine-curve}
+\talsource{Lemma~3.3.13, Eqs.~(3.149), (3.151), (3.152)}
+Let $G(x,\rho)=F\bigl(x\rho/(1+x),\rho\bigr)$ and $W=\tau\sqrt{1+x}/\sqrt\rho-z\sqrt x$. For $x\ge0$ and $\rho>0$,
+\[
+G(x,\rho)=\alpha\,\mathbb E\log T(W)+\frac x2+\frac12\bigl(\log\rho-\log(1+x)\bigr)-\kappa\rho
++\frac{h^2\rho}{2(1+x)},
+\]
+\[
+2\,\frac{\partial G}{\partial\rho}=\frac{\alpha\tau\sqrt{1+x}}{\rho^{3/2}}\,\mathbb E A(W)+\frac1\rho-2\kappa
++\frac{h^2}{1+x},
+\]
+and for $x>0$,
+\[
+2\,\frac{1+x}{x}\,\frac{\partial G}{\partial x}=1-\frac\alpha x\,\mathbb E A(W)^2-\frac{h^2\rho}{x(1+x)} .
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+  \uses{def:sg-tal:st-hard-functional, lem:sg-tal:st-mills-growth, lem:sg-tal:st-affine-curve}
+The first identity is a substitution. Both derivatives follow from Lemma~\ref{lem:sg-tal:st-affine-curve}
+applied to $f=\log T$. For the derivative in $x$, integration by parts in $z$ and $A'=A^2-vA$ give
+$(1+x)\,\mathbb E[zA(W)]=-\sqrt x\,\bigl(\mathbb EA(W)^2-\tau\sqrt{1+x}\,\rho^{-1/2}\,\mathbb EA(W)\bigr)$, and
+substituting this removes the terms containing $\mathbb EA(W)$.
+\end{proof}
+
+\begin{lemma}[Monotonicity of the derivatives]\label{lem:sg-tal:st-hard-monotone}
+  \lean{SpinGlasses.strictMonoOn_shcherbinaTirozziHardFunctional_ratio_deriv,
+        SpinGlasses.strictAntiOn_shcherbinaTirozziHardFunctional_self_deriv}
+  \leanok
+  \uses{lem:sg-tal:st-hard-derivatives}
+\talsource{Proposition~3.3.11}
+Let $\alpha\ge0$ and $\tau\ge0$. Then $\rho\mapsto2\,\partial G/\partial\rho$ is strictly decreasing on
+$(0,\infty)$. If moreover $\rho>0$ and $(\alpha,h)\ne(0,0)$, then
+$x\mapsto2\,\frac{1+x}{x}\,\partial G/\partial x$ is strictly increasing on $(0,\infty)$.
+\end{lemma}
+\begin{proof}
+  \leanok
+  \uses{lem:sg-tal:st-hard-derivatives, lem:sg-tal:st-mills-growth}
+In $\rho$: the factor $\rho^{-3/2}$ and, since $A$ is nondecreasing and $W$ is nonincreasing in $\rho$, the
+expectation $\mathbb EA(W)$ are nonnegative and nonincreasing, while $1/\rho$ is strictly decreasing; no second
+derivative is needed. In $x$: put $M(x)=\mathbb EA(W)^2$. The derivative of the function is
+$\alpha\,(M-xM')/x^2+h^2\rho(1+2x)/(x(1+x))^2$, and
+\[
+M-xM'=\mathbb E\Bigl[A(W)^2\bigl(1-WA(W)+W^2\bigr)+\frac{\tau}{\sqrt{1+x}\sqrt\rho}\,A(W)A'(W)\Bigr]>0,
+\]
+by the strict inequality $vA(v)<1+v^2$ and $AA'\ge0$.
+\end{proof}
+
+\begin{lemma}[Strict minimum and strict maximum]\label{lem:sg-tal:st-hard-saddle}
+  \lean{SpinGlasses.shcherbinaTirozziHardFunctional_ratio_lt_of_hasDerivAt_zero,
+        SpinGlasses.shcherbinaTirozziHardFunctional_self_lt_of_hasDerivAt_zero}
+  \leanok
+  \uses{lem:sg-tal:st-hard-monotone}
+\talsource{Corollary~3.3.12}
+Let $\alpha\ge0$, $\tau\ge0$. If $x,\rho>0$ and $\partial G/\partial x(x,\rho)=0$, then $G(x,\rho)<G(y,\rho)$ for
+every $y>0$, $y\ne x$. If $x\ge0$, $\rho>0$ and $\partial G/\partial\rho(x,\rho)=0$, then $G(x,r)<G(x,\rho)$ for
+every $r>0$, $r\ne\rho$.
+\end{lemma}
+\begin{proof}
+  \leanok
+  \uses{lem:sg-tal:st-hard-monotone}
+By Lemma~\ref{lem:sg-tal:st-hard-monotone} the derivative changes sign exactly once, from negative to positive in
+the first case and from positive to negative in the second. (If $\alpha=h=0$ then
+$2\frac{1+x}{x}\partial G/\partial x=1$ never vanishes, so the first case is empty.)
+\end{proof}
+
+\begin{theorem}[Uniqueness of the replica-symmetric solution]\label{thm:sg-tal:st-hard-uniqueness}
+  \lean{SpinGlasses.eq_of_hasDerivAt_shcherbinaTirozziHardFunctional_zero}
+  \leanok
+  \uses{lem:sg-tal:st-hard-saddle}
+\talsource{Theorem~3.3.1, uniqueness}
+Let $\alpha\ge0$ and $\tau\ge0$, and let $\kappa,h$ be real. There is at most one pair $(q,\rho)$ with
+$0<q<\rho$ such that
+\[
+\frac{\partial F}{\partial q}(q,\rho)=0=\frac{\partial F}{\partial\rho}(q,\rho).
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+  \uses{lem:sg-tal:st-hard-derivatives, lem:sg-tal:st-hard-saddle}
+Put $x=q/(\rho-q)$. The chain rule in $q$ gives $\partial G/\partial x(x,\rho)=0$. An integration by parts gives
+\[
+\frac{\partial F}{\partial\rho}(q,\rho)
+=\frac{\partial G}{\partial\rho}(x,\rho)-\frac{x^2}{2\rho}\Bigl(1-\frac\alpha x\,\mathbb EA(W)^2
+-\frac{h^2\rho}{x(1+x)}\Bigr),
+\]
+so $\partial G/\partial\rho(x,\rho)=0$ as well. Suppose $(x_1,\rho_1)\ne(x_2,\rho_2)$ are two critical points of
+$G$. Lemma~\ref{lem:sg-tal:st-hard-saddle} gives
+$G(x_1,\rho_1)\le G(x_2,\rho_1)\le G(x_2,\rho_2)$ with at least one strict inequality, hence
+$G(x_1,\rho_1)<G(x_2,\rho_2)$. Exchanging the two points gives the reverse strict inequality.
+\end{proof}
+
+\begin{remark}[Differences from Theorem~3.3.1]\label{rem:sg-tal:st-section33-uniqueness}
+\talsource{Theorem~3.3.1, Proposition~3.3.11}
+The book states that there is a unique solution when $\alpha<2$; its proof, and the formal statement, give
+uniqueness, which holds for every $\alpha\ge0$ and every $\kappa,h$. Existence is not formalized. Solutions with
+$q=0$ are outside the statement (for $\alpha=h=0$ the solution of the replica-symmetric equations has $q=0$).
+The hypothesis $\tau\ge0$ is the one fixed in the book. The monotonicity in $\rho$ is proved without computing
+$\partial^2G/\partial\rho^2$.
 \end{remark}

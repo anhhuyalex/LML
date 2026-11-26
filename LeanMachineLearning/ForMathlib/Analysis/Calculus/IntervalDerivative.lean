@@ -8,6 +8,7 @@ module
 public import Mathlib.Analysis.Calculus.FDeriv.Extend
 public import Mathlib.Analysis.Calculus.Deriv.MeanValue
 public import Mathlib.Analysis.Calculus.Deriv.Pow
+public import Mathlib.Analysis.Convex.Deriv
 
 /-!
 # Derivatives on closed intervals: extension, Taylor remainder and Lipschitz bounds
@@ -19,6 +20,8 @@ public import Mathlib.Analysis.Calculus.Deriv.Pow
   `|φ''| ≤ C` on `(0, 1)`.
 * `abs_sub_le_of_continuousOn_Icc_of_hasDerivAt_Ioo`: mean-value Lipschitz bound on `[a, b]` from
   continuity on `[a, b]` and a bounded derivative on `(a, b)`.
+* `ConcaveOn.deriv_nonneg_of_forall_ge_eq`: a concave function which is constant on a half-line
+  `[τ, ∞)` has a nonnegative derivative.
 -/
 
 @[expose] public section
@@ -137,3 +140,15 @@ theorem abs_sub_le_of_continuousOn_Icc_of_hasDerivAt_Ioo
   have heq : f y - f x = f' c * (y - x) := ((eq_div_iff hpos.ne').1 hslope).symm
   rw [heq, abs_mul, abs_of_pos hpos]
   exact mul_le_mul_of_nonneg_right (hfb c (hsub_oo hc)) hpos.le
+
+/-- A differentiable concave function on `ℝ` which is constant on a half-line `[τ, ∞)` has a
+nonnegative derivative. -/
+theorem ConcaveOn.deriv_nonneg_of_forall_ge_eq {u : ℝ → ℝ} (huc : ConcaveOn ℝ univ u)
+    (hu : Differentiable ℝ u) {τ b : ℝ} (h : ∀ x, τ ≤ x → u x = b) (x : ℝ) : 0 ≤ deriv u x := by
+  have hτ : τ < max x τ + 1 := (le_max_right x τ).trans_lt (lt_add_one _)
+  have h0 : deriv u (max x τ + 1) = 0 := by
+    have : u =ᶠ[𝓝 (max x τ + 1)] fun _ => b := by
+      filter_upwards [Ioi_mem_nhds hτ] with t ht using h t (le_of_lt ht)
+    rw [this.deriv_eq, deriv_const]
+  exact h0 ▸ huc.antitoneOn_deriv (fun z _ => hu z) (mem_univ x) (mem_univ _)
+    ((le_max_left x τ).trans (le_add_of_nonneg_right zero_le_one))

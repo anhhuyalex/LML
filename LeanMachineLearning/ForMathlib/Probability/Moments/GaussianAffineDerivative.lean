@@ -21,11 +21,15 @@ differentiation under the integral sign then gives `G'(w) = w 𝔼 f''(w z + h)`
 
 * `ProbabilityTheory.integral_deriv_comp_affine_mul_id_gaussianReal`: the Stein identity.
 * `ProbabilityTheory.hasDerivAt_integral_comp_affine_gaussianReal`: the derivative in `w`.
+* `ProbabilityTheory.integrable_gaussianReal_of_norm_le_pow`,
+  `ProbabilityTheory.hasDerivAt_integral_comp_add_mul_gaussianReal`: integrability and
+  differentiation of `t ↦ 𝔼 f (m t + σ t z)` for `f, f'` of polynomial growth.
 -/
 
 @[expose] public section
 
 open MeasureTheory Filter Set
+open scoped Topology
 
 namespace ProbabilityTheory
 
@@ -92,5 +96,76 @@ theorem hasDerivAt_integral_comp_affine_gaussianReal (hf : ∀ y, HasDerivAt f (
     (by simpa only [Real.norm_eq_abs, id] using
       (IsGaussian.integrable_id (μ := gaussianReal 0 1)).norm) h w hint
   rwa [integral_deriv_comp_affine_mul_id_gaussianReal hf' hf''c hC₁ hC₂ h w] at h_diff
+
+/-- A function bounded by `C (1 + |z|) ^ k` is integrable against a standard Gaussian. -/
+theorem integrable_gaussianReal_of_norm_le_pow {E : Type*} [NormedAddCommGroup E] {g : ℝ → E}
+    (hg : AEStronglyMeasurable g (gaussianReal 0 1)) {C : ℝ} {k : ℕ}
+    (h : ∀ z, ‖g z‖ ≤ C * (1 + |z|) ^ k) : Integrable g (gaussianReal 0 1) := by
+  have hm : MemLp (fun z : ℝ => 1 + ‖z‖) k (gaussianReal 0 1) :=
+    (memLp_const 1).add (memLp_id_gaussianReal (μ := 0) (v := 1) k).norm
+  refine (hm.integrable_norm_pow'.const_mul C).mono' hg (ae_of_all _ fun z => (h z).trans_eq ?_)
+  rw [Real.norm_of_nonneg (by positivity), Real.norm_eq_abs]
+
+/-- **Differentiation of a Gaussian average along a curve of affine maps:** if `f` has derivative
+`f'` and both are of polynomial growth, then
+`d/dt 𝔼 f (m t + σ t z) = 𝔼 [f' (m t + σ t z) (m' t + σ' t z)]`. -/
+theorem hasDerivAt_integral_comp_add_mul_gaussianReal {f f' m σ m' σ' : ℝ → ℝ} {C t : ℝ}
+    {k : ℕ} (hf : ∀ y, HasDerivAt f (f' y) y) (hf'm : Measurable f')
+    (hC : ∀ y, |f y| ≤ C * (1 + |y|) ^ k) (hC' : ∀ y, |f' y| ≤ C * (1 + |y|) ^ k)
+    (hm : ∀ᶠ s in 𝓝 t, HasDerivAt m (m' s) s) (hσ : ∀ᶠ s in 𝓝 t, HasDerivAt σ (σ' s) s)
+    (hm' : ContinuousAt m' t) (hσ' : ContinuousAt σ' t) :
+    HasDerivAt (fun s => ∫ z, f (m s + σ s * z) ∂(gaussianReal 0 1))
+      (∫ z, f' (m t + σ t * z) * (m' t + σ' t * z) ∂(gaussianReal 0 1)) t := by
+  have hfc : Continuous f := continuous_iff_continuousAt.2 fun y => (hf y).continuousAt
+  have hC0 : 0 ≤ C := by simpa using (abs_nonneg _).trans (hC 0)
+  set B : ℝ := |m t| + |σ t| + |m' t| + |σ' t| + 1 with hB
+  have hB0 : 0 ≤ B := by positivity
+  have hnear : ∀ᶠ s in 𝓝 t, HasDerivAt m (m' s) s ∧ HasDerivAt σ (σ' s) s ∧ |m s| ≤ B ∧
+      |σ s| ≤ B ∧ |m' s| ≤ B ∧ |σ' s| ≤ B := by
+    have key : ∀ g : ℝ → ℝ, ContinuousAt g t → |g t| + 1 ≤ B → ∀ᶠ s in 𝓝 t, |g s| ≤ B :=
+      fun g hg hle => (hg.abs.eventually_lt_const (lt_add_one _)).mono
+        fun s hs => hs.le.trans hle
+    have h1 := abs_nonneg (m t)
+    have h2 := abs_nonneg (σ t)
+    have h3 := abs_nonneg (m' t)
+    have h4 := abs_nonneg (σ' t)
+    filter_upwards [hm, hσ, key m hm.self_of_nhds.continuousAt (by linarith),
+      key σ hσ.self_of_nhds.continuousAt (by linarith), key m' hm' (by linarith),
+      key σ' hσ' (by linarith)] with s a b c d e g using ⟨a, b, c, d, e, g⟩
+  have haff : ∀ a b : ℝ, Continuous fun z : ℝ => a + b * z := fun a b => by fun_prop
+  have hpow : ∀ a b : ℝ, |a| ≤ B → |b| ≤ B → ∀ z : ℝ,
+      C * (1 + |a + b * z|) ^ k ≤ C * (1 + B) ^ k * (1 + |z|) ^ k := fun a b ha hb z => by
+    rw [mul_assoc, ← mul_pow]
+    refine mul_le_mul_of_nonneg_left (pow_le_pow_left₀ (by positivity) ?_ k) hC0
+    have h1 : |a + b * z| ≤ B + B * |z| :=
+      (abs_add_le _ _).trans (add_le_add ha (by
+        rw [abs_mul]; exact mul_le_mul_of_nonneg_right hb (abs_nonneg _)))
+    have h2 := abs_nonneg z
+    nlinarith
+  have ht := hnear.self_of_nhds
+  refine (hasDerivAt_integral_of_dominated_loc_of_deriv_le (μ := gaussianReal 0 1)
+    (F := fun s z => f (m s + σ s * z))
+    (F' := fun s z => f' (m s + σ s * z) * (m' s + σ' s * z))
+    (bound := fun z => C * (1 + B) ^ k * B * (1 + |z|) ^ (k + 1)) hnear
+    (Eventually.of_forall fun s => (hfc.comp (haff _ _)).aestronglyMeasurable)
+    (integrable_gaussianReal_of_norm_le_pow (hfc.comp (haff _ _)).aestronglyMeasurable
+      (C := C * (1 + B) ^ k) (k := k) fun z => (hC _).trans (hpow _ _ ht.2.2.1 ht.2.2.2.1 z))
+    ((hf'm.comp (haff _ _).measurable).mul (haff _ _).measurable).aestronglyMeasurable
+    (ae_of_all _ fun z s hs => ?_)
+    (integrable_gaussianReal_of_norm_le_pow
+      (by fun_prop : Continuous fun z : ℝ => C * (1 + B) ^ k * B * (1 + |z|) ^ (k + 1)
+        ).aestronglyMeasurable (C := C * (1 + B) ^ k * B) (k := k + 1)
+      fun z => (Real.norm_of_nonneg (by positivity)).le)
+    (ae_of_all _ fun z s hs => ?_)).2
+  · obtain ⟨-, -, h1, h2, h3, h4⟩ := hs
+    have h5 : |m' s + σ' s * z| ≤ B * (1 + |z|) := by
+      rw [mul_add, mul_one]
+      exact (abs_add_le _ _).trans (add_le_add h3 (by
+        rw [abs_mul]; exact mul_le_mul_of_nonneg_right h4 (abs_nonneg _)))
+    rw [Real.norm_eq_abs, abs_mul]
+    refine (mul_le_mul ((hC' _).trans (hpow _ _ h1 h2 z)) h5 (abs_nonneg _)
+      (by positivity)).trans_eq ?_
+    ring
+  · exact (hf _).comp s (hs.1.add (hs.2.1.mul_const z))
 
 end ProbabilityTheory

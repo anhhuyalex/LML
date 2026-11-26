@@ -159,6 +159,8 @@ public import LeanMachineLearning.ForMathlib.Probability.ConditionallyIID
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Gaussian.ExpSq
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Gaussian.ExpSqLinear
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Gaussian.ExponentialTilt
+public import LeanMachineLearning.ForMathlib.Probability.Distributions.Gaussian.LogSmoothing
+public import LeanMachineLearning.ForMathlib.Probability.Distributions.Gaussian.MillsRatio
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Gaussian.QuadraticTilt
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Gaussian.Shift
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Gaussian.Symmetry
@@ -798,8 +800,10 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.Stat
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.Convexity
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.DisorderConcentration
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.GradientBound
+public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.HardConstraintUniqueness
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.Moments
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.OverlapConcentration
+public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.ReplicaSymmetricBounds
 public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKAsymptoticProduct
 public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKCorrelationDecay
 public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKCovarianceSiteSymmetry

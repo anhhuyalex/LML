@@ -13,6 +13,7 @@ public import Mathlib.Probability.Distributions.Gaussian.Real
 public import Mathlib.MeasureTheory.Measure.Tilted
 public import Mathlib.Probability.Moments.Variance
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.PrekopaLeindler
+public import LeanMachineLearning.ForMathlib.Probability.GibbsIBPPotential
 
 /-!
 # Marginals and variances of log-concave densities
@@ -25,6 +26,8 @@ public import LeanMachineLearning.ForMathlib.Analysis.Convex.PrekopaLeindler
   `c ∫ (x - x₀)² exp (w x) ≤ ∫ exp (w x)` (Lemma 3.2.2, Eq. (3.70)).
 * `ProbabilityTheory.variance_id_tilted_gaussianReal_le_one`: a standard Gaussian tilted by a
   differentiable concave function has variance at most `1` (Lemma 3.2.3, Eqs. (3.71)--(3.73)).
+* `ProbabilityTheory.integral_deriv_two_add_sq_mul_exp_div_le_sq`: Eq. (3.73) for the potential
+  `ξ ↦ u (a + c ξ)` after Gaussian integration by parts, the pointwise form of `r̄ ≤ r`.
 * `ProbabilityTheory.volume_tilted_mul_sub_mul_sq_eq_gaussianReal` and its moments: the density
   proportional to `exp (d x - a x² / 2)` is `𝒩(d / a, 1 / a)`, the computation behind
   Eqs. (3.78)--(3.80).
@@ -298,6 +301,139 @@ theorem variance_id_tilted_gaussianReal_le_one {v : ℝ → ℝ} (hv : Different
   have e := variance_sub_const (μ := (gaussianReal 0 1).tilted v) aestronglyMeasurable_id x₀
   simp only [id_eq] at e
   rwa [e] at hle
+
+/-- **The pointwise form of `r̄ ≤ r`** (Talagrand, Lemma 3.2.3): for concave `u ≤ 0` with
+bounded first two derivatives and all `a, c`,
+`𝔼[(u'' + u'²)(θ) e^{u θ}] / 𝔼 e^{u θ} ≤ (𝔼[u' θ e^{u θ}] / 𝔼 e^{u θ})²`, where `θ = a + c ξ` and
+`ξ` is a standard Gaussian. The case `c = 0` is included. -/
+theorem integral_deriv_two_add_sq_mul_exp_div_le_sq {u : ℝ → ℝ} (hu : ConcaveOn ℝ univ u)
+    (hu0 : ∀ x, u x ≤ 0) (hu1 : Differentiable ℝ u) (hu2 : Differentiable ℝ (deriv u)) {D D₂ : ℝ}
+    (hD : ∀ x, |deriv u x| ≤ D) (hD₂ : ∀ x, |deriv (deriv u) x| ≤ D₂) (a c : ℝ) :
+    (∫ ξ, (deriv (deriv u) (a + c * ξ) + deriv u (a + c * ξ) ^ 2) *
+          Real.exp (u (a + c * ξ)) ∂(gaussianReal 0 1)) /
+        (∫ ξ, Real.exp (u (a + c * ξ)) ∂(gaussianReal 0 1)) ≤
+      ((∫ ξ, deriv u (a + c * ξ) * Real.exp (u (a + c * ξ)) ∂(gaussianReal 0 1)) /
+        ∫ ξ, Real.exp (u (a + c * ξ)) ∂(gaussianReal 0 1)) ^ 2 := by
+  rcases eq_or_ne c 0 with rfl | hc
+  · have h2 : deriv (deriv u) a ≤ 0 := by
+      have hanti : Antitone (deriv u) := fun x y hxy =>
+        hu.antitoneOn_deriv (fun z _ => hu1 z) (mem_univ x) (mem_univ y) hxy
+      exact hanti.deriv_nonpos
+    simp only [zero_mul, add_zero, integral_const, probReal_univ, one_smul]
+    rw [mul_div_cancel_right₀ _ (Real.exp_pos _).ne',
+      mul_div_cancel_right₀ _ (Real.exp_pos _).ne']
+    linarith
+  have haff : ∀ x : ℝ, HasDerivAt (fun x => a + c * x) c x := fun x => by
+    simpa using ((hasDerivAt_id x).const_mul c).const_add a
+  set v : ℝ → ℝ := fun x => u (a + c * x) with hv
+  have hvd : Differentiable ℝ v := fun x => ((hu1 _).hasDerivAt.comp x (haff x)).differentiableAt
+  have hvc : ConcaveOn ℝ univ v := by
+    refine ⟨convex_univ, fun x _ y _ s t hs ht hst => ?_⟩
+    have h := hu.2 (mem_univ (a + c * x)) (mem_univ (a + c * y)) hs ht hst
+    have e : a + c * (s • x + t • y) = s • (a + c * x) + t • (a + c * y) := by
+      simp only [smul_eq_mul]
+      linear_combination (-a) * hst
+    simp only [hv, e]
+    exact h
+  have hu1m : Measurable fun x => deriv u (a + c * x) :=
+    (measurable_deriv u).comp (by fun_prop)
+  have hu2m : Measurable fun x => deriv (deriv u) (a + c * x) :=
+    (measurable_deriv (deriv u)).comp (by fun_prop)
+  have hem : Measurable fun x => Real.exp (v x) := Real.measurable_exp.comp
+    hvd.continuous.measurable
+  have hexp1 : ∀ x, Real.exp (v x) ≤ 1 := fun x => Real.exp_le_one_iff.2 (hu0 _)
+  have hbd : ∀ {f g : ℝ → ℝ}, Measurable f → Integrable g (gaussianReal 0 1) →
+      (∀ x, |f x| ≤ g x) → Integrable (fun x => f x * Real.exp (v x)) (gaussianReal 0 1) :=
+    fun {f g} hf hg h => by
+      refine hg.mono' (hf.mul hem).aestronglyMeasurable (ae_of_all _ fun x => ?_)
+      rw [Real.norm_eq_abs, abs_mul, abs_of_pos (Real.exp_pos _)]
+      exact (mul_le_of_le_one_right (abs_nonneg _) (hexp1 x)).trans (h x)
+  have hid : Integrable (fun x : ℝ => |x|) (gaussianReal 0 1) :=
+    ((memLp_id_gaussianReal 1).integrable le_rfl).abs
+  have h0 : Integrable (fun x => Real.exp (v x)) (gaussianReal 0 1) := by
+    simpa using hbd (f := fun _ => 1) (g := fun _ => 1) measurable_const (integrable_const 1)
+      (fun _ => by simp)
+  have h1 : Integrable (fun x => x * Real.exp (v x)) (gaussianReal 0 1) :=
+    hbd measurable_id hid fun _ => le_rfl
+  have hK1 : Integrable (fun x => deriv u (a + c * x) * Real.exp (v x)) (gaussianReal 0 1) :=
+    hbd hu1m (integrable_const D) fun x => hD _
+  have hxK1 : Integrable (fun x => x * deriv u (a + c * x) * Real.exp (v x))
+      (gaussianReal 0 1) :=
+    hbd (measurable_id.mul hu1m) (hid.mul_const D) fun x => by
+      rw [abs_mul]
+      exact mul_le_mul_of_nonneg_left (hD _) (abs_nonneg _)
+  have hK2 : Integrable (fun x => (deriv (deriv u) (a + c * x) + deriv u (a + c * x) ^ 2) *
+      Real.exp (v x)) (gaussianReal 0 1) :=
+    hbd (hu2m.add (hu1m.pow_const 2)) (integrable_const (D₂ + D ^ 2)) fun x => by
+      refine (abs_add_le _ _).trans (add_le_add (hD₂ _) ?_)
+      rw [abs_pow]
+      exact pow_le_pow_left₀ (abs_nonneg _) (hD _) 2
+  obtain ⟨x₀, -, hsqi, hle⟩ := exists_integral_sub_sq_mul_exp_le_gaussianReal hvd hvc
+  have h2 : Integrable (fun x => x ^ 2 * Real.exp (v x)) (gaussianReal 0 1) :=
+    hbd (measurable_id.pow_const 2)
+      ((memLp_id_gaussianReal 2).integrable_sq) fun x => by simp
+  -- first integration by parts: `𝔼 [ξ e^v] = c 𝔼 [u' e^u]`
+  have hIBP1 : ∫ x, x * Real.exp (v x) ∂(gaussianReal 0 1) =
+      c * ∫ x, deriv u (a + c * x) * Real.exp (v x) ∂(gaussianReal 0 1) := by
+    have hd : ∀ x, HasDerivAt (fun x => Real.exp (v x))
+        (c * (deriv u (a + c * x) * Real.exp (v x))) x := fun x => by
+      refine (((hu1 _).hasDerivAt.comp x (haff x)).exp).congr_deriv ?_
+      simp only [hv, Function.comp_apply]
+      ring
+    rw [integral_id_mul_gaussianReal_eq 1 hd h1 (hK1.const_mul c), NNReal.coe_one, one_mul,
+      integral_const_mul]
+  -- second integration by parts: `𝔼 [ξ² e^v] = 𝔼 e^v + c² 𝔼 [(u'' + u'²) e^u]`
+  have hIBP2 : ∫ x, x ^ 2 * Real.exp (v x) ∂(gaussianReal 0 1) =
+      (∫ x, Real.exp (v x) ∂(gaussianReal 0 1)) +
+        c ^ 2 * ∫ x, (deriv (deriv u) (a + c * x) + deriv u (a + c * x) ^ 2) * Real.exp (v x)
+          ∂(gaussianReal 0 1) := by
+    have hd : ∀ x, HasDerivAt (fun x => x * Real.exp (v x))
+        (Real.exp (v x) + c * (x * deriv u (a + c * x) * Real.exp (v x))) x := fun x => by
+      refine ((hasDerivAt_id x).mul (((hu1 _).hasDerivAt.comp x (haff x)).exp)).congr_deriv ?_
+      simp only [hv, Function.comp_apply, id_eq]
+      ring
+    have hxx : Integrable (fun x => x * (x * Real.exp (v x))) (gaussianReal 0 1) :=
+      h2.congr (ae_of_all _ fun x => by ring)
+    have h := integral_id_mul_gaussianReal_eq 1 hd hxx (h0.add (hxK1.const_mul c))
+    rw [NNReal.coe_one, one_mul, integral_add h0 (hxK1.const_mul c), integral_const_mul] at h
+    have hmid : ∫ x, x * deriv u (a + c * x) * Real.exp (v x) ∂(gaussianReal 0 1) =
+        c * ∫ x, (deriv (deriv u) (a + c * x) + deriv u (a + c * x) ^ 2) * Real.exp (v x)
+          ∂(gaussianReal 0 1) := by
+      have h' := integral_id_mul_deriv_u_mul_exp_affine_gaussianReal 1
+        (u := u) (u' := deriv u) (u'' := deriv (deriv u)) (fun x => (hu1 x).hasDerivAt)
+        (fun x => (hu2 x).hasDerivAt) (B := 0) hu0 hD hD₂ a c
+      rw [NNReal.coe_one, one_mul] at h'
+      refine Eq.trans (integral_congr_ae (ae_of_all _ fun x => ?_)) h'
+      simp only [hv]
+      ring
+    have e : ∫ x, x ^ 2 * Real.exp (v x) ∂(gaussianReal 0 1) =
+        ∫ x, x * (x * Real.exp (v x)) ∂(gaussianReal 0 1) :=
+      integral_congr_ae (ae_of_all _ fun x => by ring)
+    rw [e, h, hmid]
+    ring
+  set Z := ∫ x, Real.exp (v x) ∂(gaussianReal 0 1) with hZ
+  set K1 := ∫ x, deriv u (a + c * x) * Real.exp (v x) ∂(gaussianReal 0 1) with hK1d
+  set K2 := ∫ x, (deriv (deriv u) (a + c * x) + deriv u (a + c * x) ^ 2) * Real.exp (v x)
+    ∂(gaussianReal 0 1) with hK2d
+  have hZ0 : 0 < Z := integral_exp_pos h0
+  have hexpand : ∫ x, (x - x₀) ^ 2 * Real.exp (v x) ∂(gaussianReal 0 1) =
+      (Z + c ^ 2 * K2) - 2 * x₀ * (c * K1) + x₀ ^ 2 * Z := by
+    have e : (fun x => (x - x₀) ^ 2 * Real.exp (v x)) = fun x =>
+        x ^ 2 * Real.exp (v x) - 2 * x₀ * (x * Real.exp (v x)) + x₀ ^ 2 * Real.exp (v x) := by
+      funext x; ring
+    have hi : Integrable (fun x => x ^ 2 * Real.exp (v x) -
+        2 * x₀ * (x * Real.exp (v x))) (gaussianReal 0 1) := h2.sub (h1.const_mul _)
+    rw [e, integral_add hi (h0.const_mul _), integral_sub h2 (h1.const_mul _),
+      integral_const_mul, integral_const_mul, hIBP2, hIBP1]
+  have hkey : c ^ 2 * (K2 * Z - K1 ^ 2) ≤ 0 := by
+    rw [hexpand] at hle
+    nlinarith [sq_nonneg (x₀ * Z - c * K1), hZ0]
+  have h3 : K2 * Z ≤ K1 ^ 2 := by
+    have hc2 : 0 < c ^ 2 := by positivity
+    have := nonpos_of_mul_nonpos_right hkey hc2
+    linarith
+  rw [div_pow, div_le_div_iff₀ hZ0 (pow_pos hZ0 2)]
+  nlinarith [mul_le_mul_of_nonneg_right h3 hZ0.le]
 
 /-- The probability measure on `ℝ` with density proportional to `exp (d x - a x² / 2)`,
 `a > 0`, is the Gaussian `𝒩(d / a, 1 / a)`. -/
