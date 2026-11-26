@@ -21,6 +21,8 @@ differentiation under the integral sign then gives `G'(w) = w 𝔼 f''(w z + h)`
 
 * `ProbabilityTheory.integral_deriv_comp_affine_mul_id_gaussianReal`: the Stein identity.
 * `ProbabilityTheory.hasDerivAt_integral_comp_affine_gaussianReal`: the derivative in `w`.
+* `ProbabilityTheory.hasDerivAt_integral_comp_add_mul`: the same differentiation for any finite
+  measure with enough moments and a vector-valued function.
 * `ProbabilityTheory.integrable_gaussianReal_of_norm_le_pow`,
   `ProbabilityTheory.integrable_comp_add_mul_mul_add_mul_gaussianReal`,
   `ProbabilityTheory.hasDerivAt_integral_comp_add_mul_gaussianReal`: integrability and
@@ -30,7 +32,7 @@ differentiation under the integral sign then gives `G'(w) = w 𝔼 f''(w z + h)`
 @[expose] public section
 
 open MeasureTheory Filter Set
-open scoped Topology
+open scoped Topology ENNReal NNReal
 
 namespace ProbabilityTheory
 
@@ -132,18 +134,21 @@ theorem integrable_comp_add_mul_mul_add_mul_gaussianReal {g : ℝ → ℝ} (hg :
   rw [mul_pow (1 + |a| + |b|), pow_succ (1 + |z|)]
   ring
 
-/-- **Differentiation of a Gaussian average along a curve of affine maps:** if `f` has derivative
-`f'` and both are of polynomial growth, then
-`d/dt 𝔼 f (m t + σ t z) = 𝔼 [f' (m t + σ t z) (m' t + σ' t z)]`. -/
-theorem hasDerivAt_integral_comp_add_mul_gaussianReal {f f' m σ m' σ' : ℝ → ℝ} {C t : ℝ}
-    {k : ℕ} (hf : ∀ y, HasDerivAt f (f' y) y) (hf'm : Measurable f')
-    (hC : ∀ y, |f y| ≤ C * (1 + |y|) ^ k) (hC' : ∀ y, |f' y| ≤ C * (1 + |y|) ^ k)
+/-- **Differentiation of an average along a curve of affine maps:** let `μ` be a finite measure
+on `ℝ` with a finite moment of order `k + 1`, and let `f`, with values in a normed space, have
+derivative `f'`, both of growth at most `(1 + |y|) ^ k`. Then
+`d/dt ∫ f (m t + σ t z) dμ = ∫ (m' t + σ' t z) • f' (m t + σ t z) dμ`. -/
+theorem hasDerivAt_integral_comp_add_mul {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F]
+    {μ : Measure ℝ} [IsFiniteMeasure μ] {f f' : ℝ → F} {m σ m' σ' : ℝ → ℝ} {C t : ℝ} {k : ℕ}
+    (hμ : MemLp id ((k + 1 : ℕ) : ℝ≥0∞) μ) (hf : ∀ y, HasDerivAt f (f' y) y)
+    (hf'm : StronglyMeasurable f') (hC : ∀ y, ‖f y‖ ≤ C * (1 + |y|) ^ k)
+    (hC' : ∀ y, ‖f' y‖ ≤ C * (1 + |y|) ^ k)
     (hm : ∀ᶠ s in 𝓝 t, HasDerivAt m (m' s) s) (hσ : ∀ᶠ s in 𝓝 t, HasDerivAt σ (σ' s) s)
     (hm' : ContinuousAt m' t) (hσ' : ContinuousAt σ' t) :
-    HasDerivAt (fun s => ∫ z, f (m s + σ s * z) ∂(gaussianReal 0 1))
-      (∫ z, f' (m t + σ t * z) * (m' t + σ' t * z) ∂(gaussianReal 0 1)) t := by
+    HasDerivAt (fun s => ∫ z, f (m s + σ s * z) ∂μ)
+      (∫ z, (m' t + σ' t * z) • f' (m t + σ t * z) ∂μ) t := by
   have hfc : Continuous f := continuous_iff_continuousAt.2 fun y => (hf y).continuousAt
-  have hC0 : 0 ≤ C := by simpa using (abs_nonneg _).trans (hC 0)
+  have hC0 : 0 ≤ C := by simpa using (norm_nonneg _).trans (hC 0)
   set B : ℝ := |m t| + |σ t| + |m' t| + |σ' t| + 1 with hB
   have hB0 : 0 ≤ B := by positivity
   have hnear : ∀ᶠ s in 𝓝 t, HasDerivAt m (m' s) s ∧ HasDerivAt σ (σ' s) s ∧ |m s| ≤ B ∧
@@ -169,29 +174,47 @@ theorem hasDerivAt_integral_comp_add_mul_gaussianReal {f f' m σ m' σ' : ℝ �
     have h2 := abs_nonneg z
     nlinarith
   have ht := hnear.self_of_nhds
-  refine (hasDerivAt_integral_of_dominated_loc_of_deriv_le (μ := gaussianReal 0 1)
+  have hint : ∀ n ≤ k + 1, Integrable (fun z : ℝ => (1 + |z|) ^ n) μ := fun n hn => by
+    have h : MemLp (fun z : ℝ => 1 + ‖z‖) n μ :=
+      (memLp_const 1).add (hμ.mono_exponent (by exact_mod_cast hn)).norm
+    refine h.integrable_norm_pow'.congr (ae_of_all _ fun z => ?_)
+    simp only
+    rw [Real.norm_of_nonneg (by positivity), Real.norm_eq_abs]
+  refine (hasDerivAt_integral_of_dominated_loc_of_deriv_le (μ := μ)
     (F := fun s z => f (m s + σ s * z))
-    (F' := fun s z => f' (m s + σ s * z) * (m' s + σ' s * z))
+    (F' := fun s z => (m' s + σ' s * z) • f' (m s + σ s * z))
     (bound := fun z => C * (1 + B) ^ k * B * (1 + |z|) ^ (k + 1)) hnear
     (Eventually.of_forall fun s => (hfc.comp (haff _ _)).aestronglyMeasurable)
-    (integrable_gaussianReal_of_norm_le_pow (hfc.comp (haff _ _)).aestronglyMeasurable
-      (C := C * (1 + B) ^ k) (k := k) fun z => (hC _).trans (hpow _ _ ht.2.2.1 ht.2.2.2.1 z))
-    ((hf'm.comp (haff _ _).measurable).mul (haff _ _).measurable).aestronglyMeasurable
-    (ae_of_all _ fun z s hs => ?_)
-    (integrable_gaussianReal_of_norm_le_pow
-      (by fun_prop : Continuous fun z : ℝ => C * (1 + B) ^ k * B * (1 + |z|) ^ (k + 1)
-        ).aestronglyMeasurable (C := C * (1 + B) ^ k * B) (k := k + 1)
-      fun z => (Real.norm_of_nonneg (by positivity)).le)
+    (((hint k k.le_succ).const_mul (C * (1 + B) ^ k)).mono'
+      (hfc.comp (haff _ _)).aestronglyMeasurable
+      (ae_of_all _ fun z => (hC _).trans (hpow _ _ ht.2.2.1 ht.2.2.2.1 z)))
+    ((haff _ _).aestronglyMeasurable.smul
+      (hf'm.comp_measurable (haff _ _).measurable).aestronglyMeasurable)
+    (ae_of_all _ fun z s hs => ?_) ((hint (k + 1) le_rfl).const_mul _)
     (ae_of_all _ fun z s hs => ?_)).2
   · obtain ⟨-, -, h1, h2, h3, h4⟩ := hs
     have h5 : |m' s + σ' s * z| ≤ B * (1 + |z|) := by
       rw [mul_add, mul_one]
       exact (abs_add_le _ _).trans (add_le_add h3 (by
         rw [abs_mul]; exact mul_le_mul_of_nonneg_right h4 (abs_nonneg _)))
-    rw [Real.norm_eq_abs, abs_mul]
-    refine (mul_le_mul ((hC' _).trans (hpow _ _ h1 h2 z)) h5 (abs_nonneg _)
+    rw [norm_smul, Real.norm_eq_abs]
+    refine (mul_le_mul h5 ((hC' _).trans (hpow _ _ h1 h2 z)) (norm_nonneg _)
       (by positivity)).trans_eq ?_
     ring
-  · exact (hf _).comp s (hs.1.add (hs.2.1.mul_const z))
+  · exact (hf _).scomp s (hs.1.add (hs.2.1.mul_const z))
+
+/-- **Differentiation of a Gaussian average along a curve of affine maps:** if `f` has derivative
+`f'` and both are of polynomial growth, then
+`d/dt 𝔼 f (m t + σ t z) = 𝔼 [f' (m t + σ t z) (m' t + σ' t z)]`. -/
+theorem hasDerivAt_integral_comp_add_mul_gaussianReal {f f' m σ m' σ' : ℝ → ℝ} {C t : ℝ}
+    {k : ℕ} (hf : ∀ y, HasDerivAt f (f' y) y) (hf'm : Measurable f')
+    (hC : ∀ y, |f y| ≤ C * (1 + |y|) ^ k) (hC' : ∀ y, |f' y| ≤ C * (1 + |y|) ^ k)
+    (hm : ∀ᶠ s in 𝓝 t, HasDerivAt m (m' s) s) (hσ : ∀ᶠ s in 𝓝 t, HasDerivAt σ (σ' s) s)
+    (hm' : ContinuousAt m' t) (hσ' : ContinuousAt σ' t) :
+    HasDerivAt (fun s => ∫ z, f (m s + σ s * z) ∂(gaussianReal 0 1))
+      (∫ z, f' (m t + σ t * z) * (m' t + σ' t * z) ∂(gaussianReal 0 1)) t := by
+  simpa only [smul_eq_mul, mul_comm] using hasDerivAt_integral_comp_add_mul
+    (memLp_id_gaussianReal (μ := 0) (v := 1) ((k + 1 : ℕ) : ℝ≥0)) hf hf'm.stronglyMeasurable hC
+    hC' hm hσ hm' hσ'
 
 end ProbabilityTheory

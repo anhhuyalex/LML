@@ -9,6 +9,8 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.PiUpdate
 public import Mathlib.MeasureTheory.Integral.IntegralEqImproper
 public import Mathlib.MeasureTheory.Integral.Pi
 public import Mathlib.Probability.Distributions.Gaussian.Real
+public import Mathlib.Analysis.LocallyConvex.SeparatingDual
+public import Mathlib.Analysis.Normed.Module.HahnBanach
 
 /-!
 # Stein's lemma (Gaussian integration by parts)
@@ -20,7 +22,8 @@ to `F` and the Gaussian density, whose derivative is `-(x / v) p(x)`.
 
 The coordinatewise version for a vector of independent centered Gaussians follows by resampling
 one coordinate (`MeasureTheory.integral_pi_eq_integral_update`) and applying the one-dimensional
-identity to the slices (`integral_eval_mul_pi_gaussianReal_eq`).
+identity to the slices (`integral_eval_mul_pi_gaussianReal_eq`). Functions with values in a Banach
+space are handled by `integral_id_smul_gaussianReal_eq`.
 -/
 
 @[expose] public section
@@ -135,6 +138,21 @@ theorem integral_id_mul_comp_affine_gaussianReal (v : ℝ≥0) {F F' : ℝ → �
   rw [h, integral_const_mul]
   ring
 
+/-- **Stein's lemma for vector-valued functions:** for `g ~ 𝒩(0, v)` and `F` with values in a
+real Banach space, `𝔼[g • F(g)] = v • 𝔼[F'(g)]`. It follows from the scalar case applied to every
+continuous linear form. -/
+theorem integral_id_smul_gaussianReal_eq {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+    [CompleteSpace E] (v : ℝ≥0) {F F' : ℝ → E} (hF : ∀ x, HasDerivAt F (F' x) x)
+    (hxF : Integrable (fun x => x • F x) (gaussianReal 0 v))
+    (hF' : Integrable F' (gaussianReal 0 v)) :
+    ∫ x, x • F x ∂gaussianReal 0 v = (v : ℝ) • ∫ x, F' x ∂gaussianReal 0 v := by
+  refine (SeparatingDual.eq_iff_forall_dual_eq (R := ℝ)).2 fun φ => ?_
+  rw [map_smul, ← φ.integral_comp_comm hxF, ← φ.integral_comp_comm hF']
+  simp only [map_smul, smul_eq_mul]
+  exact integral_id_mul_gaussianReal_eq v (fun x => φ.hasFDerivAt.comp_hasDerivAt x (hF x))
+    (by simpa only [Function.comp_def, map_smul, smul_eq_mul] using φ.integrable_comp hxF)
+    (φ.integrable_comp hF')
+
 /-- **The moment recurrence of the standard Gaussian:** `𝔼 g^{k+2} = (k + 1) 𝔼 g^k`, from
 Stein's lemma with `F (x) = x^{k+1}`. -/
 theorem integral_pow_add_two_gaussianReal (k : ℕ) :
@@ -174,33 +192,42 @@ theorem integrable_abs_id_gaussianReal {m : ℝ} {v : ℝ≥0} :
   exact (le_add_of_nonneg_right zero_le_one).trans (Real.add_one_le_exp |t|)
 
 /-- An affine combination of absolute coordinates is integrable against a product of
-a finite measure and standard Gaussian coordinates. -/
-theorem integrable_add_sum_mul_abs_snd {A : Type*} [MeasurableSpace A] (ν : Measure A)
-    [IsFiniteMeasure ν] {M : ℕ} (c : ℝ) (w : Fin M → ℝ) :
-    Integrable (fun x : A × (Fin M → ℝ) => c + ∑ k, w k * |x.2 k|)
-      (ν.prod (Measure.pi fun _ : Fin M => gaussianReal 0 1)) := by
-  have hξ (k : Fin M) : Integrable (fun x : A × (Fin M → ℝ) => |x.2 k|)
-      (ν.prod (Measure.pi fun _ : Fin M => gaussianReal 0 1)) :=
-    (integrable_comp_eval (integrable_abs_id_gaussianReal (m := 0) (v := 1))).comp_snd ν
+a finite measure and independent Gaussian coordinates. -/
+theorem integrable_add_sum_mul_abs_snd {A K : Type*} [MeasurableSpace A] [Fintype K]
+    (ν : Measure A) [IsFiniteMeasure ν] {m : K → ℝ} {v : K → ℝ≥0} (c : ℝ) (w : K → ℝ) :
+    Integrable (fun x : A × (K → ℝ) => c + ∑ k, w k * |x.2 k|)
+      (ν.prod (Measure.pi fun k => gaussianReal (m k) (v k))) := by
+  have hξ (k : K) : Integrable (fun x : A × (K → ℝ) => |x.2 k|)
+      (ν.prod (Measure.pi fun k => gaussianReal (m k) (v k))) :=
+    (integrable_comp_eval (μ := fun k => gaussianReal (m k) (v k)) (i := k)
+      (integrable_abs_id_gaussianReal (m := m k) (v := v k))).comp_snd ν
   exact (integrable_const c).add (integrable_finsetSum Finset.univ fun k _ =>
     (hξ k).const_mul (w k))
+
+omit [DecidableEq ι] in
+/-- `exp (∑ k, w k |ξ k|)` is integrable against independent real Gaussians. -/
+theorem integrable_exp_sum_mul_abs_pi_gaussianReal (m : ι → ℝ) (v : ι → ℝ≥0) (w : ι → ℝ) :
+    Integrable (fun ξ : ι → ℝ => Real.exp (∑ k, w k * |ξ k|))
+      (Measure.pi fun k => gaussianReal (m k) (v k)) := by
+  have h := Integrable.fintype_prod (μ := fun k => gaussianReal (m k) (v k))
+    (f := fun k (t : ℝ) => Real.exp (w k * |t|)) fun k => integrable_exp_mul_abs_gaussianReal (w k)
+  simpa [Real.exp_sum] using h
 
 omit [DecidableEq ι] in
 /-- `exp (∑ k, w k |ξ k|)` is integrable against i.i.d. standard Gaussians. -/
 theorem integrable_exp_sum_mul_abs_pi (w : ι → ℝ) :
     Integrable (fun ξ : ι → ℝ => Real.exp (∑ k, w k * |ξ k|))
-      (Measure.pi fun _ : ι => gaussianReal 0 1) := by
-  have h := Integrable.fintype_prod (μ := fun _ : ι => gaussianReal 0 1)
-    (f := fun k (t : ℝ) => Real.exp (w k * |t|)) fun k => integrable_exp_mul_abs_gaussianReal (w k)
-  simpa [Real.exp_sum] using h
+      (Measure.pi fun _ : ι => gaussianReal 0 1) :=
+  integrable_exp_sum_mul_abs_pi_gaussianReal (fun _ => 0) (fun _ => 1) w
 
 omit [DecidableEq ι] in
 /-- Any measurable functional `F` bounded by `C + ∑ k, w k |x k|` satisfies
-`exp (t * F x)` is integrable against standard Gaussian disorder for every `t : ℝ`. -/
-theorem integrable_exp_of_linear_bound {F : (ι → ℝ) → ℝ}
-    (hFm : AEMeasurable F (Measure.pi fun _ : ι => gaussianReal 0 1))
+`exp (t * F x)` is integrable against independent real Gaussians for every `t : ℝ`. -/
+theorem integrable_exp_of_linear_bound {m : ι → ℝ} {v : ι → ℝ≥0} {F : (ι → ℝ) → ℝ}
+    (hFm : AEMeasurable F (Measure.pi fun k => gaussianReal (m k) (v k)))
     {C : ℝ} {w : ι → ℝ} (hF : ∀ x, |F x| ≤ C + ∑ k, w k * |x k|) (t : ℝ) :
-    Integrable (fun x => Real.exp (t * F x)) (Measure.pi fun _ : ι => gaussianReal 0 1) := by
+    Integrable (fun x => Real.exp (t * F x))
+      (Measure.pi fun k => gaussianReal (m k) (v k)) := by
   have hbound (x : ι → ℝ) : t * F x ≤ |t| * C + ∑ k, (|t| * |w k|) * |x k| := by
     have h1 : t * F x ≤ |t * F x| := le_abs_self _
     have h2 : |t * F x| = |t| * |F x| := abs_mul _ _
@@ -216,9 +243,9 @@ theorem integrable_exp_of_linear_bound {F : (ι → ℝ) → ℝ}
         (mul_le_mul_of_nonneg_left (le_abs_self _) (abs_nonneg _)) (abs_nonneg _)
     linarith
   have hint : Integrable (fun x : ι → ℝ => Real.exp (|t| * C + ∑ k, (|t| * |w k|) * |x k|))
-      (Measure.pi fun _ : ι => gaussianReal 0 1) := by
+      (Measure.pi fun k => gaussianReal (m k) (v k)) := by
     simp_rw [add_comm (|t| * C), Real.exp_add]
-    exact (integrable_exp_sum_mul_abs_pi (fun k => |t| * |w k|)).mul_const _
+    exact (integrable_exp_sum_mul_abs_pi_gaussianReal m v (fun k => |t| * |w k|)).mul_const _
   refine hint.mono' (hFm.const_mul t).exp.aestronglyMeasurable (ae_of_all _ fun x => ?_)
   rw [Real.norm_eq_abs, abs_of_pos (Real.exp_pos _)]
   exact Real.exp_le_exp.mpr (hbound x)
@@ -462,30 +489,29 @@ theorem integral_mulVec_mul_comp_mulVec_eq_sum [DecidableEq κ] (A : Matrix κ �
 
 end Linear
 
-/-- **Stein identity for one entry of a Gaussian matrix**: if the entries `x i j` are independent
-standard Gaussians and `G` is differentiable along the entry `(i, j)`, then
-`𝔼 [x i j G x] = 𝔼 [∂ G x]`. -/
+/-- **Stein identity for one entry of a Gaussian matrix**: if the entries `x i j ~ 𝒩(0, v i j)`
+are independent and `G` is differentiable along the entry `(i, j)`, then
+`𝔼 [x i j G x] = v i j 𝔼 [∂ G x]`. -/
 theorem integral_apply_apply_mul_pi_pi_gaussianReal_eq {ι κ : Type*} [Fintype ι]
-    [DecidableEq ι] [Fintype κ] [DecidableEq κ] (i : ι) (j : κ)
+    [DecidableEq ι] [Fintype κ] [DecidableEq κ] (v : ι → κ → ℝ≥0) (i : ι) (j : κ)
     {G G' : (ι → κ → ℝ) → ℝ}
     (hG : ∀ x, HasDerivAt (fun t => G (update x i (update (x i) j t))) (G' x) (x i j))
     (hxG : Integrable (fun x => x i j * G x)
-      (Measure.pi fun _ : ι => Measure.pi fun _ : κ => gaussianReal 0 1))
-    (hG' : Integrable G' (Measure.pi fun _ : ι => Measure.pi fun _ : κ => gaussianReal 0 1)) :
-    ∫ x, x i j * G x ∂(Measure.pi fun _ : ι => Measure.pi fun _ : κ => gaussianReal 0 1) =
-      ∫ x, G' x ∂(Measure.pi fun _ : ι => Measure.pi fun _ : κ => gaussianReal 0 1) := by
-  set γ : Measure (κ → ℝ) := Measure.pi fun _ : κ => gaussianReal 0 1 with hγ
-  have h1 := integrable_update_pi (fun _ : ι => γ) i hxG
-  have h2 := integrable_update_pi (fun _ : ι => γ) i hG'
-  rw [integral_pi_eq_integral_update (fun _ : ι => γ) i hxG,
-    integral_pi_eq_integral_update (fun _ : ι => γ) i hG']
+      (Measure.pi fun i => Measure.pi fun j => gaussianReal 0 (v i j)))
+    (hG' : Integrable G' (Measure.pi fun i => Measure.pi fun j => gaussianReal 0 (v i j))) :
+    ∫ x, x i j * G x ∂(Measure.pi fun i => Measure.pi fun j => gaussianReal 0 (v i j)) =
+      v i j * ∫ x, G' x ∂(Measure.pi fun i => Measure.pi fun j => gaussianReal 0 (v i j)) := by
+  set γ : ι → Measure (κ → ℝ) := fun i => Measure.pi fun j => gaussianReal 0 (v i j) with hγ
+  have h1 := integrable_update_pi γ i hxG
+  have h2 := integrable_update_pi γ i hG'
+  rw [integral_pi_eq_integral_update γ i hxG, integral_pi_eq_integral_update γ i hG',
+    ← integral_const_mul]
   refine integral_congr_ae ?_
   filter_upwards [h1.prod_right_ae, h2.prod_right_ae] with x hx1 hx2
   simp only [update_self] at hx1 ⊢
-  have h := integral_eval_mul_pi_gaussianReal_eq_of_coord (fun _ : κ => (1 : ℝ≥0)) j
+  exact integral_eval_mul_pi_gaussianReal_eq_of_coord (v i) j
     (G := fun y => G (update x i y)) (G' := fun y => G' (update x i y)) (fun y => by
       have := hG (update x i y)
       simpa only [update_self, update_idem] using this) hx1 hx2
-  simpa using h
 
 end ProbabilityTheory

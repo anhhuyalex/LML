@@ -10,6 +10,7 @@ public import Mathlib.Probability.Moments.IntegrableExpMul
 public import Mathlib.Probability.Moments.Basic
 public import Mathlib.MeasureTheory.Integral.Bochner.Basic
 public import Mathlib.Analysis.Convex.Function
+public import Mathlib.Analysis.Convex.Deriv
 public import Mathlib.Analysis.Convex.Integral
 public import Mathlib.Analysis.SpecialFunctions.ExpDeriv
 public import Mathlib.Analysis.SpecialFunctions.Pow.Real
@@ -28,6 +29,7 @@ moments are finite.  This is Hölder's inequality `𝔼 exp ((a s + b t) X) ≤ 
 * `ProbabilityTheory.mgf_add_le_rpow_mul_rpow`: the Hölder inequality for the moment-generating
   function.
 * `ProbabilityTheory.convexOn_cgf`: convexity of `cgf X μ` on `integrableExpSet X μ`.
+* `ProbabilityTheory.monotoneOn_inv_mul_cgf`: `t ↦ t⁻¹ cgf X μ t` is nondecreasing.
 * `ProbabilityTheory.integral_rpow_eq_mgf_log` and
   `ProbabilityTheory.convexOn_log_integral_rpow`: the same for the real moments `t ↦ log 𝔼 Z^t` of a
   positive random variable `Z`.
@@ -169,5 +171,13 @@ theorem cgf_sandwich_of_hasSubgaussianMGF [IsProbabilityMeasure μ] {c : ℝ≥0
     t * (∫ ω, X ω ∂μ) ≤ cgf X μ t ∧ cgf X μ t ≤ t * (∫ ω, X ω ∂μ) + (c : ℝ) * t ^ 2 / 2 :=
   ⟨mul_integral_le_cgf_of_hasSubgaussianMGF h t,
    cgf_le_mul_integral_add_of_hasSubgaussianMGF h t⟩
+
+/-- **Lyapunov monotonicity:** on a probability space, `t ↦ t⁻¹ cgf X μ t` is nondecreasing on
+the nonzero points where the exponential moment is finite. -/
+theorem monotoneOn_inv_mul_cgf [IsProbabilityMeasure μ] (hX : AEMeasurable X μ) :
+    MonotoneOn (fun t => t⁻¹ * cgf X μ t) (integrableExpSet X μ \ {0}) := by
+  have h0 : (0 : ℝ) ∈ integrableExpSet X μ := by simp [integrableExpSet]
+  refine ((convexOn_cgf hX).slope_mono h0).congr fun t _ => ?_
+  rw [slope_def_field, cgf_zero, sub_zero, sub_zero, div_eq_inv_mul]
 
 end ProbabilityTheory

@@ -55,18 +55,26 @@ theorem abs_integral_pow_gaussianReal_le (n : ℕ) :
       _ ≤ ((n : ℝ) + 1 + 1) * (((n : ℝ) + 1) * (n ! : ℝ)) :=
           le_mul_of_one_le_left hb (by linarith)
 
+/-- A product of Gaussian moments with a scale `σ k ≥ 0` for each factor is bounded by
+`∏ (n_k! σ_k^{n_k})`. -/
+theorem abs_prod_integral_pow_scaled_gaussianReal_le_prod {ι : Type*} [Fintype ι] (c : ι → ℕ)
+    {σ : ι → ℝ} (hσ : ∀ k, 0 ≤ σ k) :
+    |∏ k, ∫ x : ℝ, (σ k * x) ^ (c k) ∂(gaussianReal 0 1)| ≤ ∏ k, ((c k) ! : ℝ) * σ k ^ (c k) := by
+  rw [Finset.abs_prod]
+  refine Finset.prod_le_prod₀ (fun k _ => abs_nonneg _) fun k _ => ?_
+  have : ∫ x : ℝ, (σ k * x) ^ (c k) ∂(gaussianReal 0 1) =
+      σ k ^ (c k) * ∫ x : ℝ, x ^ (c k) ∂(gaussianReal 0 1) := by
+    simp only [mul_pow]
+    rw [integral_const_mul]
+  rw [this, abs_mul, abs_of_nonneg (pow_nonneg (hσ k) _), mul_comm]
+  exact mul_le_mul_of_nonneg_right (abs_integral_pow_gaussianReal_le _) (pow_nonneg (hσ k) _)
+
 /-- A product of scaled Gaussian moments is bounded by `(∏ n_k!) σ^{∑ n_k}`. -/
 theorem abs_prod_integral_pow_scaled_gaussianReal_le {ι : Type*} [Fintype ι] (c : ι → ℕ) {σ : ℝ}
     (hσ : 0 ≤ σ) :
     |∏ k, ∫ x : ℝ, (σ * x) ^ (c k) ∂(gaussianReal 0 1)| ≤
       (∏ k, ((c k) ! : ℝ)) * σ ^ (∑ k, c k) := by
-  rw [Finset.abs_prod, ← Finset.prod_pow_eq_pow_sum, ← Finset.prod_mul_distrib]
-  refine Finset.prod_le_prod₀ (fun k _ => abs_nonneg _) fun k _ => ?_
-  have : ∫ x : ℝ, (σ * x) ^ (c k) ∂(gaussianReal 0 1) =
-      σ ^ (c k) * ∫ x : ℝ, x ^ (c k) ∂(gaussianReal 0 1) := by
-    simp only [mul_pow]
-    rw [integral_const_mul]
-  rw [this, abs_mul, abs_of_nonneg (pow_nonneg hσ _), mul_comm]
-  exact mul_le_mul_of_nonneg_right (abs_integral_pow_gaussianReal_le _) (pow_nonneg hσ _)
+  rw [← Finset.prod_pow_eq_pow_sum, ← Finset.prod_mul_distrib]
+  exact abs_prod_integral_pow_scaled_gaussianReal_le_prod c fun _ => hσ
 
 end ProbabilityTheory

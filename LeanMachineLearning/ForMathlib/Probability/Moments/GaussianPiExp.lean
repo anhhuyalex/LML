@@ -32,15 +32,15 @@ Both come with their integrability statements.  The one-dimensional case is
 @[expose] public section
 
 open MeasureTheory ProbabilityTheory
-open scoped BigOperators
+open scoped BigOperators NNReal
 
 namespace ProbabilityTheory
 
-/-- Every power of `log cosh (a x + b)` is integrable against the standard Gaussian. -/
-theorem integrable_pow_log_cosh_affine_gaussianReal (a b : ℝ) (j : ℕ) :
-    Integrable (fun x : ℝ => Real.log (Real.cosh (a * x + b)) ^ j) (gaussianReal 0 1) := by
-  have hx : Integrable (fun x : ℝ => |x| ^ j) (gaussianReal 0 1) := by
-    simpa only [abs_pow] using (integrable_pow_gaussianReal 0 1 j).abs
+/-- Every power of `log cosh (a x + b)` is integrable against any real Gaussian. -/
+theorem integrable_pow_log_cosh_affine_gaussianReal (a b : ℝ) (j : ℕ) {m : ℝ} {v : ℝ≥0} :
+    Integrable (fun x : ℝ => Real.log (Real.cosh (a * x + b)) ^ j) (gaussianReal m v) := by
+  have hx : Integrable (fun x : ℝ => |x| ^ j) (gaussianReal m v) := by
+    simpa only [abs_pow] using (integrable_pow_gaussianReal m v j).abs
   have hcont : Continuous fun x : ℝ => Real.log (Real.cosh (a * x + b)) :=
     (Real.continuous_cosh.comp (by fun_prop : Continuous fun x : ℝ => a * x + b)).log
       fun x => (Real.cosh_pos _).ne'
@@ -290,20 +290,31 @@ theorem integral_id_mul_exp_mul_gaussianReal_zero_one (c : ℝ) :
   rw [h, integral_const_mul, integral_exp_mul_gaussianReal_zero_one]
 
 /-- Integrability of `exp (u ⬝ y)` against i.i.d. standard Gaussians. -/
-theorem integrable_exp_dotProduct_gaussianReal {N : ℕ} (u : Fin N → ℝ) :
-    Integrable (fun y : Fin N → ℝ => Real.exp (u ⬝ᵥ y))
-      (Measure.pi fun _ : Fin N => gaussianReal 0 1) := by
-  have heq : (fun y : Fin N → ℝ => Real.exp (u ⬝ᵥ y)) =
-      fun y => Real.exp (∑ i, u i * y i) := by
-    ext y; simp [dotProduct]
-  rw [heq]
-  exact integrable_exp_sum_mul_gaussianReal u
+theorem integrable_exp_dotProduct_gaussianReal {ι : Type*} [Fintype ι] (u : ι → ℝ) :
+    Integrable (fun y : ι → ℝ => Real.exp (u ⬝ᵥ y))
+      (Measure.pi fun _ : ι => gaussianReal 0 1) :=
+  integrable_exp_sum_mul_gaussianReal u
 
 /-- Integrability of `exp (c * (u ⬝ y))` against i.i.d. standard Gaussians. -/
-theorem integrable_exp_const_mul_dotProduct_gaussianReal {N : ℕ} (c : ℝ) (u : Fin N → ℝ) :
-    Integrable (fun y : Fin N → ℝ => Real.exp (c * (u ⬝ᵥ y)))
-      (Measure.pi fun _ : Fin N => gaussianReal 0 1) := by
+theorem integrable_exp_const_mul_dotProduct_gaussianReal {ι : Type*} [Fintype ι] (c : ℝ)
+    (u : ι → ℝ) :
+    Integrable (fun y : ι → ℝ => Real.exp (c * (u ⬝ᵥ y)))
+      (Measure.pi fun _ : ι => gaussianReal 0 1) := by
   simpa only [smul_dotProduct, smul_eq_mul] using integrable_exp_dotProduct_gaussianReal (c • u)
+
+/-- `𝔼 exp (c (u ⬝ y)) ≤ exp (c² / 2)` for a standard Gaussian `y` and `∑ uᵢ² ≤ 1`. -/
+theorem integral_exp_const_mul_dotProduct_gaussianReal_le {ι : Type*} [Fintype ι] (c : ℝ)
+    {u : ι → ℝ} (hu : ∑ i, u i ^ 2 ≤ 1) :
+    ∫ y : ι → ℝ, Real.exp (c * (u ⬝ᵥ y)) ∂(Measure.pi fun _ : ι => gaussianReal 0 1) ≤
+      Real.exp (c ^ 2 / 2) := by
+  have heq : (fun y : ι → ℝ => Real.exp (c * (u ⬝ᵥ y))) =
+      fun y => Real.exp (∑ i, (c * u i) * y i) := by
+    ext y
+    simp only [dotProduct, Finset.mul_sum, mul_assoc]
+  rw [heq, integral_exp_sum_mul_gaussianReal, Real.exp_le_exp, ← Finset.sum_div]
+  refine div_le_div_of_nonneg_right ?_ two_pos.le
+  simp only [mul_pow, ← Finset.mul_sum]
+  exact mul_le_of_le_one_right (sq_nonneg c) hu
 
 /-- `𝔼 exp (c N^{-1/2} ∑ mᵢ yᵢ) ≤ exp (c² / 2)` for `y` standard Gaussian and `|mᵢ| ≤ 1`. -/
 theorem integral_exp_sum_ising_moment_le {N : ℕ} (hN : 0 < N) (c : ℝ)
@@ -311,37 +322,15 @@ theorem integral_exp_sum_ising_moment_le {N : ℕ} (hN : 0 < N) (c : ℝ)
     ∫ y : Fin N → ℝ, Real.exp (c * ((fun i => (Real.sqrt N)⁻¹ * m i) ⬝ᵥ y))
       ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1) ≤
     Real.exp (c ^ 2 / 2) := by
-  have heq : (fun y : Fin N → ℝ =>
-      Real.exp (c * ((fun i => (Real.sqrt N)⁻¹ * m i) ⬝ᵥ y))) =
-      fun y => Real.exp (∑ i : Fin N, (c * (Real.sqrt N)⁻¹ * m i) * y i) := by
-    ext y
-    simp only [dotProduct]
-    congr 1
-    rw [Finset.mul_sum]
-    refine Finset.sum_congr rfl fun i _ => by ring
-  rw [heq, integral_exp_sum_mul_gaussianReal]
-  have h_sq_le (i : Fin N) : (c * (Real.sqrt N)⁻¹ * m i) ^ 2 ≤ c ^ 2 / (N : ℝ) := by
-    have hN_pos : (0 : ℝ) < N := Nat.cast_pos.mpr hN
-    have hsqrt_sq : (Real.sqrt N) ^ 2 = (N : ℝ) := Real.sq_sqrt hN_pos.le
-    have hm_sq : (m i) ^ 2 ≤ 1 := by
-      calc (m i) ^ 2 = |m i| ^ 2 := (sq_abs (m i)).symm
-        _ ≤ 1 ^ 2 := by nlinarith [hm i, abs_nonneg (m i)]
-        _ = 1 := by norm_num
-    calc (c * (Real.sqrt N)⁻¹ * m i) ^ 2
-      _ = c ^ 2 * ((Real.sqrt N)⁻¹ ^ 2) * (m i) ^ 2 := by ring
-      _ = c ^ 2 * ((Real.sqrt N) ^ 2)⁻¹ * (m i) ^ 2 := by rw [inv_pow]
-      _ = (c ^ 2 / (N : ℝ)) * (m i) ^ 2 := by rw [hsqrt_sq]; ring
-      _ ≤ (c ^ 2 / (N : ℝ)) * 1 := mul_le_mul_of_nonneg_left hm_sq (by positivity)
-      _ = c ^ 2 / (N : ℝ) := mul_one _
-  have h_sum_le : ∑ i : Fin N, (c * (Real.sqrt N)⁻¹ * m i) ^ 2 / 2 ≤ c ^ 2 / 2 := by
-    have hN_pos : (0 : ℝ) < N := Nat.cast_pos.mpr hN
-    calc ∑ i : Fin N, (c * (Real.sqrt N)⁻¹ * m i) ^ 2 / 2
-      _ ≤ ∑ i : Fin N, (c ^ 2 / (N : ℝ)) / 2 :=
-        Finset.sum_le_sum fun i _ => div_le_div_of_nonneg_right (h_sq_le i) (by positivity)
-      _ = (N : ℝ) * ((c ^ 2 / (N : ℝ)) / 2) := by simp [Finset.sum_const]
-      _ = c ^ 2 / 2 := by
-        field_simp
-  exact Real.exp_le_exp_of_le h_sum_le
+  refine integral_exp_const_mul_dotProduct_gaussianReal_le c ?_
+  have hN0 : (0 : ℝ) < N := Nat.cast_pos.mpr hN
+  have h1 : ∀ i, ((Real.sqrt N)⁻¹ * m i) ^ 2 ≤ (N : ℝ)⁻¹ := fun i => by
+    rw [mul_pow, inv_pow, Real.sq_sqrt hN0.le]
+    refine mul_le_of_le_one_right (inv_nonneg.2 hN0.le) ?_
+    rw [← sq_abs]
+    exact pow_le_one₀ (abs_nonneg _) (hm i)
+  refine (Finset.sum_le_sum fun i _ => h1 i).trans_eq ?_
+  rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul, mul_inv_cancel₀ hN0.ne']
 
 /-- The product of two `cosh`s of linear forms in the same Gaussian vector `w`, with a common
 coefficient `c` and offset `h`, is the average of the `cosh` of the sum and of the difference. -/
@@ -406,13 +395,13 @@ theorem integrable_even_pow_const_mul_sum_abs_add {ι : Type*} [Fintype ι] (c d
   have he : Even (2 * k) := ⟨k, by ring⟩
   simpa [Real.norm_eq_abs, he.pow_abs] using h2
 
-/-- Integrability of arbitrary real powers of `cosh(w * z + h)` against the standard Gaussian. -/
-theorem integrable_cosh_rpow_affine_gaussianReal (t w h : ℝ) :
-    Integrable (fun z : ℝ => Real.cosh (w * z + h) ^ t) (gaussianReal 0 1) := by
+/-- Integrability of arbitrary real powers of `cosh(w * z + h)` against any real Gaussian. -/
+theorem integrable_cosh_rpow_affine_gaussianReal (t w h : ℝ) {m : ℝ} {v : ℝ≥0} :
+    Integrable (fun z : ℝ => Real.cosh (w * z + h) ^ t) (gaussianReal m v) := by
   have hcont : Continuous (fun z : ℝ => Real.cosh (w * z + h) ^ t) :=
     (Real.continuous_cosh.comp (by fun_prop)).rpow_const
       (fun z => Or.inl (Real.cosh_pos _).ne')
-  refine ((integrable_exp_mul_abs_gaussianReal (|t| * |w|)).const_mul
+  refine ((integrable_exp_mul_abs_gaussianReal (m := m) (v := v) (|t| * |w|)).const_mul
     (Real.exp (|t| * |h|))).mono' hcont.aestronglyMeasurable
       (Filter.Eventually.of_forall fun z => ?_)
   rw [Real.norm_eq_abs, abs_of_nonneg (Real.rpow_nonneg (Real.cosh_pos _).le _),
