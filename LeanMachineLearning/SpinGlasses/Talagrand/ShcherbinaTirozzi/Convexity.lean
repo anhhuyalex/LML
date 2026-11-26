@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import Mathlib.Algebra.Order.Chebyshev
 public import Mathlib.Analysis.Convex.Continuous
 public import Mathlib.Analysis.Convex.Integral
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Gaussian.QuadraticTilt
@@ -73,18 +74,30 @@ theorem measurable_shcherbinaTirozziHamiltonian (κ h : ℝ) {u : ℝ → ℝ} (
   have hg₀ : ∀ i : Fin N, Measurable fun p : ((Fin M → Fin N → ℝ) × (Fin N → ℝ)) ×
       EuclideanSpace ℝ (Fin N) => p.1.2 i := fun i =>
     (measurable_pi_apply i).comp (measurable_snd.comp measurable_fst)
-  unfold shcherbinaTirozziHamiltonian
-  refine ((measurable_snd.norm.pow_const 2).const_mul κ).sub ?_ |>.sub ?_
-  · exact Finset.measurable_sum _ fun k _ => hu.comp
-      ((Finset.measurable_sum _ fun i _ => (hg k i).mul (hσ i)).const_mul _)
-  · exact (Finset.measurable_sum _ fun i _ => (hg₀ i).mul (hσ i)).const_mul h
+  have hfield : ∀ k : Fin M, Measurable fun p : ((Fin M → Fin N → ℝ) × (Fin N → ℝ)) ×
+      EuclideanSpace ℝ (Fin N) => u ((Real.sqrt N)⁻¹ * ∑ i, p.1.1 k i * p.2 i) := fun k =>
+    hu.comp ((Finset.measurable_sum _ fun i _ => (hg k i).mul (hσ i)).const_mul _)
+  have hsum := Finset.measurable_sum Finset.univ fun k _ => hfield k
+  have hlin := (Finset.measurable_sum Finset.univ fun i _ => (hg₀ i).mul (hσ i)).const_mul h
+  have hq : Measurable fun p : ((Fin M → Fin N → ℝ) × (Fin N → ℝ)) × EuclideanSpace ℝ (Fin N) =>
+      κ * ‖p.2‖ ^ 2 := (measurable_snd.norm.pow_const 2).const_mul κ
+  simp only [shcherbinaTirozziHamiltonian]
+  exact (hq.sub hsum).sub hlin
 
 /-- The Hamiltonian is measurable in the configuration. -/
 theorem measurable_shcherbinaTirozziHamiltonian_apply (κ h : ℝ) {u : ℝ → ℝ} (hu : Measurable u)
     (g : Fin M → Fin N → ℝ) (g₀ : Fin N → ℝ) :
-    Measurable (shcherbinaTirozziHamiltonian κ h u g g₀) :=
-  (measurable_shcherbinaTirozziHamiltonian κ h hu).comp
-    (measurable_prodMk_left (x := (g, g₀)))
+    Measurable (shcherbinaTirozziHamiltonian κ h u g g₀) := by
+  have hσ : ∀ i : Fin N, Measurable fun σ : EuclideanSpace ℝ (Fin N) => σ i := fun i =>
+    (PiLp.continuous_apply 2 (fun _ : Fin N => ℝ) i).measurable
+  have hfield : ∀ k : Fin M, Measurable fun σ : EuclideanSpace ℝ (Fin N) =>
+      u ((Real.sqrt N)⁻¹ * ∑ i, g k i * σ i) := fun k =>
+    hu.comp ((Finset.measurable_sum _ fun i _ => (hσ i).const_mul _).const_mul _)
+  have hsum := Finset.measurable_sum Finset.univ fun k _ => hfield k
+  have hlin := (Finset.measurable_sum Finset.univ fun i _ => (hσ i).const_mul (g₀ i)).const_mul h
+  have hq : Measurable fun σ : EuclideanSpace ℝ (Fin N) => κ * ‖σ‖ ^ 2 :=
+    (measurable_norm.pow_const 2).const_mul κ
+  exact (hq.sub hsum).sub hlin
 
 /-- **Eq. (3.4):** for concave `u`, the Hamiltonian is uniformly midpoint convex with constant
 `κ`. -/

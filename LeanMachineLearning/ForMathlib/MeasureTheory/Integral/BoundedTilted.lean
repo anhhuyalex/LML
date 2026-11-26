@@ -464,6 +464,23 @@ theorem measurable_integral_tilted {Ω α : Type*} [MeasurableSpace Ω] [Measura
     {Y : α → ℝ} (hY : Measurable Y) : Measurable fun ω => ∫ a, Y a ∂(μ.tilted (e ω)) :=
   measurable_integral_tilted_dep hE (hY.comp measurable_snd)
 
+/-- An integral over two independent copies of a random tilted measure is measurable in the
+environment, for a jointly measurable integrable observable. -/
+theorem measurable_integral_prod_tilted_dep {Ω α : Type*} [MeasurableSpace Ω] [MeasurableSpace α]
+    {μ : Measure α} [SFinite μ] {e : Ω → α → ℝ} (hE : Measurable fun p : Ω × α => e p.1 p.2)
+    {F : Ω → α × α → ℝ} (hF : Measurable fun p : Ω × (α × α) => F p.1 p.2)
+    (hFi : ∀ ω, Integrable (F ω) ((μ.tilted (e ω)).prod (μ.tilted (e ω)))) :
+    Measurable fun ω => ∫ p, F ω p ∂((μ.tilted (e ω)).prod (μ.tilted (e ω))) := by
+  have hinner : Measurable fun q : Ω × α => ∫ b, F q.1 (q.2, b) ∂(μ.tilted (e q.1)) :=
+    measurable_integral_tilted_dep (e := fun (q : Ω × α) b => e q.1 b)
+      (Y := fun (q : Ω × α) b => F q.1 (q.2, b))
+      (hE.comp ((measurable_fst.comp measurable_fst).prodMk measurable_snd))
+      (hF.comp ((measurable_fst.comp measurable_fst).prodMk
+        ((measurable_snd.comp measurable_fst).prodMk measurable_snd)))
+  have h := measurable_integral_tilted_dep (μ := μ) (e := e)
+    (Y := fun ω a => ∫ b, F ω (a, b) ∂(μ.tilted (e ω))) hE hinner
+  exact (funext fun ω => integral_prod _ (hFi ω)) ▸ h
+
 /-- A tilted integral of an observable bounded by `M` is bounded by `M`. -/
 theorem abs_integral_tilted_le {α : Type*} [MeasurableSpace α] {μ : Measure α} [NeZero μ]
     {e Y : α → ℝ} (he : Integrable (fun a => Real.exp (e a)) μ) {M : ℝ}

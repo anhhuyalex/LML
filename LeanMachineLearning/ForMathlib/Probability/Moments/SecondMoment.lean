@@ -8,6 +8,7 @@ module
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.AddPowEstimates
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SqSub
 public import Mathlib.MeasureTheory.Integral.Bochner.Basic
+public import Mathlib.MeasureTheory.Function.L2Space
 public import Mathlib.Probability.Moments.Variance
 public import Mathlib.LinearAlgebra.Matrix.Trace
 public import Mathlib.Algebra.Order.BigOperators.Ring.Finset
@@ -27,6 +28,11 @@ For a random vector `x : Ω → p → ℝ` with square-integrable coordinates an
 * `ProbabilityTheory.variance_le_of_moment_errors`: control of variance from two moment errors.
 * `ProbabilityTheory.integral_sub_const_sq_le_of_moment_errors`: the corresponding
   mean-square bound.
+
+* `ProbabilityTheory.integral_add_pow_two_mul_le`: even moments of a sum.
+* `ProbabilityTheory.norm_integral_smul_sub_le_of_integral_inner_sq_le`: if every one-dimensional
+  projection of `F - m` has second moment at most `C ‖y‖²`, then
+  `‖∫ f • (F - m)‖ ≤ √(C ∫ f²)`.
 
 They reduce every bilinear second-moment computation to the coordinate covariances (used for the
 double-descent risk decompositions and for Gaussian matrix forms).
@@ -211,5 +217,81 @@ theorem abs_integral_pow_mul_le {Ω : Type*} [MeasurableSpace Ω] {P : Measure �
   refine h.trans (le_of_eq ?_)
   rw [Real.sqrt_mul hK.le]
   ring
+
+/-- **Even moments of a sum:** `∫ (X + Y)^{2k} ≤ 2^{2k-1} (∫ X^{2k} + ∫ Y^{2k})` on an arbitrary
+measure space, with integrability of the left-hand side. -/
+theorem integral_add_pow_two_mul_le {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    {X Y : Ω → ℝ} (hX : AEStronglyMeasurable X μ) (hY : AEStronglyMeasurable Y μ) {k : ℕ}
+    (hXi : Integrable (fun ω => X ω ^ (2 * k)) μ) (hYi : Integrable (fun ω => Y ω ^ (2 * k)) μ) :
+    Integrable (fun ω => (X ω + Y ω) ^ (2 * k)) μ ∧
+      ∫ ω, (X ω + Y ω) ^ (2 * k) ∂μ ≤
+        2 ^ (2 * k - 1) * ((∫ ω, X ω ^ (2 * k) ∂μ) + ∫ ω, Y ω ^ (2 * k) ∂μ) := by
+  have heven : Even (2 * k) := even_two_mul k
+  have hpt : ∀ ω, (X ω + Y ω) ^ (2 * k) ≤
+      2 ^ (2 * k - 1) * (X ω ^ (2 * k) + Y ω ^ (2 * k)) := fun ω => by
+    rw [← heven.pow_abs (X ω + Y ω), ← heven.pow_abs (X ω), ← heven.pow_abs (Y ω)]
+    exact (pow_le_pow_left₀ (abs_nonneg _) (abs_add_le _ _) _).trans
+      (add_pow_le (abs_nonneg _) (abs_nonneg _) _)
+  have hdom := (hXi.add hYi).const_mul (2 ^ (2 * k - 1) : ℝ)
+  have hi : Integrable (fun ω => (X ω + Y ω) ^ (2 * k)) μ := by
+    refine Integrable.mono' hdom ((continuous_pow _).comp_aestronglyMeasurable (hX.add hY))
+      (ae_of_all _ fun ω => ?_)
+    rw [Real.norm_of_nonneg (heven.pow_nonneg _)]
+    exact hpt ω
+  refine ⟨hi, (integral_mono hi hdom hpt).trans_eq ?_⟩
+  simp only [Pi.add_apply]
+  rw [integral_const_mul, integral_add hXi hYi]
+
+/-- **Covariance control in norm.** Let `F` take values in a real Hilbert space and `m` be a
+vector. If `∫ ⟪F - m, y⟫² ≤ C ‖y‖²` for every `y`, then every `f ∈ L²` satisfies
+`‖∫ f • (F - m)‖ ≤ √(C ∫ f²)`. No finiteness of the measure is needed. -/
+theorem norm_integral_smul_sub_le_of_integral_inner_sq_le {Ω H : Type*} [MeasurableSpace Ω]
+    {μ : Measure Ω} [NormedAddCommGroup H] [InnerProductSpace ℝ H] [CompleteSpace H]
+    {F : Ω → H} {m : H} {f : Ω → ℝ} (hf : MemLp f 2 μ) (hF : MemLp (fun ω => F ω - m) 2 μ)
+    {C : ℝ} (hC : ∀ y : H, ∫ ω, (inner ℝ (F ω - m) y) ^ 2 ∂μ ≤ C * ‖y‖ ^ 2) :
+    ‖∫ ω, f ω • (F ω - m) ∂μ‖ ≤ Real.sqrt (C * ∫ ω, f ω ^ 2 ∂μ) := by
+  set v : H := ∫ ω, f ω • (F ω - m) ∂μ with hv
+  have hint : Integrable (fun ω => f ω • (F ω - m)) μ :=
+    memLp_one_iff_integrable.1 (hf.smul hF (p := 2) (q := 2) (r := 1))
+  have hg : MemLp (fun ω => inner ℝ (F ω - m) v) 2 μ := hF.inner_const v
+  have h1 : ‖v‖ ^ 2 = ∫ ω, f ω * inner ℝ (F ω - m) v ∂μ := by
+    rw [← real_inner_self_eq_norm_sq]
+    conv_lhs => arg 3; rw [hv]
+    rw [real_inner_comm, ← integral_inner hint]
+    refine integral_congr_ae (ae_of_all _ fun ω => ?_)
+    change inner ℝ v (f ω • (F ω - m)) = f ω * inner ℝ (F ω - m) v
+    rw [real_inner_smul_right, real_inner_comm]
+  have hCS : (∫ ω, f ω * inner ℝ (F ω - m) v ∂μ) ^ 2 ≤
+      (∫ ω, f ω ^ 2 ∂μ) * ∫ ω, (inner ℝ (F ω - m) v) ^ 2 ∂μ := by
+    have hq : ∀ t : ℝ, 0 ≤ (∫ ω, f ω ^ 2 ∂μ) * (t * t) +
+        (2 * ∫ ω, f ω * inner ℝ (F ω - m) v ∂μ) * t +
+          ∫ ω, (inner ℝ (F ω - m) v) ^ 2 ∂μ := fun t => by
+      have hfg : Integrable (fun ω => f ω * inner ℝ (F ω - m) v) μ := hf.integrable_mul hg
+      have h0 : 0 ≤ ∫ ω, (t * f ω + inner ℝ (F ω - m) v) ^ 2 ∂μ :=
+        integral_nonneg fun ω => sq_nonneg _
+      have e : (fun ω => (t * f ω + inner ℝ (F ω - m) v) ^ 2) = fun ω =>
+          (t * t) * f ω ^ 2 + (2 * t) * (f ω * inner ℝ (F ω - m) v) +
+            (inner ℝ (F ω - m) v) ^ 2 := by
+        funext ω; ring
+      have hi1 := hf.integrable_sq.const_mul (t * t)
+      have hi2 := hfg.const_mul (2 * t)
+      have hi12 : Integrable (fun ω => (t * t) * f ω ^ 2 +
+          (2 * t) * (f ω * inner ℝ (F ω - m) v)) μ := hi1.add hi2
+      rw [e, integral_add hi12 hg.integrable_sq, integral_add hi1 hi2,
+        integral_const_mul, integral_const_mul] at h0
+      linarith
+    have := discrim_le_zero hq
+    rw [discrim] at this
+    nlinarith
+  have hf0 : 0 ≤ ∫ ω, f ω ^ 2 ∂μ := integral_nonneg fun ω => sq_nonneg _
+  rcases eq_or_lt_of_le (norm_nonneg v) with h0 | h0
+  · rw [← h0]; exact Real.sqrt_nonneg _
+  refine Real.le_sqrt_of_sq_le ?_
+  have h2 : (‖v‖ ^ 2) ^ 2 ≤ (C * ∫ ω, f ω ^ 2 ∂μ) * ‖v‖ ^ 2 := by
+    rw [h1]
+    refine le_trans (le_of_eq ?_) (hCS.trans ((mul_le_mul_of_nonneg_left (hC v) hf0).trans_eq ?_))
+    · rfl
+    · rw [← h1]; ring
+  exact le_of_mul_le_mul_right (by rw [← sq]; exact h2) (pow_pos h0 2)
 
 end ProbabilityTheory
