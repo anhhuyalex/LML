@@ -24,6 +24,11 @@ public import LeanMachineLearning.ForMathlib.Probability.GibbsIBPPotential
   log-concave (Talagrand, *Spin Glasses*, Vol. I, Lemma 3.2.5).
 * `MeasureTheory.mul_integral_sub_sq_mul_exp_le`: if `c (x - x₀)² ≤ -w' x (x - x₀)`, then
   `c ∫ (x - x₀)² exp (w x) ≤ ∫ exp (w x)` (Lemma 3.2.2, Eq. (3.70)).
+* `MeasureTheory.abs_integral_volume_tilted_concave_sub_mul_sq_le`: for the density
+  proportional to `exp (f x - κ x² + d x)` with `f` concave, the mean is at most
+  `(2 κ)^{-1/2} + |f' 0 + d| / (2 κ)` in absolute value (Eq. (3.86)).
+* `MeasureTheory.hasDerivAt_log_integral_exp_sum_comp_add_mul`: differentiation of
+  `x ↦ log ∫ exp (∑ k, u (a k ρ + c k x) + V ρ) dμ ρ`.
 * `ProbabilityTheory.variance_id_tilted_gaussianReal_le_one`: a standard Gaussian tilted by a
   differentiable concave function has variance at most `1` (Lemma 3.2.3, Eqs. (3.71)--(3.73)).
 * `ProbabilityTheory.integral_deriv_two_add_sq_mul_exp_div_le_sq`: Eq. (3.73) for the potential
@@ -191,6 +196,185 @@ theorem mul_integral_sub_sq_mul_exp_le {c x₀ : ℝ} (hc : 0 < c) {w w' : ℝ �
     exact hint _ _ (by linarith [neg_abs_le x₀]) ((le_abs_self x₀).trans hR)
   rw [hf, integral_sub hexp (hsq.const_mul c), integral_const_mul] at h0
   linarith
+
+/-- **The mean of a one-dimensional strongly log-concave density** (Talagrand, Eq. (3.86)): for
+`f` concave and differentiable and `κ > 0`, the probability measure with density proportional to
+`exp (f x - κ x² + d x)` has a finite mean, of absolute value at most
+`√((2 κ)⁻¹) + |f' 0 + d| / (2 κ)`. -/
+theorem abs_integral_volume_tilted_concave_sub_mul_sq_le {f f' : ℝ → ℝ} (hf : ConcaveOn ℝ univ f)
+    (hfd : ∀ x, HasDerivAt f (f' x) x) {κ : ℝ} (hκ : 0 < κ) (d : ℝ) :
+    |∫ x, x ∂((volume : Measure ℝ).tilted fun x => f x - κ * x ^ 2 + d * x)| ≤
+      Real.sqrt (2 * κ)⁻¹ + |f' 0 + d| / (2 * κ) := by
+  set w : ℝ → ℝ := fun x => f x - κ * x ^ 2 + d * x with hw
+  set w' : ℝ → ℝ := fun x => f' x - 2 * κ * x + d with hw'
+  have hwd : ∀ x, HasDerivAt w (w' x) x := fun x => by
+    have h := ((hfd x).sub (((hasDerivAt_id x).pow 2).const_mul κ)).add
+      ((hasDerivAt_id x).const_mul d)
+    refine h.congr_deriv ?_
+    simp only [hw', id_eq]
+    push_cast
+    ring
+  have hanti : Antitone f' := fun x y hxy => by
+    have h := hf.antitoneOn_deriv (fun z _ => (hfd z).differentiableAt) (mem_univ x)
+      (mem_univ y) hxy
+    rwa [(hfd x).deriv, (hfd y).deriv] at h
+  -- the mode
+  have htan : ∀ x, f x ≤ f 0 + f' 0 * x := fun x => by
+    rcases lt_trichotomy x 0 with h | rfl | h
+    · have := hf.le_slope_of_hasDerivAt (mem_univ x) (mem_univ 0) h (hfd 0)
+      rw [slope_def_field, le_div_iff₀ (sub_pos.2 h)] at this
+      linarith
+    · simp
+    · have := hf.slope_le_of_hasDerivAt (mem_univ 0) (mem_univ x) h (hfd 0)
+      rw [slope_def_field, sub_zero, div_le_iff₀ h] at this
+      linarith
+  have hfar : ∀ x, |f' 0 + d| / κ ≤ |x| → w x ≤ w 0 := fun x hx => by
+    have h1 : |f' 0 + d| ≤ κ * |x| := by
+      rw [div_le_iff₀ hκ] at hx
+      linarith
+    have h2 : (f' 0 + d) * x ≤ κ * x ^ 2 := by
+      calc (f' 0 + d) * x ≤ |f' 0 + d| * |x| := (le_abs_self _).trans_eq (abs_mul _ _)
+        _ ≤ κ * |x| * |x| := mul_le_mul_of_nonneg_right h1 (abs_nonneg _)
+        _ = κ * x ^ 2 := by rw [mul_assoc, ← sq, sq_abs]
+    have h3 := htan x
+    simp only [hw]
+    linarith
+  obtain ⟨x₀, hx₀⟩ : ∃ x₀, ∀ y, w y ≤ w x₀ := by
+    refine (continuous_iff_continuousAt.2 fun x => (hwd x).continuousAt).exists_forall_ge' 0 ?_
+    filter_upwards [tendsto_norm_cocompact_atTop.eventually_ge_atTop (|f' 0 + d| / κ)] with x hx
+    exact hfar x (by rwa [Real.norm_eq_abs] at hx)
+  have hmax : IsLocalMax w x₀ := Filter.Eventually.of_forall hx₀
+  have hcrit : w' x₀ = 0 := hmax.hasDerivAt_eq_zero (hwd x₀)
+  have hkey : ∀ x, 2 * κ * (x - x₀) ^ 2 ≤ -w' x * (x - x₀) := fun x => by
+    have h1 : (f' x - f' x₀) * (x - x₀) ≤ 0 := by
+      rcases le_total x x₀ with h | h
+      · exact mul_nonpos_of_nonneg_of_nonpos (sub_nonneg.2 (hanti h)) (sub_nonpos.2 h)
+      · exact mul_nonpos_of_nonpos_of_nonneg (sub_nonpos.2 (hanti h)) (sub_nonneg.2 h)
+    have h2 : f' x₀ = 2 * κ * x₀ - d := by
+      simp only [hw'] at hcrit
+      linarith
+    have e : -w' x * (x - x₀) =
+        2 * κ * (x - x₀) ^ 2 - (f' x - f' x₀) * (x - x₀) := by
+      rw [h2]
+      simp only [hw']
+      ring
+    linarith
+  have h2κ : 0 < 2 * κ := by linarith
+  obtain ⟨hi, hi2, hvar⟩ := mul_integral_sub_sq_mul_exp_le h2κ hwd hkey
+  have hprob : IsProbabilityMeasure ((volume : Measure ℝ).tilted w) :=
+    isProbabilityMeasure_tilted hi
+  set G := (volume : Measure ℝ).tilted w with hG
+  have hsq : Integrable (fun x => (x - x₀) ^ 2) G := by
+    rw [hG, integrable_tilted_iff hi]
+    simpa only [smul_eq_mul, mul_comm] using hi2
+  have hsqle : ∫ x, (x - x₀) ^ 2 ∂G ≤ (2 * κ)⁻¹ := by
+    have hZ : 0 < ∫ x, Real.exp (w x) := integral_exp_pos hi
+    have e : ∫ x, (x - x₀) ^ 2 ∂G =
+        (∫ x, (x - x₀) ^ 2 * Real.exp (w x)) / ∫ x, Real.exp (w x) := by
+      rw [hG, integral_tilted_eq_div]
+    rw [e, div_le_iff₀ hZ, inv_mul_eq_div, le_div_iff₀' h2κ]
+    exact hvar
+  have hL2 : MemLp (fun x => x - x₀) 2 G :=
+    (memLp_two_iff_integrable_sq (by fun_prop : Measurable fun x : ℝ => x - x₀
+      ).aestronglyMeasurable).2 hsq
+  have hid : Integrable (fun x : ℝ => x) G :=
+    ((hL2.integrable one_le_two).add (integrable_const x₀)).congr
+      (ae_of_all _ fun x => by simp)
+  have hmean : |(∫ x, x ∂G) - x₀| ≤ Real.sqrt (2 * κ)⁻¹ := by
+    refine Real.abs_le_sqrt (le_trans ?_ hsqle)
+    have h1 := variance_nonneg (fun x => x - x₀) G
+    rw [variance_eq_sub hL2] at h1
+    simp only [Pi.pow_apply] at h1
+    rw [integral_sub hid (integrable_const x₀), integral_const, probReal_univ, one_smul] at h1
+    linarith
+  have hx0 : |x₀| ≤ |f' 0 + d| / (2 * κ) := by
+    have h1 := hkey 0
+    have h2 : -w' 0 * (0 - x₀) = (f' 0 + d) * x₀ := by
+      simp only [hw']
+      ring
+    have h3 : 2 * κ * |x₀| * |x₀| ≤ |f' 0 + d| * |x₀| := by
+      rw [mul_assoc, ← sq, sq_abs, ← abs_mul]
+      refine le_trans ?_ (le_abs_self _)
+      rw [← h2]
+      simpa using h1
+    rcases (abs_nonneg x₀).eq_or_lt with h | h
+    · rw [← h]
+      positivity
+    · rw [le_div_iff₀' h2κ]
+      exact le_of_mul_le_mul_right h3 h
+  calc |∫ x, x ∂G| = |((∫ x, x ∂G) - x₀) + x₀| := by rw [sub_add_cancel]
+    _ ≤ |(∫ x, x ∂G) - x₀| + |x₀| := abs_add_le _ _
+    _ ≤ _ := add_le_add hmean hx0
+
+/-- Differentiation of the logarithm of a partition function: if `u ≤ 0` is differentiable with
+`|u'| ≤ D` and `exp V` is integrable and nonzero, then
+`d/dx log ∫ exp (∑ k, u (a k ρ + c k x) + V ρ) = ∑ k, c k ⟨u' (a k ρ + c k x)⟩_x`, where
+`⟨·⟩_x` is the average for the normalized weight. -/
+theorem hasDerivAt_log_integral_exp_sum_comp_add_mul {A ι : Type*} [MeasurableSpace A]
+    [Fintype ι] {μ : Measure A} [NeZero μ] {u : ℝ → ℝ} (hu : Differentiable ℝ u)
+    (hu0 : ∀ x, u x ≤ 0) {D : ℝ} (hD : ∀ x, |deriv u x| ≤ D) {a : ι → A → ℝ}
+    (ha : ∀ k, Measurable (a k)) (c : ι → ℝ) {V : A → ℝ} (hV : Measurable V)
+    (hVi : Integrable (fun ρ => Real.exp (V ρ)) μ) (x : ℝ) :
+    HasDerivAt (fun x => Real.log (∫ ρ, Real.exp ((∑ k, u (a k ρ + c k * x)) + V ρ) ∂μ))
+      (∑ k, c k * ∫ ρ, deriv u (a k ρ + c k * x)
+        ∂(μ.tilted fun ρ => (∑ k, u (a k ρ + c k * x)) + V ρ)) x := by
+  have hum : Measurable u := hu.continuous.measurable
+  have hD0 : 0 ≤ D := (abs_nonneg _).trans (hD 0)
+  set E : ℝ → A → ℝ := fun x ρ => (∑ k, u (a k ρ + c k * x)) + V ρ with hE
+  set E' : ℝ → A → ℝ := fun x ρ => ∑ k, c k * deriv u (a k ρ + c k * x) with hE'
+  have hEm : ∀ x, Measurable (E x) := fun x =>
+    (Finset.measurable_sum _ fun k _ => hum.comp ((ha k).add_const _)).add hV
+  have hE'm : ∀ x, Measurable (E' x) := fun x =>
+    Finset.measurable_sum _ fun k _ =>
+      ((measurable_deriv u).comp ((ha k).add_const _)).const_mul _
+  have hle : ∀ x ρ, Real.exp (E x ρ) ≤ Real.exp (V ρ) := fun x ρ =>
+    Real.exp_le_exp.2 (add_le_of_nonpos_left (Finset.sum_nonpos fun _ _ => hu0 _))
+  have hEi : ∀ x, Integrable (fun ρ => Real.exp (E x ρ)) μ := fun x =>
+    hVi.mono' (hEm x).exp.aestronglyMeasurable (ae_of_all _ fun ρ => by
+      rw [Real.norm_of_nonneg (Real.exp_pos _).le]; exact hle x ρ)
+  have hbd : ∀ x ρ, |E' x ρ| ≤ ∑ k, |c k| * D := fun x ρ =>
+    (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun k _ => by
+      rw [abs_mul]
+      exact mul_le_mul_of_nonneg_left (hD _) (abs_nonneg _))
+  have hder : HasDerivAt (fun x => ∫ ρ, Real.exp (E x ρ) ∂μ)
+      (∫ ρ, Real.exp (E x ρ) * E' x ρ ∂μ) x := by
+    refine (hasDerivAt_integral_of_dominated_loc_of_deriv_le (μ := μ)
+      (F := fun x ρ => Real.exp (E x ρ)) (F' := fun x ρ => Real.exp (E x ρ) * E' x ρ)
+      (bound := fun ρ => (∑ k, |c k| * D) * Real.exp (V ρ)) Filter.univ_mem
+      (Filter.Eventually.of_forall fun x => (hEm x).exp.aestronglyMeasurable) (hEi x)
+      ((hEm x).exp.mul (hE'm x)).aestronglyMeasurable (ae_of_all _ fun ρ y _ => ?_)
+      (hVi.const_mul _) (ae_of_all _ fun ρ y _ => ?_)).2
+    · rw [norm_mul, Real.norm_of_nonneg (Real.exp_pos _).le, Real.norm_eq_abs, mul_comm]
+      exact mul_le_mul (hbd y ρ) (hle y ρ) (Real.exp_pos _).le
+        (Finset.sum_nonneg fun _ _ => mul_nonneg (abs_nonneg _) hD0)
+    · have h : HasDerivAt (fun y => E y ρ) (E' y ρ) y := by
+        have h1 : ∀ k ∈ Finset.univ, HasDerivAt (fun y => u (a k ρ + c k * y))
+            (c k * deriv u (a k ρ + c k * y)) y := fun k _ => by
+          have h2 : HasDerivAt (fun y => a k ρ + c k * y) (c k) y := by
+            simpa using ((hasDerivAt_id y).const_mul (c k)).const_add (a k ρ)
+          exact ((hu _).hasDerivAt.comp y h2).congr_deriv (mul_comm _ _)
+        exact (HasDerivAt.fun_sum h1).add_const (V ρ)
+      exact h.exp
+  have hZ : 0 < ∫ ρ, Real.exp (E x ρ) ∂μ := integral_exp_pos (hEi x)
+  refine (hder.log hZ.ne').congr_deriv ?_
+  have hint : ∀ k, Integrable (fun ρ => Real.exp (E x ρ) * (c k * deriv u (a k ρ + c k * x)))
+      μ := fun k => by
+    refine ((hEi x).mul_const (|c k| * D)).mono' ((hEm x).exp.mul
+      (((measurable_deriv u).comp ((ha k).add_const _)).const_mul _)).aestronglyMeasurable
+      (ae_of_all _ fun ρ => ?_)
+    rw [norm_mul, Real.norm_of_nonneg (Real.exp_pos _).le, Real.norm_eq_abs, abs_mul]
+    exact mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_left (hD _) (abs_nonneg _))
+      (Real.exp_pos _).le
+  have e : ∫ ρ, Real.exp (E x ρ) * E' x ρ ∂μ =
+      ∑ k, ∫ ρ, Real.exp (E x ρ) * (c k * deriv u (a k ρ + c k * x)) ∂μ := by
+    rw [← integral_finsetSum _ fun k _ => hint k]
+    exact integral_congr_ae (ae_of_all _ fun ρ => by
+      simp only [hE', Finset.mul_sum])
+  rw [e, Finset.sum_div]
+  refine Finset.sum_congr rfl fun k _ => ?_
+  rw [integral_tilted_eq_div, ← mul_div_assoc, ← integral_const_mul]
+  congr 1
+  exact integral_congr_ae (ae_of_all _ fun ρ => by ring)
 
 end MeasureTheory
 

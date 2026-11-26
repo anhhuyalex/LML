@@ -480,8 +480,8 @@ coefficient of $\sum g_{i,k}^2$ is $1/(8N)$.
 \section{Tools for the replica-symmetric equations (Talagrand Section~3.2)}\label{sec:sg-tal:st-rs-tools}
 
 This section starts Section~3.2: the analytic lemmas it uses, the cavity Hamiltonian and
-Proposition~3.2.4. Proposition~3.2.1 and the statements from Lemma~3.2.6 to Theorem~3.2.14 are not
-formalized yet.
+Proposition~3.2.4 and Lemma~3.2.6. Proposition~3.2.1 and the statements from Lemma~3.2.7 to
+Theorem~3.2.14 are not formalized yet.
 
 \begin{lemma}[Marginals of log-concave densities]\label{lem:sg-tal:st-marginal}
   \lean{MeasureTheory.concaveOn_log_integral_exp}
@@ -671,6 +671,139 @@ differences between the values at $t=1$ and $t=0$ of $\nu_t(\varepsilon^2)$ and 
 $\nu_t(\varepsilon_1\varepsilon_2)$. The book states them as inequalities
 $\delta_i\le|\cdot|$. Here the system has $N+1$ spins, so that the number of spins other than the last one is
 $N$.
+\end{remark}
+
+\begin{lemma}[Exponential of a Gaussian square]\label{lem:sg-tal:st-exp-square}
+  \lean{ProbabilityTheory.integral_exp_mul_sq_gaussianReal_le_two,
+        ProbabilityTheory.map_pi_gaussianReal_sum_mul,
+        ProbabilityTheory.integral_exp_mul_sq_sum_pi_gaussianReal_le_two}
+  \leanok
+\talsource{Eq.~(A.11)}
+If $g\sim\mathcal N(0,v)$ and $lv\le1/4$, then $\mathbb Ee^{lg^2}\le2$ (and is finite). For independent standard
+Gaussians $x_i$ and real $w_i$, $\sum_iw_ix_i\sim\mathcal N(0,\sum_iw_i^2)$; hence
+$\mathbb E\exp\bigl(l(\sum_iw_ix_i)^2\bigr)\le2$ when $l\sum_iw_i^2\le1/4$.
+\end{lemma}
+\begin{proof}
+  \leanok
+Scaling reduces the first claim to $\mathbb Ee^{lvz^2}=(1-2lv)^{-1/2}\le\sqrt2$. A linear form of a standard
+Gaussian vector is centred Gaussian with variance the squared norm of its coefficients.
+\end{proof}
+
+\begin{lemma}[Mean of a log-concave density and derivative of a partition function]
+\label{lem:sg-tal:st-mean-mode}
+  \lean{MeasureTheory.abs_integral_volume_tilted_concave_sub_mul_sq_le,
+        MeasureTheory.hasDerivAt_log_integral_exp_sum_comp_add_mul}
+  \leanok
+  \uses{lem:sg-tal:st-mode-variance}
+\talsource{Eq.~(3.86)}
+\begin{enumerate}
+\item Let $f$ be concave and differentiable on $\mathbb R$, $\kappa>0$ and $d$ real. The probability measure
+with density proportional to $\exp(f(x)-\kappa x^2+dx)$ has a mean $m$ with
+$|m|\le(2\kappa)^{-1/2}+|f'(0)+d|/(2\kappa)$.
+\item Let $u\le0$ be differentiable with $|u'|\le D$, let the $a_k$ be measurable and $e^{V}$ integrable with
+nonzero integral. Then
+\[
+\frac d{dx}\log\int e^{\sum_ku(a_k(\rho)+c_kx)+V(\rho)}d\mu(\rho)=\sum_kc_k\,\bigl\langle u'(a_k+c_kx)\bigr\rangle_x,
+\]
+where $\langle\cdot\rangle_x$ is the average for the normalized weight.
+\end{enumerate}
+\end{lemma}
+\begin{proof}
+  \leanok
+  \uses{lem:sg-tal:st-mode-variance}
+(1) The exponent $w$ tends to $-\infty$, so it has a maximum $x_0$, with $w'(x_0)=0$. Since $f'$ is
+nonincreasing, $2\kappa(x-x_0)^2\le-w'(x)(x-x_0)$, so Lemma~\ref{lem:sg-tal:st-mode-variance} gives
+$\langle(x-x_0)^2\rangle\le(2\kappa)^{-1}$ and $|m-x_0|\le(2\kappa)^{-1/2}$. The same inequality at $x=0$ gives
+$|x_0|\le|w'(0)|/(2\kappa)$. (2) Differentiate under the integral, dominated by a constant multiple of $e^V$.
+\end{proof}
+
+\begin{lemma}[The cavity Gibbs measure]\label{lem:sg-tal:st-cavity-regular}
+  \lean{SpinGlasses.measurable_shcherbinaTirozziCavityHamiltonian,
+        SpinGlasses.measurable_shcherbinaTirozziCavityHamiltonian_apply,
+        SpinGlasses.neg_shcherbinaTirozziCavityHamiltonian_split,
+        SpinGlasses.integrable_exp_neg_shcherbinaTirozziCavityHamiltonian,
+        SpinGlasses.shcherbinaTirozziCavityHamiltonian_midpoint_gap}
+  \leanok
+  \uses{def:sg-tal:st-cavity, lem:sg-tal:st-quadratic}
+Let $u$ be measurable. Then $H_t$ is jointly measurable, and $-H_t$ splits as a function of $\rho$ at the given
+value of $\varepsilon$ plus
+$-(\kappa+(1-t)(r-\bar r)/2)\,\varepsilon^2+(hg_{N+1}+\sqrt{1-t}\,y)\,\varepsilon$. If $\kappa>0$, $u\le0$ and
+$(1-t)(r-\bar r)\ge0$, then $e^{-H_t}$ is integrable; if moreover $u$ is concave, $H_t$ is uniformly midpoint
+convex:
+\[
+\kappa\Bigl\|\frac{x-z}2\Bigr\|^2\le\frac{H_t(x)+H_t(z)}2-H_t\Bigl(\frac{x+z}2\Bigr).
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+  \uses{def:sg-tal:st-cavity, lem:sg-tal:st-quadratic}
+Integrability follows from $-H_t\le-\kappa\|\sigma\|^2+\text{linear}$. Convexity follows from the parallelogram
+identity, concavity of $u$, and convexity of $\varepsilon^2$.
+\end{proof}
+
+\begin{lemma}[Fluctuations and mean of the last spin]\label{lem:sg-tal:st-last-spin}
+  \lean{SpinGlasses.integral_exp_sq_shcherbinaTirozziCavity_sub_le_four,
+        SpinGlasses.abs_integral_shcherbinaTirozziCavityGibbs_last_le}
+  \leanok
+  \uses{lem:sg-tal:st-cavity-regular, thm:sg-tal:st-maurey, lem:sg-tal:st-mean-mode, lem:sg-tal:st-marginal}
+\talsource{Eqs.~(3.85)--(3.87)}
+Let $\kappa>0$, $(1-t)(r-\bar r)\ge0$, $u\le0$ concave. Then
+$\langle\exp(\kappa(\varepsilon-\langle\varepsilon\rangle_t)^2/8)\rangle_t\le4$. If moreover $u$ is
+differentiable with $|u'|\le D$, then
+\[
+|\langle\varepsilon\rangle_t|\le(2\kappa)^{-1/2}+\frac{|f'(0)+hg_{N+1}+\sqrt{1-t}\,y|}{2\kappa},\qquad
+f'(0)=\sum_{k\le M}\sqrt{\frac t{N+1}}\,g_{N+1,k}\,\langle u'(S_{k,0})\rangle_{\rm old},
+\]
+where $\langle\cdot\rangle_{\rm old}$ is the Gibbs average for the $N$ spins $\rho$ with exponent
+$\sum_ku(S_{k,0})-\kappa\|\rho\|^2+h\sum_{i\le N}g_i\rho_i$.
+\end{lemma}
+\begin{proof}
+  \leanok
+  \uses{lem:sg-tal:st-cavity-regular, thm:sg-tal:st-maurey, lem:sg-tal:st-mean-mode, lem:sg-tal:st-marginal}
+The first bound is Maurey's inequality (Theorem~\ref{thm:sg-tal:st-maurey}) applied to the coordinate
+$\varepsilon$. For the second, the law of $\varepsilon$ has density proportional to
+$\exp(f(x)-\kappa_tx^2+dx)$ with $f(x)=\log\int e^{\ldots}d\rho$,
+$\kappa_t=\kappa+(1-t)(r-\bar r)/2$ and $d=hg_{N+1}+\sqrt{1-t}\,y$; $f$ is concave by
+Lemma~\ref{lem:sg-tal:st-marginal}. Apply Lemma~\ref{lem:sg-tal:st-mean-mode}.
+\end{proof}
+
+\begin{theorem}[Exponential tail of the last spin]\label{thm:sg-tal:st-last-spin-tail}
+  \lean{SpinGlasses.exists_integral_exp_sq_shcherbinaTirozziCavity_last_le}
+  \leanok
+  \uses{lem:sg-tal:st-last-spin, lem:sg-tal:st-exp-square}
+\talsource{Lemma~3.2.6}
+Let $\kappa_0>0$, $h_0$, $D$ and $R\ge0$. There is $K>0$, depending only on these numbers, such that for all
+$N,M$ with $M\le10(N+1)$, all $\kappa\ge\kappa_0$, $|h|\le h_0$, $t\in[0,1]$, $0\le r\le R$, $\bar r\le r$,
+and all concave differentiable $u\le0$ with $|u'|\le D$,
+\[
+\mathbb E\,\Bigl\langle\exp\frac{\varepsilon^2}{K}\Bigr\rangle_t\le K,
+\]
+the expectation being over the disorder and $y\sim\mathcal N(0,r)$ (and the left side being integrable).
+\end{theorem}
+\begin{proof}
+  \leanok
+  \uses{lem:sg-tal:st-last-spin, lem:sg-tal:st-exp-square}
+\emph{Step 1 (one disorder).} By Lemma~\ref{lem:sg-tal:st-last-spin} and
+$\varepsilon^2\le2\langle\varepsilon\rangle^2+2(\varepsilon-\langle\varepsilon\rangle)^2$, for $K$ large,
+\[
+\Bigl\langle e^{\varepsilon^2/K}\Bigr\rangle_t\le4e^{3/(\kappa_0K)}\exp\bigl(L(f'(0)^2+d^2)\bigr),\qquad
+L=\frac3{2\kappa_0^2K}.
+\]
+\emph{Step 2 (separating the variables).} Using $e^{a+b}\le(e^{2a}+e^{2b})/2$ and
+$d^2\le2h_0^2g_{N+1}^2+2y^2$, the right side is bounded by a sum of the exponentials
+$e^{2Lf'(0)^2}$, $e^{8Lh_0^2g_{N+1}^2}$ and $e^{8Ly^2}$.
+
+\emph{Step 3 (Gaussian integrals).} Conditionally on the other variables, $f'(0)$ is a linear form in
+$(g_{N+1,k})_{k\le M}$ whose coefficients have squared norm at most $MD^2/(N+1)\le10D^2$. Each of the three
+expectations is at most $2$ by Lemma~\ref{lem:sg-tal:st-exp-square} when $K$ is large in terms of
+$\kappa_0,h_0,D,R$.
+\end{proof}
+
+\begin{remark}[Differences from Lemma~3.2.6]\label{rem:sg-tal:st-lemma-326}
+\talsource{Lemma~3.2.6}
+The system has $N+1$ spins. The numbers $r,\bar r$ are arbitrary with $\bar r\le r\le R$; in the book
+$r=\Psi(q,\rho)\le\alpha D^2\le10D^2$. Only $|u'|\le D$ is used. In (3.86) the book bounds
+$|f'(0)+hg_{N+1}+\sqrt{1-t}\,y|$ by the sum of the absolute values.
 \end{remark}
 
 \begin{remark}[Research Problem~3.1.2]\label{rem:sg-tal:st-problem-312}
