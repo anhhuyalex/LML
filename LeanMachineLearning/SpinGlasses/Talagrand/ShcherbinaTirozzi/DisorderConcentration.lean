@@ -486,7 +486,7 @@ theorem exists_integral_sub_integral_pow_le_of_disorder_gradient (K₉ K₁₆ :
 most `a ^ k` and the disorder fluctuations `𝔼 (⟨R⟩ - 𝔼⟨R⟩)^{2k}` at most `b ^ k`, then
 `𝔼⟨(R - 𝔼⟨R⟩)^{2k}⟩ ≤ (4 (a + b)) ^ k`. -/
 private theorem integral_integral_sub_pow_le {Ω α : Type*} [MeasurableSpace Ω]
-    [MeasurableSpace α] {P : Measure Ω} [IsFiniteMeasure P] {G : Ω → Measure α}
+    [MeasurableSpace α] {P : Measure Ω} {G : Ω → Measure α}
     [∀ d, IsProbabilityMeasure (G d)] {R : α → ℝ} (hR : Measurable R) {k : ℕ} (hk : k ≠ 0)
     (c : ℝ) (hm : Measurable fun d => ∫ σ, (R σ - c) ^ (2 * k) ∂(G d))
     (hfix : ∀ d, Integrable (fun σ => (R σ - ∫ τ, R τ ∂(G d)) ^ (2 * k)) (G d))

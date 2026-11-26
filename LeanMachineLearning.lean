@@ -27,6 +27,7 @@ public import LeanMachineLearning.ForMathlib.Analysis.Complex.Exponential
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.Bregman.Basic
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.DerivConvergence
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.Integral
+public import LeanMachineLearning.ForMathlib.Analysis.Convex.LogConcaveMarginal
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.PointwiseLimitKink
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.PrekopaLeindler
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.Subgradient.Basic

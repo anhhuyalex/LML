@@ -55,8 +55,8 @@ Formalized in \texttt{ForMathlib/Analysis/Convex/PrekopaLeindler.lean}.
 
 \begin{remark}[Difference from the printed proof of Theorem~3.1.3]\label{rem:sg-tal:st-prekopa-method}
 \talsource{Appendix~A.15}
-The book proves the case $N=1$ by a monotone transport of $U$ onto $V$ for continuous positive functions
-and reduces to it ``by approximation'' without saying how the pointwise hypothesis is preserved. The
+For $N=1$ the book uses a monotone transport of $U$ onto $V$, for continuous positive functions,
+and reduces the general case to this one ``by approximation'' without saying how the pointwise hypothesis is preserved. The
 formalization uses the one-dimensional sumset inequality and super-level sets instead (Steps~1--3). The
 heading of Appendix~A.15 says Theorem~3.1.4; the appendix proves Theorem~3.1.3.
 \end{remark}
@@ -123,8 +123,8 @@ states integrability as part of its conclusion.
   \leanok
   \uses{thm:sg-tal:st-prekopa-leindler, lem:sg-tal:st-centering}
 \talsource{Theorem~3.1.4, Eqs.~(3.14)--(3.19) and (3.21)}
-Let $E$ be a finite-dimensional real normed space with an additive Haar measure, $C\subset E$ a convex
-measurable set of positive measure, and $H$ measurable with $e^{-H}$ integrable on $C$ and, for $x,y\in C$,
+Fix a normed space $E$ of finite real dimension, an additive Haar measure on it, a convex measurable
+set $C\subset E$ of positive measure, and a measurable function $H$ with $e^{-H}$ integrable on $C$ and, for $x,y\in C$,
 \[
 \frac{H(x)+H(y)}2-H\Bigl(\frac{x+y}2\Bigr)\ge\kappa\Bigl\|\frac{x-y}2\Bigr\|^2 .
 \]
@@ -163,7 +163,7 @@ Formalized in \texttt{ForMathlib/Probability/Moments/LogConcaveConcentration.lea
   \leanok
   \uses{lem:sg-tal:st-centering}
 \talsource{Lemma~3.1.8, Eq.~(3.29)}
-On a probability space let $X\ge0$ a.e.\ with $\mathbb Ee^X\le e^C$. Then $X^k$ is integrable and
+Let $X$ be an a.e.\ nonnegative random variable such that $\mathbb Ee^X\le e^C$. Then $X^k$ is integrable and
 $\mathbb EX^k\le2^k(k^k+C^k)$ for every $k$. The inequality $C\ge0$ follows from the hypotheses.
 \end{lemma}
 \begin{proof}
@@ -477,9 +477,85 @@ of Proposition~3.1.16, ``$M\le N$'' should be $M\le10N$ from (3.25). In the firs
 coefficient of $\sum g_{i,k}^2$ is $1/(8N)$.
 \end{remark}
 
+\section{Tools for the replica-symmetric equations (Talagrand Section~3.2)}\label{sec:sg-tal:st-rs-tools}
+
+This section starts Section~3.2 with the analytic lemmas it uses. The cavity construction,
+Proposition~3.2.1 and the statements from Lemma~3.2.6 to Theorem~3.2.14 are not formalized yet.
+
+\begin{lemma}[Marginals of log-concave densities]\label{lem:sg-tal:st-marginal}
+  \lean{MeasureTheory.concaveOn_log_integral_exp}
+  \leanok
+  \uses{thm:sg-tal:st-prekopa-leindler}
+\talsource{Lemma~3.2.5, the concavity argument}
+Let $\mu$ be an additive Haar measure on a finite-dimensional space $E_1$, let $E_2$ be any real vector
+space, and let $F:E_1\times E_2\to\mathbb R$ be concave with $e^{F(\cdot,y)}$ integrable for every $y$. Then
+$y\mapsto\log\int e^{F(x,y)}\,d\mu(x)$ is concave.
+\end{lemma}
+\begin{proof}
+  \leanok
+  \uses{thm:sg-tal:st-prekopa-leindler}
+Apply Theorem~\ref{thm:sg-tal:st-prekopa-leindler} to the three slices $e^{F(\cdot,y_1)}$,
+$e^{F(\cdot,y_2)}$ and $e^{F(\cdot,ay_1+by_2)}$ with $a+b=1$, whose pointwise hypothesis is the concavity of
+$F$, and take logarithms.
+\end{proof}
+
+\begin{lemma}[Variance around the mode]\label{lem:sg-tal:st-mode-variance}
+  \lean{MeasureTheory.mul_integral_sub_sq_mul_exp_le,
+        ProbabilityTheory.exists_integral_sub_sq_mul_exp_le_gaussianReal,
+        ProbabilityTheory.variance_id_tilted_gaussianReal_le_one}
+  \leanok
+\talsource{Lemmas~3.2.2, 3.2.3}
+\begin{enumerate}
+\item Let $c>0$, let $w$ have derivative $w'$, and suppose $c(x-x_0)^2\le-w'(x)(x-x_0)$ for all $x$. Then
+$e^{w}$ and $(x-x_0)^2e^{w}$ are integrable and $c\int(x-x_0)^2e^{w}\le\int e^{w}$.
+\item If $v$ is differentiable and concave with $e^{v}$ integrable for the standard Gaussian, the Gaussian
+measure tilted by $v$ has variance at most $1$.
+\end{enumerate}
+\end{lemma}
+\begin{proof}
+  \leanok
+\emph{Step 1 (decay).} The function $w(x)+\frac c2(x-x_0)^2$ has its maximum at $x_0$, so $e^w$ has Gaussian
+decay and both integrals are finite.
+
+\emph{Step 2 (monotone primitive).} Put $f=e^w-c(x-x_0)^2e^w$ and
+$\Phi(x)=\int_{x_0}^xf-(x-x_0)e^{w(x)}$. Then
+\[
+\Phi'(x)=\bigl(-w'(x)(x-x_0)-c(x-x_0)^2\bigr)e^{w(x)}\ge0,\qquad\Phi(x_0)=0,
+\]
+so $\int_a^bf\ge0$ whenever $a\le x_0\le b$; let $a\to-\infty$, $b\to\infty$.
+
+\emph{Step 3 (Gaussian case).} The function $v(x)-x^2/2$ tends to $-\infty$ and attains its maximum at some
+$x_0$, where $v'(x_0)=x_0$. Since $v'$ is nonincreasing, Step~2 applies with $c=1$, and the variance is at
+most the second moment around $x_0$.
+\end{proof}
+
+\begin{remark}[Differences from Lemmas~3.2.2, 3.2.3 and 3.2.5]\label{rem:sg-tal:st-rs-tools-diff}
+\talsource{Section~3.2}
+Lemma~3.2.2 assumes $w''\le-c<0$; the formal statement assumes only the one-sided inequality which the
+book's proof derives from it, and needs no second derivative. Lemma~3.2.3 is stated as the variance bound
+equivalent to (3.73); the inequality $\bar r\le r$ itself is not formalized yet. Of Lemma~3.2.5 the concavity
+statement is formalized, in a general form; the description of the law of $\sigma_N$ is not.
+\end{remark}
+
+\begin{lemma}[The decoupled last spin]\label{lem:sg-tal:st-endpoint-gaussian}
+  \lean{ProbabilityTheory.volume_tilted_mul_sub_mul_sq_eq_gaussianReal,
+        ProbabilityTheory.integral_id_and_sq_volume_tilted_mul_sub_mul_sq}
+  \leanok
+\talsource{Eqs.~(3.78)--(3.80)}
+For $a>0$ the probability measure on $\mathbb R$ with density proportional to $e^{dx-ax^2/2}$ is
+$\mathcal N(d/a,1/a)$; its mean is $d/a$ and its second moment is $1/a+(d/a)^2$.
+\end{lemma}
+\begin{proof}
+  \leanok
+Complete the square in the Gaussian density and use the Gaussian moments.
+\end{proof}
+
 \begin{remark}[Research Problem~3.1.2]\label{rem:sg-tal:st-problem-312}
 \talsource{Research Problem~3.1.2, Eq.~(3.10)}
-\emph{Not formalized.} The book asks to compute the limit of
-$N^{-1}\mathbb E\log\int e^{-H_{N,M}}$ as $N\to\infty$ with $M/N\to\alpha$ under the conditions of
-Theorem~3.1.1. It is an open problem in the book and has no Lean statement.
+\emph{Not formalized.} The book asks to compute, under the conditions of Theorem~3.1.1 and as
+$N\to\infty$ with $M/N\to\alpha$, the limit of
+\[
+\frac1N\,\mathbb E\log\int e^{-H_{N,M}(\sigma)}\,d\sigma .
+\]
+It is an open problem in the book and has no Lean statement.
 \end{remark}
