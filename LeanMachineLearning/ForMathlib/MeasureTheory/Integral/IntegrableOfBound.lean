@@ -32,6 +32,23 @@ theorem integrable_of_measurable_bound {β : Type*} [MeasurableSpace β] {m : Me
   (integrable_const M).mono' hG.aestronglyMeasurable
     (Filter.Eventually.of_forall fun x => by simpa [Real.norm_eq_abs] using hM x)
 
+/-- A bounded function integrated against random measures of mass at most one (almost surely)
+gives an integrable function of the randomness, once that function is a.e. strongly measurable
+(for real values, a.e. measurable). The values may lie in any normed space. -/
+theorem integrable_integral_of_bound_of_measure_univ_le_one {Ω α E : Type*} [MeasurableSpace Ω]
+    [MeasurableSpace α] [NormedAddCommGroup E] [NormedSpace ℝ E]
+    {P : Measure Ω} [IsFiniteMeasure P] {κ : Ω → Measure α} (hκ : ∀ᵐ ω ∂P, κ ω Set.univ ≤ 1)
+    {f : α → E} {C : ℝ} (hC : ∀ x, ‖f x‖ ≤ C)
+    (hm : AEStronglyMeasurable (fun ω => ∫ x, f x ∂κ ω) P) :
+    Integrable (fun ω => ∫ x, f x ∂κ ω) P := by
+  refine Integrable.of_bound hm |C| (hκ.mono fun ω hω => ?_)
+  have : IsFiniteMeasure (κ ω) := ⟨hω.trans_lt ENNReal.one_lt_top⟩
+  have h1 : (κ ω).real Set.univ ≤ 1 := by
+    simpa [measureReal_def] using ENNReal.toReal_mono ENNReal.one_ne_top hω
+  refine (norm_integral_le_of_norm_le_const (μ := κ ω) (C := |C|)
+    (ae_of_all _ fun x => (hC x).trans (le_abs_self C))).trans ?_
+  exact mul_le_of_le_one_right (abs_nonneg C) h1
+
 /-- A bounded function integrated against random probability measures gives an integrable
 function of the randomness, once that function is a.e. strongly measurable (for real values,
 a.e. measurable). The values may lie in any normed space. -/
@@ -40,17 +57,16 @@ theorem integrable_integral_of_bound {Ω α E : Type*} [MeasurableSpace Ω] [Mea
     {P : Measure Ω} [IsFiniteMeasure P] {κ : Ω → Measure α} [∀ ω, IsProbabilityMeasure (κ ω)]
     {f : α → E} {C : ℝ} (hC : ∀ x, ‖f x‖ ≤ C)
     (hm : AEStronglyMeasurable (fun ω => ∫ x, f x ∂κ ω) P) :
-    Integrable (fun ω => ∫ x, f x ∂κ ω) P := by
-  refine Integrable.of_bound hm C (ae_of_all _ fun ω => ?_)
-  exact (norm_integral_le_integral_norm _).trans
-    ((integral_mono_of_nonneg (ae_of_all _ fun x => norm_nonneg (f x))
-      (integrable_const C) (ae_of_all _ hC)).trans (by simp))
+    Integrable (fun ω => ∫ x, f x ∂κ ω) P :=
+  integrable_integral_of_bound_of_measure_univ_le_one
+    (ae_of_all _ fun _ => measure_univ.le) hC hm
 
 /-- A finite sum of functions depending on both the outer and inner variables can be moved
 through an inner integral against a measure depending on the outer variable, then through the
 outer integral. Only integrability of the summands is needed. -/
-theorem integral_integral_finset_sum_dep {Ω α ι : Type*} [MeasurableSpace Ω] [MeasurableSpace α]
-    (P : Measure Ω) (κ : Ω → Measure α) (s : Finset ι) (f : ι → Ω → α → ℝ)
+theorem integral_integral_finset_sum_dep {Ω α ι E : Type*} [MeasurableSpace Ω]
+    [MeasurableSpace α] [NormedAddCommGroup E] [NormedSpace ℝ E]
+    (P : Measure Ω) (κ : Ω → Measure α) (s : Finset ι) (f : ι → Ω → α → E)
     (hinner : ∀ i ∈ s, ∀ ω, Integrable (f i ω) (κ ω))
     (houter : ∀ i ∈ s, Integrable (fun ω => ∫ x, f i ω x ∂κ ω) P) :
     ∫ ω, ∫ x, ∑ i ∈ s, f i ω x ∂κ ω ∂P =
@@ -63,13 +79,31 @@ theorem integral_integral_finset_sum_dep {Ω α ι : Type*} [MeasurableSpace Ω]
 
 /-- A finite sum can be moved through an inner integral against a measure that depends on the
 outer variable, then through the outer integral. Only integrability of the summands is needed. -/
-theorem integral_integral_finset_sum {Ω α ι : Type*} [MeasurableSpace Ω] [MeasurableSpace α]
-    (P : Measure Ω) (κ : Ω → Measure α) (s : Finset ι) (f : ι → α → ℝ)
+theorem integral_integral_finset_sum {Ω α ι E : Type*} [MeasurableSpace Ω] [MeasurableSpace α]
+    [NormedAddCommGroup E] [NormedSpace ℝ E]
+    (P : Measure Ω) (κ : Ω → Measure α) (s : Finset ι) (f : ι → α → E)
     (hinner : ∀ i ∈ s, ∀ ω, Integrable (f i) (κ ω))
     (houter : ∀ i ∈ s, Integrable (fun ω => ∫ x, f i x ∂κ ω) P) :
     ∫ ω, ∫ x, ∑ i ∈ s, f i x ∂κ ω ∂P =
       ∑ i ∈ s, ∫ ω, ∫ x, f i x ∂κ ω ∂P :=
   integral_integral_finset_sum_dep P κ s (fun i _ x => f i x) hinner houter
+
+/-- A finite sum with real coefficients, of vector-valued functions, can be moved through an
+inner integral against a measure depending on the outer variable, then through the outer
+integral. -/
+theorem integral_integral_finset_sum_smul {Ω α ι E : Type*} [MeasurableSpace Ω]
+    [MeasurableSpace α] [NormedAddCommGroup E] [NormedSpace ℝ E]
+    (P : Measure Ω) (κ : Ω → Measure α) (s : Finset ι) (c : ι → ℝ) (f : ι → α → E)
+    (hinner : ∀ i ∈ s, ∀ ω, Integrable (f i) (κ ω))
+    (houter : ∀ i ∈ s, Integrable (fun ω => ∫ x, f i x ∂κ ω) P) :
+    ∫ ω, ∫ x, ∑ i ∈ s, c i • f i x ∂κ ω ∂P =
+      ∑ i ∈ s, c i • ∫ ω, ∫ x, f i x ∂κ ω ∂P := by
+  have h2 : ∀ i ∈ s, Integrable (fun ω => ∫ x, c i • f i x ∂κ ω) P := fun i hi => by
+    simp_rw [integral_smul]
+    exact (houter i hi).smul (c i)
+  have hlin := integral_integral_finset_sum P κ s (fun i x => c i • f i x)
+    (fun i hi ω => (hinner i hi ω).smul (c i)) h2
+  simpa only [integral_smul] using hlin
 
 /-- A finite sum with scalar coefficients can be moved through an inner integral against a
 measure depending on the outer variable, then through the outer integral. -/
@@ -78,14 +112,22 @@ theorem integral_integral_finset_sum_mul {Ω α ι : Type*} [MeasurableSpace Ω]
     (hinner : ∀ i ∈ s, ∀ ω, Integrable (f i) (κ ω))
     (houter : ∀ i ∈ s, Integrable (fun ω => ∫ x, f i x ∂κ ω) P) :
     ∫ ω, ∫ x, ∑ i ∈ s, c i * f i x ∂κ ω ∂P =
-      ∑ i ∈ s, c i * ∫ ω, ∫ x, f i x ∂κ ω ∂P := by
-  have hlin := integral_integral_finset_sum P κ s (fun i x => c i * f i x)
-    (fun i hi ω => (hinner i hi ω).const_mul _)
-    (fun i hi => by
-      simp_rw [integral_const_mul]
-      exact (houter i hi).const_mul _)
-  simp_rw [integral_const_mul] at hlin
-  exact hlin
+      ∑ i ∈ s, c i * ∫ ω, ∫ x, f i x ∂κ ω ∂P :=
+  integral_integral_finset_sum_smul P κ s c f hinner houter
+
+/-- For finite measures and a.e. strongly measurable bounded functions, swapping a double
+integral with a finite sum requires only that the outer integrals are integrable. -/
+theorem integral_integral_finset_sum_of_norm_le {Ω α ι E : Type*} [MeasurableSpace Ω]
+    [MeasurableSpace α] [NormedAddCommGroup E] [NormedSpace ℝ E] (P : Measure Ω)
+    (κ : Ω → Measure α) [∀ ω, IsFiniteMeasure (κ ω)] (s : Finset ι) (f : ι → α → E)
+    (hf : ∀ i ∈ s, ∀ ω, AEStronglyMeasurable (f i) (κ ω))
+    (hfb : ∀ i ∈ s, ∃ M, ∀ x, ‖f i x‖ ≤ M)
+    (houter : ∀ i ∈ s, Integrable (fun ω => ∫ x, f i x ∂κ ω) P) :
+    ∫ ω, ∫ x, ∑ i ∈ s, f i x ∂κ ω ∂P =
+      ∑ i ∈ s, ∫ ω, ∫ x, f i x ∂κ ω ∂P :=
+  integral_integral_finset_sum P κ s f
+    (fun i hi ω => Integrable.of_bound (hf i hi ω) (hfb i hi).choose
+      (ae_of_all _ (hfb i hi).choose_spec)) houter
 
 /-- For a probability kernel and bounded measurable functions, swapping a double integral
 with a finite sum requires only that the outer integrals are integrable. -/
@@ -96,9 +138,9 @@ theorem integral_integral_finset_sum_of_bound {Ω α ι : Type*} [MeasurableSpac
     (houter : ∀ i ∈ s, Integrable (fun ω => ∫ x, f i x ∂κ ω) P) :
     ∫ ω, ∫ x, ∑ i ∈ s, f i x ∂κ ω ∂P =
       ∑ i ∈ s, ∫ ω, ∫ x, f i x ∂κ ω ∂P :=
-  integral_integral_finset_sum P κ s f
-    (fun i hi _ => integrable_of_measurable_bound (hf i hi) (hfb i hi).choose_spec)
-    houter
+  integral_integral_finset_sum_of_norm_le P κ s f
+    (fun i hi _ => (hf i hi).aestronglyMeasurable)
+    (fun i hi => by simpa only [Real.norm_eq_abs] using hfb i hi) houter
 
 /-- A double finite sum can be moved through an inner integral against a probability kernel,
 then through the outer integral, for bounded measurable functions. -/

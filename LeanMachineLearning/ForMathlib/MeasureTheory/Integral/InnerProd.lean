@@ -19,16 +19,14 @@ public import Mathlib.MeasureTheory.Integral.Prod
 
 @[expose] public section
 
-open scoped InnerProductSpace
-
 namespace MeasureTheory
 
 /-- The inner product of integrable functions of two independent variables is integrable. -/
-theorem Integrable.inner_fst_snd {α β E : Type*} [MeasurableSpace α] [MeasurableSpace β]
-    {μ : Measure α} {ν : Measure β} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
+theorem Integrable.inner_fst_snd {α β 𝕜 E : Type*} [MeasurableSpace α] [MeasurableSpace β]
+    {μ : Measure α} {ν : Measure β} [RCLike 𝕜] [NormedAddCommGroup E] [InnerProductSpace 𝕜 E]
     {f : α → E} {g : β → E} (hf : Integrable f μ) (hg : Integrable g ν) :
-    Integrable (fun z : α × β => ⟪f z.1, g z.2⟫_ℝ) (μ.prod ν) :=
-  hf.op_fst_snd (op := fun x y : E => ⟪x, y⟫_ℝ) continuous_inner
-    ⟨1, fun x y => by simpa only [one_mul] using norm_inner_le_norm (𝕜 := ℝ) x y⟩ hg
+    Integrable (fun z : α × β => inner 𝕜 (f z.1) (g z.2)) (μ.prod ν) :=
+  hf.op_fst_snd (op := fun x y : E => inner 𝕜 x y) continuous_inner
+    ⟨1, fun x y => by simpa only [one_mul] using norm_inner_le_norm (𝕜 := 𝕜) x y⟩ hg
 
 end MeasureTheory
