@@ -1265,54 +1265,64 @@ Formalized in \texttt{ForMathlib/MeasureTheory/Integral/BoundedTilted.lean} and
 \end{proof}
 
 \begin{theorem}[Differentiating an average of random tilts]\label{thm:sg-tal:perceptron-expected-tilt-response}
-  \lean{MeasureTheory.hasDerivAt_integral_integral_tilted_of_dominated,
+  \lean{MeasureTheory.hasDerivAt_integral_integral_tilted_smul_of_dominated,
+        MeasureTheory.hasDerivAt_integral_integral_tilted_of_dominated,
+        MeasureTheory.hasDerivAt_integral_tilted_of_ae_bounded,
         MeasureTheory.hasDerivAt_integral_tilted_of_bounded,
+        MeasureTheory.stronglyMeasurable_integral_tilted_dep,
+        MeasureTheory.norm_integral_tilted_le_of_ae_norm_le,
         MeasureTheory.integrable_tilted_of_ae_le}
   \leanok
   \uses{lem:sg-tal:perceptron-tilted-response,lem:sg-tal:perceptron-tilt-first-moment}
 \talsource{The derivative exchange preceding Eq.~(2.28)}
-Let $P$ be any finite environment measure, $\mu$ a finite nonzero base measure,
-and $U$ an open neighborhood of $t$. Suppose $E_s(\omega,x)$ and $E'_s(\omega,x)$
-are jointly measurable in $(\omega,x)$ for every $s\in U$, with
+Let $P$ be any finite environment measure, $\mu$ a finite nonzero base measure, $V$ a real normed space,
+and $U$ a neighbourhood of $t$. Suppose $E_s(\omega,x)$ and $E'_s(\omega,x)$
+are jointly measurable in $(\omega,x)$ for every $s\in U$, and that for $P$-a.e.\ $\omega$ and $\mu$-a.e.\ $x$,
+for every $s\in U$,
 \[
  \frac d{ds}E_s(\omega,x)=E'_s(\omega,x),\qquad
  |E_s(\omega,x)|\le A(\omega),\qquad
  |E'_s(\omega,x)|\le B(\omega)b(x).
 \]
-Assume $B,b\ge0$, $b\in L^1(\mu)$, $e^{2A}B\in L^1(P)$, and measurable $F$ with $|F|\le C$.
+Assume $b\in L^1(\mu)$, $e^{2A}B\in L^1(P)$, and let $F:X\to V$ be strongly measurable with $\|F\|\le C$
+$\mu$-a.e.
 For $\nu_{s,\omega}=\mu.\mathrm{tilted}(E_s(\omega,\cdot))$, one has
 \[
  \frac d{dt}\int\!\int F\,d\nu_{t,\omega}\,dP(\omega)
- =\int\left[\int FE'_t\,d\nu_{t,\omega}
-   -\left(\int F\,d\nu_{t,\omega}\right)
-    \left(\int E'_t\,d\nu_{t,\omega}\right)\right]\,dP(\omega).
+ =\int\left[\int E'_t\,F\,d\nu_{t,\omega}
+   -\left(\int E'_t\,d\nu_{t,\omega}\right)
+    \left(\int F\,d\nu_{t,\omega}\right)\right]\,dP(\omega).
 \]
+The case $V=\mathbb R$ with an open $U$ and bounds at every point is the form used for the perceptron.
 \end{theorem}
 \begin{proof}
   \leanok
+Shrinking $U$ to its interior we may assume it open.
 \emph{Step 1 (integrability under each tilt).} An upper energy bound preserves base integrability:
 \[
  h\in L^1(\mu),\ E\le A
- \quad\Longrightarrow\quad |h|e^E\le e^A|h|,
+ \quad\Longrightarrow\quad \|h\|e^E\le e^A\|h\|,
  \quad h\in L^1(\mu.\mathrm{tilted}(E)).
 \]
 The latter fact also holds for a zero base measure. Here the nonzero base ensures a positive normalizer.
-\emph{Step 2 (differentiate the inner integral).} The unweighted derivative envelope supplies
+\emph{Step 2 (differentiate the inner integral).} For a.e.\ $\omega$ the unweighted derivative envelope supplies
 \[
  |E'_s e^{E_s}|\le e^{A(\omega)}B(\omega)b,
  \qquad
  D_s(\omega):=\frac d{ds}\int F\,d\nu_{s,\omega}
- =\int FE'_s\,d\nu_{s,\omega}
-  -\left(\int F\,d\nu_{s,\omega}\right)\left(\int E'_s\,d\nu_{s,\omega}\right).
+ =\int E'_s\,F\,d\nu_{s,\omega}
+  -\left(\int E'_s\,d\nu_{s,\omega}\right)\left(\int F\,d\nu_{s,\omega}\right).
 \]
-Apply Lemma~\ref{lem:sg-tal:perceptron-tilted-response} on $U$.
-\emph{Step 3 (a common integrable outer bound).} Lemma~\ref{lem:sg-tal:perceptron-tilt-first-moment} gives
+Apply Lemma~\ref{lem:sg-tal:perceptron-tilted-response} (in its vector-valued form,
+Lemma~\ref{lem:sg-tal:vector-tilt}) on $U$.
+\emph{Step 3 (a common integrable outer bound).} Both terms of $D_s$ have norm at most
+$|C|\int|E'_s|\,d\nu_{s,\omega}$, and Lemma~\ref{lem:sg-tal:perceptron-tilt-first-moment} bounds that average, so
 \[
- |D_s(\omega)|
+ \|D_s(\omega)\|
  \le\frac{2|C|}{\mu(X)}\left(\int b\,d\mu\right)e^{2A(\omega)}B(\omega),
  \qquad s\in U.
 \]
-\emph{Step 4 (differentiate the environment integral).} Joint measurability gives measurable
+\emph{Step 4 (differentiate the environment integral).} Joint measurability gives strongly measurable
 inner averages and covariance terms. The finite environment measure and bounded $F$ give
 \[
  \omega\longmapsto\int F\,d\nu_{t,\omega}\in L^1(P),
@@ -1950,7 +1960,7 @@ $0\le\widehat r\le D'^2$. The Lean quantity $u'$ is the total \texttt{deriv u}; 
 $E_\sim(x)+u(\theta(\xi))$, the sum of a function of $x$ and a function of $\xi$ (\texttt{cavityPath\_energy\_pi\_div\_two}). The law of $\xi$ tilted by $u(\theta)$
 is a probability measure because $u\le D$.
 
-\emph{Step 2 (factorization (2.39)).} For an energy $E_1(a)+E_2(b)$ the Gibbs replica average of $F(a)G(b)$ is the product of the two Gibbs replica
+\emph{Step 2 (factorization (2.39)).} For an energy $E_1(a)+E_2(b)$ and $\sigma$-finite base measures, the Gibbs replica average of $F(a)G(b)$ is the product of the two Gibbs replica
 averages (\texttt{integral\_pi\_tilted\_prod\_add\_mul}, from the product formula for replica spaces \texttt{integral\_pi\_prod\_mul} and the quotient
 formula \texttt{integral\_pi\_tilted\_eq\_div}). With $G\equiv1$ this gives (2.37).
 
@@ -2087,21 +2097,51 @@ Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavityDerivativ
 \end{proof}
 
 \begin{lemma}[Gaussian integration by parts with a normalizer]\label{lem:sg-tal:perceptron-stein-ratio}
-  \lean{ProbabilityTheory.integral_mul_div_pow_eq_sum}
+  \lean{ProbabilityTheory.integral_smul_comp_smul_eq_integral_fderiv,
+        ProbabilityTheory.integral_mul_mul_comp_eq_sum,
+        ProbabilityTheory.hasDerivAt_inv_pow,
+        ProbabilityTheory.integral_mul_div_pow_eq_sum,
+        ProbabilityTheory.integral_mul_div_pow_mul_comp_log_eq_sum}
   \leanok
+  \uses{thm:sg:steinvec}
 \talsource{The ``term created by the denominator'' in the computation after Eq.~(2.52)}
-Let $(W,X,Y)$ be a centered jointly Gaussian family, $F$ a differentiable function of $X$ that is bounded with bounded partial derivatives, and $Z$ a differentiable function of $Y$ with
-$Z\ge z_0>0$ and bounded partial derivatives. Then for every $n\in\mathbb N$
+(i) Let $E,E'$ be finite-dimensional real normed spaces, $V$ a real normed space, and $(W,X,Y)$ a Gaussian vector in
+$\mathbb R\times E\times E'$ with $\mathbb EW=0$, $\mathbb EX=0$, $\mathbb EY=0$. Let $F:E\to V$ be differentiable with
+$\|F(x)\|\le Ce^{c\|x\|}$ and $\|DF(x)\|\le De^{d\|x\|}$; let $Z:E'\to\mathbb R$ be differentiable with
+$\|DZ(y)\|\le D_Ze^{d_Z\|y\|}$ and values in a set $s\subset\mathbb R$; and let $H$ be differentiable at every point of $s$
+with $H$ and $H'$ bounded on $s$. Then
 \[
- \mathbb E\Bigl[W\,\frac{F(X)}{Z(Y)^n}\Bigr]=\sum_l\mathbb E[WX_l]\,\mathbb E\Bigl[\frac{\partial_lF(X)}{Z(Y)^n}\Bigr]
- -n\sum_m\mathbb E[WY_m]\,\mathbb E\Bigl[\frac{F(X)\,\partial_mZ(Y)}{Z(Y)^{n+1}}\Bigr].
+\mathbb E\bigl[W\,H(Z(Y))F(X)\bigr]
+=\mathbb E\Bigl[H(Z(Y))\,DF(X)\,\mathbb E[WX]\Bigr]
+ +\mathbb E\Bigl[H'(Z(Y))\,\bigl(DZ(Y)\,\mathbb E[WY]\bigr)\,F(X)\Bigr].
 \]
+(ii) In coordinates $X\in\mathbb R^{I}$, $Y\in\mathbb R^{J}$, with growth bounds in $\|\cdot\|_1$ on $F$,
+$\partial_lF$ and $\partial_mZ$, and $W=W_i$ one member of a Gaussian family:
+\[
+\mathbb E[W_iF(X)H(Z(Y))]=\sum_l\mathbb E[W_iX_l]\,\mathbb E[\partial_lF(X)\,H(Z(Y))]
+ +\sum_m\mathbb E[W_iY_m]\,\mathbb E[F(X)\,\partial_mZ(Y)\,H'(Z(Y))].
+\]
+Only $W_i$, $X$ and $Y$ need to be centered.
+(iii) If $Z\ge z_0>0$, then for every $n\in\mathbb N$
+\[
+ \mathbb E\Bigl[W_i\,\frac{F(X)}{Z(Y)^n}\Bigr]=\sum_l\mathbb E[W_iX_l]\,\mathbb E\Bigl[\frac{\partial_lF(X)}{Z(Y)^n}\Bigr]
+ -n\sum_m\mathbb E[W_iY_m]\,\mathbb E\Bigl[\frac{F(X)\,\partial_mZ(Y)}{Z(Y)^{n+1}}\Bigr].
+\]
+(iv) If $z_0\le Z\le z_1$ with $z_0>0$, $F$ and the partial derivatives of $F,Z$ are bounded, and $G$ is
+differentiable at each point of $[\log z_0,\log z_1]$ with $G,G'$ bounded there, the same identity holds with the
+extra factor $G(\log Z(Y))$ in the first term and
+$F\,\partial_mZ\,Z^{-(n+1)}\bigl(G'(\log Z)-nG(\log Z)\bigr)$ in the second.
 \end{lemma}
 \begin{proof}
   \leanok
-Apply the Gaussian integration by parts of Panchenko's (1.25) (\texttt{integral\_mul\_comp\_eq\_sum\_integral\_mul\_of\_sum}) to $\Phi(x,y)=F(x)/Z(y)^n$ on the combined family $(X,Y)$.
-$\Phi$ is differentiable because $Z>0$; its partial derivatives in the $x$ and $y$ directions are $\partial_lF/Z^n$ and $-nF\partial_mZ/Z^{n+1}$ (computed along lines, with the
-convention $0\cdot Z^{-1}=0$ for $n=0$) and are bounded by $D_l/z_0^n$ and $nC\,DZ_m/z_0^{n+1}$, and $|\Phi|\le C/z_0^n$.
+(i) Apply the vector Gaussian integration by parts (Theorem~\ref{thm:sg:steinvec}) to
+$\Phi(x,y)=H(Z(y))F(x)$ on $E\times E'$, whose derivative is
+$D\Phi(x,y)(u,w)=H(Z(y))\,DF(x)u+H'(Z(y))\,\bigl(DZ(y)w\bigr)F(x)$ by the product and chain rules; $\Phi$ and
+$D\Phi$ grow at most exponentially, and every $e^{r\|(X,Y)\|}$ is integrable by Fernique's theorem, so the
+integral of the sum splits. (ii) Expand $DF(X)v=\sum_lv_l\,\partial_lF(X)$ and
+$\mathbb E[W_iX]=(\mathbb E[W_iX_l])_l$, and likewise for $Z$. (iii) Take $H(t)=t^{-n}$ on $s=[z_0,\infty)$:
+$H'(t)=-nt^{-n-1}$, $|H|\le z_0^{-n}$, $|H'|\le nz_0^{-n-1}$. (iv) Take $H(t)=t^{-n}G(\log t)$ on $s=[z_0,z_1]$,
+so $H'(t)=t^{-n-1}\bigl(G'(\log t)-nG(\log t)\bigr)$.
 Formalized in \texttt{ForMathlib/Probability/Moments/GaussianSteinRatio.lean}.
 \end{proof}
 
@@ -2127,21 +2167,31 @@ integral uses the exponential bounds; the $y$-part is integrated by parts as bef
 Formalized in \texttt{SpinGlasses/Gaussian/GaussianInterpolationParam.lean}.
 \end{proof}
 
-\begin{lemma}[Heat equation for a two-Gaussian smoothing along a path]\label{lem:sg-tal:perceptron-smoothing-path}
-  \lean{ProbabilityTheory.hasDerivAt_integral_gaussian_pair_path}
+\begin{lemma}[Heat equation for a Gaussian smoothing along a path]\label{lem:sg-tal:perceptron-smoothing-path}
+  \lean{ProbabilityTheory.hasDerivAt_integral_gaussian_sum_path,
+        ProbabilityTheory.hasDerivAt_integral_gaussian_pair_path}
   \leanok
-  \uses{lem:sg-tal:perceptron-interpolation-param}
+  \uses{lem:sg-tal:perceptron-interpolation-param,lem:sg-tal:st-affine-curve}
 \talsource{The dependence on $v$ of the variance of $\xi_*^\ell$ in the normalizer (2.49)}
-Let $f$ be twice differentiable with $f,f',f''$ bounded and $f''$ continuous, $\eta_1,\eta_2$ independent standard Gaussians, and $s\mapsto(a(s),b(s))$ a differentiable path with bounded derivative. Then
+Let $V$ be a real normed space, $f:\mathbb R\to V$ twice differentiable with $\|f''(y)\|\le C(1+|y|)^n$,
+$(\eta_k)_{k\in\kappa}$ finitely many independent standard Gaussians, and $a_k$ functions differentiable near $s_0$
+with derivatives continuous at $s_0$. Then at $s=s_0$
 \[
- \frac d{ds}\,\mathbb E\,f\bigl(y+a(s)\eta_1+b(s)\eta_2\bigr)=\bigl(a\,a'+b\,b'\bigr)(s)\;\mathbb E\,f''\bigl(y+a(s)\eta_1+b(s)\eta_2\bigr).
+ \frac d{ds}\,\mathbb E\,f\Bigl(y+\sum_ka_k(s)\eta_k\Bigr)
+ =\Bigl(\sum_ka_k\,a_k'\Bigr)(s_0)\;\mathbb E\,f''\Bigl(y+\sum_ka_k(s_0)\eta_k\Bigr).
 \]
+In particular, for two variables, a real $f$ with bounded second derivative and a path $(a,b)$ as above,
+$\frac d{ds}\mathbb Ef(y+a\eta_1+b\eta_2)=(aa'+bb')\,\mathbb Ef''(y+a\eta_1+b\eta_2)$; neither $f$ nor $f'$ needs to
+be bounded and $f''$ need not be continuous.
 \end{lemma}
 \begin{proof}
   \leanok
-Differentiate under the product Gaussian integral (the derivative $f'\cdot(a'\eta_1+b'\eta_2)$ is dominated by $C_1(A|\eta_1|+B|\eta_2|)$), then apply Stein's lemma
-$\mathbb E[f'(h+w\eta)\eta]=w\,\mathbb E f''(h+w\eta)$ (\texttt{integral\_deriv\_comp\_affine\_mul\_id\_gaussianReal\_of\_bounded}) to each variable conditionally on the other (Fubini). No square root of $a^2+b^2$ occurs, so the formula
-holds also where $a=b=0$. With $(a,b)=(\cos s\,a_0,\sin s\sqrt{1-q})$ this is $\sin s\cos s\,(1-q-a_0^2)\,\mathbb E f''$, the same-replica entry of $\mathrm{Cov}\,V-\mathrm{Cov}\,U$.
+By the mean value inequality $f'$ and $f$ grow at most like $(1+|y|)^{n+1}$ and $(1+|y|)^{n+2}$, and every power of
+$1+\sum_k|\eta_k|$ is integrable, so one may differentiate under the Gaussian integral near $s_0$:
+the derivative is $\mathbb E\bigl[(\sum_ka_k'\eta_k)f'(y+\sum_ka_k\eta_k)\bigr]$. Stein's lemma in each coordinate
+gives $\mathbb E[\eta_jf'(y+\sum_ka_k\eta_k)]=a_j\,\mathbb Ef''(y+\sum_ka_k\eta_k)$. No square root of $\sum_ka_k^2$
+occurs, so the formula holds also where all $a_k$ vanish. With $(a,b)=(\cos s\,a_0,\sin s\sqrt{1-q})$ the factor is
+$\sin s\cos s\,(1-q-a_0^2)$, the same-replica entry of $\mathrm{Cov}\,V-\mathrm{Cov}\,U$.
 Formalized in \texttt{ForMathlib/Probability/Moments/GaussianSmoothingPath.lean}.
 \end{proof}
 
@@ -2643,7 +2693,7 @@ Formalized in \texttt{ForMathlib/Probability/GibbsReplicaPairBound.lean} and
   \leanok
   \uses{prop:sg-tal:perceptron-cavity-path, rem:sg-tal:perceptron-model-free-setting}
 \talsource{The decomposition of the configuration into the old system and the new variables $(\xi_M,\xi)$ used throughout Section~2.3}
-Let $\mu_0$ be a probability law and $E_0$ a measurable energy on $\alpha$, $\gamma$ a probability law. Then $(\mu_0\otimes\gamma).\mathrm{tilted}(E_0\circ\mathrm{fst})=(\mu_0.\mathrm{tilted}\,E_0)\otimes\gamma$.
+Let $\mu_0$ be an $s$-finite measure on $\alpha$, $E_0:\alpha\to\mathbb R$ any function and $\gamma$ a probability law. Then $(\mu_0\otimes\gamma).\mathrm{tilted}(E_0\circ\mathrm{fst})=(\mu_0.\mathrm{tilted}\,E_0)\otimes\gamma$.
 For a $\mu$-preserving measurable equivalence $\psi:\alpha\simeq\beta$ and a measurable $e$, $(\mu.\mathrm{tilted}\,e)\circ\psi^{-1}=\nu.\mathrm{tilted}(e\circ\psi^{-1})$.
 Consequently, at fixed disorder $(\omega,z)$ the replica average of any function of the old state and the two new auxiliary Gaussians $\bigl(\xi_M,\xi\bigr)=\bigl(x_{\mathrm{last}},\xi\bigr)$ in the extended cavity system equals the replica average in the model-free system with
 $\alpha=$ old state $\times\{\text{old auxiliary law}\}$, old law $\mu_0=\mathrm{base}_M.\mathrm{tilted}\,(E_{\mathrm{old}})$, $K_{\mathrm{aux}}=\mathrm{Fin}\,2$ and $u(S_s)$ with
@@ -2651,7 +2701,7 @@ $S_s=\cos s\bigl(\mathrm{cavityCoef}\cdot(\text{old couplings, last row})+\sqrt{
 \end{lemma}
 \begin{proof}
   \leanok
-For the first claim, write the density $e^{E_0(a)}/Z$; the extra factor $\gamma$ is a probability measure so it does not change the normalizer (\texttt{integral\_prod\_fun\_fst\_of\_isProbabilityMeasure}) and the tilted measure on rectangles $s\times t$ is the product of the tilted measure of $s$ and $\gamma(t)$.
+For the first claim, write the density $e^{E_0(a)}/Z$; the extra factor $\gamma$ is a probability measure so it does not change the normalizer (\texttt{integral\_prod\_fun\_fst\_of\_isProbabilityMeasure}), and a density depending on the first coordinate only commutes with the product. (If $e^{E_0}$ is not integrable then $Z=0$ and both sides vanish, so no measurability of $E_0$ is needed.)
 The second claim compares the density of the pushed-forward measure with the density of the tilted target, using that the normalizers agree because $\psi$ preserves the measures; it is a two-space version of the symmetry statement used for exchangeability in Proposition~\ref{prop:sg-tal:perceptron-smart-path-derivative}, and it replaces a private duplicate that previously existed in the cavity files.
 For the third claim split $(x,\xi)\in\mathrm{State}_{M+1}\times\mathbb R$ by the measurable equivalence $(\text{old state},\ x_{\mathrm{last}},\ \xi)$ and reassociate the product (\texttt{smartPathStateSplit}, \texttt{prodAssoc}, \texttt{piFinTwo}); the tilt energy $E_{\mathrm{old}}(x_{<M})+u(S_s)$ is a function of $(\text{old state},(x_{\mathrm{last}},\xi))$ through the formulas for the cavity coefficients, so the tilt of the product splits as the old tilt times the tilt by $u\circ S_s$ in the second factor.
 Formalized in \texttt{SpinGlasses/Talagrand/Perceptron/ConstraintCavitySpecialization.lean} and \texttt{ForMathlib/Probability/GibbsReplicaEquivariance.lean}.

@@ -919,7 +919,9 @@ Formalized in \texttt{SpinGlasses/Talagrand/GuerraReplicaSymmetric/SKGuerraBound
 
 \begin{theorem}[Critical points of the replica-symmetric functional (Eqs.~(1.74)--(1.76), Proposition~1.3.8)]\label{thm:sg-tal:rs-critical}
   \uses{thm:sg-tal:fixed-point, thm:sg-tal:fixed-point-unique}
-  \lean{ProbabilityTheory.integral_deriv_comp_affine_mul_id_gaussianReal_of_bounded,
+  \lean{ProbabilityTheory.integral_id_smul_deriv_comp_affine_gaussianReal,
+        ProbabilityTheory.integral_deriv_comp_affine_mul_id_gaussianReal_of_bounded,
+        ProbabilityTheory.hasDerivAt_integral_comp_affine_gaussianReal_smul,
         ProbabilityTheory.hasDerivAt_integral_comp_affine_gaussianReal_of_bounded,
         SpinGlasses.rsFunctional,
         SpinGlasses.hasDerivAt_integral_log_cosh_sqrt,
@@ -934,7 +936,7 @@ Formalized in \texttt{SpinGlasses/Talagrand/GuerraReplicaSymmetric/SKGuerraBound
 \talsource{Eqs.~(1.74)--(1.76) and Proposition~1.3.8}
 Let $\beta,h\in\mathbb R$, $\Phi(x)=\mathbb{E}\tanh^2(\beta\sqrt x\,z+h)$ and $\operatorname{RS}(y)=\log2+\mathbb{E}\log\cosh(\beta\sqrt y\,z+h)+\frac{\beta^2}{4}(1-y)^2$ for $y\ge0$ ($z$ standard Gaussian).
 \begin{enumerate}
-\item (Eq.~(1.75)) If $f$ has bounded continuous derivatives $f',f''$ and $f(wz+h)$ is integrable, then $\frac{d}{dw}\mathbb{E}f(wz+h)=w\,\mathbb{E}f''(wz+h)$; hence for $x>0$, $\frac{d}{dx}\mathbb{E}\log\cosh(\beta\sqrt x\,z+h)=\frac{\beta^2}{2}\mathbb{E}(1-\tanh^2(\beta\sqrt x\,z+h))$ and $\operatorname{RS}'(x)=\frac{\beta^2}{2}(x-\Phi(x))$.
+\item (Eq.~(1.75)) If $f$ is twice differentiable, with values in a real normed space, and $\|f''(y)\|\le C(1+|y|)^k$ (for instance $f''$ bounded), then $\mathbb E[z\,f'(wz+h)]=w\,\mathbb Ef''(wz+h)$ and $\frac{d}{dw}\mathbb{E}f(wz+h)=w\,\mathbb{E}f''(wz+h)$; hence for $x>0$, $\frac{d}{dx}\mathbb{E}\log\cosh(\beta\sqrt x\,z+h)=\frac{\beta^2}{2}\mathbb{E}(1-\tanh^2(\beta\sqrt x\,z+h))$ and $\operatorname{RS}'(x)=\frac{\beta^2}{2}(x-\Phi(x))$.
 \item If $\beta\ne0$ and $q\ge0$ minimizes $\operatorname{RS}$ on $[0,\infty)$, then $q=\Phi(q)$. For every $\beta,h$ a minimizer which is a solution of $q=\Phi(q)$ exists.
 \item If $|\beta|<1$, then $q=\Phi(q)$, $r=\Phi(r)$ with $q,r\ge0$ imply $q=r$ (for every $h$, including $h=0$).
 \item If $\beta\ne0$ or $h\ne0$ and $q,r>0$ both solve (1.74), then $q=r$.
@@ -942,7 +944,7 @@ Let $\beta,h\in\mathbb R$, $\Phi(x)=\mathbb{E}\tanh^2(\beta\sqrt x\,z+h)$ and $\
 \end{theorem}
 \begin{proof}
   \leanok
-(1) \emph{The $x$-derivative of $\mathbb E\log\cosh$.} Put $g(w)=\mathbb E f(wz+h)$. Stein's lemma applied to the bounded function $f'$ gives $\mathbb E[f'(wz+h)\,z]=w\,\mathbb E f''(wz+h)$, and differentiation under the integral sign (the integrand is dominated by $C|z|$) gives
+(1) \emph{The $x$-derivative of $\mathbb E\log\cosh$.} Put $g(w)=\mathbb E f(wz+h)$. The growth of $f''$ gives polynomial growth of $f'$ and $f$ (mean value inequality). Stein's lemma applied to $f'$ gives $\mathbb E[z\,f'(wz+h)]=w\,\mathbb E f''(wz+h)$, and differentiation under the integral sign (Lemma~\ref{lem:sg-tal:st-affine-curve}) gives
 \[
 g'(w)=\mathbb E\big[f'(wz+h)\,z\big]=w\,\mathbb E f''(wz+h).
 \]
@@ -4684,13 +4686,14 @@ Formalized in \texttt{SpinGlasses/Talagrand/GaussianFluctuation/SKGaussianCoroll
 
 \begin{lemma}[Moments of the thermal factor $B$]
 \label{lem:sg-tal:thermal-factor-moment}
-  \lean{integral_exp_sum_ising_moment_le,
+  \lean{integral_exp_const_mul_dotProduct_gaussianReal_le,
+        integral_exp_sum_ising_moment_le,
         integrable_exp_dotProduct_gaussianReal,
         integrable_exp_const_mul_dotProduct_gaussianReal,
         SpinGlasses.abs_integral_units_cast_le}
   \leanok
 \talsource{``(A.6) entails that $\mathrm E B^{4k}\le K^k$'' in the proof of Corollary~1.7.13}
-Let $y$ be a standard Gaussian vector in $\mathbb R^N$ and $m\in\mathbb R^N$ with $|m_i|\le1$.  Then $\exp(c\,N^{-1/2}\sum_im_iy_i)$ is integrable for every $c$ and
+Let $y=(y_i)_{i\in I}$ be i.i.d.\ standard Gaussians, $I$ finite.  For every $c$ and every $u\in\mathbb R^I$, $\exp(c\,u\cdot y)$ is integrable, and if $\sum_iu_i^2\le1$ then $\mathbb E\exp(c\,u\cdot y)\le e^{c^2/2}$.  In particular, for $y\in\mathbb R^N$ and $m\in\mathbb R^N$ with $|m_i|\le1$,
 \[
 \mathbb E\exp\Bigl(c\,\frac1{\sqrt N}\sum_{i\le N}m_iy_i\Bigr)\le e^{c^2/2}.
 \]
@@ -4698,7 +4701,7 @@ Moreover the thermal means $m_i=\langle\sigma_i\rangle$ of any probability measu
 \end{lemma}
 \begin{proof}
   \leanok
-The sum $\sum_ic_iy_i$ with $c_i=cN^{-1/2}m_i$ is centered Gaussian of variance $\sum_ic_i^2=c^2N^{-1}\sum_im_i^2\le c^2$, so its exponential has expectation $e^{\frac12\sum c_i^2}\le e^{c^2/2}$ (the product formula (A.6) for independent coordinates, \texttt{integral\_exp\_sum\_mul\_gaussianReal}).  Finally $|\int a_i\,d\mu|\le\int|a_i|\,d\mu=1$.
+The sum $\sum_ic_iy_i$ with $c_i=cu_i$ is centered Gaussian of variance $\sum_ic_i^2\le c^2$ (for $u=N^{-1/2}m$ one has $\sum_iu_i^2=N^{-1}\sum_im_i^2\le1$), so its exponential has expectation $e^{\frac12\sum c_i^2}\le e^{c^2/2}$ (the product formula (A.6) for independent coordinates, \texttt{integral\_exp\_sum\_mul\_gaussianReal}).  Finally $|\int a_i\,d\mu|\le\int|a_i|\,d\mu=1$.
 With $c=4k\varepsilon\beta$ this gives $\mathbb E B^{4k}\le e^{8k^2\beta^2}$, the book's $K^k$ with an explicit constant.
 \end{proof}
 
@@ -4859,6 +4862,13 @@ Since $\mathrm{Av}\,\mathcal E=\cosh(X+h)$ and $\mathrm{Av}\,\varepsilon\mathcal
         integral_mul_cosh_add,
         one_le_integral_cosh,
         abs_integral_sinh_le_integral_cosh,
+        integral_sinh_add_smul,
+        integral_cosh_add_smul,
+        measureReal_univ_le_integral_cosh,
+        abs_integral_sinh_le_integral_cosh_of_integrable,
+        abs_integral_mul_le_mul_integral_of_integrable,
+        abs_integral_sinh_div_integral_cosh_le_of_integrable,
+        abs_integral_mul_cosh_div_le_of_integrable,
         SpinGlasses.abs_sinh_cosh_diff_le,
         SpinGlasses.abs_id_mul_exp_cosh_sub_le,
         SpinGlasses.dotProduct_ising_neg,
@@ -4867,8 +4877,8 @@ Since $\mathrm{Av}\,\mathcal E=\cosh(X+h)$ and $\mathrm{Av}\,\varepsilon\mathcal
 \talsource{the identities ``$\mathrm{Av}\,\mathcal E=\mathrm{ch}$, $\mathrm{Av}\,\varepsilon\mathcal E=\mathrm{sh}$'' used in the proof of Corollary~1.7.15}
 For reals $u,h,D_1,D_2$:
 \begin{enumerate}
-\item $\cosh(u+h)=\frac12(e^he^u+e^{-h}e^{-u})$, $\sinh(u+h)=\frac12(e^he^u-e^{-h}e^{-u})$; for a probability measure on a finite set, $\int\cosh(u+h)=\frac12\bigl(e^h\!\int e^u+e^{-h}\!\int e^{-u}\bigr)$ and similarly for $\sinh$, and with any weight $\Psi$: $\int\Psi\cosh(u+h)=\frac12\bigl(e^h\!\int\Psi e^u+e^{-h}\!\int\Psi e^{-u}\bigr)$ (used with $\Psi=\dot S$ for Eq.~(1.210); the unweighted forms are the case $\Psi=1$);
-\item $1\le\int\cosh(u+h)$ and $|\int\sinh(u+h)|\le\int\cosh(u+h)$;
+\item $\cosh(u+h)=\frac12(e^he^u+e^{-h}e^{-u})$, $\sinh(u+h)=\frac12(e^he^u-e^{-h}e^{-u})$. Hence for any measure $\mu$, any measurable function $u$ and any weight $\Psi$ with values in a real normed space such that $e^{u}\Psi$ and $e^{-u}\Psi$ are integrable, $\int\cosh(u+h)\,\Psi=\frac12\bigl(e^h\!\int e^u\Psi+e^{-h}\!\int e^{-u}\Psi\bigr)$, and similarly for $\sinh$ with a minus sign (used with $\Psi=\dot S$ for Eq.~(1.210); $\Psi=1$ gives the unweighted forms);
+\item if $\cosh u$ is integrable then $|\int\sinh u|\le\int\cosh u$; for a finite measure $\mu(X)\le\int\cosh u$, so $\int\cosh u>0$ when $\mu\ne0$, and then $|\int\sinh u/\int\cosh u|\le1$ and $|\int\varphi\cosh u/\int\cosh u|\le C$ whenever $|\varphi|\le C$ a.e.; more generally $|\int\varphi w|\le C\int w$ for integrable $w\ge0$. On a finite set with a probability measure every integrability condition holds and $1\le\int\cosh u$;
 \item $e^{\pm h}\le2\cosh h$ and $\bigl|\tfrac12(e^hD_1\pm e^{-h}D_2)\bigr|\le\cosh h\,(|D_1|+|D_2|)$;
 \item if $A'-A=\frac12(e^hD_1-e^{-h}D_2)$ and $B'-B=\frac12(e^hD_1+e^{-h}D_2)$ then $|A'-A|+|B'-B|\le2\cosh h\,(|D_1|+|D_2|)$;
 \item if $4\beta^2<1$ and $q\in[0,1]$ then $|\beta(1-q)|\le1$.
@@ -4876,7 +4886,7 @@ For reals $u,h,D_1,D_2$:
 \end{lemma}
 \begin{proof}
   \leanok
-(1) is $\cosh x=\frac12(e^x+e^{-x})$ and linearity of the integral.  (2) is $\cosh\ge1$ and $|\sinh x|\le\cosh x$, integrated.  (3) The first part is $\cosh h=\frac12(e^h+e^{-h})$; the second is the triangle inequality and $e^{\pm h}\le2\cosh h$.
+(1) is $\cosh x=\frac12(e^x+e^{-x})$ and linearity of the integral.  (2) is $\cosh\ge1$ and $|\sinh x|\le\cosh x$, integrated; the quotient bounds divide by the positive integral $\int\cosh u$.  (3) The first part is $\cosh h=\frac12(e^h+e^{-h})$; the second is the triangle inequality and $e^{\pm h}\le2\cosh h$.
 (4) Apply (3) with both signs and add.  (5) $4\beta^2<1$ gives $|\beta|<\frac12\le1$.
 \end{proof}
 
@@ -8068,24 +8078,34 @@ Theorem~\ref{thm:sg-tal:gaussian-class-reference} gives the Gaussian reference.
 
 \begin{theorem}[Exact integration of replicas not shared with the other factors]
 \label{thm:sg-tal:replica-integrate-out}
-\lean{MeasureTheory.integral_pi_integrate_out_replica, MeasureTheory.integral_pi_overlap_pendant, MeasureTheory.integral_pi_overlap_block, MeasureTheory.integral_pi_prod_overlap_blocks, MeasureTheory.integral_pi_centered_replica}
+\lean{MeasureTheory.integral_pi_integrate_out_coordinate, MeasureTheory.integral_pi_integrate_out_replica_of_integrable, MeasureTheory.integral_pi_integrate_out_replica, MeasureTheory.integral_pi_overlap_pendant_inner, MeasureTheory.integral_pi_overlap_block_inner, MeasureTheory.integral_pi_prod_overlap_blocks_inner, MeasureTheory.integral_pi_prod_overlap_blocks, MeasureTheory.integral_pi_centered_replica_inner, MeasureTheory.integral_pi_blocks_untouched_inner, MeasureTheory.integral_pi_blocks_one_touched_inner, MeasureTheory.integral_pi_blocks_same_inner, MeasureTheory.integral_pi_blocks_two_touched_inner, MeasureTheory.integral_pi_two_replica_orthogonality_inner, MeasureTheory.integral_pi_two_replica_overlap_moments_inner}
 \leanok
 \talsource{Section~1.10, the computation after Eq.~(1.328)}
-Let $\mu$ be a probability measure on a finite set, $\rho=(\rho_r)_{r\in R}$ an i.i.d.\ family with law
-$\mu$, and let $v:\alpha\to\mathbb R^I$ have mean $b$. If $Z(\rho)$ does not depend on the
-coordinate $\rho_d$, then $\mathbb E[Z\,\Phi(\rho,\rho_d)]=\mathbb E[Z\,\mathbb E_t\Phi(\rho,t)]$ when
-$\Phi$ does not depend on $\rho_d$ either. Consequently, for $x\ne d$ and $Z$ independent of $\rho_d$,
-$\mathbb E[Z(R_{xd}-q)]=\mathbb E[Z(\tfrac1N\sum_i v(\rho_x)_ib_i-q)]$; if $Z$ is independent of
-both $\rho_x$ and $\rho_d$ then $\mathbb E[Z(R_{xd}-q)]=\mathbb E[Z]\,T$ with
-$T=\tfrac1N\sum_ib_i^2-q$; a factor that is centered in an absent replica has mean zero; and
-for pairwise disjoint blocks $\{c_u,d_u\}$, $u\in W$, absent from $Z$, one has
+(Integrating out a coordinate.) Let $\rho=(\rho_r)_{r\in R}$ have independent coordinates, $\rho_r\sim\mu_r$
+(probability measures on arbitrary spaces, $R$ finite), and let $\Phi(\rho,t)$ take values in a real normed space
+and not depend on $\rho_d$. If $\rho\mapsto\Phi(\rho,\rho_d)$ is integrable then
+$\mathbb E\,\Phi(\rho,\rho_d)=\mathbb E\int\Phi(\rho,t)\,d\mu_d(t)$.
+
+(Overlaps.) Now let all $\mu_r=\mu$, let $H$ be a real Hilbert space, $v:\alpha\to H$ measurable and bounded
+$\mu$-a.e., $b=\int v\,d\mu$, $c,q\in\mathbb R$, $R_{xy}=c\,\langle v(\rho_x),v(\rho_y)\rangle$ and
+$T=c\|b\|^2-q$. Let $Z$ be integrable and $x\ne d$. If $Z$ does not depend on $\rho_d$ then
+$\mathbb E[Z(R_{xd}-q)]=\mathbb E[Z\,(c\langle v(\rho_x),b\rangle-q)]$; if $Z$ depends on neither $\rho_x$ nor
+$\rho_d$ then $\mathbb E[Z(R_{xd}-q)]=\mathbb E[Z]\,T$; a factor $Z\,c\langle w(\rho),v(\rho_d)-b\rangle$ with
+$Z$, $w$ independent of $\rho_d$ and $w$ bounded has mean zero; and for pairwise disjoint blocks $\{c_u,d_u\}$,
+$u\in W$, absent from $Z$,
 $\mathbb E[Z\prod_{u\in W}(R_{c_ud_u}-q)]=\mathbb E[Z]\,T^{|W|}$.
+The identities used for two further distinguished replicas (blocks untouched, one touched, equal to a block, or in
+two different blocks, and the orthogonality and second and third moments of
+$A_x=c\langle v(\rho_x)-b,b\rangle$, $P_{xy}=c\langle v(\rho_x)-b,v(\rho_y)-b\rangle$) hold in the same
+generality. The case of a finite space $\alpha$, $H=\mathbb R^I$ and $c=1/N$ is the one used for the SK model.
 \end{theorem}
 \begin{proof}
 \leanok
-Sum over the configurations and split the coordinate $d$ with the equivalence
-\texttt{Equiv.piSplitAt}; the weights of the remaining coordinates factor out and the weights of
-the split coordinate add up to one. The block formula is a finite induction over $W$.
+The first statement is Fubini after splitting off the coordinate $d$: resampling $\rho_d$ does not change the law of
+$\rho$. For the overlaps, apply it with $\Phi(\rho,t)=Z(\rho)(c\langle v(\rho_x),v(t)\rangle-q)$, integrable because
+$Z$ is integrable and the overlap is bounded, and use $\int\langle a,v(t)\rangle\,d\mu(t)=\langle a,b\rangle$.
+The block formula applies the pendant identity twice and is a finite induction over $W$, the product of the other
+blocks being bounded.
 \end{proof}
 
 \begin{theorem}[The moments $\mathbb E\,T_x^2T^j$, $\mathbb E\,T_{xy}^2T^j$ and $\mathbb E\,T_{xy}T_xT_yT^j$]
@@ -8413,20 +8433,22 @@ error estimates with constant $K_2+2M K_1$. No new cavity induction is needed.
 
 \begin{lemma}[Centering by the Gibbs mean overlap]
 \label{lem:sg-tal:gibbs-centered-overlap}
-\lean{MeasureTheory.integral_pi_overlap_eq_mean_sq,
+\lean{MeasureTheory.integral_pi_overlap_eq_mean_sq_inner,
+MeasureTheory.integral_pi_overlap_centered_decomp_inner,
 MeasureTheory.integral_pi_overlap_centered_decomp, dotProduct_sub_mean_decomp}
 \leanok
 \talsource{Eq.~(1.295)}
-Let $\mu$ be a probability measure on a finite space $X$, let $I,R$ be finite index
-sets, let $v:X\to\mathbb R^I$ and $b_i=\int v_i\,d\mu$, and let $\rho\sim\mu^R$.
-For any scale $d\in\mathbb R$, distinct reference replicas $r,s\in R$, and any $x,y\in R$,
+Let $\mu$ be a probability measure on a measurable space, $H$ a real Hilbert space, $v$ a measurable $\mu$-a.e.\
+bounded map into $H$ with $b=\int v\,d\mu$, $R$ a finite index set and $\rho\sim\mu^R$.
+For any scale $c\in\mathbb R$, distinct reference replicas $r,s\in R$, and any $x,y\in R$,
+$\mathbb E_{\tau}\,c\langle v(\tau^r),v(\tau^s)\rangle=c\|b\|^2$ and
 \[
- d\sum_i v_i(\rho^x)v_i(\rho^y)
- -\mathbb E_{\tau\sim\mu^R}\,d\sum_i v_i(\tau^r)v_i(\tau^s)
- =d\sum_i(v_i(\rho^x)-b_i)(v_i(\rho^y)-b_i)
-  +d\sum_i(v_i(\rho^x)-b_i)b_i+d\sum_i(v_i(\rho^y)-b_i)b_i.
+ c\langle v(\rho^x),v(\rho^y)\rangle
+ -\mathbb E_{\tau\sim\mu^R}\,c\langle v(\tau^r),v(\tau^s)\rangle
+ =c\langle v(\rho^x)-b,v(\rho^y)-b\rangle
+  +c\langle v(\rho^x)-b,b\rangle+c\langle v(\rho^y)-b,b\rangle.
 \]
-For the Gibbs measure, coordinate spins and $d=1/(N+1)$, this is
+For the Gibbs measure on a finite space, coordinate spins ($H=\mathbb R^I$) and $c=1/(N+1)$, this is
 $R_{xy}-\langle R_{rs}\rangle=T_{xy}+T_x+T_y$.
 The identity is exact at each disorder realization; it has no temperature or
 external-field restriction. The quantitative Gibbs moment fluctuation estimates (1.293)--(1.294) are proved
@@ -8435,7 +8457,8 @@ separately in Theorem~\ref{thm:sg-tal:gibbs-moment-fluctuations}.
 \begin{proof}
 \leanok
 The two distinct reference replicas are independent, so their mean overlap is
-$d\sum_i b_i^2$. Subtract that quantity in the common finite-vector centering identity.
+$c\|b\|^2$. Subtract that quantity in the expansion of
+$\langle v(\rho^x),v(\rho^y)\rangle$ about $b$.
 \end{proof}
 
 \begin{lemma}[A square-integral bound for a finite sum]
@@ -9897,7 +9920,7 @@ $G=\prod_{\mathcal I}U^-\prod_{\mathcal I'}U^-$. Then (i) $\nu_1(G^2)\le C(N+1)^
 \end{proof}
 
 \begin{lemma}[Gaussian reference for pair partitions]\label{lem:sg-tal:hanen-gaussian-pairings}
-\lean{MeasureTheory.integral_pi_prod_of_disjoint_supports, Renormalization.integral_pi_gaussian_two_pairings_eq_prod, Renormalization.integral_pi_gaussian_pairing_sq, Renormalization.integral_pi_gaussian_two_pairings_of_ne, SpinGlasses.hanen_rect_coeff, SpinGlasses.hanen_gaussian_rect_pairing_sq, SpinGlasses.hanen_gaussian_rect_pairings_of_ne}
+\lean{MeasureTheory.integral_pi_prod_of_disjoint_supports_dep, MeasureTheory.integral_pi_prod_of_disjoint_supports, Renormalization.integral_pi_gaussian_two_pairings_eq_prod, Renormalization.integral_pi_gaussian_pairing_sq, Renormalization.integral_pi_gaussian_two_pairings_of_ne, SpinGlasses.hanen_rect_coeff, SpinGlasses.hanen_gaussian_rect_pairing_sq, SpinGlasses.hanen_gaussian_rect_pairings_of_ne}
 \leanok
 \talsource{Book, p.~5000: ``a pair $\{\ell,\ell'\}$ determines the rectangle $J$ it came from''}
 Let $(z_k)$ be i.i.d. standard Gaussians and let $V_{ab}=\sum_k V_{ab}(k)z_k$ be linear forms, symmetric in $(a,b)$,
@@ -9908,7 +9931,7 @@ which determines the labels $a,b$) one has $s=4A^2$.
 \end{lemma}
 \begin{proof}
 \leanok
-\emph{Step 1 (blocks occurring once).} A block $B$ occurring in only one of the partitions appears once in the product; $V_B$ is centered, and independent of the other blocks because the supports are disjoint (\texttt{integral\_pi\_prod\_of\_disjoint\_supports}: the integral of a product of functions of disjoint coordinate groups is the product of the integrals). So the expectation is $0$ unless $P=P_0$.
+\emph{Step 1 (blocks occurring once).} A block $B$ occurring in only one of the partitions appears once in the product; $V_B$ is centered, and independent of the other blocks because the supports are disjoint (\texttt{integral\_pi\_prod\_of\_disjoint\_supports}: for any finite product of probability spaces and measurable real or complex factors depending on pairwise disjoint groups of coordinates, the integral of the product is the product of the integrals; no integrability is needed). So the expectation is $0$ unless $P=P_0$.
 \emph{Step 2 (blocks occurring twice).} If $P=P_0$, each block gives its second moment, and the blocks are independent:
 \[
 \mathbb E\prod_{B\in P_0}V_B^2=\prod_{B\in P_0}\mathbb EV_B^2=s^{|P|}.
@@ -10311,6 +10334,35 @@ Write $\mathcal Z(t)=\int e^{tX}d\mu$ and $\mathcal N(t)=\int Ye^{tX}d\mu$, so t
 \emph{Step 4 (bound).} For a probability measure and $|f|\le C$, $e^{-C}\le\int e^fd\mu\le e^C$, hence $|\log\int e^fd\mu|\le C$; an upper bound on $f$ alone already gives exponential integrability under any finite measure.
 \end{proof}
 
+\begin{lemma}[Tilted averages of vector-valued observables]\label{lem:sg-tal:vector-tilt}
+\lean{MeasureTheory.integral_tilted_eq_inv_smul, MeasureTheory.hasDerivAt_integral_tilted_moving_smul, MeasureTheory.hasDerivAt_integral_tilted_smul_of_dominated, MeasureTheory.hasDerivAt_integral_tilted_of_ae_envelope, MeasureTheory.hasDerivAt_integral_tilted_of_ae_integrable_moving, MeasureTheory.hasDerivAt_integral_exp_mul_smul_of_ae_abs_le, MeasureTheory.hasDerivAt_integral_tilted_mul_smul_of_ae_abs_le, MeasureTheory.hasFDerivAt_log_integral_exp_of_dominated, MeasureTheory.norm_integral_smul_sub_smul_integral_le}
+\leanok
+\talsource{Auxiliary measure-theoretic calculus for Eqs.~(1.363), (1.377)}
+Let $V$ be a real normed space, $\mu\ne0$ a measure, $e_r$ energies with $\partial_re_r=e'_r$ for $r$ in a
+neighbourhood $S$ of $t$ (a.e.), $F_r$ observables with values in $V$ and $\partial_rF_r=F'_r$ (a.e.), and
+$\mu_r=\mu.\mathrm{tilted}(e_r)$. Assume the functions involved are a.e.\ strongly measurable, $e^{e_t}$ is
+integrable, $\|F_r\|\le C$, $|e'_re^{e_r}|\le b$ and $\|F'_r\|e^{e_r}\le b_2$ with $b,b_2\in L^1(\mu)$. Then
+\[
+\frac d{dr}\Big|_{t}\int F_r\,d\mu_r=\int F'_t\,d\mu_t
+ +\int e'_tF_t\,d\mu_t-\Big(\int e'_t\,d\mu_t\Big)\Big(\int F_t\,d\mu_t\Big).
+\]
+For a fixed unbounded observable $F$ the covariance formula holds if
+$(1+\|F\|)(1+|e'_r|)e^{e_r}\le b\in L^1(\mu)$. On a finite measure it suffices that $e_r\le A$,
+$|e'_r|\le b\in L^1(\mu)$, $\|F_r\|\le C$ and $\|F'_r\|\le b_2\in L^1(\mu)$. For energies $E_p$ depending on a
+parameter $p$ in a normed space, with $\|e^{E_p}DE_p\|$ dominated near $p_0$,
+$D\bigl(\log\int e^{E_p}d\mu\bigr)(p_0)=\int DE_{p_0}\,d\mu_{p_0}$. Finally, for a finite measure, $|F|\le C$
+a.e.\ real and $h$ integrable with values in $V$,
+$\|\int Fh-(\int F)(\int h)\|\le(1+\mu(X))\,|C|\int\|h\|$.
+\end{lemma}
+\begin{proof}
+\leanok
+$\int G\,d\mu_r=\mathcal Z(r)^{-1}\int e^{e_r}G\,d\mu$ with $\mathcal Z(r)=\int e^{e_r}d\mu>0$. The bounds allow
+differentiation of the numerator and of $\mathcal Z$ under the integral sign, and the product rule for
+$\mathcal Z^{-1}$ times the numerator gives the formula. The other forms are instances: constant $F_r$; the envelope
+$(1+\|F\|)(1+|e'_r|)e^{e_r}$ dominates all the integrands involved; and an upper bound $e_r\le A$ converts the
+unweighted envelopes into weighted ones. The last inequality is the triangle inequality.
+\end{proof}
+
 \begin{lemma}[Vector Gibbs normalization and temperature derivative]\label{lem:sg-tal:vector-normalization}
 \lean{SpinGlasses.abs_skVectorEnergy_le, SpinGlasses.integrable_exp_skVectorEnergy, SpinGlasses.isProbabilityMeasure_tilted_skVectorEnergy_of_sum_sq_le, SpinGlasses.integral_exp_skVectorEnergy_zero_beta, SpinGlasses.abs_log_integral_exp_skVectorEnergy_le, SpinGlasses.hasDerivAt_log_integral_exp_skVectorEnergy}
 \leanok
@@ -10399,7 +10451,7 @@ Summing over $k$ gives the stated derivative.
 \lean{MeasureTheory.pi_tilted_eq_tilted_pi, MeasureTheory.integral_pi_tilted_eq_div, MeasureTheory.integral_pi_fresh_replica_mul, MeasureTheory.integral_pi_comp_injective, MeasureTheory.integral_pi_replace_replica, MeasureTheory.measurable_integral_pi_tilted, MeasureTheory.integrable_integral_pi_tilted}
 \leanok
 \talsource{Section~1.12, replicas in the proof of Proposition~1.12.4}
-Let $\mu$ be a finite measure on a measurable space $\alpha$ and $E:\alpha\to\mathbb R$ measurable. The product over a finite index set $\iota$ of the Gibbs measures $\mu_E=e^{E}\mu/\int e^{E}d\mu$ is the Gibbs measure of the product law $\mu^{\iota}$ for the energy $\sum_{i}E(\sigma_i)$, so the $\iota$-replica Gibbs average of $Y$ is $\int Y e^{\sum_iE(\sigma_i)}d\mu^{\iota}\big/\int e^{\sum_iE(\sigma_i)}d\mu^{\iota}$.
+Let $\mu$ be a finite measure on a measurable space $\alpha$ and $E:\alpha\to\mathbb R$ measurable (for the quotient formula below, $\sigma$-finiteness of $\mu$ suffices). The product over a finite index set $\iota$ of the Gibbs measures $\mu_E=e^{E}\mu/\int e^{E}d\mu$ is the Gibbs measure of the product law $\mu^{\iota}$ for the energy $\sum_{i}E(\sigma_i)$, so the $\iota$-replica Gibbs average of $Y$ is $\int Y e^{\sum_iE(\sigma_i)}d\mu^{\iota}\big/\int e^{\sum_iE(\sigma_i)}d\mu^{\iota}$.
 For a probability measure $\nu$ and i.i.d. replicas, a function of the replicas $e(i)$ ($e$ injective) times a function of one further replica $r$ has the product of the two averages; a function of the replicas $e(i)$ has the same average whether the family is indexed by $I$ or by a larger index set; and in a product $F(\sigma_{e(i)})K(\sigma_i,\sigma_k)$ with $F$ independent of $\sigma_k$ the replica $k$ may be replaced by a fresh replica.
 If the energy $E(\omega,a)$ is jointly measurable in a random environment $\omega$, the Gibbs average of a bounded measurable function of $\iota$ replicas is a measurable (and, if each $\mu_{E(\omega)}$ is a probability measure, integrable) function of $\omega$.
 \end{lemma}

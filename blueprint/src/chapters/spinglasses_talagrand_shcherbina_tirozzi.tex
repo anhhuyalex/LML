@@ -1202,23 +1202,48 @@ $vA(v)\le1+v^2$. The derivative of $\log T$ is the chain rule, and integrating t
 gives the quadratic bound on $\log T$.
 \end{proof}
 
-\begin{lemma}[Differentiating a Gaussian average along affine maps]\label{lem:sg-tal:st-affine-curve}
-  \lean{ProbabilityTheory.integrable_gaussianReal_of_norm_le_pow,
+\begin{lemma}[Differentiating averages along affine maps]\label{lem:sg-tal:st-affine-curve}
+  \lean{MeasureTheory.stronglyMeasurable_of_forall_hasDerivAt,
+        ProbabilityTheory.integrable_gaussianReal_of_norm_le_pow,
+        ProbabilityTheory.norm_le_mul_one_add_abs_pow_of_hasDerivAt,
+        ProbabilityTheory.integrable_add_mul_smul_comp_add_mul_gaussianReal,
         ProbabilityTheory.integrable_comp_add_mul_mul_add_mul_gaussianReal,
+        ProbabilityTheory.hasDerivAt_integral_comp_add_mul_of_dominated,
+        ProbabilityTheory.hasDerivAt_integral_comp_add_mul,
+        ProbabilityTheory.hasDerivAt_integral_comp_add_mul_gaussianReal_smul,
         ProbabilityTheory.hasDerivAt_integral_comp_add_mul_gaussianReal}
   \leanok
-Let $z$ be a standard Gaussian. A measurable function bounded by $C(1+|z|)^k$ is integrable. Let $f$ be
-differentiable with $f'$ measurable and $|f(y)|,|f'(y)|\le C(1+|y|)^k$, and let $m,\sigma$ be differentiable
-near $t$ with derivatives continuous at $t$. Then
+Let $V$ be a real normed space and let $f:\mathbb R\to V$ have derivative $f'$ at every point.
+\begin{enumerate}
+\item $f'$ is strongly measurable, and $\|f'(y)\|\le C(1+|y|)^k$ for all $y$ implies
+$\|f(y)\|\le(\|f(0)\|+C)(1+|y|)^{k+1}$.
+\item (Domination.) Let $\mu$ be any measure on $\mathbb R$, $m,\sigma$ differentiable on a neighbourhood $S$ of $t$,
+$z\mapsto f(m(t)+\sigma(t)z)$ integrable, and $b$ integrable with
+$\|(m'(s)+\sigma'(s)z)\,f'(m(s)+\sigma(s)z)\|\le b(z)$ for $\mu$-a.e.\ $z$ and all $s\in S$. Then
+\[
+\frac{d}{dt}\int f\bigl(m(t)+\sigma(t)z\bigr)\,d\mu(z)
+=\int\bigl(m'(t)+\sigma'(t)z\bigr)\,f'\bigl(m(t)+\sigma(t)z\bigr)\,d\mu(z).
+\]
+\item (Polynomial growth.) The same formula holds if $\mu$ is finite with $\int|z|^{k+1}d\mu<\infty$,
+$\|f'(y)\|\le C(1+|y|)^k$, $f(m(t)+\sigma(t)z)$ is integrable, and $m,\sigma$ are differentiable near $t$ with
+derivatives continuous at $t$.
+\item (Gaussian case.) For a standard Gaussian $z$, only the growth bound on $f'$ and the conditions on $m,\sigma$
+are needed:
 \[
 \frac{d}{dt}\,\mathbb E f\bigl(m(t)+\sigma(t)z\bigr)
-=\mathbb E\Bigl[f'\bigl(m(t)+\sigma(t)z\bigr)\bigl(m'(t)+\sigma'(t)z\bigr)\Bigr].
+=\mathbb E\Bigl[\bigl(m'(t)+\sigma'(t)z\bigr)f'\bigl(m(t)+\sigma(t)z\bigr)\Bigr].
 \]
+\end{enumerate}
 \end{lemma}
 \begin{proof}
   \leanok
-Near $t$ the functions $m,\sigma,m',\sigma'$ are bounded, so the derivative of the integrand is dominated by a
-constant multiple of $(1+|z|)^{k+1}$; differentiate under the integral sign.
+(1) $f$ is continuous and $f'(y)=\lim_n(n+1)\bigl(f(y+\tfrac1{n+1})-f(y)\bigr)$, a pointwise limit of continuous
+functions; no completeness of $V$ is needed. The growth bound is the mean value inequality on the segment from $0$
+to $y$. (2) This is dominated differentiation: the integrand has $s$-derivative
+$(m'+\sigma'z)f'(m+\sigma z)$ by the chain rule. (3) Near $t$ the functions $m,\sigma,m',\sigma'$ are bounded by a
+constant $B$, so the derivative of the integrand is bounded by a constant multiple of $(1+|z|)^{k+1}$; apply (2).
+(4) By (1), $f$ has growth of order $k+1$, which gives the integrability of $f(m(t)+\sigma(t)z)$; apply (3).
+Formalized in \texttt{ForMathlib/Probability/Moments/GaussianAffineDerivative.lean}.
 \end{proof}
 
 \begin{lemma}[The inverse Mills ratio at an affine argument]\label{lem:sg-tal:st-mills-affine}

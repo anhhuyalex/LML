@@ -565,19 +565,22 @@ Lemma~\ref{lem:sg:summable}).
 \section{Stein's lemma and Gaussian integration by parts}\label{sec:sg:stein}
 
 \begin{theorem}[Stein's lemma, Panchenko Eq.~(1.19)]\label{thm:sg:stein1d}
-  \lean{ProbabilityTheory.integrable_of_integrable_id_mul, ProbabilityTheory.hasDerivAt_gaussianPDFReal_zero,
+  \lean{ProbabilityTheory.integrable_of_integrable_id_smul, ProbabilityTheory.integrable_of_integrable_id_mul,
+        ProbabilityTheory.hasDerivAt_gaussianPDFReal_zero,
         ProbabilityTheory.integrable_gaussianReal_iff_smul, ProbabilityTheory.integrable_pow_gaussianReal,
-        ProbabilityTheory.integral_id_mul_gaussianReal_eq}
+        ProbabilityTheory.integral_id_smul_gaussianReal_eq, ProbabilityTheory.integral_id_mul_gaussianReal_eq,
+        ProbabilityTheory.integral_id_smul_comp_affine_gaussianReal}
   \leanok
-Let $v\ge0$, let $g\sim\mathcal N(0,v)$, and let $F:\mathbb R\to\mathbb R$ be differentiable with derivative $F'$ such
-that $gF(g)$ and $F'(g)$ are integrable. Then $\mathbb E[g\,F(g)]=v\,\mathbb E[F'(g)]$.
+Let $v\ge0$, let $g\sim\mathcal N(0,v)$, let $V$ be a real normed space and let $F:\mathbb R\to V$ be differentiable
+with derivative $F'$ such that $gF(g)$ and $F'(g)$ are integrable. Then $\mathbb E[g\,F(g)]=v\,\mathbb E[F'(g)]$.
+Consequently $\mathbb E[g\,F(s+cg)]=vc\,\mathbb E[F'(s+cg)]$ under the corresponding integrability assumptions.
 \end{theorem}
 
 \begin{proof}
   \leanok
 For $v=0$ both sides vanish ($g=0$). Let $v>0$ and let $p$ be the density of $g$, so $p'(x)=-(x/v)p(x)$. Since $F$ is
-continuous and $|F(x)|\le|xF(x)|$ for $|x|\ge1$, integrability of $xF(x)$ against $p$ gives integrability of $F$ against
-$p$. Mathlib's integration by parts on $\mathbb R$ (all three products $Fp'$, $F'p$, $Fp$ integrable) gives
+continuous, hence bounded on $[-1,1]$, and $\|F(x)\|\le\|xF(x)\|$ for $|x|\ge1$, integrability of $xF(x)$ against $p$ gives integrability of $F$ against
+$p$ (this step holds for every locally finite measure). Mathlib's integration by parts on $\mathbb R$ (all three products $Fp'$, $F'p$, $Fp$ integrable) gives
 $\int Fp'=-\int F'p$, that is $-v^{-1}\int xF(x)p(x)\,dx=-\int F'p$. As a check, the case $F(x)=x^n$ recovers the moment recursion
 $\mathbb E[g^{n+1}]=vn\,\mathbb E[g^{n-1}]$ of the Wick calculus (\texttt{Renormalization.integral\_mul\_pow\_gaussianReal}, which is now
 a corollary).
@@ -627,7 +630,14 @@ integrable against $\mathcal N(0,v_j)$ for almost every $x$, and Theorem~\ref{th
 \end{proof}
 
 \begin{theorem}[Multivariate Gaussian integration by parts, Panchenko Eq.~(1.25)]\label{thm:sg:steinvec}
-  \lean{ProbabilityTheory.sum_abs_mulVec_le, ProbabilityTheory.hasDerivAt_mulVec_update,
+  \lean{ProbabilityTheory.integral_smul_comp_eq_integral_fderiv_apply,
+        ProbabilityTheory.integral_dotProduct_smul_pi_gaussianReal_eq,
+        ProbabilityTheory.HasGaussianLaw.integrable_exp_mul_norm,
+        ProbabilityTheory.sum_mul_abs_mulVec_le, ProbabilityTheory.exp_sum_mul_abs_mulVec_le,
+        ProbabilityTheory.integrable_comp_mulVec_of_exp_sum_growth,
+        ProbabilityTheory.integrable_eval_mul_comp_mulVec_of_exp_sum_growth,
+        ProbabilityTheory.integral_mulVec_mul_comp_mulVec_eq_sum_of_exp_sum_growth,
+        ProbabilityTheory.sum_abs_mulVec_le, ProbabilityTheory.hasDerivAt_mulVec_update,
         ProbabilityTheory.integrable_exp_mul_abs_gaussianReal, ProbabilityTheory.integrable_exp_sum_mul_abs_pi_stdGaussian,
         ProbabilityTheory.integrable_comp_mulVec_of_exp_l1_growth,
         ProbabilityTheory.integrable_eval_mul_comp_mulVec_of_exp_l1_growth,
@@ -644,8 +654,16 @@ Let $X=(X_k)_{k\in\kappa}$, $\kappa$ finite, be a centered jointly Gaussian vect
 \texttt{IsGaussianProcess} on a finite index set is one), and let $F:\mathbb R^\kappa\to\mathbb R$ be differentiable with
 $|F(y)|\le C\,e^{c\|y\|_1}$ and $|\partial_lF(y)|\le D_l\,e^{d_l\|y\|_1}$. Then
 \[\mathbb E[X_i\,F(X)]=\sum_{l\in\kappa}\mathbb E[X_iX_l]\;\mathbb E[\partial_lF(X)].\]
-More generally the same holds with $X_i$ replaced by a variable $W_i$ from a centered Gaussian family $W$ that is jointly
-Gaussian with $X$, with $\mathbb E[W_iX_l]$ as the covariance. For the monomial $F(y)=\prod_iy_i$ (whose value and
+More generally the same holds with $X_i$ replaced by a variable $W_i$ from a family $W$ that is jointly
+Gaussian with $X$ and with $\mathbb EW_i=0$, with $\mathbb E[W_iX_l]$ as the covariance.
+
+\emph{Vector form.} Let $E$ be a finite-dimensional and $V$ any real normed space, $(W,X)$ a centered Gaussian
+vector in $\mathbb R\times E$, and $F:E\to V$ differentiable with $\|F(x)\|\le Ce^{c\|x\|}$ and
+$\|DF(x)\|\le De^{d\|x\|}$. Then
+\[\mathbb E[W\,F(X)]=\mathbb E\bigl[DF(X)\,\mathbb E[WX]\bigr],\]
+and the coordinate statements above are its special cases. Every $e^{r\|X\|}$ is integrable (Fernique). For i.i.d.\
+$\xi_j\sim\mathcal N(0,v_j)$ and differentiable $G$ with integrable $\xi_jG$ and $\partial_jG$, one has
+$\mathbb E[(a\cdot\xi)\,G(\xi)]=\mathbb E[DG(\xi)(v_ja_j)_j]$. For the monomial $F(y)=\prod_iy_i$ (whose value and
 partial derivatives are bounded by $e^{\|y\|_1}$) this is the multilinear identity
 $\mathbb E[W\prod_iY_i]=\sum_j\mathbb E[WY_j]\,\mathbb E[\prod_{i\ne j}Y_i]$, which replaces the earlier
 Isserlis-based proof in the Renormalization chapter.
@@ -665,9 +683,10 @@ The integrability hypotheses of Theorem~\ref{thm:sg:steinpi} follow from the gro
 $|\xi_jF(A\xi)|\le|\xi_j|\,Ce^{|c|\sum_ka_k|\xi_k|}$ with $a_k=\sum_l|A_{lk}|$, which is integrable as a product of the
 one-dimensional integrable functions $e^{b|t|}$ and $|t|e^{b|t|}$ against $\mathcal N(0,1)$. 
 
-For the extension to an auxiliary
-Gaussian family apply the first part to the concatenated vector and the function $F\circ\mathrm{pr}_2$, whose partial derivatives in
-the $W$-directions vanish.
+For the vector form, represent $(W,X)$ in a basis as a linear image of i.i.d.\ standard Gaussians, $W=a\cdot\xi$ and
+$X=L\xi$; the directional identity for $G=F\circ L$ gives
+$\mathbb E[WF(X)]=\mathbb E[DF(L\xi)\,La]$, and applying it to $G=L$ shows $La=\mathbb E[WX]$. The coordinate form with an
+auxiliary variable $W_i$ follows by expanding $DF(X)v=\sum_lv_l\,\partial_lF(X)$.
 
 \emph{Formalization note (perceptron reuse).} The scalar estimate
 $\int e^{w|z|}\,d\mathcal N(m,v)<\infty$ is now stated for every $m\in\mathbb R$,
@@ -1340,6 +1359,7 @@ book's argument, and the reasons for them, are collected in Remark~\ref{rem:sg:d
 
 \begin{lemma}[Gaussian vectors: integrability, differentiation and exponentials]\label{lem:sg:expgrowth}
   \lean{ProbabilityTheory.integrable_comp_of_exp_growth, ProbabilityTheory.hasDerivAt_integral_comp_of_exp_growth,
+        ProbabilityTheory.hasDerivAt_integral_comp_of_exp_growth_of_mem_nhds,
         ProbabilityTheory.integrable_mul_exp_comp_of_sum, ProbabilityTheory.integrable_exp_comp_of_sum,
         ProbabilityTheory.integral_mul_exp_comp_eq_sum_integral_mul_of_sum, ProbabilityTheory.HasGaussianLaw.sumElim_prod}
   \leanok
@@ -1349,15 +1369,17 @@ Let $X$ be a centered Gaussian vector indexed by a finite set.
 (i) If $F$ is measurable with $|F(y)|\le Ce^{c\|y\|_1}$ then $F(X)$ is
 integrable. 
 
-(ii) If $G(s,\cdot)$ is differentiable in $s$ with $|\partial_sG(s,y)|\le Ce^{c\|y\|_1}$ uniformly in $s$, then
+(ii) If for $s$ in a neighbourhood $U$ of $s_0$ the measurable functions $G(s,\cdot)$ are differentiable in $s$ with
+$|\partial_sG(s,y)|\le Ce^{c\|y\|_1}$ uniformly on $U$, and $G(s_0,\cdot)$ has exponential growth, then at $s_0$
 $\frac{d}{ds}\mathbb E[G(s,X)]=\mathbb E[\partial_sG(s,X)]$. 
 
-(iii) If $(W,X)$ is a centered Gaussian family and $A$ is differentiable with
-$|A(y)|\le c_1+c_2\|y\|_1$ and $|\partial_lA|\le c_3$, then $W_ie^{A(X)}$ and $e^{A(X)}$ are integrable and
+(iii) If $(W,X)$ is a Gaussian family with $X$ and $W_i$ centered, and $A$ is differentiable with
+$|A(y)|\le c_1+c_2\|y\|_1$ and $|\partial_lA|\le c_3$, then $W_ie^{A(X)}$ and $e^{A(X)}$ are integrable (the latter
+needs only that $X$ be centered Gaussian) and
 $\mathbb E[W_ie^{A(X)}]=\sum_l\mathbb E[W_iX_l]\,\mathbb E[e^{A(X)}\partial_lA(X)]$. 
 
-(iv) Let $(\Omega,P)$ be a probability (more generally $s$-finite) measure space and $g:\Omega\to E$ a measurable map into a finite-dimensional real vector space $E$ which is a Gaussian vector
-under $P$, i.e.\ its image measure $P\circ g^{-1}$ on $E$ is a Gaussian measure. Here $P$ is the law of the randomness in which $g$ is defined, and $P\otimes P$ is the product measure on the product space
+(iv) Let $(\Omega,P)$ be a measure space and $g:\Omega\to E$ a map into a finite-dimensional real vector space $E$ which is a Gaussian vector
+under $P$ (so $P$ is a probability measure and $g$ is a.e.\ measurable), i.e.\ its image measure $P\circ g^{-1}$ on $E$ is a Gaussian measure. Here $P$ is the law of the randomness in which $g$ is defined, and $P\otimes P$ is the product measure on the product space
 $\Omega\times\Omega$: a point $z=(z_1,z_2)$ of $\Omega\times\Omega$ consists of two independent samples $z_1,z_2$ of the randomness, each with law $P$. Then the map
 $z\mapsto(g(z_1),g(z_2))\in E\times E$ is a Gaussian vector under $P\otimes P$: two \emph{independent copies} of $g$, stacked into one vector, form a Gaussian vector. (This is how the two-copy argument of this section
 obtains joint Gaussianity of the field and an independent copy of it. The Lean statement is more general: it takes two different measure spaces $(\Omega_1,\mu)$, $(\Omega_2,\nu)$ and two different Gaussian vectors $f,g$,
@@ -2815,19 +2837,31 @@ The first statement of (a) is Etemadi's strong law (Mathlib's \texttt{strong\_la
 \end{proof}
 
 \begin{lemma}[Partial integrals of square-integrable functions]\label{lem:sg:jensen-partial}
-  \lean{MeasureTheory.sq_integral_le_integral_sq,
+  \lean{MeasureTheory.integrable_of_integrable_sq_norm,
+        MeasureTheory.sq_integral_le_integral_sq,
+        MeasureTheory.integrable_sq_norm_integral_prod,
         MeasureTheory.integrable_sq_integral_prod,
+        MeasureTheory.integral_prod_bilin_prod,
         MeasureTheory.integral_prod_mul_prod,
+        MeasureTheory.ae_integrable_section_of_integrable_sq_norm,
         MeasureTheory.ae_integrable_section_of_integrable_sq,
+        MeasureTheory.memLp_integral_norm_of_integrable_sq_norm,
         MeasureTheory.memLp_integral_abs_of_integrable_sq,
+        MeasureTheory.sum_sq_norm_integral_le,
         Measurable.integral_prod_right'}
   \leanok
-Let $f,f'$ be measurable functions of $(v,x)$ that are square-integrable for $\mu_V\otimes\mu_X$ (probability measures), and $m(v)=\int f(v,x)\,d\mu_X(x)$, $m'$ likewise. Then $m^2$ is integrable and $\int m^2\le\iint f^2$; and, for two independent copies $x,x'$ of the cell variable, $\iiint f(v,x)f'(v,x')=\int m\,m'$.
+Let $\mu_V$ be $s$-finite, $\mu_X$ a probability measure, and $f,f'$ strongly measurable functions of $(v,x)$ with
+values in Banach spaces $E_1,E_2$ and square-integrable norms for $\mu_V\otimes\mu_X$; put
+$m(v)=\int f(v,x)\,d\mu_X(x)$ and $m'$ likewise. Then a.e.\ section is integrable, $\|m\|^2$ is integrable with
+$\int\|m\|^2\le\iint\|f\|^2$, and for every continuous bilinear map $B:E_1\times E_2\to F$ and two independent copies
+$x,x'$ of the cell variable, $\iiint B(f(v,x),f'(v,x'))=\int B(m,m')$. Also, for finitely many square-integrable
+$h_i$ on a probability space, $\sum_i\|\int h_i\|^2\le\int\sum_i\|h_i\|^2$. The real case with $B$ the product is the
+one used below.
 \end{lemma}
 
 \begin{proof}
   \leanok
-Jensen's inequality $(\int f)^2\le\int f^2$ on each section ($\operatorname{Var}\ge0$), integrated in $v$. For the second identity, the integrand is integrable because $\int|f(v,\cdot)|$ and $\int|f'(v,\cdot)|$ are square-integrable in $v$ and the product of two square-integrable functions is integrable; then Fubini and $\int\!\int f(v,x)f'(v,x')=(\int f)(\int f')$.
+Jensen's inequality $\|\int f\|^2\le\int\|f\|^2$ on each section, integrated in $v$. For the bilinear identity, the integrand is integrable because $\int\|f(v,\cdot)\|$ and $\int\|f'(v,\cdot)\|$ are square-integrable in $v$ and $\|B(a,a')\|\le\|B\|\,\|a\|\,\|a'\|$; then Fubini and $\int\!\int B(f(v,x),f'(v,x'))=B(m(v),m'(v))$.
 \end{proof}
 
 \begin{lemma}[Distance to a finite span as a rational infimum]\label{lem:sg:proj-distance}
