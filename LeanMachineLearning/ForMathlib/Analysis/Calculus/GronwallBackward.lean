@@ -99,3 +99,21 @@ theorem le_exp_mul_add_of_exists_hasDerivAt_Ioo {ψ : ℝ → ℝ} {K ε : ℝ} 
     _ ≤ (ψ 0 + ε) * Real.exp (K + 1) :=
         mul_le_mul (add_le_add le_rfl hdiv_le) hexp_le (Real.exp_pos _).le (by linarith)
     _ = Real.exp (K + 1) * (ψ 0 + ε) := mul_comm _ _
+
+/-- **Backward affine Grönwall comparison on `[0, 1]` (Talagrand, Lemma A.13.1):** if `ψ ≥ 0` is
+continuous on `[0, 1]` and satisfies `-(K * ψ t + ε) ≤ ψ' t` (`K, ε ≥ 0`) on `(0, 1)`, then
+`ψ s ≤ exp (K + 1) * (ψ 1 + ε)` for every `s ∈ [0, 1]`. -/
+theorem le_exp_mul_add_endpoint_of_exists_hasDerivAt_Ioo {ψ : ℝ → ℝ} {K ε : ℝ} (hK : 0 ≤ K)
+    (hε : 0 ≤ ε) (hc : ContinuousOn ψ (Icc (0 : ℝ) 1)) (hψ0 : ∀ s ∈ Icc (0 : ℝ) 1, 0 ≤ ψ s)
+    (hd : ∀ s ∈ Ioo (0 : ℝ) 1, ∃ d, HasDerivAt ψ d s ∧ -(K * ψ s + ε) ≤ d)
+    {s : ℝ} (hs : s ∈ Icc (0 : ℝ) 1) :
+    ψ s ≤ Real.exp (K + 1) * (ψ 1 + ε) := by
+  have hmaps : MapsTo (fun u : ℝ => 1 - u) (Icc 0 1) (Icc 0 1) := fun u hu =>
+    ⟨by linarith [hu.2], by linarith [hu.1]⟩
+  have h := le_exp_mul_add_of_exists_hasDerivAt_Ioo (ψ := fun u => ψ (1 - u)) hK hε
+    (hc.comp (by fun_prop) hmaps) (fun u hu => hψ0 (1 - u) (hmaps hu))
+    (fun u hu => by
+      obtain ⟨d, hdu, hdb⟩ := hd (1 - u) ⟨by linarith [hu.2], by linarith [hu.1]⟩
+      exact ⟨-d, hdu.comp_const_sub 1 u, by linarith⟩)
+    (s := 1 - s) ⟨by linarith [hs.2], by linarith [hs.1]⟩
+  simpa only [sub_sub_cancel, sub_zero] using h

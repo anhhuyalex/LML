@@ -29,7 +29,7 @@ namespace MeasureTheory
 /-- Tilting `μ.prod γ` by `E₀ ∘ Prod.fst` equals `(μ.tilted E₀).prod γ` when `γ` is a probability
 measure. -/
 theorem tilted_prod_comp_fst {α β : Type*} [MeasurableSpace α] [MeasurableSpace β]
-    (μ : Measure α) [IsFiniteMeasure μ] (γ : Measure β) [IsProbabilityMeasure γ]
+    (μ : Measure α) [SigmaFinite μ] (γ : Measure β) [IsProbabilityMeasure γ]
     (E₀ : α → ℝ) :
     (μ.prod γ).tilted (fun p => E₀ p.1) = (μ.tilted E₀).prod γ := by
   have hZ : ∫ p : α × β, Real.exp (E₀ p.1) ∂(μ.prod γ) = ∫ a, Real.exp (E₀ a) ∂μ :=

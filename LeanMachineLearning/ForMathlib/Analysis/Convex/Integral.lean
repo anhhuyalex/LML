@@ -47,3 +47,20 @@ lemma sq_norm_integral_le_integral_sq_norm
     ‖∫ x, f x ∂μ‖ ^ 2 ≤ ∫ x, ‖f x‖ ^ 2 ∂μ := by
   simpa only [ENNReal.toReal_ofNat, Real.rpow_two] using
     norm_integral_rpow_le_integral_norm_rpow one_le_two ENNReal.ofNat_ne_top hf
+
+/-- **Concave Jensen's inequality for `x ↦ x ^ p` with `0 ≤ p ≤ 1`:** for an a.e. nonnegative
+integrable `f` under a probability measure `μ`, `f ^ p` is integrable and
+`∫ x, f x ^ p ∂μ ≤ (∫ x, f x ∂μ) ^ p`. -/
+lemma integral_rpow_le_rpow_integral
+    {α : Type*} {mα : MeasurableSpace α} {μ : Measure α} [IsProbabilityMeasure μ]
+    {f : α → ℝ} {p : ℝ} (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hf0 : 0 ≤ᵐ[μ] f)
+    (hf : Integrable f μ) :
+    Integrable (fun x => f x ^ p) μ ∧ ∫ x, f x ^ p ∂μ ≤ (∫ x, f x ∂μ) ^ p := by
+  have hnorm_p : Integrable (fun x => ‖f x‖ ^ p) μ :=
+    integrable_norm_rpow_of_le hf.aestronglyMeasurable hp0 zero_le_one hp1
+      (by simpa only [Real.rpow_one] using hf.norm)
+  have hfp : Integrable (fun x => f x ^ p) μ :=
+    hnorm_p.congr (hf0.mono fun x hx => by rw [Real.norm_of_nonneg hx])
+  refine ⟨hfp, ?_⟩
+  exact ConcaveOn.le_map_integral (Real.concaveOn_rpow hp0 hp1)
+    (Real.continuous_rpow_const hp0).continuousOn isClosed_Ici hf0 hf hfp
