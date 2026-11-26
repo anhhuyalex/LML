@@ -40,10 +40,10 @@ namespace SpinGlasses
 
 local notation "ℝ^" n:arg => EuclideanSpace ℝ (Fin n)
 
+variable {N M : ℕ} {R : Type*} [Fintype R]
+
 /-- The disorder `(y, (g, g₀))` of the cavity path. -/
 local notation "Dis" => ℝ × ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ))
-
-variable {N M : ℕ} {R : Type*} [Fintype R]
 
 /-- The derivative in `t` of the exponent `-H_{N,M,t}` of the cavity path. -/
 theorem hasDerivAt_neg_shcherbinaTirozziCavityHamiltonian (κ h r rBar y : ℝ) {u : ℝ → ℝ}

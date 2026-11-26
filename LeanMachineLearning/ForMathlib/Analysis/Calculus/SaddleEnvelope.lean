@@ -65,8 +65,8 @@ theorem hasDerivWithinAt_saddle_envelope {X Y : Type*} [TopologicalSpace X] [Top
   have hVpa : ∀ b ∈ V, pa b := fun b hb => (hball hb).2
   have hVconv : Convex ℝ V := convex_ball a₀ δ
   have ha₀V : a₀ ∈ V := Metric.mem_ball_self hδ0
-  have hx0 : x a₀ ∈ Ux ∧ px (x a₀) := (Filter.inter_mem hUx hpx).self_of_nhds
-  have hy0 : y a₀ ∈ Uy ∧ py (y a₀) := (Filter.inter_mem hUy hpy).self_of_nhds
+  have hx0 : x a₀ ∈ Ux ∧ px (x a₀) := mem_of_mem_nhds (Filter.inter_mem hUx hpx)
+  have hy0 : y a₀ ∈ Uy ∧ py (y a₀) := mem_of_mem_nhds (Filter.inter_mem hUy hpy)
   have hxmem : ∀ᶠ a in 𝓝[A] a₀, x a ∈ Ux ∧ px (x a) :=
     hx.eventually (Filter.inter_mem hUx hpx)
   have hymem : ∀ᶠ a in 𝓝[A] a₀, y a ∈ Uy ∧ py (y a) :=
