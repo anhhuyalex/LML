@@ -1,0 +1,485 @@
+\chapter{The Shcherbina--Tirozzi Model (Talagrand, Chapter~3)}\label{chap:sg-talagrand-shcherbina-tirozzi}
+
+This chapter starts Chapter~3 of Michel Talagrand's \emph{Spin Glasses: A Challenge for Mathematicians}
+(Volume~I, Springer, 2010). The configuration space is $\mathbb R^N$ and convexity of the Hamiltonian
+replaces any high-temperature condition. Each statement carries a source tag naming the passage of the book
+it corresponds to. General tools are stated in the generality in which they are proved.
+
+\section{Convexity tools (Talagrand Section~3.1)}\label{sec:sg-tal:st-convexity-tools}
+
+\begin{theorem}[Pr\'ekopa--Leindler inequality]\label{thm:sg-tal:st-prekopa-leindler}
+  \lean{MeasureTheory.volume_add_volume_le_volume_add,
+        MeasureTheory.ofReal_mul_volume_add_ofReal_mul_volume_le,
+        ENNReal.rpow_mul_rpow_le_ofReal_mul_add,
+        MeasureTheory.lintegral_prekopa_leindler_addHaar}
+  \leanok
+\talsource{Theorem~3.1.3, Eqs.~(3.11)--(3.12); Appendix~A.15}
+Let $\mu$ be an additive Haar measure on a finite-dimensional real topological vector space $E$, let
+$0<s<1$, and let $U,V,W:E\to[0,\infty]$ be $\mu$-a.e.\ measurable with
+\[
+U(x)^sV(y)^{1-s}\le W(sx+(1-s)y)\qquad(x,y\in E).
+\]
+Then
+\[
+\Bigl(\int U\,d\mu\Bigr)^s\Bigl(\int V\,d\mu\Bigr)^{1-s}\le\int W\,d\mu .
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+\emph{Step 1 (sumsets on the line).} For nonempty compact $A,B\subset\mathbb R$ the translates $A+\min B$
+and $\max A+B$ lie in $A+B$ and meet in at most one point, so $|A|+|B|\le|A+B|$. By inner regularity, if
+$A,B$ are nonempty measurable sets and $sa+(1-s)b\in C$ for $a\in A$, $b\in B$, then
+$s|A|+(1-s)|B|\le|C|$.
+
+\emph{Step 2 (bounded functions on the line).} Suppose $\sup U=\sup V=1$. For $0<t<1$ the sets $\{U>t\}$,
+$\{V>t\}$ are nonempty and $s\{U>t\}+(1-s)\{V>t\}\subset\{\min(W,1)>t\}$. Integrating Step~1 over $t$
+(layer-cake formula) gives
+\[
+s\int U+(1-s)\int V\le\int W,
+\]
+and the weighted arithmetic--geometric mean inequality gives the claim.
+
+\emph{Step 3 (general functions on the line).} Rescaling $U$, $V$, $W$ treats finite suprema. For
+unbounded functions apply this to $\min(U,n)$, $\min(V,m)$, which satisfy the same hypothesis, and use
+monotone convergence.
+
+\emph{Step 4 (dimension).} Induct on $n$ for $\mathbb R^n=\mathbb R\times\mathbb R^{n-1}$: apply the
+induction hypothesis to the sections and Step~3 to the integrated functions (Tonelli, Eq.~(A.86)).
+
+\emph{Step 5 (Haar measures).} A basis identifies $E$ with $\mathbb R^n$ and $\mu$ is a multiple of the
+transported Lebesgue measure; the inequality is invariant under that multiple. For a.e.-measurable
+functions replace $U,V$ by measurable minorants and $W$ by a measurable majorant equal to them a.e.
+
+Formalized in \texttt{ForMathlib/Analysis/Convex/PrekopaLeindler.lean}.
+\end{proof}
+
+\begin{remark}[Difference from the printed proof of Theorem~3.1.3]\label{rem:sg-tal:st-prekopa-method}
+\talsource{Appendix~A.15}
+The book proves the case $N=1$ by a monotone transport of $U$ onto $V$ for continuous positive functions
+and reduces to it ``by approximation'' without saying how the pointwise hypothesis is preserved. The
+formalization uses the one-dimensional sumset inequality and super-level sets instead (Steps~1--3). The
+heading of Appendix~A.15 says Theorem~3.1.4; the appendix proves Theorem~3.1.3.
+\end{remark}
+
+\begin{corollary}[Brunn--Minkowski inequality]\label{cor:sg-tal:st-brunn-minkowski}
+  \lean{MeasureTheory.measure_rpow_mul_measure_rpow_le}
+  \leanok
+  \uses{thm:sg-tal:st-prekopa-leindler}
+\talsource{Eq.~(3.13)}
+With $\mu$ and $s$ as above, if $A,B$ are measurable and $sa+(1-s)b\in C$ for all $a\in A$, $b\in B$, then
+$\mu(A)^s\mu(B)^{1-s}\le\mu(C)$. The set $C$ need not be measurable.
+\end{corollary}
+\begin{proof}
+  \leanok
+  \uses{thm:sg-tal:st-prekopa-leindler}
+Apply Theorem~\ref{thm:sg-tal:st-prekopa-leindler} to the indicators of $A$, $B$ and of a measurable
+hull of $C$.
+\end{proof}
+
+\begin{lemma}[Median, centering and moments]\label{lem:sg-tal:st-centering}
+  \lean{ProbabilityTheory.exists_median,
+        ProbabilityTheory.integral_sub_integral_pow_two_mul_le,
+        ProbabilityTheory.integral_exp_mul_sq_sub_integral_le,
+        Real.pow_le_natCast_pow_mul_exp,
+        Real.exp_neg_le_natCast_div_pow}
+  \leanok
+\talsource{Eqs.~(3.20), (3.22), (3.41), and the symmetrization after (3.19)}
+Let $\mu$ be a probability measure and $f$ a real random variable.
+\begin{enumerate}
+\item A measurable $f$ has a median.
+\item If $(f-m)^{2k}$ is integrable, then
+$\mathbb E(f-\mathbb Ef)^{2k}\le2^{2k}\,\mathbb E(f-m)^{2k}$, and the left side is integrable.
+\item If $c>0$ and $\exp(c(f-m)^2)$ is integrable, then
+$\mathbb E\exp(\frac c4(f-\mathbb Ef)^2)\le\mathbb E\exp(c(f-m)^2)$, with integrability.
+\item $x^k\le k^k e^x$ for $x\ge0$, and $e^{-B}\le(k/B)^k$ for $B>0$.
+\end{enumerate}
+\end{lemma}
+\begin{proof}
+  \leanok
+For (1) take the infimum of the $x$ with $\mathbb P(f\le x)\ge1/2$ and use the right continuity of the
+distribution function. For (2) write $g=f-m$, $e=\mathbb Eg$; then $(g-e)^{2k}\le2^{2k-1}(g^{2k}+e^{2k})$
+and $e^{2k}\le\mathbb Eg^{2k}$ by Jensen. For (3), $\frac c4(g-e)^2\le\frac c2g^2+\frac c2e^2$ and, by Jensen
+twice, $\exp(\frac c2e^2)\le\mathbb E\exp(\frac c2g^2)$ and
+$(\mathbb E\exp(\frac c2g^2))^2\le\mathbb E\exp(cg^2)$. Part (4) follows from $x^k/k!\le e^x$ and $k!\le k^k$.
+\end{proof}
+
+\begin{remark}[The integrability hypothesis is needed]\label{rem:sg-tal:st-integrability}
+\talsource{Section~3.1}
+The integral of a non-integrable function is $0$ in the formalization, so a bound
+$\int\exp(\ldots)\le C$ alone carries no information. Every exponential or moment bound of this chapter
+states integrability as part of its conclusion.
+\end{remark}
+
+\begin{theorem}[Maurey's concentration inequality]\label{thm:sg-tal:st-maurey}
+  \lean{StrongConvexOn.midpoint_gap_le,
+        MeasureTheory.lintegral_exp_infDist_sq_mul_le,
+        MeasureTheory.ae_mem_of_tilted_restrict,
+        MeasureTheory.isProbabilityMeasure_tilted_restrict,
+        MeasureTheory.integral_exp_infDist_sq_le_inv,
+        MeasureTheory.integral_exp_sq_sub_median_le_four,
+        MeasureTheory.integral_exp_sq_sub_integral_le_four,
+        MeasureTheory.integral_sub_integral_pow_le_of_lipschitz,
+        MeasureTheory.memLp_two_of_lipschitz}
+  \leanok
+  \uses{thm:sg-tal:st-prekopa-leindler, lem:sg-tal:st-centering}
+\talsource{Theorem~3.1.4, Eqs.~(3.14)--(3.19) and (3.21)}
+Let $E$ be a finite-dimensional real normed space with an additive Haar measure, $C\subset E$ a convex
+measurable set of positive measure, and $H$ measurable with $e^{-H}$ integrable on $C$ and, for $x,y\in C$,
+\[
+\frac{H(x)+H(y)}2-H\Bigl(\frac{x+y}2\Bigr)\ge\kappa\Bigl\|\frac{x-y}2\Bigr\|^2 .
+\]
+Let $\mu$ be the probability measure on $C$ with density proportional to $e^{-H}$.
+\begin{enumerate}
+\item If $\kappa\ge0$, $B\subset C$ is measurable and $\mu(B)>0$, then
+$\int\exp(\frac\kappa2d(x,B)^2)\,d\mu\le1/\mu(B)$.
+\item If $f$ is measurable, $A$-Lipschitz on $C$ with $A>0$, and $m$ is a median, then
+$\int\exp(\frac{\kappa}{2A^2}(f-m)^2)\,d\mu\le4$.
+\item If moreover $\kappa>0$, then
+$\int\exp(\frac{\kappa}{8A^2}(f-\int f\,d\mu)^2)\,d\mu\le4$.
+\item If $\kappa>0$ and $A\ge0$, then for every $k$,
+$\int(f-\int f\,d\mu)^{2k}\,d\mu\le4(8kA^2/\kappa)^k$.
+\end{enumerate}
+All integrands are integrable.
+\end{theorem}
+\begin{proof}
+  \leanok
+  \uses{thm:sg-tal:st-prekopa-leindler, lem:sg-tal:st-centering}
+\emph{Step 1 (distance).} With $s=1/2$ apply Theorem~\ref{thm:sg-tal:st-prekopa-leindler} to
+$U=\mathbf 1_Be^{-H}$, $V=\mathbf 1_Ce^{\kappa d(\cdot,B)^2/2-H}$, $W=\mathbf 1_Ce^{-H}$; the hypothesis follows
+from the midpoint inequality and $d(y,B)\le\|x-y\|$. Normalizing gives (1).
+
+\emph{Step 2 (median).} The sets $\{f\le m\}\cap C$ and $\{f\ge m\}\cap C$ have mass at least $1/2$, and on
+$C$ the deviation $|f-m|$ is at most $A$ times the distance to the one of them on the other side of $m$.
+Adding the two bounds of Step~1 gives (2).
+
+\emph{Step 3 (mean).} Lemma~\ref{lem:sg-tal:st-centering}(3) gives (3), and Lemma~\ref{lem:sg-tal:st-centering}(4)
+applied to $c(f-\int f)^2$ with $c=\kappa/(8A^2)$ gives (4). For $A=0$ the function is constant on $C$.
+
+Formalized in \texttt{ForMathlib/Probability/Moments/LogConcaveConcentration.lean}.
+\end{proof}
+
+\begin{lemma}[Moments from an exponential moment]\label{lem:sg-tal:st-exp-moment}
+  \lean{MeasureTheory.integral_pow_le_of_integral_exp_le}
+  \leanok
+  \uses{lem:sg-tal:st-centering}
+\talsource{Lemma~3.1.8, Eq.~(3.29)}
+On a probability space let $X\ge0$ a.e.\ with $\mathbb Ee^X\le e^C$. Then $X^k$ is integrable and
+$\mathbb EX^k\le2^k(k^k+C^k)$ for every $k$. The inequality $C\ge0$ follows from the hypotheses.
+\end{lemma}
+\begin{proof}
+  \leanok
+  \uses{lem:sg-tal:st-centering}
+With $Y=(X-C)^+$ one has $e^Y\le1+e^{X-C}$, so $\mathbb Ee^Y\le2$ and $\mathbb EY^k\le2k^k$ by
+Lemma~\ref{lem:sg-tal:st-centering}(4). Now $X^k\le(Y+C)^k\le2^{k-1}(Y^k+C^k)$.
+\end{proof}
+
+\begin{lemma}[Operator norm of a Gaussian matrix]\label{lem:sg-tal:st-gaussian-norm}
+  \lean{exists_finset_unitBall_net,
+        ContinuousLinearMap.opNorm_le_four_mul_of_net,
+        ProbabilityTheory.measureReal_abs_bilinear_gaussian_ge_le,
+        ProbabilityTheory.measureReal_l2_opNorm_gaussian_gt_le,
+        ProbabilityTheory.exists_measureReal_l2_opNorm_gaussian_gt_le_exp}
+  \leanok
+\talsource{Proposition~A.8.1 and Lemma~A.9.1, Eq.~(A.51)}
+Let $G=(g_{k,i})$ be a $K\times I$ matrix of independent standard Gaussians and $\|G\|$ its $\ell^2$
+operator norm. For $t\ge0$,
+\[
+\mathbb P(\|G\|>t)\le2\cdot5^{|I|+|K|}e^{-t^2/32}.
+\]
+Consequently for every $a$ there is $L>0$ such that $|K|\le a|I|$ implies
+$\mathbb P(\|G\|>L\sqrt{|I|})\le Le^{-|I|}$.
+\end{lemma}
+\begin{proof}
+  \leanok
+The unit ball of a $d$-dimensional space has a $1/2$-net with at most $5^d$ points (a separated set of
+maximal cardinality). If $|\langle b,Ga\rangle|\le S$ on two such nets then $\|G\|\le4S$ (apply the
+approximation once in each argument). Each $\langle b,Ga\rangle$ is a centered Gaussian of variance at most
+$1$, and the union bound gives the first display with $S=t/4$. The second follows by taking
+$L^2\ge32(1+(1+|a|)\log5)$.
+\end{proof}
+
+\begin{remark}[Rectangular form of Lemma~A.9.1]\label{rem:sg-tal:st-gaussian-norm}
+\talsource{Lemma~A.9.1}
+The book states Lemma~A.9.1 for a square triangular array and applies it to the $N\times M$ disorder of
+Section~3.1. The formalization proves the rectangular form.
+\end{remark}
+
+\section{Gaussian integrals with a quadratic confinement}\label{sec:sg-tal:st-quadratic}
+
+\begin{lemma}[Quadratic weights]\label{lem:sg-tal:st-quadratic}
+  \lean{integrable_exp_neg_mul_sq_norm_add_inner,
+        integral_exp_neg_mul_sq_norm_add_inner,
+        integral_mul_exp_neg_mul_sq_norm,
+        integral_abs_inner_stdGaussian_le,
+        integral_tilted_restrict_neg_half_sq_norm,
+        integrable_exp_add_neg_mul_sq_norm_add_inner,
+        integral_exp_half_sq_norm_tilted_le}
+  \leanok
+\talsource{Eqs.~(3.23)--(3.24) and Lemma~3.1.5}
+Let $E$ be a $d$-dimensional real inner product space, $b>0$, $a\in E$.
+\begin{enumerate}
+\item $\int e^{-b\|v\|^2+\langle a,v\rangle}dv=(\pi/b)^{d/2}e^{\|a\|^2/(4b)}$.
+\item $\int f(v)e^{-b\|v\|^2}dv=(\pi/b)^{d/2}\,\mathbb Ef(z/\sqrt{2b})$ for a standard Gaussian $z$, and
+$\mathbb E|\langle a,z\rangle|\le\|a\|$.
+\item The probability measure with density proportional to $e^{-\|v\|^2/2}$ on a measurable set $C$
+integrates $f$ to $\mathbb E[f(z)\mathbf 1_C(z)]/\mathbb P(z\in C)$.
+\item Let $U\le0$ be measurable, $\kappa>0$, and $\mu$ have density proportional to
+$e^{U(v)-\kappa\|v\|^2+\langle a,v\rangle}$ with normalizer $Z$. Then
+\[
+\int e^{\kappa\|v\|^2/2}d\mu\le Z^{-1}\Bigl(\frac{2\pi}\kappa\Bigr)^{d/2}e^{\|a\|^2/(2\kappa)} .
+\]
+\end{enumerate}
+\end{lemma}
+\begin{proof}
+  \leanok
+(1) is the Gaussian Fourier integral at a real argument. (2) is the change of variables $v=z/\sqrt{2b}$ in
+the density of $z$, and $\mathbb E\langle a,z\rangle^2=\|a\|^2$. (3) follows from (2) with $b=1/2$. In (4)
+use $U\le0$ and then (1) with $b=\kappa/2$.
+\end{proof}
+
+\begin{lemma}[Differentiating a Gibbs average]\label{lem:sg-tal:st-differentiation}
+  \lean{MeasureTheory.hasDerivAt_integral_tilted_of_envelope,
+        hasDerivAt_integral_tilted_sum_comp_inner_line,
+        MeasureTheory.measurable_integral_prod_tilted_dep}
+  \leanok
+  \uses{lem:sg-tal:st-quadratic}
+\talsource{the derivatives in the proof of Proposition~3.1.16}
+Let $E$ be a finite-dimensional real inner product space, $\kappa>0$, $u\le0$ differentiable with
+$|u'|\le D$, and let $\mu_r$ have density proportional to
+$\exp\bigl(\sum_ku\langle v_k+rw_k,\sigma\rangle-\kappa\|\sigma\|^2+\langle a+rc,\sigma\rangle\bigr)$. If $F$ is
+measurable with $|F(\sigma)|\le C(1+\|\sigma\|^2)$, then $r\mapsto\int F\,d\mu_r$ is differentiable at every
+$t$ with derivative $\int FX\,d\mu_t-\int F\,d\mu_t\int X\,d\mu_t$, where
+$X(\sigma)=\sum_ku'\langle v_k+tw_k,\sigma\rangle\langle w_k,\sigma\rangle+\langle c,\sigma\rangle$.
+\end{lemma}
+\begin{proof}
+  \leanok
+  \uses{lem:sg-tal:st-quadratic}
+The general fact is that $r\mapsto\int F\,d\mu_r$ may be differentiated as a quotient when
+$(1+|F|)(1+|\partial_re_r|)e^{e_r}$ has an integrable bound near $t$. Here $|X_r|\le L\|\sigma\|$ and
+$e_r\le R\|\sigma\|-\kappa\|\sigma\|^2$, so the product is at most a constant times
+$e^{-\kappa\|\sigma\|^2/2}$.
+\end{proof}
+
+\section{The model and its moment bounds (Talagrand Section~3.1)}\label{sec:sg-tal:st-model}
+
+\medskip\noindent\textbf{Notation.} $\sigma\in\mathbb R^N$, the disorder consists of
+$g=(g_{k,i})_{k<M,i<N}$ and $g_0=(g_i)_{i<N}$ (the book writes $g_{i,k}$ and $g_i$), and
+$S_k(\sigma)=N^{-1/2}\sum_ig_{k,i}\sigma_i$. The Hamiltonian (3.1) is
+\[
+-H(\sigma)=\sum_{k<M}u(S_k(\sigma))+h\sum_{i<N}g_i\sigma_i-\kappa\|\sigma\|^2,
+\]
+the Gibbs measure $G$ of (3.5) has density proportional to $e^{-H}$, $\langle\cdot\rangle$ is its average,
+and $B^*=N+\bigl(\sum_{k,i}g_{k,i}^2\bigr)^{1/2}+\sum_ig_i^2$ as in (3.27). The overlaps are
+$R_{1,1}=\|\sigma\|^2/N$ and $R_{1,2}=\sigma^1\cdot\sigma^2/N$. Constants $K$ depend only on
+$\kappa_0,h_0,D$ and are chosen before $N,M,k$. The standing hypotheses are: $u\le0$ concave (3.2);
+$u(x)\ge-D(1+|x|)$ (3.6); $|u'|,|u''|\le D$ (3.7); and $\kappa\ge\kappa_0>0$, $0\le h\le h_0$, $M\le10N$
+(3.25).
+
+\begin{lemma}[Convexity and the partition function]\label{lem:sg-tal:st-partition}
+  \lean{SpinGlasses.shcherbinaTirozziHamiltonian,
+        SpinGlasses.inner_toLp_inv_sqrt_mul_eq,
+        SpinGlasses.neg_shcherbinaTirozziHamiltonian_eq,
+        SpinGlasses.measurable_shcherbinaTirozziHamiltonian,
+        SpinGlasses.measurable_shcherbinaTirozziHamiltonian_apply,
+        ConcaveOn.measurable_of_univ,
+        SpinGlasses.shcherbinaTirozziHamiltonian_midpoint_gap,
+        SpinGlasses.integrable_exp_neg_shcherbinaTirozziHamiltonian,
+        SpinGlasses.isProbabilityMeasure_shcherbinaTirozziGibbs,
+        SpinGlasses.integral_exp_half_sq_norm_shcherbinaTirozziGibbs_le,
+        SpinGlasses.inv_integral_exp_neg_shcherbinaTirozziHamiltonian_le}
+  \leanok
+  \uses{lem:sg-tal:st-quadratic}
+\talsource{Eqs.~(3.1)--(3.5), Lemmas~3.1.5 and 3.1.6}
+\begin{enumerate}
+\item If $u$ is concave, $H$ satisfies the midpoint inequality (3.4).
+\item If $u\le0$ is measurable and $\kappa>0$, then $0<Z=\int e^{-H}<\infty$, and
+$\langle e^{\kappa\|\sigma\|^2/2}\rangle\le Z^{-1}(2\pi/\kappa)^{N/2}e^{h^2\sum g_i^2/(2\kappa)}$.
+\item If moreover (3.6) holds, then
+\[
+\frac1Z\le\Bigl(\frac\kappa\pi\Bigr)^{N/2}
+\exp\Bigl(D\Bigl(M+\sqrt{\frac{M}{\kappa N}\sum_{k,i}g_{k,i}^2}\Bigr)\Bigr).
+\]
+\end{enumerate}
+\end{lemma}
+\begin{proof}
+  \leanok
+  \uses{lem:sg-tal:st-quadratic}
+(1) combines the concavity of $u$ along the linear fields with the parallelogram identity. (2) is
+Lemma~\ref{lem:sg-tal:st-quadratic}(4). For (3), by Lemma~\ref{lem:sg-tal:st-quadratic}(2) and Jensen,
+$Z\ge(\pi/\kappa)^{N/2}\exp\mathbb E\,[\sum_ku(S_k(cz))+h\,g_0\cdot cz]$ with $c=(2\kappa)^{-1/2}$. The linear
+term has mean zero, $\mathbb Eu(S_k(cz))\ge-D(1+c\,\mathbb E|S_k(z)|)$, and Cauchy--Schwarz sums the norms.
+\end{proof}
+
+\begin{remark}[Differences from Section~3.1, first part]\label{rem:sg-tal:st-partition-diff}
+\talsource{Eq.~(3.24)}
+The book computes $\int|x\cdot\sigma|\,d\gamma=\|x\|/\sqrt{\pi\kappa}$ and then bounds it by
+$\|x\|/\sqrt\kappa$. Only the bound is formalized, through Cauchy--Schwarz. Finiteness and positivity of
+$Z$ are proved from $u\le0$ and $\kappa>0$.
+\end{remark}
+
+\begin{lemma}[The Gibbs measure lives on a ball]\label{lem:sg-tal:st-moments}
+  \lean{SpinGlasses.exists_integral_exp_half_sq_norm_shcherbinaTirozziGibbs_le_exp,
+        SpinGlasses.exists_integral_sq_norm_pow_shcherbinaTirozziGibbs_le,
+        SpinGlasses.integral_exp_shcherbinaTirozzi_radius_div_four_le,
+        SpinGlasses.integral_shcherbinaTirozzi_radius_pow_le}
+  \leanok
+  \uses{lem:sg-tal:st-partition, lem:sg-tal:st-exp-moment}
+\talsource{Corollaries~3.1.7 and 3.1.9, Lemma~3.1.10, Eqs.~(3.26)--(3.33)}
+Under (3.6) and (3.25), with $u\le0$ measurable,
+\[
+\langle e^{\kappa\|\sigma\|^2/2}\rangle\le e^{KB^*},\qquad
+\langle\|\sigma\|^{2k}\rangle\le(KB^*)^k\quad(k\le4N).
+\]
+Over the Gaussian disorder, if $M\le10N$,
+\[
+\mathbb Ee^{B^*/4}\le e^{4N},\qquad\mathbb E(B^*)^k\le(40N)^k\quad(k\le N).
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+  \uses{lem:sg-tal:st-partition, lem:sg-tal:st-exp-moment}
+The first bound multiplies the two parts of Lemma~\ref{lem:sg-tal:st-partition}. The second applies
+Lemma~\ref{lem:sg-tal:st-exp-moment} to $X=\kappa\|\sigma\|^2/2$ and uses $k\le4N\le4B^*$. For the third,
+$2\sqrt S\le S/N+N$ with $S=\sum g_{k,i}^2$, so $B^*/4\le3N/8+S/(8N)+\sum g_i^2/4$, and
+$\mathbb Ee^{tg^2}=(1-2t)^{-1/2}\le e^{2t}$ for $0\le t\le1/4$. Then apply
+Lemma~\ref{lem:sg-tal:st-exp-moment} to $B^*/4$.
+\end{proof}
+
+\section{Concentration of the overlaps (Talagrand Section~3.1)}\label{sec:sg-tal:st-overlaps}
+
+\begin{theorem}[Overlaps under the Gibbs measure]\label{thm:sg-tal:st-gibbs-overlaps}
+  \lean{SpinGlasses.integral_sub_integral_pow_shcherbinaTirozziGibbs_le,
+        SpinGlasses.exists_integral_shcherbinaTirozzi_overlap_sub_mean_pow_le,
+        SpinGlasses.exists_integral_shcherbinaTirozzi_selfOverlap_sub_mean_pow_le,
+        SpinGlasses.exists_integral_integral_shcherbinaTirozzi_overlap_sub_mean_pow_le,
+        SpinGlasses.exists_integral_integral_shcherbinaTirozzi_selfOverlap_sub_mean_pow_le,
+        ProbabilityTheory.integral_add_pow_two_mul_le}
+  \leanok
+  \uses{thm:sg-tal:st-maurey, lem:sg-tal:st-moments}
+\talsource{Theorem~3.1.11 and Proposition~3.1.12, Eqs.~(3.34)--(3.43)}
+Under (3.2), (3.6), (3.25), for $N\ge1$ and $k\le N$,
+\[
+\langle(R_{1,2}-\langle R_{1,2}\rangle)^{2k}\rangle\le\Bigl(\frac{KkB^*}{N^2}\Bigr)^k,\qquad
+\langle(R_{1,1}-\langle R_{1,1}\rangle)^{2k}\rangle\le\Bigl(\frac{KkB^*}{N^2}\Bigr)^k,
+\]
+and hence $\mathbb E\langle(R_{\ell,\ell'}-\langle R_{\ell,\ell'}\rangle)^{2k}\rangle\le(Kk/N)^k$.
+\end{theorem}
+\begin{proof}
+  \leanok
+  \uses{thm:sg-tal:st-maurey, lem:sg-tal:st-moments}
+Theorem~\ref{thm:sg-tal:st-maurey} applies to every Gibbs measure by (3.4). With $b=\langle\sigma\rangle$,
+split $R_{1,2}-\|b\|^2/N$ into $(\sigma^1\cdot\sigma^2-\sigma^1\cdot b)/N$ and
+$(\sigma^1\cdot b-b\cdot b)/N$ and apply Maurey to the two linear functions. For $R_{1,1}$ truncate at
+$a^2=2(K+2)B^*/\kappa$: the function $\min(\|\sigma\|,a)^2/N$ is $2a/N$-Lipschitz, and the remainder is
+controlled by (3.22), Cauchy--Schwarz, the moment bound for $4k\le4N$ and the exponential tail
+$G(\|\sigma\|\ge a)\le e^{-2B^*}$. Average with Lemma~\ref{lem:sg-tal:st-moments}.
+\end{proof}
+
+\begin{lemma}[Covariance control and gradient bound]\label{lem:sg-tal:st-gradient}
+  \lean{ProbabilityTheory.norm_integral_smul_sub_le_of_integral_inner_sq_le,
+        SpinGlasses.memLp_id_shcherbinaTirozziGibbs,
+        SpinGlasses.norm_integral_smul_sub_mean_shcherbinaTirozziGibbs_le,
+        SpinGlasses.abs_sum_deriv_field_mul_sub_le,
+        SpinGlasses.norm_integral_smul_deriv_field_sub_mean_le,
+        SpinGlasses.hasDerivAt_integral_shcherbinaTirozziGibbs_line,
+        SpinGlasses.abs_integral_mul_disorderDerivative_le,
+        SpinGlasses.exists_hasDerivAt_integral_shcherbinaTirozzi_selfOverlap_line,
+        SpinGlasses.exists_hasDerivAt_integral_shcherbinaTirozzi_overlap_line}
+  \leanok
+  \uses{thm:sg-tal:st-gibbs-overlaps, lem:sg-tal:st-differentiation}
+\talsource{Lemmas~3.1.13--3.1.15 and Proposition~3.1.16, Eqs.~(3.44)--(3.51)}
+Let $\|g\|$ be the operator norm of the $M\times N$ disorder matrix, and let $f\in L^2(G)$.
+\begin{enumerate}
+\item $\|\langle(\sigma-\langle\sigma\rangle)f\rangle\|\le\sqrt{32\langle f^2\rangle/\kappa}$.
+\item If $|u''|\le D$, the function $\sigma\mapsto\sum_ku'(S_k)y_k$ is Lipschitz with constant
+$D\|g\|\,\|y\|/\sqrt N$, and with $U=(u'(S_k))_k$,
+$\|\langle(U-\langle U\rangle)f\rangle\|\le D\|g\|N^{-1/2}\sqrt{32\langle f^2\rangle/\kappa}$.
+\item Under (3.2), (3.6), (3.7), (3.25), for $N\ge1$, along every line $t\mapsto(g+t\Delta,g_0+t\Delta_0)$
+the derivative $d$ at $t=0$ of $\langle R_{1,1}\rangle$ (respectively $\langle R_{1,2}\rangle$) exists and
+\[
+d^2\le K\Bigl(\frac{B^*}{N^2}+\frac{B^{*2}\|g\|^2}{N^4}\Bigr)\bigl(\|\Delta\|^2+\|\Delta_0\|^2\bigr).
+\]
+\end{enumerate}
+\end{lemma}
+\begin{proof}
+  \leanok
+  \uses{thm:sg-tal:st-gibbs-overlaps, lem:sg-tal:st-differentiation, thm:sg-tal:st-maurey}
+(1) and (2): if every projection satisfies $\langle(F-m)\cdot y\rangle^2\le C\|y\|^2$ in mean square, then
+$\|\langle f(F-m)\rangle\|^2\le C\langle f^2\rangle$; the projections are Lipschitz and
+Theorem~\ref{thm:sg-tal:st-maurey} with $k=1$ applies. (3): by Lemma~\ref{lem:sg-tal:st-differentiation} the
+derivative is $\langle fX\rangle$ with $\langle f\rangle=0$, where $f=R_{1,1}-\langle R_{1,1}\rangle$, respectively
+$f=2(\langle\sigma\rangle\cdot\sigma-\|\langle\sigma\rangle\|^2)/N$. Splitting
+$\sigma=(\sigma-\langle\sigma\rangle)+\langle\sigma\rangle$ and using (1), (2) and $\sum_k\|\Delta_k\|/\sqrt N\le4\|\Delta\|$
+(as $M\le10N$) gives
+\[
+|\langle fX\rangle|\le\sqrt{\frac{32\langle f^2\rangle}\kappa}
+\Bigl(4D+h+\frac{D\|g\|\,\|\langle\sigma\rangle\|}N\Bigr)\bigl(\|\Delta\|^2+\|\Delta_0\|^2\bigr)^{1/2},
+\]
+and $\langle f^2\rangle\le KB^*/N^2$, $\|\langle\sigma\rangle\|^2\le KB^*$.
+\end{proof}
+
+\begin{theorem}[The overlaps are nearly constant]\label{thm:sg-tal:st-overlaps}
+  \lean{SpinGlasses.measurePreserving_stdGaussian_shcherbinaTirozziDisorder,
+        SpinGlasses.exists_integral_sub_integral_pow_le_of_disorder_gradient,
+        SpinGlasses.exists_integral_shcherbinaTirozzi_selfOverlap_sub_pow_le,
+        SpinGlasses.exists_integral_shcherbinaTirozzi_overlap_sub_pow_le}
+  \leanok
+  \uses{lem:sg-tal:st-gradient, lem:sg-tal:st-gaussian-norm, thm:sg-tal:st-maurey,
+        thm:sg-tal:st-gibbs-overlaps, lem:sg-tal:st-moments}
+\talsource{Theorem~3.1.1, Proposition~3.1.17 and Theorem~3.1.18, Eqs.~(3.8)--(3.9), (3.52)--(3.58)}
+Assume (3.2), (3.6), (3.7), (3.25) and $N\ge1$, and let $\nu(f)=\mathbb E\langle f\rangle$. For $4k\le N$,
+\[
+\nu\bigl((R_{1,1}-\nu(R_{1,1}))^{2k}\bigr)\le\Bigl(\frac{Kk}N\Bigr)^k,\qquad
+\nu\bigl((R_{1,2}-\nu(R_{1,2}))^{2k}\bigr)\le\Bigl(\frac{Kk}N\Bigr)^k.
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+  \uses{lem:sg-tal:st-gradient, lem:sg-tal:st-gaussian-norm, thm:sg-tal:st-maurey,
+        thm:sg-tal:st-gibbs-overlaps, lem:sg-tal:st-moments}
+\emph{Step 1 (a good convex set).} In the space of all disorder variables, with its standard Gaussian
+measure $\gamma$, let $C=\{B^*\le768N,\ \|g\|\le\sqrt{768N}\}$. It is convex, and by
+Lemma~\ref{lem:sg-tal:st-moments} and Lemma~\ref{lem:sg-tal:st-gaussian-norm},
+$\gamma(C^c)\le3e^{-2N}$.
+
+\emph{Step 2 (Lipschitz).} Let $f(g,g_0)$ be $\langle R_{1,1}\rangle$ or $\langle R_{1,2}\rangle$. On $C$,
+Lemma~\ref{lem:sg-tal:st-gradient}(3) along segments and the mean value theorem show that $f$ is
+$\sqrt{K/N}$-Lipschitz.
+
+\emph{Step 3 (Maurey).} The Gaussian measure conditioned on $C$ satisfies
+Theorem~\ref{thm:sg-tal:st-maurey} with $\kappa=1/2$, so with $m$ its mean of $f$,
+$\int_C(f-m)^{2k}d\gamma\le(Kk/N)^k$.
+
+\emph{Step 4 (the complement).} $|f|\le KB^*/N$ and $|m|\le K$, so
+$\mathbb E(f-m)^{4k}\le K^{4k}$ for $4k\le N$, and by Cauchy--Schwarz
+$\int_{C^c}(f-m)^{2k}d\gamma\le 2e^{-N}K^{2k}\le(Kk/N)^k$. By (3.22),
+$\mathbb E(f-\mathbb Ef)^{2k}\le(Kk/N)^k$, which is Proposition~3.1.17.
+
+\emph{Step 5.} Split $R-\nu(R)=(R-\langle R\rangle)+(\langle R\rangle-\mathbb E\langle R\rangle)$ and combine
+Theorem~\ref{thm:sg-tal:st-gibbs-overlaps} with Step~4.
+\end{proof}
+
+\begin{remark}[Hypotheses, deviations and printed corrections of Section~3.1]\label{rem:sg-tal:st-section31-audit}
+\talsource{Section~3.1}
+\emph{Hypotheses.} Theorem~3.1.1 prints only (3.6), (3.7) and $k\le N/4$; the formal statements add the
+standing hypotheses (3.2) and (3.25), which Theorem~3.1.18 uses, and $N\ge1$. Differentiability of $u$ and of
+$u'$ replaces the implicit smoothness behind (3.7). Positivity of $Z$, integrability of all observables and
+$0\le D$ are proved, not assumed. Each intermediate statement assumes only what its proof uses: Lemma~3.1.13
+needs concavity and $\kappa>0$, Lemma~3.1.14 only $|u''|\le D$, Lemma~3.1.15 also concavity.
+
+\emph{Stronger or different forms.} Theorem~3.1.4 is proved on a finite-dimensional normed space with a
+convex set $C$, which covers (3.21) and the conditioned Gaussian measure of Proposition~3.1.17.
+Proposition~3.1.16 is stated for the derivative along an arbitrary line of the disorder, which is the
+gradient bound in the form used by Proposition~3.1.17. The constants in $B^*\le LN$ are explicit.
+
+\emph{Printed corrections.} In (3.50) and in the sentence before it, $B$ means $B^*$ of (3.27). In the proof
+of Proposition~3.1.16, ``$M\le N$'' should be $M\le10N$ from (3.25). In the first display of (3.33) the
+coefficient of $\sum g_{i,k}^2$ is $1/(8N)$.
+\end{remark}
+
+\begin{remark}[Research Problem~3.1.2]\label{rem:sg-tal:st-problem-312}
+\talsource{Research Problem~3.1.2, Eq.~(3.10)}
+\emph{Not formalized.} The book asks to compute the limit of
+$N^{-1}\mathbb E\log\int e^{-H_{N,M}}$ as $N\to\infty$ with $M/N\to\alpha$ under the conditions of
+Theorem~3.1.1. It is an open problem in the book and has no Lean statement.
+\end{remark}
