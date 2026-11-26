@@ -42,6 +42,8 @@ theorem ConcaveOn.measurable_of_univ {u : ℝ → ℝ} (hu : ConcaveOn ℝ Set.u
 
 namespace SpinGlasses
 
+local notation "ℝ^" n:arg => EuclideanSpace ℝ (Fin n)
+
 variable {N M : ℕ}
 
 /-- **Maurey's inequality for the Gibbs measure** (Talagrand, Theorem 3.1.4 applied to (3.5)):
@@ -49,7 +51,7 @@ for concave `u ≤ 0` and an `A`-Lipschitz function `f` of the configuration,
 `⟨(f - ⟨f⟩) ^ (2 k)⟩ ≤ 4 (8 k A² / κ) ^ k`. -/
 theorem integral_sub_integral_pow_shcherbinaTirozziGibbs_le {κ h : ℝ} (hκ : 0 < κ) {u : ℝ → ℝ}
     (hu : ConcaveOn ℝ Set.univ u) (hu0 : ∀ x, u x ≤ 0) (g : Fin M → Fin N → ℝ)
-    (g₀ : Fin N → ℝ) {f : EuclideanSpace ℝ (Fin N) → ℝ} (hf : Measurable f) {A : ℝ} (hA : 0 ≤ A)
+    (g₀ : Fin N → ℝ) {f : ℝ^N → ℝ} (hf : Measurable f) {A : ℝ} (hA : 0 ≤ A)
     (hlip : ∀ x y, |f x - f y| ≤ A * ‖x - y‖) (k : ℕ) :
     Integrable (fun σ => (f σ - ∫ τ, f τ
           ∂(volume.tilted fun σ => -shcherbinaTirozziHamiltonian κ h u g g₀ σ)) ^ (2 * k))
@@ -73,9 +75,9 @@ theorem exists_integral_shcherbinaTirozzi_overlap_sub_mean_pow_le (κ₀ h₀ D 
     ∃ K : ℝ, 0 ≤ K ∧ ∀ (N M k : ℕ) (κ h : ℝ) (u : ℝ → ℝ) (g : Fin M → Fin N → ℝ)
       (g₀ : Fin N → ℝ), κ₀ ≤ κ → 0 ≤ h → h ≤ h₀ → M ≤ 10 * N → 1 ≤ N → k ≤ N →
       ConcaveOn ℝ Set.univ u → (∀ x, u x ≤ 0) → (∀ x, -D * (1 + |x|) ≤ u x) →
-      ∀ G : Measure (EuclideanSpace ℝ (Fin N)),
+      ∀ G : Measure (ℝ^N),
         G = volume.tilted (fun σ => -shcherbinaTirozziHamiltonian κ h u g g₀ σ) →
-        Integrable (fun p : EuclideanSpace ℝ (Fin N) × EuclideanSpace ℝ (Fin N) =>
+        Integrable (fun p : ℝ^N × ℝ^N =>
             ((N : ℝ)⁻¹ * ⟪p.1, p.2⟫ - ∫ q, (N : ℝ)⁻¹ * ⟪q.1, q.2⟫ ∂(G.prod G)) ^ (2 * k))
             (G.prod G) ∧
           ∫ p, ((N : ℝ)⁻¹ * ⟪p.1, p.2⟫ - ∫ q, (N : ℝ)⁻¹ * ⟪q.1, q.2⟫ ∂(G.prod G)) ^ (2 * k)
@@ -95,23 +97,23 @@ theorem exists_integral_shcherbinaTirozzi_overlap_sub_mean_pow_le (κ₀ h₀ D 
   have hN0 : (0 : ℝ) < N := by exact_mod_cast hN
   rcases eq_or_ne k 0 with rfl | hk0
   · simp
-  have hmom : ∀ j, j ≤ 4 * N → Integrable (fun σ : EuclideanSpace ℝ (Fin N) => ‖σ‖ ^ (2 * j)) G ∧
+  have hmom : ∀ j, j ≤ 4 * N → Integrable (fun σ : ℝ^N => ‖σ‖ ^ (2 * j)) G ∧
       ∫ σ, ‖σ‖ ^ (2 * j) ∂G ≤ (K₉ * B) ^ j := fun j hj => by
     rw [hG]
     exact h319 N M j κ h u g g₀ hκ hh0 hh hM hj hum hu0 hD
   have hk4 : k ≤ 4 * N := by omega
-  have hnorm : Integrable (fun σ : EuclideanSpace ℝ (Fin N) => ‖σ‖) G := by
+  have hnorm : Integrable (fun σ : ℝ^N => ‖σ‖) G := by
     refine Integrable.mono' ((integrable_const 1).add (hmom 1 (by omega)).1)
       continuous_norm.aestronglyMeasurable (ae_of_all _ fun σ => ?_)
     rw [norm_norm, Pi.add_apply, mul_one]
     nlinarith [sq_nonneg (‖σ‖ - 1), norm_nonneg σ]
-  have hid : Integrable (fun σ : EuclideanSpace ℝ (Fin N) => σ) G :=
+  have hid : Integrable (fun σ : ℝ^N => σ) G :=
     (integrable_norm_iff aestronglyMeasurable_id).1 hnorm
-  set b : EuclideanSpace ℝ (Fin N) := ∫ σ, σ ∂G with hb
+  set b : ℝ^N := ∫ σ, σ ∂G with hb
   -- the Gibbs average of the overlap
-  have hinner : ∀ a : EuclideanSpace ℝ (Fin N), ∫ τ, ⟪a, τ⟫ ∂G = ⟪a, b⟫ := fun a =>
+  have hinner : ∀ a : ℝ^N, ∫ τ, ⟪a, τ⟫ ∂G = ⟪a, b⟫ := fun a =>
     integral_inner hid a
-  have h12 : Integrable (fun q : EuclideanSpace ℝ (Fin N) × EuclideanSpace ℝ (Fin N) =>
+  have h12 : Integrable (fun q : ℝ^N × ℝ^N =>
       (N : ℝ)⁻¹ * ⟪q.1, q.2⟫) (G.prod G) := by
     refine ((hnorm.mul_prod hnorm).mono' (by fun_prop) (ae_of_all _ fun q => ?_)).const_mul _
     rw [Real.norm_eq_abs]
@@ -123,11 +125,11 @@ theorem exists_integral_shcherbinaTirozzi_overlap_sub_mean_pow_le (κ₀ h₀ D 
   have hC0 : 0 ≤ C := by
     have := mul_nonneg hK₉ hB0
     positivity
-  have hMau : ∀ a : EuclideanSpace ℝ (Fin N),
+  have hMau : ∀ a : ℝ^N,
       Integrable (fun τ => ((N : ℝ)⁻¹ * ⟪a, τ⟫ - (N : ℝ)⁻¹ * ⟪a, b⟫) ^ (2 * k)) G ∧
         ∫ τ, ((N : ℝ)⁻¹ * ⟪a, τ⟫ - (N : ℝ)⁻¹ * ⟪a, b⟫) ^ (2 * k) ∂G ≤
           4 * (8 * k / ((N : ℝ) ^ 2 * κ)) ^ k * ‖a‖ ^ (2 * k) := fun a => by
-    have hlip : ∀ x y : EuclideanSpace ℝ (Fin N),
+    have hlip : ∀ x y : ℝ^N,
         |(N : ℝ)⁻¹ * ⟪a, x⟫ - (N : ℝ)⁻¹ * ⟪a, y⟫| ≤ ‖a‖ / N * ‖x - y‖ := fun x y => by
       rw [← mul_sub, ← inner_sub_right, abs_mul, abs_of_pos (inv_pos.2 hN0), div_eq_inv_mul,
         mul_assoc]
@@ -140,9 +142,9 @@ theorem exists_integral_shcherbinaTirozzi_overlap_sub_mean_pow_le (κ₀ h₀ D 
     rw [pow_mul ‖a‖, mul_assoc (4 : ℝ), ← mul_pow]
     congr 2
     field_simp
-  set X : EuclideanSpace ℝ (Fin N) × EuclideanSpace ℝ (Fin N) → ℝ :=
+  set X : ℝ^N × ℝ^N → ℝ :=
     fun p => (N : ℝ)⁻¹ * ⟪p.1, p.2⟫ - (N : ℝ)⁻¹ * ⟪p.1, b⟫ with hX
-  set Y : EuclideanSpace ℝ (Fin N) → ℝ :=
+  set Y : ℝ^N → ℝ :=
     fun σ => (N : ℝ)⁻¹ * ⟪b, σ⟫ - (N : ℝ)⁻¹ * ⟪b, b⟫ with hY
   have hXm : Measurable X := by fun_prop
   have hYm : Measurable Y := by fun_prop
@@ -175,9 +177,9 @@ theorem exists_integral_shcherbinaTirozzi_overlap_sub_mean_pow_le (κ₀ h₀ D 
       ConvexOn.map_integral_le (heven.convexOn_pow (𝕜 := ℝ)) (continuous_pow _).continuousOn
         isClosed_univ (ae_of_all _ fun _ => Set.mem_univ _) hnorm (hmom k hk4).1
     exact ((pow_le_pow_left₀ (norm_nonneg _) h1 _).trans h2).trans (hmom k hk4).2
-  have hYi : Integrable (fun p : EuclideanSpace ℝ (Fin N) × EuclideanSpace ℝ (Fin N) =>
+  have hYi : Integrable (fun p : ℝ^N × ℝ^N =>
       Y p.1 ^ (2 * k)) (G.prod G) := (hMau b).1.comp_fst G
-  have hYI : ∫ p : EuclideanSpace ℝ (Fin N) × EuclideanSpace ℝ (Fin N), Y p.1 ^ (2 * k)
+  have hYI : ∫ p : ℝ^N × ℝ^N, Y p.1 ^ (2 * k)
       ∂(G.prod G) ≤ 4 * C ^ k := by
     rw [integral_fun_fst (fun σ => Y σ ^ (2 * k)), probReal_univ, one_smul]
     refine (hMau b).2.trans ?_
@@ -185,7 +187,7 @@ theorem exists_integral_shcherbinaTirozzi_overlap_sub_mean_pow_le (κ₀ h₀ D 
     exact mul_le_mul_of_nonneg_left hbk hc0
   have hsum := integral_add_pow_two_mul_le (μ := G.prod G) (X := X) (Y := fun p => Y p.1)
     hXm.aestronglyMeasurable (hYm.comp measurable_fst).aestronglyMeasurable hXi hYi
-  have e : (fun p : EuclideanSpace ℝ (Fin N) × EuclideanSpace ℝ (Fin N) =>
+  have e : (fun p : ℝ^N × ℝ^N =>
       ((N : ℝ)⁻¹ * ⟪p.1, p.2⟫ - ∫ q, (N : ℝ)⁻¹ * ⟪q.1, q.2⟫ ∂(G.prod G)) ^ (2 * k)) =
       fun p => (X p + Y p.1) ^ (2 * k) := by
     funext p
@@ -234,9 +236,9 @@ theorem exists_integral_shcherbinaTirozzi_selfOverlap_sub_mean_pow_le (κ₀ h�
     ∃ K : ℝ, 0 ≤ K ∧ ∀ (N M k : ℕ) (κ h : ℝ) (u : ℝ → ℝ) (g : Fin M → Fin N → ℝ)
       (g₀ : Fin N → ℝ), κ₀ ≤ κ → 0 ≤ h → h ≤ h₀ → M ≤ 10 * N → 1 ≤ N → k ≤ N →
       ConcaveOn ℝ Set.univ u → (∀ x, u x ≤ 0) → (∀ x, -D * (1 + |x|) ≤ u x) →
-      ∀ G : Measure (EuclideanSpace ℝ (Fin N)),
+      ∀ G : Measure (ℝ^N),
         G = volume.tilted (fun σ => -shcherbinaTirozziHamiltonian κ h u g g₀ σ) →
-        Integrable (fun σ : EuclideanSpace ℝ (Fin N) =>
+        Integrable (fun σ : ℝ^N =>
             ((N : ℝ)⁻¹ * ‖σ‖ ^ 2 - ∫ τ, (N : ℝ)⁻¹ * ‖τ‖ ^ 2 ∂G) ^ (2 * k)) G ∧
           ∫ σ, ((N : ℝ)⁻¹ * ‖σ‖ ^ 2 - ∫ τ, (N : ℝ)⁻¹ * ‖τ‖ ^ 2 ∂G) ^ (2 * k) ∂G ≤
             (K * k * (N + Real.sqrt (∑ k, ∑ i, g k i ^ 2) + ∑ i, g₀ i ^ 2) /
@@ -261,7 +263,7 @@ theorem exists_integral_shcherbinaTirozzi_selfOverlap_sub_mean_pow_le (κ₀ h�
   rcases eq_or_ne k 0 with rfl | hk0
   · simp
   have heven : Even (2 * k) := even_two_mul k
-  have hmom : ∀ j, j ≤ 4 * N → Integrable (fun σ : EuclideanSpace ℝ (Fin N) => ‖σ‖ ^ (2 * j)) G ∧
+  have hmom : ∀ j, j ≤ 4 * N → Integrable (fun σ : ℝ^N => ‖σ‖ ^ (2 * j)) G ∧
       ∫ σ, ‖σ‖ ^ (2 * j) ∂G ≤ (K₉ * B) ^ j := fun j hj => by
     rw [hG]
     exact h319 N M j κ h u g g₀ hκ hh0 hh hM hj hum hu0 hD
@@ -270,11 +272,11 @@ theorem exists_integral_shcherbinaTirozzi_selfOverlap_sub_mean_pow_le (κ₀ h�
   have ha0 : 0 ≤ a := Real.sqrt_nonneg _
   have ha2 : a ^ 2 = 2 * (K₁ + 2) * B / κ := by
     rw [ha, Real.sq_sqrt (div_nonneg (mul_nonneg (by linarith) hB0.le) hκ0.le)]
-  set f : EuclideanSpace ℝ (Fin N) → ℝ := fun σ => (N : ℝ)⁻¹ * min ‖σ‖ a ^ 2 with hf
-  set φ : EuclideanSpace ℝ (Fin N) → ℝ := fun σ => (N : ℝ)⁻¹ * ‖σ‖ ^ 2 - f σ with hφ
+  set f : ℝ^N → ℝ := fun σ => (N : ℝ)⁻¹ * min ‖σ‖ a ^ 2 with hf
+  set φ : ℝ^N → ℝ := fun σ => (N : ℝ)⁻¹ * ‖σ‖ ^ 2 - f σ with hφ
   have hfm : Measurable f := by fun_prop
   have hφm : Measurable φ := by fun_prop
-  have hlip : ∀ x y : EuclideanSpace ℝ (Fin N), |f x - f y| ≤ 2 * a / N * ‖x - y‖ :=
+  have hlip : ∀ x y : ℝ^N, |f x - f y| ≤ 2 * a / N * ‖x - y‖ :=
     fun x y => by
       have h1 : |min ‖x‖ a - min ‖y‖ a| ≤ ‖x - y‖ := by
         refine (abs_min_sub_min_le_max _ _ _ _).trans (max_le (abs_norm_sub_norm_le x y) ?_)
@@ -299,12 +301,12 @@ theorem exists_integral_shcherbinaTirozzi_selfOverlap_sub_mean_pow_le (κ₀ h�
       (inv_pos.2 hN0).le
   have hfi : Integrable f G := Integrable.of_bound hfm.aestronglyMeasurable _
     (ae_of_all _ fun σ => by simpa only [Real.norm_eq_abs] using hfb σ)
-  have hsq : Integrable (fun σ : EuclideanSpace ℝ (Fin N) => (N : ℝ)⁻¹ * ‖σ‖ ^ 2) G :=
+  have hsq : Integrable (fun σ : ℝ^N => (N : ℝ)⁻¹ * ‖σ‖ ^ 2) G :=
     (by simpa using (hmom 1 (by omega)).1 : Integrable
-      (fun σ : EuclideanSpace ℝ (Fin N) => ‖σ‖ ^ 2) G).const_mul _
+      (fun σ : ℝ^N => ‖σ‖ ^ 2) G).const_mul _
   have hφi : Integrable φ G := hsq.sub hfi
   -- the tail of the truncation
-  set S : Set (EuclideanSpace ℝ (Fin N)) := {σ | a ≤ ‖σ‖} with hS
+  set S : Set (ℝ^N) := {σ | a ≤ ‖σ‖} with hS
   have hSm : MeasurableSet S := measurableSet_le measurable_const measurable_norm
   have hGS : G.real S ≤ Real.exp (-(2 * B)) := by
     have hexp := (integral_exp_half_sq_norm_shcherbinaTirozziGibbs_le (h := h) hκ0 hum hu0
@@ -315,7 +317,7 @@ theorem exists_integral_shcherbinaTirozzi_selfOverlap_sub_mean_pow_le (κ₀ h�
     have h1 : Real.exp (κ / 2 * a ^ 2) * G.real S ≤ Real.exp (K₁ * B) := by
       refine le_trans ?_ hbound
       have h2 := mul_meas_ge_le_integral_of_nonneg
-        (μ := G) (f := fun σ : EuclideanSpace ℝ (Fin N) => Real.exp (κ / 2 * ‖σ‖ ^ 2))
+        (μ := G) (f := fun σ : ℝ^N => Real.exp (κ / 2 * ‖σ‖ ^ 2))
         (ae_of_all _ fun _ => (Real.exp_pos _).le) hexp (Real.exp (κ / 2 * a ^ 2))
       refine le_trans (mul_le_mul_of_nonneg_left (measureReal_mono ?_ (measure_ne_top G _))
         (Real.exp_pos _).le) h2
@@ -348,7 +350,7 @@ theorem exists_integral_shcherbinaTirozzi_selfOverlap_sub_mean_pow_le (κ₀ h�
         Set.indicator_of_notMem (show σ ∉ S from hσ), zero_mul]
   have h4k : 2 * k ≤ 4 * N := by omega
   have h4k' : 4 * k ≤ 4 * N := by omega
-  set Q : EuclideanSpace ℝ (Fin N) → ℝ := fun σ => (N : ℝ)⁻¹ ^ (2 * k) * ‖σ‖ ^ (2 * (2 * k))
+  set Q : ℝ^N → ℝ := fun σ => (N : ℝ)⁻¹ ^ (2 * k) * ‖σ‖ ^ (2 * (2 * k))
     with hQ
   have hQL : MemLp Q 2 G := by
     refine (memLp_two_iff_integrable_sq (by fun_prop)).2 ?_
@@ -362,7 +364,7 @@ theorem exists_integral_shcherbinaTirozzi_selfOverlap_sub_mean_pow_le (κ₀ h�
       ring
     rw [e]
     exact (hmom _ h4k').1.const_mul _
-  have h1S : MemLp (S.indicator (1 : EuclideanSpace ℝ (Fin N) → ℝ)) 2 G :=
+  have h1S : MemLp (S.indicator (1 : ℝ^N → ℝ)) 2 G :=
     (memLp_const (1 : ℝ)).indicator hSm.nullMeasurableSet
   have hdom : Integrable (fun σ => S.indicator 1 σ * Q σ) G := h1S.integrable_mul hQL
   have hφki : Integrable (fun σ => φ σ ^ (2 * k)) G :=
@@ -383,9 +385,9 @@ theorem exists_integral_shcherbinaTirozzi_selfOverlap_sub_mean_pow_le (κ₀ h�
     refine (mul_le_mul_of_nonneg_left (hmom _ h4k').2 (by positivity)).trans_eq ?_
     rw [hT, div_eq_inv_mul]
     ring_nf
-  have h1S2 : ∫ σ, S.indicator (1 : EuclideanSpace ℝ (Fin N) → ℝ) σ ^ 2 ∂G ≤
+  have h1S2 : ∫ σ, S.indicator (1 : ℝ^N → ℝ) σ ^ 2 ∂G ≤
       Real.exp (-B) ^ 2 := by
-    have e : ∀ σ, S.indicator (1 : EuclideanSpace ℝ (Fin N) → ℝ) σ ^ 2 = S.indicator 1 σ :=
+    have e : ∀ σ, S.indicator (1 : ℝ^N → ℝ) σ ^ 2 = S.indicator 1 σ :=
       fun σ => by
         by_cases hσ : σ ∈ S <;> simp [hσ]
     simp_rw [e]
@@ -416,7 +418,7 @@ theorem exists_integral_shcherbinaTirozzi_selfOverlap_sub_mean_pow_le (κ₀ h�
   have hsum := integral_add_pow_two_mul_le (μ := G) (X := fun σ => f σ - ∫ τ, f τ ∂G)
     (Y := fun σ => φ σ - ∫ τ, φ τ ∂G) (hfm.sub_const _).aestronglyMeasurable
     (hφm.sub_const _).aestronglyMeasurable hfMau.1 hφsym.1
-  have e : (fun σ : EuclideanSpace ℝ (Fin N) =>
+  have e : (fun σ : ℝ^N =>
       ((N : ℝ)⁻¹ * ‖σ‖ ^ 2 - ∫ τ, (N : ℝ)⁻¹ * ‖τ‖ ^ 2 ∂G) ^ (2 * k)) =
       fun σ => ((f σ - ∫ τ, f τ ∂G) + (φ σ - ∫ τ, φ τ ∂G)) ^ (2 * k) := by
     funext σ
@@ -501,7 +503,7 @@ theorem exists_integral_integral_shcherbinaTirozzi_overlap_sub_mean_pow_le (κ�
     ∃ K : ℝ, 0 ≤ K ∧ ∀ (N M k : ℕ) (κ h : ℝ) (u : ℝ → ℝ), κ₀ ≤ κ → 0 ≤ h → h ≤ h₀ →
       M ≤ 10 * N → 1 ≤ N → k ≤ N → ConcaveOn ℝ Set.univ u → (∀ x, u x ≤ 0) →
       (∀ x, -D * (1 + |x|) ≤ u x) →
-      ∀ G : (Fin M → Fin N → ℝ) × (Fin N → ℝ) → Measure (EuclideanSpace ℝ (Fin N)),
+      ∀ G : (Fin M → Fin N → ℝ) × (Fin N → ℝ) → Measure (ℝ^N),
         (∀ d, G d = volume.tilted fun σ => -shcherbinaTirozziHamiltonian κ h u d.1 d.2 σ) →
         ∀ P : Measure ((Fin M → Fin N → ℝ) × (Fin N → ℝ)),
         P = (Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin N => gaussianReal 0 1).prod
@@ -523,18 +525,18 @@ theorem exists_integral_integral_shcherbinaTirozzi_overlap_sub_mean_pow_le (κ�
     exact isProbabilityMeasure_shcherbinaTirozziGibbs hκ0 hum hu0 d.1 d.2
   -- measurability in the disorder
   have hE : Measurable fun p : ((Fin M → Fin N → ℝ) × (Fin N → ℝ)) ×
-      EuclideanSpace ℝ (Fin N) => -shcherbinaTirozziHamiltonian κ h u p.1.1 p.1.2 p.2 :=
+      ℝ^N => -shcherbinaTirozziHamiltonian κ h u p.1.1 p.1.2 p.2 :=
     (measurable_shcherbinaTirozziHamiltonian κ h hum).neg
   have h12m : Measurable fun p : ((Fin M → Fin N → ℝ) × (Fin N → ℝ)) ×
-      (EuclideanSpace ℝ (Fin N) × EuclideanSpace ℝ (Fin N)) => (N : ℝ)⁻¹ * ⟪p.2.1, p.2.2⟫ := by
+      (ℝ^N × ℝ^N) => (N : ℝ)⁻¹ * ⟪p.2.1, p.2.2⟫ := by
     fun_prop
-  have h12i : ∀ d, Integrable (fun q : EuclideanSpace ℝ (Fin N) × EuclideanSpace ℝ (Fin N) =>
+  have h12i : ∀ d, Integrable (fun q : ℝ^N × ℝ^N =>
       (N : ℝ)⁻¹ * ⟪q.1, q.2⟫) ((G d).prod (G d)) := fun d => by
     have := hprob d
     obtain ⟨K₉, -, h319⟩ := exists_integral_sq_norm_pow_shcherbinaTirozziGibbs_le κ₀ h₀ D hκ₀
     have h2 := (h319 N M 1 κ h u d.1 d.2 hκ hh0 hh hM (by omega) hum hu0 hD).1
     rw [← hG d] at h2
-    have hnorm : Integrable (fun σ : EuclideanSpace ℝ (Fin N) => ‖σ‖) (G d) := by
+    have hnorm : Integrable (fun σ : ℝ^N => ‖σ‖) (G d) := by
       refine Integrable.mono' ((integrable_const 1).add h2)
         continuous_norm.aestronglyMeasurable (ae_of_all _ fun σ => ?_)
       rw [norm_norm, Pi.add_apply, mul_one]
@@ -543,9 +545,9 @@ theorem exists_integral_integral_shcherbinaTirozzi_overlap_sub_mean_pow_le (κ�
     rw [Real.norm_eq_abs]
     exact abs_real_inner_le_norm _ _
   have hmeas2 : ∀ F : (Fin M → Fin N → ℝ) × (Fin N → ℝ) →
-      EuclideanSpace ℝ (Fin N) × EuclideanSpace ℝ (Fin N) → ℝ,
+      ℝ^N × ℝ^N → ℝ,
       (Measurable fun p : ((Fin M → Fin N → ℝ) × (Fin N → ℝ)) ×
-        (EuclideanSpace ℝ (Fin N) × EuclideanSpace ℝ (Fin N)) => F p.1 p.2) →
+        (ℝ^N × ℝ^N) => F p.1 p.2) →
       (∀ d, Integrable (F d) ((G d).prod (G d))) →
       Measurable fun d => ∫ p, F d p ∂((G d).prod (G d)) := fun F hF hFi => by
     simp only [hG] at hFi ⊢
@@ -560,7 +562,7 @@ theorem exists_integral_integral_shcherbinaTirozzi_overlap_sub_mean_pow_le (κ�
     h334 N M k κ h u d.1 d.2 hκ hh0 hh hM hN hk hu hu0 hD (G d) (hG d)
   simp only [hm] at hfix ⊢
   have hFj : Measurable fun p : ((Fin M → Fin N → ℝ) × (Fin N → ℝ)) ×
-      (EuclideanSpace ℝ (Fin N) × EuclideanSpace ℝ (Fin N)) =>
+      (ℝ^N × ℝ^N) =>
       ((N : ℝ)⁻¹ * ⟪p.2.1, p.2.2⟫ - m p.1) ^ (2 * k) :=
     (h12m.sub (hmm.comp measurable_fst)).pow_const _
   have hFm := hmeas2 (fun d p => ((N : ℝ)⁻¹ * ⟪p.1, p.2⟫ - m d) ^ (2 * k)) hFj
@@ -597,7 +599,7 @@ theorem exists_integral_integral_shcherbinaTirozzi_selfOverlap_sub_mean_pow_le (
     ∃ K : ℝ, 0 ≤ K ∧ ∀ (N M k : ℕ) (κ h : ℝ) (u : ℝ → ℝ), κ₀ ≤ κ → 0 ≤ h → h ≤ h₀ →
       M ≤ 10 * N → 1 ≤ N → k ≤ N → ConcaveOn ℝ Set.univ u → (∀ x, u x ≤ 0) →
       (∀ x, -D * (1 + |x|) ≤ u x) →
-      ∀ G : (Fin M → Fin N → ℝ) × (Fin N → ℝ) → Measure (EuclideanSpace ℝ (Fin N)),
+      ∀ G : (Fin M → Fin N → ℝ) × (Fin N → ℝ) → Measure (ℝ^N),
         (∀ d, G d = volume.tilted fun σ => -shcherbinaTirozziHamiltonian κ h u d.1 d.2 σ) →
         ∀ P : Measure ((Fin M → Fin N → ℝ) × (Fin N → ℝ)),
         P = (Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin N => gaussianReal 0 1).prod
@@ -613,13 +615,13 @@ theorem exists_integral_integral_shcherbinaTirozzi_selfOverlap_sub_mean_pow_le (
   have hum := hu.measurable_of_univ
   have hN0 : (0 : ℝ) < N := by exact_mod_cast hN
   have hE : Measurable fun p : ((Fin M → Fin N → ℝ) × (Fin N → ℝ)) ×
-      EuclideanSpace ℝ (Fin N) => -shcherbinaTirozziHamiltonian κ h u p.1.1 p.1.2 p.2 :=
+      ℝ^N => -shcherbinaTirozziHamiltonian κ h u p.1.1 p.1.2 p.2 :=
     (measurable_shcherbinaTirozziHamiltonian κ h hum).neg
   have hmean : Measurable fun d => ∫ τ, (N : ℝ)⁻¹ * ‖τ‖ ^ 2 ∂(G d) := by
     simp_rw [hG]
     exact measurable_integral_tilted hE (by fun_prop)
   have hsq : Measurable fun p : ((Fin M → Fin N → ℝ) × (Fin N → ℝ)) ×
-      EuclideanSpace ℝ (Fin N) => (N : ℝ)⁻¹ * ‖p.2‖ ^ 2 := by fun_prop
+      ℝ^N => (N : ℝ)⁻¹ * ‖p.2‖ ^ 2 := by fun_prop
   have hFm : Measurable fun d => ∫ σ, ((N : ℝ)⁻¹ * ‖σ‖ ^ 2 -
       ∫ τ, (N : ℝ)⁻¹ * ‖τ‖ ^ 2 ∂(G d)) ^ (2 * k) ∂(G d) := by
     have h1 := measurable_integral_tilted_dep (μ := volume)

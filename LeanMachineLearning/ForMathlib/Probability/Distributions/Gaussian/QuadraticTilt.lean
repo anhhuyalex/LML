@@ -19,6 +19,7 @@ Integrals against `exp (-b ‖v‖² + ⟪a, v⟫)` on a finite-dimensional real
   the Gaussian integral with a linear term.
 * `integral_mul_exp_neg_mul_sq_norm`: the weight `exp (-b ‖v‖²)` is a rescaled standard Gaussian.
 * `integral_abs_inner_stdGaussian_le`: `𝔼 |⟪a, z⟫| ≤ ‖a‖`.
+* `integral_tilted_restrict_neg_half_sq_norm`: conditioning a standard Gaussian on a set.
 * `integrable_exp_add_neg_mul_sq_norm_add_inner` and
   `integral_exp_half_sq_norm_tilted_le`: for a nonpositive perturbation `U`, the density
   proportional to `exp (U v - κ ‖v‖² + ⟪a, v⟫)` satisfies
@@ -127,6 +128,35 @@ theorem integral_abs_inner_stdGaussian_le (a : E) :
   rw [variance_eq_sub habs] at hvar
   simp only [Pi.pow_apply, sq_abs, h2] at hvar
   exact le_of_sq_le_sq (by linarith) (norm_nonneg a)
+
+/-- **Conditioning a standard Gaussian on a measurable set** is the probability measure with
+density proportional to `exp (-‖v‖² / 2)` on that set. -/
+theorem integral_tilted_restrict_neg_half_sq_norm {C : Set E} (hC : MeasurableSet C)
+    (f : E → ℝ) :
+    ∫ v, f v ∂((volume.restrict C).tilted fun v => -(‖v‖ ^ 2 / 2)) =
+      (∫ v in C, f v ∂stdGaussian E) / (stdGaussian E).real C := by
+  have key : ∀ g : E → ℝ, ∫ v in C, g v * Real.exp (-(‖v‖ ^ 2 / 2)) =
+      (π / (1 / 2)) ^ ((finrank ℝ E : ℝ) / 2) * ∫ v in C, g v ∂stdGaussian E := fun g => by
+    have h := integral_mul_exp_neg_mul_sq_norm (E := E) (by norm_num : (0 : ℝ) < 1 / 2)
+      (C.indicator g)
+    rw [show Real.sqrt (2 * (1 / 2)) = 1 by norm_num, inv_one] at h
+    simp only [one_smul] at h
+    rw [← integral_indicator hC, ← integral_indicator hC, ← h]
+    refine integral_congr_ae (ae_of_all _ fun v => ?_)
+    have e : -(1 / 2 : ℝ) * ‖v‖ ^ 2 = -(‖v‖ ^ 2 / 2) := by ring
+    by_cases hv : v ∈ C
+    · simp only [Set.indicator_of_mem hv, e]
+    · simp [hv]
+  have h1 := key fun _ => 1
+  simp only [one_mul, setIntegral_const, smul_eq_mul, mul_one] at h1
+  have h2 : ∀ Z : ℝ, ∫ v in C, (Real.exp (-(‖v‖ ^ 2 / 2)) / Z) • f v =
+      (∫ v in C, f v * Real.exp (-(‖v‖ ^ 2 / 2))) / Z := fun Z => by
+    rw [← integral_div]
+    refine integral_congr_ae (ae_of_all _ fun v => ?_)
+    simp only [smul_eq_mul]
+    ring
+  rw [integral_tilted, h2, key f, h1]
+  exact mul_div_mul_left _ _ (Real.rpow_pos_of_pos (by positivity) _).ne'
 
 section NonpositivePerturbation
 

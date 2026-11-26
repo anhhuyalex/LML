@@ -35,15 +35,17 @@ open scoped RealInnerProductSpace Real
 
 namespace SpinGlasses
 
+local notation "ℝ^" n:arg => EuclideanSpace ℝ (Fin n)
+
 variable {N M : ℕ}
 
 /-- The Hamiltonian (3.1) of the Shcherbina--Tirozzi model on `ℝ^N`. -/
 noncomputable def shcherbinaTirozziHamiltonian (κ h : ℝ) (u : ℝ → ℝ) (g : Fin M → Fin N → ℝ)
-    (g₀ : Fin N → ℝ) (σ : EuclideanSpace ℝ (Fin N)) : ℝ :=
+    (g₀ : Fin N → ℝ) (σ : ℝ^N) : ℝ :=
   κ * ‖σ‖ ^ 2 - ∑ k, u ((Real.sqrt N)⁻¹ * ∑ i, g k i * σ i) - h * ∑ i, g₀ i * σ i
 
 /-- The constraint field `S_k` as the inner product with the normalized disorder vector. -/
-theorem inner_toLp_inv_sqrt_mul_eq (c : ℝ) (a : Fin N → ℝ) (σ : EuclideanSpace ℝ (Fin N)) :
+theorem inner_toLp_inv_sqrt_mul_eq (c : ℝ) (a : Fin N → ℝ) (σ : ℝ^N) :
     ⟪WithLp.toLp 2 (fun i => c * a i), σ⟫ = c * ∑ i, a i * σ i := by
   rw [EuclideanSpace.inner_eq_star_dotProduct, star_trivial, Finset.mul_sum, dotProduct]
   exact Finset.sum_congr rfl fun i _ => by
@@ -53,7 +55,7 @@ theorem inner_toLp_inv_sqrt_mul_eq (c : ℝ) (a : Fin N → ℝ) (σ : Euclidean
 /-- The opposite of the Hamiltonian is a perturbation `∑_k u (S_k)` of the quadratic confinement
 `-κ ‖σ‖²` plus a linear term. -/
 theorem neg_shcherbinaTirozziHamiltonian_eq (κ h : ℝ) (u : ℝ → ℝ) (g : Fin M → Fin N → ℝ)
-    (g₀ : Fin N → ℝ) (σ : EuclideanSpace ℝ (Fin N)) :
+    (g₀ : Fin N → ℝ) (σ : ℝ^N) :
     -shcherbinaTirozziHamiltonian κ h u g g₀ σ =
       (∑ k, u ((Real.sqrt N)⁻¹ * ∑ i, g k i * σ i)) - κ * ‖σ‖ ^ 2 +
         ⟪WithLp.toLp 2 (fun i => h * g₀ i), σ⟫ := by
@@ -62,24 +64,24 @@ theorem neg_shcherbinaTirozziHamiltonian_eq (κ h : ℝ) (u : ℝ → ℝ) (g : 
 
 /-- The Hamiltonian is jointly measurable in the disorder and the configuration. -/
 theorem measurable_shcherbinaTirozziHamiltonian (κ h : ℝ) {u : ℝ → ℝ} (hu : Measurable u) :
-    Measurable fun p : ((Fin M → Fin N → ℝ) × (Fin N → ℝ)) × EuclideanSpace ℝ (Fin N) =>
+    Measurable fun p : ((Fin M → Fin N → ℝ) × (Fin N → ℝ)) × ℝ^N =>
       shcherbinaTirozziHamiltonian κ h u p.1.1 p.1.2 p.2 := by
   have hσ : ∀ i : Fin N, Measurable fun p : ((Fin M → Fin N → ℝ) × (Fin N → ℝ)) ×
-      EuclideanSpace ℝ (Fin N) => p.2 i := fun i =>
+      ℝ^N => p.2 i := fun i =>
     ((PiLp.continuous_apply 2 (fun _ : Fin N => ℝ) i).measurable).comp measurable_snd
   have hg : ∀ (k : Fin M) (i : Fin N), Measurable fun p : ((Fin M → Fin N → ℝ) × (Fin N → ℝ)) ×
-      EuclideanSpace ℝ (Fin N) => p.1.1 k i := fun k i =>
+      ℝ^N => p.1.1 k i := fun k i =>
     (measurable_pi_apply i).comp ((measurable_pi_apply k).comp
       (measurable_fst.comp measurable_fst))
   have hg₀ : ∀ i : Fin N, Measurable fun p : ((Fin M → Fin N → ℝ) × (Fin N → ℝ)) ×
-      EuclideanSpace ℝ (Fin N) => p.1.2 i := fun i =>
+      ℝ^N => p.1.2 i := fun i =>
     (measurable_pi_apply i).comp (measurable_snd.comp measurable_fst)
   have hfield : ∀ k : Fin M, Measurable fun p : ((Fin M → Fin N → ℝ) × (Fin N → ℝ)) ×
-      EuclideanSpace ℝ (Fin N) => u ((Real.sqrt N)⁻¹ * ∑ i, p.1.1 k i * p.2 i) := fun k =>
+      ℝ^N => u ((Real.sqrt N)⁻¹ * ∑ i, p.1.1 k i * p.2 i) := fun k =>
     hu.comp ((Finset.measurable_sum _ fun i _ => (hg k i).mul (hσ i)).const_mul _)
   have hsum := Finset.measurable_sum Finset.univ fun k _ => hfield k
   have hlin := (Finset.measurable_sum Finset.univ fun i _ => (hg₀ i).mul (hσ i)).const_mul h
-  have hq : Measurable fun p : ((Fin M → Fin N → ℝ) × (Fin N → ℝ)) × EuclideanSpace ℝ (Fin N) =>
+  have hq : Measurable fun p : ((Fin M → Fin N → ℝ) × (Fin N → ℝ)) × ℝ^N =>
       κ * ‖p.2‖ ^ 2 := (measurable_snd.norm.pow_const 2).const_mul κ
   simp only [shcherbinaTirozziHamiltonian]
   exact (hq.sub hsum).sub hlin
@@ -88,14 +90,14 @@ theorem measurable_shcherbinaTirozziHamiltonian (κ h : ℝ) {u : ℝ → ℝ} (
 theorem measurable_shcherbinaTirozziHamiltonian_apply (κ h : ℝ) {u : ℝ → ℝ} (hu : Measurable u)
     (g : Fin M → Fin N → ℝ) (g₀ : Fin N → ℝ) :
     Measurable (shcherbinaTirozziHamiltonian κ h u g g₀) := by
-  have hσ : ∀ i : Fin N, Measurable fun σ : EuclideanSpace ℝ (Fin N) => σ i := fun i =>
+  have hσ : ∀ i : Fin N, Measurable fun σ : ℝ^N => σ i := fun i =>
     (PiLp.continuous_apply 2 (fun _ : Fin N => ℝ) i).measurable
-  have hfield : ∀ k : Fin M, Measurable fun σ : EuclideanSpace ℝ (Fin N) =>
+  have hfield : ∀ k : Fin M, Measurable fun σ : ℝ^N =>
       u ((Real.sqrt N)⁻¹ * ∑ i, g k i * σ i) := fun k =>
     hu.comp ((Finset.measurable_sum _ fun i _ => (hσ i).const_mul _).const_mul _)
   have hsum := Finset.measurable_sum Finset.univ fun k _ => hfield k
   have hlin := (Finset.measurable_sum Finset.univ fun i _ => (hσ i).const_mul (g₀ i)).const_mul h
-  have hq : Measurable fun σ : EuclideanSpace ℝ (Fin N) => κ * ‖σ‖ ^ 2 :=
+  have hq : Measurable fun σ : ℝ^N => κ * ‖σ‖ ^ 2 :=
     (measurable_norm.pow_const 2).const_mul κ
   exact (hq.sub hsum).sub hlin
 
@@ -103,7 +105,7 @@ theorem measurable_shcherbinaTirozziHamiltonian_apply (κ h : ℝ) {u : ℝ → 
 `κ`. -/
 theorem shcherbinaTirozziHamiltonian_midpoint_gap (κ h : ℝ) {u : ℝ → ℝ}
     (hu : ConcaveOn ℝ Set.univ u) (g : Fin M → Fin N → ℝ) (g₀ : Fin N → ℝ)
-    (x y : EuclideanSpace ℝ (Fin N)) :
+    (x y : ℝ^N) :
     κ * ‖(1 / 2 : ℝ) • (x - y)‖ ^ 2 ≤
       (shcherbinaTirozziHamiltonian κ h u g g₀ x + shcherbinaTirozziHamiltonian κ h u g g₀ y) / 2 -
         shcherbinaTirozziHamiltonian κ h u g g₀ ((1 / 2 : ℝ) • (x + y)) := by
@@ -159,22 +161,22 @@ theorem isProbabilityMeasure_shcherbinaTirozziGibbs {κ h : ℝ} (hκ : 0 < κ) 
 `⟨exp (κ ‖σ‖² / 2)⟩ ≤ Z⁻¹ (2 π / κ) ^ (N / 2) exp (h² ∑_i g_i² / (2 κ))`. -/
 theorem integral_exp_half_sq_norm_shcherbinaTirozziGibbs_le {κ h : ℝ} (hκ : 0 < κ) {u : ℝ → ℝ}
     (hu : Measurable u) (hu0 : ∀ x, u x ≤ 0) (g : Fin M → Fin N → ℝ) (g₀ : Fin N → ℝ) :
-    Integrable (fun σ : EuclideanSpace ℝ (Fin N) => Real.exp (κ / 2 * ‖σ‖ ^ 2))
+    Integrable (fun σ : ℝ^N => Real.exp (κ / 2 * ‖σ‖ ^ 2))
         (volume.tilted fun σ => -shcherbinaTirozziHamiltonian κ h u g g₀ σ) ∧
       ∫ σ, Real.exp (κ / 2 * ‖σ‖ ^ 2)
           ∂(volume.tilted fun σ => -shcherbinaTirozziHamiltonian κ h u g g₀ σ) ≤
         (∫ σ, Real.exp (-shcherbinaTirozziHamiltonian κ h u g g₀ σ))⁻¹ *
           ((2 * π / κ) ^ ((N : ℝ) / 2) * Real.exp (h ^ 2 * (∑ i, g₀ i ^ 2) / (2 * κ))) := by
-  have hU : Measurable fun σ : EuclideanSpace ℝ (Fin N) =>
+  have hU : Measurable fun σ : ℝ^N =>
       ∑ k, u ((Real.sqrt N)⁻¹ * ∑ i, g k i * σ i) :=
     Finset.measurable_sum _ fun k _ => hu.comp
       ((Finset.measurable_sum _ fun i _ =>
         ((PiLp.continuous_apply 2 (fun _ : Fin N => ℝ) i).measurable).const_mul _).const_mul _)
   have key := integral_exp_half_sq_norm_tilted_le hU
     (fun σ => Finset.sum_nonpos fun k _ => hu0 _) hκ
-    (WithLp.toLp 2 (fun i => h * g₀ i) : EuclideanSpace ℝ (Fin N))
+    (WithLp.toLp 2 (fun i => h * g₀ i) : ℝ^N)
   simp_rw [← neg_shcherbinaTirozziHamiltonian_eq, finrank_euclideanSpace_fin] at key
-  have hnorm : ‖(WithLp.toLp 2 (fun i => h * g₀ i) : EuclideanSpace ℝ (Fin N))‖ ^ 2 =
+  have hnorm : ‖(WithLp.toLp 2 (fun i => h * g₀ i) : ℝ^N)‖ ^ 2 =
       h ^ 2 * ∑ i, g₀ i ^ 2 := by
     rw [EuclideanSpace.real_norm_sq_eq, Finset.mul_sum]
     exact Finset.sum_congr rfl fun i _ => by
@@ -194,7 +196,7 @@ theorem inv_integral_exp_neg_shcherbinaTirozziHamiltonian_le {κ h D : ℝ} (hκ
     have h1 := (hD 0).trans (hu0 0)
     simp only [abs_zero, add_zero, mul_one] at h1
     linarith
-  set E := EuclideanSpace ℝ (Fin N)
+  set E := ℝ^N
   set c : ℝ := (Real.sqrt (2 * κ))⁻¹ with hc
   have hc0 : 0 < c := inv_pos.2 (Real.sqrt_pos.2 (by positivity))
   have hcκ : c ≤ (Real.sqrt κ)⁻¹ :=

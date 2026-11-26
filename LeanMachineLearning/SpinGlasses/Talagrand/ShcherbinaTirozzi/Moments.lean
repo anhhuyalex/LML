@@ -33,6 +33,8 @@ open scoped RealInnerProductSpace Real
 
 namespace SpinGlasses
 
+local notation "ℝ^" n:arg => EuclideanSpace ℝ (Fin n)
+
 variable {N M : ℕ}
 
 /-- **Corollary 3.1.7:** under (3.6) and (3.25), `⟨exp (κ ‖σ‖² / 2)⟩ ≤ exp (K B^*)`, where `K`
@@ -122,7 +124,7 @@ theorem exists_integral_sq_norm_pow_shcherbinaTirozziGibbs_le (κ₀ h₀ D : �
     ∃ K : ℝ, 0 ≤ K ∧ ∀ (N M k : ℕ) (κ h : ℝ) (u : ℝ → ℝ) (g : Fin M → Fin N → ℝ)
       (g₀ : Fin N → ℝ), κ₀ ≤ κ → 0 ≤ h → h ≤ h₀ → M ≤ 10 * N → k ≤ 4 * N → Measurable u →
       (∀ x, u x ≤ 0) → (∀ x, -D * (1 + |x|) ≤ u x) →
-        Integrable (fun σ : EuclideanSpace ℝ (Fin N) => ‖σ‖ ^ (2 * k))
+        Integrable (fun σ : ℝ^N => ‖σ‖ ^ (2 * k))
             (volume.tilted fun σ => -shcherbinaTirozziHamiltonian κ h u g g₀ σ) ∧
           ∫ σ, ‖σ‖ ^ (2 * k)
               ∂(volume.tilted fun σ => -shcherbinaTirozziHamiltonian κ h u g g₀ σ) ≤
@@ -140,12 +142,12 @@ theorem exists_integral_sq_norm_pow_shcherbinaTirozziGibbs_le (κ₀ h₀ D : �
     rw [hB]
     linarith [Real.sqrt_nonneg (∑ k, ∑ i, g k i ^ 2)]
   have hB0 : 0 ≤ B := (Nat.cast_nonneg N).trans hNB
-  have hX0 : 0 ≤ᵐ[G] fun σ : EuclideanSpace ℝ (Fin N) => κ / 2 * ‖σ‖ ^ 2 :=
+  have hX0 : 0 ≤ᵐ[G] fun σ : ℝ^N => κ / 2 * ‖σ‖ ^ 2 :=
     ae_of_all _ fun σ => mul_nonneg (by positivity) (sq_nonneg _)
   have hexp := (integral_exp_half_sq_norm_shcherbinaTirozziGibbs_le (h := h) hκ0 hu hu0 g g₀).1
   have hmom := integral_pow_le_of_integral_exp_le hX0 hexp
     (h317 N M κ h u g g₀ hκ hh0 hh hM hu hu0 hD) k
-  have hpow : ∀ σ : EuclideanSpace ℝ (Fin N),
+  have hpow : ∀ σ : ℝ^N,
       ‖σ‖ ^ (2 * k) = (2 / κ) ^ k * (κ / 2 * ‖σ‖ ^ 2) ^ k := fun σ => by
     rw [← mul_pow, pow_mul]
     congr 1
