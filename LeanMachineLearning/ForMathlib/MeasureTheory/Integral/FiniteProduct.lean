@@ -8,6 +8,8 @@ module
 public import Mathlib.MeasureTheory.Integral.Bochner.Basic
 public import Mathlib.MeasureTheory.Integral.Pi
 public import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.SetTheory.Cardinal.Finite
 
 /-!
 # Finite products and sums under Bochner integration
@@ -25,9 +27,9 @@ namespace MeasureTheory
 /-- **Integral of a product of finite sums.** A product of finite linear combinations
 integrates as a sum over multi-indices of the weighted products of integrals, provided
 the weighted products are integrable. Summand types may depend on the factor. -/
-theorem integral_prod_sum {Ω J : Type*} [MeasurableSpace Ω] [Fintype J] [DecidableEq J]
-    {M : J → Type*} [∀ j, Fintype (M j)] (μ : Measure Ω)
-    (γ : (j : J) → M j → ℝ) (F : (j : J) → M j → Ω → ℝ)
+theorem integral_prod_sum {Ω J 𝕜 : Type*} [MeasurableSpace Ω] [Fintype J] [DecidableEq J]
+    [RCLike 𝕜] {M : J → Type*} [∀ j, Fintype (M j)] (μ : Measure Ω)
+    (γ : (j : J) → M j → 𝕜) (F : (j : J) → M j → Ω → 𝕜)
     (h : ∀ t : (j : J) → M j,
       Integrable (fun ω => (∏ j, γ j (t j)) * ∏ j, F j (t j) ω) μ) :
     (∫ ω, ∏ j, ∑ m, γ j m * F j m ω ∂μ) =
@@ -42,21 +44,36 @@ theorem integral_prod_sum {Ω J : Type*} [MeasurableSpace Ω] [Fintype J] [Decid
 
 /-- **Integrability of a product of coordinate functions with repeated indices.**
 A product of coordinate functions is integrable against a product measure if each coordinate
-function raised to its fiber cardinality is integrable. Valid for dependent coordinate spaces
-and values in any normed commutative ring. -/
+function raised to the cardinality of its fiber is integrable. Valid for dependent coordinate
+spaces and values in any normed commutative ring. -/
+theorem integrable_prod_pi_dep_natCard {D J K : Type*} [Fintype D] [Fintype J]
+    [NormedCommRing K] {X : D → Type*} [∀ d, MeasurableSpace (X d)]
+    (μ : (d : D) → Measure (X d)) [∀ d, SigmaFinite (μ d)]
+    (d : J → D) (f : (κ : D) → X κ → K)
+    (h : ∀ κ, Integrable (fun x => f κ x ^ Nat.card {j // d j = κ}) (μ κ)) :
+    Integrable (fun z : (κ : D) → X κ => ∏ j, f (d j) (z (d j))) (Measure.pi μ) := by
+  classical
+  have hcard : ∀ κ, (univ.filter fun j => d j = κ).card = Nat.card {j // d j = κ} := fun κ => by
+    rw [Nat.card_eq_fintype_card, Fintype.card_subtype]
+  have he (z : (κ : D) → X κ) : (∏ j, f (d j) (z (d j))) =
+      ∏ κ, f κ (z κ) ^ Nat.card {j // d j = κ} := by
+    simp_rw [← hcard]
+    simpa only [prod_const] using
+      (prod_fiberwise' (univ : Finset J) d (fun κ => f κ (z κ))).symm
+  simp_rw [he]
+  exact Integrable.fintype_prod_dep h
+
+/-- **Integrability of a product of coordinate functions with repeated indices**, with the fiber
+cardinalities written as finite sets. -/
 theorem integrable_prod_pi_dep {D J K : Type*} [Fintype D] [DecidableEq D] [Fintype J]
     [NormedCommRing K] {X : D → Type*} [∀ d, MeasurableSpace (X d)]
     (μ : (d : D) → Measure (X d)) [∀ d, SigmaFinite (μ d)]
     (d : J → D) (f : (κ : D) → X κ → K)
     (h : ∀ κ, Integrable
       (fun x => f κ x ^ (univ.filter fun j => d j = κ).card) (μ κ)) :
-    Integrable (fun z : (κ : D) → X κ => ∏ j, f (d j) (z (d j))) (Measure.pi μ) := by
-  have he (z : (κ : D) → X κ) : (∏ j, f (d j) (z (d j))) =
-      ∏ κ, f κ (z κ) ^ (univ.filter fun j => d j = κ).card := by
-    simpa only [prod_const] using
-      (prod_fiberwise' (univ : Finset J) d (fun κ => f κ (z κ))).symm
-  simp_rw [he]
-  exact Integrable.fintype_prod_dep h
+    Integrable (fun z : (κ : D) → X κ => ∏ j, f (d j) (z (d j))) (Measure.pi μ) :=
+  integrable_prod_pi_dep_natCard μ d f fun κ => by
+    simpa only [Nat.card_eq_fintype_card, Fintype.card_subtype] using h κ
 
 /-- **Integrability of a product of coordinate functions (homogeneous spaces).** -/
 theorem integrable_prod_pi {D J K α : Type*} [Fintype D] [DecidableEq D] [Fintype J]

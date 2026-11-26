@@ -84,8 +84,6 @@ theorem ae_summable_natCast_of_hasLaw_poissonMeasure [Countable ι] {X : ι → 
     {r : ι → ℝ≥0} (hLaw : ∀ i, HasLaw (X i) Po(r i) P) (hr : Summable r) :
     ∀ᵐ ω ∂P, Summable fun i => (X i ω : ℝ) := by
   have hcast : Measurable fun n : ℕ => (n : ℝ) := measurable_of_countable _
-  have hm : ∀ i, AEMeasurable (fun ω => (X i ω : ℝ)) P := fun i =>
-    hcast.comp_aemeasurable (hLaw i).aemeasurable
   have hint : ∀ i, Integrable (fun ω => (X i ω : ℝ)) P := fun i =>
     (hLaw i).integrable_comp (integrable_natCast_poissonMeasure (r i))
   have hmean : ∀ i, ∫ ω, (X i ω : ℝ) ∂P = r i := fun i => by
@@ -93,7 +91,7 @@ theorem ae_summable_natCast_of_hasLaw_poissonMeasure [Countable ι] {X : ι → 
       ∫ ω, (X i ω : ℝ) ∂P = ∫ n, (n : ℝ) ∂Po(r i) :=
         (hLaw i).integral_comp hcast.aestronglyMeasurable
       _ = r i := integral_natCast_poissonMeasure (r i)
-  refine (ae_summable_and_integrable_tsum_of_nonneg hm (fun _ _ => Nat.cast_nonneg _) hint ?_).1
+  refine (ae_summable_and_integrable_tsum_of_nonneg (fun _ _ => Nat.cast_nonneg _) hint ?_).1
   rw [show (fun i => ∫ ω, (X i ω : ℝ) ∂P) = fun i => (r i : ℝ) by ext i; exact hmean i]
   exact_mod_cast hr
 

@@ -6,13 +6,14 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteReplicaTilted
+public import Mathlib.MeasureTheory.Measure.Tilted
 
 /-!
 # A constant shift of the energy does not change the Gibbs measure
 
-`Measure.count.tilted (fun a => f a + c)` and `Measure.count.tilted f` have the same replica
-averages. This is the reason why an additive Gaussian that does not depend on the configuration
-(such as the diagonal part of the SK Hamiltonian) drops out of every Gibbs average.
+`μ.tilted (fun a => f a + c) = μ.tilted f`, so the replica averages of both are equal. This is
+the reason why an additive Gaussian that does not depend on the configuration (such as the
+diagonal part of the SK Hamiltonian) drops out of every Gibbs average.
 -/
 
 @[expose] public section
@@ -21,21 +22,23 @@ open Finset
 
 namespace MeasureTheory
 
-variable {α R : Type*} [MeasurableSpace α] [MeasurableSingletonClass α]
+variable {α R : Type*} [MeasurableSpace α]
+
+/-- Adding a constant to the exponent does not change a tilted measure. -/
+theorem tilted_add_const_exponent (μ : Measure α) (f : α → ℝ) (c : ℝ) :
+    μ.tilted (fun a => f a + c) = μ.tilted f := by
+  have h : (fun a => Real.exp (f a + c) / ∫ x, Real.exp (f x + c) ∂μ) =
+      fun a => Real.exp (f a) / ∫ x, Real.exp (f x) ∂μ := by
+    ext a
+    simp only [Real.exp_add, integral_mul_const]
+    exact mul_div_mul_right _ _ (Real.exp_pos c).ne'
+  exact congrArg μ.withDensity (funext fun x => congrArg ENNReal.ofReal (congrFun h x))
 
 /-- **Constant shifts cancel in replica Gibbs averages.** -/
-theorem integral_pi_count_tilted_add_const [Finite α] [Fintype R] (f : α → ℝ) (c : ℝ)
-    (Ψ : (R → α) → ℝ) :
+theorem integral_pi_count_tilted_add_const [Fintype R] (f : α → ℝ) (c : ℝ)
+    {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] (Ψ : (R → α) → E) :
     ∫ σ, Ψ σ ∂(Measure.pi fun _ : R => Measure.count.tilted fun a => f a + c) =
       ∫ σ, Ψ σ ∂(Measure.pi fun _ : R => Measure.count.tilted f) := by
-  classical
-  have := Fintype.ofFinite α
-  rw [integral_pi_count_tilted, integral_pi_count_tilted]
-  refine Finset.sum_congr rfl fun σ _ => ?_
-  congr 1
-  refine Finset.prod_congr rfl fun r _ => ?_
-  simp only [Real.exp_add, ← Finset.sum_mul]
-  have hc : Real.exp c ≠ 0 := (Real.exp_pos c).ne'
-  field_simp
+  rw [tilted_add_const_exponent]
 
 end MeasureTheory
