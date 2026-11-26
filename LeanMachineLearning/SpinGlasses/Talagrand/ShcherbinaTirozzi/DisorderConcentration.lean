@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.Pi
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianMatrixNorm
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.GradientBound
 
@@ -150,6 +151,7 @@ theorem exists_integral_sub_integral_pow_le_of_disorder_gradient (K₉ K₁₆ :
         refine Finset.sum_le_sum fun i _ => ?_
         have h := (even_two.convexOn_pow (𝕜 := ℝ)).2 (Set.mem_univ ((T x).2 i))
           (Set.mem_univ ((T y).2 i)) ha hb hab
+        change (a * (T x).2 i + b * (T y).2 i) ^ 2 ≤ a * (T x).2 i ^ 2 + b * (T y).2 i ^ 2
         simpa only [smul_eq_mul] using h
       have hx1 := hx.1
       have hy1 := hy.1
@@ -302,7 +304,7 @@ theorem exists_integral_sub_integral_pow_le_of_disorder_gradient (K₉ K₁₆ :
             (pow_le_pow_left₀ (hB0 _) hB1 2) hn1 (sq_nonneg _) (sq_nonneg _))
             (by positivity)).trans_eq ?_
           field_simp
-        rw [add_div]
+        rw [add_div L]
         exact add_le_add h3 h4
       refine (mul_le_mul_of_nonneg_left h2 hK₁₆).trans_eq ?_
       rw [hKg]; ring
@@ -424,7 +426,8 @@ theorem exists_integral_sub_integral_pow_le_of_disorder_gradient (K₉ K₁₆ :
       simp_rw [← pow_mul, show 2 * k * 2 = 4 * k by ring]
       exact hiγ _ hi4
     have h3 := abs_integral_mul_le_of_integral_sq_le h1 h2 (α := 2 * Real.exp (-N))
-      (γ := Q ^ (2 * k)) (by positivity) (pow_pos (one_pos.trans_le hQ1) _) (by
+      (γ := Q ^ (2 * k)) (by positivity)
+      (pow_pos (lt_of_lt_of_le (zero_lt_one : (0 : ℝ) < 1) hQ1) _) (by
         have e : ∀ ω, Cᶜ.indicator (1 : EuclideanSpace ℝ ((Fin M × Fin N) ⊕ Fin N) → ℝ) ω ^ 2 =
             Cᶜ.indicator 1 ω := fun ω => by
           by_cases h : ω ∈ Cᶜ
@@ -434,11 +437,8 @@ theorem exists_integral_sub_integral_pow_le_of_disorder_gradient (K₉ K₁₆ :
         rw [integral_indicator_one hCm.compl]
         exact hbad2) (by
         simp_rw [← pow_mul, show 2 * k * 2 = 4 * k by ring]
-        rw [htrans (fun d => (f d - m) ^ (4 * k)) ((hf.sub_const m).pow_const _), pow_mul,
-          ← pow_mul Q, show 2 * k * 2 = 4 * k by ring, ← pow_mul]
-        rw [← pow_mul] at *
-        refine hI4.trans_eq ?_
-        rw [← pow_mul, show 2 * k * 2 = 4 * k by ring])
+        rw [htrans (fun d => (f d - m) ^ (4 * k)) ((hf.sub_const m).pow_const _)]
+        exact hI4.trans_eq (by rw [← pow_mul, show 2 * k * 2 = 4 * k by ring]))
     have e : (fun ω => Cᶜ.indicator 1 ω * (f (T ω) - m) ^ (2 * k)) =
         Cᶜ.indicator fun ω => (f (T ω) - m) ^ (2 * k) := by
       funext ω
@@ -463,10 +463,11 @@ theorem exists_integral_sub_integral_pow_le_of_disorder_gradient (K₉ K₁₆ :
       congr 1
       ring
     have h4 : 4 * x ^ k ≤ (4 * x) ^ k := by
-      rw [mul_pow]
-      exact mul_le_mul_of_nonneg_right (le_self_pow₀ (by norm_num) hk0) (pow_nonneg hx0 _)
+      rw [mul_pow (4 : ℝ) x]
+      exact mul_le_mul_of_nonneg_right (le_self_pow₀ (by norm_num : (1 : ℝ) ≤ 4) hk0)
+        (pow_nonneg hx0 _)
     have h2 : 2 * y ^ k ≤ (2 * y) ^ k := by
-      rw [mul_pow]
+      rw [mul_pow (2 : ℝ) y]
       exact mul_le_mul_of_nonneg_right (le_self_pow₀ one_le_two hk0) (pow_nonneg hy0 _)
     refine (add_le_add (hgood.trans h4) (hfar.trans (h1.trans h2))).trans ?_
     refine (pow_add_pow_le (by positivity) (by positivity) hk0).trans_eq ?_
@@ -586,7 +587,8 @@ theorem exists_integral_shcherbinaTirozzi_selfOverlap_sub_pow_le (κ₀ h₀ D :
     obtain ⟨f', hf', hb⟩ := h316 N M κ h u d.1 Δ.1 d.2 Δ.2 hκ hh0 hh hM hN hu hu0 hD hud hu'
       hD1 hD2
     refine ⟨f', hf'.congr_of_eventuallyEq (Filter.Eventually.of_forall fun t => ?_), hb⟩
-    rw [← hm, hG]
+    refine (hm _).symm.trans ?_
+    rw [hG]
     rfl
   have h17 := h317 N M k hM hN hk m hmm hgrowth hgrad P hP
   have h12 := h312 N M k κ h u hκ hh0 hh hM hN hkN hu hu0 hD G hG P hP

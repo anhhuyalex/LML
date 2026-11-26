@@ -226,7 +226,7 @@ theorem norm_integral_smul_deriv_field_sub_mean_le {κ h : ℝ} (hκ : 0 < κ) {
 /-- **Differentiation along a line of the disorder.** For an observable of at most quadratic
 growth, `t ↦ ⟨F⟩_{g + t Δ, g₀ + t Δ₀}` has derivative `⟨F X⟩ - ⟨F⟩ ⟨X⟩` at `t`, where
 `X σ = ∑_k u'(S_k σ) S_k^Δ σ + h ∑_i Δ₀_i σ_i` is the derivative of `-H`. -/
-theorem hasDerivAt_integral_shcherbinaTirozziGibbs_line {κ h : ℝ} (hκ : 0 < κ) (hh : 0 ≤ h)
+theorem hasDerivAt_integral_shcherbinaTirozziGibbs_line {κ h : ℝ} (hκ : 0 < κ)
     {u : ℝ → ℝ} (hu : Differentiable ℝ u) (hu0 : ∀ x, u x ≤ 0) {D : ℝ}
     (hD : ∀ x, |deriv u x| ≤ D) (g Δ : Fin M → Fin N → ℝ) (g₀ Δ₀ : Fin N → ℝ)
     {F : ℝ^N → ℝ} (hF : Measurable F) {c : ℝ}
@@ -243,129 +243,39 @@ theorem hasDerivAt_integral_shcherbinaTirozziGibbs_line {κ h : ℝ} (hκ : 0 < 
             ∫ σ, X σ ∂(volume.tilted fun σ => -shcherbinaTirozziHamiltonian κ h u
               (fun k i => g k i + t * Δ k i) (fun i => g₀ i + t * Δ₀ i) σ)) t := by
   intro X hX
-  have hD0 : 0 ≤ D := (abs_nonneg _).trans (hD 0)
-  have hc : 0 ≤ c := by
-    have := (abs_nonneg _).trans (hFb 0)
-    simpa using this
-  set Y : ℝ → ℝ^N → ℝ := fun r σ =>
-    (∑ k, deriv u ((Real.sqrt N)⁻¹ * ∑ i, (g k i + r * Δ k i) * σ i) *
-      ((Real.sqrt N)⁻¹ * ∑ i, Δ k i * σ i)) + h * ∑ i, Δ₀ i * σ i with hY
-  set v : Fin M → ℝ^N :=
-    fun k => WithLp.toLp 2 (fun i => (Real.sqrt N)⁻¹ * Δ k i) with hv
-  set w : ℝ^N := WithLp.toLp 2 Δ₀ with hw
-  set a₀ : ℝ^N := WithLp.toLp 2 g₀ with ha₀
-  set L : ℝ := D * (∑ k, ‖v k‖) + h * ‖w‖ with hL
-  set R : ℝ := h * (‖a₀‖ + (|t| + 1) * ‖w‖) with hR
-  have hL0 : 0 ≤ L := by
-    have : 0 ≤ ∑ k, ‖v k‖ := Finset.sum_nonneg fun _ _ => norm_nonneg _
-    positivity
-  have hvS : ∀ (k : Fin M) (σ : ℝ^N),
-      (Real.sqrt N)⁻¹ * ∑ i, Δ k i * σ i = ⟪v k, σ⟫ := fun k σ =>
-    (inner_toLp_inv_sqrt_mul_eq _ _ _).symm
-  have hwS : ∀ σ : ℝ^N, ∑ i, Δ₀ i * σ i = ⟪w, σ⟫ := fun σ => by
-    have := inner_toLp_inv_sqrt_mul_eq 1 Δ₀ σ
-    simpa only [one_mul] using this.symm
-  have hYb : ∀ r σ, |Y r σ| ≤ L * ‖σ‖ := fun r σ => by
-    have h1 : |∑ k, deriv u ((Real.sqrt N)⁻¹ * ∑ i, (g k i + r * Δ k i) * σ i) *
-        ((Real.sqrt N)⁻¹ * ∑ i, Δ k i * σ i)| ≤ D * (∑ k, ‖v k‖) * ‖σ‖ := by
-      rw [Finset.mul_sum, Finset.sum_mul]
-      refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun k _ => ?_)
-      rw [abs_mul, hvS, mul_assoc]
-      exact mul_le_mul (hD _) (abs_real_inner_le_norm _ _) (abs_nonneg _) hD0
-    have h2 : |h * ∑ i, Δ₀ i * σ i| ≤ h * ‖w‖ * ‖σ‖ := by
-      rw [abs_mul, abs_of_nonneg hh, hwS, mul_assoc]
-      exact mul_le_mul_of_nonneg_left (abs_real_inner_le_norm _ _) hh
-    rw [hY, hL, add_mul]
-    exact (abs_add_le _ _).trans (add_le_add h1 h2)
-  have hconf : ∀ r ∈ Metric.ball t 1, ∀ σ : ℝ^N,
-      -shcherbinaTirozziHamiltonian κ h u (fun k i => g k i + r * Δ k i)
-        (fun i => g₀ i + r * Δ₀ i) σ ≤ R * ‖σ‖ - κ * ‖σ‖ ^ 2 := fun r hr σ => by
-    have hr' : |r| ≤ |t| + 1 := by
-      rw [Metric.mem_ball, Real.dist_eq] at hr
-      have := abs_sub_abs_le_abs_sub r t
-      linarith
-    rw [neg_shcherbinaTirozziHamiltonian_eq]
-    have h1 : ∑ k, u ((Real.sqrt N)⁻¹ * ∑ i, (g k i + r * Δ k i) * σ i) ≤ 0 :=
-      Finset.sum_nonpos fun k _ => hu0 _
-    have h2 : ⟪(WithLp.toLp 2 (fun i => h * (g₀ i + r * Δ₀ i)) : ℝ^N), σ⟫ ≤
-        R * ‖σ‖ := by
-      have e : (WithLp.toLp 2 (fun i => h * (g₀ i + r * Δ₀ i)) : ℝ^N) =
-          h • (a₀ + r • w) := rfl
-      refine (real_inner_le_norm _ _).trans (mul_le_mul_of_nonneg_right ?_ (norm_nonneg _))
-      rw [e, norm_smul, Real.norm_of_nonneg hh, hR]
-      refine mul_le_mul_of_nonneg_left ((norm_add_le _ _).trans (add_le_add le_rfl ?_)) hh
-      rw [norm_smul, Real.norm_eq_abs]
-      exact mul_le_mul_of_nonneg_right hr' (norm_nonneg _)
-    linarith
-  set b : ℝ^N → ℝ := fun σ => (1 + c) * Real.exp ((R + L + 2) ^ 2 / (2 * κ)) *
-    Real.exp (-(κ / 2) * ‖σ‖ ^ 2) with hb
-  have hbi : Integrable b := by
-    have := integrable_exp_neg_mul_sq_norm_add_inner (E := ℝ^N) (half_pos hκ) 0
-    simp only [inner_zero_left, add_zero] at this
-    exact this.const_mul _
-  have hder : ∀ (σ : ℝ^N) (r : ℝ), HasDerivAt
-      (fun q => -shcherbinaTirozziHamiltonian κ h u (fun k i => g k i + q * Δ k i)
-        (fun i => g₀ i + q * Δ₀ i) σ) (Y r σ) r := fun σ r => by
-    have hlin : ∀ a d : Fin N → ℝ, HasDerivAt (fun q => ∑ i, (a i + q * d i) * σ i)
-        (∑ i, d i * σ i) r := fun a d => by
-      refine HasDerivAt.fun_sum fun i _ => ?_
-      simpa using (((hasDerivAt_id r).mul_const (d i)).const_add (a i)).mul_const (σ i)
-    have hsum : HasDerivAt (fun q => ∑ k, u ((Real.sqrt N)⁻¹ *
-          ∑ i, (g k i + q * Δ k i) * σ i))
-        (∑ k, deriv u ((Real.sqrt N)⁻¹ * ∑ i, (g k i + r * Δ k i) * σ i) *
-          ((Real.sqrt N)⁻¹ * ∑ i, Δ k i * σ i)) r :=
-      HasDerivAt.fun_sum fun k _ =>
-        (hu _).hasDerivAt.comp r ((hlin (g k) (Δ k)).const_mul _)
-    have hext := (hlin g₀ Δ₀).const_mul h
-    have htot := (hsum.sub_const (κ * ‖σ‖ ^ 2)).add hext
-    refine htot.congr_of_eventuallyEq (Filter.Eventually.of_forall fun q => ?_)
-    simp only [shcherbinaTirozziHamiltonian, Pi.add_apply]
+  -- the model is the case `v k = g k / √N`, `a = h g₀` of the general ridge potential
+  set v : Fin M → ℝ^N := fun k => WithLp.toLp 2 (fun i => (Real.sqrt N)⁻¹ * g k i) with hv
+  set w : Fin M → ℝ^N := fun k => WithLp.toLp 2 (fun i => (Real.sqrt N)⁻¹ * Δ k i) with hw
+  set a : ℝ^N := WithLp.toLp 2 (fun i => h * g₀ i) with ha
+  set c' : ℝ^N := WithLp.toLp 2 (fun i => h * Δ₀ i) with hc'
+  have hline : ∀ (r : ℝ) (k : Fin M) (σ : ℝ^N), ⟪v k + r • w k, σ⟫ =
+      (Real.sqrt N)⁻¹ * ∑ i, (g k i + r * Δ k i) * σ i := fun r k σ => by
+    rw [← inner_toLp_inv_sqrt_mul_eq]
+    congr 1
+    ext i
+    change (Real.sqrt N)⁻¹ * g k i + r * ((Real.sqrt N)⁻¹ * Δ k i) =
+      (Real.sqrt N)⁻¹ * (g k i + r * Δ k i)
     ring
-  have hum : Measurable u := hu.continuous.measurable
-  have hXY : X = Y t := funext hX
-  rw [hXY]
-  refine hasDerivAt_integral_tilted_of_envelope (μ := volume) (s := Metric.ball t 1)
-    (e' := Y) (Metric.ball_mem_nhds t one_pos)
-    (fun r _ => (measurable_shcherbinaTirozziHamiltonian_apply κ h hum _ _).neg) ?_ hF hbi
-    (fun r hr σ => ?_) (fun σ r _ => hder σ r)
-  · have hdm : Measurable (deriv u) := measurable_deriv u
-    have hσ : ∀ i : Fin N, Measurable fun σ : ℝ^N => σ i := fun i =>
-      (PiLp.continuous_apply 2 (fun _ : Fin N => ℝ) i).measurable
-    refine (Finset.measurable_sum _ fun k _ => (hdm.comp
-      ((Finset.measurable_sum _ fun i _ => (hσ i).const_mul _).const_mul _)).mul
-        ((Finset.measurable_sum _ fun i _ => (hσ i).const_mul _).const_mul _)).add
-      ((Finset.measurable_sum _ fun i _ => (hσ i).const_mul _).const_mul _)
-  · obtain ⟨s, hs⟩ : ∃ s : ℝ, ‖σ‖ = s := ⟨_, rfl⟩
-    have hs0 : 0 ≤ s := hs ▸ norm_nonneg _
-    have h1 : 1 + |F σ| ≤ (1 + c) * Real.exp (2 * s) := by
-      have h2 : 1 + s ^ 2 ≤ Real.exp (2 * s) := by
-        have := Real.quadratic_le_exp_of_nonneg (mul_nonneg zero_le_two hs0)
-        nlinarith
-      have h3 : 1 + |F σ| ≤ (1 + c) * (1 + s ^ 2) := by
-        have := hFb σ
-        rw [hs] at this
-        nlinarith [sq_nonneg s]
-      exact h3.trans (mul_le_mul_of_nonneg_left h2 (by linarith))
-    have h4 : 1 + |Y r σ| ≤ Real.exp (L * s) :=
-      hs ▸ (add_le_add le_rfl (hYb r σ)).trans ((add_comm _ _).trans_le (Real.add_one_le_exp _))
-    have h5 : -shcherbinaTirozziHamiltonian κ h u (fun k i => g k i + r * Δ k i)
-        (fun i => g₀ i + r * Δ₀ i) σ ≤ R * s - κ * s ^ 2 := hs ▸ hconf r hr σ
-    refine (mul_le_mul (mul_le_mul h1 h4 (by positivity) (by positivity))
-      (Real.exp_le_exp.2 h5) (Real.exp_pos _).le (by positivity)).trans ?_
-    rw [hb]
-    simp only
-    rw [hs, mul_assoc (1 + c), mul_assoc (1 + c), mul_assoc (1 + c), ← Real.exp_add,
-      ← Real.exp_add, ← Real.exp_add]
-    refine mul_le_mul_of_nonneg_left (Real.exp_le_exp.2 ?_) (by linarith)
-    have hsq : (R + L + 2) * s ≤ (R + L + 2) ^ 2 / (2 * κ) + κ / 2 * s ^ 2 := by
-      have h0 : 0 ≤ (κ * s - (R + L + 2)) ^ 2 / (2 * κ) :=
-        div_nonneg (sq_nonneg _) (by positivity)
-      have e : (κ * s - (R + L + 2)) ^ 2 / (2 * κ) =
-          (R + L + 2) ^ 2 / (2 * κ) + κ / 2 * s ^ 2 - (R + L + 2) * s := by
-        field_simp
-        ring
-      linarith
-    nlinarith
+  have hH : ∀ r : ℝ, (fun σ : ℝ^N => -shcherbinaTirozziHamiltonian κ h u
+        (fun k i => g k i + r * Δ k i) (fun i => g₀ i + r * Δ₀ i) σ) =
+      fun σ => (∑ k, u ⟪v k + r • w k, σ⟫) - κ * ‖σ‖ ^ 2 + ⟪a + r • c', σ⟫ := fun r => by
+    funext σ
+    have e : a + r • c' = WithLp.toLp 2 (fun i => h * (g₀ i + r * Δ₀ i)) := by
+      ext i
+      change h * g₀ i + r * (h * Δ₀ i) = h * (g₀ i + r * Δ₀ i)
+      ring
+    rw [neg_shcherbinaTirozziHamiltonian_eq, e]
+    simp only [hline]
+  have hXe : X = fun σ => (∑ k, deriv u ⟪v k + t • w k, σ⟫ * ⟪w k, σ⟫) + ⟪c', σ⟫ := by
+    funext σ
+    have h1 : ∀ k, ⟪w k, σ⟫ = (Real.sqrt N)⁻¹ * ∑ i, Δ k i * σ i := fun k =>
+      inner_toLp_inv_sqrt_mul_eq _ _ _
+    have h2 : ⟪c', σ⟫ = h * ∑ i, Δ₀ i * σ i := inner_toLp_inv_sqrt_mul_eq _ _ _
+    rw [hX]
+    simp only [hline, h1, h2]
+  simp only [hH]
+  rw [hXe]
+  exact hasDerivAt_integral_tilted_sum_comp_inner_line hκ hu hu0 hD v w a c' hF hFb t
 
 /-- **The covariance bound behind Proposition 3.1.16.** For a centered `f ∈ L²(G)` and the
 derivative `X` of `-H` in the disorder direction `(Δ, Δ₀)`,
@@ -707,7 +617,7 @@ theorem exists_hasDerivAt_integral_shcherbinaTirozzi_selfOverlap_line (κ₀ h�
   set X : ℝ^N → ℝ := fun σ =>
     (∑ k, deriv u ((Real.sqrt N)⁻¹ * ∑ i, g k i * σ i) *
       ((Real.sqrt N)⁻¹ * ∑ i, Δ k i * σ i)) + h * ∑ i, Δ₀ i * σ i with hX
-  have hder := hasDerivAt_integral_shcherbinaTirozziGibbs_line hκ0 hh0 hud hu0 hD1 g Δ g₀ Δ₀
+  have hder := hasDerivAt_integral_shcherbinaTirozziGibbs_line (h := h) hκ0 hud hu0 hD1 g Δ g₀ Δ₀
     hFm hFb 0 X fun σ => by simp [hX]
   simp only [zero_mul, add_zero, ← hG] at hder
   refine ⟨_, hder, ?_⟩
@@ -795,7 +705,7 @@ theorem exists_hasDerivAt_integral_shcherbinaTirozzi_overlap_line (κ₀ h₀ D 
         simpa only [Real.norm_eq_abs] using PiLp.norm_apply_le σ i
       rw [one_mul]
       nlinarith [sq_nonneg (‖σ‖ - 1), norm_nonneg σ]
-    have h := hasDerivAt_integral_shcherbinaTirozziGibbs_line hκ0 hh0 hud hu0 hD1 g Δ g₀ Δ₀
+    have h := hasDerivAt_integral_shcherbinaTirozziGibbs_line (h := h) hκ0 hud hu0 hD1 g Δ g₀ Δ₀
       hm hbound 0 X fun σ => by simp [hX]
     simp only [← hGt] at h
     rw [hb, hbi]

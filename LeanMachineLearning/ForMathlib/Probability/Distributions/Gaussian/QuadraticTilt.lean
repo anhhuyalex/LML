@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import Mathlib.MeasureTheory.Measure.Tilted
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.BoundedTilted
 public import LeanMachineLearning.ForMathlib.Probability.StdGaussianRadial
 
 /-!
@@ -20,6 +21,9 @@ Integrals against `exp (-b ‖v‖² + ⟪a, v⟫)` on a finite-dimensional real
 * `integral_mul_exp_neg_mul_sq_norm`: the weight `exp (-b ‖v‖²)` is a rescaled standard Gaussian.
 * `integral_abs_inner_stdGaussian_le`: `𝔼 |⟪a, z⟫| ≤ ‖a‖`.
 * `integral_tilted_restrict_neg_half_sq_norm`: conditioning a standard Gaussian on a set.
+* `hasDerivAt_integral_tilted_sum_comp_inner_line`: differentiation of `⟨F⟩` along a line of the
+  vectors defining the density proportional to
+  `exp (∑ k, u ⟪v k, σ⟫ - κ ‖σ‖² + ⟪a, σ⟫)`.
 * `integrable_exp_add_neg_mul_sq_norm_add_inner` and
   `integral_exp_half_sq_norm_tilted_le`: for a nonpositive perturbation `U`, the density
   proportional to `exp (U v - κ ‖v‖² + ⟪a, v⟫)` satisfies
@@ -217,3 +221,121 @@ theorem integral_exp_half_sq_norm_tilted_le (hU : Measurable U) (hU0 : ∀ v, U 
     ring
 
 end NonpositivePerturbation
+
+section RidgePotential
+
+variable {ι : Type*} [Fintype ι]
+
+/-- **Differentiation of a Gibbs average along a line of the parameters.** Let the density be
+proportional to `exp (∑ k, u ⟪v k, σ⟫ - κ ‖σ‖² + ⟪a, σ⟫)`, with `u ≤ 0` differentiable and
+`|u'| ≤ D`. For an observable of at most quadratic growth, `r ↦ ⟨F⟩` along
+`(v + r w, a + r c)` has derivative `⟨F X⟩ - ⟨F⟩ ⟨X⟩` at `t`, where
+`X σ = ∑ k, u' ⟪v k + t w k, σ⟫ ⟪w k, σ⟫ + ⟪c, σ⟫`. -/
+theorem hasDerivAt_integral_tilted_sum_comp_inner_line {κ : ℝ} (hκ : 0 < κ) {u : ℝ → ℝ}
+    (hu : Differentiable ℝ u) (hu0 : ∀ x, u x ≤ 0) {D : ℝ} (hD : ∀ x, |deriv u x| ≤ D)
+    (v w : ι → E) (a c : E) {F : E → ℝ} (hF : Measurable F) {C : ℝ}
+    (hFb : ∀ σ, |F σ| ≤ C * (1 + ‖σ‖ ^ 2)) (t : ℝ) :
+    HasDerivAt (fun r : ℝ => ∫ σ, F σ ∂(volume.tilted fun σ =>
+        (∑ k, u ⟪v k + r • w k, σ⟫) - κ * ‖σ‖ ^ 2 + ⟪a + r • c, σ⟫))
+      ((∫ σ, F σ * ((∑ k, deriv u ⟪v k + t • w k, σ⟫ * ⟪w k, σ⟫) + ⟪c, σ⟫)
+          ∂(volume.tilted fun σ =>
+            (∑ k, u ⟪v k + t • w k, σ⟫) - κ * ‖σ‖ ^ 2 + ⟪a + t • c, σ⟫)) -
+        (∫ σ, F σ ∂(volume.tilted fun σ =>
+            (∑ k, u ⟪v k + t • w k, σ⟫) - κ * ‖σ‖ ^ 2 + ⟪a + t • c, σ⟫)) *
+          ∫ σ, (∑ k, deriv u ⟪v k + t • w k, σ⟫ * ⟪w k, σ⟫) + ⟪c, σ⟫
+            ∂(volume.tilted fun σ =>
+              (∑ k, u ⟪v k + t • w k, σ⟫) - κ * ‖σ‖ ^ 2 + ⟪a + t • c, σ⟫)) t := by
+  have hD0 : 0 ≤ D := (abs_nonneg _).trans (hD 0)
+  have hC : 0 ≤ C := by
+    have := (abs_nonneg _).trans (hFb 0)
+    simpa using this
+  have hum : Measurable u := hu.continuous.measurable
+  set e : ℝ → E → ℝ := fun r σ =>
+    (∑ k, u ⟪v k + r • w k, σ⟫) - κ * ‖σ‖ ^ 2 + ⟪a + r • c, σ⟫ with he
+  set X : ℝ → E → ℝ := fun r σ =>
+    (∑ k, deriv u ⟪v k + r • w k, σ⟫ * ⟪w k, σ⟫) + ⟪c, σ⟫ with hX
+  set L : ℝ := D * (∑ k, ‖w k‖) + ‖c‖ with hL
+  set R : ℝ := ‖a‖ + (|t| + 1) * ‖c‖ with hR
+  have hL0 : 0 ≤ L := by
+    have : 0 ≤ ∑ k, ‖w k‖ := Finset.sum_nonneg fun _ _ => norm_nonneg _
+    positivity
+  have hXb : ∀ r σ, |X r σ| ≤ L * ‖σ‖ := fun r σ => by
+    have h1 : |∑ k, deriv u ⟪v k + r • w k, σ⟫ * ⟪w k, σ⟫| ≤ D * (∑ k, ‖w k‖) * ‖σ‖ := by
+      rw [Finset.mul_sum, Finset.sum_mul]
+      refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun k _ => ?_)
+      rw [abs_mul, mul_assoc]
+      exact mul_le_mul (hD _) (abs_real_inner_le_norm _ _) (abs_nonneg _) hD0
+    rw [hX, hL, add_mul]
+    exact (abs_add_le _ _).trans (add_le_add h1 (abs_real_inner_le_norm _ _))
+  have hconf : ∀ r ∈ Metric.ball t 1, ∀ σ : E, e r σ ≤ R * ‖σ‖ - κ * ‖σ‖ ^ 2 := fun r hr σ => by
+    have hr' : |r| ≤ |t| + 1 := by
+      rw [Metric.mem_ball, Real.dist_eq] at hr
+      have := abs_sub_abs_le_abs_sub r t
+      linarith
+    have h1 : ∑ k, u ⟪v k + r • w k, σ⟫ ≤ 0 := Finset.sum_nonpos fun k _ => hu0 _
+    have h2 : ⟪a + r • c, σ⟫ ≤ R * ‖σ‖ := by
+      refine (real_inner_le_norm _ _).trans (mul_le_mul_of_nonneg_right ?_ (norm_nonneg _))
+      refine (norm_add_le _ _).trans (add_le_add le_rfl ?_)
+      rw [norm_smul, Real.norm_eq_abs]
+      exact mul_le_mul_of_nonneg_right hr' (norm_nonneg _)
+    simp only [he]
+    linarith
+  set b : E → ℝ := fun σ => (1 + C) * Real.exp ((R + L + 2) ^ 2 / (2 * κ)) *
+    Real.exp (-(κ / 2) * ‖σ‖ ^ 2) with hb
+  have hbi : Integrable b := by
+    have := integrable_exp_neg_mul_sq_norm_add_inner (E := E) (half_pos hκ) 0
+    simp only [inner_zero_left, add_zero] at this
+    exact this.const_mul _
+  have hder : ∀ (σ : E) (r : ℝ), HasDerivAt (fun q => e q σ) (X r σ) r := fun σ r => by
+    have hlin : ∀ x y : E, HasDerivAt (fun q : ℝ => ⟪x + q • y, σ⟫) ⟪y, σ⟫ r := fun x y => by
+      have e : (fun q : ℝ => ⟪x + q • y, σ⟫) = fun q => ⟪x, σ⟫ + q * ⟪y, σ⟫ := by
+        funext q
+        rw [inner_add_left, real_inner_smul_left]
+      rw [e]
+      simpa using ((hasDerivAt_id r).mul_const ⟪y, σ⟫).const_add ⟪x, σ⟫
+    have hsum : HasDerivAt (fun q => ∑ k, u ⟪v k + q • w k, σ⟫)
+        (∑ k, deriv u ⟪v k + r • w k, σ⟫ * ⟪w k, σ⟫) r :=
+      HasDerivAt.fun_sum fun k _ => (hu _).hasDerivAt.comp r (hlin (v k) (w k))
+    exact (hsum.sub_const (κ * ‖σ‖ ^ 2)).add (hlin a c)
+  have hem : ∀ r, Measurable (e r) := fun r => by
+    refine Measurable.add (Measurable.sub ?_ (by fun_prop)) (by fun_prop)
+    exact Finset.measurable_sum _ fun k _ => hum.comp (by fun_prop)
+  have hXm : Measurable (X t) := by
+    refine Measurable.add (Finset.measurable_sum _ fun k _ => ?_) (by fun_prop)
+    exact ((measurable_deriv u).comp (by fun_prop : Measurable fun σ : E =>
+      ⟪v k + t • w k, σ⟫)).mul (by fun_prop)
+  refine hasDerivAt_integral_tilted_of_envelope (μ := volume) (s := Metric.ball t 1) (e := e)
+    (e' := X) (Metric.ball_mem_nhds t one_pos) (fun r _ => hem r) hXm hF hbi
+    (fun r hr σ => ?_) (fun σ r _ => hder σ r)
+  obtain ⟨s, hs⟩ : ∃ s : ℝ, ‖σ‖ = s := ⟨_, rfl⟩
+  have hs0 : 0 ≤ s := hs ▸ norm_nonneg _
+  have h1 : 1 + |F σ| ≤ (1 + C) * Real.exp (2 * s) := by
+    have h2 : 1 + s ^ 2 ≤ Real.exp (2 * s) := by
+      have := Real.quadratic_le_exp_of_nonneg (mul_nonneg zero_le_two hs0)
+      nlinarith
+    have h3 : 1 + |F σ| ≤ (1 + C) * (1 + s ^ 2) := by
+      have := hFb σ
+      rw [hs] at this
+      nlinarith [sq_nonneg s]
+    exact h3.trans (mul_le_mul_of_nonneg_left h2 (by linarith))
+  have h4 : 1 + |X r σ| ≤ Real.exp (L * s) :=
+    hs ▸ (add_le_add le_rfl (hXb r σ)).trans ((add_comm _ _).trans_le (Real.add_one_le_exp _))
+  have h5 : e r σ ≤ R * s - κ * s ^ 2 := hs ▸ hconf r hr σ
+  refine (mul_le_mul (mul_le_mul h1 h4 (by positivity) (by positivity))
+    (Real.exp_le_exp.2 h5) (Real.exp_pos _).le (by positivity)).trans ?_
+  rw [hb]
+  simp only
+  rw [hs, mul_assoc (1 + C), mul_assoc (1 + C), mul_assoc (1 + C), ← Real.exp_add,
+    ← Real.exp_add, ← Real.exp_add]
+  refine mul_le_mul_of_nonneg_left (Real.exp_le_exp.2 ?_) (by linarith)
+  have hsq : (R + L + 2) * s ≤ (R + L + 2) ^ 2 / (2 * κ) + κ / 2 * s ^ 2 := by
+    have h0 : 0 ≤ (κ * s - (R + L + 2)) ^ 2 / (2 * κ) :=
+      div_nonneg (sq_nonneg _) (by positivity)
+    have e : (κ * s - (R + L + 2)) ^ 2 / (2 * κ) =
+        (R + L + 2) ^ 2 / (2 * κ) + κ / 2 * s ^ 2 - (R + L + 2) * s := by
+      field_simp
+      ring
+    linarith
+  nlinarith
+
+end RidgePotential

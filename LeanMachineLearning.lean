@@ -28,11 +28,13 @@ public import LeanMachineLearning.ForMathlib.Analysis.Convex.Bregman.Basic
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.DerivConvergence
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.Integral
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.PointwiseLimitKink
+public import LeanMachineLearning.ForMathlib.Analysis.Convex.PrekopaLeindler
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.Subgradient.Basic
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.Subgradient.Deriv
 public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.GramIsometry
 public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.ProjectionDistance
 public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.UltrametricEmbed
+public import LeanMachineLearning.ForMathlib.Analysis.Normed.UnitBallNet
 public import LeanMachineLearning.ForMathlib.Analysis.RatioBound
 public import LeanMachineLearning.ForMathlib.Analysis.RpowTsum
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.AddPowEstimates
@@ -156,6 +158,7 @@ public import LeanMachineLearning.ForMathlib.Probability.ConditionallyIID
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Gaussian.ExpSq
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Gaussian.ExpSqLinear
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Gaussian.ExponentialTilt
+public import LeanMachineLearning.ForMathlib.Probability.Distributions.Gaussian.QuadraticTilt
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Gaussian.Shift
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Gaussian.Symmetry
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Poisson.SumCountable
@@ -209,6 +212,7 @@ public import LeanMachineLearning.ForMathlib.Probability.Kernel.MeasurableSpace
 public import LeanMachineLearning.ForMathlib.Probability.Kernel.RadonNikodym
 public import LeanMachineLearning.ForMathlib.Probability.Kernel.Sigma
 public import LeanMachineLearning.ForMathlib.Probability.LaplacePrinciple
+public import LeanMachineLearning.ForMathlib.Probability.Median
 public import LeanMachineLearning.ForMathlib.Probability.Moments.CGFConvex
 public import LeanMachineLearning.ForMathlib.Probability.Moments.CGFQuotient
 public import LeanMachineLearning.ForMathlib.Probability.Moments.DiscreteLyapunov
@@ -221,6 +225,7 @@ public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianContinu
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianExp
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianGram
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianMatrix
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianMatrixNorm
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianMomentBound
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiExp
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiLinearForm
@@ -232,6 +237,7 @@ public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianSteinRa
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianVector
 public import LeanMachineLearning.ForMathlib.Probability.Moments.IidSumExpansion
 public import LeanMachineLearning.ForMathlib.Probability.Moments.IidSumMoments
+public import LeanMachineLearning.ForMathlib.Probability.Moments.LogConcaveConcentration
 public import LeanMachineLearning.ForMathlib.Probability.Moments.MemLpExp
 public import LeanMachineLearning.ForMathlib.Probability.Moments.PiSumChebyshev
 public import LeanMachineLearning.ForMathlib.Probability.Moments.SecondMoment
@@ -788,6 +794,11 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.Fixe
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.LargeReplicas
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.Limit
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.Stationarity
+public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.Convexity
+public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.DisorderConcentration
+public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.GradientBound
+public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.Moments
+public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.OverlapConcentration
 public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKAsymptoticProduct
 public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKCorrelationDecay
 public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKCovarianceSiteSymmetry
