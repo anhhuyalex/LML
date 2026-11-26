@@ -76,27 +76,6 @@ theorem shcherbinaTirozziHardFunctional_ratio_eq (α κ h τ : ℝ) {x ρ : ℝ}
   rw [Real.log_div hρ.ne' h1x.ne']
   field_simp
 
-/-- Differentiation of `t ↦ 𝔼 log ℙ (ξ ≥ m t + σ t z)`. -/
-private theorem hasDerivAt_integral_log_gaussianTail {m σ m' σ' : ℝ → ℝ} {t : ℝ}
-    (hm : ∀ᶠ s in 𝓝 t, HasDerivAt m (m' s) s) (hσ : ∀ᶠ s in 𝓝 t, HasDerivAt σ (σ' s) s)
-    (hm' : ContinuousAt m' t) (hσ' : ContinuousAt σ' t) :
-    HasDerivAt (fun s => ∫ z, Real.log ((gaussianReal 0 1).real (Ici (m s + σ s * z)))
-        ∂(gaussianReal 0 1))
-      (∫ z, -(mills (m t + σ t * z)) * (m' t + σ' t * z) ∂(gaussianReal 0 1)) t := by
-  obtain ⟨C, hC0, hC⟩ := exists_gaussianPDFReal_div_measureReal_Ici_le
-  obtain ⟨C', hC'0, hC'⟩ := exists_abs_log_measureReal_gaussianReal_Ici_le
-  refine hasDerivAt_integral_comp_add_mul_gaussianReal
-    (f := fun v => Real.log ((gaussianReal 0 1).real (Ici v))) (C := C' + C + 1) (k := 2)
-    hasDerivAt_log_measureReal_gaussianReal_Ici
-    monotone_gaussianPDFReal_div_measureReal_Ici.measurable.neg (fun y => ?_) (fun y => ?_)
-    hm hσ hm' hσ'
-  · exact (hC' y).trans (mul_le_mul_of_nonneg_right (by linarith) (sq_nonneg _))
-  · rw [abs_neg, abs_of_nonneg (gaussianPDFReal_div_measureReal_Ici_nonneg _)]
-    refine (hC y).trans ?_
-    have h1 := abs_nonneg y
-    nlinarith [mul_nonneg hC0 h1, mul_nonneg hC'0 h1, mul_nonneg hC0 (sq_nonneg |y|),
-      mul_nonneg hC'0 (sq_nonneg |y|), sq_nonneg |y|]
-
 /-- **Lemma 3.3.13, Eq. (3.151):** the derivative in `ρ` of
 `G (x, ρ) = F (x ρ / (1 + x), ρ)`. -/
 theorem hasDerivAt_shcherbinaTirozziHardFunctional_self (α κ h τ : ℝ) {x ρ : ℝ} (hx : 0 ≤ x)
@@ -284,15 +263,6 @@ theorem strictMonoOn_shcherbinaTirozziHardFunctional_ratio_deriv {α h τ ρ : �
     monotone_gaussianPDFReal_div_measureReal_Ici.measurable
   have hA0 : ∀ v, 0 ≤ mills v := gaussianPDFReal_div_measureReal_Ici_nonneg
   set A' : ℝ → ℝ := fun v => mills v ^ 2 - v * mills v with hA'
-  have hA'm : Measurable A' := (hAm.pow_const 2).sub (measurable_id.mul hAm)
-  have hf : ∀ v, HasDerivAt (fun v => mills v ^ 2) (2 * mills v * A' v) v := fun v => by
-    refine ((hd v).1.pow 2).congr_deriv ?_
-    simp only [hA']
-    push_cast
-    ring
-  obtain ⟨K, hK⟩ := exists_abs_sq_gaussianPDFReal_div_measureReal_Ici_le
-  have hg1 : ∀ v, |mills v ^ 2| ≤ K * (1 + |v|) ^ 3 := fun v => (hK v).1
-  have hg2 : ∀ v, |2 * mills v * A' v| ≤ K * (1 + |v|) ^ 3 := fun v => (hK v).2
   -- derivative at every `x > 0`
   have key : ∀ x ∈ Ioi (0 : ℝ), ∃ D, 0 < D ∧ HasDerivAt (fun x => 1 - α *
       (∫ z, mills (τ * Real.sqrt (1 + x) / Real.sqrt ρ + -Real.sqrt x * z) ^ 2
@@ -321,9 +291,8 @@ theorem strictMonoOn_shcherbinaTirozziHardFunctional_ratio_deriv {α h τ ρ : �
     have hσc : ContinuousAt σ' x := ContinuousAt.neg (ContinuousAt.div continuousAt_const
       (by fun_prop : ContinuousAt (fun y : ℝ => 2 * Real.sqrt y) x)
       (mul_ne_zero two_ne_zero hsx))
-    have hM := hasDerivAt_integral_comp_add_mul_gaussianReal (f := fun v => mills v ^ 2)
-      (f' := fun v => 2 * mills v * A' v) (C := K) (k := 3) (m := m) (σ := σ) (m' := m')
-      (σ' := σ') (t := x) hf ((measurable_const.mul hAm).mul hA'm) hg1 hg2
+    obtain ⟨hM'i, hM⟩ := hasDerivAt_integral_sq_gaussianPDFReal_div_measureReal_Ici_comp
+      (m := m) (σ := σ) (m' := m') (σ' := σ') (t := x)
       ((eventually_gt_nhds hx).mono fun y hy => hmd y hy)
       ((eventually_gt_nhds hx).mono fun y hy => hσd y hy) hmc hσc
     set M' := ∫ z, 2 * mills (m x + σ x * z) * A' (m x + σ x * z) * (m' x + σ' x * z)
@@ -368,10 +337,6 @@ theorem strictMonoOn_shcherbinaTirozziHardFunctional_ratio_deriv {α h τ ρ : �
         (mul_nonneg he0 (mul_nonneg hpos.le (hd v).2))
     have hMi : Integrable (fun z => mills (m x + σ x * z) ^ 2) (gaussianReal 0 1) :=
       (integrable_gaussianPDFReal_div_measureReal_Ici_comp (m x) (σ x)).2.2
-    have hM'i : Integrable (fun z => 2 * mills (m x + σ x * z) * A' (m x + σ x * z) *
-        (m' x + σ' x * z)) (gaussianReal 0 1) := by
-      exact integrable_comp_add_mul_mul_add_mul_gaussianReal
-        (g := fun v => 2 * mills v * A' v) ((measurable_const.mul hAm).mul hA'm) hg2 _ _ _ _
     have hGi : Integrable G (gaussianReal 0 1) := hMi.sub (hM'i.const_mul x)
     have hGint : ∫ z, G z ∂(gaussianReal 0 1) = M - x * M' := by
       rw [hMdef, hM', ← integral_const_mul]

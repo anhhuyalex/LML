@@ -28,6 +28,8 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.BoundedTilte
   `c ∫ (x - x₀)² exp (w x) ≤ ∫ exp (w x)` (Lemma 3.2.2, Eq. (3.70)).
 * `MeasureTheory.exists_integral_sub_sq_mul_exp_concave_sub_mul_sq_le`: the same bound for
   `w x = v x - κ x² + d x` with `v` concave, around the maximizer of `w`.
+* `MeasureTheory.abs_integral_volume_tilted_sub_le_of_mul_integral_sq_le`: a variance bound
+  around `x₀` places the mean near `x₀`.
 * `MeasureTheory.abs_integral_volume_tilted_concave_sub_mul_sq_le`: for the density
   proportional to `exp (f x - κ x² + d x)` with `f` concave, the mean is at most
   `(2 κ)^{-1/2} + |f' 0 + d| / (2 κ)` in absolute value (Eq. (3.86)).
@@ -272,6 +274,39 @@ theorem exists_integral_sub_sq_mul_exp_concave_sub_mul_sq_le {v v' : ℝ → ℝ
       exact le_of_mul_le_mul_right h1 h
   exact ⟨x₀, hx0, mul_integral_sub_sq_mul_exp_le h2κ hwd hkey⟩
 
+/-- **The mean is close to a point of small variance:** if `c ∫ (x - x₀)² exp (w x) ≤
+∫ exp (w x)` with `c > 0`, then the probability measure with density proportional to `exp w` has a
+finite mean within `c^{-1/2}` of `x₀`. No regularity of `w` is assumed. -/
+theorem abs_integral_volume_tilted_sub_le_of_mul_integral_sq_le {w : ℝ → ℝ} {c x₀ : ℝ}
+    (hc : 0 < c) (hi : Integrable fun x => Real.exp (w x))
+    (hi2 : Integrable fun x => (x - x₀) ^ 2 * Real.exp (w x))
+    (hvar : c * ∫ x, (x - x₀) ^ 2 * Real.exp (w x) ≤ ∫ x, Real.exp (w x)) :
+    Integrable (fun x : ℝ => x) (volume.tilted w) ∧
+      |(∫ x, x ∂((volume : Measure ℝ).tilted w)) - x₀| ≤ Real.sqrt c⁻¹ := by
+  have hprob : IsProbabilityMeasure ((volume : Measure ℝ).tilted w) :=
+    isProbabilityMeasure_tilted hi
+  set G := (volume : Measure ℝ).tilted w with hG
+  have hsq : Integrable (fun x => (x - x₀) ^ 2) G := by
+    rw [hG, integrable_tilted_iff hi]
+    simpa only [smul_eq_mul, mul_comm] using hi2
+  have hsqle : ∫ x, (x - x₀) ^ 2 ∂G ≤ c⁻¹ := by
+    have hZ : 0 < ∫ x, Real.exp (w x) := integral_exp_pos hi
+    have e : ∫ x, (x - x₀) ^ 2 ∂G =
+        (∫ x, (x - x₀) ^ 2 * Real.exp (w x)) / ∫ x, Real.exp (w x) := by
+      rw [hG, integral_tilted_eq_div]
+    rw [e, div_le_iff₀ hZ, inv_mul_eq_div, le_div_iff₀' hc]
+    exact hvar
+  have hL2 : MemLp (fun x => x - x₀) 2 G :=
+    (memLp_two_iff_integrable_sq (by fun_prop : Measurable fun x : ℝ => x - x₀
+      ).aestronglyMeasurable).2 hsq
+  have hid : Integrable (fun x : ℝ => x) G :=
+    ((hL2.integrable one_le_two).add (integrable_const x₀)).congr
+      (ae_of_all _ fun x => by simp)
+  refine ⟨hid, Real.abs_le_sqrt (le_trans ?_ hsqle)⟩
+  have h := sq_norm_integral_le_integral_sq_norm hL2
+  simp only [Real.norm_eq_abs, sq_abs] at h
+  rwa [integral_sub hid (integrable_const x₀), integral_const, probReal_univ, one_smul] at h
+
 /-- **The mean of a one-dimensional strongly log-concave density** (Talagrand, Eq. (3.86)): for
 `f` concave and differentiable and `κ > 0`, the probability measure with density proportional to
 `exp (f x - κ x² + d x)` has a finite mean, of absolute value at most
@@ -280,36 +315,13 @@ theorem abs_integral_volume_tilted_concave_sub_mul_sq_le {f f' : ℝ → ℝ} (h
     (hfd : ∀ x, HasDerivAt f (f' x) x) {κ : ℝ} (hκ : 0 < κ) (d : ℝ) :
     |∫ x, x ∂((volume : Measure ℝ).tilted fun x => f x - κ * x ^ 2 + d * x)| ≤
       Real.sqrt (2 * κ)⁻¹ + |f' 0 + d| / (2 * κ) := by
-  set w : ℝ → ℝ := fun x => f x - κ * x ^ 2 + d * x with hw
   obtain ⟨x₀, hx0, hi, hi2, hvar⟩ :=
     exists_integral_sub_sq_mul_exp_concave_sub_mul_sq_le hf hfd hκ d
-  have h2κ : 0 < 2 * κ := by linarith
-  have hprob : IsProbabilityMeasure ((volume : Measure ℝ).tilted w) :=
-    isProbabilityMeasure_tilted hi
-  set G := (volume : Measure ℝ).tilted w with hG
-  have hsq : Integrable (fun x => (x - x₀) ^ 2) G := by
-    rw [hG, integrable_tilted_iff hi]
-    simpa only [smul_eq_mul, mul_comm] using hi2
-  have hsqle : ∫ x, (x - x₀) ^ 2 ∂G ≤ (2 * κ)⁻¹ := by
-    have hZ : 0 < ∫ x, Real.exp (w x) := integral_exp_pos hi
-    have e : ∫ x, (x - x₀) ^ 2 ∂G =
-        (∫ x, (x - x₀) ^ 2 * Real.exp (w x)) / ∫ x, Real.exp (w x) := by
-      rw [hG, integral_tilted_eq_div]
-    rw [e, div_le_iff₀ hZ, inv_mul_eq_div, le_div_iff₀' h2κ]
-    exact hvar
-  have hL2 : MemLp (fun x => x - x₀) 2 G :=
-    (memLp_two_iff_integrable_sq (by fun_prop : Measurable fun x : ℝ => x - x₀
-      ).aestronglyMeasurable).2 hsq
-  have hid : Integrable (fun x : ℝ => x) G :=
-    ((hL2.integrable one_le_two).add (integrable_const x₀)).congr
-      (ae_of_all _ fun x => by simp)
-  have hmean : |(∫ x, x ∂G) - x₀| ≤ Real.sqrt (2 * κ)⁻¹ := by
-    refine Real.abs_le_sqrt (le_trans ?_ hsqle)
-    have h := sq_norm_integral_le_integral_sq_norm hL2
-    simp only [Real.norm_eq_abs, sq_abs] at h
-    rwa [integral_sub hid (integrable_const x₀), integral_const, probReal_univ, one_smul] at h
-  calc |∫ x, x ∂G| = |((∫ x, x ∂G) - x₀) + x₀| := by rw [sub_add_cancel]
-    _ ≤ |(∫ x, x ∂G) - x₀| + |x₀| := abs_add_le _ _
+  have hmean := (abs_integral_volume_tilted_sub_le_of_mul_integral_sq_le (by linarith) hi hi2
+    hvar).2
+  set m := ∫ x, x ∂((volume : Measure ℝ).tilted fun x => f x - κ * x ^ 2 + d * x) with hm
+  calc |m| = |(m - x₀) + x₀| := by rw [sub_add_cancel]
+    _ ≤ |m - x₀| + |x₀| := abs_add_le _ _
     _ ≤ _ := add_le_add hmean hx0
 
 /-- Differentiation of the logarithm of a partition function: if `u ≤ 0` is differentiable with

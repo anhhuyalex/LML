@@ -253,10 +253,10 @@ use $U\le0$ and then (1) with $b=\kappa/2$.
   \leanok
   \uses{lem:sg-tal:st-quadratic}
 \talsource{the derivatives in the proof of Proposition~3.1.16}
-Let $E$ be a finite-dimensional real inner product space, $\kappa>0$, $u\le0$ differentiable with
+Let $E$ be a finite-dimensional real inner product space, $\kappa>0$, $u$ differentiable, bounded above, with
 $|u'|\le D$, and let $\mu_r$ have density proportional to
 $\exp\bigl(\sum_ku\langle v_k+rw_k,\sigma\rangle-\kappa\|\sigma\|^2+\langle a+rc,\sigma\rangle\bigr)$. If $F$ is
-measurable with $|F(\sigma)|\le C(1+\|\sigma\|^2)$, then $r\mapsto\int F\,d\mu_r$ is differentiable at every
+measurable with $|F(\sigma)|\le C(1+\|\sigma\|)^m$, then $r\mapsto\int F\,d\mu_r$ is differentiable at every
 $t$ with derivative $\int FX\,d\mu_t-\int F\,d\mu_t\int X\,d\mu_t$, where
 $X(\sigma)=\sum_ku'\langle v_k+tw_k,\sigma\rangle\langle w_k,\sigma\rangle+\langle c,\sigma\rangle$.
 \end{lemma}
@@ -293,7 +293,8 @@ Let $E$ be a finite-dimensional real normed space with an additive Haar measure 
 replicas and $\kappa>0$. Then $(1+\|x\|)^ne^{B\|x\|-\kappa\|x\|^2}$ is $\lambda$-integrable for all $n$ and $B$.
 If $e(x)\le A+B\|x\|-\kappa\|x\|^2$ and $\mu$ has density proportional to $e^{e}$ with respect to $\lambda$, then
 functions of polynomial growth, with values in a normed space, have finite moments of every order for $\mu$,
-and so do functions on $E^R$ bounded by $C\prod_{\ell}(1+\|\sigma^\ell\|)^m$ for $\mu^{\otimes R}$.
+and so do functions on $E^R$, again with values in a normed space, of norm at most
+$C\prod_{\ell}(1+\|\sigma^\ell\|)^m$, for $\mu^{\otimes R}$.
 Let moreover the energies $e_r$ satisfy $e_r(x)\le A+B\|x\|-\kappa\|x\|^2$ for $r$ near $t$, let
 $|\partial_re_r(x)|\le L(1+\|x\|)^n$, and let $\mu_r$ be the probability measure with density proportional to
 $e^{e_r}$. Let $\Psi_r$ be a function on $E^R$ with
@@ -348,8 +349,9 @@ the Gibbs measure $G$ of (3.5) has density proportional to $e^{-H}$, $\langle\cd
 and $B^*=N+\bigl(\sum_{k,i}g_{k,i}^2\bigr)^{1/2}+\sum_ig_i^2$ as in (3.27). The overlaps are
 $R_{1,1}=\|\sigma\|^2/N$ and $R_{1,2}=\sigma^1\cdot\sigma^2/N$. Constants $K$ depend only on
 $\kappa_0,h_0,D$ and are chosen before $N,M,k$. The standing hypotheses are: $u\le0$ concave (3.2);
-$u(x)\ge-D(1+|x|)$ (3.6); $|u'|,|u''|\le D$ (3.7); and $\kappa\ge\kappa_0>0$, $0\le h\le h_0$, $M\le10N$
-(3.25).
+$u(x)\ge-D(1+|x|)$ (3.6); $|u'|,|u''|\le D$ (3.7); and $\kappa\ge\kappa_0>0$, $|h|\le h_0$, $M\le10N$
+(3.25), where the book takes $0\le h\le h_0$. By (3.7$'$) we mean the weaker form of (3.7) used below: $u$ is
+differentiable, $|u'|\le D$ and $u'$ is $D$-Lipschitz.
 
 \begin{lemma}[Convexity and the partition function]\label{lem:sg-tal:st-partition}
   \lean{SpinGlasses.shcherbinaTirozziHamiltonian,
@@ -435,7 +437,7 @@ Lemma~\ref{lem:sg-tal:st-exp-moment} to $B^*/4$.
   \leanok
   \uses{thm:sg-tal:st-maurey, lem:sg-tal:st-moments}
 \talsource{Theorem~3.1.11 and Proposition~3.1.12, Eqs.~(3.34)--(3.43)}
-Under (3.2), (3.6), (3.25), for $N\ge1$ and $k\le N$,
+Under (3.2), (3.6) and (3.25), for $k\le N$,
 \[
 \langle(R_{1,2}-\langle R_{1,2}\rangle)^{2k}\rangle\le\Bigl(\frac{KkB^*}{N^2}\Bigr)^k,\qquad
 \langle(R_{1,1}-\langle R_{1,1}\rangle)^{2k}\rangle\le\Bigl(\frac{KkB^*}{N^2}\Bigr)^k,
@@ -454,7 +456,8 @@ $G(\|\sigma\|\ge a)\le e^{-2B^*}$. Average with Lemma~\ref{lem:sg-tal:st-moments
 \end{proof}
 
 \begin{lemma}[Covariance control and gradient bound]\label{lem:sg-tal:st-gradient}
-  \lean{ProbabilityTheory.integral_smul_apply_eq_apply_integral_smul_sub_add,
+  \lean{PiLp.lipschitzWith_toLp_comp,
+        ProbabilityTheory.integral_smul_apply_eq_apply_integral_smul_sub_add,
         SpinGlasses.memLp_id_shcherbinaTirozziGibbs,
         SpinGlasses.norm_integral_smul_sub_mean_shcherbinaTirozziGibbs_le,
         SpinGlasses.abs_sum_deriv_field_mul_sub_le,
@@ -469,10 +472,10 @@ $G(\|\sigma\|\ge a)\le e^{-2B^*}$. Average with Lemma~\ref{lem:sg-tal:st-moments
 Let $\|g\|$ be the operator norm of the $M\times N$ disorder matrix, and let $f\in L^2(G)$.
 \begin{enumerate}
 \item $\|\langle(\sigma-\langle\sigma\rangle)f\rangle\|\le\sqrt{32\langle f^2\rangle/\kappa}$.
-\item If $|u''|\le D$, the function $\sigma\mapsto\sum_ku'(S_k)y_k$ is Lipschitz with constant
+\item If $u'$ is $D$-Lipschitz, the function $\sigma\mapsto\sum_ku'(S_k)y_k$ is Lipschitz with constant
 $D\|g\|\,\|y\|/\sqrt N$, and with $U=(u'(S_k))_k$,
 $\|\langle(U-\langle U\rangle)f\rangle\|\le D\|g\|N^{-1/2}\sqrt{32\langle f^2\rangle/\kappa}$.
-\item Under (3.2), (3.6), (3.7), (3.25), for $N\ge1$, along every line $t\mapsto(g+t\Delta,g_0+t\Delta_0)$
+\item Under (3.2), (3.6), (3.7$'$), (3.25), for $N\ge1$, along every line $t\mapsto(g+t\Delta,g_0+t\Delta_0)$
 the derivative $d$ at $t=0$ of $\langle R_{1,1}\rangle$ (respectively $\langle R_{1,2}\rangle$) exists and
 \[
 d^2\le K\Bigl(\frac{B^*}{N^2}+\frac{B^{*2}\|g\|^2}{N^4}\Bigr)\bigl(\|\Delta\|^2+\|\Delta_0\|^2\bigr).
@@ -486,13 +489,34 @@ d^2\le K\Bigl(\frac{B^*}{N^2}+\frac{B^{*2}\|g\|^2}{N^4}\Bigr)\bigl(\|\Delta\|^2+
 $1$-Lipschitz, and for $F=U$. (3): by Lemma~\ref{lem:sg-tal:st-differentiation} the
 derivative is $\langle fX\rangle$ with $\langle f\rangle=0$, where $f=R_{1,1}-\langle R_{1,1}\rangle$, respectively
 $f=2(\langle\sigma\rangle\cdot\sigma-\|\langle\sigma\rangle\|^2)/N$. Splitting
-$\sigma=(\sigma-\langle\sigma\rangle)+\langle\sigma\rangle$ and using (1), (2) and $\sum_k\|\Delta_k\|/\sqrt N\le4\|\Delta\|$
-(as $M\le10N$) gives
+$\sigma=(\sigma-\langle\sigma\rangle)+\langle\sigma\rangle$ and using (1), (2) and
+$\sum_k\|\Delta_k\|/\sqrt N\le\sqrt{M/N}\,\|\Delta\|$ gives, for all $M$ and every real $h$,
 \[
 |\langle fX\rangle|\le\sqrt{\frac{32\langle f^2\rangle}\kappa}
-\Bigl(4D+h+\frac{D\|g\|\,\|\langle\sigma\rangle\|}N\Bigr)\bigl(\|\Delta\|^2+\|\Delta_0\|^2\bigr)^{1/2},
+\Bigl(D\sqrt{\tfrac MN}+|h|+\frac{D\|g\|\,\|\langle\sigma\rangle\|}N\Bigr)\bigl(\|\Delta\|^2+\|\Delta_0\|^2\bigr)^{1/2};
 \]
-and $\langle f^2\rangle\le KB^*/N^2$, $\|\langle\sigma\rangle\|^2\le KB^*$.
+then $\sqrt{M/N}\le4$ by (3.25), and $\langle f^2\rangle\le KB^*/N^2$, $\|\langle\sigma\rangle\|^2\le KB^*$.
+\end{proof}
+
+\begin{lemma}[Concentration from a convex set of large Gaussian mass]\label{lem:sg-tal:st-convex-set}
+  \lean{ProbabilityTheory.exists_integral_stdGaussian_sub_pow_le_of_lipschitzOn}
+  \leanok
+  \uses{thm:sg-tal:st-maurey, lem:sg-tal:st-quadratic}
+\talsource{the proof of Proposition~3.1.17}
+Let $\gamma$ be the standard Gaussian measure of a finite-dimensional real inner product space, $C$ a convex
+measurable set with $\gamma(C)>0$ and $\gamma(C^c)\le\alpha^2$, and $f$ measurable, $A$-Lipschitz on $C$ with
+$|f|\le B$ there. Suppose that $\int(f-m)^{4k}d\gamma\le\beta^2$ whenever $|m|\le B$, with integrability. Then
+for some $m$ with $|m|\le B$,
+\[
+\int(f-m)^{2k}\,d\gamma\le4(16kA^2)^k+\alpha\beta .
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+  \uses{thm:sg-tal:st-maurey, lem:sg-tal:st-quadratic}
+Let $m$ be the mean of $f$ for $\gamma$ conditioned on $C$. The conditioned measure satisfies
+Theorem~\ref{thm:sg-tal:st-maurey} with $\kappa=1/2$, which bounds $\int_C(f-m)^{2k}d\gamma$; on $C^c$ use the
+Cauchy--Schwarz inequality.
 \end{proof}
 
 \begin{theorem}[The overlaps are nearly constant]\label{thm:sg-tal:st-overlaps}
@@ -502,10 +526,10 @@ and $\langle f^2\rangle\le KB^*/N^2$, $\|\langle\sigma\rangle\|^2\le KB^*$.
         SpinGlasses.exists_integral_shcherbinaTirozzi_selfOverlap_sub_pow_le,
         SpinGlasses.exists_integral_shcherbinaTirozzi_overlap_sub_pow_le}
   \leanok
-  \uses{lem:sg-tal:st-gradient, lem:sg-tal:st-gaussian-norm, thm:sg-tal:st-maurey,
+  \uses{lem:sg-tal:st-gradient, lem:sg-tal:st-gaussian-norm, lem:sg-tal:st-convex-set,
         thm:sg-tal:st-gibbs-overlaps, lem:sg-tal:st-moments}
 \talsource{Theorem~3.1.1, Proposition~3.1.17 and Theorem~3.1.18, Eqs.~(3.8)--(3.9), (3.52)--(3.58)}
-Assume (3.2), (3.6), (3.7), (3.25) and $N\ge1$, and let $\nu(f)=\mathbb E\langle f\rangle$. For $4k\le N$,
+Assume (3.2), (3.6), (3.7$'$) and (3.25), and let $\nu(f)=\mathbb E\langle f\rangle$. For $4k\le N$,
 \[
 \nu\bigl((R_{1,1}-\nu(R_{1,1}))^{2k}\bigr)\le\Bigl(\frac{Kk}N\Bigr)^k,\qquad
 \nu\bigl((R_{1,2}-\nu(R_{1,2}))^{2k}\bigr)\le\Bigl(\frac{Kk}N\Bigr)^k.
@@ -513,7 +537,7 @@ Assume (3.2), (3.6), (3.7), (3.25) and $N\ge1$, and let $\nu(f)=\mathbb E\langle
 \end{theorem}
 \begin{proof}
   \leanok
-  \uses{lem:sg-tal:st-gradient, lem:sg-tal:st-gaussian-norm, thm:sg-tal:st-maurey,
+  \uses{lem:sg-tal:st-gradient, lem:sg-tal:st-gaussian-norm, lem:sg-tal:st-convex-set,
         thm:sg-tal:st-gibbs-overlaps, lem:sg-tal:st-moments}
 \emph{Step 1 (a good convex set).} In the space of all disorder variables, with its standard Gaussian
 measure $\gamma$, let $C=\{B^*\le768N,\ \|g\|\le\sqrt{768N}\}$. It is convex, and by
@@ -524,13 +548,10 @@ $\gamma(C^c)\le3e^{-2N}$.
 Lemma~\ref{lem:sg-tal:st-gradient}(3) along segments and the mean value theorem show that $f$ is
 $\sqrt{K/N}$-Lipschitz.
 
-\emph{Step 3 (Maurey).} The Gaussian measure conditioned on $C$ satisfies
-Theorem~\ref{thm:sg-tal:st-maurey} with $\kappa=1/2$, so with $m$ its mean of $f$,
-$\int_C(f-m)^{2k}d\gamma\le(Kk/N)^k$.
+\emph{Step 3 (moments).} $|f|\le KB^*/N$, so $\mathbb E(f-m)^{4k}\le K^{4k}$ for $4k\le N$ and $|m|\le K$.
 
-\emph{Step 4 (the complement).} $|f|\le KB^*/N$ and $|m|\le K$, so
-$\mathbb E(f-m)^{4k}\le K^{4k}$ for $4k\le N$, and by Cauchy--Schwarz
-$\int_{C^c}(f-m)^{2k}d\gamma\le 2e^{-N}K^{2k}\le(Kk/N)^k$. By (3.22),
+\emph{Step 4 (concentration).} Lemma~\ref{lem:sg-tal:st-convex-set} with $\alpha=2e^{-N}$, $\beta=K^{2k}$ gives
+an $m$ with $\mathbb E(f-m)^{2k}\le4(Kk/N)^k+2e^{-N}K^{2k}\le(K'k/N)^k$. By (3.22),
 $\mathbb E(f-\mathbb Ef)^{2k}\le(Kk/N)^k$, which is Proposition~3.1.17.
 
 \emph{Step 5.} Split $R-\nu(R)=(R-\langle R\rangle)+(\langle R\rangle-\mathbb E\langle R\rangle)$ and combine
@@ -540,10 +561,11 @@ Theorem~\ref{thm:sg-tal:st-gibbs-overlaps} with Step~4.
 \begin{remark}[Hypotheses, deviations and printed corrections of Section~3.1]\label{rem:sg-tal:st-section31-audit}
 \talsource{Section~3.1}
 \emph{Hypotheses.} Theorem~3.1.1 prints only (3.6), (3.7) and $k\le N/4$; the formal statements add the
-standing hypotheses (3.2) and (3.25), which Theorem~3.1.18 uses, and $N\ge1$. Differentiability of $u$ and of
-$u'$ replaces the implicit smoothness behind (3.7). Positivity of $Z$, integrability of all observables and
+standing hypotheses (3.2) and (3.25), which Theorem~3.1.18 uses. Differentiability of $u$ with $u'$ Lipschitz
+replaces the implicit smoothness behind (3.7); no second derivative is needed. The sign of $h$ is arbitrary, and
+$N\ge1$ is not assumed in the concentration bounds, since $k=0$ is trivial and $k\ge1$ forces $N\ge1$. Positivity of $Z$, integrability of all observables and
 $0\le D$ are proved, not assumed. Each intermediate statement assumes only what its proof uses: Lemma~3.1.13
-needs concavity and $\kappa>0$, Lemma~3.1.14 only $|u''|\le D$, Lemma~3.1.15 also concavity.
+needs concavity and $\kappa>0$, Lemma~3.1.14 only that $u'$ is Lipschitz, Lemma~3.1.15 also concavity.
 
 \emph{Stronger or different forms.} Theorem~3.1.4 is proved on a finite-dimensional normed space with a
 convex set $C$, which covers (3.21) and the conditioned Gaussian measure of Proposition~3.1.17.
@@ -621,8 +643,8 @@ around $x_0$.
   \leanok
   \uses{lem:sg-tal:st-mode-variance}
 \talsource{Lemma~3.2.3}
-Let $u\le0$ be concave and twice differentiable with $|u'|\le D$ and $|u''|\le D_2$, and let $\xi$ be a
-standard Gaussian. Put $\theta=a+c\,\xi$ and
+Let $u$ be concave and twice differentiable with $|u'|\le D$ and $|u''|\le D_2$, and let $\xi$ be a
+standard Gaussian. No upper bound on $u$ is needed. Put $\theta=a+c\,\xi$ and
 \[
 Z=\mathbb E\,e^{u(\theta)},\qquad A=\mathbb E\,u'(\theta)e^{u(\theta)},\qquad
 K=\mathbb E\,\bigl(u''(\theta)+u'(\theta)^2\bigr)e^{u(\theta)} .
@@ -702,7 +724,8 @@ denominator.
 \end{proof}
 
 \begin{lemma}[Symmetry between sites]\label{lem:sg-tal:st-site-symmetry}
-  \lean{SpinGlasses.shcherbinaTirozziGibbs_comp_perm,
+  \lean{MeasureTheory.integral_integral_inv_card_mul_sq_norm_of_exchangeable,
+        SpinGlasses.shcherbinaTirozziGibbs_comp_perm,
         SpinGlasses.integral_shcherbinaTirozziGibbs_comp_perm,
         SpinGlasses.integral_shcherbinaTirozzi_overlaps_eq_last_spin}
   \leanok
@@ -717,6 +740,9 @@ $\mathbb E\langle\|\sigma\|^2\rangle<\infty$, then with $N+1$ spins
 \rho:=\mathbb E\Bigl\langle\frac{\|\sigma\|^2}{N+1}\Bigr\rangle=\mathbb E\langle\varepsilon^2\rangle,\qquad
 q:=\mathbb E\,\frac1{N+1}\sum_i\langle\sigma_i\rangle^2=\mathbb E\langle\varepsilon\rangle^2 .
 \]
+The last two identities hold for every random probability measure on a Euclidean space $\mathbb R^{I}$, $I$
+finite, with $\mathbb E\langle\|\sigma\|^2\rangle<\infty$ and such that the law of $\langle\Phi(\sigma_i)\rangle$ does not
+depend on $i$.
 \end{lemma}
 \begin{proof}
   \leanok
@@ -767,7 +793,8 @@ Gaussian vector is centred Gaussian with variance the squared norm of its coeffi
 
 \begin{lemma}[Log-concave mean and partition derivative]
 \label{lem:sg-tal:st-mean-mode}
-  \lean{MeasureTheory.abs_integral_volume_tilted_concave_sub_mul_sq_le,
+  \lean{MeasureTheory.abs_integral_volume_tilted_sub_le_of_mul_integral_sq_le,
+        MeasureTheory.abs_integral_volume_tilted_concave_sub_mul_sq_le,
         MeasureTheory.hasDerivAt_log_integral_exp_sum_comp_add_mul}
   \leanok
   \uses{lem:sg-tal:st-mode-variance}
@@ -789,7 +816,8 @@ where $\langle\cdot\rangle_x$ is the average for the normalized weight.
 \begin{proof}
   \leanok
   \uses{lem:sg-tal:st-mode-variance}
-(1) By Lemma~\ref{lem:sg-tal:st-mode-variance}(3) there is $x_0$ with $|x_0|\le|f'(0)+d|/(2\kappa)$ and
+(1) In general, if $c\int(x-x_0)^2e^{w}\le\int e^{w}$ with $c>0$, the mean for the density $\propto e^{w}$ is
+within $c^{-1/2}$ of $x_0$. By Lemma~\ref{lem:sg-tal:st-mode-variance}(3) there is $x_0$ with $|x_0|\le|f'(0)+d|/(2\kappa)$ and
 $\langle(x-x_0)^2\rangle\le(2\kappa)^{-1}$, hence $|m-x_0|\le(2\kappa)^{-1/2}$.
 (2) Differentiate under the integral, dominated by a constant multiple of $e^V$.
 \end{proof}
@@ -912,7 +940,7 @@ Consider the model with $N+1$ spins and $M\le10(N+1)$ constraints, $\alpha=M/(N+
 \item Take $r,\bar r$ as in Lemma~\ref{lem:sg-tal:st-rs-parameters} at scale $\sqrt{\rho-q}$, for arbitrary real
 $q,\rho$. There is $K$, depending only on $\kappa_0$, $h_0$ and $D$, with
 $\mathbb E\langle e^{\varepsilon^2/K}\rangle_t\le K$ for all $t\in[0,1]$, $\kappa\ge\kappa_0$, $|h|\le h_0$.
-\item Let moreover $\kappa>0$, $h\ge0$, $u(x)\ge-D(1+|x|)$, let $\rho$ and $q$ be the quenched self-overlap
+\item Let moreover $\kappa>0$, $h$ real, $u(x)\ge-D(1+|x|)$, let $\rho$ and $q$ be the quenched self-overlap
 and overlap of Lemma~\ref{lem:sg-tal:st-site-symmetry}, and $r,\bar r$ as above. Then
 $a=2\kappa+r-\bar r>0$ and
 \[
@@ -1036,7 +1064,9 @@ $-\int zV\le\int(-\min(z,0))V$; apply the Cauchy--Schwarz inequality.
 \end{proof}
 
 \begin{lemma}[Gaussian smoothing of a potential]\label{lem:sg-tal:st-smoothing}
-  \lean{ProbabilityTheory.integrable_mul_exp_comp_add_gaussianReal,
+  \lean{ProbabilityTheory.integrable_exp_comp_add_gaussianReal,
+        ProbabilityTheory.integrable_mul_exp_comp_add_gaussianReal_of_abs_deriv_le,
+        ProbabilityTheory.integrable_mul_exp_comp_add_gaussianReal,
         ProbabilityTheory.integral_exp_comp_add_gaussianReal_pos,
         ProbabilityTheory.abs_integral_mul_exp_comp_add_div_le,
         ProbabilityTheory.measurable_integral_mul_exp_comp_add_gaussianReal,
@@ -1069,7 +1099,8 @@ and for differentiable $u$ the left side is $(c\,A(x)/Z(x))^2$.
 \begin{proof}
   \leanok
   \uses{lem:sg-tal:st-ratio}
-(1) uses $0<e^{u}\le1$ and Fubini's theorem. (2) is differentiation under the integral sign with a constant
+(1) uses $0<e^{u}\le1$ and Fubini's theorem; when only $|u'|\le D$ is known, integrability follows from
+$u(x+c\xi)\le u(x)+D|c|\,|\xi|$. (2) is differentiation under the integral sign with a constant
 dominating function. (3) applies (2) to $f=1$ and $f=u'$, then the chain and quotient rules. (4) Apply
 Lemma~\ref{lem:sg-tal:st-ratio} to $v(\xi)=u(x+c\xi)$, which vanishes for $\xi\ge(\tau-x)/c$; integration by
 parts gives $\mathbb E\,\xi e^{u(x+c\xi)}=c\,A(x)$.
@@ -1083,7 +1114,7 @@ parts gives $\mathbb E\,\xi e^{u(x+c\xi)}=c\,A(x)$.
   \uses{lem:sg-tal:st-rbar-le-r, lem:sg-tal:st-half-line, lem:sg-tal:st-smoothing}
 \talsource{Proposition~3.3.3}
 Let $0<\kappa_0$, $\kappa_1$, $\alpha_0<2$, $h_0$ and $\tau\ge0$. There is a constant $C$, depending only on
-these numbers, with the following property. Let $0\le\alpha\le\alpha_0$, $\kappa_0\le\kappa\le\kappa_1$,
+these numbers, with the following property. Let $0\le\alpha\le\alpha_0$, $\kappa_0\le\kappa$,
 $|h|\le h_0$ and let $q,\rho$ be real; let $u\le0$ be concave, twice differentiable with bounded $u'$ and $u''$, and
 $u=0$ on $[\tau,\infty)$. With $\theta=z\sqrt q+\xi\sqrt{\rho-q}$ (the square root of a negative number
 being read as $0$) set
@@ -1096,7 +1127,7 @@ If
 \rho=\frac1{2\kappa+r-\bar r}+\frac{r+h^2}{(2\kappa+r-\bar r)^2},\qquad
 q=\frac{r+h^2}{(2\kappa+r-\bar r)^2},
 \]
-then $0\le q<\rho$, $q\le C$, $\rho\le C$ and $(\rho-q)^{-1}\le C$.
+then $0\le q<\rho$, $q\le C$ and $\rho\le C$; if moreover $\kappa\le\kappa_1$, then $(\rho-q)^{-1}\le C$.
 \end{theorem}
 \begin{proof}
   \leanok
@@ -1110,7 +1141,7 @@ a half-line is nondecreasing, so $u'\ge0$ and $V\ge0$; moreover $V'=W-V^2$,
 $r=\alpha\,\mathbb E\,V(z\sqrt q)^2$ and $\bar r=\alpha\,\mathbb E\,W(z\sqrt q)$. By Step~0,
 $s^{-1}=2\kappa+r-\bar r\ge2\kappa$, so $s\le(2\kappa_0)^{-1}$, and $q=(r+h^2)s^2\ge rs^2$.
 
-\emph{Step 1: $s^{-1}$.} We claim $r-\bar r\le\sqrt{\alpha/2}\,s^{-1}$. This is clear if $\alpha=0$. If
+\emph{Step 1: $s^{-1}$, for $\kappa\le\kappa_1$.} We claim $r-\bar r\le\sqrt{\alpha/2}\,s^{-1}$. This is clear if $\alpha=0$. If
 $\alpha>0$ and $q=0$, then $r=0$, so $V(0)=0$ is a minimum of $V$ and $W(0)=V'(0)=0$; hence $\bar r=0$. If
 $q>0$, integration by parts in $z$ gives
 \[
@@ -1137,7 +1168,8 @@ This bounds $q$ in all cases; finally $\rho=q+s$.
 \begin{remark}[Differences from Section~3.3 and printed corrections]\label{rem:sg-tal:st-section33-bounds}
 \talsource{Proposition~3.3.3, Lemmas~3.3.7--3.3.9}
 The printed Proposition~3.3.3 assumes only $\kappa\ge\kappa_0$. This is not sufficient: for $u=0$ one has
-$r=\bar r=0$ and $(\rho-q)^{-1}=2\kappa$, so the upper bound $\kappa\le\kappa_1$ is needed; correspondingly the
+$r=\bar r=0$ and $(\rho-q)^{-1}=2\kappa$, so the upper bound $\kappa\le\kappa_1$ is needed for the bound on
+$(\rho-q)^{-1}$ (not for those on $q$ and $\rho$); correspondingly the
 bound printed after (3.146) as $2\kappa_0(1-\sqrt{\alpha_0/2})^{-1}$ should read
 $2\kappa_1(1-\sqrt{\alpha_0/2})^{-1}$. The theorem uses the equation (3.77) for $q$, where the book prints
 (3.104). The printed statement puts no differentiability on $u$ (its proof works with smooth potentials); the
@@ -1193,7 +1225,9 @@ constant multiple of $(1+|z|)^{k+1}$; differentiate under the integral sign.
   \lean{ProbabilityTheory.integrable_gaussianPDFReal_div_measureReal_Ici_comp,
         ProbabilityTheory.integral_id_mul_gaussianPDFReal_div_measureReal_Ici_comp,
         ProbabilityTheory.one_add_sq_mul_integral_id_mul_gaussianPDFReal_div_measureReal_Ici,
-        ProbabilityTheory.exists_abs_sq_gaussianPDFReal_div_measureReal_Ici_le}
+        ProbabilityTheory.exists_abs_sq_gaussianPDFReal_div_measureReal_Ici_le,
+        ProbabilityTheory.hasDerivAt_integral_log_gaussianTail,
+        ProbabilityTheory.hasDerivAt_integral_sq_gaussianPDFReal_div_measureReal_Ici_comp}
   \leanok
   \uses{lem:sg-tal:st-mills-growth, lem:sg-tal:st-affine-curve}
 \talsource{the integrations by parts of Section~3.3}
@@ -1202,7 +1236,9 @@ Let $z$ be a standard Gaussian, $A=p/T$ and $W=m+\sigma z$. Then $A(W)$, $zA(W)$
 \mathbb E\,zA(W)=\sigma\,\mathbb E\bigl[A(W)^2-WA(W)\bigr],\qquad
 (1+\sigma^2)\,\mathbb E\,zA(W)=\sigma\bigl(\mathbb E A(W)^2-m\,\mathbb E A(W)\bigr),
 \]
-and both $A^2$ and its derivative $2A(A^2-vA)$ are bounded by a constant times $(1+|v|)^3$.
+and both $A^2$ and its derivative $2A(A^2-vA)$ are bounded by a constant times $(1+|v|)^3$. Consequently, for
+differentiable $m(t),\sigma(t)$ with continuous derivatives, $t\mapsto\mathbb E\log T(W)$ and
+$t\mapsto\mathbb E A(W)^2$ may be differentiated under the expectation.
 \end{lemma}
 \begin{proof}
   \leanok

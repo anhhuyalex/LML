@@ -226,14 +226,15 @@ private theorem q_le_of_replicaSymmetric_equation {V : ℝ → ℝ}
     exact hfin
   exact (h1.trans (le_max_right _ _)).not_gt hcon
 
-/-- **Proposition 3.3.3** (with the necessary upper bound `κ ≤ κ₁`): every solution of the
-replica-symmetric equations satisfies `0 ≤ q < ρ`, `q ≤ C`, `ρ ≤ C` and `(ρ - q)⁻¹ ≤ C`,
+/-- **Proposition 3.3.3:** every solution of the replica-symmetric equations satisfies
+`0 ≤ q < ρ`, `q ≤ C` and `ρ ≤ C`, and `(ρ - q)⁻¹ ≤ C` under the necessary upper bound
+`κ ≤ κ₁`,
 uniformly over the concave potentials `u ≤ 0` vanishing on `[τ, ∞)`. The inequalities
 `0 ≤ q < ρ` follow from the equations and need not be assumed. -/
 theorem exists_bound_of_shcherbinaTirozzi_replicaSymmetric_equations (κ₀ κ₁ α₀ h₀ τ : ℝ)
     (hκ₀ : 0 < κ₀) (hα₀ : α₀ < 2) (hτ : 0 ≤ τ) :
     ∃ C : ℝ, ∀ (α κ h q ρ r rBar : ℝ) (u : ℝ → ℝ) (D D₂ : ℝ), 0 ≤ α → α ≤ α₀ → κ₀ ≤ κ →
-      κ ≤ κ₁ → |h| ≤ h₀ → ConcaveOn ℝ univ u → (∀ x, u x ≤ 0) →
+      |h| ≤ h₀ → ConcaveOn ℝ univ u → (∀ x, u x ≤ 0) →
       (∀ x, τ ≤ x → u x = 0) → Differentiable ℝ u → Differentiable ℝ (deriv u) →
       (∀ x, |deriv u x| ≤ D) → (∀ x, |deriv (deriv u) x| ≤ D₂) →
       let Z : ℝ → ℝ := fun y =>
@@ -247,7 +248,7 @@ theorem exists_bound_of_shcherbinaTirozzi_replicaSymmetric_equations (κ₀ κ�
       rBar = α * ∫ z, W (Real.sqrt q * z) ∂(gaussianReal 0 1) →
       ρ = (2 * κ + r - rBar)⁻¹ + (r + h ^ 2) / (2 * κ + r - rBar) ^ 2 →
       q = (r + h ^ 2) / (2 * κ + r - rBar) ^ 2 →
-      0 ≤ q ∧ q < ρ ∧ q ≤ C ∧ ρ ≤ C ∧ (ρ - q)⁻¹ ≤ C := by
+      0 ≤ q ∧ q < ρ ∧ q ≤ C ∧ ρ ≤ C ∧ (κ ≤ κ₁ → (ρ - q)⁻¹ ≤ C) := by
   obtain ⟨L, hL0, h338⟩ := exists_sq_mul_integral_deriv_mul_exp_div_le
   -- a slope strictly between `1/2` and `1/α₁`, and the corresponding threshold of Lemma 3.3.9
   set α₁ : ℝ := max α₀ 1 with hα₁
@@ -257,7 +258,7 @@ theorem exists_bound_of_shcherbinaTirozzi_replicaSymmetric_equations (κ₀ κ�
   set Q : ℝ := max ((τ / δ) ^ 2 + 1)
     ((h₀ ^ 2 / (2 * κ₀) ^ 2 + α₁ * L / (2 * κ₀)) / (1 - a * α₁)) with hQ
   set C₁ : ℝ := 2 * κ₁ / (1 - Real.sqrt (α₁ / 2)) with hC₁
-  refine ⟨max (Q + (2 * κ₀)⁻¹) C₁, fun α κ h q ρ r rBar u D D₂ hα0 hα hκ hκ1 hh huc hu0
+  refine ⟨max (Q + (2 * κ₀)⁻¹) C₁, fun α κ h q ρ r rBar u D D₂ hα0 hα hκ hh huc hu0
     huτ hu1 hu2 hD hD₂ => ?_⟩
   intro Z V W hr hrBar hρ hqe
   have hκ0 : 0 < κ := hκ₀.trans_le hκ
@@ -266,7 +267,7 @@ theorem exists_bound_of_shcherbinaTirozzi_replicaSymmetric_equations (κ₀ κ�
   have hrr : rBar ≤ r := by
     rw [hr, hrBar]
     exact mul_le_mul_of_nonneg_left (integral_deriv_two_add_sq_div_le_integral_sq_div
-      (μ := gaussianReal 0 1) huc hu0 hu1 hu2 hD hD₂ (a := fun z => Real.sqrt q * z)
+      (μ := gaussianReal 0 1) huc hu1 hu2 hD hD₂ (a := fun z => Real.sqrt q * z)
       (by fun_prop) (Real.sqrt (ρ - q))) hα0
   have hr0 : 0 ≤ r := by
     rw [hr]
@@ -291,11 +292,12 @@ theorem exists_bound_of_shcherbinaTirozzi_replicaSymmetric_equations (κ₀ κ�
   have hV0 : ∀ y, 0 ≤ V y := fun y => div_nonneg
     (integral_nonneg fun ξ => mul_nonneg (hu'0 _) (Real.exp_pos _).le)
     (integral_nonneg fun _ => (Real.exp_pos _).le)
-  have hVD : ∀ y, |V y| ≤ D := fun y => abs_integral_mul_exp_comp_add_div_le hum hu0 hD y c
+  have hVD : ∀ y, |V y| ≤ D := fun y => abs_integral_mul_exp_comp_add_div_le hD
+    (integrable_exp_comp_add_gaussianReal hum hu0 y c)
   have hWB : ∀ y, |W y| ≤ D₂ + D ^ 2 := fun y =>
-    abs_integral_mul_exp_comp_add_div_le hum hu0
+    abs_integral_mul_exp_comp_add_div_le
       (f := fun x => deriv (deriv u) x + deriv u x ^ 2)
-      (abs_deriv_deriv_add_sq_deriv_le hD hD₂) y c
+      (abs_deriv_deriv_add_sq_deriv_le hD hD₂) (integrable_exp_comp_add_gaussianReal hum hu0 y c)
   have hWm : Measurable W := measurable_integral_mul_exp_comp_add_div hum
     (f := fun x => deriv (deriv u) x + deriv u x ^ 2)
     ((measurable_deriv (deriv u)).add ((measurable_deriv u).pow_const 2)) measurable_id c
@@ -312,7 +314,7 @@ theorem exists_bound_of_shcherbinaTirozzi_replicaSymmetric_equations (κ₀ κ�
     rw [hqs]
     exact mul_le_mul_of_nonneg_right (le_add_of_nonneg_right (sq_nonneg h)) (sq_nonneg s)
   -- first bound: `(ρ - q)⁻¹`
-  have hfirst : s⁻¹ ≤ C₁ := by
+  have hfirst : κ ≤ κ₁ → s⁻¹ ≤ C₁ := fun hκ1 => by
     have hsq2 : Real.sqrt (α₁ / 2) < 1 := by
       rw [Real.sqrt_lt' one_pos, one_pow]; linarith
     have hdiff := sub_le_sqrt_div_two_mul_inv hV0 hVD hWm hWB hVd hα0 hq hs0 hrV hrW hrq
@@ -331,7 +333,7 @@ theorem exists_bound_of_shcherbinaTirozzi_replicaSymmetric_equations (κ₀ κ�
   have hρq : ρ = q + s := by rw [hs]; ring
   refine ⟨hq, hqρ,
     hqQ.trans ((le_add_of_nonneg_right (by positivity)).trans (le_max_left _ _)), ?_,
-    hfirst.trans (le_max_right _ _)⟩
+    fun hκ1 => (hfirst hκ1).trans (le_max_right _ _)⟩
   rw [hρq]
   exact (add_le_add hqQ hsκ).trans (le_max_left _ _)
 

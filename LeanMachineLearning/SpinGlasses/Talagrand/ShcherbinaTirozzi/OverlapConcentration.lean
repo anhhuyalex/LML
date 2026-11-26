@@ -71,7 +71,7 @@ theorem integral_sub_integral_pow_shcherbinaTirozziGibbs_le {κ h : ℝ} (hκ : 
 `⟨(R_{1,2} - ⟨R_{1,2}⟩) ^ (2 k)⟩ ≤ (K k B^* / N²) ^ k`. -/
 theorem exists_integral_shcherbinaTirozzi_overlap_sub_mean_pow_le (κ₀ h₀ D : ℝ) (hκ₀ : 0 < κ₀) :
     ∃ K : ℝ, 0 ≤ K ∧ ∀ (N M k : ℕ) (κ h : ℝ) (u : ℝ → ℝ) (g : Fin M → Fin N → ℝ)
-      (g₀ : Fin N → ℝ), κ₀ ≤ κ → 0 ≤ h → h ≤ h₀ → M ≤ 10 * N → 1 ≤ N → k ≤ N →
+      (g₀ : Fin N → ℝ), κ₀ ≤ κ → |h| ≤ h₀ → M ≤ 10 * N → k ≤ N →
       ConcaveOn ℝ Set.univ u → (∀ x, u x ≤ 0) → (∀ x, -D * (1 + |x|) ≤ u x) →
       ∀ G : Measure (ℝ^N),
         G = volume.tilted (fun σ => -shcherbinaTirozziHamiltonian κ h u g g₀ σ) →
@@ -84,7 +84,7 @@ theorem exists_integral_shcherbinaTirozzi_overlap_sub_mean_pow_le (κ₀ h₀ D 
               (N : ℝ) ^ 2) ^ k := by
   obtain ⟨K₉, hK₉, h319⟩ := exists_integral_sq_norm_pow_shcherbinaTirozziGibbs_le κ₀ h₀ D hκ₀
   refine ⟨128 * K₉ / κ₀, by positivity,
-    fun N M k κ h u g g₀ hκ hh0 hh hM hN hk hu hu0 hD G hG => ?_⟩
+    fun N M k κ h u g g₀ hκ hh hM hk hu hu0 hD G hG => ?_⟩
   have hκ0 : 0 < κ := hκ₀.trans_le hκ
   have hum := hu.measurable_of_univ
   have : IsProbabilityMeasure G := by
@@ -92,13 +92,14 @@ theorem exists_integral_shcherbinaTirozzi_overlap_sub_mean_pow_le (κ₀ h₀ D 
     exact isProbabilityMeasure_shcherbinaTirozziGibbs hκ0 hum hu0 g g₀
   set B : ℝ := N + Real.sqrt (∑ k, ∑ i, g k i ^ 2) + ∑ i, g₀ i ^ 2 with hB
   have hB0 : 0 ≤ B := add_nonneg (by positivity) (Finset.sum_nonneg fun i _ => sq_nonneg _)
-  have hN0 : (0 : ℝ) < N := by exact_mod_cast hN
   rcases eq_or_ne k 0 with rfl | hk0
   · simp
+  have hN : 1 ≤ N := by omega
+  have hN0 : (0 : ℝ) < N := by exact_mod_cast hN
   have hmom : ∀ j, j ≤ 4 * N → Integrable (fun σ : ℝ^N => ‖σ‖ ^ (2 * j)) G ∧
       ∫ σ, ‖σ‖ ^ (2 * j) ∂G ≤ (K₉ * B) ^ j := fun j hj => by
     rw [hG]
-    exact h319 N M j κ h u g g₀ hκ hh0 hh hM hj hum hu0 hD
+    exact h319 N M j κ h u g g₀ hκ hh hM hj hum hu0 hD
   have hk4 : k ≤ 4 * N := by omega
   have hnorm : Integrable (fun σ : ℝ^N => ‖σ‖) G := by
     refine Integrable.mono' ((integrable_const 1).add (hmom 1 (by omega)).1)
@@ -255,7 +256,7 @@ private theorem two_pow_mul_four_mul_pow_add_le {x y : ℝ} (hx : 0 ≤ x) (hy :
 theorem exists_integral_shcherbinaTirozzi_selfOverlap_sub_mean_pow_le (κ₀ h₀ D : ℝ)
     (hκ₀ : 0 < κ₀) :
     ∃ K : ℝ, 0 ≤ K ∧ ∀ (N M k : ℕ) (κ h : ℝ) (u : ℝ → ℝ) (g : Fin M → Fin N → ℝ)
-      (g₀ : Fin N → ℝ), κ₀ ≤ κ → 0 ≤ h → h ≤ h₀ → M ≤ 10 * N → 1 ≤ N → k ≤ N →
+      (g₀ : Fin N → ℝ), κ₀ ≤ κ → |h| ≤ h₀ → M ≤ 10 * N → k ≤ N →
       ConcaveOn ℝ Set.univ u → (∀ x, u x ≤ 0) → (∀ x, -D * (1 + |x|) ≤ u x) →
       ∀ G : Measure (ℝ^N),
         G = volume.tilted (fun σ => -shcherbinaTirozziHamiltonian κ h u g g₀ σ) →
@@ -268,26 +269,27 @@ theorem exists_integral_shcherbinaTirozzi_selfOverlap_sub_mean_pow_le (κ₀ h�
     exists_integral_exp_half_sq_norm_shcherbinaTirozziGibbs_le_exp κ₀ h₀ D hκ₀
   obtain ⟨K₉, hK₉, h319⟩ := exists_integral_sq_norm_pow_shcherbinaTirozziGibbs_le κ₀ h₀ D hκ₀
   refine ⟨512 * (K₁ + 2) / κ₀ ^ 2 + 16 * K₉ ^ 2, by positivity,
-    fun N M k κ h u g g₀ hκ hh0 hh hM hN hk hu hu0 hD G hG => ?_⟩
+    fun N M k κ h u g g₀ hκ hh hM hk hu hu0 hD G hG => ?_⟩
   have hκ0 : 0 < κ := hκ₀.trans_le hκ
   have hum := hu.measurable_of_univ
   have : IsProbabilityMeasure G := by
     rw [hG]
     exact isProbabilityMeasure_shcherbinaTirozziGibbs hκ0 hum hu0 g g₀
   set B : ℝ := N + Real.sqrt (∑ k, ∑ i, g k i ^ 2) + ∑ i, g₀ i ^ 2 with hB
+  rcases eq_or_ne k 0 with rfl | hk0
+  · simp
+  have hN : 1 ≤ N := by omega
   have hN0 : (0 : ℝ) < N := by exact_mod_cast hN
   have hBN : (N : ℝ) ≤ B := by
     have h2 : 0 ≤ ∑ i, g₀ i ^ 2 := Finset.sum_nonneg fun i _ => sq_nonneg _
     rw [hB]
     linarith [Real.sqrt_nonneg (∑ k, ∑ i, g k i ^ 2)]
   have hB0 : 0 < B := hN0.trans_le hBN
-  rcases eq_or_ne k 0 with rfl | hk0
-  · simp
   have heven : Even (2 * k) := even_two_mul k
   have hmom : ∀ j, j ≤ 4 * N → Integrable (fun σ : ℝ^N => ‖σ‖ ^ (2 * j)) G ∧
       ∫ σ, ‖σ‖ ^ (2 * j) ∂G ≤ (K₉ * B) ^ j := fun j hj => by
     rw [hG]
-    exact h319 N M j κ h u g g₀ hκ hh0 hh hM hj hum hu0 hD
+    exact h319 N M j κ h u g g₀ hκ hh hM hj hum hu0 hD
   -- the truncation radius
   set a : ℝ := Real.sqrt (2 * (K₁ + 2) * B / κ) with ha
   have ha0 : 0 ≤ a := Real.sqrt_nonneg _
@@ -323,7 +325,7 @@ theorem exists_integral_shcherbinaTirozzi_selfOverlap_sub_mean_pow_le (κ₀ h�
     have hexp := (integral_exp_half_sq_norm_shcherbinaTirozziGibbs_le (h := h) hκ0 hum hu0
       g g₀).1
     rw [← hG] at hexp
-    have hbound := h317 N M κ h u g g₀ hκ hh0 hh hM hum hu0 hD
+    have hbound := h317 N M κ h u g g₀ hκ hh hM hum hu0 hD
     rw [← hG] at hbound
     have h1 : Real.exp (κ / 2 * a ^ 2) * G.real S ≤ Real.exp (K₁ * B) := by
       refine le_trans ?_ hbound
@@ -460,8 +462,8 @@ theorem exists_integral_shcherbinaTirozzi_selfOverlap_sub_mean_pow_le (κ₀ h�
 `𝔼⟨(R_{1,2} - ⟨R_{1,2}⟩) ^ (2 k)⟩ ≤ (K k / N) ^ k` over the standard Gaussian disorder. -/
 theorem exists_integral_integral_shcherbinaTirozzi_overlap_sub_mean_pow_le (κ₀ h₀ D : ℝ)
     (hκ₀ : 0 < κ₀) :
-    ∃ K : ℝ, 0 ≤ K ∧ ∀ (N M k : ℕ) (κ h : ℝ) (u : ℝ → ℝ), κ₀ ≤ κ → 0 ≤ h → h ≤ h₀ →
-      M ≤ 10 * N → 1 ≤ N → k ≤ N → ConcaveOn ℝ Set.univ u → (∀ x, u x ≤ 0) →
+    ∃ K : ℝ, 0 ≤ K ∧ ∀ (N M k : ℕ) (κ h : ℝ) (u : ℝ → ℝ), κ₀ ≤ κ → |h| ≤ h₀ →
+      M ≤ 10 * N → k ≤ N → ConcaveOn ℝ Set.univ u → (∀ x, u x ≤ 0) →
       (∀ x, -D * (1 + |x|) ≤ u x) →
       ∀ G : (Fin M → Fin N → ℝ) × (Fin N → ℝ) → Measure (ℝ^N),
         (∀ d, G d = volume.tilted fun σ => -shcherbinaTirozziHamiltonian κ h u d.1 d.2 σ) →
@@ -476,9 +478,16 @@ theorem exists_integral_integral_shcherbinaTirozzi_overlap_sub_mean_pow_le (κ�
               ∂((G d).prod (G d)) ∂P ≤ (K * k / N) ^ k := by
   obtain ⟨K, hK, h334⟩ := exists_integral_shcherbinaTirozzi_overlap_sub_mean_pow_le κ₀ h₀ D hκ₀
   refine ⟨40 * K, by positivity,
-    fun N M k κ h u hκ hh0 hh hM hN hk hu hu0 hD G hG P hP => ?_⟩
+    fun N M k κ h u hκ hh hM hk hu hu0 hD G hG P hP => ?_⟩
   have hκ0 : 0 < κ := hκ₀.trans_le hκ
   have hum := hu.measurable_of_univ
+  have : IsProbabilityMeasure P := by rw [hP]; infer_instance
+  have : ∀ d, IsProbabilityMeasure (G d) := fun d => by
+    rw [hG d]
+    exact isProbabilityMeasure_shcherbinaTirozziGibbs (hκ₀.trans_le hκ) hum hu0 d.1 d.2
+  rcases eq_or_ne k 0 with rfl | hk0
+  · simp
+  have hN : 1 ≤ N := by omega
   have hN0 : (0 : ℝ) < N := by exact_mod_cast hN
   have hprob : ∀ d, IsProbabilityMeasure (G d) := fun d => by
     rw [hG d]
@@ -511,7 +520,7 @@ theorem exists_integral_integral_shcherbinaTirozzi_overlap_sub_mean_pow_le (κ�
     have h := hmeas2 (fun _ q => (N : ℝ)⁻¹ * ⟪q.1, q.2⟫) h12m h12i
     exact (funext hm) ▸ h
   have hfix := fun d : (Fin M → Fin N → ℝ) × (Fin N → ℝ) =>
-    h334 N M k κ h u d.1 d.2 hκ hh0 hh hM hN hk hu hu0 hD (G d) (hG d)
+    h334 N M k κ h u d.1 d.2 hκ hh hM hk hu hu0 hD (G d) (hG d)
   simp only [hm] at hfix ⊢
   have hFj : Measurable fun p : ((Fin M → Fin N → ℝ) × (Fin N → ℝ)) ×
       (ℝ^N × ℝ^N) =>
@@ -548,8 +557,8 @@ theorem exists_integral_integral_shcherbinaTirozzi_overlap_sub_mean_pow_le (κ�
 `𝔼⟨(R_{1,1} - ⟨R_{1,1}⟩) ^ (2 k)⟩ ≤ (K k / N) ^ k` over the standard Gaussian disorder. -/
 theorem exists_integral_integral_shcherbinaTirozzi_selfOverlap_sub_mean_pow_le (κ₀ h₀ D : ℝ)
     (hκ₀ : 0 < κ₀) :
-    ∃ K : ℝ, 0 ≤ K ∧ ∀ (N M k : ℕ) (κ h : ℝ) (u : ℝ → ℝ), κ₀ ≤ κ → 0 ≤ h → h ≤ h₀ →
-      M ≤ 10 * N → 1 ≤ N → k ≤ N → ConcaveOn ℝ Set.univ u → (∀ x, u x ≤ 0) →
+    ∃ K : ℝ, 0 ≤ K ∧ ∀ (N M k : ℕ) (κ h : ℝ) (u : ℝ → ℝ), κ₀ ≤ κ → |h| ≤ h₀ →
+      M ≤ 10 * N → k ≤ N → ConcaveOn ℝ Set.univ u → (∀ x, u x ≤ 0) →
       (∀ x, -D * (1 + |x|) ≤ u x) →
       ∀ G : (Fin M → Fin N → ℝ) × (Fin N → ℝ) → Measure (ℝ^N),
         (∀ d, G d = volume.tilted fun σ => -shcherbinaTirozziHamiltonian κ h u d.1 d.2 σ) →
@@ -563,8 +572,15 @@ theorem exists_integral_integral_shcherbinaTirozzi_selfOverlap_sub_mean_pow_le (
   obtain ⟨K, hK, h335⟩ :=
     exists_integral_shcherbinaTirozzi_selfOverlap_sub_mean_pow_le κ₀ h₀ D hκ₀
   refine ⟨40 * K, by positivity,
-    fun N M k κ h u hκ hh0 hh hM hN hk hu hu0 hD G hG P hP => ?_⟩
+    fun N M k κ h u hκ hh hM hk hu hu0 hD G hG P hP => ?_⟩
   have hum := hu.measurable_of_univ
+  have : IsProbabilityMeasure P := by rw [hP]; infer_instance
+  have : ∀ d, IsProbabilityMeasure (G d) := fun d => by
+    rw [hG d]
+    exact isProbabilityMeasure_shcherbinaTirozziGibbs (hκ₀.trans_le hκ) hum hu0 d.1 d.2
+  rcases eq_or_ne k 0 with rfl | hk0
+  · simp
+  have hN : 1 ≤ N := by omega
   have hN0 : (0 : ℝ) < N := by exact_mod_cast hN
   have hE : Measurable fun p : ((Fin M → Fin N → ℝ) × (Fin N → ℝ)) ×
       ℝ^N => -shcherbinaTirozziHamiltonian κ h u p.1.1 p.1.2 p.2 :=
@@ -582,7 +598,7 @@ theorem exists_integral_integral_shcherbinaTirozzi_selfOverlap_sub_mean_pow_le (
       ((hsq.sub (hmean.comp measurable_fst)).pow_const _)
     simpa only [← hG] using h1
   have hfix := fun d : (Fin M → Fin N → ℝ) × (Fin N → ℝ) =>
-    h335 N M k κ h u d.1 d.2 hκ hh0 hh hM hN hk hu hu0 hD (G d) (hG d)
+    h335 N M k κ h u d.1 d.2 hκ hh hM hk hu hu0 hD (G d) (hG d)
   have hB := integral_shcherbinaTirozzi_radius_pow_le (N := N) (M := M) hM hk
   rw [← hP] at hB
   set c : ℝ := (K * k / (N : ℝ) ^ 2) ^ k with hc

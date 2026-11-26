@@ -41,6 +41,9 @@ Lemmas 3.3.7--3.3.9).
   integrability and integration by parts at an affine Gaussian argument.
 * `ProbabilityTheory.exists_abs_sq_gaussianPDFReal_div_measureReal_Ici_le`: cubic growth of the
   squared ratio and of its derivative.
+* `ProbabilityTheory.hasDerivAt_integral_log_gaussianTail`,
+  `ProbabilityTheory.hasDerivAt_integral_sq_gaussianPDFReal_div_measureReal_Ici_comp`:
+  differentiation of the Gaussian averages of `log ℙ (ξ ≥ ·)` and `A²` at an affine argument.
 -/
 
 @[expose] public section
@@ -659,6 +662,55 @@ theorem exists_abs_sq_gaussianPDFReal_div_measureReal_Ici_le :
           rw [hK]
           exact le_add_of_nonneg_right (sq_nonneg _)
   exact ⟨K, fun v => ⟨hg1 v, hg2 v⟩⟩
+
+/-- Differentiation of `t ↦ 𝔼 log ℙ (ξ ≥ m t + σ t z)`. -/
+theorem hasDerivAt_integral_log_gaussianTail {m σ m' σ' : ℝ → ℝ} {t : ℝ}
+    (hm : ∀ᶠ s in 𝓝 t, HasDerivAt m (m' s) s) (hσ : ∀ᶠ s in 𝓝 t, HasDerivAt σ (σ' s) s)
+    (hm' : ContinuousAt m' t) (hσ' : ContinuousAt σ' t) :
+    HasDerivAt (fun s => ∫ z, Real.log ((gaussianReal 0 1).real (Ici (m s + σ s * z)))
+        ∂(gaussianReal 0 1))
+      (∫ z, -(mills (m t + σ t * z)) * (m' t + σ' t * z) ∂(gaussianReal 0 1)) t := by
+  obtain ⟨C, hC0, hC⟩ := exists_gaussianPDFReal_div_measureReal_Ici_le
+  obtain ⟨C', hC'0, hC'⟩ := exists_abs_log_measureReal_gaussianReal_Ici_le
+  refine hasDerivAt_integral_comp_add_mul_gaussianReal
+    (f := fun v => Real.log ((gaussianReal 0 1).real (Ici v))) (C := C' + C + 1) (k := 2)
+    hasDerivAt_log_measureReal_gaussianReal_Ici
+    monotone_gaussianPDFReal_div_measureReal_Ici.measurable.neg (fun y => ?_) (fun y => ?_)
+    hm hσ hm' hσ'
+  · exact (hC' y).trans (mul_le_mul_of_nonneg_right (by linarith) (sq_nonneg _))
+  · rw [abs_neg, abs_of_nonneg (gaussianPDFReal_div_measureReal_Ici_nonneg _)]
+    refine (hC y).trans ?_
+    have h1 := abs_nonneg y
+    nlinarith [mul_nonneg hC0 h1, mul_nonneg hC'0 h1, mul_nonneg hC0 (sq_nonneg |y|),
+      mul_nonneg hC'0 (sq_nonneg |y|), sq_nonneg |y|]
+
+/-- Differentiation of `t ↦ 𝔼 A (m t + σ t z)²`, with integrability of the derivative of the
+integrand. -/
+theorem hasDerivAt_integral_sq_gaussianPDFReal_div_measureReal_Ici_comp {m σ m' σ' : ℝ → ℝ}
+    {t : ℝ} (hm : ∀ᶠ s in 𝓝 t, HasDerivAt m (m' s) s)
+    (hσ : ∀ᶠ s in 𝓝 t, HasDerivAt σ (σ' s) s) (hm' : ContinuousAt m' t)
+    (hσ' : ContinuousAt σ' t) :
+    Integrable (fun z => 2 * mills (m t + σ t * z) *
+        (mills (m t + σ t * z) ^ 2 - (m t + σ t * z) * mills (m t + σ t * z)) *
+        (m' t + σ' t * z)) (gaussianReal 0 1) ∧
+      HasDerivAt (fun s => ∫ z, mills (m s + σ s * z) ^ 2 ∂(gaussianReal 0 1))
+        (∫ z, 2 * mills (m t + σ t * z) *
+          (mills (m t + σ t * z) ^ 2 - (m t + σ t * z) * mills (m t + σ t * z)) *
+          (m' t + σ' t * z) ∂(gaussianReal 0 1)) t := by
+  obtain ⟨K, hK⟩ := exists_abs_sq_gaussianPDFReal_div_measureReal_Ici_le
+  have hAm : Measurable fun v : ℝ => mills v :=
+    monotone_gaussianPDFReal_div_measureReal_Ici.measurable
+  have hdm : Measurable fun v : ℝ => 2 * mills v * (mills v ^ 2 - v * mills v) :=
+    (measurable_const.mul hAm).mul ((hAm.pow_const 2).sub (measurable_id.mul hAm))
+  have hf : ∀ v, HasDerivAt (fun v => mills v ^ 2)
+      (2 * mills v * (mills v ^ 2 - v * mills v)) v := fun v => by
+    refine ((hasDerivAt_gaussianPDFReal_div_measureReal_Ici v _
+      fun _ => rfl).1.pow 2).congr_deriv ?_
+    push_cast
+    ring
+  exact ⟨integrable_comp_add_mul_mul_add_mul_gaussianReal hdm (fun v => (hK v).2) _ _ _ _,
+    hasDerivAt_integral_comp_add_mul_gaussianReal (f := fun v => mills v ^ 2) (C := K) (k := 3)
+      hf hdm (fun v => (hK v).1) (fun v => (hK v).2) hm hσ hm' hσ'⟩
 
 end AffineArgument
 

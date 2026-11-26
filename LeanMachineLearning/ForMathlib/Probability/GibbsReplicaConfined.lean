@@ -159,11 +159,13 @@ theorem memLp_of_poly_bound_of_confining {F : Type*} [NormedAddCommGroup F] {κ 
   rw [mul_pow, ← pow_mul]
   ring
 
-/-- Replica observables of polynomial growth are integrable for the replicated Gibbs measure of a
-confined energy. -/
-theorem integrable_pi_tilted_of_confining {κ : ℝ} (hκ : 0 < κ) {e : E → ℝ} (he : Measurable e)
-    {A B : ℝ} (hconf : ∀ x, e x ≤ A + B * ‖x‖ - κ * ‖x‖ ^ 2) {Ψ : (R → E) → ℝ}
-    (hΨ : Measurable Ψ) {C : ℝ} {m : ℕ} (hΨb : ∀ σ, |Ψ σ| ≤ C * ∏ i, (1 + ‖σ i‖) ^ m) :
+/-- Replica observables of polynomial growth, with values in a normed space, are integrable for
+the replicated Gibbs measure of a confined energy. -/
+theorem integrable_pi_tilted_of_confining {F : Type*} [NormedAddCommGroup F] {κ : ℝ}
+    (hκ : 0 < κ) {e : E → ℝ} (he : Measurable e) {A B : ℝ}
+    (hconf : ∀ x, e x ≤ A + B * ‖x‖ - κ * ‖x‖ ^ 2) {Ψ : (R → E) → F}
+    (hΨ : AEStronglyMeasurable Ψ (Measure.pi fun _ : R => μ)) {C : ℝ} {m : ℕ}
+    (hΨb : ∀ σ, ‖Ψ σ‖ ≤ C * ∏ i, (1 + ‖σ i‖) ^ m) :
     Integrable Ψ (Measure.pi fun _ : R => μ.tilted e) := by
   have : IsProbabilityMeasure (μ.tilted e) :=
     isProbabilityMeasure_tilted (integrable_exp_of_confining (μ := μ) hκ he hconf)
@@ -171,29 +173,35 @@ theorem integrable_pi_tilted_of_confining {κ : ℝ} (hκ : 0 < κ) {e : E → �
     (memLp_of_poly_bound_of_confining hκ he hconf (f := fun x : E => (1 + ‖x‖) ^ m)
       (by fun_prop) (C := 1) (m := m)
       (fun x => by rw [Real.norm_of_nonneg (by positivity), one_mul]) 1).integrable (by simp)
+  have hΨ' : AEStronglyMeasurable Ψ (Measure.pi fun _ : R => μ.tilted e) := by
+    rw [pi_tilted_eq_tilted_pi]
+    exact hΨ.mono_ac (tilted_absolutelyContinuous _ _)
   exact ((Integrable.fintype_prod (f := fun _ : R => fun x : E => (1 + ‖x‖) ^ m)
-    fun _ => h1).const_mul C).mono' hΨ.aestronglyMeasurable (ae_of_all _ hΨb)
+    fun _ => h1).const_mul C).mono' hΨ' (ae_of_all _ hΨb)
 
 /-- Replica observables of polynomial growth have finite moments of every order for the
 replicated Gibbs measure of a confined energy. -/
-theorem memLp_pi_tilted_of_confining {κ : ℝ} (hκ : 0 < κ) {e : E → ℝ} (he : Measurable e)
-    {A B : ℝ} (hconf : ∀ x, e x ≤ A + B * ‖x‖ - κ * ‖x‖ ^ 2) {Ψ : (R → E) → ℝ}
-    (hΨ : Measurable Ψ) {C : ℝ} {m : ℕ} (hΨb : ∀ σ, |Ψ σ| ≤ C * ∏ i, (1 + ‖σ i‖) ^ m)
-    (p : ℝ≥0) : MemLp Ψ p (Measure.pi fun _ : R => μ.tilted e) := by
+theorem memLp_pi_tilted_of_confining {F : Type*} [NormedAddCommGroup F] {κ : ℝ} (hκ : 0 < κ)
+    {e : E → ℝ} (he : Measurable e) {A B : ℝ}
+    (hconf : ∀ x, e x ≤ A + B * ‖x‖ - κ * ‖x‖ ^ 2) {Ψ : (R → E) → F}
+    (hΨ : AEStronglyMeasurable Ψ (Measure.pi fun _ : R => μ)) {C : ℝ} {m : ℕ}
+    (hΨb : ∀ σ, ‖Ψ σ‖ ≤ C * ∏ i, (1 + ‖σ i‖) ^ m) (p : ℝ≥0) :
+    MemLp Ψ p (Measure.pi fun _ : R => μ.tilted e) := by
   have : IsProbabilityMeasure (μ.tilted e) :=
     isProbabilityMeasure_tilted (integrable_exp_of_confining (μ := μ) hκ he hconf)
+  have hΨ' : AEStronglyMeasurable Ψ (Measure.pi fun _ : R => μ.tilted e) := by
+    rw [pi_tilted_eq_tilted_pi]
+    exact hΨ.mono_ac (tilted_absolutelyContinuous _ _)
   obtain ⟨k, hk⟩ := exists_nat_ge p
   have hpk : (p : ℝ≥0∞) ≤ ((k + 1 : ℕ) : ℝ≥0∞) := by
     exact_mod_cast hk.trans (Nat.cast_le.2 k.le_succ)
   refine MemLp.mono_exponent ?_ hpk
-  refine (integrable_norm_rpow_iff hΨ.aestronglyMeasurable (by simp)
-    (ENNReal.natCast_ne_top _)).1 ?_
-  simp only [ENNReal.toReal_natCast, Real.rpow_natCast, Real.norm_eq_abs]
-  refine integrable_pi_tilted_of_confining hκ he hconf
-    ((continuous_abs.measurable.comp hΨ).pow_const _) (C := C ^ (k + 1)) (m := m * (k + 1))
-    fun σ => ?_
-  rw [abs_pow, abs_abs]
-  refine (pow_le_pow_left₀ (abs_nonneg _) (hΨb σ) _).trans_eq ?_
+  refine (integrable_norm_rpow_iff hΨ' (by simp) (ENNReal.natCast_ne_top _)).1 ?_
+  simp only [ENNReal.toReal_natCast, Real.rpow_natCast]
+  refine integrable_pi_tilted_of_confining hκ he hconf (hΨ.norm.pow _) (C := C ^ (k + 1))
+    (m := m * (k + 1)) fun σ => ?_
+  rw [norm_pow, norm_norm]
+  refine (pow_le_pow_left₀ (norm_nonneg _) (hΨb σ) _).trans_eq ?_
   rw [mul_pow, ← Finset.prod_pow]
   exact congrArg _ (Finset.prod_congr rfl fun i _ => (pow_mul _ _ _).symm)
 
@@ -338,7 +346,7 @@ theorem hasDerivAt_integral_pi_tilted_of_confining_replicaDiff {κ : ℝ} (hκ :
   have hFI : ∀ i : R, Integrable (fun σ => Ψ t σ * e' t (σ i))
       (Measure.pi fun _ : R => μ.tilted (e t)) := fun i =>
     integrable_pi_tilted_of_confining hκ (he t ht) (hconf t ht)
-      ((hΨ t ht).mul (he'.comp (measurable_pi_apply i))) fun σ =>
+      ((hΨ t ht).mul (he'.comp (measurable_pi_apply i))).aestronglyMeasurable fun σ =>
         abs_mul_le_mul_prod_one_add_norm_pow (hΨb t ht σ) (abs_comp_eval_le_prod (he'b t ht) σ i)
   rw [integral_pi_cov_sum_eq_sum_sub_fresh_of_integrable _ _
     (hΨ t ht).aestronglyMeasurable _ hh hFI]

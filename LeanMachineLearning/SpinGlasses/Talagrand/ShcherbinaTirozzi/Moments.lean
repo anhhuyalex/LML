@@ -42,7 +42,7 @@ depends only on `κ₀, h₀, D`. -/
 theorem exists_integral_exp_half_sq_norm_shcherbinaTirozziGibbs_le_exp (κ₀ h₀ D : ℝ)
     (hκ₀ : 0 < κ₀) :
     ∃ K : ℝ, 0 ≤ K ∧ ∀ (N M : ℕ) (κ h : ℝ) (u : ℝ → ℝ) (g : Fin M → Fin N → ℝ)
-      (g₀ : Fin N → ℝ), κ₀ ≤ κ → 0 ≤ h → h ≤ h₀ → M ≤ 10 * N → Measurable u →
+      (g₀ : Fin N → ℝ), κ₀ ≤ κ → |h| ≤ h₀ → M ≤ 10 * N → Measurable u →
       (∀ x, u x ≤ 0) → (∀ x, -D * (1 + |x|) ≤ u x) →
         ∫ σ, Real.exp (κ / 2 * ‖σ‖ ^ 2)
             ∂(volume.tilted fun σ => -shcherbinaTirozziHamiltonian κ h u g g₀ σ) ≤
@@ -51,7 +51,7 @@ theorem exists_integral_exp_half_sq_norm_shcherbinaTirozziGibbs_le_exp (κ₀ h�
   have h10 : 0 ≤ h₀ ^ 2 / (2 * κ₀) := div_nonneg (sq_nonneg _) (by positivity)
   have hDs : 0 ≤ |D| * Real.sqrt (10 / κ₀) := mul_nonneg (abs_nonneg _) (Real.sqrt_nonneg _)
   refine ⟨K, by rw [hK]; linarith [abs_nonneg D],
-    fun N M κ h u g g₀ hκ hh0 hh hM hu hu0 hD => ?_⟩
+    fun N M κ h u g g₀ hκ hh hM hu hu0 hD => ?_⟩
   have hκ0 : 0 < κ := hκ₀.trans_le hκ
   have hD0 : 0 ≤ D := by
     have h1 := (hD 0).trans (hu0 0)
@@ -89,7 +89,9 @@ theorem exists_integral_exp_half_sq_norm_shcherbinaTirozziGibbs_le_exp (κ₀ h�
   have hfield : h ^ 2 * T / (2 * κ) ≤ h₀ ^ 2 / (2 * κ₀) * T := by
     rw [div_mul_eq_mul_div]
     exact div_le_div₀ (mul_nonneg (sq_nonneg _) hT0)
-      (mul_le_mul_of_nonneg_right (pow_le_pow_left₀ hh0 hh 2) hT0) (by positivity)
+      (mul_le_mul_of_nonneg_right (show h ^ 2 ≤ h₀ ^ 2 by
+        rw [← sq_abs h]
+        exact pow_le_pow_left₀ (abs_nonneg _) hh 2) hT0) (by positivity)
       (by linarith)
   have htotal : (N : ℝ) + D * (M + Real.sqrt (M / (κ * N) * S)) + h ^ 2 * T / (2 * κ) ≤
       K * (N + Real.sqrt S + T) := by
@@ -122,7 +124,7 @@ theorem exists_integral_exp_half_sq_norm_shcherbinaTirozziGibbs_le_exp (κ₀ h�
 conclusion. -/
 theorem exists_integral_sq_norm_pow_shcherbinaTirozziGibbs_le (κ₀ h₀ D : ℝ) (hκ₀ : 0 < κ₀) :
     ∃ K : ℝ, 0 ≤ K ∧ ∀ (N M k : ℕ) (κ h : ℝ) (u : ℝ → ℝ) (g : Fin M → Fin N → ℝ)
-      (g₀ : Fin N → ℝ), κ₀ ≤ κ → 0 ≤ h → h ≤ h₀ → M ≤ 10 * N → k ≤ 4 * N → Measurable u →
+      (g₀ : Fin N → ℝ), κ₀ ≤ κ → |h| ≤ h₀ → M ≤ 10 * N → k ≤ 4 * N → Measurable u →
       (∀ x, u x ≤ 0) → (∀ x, -D * (1 + |x|) ≤ u x) →
         Integrable (fun σ : ℝ^N => ‖σ‖ ^ (2 * k))
             (volume.tilted fun σ => -shcherbinaTirozziHamiltonian κ h u g g₀ σ) ∧
@@ -132,7 +134,7 @@ theorem exists_integral_sq_norm_pow_shcherbinaTirozziGibbs_le (κ₀ h₀ D : �
   obtain ⟨K₁, hK₁, h317⟩ :=
     exists_integral_exp_half_sq_norm_shcherbinaTirozziGibbs_le_exp κ₀ h₀ D hκ₀
   refine ⟨4 / κ₀ * (4 + K₁), by positivity,
-    fun N M k κ h u g g₀ hκ hh0 hh hM hk hu hu0 hD => ?_⟩
+    fun N M k κ h u g g₀ hκ hh hM hk hu hu0 hD => ?_⟩
   have hκ0 : 0 < κ := hκ₀.trans_le hκ
   have := isProbabilityMeasure_shcherbinaTirozziGibbs (h := h) hκ0 hu hu0 g g₀
   set G := volume.tilted fun σ => -shcherbinaTirozziHamiltonian κ h u g g₀ σ with hG
@@ -146,7 +148,7 @@ theorem exists_integral_sq_norm_pow_shcherbinaTirozziGibbs_le (κ₀ h₀ D : �
     ae_of_all _ fun σ => mul_nonneg (by positivity) (sq_nonneg _)
   have hexp := (integral_exp_half_sq_norm_shcherbinaTirozziGibbs_le (h := h) hκ0 hu hu0 g g₀).1
   have hmom := integral_pow_le_of_integral_exp_le hX0 hexp
-    (h317 N M κ h u g g₀ hκ hh0 hh hM hu hu0 hD) k
+    (h317 N M κ h u g g₀ hκ hh hM hu hu0 hD) k
   have hpow : ∀ σ : ℝ^N,
       ‖σ‖ ^ (2 * k) = (2 / κ) ^ k * (κ / 2 * ‖σ‖ ^ 2) ^ k := fun σ => by
     rw [← mul_pow, pow_mul]

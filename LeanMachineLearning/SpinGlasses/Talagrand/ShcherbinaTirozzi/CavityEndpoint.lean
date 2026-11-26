@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ExchangeableCoordinates
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.LogConcaveMarginal
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.BoundedTilted
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaEquivariance
@@ -227,14 +228,6 @@ theorem integral_shcherbinaTirozzi_overlaps_eq_last_spin {κ h : ℝ} (hκ : 0 <
   have hsq : ∀ d, Integrable (fun σ => ‖σ‖ ^ 2) (G d) := fun d => by
     rw [hG]
     exact (memLp_id_shcherbinaTirozziGibbs hκ hu hu0 d.1 d.2).norm.integrable_sq
-  have hle : ∀ (i : Fin (N + 1)) (σ : ℝ^(N + 1)), σ i ^ 2 ≤ ‖σ‖ ^ 2 := fun i σ => by
-    simpa only [Real.norm_eq_abs, sq_abs] using
-      pow_le_pow_left₀ (norm_nonneg _) (PiLp.norm_apply_le σ i) 2
-  have hcsq : ∀ d i, Integrable (fun σ : ℝ^(N + 1) => σ i ^ 2) (G d) := fun d i =>
-    (hsq d).mono' ((hcoord i).pow_const 2).aestronglyMeasurable (ae_of_all _ fun σ => by
-      rw [Real.norm_of_nonneg (sq_nonneg _)]; exact hle i σ)
-  have hL2 : ∀ d i, MemLp (fun σ : ℝ^(N + 1) => σ i) 2 (G d) := fun d i =>
-    (memLp_two_iff_integrable_sq (hcoord i).aestronglyMeasurable).2 (hcsq d i)
   have hmeas : ∀ f : ℝ^(N + 1) → ℝ, Measurable f → Measurable fun d => ∫ σ, f σ ∂(G d) := by
     intro f hf
     simp only [hG]
@@ -242,16 +235,6 @@ theorem integral_shcherbinaTirozzi_overlaps_eq_last_spin {κ h : ℝ} (hκ : 0 <
       (e := fun (d : (Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) σ =>
         -shcherbinaTirozziHamiltonian κ h u d.1 d.2 σ)
       (measurable_shcherbinaTirozziHamiltonian κ h hu).neg hf
-  have hi2 : ∀ i, Integrable (fun d => ∫ σ, σ i ^ 2 ∂(G d)) P := fun i =>
-    hint.mono' (hmeas _ ((hcoord i).pow_const 2)).aestronglyMeasurable (ae_of_all _ fun d => by
-      rw [Real.norm_of_nonneg (integral_nonneg fun _ => sq_nonneg _)]
-      exact integral_mono (hcsq d i) (hsq d) fun σ => hle i σ)
-  have hi1 : ∀ i, Integrable (fun d => (∫ σ, σ i ∂(G d)) ^ 2) P := fun i =>
-    (hi2 i).mono' ((hmeas _ (hcoord i)).pow_const 2).aestronglyMeasurable
-      (ae_of_all _ fun d => by
-        rw [Real.norm_of_nonneg (sq_nonneg _)]
-        simpa only [Real.norm_eq_abs, sq_abs] using
-          sq_norm_integral_le_integral_sq_norm (hL2 d i))
   -- symmetry between sites
   have hsymm : ∀ (i : Fin (N + 1)) (Φ : ℝ → ℝ) (F : ℝ → ℝ),
       ∫ d, F (∫ σ, Φ (σ i) ∂(G d)) ∂P = ∫ d, F (∫ σ, Φ (σ (Fin.last N)) ∂(G d)) ∂P := by
@@ -267,29 +250,9 @@ theorem integral_shcherbinaTirozzi_overlaps_eq_last_spin {κ h : ℝ} (hκ : 0 <
       change τ ((Equiv.swap i (Fin.last N)).symm (Fin.last N)) = τ i
       rw [Equiv.symm_swap, Equiv.swap_apply_right]
     simp only [T.symm_apply_apply, hTa]
-  have hs2 : ∀ i : Fin (N + 1), ∫ d, ∫ σ, σ i ^ 2 ∂(G d) ∂P =
-      ∫ d, ∫ σ, σ (Fin.last N) ^ 2 ∂(G d) ∂P := fun i =>
-    hsymm i (fun x => x ^ 2) fun y => y
-  have hs1 : ∀ i : Fin (N + 1), ∫ d, (∫ σ, σ i ∂(G d)) ^ 2 ∂P =
-      ∫ d, (∫ σ, σ (Fin.last N) ∂(G d)) ^ 2 ∂P := fun i =>
-    hsymm i (fun x => x) fun y => y ^ 2
-  have hN : ((N : ℝ) + 1) ≠ 0 := by positivity
-  constructor
-  · have h1 : ∀ d, ∫ σ, ((N : ℝ) + 1)⁻¹ * ‖σ‖ ^ 2 ∂(G d) =
-        ((N : ℝ) + 1)⁻¹ * ∑ i, ∫ σ, σ i ^ 2 ∂(G d) := fun d => by
-      rw [integral_const_mul, ← integral_finsetSum _ fun i _ => hcsq d i]
-      simp only [EuclideanSpace.real_norm_sq_eq]
-    simp only [h1]
-    rw [integral_const_mul, integral_finsetSum _ fun i _ => hi2 i,
-      Finset.sum_congr rfl fun i _ => hs2 i]
-    simp only [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul,
-      Nat.cast_add, Nat.cast_one]
-    rw [inv_mul_cancel_left₀ hN]
-  · rw [integral_const_mul, integral_finsetSum _ fun i _ => hi1 i,
-      Finset.sum_congr rfl fun i _ => hs1 i]
-    simp only [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul,
-      Nat.cast_add, Nat.cast_one]
-    rw [inv_mul_cancel_left₀ hN]
+  have h := integral_integral_inv_card_mul_sq_norm_of_exchangeable hmeas hsq hint (Fin.last N)
+    hsymm
+  simpa only [Fintype.card_fin, Nat.cast_add, Nat.cast_one] using h
 
 /-- The second moment of a Gaussian field built from the two independent sources of the last
 spin: `𝔼 (h g + y)² = r + h²`. -/

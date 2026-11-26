@@ -36,6 +36,7 @@ public import LeanMachineLearning.ForMathlib.Analysis.Convex.Subgradient.Deriv
 public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.GramIsometry
 public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.ProjectionDistance
 public import LeanMachineLearning.ForMathlib.Analysis.InnerProductSpace.UltrametricEmbed
+public import LeanMachineLearning.ForMathlib.Analysis.Normed.PiLpLipschitz
 public import LeanMachineLearning.ForMathlib.Analysis.Normed.TruncatedNorm
 public import LeanMachineLearning.ForMathlib.Analysis.Normed.UnitBallNet
 public import LeanMachineLearning.ForMathlib.Analysis.RatioBound
@@ -94,6 +95,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.BoundedTilte
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ChebyshevAssociation
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ContDiffParametric
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.CoordinatePair
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ExchangeableCoordinates
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ExpMoment
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ExpectedTilted
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteHyperbolic
@@ -231,6 +233,7 @@ public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianCholesk
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianClassMoments
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianClassRecurrence
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianContinuity
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianConvexConcentration
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianExp
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianGram
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianMatrix

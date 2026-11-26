@@ -51,10 +51,11 @@ theorem shcherbinaTirozzi_rsParameters_bounds {u : ℝ → ℝ} (hu : ConcaveOn 
     0 ≤ r ∧ r ≤ α * D ^ 2 ∧ rBar ≤ r := by
   intro Z V W r rBar
   have hum : Measurable u := hu1.continuous.measurable
-  have hVD : ∀ y, |V y| ≤ D := fun y => abs_integral_mul_exp_comp_add_div_le hum hu0 hD y c
+  have hVD : ∀ y, |V y| ≤ D := fun y => abs_integral_mul_exp_comp_add_div_le hD
+    (integrable_exp_comp_add_gaussianReal hum hu0 y c)
   refine ⟨mul_nonneg hα (integral_nonneg fun _ => sq_nonneg _),
     mul_le_mul_of_nonneg_left ?_ hα, mul_le_mul_of_nonneg_left
-      (integral_deriv_two_add_sq_div_le_integral_sq_div (μ := gaussianReal 0 1) hu hu0 hu1 hu2
+      (integral_deriv_two_add_sq_div_le_integral_sq_div (μ := gaussianReal 0 1) hu hu1 hu2
         hD hD₂ (a := fun z => Real.sqrt q * z) (by fun_prop) c) hα⟩
   refine (integral_mono_of_nonneg (ae_of_all _ fun _ => sq_nonneg _) (integrable_const (D ^ 2))
     (ae_of_all _ fun z => ?_)).trans_eq (by simp)
@@ -107,7 +108,7 @@ the parameters, `ρ` and `q` being the quenched self-overlap and overlap. With
 `a = 2 κ + r - r̄ > 0`, the differences `ρ - (1 / a + (r + h²) / a²)` and `q - (r + h²) / a²`
 are the increments of `ν_t (ε²)` and `ν_t (⟨ε⟩²)` from `t = 0` to `t = 1`. -/
 theorem shcherbinaTirozzi_overlaps_sub_decoupled {N M : ℕ} {κ h D D₂ : ℝ} (hκ : 0 < κ)
-    (hh : 0 ≤ h) (hM : M ≤ 10 * (N + 1)) {u : ℝ → ℝ} (huc : ConcaveOn ℝ Set.univ u)
+    (hM : M ≤ 10 * (N + 1)) {u : ℝ → ℝ} (huc : ConcaveOn ℝ Set.univ u)
     (hu0 : ∀ x, u x ≤ 0) (hgrow : ∀ x, -D * (1 + |x|) ≤ u x) (hu1 : Differentiable ℝ u)
     (hu2 : Differentiable ℝ (deriv u)) (hD : ∀ x, |deriv u x| ≤ D)
     (hD₂ : ∀ x, |deriv (deriv u) x| ≤ D₂) :
@@ -147,7 +148,7 @@ theorem shcherbinaTirozzi_overlaps_sub_decoupled {N M : ℕ} {κ h D D₂ : ℝ}
     linarith
   -- the quenched second moment is finite
   have hint : Integrable (fun d => ∫ σ, ‖σ‖ ^ 2 ∂(G d)) P := by
-    obtain ⟨K, hK0, hK⟩ := exists_integral_sq_norm_pow_shcherbinaTirozziGibbs_le κ h D hκ
+    obtain ⟨K, hK0, hK⟩ := exists_integral_sq_norm_pow_shcherbinaTirozziGibbs_le κ |h| D hκ
     have hrad := (integral_shcherbinaTirozzi_radius_pow_le (N := N + 1) (M := M) hM
       (k := 1) (by omega)).1
     simp only [pow_one] at hrad
@@ -157,7 +158,7 @@ theorem shcherbinaTirozzi_overlaps_sub_decoupled {N M : ℕ} {κ h D D₂ : ℝ}
       (measurable_shcherbinaTirozziHamiltonian κ h hum).neg
       (measurable_norm.pow_const 2)).aestronglyMeasurable (ae_of_all _ fun d => ?_)
     rw [Real.norm_of_nonneg (integral_nonneg fun _ => sq_nonneg _)]
-    have h1 := (hK (N + 1) M 1 κ h u d.1 d.2 le_rfl hh le_rfl hM (by omega) hum hu0 hgrow).2
+    have h1 := (hK (N + 1) M 1 κ h u d.1 d.2 le_rfl le_rfl hM (by omega) hum hu0 hgrow).2
     simpa only [mul_one, pow_one] using h1
   obtain ⟨hρ, hq⟩ := integral_shcherbinaTirozzi_overlaps_eq_last_spin (M := M) (N := N)
     (h := h) hκ hum hu0 G (fun _ => rfl) P rfl hint
