@@ -462,4 +462,30 @@ theorem integral_mulVec_mul_comp_mulVec_eq_sum [DecidableEq κ] (A : Matrix κ �
 
 end Linear
 
+/-- **Stein identity for one entry of a Gaussian matrix**: if the entries `x i j` are independent
+standard Gaussians and `G` is differentiable along the entry `(i, j)`, then
+`𝔼 [x i j G x] = 𝔼 [∂ G x]`. -/
+theorem integral_apply_apply_mul_pi_pi_gaussianReal_eq {ι κ : Type*} [Fintype ι]
+    [DecidableEq ι] [Fintype κ] [DecidableEq κ] (i : ι) (j : κ)
+    {G G' : (ι → κ → ℝ) → ℝ}
+    (hG : ∀ x, HasDerivAt (fun t => G (update x i (update (x i) j t))) (G' x) (x i j))
+    (hxG : Integrable (fun x => x i j * G x)
+      (Measure.pi fun _ : ι => Measure.pi fun _ : κ => gaussianReal 0 1))
+    (hG' : Integrable G' (Measure.pi fun _ : ι => Measure.pi fun _ : κ => gaussianReal 0 1)) :
+    ∫ x, x i j * G x ∂(Measure.pi fun _ : ι => Measure.pi fun _ : κ => gaussianReal 0 1) =
+      ∫ x, G' x ∂(Measure.pi fun _ : ι => Measure.pi fun _ : κ => gaussianReal 0 1) := by
+  set γ : Measure (κ → ℝ) := Measure.pi fun _ : κ => gaussianReal 0 1 with hγ
+  have h1 := integrable_update_pi (fun _ : ι => γ) i hxG
+  have h2 := integrable_update_pi (fun _ : ι => γ) i hG'
+  rw [integral_pi_eq_integral_update (fun _ : ι => γ) i hxG,
+    integral_pi_eq_integral_update (fun _ : ι => γ) i hG']
+  refine integral_congr_ae ?_
+  filter_upwards [h1.prod_right_ae, h2.prod_right_ae] with x hx1 hx2
+  simp only [update_self] at hx1 ⊢
+  have h := integral_eval_mul_pi_gaussianReal_eq_of_coord (fun _ : κ => (1 : ℝ≥0)) j
+    (G := fun y => G (update x i y)) (G' := fun y => G' (update x i y)) (fun y => by
+      have := hG (update x i y)
+      simpa only [update_self, update_idem] using this) hx1 hx2
+  simpa using h
+
 end ProbabilityTheory

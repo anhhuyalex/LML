@@ -21,6 +21,8 @@ in each replica, which covers the unbounded spins of continuous spin glass model
 * `MeasureTheory.memLp_of_poly_bound_of_confining`,
   `MeasureTheory.memLp_pi_tilted_of_confining`: observables of polynomial growth have finite
   moments of every order, for one replica and for finitely many.
+* `MeasureTheory.exists_integral_one_add_norm_pow_tilted_le`: a moment bound which is polynomial
+  in the linear growth of the energy and in its lower bound on the unit ball.
 * `MeasureTheory.integrable_pi_mul_exp_of_confining`: integrability of replica observables of
   polynomial growth against the product weight.
 * `MeasureTheory.hasDerivAt_integral_pi_tilted_of_confining`: the derivative of a replica average
@@ -99,6 +101,18 @@ theorem abs_mul_exp_sum_le_of_confining {κ A B : ℝ} {e : E → ℝ}
   rw [mul_assoc, ← Finset.prod_mul_distrib]
   exact congrArg _ (Finset.prod_congr rfl fun i _ => by ring)
 
+/-- A replica observable pulled back along `some` to `|R| + 1` replicas keeps its growth bound. -/
+theorem abs_comp_some_le_prod {F : (R → E) → ℝ} {C : ℝ} {m : ℕ}
+    (hF : ∀ σ, |F σ| ≤ C * ∏ i, (1 + ‖σ i‖) ^ m) (σ : Option R → E) :
+    |F fun j => σ (some j)| ≤ C * ∏ o, (1 + ‖σ o‖) ^ m := by
+  have hC : 0 ≤ C := by
+    have h := (abs_nonneg _).trans (hF 0)
+    exact nonneg_of_mul_nonneg_left h (Finset.prod_pos fun _ _ => by positivity)
+  refine (hF _).trans (mul_le_mul_of_nonneg_left ?_ hC)
+  rw [Fintype.prod_option]
+  exact le_mul_of_one_le_left (Finset.prod_nonneg fun _ _ => by positivity)
+    (one_le_pow₀ (le_add_of_nonneg_right (norm_nonneg _)))
+
 end ReplicaSum
 
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [FiniteDimensional ℝ E]
@@ -158,6 +172,98 @@ theorem memLp_of_poly_bound_of_confining {F : Type*} [NormedAddCommGroup F] {κ 
     (by positivity)).trans_eq ?_
   rw [mul_pow, ← pow_mul]
   ring
+
+/-- **Polynomial moments of a confined Gibbs measure.** For `κ > 0` and `k : ℕ` there is a
+constant `K` such that, for every energy with `e x ≤ B ‖x‖ - κ ‖x‖²` everywhere and `-c ≤ e x`
+on the unit ball, the Gibbs measure of `e` satisfies `⟨(1 + ‖x‖)^k⟩ ≤ K (1 + B + c)^k`. The
+bound is polynomial in `B` and `c`, which keeps it integrable against Gaussian disorder. -/
+theorem exists_integral_one_add_norm_pow_tilted_le (μ : Measure E) [μ.IsAddHaarMeasure] {κ : ℝ}
+    (hκ : 0 < κ) (k : ℕ) :
+    ∃ K : ℝ, 0 ≤ K ∧ ∀ (e : E → ℝ), Measurable e → ∀ B c : ℝ, 0 ≤ B → 0 ≤ c →
+      (∀ x, e x ≤ B * ‖x‖ - κ * ‖x‖ ^ 2) → (∀ x, ‖x‖ ≤ 1 → -c ≤ e x) →
+      ∫ x, (1 + ‖x‖) ^ k ∂(μ.tilted e) ≤ K * (1 + B + c) ^ k := by
+  set V : ℝ := μ.real (Metric.closedBall (0 : E) 1) with hV
+  have hV0 : 0 < V := ENNReal.toReal_pos
+    (Metric.measure_closedBall_pos μ (0 : E) one_pos).ne' measure_closedBall_lt_top.ne
+  set I : ℝ := ∫ x : E, (1 + ‖x‖) ^ k * Real.exp (0 * ‖x‖ - κ / 4 * ‖x‖ ^ 2) ∂μ with hI
+  have hI0 : 0 ≤ I := integral_nonneg fun x => by positivity
+  set M : ℝ := 3 + 3 / κ with hM
+  have hM0 : 0 ≤ M := by positivity
+  refine ⟨M ^ k + I / V, by positivity, fun e he B c hB hc hup hlow => ?_⟩
+  have hconf : ∀ x, e x ≤ 0 + B * ‖x‖ - κ * ‖x‖ ^ 2 := by simpa using hup
+  have hZi := integrable_exp_of_confining (μ := μ) hκ he hconf
+  set Z : ℝ := ∫ x, Real.exp (e x) ∂μ with hZ
+  have hZ0 : 0 < Z := integral_exp_pos hZi
+  -- the normalizer is bounded below on the unit ball
+  have hZlow : V * Real.exp (-c) ≤ Z := by
+    refine le_trans ?_ (setIntegral_le_integral (s := Metric.closedBall (0 : E) 1) hZi
+      (ae_of_all _ fun _ => (Real.exp_pos _).le))
+    rw [mul_comm]
+    refine setIntegral_ge_of_const_le_real measurableSet_closedBall measure_closedBall_lt_top.ne
+      (fun x hx => ?_) hZi.integrableOn
+    exact Real.exp_le_exp.2 (hlow x (by simpa using hx))
+  set T : ℝ := 2 + 2 * B / κ + c / κ with hT
+  have hT0 : 0 ≤ T := by positivity
+  -- outside the ball of radius `T` the weight is small compared with the normalizer
+  have hpt : ∀ x : E, (1 + ‖x‖) ^ k * Real.exp (e x) ≤ (1 + T) ^ k * Real.exp (e x) +
+      Real.exp (-c) * ((1 + ‖x‖) ^ k * Real.exp (0 * ‖x‖ - κ / 4 * ‖x‖ ^ 2)) := fun x => by
+    rcases le_or_gt ‖x‖ T with hx | hx
+    · refine le_add_of_le_of_nonneg (mul_le_mul_of_nonneg_right
+        (pow_le_pow_left₀ (by positivity) (by linarith) k) (Real.exp_pos _).le) (by positivity)
+    refine le_add_of_nonneg_of_le (by positivity) ?_
+    rw [mul_left_comm, ← Real.exp_add]
+    refine mul_le_mul_of_nonneg_left (Real.exp_le_exp.2 ((hup x).trans ?_)) (by positivity)
+    have h1 : 2 * B ≤ κ * ‖x‖ := by
+      have : 2 * B / κ ≤ ‖x‖ := by
+        have := div_nonneg hc hκ.le
+        linarith
+      rwa [div_le_iff₀' hκ] at this
+    have h2 : 4 * c ≤ κ * ‖x‖ ^ 2 := by
+      have h3 : 1 + c / κ ≤ ‖x‖ := by
+        have := div_nonneg (mul_nonneg zero_le_two hB) hκ.le
+        linarith
+      have h4 : 4 * (c / κ) ≤ ‖x‖ ^ 2 :=
+        le_trans (by nlinarith [sq_nonneg (c / κ - 1)])
+          (pow_le_pow_left₀ (by positivity) h3 2)
+      rwa [mul_div_assoc', div_le_iff₀' hκ] at h4
+    have h5 := mul_le_mul_of_nonneg_right h1 (norm_nonneg x)
+    nlinarith
+  have hIi : Integrable (fun x : E => (1 + ‖x‖) ^ k * Real.exp (0 * ‖x‖ - κ / 4 * ‖x‖ ^ 2)) μ :=
+    integrable_one_add_norm_pow_mul_exp (by positivity) 0 k
+  have hNi : Integrable (fun x : E => (1 + ‖x‖) ^ k * Real.exp (e x)) μ := by
+    refine (integrable_one_add_norm_pow_mul_exp (μ := μ) hκ B k).mono'
+      ((by fun_prop : Measurable fun x : E => (1 + ‖x‖) ^ k).mul he.exp).aestronglyMeasurable
+      (ae_of_all _ fun x => ?_)
+    rw [Real.norm_of_nonneg (by positivity)]
+    exact mul_le_mul_of_nonneg_left (Real.exp_le_exp.2 (hup x)) (by positivity)
+  have hnum : ∫ x, (1 + ‖x‖) ^ k * Real.exp (e x) ∂μ ≤ (1 + T) ^ k * Z + Real.exp (-c) * I := by
+    refine (integral_mono hNi ((hZi.const_mul _).add (hIi.const_mul _)) hpt).trans_eq ?_
+    simp only [Pi.add_apply]
+    rw [integral_add (hZi.const_mul _) (hIi.const_mul _), integral_const_mul,
+      integral_const_mul]
+  have htail : Real.exp (-c) * I ≤ I / V * Z := by
+    rw [div_mul_eq_mul_div, le_div_iff₀ hV0]
+    calc Real.exp (-c) * I * V = I * (V * Real.exp (-c)) := by ring
+      _ ≤ I * Z := mul_le_mul_of_nonneg_left hZlow hI0
+  have hTM : 1 + T ≤ M * (1 + B + c) := by
+    have h1 : 2 * B / κ + c / κ ≤ 3 / κ * (1 + B + c) := by
+      rw [← add_div, div_mul_eq_mul_div]
+      exact div_le_div_of_nonneg_right (by linarith) hκ.le
+    rw [hM, add_mul, hT]
+    linarith
+  have h1 : (1 : ℝ) ≤ (1 + B + c) ^ k := one_le_pow₀ (by linarith)
+  rw [integral_tilted_eq_div e fun x => (1 + ‖x‖) ^ k, ← hZ, div_le_iff₀ hZ0]
+  refine hnum.trans ?_
+  have h2 : (1 + T) ^ k ≤ M ^ k * (1 + B + c) ^ k := by
+    rw [← mul_pow]
+    exact pow_le_pow_left₀ (by positivity) hTM k
+  have h3 : I / V ≤ I / V * (1 + B + c) ^ k :=
+    le_mul_of_one_le_right (div_nonneg hI0 hV0.le) h1
+  calc (1 + T) ^ k * Z + Real.exp (-c) * I
+      ≤ (M ^ k * (1 + B + c) ^ k) * Z + (I / V * (1 + B + c) ^ k) * Z :=
+        add_le_add (mul_le_mul_of_nonneg_right h2 hZ0.le)
+          (htail.trans (mul_le_mul_of_nonneg_right h3 hZ0.le))
+    _ = (M ^ k + I / V) * (1 + B + c) ^ k * Z := by ring
 
 /-- Replica observables of polynomial growth, with values in a normed space, are integrable for
 the replicated Gibbs measure of a confined energy. -/
