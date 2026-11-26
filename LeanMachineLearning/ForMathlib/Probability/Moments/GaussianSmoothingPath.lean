@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianAffineDerivative
+public import Mathlib.Analysis.Calculus.Deriv.Prod
 
 /-!
 # Derivative of a Gaussian smoothing along a parameter path
@@ -154,8 +155,10 @@ theorem hasDerivAt_integral_gaussian_sum_path {κ E : Type*} [Fintype κ] [Norme
       rw [Function.update_eq_self] at h
       refine HasDerivAt.scomp (η j) ?_ hl
       simpa only [Function.update_eq_self] using h
+    have hs : Integrable (fun η : κ → ℝ => a j s₀ • f'' (y + ∑ k, a k s₀ * η k)) π :=
+      h2.smul (a j s₀)
     have h := integral_eval_smul_pi_gaussianReal_eq_of_coord (fun _ : κ => (1 : ℝ≥0)) j hd
-      (hj j) (h2.smul (a j s₀))
+      (hj j) hs
     rwa [NNReal.coe_one, one_smul, integral_smul] at h
   have hsplit : ∀ η : κ → ℝ, (∑ k, a' k s₀ * η k) • f' (y + ∑ k, a k s₀ * η k) =
       ∑ j, a' j s₀ • (η j • f' (y + ∑ k, a k s₀ * η k)) := fun η => by

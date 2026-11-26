@@ -672,10 +672,10 @@ theorem hasDerivAt_integral_log_gaussianTail {m σ m' σ' : ℝ → ℝ} {t : �
       (∫ z, -(mills (m t + σ t * z)) * (m' t + σ' t * z) ∂(gaussianReal 0 1)) t := by
   obtain ⟨C, hC0, hC⟩ := exists_gaussianPDFReal_div_measureReal_Ici_le
   refine hasDerivAt_integral_comp_add_mul_gaussianReal
-    (f := fun v => Real.log ((gaussianReal 0 1).real (Ici v))) (C := C) (k := 1)
+    (f := fun v => Real.log ((gaussianReal 0 1).real (Ici v))) (C := C + 1) (k := 1)
     hasDerivAt_log_measureReal_gaussianReal_Ici (fun y => ?_) hm hσ hm' hσ'
   rw [abs_neg, abs_of_nonneg (gaussianPDFReal_div_measureReal_Ici_nonneg _), pow_one]
-  exact hC y
+  exact (hC y).trans (by nlinarith [mul_nonneg hC0 (abs_nonneg y)])
 
 /-- Differentiation of `t ↦ 𝔼 A (m t + σ t z)²`, with integrability of the derivative of the
 integrand. -/

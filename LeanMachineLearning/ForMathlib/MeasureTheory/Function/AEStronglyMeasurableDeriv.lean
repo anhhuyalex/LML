@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import Mathlib.Analysis.Calculus.Deriv.Shift
 public import Mathlib.Analysis.Calculus.Deriv.Slope
 public import Mathlib.Analysis.SpecificLimits.Basic
 public import Mathlib.MeasureTheory.Function.AEMeasurableSequence
