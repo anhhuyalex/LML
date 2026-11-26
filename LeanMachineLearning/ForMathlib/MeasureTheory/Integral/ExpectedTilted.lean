@@ -23,35 +23,111 @@ open scoped Topology BigOperators
 
 namespace MeasureTheory
 
-private theorem abs_integral_mul_sub_integral_mul_tilted_le
-    {α : Type*} [MeasurableSpace α] {μ : Measure α} [IsFiniteMeasure μ] [NeZero μ]
-    {e Y b : α → ℝ} {A B C : ℝ} (he : AEMeasurable e μ)
-    (heb : ∀ a, |e a| ≤ A) (hb : Integrable b μ) (hYb : ∀ a, |Y a| ≤ B * b a)
-    (hiY : Integrable Y μ) (hiTilt : Integrable Y (μ.tilted e))
-    (F : α → ℝ) (hFb : ∀ a, |F a| ≤ C) :
-    |(∫ a, F a * Y a ∂μ.tilted e) -
-      (∫ a, F a ∂μ.tilted e) * (∫ a, Y a ∂μ.tilted e)| ≤
-      (2 * |C| / μ.real Set.univ * ∫ a, b a ∂μ) * (Real.exp (2 * A) * B) := by
-  have hiExp := integrable_exp_of_ae_le he (ae_of_all _ fun a => le_of_abs_le (heb a))
-  have : IsProbabilityMeasure (μ.tilted (e)) := isProbabilityMeasure_tilted
-    hiExp
-  have hcov := abs_integral_mul_sub_integral_mul_le F (Y) (ae_of_all _ hFb) hiTilt
-  have htilt := abs_integral_tilted_le_exp_mul_integral_abs he
-    (ae_of_all _ heb) hiY.abs
-  simp only [abs_abs] at htilt
-  have hu : (∫ a, |Y a| ∂μ) ≤ B * ∫ a, b a ∂μ := by
-    rw [← integral_const_mul]
-    exact integral_mono_ae hiY.abs (hb.const_mul _)
-      (ae_of_all _ hYb)
-  have hm : 0 < μ.real Set.univ := ENNReal.toReal_pos (NeZero.ne (μ Set.univ))
-    (measure_ne_top μ Set.univ)
-  calc _ ≤ 2 * |C| * ∫ a, |Y a| ∂μ.tilted (e) := hcov
-    _ ≤ 2 * |C| * (Real.exp (2 * A) / μ.real Set.univ *
-        (B * ∫ a, b a ∂μ)) := by
-      apply mul_le_mul_of_nonneg_left _ (by positivity)
-      exact (le_abs_self _).trans (htilt.trans
-        (mul_le_mul_of_nonneg_left hu (by positivity)))
-    _ = _ := by ring
+/-- Differentiate an average over random exponential tilts of a vector-valued observable. On a
+neighbourhood of `t`, `|E r ω a| ≤ A ω` and `|E' r ω a| ≤ B ω * b a` almost everywhere.
+Integrability of `b` on the finite base and `exp (2 A) * B` on the finite environment justifies
+both differentiation steps. The derivative is the environment average of the covariance with the
+energy derivative. -/
+theorem hasDerivAt_integral_integral_tilted_smul_of_dominated
+    {Ω α V : Type*} [MeasurableSpace Ω] [MeasurableSpace α] [NormedAddCommGroup V]
+    [NormedSpace ℝ V] {P : Measure Ω} [IsFiniteMeasure P] {μ : Measure α} [IsFiniteMeasure μ]
+    [NeZero μ] {E E' : ℝ → Ω → α → ℝ} {t : ℝ} {s : Set ℝ} (hs : s ∈ 𝓝 t)
+    (hE : ∀ r ∈ s, Measurable fun p : Ω × α => E r p.1 p.2)
+    (hE' : ∀ r ∈ s, Measurable fun p : Ω × α => E' r p.1 p.2)
+    {A B : Ω → ℝ} {b : α → ℝ}
+    (hEb : ∀ᵐ ω ∂P, ∀ᵐ a ∂μ, ∀ r ∈ s, |E r ω a| ≤ A ω)
+    (hb : Integrable b μ)
+    (hdb : ∀ᵐ ω ∂P, ∀ᵐ a ∂μ, ∀ r ∈ s, |E' r ω a| ≤ B ω * b a)
+    (houter : Integrable (fun ω => Real.exp (2 * A ω) * B ω) P)
+    (hd : ∀ᵐ ω ∂P, ∀ᵐ a ∂μ, ∀ r ∈ s, HasDerivAt (fun q => E q ω a) (E' r ω a) r)
+    {F : α → V} (hF : StronglyMeasurable F) {C : ℝ} (hFb : ∀ᵐ a ∂μ, ‖F a‖ ≤ C) :
+    HasDerivAt (fun r => ∫ ω, ∫ a, F a ∂μ.tilted (E r ω) ∂P)
+      (∫ ω, (∫ a, E' t ω a • F a ∂μ.tilted (E t ω)) -
+        (∫ a, E' t ω a ∂μ.tilted (E t ω)) • (∫ a, F a ∂μ.tilted (E t ω)) ∂P) t := by
+  set u := interior s with hu
+  have huo : IsOpen u := isOpen_interior
+  have htu : t ∈ u := mem_interior_iff_mem_nhds.2 hs
+  have hus : u ⊆ s := interior_subset
+  set D := fun r ω => (∫ a, E' r ω a • F a ∂μ.tilted (E r ω)) -
+    (∫ a, E' r ω a ∂μ.tilted (E r ω)) • (∫ a, F a ∂μ.tilted (E r ω)) with hD
+  have hmE (r : ℝ) (hr : r ∈ s) (ω : Ω) : Measurable (E r ω) := (hE r hr).of_uncurry_left
+  have hmE' (r : ℝ) (hr : r ∈ s) (ω : Ω) : Measurable (E' r ω) := (hE' r hr).of_uncurry_left
+  have hFp : StronglyMeasurable fun p : Ω × α => F p.2 := hF.comp_measurable measurable_snd
+  have hmF (r : ℝ) (hr : r ∈ s) :
+      StronglyMeasurable fun ω => ∫ a, F a ∂μ.tilted (E r ω) :=
+    stronglyMeasurable_integral_tilted_dep (hE r hr) hFp
+  have hmD (r : ℝ) (hr : r ∈ s) : StronglyMeasurable (D r) :=
+    (stronglyMeasurable_integral_tilted_dep (hE r hr)
+      ((hE' r hr).stronglyMeasurable.smul hFp)).sub
+      ((stronglyMeasurable_integral_tilted_dep (hE r hr)
+        (hE' r hr).stronglyMeasurable).smul (hmF r hr))
+  have hm : 0 < μ.real Set.univ := measureReal_univ_pos
+  have hae : ∀ᵐ ω ∂P, ∀ r ∈ u,
+      HasDerivAt (fun q => ∫ a, F a ∂μ.tilted (E q ω)) (D r ω) r ∧
+        ‖D r ω‖ ≤ (2 * |C| / μ.real Set.univ * ∫ a, b a ∂μ) *
+          (Real.exp (2 * A ω) * B ω) := by
+    filter_upwards [hEb, hdb, hd] with ω h1 h2 h3 r hr
+    have hrs := hus hr
+    have heb : ∀ᵐ a ∂μ, |E r ω a| ≤ A ω := h1.mono fun a h => h r hrs
+    have heub : ∀ᵐ a ∂μ, E r ω a ≤ A ω := heb.mono fun a h => le_of_abs_le h
+    have hiE' : Integrable (E' r ω) μ :=
+      (hb.const_mul (B ω)).mono' (hmE' r hrs ω).aestronglyMeasurable
+        (h2.mono fun a h => by simpa only [Real.norm_eq_abs] using h r hrs)
+    refine ⟨hasDerivAt_integral_tilted_of_ae_bounded (E := fun q => E q ω)
+      (E' := fun q => E' q ω) (huo.mem_nhds hr)
+      (fun q hq => (hmE q (hus hq) ω).aestronglyMeasurable) (hmE' r hrs ω).aestronglyMeasurable
+      (h1.mono fun a h q hq => le_of_abs_le (h q (hus hq))) (hb.const_mul (B ω))
+      (h2.mono fun a h q hq => h q (hus hq)) (h3.mono fun a h q hq => h q (hus hq))
+      hF.aestronglyMeasurable hFb, ?_⟩
+    have hiExp := integrable_exp_of_ae_le (hmE r hrs ω).aemeasurable heub
+    have : IsProbabilityMeasure (μ.tilted (E r ω)) := isProbabilityMeasure_tilted hiExp
+    have hFt : ∀ᵐ a ∂μ.tilted (E r ω), ‖F a‖ ≤ |C| :=
+      (tilted_absolutelyContinuous μ _).ae_le (hFb.mono fun a h => h.trans (le_abs_self C))
+    have hiYt : Integrable (E' r ω) (μ.tilted (E r ω)) :=
+      integrable_tilted_of_ae_le (hmE r hrs ω).aemeasurable heub hiE'
+    have h4 : ‖∫ a, E' r ω a • F a ∂μ.tilted (E r ω)‖ ≤
+        |C| * ∫ a, |E' r ω a| ∂μ.tilted (E r ω) := by
+      rw [← integral_const_mul]
+      refine norm_integral_le_of_norm_le (hiYt.abs.const_mul _) (hFt.mono fun a h => ?_)
+      rw [norm_smul, Real.norm_eq_abs, mul_comm]
+      exact mul_le_mul_of_nonneg_right h (abs_nonneg _)
+    have h5 : ‖(∫ a, E' r ω a ∂μ.tilted (E r ω)) • (∫ a, F a ∂μ.tilted (E r ω))‖ ≤
+        |C| * ∫ a, |E' r ω a| ∂μ.tilted (E r ω) := by
+      rw [norm_smul, Real.norm_eq_abs, mul_comm]
+      exact mul_le_mul (norm_integral_tilted_le_of_ae_norm_le hiExp
+        (hFb.mono fun a h => h.trans (le_abs_self C))) abs_integral_le_integral_abs
+        (abs_nonneg _) (abs_nonneg _)
+    have h6 : ∫ a, |E' r ω a| ∂μ.tilted (E r ω) ≤
+        Real.exp (2 * A ω) / μ.real Set.univ * (B ω * ∫ a, b a ∂μ) := by
+      have htilt := abs_integral_tilted_le_exp_mul_integral_abs (hmE r hrs ω).aemeasurable
+        heb hiE'.abs
+      simp only [abs_abs] at htilt
+      refine (le_abs_self _).trans (htilt.trans (mul_le_mul_of_nonneg_left ?_ (by positivity)))
+      rw [← integral_const_mul]
+      exact integral_mono_ae hiE'.abs (hb.const_mul _) (h2.mono fun a h => h r hrs)
+    calc ‖D r ω‖ ≤ |C| * (∫ a, |E' r ω a| ∂μ.tilted (E r ω)) +
+          |C| * ∫ a, |E' r ω a| ∂μ.tilted (E r ω) :=
+          (norm_sub_le _ _).trans (add_le_add h4 h5)
+      _ = 2 * |C| * ∫ a, |E' r ω a| ∂μ.tilted (E r ω) := by ring
+      _ ≤ 2 * |C| * (Real.exp (2 * A ω) / μ.real Set.univ * (B ω * ∫ a, b a ∂μ)) :=
+          mul_le_mul_of_nonneg_left h6 (by positivity)
+      _ = _ := by ring
+  have hiF : Integrable (fun ω => ∫ a, F a ∂μ.tilted (E t ω)) P := by
+    refine (integrable_const |C|).mono' (hmF t (hus htu)).aestronglyMeasurable
+      (hEb.mono fun ω h => ?_)
+    exact norm_integral_tilted_le_of_ae_norm_le
+      (integrable_exp_of_ae_le (hmE t (hus htu) ω).aemeasurable
+        (h.mono fun a h => le_of_abs_le (h t (hus htu))))
+      (hFb.mono fun a h => h.trans (le_abs_self C))
+  exact (hasDerivAt_integral_of_dominated_loc_of_deriv_le
+    (F := fun r ω => ∫ a, F a ∂μ.tilted (E r ω)) (F' := D)
+    (bound := fun ω => (2 * |C| / μ.real Set.univ * ∫ a, b a ∂μ) *
+      (Real.exp (2 * A ω) * B ω)) (huo.mem_nhds htu)
+    (Filter.eventually_of_mem (huo.mem_nhds htu) fun r hr =>
+      (hmF r (hus hr)).aestronglyMeasurable)
+    hiF (hmD t (hus htu)).aestronglyMeasurable
+    (hae.mono fun ω h r hr => (h r hr).2)
+    (houter.const_mul _) (hae.mono fun ω h r hr => (h r hr).1)).2
 
 /-- Differentiate an average over random exponential tilts. On a common open neighborhood,
 `|E r ω a| ≤ A ω` and `|E' r ω a| ≤ B ω * b a`. Integrability of `b` on the finite base and
@@ -73,52 +149,13 @@ theorem hasDerivAt_integral_integral_tilted_of_dominated
     HasDerivAt (fun r => ∫ ω, ∫ a, F a ∂μ.tilted (E r ω) ∂P)
       (∫ ω, (∫ a, F a * E' t ω a ∂μ.tilted (E t ω)) -
         (∫ a, F a ∂μ.tilted (E t ω)) * (∫ a, E' t ω a ∂μ.tilted (E t ω)) ∂P) t := by
-  let D := fun r ω => (∫ a, F a * E' r ω a ∂μ.tilted (E r ω)) -
-    (∫ a, F a ∂μ.tilted (E r ω)) * (∫ a, E' r ω a ∂μ.tilted (E r ω))
-  have hmE (r : ℝ) (hr : r ∈ s) (ω : Ω) : Measurable (E r ω) := (hE r hr).of_uncurry_left
-  have hmE' (r : ℝ) (hr : r ∈ s) (ω : Ω) : Measurable (E' r ω) := (hE' r hr).of_uncurry_left
-  have hiExp (r : ℝ) (hr : r ∈ s) (ω : Ω) : Integrable
-      (fun a => Real.exp (E r ω a)) μ :=
-    integrable_exp_of_ae_le (hmE r hr ω).aemeasurable
-      (ae_of_all _ fun a => le_of_abs_le (hEb r hr ω a))
-  have hiE' (r : ℝ) (hr : r ∈ s) (ω : Ω) : Integrable (E' r ω) μ :=
-    (hb.const_mul (B ω)).mono' (hmE' r hr ω).aestronglyMeasurable
-      (ae_of_all _ fun a => by simpa only [Real.norm_eq_abs] using hdb r hr ω a)
-  have hiTilt (r : ℝ) (hr : r ∈ s) (ω : Ω) :
-      Integrable (E' r ω) (μ.tilted (E r ω)) :=
-    integrable_tilted_of_ae_le (hmE r hr ω).aemeasurable
-      (ae_of_all _ fun a => le_of_abs_le (hEb r hr ω a)) (hiE' r hr ω)
-  have hmD (r : ℝ) (hr : r ∈ s) : Measurable (D r) := by
-    exact (measurable_integral_tilted_dep (hE r hr)
-      ((hF.comp measurable_snd).mul (hE' r hr))).sub
-      ((measurable_integral_tilted_dep (hE r hr) (hF.comp measurable_snd)).mul
-        (measurable_integral_tilted_dep (hE r hr) (hE' r hr)))
-  have hcalc (ω : Ω) (r : ℝ) (hr : r ∈ s) :
-      HasDerivAt (fun q => ∫ a, F a ∂μ.tilted (E q ω)) (D r ω) r :=
-    hasDerivAt_integral_tilted_of_bounded (E := fun q => E q ω) (E' := fun q => E' q ω)
-      (hs.mem_nhds hr) (fun q hq => hmE q hq ω) (hmE' r hr ω)
-      (fun q hq a => le_of_abs_le (hEb q hq ω a)) (hb.const_mul (B ω))
-      (fun q hq a => hdb q hq ω a)
-      (fun a q hq => hd ω a q hq) hF hFb
-  have hbound (ω : Ω) (r : ℝ) (hr : r ∈ s) :
-      |D r ω| ≤ (2 * |C| / μ.real Set.univ * ∫ a, b a ∂μ) *
-        (Real.exp (2 * A ω) * B ω) :=
-    abs_integral_mul_sub_integral_mul_tilted_le (hmE r hr ω).aemeasurable
-      (hEb r hr ω) hb (hdb r hr ω) (hiE' r hr ω) (hiTilt r hr ω) F hFb
-  have hiF : Integrable (fun ω => ∫ a, F a ∂μ.tilted (E t ω)) P := by
-    refine (integrable_const C).mono'
-      (measurable_integral_tilted_dep (hE t ht) (hF.comp measurable_snd)).aestronglyMeasurable
-      (ae_of_all _ fun ω => ?_)
-    simpa only [Real.norm_eq_abs] using abs_integral_tilted_le (hiExp t ht ω) hFb
-  exact (hasDerivAt_integral_of_dominated_loc_of_deriv_le
-    (F := fun r ω => ∫ a, F a ∂μ.tilted (E r ω)) (F' := D)
-    (bound := fun ω => (2 * |C| / μ.real Set.univ * ∫ a, b a ∂μ) *
-      (Real.exp (2 * A ω) * B ω)) (hs.mem_nhds ht)
-    (Filter.mem_of_superset (hs.mem_nhds ht) fun r hr =>
-      (measurable_integral_tilted_dep (hE r hr) (hF.comp measurable_snd)).aestronglyMeasurable)
-    hiF (hmD t ht).aestronglyMeasurable
-    (ae_of_all _ fun ω r hr => by simpa only [Real.norm_eq_abs] using hbound ω r hr)
-    (houter.const_mul _) (ae_of_all _ hcalc)).2
+  have h := hasDerivAt_integral_integral_tilted_smul_of_dominated (P := P) (μ := μ)
+    (hs.mem_nhds ht) hE hE'
+    (ae_of_all _ fun ω => ae_of_all _ fun a r hr => hEb r hr ω a) hb
+    (ae_of_all _ fun ω => ae_of_all _ fun a r hr => hdb r hr ω a) houter
+    (ae_of_all _ fun ω => ae_of_all _ (hd ω)) hF.stronglyMeasurable (C := C)
+    (ae_of_all _ fun a => by simpa only [Real.norm_eq_abs] using hFb a)
+  simpa only [smul_eq_mul, mul_comm] using h
 
 /-- Replica version of `hasDerivAt_integral_integral_tilted_of_dominated`: only single-replica
 envelopes are assumed. -/
