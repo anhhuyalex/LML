@@ -797,6 +797,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.Fixe
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.LargeReplicas
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.Limit
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.Stationarity
+public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.CavityEndpoint
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.Convexity
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.DisorderConcentration
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.GradientBound

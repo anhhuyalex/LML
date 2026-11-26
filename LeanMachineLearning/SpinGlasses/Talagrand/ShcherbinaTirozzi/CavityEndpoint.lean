@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.LogConcaveMarginal
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.BoundedTilted
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaEquivariance
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.Convexity
 
@@ -23,6 +24,8 @@ symmetry between sites this gives Proposition 3.2.4 of Talagrand, *Spin Glasses*
 * `SpinGlasses.shcherbinaTirozziCavityHamiltonian`: the Hamiltonian (3.61).
 * `SpinGlasses.shcherbinaTirozziGibbs_comp_perm` and
   `SpinGlasses.integral_shcherbinaTirozziGibbs_comp_perm`: symmetry between sites.
+* `SpinGlasses.integral_shcherbinaTirozzi_overlaps_eq_last_spin`: `ρ = ν (ε²)` and
+  `q = ν (⟨ε⟩²)`.
 * `SpinGlasses.integral_shcherbinaTirozziCavityGibbs_zero_last`: at `t = 0` the last spin has
   density proportional to `exp ((h g_N + y) ε - a ε² / 2)`.
 * `SpinGlasses.integral_integral_shcherbinaTirozziCavityGibbs_zero_sq_last` and
@@ -197,9 +200,107 @@ theorem integral_shcherbinaTirozziGibbs_comp_perm (κ h : ℝ) {u : ℝ → ℝ}
     Prod.ext (funext fun k => funext fun i => hca (d.1 k) i) (funext fun i => hca d.2 i)
   simp only [hCd]
   rw [shcherbinaTirozziGibbs_comp_perm κ h hu d.1 d.2 π]
-  have := (LinearIsometryEquiv.piLpCongrLeft 2 ℝ ℝ π).symm.toHomeomorph.toMeasurableEquiv
   exact congrArg F (integral_map_equiv
     (LinearIsometryEquiv.piLpCongrLeft 2 ℝ ℝ π).symm.toHomeomorph.toMeasurableEquiv Φ)
+
+/-- **The symmetry step of Proposition 3.2.4:** if `𝔼 ⟨‖σ‖²⟩` is finite, then the quenched
+self-overlap is `ρ = ν (ε²)` and the quenched overlap is `q = ν (⟨ε⟩²)`, where `ε` is the last
+spin. -/
+theorem integral_shcherbinaTirozzi_overlaps_eq_last_spin {κ h : ℝ} (hκ : 0 < κ) {u : ℝ → ℝ}
+    (hu : Measurable u) (hu0 : ∀ x, u x ≤ 0) :
+    ∀ G : (Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ) → Measure (ℝ^(N + 1)),
+      (∀ d, G d = volume.tilted fun σ => -shcherbinaTirozziHamiltonian κ h u d.1 d.2 σ) →
+      ∀ P : Measure ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)),
+        P = (Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1).prod
+          (Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1) →
+        Integrable (fun d => ∫ σ, ‖σ‖ ^ 2 ∂(G d)) P →
+        ∫ d, ∫ σ, ((N : ℝ) + 1)⁻¹ * ‖σ‖ ^ 2 ∂(G d) ∂P =
+            ∫ d, ∫ σ, σ (Fin.last N) ^ 2 ∂(G d) ∂P ∧
+          ∫ d, ((N : ℝ) + 1)⁻¹ * ∑ i, (∫ σ, σ i ∂(G d)) ^ 2 ∂P =
+            ∫ d, (∫ σ, σ (Fin.last N) ∂(G d)) ^ 2 ∂P := by
+  intro G hG P hP hint
+  have hprob : ∀ d, IsProbabilityMeasure (G d) := fun d => by
+    rw [hG]; exact isProbabilityMeasure_shcherbinaTirozziGibbs hκ hu hu0 _ _
+  have hcoord : ∀ i : Fin (N + 1), Measurable fun σ : ℝ^(N + 1) => σ i := fun i =>
+    (PiLp.continuous_apply 2 (fun _ : Fin (N + 1) => ℝ) i).measurable
+  -- every moment needed is finite, since `‖σ‖²` has a finite exponential moment
+  have hsq : ∀ d, Integrable (fun σ => ‖σ‖ ^ 2) (G d) := fun d => by
+    have h1 := (integral_exp_half_sq_norm_shcherbinaTirozziGibbs_le (h := h) hκ hu hu0
+      d.1 d.2).1
+    rw [← hG] at h1
+    refine (h1.const_mul (2 / κ)).mono' (measurable_norm.pow_const 2).aestronglyMeasurable
+      (ae_of_all _ fun σ => ?_)
+    rw [Real.norm_of_nonneg (sq_nonneg _)]
+    have h2 := Real.add_one_le_exp (κ / 2 * ‖σ‖ ^ 2)
+    calc ‖σ‖ ^ 2 = 2 / κ * (κ / 2 * ‖σ‖ ^ 2) := by field_simp
+      _ ≤ 2 / κ * Real.exp (κ / 2 * ‖σ‖ ^ 2) :=
+          mul_le_mul_of_nonneg_left (by linarith) (by positivity)
+  have hle : ∀ (i : Fin (N + 1)) (σ : ℝ^(N + 1)), σ i ^ 2 ≤ ‖σ‖ ^ 2 := fun i σ => by
+    rw [EuclideanSpace.real_norm_sq_eq]
+    exact Finset.single_le_sum (f := fun i => σ i ^ 2) (fun _ _ => sq_nonneg _)
+      (Finset.mem_univ i)
+  have hcsq : ∀ d i, Integrable (fun σ : ℝ^(N + 1) => σ i ^ 2) (G d) := fun d i =>
+    (hsq d).mono' ((hcoord i).pow_const 2).aestronglyMeasurable (ae_of_all _ fun σ => by
+      rw [Real.norm_of_nonneg (sq_nonneg _)]; exact hle i σ)
+  have hL2 : ∀ d i, MemLp (fun σ : ℝ^(N + 1) => σ i) 2 (G d) := fun d i =>
+    (memLp_two_iff_integrable_sq (hcoord i).aestronglyMeasurable).2 (hcsq d i)
+  have hmeas : ∀ f : ℝ^(N + 1) → ℝ, Measurable f → Measurable fun d => ∫ σ, f σ ∂(G d) := by
+    intro f hf
+    simp only [hG]
+    exact measurable_integral_tilted
+      (e := fun (d : (Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) σ =>
+        -shcherbinaTirozziHamiltonian κ h u d.1 d.2 σ)
+      (measurable_shcherbinaTirozziHamiltonian κ h hu).neg hf
+  have hi2 : ∀ i, Integrable (fun d => ∫ σ, σ i ^ 2 ∂(G d)) P := fun i =>
+    hint.mono' (hmeas _ ((hcoord i).pow_const 2)).aestronglyMeasurable (ae_of_all _ fun d => by
+      rw [Real.norm_of_nonneg (integral_nonneg fun _ => sq_nonneg _)]
+      exact integral_mono (hcsq d i) (hsq d) fun σ => hle i σ)
+  have hi1 : ∀ i, Integrable (fun d => (∫ σ, σ i ∂(G d)) ^ 2) P := fun i =>
+    (hi2 i).mono' ((hmeas _ (hcoord i)).pow_const 2).aestronglyMeasurable
+      (ae_of_all _ fun d => by
+        rw [Real.norm_of_nonneg (sq_nonneg _)]
+        have h1 := variance_nonneg (fun σ : ℝ^(N + 1) => σ i) (G d)
+        rw [variance_eq_sub (hL2 d i)] at h1
+        simp only [Pi.pow_apply] at h1
+        linarith)
+  -- symmetry between sites
+  have hsymm : ∀ (i : Fin (N + 1)) (Φ : ℝ → ℝ) (F : ℝ → ℝ),
+      ∫ d, F (∫ σ, Φ (σ i) ∂(G d)) ∂P = ∫ d, F (∫ σ, Φ (σ (Fin.last N)) ∂(G d)) ∂P := by
+    intro i Φ F
+    simp only [hG]
+    rw [integral_shcherbinaTirozziGibbs_comp_perm κ h hu (Equiv.swap i (Fin.last N))
+      (fun σ => Φ (σ i)) F P hP]
+    refine integral_congr_ae (ae_of_all _ fun d => congrArg F (integral_congr_ae
+      (ae_of_all _ fun σ => ?_)))
+    set T := LinearIsometryEquiv.piLpCongrLeft 2 ℝ ℝ (Equiv.swap i (Fin.last N)) with hT
+    obtain ⟨τ, rfl⟩ := T.surjective σ
+    have hTa : T τ (Fin.last N) = τ i := by
+      change τ ((Equiv.swap i (Fin.last N)).symm (Fin.last N)) = τ i
+      rw [Equiv.symm_swap, Equiv.swap_apply_right]
+    simp only [T.symm_apply_apply, hTa]
+  have hs2 : ∀ i : Fin (N + 1), ∫ d, ∫ σ, σ i ^ 2 ∂(G d) ∂P =
+      ∫ d, ∫ σ, σ (Fin.last N) ^ 2 ∂(G d) ∂P := fun i =>
+    hsymm i (fun x => x ^ 2) fun y => y
+  have hs1 : ∀ i : Fin (N + 1), ∫ d, (∫ σ, σ i ∂(G d)) ^ 2 ∂P =
+      ∫ d, (∫ σ, σ (Fin.last N) ∂(G d)) ^ 2 ∂P := fun i =>
+    hsymm i (fun x => x) fun y => y ^ 2
+  have hN : ((N : ℝ) + 1) ≠ 0 := by positivity
+  constructor
+  · have h1 : ∀ d, ∫ σ, ((N : ℝ) + 1)⁻¹ * ‖σ‖ ^ 2 ∂(G d) =
+        ((N : ℝ) + 1)⁻¹ * ∑ i, ∫ σ, σ i ^ 2 ∂(G d) := fun d => by
+      rw [integral_const_mul, ← integral_finsetSum _ fun i _ => hcsq d i]
+      simp only [EuclideanSpace.real_norm_sq_eq]
+    simp only [h1]
+    rw [integral_const_mul, integral_finsetSum _ fun i _ => hi2 i,
+      Finset.sum_congr rfl fun i _ => hs2 i]
+    simp only [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul,
+      Nat.cast_add, Nat.cast_one]
+    rw [inv_mul_cancel_left₀ hN]
+  · rw [integral_const_mul, integral_finsetSum _ fun i _ => hi1 i,
+      Finset.sum_congr rfl fun i _ => hs1 i]
+    simp only [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul,
+      Nat.cast_add, Nat.cast_one]
+    rw [inv_mul_cancel_left₀ hN]
 
 /-- The second moment of a Gaussian field built from the two independent sources of the last
 spin: `𝔼 (h g + y)² = r + h²`. -/

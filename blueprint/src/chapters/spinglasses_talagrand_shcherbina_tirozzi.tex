@@ -479,8 +479,9 @@ coefficient of $\sum g_{i,k}^2$ is $1/(8N)$.
 
 \section{Tools for the replica-symmetric equations (Talagrand Section~3.2)}\label{sec:sg-tal:st-rs-tools}
 
-This section starts Section~3.2 with the analytic lemmas it uses. The cavity construction,
-Proposition~3.2.1 and the statements from Lemma~3.2.6 to Theorem~3.2.14 are not formalized yet.
+This section starts Section~3.2: the analytic lemmas it uses, the cavity Hamiltonian and
+Proposition~3.2.4. Proposition~3.2.1 and the statements from Lemma~3.2.6 to Theorem~3.2.14 are not
+formalized yet.
 
 \begin{lemma}[Marginals of log-concave densities]\label{lem:sg-tal:st-marginal}
   \lean{MeasureTheory.concaveOn_log_integral_exp}
@@ -576,6 +577,101 @@ $\mathcal N(d/a,1/a)$; its mean is $d/a$ and its second moment is $1/a+(d/a)^2$.
   \leanok
 Complete the square in the Gaussian density and use the Gaussian moments.
 \end{proof}
+
+\begin{definition}[The cavity Hamiltonian]\label{def:sg-tal:st-cavity}
+  \lean{SpinGlasses.shcherbinaTirozziCavityHamiltonian}
+  \leanok
+\talsource{Eqs.~(3.60), (3.61)}
+Write a configuration of $\mathbb R^{N+1}$ as $\sigma=(\rho,\varepsilon)$ with $\rho\in\mathbb R^N$, and set
+$S_{k,t}(\sigma)=(N+1)^{-1/2}\bigl(\sum_{i\le N}g_{i,k}\rho_i+\sqrt t\,g_{N+1,k}\varepsilon\bigr)$. For real $r,
+\bar r,t,y$,
+\[
+-H_t(\sigma)=\sum_{k\le M}u(S_{k,t}(\sigma))-\kappa\|\sigma\|^2+h\sum_{i\le N+1}g_i\sigma_i
++\varepsilon\sqrt{1-t}\,y-(1-t)(r-\bar r)\frac{\varepsilon^2}2 .
+\]
+\end{definition}
+
+\begin{lemma}[The two ends of the cavity path]\label{lem:sg-tal:st-cavity-ends}
+  \lean{SpinGlasses.shcherbinaTirozziCavityHamiltonian_one,
+        SpinGlasses.neg_shcherbinaTirozziCavityHamiltonian_zero,
+        SpinGlasses.integral_shcherbinaTirozziCavityGibbs_zero_last}
+  \leanok
+  \uses{def:sg-tal:st-cavity, lem:sg-tal:st-quadratic}
+\talsource{Eqs.~(3.78), (3.79)}
+At $t=1$ the cavity Hamiltonian is the Hamiltonian~(3.1) of the model with $N+1$ spins. At $t=0$,
+\[
+-H_0(\sigma)=B(\rho)+(hg_{N+1}+y)\,\varepsilon-(2\kappa+r-\bar r)\frac{\varepsilon^2}2,
+\]
+where $B(\rho)=\sum_ku(S_{k,0})-\kappa\|\rho\|^2+h\sum_{i\le N}g_i\rho_i$ does not involve $\varepsilon$.
+Consequently, if $\kappa>0$ and $u\le0$ is measurable, then for every function $\Phi$ the Gibbs average of
+$\Phi(\varepsilon)$ at $t=0$ is its average for the density proportional to
+$\exp\bigl((hg_{N+1}+y)x-(2\kappa+r-\bar r)x^2/2\bigr)$.
+\end{lemma}
+\begin{proof}
+  \leanok
+  \uses{def:sg-tal:st-cavity, lem:sg-tal:st-quadratic}
+The identities at the two ends are substitutions. For the last claim, split Lebesgue measure on
+$\mathbb R^{N+1}$ into the product of the measures in $\varepsilon$ and in $\rho$; the weight factorizes, and the
+positive finite integral of $e^{B}$ (finite since $u\le0$ and $\kappa>0$) cancels between numerator and
+denominator.
+\end{proof}
+
+\begin{lemma}[Symmetry between sites]\label{lem:sg-tal:st-site-symmetry}
+  \lean{SpinGlasses.shcherbinaTirozziGibbs_comp_perm,
+        SpinGlasses.integral_shcherbinaTirozziGibbs_comp_perm,
+        SpinGlasses.integral_shcherbinaTirozzi_overlaps_eq_last_spin}
+  \leanok
+  \uses{lem:sg-tal:st-partition}
+\talsource{Proposition~3.2.4, first step}
+Let $u$ be measurable. For a permutation $\pi$ of the sites, the Gibbs measure for the disorder
+$(g_{\pi(i),k},g_{\pi(i)})$ is the image of the Gibbs measure for $(g_{i,k},g_i)$ under the corresponding
+permutation of the coordinates. Hence, averaging over the standard Gaussian disorder, the law of a Gibbs
+average is unchanged when the observable is composed with $\pi$. If moreover $\kappa>0$, $u\le0$ and
+$\mathbb E\langle\|\sigma\|^2\rangle<\infty$, then with $N+1$ spins
+\[
+\rho:=\mathbb E\Bigl\langle\frac{\|\sigma\|^2}{N+1}\Bigr\rangle=\mathbb E\langle\varepsilon^2\rangle,\qquad
+q:=\mathbb E\,\frac1{N+1}\sum_i\langle\sigma_i\rangle^2=\mathbb E\langle\varepsilon\rangle^2 .
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+  \uses{lem:sg-tal:st-partition}
+The Hamiltonian for the permuted disorder is the Hamiltonian evaluated at the permuted configuration, and
+Lebesgue measure and the Gaussian disorder are invariant under permutations. Apply this to the transposition of
+a site $i$ with the last one and sum over $i$; the integrability needed to exchange sum and expectation
+follows from $\sigma_i^2\le\|\sigma\|^2$.
+\end{proof}
+
+\begin{theorem}[The decoupled end]\label{thm:sg-tal:st-endpoint}
+  \lean{SpinGlasses.integral_integral_shcherbinaTirozziCavityGibbs_zero_sq_last,
+        SpinGlasses.integral_integral_sq_shcherbinaTirozziCavityGibbs_zero_last}
+  \leanok
+  \uses{lem:sg-tal:st-cavity-ends, lem:sg-tal:st-endpoint-gaussian}
+\talsource{Proposition~3.2.4, Eq.~(3.80)}
+Let $\kappa>0$, $u\le0$ measurable, $r\ge0$, $a=2\kappa+r-\bar r>0$, and let $y\sim\mathcal N(0,r)$ be
+independent of the disorder. Then at $t=0$
+\[
+\mathbb E\langle\varepsilon^2\rangle_0=\frac1a+\frac{r+h^2}{a^2},\qquad
+\mathbb E\langle\varepsilon\rangle_0^2=\frac{r+h^2}{a^2}.
+\]
+\end{theorem}
+\begin{proof}
+  \leanok
+  \uses{lem:sg-tal:st-cavity-ends, lem:sg-tal:st-endpoint-gaussian}
+By Lemmas~\ref{lem:sg-tal:st-cavity-ends} and~\ref{lem:sg-tal:st-endpoint-gaussian}, conditionally on the
+disorder $\langle\varepsilon\rangle_0=d/a$ and $\langle\varepsilon^2\rangle_0=1/a+(d/a)^2$ with
+$d=hg_{N+1}+y$; finally $\mathbb E\,d^2=r+h^2$.
+\end{proof}
+
+\begin{remark}[The form of Proposition~3.2.4]\label{rem:sg-tal:st-prop-324}
+\talsource{Proposition~3.2.4}
+Combining Lemmas~\ref{lem:sg-tal:st-cavity-ends} and~\ref{lem:sg-tal:st-site-symmetry} with
+Theorem~\ref{thm:sg-tal:st-endpoint} gives (3.74)--(3.75): the errors $\delta_1,\delta_2$ are exactly the
+differences between the values at $t=1$ and $t=0$ of $\nu_t(\varepsilon^2)$ and of
+$\nu_t(\varepsilon_1\varepsilon_2)$. The book states them as inequalities
+$\delta_i\le|\cdot|$. Here the system has $N+1$ spins, so that the number of spins other than the last one is
+$N$.
+\end{remark}
 
 \begin{remark}[Research Problem~3.1.2]\label{rem:sg-tal:st-problem-312}
 \talsource{Eq.~(3.10)}
