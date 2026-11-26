@@ -128,16 +128,12 @@ theorem integral_log_sum_exp_add_le (hξ : ConvexOn ℝ (Set.Icc (-1) 1) ξ)
   have := (hG N hN).isProbabilityMeasure
   have := (hG M hM).isProbabilityMeasure
   have := (hG (N + M) hNM).isProbabilityMeasure
-  have hvm : ∀ K (hK : 0 < K), Measurable fun ω => fun σ => H K ω σ := fun K hK =>
-    measurable_pi_iff.2 (hm K hK)
   have hNr : (0 : ℝ) < N := Nat.cast_pos.2 hN
   have hMr : (0 : ℝ) < M := Nat.cast_pos.2 hM
   have : Nonempty (Fin N) := ⟨⟨0, hN⟩⟩
   have : Nonempty (Fin M) := ⟨⟨0, hM⟩⟩
   -- the product probability space and the Gaussian vector of the three Hamiltonians
-  have hW := (hG (N + M) hNM).prodMk_prod ((hG N hN).prodMk_prod (hG M hM) (hvm N hN) (hvm M hM))
-    (hvm (N + M) hNM)
-    (((hvm N hN).comp measurable_fst).prodMk ((hvm M hM).comp measurable_snd))
+  have hW := (hG (N + M) hNM).prodMk_prod ((hG N hN).prodMk_prod (hG M hM))
   set μ' : Measure (Ω (N + M) × (Ω N × Ω M)) := (μ (N + M)).prod ((μ N).prod (μ M)) with hμ'
   have hF1 : ∀ σ, HasGaussianLaw (fun ω : Ω (N + M) × (Ω N × Ω M) => H (N + M) ω.1 σ) μ' :=
     fun σ => hW.fst.eval σ

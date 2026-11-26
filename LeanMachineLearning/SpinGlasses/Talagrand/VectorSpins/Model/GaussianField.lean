@@ -57,7 +57,7 @@ theorem hasGaussianLaw_skVectorGaussianPairField :
     HasGaussianLaw (fun ω k => skVectorGaussianPairField k ω) (skVectorGaussianPairLaw β Q Q') := by
   have h1 := hasGaussianLaw_ofLp_multivariateGaussian (β ^ 2 • Matrix.of Q)
   have h2 := hasGaussianLaw_ofLp_multivariateGaussian (β ^ 2 • Matrix.of Q')
-  exact HasGaussianLaw.sumElim_prod_of_independent h1 h2 (by fun_prop) (by fun_prop)
+  exact HasGaussianLaw.sumElim_prod_of_independent h1 h2
 
 theorem measurable_skVectorGaussianPairField (k : Fin d ⊕ Fin d) :
     Measurable (skVectorGaussianPairField k) := by

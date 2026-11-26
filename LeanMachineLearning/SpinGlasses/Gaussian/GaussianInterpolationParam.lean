@@ -190,7 +190,7 @@ theorem hasDerivAt_integral_comp_trig_param
           (fun m => Real.cos t * X m ω + Real.sin t * Y m ω) (Pi.single k 1) ∂P := fun l => by
     have h := integral_mul_comp_eq_sum_integral_mul_of_sum
       (W := fun a ω => -Real.sin t * X a ω + Real.cos t * Y a ω)
-      (X := fun a ω => Real.cos t * X a ω + Real.sin t * Y a ω) hlin hWmean hZmean l
+      (X := fun a ω => Real.cos t * X a ω + Real.sin t * Y a ω) hlin (i := l) (hWmean l) hZmean
       (F := fun y => fderiv ℝ (fun y => F (τ t, y)) y (Pi.single l 1)) (hFl l) (C := D l)
       (c := c₁) (fun y => by rw [hsec]; exact hF1 _ l y) (D := fun k => D2 k l) (d := fun _ => c₂)
       (fun k y => hF2 k l y)

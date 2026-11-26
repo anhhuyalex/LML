@@ -123,7 +123,7 @@ theorem exists_sk_smart_path_fields {N : ℕ} (hN : 0 < N) (β q : ℝ) (hq : 0 
   -- Gaussian field on the product of the two disorders
   have hXG : HasGaussianLaw (fun (ω : (FinPairs N → ℝ) × (Fin N → ℝ)) (s : (Fin N → ℤˣ) ⊕
       (Fin N → ℤˣ)) => Sum.elim (fun σ => F ω.1 σ) (fun σ => G ω.2 σ) s)
-      (Pg.prod Pz) := HasGaussianLaw.sumElim_prod_of_independent hFG hGG hFm hGm
+      (Pg.prod Pz) := HasGaussianLaw.sumElim_prod_of_independent hFG hGG
   have hXG' : HasGaussianLaw (fun (ω : (FinPairs N → ℝ) × (Fin N → ℝ))
       (s : (Fin N → ℤˣ) ⊕ (Fin N → ℤˣ)) => Sum.elim (fun σ (ω : (FinPairs N → ℝ) × (Fin N → ℝ)) =>
         F ω.1 σ) (fun σ ω => G ω.2 σ) s ω) (Pg.prod Pz) := by

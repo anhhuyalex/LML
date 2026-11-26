@@ -46,8 +46,8 @@ theorem integral_pi_prod_mul (μ : Measure A) (ν : Measure B) [SigmaFinite μ] 
   exact h
 
 /-- **Gibbs replicas of an additively split energy.** -/
-theorem integral_pi_tilted_prod_add_mul {μ : Measure A} {ν : Measure B} [IsFiniteMeasure μ]
-    [IsFiniteMeasure ν] (E₁ : A → ℝ) (E₂ : B → ℝ) (F : (ι → A) → ℝ) (G : (ι → B) → ℝ) :
+theorem integral_pi_tilted_prod_add_mul {μ : Measure A} {ν : Measure B} [SigmaFinite μ]
+    [SigmaFinite ν] (E₁ : A → ℝ) (E₂ : B → ℝ) (F : (ι → A) → ℝ) (G : (ι → B) → ℝ) :
     ∫ σ : ι → A × B, F (fun i => (σ i).1) * G (fun i => (σ i).2)
         ∂(Measure.pi fun _ : ι => (μ.prod ν).tilted fun p => E₁ p.1 + E₂ p.2) =
       (∫ a, F a ∂(Measure.pi fun _ : ι => μ.tilted E₁)) *

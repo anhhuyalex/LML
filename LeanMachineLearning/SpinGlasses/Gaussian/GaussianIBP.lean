@@ -350,8 +350,8 @@ theorem integral_gibbs_replica_average_gaussian [Finite α] [Nonempty α] [Finty
     simp [mul_comm, Finset.sum_ite_eq]
   simp_rw [hlhs]
   rw [integral_finsetSum _ fun a _ => hint1 a]
-  have hst := fun a => integral_mul_comp_eq_sum_integral_mul_of_sum hxy hx hy a (hFd a)
-    (hFg a) (hFg' a)
+  have hst := fun a => integral_mul_comp_eq_sum_integral_mul_of_sum hxy (i := a) (hx a) hy
+    (hFd a) (hFg a) (hFg' a)
   rw [Finset.sum_congr rfl fun a _ => hst a]
   simp_rw [← hC]
   have e : ∀ a b, C a b * ∫ ω, fderiv ℝ (F a) (fun k => y k ω) (Pi.single b 1) ∂P =

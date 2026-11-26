@@ -129,54 +129,50 @@ theorem abs_replicaDiff_le_of_confining {κ : ℝ} (hκ : 0 < κ) {e : E → ℝ
     (mul_le_mul_of_nonneg_left (hterm none) (Nat.cast_nonneg _))
   exact (Finset.sum_le_sum fun i _ => hterm (some i)).trans_eq (by simp)
 
-/-- The two-fresh-replica average of a product kernel of polynomially growing observables is
-controlled by one moment of the Gibbs measure. -/
-theorem abs_replicaPairAverage_le_of_confining [LinearOrder R] {κ : ℝ} (hκ : 0 < κ)
+/-- The two-fresh-replica average of a two-variable kernel of polynomial growth is controlled by
+one moment of the Gibbs measure. -/
+theorem abs_replicaPairAverage_kernel_le_of_confining [LinearOrder R] {κ : ℝ} (hκ : 0 < κ)
     {e : E → ℝ} (he : Measurable e) {A B : ℝ}
     (hconf : ∀ x, e x ≤ A + B * ‖x‖ - κ * ‖x‖ ^ 2) {F : (R → E) → ℝ}
-    {C : ℝ} {m : ℕ} (hFb : ∀ σ, |F σ| ≤ C * ∏ i, (1 + ‖σ i‖) ^ m) {f : E → ℝ}
-    {L : ℝ} {n : ℕ} (hfb : ∀ x, |f x| ≤ L * (1 + ‖x‖) ^ n) :
-    |replicaPairAverage (μ.tilted e) F (fun a b => f a * f b)| ≤
-      3 * (Fintype.card R + 1) ^ 2 * (C * L ^ 2 *
-        (∫ x, (1 + ‖x‖) ^ (m + (n + n)) ∂(μ.tilted e)) ^ (Fintype.card R + 2)) := by
-  have hL : 0 ≤ L := by simpa using (abs_nonneg _).trans (hfb 0)
+    {C : ℝ} {m : ℕ} (hFb : ∀ σ, |F σ| ≤ C * ∏ i, (1 + ‖σ i‖) ^ m) {K : E → E → ℝ}
+    {W : ℝ} {n₁ n₂ : ℕ} (hKb : ∀ a b, |K a b| ≤ W * (1 + ‖a‖) ^ n₁ * (1 + ‖b‖) ^ n₂) :
+    |replicaPairAverage (μ.tilted e) F K| ≤
+      3 * (Fintype.card R + 1) ^ 2 * (C * W *
+        (∫ x, (1 + ‖x‖) ^ (m + (n₁ + n₂)) ∂(μ.tilted e)) ^ (Fintype.card R + 2)) := by
+  have hW : 0 ≤ W := by simpa using (abs_nonneg _).trans (hKb 0 0)
   set k : ℝ := (Fintype.card R : ℝ) with hk
   have hk0 : 0 ≤ k := Nat.cast_nonneg _
   set G : (Option (Option R) → E) → ℝ := fun τ => F fun r => τ (some (some r)) with hG
-  have hGb : ∀ τ, |G τ| ≤ C * ∏ o, (1 + ‖τ o‖) ^ m := fun τ =>
-    abs_comp_some_le_prod (R := R) (F := F) hFb (fun o => τ (some o)) |>.trans (by
-      have hC : 0 ≤ C := nonneg_of_mul_nonneg_left ((abs_nonneg _).trans (hFb 0))
-        (Finset.prod_pos fun _ _ => by positivity)
-      refine mul_le_mul_of_nonneg_left ?_ hC
-      rw [Fintype.prod_option (fun o : Option (Option R) => (1 + ‖τ o‖) ^ m)]
-      exact le_mul_of_one_le_left (Finset.prod_nonneg fun _ _ => by positivity)
-        (one_le_pow₀ (le_add_of_nonneg_right (norm_nonneg _))))
+  have hGb : ∀ τ, |G τ| ≤ C * ∏ o, (1 + ‖τ o‖) ^ m := abs_comp_some_le_prod (abs_comp_some_le_prod hFb)
   -- each value of the kernel grows polynomially
   have hff : ∀ (τ : Option (Option R) → E) (a b : Option (Option R)),
-      |f (τ a) * f (τ b)| ≤ L ^ 2 * ∏ o, (1 + ‖τ o‖) ^ (n + n) := fun τ a b => by
-    refine (abs_mul_le_mul_prod_one_add_norm_pow (abs_comp_eval_le_prod hfb τ a)
-      (abs_comp_eval_le_prod hfb τ b)).trans_eq ?_
-    rw [sq]
-  set W : ℝ := L ^ 2 with hW
+      |K (τ a) (τ b)| ≤ W * ∏ o, (1 + ‖τ o‖) ^ (n₁ + n₂) := fun τ a b => by
+    have h1 := one_add_norm_pow_le_prod τ n₁ a
+    have h2 := one_add_norm_pow_le_prod τ n₂ b
+    refine (hKb (τ a) (τ b)).trans ?_
+    rw [mul_assoc]
+    refine mul_le_mul_of_nonneg_left ?_ hW
+    simp only [pow_add, Finset.prod_mul_distrib]
+    exact mul_le_mul h1 h2 (by positivity) (by positivity)
   have hcomb : ∀ τ : Option (Option R) → E,
-      |replicaPairCombination (fun a b => f a * f b) τ| ≤
-        3 * (k + 1) ^ 2 * (W * ∏ o, (1 + ‖τ o‖) ^ (n + n)) := fun τ => by
-    set P : ℝ := W * ∏ o, (1 + ‖τ o‖) ^ (n + n) with hP
+      |replicaPairCombination K τ| ≤
+        3 * (k + 1) ^ 2 * (W * ∏ o, (1 + ‖τ o‖) ^ (n₁ + n₂)) := fun τ => by
+    set P : ℝ := W * ∏ o, (1 + ‖τ o‖) ^ (n₁ + n₂) with hP
     have hP0 : 0 ≤ P := (abs_nonneg _).trans (hff τ none none)
     have h1 : |∑ p : R × R with p.1 < p.2,
-        f (τ (some (some p.1))) * f (τ (some (some p.2)))| ≤ k ^ 2 * P := by
+        K (τ (some (some p.1))) (τ (some (some p.2)))| ≤ k ^ 2 * P := by
       refine (Finset.abs_sum_le_sum_abs _ _).trans
         ((Finset.sum_le_sum fun p _ => hff τ _ _).trans ?_)
       rw [Finset.sum_const, nsmul_eq_mul]
       refine mul_le_mul_of_nonneg_right ?_ hP0
       rw [hk, sq, ← Nat.cast_mul, ← Fintype.card_prod]
       exact_mod_cast Finset.card_filter_le _ _
-    have h2 : |k * ∑ r : R, f (τ (some (some r))) * f (τ (some none))| ≤ k ^ 2 * P := by
+    have h2 : |k * ∑ r : R, K (τ (some (some r))) (τ (some none))| ≤ k ^ 2 * P := by
       rw [abs_mul, abs_of_nonneg hk0, sq, mul_assoc]
       refine mul_le_mul_of_nonneg_left ((Finset.abs_sum_le_sum_abs _ _).trans
         ((Finset.sum_le_sum fun r _ => hff τ _ _).trans_eq ?_)) hk0
       rw [Finset.sum_const, nsmul_eq_mul, Finset.card_univ]
-    have h3 : |k * (k + 1) / 2 * (f (τ (some none)) * f (τ none))| ≤ (k + 1) ^ 2 * P := by
+    have h3 : |k * (k + 1) / 2 * K (τ (some none)) (τ none)| ≤ (k + 1) ^ 2 * P := by
       rw [abs_mul, abs_of_nonneg (by positivity)]
       exact mul_le_mul (by nlinarith) (hff τ _ _) (abs_nonneg _) (by positivity)
     have h4 : k ^ 2 * P ≤ (k + 1) ^ 2 * P :=
@@ -186,8 +182,8 @@ theorem abs_replicaPairAverage_le_of_confining [LinearOrder R] {κ : ℝ} (hκ :
     refine (add_le_add ((abs_sub _ _).trans (add_le_add h1 h2)) h3).trans ?_
     linarith
   have hmain := abs_integral_pi_tilted_le_of_confining (μ := μ) (R := Option (Option R)) hκ he hconf
-    (Ψ := fun τ => G τ * replicaPairCombination (fun a b => f a * f b) τ)
-    (C := 3 * (k + 1) ^ 2 * (C * W)) (m := m + (n + n)) fun τ => by
+    (Ψ := fun τ => G τ * replicaPairCombination K τ)
+    (C := 3 * (k + 1) ^ 2 * (C * W)) (m := m + (n₁ + n₂)) fun τ => by
       refine (abs_mul_le_mul_prod_one_add_norm_pow (hGb τ)
         ((hcomb τ).trans_eq (mul_assoc _ _ _).symm)).trans_eq ?_
       ring
@@ -195,6 +191,21 @@ theorem abs_replicaPairAverage_le_of_confining [LinearOrder R] {κ : ℝ} (hκ :
   rw [replicaPairAverage_eq]
   refine hmain.trans_eq ?_
   ring
+
+/-- The two-fresh-replica average of a product kernel of polynomially growing observables is
+controlled by one moment of the Gibbs measure. -/
+theorem abs_replicaPairAverage_le_of_confining [LinearOrder R] {κ : ℝ} (hκ : 0 < κ)
+    {e : E → ℝ} (he : Measurable e) {A B : ℝ}
+    (hconf : ∀ x, e x ≤ A + B * ‖x‖ - κ * ‖x‖ ^ 2) {F : (R → E) → ℝ}
+    {C : ℝ} {m : ℕ} (hFb : ∀ σ, |F σ| ≤ C * ∏ i, (1 + ‖σ i‖) ^ m) {f : E → ℝ}
+    {L : ℝ} {n : ℕ} (hfb : ∀ x, |f x| ≤ L * (1 + ‖x‖) ^ n) :
+    |replicaPairAverage (μ.tilted e) F (fun a b => f a * f b)| ≤
+      3 * (Fintype.card R + 1) ^ 2 * (C * L ^ 2 *
+        (∫ x, (1 + ‖x‖) ^ (m + (n + n)) ∂(μ.tilted e)) ^ (Fintype.card R + 2)) :=
+  abs_replicaPairAverage_kernel_le_of_confining hκ he hconf hFb fun a b => by
+    rw [abs_mul, sq]
+    refine (mul_le_mul (hfb a) (hfb b) (abs_nonneg _) ((abs_nonneg _).trans (hfb a))).trans_eq ?_
+    ring
 
 /-- **Derivative of a replica difference along a confined energy.** Suppose the energy and the
 one-replica observable move with `∂ e = c h` and `∂ h = c h₂`, everything growing polynomially.
@@ -280,5 +291,57 @@ theorem hasDerivAt_replicaDiff_tilted_of_confining [LinearOrder R] {κ : ℝ} (h
   rw [hW] at hpair
   rw [Finset.sum_add_distrib, ← Finset.mul_sum, ← Finset.mul_sum]
   linear_combination c * hpair - c * hD2
+
+section Measurability
+
+variable {Ω α : Type*} [MeasurableSpace Ω] [MeasurableSpace α] {μ' : Measure α} [SigmaFinite μ']
+
+/-- **Measurability of a σ-finite replica Gibbs average in the random environment.** -/
+theorem measurable_integral_pi_tilted_of_sigmaFinite {ι : Type*} [Fintype ι] {e : Ω → α → ℝ}
+    (he : Measurable fun p : Ω × α => e p.1 p.2) {G : Ω → (ι → α) → ℝ}
+    (hG : Measurable fun p : Ω × (ι → α) => G p.1 p.2) :
+    Measurable fun ω => ∫ σ, G ω σ ∂(Measure.pi fun _ : ι => μ'.tilted (e ω)) := by
+  simp_rw [pi_tilted_eq_tilted_pi]
+  have hJ : Measurable fun p : Ω × (ι → α) => ∑ i, e p.1 (p.2 i) :=
+    Finset.measurable_sum _ fun i _ => he.comp (measurable_fst.prodMk
+      ((measurable_pi_apply i).comp measurable_snd))
+  exact measurable_integral_tilted_dep hJ hG
+
+/-- **Measurability of the σ-finite replica difference in the environment.** -/
+theorem measurable_replicaDiff_tilted_of_sigmaFinite {e : Ω → α → ℝ}
+    (he : Measurable fun p : Ω × α => e p.1 p.2) {h : Ω → α → ℝ}
+    (hh : Measurable fun p : Ω × α => h p.1 p.2) {F : (R → α) → ℝ} (hF : Measurable F) :
+    Measurable fun ω => replicaDiff (μ'.tilted (e ω)) F (h ω) := by
+  have hFo : Measurable fun p : Ω × (Option R → α) => F (fun j => p.2 (some j)) :=
+    hF.comp (measurable_pi_iff.2 fun j => (measurable_pi_apply _).comp measurable_snd)
+  have hhi (i : Option R) : Measurable fun p : Ω × (Option R → α) => h p.1 (p.2 i) :=
+    hh.comp (measurable_fst.prodMk ((measurable_pi_apply i).comp measurable_snd))
+  simp_rw [replicaDiff_eq]
+  refine (Finset.measurable_sum _ fun i _ => ?_).sub
+    ((measurable_integral_pi_tilted_of_sigmaFinite he (hFo.mul (hhi none))).const_mul _)
+  exact measurable_integral_pi_tilted_of_sigmaFinite he (hFo.mul (hhi (some i)))
+
+/-- **Measurability of the σ-finite pair average in the environment.** -/
+theorem measurable_replicaPairAverage_tilted_of_sigmaFinite [LinearOrder R] {e : Ω → α → ℝ}
+    (he : Measurable fun p : Ω × α => e p.1 p.2) {U : Ω → α → α → ℝ}
+    (hU : Measurable fun p : Ω × (α × α) => U p.1 p.2.1 p.2.2) {F : (R → α) → ℝ}
+    (hF : Measurable F) :
+    Measurable fun ω => replicaPairAverage (μ'.tilted (e ω)) F (U ω) := by
+  simp only [replicaPairAverage_eq, replicaPairCombination_eq]
+  refine measurable_integral_pi_tilted_of_sigmaFinite (ι := Option (Option R)) he ?_
+  have hF' : Measurable fun p : Ω × (Option (Option R) → α) =>
+      F (fun r => p.2 (some (some r))) :=
+    hF.comp (measurable_pi_iff.2 fun r => (measurable_pi_apply _).comp measurable_snd)
+  have hu (i j : Option (Option R)) : Measurable fun p : Ω × (Option (Option R) → α) =>
+      U p.1 (p.2 i) (p.2 j) :=
+    hU.comp (measurable_fst.prodMk (((measurable_pi_apply i).comp measurable_snd).prodMk
+      ((measurable_pi_apply j).comp measurable_snd)) :
+      Measurable fun p : Ω × (Option (Option R) → α) => (p.1, (p.2 i, p.2 j)))
+  refine hF'.mul ?_
+  refine (((Finset.measurable_sum _ fun p _ => hu _ _).sub
+    ((Finset.measurable_sum _ fun r _ => hu _ _).const_mul _))).add ?_
+  exact (hu _ _).const_mul _
+
+end Measurability
 
 end MeasureTheory

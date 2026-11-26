@@ -150,7 +150,7 @@ theorem integral_smul_comp_eq_integral_fderiv_apply {E V : Type*} [NormedAddComm
         (Sum.inr l)).smulRight (b l)) with hS
   have hST : ∀ p, S (T p) = p := fun p => by
     refine Prod.ext (by simp [hS, hT]) ?_
-    simpa [hS, hT, ContinuousLinearMap.sum_apply] using b.sum_repr p.2
+    simp [hS, hT, sum_apply]
   have hY : HasGaussianLaw (fun ω s => T (W ω, X ω) s) P := hWX.map_fun T
   have hXint : Integrable X P := hWX.snd.integrable
   have hYmean : ∀ s, ∫ ω, T (W ω, X ω) s ∂P = 0 := by
@@ -168,6 +168,7 @@ theorem integral_smul_comp_eq_integral_fderiv_apply {E V : Type*} [NormedAddComm
     have h := congrArg (Measure.map S) hlaw
     rw [AEMeasurable.map_map_of_aemeasurable S.continuous.aemeasurable hY.aemeasurable,
       Measure.map_map S.continuous.measurable (by fun_prop)] at h
+    change P.map (fun ω => (W ω, X ω)) = π.map (fun x => S (A *ᵥ x))
     simpa only [Function.comp_def, hST] using h
   have htr : ∀ g : ℝ × E → V, StronglyMeasurable g →
       ∫ ω, g (W ω, X ω) ∂P = ∫ ξ, g (M ξ) ∂π := fun g hg => by
@@ -204,7 +205,7 @@ theorem integral_smul_comp_eq_integral_fderiv_apply {E V : Type*} [NormedAddComm
         have hl : HasDerivAt (fun s : ℝ => x + s • w) w 0 := by
           simpa using ((hasDerivAt_id (0 : ℝ)).smul_const w).const_add x
         have h := (hF (x + (0 : ℝ) • w)).hasFDerivAt.comp_hasDerivAt 0 hl
-        simpa only [zero_smul, add_zero] using h)
+        simpa only [Function.comp_def, zero_smul, add_zero] using h)
       fun s => (hF.continuous.comp (continuous_add_const _)).stronglyMeasurable
   have hcomp : ∀ ξ w, fderiv ℝ (F ∘ L) ξ w = fderiv ℝ F (L ξ) (L w) := fun ξ w => by
     rw [((hF (L ξ)).hasFDerivAt.comp ξ L.hasFDerivAt).fderiv]
@@ -480,8 +481,8 @@ theorem integrable_mul_exp_comp_of_sum [Finite κ₁] {W : κ₁ → Ω → ℝ}
 
 omit [Fintype κ₁] in
 /-- **Gaussian integration by parts for the exponential of a smooth functional.**  For a Gaussian
-family `W ⊕ X` with `X` and `W i` centered and a differentiable `A` with `|A y| ≤ c₁ + c₂ ‖y‖₁` and bounded partial
-derivatives `|∂ₗ A| ≤ c₃`,
+family `W ⊕ X` with `X` and `W i` centered and a differentiable `A` with `|A y| ≤ c₁ + c₂ ‖y‖₁`
+and bounded partial derivatives `|∂ₗ A| ≤ c₃`,
 `𝔼[W i exp (A X)] = ∑ l, 𝔼[W i X l] 𝔼[exp (A X) ∂ₗ A(X)]`.
 This is `integral_mul_comp_eq_sum_integral_mul_of_sum` for `F = exp ∘ A`; it covers the Gibbs
 weights and partition functions of the spin-glass models, where `A` is a combination of
@@ -614,7 +615,7 @@ theorem HasGaussianLaw.prodMk_prod {Ω₁ Ω₂ E F : Type*} {m₁ : MeasurableS
       Measure.map_congr hg.aemeasurable.ae_eq_mk]
     exact (Measure.map_prod_map μ ν hf.aemeasurable.measurable_mk
       hg.aemeasurable.measurable_mk).symm
-  refine ⟨?_, hfm.prodMk hgm⟩
+  refine ⟨hfm.prodMk hgm, ?_⟩
   have := hf.isGaussian_map
   have := hg.isGaussian_map
   rw [h]

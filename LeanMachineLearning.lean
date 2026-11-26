@@ -185,6 +185,7 @@ public import LeanMachineLearning.ForMathlib.Probability.GibbsProductSplit
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaCavity
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaComparison
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaConfined
+public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaConfinedPair
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaDiffDerivative
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaEquivariance
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaPairBound

@@ -47,15 +47,7 @@ theorem hasGaussianLaw_linear_form_and_scalar_prod
       let L : ℝ →L[ℝ] (Unit → ℝ) := ContinuousLinearMap.pi fun _ => ContinuousLinearMap.id ℝ ℝ
       exact IsGaussian.hasGaussianLaw_id.map_fun L
     exact h.reindex_mul (X := fun _ => fun z => z) (fun _ : A => ()) d
-  have hXm : Measurable (fun (g : K → ℝ) (a : A) => ∑ i, c a i * g i) := by
-    refine measurable_pi_iff.2 fun a => ?_
-    change Measurable (fun (g : K → ℝ) => ∑ i, c a i * g i)
-    fun_prop
-  have hYm : Measurable (fun (z : ℝ) (a : A) => d a * z) := by
-    refine measurable_pi_iff.2 fun a => ?_
-    change Measurable (fun z => d a * z)
-    fun_prop
-  exact HasGaussianLaw.sumElim_prod_of_independent hX hY hXm hYm
+  exact HasGaussianLaw.sumElim_prod_of_independent hX hY
 
 /-- The interacting last-spin field and the decoupled scalar field, considered together,
 form a jointly Gaussian family under the product law of new-edge couplings and `z`.

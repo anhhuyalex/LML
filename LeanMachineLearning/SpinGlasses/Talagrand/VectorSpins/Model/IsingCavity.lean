@@ -159,18 +159,9 @@ theorem skVectorCavityGaussianData_disorderLaw_ising (N : ℕ) (β q : ℝ) (hq 
   have h2b : HasGaussianLaw (fun z (_ : Fin 1) => z) (gaussianReal 0 1) :=
     h2b_real.map_fun L
   have h2_joint := HasGaussianLaw.sumElim_prod_of_independent h2a h2b
-    measurable_id (Measurable.of_eval fun _ => measurable_id)
   let c : Fin N ⊕ Fin 1 → ℝ := Sum.elim (fun _ => 1) (fun _ => β * Real.sqrt q)
   have h2_scaled := h2_joint.reindex_mul id c
-  have h2_m : Measurable (fun z : (Fin N → ℝ) × ℝ => fun s : Fin N ⊕ Fin 1 =>
-      c s * Sum.elim (fun a => z.1 a) (fun b => z.2) (id s)) := by
-    refine Measurable.of_eval fun s => ?_
-    rcases s with i | u
-    · simp only [c, Sum.elim_inl, id_eq, one_mul]
-      exact (measurable_pi_apply i).comp measurable_fst
-    · simp only [c, Sum.elim_inr, id_eq]
-      exact measurable_const.mul measurable_snd
-  have h_all := HasGaussianLaw.sumElim_prod_of_independent h1 h2_scaled measurable_id h2_m
+  have h_all := HasGaussianLaw.sumElim_prod_of_independent h1 h2_scaled
   let e : (FinPairs N ⊕ Fin N) ⊕ Fin 1 → FinPairs N ⊕ (Fin N ⊕ Fin 1) := fun k =>
     match k with
     | .inl (.inl p) => .inl p

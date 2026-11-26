@@ -140,8 +140,9 @@ theorem log_integral_exp_pi_count_tilted [DecidableEq I] [Nonempty A]
 
 end Counting
 
+omit [IsFiniteMeasure μ] in
 /-- The `ι`-replica Gibbs average of `Y` as a ratio of integrals against the product base law. -/
-theorem integral_pi_tilted_eq_div (E : α → ℝ) (Y : (ι → α) → ℝ) :
+theorem integral_pi_tilted_eq_div [SigmaFinite μ] (E : α → ℝ) (Y : (ι → α) → ℝ) :
     ∫ σ, Y σ ∂(Measure.pi fun _ : ι => μ.tilted E) =
       (∫ σ, Y σ * Real.exp (∑ i, E (σ i)) ∂(Measure.pi fun _ : ι => μ)) /
         ∫ σ, Real.exp (∑ i, E (σ i)) ∂(Measure.pi fun _ : ι => μ) := by

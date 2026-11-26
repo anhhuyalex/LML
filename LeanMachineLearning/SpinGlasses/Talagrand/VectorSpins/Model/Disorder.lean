@@ -97,7 +97,7 @@ theorem skVectorCavityGaussianData_disorderLaw (N : ℕ) {d : ℕ} (β : ℝ) (q
       (Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1) := IsGaussian.hasGaussianLaw_id
   have h2 : HasGaussianLaw (fun y : Fin d → ℝ => y) (skVectorGaussianLaw β q) :=
     IsGaussian.hasGaussianLaw_id
-  have hjoint := HasGaussianLaw.sumElim_prod_of_independent h1 h2 measurable_id measurable_id
+  have hjoint := HasGaussianLaw.sumElim_prod_of_independent h1 h2
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · have := hjoint.reindex (Sum.map (finPairsSplit N) (id : Fin d → Fin d))
     have e : (fun (ω : (FinPairs (N + 1) → ℝ) × (Fin d → ℝ)) (k : (FinPairs N ⊕ Fin N) ⊕ Fin d) =>

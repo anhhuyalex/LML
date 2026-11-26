@@ -181,7 +181,6 @@ theorem ExpTame.hasDerivAt_integral_derivProd_projPath (hV : ExpTame V)
       (Measure.pi fun _ : Fin N => gaussianReal 0 1) := hasGaussianLaw_dotProduct_family u
   have hXY : HasGaussianLaw (fun ω s => Sum.elim X Y s ω) P := by
     have h := HasGaussianLaw.sumElim_prod_of_independent hXf hYf
-      (by fun_prop) (by fun_prop)
     convert h using 1
     funext z s
     cases s <;> simp [X, Y, single_dotProduct]

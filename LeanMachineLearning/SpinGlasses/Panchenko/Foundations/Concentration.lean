@@ -413,7 +413,7 @@ theorem integral_exp_mul_gibbs_average_trig
       -(t * Real.cos s) * ∑ b, C σ b * ∫ ω, Real.exp (A σ fun l => X l ω) *
         (Real.exp (g₂ b ω + h b) / ∑ c, Real.exp (g₂ c ω + h c)) ∂P := by
     intro σ
-    rw [integral_mul_exp_comp_eq_sum_integral_mul_of_sum hWX hW0 hX0 σ
+    rw [integral_mul_exp_comp_eq_sum_integral_mul_of_sum hWX (i := σ) (hW0 σ) hX0
       (differentiable_gibbs_exponent hA σ) (fun y => abs_gibbs_exponent_le hA σ y)
       (fun l y => abs_fderiv_gibbs_exponent_le hA σ y l), Fintype.sum_sum_type]
     simp only [hcov_l, zero_mul, Finset.sum_const_zero, zero_add, hcov_r]
@@ -439,9 +439,10 @@ theorem integral_exp_mul_gibbs_average_trig
   have hAm : ∀ σ, Measurable (A σ) := fun σ =>
     (differentiable_gibbs_exponent hA σ).continuous.measurable
   have hint_e : ∀ σ, Integrable (fun ω => W σ ω * Real.exp (A σ fun l => X l ω)) P := fun σ =>
-    integrable_mul_exp_comp_of_sum hWX hW0 hX0 σ (hAm σ) (fun y => abs_gibbs_exponent_le hA σ y)
+    integrable_mul_exp_comp_of_sum hWX (i := σ) (hW0 σ) hX0 (hAm σ)
+      (fun y => abs_gibbs_exponent_le hA σ y)
   have hint_x : ∀ σ, Integrable (fun ω => Real.exp (A σ fun l => X l ω)) P := fun σ =>
-    integrable_exp_comp_of_sum hWX hW0 hX0 (hAm σ) (fun y => abs_gibbs_exponent_le hA σ y)
+    integrable_exp_comp_of_sum hWX hX0 (hAm σ) (fun y => abs_gibbs_exponent_le hA σ y)
   have hint_xp : ∀ σ b, Integrable (fun ω => Real.exp (A σ fun l => X l ω) *
       (Real.exp (g₂ b ω + h b) / ∑ c, Real.exp (g₂ c ω + h c))) P := fun σ b => by
     refine Integrable.mono' (hint_x σ) ?_ (Eventually.of_forall fun ω => ?_)
@@ -619,7 +620,7 @@ theorem hasSubgaussianMGF_log_sum_exp (hg : HasGaussianLaw (fun ω a => g a ω) 
     simpa using this
   · have hcore := integral_exp_mul_log_sum_exp_sub_le (P := P.prod P)
       (g₁ := fun a z => g a z.1) (g₂ := fun a z => g a z.2)
-      (HasGaussianLaw.sumElim_prod hg hm) (fun a => (hm a).comp measurable_fst)
+      (HasGaussianLaw.sumElim_prod hg) (fun a => (hm a).comp measurable_fst)
       (fun a => (hm a).comp measurable_snd)
       (fun a => by rw [integral_fun_fst (fun ω => g a ω)]; simp [h0 a])
       (fun a => by rw [integral_fun_snd (fun ω => g a ω)]; simp [h0 a])

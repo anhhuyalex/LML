@@ -164,8 +164,8 @@ theorem integral_mul_div_pow_eq_sum {W : κ₁ → Ω → ℝ} {X : κ₂ → Ω
               (mul_le_mul (hFb _) (hZd m _) (abs_nonneg _) hC) hzn'
               (pow_le_pow_left₀ hz₀.le (hZb _) _)
         _ = _ := by ring
-  have h := integral_mul_comp_eq_sum_integral_mul_of_sum (W := W) (X := Sum.elim X Y) hWXY hW
-    (by rintro (l | m); exacts [hX l, hY m]) i hΦd (C := C / z₀ ^ n) (c := 0) hΦg
+  have h := integral_mul_comp_eq_sum_integral_mul_of_sum (W := W) (X := Sum.elim X Y) hWXY
+    (i := i) (hW i) (by rintro (l | m); exacts [hX l, hY m]) hΦd (C := C / z₀ ^ n) (c := 0) hΦg
     (D := Sum.elim (fun l => D l / z₀ ^ n) (fun m => n * C * DZ m / z₀ ^ (n + 1)))
     (d := fun _ => 0) (fun s v => by simpa using hΦ' s v)
   simp only [Fintype.sum_sum_type, Sum.elim_inl, Sum.elim_inr, hdx, hdy, hvx, hvy] at h
@@ -358,8 +358,9 @@ theorem integral_mul_div_pow_mul_comp_log_eq_sum
         rw [abs_mul, Nat.abs_cast]
         exact mul_le_mul_of_nonneg_left (hGb _ (hlog_mem _)) (Nat.cast_nonneg n)
       exact mul_le_mul hfrac hdG_sub (abs_nonneg _) (by positivity)
-  have h := integral_mul_comp_eq_sum_integral_mul_of_sum (W := W) (X := Sum.elim X Y) hWXY hW
-    (by rintro (l | m); exacts [hX l, hY m]) i hΦd (C := CF / z₀ ^ n * CG) (c := 0) hΦg
+  have h := integral_mul_comp_eq_sum_integral_mul_of_sum (W := W) (X := Sum.elim X Y) hWXY
+    (i := i) (hW i) (by rintro (l | m); exacts [hX l, hY m]) hΦd
+    (C := CF / z₀ ^ n * CG) (c := 0) hΦg
     (D := Sum.elim (fun l => DF l / z₀ ^ n * CG)
       (fun m => CF * DZ m / z₀ ^ (n + 1) * (CG' + (n : ℝ) * CG)))
     (d := fun _ => 0) (fun s v => by simpa using hΦ' s v)
