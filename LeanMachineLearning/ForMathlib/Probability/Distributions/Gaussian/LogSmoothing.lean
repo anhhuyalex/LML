@@ -20,6 +20,8 @@ nondecreasing, and its second derivative is nonpositive when `u` is concave (Tal
 
 * `ProbabilityTheory.hasDerivAt_integral_mul_exp_comp_add_gaussianReal`: differentiation of
   `x ↦ ∫ f (x + c ξ) exp (u (x + c ξ))`.
+* `ProbabilityTheory.exists_sq_integral_id_mul_exp_comp_div_le`: Lemma 3.3.8 for the
+  smoothing, without derivatives of `u`.
 * `ProbabilityTheory.hasDerivAt_log_integral_exp_comp_add_gaussianReal`: the first two
   derivatives of the smoothing.
 * `ProbabilityTheory.integral_deriv_two_add_sq_div_le_integral_sq_div`: the averaged inequality
@@ -205,6 +207,22 @@ theorem integral_deriv_two_add_sq_div_le_integral_sq_div {Ω : Type*} [Measurabl
         rw [norm_pow, Real.norm_eq_abs]
         exact pow_le_pow_left₀ (abs_nonneg _) (hratio (deriv u) D hD (a ω)) 2)
 
+/-- **Talagrand, Lemma 3.3.8, Eq. (3.138):** there is a universal `L` with
+`(𝔼 [ξ e^{u}] / 𝔼 e^{u})² ≤ (max ((τ - y) / c) 0)² + L` at `y + c ξ`, for every nondecreasing
+`u ≤ 0` vanishing on `[τ, ∞)`. No derivative of `u` is involved; a concave `u` with these two
+properties is nondecreasing (`ConcaveOn.monotone_of_forall_ge_eq`). -/
+theorem exists_sq_integral_id_mul_exp_comp_div_le :
+    ∃ L : ℝ, 0 ≤ L ∧ ∀ u : ℝ → ℝ, Monotone u → (∀ x, u x ≤ 0) →
+      ∀ τ : ℝ, (∀ x, τ ≤ x → u x = 0) → ∀ c : ℝ, 0 < c → ∀ y : ℝ,
+        ((∫ ξ, ξ * Real.exp (u (y + c * ξ)) ∂(gaussianReal 0 1)) /
+            ∫ ξ, Real.exp (u (y + c * ξ)) ∂(gaussianReal 0 1)) ^ 2 ≤
+          max ((τ - y) / c) 0 ^ 2 + L := by
+  obtain ⟨L, hL0, hL⟩ := exists_sq_integral_id_mul_exp_div_le
+  refine ⟨L, hL0, fun u hmono hu0 τ hτ c hc y => ?_⟩
+  exact hL (fun ξ => u (y + c * ξ)) ((τ - y) / c)
+    (fun x x' hx => hmono (add_le_add le_rfl (mul_le_mul_of_nonneg_left hx hc.le)))
+    (fun ξ => hu0 _) (fun ξ hξ => hτ _ (by rw [div_le_iff₀ hc] at hξ; linarith))
+
 /-- **Lemma 3.3.8 for the smoothing:** there is a universal `L` with
 `(c A y / Z y)² ≤ (max ((τ - y) / c) 0)² + L` for every nondecreasing `u ≤ 0` vanishing on
 `[τ, ∞)`, where `Z = 𝔼 e^{u}` and `A = 𝔼 u' e^{u}` at `y + c ξ`. -/
@@ -215,12 +233,10 @@ theorem exists_sq_mul_integral_deriv_mul_exp_div_le :
         (c * (∫ ξ, deriv u (y + c * ξ) * Real.exp (u (y + c * ξ)) ∂(gaussianReal 0 1)) /
             ∫ ξ, Real.exp (u (y + c * ξ)) ∂(gaussianReal 0 1)) ^ 2 ≤
           max ((τ - y) / c) 0 ^ 2 + L := by
-  obtain ⟨L, hL0, hL⟩ := exists_sq_integral_id_mul_exp_div_le
+  obtain ⟨L, hL0, hL⟩ := exists_sq_integral_id_mul_exp_comp_div_le
   refine ⟨L, hL0, fun u hu hmono hu0 τ hτ D hD c hc y => ?_⟩
   have hum : Measurable u := hu.continuous.measurable
-  have h := hL (fun ξ => u (y + c * ξ)) ((τ - y) / c)
-    (fun x x' hx => hmono (add_le_add le_rfl (mul_le_mul_of_nonneg_left hx hc.le)))
-    (fun ξ => hu0 _) (fun ξ hξ => hτ _ (by rw [div_le_iff₀ hc] at hξ; linarith))
+  have h := hL u hmono hu0 τ hτ c hc y
   have hIBP : ∫ ξ, ξ * Real.exp (u (y + c * ξ)) ∂(gaussianReal 0 1) =
       c * ∫ ξ, deriv u (y + c * ξ) * Real.exp (u (y + c * ξ)) ∂(gaussianReal 0 1) := by
     have hd : ∀ ξ, HasDerivAt (fun ξ => Real.exp (u (y + c * ξ)))

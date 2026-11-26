@@ -213,7 +213,8 @@ Section~3.1. The formalization proves the rectangular form.
         integral_abs_inner_stdGaussian_le,
         integral_tilted_restrict_neg_half_sq_norm,
         integrable_exp_add_neg_mul_sq_norm_add_inner,
-        integral_exp_half_sq_norm_tilted_le}
+        integral_exp_half_sq_norm_tilted_le,
+        integrable_one_add_norm_pow_mul_exp}
   \leanok
 \talsource{Eqs.~(3.23)--(3.24) and Lemma~3.1.5}
 Let $E$ be a $d$-dimensional real inner product space, $b>0$, $a\in E$.
@@ -258,6 +259,63 @@ The general fact is that $r\mapsto\int F\,d\mu_r$ may be differentiated as a quo
 $(1+|F|)(1+|\partial_re_r|)e^{e_r}$ has an integrable bound near $t$. Here $|X_r|\le L\|\sigma\|$ and
 $e_r\le R\|\sigma\|-\kappa\|\sigma\|^2$, so the product is at most a constant times
 $e^{-\kappa\|\sigma\|^2/2}$.
+\end{proof}
+
+\begin{lemma}[Replica averages under a confined energy]\label{lem:sg-tal:st-confined}
+  \lean{MeasureTheory.integrable_pi_mul_exp_of_confining,
+        MeasureTheory.exp_sum_le_prod_of_confining,
+        MeasureTheory.one_add_norm_pow_le_prod,
+        MeasureTheory.abs_sum_le_mul_prod_one_add_norm_pow,
+        MeasureTheory.integrable_exp_of_confining,
+        MeasureTheory.integrable_pi_tilted_of_confining,
+        MeasureTheory.hasDerivAt_integral_pi_tilted_of_confining,
+        MeasureTheory.hasDerivAt_integral_pi_tilted_of_confining_replicaDiff,
+        MeasureTheory.integral_pi_cov_sum_eq_sum_sub_fresh_of_integrable,
+        MeasureTheory.replicaDiff_eq_integral_of_integrable}
+  \leanok
+  \uses{lem:sg-tal:st-quadratic, lem:sg-tal:gibbs-replica-product}
+\talsource{the derivative in Proposition~3.2.1}
+Let $E$ be a finite-dimensional real inner product space, $R$ a finite set of replicas and $\kappa>0$.
+Let the energies $e_r$ satisfy $e_r(x)\le A+B\|x\|-\kappa\|x\|^2$ for $r$ near $t$, let
+$|\partial_re_r(x)|\le L(1+\|x\|)^n$, and let $\mu_r$ be the probability measure with density proportional to
+$e^{e_r}$. Let $\Psi_r$ be a function on $E^R$ with
+\[
+|\Psi_r(\sigma)|,\ |\partial_r\Psi_r(\sigma)|\le C\prod_{\ell\in R}(1+\|\sigma^\ell\|)^m .
+\]
+Then $\Psi_r$ is integrable for $\mu_r^{\otimes R}$, and with $X(\sigma)=\sum_\ell\partial_te_t(\sigma^\ell)$
+\[
+\frac d{dt}\int\Psi_t\,d\mu_t^{\otimes R}
+=\int\partial_t\Psi_t+\Psi_tX\,d\mu_t^{\otimes R}-\int\Psi_t\,d\mu_t^{\otimes R}\int X\,d\mu_t^{\otimes R}.
+\]
+The covariance on the right equals
+$\sum_{\ell\in R}\langle\Psi_t\,\partial_te_t(\sigma^\ell)\rangle-|R|\,\langle\Psi_t\,\partial_te_t(\sigma^{*})\rangle$
+with one further replica $\sigma^{*}$.
+\end{lemma}
+\begin{proof}
+  \leanok
+  \uses{lem:sg-tal:st-quadratic}
+Since $(1+\|x\|)^k\le e^{k\|x\|}$, every product of a polynomial weight with $e^{e_r}$ is bounded, replica by
+replica, by a constant times $e^{-\kappa\|x\|^2/2}$. Differentiate the numerator and the normalizer of the
+quotient $\int\Psi_re^{\sum_\ell e_r(\sigma^\ell)}\big/\int e^{\sum_\ell e_r(\sigma^\ell)}$ under the integral
+sign with this domination. The last identity is the independence of the further replica from the others.
+\end{proof}
+
+\begin{lemma}[Second derivative of a replica average]\label{lem:sg-tal:st-replica-second}
+  \lean{MeasureTheory.memLp_mul_of_forall_memLp,
+        MeasureTheory.replicaDiffWith_replicaDiff_eq_of_memLp}
+  \leanok
+  \uses{lem:sg-tal:gibbs-replica-product}
+\talsource{the terms II and III of Proposition~3.2.1}
+Functions with finite moments of every order are stable under products. Hence the identity expressing the
+replica difference of replica differences against $cX$ as
+$2c$ times the two-fresh-replica average of $X\otimes X$ plus $c$ times the replica difference of $X^2$ holds
+whenever the replica observable and $X$ have finite moments of every order, and not only when they are
+bounded.
+\end{lemma}
+\begin{proof}
+  \leanok
+H\"older's inequality with exponents $2p$ and $2p$ gives the product statement. The algebra is that of the
+bounded case, every integrability now following from finiteness of moments.
 \end{proof}
 
 \section{The model and its moment bounds (Talagrand Section~3.1)}\label{sec:sg-tal:st-model}
@@ -502,6 +560,7 @@ $F$, and take logarithms.
 
 \begin{lemma}[Variance around the mode]\label{lem:sg-tal:st-mode-variance}
   \lean{MeasureTheory.mul_integral_sub_sq_mul_exp_le,
+        MeasureTheory.exists_mode_concave_sub_mul_sq,
         ProbabilityTheory.exists_integral_sub_sq_mul_exp_le_gaussianReal,
         ProbabilityTheory.variance_id_tilted_gaussianReal_le_one}
   \leanok
@@ -511,6 +570,8 @@ $F$, and take logarithms.
 $e^{w}$ and $(x-x_0)^2e^{w}$ are integrable and $c\int(x-x_0)^2e^{w}\le\int e^{w}$.
 \item If $v$ is differentiable and concave with $e^{v}$ integrable for the standard Gaussian, the Gaussian
 measure tilted by $v$ has variance at most $1$.
+\item If $v$ is differentiable and concave, $\kappa>0$ and $w(x)=v(x)-\kappa x^2+dx$, there is $x_0$ with
+$2\kappa(x-x_0)^2\le-w'(x)(x-x_0)$ for all $x$.
 \end{enumerate}
 \end{lemma}
 \begin{proof}
@@ -525,8 +586,10 @@ $\Phi(x)=\int_{x_0}^xf-(x-x_0)e^{w(x)}$. Then
 \]
 so $\int_a^bf\ge0$ whenever $a\le x_0\le b$; let $a\to-\infty$, $b\to\infty$.
 
-\emph{Step 3 (Gaussian case).} The function $v(x)-x^2/2$ tends to $-\infty$ and attains its maximum at some
-$x_0$, where $v'(x_0)=x_0$. Since $v'$ is nonincreasing, Step~2 applies with $c=1$, and the variance is at
+\emph{Step 3 (the mode).} The function $w$ tends to $-\infty$ and attains its maximum at some $x_0$, where
+$w'(x_0)=0$; since $v'$ is nonincreasing, this gives (3).
+
+\emph{Step 4 (Gaussian case).} Apply (3) with $\kappa=1/2$, $d=0$ and then (1) with $c=1$; the variance is at
 most the second moment around $x_0$.
 \end{proof}
 
@@ -663,15 +726,6 @@ disorder $\langle\varepsilon\rangle_0=d/a$ and $\langle\varepsilon^2\rangle_0=1/
 $d=hg_{N+1}+y$; finally $\mathbb E\,d^2=r+h^2$.
 \end{proof}
 
-\begin{remark}[The form of Proposition~3.2.4]\label{rem:sg-tal:st-prop-324}
-\talsource{Proposition~3.2.4}
-Combining Lemmas~\ref{lem:sg-tal:st-cavity-ends} and~\ref{lem:sg-tal:st-site-symmetry} with
-Theorem~\ref{thm:sg-tal:st-endpoint} gives (3.74)--(3.75): the errors $\delta_1,\delta_2$ are exactly the
-differences between the values at $t=1$ and $t=0$ of $\nu_t(\varepsilon^2)$ and of
-$\nu_t(\varepsilon_1\varepsilon_2)$. The book states them as inequalities
-$\delta_i\le|\cdot|$. Here the system has $N+1$ spins, so that the number of spins other than the last one is
-$N$.
-\end{remark}
 
 \begin{lemma}[Exponential of a Gaussian square]\label{lem:sg-tal:st-exp-square}
   \lean{ProbabilityTheory.integral_exp_mul_sq_gaussianReal_le_two,
@@ -808,6 +862,64 @@ $r=\Psi(q,\rho)\le\alpha D^2\le10D^2$. Only $|u'|\le D$ is used. In (3.86) the b
 $|f'(0)+hg_{N+1}+\sqrt{1-t}\,y|$ by the sum of the absolute values.
 \end{remark}
 
+\begin{lemma}[The parameters of (3.69)]\label{lem:sg-tal:st-rs-parameters}
+  \lean{SpinGlasses.shcherbinaTirozzi_rsParameters_bounds}
+  \leanok
+  \uses{lem:sg-tal:st-rbar-le-r, lem:sg-tal:st-smoothing}
+\talsource{Eqs.~(3.67)--(3.69)}
+Let $u\le0$ be concave with $u'$, $u''$ bounded and $|u'|\le D$, let $\alpha\ge0$, let $q,c$ be real and put
+$V=A/Z$, $W=K/Z$ for the smoothing at scale $c$. Then $r=\alpha\,\mathbb E\,V(z\sqrt q)^2$ and
+$\bar r=\alpha\,\mathbb E\,W(z\sqrt q)$ satisfy $0\le r\le\alpha D^2$ and $\bar r\le r$.
+\end{lemma}
+\begin{proof}
+  \leanok
+  \uses{lem:sg-tal:st-rbar-le-r, lem:sg-tal:st-smoothing}
+$|V|\le D$ by Lemma~\ref{lem:sg-tal:st-smoothing}(1), and Lemma~\ref{lem:sg-tal:st-rbar-le-r} gives
+$\bar r\le r$.
+\end{proof}
+
+\begin{theorem}[Proposition~3.2.4 and Lemma~3.2.6 at the choice (3.69)]
+\label{thm:sg-tal:st-rs-choice}
+  \lean{SpinGlasses.exists_integral_exp_sq_shcherbinaTirozziCavity_last_le_of_rsParameters,
+        SpinGlasses.shcherbinaTirozzi_overlaps_sub_decoupled}
+  \leanok
+  \uses{lem:sg-tal:st-rs-parameters, thm:sg-tal:st-endpoint, thm:sg-tal:st-last-spin-tail,
+        lem:sg-tal:st-site-symmetry, lem:sg-tal:st-moments}
+\talsource{Proposition~3.2.4, Lemma~3.2.6}
+Consider the model with $N+1$ spins and $M\le10(N+1)$ constraints, $\alpha=M/(N+1)$.
+\begin{enumerate}
+\item Take $r,\bar r$ as in Lemma~\ref{lem:sg-tal:st-rs-parameters} at scale $\sqrt{\rho-q}$, for arbitrary real
+$q,\rho$. There is $K$, depending only on $\kappa_0$, $h_0$ and $D$, with
+$\mathbb E\langle e^{\varepsilon^2/K}\rangle_t\le K$ for all $t\in[0,1]$, $\kappa\ge\kappa_0$, $|h|\le h_0$.
+\item Let moreover $\kappa>0$, $h\ge0$, $u(x)\ge-D(1+|x|)$, let $\rho$ and $q$ be the quenched self-overlap
+and overlap of Lemma~\ref{lem:sg-tal:st-site-symmetry}, and $r,\bar r$ as above. Then
+$a=2\kappa+r-\bar r>0$ and
+\[
+\rho-\Bigl(\frac1a+\frac{r+h^2}{a^2}\Bigr)=\nu_1(\varepsilon^2)-\nu_0(\varepsilon^2),\qquad
+q-\frac{r+h^2}{a^2}=\nu_1(\langle\varepsilon\rangle^2)-\nu_0(\langle\varepsilon\rangle^2),
+\]
+where $\nu_t(\varepsilon^2)=\mathbb E\langle\varepsilon^2\rangle_t$ and
+$\nu_t(\langle\varepsilon\rangle^2)=\mathbb E\langle\varepsilon\rangle_t^2$.
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+  \leanok
+  \uses{lem:sg-tal:st-rs-parameters, thm:sg-tal:st-endpoint, thm:sg-tal:st-last-spin-tail,
+        lem:sg-tal:st-site-symmetry, lem:sg-tal:st-moments}
+(1) Lemma~\ref{lem:sg-tal:st-rs-parameters} gives $\bar r\le r\le10D^2$; apply
+Theorem~\ref{thm:sg-tal:st-last-spin-tail} with $R=10D^2$. (2) Lemma~\ref{lem:sg-tal:st-moments} shows that
+$\mathbb E\langle\|\sigma\|^2\rangle<\infty$, so Lemma~\ref{lem:sg-tal:st-site-symmetry} identifies $\rho$ and
+$q$ with the averages of the last spin at $t=1$. Subtract the values at $t=0$ of
+Theorem~\ref{thm:sg-tal:st-endpoint}.
+\end{proof}
+
+\begin{remark}[The form of Proposition~3.2.4]\label{rem:sg-tal:st-prop-324}
+\talsource{Proposition~3.2.4}
+The book states (3.74)--(3.75) as bounds $\delta_i\le|\cdot|$ on the errors; here the errors are exactly the
+differences between the values at $t=1$ and $t=0$. The system has $N+1$ spins, so that the number of spins
+other than the last one is $N$.
+\end{remark}
+
 \begin{remark}[Research Problem~3.1.2]\label{rem:sg-tal:st-problem-312}
 \talsource{Eq.~(3.10)}
 \emph{Not formalized.} The book asks to compute, under the conditions of Theorem~3.1.1 and as
@@ -907,6 +1019,9 @@ $-\int zV\le\int(-\min(z,0))V$; apply the Cauchy--Schwarz inequality.
         ProbabilityTheory.integral_exp_comp_add_gaussianReal_pos,
         ProbabilityTheory.abs_integral_mul_exp_comp_add_div_le,
         ProbabilityTheory.measurable_integral_mul_exp_comp_add_gaussianReal,
+        ProbabilityTheory.measurable_integral_mul_exp_comp_add_div,
+        ProbabilityTheory.abs_deriv_deriv_add_sq_deriv_le,
+        ProbabilityTheory.exists_sq_integral_id_mul_exp_comp_div_le,
         ProbabilityTheory.hasDerivAt_integral_mul_exp_comp_add_gaussianReal,
         ProbabilityTheory.hasDerivAt_log_integral_exp_comp_add_gaussianReal,
         ProbabilityTheory.exists_sq_mul_integral_deriv_mul_exp_div_le}
@@ -917,37 +1032,40 @@ Let $u\le0$ be differentiable with $|u'|\le D$, let $c$ be real, and let $Z(x),A
 Lemma~\ref{lem:sg-tal:st-rbar-le-r} with $\theta=x+c\,\xi$.
 \begin{enumerate}
 \item $Z>0$; for a bounded measurable $f$ the ratio $\mathbb E[f(\theta)e^{u(\theta)}]/Z$ is bounded by
-$\sup|f|$, and its numerator is measurable in any measurable shift.
+$\sup|f|$, and for measurable $f$ the ratio is measurable in any measurable shift.
 \item If $f$ is differentiable with $f$ and $f'$ bounded, then
 $\frac{d}{dx}\mathbb E[f(\theta)e^{u(\theta)}]=\mathbb E[(f'+fu')(\theta)e^{u(\theta)}]$.
 \item If moreover $u'$ is differentiable with $u''$ bounded, then $v=\log Z$ satisfies $v'=A/Z$ and
 $v''=(A/Z)'=K/Z-(A/Z)^2$.
-\item There is a universal constant $L$ such that, if $c>0$, $u$ is nondecreasing and $u=0$ on
-$[\tau,\infty)$, then for every $x$
+\item There is a universal constant $L$ such that, if $c>0$, $u\le0$ is nondecreasing (differentiable or
+not) and $u=0$ on $[\tau,\infty)$, then for every $x$
 \[
-\Bigl(c\,\frac{A(x)}{Z(x)}\Bigr)^2\le\max\Bigl(\frac{\tau-x}{c},0\Bigr)^2+L .
+\Bigl(\frac{\mathbb E\,\xi e^{u(x+c\xi)}}{Z(x)}\Bigr)^2\le\max\Bigl(\frac{\tau-x}{c},0\Bigr)^2+L ,
 \]
+and for differentiable $u$ the left side is $(c\,A(x)/Z(x))^2$.
 \end{enumerate}
 \end{lemma}
 \begin{proof}
   \leanok
   \uses{lem:sg-tal:st-ratio}
 (1) uses $0<e^{u}\le1$ and Fubini's theorem. (2) is differentiation under the integral sign with a constant
-dominating function. (3) applies (2) to $f=1$ and $f=u'$, then the chain and quotient rules. (4) Integration by
-parts gives $\mathbb E\,\xi e^{u(x+c\xi)}=c\,A(x)$; apply Lemma~\ref{lem:sg-tal:st-ratio} to
-$v(\xi)=u(x+c\xi)$, which vanishes for $\xi\ge(\tau-x)/c$.
+dominating function. (3) applies (2) to $f=1$ and $f=u'$, then the chain and quotient rules. (4) Apply
+Lemma~\ref{lem:sg-tal:st-ratio} to $v(\xi)=u(x+c\xi)$, which vanishes for $\xi\ge(\tau-x)/c$; integration by
+parts gives $\mathbb E\,\xi e^{u(x+c\xi)}=c\,A(x)$.
 \end{proof}
 
 \begin{theorem}[A priori bounds]\label{thm:sg-tal:st-rs-bounds}
   \lean{ConcaveOn.deriv_nonneg_of_forall_ge_eq,
+        ConcaveOn.monotone_of_forall_ge_eq,
         SpinGlasses.exists_bound_of_shcherbinaTirozzi_replicaSymmetric_equations}
   \leanok
   \uses{lem:sg-tal:st-rbar-le-r, lem:sg-tal:st-half-line, lem:sg-tal:st-smoothing}
 \talsource{Proposition~3.3.3}
 Let $0<\kappa_0$, $\kappa_1$, $\alpha_0<2$, $h_0$ and $\tau\ge0$. There is a constant $C$, depending only on
 these numbers, with the following property. Let $0\le\alpha\le\alpha_0$, $\kappa_0\le\kappa\le\kappa_1$,
-$|h|\le h_0$ and $0\le q<\rho$; let $u\le0$ be concave, twice differentiable with bounded $u'$ and $u''$, and
-$u=0$ on $[\tau,\infty)$. With $\theta=z\sqrt q+\xi\sqrt{\rho-q}$ set
+$|h|\le h_0$ and let $q,\rho$ be real; let $u\le0$ be concave, twice differentiable with bounded $u'$ and $u''$, and
+$u=0$ on $[\tau,\infty)$. With $\theta=z\sqrt q+\xi\sqrt{\rho-q}$ (the square root of a negative number
+being read as $0$) set
 \[
 r=\alpha\,\mathbb E_z\Bigl(\frac{\mathbb E_\xi u'(\theta)e^{u(\theta)}}{\mathbb E_\xi e^{u(\theta)}}\Bigr)^2,\qquad
 \bar r=\alpha\,\mathbb E_z\frac{\mathbb E_\xi(u''+u'^2)(\theta)e^{u(\theta)}}{\mathbb E_\xi e^{u(\theta)}} .
@@ -957,16 +1075,19 @@ If
 \rho=\frac1{2\kappa+r-\bar r}+\frac{r+h^2}{(2\kappa+r-\bar r)^2},\qquad
 q=\frac{r+h^2}{(2\kappa+r-\bar r)^2},
 \]
-then $q\le C$, $\rho\le C$ and $(\rho-q)^{-1}\le C$.
+then $0\le q<\rho$, $q\le C$, $\rho\le C$ and $(\rho-q)^{-1}\le C$.
 \end{theorem}
 \begin{proof}
   \leanok
   \uses{lem:sg-tal:st-rbar-le-r, lem:sg-tal:st-half-line, lem:sg-tal:st-smoothing}
+\emph{Step 0 (the domain).} By Lemma~\ref{lem:sg-tal:st-rbar-le-r}, applied with shift $z\sqrt q$ and scale
+$\sqrt{\rho-q}$, one has $\bar r\le r$, and $r\ge0$. Hence $d=2\kappa+r-\bar r\ge2\kappa>0$, the second equation
+gives $q\ge0$, and subtracting it from the first gives $\rho-q=d^{-1}>0$.
+
 Put $s=\rho-q$, $V(y)=A(y)/Z(y)$ and $W(y)=K(y)/Z(y)$ with $c=\sqrt s$. A concave function which is constant on
 a half-line is nondecreasing, so $u'\ge0$ and $V\ge0$; moreover $V'=W-V^2$,
-$r=\alpha\,\mathbb E\,V(z\sqrt q)^2$ and $\bar r=\alpha\,\mathbb E\,W(z\sqrt q)$. By
-Lemma~\ref{lem:sg-tal:st-rbar-le-r}, $\bar r\le r$. The two equations give $s^{-1}=2\kappa+r-\bar r\ge2\kappa$,
-so $s\le(2\kappa_0)^{-1}$, and $q=(r+h^2)s^2\ge rs^2$.
+$r=\alpha\,\mathbb E\,V(z\sqrt q)^2$ and $\bar r=\alpha\,\mathbb E\,W(z\sqrt q)$. By Step~0,
+$s^{-1}=2\kappa+r-\bar r\ge2\kappa$, so $s\le(2\kappa_0)^{-1}$, and $q=(r+h^2)s^2\ge rs^2$.
 
 \emph{Step 1: $s^{-1}$.} We claim $r-\bar r\le\sqrt{\alpha/2}\,s^{-1}$. This is clear if $\alpha=0$. If
 $\alpha>0$ and $q=0$, then $r=0$, so $V(0)=0$ is a minimum of $V$ and $W(0)=V'(0)=0$; hence $\bar r=0$. If
@@ -998,7 +1119,9 @@ The printed Proposition~3.3.3 assumes only $\kappa\ge\kappa_0$. This is not suff
 $r=\bar r=0$ and $(\rho-q)^{-1}=2\kappa$, so the upper bound $\kappa\le\kappa_1$ is needed; correspondingly the
 bound printed after (3.146) as $2\kappa_0(1-\sqrt{\alpha_0/2})^{-1}$ should read
 $2\kappa_1(1-\sqrt{\alpha_0/2})^{-1}$. The theorem uses the equation (3.77) for $q$, where the book prints
-(3.104). The formal statement assumes two bounded derivatives of $u$ rather than four. Lemma~3.3.8 needs
+(3.104). The printed statement puts no differentiability on $u$ (its proof works with smooth potentials); the
+formal statement assumes two bounded derivatives of $u$, with a constant $C$ that does not depend on their
+bounds. The book assumes $0\le q<\rho$; here this follows from the equations. Lemma~3.3.8 needs
 only that $u$ is nondecreasing, not concave. Inequality (3.135) is equivalent to (3.136) and has no separate
 Lean statement.
 \end{remark}
@@ -1127,7 +1250,8 @@ $2\frac{1+x}{x}\partial G/\partial x=1$ never vanishes, so the first case is emp
 \end{proof}
 
 \begin{theorem}[Uniqueness of the replica-symmetric solution]\label{thm:sg-tal:st-hard-uniqueness}
-  \lean{SpinGlasses.eq_of_hasDerivAt_shcherbinaTirozziHardFunctional_zero}
+  \lean{eq_of_strict_saddle,
+        SpinGlasses.eq_of_hasDerivAt_shcherbinaTirozziHardFunctional_zero}
   \leanok
   \uses{lem:sg-tal:st-hard-saddle}
 \talsource{Theorem~3.3.1, uniqueness}
@@ -1147,7 +1271,8 @@ Put $x=q/(\rho-q)$. The chain rule in $q$ gives $\partial G/\partial x(x,\rho)=0
 -\frac{h^2\rho}{x(1+x)}\Bigr),
 \]
 so $\partial G/\partial\rho(x,\rho)=0$ as well. Suppose $(x_1,\rho_1)\ne(x_2,\rho_2)$ are two critical points of
-$G$. Lemma~\ref{lem:sg-tal:st-hard-saddle} gives
+$G$; by Lemma~\ref{lem:sg-tal:st-hard-saddle} both are strict minima in $x$ and strict maxima in $\rho$, and a
+function has at most one such point. Indeed Lemma~\ref{lem:sg-tal:st-hard-saddle} gives
 $G(x_1,\rho_1)\le G(x_2,\rho_1)\le G(x_2,\rho_2)$ with at least one strict inequality, hence
 $G(x_1,\rho_1)<G(x_2,\rho_2)$. Exchanging the two points gives the reverse strict inequality.
 \end{proof}
@@ -1157,6 +1282,7 @@ $G(x_1,\rho_1)<G(x_2,\rho_2)$. Exchanging the two points gives the reverse stric
 The book states that there is a unique solution when $\alpha<2$; its proof, and the formal statement, give
 uniqueness, which holds for every $\alpha\ge0$ and every $\kappa,h$. Existence is not formalized. Solutions with
 $q=0$ are outside the statement (for $\alpha=h=0$ the solution of the replica-symmetric equations has $q=0$).
-The hypothesis $\tau\ge0$ is the one fixed in the book. The monotonicity in $\rho$ is proved without computing
+The strict inequality (3.150) of Proposition~3.3.11 needs $(\alpha,h)\ne(0,0)$: for $\alpha=h=0$ the quantity
+$2\frac{1+x}{x}\partial G/\partial x$ is identically $1$. The hypothesis $\tau\ge0$ is the one fixed in the book. The monotonicity in $\rho$ is proved without computing
 $\partial^2G/\partial\rho^2$.
 \end{remark}

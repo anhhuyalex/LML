@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Order.StrictSaddle
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Gaussian.MillsRatio
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianAffineDerivative
 public import Mathlib.Analysis.SpecialFunctions.Sqrt
@@ -831,30 +832,25 @@ theorem eq_of_hasDerivAt_shcherbinaTirozziHardFunctional_zero {α τ : ℝ} (κ 
   obtain ⟨x₁, hx₁, hq₁x, hG1x, hG1ρ⟩ := exists_ratio_critical α κ h τ hq₁ hρ₁ h1q h1ρ
   obtain ⟨x₂, hx₂, hq₂x, hG2x, hG2ρ⟩ := exists_ratio_critical α κ h τ hq₂ hρ₂ h2q h2ρ
   have hx : x₁ = x₂ ∧ ρ₁ = ρ₂ := by
-    by_contra hcon
-    -- two distinct saddle points would each take a smaller value than the other
-    have h12 : ∀ a b c d : ℝ, 0 < a → 0 < b → 0 < c → 0 < d → ¬(a = c ∧ b = d) →
+    -- in the variables `(x, ρ)` both critical points are strict saddle points
+    obtain ⟨G, hG⟩ : ∃ G : ℝ → ℝ → ℝ, ∀ x r,
+        G x r = shcherbinaTirozziHardFunctional α κ h τ (x * r / (1 + x)) r :=
+      ⟨_, fun _ _ => rfl⟩
+    have hmin : ∀ a b : ℝ, 0 < a → 0 < b →
         HasDerivAt (fun y => shcherbinaTirozziHardFunctional α κ h τ (y * b / (1 + y)) b) 0 a →
-        HasDerivAt (fun r => shcherbinaTirozziHardFunctional α κ h τ (c * r / (1 + c)) r) 0 d →
-        shcherbinaTirozziHardFunctional α κ h τ (a * b / (1 + a)) b <
-          shcherbinaTirozziHardFunctional α κ h τ (c * d / (1 + c)) d := by
-      intro a b c d ha hb hc hd hne hdx hdρ
-      by_cases hca : c = a
-      · have hbd : b ≠ d := fun e => hne ⟨hca.symm, e⟩
-        have := shcherbinaTirozziHardFunctional_self_lt_of_hasDerivAt_zero κ h hα hτ hc.le hd hb
-          hbd hdρ
-        rw [hca] at this ⊢
-        exact this
-      by_cases hbd : b = d
-      · subst hbd
-        exact shcherbinaTirozziHardFunctional_ratio_lt_of_hasDerivAt_zero κ h hα hτ ha hb hc
-          hca hdx
-      · exact (shcherbinaTirozziHardFunctional_ratio_lt_of_hasDerivAt_zero κ h hα hτ ha hb hc
-          hca hdx).trans (shcherbinaTirozziHardFunctional_self_lt_of_hasDerivAt_zero κ h hα hτ
-          hc.le hd hb hbd hdρ)
-    have l1 := h12 x₁ ρ₁ x₂ ρ₂ hx₁ hρ₁0 hx₂ hρ₂0 hcon hG1x hG2ρ
-    have l2 := h12 x₂ ρ₂ x₁ ρ₁ hx₂ hρ₂0 hx₁ hρ₁0 (fun e => hcon ⟨e.1.symm, e.2.symm⟩) hG2x hG1ρ
-    exact lt_asymm l1 l2
+        ∀ c ∈ Set.Ioi (0 : ℝ), c ≠ a → G a b < G c b := fun a b ha hb hd c hc hne => by
+      rw [hG, hG]
+      exact shcherbinaTirozziHardFunctional_ratio_lt_of_hasDerivAt_zero κ h hα hτ ha hb hc
+        hne hd
+    have hmax : ∀ a b : ℝ, 0 < a → 0 < b →
+        HasDerivAt (fun r => shcherbinaTirozziHardFunctional α κ h τ (a * r / (1 + a)) r) 0 b →
+        ∀ c ∈ Set.Ioi (0 : ℝ), c ≠ b → G a c < G a b := fun a b ha hb hd c hc hne => by
+      rw [hG, hG]
+      exact shcherbinaTirozziHardFunctional_self_lt_of_hasDerivAt_zero κ h hα hτ ha.le hb hc
+        hne hd
+    exact eq_of_strict_saddle (G := G) (S := Set.Ioi 0) (T := Set.Ioi 0) hx₁ hρ₁0 hx₂ hρ₂0
+      (hmin x₁ ρ₁ hx₁ hρ₁0 hG1x) (hmax x₁ ρ₁ hx₁ hρ₁0 hG1ρ) (hmin x₂ ρ₂ hx₂ hρ₂0 hG2x)
+      (hmax x₂ ρ₂ hx₂ hρ₂0 hG2ρ)
   refine ⟨?_, hx.2⟩
   rw [hq₁x, hq₂x, hx.1, hx.2]
 

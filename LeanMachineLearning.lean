@@ -84,6 +84,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.Pi
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.PiNeg
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.PiSnoc
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Function.AEStronglyMeasurableDeriv
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Function.AllMoments
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Function.LpSectionMeasurable
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Function.UnitVectorField
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Group.Arithmetic
@@ -100,6 +101,7 @@ public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteReplic
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteTilted
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FreshReplicas
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.GramKernel
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.InnerProd
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IntegrableOfBound
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedBound
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IteratedHolder
@@ -154,6 +156,7 @@ public import LeanMachineLearning.ForMathlib.Order.Interval.Finset.Basic
 public import LeanMachineLearning.ForMathlib.Order.Interval.Finset.FinSwap
 public import LeanMachineLearning.ForMathlib.Order.Interval.Finset.Nat
 public import LeanMachineLearning.ForMathlib.Order.Interval.UnitIoo
+public import LeanMachineLearning.ForMathlib.Order.StrictSaddle
 public import LeanMachineLearning.ForMathlib.Probability.ConditionalProbability
 public import LeanMachineLearning.ForMathlib.Probability.ConditionallyIID
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Gaussian.ExpSq
@@ -177,6 +180,7 @@ public import LeanMachineLearning.ForMathlib.Probability.GibbsLogPartitionCavity
 public import LeanMachineLearning.ForMathlib.Probability.GibbsProductSplit
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaCavity
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaComparison
+public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaConfined
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaDiffDerivative
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaEquivariance
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaPairBound
@@ -805,6 +809,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.HardCo
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.LastSpinTail
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.Moments
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.OverlapConcentration
+public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.RSEquations
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.ReplicaSymmetricBounds
 public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKAsymptoticProduct
 public import LeanMachineLearning.SpinGlasses.Talagrand.SpinDecorrelation.SKCorrelationDecay

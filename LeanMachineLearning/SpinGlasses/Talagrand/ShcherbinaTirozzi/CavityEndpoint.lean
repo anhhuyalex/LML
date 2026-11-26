@@ -300,49 +300,50 @@ private theorem integral_integral_sq_field (h : ℝ) (r : ℝ≥0) (n : Fin (N +
       ∀ c a : ℝ, ∫ y, ∫ d, (c + ((h * d.2 n + y) / a) ^ 2) ∂P ∂(gaussianReal 0 r) =
         c + (r + h ^ 2) / a ^ 2 := by
   intro P hP c a
-  have hmom : ∀ v : ℝ≥0, ∫ x, x ^ 2 ∂(gaussianReal 0 v) = v := fun v => by
-    have h := variance_of_integral_eq_zero (μ := gaussianReal 0 v) (X := id) aemeasurable_id
-      integral_id_gaussianReal
-    rw [variance_id_gaussianReal] at h
-    simpa only [id_eq] using h.symm
-  have hquad : ∀ (v : ℝ≥0) (α β : ℝ),
-      ∫ x, (c + ((α * x + β) / a) ^ 2) ∂(gaussianReal 0 v) =
-        c + (α ^ 2 * v + β ^ 2) / a ^ 2 := fun v α β => by
-    have h1 : Integrable (fun x : ℝ => x) (gaussianReal 0 v) :=
-      (memLp_id_gaussianReal 1).integrable le_rfl
-    have h2 : Integrable (fun x : ℝ => x ^ 2) (gaussianReal 0 v) :=
-      (memLp_id_gaussianReal 2).integrable_sq
-    have e : (fun x : ℝ => c + ((α * x + β) / a) ^ 2) = fun x =>
-        α ^ 2 / a ^ 2 * x ^ 2 + 2 * α * β / a ^ 2 * x + (c + β ^ 2 / a ^ 2) := by
-      funext x; ring
-    have h3 : Integrable (fun x : ℝ => α ^ 2 / a ^ 2 * x ^ 2 + 2 * α * β / a ^ 2 * x)
-        (gaussianReal 0 v) := (h2.const_mul _).add (h1.const_mul _)
-    rw [e, integral_add h3 (integrable_const _), integral_add (h2.const_mul _) (h1.const_mul _),
-      integral_const_mul, integral_const_mul, hmom, integral_id_gaussianReal, integral_const,
-      probReal_univ, one_smul]
-    ring
-  have hmarg : ∀ y : ℝ, ∫ d, (c + ((h * d.2 n + y) / a) ^ 2) ∂P =
-      c + (h ^ 2 + y ^ 2) / a ^ 2 := fun y => by
-    have hev : MeasurePreserving (fun d : (Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ) =>
+  have hPprob : IsProbabilityMeasure P := by rw [hP]; infer_instance
+  set Q := (gaussianReal 0 r).prod P with hQ
+  -- the field `h g + y` is a centred Gaussian of variance `h² + r`
+  have hg : HasLaw (fun d : (Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ) => d.2 n)
+      (gaussianReal 0 1) P := by
+    have hmp : MeasurePreserving (fun d : (Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ) =>
         d.2 n) P (gaussianReal 0 1) := by
       rw [hP]
       exact (measurePreserving_eval (fun _ : Fin (N + 1) => gaussianReal 0 1) n).comp
         measurePreserving_snd
-    have h1 : ∫ d, (c + ((h * d.2 n + y) / a) ^ 2) ∂P =
-        ∫ x, (c + ((h * x + y) / a) ^ 2) ∂(gaussianReal 0 1) := by
-      rw [← hev.map_eq]
-      exact (integral_map hev.measurable.aemeasurable
-        (by fun_prop : Continuous fun x : ℝ => c + ((h * x + y) / a) ^ 2
-          ).aestronglyMeasurable).symm
-    rw [h1, hquad, NNReal.coe_one, mul_one]
-  simp_rw [hmarg]
-  have e : (fun y : ℝ => c + (h ^ 2 + y ^ 2) / a ^ 2) = fun y =>
-      (a ^ 2)⁻¹ * y ^ 2 + (c + h ^ 2 / a ^ 2) := by
-    funext y; ring
-  have h2 : Integrable (fun x : ℝ => x ^ 2) (gaussianReal 0 r) :=
+    exact ⟨hmp.measurable.aemeasurable, hmp.map_eq⟩
+  have hsum := gaussianReal_add_gaussianReal_of_indepFun (P := Q)
+    (indepFun_prod (μ := gaussianReal 0 r) (ν := P) (X := id)
+      (Y := fun d => h * d.2 n) measurable_id (by fun_prop)).symm
+    (gaussianReal_const_mul (hg.comp (P := Q)
+      ⟨measurable_snd.aemeasurable, measurePreserving_snd.map_eq⟩) h)
+    (X := fun p => h * p.2.2 n) (Y := fun p => p.1)
+    ⟨measurable_fst.aemeasurable, measurePreserving_fst.map_eq⟩
+  rw [mul_zero, zero_add, mul_one] at hsum
+  set v : ℝ≥0 := .mk (h ^ 2) (sq_nonneg h) + r with hv
+  have hmp : MeasurePreserving (fun p : ℝ × ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) =>
+      h * p.2.2 n + p.1) Q (gaussianReal 0 v) := ⟨by fun_prop, hsum⟩
+  -- its second moment
+  have hsq : Integrable (fun x : ℝ => x ^ 2) (gaussianReal 0 v) :=
     (memLp_id_gaussianReal 2).integrable_sq
-  rw [e, integral_add (h2.const_mul _) (integrable_const _), integral_const_mul, hmom,
-    integral_const, probReal_univ, one_smul]
+  have hmom : ∫ x, x ^ 2 ∂(gaussianReal 0 v) = v := by
+    have h := variance_of_integral_eq_zero (μ := gaussianReal 0 v) (X := id) aemeasurable_id
+      integral_id_gaussianReal
+    rw [variance_id_gaussianReal] at h
+    simpa only [id_eq] using h.symm
+  have hf : Integrable (fun x : ℝ => c + (x / a) ^ 2) (gaussianReal 0 v) := by
+    simp only [div_pow]
+    exact (integrable_const c).add (hsq.div_const _)
+  have hcomp : Integrable (fun p : ℝ × ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) =>
+      c + ((h * p.2.2 n + p.1) / a) ^ 2) Q := hmp.integrable_comp_of_integrable hf
+  rw [← integral_prod _ hcomp, ← hQ]
+  have hmap := integral_map (μ := Q) hmp.measurable.aemeasurable
+    (f := fun x : ℝ => c + (x / a) ^ 2) (by fun_prop)
+  rw [hmp.map_eq] at hmap
+  rw [← hmap]
+  simp only [div_pow]
+  rw [integral_add (integrable_const c) (hsq.div_const _), integral_div, hmom, integral_const,
+    probReal_univ, one_smul, hv]
+  push_cast
   ring
 
 /-- **Eq. (3.80):** at `t = 0`, `ν₀ (ε²) = 1 / a + (r + h²) / a²` with `a = 2 κ + r - r̄ > 0`. -/

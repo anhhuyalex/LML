@@ -9,6 +9,7 @@ public import Mathlib.Analysis.Calculus.FDeriv.Extend
 public import Mathlib.Analysis.Calculus.Deriv.MeanValue
 public import Mathlib.Analysis.Calculus.Deriv.Pow
 public import Mathlib.Analysis.Convex.Deriv
+public import Mathlib.Analysis.Convex.Slope
 
 /-!
 # Derivatives on closed intervals: extension, Taylor remainder and Lipschitz bounds
@@ -140,6 +141,21 @@ theorem abs_sub_le_of_continuousOn_Icc_of_hasDerivAt_Ioo
   have heq : f y - f x = f' c * (y - x) := ((eq_div_iff hpos.ne').1 hslope).symm
   rw [heq, abs_mul, abs_of_pos hpos]
   exact mul_le_mul_of_nonneg_right (hfb c (hsub_oo hc)) hpos.le
+
+/-- A concave function on `ℝ` which is constant on a half-line `[τ, ∞)` is nondecreasing. -/
+theorem ConcaveOn.monotone_of_forall_ge_eq {u : ℝ → ℝ} (huc : ConcaveOn ℝ univ u) {τ b : ℝ}
+    (h : ∀ x, τ ≤ x → u x = b) : Monotone u := by
+  refine monotone_iff_forall_lt.2 fun x y hxy => ?_
+  set z : ℝ := max y τ + 1 with hz
+  have hyz : y < z := (le_max_left y τ).trans_lt (lt_add_one _)
+  have hτz : τ ≤ z := (le_max_right y τ).trans (le_add_of_nonneg_right zero_le_one)
+  -- the slope vanishes far to the right and slopes decrease
+  have h1 := huc.slope_anti_adjacent (mem_univ x) (mem_univ z) hxy hyz
+  have h2 := huc.slope_anti_adjacent (mem_univ y) (mem_univ (z + 1)) hyz (lt_add_one z)
+  rw [h _ (hτz.trans (le_add_of_nonneg_right zero_le_one)), h z hτz, sub_self, zero_div] at h2
+  rw [h z hτz] at h1
+  have h3 := (le_div_iff₀ (sub_pos.2 hxy)).1 (h2.trans h1)
+  linarith
 
 /-- A differentiable concave function on `ℝ` which is constant on a half-line `[τ, ∞)` has a
 nonnegative derivative. -/

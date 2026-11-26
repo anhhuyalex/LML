@@ -261,17 +261,16 @@ theorem abs_integral_shcherbinaTirozziCavityGibbs_last_le {κ h r rBar t y D : �
     (hq : 0 ≤ (1 - t) * (r - rBar)) {u : ℝ → ℝ} (hu : ConcaveOn ℝ Set.univ u)
     (hu0 : ∀ x, u x ≤ 0) (hud : Differentiable ℝ u) (hD : ∀ x, |deriv u x| ≤ D)
     (g : Fin M → Fin (N + 1) → ℝ) (g₀ : Fin (N + 1) → ℝ) :
-    ∀ ν : Measure (Fin N → ℝ),
-      ν = volume.tilted (fun ρ =>
-        (∑ k, u ((Real.sqrt (N + 1))⁻¹ * ∑ i : Fin N, g k i.castSucc * ρ i)) +
-          (h * (∑ i : Fin N, g₀ i.castSucc * ρ i) - κ * ∑ i, ρ i ^ 2)) →
-      |∫ σ, σ (Fin.last N) ∂((volume : Measure (ℝ^(N + 1))).tilted fun σ =>
+    let ν : Measure (Fin N → ℝ) := volume.tilted fun ρ =>
+      (∑ k, u ((Real.sqrt (N + 1))⁻¹ * ∑ i : Fin N, g k i.castSucc * ρ i)) +
+        (h * (∑ i : Fin N, g₀ i.castSucc * ρ i) - κ * ∑ i, ρ i ^ 2)
+    |∫ σ, σ (Fin.last N) ∂((volume : Measure (ℝ^(N + 1))).tilted fun σ =>
           -shcherbinaTirozziCavityHamiltonian κ h r rBar t y u g g₀ σ)| ≤
         Real.sqrt (2 * κ)⁻¹ +
           |(∑ k, (Real.sqrt (N + 1))⁻¹ * (Real.sqrt t * g k (Fin.last N)) *
               ∫ ρ, deriv u ((Real.sqrt (N + 1))⁻¹ * ∑ i : Fin N, g k i.castSucc * ρ i) ∂ν) +
             (h * g₀ (Fin.last N) + Real.sqrt (1 - t) * y)| / (2 * κ) := by
-  intro ν hν
+  intro ν
   have hum : Measurable u := hu.measurable_of_univ
   set a : Fin M → (Fin N → ℝ) → ℝ := fun k ρ =>
     (Real.sqrt (N + 1))⁻¹ * ∑ i : Fin N, g k i.castSucc * ρ i with ha
@@ -309,44 +308,25 @@ theorem abs_integral_shcherbinaTirozziCavityGibbs_last_le {κ h r rBar t y D : �
   have hfc : ConcaveOn ℝ Set.univ f := by
     refine concaveOn_log_integral_exp volume
       (F := fun p : (Fin N → ℝ) × ℝ => (∑ k, u (a k p.1 + c k * p.2)) + V p.1) ?_ hslice
-    have hlin : ∀ k, ∀ p q : (Fin N → ℝ) × ℝ, ∀ s s' : ℝ,
-        a k (s • p + s' • q).1 + c k * (s • p + s' • q).2 =
-          s * (a k p.1 + c k * p.2) + s' * (a k q.1 + c k * q.2) := fun k p q s s' => by
-      have h1 : a k (s • p + s' • q).1 = s * a k p.1 + s' * a k q.1 := by
-        simp only [ha, Prod.fst_add, Prod.smul_fst, Pi.add_apply, Pi.smul_apply, smul_eq_mul,
-          mul_add, Finset.sum_add_distrib, Finset.mul_sum]
-        congr 1 <;> exact Finset.sum_congr rfl fun i _ => by ring
-      rw [h1]
-      simp only [Prod.snd_add, Prod.smul_snd, smul_eq_mul]
-      ring
-    refine ⟨convex_univ, fun p _ q _ s s' hs hs' hss => ?_⟩
-    have hU : ∑ k, (s * u (a k p.1 + c k * p.2) + s' * u (a k q.1 + c k * q.2)) ≤
-        ∑ k, u (a k (s • p + s' • q).1 + c k * (s • p + s' • q).2) :=
-      Finset.sum_le_sum fun k _ => by
-        rw [hlin]
-        exact hu.2 (Set.mem_univ _) (Set.mem_univ _) hs hs' hss
-    have hVc : s * V p.1 + s' * V q.1 ≤ V (s • p + s' • q).1 := by
-      have hsq : ∑ i, (s • p + s' • q).1 i ^ 2 ≤
-          s * (∑ i, p.1 i ^ 2) + s' * ∑ i, q.1 i ^ 2 := by
-        rw [Finset.mul_sum, Finset.mul_sum, ← Finset.sum_add_distrib]
-        refine Finset.sum_le_sum fun i _ => ?_
-        have h1 := (even_two.convexOn_pow (𝕜 := ℝ)).2 (Set.mem_univ (p.1 i))
-          (Set.mem_univ (q.1 i)) hs hs' hss
-        simpa only [Prod.fst_add, Prod.smul_fst, Pi.add_apply, Pi.smul_apply, smul_eq_mul]
-          using h1
-      have hl : ∑ i : Fin N, g₀ i.castSucc * (s • p + s' • q).1 i =
-          s * (∑ i : Fin N, g₀ i.castSucc * p.1 i) +
-            s' * ∑ i : Fin N, g₀ i.castSucc * q.1 i := by
-        rw [Finset.mul_sum, Finset.mul_sum, ← Finset.sum_add_distrib]
-        refine Finset.sum_congr rfl fun i _ => ?_
-        simp only [Prod.fst_add, Prod.smul_fst, Pi.add_apply, Pi.smul_apply, smul_eq_mul]
-        ring
-      have := mul_le_mul_of_nonneg_left hsq hκ.le
-      simp only [hV, hl]
-      linear_combination this
-    simp only [smul_eq_mul]
-    rw [Finset.sum_add_distrib, ← Finset.mul_sum, ← Finset.mul_sum] at hU
-    linear_combination hU + hVc
+    -- each constraint field and the external field are linear forms on the product space
+    obtain ⟨π, hπ⟩ : ∃ π : Fin N → (Fin N → ℝ) × ℝ →ₗ[ℝ] ℝ, ∀ i p, π i p = p.1 i :=
+      ⟨fun i => LinearMap.proj i ∘ₗ LinearMap.fst ℝ (Fin N → ℝ) ℝ, fun _ _ => rfl⟩
+    set ℓ : Fin M → (Fin N → ℝ) × ℝ →ₗ[ℝ] ℝ := fun k =>
+      (Real.sqrt (N + 1))⁻¹ • (∑ i : Fin N, g k i.castSucc • π i) +
+        c k • LinearMap.snd ℝ (Fin N → ℝ) ℝ with hℓdef
+    have hℓ : ∀ k p, ℓ k p = a k p.1 + c k * p.2 := fun k p => by
+      simp [hℓdef, ha, hπ, LinearMap.sum_apply]
+    have hfields : ConcaveOn ℝ Set.univ (∑ k, u ∘ ℓ k) :=
+      Finset.sum_induction _ (ConcaveOn ℝ Set.univ) (fun _ _ => ConcaveOn.add)
+        (concaveOn_const 0 convex_univ) fun k _ => hu.comp_linearMap (ℓ k)
+    have hsq : ConvexOn ℝ Set.univ (∑ i, (fun x : ℝ => x ^ 2) ∘ π i) :=
+      Finset.sum_induction _ (ConvexOn ℝ Set.univ) (fun _ _ => ConvexOn.add)
+        (convexOn_const 0 convex_univ) fun i _ => even_two.convexOn_pow.comp_linearMap (π i)
+    have hfield := (h • ∑ i : Fin N, g₀ i.castSucc • π i).concaveOn
+      (convex_univ (𝕜 := ℝ) (E := (Fin N → ℝ) × ℝ))
+    refine ((hfields.add hfield).sub (hsq.smul hκ.le)).congr fun p _ => ?_
+    simp [Finset.sum_apply, hℓ, hπ, hV]
+    ring
   -- the law of the last spin
   set e : ℝ^(N + 1) ≃ᵐ ℝ × (Fin N → ℝ) :=
     (MeasurableEquiv.toLp 2 (Fin (N + 1) → ℝ)).symm.trans
@@ -404,7 +384,7 @@ theorem abs_integral_shcherbinaTirozziCavityGibbs_last_le {κ h r rBar t y D : �
   have h0 : (∑ k, c k * ∫ ρ, deriv u (a k ρ + c k * 0)
         ∂(volume.tilted fun ρ => (∑ k, u (a k ρ + c k * 0)) + V ρ)) =
       ∑ k, c k * ∫ ρ, deriv u (a k ρ) ∂ν := by
-    simp only [mul_zero, add_zero, hν, ha, hV]
+    simp only [mul_zero, add_zero, ν, ha, hV]
   rw [h0]
   have h2κ : 2 * κ ≤ 2 * κt := by linarith
   exact add_le_add (Real.sqrt_le_sqrt (inv_anti₀ (by linarith) h2κ))
@@ -600,7 +580,8 @@ private theorem integral_exp_sq_last_le_of_coeff {κ₀ κ h r rBar t y D K W : 
     rw [integral_const_mul, mul_comm 4]
     exact mul_le_mul_of_nonneg_left hmau.2 (Real.exp_pos _).le
   have h386 := abs_integral_shcherbinaTirozziCavityGibbs_last_le (h := h) (y := y) hκ0 hq hu
-    hu0 hud hD g g₀ _ rfl
+    hu0 hud hD g g₀
+  dsimp only at h386
   rw [hW _ rfl, ← hG, ← hm] at h386
   set b : ℝ := h * g₀ (Fin.last N) + Real.sqrt (1 - t) * y with hb
   have hm2 : m ^ 2 ≤ 3 / (2 * κ₀) + 3 / (4 * κ₀ ^ 2) * (W ^ 2 + b ^ 2) := by
@@ -674,18 +655,15 @@ theorem exists_integral_exp_sq_shcherbinaTirozziCavity_last_le (κ₀ h₀ D R :
     ∃ K : ℝ, 0 < K ∧ ∀ (N M : ℕ) (κ h t rBar : ℝ) (r : ℝ≥0) (u : ℝ → ℝ), κ₀ ≤ κ → |h| ≤ h₀ →
       0 ≤ t → t ≤ 1 → rBar ≤ r → (r : ℝ) ≤ R → M ≤ 10 * (N + 1) →
       ConcaveOn ℝ Set.univ u → (∀ x, u x ≤ 0) → Differentiable ℝ u → (∀ x, |deriv u x| ≤ D) →
-      ∀ P : Measure ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)),
-        P = (Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1).prod
-          (Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1) →
-        Integrable (fun p : ℝ × ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) =>
-            ∫ σ, Real.exp (σ (Fin.last N) ^ 2 / K)
-              ∂((volume : Measure (ℝ^(N + 1))).tilted fun σ =>
-                -shcherbinaTirozziCavityHamiltonian κ h r rBar t p.1 u p.2.1 p.2.2 σ))
-            ((gaussianReal 0 r).prod P) ∧
-          ∫ p, ∫ σ, Real.exp (σ (Fin.last N) ^ 2 / K)
-              ∂((volume : Measure (ℝ^(N + 1))).tilted fun σ =>
-                -shcherbinaTirozziCavityHamiltonian κ h r rBar t p.1 u p.2.1 p.2.2 σ)
-              ∂((gaussianReal 0 r).prod P) ≤ K := by
+      let P : Measure (ℝ × ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ))) :=
+        (gaussianReal 0 r).prod
+          ((Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1).prod
+            (Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1))
+      let F : ℝ × ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) → ℝ := fun p =>
+        ∫ σ, Real.exp (σ (Fin.last N) ^ 2 / K)
+          ∂((volume : Measure (ℝ^(N + 1))).tilted fun σ =>
+            -shcherbinaTirozziCavityHamiltonian κ h r rBar t p.1 u p.2.1 p.2.2 σ)
+      Integrable F P ∧ ∫ p, F p ∂P ≤ K := by
   set S : ℝ := 1 + h₀ ^ 2 + R + D ^ 2 with hS
   have hS1 : 1 ≤ S := by
     have := sq_nonneg h₀
@@ -710,7 +688,13 @@ theorem exists_integral_exp_sq_shcherbinaTirozziCavity_last_le (κ₀ h₀ D R :
   have hκK : 16 ≤ κ₀ * K := by
     have : 16 / κ₀ ≤ K := by linarith
     rwa [div_le_iff₀' hκ₀] at this
-  refine ⟨K, hK0, fun N M κ h t rBar r u hκ hh ht0 ht1 hrr hrR hM huc hu0 hud hD P hP => ?_⟩
+  refine ⟨K, hK0, fun N M κ h t rBar r u hκ hh ht0 ht1 hrr hrR hM huc hu0 hud hD => ?_⟩
+  intro law F
+  obtain ⟨P, hP⟩ : ∃ P : Measure ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)),
+      P = (Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1).prod
+        (Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1) := ⟨_, rfl⟩
+  have hlaw : law = (gaussianReal 0 r).prod P := by rw [hP]
+  rw [hlaw]
   have hκ0 : 0 < κ := hκ₀.trans_le hκ
   have hq : 0 ≤ (1 - t) * ((r : ℝ) - rBar) :=
     mul_nonneg (sub_nonneg.2 ht1) (sub_nonneg.2 hrr)
