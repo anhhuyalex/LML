@@ -145,7 +145,7 @@ theorem integral_tanh_sq_deriv_mul_id_eq (h w : ℝ) :
         ∂(gaussianReal 0 1) =
       w * ∫ z : ℝ, 2 * (1 - Real.tanh (w * z + h) ^ 2) * (1 - 3 * Real.tanh (w * z + h) ^ 2)
         ∂(gaussianReal 0 1) :=
-  integral_deriv_comp_affine_mul_id_gaussianReal (f' := fun y => 2 * Real.tanh y *
+  integral_deriv_comp_affine_mul_id_gaussianReal_of_bounded (f' := fun y => 2 * Real.tanh y *
     (1 - Real.tanh y ^ 2)) Real.hasDerivAt_tanh_sq_deriv Real.abs_tanh_sq_second_deriv_le h w
 
 /-- **Parameter derivative of the fixed-point map via Stein's lemma:**
@@ -155,7 +155,7 @@ theorem hasDerivAt_fixedPointMap_param (h : ℝ) (w : ℝ) :
     HasDerivAt (fun v => ∫ z : ℝ, Real.tanh (v * z + h) ^ 2 ∂(gaussianReal 0 1))
       (w * ∫ z : ℝ, 2 * (1 - Real.tanh (w * z + h) ^ 2) * (1 - 3 * Real.tanh (w * z + h) ^ 2)
         ∂(gaussianReal 0 1)) w :=
-  hasDerivAt_integral_comp_affine_gaussianReal (f := fun y => Real.tanh y ^ 2)
+  hasDerivAt_integral_comp_affine_gaussianReal_of_bounded (f := fun y => Real.tanh y ^ 2)
     Real.hasDerivAt_tanh_sq Real.hasDerivAt_tanh_sq_deriv Real.abs_tanh_sq_second_deriv_le h w
 
 /-- The parameter derivative $|H'(w)|$ is bounded by $2 |w|$. -/

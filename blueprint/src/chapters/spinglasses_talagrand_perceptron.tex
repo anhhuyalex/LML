@@ -2140,7 +2140,7 @@ Let $f$ be twice differentiable with $f,f',f''$ bounded and $f''$ continuous, $\
 \begin{proof}
   \leanok
 Differentiate under the product Gaussian integral (the derivative $f'\cdot(a'\eta_1+b'\eta_2)$ is dominated by $C_1(A|\eta_1|+B|\eta_2|)$), then apply Stein's lemma
-$\mathbb E[f'(h+w\eta)\eta]=w\,\mathbb E f''(h+w\eta)$ (\texttt{integral\_deriv\_comp\_affine\_mul\_id\_gaussianReal}) to each variable conditionally on the other (Fubini). No square root of $a^2+b^2$ occurs, so the formula
+$\mathbb E[f'(h+w\eta)\eta]=w\,\mathbb E f''(h+w\eta)$ (\texttt{integral\_deriv\_comp\_affine\_mul\_id\_gaussianReal\_of\_bounded}) to each variable conditionally on the other (Fubini). No square root of $a^2+b^2$ occurs, so the formula
 holds also where $a=b=0$. With $(a,b)=(\cos s\,a_0,\sin s\sqrt{1-q})$ this is $\sin s\cos s\,(1-q-a_0^2)\,\mathbb E f''$, the same-replica entry of $\mathrm{Cov}\,V-\mathrm{Cov}\,U$.
 Formalized in \texttt{ForMathlib/Probability/Moments/GaussianSmoothingPath.lean}.
 \end{proof}

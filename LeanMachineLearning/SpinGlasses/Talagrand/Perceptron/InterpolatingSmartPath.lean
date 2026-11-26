@@ -1311,11 +1311,12 @@ private lemma hasDerivAt_integral_interpSP {N M : ℕ} {R : Type uR} [Fintype R]
     let nR : ℝ := Fintype.card R
     have ha_exp : Integrable (fun a : Fin M → ℝ => Real.exp (∑ k, |a k|))
         (Measure.pi fun _ : Fin M => gaussianReal 0 1) := by
-      simpa only [one_mul] using integrable_exp_sum_mul_abs_pi (fun _ : Fin M => (1 : ℝ))
+      simpa only [one_mul] using
+        integrable_exp_sum_mul_abs_pi_stdGaussian (fun _ : Fin M => (1 : ℝ))
     have hz'_exp : Integrable
         (fun z' : Fin N → ℝ => Real.exp (∑ i, (2 * nR * |Real.sqrt r|) * |z' i|))
         (Measure.pi fun _ : Fin N => gaussianReal 0 1) :=
-      integrable_exp_sum_mul_abs_pi (fun _ : Fin N => 2 * nR * |Real.sqrt r|)
+      integrable_exp_sum_mul_abs_pi_stdGaussian (fun _ : Fin N => 2 * nR * |Real.sqrt r|)
     have hy_exp : Integrable (fun y : ℝ => Real.exp ((2 * nR + 1) * |y|)) (gaussianReal 0 v) :=
       integrable_exp_mul_abs_gaussianReal _
     have hzl_exp : Integrable (fun zl : ℝ => Real.exp ((2 * nR * |Real.sqrt r|) * |zl|))

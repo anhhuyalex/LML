@@ -586,7 +586,7 @@ theorem integral_pi_xi_mul_deriv {N M : ℕ} {R : Type*} [Fintype R] {t : ℝ} {
   have h2 : Integrable Φ' (Measure.pi fun _ : Option R => (smartPathSpinProb N).prod
         (Measure.pi fun _ : Fin M => gaussianReal 0 1)) :=
     integrable_of_measurable_bound hΦ'm hK₂
-  have hstein := integral_apply_snd_mul_pi_prod_eq (J := Option R)
+  have hstein := integral_apply_snd_mul_pi_prod_stdGaussian_eq (J := Option R)
     (smartPathSpinProb N) i k (Φ := Φ) (Φ' := Φ') hΦ h1 h2
   have hL : (∫ σ : Option R → SmartPathState N M, f (fun r => (σ (some r)).1) *
         ((σ i).2 k * deriv u (smartPathField t ω (σ i) k)) *

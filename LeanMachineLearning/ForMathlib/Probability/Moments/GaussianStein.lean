@@ -239,7 +239,7 @@ theorem integrable_exp_sum_mul_abs_pi_gaussianReal (m : ι → ℝ) (v : ι → 
 
 omit [DecidableEq ι] in
 /-- `exp (∑ k, w k |ξ k|)` is integrable against i.i.d. standard Gaussians. -/
-theorem integrable_exp_sum_mul_abs_pi (w : ι → ℝ) :
+theorem integrable_exp_sum_mul_abs_pi_stdGaussian (w : ι → ℝ) :
     Integrable (fun ξ : ι → ℝ => Real.exp (∑ k, w k * |ξ k|))
       (Measure.pi fun _ : ι => gaussianReal 0 1) :=
   integrable_exp_sum_mul_abs_pi_gaussianReal (fun _ => 0) (fun _ => 1) w
@@ -351,7 +351,7 @@ theorem integral_snd_apply_smul_prod_pi_gaussianReal_eq {E A K : Type*} [NormedA
 
 /-- **Stein in one Gaussian coordinate with a spectator.** On `A × (K → ℝ)` with the product of an
 `s`-finite measure `μ` on `A` and independent standard Gaussians, `𝔼[ξ_k φ] = 𝔼[∂_k φ]`. -/
-theorem integral_snd_apply_mul_prod_pi_gaussianReal_eq {A K : Type*} [MeasurableSpace A]
+theorem integral_snd_apply_mul_prod_pi_stdGaussian_eq {A K : Type*} [MeasurableSpace A]
     [Fintype K] [DecidableEq K] (μ : Measure A) [SFinite μ] (k : K)
     {φ φ' : A × (K → ℝ) → ℝ}
     (hφ : ∀ s ξ, HasDerivAt (fun τ => φ (s, update ξ k τ)) (φ' (s, ξ)) (ξ k))
@@ -440,8 +440,8 @@ theorem integral_apply_snd_smul_pi_prod_eq {E J A K : Type*} [NormedAddCommGroup
 
 /-- **Stein in one Gaussian coordinate of one replica.** For independent replicas drawn from
 `μ ⊗ (standard Gaussians)^K`, with `μ` σ-finite, `𝔼[(σ i).2 k · Φ(σ)] = 𝔼[Φ'(σ)]`. -/
-theorem integral_apply_snd_mul_pi_prod_eq {J A K : Type*} [MeasurableSpace A] [Fintype J]
-    [DecidableEq J] [Fintype K] [DecidableEq K] (μ : Measure A) [SigmaFinite μ]
+theorem integral_apply_snd_mul_pi_prod_stdGaussian_eq {J A K : Type*} [MeasurableSpace A]
+    [Fintype J] [DecidableEq J] [Fintype K] [DecidableEq K] (μ : Measure A) [SigmaFinite μ]
     (i : J) (k : K) {Φ Φ' : (J → A × (K → ℝ)) → ℝ}
     (hΦ : ∀ σ s ξ, HasDerivAt (fun τ => Φ (update σ i (s, update ξ k τ)))
       (Φ' (update σ i (s, ξ))) (ξ k))
@@ -519,7 +519,7 @@ theorem integrable_comp_mulVec_of_exp_sum_growth (A : Matrix κ ι ℝ) {F : (κ
   have hC : 0 ≤ C := by
     have := (abs_nonneg (F 0)).trans (hF 0)
     exact nonneg_of_mul_nonneg_left this (Real.exp_pos _)
-  refine Integrable.mono' ((integrable_exp_sum_mul_abs_pi
+  refine Integrable.mono' ((integrable_exp_sum_mul_abs_pi_stdGaussian
     fun k => ∑ l, |c l| * |A l k|).const_mul C) hFm (Eventually.of_forall fun ξ => ?_)
   rw [Real.norm_eq_abs]
   exact (hF _).trans (mul_le_mul_of_nonneg_left (exp_sum_mul_abs_mulVec_le A c ξ) hC)
@@ -527,7 +527,7 @@ theorem integrable_comp_mulVec_of_exp_sum_growth (A : Matrix κ ι ℝ) {F : (κ
 omit [DecidableEq ι] in
 /-- A measurable function of exponential growth in `‖y‖₁`, composed with a linear map, is
 integrable against i.i.d. standard Gaussians. -/
-theorem integrable_comp_mulVec_of_exp_growth (A : Matrix κ ι ℝ) {F : (κ → ℝ) → ℝ}
+theorem integrable_comp_mulVec_of_exp_l1_growth (A : Matrix κ ι ℝ) {F : (κ → ℝ) → ℝ}
     (hFm : Measurable F) {C c : ℝ} (hF : ∀ y, |F y| ≤ C * Real.exp (c * ∑ l, |y l|)) :
     Integrable (fun ξ => F (A *ᵥ ξ)) (Measure.pi fun _ : ι => gaussianReal 0 1) :=
   integrable_comp_mulVec_of_exp_sum_growth A (c := fun _ => c)
@@ -546,7 +546,7 @@ theorem integrable_eval_mul_comp_mulVec_of_exp_sum_growth (A : Matrix κ ι ℝ)
   have hC : 0 ≤ C := by
     have := (abs_nonneg (F 0)).trans (hF 0)
     exact nonneg_of_mul_nonneg_left this (Real.exp_pos _)
-  refine Integrable.mono' ((integrable_exp_sum_mul_abs_pi
+  refine Integrable.mono' ((integrable_exp_sum_mul_abs_pi_stdGaussian
     fun k => (∑ l, |c l| * |A l k|) + (if k = j then (1 : ℝ) else 0)).const_mul C)
     ((measurable_pi_apply j).aestronglyMeasurable.mul hFm) (Eventually.of_forall fun ξ => ?_)
   rw [Real.norm_eq_abs, abs_mul]
@@ -565,8 +565,8 @@ theorem integrable_eval_mul_comp_mulVec_of_exp_sum_growth (A : Matrix κ ι ℝ)
         ring
 
 omit [DecidableEq ι] in
-/-- As `integrable_comp_mulVec_of_exp_growth`, with an extra coordinate factor `ξ j`. -/
-theorem integrable_eval_mul_comp_mulVec_of_exp_growth (A : Matrix κ ι ℝ) (j : ι)
+/-- As `integrable_comp_mulVec_of_exp_l1_growth`, with an extra coordinate factor `ξ j`. -/
+theorem integrable_eval_mul_comp_mulVec_of_exp_l1_growth (A : Matrix κ ι ℝ) (j : ι)
     {F : (κ → ℝ) → ℝ} (hFm : Measurable F) {C c : ℝ}
     (hF : ∀ y, |F y| ≤ C * Real.exp (c * ∑ l, |y l|)) :
     Integrable (fun ξ : ι → ℝ => ξ j * F (A *ᵥ ξ)) (Measure.pi fun _ : ι => gaussianReal 0 1) :=
@@ -660,8 +660,8 @@ omit [DecidableEq ι] in
 /-- **Stein's identity for a linear image of i.i.d. standard Gaussians.**  For `g = A ξ` with
 `ξ` i.i.d. `𝒩(0, 1)` and `F` differentiable with exponentially bounded value and partial
 derivatives, `𝔼[g i F(g)] = ∑ l, (A Aᵀ) i l 𝔼[∂ₗ F(g)]`; `A Aᵀ` is the covariance of `g`. -/
-theorem integral_mulVec_mul_comp_mulVec_eq_sum [DecidableEq κ] (A : Matrix κ ι ℝ) (i : κ)
-    {F : (κ → ℝ) → ℝ}
+theorem integral_mulVec_mul_comp_mulVec_eq_sum_of_exp_l1_growth [DecidableEq κ]
+    (A : Matrix κ ι ℝ) (i : κ) {F : (κ → ℝ) → ℝ}
     (hF : Differentiable ℝ F) {C c : ℝ} (hFg : ∀ y, |F y| ≤ C * Real.exp (c * ∑ l, |y l|))
     {D d : κ → ℝ} (hFg' : ∀ l y, |fderiv ℝ F y (Pi.single l 1)| ≤
       D l * Real.exp (d l * ∑ l, |y l|)) :

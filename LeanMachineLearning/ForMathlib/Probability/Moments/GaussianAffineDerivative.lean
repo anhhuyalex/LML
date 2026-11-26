@@ -260,7 +260,7 @@ theorem integral_id_smul_deriv_comp_affine_gaussianReal {f' f'' : ℝ → F}
 
 /-- **Stein's lemma for an affine Gaussian argument:** if `f'` has a bounded derivative `f''`,
 then `𝔼 [f'(w z + h) z] = w 𝔼 f''(w z + h)` for `z ~ N(0,1)`. -/
-theorem integral_deriv_comp_affine_mul_id_gaussianReal {f' f'' : ℝ → ℝ} {C₂ : ℝ}
+theorem integral_deriv_comp_affine_mul_id_gaussianReal_of_bounded {f' f'' : ℝ → ℝ} {C₂ : ℝ}
     (hf' : ∀ y, HasDerivAt f' (f'' y) y) (hC₂ : ∀ y, |f'' y| ≤ C₂) (h w : ℝ) :
     ∫ z, f' (w * z + h) * z ∂(gaussianReal 0 1) =
       w * ∫ z, f'' (w * z + h) ∂(gaussianReal 0 1) := by
@@ -286,7 +286,7 @@ theorem hasDerivAt_integral_comp_affine_gaussianReal_smul {f f' f'' : ℝ → F}
 
 /-- **Derivative of the Gaussian average in the standard deviation:** if `f` has derivative `f'`,
 and `f'` has a bounded derivative `f''`, then `(d/dw) 𝔼 f(w z + h) = w 𝔼 f''(w z + h)`. -/
-theorem hasDerivAt_integral_comp_affine_gaussianReal {f f' f'' : ℝ → ℝ} {C₂ : ℝ}
+theorem hasDerivAt_integral_comp_affine_gaussianReal_of_bounded {f f' f'' : ℝ → ℝ} {C₂ : ℝ}
     (hf : ∀ y, HasDerivAt f (f' y) y) (hf' : ∀ y, HasDerivAt f' (f'' y) y)
     (hC₂ : ∀ y, |f'' y| ≤ C₂) (h w : ℝ) :
     HasDerivAt (fun v => ∫ z, f (v * z + h) ∂(gaussianReal 0 1))

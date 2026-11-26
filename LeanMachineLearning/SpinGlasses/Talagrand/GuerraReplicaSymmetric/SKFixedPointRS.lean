@@ -50,7 +50,7 @@ theorem hasDerivAt_integral_log_cosh_sqrt (β h : ℝ) {x : ℝ} (hx : 0 < x) :
         ∂(gaussianReal 0 1))
       (β ^ 2 / 2 * ∫ z : ℝ, (1 - Real.tanh (β * Real.sqrt x * z + h) ^ 2) ∂(gaussianReal 0 1))
       x := by
-  exact hasDerivAt_comp_mul_sqrt hx (hasDerivAt_integral_comp_affine_gaussianReal
+  exact hasDerivAt_comp_mul_sqrt hx (hasDerivAt_integral_comp_affine_gaussianReal_of_bounded
     (f := fun y => Real.log (Real.cosh y)) (f' := Real.tanh)
     (f'' := fun y => 1 - Real.tanh y ^ 2) Real.hasDerivAt_log_cosh
     Real.hasDerivAt_tanh Real.abs_one_sub_tanh_sq_le h (β * Real.sqrt x))

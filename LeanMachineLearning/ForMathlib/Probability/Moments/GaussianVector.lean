@@ -211,7 +211,7 @@ theorem integral_smul_comp_eq_integral_fderiv_apply {E V : Type*} [NormedAddComm
   -- integrability against the Gaussians of anything of exponential growth along `L`
   have hint : ∀ (G : (Unit ⊕ Fin n → ℝ) → V), AEStronglyMeasurable G π → ∀ K r : ℝ,
       (∀ ξ, ‖G ξ‖ ≤ K * Real.exp (r * ∑ k, |ξ k|)) → Integrable G π := fun G hG K r h => by
-    refine ((integrable_exp_sum_mul_abs_pi fun _ => r).const_mul K).mono' hG
+    refine ((integrable_exp_sum_mul_abs_pi_stdGaussian fun _ => r).const_mul K).mono' hG
       (ae_of_all _ fun ξ => (h ξ).trans_eq ?_)
     rw [Finset.mul_sum]
   have hexp : ∀ (K r : ℝ) (ξ : Unit ⊕ Fin n → ℝ),
@@ -255,7 +255,7 @@ theorem integral_smul_comp_eq_integral_fderiv_apply {E V : Type*} [NormedAddComm
         hg.aestronglyMeasurable, hlawM,
         integral_map M.continuous.aemeasurable hg.aestronglyMeasurable]
     have h1L : ∀ j : Unit ⊕ Fin n, Integrable (fun ξ => ξ j • L ξ) π := fun j => by
-      refine ((integrable_exp_sum_mul_abs_pi fun _ => (2 : ℝ)).const_mul ‖L‖).mono'
+      refine ((integrable_exp_sum_mul_abs_pi_stdGaussian fun _ => (2 : ℝ)).const_mul ‖L‖).mono'
         ((continuous_apply j).smul L.continuous).aestronglyMeasurable (ae_of_all _ fun ξ => ?_)
       have h0 : (0 : ℝ) ≤ ∑ k, |ξ k| := Finset.sum_nonneg fun _ _ => abs_nonneg _
       have hle : ∑ k, |ξ k| ≤ Real.exp (∑ k, |ξ k|) := by
@@ -296,7 +296,7 @@ theorem integrable_comp_of_exp_growth {X : κ → Ω → ℝ}
   have hAm : Measurable fun ξ : κ → ℝ => A *ᵥ ξ := by fun_prop
   have h2 : Integrable F (P.map fun ω k => X k ω) := by
     rw [hlaw, integrable_map_measure hFm.aestronglyMeasurable hAm.aemeasurable]
-    exact integrable_comp_mulVec_of_exp_growth A hFm hF
+    exact integrable_comp_mulVec_of_exp_l1_growth A hFm hF
   exact (integrable_map_measure hFm.aestronglyMeasurable hX.aemeasurable).1 h2
 
 omit [DecidableEq κ] in

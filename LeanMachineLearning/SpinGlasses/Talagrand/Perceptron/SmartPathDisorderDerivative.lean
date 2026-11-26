@@ -99,7 +99,7 @@ theorem hasDerivAt_integral_integral_pi_perceptron_smart_path {N M : ℕ}
       _ = _ := by dsimp only [Q, b]; ring
   have hξ : Integrable (fun ξ : Fin M → ℝ => Real.exp (∑ k, |ξ k|))
       (Measure.pi fun _ : Fin M => gaussianReal 0 1) := by
-    simpa only [one_mul] using integrable_exp_sum_mul_abs_pi (fun _ : Fin M => (1 : ℝ))
+    simpa only [one_mul] using integrable_exp_sum_mul_abs_pi_stdGaussian (fun _ : Fin M => (1 : ℝ))
   have houter : Integrable (fun ω => Real.exp (2 * ((Fintype.card R : ℝ) * A ω)) * Q ω)
       (smartPathDisorder Pold v) := by
     have hyexp : Integrable (fun y : ℝ =>

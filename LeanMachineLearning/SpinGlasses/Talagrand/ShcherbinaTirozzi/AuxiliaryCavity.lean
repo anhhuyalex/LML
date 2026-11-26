@@ -454,6 +454,65 @@ theorem integral_shcherbinaTirozziAuxCavity_zero_deriv_two (α κ h : ℝ) (r : 
   rw [hproj]
   ring
 
+/-- **Smoothed marginal representation (Eq. (3.99)):** for a measurable spin-only observable `f` of
+`R` replicas, the `R`-replica average under `((volume × 𝒩(0,1)).tilted (E_old + u ∘ S_v))` equals
+the `R`-replica average under `volume.tilted (E_old + u_v(√v S_last + √(1 - v) √q z))`, where
+`u_v(x) = log 𝔼_ξ exp u(x + √(1 - v) √(ρ - q) ξ)`. -/
+theorem integral_pi_shcherbinaTirozziAuxCavity_eq_smoothed {κ h r rBar t y q ρ v z : ℝ}
+    (hκ : 0 < κ) (hq_t : 0 ≤ (1 - t) * (r - rBar)) {u : ℝ → ℝ} (hu : Measurable u)
+    (hu0 : ∀ x, u x ≤ 0) (g : Fin (M + 1) → Fin (N + 1) → ℝ) (g₀ : Fin (N + 1) → ℝ)
+    {f : (R → ℝ^(N + 1)) → ℝ} (hf : Measurable f) :
+    let E_old : ℝ^(N + 1) → ℝ := fun σ =>
+      -shcherbinaTirozziCavityHamiltonian κ h r rBar t y u (fun j => g j.castSucc) g₀ σ
+    let S_v : ℝ^(N + 1) × ℝ → ℝ := fun p =>
+      Real.sqrt v * cfield⟨t, g, Fin.last M, p.1⟩ +
+        Real.sqrt (1 - v) * (Real.sqrt q * z + Real.sqrt (ρ - q) * p.2)
+    let u_v : ℝ → ℝ := fun x =>
+      Real.log (∫ ξ, Real.exp (u (x + Real.sqrt (1 - v) * Real.sqrt (ρ - q) * ξ))
+        ∂(gaussianReal 0 1))
+    ∫ σ : R → ℝ^(N + 1) × ℝ, f (fun l => (σ l).1)
+        ∂(Measure.pi fun _ : R =>
+          ((volume : Measure (ℝ^(N + 1))).prod (gaussianReal 0 1)).tilted
+            fun p => E_old p.1 + u (S_v p)) =
+      ∫ a : R → ℝ^(N + 1), f a
+        ∂(Measure.pi fun _ : R => (volume : Measure (ℝ^(N + 1))).tilted fun σ =>
+          E_old σ + u_v (Real.sqrt v * cfield⟨t, g, Fin.last M, σ⟩ +
+            Real.sqrt (1 - v) * Real.sqrt q * z)) := by
+  intro E_old S_v u_v
+  have hEold_i : Integrable (fun σ : ℝ^(N + 1) => Real.exp (E_old σ)) volume :=
+    integrable_exp_neg_shcherbinaTirozziCavityHamiltonian hκ hq_t hu hu0 _ g₀
+  have hEm : Measurable fun p : ℝ^(N + 1) × ℝ => E_old p.1 + u (S_v p) := by
+    have h1 := (measurable_shcherbinaTirozziCavityHamiltonian_apply κ h r rBar t y hu
+      (fun j => g j.castSucc) g₀).neg.comp measurable_fst
+    have hσ : ∀ i : Fin (N + 1), Measurable fun p : ℝ^(N + 1) × ℝ => p.1 i := fun i =>
+      ((PiLp.continuous_apply 2 (fun _ : Fin (N + 1) => ℝ) i).measurable).comp measurable_fst
+    have hf1 : Measurable fun p : ℝ^(N + 1) × ℝ => cfield⟨t, g, Fin.last M, p.1⟩ :=
+      (((Finset.measurable_sum _ fun i _ => (hσ i.castSucc).const_mul _).add
+        (((hσ (Fin.last N)).const_mul _).const_mul _)).const_mul _)
+    exact h1.add (hu.comp ((hf1.const_mul _).add
+      ((measurable_const.add (measurable_snd.const_mul _)).const_mul _)))
+  have hEi : Integrable (fun p : ℝ^(N + 1) × ℝ => Real.exp (E_old p.1 + u (S_v p)))
+      ((volume : Measure (ℝ^(N + 1))).prod (gaussianReal 0 1)) := by
+    refine (hEold_i.comp_fst (gaussianReal 0 1)).mono' hEm.exp.aestronglyMeasurable
+      (ae_of_all _ fun p => ?_)
+    rw [Real.norm_of_nonneg (Real.exp_pos _).le, Real.exp_add]
+    exact mul_le_of_le_one_right (Real.exp_pos _).le (Real.exp_le_one_iff.2 (hu0 _))
+  rw [integral_pi_tilted_prod_fst hEi hf]
+  have hfib : ∀ σ : ℝ^(N + 1),
+      Real.log (∫ ξ, Real.exp (E_old σ + u (S_v (σ, ξ))) ∂(gaussianReal 0 1)) =
+        E_old σ + u_v (Real.sqrt v * cfield⟨t, g, Fin.last M, σ⟩ +
+          Real.sqrt (1 - v) * Real.sqrt q * z) := fun σ => by
+    have h1 : ∀ ξ : ℝ, Real.exp (E_old σ + u (S_v (σ, ξ))) =
+        Real.exp (E_old σ) * Real.exp (u ((Real.sqrt v * cfield⟨t, g, Fin.last M, σ⟩ +
+          Real.sqrt (1 - v) * Real.sqrt q * z) +
+          Real.sqrt (1 - v) * Real.sqrt (ρ - q) * ξ)) := fun ξ => by
+      rw [Real.exp_add]
+      congr 2; dsimp only [S_v]; ring
+    simp_rw [h1]
+    rw [integral_const_mul, Real.log_mul (Real.exp_pos _).ne'
+      (integral_exp_comp_add_gaussianReal_pos hu hu0 _ _).ne', Real.log_exp]
+  simp_rw [hfib]
+
 end ModelEndpoint
 
 end SpinGlasses
