@@ -117,10 +117,8 @@ theorem exists_integral_shcherbinaTirozzi_overlap_sub_mean_pow_le (κ₀ h₀ D 
     rw [Real.norm_eq_abs]
     exact abs_real_inner_le_norm _ _
   have hmean : ∫ q, (N : ℝ)⁻¹ * ⟪q.1, q.2⟫ ∂(G.prod G) = (N : ℝ)⁻¹ * ⟪b, b⟫ := by
-    rw [integral_prod _ h12]
-    simp only [integral_const_mul, hinner]
-    simp_rw [real_inner_comm b]
-    rw [hinner]
+    rw [integral_const_mul]
+    exact congrArg _ (integral_prod_bilin (innerSL ℝ) hid hid)
   set C : ℝ := 8 * k * (K₉ * B) / ((N : ℝ) ^ 2 * κ) with hC
   have hC0 : 0 ≤ C := by
     have := mul_nonneg hK₉ hB0
@@ -139,7 +137,7 @@ theorem exists_integral_shcherbinaTirozzi_overlap_sub_mean_pow_le (κ₀ h₀ D 
     rw [← hG] at key
     simp only [integral_const_mul, hinner] at key
     refine ⟨key.1, key.2.trans_eq ?_⟩
-    rw [mul_assoc, ← mul_pow]
+    rw [pow_mul ‖a‖, mul_assoc (4 : ℝ), ← mul_pow]
     congr 2
     field_simp
   set X : EuclideanSpace ℝ (Fin N) × EuclideanSpace ℝ (Fin N) → ℝ :=
@@ -384,7 +382,7 @@ theorem exists_integral_shcherbinaTirozzi_selfOverlap_sub_mean_pow_le (κ₀ h�
     rw [integral_const_mul]
     refine (mul_le_mul_of_nonneg_left (hmom _ h4k').2 (by positivity)).trans_eq ?_
     rw [hT, div_eq_inv_mul]
-    ring
+    ring_nf
   have h1S2 : ∫ σ, S.indicator (1 : EuclideanSpace ℝ (Fin N) → ℝ) σ ^ 2 ∂G ≤
       Real.exp (-B) ^ 2 := by
     have e : ∀ σ, S.indicator (1 : EuclideanSpace ℝ (Fin N) → ℝ) σ ^ 2 = S.indicator 1 σ :=
@@ -404,7 +402,7 @@ theorem exists_integral_shcherbinaTirozzi_selfOverlap_sub_mean_pow_le (κ₀ h�
     · have hQ0 : (fun σ => Q σ ^ 2) =ᵐ[G] 0 := by
         refine (integral_eq_zero_iff_of_nonneg (fun σ => sq_nonneg _) hQL.integrable_sq).1
           (le_antisymm ?_ (integral_nonneg fun σ => sq_nonneg _))
-        rw [hT, ← hT0] at hQ2
+        rw [← hT0] at hQ2
         simpa using hQ2
       have : (fun σ => S.indicator 1 σ * Q σ) =ᵐ[G] 0 := hQ0.mono fun σ hσ => by
         have : Q σ = 0 := pow_eq_zero_iff two_ne_zero |>.1 hσ
@@ -539,7 +537,7 @@ theorem exists_integral_integral_shcherbinaTirozzi_overlap_sub_mean_pow_le (κ�
     have hnorm : Integrable (fun σ : EuclideanSpace ℝ (Fin N) => ‖σ‖) (G d) := by
       refine Integrable.mono' ((integrable_const 1).add h2)
         continuous_norm.aestronglyMeasurable (ae_of_all _ fun σ => ?_)
-      rw [norm_norm, Pi.add_apply]
+      rw [norm_norm, Pi.add_apply, mul_one]
       nlinarith [sq_nonneg (‖σ‖ - 1), norm_nonneg σ]
     refine ((hnorm.mul_prod hnorm).mono' (by fun_prop) (ae_of_all _ fun q => ?_)).const_mul _
     rw [Real.norm_eq_abs]
@@ -552,11 +550,21 @@ theorem exists_integral_integral_shcherbinaTirozzi_overlap_sub_mean_pow_le (κ�
       Measurable fun d => ∫ p, F d p ∂((G d).prod (G d)) := fun F hF hFi => by
     simp only [hG] at hFi ⊢
     exact measurable_integral_prod_tilted_dep hE hF hFi
-  have hmean := hmeas2 (fun _ q => (N : ℝ)⁻¹ * ⟪q.1, q.2⟫) h12m h12i
-  have hfix := fun d => h334 N M k κ h u d.1 d.2 hκ hh0 hh hM hN hk hu hu0 hD (G d) (hG d)
-  have hFm := hmeas2 (fun d p => ((N : ℝ)⁻¹ * ⟪p.1, p.2⟫ -
-      ∫ q, (N : ℝ)⁻¹ * ⟪q.1, q.2⟫ ∂((G d).prod (G d))) ^ (2 * k))
-    ((h12m.sub (hmean.comp measurable_fst)).pow_const _) fun d => (hfix d).1
+  -- name the Gibbs average of the overlap so that it is not unfolded during unification
+  obtain ⟨m, hm⟩ : ∃ m : (Fin M → Fin N → ℝ) × (Fin N → ℝ) → ℝ, ∀ d,
+      ∫ q, (N : ℝ)⁻¹ * ⟪q.1, q.2⟫ ∂((G d).prod (G d)) = m d := ⟨_, fun _ => rfl⟩
+  have hmm : Measurable m := by
+    have h := hmeas2 (fun _ q => (N : ℝ)⁻¹ * ⟪q.1, q.2⟫) h12m h12i
+    exact (funext hm) ▸ h
+  have hfix := fun d : (Fin M → Fin N → ℝ) × (Fin N → ℝ) =>
+    h334 N M k κ h u d.1 d.2 hκ hh0 hh hM hN hk hu hu0 hD (G d) (hG d)
+  simp only [hm] at hfix ⊢
+  have hFj : Measurable fun p : ((Fin M → Fin N → ℝ) × (Fin N → ℝ)) ×
+      (EuclideanSpace ℝ (Fin N) × EuclideanSpace ℝ (Fin N)) =>
+      ((N : ℝ)⁻¹ * ⟪p.2.1, p.2.2⟫ - m p.1) ^ (2 * k) :=
+    (h12m.sub (hmm.comp measurable_fst)).pow_const _
+  have hFm := hmeas2 (fun d p => ((N : ℝ)⁻¹ * ⟪p.1, p.2⟫ - m d) ^ (2 * k)) hFj
+    fun d => (hfix d).1
   have hB := integral_shcherbinaTirozzi_radius_pow_le (N := N) (M := M) hM hk
   rw [← hP] at hB
   set c : ℝ := (K * k / (N : ℝ) ^ 2) ^ k with hc
@@ -568,11 +576,10 @@ theorem exists_integral_integral_shcherbinaTirozzi_overlap_sub_mean_pow_le (κ�
     congr 1
     ring
   have hdom := hB.1.const_mul c
-  have hFnn : ∀ d, 0 ≤ ∫ p, ((N : ℝ)⁻¹ * ⟪p.1, p.2⟫ -
-      ∫ q, (N : ℝ)⁻¹ * ⟪q.1, q.2⟫ ∂((G d).prod (G d))) ^ (2 * k) ∂((G d).prod (G d)) :=
+  have hFnn : ∀ d, 0 ≤ ∫ p, ((N : ℝ)⁻¹ * ⟪p.1, p.2⟫ - m d) ^ (2 * k) ∂((G d).prod (G d)) :=
     fun d => integral_nonneg fun p => (even_two_mul k).pow_nonneg _
-  have hi : Integrable (fun d => ∫ p, ((N : ℝ)⁻¹ * ⟪p.1, p.2⟫ -
-      ∫ q, (N : ℝ)⁻¹ * ⟪q.1, q.2⟫ ∂((G d).prod (G d))) ^ (2 * k) ∂((G d).prod (G d))) P :=
+  have hi : Integrable (fun d => ∫ p, ((N : ℝ)⁻¹ * ⟪p.1, p.2⟫ - m d) ^ (2 * k)
+      ∂((G d).prod (G d))) P :=
     Integrable.mono' hdom hFm.aestronglyMeasurable (ae_of_all _ fun d => by
       rw [Real.norm_of_nonneg (hFnn d), ← hbound]
       exact (hfix d).2)

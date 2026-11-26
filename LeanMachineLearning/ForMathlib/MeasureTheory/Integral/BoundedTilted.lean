@@ -306,6 +306,69 @@ theorem hasDerivAt_integral_tilted_of_dominated {α : Type*} [MeasurableSpace α
     (ae_of_all _ fun a r _ => by simp) (ae_of_all _ fun a r _ => hasDerivAt_const r (F a))
   simpa using this
 
+/-- **Derivative of the tilted integral of an unbounded observable.** If
+`(1 + |F|) (1 + |∂_r e|) exp (e r)` is bounded by an integrable function for all `r` near `t`, then
+`r ↦ ⟨F⟩_{e r}` has derivative `⟨F ∂_t e⟩ - ⟨F⟩ ⟨∂_t e⟩` at `t`. The nonzero base measure need
+not be finite and the observable need not be bounded. -/
+theorem hasDerivAt_integral_tilted_of_envelope {α : Type*} [MeasurableSpace α]
+    {μ : Measure α} [NeZero μ] {e e' : ℝ → α → ℝ} {t : ℝ} {s : Set ℝ} (hs : s ∈ 𝓝 t)
+    (he : ∀ r ∈ s, Measurable (e r)) (he' : Measurable (e' t)) {F : α → ℝ} (hF : Measurable F)
+    {b : α → ℝ} (hb : Integrable b μ)
+    (hbd : ∀ r ∈ s, ∀ a, (1 + |F a|) * (1 + |e' r a|) * Real.exp (e r a) ≤ b a)
+    (hd : ∀ a, ∀ r ∈ s, HasDerivAt (fun q => e q a) (e' r a) r) :
+    HasDerivAt (fun r => ∫ a, F a ∂μ.tilted (e r))
+      ((∫ a, F a * e' t a ∂μ.tilted (e t)) -
+        (∫ a, F a ∂μ.tilted (e t)) * ∫ a, e' t a ∂μ.tilted (e t)) t := by
+  have ht : t ∈ s := mem_of_mem_nhds hs
+  have key : ∀ r ∈ s, ∀ a (c : ℝ), |c| ≤ (1 + |F a|) * (1 + |e' r a|) →
+      |c * Real.exp (e r a)| ≤ b a := fun r hr a c hc => by
+    rw [abs_mul, abs_of_pos (Real.exp_pos _)]
+    exact (mul_le_mul_of_nonneg_right hc (Real.exp_pos _).le).trans (hbd r hr a)
+  have h1 : ∀ r a, (1 : ℝ) ≤ (1 + |F a|) * (1 + |e' r a|) := fun r a =>
+    one_le_mul_of_one_le_of_one_le (le_add_of_nonneg_right (abs_nonneg _))
+      (le_add_of_nonneg_right (abs_nonneg _))
+  have hexp : ∀ r ∈ s, AEStronglyMeasurable (fun a => Real.exp (e r a)) μ := fun r hr =>
+    (he r hr).exp.aestronglyMeasurable
+  have hmeas : ∀ᶠ r in 𝓝 t, AEStronglyMeasurable (fun a => Real.exp (e r a)) μ :=
+    Filter.mem_of_superset hs hexp
+  have hZi : Integrable (fun a => Real.exp (e t a)) μ :=
+    hb.mono' (hexp t ht) (ae_of_all _ fun a => by
+      simpa only [one_mul, Real.norm_eq_abs] using key t ht a 1 (by rw [abs_one]; exact h1 t a))
+  have hden := (hasDerivAt_integral_of_dominated_loc_of_deriv_le (μ := μ)
+    (F := fun r a => Real.exp (e r a)) (F' := fun r a => e' r a * Real.exp (e r a))
+    (bound := b) hs hmeas hZi (he'.mul (he t ht).exp).aestronglyMeasurable
+    (ae_of_all _ fun a r hr => by
+      rw [Real.norm_eq_abs]
+      refine key r hr a _ ?_
+      nlinarith [mul_nonneg (abs_nonneg (F a)) (abs_nonneg (e' r a)), abs_nonneg (F a)])
+    hb (ae_of_all _ fun a r hr => by
+      simpa only [mul_comm] using (hd a r hr).exp)).2
+  have hNi : Integrable (fun a => F a * Real.exp (e t a)) μ :=
+    hb.mono' (hF.mul (he t ht).exp).aestronglyMeasurable (ae_of_all _ fun a => by
+      rw [Real.norm_eq_abs]
+      refine key t ht a _ ?_
+      nlinarith [mul_nonneg (abs_nonneg (F a)) (abs_nonneg (e' t a)), abs_nonneg (e' t a)])
+  have hnum := (hasDerivAt_integral_of_dominated_loc_of_deriv_le (μ := μ)
+    (F := fun r a => F a * Real.exp (e r a))
+    (F' := fun r a => F a * (e' r a * Real.exp (e r a))) (bound := b) hs
+    (Filter.mem_of_superset hs fun r hr => (hF.mul (he r hr).exp).aestronglyMeasurable) hNi
+    (hF.mul (he'.mul (he t ht).exp)).aestronglyMeasurable
+    (ae_of_all _ fun a r hr => by
+      rw [Real.norm_eq_abs, ← mul_assoc]
+      refine key r hr a _ ?_
+      rw [abs_mul]
+      nlinarith [abs_nonneg (F a), abs_nonneg (e' r a)])
+    hb (ae_of_all _ fun a r hr => by
+      simpa only [mul_comm] using ((hd a r hr).exp).const_mul (F a))).2
+  simp_rw [integral_tilted_eq_div]
+  have hZ := (integral_exp_pos hZi).ne'
+  refine (hnum.div hden hZ).congr_deriv ?_
+  have e1 : (∫ a, F a * (e' t a * Real.exp (e t a)) ∂μ) =
+      ∫ a, F a * e' t a * Real.exp (e t a) ∂μ :=
+    integral_congr_ae (ae_of_all _ fun a => by ring)
+  rw [e1]
+  field_simp
+
 /-- Pointwise bound `|x e^y| ≤ c e^B` for `|x| ≤ c` and `y ≤ B`. -/
 theorem abs_mul_exp_le {x y c B : ℝ} (hx : |x| ≤ c) (hy : y ≤ B) :
     |x * Real.exp y| ≤ c * Real.exp B := by
