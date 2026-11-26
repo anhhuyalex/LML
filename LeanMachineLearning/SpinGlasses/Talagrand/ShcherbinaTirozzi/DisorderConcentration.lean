@@ -665,11 +665,9 @@ theorem exists_integral_shcherbinaTirozzi_overlap_sub_pow_le (κ₀ h₀ D : ℝ
     simp only [hG] at hFi ⊢
     exact measurable_integral_prod_tilted_dep hE (F := fun _ => F) (hF.comp measurable_snd) hFi
   have hRi : ∀ d, Integrable (fun p : ℝ^N × ℝ^N =>
-      (N : ℝ)⁻¹ * ⟪p.1, p.2⟫) ((G d).prod (G d)) := fun d => by
-    have h1 := ((hnorm d).integrable one_le_two).norm
-    refine ((h1.mul_prod h1).mono' (by fun_prop) (ae_of_all _ fun q => ?_)).const_mul _
-    rw [Real.norm_eq_abs]
-    exact abs_real_inner_le_norm _ _
+      (N : ℝ)⁻¹ * ⟪p.1, p.2⟫) ((G d).prod (G d)) := fun d =>
+    have h1 := (hnorm d).integrable one_le_two
+    (h1.inner_fst_snd h1).const_mul _
   obtain ⟨m, hm⟩ : ∃ m : (Fin M → Fin N → ℝ) × (Fin N → ℝ) → ℝ, ∀ d,
       ∫ q, (N : ℝ)⁻¹ * ⟪q.1, q.2⟫ ∂((G d).prod (G d)) = m d := ⟨_, fun _ => rfl⟩
   have hmm : Measurable m := (funext hm) ▸ hmeas _ hRm hRi
@@ -678,15 +676,10 @@ theorem exists_integral_shcherbinaTirozzi_overlap_sub_pow_le (κ₀ h₀ D : ℝ
     have h1 := (h319 N M 1 κ h u d.1 d.2 hκ hh0 hh hM (by omega) hum hu0 hD).2
     rw [← hG d] at h1
     simp only [mul_one, pow_one] at h1
-    have h2 : ‖∫ σ, σ ∂(G d)‖ ^ 2 ≤ ∫ σ, ‖σ‖ ^ 2 ∂(G d) := by
-      refine (pow_le_pow_left₀ (norm_nonneg _) (norm_integral_le_integral_norm _) 2).trans ?_
-      have h := variance_nonneg (fun σ : ℝ^N => ‖σ‖) (G d)
-      rw [variance_eq_sub (hnorm d).norm] at h
-      simp only [Pi.pow_apply] at h
-      linarith
     rw [← hm, hbary, abs_of_nonneg (mul_nonneg (inv_nonneg.2 hN0.le) (sq_nonneg _)),
       div_eq_inv_mul]
-    exact mul_le_mul_of_nonneg_left (h2.trans h1) (inv_nonneg.2 hN0.le)
+    exact mul_le_mul_of_nonneg_left
+      ((sq_norm_integral_le_integral_sq_norm (hnorm d)).trans h1) (inv_nonneg.2 hN0.le)
   have hgrad : ∀ d Δ : (Fin M → Fin N → ℝ) × (Fin N → ℝ), ∃ f' : ℝ,
       HasDerivAt (fun t : ℝ => m (d + t • Δ)) f' 0 ∧
       f' ^ 2 ≤ K₁₆ * ((N + Real.sqrt (∑ k, ∑ i, d.1 k i ^ 2) + ∑ i, d.2 i ^ 2) / (N : ℝ) ^ 2 +

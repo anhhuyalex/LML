@@ -114,10 +114,7 @@ theorem exists_integral_shcherbinaTirozzi_overlap_sub_mean_pow_le (κ₀ h₀ D 
   have hinner : ∀ a : ℝ^N, ∫ τ, ⟪a, τ⟫ ∂G = ⟪a, b⟫ := fun a =>
     integral_inner hid a
   have h12 : Integrable (fun q : ℝ^N × ℝ^N =>
-      (N : ℝ)⁻¹ * ⟪q.1, q.2⟫) (G.prod G) := by
-    refine ((hnorm.mul_prod hnorm).mono' (by fun_prop) (ae_of_all _ fun q => ?_)).const_mul _
-    rw [Real.norm_eq_abs]
-    exact abs_real_inner_le_norm _ _
+      (N : ℝ)⁻¹ * ⟪q.1, q.2⟫) (G.prod G) := (hid.inner_fst_snd hid).const_mul _
   have hmean : ∫ q, (N : ℝ)⁻¹ * ⟪q.1, q.2⟫ ∂(G.prod G) = (N : ℝ)⁻¹ * ⟪b, b⟫ := by
     rw [integral_const_mul]
     exact congrArg _ (integral_prod_bilin (innerSL ℝ) hid hid)
@@ -532,18 +529,10 @@ theorem exists_integral_integral_shcherbinaTirozzi_overlap_sub_mean_pow_le (κ�
     fun_prop
   have h12i : ∀ d, Integrable (fun q : ℝ^N × ℝ^N =>
       (N : ℝ)⁻¹ * ⟪q.1, q.2⟫) ((G d).prod (G d)) := fun d => by
-    have := hprob d
-    obtain ⟨K₉, -, h319⟩ := exists_integral_sq_norm_pow_shcherbinaTirozziGibbs_le κ₀ h₀ D hκ₀
-    have h2 := (h319 N M 1 κ h u d.1 d.2 hκ hh0 hh hM (by omega) hum hu0 hD).1
-    rw [← hG d] at h2
-    have hnorm : Integrable (fun σ : ℝ^N => ‖σ‖) (G d) := by
-      refine Integrable.mono' ((integrable_const 1).add h2)
-        continuous_norm.aestronglyMeasurable (ae_of_all _ fun σ => ?_)
-      rw [norm_norm, Pi.add_apply, mul_one]
-      nlinarith [sq_nonneg (‖σ‖ - 1), norm_nonneg σ]
-    refine ((hnorm.mul_prod hnorm).mono' (by fun_prop) (ae_of_all _ fun q => ?_)).const_mul _
-    rw [Real.norm_eq_abs]
-    exact abs_real_inner_le_norm _ _
+    have h1 : Integrable (fun σ : ℝ^N => σ) (G d) := by
+      rw [hG d]
+      exact (memLp_id_shcherbinaTirozziGibbs hκ0 hum hu0 d.1 d.2).integrable one_le_two
+    exact (h1.inner_fst_snd h1).const_mul _
   have hmeas2 : ∀ F : (Fin M → Fin N → ℝ) × (Fin N → ℝ) →
       ℝ^N × ℝ^N → ℝ,
       (Measurable fun p : ((Fin M → Fin N → ℝ) × (Fin N → ℝ)) ×

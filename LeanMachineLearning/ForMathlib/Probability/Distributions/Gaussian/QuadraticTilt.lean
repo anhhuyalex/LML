@@ -18,6 +18,7 @@ Integrals against `exp (-b ‖v‖² + ⟪a, v⟫)` on a finite-dimensional real
 
 * `integrable_exp_neg_mul_sq_norm_add_inner`, `integral_exp_neg_mul_sq_norm_add_inner`:
   the Gaussian integral with a linear term.
+* `integrable_one_add_norm_pow_mul_exp`: polynomials are integrable against a confining weight.
 * `integral_mul_exp_neg_mul_sq_norm`: the weight `exp (-b ‖v‖²)` is a rescaled standard Gaussian.
 * `integral_abs_inner_stdGaussian_le`: `𝔼 |⟪a, z⟫| ≤ ‖a‖`.
 * `integral_tilted_restrict_neg_half_sq_norm`: conditioning a standard Gaussian on a set.
@@ -55,6 +56,28 @@ theorem integrable_exp_neg_mul_sq_norm_add_inner {b : ℝ} (hb : 0 < b) (a : E) 
     (by simpa using hb) 1 a
   refine h.re.congr (ae_of_all _ fun v => ?_)
   exact (congrArg Complex.re (cexp_neg_mul_sq_norm_add_inner b a v)).trans (Complex.ofReal_re _)
+
+/-- A polynomial times the exponential of a confining quadratic is integrable. -/
+theorem integrable_one_add_norm_pow_mul_exp {κ : ℝ} (hκ : 0 < κ) (B : ℝ) (n : ℕ) :
+    Integrable fun x : E => (1 + ‖x‖) ^ n * Real.exp (B * ‖x‖ - κ * ‖x‖ ^ 2) := by
+  have hbase := integrable_exp_neg_mul_sq_norm_add_inner (E := E) (half_pos hκ) 0
+  simp only [inner_zero_left, add_zero] at hbase
+  refine (hbase.const_mul (Real.exp ((B + n) ^ 2 / (2 * κ)))).mono'
+    (by fun_prop : Continuous fun x : E =>
+      (1 + ‖x‖) ^ n * Real.exp (B * ‖x‖ - κ * ‖x‖ ^ 2)).aestronglyMeasurable
+    (ae_of_all _ fun x => ?_)
+  rw [Real.norm_of_nonneg (by positivity), ← Real.exp_add]
+  have h1 : (1 + ‖x‖) ^ n ≤ Real.exp (n * ‖x‖) := by
+    rw [Real.exp_nat_mul]
+    exact pow_le_pow_left₀ (by positivity) (by linarith [Real.add_one_le_exp ‖x‖]) n
+  refine (mul_le_mul_of_nonneg_right h1 (Real.exp_pos _).le).trans ?_
+  rw [← Real.exp_add, Real.exp_le_exp]
+  have h2 : 0 ≤ (κ * ‖x‖ - (B + n)) ^ 2 / (2 * κ) := by positivity
+  have h3 : (κ * ‖x‖ - (B + n)) ^ 2 / (2 * κ) =
+      κ / 2 * ‖x‖ ^ 2 - (B + n) * ‖x‖ + (B + n) ^ 2 / (2 * κ) := by
+    field_simp
+    ring
+  linarith
 
 /-- **Gaussian integral with a linear term:**
 `∫ exp (-b ‖v‖² + ⟪a, v⟫) = (π / b) ^ (d / 2) exp (‖a‖² / (4 b))`. -/

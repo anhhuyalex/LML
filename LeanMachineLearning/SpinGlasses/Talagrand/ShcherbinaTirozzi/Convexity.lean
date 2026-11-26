@@ -5,6 +5,8 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Analysis.Convex.Integral
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.InnerProd
 public import Mathlib.Algebra.Order.Chebyshev
 public import Mathlib.Analysis.Convex.Continuous
 public import Mathlib.Analysis.Convex.Integral
@@ -183,6 +185,21 @@ theorem integral_exp_half_sq_norm_shcherbinaTirozziGibbs_le {κ h : ℝ} (hκ : 
       change (h * g₀ i) ^ 2 = _
       ring
   rwa [hnorm] at key
+
+/-- Under the Gibbs measure the configuration is square integrable (by Lemma 3.1.5). -/
+theorem memLp_id_shcherbinaTirozziGibbs {κ h : ℝ} (hκ : 0 < κ) {u : ℝ → ℝ} (hu : Measurable u)
+    (hu0 : ∀ x, u x ≤ 0) (g : Fin M → Fin N → ℝ) (g₀ : Fin N → ℝ) :
+    MemLp (fun σ : ℝ^N => σ) 2
+      (volume.tilted fun σ => -shcherbinaTirozziHamiltonian κ h u g g₀ σ) := by
+  have hexp := (integral_exp_half_sq_norm_shcherbinaTirozziGibbs_le (h := h) hκ hu hu0 g g₀).1
+  refine (memLp_two_iff_integrable_sq_norm aestronglyMeasurable_id).2 ?_
+  refine Integrable.mono' (hexp.const_mul (2 / κ))
+    (continuous_norm.pow 2).aestronglyMeasurable (ae_of_all _ fun σ => ?_)
+  rw [Real.norm_of_nonneg (sq_nonneg _)]
+  have h1 := Real.add_one_le_exp (κ / 2 * ‖σ‖ ^ 2)
+  rw [div_mul_eq_mul_div, le_div_iff₀ hκ]
+  simp only [id_eq]
+  nlinarith
 
 /-- **Lemma 3.1.6:** if `-D (1 + |x|) ≤ u x ≤ 0`, then
 `1 / Z ≤ (κ / π) ^ (N / 2) exp (D (M + √(M / (κ N) ∑_{k,i} g_{k,i}²)))`. -/

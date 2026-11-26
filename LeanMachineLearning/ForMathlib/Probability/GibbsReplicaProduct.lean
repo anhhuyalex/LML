@@ -50,16 +50,18 @@ theorem neZero_measure_pi {α J : Type*} [MeasurableSpace α] [Fintype J] (μ : 
     obtain ⟨i, -, hi⟩ := this
     exact (NeZero.ne μ) (Measure.measure_univ_eq_zero.mp hi)⟩
 
+omit [IsFiniteMeasure μ] in
 /-- The partition function of a product of replicas is the product of partition functions. -/
-theorem integral_pi_exp_sum (E : α → ℝ) :
+theorem integral_pi_exp_sum [SigmaFinite μ] (E : α → ℝ) :
     ∫ σ : ι → α, Real.exp (∑ i, E (σ i)) ∂(Measure.pi fun _ => μ) =
       (∫ a, Real.exp (E a) ∂μ) ^ Fintype.card ι := by
   simp_rw [Real.exp_sum]
   exact integral_fintype_prod_eq_pow (fun a => Real.exp (E a))
 
+omit [IsFiniteMeasure μ] in
 /-- **Replica product of Gibbs measures.** The `ι`-fold product of `μ.tilted E` is the tilt of the
 product base law by the energy summed over the replicas. -/
-theorem pi_tilted_eq_tilted_pi {E : α → ℝ} :
+theorem pi_tilted_eq_tilted_pi [SigmaFinite μ] {E : α → ℝ} :
     Measure.pi (fun _ : ι => μ.tilted E) =
       (Measure.pi fun _ : ι => μ).tilted (fun σ => ∑ i, E (σ i)) := by
   refine Measure.pi_eq (μ := fun _ : ι => μ.tilted E) fun s hs => ?_
@@ -367,8 +369,24 @@ theorem replicaDiff_const_mul {α R : Type*} [MeasurableSpace α] [Fintype R] (�
   simp only [replicaDiff_eq, mul_left_comm _ c, integral_const_mul, ← Finset.mul_sum]
   ring
 
-/-- **The replica difference as one integral.** For bounded measurable `F` and `h`,
-`replicaDiff ν F h` is the average of `F · (∑_i h(σ_i) - |R| h(σ_*))` over `|R| + 1` replicas. -/
+/-- **The replica difference as one integral.** If the products `F · h(σ_o)` are integrable,
+then `replicaDiff ν F h` is the average of `F · (∑_i h(σ_i) - |R| h(σ_*))` over `|R| + 1`
+replicas. -/
+theorem replicaDiff_eq_integral_of_integrable {α R : Type*} [MeasurableSpace α] [Fintype R]
+    (ν : Measure α) (F : (R → α) → ℝ) (h : α → ℝ)
+    (hI : ∀ o : Option R, Integrable (fun σ : Option R → α => F (fun j => σ (some j)) * h (σ o))
+      (Measure.pi fun _ : Option R => ν)) :
+    replicaDiff ν F h =
+      ∫ σ : Option R → α, F (fun j => σ (some j)) *
+        (∑ i, h (σ (some i)) - (Fintype.card R : ℝ) * h (σ none))
+        ∂(Measure.pi fun _ : Option R => ν) := by
+  have hc (σ : Option R → α) : F (fun j => σ (some j)) * ((Fintype.card R : ℝ) * h (σ none)) =
+      (Fintype.card R : ℝ) * (F (fun j => σ (some j)) * h (σ none)) := by ring
+  simp_rw [mul_sub, Finset.mul_sum, hc]
+  rw [integral_sub (integrable_finsetSum _ fun i _ => hI (some i)) ((hI none).const_mul _),
+    integral_finsetSum _ fun i _ => hI (some i), integral_const_mul, replicaDiff_eq]
+
+/-- **The replica difference as one integral**, for bounded measurable `F` and `h`. -/
 theorem replicaDiff_eq_integral {α R : Type*} [MeasurableSpace α] [Fintype R] (ν : Measure α)
     [IsProbabilityMeasure ν] (F : (R → α) → ℝ) (hF : Measurable F) {M : ℝ}
     (hFb : ∀ σ, |F σ| ≤ M) (h : α → ℝ) (hh : Measurable h) {B : ℝ} (hhb : ∀ a, |h a| ≤ B) :
@@ -378,34 +396,25 @@ theorem replicaDiff_eq_integral {α R : Type*} [MeasurableSpace α] [Fintype R] 
         ∂(Measure.pi fun _ : Option R => ν) := by
   have hFo : Measurable fun σ : Option R → α => F (fun j => σ (some j)) :=
     hF.comp (by fun_prop)
-  have hI (o : Option R) : Integrable (fun σ : Option R → α => F (fun j => σ (some j)) * h (σ o))
-      (Measure.pi fun _ : Option R => ν) :=
+  refine replicaDiff_eq_integral_of_integrable ν F h fun o =>
     integrable_of_measurable_bound (hFo.mul (hh.comp (measurable_pi_apply o))) (M := M * B)
-      fun σ => by
-        rw [abs_mul]
-        exact mul_le_mul (hFb _) (hhb _) (abs_nonneg _)
-          ((abs_nonneg _).trans (hFb fun j => σ (some j)))
-  have hc (σ : Option R → α) : F (fun j => σ (some j)) * ((Fintype.card R : ℝ) * h (σ none)) =
-      (Fintype.card R : ℝ) * (F (fun j => σ (some j)) * h (σ none)) := by ring
-  simp_rw [mul_sub, Finset.mul_sum, hc]
-  rw [integral_sub (integrable_finsetSum _ fun i _ => hI (some i)) ((hI none).const_mul _),
-    integral_finsetSum _ fun i _ => hI (some i), integral_const_mul, replicaDiff_eq]
+      fun σ => ?_
+  rw [abs_mul]
+  exact mul_le_mul (hFb _) (hhb _) (abs_nonneg _)
+    ((abs_nonneg _).trans (hFb fun j => σ (some j)))
 
 /-- A covariance with a sum over the observed replicas is a sum of observed-replica terms
-minus the cardinality times one fresh-replica term. The one-state observable only needs to be
-integrable, so this also applies to energy derivatives containing Gaussian coordinates. -/
-theorem integral_pi_cov_sum_eq_sum_sub_fresh {α R : Type*} [MeasurableSpace α] [Fintype R]
-    (ν : Measure α)
-    [IsProbabilityMeasure ν] (F : (R → α) → ℝ)
-    (hF : AEStronglyMeasurable F (Measure.pi fun _ : R => ν))
-    {C : ℝ} (hFb : ∀ σ, |F σ| ≤ C) (h : α → ℝ) (hh : Integrable h ν) :
+minus the cardinality times one fresh-replica term. Neither the observable nor the one-state
+function need be bounded: it suffices that the one-state function and the products
+`F σ * h (σ i)` are integrable. -/
+theorem integral_pi_cov_sum_eq_sum_sub_fresh_of_integrable {α R : Type*} [MeasurableSpace α]
+    [Fintype R] (ν : Measure α) [IsProbabilityMeasure ν] (F : (R → α) → ℝ)
+    (hF : AEStronglyMeasurable F (Measure.pi fun _ : R => ν)) (h : α → ℝ) (hh : Integrable h ν)
+    (hFI : ∀ i : R, Integrable (fun σ => F σ * h (σ i)) (Measure.pi fun _ : R => ν)) :
     (∫ σ, F σ * (∑ i, h (σ i)) ∂(Measure.pi fun _ : R => ν)) -
       (∫ σ, F σ ∂(Measure.pi fun _ : R => ν)) *
         (∫ σ, (∑ i, h (σ i)) ∂(Measure.pi fun _ : R => ν)) =
     replicaDiff ν F h := by
-  have hI (i : R) : Integrable (fun σ : R → α => h (σ i)) (Measure.pi fun _ : R => ν) :=
-    integrable_comp_eval hh
-  have hFI (i : R) := (hI i).bdd_mul_of_abs_le hF (ae_of_all _ hFb)
   have hnum : (∫ σ, F σ * (∑ i, h (σ i)) ∂(Measure.pi fun _ : R => ν)) =
       ∑ i, ∫ σ : Option R → α, F (fun j => σ (some j)) * h (σ (some i))
         ∂(Measure.pi fun _ : Option R => ν) := by
@@ -420,6 +429,22 @@ theorem integral_pi_cov_sum_eq_sum_sub_fresh {α R : Type*} [MeasurableSpace α]
   rw [replicaDiff_eq]
   rw [hnum, integral_pi_sum_eval ν h hh, hfresh]
   ring
+
+/-- A covariance with a sum over the observed replicas is a sum of observed-replica terms
+minus the cardinality times one fresh-replica term. The observable is bounded and the one-state
+function only needs to be integrable, so this also applies to energy derivatives containing
+Gaussian coordinates. -/
+theorem integral_pi_cov_sum_eq_sum_sub_fresh {α R : Type*} [MeasurableSpace α] [Fintype R]
+    (ν : Measure α)
+    [IsProbabilityMeasure ν] (F : (R → α) → ℝ)
+    (hF : AEStronglyMeasurable F (Measure.pi fun _ : R => ν))
+    {C : ℝ} (hFb : ∀ σ, |F σ| ≤ C) (h : α → ℝ) (hh : Integrable h ν) :
+    (∫ σ, F σ * (∑ i, h (σ i)) ∂(Measure.pi fun _ : R => ν)) -
+      (∫ σ, F σ ∂(Measure.pi fun _ : R => ν)) *
+        (∫ σ, (∑ i, h (σ i)) ∂(Measure.pi fun _ : R => ν)) =
+    replicaDiff ν F h :=
+  integral_pi_cov_sum_eq_sum_sub_fresh_of_integrable ν F hF h hh fun _ =>
+    (integrable_comp_eval hh).bdd_mul_of_abs_le hF (ae_of_all _ hFb)
 
 /-- Additivity needs only one-state integrability of `h₁, h₂`, no product integrability. -/
 theorem replicaDiff_add {α R : Type*} [MeasurableSpace α] [Fintype R] (ν : Measure α)

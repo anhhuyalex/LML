@@ -41,21 +41,6 @@ local notation "ℝ^" n:arg => EuclideanSpace ℝ (Fin n)
 
 variable {N M : ℕ}
 
-/-- Under the Gibbs measure the configuration is square integrable (by Lemma 3.1.5). -/
-theorem memLp_id_shcherbinaTirozziGibbs {κ h : ℝ} (hκ : 0 < κ) {u : ℝ → ℝ} (hu : Measurable u)
-    (hu0 : ∀ x, u x ≤ 0) (g : Fin M → Fin N → ℝ) (g₀ : Fin N → ℝ) :
-    MemLp (fun σ : ℝ^N => σ) 2
-      (volume.tilted fun σ => -shcherbinaTirozziHamiltonian κ h u g g₀ σ) := by
-  have hexp := (integral_exp_half_sq_norm_shcherbinaTirozziGibbs_le (h := h) hκ hu hu0 g g₀).1
-  refine (memLp_two_iff_integrable_sq_norm aestronglyMeasurable_id).2 ?_
-  refine Integrable.mono' (hexp.const_mul (2 / κ))
-    (continuous_norm.pow 2).aestronglyMeasurable (ae_of_all _ fun σ => ?_)
-  rw [Real.norm_of_nonneg (sq_nonneg _)]
-  have h1 := Real.add_one_le_exp (κ / 2 * ‖σ‖ ^ 2)
-  rw [div_mul_eq_mul_div, le_div_iff₀ hκ]
-  simp only [id_eq]
-  nlinarith
-
 /-- Maurey's inequality for the second moment of a linear image: if the projections `⟪F σ, y⟫`
 are `A ‖y‖`-Lipschitz, then `⟨⟪F - ⟨F⟩, y⟫²⟩ ≤ 32 A² ‖y‖² / κ`. -/
 private theorem integral_inner_sub_mean_sq_le {κ h : ℝ} (hκ : 0 < κ) {u : ℝ → ℝ}
@@ -534,16 +519,6 @@ private theorem sq_integral_mul_disorderDerivative_le {κ₀ κ h h₀ D c K₉ 
   nlinarith [mul_nonneg (sq_nonneg (4 * D + h₀)) hQ,
     mul_nonneg (mul_nonneg (sq_nonneg D) hK₉) hP]
 
-/-- The square of the norm of the Gibbs barycenter is at most the second moment. -/
-private theorem sq_norm_integral_id_le {α : Type*} [MeasurableSpace α] {μ : Measure α}
-    [IsProbabilityMeasure μ] {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] {F : α → E}
-    (hF : MemLp F 2 μ) : ‖∫ a, F a ∂μ‖ ^ 2 ≤ ∫ a, ‖F a‖ ^ 2 ∂μ := by
-  refine (pow_le_pow_left₀ (norm_nonneg _) (norm_integral_le_integral_norm _) 2).trans ?_
-  have h := variance_nonneg (fun a => ‖F a‖) μ
-  rw [variance_eq_sub hF.norm] at h
-  simp only [Pi.pow_apply] at h
-  linarith
-
 /-- The derivative of `-H` in a direction of the disorder is square integrable under any
 probability measure with a square integrable configuration. -/
 private theorem memLp_disorderDerivative {u : ℝ → ℝ} {D : ℝ}
@@ -645,7 +620,7 @@ theorem exists_hasDerivAt_integral_shcherbinaTirozzi_selfOverlap_line (κ₀ h�
     have h1 := (h335 N M 1 κ h u g g₀ hκ hh0 hh hM hN hN hu hu0 hD G hG).2
     simpa only [mul_one, pow_one, Nat.cast_one] using h1
   have hbary : ‖∫ σ, σ ∂G‖ ^ 2 ≤ K₉ * B := by
-    refine (sq_norm_integral_id_le hid).trans ?_
+    refine (sq_norm_integral_le_integral_sq_norm hid).trans ?_
     have h1 := (h319 N M 1 κ h u g g₀ hκ hh0 hh hM (by omega) hum hu0 hD).2
     rw [← hG] at h1
     simpa only [mul_one, pow_one] using h1
@@ -762,7 +737,7 @@ theorem exists_hasDerivAt_integral_shcherbinaTirozzi_overlap_line (κ₀ h₀ D 
     rw [h5]
     ring
   have hbary : ‖b‖ ^ 2 ≤ K₉ * B := by
-    refine (sq_norm_integral_id_le hid).trans ?_
+    refine (sq_norm_integral_le_integral_sq_norm hid).trans ?_
     have h1 := (h319 N M 1 κ h u g g₀ hκ hh0 hh hM (by omega) hum hu0 hD).2
     rw [← hG] at h1
     simpa only [mul_one, pow_one] using h1

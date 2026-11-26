@@ -62,14 +62,11 @@ theorem abs_integral_mul_exp_comp_add_div_le (hu : Measurable u) (hu0 : ∀ x, u
     {f : ℝ → ℝ} {B : ℝ} (hB : ∀ x, |f x| ≤ B) (y c : ℝ) :
     |(∫ ξ, f (y + c * ξ) * Real.exp (u (y + c * ξ)) ∂(gaussianReal 0 1)) /
       ∫ ξ, Real.exp (u (y + c * ξ)) ∂(gaussianReal 0 1)| ≤ B := by
-  have hZ := integral_exp_comp_add_gaussianReal_pos hu hu0 y c
   have hexpi : Integrable (fun ξ => Real.exp (u (y + c * ξ))) (gaussianReal 0 1) := by
     simpa only [one_mul] using integrable_mul_exp_comp_add_gaussianReal hu hu0
       (f := fun _ => 1) measurable_const (B := 1) (fun _ => by simp) y c
-  rw [abs_div, abs_of_pos hZ, div_le_iff₀ hZ, ← integral_const_mul, ← Real.norm_eq_abs]
-  refine norm_integral_le_of_norm_le (hexpi.const_mul B) (ae_of_all _ fun ξ => ?_)
-  rw [norm_mul, Real.norm_of_nonneg (Real.exp_pos _).le, Real.norm_eq_abs]
-  exact mul_le_mul_of_nonneg_right (hB _) (Real.exp_pos _).le
+  rw [← integral_tilted_eq_div (fun ξ => u (y + c * ξ)) fun ξ => f (y + c * ξ)]
+  exact abs_integral_tilted_le hexpi fun _ => hB _
 
 /-- Measurability in `ω` of `∫ f (a ω + c ξ) e^{u (a ω + c ξ)}`. -/
 theorem measurable_integral_mul_exp_comp_add_gaussianReal {Ω : Type*} [MeasurableSpace Ω]
@@ -80,6 +77,25 @@ theorem measurable_integral_mul_exp_comp_add_gaussianReal {Ω : Type*} [Measurab
     (ha.comp measurable_fst).add (measurable_snd.const_mul c)
   exact (((hf.comp hshift).mul (hu.comp hshift).exp).stronglyMeasurable.integral_prod_right'
     (ν := gaussianReal 0 1)).measurable
+
+/-- Measurability in `ω` of the ratio `𝔼 [f e^{u}] / 𝔼 e^{u}` at `a ω + c ξ`. With
+`abs_integral_mul_exp_comp_add_div_le` this gives a bounded measurable function of `ω`. -/
+theorem measurable_integral_mul_exp_comp_add_div {Ω : Type*} [MeasurableSpace Ω]
+    (hu : Measurable u) {f : ℝ → ℝ} (hf : Measurable f) {a : Ω → ℝ} (ha : Measurable a)
+    (c : ℝ) : Measurable fun ω =>
+      (∫ ξ, f (a ω + c * ξ) * Real.exp (u (a ω + c * ξ)) ∂(gaussianReal 0 1)) /
+        ∫ ξ, Real.exp (u (a ω + c * ξ)) ∂(gaussianReal 0 1) := by
+  refine (measurable_integral_mul_exp_comp_add_gaussianReal hu hf ha c).div ?_
+  simpa only [one_mul] using
+    measurable_integral_mul_exp_comp_add_gaussianReal hu (f := fun _ => 1) measurable_const ha c
+
+/-- Bounds `|u'| ≤ D` and `|u''| ≤ D₂` bound `u'' + u'²`. -/
+theorem abs_deriv_deriv_add_sq_deriv_le {D D₂ : ℝ} (hD : ∀ x, |deriv u x| ≤ D)
+    (hD₂ : ∀ x, |deriv (deriv u) x| ≤ D₂) (x : ℝ) :
+    |deriv (deriv u) x + deriv u x ^ 2| ≤ D₂ + D ^ 2 := by
+  refine (abs_add_le _ _).trans (add_le_add (hD₂ _) ?_)
+  rw [abs_pow]
+  exact pow_le_pow_left₀ (abs_nonneg _) (hD _) 2
 
 /-- Differentiation under the Gaussian integral: if `u ≤ 0` and `f` are differentiable with
 `|u'| ≤ D`, `|f| ≤ B`, `|f'| ≤ B'`, then
@@ -132,30 +148,26 @@ theorem hasDerivAt_integral_mul_exp_comp_add_gaussianReal (hu : Differentiable �
 theorem hasDerivAt_log_integral_exp_comp_add_gaussianReal (hu : Differentiable ℝ u)
     (hu' : Differentiable ℝ (deriv u)) (hu0 : ∀ x, u x ≤ 0) {D D₂ : ℝ}
     (hD : ∀ x, |deriv u x| ≤ D) (hD₂ : ∀ x, |deriv (deriv u) x| ≤ D₂) (c x : ℝ) :
-    ∀ Z A K : ℝ → ℝ,
-      (∀ y, Z y = ∫ ξ, Real.exp (u (y + c * ξ)) ∂(gaussianReal 0 1)) →
-      (∀ y, A y = ∫ ξ, deriv u (y + c * ξ) * Real.exp (u (y + c * ξ)) ∂(gaussianReal 0 1)) →
-      (∀ y, K y = ∫ ξ, (deriv (deriv u) (y + c * ξ) + deriv u (y + c * ξ) ^ 2) *
-        Real.exp (u (y + c * ξ)) ∂(gaussianReal 0 1)) →
-      0 < Z x ∧ HasDerivAt (fun y => Real.log (Z y)) (A x / Z x) x ∧
-        HasDerivAt (fun y => A y / Z y) (K x / Z x - (A x / Z x) ^ 2) x := by
-  intro Z A K hZ hA hK
+    let Z : ℝ → ℝ := fun y => ∫ ξ, Real.exp (u (y + c * ξ)) ∂(gaussianReal 0 1)
+    let A : ℝ → ℝ := fun y =>
+      ∫ ξ, deriv u (y + c * ξ) * Real.exp (u (y + c * ξ)) ∂(gaussianReal 0 1)
+    let K : ℝ → ℝ := fun y => ∫ ξ, (deriv (deriv u) (y + c * ξ) + deriv u (y + c * ξ) ^ 2) *
+      Real.exp (u (y + c * ξ)) ∂(gaussianReal 0 1)
+    0 < Z x ∧ HasDerivAt (fun y => Real.log (Z y)) (A x / Z x) x ∧
+      HasDerivAt (fun y => A y / Z y) (K x / Z x - (A x / Z x) ^ 2) x := by
+  intro Z A K
   have hum : Measurable u := hu.continuous.measurable
-  have hZ0 : ∀ y, 0 < Z y := fun y => by
-    rw [hZ]
-    exact integral_exp_comp_add_gaussianReal_pos hum hu0 y c
+  have hZ0 : ∀ y, 0 < Z y := fun y => integral_exp_comp_add_gaussianReal_pos hum hu0 y c
   have hZd : HasDerivAt Z (A x) x := by
     have h := hasDerivAt_integral_mul_exp_comp_add_gaussianReal hu hu0 hD
       (f := fun _ => 1) (differentiable_const 1) (B := 1) (B' := 0) (fun _ => by simp)
       (fun _ => by simp) c x
     simp only [one_mul, deriv_const', zero_add] at h
-    rw [show Z = _ from funext hZ, hA]
     exact h
   have hAd : HasDerivAt A (K x) x := by
     have h := hasDerivAt_integral_mul_exp_comp_add_gaussianReal hu hu0 hD
       (f := deriv u) hu' hD hD₂ c x
     simp only [← sq] at h
-    rw [show A = _ from funext hA, hK]
     exact h
   refine ⟨hZ0 x, hZd.log (hZ0 x).ne', ?_⟩
   refine (hAd.div hZd (hZ0 x).ne').congr_deriv ?_
@@ -177,25 +189,19 @@ theorem integral_deriv_two_add_sq_div_le_integral_sq_div {Ω : Type*} [Measurabl
       ∫ ω, ((∫ ξ, deriv u (a ω + c * ξ) * Real.exp (u (a ω + c * ξ)) ∂(gaussianReal 0 1)) /
         ∫ ξ, Real.exp (u (a ω + c * ξ)) ∂(gaussianReal 0 1)) ^ 2 ∂μ := by
   have hum : Measurable u := hu1.continuous.measurable
-  have hmeas := fun (f : ℝ → ℝ) (hf : Measurable f) =>
-    measurable_integral_mul_exp_comp_add_gaussianReal hum hf ha c
-  have hZm : Measurable fun ω => ∫ ξ, Real.exp (u (a ω + c * ξ)) ∂(gaussianReal 0 1) := by
-    simpa only [one_mul] using hmeas (fun _ => 1) measurable_const
   have hratio := fun (f : ℝ → ℝ) (B : ℝ) (hf : ∀ y, |f y| ≤ B) (y : ℝ) =>
     abs_integral_mul_exp_comp_add_div_le hum hu0 hf y c
-  have hKb : ∀ y, |deriv (deriv u) y + deriv u y ^ 2| ≤ D₂ + D ^ 2 := fun y => by
-    refine (abs_add_le _ _).trans (add_le_add (hD₂ _) ?_)
-    rw [abs_pow]
-    exact pow_le_pow_left₀ (abs_nonneg _) (hD _) 2
   refine integral_mono ?_ ?_ fun ω =>
     integral_deriv_two_add_sq_mul_exp_div_le_sq hu hu0 hu1 hu2 hD hD₂ (a ω) c
-  · exact Integrable.of_bound ((hmeas _ ((measurable_deriv (deriv u)).add
-      ((measurable_deriv u).pow_const 2))).div hZm).aestronglyMeasurable (D₂ + D ^ 2)
+  · exact Integrable.of_bound (measurable_integral_mul_exp_comp_add_div hum
+      (f := fun y => deriv (deriv u) y + deriv u y ^ 2) ((measurable_deriv (deriv u)).add
+        ((measurable_deriv u).pow_const 2)) ha c).aestronglyMeasurable (D₂ + D ^ 2)
       (ae_of_all _ fun ω => by
         rw [Real.norm_eq_abs]
-        exact hratio (fun y => deriv (deriv u) y + deriv u y ^ 2) _ hKb (a ω))
-  · exact Integrable.of_bound (((hmeas _ (measurable_deriv u)).div hZm).pow_const 2
-      ).aestronglyMeasurable (D ^ 2) (ae_of_all _ fun ω => by
+        exact hratio (fun y => deriv (deriv u) y + deriv u y ^ 2) _
+          (abs_deriv_deriv_add_sq_deriv_le hD hD₂) (a ω))
+  · exact Integrable.of_bound ((measurable_integral_mul_exp_comp_add_div hum (measurable_deriv u)
+      ha c).pow_const 2).aestronglyMeasurable (D ^ 2) (ae_of_all _ fun ω => by
         rw [norm_pow, Real.norm_eq_abs]
         exact pow_le_pow_left₀ (abs_nonneg _) (hratio (deriv u) D hD (a ω)) 2)
 

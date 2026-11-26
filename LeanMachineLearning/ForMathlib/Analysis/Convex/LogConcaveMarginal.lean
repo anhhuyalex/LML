@@ -197,6 +197,61 @@ theorem mul_integral_sub_sq_mul_exp_le {c x₀ : ℝ} (hc : 0 < c) {w w' : ℝ �
   rw [hf, integral_sub hexp (hsq.const_mul c), integral_const_mul] at h0
   linarith
 
+/-- **The mode of a concave potential minus a quadratic.** For `v` concave and differentiable
+and `κ > 0`, the function `w x = v x - κ x² + d x` has a point `x₀` (its maximizer) with
+`2 κ (x - x₀)² ≤ -w' x (x - x₀)` for every `x`, the input of `mul_integral_sub_sq_mul_exp_le`. -/
+theorem exists_mode_concave_sub_mul_sq {v v' : ℝ → ℝ} (hv : ConcaveOn ℝ univ v)
+    (hvd : ∀ x, HasDerivAt v (v' x) x) {κ : ℝ} (hκ : 0 < κ) (d : ℝ) :
+    ∃ x₀ : ℝ, ∀ x, 2 * κ * (x - x₀) ^ 2 ≤ -(v' x - 2 * κ * x + d) * (x - x₀) := by
+  set w : ℝ → ℝ := fun x => v x - κ * x ^ 2 + d * x with hw
+  have hwd : ∀ x, HasDerivAt w (v' x - 2 * κ * x + d) x := fun x => by
+    have h := ((hvd x).sub (((hasDerivAt_id x).pow 2).const_mul κ)).add
+      ((hasDerivAt_id x).const_mul d)
+    refine h.congr_deriv ?_
+    simp only [id_eq]
+    push_cast
+    ring
+  have hanti : Antitone v' := fun x y hxy => by
+    have h := hv.antitoneOn_deriv (fun z _ => (hvd z).differentiableAt) (mem_univ x)
+      (mem_univ y) hxy
+    rwa [(hvd x).deriv, (hvd y).deriv] at h
+  have htan : ∀ x, v x ≤ v 0 + v' 0 * x := fun x => by
+    rcases lt_trichotomy x 0 with h | rfl | h
+    · have := hv.le_slope_of_hasDerivAt (mem_univ x) (mem_univ 0) h (hvd 0)
+      rw [slope_def_field, le_div_iff₀ (sub_pos.2 h)] at this
+      linarith
+    · simp
+    · have := hv.slope_le_of_hasDerivAt (mem_univ 0) (mem_univ x) h (hvd 0)
+      rw [slope_def_field, sub_zero, div_le_iff₀ h] at this
+      linarith
+  have hfar : ∀ x, |v' 0 + d| / κ ≤ |x| → w x ≤ w 0 := fun x hx => by
+    have h1 : |v' 0 + d| ≤ κ * |x| := by
+      rw [div_le_iff₀ hκ] at hx
+      linarith
+    have h2 : (v' 0 + d) * x ≤ κ * x ^ 2 := by
+      calc (v' 0 + d) * x ≤ |v' 0 + d| * |x| := (le_abs_self _).trans_eq (abs_mul _ _)
+        _ ≤ κ * |x| * |x| := mul_le_mul_of_nonneg_right h1 (abs_nonneg _)
+        _ = κ * x ^ 2 := by rw [mul_assoc, ← sq, sq_abs]
+    have h3 := htan x
+    simp only [hw]
+    linarith
+  obtain ⟨x₀, hx₀⟩ : ∃ x₀, ∀ y, w y ≤ w x₀ := by
+    refine (continuous_iff_continuousAt.2 fun x => (hwd x).continuousAt).exists_forall_ge' 0 ?_
+    filter_upwards [tendsto_norm_cocompact_atTop.eventually_ge_atTop (|v' 0 + d| / κ)] with x hx
+    exact hfar x (by rwa [Real.norm_eq_abs] at hx)
+  have hmax : IsLocalMax w x₀ := Filter.Eventually.of_forall hx₀
+  have hcrit : v' x₀ - 2 * κ * x₀ + d = 0 := hmax.hasDerivAt_eq_zero (hwd x₀)
+  refine ⟨x₀, fun x => ?_⟩
+  have h1 : (v' x - v' x₀) * (x - x₀) ≤ 0 := by
+    rcases le_total x x₀ with h | h
+    · exact mul_nonpos_of_nonneg_of_nonpos (sub_nonneg.2 (hanti h)) (sub_nonpos.2 h)
+    · exact mul_nonpos_of_nonpos_of_nonneg (sub_nonpos.2 (hanti h)) (sub_nonneg.2 h)
+  have e : -(v' x - 2 * κ * x + d) * (x - x₀) =
+      2 * κ * (x - x₀) ^ 2 - (v' x - v' x₀) * (x - x₀) := by
+    rw [show v' x₀ = 2 * κ * x₀ - d by linarith]
+    ring
+  linarith
+
 /-- **The mean of a one-dimensional strongly log-concave density** (Talagrand, Eq. (3.86)): for
 `f` concave and differentiable and `κ > 0`, the probability measure with density proportional to
 `exp (f x - κ x² + d x)` has a finite mean, of absolute value at most
@@ -214,51 +269,8 @@ theorem abs_integral_volume_tilted_concave_sub_mul_sq_le {f f' : ℝ → ℝ} (h
     simp only [hw', id_eq]
     push_cast
     ring
-  have hanti : Antitone f' := fun x y hxy => by
-    have h := hf.antitoneOn_deriv (fun z _ => (hfd z).differentiableAt) (mem_univ x)
-      (mem_univ y) hxy
-    rwa [(hfd x).deriv, (hfd y).deriv] at h
-  -- the mode
-  have htan : ∀ x, f x ≤ f 0 + f' 0 * x := fun x => by
-    rcases lt_trichotomy x 0 with h | rfl | h
-    · have := hf.le_slope_of_hasDerivAt (mem_univ x) (mem_univ 0) h (hfd 0)
-      rw [slope_def_field, le_div_iff₀ (sub_pos.2 h)] at this
-      linarith
-    · simp
-    · have := hf.slope_le_of_hasDerivAt (mem_univ 0) (mem_univ x) h (hfd 0)
-      rw [slope_def_field, sub_zero, div_le_iff₀ h] at this
-      linarith
-  have hfar : ∀ x, |f' 0 + d| / κ ≤ |x| → w x ≤ w 0 := fun x hx => by
-    have h1 : |f' 0 + d| ≤ κ * |x| := by
-      rw [div_le_iff₀ hκ] at hx
-      linarith
-    have h2 : (f' 0 + d) * x ≤ κ * x ^ 2 := by
-      calc (f' 0 + d) * x ≤ |f' 0 + d| * |x| := (le_abs_self _).trans_eq (abs_mul _ _)
-        _ ≤ κ * |x| * |x| := mul_le_mul_of_nonneg_right h1 (abs_nonneg _)
-        _ = κ * x ^ 2 := by rw [mul_assoc, ← sq, sq_abs]
-    have h3 := htan x
-    simp only [hw]
-    linarith
-  obtain ⟨x₀, hx₀⟩ : ∃ x₀, ∀ y, w y ≤ w x₀ := by
-    refine (continuous_iff_continuousAt.2 fun x => (hwd x).continuousAt).exists_forall_ge' 0 ?_
-    filter_upwards [tendsto_norm_cocompact_atTop.eventually_ge_atTop (|f' 0 + d| / κ)] with x hx
-    exact hfar x (by rwa [Real.norm_eq_abs] at hx)
-  have hmax : IsLocalMax w x₀ := Filter.Eventually.of_forall hx₀
-  have hcrit : w' x₀ = 0 := hmax.hasDerivAt_eq_zero (hwd x₀)
-  have hkey : ∀ x, 2 * κ * (x - x₀) ^ 2 ≤ -w' x * (x - x₀) := fun x => by
-    have h1 : (f' x - f' x₀) * (x - x₀) ≤ 0 := by
-      rcases le_total x x₀ with h | h
-      · exact mul_nonpos_of_nonneg_of_nonpos (sub_nonneg.2 (hanti h)) (sub_nonpos.2 h)
-      · exact mul_nonpos_of_nonpos_of_nonneg (sub_nonpos.2 (hanti h)) (sub_nonneg.2 h)
-    have h2 : f' x₀ = 2 * κ * x₀ - d := by
-      simp only [hw'] at hcrit
-      linarith
-    have e : -w' x * (x - x₀) =
-        2 * κ * (x - x₀) ^ 2 - (f' x - f' x₀) * (x - x₀) := by
-      rw [h2]
-      simp only [hw']
-      ring
-    linarith
+  obtain ⟨x₀, hkey⟩ : ∃ x₀ : ℝ, ∀ x, 2 * κ * (x - x₀) ^ 2 ≤ -w' x * (x - x₀) :=
+    exists_mode_concave_sub_mul_sq hf hfd hκ d
   have h2κ : 0 < 2 * κ := by linarith
   obtain ⟨hi, hi2, hvar⟩ := mul_integral_sub_sq_mul_exp_le h2κ hwd hkey
   have hprob : IsProbabilityMeasure ((volume : Measure ℝ).tilted w) :=
@@ -390,46 +402,16 @@ theorem exists_integral_sub_sq_mul_exp_le_gaussianReal {v : ℝ → ℝ} (hv : D
       Integrable (fun x => (x - x₀) ^ 2 * Real.exp (v x)) (gaussianReal 0 1) ∧
         ∫ x, (x - x₀) ^ 2 * Real.exp (v x) ∂(gaussianReal 0 1) ≤
           ∫ x, Real.exp (v x) ∂(gaussianReal 0 1) := by
-  have hanti : Antitone (deriv v) := fun a b hab =>
-    hconc.antitoneOn_deriv (fun x _ => hv x) (mem_univ a) (mem_univ b) hab
   set w : ℝ → ℝ := fun x => v x - x ^ 2 / 2 with hw
   have hwd : ∀ x, HasDerivAt w (deriv v x - x) x := fun x => by
     refine ((hv x).hasDerivAt.sub ((hasDerivAt_pow 2 x).div_const 2)).congr_deriv ?_
     ring
-  -- the mode: the maximum of `w`
-  have hwc : Continuous w := continuous_iff_continuousAt.2 fun x => (hwd x).continuousAt
-  have htop : Tendsto w (cocompact ℝ) atBot := by
-    have hbound : ∀ x, w x ≤ v 0 + deriv v 0 * x - x ^ 2 / 2 := fun x => by
-      have h : v x ≤ v 0 + deriv v 0 * x := by
-        rcases lt_trichotomy x 0 with hx | rfl | hx
-        · have := hconc.deriv_le_slope (mem_univ x) (mem_univ 0) hx (hv 0)
-          rw [slope_def_field, le_div_iff₀ (sub_pos.2 hx)] at this
-          linarith
-        · simp
-        · have := hconc.slope_le_deriv (mem_univ 0) (mem_univ x) hx (hv 0)
-          rw [slope_def_field, div_le_iff₀ (sub_pos.2 hx)] at this
-          linarith
-      simp only [hw]
-      linarith
-    have hlim : Tendsto (fun x : ℝ => v 0 + deriv v 0 ^ 2 + -(‖x‖ ^ 2 / 4)) (cocompact ℝ)
-        atBot :=
-      tendsto_atBot_add_const_left _ _ (tendsto_neg_atTop_atBot.comp
-        (((tendsto_pow_atTop two_ne_zero).comp tendsto_norm_cocompact_atTop).atTop_div_const
-          (by norm_num : (0 : ℝ) < 4)))
-    refine tendsto_atBot.2 fun b => (tendsto_atBot.1 hlim b).mono fun x hx => le_trans ?_ hx
-    refine (hbound x).trans ?_
-    rw [Real.norm_eq_abs, sq_abs]
-    nlinarith [sq_nonneg (x / 2 - deriv v 0)]
-  obtain ⟨x₀, hx₀⟩ := hwc.exists_forall_ge htop
-  have hcrit : deriv v x₀ - x₀ = 0 :=
-    IsLocalMax.hasDerivAt_eq_zero (Filter.Eventually.of_forall hx₀) (hwd x₀)
+  obtain ⟨x₀, hx₀⟩ := MeasureTheory.exists_mode_concave_sub_mul_sq hconc
+    (fun x => (hv x).hasDerivAt) (by norm_num : (0 : ℝ) < 1 / 2) 0
   have hineq : ∀ x, 1 * (x - x₀) ^ 2 ≤ -(deriv v x - x) * (x - x₀) := fun x => by
-    have h : (deriv v x - deriv v x₀) * (x - x₀) ≤ 0 := by
-      rcases le_total x₀ x with hx | hx
-      · exact mul_nonpos_of_nonpos_of_nonneg (sub_nonpos.2 (hanti hx)) (sub_nonneg.2 hx)
-      · exact mul_nonpos_of_nonneg_of_nonpos (sub_nonneg.2 (hanti hx)) (sub_nonpos.2 hx)
-    rw [show deriv v x₀ = x₀ by linarith] at h
-    nlinarith
+    have h := hx₀ x
+    rw [show (2 : ℝ) * (1 / 2) = 1 by norm_num, one_mul x, add_zero, one_mul] at h
+    rwa [one_mul]
   obtain ⟨h1, h2, h3⟩ := mul_integral_sub_sq_mul_exp_le one_pos hwd hineq
   rw [one_mul] at h3
   have hdens : ∀ f : ℝ → ℝ, (fun x => (gaussianPDF 0 1 x).toReal * (f x * Real.exp (v x))) =

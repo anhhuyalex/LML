@@ -163,15 +163,15 @@ theorem exists_bound_of_shcherbinaTirozzi_replicaSymmetric_equations (κ₀ κ�
       κ ≤ κ₁ → |h| ≤ h₀ → 0 ≤ q → q < ρ → ConcaveOn ℝ univ u → (∀ x, u x ≤ 0) →
       (∀ x, τ ≤ x → u x = 0) → Differentiable ℝ u → Differentiable ℝ (deriv u) →
       (∀ x, |deriv u x| ≤ D) → (∀ x, |deriv (deriv u) x| ≤ D₂) →
-      r = α * ∫ z, ((∫ ξ, deriv u (Real.sqrt q * z + Real.sqrt (ρ - q) * ξ) *
-            Real.exp (u (Real.sqrt q * z + Real.sqrt (ρ - q) * ξ)) ∂(gaussianReal 0 1)) /
-          ∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (ρ - q) * ξ))
-            ∂(gaussianReal 0 1)) ^ 2 ∂(gaussianReal 0 1) →
-      rBar = α * ∫ z, (∫ ξ, (deriv (deriv u) (Real.sqrt q * z + Real.sqrt (ρ - q) * ξ) +
-              deriv u (Real.sqrt q * z + Real.sqrt (ρ - q) * ξ) ^ 2) *
-            Real.exp (u (Real.sqrt q * z + Real.sqrt (ρ - q) * ξ)) ∂(gaussianReal 0 1)) /
-          (∫ ξ, Real.exp (u (Real.sqrt q * z + Real.sqrt (ρ - q) * ξ))
-            ∂(gaussianReal 0 1)) ∂(gaussianReal 0 1) →
+      let Z : ℝ → ℝ := fun y =>
+        ∫ ξ, Real.exp (u (y + Real.sqrt (ρ - q) * ξ)) ∂(gaussianReal 0 1)
+      let V : ℝ → ℝ := fun y => (∫ ξ, deriv u (y + Real.sqrt (ρ - q) * ξ) *
+        Real.exp (u (y + Real.sqrt (ρ - q) * ξ)) ∂(gaussianReal 0 1)) / Z y
+      let W : ℝ → ℝ := fun y => (∫ ξ, (deriv (deriv u) (y + Real.sqrt (ρ - q) * ξ) +
+          deriv u (y + Real.sqrt (ρ - q) * ξ) ^ 2) *
+        Real.exp (u (y + Real.sqrt (ρ - q) * ξ)) ∂(gaussianReal 0 1)) / Z y
+      r = α * ∫ z, V (Real.sqrt q * z) ^ 2 ∂(gaussianReal 0 1) →
+      rBar = α * ∫ z, W (Real.sqrt q * z) ∂(gaussianReal 0 1) →
       ρ = (2 * κ + r - rBar)⁻¹ + (r + h ^ 2) / (2 * κ + r - rBar) ^ 2 →
       q = (r + h ^ 2) / (2 * κ + r - rBar) ^ 2 →
       q ≤ C ∧ ρ ≤ C ∧ (ρ - q)⁻¹ ≤ C := by
@@ -202,7 +202,8 @@ theorem exists_bound_of_shcherbinaTirozzi_replicaSymmetric_equations (κ₀ κ�
     ((h₀ ^ 2 / (2 * κ₀) ^ 2 + α₁ * L / (2 * κ₀)) / (1 - a * α₁)) with hQ
   set C₁ : ℝ := 2 * κ₁ / (1 - Real.sqrt (α₁ / 2)) with hC₁
   refine ⟨max (Q + (2 * κ₀)⁻¹) C₁, fun α κ h q ρ r rBar u D D₂ hα0 hα hκ hκ1 hh hq hqρ huc hu0
-    huτ hu1 hu2 hD hD₂ hr hrBar hρ hqe => ?_⟩
+    huτ hu1 hu2 hD hD₂ => ?_⟩
+  intro Z V W hr hrBar hρ hqe
   have hκ0 : 0 < κ := hκ₀.trans_le hκ
   have hαα₁ : α ≤ α₁ := hα.trans (le_max_left _ _)
   set s : ℝ := ρ - q with hs
@@ -211,37 +212,21 @@ theorem exists_bound_of_shcherbinaTirozzi_replicaSymmetric_equations (κ₀ κ�
   have hc0 : 0 < c := Real.sqrt_pos.2 hs0
   have hc2 : c ^ 2 = s := Real.sq_sqrt hs0.le
   -- the smoothing of `u`, with `V = (log Z)'` and `V' = W - V²`
-  set Z : ℝ → ℝ := fun y => ∫ ξ, Real.exp (u (y + c * ξ)) ∂(gaussianReal 0 1) with hZ
-  set A : ℝ → ℝ := fun y =>
-    ∫ ξ, deriv u (y + c * ξ) * Real.exp (u (y + c * ξ)) ∂(gaussianReal 0 1) with hA
-  set K : ℝ → ℝ := fun y => ∫ ξ, (deriv (deriv u) (y + c * ξ) + deriv u (y + c * ξ) ^ 2) *
-    Real.exp (u (y + c * ξ)) ∂(gaussianReal 0 1) with hK
-  set V : ℝ → ℝ := fun y => A y / Z y with hV
-  set W : ℝ → ℝ := fun y => K y / Z y with hW
   have hum : Measurable u := hu1.continuous.measurable
   have hu'0 : ∀ x, 0 ≤ deriv u x := huc.deriv_nonneg_of_forall_ge_eq hu1 huτ
   have hVd : ∀ y, HasDerivAt V (W y - V y ^ 2) y := fun y =>
-    (hasDerivAt_log_integral_exp_comp_add_gaussianReal hu1 hu2 hu0 hD hD₂ c y Z A K
-      (fun _ => rfl) (fun _ => rfl) (fun _ => rfl)).2.2
+    (hasDerivAt_log_integral_exp_comp_add_gaussianReal hu1 hu2 hu0 hD hD₂ c y).2.2
   have hV0 : ∀ y, 0 ≤ V y := fun y => div_nonneg
     (integral_nonneg fun ξ => mul_nonneg (hu'0 _) (Real.exp_pos _).le)
     (integral_nonneg fun _ => (Real.exp_pos _).le)
   have hVD : ∀ y, |V y| ≤ D := fun y => abs_integral_mul_exp_comp_add_div_le hum hu0 hD y c
-  have hKb : ∀ x, |deriv (deriv u) x + deriv u x ^ 2| ≤ D₂ + D ^ 2 := fun x => by
-    refine (abs_add_le _ _).trans (add_le_add (hD₂ _) ?_)
-    rw [abs_pow]
-    exact pow_le_pow_left₀ (abs_nonneg _) (hD _) 2
   have hWB : ∀ y, |W y| ≤ D₂ + D ^ 2 := fun y =>
     abs_integral_mul_exp_comp_add_div_le hum hu0
-      (f := fun x => deriv (deriv u) x + deriv u x ^ 2) hKb y c
-  have hWm : Measurable W := by
-    have hKm : Measurable K := measurable_integral_mul_exp_comp_add_gaussianReal hum
       (f := fun x => deriv (deriv u) x + deriv u x ^ 2)
-      ((measurable_deriv (deriv u)).add ((measurable_deriv u).pow_const 2)) measurable_id c
-    have hZm : Measurable Z := by
-      simpa only [one_mul, id_eq] using measurable_integral_mul_exp_comp_add_gaussianReal hum
-        (f := fun _ => 1) measurable_const measurable_id c
-    exact hKm.div hZm
+      (abs_deriv_deriv_add_sq_deriv_le hD hD₂) y c
+  have hWm : Measurable W := measurable_integral_mul_exp_comp_add_div hum
+    (f := fun x => deriv (deriv u) x + deriv u x ^ 2)
+    ((measurable_deriv (deriv u)).add ((measurable_deriv u).pow_const 2)) measurable_id c
   have hrV : r = α * ∫ z, V (Real.sqrt q * z) ^ 2 ∂(gaussianReal 0 1) := hr
   have hrW : rBar = α * ∫ z, W (Real.sqrt q * z) ∂(gaussianReal 0 1) := hrBar
   -- `r̄ ≤ r`, hence the denominator is at least `2 κ`

@@ -14,6 +14,7 @@ public import Mathlib.Analysis.Convex.Integral
 
 * `norm_integral_rpow_le_integral_norm_rpow`: for a probability measure `μ` and `1 ≤ p < ∞`,
   `‖∫ x, f x ∂μ‖ ^ p ≤ ∫ x, ‖f x‖ ^ p ∂μ`.
+* `sq_norm_integral_le_integral_sq_norm`: the case `p = 2`.
 -/
 
 @[expose] public section
@@ -38,3 +39,11 @@ lemma norm_integral_rpow_le_integral_norm_rpow
       (Real.continuous_rpow_const (by positivity)).continuousOn isClosed_Ici
       (ae_of_all _ fun x ↦ norm_nonneg _) (hf.integrable hp1).norm
       ((integrable_norm_rpow_iff hf.aestronglyMeasurable hp0 hp_top).mpr hf)
+
+/-- The squared norm of a mean is at most the mean of the squared norm. -/
+lemma sq_norm_integral_le_integral_sq_norm
+    {α E : Type*} {mα : MeasurableSpace α} {μ : Measure α} [IsProbabilityMeasure μ]
+    [NormedAddCommGroup E] [NormedSpace ℝ E] {f : α → E} (hf : MemLp f 2 μ) :
+    ‖∫ x, f x ∂μ‖ ^ 2 ≤ ∫ x, ‖f x‖ ^ 2 ∂μ := by
+  simpa only [ENNReal.toReal_ofNat, Real.rpow_two] using
+    norm_integral_rpow_le_integral_norm_rpow one_le_two ENNReal.ofNat_ne_top hf

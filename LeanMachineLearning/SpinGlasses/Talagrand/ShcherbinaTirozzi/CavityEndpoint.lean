@@ -225,20 +225,11 @@ theorem integral_shcherbinaTirozzi_overlaps_eq_last_spin {κ h : ℝ} (hκ : 0 <
     (PiLp.continuous_apply 2 (fun _ : Fin (N + 1) => ℝ) i).measurable
   -- every moment needed is finite, since `‖σ‖²` has a finite exponential moment
   have hsq : ∀ d, Integrable (fun σ => ‖σ‖ ^ 2) (G d) := fun d => by
-    have h1 := (integral_exp_half_sq_norm_shcherbinaTirozziGibbs_le (h := h) hκ hu hu0
-      d.1 d.2).1
-    rw [← hG] at h1
-    refine (h1.const_mul (2 / κ)).mono' (measurable_norm.pow_const 2).aestronglyMeasurable
-      (ae_of_all _ fun σ => ?_)
-    rw [Real.norm_of_nonneg (sq_nonneg _)]
-    have h2 := Real.add_one_le_exp (κ / 2 * ‖σ‖ ^ 2)
-    calc ‖σ‖ ^ 2 = 2 / κ * (κ / 2 * ‖σ‖ ^ 2) := by field_simp
-      _ ≤ 2 / κ * Real.exp (κ / 2 * ‖σ‖ ^ 2) :=
-          mul_le_mul_of_nonneg_left (by linarith) (by positivity)
+    rw [hG]
+    exact (memLp_id_shcherbinaTirozziGibbs hκ hu hu0 d.1 d.2).norm.integrable_sq
   have hle : ∀ (i : Fin (N + 1)) (σ : ℝ^(N + 1)), σ i ^ 2 ≤ ‖σ‖ ^ 2 := fun i σ => by
-    rw [EuclideanSpace.real_norm_sq_eq]
-    exact Finset.single_le_sum (f := fun i => σ i ^ 2) (fun _ _ => sq_nonneg _)
-      (Finset.mem_univ i)
+    simpa only [Real.norm_eq_abs, sq_abs] using
+      pow_le_pow_left₀ (norm_nonneg _) (PiLp.norm_apply_le σ i) 2
   have hcsq : ∀ d i, Integrable (fun σ : ℝ^(N + 1) => σ i ^ 2) (G d) := fun d i =>
     (hsq d).mono' ((hcoord i).pow_const 2).aestronglyMeasurable (ae_of_all _ fun σ => by
       rw [Real.norm_of_nonneg (sq_nonneg _)]; exact hle i σ)
@@ -259,10 +250,8 @@ theorem integral_shcherbinaTirozzi_overlaps_eq_last_spin {κ h : ℝ} (hκ : 0 <
     (hi2 i).mono' ((hmeas _ (hcoord i)).pow_const 2).aestronglyMeasurable
       (ae_of_all _ fun d => by
         rw [Real.norm_of_nonneg (sq_nonneg _)]
-        have h1 := variance_nonneg (fun σ : ℝ^(N + 1) => σ i) (G d)
-        rw [variance_eq_sub (hL2 d i)] at h1
-        simp only [Pi.pow_apply] at h1
-        linarith)
+        simpa only [Real.norm_eq_abs, sq_abs] using
+          sq_norm_integral_le_integral_sq_norm (hL2 d i))
   -- symmetry between sites
   have hsymm : ∀ (i : Fin (N + 1)) (Φ : ℝ → ℝ) (F : ℝ → ℝ),
       ∫ d, F (∫ σ, Φ (σ i) ∂(G d)) ∂P = ∫ d, F (∫ σ, Φ (σ (Fin.last N)) ∂(G d)) ∂P := by

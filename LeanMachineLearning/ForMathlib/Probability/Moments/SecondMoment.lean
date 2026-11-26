@@ -263,26 +263,14 @@ theorem norm_integral_smul_sub_le_of_integral_inner_sq_le {Ω H : Type*} [Measur
     rw [real_inner_smul_right, real_inner_comm]
   have hCS : (∫ ω, f ω * inner ℝ (F ω - m) v ∂μ) ^ 2 ≤
       (∫ ω, f ω ^ 2 ∂μ) * ∫ ω, (inner ℝ (F ω - m) v) ^ 2 ∂μ := by
-    have hq : ∀ t : ℝ, 0 ≤ (∫ ω, f ω ^ 2 ∂μ) * (t * t) +
-        (2 * ∫ ω, f ω * inner ℝ (F ω - m) v ∂μ) * t +
-          ∫ ω, (inner ℝ (F ω - m) v) ^ 2 ∂μ := fun t => by
-      have hfg : Integrable (fun ω => f ω * inner ℝ (F ω - m) v) μ := hf.integrable_mul hg
-      have h0 : 0 ≤ ∫ ω, (t * f ω + inner ℝ (F ω - m) v) ^ 2 ∂μ :=
-        integral_nonneg fun ω => sq_nonneg _
-      have e : (fun ω => (t * f ω + inner ℝ (F ω - m) v) ^ 2) = fun ω =>
-          (t * t) * f ω ^ 2 + (2 * t) * (f ω * inner ℝ (F ω - m) v) +
-            (inner ℝ (F ω - m) v) ^ 2 := by
-        funext ω; ring
-      have hi1 := hf.integrable_sq.const_mul (t * t)
-      have hi2 := hfg.const_mul (2 * t)
-      have hi12 : Integrable (fun ω => (t * t) * f ω ^ 2 +
-          (2 * t) * (f ω * inner ℝ (F ω - m) v)) μ := hi1.add hi2
-      rw [e, integral_add hi12 hg.integrable_sq, integral_add hi1 hi2,
-        integral_const_mul, integral_const_mul] at h0
-      linarith
-    have := discrim_le_zero hq
-    rw [discrim] at this
-    nlinarith
+    have h := integral_mul_norm_le_Lp_mul_Lq (μ := μ) (f := f)
+      (g := fun ω => inner ℝ (F ω - m) v) Real.HolderConjugate.two_two
+      (by rwa [ENNReal.ofReal_ofNat]) (by rwa [ENNReal.ofReal_ofNat])
+    simp only [Real.rpow_two, Real.norm_eq_abs, sq_abs, ← Real.sqrt_eq_rpow, ← abs_mul] at h
+    rw [← sq_abs]
+    refine (pow_le_pow_left₀ (abs_nonneg _) (abs_integral_le_integral_abs.trans h) 2).trans_eq ?_
+    rw [mul_pow, Real.sq_sqrt (integral_nonneg fun _ => sq_nonneg _),
+      Real.sq_sqrt (integral_nonneg fun _ => sq_nonneg _)]
   have hf0 : 0 ≤ ∫ ω, f ω ^ 2 ∂μ := integral_nonneg fun ω => sq_nonneg _
   rcases eq_or_lt_of_le (norm_nonneg v) with h0 | h0
   · rw [← h0]; exact Real.sqrt_nonneg _

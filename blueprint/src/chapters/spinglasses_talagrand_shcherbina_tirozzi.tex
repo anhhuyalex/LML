@@ -689,7 +689,7 @@ Scaling reduces the first claim to $\mathbb Ee^{lvz^2}=(1-2lv)^{-1/2}\le\sqrt2$.
 Gaussian vector is centred Gaussian with variance the squared norm of its coefficients.
 \end{proof}
 
-\begin{lemma}[Mean of a log-concave density and derivative of a partition function]
+\begin{lemma}[Log-concave mean and partition derivative]
 \label{lem:sg-tal:st-mean-mode}
   \lean{MeasureTheory.abs_integral_volume_tilted_concave_sub_mul_sq_le,
         MeasureTheory.hasDerivAt_log_integral_exp_sum_comp_add_mul}
@@ -697,9 +697,11 @@ Gaussian vector is centred Gaussian with variance the squared norm of its coeffi
   \uses{lem:sg-tal:st-mode-variance}
 \talsource{Eq.~(3.86)}
 \begin{enumerate}
-\item Let $f$ be concave and differentiable on $\mathbb R$, $\kappa>0$ and $d$ real. The probability measure
-with density proportional to $\exp(f(x)-\kappa x^2+dx)$ has a mean $m$ with
-$|m|\le(2\kappa)^{-1/2}+|f'(0)+d|/(2\kappa)$.
+\item Let $f$ be concave and differentiable on $\mathbb R$, let $\kappa>0$ and $d\in\mathbb R$, and let $m$
+be the mean of the probability density proportional to $\exp(f(x)-\kappa x^2+dx)$. Then
+\[
+|m|\le(2\kappa)^{-1/2}+\frac{|f'(0)+d|}{2\kappa}.
+\]
 \item Let $u\le0$ be differentiable with $|u'|\le D$, let the $a_k$ be measurable and $e^{V}$ integrable with
 nonzero integral. Then
 \[
