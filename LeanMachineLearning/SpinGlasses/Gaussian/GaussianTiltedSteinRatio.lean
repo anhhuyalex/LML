@@ -271,14 +271,13 @@ theorem stein_ratio_comp_log_fixed_spins
     simpa only [Real.log_exp] using hGd
   have hstein := integral_mul_div_pow_mul_comp_log_eq_sum (P := γ_tot)
     (W := fun k ξ => cW k ⬝ᵥ ξ) (X := fun r ξ => cX r ⬝ᵥ ξ) (Y := fun m ξ => cY m ⬝ᵥ ξ)
-    hgauss
-    (fun k => integral_dotProduct_pi_gaussianReal _)
+    hgauss (i := ())
+    (integral_dotProduct_pi_gaussianReal _)
     (fun r => integral_dotProduct_pi_gaussianReal _)
     (fun m => integral_dotProduct_pi_gaussianReal _)
-    ()
     hFd hFb hFdb
     hZd (Real.exp_pos (-B)) hZb hZu hZdb
-    hG hGb' hGd'
+    (fun t _ => hG t) hGb' hGd'
     (Fintype.card R)
   have hcovX : ∀ j : R, ∫ ξ, cW () ⬝ᵥ ξ * (cX j ⬝ᵥ ξ) ∂γ_tot =
       W_sh (s i₀) ⬝ᵥ α_sh (s j) + if i₀ = j then W_aux (s i₀) ⬝ᵥ α_aux (s j) else 0 := by

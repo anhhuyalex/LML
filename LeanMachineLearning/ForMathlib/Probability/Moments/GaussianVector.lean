@@ -124,6 +124,28 @@ theorem exists_matrix_map_eq_pi_gaussianReal {X : κ → Ω → ℝ}
 
 
 omit [Fintype κ] [DecidableEq κ] in
+/-- Every exponential of the norm of a Gaussian vector is integrable (a consequence of Fernique's
+theorem). -/
+theorem HasGaussianLaw.integrable_exp_mul_norm {E : Type*} [NormedAddCommGroup E]
+    [NormedSpace ℝ E] [CompleteSpace E] [SecondCountableTopology E] [MeasurableSpace E]
+    [BorelSpace E] {X : Ω → E} (hX : HasGaussianLaw X P) (r : ℝ) :
+    Integrable (fun ω => Real.exp (r * ‖X ω‖)) P := by
+  have := hX.isGaussian_map
+  obtain ⟨C, hC, hint⟩ := IsGaussian.exists_integrable_exp_sq (P.map X)
+  have hm : Continuous fun x : E => Real.exp (r * ‖x‖) := by fun_prop
+  have h : Integrable (fun x : E => Real.exp (r * ‖x‖)) (P.map X) := by
+    refine (hint.const_mul (Real.exp (r ^ 2 / (4 * C)))).mono' hm.aestronglyMeasurable
+      (ae_of_all _ fun x => ?_)
+    rw [Real.norm_of_nonneg (Real.exp_pos _).le, ← Real.exp_add, Real.exp_le_exp]
+    have key : r ^ 2 / (4 * C) + C * ‖x‖ ^ 2 - r * ‖x‖ =
+        (2 * C * ‖x‖ - r) ^ 2 / (4 * C) := by
+      field_simp
+      ring
+    have : 0 ≤ (2 * C * ‖x‖ - r) ^ 2 / (4 * C) := by positivity
+    linarith
+  exact (integrable_map_measure hm.aestronglyMeasurable hX.aemeasurable).1 h
+
+omit [Fintype κ] [DecidableEq κ] in
 /-- **Gaussian integration by parts for vectors.** Let `(W, X)` be a centered Gaussian vector,
 `X` with values in a finite-dimensional normed space `E`, and let `F : E → V` be differentiable
 with `F` and its derivative growing at most exponentially. Then
@@ -200,13 +222,7 @@ theorem integral_smul_comp_eq_integral_fderiv_apply {E V : Type*} [NormedAddComm
       (mul_le_mul_of_nonneg_left ((L.le_opNorm ξ).trans
         (mul_le_mul_of_nonneg_left (hnorm ξ) (norm_nonneg L))) (abs_nonneg r))
   have hdm : ∀ w : E, StronglyMeasurable fun x => fderiv ℝ F x w := fun w =>
-    stronglyMeasurable_of_hasDerivAt_param (G := fun x s => F (x + s • w)) (x := 0)
-      (fun x => by
-        have hl : HasDerivAt (fun s : ℝ => x + s • w) w 0 := by
-          simpa using ((hasDerivAt_id (0 : ℝ)).smul_const w).const_add x
-        have h := (hF (x + (0 : ℝ) • w)).hasFDerivAt.comp_hasDerivAt 0 hl
-        simpa only [Function.comp_def, zero_smul, add_zero] using h)
-      fun s => (hF.continuous.comp (continuous_add_const _)).stronglyMeasurable
+    stronglyMeasurable_fderiv_apply_of_differentiable hF w
   have hcomp : ∀ ξ w, fderiv ℝ (F ∘ L) ξ w = fderiv ℝ F (L ξ) (L w) := fun ξ w => by
     rw [((hF (L ξ)).hasFDerivAt.comp ξ L.hasFDerivAt).fderiv]
     rfl
@@ -353,6 +369,59 @@ theorem abs_comp_inr_le_of_exp_growth {G : (κ₂ → ℝ) → ℝ} {C c : ℝ}
 
 variable [DecidableEq κ₂]
 
+omit [Fintype κ₁] [DecidableEq κ₂] in
+/-- The coordinates of `∫ w • V` for a square integrable weight `w` and a square integrable
+vector `V = (V k)ₖ`. -/
+theorem integral_smul_pi_apply_eq_integral_mul {w : Ω → ℝ} {V : κ₂ → Ω → ℝ} (hw : MemLp w 2 P)
+    (hV : MemLp (fun ω k => V k ω) 2 P) (k : κ₂) :
+    (∫ ω, w ω • (fun k => V k ω) ∂P) k = ∫ ω, w ω * V k ω ∂P := by
+  have hint : Integrable (fun ω => w ω • fun k => V k ω) P :=
+    memLp_one_iff_integrable.1 (hw.smul hV)
+  rw [eval_integral fun l => Integrable.eval hint l]
+  rfl
+
+omit [Fintype κ₁] in
+/-- A linear map on `κ → ℝ` evaluated through the coordinate directions. -/
+theorem apply_eq_sum_smul_apply_pi_single {V : Type*} [AddCommGroup V] [Module ℝ V]
+    [TopologicalSpace V] (L : (κ₂ → ℝ) →L[ℝ] V) (w : κ₂ → ℝ) :
+    L w = ∑ l, w l • L (Pi.single l 1) := by
+  have : w = ∑ l, w l • (Pi.single l (1 : ℝ) : κ₂ → ℝ) := by
+    ext m; simp [Pi.single_apply]
+  conv_lhs => rw [this]
+  simp only [map_sum, map_smul]
+
+omit [Fintype κ₁] [DecidableEq κ₂] in
+/-- Exponential growth in `‖y‖₁` implies exponential growth in the supremum norm. -/
+theorem mul_exp_mul_sum_abs_le_mul_exp_norm (K r : ℝ) (y : κ₂ → ℝ) :
+    K * Real.exp (r * ∑ l, |y l|) ≤ |K| * Real.exp (|r| * Fintype.card κ₂ * ‖y‖) := by
+  have h1 : ∑ l, |y l| ≤ Fintype.card κ₂ * ‖y‖ := by
+    have h := Finset.sum_le_card_nsmul Finset.univ (fun l => |y l|) ‖y‖
+      fun l _ => norm_le_pi_norm y l
+    rwa [Finset.card_univ, nsmul_eq_mul] at h
+  refine mul_le_mul (le_abs_self K) (Real.exp_le_exp.2 ?_) (Real.exp_pos _).le (abs_nonneg K)
+  rw [mul_assoc]
+  exact (mul_le_mul_of_nonneg_right (le_abs_self r)
+    (Finset.sum_nonneg fun _ _ => abs_nonneg _)).trans
+      (mul_le_mul_of_nonneg_left h1 (abs_nonneg r))
+
+omit [Fintype κ₁] in
+/-- Exponential bounds on the partial derivatives bound the derivative in operator norm. -/
+theorem norm_fderiv_le_of_abs_fderiv_pi_single_le {F : (κ₂ → ℝ) → ℝ} {D d : κ₂ → ℝ}
+    (hF : ∀ l y, |fderiv ℝ F y (Pi.single l 1)| ≤ D l * Real.exp (d l * ∑ l, |y l|))
+    (y : κ₂ → ℝ) : ‖fderiv ℝ F y‖ ≤
+      (∑ l, |D l|) * Real.exp ((∑ l, |d l|) * Fintype.card κ₂ * ‖y‖) := by
+  refine ContinuousLinearMap.opNorm_le_bound _ (by positivity) fun w => ?_
+  rw [apply_eq_sum_smul_apply_pi_single (fderiv ℝ F y) w, Real.norm_eq_abs, Finset.sum_mul,
+    Finset.sum_mul]
+  refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun l _ => ?_)
+  rw [smul_eq_mul, abs_mul, mul_comm]
+  refine mul_le_mul ((hF l y).trans ((mul_exp_mul_sum_abs_le_mul_exp_norm (D l) (d l) y).trans ?_))
+    (norm_le_pi_norm w l) (abs_nonneg _) (by positivity)
+  exact mul_le_mul_of_nonneg_left (Real.exp_le_exp.2 (mul_le_mul_of_nonneg_right
+    (mul_le_mul_of_nonneg_right (Finset.single_le_sum (f := fun l => |d l|)
+      (fun _ _ => abs_nonneg _) (Finset.mem_univ l)) (Nat.cast_nonneg _))
+    (norm_nonneg _))) (abs_nonneg _)
+
 omit [Fintype κ₁] in
 /-- **Gaussian integration by parts against a jointly Gaussian test variable.**
 If the family `W ⊕ X` is jointly Gaussian, `X` and `W i` are centered, and `F` is differentiable
@@ -379,44 +448,15 @@ theorem integral_mul_comp_eq_sum_integral_mul_of_sum [Finite κ₁] {W : κ₁ �
     funext l
     rw [eval_integral fun l => (hXG.eval l).integrable]
     exact hX l
-  have h1 : ∀ y : κ₂ → ℝ, ∑ l, |y l| ≤ Fintype.card κ₂ * ‖y‖ := fun y => by
-    have h := Finset.sum_le_card_nsmul Finset.univ (fun l => |y l|) ‖y‖
-      fun l _ => norm_le_pi_norm y l
-    rwa [Finset.card_univ, nsmul_eq_mul] at h
-  have hg : ∀ (K r : ℝ) (y : κ₂ → ℝ), K * Real.exp (r * ∑ l, |y l|) ≤
-      |K| * Real.exp (|r| * Fintype.card κ₂ * ‖y‖) := fun K r y => by
-    refine mul_le_mul (le_abs_self K) (Real.exp_le_exp.2 ?_) (Real.exp_pos _).le (abs_nonneg K)
-    rw [mul_assoc]
-    exact (mul_le_mul_of_nonneg_right (le_abs_self r)
-      (Finset.sum_nonneg fun _ _ => abs_nonneg _)).trans
-        (mul_le_mul_of_nonneg_left (h1 y) (abs_nonneg r))
   have hsum : ∀ (w y : κ₂ → ℝ),
-      fderiv ℝ F y w = ∑ l, w l * fderiv ℝ F y (Pi.single l 1) := fun w y => by
-    have : w = ∑ l, w l • (Pi.single l (1 : ℝ) : κ₂ → ℝ) := by
-      ext m; simp [Pi.single_apply]
-    conv_lhs => rw [this]
-    simp only [map_sum, map_smul, smul_eq_mul]
-  have hF' : ∀ y, ‖fderiv ℝ F y‖ ≤
-      (∑ l, |D l|) * Real.exp ((∑ l, |d l|) * Fintype.card κ₂ * ‖y‖) := fun y => by
-    refine ContinuousLinearMap.opNorm_le_bound _ (by positivity) fun w => ?_
-    rw [hsum, Real.norm_eq_abs, Finset.sum_mul, Finset.sum_mul]
-    refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun l _ => ?_)
-    rw [abs_mul, mul_comm]
-    refine mul_le_mul ((hFg' l y).trans ((hg (D l) (d l) y).trans ?_))
-      (norm_le_pi_norm w l) (abs_nonneg _) (by positivity)
-    exact mul_le_mul_of_nonneg_left (Real.exp_le_exp.2 (mul_le_mul_of_nonneg_right
-      (mul_le_mul_of_nonneg_right (Finset.single_le_sum (f := fun l => |d l|)
-        (fun _ _ => abs_nonneg _) (Finset.mem_univ l)) (Nat.cast_nonneg _))
-      (norm_nonneg _))) (abs_nonneg _)
+      fderiv ℝ F y w = ∑ l, w l * fderiv ℝ F y (Pi.single l 1) := fun w y =>
+    apply_eq_sum_smul_apply_pi_single (fderiv ℝ F y) w
   have h := integral_smul_comp_eq_integral_fderiv_apply hpair hW hXmean hF
     (C := |C|) (c := |c| * Fintype.card κ₂)
-    (fun y => (hFg y).trans (hg C c y)) hF'
-  have hint : Integrable (fun ω => W i ω • fun l => X l ω) P := by
-    refine Integrable.of_eval fun l => ?_
-    exact (show MemLp (W i) 2 P from (hpair.fst).memLp_two).integrable_mul (hXG.eval l).memLp_two
-  have hcov : ∀ l, (∫ ω, W i ω • (fun l => X l ω) ∂P) l = ∫ ω, W i ω * X l ω ∂P := fun l => by
-    rw [eval_integral fun l => Integrable.eval hint l]
-    rfl
+    (fun y => (hFg y).trans (mul_exp_mul_sum_abs_le_mul_exp_norm C c y))
+    (norm_fderiv_le_of_abs_fderiv_pi_single_le hFg')
+  have hcov : ∀ l, (∫ ω, W i ω • (fun l => X l ω) ∂P) l = ∫ ω, W i ω * X l ω ∂P :=
+    integral_smul_pi_apply_eq_integral_mul hpair.fst.memLp_two hXG.memLp_two
   have hd : ∀ l, Integrable (fun ω => fderiv ℝ F (fun k => X k ω) (Pi.single l 1)) P :=
     fun l => integrable_comp_of_exp_growth hXG hX (measurable_fderiv_apply_const ℝ F _) (hFg' l)
   simp only [smul_eq_mul] at h

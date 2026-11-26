@@ -6,6 +6,8 @@ Authors: LML Contributors
 module
 
 public import Mathlib.Analysis.Calculus.Deriv.Shift
+public import Mathlib.Analysis.Calculus.Deriv.Comp
+public import Mathlib.Analysis.Calculus.FDeriv.Comp
 public import Mathlib.Analysis.Calculus.Deriv.Slope
 public import Mathlib.Analysis.SpecificLimits.Basic
 public import Mathlib.MeasureTheory.Function.AEMeasurableSequence
@@ -23,6 +25,8 @@ the limit of the measurable difference quotients along `x + 1/(n+1)`.
 * `MeasureTheory.stronglyMeasurable_of_hasDerivAt_param`: the everywhere version.
 * `MeasureTheory.stronglyMeasurable_of_forall_hasDerivAt`: a function which is a derivative
   everywhere is strongly measurable, with values in any real normed space (no completeness).
+* `MeasureTheory.stronglyMeasurable_fderiv_apply_of_differentiable`: the directional derivative of
+  a differentiable function is strongly measurable.
 -/
 
 @[expose] public section
@@ -66,5 +70,18 @@ theorem stronglyMeasurable_of_forall_hasDerivAt {f f' : ℝ → F}
   exact stronglyMeasurable_of_hasDerivAt_param (G := fun y s => f (y + s)) (x := 0)
     (fun y => HasDerivAt.comp_const_add y 0 (by simpa only [add_zero] using hf y))
     fun s => (hfc.comp (continuous_add_const s)).stronglyMeasurable
+
+/-- The derivative of a differentiable function in a fixed direction is strongly measurable,
+with values in any real normed space. -/
+theorem stronglyMeasurable_fderiv_apply_of_differentiable {E : Type*} [NormedAddCommGroup E]
+    [NormedSpace ℝ E] [SecondCountableTopology E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    {f : E → F} (hf : Differentiable ℝ f) (w : E) :
+    StronglyMeasurable fun x => fderiv ℝ f x w := by
+  refine stronglyMeasurable_of_hasDerivAt_param (G := fun x s => f (x + s • w)) (x := 0)
+    (fun x => ?_) fun s => (hf.continuous.comp (continuous_add_const _)).stronglyMeasurable
+  have hl : HasDerivAt (fun s : ℝ => x + s • w) w 0 := by
+    simpa using ((hasDerivAt_id (0 : ℝ)).smul_const w).const_add x
+  have h := (hf (x + (0 : ℝ) • w)).hasFDerivAt.comp_hasDerivAt 0 hl
+  simpa only [Function.comp_def, zero_smul, add_zero] using h
 
 end MeasureTheory

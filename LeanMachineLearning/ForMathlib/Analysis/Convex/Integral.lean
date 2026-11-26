@@ -6,6 +6,7 @@ Authors: Rémy Degenne
 module
 
 public import Mathlib.Analysis.Convex.Integral
+public import Mathlib.Analysis.Convex.SpecificFunctions.Pow
 
 /-!
 # Jensen's inequality for the norm to a power
@@ -60,7 +61,7 @@ lemma integral_rpow_le_rpow_integral
     integrable_norm_rpow_of_le hf.aestronglyMeasurable hp0 zero_le_one hp1
       (by simpa only [Real.rpow_one] using hf.norm)
   have hfp : Integrable (fun x => f x ^ p) μ :=
-    hnorm_p.congr (hf0.mono fun x hx => by rw [Real.norm_of_nonneg hx])
+    hnorm_p.congr (hf0.mono fun x hx => by simp only [Real.norm_of_nonneg hx])
   refine ⟨hfp, ?_⟩
   exact ConcaveOn.le_map_integral (Real.concaveOn_rpow hp0 hp1)
     (Real.continuous_rpow_const hp0).continuousOn isClosed_Ici hf0 hf hfp
