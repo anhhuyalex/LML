@@ -31,20 +31,57 @@ theorem exists_nat_one_le_one_div_two_mul_le {ε : ℝ} (hε : 0 < ε) :
   rw [div_le_iff₀ (by positivity)] at h1
   nlinarith
 
-/-- For `x ≥ 0`, `a > 0`: `x ≤ a + x^{2k} / a^{2k-1}` (Markov-type pointwise bound). -/
-theorem le_add_pow_div {x a : ℝ} (hx : 0 ≤ x) (ha : 0 < a) {k : ℕ} (hk : 1 ≤ k) :
-    x ≤ a + x ^ (2 * k) / a ^ (2 * k - 1) := by
-  have hpos : 0 < a ^ (2 * k - 1) := pow_pos ha _
+/-- For `x ≥ 0`, `a > 0` and a real exponent `p ≥ 1`: `x ≤ a + x^p / a^{p-1}` (Markov-type
+pointwise bound). -/
+theorem le_add_rpow_div {x a : ℝ} (hx : 0 ≤ x) (ha : 0 < a) {p : ℝ} (hp : 1 ≤ p) :
+    x ≤ a + x ^ p / a ^ (p - 1) := by
+  have hpos : 0 < a ^ (p - 1) := Real.rpow_pos_of_pos ha _
   rcases le_total x a with h | h
-  · have : 0 ≤ x ^ (2 * k) / a ^ (2 * k - 1) := by positivity
+  · have : 0 ≤ x ^ p / a ^ (p - 1) := div_nonneg (Real.rpow_nonneg hx _) hpos.le
     linarith
-  · have h1 : a ^ (2 * k - 1) ≤ x ^ (2 * k - 1) := pow_le_pow_left₀ ha.le h _
-    have h2 : x ^ (2 * k) = x * x ^ (2 * k - 1) := by
-      rw [← pow_succ']; congr 1; omega
-    have : x ≤ x ^ (2 * k) / a ^ (2 * k - 1) := by
+  · have h1 : a ^ (p - 1) ≤ x ^ (p - 1) := Real.rpow_le_rpow ha.le h (by linarith)
+    have h2 : x ^ p = x * x ^ (p - 1) := by
+      rw [Real.rpow_sub_one (ha.trans_le h).ne', mul_div_cancel₀ _ (ha.trans_le h).ne']
+    have : x ≤ x ^ p / a ^ (p - 1) := by
       rw [le_div_iff₀ hpos, h2]
       exact mul_le_mul_of_nonneg_left h1 hx
     linarith [ha]
+
+/-- For `x ≥ 0`, `a > 0`: `x ≤ a + x^{2k} / a^{2k-1}` (Markov-type pointwise bound). -/
+theorem le_add_pow_div {x a : ℝ} (hx : 0 ≤ x) (ha : 0 < a) {k : ℕ} (hk : 1 ≤ k) :
+    x ≤ a + x ^ (2 * k) / a ^ (2 * k - 1) := by
+  have h1 : 1 ≤ 2 * k := by omega
+  have h := le_add_rpow_div hx ha (p := ((2 * k : ℕ) : ℝ)) (by exact_mod_cast h1)
+  rwa [← Nat.cast_pred h1, Real.rpow_natCast, Real.rpow_natCast] at h
+
+/-- **Expectation of a maximum of norms from `p`-th moments.** For vector-valued `Δ i`, `i` in a
+nonempty finite set `s`, with integrable `p`-th powers of the norms (`p ≥ 1`), a finite measure
+and every `a > 0`, `∫ max_{i ∈ s} ‖Δ_i‖ ≤ a μ(univ) + (∑_{i ∈ s} ∫ ‖Δ_i‖^p) / a^{p-1}`. -/
+theorem integral_sup'_norm_le {Ω ι E : Type*} [MeasurableSpace Ω] {P : Measure Ω}
+    [IsFiniteMeasure P] [NormedAddCommGroup E] {s : Finset ι} (hne : s.Nonempty)
+    (Δ : ι → Ω → E) {p : ℝ} (hp : 1 ≤ p)
+    (hint : ∀ i ∈ s, Integrable (fun ω => ‖Δ i ω‖ ^ p) P) {a : ℝ} (ha : 0 < a) :
+    ∫ ω, s.sup' hne (fun i => ‖Δ i ω‖) ∂P ≤
+      a * P.real Set.univ + (∑ i ∈ s, ∫ ω, ‖Δ i ω‖ ^ p ∂P) / a ^ (p - 1) := by
+  have hsum : Integrable (fun ω => (∑ i ∈ s, ‖Δ i ω‖ ^ p) / a ^ (p - 1)) P :=
+    (integrable_finsetSum _ hint).div_const _
+  have hg : Integrable (fun ω => a + (∑ i ∈ s, ‖Δ i ω‖ ^ p) / a ^ (p - 1)) P :=
+    (integrable_const a).add hsum
+  have hnn : ∀ ω, 0 ≤ s.sup' hne (fun i => ‖Δ i ω‖) := fun ω => by
+    obtain ⟨i, hi⟩ := hne
+    exact (norm_nonneg _).trans (Finset.le_sup' (fun i => ‖Δ i ω‖) hi)
+  calc ∫ ω, s.sup' hne (fun i => ‖Δ i ω‖) ∂P
+      ≤ ∫ ω, (a + (∑ i ∈ s, ‖Δ i ω‖ ^ p) / a ^ (p - 1)) ∂P :=
+        integral_mono_of_nonneg (ae_of_all _ hnn) hg (ae_of_all _ fun ω => by
+          refine Finset.sup'_le _ _ fun i hi => ?_
+          refine (le_add_rpow_div (norm_nonneg _) ha hp).trans ?_
+          have hle : ‖Δ i ω‖ ^ p ≤ ∑ j ∈ s, ‖Δ j ω‖ ^ p :=
+            Finset.single_le_sum (f := fun j => ‖Δ j ω‖ ^ p)
+              (fun j _ => Real.rpow_nonneg (norm_nonneg _) _) hi
+          exact add_le_add le_rfl (div_le_div_of_nonneg_right hle (Real.rpow_nonneg ha.le _)))
+    _ = _ := by
+        rw [integral_add (integrable_const a) hsum, integral_const, integral_div,
+          integral_finsetSum _ hint, smul_eq_mul, mul_comm]
 
 /-- **Expectation of a maximum from `2k`-th moments, with a free parameter.**  For finitely many
 random variables with integrable `2k`-th powers and every `a > 0`,
@@ -55,27 +92,15 @@ theorem integral_sup'_abs_le {Ω ι : Type*} [MeasurableSpace Ω] {P : Measure �
     (hint : ∀ i, Integrable (fun ω => Δ i ω ^ (2 * k)) P) {a : ℝ} (ha : 0 < a) :
     ∫ ω, Finset.univ.sup' hne (fun i => |Δ i ω|) ∂P ≤
       a + (∑ i, ∫ ω, Δ i ω ^ (2 * k) ∂P) / a ^ (2 * k - 1) := by
+  have h1 : 1 ≤ 2 * k := by omega
   have he : Even (2 * k) := ⟨k, by ring⟩
-  have hg : Integrable (fun ω => a + (∑ i, Δ i ω ^ (2 * k)) / a ^ (2 * k - 1)) P :=
-    (integrable_const a).add ((integrable_finsetSum _ fun i _ => hint i).div_const _)
-  have hnn : ∀ ω, 0 ≤ Finset.univ.sup' hne (fun i => |Δ i ω|) := fun ω => by
-    obtain ⟨i, -⟩ := hne
-    exact (abs_nonneg _).trans (Finset.le_sup' (fun i => |Δ i ω|) (Finset.mem_univ i))
-  calc ∫ ω, Finset.univ.sup' hne (fun i => |Δ i ω|) ∂P
-      ≤ ∫ ω, (a + (∑ i, Δ i ω ^ (2 * k)) / a ^ (2 * k - 1)) ∂P :=
-        integral_mono_of_nonneg (ae_of_all _ hnn) hg (ae_of_all _ fun ω => by
-          refine Finset.sup'_le _ _ fun i _ => ?_
-          refine (le_add_pow_div (abs_nonneg _) ha hk).trans ?_
-          rw [he.pow_abs]
-          beta_reduce
-          gcongr
-          exact Finset.single_le_sum (f := fun j => Δ j ω ^ (2 * k))
-            (fun j _ => he.pow_nonneg _) (Finset.mem_univ i))
-    _ = _ := by
-        rw [integral_add (integrable_const a)
-          ((integrable_finsetSum _ fun i _ => hint i).div_const _), integral_const, integral_div,
-          integral_finsetSum _ fun i _ => hint i]
-        simp
+  have e : ∀ i ω, ‖Δ i ω‖ ^ ((2 * k : ℕ) : ℝ) = Δ i ω ^ (2 * k) := fun i ω => by
+    rw [Real.rpow_natCast, Real.norm_eq_abs, he.pow_abs]
+  have h := integral_sup'_norm_le (P := P) hne Δ (p := ((2 * k : ℕ) : ℝ)) (by exact_mod_cast h1)
+    (fun i _ => by simpa only [e] using hint i) ha
+  rw [← Nat.cast_pred h1] at h
+  simp only [e] at h
+  simpa only [Real.rpow_natCast, Real.norm_eq_abs, probReal_univ, mul_one] using h
 
 /-- **Expectation of a maximum of `M` variables with `2k`-th moments `≤ K / M^k`:**
 `𝔼 max_i |Δ_i| ≤ (1 + K) M^{-(k-1)/(2k)}` (Talagrand, proof of Corollary 1.7.8, with the

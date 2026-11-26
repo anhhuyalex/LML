@@ -9,6 +9,7 @@ public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.AddPowEst
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Tanh
 public import Mathlib.MeasureTheory.Integral.Bochner.Basic
 public import Mathlib.MeasureTheory.Integral.IntegrableOn
+public import Mathlib.Analysis.InnerProductSpace.Basic
 
 /-!
 # Expanding the integral of a squared difference
@@ -21,37 +22,71 @@ For real functions `f`, `g` with `f²`, `g²` and `f g` integrable,
 
 namespace MeasureTheory
 
+/-- If the `m`-th power of the distance from one center is integrable for a finite measure, then
+so is the `m`-th power of the distance from any other center. -/
+theorem integrable_norm_sub_pow_of_integrable_norm_sub_pow {Ω E : Type*} [MeasurableSpace Ω]
+    [NormedAddCommGroup E] {P : Measure Ω} [IsFiniteMeasure P] {X : Ω → E}
+    (hX : AEStronglyMeasurable X P) {c : E} {m : ℕ}
+    (h : Integrable (fun ω => ‖X ω - c‖ ^ m) P) (a : E) :
+    Integrable (fun ω => ‖X ω - a‖ ^ m) P := by
+  refine ((h.add (integrable_const (‖c - a‖ ^ m))).const_mul (2 ^ (m - 1))).mono'
+    ((hX.sub aestronglyMeasurable_const).norm.pow m) (Filter.Eventually.of_forall fun ω => ?_)
+  rw [norm_pow, norm_norm]
+  have h1 : ‖X ω - a‖ ≤ ‖X ω - c‖ + ‖c - a‖ := norm_sub_le_norm_sub_add_norm_sub _ _ _
+  refine (pow_le_pow_left₀ (norm_nonneg _) h1 m).trans ?_
+  exact add_pow_le (norm_nonneg _) (norm_nonneg _) m
+
 /-- A measurable function whose centered `m`-th power is integrable has integrable `m`-th power
 about every other center. -/
 theorem integrable_sub_pow_of_integrable_abs_pow {Ω : Type*} [MeasurableSpace Ω]
     {P : Measure Ω} [IsFiniteMeasure P] {X : Ω → ℝ} (hX : Measurable X) {c : ℝ} {m : ℕ}
     (h : Integrable (fun ω => |X ω - c| ^ m) P) (a : ℝ) :
     Integrable (fun ω => (X ω - a) ^ m) P := by
-  refine ((h.add (integrable_const (|c - a| ^ m))).const_mul (2 ^ (m - 1))).mono'
-    ((hX.sub_const a).pow_const m).aestronglyMeasurable (Filter.Eventually.of_forall fun ω => ?_)
-  rw [Real.norm_eq_abs, abs_pow]
-  have := abs_add_pow_le (X ω - c) (c - a) m
-  rwa [sub_add_sub_cancel] at this
+  have h' := integrable_norm_sub_pow_of_integrable_norm_sub_pow hX.aestronglyMeasurable
+    (c := c) (m := m) (by simpa only [Real.norm_eq_abs] using h) a
+  exact (integrable_norm_iff ((hX.sub_const a).pow_const m).aestronglyMeasurable).1
+    (by simpa only [norm_pow] using h')
 
+
+/-- The integral of a squared distance in an inner product space expands as
+`∫ ‖f‖² - 2 ∫ ⟪f, g⟫ + ∫ ‖g‖²`. -/
+theorem integral_norm_sub_sq {Ω E : Type*} {mΩ : MeasurableSpace Ω} {μ : Measure Ω}
+    [NormedAddCommGroup E] [InnerProductSpace ℝ E] {f g : Ω → E}
+    (hf : Integrable (fun ω => ‖f ω‖ ^ 2) μ) (hg : Integrable (fun ω => ‖g ω‖ ^ 2) μ)
+    (hfg : Integrable (fun ω => inner ℝ (f ω) (g ω)) μ) :
+    ∫ ω, ‖f ω - g ω‖ ^ 2 ∂μ =
+      ∫ ω, ‖f ω‖ ^ 2 ∂μ - 2 * ∫ ω, inner ℝ (f ω) (g ω) ∂μ + ∫ ω, ‖g ω‖ ^ 2 ∂μ := by
+  have h1 : Integrable (fun ω => ‖f ω‖ ^ 2 - 2 * inner ℝ (f ω) (g ω)) μ :=
+    hf.sub (hfg.const_mul 2)
+  simp_rw [norm_sub_sq_real]
+  rw [integral_add h1 hg, integral_sub hf (hfg.const_mul 2), integral_const_mul]
 
 /-- The integral of a squared difference expands as `∫ f² - 2 ∫ f g + ∫ g²`. -/
 theorem integral_sq_sub {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Measure Ω} {f g : Ω → ℝ}
     (hf : Integrable (fun ω => f ω ^ 2) μ) (hg : Integrable (fun ω => g ω ^ 2) μ)
     (hfg : Integrable (fun ω => f ω * g ω) μ) :
     ∫ ω, (f ω - g ω) ^ 2 ∂μ = ∫ ω, f ω ^ 2 ∂μ - 2 * ∫ ω, f ω * g ω ∂μ + ∫ ω, g ω ^ 2 ∂μ := by
-  have h1 : Integrable (fun ω => f ω ^ 2 - 2 * (f ω * g ω)) μ := hf.sub (hfg.const_mul 2)
-  rw [show (fun ω => (f ω - g ω) ^ 2) = fun ω => (f ω ^ 2 - 2 * (f ω * g ω)) + g ω ^ 2 from
-    funext fun ω => by ring, integral_add h1 hg, integral_sub hf (hfg.const_mul 2),
-    integral_const_mul]
+  have h := integral_norm_sub_sq (μ := μ) (f := f) (g := g)
+    (by simpa only [Real.norm_eq_abs, sq_abs] using hf)
+    (by simpa only [Real.norm_eq_abs, sq_abs] using hg)
+    (by simpa only [RCLike.inner_apply, conj_trivial, mul_comm] using hfg)
+  simpa only [Real.norm_eq_abs, sq_abs, RCLike.inner_apply, conj_trivial, mul_comm] using h
+
+/-- Every power of an a.e. bounded function with values in a normed ring is integrable for a
+finite measure. -/
+theorem integrable_pow_of_ae_norm_le {Ω R : Type*} {mΩ : MeasurableSpace Ω} {μ : Measure Ω}
+    [NormedRing R] [NormOneClass R] [IsFiniteMeasure μ] {f : Ω → R}
+    (hf : AEStronglyMeasurable f μ) (n : ℕ) {C : ℝ} (hC : ∀ᵐ ω ∂μ, ‖f ω‖ ≤ C) :
+    Integrable (fun ω => f ω ^ n) μ :=
+  Integrable.of_bound (hf.pow n) (C ^ n)
+    (hC.mono fun _ h => (norm_pow_le _ n).trans (pow_le_pow_left₀ (norm_nonneg _) h n))
 
 /-- Every power of a bounded measurable function is integrable for a finite measure. -/
 theorem integrable_pow_of_abs_le {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Measure Ω}
     [IsFiniteMeasure μ] {f : Ω → ℝ} (hf : Measurable f) (n : ℕ) {C : ℝ}
     (hC : ∀ ω, |f ω| ≤ C) : Integrable (fun ω => f ω ^ n) μ :=
-  Integrable.of_bound (hf.pow_const n).aestronglyMeasurable (C ^ n)
-    (Filter.Eventually.of_forall fun ω => by
-      rw [Real.norm_eq_abs, abs_pow]
-      exact pow_le_pow_left₀ (abs_nonneg _) (hC ω) n)
+  integrable_pow_of_ae_norm_le hf.aestronglyMeasurable n
+    (ae_of_all _ fun ω => by simpa only [Real.norm_eq_abs] using hC ω)
 
 /-- The square of a bounded measurable function is integrable for a finite measure. -/
 theorem integrable_sq_of_abs_le {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Measure Ω}
@@ -128,6 +163,39 @@ theorem integral_sq_add_add_le {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Mea
         rw [integral_add hab (hc.const_mul 3), integral_add (ha.const_mul 3) (hb.const_mul 3),
           integral_const_mul, integral_const_mul, integral_const_mul]
 
+/-- **Three-term triangle inequality in `L^{2k}`**, vector-valued: if `‖Δ‖ ≤ a + b + c` almost
+everywhere and `a^{2k}, b^{2k}, c^{2k}` are integrable then
+`∫ ‖Δ‖^{2k} ≤ 2^{2k-1} ∫ a^{2k} + 2^{2k-1} (2^{2k-1} ∫ b^{2k} + 2^{2k-1} ∫ c^{2k})`. -/
+theorem integral_norm_pow_le_of_ae_norm_le_add_add {Ω E : Type*} {mΩ : MeasurableSpace Ω}
+    {μ : Measure Ω} [NormedAddCommGroup E] {k : ℕ} (hk : 1 ≤ k) {Δ : Ω → E} {a b c : Ω → ℝ}
+    (hΔ : ∀ᵐ ω ∂μ, ‖Δ ω‖ ≤ a ω + b ω + c ω)
+    (ha : Integrable (fun ω => a ω ^ (2 * k)) μ) (hb : Integrable (fun ω => b ω ^ (2 * k)) μ)
+    (hc : Integrable (fun ω => c ω ^ (2 * k)) μ) :
+    ∫ ω, ‖Δ ω‖ ^ (2 * k) ∂μ ≤ 2 ^ (2 * k - 1) * ∫ ω, a ω ^ (2 * k) ∂μ +
+      2 ^ (2 * k - 1) * (2 ^ (2 * k - 1) * ∫ ω, b ω ^ (2 * k) ∂μ +
+        2 ^ (2 * k - 1) * ∫ ω, c ω ^ (2 * k) ∂μ) := by
+  have hbc : Integrable (fun ω => 2 ^ (2 * k - 1) * b ω ^ (2 * k) +
+      2 ^ (2 * k - 1) * c ω ^ (2 * k)) μ := (hb.const_mul _).add (hc.const_mul _)
+  have hint : Integrable (fun ω => 2 ^ (2 * k - 1) * a ω ^ (2 * k) +
+      2 ^ (2 * k - 1) * (2 ^ (2 * k - 1) * b ω ^ (2 * k) +
+        2 ^ (2 * k - 1) * c ω ^ (2 * k))) μ :=
+    (ha.const_mul _).add (hbc.const_mul _)
+  have he : Even (2 * k) := ⟨k, by ring⟩
+  calc ∫ ω, ‖Δ ω‖ ^ (2 * k) ∂μ ≤ _ :=
+        integral_mono_of_nonneg (Filter.Eventually.of_forall fun ω => by positivity) hint
+          (hΔ.mono fun ω h => by
+            beta_reduce
+            refine (pow_le_pow_left₀ (norm_nonneg _) h _).trans ?_
+            rw [add_assoc]
+            refine (add_pow_two_mul_le hk _ _).trans ?_
+            have := add_pow_two_mul_le hk (b ω) (c ω)
+            nlinarith [pow_pos (two_pos : (0:ℝ) < 2) (2 * k - 1), this,
+              he.pow_nonneg (a ω)])
+    _ = _ := by
+        rw [integral_add (ha.const_mul _) (hbc.const_mul _), integral_const_mul,
+          integral_const_mul, integral_add (hb.const_mul _) (hc.const_mul _),
+          integral_const_mul, integral_const_mul]
+
 /-- **Three-term triangle inequality in `L^{2k}`:** if `|Δ| ≤ a + b + c` pointwise and
 `a^{2k}, b^{2k}, c^{2k}` are integrable then
 `∫ Δ^{2k} ≤ 2^{2k-1} ∫ a^{2k} + 2^{2k-1} (2^{2k-1} ∫ b^{2k} + 2^{2k-1} ∫ c^{2k})`. -/
@@ -138,27 +206,9 @@ theorem integral_pow_le_of_abs_le_add_add {Ω : Type*} {mΩ : MeasurableSpace Ω
     ∫ ω, Δ ω ^ (2 * k) ∂μ ≤ 2 ^ (2 * k - 1) * ∫ ω, a ω ^ (2 * k) ∂μ +
       2 ^ (2 * k - 1) * (2 ^ (2 * k - 1) * ∫ ω, b ω ^ (2 * k) ∂μ +
         2 ^ (2 * k - 1) * ∫ ω, c ω ^ (2 * k) ∂μ) := by
-  have hbc : Integrable (fun ω => 2 ^ (2 * k - 1) * b ω ^ (2 * k) +
-      2 ^ (2 * k - 1) * c ω ^ (2 * k)) μ := (hb.const_mul _).add (hc.const_mul _)
-  have hint : Integrable (fun ω => 2 ^ (2 * k - 1) * a ω ^ (2 * k) +
-      2 ^ (2 * k - 1) * (2 ^ (2 * k - 1) * b ω ^ (2 * k) +
-        2 ^ (2 * k - 1) * c ω ^ (2 * k))) μ :=
-    (ha.const_mul _).add (hbc.const_mul _)
   have he : Even (2 * k) := ⟨k, by ring⟩
-  calc ∫ ω, Δ ω ^ (2 * k) ∂μ ≤ _ :=
-        integral_mono_of_nonneg (Filter.Eventually.of_forall fun ω => he.pow_nonneg _) hint
-          (Filter.Eventually.of_forall fun ω => by
-            beta_reduce
-            rw [← he.pow_abs]
-            refine (pow_le_pow_left₀ (abs_nonneg _) (hΔ ω) _).trans ?_
-            rw [add_assoc]
-            refine (add_pow_two_mul_le hk _ _).trans ?_
-            have := add_pow_two_mul_le hk (b ω) (c ω)
-            nlinarith [pow_pos (two_pos : (0:ℝ) < 2) (2 * k - 1), this,
-              he.pow_nonneg (a ω)])
-    _ = _ := by
-        rw [integral_add (ha.const_mul _) (hbc.const_mul _), integral_const_mul,
-          integral_const_mul, integral_add (hb.const_mul _) (hc.const_mul _),
-          integral_const_mul, integral_const_mul]
+  simpa only [Real.norm_eq_abs, he.pow_abs] using
+    integral_norm_pow_le_of_ae_norm_le_add_add hk (Δ := Δ)
+      (ae_of_all μ fun ω => by simpa only [Real.norm_eq_abs] using hΔ ω) ha hb hc
 
 end MeasureTheory

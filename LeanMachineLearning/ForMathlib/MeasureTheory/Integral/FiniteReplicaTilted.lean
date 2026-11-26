@@ -6,6 +6,7 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.FiniteTilted
+public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.IntegrableOfBound
 
 /-!
 # Finite replica averages of a random tilted counting measure
@@ -95,13 +96,12 @@ theorem memLp_integral_pi_count_tilted_of_dominated {Ω α R : Type*} [Measurabl
     (Φ : Ω → (R → α) → ℝ) (hΦ : ∀ σ, AEMeasurable (fun ω => Φ ω σ) μ)
     {B : Ω → ℝ} (hB : MemLp B p μ) (hbound : ∀ᵐ ω ∂μ, ∀ σ, |Φ ω σ| ≤ B ω) :
     MemLp (fun ω => ∫ σ, Φ ω σ
-      ∂(Measure.pi fun _ : R => Measure.count.tilted (f ω))) p μ := by
-  refine hB.mono' (aemeasurable_integral_pi_count_tilted hf hΦ).aestronglyMeasurable ?_
-  filter_upwards [hbound] with ω hω
-  have hi := norm_integral_le_of_norm_le_const
-    (μ := Measure.pi fun _ : R => Measure.count.tilted (f ω)) (C := B ω)
-    (f := Φ ω) (ae_of_all _ fun σ => by rw [Real.norm_eq_abs]; exact hω σ)
-  simpa only [probReal_univ, mul_one] using hi
+      ∂(Measure.pi fun _ : R => Measure.count.tilted (f ω))) p μ :=
+  memLp_integral_of_norm_le
+    (κ := fun ω => Measure.pi fun _ : R => Measure.count.tilted (f ω))
+    (aemeasurable_integral_pi_count_tilted hf hΦ).aestronglyMeasurable hB
+    (hbound.mono fun ω hω => ae_of_all _ fun σ => by
+      simpa only [Real.norm_eq_abs] using hω σ)
 
 /-- A bounded random finite Gibbs observable has a replica average in every `L^p`
 for a finite disorder measure. Energies and observables need only be a.e. measurable. -/
@@ -128,6 +128,24 @@ theorem integrable_integral_pi_count_tilted_of_bound {Ω α R : Type*} [Measurab
   exact (memLp_integral_pi_count_tilted_of_bound 1 f (fun a => (hf a).aemeasurable)
     Φ (fun σ => (hΦ σ).aemeasurable) M (ae_of_all _ hM)).integrable le_rfl
 
+/-- **A finite sum of dominated replica averages can be integrated termwise in the disorder.**
+Energies and observables need only be a.e. measurable, each observable having an integrable
+envelope; the disorder measure is arbitrary. -/
+theorem integral_integral_pi_count_tilted_finset_sum_of_dominated {Ω α R ι : Type*}
+    [MeasurableSpace Ω] {μ : Measure Ω} [Finite α] [Nonempty α] [Fintype R]
+    [MeasurableSpace α] [MeasurableSingletonClass α]
+    (f : Ω → α → ℝ) (hf : ∀ a, AEMeasurable (fun ω => f ω a) μ) (t : Finset ι)
+    (Φ : ι → Ω → (R → α) → ℝ) (hΦ : ∀ i ∈ t, ∀ σ, AEMeasurable (fun ω => Φ i ω σ) μ)
+    {B : ι → Ω → ℝ} (hB : ∀ i ∈ t, Integrable (B i) μ)
+    (hbound : ∀ i ∈ t, ∀ᵐ ω ∂μ, ∀ σ, |Φ i ω σ| ≤ B i ω) :
+    ∫ ω, ∫ σ, ∑ i ∈ t, Φ i ω σ ∂(Measure.pi fun _ : R => Measure.count.tilted (f ω)) ∂μ =
+      ∑ i ∈ t, ∫ ω, ∫ σ, Φ i ω σ ∂(Measure.pi fun _ : R => Measure.count.tilted (f ω)) ∂μ :=
+  integral_integral_finset_sum_dep μ
+    (fun ω => Measure.pi fun _ : R => Measure.count.tilted (f ω)) t Φ
+    (fun _ _ _ => Integrable.of_finite)
+    fun i hi => memLp_one_iff_integrable.1 <| memLp_integral_pi_count_tilted_of_dominated f hf
+      (Φ i) (hΦ i hi) (memLp_one_iff_integrable.2 (hB i hi)) (hbound i hi)
+
 /-- **A finite sum of bounded replica averages can be integrated termwise in the disorder.** -/
 theorem integral_integral_pi_count_tilted_finset_sum {Ω α R ι : Type*} [MeasurableSpace Ω]
     {μ : Measure Ω} [IsFiniteMeasure μ] [Finite α] [Nonempty α] [Fintype R]
@@ -136,12 +154,11 @@ theorem integral_integral_pi_count_tilted_finset_sum {Ω α R ι : Type*} [Measu
     (Φ : ι → Ω → (R → α) → ℝ) (hΦ : ∀ i σ, Measurable fun ω => Φ i ω σ) (M : ℝ)
     (hM : ∀ i ω σ, |Φ i ω σ| ≤ M) :
     ∫ ω, ∫ σ, ∑ i ∈ t, Φ i ω σ ∂(Measure.pi fun _ : R => Measure.count.tilted (f ω)) ∂μ =
-      ∑ i ∈ t, ∫ ω, ∫ σ, Φ i ω σ ∂(Measure.pi fun _ : R => Measure.count.tilted (f ω)) ∂μ := by
-  have hint : ∀ ω, ∀ i ∈ t, Integrable (fun σ => Φ i ω σ)
-      (Measure.pi fun _ : R => Measure.count.tilted (f ω)) := fun ω i _ => Integrable.of_finite
-  simp_rw [integral_finsetSum t (hint _)]
-  exact integral_finsetSum t fun i _ =>
-    integrable_integral_pi_count_tilted_of_bound f hf (Φ i) (hΦ i) M (hM i)
+      ∑ i ∈ t, ∫ ω, ∫ σ, Φ i ω σ ∂(Measure.pi fun _ : R => Measure.count.tilted (f ω)) ∂μ :=
+  integral_integral_pi_count_tilted_finset_sum_of_dominated f
+    (fun a => (hf a).aemeasurable) t Φ (fun i _ σ => (hΦ i σ).aemeasurable)
+    (B := fun _ _ => M) (fun _ _ => integrable_const M)
+    fun i _ => ae_of_all _ (hM i)
 
 /-- **Additivity of the bounded replica average in the disorder.** -/
 theorem integral_integral_pi_count_tilted_add {Ω α R : Type*} [MeasurableSpace Ω]
@@ -153,8 +170,9 @@ theorem integral_integral_pi_count_tilted_add {Ω α R : Type*} [MeasurableSpace
     ∫ ω, ∫ σ, (Φ ω σ + Ψ ω σ) ∂(Measure.pi fun _ : R => Measure.count.tilted (f ω)) ∂μ =
       (∫ ω, ∫ σ, Φ ω σ ∂(Measure.pi fun _ : R => Measure.count.tilted (f ω)) ∂μ) +
       ∫ ω, ∫ σ, Ψ ω σ ∂(Measure.pi fun _ : R => Measure.count.tilted (f ω)) ∂μ := by
-  simp_rw [integral_add (Integrable.of_finite (f := fun σ => Φ _ σ)) Integrable.of_finite]
-  exact integral_add (integrable_integral_pi_count_tilted_of_bound f hf Φ hΦ M hMΦ)
-    (integrable_integral_pi_count_tilted_of_bound f hf Ψ hΨ M hMΨ)
+  have h := integral_integral_pi_count_tilted_finset_sum (μ := μ) f hf Finset.univ
+    (fun b : Bool => bif b then Φ else Ψ) (fun b => by cases b <;> assumption) M
+    (fun b => by cases b <;> assumption)
+  simpa only [Fintype.sum_bool, Bool.cond_true, Bool.cond_false] using h
 
 end MeasureTheory

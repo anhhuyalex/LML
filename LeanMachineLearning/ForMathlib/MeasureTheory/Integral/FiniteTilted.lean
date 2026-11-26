@@ -8,6 +8,8 @@ module
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Constructions.Pi
 public import Mathlib.MeasureTheory.Measure.Tilted
 public import Mathlib.Probability.Moments.Tilted
+public import Mathlib.MeasureTheory.Measure.Count
+public import Mathlib.MeasureTheory.Integral.Prod
 
 /-!
 # Exponential tilts of counting measure on a finite space
@@ -46,6 +48,18 @@ theorem integral_count_tilted (f g : α → ℝ) :
   rw [integral_tilted, integral_count_eq_sum, integral_count_eq_sum]
   simp only [smul_eq_mul]
 
+omit [Fintype α] [MeasurableSingletonClass α] in
+/-- **Equivariance of tilted averages:** a measure preserving measurable equivalence transports
+both the exponent and the observable. -/
+theorem integral_tilted_comp_measurePreserving_equiv {β E : Type*} [MeasurableSpace β]
+    [NormedAddCommGroup E] [NormedSpace ℝ E] {μ : Measure α} {ν : Measure β} (e : α ≃ᵐ β)
+    (he : MeasurePreserving e μ ν) (f : β → ℝ) (g : β → E) :
+    ∫ b, g b ∂(ν.tilted f) = ∫ a, g (e a) ∂(μ.tilted fun a => f (e a)) := by
+  have hZ : ∫ a, Real.exp (f (e a)) ∂μ = ∫ b, Real.exp (f b) ∂ν :=
+    he.integral_comp' (g := fun b => Real.exp (f b))
+  rw [integral_tilted, integral_tilted, hZ]
+  exact (he.integral_comp' (g := fun b => (Real.exp (f b) / ∫ b, Real.exp (f b) ∂ν) • g b)).symm
+
 omit [Fintype α] in
 /-- **Equivariance of finite Gibbs averages.**  Reindexing a finite configuration space along an
 equivalence transports both the energy and the observable.  This packages the algebra needed to
@@ -55,13 +69,15 @@ theorem integral_count_tilted_equiv {β : Type*} [Finite α] [Finite β] [Measur
     [MeasurableSingletonClass β] (e : α ≃ β) (f g : β → ℝ) :
     ∫ b, g b ∂(Measure.count.tilted f) =
       ∫ a, g (e a) ∂(Measure.count.tilted fun a => f (e a)) := by
-  let _ := Fintype.ofFinite α
-  let _ := Fintype.ofFinite β
-  rw [integral_count_tilted, integral_count_tilted]
-  have hZ : (∑ b : β, Real.exp (f b)) = ∑ a : α, Real.exp (f (e a)) :=
-    (e.sum_comp fun b => Real.exp (f b)).symm
-  rw [hZ]
-  exact (e.sum_comp fun b => Real.exp (f b) / (∑ a : α, Real.exp (f (e a))) * g b).symm
+  let ψ : α ≃ᵐ β :=
+    { toEquiv := e
+      measurable_toFun := measurable_of_finite _
+      measurable_invFun := measurable_of_finite _ }
+  have hψ : MeasurePreserving ψ Measure.count Measure.count := by
+    refine ⟨ψ.measurable, Measure.ext fun s _ => ?_⟩
+    rw [ψ.map_apply, ← ψ.image_symm]
+    exact Measure.count_injective_image ψ.symm.injective s
+  exact integral_tilted_comp_measurePreserving_equiv ψ hψ f g
 
 /-- **Disintegrating a finite Gibbs average over a finite fibre.**  If the energy on
 `α × ε` is `A a + B a e`, its Gibbs average is the quotient of the corresponding fibrewise
@@ -140,18 +156,29 @@ theorem measurable_count_tilted [Finite α] {Ω : Type*} [MeasurableSpace Ω] (f
   · simp [ha]
 
 omit [Fintype α] in
+/-- **A Gibbs average over a countable space is measurable in the parameter** if the energies and
+the observables are measurable in the parameter for each state. No integrability is needed. -/
+theorem measurable_integral_count_tilted_dep_of_countable [Countable α] {Ω : Type*}
+    [MeasurableSpace Ω] (f : Ω → α → ℝ) (hf : ∀ a, Measurable fun ω => f ω a) (φ : Ω → α → ℝ)
+    (hφ : ∀ a, Measurable fun ω => φ ω a) :
+    Measurable fun ω => ∫ a, φ ω a ∂(Measure.count.tilted (f ω)) := by
+  have hf' : Measurable fun z : Ω × α => f z.1 z.2 := measurable_from_prod_countable_left hf
+  have hφ' : Measurable fun z : Ω × α => φ z.1 z.2 := measurable_from_prod_countable_left hφ
+  have hZ : Measurable fun ω => ∫ a, Real.exp (f ω a) ∂(Measure.count : Measure α) :=
+    hf'.exp.stronglyMeasurable.integral_prod_right'.measurable
+  simp_rw [integral_tilted, smul_eq_mul]
+  exact (((hf'.exp.div (hZ.comp measurable_fst)).mul
+    hφ').stronglyMeasurable.integral_prod_right').measurable
+
+omit [Fintype α] in
 /-- **A Gibbs average of a parameter-dependent observable is measurable in the parameter:** if
 the energies `f ω a` and the observables `φ ω a` are measurable in `ω` for each state `a`, so is
 `ω ↦ ∫ φ ω d(count.tilted (f ω))`. -/
 theorem measurable_integral_count_tilted_dep [Finite α] {Ω : Type*} [MeasurableSpace Ω]
     (f : Ω → α → ℝ) (hf : ∀ a, Measurable fun ω => f ω a) (φ : Ω → α → ℝ)
     (hφ : ∀ a, Measurable fun ω => φ ω a) :
-    Measurable fun ω => ∫ a, φ ω a ∂(Measure.count.tilted (f ω)) := by
-  have := Fintype.ofFinite α
-  simp_rw [integral_count_tilted]
-  exact Finset.measurable_sum _ fun a _ =>
-    ((Real.measurable_exp.comp (hf a)).div
-      (Finset.measurable_sum _ fun b _ => Real.measurable_exp.comp (hf b))).mul (hφ a)
+    Measurable fun ω => ∫ a, φ ω a ∂(Measure.count.tilted (f ω)) :=
+  measurable_integral_count_tilted_dep_of_countable f hf φ hφ
 
 omit [Fintype α] in
 /-- **A Gibbs average is measurable in the disorder:** if the energies `f ω a` are measurable in
@@ -165,12 +192,19 @@ omit [Fintype α] in
 instance [Finite α] [Nonempty α] (f : α → ℝ) : IsProbabilityMeasure (Measure.count.tilted f) :=
   isProbabilityMeasure_tilted Integrable.of_finite
 
+omit [MeasurableSingletonClass α] in
+/-- The average of a vector-valued `g` over a probability measure on a finite space is at most
+`∑ₐ ‖g a‖` in norm. -/
+theorem norm_integral_le_sum_norm {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+    (μ : Measure α) [IsProbabilityMeasure μ] (g : α → E) :
+    ‖∫ a, g a ∂μ‖ ≤ ∑ a, ‖g a‖ := by
+  refine (norm_integral_le_of_norm_le_const (C := ∑ a, ‖g a‖) (ae_of_all _ fun a => ?_)).trans ?_
+  · exact Finset.single_le_sum (f := fun b => ‖g b‖) (fun _ _ => norm_nonneg _) (mem_univ a)
+  · simp
+
 /-- The Gibbs average of `g` is at most `∑ₐ |g a|` in absolute value. -/
 theorem norm_integral_count_tilted_le [Nonempty α] (f g : α → ℝ) :
     ‖∫ a, g a ∂(Measure.count.tilted f)‖ ≤ ∑ a, |g a| := by
-  refine (norm_integral_le_of_norm_le_const (C := ∑ a, |g a|) (ae_of_all _ fun a => ?_)).trans ?_
-  · rw [Real.norm_eq_abs]
-    exact Finset.single_le_sum (f := fun b => |g b|) (fun _ _ => abs_nonneg _) (mem_univ a)
-  · simp
+  simpa only [Real.norm_eq_abs] using norm_integral_le_sum_norm (Measure.count.tilted f) g
 
 end MeasureTheory

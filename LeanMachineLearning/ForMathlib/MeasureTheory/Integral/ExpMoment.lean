@@ -35,14 +35,22 @@ theorem Real.pow_le_natCast_pow_mul_exp {x : ℝ} (hx : 0 ≤ x) (k : ℕ) :
 
 namespace MeasureTheory
 
+/-- If `1 + c * Y ≤ Z` almost everywhere on a probability space, then
+`1 + c * ∫ Y ≤ ∫ Z`. -/
+theorem one_add_mul_integral_le_integral_of_ae {Ω : Type*} {m : MeasurableSpace Ω}
+    {μ : Measure Ω} [IsProbabilityMeasure μ] {Y Z : Ω → ℝ} (c : ℝ) (hY : Integrable Y μ)
+    (hZ : Integrable Z μ) (h : ∀ᵐ ω ∂μ, 1 + c * Y ω ≤ Z ω) :
+    1 + c * ∫ ω, Y ω ∂μ ≤ ∫ ω, Z ω ∂μ := by
+  have hint : ∫ ω, (1 + c * Y ω) ∂μ ≤ ∫ ω, Z ω ∂μ :=
+    integral_mono_ae ((integrable_const 1).add (hY.const_mul c)) hZ h
+  rwa [integral_add (integrable_const 1) (hY.const_mul c), integral_const, integral_const_mul,
+    probReal_univ, one_smul] at hint
+
 /-- If `1 + c * Y ≤ Z` pointwise on a probability space, then `1 + c * ∫ Y ≤ ∫ Z`. -/
 theorem one_add_mul_integral_le_integral {Ω : Type*} {m : MeasurableSpace Ω} {μ : Measure Ω}
     [IsProbabilityMeasure μ] {Y Z : Ω → ℝ} (c : ℝ) (hY : Integrable Y μ) (hZ : Integrable Z μ)
-    (h : ∀ ω, 1 + c * Y ω ≤ Z ω) : 1 + c * ∫ ω, Y ω ∂μ ≤ ∫ ω, Z ω ∂μ := by
-  have hint : ∫ ω, (1 + c * Y ω) ∂μ ≤ ∫ ω, Z ω ∂μ :=
-    integral_mono ((integrable_const 1).add (hY.const_mul c)) hZ h
-  rwa [integral_add (integrable_const 1) (hY.const_mul c), integral_const, integral_const_mul,
-    probReal_univ, one_smul] at hint
+    (h : ∀ ω, 1 + c * Y ω ≤ Z ω) : 1 + c * ∫ ω, Y ω ∂μ ≤ ∫ ω, Z ω ∂μ :=
+  one_add_mul_integral_le_integral_of_ae c hY hZ (ae_of_all _ h)
 
 /-- `1 + c ∫ X ≤ ∫ exp (c X)` on a probability space. -/
 theorem one_add_mul_integral_le_integral_exp {Ω : Type*} {m : MeasurableSpace Ω}
@@ -51,6 +59,19 @@ theorem one_add_mul_integral_le_integral_exp {Ω : Type*} {m : MeasurableSpace �
     1 + c * ∫ ω, X ω ∂μ ≤ ∫ ω, Real.exp (c * X ω) ∂μ :=
   one_add_mul_integral_le_integral c hX hexp fun ω => by
     simpa [add_comm] using Real.add_one_le_exp (c * X ω)
+
+/-- **Two-level version:** for a family of probability measures `μ ω` indexed by a probability
+space, `1 + c 𝔼 ∫ X dμ ≤ 𝔼 ∫ exp (c X) dμ`, with integrability under `μ ω` needed only for
+almost every `ω`. -/
+theorem one_add_mul_integral_integral_le_of_ae {Ω Γ : Type*} {mΩ : MeasurableSpace Ω}
+    {mΓ : MeasurableSpace Γ} {P : Measure Ω} [IsProbabilityMeasure P] {μ : Ω → Measure Γ}
+    [∀ ω, IsProbabilityMeasure (μ ω)] {X : Γ → ℝ} (c : ℝ) (hX : ∀ᵐ ω ∂P, Integrable X (μ ω))
+    (hexp : ∀ᵐ ω ∂P, Integrable (fun σ => Real.exp (c * X σ)) (μ ω))
+    (hJX : Integrable (fun ω => ∫ σ, X σ ∂μ ω) P)
+    (hJexp : Integrable (fun ω => ∫ σ, Real.exp (c * X σ) ∂μ ω) P) :
+    1 + c * ∫ ω, ∫ σ, X σ ∂μ ω ∂P ≤ ∫ ω, ∫ σ, Real.exp (c * X σ) ∂μ ω ∂P :=
+  one_add_mul_integral_le_integral_of_ae c hJX hJexp (by
+    filter_upwards [hX, hexp] with ω h1 h2 using one_add_mul_integral_le_integral_exp c h1 h2)
 
 /-- **Two-level version:** for a family of probability measures `μ ω` indexed by a probability
 space, `1 + c 𝔼 ∫ X dμ ≤ 𝔼 ∫ exp (c X) dμ`.  This is the passage from an exponential moment of a
@@ -62,8 +83,7 @@ theorem one_add_mul_integral_integral_le {Ω Γ : Type*} {mΩ : MeasurableSpace 
     (hJX : Integrable (fun ω => ∫ σ, X σ ∂μ ω) P)
     (hJexp : Integrable (fun ω => ∫ σ, Real.exp (c * X σ) ∂μ ω) P) :
     1 + c * ∫ ω, ∫ σ, X σ ∂μ ω ∂P ≤ ∫ ω, ∫ σ, Real.exp (c * X σ) ∂μ ω ∂P :=
-  one_add_mul_integral_le_integral c hJX hJexp fun ω =>
-    one_add_mul_integral_le_integral_exp c (hX ω) (hexp ω)
+  one_add_mul_integral_integral_le_of_ae c (ae_of_all _ hX) (ae_of_all _ hexp) hJX hJexp
 
 /-- **Moments from the exponential moment** (Talagrand, Lemma 3.1.8, Eq. (3.29)): on a
 probability space, if `X ≥ 0` and `∫ exp X ≤ exp C`, then `∫ X ^ k ≤ 2 ^ k (k ^ k + C ^ k)`.

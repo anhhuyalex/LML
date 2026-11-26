@@ -8,6 +8,7 @@ module
 public import Mathlib.Data.Fintype.Prod
 public import Mathlib.MeasureTheory.Integral.Bochner.Basic
 public import Mathlib.MeasureTheory.Integral.IntegrableOn
+public import Mathlib.MeasureTheory.Function.LpSeminorm.Basic
 
 /-!
 # Integrability of the integral of a bounded function against random probability measures
@@ -21,6 +22,7 @@ averages, where `κ ω` is a random Gibbs measure or a power of one.
 @[expose] public section
 
 open MeasureTheory
+open scoped ENNReal
 
 namespace MeasureTheory
 
@@ -60,6 +62,17 @@ theorem integrable_integral_of_bound {Ω α E : Type*} [MeasurableSpace Ω] [Mea
     Integrable (fun ω => ∫ x, f x ∂κ ω) P :=
   integrable_integral_of_bound_of_measure_univ_le_one
     (ae_of_all _ fun _ => measure_univ.le) hC hm
+
+/-- An `L^p` envelope of random observables, integrated against random probability measures, also
+dominates their averages. The outer measure need not be finite. -/
+theorem memLp_integral_of_norm_le {Ω α E : Type*} [MeasurableSpace Ω] [MeasurableSpace α]
+    [NormedAddCommGroup E] [NormedSpace ℝ E] {μ : Measure Ω} {κ : Ω → Measure α}
+    [∀ ω, IsProbabilityMeasure (κ ω)] {p : ℝ≥0∞} {Φ : Ω → α → E}
+    (hm : AEStronglyMeasurable (fun ω => ∫ x, Φ ω x ∂κ ω) μ) {B : Ω → ℝ} (hB : MemLp B p μ)
+    (hbound : ∀ᵐ ω ∂μ, ∀ᵐ x ∂κ ω, ‖Φ ω x‖ ≤ B ω) :
+    MemLp (fun ω => ∫ x, Φ ω x ∂κ ω) p μ :=
+  hB.mono' hm <| hbound.mono fun ω h => by
+    simpa only [probReal_univ, mul_one] using norm_integral_le_of_norm_le_const (μ := κ ω) h
 
 /-- A finite sum of functions depending on both the outer and inner variables can be moved
 through an inner integral against a measure depending on the outer variable, then through the

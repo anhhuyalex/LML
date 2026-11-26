@@ -32,6 +32,16 @@ theorem MeasurePreserving.integral_comp_of_aestronglyMeasurable {α β E : Type*
         (integral_map hf.measurable.aemeasurable (by rwa [hf.map_eq])).symm
     _ = ∫ y, g y ∂ν := by rw [hf.map_eq]
 
+/-- If a measure preserving map carries the observable `F i` to `F j` almost everywhere, then
+`∫ G (F i) = ∫ G (F j)`, for observables in any measurable space and `G` vector-valued. -/
+theorem integral_comp_eq_of_measurePreserving_ae_eq {Ω α E : Type*} [MeasurableSpace Ω]
+    [NormedAddCommGroup E] [NormedSpace ℝ E] {P : Measure Ω} {X Y : Ω → α} {G : α → E}
+    {φ : Ω → Ω} (hφ : MeasurePreserving φ P P) (h : ∀ᵐ ω ∂P, X (φ ω) = Y ω)
+    (hG : AEStronglyMeasurable (fun ω => G (X ω)) P) :
+    ∫ ω, G (X ω) ∂P = ∫ ω, G (Y ω) ∂P :=
+  (hφ.integral_comp_of_aestronglyMeasurable (g := fun ω => G (X ω)) hG).symm.trans
+    (integral_congr_ae (h.mono fun _ h => congrArg G h))
+
 /-- **Exchangeability.**  If for every permutation `π` of the index type there is a measure
 preserving `φ` with `F i (φ ω) = F (π i) ω`, then `∫ G (F i)` is the same for all `i`. -/
 theorem integral_comp_eq_of_perm_equivariant {Ω ι : Type*} [MeasurableSpace Ω] {P : Measure Ω}
@@ -42,9 +52,8 @@ theorem integral_comp_eq_of_perm_equivariant {Ω ι : Type*} [MeasurableSpace Ω
     ∫ ω, G (F i ω) ∂P = ∫ ω, G (F j ω) ∂P := by
   classical
   obtain ⟨φ, hφ, hφF⟩ := hsymm (Equiv.swap j i)
-  have h := hφ.integral_comp_of_aestronglyMeasurable
-    (g := fun ω => G (F j ω)) (hG.comp (hF j)).aestronglyMeasurable
-  simp only [hφF, Equiv.swap_apply_left] at h
-  exact h
+  refine (integral_comp_eq_of_measurePreserving_ae_eq (X := F j) (Y := F i) (G := G) hφ
+    (ae_of_all _ fun ω => ?_) (hG.comp (hF j)).aestronglyMeasurable).symm
+  rw [hφF, Equiv.swap_apply_left]
 
 end MeasureTheory

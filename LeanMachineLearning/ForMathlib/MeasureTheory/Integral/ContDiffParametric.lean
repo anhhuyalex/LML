@@ -19,6 +19,9 @@ derivatives are dominated uniformly by integrable functions gives a `Cⁿ` param
 The parameter derivative of `G : P × E → F` at `(p, η)` is `fderiv ℝ (fun p => G (p, η)) p`.
 
 * `MeasureTheory.hasFDerivAt_section_left`: this partial derivative from the joint derivative.
+* `MeasureTheory.contDiff_one_integral_of_dominated`,
+  `MeasureTheory.contDiff_two_integral_of_dominated`: only the sections `p ↦ G p ω` need be
+  smooth, for a.e. `ω`, with local domination of the parameter derivatives.
 * `MeasureTheory.contDiff_one_integral_of_bound`, `MeasureTheory.contDiff_two_integral_of_bounds`,
   `MeasureTheory.boundedC2_integral_of_bounds`.
 -/
@@ -53,6 +56,75 @@ theorem contDiff_fderiv_section_left {G : P × E → F} {n : ℕ} (hG : ContDiff
   rw [heq]
   exact h
 
+section Dominated
+
+variable {Ω : Type*} [MeasurableSpace Ω] {ν : Measure Ω}
+
+/-- **`C¹` regularity of a parametric integral under local domination.** Let every `G p` be
+integrable, `p ↦ G p ω` be `C¹` for a.e. `ω`, the parameter derivative at each point be
+measurable in `ω`, and dominated near each point by an integrable function. Then
+`p ↦ ∫ G p ω dν` is `C¹` and may be differentiated under the integral sign. -/
+theorem contDiff_one_integral_of_dominated {G : P → Ω → F} (hint : ∀ p, Integrable (G p) ν)
+    (hC : ∀ᵐ ω ∂ν, ContDiff ℝ 1 fun p => G p ω)
+    (hm : ∀ p, AEStronglyMeasurable (fun ω => fderiv ℝ (fun p => G p ω) p) ν)
+    (hdom : ∀ p₀, ∃ s ∈ 𝓝 p₀, ∃ b : Ω → ℝ, Integrable b ν ∧
+      ∀ᵐ ω ∂ν, ∀ p ∈ s, ‖fderiv ℝ (fun p => G p ω) p‖ ≤ b ω) :
+    ContDiff ℝ 1 (fun p => ∫ ω, G p ω ∂ν) ∧
+      ∀ p, HasFDerivAt (fun p => ∫ ω, G p ω ∂ν)
+        (∫ ω, fderiv ℝ (fun p => G p ω) p ∂ν) p := by
+  have hder : ∀ p, HasFDerivAt (fun p => ∫ ω, G p ω ∂ν)
+      (∫ ω, fderiv ℝ (fun p => G p ω) p ∂ν) p := fun p => by
+    obtain ⟨s, hs, b, hb, hbd⟩ := hdom p
+    exact hasFDerivAt_integral_of_dominated_of_fderiv_le (s := s) (bound := b)
+      (F := fun p ω => G p ω) (F' := fun p ω => fderiv ℝ (fun p => G p ω) p)
+      hs (Eventually.of_forall fun p => (hint p).aestronglyMeasurable) (hint p) (hm p)
+      hbd hb (hC.mono fun ω h x _ => ((h.differentiable one_ne_zero) x).hasFDerivAt)
+  refine ⟨?_, hder⟩
+  rw [contDiff_one_iff_fderiv]
+  refine ⟨fun p => (hder p).differentiableAt, ?_⟩
+  have : fderiv ℝ (fun p => ∫ ω, G p ω ∂ν) =
+      fun p => ∫ ω, fderiv ℝ (fun p => G p ω) p ∂ν := funext fun p => (hder p).fderiv
+  rw [this, continuous_iff_continuousAt]
+  intro p₀
+  obtain ⟨s, hs, b, hb, hbd⟩ := hdom p₀
+  exact continuousAt_of_dominated (bound := b) (Eventually.of_forall hm)
+    (Filter.eventually_of_mem hs fun p hp => hbd.mono fun ω h => h p hp) hb
+    (hC.mono fun ω h => (h.continuous_fderiv one_ne_zero).continuousAt)
+
+/-- **`C²` regularity of a parametric integral under local domination** of the first and second
+parameter derivatives. -/
+theorem contDiff_two_integral_of_dominated {G : P → Ω → F} (hint : ∀ p, Integrable (G p) ν)
+    (hC : ∀ᵐ ω ∂ν, ContDiff ℝ 2 fun p => G p ω)
+    (hm1 : ∀ p, AEStronglyMeasurable (fun ω => fderiv ℝ (fun p => G p ω) p) ν)
+    (hm2 : ∀ p, AEStronglyMeasurable (fun ω => fderiv ℝ (fderiv ℝ fun p => G p ω) p) ν)
+    (hdom1 : ∀ p₀, ∃ s ∈ 𝓝 p₀, ∃ b : Ω → ℝ, Integrable b ν ∧
+      ∀ᵐ ω ∂ν, ∀ p ∈ s, ‖fderiv ℝ (fun p => G p ω) p‖ ≤ b ω)
+    (hdom2 : ∀ p₀, ∃ s ∈ 𝓝 p₀, ∃ b : Ω → ℝ, Integrable b ν ∧
+      ∀ᵐ ω ∂ν, ∀ p ∈ s, ‖fderiv ℝ (fderiv ℝ fun p => G p ω) p‖ ≤ b ω) :
+    ContDiff ℝ 2 (fun p => ∫ ω, G p ω ∂ν) ∧
+      (∀ p, fderiv ℝ (fun p => ∫ ω, G p ω ∂ν) p = ∫ ω, fderiv ℝ (fun p => G p ω) p ∂ν) ∧
+      ∀ p, fderiv ℝ (fderiv ℝ (fun p => ∫ ω, G p ω ∂ν)) p =
+        ∫ ω, fderiv ℝ (fderiv ℝ fun p => G p ω) p ∂ν := by
+  obtain ⟨-, hder⟩ := contDiff_one_integral_of_dominated hint
+    (hC.mono fun ω h => h.of_le (by norm_num)) hm1 hdom1
+  have hintD : ∀ p, Integrable (fun ω => fderiv ℝ (fun p => G p ω) p) ν := fun p => by
+    obtain ⟨s, hs, b, hb, hbd⟩ := hdom1 p
+    exact hb.mono' (hm1 p) (hbd.mono fun ω h => h p (mem_of_mem_nhds hs))
+  obtain ⟨hC1, hder2⟩ := contDiff_one_integral_of_dominated
+    (G := fun p ω => fderiv ℝ (fun p => G p ω) p) hintD
+    (hC.mono fun ω h => h.fderiv_right (m := 1) (by norm_num)) hm2 hdom2
+  have hfd : fderiv ℝ (fun p => ∫ ω, G p ω ∂ν) =
+      fun p => ∫ ω, fderiv ℝ (fun p => G p ω) p ∂ν := funext fun p => (hder p).fderiv
+  refine ⟨?_, fun p => (hder p).fderiv, fun p => ?_⟩
+  · have : ContDiff ℝ (1 + 1) (fun p => ∫ ω, G p ω ∂ν) := by
+      rw [contDiff_succ_iff_fderiv]
+      exact ⟨fun p => (hder p).differentiableAt, fun h => absurd h (by simp), by rwa [hfd]⟩
+    simpa [one_add_one_eq_two] using this
+  · rw [hfd]
+    exact (hder2 p).fderiv
+
+end Dominated
+
 variable [MeasurableSpace E] [BorelSpace E] [SecondCountableTopology E] {ν : Measure E}
 
 /-- **`C¹` regularity of a parametric integral over a non-compact space.** -/
@@ -62,30 +134,12 @@ theorem contDiff_one_integral_of_bound {G : P × E → F} (hG : ContDiff ℝ 1 G
     ContDiff ℝ 1 (fun p => ∫ η, G (p, η) ∂ν) ∧
       ∀ p, HasFDerivAt (fun p => ∫ η, G (p, η) ∂ν)
         (∫ η, fderiv ℝ (fun p => G (p, η)) p ∂ν) p := by
-  have hd : ∀ q, DifferentiableAt ℝ G q := fun q => (hG.differentiable (by simp)) q
-  have hcG : Continuous G := hG.continuous
   have hcD : Continuous (fun q : P × E => fderiv ℝ (fun p => G (p, q.2)) q.1) :=
     (contDiff_fderiv_section_left (n := 0) (by simpa using hG)).continuous
-  have hmeas : ∀ p, AEStronglyMeasurable (fun η => G (p, η)) ν := fun p =>
-    (hcG.comp (Continuous.prodMk_right p)).aestronglyMeasurable
-  have hmeas' : ∀ p, AEStronglyMeasurable (fun η => fderiv ℝ (fun p => G (p, η)) p) ν := fun p =>
-    (hcD.comp (Continuous.prodMk_right p)).aestronglyMeasurable
-  have hder : ∀ p, HasFDerivAt (fun p => ∫ η, G (p, η) ∂ν)
-      (∫ η, fderiv ℝ (fun p => G (p, η)) p ∂ν) p := fun p =>
-    hasFDerivAt_integral_of_dominated_of_fderiv_le (s := Set.univ) (bound := b)
-      (F := fun p η => G (p, η)) (F' := fun p η => fderiv ℝ (fun p => G (p, η)) p)
-      Filter.univ_mem (Eventually.of_forall hmeas) (hint p) (hmeas' p)
-      (ae_of_all _ fun η x _ => hbd x η) hb
-      (ae_of_all _ fun η x _ =>
-        (hasFDerivAt_section_left (hd (x, η))).differentiableAt.hasFDerivAt)
-  refine ⟨?_, hder⟩
-  rw [contDiff_one_iff_fderiv]
-  refine ⟨fun p => (hder p).differentiableAt, ?_⟩
-  have : fderiv ℝ (fun p => ∫ η, G (p, η) ∂ν) =
-      fun p => ∫ η, fderiv ℝ (fun p => G (p, η)) p ∂ν := funext fun p => (hder p).fderiv
-  rw [this]
-  exact continuous_of_dominated (bound := b) hmeas' (fun p => ae_of_all _ fun η => hbd p η) hb
-    (ae_of_all _ fun η => hcD.comp (Continuous.prodMk_left η))
+  exact contDiff_one_integral_of_dominated (G := fun p η => G (p, η)) hint
+    (ae_of_all _ fun η => hG.comp (contDiff_id.prodMk contDiff_const))
+    (fun p => (hcD.comp (Continuous.prodMk_right p)).aestronglyMeasurable)
+    fun _ => ⟨Set.univ, univ_mem, b, hb, ae_of_all _ fun η p _ => hbd p η⟩
 
 /-- **`C²` regularity of a parametric integral over a non-compact space.** If `G` is `C²`
 jointly, each `G(p, ·)` is integrable, and the first and second parameter derivatives are bounded by
@@ -99,23 +153,21 @@ theorem contDiff_two_integral_of_bounds {G : P × E → F} (hG : ContDiff ℝ 2 
       (∀ p, fderiv ℝ (fun p => ∫ η, G (p, η) ∂ν) p = ∫ η, fderiv ℝ (fun p => G (p, η)) p ∂ν) ∧
       ∀ p, fderiv ℝ (fderiv ℝ (fun p => ∫ η, G (p, η) ∂ν)) p =
         ∫ η, fderiv ℝ (fun p' => fderiv ℝ (fun p => G (p, η)) p') p ∂ν := by
-  have hG1 : ContDiff ℝ 1 G := hG.of_le (by norm_num)
-  obtain ⟨-, hder⟩ := contDiff_one_integral_of_bound hG1 hint hb₁ h1
   have hD1 : ContDiff ℝ 1 (fun q : P × E => fderiv ℝ (fun p => G (p, q.2)) q.1) :=
     contDiff_fderiv_section_left (n := 1) (by simpa [one_add_one_eq_two] using hG)
-  have hintD : ∀ p, Integrable (fun η => fderiv ℝ (fun p => G (p, η)) p) ν := fun p =>
-    hb₁.mono' ((hD1.continuous.comp (Continuous.prodMk_right p)).aestronglyMeasurable)
-      (ae_of_all _ fun η => h1 p η)
-  obtain ⟨hC, hder2⟩ := contDiff_one_integral_of_bound hD1 hintD hb₂ h2
-  have hfd : fderiv ℝ (fun p => ∫ η, G (p, η) ∂ν) =
-      fun p => ∫ η, fderiv ℝ (fun p => G (p, η)) p ∂ν := funext fun p => (hder p).fderiv
-  refine ⟨?_, fun p => (hder p).fderiv, fun p => ?_⟩
-  · have : ContDiff ℝ (1 + 1) (fun p => ∫ η, G (p, η) ∂ν) := by
-      rw [contDiff_succ_iff_fderiv]
-      exact ⟨fun p => (hder p).differentiableAt, fun h => absurd h (by simp), by rwa [hfd]⟩
-    simpa [one_add_one_eq_two] using this
-  · rw [hfd]
-    exact (hder2 p).fderiv
+  have hcD2 : Continuous (fun q : P × E =>
+      fderiv ℝ (fderiv ℝ fun p => G (p, q.2)) q.1) :=
+    (contDiff_fderiv_section_left (n := 0) (by simpa using hD1)).continuous
+  have : TopologicalSpace.PseudoMetrizableSpace (P →L[ℝ] P →L[ℝ] F) :=
+    @PseudoEMetricSpace.pseudoMetrizableSpace _
+      (ContinuousLinearMap.toSeminormedAddCommGroup (E := P) (F := P →L[ℝ] F)
+        (σ₁₂ := RingHom.id ℝ)).toPseudoMetricSpace.toPseudoEMetricSpace
+  exact contDiff_two_integral_of_dominated (G := fun p η => G (p, η)) hint
+    (ae_of_all _ fun η => hG.comp (contDiff_id.prodMk contDiff_const))
+    (fun p => (hD1.continuous.comp (Continuous.prodMk_right p)).aestronglyMeasurable)
+    (fun p => (hcD2.comp (Continuous.prodMk_right p)).aestronglyMeasurable)
+    (fun _ => ⟨Set.univ, univ_mem, b₁, hb₁, ae_of_all _ fun η p _ => h1 p η⟩)
+    fun _ => ⟨Set.univ, univ_mem, b₂, hb₂, ae_of_all _ fun η p _ => h2 p η⟩
 
 /-- **A dominated parametric integral is `BoundedC2`.** If, in addition, `G` and its first and
 second parameter derivatives are dominated by integrable `b₀, b₁, b₂`, then
