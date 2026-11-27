@@ -19,6 +19,8 @@ For a matrix `g : κ → ι → ℝ` with i.i.d. standard Gaussian entries, the 
 
 ## Main declarations
 
+* `ProbabilityTheory.measureReal_opNorm_gt_le_of_hasSubgaussianMGF`: the operator norm of a
+  random operator between finite-dimensional inner product spaces with sub-Gaussian bilinear forms.
 * `ProbabilityTheory.measureReal_abs_bilinear_gaussian_ge_le`: tail of one bilinear form.
 * `ProbabilityTheory.measureReal_l2_opNorm_gaussian_gt_le`: union bound over two nets.
 * `ProbabilityTheory.exists_measureReal_l2_opNorm_gaussian_gt_le_exp`: Lemma A.9.1.
@@ -27,40 +29,11 @@ For a matrix `g : κ → ι → ℝ` with i.i.d. standard Gaussian entries, the 
 @[expose] public section
 
 open MeasureTheory Matrix Module
-open scoped Matrix.Norms.L2Operator RealInnerProductSpace
+open scoped Matrix.Norms.L2Operator RealInnerProductSpace NNReal
 
 namespace ProbabilityTheory
 
 variable {ι κ : Type*} [Fintype ι] [Fintype κ]
-
-/-- A bilinear form `y ⬝ᵥ (G x)` of a standard Gaussian matrix with `y ⬝ᵥ y ≤ 1` and
-`x ⬝ᵥ x ≤ 1` exceeds `t` in absolute value with probability at most `2 exp (-t² / 2)`. -/
-theorem measureReal_abs_bilinear_gaussian_ge_le {y : κ → ℝ} {x : ι → ℝ} (hy : y ⬝ᵥ y ≤ 1)
-    (hx : x ⬝ᵥ x ≤ 1) {t : ℝ} (ht : 0 ≤ t) :
-    (Measure.pi fun _ : κ => Measure.pi fun _ : ι => gaussianReal 0 1).real
-        {g | t ≤ |y ⬝ᵥ (Matrix.of g *ᵥ x)|} ≤ 2 * Real.exp (-t ^ 2 / 2) := by
-  set P := Measure.pi fun _ : κ => Measure.pi fun _ : ι => gaussianReal 0 1 with hP
-  set Z : (κ → ι → ℝ) → ℝ := fun g => y ⬝ᵥ (Matrix.of g *ᵥ x) with hZ
-  have hZG : HasGaussianLaw Z P :=
-    HasGaussianLaw.eval (X := fun (_ : Unit) (g : κ → ι → ℝ) => y ⬝ᵥ (Matrix.of g *ᵥ x))
-      (hasGaussianLaw_bilinear_family (A := Unit) (fun _ => y) fun _ => x) ()
-  have h0 : ∫ g, Z g ∂P = 0 := integral_linearForm_gaussianInit y x
-  have h2 : ∫ g, Z g ^ 2 ∂P ≤ 1 := by
-    have := integral_gaussianMatrix_bilinear_mul_bilinear y y x x
-    simp only [← sq] at this
-    refine this.trans_le ?_
-    have hx0 : 0 ≤ x ⬝ᵥ x := Finset.sum_nonneg fun i _ => mul_self_nonneg _
-    exact (mul_le_mul hy hx hx0 zero_le_one).trans_eq (one_mul 1)
-  have hsub := hZG.hasSubgaussianMGF_of_integral_sq_le h0 h2
-  have hup := hsub.measure_ge_le ht
-  have hlo := hsub.neg.measure_ge_le ht
-  simp only [Real.toNNReal_one, NNReal.coe_one, mul_one, Pi.neg_apply] at hup hlo
-  have hsplit : {g | t ≤ |Z g|} ⊆ {g | t ≤ Z g} ∪ {g | t ≤ -Z g} := fun g (hg : t ≤ |Z g|) =>
-    le_abs.1 hg
-  calc P.real {g | t ≤ |Z g|} ≤ P.real ({g | t ≤ Z g} ∪ {g | t ≤ -Z g}) :=
-        measureReal_mono hsplit (measure_ne_top P _)
-    _ ≤ P.real {g | t ≤ Z g} + P.real {g | t ≤ -Z g} := measureReal_union_le _ _
-    _ ≤ 2 * Real.exp (-t ^ 2 / 2) := by linarith
 
 /-- A vector of the Euclidean unit ball has `v ⬝ᵥ v ≤ 1`. -/
 private theorem dotProduct_ofLp_self_le_one {n : Type*} [Fintype n] (v : EuclideanSpace ℝ n)
@@ -71,6 +44,94 @@ private theorem dotProduct_ofLp_self_le_one {n : Type*} [Fintype n] (v : Euclide
   rw [h]
   exact pow_le_one₀ (norm_nonneg _) hv
 
+section Operator
+
+variable {Ω E F : Type*} {mΩ : MeasurableSpace Ω} {P : Measure Ω} [IsFiniteMeasure P]
+  [NormedAddCommGroup E] [InnerProductSpace ℝ E] [FiniteDimensional ℝ E]
+  [NormedAddCommGroup F] [InnerProductSpace ℝ F] [FiniteDimensional ℝ F]
+
+/-- A sub-Gaussian variable with parameter `1` exceeds `t` in absolute value with measure at most
+`2 exp (-t² / 2)`. -/
+theorem measureReal_abs_ge_le_of_hasSubgaussianMGF_one {Z : Ω → ℝ}
+    (hZ : HasSubgaussianMGF Z 1 P) {t : ℝ} (ht : 0 ≤ t) :
+    P.real {ω | t ≤ |Z ω|} ≤ 2 * Real.exp (-t ^ 2 / 2) := by
+  have hup := hZ.measure_ge_le ht
+  have hlo := hZ.neg.measure_ge_le ht
+  simp only [NNReal.coe_one, mul_one, Pi.neg_apply] at hup hlo
+  have hsplit : {ω | t ≤ |Z ω|} ⊆ {ω | t ≤ Z ω} ∪ {ω | t ≤ -Z ω} :=
+    fun ω (hω : t ≤ |Z ω|) => le_abs.1 hω
+  calc P.real {ω | t ≤ |Z ω|} ≤ P.real ({ω | t ≤ Z ω} ∪ {ω | t ≤ -Z ω}) :=
+        measureReal_mono hsplit (measure_ne_top P _)
+    _ ≤ P.real {ω | t ≤ Z ω} + P.real {ω | t ≤ -Z ω} := measureReal_union_le _ _
+    _ ≤ 2 * Real.exp (-t ^ 2 / 2) := by linarith
+
+/-- **Operator norm of a random operator with sub-Gaussian bilinear forms** (union bound over two
+nets): if `ω ↦ ⟪y, G ω x⟫` is sub-Gaussian with parameter `1` for all `x, y` in the unit balls,
+then `‖G‖` exceeds `t` with measure at most `2 · 5 ^ (dim E + dim F) · exp (-t² / 32)`. -/
+theorem measureReal_opNorm_gt_le_of_hasSubgaussianMGF (G : Ω → E →L[ℝ] F)
+    (hG : ∀ (x : E) (y : F), ‖x‖ ≤ 1 → ‖y‖ ≤ 1 →
+      HasSubgaussianMGF (fun ω => ⟪y, G ω x⟫) 1 P) {t : ℝ} (ht : 0 ≤ t) :
+    P.real {ω | t < ‖G ω‖} ≤ 2 * 5 ^ (finrank ℝ E + finrank ℝ F) * Real.exp (-t ^ 2 / 32) := by
+  obtain ⟨A, hA1, hAc, hAn⟩ := exists_finset_unitBall_net E
+  obtain ⟨B, hB1, hBc, hBn⟩ := exists_finset_unitBall_net F
+  have ht4 : 0 ≤ t / 4 := by positivity
+  have hsub : {ω | t < ‖G ω‖} ⊆ ⋃ p ∈ A ×ˢ B, {ω | t / 4 ≤ |⟪p.2, G ω p.1⟫|} := fun ω hω => by
+    by_contra h
+    simp only [Set.mem_iUnion, Set.mem_ofPred_eq, exists_prop, not_exists, not_and, not_le,
+      Finset.mem_product, and_imp, Prod.forall] at h
+    refine (show t < ‖G ω‖ from hω).not_ge ?_
+    exact le_trans (ContinuousLinearMap.opNorm_le_four_mul_of_net _ (A := A) (B := B) hAn hBn
+      ht4 fun a ha b hb => (h a b ha hb).le) (by linarith)
+  have hterm : ∀ p ∈ A ×ˢ B,
+      P.real {ω | t / 4 ≤ |⟪p.2, G ω p.1⟫|} ≤ 2 * Real.exp (-t ^ 2 / 32) := fun p hp => by
+    obtain ⟨ha, hb⟩ := Finset.mem_product.1 hp
+    have h := measureReal_abs_ge_le_of_hasSubgaussianMGF_one
+      (hG p.1 p.2 (hA1 _ ha) (hB1 _ hb)) ht4
+    rwa [show -(t / 4) ^ 2 / 2 = -t ^ 2 / 32 by ring] at h
+  calc P.real {ω | t < ‖G ω‖}
+      ≤ P.real (⋃ p ∈ A ×ˢ B, {ω | t / 4 ≤ |⟪p.2, G ω p.1⟫|}) :=
+        measureReal_mono hsub (measure_ne_top P _)
+    _ ≤ ∑ p ∈ A ×ˢ B, P.real {ω | t / 4 ≤ |⟪p.2, G ω p.1⟫|} :=
+        measureReal_biUnion_finset_le _ _
+    _ ≤ ∑ _p ∈ A ×ˢ B, 2 * Real.exp (-t ^ 2 / 32) := Finset.sum_le_sum hterm
+    _ = (A.card * B.card : ℕ) * (2 * Real.exp (-t ^ 2 / 32)) := by
+        rw [Finset.sum_const, Finset.card_product, nsmul_eq_mul]
+    _ ≤ (5 ^ (finrank ℝ E + finrank ℝ F) : ℕ) * (2 * Real.exp (-t ^ 2 / 32)) := by
+        refine mul_le_mul_of_nonneg_right (Nat.cast_le.2 ?_) (by positivity)
+        rw [pow_add]
+        exact Nat.mul_le_mul hAc hBc
+    _ = 2 * 5 ^ (finrank ℝ E + finrank ℝ F) * Real.exp (-t ^ 2 / 32) := by
+        push_cast; ring
+
+end Operator
+
+/-- A bilinear form `y ⬝ᵥ (G x)` of a standard Gaussian matrix with `y ⬝ᵥ y ≤ 1` and
+`x ⬝ᵥ x ≤ 1` is sub-Gaussian with parameter `1`. -/
+theorem hasSubgaussianMGF_bilinear_gaussian {y : κ → ℝ} {x : ι → ℝ} (hy : y ⬝ᵥ y ≤ 1)
+    (hx : x ⬝ᵥ x ≤ 1) :
+    HasSubgaussianMGF (fun g : κ → ι → ℝ => y ⬝ᵥ (Matrix.of g *ᵥ x)) 1
+      (Measure.pi fun _ : κ => Measure.pi fun _ : ι => gaussianReal 0 1) := by
+  set P := Measure.pi fun _ : κ => Measure.pi fun _ : ι => gaussianReal 0 1 with hP
+  have hZG : HasGaussianLaw (fun g : κ → ι → ℝ => y ⬝ᵥ (Matrix.of g *ᵥ x)) P :=
+    HasGaussianLaw.eval (X := fun (_ : Unit) (g : κ → ι → ℝ) => y ⬝ᵥ (Matrix.of g *ᵥ x))
+      (hasGaussianLaw_bilinear_family (A := Unit) (fun _ => y) fun _ => x) ()
+  have h0 : ∫ g, y ⬝ᵥ (Matrix.of g *ᵥ x) ∂P = 0 := integral_linearForm_gaussianInit y x
+  have h2 : ∫ g, (y ⬝ᵥ (Matrix.of g *ᵥ x)) ^ 2 ∂P ≤ 1 := by
+    have := integral_gaussianMatrix_bilinear_mul_bilinear y y x x
+    simp only [← sq] at this
+    refine this.trans_le ?_
+    have hx0 : 0 ≤ x ⬝ᵥ x := Finset.sum_nonneg fun i _ => mul_self_nonneg _
+    exact (mul_le_mul hy hx hx0 zero_le_one).trans_eq (one_mul 1)
+  simpa only [Real.toNNReal_one] using hZG.hasSubgaussianMGF_of_integral_sq_le h0 h2
+
+/-- A bilinear form `y ⬝ᵥ (G x)` of a standard Gaussian matrix with `y ⬝ᵥ y ≤ 1` and
+`x ⬝ᵥ x ≤ 1` exceeds `t` in absolute value with probability at most `2 exp (-t² / 2)`. -/
+theorem measureReal_abs_bilinear_gaussian_ge_le {y : κ → ℝ} {x : ι → ℝ} (hy : y ⬝ᵥ y ≤ 1)
+    (hx : x ⬝ᵥ x ≤ 1) {t : ℝ} (ht : 0 ≤ t) :
+    (Measure.pi fun _ : κ => Measure.pi fun _ : ι => gaussianReal 0 1).real
+        {g | t ≤ |y ⬝ᵥ (Matrix.of g *ᵥ x)|} ≤ 2 * Real.exp (-t ^ 2 / 2) :=
+  measureReal_abs_ge_le_of_hasSubgaussianMGF_one (hasSubgaussianMGF_bilinear_gaussian hy hx) ht
+
 variable [DecidableEq ι]
 
 /-- **Union bound over two nets:** the operator norm of a standard Gaussian matrix exceeds `t`
@@ -79,48 +140,20 @@ theorem measureReal_l2_opNorm_gaussian_gt_le {t : ℝ} (ht : 0 ≤ t) :
     (Measure.pi fun _ : κ => Measure.pi fun _ : ι => gaussianReal 0 1).real
         {g | t < ‖Matrix.of g‖} ≤
       2 * 5 ^ (Fintype.card ι + Fintype.card κ) * Real.exp (-t ^ 2 / 32) := by
-  set P := Measure.pi fun _ : κ => Measure.pi fun _ : ι => gaussianReal 0 1 with hP
-  obtain ⟨A, hA1, hAc, hAn⟩ := exists_finset_unitBall_net (EuclideanSpace ℝ ι)
-  obtain ⟨B, hB1, hBc, hBn⟩ := exists_finset_unitBall_net (EuclideanSpace ℝ κ)
-  rw [finrank_euclideanSpace] at hAc hBc
-  have ht4 : 0 ≤ t / 4 := by positivity
-  have hsub : {g : κ → ι → ℝ | t < ‖Matrix.of g‖} ⊆
-      ⋃ p ∈ A ×ˢ B, {g | t / 4 ≤ |p.2.ofLp ⬝ᵥ (Matrix.of g *ᵥ p.1.ofLp)|} := fun g hg => by
-    by_contra h
-    simp only [Set.mem_iUnion, Set.mem_ofPred_eq, exists_prop, not_exists, not_and, not_le,
-      Finset.mem_product, and_imp, Prod.forall] at h
-    refine (show t < ‖Matrix.of g‖ from hg).not_ge ?_
-    rw [Matrix.l2_opNorm_def]
-    refine le_trans (ContinuousLinearMap.opNorm_le_four_mul_of_net _ (A := A) (B := B) hAn hBn
-      ht4 fun a ha b hb => ?_) (by linarith)
-    have e : ⟪b, (Matrix.toEuclideanLin.trans LinearMap.toContinuousLinearMap) (Matrix.of g) a⟫ =
-        b.ofLp ⬝ᵥ (Matrix.of g *ᵥ a.ofLp) := by
-      rw [EuclideanSpace.inner_eq_star_dotProduct, star_trivial, dotProduct_comm]
-      rfl
-    rw [e]
-    exact (h a b ha hb).le
-  have hterm : ∀ p ∈ A ×ˢ B,
-      P.real {g | t / 4 ≤ |p.2.ofLp ⬝ᵥ (Matrix.of g *ᵥ p.1.ofLp)|} ≤
-        2 * Real.exp (-t ^ 2 / 32) := fun p hp => by
-    obtain ⟨ha, hb⟩ := Finset.mem_product.1 hp
-    have h := measureReal_abs_bilinear_gaussian_ge_le (dotProduct_ofLp_self_le_one p.2 (hB1 _ hb))
-      (dotProduct_ofLp_self_le_one p.1 (hA1 _ ha)) ht4
-    rwa [show -(t / 4) ^ 2 / 2 = -t ^ 2 / 32 by ring] at h
-  calc P.real {g | t < ‖Matrix.of g‖}
-      ≤ P.real (⋃ p ∈ A ×ˢ B, {g | t / 4 ≤ |p.2.ofLp ⬝ᵥ (Matrix.of g *ᵥ p.1.ofLp)|}) :=
-        measureReal_mono hsub (measure_ne_top P _)
-    _ ≤ ∑ p ∈ A ×ˢ B,
-          P.real {g | t / 4 ≤ |p.2.ofLp ⬝ᵥ (Matrix.of g *ᵥ p.1.ofLp)|} :=
-        measureReal_biUnion_finset_le _ _
-    _ ≤ ∑ _p ∈ A ×ˢ B, 2 * Real.exp (-t ^ 2 / 32) := Finset.sum_le_sum hterm
-    _ = (A.card * B.card : ℕ) * (2 * Real.exp (-t ^ 2 / 32)) := by
-        rw [Finset.sum_const, Finset.card_product, nsmul_eq_mul]
-    _ ≤ (5 ^ (Fintype.card ι + Fintype.card κ) : ℕ) * (2 * Real.exp (-t ^ 2 / 32)) := by
-        refine mul_le_mul_of_nonneg_right (Nat.cast_le.2 ?_) (by positivity)
-        rw [pow_add]
-        exact Nat.mul_le_mul hAc hBc
-    _ = 2 * 5 ^ (Fintype.card ι + Fintype.card κ) * Real.exp (-t ^ 2 / 32) := by
-        push_cast; ring
+  have h := measureReal_opNorm_gt_le_of_hasSubgaussianMGF
+    (P := Measure.pi fun _ : κ => Measure.pi fun _ : ι => gaussianReal 0 1)
+    (fun g => (Matrix.toEuclideanLin.trans LinearMap.toContinuousLinearMap) (Matrix.of g))
+    (fun a b ha hb => by
+      have e : (fun g : κ → ι → ℝ =>
+          ⟪b, (Matrix.toEuclideanLin.trans LinearMap.toContinuousLinearMap) (Matrix.of g) a⟫) =
+          fun g => b.ofLp ⬝ᵥ (Matrix.of g *ᵥ a.ofLp) := by
+        funext g
+        rw [EuclideanSpace.inner_eq_star_dotProduct, star_trivial, dotProduct_comm]
+        rfl
+      rw [e]
+      exact hasSubgaussianMGF_bilinear_gaussian (dotProduct_ofLp_self_le_one b hb)
+        (dotProduct_ofLp_self_le_one a ha)) ht
+  simpa only [finrank_euclideanSpace, ← Matrix.l2_opNorm_def] using h
 
 /-- **Lemma A.9.1 of Talagrand (Eq. (A.51)), rectangular form.** For every `a ≥ 0` there is
 `L > 0`, depending only on `a`, such that a standard Gaussian matrix with `|κ| ≤ a |ι|` satisfies

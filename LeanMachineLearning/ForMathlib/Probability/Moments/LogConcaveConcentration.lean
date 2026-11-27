@@ -119,6 +119,25 @@ theorem ae_mem_of_tilted_restrict (hCm : MeasurableSet C) :
     ∀ᵐ x ∂(μ₀.restrict C).tilted (fun x => -H x), x ∈ C :=
   (tilted_absolutelyContinuous _ _).ae_le (ae_restrict_mem hCm)
 
+omit [NormedSpace ℝ E] [FiniteDimensional ℝ E] [MeasurableSpace E] [BorelSpace E] in
+/-- A function satisfying `‖F x - F y‖ ≤ A ‖x - y‖` on `C` is continuous on `C`. -/
+private theorem continuousOn_of_norm_sub_le {V : Type*} [SeminormedAddCommGroup V] {F : E → V}
+    {A : ℝ} (hlip : ∀ x ∈ C, ∀ y ∈ C, ‖F x - F y‖ ≤ A * ‖x - y‖) : ContinuousOn F C :=
+  (LipschitzOnWith.of_dist_le' (K := A) fun x hx y hy => by
+    rw [dist_eq_norm, dist_eq_norm]
+    exact hlip x hx y hy).continuousOn
+
+omit [μ₀.IsAddHaarMeasure] in
+/-- A function which is Lipschitz on the measurable set `C` is a.e. strongly measurable for the
+measure concentrated on `C`; no measurability hypothesis on the function is needed. -/
+theorem aestronglyMeasurable_tilted_restrict_of_norm_sub_le {V : Type*} [NormedAddCommGroup V]
+    (hCm : MeasurableSet C) {F : E → V} {A : ℝ}
+    (hlip : ∀ x ∈ C, ∀ y ∈ C, ‖F x - F y‖ ≤ A * ‖x - y‖) :
+    AEStronglyMeasurable F ((μ₀.restrict C).tilted fun x => -H x) := by
+  have := FiniteDimensional.proper_real E
+  exact ((continuousOn_of_norm_sub_le hlip).aestronglyMeasurable hCm).mono_ac
+    (tilted_absolutelyContinuous _ _)
+
 section Probability
 
 variable (hC : Convex ℝ C) (hCm : MeasurableSet C) (hC0 : μ₀ C ≠ 0) (hH : Measurable H)
@@ -195,7 +214,7 @@ theorem integral_exp_infDist_sq_le_inv (hκ : 0 ≤ κ) {B : Set E} (hBm : Measu
 
 /-- **Concentration around a median** (Talagrand, Eq. (3.19)): if `f` is `A`-Lipschitz on `C`
 and `m` is a median of `f`, then `∫ exp (κ (f - m)² / (2 A²)) dμ ≤ 4`. -/
-theorem integral_exp_sq_sub_median_le_four (hκ : 0 ≤ κ) {f : E → ℝ} (hf : Measurable f) {A : ℝ}
+theorem integral_exp_sq_sub_median_le_four (hκ : 0 ≤ κ) {f : E → ℝ} {A : ℝ}
     (hA : 0 < A) (hlip : ∀ x ∈ C, ∀ y ∈ C, |f x - f y| ≤ A * ‖x - y‖) {m : ℝ}
     (hlo : 1 / 2 ≤ ((μ₀.restrict C).tilted fun x => -H x).real {x | f x ≤ m})
     (hhi : 1 / 2 ≤ ((μ₀.restrict C).tilted fun x => -H x).real {x | m ≤ f x}) :
@@ -203,9 +222,21 @@ theorem integral_exp_sq_sub_median_le_four (hκ : 0 ≤ κ) {f : E → ℝ} (hf 
         ((μ₀.restrict C).tilted fun x => -H x) ∧
       ∫ x, Real.exp (κ / (2 * A ^ 2) * (f x - m) ^ 2)
         ∂((μ₀.restrict C).tilted fun x => -H x) ≤ 4 := by
+  classical
   have := isProbabilityMeasure_tilted_restrict hC0 hint
   set G := (μ₀.restrict C).tilted fun x => -H x with hG
   have haeC : ∀ᵐ x ∂G, x ∈ C := ae_mem_of_tilted_restrict hCm
+  have hlip' : ∀ x ∈ C, ∀ y ∈ C, ‖f x - f y‖ ≤ A * ‖x - y‖ := fun x hx y hy => by
+    simpa only [Real.norm_eq_abs] using hlip x hx y hy
+  have hfae : AEStronglyMeasurable f G :=
+    aestronglyMeasurable_tilted_restrict_of_norm_sub_le hCm hlip'
+  have hlevel : ∀ t : Set ℝ, MeasurableSet t → MeasurableSet (C ∩ f ⁻¹' t) := fun t ht => by
+    have e : C ∩ f ⁻¹' t = C ∩ (C.piecewise f 0) ⁻¹' t := by
+      ext x
+      by_cases hx : x ∈ C <;> simp [hx]
+    rw [e]
+    exact hCm.inter (((continuousOn_of_norm_sub_le hlip').measurable_piecewise
+      continuousOn_const hCm) ht)
   have hhalf : ∀ S : Set E, 1 / 2 ≤ G.real S → 1 / 2 ≤ G.real (C ∩ S) := fun S hS => by
     have : G (C ∩ S) = G S := by
       rw [inter_comm]
@@ -213,8 +244,8 @@ theorem integral_exp_sq_sub_median_le_four (hκ : 0 ≤ κ) {f : E → ℝ} (hf 
     rwa [measureReal_def, this]
   set Blo := C ∩ {x | f x ≤ m} with hBlo
   set Bhi := C ∩ {x | m ≤ f x} with hBhi
-  have hBlom : MeasurableSet Blo := hCm.inter (measurableSet_le hf measurable_const)
-  have hBhim : MeasurableSet Bhi := hCm.inter (measurableSet_le measurable_const hf)
+  have hBlom : MeasurableSet Blo := hlevel (Iic m) measurableSet_Iic
+  have hBhim : MeasurableSet Bhi := hlevel (Ici m) measurableSet_Ici
   have hlo' : 1 / 2 ≤ G.real Blo := hhalf _ hlo
   have hhi' : 1 / 2 ≤ G.real Bhi := hhalf _ hhi
   have hdist : ∀ B : Set E, MeasurableSet B → B ⊆ C → 1 / 2 ≤ G.real B →
@@ -260,8 +291,8 @@ theorem integral_exp_sq_sub_median_le_four (hκ : 0 ≤ κ) {f : E → ℝ} (hf 
       exact hlip x hx y hy.1
   have hsum := hlo2.1.add hhi2.1
   have hi : Integrable (fun x => Real.exp (κ / (2 * A ^ 2) * (f x - m) ^ 2)) G := by
-    refine Integrable.mono' hsum (Real.measurable_exp.comp
-      (((hf.sub_const m).pow_const 2).const_mul _)).aestronglyMeasurable ?_
+    refine Integrable.mono' hsum (Real.continuous_exp.comp_aestronglyMeasurable
+      (((hfae.sub aestronglyMeasurable_const).pow 2).const_mul _)) ?_
     filter_upwards [hpt] with x hx
     rwa [Real.norm_of_nonneg (Real.exp_pos _).le]
   refine ⟨hi, (integral_mono_ae hi hsum hpt).trans ?_⟩
@@ -270,7 +301,7 @@ theorem integral_exp_sq_sub_median_le_four (hκ : 0 ≤ κ) {f : E → ℝ} (hf 
 
 /-- **Gaussian concentration of Lipschitz functions under a uniformly log-concave measure**
 (Talagrand, Theorem 3.1.4, Eq. (3.16)): `∫ exp (κ (f - ∫ f)² / (8 A²)) dμ ≤ 4`. -/
-theorem integral_exp_sq_sub_integral_le_four (hκ : 0 < κ) {f : E → ℝ} (hf : Measurable f)
+theorem integral_exp_sq_sub_integral_le_four (hκ : 0 < κ) {f : E → ℝ}
     {A : ℝ} (hA : 0 < A) (hlip : ∀ x ∈ C, ∀ y ∈ C, |f x - f y| ≤ A * ‖x - y‖) :
     Integrable (fun x => Real.exp (κ / (8 * A ^ 2) *
           (f x - ∫ y, f y ∂((μ₀.restrict C).tilted fun x => -H x)) ^ 2))
@@ -278,12 +309,27 @@ theorem integral_exp_sq_sub_integral_le_four (hκ : 0 < κ) {f : E → ℝ} (hf 
       ∫ x, Real.exp (κ / (8 * A ^ 2) *
           (f x - ∫ y, f y ∂((μ₀.restrict C).tilted fun x => -H x)) ^ 2)
         ∂((μ₀.restrict C).tilted fun x => -H x) ≤ 4 := by
+  classical
   have := isProbabilityMeasure_tilted_restrict hC0 hint
+  have hlip' : ∀ x ∈ C, ∀ y ∈ C, ‖f x - f y‖ ≤ A * ‖x - y‖ := fun x hx y hy => by
+    simpa only [Real.norm_eq_abs] using hlip x hx y hy
+  -- a measurable function which agrees with `f` on `C` provides the median
   obtain ⟨m, hlo, hhi⟩ := ProbabilityTheory.exists_median
-    ((μ₀.restrict C).tilted fun x => -H x) hf
-  have hmed := integral_exp_sq_sub_median_le_four hC hCm hC0 hH hint hconv hκ.le hf hA hlip
-    hlo hhi
-  have h := ProbabilityTheory.integral_exp_mul_sq_sub_integral_le hf.aestronglyMeasurable
+    ((μ₀.restrict C).tilted fun x => -H x)
+    ((continuousOn_of_norm_sub_le hlip').measurable_piecewise
+      (continuousOn_const (c := (0 : ℝ))) hCm)
+  have hae : C.piecewise f (fun _ => 0) =ᵐ[(μ₀.restrict C).tilted fun x => -H x] f :=
+    (ae_mem_of_tilted_restrict hCm).mono fun x hx => piecewise_eq_of_mem _ _ _ hx
+  have hlevel : ∀ t : Set ℝ, ((μ₀.restrict C).tilted fun x => -H x).real
+      ((C.piecewise f fun _ => 0) ⁻¹' t) =
+      ((μ₀.restrict C).tilted fun x => -H x).real (f ⁻¹' t) := fun t =>
+    measureReal_congr (hae.mono fun x hx => by
+      change (C.piecewise f (fun _ => 0) x ∈ t) = (f x ∈ t)
+      rw [hx])
+  have hmed := integral_exp_sq_sub_median_le_four hC hCm hC0 hH hint hconv hκ.le hA hlip
+    (hlo.trans_eq (hlevel (Iic m))) (hhi.trans_eq (hlevel (Ici m)))
+  have h := ProbabilityTheory.integral_exp_mul_sq_sub_integral_le
+    (aestronglyMeasurable_tilted_restrict_of_norm_sub_le hCm hlip')
     (by positivity : 0 < κ / (2 * A ^ 2)) hmed.1
   have e : κ / (2 * A ^ 2) / 4 = κ / (8 * A ^ 2) := by ring
   rw [e] at h
@@ -292,7 +338,7 @@ theorem integral_exp_sq_sub_integral_le_four (hκ : 0 < κ) {f : E → ℝ} (hf 
 /-- **Moments of Lipschitz functions under a uniformly log-concave measure** (Talagrand,
 Theorem 3.1.4, Eq. (3.17)): `∫ (f - ∫ f) ^ (2 k) dμ ≤ 4 (8 k A² / κ) ^ k`, a bound which does not
 depend on the dimension. Integrability is part of the conclusion. -/
-theorem integral_sub_integral_pow_le_of_lipschitz (hκ : 0 < κ) {f : E → ℝ} (hf : Measurable f)
+theorem integral_sub_integral_pow_le_of_lipschitz (hκ : 0 < κ) {f : E → ℝ}
     {A : ℝ} (hA : 0 ≤ A) (hlip : ∀ x ∈ C, ∀ y ∈ C, |f x - f y| ≤ A * ‖x - y‖) (k : ℕ) :
     Integrable (fun x => (f x - ∫ y, f y ∂((μ₀.restrict C).tilted fun x => -H x)) ^ (2 * k))
         ((μ₀.restrict C).tilted fun x => -H x) ∧
@@ -318,7 +364,10 @@ theorem integral_sub_integral_pow_le_of_lipschitz (hκ : 0 < κ) {f : E → ℝ}
     rcases Nat.eq_zero_or_pos k with rfl | hk
     · norm_num
     · simp [hk.ne']
-  have h := integral_exp_sq_sub_integral_le_four hC hCm hC0 hH hint hconv hκ hf hA hlip
+  have hfae : AEStronglyMeasurable f G :=
+    aestronglyMeasurable_tilted_restrict_of_norm_sub_le hCm (A := A) fun x hx y hy => by
+      simpa only [Real.norm_eq_abs] using hlip x hx y hy
+  have h := integral_exp_sq_sub_integral_le_four hC hCm hC0 hH hint hconv hκ hA hlip
   rw [← hG] at h
   set c : ℝ := κ / (8 * A ^ 2) with hc
   have hc0 : 0 < c := by positivity
@@ -333,7 +382,7 @@ theorem integral_sub_integral_pow_le_of_lipschitz (hκ : 0 < κ) {f : E → ℝ}
   have hdom : Integrable (fun x => ((k : ℝ) / c) ^ k * Real.exp (c * (f x - e) ^ 2)) G :=
     h.1.const_mul _
   have hi : Integrable (fun x => (f x - e) ^ (2 * k)) G := by
-    refine Integrable.mono' hdom ((hf.sub_const e).pow_const _).aestronglyMeasurable
+    refine Integrable.mono' hdom ((hfae.sub aestronglyMeasurable_const).pow _)
       (ae_of_all _ fun x => ?_)
     rw [Real.norm_of_nonneg ((even_two_mul k).pow_nonneg _)]
     exact hpt x
@@ -347,14 +396,17 @@ theorem integral_sub_integral_pow_le_of_lipschitz (hκ : 0 < κ) {f : E → ℝ}
 
 /-- A Lipschitz function has finite moments of every even order under a uniformly log-concave
 measure; in particular it is square integrable. -/
-theorem memLp_two_of_lipschitz (hκ : 0 < κ) {f : E → ℝ} (hf : Measurable f) {A : ℝ}
+theorem memLp_two_of_lipschitz (hκ : 0 < κ) {f : E → ℝ} {A : ℝ}
     (hA : 0 ≤ A) (hlip : ∀ x ∈ C, ∀ y ∈ C, |f x - f y| ≤ A * ‖x - y‖) :
     MemLp f 2 ((μ₀.restrict C).tilted fun x => -H x) := by
   have := isProbabilityMeasure_tilted_restrict hC0 hint
-  have h := (integral_sub_integral_pow_le_of_lipschitz hC hCm hC0 hH hint hconv hκ hf hA hlip 1).1
+  have hfae : AEStronglyMeasurable f ((μ₀.restrict C).tilted fun x => -H x) :=
+    aestronglyMeasurable_tilted_restrict_of_norm_sub_le hCm (A := A) fun x hx y hy => by
+      simpa only [Real.norm_eq_abs] using hlip x hx y hy
+  have h := (integral_sub_integral_pow_le_of_lipschitz hC hCm hC0 hH hint hconv hκ hA hlip 1).1
   have h2 : MemLp (fun x => f x - ∫ y, f y ∂((μ₀.restrict C).tilted fun x => -H x)) 2
       ((μ₀.restrict C).tilted fun x => -H x) :=
-    (memLp_two_iff_integrable_sq (hf.sub_const _).aestronglyMeasurable).2 (by simpa using h)
+    (memLp_two_iff_integrable_sq (hfae.sub aestronglyMeasurable_const)).2 (by simpa using h)
   have h3 := h2.add (memLp_const (∫ y, f y ∂((μ₀.restrict C).tilted fun x => -H x)))
   have e : (fun x => f x - ∫ y, f y ∂((μ₀.restrict C).tilted fun x => -H x)) +
       (fun _ => ∫ y, f y ∂((μ₀.restrict C).tilted fun x => -H x)) = f := by
@@ -362,18 +414,37 @@ theorem memLp_two_of_lipschitz (hκ : 0 < κ) {f : E → ℝ} (hf : Measurable f
     simp
   rwa [e] at h3
 
+/-- A function with values in a normed space which is Lipschitz on `C` is square integrable under
+a uniformly log-concave measure on `C`. -/
+theorem memLp_two_of_norm_sub_le {V : Type*} [NormedAddCommGroup V] (hκ : 0 < κ) {F : E → V}
+    {A : ℝ} (hlip : ∀ x ∈ C, ∀ y ∈ C, ‖F x - F y‖ ≤ A * ‖x - y‖) :
+    MemLp F 2 ((μ₀.restrict C).tilted fun x => -H x) := by
+  have := isProbabilityMeasure_tilted_restrict hC0 hint
+  obtain ⟨x₀, hx₀⟩ : C.Nonempty := nonempty_of_measure_ne_zero hC0
+  have hdist : MemLp (fun x => ‖x - x₀‖) 2 ((μ₀.restrict C).tilted fun x => -H x) :=
+    memLp_two_of_lipschitz hC hCm hC0 hH hint hconv hκ zero_le_one fun x _ y _ => by
+      rw [one_mul]
+      refine (abs_norm_sub_norm_le _ _).trans_eq ?_
+      rw [sub_sub_sub_cancel_right]
+  refine ((memLp_const ‖F x₀‖).add (hdist.const_mul A)).mono'
+    (aestronglyMeasurable_tilted_restrict_of_norm_sub_le hCm hlip) ?_
+  filter_upwards [ae_mem_of_tilted_restrict (μ₀ := μ₀) (H := H) hCm] with x hx
+  exact (norm_le_norm_add_norm_sub' (F x) (F x₀)).trans
+    (add_le_add le_rfl (hlip x hx x₀ hx₀))
+
 /-- **Maurey's inequality for covariances with a Lipschitz vector function:** if `F`, with
 values in a real Banach space, is `A`-Lipschitz on `C`, then every `f ∈ L²` satisfies
 `‖∫ f (F - ∫ F) dμ‖ ≤ A √(32 ∫ f² dμ / κ)`. -/
 theorem norm_integral_smul_sub_integral_le_of_lipschitz {V : Type*} [NormedAddCommGroup V]
-    [NormedSpace ℝ V] [CompleteSpace V] (hκ : 0 < κ) {F : E → V} (hFm : StronglyMeasurable F)
-    (hF : MemLp F 2 ((μ₀.restrict C).tilted fun x => -H x)) {A : ℝ} (hA : 0 ≤ A)
+    [NormedSpace ℝ V] [CompleteSpace V] (hκ : 0 < κ) {F : E → V} {A : ℝ} (hA : 0 ≤ A)
     (hlip : ∀ x ∈ C, ∀ y ∈ C, ‖F x - F y‖ ≤ A * ‖x - y‖) {f : E → ℝ}
     (hf : MemLp f 2 ((μ₀.restrict C).tilted fun x => -H x)) :
     ‖∫ x, f x • (F x - ∫ y, F y ∂((μ₀.restrict C).tilted fun x => -H x))
         ∂((μ₀.restrict C).tilted fun x => -H x)‖ ≤
       A * Real.sqrt (32 / κ * ∫ x, f x ^ 2 ∂((μ₀.restrict C).tilted fun x => -H x)) := by
   have := isProbabilityMeasure_tilted_restrict hC0 hint
+  have hF : MemLp F 2 ((μ₀.restrict C).tilted fun x => -H x) :=
+    memLp_two_of_norm_sub_le hC hCm hC0 hH hint hconv hκ hlip
   set G := (μ₀.restrict C).tilted fun x => -H x with hG
   refine (ProbabilityTheory.norm_integral_smul_sub_le_of_integral_dual_sq_le hf
     (hF.sub (memLp_const _)) (C := 32 * A ^ 2 / κ) fun φ => ?_).trans_eq ?_
@@ -385,8 +456,7 @@ theorem norm_integral_smul_sub_integral_le_of_lipschitz {V : Type*} [NormedAddCo
         refine (mul_le_mul_of_nonneg_left (hlip x hx y hy) (norm_nonneg φ)).trans_eq ?_
         ring
     have key := (integral_sub_integral_pow_le_of_lipschitz hC hCm hC0 hH hint hconv hκ
-      (f := fun x => φ (F x)) (φ.continuous.comp_stronglyMeasurable hFm).measurable
-      (mul_nonneg hA (norm_nonneg φ)) hlipφ 1).2
+      (f := fun x => φ (F x)) (mul_nonneg hA (norm_nonneg φ)) hlipφ 1).2
     rw [← hG, φ.integral_comp_comm (hF.integrable one_le_two)] at key
     simp_rw [← map_sub] at key
     simp only [mul_one, pow_one, Nat.cast_one] at key

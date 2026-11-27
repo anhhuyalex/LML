@@ -65,11 +65,7 @@ theorem integral_pow_abs_sub_integral_log_sum_exp_le {α Ω : Type*} [Fintype α
   have hs : 0 < Real.sqrt N := Real.sqrt_pos.2 hN0
   have hsub : HasSubgaussianMGF (fun ω => F ω - ∫ ω', F ω' ∂P) (2 * v.toNNReal) P :=
     hasSubgaussianMGF_log_sum_exp hg hm h0 hv bias
-  have hF0 : Measurable F :=
-    Measurable.log (Finset.measurable_sum _ fun a _ =>
-      Real.measurable_exp.comp ((hm a).add_const (bias a)))
-  have hFm : Measurable fun ω => F ω - ∫ ω', F ω' ∂P := hF0.sub_const _
-  obtain ⟨hint, hexp⟩ := hsub.integral_pow_abs_le hFm k (inv_pos.2 hs)
+  obtain ⟨hint, hexp⟩ := hsub.integral_pow_abs_le k (inv_pos.2 hs).le
   have hN' : (N : ℝ)⁻¹ = (Real.sqrt N)⁻¹ * (Real.sqrt N)⁻¹ := by
     rw [← mul_inv, Real.mul_self_sqrt hN0.le]
   have e : ∀ ω, (Real.sqrt N) ^ k * |(N : ℝ)⁻¹ * F ω - (N : ℝ)⁻¹ * ∫ ω', F ω' ∂P| ^ k =

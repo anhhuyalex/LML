@@ -21,6 +21,8 @@ The moments of a centered Gaussian satisfy `|𝔼 g^n| ≤ n!`. A product of sca
 open MeasureTheory ProbabilityTheory
 open scoped BigOperators Nat
 
+open scoped NNReal
+
 namespace ProbabilityTheory
 
 /-- The first absolute moment of the standard Gaussian is at most one. -/
@@ -55,19 +57,41 @@ theorem abs_integral_pow_gaussianReal_le (n : ℕ) :
       _ ≤ ((n : ℝ) + 1 + 1) * (((n : ℝ) + 1) * (n ! : ℝ)) :=
           le_mul_of_one_le_left hb (by linarith)
 
+/-- The moments of a centered Gaussian of variance `v` satisfy `|𝔼 g^n| ≤ n! (√v)^n`. -/
+theorem abs_integral_pow_gaussianReal_zero_le (v : ℝ≥0) (n : ℕ) :
+    |∫ x : ℝ, x ^ n ∂(gaussianReal 0 v)| ≤ (n ! : ℝ) * Real.sqrt v ^ n := by
+  have hmap : gaussianReal 0 v = (gaussianReal 0 1).map (fun x => Real.sqrt v * x) := by
+    rw [gaussianReal_map_const_mul, mul_zero, mul_one]
+    congr 1
+    exact NNReal.eq (Real.sq_sqrt v.coe_nonneg).symm
+  rw [hmap, integral_map (by fun_prop) (by fun_prop)]
+  simp_rw [mul_pow]
+  rw [integral_const_mul, abs_mul, abs_of_nonneg (pow_nonneg (Real.sqrt_nonneg _) _), mul_comm]
+  exact mul_le_mul_of_nonneg_right (abs_integral_pow_gaussianReal_le n)
+    (pow_nonneg (Real.sqrt_nonneg _) _)
+
+/-- A product of moments with a scale `σ k ≥ 0` for each factor, taken under arbitrary measures
+`μ k` whose relevant moments satisfy `|∫ x ^ n_k dμ_k| ≤ n_k!`, is bounded by
+`∏ (n_k! σ_k ^ {n_k})`. -/
+theorem abs_prod_integral_pow_scaled_le_prod {ι : Type*} [Fintype ι] (μ : ι → Measure ℝ)
+    (c : ι → ℕ) (hμ : ∀ k, |∫ x : ℝ, x ^ (c k) ∂(μ k)| ≤ ((c k) ! : ℝ)) {σ : ι → ℝ}
+    (hσ : ∀ k, 0 ≤ σ k) :
+    |∏ k, ∫ x : ℝ, (σ k * x) ^ (c k) ∂(μ k)| ≤ ∏ k, ((c k) ! : ℝ) * σ k ^ (c k) := by
+  rw [Finset.abs_prod]
+  refine Finset.prod_le_prod₀ (fun k _ => abs_nonneg _) fun k _ => ?_
+  have : ∫ x : ℝ, (σ k * x) ^ (c k) ∂(μ k) = σ k ^ (c k) * ∫ x : ℝ, x ^ (c k) ∂(μ k) := by
+    simp only [mul_pow]
+    rw [integral_const_mul]
+  rw [this, abs_mul, abs_of_nonneg (pow_nonneg (hσ k) _), mul_comm]
+  exact mul_le_mul_of_nonneg_right (hμ k) (pow_nonneg (hσ k) _)
+
 /-- A product of Gaussian moments with a scale `σ k ≥ 0` for each factor is bounded by
 `∏ (n_k! σ_k^{n_k})`. -/
 theorem abs_prod_integral_pow_scaled_gaussianReal_le_prod {ι : Type*} [Fintype ι] (c : ι → ℕ)
     {σ : ι → ℝ} (hσ : ∀ k, 0 ≤ σ k) :
-    |∏ k, ∫ x : ℝ, (σ k * x) ^ (c k) ∂(gaussianReal 0 1)| ≤ ∏ k, ((c k) ! : ℝ) * σ k ^ (c k) := by
-  rw [Finset.abs_prod]
-  refine Finset.prod_le_prod₀ (fun k _ => abs_nonneg _) fun k _ => ?_
-  have : ∫ x : ℝ, (σ k * x) ^ (c k) ∂(gaussianReal 0 1) =
-      σ k ^ (c k) * ∫ x : ℝ, x ^ (c k) ∂(gaussianReal 0 1) := by
-    simp only [mul_pow]
-    rw [integral_const_mul]
-  rw [this, abs_mul, abs_of_nonneg (pow_nonneg (hσ k) _), mul_comm]
-  exact mul_le_mul_of_nonneg_right (abs_integral_pow_gaussianReal_le _) (pow_nonneg (hσ k) _)
+    |∏ k, ∫ x : ℝ, (σ k * x) ^ (c k) ∂(gaussianReal 0 1)| ≤ ∏ k, ((c k) ! : ℝ) * σ k ^ (c k) :=
+  abs_prod_integral_pow_scaled_le_prod (fun _ => gaussianReal 0 1) c
+    (fun _ => abs_integral_pow_gaussianReal_le _) hσ
 
 /-- A product of scaled Gaussian moments is bounded by `(∏ n_k!) σ^{∑ n_k}`. -/
 theorem abs_prod_integral_pow_scaled_gaussianReal_le {ι : Type*} [Fintype ι] (c : ι → ℕ) {σ : ℝ}

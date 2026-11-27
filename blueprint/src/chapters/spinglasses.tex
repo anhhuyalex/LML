@@ -409,7 +409,11 @@ disorders $g_p$, i.e.\ $g\sim\bigotimes_p\mathcal N(0,1)^{\iota^p}$ (\texttt{Mea
 function is $\xi(x)=\sum_{p\ge1}\beta_p^2x^p$. In Lean the condition $\beta_0=0$ replaces ``the sum starts at $p=1$''.
 
 \begin{lemma}[Gaussian linear forms and series]\label{lem:sg:gaussseries}
-  \lean{ProbabilityTheory.integral_dotProduct_mul_dotProduct_pi_gaussianReal,
+  \lean{ProbabilityTheory.memLp_inner_stdGaussian, ProbabilityTheory.integral_inner_stdGaussian,
+        ProbabilityTheory.integral_inner_mul_inner_stdGaussian, ProbabilityTheory.map_inner_stdGaussian,
+        ProbabilityTheory.integrable_exp_inner_stdGaussian, ProbabilityTheory.integral_exp_inner_stdGaussian,
+        ProbabilityTheory.integrable_cosh_inner_add_stdGaussian, ProbabilityTheory.integral_cosh_inner_add_stdGaussian,
+        ProbabilityTheory.integral_dotProduct_mul_dotProduct_pi_gaussianReal,
         ProbabilityTheory.integral_dotProduct_pi_gaussianReal,
         ProbabilityTheory.memLp_dotProduct_pi_gaussianReal,
         ProbabilityTheory.integral_tsum_mul_tsum_of_indepFun,
@@ -418,8 +422,12 @@ function is $\xi(x)=\sum_{p\ge1}\beta_p^2x^p$. In Lean the condition $\beta_0=0$
         ProbabilityTheory.integral_tsum_dotProduct_mul_tsum_dotProduct,
         ProbabilityTheory.measurable_tsum_dotProduct, ProbabilityTheory.integrable_tsum_dotProduct}
   \leanok
-(1) For $g$ with i.i.d.\ $\mathcal N(0,1)$ coordinates indexed by a finite set $\kappa$ and $a,b\in\mathbb R^\kappa$, the
-linear forms $a\cdot g$ are square-integrable, centered, and $\mathbb E[(a\cdot g)(b\cdot g)]=a\cdot b$.
+(1) Let $g$ be a standard Gaussian vector of a finite-dimensional real inner product space $E$ and $a,b\in E$. The linear form
+$\langle a,g\rangle$ has finite moments of every order and law $\mathcal N(0,\|a\|^2)$, is centered, and
+$\mathbb E[\langle a,g\rangle\langle b,g\rangle]=\langle a,b\rangle$, $\mathbb Ee^{\langle a,g\rangle}=e^{\|a\|^2/2}$,
+$\mathbb E\cosh(\langle a,g\rangle+m)=\cosh m\,e^{\|a\|^2/2}$. In particular, for $g$ with i.i.d.\ $\mathcal N(0,1)$ coordinates
+indexed by a finite set $\kappa$ and $a,b\in\mathbb R^\kappa$, the linear forms $a\cdot g$ are square-integrable, centered, and
+$\mathbb E[(a\cdot g)(b\cdot g)]=a\cdot b$.
 
 (2) Let $X_p,Y_p$ ($p$ in a countable set) be square-integrable with $\sum_p\|X_p\|_{L^2}<\infty$,
 $\sum_p\|Y_p\|_{L^2}<\infty$, each $X_p$ centered and independent of $Y_q$ for $p\ne q$. Then
@@ -432,8 +440,9 @@ $\mathbb E[(\sum_pa_p\cdot g_p)(\sum_pb_p\cdot g_p)]=\sum_pa_p\cdot b_p$.
 
 \begin{proof}
   \leanok
-(1) The law of $g$ is the standard Gaussian of $\mathbb R^\kappa$, whose covariance bilinear form is the inner product,
-and $\mathbb E[g]=0$. (2) The series converge absolutely almost surely, since $\sum_p\|X_p\|_{L^1}\le\sum_p\|X_p\|_{L^2}$
+(1) The covariance bilinear form of the standard Gaussian is the inner product and $\mathbb E[g]=0$; the linear form
+$\langle a,\cdot\rangle$ is therefore a centered real Gaussian of variance $\|a\|^2$, which gives the exponential and
+hyperbolic moments. The coordinate statements are the case $E=\mathbb R^\kappa$. (2) The series converge absolutely almost surely, since $\sum_p\|X_p\|_{L^1}\le\sum_p\|X_p\|_{L^2}$
 (Mathlib's \texttt{summable\_norm\_of\_tsum\_eLpNorm\_ne\_top}), so $(\sum_pX_p)(\sum_qY_q)=\sum_{(p,q)}X_pY_q$ almost
 everywhere. By H\"older, $\mathbb E[|X_pY_q|]\le\|X_p\|_{L^2}\|Y_q\|_{L^2}$, and $\sum_{p,q}\|X_p\|_{L^2}\|Y_q\|_{L^2}<\infty$, so the
 double series may be integrated termwise (\texttt{integral\_tsum}). For $p\ne q$, independence and centering give
@@ -1047,13 +1056,14 @@ $\sum_aw(a)C(a,a)$, and $-w(b)$ gives the term with two independent replicas.
   \lean{summable_prod_pi, tsum_prod_pi, abs_tsum_prod_pi_mul_le, tendsto_tsum_prod_pi,
         summable_prod_pi_mul_abs_eval,
         SpinGlasses.truncated_gibbs_weights, SpinGlasses.tendsto_truncated_replica_average,
-        ProbabilityTheory.integrable_tsum_of_tsum_eLpNorm_ne_top}
+        ProbabilityTheory.integrable_tsum_of_tsum_eLpNorm_ne_top,
+        ProbabilityTheory.integrable_tsum_of_tsum_eLpNorm_one_ne_top}
   \leanok
 Let $J$ be finite and $f_j:\alpha\to[0,\infty)$ summable. Then $\sigma\mapsto\prod_jf_j(\sigma_j)$ is summable on $J\to\alpha$, with $\sum_\sigma\prod_jf_j(\sigma_j)=\prod_j\sum_af_j(a)$ (the infinite analogue of expanding a product of finite sums). A product-weighted series is bounded in absolute value by the series of absolute values, $\big|\sum_\sigma\prod_jw(\sigma_j)\Psi(\sigma)\big|\le\sum_\sigma\prod_jw(\sigma_j)|\Psi(\sigma)|$, whenever the latter converges. If
 weights $w_m\to w$ pointwise with $0\le w_m\le B$, $B$ summable and $\sum_\sigma\prod_jB(\sigma_j)|\Psi(\sigma)|<\infty$, then
 $\sum_\sigma\prod_jw_m(\sigma_j)\Psi(\sigma)\to\sum_\sigma\prod_jw(\sigma_j)\Psi(\sigma)$. In particular, for $g>0$ summable and finite
 sets $A_m\uparrow\alpha$ containing $a_0$, the truncated weights $\mathbf 1_{A_m}g/\sum_{A_m}g$ are bounded by $g/g(a_0)$ and converge to $g/\sum g$. A series with
-summable $L^p$ norms, $p\ge1$, is integrable (the case $p=2$ is used for the Gaussian series of Section~\ref{sec:sg:pspin}).
+summable $L^p$ norms, $p\ge1$, is integrable on a probability space, and on any measure space when $p=1$ (the case $p=2$ is used for the Gaussian series of Section~\ref{sec:sg:pspin}).
 \end{lemma}
 
 \begin{proof}
@@ -1066,18 +1076,24 @@ $\prod_jB(\sigma_j)|\Psi(\sigma)|$. For the truncated weights, $\sum_{A_m}g\ge g
 \begin{lemma}[Gaussian exponential moments]\label{lem:sg:gaussexp}
   \lean{ProbabilityTheory.hasGaussianLaw_hasLaw, ProbabilityTheory.integral_exp_mul_of_hasGaussianLaw,
         ProbabilityTheory.integrable_exp_mul_of_hasGaussianLaw, ProbabilityTheory.eLpNorm_one_mul_exp_le,
-        ProbabilityTheory.ae_summable_and_integrable_tsum_mul_exp}
+        ProbabilityTheory.ae_summable_and_integrable_tsum_mul_exp,
+        ProbabilityTheory.HasGaussianLaw.hasSubgaussianMGF_of_integral_sq_le,
+        ProbabilityTheory.eLpNorm_one_mul_exp_le_of_hasSubgaussianMGF,
+        ProbabilityTheory.ae_summable_and_integrable_tsum_mul_exp_of_hasSubgaussianMGF}
   \leanok
 If $Z$ is Gaussian then $\mathbb E[e^{tZ}]=e^{t\mathbb E[Z]+t^2\mathrm{Var}Z/2}$. If $Z$ is centered Gaussian with $\mathbb E[Z^2]\le v$ and
 $\mathbb E[X^2]\le a$ then $\mathbb E[|X|e^{Z}]\le\sqrt a\,e^v$. Consequently, for countably many such pairs $(X_b,Z_b)$ with uniform bounds and
 $G_b\ge0$ summable, $\sum_bG_b|X_b|e^{Z_b}$ converges almost surely and is integrable.
+Both conclusions hold on an arbitrary measure space when each $Z$ is only sub-Gaussian with parameter $v$
+(that is, $\int e^{tZ}\le e^{vt^2/2}$ for all $t$), which a centered Gaussian with $\mathbb E[Z^2]\le v$ satisfies.
 \end{lemma}
 
 \begin{proof}
   \leanok
   \uses{lem:sg:tannery}
-The law of $Z$ is Gaussian, so the first claim is the Gaussian moment generating function. By Cauchy--Schwarz (Holder with exponents
-$2,2,1$) $\|Xe^Z\|_1\le\|X\|_2\|e^Z\|_2$ and $\|e^Z\|_2^2=\mathbb E[e^{2Z}]=e^{2\mathrm{Var}Z}\le e^{2v}$. The series has summable $L^1$ norms
+The law of $Z$ is Gaussian, so the first claim is the Gaussian moment generating function; in particular a centered
+Gaussian $Z$ with $\mathbb E[Z^2]\le v$ is sub-Gaussian with parameter $v$. For sub-Gaussian $Z$, by Cauchy--Schwarz (Holder with exponents
+$2,2,1$) $\|Xe^Z\|_1\le\|X\|_2\|e^Z\|_2$ and $\|e^Z\|_2^2=\int e^{2Z}\le e^{2v}$. The series has summable $L^1$ norms
 $\le\sqrt a\,e^v\sum_bG_b$, hence converges absolutely a.s.\ and is integrable (Lemma~\ref{lem:sg:tannery}).
 \end{proof}
 
@@ -1131,13 +1147,13 @@ Not formalized: the case of a general (non-atomic or sigma-finite) reference mea
 
 \begin{lemma}[The law of a Gaussian series]\label{lem:sg:serieslaw}
   \lean{ProbabilityTheory.isGaussian_pi_gaussianReal, ProbabilityTheory.hasGaussianLaw_coord,
-        ProbabilityTheory.iIndepFun_coord, ProbabilityTheory.map_sum_range_dotProduct,
+        ProbabilityTheory.iIndepFun_coord, ProbabilityTheory.map_finsetSum_dotProduct,
         ProbabilityTheory.summable_dotProduct_self, ProbabilityTheory.map_tsum_dotProduct_eq_gaussianReal,
         ProbabilityTheory.integral_tsum_dotProduct_eq_zero, ProbabilityTheory.sqrt_dotProduct_self_sum_le,
         ProbabilityTheory.hasGaussianLaw_tsum_dotProduct, ProbabilityTheory.ae_summable_of_tsum_eLpNorm_ne_top}
   \leanok
   \uses{lem:sg:gaussseries}
-Let $g_p$, $p\in\mathbb N$, be independent vectors with i.i.d.\ $\mathcal N(0,1)$ coordinates and $a_p$ coefficient vectors with
+Let $g_p$, $p$ in a countable index set, be independent vectors with i.i.d.\ $\mathcal N(0,1)$ coordinates and $a_p$ coefficient vectors with
 $\sum_p\|a_p\|<\infty$. Then $H_a=\sum_pa_p\cdot g_p$ converges almost surely, is exactly Gaussian,
 $H_a\sim\mathcal N(0,\sum_p\|a_p\|^2)$, and finitely many such series $(H_{a^s})_{s\in S}$ form a Gaussian vector (Mathlib's
 \texttt{HasGaussianLaw}).
@@ -1145,11 +1161,11 @@ $H_a\sim\mathcal N(0,\sum_p\|a_p\|^2)$, and finitely many such series $(H_{a^s})
 
 \begin{proof}
   \leanok
-The summands $X_p=a_p\cdot g_p$ are independent centered Gaussians of variance $\|a_p\|^2$, so the partial sum $S_n=\sum_{p<n}X_p$ is Gaussian
-with variance $v_n=\sum_{p<n}\|a_p\|^2$ (independent Gaussians are jointly Gaussian; the variance is the covariance formula of
-Lemma~\ref{lem:sg:gaussseries} for the coefficients truncated at $n$). Since $\sum_p\|X_p\|_{L^1}\le\sum_p\|a_p\|<\infty$,
-$\sum_p|X_p|<\infty$ almost surely, hence $S_n\to H_a$ almost surely. The characteristic function of $H_a$ is the limit of that of $S_n$ by
-dominated convergence ($|e^{itS_n}|=1$), i.e.\ $\lim_ne^{-v_nt^2/2}=e^{-vt^2/2}$ with $v=\sum_p\|a_p\|^2$, and the characteristic function determines the law.
+The summands $X_p=a_p\cdot g_p$ are independent centered Gaussians of variance $\|a_p\|^2$, so for a finite set $F$ of indices the partial sum
+$S_F=\sum_{p\in F}X_p$ is Gaussian with variance $v_F=\sum_{p\in F}\|a_p\|^2$ (independent Gaussians are jointly Gaussian; the variance is the
+covariance formula of Lemma~\ref{lem:sg:gaussseries} for the coefficients truncated to $F$). Since $\sum_p\|X_p\|_{L^1}\le\sum_p\|a_p\|<\infty$,
+$\sum_p|X_p|<\infty$ almost surely, hence $S_F\to H_a$ almost surely along the (countably generated) filter of finite sets. The characteristic
+function of $H_a$ is the limit of that of $S_F$ by dominated convergence ($|e^{itS_F}|=1$), i.e.\ $\lim_Fe^{-v_Ft^2/2}=e^{-vt^2/2}$ with $v=\sum_p\|a_p\|^2$, and the characteristic function determines the law.
 For the vector, a continuous linear functional $L(x)=\sum_sc_sx_s$ of $(H_{a^s})_s$ equals almost surely the single series with coefficients
 $\sum_sc_sa^s_p$ (summable by Minkowski's inequality), so $L\circ(H_{a^s})_s$ is real Gaussian, which is Mathlib's criterion for a Gaussian measure.
 \end{proof}
@@ -1727,16 +1743,19 @@ $T_a(x)=\max(\min(x,e^a),e^{-a})$. A random variable $X$ is \emph{sub-Gaussian w
 \begin{lemma}[Exponential moments of $|X|$]\label{lem:sg:absmoment}
   \lean{ProbabilityTheory.HasGaussianLaw.hasSubgaussianMGF_of_integral_sq_le, ProbabilityTheory.HasSubgaussianMGF.integral_exp_abs_mul_le,
         ProbabilityTheory.HasSubgaussianMGF.integrable_two_cosh,
-        ProbabilityTheory.HasSubgaussianMGF.integral_two_cosh_le, ProbabilityTheory.HasSubgaussianMGF.integral_exp_le}
+        ProbabilityTheory.HasSubgaussianMGF.integral_two_cosh_le, ProbabilityTheory.HasSubgaussianMGF.integral_exp_le,
+        ProbabilityTheory.HasSubgaussianMGF.integral_pow_abs_le}
   \leanok
-Let $X$ be measurable and sub-Gaussian with parameter $c$. Then for every $t\in\mathbb R$, $e^{t|X|}$ is integrable and $\mathbb E[e^{t|X|}]\le2e^{ct^2/2}$; $X$ and
-$\cosh X$ are integrable, $\mathbb E[2\cosh X]\le2e^{c/2}$ and $\mathbb E[e^{X}]\le e^{c/2}$.
+Let $X$ be sub-Gaussian with parameter $c$ (on an arbitrary measure space; no further measurability assumption). Then for every $t\in\mathbb R$, $e^{t|X|}$ is integrable and $\mathbb E[e^{t|X|}]\le2e^{ct^2/2}$; $X$ and
+$\cosh X$ are integrable, $\mathbb E[2\cosh X]\le2e^{c/2}$ and $\mathbb E[e^{X}]\le e^{c/2}$. Moreover for every $k\in\mathbb N$ and $w\ge0$,
+$|X|^k$ is integrable and $w^k\,\mathbb E|X|^k\le 2\,k!\,e^{cw^2/2}$.
 \end{lemma}
 
 \begin{proof}
   \leanok
 Pointwise $e^{t|x|}\le e^{tx}+e^{-tx}$, so $\mathbb E[e^{t|X|}]\le\mathbb E[e^{tX}]+\mathbb E[e^{-tX}]\le2e^{ct^2/2}$. Integrability of $X$ follows from $|x|\le e^{|x|}$,
-and the remaining claims are the cases $t=\pm1$ of the definition.
+and the remaining claims are the cases $t=\pm1$ of the definition. For the moments use
+$(w|x|)^k\le k!\,e^{w|x|}$; the case $w=0=k$ is the bound of the total mass by $1$, which is the case $t=0$ of the definition.
 \end{proof}
 
 \begin{lemma}[Elementary inequalities for the truncation]\label{lem:sg:clamp}
@@ -1821,7 +1840,7 @@ $\mathcal N(0,S_j)$ (Lemma~\ref{lem:sg:gram}, the first part), and $\mathbb E\bi
         SpinGlasses.continuousOn_integral_prod_multivariateGaussian,
         SpinGlasses.abs_integral_prod_multivariateGaussian_le}
   \leanok
-Let $g$ be bounded and continuous on $\mathbb R^k$. Then $S\mapsto\int g\,d\mathcal N(0,S)$ is continuous on the cone of positive semidefinite matrices.
+Let $g$ be bounded and continuous on $\mathbb R^k$ with values in a real normed space. Then $S\mapsto\int g\,d\mathcal N(0,S)$ is continuous on the cone of positive semidefinite matrices.
 Consequently, for $\psi$ continuous with $|\psi|\le M$ and a continuous covariance function $C$, the replica functional
 $F_k(Q)=\int\prod_{l\le k}\psi(x_l)\,d\mathcal N\big(0,(C(Q_{ll'}))_{l,l'}\big)$ is bounded by $M^k$ and continuous on the set of $Q\in\mathbb R^{k\times k}$ for which
 $(C(Q_{ll'}))$ is positive semidefinite.
@@ -1829,9 +1848,9 @@ $(C(Q_{ll'}))$ is positive semidefinite.
 
 \begin{proof}
   \leanok
-The space of matrices is first countable, so it suffices to treat sequences $S_n\to S$ of positive semidefinite matrices. The characteristic function of
-$\mathcal N(0,S)$ is $t\mapsto e^{-t^\top St/2}$, which converges pointwise as $n\to\infty$; by L\'evy's continuity theorem (Mathlib's
-\texttt{ProbabilityMeasure.tendsto\_of\_tendsto\_charFun}) $\mathcal N(0,S_n)\to\mathcal N(0,S)$ weakly, i.e.\ $\int g\,d\mathcal N(0,S_n)\to\int g\,d\mathcal N(0,S)$.
+$\mathcal N(0,S)$ is the law of $\sqrt S\,\xi$ for a standard Gaussian vector $\xi$, so
+$\int g\,d\mathcal N(0,S)=\mathbb E\,g(\sqrt S\,\xi)$. The square root is continuous on the cone of positive semidefinite matrices
+(continuity of the continuous functional calculus) and $g$ is bounded and continuous, so dominated convergence applies.
 The bound is $|\prod_l\psi(x_l)|\le M^k$ against a probability measure; continuity of $F_k$ is the composition with the continuous map $Q\mapsto(C(Q_{ll'}))$.
 \end{proof}
 
@@ -2793,7 +2812,9 @@ Hence the residual at the diagonal is a square and the one below a zero pivot va
 The Cholesky factor is not in Mathlib (its \texttt{LDL} decomposition needs positive definite matrices) and a zero pivot cannot be excluded for a random array. The point of an \emph{explicit, measurable} factor is that the Gaussian array can be written as a finite sum of i.i.d.\ Gaussians, with the covariance as a measurable parameter: no Kolmogorov extension theorem and no measurable selection are needed.
 
 \begin{lemma}[The Gaussian sequence with a prescribed covariance]\label{lem:sg:gaussian-gram}
-  \lean{ProbabilityTheory.map_dotProduct_eq_of_gram_eq,
+  \lean{ProbabilityTheory.hasGaussianLaw_inner_family_stdGaussian,
+        ProbabilityTheory.map_inner_eq_of_gram_eq,
+        ProbabilityTheory.map_dotProduct_eq_of_gram_eq,
         ProbabilityTheory.map_cholInf_comp_equiv,
         ProbabilityTheory.integrable_integral_cholInf_mul}
   \leanok
@@ -2803,7 +2824,8 @@ Let $(c_k)_k$ be i.i.d.\ standard Gaussian and $A$ as in Lemma~\ref{lem:sg:chole
 \begin{proof}
   \leanok
 \uses{lem:sg:cholesky}
-Linear forms of i.i.d.\ Gaussians with the same Gram matrix have the same law (a centered Gaussian vector is determined by its covariance; this is in the repository). The two laws on $\mathbb R^{\mathbb N}$ are compared on finite sets of coordinates, which determine a measure on $\mathbb R^{\mathbb N}$; on a finite set of coordinates both are linear forms of the first $N$ Gaussians whose Gram matrix is $(A_{e(l),e(l')})$ by Lemma~\ref{lem:sg:cholesky}, applied to $A$ and to the permuted array.
+Linear forms $(\langle a_p,\xi\rangle)_p$ and $(\langle b_p,\eta\rangle)_p$ of standard Gaussian vectors $\xi,\eta$ of two
+finite-dimensional inner product spaces with $\langle a_p,a_q\rangle=\langle b_p,b_q\rangle$ have the same law (a centered Gaussian vector is determined by its covariance). The two laws on $\mathbb R^{\mathbb N}$ are compared on finite sets of coordinates, which determine a measure on $\mathbb R^{\mathbb N}$; on a finite set of coordinates both are linear forms of the first $N$ Gaussians whose Gram matrix is $(A_{e(l),e(l')})$ by Lemma~\ref{lem:sg:cholesky}, applied to $A$ and to the permuted array.
 \end{proof}
 
 \begin{theorem}[The Gaussian array of an exchangeable positive semidefinite array]\label{thm:sg:gaussian-array}

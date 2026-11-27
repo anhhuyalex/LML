@@ -32,16 +32,16 @@ which are evaluated by the mean value theorem.
 open Filter Set
 open scoped Topology
 
-/-- **Saddle-point envelope theorem on a convex parameter domain:** let `A ⊆ ℝ` be convex with
-`a₀ ∈ A`. Suppose that for `a ∈ A` near `a₀`, `(x a, y a) ∈ S × T` is a saddle point of `G a`
-(minimizer over `S` in `x`, maximizer over `T` in `y`), `(x, y)` is continuous within `A` at `a₀`,
-`b ↦ G b u v` has derivative `G' b u v` for `(b, u, v)` near `(a₀, x a₀, y a₀)`, and `G'` is
-continuous at `(a₀, x a₀, y a₀)`. Then `a ↦ G a (x a) (y a)` has derivative `G' a₀ (x a₀) (y a₀)`
-within `A` at `a₀`. -/
+/-- **Saddle-point envelope theorem on a parameter subset:** let `A ⊆ ℝ` with `a₀ ∈ A`. Suppose that
+for `a ∈ A` near `a₀`, `(x a, y a) ∈ S × T` is a saddle point of `G a` (minimizer over `S` in `x`,
+maximizer over `T` in `y`), `(x, y)` is continuous within `A` at `a₀`, `b ↦ G b u v` has derivative
+`G' b u v` for `(b, u, v)` in an ambient neighborhood of `(a₀, x a₀, y a₀)`, and `G'` is continuous
+at `(a₀, x a₀, y a₀)`. Then `a ↦ G a (x a) (y a)` has derivative `G' a₀ (x a₀) (y a₀)` within `A`
+at `a₀`. -/
 theorem hasDerivWithinAt_saddle_envelope {X Y : Type*} [TopologicalSpace X] [TopologicalSpace Y]
     {G G' : ℝ → X → Y → ℝ} {A : Set ℝ} {S : Set X} {T : Set Y} {x : ℝ → X} {y : ℝ → Y} {a₀ : ℝ}
     {U : Set ℝ} {Ux : Set X} {Uy : Set Y}
-    (ha₀ : a₀ ∈ A) (hA : Convex ℝ A) (hU : U ∈ 𝓝 a₀) (hUx : Ux ∈ 𝓝 (x a₀)) (hUy : Uy ∈ 𝓝 (y a₀))
+    (ha₀ : a₀ ∈ A) (hU : U ∈ 𝓝 a₀) (hUx : Ux ∈ 𝓝 (x a₀)) (hUy : Uy ∈ 𝓝 (y a₀))
     (hmem : ∀ a ∈ A ∩ U, x a ∈ S ∧ y a ∈ T)
     (hmin : ∀ a ∈ A ∩ U, ∀ x' ∈ S, G a (x a) (y a) ≤ G a x' (y a))
     (hmax : ∀ a ∈ A ∩ U, ∀ y' ∈ T, G a (x a) y' ≤ G a (x a) (y a))
@@ -93,7 +93,8 @@ theorem hasDerivWithinAt_saddle_envelope {X Y : Type*} [TopologicalSpace X] [Top
     · have hmin_eq : min a₀ a = a := min_eq_right hlt.le
       have hmax_eq : max a₀ a = a₀ := max_eq_left hlt.le
       have hcd : ContinuousOn (fun c => G c u v) (Icc a a₀) := fun c hc =>
-        (hd c (hVsubU (hseg (by rwa [hmin_eq, hmax_eq]))) u huUx v hvUy).continuousAt.continuousWithinAt
+        (hd c (hVsubU (hseg (by rwa [hmin_eq, hmax_eq]))) u huUx v
+            hvUy).continuousAt.continuousWithinAt
       have hdd : ∀ c ∈ Ioo a a₀, HasDerivAt (fun c => G c u v) (G' c u v) c :=
         fun c hc => hd c (hVsubU (hseg (by rw [hmin_eq, hmax_eq]; exact Ioo_subset_Icc_self hc)))
           u huUx v hvUy
@@ -109,7 +110,8 @@ theorem hasDerivWithinAt_saddle_envelope {X Y : Type*} [TopologicalSpace X] [Top
     · have hmin_eq : min a₀ a = a₀ := min_eq_left hgt.le
       have hmax_eq : max a₀ a = a := max_eq_right hgt.le
       have hcd : ContinuousOn (fun c => G c u v) (Icc a₀ a) := fun c hc =>
-        (hd c (hVsubU (hseg (by rwa [hmin_eq, hmax_eq]))) u huUx v hvUy).continuousAt.continuousWithinAt
+        (hd c (hVsubU (hseg (by rwa [hmin_eq, hmax_eq]))) u huUx v
+            hvUy).continuousAt.continuousWithinAt
       have hdd : ∀ c ∈ Ioo a₀ a, HasDerivAt (fun c => G c u v) (G' c u v) c :=
         fun c hc => hd c (hVsubU (hseg (by rw [hmin_eq, hmax_eq]; exact Ioo_subset_Icc_self hc)))
           u huUx v hvUy
@@ -158,6 +160,6 @@ theorem hasDerivAt_saddle_envelope {X Y : Type*} [TopologicalSpace X] [Topologic
     (hcont : ContinuousAt (fun p : ℝ × X × Y => G' p.1 p.2.1 p.2.2) (a₀, x a₀, y a₀)) :
     HasDerivAt (fun a => G a (x a) (y a)) (G' a₀ (x a₀) (y a₀)) a₀ := by
   rw [← hasDerivWithinAt_univ]
-  exact hasDerivWithinAt_saddle_envelope (mem_univ a₀) convex_univ hU hUx hUy
+  exact hasDerivWithinAt_saddle_envelope (mem_univ a₀) hU hUx hUy
     (fun a ha => hmem a ha.2) (fun a ha => hmin a ha.2) (fun a ha => hmax a ha.2)
     hx.continuousWithinAt hy.continuousWithinAt hd hcont

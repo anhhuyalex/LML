@@ -154,9 +154,7 @@ theorem sk_T_gibbs_moment_first_two_uniform (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 
         (∫ ρ : R → Fin (N + 1) → ℤˣ, H g ρ
           ∂(Measure.pi fun _ : R => Measure.count.tilted (E g))) ^ 2 := by
     simp_rw [hH₂]
-    simpa only [pow_two] using integral_pi_sum_mul (Measure.count.tilted (E g))
-      (H g) (H g) Integrable.of_finite.aestronglyMeasurable
-      Integrable.of_finite.aestronglyMeasurable
+    simpa only [pow_two] using integral_pi_sum_mul (Measure.count.tilted (E g)) (H g) (H g)
   have hGP (v : ℝ) :
       (∏ p, ∫ x : ℝ, (Real.sqrt v * x) ^ kP₂ p ∂gaussianReal 0 1) =
         (∏ p, ∫ x : ℝ, (Real.sqrt v * x) ^ kP p ∂gaussianReal 0 1) ^ 2 := by

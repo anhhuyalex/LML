@@ -143,7 +143,8 @@ theorem abs_replicaPairAverage_kernel_le_of_confining [LinearOrder R] {κ : ℝ}
   set k : ℝ := (Fintype.card R : ℝ) with hk
   have hk0 : 0 ≤ k := Nat.cast_nonneg _
   set G : (Option (Option R) → E) → ℝ := fun τ => F fun r => τ (some (some r)) with hG
-  have hGb : ∀ τ, |G τ| ≤ C * ∏ o, (1 + ‖τ o‖) ^ m := abs_comp_some_le_prod (abs_comp_some_le_prod hFb)
+  have hGb : ∀ τ, |G τ| ≤ C * ∏ o, (1 + ‖τ o‖) ^ m :=
+    abs_comp_some_le_prod (abs_comp_some_le_prod hFb)
   -- each value of the kernel grows polynomially
   have hff : ∀ (τ : Option (Option R) → E) (a b : Option (Option R)),
       |K (τ a) (τ b)| ≤ W * ∏ o, (1 + ‖τ o‖) ^ (n₁ + n₂) := fun τ a b => by

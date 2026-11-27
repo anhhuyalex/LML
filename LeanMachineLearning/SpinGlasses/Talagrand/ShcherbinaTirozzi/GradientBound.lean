@@ -49,7 +49,7 @@ private theorem norm_integral_smul_sub_mean_le_of_lipschitz {κ h : ℝ} (hκ : 
     (g₀ : Fin N → ℝ) (G : Measure (ℝ^N))
     (hG : G = volume.tilted fun σ => -shcherbinaTirozziHamiltonian κ h u g g₀ σ)
     {V : Type*} [NormedAddCommGroup V] [NormedSpace ℝ V] [CompleteSpace V]
-    {F : ℝ^N → V} (hFm : StronglyMeasurable F) (hF : MemLp F 2 G) {A : ℝ} (hA : 0 ≤ A)
+    {F : ℝ^N → V} {A : ℝ} (hA : 0 ≤ A)
     (hlip : ∀ σ τ, ‖F σ - F τ‖ ≤ A * ‖σ - τ‖) {f : ℝ^N → ℝ} (hf : MemLp f 2 G) :
     ‖∫ σ, f σ • (F σ - ∫ τ, F τ ∂G) ∂G‖ ≤ A * Real.sqrt (32 / κ * ∫ σ, f σ ^ 2 ∂G) := by
   have hum := hu.measurable_of_univ
@@ -57,10 +57,10 @@ private theorem norm_integral_smul_sub_mean_le_of_lipschitz {κ h : ℝ} (hκ : 
     (H := shcherbinaTirozziHamiltonian κ h u g g₀) convex_univ MeasurableSet.univ
     (NeZero.ne _) (measurable_shcherbinaTirozziHamiltonian_apply κ h hum g g₀)
     (integrableOn_univ.2 (integrable_exp_neg_shcherbinaTirozziHamiltonian hκ hum hu0 g g₀))
-    (fun x _ y _ => shcherbinaTirozziHamiltonian_midpoint_gap κ h hu g g₀ x y) hκ hFm
-    (A := A) (f := f)
+    (fun x _ y _ => shcherbinaTirozziHamiltonian_midpoint_gap κ h hu g g₀ x y) hκ
+    (F := F) (f := f) hA (fun x _ y _ => hlip x y)
   simp only [Measure.restrict_univ, ← hG] at key
-  exact key hF hA (fun x _ y _ => hlip x y) hf
+  exact key hf
 
 /-- **Lemma 3.1.13:** for `f ∈ L²(G)`, `‖⟨(σ - ⟨σ⟩) f⟩‖ ≤ √(32 ⟨f²⟩ / κ)`. -/
 theorem norm_integral_smul_sub_mean_shcherbinaTirozziGibbs_le {κ h : ℝ} (hκ : 0 < κ)
@@ -69,10 +69,8 @@ theorem norm_integral_smul_sub_mean_shcherbinaTirozziGibbs_le {κ h : ℝ} (hκ 
     (hG : G = volume.tilted fun σ => -shcherbinaTirozziHamiltonian κ h u g g₀ σ)
     {f : ℝ^N → ℝ} (hf : MemLp f 2 G) :
     ‖∫ σ, f σ • (σ - ∫ τ, τ ∂G) ∂G‖ ≤ Real.sqrt (32 / κ * ∫ σ, f σ ^ 2 ∂G) := by
-  have hid : MemLp (fun σ : ℝ^N => σ) 2 G := by
-    rw [hG]; exact memLp_id_shcherbinaTirozziGibbs hκ hu.measurable_of_univ hu0 g g₀
   have key := norm_integral_smul_sub_mean_le_of_lipschitz (h := h) hκ hu hu0 g g₀ G hG
-    (F := fun σ : ℝ^N => σ) stronglyMeasurable_id hid zero_le_one
+    (F := fun σ : ℝ^N => σ) zero_le_one
     (fun σ τ => (one_mul _).ge) hf
   rwa [one_mul] at key
 
@@ -148,34 +146,14 @@ theorem norm_integral_smul_deriv_field_sub_mean_le {κ h : ℝ} (hκ : 0 < κ) {
     (hU : ∀ σ, U σ = WithLp.toLp 2 fun k => deriv u ((Real.sqrt N)⁻¹ * ∑ i, g k i * σ i)) :
     ‖∫ σ, f σ • (U σ - ∫ τ, U τ ∂G) ∂G‖ ≤
       D * ((Real.sqrt N)⁻¹ * ‖Matrix.of g‖) * Real.sqrt (32 / κ * ∫ σ, f σ ^ 2 ∂G) := by
-  have hum := hu.measurable_of_univ
-  have : IsProbabilityMeasure G := by
-    rw [hG]; exact isProbabilityMeasure_shcherbinaTirozziGibbs hκ hum hu0 g g₀
-  have hid : MemLp (fun σ : ℝ^N => σ) 2 G := by
-    rw [hG]; exact memLp_id_shcherbinaTirozziGibbs hκ hum hu0 g g₀
   have hD0 : 0 ≤ D := by simpa using (abs_nonneg _).trans (hD 1 0)
   set L : ℝ := D * ((Real.sqrt N)⁻¹ * ‖Matrix.of g‖) with hL
   have hL0 : 0 ≤ L := by positivity
-  have hfield : ∀ k : Fin M, Measurable fun σ : ℝ^N =>
-      deriv u ((Real.sqrt N)⁻¹ * ∑ i, g k i * σ i) := fun k =>
-    (measurable_deriv u).comp ((Finset.measurable_sum _ fun i _ =>
-      ((PiLp.continuous_apply 2 (fun _ : Fin N => ℝ) i).measurable).const_mul _).const_mul _)
-  have hUm : Measurable U := by
-    rw [funext hU]
-    exact (WithLp.measurable_toLp 2 (Fin M → ℝ)).comp
-      (Measurable.of_eval fun k => hfield k)
   have hUnorm : ∀ σ τ, ‖U σ - U τ‖ ≤ L * ‖σ - τ‖ := fun σ τ => by
     rw [hU, hU]
     exact norm_deriv_field_sub_le hD g σ τ
-  have hUL : MemLp U 2 G := by
-    have h1 : MemLp (fun σ : ℝ^N => ‖U 0‖ + L * ‖σ‖) 2 G :=
-      (memLp_const _).add (hid.norm.const_mul L)
-    refine h1.mono' hUm.aestronglyMeasurable (ae_of_all _ fun σ => ?_)
-    have h2 := hUnorm σ 0
-    rw [sub_zero] at h2
-    exact (norm_le_norm_add_norm_sub' (U σ) (U 0)).trans (add_le_add le_rfl h2)
   exact norm_integral_smul_sub_mean_le_of_lipschitz (h := h) hκ hu hu0 g g₀ G hG
-    hUm.stronglyMeasurable hUL hL0 hUnorm hf
+    hL0 hUnorm hf
 
 /-- **Differentiation along a line of the disorder.** For an observable of polynomial
 growth, `t ↦ ⟨F⟩_{g + t Δ, g₀ + t Δ₀}` has derivative `⟨F X⟩ - ⟨F⟩ ⟨X⟩` at `t`, where
@@ -699,7 +677,7 @@ theorem exists_hasDerivAt_integral_shcherbinaTirozzi_overlap_line (κ₀ h₀ D 
         rw [← inner_sub_right]
         exact abs_real_inner_le_norm _ _
     have h1 := (integral_sub_integral_pow_shcherbinaTirozziGibbs_le (h := h) hκ0 hu hu0 g g₀
-      (f := fun σ => ⟪b, σ⟫) (by fun_prop) (norm_nonneg b) hlip 1).2
+      (f := fun σ => ⟪b, σ⟫) (norm_nonneg b) hlip 1).2
     rw [← hG, hinner] at h1
     simp only [mul_one, pow_one, Nat.cast_one] at h1
     have e : (fun σ => f σ ^ 2) = fun σ => 4 * ((N : ℝ)⁻¹) ^ 2 * (⟪b, σ⟫ - ⟪b, b⟫) ^ 2 := by

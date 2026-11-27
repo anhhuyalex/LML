@@ -460,7 +460,8 @@ theorem concaveOn_and_bounds_log_integral_exp_comp_add_gaussianReal {u : ℝ →
         (fun y _ => (hd2 y).differentiableAt.differentiableWithinAt) fun y _ => by
           rw [(hd2 y).deriv]
           linarith [integral_deriv_two_add_sq_mul_exp_div_le_sq huc hu1 hu2 hD hD₂ y c]
-    exact (hanti.mono interior_subset).concaveOn_of_deriv convex_univ hv_diff.continuous.continuousOn
+    exact (hanti.mono interior_subset).concaveOn_of_deriv convex_univ
+        hv_diff.continuous.continuousOn
       hv_diff.differentiableOn
   have hv0 : ∀ y, v y ≤ 0 := fun y => by
     have hZ1 : ∫ ξ, Real.exp (u (y + c * ξ)) ∂(gaussianReal 0 1) ≤ 1 :=

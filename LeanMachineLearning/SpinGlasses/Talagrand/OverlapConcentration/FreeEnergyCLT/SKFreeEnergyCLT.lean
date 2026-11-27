@@ -95,7 +95,7 @@ theorem sk_free_energy_clt (β h q : ℝ)
           ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1) -
         ((Real.sqrt N)⁻¹) ^ m * a m * (∫ x, (L x - c0) ^ 2 ∂(gaussianReal 0 1)) ^ (m / 2)| ≤
       C * ((Real.sqrt N)⁻¹) ^ (m + 1) := fun m hm =>
-    abs_integral_pow_avg_sub_le (f := fun x => L x - c0) hint h0 ha0 ha1 ha hm
+    abs_integral_pow_avg_sub_le (f := fun x => L x - c0) (fun j _ => hint j) h0 ha0 ha1 ha
   choose! Cd hCd0 hCd using hex
   obtain ⟨C, hC0, hC⟩ := exists_clt_const (β ^ 2 * q ^ 2) K Cd
   refine ⟨max (C k) 0, le_max_right _ _, fun N hN => ?_⟩

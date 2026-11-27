@@ -1,13 +1,14 @@
 # The Talagrand book
 
-A book version of the blueprint chapters `blueprint/src/chapters/spinglasses_talagrand.tex`
-(the Sherrington–Kirkpatrick model at high temperature, following Talagrand's *Spin Glasses*,
-Volume I, Chapter 1) and `spinglasses_talagrand_perceptron.tex` (the start of Chapter 2, the Gaussian
-binary perceptron), typeset with [Typst](https://typst.app) and the
+A book version of the blueprint chapters on Talagrand's *Spin Glasses*, Volume I, in
+`blueprint/src/chapters/`: `spinglasses_talagrand.tex` (Chapter 1, the Sherrington–Kirkpatrick
+model at high temperature), `spinglasses_talagrand_perceptron.tex` (Chapter 2, the perceptron) and
+`spinglasses_talagrand_shcherbina_tirozzi.tex` (Chapter 3, Sections 3.1–3.3, the
+Shcherbina–Tirozzi model), typeset with [Typst](https://typst.app) and the
 [TypstVerso](https://github.com/Shreyas4991/TypstVerso) Lean tooling.
 
 It is published at <https://anhhuyalex.github.io/LML/talagrand/>: one HTML page per section
-(with hoverable Lean code) and one PDF of the whole book (about 600 pages, 7 MB; it has no hover information).
+(with hoverable Lean code) and one PDF of the whole book (it has no hover information).
 
 ## What the book shows
 
@@ -32,7 +33,7 @@ and visibility are remembered in the browser. The code is `typstverso/templates/
 ## How it works
 
 ```
-blueprint/src/chapters/spinglasses_talagrand.tex, ..._perceptron.tex   (the only sources; edited by hand)
+blueprint/src/chapters/spinglasses_talagrand{,_perceptron,_shcherbina_tirozzi}.tex   (the only sources)
         │  book/talagrand/tex2typ  (LaTeX subset -> Typst; fails on anything it does not know)
         ▼
 book/talagrand/generated/   s00.typ … sNN.typ, book.typ, labels.json, lean-names.json   (not committed)
@@ -43,7 +44,7 @@ home_page/talagrand/        s00.html … sNN.html, spin-glasses-talagrand.pdf, i
 
 The chapter files are listed, in order, in `scripts/build_talagrand_book.sh` (`chapters=(...)`).
 Sections are numbered continuously across chapters: chapter 1 gives sections 1–15 (plus the
-introduction `s00`), the perceptron chapter 16 and 17. A later chapter's title and introduction open its
+introduction `s00`), the perceptron chapter 16–21 and Chapter 3 gives 22–27. A later chapter's title and introduction open its
 first section's page. Statement numbers restart in each chapter, and carry the chapter number from the
 second chapter on (`Lemma 2.3`, as on the blueprint website). To add a chapter, append its file to that
 list (and to the cache key in `.github/workflows/build.yml`).
@@ -73,7 +74,7 @@ BOOK_REFRESH=1 scripts/build_talagrand_book.sh  # extract the Lean signatures ag
 python3 -m unittest discover -s book/talagrand/checks -p 'check_*.py'   # with PYTHONPATH=book/talagrand
 ```
 
-The first full build asks Lean to `#check` about 1 600 declarations in one process (a few
+The first full build asks Lean to `#check` about 2 400 declarations in one process (a few
 minutes) and stores the results in `book/typstverso/typst/lean.json` (about 25 MB, not
 committed). Later builds reuse it. The sections are typeset in parallel (`BOOK_JOBS`, default
 all cores); on a 44-core machine the whole script takes about 20 minutes with a cold cache. The cache is keyed on the toolchain and dependency pins, not

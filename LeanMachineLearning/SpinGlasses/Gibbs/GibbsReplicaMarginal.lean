@@ -100,8 +100,7 @@ theorem integral_pi_fin_add_mul {X : Type*} [MeasurableSpace X] [Finite X]
     (g := fun σ : Fin (m + n) → X => F (fun i => σ (Fin.castAdd n i)) *
       G (fun j => σ (Fin.natAdd m j))) Integrable.of_finite.aestronglyMeasurable]
   simp only [hH]
-  exact integral_pi_sum_mul μ F G Integrable.of_finite.aestronglyMeasurable
-    Integrable.of_finite.aestronglyMeasurable
+  exact integral_pi_sum_mul μ F G
 
 /-- **Two-replica marginal.** A function of two distinct replicas of an `R`-replica Gibbs average
 has the same average as under two independent replicas. -/

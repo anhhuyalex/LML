@@ -334,11 +334,13 @@ theorem exists_sk_centered_path_ode (β h q : ℝ)
         rw [hC4_def, hε4]
         field_simp
       have hT1 : |T1| ≤ Real.sqrt (Kv (2 * (m - 1)) * C4) * ε ^ (m + 1) := by
-        have := abs_integral_pow_mul_le hVm.aestronglyMeasurable hQL2 hε (hKv (2 * (m - 1))) hC4
+        have := abs_integral_pow_mul_le hVm.aestronglyMeasurable hQL2 hε.le
+          (hKv (2 * (m - 1))).le hC4.le
           (p := m - 1) (hint _ _) (hVsq (m - 1)) hQ2
         rwa [show m - 1 + 2 = m + 1 by omega] at this
       have hT2 : 2 ≤ m → |T2| ≤ Real.sqrt (Kv (2 * (m - 2)) * C4) * ε ^ m := fun hm2 => by
-        have := abs_integral_pow_mul_le hVm.aestronglyMeasurable hQL2 hε (hKv (2 * (m - 2))) hC4
+        have := abs_integral_pow_mul_le hVm.aestronglyMeasurable hQL2 hε.le
+          (hKv (2 * (m - 2))).le hC4.le
           (p := m - 2) (hint _ _) (hVsq (m - 2)) hQ2
         rwa [show m - 2 + 2 = m by omega] at this
       have hT3 : 2 ≤ m → |T3| ≤ Kv (m - 2) * ε ^ (m - 2) := fun _ => by

@@ -205,10 +205,10 @@ section Moments
 
 variable {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Measure Ω}
 
-/-- **Exponential moments of `|X|`.**  If `X` is measurable and sub-Gaussian with parameter `c`,
+/-- **Exponential moments of `|X|`.**  If `X` is sub-Gaussian with parameter `c`,
 then `exp (t |X|)` is integrable and `𝔼 exp (t |X|) ≤ 2 exp (c t² / 2)`. -/
 theorem HasSubgaussianMGF.integral_exp_abs_mul_le {X : Ω → ℝ} {c : ℝ≥0}
-    (h : HasSubgaussianMGF X c μ) (hX : Measurable X) (t : ℝ) :
+    (h : HasSubgaussianMGF X c μ) (t : ℝ) :
     Integrable (fun ω => Real.exp (t * |X ω|)) μ ∧
       ∫ ω, Real.exp (t * |X ω|) ∂μ ≤ 2 * Real.exp (c * t ^ 2 / 2) := by
   have hle : ∀ ω, Real.exp (t * |X ω|) ≤ Real.exp (t * X ω) + Real.exp ((-t) * X ω) := fun ω => by
@@ -220,7 +220,9 @@ theorem HasSubgaussianMGF.integral_exp_abs_mul_le {X : Ω → ℝ} {c : ℝ≥0}
   have hint : Integrable (fun ω => Real.exp (t * X ω) + Real.exp ((-t) * X ω)) μ :=
     (h.integrable_exp_mul t).add (h.integrable_exp_mul (-t))
   have hI : Integrable (fun ω => Real.exp (t * |X ω|)) μ :=
-    hint.mono' (by fun_prop) (Filter.Eventually.of_forall fun ω => by
+    hint.mono' (Real.continuous_exp.comp_aestronglyMeasurable
+      (h.aemeasurable.aestronglyMeasurable.norm.const_mul t))
+      (Filter.Eventually.of_forall fun ω => by
       rw [Real.norm_eq_abs, abs_of_pos (Real.exp_pos _)]
       exact hle ω)
   refine ⟨hI, (integral_mono hI hint hle).trans ?_⟩
@@ -266,28 +268,42 @@ theorem HasSubgaussianMGF.integral_exp_le {X : Ω → ℝ} {c : ℝ≥0}
   simpa using this
 
 /-- **Moment bounds for sub-Gaussian variables.** For `X` sub-Gaussian with parameter `c`,
-any exponent `k` and any scale parameter `w > 0`: `w^k 𝔼 |X|^k ≤ 2 k! exp (c w² / 2)`. -/
+any exponent `k` and any scale parameter `w ≥ 0`: `w^k 𝔼 |X|^k ≤ 2 k! exp (c w² / 2)`. -/
 theorem HasSubgaussianMGF.integral_pow_abs_le {X : Ω → ℝ} {c : ℝ≥0}
-    (h : HasSubgaussianMGF X c μ) (hX : Measurable X) (k : ℕ) {w : ℝ} (hw : 0 < w) :
+    (h : HasSubgaussianMGF X c μ) (k : ℕ) {w : ℝ} (hw : 0 ≤ w) :
     Integrable (fun ω => |X ω| ^ k) μ ∧
       w ^ k * ∫ ω, |X ω| ^ k ∂μ ≤ 2 * Nat.factorial k * Real.exp (c * w ^ 2 / 2) := by
-  obtain ⟨hint, hexp⟩ := h.integral_exp_abs_mul_le hX w
-  have hpt : ∀ ω, w ^ k * |X ω| ^ k ≤ (Nat.factorial k : ℝ) * Real.exp (w * |X ω|) := fun ω => by
+  have hmeas : AEStronglyMeasurable (fun ω => |X ω| ^ k) μ :=
+    (continuous_pow k).comp_aestronglyMeasurable h.aemeasurable.aestronglyMeasurable.norm
+  have hpt : ∀ u : ℝ, 0 ≤ u → ∀ ω, u ^ k * |X ω| ^ k ≤
+      (Nat.factorial k : ℝ) * Real.exp (u * |X ω|) := fun u hu ω => by
     rw [← mul_pow]
-    exact Real.pow_le_factorial_mul_exp (mul_nonneg hw.le (abs_nonneg _)) k
-  have hmeas : Measurable fun ω => |X ω| ^ k :=
-    (continuous_abs.measurable.comp hX).pow_const k
-  have hint' : Integrable (fun ω => w ^ k * |X ω| ^ k) μ :=
-    Integrable.mono' (hint.const_mul (Nat.factorial k : ℝ))
-      (hmeas.const_mul _).aestronglyMeasurable
-      (Filter.Eventually.of_forall fun ω => by
-        rw [Real.norm_eq_abs, abs_of_nonneg (by positivity)]
-        exact hpt ω)
-  refine ⟨by simpa [mul_assoc, hw.ne'] using hint'.const_mul ((w ^ k)⁻¹), ?_⟩
+    exact Real.pow_le_factorial_mul_exp (mul_nonneg hu (abs_nonneg _)) k
+  have hint : ∀ u : ℝ, 0 ≤ u → Integrable (fun ω => u ^ k * |X ω| ^ k) μ := fun u hu =>
+    Integrable.mono' ((h.integral_exp_abs_mul_le u).1.const_mul (Nat.factorial k : ℝ))
+      (hmeas.const_mul _) (Filter.Eventually.of_forall fun ω => by
+        rw [Real.norm_eq_abs, abs_of_nonneg (mul_nonneg (pow_nonneg hu k)
+          (pow_nonneg (abs_nonneg _) k))]
+        exact hpt u hu ω)
+  have hI : Integrable (fun ω => |X ω| ^ k) μ := by
+    simpa using hint 1 zero_le_one
+  refine ⟨hI, ?_⟩
+  rcases hw.eq_or_lt with rfl | -
+  · rcases eq_or_ne k 0 with rfl | hk
+    · -- the total mass of `μ` is at most one
+      have h0 := h.mgf_le 0
+      simp only [mgf, zero_mul, Real.exp_zero, ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true,
+        zero_pow, mul_zero, zero_div] at h0
+      simp only [pow_zero, one_mul, Nat.factorial_zero, Nat.cast_one, mul_one, ne_eq,
+        OfNat.ofNat_ne_zero, not_false_eq_true, zero_pow, mul_zero, zero_div, Real.exp_zero]
+      linarith
+    · rw [zero_pow hk, zero_mul]
+      positivity
   rw [← integral_const_mul]
-  refine (integral_mono hint' (hint.const_mul (Nat.factorial k : ℝ)) hpt).trans ?_
+  refine (integral_mono (hint w hw)
+    ((h.integral_exp_abs_mul_le w).1.const_mul (Nat.factorial k : ℝ)) (hpt w hw)).trans ?_
   rw [integral_const_mul]
-  nlinarith [Nat.cast_nonneg (α := ℝ) (Nat.factorial k)]
+  nlinarith [(h.integral_exp_abs_mul_le w).2, Nat.cast_nonneg (α := ℝ) (Nat.factorial k)]
 
 end Moments
 

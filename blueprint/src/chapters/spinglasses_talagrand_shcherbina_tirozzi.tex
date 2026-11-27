@@ -120,6 +120,8 @@ states integrability as part of its conclusion.
         MeasureTheory.integral_exp_sq_sub_integral_le_four,
         MeasureTheory.integral_sub_integral_pow_le_of_lipschitz,
         MeasureTheory.memLp_two_of_lipschitz,
+        MeasureTheory.memLp_two_of_norm_sub_le,
+        MeasureTheory.aestronglyMeasurable_tilted_restrict_of_norm_sub_le,
         ProbabilityTheory.norm_integral_smul_sub_le_of_integral_dual_sq_le,
         MeasureTheory.norm_integral_smul_sub_integral_le_of_lipschitz}
   \leanok
@@ -134,17 +136,18 @@ Let $\mu$ be the probability measure on $C$ with density proportional to $e^{-H}
 \begin{enumerate}
 \item If $\kappa\ge0$, $B\subset C$ is measurable and $\mu(B)>0$, then
 $\int\exp(\frac\kappa2d(x,B)^2)\,d\mu\le1/\mu(B)$.
-\item If $f$ is measurable, $A$-Lipschitz on $C$ with $A>0$, and $m$ is a median, then
+\item If $f$ is $A$-Lipschitz on $C$ with $A>0$, and $m$ is a median, then
 $\int\exp(\frac{\kappa}{2A^2}(f-m)^2)\,d\mu\le4$.
 \item If moreover $\kappa>0$, then
 $\int\exp(\frac{\kappa}{8A^2}(f-\int f\,d\mu)^2)\,d\mu\le4$.
 \item If $\kappa>0$ and $A\ge0$, then for every $k$,
 $\int(f-\int f\,d\mu)^{2k}\,d\mu\le4(8kA^2/\kappa)^k$.
-\item If $\kappa>0$, $F\in L^2(\mu)$ is strongly measurable with values in a real Banach space $V$ and
-$A$-Lipschitz on $C$, then for every $f\in L^2(\mu)$,
+\item If $\kappa>0$ and $F$ takes values in a real Banach space $V$ and is
+$A$-Lipschitz on $C$, then $F\in L^2(\mu)$ and for every $f\in L^2(\mu)$,
 $\|\int f\,(F-\int F\,d\mu)\,d\mu\|\le A\sqrt{(32/\kappa)\int f^2\,d\mu}$.
 \end{enumerate}
-All integrands are integrable.
+All integrands are integrable. No measurability assumption is made on $f$ or $F$: a function which is
+Lipschitz on $C$ is continuous there, hence $\mu$-a.e.\ strongly measurable.
 \end{theorem}
 \begin{proof}
   \leanok
@@ -185,6 +188,9 @@ Lemma~\ref{lem:sg-tal:st-centering}(4). Now $X^k\le(Y+C)^k\le2^{k-1}(Y^k+C^k)$.
 \begin{lemma}[Operator norm of a Gaussian matrix]\label{lem:sg-tal:st-gaussian-norm}
   \lean{exists_finset_unitBall_net,
         ContinuousLinearMap.opNorm_le_four_mul_of_net,
+        ProbabilityTheory.measureReal_abs_ge_le_of_hasSubgaussianMGF_one,
+        ProbabilityTheory.measureReal_opNorm_gt_le_of_hasSubgaussianMGF,
+        ProbabilityTheory.hasSubgaussianMGF_bilinear_gaussian,
         ProbabilityTheory.measureReal_abs_bilinear_gaussian_ge_le,
         ProbabilityTheory.measureReal_l2_opNorm_gaussian_gt_le,
         ProbabilityTheory.exists_measureReal_l2_opNorm_gaussian_gt_le_exp}
@@ -197,13 +203,16 @@ operator norm. For $t\ge0$,
 \]
 Consequently for every $a$ there is $L>0$ such that $|K|\le a|I|$ implies
 $\mathbb P(\|G\|>L\sqrt{|I|})\le Le^{-|I|}$.
+More generally, let $E,F$ be finite-dimensional real inner product spaces and $G$ a random linear map $E\to F$ on a finite
+measure space such that $\langle y,Gx\rangle$ is sub-Gaussian with parameter $1$ whenever $\|x\|,\|y\|\le1$. Then
+$\mathbb P(\|G\|>t)\le2\cdot5^{\dim E+\dim F}e^{-t^2/32}$.
 \end{lemma}
 \begin{proof}
   \leanok
 The unit ball of a $d$-dimensional space has a $1/2$-net with at most $5^d$ points (a separated set of
 maximal cardinality). If $|\langle b,Ga\rangle|\le S$ on two such nets then $\|G\|\le4S$ (apply the
-approximation once in each argument). Each $\langle b,Ga\rangle$ is a centered Gaussian of variance at most
-$1$, and the union bound gives the first display with $S=t/4$. The second follows by taking
+approximation once in each argument). Each $\langle b,Ga\rangle$ is sub-Gaussian with parameter $1$ (for the Gaussian
+matrix it is a centered Gaussian of variance at most $1$), and the union bound gives the bound with $S=t/4$. The second follows by taking
 $L^2\ge32(1+(1+|a|)\log5)$.
 \end{proof}
 
@@ -1567,11 +1576,67 @@ $G(x_1,\rho_1)\le G(x_2,\rho_1)\le G(x_2,\rho_2)$ with at least one strict inequ
 $G(x_1,\rho_1)<G(x_2,\rho_2)$. Exchanging the two points gives the reverse strict inequality.
 \end{proof}
 
+\begin{lemma}[The overlap derivative, including the boundary $q=0$]\label{lem:sg-tal:st-hard-boundary}
+  \lean{SpinGlasses.hasDerivAt_shcherbinaTirozziHardFunctional_overlap,
+        SpinGlasses.hasDerivWithinAt_shcherbinaTirozziHardFunctional_overlap_zero,
+        SpinGlasses.eq_zero_of_hasDerivWithinAt_shcherbinaTirozziHardFunctional_overlap_zero}
+  \leanok
+  \uses{def:sg-tal:st-hard-functional, lem:sg-tal:st-mills-affine, lem:sg-tal:st-rs-envelope}
+\talsource{Theorem~3.3.1, the case $q=0$}
+Write $A(w)=p(w)/\mathbb P(\xi\ge w)$ for the inverse Mills ratio and $W=(\tau-z\sqrt q)/\sqrt{\rho-q}$ with $z$ standard
+Gaussian.
+\begin{enumerate}
+\item For $0<q<\rho$ and all real $\alpha,\kappa,h,\tau$,
+\[
+\frac{\partial F}{\partial q}(q,\rho)=\frac12\Bigl(\frac q{(\rho-q)^2}-\frac{\alpha}{\rho-q}\,\mathbb EA(W)^2-h^2\Bigr).
+\]
+\item For $\rho>0$ the right derivative of $q\mapsto F(q,\rho)$ at $q=0$ is
+\[
+-\frac12\Bigl(\frac\alpha\rho\,A\bigl(\tau/\sqrt\rho\bigr)^2+h^2\Bigr).
+\]
+\item Hence if $\alpha\ge0$ and this right derivative vanishes, then $\alpha=0$ and $h=0$.
+\end{enumerate}
+\end{lemma}
+\begin{proof}
+  \leanok
+  \uses{def:sg-tal:st-hard-functional, lem:sg-tal:st-mills-affine, lem:sg-tal:st-rs-envelope}
+(1) Put $m(q)=\tau/\sqrt{\rho-q}$ and $\sigma(q)=-\sqrt q/\sqrt{\rho-q}$, so that $W=m+\sigma z$. Differentiating the Gaussian
+average of $\log\mathbb P(\xi\ge W)$ gives $-m'\,\mathbb EA(W)-\sigma'\,\mathbb E[zA(W)]$. Here $m'=m/(2(\rho-q))$,
+$\sigma'=\sigma\rho/(2q(\rho-q))$, and Gaussian integration by parts gives
+$(1+\sigma^2)\,\mathbb E[zA(W)]=\sigma\bigl(\mathbb EA(W)^2-m\,\mathbb EA(W)\bigr)$ with $1+\sigma^2=\rho/(\rho-q)$. Therefore
+$\sigma'\,\mathbb E[zA(W)]=(\mathbb EA(W)^2-m\,\mathbb EA(W))/(2(\rho-q))$ and the whole derivative of the average is
+$-\mathbb EA(W)^2/(2(\rho-q))$. Adding the derivatives of the explicit terms gives the formula.
+
+(2) $F(\cdot,\rho)$ is continuous from the right at $0$ (through the variables $x=q/(\rho-q)$), and as $q\to0^+$ the derivative in (1)
+converges: $A(w)\le C+|w|$ dominates $A(W)^2$ by a square-integrable function for $q<\rho/2$, and $W\to\tau/\sqrt\rho$. A function
+which is continuous at the endpoint and whose derivative has a limit there has that limit as one-sided derivative.
+
+(3) $A>0$, so both nonnegative terms must vanish. Formalized in
+\texttt{SpinGlasses/Talagrand/ShcherbinaTirozzi/HardConstraintBoundary.lean}.
+\end{proof}
+
+\begin{theorem}[Uniqueness on $0\le q<\rho$]\label{thm:sg-tal:st-hard-uniqueness-boundary}
+  \lean{SpinGlasses.eq_of_hasDerivWithinAt_shcherbinaTirozziHardFunctional_zero}
+  \leanok
+  \uses{thm:sg-tal:st-hard-uniqueness, lem:sg-tal:st-hard-boundary}
+\talsource{Theorem~3.3.1, uniqueness}
+Let $\alpha\ge0$ and $\tau\ge0$, and let $\kappa,h$ be real. There is at most one pair $(q,\rho)$ with $0\le q<\rho$ such that
+$\partial_qF(q,\rho)=0=\partial_\rho F(q,\rho)$, the derivative in $q$ being the right derivative at $q=0$.
+\end{theorem}
+\begin{proof}
+  \leanok
+  \uses{thm:sg-tal:st-hard-uniqueness, lem:sg-tal:st-hard-boundary}
+If one solution has $q=0$, Lemma~\ref{lem:sg-tal:st-hard-boundary}(3) gives $\alpha=h=0$. Then
+$\partial_qF(q,\rho)=q/(2(\rho-q)^2)>0$ for $q>0$, so every other solution also has $q=0$, and
+$\partial_\rho F(0,\rho)=1/(2\rho)-\kappa=0$ determines $\rho$. If both solutions have $q>0$, apply
+Theorem~\ref{thm:sg-tal:st-hard-uniqueness}.
+\end{proof}
+
 \begin{remark}[Differences from Theorem~3.3.1]\label{rem:sg-tal:st-section33-uniqueness}
 \talsource{Theorem~3.3.1, Proposition~3.3.11}
-The book states that there is a unique solution when $\alpha<2$; its proof, and the formal statement, give
-uniqueness, which holds for every $\alpha\ge0$ and every $\kappa,h$. Existence is not formalized. Solutions with
-$q=0$ are outside the statement (for $\alpha=h=0$ the solution of the replica-symmetric equations has $q=0$).
+The book states that there is a unique solution when $\alpha<2$; its proof, and the formal statements, give
+uniqueness, which holds for every $\alpha\ge0$ and every $\kappa,h$ on the whole domain $0\le q<\rho$. Existence is not
+formalized. A solution with $q=0$ forces $\alpha=h=0$, and then $\rho=(2\kappa)^{-1}$.
 The strict inequality (3.150) of Proposition~3.3.11 needs $(\alpha,h)\ne(0,0)$: for $\alpha=h=0$ the quantity
 $2\frac{1+x}{x}\partial G/\partial x$ is identically $1$. The hypothesis $\tau\ge0$ is the one fixed in the book. The monotonicity in $\rho$ is proved without computing
 $\partial^2G/\partial\rho^2$.
@@ -1583,7 +1648,7 @@ $\partial^2G/\partial\rho^2$.
         integral_rpow_le_rpow_integral,
         le_exp_mul_add_endpoint_of_exists_hasDerivAt_Ioo}
   \leanok
-Let $A\subset\mathbb R$ be convex with $a_0\in A$, let $S\subset X$ and $T\subset Y$ be subsets of topological
+Let $A\subset\mathbb R$ with $a_0\in A$, let $S\subset X$ and $T\subset Y$ be subsets of topological
 spaces, and suppose that for $a\in A$ near $a_0$, $(x(a),y(a))\in S\times T$ is a saddle point of $G(a,\cdot,\cdot)$
 (minimizer over $S$ in the first variable, maximizer over $T$ in the second). If $(x,y)$ is continuous within $A$ at
 $a_0$, $b\mapsto G(b,u,v)$ has derivative $G'(b,u,v)$ near $(a_0,x(a_0),y(a_0))$, and $G'$ is continuous at
@@ -1615,7 +1680,7 @@ Formalized in \texttt{ForMathlib/Analysis/Calculus/SaddleEnvelope.lean}.
     lem:sg-tal:st-saddle-envelope, lem:sg-tal:st-quadratic, lem:sg-tal:st-mills-affine}
 \talsource{Lemma~3.3.6, Eq.~(3.130); Theorem~3.3.2, $M=0$ step}
 \begin{enumerate}
-\item (Lemma~3.3.6.) Let $\tau\ge0$, let $A\subset[0,\infty)$ be convex with $\alpha_0\in A$, and let $(q(a),\rho(a))$
+\item (Lemma~3.3.6.) Let $\tau\ge0$, let $A\subset[0,\infty)$ with $\alpha_0\in A$, and let $(q(a),\rho(a))$
 be continuous within $A$ at $\alpha_0$ and satisfy $0<q(a)<\rho(a)$ and
 $\partial_q F(a,q(a),\rho(a))=0=\partial_\rho F(a,q(a),\rho(a))$ for $a\in A$ near $\alpha_0$. Then
 $a\mapsto F(a,q(a),\rho(a))$ has derivative

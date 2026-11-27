@@ -55,16 +55,15 @@ theorem prod_gaussian_class_moments_erase_pair
   simpa only [Nat.cast_add, Nat.cast_one] using scaled_gaussian_moment_add_two (z k) n
 
 
-/-- A uniform two-factor recurrence gives the Gaussian class product times the actual
-unselected moment, with the correct degree-dependent error. The reference is explicit:
-no Gaussian assumption is imposed on the unselected factors. A matching partner is needed
-only when another selected position has the same label. All constants precede parameters
-and system sizes. -/
-theorem exists_finset_gaussian_class_moment_error
+/-- A uniform two-factor recurrence with an arbitrary positive normalization `ν θ N` gives the
+Gaussian class product, of variance `c θ / ν θ N`, times the actual unselected moment, with error
+`C / ν ^ ((card + 1) / 2)`. -/
+theorem exists_finset_gaussian_class_moment_error_normalized
     {J K Θ : Type*} [DecidableEq J] [Fintype K] [DecidableEq K]
     (P : J → Prop) [DecidablePred P] (label : J → K)
     (valid : Θ → Prop) (F : Θ → ℕ → Finset J → ℝ)
     (c : Θ → ℝ) (B : ℝ) (hc : ∀ θ, valid θ → |c θ| ≤ B)
+    (ν : Θ → ℕ → ℝ) (hν : ∀ θ, valid θ → ∀ N, 0 < ν θ N)
     (partner : Finset J → J → J)
     (hpartner : ∀ s p, p ∈ s → P p →
       ((s.filter fun j => P j ∧ label j = label p).erase p).Nonempty →
@@ -72,22 +71,22 @@ theorem exists_finset_gaussian_class_moment_error
     (hF : ∀ s p, p ∈ s → P p → ∃ C : ℝ, 0 ≤ C ∧ ∀ θ, valid θ → ∀ N,
       |F θ N s -
         ((((s.filter fun j => P j ∧ label j = label p).card - 1 : ℕ) : ℝ) *
-          c θ / (N + 1 : ℝ)) * F θ N ((s.erase p).erase (partner s p))| ≤
-        C / (N + 1 : ℝ) ^ (((s.card + 1 : ℕ) : ℝ) / 2)) :
+          c θ / ν θ N) * F θ N ((s.erase p).erase (partner s p))| ≤
+        C / ν θ N ^ (((s.card + 1 : ℕ) : ℝ) / 2)) :
     ∀ s, ∃ C : ℝ, 0 < C ∧ ∀ θ, valid θ → ∀ N,
       |F θ N s -
         (∏ k : K, (∫ x : ℝ, x ^ ((s.filter fun j => P j ∧ label j = k).card)
           ∂gaussianReal 0 1) *
-            (c θ / (N + 1 : ℝ)) ^ ((s.filter fun j => P j ∧ label j = k).card / 2)) *
+            (c θ / ν θ N) ^ ((s.filter fun j => P j ∧ label j = k).card / 2)) *
               F θ N (s.filter fun j => ¬P j)| ≤
-        C / (N + 1 : ℝ) ^ (((s.card + 1 : ℕ) : ℝ) / 2) := by
+        C / ν θ N ^ (((s.card + 1 : ℕ) : ℝ) / 2) := by
   let D : Finset J → J → Finset J := fun s p => (s.erase p).erase (partner s p)
   let w : Finset J → J → ℝ := fun s p =>
     ((s.filter fun j => P j ∧ label j = label p).card - 1 : ℕ)
   let G : Θ → ℕ → Finset J → ℝ := fun θ N s =>
     (∏ k : K, (∫ x : ℝ, x ^ ((s.filter fun j => P j ∧ label j = k).card)
       ∂gaussianReal 0 1) *
-        (c θ / (N + 1 : ℝ)) ^ ((s.filter fun j => P j ∧ label j = k).card / 2)) *
+        (c θ / ν θ N) ^ ((s.filter fun j => P j ∧ label j = k).card / 2)) *
           F θ N (s.filter fun j => ¬P j)
   have hdata : ∀ s p, p ∈ s → P p → w s p = 0 ∨
       ((D s p).card + 2 = s.card ∧
@@ -116,7 +115,7 @@ theorem exists_finset_gaussian_class_moment_error
       rw [Finset.not_nonempty_iff_eq_empty.mp hne, Finset.card_empty] at h
       have he : cls.card - 1 = 0 := by omega
       rw [he, Nat.cast_zero]
-  apply exists_finset_moment_error_of_two_factor_recurrence P valid F G c B hc D w
+  apply exists_finset_moment_error_of_two_factor_recurrence_normalized P valid F G c B hc D w ν hν
     (fun s p hp hP => (hdata s p hp hP).imp_right And.left) ?_ ?_ hF
   · intro s hnone θ _ N
     have hcounts : ∀ k : K, (s.filter fun j => P j ∧ label j = k).card = 0 := by
@@ -129,8 +128,8 @@ theorem exists_finset_gaussian_class_moment_error
     simp [hcounts, hs]
   · intro s p hp hP θ _ N
     have he := prod_gaussian_class_moments_erase_pair s Finset.univ P label
-      (fun _ => c θ / (N + 1 : ℝ)) hp hP (Finset.mem_univ _) (hpartner s p hp hP)
-    change _ = (w s p * c θ / (N + 1 : ℝ)) * _
+      (fun _ => c θ / ν θ N) hp hP (Finset.mem_univ _) (hpartner s p hp hP)
+    change _ = (w s p * c θ / ν θ N) * _
     dsimp only [G]
     rw [he]
     rcases hdata s p hp hP with hw | ⟨_, hr⟩
@@ -141,5 +140,34 @@ theorem exists_finset_gaussian_class_moment_error
       rw [hr]
       dsimp only [D]
       ring
+
+/-- A uniform two-factor recurrence gives the Gaussian class product times the actual
+unselected moment, with the correct degree-dependent error. The reference is explicit:
+no Gaussian assumption is imposed on the unselected factors. A matching partner is needed
+only when another selected position has the same label. All constants precede parameters
+and system sizes. -/
+theorem exists_finset_gaussian_class_moment_error
+    {J K Θ : Type*} [DecidableEq J] [Fintype K] [DecidableEq K]
+    (P : J → Prop) [DecidablePred P] (label : J → K)
+    (valid : Θ → Prop) (F : Θ → ℕ → Finset J → ℝ)
+    (c : Θ → ℝ) (B : ℝ) (hc : ∀ θ, valid θ → |c θ| ≤ B)
+    (partner : Finset J → J → J)
+    (hpartner : ∀ s p, p ∈ s → P p →
+      ((s.filter fun j => P j ∧ label j = label p).erase p).Nonempty →
+        partner s p ∈ (s.filter fun j => P j ∧ label j = label p).erase p)
+    (hF : ∀ s p, p ∈ s → P p → ∃ C : ℝ, 0 ≤ C ∧ ∀ θ, valid θ → ∀ N,
+      |F θ N s -
+        ((((s.filter fun j => P j ∧ label j = label p).card - 1 : ℕ) : ℝ) *
+          c θ / (N + 1 : ℝ)) * F θ N ((s.erase p).erase (partner s p))| ≤
+        C / (N + 1 : ℝ) ^ (((s.card + 1 : ℕ) : ℝ) / 2)) :
+    ∀ s, ∃ C : ℝ, 0 < C ∧ ∀ θ, valid θ → ∀ N,
+      |F θ N s -
+        (∏ k : K, (∫ x : ℝ, x ^ ((s.filter fun j => P j ∧ label j = k).card)
+          ∂gaussianReal 0 1) *
+            (c θ / (N + 1 : ℝ)) ^ ((s.filter fun j => P j ∧ label j = k).card / 2)) *
+              F θ N (s.filter fun j => ¬P j)| ≤
+        C / (N + 1 : ℝ) ^ (((s.card + 1 : ℕ) : ℝ) / 2) :=
+  exists_finset_gaussian_class_moment_error_normalized P label valid F c B hc
+    (fun _ N => N + 1) (fun _ _ N => by positivity) partner hpartner hF
 
 end ProbabilityTheory

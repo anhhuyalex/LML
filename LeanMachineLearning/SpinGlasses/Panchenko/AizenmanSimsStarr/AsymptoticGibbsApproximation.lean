@@ -188,26 +188,26 @@ variable {ι : Type*} [Fintype ι] {Ω : Type*} {mΩ : MeasurableSpace Ω} {P : 
 /-- A weighted average of `exp (s |g i|)` over sub-Gaussian `g i` is integrable with expectation at
 most `2 exp (v s² / 2)`, whatever the number of terms. -/
 theorem integral_sum_mul_exp_abs_le (hw0 : ∀ i, 0 ≤ w i) (hw1 : ∑ i, w i = 1)
-    (hm : ∀ i, Measurable (g i)) (hsub : ∀ i, HasSubgaussianMGF (g i) v P) (s : ℝ) :
+    (hsub : ∀ i, HasSubgaussianMGF (g i) v P) (s : ℝ) :
     Integrable (fun ω => ∑ i, w i * Real.exp (s * |g i ω|)) P ∧
       ∫ ω, ∑ i, w i * Real.exp (s * |g i ω|) ∂P ≤ 2 * Real.exp (v * s ^ 2 / 2) := by
   have hi : ∀ i, Integrable (fun ω => w i * Real.exp (s * |g i ω|)) P := fun i =>
-    ((hsub i).integral_exp_abs_mul_le (hm i) s).1.const_mul _
+    ((hsub i).integral_exp_abs_mul_le s).1.const_mul _
   refine ⟨integrable_finsetSum _ fun i _ => hi i, ?_⟩
   rw [integral_finsetSum _ fun i _ => hi i]
   calc ∑ i, ∫ ω, w i * Real.exp (s * |g i ω|) ∂P
       ≤ ∑ i, w i * (2 * Real.exp (v * s ^ 2 / 2)) := Finset.sum_le_sum fun i _ => by
         rw [integral_const_mul]
-        exact mul_le_mul_of_nonneg_left ((hsub i).integral_exp_abs_mul_le (hm i) s).2 (hw0 i)
+        exact mul_le_mul_of_nonneg_left ((hsub i).integral_exp_abs_mul_le s).2 (hw0 i)
     _ = 2 * Real.exp (v * s ^ 2 / 2) := by rw [← Finset.sum_mul, hw1, one_mul]
 
 /-- **Domination by a Gibbs average of `exp (s |g i|)`.** -/
 theorem integrable_integral_le_of_le_sum_exp_abs (hw0 : ∀ i, 0 ≤ w i) (hw1 : ∑ i, w i = 1)
-    (hm : ∀ i, Measurable (g i)) (hsub : ∀ i, HasSubgaussianMGF (g i) v P) {F : Ω → ℝ}
+    (hsub : ∀ i, HasSubgaussianMGF (g i) v P) {F : Ω → ℝ}
     (hF : Measurable F) (hF0 : ∀ ω, 0 ≤ F ω) {K : ℝ} (hK : 0 ≤ K) (s : ℝ)
     (hFle : ∀ ω, F ω ≤ K * ∑ i, w i * Real.exp (s * |g i ω|)) :
     Integrable F P ∧ ∫ ω, F ω ∂P ≤ 2 * K * Real.exp (v * s ^ 2 / 2) := by
-  obtain ⟨hi, hint⟩ := integral_sum_mul_exp_abs_le hw0 hw1 hm hsub s
+  obtain ⟨hi, hint⟩ := integral_sum_mul_exp_abs_le hw0 hw1 hsub s
   refine ⟨(hi.const_mul K).mono' hF.aestronglyMeasurable (Filter.Eventually.of_forall fun ω => ?_),
     ?_⟩
   · rw [Real.norm_eq_abs, abs_of_nonneg (hF0 ω)]
@@ -261,9 +261,9 @@ theorem integrable_sum_mul_comp
   have hXpos : ∀ ω, 0 < ∑ i, w i * φ (g i ω) := fun ω => sum_mul_pos hw0 hw1 fun i => hφ _
   have hXm : Measurable fun ω => ∑ i, w i * φ (g i ω) :=
     Finset.measurable_sum _ fun i _ => (hφc.measurable.comp (hm i)).const_mul _
-  refine ⟨integrable_integral_le_of_le_sum_exp_abs hw0 hw1 hm hsub hXm
+  refine ⟨integrable_integral_le_of_le_sum_exp_abs hw0 hw1 hsub hXm
     (fun ω => (hXpos ω).le) hA0 1 fun ω => ?_,
-    integrable_integral_le_of_le_sum_exp_abs hw0 hw1 hm hsub hXm.inv
+    integrable_integral_le_of_le_sum_exp_abs hw0 hw1 hsub hXm.inv
     (fun ω => (inv_pos.2 (hXpos ω)).le) hB0 1 fun ω => ?_⟩
   · calc _ ≤ ∑ i, w i * (A * Real.exp (1 * |g i ω|)) := Finset.sum_le_sum fun i _ =>
           mul_le_mul_of_nonneg_left (by simpa using hA (g i ω)) (hw0 i)
@@ -332,7 +332,7 @@ theorem abs_integral_log_sub_integral_log_clamp_le [IsProbabilityMeasure P]
       ((hm i).min measurable_const)))))).const_mul _
   -- integrability and size of `X`, `X⁻¹` and `D`
   obtain ⟨⟨hXi, hXint⟩, ⟨hXii, hXiint⟩⟩ := integrable_sum_mul_comp hw0 hw1 hm hsub hφc hφ hA hB
-  obtain ⟨hDi, hDint⟩ := integrable_integral_le_of_le_sum_exp_abs hw0 hw1 hm hsub hDm
+  obtain ⟨hDi, hDint⟩ := integrable_integral_le_of_le_sum_exp_abs hw0 hw1 hsub hDm
     (fun ω => Finset.sum_nonneg fun i _ => mul_nonneg (hw0 i) (abs_nonneg _))
     (K := 2 * A * Real.exp (-(2 * a))) (by positivity) 3 fun ω => by
       calc D ω ≤ ∑ i, w i * (2 * A * Real.exp (-(2 * a)) * Real.exp (3 * |g i ω|)) :=

@@ -13,8 +13,8 @@ public import Mathlib.Probability.Distributions.Gaussian.HasGaussianLaw.Independ
 /-!
 # The law of a Gaussian series
 
-Let `g p`, `p ∈ ℕ`, be independent vectors with i.i.d. standard Gaussian coordinates
-(`g ∼ infinitePi fun p => pi fun _ => 𝒩(0, 1)`) and `a p` coefficient vectors with
+Let `g p`, for `p` in a countable index type, be independent vectors with i.i.d. standard Gaussian
+coordinates (`g ∼ infinitePi fun p => pi fun _ => 𝒩(0, 1)`) and `a p` coefficient vectors with
 `∑ₚ ‖a p‖ < ∞`.  Then the series `H_a(g) = ∑ₚ a p ⬝ᵥ g p` is exactly Gaussian,
 `H_a ∼ 𝒩(0, ∑ₚ ‖a p‖²)`, and finitely many such series form a Gaussian vector.  (The partial sums
 are sums of independent Gaussians; the series is their almost sure limit, and the characteristic
@@ -36,14 +36,15 @@ open scoped Matrix Topology ENNReal NNReal
 
 namespace ProbabilityTheory
 
-variable {ρ : ℕ → Type*} [∀ p, Fintype (ρ p)]
+variable {τ : Type*} [Countable τ] {ρ : τ → Type*} [∀ p, Fintype (ρ p)]
 
 /-- The disorder law: independent vectors with i.i.d. standard Gaussian coordinates. -/
 local notation "gaussianField" =>
   Measure.infinitePi fun p => Measure.pi fun _ : ρ p => gaussianReal 0 1
 
+omit [Countable τ] in
 /-- Each coordinate block `a ⬝ᵥ g p` of the disorder is a Gaussian variable. -/
-theorem hasGaussianLaw_coord (p : ℕ) (a : ρ p → ℝ) :
+theorem hasGaussianLaw_coord (p : τ) (a : ρ p → ℝ) :
     HasGaussianLaw (fun g : ∀ p, ρ p → ℝ => a ⬝ᵥ g p) gaussianField := by
   let L : (ρ p → ℝ) →L[ℝ] ℝ := ∑ i, a i • ContinuousLinearMap.proj i
   have hL : ∀ x, L x = a ⬝ᵥ x := fun x => by simp [L, dotProduct]
@@ -59,51 +60,55 @@ theorem hasGaussianLaw_coord (p : ℕ) (a : ρ p → ℝ) :
   rw [h]
   infer_instance
 
+omit [Countable τ] in
 /-- The coordinate blocks are independent. -/
 theorem iIndepFun_coord (a : ∀ p, ρ p → ℝ) :
     iIndepFun (fun p (g : ∀ p, ρ p → ℝ) => a p ⬝ᵥ g p) gaussianField :=
   iIndepFun_infinitePi (P := fun p => Measure.pi fun _ : ρ p => gaussianReal 0 1)
     (X := fun p (g : ρ p → ℝ) => a p ⬝ᵥ g) fun p => measurable_dotProduct p (a p)
 
-/-- **The law of a partial sum:** `∑_{p < n} a p ⬝ᵥ g p ∼ 𝒩(0, ∑_{p < n} ‖a p‖²)`. -/
-theorem map_sum_range_dotProduct (a : ∀ p, ρ p → ℝ) (n : ℕ) :
-    Measure.map (fun g : ∀ p, ρ p → ℝ => ∑ p ∈ range n, a p ⬝ᵥ g p) gaussianField =
-      gaussianReal 0 (∑ p ∈ range n, a p ⬝ᵥ a p).toNNReal := by
-  have hG : HasGaussianLaw (fun g : ∀ p, ρ p → ℝ => ∑ p ∈ range n, a p ⬝ᵥ g p) gaussianField := by
-    have := (iIndepFun_coord a).precomp (g := fun i : Fin n => (i : ℕ)) Fin.val_injective
+/-- **The law of a finite partial sum:** `∑_{p ∈ s} a p ⬝ᵥ g p ∼ 𝒩(0, ∑_{p ∈ s} ‖a p‖²)`. -/
+theorem map_finsetSum_dotProduct (a : ∀ p, ρ p → ℝ) (s : Finset τ) :
+    Measure.map (fun g : ∀ p, ρ p → ℝ => ∑ p ∈ s, a p ⬝ᵥ g p) gaussianField =
+      gaussianReal 0 (∑ p ∈ s, a p ⬝ᵥ a p).toNNReal := by
+  classical
+  have hG : HasGaussianLaw (fun g : ∀ p, ρ p → ℝ => ∑ p ∈ s, a p ⬝ᵥ g p) gaussianField := by
+    have := (iIndepFun_coord a).precomp (g := fun i : s => (i : τ)) Subtype.val_injective
     have h := iIndepFun.hasGaussianLaw_fun_sum
-      (X := fun (i : Fin n) (g : ∀ p, ρ p → ℝ) => a i ⬝ᵥ g i)
-      (fun i => hasGaussianLaw_coord (i : ℕ) (a i)) this
-    simpa [Finset.sum_range] using h
-  -- the centered coefficient family `a' p = 1[p < n] a p` has the same series
-  set a' : ∀ p, ρ p → ℝ := fun p => if p < n then a p else 0 with ha'
-  have hsupp : ∀ p ∉ range n, a' p = 0 := fun p hp => by
-    simp [ha', mem_range.not.1 hp]
-  have hsum : ∀ g : ∀ p, ρ p → ℝ, ∑ p ∈ range n, a p ⬝ᵥ g p = ∑' p, a' p ⬝ᵥ g p := fun g => by
-    rw [tsum_eq_sum (s := range n) fun p hp => by simp [hsupp p hp]]
-    exact sum_congr rfl fun p hp => by simp [ha', mem_range.1 hp]
+      (X := fun (i : s) (g : ∀ p, ρ p → ℝ) => a i ⬝ᵥ g i)
+      (fun i => hasGaussianLaw_coord (i : τ) (a i)) this
+    refine (?_ : _ = fun g : ∀ p, ρ p → ℝ => ∑ p ∈ s, a p ⬝ᵥ g p) ▸ h
+    funext g
+    exact Finset.sum_coe_sort s fun p => a p ⬝ᵥ g p
+  -- the centered coefficient family `a' p = 1[p ∈ s] a p` has the same series
+  set a' : ∀ p, ρ p → ℝ := fun p => if p ∈ s then a p else 0 with ha'
+  have hsupp : ∀ p ∉ s, a' p = 0 := fun p hp => by
+    simp [ha', hp]
+  have hsum : ∀ g : ∀ p, ρ p → ℝ, ∑ p ∈ s, a p ⬝ᵥ g p = ∑' p, a' p ⬝ᵥ g p := fun g => by
+    rw [tsum_eq_sum (s := s) fun p hp => by simp [hsupp p hp]]
+    exact sum_congr rfl fun p hp => by simp [ha', hp]
   have hsumm : Summable fun p => Real.sqrt (a' p ⬝ᵥ a' p) :=
-    summable_of_ne_finset_zero (s := range n) fun p hp => by simp [hsupp p hp]
-  have hmean : ∫ g : ∀ p, ρ p → ℝ, ∑ p ∈ range n, a p ⬝ᵥ g p ∂gaussianField = 0 := by
+    summable_of_ne_finset_zero (s := s) fun p hp => by simp [hsupp p hp]
+  have hmean : ∫ g : ∀ p, ρ p → ℝ, ∑ p ∈ s, a p ⬝ᵥ g p ∂gaussianField = 0 := by
     rw [integral_finsetSum _ fun p _ => (memLp_coord p (a p)).integrable one_le_two]
     refine sum_eq_zero fun p _ => ?_
     rw [integral_comp_eval p (F := fun g => a p ⬝ᵥ g)
       (measurable_dotProduct p (a p)).aestronglyMeasurable, integral_dotProduct_pi_gaussianReal]
-  have hvar : ∫ g : ∀ p, ρ p → ℝ, (∑ p ∈ range n, a p ⬝ᵥ g p) ^ 2 ∂gaussianField =
-      ∑ p ∈ range n, a p ⬝ᵥ a p := by
-    have h1 : ∑' p, a' p ⬝ᵥ a' p = ∑ p ∈ range n, a p ⬝ᵥ a p := by
-      rw [tsum_eq_sum (f := fun p => a' p ⬝ᵥ a' p) (s := range n) fun p hp => by
+  have hvar : ∫ g : ∀ p, ρ p → ℝ, (∑ p ∈ s, a p ⬝ᵥ g p) ^ 2 ∂gaussianField =
+      ∑ p ∈ s, a p ⬝ᵥ a p := by
+    have h1 : ∑' p, a' p ⬝ᵥ a' p = ∑ p ∈ s, a p ⬝ᵥ a p := by
+      rw [tsum_eq_sum (f := fun p => a' p ⬝ᵥ a' p) (s := s) fun p hp => by
         simp [hsupp p hp]]
       refine sum_congr rfl fun p hp => ?_
-      have hpn : p < n := mem_range.1 hp
-      simp [ha', hpn]
-    have e : ∀ g : ∀ p, ρ p → ℝ, (∑ p ∈ range n, a p ⬝ᵥ g p) ^ 2 =
+      simp [ha', hp]
+    have e : ∀ g : ∀ p, ρ p → ℝ, (∑ p ∈ s, a p ⬝ᵥ g p) ^ 2 =
         (∑' p, a' p ⬝ᵥ g p) * ∑' p, a' p ⬝ᵥ g p := fun g => by rw [hsum g, sq]
     simp only [e]
     rw [integral_tsum_dotProduct_mul_tsum_dotProduct hsumm hsumm, h1]
   have h := (hasGaussianLaw_hasLaw hG).map_eq
   rwa [hmean, variance_of_integral_eq_zero hG.aemeasurable hmean, hvar] at h
 
+omit [Countable τ] in
 /-- `∑ₚ ‖a p‖ < ∞` implies `∑ₚ ‖a p‖² < ∞`. -/
 theorem summable_dotProduct_self {a : ∀ p, ρ p → ℝ}
     (ha : Summable fun p => Real.sqrt (a p ⬝ᵥ a p)) : Summable fun p => a p ⬝ᵥ a p := by
@@ -127,20 +132,21 @@ theorem map_tsum_dotProduct_eq_gaussianReal {a : ∀ p, ρ p → ℝ}
   rw [charFun_gaussianReal, charFun_apply_real,
     integral_map (measurable_tsum_dotProduct a).aemeasurable (by fun_prop)]
   -- the partial sums converge almost surely to the series
-  have hae : ∀ᵐ g ∂gaussianField, Tendsto (fun n => ∑ p ∈ range n, a p ⬝ᵥ g p) atTop
+  have hae : ∀ᵐ g ∂gaussianField, Tendsto (fun s : Finset τ => ∑ p ∈ s, a p ⬝ᵥ g p) atTop
       (𝓝 (∑' p, a p ⬝ᵥ g p)) := by
     have := ae_summable_of_tsum_eLpNorm_ne_top (μ := gaussianField)
       (f := fun p (g : ∀ p, ρ p → ℝ) => a p ⬝ᵥ g p)
       (fun p => (memLp_coord p (a p)).aestronglyMeasurable) (by
         refine ne_top_of_le_ne_top (tsum_eLpNorm_coord_ne_top ha) (tsum_le_tsum fun p => ?_)
         exact eLpNorm_le_eLpNorm_of_exponent_le one_le_two)
-    filter_upwards [this] with g hg using hg.hasSum.tendsto_sum_nat
-  have hlim : Tendsto (fun n => ∫ g, Complex.exp (t * (∑ p ∈ range n, a p ⬝ᵥ g p) * Complex.I)
-      ∂gaussianField) atTop
+    filter_upwards [this] with g hg using hg.hasSum
+  have hlim : Tendsto (fun s : Finset τ =>
+      ∫ g, Complex.exp (t * (∑ p ∈ s, a p ⬝ᵥ g p) * Complex.I) ∂gaussianField) atTop
       (𝓝 (∫ g, Complex.exp (t * (∑' p, a p ⬝ᵥ g p) * Complex.I) ∂gaussianField)) := by
-    refine tendsto_integral_of_dominated_convergence (fun _ => (1 : ℝ)) (fun n => ?_)
-      (integrable_const _) (fun n => ae_of_all _ fun g => ?_) ?_
-    · have : Measurable fun g : ∀ p, ρ p → ℝ => ∑ p ∈ range n, a p ⬝ᵥ g p :=
+    refine tendsto_integral_filter_of_dominated_convergence (fun _ => (1 : ℝ))
+      (Eventually.of_forall fun s => ?_)
+      (Eventually.of_forall fun s => ae_of_all _ fun g => ?_) (integrable_const _) ?_
+    · have : Measurable fun g : ∀ p, ρ p → ℝ => ∑ p ∈ s, a p ⬝ᵥ g p :=
         Finset.measurable_sum _ fun p _ => (measurable_dotProduct p (a p)).comp
           (measurable_pi_apply p)
       exact (Complex.measurable_exp.comp (((Complex.measurable_ofReal.comp this).const_mul
@@ -151,23 +157,26 @@ theorem map_tsum_dotProduct_eq_gaussianReal {a : ∀ p, ρ p → ℝ}
         (((Complex.continuous_ofReal.tendsto _).comp hg).const_mul (t : ℂ) |>.mul_const
           Complex.I))
   -- the characteristic function of the partial sums is explicit
-  have hS : ∀ n, ∫ g, Complex.exp (t * (∑ p ∈ range n, a p ⬝ᵥ g p) * Complex.I) ∂gaussianField =
-      Complex.exp (-((∑ p ∈ range n, a p ⬝ᵥ a p : ℝ) : ℂ) * t ^ 2 / 2) := fun n => by
-    have h := congrArg (fun μ => charFun μ t) (map_sum_range_dotProduct a n)
-    have hmeas : Measurable fun g : ∀ p, ρ p → ℝ => ∑ p ∈ range n, a p ⬝ᵥ g p :=
+  have hS : ∀ s : Finset τ,
+      ∫ g, Complex.exp (t * (∑ p ∈ s, a p ⬝ᵥ g p) * Complex.I) ∂gaussianField =
+        Complex.exp (-((∑ p ∈ s, a p ⬝ᵥ a p : ℝ) : ℂ) * t ^ 2 / 2) := fun s => by
+    have h := congrArg (fun μ => charFun μ t) (map_finsetSum_dotProduct a s)
+    have hmeas : Measurable fun g : ∀ p, ρ p → ℝ => ∑ p ∈ s, a p ⬝ᵥ g p :=
       Finset.measurable_sum _ fun p _ => (measurable_dotProduct p (a p)).comp
         (measurable_pi_apply p)
     rw [charFun_gaussianReal, charFun_apply_real,
       integral_map hmeas.aemeasurable (by fun_prop)] at h
     rw [h]
-    have hn : 0 ≤ ∑ p ∈ range n, a p ⬝ᵥ a p := sum_nonneg fun p _ => hnn p
+    have hn : 0 ≤ ∑ p ∈ s, a p ⬝ᵥ a p := sum_nonneg fun p _ => hnn p
     simp only [Real.coe_toNNReal _ hn]
     congr 1
     push_cast
     ring
-  have hv' : Tendsto (fun n => ∑ p ∈ range n, a p ⬝ᵥ a p) atTop (𝓝 (∑' p, a p ⬝ᵥ a p)) :=
-    (summable_dotProduct_self ha).hasSum.tendsto_sum_nat
-  have hlim2 : Tendsto (fun n => Complex.exp (-((∑ p ∈ range n, a p ⬝ᵥ a p : ℝ) : ℂ) * t ^ 2 / 2))
+  have hv' : Tendsto (fun s : Finset τ => ∑ p ∈ s, a p ⬝ᵥ a p) atTop
+      (𝓝 (∑' p, a p ⬝ᵥ a p)) :=
+    (summable_dotProduct_self ha).hasSum
+  have hlim2 : Tendsto (fun s : Finset τ =>
+      Complex.exp (-((∑ p ∈ s, a p ⬝ᵥ a p : ℝ) : ℂ) * t ^ 2 / 2))
       atTop (𝓝 (Complex.exp (-((∑' p, a p ⬝ᵥ a p : ℝ) : ℂ) * t ^ 2 / 2))) :=
     (Complex.continuous_exp.tendsto _).comp
       ((((Complex.continuous_ofReal.tendsto _).comp hv').neg.mul_const _).div_const _)

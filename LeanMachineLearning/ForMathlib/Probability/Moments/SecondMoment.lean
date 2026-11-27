@@ -11,6 +11,9 @@ public import Mathlib.MeasureTheory.Integral.Bochner.Basic
 public import Mathlib.MeasureTheory.Function.L2Space
 public import Mathlib.Probability.Moments.Variance
 public import Mathlib.Analysis.Normed.Module.DoubleDual
+public import Mathlib.Analysis.InnerProductSpace.Trace
+public import Mathlib.Analysis.Matrix.Normed
+public import Mathlib.MeasureTheory.SpecificCodomains.WithLp
 public import Mathlib.LinearAlgebra.Matrix.Trace
 public import Mathlib.Algebra.Order.BigOperators.Ring.Finset
 
@@ -47,7 +50,7 @@ double-descent risk decompositions and for Gaussian matrix forms).
 namespace ProbabilityTheory
 
 open MeasureTheory
-open scoped Matrix
+open scoped Matrix Topology
 
 /-- The square integral of a weighted finite sum is bounded by the sum of absolute weights
 times the weighted sum of square integrals. No probability or independence assumption is needed. -/
@@ -91,8 +94,9 @@ theorem integral_sq_fintype_sum_le {Ω I : Type*} [MeasurableSpace Ω] [Fintype 
 
 /-- If the first two moments approximate those of a constant, the mean-square error is small.
 No sign hypotheses on the target or the stated error bounds are needed. -/
-theorem integral_sub_const_sq_le_of_moment_errors {Ω : Type*} [MeasurableSpace Ω]
-    {μ : Measure Ω} [IsProbabilityMeasure μ] {X : Ω → ℝ} (hX : MemLp X 2 μ)
+theorem integral_sub_const_sq_le_of_moment_errors_of_measureReal_le_one {Ω : Type*}
+    [MeasurableSpace Ω] {μ : Measure Ω} [IsFiniteMeasure μ] (hμ : μ.real Set.univ ≤ 1)
+    {X : Ω → ℝ} (hX : MemLp X 2 μ)
     {G ε₁ ε₂ : ℝ} (h₁ : |(∫ ω, X ω ∂μ) - G| ≤ ε₁)
     (h₂ : |(∫ ω, X ω ^ 2 ∂μ) - G ^ 2| ≤ ε₂) :
     (∫ ω, (X ω - G) ^ 2 ∂μ) ≤ ε₂ + 2 * |G| * ε₁ := by
@@ -103,9 +107,19 @@ theorem integral_sub_const_sq_le_of_moment_errors {Ω : Type*} [MeasurableSpace 
   have hcross := (abs_le.mp hc).1
   have he := integral_sq_sub hX.integrable_sq (integrable_const (G ^ 2))
     ((hX.integrable one_le_two).mul_const G)
-  simp only [integral_mul_const, integral_const, probReal_univ, smul_eq_mul, one_mul] at he
+  simp only [integral_mul_const, integral_const, smul_eq_mul] at he
   rw [he]
-  nlinarith only [hsecond, hcross]
+  have hm := mul_le_mul_of_nonneg_right hμ (sq_nonneg G)
+  nlinarith only [hsecond, hcross, hm]
+
+/-- If the first two moments approximate those of a constant, the mean-square error is small,
+on a probability space. -/
+theorem integral_sub_const_sq_le_of_moment_errors {Ω : Type*} [MeasurableSpace Ω]
+    {μ : Measure Ω} [IsProbabilityMeasure μ] {X : Ω → ℝ} (hX : MemLp X 2 μ)
+    {G ε₁ ε₂ : ℝ} (h₁ : |(∫ ω, X ω ∂μ) - G| ≤ ε₁)
+    (h₂ : |(∫ ω, X ω ^ 2 ∂μ) - G ^ 2| ≤ ε₂) :
+    (∫ ω, (X ω - G) ^ 2 ∂μ) ≤ ε₂ + 2 * |G| * ε₁ :=
+  integral_sub_const_sq_le_of_moment_errors_of_measureReal_le_one (by simp) hX h₁ h₂
 
 /-- The variance of `X` is bounded by the mean-square distance to any constant `G`. -/
 theorem variance_le_integral_sub_const_sq {Ω : Type*} [MeasurableSpace Ω]
@@ -133,6 +147,26 @@ theorem variance_le_of_moment_errors {Ω : Type*} [MeasurableSpace Ω]
   (variance_le_integral_sub_const_sq hX G).trans
     (integral_sub_const_sq_le_of_moment_errors hX h₁ h₂)
 
+/-- **Quadratic forms of a square-integrable random vector integrate against its second-moment
+operator,** coordinate free: if `E[⟪a, X⟫ ⟪b, X⟫] = ⟪a, Γ b⟫` then `E[⟪X, S X⟫] = tr (S Γ)`. -/
+theorem integral_inner_apply_self_eq_trace {Ω E : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    [NormedAddCommGroup E] [InnerProductSpace ℝ E] [FiniteDimensional ℝ E] {X : Ω → E}
+    (hX : MemLp X 2 μ) (Γ S : E →ₗ[ℝ] E)
+    (hΓ : ∀ a b, ∫ ω, inner ℝ a (X ω) * inner ℝ b (X ω) ∂μ = inner ℝ a (Γ b)) :
+    ∫ ω, inner ℝ (X ω) (S (X ω)) ∂μ = LinearMap.trace ℝ E (S ∘ₗ Γ) := by
+  set e := stdOrthonormalBasis ℝ E
+  have hexp : ∀ ω, inner ℝ (X ω) (S (X ω)) =
+      ∑ i, inner ℝ (e i) (X ω) * inner ℝ (S (e i)) (X ω) := fun ω => by
+    rw [← LinearMap.adjoint_inner_left, ← e.sum_inner_mul_inner]
+    refine Finset.sum_congr rfl fun i _ => ?_
+    rw [LinearMap.adjoint_inner_left, real_inner_comm (S (e i)), mul_comm]
+  have hint : ∀ i, Integrable (fun ω => inner ℝ (e i) (X ω) * inner ℝ (S (e i)) (X ω)) μ :=
+    fun i => (hX.const_inner (𝕜 := ℝ) (e i)).integrable_mul (hX.const_inner (𝕜 := ℝ) (S (e i)))
+  simp_rw [hexp]
+  rw [integral_finsetSum _ fun i _ => hint i, LinearMap.trace_comp_comm',
+    LinearMap.trace_eq_sum_inner _ e]
+  exact Finset.sum_congr rfl fun i _ => by rw [hΓ]; rfl
+
 variable {Ω p : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [Fintype p]
 
 /-- Quadratic forms of a square-integrable random vector integrate against its second-moment
@@ -140,18 +174,44 @@ matrix. -/
 theorem integral_dotProduct_mulVec_self (x : Ω → p → ℝ) (hx : ∀ j, MemLp (fun ω => x ω j) 2 μ)
     (Γ : Matrix p p ℝ) (hΓ : ∀ j k, ∫ ω, x ω j * x ω k ∂μ = Γ j k) (S : Matrix p p ℝ) :
     ∫ ω, x ω ⬝ᵥ (S *ᵥ x ω) ∂μ = Matrix.trace (S * Γ) := by
-  have hexp : ∀ ω, x ω ⬝ᵥ (S *ᵥ x ω) = ∑ j, ∑ k, S j k * (x ω j * x ω k) := fun ω => by
-    simp only [dotProduct, Matrix.mulVec, Finset.mul_sum]
-    refine Finset.sum_congr rfl fun j _ => Finset.sum_congr rfl fun k _ => by ring
-  have hint : ∀ j k, Integrable (fun ω => S j k * (x ω j * x ω k)) μ := fun j k =>
-    ((hx j).integrable_mul (hx k)).const_mul _
-  simp_rw [hexp]
-  rw [integral_finsetSum _ fun j _ => integrable_finsetSum _ fun k _ => hint j k]
-  simp_rw [integral_finsetSum _ fun k _ => hint _ k, integral_const_mul, hΓ]
-  have hsymm : ∀ j k, Γ k j = Γ j k := fun j k => by
-    rw [← hΓ, ← hΓ]; exact integral_congr_ae (.of_forall fun ω => mul_comm _ _)
-  simp only [Matrix.trace, Matrix.diag, Matrix.mul_apply, hsymm]
-
+  classical
+  set X : Ω → EuclideanSpace ℝ p := fun ω => WithLp.toLp 2 (x ω)
+  have hX : MemLp X 2 μ := memLp_piLp_iff.2 hx
+  have hinner : ∀ a b : p → ℝ,
+      inner ℝ (WithLp.toLp 2 a) (WithLp.toLp 2 b) = ∑ j, a j * b j := fun a b => by
+    simp [PiLp.inner_apply, mul_comm]
+  have hquad : ∀ a b : EuclideanSpace ℝ p,
+      ∫ ω, inner ℝ a (X ω) * inner ℝ b (X ω) ∂μ =
+        inner ℝ a (Matrix.toEuclideanLin Γ b) := fun a b => by
+    have hpt : ∀ ω, inner ℝ a (X ω) * inner ℝ b (X ω) =
+        ∑ j, ∑ k, (a j * b k) * (x ω j * x ω k) := fun ω => by
+      have h1 : inner ℝ a (X ω) = ∑ j, a j * x ω j := hinner a.ofLp (x ω)
+      have h2 : inner ℝ b (X ω) = ∑ k, b k * x ω k := hinner b.ofLp (x ω)
+      rw [h1, h2, Finset.sum_mul_sum]
+      exact Finset.sum_congr rfl fun j _ => Finset.sum_congr rfl fun k _ => by ring
+    have hint : ∀ j k, Integrable (fun ω => (a j * b k) * (x ω j * x ω k)) μ := fun j k =>
+      ((hx j).integrable_mul (hx k)).const_mul _
+    have h3 : inner ℝ a (Matrix.toEuclideanLin Γ b) = ∑ j, a j * ∑ k, Γ j k * b k :=
+      hinner a.ofLp (Γ *ᵥ b.ofLp)
+    simp_rw [hpt]
+    rw [h3, integral_finsetSum _ fun j _ => integrable_finsetSum _ fun k _ => hint j k]
+    refine Finset.sum_congr rfl fun j _ => ?_
+    rw [integral_finsetSum _ fun k _ => hint j k, Finset.mul_sum]
+    refine Finset.sum_congr rfl fun k _ => ?_
+    rw [integral_const_mul, hΓ]
+    ring
+  have h := integral_inner_apply_self_eq_trace hX (Matrix.toEuclideanLin Γ)
+    (Matrix.toEuclideanLin S) hquad
+  have hL : ∀ ω, inner ℝ (X ω) (Matrix.toEuclideanLin S (X ω)) = x ω ⬝ᵥ (S *ᵥ x ω) :=
+    fun ω => hinner (x ω) (S *ᵥ x ω)
+  simp_rw [hL] at h
+  have hcomp : Matrix.toEuclideanLin S ∘ₗ Matrix.toEuclideanLin Γ =
+      Matrix.toEuclideanLin (S * Γ) := by
+    ext v : 1
+    exact congrArg (WithLp.toLp 2) (Matrix.mulVec_mulVec v.ofLp S Γ)
+  rw [h, hcomp, Matrix.toEuclideanLin_eq_toLin_orthonormal,
+    LinearMap.trace_eq_matrix_trace ℝ (EuclideanSpace.basisFun p ℝ).toBasis,
+    LinearMap.toMatrix_toLin]
 
 /-- Bilinear second-moment identity: `E[(x ⬝ a)(x ⬝ b)] = a ⬝ Γ b`. -/
 theorem integral_dotProduct_mul_dotProduct (x : Ω → p → ℝ) (hx : ∀ j, MemLp (fun ω => x ω j) 2 μ)
@@ -184,11 +244,23 @@ theorem integral_mul_le_half_add {X Y : Ω → ℝ} (hX : MemLp X 2 μ) (hY : Me
     ∫ ω, X ω * Y ω ∂μ ≤ (∫ ω, X ω ^ 2 ∂μ + ∫ ω, Y ω ^ 2 ∂μ) / 2 := by
   simpa using (le_abs_self _).trans (abs_integral_mul_le_weighted_add hX hY one_pos)
 
-/-- **Cauchy-Schwarz with explicit scales:** if `E[X²] ≤ α²` and `E[Y²] ≤ γ²` with `α, γ > 0`,
+/-- **Cauchy-Schwarz with explicit scales:** if `E[X²] ≤ α²` and `E[Y²] ≤ γ²` with `α, γ ≥ 0`,
 then `|E[X Y]| ≤ α γ`. -/
 theorem abs_integral_mul_le_of_integral_sq_le {X Y : Ω → ℝ} (hX : MemLp X 2 μ) (hY : MemLp Y 2 μ)
-    {α γ : ℝ} (hα : 0 < α) (hγ : 0 < γ) (hXb : ∫ ω, X ω ^ 2 ∂μ ≤ α ^ 2)
+    {α γ : ℝ} (hα : 0 ≤ α) (hγ : 0 ≤ γ) (hXb : ∫ ω, X ω ^ 2 ∂μ ≤ α ^ 2)
     (hYb : ∫ ω, Y ω ^ 2 ∂μ ≤ γ ^ 2) : |∫ ω, X ω * Y ω ∂μ| ≤ α * γ := by
+  -- prove the bound for positive scales, then let the slack tend to zero
+  suffices h : ∀ α γ : ℝ, 0 < α → 0 < γ → ∫ ω, X ω ^ 2 ∂μ ≤ α ^ 2 →
+      ∫ ω, Y ω ^ 2 ∂μ ≤ γ ^ 2 → |∫ ω, X ω * Y ω ∂μ| ≤ α * γ by
+    have hlim : Filter.Tendsto (fun δ : ℝ => (α + δ) * (γ + δ)) (𝓝[>] 0) (𝓝 (α * γ)) := by
+      have : Continuous fun δ : ℝ => (α + δ) * (γ + δ) := by fun_prop
+      simpa using (this.tendsto 0).mono_left nhdsWithin_le_nhds
+    refine ge_of_tendsto hlim (eventually_nhdsWithin_of_forall fun δ (hδ : 0 < δ) => ?_)
+    exact h _ _ (add_pos_of_nonneg_of_pos hα hδ) (add_pos_of_nonneg_of_pos hγ hδ)
+      (hXb.trans (pow_le_pow_left₀ hα (le_add_of_nonneg_right hδ.le) 2))
+      (hYb.trans (pow_le_pow_left₀ hγ (le_add_of_nonneg_right hδ.le) 2))
+  clear hα hγ hXb hYb α γ
+  intro α γ hα hγ hXb hYb
   refine (abs_integral_mul_le_weighted_add hX hY (div_pos hγ hα)).trans ?_
   have h1 : γ / α * ∫ ω, X ω ^ 2 ∂μ ≤ γ / α * α ^ 2 :=
     mul_le_mul_of_nonneg_left hXb (div_pos hγ hα).le
@@ -226,7 +298,7 @@ theorem norm_setIntegral_le_mul_of_integral_sq_le {V : Type*} [NormedAddCommGrou
 `V` and an `L²` bound of order `ε⁴` for `Q` give order `ε^(p+2)` for `∫ V^p Q`. -/
 theorem abs_integral_pow_mul_le {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω}
     {V Q : Ω → ℝ} (hV : AEStronglyMeasurable V P) (hQ : MemLp Q 2 P)
-    {ε K C : ℝ} (hε : 0 < ε) (hK : 0 < K) (hC : 0 < C) {p : ℕ}
+    {ε K C : ℝ} (hε : 0 ≤ ε) (hK : 0 ≤ K) (hC : 0 ≤ C) {p : ℕ}
     (hVi : Integrable (fun ω => V ω ^ (2 * p)) P) (hVb : ∫ ω, V ω ^ (2 * p) ∂P ≤ K * ε ^ (2 * p))
     (hQ2 : ∫ ω, Q ω ^ 2 ∂P ≤ C * ε ^ 4) :
     |∫ ω, V ω ^ p * Q ω ∂P| ≤ Real.sqrt (K * C) * ε ^ (p + 2) := by
@@ -237,13 +309,13 @@ theorem abs_integral_pow_mul_le {Ω : Type*} [MeasurableSpace Ω] {P : Measure �
     (γ := Real.sqrt C * ε ^ 2) (by positivity) (by positivity)
     (by
       simp only [← pow_mul, mul_comm p 2] at hVb ⊢
-      rw [mul_pow, Real.sq_sqrt hK.le, ← pow_mul, mul_comm 2 p]
+      rw [mul_pow, Real.sq_sqrt hK, ← pow_mul, mul_comm 2 p]
       simpa only [mul_comm p 2, ← pow_mul] using hVb)
     (by
-      rw [mul_pow, Real.sq_sqrt hC.le, ← pow_mul]
+      rw [mul_pow, Real.sq_sqrt hC, ← pow_mul]
       exact hQ2)
   refine h.trans (le_of_eq ?_)
-  rw [Real.sqrt_mul hK.le]
+  rw [Real.sqrt_mul hK]
   ring
 
 /-- **Even moments of a sum:** `∫ (X + Y)^{2k} ≤ 2^{2k-1} (∫ X^{2k} + ∫ Y^{2k})` on an arbitrary

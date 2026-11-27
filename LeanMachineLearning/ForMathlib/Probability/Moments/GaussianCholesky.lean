@@ -21,8 +21,8 @@ is measurable in `A` (`Matrix.measurable_cholInf`).
 
 ## Main declarations
 
-* `ProbabilityTheory.map_dotProduct_eq_of_gram_eq`: linear forms of an i.i.d. Gaussian vector
-  with the same Gram matrix have the same law.
+* `ProbabilityTheory.map_inner_eq_of_gram_eq`: linear forms of standard Gaussian vectors with
+  the same Gram matrix have the same law; `map_dotProduct_eq_of_gram_eq` is the coordinate case.
 * `ProbabilityTheory.map_cholInf_comp_equiv`: the law of the Gaussian sequence with covariance
   `A` composed with a permutation `e` of the coordinates is the law of the sequence with
   covariance `(A (e l) (e l'))`: the law depends on `A` only, not on the chosen factorization.
@@ -37,16 +37,49 @@ namespace ProbabilityTheory
 
 section Finite
 
-variable {I K : Type*} [Finite I] [Fintype K]
+variable {I K : Type*} [Finite I] [Fintype K] {E F : Type*} [NormedAddCommGroup E]
+  [InnerProductSpace ℝ E] [FiniteDimensional ℝ E] [MeasurableSpace E] [BorelSpace E]
+  [NormedAddCommGroup F] [InnerProductSpace ℝ F] [FiniteDimensional ℝ F] [MeasurableSpace F]
+  [BorelSpace F]
+
+/-- A finite family of linear forms of a standard Gaussian vector is jointly Gaussian. -/
+theorem hasGaussianLaw_inner_family_stdGaussian (a : I → E) :
+    HasGaussianLaw (fun (x : E) (p : I) => inner ℝ (a p) x) (stdGaussian E) :=
+  have := Fintype.ofFinite I
+  (IsGaussian.hasGaussianLaw_id (μ := stdGaussian E)).map_fun
+    (ContinuousLinearMap.pi fun p => innerSL ℝ (a p))
+
+/-- **Linear forms of standard Gaussian vectors with the same Gram matrix have the same law,**
+even when the two vectors live in different spaces. -/
+theorem map_inner_eq_of_gram_eq (a : I → E) (b : I → F)
+    (h : ∀ p q, inner ℝ (a p) (a q) = inner ℝ (b p) (b q)) :
+    (stdGaussian E).map (fun x p => inner ℝ (a p) x) =
+      (stdGaussian F).map (fun y p => inner ℝ (b p) y) :=
+  map_eq_of_integral_mul_eq (X := fun p (x : E) => inner ℝ (a p) x)
+    (Y := fun p (y : F) => inner ℝ (b p) y) (hasGaussianLaw_inner_family_stdGaussian a)
+    (hasGaussianLaw_inner_family_stdGaussian b) (fun _ => integral_inner_stdGaussian _)
+    (fun _ => integral_inner_stdGaussian _) fun p q => by
+      rw [integral_inner_mul_inner_stdGaussian, integral_inner_mul_inner_stdGaussian, h]
 
 /-- **Linear forms of i.i.d. Gaussians with the same Gram matrix have the same law.** -/
 theorem map_dotProduct_eq_of_gram_eq (a b : I → K → ℝ) (h : ∀ p q, a p ⬝ᵥ a q = b p ⬝ᵥ b q) :
     (Measure.pi fun _ : K => gaussianReal 0 1).map (fun ζ p => a p ⬝ᵥ ζ) =
-      (Measure.pi fun _ : K => gaussianReal 0 1).map (fun ζ p => b p ⬝ᵥ ζ) :=
-  (map_eq_map_dotProduct_family (X := fun p ζ => b p ⬝ᵥ ζ) a (hasGaussianLaw_dotProduct_family b)
-    (fun p => integral_dotProduct_pi_gaussianReal (b p))
-    fun p q => (integral_dotProduct_mul_dotProduct_pi_gaussianReal (b p) (b q)).trans
-      (h p q).symm).symm
+      (Measure.pi fun _ : K => gaussianReal 0 1).map (fun ζ p => b p ⬝ᵥ ζ) := by
+  have hrep : ∀ c : I → K → ℝ,
+      (Measure.pi fun _ : K => gaussianReal 0 1).map (fun ζ p => c p ⬝ᵥ ζ) =
+        (stdGaussian (EuclideanSpace ℝ K)).map fun x p => inner ℝ (WithLp.toLp 2 (c p)) x := by
+    intro c
+    have hm : Measurable fun (ζ : K → ℝ) (p : I) => c p ⬝ᵥ ζ :=
+      measurable_pi_iff.2 fun p => by simp only [dotProduct]; fun_prop
+    rw [pi_gaussianReal_eq_map_stdGaussian, Measure.map_map hm (by fun_prop)]
+    congr 1
+    funext x p
+    simp [dotProduct, PiLp.inner_apply, mul_comm]
+  rw [hrep a, hrep b]
+  refine map_inner_eq_of_gram_eq _ _ fun p q => ?_
+  have e : ∀ c d : K → ℝ, inner ℝ (WithLp.toLp 2 c) (WithLp.toLp 2 d) = c ⬝ᵥ d := fun c d => by
+    simp [dotProduct, PiLp.inner_apply, mul_comm]
+  rw [e, e, h]
 
 end Finite
 

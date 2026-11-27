@@ -332,7 +332,7 @@ private theorem exists_integral_one_add_norm_pow_cavity_le (hκ : 0 < κ) (hrr :
     positivity
   have h1 := hK _ (measurable_cavity_exponent_apply (κ := κ) (h := h) (r := r) (rBar := rBar)
       hum t p) B c hB0 hc0 (fun x => by
-      simpa only [zero_add] using cavity_exponent_le hrr hu0 ht0 ht1 p x)
+      simpa only [zero_add] using cavity_exponent_le (κ := κ) (h := h) hrr hu0 ht0 ht1 p x)
     (fun x hx => le_neg_shcherbinaTirozziCavityHamiltonian_of_norm_le_one κ h p.1 hrr ht0
       ht1 hu1 hD p.2.1 p.2.2 hx)
   have h2 : 1 + B + c ≤ A0 * size p := by
@@ -369,6 +369,11 @@ private theorem hasDerivAt_cavity_disorder_average (hκ : 0 < κ) (hrr : rBar �
       HasDerivAt (fun s => ∫ p, ∫ σ, f σ ∂(Measure.pi fun _ : R => gibbs⟨s, p⟩) ∂(law r))
         (∫ p, replicaDiff (gibbs⟨t, p⟩) f (e' t p) ∂(law r)) t := by
   intro e'
+  have he'eq : ∀ (s : ℝ) (p : Dis) (x : ℝ^(N + 1)), e' s p x =
+      (∑ k, (Real.sqrt (N + 1))⁻¹ * p.2.1 k (Fin.last N) / (2 * Real.sqrt s) *
+          (deriv u field⟨s, p.2.1, k, x⟩ * x (Fin.last N))) +
+        (-(p.1 / (2 * Real.sqrt (1 - s))) * x (Fin.last N) +
+          ((r : ℝ) - rBar) / 2 * x (Fin.last N) ^ 2) := fun _ _ _ => rfl
   have hum : Measurable u := hu1.continuous.measurable
   have hdu : Measurable (deriv u) := measurable_deriv u
   have hD0 : 0 ≤ D := (abs_nonneg _).trans (hD 0)
@@ -378,7 +383,8 @@ private theorem hasDerivAt_cavity_disorder_average (hκ : 0 < κ) (hrr : rBar �
   have hUmem : U ∈ 𝓝 t := Icc_mem_nhds (by linarith) (by linarith)
   have hU01 : ∀ s ∈ U, 0 < s ∧ s < 1 ∧ 0 ≤ s ∧ s ≤ 1 := fun s hs =>
     ⟨by linarith [hs.1], by linarith [hs.2], by linarith [hs.1], by linarith [hs.2]⟩
-  have hst : ∀ s ∈ U, Real.sqrt (t / 2) ≤ Real.sqrt s ∧ Real.sqrt ((1 - t) / 2) ≤ Real.sqrt (1 - s) :=
+  have hst : ∀ s ∈ U, Real.sqrt (t / 2) ≤ Real.sqrt s ∧ Real.sqrt ((1 - t) / 2) ≤ Real.sqrt (1 - s)
+      :=
     fun s hs => ⟨Real.sqrt_le_sqrt hs.1, Real.sqrt_le_sqrt (by linarith [hs.2])⟩
   have hst0 : 0 < Real.sqrt (t / 2) := Real.sqrt_pos.2 (by linarith)
   have hs1t0 : 0 < Real.sqrt ((1 - t) / 2) := Real.sqrt_pos.2 (by linarith)
@@ -401,9 +407,8 @@ private theorem hasDerivAt_cavity_disorder_average (hκ : 0 < κ) (hrr : rBar �
       have hk : ∀ k : Fin M, |(Real.sqrt (N + 1))⁻¹ * p.2.1 k (Fin.last N) / (2 * Real.sqrt s) *
           (deriv u field⟨s, p.2.1, k, x⟩ * x (Fin.last N))| ≤
           (D / (2 * Real.sqrt (t / 2)) * size p) * (1 + ‖x‖) ^ 2 := fun k => by
-        rw [abs_mul, abs_div, abs_mul, abs_mul,
-          abs_of_nonneg (inv_nonneg.2 (Real.sqrt_nonneg _)),
-          abs_of_pos (mul_pos two_pos (hst0.trans_le hts))]
+        rw [abs_mul, abs_div, abs_of_pos (mul_pos two_pos (hst0.trans_le hts)), abs_mul, abs_mul,
+          abs_of_nonneg (inv_nonneg.2 (Real.sqrt_nonneg _))]
         have h1 : (Real.sqrt (N + 1))⁻¹ * |p.2.1 k (Fin.last N)| ≤ size p :=
           (mul_le_of_le_one_left (abs_nonneg _) hsN).trans (hsg k)
         have h2 : size p / (2 * Real.sqrt s) ≤ size p / (2 * Real.sqrt (t / 2)) :=
@@ -449,9 +454,12 @@ private theorem hasDerivAt_cavity_disorder_average (hκ : 0 < κ) (hrr : rBar �
         ((hdu.comp (measurable_cavity_field s k)).mul hε))
     exact hsum.add ((((hy.div_const (2 * Real.sqrt (1 - s))).neg).mul hε).add
       ((hε.pow_const 2).const_mul (((r : ℝ) - rBar) / 2)))
-  obtain ⟨A0, hA00, hA0⟩ := exists_integral_one_add_norm_pow_cavity_le (κ := κ) (h := h) (r := r)
+  clear_value e'
+  obtain ⟨A0, hA00, hA0⟩ := exists_integral_one_add_norm_pow_cavity_le (N := N) (M := M) (κ := κ)
+      (h := h) (r := r)
     (rBar := rBar) (u := u) hκ hrr hu1 hu0 hD m
-  obtain ⟨A1, hA10, hA1⟩ := exists_integral_one_add_norm_pow_cavity_le (κ := κ) (h := h) (r := r)
+  obtain ⟨A1, hA10, hA1⟩ := exists_integral_one_add_norm_pow_cavity_le (N := N) (M := M) (κ := κ)
+      (h := h) (r := r)
     (rBar := rBar) (u := u) hκ hrr hu1 hu0 hD (m + 2)
   have hFm : ∀ s : ℝ, Measurable fun p : Dis =>
       ∫ σ, f σ ∂(Measure.pi fun _ : R => gibbs⟨s, p⟩) := fun s =>
@@ -466,8 +474,8 @@ private theorem hasDerivAt_cavity_disorder_average (hκ : 0 < κ) (hrr : rBar �
     refine integrable_of_abs_le_cavity_disorder_pow r (hFm t)
       (K := C * A0 ^ Fintype.card R) (d := m * Fintype.card R) fun p => ?_
     have h1 := abs_integral_pi_tilted_le_of_confining (μ := volume) hκ
-      (measurable_cavity_exponent_apply hum t p)
-      (cavity_exponent_le hrr hu0 ht0.le ht1.le p) hfb
+      (measurable_cavity_exponent_apply (κ := κ) (h := h) (r := r) (rBar := rBar) hum t p)
+      (cavity_exponent_le (κ := κ) (h := h) hrr hu0 ht0.le ht1.le p) hfb
     refine h1.trans ?_
     have h2 := pow_le_pow_left₀ (integral_nonneg fun _ => by positivity)
       (hA0 t ht0.le ht1.le p) (Fintype.card R)
@@ -480,8 +488,8 @@ private theorem hasDerivAt_cavity_disorder_average (hκ : 0 < κ) (hrr : rBar �
     intro s hs p
     obtain ⟨-, -, hs0, hs1⟩ := hU01 s hs
     have h1 := abs_replicaDiff_le_of_confining (μ := volume) hκ
-      (measurable_cavity_exponent_apply hum s p)
-      (cavity_exponent_le hrr hu0 hs0 hs1 p) hfb (he'b s hs p)
+      (measurable_cavity_exponent_apply (κ := κ) (h := h) (r := r) (rBar := rBar) hum s p)
+      (cavity_exponent_le (κ := κ) (h := h) hrr hu0 hs0 hs1 p) hfb (he'b s hs p)
     have h2 := pow_le_pow_left₀ (integral_nonneg fun _ => by positivity)
       (hA1 s hs0 hs1 p) (Fintype.card R + 1)
     have hL0p : 0 ≤ L0 * size p := by
@@ -507,7 +515,7 @@ private theorem hasDerivAt_cavity_disorder_average (hκ : 0 < κ) (hrr : rBar �
     set U' : Set ℝ := Set.Ioo (t / 4) ((3 + t) / 4) with hU'
     have hU's : U' ∈ 𝓝 s := Ioo_mem_nhds (by linarith [hs.1]) (by linarith [hs.2])
     set L' : ℝ := (M * D) / (2 * Real.sqrt (t / 4)) + 1 / (2 * Real.sqrt ((1 - t) / 4)) +
-      ((r : ℝ) - rBar) / 2 + 1
+      ((r : ℝ) - rBar) / 2 + 1 with hL'
     have hst4 : 0 < Real.sqrt (t / 4) := Real.sqrt_pos.2 (by linarith)
     have hs1t4 : 0 < Real.sqrt ((1 - t) / 4) := Real.sqrt_pos.2 (by linarith)
     have he'b' : ∀ q ∈ U', ∀ x : ℝ^(N + 1), |e' q p x| ≤ (L' * size p) * (1 + ‖x‖) ^ 2 := by
@@ -527,9 +535,8 @@ private theorem hasDerivAt_cavity_disorder_average (hκ : 0 < κ) (hrr : rBar �
         have hk : ∀ k : Fin M, |(Real.sqrt (N + 1))⁻¹ * p.2.1 k (Fin.last N) / (2 * Real.sqrt q) *
             (deriv u field⟨q, p.2.1, k, x⟩ * x (Fin.last N))| ≤
             (D / (2 * Real.sqrt (t / 4)) * size p) * (1 + ‖x‖) ^ 2 := fun k => by
-          rw [abs_mul, abs_div, abs_mul, abs_mul,
-            abs_of_nonneg (inv_nonneg.2 (Real.sqrt_nonneg _)),
-            abs_of_pos (mul_pos two_pos (hst4.trans_le hts))]
+          rw [abs_mul, abs_div, abs_of_pos (mul_pos two_pos (hst4.trans_le hts)), abs_mul, abs_mul,
+            abs_of_nonneg (inv_nonneg.2 (Real.sqrt_nonneg _))]
           have h1 : (Real.sqrt (N + 1))⁻¹ * |p.2.1 k (Fin.last N)| ≤ size p :=
             (mul_le_of_le_one_left (abs_nonneg _) hsN).trans (hsg k)
           have h2 : size p / (2 * Real.sqrt q) ≤ size p / (2 * Real.sqrt (t / 4)) :=
@@ -552,6 +559,7 @@ private theorem hasDerivAt_cavity_disorder_average (hκ : 0 < κ) (hrr : rBar �
             (div_le_div_of_nonneg_left (by linarith) (mul_pos two_pos hs1t4)
               (mul_le_mul_of_nonneg_left h1ts zero_le_two))
         exact (mul_le_mul h1 hx1 (abs_nonneg _) (by positivity)).trans_eq (by ring)
+      rw [he'eq]
       have hqq : |((r : ℝ) - rBar) / 2 * x (Fin.last N) ^ 2| ≤
           (((r : ℝ) - rBar) / 2 * size p) * (1 + ‖x‖) ^ 2 := by
         have hrr0 : 0 ≤ ((r : ℝ) - rBar) / 2 := div_nonneg (sub_nonneg.2 hrr) zero_le_two
@@ -561,16 +569,21 @@ private theorem hasDerivAt_cavity_disorder_average (hκ : 0 < κ) (hrr : rBar �
       refine (abs_add_le _ _).trans ((add_le_add hsum ((abs_add_le _ _).trans
         (add_le_add hy hqq))).trans ?_)
       have : 0 ≤ size p * (1 + ‖x‖) ^ 2 := mul_nonneg (by linarith) (by positivity)
+      rw [hL']
       linarith
     have hmain := hasDerivAt_integral_pi_tilted_of_confining_replicaDiff (μ := volume)
       (R := R) hκ hU's (e := fun q x =>
         -shcherbinaTirozziCavityHamiltonian κ h r rBar q p.1 u p.2.1 p.2.2 x)
       (e' := fun q x => e' q p x)
-      (fun q _ => measurable_cavity_exponent_apply hum q p)
-      ((he'm s).comp (measurable_const.prodMk measurable_id))
-      (fun q hq x => cavity_exponent_le hrr hu0 (by linarith [hq.1]) (by linarith [hq.2]) p x)
-      he'b' (fun x q hq => hasDerivAt_neg_shcherbinaTirozziCavityHamiltonian κ h r rBar p.1 hu1
-        p.2.1 p.2.2 x (by linarith [hq.1]) (by linarith [hq.2]))
+      (A := 0) (B := |h| * (∑ i, |p.2.2 i|) + |p.1|) (L := L' * size p) (n := 2)
+      (C := C) (m := m)
+      (fun q _ => measurable_cavity_exponent_apply (κ := κ) (h := h) (r := r) (rBar := rBar) hum q
+          p)
+      (Measurable.of_uncurry_left (f := e' s) (he'm s))
+      (fun q hq x => cavity_exponent_le (κ := κ) (h := h) hrr hu0 (by linarith [hq.1])
+          (by linarith [hq.2]) p x)
+      he'b' (fun x q hq => (hasDerivAt_neg_shcherbinaTirozziCavityHamiltonian κ h r rBar p.1 hu1
+        p.2.1 p.2.2 x (by linarith [hq.1]) (by linarith [hq.2])).congr_deriv (he'eq q p x).symm)
       (Ψ := fun _ => f) (Ψ' := fun _ _ => 0) (fun _ _ => hf) measurable_const
       (fun _ _ => hfb) (fun _ _ σ => by rw [abs_zero]; exact mul_nonneg hC0 (by positivity))
       (fun _ q _ => hasDerivAt_const q _)
@@ -582,7 +595,7 @@ private theorem hasDerivAt_cavity_disorder_average (hκ : 0 < κ) (hrr : rBar �
   refine ⟨hF'i, (hasDerivAt_integral_of_dominated_loc_of_deriv_le
     (F := fun s p => ∫ σ, f σ ∂(Measure.pi fun _ : R => gibbs⟨s, p⟩))
     (F' := fun s p => replicaDiff (gibbs⟨s, p⟩) f (e' s p))
-    (bound := fun p => K1 * size p ^ d1) hUmem
+    (bound := fun p : Dis => K1 * size p ^ d1) hUmem
     (Filter.eventually_of_mem hUmem fun s _ => (hFm s).aestronglyMeasurable)
     hFi (hF'm t).aestronglyMeasurable
     (ae_of_all _ fun p s hs => by simpa only [Real.norm_eq_abs] using hF'b s hs p)
@@ -628,7 +641,10 @@ private theorem integral_cavity_coupling_ibp [LinearOrder R] (hκ : 0 < κ) (hrr
       measurable_fst.prodMk (measurable_fst.comp measurable_snd)
     have h2 : Measurable fun q : Dis × (ℝ^(N + 1) × ℝ^(N + 1)) => (q.1, q.2.2) :=
       measurable_fst.prodMk (measurable_snd.comp measurable_snd)
-    exact (hUm.comp h1).mul (hUm.comp h2)
+    have key : ∀ φ : Dis → ℝ^(N + 1) → ℝ, (Measurable fun q : Dis × ℝ^(N + 1) => φ q.1 q.2) →
+        Measurable fun q : Dis × (ℝ^(N + 1) × ℝ^(N + 1)) => φ q.1 q.2.1 * φ q.1 q.2.2 :=
+      fun φ hφ => (hφ.comp h1).mul (hφ.comp h2)
+    exact key U hUm
   have hUb : ∀ (p : Dis) (x : ℝ^(N + 1)), |U p x| ≤ D * (1 + ‖x‖) ^ 2 := fun p x => by
     rw [show U p x = _ from rfl, abs_mul]
     exact (mul_le_mul (hD _) (abs_last_spin_le x).1 (abs_nonneg _) hD0).trans_eq (by ring)
@@ -639,9 +655,11 @@ private theorem integral_cavity_coupling_ibp [LinearOrder R] (hκ : 0 < κ) (hrr
       (abs_add_le _ _).trans (add_le_add (hD₂ _)
         (by rw [abs_pow]; exact pow_le_pow_left₀ (abs_nonneg _) (hD _) 2))
     exact (mul_le_mul h1 (abs_last_spin_le x).2 (abs_nonneg _) (by positivity)).trans_eq (by ring)
-  obtain ⟨A1, hA10, hA1⟩ := exists_integral_one_add_norm_pow_cavity_le (κ := κ) (h := h) (r := r)
+  obtain ⟨A1, hA10, hA1⟩ := exists_integral_one_add_norm_pow_cavity_le (N := N) (M := M) (κ := κ)
+      (h := h) (r := r)
     (rBar := rBar) (u := u) hκ hrr hu1 hu0 hD (m + 2)
-  obtain ⟨A2, hA20, hA2⟩ := exists_integral_one_add_norm_pow_cavity_le (κ := κ) (h := h) (r := r)
+  obtain ⟨A2, hA20, hA2⟩ := exists_integral_one_add_norm_pow_cavity_le (N := N) (M := M) (κ := κ)
+      (h := h) (r := r)
     (rBar := rBar) (u := u) hκ hrr hu1 hu0 hD (m + (2 + 2))
   have hDUm : Measurable fun p : Dis => replicaDiff (gibbs⟨t, p⟩) f (U p) :=
     measurable_replicaDiff_tilted_of_sigmaFinite (measurable_cavity_exponent hum t) hUm hf
@@ -660,13 +678,14 @@ private theorem integral_cavity_coupling_ibp [LinearOrder R] (hκ : 0 < κ) (hrr
       (d := 1 + (m + 2) * (Fintype.card R + 1)) fun p => ?_
     obtain ⟨-, -, -, -, hsg⟩ := cavity_disorder_size_bounds p
     have h1 := abs_replicaDiff_le_of_confining (μ := volume) hκ
-      (measurable_cavity_exponent_apply hum t p) (cavity_exponent_le hrr hu0 ht0 ht1 p) hfb (hUb p)
+      (measurable_cavity_exponent_apply (κ := κ) (h := h) (r := r) (rBar := rBar) hum t p)
+          (cavity_exponent_le (κ := κ) (h := h) hrr hu0 ht0 ht1 p) hfb (hUb p)
     have h2 := pow_le_pow_left₀ (integral_nonneg fun _ => by positivity) (hA1 t ht0 ht1 p)
       (Fintype.card R + 1)
     rw [abs_mul]
     refine (mul_le_mul (hsg k) (h1.trans (mul_le_mul_of_nonneg_left
       (mul_le_mul_of_nonneg_left h2 (by positivity)) (by positivity)))
-      (abs_nonneg _) (by linarith [abs_nonneg (p.2.1 k (Fin.last N))])).trans_eq ?_
+      (abs_nonneg _) (by positivity)).trans_eq ?_
     rw [mul_pow, ← pow_mul, pow_add, pow_one]
     ring
   have hIDV : Integrable (fun p : Dis => replicaDiff (gibbs⟨t, p⟩) f (V p)) (law r) := by
@@ -674,7 +693,8 @@ private theorem integral_cavity_coupling_ibp [LinearOrder R] (hκ : 0 < κ) (hrr
       (K := 2 * Fintype.card R * (C * (D₂ + D ^ 2) * A1 ^ (Fintype.card R + 1)))
       (d := (m + 2) * (Fintype.card R + 1)) fun p => ?_
     have h1 := abs_replicaDiff_le_of_confining (μ := volume) hκ
-      (measurable_cavity_exponent_apply hum t p) (cavity_exponent_le hrr hu0 ht0 ht1 p) hfb (hVb p)
+      (measurable_cavity_exponent_apply (κ := κ) (h := h) (r := r) (rBar := rBar) hum t p)
+          (cavity_exponent_le (κ := κ) (h := h) hrr hu0 ht0 ht1 p) hfb (hVb p)
     have h2 := pow_le_pow_left₀ (integral_nonneg fun _ => by positivity) (hA1 t ht0 ht1 p)
       (Fintype.card R + 1)
     refine (h1.trans (mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_left h2 (by positivity))
@@ -687,7 +707,8 @@ private theorem integral_cavity_coupling_ibp [LinearOrder R] (hκ : 0 < κ) (hrr
       (K := 3 * (Fintype.card R + 1) ^ 2 * (C * D ^ 2 * A2 ^ (Fintype.card R + 2)))
       (d := (m + (2 + 2)) * (Fintype.card R + 2)) fun p => ?_
     have h1 := abs_replicaPairAverage_le_of_confining (μ := volume) hκ
-      (measurable_cavity_exponent_apply hum t p) (cavity_exponent_le hrr hu0 ht0 ht1 p) hfb (hUb p)
+      (measurable_cavity_exponent_apply (κ := κ) (h := h) (r := r) (rBar := rBar) hum t p)
+          (cavity_exponent_le (κ := κ) (h := h) hrr hu0 ht0 ht1 p) hfb (hUb p)
     have h2 := pow_le_pow_left₀ (integral_nonneg fun _ => by positivity) (hA2 t ht0 ht1 p)
       (Fintype.card R + 2)
     refine (h1.trans (mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_left h2 (by positivity))
@@ -696,7 +717,8 @@ private theorem integral_cavity_coupling_ibp [LinearOrder R] (hκ : 0 < κ) (hrr
     ring
   -- differentiate along `g_{k,N}` for fixed other variables, then apply matrix Stein
   have hder : ∀ (y : ℝ) (g₀ : Fin (N + 1) → ℝ) (g : Fin M → Fin (N + 1) → ℝ),
-      HasDerivAt (fun z => replicaDiff (gibbs⟨t, (y, (update g k (update (g k) (Fin.last N) z), g₀))⟩)
+      HasDerivAt (fun z => replicaDiff (gibbs⟨t, (y,
+          (update g k (update (g k) (Fin.last N) z), g₀))⟩)
         f (U (y, (update g k (update (g k) (Fin.last N) z), g₀))))
       (c * (replicaDiff (gibbs⟨t, (y, (g, g₀))⟩) f (fun x =>
           deriv (deriv u) field⟨t, g, k, x⟩ * x (Fin.last N) ^ 2 + U (y, (g, g₀)) x ^ 2) +
@@ -737,7 +759,6 @@ private theorem integral_cavity_coupling_ibp [LinearOrder R] (hκ : 0 < κ) (hrr
           exact hasDerivAt_const z _
       have hsum := HasDerivAt.fun_sum (u := Finset.univ) fun j _ => hterm j
       simp only [Finset.sum_ite_eq', Finset.mem_univ, ite_true] at hsum
-      have hconst : ∀ q, ∑ i, g₀ i * x i = ∑ i, g₀ i * x i := fun _ => rfl
       have htot := ((((hsum.const_sub (κ * ‖x‖ ^ 2)).sub_const (h * ∑ i, g₀ i * x i)).sub_const
         (x (Fin.last N) * (Real.sqrt (1 - t) * y))).add_const
         ((1 - t) * ((r : ℝ) - rBar) * x (Fin.last N) ^ 2 / 2)).neg
@@ -759,13 +780,12 @@ private theorem integral_cavity_coupling_ibp [LinearOrder R] (hκ : 0 < κ) (hrr
         refine (h1.const_mul (Real.sqrt (N + 1))⁻¹).congr_deriv ?_
         rw [hc]; ring
       refine (((hu2 _).hasDerivAt.comp z hlin).mul_const (x (Fin.last N))).congr_deriv ?_
-      simp only [hcast, hlast]
       ring
     have h2m : Measurable fun x : ℝ^(N + 1) =>
         deriv (deriv u) field⟨t, g_z z0, k, x⟩ * x (Fin.last N) ^ 2 := by
       rw [hgz0]
       exact (hddu.comp ((measurable_cavity_field t k).comp
-        ((measurable_const (a := (y, (g, g₀)))).prodMk measurable_id))).mul
+        (measurable_prodMk_left (x := (y, (g, g₀)))))).mul
         ((measurable_cavity_coord (Fin.last N)).pow_const 2)
     have hmain := hasDerivAt_replicaDiff_tilted_of_confining (μ := volume) (R := R) hκ
       (s := Set.univ) Filter.univ_mem
@@ -773,10 +793,11 @@ private theorem integral_cavity_coupling_ibp [LinearOrder R] (hκ : 0 < κ) (hrr
       (h := fun q x => U (y, (g_z q, g₀)) x)
       (h₂ := fun q x => deriv (deriv u) field⟨t, g_z q, k, x⟩ * x (Fin.last N) ^ 2)
       (c := c) (t := z0)
-      (fun q _ => measurable_cavity_exponent_apply hum t (y, (g_z q, g₀)))
-      (fun q _ => hUm.comp ((measurable_const (a := (y, (g_z q, g₀)))).prodMk measurable_id))
+      (fun q _ => measurable_cavity_exponent_apply (κ := κ) (h := h) (r := r) (rBar := rBar) hum t
+          (y, (g_z q, g₀)))
+      (fun q _ => Measurable.of_uncurry_left (f := U) hUm (x := (y, (g_z q, g₀))))
       h2m (A := 0) (B := |h| * (∑ i, |g₀ i|) + |y|) (L := max D D₂) (n := 2)
-      (fun q _ x => cavity_exponent_le hrr hu0 ht0 ht1 (y, (g_z q, g₀)) x)
+      (fun q _ x => cavity_exponent_le (κ := κ) (h := h) hrr hu0 ht0 ht1 (y, (g_z q, g₀)) x)
       (fun q _ x => (hUb (y, (g_z q, g₀)) x).trans
         (mul_le_mul_of_nonneg_right (le_max_left _ _) (by positivity)))
       (fun q _ x => by
@@ -816,7 +837,7 @@ private theorem integral_cavity_coupling_ibp [LinearOrder R] (hκ : 0 < κ) (hrr
       (G := fun g => replicaDiff (gibbs⟨t, (y, (g, g₀))⟩) f (U (y, (g, g₀))))
       (G' := fun g => c * (replicaDiff (gibbs⟨t, (y, (g, g₀))⟩) f (V (y, (g, g₀))) +
         2 * replicaPairAverage (gibbs⟨t, (y, (g, g₀))⟩) f
-          (fun a b => U (y, (g, g₀)) a * U (y, (g, g₀)))))
+          (fun a b => U (y, (g, g₀)) a * U (y, (g, g₀)) b)))
       (fun g => by rw [← hRHS_eq (y, (g, g₀))]; exact hder y g₀ g) hg1 hg2
     simpa only [NNReal.coe_one, one_mul] using h
   rw [hstein, integral_const_mul, integral_add hIDV (hIPU.const_mul 2), integral_const_mul]
@@ -839,6 +860,8 @@ private theorem integral_cavity_field_ibp [LinearOrder R] (hκ : 0 < κ) (hrr : 
             2 * ∫ p, replicaPairAverage (gibbs⟨t, p⟩) f
               (fun a b => a (Fin.last N) * b (Fin.last N)) ∂(law r)) := by
   have hum : Measurable u := hu1.continuous.measurable
+  have hC0 : 0 ≤ C := nonneg_of_mul_nonneg_left ((abs_nonneg _).trans (hfb 0))
+    (Finset.prod_pos fun _ _ => by positivity)
   set c : ℝ := Real.sqrt (1 - t) with hc
   have hεm : Measurable fun σ : ℝ^(N + 1) => σ (Fin.last N) := measurable_cavity_coord (Fin.last N)
   have hε2m : Measurable fun σ : ℝ^(N + 1) => σ (Fin.last N) ^ 2 := hεm.pow_const 2
@@ -850,9 +873,11 @@ private theorem integral_cavity_field_ibp [LinearOrder R] (hκ : 0 < κ) (hrr : 
     fun x => (abs_last_spin_le x).1
   have hε2b : ∀ x : ℝ^(N + 1), |x (Fin.last N) ^ 2| ≤ 1 * (1 + ‖x‖) ^ 2 :=
     fun x => (abs_last_spin_le x).2
-  obtain ⟨A1, hA10, hA1⟩ := exists_integral_one_add_norm_pow_cavity_le (κ := κ) (h := h) (r := r)
+  obtain ⟨A1, hA10, hA1⟩ := exists_integral_one_add_norm_pow_cavity_le (N := N) (M := M) (κ := κ)
+      (h := h) (r := r)
     (rBar := rBar) (u := u) hκ hrr hu1 hu0 hD (m + 2)
-  obtain ⟨A2, hA20, hA2⟩ := exists_integral_one_add_norm_pow_cavity_le (κ := κ) (h := h) (r := r)
+  obtain ⟨A2, hA20, hA2⟩ := exists_integral_one_add_norm_pow_cavity_le (N := N) (M := M) (κ := κ)
+      (h := h) (r := r)
     (rBar := rBar) (u := u) hκ hrr hu1 hu0 hD (m + (2 + 2))
   have hDεm : Measurable fun p : Dis => replicaDiff (gibbs⟨t, p⟩) f (fun σ => σ (Fin.last N)) :=
     measurable_replicaDiff_tilted_of_sigmaFinite (measurable_cavity_exponent hum t)
@@ -871,12 +896,13 @@ private theorem integral_cavity_field_ibp [LinearOrder R] (hκ : 0 < κ) (hrr : 
       (d := 1 + (m + 2) * (Fintype.card R + 1)) fun p => ?_
     obtain ⟨-, hsy, -, -, -⟩ := cavity_disorder_size_bounds p
     have h1 := abs_replicaDiff_le_of_confining (μ := volume) hκ
-      (measurable_cavity_exponent_apply hum t p) (cavity_exponent_le hrr hu0 ht0 ht1 p) hfb hεb
+      (measurable_cavity_exponent_apply (κ := κ) (h := h) (r := r) (rBar := rBar) hum t p)
+          (cavity_exponent_le (κ := κ) (h := h) hrr hu0 ht0 ht1 p) hfb hεb
     have h2 := pow_le_pow_left₀ (integral_nonneg fun _ => by positivity) (hA1 t ht0 ht1 p)
       (Fintype.card R + 1)
     rw [abs_mul]
     refine (mul_le_mul hsy (h1.trans (mul_le_mul_of_nonneg_left
-      (mul_le_mul_of_nonneg_left h2 (by positivity)) (by positivity)))
+      (mul_le_mul_of_nonneg_left h2 (mul_nonneg hC0 zero_le_one)) (by positivity)))
       (abs_nonneg _) (by linarith [abs_nonneg p.1])).trans_eq ?_
     rw [mul_pow, ← pow_mul, pow_add, pow_one]
     ring
@@ -886,10 +912,12 @@ private theorem integral_cavity_field_ibp [LinearOrder R] (hκ : 0 < κ) (hrr : 
       (K := 2 * Fintype.card R * (C * 1 * A1 ^ (Fintype.card R + 1)))
       (d := (m + 2) * (Fintype.card R + 1)) fun p => ?_
     have h1 := abs_replicaDiff_le_of_confining (μ := volume) hκ
-      (measurable_cavity_exponent_apply hum t p) (cavity_exponent_le hrr hu0 ht0 ht1 p) hfb hε2b
+      (measurable_cavity_exponent_apply (κ := κ) (h := h) (r := r) (rBar := rBar) hum t p)
+          (cavity_exponent_le (κ := κ) (h := h) hrr hu0 ht0 ht1 p) hfb hε2b
     have h2 := pow_le_pow_left₀ (integral_nonneg fun _ => by positivity) (hA1 t ht0 ht1 p)
       (Fintype.card R + 1)
-    refine (h1.trans (mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_left h2 (by positivity))
+    refine (h1.trans (mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_left h2
+        (mul_nonneg hC0 zero_le_one))
       (by positivity))).trans_eq ?_
     rw [mul_pow, ← pow_mul]
     ring
@@ -899,10 +927,12 @@ private theorem integral_cavity_field_ibp [LinearOrder R] (hκ : 0 < κ) (hrr : 
       (K := 3 * (Fintype.card R + 1) ^ 2 * (C * 1 ^ 2 * A2 ^ (Fintype.card R + 2)))
       (d := (m + (2 + 2)) * (Fintype.card R + 2)) fun p => ?_
     have h1 := abs_replicaPairAverage_le_of_confining (μ := volume) hκ
-      (measurable_cavity_exponent_apply hum t p) (cavity_exponent_le hrr hu0 ht0 ht1 p) hfb hεb
+      (measurable_cavity_exponent_apply (κ := κ) (h := h) (r := r) (rBar := rBar) hum t p)
+          (cavity_exponent_le (κ := κ) (h := h) hrr hu0 ht0 ht1 p) hfb hεb
     have h2 := pow_le_pow_left₀ (integral_nonneg fun _ => by positivity) (hA2 t ht0 ht1 p)
       (Fintype.card R + 2)
-    refine (h1.trans (mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_left h2 (by positivity))
+    refine (h1.trans (mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_left h2
+        (mul_nonneg hC0 (sq_nonneg _)))
       (by positivity))).trans_eq ?_
     rw [mul_pow, ← pow_mul]
     ring
@@ -920,17 +950,19 @@ private theorem integral_cavity_field_ibp [LinearOrder R] (hκ : 0 < κ) (hrr : 
         (c * x (Fin.last N)) z := fun x z => by
       have hy : HasDerivAt (fun q => x (Fin.last N) * (c * q))
           (x (Fin.last N) * (c * 1)) z := ((hasDerivAt_id z).const_mul c).const_mul _
-      have htot := (((((hasDerivAt_const z (κ * ‖x‖ ^ 2)).sub_const _).sub_const _).sub hy).add_const
-        _).neg
+      have htot := ((hy.const_sub (κ * ‖x‖ ^ 2 - ∑ j, u field⟨t, d.1, j, x⟩ -
+        h * ∑ i, d.2 i * x i)).add_const
+        ((1 - t) * ((r : ℝ) - rBar) * x (Fin.last N) ^ 2 / 2)).neg
       refine htot.congr_deriv ?_
       ring
     have hmain := hasDerivAt_replicaDiff_tilted_of_confining (μ := volume) (R := R) hκ hUy
       (e := fun q x => -shcherbinaTirozziCavityHamiltonian κ h r rBar t q u d.1 d.2 x)
       (h := fun _ x => x (Fin.last N)) (h₂ := fun _ _ => 0) (c := c)
-      (fun q _ => measurable_cavity_exponent_apply hum t (q, d))
+      (fun q _ => measurable_cavity_exponent_apply (κ := κ) (h := h) (r := r) (rBar := rBar) hum t
+          (q, d))
       (fun _ _ => hεm) measurable_const
       (A := 0) (B := |h| * (∑ i, |d.2 i|) + (|y| + 1)) (L := 1) (n := 2)
-      (fun q hq x => (cavity_exponent_le hrr hu0 ht0 ht1 (q, d) x).trans (by
+      (fun q hq x => (cavity_exponent_le (κ := κ) (h := h) hrr hu0 ht0 ht1 (q, d) x).trans (by
         have hqy : |q| ≤ |y| + 1 := by
           rw [abs_le]; constructor <;> linarith [hq.1, hq.2, neg_abs_le y, le_abs_self y]
         have := mul_le_mul_of_nonneg_right (add_le_add_left hqy (|h| * ∑ i, |d.2 i|))
@@ -1004,7 +1036,8 @@ theorem hasDerivAt_integral_integral_pi_shcherbinaTirozziCavity [LinearOrder R] 
   have hsN0 : Real.sqrt ((N : ℝ) + 1) ≠ 0 := (Real.sqrt_pos.2 (by positivity)).ne'
   obtain ⟨hdiff_int, hdiff⟩ := hasDerivAt_cavity_disorder_average (κ := κ) (h := h) (r := r)
     (rBar := rBar) hκ hrr hu1 hu0 hD ht0 ht1 hf hfb
-  have hcoupl := fun k => integral_cavity_coupling_ibp (κ := κ) (h := h) (r := r) (rBar := rBar)
+  have hcoupl := fun k => integral_cavity_coupling_ibp (N := N) (M := M) (κ := κ) (h := h) (r := r)
+    (rBar := rBar)
     hκ hrr hu1 hu2 hu0 hD hD₂ ht0.le ht1.le hf hfb k
   obtain ⟨hIy, hIDε2, hIPε, hy_ibp⟩ := integral_cavity_field_ibp (κ := κ) (h := h) (r := r)
     (rBar := rBar) hκ hrr hu1 hu0 hD ht0.le ht1.le hf hfb
@@ -1024,13 +1057,13 @@ theorem hasDerivAt_integral_integral_pi_shcherbinaTirozziCavity [LinearOrder R] 
     intro p
     have hem : Measurable fun σ : ℝ^(N + 1) =>
         -shcherbinaTirozziCavityHamiltonian κ h r rBar t p.1 u p.2.1 p.2.2 σ :=
-      measurable_cavity_exponent_apply hum t p
+      measurable_cavity_exponent_apply (κ := κ) (h := h) (r := r) (rBar := rBar) hum t p
     have hconf := cavity_exponent_le (κ := κ) (h := h) hrr hu0 ht0.le ht1.le p
     have hεm : Measurable fun σ : ℝ^(N + 1) => σ (Fin.last N) :=
       measurable_cavity_coord (Fin.last N)
     have hUm : ∀ k, Measurable (U k p) := fun k =>
       (hdu.comp ((measurable_cavity_field t k).comp
-        ((measurable_const (a := p)).prodMk measurable_id))).mul hεm
+        (measurable_prodMk_left (x := p)))).mul hεm
     have hUb : ∀ k x, |U k p x| ≤ D * (1 + ‖x‖) ^ 2 := fun k x => by
       change |deriv u _ * x (Fin.last N)| ≤ _
       rw [abs_mul]
@@ -1060,7 +1093,9 @@ theorem hasDerivAt_integral_integral_pi_shcherbinaTirozziCavity [LinearOrder R] 
     have h23b : ∀ x : ℝ^(N + 1), |b_y * x (Fin.last N) + c_q * x (Fin.last N) ^ 2| ≤
         (|b_y| + |c_q|) * (1 + ‖x‖) ^ 2 := fun x =>
       (abs_add_le _ _).trans ((add_le_add (h2b x) (h3b x)).trans_eq (by ring))
-    rw [replicaDiff_add_of_confining hκ hem hconf hf hfb h1m (h2m.add h3m) h1b h23b,
+    rw [replicaDiff_add_of_confining hκ hem hconf hf hfb h1m
+        (show Measurable fun σ : ℝ^(N + 1) => b_y * σ (Fin.last N) + c_q * σ (Fin.last N) ^ 2 from
+          h2m.add h3m) h1b h23b,
       replicaDiff_add_of_confining hκ hem hconf hf hfb h2m h3m h2b h3b,
       replicaDiff_finsetSum_of_confining hκ hem hconf hf hfb Finset.univ
         (fun k => (hUm k).const_mul (a_k k)) (L := fun k => |a_k k| * D) (n := 2)
@@ -1083,8 +1118,11 @@ theorem hasDerivAt_integral_integral_pi_shcherbinaTirozziCavity [LinearOrder R] 
       (p.1 * replicaDiff (G t p) f (fun σ => σ (Fin.last N)))) P := hIy.const_mul _
   have h3i : Integrable (fun p : Dis => (((r : ℝ) - rBar) / 2) *
       replicaDiff (G t p) f (fun σ => σ (Fin.last N) ^ 2)) P := hIDε2.const_mul _
-  simp_rw [hsplit]
-  rw [integral_add h1i (h2i.add h3i), integral_add h2i h3i,
+  have h23i : Integrable (fun p : Dis => -(1 / (2 * Real.sqrt (1 - t))) *
+      (p.1 * replicaDiff (G t p) f (fun σ => σ (Fin.last N))) + (((r : ℝ) - rBar) / 2) *
+        replicaDiff (G t p) f (fun σ => σ (Fin.last N) ^ 2)) P := h2i.add h3i
+  rw [integral_congr_ae (ae_of_all _ hsplit)]
+  rw [integral_add h1i h23i, integral_add h2i h3i,
     integral_finsetSum _ fun k _ => ((hcoupl k).1).const_mul _,
     integral_const_mul, integral_const_mul, hy_ibp]
   have hsum_eq : (∑ k : Fin M, ∫ p, ((Real.sqrt (N + 1))⁻¹ / (2 * Real.sqrt t)) *
@@ -1097,8 +1135,12 @@ theorem hasDerivAt_integral_integral_pi_shcherbinaTirozziCavity [LinearOrder R] 
       integral_add (((hcoupl k).2.1).div_const 2) ((hcoupl k).2.2.1), integral_div]
     have hsqN : Real.sqrt ((N : ℝ) + 1) * Real.sqrt ((N : ℝ) + 1) = (N : ℝ) + 1 :=
       Real.mul_self_sqrt (by positivity)
+    have hinv : ((N : ℝ) + 1)⁻¹ = (Real.sqrt ((N : ℝ) + 1))⁻¹ * (Real.sqrt ((N : ℝ) + 1))⁻¹ := by
+      rw [← mul_inv, hsqN]
+    generalize (∫ p, replicaDiff (G t p) f (V k p) ∂P) = a
+    generalize (∫ p, replicaPairAverage (G t p) f (fun a b => U k p a * U k p b) ∂P) = b
+    rw [hinv]
     field_simp
-    nlinarith [hsqN]
   have hy_eq : -(1 / (2 * Real.sqrt (1 - t))) * ((r : ℝ) * Real.sqrt (1 - t) *
         ((∫ p, replicaDiff (G t p) f (fun σ => σ (Fin.last N) ^ 2) ∂P) +
           2 * ∫ p, replicaPairAverage (G t p) f

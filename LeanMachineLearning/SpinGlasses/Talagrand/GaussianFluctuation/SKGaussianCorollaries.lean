@@ -331,7 +331,7 @@ lemma sk_gaussian_fluctuation_upper_bound (β₀ : ℝ) (hβ₀ : 4 * β₀ ^ 2 
         push_cast
         rfl
       rw [heq]
-      have h_mom := integral_exp_sum_ising_moment_le hN (4 * (k : ℝ) * (ε * β)) m hm_le
+      have h_mom := integral_exp_sum_ising_moment_le (4 * (k : ℝ) * (ε * β)) m hm_le
       have h_pow : (4 * (k : ℝ) * (ε * β)) ^ 2 / 2 = 8 * (k : ℝ) ^ 2 * β ^ 2 := by
         calc (4 * (k : ℝ) * (ε * β)) ^ 2 / 2
           _ = (16 * (k : ℝ) ^ 2 * (ε ^ 2 * β ^ 2)) / 2 := by ring

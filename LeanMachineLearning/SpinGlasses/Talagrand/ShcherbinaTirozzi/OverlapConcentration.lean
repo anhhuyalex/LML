@@ -49,7 +49,7 @@ for concave `u ≤ 0` and an `A`-Lipschitz function `f` of the configuration,
 `⟨(f - ⟨f⟩) ^ (2 k)⟩ ≤ 4 (8 k A² / κ) ^ k`. -/
 theorem integral_sub_integral_pow_shcherbinaTirozziGibbs_le {κ h : ℝ} (hκ : 0 < κ) {u : ℝ → ℝ}
     (hu : ConcaveOn ℝ Set.univ u) (hu0 : ∀ x, u x ≤ 0) (g : Fin M → Fin N → ℝ)
-    (g₀ : Fin N → ℝ) {f : ℝ^N → ℝ} (hf : Measurable f) {A : ℝ} (hA : 0 ≤ A)
+    (g₀ : Fin N → ℝ) {f : ℝ^N → ℝ} {A : ℝ} (hA : 0 ≤ A)
     (hlip : ∀ x y, |f x - f y| ≤ A * ‖x - y‖) (k : ℕ) :
     Integrable (fun σ => (f σ - ∫ τ, f τ
           ∂(volume.tilted fun σ => -shcherbinaTirozziHamiltonian κ h u g g₀ σ)) ^ (2 * k))
@@ -63,7 +63,7 @@ theorem integral_sub_integral_pow_shcherbinaTirozziGibbs_le {κ h : ℝ} (hκ : 
     (NeZero.ne _) (measurable_shcherbinaTirozziHamiltonian_apply κ h hu.measurable_of_univ g g₀)
     (integrableOn_univ.2 (integrable_exp_neg_shcherbinaTirozziHamiltonian hκ
       hu.measurable_of_univ hu0 g g₀))
-    (fun x _ y _ => shcherbinaTirozziHamiltonian_midpoint_gap κ h hu g g₀ x y) hκ hf hA
+    (fun x _ y _ => shcherbinaTirozziHamiltonian_midpoint_gap κ h hu g g₀ x y) hκ hA
     (fun x _ y _ => hlip x y) k
   simpa only [Measure.restrict_univ] using key
 
@@ -131,7 +131,7 @@ theorem exists_integral_shcherbinaTirozzi_overlap_sub_mean_pow_le (κ₀ h₀ D 
         mul_assoc]
       exact mul_le_mul_of_nonneg_left (abs_real_inner_le_norm _ _) (inv_pos.2 hN0).le
     have key := integral_sub_integral_pow_shcherbinaTirozziGibbs_le (h := h) hκ0 hu hu0 g g₀
-      (f := fun τ => (N : ℝ)⁻¹ * ⟪a, τ⟫) (by fun_prop) (by positivity : 0 ≤ ‖a‖ / N) hlip k
+      (f := fun τ => (N : ℝ)⁻¹ * ⟪a, τ⟫) (by positivity : 0 ≤ ‖a‖ / N) hlip k
     rw [← hG] at key
     simp only [integral_const_mul, hinner] at key
     refine ⟨key.1, key.2.trans_eq ?_⟩
@@ -305,7 +305,7 @@ theorem exists_integral_shcherbinaTirozzi_selfOverlap_sub_mean_pow_le (κ₀ h�
     exact mul_le_mul_of_nonneg_left ((abs_min_norm_sq_sub_le ha0 x y).trans_eq (mul_assoc _ _ _))
       (inv_pos.2 hN0).le
   have hfMau := integral_sub_integral_pow_shcherbinaTirozziGibbs_le (h := h) hκ0 hu hu0 g g₀
-    hfm (by positivity : 0 ≤ 2 * a / N) hlip k
+    (by positivity : 0 ≤ 2 * a / N) hlip k
   rw [← hG] at hfMau
   have hfb : ∀ σ, |f σ| ≤ (N : ℝ)⁻¹ * a ^ 2 := fun σ => by
     have h1 : 0 ≤ min ‖σ‖ a := le_min (norm_nonneg _) ha0

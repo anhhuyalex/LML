@@ -63,7 +63,7 @@ theorem exists_integral_stdGaussian_sub_pow_le_of_lipschitzOn {E : Type*}
     nlinarith
   have hMau := integral_sub_integral_pow_le_of_lipschitz (μ₀ := volume) (C := C)
     (H := fun x => ‖x‖ ^ 2 / 2) (κ := 1 / 2) hC hCm hCvol
-    ((measurable_norm.pow_const 2).div_const 2) hint hmid (by norm_num) hf hA hlip k
+    ((measurable_norm.pow_const 2).div_const 2) hint hmid (by norm_num) hA hlip k
   rw [← hγ'] at hMau
   have hprob' : IsProbabilityMeasure γ' :=
     isProbabilityMeasure_tilted_restrict (H := fun x => ‖x‖ ^ 2 / 2) hCvol hint

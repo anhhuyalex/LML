@@ -5,17 +5,18 @@ Authors: LML Contributors
 -/
 module
 
-public import Mathlib.MeasureTheory.Measure.LevyConvergence
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.Rpow.Isometric
 public import Mathlib.Probability.Distributions.Gaussian.Multivariate
 
 /-!
 # Continuity of the centered multivariate Gaussian in its covariance matrix
 
 The map `S ↦ multivariateGaussian 0 S` is weakly continuous on the cone of positive semidefinite
-matrices (`continuousOn_integral_multivariateGaussian`): if `g` is bounded and continuous, then
-`S ↦ ∫ g d(multivariateGaussian 0 S)` is continuous on `{S | S.PosSemidef}`.  The proof is Lévy's
-continuity theorem (`ProbabilityMeasure.tendsto_of_tendsto_charFun`), since the characteristic
-function `exp (-x ⬝ᵥ S *ᵥ x / 2)` is continuous in `S`.
+matrices (`continuousOn_integral_multivariateGaussian`): if `g` is bounded and continuous with
+values in a real normed space, then `S ↦ ∫ g d(multivariateGaussian 0 S)` is continuous on
+`{S | S.PosSemidef}`.  The law is the image of the standard Gaussian under `√S`, the square root
+is continuous on the cone, and one applies dominated convergence.
 
 (Off the cone `multivariateGaussian 0 S` is the Dirac mass at `0`, so no global statement holds.)
 -/
@@ -23,47 +24,43 @@ function `exp (-x ⬝ᵥ S *ᵥ x / 2)` is continuous in `S`.
 @[expose] public section
 
 open MeasureTheory Filter Topology
-open scoped BoundedContinuousFunction
-open scoped Matrix
+open scoped BoundedContinuousFunction Matrix Matrix.Norms.L2Operator MatrixOrder
 
 namespace ProbabilityTheory
 
-variable {κ : Type*} [Fintype κ] [DecidableEq κ]
+variable {κ E : Type*} [Fintype κ] [DecidableEq κ] [NormedAddCommGroup E] [NormedSpace ℝ E]
 
 /-- **Weak continuity of `S ↦ multivariateGaussian 0 S` on positive semidefinite matrices**, for a
-bounded continuous test function `g`.  (See `continuousOn_integral_multivariateGaussian` for the
-version with an explicit bound.) -/
-theorem continuousOn_integral_multivariateGaussian_of_bcf (g : EuclideanSpace ℝ κ →ᵇ ℝ) :
+bounded continuous test function `g` with values in a normed space.  (See
+`continuousOn_integral_multivariateGaussian` for the version with an explicit bound.) -/
+theorem continuousOn_integral_multivariateGaussian_of_bcf (g : EuclideanSpace ℝ κ →ᵇ E) :
     ContinuousOn (fun S : Matrix κ κ ℝ => ∫ x, g x ∂(multivariateGaussian 0 S))
       {S | S.PosSemidef} := by
-  have : FirstCountableTopology (Matrix κ κ ℝ) :=
-    inferInstanceAs (FirstCountableTopology (κ → κ → ℝ))
-  rw [continuousOn_iff_continuous_domRestrict, continuous_iff_seqContinuous]
-  intro Sn S hSn
-  have hSn' : Tendsto (fun n => (Sn n : Matrix κ κ ℝ)) atTop (𝓝 (S : Matrix κ κ ℝ)) :=
-    (continuous_subtype_val.tendsto S).comp hSn
-  let μ : ℕ → ProbabilityMeasure (EuclideanSpace ℝ κ) := fun n =>
-    ⟨multivariateGaussian 0 (Sn n : Matrix κ κ ℝ), inferInstance⟩
-  let μ₀ : ProbabilityMeasure (EuclideanSpace ℝ κ) :=
-    ⟨multivariateGaussian 0 (S : Matrix κ κ ℝ), inferInstance⟩
-  have hlevy : Tendsto μ atTop (𝓝 μ₀) := by
-    refine ProbabilityMeasure.tendsto_of_tendsto_charFun fun t => ?_
-    simp only [μ, μ₀, ProbabilityMeasure.coe_mk]
-    simp_rw [charFun_multivariateGaussian (Sn _).2, charFun_multivariateGaussian S.2]
-    have hq : Tendsto (fun n => t.ofLp ⬝ᵥ (Sn n : Matrix κ κ ℝ) *ᵥ t.ofLp) atTop
-        (𝓝 (t.ofLp ⬝ᵥ (S : Matrix κ κ ℝ) *ᵥ t.ofLp)) := by
-      have : Continuous fun A : Matrix κ κ ℝ => t.ofLp ⬝ᵥ A *ᵥ t.ofLp := by
-        simp only [dotProduct, Matrix.mulVec]
-        fun_prop
-      exact (this.tendsto _).comp hSn'
-    refine (Complex.continuous_exp.tendsto _).comp ?_
-    refine tendsto_const_nhds.sub ?_
-    exact (Complex.continuous_ofReal.tendsto _).comp hq |>.div_const _
-  exact ProbabilityMeasure.tendsto_iff_forall_integral_tendsto.1 hlevy g
+  have hsqrt : ContinuousOn (fun S : Matrix κ κ ℝ => CFC.sqrt S) {S | S.PosSemidef} :=
+    CFC.continuousOn_sqrt.mono fun S hS => Matrix.nonneg_iff_posSemidef.2 hS
+  have hrep : ∀ S : Matrix κ κ ℝ, ∫ x, g x ∂(multivariateGaussian 0 S) =
+      ∫ y, g (Matrix.toEuclideanCLM (𝕜 := ℝ) (CFC.sqrt S) y)
+        ∂(stdGaussian (EuclideanSpace ℝ κ)) := fun S => by
+    rw [multivariateGaussian, integral_map (by fun_prop) g.continuous.aestronglyMeasurable]
+    simp only [zero_add]
+  have happ : ∀ y : EuclideanSpace ℝ κ,
+      Continuous fun A : Matrix κ κ ℝ => Matrix.toEuclideanCLM (𝕜 := ℝ) A y := fun y => by
+    let L : Matrix κ κ ℝ →ₗ[ℝ] EuclideanSpace ℝ κ :=
+      { toFun := fun A => Matrix.toEuclideanCLM (𝕜 := ℝ) A y
+        map_add' := fun A B => by rw [map_add]; rfl
+        map_smul' := fun c A => by rw [map_smul]; rfl }
+    exact L.continuous_of_finiteDimensional
+  simp_rw [hrep]
+  refine continuousOn_of_dominated (bound := fun _ => ‖g‖)
+    (fun S _ => (g.continuous.comp
+      (Matrix.toEuclideanCLM (𝕜 := ℝ) (CFC.sqrt S)).continuous).aestronglyMeasurable)
+    (fun S _ => ae_of_all _ fun y => g.norm_coe_le_norm _) (integrable_const _)
+    (ae_of_all _ fun y => ?_)
+  exact g.continuous.comp_continuousOn ((happ y).comp_continuousOn hsqrt)
 
 /-- **Weak continuity of `S ↦ multivariateGaussian 0 S` on positive semidefinite matrices**, for
 a continuous function `g` bounded by `M`. -/
-theorem continuousOn_integral_multivariateGaussian {g : EuclideanSpace ℝ κ → ℝ}
+theorem continuousOn_integral_multivariateGaussian {g : EuclideanSpace ℝ κ → E}
     (hg : Continuous g) {M : ℝ} (hM : ∀ x, ‖g x‖ ≤ M) :
     ContinuousOn (fun S : Matrix κ κ ℝ => ∫ x, g x ∂(multivariateGaussian 0 S))
       {S | S.PosSemidef} :=

@@ -31,7 +31,8 @@ Gibbs measure of the smoothed Hamiltonian (3.99).
 * `SpinGlasses.integral_pi_shcherbinaTirozziAuxCavity_eq_div`: equivalence with the ratio (3.91).
 * `SpinGlasses.integral_shcherbinaTirozziAuxCavity_zero`,
   `SpinGlasses.integral_shcherbinaTirozziAuxCavity_zero_deriv_mul`,
-  `SpinGlasses.integral_shcherbinaTirozziAuxCavity_zero_deriv_two`: Lemma 3.2.7 (Eqs. (3.92)--(3.94)),
+  `SpinGlasses.integral_shcherbinaTirozziAuxCavity_zero_deriv_two`: Lemma 3.2.7
+  (Eqs. (3.92)--(3.94)),
   proved first for an arbitrary σ-finite old measure and specialized to `ν_{t,0}`.
 -/
 
@@ -131,9 +132,9 @@ theorem integral_pi_tilted_prod_gaussian_zero_deriv_two {μ : Measure α} [Sigma
     E (fun ξ : ℝ => u (Real.sqrt q * z + c * ξ)) f
     (fun τ => ψ (Real.sqrt q * z + c * τ l₁))
   have h1 : ∫ τ : R → ℝ, ψ (Real.sqrt q * z + c * τ l₁) ∂(Measure.pi fun _ : R => γ_z) =
-      ∫ ξ : ℝ, ψ (Real.sqrt q * z + c * ξ) ∂γ_z := by
-    have hmp := measurePreserving_eval (fun _ : R => γ_z) l₁
-    exact hmp.integral_comp' (g := fun ξ => ψ (Real.sqrt q * z + c * ξ))
+      ∫ ξ : ℝ, ψ (Real.sqrt q * z + c * ξ) ∂γ_z :=
+    integral_comp_eval (μ := fun _ : R => γ_z) (i := l₁)
+      (f := fun ξ => ψ (Real.sqrt q * z + c * ξ)) hψm.aestronglyMeasurable
   have hcomm : (∫ σ : R → α × ℝ, ψ (Real.sqrt q * z + c * (σ l₁).2) * f (fun l => (σ l).1)
         ∂(Measure.pi fun _ : R => (μ.prod (gaussianReal 0 1)).tilted
           fun p : α × ℝ => E p.1 + u (Real.sqrt q * z + c * p.2))) =
@@ -145,7 +146,6 @@ theorem integral_pi_tilted_prod_gaussian_zero_deriv_two {μ : Measure α} [Sigma
       ∂(Measure.pi fun _ : R => (μ.prod (gaussianReal 0 1)).tilted
         fun p : α × ℝ => E p.1 + u (Real.sqrt q * z + c * p.2)) = _
   rw [hcomm, h, h1, integral_tilted_eq_div, mul_comm]
-  rfl
 
 end GeneralEndpoint
 
@@ -171,6 +171,54 @@ local notation "auxLaw " r:arg =>
 local notation "cfield⟨" t ", " g ", " k ", " σ "⟩" =>
   (Real.sqrt (N + 1))⁻¹ * ((∑ i : Fin N, g k (Fin.castSucc i) * σ (Fin.castSucc i)) +
     Real.sqrt t * (g k (Fin.last N) * σ (Fin.last N)))
+
+/-- Dropping the last constraint: integrating a function of the old disorder against the law with
+`M + 1` constraints gives its integral against the law with `M` constraints (no measurability is
+needed). -/
+private theorem integral_comp_castSucc_disorder (r : ℝ≥0)
+    (G : ℝ × ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) → ℝ) :
+    ∫ d : ℝ × ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)),
+        G (d.1, (fun j => d.2.1 j.castSucc, d.2.2))
+        ∂((gaussianReal 0 r).prod
+          ((Measure.pi fun _ : Fin (M + 1) => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0
+              1).prod
+            (Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1))) =
+      ∫ d₀, G d₀
+        ∂((gaussianReal 0 r).prod
+          ((Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1).prod
+            (Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1))) := by
+  set γ : Measure (Fin (N + 1) → ℝ) := Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1
+  set Pold : Measure (Fin M → Fin (N + 1) → ℝ) := Measure.pi fun _ : Fin M => γ
+  set e := MeasurableEquiv.piFinSuccAbove (fun _ : Fin (M + 1) => Fin (N + 1) → ℝ) (Fin.last M)
+  have he : MeasurePreserving e (Measure.pi fun _ : Fin (M + 1) => γ) (γ.prod Pold) :=
+    measurePreserving_piFinSuccAbove (fun _ : Fin (M + 1) => γ) (Fin.last M)
+  -- move the last row to the front
+  have h1 := (measurePreserving_prodAssoc γ Pold γ).comp (he.prod (MeasurePreserving.id γ))
+  have h2 := (MeasurePreserving.id (gaussianReal 0 r)).prod h1
+  have h3 := (measurePreserving_prodAssoc (gaussianReal 0 r) γ (Pold.prod γ)).symm
+    MeasurableEquiv.prodAssoc
+  have h4 := (Measure.measurePreserving_swap (μ := gaussianReal 0 r) (ν := γ)).prod
+    (MeasurePreserving.id (Pold.prod γ))
+  have h5 := measurePreserving_prodAssoc γ (gaussianReal 0 r) (Pold.prod γ)
+  have h := (h5.comp (h4.comp (h3.comp h2)))
+  have hemb : MeasurableEmbedding fun d : ℝ × ((Fin (M + 1) → Fin (N + 1) → ℝ) ×
+      (Fin (N + 1) → ℝ)) => ((e d.2.1).1, (d.1, ((e d.2.1).2, d.2.2))) :=
+    (((MeasurableEquiv.refl ℝ).prodCongr ((e.prodCongr (MeasurableEquiv.refl _)).trans
+      MeasurableEquiv.prodAssoc)).trans (MeasurableEquiv.prodAssoc.symm.trans
+        ((MeasurableEquiv.prodComm.prodCongr (MeasurableEquiv.refl _)).trans
+          MeasurableEquiv.prodAssoc))).measurableEmbedding
+  have h' : MeasurePreserving (fun d : ℝ × ((Fin (M + 1) → Fin (N + 1) → ℝ) ×
+      (Fin (N + 1) → ℝ)) => ((e d.2.1).1, (d.1, ((e d.2.1).2, d.2.2))))
+      ((gaussianReal 0 r).prod ((Measure.pi fun _ : Fin (M + 1) => γ).prod γ))
+      (γ.prod ((gaussianReal 0 r).prod (Pold.prod γ))) := h
+  have hint := h'.integral_comp hemb fun q => G q.2
+  rw [integral_fun_snd, probReal_univ, one_smul] at hint
+  refine Eq.trans (integral_congr_ae (ae_of_all _ fun d => ?_)) hint
+  have hrows : (e d.2.1).2 = fun j => d.2.1 j.castSucc := by
+    funext j
+    change d.2.1 ((Fin.last M).succAbove j) = _
+    rw [Fin.succAbove_last]
+  simp only [hrows]
 
 /-- Splitting the cavity Hamiltonian with `M + 1` constraints into the `M` old constraints
 `Fin.castSucc j` and the last constraint `Fin.last M`. -/
@@ -209,7 +257,7 @@ theorem integral_pi_shcherbinaTirozziAuxCavity_eq_div {κ h r rBar t y q ρ v z 
     integrable_exp_neg_shcherbinaTirozziCavityHamiltonian hκ hq_t hu hu0 _ g₀
   have hprod_eq : ((volume : Measure (ℝ^(N + 1))).prod (gaussianReal 0 1)).tilted
       (fun p : ℝ^(N + 1) × ℝ => E_old p.1) = G_old.prod (gaussianReal 0 1) :=
-    tilted_prod_comp_fst (μ := volume) (ν := gaussianReal 0 1) E_old
+    tilted_prod_comp_fst (volume : Measure (ℝ^(N + 1))) (gaussianReal 0 1) E_old
   have hdiv := integral_pi_tilted_add_eq_div
     (μ := (volume : Measure (ℝ^(N + 1))).prod (gaussianReal 0 1)) (ι := R)
     (E := fun p : ℝ^(N + 1) × ℝ => E_old p.1) (V := fun p => u (S_v p))
@@ -251,17 +299,19 @@ theorem integral_pi_shcherbinaTirozziAuxCavity_one (κ h : ℝ) (r : ℝ≥0) (r
         ∂(Measure.pi fun _ : R => (volume : Measure (ℝ^(N + 1))).tilted fun σ =>
           -shcherbinaTirozziCavityHamiltonian κ h r rBar t d.1 u d.2.1 d.2.2 σ)
         ∂((gaussianReal 0 r).prod
-          (((Measure.pi fun _ : Fin (M + 1) => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1).prod
+          (((Measure.pi fun _ : Fin (M + 1) => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0
+              1).prod
             (Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1)))) := by
   intro E_old S_one
+  obtain ⟨G, hG⟩ : ∃ G : ℝ × ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) → ℝ,
+      G = fun d => ∫ a : R → ℝ^(N + 1), f a
+        ∂(Measure.pi fun _ : R => (volume : Measure (ℝ^(N + 1))).tilted fun σ =>
+          -shcherbinaTirozziCavityHamiltonian κ h r rBar t d.1 u d.2.1 d.2.2 σ) := ⟨_, rfl⟩
   have hpt : ∀ w : AuxDis,
       ∫ σ : R → ℝ^(N + 1) × ℝ, f (fun l => (σ l).1)
           ∂(Measure.pi fun _ : R =>
             ((volume : Measure (ℝ^(N + 1))).prod (gaussianReal 0 1)).tilted
-              fun p => E_old w.1 p.1 + u (S_one w p)) =
-        ∫ a : R → ℝ^(N + 1), f a
-          ∂(Measure.pi fun _ : R => (volume : Measure (ℝ^(N + 1))).tilted fun σ =>
-            -shcherbinaTirozziCavityHamiltonian κ h r rBar t w.1.1 u w.1.2.1 w.1.2.2 σ) := by
+              fun p => E_old w.1 p.1 + u (S_one w p)) = G w.1 := by
     intro w
     have heq : (fun p : ℝ^(N + 1) × ℝ => E_old w.1 p.1 + u (S_one w p)) =
         fun p => (-shcherbinaTirozziCavityHamiltonian κ h r rBar t w.1.1 u w.1.2.1 w.1.2.2 p.1) +
@@ -270,15 +320,17 @@ theorem integral_pi_shcherbinaTirozziAuxCavity_one (κ h : ℝ) (r : ℝ≥0) (r
       dsimp only [E_old, S_one]
       rw [neg_shcherbinaTirozziCavityHamiltonian_succ]
       simp
-    rw [heq]
+    rw [heq, hG]
     have h := integral_pi_tilted_prod_add_mul (μ := (volume : Measure (ℝ^(N + 1))))
       (ν := gaussianReal 0 1) (ι := R)
       (fun σ => -shcherbinaTirozziCavityHamiltonian κ h r rBar t w.1.1 u w.1.2.1 w.1.2.2 σ)
       (0 : ℝ → ℝ) f (fun _ => 1)
     simpa using h
-  simp_rw [hpt]
-  rw [integral_fun_fst]
-  simp
+  refine Eq.trans (integral_congr_ae (ae_of_all _ hpt)) ?_
+  refine Eq.trans (integral_fun_fst (ν := gaussianReal 0 1) G) ?_
+  rw [probReal_univ, one_smul]
+  subst hG
+  rfl
 
 /-- **Talagrand, Lemma 3.2.7, Eq. (3.92):** at `v = 0`, `ν_{t,0}(f) = 𝔼 ⟨f⟩_{t,∼}` for any spin
 observable `f` (integrability is not even needed: the `z` and `ξ` integrals factor out with mass
@@ -302,27 +354,30 @@ theorem integral_shcherbinaTirozziAuxCavity_zero (κ h : ℝ) (r : ℝ≥0) (rBa
         ∂(Measure.pi fun _ : R => (volume : Measure (ℝ^(N + 1))).tilted fun σ =>
           -shcherbinaTirozziCavityHamiltonian κ h r rBar t d₀.1 u d₀.2.1 d₀.2.2 σ) ∂P_old := by
   intro P_old E_old S_zero
-  have hS0 : ∀ w p, S_zero w p = Real.sqrt q * w.2 + Real.sqrt (ρ - q) * p.2 := fun w p => by
-    dsimp only [S_zero]; simp
-  simp_rw [hS0, integral_pi_tilted_prod_gaussian_zero_observable hu hu0 q (Real.sqrt (ρ - q)) _ f]
-  rw [integral_fun_fst, probReal_univ, one_smul]
-  -- project `Fin (M + 1) → _` onto `Fin M → _` via `castSucc`
-  set π_M : (Fin (M + 1) → Fin (N + 1) → ℝ) → (Fin M → Fin (N + 1) → ℝ) :=
-    fun g j => g j.castSucc
-  have hmp_M : MeasurePreserving π_M
-      (Measure.pi fun _ : Fin (M + 1) => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1)
-      (Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1) :=
-    measurePreserving_pi_comp_injective _ Fin.castSucc_injective
-  have hmp : MeasurePreserving
-      (fun d : ℝ × ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) =>
-        (d.1, (π_M d.2.1, d.2.2)))
-      ((gaussianReal 0 r).prod
-        ((Measure.pi fun _ : Fin (M + 1) => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1).prod
-          (Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1))) P_old :=
-    (MeasurePreserving.id _).prod (hmp_M.prod (MeasurePreserving.id _))
-  exact hmp.integral_comp' (g := fun d₀ => ∫ a : R → ℝ^(N + 1), f a
-    ∂(Measure.pi fun _ : R => (volume : Measure (ℝ^(N + 1))).tilted fun σ =>
-      -shcherbinaTirozziCavityHamiltonian κ h r rBar t d₀.1 u d₀.2.1 d₀.2.2 σ))
+  obtain ⟨G, hG⟩ : ∃ G : ℝ × ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) → ℝ,
+      G = fun d₀ => ∫ a : R → ℝ^(N + 1), f a
+        ∂(Measure.pi fun _ : R => (volume : Measure (ℝ^(N + 1))).tilted fun σ =>
+          -shcherbinaTirozziCavityHamiltonian κ h r rBar t d₀.1 u d₀.2.1 d₀.2.2 σ) := ⟨_, rfl⟩
+  have hpt : ∀ w : AuxDis, ∫ σ : R → ℝ^(N + 1) × ℝ, f (fun l => (σ l).1)
+        ∂(Measure.pi fun _ : R =>
+          ((volume : Measure (ℝ^(N + 1))).prod (gaussianReal 0 1)).tilted
+            fun p => E_old w.1 p.1 + u (S_zero w p)) =
+      G (w.1.1, (fun j => w.1.2.1 j.castSucc, w.1.2.2)) := fun w => by
+    have hS0 : (fun p : ℝ^(N + 1) × ℝ => E_old w.1 p.1 + u (S_zero w p)) =
+        fun p => E_old w.1 p.1 + u (Real.sqrt q * w.2 + Real.sqrt (ρ - q) * p.2) := by
+      funext p
+      dsimp only [S_zero]
+      simp
+    rw [hS0, integral_pi_tilted_prod_gaussian_zero_observable hu hu0 q (Real.sqrt (ρ - q)) w.2 f,
+      hG]
+  refine Eq.trans (integral_congr_ae (ae_of_all _ hpt)) ?_
+  refine Eq.trans (integral_fun_fst (ν := gaussianReal 0 1)
+    (fun d : ℝ × ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) =>
+      G (d.1, (fun j => d.2.1 j.castSucc, d.2.2)))) ?_
+  rw [probReal_univ, one_smul]
+  refine Eq.trans (integral_comp_castSucc_disorder (N := N) (M := M) r G) ?_
+  subst hG
+  rfl
 
 /-- **Talagrand, Lemma 3.2.7, Eq. (3.93):** for distinct replicas `l₁ ≠ l₂`, at `v = 0`,
 `α ν_{t,0}(u'(S_0^{l₁}) u'(S_0^{l₂}) f) = r 𝔼 ⟨f⟩_{t,∼}` where
@@ -367,24 +422,23 @@ theorem integral_shcherbinaTirozziAuxCavity_zero_deriv_mul (α κ h : ℝ) (r : 
           ∂(Measure.pi fun _ : R => (volume : Measure (ℝ^(N + 1))).tilted (E_old w.1))) *
         V (Real.sqrt q * w.2) ^ 2 := fun w => by
     rw [integral_pi_tilted_prod_gaussian_zero_deriv_mul hu hu0 q c w.2 hne f, mul_comm]
-    rfl
   simp_rw [hpt]
-  rw [integral_prod_mul]
-  set π_M : (Fin (M + 1) → Fin (N + 1) → ℝ) → (Fin M → Fin (N + 1) → ℝ) :=
-    fun g j => g j.castSucc
-  have hmp : MeasurePreserving
-      (fun d : ℝ × ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) =>
-        (d.1, (π_M d.2.1, d.2.2)))
-      ((gaussianReal 0 r).prod
+  rw [integral_prod_mul (fun d => ∫ a : R → ℝ^(N + 1), f a
+      ∂(Measure.pi fun _ : R => (volume : Measure (ℝ^(N + 1))).tilted (E_old d)))
+    (fun z => V (Real.sqrt q * z) ^ 2)]
+  have hproj := integral_comp_castSucc_disorder (N := N) (M := M) r fun d₀ =>
+    ∫ a : R → ℝ^(N + 1), f a
+      ∂(Measure.pi fun _ : R => (volume : Measure (ℝ^(N + 1))).tilted fun σ =>
+        -shcherbinaTirozziCavityHamiltonian κ h r rBar t d₀.1 u d₀.2.1 d₀.2.2 σ)
+  change α * ((∫ d : ℝ × ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)),
+      ∫ a : R → ℝ^(N + 1), f a
+        ∂(Measure.pi fun _ : R => (volume : Measure (ℝ^(N + 1))).tilted fun σ =>
+          -shcherbinaTirozziCavityHamiltonian κ h r rBar t d.1 u
+            (fun j => d.2.1 j.castSucc) d.2.2 σ)
+      ∂((gaussianReal 0 r).prod
         ((Measure.pi fun _ : Fin (M + 1) => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1).prod
-          (Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1))) P_old :=
-    (MeasurePreserving.id _).prod
-      ((measurePreserving_pi_comp_injective _ Fin.castSucc_injective).prod (MeasurePreserving.id _))
-  have hproj := hmp.integral_comp' (g := fun d₀ => ∫ a : R → ℝ^(N + 1), f a
-    ∂(Measure.pi fun _ : R => (volume : Measure (ℝ^(N + 1))).tilted fun σ =>
-      -shcherbinaTirozziCavityHamiltonian κ h r rBar t d₀.1 u d₀.2.1 d₀.2.2 σ))
-  change α * ((∫ d, ∫ a, f a ∂(Measure.pi fun _ => (volume : Measure (ℝ^(N + 1))).tilted
-      (E_old d)) ∂_) * ∫ z, V (Real.sqrt q * z) ^ 2 ∂(gaussianReal 0 1)) = _
+          (Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1)))) *
+      ∫ z, V (Real.sqrt q * z) ^ 2 ∂(gaussianReal 0 1)) = _
   rw [hproj]
   ring
 
@@ -433,24 +487,23 @@ theorem integral_shcherbinaTirozziAuxCavity_zero_deriv_two (α κ h : ℝ) (r : 
           ∂(Measure.pi fun _ : R => (volume : Measure (ℝ^(N + 1))).tilted (E_old w.1))) *
         W (Real.sqrt q * w.2) := fun w => by
     rw [integral_pi_tilted_prod_gaussian_zero_deriv_two hu hu0 q c w.2 l₁ f, mul_comm]
-    rfl
   simp_rw [hpt]
-  rw [integral_prod_mul]
-  set π_M : (Fin (M + 1) → Fin (N + 1) → ℝ) → (Fin M → Fin (N + 1) → ℝ) :=
-    fun g j => g j.castSucc
-  have hmp : MeasurePreserving
-      (fun d : ℝ × ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) =>
-        (d.1, (π_M d.2.1, d.2.2)))
-      ((gaussianReal 0 r).prod
+  rw [integral_prod_mul (fun d => ∫ a : R → ℝ^(N + 1), f a
+      ∂(Measure.pi fun _ : R => (volume : Measure (ℝ^(N + 1))).tilted (E_old d)))
+    (fun z => W (Real.sqrt q * z))]
+  have hproj := integral_comp_castSucc_disorder (N := N) (M := M) r fun d₀ =>
+    ∫ a : R → ℝ^(N + 1), f a
+      ∂(Measure.pi fun _ : R => (volume : Measure (ℝ^(N + 1))).tilted fun σ =>
+        -shcherbinaTirozziCavityHamiltonian κ h r rBar t d₀.1 u d₀.2.1 d₀.2.2 σ)
+  change α * ((∫ d : ℝ × ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)),
+      ∫ a : R → ℝ^(N + 1), f a
+        ∂(Measure.pi fun _ : R => (volume : Measure (ℝ^(N + 1))).tilted fun σ =>
+          -shcherbinaTirozziCavityHamiltonian κ h r rBar t d.1 u
+            (fun j => d.2.1 j.castSucc) d.2.2 σ)
+      ∂((gaussianReal 0 r).prod
         ((Measure.pi fun _ : Fin (M + 1) => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1).prod
-          (Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1))) P_old :=
-    (MeasurePreserving.id _).prod
-      ((measurePreserving_pi_comp_injective _ Fin.castSucc_injective).prod (MeasurePreserving.id _))
-  have hproj := hmp.integral_comp' (g := fun d₀ => ∫ a : R → ℝ^(N + 1), f a
-    ∂(Measure.pi fun _ : R => (volume : Measure (ℝ^(N + 1))).tilted fun σ =>
-      -shcherbinaTirozziCavityHamiltonian κ h r rBar t d₀.1 u d₀.2.1 d₀.2.2 σ))
-  change α * ((∫ d, ∫ a, f a ∂(Measure.pi fun _ => (volume : Measure (ℝ^(N + 1))).tilted
-      (E_old d)) ∂_) * ∫ z, W (Real.sqrt q * z) ∂(gaussianReal 0 1)) = _
+          (Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1)))) *
+      ∫ z, W (Real.sqrt q * z) ∂(gaussianReal 0 1)) = _
   rw [hproj]
   ring
 
@@ -482,8 +535,9 @@ theorem integral_pi_shcherbinaTirozziAuxCavity_eq_smoothed {κ h r rBar t y q ρ
   have hEold_i : Integrable (fun σ : ℝ^(N + 1) => Real.exp (E_old σ)) volume :=
     integrable_exp_neg_shcherbinaTirozziCavityHamiltonian hκ hq_t hu hu0 _ g₀
   have hEm : Measurable fun p : ℝ^(N + 1) × ℝ => E_old p.1 + u (S_v p) := by
-    have h1 := (measurable_shcherbinaTirozziCavityHamiltonian_apply κ h r rBar t y hu
-      (fun j => g j.castSucc) g₀).neg.comp measurable_fst
+    have hold : Measurable E_old := (measurable_shcherbinaTirozziCavityHamiltonian_apply κ h r
+      rBar t y hu (fun j => g j.castSucc) g₀).neg
+    have h1 : Measurable fun p : ℝ^(N + 1) × ℝ => E_old p.1 := hold.comp measurable_fst
     have hσ : ∀ i : Fin (N + 1), Measurable fun p : ℝ^(N + 1) × ℝ => p.1 i := fun i =>
       ((PiLp.continuous_apply 2 (fun _ : Fin (N + 1) => ℝ) i).measurable).comp measurable_fst
     have hf1 : Measurable fun p : ℝ^(N + 1) × ℝ => cfield⟨t, g, Fin.last M, p.1⟩ :=
@@ -507,7 +561,7 @@ theorem integral_pi_shcherbinaTirozziAuxCavity_eq_smoothed {κ h r rBar t y q ρ
           Real.sqrt (1 - v) * Real.sqrt q * z) +
           Real.sqrt (1 - v) * Real.sqrt (ρ - q) * ξ)) := fun ξ => by
       rw [Real.exp_add]
-      congr 2; dsimp only [S_v]; ring
+      congr 2; dsimp only [S_v]; ring_nf
     simp_rw [h1]
     rw [integral_const_mul, Real.log_mul (Real.exp_pos _).ne'
       (integral_exp_comp_add_gaussianReal_pos hu hu0 _ _).ne', Real.log_exp]

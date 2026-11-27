@@ -338,11 +338,13 @@ private lemma integral_interpolating_zero_even_pow_le (D : ℝ) (p : ℕ) :
   let S_Y (ω : ((Fin M → Fin (N + 1) → ℝ) × (Fin M → ℝ)) × (Fin (N + 1) → ℝ)) : ℝ :=
     ((N : ℝ) + 1)⁻¹ * ∑ j : Fin M, f_Y (ω.1.2 j)
   have hSX_pow_int (n : ℕ) : Integrable (fun ω => S_X ω ^ n) P := by
-    have hpi := (integrable_pow_sum_pi hfX_int (N + 1) n).const_mul (((N : ℝ) + 1)⁻¹ ^ n)
+    have hpi := (integrable_pow_sum_pi (k := n) (fun j _ => hfX_int j) (N + 1)).const_mul
+      (((N : ℝ) + 1)⁻¹ ^ n)
     exact (hpi.comp_snd (P_g.prod P_z)).congr
       (ae_of_all _ fun ω => by dsimp only [S_X]; rw [mul_pow])
   have hSY_pow_int (n : ℕ) : Integrable (fun ω => S_Y ω ^ n) P := by
-    have hpi := (integrable_pow_sum_pi hfY_int M n).const_mul (((N : ℝ) + 1)⁻¹ ^ n)
+    have hpi := (integrable_pow_sum_pi (k := n) (fun j _ => hfY_int j) M).const_mul
+      (((N : ℝ) + 1)⁻¹ ^ n)
     exact ((hpi.comp_snd P_g).comp_fst P_z').congr
       (ae_of_all _ fun ω => by dsimp only [S_Y]; rw [mul_pow])
   have hSX_int := hSX_pow_int (2 * (p + 1))
@@ -384,7 +386,8 @@ private lemma integral_interpolating_zero_even_pow_le (D : ℝ) (p : ℕ) :
     rw [hsnd]
     simp_rw [mul_pow]
     rw [integral_const_mul]
-    have hb_raw := (le_abs_self _).trans (hCX γ hfX_int hfX_0 hfX_mom (N + 1))
+    have hb_raw := (le_abs_self _).trans (hCX γ (fun j _ => hfX_int j) hfX_0 (fun j _ => hfX_mom
+      j) (N + 1))
     have hsq_pow : Real.sqrt (((N + 1 : ℕ) : ℝ) + 1) ^ (2 * (p + 1)) ≤
         2 ^ (p + 1) * ((N : ℝ) + 1) ^ (p + 1) := by
       rw [pow_mul, Real.sq_sqrt (by positivity), ← mul_pow]
@@ -415,7 +418,8 @@ private lemma integral_interpolating_zero_even_pow_le (D : ℝ) (p : ℕ) :
     rw [hfst, hsnd]
     simp_rw [mul_pow]
     rw [integral_const_mul]
-    have hb_raw := (le_abs_self _).trans (hCY γ hfY_int hfY_0 hfY_mom M)
+    have hb_raw := (le_abs_self _).trans (hCY γ (fun j _ => hfY_int j) hfY_0 (fun j _ => hfY_mom
+      j) M)
     have hsq_pow : Real.sqrt ((M : ℝ) + 1) ^ (2 * (p + 1)) ≤
         2 ^ (p + 1) * ((N : ℝ) + 1) ^ (p + 1) := by
       rw [pow_mul, Real.sq_sqrt (by positivity), ← mul_pow]

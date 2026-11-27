@@ -107,12 +107,17 @@ measure `μ`.  If `𝔼 exp (t (F z₁ - F z₂)) ≤ exp (c t² / 2)` for the i
 `z = (z₁, z₂) ∼ μ ⊗ μ` and all `t`, then `F - 𝔼 F` is sub-Gaussian with parameter `c`.
 The point is `𝔼 exp (t (F - 𝔼 F)) ≤ 𝔼 exp (t F) 𝔼 exp (-t F) = 𝔼 exp (t (F z₁ - F z₂))`, by
 Jensen's inequality `exp (-t 𝔼 F) ≤ 𝔼 exp (-t F)`. -/
-theorem hasSubgaussianMGF_sub_integral_of_integral_exp_sub_le {F : Ω → ℝ} (hFm : Measurable F)
+theorem hasSubgaussianMGF_sub_integral_of_integral_exp_sub_le {F : Ω → ℝ}
     (hint : ∀ t, Integrable (fun ω => Real.exp (t * F ω)) μ) {c : ℝ≥0}
     (h : ∀ t : ℝ, ∫ z, Real.exp (t * (F z.1 - F z.2)) ∂(μ.prod μ) ≤ Real.exp (c * t ^ 2 / 2)) :
     HasSubgaussianMGF (fun ω => F ω - ∫ ω', F ω' ∂μ) c μ := by
+  -- measurability of `F` follows from that of `exp F`
+  have hFm : AEStronglyMeasurable F μ := by
+    have h1 : AEMeasurable (fun ω => Real.log (Real.exp (1 * F ω))) μ :=
+      Real.measurable_log.comp_aemeasurable (hint 1).aemeasurable
+    exact (h1.congr (Eventually.of_forall fun ω => by simp)).aestronglyMeasurable
   have hFi : Integrable F μ := by
-    refine Integrable.mono' ((hint 1).add (hint (-1))) hFm.aestronglyMeasurable
+    refine Integrable.mono' ((hint 1).add (hint (-1))) hFm
       (Eventually.of_forall fun ω => ?_)
     rw [Real.norm_eq_abs]
     simp only [one_mul, neg_mul, Pi.add_apply]

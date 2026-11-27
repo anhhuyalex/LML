@@ -814,6 +814,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.Cavity
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.Convexity
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.DisorderConcentration
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.GradientBound
+public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.HardConstraintBoundary
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.HardConstraintUniqueness
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.LastSpinTail
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.Moments

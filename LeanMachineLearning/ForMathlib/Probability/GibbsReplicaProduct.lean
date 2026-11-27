@@ -294,12 +294,10 @@ theorem integral_pi_fresh_replica_mul {I J : Type*} [Fintype I] [Fintype J] (ν 
         (measurePreserving_eval (fun _ : I ⊕ Unit => ν) (Sum.inr ())).quasiMeasurePreserving)
   have h1 := integral_pi_comp_injective ν hρ _ hG
   simp only [ρ, Sum.elim_inl, Sum.elim_inr] at h1
-  rw [h1, integral_pi_sum_mul ν H (fun τ : Unit → α => h (τ ())) hH ?_]
-  · congr 1
-    have := integral_fintype_prod_eq_prod (ι := Unit) (fun _ => h) (μ := fun _ => ν)
-    simpa using this
-  · exact hh.comp_quasiMeasurePreserving
-      (measurePreserving_eval (fun _ : Unit => ν) ()).quasiMeasurePreserving
+  rw [h1, integral_pi_sum_mul ν H (fun τ : Unit → α => h (τ ()))]
+  congr 1
+  have := integral_fintype_prod_eq_prod (ι := Unit) (fun _ => h) (μ := fun _ => ν)
+  simpa using this
 
 /-- **One-replica marginal.** A function of a single replica of the product law has the average
 of the replica law. -/

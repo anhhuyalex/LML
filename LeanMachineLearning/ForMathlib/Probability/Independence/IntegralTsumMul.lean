@@ -51,19 +51,25 @@ theorem eLpNorm_two_le_ofReal_of_integral_sq_le {f : Ω → ℝ} {C : ℝ} (hf :
         rw [← Real.rpow_natCast, ← Real.rpow_mul hC]
         norm_num
 
-/-- **A series with summable `Lᵖ` norms is integrable** (`p ≥ 1`, probability space). -/
-theorem integrable_tsum_of_tsum_eLpNorm_ne_top {p : ℝ≥0∞} (hp : 1 ≤ p) {f : κ → Ω → ℝ}
-    (hf : ∀ n, AEStronglyMeasurable (f n) μ) (h : ∑' n, eLpNorm (f n) p μ ≠ ∞) :
+omit [IsProbabilityMeasure μ] in
+/-- **A series with summable `L¹` norms is integrable,** for any measure. -/
+theorem integrable_tsum_of_tsum_eLpNorm_one_ne_top {f : κ → Ω → ℝ}
+    (hf : ∀ n, AEStronglyMeasurable (f n) μ) (h : ∑' n, eLpNorm (f n) 1 μ ≠ ∞) :
     Integrable (fun ω => ∑' n, f n ω) μ := by
-  have h1 : ∑' n, eLpNorm (f n) 1 μ ≠ ∞ := ne_top_of_le_ne_top h
-    (tsum_le_tsum fun n => eLpNorm_le_eLpNorm_of_exponent_le hp)
   refine ⟨(AEMeasurable.tsum fun n => (hf n).aemeasurable).aestronglyMeasurable, ?_⟩
   calc ∫⁻ ω, ‖∑' n, f n ω‖ₑ ∂μ ≤ ∫⁻ ω, ∑' n, ‖f n ω‖ₑ ∂μ :=
         lintegral_mono fun ω => enorm_tsum_le_tsum_enorm
     _ = ∑' n, eLpNorm (f n) 1 μ := by
         rw [lintegral_tsum fun n => (hf n).enorm]
         simp only [eLpNorm_one_eq_lintegral_enorm (hf _)]
-    _ < ∞ := h1.lt_top
+    _ < ∞ := h.lt_top
+
+/-- **A series with summable `Lᵖ` norms is integrable** (`p ≥ 1`, probability space). -/
+theorem integrable_tsum_of_tsum_eLpNorm_ne_top {p : ℝ≥0∞} (hp : 1 ≤ p) {f : κ → Ω → ℝ}
+    (hf : ∀ n, AEStronglyMeasurable (f n) μ) (h : ∑' n, eLpNorm (f n) p μ ≠ ∞) :
+    Integrable (fun ω => ∑' n, f n ω) μ :=
+  integrable_tsum_of_tsum_eLpNorm_one_ne_top hf (ne_top_of_le_ne_top h
+    (tsum_le_tsum fun n => eLpNorm_le_eLpNorm_of_exponent_le hp))
 
 omit [IsProbabilityMeasure μ] in
 /-- **A series with summable `L¹` norms converges absolutely almost surely.** -/

@@ -16,9 +16,11 @@ A random variable `Z` with `HasGaussianLaw` has `exp (t Z)` integrable with
 `𝔼 exp (t Z) = exp (t 𝔼 Z + t² Var Z / 2)` (`integral_exp_mul_of_hasGaussianLaw`).  Together with
 Hölder's inequality this gives the Cauchy--Schwarz bound
 `‖X exp Z‖₁ ≤ √a exp v` for a centered Gaussian `Z` with `𝔼 Z² ≤ v` and `𝔼 X² ≤ a`
-(`eLpNorm_one_mul_exp_le`), which controls the Gibbs weights of a Gaussian energy in
-`SpinGlasses/Gaussian/GaussianIBPCountable.lean`.  A centered Gaussian with second moment at most
-`v` is sub-Gaussian with parameter `v` (`HasGaussianLaw.hasSubgaussianMGF_of_integral_sq_le`).
+(`eLpNorm_one_mul_exp_le`; more generally for a sub-Gaussian `Z`,
+`eLpNorm_one_mul_exp_le_of_hasSubgaussianMGF`), which controls the Gibbs weights of a Gaussian
+energy in `SpinGlasses/Gaussian/GaussianIBPCountable.lean`.  A centered Gaussian with second
+moment at most `v` is sub-Gaussian with parameter `v`
+(`HasGaussianLaw.hasSubgaussianMGF_of_integral_sq_le`).
 -/
 
 @[expose] public section
@@ -53,29 +55,37 @@ theorem integrable_exp_mul_of_hasGaussianLaw {Z : Ω → ℝ} (hZ : HasGaussianL
   rw [← hZ.map_eq_gaussianReal] at this
   exact (integrable_map_measure (by fun_prop) hZ.aemeasurable).1 this
 
-/-- **Cauchy–Schwarz bound for a variable times the exponential of a Gaussian:**
-if `Z` is a centered Gaussian with `𝔼 Z² ≤ v` and `𝔼 X² ≤ a`, then
-`‖X exp Z‖₁ ≤ √a exp v`. -/
-theorem eLpNorm_one_mul_exp_le {X Z : Ω → ℝ} (hZ : HasGaussianLaw Z P) (hZ0 : ∫ ω, Z ω ∂P = 0)
-    (hX : MemLp X 2 P) {a v : ℝ} (ha : ∫ ω, X ω ^ 2 ∂P ≤ a) (hv : ∫ ω, Z ω ^ 2 ∂P ≤ v) :
+/-- A centered Gaussian variable with second moment at most `v` is sub-Gaussian with parameter
+`v`. -/
+theorem HasGaussianLaw.hasSubgaussianMGF_of_integral_sq_le {Z : Ω → ℝ}
+    (hZ : HasGaussianLaw Z P) (h0 : ∫ ω, Z ω ∂P = 0) {v : ℝ} (hv : ∫ ω, Z ω ^ 2 ∂P ≤ v) :
+    HasSubgaussianMGF Z v.toNNReal P := by
+  have hvar : Var[Z; P] = ∫ ω, Z ω ^ 2 ∂P := by
+    rw [variance_of_integral_eq_zero hZ.aemeasurable h0]
+  refine ⟨integrable_exp_mul_of_hasGaussianLaw hZ, fun t => ?_⟩
+  rw [mgf, integral_exp_mul_of_hasGaussianLaw hZ, h0, mul_zero, zero_add, hvar]
+  refine Real.exp_le_exp.2 ?_
+  have : (∫ ω, Z ω ^ 2 ∂P) ≤ (v.toNNReal : ℝ) := hv.trans (Real.le_coe_toNNReal v)
+  nlinarith [sq_nonneg t]
+
+/-- **Cauchy–Schwarz bound for a variable times the exponential of a sub-Gaussian variable:**
+if `Z` is sub-Gaussian with parameter `v` and `𝔼 X² ≤ a`, then `‖X exp Z‖₁ ≤ √a exp v`. -/
+theorem eLpNorm_one_mul_exp_le_of_hasSubgaussianMGF {X Z : Ω → ℝ} {v : ℝ≥0}
+    (hZ : HasSubgaussianMGF Z v P) (hX : MemLp X 2 P) {a : ℝ} (ha : ∫ ω, X ω ^ 2 ∂P ≤ a) :
     eLpNorm (fun ω => X ω * Real.exp (Z ω)) 1 P ≤ ENNReal.ofReal (√a * Real.exp v) := by
-  have hP := hZ.isProbabilityMeasure
   have ha0 : 0 ≤ a := (integral_nonneg fun _ => sq_nonneg _).trans ha
-  have hvar : Var[Z; P] = ∫ ω, Z ω ^ 2 ∂P := variance_of_integral_eq_zero hZ.aemeasurable hZ0
   have hexp2 : ∀ ω, Real.exp (Z ω) ^ 2 = Real.exp (2 * Z ω) := fun ω => by
     rw [← Real.exp_nat_mul]; norm_num
   have hE : MemLp (fun ω => Real.exp (Z ω)) 2 P := by
     refine (memLp_two_iff_integrable_sq
       (Real.measurable_exp.comp_aemeasurable hZ.aemeasurable).aestronglyMeasurable).2 ?_
-    exact (integrable_exp_mul_of_hasGaussianLaw hZ 2).congr
-      (ae_of_all _ fun ω => (hexp2 ω).symm)
+    exact (hZ.integrable_exp_mul 2).congr (ae_of_all _ fun ω => (hexp2 ω).symm)
   have hEn : eLpNorm (fun ω => Real.exp (Z ω)) 2 P ≤ ENNReal.ofReal (Real.exp v) := by
     refine eLpNorm_two_le_ofReal_of_integral_sq_le hE (Real.exp_pos _).le ?_
-    rw [integral_congr_ae (ae_of_all _ hexp2), integral_exp_mul_of_hasGaussianLaw hZ 2, hZ0, hvar,
-      ← Real.exp_nat_mul]
-    refine Real.exp_le_exp.2 ?_
+    rw [integral_congr_ae (ae_of_all _ hexp2), ← Real.exp_nat_mul]
+    refine (hZ.mgf_le 2).trans (le_of_eq ?_)
     push_cast
-    nlinarith
+    ring_nf
   have hXn : eLpNorm X 2 P ≤ ENNReal.ofReal (√a) := by
     refine eLpNorm_two_le_ofReal_of_integral_sq_le hX (Real.sqrt_nonneg _) ?_
     rw [Real.sq_sqrt ha0]; exact ha
@@ -89,14 +99,25 @@ theorem eLpNorm_one_mul_exp_le {X Z : Ω → ℝ} (hZ : HasGaussianLaw Z P) (hZ0
     _ ≤ ENNReal.ofReal (√a) * ENNReal.ofReal (Real.exp v) := mul_le_mul' hXn hEn
     _ = ENNReal.ofReal (√a * Real.exp v) := (ENNReal.ofReal_mul (Real.sqrt_nonneg _)).symm
 
-/-- **A Gaussian-weighted series with summable coefficients is a.s. summable and integrable:**
-if `Z b` are centered Gaussians with `𝔼 (Z b)² ≤ v` and `X b` satisfy `𝔼 (X b)² ≤ a`, then for
-`G ≥ 0` summable, `∑_b G b |X b| exp (Z b)` converges a.s. and is integrable. -/
-theorem ae_summable_and_integrable_tsum_mul_exp [IsProbabilityMeasure P] {κ : Type*}
+/-- **Cauchy–Schwarz bound for a variable times the exponential of a Gaussian:**
+if `Z` is a centered Gaussian with `𝔼 Z² ≤ v` and `𝔼 X² ≤ a`, then
+`‖X exp Z‖₁ ≤ √a exp v`. -/
+theorem eLpNorm_one_mul_exp_le {X Z : Ω → ℝ} (hZ : HasGaussianLaw Z P) (hZ0 : ∫ ω, Z ω ∂P = 0)
+    (hX : MemLp X 2 P) {a v : ℝ} (ha : ∫ ω, X ω ^ 2 ∂P ≤ a) (hv : ∫ ω, Z ω ^ 2 ∂P ≤ v) :
+    eLpNorm (fun ω => X ω * Real.exp (Z ω)) 1 P ≤ ENNReal.ofReal (√a * Real.exp v) := by
+  have hv0 : 0 ≤ v := (integral_nonneg fun _ => sq_nonneg _).trans hv
+  have h := eLpNorm_one_mul_exp_le_of_hasSubgaussianMGF
+    (HasGaussianLaw.hasSubgaussianMGF_of_integral_sq_le hZ hZ0 hv) hX ha
+  rwa [Real.coe_toNNReal v hv0] at h
+
+/-- **A series weighted by exponentials of sub-Gaussian variables is a.s. summable and
+integrable:** if the `Z b` are sub-Gaussian with a common parameter `v` and `X b` satisfy
+`𝔼 (X b)² ≤ a`, then for `G ≥ 0` summable, `∑_b G b |X b| exp (Z b)` converges a.s. and is
+integrable. -/
+theorem ae_summable_and_integrable_tsum_mul_exp_of_hasSubgaussianMGF {κ : Type*}
     [Countable κ] {X Z : κ → Ω → ℝ} {G : κ → ℝ} (hG0 : ∀ b, 0 ≤ G b) (hG : Summable G)
-    (hZ : ∀ b, HasGaussianLaw (Z b) P) (hZ0 : ∀ b, ∫ ω, Z b ω ∂P = 0)
-    (hX : ∀ b, MemLp (X b) 2 P) {a v : ℝ}
-    (ha : ∀ b, ∫ ω, X b ω ^ 2 ∂P ≤ a) (hv : ∀ b, ∫ ω, Z b ω ^ 2 ∂P ≤ v) :
+    {v : ℝ≥0} (hZ : ∀ b, HasSubgaussianMGF (Z b) v P) (hX : ∀ b, MemLp (X b) 2 P) {a : ℝ}
+    (ha : ∀ b, ∫ ω, X b ω ^ 2 ∂P ≤ a) :
     (∀ᵐ ω ∂P, Summable fun b => G b * (|X b ω| * Real.exp (Z b ω))) ∧
       Integrable (fun ω => ∑' b, G b * (|X b ω| * Real.exp (Z b ω))) P := by
   set K : ℝ := √a * Real.exp v with hK
@@ -105,8 +126,8 @@ theorem ae_summable_and_integrable_tsum_mul_exp [IsProbabilityMeasure P] {κ : T
     (((hX b).aestronglyMeasurable.norm.mul (Real.measurable_exp.comp_aemeasurable
       (hZ b).aemeasurable).aestronglyMeasurable).const_mul (G b))
   have hnorm : ∀ b, eLpNorm (f b) 1 P ≤ ENNReal.ofReal (G b) * ENNReal.ofReal K := fun b => by
-    have h1 := eLpNorm_one_mul_exp_le (hZ b) (hZ0 b) (hX b).abs (a := a) (v := v)
-      (by simpa using ha b) (hv b)
+    have h1 := eLpNorm_one_mul_exp_le_of_hasSubgaussianMGF (hZ b) (hX b).abs (a := a)
+      (by simpa using ha b)
     have : f b = G b • fun ω => |X b ω| * Real.exp (Z b ω) := rfl
     rw [this, eLpNorm_const_smul, Real.enorm_eq_ofReal (hG0 b)]
     exact mul_le_mul' le_rfl h1
@@ -114,23 +135,23 @@ theorem ae_summable_and_integrable_tsum_mul_exp [IsProbabilityMeasure P] {κ : T
     refine ne_top_of_le_ne_top ?_ (tsum_le_tsum hnorm)
     rw [ENNReal.tsum_mul_right, ← ENNReal.ofReal_tsum_of_nonneg hG0 hG]
     exact ENNReal.mul_ne_top ENNReal.ofReal_ne_top ENNReal.ofReal_ne_top
-  refine ⟨?_, integrable_tsum_of_tsum_eLpNorm_ne_top le_rfl hfm hsum⟩
+  refine ⟨?_, integrable_tsum_of_tsum_eLpNorm_one_ne_top hfm hsum⟩
   filter_upwards [summable_norm_of_tsum_eLpNorm_ne_top le_rfl hsum] with ω hω
   refine hω.congr fun b => ?_
   simp only [hf, Real.norm_eq_abs]
   exact abs_of_nonneg (mul_nonneg (hG0 b) (mul_nonneg (abs_nonneg _) (Real.exp_pos _).le))
 
-/-- A centered Gaussian variable with second moment at most `v` is sub-Gaussian with parameter
-`v`. -/
-theorem HasGaussianLaw.hasSubgaussianMGF_of_integral_sq_le {Z : Ω → ℝ}
-    (hZ : HasGaussianLaw Z P) (h0 : ∫ ω, Z ω ∂P = 0) {v : ℝ} (hv : ∫ ω, Z ω ^ 2 ∂P ≤ v) :
-    HasSubgaussianMGF Z v.toNNReal P := by
-  have hvar : Var[Z; P] = ∫ ω, Z ω ^ 2 ∂P := by
-    rw [variance_of_integral_eq_zero hZ.aemeasurable h0]
-  refine ⟨integrable_exp_mul_of_hasGaussianLaw hZ, fun t => ?_⟩
-  rw [mgf, integral_exp_mul_of_hasGaussianLaw hZ, h0, mul_zero, zero_add, hvar]
-  refine Real.exp_le_exp.2 ?_
-  have : (∫ ω, Z ω ^ 2 ∂P) ≤ (v.toNNReal : ℝ) := hv.trans (Real.le_coe_toNNReal v)
-  nlinarith [sq_nonneg t]
+/-- **A Gaussian-weighted series with summable coefficients is a.s. summable and integrable:**
+if `Z b` are centered Gaussians with `𝔼 (Z b)² ≤ v` and `X b` satisfy `𝔼 (X b)² ≤ a`, then for
+`G ≥ 0` summable, `∑_b G b |X b| exp (Z b)` converges a.s. and is integrable. -/
+theorem ae_summable_and_integrable_tsum_mul_exp {κ : Type*}
+    [Countable κ] {X Z : κ → Ω → ℝ} {G : κ → ℝ} (hG0 : ∀ b, 0 ≤ G b) (hG : Summable G)
+    (hZ : ∀ b, HasGaussianLaw (Z b) P) (hZ0 : ∀ b, ∫ ω, Z b ω ∂P = 0)
+    (hX : ∀ b, MemLp (X b) 2 P) {a v : ℝ}
+    (ha : ∀ b, ∫ ω, X b ω ^ 2 ∂P ≤ a) (hv : ∀ b, ∫ ω, Z b ω ^ 2 ∂P ≤ v) :
+    (∀ᵐ ω ∂P, Summable fun b => G b * (|X b ω| * Real.exp (Z b ω))) ∧
+      Integrable (fun ω => ∑' b, G b * (|X b ω| * Real.exp (Z b ω))) P :=
+  ae_summable_and_integrable_tsum_mul_exp_of_hasSubgaussianMGF hG0 hG
+    (fun b => HasGaussianLaw.hasSubgaussianMGF_of_integral_sq_le (hZ b) (hZ0 b) (hv b)) hX ha
 
 end ProbabilityTheory

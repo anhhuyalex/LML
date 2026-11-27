@@ -1629,6 +1629,8 @@ Formalized in \texttt{SpinGlasses/Talagrand/OverlapConcentration/FreeEnergyCLT/S
 \begin{theorem}[Moments of an i.i.d.\ centered sum (Eq.~(1.122))]\label{thm:sg-tal:iid-moments}
   \lean{ProbabilityTheory.iid_sum_moment_expansion,
         ProbabilityTheory.abs_integral_pow_avg_sub_le,
+        ProbabilityTheory.integral_add_pow_of_indepFun,
+        ProbabilityTheory.integrable_pow_finsetSum,
         ProbabilityTheory.integral_pow_sum_pi_succ,
         ProbabilityTheory.integrable_pow_sum_pi,
         pow_succ_sub_pow_sub_mul_le,
@@ -1636,12 +1638,14 @@ Formalized in \texttt{SpinGlasses/Talagrand/OverlapConcentration/FreeEnergyCLT/S
         ProbabilityTheory.abs_le_of_abs_sub_le_sqrt_pow}
   \leanok
 \talsource{Proof of Theorem~1.4.11, Eq.~(1.122)}
-Let $\nu$ be a probability measure on a measurable space $\Omega$, $f:\Omega\to\mathbb R$ with all powers integrable and $\int f\,d\nu=0$, $\sigma^2=\int f^2d\nu$, and $a(0)=1$, $a(1)=0$, $a(k+2)=(k+1)a(k)$. For every $m\ge1$ there is $C$ such that for all $N>0$: $\big|\int(N^{-1}\sum_{i\le N}f(y_i))^m\,d\nu^{\otimes N}-N^{-m/2}a(m)\sigma^{2\lfloor m/2\rfloor}\big|\le CN^{-(m+1)/2}$.
+Let $\nu$ be a probability measure on a measurable space $\Omega$, $f:\Omega\to\mathbb R$ with $f^j$ integrable for $j\le m$ and $\int f\,d\nu=0$, $\sigma^2=\int f^2d\nu$, and $a(0)=1$, $a(1)=0$, $a(k+2)=(k+1)a(k)$. For every $m\ge0$ there is $C$ such that for all $N>0$: $\big|\int(N^{-1}\sum_{i\le N}f(y_i))^m\,d\nu^{\otimes N}-N^{-m/2}a(m)\sigma^{2\lfloor m/2\rfloor}\big|\le CN^{-(m+1)/2}$.
 \end{theorem}
 \begin{proof}
   \leanok
 Let $S_n=\sum_{i\le n}f(y_i)$, $M_k(n)=\mathbb ES_n^k$ and $\mu_j=\int f^jd\nu$ ($\mu_0=1$, $\mu_1=0$, $\mu_2=\sigma^2$). Since $\int(N^{-1}S_N)^m=N^{-m}M_m(N)$, the claim is $M_m(N)=a(m)\sigma^{2\lfloor m/2\rfloor}N^{\lfloor m/2\rfloor}+O(N^{(m-1)/2})$ ($a$ vanishes at odd arguments).
-\emph{Step 1 (recursion).} Splitting off the last summand, $S_{n+1}=S_n+f(y_{n+1})$ and
+\emph{Step 1 (recursion).} For independent $X,Y$ whose powers up to order $k$ are integrable,
+$\mathbb E(X+Y)^k=\sum_{j\le k}\binom kj\mathbb EX^j\,\mathbb EY^{k-j}$, and powers of finite sums of variables with integrable powers are
+integrable. Splitting off the last summand, $S_{n+1}=S_n+f(y_{n+1})$ and
 \[
 M_k(n+1)=\sum_{j=0}^k\binom kj\mu_j\,M_{k-j}(n)=M_k(n)+\binom k2\sigma^2M_{k-2}(n)+\sum_{j\ge3}\binom kj\mu_jM_{k-j}(n).
 \]
@@ -4687,6 +4691,7 @@ Formalized in \texttt{SpinGlasses/Talagrand/GaussianFluctuation/SKGaussianCoroll
 \begin{lemma}[Moments of the thermal factor $B$]
 \label{lem:sg-tal:thermal-factor-moment}
   \lean{integral_exp_const_mul_dotProduct_gaussianReal_le,
+        integral_exp_const_mul_sqrt_inv_dotProduct_gaussianReal_le,
         integral_exp_sum_ising_moment_le,
         integrable_exp_dotProduct_gaussianReal,
         integrable_exp_const_mul_dotProduct_gaussianReal,
@@ -7179,11 +7184,15 @@ bound the respective remainders.
 
 \begin{lemma}[Independent fresh pairs, factor by factor]
 \label{lem:sg-tal:fresh-pair-product}
-\lean{MeasureTheory.integral_pi_sum_type, MeasureTheory.integral_pi_prod_fresh_pairs}
+\lean{MeasureTheory.integral_pi_sum_type,
+MeasureTheory.integral_pi_prod_fresh_pairs_of_integrable,
+MeasureTheory.integral_pi_prod_fresh_pairs}
 \leanok
 \talsource{Independent-replica integration underlying Eq.~(1.305)}
-Let $X$ be a finite measurable space with measurable singletons and finite measure $\mu$,
-and let $R,J$ be finite types. For any kernels $K_j:X^R\times X\times X\to\mathbb R$,
+Let $(X,\mu)$ be a $\sigma$-finite measure space, $R,J$ finite types, and
+$K_j:X^R\times X\times X\to\mathbb K$ ($\mathbb K=\mathbb R$ or $\mathbb C$) kernels such that
+$\sigma\mapsto\prod_{j}K_j(\sigma|_R,\sigma_{j,0},\sigma_{j,1})$ is integrable on
+$X^{R\sqcup(J\sqcup J)}$ for the product measure. Then
 \[
  \int_{X^{R\sqcup(J\sqcup J)}}
    \prod_{j\in J} K_j(\sigma|_R,\sigma_{j,0},\sigma_{j,1})\,d\mu^{\otimes}
@@ -7191,21 +7200,23 @@ and let $R,J$ be finite types. For any kernels $K_j:X^R\times X\times X\to\mathb
    \left(\int_X\int_X K_j(\rho,x,y)\,d\mu(y)d\mu(x)\right)d\mu^{\otimes R}(\rho).
 \]
 The two copies of $J$ give disjoint fresh labels; factors may share original labels in $R$.
-The block-splitting identity also holds on an arbitrary sigma-finite measurable space,
-assuming the joint block observable is integrable; only the finite-space applications
-use automatic integrability.
-The split into two independent blocks is also exposed for an arbitrary integrand.
+On a finite space with measurable singletons and a finite measure the integrability is automatic.
+The block-splitting identity
+$\int_{X^{R\sqcup S}}F(\sigma|_R,\sigma|_S)\,d\mu^{\otimes}=\int_{X^R}\int_{X^S}F\,d\mu^{S}d\mu^{R}$
+holds for any integrable $F$ with values in a real normed space.
 \end{lemma}
 \begin{proof}
 \leanok
-Use the existing measure-preserving equivalence between functions on a disjoint sum
-and a pair of function spaces, followed by Fubini. Split the two fresh blocks and apply
-Mathlib's finite-product integral factorization twice. Finiteness supplies integrability.
+Use the measure-preserving equivalence between functions on a disjoint sum
+and a pair of function spaces, followed by Fubini; for almost every $\rho$ the section of the
+integrable product is integrable. Split the two fresh blocks in the same way and apply the
+factorization of integrals of products of one-coordinate functions twice.
 \end{proof}
 
 \begin{theorem}[Mixed-product Gibbs-mean substitution, enumerated form]
 \label{thm:sg-tal:T-product-fresh}
-\lean{MeasureTheory.integral_replica_centered_products, SpinGlasses.sk_mixed_T_moment_eq_fresh}
+\lean{MeasureTheory.integral_replica_centered_products_inner,
+MeasureTheory.integral_replica_centered_products, SpinGlasses.sk_mixed_T_moment_eq_fresh}
 \leanok
 \uses{lem:sg-tal:fresh-pair-product}
 \talsource{Eq.~(1.305), the three definitions of $U(v)$ preceding it}
@@ -7240,14 +7251,21 @@ Gibbs means on the left and a deterministic fresh-replica integrand on the right
 \end{theorem}
 \begin{proof}
 \leanok
-Apply the preceding lemma with the three displayed kernels. Each fresh-pair average
-is the corresponding $T_p,T_s$, or $T$, by finite-sum linearity and the definition of $b$.
+The identity is proved in the following generality: $(X,\mu)$ any probability space, $H$ a real
+Hilbert space, $v:X\to H$ measurable and a.e.\ bounded with $b=\int v\,d\mu$, and every sum
+$\sum_i\alpha_i\gamma_i$ above replaced by $\langle\alpha,\gamma\rangle_H$. The three kernels are bounded,
+so their product is integrable, and the preceding lemma applies. Each fresh-pair average is the
+corresponding $T_p,T_s$, or $T$, because $\int\!\int\langle A(x),B(y)\rangle=\langle\int A,\int B\rangle$ for
+integrable $A,B$. The coordinate statement is the case $H=\mathbb R^I$.
 The identity holds at each disorder realization and therefore also after disorder averaging.
 \end{proof}
 
 \begin{lemma}[Fresh-mean substitution on selected factor subsets]
 \label{lem:sg-tal:flagged-fresh-subsets}
-\lean{MeasureTheory.integral_flagged_overlap_eq,
+\lean{MeasureTheory.integral_flagged_inner_eq,
+MeasureTheory.integrable_finset_prod_flagged_inner,
+MeasureTheory.integral_finset_prod_flagged_inner_fresh_eq,
+MeasureTheory.integral_flagged_overlap_eq,
 MeasureTheory.integral_finset_prod_flagged_fresh_eq,
 SpinGlasses.sk_flagged_T_moment_eq_fresh}
 \leanok
@@ -7275,11 +7293,13 @@ averaging over the disorder. It needs no fixed point or high-temperature assumpt
 \end{lemma}
 \begin{proof}
 \leanok
-The existing selected-family factorization reduces the claim to a double average of one
-kernel. Finite-sum linearity replaces its two independent observations by their means;
-the four flag cases share this one calculation. The same calculation now also supplies
-the pair, single and global cases in the full-family identity, without repeating three
-integral manipulations. Unused fresh replicas integrate to one.
+More generally let $(X,\mu)$ be any probability space and $v:X\to H$ a measurable a.e.\ bounded map
+into a real Hilbert space with mean $b$, and replace the sum over $i$ by the inner product of $H$.
+The selected product is then bounded, hence integrable, and the selected-family factorization
+reduces the claim to a double average of one kernel. Linearity of the inner product replaces its two
+independent observations by their means (only integrability of $v$ is used here);
+the four flag cases share this one calculation. The same calculation supplies
+the pair, single and global cases of the full-family identity. Unused fresh replicas integrate to one.
 \end{proof}
 
 \begin{remark}[Deviations from Talagrand in the higher-order cavity results]
@@ -7579,14 +7599,19 @@ $m^{(k+3)/2}=m\,m^{(k+1)/2}$. No asymptotic expansion is assumed as an input.
 
 \begin{lemma}[Deleted fresh products with equal conditional factors]
 \label{lem:sg-tal:fresh-deletion-equality}
-\lean{Finset.prod_erase_eq_of_eq, MeasureTheory.integral_pi_finset_prod_fresh_pairs,
+\lean{Finset.prod_erase_eq_of_eq,
+MeasureTheory.integral_pi_finset_prod_fresh_pairs_of_integrable,
+MeasureTheory.integral_pi_finset_prod_fresh_pairs,
+MeasureTheory.integral_pi_prod_fresh_pairs_erase_eq_of_integrable,
 MeasureTheory.integral_pi_prod_fresh_pairs_erase_eq,
+MeasureTheory.integral_fresh_inner_prod_erase_eq,
 MeasureTheory.integral_fresh_overlap_prod_erase_eq}
 \leanok
 \uses{lem:sg-tal:fresh-pair-product}
 \talsource{Equality of the surviving expectations and counting, immediately before Eq.~(1.312)}
-On a finite probability space $(X,\mu)$, let $R,J$ be finite, $s\subseteq J$, and
-$K_j:X^R\times X\times X\to\mathbb R$. Fresh-pair factorization also holds for
+On a probability space $(X,\mu)$, let $R,J$ be finite, $s\subseteq J$, and
+$K_j:X^R\times X\times X\to\mathbb K$ kernels whose selected products below are integrable (automatic on
+a finite space). Fresh-pair factorization also holds for
 $\prod_{j\in s}K_j$ in the full fresh replica space indexed by $J$: unused replicas
 integrate to one. If $u,w\in s$ and
 \[
@@ -7596,7 +7621,8 @@ integrate to one. If $u,w\in s$ and
 the expectations of the products with $u$ and $w$ respectively deleted are equal.
 For the overlap kernels with Boolean flags $L_j,S_j$, it suffices that the flags agree
 at $u,w$ and their original labels agree wherever the corresponding flag is true.
-The vector observable, scaling and centering parameter are arbitrary.
+Here the vector observable is any measurable a.e.\ bounded map into a real Hilbert space, and the
+scaling and centering parameters are arbitrary.
 \end{lemma}
 \begin{proof}
 \leanok
@@ -7716,7 +7742,8 @@ The five errors are added explicitly; the recurrence is not an assumed input.
 
 \begin{theorem}[Uniform induction for a two-factor moment recurrence]
 \label{thm:sg-tal:finite-moment-induction}
-\lean{ProbabilityTheory.exists_finset_moment_error_of_two_factor_recurrence}
+\lean{ProbabilityTheory.exists_finset_moment_error_of_two_factor_recurrence_normalized,
+ProbabilityTheory.exists_finset_moment_error_of_two_factor_recurrence}
 \leanok
 \talsource{The induction scheme of Propositions~1.10.4--1.10.5 and Theorem~1.10.1}
 Let $P$ be a property on a type $J$, and let $F_\theta(N,s),G_\theta(N,s)$
@@ -7738,6 +7765,8 @@ Then for every finite $s$ there is $K_s>0$, chosen before $\theta,N$, with
 \]
 This is an abstract induction theorem. The Gaussian reference identity and the SK
 specializations required for Propositions~1.10.4--1.10.5 are not asserted here.
+The same holds with $N+1$ replaced throughout by any normalization $\nu_\theta(N)>0$, with error
+$K_s/\nu_\theta(N)^{(|s|+1)/2}$; the Gaussian class reference below has the corresponding form with variance $c_\theta/\nu_\theta(N)$.
 \end{theorem}
 \begin{proof}
 \leanok
@@ -7753,6 +7782,8 @@ $K_{s,p}+|w(s,p)|\,|B|K_{D(s,p)}+1$, before $\theta,N$.
 \begin{theorem}[Gaussian class-product reference for a two-factor recurrence]
 \label{thm:sg-tal:gaussian-class-reference}
 \lean{ProbabilityTheory.exists_gaussian_class_moment_error,
+ProbabilityTheory.exists_gaussian_class_moment_error_of_abs,
+ProbabilityTheory.exists_finset_gaussian_class_moment_error_normalized,
 ProbabilityTheory.exists_finset_gaussian_class_moment_error,
 ProbabilityTheory.integral_pow_sqrt_mul_gaussianReal}
 \leanok
@@ -7772,7 +7803,9 @@ there is $K_s>0$, chosen before $\theta,N$, with
  \Big|F_\theta(N,s)-\prod_{k\in\iota}\mathbb E\big(\sqrt{c_\theta/(N+1)}\,g\big)^{m_k(s)}
  \cdot F_\theta\big(N,\{j\in s:\neg P(j)\}\big)\Big|\le\frac{K_s}{(N+1)^{(|s|+1)/2}},
 \]
-where $g$ is a standard Gaussian and $m_k(s)$ the number of selected factors of label $k$.
+where $g$ is a standard Gaussian and $m_k(s)$ the number of selected factors of label $k$. The assumption
+$c_\theta\ge0$ is only used to write the reference with $\sqrt{c_\theta/(N+1)}$: for $|c_\theta|\le B$ of either
+sign the same bound holds with each factor replaced by $\mathbb E\,g^{m_k(s)}\,(c_\theta/(N+1))^{\lfloor m_k(s)/2\rfloor}$.
 \end{theorem}
 \begin{proof}
 \leanok
@@ -8321,18 +8354,20 @@ The generic rescaling lemma allows any positive real scale and any real degree p
 
 \begin{lemma}[Shared preparation for conditional Gibbs moment variances]
 \label{lem:sg-tal:disjoint-block-variance-preparation}
-\lean{MeasureTheory.integral_pi_sum_mul, ProbabilityTheory.variance_le_of_moment_errors,
+\lean{MeasureTheory.integral_pi_sum_smul, MeasureTheory.integral_pi_sum_mul,
+ProbabilityTheory.variance_le_of_moment_errors,
 ProbabilityTheory.integral_sub_const_sq_le_of_moment_errors,
+ProbabilityTheory.integral_sub_const_sq_le_of_moment_errors_of_measureReal_le_one,
 SpinGlasses.integral_pi_fin_add_mul}
 \leanok
 \talsource{The independent-block step preceding Eq.~(1.293)}
 For finite disjoint replica types $R,S$ and a sigma-finite measure $\mu$, let
-$F$ on $X^R$ and $G$ on $X^S$ be a.e. strongly measurable. Then
+$F:X^R\to\mathbb K$ and $G:X^S\to V$ be arbitrary, $V$ a normed space over $\mathbb K$. Then
 \[
- \int_{X^{R\sqcup S}}F(\rho|_R)G(\rho|_S)\,d\mu^{R\sqcup S}
+ \int_{X^{R\sqcup S}}F(\rho|_R)\,G(\rho|_S)\,d\mu^{R\sqcup S}
  =\left(\int F\,d\mu^R\right)\left(\int G\,d\mu^S\right).
 \]
-No integrability assumption beyond the stated measurability is required for this
+Neither measurability nor integrability is required for this
 identity of totalized Bochner integrals. The older $\operatorname{Fin}(r+s)$ interface
 specializes this identity and now needs only a finite measure.
 On any probability space, if $V\in L^2$ and a deterministic $g\in\mathbb R$ satisfies
@@ -8340,7 +8375,8 @@ $|\mathbb E V-g|\le e_1$ and $|\mathbb E V^2-g^2|\le e_2$, then
 \[
  \operatorname{Var}(V)\le e_2+2|g|e_1.
 \]
-The stronger estimate $\mathbb E(V-g)^2\le e_2+2|g|e_1$ is also proved.
+The stronger estimate $\mathbb E(V-g)^2\le e_2+2|g|e_1$ is also proved, more generally for a finite measure of total
+mass at most $1$.
 The concrete SK two-block moment specialization is given in
 Theorem~\ref{thm:sg-tal:gibbs-moment-fluctuations}.
 \end{lemma}
@@ -10448,11 +10484,11 @@ Summing over $k$ gives the stated derivative.
 \end{proof}
 
 \begin{lemma}[Replicas of a Gibbs measure on an arbitrary base space]\label{lem:sg-tal:gibbs-replica-product}
-\lean{MeasureTheory.pi_tilted_eq_tilted_pi, MeasureTheory.integral_pi_tilted_eq_div, MeasureTheory.integral_pi_fresh_replica_mul, MeasureTheory.integral_pi_comp_injective, MeasureTheory.integral_pi_replace_replica, MeasureTheory.measurable_integral_pi_tilted, MeasureTheory.integrable_integral_pi_tilted}
+\lean{MeasureTheory.pi_tilted_eq_tilted_pi, MeasureTheory.integral_pi_tilted_eq_div, MeasureTheory.integral_pi_fresh_replica_mul, MeasureTheory.integral_pi_comp_injective, MeasureTheory.integral_pi_replace_replica_apply, MeasureTheory.integral_pi_replace_replica, MeasureTheory.measurable_integral_pi_tilted, MeasureTheory.integrable_integral_pi_tilted}
 \leanok
 \talsource{Section~1.12, replicas in the proof of Proposition~1.12.4}
 Let $\mu$ be a finite measure on a measurable space $\alpha$ and $E:\alpha\to\mathbb R$ measurable (for the quotient formula below, $\sigma$-finiteness of $\mu$ suffices). The product over a finite index set $\iota$ of the Gibbs measures $\mu_E=e^{E}\mu/\int e^{E}d\mu$ is the Gibbs measure of the product law $\mu^{\iota}$ for the energy $\sum_{i}E(\sigma_i)$, so the $\iota$-replica Gibbs average of $Y$ is $\int Y e^{\sum_iE(\sigma_i)}d\mu^{\iota}\big/\int e^{\sum_iE(\sigma_i)}d\mu^{\iota}$.
-For a probability measure $\nu$ and i.i.d. replicas, a function of the replicas $e(i)$ ($e$ injective) times a function of one further replica $r$ has the product of the two averages; a function of the replicas $e(i)$ has the same average whether the family is indexed by $I$ or by a larger index set; and in a product $F(\sigma_{e(i)})K(\sigma_i,\sigma_k)$ with $F$ independent of $\sigma_k$ the replica $k$ may be replaced by a fresh replica.
+For a probability measure $\nu$ and i.i.d. replicas, a function of the replicas $e(i)$ ($e$ injective) times a function of one further replica $r$ has the product of the two averages; a function of the replicas $e(i)$, with values in any real normed space, has the same average whether the family is indexed by $I$ or by a larger index set; and in an expression $\Phi(F(\sigma_{e(\cdot)}),\sigma_{e(i)},\sigma_{e(k)})$ with $F$ independent of the replica $k\ne i$ the replica $e(k)$ may be replaced by a fresh replica ($\Phi$ arbitrary, for instance a product $F\cdot K$ or a bilinear expression).
 If the energy $E(\omega,a)$ is jointly measurable in a random environment $\omega$, the Gibbs average of a bounded measurable function of $\iota$ replicas is a measurable (and, if each $\mu_{E(\omega)}$ is a probability measure, integrable) function of $\omega$.
 \end{lemma}
 \begin{proof}
@@ -11622,6 +11658,8 @@ so its $N\log2$ contribution is retained.
 \leanok
 \uses{thm:sg-tal:replica-real-moments}
 \talsource{Source lines 5920--5935, the convexity step before the exchange of limits}
+(The cumulant generating function $t\mapsto\log\int e^{tX}d\mu$ and, for $Z>0$ a.e., $t\mapsto\log\int Z^td\mu$ are
+convex on the set of finite exponential moments for an arbitrary measure $\mu$.)
 For fixed $N\in\mathbb N$ and any real $\beta,h$ the functions $t\mapsto\log\mathbb EZ_N^t$ and $t\mapsto N^{-1}\log\mathbb EZ_N^t$ are convex on $\mathbb R$; at $N=0$ the second expression uses Lean's convention $0^{-1}=0$.
 Moreover, let $r>0$ and let $\psi_i$ be convex on $(-r,r)$ and differentiable at $0$, converging pointwise to a function $\psi$ on $(-r,r)$ along any filter. If $\psi$ is differentiable at $0$, then $\psi_i'(0)\to\psi'(0)$.
 \end{theorem}

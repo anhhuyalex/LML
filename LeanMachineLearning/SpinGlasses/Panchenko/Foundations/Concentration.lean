@@ -608,7 +608,7 @@ theorem hasSubgaussianMGF_log_sum_exp (hg : HasGaussianLaw (fun ω a => g a ω) 
   obtain ⟨a₀⟩ := ‹Nonempty α›
   have hv0 : 0 ≤ v := (integral_nonneg fun _ => sq_nonneg _).trans (hv a₀)
   have hgi : ∀ a, MemLp (g a) 2 P := fun a => (hg.eval a).memLp_two
-  refine hasSubgaussianMGF_sub_integral_of_integral_exp_sub_le (by fun_prop) (fun t => ?_)
+  refine hasSubgaussianMGF_sub_integral_of_integral_exp_sub_le (fun t => ?_)
     fun t => ?_
   · have := integrable_comp_of_exp_growth hg h0
       (F := fun y : α → ℝ => Real.exp (t * Real.log (∑ a, Real.exp (y a + h a)))) (by fun_prop)

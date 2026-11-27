@@ -298,7 +298,8 @@ private lemma abs_integral_interpolating_zero_pow_sub_le (D : ℝ) (m : ℕ) :
       exact (Measure.measurePreserving_swap (μ := P_z) (ν := P_z')).comp h1
     exact hmp.integral_comp_of_aestronglyMeasurable hHm.aestronglyMeasurable
   rw [hint_eq]
-  have hmain := hC_two γ γ hf₁_int hf₁_0 hf₁_mom hf₂_int hf₂_0 hf₂_mom (N + 1) M
+  have hmain := hC_two γ γ (fun j _ => hf₁_int j) hf₁_0 (fun j _ => hf₁_mom j)
+    (fun j _ => hf₂_int j) hf₂_0 (fun j _ => hf₂_mom j) (N + 1) M
     (Nat.succ_pos N) (by push_cast; exact hMN)
   have hN_cast : ((N + 1 : ℕ) : ℝ) = (N : ℝ) + 1 := by push_cast; ring
   rw [hN_cast] at hmain ⊢

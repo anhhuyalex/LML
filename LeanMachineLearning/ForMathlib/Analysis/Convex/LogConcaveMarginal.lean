@@ -508,4 +508,63 @@ theorem integral_id_and_sq_volume_tilted_mul_sub_mul_sq {a : ℝ} (ha : 0 < a) (
     Real.coe_toNNReal _ (inv_nonneg.2 ha.le)] at h
   linarith
 
+/-- Tilting `μ.prod (gaussianReal 0 1)` by `W` is tilting `μ.prod volume` by `W p - p.2 ^ 2 / 2`,
+for any measure `μ`. This lets confined-energy tools on `E × ℝ` apply directly to
+extended Gibbs measures with a standard Gaussian auxiliary coordinate. -/
+theorem tilted_prod_gaussianReal_zero_one {α : Type*} [MeasurableSpace α]
+    (μ : Measure α) (W : α × ℝ → ℝ) :
+    (μ.prod (gaussianReal 0 1)).tilted W =
+      (μ.prod (volume : Measure ℝ)).tilted (fun p => W p - p.2 ^ 2 / 2) := by
+  have hg : gaussianReal 0 1 = (volume : Measure ℝ).tilted (fun x => -(x ^ 2 / 2)) := by
+    have h1 := volume_tilted_mul_sub_mul_sq_eq_gaussianReal (a := 1) one_pos 0
+    simpa using h1.symm
+  set c : ℝ := Real.sqrt (2 * Real.pi) with hc
+  have hc0 : 0 < c := Real.sqrt_pos.2 (by positivity)
+  have hZ0 : ∫ x : ℝ, Real.exp (-(x ^ 2 / 2)) ∂volume = c := by
+    have hpdf : ∀ x : ℝ, gaussianPDFReal 0 1 x = c⁻¹ * Real.exp (-(x ^ 2 / 2)) := fun x => by
+      simp [gaussianPDFReal, hc, neg_div]
+    have h := integral_gaussianPDFReal_eq_one 0 one_ne_zero
+    simp only [hpdf] at h
+    rw [integral_const_mul] at h
+    exact (eq_of_inv_mul_eq_one h).symm
+  have hmeas : Measurable (fun x : ℝ => ENNReal.ofReal (Real.exp (-(x ^ 2 / 2)) / c)) := by fun_prop
+  have hmeas2 : Measurable (fun p : α × ℝ => ENNReal.ofReal (Real.exp (-(p.2 ^ 2 / 2)) / c)) :=
+    hmeas.comp measurable_snd
+  have hprod : μ.prod (gaussianReal 0 1) =
+      (μ.prod (volume : Measure ℝ)).withDensity
+        (fun p : α × ℝ => ENNReal.ofReal (Real.exp (-(p.2 ^ 2 / 2)) / c)) := by
+    rw [hg, Measure.tilted, hZ0]
+    exact prod_withDensity_right hmeas
+  have hZ : ∫ p : α × ℝ, Real.exp (W p) ∂(μ.prod (gaussianReal 0 1)) =
+      (∫ p : α × ℝ, Real.exp (W p - p.2 ^ 2 / 2) ∂(μ.prod (volume : Measure ℝ))) / c := by
+    rw [hprod, integral_withDensity_eq_integral_toReal_smul hmeas2
+      (ae_of_all _ fun _ => ENNReal.ofReal_lt_top)]
+    simp only [ENNReal.toReal_ofReal (div_nonneg (Real.exp_pos _).le hc0.le), smul_eq_mul]
+    have heq : (fun p : α × ℝ => Real.exp (-(p.2 ^ 2 / 2)) / c * Real.exp (W p)) =
+        fun p => c⁻¹ * Real.exp (W p - p.2 ^ 2 / 2) := by
+      funext p
+      rw [sub_eq_add_neg, Real.exp_add]
+      ring
+    rw [heq, integral_const_mul, div_eq_inv_mul]
+  have hW_ae : AEMeasurable (fun x : α × ℝ => ENNReal.ofReal
+      (Real.exp (W x) / ((∫ p : α × ℝ, Real.exp (W p - p.2 ^ 2 / 2) ∂(μ.prod volume)) / c)))
+      (μ.prod volume) := by
+    by_cases hWi : Integrable (fun p : α × ℝ => Real.exp (W p - p.2 ^ 2 / 2)) (μ.prod volume)
+    · have hexpW : AEMeasurable (fun p : α × ℝ => Real.exp (W p)) (μ.prod volume) := by
+        have h1 : (fun p : α × ℝ => Real.exp (W p)) =
+            fun p => Real.exp (W p - p.2 ^ 2 / 2) * Real.exp (p.2 ^ 2 / 2) := by
+          funext p; rw [← Real.exp_add]; ring_nf
+        rw [h1]
+        exact hWi.aemeasurable.mul (by fun_prop)
+      exact (hexpW.div_const _).ennreal_ofReal
+    · simp only [integral_undef hWi, zero_div, div_zero, ENNReal.ofReal_zero]
+      exact aemeasurable_const
+  rw [Measure.tilted, Measure.tilted, hZ, hprod, ← withDensity_mul₀ hmeas2.aemeasurable hW_ae]
+  refine withDensity_congr_ae (ae_of_all _ fun p => ?_)
+  rw [Pi.mul_apply, ← ENNReal.ofReal_mul (div_nonneg (Real.exp_pos _).le hc0.le)]
+  congr 1
+  rw [sub_eq_add_neg, Real.exp_add]
+  have := hc0.ne'
+  field_simp
+
 end ProbabilityTheory

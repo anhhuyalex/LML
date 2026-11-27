@@ -57,7 +57,7 @@ theorem integrable_tsum_mul_comp (hw0 : ∀ i, 0 ≤ w i) (hw : Summable w)
       _ = _ := by rw [one_mul]; ring
   have hbd : ∀ i, Integrable (fun ω => w i * ψ (g i ω)) P ∧
       ∫ ω, w i * ψ (g i ω) ∂P ≤ (w i * A) * (2 * Real.exp (v * 1 ^ 2 / 2)) := fun i => by
-    obtain ⟨hI, hJ⟩ := (hsub i).integral_exp_abs_mul_le (hm i) 1
+    obtain ⟨hI, hJ⟩ := (hsub i).integral_exp_abs_mul_le 1
     have hfm : Measurable fun ω => w i * ψ (g i ω) := (hψm.comp (hm i)).const_mul _
     have hint : Integrable (fun ω => w i * ψ (g i ω)) P :=
       (hI.const_mul (w i * A)).mono' hfm.aestronglyMeasurable

@@ -8,6 +8,7 @@ module
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.AddPowEstimates
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Hyperbolic
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.Tanh
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiLinearForm
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein
 public import Mathlib.MeasureTheory.Integral.Pi
 public import Mathlib.Probability.Distributions.Gaussian.Real
@@ -68,30 +69,31 @@ theorem integral_exp_mul_gaussianReal_zero_one (t : ℝ) :
   rw [h]
   ring_nf
 
+/-- A linear combination of coordinates is an inner product with the Euclidean coefficient
+vector. -/
+private theorem sum_mul_eq_inner_toLp {E : Type*} [Fintype E] (c g : E → ℝ) :
+    ∑ e, c e * g e = inner ℝ (WithLp.toLp 2 c) (WithLp.toLp 2 g) := by
+  simp [PiLp.inner_apply, mul_comm]
+
 /-- Integrability of the exponential of a linear combination of independent standard Gaussians. -/
 theorem integrable_exp_sum_mul_gaussianReal {E : Type*} [Fintype E] (c : E → ℝ) :
     Integrable (fun g : E → ℝ => Real.exp (∑ e, c e * g e))
       (Measure.pi fun _ : E => gaussianReal 0 1) := by
-  have e : (fun g : E → ℝ => Real.exp (∑ e, c e * g e)) =
-      fun g => ∏ e, Real.exp (c e * g e) := by
-    ext g
-    rw [Real.exp_sum]
-  rw [e]
-  exact MeasureTheory.Integrable.fintype_prod (fun e => integrable_exp_mul_gaussianReal (c e))
+  rw [pi_gaussianReal_eq_map_stdGaussian]
+  have hm : Measurable fun g : E → ℝ => Real.exp (∑ e, c e * g e) := by fun_prop
+  refine (integrable_map_measure hm.aestronglyMeasurable (by fun_prop)).2 ?_
+  simp only [Function.comp_def, sum_mul_eq_inner_toLp c, WithLp.toLp_ofLp]
+  exact integrable_exp_inner_stdGaussian _
 
 /-- Integral of the exponential of a linear combination of independent standard Gaussians. -/
 theorem integral_exp_sum_mul_gaussianReal {E : Type*} [Fintype E] (c : E → ℝ) :
     ∫ g : E → ℝ, Real.exp (∑ e, c e * g e)
       ∂(Measure.pi fun _ : E => gaussianReal 0 1) =
     Real.exp (∑ e, c e ^ 2 / 2) := by
-  simp_rw [Real.exp_sum]
-  have h_int := MeasureTheory.integral_fintype_prod_eq_prod
-    (E := fun _ : E => ℝ) (μ := fun _ : E => gaussianReal 0 1)
-    (fun e (x : ℝ) => Real.exp (c e * x))
-  rw [h_int]
-  have h (e : E) : ∫ x, Real.exp (c e * x) ∂(gaussianReal 0 1) = Real.exp (c e ^ 2 / 2) :=
-    integral_exp_mul_gaussianReal_zero_one (c e)
-  rw [Finset.prod_congr rfl fun e _ => h e, ← Real.exp_sum]
+  have hm : Measurable fun g : E → ℝ => Real.exp (∑ e, c e * g e) := by fun_prop
+  rw [pi_gaussianReal_eq_map_stdGaussian, integral_map (by fun_prop) hm.aestronglyMeasurable]
+  simp only [sum_mul_eq_inner_toLp c, WithLp.toLp_ofLp]
+  rw [integral_exp_inner_stdGaussian, EuclideanSpace.real_norm_sq_eq, Finset.sum_div]
 
 /-- Integrability of a product of exponential linear forms in two independent finite Gaussian
 blocks. -/
@@ -316,21 +318,31 @@ theorem integral_exp_const_mul_dotProduct_gaussianReal_le {ι : Type*} [Fintype 
   simp only [mul_pow, ← Finset.mul_sum]
   exact mul_le_of_le_one_right (sq_nonneg c) hu
 
+/-- `𝔼 exp (c N^{-1/2} ∑ mᵢ yᵢ) ≤ exp (c² / 2)` for `y` a standard Gaussian vector on any
+finite index type, when `∑ mᵢ² ≤ N`. -/
+theorem integral_exp_const_mul_sqrt_inv_dotProduct_gaussianReal_le {ι : Type*} [Fintype ι]
+    {N : ℝ} (hN : 0 ≤ N) (c : ℝ) {m : ι → ℝ} (hm : ∑ i, m i ^ 2 ≤ N) :
+    ∫ y : ι → ℝ, Real.exp (c * ((fun i => (Real.sqrt N)⁻¹ * m i) ⬝ᵥ y))
+      ∂(Measure.pi fun _ : ι => gaussianReal 0 1) ≤
+    Real.exp (c ^ 2 / 2) := by
+  refine integral_exp_const_mul_dotProduct_gaussianReal_le c ?_
+  simp only [mul_pow, ← Finset.mul_sum, inv_pow, Real.sq_sqrt hN]
+  rcases hN.eq_or_lt with rfl | hN0
+  · simp
+  · rw [inv_mul_le_iff₀ hN0, mul_one]
+    exact hm
+
 /-- `𝔼 exp (c N^{-1/2} ∑ mᵢ yᵢ) ≤ exp (c² / 2)` for `y` standard Gaussian and `|mᵢ| ≤ 1`. -/
-theorem integral_exp_sum_ising_moment_le {N : ℕ} (hN : 0 < N) (c : ℝ)
+theorem integral_exp_sum_ising_moment_le {N : ℕ} (c : ℝ)
     (m : Fin N → ℝ) (hm : ∀ i, |m i| ≤ 1) :
     ∫ y : Fin N → ℝ, Real.exp (c * ((fun i => (Real.sqrt N)⁻¹ * m i) ⬝ᵥ y))
       ∂(Measure.pi fun _ : Fin N => gaussianReal 0 1) ≤
     Real.exp (c ^ 2 / 2) := by
-  refine integral_exp_const_mul_dotProduct_gaussianReal_le c ?_
-  have hN0 : (0 : ℝ) < N := Nat.cast_pos.mpr hN
-  have h1 : ∀ i, ((Real.sqrt N)⁻¹ * m i) ^ 2 ≤ (N : ℝ)⁻¹ := fun i => by
-    rw [mul_pow, inv_pow, Real.sq_sqrt hN0.le]
-    refine mul_le_of_le_one_right (inv_nonneg.2 hN0.le) ?_
-    rw [← sq_abs]
-    exact pow_le_one₀ (abs_nonneg _) (hm i)
-  refine (Finset.sum_le_sum fun i _ => h1 i).trans_eq ?_
-  rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul, mul_inv_cancel₀ hN0.ne']
+  refine integral_exp_const_mul_sqrt_inv_dotProduct_gaussianReal_le (Nat.cast_nonneg N) c ?_
+  refine (Finset.sum_le_sum fun i _ => ?_).trans_eq
+    (show ∑ _ : Fin N, (1 : ℝ) = N by simp)
+  rw [← sq_abs]
+  exact pow_le_one₀ (abs_nonneg _) (hm i)
 
 /-- The product of two `cosh`s of linear forms in the same Gaussian vector `w`, with a common
 coefficient `c` and offset `h`, is the average of the `cosh` of the sum and of the difference. -/

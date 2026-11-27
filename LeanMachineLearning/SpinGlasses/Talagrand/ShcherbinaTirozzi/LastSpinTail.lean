@@ -246,8 +246,7 @@ theorem integral_exp_sq_shcherbinaTirozziCavity_sub_le_four {κ h r rBar t y : �
     (integrableOn_univ.2 (integrable_exp_neg_shcherbinaTirozziCavityHamiltonian hκ hq hum hu0
       g g₀))
     (fun x _ z _ => shcherbinaTirozziCavityHamiltonian_midpoint_gap κ h y hq hu g g₀ x z) hκ
-    (f := fun σ => σ (Fin.last N))
-    ((PiLp.continuous_apply 2 (fun _ : Fin (N + 1) => ℝ) (Fin.last N)).measurable) one_pos
+    (f := fun σ => σ (Fin.last N)) one_pos
     (fun x _ z _ => hlip x z)
   simp only [Measure.restrict_univ, one_pow, mul_one] at key
   rw [hG]

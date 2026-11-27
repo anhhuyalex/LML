@@ -19,7 +19,7 @@ public import Mathlib.Probability.Moments.SubGaussian
 /-!
 # Convexity of the cumulant-generating function
 
-For a random variable `X` on a probability space, the cumulant-generating function
+For a random variable `X` on a measure space, the cumulant-generating function
 `t ↦ log 𝔼 exp (t X)` is convex on the interval `integrableExpSet X μ` where the exponential
 moments are finite.  This is Hölder's inequality `𝔼 exp ((a s + b t) X) ≤ (𝔼 exp (s X))^a
 (𝔼 exp (t X))^b` for `a + b = 1`.
@@ -83,8 +83,11 @@ theorem mgf_add_le_rpow_mul_rpow (hX : AEMeasurable X μ) {a b s t : ℝ}
 
 /-- **Convexity of the cumulant-generating function** on the interval where the exponential moments
 are finite. -/
-theorem convexOn_cgf [IsProbabilityMeasure μ] (hX : AEMeasurable X μ) :
+theorem convexOn_cgf (hX : AEMeasurable X μ) :
     ConvexOn ℝ (integrableExpSet X μ) (cgf X μ) := by
+  rcases eq_zero_or_neZero μ with rfl | _
+  · refine (convexOn_const (0 : ℝ) convex_integrableExpSet).congr fun t _ => ?_
+    simp [cgf, mgf]
   refine ⟨convex_integrableExpSet, fun s hs t ht a b ha hb hab => ?_⟩
   rcases ha.eq_or_lt with rfl | ha'
   · obtain rfl : b = 1 := by linarith
@@ -94,9 +97,9 @@ theorem convexOn_cgf [IsProbabilityMeasure μ] (hX : AEMeasurable X μ) :
     simp
   have hmem := convex_integrableExpSet hs ht ha hb hab
   have hH := mgf_add_le_rpow_mul_rpow hX ha' hb' hab hs ht
-  have hp0 := mgf_pos hs
-  have hp1 := mgf_pos ht
-  have hp2 := mgf_pos hmem
+  have hp0 := mgf_pos' (NeZero.ne μ) hs
+  have hp1 := mgf_pos' (NeZero.ne μ) ht
+  have hp2 := mgf_pos' (NeZero.ne μ) hmem
   simp only [cgf, smul_eq_mul]
   calc Real.log (mgf X μ (a * s + b * t)) ≤ Real.log (mgf X μ s ^ a * mgf X μ t ^ b) :=
         Real.log_le_log hp2 hH
@@ -114,7 +117,7 @@ theorem integral_rpow_eq_mgf_log {Z : Ω → ℝ} (hZ : ∀ᵐ ω ∂μ, 0 < Z �
 
 /-- **Convexity of the log real moments:** for a positive random variable `Z`, the map
 `t ↦ log ∫ Z^t ∂μ` is convex on the interval where `Z^t` is integrable. -/
-theorem convexOn_log_integral_rpow [IsProbabilityMeasure μ] {Z : Ω → ℝ}
+theorem convexOn_log_integral_rpow {Z : Ω → ℝ}
     (hZ : ∀ᵐ ω ∂μ, 0 < Z ω) (hm : AEMeasurable Z μ) :
     ConvexOn ℝ (integrableExpSet (fun ω => Real.log (Z ω)) μ)
       (fun t => Real.log (∫ ω, Z ω ^ t ∂μ)) := by

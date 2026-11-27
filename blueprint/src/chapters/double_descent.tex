@@ -197,7 +197,8 @@ This design avoids the overhead of formal measure disintegration and almost-ever
 \end{remark}
 
 \begin{lemma}[Second moments of a square-integrable random vector]\label{lem:dd:secondMoments}
-  \lean{ProbabilityTheory.integral_dotProduct_mulVec_self,
+  \lean{ProbabilityTheory.integral_inner_apply_self_eq_trace,
+        ProbabilityTheory.integral_dotProduct_mulVec_self,
         ProbabilityTheory.integral_dotProduct_mul_dotProduct}
   \leanok
 Let $x$ be a random vector in $\mathbb R^p$ with square-integrable coordinates and second-moment matrix
@@ -205,13 +206,16 @@ $\Gamma_{jk}=\mathbb E[x_jx_k]$. For every matrix $S$ and vectors $a,b$,
 \[
   \mathbb E\,[x^\top Sx]=\operatorname{Tr}(S\Gamma),\qquad \mathbb E\,[(x\cdot a)(x\cdot b)]=a^\top\Gamma b .
 \]
+More generally, let $X$ be a square-integrable random vector in a finite-dimensional real inner product space $E$ and
+$\Gamma:E\to E$ linear with $\mathbb E[\langle a,X\rangle\langle b,X\rangle]=\langle a,\Gamma b\rangle$. Then for every linear
+$S:E\to E$, $\mathbb E\langle X,SX\rangle=\operatorname{Tr}(S\Gamma)$.
 \end{lemma}
 
 \begin{proof}
   \leanok
-Write $x^\top Sx=\sum_{j,k}S_{jk}x_jx_k$; the products $x_jx_k$ are integrable by Cauchy--Schwarz, so linearity of the
-integral gives $\sum_{jk}S_{jk}\Gamma_{jk}=\operatorname{Tr}(S\Gamma)$ (using $\Gamma=\Gamma^\top$). For the bilinear form apply the
-first identity to $S=ba^\top$.
+In an orthonormal basis $(e_i)$ of $E$ one has $\langle X,SX\rangle=\sum_i\langle e_i,X\rangle\langle Se_i,X\rangle$; each term is
+integrable by Cauchy--Schwarz, so the expectation is $\sum_i\langle e_i,\Gamma Se_i\rangle=\operatorname{Tr}(\Gamma S)=\operatorname{Tr}(S\Gamma)$.
+The matrix identity is the case $E=\mathbb R^p$. For the bilinear form apply it to $S=ba^\top$.
 \end{proof}
 
 \begin{lemma}[Excess prediction risk is a $\Sigma$-norm]\label{lem:dd:excessRisk}

@@ -60,17 +60,17 @@ theorem integral_pow_sqrt_mul_gaussianReal {v : ℝ} (hv : 0 ≤ v) (n : ℕ) :
     simp only [one_mul] at hz
     rw [hz, zero_mul]
 
-/-- **Gaussian reference for a two-factor recurrence.** Let `P` select the factors that
-carry a class `label`. Suppose that for every selected `p`, every partner `u` of the same
-class (whenever one exists) and every parameter the moment `F s` equals
+/-- **Gaussian reference for a two-factor recurrence, for a coefficient of any sign.** Let `P`
+select the factors that carry a class `label`. Suppose that for every selected `p`, every partner
+`u` of the same class (whenever one exists) and every parameter the moment `F s` equals
 `(class size - 1) * c / (N + 1)` times `F ((s.erase p).erase u)`, up to a prescribed error.
 Then, for every finite factor set `s`, `F s` is within `K / (N+1)^((card s + 1) / 2)` of the
-product over classes `k` of the Gaussian moment `∫ (√(c/(N+1)) x)^(class size) dγ` times
-`F` of the unselected factors. The constant `K` precedes the parameter and `N`. -/
-theorem exists_gaussian_class_moment_error
+product over classes `k` of `(∫ x ^ (class size) dγ) (c / (N+1)) ^ (class size / 2)` times `F` of
+the unselected factors. The constant `K` precedes the parameter and `N`. -/
+theorem exists_gaussian_class_moment_error_of_abs
     {J ι Θ : Type*} [DecidableEq J] [DecidableEq ι] [Fintype ι] (P : J → Prop) [DecidablePred P]
     (label : J → ι) (valid : Θ → Prop) (F : Θ → ℕ → Finset J → ℝ) (c : Θ → ℝ) (B : ℝ)
-    (hc0 : ∀ θ, valid θ → 0 ≤ c θ) (hc : ∀ θ, valid θ → |c θ| ≤ B)
+    (hc : ∀ θ, valid θ → |c θ| ≤ B)
     (hF : ∀ (s : Finset J) (p u : J), p ∈ s → P p → u ∈ s →
       (((s.filter fun j => P j ∧ label j = label p).erase p).Nonempty →
         u ∈ (s.filter fun j => P j ∧ label j = label p).erase p) →
@@ -79,9 +79,9 @@ theorem exists_gaussian_class_moment_error
           c θ / (N + 1 : ℝ)) * F θ N ((s.erase p).erase u)| ≤
           K / (N + 1 : ℝ) ^ (((s.card + 1 : ℕ) : ℝ) / 2)) :
     ∀ s : Finset J, ∃ K : ℝ, 0 < K ∧ ∀ θ, valid θ → ∀ N : ℕ,
-      |F θ N s - (∏ k : ι, ∫ x : ℝ,
-          (Real.sqrt (c θ / (N + 1 : ℝ)) * x) ^
-            (s.filter fun j => P j ∧ label j = k).card ∂(gaussianReal 0 1)) *
+      |F θ N s - (∏ k : ι, (∫ x : ℝ, x ^ (s.filter fun j => P j ∧ label j = k).card
+          ∂(gaussianReal 0 1)) *
+            (c θ / (N + 1 : ℝ)) ^ ((s.filter fun j => P j ∧ label j = k).card / 2)) *
         F θ N (s.filter fun j => ¬P j)| ≤
         K / (N + 1 : ℝ) ^ (((s.card + 1 : ℕ) : ℝ) / 2) := by
   let cls : Finset J → J → Finset J := fun s p => s.filter fun j => P j ∧ label j = label p
@@ -100,6 +100,30 @@ theorem exists_gaussian_class_moment_error
   obtain ⟨K, hK0, hK⟩ := exists_finset_gaussian_class_moment_error P label valid F c B hc u₀
     (fun s p _ _ => hu₀ s p)
     (fun s p hp hP => hF s p (u₀ s p) hp hP (hmem s p hp) (hu₀ s p)) s
+  exact ⟨K, hK0, hK⟩
+
+/-- **Gaussian reference for a two-factor recurrence,** for a nonnegative coefficient: the
+reference is the product over classes of the Gaussian moments `∫ (√(c/(N+1)) x)^(class size) dγ`
+(`exists_gaussian_class_moment_error_of_abs`). -/
+theorem exists_gaussian_class_moment_error
+    {J ι Θ : Type*} [DecidableEq J] [DecidableEq ι] [Fintype ι] (P : J → Prop) [DecidablePred P]
+    (label : J → ι) (valid : Θ → Prop) (F : Θ → ℕ → Finset J → ℝ) (c : Θ → ℝ) (B : ℝ)
+    (hc0 : ∀ θ, valid θ → 0 ≤ c θ) (hc : ∀ θ, valid θ → |c θ| ≤ B)
+    (hF : ∀ (s : Finset J) (p u : J), p ∈ s → P p → u ∈ s →
+      (((s.filter fun j => P j ∧ label j = label p).erase p).Nonempty →
+        u ∈ (s.filter fun j => P j ∧ label j = label p).erase p) →
+      ∃ K : ℝ, 0 ≤ K ∧ ∀ θ, valid θ → ∀ N : ℕ,
+        |F θ N s - ((((s.filter fun j => P j ∧ label j = label p).card - 1 : ℕ) : ℝ) *
+          c θ / (N + 1 : ℝ)) * F θ N ((s.erase p).erase u)| ≤
+          K / (N + 1 : ℝ) ^ (((s.card + 1 : ℕ) : ℝ) / 2)) :
+    ∀ s : Finset J, ∃ K : ℝ, 0 < K ∧ ∀ θ, valid θ → ∀ N : ℕ,
+      |F θ N s - (∏ k : ι, ∫ x : ℝ,
+          (Real.sqrt (c θ / (N + 1 : ℝ)) * x) ^
+            (s.filter fun j => P j ∧ label j = k).card ∂(gaussianReal 0 1)) *
+        F θ N (s.filter fun j => ¬P j)| ≤
+        K / (N + 1 : ℝ) ^ (((s.card + 1 : ℕ) : ℝ) / 2) := by
+  intro s
+  obtain ⟨K, hK0, hK⟩ := exists_gaussian_class_moment_error_of_abs P label valid F c B hc hF s
   refine ⟨K, hK0, fun θ hθ N => ?_⟩
   have hv : 0 ≤ c θ / (N + 1 : ℝ) := div_nonneg (hc0 θ hθ) (by positivity)
   simp_rw [integral_pow_sqrt_mul_gaussianReal hv]
