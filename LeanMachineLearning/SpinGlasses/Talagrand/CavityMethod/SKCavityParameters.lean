@@ -54,7 +54,7 @@ theorem sq_cavity_param_le {β q qm : ℝ} {N : ℕ} (hβ4 : 4 * β ^ 2 < 1)
   have hs2 : s ≤ 1 := by
     rw [hs, hx]; exact Real.sqrt_le_one.mpr (by linarith)
   have hd : (Real.sqrt qm - Real.sqrt q) ^ 2 ≤ ε := by
-    have h1 := Real.sq_sqrt_sub_le_abs_sub hqm.1 hq.1
+    have h1 := Real.sq_sqrt_sub_le_abs_sub qm q
     calc _ ≤ |qm - q| := h1
       _ = |q - qm| := abs_sub_comm _ _
       _ ≤ ε := hshift

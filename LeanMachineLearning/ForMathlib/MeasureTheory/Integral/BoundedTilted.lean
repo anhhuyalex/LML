@@ -909,7 +909,8 @@ theorem hasDerivAt_log_integral_exp_sqrt_path
     exact mul_le_mul (hD _) (abs_div_two_sqrt_sub_le hδ h1 h2) (abs_nonneg _) hD₁
   · refine ae_of_all _ fun x r hr => ?_
     obtain ⟨h1, h2⟩ := hδ_bd r hr
-    have hθ := hasDerivAt_sqrt_mul_add_sqrt_one_sub_mul ⟨hδ.trans_le h1, by linarith⟩ (A x) (C x)
+    have hθ := hasDerivAt_sqrt_mul_add_sqrt_one_sub_mul (hδ.trans_le h1).ne'
+      (by linarith : r < 1).ne (A x) (C x)
     exact ((hu _).hasDerivAt.comp r hθ).congr_deriv (mul_comm _ _)
 
 end MeasureTheory

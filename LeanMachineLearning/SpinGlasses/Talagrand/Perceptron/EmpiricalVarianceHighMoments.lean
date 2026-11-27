@@ -59,9 +59,8 @@ private lemma abs_partial_constraint_sub_le {M : ℕ} {u : ℝ → ℝ} {D rhat 
     (hD₁ : ∀ x, |deriv u x| ≤ |D|) (hrhat : rhat ∈ Icc (0 : ℝ) (|D| ^ 2))
     (S : Finset (Fin (M + 1))) (v₀ v₁ : Fin (M + 1) → ℝ) :
     |((M + 1 : ℕ) : ℝ)⁻¹ * ∑ j ∈ S, (deriv u (v₀ j) * deriv u (v₁ j) - rhat)| ≤ 2 * |D| ^ 2 := by
-  exact Finset.abs_inv_card_mul_sum_le S
-    (f := fun j => deriv u (v₀ j) * deriv u (v₁ j) - rhat)
-    (fun j => abs_deriv_mul_sub_rhat_le hD₁ hrhat (v₀ j) (v₁ j))
+  exact Finset.abs_inv_natCast_mul_sum_le (card_finset_fin_le S) (by positivity)
+    fun j _ => abs_deriv_mul_sub_rhat_le hD₁ hrhat (v₀ j) (v₁ j)
 
 /-- **Row-swap invariance of any measurable constraint-field observable** under
 `(interpConstraintDisorderSwap j₁ j₂, interpConstraintStateSwap j₁ j₂)`. -/

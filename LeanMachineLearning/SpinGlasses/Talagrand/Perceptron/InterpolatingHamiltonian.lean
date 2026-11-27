@@ -638,7 +638,7 @@ lemma hasDerivAt_and_abs_le_log_interpPartition
     have hsq2' : HasDerivAt (fun τ : ℝ => Real.sqrt (1 - τ)) (-1 / (2 * Real.sqrt (1 - t))) t :=
       ((hasDerivAt_id t).const_sub 1).sqrt (sub_pos.2 ht1).ne'
     have hS_k (k : Fin M) : HasDerivAt (fun τ => S_fn τ ω x k) (S'_fn t ω x k) t :=
-      (hasDerivAt_sqrt_mul_add_sqrt_one_sub_mul ⟨ht0, ht1⟩ _ _).congr_deriv
+      (hasDerivAt_sqrt_mul_add_sqrt_one_sub_mul ht0.ne' ht1.ne _ _).congr_deriv
         (by dsimp only [S'_fn]; ring)
     have hU_k (k : Fin M) : HasDerivAt (fun τ => u (S_fn τ ω x k))
         (S'_fn t ω x k * deriv u (S_fn t ω x k)) t :=

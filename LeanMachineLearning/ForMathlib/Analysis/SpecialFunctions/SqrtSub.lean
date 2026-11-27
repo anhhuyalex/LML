@@ -10,18 +10,21 @@ public import Mathlib.Analysis.SpecialFunctions.Sqrt
 public import Mathlib.Analysis.Calculus.Deriv.Add
 public import Mathlib.Analysis.Calculus.Deriv.Basic
 public import Mathlib.Analysis.Calculus.Deriv.Mul
+public import Mathlib.Analysis.Normed.Module.Basic
 
 /-!
 # Estimates for differences of square roots
 
-* `Real.sqrt_add_le_add_sqrt`: `√(a + b) ≤ √a + √b` for `a, b ≥ 0`.
-* `Real.sq_sqrt_sub_le_abs_sub`: `(√a - √b)² ≤ |a - b|` for `a, b ≥ 0`.
+* `Real.sqrt_add_le_add_sqrt`: `√(a + b) ≤ √a + √b` for all `a, b`.
+* `Real.sq_sqrt_sub_le_abs_sub`: `(√a - √b)² ≤ |a - b|` for all `a, b`.
 * `Real.sq_sqrt_sub_le`: `(√q - a)² ≤ (q - a²)² / q` for `q > 0`, `a ≥ 0`.
 * `Real.inv_sqrt_mul_self`: `(√n)⁻¹ * (√n)⁻¹ = n⁻¹` for `n ≥ 0`.
 * `Real.abs_one_div_two_mul_sqrt_le`: `|1 / (2 √v)| ≤ 1 / (2 √δ)` when `0 < δ ≤ v`.
-* `hasDerivAt_sqrt_mul_add_sqrt_one_sub_mul`: derivative of `s ↦ √s a + √(1 - s) b` on `(0, 1)`.
-* `abs_div_two_sqrt_sub_le`: `|a / (2 √t) - b / (2 √(1 - t))| ≤ (|a| + |b|) / (2 √δ)` when
-  `δ ≤ t ≤ 1 - δ`.
+* `hasDerivAt_sqrt_smul_add_sqrt_one_sub_smul` (real case
+  `hasDerivAt_sqrt_mul_add_sqrt_one_sub_mul`): derivative of `s ↦ √s a + √(1 - s) b` at
+  `t ∉ {0, 1}`, for `a, b` in a normed space.
+* `norm_one_div_two_sqrt_smul_sub_le` (real case `abs_div_two_sqrt_sub_le`): that derivative has
+  norm at most `(‖a‖ + ‖b‖) / (2 √δ)` when `δ ≤ t ≤ 1 - δ`.
 -/
 
 @[expose] public section
@@ -39,28 +42,30 @@ theorem abs_one_div_two_mul_sqrt_le {δ v : ℝ} (hδ : 0 < δ) (h : δ ≤ v) :
   rw [abs_of_nonneg (by positivity)]
   gcongr
 
-/-- `√(a + b) ≤ √a + √b` for nonnegative `a, b`, since `(√a + √b)² = a + b + 2 √a √b ≥ a + b`. -/
-theorem sqrt_add_le_add_sqrt {a b : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) :
-    Real.sqrt (a + b) ≤ Real.sqrt a + Real.sqrt b :=
-  Real.sqrt_le_iff.2 ⟨by positivity, by
+/-- `√(a + b) ≤ √a + √b`: for nonnegative `a, b` because `(√a + √b)² = a + b + 2 √a √b`; a
+negative argument has square root `0` and only lowers the left side. -/
+theorem sqrt_add_le_add_sqrt (a b : ℝ) : Real.sqrt (a + b) ≤ Real.sqrt a + Real.sqrt b := by
+  rcases le_total a 0 with ha | ha
+  · rw [Real.sqrt_eq_zero_of_nonpos ha, zero_add]
+    exact Real.sqrt_le_sqrt (by linarith)
+  rcases le_total b 0 with hb | hb
+  · rw [Real.sqrt_eq_zero_of_nonpos hb, add_zero]
+    exact Real.sqrt_le_sqrt (by linarith)
+  exact Real.sqrt_le_iff.2 ⟨by positivity, by
     nlinarith [Real.sq_sqrt ha, Real.sq_sqrt hb, mul_nonneg (Real.sqrt_nonneg a)
       (Real.sqrt_nonneg b)]⟩
 
-/-- `(√a - √b)² ≤ |a - b|` for `a, b ≥ 0`: `|a - b| = |√a - √b| (√a + √b)` and
-`|√a - √b| ≤ √a + √b`. -/
-theorem sq_sqrt_sub_le_abs_sub {a b : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) :
-    (Real.sqrt a - Real.sqrt b) ^ 2 ≤ |a - b| := by
-  have hab : |Real.sqrt a - Real.sqrt b| ≤ Real.sqrt a + Real.sqrt b := by
-    rw [abs_le]
-    constructor <;> linarith [Real.sqrt_nonneg a, Real.sqrt_nonneg b]
-  have heq : |a - b| = |Real.sqrt a - Real.sqrt b| * (Real.sqrt a + Real.sqrt b) := by
-    rw [← abs_of_nonneg (add_nonneg (Real.sqrt_nonneg a) (Real.sqrt_nonneg b)), ← abs_mul]
-    congr 1
-    have := Real.sq_sqrt ha
-    have := Real.sq_sqrt hb
-    nlinarith
-  rw [heq, ← sq_abs, sq]
-  exact mul_le_mul_of_nonneg_left hab (abs_nonneg _)
+/-- `(√a - √b)² ≤ |a - b|`, since `|√a - √b| ≤ √|a - b|` by subadditivity of `√`. -/
+theorem sq_sqrt_sub_le_abs_sub (a b : ℝ) : (Real.sqrt a - Real.sqrt b) ^ 2 ≤ |a - b| := by
+  have key : ∀ x y : ℝ, Real.sqrt x - Real.sqrt y ≤ Real.sqrt |x - y| := fun x y => by
+    have h := (Real.sqrt_le_sqrt (show x ≤ y + |x - y| by linarith [le_abs_self (x - y)])).trans
+      (sqrt_add_le_add_sqrt y |x - y|)
+    linarith
+  have h : |Real.sqrt a - Real.sqrt b| ≤ Real.sqrt |a - b| :=
+    abs_sub_le_iff.2 ⟨key a b, by rw [abs_sub_comm]; exact key b a⟩
+  calc (Real.sqrt a - Real.sqrt b) ^ 2 = |Real.sqrt a - Real.sqrt b| ^ 2 := (sq_abs _).symm
+    _ ≤ Real.sqrt |a - b| ^ 2 := pow_le_pow_left₀ (abs_nonneg _) h 2
+    _ = |a - b| := Real.sq_sqrt (abs_nonneg _)
 
 /-- `(√q - a)² ≤ (q - a²)² / q` for `q > 0`, `a ≥ 0`, because
 `(q - a²)² = (√q - a)² (√q + a)²` and `(√q + a)² ≥ q`. -/
@@ -85,33 +90,39 @@ theorem hasDerivAt_sqrt_div_const {L z : ℝ} (hL : 0 ≤ L) (hz : z ≠ 0) :
 
 end Real
 
-/-- Derivative of `s ↦ √s * a + √(1 - s) * b` at an interior point `t ∈ (0, 1)`. -/
-theorem hasDerivAt_sqrt_mul_add_sqrt_one_sub_mul {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) 1) (a b : ℝ) :
+/-- Derivative of `s ↦ √s • a + √(1 - s) • b` at `t ∉ {0, 1}`. -/
+theorem hasDerivAt_sqrt_smul_add_sqrt_one_sub_smul {E : Type*} [NormedAddCommGroup E]
+    [NormedSpace ℝ E] {t : ℝ} (ht0 : t ≠ 0) (ht1 : t ≠ 1) (a b : E) :
+    HasDerivAt (fun s : ℝ => Real.sqrt s • a + Real.sqrt (1 - s) • b)
+      ((1 / (2 * Real.sqrt t)) • a - (1 / (2 * Real.sqrt (1 - t))) • b) t := by
+  have h1 := (Real.hasDerivAt_sqrt ht0).smul_const a
+  have h2 := (((hasDerivAt_id t).const_sub 1).sqrt (sub_ne_zero.2 ht1.symm)).smul_const b
+  exact (h1.add h2).congr_deriv (by rw [neg_div, neg_smul, ← sub_eq_add_neg]; rfl)
+
+/-- Derivative of `s ↦ √s * a + √(1 - s) * b` at `t ∉ {0, 1}`. -/
+theorem hasDerivAt_sqrt_mul_add_sqrt_one_sub_mul {t : ℝ} (ht0 : t ≠ 0) (ht1 : t ≠ 1) (a b : ℝ) :
     HasDerivAt (fun s : ℝ => Real.sqrt s * a + Real.sqrt (1 - s) * b)
-      (a / (2 * Real.sqrt t) - b / (2 * Real.sqrt (1 - t))) t := by
-  have h1 := (Real.hasDerivAt_sqrt ht.1.ne').mul_const a
-  have h2 := (((hasDerivAt_id t).const_sub 1).sqrt (sub_pos.2 ht.2).ne').mul_const b
-  exact (h1.add h2).congr_deriv (by dsimp only [id_eq]; ring)
+      (a / (2 * Real.sqrt t) - b / (2 * Real.sqrt (1 - t))) t :=
+  (hasDerivAt_sqrt_smul_add_sqrt_one_sub_smul ht0 ht1 a b).congr_deriv
+    (by simp only [smul_eq_mul, one_div_mul_eq_div])
+
+/-- Uniform inverse-square-root bound on `‖(1 / (2 √t)) • a - (1 / (2 √(1 - t))) • b‖` when
+`δ ≤ t` and `δ ≤ 1 - t` (`δ > 0`). -/
+theorem norm_one_div_two_sqrt_smul_sub_le {E : Type*} [SeminormedAddCommGroup E] [NormedSpace ℝ E]
+    {δ t : ℝ} (hδ : 0 < δ) (h1 : δ ≤ t) (h2 : δ ≤ 1 - t) (a b : E) :
+    ‖(1 / (2 * Real.sqrt t)) • a - (1 / (2 * Real.sqrt (1 - t))) • b‖ ≤
+      (‖a‖ + ‖b‖) / (2 * Real.sqrt δ) := by
+  have h : ∀ v, δ ≤ v → ∀ x : E, ‖(1 / (2 * Real.sqrt v)) • x‖ ≤ ‖x‖ / (2 * Real.sqrt δ) :=
+    fun v hv x => by
+      rw [norm_smul, Real.norm_eq_abs]
+      exact (mul_le_mul_of_nonneg_right (Real.abs_one_div_two_mul_sqrt_le hδ hv)
+        (norm_nonneg x)).trans_eq (one_div_mul_eq_div _ _)
+  rw [add_div]
+  exact (norm_sub_le _ _).trans (add_le_add (h t h1 a) (h _ h2 b))
 
 /-- Uniform inverse-square-root bound on `|a / (2 √t) - b / (2 √(1 - t))|` when `δ ≤ t` and
 `δ ≤ 1 - t` (`δ > 0`). -/
 theorem abs_div_two_sqrt_sub_le {δ t a b : ℝ} (hδ : 0 < δ) (h1 : δ ≤ t) (h2 : δ ≤ 1 - t) :
     |a / (2 * Real.sqrt t) - b / (2 * Real.sqrt (1 - t))| ≤ (|a| + |b|) / (2 * Real.sqrt δ) := by
-  have ht0 : 0 < t := hδ.trans_le h1
-  have ht1 : 0 < 1 - t := hδ.trans_le h2
-  have hi1 : 1 / (2 * Real.sqrt t) ≤ 1 / (2 * Real.sqrt δ) :=
-    (le_abs_self _).trans (Real.abs_one_div_two_mul_sqrt_le hδ h1)
-  have hi2 : 1 / (2 * Real.sqrt (1 - t)) ≤ 1 / (2 * Real.sqrt δ) :=
-    (le_abs_self _).trans (Real.abs_one_div_two_mul_sqrt_le hδ h2)
-  have hsub := abs_sub (a / (2 * Real.sqrt t)) (b / (2 * Real.sqrt (1 - t)))
-  rw [abs_div, abs_div, abs_of_pos (by positivity : 0 < 2 * Real.sqrt t),
-    abs_of_pos (by positivity : 0 < 2 * Real.sqrt (1 - t))] at hsub
-  have ha_le : |a| / (2 * Real.sqrt t) ≤ |a| / (2 * Real.sqrt δ) := by
-    simpa only [div_eq_mul_inv, one_div, one_mul] using
-      mul_le_mul_of_nonneg_left hi1 (abs_nonneg a)
-  have hb_le : |b| / (2 * Real.sqrt (1 - t)) ≤ |b| / (2 * Real.sqrt δ) := by
-    simpa only [div_eq_mul_inv, one_div, one_mul] using
-      mul_le_mul_of_nonneg_left hi2 (abs_nonneg b)
-  calc |a / (2 * Real.sqrt t) - b / (2 * Real.sqrt (1 - t))|
-      ≤ |a| / (2 * Real.sqrt δ) + |b| / (2 * Real.sqrt δ) := hsub.trans (add_le_add ha_le hb_le)
-    _ = (|a| + |b|) / (2 * Real.sqrt δ) := by ring
+  simpa only [smul_eq_mul, one_div_mul_eq_div, Real.norm_eq_abs] using
+    norm_one_div_two_sqrt_smul_sub_le hδ h1 h2 a b

@@ -267,14 +267,6 @@ theorem isProbabilityMeasure_tilted_prod_gaussianReal_of_confining {κ B₀ : �
       (fun x => (hE₀ x).trans (by gcongr; exact le_abs_self _)) hu0 S))
 
 omit [NormedSpace ℝ E] [FiniteDimensional ℝ E] [MeasurableSpace E] [BorelSpace E] in
-/-- Coefficients of polynomial growth give a linear form `x ↦ X x ⬝ᵥ w` of polynomial growth. -/
-theorem abs_dotProduct_le_of_abs_le_pow [Fintype K] {X : E → K → ℝ} {L : ℝ} {n : ℕ}
-    (hX : ∀ k x, |X x k| ≤ L * (1 + ‖x‖) ^ n) (w : K → ℝ) (x : E) :
-    |X x ⬝ᵥ w| ≤ |L| * (∑ k, |w k|) * (1 + ‖x‖) ^ n :=
-  (abs_dotProduct_le_mul_sum_abs (M := |L| * (1 + ‖x‖) ^ n)
-    (fun k => (hX k x).trans (by gcongr; exact le_abs_self _)) w).trans_eq (by ring)
-
-omit [NormedSpace ℝ E] [FiniteDimensional ℝ E] [MeasurableSpace E] [BorelSpace E] in
 /-- Away from the endpoints, the derivative in `v` of the field
 `√v (X x ⬝ᵥ w) + √(1 - v) (Y ⬝ᵥ w + c_ξ ξ)` grows polynomially in `(x, ξ)`. -/
 private theorem abs_sqrt_path_deriv_le [Fintype K] {X : E → K → ℝ} {L_X : ℝ} {n_X : ℕ}
@@ -285,10 +277,12 @@ private theorem abs_sqrt_path_deriv_le [Fintype K] {X : E → K → ℝ} {L_X : 
       1 / (2 * Real.sqrt δ) * (|L_X| * (∑ k, |w k|) + |Y ⬝ᵥ w| + |c_ξ|) *
         (1 + ‖p‖) ^ (n_X + 1) := by
   have hp : (1 : ℝ) ≤ 1 + ‖p‖ := le_add_of_nonneg_right (norm_nonneg _)
-  have hX : |X p.1 ⬝ᵥ w| ≤ |L_X| * (∑ k, |w k|) * (1 + ‖p‖) ^ (n_X + 1) :=
-    (abs_dotProduct_le_of_abs_le_pow hXb w p.1).trans <| mul_le_mul_of_nonneg_left
+  have hX : |X p.1 ⬝ᵥ w| ≤ |L_X| * (∑ k, |w k|) * (1 + ‖p‖) ^ (n_X + 1) := by
+    refine (abs_dotProduct_le_mul_sum_abs (M := |L_X| * (1 + ‖p‖) ^ (n_X + 1))
+      (fun k => (hXb k p.1).trans ?_) w).trans_eq (by ring)
+    exact mul_le_mul (le_abs_self _)
       ((pow_le_pow_left₀ (by positivity) (add_le_add_right (norm_fst_le p) 1) n_X).trans
-        (pow_le_pow_right₀ hp (Nat.le_succ n_X))) (by positivity)
+        (pow_le_pow_right₀ hp (Nat.le_succ n_X))) (by positivity) (abs_nonneg _)
   have hY : |Y ⬝ᵥ w + c_ξ * p.2| ≤ (|Y ⬝ᵥ w| + |c_ξ|) * (1 + ‖p‖) ^ (n_X + 1) := by
     have hp2 : |p.2| ≤ (1 + ‖p‖) ^ (n_X + 1) :=
       ((norm_snd_le p).trans (le_add_of_nonneg_left zero_le_one)).trans

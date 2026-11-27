@@ -1734,32 +1734,10 @@ private lemma positive_energy_integrated_bound_core
     set A := 2 * C_D / L * (s + z_up_s) with hA
     set B := 2 * C_D * z_down_s with hB
     set C_rem := 2 * C_D * δ_D with hC_rem
-    have hA_nonneg : 0 ≤ A := by
-      dsimp [A]
-      have hzup_nonneg : 0 ≤ z_up_s := by
-        rw [hz_up_def]
-        unfold positiveZUpward
-        refine Finset.sum_nonneg (fun i _ => ?_)
-        refine intervalIntegral.integral_nonneg hs.le (fun u hu => ?_)
-        exact le_max_left 0 _
-      positivity
-    have hB_nonneg : 0 ≤ B := by
-      dsimp [B]
-      have h_z_down_pos : 0 ≤ z_down_s := by
-        rw [hz_down_def]
-        unfold positiveZDownward
-        refine Finset.sum_nonneg (fun i _ => ?_)
-        refine intervalIntegral.integral_nonneg hs.le (fun u hu => ?_)
-        have h1u : 0 ≤ u := hu.1
-        exact mul_nonneg (by linarith) (le_max_left 0 _)
-      positivity
-    have hC_nonneg : 0 ≤ C_rem := by
-      dsimp [C_rem]; positivity
     have hAB : Real.sqrt (A + B) ≤ Real.sqrt A + Real.sqrt B :=
-      Real.sqrt_add_le_add_sqrt hA_nonneg hB_nonneg
-    have h_tot : Real.sqrt (A + B + C_rem) ≤ Real.sqrt (A + B) + Real.sqrt C_rem := by
-      have hAB_nonneg : 0 ≤ A + B := by positivity
-      exact Real.sqrt_add_le_add_sqrt hAB_nonneg hC_nonneg
+      Real.sqrt_add_le_add_sqrt A B
+    have h_tot : Real.sqrt (A + B + C_rem) ≤ Real.sqrt (A + B) + Real.sqrt C_rem :=
+      Real.sqrt_add_le_add_sqrt (A + B) C_rem
     have h_sqrt_B : Real.sqrt B = Real.sqrt (2 * C_D) * Real.sqrt z_down_s := by
       dsimp [B]
       rw [Real.sqrt_mul (by positivity : 0 ≤ 2*C_D) z_down_s]

@@ -45,9 +45,8 @@ namespace SpinGlasses
 private lemma abs_partial_overlap_sub_le_two {N : ℕ} {q : ℝ} (hq : q ∈ Icc (0 : ℝ) 1)
     (S : Finset (Fin (N + 1))) (x y : Fin (N + 1) → ℤˣ) :
     |((N : ℝ) + 1)⁻¹ * ∑ i ∈ S, (((x i : ℤ) : ℝ) * ((y i : ℤ) : ℝ) - q)| ≤ 2 := by
-  simpa using Finset.abs_inv_card_mul_sum_le S
-    (f := fun i => ((x i : ℤ) : ℝ) * ((y i : ℤ) : ℝ) - q)
-    (fun i => abs_units_cast_mul_sub_le_two (x i) (y i) hq)
+  simpa using Finset.abs_inv_natCast_mul_sum_le (card_finset_fin_le S) zero_le_two
+    fun i _ => abs_units_cast_mul_sub_le_two (x i) (y i) hq
 
 /-- **Site-symmetry identity on `Finset.Ici n` for the `s`-interpolating Gibbs measure:**
 for any `n : Fin (N + 1)` and `k : ℕ`, with `A_n = (N + 1)⁻¹ ∑_{i ≥ n} (σ₀_i σ₁_i - q)`,

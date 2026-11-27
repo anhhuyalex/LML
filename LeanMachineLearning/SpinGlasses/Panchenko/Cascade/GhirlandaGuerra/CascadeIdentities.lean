@@ -572,8 +572,11 @@ theorem integral_cascade_ibp (hζ0 : ∀ p, 0 < ζ p) (hζ1 : ∀ p, ζ p < 1)
   have hb2 : ∀ τ : Option (Fin n) → Fin r → ℕ,
       |∑ k : Fin n, Q (prefixOverlap (τ (some l₀)) (τ (some k))) -
         n * Q (prefixOverlap (τ (some l₀)) (τ none))| ≤ 2 * n * ∑ i : Fin r, σ i ^ 2 := fun τ => by
-    simpa using Finset.abs_sum_sub_card_mul_le (ι := Fin n) Q hQ0 hQr
-      (fun k => prefixOverlap (τ (some l₀)) (τ (some k))) (prefixOverlap (τ (some l₀)) (τ none))
+    have hQ : ∀ m, |Q m| ≤ ∑ i : Fin r, σ i ^ 2 := fun m =>
+      (abs_of_nonneg (hQ0 m)).le.trans (hQr m)
+    simpa using Finset.abs_sum_sub_card_mul_le_of_abs_le (ι := Fin n)
+      (fun k => Q (prefixOverlap (τ (some l₀)) (τ (some k))))
+      (Q (prefixOverlap (τ (some l₀)) (τ none))) _ (fun _ => hQ _) (hQ _)
   have hI2 : Integrable (fun ω => H2 (fun v => (D v ω).1) (fun v => (D v ω).2)) P := by
     refine Integrable.of_bound (hmeasPair H2 hH2m) (C.toReal * (2 * n * ∑ i : Fin r, σ i ^ 2)) ?_
     filter_upwards [hWgood] with ω ⟨h1, h2, h3⟩

@@ -1053,7 +1053,7 @@ lemma reluLinearization_algebraic_bound
   have h_sqrt_S_div : Real.sqrt (S_bound / (m : ℝ)) ≤ Real.sqrt (2 * B ^ (2/3 : ℝ) * (m : ℝ) ^ (-1/3
       : ℝ)) + Real.sqrt (Real.sqrt (1 / (2 * (m : ℝ)) * Real.log (1 / δ))) := by
     rw [h_S_div]
-    apply Real.sqrt_add_le_add_sqrt <;> positivity
+    exact Real.sqrt_add_le_add_sqrt _ _
   have h_term1 : Real.sqrt (2 * B ^ (2/3 : ℝ) * (m : ℝ) ^ (-1/3 : ℝ)) =
       Real.sqrt 2 * B ^ (1/3 : ℝ) * (m : ℝ) ^ (-1/6 : ℝ) := by
     rw [Real.sqrt_mul (by positivity), Real.sqrt_mul (by positivity)]
