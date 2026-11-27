@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Analysis.Calculus.IntervalDerivative
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.LogConcaveMarginal
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SqrtSub
 public import LeanMachineLearning.ForMathlib.Data.Finset.SumBound
@@ -346,13 +347,9 @@ theorem exists_integral_one_add_norm_pow_tilted_prod_gaussian_le [Fintype K]
       exact mul_le_mul_of_nonneg_right (hA_low k p.1 hp1) (abs_nonneg _)
     · rw [abs_mul]
       exact mul_le_of_le_one_right (abs_nonneg _) hp2
-  have hlip : -(|u 0| + |D₁| * |A p.1 ⬝ᵥ w + c_A * p.2|) ≤ u (A p.1 ⬝ᵥ w + c_A * p.2) := by
-    have h1 := Convex.norm_image_sub_le_of_norm_deriv_le (f := u) (s := univ)
-      (fun z _ => hu z) (fun z _ => by
-        rw [Real.norm_eq_abs]; exact (hD₁ z).trans (le_abs_self D₁)) convex_univ
-      (mem_univ 0) (mem_univ (A p.1 ⬝ᵥ w + c_A * p.2))
-    rw [sub_zero, Real.norm_eq_abs, Real.norm_eq_abs] at h1
-    linarith [(abs_le.1 h1).1, neg_abs_le (u 0)]
+  have hlip : -(|u 0| + |D₁| * |A p.1 ⬝ᵥ w + c_A * p.2|) ≤ u (A p.1 ⬝ᵥ w + c_A * p.2) :=
+    neg_le_of_abs_le (norm_le_norm_zero_add_of_norm_deriv_le hu
+      (fun z => (hD₁ z).trans (le_abs_self D₁)) _)
   have hD_bd := mul_le_mul_of_nonneg_left hS_bd (abs_nonneg D₁)
   dsimp only [c_tot]
   linarith [hE₀_low p.1 hp1]

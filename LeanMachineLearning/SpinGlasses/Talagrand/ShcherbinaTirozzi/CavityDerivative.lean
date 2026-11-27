@@ -130,14 +130,8 @@ theorem le_neg_shcherbinaTirozziCavityHamiltonian_of_norm_le_one (κ h y : ℝ) 
   have hs1 : Real.sqrt t ≤ 1 := Real.sqrt_le_one.2 ht1
   have hsN : (Real.sqrt (N + 1))⁻¹ ≤ 1 :=
     inv_le_one_of_one_le₀ (Real.one_le_sqrt.2 (le_add_of_nonneg_left (Nat.cast_nonneg N)))
-  have hlip : ∀ x, -(|u 0| + D * |x|) ≤ u x := fun x => by
-    have h1 := Convex.norm_image_sub_le_of_norm_deriv_le (f := u) (s := Set.univ)
-      (fun z _ => hu z) (fun z _ => by simpa only [Real.norm_eq_abs] using hD z) convex_univ
-      (Set.mem_univ 0) (Set.mem_univ x)
-    rw [sub_zero, Real.norm_eq_abs, Real.norm_eq_abs] at h1
-    have h2 := (abs_le.1 h1).1
-    have h3 := neg_abs_le (u 0)
-    linarith
+  have hlip : ∀ x, -(|u 0| + D * |x|) ≤ u x := fun x =>
+    neg_le_of_abs_le (norm_le_norm_zero_add_of_norm_deriv_le hu hD x)
   have hS : ∀ k : Fin M, |(Real.sqrt (N + 1))⁻¹ *
       ((∑ i : Fin N, g k i.castSucc * σ i.castSucc) +
         Real.sqrt t * (g k (Fin.last N) * σ (Fin.last N)))| ≤ ∑ i, |g k i| := fun k => by
@@ -241,6 +235,30 @@ theorem cavity_disorder_size_bounds (p : Dis) :
         (fun _ _ => Finset.sum_nonneg fun _ _ => abs_nonneg _) (Finset.mem_univ k))
   linarith
 
+/-- The linear and constant parts of the confinement bounds of the cavity energy are at most a
+constant times the size of the disorder, uniformly in `t ∈ [0, 1]`. -/
+theorem one_add_cavity_confinement_le (κ h : ℝ) {r rBar : ℝ} (hrr : rBar ≤ r) (u : ℝ → ℝ) {D : ℝ}
+    (hD0 : 0 ≤ D) (p : Dis) :
+    1 + (|h| * (∑ i, |p.2.2 i|) + |p.1|) +
+        (|κ| + (|h| * (∑ i, |p.2.2 i|) + |p.1|) + (r - rBar) / 2 +
+          ∑ k, (|u 0| + D * ∑ i, |p.2.1 k i|)) ≤
+      (1 + |κ| + (2 * |h| + 2) + (r - rBar) / 2 + (M * |u 0| + D)) * size p := by
+  obtain ⟨hs1, hsy, hsg, hsg0, -⟩ := cavity_disorder_size_bounds p
+  set s : ℝ := size p
+  have hsum : ∑ k, (|u 0| + D * ∑ i, |p.2.1 k i|) =
+      M * |u 0| + D * ∑ k, ∑ i, |p.2.1 k i| := by
+    rw [Finset.sum_add_distrib, Finset.sum_const, Finset.card_univ, Fintype.card_fin,
+      nsmul_eq_mul, Finset.mul_sum]
+  have h1 : |h| * (∑ i, |p.2.2 i|) ≤ |h| * s := mul_le_mul_of_nonneg_left hsg0 (abs_nonneg _)
+  have h2 : D * (∑ k, ∑ i, |p.2.1 k i|) ≤ D * s := mul_le_mul_of_nonneg_left hsg hD0
+  have h3 : ∀ c : ℝ, 0 ≤ c → c ≤ c * s := fun c hc => le_mul_of_one_le_right hc hs1
+  have h4 := h3 1 zero_le_one
+  have h5 := h3 |κ| (abs_nonneg _)
+  have h6 := h3 ((r - rBar) / 2) (div_nonneg (sub_nonneg.2 hrr) zero_le_two)
+  have h7 := h3 (M * |u 0|) (by positivity)
+  rw [hsum]
+  nlinarith
+
 /-- A measurable function of the disorder bounded by a power of its size is integrable. -/
 theorem integrable_of_abs_le_cavity_disorder_pow (r : ℝ≥0) {Φ : Dis → ℝ}
     (hΦ : Measurable Φ) {K : ℝ} {d : ℕ} (hΦb : ∀ p, |Φ p| ≤ K * size p ^ d) :
@@ -318,10 +336,9 @@ private theorem exists_integral_one_add_norm_pow_cavity_le (hκ : 0 < κ) (hrr :
   have hrr0 : 0 ≤ (r : ℝ) - rBar := sub_nonneg.2 hrr
   obtain ⟨K, hK0, hK⟩ := exists_integral_one_add_norm_pow_tilted_le
     (volume : Measure (ℝ^(N + 1))) hκ k
-  set A0 : ℝ := 1 + κ + (2 * |h| + 2) + ((r : ℝ) - rBar) / 2 + (M * |u 0| + D) with hA0
+  set A0 : ℝ := 1 + |κ| + (2 * |h| + 2) + ((r : ℝ) - rBar) / 2 + (M * |u 0| + D) with hA0
   have hA00 : 0 ≤ A0 := by positivity
   refine ⟨K * A0 ^ k, by positivity, fun t ht0 ht1 p => ?_⟩
-  obtain ⟨hs1, hsy, hsg, hsg0, -⟩ := cavity_disorder_size_bounds p
   set B : ℝ := |h| * (∑ i, |p.2.2 i|) + |p.1| with hB
   have hB0 : 0 ≤ B := add_nonneg (mul_nonneg (abs_nonneg h)
     (Finset.sum_nonneg fun _ _ => abs_nonneg _)) (abs_nonneg _)
@@ -336,21 +353,7 @@ private theorem exists_integral_one_add_norm_pow_cavity_le (hκ : 0 < κ) (hrr :
       simpa only [zero_add] using cavity_exponent_le (κ := κ) (h := h) hrr hu0 ht0 ht1 p x)
     (fun x hx => le_neg_shcherbinaTirozziCavityHamiltonian_of_norm_le_one κ h p.1 hrr ht0
       ht1 hu1 hD p.2.1 p.2.2 hx)
-  have h2 : 1 + B + c ≤ A0 * size p := by
-    have e : ∑ j, (|u 0| + D * ∑ i, |p.2.1 j i|) =
-        M * |u 0| + D * ∑ j, ∑ i, |p.2.1 j i| := by
-      rw [Finset.sum_add_distrib, ← Finset.mul_sum, Finset.sum_const, Finset.card_univ,
-        Fintype.card_fin, nsmul_eq_mul]
-    have hBle : B ≤ (|h| + 1) * size p := by
-      rw [add_mul, one_mul]
-      exact add_le_add (mul_le_mul_of_nonneg_left hsg0 (abs_nonneg h)) hsy
-    have hgle : D * (∑ j, ∑ i, |p.2.1 j i|) ≤ D * size p :=
-      mul_le_mul_of_nonneg_left hsg hD0
-    have hconst : (1 + κ + ((r : ℝ) - rBar) / 2 + M * |u 0|) ≤
-        (1 + κ + ((r : ℝ) - rBar) / 2 + M * |u 0|) * size p :=
-      le_mul_of_one_le_right (by positivity) hs1
-    rw [hc, e, abs_of_pos hκ, hA0]
-    linarith
+  have h2 : 1 + B + c ≤ A0 * size p := one_add_cavity_confinement_le κ h hrr u hD0 p
   refine h1.trans ?_
   rw [mul_assoc, ← mul_pow]
   exact mul_le_mul_of_nonneg_left (pow_le_pow_left₀ (by positivity) h2 k) hK0

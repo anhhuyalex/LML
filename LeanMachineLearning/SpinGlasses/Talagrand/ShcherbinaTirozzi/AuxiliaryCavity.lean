@@ -379,6 +379,23 @@ theorem integral_shcherbinaTirozziAuxCavity_zero (κ h : ℝ) (r : ℝ≥0) (rBa
   subst hG
   rfl
 
+/-- At `v = 0`, a weight of the auxiliary coordinates whose one-disorder average factors as
+`⟨f⟩ * k z` contributes the factor `∫ k` to `ν_{t,0}`. -/
+private theorem integral_aux_zero_of_factor (r : ℝ≥0)
+    (G : ℝ × ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) → ℝ) (k : ℝ → ℝ)
+    (J : ℝ × ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) → ℝ → ℝ)
+    (hJ : ∀ d z, J d z = G (d.1, (fun j => d.2.1 j.castSucc, d.2.2)) * k z) :
+    ∫ w : AuxDis, J w.1 w.2 ∂(auxLaw r) =
+      (∫ z, k z ∂(gaussianReal 0 1)) *
+        ∫ d₀, G d₀
+          ∂((gaussianReal 0 r).prod
+            ((Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1).prod
+              (Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1))) := by
+  simp_rw [hJ]
+  rw [integral_prod_mul (fun d : ℝ × ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) =>
+      G (d.1, (fun j => d.2.1 j.castSucc, d.2.2))) k,
+    integral_comp_castSucc_disorder (N := N) (M := M) r G, mul_comm]
+
 /-- **Talagrand, Lemma 3.2.7, Eq. (3.93):** for distinct replicas `l₁ ≠ l₂`, at `v = 0`,
 `α ν_{t,0}(u'(S_0^{l₁}) u'(S_0^{l₂}) f) = r 𝔼 ⟨f⟩_{t,∼}` where
 `r = α 𝔼_z [(𝔼_ξ u'(θ) e^{u(θ)} / 𝔼_ξ e^{u(θ)})²]`. -/
@@ -411,36 +428,17 @@ theorem integral_shcherbinaTirozziAuxCavity_zero_deriv_mul (α κ h : ℝ) (r : 
   have hS0 : ∀ w p, S_zero w p = Real.sqrt q * w.2 + c * p.2 := fun w p => by
     dsimp only [S_zero, c]; simp
   simp_rw [hS0]
-  have hpt : ∀ w : AuxDis,
-      ∫ σ : R → ℝ^(N + 1) × ℝ,
-          (deriv u (Real.sqrt q * w.2 + c * (σ l₁).2) *
-            deriv u (Real.sqrt q * w.2 + c * (σ l₂).2)) * f (fun l => (σ l).1)
-          ∂(Measure.pi fun _ : R =>
-            ((volume : Measure (ℝ^(N + 1))).prod (gaussianReal 0 1)).tilted
-              fun p => E_old w.1 p.1 + u (Real.sqrt q * w.2 + c * p.2)) =
-        (∫ a : R → ℝ^(N + 1), f a
-          ∂(Measure.pi fun _ : R => (volume : Measure (ℝ^(N + 1))).tilted (E_old w.1))) *
-        V (Real.sqrt q * w.2) ^ 2 := fun w => by
-    rw [integral_pi_tilted_prod_gaussian_zero_deriv_mul hu hu0 q c w.2 hne f, mul_comm]
-  simp_rw [hpt]
-  rw [integral_prod_mul (fun d => ∫ a : R → ℝ^(N + 1), f a
-      ∂(Measure.pi fun _ : R => (volume : Measure (ℝ^(N + 1))).tilted (E_old d)))
-    (fun z => V (Real.sqrt q * z) ^ 2)]
-  have hproj := integral_comp_castSucc_disorder (N := N) (M := M) r fun d₀ =>
-    ∫ a : R → ℝ^(N + 1), f a
-      ∂(Measure.pi fun _ : R => (volume : Measure (ℝ^(N + 1))).tilted fun σ =>
-        -shcherbinaTirozziCavityHamiltonian κ h r rBar t d₀.1 u d₀.2.1 d₀.2.2 σ)
-  change α * ((∫ d : ℝ × ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)),
-      ∫ a : R → ℝ^(N + 1), f a
-        ∂(Measure.pi fun _ : R => (volume : Measure (ℝ^(N + 1))).tilted fun σ =>
-          -shcherbinaTirozziCavityHamiltonian κ h r rBar t d.1 u
-            (fun j => d.2.1 j.castSucc) d.2.2 σ)
-      ∂((gaussianReal 0 r).prod
-        ((Measure.pi fun _ : Fin (M + 1) => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1).prod
-          (Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1)))) *
-      ∫ z, V (Real.sqrt q * z) ^ 2 ∂(gaussianReal 0 1)) = _
-  rw [hproj]
-  ring
+  rw [mul_assoc]
+  congr 1
+  refine integral_aux_zero_of_factor (N := N) (M := M) r
+    (fun d => ∫ a : R → ℝ^(N + 1), f a ∂(Measure.pi fun _ : R => (volume : Measure (ℝ^(N + 1))).tilted
+      fun σ => -shcherbinaTirozziCavityHamiltonian κ h r rBar t d.1 u d.2.1 d.2.2 σ))
+    (fun z => V (Real.sqrt q * z) ^ 2) (fun d z => ∫ σ : R → ℝ^(N + 1) × ℝ,
+      (deriv u (Real.sqrt q * z + c * (σ l₁).2) * deriv u (Real.sqrt q * z + c * (σ l₂).2)) *
+        f (fun l => (σ l).1)
+      ∂(Measure.pi fun _ : R => ((volume : Measure (ℝ^(N + 1))).prod (gaussianReal 0 1)).tilted
+        fun p => E_old d p.1 + u (Real.sqrt q * z + c * p.2))) fun d z => ?_
+  rw [integral_pi_tilted_prod_gaussian_zero_deriv_mul hu hu0 q c z hne f, mul_comm]
 
 /-- **Talagrand, Lemma 3.2.7, Eq. (3.94):** for any replica `l₁`, at `v = 0`,
 `α ν_{t,0}((u''(S_0^{l₁}) + u'(S_0^{l₁})²) f) = r̄ 𝔼 ⟨f⟩_{t,∼}` where
@@ -476,36 +474,17 @@ theorem integral_shcherbinaTirozziAuxCavity_zero_deriv_two (α κ h : ℝ) (r : 
   have hS0 : ∀ w p, S_zero w p = Real.sqrt q * w.2 + c * p.2 := fun w p => by
     dsimp only [S_zero, c]; simp
   simp_rw [hS0]
-  have hpt : ∀ w : AuxDis,
-      ∫ σ : R → ℝ^(N + 1) × ℝ,
-          (deriv (deriv u) (Real.sqrt q * w.2 + c * (σ l₁).2) +
-            deriv u (Real.sqrt q * w.2 + c * (σ l₁).2) ^ 2) * f (fun l => (σ l).1)
-          ∂(Measure.pi fun _ : R =>
-            ((volume : Measure (ℝ^(N + 1))).prod (gaussianReal 0 1)).tilted
-              fun p => E_old w.1 p.1 + u (Real.sqrt q * w.2 + c * p.2)) =
-        (∫ a : R → ℝ^(N + 1), f a
-          ∂(Measure.pi fun _ : R => (volume : Measure (ℝ^(N + 1))).tilted (E_old w.1))) *
-        W (Real.sqrt q * w.2) := fun w => by
-    rw [integral_pi_tilted_prod_gaussian_zero_deriv_two hu hu0 q c w.2 l₁ f, mul_comm]
-  simp_rw [hpt]
-  rw [integral_prod_mul (fun d => ∫ a : R → ℝ^(N + 1), f a
-      ∂(Measure.pi fun _ : R => (volume : Measure (ℝ^(N + 1))).tilted (E_old d)))
-    (fun z => W (Real.sqrt q * z))]
-  have hproj := integral_comp_castSucc_disorder (N := N) (M := M) r fun d₀ =>
-    ∫ a : R → ℝ^(N + 1), f a
-      ∂(Measure.pi fun _ : R => (volume : Measure (ℝ^(N + 1))).tilted fun σ =>
-        -shcherbinaTirozziCavityHamiltonian κ h r rBar t d₀.1 u d₀.2.1 d₀.2.2 σ)
-  change α * ((∫ d : ℝ × ((Fin (M + 1) → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)),
-      ∫ a : R → ℝ^(N + 1), f a
-        ∂(Measure.pi fun _ : R => (volume : Measure (ℝ^(N + 1))).tilted fun σ =>
-          -shcherbinaTirozziCavityHamiltonian κ h r rBar t d.1 u
-            (fun j => d.2.1 j.castSucc) d.2.2 σ)
-      ∂((gaussianReal 0 r).prod
-        ((Measure.pi fun _ : Fin (M + 1) => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1).prod
-          (Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1)))) *
-      ∫ z, W (Real.sqrt q * z) ∂(gaussianReal 0 1)) = _
-  rw [hproj]
-  ring
+  rw [mul_assoc]
+  congr 1
+  refine integral_aux_zero_of_factor (N := N) (M := M) r
+    (fun d => ∫ a : R → ℝ^(N + 1), f a ∂(Measure.pi fun _ : R => (volume : Measure (ℝ^(N + 1))).tilted
+      fun σ => -shcherbinaTirozziCavityHamiltonian κ h r rBar t d.1 u d.2.1 d.2.2 σ))
+    (fun z => W (Real.sqrt q * z)) (fun d z => ∫ σ : R → ℝ^(N + 1) × ℝ,
+      (deriv (deriv u) (Real.sqrt q * z + c * (σ l₁).2) +
+          deriv u (Real.sqrt q * z + c * (σ l₁).2) ^ 2) * f (fun l => (σ l).1)
+      ∂(Measure.pi fun _ : R => ((volume : Measure (ℝ^(N + 1))).prod (gaussianReal 0 1)).tilted
+        fun p => E_old d p.1 + u (Real.sqrt q * z + c * p.2))) fun d z => ?_
+  rw [integral_pi_tilted_prod_gaussian_zero_deriv_two hu hu0 q c z l₁ f, mul_comm]
 
 /-- **Smoothed marginal representation (Eq. (3.99)):** for a measurable spin-only observable `f` of
 `R` replicas, the `R`-replica average under `((volume × 𝒩(0,1)).tilted (E_old + u ∘ S_v))` equals

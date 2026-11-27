@@ -131,6 +131,27 @@ theorem hasDerivAt_shcherbinaTirozziHardFunctional_self (α κ h τ : ℝ) {x ρ
   simp only [hm, ha]
   ring
 
+/-- The mean `τ √(1 + y) / √ρ` and slope `-√y` of the Gaussian-tail argument in the variable `y`
+are differentiable near `x > 0`, with derivatives continuous at `x`. -/
+private theorem hasDerivAt_ratio_tail_args (τ : ℝ) {x ρ : ℝ} (hx : 0 < x) (hρ : 0 < ρ) :
+    (∀ᶠ y in 𝓝 x, HasDerivAt (fun y => τ * Real.sqrt (1 + y) / Real.sqrt ρ)
+        (τ / (2 * Real.sqrt (1 + y) * Real.sqrt ρ)) y) ∧
+      (∀ᶠ y in 𝓝 x, HasDerivAt (fun y => -Real.sqrt y) (-(1 / (2 * Real.sqrt y))) y) ∧
+      ContinuousAt (fun y => τ / (2 * Real.sqrt (1 + y) * Real.sqrt ρ)) x ∧
+      ContinuousAt (fun y => -(1 / (2 * Real.sqrt y))) x := by
+  have h1x : 0 < 1 + x := by linarith
+  have hsx := (Real.sqrt_pos.2 hx).ne'
+  refine ⟨(eventually_gt_nhds hx).mono fun y hy => ?_,
+    (eventually_gt_nhds hx).mono fun y hy => (Real.hasDerivAt_sqrt hy.ne').neg,
+    continuousAt_const.div (by fun_prop)
+      (mul_ne_zero (mul_ne_zero two_ne_zero (Real.sqrt_pos.2 h1x).ne') (Real.sqrt_pos.2 hρ).ne'),
+    (continuousAt_const.div (by fun_prop : ContinuousAt (fun y : ℝ => 2 * Real.sqrt y) x)
+      (mul_ne_zero two_ne_zero hsx)).neg⟩
+  have h1y : (1 : ℝ) + y ≠ 0 := by linarith
+  have h1 : HasDerivAt (fun y => Real.sqrt (1 + y)) (1 / (2 * Real.sqrt (1 + y))) y := by
+    simpa using ((hasDerivAt_id y).const_add 1).sqrt h1y
+  exact ((h1.const_mul τ).div_const (Real.sqrt ρ)).congr_deriv (by ring)
+
 /-- **Lemma 3.3.13, Eq. (3.152):** the derivative in `x` of `G (x, ρ) = F (x ρ / (1 + x), ρ)`
 satisfies `2 (1 + x) / x · ∂G/∂x = 1 - α 𝔼 A² / x - h² ρ / (x (1 + x))`. -/
 theorem hasDerivAt_shcherbinaTirozziHardFunctional_ratio (α κ h τ : ℝ) {x ρ : ℝ} (hx : 0 < x)
@@ -147,24 +168,9 @@ theorem hasDerivAt_shcherbinaTirozziHardFunctional_ratio (α κ h τ : ℝ) {x �
   set σ : ℝ → ℝ := fun y => -Real.sqrt y with hσ
   set m' : ℝ → ℝ := fun y => τ / (2 * Real.sqrt (1 + y) * Real.sqrt ρ) with hm'
   set σ' : ℝ → ℝ := fun y => -(1 / (2 * Real.sqrt y)) with hσ'
-  have hmd : ∀ y, 0 < y → HasDerivAt m (m' y) y := fun y hy => by
-    have h1y : (1 : ℝ) + y ≠ 0 := by linarith
-    have h1 : HasDerivAt (fun y => Real.sqrt (1 + y)) (1 / (2 * Real.sqrt (1 + y))) y := by
-      simpa using ((hasDerivAt_id y).const_add 1).sqrt h1y
-    refine ((h1.const_mul τ).div_const (Real.sqrt ρ)).congr_deriv ?_
-    rw [hm']
-    ring
-  have hσd : ∀ y, 0 < y → HasDerivAt σ (σ' y) y := fun y hy =>
-    (Real.hasDerivAt_sqrt hy.ne').neg
-  have hmc : ContinuousAt m' x := by
-    refine continuousAt_const.div (by fun_prop) ?_
-    exact mul_ne_zero (mul_ne_zero two_ne_zero hs1) hsρ
-  have hσc : ContinuousAt σ' x := ContinuousAt.neg (ContinuousAt.div continuousAt_const
-    (by fun_prop : ContinuousAt (fun y : ℝ => 2 * Real.sqrt y) x)
-    (mul_ne_zero two_ne_zero hsx))
+  obtain ⟨hmd, hσd, hmc, hσc⟩ := hasDerivAt_ratio_tail_args τ hx hρ
   have hE := hasDerivAt_integral_log_gaussianTail (m := m) (σ := σ) (m' := m') (σ' := σ') (t := x)
-    ((eventually_gt_nhds hx).mono fun y hy => hmd y hy)
-    ((eventually_gt_nhds hx).mono fun y hy => hσd y hy) hmc hσc
+    hmd hσd hmc hσc
   have hrest : HasDerivAt (fun y => y / 2 + (Real.log ρ - Real.log (1 + y)) / 2 - κ * ρ +
       h ^ 2 * ρ / (2 * (1 + y))) (1 / 2 - (1 + x)⁻¹ / 2 - h ^ 2 * ρ / (2 * (1 + x) ^ 2)) x := by
     have h0 : HasDerivAt (fun y : ℝ => 1 + y) 1 x := (hasDerivAt_id x).const_add 1
@@ -277,25 +283,10 @@ theorem strictMonoOn_shcherbinaTirozziHardFunctional_ratio_deriv {α h τ ρ : �
     set σ : ℝ → ℝ := fun y => -Real.sqrt y with hσ
     set m' : ℝ → ℝ := fun y => τ / (2 * Real.sqrt (1 + y) * Real.sqrt ρ) with hm'
     set σ' : ℝ → ℝ := fun y => -(1 / (2 * Real.sqrt y)) with hσ'
-    have hmd : ∀ y, 0 < y → HasDerivAt m (m' y) y := fun y hy => by
-      have h1y : (1 : ℝ) + y ≠ 0 := by linarith
-      have h1 : HasDerivAt (fun y => Real.sqrt (1 + y)) (1 / (2 * Real.sqrt (1 + y))) y := by
-        simpa using ((hasDerivAt_id y).const_add 1).sqrt h1y
-      refine ((h1.const_mul τ).div_const (Real.sqrt ρ)).congr_deriv ?_
-      rw [hm']
-      ring
-    have hσd : ∀ y, 0 < y → HasDerivAt σ (σ' y) y := fun y hy =>
-      (Real.hasDerivAt_sqrt hy.ne').neg
-    have hmc : ContinuousAt m' x := by
-      refine continuousAt_const.div (by fun_prop) ?_
-      exact mul_ne_zero (mul_ne_zero two_ne_zero hs1) hsρ
-    have hσc : ContinuousAt σ' x := ContinuousAt.neg (ContinuousAt.div continuousAt_const
-      (by fun_prop : ContinuousAt (fun y : ℝ => 2 * Real.sqrt y) x)
-      (mul_ne_zero two_ne_zero hsx))
+    obtain ⟨hmd, hσd, hmc, hσc⟩ := hasDerivAt_ratio_tail_args τ hx hρ
     obtain ⟨hM'i, hM⟩ := hasDerivAt_integral_sq_gaussianPDFReal_div_measureReal_Ici_comp
       (m := m) (σ := σ) (m' := m') (σ' := σ') (t := x)
-      ((eventually_gt_nhds hx).mono fun y hy => hmd y hy)
-      ((eventually_gt_nhds hx).mono fun y hy => hσd y hy) hmc hσc
+      hmd hσd hmc hσc
     set M' := ∫ z, 2 * mills (m x + σ x * z) * A' (m x + σ x * z) * (m' x + σ' x * z)
       ∂(gaussianReal 0 1) with hM'
     set M := ∫ z, mills (m x + σ x * z) ^ 2 ∂(gaussianReal 0 1) with hMdef

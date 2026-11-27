@@ -24,6 +24,7 @@ public import Mathlib.Analysis.Convex.Slope
   continuity on `[a, b]` and a bounded derivative on `(a, b)`.
 * `Convex.norm_sub_le_of_forall_hasDerivAt_line`: the analogue for a vector-valued function on a
   convex set, from bounds on directional derivatives.
+* `norm_le_norm_zero_add_of_norm_deriv_le`: `‖f x‖ ≤ ‖f 0‖ + D ‖x‖` when `‖f'‖ ≤ D`.
 * `ConcaveOn.deriv_nonneg_of_forall_ge_eq`: a concave function which is constant on a half-line
   `[τ, ∞)` has a nonnegative derivative.
 -/
@@ -32,6 +33,15 @@ public import Mathlib.Analysis.Convex.Slope
 
 open Filter Set
 open scoped Topology
+
+/-- A differentiable function with derivative bounded by `D` grows at most linearly. -/
+theorem norm_le_norm_zero_add_of_norm_deriv_le {𝕜 G : Type*} [RCLike 𝕜] [NormedAddCommGroup G]
+    [NormedSpace 𝕜 G] {f : 𝕜 → G} {D : ℝ} (hf : Differentiable 𝕜 f) (hD : ∀ x, ‖deriv f x‖ ≤ D)
+    (x : 𝕜) : ‖f x‖ ≤ ‖f 0‖ + D * ‖x‖ := by
+  have h := convex_univ.norm_image_sub_le_of_norm_deriv_le (fun z _ => hf z) (fun z _ => hD z)
+    (Set.mem_univ 0) (Set.mem_univ x)
+  rw [sub_zero] at h
+  exact (norm_le_norm_add_norm_sub' (f x) (f 0)).trans (add_le_add_right h _)
 
 /-- A continuous interior derivative formula extends to both ends of a closed interval. -/
 theorem hasDerivWithinAt_Icc_of_continuous_derivative {E : Type*}

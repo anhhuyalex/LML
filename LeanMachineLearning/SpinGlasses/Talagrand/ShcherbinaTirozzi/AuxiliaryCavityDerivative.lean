@@ -171,24 +171,9 @@ theorem exists_hasDerivAt_shcherbinaTirozziAuxCavity_abs_le [DecidableEq R] {κ 
         (1 + B₀ d + c₀ d) ^ deg := by
       dsimp only [B₀, c₀]; fun_prop
     refine integrable_of_abs_le_cavity_disorder_pow r hm (K := A ^ deg) (d := deg) fun d => ?_
-    obtain ⟨hs1, hsy, hsg, hsg0, -⟩ := cavity_disorder_size_bounds d
     rw [abs_of_nonneg (pow_nonneg (by linarith [hB0 d, hc0 d]) _), ← mul_pow]
-    refine pow_le_pow_left₀ (by linarith [hB0 d, hc0 d]) ?_ deg
-    set s : ℝ := 1 + |d.1| + (∑ k, ∑ i, |d.2.1 k i|) + ∑ i, |d.2.2 i|
-    have hsum : ∑ k, (|u 0| + D₁ * ∑ i, |d.2.1 k i|) =
-        M * |u 0| + D₁ * ∑ k, ∑ i, |d.2.1 k i| := by
-      rw [Finset.sum_add_distrib, Finset.sum_const, Finset.card_univ, Fintype.card_fin,
-        nsmul_eq_mul, Finset.mul_sum]
-    have h1 : |h| * (∑ i, |d.2.2 i|) ≤ |h| * s := mul_le_mul_of_nonneg_left hsg0 (abs_nonneg _)
-    have h2 : D₁ * (∑ k, ∑ i, |d.2.1 k i|) ≤ D₁ * s := mul_le_mul_of_nonneg_left hsg hD0
-    have h3 : ∀ c : ℝ, 0 ≤ c → c ≤ c * s := fun c hc => le_mul_of_one_le_right hc hs1
-    have h4 := h3 1 zero_le_one
-    have h5 := h3 |κ| (abs_nonneg _)
-    have h6 := h3 (((r : ℝ) - rBar) / 2) (div_nonneg hrr0 zero_le_two)
-    have h7 := h3 (M * |u 0|) (by positivity)
-    dsimp only [B₀, c₀, A]
-    rw [hsum]
-    nlinarith
+    exact pow_le_pow_left₀ (by linarith [hB0 d, hc0 d])
+      (one_add_cavity_confinement_le κ h hrr u hD0 d) deg
   have hE0m : Measurable fun p : (ℝ × ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ))) ×
       ℝ^(N + 1) =>
       -shcherbinaTirozziCavityHamiltonian κ h r rBar t p.1.1 u p.1.2.1 p.1.2.2 p.2 :=

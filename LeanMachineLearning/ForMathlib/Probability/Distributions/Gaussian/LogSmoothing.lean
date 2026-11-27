@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Analysis.Calculus.IntervalDerivative
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.LogConcaveMarginal
 public import LeanMachineLearning.ForMathlib.Probability.GibbsIBPPotential
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Gaussian.MillsRatio
@@ -473,12 +474,8 @@ theorem concaveOn_and_bounds_log_integral_exp_comp_add_gaussianReal {u : ℝ →
     exact abs_integral_mul_exp_comp_add_div_le hD
       (integrable_exp_comp_add_gaussianReal hum hu0 y c)
   have hlow : ∀ y, -(|u 0| + D * (1 + |c|)) * (1 + |y|) ≤ v y := fun y => by
-    have hlip : ∀ x, -(|u 0| + D * |x|) ≤ u x := fun x => by
-      have h1 := Convex.norm_image_sub_le_of_norm_deriv_le (f := u) (s := univ)
-        (fun z _ => hu1 z) (fun z _ => by simpa only [Real.norm_eq_abs] using hD z) convex_univ
-        (mem_univ 0) (mem_univ x)
-      rw [sub_zero, Real.norm_eq_abs, Real.norm_eq_abs] at h1
-      linarith [(abs_le.1 h1).1, neg_abs_le (u 0)]
+    have hlip : ∀ x, -(|u 0| + D * |x|) ≤ u x := fun x =>
+      neg_le_of_abs_le (norm_le_norm_zero_add_of_norm_deriv_le hu1 hD x)
     have hξ1 : ∫ ξ, |ξ| ∂(gaussianReal 0 1) ≤ 1 := by
       have h1 := sq_norm_integral_le_integral_sq_norm (μ := gaussianReal 0 1)
         (f := fun ξ : ℝ => |ξ|) (memLp_id_gaussianReal (μ := 0) (v := 1) 2).abs
