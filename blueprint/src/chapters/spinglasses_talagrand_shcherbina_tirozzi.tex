@@ -1201,8 +1201,9 @@ product of the functions $\psi_l,\psi_l',\psi_l'',u',u''$ evaluated at the repli
 
 \emph{Step 3 (bound).} Each product is at most $B^{n+2}$; view every average inside the system of $n+2$
 replicas and count the terms.
-Formalized in \texttt{ForMathlib/Probability/GibbsReplicaConfinedStein.lean} and
-\texttt{GibbsReplicaConfinedSteinBound.lean}.
+The two parts are formalized in the files
+\texttt{GibbsReplicaConfinedStein} and
+\texttt{GibbsReplicaConfinedSteinBound}.
 \end{proof}
 
 \begin{lemma}[Derivative along the auxiliary cavity path]\label{lem:sg-tal:st-aux-derivative}
@@ -1232,7 +1233,8 @@ $X_{N+1}(\sigma)=\sqrt t\,\sigma_{N+1}/\sqrt{N+1}$, $X_z=0$, $Y=\sqrt q$ in the 
 elsewhere, and $c=\sqrt{\rho-q}$. Then $X(\sigma)\cdot Y=0$, $X(\sigma^a)\cdot X(\sigma^b)=R^t_{a,b}$ and
 $\|Y\|^2+c^2\mathbf 1_{a=b}$ is $\rho$ or $q$. The confinement constants are at most linear in the size of
 the disorder, so all their moments are finite.
-Formalized in \texttt{SpinGlasses/Talagrand/ShcherbinaTirozzi/AuxiliaryCavityDerivative.lean}.
+Formalized in the file
+\texttt{AuxiliaryCavityDerivative}.
 \end{proof}
 
 \begin{remark}[Differences from Eq.~(3.96)]\label{rem:sg-tal:st-eq-396}
@@ -1242,8 +1244,7 @@ factors $\psi_l$ as above when four derivatives of $u$ are bounded, as in (3.95)
 full overlap $R_{a,b}$ and an additional term $\nu_{t,v}(|f|)/N$. The covariance of the fields is the
 truncated overlap $R^t_{a,b}=R_{a,b}-(1-t)\sigma^a_{N+1}\sigma^b_{N+1}/(N+1)$. The last spin is not bounded,
 so the difference is not bounded by $K\nu_{t,v}(|f|)/N$ without a further estimate, and the statement above
-keeps $R^t$. The sum here also contains the diagonal term of the second fresh replica. No concavity of $u$
-and no lower bound on $\kappa$ is used.
+keeps $R^t$. The sum here also contains the diagonal term of the second fresh replica. Concavity of $u$ is not used, and the constant does not depend on a lower bound for $\kappa$.
 \end{remark}
 
 \begin{remark}[Research Problem~3.1.2]\label{rem:sg-tal:st-problem-312}
@@ -1776,7 +1777,8 @@ $A$ at $\alpha_0$.
   \leanok
   \uses{def:sg-tal:st-hard-functional, lem:sg-tal:st-hard-derivatives, lem:sg-tal:st-hard-monotone,
     lem:sg-tal:st-hard-saddle, lem:sg-tal:st-mills-affine}
-Put $x(a)=q(a)/(\rho(a)-q(a))$; then $(x(a),\rho(a))$ is a critical point of $G(a,u,v)=F(a,uv/(1+u),v)$, hence
+Put $x(a)=q(a)/(\rho(a)-q(a))$ and $G(a,u,v)=F(a,uv/(1+u),v)$. Then $(x(a),\rho(a))$ is a critical point
+of $G(a,\cdot,\cdot)$, hence
 $x(a)$ minimizes $G(a,\cdot,\rho(a))$ and $\rho(a)$ maximizes $G(a,x(a),\cdot)$
 (Lemma~\ref{lem:sg-tal:st-hard-saddle}). The function $G$ is affine in the load $a$. Write
 $x_0=x(\alpha_0)$, $\rho_0=\rho(\alpha_0)$.
