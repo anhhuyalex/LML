@@ -1201,9 +1201,8 @@ product of the functions $\psi_l,\psi_l',\psi_l'',u',u''$ evaluated at the repli
 
 \emph{Step 3 (bound).} Each product is at most $B^{n+2}$; view every average inside the system of $n+2$
 replicas and count the terms.
-The two parts are formalized in the files
-\texttt{GibbsReplicaConfinedStein} and
-\texttt{GibbsReplicaConfinedSteinBound}.
+The derivative is formalized in \texttt{GibbsReplicaConfinedStein}, and the bound in the file of the same
+name with suffix \texttt{Bound}.
 \end{proof}
 
 \begin{lemma}[Derivative along the auxiliary cavity path]\label{lem:sg-tal:st-aux-derivative}
@@ -1799,8 +1798,7 @@ $G(a,x_0,\rho(a))\ge G(a,x(a),\rho(a))\ge G(a,x(a),\rho_0)\ge m_a$. Hence $\rho(
 $l\ne x_0$, this gives $G(a,x_0,\rho(a))<G(a,l,\rho(a))$ near $\alpha_0$. Since $G(a,\cdot,\rho(a))$ increases
 strictly away from $x(a)$, $l$ does not lie between $x(a)$ and $x_0$. Hence $x(a)\to x_0$, and
 $q=x\rho/(1+x)$ is continuous.
-Formalized in \texttt{SpinGlasses/Talagrand/ShcherbinaTirozzi/RSFreeEnergyEnvelope.lean} and
-\texttt{ForMathlib/Order/StrictSaddle.lean}.
+Formalized in the files \texttt{RSFreeEnergyEnvelope} and \texttt{StrictSaddle}.
 \end{proof}
 
 \begin{lemma}[Derivative of $\mathrm{RS}_0(\alpha)$ and the $M=0$ free energy]\label{lem:sg-tal:st-rs-envelope}
