@@ -127,8 +127,8 @@ theorem sk_local_magnetizations_step (β₀ : ℝ) (hβ₀ : 0 ≤ β₀) (hβ�
     Real.sqrt_le_one.mpr ((div_le_one hN1).mpr (by linarith))
   have hβm0 : 0 ≤ β * Real.sqrt ((N : ℝ) / (N + 1)) := mul_nonneg hβ0 (Real.sqrt_nonneg _)
   have hβm : β * Real.sqrt ((N : ℝ) / (N + 1)) ≤ β₀ := (mul_le_of_le_one_right hβ0 hs1).trans hββ₀
-  obtain ⟨qm, hqmI, hqm, hshift⟩ := exists_fixedPoint_cavity (N := N) h q hβ0 hβ4 hq
-  have hcparam := sq_cavity_param_le (N := N) hβ4 (fixedPoint_mem_Icc hq) hqmI hshift
+  obtain ⟨qm, -, hqm, hshift⟩ := exists_fixedPoint_cavity (N := N) h q hβ0 hβ4 hq
+  have hcparam := sq_cavity_param_le (N := N) hβ4 (fixedPoint_mem_Icc hq).2 hshift
   obtain ⟨zm, hzm, hzml, hzms⟩ := ih _ hβm0 hβm qm hqm N hnN
   obtain ⟨znew, hznew, hznewl, hznewi, hznewb⟩ := hKc β hβ0 hββ₀ q hq N hNpos
   set P : Measure (FinPairs (N + 1) → ℝ) := Measure.pi fun _ : FinPairs (N + 1) => gaussianReal 0 1

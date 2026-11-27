@@ -5851,7 +5851,7 @@ Chernoff's method: optimize $e^{-t\varepsilon}\mathbb E e^{tX}\le e^{-t\varepsil
 \end{proof}
 
 \begin{lemma}[Argmax, conditional distributions and infinite Cholesky factors]\label{lem:sg:misc-tools}
-  \lean{Finset.abs_sum_sub_card_mul_le,
+  \lean{Finset.abs_sum_sub_card_mul_le_of_abs_le,
         exists_argmax,
         argmax_spec,
         isMaxOn_argmax,
@@ -5871,7 +5871,7 @@ $L_{lk}=(A_{lk}-\sum_{j<k}L_{lj}L_{kj})/L_{kk}$ (and $0$ below a zero pivot).
 (c) For $x,t,a>0$: $t<x^{-a}\iff x<t^{-1/a}$.
 (d) A partial integral $x\mapsto\int f(x,y)\,d\nu(y)$ of a measurable function is measurable.
 (e) $\mu(s)\cdot\mu[\,\cdot\mid s]=\mu|_s$ when $\mu(s)<\infty$.
-(f) For any non-negative function $Q$ bounded by $M$ on a finite index set $\iota$, $|\sum_{i \in \iota} Q(x_i) - |\iota| Q(y)| \le 2 |\iota| M$.
+(f) If $\iota$ is finite, $f_j$ $(j\in\iota)$ and $g$ lie in an ordered ring, $|f_j|\le b$ for all $j$ and $|g|\le b$, then $|\sum_{j \in \iota} f_j - |\iota|\,g| \le 2 |\iota|\, b$.
 \end{lemma}
 \begin{proof}
   \leanok

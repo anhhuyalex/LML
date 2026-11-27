@@ -32,10 +32,9 @@ algebra they use.
 namespace SpinGlasses
 
 /-- A real-analytic estimate for the passage from `(β_-, q_-)` to `(β, q)`:
-`(β_- √q_- - β √q)² ≤ 1/(N+1)` when `|q - q_-| ≤ 1/(N+1)`, `β_- = β √(N/(N+1))` and
+`(β_- √q_- - β √q)² ≤ 1/(N+1)` when `q ≤ 1`, `|q - q_-| ≤ 1/(N+1)`, `β_- = β √(N/(N+1))` and
 `4 β² < 1`. -/
-theorem sq_cavity_param_le {β q qm : ℝ} {N : ℕ} (hβ4 : 4 * β ^ 2 < 1)
-    (hq : q ∈ Set.Icc (0 : ℝ) 1) (hqm : qm ∈ Set.Icc (0 : ℝ) 1)
+theorem sq_cavity_param_le {β q qm : ℝ} {N : ℕ} (hβ4 : 4 * β ^ 2 < 1) (hq : q ≤ 1)
     (hshift : |q - qm| ≤ 1 / ((N : ℝ) + 1)) :
     (β * Real.sqrt ((N : ℝ) / (N + 1)) * Real.sqrt qm - β * Real.sqrt q) ^ 2 ≤
       1 / ((N : ℝ) + 1) := by
@@ -58,7 +57,7 @@ theorem sq_cavity_param_le {β q qm : ℝ} {N : ℕ} (hβ4 : 4 * β ^ 2 < 1)
     calc _ ≤ |qm - q| := h1
       _ = |q - qm| := abs_sub_comm _ _
       _ ≤ ε := hshift
-  have hsq : Real.sqrt q ≤ 1 := Real.sqrt_le_one.mpr hq.2
+  have hsq : Real.sqrt q ≤ 1 := Real.sqrt_le_one.mpr hq
   have hsq0 : 0 ≤ Real.sqrt q := Real.sqrt_nonneg _
   have hdec : β * s * Real.sqrt qm - β * Real.sqrt q =
       β * s * (Real.sqrt qm - Real.sqrt q) + β * ((s - 1) * Real.sqrt q) := by ring
