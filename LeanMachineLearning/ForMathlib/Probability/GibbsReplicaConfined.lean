@@ -101,17 +101,27 @@ theorem abs_mul_exp_sum_le_of_confining {κ A B : ℝ} {e : E → ℝ}
   rw [mul_assoc, ← Finset.prod_mul_distrib]
   exact congrArg _ (Finset.prod_congr rfl fun i _ => by ring)
 
+/-- A replica observable of polynomial growth, read on distinct replicas of a larger system
+through a norm-nonincreasing map, keeps its growth bound. -/
+theorem abs_comp_le_prod_of_injective {E' R' : Type*} [SeminormedAddCommGroup E'] [Fintype R']
+    {F : (R → E) → ℝ} {C : ℝ} {m : ℕ} (hF : ∀ σ, |F σ| ≤ C * ∏ i, (1 + ‖σ i‖) ^ m)
+    {g : E' → E} (hg : ∀ y, ‖g y‖ ≤ ‖y‖) {e : R → R'} (he : Function.Injective e) (σ : R' → E') :
+    |F fun i => g (σ (e i))| ≤ |C| * ∏ j, (1 + ‖σ j‖) ^ m := by
+  classical
+  refine (hF _).trans (mul_le_mul (le_abs_self C) ?_
+    (Finset.prod_nonneg fun _ _ => by positivity) (abs_nonneg C))
+  exact Finset.prod_le_prod_of_injOn₀ e he.injOn (Finset.subset_univ _)
+    (fun i _ => pow_le_pow_left₀ (by positivity) (add_le_add_right (hg _) 1) _)
+    (fun _ _ => by positivity) fun _ _ _ => one_le_pow₀ (le_add_of_nonneg_right (norm_nonneg _))
+
 /-- A replica observable pulled back along `some` to `|R| + 1` replicas keeps its growth bound. -/
 theorem abs_comp_some_le_prod {F : (R → E) → ℝ} {C : ℝ} {m : ℕ}
     (hF : ∀ σ, |F σ| ≤ C * ∏ i, (1 + ‖σ i‖) ^ m) (σ : Option R → E) :
     |F fun j => σ (some j)| ≤ C * ∏ o, (1 + ‖σ o‖) ^ m := by
-  have hC : 0 ≤ C := by
-    have h := (abs_nonneg _).trans (hF 0)
-    exact nonneg_of_mul_nonneg_left h (Finset.prod_pos fun _ _ => by positivity)
-  refine (hF _).trans (mul_le_mul_of_nonneg_left ?_ hC)
-  rw [Fintype.prod_option]
-  exact le_mul_of_one_le_left (Finset.prod_nonneg fun _ _ => by positivity)
-    (one_le_pow₀ (le_add_of_nonneg_right (norm_nonneg _)))
+  have hC : 0 ≤ C := nonneg_of_mul_nonneg_left ((abs_nonneg _).trans (hF 0))
+    (Finset.prod_pos fun _ _ => by positivity)
+  simpa only [abs_of_nonneg hC, id] using
+    abs_comp_le_prod_of_injective hF (g := id) (fun _ => le_rfl) (Option.some_injective R) σ
 
 end ReplicaSum
 

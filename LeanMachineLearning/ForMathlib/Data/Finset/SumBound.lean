@@ -6,13 +6,14 @@ Authors: LML contributors
 module
 
 public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Algebra.Order.BigOperators.Ring.Finset
 public import Mathlib.Data.Fintype.Card
 public import Mathlib.Basic.Real.Basic
 public import Mathlib.Tactic.Ring
 public import Mathlib.Tactic.Positivity
 
 /-!
-# Bounds on finite sums of real functions
+# Bounds on finite sums and products
 -/
 
 @[expose] public section
@@ -71,5 +72,12 @@ theorem abs_sum_sub_card_mul_le {ι α : Type*} [Fintype ι] {M : ℝ} (Q : α �
   abs_sum_sub_card_mul_le_of_abs_le (fun i => Q (x i)) (Q y) M
     (fun _ => (abs_of_nonneg (hQ0 _)).le.trans (hQM _))
     ((abs_of_nonneg (hQ0 _)).le.trans (hQM _))
+
+/-- A product of factors of absolute value at most `C` has absolute value at most `C ^ #s`. -/
+theorem abs_prod_le_pow_card {ι R : Type*} [CommRing R] [LinearOrder R] [IsStrictOrderedRing R]
+    (s : Finset ι) {f : ι → R} {C : R} (hf : ∀ i ∈ s, |f i| ≤ C) :
+    |∏ i ∈ s, f i| ≤ C ^ s.card := by
+  rw [abs_prod, ← prod_const]
+  exact prod_le_prod₀ (fun _ _ => abs_nonneg _) hf
 
 end Finset

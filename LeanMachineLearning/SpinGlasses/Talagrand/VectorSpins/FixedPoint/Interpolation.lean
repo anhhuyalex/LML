@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SqrtSub
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.FixedPoint.FrobeniusBounds
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaCavity
 
@@ -167,20 +168,10 @@ theorem hasDerivAt_skVectorFieldAverage_interpolation {d : ℕ} {Ω R : Type*} [
     have hsum : 0 ≤ ∑ j : Fin d × Fin d,
         |β ^ 2 / 2 * ((ρ j.1 j.2 - ρ' j.1 j.2) - (q j.1 j.2 - q' j.1 j.2))| :=
       Finset.sum_nonneg fun _ _ => abs_nonneg _
-    have hs0 : 0 < Real.sqrt m := Real.sqrt_pos.2 hm0
     rcases k with x | x
-    · simp only [Sum.elim_inl]
-      rw [abs_of_nonneg (by positivity)]
-      have : 1 / (2 * Real.sqrt r) ≤ 1 / (2 * Real.sqrt m) :=
-        one_div_le_one_div_of_le (by positivity)
-          (mul_le_mul_of_nonneg_left (Real.sqrt_le_sqrt h1) (by norm_num))
-      linarith
-    · simp only [Sum.elim_inr]
-      rw [abs_neg, abs_of_nonneg (by positivity)]
-      have : 1 / (2 * Real.sqrt (1 - r)) ≤ 1 / (2 * Real.sqrt m) :=
-        one_div_le_one_div_of_le (by positivity)
-          (mul_le_mul_of_nonneg_left (Real.sqrt_le_sqrt h2) (by norm_num))
-      linarith
+    · exact (Real.abs_one_div_two_mul_sqrt_le hm0 h1).trans (le_add_of_nonneg_right hsum)
+    · simp only [Sum.elim_inr, abs_neg]
+      exact (Real.abs_one_div_two_mul_sqrt_le hm0 h2).trans (le_add_of_nonneg_right hsum)
   have hcC : ∀ j : Fin d × Fin d, ∀ r ∈ Metric.ball t m,
       |β ^ 2 / 2 * ((ρ j.1 j.2 - ρ' j.1 j.2) - (q j.1 j.2 - q' j.1 j.2))| ≤ C := by
     intro j r _

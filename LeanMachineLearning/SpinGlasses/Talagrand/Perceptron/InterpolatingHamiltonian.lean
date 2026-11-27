@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SqrtSub
 public import LeanMachineLearning.SpinGlasses.Talagrand.Perceptron.InterpolatingOverlap
 public import LeanMachineLearning.SpinGlasses.Gibbs.GibbsMeasure
 public import LeanMachineLearning.SpinGlasses.Talagrand.DecoupledSystems.SKDecoupled
@@ -660,11 +661,9 @@ lemma hasDerivAt_and_abs_le_log_interpPartition
           (1 / (2 * Real.sqrt δ₀)) * ∑ i : Fin (N + 1), |ω.2 i| * Real.sqrt r) +
         (|D₁| * (1 / (2 * Real.sqrt δ₀)) * ∑ k : Fin M, Real.sqrt (1 - q) * |x.2 k|) := by
     have hinv_s : 1 / (2 * Real.sqrt t) ≤ 1 / (2 * Real.sqrt δ₀) :=
-      one_div_le_one_div_of_le (mul_pos zero_lt_two (Real.sqrt_pos.2 hδ₀))
-        (mul_le_mul_of_nonneg_left (Real.sqrt_le_sqrt ht_l) zero_le_two)
+      (le_abs_self _).trans (Real.abs_one_div_two_mul_sqrt_le hδ₀ ht_l)
     have hinv_1s : 1 / (2 * Real.sqrt (1 - t)) ≤ 1 / (2 * Real.sqrt δ₀) :=
-      one_div_le_one_div_of_le (mul_pos zero_lt_two (Real.sqrt_pos.2 hδ₀))
-        (mul_le_mul_of_nonneg_left (Real.sqrt_le_sqrt ht_r) zero_le_two)
+      (le_abs_self _).trans (Real.abs_one_div_two_mul_sqrt_le hδ₀ ht_r)
     dsimp only [E'_s]
     refine (abs_sub _ _).trans ?_
     have hterm1 : |∑ k : Fin M, S'_fn t ω x k * deriv u (S_fn t ω x k)| ≤

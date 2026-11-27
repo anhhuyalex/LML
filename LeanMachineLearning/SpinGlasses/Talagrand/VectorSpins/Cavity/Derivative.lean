@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SqrtSub
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.Model.Energy
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaCavity
 public import Mathlib.Analysis.SpecialFunctions.Sqrt
@@ -1129,14 +1130,9 @@ theorem hasDerivAt_skVectorCavityAverage {Ω R : Type*} [MeasurableSpace Ω] [Fi
         simpa [hsc, hsc', Function.comp_def, neg_div, mul_neg] using this)
     (by intro _ r _; simpa using (hasDerivAt_id r).const_sub (1 : ℝ))
     (by
-      have hsm : 0 < Real.sqrt m := Real.sqrt_pos.2 hm
-      have hb : ∀ x, m ≤ x → |1 / (2 * Real.sqrt x)| ≤ 1 / (2 * Real.sqrt m) + 1 := by
-        intro x hx
-        have hx' : Real.sqrt m ≤ Real.sqrt x := Real.sqrt_le_sqrt hx
-        rw [abs_of_nonneg (by positivity)]
-        have : 1 / (2 * Real.sqrt x) ≤ 1 / (2 * Real.sqrt m) :=
-          one_div_le_one_div_of_le (by positivity) (by linarith)
-        linarith
+      have hb : ∀ x, m ≤ x → |1 / (2 * Real.sqrt x)| ≤ 1 / (2 * Real.sqrt m) + 1 :=
+        fun x hx => (Real.abs_one_div_two_mul_sqrt_le hm hx).trans
+          (le_add_of_nonneg_right zero_le_one)
       rintro ((p | i) | u) r hr
       · simp only [hsc', Sum.elim_inl, abs_zero]; positivity
       · exact hb r (hball r hr).1

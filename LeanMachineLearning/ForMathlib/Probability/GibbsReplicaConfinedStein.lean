@@ -6,6 +6,9 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.LogConcaveMarginal
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SqrtSub
+public import LeanMachineLearning.ForMathlib.Data.Finset.SumBound
+public import LeanMachineLearning.ForMathlib.LinearAlgebra.DotProductBound
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Measure.PiUpdate
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaConfinedPair
 public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianStein
@@ -202,6 +205,43 @@ theorem prod_gaussian_exponent_confining {κ B₀ : ℝ} (hκ : 0 < κ) (hB₀ :
   nlinarith [hu0 (S p), hE₀ p.1, sq_nonneg ‖p.1‖, sq_nonneg p.2,
     mul_le_mul_of_nonneg_left h1 hB₀, mul_le_mul_of_nonneg_left h2 hm0]
 
+/-- If every `|ψ r|` is at most `M₀`, every sub-product of the `ψ r` is at most
+`(1 + |M₀| + |M₁|) ^ |R|`. -/
+private theorem abs_prod_le_one_add_pow {R : Type*} [Fintype R] {ψ : R → ℝ → ℝ} {M₀ : ℝ}
+    (hM₀ : ∀ r x, |ψ r x| ≤ M₀) (M₁ : ℝ) (s : Finset R) (x : R → ℝ) :
+    |∏ r ∈ s, ψ r (x r)| ≤ (1 + |M₀| + |M₁|) ^ Fintype.card R :=
+  (s.abs_prod_le_pow_card fun r _ => (hM₀ r _).trans
+      ((le_abs_self _).trans (by linarith [abs_nonneg M₁]))).trans
+    (pow_le_pow_right₀ (by linarith [abs_nonneg M₀, abs_nonneg M₁]) s.card_le_univ)
+
+/-- Replacing the factor `ψ j` of a product by its derivative keeps the bound
+`(1 + |M₀| + |M₁|) ^ |R|`. -/
+private theorem abs_deriv_mul_prod_erase_le {R : Type*} [Fintype R] [DecidableEq R]
+    {ψ : R → ℝ → ℝ} {M₀ M₁ : ℝ} (hM₀ : ∀ r x, |ψ r x| ≤ M₀)
+    (hM₁ : ∀ r x, |deriv (ψ r) x| ≤ M₁) (j : R) (x : R → ℝ) :
+    |deriv (ψ j) (x j) * ∏ r ∈ Finset.univ.erase j, ψ r (x r)| ≤
+      (1 + |M₀| + |M₁|) ^ Fintype.card R := by
+  rw [abs_mul, ← Finset.card_univ, ← Finset.card_erase_add_one (Finset.mem_univ j), pow_succ']
+  exact mul_le_mul ((hM₁ j _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₀])))
+    ((Finset.univ.erase j).abs_prod_le_pow_card fun r _ => (hM₀ r _).trans
+      ((le_abs_self _).trans (by linarith [abs_nonneg M₁])))
+    (abs_nonneg _) (by positivity)
+
+/-- The same bound for the derivative of the tilted factor `ψ j * exp u` times the other
+factors, with an extra `1 + |D₁|` from `|u'| ≤ D₁`. -/
+private theorem abs_tiltedDeriv_mul_prod_erase_le {R : Type*} [Fintype R] [DecidableEq R]
+    {ψ : R → ℝ → ℝ} {u : ℝ → ℝ} {M₀ M₁ D₁ : ℝ} (hM₀ : ∀ r x, |ψ r x| ≤ M₀)
+    (hM₁ : ∀ r x, |deriv (ψ r) x| ≤ M₁) (hD₁ : ∀ x, |deriv u x| ≤ D₁) (j : R) (x : R → ℝ) :
+    |(deriv (ψ j) (x j) + ψ j (x j) * deriv u (x j)) *
+        ∏ r ∈ Finset.univ.erase j, ψ r (x r)| ≤
+      (1 + |D₁|) * (1 + |M₀| + |M₁|) ^ Fintype.card R := by
+  rw [add_mul, one_add_mul]
+  refine (abs_add_le _ _).trans
+    (add_le_add (abs_deriv_mul_prod_erase_le hM₀ hM₁ j x) ?_)
+  rw [mul_right_comm, Finset.mul_prod_erase _ (fun r => ψ r (x r)) (Finset.mem_univ j), abs_mul]
+  exact (mul_le_mul (abs_prod_le_one_add_pow hM₀ M₁ _ x) ((hD₁ _).trans (le_abs_self _))
+    (abs_nonneg _) (by positivity)).trans_eq (mul_comm _ _)
+
 omit [NormedSpace ℝ E] [FiniteDimensional ℝ E] [MeasurableSpace E] [BorelSpace E] in
 /-- A confined energy which is at least `-c₀` on the unit ball forces `0 ≤ c₀`. -/
 theorem nonneg_of_confining_of_neg_le {κ B₀ c₀ : ℝ} {E₀ : E → ℝ}
@@ -210,6 +250,61 @@ theorem nonneg_of_confining_of_neg_le {κ B₀ c₀ : ℝ} {E₀ : E → ℝ}
   have h1 := hE₀_low 0 (by simp)
   have h2 : E₀ 0 ≤ 0 := by simpa using hE₀_conf 0
   linarith
+
+/-- The one-replica state `(μ × 𝒩(0, 1)).tilted (E₀ x + u (S (x, ξ)))`, with `E₀` confined and
+`u ≤ 0`, is a probability measure. -/
+theorem isProbabilityMeasure_tilted_prod_gaussianReal_of_confining {κ B₀ : ℝ} (hκ : 0 < κ)
+    {E₀ : E → ℝ} (hE₀m : Measurable E₀) (hE₀ : ∀ x, E₀ x ≤ B₀ * ‖x‖ - κ * ‖x‖ ^ 2)
+    {u : ℝ → ℝ} (hum : Measurable u) (hu0 : ∀ x, u x ≤ 0) {S : E × ℝ → ℝ} (hS : Measurable S) :
+    IsProbabilityMeasure
+      ((μ.prod (gaussianReal 0 1)).tilted fun p => E₀ p.1 + u (S p)) := by
+  rw [tilted_prod_gaussianReal_zero_one μ]
+  exact isProbabilityMeasure_tilted (integrable_exp_of_confining (μ := μ.prod volume)
+    (lt_min hκ one_half_pos)
+    (((hE₀m.comp measurable_fst).add (hum.comp hS)).sub
+      ((measurable_snd.pow_const 2).div_const 2))
+    (prod_gaussian_exponent_confining hκ (abs_nonneg B₀)
+      (fun x => (hE₀ x).trans (by gcongr; exact le_abs_self _)) hu0 S))
+
+omit [NormedSpace ℝ E] [FiniteDimensional ℝ E] [MeasurableSpace E] [BorelSpace E] in
+/-- Coefficients of polynomial growth give a linear form `x ↦ X x ⬝ᵥ w` of polynomial growth. -/
+theorem abs_dotProduct_le_of_abs_le_pow [Fintype K] {X : E → K → ℝ} {L : ℝ} {n : ℕ}
+    (hX : ∀ k x, |X x k| ≤ L * (1 + ‖x‖) ^ n) (w : K → ℝ) (x : E) :
+    |X x ⬝ᵥ w| ≤ |L| * (∑ k, |w k|) * (1 + ‖x‖) ^ n :=
+  (abs_dotProduct_le_mul_sum_abs (M := |L| * (1 + ‖x‖) ^ n)
+    (fun k => (hX k x).trans (by gcongr; exact le_abs_self _)) w).trans_eq (by ring)
+
+omit [NormedSpace ℝ E] [FiniteDimensional ℝ E] [MeasurableSpace E] [BorelSpace E] in
+/-- Away from the endpoints, the derivative in `v` of the field
+`√v (X x ⬝ᵥ w) + √(1 - v) (Y ⬝ᵥ w + c_ξ ξ)` grows polynomially in `(x, ξ)`. -/
+private theorem abs_sqrt_path_deriv_le [Fintype K] {X : E → K → ℝ} {L_X : ℝ} {n_X : ℕ}
+    (hXb : ∀ k x, |X x k| ≤ L_X * (1 + ‖x‖) ^ n_X) (Y w : K → ℝ) (c_ξ : ℝ) {δ v : ℝ}
+    (hδ : 0 < δ) (h1 : δ ≤ v) (h2 : δ ≤ 1 - v) (p : E × ℝ) :
+    |1 / (2 * Real.sqrt v) * (X p.1 ⬝ᵥ w) -
+        1 / (2 * Real.sqrt (1 - v)) * (Y ⬝ᵥ w + c_ξ * p.2)| ≤
+      1 / (2 * Real.sqrt δ) * (|L_X| * (∑ k, |w k|) + |Y ⬝ᵥ w| + |c_ξ|) *
+        (1 + ‖p‖) ^ (n_X + 1) := by
+  have hp : (1 : ℝ) ≤ 1 + ‖p‖ := le_add_of_nonneg_right (norm_nonneg _)
+  have hX : |X p.1 ⬝ᵥ w| ≤ |L_X| * (∑ k, |w k|) * (1 + ‖p‖) ^ (n_X + 1) :=
+    (abs_dotProduct_le_of_abs_le_pow hXb w p.1).trans <| mul_le_mul_of_nonneg_left
+      ((pow_le_pow_left₀ (by positivity) (add_le_add_right (norm_fst_le p) 1) n_X).trans
+        (pow_le_pow_right₀ hp (Nat.le_succ n_X))) (by positivity)
+  have hY : |Y ⬝ᵥ w + c_ξ * p.2| ≤ (|Y ⬝ᵥ w| + |c_ξ|) * (1 + ‖p‖) ^ (n_X + 1) := by
+    have hp2 : |p.2| ≤ (1 + ‖p‖) ^ (n_X + 1) :=
+      ((norm_snd_le p).trans (le_add_of_nonneg_left zero_le_one)).trans
+        (le_self_pow₀ hp (Nat.succ_ne_zero _))
+    rw [add_mul]
+    refine (abs_add_le _ _).trans (add_le_add
+      (le_mul_of_one_le_right (abs_nonneg _) (one_le_pow₀ hp)) ?_)
+    rw [abs_mul]
+    exact mul_le_mul_of_nonneg_left hp2 (abs_nonneg _)
+  refine (abs_sub _ _).trans ?_
+  rw [abs_mul, abs_mul]
+  refine (add_le_add
+    (mul_le_mul (Real.abs_one_div_two_mul_sqrt_le hδ h1) hX (abs_nonneg _) (by positivity))
+    (mul_le_mul (Real.abs_one_div_two_mul_sqrt_le hδ h2) hY (abs_nonneg _)
+      (by positivity))).trans_eq ?_
+  ring
 
 /-- Polynomial moment bound on `E × ℝ` for `(μ.prod (gaussianReal 0 1)).tilted (E₀ + u ∘ S)`,
 growing polynomially in `B₀`, `c₀` and `∑ k, |w k|`. -/
@@ -297,17 +392,11 @@ theorem integral_snd_pi_tilted_prod_gaussianReal [Fintype R] [DecidableEq R]
   have hconf : ∀ p : E × ℝ, E₀ p.1 + u (S p) - p.2 ^ 2 / 2 ≤
       0 + B₀ * ‖p‖ - min κ (1 / 2) * ‖p‖ ^ 2 :=
     prod_gaussian_exponent_confining hκ hB₀ hE₀_conf hu0 S
-  have : IsProbabilityMeasure ν := by
-    rw [show ν = _ from tilted_prod_gaussianReal_zero_one μ _]
-    exact isProbabilityMeasure_tilted (integrable_exp_of_confining (μ := μ.prod volume) hκ'
-      (((hE₀m.comp measurable_fst).add (hum.comp hSm)).sub
-        ((measurable_snd.pow_const 2).div_const 2)) hconf)
+  have : IsProbabilityMeasure ν :=
+    isProbabilityMeasure_tilted_prod_gaussianReal_of_confining μ hκ hE₀m hE₀_conf hum hu0 hSm
   set C_ψ : ℝ := (1 + |M₀| + |M₁|) ^ Fintype.card R
   have hfb_p : ∀ σ : R → E × ℝ, |f (fun r => (σ r).1)| ≤ |C_f| * ∏ r, (1 + ‖σ r‖) ^ m_f :=
-    fun σ => (hfb _).trans (mul_le_mul (le_abs_self _)
-      (Finset.prod_le_prod₀ (fun _ _ => by positivity) fun r _ =>
-        pow_le_pow_left₀ (by positivity) (add_le_add_right (norm_fst_le (σ r)) 1) _)
-      (Finset.prod_nonneg fun _ _ => by positivity) (abs_nonneg _))
+    abs_comp_le_prod_of_injective hfb norm_fst_le Function.injective_id
   have hLHS_i : Integrable (fun σ : R → E × ℝ =>
       f (fun r => (σ r).1) * (σ i₀).2 * ∏ r, ψ r (S (σ r))) (Measure.pi fun _ : R => ν) := by
     rw [show ν = _ from tilted_prod_gaussianReal_zero_one μ _]
@@ -329,12 +418,8 @@ theorem integral_snd_pi_tilted_prod_gaussianReal [Fintype R] [DecidableEq R]
           exact ((by simpa using norm_snd_le (σ i₀) : |(σ i₀).2| ≤ ‖σ i₀‖)).trans
             (le_add_of_nonneg_left zero_le_one)
         exact h0.trans (mul_le_mul_of_nonneg_left (one_add_norm_pow_le_prod σ 1 i₀) zero_le_one)
-      have hpr : |∏ r, ψ r (S (σ r))| ≤ C_ψ := by
-        rw [Finset.abs_prod]
-        have hle : ∏ r : R, |ψ r (S (σ r))| ≤ ∏ _r : R, (1 + |M₀| + |M₁|) :=
-          Finset.prod_le_prod₀ (fun _ _ => abs_nonneg _) fun r _ =>
-            (hM₀ r _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₁]))
-        exact hle.trans_eq (by simp [C_ψ])
+      have hpr : |∏ r, ψ r (S (σ r))| ≤ C_ψ :=
+        abs_prod_le_one_add_pow hM₀ M₁ _ fun r => S (σ r)
       exact (mul_le_mul hξ hpr (abs_nonneg _) (by positivity)).trans_eq (by ring)
     exact abs_mul_le_mul_prod_one_add_norm_pow (hfb_p σ) h2
   have hRHS_i : Integrable (fun σ : R → E × ℝ => c * (f (fun r => (σ r).1) *
@@ -357,29 +442,7 @@ theorem integral_snd_pi_tilted_prod_gaussianReal [Fintype R] [DecidableEq R]
         ∏ r ∈ Finset.univ.erase i₀, ψ r (S (σ r))| ≤
         ((1 + |D₁|) * C_ψ) * ∏ r, (1 + ‖σ r‖) ^ 0 := by
       simp only [pow_zero, Finset.prod_const_one, mul_one]
-      rw [abs_mul, Finset.abs_prod]
-      have hd : |deriv (ψ i₀) (S (σ i₀)) + ψ i₀ (S (σ i₀)) * deriv u (S (σ i₀))| ≤
-          (1 + |D₁|) * (1 + |M₀| + |M₁|) := by
-        refine (abs_add_le _ _).trans ?_
-        have h_1 : |deriv (ψ i₀) (S (σ i₀))| ≤ 1 + |M₀| + |M₁| :=
-          (hM₁ i₀ _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₀]))
-        have h_2 : |ψ i₀ (S (σ i₀)) * deriv u (S (σ i₀))| ≤ |D₁| * (1 + |M₀| + |M₁|) := by
-          rw [abs_mul, mul_comm]
-          exact mul_le_mul ((hD₁ _).trans (le_abs_self _))
-            ((hM₀ i₀ _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₁])))
-            (abs_nonneg _) (abs_nonneg _)
-        nlinarith [abs_nonneg D₁, abs_nonneg M₀, abs_nonneg M₁]
-      have hp : ∏ r ∈ Finset.univ.erase i₀, |ψ r (S (σ r))| ≤
-          ∏ _r ∈ Finset.univ.erase i₀, (1 + |M₀| + |M₁|) :=
-        Finset.prod_le_prod₀ (fun _ _ => abs_nonneg _) fun r _ =>
-          (hM₀ r _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₁]))
-      calc _ ≤ ((1 + |D₁|) * (1 + |M₀| + |M₁|)) *
-              ∏ _r ∈ Finset.univ.erase i₀, (1 + |M₀| + |M₁|) :=
-            mul_le_mul hd hp (Finset.prod_nonneg fun _ _ => abs_nonneg _) (by positivity)
-        _ = (1 + |D₁|) * C_ψ := by
-            rw [mul_assoc, Finset.mul_prod_erase (s := Finset.univ)
-              (f := fun _ : R => 1 + |M₀| + |M₁|) (a := i₀) (Finset.mem_univ i₀)]
-            simp [C_ψ]
+      exact abs_tiltedDeriv_mul_prod_erase_le hM₀ hM₁ hD₁ i₀ fun r => S (σ r)
     exact abs_mul_le_mul_prod_one_add_norm_pow (hfb_p σ) h2
   rw [← integral_const_mul, integral_pi_eq_integral_update (fun _ : R => ν) i₀ hLHS_i,
     integral_pi_eq_integral_update (fun _ : R => ν) i₀ hRHS_i]
@@ -542,20 +605,13 @@ theorem hasDerivAt_coord_tilted_prod_gaussian [Fintype K] [DecidableEq K]
             (hψd r).continuous.measurable.comp ((hSm w).comp (measurable_pi_apply r)))))
   set C_ψ : ℝ := (1 + |M₀| + |M₁|) ^ Fintype.card R
   have hfb_p : ∀ σ : R → E × ℝ, |f (fun r => (σ r).1)| ≤ |C_f| * ∏ r, (1 + ‖σ r‖) ^ m_f :=
-    fun σ => (hfb _).trans (mul_le_mul (le_abs_self _)
-      (Finset.prod_le_prod₀ (fun _ _ => by positivity) fun r _ =>
-        pow_le_pow_left₀ (by positivity) (add_le_add_right (norm_fst_le (σ r)) 1) _)
-      (Finset.prod_nonneg fun _ _ => by positivity) (abs_nonneg _))
+    abs_comp_le_prod_of_injective hfb norm_fst_le Function.injective_id
   have hΦb : ∀ z, ∀ σ : R → E × ℝ,
       |Φ (update w k z) σ| ≤ (|C_f| * C_ψ * (1 + |L_A| * Fintype.card R)) *
         ∏ r, (1 + ‖σ r‖) ^ (m_f + n_A) := fun z σ => by
     rw [abs_mul]
-    have h1 : |∏ r, ψ r (S (update w k z) (σ r))| ≤ C_ψ := by
-      rw [Finset.abs_prod]
-      have hle : ∏ r : R, |ψ r (S (update w k z) (σ r))| ≤ ∏ _r : R, (1 + |M₀| + |M₁|) :=
-        Finset.prod_le_prod₀ (fun _ _ => abs_nonneg _) fun r _ =>
-          (hM₀ r _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₁]))
-      exact hle.trans_eq (by simp [C_ψ])
+    have h1 : |∏ r, ψ r (S (update w k z) (σ r))| ≤ C_ψ :=
+      abs_prod_le_one_add_pow hM₀ M₁ _ fun r => S (update w k z) (σ r)
     have h2 : ∏ r, (1 + ‖σ r‖) ^ m_f ≤ ∏ r, (1 + ‖σ r‖) ^ (m_f + n_A) :=
       Finset.prod_le_prod₀ (fun _ _ => by positivity) fun r _ =>
         pow_le_pow_right₀ (by linarith [norm_nonneg (σ r)]) (Nat.le_add_right _ _)
@@ -589,20 +645,9 @@ theorem hasDerivAt_coord_tilted_prod_gaussian [Fintype K] [DecidableEq K]
           exact h0.trans (mul_le_mul_of_nonneg_left (one_add_norm_pow_le_prod σ n_A j)
             (abs_nonneg _))
         have hpr : |deriv (ψ j) (S (update w k z) (σ j))| *
-            |∏ r ∈ Finset.univ.erase j, ψ r (S (update w k z) (σ r))| ≤ C_ψ := by
-          rw [Finset.abs_prod]
-          have hd_le : |deriv (ψ j) (S (update w k z) (σ j))| ≤ 1 + |M₀| + |M₁| :=
-            (hM₁ j _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₀]))
-          have hp_le : ∏ r ∈ Finset.univ.erase j, |ψ r (S (update w k z) (σ r))| ≤
-              ∏ _r ∈ Finset.univ.erase j, (1 + |M₀| + |M₁|) :=
-            Finset.prod_le_prod₀ (fun _ _ => abs_nonneg _) fun r _ =>
-              (hM₀ r _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₁]))
-          have hmul := mul_le_mul hd_le hp_le (Finset.prod_nonneg fun _ _ => abs_nonneg _)
-            (by positivity)
-          exact hmul.trans_eq (by
-            rw [Finset.mul_prod_erase (s := Finset.univ) (f := fun _ : R => 1 + |M₀| + |M₁|)
-              (a := j) (Finset.mem_univ j)]
-            simp [C_ψ])
+            |∏ r ∈ Finset.univ.erase j, ψ r (S (update w k z) (σ r))| ≤ C_ψ :=
+          (abs_mul _ _).symm.trans_le
+            (abs_deriv_mul_prod_erase_le hM₀ hM₁ j fun r => S (update w k z) (σ r))
         calc |A (σ j).1 k| * |deriv (ψ j) (S (update w k z) (σ j))| *
               |∏ r ∈ Finset.univ.erase j, ψ r (S (update w k z) (σ r))|
             = |A (σ j).1 k| * (|deriv (ψ j) (S (update w k z) (σ j))| *
@@ -880,10 +925,7 @@ private theorem stein_coord_pi_tilted_prod_gaussianReal [Fintype K]
       (by positivity) (abs_nonneg _))
   set C_ψ : ℝ := (1 + |M₀| + |M₁|) ^ Fintype.card R
   have hfb_p : ∀ σ : R → E × ℝ, |f (fun r => (σ r).1)| ≤ |C_f| * ∏ r, (1 + ‖σ r‖) ^ m_f :=
-    fun σ => (hfb _).trans (mul_le_mul (le_abs_self _)
-      (Finset.prod_le_prod₀ (fun _ _ => by positivity) fun r _ =>
-        pow_le_pow_left₀ (by positivity) (add_le_add_right (norm_fst_le (σ r)) 1) _)
-      (Finset.prod_nonneg fun _ _ => by positivity) (abs_nonneg _))
+    abs_comp_le_prod_of_injective hfb norm_fst_le Function.injective_id
   obtain ⟨_, -, hI1⟩ :=
     exists_integrable_and_abs_le_integral_pi_tilted_prod_gaussianReal (K := K) (ι := R) μ hκ m_f
   have hLHS_i : Integrable (fun w => w k * ∫ σ : R → E × ℝ,
@@ -904,12 +946,8 @@ private theorem stein_coord_pi_tilted_prod_gaussianReal [Fintype K]
     rw [zero_add, abs_mul, abs_mul]
     have hwk : |w k| ≤ ∑ j, |w j| :=
       Finset.single_le_sum (f := fun j => |w j|) (fun _ _ => abs_nonneg _) (Finset.mem_univ k)
-    have hpr : |∏ r, ψ r (S w (σ r))| ≤ C_ψ := by
-      rw [Finset.abs_prod]
-      have hle : ∏ r : R, |ψ r (S w (σ r))| ≤ ∏ _r : R, (1 + |M₀| + |M₁|) :=
-        Finset.prod_le_prod₀ (fun _ _ => abs_nonneg _) fun r _ =>
-          (hM₀ r _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₁]))
-      exact hle.trans_eq (by simp [C_ψ])
+    have hpr : |∏ r, ψ r (S w (σ r))| ≤ C_ψ :=
+      abs_prod_le_one_add_pow hM₀ M₁ _ fun r => S w (σ r)
     calc |w k| * (|f (fun r => (σ r).1)| * |∏ r, ψ r (S w (σ r))|)
         ≤ (∑ j, |w j|) * ((|C_f| * ∏ r, (1 + ‖σ r‖) ^ m_f) * C_ψ) :=
           mul_le_mul hwk (mul_le_mul (hfb_p σ) hpr (abs_nonneg _) (by positivity))
@@ -940,34 +978,14 @@ private theorem stein_coord_pi_tilted_prod_gaussianReal [Fintype K]
     have hAj : |A (σ j).1 k * (ψ_d j (S w (σ j)) *
         ∏ r ∈ Finset.univ.erase j, ψ r (S w (σ r)))| ≤
         (|L_A| * ((1 + |D₁|) * C_ψ)) * ∏ r, (1 + ‖σ r‖) ^ n_A := by
-      rw [abs_mul, abs_mul, Finset.abs_prod]
+      rw [abs_mul]
       have hx : |A (σ j).1 k| ≤ |L_A| * ∏ r, (1 + ‖σ r‖) ^ n_A :=
         ((hAb k (σ j).1).trans (mul_le_mul (le_abs_self _)
           (pow_le_pow_left₀ (by positivity) (add_le_add_right (norm_fst_le (σ j)) 1) _)
           (by positivity) (abs_nonneg _))).trans
           (mul_le_mul_of_nonneg_left (one_add_norm_pow_le_prod σ n_A j) (abs_nonneg _))
-      have hd : |ψ_d j (S w (σ j))| ≤ (1 + |D₁|) * (1 + |M₀| + |M₁|) := by
-        dsimp only [ψ_d]
-        refine (abs_add_le _ _).trans ?_
-        have h_1 : |deriv (ψ j) (S w (σ j))| ≤ 1 + |M₀| + |M₁| :=
-          (hM₁ j _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₀]))
-        have h_2 : |ψ j (S w (σ j)) * deriv u (S w (σ j))| ≤ |D₁| * (1 + |M₀| + |M₁|) := by
-          rw [abs_mul, mul_comm]
-          exact mul_le_mul ((hD₁ _).trans (le_abs_self _))
-            ((hM₀ j _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₁])))
-            (abs_nonneg _) (abs_nonneg _)
-        nlinarith [abs_nonneg D₁, abs_nonneg M₀, abs_nonneg M₁]
-      have hp : ∏ r ∈ Finset.univ.erase j, |ψ r (S w (σ r))| ≤
-          ∏ _r ∈ Finset.univ.erase j, (1 + |M₀| + |M₁|) :=
-        Finset.prod_le_prod₀ (fun _ _ => abs_nonneg _) fun r _ =>
-          (hM₀ r _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₁]))
-      have hdp : |ψ_d j (S w (σ j))| * ∏ r ∈ Finset.univ.erase j, |ψ r (S w (σ r))| ≤
-          (1 + |D₁|) * C_ψ :=
-        (mul_le_mul hd hp (Finset.prod_nonneg fun _ _ => abs_nonneg _) (by positivity)).trans_eq (by
-          rw [mul_assoc, Finset.mul_prod_erase (s := Finset.univ)
-            (f := fun _ : R => 1 + |M₀| + |M₁|) (a := j) (Finset.mem_univ j)]
-          simp [C_ψ])
-      exact (mul_le_mul hx hdp (by positivity) (by positivity)).trans_eq (by ring)
+      exact (mul_le_mul hx (abs_tiltedDeriv_mul_prod_erase_le hM₀ hM₁ hD₁ j
+        fun r => S w (σ r)) (abs_nonneg _) (by positivity)).trans_eq (by ring)
     exact abs_mul_le_mul_prod_one_add_norm_pow (hfb_p σ) hAj
   obtain ⟨_, -, hI3⟩ :=
     exists_integrable_and_abs_le_integral_pi_tilted_prod_gaussianReal
@@ -993,20 +1011,15 @@ private theorem stein_coord_pi_tilted_prod_gaussianReal [Fintype K]
       abs_comp_some_le_prod hfb_p σ
     have hAn : |A (σ none).1 k * ((∏ r, ψ r (S w (σ (some r)))) * deriv u (S w (σ none)))| ≤
         (|L_A| * (C_ψ * |D₁|)) * ∏ o, (1 + ‖σ o‖) ^ n_A := by
-      rw [abs_mul, abs_mul, Finset.abs_prod]
+      rw [abs_mul, abs_mul]
       have hx : |A (σ none).1 k| ≤ |L_A| * ∏ o, (1 + ‖σ o‖) ^ n_A :=
         ((hAb k (σ none).1).trans (mul_le_mul (le_abs_self _)
           (pow_le_pow_left₀ (by positivity) (add_le_add_right (norm_fst_le (σ none)) 1) _)
           (by positivity) (abs_nonneg _))).trans
           (mul_le_mul_of_nonneg_left (one_add_norm_pow_le_prod σ n_A none) (abs_nonneg _))
-      have hp : ∏ r : R, |ψ r (S w (σ (some r)))| ≤ C_ψ := by
-        have hle : ∏ r : R, |ψ r (S w (σ (some r)))| ≤ ∏ _r : R, (1 + |M₀| + |M₁|) :=
-          Finset.prod_le_prod₀ (fun _ _ => abs_nonneg _) fun r _ =>
-            (hM₀ r _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₁]))
-        exact hle.trans_eq (by simp [C_ψ])
-      have hpu : (∏ r : R, |ψ r (S w (σ (some r)))|) * |deriv u (S w (σ none))| ≤
-          C_ψ * |D₁| :=
-        mul_le_mul hp ((hD₁ _).trans (le_abs_self _)) (abs_nonneg _) (by positivity)
+      have hpu : |∏ r, ψ r (S w (σ (some r)))| * |deriv u (S w (σ none))| ≤ C_ψ * |D₁| :=
+        mul_le_mul (abs_prod_le_one_add_pow hM₀ M₁ _ fun r => S w (σ (some r)))
+          ((hD₁ _).trans (le_abs_self _)) (abs_nonneg _) (by positivity)
       exact (mul_le_mul hx hpu (by positivity) (by positivity)).trans_eq (by ring)
     exact abs_mul_le_mul_prod_one_add_norm_pow hf_opt hAn
   refine ⟨hLHS_i, hRHS1_i, hRHS2_i, ?_⟩
@@ -1061,19 +1074,8 @@ private theorem stein_coord_pi_tilted_prod_gaussianReal [Fintype K]
           (by positivity) (abs_nonneg _))).trans
           (mul_le_mul_of_nonneg_left (one_add_norm_pow_le_prod σ n_A j) (abs_nonneg _))
       have hpr : |deriv (ψ j) (S w (σ j)) *
-          ∏ r ∈ Finset.univ.erase j, ψ r (S w (σ r))| ≤ C_ψ := by
-        rw [abs_mul, Finset.abs_prod]
-        have hd_le : |deriv (ψ j) (S w (σ j))| ≤ 1 + |M₀| + |M₁| :=
-          (hM₁ j _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₀]))
-        have hp_le : ∏ r ∈ Finset.univ.erase j, |ψ r (S w (σ r))| ≤
-            ∏ _r ∈ Finset.univ.erase j, (1 + |M₀| + |M₁|) :=
-          Finset.prod_le_prod₀ (fun _ _ => abs_nonneg _) fun r _ =>
-            (hM₀ r _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₁]))
-        exact (mul_le_mul hd_le hp_le (Finset.prod_nonneg fun _ _ => abs_nonneg _)
-          (by positivity)).trans_eq (by
-            rw [Finset.mul_prod_erase (s := Finset.univ)
-              (f := fun _ : R => 1 + |M₀| + |M₁|) (a := j) (Finset.mem_univ j)]
-            simp [C_ψ])
+          ∏ r ∈ Finset.univ.erase j, ψ r (S w (σ r))| ≤ C_ψ :=
+        abs_deriv_mul_prod_erase_le hM₀ hM₁ j fun r => S w (σ r)
       have h2' : |A (σ j).1 k * deriv (ψ j) (S w (σ j)) *
           ∏ r ∈ Finset.univ.erase j, ψ r (S w (σ r))| ≤
           (|L_A| * C_ψ) * ∏ r, (1 + ‖σ r‖) ^ n_A := by
@@ -1095,12 +1097,8 @@ private theorem stein_coord_pi_tilted_prod_gaussianReal [Fintype K]
       have hp1 : |f (fun r => (σ r).1) * ∏ r, ψ r (S w (σ r))| ≤
           (|C_f| * C_ψ) * ∏ r, (1 + ‖σ r‖) ^ m_f := by
         rw [abs_mul]
-        have hpr : |∏ r, ψ r (S w (σ r))| ≤ C_ψ := by
-          rw [Finset.abs_prod]
-          have hle : ∏ r : R, |ψ r (S w (σ r))| ≤ ∏ _r : R, (1 + |M₀| + |M₁|) :=
-            Finset.prod_le_prod₀ (fun _ _ => abs_nonneg _) fun r _ =>
-              (hM₀ r _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₁]))
-          exact hle.trans_eq (by simp [C_ψ])
+        have hpr : |∏ r, ψ r (S w (σ r))| ≤ C_ψ :=
+          abs_prod_le_one_add_pow hM₀ M₁ _ fun r => S w (σ r)
         exact (mul_le_mul (hfb_p σ) hpr (abs_nonneg _) (by positivity)).trans_eq (by ring)
       have hp2 : |A (σ j).1 k * deriv u (S w (σ j))| ≤
           (|L_A| * |D₁|) * ∏ r, (1 + ‖σ r‖) ^ n_A := by
@@ -1209,10 +1207,7 @@ theorem stein_pi_tilted_prod_gaussianReal [Fintype K]
       (by positivity) (abs_nonneg _))
   set C_ψ : ℝ := (1 + |M₀| + |M₁|) ^ Fintype.card R
   have hfb_p : ∀ σ : R → E × ℝ, |f (fun r => (σ r).1)| ≤ |C_f| * ∏ r, (1 + ‖σ r‖) ^ m_f :=
-    fun σ => (hfb _).trans (mul_le_mul (le_abs_self _)
-      (Finset.prod_le_prod₀ (fun _ _ => by positivity) fun r _ =>
-        pow_le_pow_left₀ (by positivity) (add_le_add_right (norm_fst_le (σ r)) 1) _)
-      (Finset.prod_nonneg fun _ _ => by positivity) (abs_nonneg _))
+    abs_comp_le_prod_of_injective hfb norm_fst_le Function.injective_id
   have hcoord : ∀ k : K,
       Integrable (fun w => w k * ∫ σ : R → E × ℝ,
           (f (fun r => (σ r).1) * B (σ i₀).1 k) * ∏ r, ψ r (S w (σ r))
@@ -1274,12 +1269,8 @@ theorem stein_pi_tilted_prod_gaussianReal [Fintype K]
           exact ((by simpa using norm_snd_le (σ i₀) : |(σ i₀).2| ≤ ‖σ i₀‖)).trans
             (le_add_of_nonneg_left zero_le_one)
         exact h0.trans (one_add_norm_pow_le_prod σ 1 i₀)
-      have hpr : |∏ r, ψ r (S w (σ r))| ≤ C_ψ := by
-        rw [Finset.abs_prod]
-        have hle : ∏ r : R, |ψ r (S w (σ r))| ≤ ∏ _r : R, (1 + |M₀| + |M₁|) :=
-          Finset.prod_le_prod₀ (fun _ _ => abs_nonneg _) fun r _ =>
-            (hM₀ r _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₁]))
-        exact hle.trans_eq (by simp [C_ψ])
+      have hpr : |∏ r, ψ r (S w (σ r))| ≤ C_ψ :=
+        abs_prod_le_one_add_pow hM₀ M₁ _ fun r => S w (σ r)
       calc |c_B| * |(σ i₀).2| * |∏ r, ψ r (S w (σ r))|
           ≤ |c_B| * (∏ r, (1 + ‖σ r‖) ^ 1) * C_ψ :=
             mul_le_mul (mul_le_mul_of_nonneg_left hξ (abs_nonneg _)) hpr (abs_nonneg _)
@@ -1306,30 +1297,8 @@ theorem stein_pi_tilted_prod_gaussianReal [Fintype K]
       (C₀ := |C_f| * ((1 + |D₁|) * C_ψ)) (C₁ := 0) (by positivity) le_rfl fun w σ => ?_).2.const_mul
       (c_B * c_A)
     rw [zero_mul, add_zero, abs_mul]
-    have hd : |ψ_d i₀ (S w (σ i₀))| ≤ (1 + |D₁|) * (1 + |M₀| + |M₁|) := by
-      dsimp only [ψ_d]
-      refine (abs_add_le _ _).trans ?_
-      have h_1 : |deriv (ψ i₀) (S w (σ i₀))| ≤ 1 + |M₀| + |M₁| :=
-        (hM₁ i₀ _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₀]))
-      have h_2 : |ψ i₀ (S w (σ i₀)) * deriv u (S w (σ i₀))| ≤ |D₁| * (1 + |M₀| + |M₁|) := by
-        rw [abs_mul, mul_comm]
-        exact mul_le_mul ((hD₁ _).trans (le_abs_self _))
-          ((hM₀ i₀ _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₁])))
-          (abs_nonneg _) (abs_nonneg _)
-      nlinarith [abs_nonneg D₁, abs_nonneg M₀, abs_nonneg M₁]
-    have hp : ∏ r ∈ Finset.univ.erase i₀, |ψ r (S w (σ r))| ≤
-        ∏ _r ∈ Finset.univ.erase i₀, (1 + |M₀| + |M₁|) :=
-      Finset.prod_le_prod₀ (fun _ _ => abs_nonneg _) fun r _ =>
-        (hM₀ r _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₁]))
-    have h2 : |ψ_d i₀ (S w (σ i₀)) * ∏ r ∈ Finset.univ.erase i₀, ψ r (S w (σ r))| ≤
-        (1 + |D₁|) * C_ψ := by
-      rw [abs_mul, Finset.abs_prod]
-      exact (mul_le_mul hd hp (Finset.prod_nonneg fun _ _ => abs_nonneg _)
-        (by positivity)).trans_eq (by
-          rw [mul_assoc, Finset.mul_prod_erase (s := Finset.univ)
-            (f := fun _ : R => 1 + |M₀| + |M₁|) (a := i₀) (Finset.mem_univ i₀)]
-          simp [C_ψ])
-    exact (mul_le_mul (hfb_p σ) h2 (abs_nonneg _) (by positivity)).trans_eq (by ring)
+    exact (mul_le_mul (hfb_p σ) (abs_tiltedDeriv_mul_prod_erase_le hM₀ hM₁ hD₁ i₀
+      fun r => S w (σ r)) (abs_nonneg _) (by positivity)).trans_eq (by ring)
   -- Pointwise in `w`, combine the `K` coordinates and `(σ i₀).2` inside the replica integrals!
   have hν_prob_int : ∀ w : K → ℝ,
       IsProbabilityMeasure (ν w) ∧
@@ -1367,42 +1336,14 @@ theorem stein_pi_tilted_prod_gaussianReal [Fintype K]
     have hprob : IsProbabilityMeasure (ν w) := by
       rw [hν_eq]; exact isProbabilityMeasure_tilted
         (integrable_exp_of_confining (μ := μ.prod volume) hκ' hem hconf)
-    have hpr_R_le : ∀ σ : R → E × ℝ, |∏ r, ψ r (S w (σ r))| ≤ C_ψ := fun σ => by
-      rw [Finset.abs_prod]
-      have hle : ∏ r : R, |ψ r (S w (σ r))| ≤ ∏ _r : R, (1 + |M₀| + |M₁|) :=
-        Finset.prod_le_prod₀ (fun _ _ => abs_nonneg _) fun r _ =>
-          (hM₀ r _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₁]))
-      exact hle.trans_eq (by simp [C_ψ])
-    have hpr_O_le : ∀ σ : Option R → E × ℝ, |∏ r, ψ r (S w (σ (some r)))| ≤ C_ψ := fun σ => by
-      rw [Finset.abs_prod]
-      have hle : ∏ r : R, |ψ r (S w (σ (some r)))| ≤ ∏ _r : R, (1 + |M₀| + |M₁|) :=
-        Finset.prod_le_prod₀ (fun _ _ => abs_nonneg _) fun r _ =>
-          (hM₀ r _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₁]))
-      exact hle.trans_eq (by simp [C_ψ])
+    have hpr_R_le : ∀ σ : R → E × ℝ, |∏ r, ψ r (S w (σ r))| ≤ C_ψ := fun σ =>
+      abs_prod_le_one_add_pow hM₀ M₁ _ fun r => S w (σ r)
+    have hpr_O_le : ∀ σ : Option R → E × ℝ, |∏ r, ψ r (S w (σ (some r)))| ≤ C_ψ := fun σ =>
+      abs_prod_le_one_add_pow hM₀ M₁ _ fun r => S w (σ (some r))
     have hψd_le : ∀ (j : R) (σ : R → E × ℝ),
         |ψ_d j (S w (σ j)) * ∏ r ∈ Finset.univ.erase j, ψ r (S w (σ r))| ≤
-          (1 + |D₁|) * C_ψ := fun j σ => by
-      rw [abs_mul, Finset.abs_prod]
-      have hd : |ψ_d j (S w (σ j))| ≤ (1 + |D₁|) * (1 + |M₀| + |M₁|) := by
-        dsimp only [ψ_d]
-        refine (abs_add_le _ _).trans ?_
-        have h_1 : |deriv (ψ j) (S w (σ j))| ≤ 1 + |M₀| + |M₁| :=
-          (hM₁ j _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₀]))
-        have h_2 : |ψ j (S w (σ j)) * deriv u (S w (σ j))| ≤ |D₁| * (1 + |M₀| + |M₁|) := by
-          rw [abs_mul, mul_comm]
-          exact mul_le_mul ((hD₁ _).trans (le_abs_self _))
-            ((hM₀ j _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₁])))
-            (abs_nonneg _) (abs_nonneg _)
-        nlinarith [abs_nonneg D₁, abs_nonneg M₀, abs_nonneg M₁]
-      have hp : ∏ r ∈ Finset.univ.erase j, |ψ r (S w (σ r))| ≤
-          ∏ _r ∈ Finset.univ.erase j, (1 + |M₀| + |M₁|) :=
-        Finset.prod_le_prod₀ (fun _ _ => abs_nonneg _) fun r _ =>
-          (hM₀ r _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₁]))
-      exact (mul_le_mul hd hp (Finset.prod_nonneg fun _ _ => abs_nonneg _)
-        (by positivity)).trans_eq (by
-          rw [mul_assoc, Finset.mul_prod_erase (s := Finset.univ)
-            (f := fun _ : R => 1 + |M₀| + |M₁|) (a := j) (Finset.mem_univ j)]
-          simp [C_ψ])
+          (1 + |D₁|) * C_ψ := fun j σ =>
+      abs_tiltedDeriv_mul_prod_erase_le hM₀ hM₁ hD₁ j fun r => S w (σ r)
     have hf_R : Measurable fun σ : R → E × ℝ => f (fun r => (σ r).1) :=
       hf.comp (measurable_pi_iff.2 fun r => measurable_fst.comp (measurable_pi_apply r))
     have hf_O : Measurable fun σ : Option R → E × ℝ => f (fun r => (σ (some r)).1) :=
@@ -1741,57 +1682,8 @@ private theorem hasDerivAt_pi_tilted_prod_gaussianReal_sqrt_w [Fintype K] [Finty
   have hLS'0 : 0 ≤ L_S' := by
     have : 0 ≤ ∑ k, |w k| := Finset.sum_nonneg fun _ _ => abs_nonneg _
     positivity
-  have hS'b : ∀ v ∈ U_v, ∀ p : E × ℝ, |S' v p| ≤ L_S' * (1 + ‖p‖) ^ (n_X + 1) := by
-    intro v hv p
-    obtain ⟨hv1, hv2⟩ := hδ_le v hv
-    have hv_pos : 0 < v := hδ.trans_le hv1
-    have h1v_pos : 0 < 1 - v := hδ.trans_le hv2
-    have hc1 : |1 / (2 * Real.sqrt v)| ≤ 1 / (2 * Real.sqrt δ) := by
-      rw [abs_of_pos (by positivity)]
-      exact one_div_le_one_div_of_le (by positivity)
-        (mul_le_mul_of_nonneg_left (Real.sqrt_le_sqrt hv1) zero_le_two)
-    have hc2 : |1 / (2 * Real.sqrt (1 - v))| ≤ 1 / (2 * Real.sqrt δ) := by
-      rw [abs_of_pos (by positivity)]
-      exact one_div_le_one_div_of_le (by positivity)
-        (mul_le_mul_of_nonneg_left (Real.sqrt_le_sqrt hv2) zero_le_two)
-    have hX_bd : |X p.1 ⬝ᵥ w| ≤ |L_X| * (∑ k, |w k|) * (1 + ‖p‖) ^ (n_X + 1) := by
-      have hp_pow : (1 + ‖p.1‖) ^ n_X ≤ (1 + ‖p‖) ^ (n_X + 1) :=
-        (pow_le_pow_left₀ (by positivity) (add_le_add_right (norm_fst_le p) 1) n_X).trans
-          (pow_le_pow_right₀ (by linarith [norm_nonneg p]) (Nat.le_succ n_X))
-      calc |X p.1 ⬝ᵥ w| ≤ ∑ k, |X p.1 k| * |w k| := by
-            refine (Finset.abs_sum_le_sum_abs _ _).trans (le_of_eq ?_)
-            exact Finset.sum_congr rfl fun k _ => abs_mul _ _
-        _ ≤ ∑ k, (|L_X| * (1 + ‖p‖) ^ (n_X + 1)) * |w k| := by
-            refine Finset.sum_le_sum fun k _ => mul_le_mul_of_nonneg_right ?_ (abs_nonneg _)
-            exact (hXb k p.1).trans (mul_le_mul (le_abs_self _) hp_pow (by positivity)
-              (abs_nonneg _))
-        _ = |L_X| * (∑ k, |w k|) * (1 + ‖p‖) ^ (n_X + 1) := by
-            rw [← Finset.mul_sum]; ring
-    have hY_bd : |Y ⬝ᵥ w + c_ξ * p.2| ≤ (|Y ⬝ᵥ w| + |c_ξ|) * (1 + ‖p‖) ^ (n_X + 1) := by
-      have hp2 : |p.2| ≤ (1 + ‖p‖) ^ (n_X + 1) := by
-        have h1 : |p.2| ≤ (1 + ‖p‖) ^ 1 := by
-          rw [pow_one]
-          have hsnd : |p.2| ≤ ‖p‖ := by rw [← Real.norm_eq_abs]; exact norm_snd_le p
-          exact hsnd.trans (le_add_of_nonneg_left zero_le_one)
-        exact h1.trans (pow_le_pow_right₀ (by linarith [norm_nonneg p]) (by omega))
-      have h1_pow : (1 : ℝ) ≤ (1 + ‖p‖) ^ (n_X + 1) :=
-        one_le_pow₀ (by linarith [norm_nonneg p])
-      calc |Y ⬝ᵥ w + c_ξ * p.2| ≤ |Y ⬝ᵥ w| * 1 + |c_ξ| * |p.2| := by
-            rw [mul_one, ← abs_mul]; exact abs_add_le _ _
-        _ ≤ |Y ⬝ᵥ w| * (1 + ‖p‖) ^ (n_X + 1) + |c_ξ| * (1 + ‖p‖) ^ (n_X + 1) :=
-            add_le_add (mul_le_mul_of_nonneg_left h1_pow (abs_nonneg _))
-              (mul_le_mul_of_nonneg_left hp2 (abs_nonneg _))
-        _ = (|Y ⬝ᵥ w| + |c_ξ|) * (1 + ‖p‖) ^ (n_X + 1) := by ring
-    dsimp only [S']
-    refine (abs_sub _ _).trans ?_
-    rw [abs_mul, abs_mul]
-    calc |1 / (2 * Real.sqrt v)| * |X p.1 ⬝ᵥ w| +
-            |1 / (2 * Real.sqrt (1 - v))| * |Y ⬝ᵥ w + c_ξ * p.2|
-        ≤ (1 / (2 * Real.sqrt δ)) * (|L_X| * (∑ k, |w k|) * (1 + ‖p‖) ^ (n_X + 1)) +
-            (1 / (2 * Real.sqrt δ)) * ((|Y ⬝ᵥ w| + |c_ξ|) * (1 + ‖p‖) ^ (n_X + 1)) :=
-          add_le_add (mul_le_mul hc1 hX_bd (abs_nonneg _) (by positivity))
-            (mul_le_mul hc2 hY_bd (abs_nonneg _) (by positivity))
-      _ = L_S' * (1 + ‖p‖) ^ (n_X + 1) := by dsimp only [L_S']; ring
+  have hS'b : ∀ v ∈ U_v, ∀ p : E × ℝ, |S' v p| ≤ L_S' * (1 + ‖p‖) ^ (n_X + 1) := fun v hv p =>
+    abs_sqrt_path_deriv_le hXb Y w c_ξ hδ (hδ_le v hv).1 (hδ_le v hv).2 p
   have he'b : ∀ v ∈ U_v, ∀ p : E × ℝ,
       |S' v p * deriv u (S v p)| ≤ (L_S' * |D₁|) * (1 + ‖p‖) ^ (n_X + 1) := fun v hv p => by
     rw [abs_mul]
@@ -1814,20 +1706,13 @@ private theorem hasDerivAt_pi_tilted_prod_gaussianReal_sqrt_w [Fintype K] [Finty
             (hψd r).continuous.measurable.comp ((hSm v₀).comp (measurable_pi_apply r)))))
   set C_ψ : ℝ := (1 + |M₀| + |M₁|) ^ Fintype.card R
   have hfb_p : ∀ σ : R → E × ℝ, |f (fun r => (σ r).1)| ≤ |C_f| * ∏ r, (1 + ‖σ r‖) ^ m_f :=
-    fun σ => (hfb _).trans (mul_le_mul (le_abs_self _)
-      (Finset.prod_le_prod₀ (fun _ _ => by positivity) fun r _ =>
-        pow_le_pow_left₀ (by positivity) (add_le_add_right (norm_fst_le (σ r)) 1) _)
-      (Finset.prod_nonneg fun _ _ => by positivity) (abs_nonneg _))
+    abs_comp_le_prod_of_injective hfb norm_fst_le Function.injective_id
   have hΦb : ∀ v ∈ U_v, ∀ σ : R → E × ℝ,
       |Φ v σ| ≤ (|C_f| * C_ψ * (1 + L_S' * Fintype.card R)) *
         ∏ r, (1 + ‖σ r‖) ^ (m_f + (n_X + 1)) := fun v _ σ => by
     rw [abs_mul]
-    have h1 : |∏ r, ψ r (S v (σ r))| ≤ C_ψ := by
-      rw [Finset.abs_prod]
-      have hle : ∏ r : R, |ψ r (S v (σ r))| ≤ ∏ _r : R, (1 + |M₀| + |M₁|) :=
-        Finset.prod_le_prod₀ (fun _ _ => abs_nonneg _) fun r _ =>
-          (hM₀ r _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₁]))
-      exact hle.trans_eq (by simp [C_ψ])
+    have h1 : |∏ r, ψ r (S v (σ r))| ≤ C_ψ :=
+      abs_prod_le_one_add_pow hM₀ M₁ _ fun r => S v (σ r)
     have h2 : ∏ r, (1 + ‖σ r‖) ^ m_f ≤ ∏ r, (1 + ‖σ r‖) ^ (m_f + (n_X + 1)) :=
       Finset.prod_le_prod₀ (fun _ _ => by positivity) fun r _ =>
         pow_le_pow_right₀ (by linarith [norm_nonneg (σ r)]) (Nat.le_add_right _ _)
@@ -1858,19 +1743,9 @@ private theorem hasDerivAt_pi_tilted_prod_gaussianReal_sqrt_w [Fintype K] [Finty
           (hS'b v hv (σ j)).trans (mul_le_mul_of_nonneg_left
             (one_add_norm_pow_le_prod σ (n_X + 1) j) hLS'0)
         have hpr : |deriv (ψ j) (S v (σ j))| *
-            |∏ r ∈ Finset.univ.erase j, ψ r (S v (σ r))| ≤ C_ψ := by
-          rw [Finset.abs_prod]
-          have hd_le : |deriv (ψ j) (S v (σ j))| ≤ 1 + |M₀| + |M₁| :=
-            (hM₁ j _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₀]))
-          have hp_le : ∏ r ∈ Finset.univ.erase j, |ψ r (S v (σ r))| ≤
-              ∏ _r ∈ Finset.univ.erase j, (1 + |M₀| + |M₁|) :=
-            Finset.prod_le_prod₀ (fun _ _ => abs_nonneg _) fun r _ =>
-              (hM₀ r _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₁]))
-          exact (mul_le_mul hd_le hp_le (Finset.prod_nonneg fun _ _ => abs_nonneg _)
-            (by positivity)).trans_eq (by
-              rw [Finset.mul_prod_erase (s := Finset.univ) (f := fun _ : R => 1 + |M₀| + |M₁|)
-                (a := j) (Finset.mem_univ j)]
-              simp [C_ψ])
+            |∏ r ∈ Finset.univ.erase j, ψ r (S v (σ r))| ≤ C_ψ :=
+          (abs_mul _ _).symm.trans_le
+            (abs_deriv_mul_prod_erase_le hM₀ hM₁ j fun r => S v (σ r))
         calc |S' v (σ j)| * |deriv (ψ j) (S v (σ j))| *
               |∏ r ∈ Finset.univ.erase j, ψ r (S v (σ r))|
             = |S' v (σ j)| * (|deriv (ψ j) (S v (σ j))| *
@@ -1928,19 +1803,8 @@ private theorem hasDerivAt_pi_tilted_prod_gaussianReal_sqrt_w [Fintype K] [Finty
       (hS'b v₀ hv₀_mem (σ j)).trans (mul_le_mul_of_nonneg_left
         (one_add_norm_pow_le_prod σ (n_X + 1) j) hLS'0)
     have hpr : |deriv (ψ j) (S v₀ (σ j)) *
-        ∏ r ∈ Finset.univ.erase j, ψ r (S v₀ (σ r))| ≤ C_ψ := by
-      rw [abs_mul, Finset.abs_prod]
-      have hd_le : |deriv (ψ j) (S v₀ (σ j))| ≤ 1 + |M₀| + |M₁| :=
-        (hM₁ j _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₀]))
-      have hp_le : ∏ r ∈ Finset.univ.erase j, |ψ r (S v₀ (σ r))| ≤
-          ∏ _r ∈ Finset.univ.erase j, (1 + |M₀| + |M₁|) :=
-        Finset.prod_le_prod₀ (fun _ _ => abs_nonneg _) fun r _ =>
-          (hM₀ r _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₁]))
-      exact (mul_le_mul hd_le hp_le (Finset.prod_nonneg fun _ _ => abs_nonneg _)
-        (by positivity)).trans_eq (by
-          rw [Finset.mul_prod_erase (s := Finset.univ)
-            (f := fun _ : R => 1 + |M₀| + |M₁|) (a := j) (Finset.mem_univ j)]
-          simp [C_ψ])
+        ∏ r ∈ Finset.univ.erase j, ψ r (S v₀ (σ r))| ≤ C_ψ :=
+      abs_deriv_mul_prod_erase_le hM₀ hM₁ j fun r => S v₀ (σ r)
     have h2' : |S' v₀ (σ j) * deriv (ψ j) (S v₀ (σ j)) *
         ∏ r ∈ Finset.univ.erase j, ψ r (S v₀ (σ r))| ≤
         (L_S' * C_ψ) * ∏ r, (1 + ‖σ r‖) ^ (n_X + 1) := by
@@ -1963,12 +1827,8 @@ private theorem hasDerivAt_pi_tilted_prod_gaussianReal_sqrt_w [Fintype K] [Finty
     have hp1 : |f (fun r => (σ r).1) * ∏ r, ψ r (S v₀ (σ r))| ≤
         (|C_f| * C_ψ) * ∏ r, (1 + ‖σ r‖) ^ m_f := by
       rw [abs_mul]
-      have hpr : |∏ r, ψ r (S v₀ (σ r))| ≤ C_ψ := by
-        rw [Finset.abs_prod]
-        have hle : ∏ r : R, |ψ r (S v₀ (σ r))| ≤ ∏ _r : R, (1 + |M₀| + |M₁|) :=
-          Finset.prod_le_prod₀ (fun _ _ => abs_nonneg _) fun r _ =>
-            (hM₀ r _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₁]))
-        exact hle.trans_eq (by simp [C_ψ])
+      have hpr : |∏ r, ψ r (S v₀ (σ r))| ≤ C_ψ :=
+        abs_prod_le_one_add_pow hM₀ M₁ _ fun r => S v₀ (σ r)
       exact (mul_le_mul (hfb_p σ) hpr (abs_nonneg _) (by positivity)).trans_eq (by ring)
     have hp2 : |S' v₀ (σ j) * deriv u (S v₀ (σ j))| ≤
         (L_S' * |D₁|) * ∏ r, (1 + ‖σ r‖) ^ (n_X + 1) :=
@@ -2058,100 +1918,22 @@ private theorem hasDerivAt_integral_w_pi_tilted_prod_gaussianReal_sqrt [Fintype 
       _ = s_A := by dsimp only [s_A]; ring
   set C_ψ : ℝ := (1 + |M₀| + |M₁|) ^ Fintype.card R
   have hfb_p : ∀ σ : R → E × ℝ, |f (fun r => (σ r).1)| ≤ |C_f| * ∏ r, (1 + ‖σ r‖) ^ m_f :=
-    fun σ => (hfb _).trans (mul_le_mul (le_abs_self _)
-      (Finset.prod_le_prod₀ (fun _ _ => by positivity) fun r _ =>
-        pow_le_pow_left₀ (by positivity) (add_le_add_right (norm_fst_le (σ r)) 1) _)
-      (Finset.prod_nonneg fun _ _ => by positivity) (abs_nonneg _))
+    abs_comp_le_prod_of_injective hfb norm_fst_le Function.injective_id
   set C_S0 : ℝ := |c_ξ| / (2 * Real.sqrt δ)
   set C_S1 : ℝ := (|L_X| + s_Y + 1) / (2 * Real.sqrt δ)
   have hS'_lin_le : ∀ v ∈ U_v, ∀ (w : K → ℝ) (p : E × ℝ),
       |S' v w p| ≤ (C_S0 + C_S1 * ∑ k, |w k|) * (1 + ‖p‖) ^ (n_X + 1) := by
     intro v hv w p
-    obtain ⟨hv1, hv2⟩ := hδ_le v hv
-    have hv_pos : 0 < v := hδ.trans_le hv1
-    have h1v_pos : 0 < 1 - v := hδ.trans_le hv2
-    have hc1 : |1 / (2 * Real.sqrt v)| ≤ 1 / (2 * Real.sqrt δ) := by
-      rw [abs_of_pos (by positivity)]
-      exact one_div_le_one_div_of_le (by positivity)
-        (mul_le_mul_of_nonneg_left (Real.sqrt_le_sqrt hv1) zero_le_two)
-    have hc2 : |1 / (2 * Real.sqrt (1 - v))| ≤ 1 / (2 * Real.sqrt δ) := by
-      rw [abs_of_pos (by positivity)]
-      exact one_div_le_one_div_of_le (by positivity)
-        (mul_le_mul_of_nonneg_left (Real.sqrt_le_sqrt hv2) zero_le_two)
-    have hX_bd : |X p.1 ⬝ᵥ w| ≤ |L_X| * (∑ k, |w k|) * (1 + ‖p‖) ^ (n_X + 1) := by
-      have hp_pow : (1 + ‖p.1‖) ^ n_X ≤ (1 + ‖p‖) ^ (n_X + 1) :=
-        (pow_le_pow_left₀ (by positivity) (add_le_add_right (norm_fst_le p) 1) n_X).trans
-          (pow_le_pow_right₀ (by linarith [norm_nonneg p]) (Nat.le_succ n_X))
-      calc |X p.1 ⬝ᵥ w| ≤ ∑ k, |X p.1 k| * |w k| := by
-            refine (Finset.abs_sum_le_sum_abs _ _).trans (le_of_eq ?_)
-            exact Finset.sum_congr rfl fun k _ => abs_mul _ _
-        _ ≤ ∑ k, (|L_X| * (1 + ‖p‖) ^ (n_X + 1)) * |w k| := by
-            refine Finset.sum_le_sum fun k _ => mul_le_mul_of_nonneg_right ?_ (abs_nonneg _)
-            exact (hXb k p.1).trans (mul_le_mul (le_abs_self _) hp_pow (by positivity)
-              (abs_nonneg _))
-        _ = |L_X| * (∑ k, |w k|) * (1 + ‖p‖) ^ (n_X + 1) := by
-            rw [← Finset.mul_sum]; ring
-    have hYw_bd : |Y ⬝ᵥ w| ≤ s_Y * ∑ k, |w k| := by
-      calc |Y ⬝ᵥ w| ≤ ∑ k, |Y k| * |w k| := by
-            refine (Finset.abs_sum_le_sum_abs _ _).trans (le_of_eq ?_)
-            exact Finset.sum_congr rfl fun k _ => abs_mul _ _
-        _ ≤ ∑ k, s_Y * |w k| := Finset.sum_le_sum fun k _ =>
-            mul_le_mul_of_nonneg_right
-              (Finset.single_le_sum (f := fun j => |Y j|) (fun _ _ => abs_nonneg _)
-                (Finset.mem_univ k))
-              (abs_nonneg _)
-        _ = s_Y * ∑ k, |w k| := (Finset.mul_sum _ _ _).symm
-    have hY_bd : |Y ⬝ᵥ w + c_ξ * p.2| ≤
-        (s_Y * (∑ k, |w k|) + |c_ξ|) * (1 + ‖p‖) ^ (n_X + 1) := by
-      have hp2 : |p.2| ≤ (1 + ‖p‖) ^ (n_X + 1) := by
-        have h1 : |p.2| ≤ (1 + ‖p‖) ^ 1 := by
-          rw [pow_one]
-          have hsnd : |p.2| ≤ ‖p‖ := by rw [← Real.norm_eq_abs]; exact norm_snd_le p
-          exact hsnd.trans (le_add_of_nonneg_left zero_le_one)
-        exact h1.trans (pow_le_pow_right₀ (by linarith [norm_nonneg p]) (by omega))
-      have h1_pow : (1 : ℝ) ≤ (1 + ‖p‖) ^ (n_X + 1) :=
-        one_le_pow₀ (by linarith [norm_nonneg p])
-      calc |Y ⬝ᵥ w + c_ξ * p.2| ≤ |Y ⬝ᵥ w| * 1 + |c_ξ| * |p.2| := by
-            rw [mul_one, ← abs_mul]; exact abs_add_le _ _
-        _ ≤ (s_Y * ∑ k, |w k|) * (1 + ‖p‖) ^ (n_X + 1) + |c_ξ| * (1 + ‖p‖) ^ (n_X + 1) :=
-            add_le_add (mul_le_mul hYw_bd h1_pow zero_le_one (by
-              have : 0 ≤ ∑ k, |w k| := Finset.sum_nonneg fun _ _ => abs_nonneg _
-              positivity))
-              (mul_le_mul_of_nonneg_left hp2 (abs_nonneg _))
-        _ = (s_Y * (∑ k, |w k|) + |c_ξ|) * (1 + ‖p‖) ^ (n_X + 1) := by ring
-    dsimp only [S']
-    refine (abs_sub _ _).trans ?_
-    rw [abs_mul, abs_mul]
-    have hw_nn : 0 ≤ ∑ k, |w k| := Finset.sum_nonneg fun _ _ => abs_nonneg _
-    have hden_pos : 0 ≤ 1 / (2 * Real.sqrt δ) := by positivity
-    calc |1 / (2 * Real.sqrt v)| * |X p.1 ⬝ᵥ w| +
-            |1 / (2 * Real.sqrt (1 - v))| * |Y ⬝ᵥ w + c_ξ * p.2|
-        ≤ (1 / (2 * Real.sqrt δ)) * (|L_X| * (∑ k, |w k|) * (1 + ‖p‖) ^ (n_X + 1)) +
-            (1 / (2 * Real.sqrt δ)) *
-              ((s_Y * (∑ k, |w k|) + |c_ξ|) * (1 + ‖p‖) ^ (n_X + 1)) :=
-          add_le_add (mul_le_mul hc1 hX_bd (abs_nonneg _) hden_pos)
-            (mul_le_mul hc2 hY_bd (abs_nonneg _) hden_pos)
-      _ ≤ (C_S0 + C_S1 * ∑ k, |w k|) * (1 + ‖p‖) ^ (n_X + 1) := by
-          have hp_nn : 0 ≤ (1 + ‖p‖) ^ (n_X + 1) :=
-            pow_nonneg (add_nonneg zero_le_one (norm_nonneg p)) _
-          have hfact : 1 / (2 * Real.sqrt δ) * ((|L_X| * ∑ k, |w k|) * (1 + ‖p‖) ^ (n_X + 1)) +
-              1 / (2 * Real.sqrt δ) * ((s_Y * ∑ k, |w k| + |c_ξ|) * (1 + ‖p‖) ^ (n_X + 1)) =
-            ((1 / (2 * Real.sqrt δ)) * (|L_X| * ∑ k, |w k|) +
-              (1 / (2 * Real.sqrt δ)) * (s_Y * ∑ k, |w k| + |c_ξ|)) * (1 + ‖p‖) ^ (n_X + 1) := by
-            ring
-          rw [hfact]
-          refine mul_le_mul_of_nonneg_right ?_ hp_nn
-          dsimp only [C_S0, C_S1]
-          have hden : 0 < 2 * Real.sqrt δ := by positivity
-          have heq_sum : C_S0 + C_S1 * ∑ k, |w k| =
-              (|c_ξ| + (|L_X| + s_Y + 1) * ∑ k, |w k|) / (2 * Real.sqrt δ) := by
-            dsimp only [C_S0, C_S1]; ring
-          have : |c_ξ| + (|L_X| + s_Y) * ∑ k, |w k| ≤ |c_ξ| + (|L_X| + s_Y + 1) * ∑ k, |w k| := by
-            linarith
-          have hdiv := div_le_div_of_nonneg_right this hden.le
-          linarith [heq_sum, show (1 / (2 * Real.sqrt δ)) * (|L_X| * ∑ k, |w k|) +
-              (1 / (2 * Real.sqrt δ)) * (s_Y * ∑ k, |w k| + |c_ξ|) =
-              (|c_ξ| + (|L_X| + s_Y) * ∑ k, |w k|) / (2 * Real.sqrt δ) by ring]
+    refine (abs_sqrt_path_deriv_le hXb Y w c_ξ hδ (hδ_le v hv).1 (hδ_le v hv).2 p).trans
+      (mul_le_mul_of_nonneg_right ?_ (by positivity))
+    have hYw : |Y ⬝ᵥ w| ≤ s_Y * ∑ k, |w k| := abs_dotProduct_le_mul_sum_abs
+      (fun k => Finset.single_le_sum (f := fun j => |Y j|) (fun _ _ => abs_nonneg _)
+        (Finset.mem_univ k)) w
+    have hw : 0 ≤ ∑ k, |w k| := Finset.sum_nonneg fun _ _ => abs_nonneg _
+    calc 1 / (2 * Real.sqrt δ) * (|L_X| * (∑ k, |w k|) + |Y ⬝ᵥ w| + |c_ξ|)
+        ≤ 1 / (2 * Real.sqrt δ) * (|c_ξ| + (|L_X| + s_Y + 1) * ∑ k, |w k|) :=
+          mul_le_mul_of_nonneg_left (by linarith) (by positivity)
+      _ = C_S0 + C_S1 * ∑ k, |w k| := by dsimp only [C_S0, C_S1]; ring
   -- Bounds and integrability for `F_w`, `D1_w`, `D2_w`:
   set F_w : ℝ → (K → ℝ) → ℝ := fun v w =>
     ∫ σ : R → E × ℝ, f (fun r => (σ r).1) * ∏ r, ψ r (S v w (σ r))
@@ -2223,13 +2005,8 @@ private theorem hasDerivAt_integral_w_pi_tilted_prod_gaussianReal_sqrt [Fintype 
             (measurable_S_joint (ι := R) (hAvm v) (c_v v) r)))
       (C₀ := |C_f| * C_ψ) (C₁ := 0) (by positivity) le_rfl fun w σ => ?_).2
     rw [zero_mul, add_zero, abs_mul]
-    have hpr : |∏ r, ψ r (A_v v (σ r).1 ⬝ᵥ w + c_v v * (σ r).2)| ≤ C_ψ := by
-      rw [Finset.abs_prod]
-      have hle : ∏ r : R, |ψ r (A_v v (σ r).1 ⬝ᵥ w + c_v v * (σ r).2)| ≤
-          ∏ _r : R, (1 + |M₀| + |M₁|) :=
-        Finset.prod_le_prod₀ (fun _ _ => abs_nonneg _) fun r _ =>
-          (hM₀ r _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₁]))
-      exact hle.trans_eq (by simp [C_ψ])
+    have hpr : |∏ r, ψ r (A_v v (σ r).1 ⬝ᵥ w + c_v v * (σ r).2)| ≤ C_ψ :=
+      abs_prod_le_one_add_pow hM₀ M₁ _ fun r => A_v v (σ r).1 ⬝ᵥ w + c_v v * (σ r).2
     exact (mul_le_mul (hfb_p σ) hpr (abs_nonneg _) (by positivity)).trans_eq (by ring)
   -- Uniform bound on `|D1_w i v w|` and `|D2_w v w|` over `v ∈ U_v`:
   have hcv_le : ∀ v ∈ U_v, |c_v v| ≤ |c_ξ| := fun v hv => by
@@ -2273,31 +2050,8 @@ private theorem hasDerivAt_integral_w_pi_tilted_prod_gaussianReal_sqrt [Fintype 
         have hψd_le : |ψ_d i (A_v v (σ i).1 ⬝ᵥ w + c_v v * (σ i).2) *
             ∏ r ∈ Finset.univ.erase i, ψ r (A_v v (σ r).1 ⬝ᵥ w + c_v v * (σ r).2)| ≤
             (1 + |D₁|) * C_ψ := by
-          rw [abs_mul, Finset.abs_prod]
-          have hd : |ψ_d i (A_v v (σ i).1 ⬝ᵥ w + c_v v * (σ i).2)| ≤
-              (1 + |D₁|) * (1 + |M₀| + |M₁|) := by
-            dsimp only [ψ_d]
-            refine (abs_add_le _ _).trans ?_
-            have h_1 : |deriv (ψ i) (A_v v (σ i).1 ⬝ᵥ w + c_v v * (σ i).2)| ≤
-                1 + |M₀| + |M₁| :=
-              (hM₁ i _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₀]))
-            have h_2 : |ψ i (A_v v (σ i).1 ⬝ᵥ w + c_v v * (σ i).2) *
-                deriv u (A_v v (σ i).1 ⬝ᵥ w + c_v v * (σ i).2)| ≤
-                |D₁| * (1 + |M₀| + |M₁|) := by
-              rw [abs_mul, mul_comm]
-              exact mul_le_mul ((hD₁ _).trans (le_abs_self _))
-                ((hM₀ i _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₁])))
-                (abs_nonneg _) (abs_nonneg _)
-            nlinarith [abs_nonneg D₁, abs_nonneg M₀, abs_nonneg M₁]
-          have hp : ∏ r ∈ Finset.univ.erase i, |ψ r (A_v v (σ r).1 ⬝ᵥ w + c_v v * (σ r).2)| ≤
-              ∏ _r ∈ Finset.univ.erase i, (1 + |M₀| + |M₁|) :=
-            Finset.prod_le_prod₀ (fun _ _ => abs_nonneg _) fun r _ =>
-              (hM₀ r _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₁]))
-          exact (mul_le_mul hd hp (Finset.prod_nonneg fun _ _ => abs_nonneg _)
-            (by positivity)).trans_eq (by
-              rw [mul_assoc, Finset.mul_prod_erase (s := Finset.univ)
-                (f := fun _ : R => 1 + |M₀| + |M₁|) (a := i) (Finset.mem_univ i)]
-              simp [C_ψ])
+          exact abs_tiltedDeriv_mul_prod_erase_le hM₀ hM₁ hD₁ i fun r =>
+            A_v v (σ r).1 ⬝ᵥ w + c_v v * (σ r).2
         have hS1 : |S' v w (σ i) *
             (ψ_d i (A_v v (σ i).1 ⬝ᵥ w + c_v v * (σ i).2) *
               ∏ r ∈ Finset.univ.erase i, ψ r (A_v v (σ r).1 ⬝ᵥ w + c_v v * (σ r).2))| ≤
@@ -2359,14 +2113,11 @@ private theorem hasDerivAt_integral_w_pi_tilted_prod_gaussianReal_sqrt [Fintype 
           abs_comp_some_le_prod hfb_p σ
         have hpr : |(∏ r, ψ r (A_v v (σ (some r)).1 ⬝ᵥ w + c_v v * (σ (some r)).2)) *
             deriv u (A_v v (σ none).1 ⬝ᵥ w + c_v v * (σ none).2)| ≤ C_ψ * |D₁| := by
-          rw [abs_mul, Finset.abs_prod]
-          have hp : ∏ r : R, |ψ r (A_v v (σ (some r)).1 ⬝ᵥ w + c_v v * (σ (some r)).2)| ≤ C_ψ := by
-            have hle : ∏ r : R, |ψ r (A_v v (σ (some r)).1 ⬝ᵥ w + c_v v * (σ (some r)).2)| ≤
-                ∏ _r : R, (1 + |M₀| + |M₁|) :=
-              Finset.prod_le_prod₀ (fun _ _ => abs_nonneg _) fun r _ =>
-                (hM₀ r _).trans ((le_abs_self _).trans (by linarith [abs_nonneg M₁]))
-            exact hle.trans_eq (by simp [C_ψ])
-          exact mul_le_mul hp ((hD₁ _).trans (le_abs_self _)) (abs_nonneg _) (by positivity)
+          rw [abs_mul]
+          exact mul_le_mul
+            (abs_prod_le_one_add_pow hM₀ M₁ _ fun r =>
+              A_v v (σ (some r)).1 ⬝ᵥ w + c_v v * (σ (some r)).2)
+            ((hD₁ _).trans (le_abs_self _)) (abs_nonneg _) (by positivity)
         have hS2 : |S' v w (σ none) *
             ((∏ r, ψ r (A_v v (σ (some r)).1 ⬝ᵥ w + c_v v * (σ (some r)).2)) *
               deriv u (A_v v (σ none).1 ⬝ᵥ w + c_v v * (σ none).2))| ≤
@@ -3541,10 +3292,7 @@ theorem hasDerivAt_integral_integral_pi_tilted_prod_gaussianReal_sqrt
     exact (Finset.measurable_sum _ fun k _ =>
       ((hXm k).comp measurable_fst).mul ((hXm k).comp measurable_snd)).sub measurable_const
   have hfb_p : ∀ σ : R → E × ℝ, |f (fun r => (σ r).1)| ≤ |C_f| * ∏ r, (1 + ‖σ r‖) ^ m_f :=
-    fun σ => (hfb _).trans (mul_le_mul (le_abs_self _)
-      (Finset.prod_le_prod₀ (fun _ _ => by positivity) fun r _ =>
-        pow_le_pow_left₀ (by positivity) (add_le_add_right (norm_fst_le (σ r)) 1) _)
-      (Finset.prod_nonneg fun _ _ => by positivity) (abs_nonneg _))
+    abs_comp_le_prod_of_injective hfb norm_fst_le Function.injective_id
   -- Instantiate `measurable_and_abs_le_integral_w_pi_tilted_prod_gaussianReal` for the 4 shapes:
   obtain ⟨C_d0, hCd0, hctrl0⟩ :=
     measurable_and_abs_le_integral_w_pi_tilted_prod_gaussianReal (ι := R) μ P₀ hκ hB₀ hc₀ hmom

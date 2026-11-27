@@ -18,6 +18,7 @@ public import Mathlib.Analysis.Calculus.Deriv.Mul
 * `Real.sq_sqrt_sub_le_abs_sub`: `(√a - √b)² ≤ |a - b|` for `a, b ≥ 0`.
 * `Real.sq_sqrt_sub_le`: `(√q - a)² ≤ (q - a²)² / q` for `q > 0`, `a ≥ 0`.
 * `Real.inv_sqrt_mul_self`: `(√n)⁻¹ * (√n)⁻¹ = n⁻¹` for `n ≥ 0`.
+* `Real.abs_one_div_two_mul_sqrt_le`: `|1 / (2 √v)| ≤ 1 / (2 √δ)` when `0 < δ ≤ v`.
 * `hasDerivAt_sqrt_mul_add_sqrt_one_sub_mul`: derivative of `s ↦ √s a + √(1 - s) b` on `(0, 1)`.
 * `abs_div_two_sqrt_sub_le`: `|a / (2 √t) - b / (2 √(1 - t))| ≤ (|a| + |b|) / (2 √δ)` when
   `δ ≤ t ≤ 1 - δ`.
@@ -31,6 +32,12 @@ namespace Real
 theorem inv_sqrt_mul_self (n : ℝ) (hn : 0 ≤ n) :
     (Real.sqrt n)⁻¹ * (Real.sqrt n)⁻¹ = n⁻¹ := by
   rw [← mul_inv, Real.mul_self_sqrt hn]
+
+/-- The singular factor `1 / (2 √v)` of a square-root path is bounded away from `0`. -/
+theorem abs_one_div_two_mul_sqrt_le {δ v : ℝ} (hδ : 0 < δ) (h : δ ≤ v) :
+    |1 / (2 * Real.sqrt v)| ≤ 1 / (2 * Real.sqrt δ) := by
+  rw [abs_of_nonneg (by positivity)]
+  gcongr
 
 /-- `√(a + b) ≤ √a + √b` for nonnegative `a, b`, since `(√a + √b)² = a + b + 2 √a √b ≥ a + b`. -/
 theorem sqrt_add_le_add_sqrt {a b : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) :
@@ -92,11 +99,10 @@ theorem abs_div_two_sqrt_sub_le {δ t a b : ℝ} (hδ : 0 < δ) (h1 : δ ≤ t) 
     |a / (2 * Real.sqrt t) - b / (2 * Real.sqrt (1 - t))| ≤ (|a| + |b|) / (2 * Real.sqrt δ) := by
   have ht0 : 0 < t := hδ.trans_le h1
   have ht1 : 0 < 1 - t := hδ.trans_le h2
-  have hpos : 0 < 2 * Real.sqrt δ := by positivity
   have hi1 : 1 / (2 * Real.sqrt t) ≤ 1 / (2 * Real.sqrt δ) :=
-    one_div_le_one_div_of_le hpos (mul_le_mul_of_nonneg_left (Real.sqrt_le_sqrt h1) zero_le_two)
+    (le_abs_self _).trans (Real.abs_one_div_two_mul_sqrt_le hδ h1)
   have hi2 : 1 / (2 * Real.sqrt (1 - t)) ≤ 1 / (2 * Real.sqrt δ) :=
-    one_div_le_one_div_of_le hpos (mul_le_mul_of_nonneg_left (Real.sqrt_le_sqrt h2) zero_le_two)
+    (le_abs_self _).trans (Real.abs_one_div_two_mul_sqrt_le hδ h2)
   have hsub := abs_sub (a / (2 * Real.sqrt t)) (b / (2 * Real.sqrt (1 - t)))
   rw [abs_div, abs_div, abs_of_pos (by positivity : 0 < 2 * Real.sqrt t),
     abs_of_pos (by positivity : 0 < 2 * Real.sqrt (1 - t))] at hsub

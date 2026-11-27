@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.SqrtSub
 public import LeanMachineLearning.SpinGlasses.Talagrand.VectorSpins.FreeEnergy.LogPartition
 public import Mathlib.Analysis.SpecialFunctions.Sqrt
 
@@ -265,11 +266,8 @@ theorem hasDerivAt_skVectorSegment (μ : Measure α) [IsProbabilityMeasure μ]
     rw [Metric.mem_ball, Real.dist_eq, abs_lt] at hr
     constructor <;> linarith [hr.1, hr.2]
   have hsm : 0 < Real.sqrt m := Real.sqrt_pos.2 hm
-  have hb : ∀ x, m ≤ x → |1 / (2 * Real.sqrt x)| ≤ 1 / (2 * Real.sqrt m) := by
-    intro x hx
-    have hx' : Real.sqrt m ≤ Real.sqrt x := Real.sqrt_le_sqrt hx
-    rw [abs_of_nonneg (by positivity)]
-    exact one_div_le_one_div_of_le (by positivity) (by linarith)
+  have hb : ∀ x, m ≤ x → |1 / (2 * Real.sqrt x)| ≤ 1 / (2 * Real.sqrt m) :=
+    fun _ => Real.abs_one_div_two_mul_sqrt_le hm
   have hmain := hasDerivAt_integral_log_partition_cavity_path (μ := μ) (P := P)
     (D := D0) (X := Xf) (Xs := Xs) (Eb := Eb) (B := B) R (fun _ _ => rfl)
     hD0m hXfm hXsm hB0 hD0b hXfb hXsb

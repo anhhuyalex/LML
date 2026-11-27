@@ -129,15 +129,10 @@ theorem exists_hasDerivAt_integral_integral_pi_tilted_prod_gaussianReal_sqrt_abs
     dsimp only [C_cov]; linarith [sq_nonneg c_ξ]
   have hHb : ∀ a b σ, |H a b σ| ≤
       |C_f| * C_cov * ∏ o, (1 + ‖σ o‖) ^ (m_f + 2 * n_X) := fun a b σ => by
-    have hlift : ∀ τ : R → E × ℝ,
-        |f (fun r => (τ r).1)| ≤ |C_f| * ∏ r, (1 + ‖τ r‖) ^ m_f := fun τ =>
-      (hfb _).trans (mul_le_mul (le_abs_self _)
-        (Finset.prod_le_prod₀ (fun _ _ => by positivity) fun r _ =>
-          pow_le_pow_left₀ (by positivity) (add_le_add_right (norm_fst_le (τ r)) 1) _)
-        (Finset.prod_nonneg fun _ _ => by positivity) (abs_nonneg _))
     have h1 : |f (fun r => (σ (some (some r))).1)| ≤
         |C_f| * ∏ o, (1 + ‖σ o‖) ^ m_f :=
-      abs_comp_some_le_prod (abs_comp_some_le_prod hlift) σ
+      abs_comp_le_prod_of_injective hfb norm_fst_le
+        ((Option.some_injective _).comp (Option.some_injective R)) σ
     have h2 : |X (σ a).1 ⬝ᵥ X (σ b).1 - (Y ⬝ᵥ Y + if a = b then c_ξ ^ 2 else 0)| ≤
         C_cov * ∏ o, (1 + ‖σ o‖) ^ (2 * n_X) := by
       have hcov := abs_dotProduct_sub_dotProduct_le_of_abs_le_pow (Y := Y) hXb c_ξ (σ a).1 (σ b).1
@@ -223,19 +218,9 @@ theorem exists_hasDerivAt_integral_integral_pi_tilted_prod_gaussianReal_sqrt_abs
       simpa only [ν, hS] using hres
     rw [← integral_const_mul]
     refine norm_integral_le_of_norm_le (hwint.const_mul _) (ae_of_all _ fun w => ?_)
-    have hprob : IsProbabilityMeasure (ν v₀ ω w) := by
-      have hint : Integrable (fun _ : Unit → E × ℝ => (1 : ℝ))
-          (Measure.pi fun _ : Unit => ν v₀ ω w) := by
-        have h := integrable_pi_tilted_prod_gaussianReal_of_poly (ι := Unit) μ hκ (hB₀ ω) hEω
-          (hE₀_conf ω) A hAm c hu hu0 w (fun _ => 1) measurable_const (C := 1) (m := 0)
-          (fun _ => by simp)
-        simpa only [ν, hS] using h
-      have hκ' : 0 < min κ (1 / 2) := lt_min hκ (by positivity)
-      rw [show ν v₀ ω w = _ from tilted_prod_gaussianReal_zero_one μ _]
-      refine isProbabilityMeasure_tilted (integrable_exp_of_confining (μ := μ.prod volume) hκ'
-        (((hEω.comp measurable_fst).add (hum.comp (hSm.comp measurable_prodMk_left))).sub
-          ((measurable_snd.pow_const 2).div_const 2)) (A := 0) (B := B₀ ω) fun p => ?_)
-      exact prod_gaussian_exponent_confining hκ (hB₀ ω) (hE₀_conf ω) hu0 (S v₀ w) p
+    have hprob : IsProbabilityMeasure (ν v₀ ω w) :=
+      isProbabilityMeasure_tilted_prod_gaussianReal_of_confining μ hκ hEω (hE₀_conf ω) hum hu0
+        (S := S v₀ w) (hSm.comp measurable_prodMk_left)
     have hHint : Integrable (H a b) (Measure.pi fun _ : Option (Option R) => ν v₀ ω w) := by
       have h := integrable_pi_tilted_prod_gaussianReal_of_poly (ι := Option (Option R)) μ hκ
         (hB₀ ω) hEω (hE₀_conf ω) A hAm c hu hu0 w (H a b) (hHm a b) (hHb a b)
@@ -302,9 +287,8 @@ theorem exists_hasDerivAt_integral_integral_pi_tilted_prod_gaussianReal_sqrt_abs
     have hexp : B ^ 3 = 1 + 3 * t + 3 * (t * t) + t * t ^ 2 := by rw [hBt]; ring
     rw [hexp]
     linarith [mul_nonneg ht0 ht0]
-  have hprodB : ∀ (s : Finset R) (x : R → ℝ), |∏ r ∈ s, ψ r (x r)| ≤ B ^ s.card := fun s x => by
-    rw [Finset.abs_prod, ← Finset.prod_const]
-    exact Finset.prod_le_prod₀ (fun _ _ => abs_nonneg _) fun r _ => hψB r _
+  have hprodB : ∀ (s : Finset R) (x : R → ℝ), |∏ r ∈ s, ψ r (x r)| ≤ B ^ s.card := fun s x =>
+    s.abs_prod_le_pow_card fun r _ => hψB r _
   have hfin : ∀ (F C P : ℝ) (k : ℕ), |P| ≤ B ^ k → k ≤ n + 2 →
       |F * C * P| ≤ B ^ (n + 2) * (|F| * |C|) := fun F C P k hP hk => by
     rw [abs_mul, abs_mul, mul_comm (B ^ (n + 2))]

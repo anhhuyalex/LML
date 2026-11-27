@@ -188,6 +188,7 @@ public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaComparison
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaConfined
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaConfinedPair
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaConfinedStein
+public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaConfinedSteinBound
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaDiffDerivative
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaEquivariance
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaPairBound
@@ -810,6 +811,7 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.Larg
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.Limit
 public import LeanMachineLearning.SpinGlasses.Talagrand.Replica.Variational.Stationarity
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.AuxiliaryCavity
+public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.AuxiliaryCavityDerivative
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.CavityDerivative
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.CavityEndpoint
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.Convexity
