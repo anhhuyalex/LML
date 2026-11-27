@@ -621,9 +621,9 @@ coefficient of $\sum g_{i,k}^2$ is $1/(8N)$.
 
 \section{Tools for the replica-symmetric equations (Talagrand Section~3.2)}\label{sec:sg-tal:st-rs-tools}
 
-This section covers Section~3.2 up to Lemma~3.2.7 and the smoothed representation~(3.99): the analytic
+This section covers Section~3.2 up to Lemma~3.2.8 and the smoothed representation~(3.99): the analytic
 lemmas, the cavity Hamiltonian, Proposition~3.2.1, Proposition~3.2.4, Lemma~3.2.6, and the auxiliary cavity
-path $\nu_{t,v}$ with Lemma~3.2.7. Lemmas~3.2.8--3.2.9, Proposition~3.2.10, Lemma~3.2.11,
+path $\nu_{t,v}$ with Lemmas~3.2.7--3.2.8. Lemma~3.2.9, Proposition~3.2.10, Lemma~3.2.11,
 Proposition~3.2.12 and Theorem~3.2.14 are not formalized yet.
 
 \begin{lemma}[Marginals of log-concave densities]\label{lem:sg-tal:st-marginal}
@@ -1160,6 +1160,92 @@ on $u$ under which the replica-symmetric system (3.69), (3.76) and (3.77) (print
 unique solution; it has no Lean statement.
 \end{remark}
 
+\begin{lemma}[A covariance bound along the square-root path]\label{lem:sg-tal:st-sqrt-path}
+  \lean{MeasureTheory.hasDerivAt_integral_integral_pi_tilted_prod_gaussianReal_sqrt,
+        MeasureTheory.exists_hasDerivAt_integral_integral_pi_tilted_prod_gaussianReal_sqrt_abs_le}
+  \leanok
+\talsource{the argument behind Lemma~3.2.8, for a general confined model}
+Let $E$ be a finite-dimensional normed space with Haar measure $dx$, let $(\Omega,P_0)$ be a measure space,
+and let $E_0(\omega,x)$ be measurable with
+$E_0(\omega,x)\le B_0(\omega)\|x\|-\kappa\|x\|^2$ for some $\kappa>0$, $B_0\ge0$, and
+$E_0(\omega,x)\ge-c_0(\omega)$ for $\|x\|\le1$, where $(1+B_0+c_0)^d$ is $P_0$-integrable for every $d$.
+Let $K$ be a finite set, $X:E\to\mathbb R^K$ measurable with $|X_k(x)|\le L(1+\|x\|)^m$,
+$Y\in\mathbb R^K$ with $X(x)\cdot Y=0$ for all $x$, $c\in\mathbb R$, $w$ a standard Gaussian vector in
+$\mathbb R^K$ and $\xi$ a standard Gaussian, and put
+\[
+S_v(w,x,\xi)=\sqrt v\,X(x)\cdot w+\sqrt{1-v}\,(Y\cdot w+c\,\xi).
+\]
+Let $u\le0$ and $\psi_l$ ($l\in R$, $|R|=n$) be twice differentiable with $u',u'',\psi_l,\psi_l',\psi_l''$
+bounded, and let $f:E^R\to\mathbb R$ be measurable of polynomial growth. Let $\langle\cdot\rangle_v$ be the
+Gibbs average on replicas of $(x,\xi)$ with weight proportional to
+$\exp\{E_0(\omega,x)+u(S_v(w,x,\xi))-\xi^2/2\}$, and $\nu_v(F)=\int\!\!\int\langle F\rangle_v\,d\gamma(w)\,dP_0$.
+Then $\varphi(v)=\nu_v\bigl(f(x)\prod_{l\in R}\psi_l(S_v^l)\bigr)$ is differentiable on $(0,1)$ and
+\[
+|\varphi'(v)|\le(n+1)^2B^{n+2}\sum_{a,b}\nu_v\Bigl(|f|\,\bigl|X(x^a)\cdot X(x^b)-\|Y\|^2-c^2\mathbf 1_{a=b}\bigr|\Bigr),
+\]
+where $a,b$ run over $R$ and two further replicas and $B$ is $1$ plus the sum of the bounds on
+$\psi$, $\psi'$, $\psi''$, $u'$ and $u''$.
+\end{lemma}
+\begin{proof}
+  \leanok
+\emph{Step 1 (derivative).} Differentiate under the disorder integral; the confinement gives Gaussian-type
+domination of every polynomial moment.
+
+\emph{Step 2 (integration by parts).} Integrate by parts in $w$ and in each $\xi^a$. Since $X\cdot Y=0$,
+\[
+\mathbb E\Bigl[\tfrac{\partial S_v^a}{\partial v}\,S_v^b\Bigr]
+=\tfrac12\bigl(X(x^a)\cdot X(x^b)-\|Y\|^2-c^2\mathbf 1_{a=b}\bigr),
+\]
+and $\varphi'(v)$ becomes six groups of replica averages, each of $f$ times one such covariance times a
+product of the functions $\psi_l,\psi_l',\psi_l'',u',u''$ evaluated at the replicas.
+
+\emph{Step 3 (bound).} Each product is at most $B^{n+2}$; view every average inside the system of $n+2$
+replicas and count the terms.
+Formalized in \texttt{ForMathlib/Probability/GibbsReplicaConfinedStein.lean} and
+\texttt{GibbsReplicaConfinedSteinBound.lean}.
+\end{proof}
+
+\begin{lemma}[Derivative along the auxiliary cavity path]\label{lem:sg-tal:st-aux-derivative}
+  \lean{SpinGlasses.exists_hasDerivAt_shcherbinaTirozziAuxCavity_abs_le}
+  \leanok
+  \uses{lem:sg-tal:st-aux-cavity, lem:sg-tal:st-sqrt-path}
+\talsource{Lemma~3.2.8, Eq.~(3.96)}
+In the setting of Lemma~\ref{lem:sg-tal:st-aux-cavity}, let $\kappa>0$, $0\le r$, $\bar r\le r$,
+$t\in[0,1]$, $0\le q\le\rho$, and let $u\le0$ be twice differentiable with $u',u''$ bounded. Let $\psi_l$
+($l\in R$, $|R|=n$) be twice differentiable with two bounded derivatives and bounded values, and let
+$f:(\mathbb R^{N+1})^R\to\mathbb R$ be measurable of polynomial growth. Then
+$v\mapsto\nu_{t,v}\bigl(f\prod_l\psi_l(S_v^l)\bigr)$ is differentiable on $(0,1)$ and its derivative is at most
+\[
+(n+1)^2B^{n+2}\sum_{a,b}\nu_{t,v}\Bigl(|f|\,\Bigl|R^t_{a,b}-\bigl(\rho\,\mathbf 1_{a=b}+q\,\mathbf 1_{a\ne b}\bigr)\Bigr|\Bigr),
+\qquad
+R^t_{a,b}=\frac1{N+1}\Bigl(\sum_{i\le N}\sigma^a_i\sigma^b_i+t\,\sigma^a_{N+1}\sigma^b_{N+1}\Bigr),
+\]
+where $a,b$ run over $R$ and two further replicas and $B$ is as in Lemma~\ref{lem:sg-tal:st-sqrt-path}.
+The constant does not depend on $N$, $M$, $\kappa$, $h$ or $t$.
+\end{lemma}
+\begin{proof}
+  \leanok
+  \uses{lem:sg-tal:st-aux-cavity, lem:sg-tal:st-sqrt-path}
+Apply Lemma~\ref{lem:sg-tal:st-sqrt-path} on $E=\mathbb R^{N+1}$ with $E_0$ the cavity exponent of the first
+$M$ constraints, $w=(g_{M+1,\cdot},z)$, $X_i(\sigma)=\sigma_i/\sqrt{N+1}$ for $i\le N$,
+$X_{N+1}(\sigma)=\sqrt t\,\sigma_{N+1}/\sqrt{N+1}$, $X_z=0$, $Y=\sqrt q$ in the coordinate $z$ and $0$
+elsewhere, and $c=\sqrt{\rho-q}$. Then $X(\sigma)\cdot Y=0$, $X(\sigma^a)\cdot X(\sigma^b)=R^t_{a,b}$ and
+$\|Y\|^2+c^2\mathbf 1_{a=b}$ is $\rho$ or $q$. The confinement constants are at most linear in the size of
+the disorder, so all their moments are finite.
+Formalized in \texttt{SpinGlasses/Talagrand/ShcherbinaTirozzi/AuxiliaryCavityDerivative.lean}.
+\end{proof}
+
+\begin{remark}[Differences from Eq.~(3.96)]\label{rem:sg-tal:st-eq-396}
+\talsource{Lemma~3.2.8}
+The book states (3.96) for $B_v\in\{1,\;u'(S_v^1)u'(S_v^2),\;u'^2(S_v^1)+u''(S_v^1)\}$; these are products of
+factors $\psi_l$ as above when four derivatives of $u$ are bounded, as in (3.95). The book's bound has the
+full overlap $R_{a,b}$ and an additional term $\nu_{t,v}(|f|)/N$. The covariance of the fields is the
+truncated overlap $R^t_{a,b}=R_{a,b}-(1-t)\sigma^a_{N+1}\sigma^b_{N+1}/(N+1)$. The last spin is not bounded,
+so the difference is not bounded by $K\nu_{t,v}(|f|)/N$ without a further estimate, and the statement above
+keeps $R^t$. The sum here also contains the diagonal term of the second fresh replica. No concavity of $u$
+and no lower bound on $\kappa$ is used.
+\end{remark}
+
 \begin{remark}[Research Problem~3.1.2]\label{rem:sg-tal:st-problem-312}
 \talsource{Eq.~(3.10)}
 \emph{Not formalized.} The book asks to compute, under the conditions of Theorem~3.1.1 and as
@@ -1176,7 +1262,7 @@ It is an open problem in the book and has no Lean statement.
 This section proves Lemmas~3.3.6--3.3.10, Proposition~3.3.3, Lemma~3.3.13, Proposition~3.3.11,
 Corollary~3.3.12, the uniqueness part of Theorem~3.3.1, and the zero-constraint ($M=0$) base case of
 Theorem~3.3.2. The existence part of Theorem~3.3.1, Corollary~3.3.4, Lemma~3.3.5 and the full telescoping
-step of Theorem~3.3.2 (which depend on Lemmas~3.2.8--3.2.9 and Proposition~3.2.12) are not formalized yet.
+step of Theorem~3.3.2 (which depend on Lemma~3.2.9 and Proposition~3.2.12) are not formalized yet.
 Throughout, $\xi$ is a standard Gaussian, $p(v)=e^{-v^2/2}/\sqrt{2\pi}$ and
 $T(v)=\mathbb P(\xi\ge v)$.
 
@@ -1531,14 +1617,16 @@ by the strict inequality $vA(v)<1+v^2$ and $AA'\ge0$.
 \end{proof}
 
 \begin{lemma}[Strict minimum and strict maximum]\label{lem:sg-tal:st-hard-saddle}
-  \lean{SpinGlasses.shcherbinaTirozziHardFunctional_ratio_lt_of_hasDerivAt_zero,
+  \lean{SpinGlasses.shcherbinaTirozziHardFunctional_ratio_lt_of_between,
+        SpinGlasses.shcherbinaTirozziHardFunctional_ratio_lt_of_hasDerivAt_zero,
         SpinGlasses.shcherbinaTirozziHardFunctional_self_lt_of_hasDerivAt_zero}
   \leanok
   \uses{lem:sg-tal:st-hard-monotone}
 \talsource{Corollary~3.3.12}
 Let $\alpha\ge0$, $\tau\ge0$. If $x,\rho>0$ and $\partial G/\partial x(x,\rho)=0$, then $G(x,\rho)<G(y,\rho)$ for
 every $y>0$, $y\ne x$. If $x\ge0$, $\rho>0$ and $\partial G/\partial\rho(x,\rho)=0$, then $G(x,r)<G(x,\rho)$ for
-every $r>0$, $r\ne\rho$.
+every $r>0$, $r\ne\rho$. More precisely, in the first case $G(y,\rho)<G(z,\rho)$ whenever $z>0$, $z\ne y$ and
+$y$ lies between $x$ and $z$.
 \end{lemma}
 \begin{proof}
   \leanok
@@ -1671,6 +1759,48 @@ and $c\mapsto G(c,x(a_0),y(a))$, and pass to the limit using the continuity of $
 Formalized in \texttt{ForMathlib/Analysis/Calculus/SaddleEnvelope.lean}.
 \end{proof}
 
+\begin{lemma}[Continuity of the critical branch]\label{lem:sg-tal:st-branch-continuity}
+  \lean{notMem_segment_of_saddle,
+        SpinGlasses.shcherbinaTirozziHardFunctional_ratio_critical,
+        SpinGlasses.continuousWithinAt_shcherbinaTirozziHardFunctional_critical}
+  \leanok
+  \uses{def:sg-tal:st-hard-functional, lem:sg-tal:st-hard-derivatives, lem:sg-tal:st-hard-monotone,
+    lem:sg-tal:st-hard-saddle, lem:sg-tal:st-mills-affine}
+\talsource{implicit in Lemma~3.3.6}
+Let $\tau\ge0$, let $A\subset[0,\infty)$ with $\alpha_0\in A$, and suppose that for $a\in A$ near $\alpha_0$
+the point $(q(a),\rho(a))$ satisfies $0<q(a)<\rho(a)$ and
+$\partial_qF(a,q(a),\rho(a))=0=\partial_\rho F(a,q(a),\rho(a))$. Then $q$ and $\rho$ are continuous within
+$A$ at $\alpha_0$.
+\end{lemma}
+\begin{proof}
+  \leanok
+  \uses{def:sg-tal:st-hard-functional, lem:sg-tal:st-hard-derivatives, lem:sg-tal:st-hard-monotone,
+    lem:sg-tal:st-hard-saddle, lem:sg-tal:st-mills-affine}
+Put $x(a)=q(a)/(\rho(a)-q(a))$; then $(x(a),\rho(a))$ is a critical point of $G(a,u,v)=F(a,uv/(1+u),v)$, hence
+$x(a)$ minimizes $G(a,\cdot,\rho(a))$ and $\rho(a)$ maximizes $G(a,x(a),\cdot)$
+(Lemma~\ref{lem:sg-tal:st-hard-saddle}). The function $G$ is affine in the load $a$. Write
+$x_0=x(\alpha_0)$, $\rho_0=\rho(\alpha_0)$.
+
+\emph{Step 1 (continuity of $\rho$).} Fix $r_1>0$, $r_1\ne\rho_0$. For $a$ near $\alpha_0$ the derivative of
+$G(a,\cdot,\rho_0)$ changes sign between $x_0/2$ and $3x_0/2$, so by Darboux's theorem it vanishes at some
+$\hat x_a$ there, which minimizes $G(a,\cdot,\rho_0)$. With $C$ a bound for $|\partial_aG(\cdot,\rho_0)|$ on
+$[x_0/2,3x_0/2]$,
+\[
+m_a:=G(a,\hat x_a,\rho_0)\ge G(\alpha_0,x_0,\rho_0)-C|a-\alpha_0| .
+\]
+As $G(\alpha_0,x_0,r_1)<G(\alpha_0,x_0,\rho_0)$, we get $G(a,x_0,r_1)<m_a$ for $a$ near $\alpha_0$. If $r_1$
+lay between $\rho_0$ and $\rho(a)$, the concavity of $G(a,x_0,\cdot)$ would give
+$G(a,x_0,r_1)\ge m_a$, because $G(a,x_0,\rho_0)\ge m_a$ and
+$G(a,x_0,\rho(a))\ge G(a,x(a),\rho(a))\ge G(a,x(a),\rho_0)\ge m_a$. Hence $\rho(a)\to\rho_0$.
+
+\emph{Step 2 (continuity of $x$).} Now $G(a,u,\rho(a))\to G(\alpha_0,u,\rho_0)$ for each $u>0$. For $l>0$,
+$l\ne x_0$, this gives $G(a,x_0,\rho(a))<G(a,l,\rho(a))$ near $\alpha_0$. Since $G(a,\cdot,\rho(a))$ increases
+strictly away from $x(a)$, $l$ does not lie between $x(a)$ and $x_0$. Hence $x(a)\to x_0$, and
+$q=x\rho/(1+x)$ is continuous.
+Formalized in \texttt{SpinGlasses/Talagrand/ShcherbinaTirozzi/RSFreeEnergyEnvelope.lean} and
+\texttt{ForMathlib/Order/StrictSaddle.lean}.
+\end{proof}
+
 \begin{lemma}[Derivative of $\mathrm{RS}_0(\alpha)$ and the $M=0$ free energy]\label{lem:sg-tal:st-rs-envelope}
   \lean{SpinGlasses.continuousOn_integral_log_gaussianTail_ratio,
         SpinGlasses.hasDerivWithinAt_shcherbinaTirozziHardFunctional_branch,
@@ -1679,11 +1809,12 @@ Formalized in \texttt{ForMathlib/Analysis/Calculus/SaddleEnvelope.lean}.
         SpinGlasses.integral_log_integral_exp_neg_shcherbinaTirozziHamiltonian_zero}
   \leanok
   \uses{def:sg-tal:st-hard-functional, lem:sg-tal:st-hard-derivatives, lem:sg-tal:st-hard-saddle,
-    lem:sg-tal:st-saddle-envelope, lem:sg-tal:st-quadratic, lem:sg-tal:st-mills-affine}
+    lem:sg-tal:st-saddle-envelope, lem:sg-tal:st-quadratic, lem:sg-tal:st-mills-affine,
+    lem:sg-tal:st-branch-continuity}
 \talsource{Lemma~3.3.6, Eq.~(3.130); Theorem~3.3.2, $M=0$ step}
 \begin{enumerate}
 \item (Lemma~3.3.6.) Let $\tau\ge0$, let $A\subset[0,\infty)$ with $\alpha_0\in A$, and let $(q(a),\rho(a))$
-be continuous within $A$ at $\alpha_0$ and satisfy $0<q(a)<\rho(a)$ and
+satisfy $0<q(a)<\rho(a)$ and
 $\partial_q F(a,q(a),\rho(a))=0=\partial_\rho F(a,q(a),\rho(a))$ for $a\in A$ near $\alpha_0$. Then
 $a\mapsto F(a,q(a),\rho(a))$ has derivative
 \[
@@ -1707,10 +1838,12 @@ For $N\ge1$ and $M=0$ constraints,
 \begin{proof}
   \leanok
   \uses{def:sg-tal:st-hard-functional, lem:sg-tal:st-hard-derivatives, lem:sg-tal:st-hard-saddle,
-    lem:sg-tal:st-saddle-envelope, lem:sg-tal:st-quadratic, lem:sg-tal:st-mills-affine}
+    lem:sg-tal:st-saddle-envelope, lem:sg-tal:st-quadratic, lem:sg-tal:st-mills-affine,
+    lem:sg-tal:st-branch-continuity}
 \emph{Step 1 (Lemma~3.3.6).} Set $x(a)=q(a)/(\rho(a)-q(a))>0$. As in the proof of
 Theorem~\ref{thm:sg-tal:st-hard-uniqueness}, $(x(a),\rho(a))$ is a critical point of $G(a,\cdot,\cdot)$, hence a
-saddle point on $(0,\infty)\times(0,\infty)$ by Lemma~\ref{lem:sg-tal:st-hard-saddle}. Dominated convergence with the
+saddle point on $(0,\infty)\times(0,\infty)$ by Lemma~\ref{lem:sg-tal:st-hard-saddle}. The curve is
+continuous by Lemma~\ref{lem:sg-tal:st-branch-continuity}. Dominated convergence with the
 quadratic bound $|\log T(v)|\le C(1+|v|)^2$ gives continuity of $(u,v)\mapsto\partial_a G(a,u,v)$; apply
 Lemma~\ref{lem:sg-tal:st-saddle-envelope}.
 
@@ -1726,8 +1859,9 @@ Formalized in \texttt{SpinGlasses/Talagrand/ShcherbinaTirozzi/RSFreeEnergyEnvelo
 \begin{remark}[Hypotheses of Lemma~3.3.6]\label{rem:sg-tal:st-lemma-336}
 \talsource{Lemma~3.3.6}
 The book writes ``Obvious by~(3.122)'', leaving implicit why the critical branch $(q_0(\alpha),\rho_0(\alpha))$ is
-differentiable (or why differentiability is unnecessary). Because existence of the hard solution branch is still open
-until Section~3.2's $K/\sqrt N$ residuals and Corollary~3.3.4 are formalized, Lemma~3.3.6 is stated conditionally on a
-continuous critical branch $(q(a),\rho(a))$ with $0<q(a)<\rho(a)$; thanks to the saddle-envelope lemma, neither
-differentiability of $(q,\rho)$ nor $\partial^2G/\partial\rho^2$ is needed.
+differentiable (or why differentiability is unnecessary). No regularity of the branch is assumed here:
+continuity follows from criticality, and the saddle-envelope lemma needs neither differentiability of
+$(q,\rho)$ nor $\partial^2G/\partial\rho^2$. The statement still assumes that solutions
+$0<q(a)<\rho(a)$ exist for the loads near $\alpha_0$, which the book gets from Theorem~3.3.1; existence is
+not formalized yet.
 \end{remark}

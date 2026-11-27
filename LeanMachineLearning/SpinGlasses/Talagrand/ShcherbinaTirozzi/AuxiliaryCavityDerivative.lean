@@ -172,8 +172,8 @@ theorem exists_hasDerivAt_shcherbinaTirozziAuxCavity_abs_le [DecidableEq R] {κ 
       dsimp only [B₀, c₀]; fun_prop
     refine integrable_of_abs_le_cavity_disorder_pow r hm (K := A ^ deg) (d := deg) fun d => ?_
     rw [abs_of_nonneg (pow_nonneg (by linarith [hB0 d, hc0 d]) _), ← mul_pow]
-    exact pow_le_pow_left₀ (by linarith [hB0 d, hc0 d])
-      (one_add_cavity_confinement_le κ h hrr u hD0 d) deg
+    refine pow_le_pow_left₀ (by linarith [hB0 d, hc0 d]) ?_ deg
+    exact one_add_cavity_confinement_le κ h hrr u hD0 d
   have hE0m : Measurable fun p : (ℝ × ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ))) ×
       ℝ^(N + 1) =>
       -shcherbinaTirozziCavityHamiltonian κ h r rBar t p.1.1 u p.1.2.1 p.1.2.2 p.2 :=

@@ -431,8 +431,9 @@ theorem integral_shcherbinaTirozziAuxCavity_zero_deriv_mul (α κ h : ℝ) (r : 
   rw [mul_assoc]
   congr 1
   refine integral_aux_zero_of_factor (N := N) (M := M) r
-    (fun d => ∫ a : R → ℝ^(N + 1), f a ∂(Measure.pi fun _ : R => (volume : Measure (ℝ^(N + 1))).tilted
-      fun σ => -shcherbinaTirozziCavityHamiltonian κ h r rBar t d.1 u d.2.1 d.2.2 σ))
+    (fun d => ∫ a : R → ℝ^(N + 1), f a ∂(Measure.pi fun _ : R =>
+      (volume : Measure (ℝ^(N + 1))).tilted fun σ =>
+        -shcherbinaTirozziCavityHamiltonian κ h r rBar t d.1 u d.2.1 d.2.2 σ))
     (fun z => V (Real.sqrt q * z) ^ 2) (fun d z => ∫ σ : R → ℝ^(N + 1) × ℝ,
       (deriv u (Real.sqrt q * z + c * (σ l₁).2) * deriv u (Real.sqrt q * z + c * (σ l₂).2)) *
         f (fun l => (σ l).1)
@@ -477,8 +478,9 @@ theorem integral_shcherbinaTirozziAuxCavity_zero_deriv_two (α κ h : ℝ) (r : 
   rw [mul_assoc]
   congr 1
   refine integral_aux_zero_of_factor (N := N) (M := M) r
-    (fun d => ∫ a : R → ℝ^(N + 1), f a ∂(Measure.pi fun _ : R => (volume : Measure (ℝ^(N + 1))).tilted
-      fun σ => -shcherbinaTirozziCavityHamiltonian κ h r rBar t d.1 u d.2.1 d.2.2 σ))
+    (fun d => ∫ a : R → ℝ^(N + 1), f a ∂(Measure.pi fun _ : R =>
+      (volume : Measure (ℝ^(N + 1))).tilted fun σ =>
+        -shcherbinaTirozziCavityHamiltonian κ h r rBar t d.1 u d.2.1 d.2.2 σ))
     (fun z => W (Real.sqrt q * z)) (fun d z => ∫ σ : R → ℝ^(N + 1) × ℝ,
       (deriv (deriv u) (Real.sqrt q * z + c * (σ l₁).2) +
           deriv u (Real.sqrt q * z + c * (σ l₁).2) ^ 2) * f (fun l => (σ l).1)
