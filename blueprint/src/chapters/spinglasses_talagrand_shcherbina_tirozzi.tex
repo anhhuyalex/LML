@@ -1581,7 +1581,8 @@ $G(x_1,\rho_1)<G(x_2,\rho_2)$. Exchanging the two points gives the reverse stric
         SpinGlasses.hasDerivWithinAt_shcherbinaTirozziHardFunctional_overlap_zero,
         SpinGlasses.eq_zero_of_hasDerivWithinAt_shcherbinaTirozziHardFunctional_overlap_zero}
   \leanok
-  \uses{def:sg-tal:st-hard-functional, lem:sg-tal:st-mills-affine, lem:sg-tal:st-rs-envelope}
+  \uses{def:sg-tal:st-hard-functional, lem:sg-tal:st-hard-derivatives, lem:sg-tal:st-mills-affine,
+        lem:sg-tal:st-rs-envelope}
 \talsource{Theorem~3.3.1, the case $q=0$}
 Write $A(w)=p(w)/\mathbb P(\xi\ge w)$ for the inverse Mills ratio and $W=(\tau-z\sqrt q)/\sqrt{\rho-q}$ with $z$ standard
 Gaussian.
@@ -1599,13 +1600,14 @@ Gaussian.
 \end{lemma}
 \begin{proof}
   \leanok
-  \uses{def:sg-tal:st-hard-functional, lem:sg-tal:st-mills-affine, lem:sg-tal:st-rs-envelope}
-(1) Put $m(q)=\tau/\sqrt{\rho-q}$ and $\sigma(q)=-\sqrt q/\sqrt{\rho-q}$, so that $W=m+\sigma z$. Differentiating the Gaussian
-average of $\log\mathbb P(\xi\ge W)$ gives $-m'\,\mathbb EA(W)-\sigma'\,\mathbb E[zA(W)]$. Here $m'=m/(2(\rho-q))$,
-$\sigma'=\sigma\rho/(2q(\rho-q))$, and Gaussian integration by parts gives
-$(1+\sigma^2)\,\mathbb E[zA(W)]=\sigma\bigl(\mathbb EA(W)^2-m\,\mathbb EA(W)\bigr)$ with $1+\sigma^2=\rho/(\rho-q)$. Therefore
-$\sigma'\,\mathbb E[zA(W)]=(\mathbb EA(W)^2-m\,\mathbb EA(W))/(2(\rho-q))$ and the whole derivative of the average is
-$-\mathbb EA(W)^2/(2(\rho-q))$. Adding the derivatives of the explicit terms gives the formula.
+  \uses{def:sg-tal:st-hard-functional, lem:sg-tal:st-hard-derivatives, lem:sg-tal:st-mills-affine,
+        lem:sg-tal:st-rs-envelope}
+(1) Put $x=q/(\rho-q)$, so that $q=x\rho/(1+x)$ and $F(q,\rho)=G(x,\rho)$, where $G(x,\rho)=F(x\rho/(1+x),\rho)$. The argument
+$\tau\sqrt{1+x}/\sqrt\rho-\sqrt x\,z$ of $A$ in Lemma~\ref{lem:sg-tal:st-hard-derivatives} equals $W$, and that lemma gives
+\[
+\frac{\partial G}{\partial x}=\frac x{2(1+x)}\Bigl(1-\frac{\alpha\,\mathbb EA(W)^2}{x}-\frac{h^2\rho}{x(1+x)}\Bigr).
+\]
+Since $1+x=\rho/(\rho-q)$ and $dx/dq=\rho/(\rho-q)^2$, the chain rule gives the formula.
 
 (2) $F(\cdot,\rho)$ is continuous from the right at $0$ (through the variables $x=q/(\rho-q)$), and as $q\to0^+$ the derivative in (1)
 converges: $A(w)\le C+|w|$ dominates $A(W)^2$ by a square-integrable function for $q<\rho/2$, and $W\to\tau/\sqrt\rho$. A function

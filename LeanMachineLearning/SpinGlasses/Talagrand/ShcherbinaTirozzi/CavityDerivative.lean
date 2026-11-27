@@ -197,7 +197,7 @@ local notation "law " r:arg =>
 
 /-- A polynomial in the absolute values of all disorder variables of the cavity path is
 integrable. -/
-private theorem integrable_cavity_disorder_pow (r : ℝ≥0) (d : ℕ) :
+theorem integrable_cavity_disorder_pow (r : ℝ≥0) (d : ℕ) :
     Integrable (fun p : Dis => size p ^ d) (law r) := by
   set P : Measure ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) :=
     (Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1).prod
@@ -226,7 +226,7 @@ private theorem integrable_cavity_disorder_pow (r : ℝ≥0) (d : ℕ) :
   rw [abs_of_nonneg (by positivity)]
 
 /-- The size of the disorder is at least `1`, and it bounds each variable used below. -/
-private theorem cavity_disorder_size_bounds (p : Dis) :
+theorem cavity_disorder_size_bounds (p : Dis) :
     1 ≤ size p ∧ |p.1| ≤ size p ∧ (∑ k, ∑ i, |p.2.1 k i|) ≤ size p ∧
       (∑ i, |p.2.2 i|) ≤ size p ∧ ∀ k, |p.2.1 k (Fin.last N)| ≤ size p := by
   have h1 : 0 ≤ ∑ k, ∑ i, |p.2.1 k i| :=
@@ -242,7 +242,7 @@ private theorem cavity_disorder_size_bounds (p : Dis) :
   linarith
 
 /-- A measurable function of the disorder bounded by a power of its size is integrable. -/
-private theorem integrable_of_abs_le_cavity_disorder_pow (r : ℝ≥0) {Φ : Dis → ℝ}
+theorem integrable_of_abs_le_cavity_disorder_pow (r : ℝ≥0) {Φ : Dis → ℝ}
     (hΦ : Measurable Φ) {K : ℝ} {d : ℕ} (hΦb : ∀ p, |Φ p| ≤ K * size p ^ d) :
     Integrable Φ (law r) :=
   ((integrable_cavity_disorder_pow r d).const_mul K).mono' hΦ.aestronglyMeasurable
@@ -289,7 +289,8 @@ local notation "gibbs⟨" t ", " p "⟩" =>
 
 variable {κ h r rBar u}
 
-private theorem measurable_cavity_exponent (hum : Measurable u) (t : ℝ) :
+/-- The exponent of the cavity path is jointly measurable in the disorder and the spins. -/
+theorem measurable_cavity_exponent (hum : Measurable u) (t : ℝ) :
     Measurable fun q : Dis × ℝ^(N + 1) =>
       -shcherbinaTirozziCavityHamiltonian κ h r rBar t q.1.1 u q.1.2.1 q.1.2.2 q.2 :=
   (measurable_shcherbinaTirozziCavityHamiltonian κ h r rBar t hum).neg

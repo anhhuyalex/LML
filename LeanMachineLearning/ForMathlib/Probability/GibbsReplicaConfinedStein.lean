@@ -188,7 +188,9 @@ private theorem norm_prod_sq_le_add_sq (p : E × ℝ) : ‖p‖ ^ 2 ≤ ‖p.1�
   · rw [max_eq_left h]; exact le_add_of_nonneg_right (sq_nonneg _)
 
 omit [NormedSpace ℝ E] [FiniteDimensional ℝ E] [MeasurableSpace E] [BorelSpace E] in
-private theorem prod_gaussian_exponent_confining {κ B₀ : ℝ} (hκ : 0 < κ) (hB₀ : 0 ≤ B₀)
+/-- Adding a nonpositive perturbation and the Gaussian weight of the auxiliary coordinate keeps a
+confined energy confined on `E × ℝ`. -/
+theorem prod_gaussian_exponent_confining {κ B₀ : ℝ} (hκ : 0 < κ) (hB₀ : 0 ≤ B₀)
     {E₀ : E → ℝ} (hE₀ : ∀ x, E₀ x ≤ B₀ * ‖x‖ - κ * ‖x‖ ^ 2)
     {u : ℝ → ℝ} (hu0 : ∀ x, u x ≤ 0) (S : E × ℝ → ℝ) (p : E × ℝ) :
     E₀ p.1 + u (S p) - p.2 ^ 2 / 2 ≤ 0 + B₀ * ‖p‖ - min κ (1 / 2) * ‖p‖ ^ 2 := by
@@ -201,7 +203,8 @@ private theorem prod_gaussian_exponent_confining {κ B₀ : ℝ} (hκ : 0 < κ) 
     mul_le_mul_of_nonneg_left h1 hB₀, mul_le_mul_of_nonneg_left h2 hm0]
 
 omit [NormedSpace ℝ E] [FiniteDimensional ℝ E] [MeasurableSpace E] [BorelSpace E] in
-private theorem nonneg_of_confining_of_neg_le {κ B₀ c₀ : ℝ} {E₀ : E → ℝ}
+/-- A confined energy which is at least `-c₀` on the unit ball forces `0 ≤ c₀`. -/
+theorem nonneg_of_confining_of_neg_le {κ B₀ c₀ : ℝ} {E₀ : E → ℝ}
     (hE₀_conf : ∀ x, E₀ x ≤ B₀ * ‖x‖ - κ * ‖x‖ ^ 2) (hE₀_low : ∀ x, ‖x‖ ≤ 1 → -c₀ ≤ E₀ x) :
     0 ≤ c₀ := by
   have h1 := hE₀_low 0 (by simp)
@@ -696,7 +699,9 @@ private theorem add_replicaDiff_prod_eq_sum_sub
   · congr 1
     exact integral_congr_ae (ae_of_all _ fun _ => by ring)
 
-private theorem exists_integrable_and_abs_le_integral_pi_tilted_prod_gaussianReal
+/-- A replica average whose observable grows linearly in `w` and polynomially in the replicas is
+bounded polynomially in the disorder and is integrable against the Gaussian law of `w`. -/
+theorem exists_integrable_and_abs_le_integral_pi_tilted_prod_gaussianReal
     {ι : Type*} [Fintype K] [Fintype ι] {κ : ℝ} (hκ : 0 < κ) (m : ℕ) :
     ∃ A_m : ℝ, 0 ≤ A_m ∧
       ∀ {B₀ c₀ : ℝ}, 0 ≤ B₀ → 0 ≤ c₀ →
@@ -1122,7 +1127,8 @@ private theorem stein_coord_pi_tilted_prod_gaussianReal [Fintype K]
   rw [integral_sub (integrable_finsetSum _ fun j _ => hRHS1_i j) (hRHS2_i.const_mul _),
     integral_finsetSum _ fun j _ => hRHS1_i j, integral_const_mul]
 
-private theorem integrable_pi_tilted_prod_gaussianReal_of_poly [Fintype K] {ι : Type*} [Fintype ι]
+/-- Replica observables of polynomial growth are integrable for the extended Gibbs state. -/
+theorem integrable_pi_tilted_prod_gaussianReal_of_poly [Fintype K] {ι : Type*} [Fintype ι]
     {κ B₀ : ℝ} (hκ : 0 < κ) (hB₀ : 0 ≤ B₀) {E₀ : E → ℝ} (hE₀m : Measurable E₀)
     (hE₀_conf : ∀ x, E₀ x ≤ B₀ * ‖x‖ - κ * ‖x‖ ^ 2)
     (A : E → K → ℝ) (hAm : ∀ k, Measurable fun x => A x k)
@@ -3098,7 +3104,9 @@ theorem hasDerivAt_integral_pi_tilted_prod_gaussianReal_sqrt [Fintype K] [Fintyp
   simp only [Finset.sum_sub_distrib, Finset.sum_add_distrib, ← Finset.mul_sum]
   ring
 
-private theorem measurable_and_abs_le_integral_w_pi_tilted_prod_gaussianReal
+/-- Along the square-root path, the `w`- and replica-average of an observable of polynomial growth
+is measurable, polynomially bounded and integrable in the old disorder. -/
+theorem measurable_and_abs_le_integral_w_pi_tilted_prod_gaussianReal
     {Ω ι : Type*} [MeasurableSpace Ω] (P₀ : Measure Ω) [Fintype K] [Fintype ι]
     {κ : ℝ} (hκ : 0 < κ) {B₀ c₀ : Ω → ℝ} (hB₀ : ∀ ω, 0 ≤ B₀ ω) (hc₀ : ∀ ω, 0 ≤ c₀ ω)
     (hmom : ∀ deg : ℕ, Integrable (fun ω => (1 + B₀ ω + c₀ ω) ^ deg) P₀)
@@ -3267,7 +3275,10 @@ private theorem measurable_and_abs_le_integral_w_pi_tilted_prod_gaussianReal
   exact ⟨hJm, hJ_pt, hJ_int⟩
 
 omit [NormedSpace ℝ E] [FiniteDimensional ℝ E] [MeasurableSpace E] [BorelSpace E] in
-private theorem coff_le_of_poly_bound [Fintype K] {X : E → K → ℝ} {Y : K → ℝ} {L_X : ℝ} {n_X : ℕ}
+/-- Centered linear forms with polynomially bounded coefficients have a polynomially bounded
+covariance. -/
+theorem abs_dotProduct_sub_dotProduct_le_of_abs_le_pow [Fintype K] {X : E → K → ℝ}
+    {Y : K → ℝ} {L_X : ℝ} {n_X : ℕ}
     (hXb : ∀ k x, |X x k| ≤ L_X * (1 + ‖x‖) ^ n_X) (c_ξ : ℝ) (x y : E) :
     |X x ⬝ᵥ X y - Y ⬝ᵥ Y| ≤
       ((∑ _k : K, |L_X| ^ 2) + (∑ k : K, Y k ^ 2) + c_ξ ^ 2) *
@@ -3444,7 +3455,7 @@ theorem hasDerivAt_integral_integral_pi_tilted_prod_gaussianReal_sqrt
     positivity
   have hCoff_le : ∀ x y : E,
       |C_off x y| ≤ C_cov_bd * (1 + ‖x‖) ^ n_X * (1 + ‖y‖) ^ n_X :=
-    coff_le_of_poly_bound hXb c_ξ
+    abs_dotProduct_sub_dotProduct_le_of_abs_le_pow hXb c_ξ
   have hCdiag_le : ∀ x : E, |C_diag x| ≤ C_cov_bd * (1 + ‖x‖) ^ (2 * n_X) :=
     cdiag_le_of_poly_bound hXb c_ξ
   -- Bounds on `ψ`, `ψ_d`, `ψ_dd`, `u'' + u'^2`:

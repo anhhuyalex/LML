@@ -50,124 +50,28 @@ theorem hasDerivAt_shcherbinaTirozziHardFunctional_overlap (α κ h τ : ℝ) {q
         h ^ 2) / 2) q := by
   have hs : 0 < ρ - q := sub_pos.2 hqρ
   have hρ : 0 < ρ := hq.trans hqρ
-  set m : ℝ → ℝ := fun r => τ / Real.sqrt (ρ - r) with hm
-  set σ : ℝ → ℝ := fun r => -Real.sqrt r / Real.sqrt (ρ - r) with hσ
-  set m' : ℝ → ℝ := fun r => τ / (2 * (ρ - r) * Real.sqrt (ρ - r)) with hm'
-  set σ' : ℝ → ℝ := fun r => -(ρ / (2 * Real.sqrt r * (ρ - r) * Real.sqrt (ρ - r))) with hσ'
-  have hsqrt : ∀ r, r < ρ → HasDerivAt (fun r => Real.sqrt (ρ - r))
-      (-1 / (2 * Real.sqrt (ρ - r))) r := fun r hr =>
-    ((hasDerivAt_id r).const_sub ρ).sqrt (sub_pos.2 hr).ne'
-  have hmd : ∀ r, r < ρ → HasDerivAt m (m' r) r := fun r hr => by
-    have hr0 : 0 < ρ - r := sub_pos.2 hr
-    have hsr := (Real.sqrt_pos.2 hr0).ne'
-    refine ((hasDerivAt_const r τ).div (hsqrt r hr) hsr).congr_deriv ?_
-    rw [hm', Real.sq_sqrt hr0.le]
+  have hx : 0 < q / (ρ - q) := div_pos hq hs
+  have hinner : HasDerivAt (fun r => r / (ρ - r)) (ρ / (ρ - q) ^ 2) q := by
+    refine ((hasDerivAt_id q).div ((hasDerivAt_id q).const_sub ρ) hs.ne').congr_deriv ?_
+    simp only [id_eq]; ring
+  have hG := (hasDerivAt_shcherbinaTirozziHardFunctional_ratio α κ h τ hx hρ).comp q hinner
+  refine (hG.congr_of_eventuallyEq ?_).congr_deriv ?_
+  · filter_upwards [Iio_mem_nhds hqρ] with r (hr : r < ρ)
+    have hsr : ρ - r ≠ 0 := (sub_pos.2 hr).ne'
+    have hr' : r / (ρ - r) * ρ / (1 + r / (ρ - r)) = r := by
+      have h1 : 1 + r / (ρ - r) = ρ / (ρ - r) := by field_simp; ring
+      rw [h1]; have := hρ.ne'; field_simp
+    simp only [Function.comp_apply, hr']
+  · have h1x : 1 + q / (ρ - q) = ρ / (ρ - q) := by
+      have := hs.ne'; field_simp; ring
+    have hm : τ * Real.sqrt (1 + q / (ρ - q)) / Real.sqrt ρ = τ / Real.sqrt (ρ - q) := by
+      have := (Real.sqrt_pos.2 hρ).ne'; have := (Real.sqrt_pos.2 hs).ne'
+      rw [h1x, Real.sqrt_div hρ.le]; field_simp
+    have hσ : -Real.sqrt (q / (ρ - q)) = -Real.sqrt q / Real.sqrt (ρ - q) := by
+      rw [Real.sqrt_div hq.le, neg_div]
+    rw [hm, hσ, h1x]
+    have := hs.ne'; have := hρ.ne'; have := hq.ne'
     field_simp
-    ring
-  have hσd : ∀ r, 0 < r → r < ρ → HasDerivAt σ (σ' r) r := fun r hr0 hr => by
-    have hd0 : 0 < ρ - r := sub_pos.2 hr
-    have hsr := (Real.sqrt_pos.2 hd0).ne'
-    have hsr0 := (Real.sqrt_pos.2 hr0).ne'
-    refine ((Real.hasDerivAt_sqrt hr0.ne').neg.div (hsqrt r hr) hsr).congr_deriv ?_
-    have h2 : Real.sqrt (ρ - r) ^ 2 = ρ - r := Real.sq_sqrt hd0.le
-    have hd := hd0.ne'
-    simp only [hσ', Pi.neg_apply]
-    rw [h2]
-    field_simp
-    simp only [Real.sq_sqrt hr0.le, h2]
-    ring
-  have hden : 2 * (ρ - q) * Real.sqrt (ρ - q) ≠ 0 :=
-    mul_ne_zero (mul_ne_zero two_ne_zero hs.ne') (Real.sqrt_pos.2 hs).ne'
-  have hmc : ContinuousAt m' q :=
-    continuousAt_const.div (by fun_prop) hden
-  have hσc : ContinuousAt σ' q := by
-    refine (continuousAt_const.div (by fun_prop) ?_).neg
-    exact mul_ne_zero (mul_ne_zero (mul_ne_zero two_ne_zero (Real.sqrt_pos.2 hq).ne') hs.ne')
-      (Real.sqrt_pos.2 hs).ne'
-  have hE := hasDerivAt_integral_log_gaussianTail (m := m) (σ := σ) (m' := m') (σ' := σ')
-    (t := q) ((eventually_lt_nhds hqρ).mono fun r hr => hmd r hr)
-    (((eventually_gt_nhds hq).and (eventually_lt_nhds hqρ)).mono fun r hr => hσd r hr.1 hr.2)
-    hmc hσc
-  have hrest : HasDerivAt (fun r => r / (2 * (ρ - r)) + Real.log (ρ - r) / 2 - κ * ρ +
-      h ^ 2 * (ρ - r) / 2)
-      (ρ / (2 * (ρ - q) ^ 2) - 1 / (2 * (ρ - q)) - h ^ 2 / 2) q := by
-    have h0 : HasDerivAt (fun r : ℝ => ρ - r) (-1) q := (hasDerivAt_id q).const_sub ρ
-    have h1 := (hasDerivAt_id q).div (h0.const_mul 2) (mul_ne_zero two_ne_zero hs.ne')
-    have h2 := (h0.log hs.ne').div_const 2
-    have h4 := (h0.const_mul (h ^ 2)).div_const 2
-    refine (((h1.add h2).sub_const (κ * ρ)).add h4).congr_deriv ?_
-    have := hs.ne'
-    simp only [id_eq]
-    field_simp
-    ring
-  have hF : HasDerivAt (fun r => shcherbinaTirozziHardFunctional α κ h τ r ρ)
-      (α * (∫ z, -(mills (m q + σ q * z)) * (m' q + σ' q * z) ∂(gaussianReal 0 1)) +
-        (ρ / (2 * (ρ - q) ^ 2) - 1 / (2 * (ρ - q)) - h ^ 2 / 2)) q := by
-    refine ((hE.const_mul α).add hrest).congr_of_eventuallyEq
-      (Eventually.of_forall fun r => ?_)
-    have e : ∀ z : ℝ, (τ - Real.sqrt r * z) / Real.sqrt (ρ - r) = m r + σ r * z := fun z => by
-      simp only [hm, hσ]
-      ring
-    simp only [shcherbinaTirozziHardFunctional, e, Pi.add_apply]
-    ring
-  refine hF.congr_deriv ?_
-  -- evaluate the Gaussian integral with the Mills-ratio identity
-  obtain ⟨hi, hzi, -⟩ := integrable_gaussianPDFReal_div_measureReal_Ici_comp (m q) (σ q)
-  have hder : ∫ z, -(mills (m q + σ q * z)) * (m' q + σ' q * z) ∂(gaussianReal 0 1) =
-      -(m' q) * (∫ z, mills (m q + σ q * z) ∂(gaussianReal 0 1)) +
-        -(σ' q) * ∫ z, z * mills (m q + σ q * z) ∂(gaussianReal 0 1) := by
-    rw [← integral_const_mul, ← integral_const_mul,
-      ← integral_add (hi.const_mul _) (hzi.const_mul _)]
-    exact integral_congr_ae (ae_of_all _ fun z => by ring)
-  have hJ := one_add_sq_mul_integral_id_mul_gaussianPDFReal_div_measureReal_Ici (m q) (σ q)
-  set I1 := ∫ z, mills (m q + σ q * z) ∂(gaussianReal 0 1)
-  set I2 := ∫ z, mills (m q + σ q * z) ^ 2 ∂(gaussianReal 0 1)
-  set J := ∫ z, z * mills (m q + σ q * z) ∂(gaussianReal 0 1)
-  have hsq : Real.sqrt q ^ 2 = q := Real.sq_sqrt hq.le
-  have hsd : Real.sqrt (ρ - q) ^ 2 = ρ - q := Real.sq_sqrt hs.le
-  have h1σ : 1 + σ q ^ 2 = ρ / (ρ - q) := by
-    have := hs.ne'
-    simp only [hσ, div_pow, neg_sq, hsq, hsd]
-    field_simp
-    ring
-  have hJeq : J = σ q * (I2 - m q * I1) * (ρ - q) / ρ := by
-    have h2 : ρ / (ρ - q) * J = σ q * (I2 - m q * I1) := by
-      rw [← h1σ]
-      linear_combination hJ
-    have := hs.ne'
-    have := hρ.ne'
-    rw [← h2]
-    field_simp
-  have hσ'q : σ' q = σ q * (ρ / (2 * q * (ρ - q))) := by
-    have hsr := (Real.sqrt_pos.2 hs).ne'
-    have hsr0 := (Real.sqrt_pos.2 hq).ne'
-    have := hs.ne'
-    have := hq.ne'
-    simp only [hσ', hσ]
-    field_simp
-    rw [hsq]
-  have hm'q : m' q = m q / (2 * (ρ - q)) := by
-    simp only [hm', hm]
-    rw [div_div, mul_comm (Real.sqrt (ρ - q))]
-  have hσ2 : σ q ^ 2 = q / (ρ - q) := by
-    simp only [hσ, div_pow, neg_sq, hsq, hsd]
-  have hint : -(m' q) * I1 + -(σ' q) * J = -(I2 / (2 * (ρ - q))) := by
-    have hprod : σ' q * J = (I2 - m q * I1) / (2 * (ρ - q)) := by
-      have := hs.ne'
-      have := hq.ne'
-      have := hρ.ne'
-      calc σ' q * J = σ q ^ 2 * (I2 - m q * I1) / (2 * q) := by
-            rw [hσ'q, hJeq]
-            field_simp
-        _ = (I2 - m q * I1) / (2 * (ρ - q)) := by
-            rw [hσ2]
-            field_simp
-    rw [neg_mul, neg_mul, hprod, hm'q]
-    ring
-  rw [hder, hint]
-  have := hs.ne'
-  field_simp
-  ring
 
 /-- **The right derivative of the hard replica-symmetric functional in `q` at the boundary
 `q = 0`.** -/
