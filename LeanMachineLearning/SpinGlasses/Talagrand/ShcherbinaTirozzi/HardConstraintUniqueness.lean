@@ -231,26 +231,27 @@ theorem hasDerivAt_shcherbinaTirozziHardFunctional_ratio (α κ h τ : ℝ) {x �
   rw [hs12, hxb]
   ring
 
-/-- A function whose derivative is negative before `a` and positive after `a` has a strict minimum
-at `a` on `(0, ∞)`. -/
-private theorem lt_of_hasDerivAt_neg_of_pos {f f' : ℝ → ℝ} {a x : ℝ} (ha : 0 < a) (hx : 0 < x)
-    (hxa : x ≠ a) (hf : ∀ y, 0 < y → HasDerivAt f (f' y) y)
-    (hneg : ∀ y, 0 < y → y < a → f' y < 0) (hpos : ∀ y, a < y → 0 < f' y) : f a < f x := by
-  rcases lt_or_gt_of_ne hxa with h | h
-  · refine strictAntiOn_of_hasDerivWithinAt_neg (f' := f') (convex_Icc x a)
-      (fun y hy => (hf y (hx.trans_le hy.1)).continuousAt.continuousWithinAt)
-      (fun y hy => ?_) (fun y hy => ?_) (left_mem_Icc.2 h.le) (right_mem_Icc.2 h.le) h
-    · rw [interior_Icc] at hy
-      exact (hf y (hx.trans hy.1)).hasDerivWithinAt
-    · rw [interior_Icc] at hy
-      exact hneg y (hx.trans hy.1) hy.2
-  · refine strictMonoOn_of_hasDerivWithinAt_pos (f' := f') (convex_Icc a x)
-      (fun y hy => (hf y (ha.trans_le hy.1)).continuousAt.continuousWithinAt)
-      (fun y hy => ?_) (fun y hy => ?_) (left_mem_Icc.2 h.le) (right_mem_Icc.2 h.le) h
-    · rw [interior_Icc] at hy
-      exact (hf y (ha.trans hy.1)).hasDerivWithinAt
-    · rw [interior_Icc] at hy
-      exact hpos y hy.1
+/-- A function whose derivative is negative before `a` and positive after `a` increases strictly
+away from `a` on `(0, ∞)`: `f y < f x` when `y` lies between `a` and `x ≠ y`. -/
+private theorem lt_of_hasDerivAt_neg_of_pos {f f' : ℝ → ℝ} {a x y : ℝ} (ha : 0 < a) (hx : 0 < x)
+    (hy : a ≤ y ∧ y < x ∨ x < y ∧ y ≤ a) (hf : ∀ y, 0 < y → HasDerivAt f (f' y) y)
+    (hneg : ∀ y, 0 < y → y < a → f' y < 0) (hpos : ∀ y, a < y → 0 < f' y) : f y < f x := by
+  rcases hy with ⟨hay, hyx⟩ | ⟨hxy, hya⟩
+  · have hy0 : 0 < y := ha.trans_le hay
+    refine strictMonoOn_of_hasDerivWithinAt_pos (f' := f') (convex_Icc y x)
+      (fun w hw => (hf w (hy0.trans_le hw.1)).continuousAt.continuousWithinAt)
+      (fun w hw => ?_) (fun w hw => ?_) (left_mem_Icc.2 hyx.le) (right_mem_Icc.2 hyx.le) hyx
+    · rw [interior_Icc] at hw
+      exact (hf w (hy0.trans hw.1)).hasDerivWithinAt
+    · rw [interior_Icc] at hw
+      exact hpos w (hay.trans_lt hw.1)
+  · refine strictAntiOn_of_hasDerivWithinAt_neg (f' := f') (convex_Icc x y)
+      (fun w hw => (hf w (hx.trans_le hw.1)).continuousAt.continuousWithinAt)
+      (fun w hw => ?_) (fun w hw => ?_) (left_mem_Icc.2 hxy.le) (right_mem_Icc.2 hxy.le) hxy
+    · rw [interior_Icc] at hw
+      exact (hf w (hx.trans hw.1)).hasDerivWithinAt
+    · rw [interior_Icc] at hw
+      exact hneg w (hx.trans hw.1) (hw.2.trans_le hya)
 
 /-- **Proposition 3.3.11, second part:** `x ↦ 1 - α 𝔼 A² / x - h² ρ / (x (1 + x))` is strictly
 increasing on `(0, ∞)` unless `α = h = 0`. -/
@@ -523,14 +524,15 @@ private theorem hasDerivAt_snd (α κ h τ : ℝ) {x ρ : ℝ} (hx : 0 ≤ x) (h
   rw [e1, e2]
   ring
 
-/-- **Corollary 3.3.12:** a zero of `x ↦ ∂G/∂x (x, ρ)` is a strict minimum of
-`x ↦ G (x, ρ)` on `(0, ∞)`. -/
-theorem shcherbinaTirozziHardFunctional_ratio_lt_of_hasDerivAt_zero {α τ x ρ y : ℝ} (κ h : ℝ)
-    (hα : 0 ≤ α) (hτ : 0 ≤ τ) (hx : 0 < x) (hρ : 0 < ρ) (hy : 0 < y) (hyx : y ≠ x)
+/-- **Corollary 3.3.12:** if `∂G/∂x (x, ρ) = 0`, then `x ↦ G (x, ρ)` increases strictly away from
+`x` on `(0, ∞)`: `G (y, ρ) < G (z, ρ)` when `y` lies between `x` and `z ≠ y`. -/
+theorem shcherbinaTirozziHardFunctional_ratio_lt_of_between {α τ x ρ y z : ℝ} (κ h : ℝ)
+    (hα : 0 ≤ α) (hτ : 0 ≤ τ) (hx : 0 < x) (hρ : 0 < ρ) (hz : 0 < z)
+    (hyz : x ≤ y ∧ y < z ∨ z < y ∧ y ≤ x)
     (hc : HasDerivAt (fun y => shcherbinaTirozziHardFunctional α κ h τ (y * ρ / (1 + y)) ρ)
       0 x) :
-    shcherbinaTirozziHardFunctional α κ h τ (x * ρ / (1 + x)) ρ <
-      shcherbinaTirozziHardFunctional α κ h τ (y * ρ / (1 + y)) ρ := by
+    shcherbinaTirozziHardFunctional α κ h τ (y * ρ / (1 + y)) ρ <
+      shcherbinaTirozziHardFunctional α κ h τ (z * ρ / (1 + z)) ρ := by
   obtain ⟨K, hK⟩ : ∃ K : ℝ → ℝ, K = fun x => 1 - α * (∫ z, mills (τ * Real.sqrt (1 + x) /
       Real.sqrt ρ + -Real.sqrt x * z) ^ 2 ∂(gaussianReal 0 1)) / x -
       h ^ 2 * ρ / (x * (1 + x)) := ⟨_, rfl⟩
@@ -551,11 +553,22 @@ theorem shcherbinaTirozziHardFunctional_ratio_lt_of_hasDerivAt_zero {α τ x ρ 
     exact strictMonoOn_shcherbinaTirozziHardFunctional_ratio_deriv hα hτ hρ hαh
   refine lt_of_hasDerivAt_neg_of_pos
     (f := fun y => shcherbinaTirozziHardFunctional α κ h τ (y * ρ / (1 + y)) ρ)
-    (f' := fun y => y / (2 * (1 + y)) * K y) hx hy hyx hd (fun w hw hwx => ?_) fun w hxw => ?_
+    (f' := fun y => y / (2 * (1 + y)) * K y) hx hz hyz hd (fun w hw hwx => ?_) fun w hxw => ?_
   · exact mul_neg_of_pos_of_neg (div_pos hw (by linarith))
       ((hmono hw hx hwx).trans_eq hKx)
   · have hw : 0 < w := hx.trans hxw
     exact mul_pos (div_pos hw (by linarith)) (hKx.symm.trans_lt (hmono hx hw hxw))
+
+/-- **Corollary 3.3.12:** a zero of `x ↦ ∂G/∂x (x, ρ)` is a strict minimum of
+`x ↦ G (x, ρ)` on `(0, ∞)`. -/
+theorem shcherbinaTirozziHardFunctional_ratio_lt_of_hasDerivAt_zero {α τ x ρ y : ℝ} (κ h : ℝ)
+    (hα : 0 ≤ α) (hτ : 0 ≤ τ) (hx : 0 < x) (hρ : 0 < ρ) (hy : 0 < y) (hyx : y ≠ x)
+    (hc : HasDerivAt (fun y => shcherbinaTirozziHardFunctional α κ h τ (y * ρ / (1 + y)) ρ)
+      0 x) :
+    shcherbinaTirozziHardFunctional α κ h τ (x * ρ / (1 + x)) ρ <
+      shcherbinaTirozziHardFunctional α κ h τ (y * ρ / (1 + y)) ρ :=
+  shcherbinaTirozziHardFunctional_ratio_lt_of_between κ h hα hτ hx hρ hy
+    (hyx.lt_or_gt.symm.imp (fun h => ⟨le_rfl, h⟩) fun h => ⟨h, le_rfl⟩) hc
 
 /-- A zero of `ρ ↦ ∂G/∂ρ (x, ρ)` is a strict maximum of `ρ ↦ G (x, ρ)` on `(0, ∞)`. -/
 theorem shcherbinaTirozziHardFunctional_self_lt_of_hasDerivAt_zero {α τ x ρ r : ℝ} (κ h : ℝ)
@@ -579,27 +592,34 @@ theorem shcherbinaTirozziHardFunctional_self_lt_of_hasDerivAt_zero {α τ x ρ r
     exact strictAntiOn_shcherbinaTirozziHardFunctional_self_deriv (x := x) κ h hα hτ
   refine neg_lt_neg_iff.1 (lt_of_hasDerivAt_neg_of_pos
     (f := fun r => -shcherbinaTirozziHardFunctional α κ h τ (x * r / (1 + x)) r)
-    (f' := fun r => -(L r / 2)) hρ hr hrρ (fun r hr => (hd r hr).neg)
+    (f' := fun r => -(L r / 2)) hρ hr
+    (hrρ.lt_or_gt.symm.imp (fun h => ⟨le_rfl, h⟩) fun h => ⟨h, le_rfl⟩)
+    (fun r hr => (hd r hr).neg)
     (fun w hw hwρ => ?_) fun w hρw => ?_)
   · have h1 : L ρ < L w := hanti hw hρ hwρ
     linarith
   · have h1 : L w < L ρ := hanti hρ (hρ.trans hρw) hρw
     linarith
 
-/-- A critical point `(q, ρ)` of `F` gives a critical point `(q / (ρ - q), ρ)` of `G`. -/
-private theorem exists_ratio_critical (α κ h τ : ℝ) {q ρ : ℝ} (hq : 0 < q) (hqρ : q < ρ)
+/-- A critical point `(q, ρ)` of `F` with `0 < q < ρ` gives the critical point
+`(x, ρ) = (q / (ρ - q), ρ)` of `G (x, ρ) = F (x ρ / (1 + x), ρ)`. -/
+theorem shcherbinaTirozziHardFunctional_ratio_critical (α κ h τ : ℝ) {q ρ : ℝ} (hq : 0 < q)
+    (hqρ : q < ρ)
     (hdq : HasDerivAt (fun q => shcherbinaTirozziHardFunctional α κ h τ q ρ) 0 q)
     (hdρ : HasDerivAt (fun ρ => shcherbinaTirozziHardFunctional α κ h τ q ρ) 0 ρ) :
-    ∃ x : ℝ, 0 < x ∧ q = x * ρ / (1 + x) ∧
+    let x : ℝ := q / (ρ - q)
+    0 < x ∧ q = x * ρ / (1 + x) ∧
       HasDerivAt (fun y => shcherbinaTirozziHardFunctional α κ h τ (y * ρ / (1 + y)) ρ) 0 x ∧
       HasDerivAt (fun r => shcherbinaTirozziHardFunctional α κ h τ (x * r / (1 + x)) r)
         0 ρ := by
+  intro x
   have hρ : 0 < ρ := hq.trans hqρ
   have hs : 0 < ρ - q := sub_pos.2 hqρ
-  obtain ⟨x, hx, hqx⟩ : ∃ x : ℝ, 0 < x ∧ x * ρ / (1 + x) = q := by
-    refine ⟨q / (ρ - q), div_pos hq hs, ?_⟩
+  have hx : 0 < x := div_pos hq hs
+  have hqx : x * ρ / (1 + x) = q := by
     have := hs.ne'
     have := hρ.ne'
+    dsimp only [x]
     field_simp
     ring
   have h1x : 0 < 1 + x := by linarith
@@ -615,7 +635,7 @@ private theorem exists_ratio_critical (α κ h τ : ℝ) {q ρ : ℝ} (hq : 0 < 
         (x * ρ / (1 + x)) := by rwa [hqx]
     simpa only [zero_mul, Function.comp_def] using h0.comp x hinner
   -- the `ρ`-derivatives of `F (q, ·)` and `G (x, ·)` agree where `∂G/∂x` vanishes
-  refine ⟨x, hx, hqx.symm, hGx, ?_⟩
+  refine ⟨hx, hqx.symm, hGx, ?_⟩
   have hK := (hasDerivAt_shcherbinaTirozziHardFunctional_ratio α κ h τ hx hρ).unique hGx
   replace hK := (mul_eq_zero.1 hK).resolve_left (div_pos hx (by linarith)).ne'
   have hF := (hasDerivAt_snd α κ h τ hx.le hρ).unique (by rwa [hqx])
@@ -653,8 +673,12 @@ theorem eq_of_hasDerivAt_shcherbinaTirozziHardFunctional_zero {α τ : ℝ} (κ 
     q₁ = q₂ ∧ ρ₁ = ρ₂ := by
   have hρ₁0 : 0 < ρ₁ := hq₁.trans hρ₁
   have hρ₂0 : 0 < ρ₂ := hq₂.trans hρ₂
-  obtain ⟨x₁, hx₁, hq₁x, hG1x, hG1ρ⟩ := exists_ratio_critical α κ h τ hq₁ hρ₁ h1q h1ρ
-  obtain ⟨x₂, hx₂, hq₂x, hG2x, hG2ρ⟩ := exists_ratio_critical α κ h τ hq₂ hρ₂ h2q h2ρ
+  obtain ⟨hx₁, hq₁x, hG1x, hG1ρ⟩ :=
+    shcherbinaTirozziHardFunctional_ratio_critical α κ h τ hq₁ hρ₁ h1q h1ρ
+  obtain ⟨hx₂, hq₂x, hG2x, hG2ρ⟩ :=
+    shcherbinaTirozziHardFunctional_ratio_critical α κ h τ hq₂ hρ₂ h2q h2ρ
+  set x₁ : ℝ := q₁ / (ρ₁ - q₁)
+  set x₂ : ℝ := q₂ / (ρ₂ - q₂)
   have hx : x₁ = x₂ ∧ ρ₁ = ρ₂ := by
     -- in the variables `(x, ρ)` both critical points are strict saddle points
     obtain ⟨G, hG⟩ : ∃ G : ℝ → ℝ → ℝ, ∀ x r,

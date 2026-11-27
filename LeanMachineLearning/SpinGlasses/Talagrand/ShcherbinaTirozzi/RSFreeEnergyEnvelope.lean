@@ -6,6 +6,9 @@ Authors: LML Contributors
 module
 
 public import LeanMachineLearning.ForMathlib.Analysis.Calculus.SaddleEnvelope
+public import LeanMachineLearning.ForMathlib.Order.StrictSaddle
+public import Mathlib.Analysis.Calculus.Darboux
+public import Mathlib.Analysis.Convex.Deriv
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.Convexity
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.HardConstraintUniqueness
 
@@ -18,7 +21,10 @@ formalizes:
 * **Zero-load (`α = 0`) evaluation:** at `q₀ = h² / (4 κ²)`, `ρ₀ = (2 κ)⁻¹ + h² / (4 κ²)`, one has
   `0 ≤ q₀ < ρ₀` and `RS₀(0) = log (1 / (2 κ)) / 2 - 1 / 2 + h² / (4 κ)`
   (`shcherbinaTirozziHardFunctional_zero_load`).
-* **Talagrand, Lemma 3.3.6 (Eq. (3.130)):** along any continuous curve `(q a, ρ a)` of critical
+* **Continuity of the critical branch:** critical points `(q a, ρ a)` of `F` with
+  `0 < q a < ρ a` are continuous in the load `a`
+  (`continuousWithinAt_shcherbinaTirozziHardFunctional_critical`).
+* **Talagrand, Lemma 3.3.6 (Eq. (3.130)):** along any curve `(q a, ρ a)` of critical
   points of `F` with `0 < q a < ρ a` (two-sided at `α₀`, or one-sided within a convex set `A`), the
   composite `a ↦ F (a, q a, ρ a)` has derivative `𝔼 log ℙ_ξ (z √(q α₀) + ξ √(ρ α₀ - q α₀) ≥ τ)`
   (`hasDerivAt_shcherbinaTirozziHardFunctional_branch`,
@@ -118,11 +124,192 @@ theorem continuousOn_integral_log_gaussianTail_ratio (τ : ℝ) :
       rw [Real.norm_eq_abs]; exact hbd p hp z)
     hdom (ae_of_all _ hpt)
 
-/-- **Talagrand, Lemma 3.3.6 (Eq. (3.130)), along a continuous critical branch on a load set `A`:**
-if `A ⊆ [0, ∞)` with `α₀ ∈ A`, `(q a, ρ a)` is continuous within `A` at `α₀` with `0 < q a < ρ a`
-and `∂F/∂q (a, q a, ρ a) = 0 = ∂F/∂ρ (a, q a, ρ a)` for `a ∈ A` near `α₀`, then
+/-- **Critical points depend continuously on the load:** if `α₀ ∈ A ⊆ [0, ∞)` and, for `a ∈ A`
+near `α₀`, `(q a, ρ a)` is a critical point of `F (a, ·, ·)` with `0 < q a < ρ a`, then `q` and `ρ`
+are continuous within `A` at `α₀`. No regularity of the branch is assumed: the strict saddle
+structure of Corollary 3.3.12 confines the critical points of nearby loads. -/
+theorem continuousWithinAt_shcherbinaTirozziHardFunctional_critical {A : Set ℝ} {κ h τ α₀ : ℝ}
+    (hA0 : ∀ a ∈ A, 0 ≤ a) (hα₀ : α₀ ∈ A) (hτ : 0 ≤ τ)
+    {q ρ : ℝ → ℝ} {U : Set ℝ} (hU : U ∈ 𝓝 α₀)
+    (hq_pos : ∀ a ∈ A ∩ U, 0 < q a) (hqρ : ∀ a ∈ A ∩ U, q a < ρ a)
+    (hcq : ∀ a ∈ A ∩ U, HasDerivAt (fun q' => shcherbinaTirozziHardFunctional a κ h τ q' (ρ a))
+      0 (q a))
+    (hcρ : ∀ a ∈ A ∩ U, HasDerivAt (fun ρ' => shcherbinaTirozziHardFunctional a κ h τ (q a) ρ')
+      0 (ρ a)) :
+    ContinuousWithinAt q A α₀ ∧ ContinuousWithinAt ρ A α₀ := by
+  -- in the variables `x = q / (ρ - q)` and `ρ` each critical point is a strict saddle point
+  set x : ℝ → ℝ := fun a => q a / (ρ a - q a)
+  set G : ℝ → ℝ → ℝ → ℝ := fun a u v =>
+    shcherbinaTirozziHardFunctional a κ h τ (u * v / (1 + u)) v
+  -- the load enters `G` affinely, with coefficient `T`
+  obtain ⟨T, hT⟩ : ∃ T : ℝ → ℝ → ℝ, T = fun u v => ∫ z, Real.log ((gaussianReal 0 1).real
+      (Ici (τ * Real.sqrt (1 + u) / Real.sqrt v + -Real.sqrt u * z))) ∂(gaussianReal 0 1) :=
+    ⟨_, rfl⟩
+  have hTc : ContinuousOn (fun p : ℝ × ℝ => T p.1 p.2) (Ici 0 ×ˢ Ioi 0) := by
+    rw [hT]; exact continuousOn_integral_log_gaussianTail_ratio τ
+  set B : ℝ → ℝ → ℝ := fun u v =>
+    u / 2 + (Real.log v - Real.log (1 + u)) / 2 - κ * v + h ^ 2 * v / (2 * (1 + u))
+  have hG : ∀ a u v, 0 ≤ u → 0 < v → G a u v = a * T u v + B u v := fun a u v hu hv => by
+    dsimp only [G, B]
+    rw [hT, shcherbinaTirozziHardFunctional_ratio_eq a κ h τ hu hv]
+    ring
+  have hcrit : ∀ a ∈ A ∩ U, 0 < x a ∧ q a = x a * ρ a / (1 + x a) ∧
+      HasDerivAt (fun u => G a u (ρ a)) 0 (x a) ∧ HasDerivAt (fun v => G a (x a) v) 0 (ρ a) :=
+    fun a ha => shcherbinaTirozziHardFunctional_ratio_critical a κ h τ (hq_pos a ha)
+      (hqρ a ha) (hcq a ha) (hcρ a ha)
+  have ha₀ : α₀ ∈ A ∩ U := ⟨hα₀, mem_of_mem_nhds hU⟩
+  obtain ⟨hx0, hqx0, hdx0, hdρ0⟩ := hcrit α₀ ha₀
+  have hρ0 : 0 < ρ α₀ := (hq_pos _ ha₀).trans (hqρ _ ha₀)
+  have hmem : ∀ᶠ a in 𝓝[A] α₀, a ∈ A ∩ U :=
+    inter_mem self_mem_nhdsWithin (nhdsWithin_le_nhds hU)
+  have hid : Tendsto (fun a : ℝ => a) (𝓝[A] α₀) (𝓝 α₀) := nhdsWithin_le_nhds
+  -- `G a u (r a)` converges when `r a → ρ α₀`
+  have hGt : ∀ u, 0 < u → ∀ r : ℝ → ℝ, Tendsto r (𝓝[A] α₀) (𝓝 (ρ α₀)) →
+      Tendsto (fun a => G a u (r a)) (𝓝[A] α₀) (𝓝 (G α₀ u (ρ α₀))) := fun u hu r hr => by
+    have hT : ContinuousAt (fun p : ℝ × ℝ => T p.1 p.2) (u, ρ α₀) :=
+      hTc.continuousAt (prod_mem_nhds (Ici_mem_nhds hu) (Ioi_mem_nhds hρ0))
+    have hB : ContinuousAt (B u) (ρ α₀) := by
+      dsimp only [B]
+      fun_prop (disch := exact hρ0.ne')
+    rw [hG α₀ u _ hu.le hρ0]
+    refine ((hid.mul (hT.tendsto.comp (tendsto_const_nhds.prodMk_nhds hr))).add
+      (hB.tendsto.comp hr)).congr' ?_
+    filter_upwards [hr.eventually_const_lt hρ0] with a ha
+    exact (hG a u _ hu.le ha).symm
+  -- no `r₁ ≠ ρ α₀` lies between `ρ α₀` and `ρ a` for `a` near `α₀`
+  have hside : ∀ r₁, 0 < r₁ → r₁ ≠ ρ α₀ → ∀ᶠ a in 𝓝[A] α₀, r₁ ∉ uIcc (ρ α₀) (ρ a) := by
+    intro r₁ hr₁ hne
+    set K : ℝ → ℝ → ℝ := fun a u => 1 - a * (∫ z, mills (τ * Real.sqrt (1 + u) /
+      Real.sqrt (ρ α₀) + -Real.sqrt u * z) ^ 2 ∂(gaussianReal 0 1)) / u -
+      h ^ 2 * ρ α₀ / (u * (1 + u))
+    have hd : ∀ a u, 0 < u → HasDerivAt (fun u => G a u (ρ α₀)) (u / (2 * (1 + u)) * K a u) u :=
+      fun a u hu => hasDerivAt_shcherbinaTirozziHardFunctional_ratio a κ h τ hu hρ0
+    have hK0 : K α₀ (x α₀) = 0 :=
+      (mul_eq_zero.1 ((hd α₀ _ hx0).unique hdx0)).resolve_left
+        (div_pos hx0 (by linarith)).ne'
+    have hmono : StrictMonoOn (K α₀) (Ioi 0) := by
+      refine strictMonoOn_shcherbinaTirozziHardFunctional_ratio_deriv (hA0 α₀ hα₀) hτ hρ0 ?_
+      by_contra hcon
+      push Not at hcon
+      simp [K, hcon.1, hcon.2] at hK0
+    have hKt : ∀ u, Tendsto (fun a => K a u) (𝓝[A] α₀) (𝓝 (K α₀ u)) := fun u =>
+      (((hid.mul_const _).div_const u).const_sub 1).sub_const _
+    have hl : 0 < x α₀ / 2 := half_pos hx0
+    have hlr : x α₀ / 2 ≤ 3 * x α₀ / 2 := by linarith
+    have hlo : ∀ᶠ a in 𝓝[A] α₀, K a (x α₀ / 2) < 0 := (hKt _).eventually_lt_const
+      ((hmono hl hx0 (half_lt_self hx0)).trans_eq hK0)
+    have hhi : ∀ᶠ a in 𝓝[A] α₀, 0 < K a (3 * x α₀ / 2) := (hKt _).eventually_const_lt
+      (hK0.symm.trans_lt (hmono hx0 (hl.trans_le hlr) (by linarith)))
+    have hTI : ContinuousOn (fun u => T u (ρ α₀)) (Icc (x α₀ / 2) (3 * x α₀ / 2)) :=
+      hTc.comp (f := fun u => (u, ρ α₀)) (by fun_prop)
+        fun u hu => ⟨(hl.trans_le hu.1).le, hρ0⟩
+    obtain ⟨C, hC⟩ := isCompact_Icc.exists_bound_of_continuousOn hTI
+    have hgap : G α₀ (x α₀) r₁ < G α₀ (x α₀) (ρ α₀) :=
+      shcherbinaTirozziHardFunctional_self_lt_of_hasDerivAt_zero κ h (hA0 α₀ hα₀) hτ hx0.le hρ0
+        hr₁ hne hdρ0
+    have hnear : ∀ᶠ a in 𝓝[A] α₀,
+        G a (x α₀) r₁ + C * |a - α₀| < G α₀ (x α₀) (ρ α₀) := by
+      have ht : Tendsto (fun a => a * T (x α₀) r₁ + B (x α₀) r₁ + C * |a - α₀|) (𝓝[A] α₀)
+          (𝓝 (α₀ * T (x α₀) r₁ + B (x α₀) r₁ + C * |α₀ - α₀|)) :=
+        ((hid.mul_const _).add_const _).add ((hid.sub_const α₀).abs.const_mul C)
+      rw [sub_self, abs_zero, mul_zero, add_zero, ← hG α₀ _ _ hx0.le hr₁] at ht
+      filter_upwards [ht.eventually_lt_const hgap] with a ha
+      rwa [hG a _ _ hx0.le hr₁]
+    filter_upwards [hmem, hlo, hhi, hnear] with a ha hlo hhi hnear
+    have ha0 : 0 ≤ a := hA0 a ha.1
+    -- a critical point of `G a (·, ρ α₀)` near `x α₀`, by Darboux's theorem
+    obtain ⟨u, hu, hu0⟩ := exists_hasDerivWithinAt_eq_of_gt_of_lt (m := 0) hlr
+      (fun u hu => (hd a u (hl.trans_le hu.1)).hasDerivWithinAt)
+      (mul_neg_of_pos_of_neg (div_pos hl (by linarith)) hlo)
+      (mul_pos (div_pos (hl.trans_le hlr) (by linarith)) hhi)
+    have hupos : 0 < u := hl.trans hu.1
+    have hmin : ∀ u' ∈ Ioi (0 : ℝ), G a u (ρ α₀) ≤ G a u' (ρ α₀) := fun u' hu' => by
+      rcases eq_or_ne u' u with rfl | hne'
+      · exact le_rfl
+      · exact (shcherbinaTirozziHardFunctional_ratio_lt_of_hasDerivAt_zero κ h ha0 hτ hupos hρ0
+          hu' hne' ((hd a u hupos).congr_deriv hu0)).le
+    have hlow : G α₀ (x α₀) (ρ α₀) - C * |a - α₀| ≤ G a u (ρ α₀) := by
+      have h0 : G α₀ (x α₀) (ρ α₀) ≤ G α₀ u (ρ α₀) := by
+        rcases eq_or_ne u (x α₀) with rfl | hne'
+        · exact le_rfl
+        · exact (shcherbinaTirozziHardFunctional_ratio_lt_of_hasDerivAt_zero κ h (hA0 α₀ hα₀) hτ
+            hx0 hρ0 hupos hne' hdx0).le
+      have h1 : |(a - α₀) * T u (ρ α₀)| ≤ C * |a - α₀| := by
+        rw [abs_mul, mul_comm]
+        exact mul_le_mul_of_nonneg_right (hC u (Ioo_subset_Icc_self hu)) (abs_nonneg _)
+      have h2 : G a u (ρ α₀) = G α₀ u (ρ α₀) + (a - α₀) * T u (ρ α₀) := by
+        rw [hG a u _ hupos.le hρ0, hG α₀ u _ hupos.le hρ0]
+        ring
+      linarith [(abs_le.1 h1).1]
+    obtain ⟨hxa, -, hdxa, hdρa⟩ := hcrit a ha
+    have hρa : 0 < ρ a := (hq_pos a ha).trans (hqρ a ha)
+    -- `G a (x α₀, ·)` is concave
+    have hconc : ConcaveOn ℝ (Ioi 0) fun v => G a (x α₀) v := by
+      have hd' := fun v (hv : 0 < v) =>
+        hasDerivAt_shcherbinaTirozziHardFunctional_self a κ h τ hx0.le hv
+      refine AntitoneOn.concaveOn_of_deriv (convex_Ioi 0)
+        (fun v hv => (hd' v hv).continuousAt.continuousWithinAt)
+        (fun v hv => (hd' v (interior_subset hv)).differentiableAt.differentiableWithinAt) ?_
+      rw [interior_Ioi]
+      intro v hv w hw hvw
+      rw [(hd' v hv).deriv, (hd' w hw).deriv]
+      exact div_le_div_of_nonneg_right
+        ((strictAntiOn_shcherbinaTirozziHardFunctional_self_deriv (x := x α₀) κ h ha0 hτ
+          ).antitoneOn hv hw hvw) zero_le_two
+    rw [← segment_eq_uIcc]
+    refine notMem_segment_of_saddle (f := G a) (S := Ioi 0) (x := x a) (x₁ := x α₀)
+      (m := G a u (ρ α₀)) hxa hx0 hconc.quasiconcaveOn hρa hρ0 (fun u' hu' => ?_) ?_ hmin
+      (not_le.2 (by linarith))
+    · rcases eq_or_ne u' (x a) with rfl | hne'
+      · exact le_rfl
+      · exact (shcherbinaTirozziHardFunctional_ratio_lt_of_hasDerivAt_zero κ h ha0 hτ hxa hρa
+          hu' hne' hdxa).le
+    · rcases eq_or_ne (ρ α₀) (ρ a) with heq | hne'
+      · rw [heq]
+      · exact (shcherbinaTirozziHardFunctional_self_lt_of_hasDerivAt_zero κ h ha0 hτ hxa.le hρa
+          hρ0 hne' hdρa).le
+  have hρc : Tendsto ρ (𝓝[A] α₀) (𝓝 (ρ α₀)) := by
+    refine tendsto_order.2 ⟨fun l hl => ?_, fun r hr => ?_⟩
+    · rcases le_or_gt l 0 with h0 | h0
+      · filter_upwards [hmem] with a ha
+        exact h0.trans_lt ((hq_pos a ha).trans (hqρ a ha))
+      · filter_upwards [hside l h0 hl.ne] with a ha
+        exact lt_of_not_ge fun hcon => ha (mem_uIcc.2 (Or.inr ⟨hcon, hl.le⟩))
+    · filter_upwards [hside r (hρ0.trans hr) hr.ne'] with a ha
+      exact lt_of_not_ge fun hcon => ha (mem_uIcc.2 (Or.inl ⟨hr.le, hcon⟩))
+  have hxc : Tendsto x (𝓝[A] α₀) (𝓝 (x α₀)) := by
+    -- compare the values at `x α₀` and at the test point `l`
+    have hcmp : ∀ l, 0 < l → l ≠ x α₀ →
+        ∀ᶠ a in 𝓝[A] α₀, a ∈ A ∩ U ∧ G a (x α₀) (ρ a) < G a l (ρ a) := fun l hl hne =>
+      hmem.and ((hGt _ hx0 ρ hρc).eventually_lt (hGt l hl ρ hρc)
+        (shcherbinaTirozziHardFunctional_ratio_lt_of_hasDerivAt_zero κ h (hA0 α₀ hα₀) hτ hx0 hρ0
+          hl hne hdx0))
+    have hmon : ∀ a ∈ A ∩ U, ∀ l, 0 < l → (x a ≤ l ∧ l < x α₀ ∨ x α₀ < l ∧ l ≤ x a) →
+        G a l (ρ a) < G a (x α₀) (ρ a) := fun a ha l _ hbetween =>
+      shcherbinaTirozziHardFunctional_ratio_lt_of_between κ h (hA0 a ha.1) hτ (hcrit a ha).1
+        ((hq_pos a ha).trans (hqρ a ha)) hx0 hbetween (hcrit a ha).2.2.1
+    refine tendsto_order.2 ⟨fun l hl => ?_, fun r hr => ?_⟩
+    · rcases le_or_gt l 0 with h0 | h0
+      · filter_upwards [hmem] with a ha
+        exact h0.trans_lt (hcrit a ha).1
+      · filter_upwards [hcmp l h0 hl.ne] with a ha
+        exact lt_of_not_ge fun hcon => lt_asymm ha.2 (hmon a ha.1 l h0 (Or.inl ⟨hcon, hl⟩))
+    · filter_upwards [hcmp r (hx0.trans hr) hr.ne'] with a ha
+      exact lt_of_not_ge fun hcon =>
+        lt_asymm ha.2 (hmon a ha.1 r (hx0.trans hr) (Or.inr ⟨hr, hcon⟩))
+  refine ⟨?_, hρc⟩
+  have h := (hxc.mul hρc).div (hxc.const_add 1) (by positivity : 1 + x α₀ ≠ 0)
+  rw [ContinuousWithinAt, hqx0]
+  refine h.congr' ?_
+  filter_upwards [hmem] with a ha
+  exact (hcrit a ha).2.1.symm
+
+/-- **Talagrand, Lemma 3.3.6 (Eq. (3.130)), along a critical branch on a load set `A`:**
+if `A ⊆ [0, ∞)` with `α₀ ∈ A`, and `0 < q a < ρ a` with
+`∂F/∂q (a, q a, ρ a) = 0 = ∂F/∂ρ (a, q a, ρ a)` for `a ∈ A` near `α₀`, then
 `a ↦ F (a, q a, ρ a)` has derivative `𝔼 log ℙ_ξ (z √(q α₀) + ξ √(ρ α₀ - q α₀) ≥ τ)` within `A` at
-`α₀`. Neither differentiability of `(q, ρ)` nor second derivatives in `ρ` are needed. -/
+`α₀`. Continuity of `(q, ρ)` follows from criticality; neither differentiability of `(q, ρ)` nor
+second derivatives in `ρ` are needed. -/
 theorem hasDerivWithinAt_shcherbinaTirozziHardFunctional_branch {A : Set ℝ} {κ h τ α₀ : ℝ}
     (hA0 : ∀ a ∈ A, 0 ≤ a) (hα₀ : α₀ ∈ A) (hτ : 0 ≤ τ)
     {q ρ : ℝ → ℝ} {U : Set ℝ} (hU : U ∈ 𝓝 α₀)
@@ -130,8 +317,7 @@ theorem hasDerivWithinAt_shcherbinaTirozziHardFunctional_branch {A : Set ℝ} {�
     (hcq : ∀ a ∈ A ∩ U, HasDerivAt (fun q' => shcherbinaTirozziHardFunctional a κ h τ q' (ρ a))
       0 (q a))
     (hcρ : ∀ a ∈ A ∩ U, HasDerivAt (fun ρ' => shcherbinaTirozziHardFunctional a κ h τ (q a) ρ')
-      0 (ρ a))
-    (hq_cont : ContinuousWithinAt q A α₀) (hρ_cont : ContinuousWithinAt ρ A α₀) :
+      0 (ρ a)) :
     HasDerivWithinAt (fun a => shcherbinaTirozziHardFunctional a κ h τ (q a) (ρ a))
       (∫ z, Real.log ((gaussianReal 0 1).real
           (Ici ((τ - Real.sqrt (q α₀) * z) / Real.sqrt (ρ α₀ - q α₀))))
@@ -149,146 +335,18 @@ theorem hasDerivWithinAt_shcherbinaTirozziHardFunctional_branch {A : Set ℝ} {�
   have hρ0 : 0 < ρ α₀ := hq0.trans hqρ0
   have hs0 : 0 < ρ α₀ - q α₀ := sub_pos.2 hqρ0
   have hx0 : 0 < x α₀ := div_pos hq0 hs0
-  have hqx : ∀ a ∈ A ∩ U, x a * ρ a / (1 + x a) = q a := fun a ha => by
-    have hs : (ρ a - q a) ≠ 0 := (sub_pos.2 (hqρ a ha)).ne'
-    have h1x : 1 + x a ≠ 0 := (add_pos one_pos (div_pos (hq_pos a ha) (sub_pos.2 (hqρ a ha)))).ne'
-    have hρa : ρ a ≠ 0 := ((hq_pos a ha).trans (hqρ a ha)).ne'
-    dsimp only [x]; field_simp; ring_nf
-    exact mul_inv_cancel_right₀ hρa _
+  have hcrit : ∀ a ∈ A ∩ U, 0 < x a ∧ q a = x a * ρ a / (1 + x a) ∧
+      HasDerivAt (fun u => G a u (ρ a)) 0 (x a) ∧ HasDerivAt (fun v => G a (x a) v) 0 (ρ a) :=
+    fun a ha => shcherbinaTirozziHardFunctional_ratio_critical a κ h τ (hq_pos a ha)
+      (hqρ a ha) (hcq a ha) (hcρ a ha)
+  have hqx : ∀ a ∈ A ∩ U, x a * ρ a / (1 + x a) = q a := fun a ha => (hcrit a ha).2.1.symm
   -- each `(x a, ρ a)` is a saddle point of `G a` on `(0, ∞) × (0, ∞)`
   have hsaddle : ∀ a ∈ A ∩ U, 0 < x a ∧ 0 < ρ a ∧
       (∀ u ∈ Ioi (0 : ℝ), G a (x a) (ρ a) ≤ G a u (ρ a)) ∧
       (∀ v ∈ Ioi (0 : ℝ), G a (x a) v ≤ G a (x a) (ρ a)) := by
     intro a ha
-    have hqa := hq_pos a ha
-    have hqρa := hqρ a ha
-    have hρa : 0 < ρ a := hqa.trans hqρa
-    have hsa : 0 < ρ a - q a := sub_pos.2 hqρa
-    have hxa : 0 < x a := div_pos hqa hsa
-    have h1xa : 0 < 1 + x a := by linarith
-    have hGx : HasDerivAt (fun u => G a u (ρ a)) 0 (x a) := by
-      have hinner : HasDerivAt (fun u : ℝ => u * ρ a / (1 + u)) (ρ a / (1 + x a) ^ 2) (x a) := by
-        refine (((hasDerivAt_id (x a)).mul_const (ρ a)).div ((hasDerivAt_id (x a)).const_add 1)
-          h1xa.ne').congr_deriv ?_
-        simp only [id_eq]; ring
-      have h0 : HasDerivAt (fun q' => shcherbinaTirozziHardFunctional a κ h τ q' (ρ a)) 0
-          (x a * ρ a / (1 + x a)) := by rw [hqx a ha]; exact hcq a ha
-      simpa only [zero_mul, Function.comp_def] using h0.comp (x a) hinner
-    have hGρ : HasDerivAt (fun v => G a (x a) v) 0 (ρ a) := by
-      -- relate `∂_ρ F` and `∂_ρ G` at a point where `∂_x G = 0`
-      have hK := (hasDerivAt_shcherbinaTirozziHardFunctional_ratio a κ h τ hxa hρa).unique hGx
-      replace hK := (mul_eq_zero.1 hK).resolve_left (div_pos hxa (by linarith)).ne'
-      -- evaluate `∂_ρ F` directly via `shcherbinaTirozziHardFunctional`
-      set m : ℝ → ℝ := fun r => τ / Real.sqrt (r - q a)
-      set σ : ℝ → ℝ := fun r => -Real.sqrt (q a) / Real.sqrt (r - q a)
-      set m' : ℝ → ℝ := fun r => -(τ / (2 * (r - q a) * Real.sqrt (r - q a)))
-      set σ' : ℝ → ℝ := fun r => Real.sqrt (q a) / (2 * (r - q a) * Real.sqrt (r - q a))
-      have hquot : ∀ c r : ℝ, q a < r → HasDerivAt (fun r => c / Real.sqrt (r - q a))
-          (-(c / (2 * (r - q a) * Real.sqrt (r - q a)))) r := fun c r hr => by
-        have hr0 : 0 < r - q a := sub_pos.2 hr
-        have hsr := (Real.sqrt_pos.2 hr0).ne'
-        have h1 : HasDerivAt (fun r => Real.sqrt (r - q a)) (1 / (2 * Real.sqrt (r - q a))) r := by
-          simpa using ((hasDerivAt_id r).sub_const (q a)).sqrt hr0.ne'
-        refine ((hasDerivAt_const r c).div h1 hsr).congr_deriv ?_
-        rw [Real.sq_sqrt hr0.le]; field_simp; ring
-      have hden : 2 * (ρ a - q a) * Real.sqrt (ρ a - q a) ≠ 0 :=
-        mul_ne_zero (mul_ne_zero two_ne_zero hsa.ne') (Real.sqrt_pos.2 hsa).ne'
-      have hdenc : ContinuousAt (fun r : ℝ => 2 * (r - q a) * Real.sqrt (r - q a)) (ρ a) := by
-        fun_prop
-      have hE := hasDerivAt_integral_log_gaussianTail (m := m) (σ := σ) (m' := m') (σ' := σ')
-        (t := ρ a) ((eventually_gt_nhds hqρa).mono fun r hr => hquot τ r hr)
-        ((eventually_gt_nhds hqρa).mono fun r hr =>
-          (hquot (-Real.sqrt (q a)) r hr).congr_deriv (by dsimp only [σ']; ring))
-        (ContinuousAt.neg (ContinuousAt.div continuousAt_const hdenc hden))
-        (ContinuousAt.div continuousAt_const hdenc hden)
-      have hrest : HasDerivAt (fun r => q a / (2 * (r - q a)) + Real.log (r - q a) / 2 - κ * r +
-          h ^ 2 * (r - q a) / 2)
-          (-(q a / (2 * (ρ a - q a) ^ 2)) + (ρ a - q a)⁻¹ / 2 - κ + h ^ 2 / 2) (ρ a) := by
-        have h0 : HasDerivAt (fun r : ℝ => r - q a) 1 (ρ a) := (hasDerivAt_id (ρ a)).sub_const (q a)
-        have h1 := (hasDerivAt_const (ρ a) (q a)).div (h0.const_mul 2)
-          (mul_ne_zero two_ne_zero hsa.ne')
-        have h2 := (h0.log hsa.ne').div_const 2
-        have h3 := (hasDerivAt_id (ρ a)).const_mul κ
-        have h4 := (h0.const_mul (h ^ 2)).div_const 2
-        refine (((h1.add h2).sub h3).add h4).congr_deriv ?_
-        field_simp; ring
-      have hFd : HasDerivAt (fun r => shcherbinaTirozziHardFunctional a κ h τ (q a) r)
-          (a * (∫ z, -(mills (m (ρ a) + σ (ρ a) * z)) * (m' (ρ a) + σ' (ρ a) * z)
-              ∂(gaussianReal 0 1)) +
-            (-(q a / (2 * (ρ a - q a) ^ 2)) + (ρ a - q a)⁻¹ / 2 - κ + h ^ 2 / 2)) (ρ a) := by
-        refine ((hE.const_mul a).add hrest).congr_of_eventuallyEq
-          (Eventually.of_forall fun r => ?_)
-        have e : ∀ z : ℝ, (τ - Real.sqrt (q a) * z) / Real.sqrt (r - q a) = m r + σ r * z :=
-          fun z => by dsimp only [m, σ]; ring
-        simp only [shcherbinaTirozziHardFunctional, e, Pi.add_apply]; ring
-      have hF0 := hFd.unique (hcρ a ha)
-      have hs_eq : ρ a - q a = ρ a / (1 + x a) := by
-        have := h1xa.ne'; have := hsa.ne'; dsimp only [x]; field_simp; ring
-      have hsq : Real.sqrt (ρ a - q a) = Real.sqrt (ρ a) / Real.sqrt (1 + x a) := by
-        rw [hs_eq, Real.sqrt_div' _ h1xa.le]
-      have hmρ : m (ρ a) = τ * Real.sqrt (1 + x a) / Real.sqrt (ρ a) := by
-        have := (Real.sqrt_pos.2 hρa).ne'; have := (Real.sqrt_pos.2 h1xa).ne'
-        dsimp only [m]; rw [hsq]; field_simp
-      have hsqq : Real.sqrt (q a) = Real.sqrt (x a) * (Real.sqrt (ρ a) / Real.sqrt (1 + x a)) := by
-        rw [← hqx a ha, Real.sqrt_div' _ h1xa.le, Real.sqrt_mul hxa.le, mul_div_assoc]
-      have hσρ : σ (ρ a) = -Real.sqrt (x a) := by
-        have := (Real.sqrt_pos.2 hρa).ne'; have := (Real.sqrt_pos.2 h1xa).ne'
-        dsimp only [σ]; rw [hsq, hsqq]; field_simp
-      obtain ⟨hi, hzi, -⟩ :=
-        integrable_gaussianPDFReal_div_measureReal_Ici_comp (m (ρ a)) (σ (ρ a))
-      have hder : ∫ z, -(mills (m (ρ a) + σ (ρ a) * z)) * (m' (ρ a) + σ' (ρ a) * z)
-          ∂(gaussianReal 0 1) =
-          -(m' (ρ a)) * (∫ z, mills (m (ρ a) + σ (ρ a) * z) ∂(gaussianReal 0 1)) +
-            -(σ' (ρ a)) * ∫ z, z * mills (m (ρ a) + σ (ρ a) * z) ∂(gaussianReal 0 1) := by
-        rw [← integral_const_mul, ← integral_const_mul,
-          ← integral_add (hi.const_mul _) (hzi.const_mul _)]
-        exact integral_congr_ae (ae_of_all _ fun z => by ring)
-      set I1 := ∫ z, mills (m (ρ a) + σ (ρ a) * z) ∂(gaussianReal 0 1)
-      set I2 := ∫ z, mills (m (ρ a) + σ (ρ a) * z) ^ 2 ∂(gaussianReal 0 1)
-      set J := ∫ z, z * mills (m (ρ a) + σ (ρ a) * z) ∂(gaussianReal 0 1)
-      have hsx2 : Real.sqrt (x a) ^ 2 = x a := Real.sq_sqrt hxa.le
-      have hJeq : J = -Real.sqrt (x a) * (I2 - m (ρ a) * I1) / (1 + x a) := by
-        rw [eq_div_iff h1xa.ne', ← hσρ]
-        have h1 := one_add_sq_mul_integral_id_mul_gaussianPDFReal_div_measureReal_Ici
-          (m (ρ a)) (σ (ρ a))
-        have h2 : σ (ρ a) ^ 2 = x a := by rw [hσρ, neg_sq, hsx2]
-        linear_combination h1 - J * h2
-      have hm'ρ : m' (ρ a) = -(m (ρ a) / (2 * (ρ a - q a))) := by
-        dsimp only [m', m]; rw [div_div, mul_comm (Real.sqrt (ρ a - q a))]
-      have hσ'ρ : σ' (ρ a) = Real.sqrt (x a) / (2 * (ρ a - q a)) := by
-        have : σ' (ρ a) = -(σ (ρ a)) / (2 * (ρ a - q a)) := by
-          dsimp only [σ', σ]
-          rw [neg_div (Real.sqrt (ρ a - q a)) (Real.sqrt (q a)), neg_neg, div_div,
-            mul_comm (Real.sqrt (ρ a - q a))]
-        rw [this, hσρ, neg_neg]
-      have e1 : -(m' (ρ a)) * I1 + -(σ' (ρ a)) * J = (m (ρ a) * I1 + x a * I2) / (2 * ρ a) := by
-        have := hρa.ne'; have := h1xa.ne'
-        rw [hm'ρ, hσ'ρ, hJeq, hs_eq]
-        calc _ = ((1 + x a) * (m (ρ a) * I1) + Real.sqrt (x a) ^ 2 * (I2 - m (ρ a) * I1)) /
-              (2 * ρ a) := by field_simp
-          _ = (m (ρ a) * I1 + x a * I2) / (2 * ρ a) := by rw [hsx2]; ring
-      have e2 : -(q a / (2 * (ρ a - q a) ^ 2)) + (ρ a - q a)⁻¹ / 2 =
-          (1 - x a) * (1 + x a) / (2 * ρ a) := by
-        have := hρa.ne'; have := h1xa.ne'
-        rw [hs_eq, ← hqx a ha]; field_simp; ring
-      rw [hder, e1, e2] at hF0
-      refine (hasDerivAt_shcherbinaTirozziHardFunctional_self a κ h τ hxa.le hρa).congr_deriv ?_
-      have hI1' : ∫ z, mills (τ * Real.sqrt (1 + x a) / Real.sqrt (ρ a) + -Real.sqrt (x a) * z)
-          ∂(gaussianReal 0 1) = I1 := by rw [← hmρ, ← hσρ]
-      have hI2' : ∫ z, mills (τ * Real.sqrt (1 + x a) / Real.sqrt (ρ a) + -Real.sqrt (x a) * z) ^ 2
-          ∂(gaussianReal 0 1) = I2 := by rw [← hmρ, ← hσρ]
-      rw [hI1']
-      rw [hI2'] at hK
-      have key : (a * τ * Real.sqrt (1 + x a) / (ρ a * Real.sqrt (ρ a)) * I1 + (ρ a)⁻¹ - 2 * κ +
-            h ^ 2 / (1 + x a)) / 2 =
-          (a * ((m (ρ a) * I1 + x a * I2) / (2 * ρ a)) +
-            ((1 - x a) * (1 + x a) / (2 * ρ a) - κ + h ^ 2 / 2)) +
-            x a ^ 2 / (2 * ρ a) * (1 - a * I2 / x a - h ^ 2 * ρ a / (x a * (1 + x a))) := by
-        rw [hmρ]
-        have := hxa.ne'; have := hρa.ne'; have := h1xa.ne'
-        have := (Real.sqrt_pos.2 hρa).ne'
-        field_simp; ring
-      rw [key, hF0, hK]; ring
+    obtain ⟨hxa, -, hGx, hGρ⟩ := hcrit a ha
+    have hρa : 0 < ρ a := (hq_pos a ha).trans (hqρ a ha)
     refine ⟨hxa, hρa, fun u hu => ?_, fun v hv => ?_⟩
     · rcases eq_or_ne u (x a) with rfl | hne
       · exact le_rfl
@@ -298,6 +356,8 @@ theorem hasDerivWithinAt_shcherbinaTirozziHardFunctional_branch {A : Set ℝ} {�
       · exact le_rfl
       · exact (shcherbinaTirozziHardFunctional_self_lt_of_hasDerivAt_zero κ h
           (hA0 a ha.1) hτ hxa.le hρa hv hne hGρ).le
+  obtain ⟨hq_cont, hρ_cont⟩ := continuousWithinAt_shcherbinaTirozziHardFunctional_critical
+    hA0 hα₀ hτ hU hq_pos hqρ hcq hcρ
   have hx_cont : ContinuousWithinAt x A α₀ :=
     hq_cont.div (hρ_cont.sub hq_cont) hs0.ne'
   have hd : ∀ b ∈ U, ∀ u ∈ Ioi (0 : ℝ), ∀ v ∈ Ioi (0 : ℝ),
@@ -353,8 +413,8 @@ theorem hasDerivWithinAt_shcherbinaTirozziHardFunctional_branch {A : Set ℝ} {�
   rw [← hderiv_eq]
   exact henv.congr_of_eventuallyEq hcongr hval
 
-/-- **Talagrand, Lemma 3.3.6 (Eq. (3.130)), two-sided interior form:** if `0 < α₀`, `(q, ρ)` is
-continuous at `α₀`, and for `a` near `α₀` one has `0 < q a < ρ a` and
+/-- **Talagrand, Lemma 3.3.6 (Eq. (3.130)), two-sided interior form:** if `0 < α₀` and for `a`
+near `α₀` one has `0 < q a < ρ a` and
 `∂F/∂q (a, q a, ρ a) = 0 = ∂F/∂ρ (a, q a, ρ a)`, then `a ↦ F (a, q a, ρ a)` has derivative
 `𝔼 log ℙ_ξ (z √(q α₀) + ξ √(ρ α₀ - q α₀) ≥ τ)` at `α₀`. -/
 theorem hasDerivAt_shcherbinaTirozziHardFunctional_branch {κ h τ α₀ : ℝ}
@@ -363,8 +423,7 @@ theorem hasDerivAt_shcherbinaTirozziHardFunctional_branch {κ h τ α₀ : ℝ}
     (hcq : ∀ᶠ a in 𝓝 α₀,
       HasDerivAt (fun q' => shcherbinaTirozziHardFunctional a κ h τ q' (ρ a)) 0 (q a))
     (hcρ : ∀ᶠ a in 𝓝 α₀,
-      HasDerivAt (fun ρ' => shcherbinaTirozziHardFunctional a κ h τ (q a) ρ') 0 (ρ a))
-    (hq_cont : ContinuousAt q α₀) (hρ_cont : ContinuousAt ρ α₀) :
+      HasDerivAt (fun ρ' => shcherbinaTirozziHardFunctional a κ h τ (q a) ρ') 0 (ρ a)) :
     HasDerivAt (fun a => shcherbinaTirozziHardFunctional a κ h τ (q a) (ρ a))
       (∫ z, Real.log ((gaussianReal 0 1).real
           (Ici ((τ - Real.sqrt (q α₀) * z) / Real.sqrt (ρ α₀ - q α₀))))
@@ -376,7 +435,6 @@ theorem hasDerivAt_shcherbinaTirozziHardFunctional_branch {κ h τ α₀ : ℝ}
   have hhd := hasDerivWithinAt_shcherbinaTirozziHardFunctional_branch (A := Ici 0)
     (fun _ ha => ha) hα₀.le hτ hUmem
     (fun a ha => ha.2.1) (fun a ha => ha.2.2.1) (fun a ha => ha.2.2.2.1) (fun a ha => ha.2.2.2.2)
-    hq_cont.continuousWithinAt hρ_cont.continuousWithinAt
   exact hhd.hasDerivAt (Ici_mem_nhds hα₀)
 
 /-- **Zero-load (`α = 0`) value of the hard replica-symmetric functional** (first display in the
