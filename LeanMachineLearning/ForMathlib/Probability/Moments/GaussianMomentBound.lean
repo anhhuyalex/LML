@@ -74,7 +74,7 @@ theorem abs_integral_pow_gaussianReal_zero_le (v : ℝ≥0) (n : ℕ) :
 `μ k` whose relevant moments satisfy `|∫ x ^ n_k dμ_k| ≤ n_k!`, is bounded by
 `∏ (n_k! σ_k ^ {n_k})`. -/
 theorem abs_prod_integral_pow_scaled_le_prod {ι : Type*} [Fintype ι] (μ : ι → Measure ℝ)
-    (c : ι → ℕ) (hμ : ∀ k, |∫ x : ℝ, x ^ (c k) ∂(μ k)| ≤ ((c k) ! : ℝ)) {σ : ι → ℝ}
+    (c : ι → ℕ) (hμ : ∀ k, |∫ x : ℝ, x ^ (c k) ∂(μ k)| ≤ ((c k)! : ℝ)) {σ : ι → ℝ}
     (hσ : ∀ k, 0 ≤ σ k) :
     |∏ k, ∫ x : ℝ, (σ k * x) ^ (c k) ∂(μ k)| ≤ ∏ k, ((c k) ! : ℝ) * σ k ^ (c k) := by
   rw [Finset.abs_prod]

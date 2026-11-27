@@ -69,7 +69,7 @@ theorem integrable_tsum_of_tsum_eLpNorm_ne_top {p : ℝ≥0∞} (hp : 1 ≤ p) {
     (hf : ∀ n, AEStronglyMeasurable (f n) μ) (h : ∑' n, eLpNorm (f n) p μ ≠ ∞) :
     Integrable (fun ω => ∑' n, f n ω) μ :=
   integrable_tsum_of_tsum_eLpNorm_one_ne_top hf (ne_top_of_le_ne_top h
-    (tsum_le_tsum fun n => eLpNorm_le_eLpNorm_of_exponent_le hp))
+    (tsum_le_tsum fun _ => eLpNorm_le_eLpNorm_of_exponent_le hp))
 
 omit [IsProbabilityMeasure μ] in
 /-- **A series with summable `L¹` norms converges absolutely almost surely.** -/

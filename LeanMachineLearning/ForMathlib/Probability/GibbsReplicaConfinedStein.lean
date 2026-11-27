@@ -200,11 +200,19 @@ private theorem prod_gaussian_exponent_confining {κ B₀ : ℝ} (hκ : 0 < κ) 
   nlinarith [hu0 (S p), hE₀ p.1, sq_nonneg ‖p.1‖, sq_nonneg p.2,
     mul_le_mul_of_nonneg_left h1 hB₀, mul_le_mul_of_nonneg_left h2 hm0]
 
+omit [NormedSpace ℝ E] [FiniteDimensional ℝ E] [MeasurableSpace E] [BorelSpace E] in
+private theorem nonneg_of_confining_of_neg_le {κ B₀ c₀ : ℝ} {E₀ : E → ℝ}
+    (hE₀_conf : ∀ x, E₀ x ≤ B₀ * ‖x‖ - κ * ‖x‖ ^ 2) (hE₀_low : ∀ x, ‖x‖ ≤ 1 → -c₀ ≤ E₀ x) :
+    0 ≤ c₀ := by
+  have h1 := hE₀_low 0 (by simp)
+  have h2 : E₀ 0 ≤ 0 := by simpa using hE₀_conf 0
+  linarith
+
 /-- Polynomial moment bound on `E × ℝ` for `(μ.prod (gaussianReal 0 1)).tilted (E₀ + u ∘ S)`,
 growing polynomially in `B₀`, `c₀` and `∑ k, |w k|`. -/
 theorem exists_integral_one_add_norm_pow_tilted_prod_gaussian_le [Fintype K]
     {κ : ℝ} (hκ : 0 < κ) (m : ℕ) :
-    ∃ C_m : ℝ, 0 ≤ C_m ∧ ∀ (E₀ : E → ℝ), Measurable E₀ → ∀ B₀ c₀ : ℝ, 0 ≤ B₀ → 0 ≤ c₀ →
+    ∃ C_m : ℝ, 0 ≤ C_m ∧ ∀ (E₀ : E → ℝ), Measurable E₀ → ∀ B₀ c₀ : ℝ, 0 ≤ B₀ →
       (∀ x, E₀ x ≤ B₀ * ‖x‖ - κ * ‖x‖ ^ 2) → (∀ x, ‖x‖ ≤ 1 → -c₀ ≤ E₀ x) →
       ∀ (A : E → K → ℝ), (∀ k, Measurable fun x => A x k) →
       ∀ (s_A : ℝ), 0 ≤ s_A → (∀ k x, ‖x‖ ≤ 1 → |A x k| ≤ s_A) →
@@ -216,8 +224,9 @@ theorem exists_integral_one_add_norm_pow_tilted_prod_gaussian_le [Fintype K]
   have hκ' : 0 < min κ (1 / 2) := lt_min hκ (by positivity)
   obtain ⟨C_m, hCm0, hCm⟩ := exists_integral_one_add_norm_pow_tilted_le
     (E := E × ℝ) (μ.prod volume) hκ' m
-  refine ⟨C_m, hCm0, fun E₀ hE₀m B₀ c₀ hB₀ hc₀ hE₀_conf hE₀_low A hAm s_A hs_A hA_low
+  refine ⟨C_m, hCm0, fun E₀ hE₀m B₀ c₀ hB₀ hE₀_conf hE₀_low A hAm s_A hs_A hA_low
     c_A u D₁ hu hu0 hD₁ w => ?_⟩
+  have hc₀ : 0 ≤ c₀ := nonneg_of_confining_of_neg_le hE₀_conf hE₀_low
   rw [tilted_prod_gaussianReal_zero_one]
   have hum : Measurable u := hu.continuous.measurable
   have hSm : Measurable fun p : E × ℝ => A p.1 ⬝ᵥ w + c_A * p.2 :=
@@ -737,7 +746,7 @@ private theorem exists_integrable_and_abs_le_integral_pi_tilted_prod_gaussianRea
       simp_rw [hν_eq]
       exact abs_integral_pi_tilted_le_of_confining (μ := μ.prod volume) hκ' hem hconf (hGb w)
     have h2 := pow_le_pow_left₀ (integral_nonneg fun _ => by positivity)
-      (hAm_le E₀ hE₀m B₀ c₀ hB₀ hc₀ hE₀_conf hE₀_low A hAm s_A hs_A hA_low c_A u D₁ hu hu0 hD₁ w)
+      (hAm_le E₀ hE₀m B₀ c₀ hB₀ hE₀_conf hE₀_low A hAm s_A hs_A hA_low c_A u D₁ hu hu0 hD₁ w)
       (Fintype.card ι)
     have hCw : 0 ≤ C₀ + C₁ * ∑ k, |w k| := by
       have : 0 ≤ ∑ k, |w k| := Finset.sum_nonneg fun _ _ => abs_nonneg _
@@ -1138,7 +1147,7 @@ private theorem integrable_pi_tilted_prod_gaussianReal_of_poly [Fintype K] {ι :
 polynomially growing observable under `(μ.prod (gaussianReal 0 1)).tilted (E₀ + u ∘ S)`. -/
 theorem stein_pi_tilted_prod_gaussianReal [Fintype K]
     [Fintype R] [DecidableEq R]
-    {κ B₀ c₀ : ℝ} (hκ : 0 < κ) (hB₀ : 0 ≤ B₀) (hc₀ : 0 ≤ c₀)
+    {κ B₀ c₀ : ℝ} (hκ : 0 < κ) (hB₀ : 0 ≤ B₀)
     {E₀ : E → ℝ} (hE₀m : Measurable E₀)
     (hE₀_conf : ∀ x, E₀ x ≤ B₀ * ‖x‖ - κ * ‖x‖ ^ 2)
     (hE₀_low : ∀ x, ‖x‖ ≤ 1 → -c₀ ≤ E₀ x)
@@ -1185,6 +1194,7 @@ theorem stein_pi_tilted_prod_gaussianReal [Fintype K]
               (∏ r, ψ r (S w (σ (some r)))) * deriv u (S w (σ none))
             ∂(Measure.pi fun _ : Option R => ν w) ∂γ_sh := by
   intro γ_sh S W ν ψ_d
+  have hc₀ : 0 ≤ c₀ := nonneg_of_confining_of_neg_le hE₀_conf hE₀_low
   set s_A : ℝ := |L_A| * 2 ^ n_A
   have hs_A : 0 ≤ s_A := by positivity
   have hA_low : ∀ j x, ‖x‖ ≤ 1 → |A x j| ≤ s_A := fun j x hx =>
@@ -2467,7 +2477,7 @@ normalizer term produces the five-group continuous-spin covariance formula (diag
 off-diagonal `R` pair sum, two `Option R` fresh-replica sums, and `Option (Option R)` double-fresh
 term). -/
 theorem hasDerivAt_integral_pi_tilted_prod_gaussianReal_sqrt [Fintype K] [Fintype R]
-    [DecidableEq R] {κ B₀ c₀ : ℝ} (hκ : 0 < κ) (hB₀ : 0 ≤ B₀) (hc₀ : 0 ≤ c₀)
+    [DecidableEq R] {κ B₀ c₀ : ℝ} (hκ : 0 < κ) (hB₀ : 0 ≤ B₀)
     {E₀ : E → ℝ} (hE₀m : Measurable E₀)
     (hE₀_conf : ∀ x, E₀ x ≤ B₀ * ‖x‖ - κ * ‖x‖ ^ 2)
     (hE₀_low : ∀ x, ‖x‖ ≤ 1 → -c₀ ≤ E₀ x)
@@ -2534,6 +2544,7 @@ theorem hasDerivAt_integral_pi_tilted_prod_gaussianReal_sqrt [Fintype K] [Fintyp
             ∂(Measure.pi fun _ : Option (Option R) => ν v₀ w) ∂γ_sh))
       v₀ := by
   intro γ_sh S ν C_off C_diag ψ_d ψ_dd
+  have hc₀ : 0 ≤ c₀ := nonneg_of_confining_of_neg_le hE₀_conf hE₀_low
   have hd_w := hasDerivAt_integral_w_pi_tilted_prod_gaussianReal_sqrt μ hκ hB₀ hc₀ hE₀m
     hE₀_conf hE₀_low X Y hXm hXb c_ξ hu hu0 hD₁ ψ hψd hM₀ hM₁ hf hfb hv₀
   refine hd_w.congr_deriv ?_
@@ -2708,7 +2719,7 @@ theorem hasDerivAt_integral_pi_tilted_prod_gaussianReal_sqrt [Fintype K] [Fintyp
             mul_nonneg (abs_nonneg M₀) (abs_nonneg D₂),
             mul_nonneg (abs_nonneg M₀) (sq_nonneg |D₁|)]))
     obtain ⟨_, hst1_j, hst1_opt, hst1_eq⟩ :=
-      stein_pi_tilted_prod_gaussianReal μ hκ hB₀ hc₀ hE₀m hE₀_conf hE₀_low
+      stein_pi_tilted_prod_gaussianReal μ hκ hB₀ hE₀m hE₀_conf hE₀_low
         A_0 B_0 hA0m hB0m hA0b hB0b c_A0 c_B0 hu hu0 hD₁
         ψ_i hψi_d hψi_b0 hψi_b1 hf hfb i
     have hprod_ψi : ∀ (w : K → ℝ) (τ : R → E × ℝ),
@@ -2878,7 +2889,7 @@ theorem hasDerivAt_integral_pi_tilted_prod_gaussianReal_sqrt [Fintype K] [Fintyp
         (hfb b).trans (mul_le_mul_of_nonneg_right (le_abs_self _)
           (Finset.prod_nonneg fun _ _ => by positivity))
     obtain ⟨_, hst2_j, hst2_opt, hst2_eq⟩ :=
-      stein_pi_tilted_prod_gaussianReal (R := Option R) μ hκ hB₀ hc₀ hE₀m hE₀_conf hE₀_low
+      stein_pi_tilted_prod_gaussianReal (R := Option R) μ hκ hB₀ hE₀m hE₀_conf hE₀_low
         A_0 B_0 hA0m hB0m hA0b hB0b c_A0 c_B0 hu hu0 hD₁
         ψ_opt hψopt_d hψopt_b0 hψopt_b1 hf_opt_m hf_opt_b none
     have hprod_opt : ∀ (w : K → ℝ) (τ : Option R → E × ℝ),
@@ -3328,10 +3339,10 @@ jointly measurable with confinement `E₀ ω x ≤ B₀ ω * ‖x‖ - κ * ‖x
 six covariance groups are `P₀`-integrable, and its derivative is `(1 / 2)` times their `P₀`-average.
 This is the model-free engine for Talagrand's Lemma 3.2.8 and Theorem 3.2.14. -/
 theorem hasDerivAt_integral_integral_pi_tilted_prod_gaussianReal_sqrt
-    {Ω : Type*} [MeasurableSpace Ω] (P₀ : Measure Ω) [IsFiniteMeasure P₀]
+    {Ω : Type*} [MeasurableSpace Ω] (P₀ : Measure Ω)
     [Fintype K] [Fintype R] [DecidableEq R]
     {κ : ℝ} (hκ : 0 < κ)
-    {B₀ c₀ : Ω → ℝ} (hB₀ : ∀ ω, 0 ≤ B₀ ω) (hc₀ : ∀ ω, 0 ≤ c₀ ω)
+    {B₀ c₀ : Ω → ℝ} (hB₀ : ∀ ω, 0 ≤ B₀ ω)
     (hmom : ∀ deg : ℕ, Integrable (fun ω => (1 + B₀ ω + c₀ ω) ^ deg) P₀)
     {E₀ : Ω → E → ℝ} (hE₀m : Measurable fun p : Ω × E => E₀ p.1 p.2)
     (hE₀_conf : ∀ ω x, E₀ ω x ≤ B₀ ω * ‖x‖ - κ * ‖x‖ ^ 2)
@@ -3416,6 +3427,11 @@ theorem hasDerivAt_integral_integral_pi_tilted_prod_gaussianReal_sqrt
           (Fintype.card R : ℝ) * ((Fintype.card R : ℝ) + 1) * ∫ ω, I_off4 ω ∂P₀))
         v₀ := by
   intro γ_sh S ν C_off C_diag ψ_d ψ_dd I_diag1 I_off1 I_off2 I_diag2 I_off3 I_off4
+  have hc₀ : ∀ ω, 0 ≤ c₀ ω := fun ω =>
+    nonneg_of_confining_of_neg_le (hE₀_conf ω) (hE₀_low ω)
+  have : IsFiniteMeasure P₀ :=
+    (integrable_const_iff.1 (by simpa using hmom 0 : Integrable (fun _ => (1 : ℝ)) P₀)).resolve_left
+      one_ne_zero
   have hum : Measurable u := hu.continuous.measurable
   have hdu : Measurable (deriv u) := measurable_deriv u
   have hd2u : Measurable (deriv (deriv u)) := measurable_deriv (deriv u)
@@ -4017,7 +4033,7 @@ theorem hasDerivAt_integral_integral_pi_tilted_prod_gaussianReal_sqrt
     have hn0 : 0 ≤ n_R := Nat.cast_nonneg _
     have hs1 : |G1| ≤ n_R * X1 :=
       (Finset.abs_sum_le_sum_abs _ _).trans
-        ((Finset.sum_le_sum fun i _ => (hg1 i).2.1 ω).trans_eq (by simp [n_R]))
+        ((Finset.sum_le_sum fun i _ => (hg1 i).2.1 ω).trans_eq (by simp [n_R, X1]))
     have hs2 : |G2| ≤ n_R ^ 2 * X1 := by
       refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
       have hin : ∀ i : R, |∑ j ∈ Finset.univ.erase i, ∫ w, ∫ σ : R → E × ℝ,
@@ -4038,7 +4054,8 @@ theorem hasDerivAt_integral_integral_pi_tilted_prod_gaussianReal_sqrt
       dsimp only [G3]
       rw [abs_mul, abs_of_nonneg hn0]
       have hin := (Finset.abs_sum_le_sum_abs _ _).trans
-        ((Finset.sum_le_sum fun i _ => (hg3 i).2.1 ω).trans_eq (by simp))
+        ((Finset.sum_le_sum fun i _ => (hg3 i).2.1 ω).trans_eq
+          (by rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul]))
       exact (mul_le_mul_of_nonneg_left hin hn0).trans_eq (by dsimp only [n_R]; ring)
     have hs4 : |G4| ≤ n_R * X2 := by
       dsimp only [G4]; rw [abs_mul, abs_of_nonneg hn0]
@@ -4047,7 +4064,8 @@ theorem hasDerivAt_integral_integral_pi_tilted_prod_gaussianReal_sqrt
       dsimp only [G5]
       rw [abs_mul, abs_of_nonneg hn0]
       have hin := (Finset.abs_sum_le_sum_abs _ _).trans
-        ((Finset.sum_le_sum fun j _ => (hg5 j).2.1 ω).trans_eq (by simp))
+        ((Finset.sum_le_sum fun j _ => (hg5 j).2.1 ω).trans_eq
+          (by rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul]))
       exact (mul_le_mul_of_nonneg_left hin hn0).trans_eq (by dsimp only [n_R]; ring)
     have hs6 : |G6| ≤ n_R * (n_R + 1) * X3 := by
       dsimp only [G6]; rw [abs_mul, abs_of_nonneg (by positivity)]
@@ -4065,7 +4083,7 @@ theorem hasDerivAt_integral_integral_pi_tilted_prod_gaussianReal_sqrt
       HasDerivAt (fun v' => ∫ w, ∫ σ : R → E × ℝ, f (fun r => (σ r).1) * ∏ r, ψ r (S v' w (σ r))
         ∂(Measure.pi fun _ : R => ν v' ω w) ∂γ_sh) (D_ω v ω) v := fun ω v hv => by
     have hEω_m : Measurable (E₀ ω) := hE₀m.comp (measurable_const.prodMk measurable_id)
-    exact hasDerivAt_integral_pi_tilted_prod_gaussianReal_sqrt μ hκ (hB₀ ω) (hc₀ ω) hEω_m
+    exact hasDerivAt_integral_pi_tilted_prod_gaussianReal_sqrt μ hκ (hB₀ ω) hEω_m
       (hE₀_conf ω) (hE₀_low ω) X Y hXm hXb horth c_ξ hu hu₂ hu0 hD₁ hD₂
       ψ hψd hψ₂d hM₀ hM₁ hM₂ hf hfb hv
   have hd_P₀ := (hasDerivAt_integral_of_dominated_loc_of_deriv_le (μ := P₀)
@@ -4100,13 +4118,13 @@ theorem hasDerivAt_integral_integral_pi_tilted_prod_gaussianReal_sqrt
       (fun ω => n_R * S_g5 ω)) +
       (fun ω => n_R * (n_R + 1) * I_off4 ω) := rfl
   rw [h_lin,
-    integral_add
+    integral_add'
       ((((hi1.add hi2).sub (hi3.const_mul _)).sub (hi4.const_mul _)).sub (hi5.const_mul _))
       (hi6.const_mul _),
-    integral_sub (((hi1.add hi2).sub (hi3.const_mul _)).sub (hi4.const_mul _)) (hi5.const_mul _),
-    integral_sub ((hi1.add hi2).sub (hi3.const_mul _)) (hi4.const_mul _),
-    integral_sub (hi1.add hi2) (hi3.const_mul _),
-    integral_add hi1 hi2,
+    integral_sub' (((hi1.add hi2).sub (hi3.const_mul _)).sub (hi4.const_mul _)) (hi5.const_mul _),
+    integral_sub' ((hi1.add hi2).sub (hi3.const_mul _)) (hi4.const_mul _),
+    integral_sub' (hi1.add hi2) (hi3.const_mul _),
+    integral_add' hi1 hi2,
     integral_const_mul, integral_const_mul, integral_const_mul, integral_const_mul]
   have hs1_eq : ∫ ω, S_g1 ω ∂P₀ = ∑ i : R, ∫ ω, I_diag1 i ω ∂P₀ :=
     integral_finsetSum _ fun i _ => (hg1_v0 i).2.2
