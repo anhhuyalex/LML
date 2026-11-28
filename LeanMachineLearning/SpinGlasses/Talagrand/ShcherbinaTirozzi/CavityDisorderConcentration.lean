@@ -227,7 +227,8 @@ private theorem hasDerivAt_integral_shcherbinaTirozziCavityGibbs_line {N M : ℕ
     rw [zero_add]
     have hs1 : |s| ≤ 1 := by
       rw [Metric.mem_ball, Real.dist_eq, sub_zero] at hs; exact hs.le
-    refine (neg_shcherbinaTirozziCavityHamiltonian_le κ h (y + s * Δy) hrr ht0 ht1 hu0 _ _ σ).trans ?_
+    refine (neg_shcherbinaTirozziCavityHamiltonian_le κ h (y + s * Δy)
+      hrr ht0 ht1 hu0 _ _ σ).trans ?_
     have h1 : ∑ i : Fin (N + 1), |g₀ i + s * Δg₀ i| ≤ (∑ i, |g₀ i|) + ∑ i, |Δg₀ i| := by
       rw [← Finset.sum_add_distrib]
       refine Finset.sum_le_sum fun i _ => (abs_add_le _ _).trans (add_le_add le_rfl ?_)
@@ -249,7 +250,8 @@ private theorem hasDerivAt_integral_shcherbinaTirozziCavityGibbs_line {N M : ℕ
   have hder : ∀ (σ : ℝ^(N + 1)) (s : ℝ), HasDerivAt (fun q => e q σ) (X_s s σ) s := fun σ s => by
     have hfield : ∀ k : Fin M, HasDerivAt
         (fun q => u cfield[N, t, (fun k i => g k i + q * Δg k i), k, σ])
-        (deriv u cfield[N, t, (fun k i => g k i + s * Δg k i), k, σ] * cfield[N, t, Δg, k, σ]) s := by
+        (deriv u cfield[N, t, (fun k i => g k i + s * Δg k i), k, σ] *
+          cfield[N, t, Δg, k, σ]) s := by
       intro k
       have hlin : (fun q => cfield[N, t, (fun k i => g k i + q * Δg k i), k, σ]) =
           fun q => cfield[N, t, g, k, σ] + q * cfield[N, t, Δg, k, σ] := funext fun q => by
@@ -341,7 +343,8 @@ private theorem hasDerivAt_integral_shcherbinaTirozziCavityGibbs_line {N M : ℕ
 
 /-- **Covariance bound for the cavity disorder derivative:** for a centered `f ∈ L²(G)` and the
 directional derivative `X` of `-H_{N,M,t}` in direction `(Δy, Δg, Δg₀)`,
-`|⟨f X⟩_t| ≤ √(32 ⟨f²⟩_t / κ) (D √(M / (N+1)) + |h| + 1 + D ‖g‖ ‖⟨σ⟩_t‖ / (N+1)) √(∑ Δg² + ∑ Δg₀² + Δy²)`. -/
+`|⟨f X⟩_t| ≤ √(32 ⟨f²⟩_t / κ) (D √(M / (N+1)) + |h| + 1 + D ‖g‖ ‖⟨σ⟩_t‖ / (N+1))
+  * √(∑ Δg² + ∑ Δg₀² + Δy²)`. -/
 private theorem abs_integral_mul_cavityDisorderDerivative_le {N M : ℕ}
     {κ h r rBar t y : ℝ} (hκ : 0 < κ) (hrr : rBar ≤ r) (ht0 : 0 ≤ t) (ht1 : t ≤ 1)
     {u : ℝ → ℝ} (hu : ConcaveOn ℝ Set.univ u) (hu0 : ∀ x, u x ≤ 0)
@@ -362,7 +365,8 @@ private theorem abs_integral_mul_cavityDisorderDerivative_le {N M : ℕ}
   have hcast : ∀ i : Fin N, (i.castSucc : Fin (N + 1)) ≠ Fin.last N :=
     fun i => (Fin.castSucc_lt_last i).ne
   have : IsProbabilityMeasure G := by
-    rw [hG]; exact isProbabilityMeasure_tilted (integrable_exp_neg_shcherbinaTirozziCavityHamiltonian
+    rw [hG]
+    exact isProbabilityMeasure_tilted (integrable_exp_neg_shcherbinaTirozziCavityHamiltonian
       hκ (mul_nonneg (sub_nonneg.2 ht1) (sub_nonneg.2 hrr)) hum hu0 g g₀)
   have hid : MemLp (fun σ : ℝ^(N + 1) => σ) 2 G := by
     rw [hG]
@@ -429,7 +433,8 @@ private theorem abs_integral_mul_cavityDisorderDerivative_le {N M : ℕ}
   set V : ℝ^M := ∫ σ, f σ • (U σ - ∫ τ, U τ ∂G) ∂G with hV
   have hVn : ‖V‖ ≤ D * ((Real.sqrt (N + 1))⁻¹ * ‖Matrix.of g‖) * Φ :=
     norm_integral_smul_sub_mean_cavity_le_of_lipschitz (h := h) (y := y) hκ hrr ht1 hu hu0
-      g g₀ G hG (F := U) (by positivity) (fun σ τ => norm_cavity_deriv_field_sub_le ht0 ht1 hD2 g σ τ)
+      g g₀ G hG (F := U) (by positivity)
+      (fun σ τ => norm_cavity_deriv_field_sub_le ht0 ht1 hD2 g σ τ)
       hf
   have hUm : Measurable U := (WithLp.measurable_toLp 2 (Fin M → ℝ)).comp
     (Measurable.of_eval fun k => hfield k)
@@ -452,7 +457,8 @@ private theorem abs_integral_mul_cavityDisorderDerivative_le {N M : ℕ}
   have hlast_g0 : Integrable (fun σ => f σ * ⟪d₀, σ⟫) G ∧ ∫ σ, f σ * ⟪d₀, σ⟫ ∂G = ⟪d₀, z⟫ := by
     have h := integral_smul_apply_eq_apply_integral_smul_sub_add hf hid (innerSL ℝ d₀) b
     rw [hf0, zero_smul, add_zero] at h; exact h
-  have hlast_y : Integrable (fun σ => f σ * ⟪e_last, σ⟫) G ∧ ∫ σ, f σ * ⟪e_last, σ⟫ ∂G = ⟪e_last, z⟫ := by
+  have hlast_y : Integrable (fun σ => f σ * ⟪e_last, σ⟫) G ∧
+      ∫ σ, f σ * ⟪e_last, σ⟫ ∂G = ⟪e_last, z⟫ := by
     have h := integral_smul_apply_eq_apply_integral_smul_sub_add hf hid (innerSL ℝ e_last) b
     rw [hf0, zero_smul, add_zero] at h; exact h
   have hfX : ∫ σ, f σ * X σ ∂G =
@@ -551,7 +557,8 @@ private theorem abs_integral_mul_cavityDisorderDerivative_le {N M : ℕ}
       _ = |Δy| * |⟪e_last, z⟫| := by rw [one_mul]
       _ ≤ δ * Φ := mul_le_mul hΔy_le he1 (abs_nonneg _) (Real.sqrt_nonneg _)
   rw [hfX]
-  refine (abs_add_le _ _).trans ((add_le_add ((abs_add_le _ _).trans (add_le_add h1 h2)) h3_y).trans ?_)
+  refine (abs_add_le _ _).trans
+    ((add_le_add ((abs_add_le _ _).trans (add_le_add h1 h2)) h3_y).trans ?_)
   have h3 := mul_le_mul_of_nonneg_left hsumv (mul_nonneg hD0 hΦ0)
   have h4 := mul_le_mul_of_nonneg_left hsumV (norm_nonneg b)
   refine (add_le_add (add_le_add (add_le_add h3 h4) le_rfl) le_rfl).trans_eq ?_
@@ -663,7 +670,8 @@ private theorem memLp_cavityDisorderDerivative {N M : ℕ} {t D h Δy : ℝ} {u 
   have hsum : MemLp (fun σ : ℝ^(N + 1) =>
       ∑ k : Fin M, deriv u cfield[N, t, g, k, σ] * cfield[N, t, Δg, k, σ]) 2 G := by
     refine memLp_finsetSum _ fun k _ => (hlin_c k).of_le_mul (c := D)
-      ((hfield k).aestronglyMeasurable.mul (hlin_c k).aestronglyMeasurable) (ae_of_all _ fun σ => ?_)
+      ((hfield k).aestronglyMeasurable.mul (hlin_c k).aestronglyMeasurable)
+      (ae_of_all _ fun σ => ?_)
     rw [norm_mul]
     exact mul_le_mul_of_nonneg_right (hD _) (norm_nonneg _)
   have hg0 : MemLp (fun σ : ℝ^(N + 1) => h * ∑ i, Δg₀ i * σ i) 2 G := by
@@ -745,7 +753,8 @@ theorem exists_hasDerivAt_integral_shcherbinaTirozziCavity_selfOverlap_line
     have h4 := (h319 N M 2 κ h r rBar t y u g g₀ hκ hh ht0 ht1 hrr hrr_diff hM (by omega) hum
       hu0 hD).1
     rw [← hG] at h4
-    have e : (fun σ => F σ ^ 2) = fun σ => (((N : ℝ) + 1)⁻¹) ^ 2 * ‖σ‖ ^ (2 * 2) := funext fun σ => by
+    have e : (fun σ => F σ ^ 2) = fun σ => (((N : ℝ) + 1)⁻¹) ^ 2 * ‖σ‖ ^ (2 * 2) :=
+      funext fun σ => by
       rw [hF]; ring
     rw [e]; exact h4.const_mul _
   have hXL := memLp_cavityDisorderDerivative hD1 g Δg Δg₀ G hid X fun _ => rfl
@@ -906,7 +915,8 @@ theorem exists_hasDerivAt_integral_shcherbinaTirozziCavity_overlap_line
     have hMau := (integral_sub_integral_pow_le_of_lipschitz (μ₀ := volume) (C := Set.univ)
       (H := shcherbinaTirozziCavityHamiltonian κ h r rBar t y u g g₀) convex_univ MeasurableSet.univ
       (NeZero.ne _) (measurable_shcherbinaTirozziCavityHamiltonian_apply κ h r rBar t y hum g g₀)
-      (integrableOn_univ.2 (integrable_exp_neg_shcherbinaTirozziCavityHamiltonian hκ0 hq hum hu0 g g₀))
+      (integrableOn_univ.2
+        (integrable_exp_neg_shcherbinaTirozziCavityHamiltonian hκ0 hq hum hu0 g g₀))
       (fun x _ z _ => shcherbinaTirozziCavityHamiltonian_midpoint_gap κ h y hq hu g g₀ x z)
       hκ0 (norm_nonneg b) (fun x _ z _ => hlip x z) 1).2
     simp only [Measure.restrict_univ, ← hG, hinner, Nat.cast_one, mul_one, pow_one] at hMau

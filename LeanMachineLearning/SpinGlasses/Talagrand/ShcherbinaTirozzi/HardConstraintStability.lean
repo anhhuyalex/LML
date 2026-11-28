@@ -896,7 +896,8 @@ private theorem isCritical_shcherbinaTirozziHardFunctional_of_tendsto_hard
         exact hv.mul (hcm.continuousAt.tendsto.comp hv))
   -- Pass to the limit in `∂F/∂q = 0` and `∂F/∂ρ = 0`
   have hq_stat_n : ∀ n, q n / (ρ n - q n) ^ 2 -
-      α n * (∫ z, mills (v_n n z) ^ 2 ∂(gaussianReal 0 1)) / (ρ n - q n) - h n ^ 2 = 0 := fun n => by
+      α n * (∫ z, mills (v_n n z) ^ 2 ∂(gaussianReal 0 1)) / (ρ n - q n) -
+      h n ^ 2 = 0 := fun n => by
     rcases (hqn n).eq_or_lt with h0 | hpos
     · have hρn0 : 0 < ρ n := h0 ▸ hqρn n
       have hcq0 : HasDerivWithinAt

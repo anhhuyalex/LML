@@ -319,7 +319,8 @@ theorem exists_integral_exp_half_sq_norm_shcherbinaTirozziCavity_le_exp
         (mul_le_of_le_one_left (sub_nonneg.2 hrr) (by linarith)).trans hrr_diff
       have h2 : (1 - t) * (r - rBar) / (4 * κ) ≤ R_diff / (4 * κ₀) :=
         div_le_div₀ hR_diff h1 (by positivity) (by linarith)
-      exact h2.trans (le_mul_of_one_le_right (by positivity) (by linarith [Nat.cast_nonneg (α := ℝ) N]))
+      exact h2.trans (le_mul_of_one_le_right (by positivity)
+        (by linarith [Nat.cast_nonneg (α := ℝ) N]))
     have hDM : D * M ≤ 10 * D * ((N : ℝ) + 1) := by nlinarith
     have hDc : D * c * Real.sqrt (M * ((N : ℝ) + 1)⁻¹ * S) ≤
         D * Real.sqrt (10 / κ₀) * Real.sqrt S := by
@@ -330,7 +331,8 @@ theorem exists_integral_exp_half_sq_norm_shcherbinaTirozziCavity_le_exp
       ≤ Real.exp ((N : ℝ) + 1) *
           Real.exp (‖a‖ ^ 2 / (2 * κ) - ∫ z, U (c • z) ∂stdGaussian (ℝ^(N + 1))) :=
         mul_le_mul_of_nonneg_right h2pow (Real.exp_pos _).le
-    _ = Real.exp (((N : ℝ) + 1) + (‖a‖ ^ 2 / (2 * κ) + -(∫ z, U (c • z) ∂stdGaussian (ℝ^(N + 1))))) := by
+    _ = Real.exp (((N : ℝ) + 1) +
+        (‖a‖ ^ 2 / (2 * κ) + -(∫ z, U (c • z) ∂stdGaussian (ℝ^(N + 1))))) := by
         rw [← Real.exp_add, sub_eq_add_neg]
     _ ≤ Real.exp (K₁ * (((N : ℝ) + 1) + Real.sqrt S + T + y ^ 2)) := by
         rw [Real.exp_le_exp]
@@ -377,7 +379,8 @@ theorem exists_integral_sq_norm_pow_shcherbinaTirozziCavity_le
     fun N M k κ h r rBar t y u g g₀ hκ hh ht0 ht1 hrr hrr_diff hM hk hu hu0 hD => ?_⟩
   intro G
   have hκ0 : 0 < κ := hκ₀.trans_le hκ
-  have := isProbabilityMeasure_shcherbinaTirozziCavityGibbs (h := h) (y := y) hκ0 hrr ht1 hu hu0 g g₀
+  have := isProbabilityMeasure_shcherbinaTirozziCavityGibbs
+    (h := h) (y := y) hκ0 hrr ht1 hu hu0 g g₀
   set B : ℝ := ((N : ℝ) + 1) + Real.sqrt (∑ k : Fin M, ∑ i : Fin (N + 1), g k i ^ 2) +
     (∑ i : Fin (N + 1), g₀ i ^ 2) + y ^ 2 with hB
   have hNB : ((N : ℝ) + 1) ≤ B := by

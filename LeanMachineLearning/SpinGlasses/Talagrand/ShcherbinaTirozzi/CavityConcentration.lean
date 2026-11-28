@@ -5,7 +5,8 @@ Authors: LML Contributors
 -/
 module
 
-public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.CavityDisorderConcentration
+public import
+  LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.CavityDisorderConcentration
 
 /-!
 # The Shcherbina--Tirozzi model: uniform-in-`t` overlap concentration along `ν_t` (Eq. (3.111))
@@ -680,7 +681,8 @@ theorem exists_integral_shcherbinaTirozziCavity_selfOverlap_sub_pow_le
         (K₁₇ * k / ((N : ℝ) + 1)) ^ k := by
     refine ⟨(hmpS.integrable_comp ((hmm.sub_const c).pow_const _).aestronglyMeasurable).1 h17.1, ?_⟩
     rw [← hmpS.map_eq,
-      integral_map hmpS.measurable.aemeasurable ((hmm.sub_const c).pow_const _).aestronglyMeasurable]
+      integral_map hmpS.measurable.aemeasurable
+        ((hmm.sub_const c).pow_const _).aestronglyMeasurable]
     exact h17.2
   -- Quenched fluctuation integrated over `cavLaw[N, M, r]`
   have hfix : ∀ d, Integrable (fun σ => (((N : ℝ) + 1)⁻¹ * ‖σ‖ ^ 2 -
@@ -912,7 +914,8 @@ theorem exists_integral_shcherbinaTirozziCavity_overlap_sub_pow_le
         (K₁₇ * k / ((N : ℝ) + 1)) ^ k := by
     refine ⟨(hmpS.integrable_comp ((hmm.sub_const c).pow_const _).aestronglyMeasurable).1 h17.1, ?_⟩
     rw [← hmpS.map_eq,
-      integral_map hmpS.measurable.aemeasurable ((hmm.sub_const c).pow_const _).aestronglyMeasurable]
+      integral_map hmpS.measurable.aemeasurable
+        ((hmm.sub_const c).pow_const _).aestronglyMeasurable]
     exact h17.2
   have hfix : ∀ d, Integrable (fun p : ℝ^(N + 1) × ℝ^(N + 1) =>
       (((N : ℝ) + 1)⁻¹ * ⟪p.1, p.2⟫ -

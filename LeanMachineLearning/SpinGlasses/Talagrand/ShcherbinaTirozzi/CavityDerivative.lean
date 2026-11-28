@@ -1252,8 +1252,8 @@ theorem continuousOn_integral_integral_pi_shcherbinaTirozziCavity {κ h : ℝ} (
     set B : ℝ := |h| * (∑ i, |p.2.2 i|) + |p.1|
     have hB0 : 0 ≤ B := add_nonneg (mul_nonneg (abs_nonneg h)
       (Finset.sum_nonneg fun _ _ => abs_nonneg _)) (abs_nonneg _)
-    have hE_cont : ∀ σ : ℝ^(N + 1), Continuous
-        (fun t => -shcherbinaTirozziCavityHamiltonian κ h r rBar t p.1 u p.2.1 p.2.2 σ) := fun σ => by
+    have hE_cont : ∀ σ : ℝ^(N + 1), Continuous (fun t =>
+        -shcherbinaTirozziCavityHamiltonian κ h r rBar t p.1 u p.2.1 p.2.2 σ) := fun σ => by
       unfold shcherbinaTirozziCavityHamiltonian
       fun_prop
     set μ_R : Measure (R → ℝ^(N + 1)) := Measure.pi fun _ : R => (volume : Measure (ℝ^(N + 1)))
