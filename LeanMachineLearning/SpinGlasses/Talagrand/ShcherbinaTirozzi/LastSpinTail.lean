@@ -44,45 +44,6 @@ local notation "ℝ^" n:arg => EuclideanSpace ℝ (Fin n)
 
 variable {N M : ℕ}
 
-/-- The cavity Hamiltonian is jointly measurable in the field `y`, the disorder and the
-configuration. -/
-theorem measurable_shcherbinaTirozziCavityHamiltonian (κ h r rBar t : ℝ) {u : ℝ → ℝ}
-    (hu : Measurable u) :
-    Measurable fun p : (ℝ × ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ))) × ℝ^(N + 1) =>
-      shcherbinaTirozziCavityHamiltonian κ h r rBar t p.1.1 u p.1.2.1 p.1.2.2 p.2 := by
-  have hσ : ∀ i : Fin (N + 1), Measurable fun p :
-      (ℝ × ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ))) × ℝ^(N + 1) => p.2 i := fun i =>
-    ((PiLp.continuous_apply 2 (fun _ : Fin (N + 1) => ℝ) i).measurable).comp measurable_snd
-  have hg : ∀ (k : Fin M) (i : Fin (N + 1)), Measurable fun p :
-      (ℝ × ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ))) × ℝ^(N + 1) => p.1.2.1 k i :=
-    fun k i => (measurable_pi_apply i).comp ((measurable_pi_apply k).comp
-      (measurable_fst.comp (measurable_snd.comp measurable_fst)))
-  have hg₀ : ∀ i : Fin (N + 1), Measurable fun p :
-      (ℝ × ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ))) × ℝ^(N + 1) => p.1.2.2 i :=
-    fun i => (measurable_pi_apply i).comp
-      (measurable_snd.comp (measurable_snd.comp measurable_fst))
-  have hfield : ∀ k : Fin M, Measurable fun p :
-      (ℝ × ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ))) × ℝ^(N + 1) =>
-      u ((Real.sqrt (N + 1))⁻¹ * ((∑ i : Fin N, p.1.2.1 k i.castSucc * p.2 i.castSucc) +
-        Real.sqrt t * (p.1.2.1 k (Fin.last N) * p.2 (Fin.last N)))) := fun k =>
-    hu.comp (((Finset.measurable_sum _ fun i _ => (hg k _).mul (hσ _)).add
-      (((hg k _).mul (hσ _)).const_mul _)).const_mul _)
-  have hsum := Finset.measurable_sum Finset.univ fun k _ => hfield k
-  have hlin := (Finset.measurable_sum Finset.univ fun i _ => (hg₀ i).mul (hσ i)).const_mul h
-  have hq : Measurable fun p :
-      (ℝ × ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ))) × ℝ^(N + 1) => κ * ‖p.2‖ ^ 2 :=
-    (measurable_snd.norm.pow_const 2).const_mul κ
-  have hy : Measurable fun p :
-      (ℝ × ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ))) × ℝ^(N + 1) =>
-      p.2 (Fin.last N) * (Real.sqrt (1 - t) * p.1.1) :=
-    (hσ _).mul ((measurable_fst.comp measurable_fst).const_mul _)
-  have hlast : Measurable fun p :
-      (ℝ × ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ))) × ℝ^(N + 1) =>
-      (1 - t) * (r - rBar) * p.2 (Fin.last N) ^ 2 / 2 :=
-    (((hσ _).pow_const 2).const_mul _).div_const _
-  simp only [shcherbinaTirozziCavityHamiltonian]
-  exact (((hq.sub hsum).sub hlin).sub hy).add hlast
-
 /-- Joint measurability of a cavity Hamiltonian with constraint-indexed potentials `u_k`. -/
 private theorem measurable_indexed_cavity (κ h r rBar t : ℝ) {u_k : Fin M → ℝ → ℝ}
     (hu : ∀ k, Measurable (u_k k)) :
@@ -123,6 +84,14 @@ private theorem measurable_indexed_cavity (κ h r rBar t : ℝ) {u_k : Fin M →
       (1 - t) * (r - rBar) * p.2 (Fin.last N) ^ 2 / 2 :=
     (((hσ _).pow_const 2).const_mul _).div_const _
   exact (((hq.sub hsum).sub hlin).sub hy).add hlast
+
+/-- The cavity Hamiltonian is jointly measurable in the field `y`, the disorder and the
+configuration. -/
+theorem measurable_shcherbinaTirozziCavityHamiltonian (κ h r rBar t : ℝ) {u : ℝ → ℝ}
+    (hu : Measurable u) :
+    Measurable fun p : (ℝ × ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ))) × ℝ^(N + 1) =>
+      shcherbinaTirozziCavityHamiltonian κ h r rBar t p.1.1 u p.1.2.1 p.1.2.2 p.2 :=
+  measurable_indexed_cavity κ h r rBar t (fun _ => hu)
 
 /-- Splitting the indexed cavity exponent into the first `N` spins and the last spin. -/
 private theorem neg_indexed_cavity_split (κ h r rBar t y : ℝ) (u_k : Fin M → ℝ → ℝ)
@@ -197,6 +166,20 @@ theorem measurable_shcherbinaTirozziCavityHamiltonian_apply (κ h r rBar t y : �
       shcherbinaTirozziCavityHamiltonian κ h r rBar t y u g g₀ σ :=
   measurable_indexed_cavity_apply κ h r rBar t y (fun _ => hu) g g₀
 
+/-- The linear drift `h g₀ + c e_N` of the cavity system, paired with a configuration. -/
+theorem inner_toLp_shcherbinaTirozziCavity_drift (h c : ℝ) (g₀ : Fin (N + 1) → ℝ)
+    (σ : ℝ^(N + 1)) :
+    ⟪WithLp.toLp 2 (fun i => h * g₀ i + if i = Fin.last N then c else 0), σ⟫ =
+      h * (∑ i, g₀ i * σ i) + σ (Fin.last N) * c := by
+  have h1 : ⟪WithLp.toLp 2 (fun i => h * g₀ i + if i = Fin.last N then c else 0), σ⟫ =
+      ∑ i, (h * g₀ i + if i = Fin.last N then c else 0) * σ i := by
+    rw [PiLp.inner_apply]
+    exact Finset.sum_congr rfl fun i _ => mul_comm _ _
+  simp only [h1, add_mul, Finset.sum_add_distrib, ite_mul, zero_mul, Finset.sum_ite_eq',
+    Finset.mem_univ, ite_true]
+  rw [mul_comm (σ (Fin.last N)), Finset.mul_sum]
+  exact congrArg (· + _) (Finset.sum_congr rfl fun i _ => mul_assoc _ _ _)
+
 private theorem integrable_exp_neg_indexed_cavity {κ h r rBar t y : ℝ} (hκ : 0 < κ)
     (hq : 0 ≤ (1 - t) * (r - rBar)) {u_k : Fin M → ℝ → ℝ} (hu : ∀ k, Measurable (u_k k))
     (hu0 : ∀ k x, u_k k x ≤ 0) (g : Fin M → Fin (N + 1) → ℝ) (g₀ : Fin (N + 1) → ℝ) :
@@ -206,21 +189,10 @@ private theorem integrable_exp_neg_indexed_cavity {κ h r rBar t y : ℝ} (hκ :
             Real.sqrt t * (g k (Fin.last N) * σ (Fin.last N))))) -
           h * (∑ i, g₀ i * σ i) - σ (Fin.last N) * (Real.sqrt (1 - t) * y) +
           (1 - t) * (r - rBar) * σ (Fin.last N) ^ 2 / 2)) := by
-  obtain ⟨b, hb⟩ : ∃ b : Fin (N + 1) → ℝ, ∀ i, b i =
-      h * g₀ i + if i = Fin.last N then Real.sqrt (1 - t) * y else 0 := ⟨_, fun _ => rfl⟩
   obtain ⟨U, hU⟩ : ∃ U : ℝ^(N + 1) → ℝ, ∀ σ, U σ =
       (∑ k, u_k k ((Real.sqrt (N + 1))⁻¹ * ((∑ i : Fin N, g k i.castSucc * σ i.castSucc) +
           Real.sqrt t * (g k (Fin.last N) * σ (Fin.last N))))) -
         (1 - t) * (r - rBar) * σ (Fin.last N) ^ 2 / 2 := ⟨_, fun _ => rfl⟩
-  have hinner : ∀ σ : ℝ^(N + 1), ⟪WithLp.toLp 2 b, σ⟫ =
-      h * (∑ i, g₀ i * σ i) + σ (Fin.last N) * (Real.sqrt (1 - t) * y) := fun σ => by
-    have h1 : ⟪WithLp.toLp 2 b, σ⟫ = ∑ i, b i * σ i := by
-      simpa only [one_mul] using inner_toLp_inv_sqrt_mul_eq 1 b σ
-    rw [h1, Finset.mul_sum]
-    simp only [hb, add_mul, Finset.sum_add_distrib, ite_mul, zero_mul,
-      Finset.sum_ite_eq', Finset.mem_univ, ite_true]
-    rw [mul_comm (σ (Fin.last N))]
-    exact congrArg (· + _) (Finset.sum_congr rfl fun i _ => mul_assoc _ _ _)
   have hσ : ∀ i : Fin (N + 1), Measurable fun σ : ℝ^(N + 1) => σ i := fun i =>
     (PiLp.continuous_apply 2 (fun _ : Fin (N + 1) => ℝ) i).measurable
   have hUm : Measurable U := by
@@ -235,8 +207,9 @@ private theorem integrable_exp_neg_indexed_cavity {κ h r rBar t y : ℝ} (hκ :
     rw [hU]
     exact (sub_le_self _ h1).trans (Finset.sum_nonpos fun k _ => hu0 k _)
   refine (integrable_exp_add_neg_mul_sq_norm_add_inner hUm hU0 hκ
-    (WithLp.toLp 2 b)).congr (ae_of_all _ fun σ => congrArg Real.exp ?_)
-  rw [hU, hinner]
+    (WithLp.toLp 2 fun i => h * g₀ i + if i = Fin.last N then Real.sqrt (1 - t) * y else 0)).congr
+    (ae_of_all _ fun σ => congrArg Real.exp ?_)
+  rw [hU, inner_toLp_shcherbinaTirozziCavity_drift]
   ring
 
 /-- For `κ > 0`, `u ≤ 0` and `(1 - t) (r - r̄) ≥ 0` the cavity Boltzmann weight is

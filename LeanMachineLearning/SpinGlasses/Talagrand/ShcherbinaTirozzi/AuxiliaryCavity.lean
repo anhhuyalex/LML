@@ -548,6 +548,44 @@ theorem integral_pi_shcherbinaTirozziAuxCavity_eq_smoothed {κ h r rBar t y q ρ
       (integral_exp_comp_add_gaussianReal_pos hu hu0 _ _).ne', Real.log_exp]
   simp_rw [hfib]
 
+/-- **One-replica form of `integral_pi_shcherbinaTirozziAuxCavity_eq_smoothed`:** the average of an
+old-configuration observable under the one-replica auxiliary cavity state is its average under the
+smoothed Hamiltonian (3.99). -/
+theorem integral_shcherbinaTirozziAuxCavity_eq_smoothed {κ h r rBar t y q ρ v z : ℝ}
+    (hκ : 0 < κ) (hq_t : 0 ≤ (1 - t) * (r - rBar)) {u : ℝ → ℝ} (hu : Measurable u)
+    (hu0 : ∀ x, u x ≤ 0) (g : Fin (M + 1) → Fin (N + 1) → ℝ) (g₀ : Fin (N + 1) → ℝ)
+    {f : ℝ^(N + 1) → ℝ} (hf : Measurable f) :
+    let E_old : ℝ^(N + 1) → ℝ := fun σ =>
+      -shcherbinaTirozziCavityHamiltonian κ h r rBar t y u (fun j => g j.castSucc) g₀ σ
+    let S_v : ℝ^(N + 1) × ℝ → ℝ := fun p =>
+      Real.sqrt v * cfield⟨t, g, Fin.last M, p.1⟩ +
+        Real.sqrt (1 - v) * (Real.sqrt q * z + Real.sqrt (ρ - q) * p.2)
+    let u_v : ℝ → ℝ := fun x =>
+      Real.log (∫ ξ, Real.exp (u (x + Real.sqrt (1 - v) * Real.sqrt (ρ - q) * ξ))
+        ∂(gaussianReal 0 1))
+    ∫ p : ℝ^(N + 1) × ℝ, f p.1
+        ∂(((volume : Measure (ℝ^(N + 1))).prod (gaussianReal 0 1)).tilted
+          fun p => E_old p.1 + u (S_v p)) =
+      ∫ σ : ℝ^(N + 1), f σ
+        ∂((volume : Measure (ℝ^(N + 1))).tilted fun σ =>
+          E_old σ + u_v (Real.sqrt v * cfield⟨t, g, Fin.last M, σ⟩ +
+            Real.sqrt (1 - v) * Real.sqrt q * z)) := by
+  intro E_old S_v u_v
+  have hsm := integral_pi_shcherbinaTirozziAuxCavity_eq_smoothed (R := Unit) (y := y) (q := q)
+    (ρ := ρ) (v := v) (z := z) hκ hq_t hu hu0 g g₀ (f := fun a => f (a ()))
+    (hf.comp (measurable_pi_apply ()))
+  have h1 := (measurePreserving_funUnique
+    (((volume : Measure (ℝ^(N + 1))).prod (gaussianReal 0 1)).tilted
+      fun p => E_old p.1 + u (S_v p)) Unit).integral_comp
+    (MeasurableEquiv.funUnique Unit (ℝ^(N + 1) × ℝ)).measurableEmbedding
+    (fun p : ℝ^(N + 1) × ℝ => f p.1)
+  have h2 := (measurePreserving_funUnique
+    ((volume : Measure (ℝ^(N + 1))).tilted fun σ =>
+      E_old σ + u_v (Real.sqrt v * cfield⟨t, g, Fin.last M, σ⟩ +
+        Real.sqrt (1 - v) * Real.sqrt q * z)) Unit).integral_comp
+    (MeasurableEquiv.funUnique Unit (ℝ^(N + 1))).measurableEmbedding f
+  exact h1.symm.trans (hsm.trans h2)
+
 end ModelEndpoint
 
 end SpinGlasses

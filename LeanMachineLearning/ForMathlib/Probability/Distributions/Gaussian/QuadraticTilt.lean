@@ -9,6 +9,7 @@ public import Mathlib.MeasureTheory.Measure.Tilted
 public import Mathlib.Analysis.SpecialFunctions.JapaneseBracket
 public import LeanMachineLearning.ForMathlib.Analysis.Convex.Integral
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.BoundedTilted
+public import LeanMachineLearning.ForMathlib.Probability.Moments.GaussianPiLinearForm
 public import LeanMachineLearning.ForMathlib.Probability.StdGaussianRadial
 
 /-!
@@ -167,6 +168,28 @@ theorem integral_abs_inner_stdGaussian_le (a : E) :
   simp only [Real.norm_eq_abs, sq_abs, h2] at h
   exact le_of_sq_le_sq h (norm_nonneg a)
 
+/-- A nonpositive function with `-(A + B |⟪a, z⟫|) ≤ f z` is integrable under the standard
+Gaussian, with `-(A + B ‖a‖) ≤ ∫ f`. -/
+theorem integrable_and_neg_le_integral_stdGaussian_of_le_abs_inner {f : E → ℝ} (hf : Measurable f)
+    (hf0 : ∀ z, f z ≤ 0) {a : E} {A B : ℝ} (hB : 0 ≤ B)
+    (hlow : ∀ z, -(A + B * |⟪a, z⟫|) ≤ f z) :
+    Integrable f (stdGaussian E) ∧ -(A + B * ‖a‖) ≤ ∫ z, f z ∂stdGaussian E := by
+  have habs : Integrable (fun z => |⟪a, z⟫|) (stdGaussian E) :=
+    ((IsGaussian.memLp_dual (stdGaussian E) (innerSL ℝ a) 1 (by norm_num)).integrable
+      le_rfl).abs
+  have hmaj : Integrable (fun z => A + B * |⟪a, z⟫|) (stdGaussian E) :=
+    (integrable_const A).add (habs.const_mul B)
+  have hfi : Integrable f (stdGaussian E) :=
+    hmaj.mono' hf.aestronglyMeasurable (ae_of_all _ fun z => by
+      rw [Real.norm_eq_abs, abs_of_nonpos (hf0 z)]
+      exact neg_le.1 (hlow z))
+  refine ⟨hfi, le_trans ?_ (integral_mono hmaj.neg hfi hlow)⟩
+  simp only [Pi.neg_apply]
+  rw [integral_neg, integral_add (integrable_const A) (habs.const_mul B), integral_const,
+    probReal_univ, one_smul, integral_const_mul]
+  exact neg_le_neg (add_le_add le_rfl
+    (mul_le_mul_of_nonneg_left (integral_abs_inner_stdGaussian_le a) hB))
+
 /-- **Conditioning a standard Gaussian on a measurable set** is the probability measure with
 density proportional to `exp (-‖v‖² / 2)` on that set. -/
 theorem integral_tilted_restrict_neg_half_sq_norm {C : Set E} (hC : MeasurableSet C)
@@ -282,21 +305,12 @@ theorem inv_integral_exp_add_neg_mul_sq_norm_add_inner_le (hU : Measurable U)
     rw [integral_const_mul, h0, mul_zero]
   have hYi : Integrable Y (stdGaussian E) := hUi.add hai
   have hexpi : Integrable (fun z : E => Real.exp (Y z)) (stdGaussian E) := by
-    have h1 := integrable_exp_mul_gaussianReal (μ := 0) (v := ‖c • a‖₊ ^ 2) 1
-    have hmap : (stdGaussian E).map (innerSL ℝ (c • a)) = gaussianReal 0 (‖c • a‖₊ ^ 2) := by
-      have hm := IsGaussian.map_eq_gaussianReal (μ := stdGaussian E) (innerSL ℝ (c • a))
-      rw [integral_strongDual_stdGaussian, variance_dual_stdGaussian, innerSL_apply_norm] at hm
-      have en : (‖c • a‖ ^ 2).toNNReal = ‖c • a‖₊ ^ 2 := by
-        ext; simp [Real.coe_toNNReal _ (sq_nonneg ‖c • a‖)]
-      rwa [en] at hm
-    rw [← hmap] at h1
-    have hdom := (integrable_map_measure (by fun_prop) (by fun_prop)).1 h1
     have hYm : Measurable Y := (hU.comp (measurable_id.const_smul c)).add
       (by fun_prop : Measurable fun z : E => ⟪a, c • z⟫)
-    refine hdom.mono' hYm.exp.aestronglyMeasurable (ae_of_all _ fun z => ?_)
-    change ‖Real.exp (U (c • z) + ⟪a, c • z⟫)‖ ≤ Real.exp (1 * ⟪c • a, z⟫)
-    rw [Real.norm_of_nonneg (Real.exp_pos _).le, Real.exp_le_exp, one_mul,
-      real_inner_smul_left, real_inner_smul_right]
+    refine (integrable_exp_inner_stdGaussian (c • a)).mono' hYm.exp.aestronglyMeasurable
+      (ae_of_all _ fun z => ?_)
+    rw [Real.norm_of_nonneg (Real.exp_pos _).le, Real.exp_le_exp, real_inner_smul_left,
+      ← real_inner_smul_right]
     exact add_le_of_nonpos_left (hU0 _)
   have hJ : Real.exp (∫ z : E, U (c • z) ∂stdGaussian E) ≤
       ∫ z : E, Real.exp (Y z) ∂stdGaussian E := by

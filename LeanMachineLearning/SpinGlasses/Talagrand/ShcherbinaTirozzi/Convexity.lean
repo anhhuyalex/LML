@@ -228,35 +228,22 @@ theorem inv_integral_exp_neg_shcherbinaTirozziHamiltonian_le {κ h D : ℝ} (hκ
   have hUm : Measurable U :=
     Finset.measurable_sum _ fun k _ => hu.comp (by fun_prop : Measurable fun σ : E => ⟪v k, σ⟫)
   have hU0 : ∀ σ, U σ ≤ 0 := fun σ => Finset.sum_nonpos fun k _ => hu0 _
-  have hlin : ∀ b : E, Integrable (fun z => ⟪b, z⟫) (stdGaussian E) := fun b =>
-    (IsGaussian.memLp_dual (stdGaussian E) (innerSL ℝ b) 1 (by norm_num)).integrable le_rfl
-  have hbound : ∀ (k : Fin M) (z : E), -D * (1 + c * |⟪v k, z⟫|) ≤ u ⟪v k, c • z⟫ :=
-    fun k z => by
-      refine le_trans (le_of_eq ?_) (hD _)
-      rw [real_inner_smul_right, abs_mul, abs_of_pos hc0]
-  have hdomk : ∀ k, Integrable (fun z => D * (1 + c * |⟪v k, z⟫|)) (stdGaussian E) :=
-    fun k => ((integrable_const 1).add ((hlin (v k)).abs.const_mul c)).const_mul D
-  have hui : ∀ k, Integrable (fun z => u ⟪v k, c • z⟫) (stdGaussian E) := fun k => by
-    refine Integrable.mono' (hdomk k)
-      (hu.comp (by fun_prop : Measurable fun z : E => ⟪v k, c • z⟫)).aestronglyMeasurable
-      (ae_of_all _ fun z => ?_)
-    rw [Real.norm_eq_abs, abs_of_nonpos (hu0 _)]
-    linarith [hbound k z]
+  have hk' : ∀ k, Integrable (fun z => u ⟪v k, c • z⟫) (stdGaussian E) ∧
+      -(D + D * c * ‖v k‖) ≤ ∫ z, u ⟪v k, c • z⟫ ∂stdGaussian E := fun k =>
+    integrable_and_neg_le_integral_stdGaussian_of_le_abs_inner
+      (hu.comp (by fun_prop : Measurable fun z : E => ⟪v k, c • z⟫)) (fun _ => hu0 _)
+      (mul_nonneg hD0 hc0.le) fun z => by
+        refine le_trans (le_of_eq ?_) (hD _)
+        dsimp only
+        rw [real_inner_smul_right, abs_mul, abs_of_pos hc0]
+        ring
+  have hui := fun k => (hk' k).1
   have hUi : Integrable (fun z : E => U (c • z)) (stdGaussian E) :=
     integrable_finsetSum _ fun k _ => hui k
   have hlow : -(∫ z : E, U (c • z) ∂stdGaussian E) ≤
       D * (M + Real.sqrt (M / (κ * N) * ∑ k, ∑ i, g k i ^ 2)) := by
-    have hk : ∀ k, -D * (1 + c * ‖v k‖) ≤ ∫ z, u ⟪v k, c • z⟫ ∂stdGaussian E := fun k => by
-      have h1 := integral_mono (hdomk k).neg (hui k) fun z => by
-        simpa only [Pi.neg_apply, neg_mul] using hbound k z
-      simp only [Pi.neg_apply] at h1
-      rw [integral_neg, integral_const_mul,
-        integral_add (integrable_const 1) ((hlin (v k)).abs.const_mul c), integral_const_mul]
-        at h1
-      simp only [integral_const, probReal_univ, one_smul] at h1
-      have h2 := mul_le_mul_of_nonneg_left (integral_abs_inner_stdGaussian_le (v k))
-        (mul_nonneg hD0 hc0.le)
-      linarith
+    have hk : ∀ k, -D * (1 + c * ‖v k‖) ≤ ∫ z, u ⟪v k, c • z⟫ ∂stdGaussian E := fun k =>
+      le_of_eq_of_le (by ring) (hk' k).2
     have hnorm : ∀ k, ‖v k‖ ^ 2 = (N : ℝ)⁻¹ * ∑ i, g k i ^ 2 := fun k => by
       rw [EuclideanSpace.real_norm_sq_eq, Finset.mul_sum]
       exact Finset.sum_congr rfl fun i _ => by

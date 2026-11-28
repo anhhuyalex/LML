@@ -14,10 +14,10 @@ public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.Auxili
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.AuxiliaryCavityDerivative
 
 /-!
-# The Shcherbina--Tirozzi model: overlap tail bounds and comparison along `ν_{t,v}`
+# The Shcherbina--Tirozzi model: overlap tail bounds along `ν_{t,v}`
 
-This file formalizes Eqs. (3.97)--(3.106) and Lemma 3.2.9 of Talagrand, *Spin Glasses: A Challenge
-for Mathematicians*, Vol. I, Section 3.2.
+This file formalizes Eqs. (3.97)--(3.104) of Talagrand, *Spin Glasses: A Challenge for
+Mathematicians*, Vol. I, Section 3.2.
 
 Along the auxiliary cavity path `ν_{t,v}` (`t, v ∈ [0, 1]`), for spin-only observables the marginal
 quenched Gibbs measure has the smoothed Hamiltonian (3.99), in which `M` constraints use `u` and
@@ -25,15 +25,14 @@ the isolated constraint uses the concave Gaussian smoothing `u_v(x) = log 𝔼_�
 `c = √(1 - v) √(ρ - q)`. Using the constraint-indexed last-spin tail bound (Lemma 3.2.6) and the
 dimension-free exponential moment (`integral_exp_half_sq_norm_tilted_le_two_rpow`), we prove:
 * Eq. (3.100): `ν_{t,v}(exp (σ_N² / K)) ≤ K` uniformly in `t, v ∈ [0, 1]`.
-* Eqs. (3.101)--(3.102): `⟨exp (κ ‖σ‖² / 2)⟩_{t,v} ≤ exp (K B^*)` and
+* Eqs. (3.101)--(3.102): `⟨exp (κ ‖σ‖² / 2)⟩_{t,v} ≤ exp (K (B^* + y² + z²))` and
   `ν_{t,v}(exp (‖σ‖² / K)) ≤ exp (L (N + 1))`.
-* Eqs. (3.97)--(3.98), (3.103), (3.104): `exp (-4 (N + 1))` tail bounds and uniform 8th-moment (and
-  4th-moment) bounds on `R_{1,1} - ρ` and `R_{1,2} - q` under `ν_{t,v}`.
+* Eqs. (3.97), (3.98), (3.104): `exp (-4 (N + 1))` tail bounds and uniform 4th and 8th moment
+  bounds for `R_{1,1} - ρ` and `R_{1,2} - q` under `ν_{t,v}`.
 * Equivalence between the `(d_full, z)` representation of `AuxiliaryCavity.lean` and the `(d, w)`
   representation of `AuxiliaryCavityDerivative.lean`.
-* Eq. (3.105) and Lemma 3.2.9 (Eq. (3.106)): uniform `v`-derivative bound and backward Grönwall
-  comparison `ν_{t,v}(f^*) ≤ K (ν_t(f^*) + exp (-(N + 1)) A)` assuming `ν_{t,s}(f^{*2}) ≤ A²` for
-  all `s ∈ [0, 1]`.
+
+Eq. (3.105) and Lemma 3.2.9 (Eq. (3.106)) are not yet formalized.
 
 ## Main declarations
 
@@ -42,9 +41,7 @@ dimension-free exponential moment (`integral_exp_half_sq_norm_tilted_le_two_rpow
 * `SpinGlasses.exists_integral_exp_sq_shcherbinaTirozziAuxCavity_last_le`: Eq. (3.100).
 * `SpinGlasses.exists_integral_exp_sq_norm_shcherbinaTirozziAuxCavity_le_exp`: Eq. (3.102).
 * `SpinGlasses.exists_shcherbinaTirozziAuxCavity_overlap_tails_and_moments`: Eqs. (3.97), (3.98),
-  (3.103), (3.104).
-* `SpinGlasses.exists_hasDerivAt_shcherbinaTirozziAuxCavity_abs_le_add_exp_neg`: Eq. (3.105).
-* `SpinGlasses.exists_shcherbinaTirozziAuxCavity_le_add_exp_neg`: Lemma 3.2.9 (Eq. (3.106)).
+  (3.104).
 -/
 
 @[expose] public section
@@ -266,31 +263,16 @@ theorem exists_integral_exp_sq_shcherbinaTirozziAuxCavity_last_le (κ₀ h₀ D 
   set P₁ := (gaussianReal 0 r).prod
     ((Measure.pi fun _ : Fin (M + 1) => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1).prod
       (Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1))
-  -- Rewrite `F w` via the smoothed Hamiltonian (3.99) using `R := Unit`
+  -- Rewrite `F w` via the smoothed Hamiltonian (3.99)
   have hF_eq : ∀ w : AuxDis[N, M], F w =
       ∫ σ : ℝ^(N + 1), Real.exp (σ (Fin.last N) ^ 2 / K)
         ∂((volume : Measure (ℝ^(N + 1))).tilted fun σ =>
           E_old w σ + u_v (Real.sqrt v * cfield[N, t, w.1.2.1, Fin.last M, σ] +
-            Real.sqrt (1 - v) * Real.sqrt q * w.2)) := by
-    intro w
-    have hsm := integral_pi_shcherbinaTirozziAuxCavity_eq_smoothed (N := N) (M := M) (R := Unit)
-      (κ := κ) (h := h) (r := r) (rBar := rBar) (t := t) (y := w.1.1) (q := q) (ρ := ρ) (v := v)
-      (z := w.2) hκ0 hq_t hum hu0 w.1.2.1 w.1.2.2
-      (f := fun a : Unit → ℝ^(N + 1) => Real.exp ((a () (Fin.last N)) ^ 2 / K))
-      ((((PiLp.continuous_apply 2 (fun _ : Fin (N + 1) => ℝ) (Fin.last N)).measurable.comp
-        (measurable_pi_apply ())).pow_const 2).div_const K).exp
-    have h1 := (measurePreserving_funUnique
-      (((volume : Measure (ℝ^(N + 1))).prod (gaussianReal 0 1)).tilted
-        fun p => E_old w p.1 + u (S_v w p)) Unit).integral_comp
-      (MeasurableEquiv.funUnique Unit (ℝ^(N + 1) × ℝ)).measurableEmbedding
-      (fun p : ℝ^(N + 1) × ℝ => Real.exp (p.1 (Fin.last N) ^ 2 / K))
-    have h2 := (measurePreserving_funUnique
-      ((volume : Measure (ℝ^(N + 1))).tilted fun σ =>
-        E_old w σ + u_v (Real.sqrt v * cfield[N, t, w.1.2.1, Fin.last M, σ] +
-          Real.sqrt (1 - v) * Real.sqrt q * w.2)) Unit).integral_comp
-      (MeasurableEquiv.funUnique Unit (ℝ^(N + 1))).measurableEmbedding
-      (fun σ : ℝ^(N + 1) => Real.exp (σ (Fin.last N) ^ 2 / K))
-    exact h1.symm.trans (hsm.trans h2)
+            Real.sqrt (1 - v) * Real.sqrt q * w.2)) := fun w =>
+    integral_shcherbinaTirozziAuxCavity_eq_smoothed (y := w.1.1) (z := w.2) hκ0 hq_t hum hu0
+      w.1.2.1 w.1.2.2 (f := fun σ => Real.exp (σ (Fin.last N) ^ 2 / K))
+      ((((PiLp.continuous_apply 2 (fun _ : Fin (N + 1) => ℝ) (Fin.last N)).measurable).pow_const
+        2).div_const K).exp
   -- For each `z`, apply the indexed last-spin tail bound on `M + 1` potentials
   have hz_bd : ∀ z : ℝ, Integrable (fun d => F (d, z)) P₁ ∧ ∫ d, F (d, z) ∂P₁ ≤ K := by
     intro z
@@ -467,39 +449,31 @@ theorem exists_quenched_exp_half_sq_norm_shcherbinaTirozziAuxCavity_le_exp
     (1 - t) * (r - rBar) * σ (Fin.last N) ^ 2 / 2
   set a_vec : ℝ^(N + 1) := WithLp.toLp 2 fun i =>
     h * w.1.2.2 i + (if i = Fin.last N then Real.sqrt (1 - t) * w.1.1 else 0)
-  have hUm : Measurable U := by
-    refine (Finset.measurable_sum _ fun k _ => ?_).sub
+  have huk_m : ∀ k, Measurable (u_k k) := by
+    refine Fin.lastCases ?_ (fun j => ?_)
+    · dsimp only [u_k]; rw [Fin.snoc_last]
+      exact huvm.comp ((measurable_id.const_mul _).add_const _)
+    · dsimp only [u_k]; rw [Fin.snoc_castSucc]; exact hum
+  have huk_0 : ∀ k x, u_k k x ≤ 0 := by
+    refine Fin.lastCases (fun x => ?_) (fun j x => ?_)
+    · dsimp only [u_k]; rw [Fin.snoc_last]; exact huv0 _
+    · dsimp only [u_k]; rw [Fin.snoc_castSucc]; exact hu0 _
+  have hUm : Measurable U :=
+    (Finset.measurable_sum _ fun k _ => (huk_m k).comp
+      (by fun_prop : Measurable fun σ : ℝ^(N + 1) => ⟪v_vec k, σ⟫)).sub
       ((((PiLp.continuous_apply 2 (fun _ : Fin (N + 1) => ℝ) (Fin.last N)).measurable.pow_const
         2).const_mul _).div_const 2)
-    refine Fin.lastCases ?_ (fun j => ?_) k
-    · dsimp only [u_k]; rw [Fin.snoc_last]
-      exact huvm.comp (((by fun_prop : Measurable fun σ : ℝ^(N + 1) =>
-        ⟪v_vec (Fin.last M), σ⟫).const_mul _).add_const _)
-    · dsimp only [u_k]; rw [Fin.snoc_castSucc]
-      exact hum.comp (by fun_prop : Measurable fun σ : ℝ^(N + 1) => ⟪v_vec j.castSucc, σ⟫)
   have hq_t : 0 ≤ (1 - t) * (r - rBar) := mul_nonneg (sub_nonneg.2 ht1) (sub_nonneg.2 hrr)
-  have hU0 : ∀ σ, U σ ≤ 0 := fun σ => by
-    refine sub_nonpos.2 (le_trans (Finset.sum_nonpos fun k _ => ?_) ?_)
-    · refine Fin.lastCases ?_ (fun j => ?_) k
-      · dsimp only [u_k]; rw [Fin.snoc_last]; exact huv0 _
-      · dsimp only [u_k]; rw [Fin.snoc_castSucc]; exact hu0 _
-    · exact div_nonneg (mul_nonneg hq_t (sq_nonneg _)) zero_le_two
+  have hU0 : ∀ σ, U σ ≤ 0 := fun σ =>
+    sub_nonpos.2 ((Finset.sum_nonpos fun k _ => huk_0 k _).trans
+      (div_nonneg (mul_nonneg hq_t (sq_nonneg _)) zero_le_two))
   have hexp_eq : (fun σ : ℝ^(N + 1) =>
       E_old σ + u_v (Real.sqrt v * cfield[N, t, w.1.2.1, Fin.last M, σ] +
         Real.sqrt (1 - v) * Real.sqrt q * w.2)) = fun σ => U σ - κ * ‖σ‖ ^ 2 + ⟪a_vec, σ⟫ := by
     funext σ
     have ha_in : ⟪a_vec, σ⟫ = (h * ∑ i : Fin (N + 1), w.1.2.2 i * σ i) +
-        σ (Fin.last N) * (Real.sqrt (1 - t) * w.1.1) := by
-      have hcast : ∀ i : Fin N, (i.castSucc : Fin (N + 1)) ≠ Fin.last N :=
-        fun i => (Fin.castSucc_lt_last i).ne
-      rw [EuclideanSpace.inner_eq_star_dotProduct, star_trivial, dotProduct,
-        Fin.sum_univ_castSucc (n := N), Fin.sum_univ_castSucc (n := N)]
-      simp only [a_vec, hcast, reduceIte, add_zero, mul_add, Finset.mul_sum]
-      have hsum_eq : ∑ i : Fin N, σ i.castSucc * (h * w.1.2.2 i.castSucc) =
-          ∑ i : Fin N, h * (w.1.2.2 i.castSucc * σ i.castSucc) :=
-        Finset.sum_congr rfl fun i _ => by ring
-      rw [hsum_eq]
-      ring
+        σ (Fin.last N) * (Real.sqrt (1 - t) * w.1.1) :=
+      inner_toLp_shcherbinaTirozziCavity_drift _ _ _ _
     dsimp only [E_old, shcherbinaTirozziCavityHamiltonian, U, u_k]
     rw [ha_in, Fin.sum_univ_castSucc (n := M)]
     simp only [Fin.snoc_castSucc, Fin.snoc_last, hv_inner]
@@ -507,10 +481,6 @@ theorem exists_quenched_exp_half_sq_norm_shcherbinaTirozziAuxCavity_le_exp
   -- Bound `-𝔼_{z₀ ~ stdGaussian (ℝ^(N+1))} U (s_κ • z₀)` and `‖a_vec‖² / (2 κ)`
   set s_κ : ℝ := (Real.sqrt (2 * κ))⁻¹
   have hsκ0 : 0 < s_κ := inv_pos.2 (Real.sqrt_pos.2 (by positivity))
-  have hlin_i : ∀ b : ℝ^(N + 1), Integrable (fun z₀ : ℝ^(N + 1) => ⟪b, z₀⟫)
-      (stdGaussian (ℝ^(N + 1))) := fun b =>
-    (IsGaussian.memLp_dual (stdGaussian (ℝ^(N + 1))) (innerSL ℝ b) 1
-      (by norm_num)).integrable le_rfl
   have hk_low : ∀ (k : Fin (M + 1)) (z₀ : ℝ^(N + 1)),
       -(D_sm * ((1 + (if k = Fin.last M then Real.sqrt q * |w.2| else 0)) +
         s_κ * |⟪v_vec k, z₀⟫|)) ≤ u_k k ⟪v_vec k, s_κ • z₀⟫ := by
@@ -540,88 +510,30 @@ theorem exists_quenched_exp_half_sq_norm_shcherbinaTirozziAuxCavity_le_exp
       -(D_sm * ((1 + (if k = Fin.last M then Real.sqrt q * |w.2| else 0)) +
         s_κ * ‖v_vec k‖)) ≤ ∫ z₀, u_k k ⟪v_vec k, s_κ • z₀⟫ ∂(stdGaussian (ℝ^(N + 1))) := by
     intro k
-    set maj : ℝ^(N + 1) → ℝ := fun z₀ =>
-      D_sm * ((1 + (if k = Fin.last M then Real.sqrt q * |w.2| else 0)) +
-        s_κ * |⟪v_vec k, z₀⟫|)
-    have hmaj_i : Integrable maj (stdGaussian (ℝ^(N + 1))) :=
-      ((integrable_const _).add ((hlin_i (v_vec k)).abs.const_mul s_κ)).const_mul D_sm
-    have huk_m : Measurable fun z₀ : ℝ^(N + 1) => u_k k ⟪v_vec k, s_κ • z₀⟫ := by
-      refine Fin.lastCases ?_ (fun j => ?_) k
-      · dsimp only [u_k]; rw [Fin.snoc_last]
-        exact huvm.comp (((by fun_prop : Measurable fun z₀ : ℝ^(N + 1) =>
-          ⟪v_vec (Fin.last M), s_κ • z₀⟫).const_mul _).add_const _)
-      · dsimp only [u_k]; rw [Fin.snoc_castSucc]
-        exact hum.comp (by fun_prop : Measurable fun z₀ : ℝ^(N + 1) =>
-          ⟪v_vec j.castSucc, s_κ • z₀⟫)
-    have huk_0 : ∀ z₀, u_k k ⟪v_vec k, s_κ • z₀⟫ ≤ 0 := fun z₀ => by
-      refine Fin.lastCases ?_ (fun j => ?_) k
-      · dsimp only [u_k]; rw [Fin.snoc_last]; exact huv0 _
-      · dsimp only [u_k]; rw [Fin.snoc_castSucc]; exact hu0 _
-    have hi : Integrable (fun z₀ : ℝ^(N + 1) => u_k k ⟪v_vec k, s_κ • z₀⟫)
-        (stdGaussian (ℝ^(N + 1))) :=
-      hmaj_i.mono' huk_m.aestronglyMeasurable (ae_of_all _ fun z₀ => by
-        rw [Real.norm_eq_abs, abs_of_nonpos (huk_0 z₀)]
-        linarith [hk_low k z₀])
-    refine ⟨hi, ?_⟩
-    have h1 := integral_mono hmaj_i.neg hi fun z₀ => hk_low k z₀
-    simp only [Pi.neg_apply, integral_neg] at h1
-    have hmaj_int : ∫ z₀, maj z₀ ∂(stdGaussian (ℝ^(N + 1))) ≤
-        D_sm * ((1 + (if k = Fin.last M then Real.sqrt q * |w.2| else 0)) +
-          s_κ * ‖v_vec k‖) := by
-      dsimp only [maj]
-      rw [integral_const_mul, integral_add (integrable_const _)
-        ((hlin_i (v_vec k)).abs.const_mul s_κ), integral_const, probReal_univ, one_smul,
-        integral_const_mul]
-      have h2 := sq_norm_integral_le_integral_sq_norm (μ := stdGaussian (ℝ^(N + 1)))
-        (f := fun z₀ : ℝ^(N + 1) => |⟪v_vec k, z₀⟫|)
-        (IsGaussian.memLp_dual (stdGaussian (ℝ^(N + 1))) (innerSL ℝ (v_vec k)) 2 (by norm_num)).abs
-      have h3 : ∫ z₀ : ℝ^(N + 1), ‖|⟪v_vec k, z₀⟫|‖ ^ 2 ∂(stdGaussian (ℝ^(N + 1))) =
-          ‖v_vec k‖ ^ 2 := by
-        simp only [Real.norm_eq_abs, abs_abs, sq_abs]
-        have hv := variance_dual_stdGaussian (innerSL ℝ (v_vec k))
-        have hm := integral_strongDual_stdGaussian (innerSL ℝ (v_vec k))
-        rw [variance_eq_integral (IsGaussian.memLp_dual (stdGaussian (ℝ^(N + 1)))
-          (innerSL ℝ (v_vec k)) 2 (by norm_num)).aemeasurable] at hv
-        simp only [innerSL_apply_apply, innerSL_apply_norm] at hm hv
-        rw [hm] at hv
-        simpa using hv
-      rw [h3, Real.norm_of_nonneg (integral_nonneg fun _ => abs_nonneg _)] at h2
-      have h_abs_le : ∫ z₀ : ℝ^(N + 1), |⟪v_vec k, z₀⟫| ∂(stdGaussian (ℝ^(N + 1))) ≤
-          ‖v_vec k‖ := by
-        nlinarith [norm_nonneg (v_vec k),
-          integral_nonneg (μ := stdGaussian (ℝ^(N + 1))) fun z₀ : ℝ^(N + 1) =>
-            abs_nonneg ⟪v_vec k, z₀⟫]
-      exact mul_le_mul_of_nonneg_left
-        (add_le_add le_rfl (mul_le_mul_of_nonneg_left h_abs_le hsκ0.le)) hDsm0
-    linarith
+    have h := integrable_and_neg_le_integral_stdGaussian_of_le_abs_inner
+      (f := fun z₀ : ℝ^(N + 1) => u_k k ⟪v_vec k, s_κ • z₀⟫) (a := v_vec k)
+      (A := D_sm * (1 + (if k = Fin.last M then Real.sqrt q * |w.2| else 0)))
+      (B := D_sm * s_κ)
+      ((huk_m k).comp (by fun_prop : Measurable fun z₀ : ℝ^(N + 1) => ⟪v_vec k, s_κ • z₀⟫))
+      (fun _ => huk_0 k _) (mul_nonneg hDsm0 hsκ0.le)
+      (fun z₀ => le_of_eq_of_le (by ring) (hk_low k z₀))
+    exact ⟨h.1, le_of_eq_of_le (by ring) h.2⟩
   -- Integrability and expectation of the last-spin quadratic penalty under `stdGaussian (ℝ^(N+1))`
   have hlast_z : Integrable (fun z₀ : ℝ^(N + 1) => (s_κ • z₀) (Fin.last N) ^ 2)
         (stdGaussian (ℝ^(N + 1))) ∧
       ∫ z₀ : ℝ^(N + 1), (s_κ • z₀) (Fin.last N) ^ 2 ∂(stdGaussian (ℝ^(N + 1))) = s_κ ^ 2 := by
-    set L_last : StrongDual ℝ (ℝ^(N + 1)) :=
-      (EuclideanSpace.proj (Fin.last N) : ℝ^(N + 1) →L[ℝ] ℝ)
-    have hL2 := IsGaussian.memLp_dual (stdGaussian (ℝ^(N + 1))) L_last 2 (by norm_num)
-    have heq_fn : (fun z₀ : ℝ^(N + 1) => (s_κ • z₀) (Fin.last N) ^ 2) =
-        fun z₀ => s_κ ^ 2 * (L_last z₀) ^ 2 := by
-      funext z₀
-      change (s_κ * z₀ (Fin.last N)) ^ 2 = s_κ ^ 2 * (z₀ (Fin.last N)) ^ 2
-      ring
-    rw [heq_fn]
-    refine ⟨hL2.integrable_sq.const_mul _, ?_⟩
-    rw [integral_const_mul]
-    have hmp : MeasurePreserving (fun z₀ : ℝ^(N + 1) => z₀ (Fin.last N))
-        (stdGaussian (ℝ^(N + 1))) (gaussianReal 0 1) := by
-      have h1 : MeasurePreserving (fun z₀ : ℝ^(N + 1) => z₀.ofLp) (stdGaussian (ℝ^(N + 1)))
-          (Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1) :=
-        ⟨WithLp.measurable_ofLp 2 _, pi_gaussianReal_eq_map_stdGaussian.symm⟩
-      exact (measurePreserving_eval (fun _ : Fin (N + 1) => gaussianReal 0 1)
-        (Fin.last N)).comp h1
-    have h1_int : ∫ z₀ : ℝ^(N + 1), (L_last z₀) ^ 2 ∂(stdGaussian (ℝ^(N + 1))) = 1 := by
-      change ∫ z₀ : ℝ^(N + 1), (fun x : ℝ => x ^ 2) (z₀ (Fin.last N)) ∂(stdGaussian (ℝ^(N + 1))) = 1
-      rw [hmp.integral_comp_of_aestronglyMeasurable
-        (continuous_pow 2).measurable.aestronglyMeasurable]
-      simpa using integral_pow_add_two_gaussianReal 0
-    rw [h1_int, mul_one]
+    set e : ℝ^(N + 1) := EuclideanSpace.single (Fin.last N) 1 with he
+    have hsq : ∀ z₀ : ℝ^(N + 1),
+        (s_κ • z₀) (Fin.last N) ^ 2 = s_κ ^ 2 * (⟪e, z₀⟫ * ⟪e, z₀⟫) := fun z₀ => by
+      have h1 : ⟪e, z₀⟫ = z₀ (Fin.last N) := by simp [he, EuclideanSpace.inner_single_left]
+      change (s_κ * z₀ (Fin.last N)) ^ 2 = _
+      rw [h1]; ring
+    simp_rw [hsq]
+    have hL2 : MemLp (fun z₀ : ℝ^(N + 1) => ⟪e, z₀⟫) 2 (stdGaussian (ℝ^(N + 1))) :=
+      IsGaussian.memLp_dual (stdGaussian (ℝ^(N + 1))) (innerSL ℝ e) 2 (by norm_num)
+    refine ⟨(hL2.integrable_mul hL2).const_mul _, ?_⟩
+    rw [integral_const_mul, integral_inner_mul_inner_stdGaussian, real_inner_self_eq_norm_sq]
+    simp [he]
   have hUi : Integrable (fun z₀ : ℝ^(N + 1) => U (s_κ • z₀)) (stdGaussian (ℝ^(N + 1))) := by
     refine (integrable_finsetSum _ fun k _ => (hk_int k).1).sub ?_
     exact (hlast_z.1.const_mul ((1 - t) * (r - rBar))).div_const 2
@@ -861,26 +773,10 @@ theorem exists_integral_exp_sq_norm_shcherbinaTirozziAuxCavity_le_exp
       ∫ σ : ℝ^(N + 1), Real.exp (‖σ‖ ^ 2 / K₁)
         ∂((volume : Measure (ℝ^(N + 1))).tilted fun σ =>
           E_old w σ + u_v (Real.sqrt v * cfield[N, t, w.1.2.1, Fin.last M, σ] +
-            Real.sqrt (1 - v) * Real.sqrt q * w.2)) := by
-    intro w
-    have hsm := integral_pi_shcherbinaTirozziAuxCavity_eq_smoothed (N := N) (M := M) (R := Unit)
-      (κ := κ) (h := h) (r := r) (rBar := rBar) (t := t) (y := w.1.1) (q := q) (ρ := ρ) (v := v)
-      (z := w.2) hκ0 hq_t hum hu0 w.1.2.1 w.1.2.2
-      (f := fun a : Unit → ℝ^(N + 1) => Real.exp (‖a ()‖ ^ 2 / K₁))
-      ((((continuous_norm (E := ℝ^(N + 1))).measurable.comp (measurable_pi_apply ())).pow_const
-        2).div_const K₁).exp
-    have h1 := (measurePreserving_funUnique
-      (((volume : Measure (ℝ^(N + 1))).prod (gaussianReal 0 1)).tilted
-        fun p => E_old w p.1 + u (S_v w p)) Unit).integral_comp
-      (MeasurableEquiv.funUnique Unit (ℝ^(N + 1) × ℝ)).measurableEmbedding
-      (fun p : ℝ^(N + 1) × ℝ => Real.exp (‖p.1‖ ^ 2 / K₁))
-    have h2 := (measurePreserving_funUnique
-      ((volume : Measure (ℝ^(N + 1))).tilted fun σ =>
-        E_old w σ + u_v (Real.sqrt v * cfield[N, t, w.1.2.1, Fin.last M, σ] +
-          Real.sqrt (1 - v) * Real.sqrt q * w.2)) Unit).integral_comp
-      (MeasurableEquiv.funUnique Unit (ℝ^(N + 1))).measurableEmbedding
-      (fun σ : ℝ^(N + 1) => Real.exp (‖σ‖ ^ 2 / K₁))
-    exact h1.symm.trans (hsm.trans h2)
+            Real.sqrt (1 - v) * Real.sqrt q * w.2)) := fun w =>
+    integral_shcherbinaTirozziAuxCavity_eq_smoothed (y := w.1.1) (z := w.2) hκ0 hq_t hum hu0
+      w.1.2.1 w.1.2.2 (f := fun σ => Real.exp (‖σ‖ ^ 2 / K₁))
+      (((continuous_norm (E := ℝ^(N + 1))).measurable.pow_const 2).div_const K₁).exp
   -- Pointwise quenched bound via `integral_rpow_le_rpow_integral` with `p = 2 / (κ * K₁)`
   set p_exp : ℝ := 2 / (κ * K₁)
   have hp_pos : 0 < p_exp := by positivity
@@ -1148,12 +1044,14 @@ theorem exists_integral_exp_sq_norm_shcherbinaTirozziAuxCavity_le_exp
         dsimp only [L]
         linarith [Nat.cast_nonneg (α := ℝ) N]
 
-/-- **Eqs. (3.97)--(3.98), (3.103), (3.104):** along `ν_{t,v}`, there is a constant `K` depending
-only on `κ₀, h₀, D, Q, R, R_diff` such that uniformly in `N, M, t, v` and in
-`0 ≤ q ≤ ρ ≤ Q`, `rBar ≤ r ≤ R`, `r - rBar ≤ R_diff`, for any replica `a : R` and any pair `a, b`:
-1. `ν_{t,v}(1_{K ≤ |R_{a,b} - (ρ if a = b else q)|}) ≤ exp (-4 (N + 1))`,
-2. `ν_{t,v}(1_{K ≤ R_{a,a}}) ≤ exp (-4 (N + 1))` and `ν_{t,v}(1_{K ≤ |R_{a,b}|}) ≤ 2 exp (-4 (N + 1))`,
-3. `ν_{t,v}((R_{a,b} - (ρ if a = b else q))^8) ≤ K` and `ν_{t,v}((R_{a,b} - (ρ if a = b else q))^4) ≤ K`. -/
+/-- **Eqs. (3.97), (3.98), (3.104):** along `ν_{t,v}` there is a constant `K`, depending only on
+`κ₀, h₀, D, Q, R, R_diff`, such that uniformly in `N, M, t, v`, in `0 ≤ q ≤ ρ ≤ Q`,
+`rBar ≤ r ≤ R`, `r - rBar ≤ R_diff`, and for any two replicas `a, b`, writing `Δ` for
+`|R_{a,b} - (ρ if a = b else q)|`:
+1. `ν_{t,v}(1_{K ≤ Δ}) ≤ exp (-4 (N + 1))`;
+2. `ν_{t,v}(Δ^4) ≤ K` and `ν_{t,v}(Δ^8) ≤ K`.
+
+Here `-D ≤ u 0` is Eq. (3.6) at the origin, the only part of (3.6) used. -/
 theorem exists_shcherbinaTirozziAuxCavity_overlap_tails_and_moments
     (κ₀ h₀ D Q R R_diff : ℝ) (hκ₀ : 0 < κ₀) (hQ : 0 ≤ Q) (hR : 0 ≤ R)
     (hR_diff : 0 ≤ R_diff) :
