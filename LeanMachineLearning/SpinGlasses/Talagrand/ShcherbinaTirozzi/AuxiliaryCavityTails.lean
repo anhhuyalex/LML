@@ -232,7 +232,8 @@ moment of the squared last spin satisfies `ν_{t,v}(exp (σ_N² / K)) ≤ K` uni
 q, ρ`, where `K` depends only on `κ₀, h₀, D` and an upper bound `R` on `r`. -/
 theorem exists_integral_exp_sq_shcherbinaTirozziAuxCavity_last_le (κ₀ h₀ D R : ℝ)
     (hκ₀ : 0 < κ₀) (hR : 0 ≤ R) :
-    ∃ K : ℝ, 0 < K ∧ ∀ (N M : ℕ) (κ h t v q ρ rBar : ℝ) (r : ℝ≥0) (u : ℝ → ℝ) (D₂ : ℝ),
+    ∃ K : ℝ, 0 < K ∧ 16 / κ₀ ≤ K ∧
+      ∀ (N M : ℕ) (κ h t v q ρ rBar : ℝ) (r : ℝ≥0) (u : ℝ → ℝ) (D₂ : ℝ),
       κ₀ ≤ κ → |h| ≤ h₀ → 0 ≤ t → t ≤ 1 → 0 ≤ v → v ≤ 1 → rBar ≤ r → (r : ℝ) ≤ R →
       M ≤ 10 * (N + 1) → ConcaveOn ℝ Set.univ u → (∀ x, u x ≤ 0) → Differentiable ℝ u →
       Differentiable ℝ (deriv u) → (∀ x, |deriv u x| ≤ D) → (∀ x, |deriv (deriv u) x| ≤ D₂) →
@@ -247,9 +248,9 @@ theorem exists_integral_exp_sq_shcherbinaTirozziAuxCavity_last_le (κ₀ h₀ D 
           ∂(((volume : Measure (ℝ^(N + 1))).prod (gaussianReal 0 1)).tilted
             fun p => E_old w p.1 + u (S_v w p))
       Integrable F auxLaw[N, M, r] ∧ ∫ w, F w ∂auxLaw[N, M, r] ≤ K := by
-  obtain ⟨K, hK0, hK⟩ :=
+  obtain ⟨K, hK0, hKκ, hK⟩ :=
     exists_integral_exp_sq_shcherbinaTirozziCavity_indexed_last_le κ₀ h₀ D R hκ₀ hR
-  refine ⟨K, hK0, fun N M κ h t v q ρ rBar r u D₂ hκ hh ht0 ht1 hv0 hv1 hrr hrR hM
+  refine ⟨K, hK0, hKκ, fun N M κ h t v q ρ rBar r u D₂ hκ hh ht0 ht1 hv0 hv1 hrr hrR hM
     huc hu0 hu1 hu2 hD hD₂ => ?_⟩
   intro E_old S_v F
   have hκ0 : 0 < κ := hκ₀.trans_le hκ
@@ -1045,6 +1046,53 @@ theorem exists_integral_exp_sq_norm_shcherbinaTirozziAuxCavity_le_exp
         dsimp only [L]
         linarith [Nat.cast_nonneg (α := ℝ) N]
 
+/-- The one-replica auxiliary cavity state `G_aux w` is a probability measure with finite
+exponential moment `exp (‖p.1‖² / K₁)` whenever `K₁⁻¹ < κ`, and its replica averages preserve
+measurability. -/
+theorem shcherbinaTirozziAuxCavity_state_properties {R_rep : Type*} [Fintype R_rep] {N M : ℕ}
+    {κ h t v q ρ rBar K₁ : ℝ} {r : ℝ≥0} {u : ℝ → ℝ}
+    (hκ0 : 0 < κ) (hrr : rBar ≤ r) (ht0 : 0 ≤ t) (ht1 : t ≤ 1)
+    (hum : Measurable u) (hu0 : ∀ x, u x ≤ 0) (ha : K₁⁻¹ < κ) :
+    let E_old : AuxDis[N, M] → ℝ^(N + 1) → ℝ := fun w σ =>
+      -shcherbinaTirozziCavityHamiltonian κ h r rBar t w.1.1 u
+        (fun j => w.1.2.1 j.castSucc) w.1.2.2 σ
+    let S_v : AuxDis[N, M] → ℝ^(N + 1) × ℝ → ℝ := fun w p =>
+      Real.sqrt v * cfield[N, t, w.1.2.1, Fin.last M, p.1] +
+        Real.sqrt (1 - v) * (Real.sqrt q * w.2 + Real.sqrt (ρ - q) * p.2)
+    let G_aux : AuxDis[N, M] → Measure (ℝ^(N + 1) × ℝ) := fun w =>
+      ((volume : Measure (ℝ^(N + 1))).prod (gaussianReal 0 1)).tilted
+        fun p => E_old w p.1 + u (S_v w p)
+    (∀ w : AuxDis[N, M], IsProbabilityMeasure (G_aux w)) ∧
+      (∀ w : AuxDis[N, M],
+        Integrable (fun p : ℝ^(N + 1) × ℝ => Real.exp (‖p.1‖ ^ 2 / K₁)) (G_aux w)) ∧
+      (∀ Y : (R_rep → ℝ^(N + 1) × ℝ) → ℝ, Measurable Y →
+        Measurable fun w => ∫ σ, Y σ ∂(Measure.pi fun _ : R_rep => G_aux w)) := by
+  intro E_old S_v G_aux
+  have hEm : Measurable fun p : AuxDis[N, M] × (ℝ^(N + 1) × ℝ) =>
+      E_old p.1 p.2.1 + u (S_v p.1 p.2) :=
+    measurable_auxCavity_exponent κ h r rBar t v q ρ hum
+  have hbasic : ∀ w : AuxDis[N, M], IsProbabilityMeasure (G_aux w) ∧
+      Integrable (fun p : ℝ^(N + 1) × ℝ => Real.exp (‖p.1‖ ^ 2 / K₁)) (G_aux w) := by
+    intro w
+    have hconf := fun σ => neg_shcherbinaTirozziCavityHamiltonian_le κ h w.1.1 hrr ht0 ht1 hu0
+      (fun j => w.1.2.1 j.castSucc) w.1.2.2 σ
+    have hE₀m : Measurable (E_old w) :=
+      (measurable_shcherbinaTirozziCavityHamiltonian_apply κ h r rBar t w.1.1 hum
+        (fun j => w.1.2.1 j.castSucc) w.1.2.2).neg
+    have hSm : Measurable (S_v w) := by
+      have hc : Continuous (S_v w) := by
+        dsimp only [S_v]
+        fun_prop
+      exact hc.measurable
+    refine ⟨isProbabilityMeasure_tilted_prod_gaussianReal_of_confining volume hκ0 hE₀m hconf
+      hum hu0 hSm, ?_⟩
+    simp_rw [div_eq_inv_mul _ K₁]
+    exact integrable_exp_mul_sq_norm_tilted_prod_gaussianReal_of_confining volume hκ0 ha hE₀m hconf
+      hum hu0 hSm
+  refine ⟨fun w => (hbasic w).1, fun w => (hbasic w).2, fun Y hY =>
+    measurable_integral_pi_tilted_of_sigmaFinite
+      (μ' := (volume : Measure (ℝ^(N + 1))).prod (gaussianReal 0 1)) hEm (hY.comp measurable_snd)⟩
+
 /-- **Eqs. (3.97), (3.98), (3.104):** along `ν_{t,v}` there is a constant `K`, depending only on
 `κ₀, h₀, D, Q, R, R_diff`, such that uniformly in `N, M, t, v`, in `0 ≤ q ≤ ρ ≤ Q`,
 `rBar ≤ r ≤ R`, `r - rBar ≤ R_diff`, and for any two replicas `a, b`, writing `Δ` for
@@ -1101,45 +1149,24 @@ theorem exists_shcherbinaTirozziAuxCavity_overlap_tails_and_moments
   have hum : Measurable u := hu1.continuous.measurable
   have hq_t : 0 ≤ (1 - t) * ((r : ℝ) - rBar) :=
     mul_nonneg (sub_nonneg.2 ht1) (sub_nonneg.2 hrr)
-  have hEm : Measurable fun p : AuxDis[N, M] × (ℝ^(N + 1) × ℝ) =>
-      E_old p.1 p.2.1 + u (S_v p.1 p.2) :=
-    measurable_auxCavity_exponent κ h r rBar t v q ρ hum
-  -- each disorder sample gives a confined one-replica state
-  have hstate : ∀ w : AuxDis[N, M], IsProbabilityMeasure (G_aux w) ∧
-      Integrable (fun p : ℝ^(N + 1) × ℝ => Real.exp (‖p.1‖ ^ 2 / K₁)) (G_aux w) := by
-    intro w
-    have hconf := fun σ => neg_shcherbinaTirozziCavityHamiltonian_le κ h w.1.1 hrr ht0 ht1 hu0
-      (fun j => w.1.2.1 j.castSucc) w.1.2.2 σ
-    have hE₀m : Measurable (E_old w) :=
-      (measurable_shcherbinaTirozziCavityHamiltonian_apply κ h r rBar t w.1.1 hum
-        (fun j => w.1.2.1 j.castSucc) w.1.2.2).neg
-    have hSm : Measurable (S_v w) := by
-      have hc : Continuous (S_v w) := by
-        dsimp only [S_v]
-        fun_prop
-      exact hc.measurable
-    refine ⟨isProbabilityMeasure_tilted_prod_gaussianReal_of_confining volume hκ0 hE₀m hconf
-      hum hu0 hSm, ?_⟩
-    have ha : K₁⁻¹ < κ := by
-      refine inv_lt_of_inv_lt₀ hκ0 (lt_of_lt_of_le ?_
-        ((div_le_div_of_nonneg_left (by norm_num) hκ₀ hκ).trans hK₁_ge₀))
-      rw [inv_eq_one_div]
-      exact div_lt_div_of_pos_right (by norm_num) hκ0
-    simp_rw [div_eq_inv_mul _ K₁]
-    exact integrable_exp_mul_sq_norm_tilted_prod_gaussianReal_of_confining volume hκ0 ha hE₀m hconf
-      hum hu0 hSm
-  have : ∀ w, IsProbabilityMeasure (G_aux w) := fun w => (hstate w).1
+  have ha : K₁⁻¹ < κ := by
+    refine inv_lt_of_inv_lt₀ hκ0 (lt_of_lt_of_le ?_
+      ((div_le_div_of_nonneg_left (by norm_num) hκ₀ hκ).trans hK₁_ge₀))
+    rw [inv_eq_one_div]
+    exact div_lt_div_of_pos_right (by norm_num) hκ0
+  have hstate := shcherbinaTirozziAuxCavity_state_properties (R_rep := R_rep) (N := N) (M := M)
+    (h := h) hκ0 hrr ht0 ht1 hum hu0 ha (r := r) (v := v) (q := q) (ρ := ρ)
+  have : ∀ w, IsProbabilityMeasure (G_aux w) := fun w => hstate.1 w
   have hν : ∀ Y : (R_rep → ℝ^(N + 1) × ℝ) → ℝ, Measurable Y →
-      Measurable fun w => ∫ σ, Y σ ∂(Measure.pi fun _ : R_rep => G_aux w) := fun Y hY =>
-    measurable_integral_pi_tilted_of_sigmaFinite
-      (μ' := (volume : Measure (ℝ^(N + 1))).prod (gaussianReal 0 1)) hEm (hY.comp measurable_snd)
+      Measurable fun w => ∫ σ, Y σ ∂(Measure.pi fun _ : R_rep => G_aux w) := hstate.2.2
   obtain ⟨hexp_i, hexp_le⟩ := h3102 N M κ h t v q ρ rBar r u D₂ hκ hh ht0 ht1 hv0 hv1 hq0 hqρ
     hρQ hrr hrR hrr_diff hM huc hu0 hu1 hu2 hD hD₂ huD
   have hEi : Integrable (fun w => ∫ p : ℝ^(N + 1) × ℝ, Real.exp (‖p.1‖ ^ 2 / K₁) ∂(G_aux w))
       auxLaw[N, M, r] := hexp_i
   have hE : ∫ w, ∫ p : ℝ^(N + 1) × ℝ, Real.exp (‖p.1‖ ^ 2 / K₁) ∂(G_aux w) ∂auxLaw[N, M, r] ≤
       Real.exp (L * ((N : ℝ) + 1)) := hexp_le
-  have hsi := fun w => (hstate w).2
+  have hsi : ∀ w, Integrable (fun p : ℝ^(N + 1) × ℝ => Real.exp (‖p.1‖ ^ 2 / K₁)) (G_aux w) :=
+    fun w => hstate.2.1 w
   -- from here on the Gibbs state is opaque
   clear_value G_aux
   have htarget : |if a = b then ρ else q| ≤ Q := by

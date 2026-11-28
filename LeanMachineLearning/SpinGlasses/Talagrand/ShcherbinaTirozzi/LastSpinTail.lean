@@ -688,7 +688,7 @@ private theorem integrable_and_integral_cavity_majorant_le {α β : Type*} [Meas
 `𝔼 ⟨exp (ε² / K)⟩ ≤ K` uniformly in `t ∈ [0, 1]`. -/
 theorem exists_integral_exp_sq_shcherbinaTirozziCavity_indexed_last_le (κ₀ h₀ D R : ℝ)
     (hκ₀ : 0 < κ₀) (hR : 0 ≤ R) :
-    ∃ K : ℝ, 0 < K ∧ ∀ (N M : ℕ) (κ h t rBar : ℝ) (r : ℝ≥0) (u_k : Fin M → ℝ → ℝ),
+    ∃ K : ℝ, 0 < K ∧ 16 / κ₀ ≤ K ∧ ∀ (N M : ℕ) (κ h t rBar : ℝ) (r : ℝ≥0) (u_k : Fin M → ℝ → ℝ),
       κ₀ ≤ κ → |h| ≤ h₀ → 0 ≤ t → t ≤ 1 → rBar ≤ r → (r : ℝ) ≤ R → M ≤ 11 * (N + 1) →
       (∀ k, ConcaveOn ℝ Set.univ (u_k k)) → (∀ k x, u_k k x ≤ 0) →
       (∀ k, Differentiable ℝ (u_k k)) → (∀ k x, |deriv (u_k k) x| ≤ D) →
@@ -723,7 +723,8 @@ theorem exists_integral_exp_sq_shcherbinaTirozziCavity_indexed_last_le (κ₀ h�
   have hκK : 16 ≤ κ₀ * K := by
     have : 16 / κ₀ ≤ K := by linarith
     rwa [div_le_iff₀' hκ₀] at this
-  refine ⟨K, hK0, fun N M κ h t rBar r u_k hκ hh ht0 ht1 hrr hrR hM huc hu0 hud hD => ?_⟩
+  refine ⟨K, hK0, by linarith,
+    fun N M κ h t rBar r u_k hκ hh ht0 ht1 hrr hrR hM huc hu0 hud hD => ?_⟩
   intro law F
   obtain ⟨P, hP⟩ : ∃ P : Measure ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)),
       P = (Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1).prod
@@ -889,7 +890,7 @@ theorem exists_integral_exp_sq_shcherbinaTirozziCavity_last_le (κ₀ h₀ D R :
           ∂((volume : Measure (ℝ^(N + 1))).tilted fun σ =>
             -shcherbinaTirozziCavityHamiltonian κ h r rBar t p.1 u p.2.1 p.2.2 σ)
       Integrable F P ∧ ∫ p, F p ∂P ≤ K := by
-  obtain ⟨K, hK0, hK⟩ := exists_integral_exp_sq_shcherbinaTirozziCavity_indexed_last_le
+  obtain ⟨K, hK0, -, hK⟩ := exists_integral_exp_sq_shcherbinaTirozziCavity_indexed_last_le
     κ₀ h₀ D R hκ₀ hR
   refine ⟨K, hK0, fun N M κ h t rBar r u hκ hh ht0 ht1 hrr hrR hM huc hu0 hud hD =>
     hK N M κ h t rBar r (fun _ => u) hκ hh ht0 ht1 hrr hrR (by omega)

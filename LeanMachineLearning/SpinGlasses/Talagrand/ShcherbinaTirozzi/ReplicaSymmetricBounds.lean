@@ -34,7 +34,7 @@ namespace SpinGlasses
 /-- The estimate behind (3.146): let `V ≥ 0` be bounded with `V' = W - V²`, where `W` is bounded
 and measurable, and let `r = α 𝔼 V (√q z)²`, `r̄ = α 𝔼 W (√q z)`. If `r s² ≤ q` then
 `r - r̄ ≤ √(α / 2) / s`. -/
-private theorem sub_le_sqrt_div_two_mul_inv {V W : ℝ → ℝ} {D B α q s r rBar : ℝ}
+theorem sub_le_sqrt_div_two_mul_inv {V W : ℝ → ℝ} {D B α q s r rBar : ℝ}
     (hV0 : ∀ y, 0 ≤ V y) (hVD : ∀ y, |V y| ≤ D) (hWm : Measurable W) (hWB : ∀ y, |W y| ≤ B)
     (hVd : ∀ y, HasDerivAt V (W y - V y ^ 2) y) (hα : 0 ≤ α) (hq : 0 ≤ q) (hs : 0 < s)
     (hr : r = α * ∫ z, V (Real.sqrt q * z) ^ 2 ∂(gaussianReal 0 1))
@@ -156,7 +156,7 @@ private theorem mul_sq_le_of_sq_mul_le {V : ℝ → ℝ} {α q c r τ L a : ℝ}
 
 /-- For `α₁ ∈ (0, 2)` there are a slope `a < 1 / α₁` and a neighbourhood of `0` on which
 `𝔼 (min (z - b) 0)² < a`: the choice of constants behind (3.147). -/
-private theorem exists_slope_lt_inv_and_threshold {α₁ : ℝ} (hα₁0 : 0 < α₁) (hα₁2 : α₁ < 2) :
+theorem exists_slope_lt_inv_and_threshold {α₁ : ℝ} (hα₁0 : 0 < α₁) (hα₁2 : α₁ < 2) :
     ∃ a δ : ℝ, 0 < a ∧ a * α₁ < 1 ∧ 0 < δ ∧
       ∀ b, |b| < δ → ∫ z, min (z - b) 0 ^ 2 ∂(gaussianReal 0 1) < a := by
   set a : ℝ := (1 / 2 + α₁⁻¹) / 2 with ha
@@ -179,7 +179,7 @@ private theorem exists_slope_lt_inv_and_threshold {α₁ : ℝ} (hα₁0 : 0 < �
 /-- The bound (3.147) on `q`: from `q = (r + h²) s²`, `r = α 𝔼 V (√q z)²`, the estimate of
 Lemma 3.3.8 on `V` with `c² = s ≤ (2 κ₀)⁻¹`, and the constants of
 `exists_slope_lt_inv_and_threshold`. -/
-private theorem q_le_of_replicaSymmetric_equation {V : ℝ → ℝ}
+theorem q_le_of_replicaSymmetric_equation {V : ℝ → ℝ}
     {α α₁ a δ τ L c s q r h h₀ κ₀ : ℝ} (hα0 : 0 ≤ α) (hα : α ≤ α₁) (hα₁0 : 0 < α₁) (ha0 : 0 ≤ a)
     (haα : a * α₁ < 1) (hδ0 : 0 < δ)
     (hδ : ∀ b, |b| < δ → ∫ z, min (z - b) 0 ^ 2 ∂(gaussianReal 0 1) < a) (hτ : 0 ≤ τ)

@@ -621,7 +621,7 @@ coefficient of $\sum g_{i,k}^2$ is $1/(8N)$.
 
 \section{Tools for the replica-symmetric equations (Talagrand Section~3.2)}\label{sec:sg-tal:st-rs-tools}
 
-This section covers Section~3.2 up to Lemma~3.2.8 and the smoothed representation~(3.99): the analytic
+This section covers Section~3.2 up to Lemma~3.2.9 (Eq.~(3.106)): the analytic
 lemmas, the cavity Hamiltonian, Proposition~3.2.1, Proposition~3.2.4, Lemma~3.2.6, and the auxiliary cavity
 path $\nu_{t,v}$ with Lemmas~3.2.7--3.2.8. Lemma~3.2.9, Proposition~3.2.10, Lemma~3.2.11,
 Proposition~3.2.12 and Theorem~3.2.14 are not formalized yet.
@@ -955,19 +955,25 @@ $|f'(0)+hg_{N+1}+\sqrt{1-t}\,y|$ by the sum of the absolute values.
 \end{remark}
 
 \begin{lemma}[The parameters of (3.69)]\label{lem:sg-tal:st-rs-parameters}
-  \lean{SpinGlasses.shcherbinaTirozzi_rsParameters_bounds}
+  \lean{SpinGlasses.shcherbinaTirozzi_rsParameters_bounds,
+        SpinGlasses.exists_shcherbinaTirozzi_physical_parameter_bounds}
   \leanok
-  \uses{lem:sg-tal:st-rbar-le-r, lem:sg-tal:st-smoothing}
+  \uses{lem:sg-tal:st-rbar-le-r, lem:sg-tal:st-smoothing, lem:sg-tal:st-moments}
 \talsource{Eqs.~(3.67)--(3.69)}
-Let $u\le0$ be concave with $u'$, $u''$ bounded and $|u'|\le D$, let $\alpha\ge0$, let $q,c$ be real and put
+Let $u\le0$ be concave with $|u'|\le D$, $|u''|\le D_2$, let $\alpha\ge0$, let $q,c$ be real and put
 $V=A/Z$, $W=K/Z$ for the smoothing at scale $c$. Then $r=\alpha\,\mathbb E\,V(z\sqrt q)^2$ and
-$\bar r=\alpha\,\mathbb E\,W(z\sqrt q)$ satisfy $0\le r\le\alpha D^2$ and $\bar r\le r$.
+$\bar r=\alpha\,\mathbb E\,W(z\sqrt q)$ satisfy $0\le r\le\alpha D^2$, $\bar r\le r$, and
+$-\alpha(D_2+D^2)\le\bar r$. Moreover, at the physical overlaps $(q,\rho)$ of the model with
+$M\le10(N+1)$, $\kappa\ge\kappa_0>0$, $|h|\le h_0$ and $-D(1+|x|)\le u(x)$, there is $Q\ge0$
+(depending only on $\kappa_0,h_0,D$) such that $0\le q\le\rho\le Q$, $0\le r\le10D^2$, $\bar r\le r$,
+and $r-\bar r\le10(2D^2+D_2)$.
 \end{lemma}
 \begin{proof}
   \leanok
-  \uses{lem:sg-tal:st-rbar-le-r, lem:sg-tal:st-smoothing}
-$|V|\le D$ by Lemma~\ref{lem:sg-tal:st-smoothing}(1), and Lemma~\ref{lem:sg-tal:st-rbar-le-r} gives
-$\bar r\le r$.
+  \uses{lem:sg-tal:st-rbar-le-r, lem:sg-tal:st-smoothing, lem:sg-tal:st-moments}
+$|V|\le D$ and $|W|\le D_2+D^2$ by Lemma~\ref{lem:sg-tal:st-smoothing}(1), and
+Lemma~\ref{lem:sg-tal:st-rbar-le-r} gives $\bar r\le r$. For the physical overlaps, Jensen's
+inequality gives $0\le q\le\rho$, and Lemma~\ref{lem:sg-tal:st-moments} bounds $\rho\le 40 K$.
 \end{proof}
 
 \begin{theorem}[Proposition~3.2.4 and Lemma~3.2.6 at the choice (3.69)]
@@ -1246,6 +1252,244 @@ so the difference is not bounded by $K\nu_{t,v}(|f|)/N$ without a further estima
 keeps $R^t$. The sum here also contains the diagonal term of the second fresh replica. Concavity of $u$ is not used, and the constant does not depend on a lower bound for $\kappa$.
 \end{remark}
 
+\begin{lemma}[Tails and moments from an exponential moment]\label{lem:sg-tal:st-exp-tail-moments}
+  \lean{MeasureTheory.integral_integral_pi_tail_and_pow_le_of_exp_moment,
+        MeasureTheory.integral_integral_pi_overlap_tail_and_pow_le_of_exp_moment}
+  \leanok
+\talsource{model-free core of Eqs.~(3.97), (3.98), (3.104)}
+Let $(\Omega,P)$ be a probability space, $\omega\mapsto\nu_\omega$ a family of probability measures on a
+measurable space $\alpha$ such that $\omega\mapsto\int Y\,d\nu_\omega^{\otimes R}$ is measurable for every
+measurable $Y:\alpha^R\to\mathbb R$, and $s:\alpha\to[0,\infty)$ a function with
+$\mathbb E\int e^{s(x)}\,d\nu_\omega(x)\le e^{Ln}$ ($L\ge0$, $n\ge1$).
+\begin{enumerate}
+\item If a measurable $D:\alpha^R\to[0,\infty)$ satisfies
+\[
+D(\sigma)\le c\,\frac{s(\sigma_a)/n+s(\sigma_b)/n}{2}+Q \qquad (c>0,\;Q\ge0),
+\]
+then for every $K>c(L+5)+Q$,
+\[
+\mathbb E\int \mathbf 1_{\{D\ge K\}}\,d\nu_\omega^{\otimes R}\le e^{-4n},
+\]
+and $\mathbb E\int D^4\,d\nu_\omega^{\otimes R}$ and $\mathbb E\int D^8\,d\nu_\omega^{\otimes R}$ are bounded by
+explicit constants depending only on $c$, $L$ and $Q$.
+\item In particular, if $X:\alpha\to F$ is measurable into a second-countable real inner product space with
+$\|X(x)\|^2\le c\,s(x)$ and $|m|\le Q$, the same tail and fourth/eighth moment bounds hold for
+$D(\sigma)=|n^{-1}\langle X(\sigma_a),X(\sigma_b)\rangle-m|$.
+\end{enumerate}
+\end{lemma}
+\begin{proof}
+  \leanok
+\emph{Step 1 (tail).} On $\{D\ge K\}$ we have $s(\sigma_a)+s(\sigma_b)\ge 2(L+5)n$, so
+$e^{(L+5)n}\le e^{s(\sigma_a)}+e^{s(\sigma_b)}$. Integrating against $\nu_\omega^{\otimes R}$ and $P$ gives
+$2e^{-(L+5)n}e^{Ln}=2e^{-5n}\le e^{-4n}$ since $n\ge1$.
+
+\emph{Step 2 (moments).} For $x\ge0$, splitting at $Ln$ gives
+$(x/n)^8\le 2^7(L^8+8^8 e^{-Ln}e^x)$, which dominates $D^8$ (and $D^4\le 1+D^8$) by an affine function of
+$e^{s(\sigma_a)}+e^{s(\sigma_b)}$. For~(2), Cauchy--Schwarz and AM--GM give
+$|\langle X(\sigma_a),X(\sigma_b)\rangle|\le c(s(\sigma_a)+s(\sigma_b))/2$.
+Formalized in \texttt{ReplicaExpMomentTail}.
+\end{proof}
+
+\begin{lemma}[Bounded-part and tail split]\label{lem:sg-tal:st-tail-split}
+  \lean{ProbabilityTheory.integral_integral_mul_le_add_indicator_tail}
+  \leanok
+\talsource{model-free core of the calculation before Eq.~(3.105)}
+Let $\omega\mapsto\mu_\omega$ be a family of finite measures on $\Gamma$ over a measure space $(\Omega,P)$
+such that $\omega\mapsto\int Y\,d\mu_\omega$ is a.e.\ strongly measurable for measurable $Y$. For measurable
+$F,X:\Gamma\to[0,\infty)$ with $F\in L^2(\mu_\omega)$, $X\in L^4(\mu_\omega)$,
+$\mathbb E\langle F^2\rangle\le A^2$, $\mathbb E\langle X^4\rangle\le C_X$ and
+$\mathbb E\langle\mathbf 1_{\{X\ge K_0\}}\rangle\le\delta^4$ ($K_0,C_X,\delta,A\ge0$),
+\[
+\mathbb E\langle F X\rangle\le K_0\,\mathbb E\langle F\rangle+C_X^{1/4}\,\delta\,A.
+\]
+\end{lemma}
+\begin{proof}
+  \leanok
+Split $F X\le K_0 F+F(X\mathbf 1_{\{X\ge K_0\}})$ and apply Cauchy--Schwarz twice, first to
+$F$ and $X\mathbf 1_{\{X\ge K_0\}}$, then to $X^2$ and $\mathbf 1_{\{X\ge K_0\}}$.
+Formalized in \texttt{SecondMoment}.
+\end{proof}
+
+\begin{lemma}[Exponential moments and overlap tails along $\nu_{t,v}$]\label{lem:sg-tal:st-aux-tails}
+  \lean{SpinGlasses.integral_shcherbinaTirozziAuxCavity_eq_shared,
+        SpinGlasses.exists_integral_exp_sq_shcherbinaTirozziAuxCavity_last_le,
+        SpinGlasses.exists_quenched_exp_half_sq_norm_shcherbinaTirozziAuxCavity_le_exp,
+        SpinGlasses.exists_integral_exp_sq_norm_shcherbinaTirozziAuxCavity_le_exp,
+        SpinGlasses.exists_shcherbinaTirozziAuxCavity_overlap_tails_and_moments}
+  \leanok
+  \uses{lem:sg-tal:st-aux-cavity, lem:sg-tal:st-last-spin-tail, lem:sg-tal:st-exp-tail-moments, lem:sg-tal:st-partition}
+\talsource{Eqs.~(3.97)--(3.104)}
+Fix $\kappa_0>0$, $h_0,D,Q,R,R_{\mathrm{diff}}\ge0$. Under the standing bounds $\kappa\ge\kappa_0$,
+$|h|\le h_0$, $t,v\in[0,1]$, $0\le q\le\rho\le Q$, $\bar r\le r\le R$, $r-\bar r\le R_{\mathrm{diff}}$,
+$M\le 10(N+1)$, with $u\le0$ concave, twice differentiable, $|u'|\le D$, $|u''|\le D_2$, and $-D\le u(0)$:
+\begin{enumerate}
+\item (Eq.~(3.100).) There is $K>0$ (depending only on $\kappa_0,h_0,D,R$) with
+$\nu_{t,v}(\exp(\sigma_{N+1}^2/K))\le K$.
+\item (Eq.~(3.101).) There is $K_0\ge0$ (depending only on $\kappa_0,h_0,D,Q,R_{\mathrm{diff}}$) such that
+under the smoothed one-replica Gibbs measure~(3.99),
+\[
+\bigl\langle\exp(\kappa\|\sigma\|^2/2)\bigr\rangle_{t,v}\le\exp\bigl(K_0(B^*+y^2+z^2)\bigr).
+\]
+\item (Eq.~(3.102).) There are $K_1,L>0$ (depending only on $\kappa_0,h_0,D,Q,R,R_{\mathrm{diff}}$) with
+$8/\kappa_0\le K_1$ and $\nu_{t,v}(\exp(\|\sigma\|^2/K_1))\le\exp(L(N+1))$.
+\item (Eqs.~(3.97), (3.98), (3.104).) There is $K>0$ (depending only on $\kappa_0,h_0,D,Q,R,R_{\mathrm{diff}}$)
+such that for any replicas $a,b$ and $\Delta=|R_{a,b}-(\rho\,\mathbf 1_{a=b}+q\,\mathbf 1_{a\ne b})|$,
+\[
+\nu_{t,v}(\mathbf 1_{\{\Delta\ge K\}})\le\exp(-4(N+1)),
+\qquad
+\nu_{t,v}(\Delta^4)\le K,
+\qquad
+\nu_{t,v}(\Delta^8)\le K.
+\]
+\end{enumerate}
+\end{lemma}
+\begin{proof}
+  \leanok
+  \uses{lem:sg-tal:st-aux-cavity, lem:sg-tal:st-last-spin-tail, lem:sg-tal:st-exp-tail-moments, lem:sg-tal:st-partition}
+\emph{Step 1 (Eq.~(3.100)).} By Eq.~(3.99) the one-replica marginal is the cavity Gibbs measure with
+$M+1$ potentials, the last being $x\mapsto u_v(\sqrt v\,x+\sqrt{1-v}\sqrt q\,z)$, which is concave, $\le0$,
+and has $|u_v'|\le D$. Applying the indexed version of Theorem~\ref{thm:sg-tal:st-last-spin-tail} at each
+fixed $z$ and integrating over $z\sim\mathcal N(0,1)$ gives~(1).
+
+\emph{Step 2 (Eqs.~(3.101)--(3.102)).} Write the smoothed exponent as $U(\sigma)-\kappa\|\sigma\|^2+\langle a,\sigma\rangle$
+with $U\le0$ and apply the dimension-free exponential moment of Lemma~\ref{lem:sg-tal:st-partition}. Bounding
+$\mathbb E[U]$ via $-D\le u(0)$ and $|u'|\le D$, and $\|a\|^2$ in terms of $g_0$ and $y$, yields~(2).
+Applying Jensen's inequality with exponent $p=2/(\kappa K_1)\le1$ and integrating the independent disorder
+factors ($y$, the first $M$ rows and $g_0$, the last row, and $z$) yields~(3).
+
+\emph{Step 3 (Eqs.~(3.97), (3.98), (3.104)).} Apply Lemma~\ref{lem:sg-tal:st-exp-tail-moments}(2) to
+$X(\sigma,\xi)=\sigma$, $s(\sigma,\xi)=\|\sigma\|^2/K_1$, $c=K_1$ and $n=N+1$.
+Formalized in \texttt{AuxiliaryCavityTails}.
+\end{proof}
+
+\begin{remark}[Differences in Eqs.~(3.97)--(3.104)]\label{rem:sg-tal:st-eq-3101}
+\talsource{Eqs.~(3.97)--(3.104)}
+The printed form of Eq.~(3.101) has $K B^*$ in the exponent; the smoothed Gibbs measure depends on the
+extra Gaussian variables $y$ and $z$, so the exponent in~(2) includes $y^2+z^2$.
+The Lean theorems assume $-D\le u(0)$ (Eq.~(3.6) at the origin) rather than the full lower bound~(3.6),
+and take $0\le q\le\rho\le Q$, $\bar r\le r\le R$, $r-\bar r\le R_{\mathrm{diff}}$ as explicit parameter
+bounds (discharged at the physical parameters~(3.69) later). The bound $|u''|\le D_2$ is used to smooth
+$u$ and does not enter any constant. The tail bound is $\exp(-4(N+1))$ rather than $\exp(-4N)$ because
+configurations lie in $\mathbb R^{N+1}$.
+\end{remark}
+
+\begin{lemma}[Derivative bound and Gr\"onwall comparison along $\nu_{t,v}$]\label{lem:sg-tal:st-aux-gronwall}
+  \lean{SpinGlasses.exists_hasDerivAt_shcherbinaTirozziAuxCavity_abs_le_add_exp,
+        SpinGlasses.exists_shcherbinaTirozziAuxCavity_le_add_exp}
+  \leanok
+  \uses{lem:sg-tal:st-aux-derivative, lem:sg-tal:st-aux-tails, lem:sg-tal:st-tail-split}
+\talsource{Eq.~(3.105); Lemma~3.2.9, Eq.~(3.106)}
+Fix a finite replica type $R$ and constants $\kappa_0>0$, $h_0,D,Q,R_0,R_{\mathrm{diff}}\ge0$. Under the
+hypotheses of Lemma~\ref{lem:sg-tal:st-aux-tails} with $|u''|\le D$ (i.e.\ $D_2=D$), let
+$f:(\mathbb R^{N+1})^R\to\mathbb R$ be measurable of polynomial growth and let $A\ge0$:
+\begin{enumerate}
+\item (Eq.~(3.105).) There is $K>0$ (depending only on $|R|,\kappa_0,h_0,D,Q,R_0,R_{\mathrm{diff}}$) such
+that for every $v_0\in(0,1)$ with $\nu_{t,v_0}(f^2)\le A^2$, the map $v\mapsto\nu_{t,v}(f)$ has a derivative
+$D_{v_0}$ at $v_0$ satisfying
+\[
+|D_{v_0}|\le K\bigl(\nu_{t,v_0}(|f|)+\exp(-(N+1))\,A\bigr).
+\]
+\item (Lemma~3.2.9, Eq.~(3.106).) There is $K>0$ (depending on the same constants) such that if $f\ge0$ and
+$\nu_{t,s}(f^2)\le A^2$ for all $s\in[0,1]$, then for every $v\in[0,1]$,
+\[
+\nu_{t,v}(f)\le K\bigl(\nu_t(f)+\exp(-(N+1))\,A\bigr).
+\]
+\end{enumerate}
+\end{lemma}
+\begin{proof}
+  \leanok
+  \uses{lem:sg-tal:st-aux-derivative, lem:sg-tal:st-aux-tails, lem:sg-tal:st-tail-split}
+\emph{Step 1 (Eq.~(3.105)).} Apply Lemma~\ref{lem:sg-tal:st-aux-derivative} with all $\psi_l=1$ and move each
+term to the $(d_{\mathrm{full}},z)$ disorder representation via the disorder-bridge identity of
+Lemma~\ref{lem:sg-tal:st-aux-tails}. The truncated overlap $R^t_{a,b}$ is the inner
+product of the contracted spins $D_t\sigma^a,D_t\sigma^b$ (multiplying the last coordinate by $\sqrt t$), which
+satisfy $\|D_t\sigma\|^2\le\|\sigma\|^2$, so Lemma~\ref{lem:sg-tal:st-exp-tail-moments}(2) with the
+exponential moment~(3.102) gives $\exp(-4(N+1))$ tails and uniform fourth moments for the truncated overlap
+deviations. Applying Lemma~\ref{lem:sg-tal:st-tail-split} with $\delta=\exp(-(N+1))$ and marginalizing the
+two fresh replicas via \texttt{integral\_pi\_comp\_injective} bounds every summand by
+$K_{\mathrm{pair}}(\nu_{t,v_0}(|f|)+\exp(-(N+1))A)$.
+
+\emph{Step 2 (Lemma~3.2.9).} Since $v\mapsto\nu_{t,v}(f)$ is continuous on $[0,1]$, nonnegative, and satisfies
+$-(K_0\nu_{t,v}(f)+K_0\exp(-(N+1))A)\le\frac{d}{dv}\nu_{t,v}(f)$ on $(0,1)$ by~(1), backward affine
+Gr\"onwall (Talagrand's Lemma~A.13.1) and the endpoint identity $\nu_{t,1}(f)=\nu_t(f)$ give~(2).
+Formalized in \texttt{AuxiliaryCavityGronwall}.
+\end{proof}
+
+\begin{proposition}[Cavity derivative of last-spin moments]\label{prop:sg-tal:st-last-spin-deriv}
+  \lean{SpinGlasses.integral_shcherbinaTirozziCavity_constraint_swap,
+        SpinGlasses.exists_abs_shcherbinaTirozziAuxCavity_one_sub_zero_le,
+        SpinGlasses.exists_abs_shcherbinaTirozziCavity_constraint_sub_rs_le,
+        SpinGlasses.exists_hasDerivAt_shcherbinaTirozziCavity_abs_le_of_mul_last_sq_le,
+        SpinGlasses.exists_hasDerivAt_shcherbinaTirozziCavity_sq_last_abs_le,
+        SpinGlasses.exists_hasDerivAt_shcherbinaTirozziCavity_mul_last_abs_le}
+  \leanok
+  \uses{thm:sg-tal:st-cavity-derivative, lem:sg-tal:st-aux-cavity, lem:sg-tal:st-aux-derivative,
+        lem:sg-tal:st-aux-tails, lem:sg-tal:st-aux-gronwall, lem:sg-tal:st-rs-parameters}
+\talsource{Proposition~3.2.10, Eqs.~(3.107)--(3.110)}
+Fix constants $\kappa_0>0$ and $h_0,D,Q,R_0,R_{\mathrm{diff}}\ge0$. There exists $K>0$ (depending only on
+these constants) such that for all $N,M\in\mathbb N$ with $M\le 10(N+1)$, $\kappa\ge\kappa_0$, $|h|\le h_0$,
+$t\in(0,1)$, $0\le q\le\rho\le Q$, and concave $u\le 0$ with four derivatives satisfying $|u^{(l)}|\le D$
+for $1\le l\le 4$ and $-D\le u(0)$, letting $\alpha=(M+1)/(N+1)$ and $(r,\bar r)$ be the RS parameters
+of~(3.69) at $\alpha$ with $r\le R_0$ and $r-\bar r\le R_{\mathrm{diff}}$, for $f=\varepsilon_1^2$ or
+$f=\varepsilon_1\varepsilon_2$ on $\mathbb R^{N+1}$ (with $M+1$ constraints), the map $s\mapsto\nu_s(f)$
+has a derivative $D_t$ at $t$ satisfying
+\[
+|D_t|\le K\Bigl(\nu_t\bigl((R_{1,2}-q)^2\bigr)^{1/2}
+  +\nu_t\bigl((R_{1,1}-\rho)^2\bigr)^{1/2}+\frac{1}{N+1}\Bigr).
+\]
+\end{proposition}
+\begin{proof}
+  \leanok
+  \uses{thm:sg-tal:st-cavity-derivative, lem:sg-tal:st-aux-cavity, lem:sg-tal:st-aux-derivative,
+        lem:sg-tal:st-aux-tails, lem:sg-tal:st-aux-gronwall, lem:sg-tal:st-rs-parameters}
+Write $E=\nu_t((R_{1,2}-q)^2)^{1/2}+\nu_t((R_{1,1}-\rho)^2)^{1/2}+(N+1)^{-1}$.
+
+\emph{Step 1 (endpoint comparison along $\nu_{t,v}$, Eqs.~(3.108)--(3.110)).} For any finite replica type
+$R_{\mathrm{rep}}$, bounded $C^2$ factors $\psi_l$, and measurable spin observable $g$ of polynomial growth
+with $\nu_{t,s}(g^2)\le A^2$ for all $s\in(0,1)$, continuity on $[0,1]$ and Lemma~\ref{lem:sg-tal:st-aux-derivative}
+give via the mean-value theorem
+\[
+\bigl|\nu_{t,1}\bigl(g\prod_l\psi_l(S_1^l)\bigr)-\nu_{t,0}\bigl(g\prod_l\psi_l(S_0^l)\bigr)\bigr|
+  \le C(R_{\mathrm{rep}},\psi,D)\sup_{s\in(0,1)}\sum_{a,b}\nu_{t,s}\bigl(|g|\,|R^t_{a,b}-m_{a,b}|\bigr),
+\]
+where $m_{a,b}=\rho$ if $a=b$ and $q$ otherwise. Writing $|R^t_{a,b}-m_{a,b}|\le |R_{a,b}-m_{a,b}|
++(N+1)^{-1}|\varepsilon_a\varepsilon_b|$ and applying iterated Cauchy--Schwarz together with
+Lemma~\ref{lem:sg-tal:st-aux-gronwall} (on $(R_{a,b}-m_{a,b})^2$), Eq.~(3.104), and Eq.~(3.100) (for
+$\nu_{t,s}(\varepsilon^4)\le 2K_{\mathrm{last}}^3$) yields
+\[
+\bigl|\nu_{t,1}\bigl(g\prod_l\psi_l(S_1^l)\bigr)-\nu_{t,0}\bigl(g\prod_l\psi_l(S_0^l)\bigr)\bigr|
+  \le K_0\,A\,B^{|R_{\mathrm{rep}}|+2}\,E.
+\]
+
+\emph{Step 2 (four-term cancellation).} Applying Step~1 to $\psi_l=1$, to $\psi_{l_1}=\psi_{l_2}=u'$
+($l_1\ne l_2$), and to $\psi_{l_1}=u''+(u')^2$ (using $|u^{(l)}|\le D$ for $1\le l\le 4$) and combining with
+the $v=0$ factorizations of Lemma~\ref{lem:sg-tal:st-aux-cavity} gives
+\[
+\bigl|\alpha\,\nu_t\bigl(g\,u'(S_{\mathrm{last}}^{l_1})u'(S_{\mathrm{last}}^{l_2})\bigr)-r\,\nu_t(g)\bigr|\le K_1 A E,
+\qquad
+\bigl|\alpha\,\nu_t\bigl(g\,(u''+(u')^2)(S_{\mathrm{last}}^{l_1})\bigr)-\bar r\,\nu_t(g)\bigr|\le K_1 A E.
+\]
+
+\emph{Step 3 (assembly via Proposition~3.2.1).} Differentiating $\nu_s(f)$ at $s=t$ via
+Theorem~\ref{thm:sg-tal:st-cavity-derivative}, constraint exchangeability
+(\texttt{integral\_shcherbinaTirozziCavity\_constraint\_swap}) makes all $M+1$ constraint summands equal to
+the last constraint, turning $(N+1)^{-1}\sum_k$ into $\alpha$ times the last constraint. Expanding
+\texttt{replicaDiff} and \texttt{replicaPairAverage} and applying Step~2 to each replica term cancels the
+$r$ and $\bar r$ terms up to $K A E$. For $f=\varepsilon_1^2$ or $f=\varepsilon_1\varepsilon_2$, the 4-factor
+AM--GM bound $(abcd)^2\le(a^8+b^8+c^8+d^8)/4$ and Eq.~(3.100) give a uniform $L^2$ bound $A=\sqrt{24K_{\mathrm{last}}^5}$
+for every product $f\cdot\varepsilon_a\varepsilon_b$.
+Formalized in \texttt{CavityLastSpinDerivative}, \texttt{CavityLastSpinAssembly} and
+\texttt{CavityLastSpinMoments}.
+\end{proof}
+
+\begin{remark}[Hypotheses of Proposition~3.2.10]\label{rem:sg-tal:st-prop-3210}
+\talsource{Proposition~3.2.10, Eq.~(3.107)}
+As in the rest of Section~3.2, Lean uses $N+1$ spins and $M+1$ constraints (so $\alpha=(M+1)/(N+1)$ and the
+remainder is $(N+1)^{-1}$ rather than $N^{-1}$). The parameter bounds $0\le q\le\rho\le Q$, $r\le R_0$, and
+$r-\bar r\le R_{\mathrm{diff}}$ are explicit parameters here (discharged at the physical overlaps by
+Lemma~\ref{lem:sg-tal:st-rs-parameters}), and $-D\le u(0)$ is Eq.~(3.6) at the origin.
+\end{remark}
+
 \begin{remark}[Research Problem~3.1.2]\label{rem:sg-tal:st-problem-312}
 \talsource{Eq.~(3.10)}
 \emph{Not formalized.} The book asks to compute, under the conditions of Theorem~3.1.1 and as
@@ -1259,10 +1503,11 @@ It is an open problem in the book and has no Lean statement.
 \section{Replica-symmetric solutions (Talagrand Section~3.3)}
 \label{sec:sg-tal:st-rs-bounds}
 
-This section proves Lemmas~3.3.6--3.3.10, Proposition~3.3.3, Lemma~3.3.13, Proposition~3.3.11,
-Corollary~3.3.12, the uniqueness part of Theorem~3.3.1, and the zero-constraint ($M=0$) base case of
-Theorem~3.3.2. The existence part of Theorem~3.3.1, Corollary~3.3.4, Lemma~3.3.5 and the full telescoping
-step of Theorem~3.3.2 (which depend on Lemma~3.2.9 and Proposition~3.2.12) are not formalized yet.
+This section proves Lemmas~3.3.6--3.3.10, Proposition~3.3.3, Corollary~3.3.4 (conditional on the
+existence of a hard critical point), Lemma~3.3.13, Proposition~3.3.11, Corollary~3.3.12, the uniqueness
+part of Theorem~3.3.1, and the zero-constraint ($M=0$) base case of Theorem~3.3.2. The existence part of
+Theorem~3.3.1, Lemma~3.3.5 and the full telescoping step of Theorem~3.3.2 (which depend on
+Proposition~3.2.12) are not formalized yet.
 Throughout, $\xi$ is a standard Gaussian, $p(v)=e^{-v^2/2}/\sqrt{2\pi}$ and
 $T(v)=\mathbb P(\xi\ge v)$.
 
@@ -1864,4 +2109,54 @@ continuity follows from criticality, and the saddle-envelope lemma needs neither
 $(q,\rho)$ nor $\partial^2G/\partial\rho^2$. The statement still assumes that solutions
 $0<q(a)<\rho(a)$ exist for the loads near $\alpha_0$, which the book gets from Theorem~3.3.1; existence is
 not formalized yet.
+\end{remark}
+
+\begin{corollary}[Soft-to-hard stability of RS solutions]\label{cor:sg-tal:st-soft-hard-stability}
+  \lean{SpinGlasses.hasDerivAt_shcherbinaTirozziHardFunctional_self_fixed,
+        SpinGlasses.isCritical_shcherbinaTirozziHardFunctional_of_tendsto_soft,
+        SpinGlasses.exists_bound_of_shcherbinaTirozziHardFunctional_critical,
+        SpinGlasses.exists_soft_rs_close_to_hard}
+  \leanok
+  \uses{thm:sg-tal:st-rs-bounds, thm:sg-tal:st-hard-uniqueness-boundary, lem:sg-tal:st-mills, lem:sg-tal:st-ratio}
+\talsource{Corollary~3.3.4}
+Given $0<\kappa_0\le\kappa_1$, $\alpha_0<2$, $h_0\ge0$, $\tau\ge0$ and $\varepsilon>0$, there exists
+$\varepsilon'>0$ with the following property. Whenever $u\le0$ is concave, twice differentiable with
+bounded $u',u''$, vanishes on $[\tau,\infty)$ and satisfies $\exp u(\tau-\varepsilon')\le\varepsilon'$,
+whenever $0\le\alpha\le\alpha_0$, $\kappa_0\le\kappa\le\kappa_1$, $|h|\le h_0$, and $(q,\rho)$ solves the
+soft replica-symmetric equations~(3.69), (3.76) and~(3.77) for $u$ while $(q_0,\rho_0)$ is a hard critical
+point ($0\le q_0<\rho_0$, $\partial_q F(q_0,\rho_0)=0=\partial_\rho F(q_0,\rho_0)$), one has
+\[
+|q-q_0|\le\varepsilon,\qquad |\rho-\rho_0|\le\varepsilon.
+\]
+\end{corollary}
+\begin{proof}
+  \leanok
+  \uses{thm:sg-tal:st-rs-bounds, thm:sg-tal:st-hard-uniqueness-boundary, lem:sg-tal:st-mills, lem:sg-tal:st-ratio}
+\emph{Step 1 (a priori bounds).} Theorem~\ref{thm:sg-tal:st-rs-bounds} bounds $q_n,\rho_n,(\rho_n-q_n)^{-1}\le C$
+uniformly for soft solutions. The same argument applied to the inverse Mills ratio (via
+$A(v)^2\le(\max(v,0))^2+L_m$ and Gaussian integration by parts) bounds $q_{0,n},\rho_{0,n},(\rho_{0,n}-q_{0,n})^{-1}\le C_0$
+uniformly for hard critical points.
+
+\emph{Step 2 (soft-to-hard limit).} Assume for contradiction that a counterexample sequence exists with
+$\varepsilon_n'=(n+1)^{-1}$. Extract a converging subsequence
+$(\alpha_n,\kappa_n,h_n,q_n,\rho_n,q_{0,n},\rho_{0,n})\to(\alpha,\kappa,h,q,\rho,q_0,\rho_0)$ with
+$0\le q<\rho$ and $0\le q_0<\rho_0$. Rewriting the soft ratios via Gaussian integration by parts as
+$V_n(y)=c_n^{-1}\mathbb E[\xi e^{u_n}]/\mathbb E[e^{u_n}]$ and
+$W_n(y)=c_n^{-2}\mathbb E[(\xi^2-1)e^{u_n}]/\mathbb E[e^{u_n}]$ and applying dominated convergence
+(using Lemma~\ref{lem:sg-tal:st-ratio} and $|W_n|\le V_n^2+c_n^{-2}$), $(r_n,\bar r_n)$ converge to the
+hard Mills-ratio integrals and $(q,\rho)$ is a hard critical point at $(\alpha,\kappa,h)$. By closedness
+of the hard critical set, $(q_0,\rho_0)$ is also a hard critical point at $(\alpha,\kappa,h)$.
+
+\emph{Step 3 (uniqueness).} By Theorem~\ref{thm:sg-tal:st-hard-uniqueness-boundary}, $(q,\rho)=(q_0,\rho_0)$,
+contradicting $|q_n-q_{0,n}|>\varepsilon$ or $|\rho_n-\rho_{0,n}|>\varepsilon$.
+Formalized in \texttt{HardConstraintStability}.
+\end{proof}
+
+\begin{remark}[Differences from Corollary~3.3.4]\label{rem:sg-tal:st-cor-334}
+\talsource{Corollary~3.3.4}
+The book assumes existence of the hard solution $(q_0,\rho_0)$ from Theorem~3.3.1; here $(q_0,\rho_0)$ is
+taken as an explicit hard critical point (existence is not yet formalized). As in
+Theorem~\ref{thm:sg-tal:st-rs-bounds}, $u$ is assumed twice differentiable with bounded $u',u''$ (the
+bounds $D,D_2$ are quantified per $u$ and do not enter $\varepsilon'$). The printed proof on line~9033
+misprints $1/(q_n-\rho_n)\le C$ and $\rho<q$ for $1/(\rho_n-q_n)\le C$ and $q<\rho$.
 \end{remark}

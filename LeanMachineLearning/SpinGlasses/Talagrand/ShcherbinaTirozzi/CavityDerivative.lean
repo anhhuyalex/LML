@@ -327,7 +327,7 @@ private theorem cavity_exponent_le (hrr : rBar ≤ r) (hu0 : ∀ x, u x ≤ 0) {
 
 /-- The moments of the cavity Gibbs measure are polynomial in the disorder, uniformly in
 `t ∈ [0, 1]`. -/
-private theorem exists_integral_one_add_norm_pow_cavity_le (hκ : 0 < κ) (hrr : rBar ≤ r)
+theorem exists_integral_one_add_norm_pow_cavity_le (hκ : 0 < κ) (hrr : rBar ≤ r)
     (hu1 : Differentiable ℝ u) (hu0 : ∀ x, u x ≤ 0) {D : ℝ} (hD : ∀ x, |deriv u x| ≤ D) (k : ℕ) :
     ∃ A : ℝ, 0 ≤ A ∧ ∀ t : ℝ, 0 ≤ t → t ≤ 1 → ∀ p : Dis,
       ∫ x, (1 + ‖x‖) ^ k ∂(gibbs⟨t, p⟩) ≤ A * size p ^ k := by
@@ -1158,5 +1158,126 @@ theorem hasDerivAt_integral_integral_pi_shcherbinaTirozziCavity [LinearOrder R] 
     field_simp
     ring
   rw [hsum_eq, hy_eq, sub_eq_add_neg]
+
+/-- **Continuity on `[0, 1]` of `t ↦ ν_t(f)`** along the cavity path (including both endpoints
+`t = 0` and `t = 1`), for any measurable replica observable `f` of polynomial growth. -/
+theorem continuousOn_integral_integral_pi_shcherbinaTirozziCavity {κ h : ℝ} (hκ : 0 < κ)
+    (r : ℝ≥0) {rBar : ℝ} (hrr : rBar ≤ r) {u : ℝ → ℝ} (hu0 : ∀ x, u x ≤ 0)
+    (hu1 : Differentiable ℝ u) {D : ℝ} (hD : ∀ x, |deriv u x| ≤ D)
+    {f : (R → ℝ^(N + 1)) → ℝ} (hf : Measurable f) {C : ℝ} {m : ℕ}
+    (hfb : ∀ σ, |f σ| ≤ C * ∏ l, (1 + ‖σ l‖) ^ m) :
+    ContinuousOn
+      (fun t => ∫ p : Dis, ∫ σ : R → ℝ^(N + 1), f σ
+        ∂(Measure.pi fun _ : R => (volume : Measure (ℝ^(N + 1))).tilted fun σ =>
+          -shcherbinaTirozziCavityHamiltonian κ h r rBar t p.1 u p.2.1 p.2.2 σ) ∂(law r))
+      (Set.Icc 0 1) := by
+  intro t₀ ht₀
+  have hum : Measurable u := hu1.continuous.measurable
+  have huc : Continuous u := hu1.continuous
+  have hC0 : 0 ≤ C := nonneg_of_mul_nonneg_left ((abs_nonneg _).trans (hfb 0))
+    (Finset.prod_pos fun _ _ => by positivity)
+  let G : ℝ → Dis → Measure (ℝ^(N + 1)) := fun t p =>
+    (volume : Measure (ℝ^(N + 1))).tilted fun σ =>
+      -shcherbinaTirozziCavityHamiltonian κ h r rBar t p.1 u p.2.1 p.2.2 σ
+  obtain ⟨A0, hA00, hA0⟩ := exists_integral_one_add_norm_pow_cavity_le (N := N) (M := M) (κ := κ)
+    (h := h) (r := r) (rBar := rBar) (u := u) hκ hrr hu1 hu0 hD m
+  have hmeas_out : ∀ t, AEStronglyMeasurable
+      (fun p : Dis => ∫ σ : R → ℝ^(N + 1), f σ ∂(Measure.pi fun _ : R => G t p)) (law r) :=
+    fun t => (measurable_integral_pi_tilted_of_sigmaFinite
+      (measurable_cavity_exponent (κ := κ) (h := h) (r := r) (rBar := rBar) hum t)
+      (hf.comp measurable_snd)).aestronglyMeasurable
+  have hdom_out : Integrable (fun p : Dis => C * A0 ^ Fintype.card R *
+      size p ^ (m * Fintype.card R)) (law r) :=
+    (integrable_cavity_disorder_pow r (m * Fintype.card R)).const_mul _
+  have hbound_out : ∀ t ∈ Set.Icc (0 : ℝ) 1, ∀ p : Dis,
+      ‖∫ σ : R → ℝ^(N + 1), f σ ∂(Measure.pi fun _ : R => G t p)‖ ≤
+        C * A0 ^ Fintype.card R * size p ^ (m * Fintype.card R) := by
+    intro t ht p
+    rw [Real.norm_eq_abs]
+    have h1 := abs_integral_pi_tilted_le_of_confining (μ := volume) hκ
+      (measurable_cavity_exponent_apply (κ := κ) (h := h) (r := r) (rBar := rBar) hum t p)
+      (cavity_exponent_le (κ := κ) (h := h) hrr hu0 ht.1 ht.2 p) hfb
+    refine h1.trans ?_
+    have h2 := pow_le_pow_left₀ (integral_nonneg fun _ => by positivity)
+      (hA0 t ht.1 ht.2 p) (Fintype.card R)
+    rw [mul_pow, ← pow_mul] at h2
+    exact (mul_le_mul_of_nonneg_left h2 hC0).trans_eq (by ring)
+  -- Pointwise continuity in `t ∈ [0, 1]` at fixed disorder `p`
+  have hpt_cont : ∀ p : Dis, ContinuousWithinAt
+      (fun t => ∫ σ : R → ℝ^(N + 1), f σ ∂(Measure.pi fun _ : R => G t p))
+      (Set.Icc 0 1) t₀ := by
+    intro p
+    set B : ℝ := |h| * (∑ i, |p.2.2 i|) + |p.1|
+    have hB0 : 0 ≤ B := add_nonneg (mul_nonneg (abs_nonneg h)
+      (Finset.sum_nonneg fun _ _ => abs_nonneg _)) (abs_nonneg _)
+    have hE_cont : ∀ σ : ℝ^(N + 1), Continuous
+        (fun t => -shcherbinaTirozziCavityHamiltonian κ h r rBar t p.1 u p.2.1 p.2.2 σ) := fun σ => by
+      unfold shcherbinaTirozziCavityHamiltonian
+      fun_prop
+    set μ_R : Measure (R → ℝ^(N + 1)) := Measure.pi fun _ : R => (volume : Measure (ℝ^(N + 1)))
+    have hdom_1 : ∀ deg : ℕ, Integrable (fun x : ℝ^(N + 1) =>
+        (1 + ‖x‖) ^ deg * Real.exp (B * ‖x‖ - κ * ‖x‖ ^ 2)) (volume : Measure (ℝ^(N + 1))) :=
+      fun deg => integrable_one_add_norm_pow_mul_exp (μ := volume) hκ B deg
+    have hnum_c : ∀ {Φ : (R → ℝ^(N + 1)) → ℝ} {C_Φ : ℝ} {deg : ℕ},
+        Measurable Φ → (∀ σ, |Φ σ| ≤ C_Φ * ∏ l, (1 + ‖σ l‖) ^ deg) →
+        ContinuousWithinAt
+          (fun t => ∫ σ : R → ℝ^(N + 1), Φ σ * Real.exp (∑ l : R,
+              -shcherbinaTirozziCavityHamiltonian κ h r rBar t p.1 u p.2.1 p.2.2 (σ l)) ∂μ_R)
+          (Set.Icc 0 1) t₀ := by
+      intro Φ C_Φ deg hΦm hΦb
+      set b_R : (R → ℝ^(N + 1)) → ℝ := fun σ =>
+        |C_Φ| * ∏ l : R, ((1 + ‖σ l‖) ^ deg * Real.exp (B * ‖σ l‖ - κ * ‖σ l‖ ^ 2))
+      have hb_int : Integrable b_R μ_R :=
+        (Integrable.fintype_prod (f := fun _ : R => fun x : ℝ^(N + 1) =>
+          (1 + ‖x‖) ^ deg * Real.exp (B * ‖x‖ - κ * ‖x‖ ^ 2)) fun _ => hdom_1 deg).const_mul |C_Φ|
+      refine continuousWithinAt_of_dominated (bound := b_R)
+        (Filter.Eventually.of_forall fun t =>
+          (hΦm.mul (Finset.measurable_sum _ fun l _ =>
+            (measurable_cavity_exponent_apply (κ := κ) (h := h) (r := r) (rBar := rBar) hum t p
+              ).comp (measurable_pi_apply l)).exp).aestronglyMeasurable)
+        ?_ hb_int (ae_of_all _ fun σ => ?_)
+      · filter_upwards [self_mem_nhdsWithin] with t ht
+        exact ae_of_all _ fun σ => by
+          rw [Real.norm_eq_abs, abs_mul, abs_of_pos (Real.exp_pos _), Real.exp_sum]
+          have h1 : |Φ σ| ≤ |C_Φ| * ∏ l : R, (1 + ‖σ l‖) ^ deg :=
+            (hΦb σ).trans (mul_le_mul_of_nonneg_right (le_abs_self _)
+              (Finset.prod_nonneg fun _ _ => by positivity))
+          have h2 : ∏ l : R, Real.exp (-shcherbinaTirozziCavityHamiltonian κ h r rBar t p.1 u
+              p.2.1 p.2.2 (σ l)) ≤ ∏ l : R, Real.exp (B * ‖σ l‖ - κ * ‖σ l‖ ^ 2) :=
+            Finset.prod_le_prod₀ (fun _ _ => (Real.exp_pos _).le) fun l _ =>
+              Real.exp_le_exp.2 (neg_shcherbinaTirozziCavityHamiltonian_le κ h p.1 hrr
+                ht.1 ht.2 hu0 p.2.1 p.2.2 (σ l))
+          refine (mul_le_mul h1 h2 (by positivity) (by positivity)).trans_eq ?_
+          dsimp only [b_R]; rw [mul_assoc, Finset.prod_mul_distrib]
+      · have hc : Continuous fun t : ℝ => Φ σ * Real.exp (∑ l : R,
+            -shcherbinaTirozziCavityHamiltonian κ h r rBar t p.1 u p.2.1 p.2.2 (σ l)) := by
+          have : Continuous fun t : ℝ => ∑ l : R,
+              -shcherbinaTirozziCavityHamiltonian κ h r rBar t p.1 u p.2.1 p.2.2 (σ l) := by
+            fun_prop
+          exact continuous_const.mul (Real.continuous_exp.comp this)
+        exact hc.continuousWithinAt
+    have hc_num := hnum_c hf hfb
+    have hc_den := hnum_c (Φ := fun _ => (1 : ℝ)) (C_Φ := 1) (deg := 0)
+      measurable_const (fun _ => by simp)
+    simp only [one_mul] at hc_den
+    have hZ_pos : 0 < ∫ σ : R → ℝ^(N + 1), Real.exp (∑ l : R,
+        -shcherbinaTirozziCavityHamiltonian κ h r rBar t₀ p.1 u p.2.1 p.2.2 (σ l)) ∂μ_R := by
+      dsimp only [μ_R]
+      rw [integral_pi_exp_sum (μ := (volume : Measure (ℝ^(N + 1))))
+        (E := fun σ => -shcherbinaTirozziCavityHamiltonian κ h r rBar t₀ p.1 u p.2.1 p.2.2 σ)]
+      exact pow_pos (integral_exp_pos (integrable_exp_of_confining (μ := volume)
+        hκ (measurable_cavity_exponent_apply (κ := κ) (h := h) (r := r) (rBar := rBar) hum t₀ p)
+        (cavity_exponent_le (κ := κ) (h := h) hrr hu0 ht₀.1 ht₀.2 p))) _
+    have heq : (fun t => ∫ σ : R → ℝ^(N + 1), f σ ∂(Measure.pi fun _ : R => G t p)) =
+        fun t => (∫ σ : R → ℝ^(N + 1), f σ * Real.exp (∑ l : R,
+            -shcherbinaTirozziCavityHamiltonian κ h r rBar t p.1 u p.2.1 p.2.2 (σ l)) ∂μ_R) /
+          ∫ σ : R → ℝ^(N + 1), Real.exp (∑ l : R,
+            -shcherbinaTirozziCavityHamiltonian κ h r rBar t p.1 u p.2.1 p.2.2 (σ l)) ∂μ_R := by
+      funext t; rw [pi_tilted_eq_tilted_pi, integral_tilted_eq_div]
+    rw [heq]
+    exact hc_num.div hc_den hZ_pos.ne'
+  exact continuousWithinAt_of_dominated (Filter.Eventually.of_forall hmeas_out)
+    (eventually_nhdsWithin_of_forall fun t ht => ae_of_all _ (hbound_out t ht)) hdom_out
+    (ae_of_all _ hpt_cont)
 
 end SpinGlasses

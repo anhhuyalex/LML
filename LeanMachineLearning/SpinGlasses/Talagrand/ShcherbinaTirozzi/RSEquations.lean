@@ -48,18 +48,40 @@ theorem shcherbinaTirozzi_rsParameters_bounds {u : ℝ → ℝ} (hu : ConcaveOn 
       Real.exp (u (y + c * ξ)) ∂(gaussianReal 0 1)) / Z y
     let r : ℝ := α * ∫ z, V (Real.sqrt q * z) ^ 2 ∂(gaussianReal 0 1)
     let rBar : ℝ := α * ∫ z, W (Real.sqrt q * z) ∂(gaussianReal 0 1)
-    0 ≤ r ∧ r ≤ α * D ^ 2 ∧ rBar ≤ r := by
+    0 ≤ r ∧ r ≤ α * D ^ 2 ∧ rBar ≤ r ∧ -(α * (D₂ + D ^ 2)) ≤ rBar := by
   intro Z V W r rBar
   have hum : Measurable u := hu1.continuous.measurable
   have hVD : ∀ y, |V y| ≤ D := fun y => abs_integral_mul_exp_comp_add_div_le hD
     (integrable_exp_comp_add_gaussianReal hum hu0 y c)
+  have hWD : ∀ y, |W y| ≤ D₂ + D ^ 2 := fun y =>
+    abs_integral_mul_exp_comp_add_div_le (f := fun x => deriv (deriv u) x + deriv u x ^ 2)
+      (B := D₂ + D ^ 2) (fun x => by
+        refine (abs_add_le _ _).trans (add_le_add (hD₂ x) ?_)
+        rw [abs_pow]
+        exact pow_le_pow_left₀ (abs_nonneg _) (hD x) 2)
+      (integrable_exp_comp_add_gaussianReal hum hu0 y c)
   refine ⟨mul_nonneg hα (integral_nonneg fun _ => sq_nonneg _),
     mul_le_mul_of_nonneg_left ?_ hα, mul_le_mul_of_nonneg_left
       (integral_deriv_two_add_sq_div_le_integral_sq_div (μ := gaussianReal 0 1) hu hu1 hu2
-        hD hD₂ (a := fun z => Real.sqrt q * z) (by fun_prop) c) hα⟩
-  refine (integral_mono_of_nonneg (ae_of_all _ fun _ => sq_nonneg _) (integrable_const (D ^ 2))
-    (ae_of_all _ fun z => ?_)).trans_eq (by simp)
-  simpa only [sq_abs] using pow_le_pow_left₀ (abs_nonneg _) (hVD (Real.sqrt q * z)) 2
+        hD hD₂ (a := fun z => Real.sqrt q * z) (by fun_prop) c) hα, ?_⟩
+  · refine (integral_mono_of_nonneg (ae_of_all _ fun _ => sq_nonneg _) (integrable_const (D ^ 2))
+      (ae_of_all _ fun z => ?_)).trans_eq (by simp)
+    simpa only [sq_abs] using pow_le_pow_left₀ (abs_nonneg _) (hVD (Real.sqrt q * z)) 2
+  · rw [← mul_neg]
+    refine mul_le_mul_of_nonneg_left ?_ hα
+    have hWm : Measurable W :=
+      (measurable_integral_mul_exp_comp_add_gaussianReal hum
+        ((measurable_deriv (deriv u)).add ((measurable_deriv u).pow_const 2))
+        measurable_id c).div (by
+        simpa only [one_mul, id_eq] using
+          measurable_integral_mul_exp_comp_add_gaussianReal hum
+            (measurable_const (a := (1 : ℝ))) measurable_id c)
+    have hWi : Integrable (fun z => W (Real.sqrt q * z)) (gaussianReal 0 1) :=
+      Integrable.of_bound (hWm.comp (by fun_prop)).aestronglyMeasurable (D₂ + D ^ 2)
+        (ae_of_all _ fun z => (Real.norm_eq_abs _).trans_le (hWD _))
+    have hconst : ∫ _ : ℝ, -(D₂ + D ^ 2) ∂(gaussianReal 0 1) = -(D₂ + D ^ 2) := by simp
+    rw [← hconst]
+    exact integral_mono (integrable_const _) hWi fun z => neg_le_of_abs_le (hWD _)
 
 /-- **Talagrand, Lemma 3.2.6, at the choice (3.69):** `ν_t (exp (ε² / K)) ≤ K` with `K`
 depending only on `κ₀`, `h₀` and `D`, uniformly in the size, in `t ∈ [0, 1]` and in `q`, `ρ`. -/
@@ -94,7 +116,8 @@ theorem exists_integral_exp_sq_shcherbinaTirozziCavity_last_le_of_rsParameters (
   have hα10 : (M : ℝ) / (N + 1) ≤ 10 := by
     rw [div_le_iff₀ (by positivity)]
     exact_mod_cast hM
-  obtain ⟨hr0, hrD, hrr⟩ : 0 ≤ r ∧ r ≤ M / (N + 1) * D ^ 2 ∧ rBar ≤ r :=
+  obtain ⟨hr0, hrD, hrr, -⟩ :
+      0 ≤ r ∧ r ≤ M / (N + 1) * D ^ 2 ∧ rBar ≤ r ∧ -(M / (N + 1) * (D₂ + D ^ 2)) ≤ rBar :=
     shcherbinaTirozzi_rsParameters_bounds huc hu0 hu1 hu2 hD hD₂ hα q c
   have hr : (r.toNNReal : ℝ) = r := Real.coe_toNNReal r hr0
   have h := hK N M κ h t rBar r.toNNReal u hκ hh ht0 ht1 (by rwa [hr])
@@ -140,7 +163,8 @@ theorem shcherbinaTirozzi_overlaps_sub_decoupled {N M : ℕ} {κ h D D₂ : ℝ}
           ∫ y, ∫ d, (∫ σ, σ (Fin.last N) ∂(G₀ y d)) ^ 2 ∂P ∂(gaussianReal 0 r.toNNReal) := by
   intro P G ρ q c Z V W r rBar a G₀
   have hum : Measurable u := hu1.continuous.measurable
-  obtain ⟨hr0, -, hrr⟩ : 0 ≤ r ∧ r ≤ M / (N + 1) * D ^ 2 ∧ rBar ≤ r :=
+  obtain ⟨hr0, -, hrr, -⟩ :
+      0 ≤ r ∧ r ≤ M / (N + 1) * D ^ 2 ∧ rBar ≤ r ∧ -(M / (N + 1) * (D₂ + D ^ 2)) ≤ rBar :=
     shcherbinaTirozzi_rsParameters_bounds huc hu0 hu1 hu2 hD hD₂ (by positivity) q c
   have hr : (r.toNNReal : ℝ) = r := Real.coe_toNNReal r hr0
   have ha : 0 < a := by
@@ -173,5 +197,134 @@ theorem shcherbinaTirozzi_overlaps_sub_decoupled {N M : ℕ} {κ h D D₂ : ℝ}
     exact congrArg _ h0sq.symm
   · rw [show q = _ from hq]
     exact congrArg _ h0.symm
+
+/-- **Uniform bounds on the physical parameters `(q, ρ, r, r̄)`:** under the standing bounds
+`κ₀ ≤ κ`, `|h| ≤ h₀`, `M ≤ 10 (N + 1)`, `u ≤ 0` concave with `-D (1 + |x|) ≤ u x`, `|u'| ≤ D`,
+`|u''| ≤ D₂`, there is a constant `Q ≥ 0` (depending only on `κ₀, h₀, D`) such that the physical
+overlaps satisfy `0 ≤ q ≤ ρ ≤ Q` and the RS parameters `(r, r̄)` of (3.69) satisfy
+`0 ≤ r ≤ 10 D²`, `r̄ ≤ r`, and `r - r̄ ≤ 10 (2 D² + D₂)`. -/
+theorem exists_shcherbinaTirozzi_physical_parameter_bounds (κ₀ h₀ D : ℝ) (hκ₀ : 0 < κ₀) :
+    ∃ Q : ℝ, 0 ≤ Q ∧ ∀ (N M : ℕ) (κ h D₂ : ℝ) (u : ℝ → ℝ),
+      κ₀ ≤ κ → |h| ≤ h₀ → M ≤ 10 * (N + 1) →
+      ConcaveOn ℝ Set.univ u → (∀ x, u x ≤ 0) → (∀ x, -D * (1 + |x|) ≤ u x) →
+      Differentiable ℝ u → Differentiable ℝ (deriv u) →
+      (∀ x, |deriv u x| ≤ D) → (∀ x, |deriv (deriv u) x| ≤ D₂) →
+      let P : Measure ((Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) :=
+        (Measure.pi fun _ : Fin M => Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1).prod
+          (Measure.pi fun _ : Fin (N + 1) => gaussianReal 0 1)
+      let G : (Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ) → Measure (ℝ^(N + 1)) := fun d =>
+        volume.tilted fun σ => -shcherbinaTirozziHamiltonian κ h u d.1 d.2 σ
+      let ρ : ℝ := ∫ d, ∫ σ, ((N : ℝ) + 1)⁻¹ * ‖σ‖ ^ 2 ∂(G d) ∂P
+      let q : ℝ := ∫ d, ((N : ℝ) + 1)⁻¹ * ∑ i, (∫ σ, σ i ∂(G d)) ^ 2 ∂P
+      let c : ℝ := Real.sqrt (ρ - q)
+      let Z : ℝ → ℝ := fun y => ∫ ξ, Real.exp (u (y + c * ξ)) ∂(gaussianReal 0 1)
+      let V : ℝ → ℝ := fun y =>
+        (∫ ξ, deriv u (y + c * ξ) * Real.exp (u (y + c * ξ)) ∂(gaussianReal 0 1)) / Z y
+      let W : ℝ → ℝ := fun y => (∫ ξ, (deriv (deriv u) (y + c * ξ) + deriv u (y + c * ξ) ^ 2) *
+        Real.exp (u (y + c * ξ)) ∂(gaussianReal 0 1)) / Z y
+      let r : ℝ := (M / (N + 1)) * ∫ z, V (Real.sqrt q * z) ^ 2 ∂(gaussianReal 0 1)
+      let rBar : ℝ := (M / (N + 1)) * ∫ z, W (Real.sqrt q * z) ∂(gaussianReal 0 1)
+      0 ≤ q ∧ q ≤ ρ ∧ ρ ≤ Q ∧
+        0 ≤ r ∧ r ≤ 10 * D ^ 2 ∧ rBar ≤ r ∧ r - rBar ≤ 10 * (2 * D ^ 2 + D₂) := by
+  obtain ⟨K, hK0, hK⟩ := exists_integral_sq_norm_pow_shcherbinaTirozziGibbs_le κ₀ h₀ D hκ₀
+  refine ⟨40 * K, by positivity, fun N M κ h D₂ u hκ hh hM huc hu0 hgrow hu1 hu2 hD hD₂ => ?_⟩
+  intro P G ρ q c Z V W r rBar
+  have hκ0 : 0 < κ := hκ₀.trans_le hκ
+  have hum : Measurable u := hu1.continuous.measurable
+  have hα : (0 : ℝ) ≤ M / (N + 1) := by positivity
+  have hα10 : (M : ℝ) / (N + 1) ≤ 10 := by
+    rw [div_le_iff₀ (by positivity)]
+    exact_mod_cast hM
+  obtain ⟨hr0, hrD, hrr, hrBar_low⟩ :
+      0 ≤ r ∧ r ≤ M / (N + 1) * D ^ 2 ∧ rBar ≤ r ∧ -(M / (N + 1) * (D₂ + D ^ 2)) ≤ rBar :=
+    shcherbinaTirozzi_rsParameters_bounds huc hu0 hu1 hu2 hD hD₂ hα q c
+  have hD₂0 : 0 ≤ D₂ := (abs_nonneg _).trans (hD₂ 0)
+  have hrad := integral_shcherbinaTirozzi_radius_pow_le (N := N + 1) (M := M) hM (k := 1) (by omega)
+  simp only [pow_one, Nat.cast_add, Nat.cast_one] at hrad
+  have hρ_int : Integrable (fun d => ∫ σ, ((N : ℝ) + 1)⁻¹ * ‖σ‖ ^ 2 ∂(G d)) P := by
+    have hm : Measurable fun d => ∫ σ, ((N : ℝ) + 1)⁻¹ * ‖σ‖ ^ 2 ∂(G d) :=
+      measurable_integral_tilted
+        (e := fun (d : (Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) σ =>
+          -shcherbinaTirozziHamiltonian κ h u d.1 d.2 σ)
+        (measurable_shcherbinaTirozziHamiltonian κ h hum).neg
+        ((measurable_norm.pow_const 2).const_mul _)
+    refine ((hrad.1.const_mul K).const_mul ((N : ℝ) + 1)⁻¹).mono' hm.aestronglyMeasurable
+      (ae_of_all _ fun d => ?_)
+    rw [Real.norm_of_nonneg (integral_nonneg fun _ => by positivity), integral_const_mul]
+    have h1 := (hK (N + 1) M 1 κ h u d.1 d.2 hκ hh hM (by omega) hum hu0 hgrow).2
+    simp only [mul_one, pow_one, Nat.cast_add, Nat.cast_one] at h1
+    exact mul_le_mul_of_nonneg_left h1 (by positivity)
+  have hq0 : 0 ≤ q := integral_nonneg fun _ =>
+    mul_nonneg (by positivity) (Finset.sum_nonneg fun _ _ => sq_nonneg _)
+  have hq_le_ρ : q ≤ ρ := by
+    have hpt : ∀ d, ((N : ℝ) + 1)⁻¹ * ∑ i, (∫ σ, σ i ∂(G d)) ^ 2 ≤
+        ∫ σ, ((N : ℝ) + 1)⁻¹ * ‖σ‖ ^ 2 ∂(G d) := by
+      intro d
+      have : IsProbabilityMeasure (G d) :=
+        isProbabilityMeasure_shcherbinaTirozziGibbs hκ0 hum hu0 _ _
+      have hsq_int : Integrable (fun σ : ℝ^(N + 1) => ‖σ‖ ^ 2) (G d) := by
+        simpa only [mul_one] using
+          (hK (N + 1) M 1 κ h u d.1 d.2 hκ hh hM (by omega) hum hu0 hgrow).1
+      rw [integral_const_mul]
+      refine mul_le_mul_of_nonneg_left ?_ (by positivity)
+      have hcoord_sq : ∀ i : Fin (N + 1), Integrable (fun σ : ℝ^(N + 1) => σ i ^ 2) (G d) :=
+        fun i => hsq_int.mono'
+          (((PiLp.continuous_apply 2 (fun _ : Fin (N + 1) => ℝ) i).measurable).pow_const
+            2).aestronglyMeasurable
+          (ae_of_all _ fun σ => by
+            rw [Real.norm_of_nonneg (sq_nonneg _), ← sq_abs]
+            exact pow_le_pow_left₀ (abs_nonneg _)
+              (by simpa only [Real.norm_eq_abs] using PiLp.norm_apply_le σ i) 2)
+      have hjen : ∀ i : Fin (N + 1), (∫ σ, σ i ∂(G d)) ^ 2 ≤ ∫ σ, σ i ^ 2 ∂(G d) := fun i => by
+        have hmem : MemLp (fun σ : ℝ^(N + 1) => σ i) 2 (G d) :=
+          (memLp_two_iff_integrable_sq
+            (PiLp.continuous_apply 2
+              (fun _ : Fin (N + 1) => ℝ) i).measurable.aestronglyMeasurable).2
+            (hcoord_sq i)
+        have hv : 0 ≤ variance (fun σ : ℝ^(N + 1) => σ i) (G d) := variance_nonneg _ _
+        rw [variance_eq_sub hmem] at hv
+        simp only [Pi.pow_apply] at hv
+        linarith
+      calc ∑ i, (∫ σ, σ i ∂(G d)) ^ 2 ≤ ∑ i, ∫ σ, σ i ^ 2 ∂(G d) :=
+            Finset.sum_le_sum fun i _ => hjen i
+        _ = ∫ σ, ∑ i, σ i ^ 2 ∂(G d) := (integral_finsetSum _ fun i _ => hcoord_sq i).symm
+        _ = ∫ σ, ‖σ‖ ^ 2 ∂(G d) := by
+            congr 1; funext σ; exact (EuclideanSpace.real_norm_sq_eq σ).symm
+    have hqm : Measurable fun d => ((N : ℝ) + 1)⁻¹ * ∑ i, (∫ σ, σ i ∂(G d)) ^ 2 := by
+      refine (Finset.measurable_sum _ fun i _ => ?_).const_mul _
+      exact (measurable_integral_tilted
+        (e := fun (d : (Fin M → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) σ =>
+          -shcherbinaTirozziHamiltonian κ h u d.1 d.2 σ)
+        (measurable_shcherbinaTirozziHamiltonian κ h hum).neg
+        (PiLp.continuous_apply 2 (fun _ : Fin (N + 1) => ℝ) i).measurable).pow_const 2
+    have hqi : Integrable (fun d => ((N : ℝ) + 1)⁻¹ * ∑ i, (∫ σ, σ i ∂(G d)) ^ 2) P :=
+      hρ_int.mono' hqm.aestronglyMeasurable (ae_of_all _ fun d => by
+        rw [Real.norm_of_nonneg (mul_nonneg (by positivity)
+          (Finset.sum_nonneg fun _ _ => sq_nonneg _))]
+        exact hpt d)
+    exact integral_mono hqi hρ_int hpt
+  have hρ_le : ρ ≤ 40 * K := by
+    have hpt : ∀ d, ∫ σ, ((N : ℝ) + 1)⁻¹ * ‖σ‖ ^ 2 ∂(G d) ≤
+        ((N : ℝ) + 1)⁻¹ * (K * (((N : ℝ) + 1) +
+          Real.sqrt (∑ k, ∑ i, d.1 k i ^ 2) + ∑ i, d.2 i ^ 2)) := fun d => by
+      rw [integral_const_mul]
+      have h1 := (hK (N + 1) M 1 κ h u d.1 d.2 hκ hh hM (by omega) hum hu0 hgrow).2
+      simp only [mul_one, pow_one, Nat.cast_add, Nat.cast_one] at h1
+      exact mul_le_mul_of_nonneg_left h1 (by positivity)
+    refine (integral_mono hρ_int ((hrad.1.const_mul K).const_mul _) hpt).trans ?_
+    rw [integral_const_mul, integral_const_mul]
+    have hpos : (0 : ℝ) < (N : ℝ) + 1 := by positivity
+    calc ((N : ℝ) + 1)⁻¹ * (K * ∫ d, (((N : ℝ) + 1) +
+            Real.sqrt (∑ k, ∑ i, d.1 k i ^ 2) + ∑ i, d.2 i ^ 2) ∂P)
+        ≤ ((N : ℝ) + 1)⁻¹ * (K * (40 * ((N : ℝ) + 1))) :=
+          mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_left hrad.2 hK0) (by positivity)
+      _ = 40 * K := by field_simp
+  refine ⟨hq0, hq_le_ρ, hρ_le, hr0, hrD.trans (mul_le_mul_of_nonneg_right hα10 (sq_nonneg D)),
+    hrr, ?_⟩
+  have h1 : (M : ℝ) / (N + 1) * (D₂ + D ^ 2) ≤ 10 * (D₂ + D ^ 2) :=
+    mul_le_mul_of_nonneg_right hα10 (by positivity)
+  have h2 : (M : ℝ) / (N + 1) * D ^ 2 ≤ 10 * D ^ 2 :=
+    mul_le_mul_of_nonneg_right hα10 (sq_nonneg D)
+  linarith
 
 end SpinGlasses
