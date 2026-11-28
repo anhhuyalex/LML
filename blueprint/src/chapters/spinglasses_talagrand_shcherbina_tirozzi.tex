@@ -1425,11 +1425,11 @@ Formalized in \texttt{AuxiliaryCavityGronwall}.
   \uses{thm:sg-tal:st-cavity-derivative, lem:sg-tal:st-aux-cavity, lem:sg-tal:st-aux-derivative,
         lem:sg-tal:st-aux-tails, lem:sg-tal:st-aux-gronwall, lem:sg-tal:st-rs-parameters}
 \talsource{Proposition~3.2.10, Eqs.~(3.107)--(3.110)}
-Fix constants $\kappa_0>0$ and $h_0,D,Q,R_0,R_{\mathrm{diff}}\ge0$. There exists $K>0$ (depending only on
+Fix constants $\kappa_0>0$ and $h_0,D,Q\ge0$. There exists $K>0$ (depending only on
 these constants) such that for all $N,M\in\mathbb N$ with $M\le 10(N+1)$, $\kappa\ge\kappa_0$, $|h|\le h_0$,
 $t\in(0,1)$, $0\le q\le\rho\le Q$, and concave $u\le 0$ with four derivatives satisfying $|u^{(l)}|\le D$
 for $1\le l\le 4$ and $-D\le u(0)$, letting $\alpha=(M+1)/(N+1)$ and $(r,\bar r)$ be the RS parameters
-of~(3.69) at $\alpha$ with $r\le R_0$ and $r-\bar r\le R_{\mathrm{diff}}$, for $f=\varepsilon_1^2$ or
+of~(3.69) at $\alpha$, for $f=\varepsilon_1^2$ or
 $f=\varepsilon_1\varepsilon_2$ on $\mathbb R^{N+1}$ (with $M+1$ constraints), the map $s\mapsto\nu_s(f)$
 has a derivative $D_t$ at $t$ satisfying
 \[
@@ -1483,10 +1483,11 @@ Formalized in \texttt{CavityLastSpinDerivative}, \texttt{CavityLastSpinAssembly}
 
 \begin{remark}[Hypotheses of Proposition~3.2.10]\label{rem:sg-tal:st-prop-3210}
 \talsource{Proposition~3.2.10, Eq.~(3.107)}
-As in the rest of Section~3.2, Lean uses $N+1$ spins and $M+1$ constraints (so $\alpha=(M+1)/(N+1)$ and the
-remainder is $(N+1)^{-1}$ rather than $N^{-1}$). The parameter bounds $0\le q\le\rho\le Q$, $r\le R_0$, and
-$r-\bar r\le R_{\mathrm{diff}}$ are explicit parameters here (discharged at the physical overlaps by
-Lemma~\ref{lem:sg-tal:st-rs-parameters}), and $-D\le u(0)$ is Eq.~(3.6) at the origin.
+Lean takes $M$ old constraints and one fresh constraint on $N+1$ spins. Thus
+$\alpha=(M+1)/(N+1)\le 11$ under the cap on $M$. The proof derives the bounds on $r$
+and $r-\bar r$ from Lemma~\ref{lem:sg-tal:st-rs-parameters}. The bound
+$0\le q\le\rho\le Q$ allows arbitrary centers in the derivative estimate.
+The condition $-D\le u(0)$ is Eq.~(3.6) at the origin.
 \end{remark}
 
 \begin{theorem}[Overlap concentration along the cavity path]\label{thm:sg-tal:st-cavity-overlaps}
