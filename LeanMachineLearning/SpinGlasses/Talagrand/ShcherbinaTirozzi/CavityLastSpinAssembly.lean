@@ -615,85 +615,8 @@ theorem exists_hasDerivAt_shcherbinaTirozziCavity_abs_le_of_mul_last_sq_le
       Integrable (fun d => ∫ σ : R' → ℝ^(N + 1), Φ d σ
         ∂(Measure.pi fun _ : R' => G_full t d)) P_full := by
     intro R' _ Φ C' m' hΦm hΦb
-    have hC'0 : 0 ≤ C' := nonneg_of_mul_nonneg_left ((abs_nonneg _).trans (hΦb 0 0))
-      (Finset.prod_pos fun _ _ => by positivity)
-    have hmeas : Measurable fun d => ∫ σ : R' → ℝ^(N + 1), Φ d σ
-        ∂(Measure.pi fun _ : R' => G_full t d) :=
-      measurable_integral_pi_tilted_of_sigmaFinite
-        (measurable_cavity_exponent (N := N) (M := M + 1) (κ := κ) (h := h) (r := r.toNNReal)
-          (rBar := rBar) hum t) hΦm
-    have hA_mom : ∃ A₀ : ℝ, 0 ≤ A₀ ∧ ∀ d : Dis,
-        ∫ x : ℝ^(N + 1), (1 + ‖x‖) ^ m' ∂(G_full t d) ≤
-          A₀ * (1 + |d.1| + (∑ k, ∑ i, |d.2.1 k i|) + ∑ i, |d.2.2 i|) ^ m' := by
-      obtain ⟨L_m, hLm0, hLm⟩ := exists_integral_one_add_norm_pow_tilted_le
-        (volume : Measure (ℝ^(N + 1))) hκ0 m'
-      have hCb := one_add_cavity_confinement_le (N := N) (M := M + 1) κ h hrr' u hD0
-      set C_b : ℝ := 1 + |κ| + (2 * |h| + 2) + ((r.toNNReal : ℝ) - rBar) / 2 +
-        ((M + 1 : ℕ) * |u 0| + D)
-      have hCb0 : 0 ≤ C_b := by
-        dsimp only [C_b]
-        have hM1 : (0 : ℝ) ≤ (M + 1 : ℕ) * |u 0| := mul_nonneg (Nat.cast_nonneg _) (abs_nonneg _)
-        linarith [abs_nonneg κ, abs_nonneg h, sub_nonneg.2 hrr', hD0, hM1]
-      refine ⟨L_m * C_b ^ m', by positivity, fun d => ?_⟩
-      set B_d : ℝ := |h| * ∑ i, |d.2.2 i| + |d.1|
-      have hB_d0 : 0 ≤ B_d := add_nonneg (mul_nonneg (abs_nonneg h)
-        (Finset.sum_nonneg fun _ _ => abs_nonneg _)) (abs_nonneg _)
-      set c_d : ℝ := |κ| + B_d + ((r.toNNReal : ℝ) - rBar) / 2 +
-        ∑ k, (|u 0| + D * ∑ i, |d.2.1 k i|)
-      have hc_d0 : 0 ≤ c_d := by
-        have hsum0 : 0 ≤ ∑ k, (|u 0| + D * ∑ i, |d.2.1 k i|) := Finset.sum_nonneg fun k _ =>
-          add_nonneg (abs_nonneg _) (mul_nonneg hD0 (Finset.sum_nonneg fun _ _ => abs_nonneg _))
-        have hrr0 : 0 ≤ (r.toNNReal : ℝ) - rBar := sub_nonneg.2 hrr'
-        dsimp only [c_d]; positivity
-      have h1 := hLm _ (hem d) B_d c_d hB_d0 hc_d0
-        (fun x => by simpa only [zero_add] using hconf d x)
-        (fun x hx => le_neg_shcherbinaTirozziCavityHamiltonian_of_norm_le_one
-          κ h d.1 hrr' ht0.le ht1.le hu1 hD1 d.2.1 d.2.2 hx)
-      refine h1.trans ?_
-      have h2 := pow_le_pow_left₀ (by positivity) (hCb d) m'
-      rw [mul_pow] at h2
-      calc L_m * (1 + B_d + c_d) ^ m'
-          ≤ L_m * (C_b ^ m' * (1 + |d.1| + (∑ k, ∑ i, |d.2.1 k i|) + ∑ i, |d.2.2 i|) ^ m') :=
-            mul_le_mul_of_nonneg_left h2 hLm0
-        _ = (L_m * C_b ^ m') * (1 + |d.1| + (∑ k, ∑ i, |d.2.1 k i|) + ∑ i, |d.2.2 i|) ^ m' := by
-            ring
-    obtain ⟨A₀, hA₀0, hA₀⟩ := hA_mom
-    refine integrable_of_abs_le_cavity_disorder_pow (N := N) (M := M + 1) r.toNNReal hmeas
-      (K := C' * A₀ ^ Fintype.card R') (d := m' * Fintype.card R') fun d => ?_
-    have hprob : IsProbabilityMeasure (G_full t d) := isProbabilityMeasure_tilted
-      (integrable_exp_neg_shcherbinaTirozziCavityHamiltonian hκ0
-        (mul_nonneg (sub_nonneg.2 ht1.le) (sub_nonneg.2 hrr')) hum hu0 d.2.1 d.2.2)
-    have hmom_i : Integrable (fun x : ℝ^(N + 1) => (1 + ‖x‖) ^ m') (G_full t d) :=
-      (memLp_of_poly_bound_of_confining (μ := volume) hκ0 (hem d) (hconf d)
-        (f := fun x : ℝ^(N + 1) => (1 + ‖x‖) ^ m')
-        (by fun_prop : Continuous fun x : ℝ^(N + 1) => (1 + ‖x‖) ^ m').aestronglyMeasurable
-        (C := 1) (m := m') (fun x => by
-          rw [one_mul, Real.norm_of_nonneg (pow_nonneg (by linarith [norm_nonneg x]) _)])
-        1).integrable le_rfl
-    have hpi_i : Integrable (fun σ : R' → ℝ^(N + 1) => C' * ∏ l : R', (1 + ‖σ l‖) ^ m')
-        (Measure.pi fun _ : R' => G_full t d) :=
-      (Integrable.fintype_prod (f := fun _ : R' => fun x : ℝ^(N + 1) => (1 + ‖x‖) ^ m')
-        fun _ => hmom_i).const_mul C'
-    have hΦi : Integrable (fun σ : R' → ℝ^(N + 1) => Φ d σ)
-        (Measure.pi fun _ : R' => G_full t d) :=
-      hpi_i.mono' (hΦm.comp (measurable_prodMk_left (x := d))).aestronglyMeasurable
-        (ae_of_all _ fun σ => (Real.norm_eq_abs _).trans_le (hΦb d σ))
-    calc |∫ σ, Φ d σ ∂(Measure.pi fun _ : R' => G_full t d)|
-        ≤ ∫ σ, |Φ d σ| ∂(Measure.pi fun _ : R' => G_full t d) := abs_integral_le_integral_abs
-      _ ≤ ∫ σ, C' * ∏ l, (1 + ‖σ l‖) ^ m' ∂(Measure.pi fun _ : R' => G_full t d) :=
-          integral_mono hΦi.abs hpi_i fun σ => hΦb d σ
-      _ = C' * (∫ x, (1 + ‖x‖) ^ m' ∂(G_full t d)) ^ Fintype.card R' := by
-          rw [integral_const_mul, integral_fintype_prod_eq_pow (f := fun x : ℝ^(N + 1) =>
-            (1 + ‖x‖) ^ m')]
-      _ ≤ C' * (A₀ * (1 + |d.1| + (∑ k, ∑ i, |d.2.1 k i|) + ∑ i, |d.2.2 i|) ^ m') ^
-            Fintype.card R' :=
-          mul_le_mul_of_nonneg_left
-            (pow_le_pow_left₀ (integral_nonneg fun _ => by positivity) (hA₀ d) _) hC'0
-      _ = C' * A₀ ^ Fintype.card R' *
-            (1 + |d.1| + (∑ k, ∑ i, |d.2.1 k i|) + ∑ i, |d.2.2 i|) ^ (m' * Fintype.card R') := by
-          rw [mul_pow, ← pow_mul]; ring
-  -- Step 2: By constraint symmetry, all `M + 1` summands in `∑ k : Fin (M + 1)` are equal to
-  -- the `Fin.last M` summand
+    exact integrable_integral_pi_shcherbinaTirozziCavity hκ0 r.toNNReal hrr'
+      ⟨ht0.le, ht1.le⟩ hu0 hu1 hD1 hΦb hΦm
   have hswap_V : ∀ k : Fin (M + 1),
       (∫ d, replicaDiff (G_full t d) f (V_k k d) ∂P_full) =
       ∫ d, replicaDiff (G_full t d) f (V_k (Fin.last M) d) ∂P_full := fun k => by

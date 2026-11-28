@@ -1159,46 +1159,62 @@ theorem hasDerivAt_integral_integral_pi_shcherbinaTirozziCavity [LinearOrder R] 
     ring
   rw [hsum_eq, hy_eq, sub_eq_add_neg]
 
-/-- A polynomially bounded replica observable has an integrable cavity Gibbs expectation. -/
-theorem integrable_integral_pi_shcherbinaTirozziCavity {κ h : ℝ} (hκ : 0 < κ)
-    (r : ℝ≥0) {rBar t : ℝ} (hrr : rBar ≤ r) (ht : t ∈ Set.Icc 0 1)
+/-- An integrable bound uniform over the cavity path for polynomially bounded observables. -/
+private theorem exists_integrable_bound_integral_pi_shcherbinaTirozziCavity {κ h : ℝ} (hκ : 0 < κ)
+    (r : ℝ≥0) {rBar : ℝ} (hrr : rBar ≤ r)
     {u : ℝ → ℝ} (hu0 : ∀ x, u x ≤ 0) (hu1 : Differentiable ℝ u)
     {D : ℝ} (hD : ∀ x, |deriv u x| ≤ D)
-    {f : (R → ℝ^(N + 1)) → ℝ} (hf : Measurable f) {C : ℝ} {m : ℕ}
-    (hfb : ∀ σ, |f σ| ≤ C * ∏ l, (1 + ‖σ l‖) ^ m) :
-    let G : Dis → Measure (ℝ^(N + 1)) := fun p =>
+    {f : Dis → (R → ℝ^(N + 1)) → ℝ} {C : ℝ} {m : ℕ}
+    (hfb : ∀ p σ, |f p σ| ≤ C * ∏ l, (1 + ‖σ l‖) ^ m) :
+    let G (s : ℝ) (p : Dis) : Measure (ℝ^(N + 1)) :=
       volume.tilted fun σ =>
-        -shcherbinaTirozziCavityHamiltonian κ h r rBar t p.1 u p.2.1 p.2.2 σ
-    Integrable (fun p : Dis => ∫ σ : R → ℝ^(N + 1), f σ
-      ∂(Measure.pi fun _ : R => G t p)) (law r) := by
+        -shcherbinaTirozziCavityHamiltonian κ h r rBar s p.1 u p.2.1 p.2.2 σ
+    ∃ B : Dis → ℝ, Integrable B (law r) ∧ ∀ t ∈ Set.Icc (0 : ℝ) 1, ∀ p : Dis,
+      ‖∫ σ : R → ℝ^(N + 1), f p σ ∂(Measure.pi fun _ : R => G t p)‖ ≤ B p := by
   intro G
   have hum : Measurable u := hu1.continuous.measurable
-  have hC0 : 0 ≤ C := nonneg_of_mul_nonneg_left ((abs_nonneg _).trans (hfb 0))
+  have hC0 : 0 ≤ C := nonneg_of_mul_nonneg_left ((abs_nonneg _).trans (hfb 0 0))
     (Finset.prod_pos fun _ _ => by positivity)
-  obtain ⟨A0, hA00, hA0⟩ := exists_integral_one_add_norm_pow_cavity_le (N := N) (M := M) (κ := κ)
+  obtain ⟨A0, -, hA0⟩ := exists_integral_one_add_norm_pow_cavity_le (N := N) (M := M) (κ := κ)
     (h := h) (r := r) (rBar := rBar) (u := u) hκ hrr hu1 hu0 hD m
-  have hmeas_out : ∀ t, AEStronglyMeasurable
-      (fun p : Dis => ∫ σ : R → ℝ^(N + 1), f σ ∂(Measure.pi fun _ : R => G t p)) (law r) :=
-    fun t => (measurable_integral_pi_tilted_of_sigmaFinite
-      (measurable_cavity_exponent (κ := κ) (h := h) (r := r) (rBar := rBar) hum t)
-      (hf.comp measurable_snd)).aestronglyMeasurable
   have hdom_out : Integrable (fun p : Dis => C * A0 ^ Fintype.card R *
       size p ^ (m * Fintype.card R)) (law r) :=
     (integrable_cavity_disorder_pow r (m * Fintype.card R)).const_mul _
   have hbound_out : ∀ t ∈ Set.Icc (0 : ℝ) 1, ∀ p : Dis,
-      ‖∫ σ : R → ℝ^(N + 1), f σ ∂(Measure.pi fun _ : R => G t p)‖ ≤
+      ‖∫ σ : R → ℝ^(N + 1), f p σ ∂(Measure.pi fun _ : R => G t p)‖ ≤
         C * A0 ^ Fintype.card R * size p ^ (m * Fintype.card R) := by
     intro t ht p
     rw [Real.norm_eq_abs]
     have h1 := abs_integral_pi_tilted_le_of_confining (μ := volume) hκ
       (measurable_cavity_exponent_apply (κ := κ) (h := h) (r := r) (rBar := rBar) hum t p)
-      (cavity_exponent_le (κ := κ) (h := h) hrr hu0 ht.1 ht.2 p) hfb
+      (cavity_exponent_le (κ := κ) (h := h) hrr hu0 ht.1 ht.2 p) (hfb p)
     refine h1.trans ?_
     have h2 := pow_le_pow_left₀ (integral_nonneg fun _ => by positivity)
       (hA0 t ht.1 ht.2 p) (Fintype.card R)
     rw [mul_pow, ← pow_mul] at h2
     exact (mul_le_mul_of_nonneg_left h2 hC0).trans_eq (by ring)
-  exact hdom_out.mono' (hmeas_out t) (ae_of_all _ (hbound_out t ht))
+  exact ⟨_, hdom_out, hbound_out⟩
+
+/-- A polynomially bounded replica observable has an integrable cavity Gibbs expectation. -/
+theorem integrable_integral_pi_shcherbinaTirozziCavity {κ h : ℝ} (hκ : 0 < κ)
+    (r : ℝ≥0) {rBar : ℝ} (hrr : rBar ≤ r) {t : ℝ} (ht : t ∈ Set.Icc 0 1)
+    {u : ℝ → ℝ} (hu0 : ∀ x, u x ≤ 0) (hu1 : Differentiable ℝ u)
+    {D : ℝ} (hD : ∀ x, |deriv u x| ≤ D)
+    {f : Dis → (R → ℝ^(N + 1)) → ℝ} {C : ℝ} {m : ℕ}
+    (hfb : ∀ p σ, |f p σ| ≤ C * ∏ l, (1 + ‖σ l‖) ^ m)
+    (hf : Measurable fun p : Dis × (R → ℝ^(N + 1)) => f p.1 p.2) :
+    let G (s : ℝ) (p : Dis) : Measure (ℝ^(N + 1)) :=
+      volume.tilted fun σ =>
+        -shcherbinaTirozziCavityHamiltonian κ h r rBar s p.1 u p.2.1 p.2.2 σ
+    Integrable (fun p : Dis => ∫ σ : R → ℝ^(N + 1), f p σ
+      ∂(Measure.pi fun _ : R => G t p)) (law r) := by
+  intro G
+  obtain ⟨B, hBi, hB⟩ :=
+    exists_integrable_bound_integral_pi_shcherbinaTirozziCavity hκ r hrr hu0 hu1 hD hfb
+  have hmeas := measurable_integral_pi_tilted_of_sigmaFinite (μ := volume)
+    (measurable_cavity_exponent (κ := κ) (h := h) (r := r) (rBar := rBar)
+      hu1.continuous.measurable t) hf
+  exact hBi.mono' hmeas.aestronglyMeasurable (ae_of_all _ (hB t ht))
 
 /-- **Continuity on `[0, 1]` of `t ↦ ν_t(f)`** along the cavity path (including both endpoints
 `t = 0` and `t = 1`), for any measurable replica observable `f` of polynomial growth. -/
@@ -1215,34 +1231,17 @@ theorem continuousOn_integral_integral_pi_shcherbinaTirozziCavity {κ h : ℝ} (
   intro t₀ ht₀
   have hum : Measurable u := hu1.continuous.measurable
   have huc : Continuous u := hu1.continuous
-  have hC0 : 0 ≤ C := nonneg_of_mul_nonneg_left ((abs_nonneg _).trans (hfb 0))
-    (Finset.prod_pos fun _ _ => by positivity)
   let G : ℝ → Dis → Measure (ℝ^(N + 1)) := fun t p =>
     (volume : Measure (ℝ^(N + 1))).tilted fun σ =>
       -shcherbinaTirozziCavityHamiltonian κ h r rBar t p.1 u p.2.1 p.2.2 σ
-  obtain ⟨A0, hA00, hA0⟩ := exists_integral_one_add_norm_pow_cavity_le (N := N) (M := M) (κ := κ)
-    (h := h) (r := r) (rBar := rBar) (u := u) hκ hrr hu1 hu0 hD m
   have hmeas_out : ∀ t, AEStronglyMeasurable
       (fun p : Dis => ∫ σ : R → ℝ^(N + 1), f σ ∂(Measure.pi fun _ : R => G t p)) (law r) :=
     fun t => (measurable_integral_pi_tilted_of_sigmaFinite
       (measurable_cavity_exponent (κ := κ) (h := h) (r := r) (rBar := rBar) hum t)
       (hf.comp measurable_snd)).aestronglyMeasurable
-  have hdom_out : Integrable (fun p : Dis => C * A0 ^ Fintype.card R *
-      size p ^ (m * Fintype.card R)) (law r) :=
-    (integrable_cavity_disorder_pow r (m * Fintype.card R)).const_mul _
-  have hbound_out : ∀ t ∈ Set.Icc (0 : ℝ) 1, ∀ p : Dis,
-      ‖∫ σ : R → ℝ^(N + 1), f σ ∂(Measure.pi fun _ : R => G t p)‖ ≤
-        C * A0 ^ Fintype.card R * size p ^ (m * Fintype.card R) := by
-    intro t ht p
-    rw [Real.norm_eq_abs]
-    have h1 := abs_integral_pi_tilted_le_of_confining (μ := volume) hκ
-      (measurable_cavity_exponent_apply (κ := κ) (h := h) (r := r) (rBar := rBar) hum t p)
-      (cavity_exponent_le (κ := κ) (h := h) hrr hu0 ht.1 ht.2 p) hfb
-    refine h1.trans ?_
-    have h2 := pow_le_pow_left₀ (integral_nonneg fun _ => by positivity)
-      (hA0 t ht.1 ht.2 p) (Fintype.card R)
-    rw [mul_pow, ← pow_mul] at h2
-    exact (mul_le_mul_of_nonneg_left h2 hC0).trans_eq (by ring)
+  obtain ⟨B, hdom_out, hbound_out⟩ :=
+    exists_integrable_bound_integral_pi_shcherbinaTirozziCavity (N := N) (M := M)
+      hκ r hrr hu0 hu1 hD (f := fun _ => f) (fun _ => hfb)
   -- Pointwise continuity in `t ∈ [0, 1]` at fixed disorder `p`
   have hpt_cont : ∀ p : Dis, ContinuousWithinAt
       (fun t => ∫ σ : R → ℝ^(N + 1), f σ ∂(Measure.pi fun _ : R => G t p))

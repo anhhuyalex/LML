@@ -959,35 +959,33 @@ private lemma sqrt_integral_integral_sub_sq_le_of_le_div {Ω α : Type*} [Measur
   exact add_le_add (Real.sqrt_le_sqrt (mul_le_mul_of_nonneg_left hvar zero_le_two))
     (mul_le_mul_of_nonneg_left hmean (Real.sqrt_nonneg _))
 
-/-- The mean inner product of independent replicas is the squared norm of the mean spin. -/
-private lemma integral_pi_inner_eq_sum_sq {N : ℕ} (μ : Measure (ℝ^N)) [IsProbabilityMeasure μ]
-    (hi : Integrable (fun σ : ℝ^N => σ) μ) :
-    ∫ p : Fin 2 → ℝ^N, ⟪p 0, p 1⟫ ∂(Measure.pi fun _ : Fin 2 => μ) =
-      ∑ i, (∫ σ : ℝ^N, σ i ∂μ) ^ 2 := by
+/-- The mean inner product of independent replicas is the squared norm of their mean. -/
+private lemma integral_pi_inner_eq_norm_sq {E R : Type*} [NormedAddCommGroup E]
+    [InnerProductSpace ℝ E] [CompleteSpace E] [SecondCountableTopology E]
+    [MeasurableSpace E] [BorelSpace E] [Fintype R] (μ : Measure E) [IsProbabilityMeasure μ]
+    {a b : R} (hab : a ≠ b) (hi : Integrable (fun x : E => x) μ) :
+    ∫ p : R → E, ⟪p a, p b⟫ ∂(Measure.pi fun _ : R => μ) = ‖∫ x, x ∂μ‖ ^ 2 := by
   calc
-    _ = ∫ p : ℝ^N × ℝ^N, ⟪p.1, p.2⟫ ∂(μ.prod μ) :=
-      integral_pi_pair_eq_prod μ (show (0 : Fin 2) ≠ 1 by decide)
-        (fun x y => ⟪x, y⟫) (by fun_prop)
-    _ = ‖∫ σ, σ ∂μ‖ ^ 2 :=
-      (integral_prod_bilin (innerSL ℝ) hi hi).trans (real_inner_self_eq_norm_sq _)
-    _ = _ := by
-      rw [EuclideanSpace.real_norm_sq_eq]
-      refine Finset.sum_congr rfl fun i _ => ?_
-      rw [← (EuclideanSpace.proj (𝕜 := ℝ) i).integral_comp_comm hi]
-      rfl
+    _ = ∫ p : E × E, ⟪p.1, p.2⟫ ∂(μ.prod μ) :=
+      integral_pi_pair_eq_prod μ hab (fun x y => ⟪x, y⟫) (by fun_prop)
+    _ = _ := (integral_prod_bilin (innerSL ℝ) hi hi).trans (real_inner_self_eq_norm_sq _)
 
-/-- A fourth norm moment controls the centered square of a scaled replica inner product. -/
+/-- The coordinate expansion of the squared norm of the mean spin. -/
+private lemma norm_integral_sq_eq_sum_sq {ι : Type*} [Fintype ι]
+    {μ : Measure (EuclideanSpace ℝ ι)} (hi : Integrable (fun x : EuclideanSpace ℝ ι => x) μ) :
+    ‖∫ σ, σ ∂μ‖ ^ 2 = ∑ i, (∫ σ, σ i ∂μ) ^ 2 := by
+  rw [EuclideanSpace.real_norm_sq_eq]
+  refine Finset.sum_congr rfl fun i _ => ?_
+  rw [← (EuclideanSpace.proj (𝕜 := ℝ) i).integral_comp_comm hi]
+  rfl
+
+/-- A second norm moment controls the centered square of a scaled replica inner product. -/
 private lemma integrable_sq_scaled_inner_sub_pi {E : Type*} [NormedAddCommGroup E]
     [InnerProductSpace ℝ E] [MeasurableSpace E] [BorelSpace E] [SecondCountableTopology E]
     (μ : Measure E) [IsProbabilityMeasure μ] (s c : ℝ)
-    (hfour : Integrable (fun x : E => ‖x‖ ^ 4) μ) :
+    (hnorm : Integrable (fun x : E => ‖x‖ ^ 2) μ) :
     Integrable (fun p : Fin 2 → E => (s * ⟪p 0, p 1⟫ - c) ^ 2)
       (Measure.pi fun _ : Fin 2 => μ) := by
-  have hnorm : Integrable (fun x : E => ‖x‖ ^ 2) μ :=
-    ((integrable_const (1 : ℝ)).add hfour).mono'
-      (measurable_norm.pow_const 2).aestronglyMeasurable (ae_of_all _ fun x => by
-        rw [Real.norm_of_nonneg (sq_nonneg _)]
-        nlinarith [sq_nonneg (‖x‖ ^ 2 - 1)])
   have hprod := Integrable.fintype_prod (f := fun _ : Fin 2 => fun x : E => ‖x‖ ^ 2)
     (fun _ => hnorm)
   simp only [Fin.prod_univ_two] at hprod
@@ -1204,9 +1202,11 @@ theorem exists_shcherbinaTirozzi_rsEquations_accuracy (κ₀ h₀ D : ℝ) (hκ�
           have : IsProbabilityMeasure (G d.2) :=
             isProbabilityMeasure_shcherbinaTirozziGibbs hκ0 hum hu0 _ _
           simp only [hG1 d, integral_const_mul]
+          have hi := (memLp_id_shcherbinaTirozziGibbs hκ0 hum hu0 d.2.1 d.2.2).integrable
+            one_le_two
           exact congrArg (((N : ℝ) + 1)⁻¹ * ·)
-            (integral_pi_inner_eq_sum_sq (G d.2)
-              ((memLp_id_shcherbinaTirozziGibbs hκ0 hum hu0 d.2.1 d.2.2).integrable one_le_two))
+            ((integral_pi_inner_eq_norm_sq (G d.2) (show (0 : Fin 2) ≠ 1 by decide) hi).trans
+              (norm_integral_sq_eq_sum_sq hi))
         simp_rw [hpt1]
         exact integral_prod_fun_snd_of_isProbabilityMeasure (gaussianReal 0 r.toNNReal) P
           (fun d => ((N : ℝ) + 1)⁻¹ * ∑ i, (∫ x, x i ∂(G d)) ^ 2)
@@ -1225,7 +1225,8 @@ theorem exists_shcherbinaTirozzi_rsEquations_accuracy (κ₀ h₀ D : ℝ) (hκ�
       have hpi_int : ∀ d : Dis[N, M' + 1], Integrable (fun p : Fin 2 → ℝ^(N + 1) =>
           (((N : ℝ) + 1)⁻¹ * ⟪p 0, p 1⟫ - q_t) ^ 2) (Measure.pi fun _ : Fin 2 => G_full t d) :=
         fun d => integrable_sq_scaled_inner_sub_pi (G_full t d)
-          (((N : ℝ) + 1)⁻¹) q_t (hfour t ⟨ht.1.le, ht.2.le⟩ d)
+          (((N : ℝ) + 1)⁻¹) q_t (integrable_norm_pow_of_le (f := id)
+            aestronglyMeasurable_id (by decide : 2 ≤ 4) (hfour t ⟨ht.1.le, ht.2.le⟩ d))
       exact sqrt_integral_integral_sub_sq_le_of_le_div (P := P_full)
         (G := fun d => Measure.pi fun _ : Fin 2 => G_full t d)
         (X := fun p : Fin 2 → ℝ^(N + 1) => ((N : ℝ) + 1)⁻¹ * ⟪p 0, p 1⟫) hK_c2
@@ -1305,7 +1306,7 @@ theorem exists_shcherbinaTirozzi_rsEquations_accuracy (κ₀ h₀ D : ℝ) (hκ�
       simp_rw [hr_coe]
       have hA0 := integrable_integral_pi_shcherbinaTirozziCavity (R := Fin 1)
         (N := N) (M := M' + 1) hκ0 r.toNNReal (by rwa [hr_coe]) (t := 0)
-        ⟨le_rfl, zero_le_one⟩ hu0 hu1 hD1 hf₁m hf₁b
+        ⟨le_rfl, zero_le_one⟩ hu0 hu1 hD1 (fun _ => hf₁b) (hf₁m.comp measurable_snd)
       have hpt : ∀ d : Dis[N, M' + 1],
           ∫ x : ℝ^(N + 1), x (Fin.last N) ^ 2 ∂(G_full 0 d) =
             ∫ x : Fin 1 → ℝ^(N + 1), f₁ x ∂(Measure.pi fun _ : Fin 1 => G_full 0 d) :=
@@ -1391,7 +1392,7 @@ theorem exists_shcherbinaTirozzi_rsEquations_accuracy (κ₀ h₀ D : ℝ) (hκ�
       simp_rw [hpt]
       have hA0 := integrable_integral_pi_shcherbinaTirozziCavity (R := Fin 2)
         (N := N) (M := M' + 1) hκ0 r.toNNReal (by rwa [hr_coe]) (t := 0)
-        ⟨le_rfl, zero_le_one⟩ hu0 hu1 hD1 hf₂m hf₂b
+        ⟨le_rfl, zero_le_one⟩ hu0 hu1 hD1 (fun _ => hf₂b) (hf₂m.comp measurable_snd)
       have hi := integral_prod _ (hA0.congr (ae_of_all _ hpt))
       simpa only [G_full, P_full, hr_coe] using hi
     rw [hres_q, ← hφ₂_1, ← hφ₂_0]

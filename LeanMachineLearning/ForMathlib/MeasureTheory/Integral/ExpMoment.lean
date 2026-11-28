@@ -172,7 +172,8 @@ theorem integrable_one_add_abs_pow_of_integrable_exp_sq {Ω : Type*} [Measurable
   let A : ℝ := K ^ m * (m.factorial : ℝ)
   have hA : 0 ≤ A := by dsimp [A]; positivity
   refine (h.const_mul (2 ^ (2 * m - 1) * (1 + A))).mono'
-    ((aestronglyMeasurable_const.add hX.abs).pow _) (ae_of_all _ fun x => ?_)
+    ((by fun_prop : Continuous fun x : ℝ => (1 + |x|) ^ (2 * m)).comp_aestronglyMeasurable hX)
+    (ae_of_all _ fun x => ?_)
   have hpow : |X x| ^ (2 * m) ≤ A * Real.exp (X x ^ 2 / K) := by
     have hexp := Real.pow_div_factorial_le_exp (X x ^ 2 / K) (by positivity) m
     rw [div_pow, div_div, div_le_iff₀ (by positivity)] at hexp
