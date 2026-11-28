@@ -571,9 +571,9 @@ theorem integral_shcherbinaTirozziAuxCavity_eq_smoothed {κ h r rBar t y q ρ v 
           E_old σ + u_v (Real.sqrt v * cfield⟨t, g, Fin.last M, σ⟩ +
             Real.sqrt (1 - v) * Real.sqrt q * z)) := by
   intro E_old S_v u_v
-  have hsm := integral_pi_shcherbinaTirozziAuxCavity_eq_smoothed (R := Unit) (y := y) (q := q)
-    (ρ := ρ) (v := v) (z := z) hκ hq_t hu hu0 g g₀ (f := fun a => f (a ()))
-    (hf.comp (measurable_pi_apply ()))
+  have hsm := integral_pi_shcherbinaTirozziAuxCavity_eq_smoothed (R := Unit) (κ := κ) (h := h)
+    (r := r) (rBar := rBar) (t := t) (y := y) (q := q) (ρ := ρ) (v := v) (z := z) hκ hq_t hu hu0
+    g g₀ (f := fun a => f (a ())) (hf.comp (measurable_pi_apply ()))
   have h1 := (measurePreserving_funUnique
     (((volume : Measure (ℝ^(N + 1))).prod (gaussianReal 0 1)).tilted
       fun p => E_old p.1 + u (S_v p)) Unit).integral_comp
