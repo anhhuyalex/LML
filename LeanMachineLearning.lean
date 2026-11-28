@@ -185,6 +185,7 @@ public import LeanMachineLearning.ForMathlib.Probability.GibbsIBPLinear
 public import LeanMachineLearning.ForMathlib.Probability.GibbsIBPPotential
 public import LeanMachineLearning.ForMathlib.Probability.GibbsLogPartition
 public import LeanMachineLearning.ForMathlib.Probability.GibbsLogPartitionCavity
+public import LeanMachineLearning.ForMathlib.Probability.GibbsLogPartitionConfined
 public import LeanMachineLearning.ForMathlib.Probability.GibbsProductSplit
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaCavity
 public import LeanMachineLearning.ForMathlib.Probability.GibbsReplicaComparison

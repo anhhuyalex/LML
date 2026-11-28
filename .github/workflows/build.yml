@@ -46,6 +46,8 @@ jobs:
     # Upstream pins this runner to avoid documentation builds exhausting memory.
     runs-on: ubuntu-24.04
     name: Build project
+    outputs:
+      pages-current: ${{ steps.pages-source.outputs.current }}
     steps:
       - name: Cleanup to free disk space
         uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.0
@@ -266,7 +268,25 @@ jobs:
         with:
           path: home_page/
 
+  # A separate job for two reasons. A just-uploaded artifact is not always listed at once:
+  # deploying in the same second as the upload has failed with "No artifacts named
+  # "github-pages" were found" although the artifact existed. And a failed deployment can be
+  # re-run on its own (within the artifact's one-day retention) without repeating the build.
+  deploy_pages:
+    needs: build_project
+    if: needs.build_project.outputs.pages-current == 'true'
+    runs-on: ubuntu-latest
+    name: Deploy to GitHub Pages
+    steps:
       - name: Deploy to GitHub Pages
-        if: steps.pages-source.outputs.current == 'true'
         id: deployment
+        continue-on-error: true
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
+
+      - name: Wait before retrying the deployment
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 60
+
+      - name: Retry the deployment
+        if: steps.deployment.outcome == 'failure'
         uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
