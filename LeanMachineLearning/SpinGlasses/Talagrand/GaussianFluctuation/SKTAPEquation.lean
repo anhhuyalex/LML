@@ -78,7 +78,7 @@ theorem integrable_pow_tap_field {Ω₀ : Type*} [MeasurableSpace Ω₀] (P : Me
     (F m : Ω₀ × (Fin N → ℝ) → Fin N → ℝ) (s : Ω₀ × (Fin N → ℝ) → ℝ)
     (hF : ∀ i, Measurable fun w => F w i) (hm : ∀ i, Measurable fun w => m w i)
     (hs : Measurable s) (hF1 : ∀ w i, |F w i| ≤ 1) (hm1 : ∀ w i, |m w i| ≤ 1)
-    (hs1 : ∀ w, |s w| ≤ 1) {k : ℕ} (hk : 1 ≤ k) :
+    (hs1 : ∀ w, |s w| ≤ 1) {k : ℕ} :
     Integrable (fun w : Ω₀ × (Fin N → ℝ) =>
       ((Real.sqrt N)⁻¹ * ∑ i, w.2 i * F w i - b * s w - (Real.sqrt N)⁻¹ * ∑ i, w.2 i * m w i) ^
         (2 * k)) (P.prod (Measure.pi fun _ : Fin N => gaussianReal 0 1)) := by
@@ -87,7 +87,9 @@ theorem integrable_pow_tap_field {Ω₀ : Type*} [MeasurableSpace Ω₀] (P : Me
       (2 * (Real.sqrt N)⁻¹ * ∑ i, |w.2 i| + 1) ^ (2 * k)) (P.prod Q) :=
     (measurePreserving_snd (μ := P) (ν := Q)).integrable_comp_of_integrable
       ((integrable_const_add_mul_sum_abs_pow_pi_gaussianReal (ι := Fin N) 1
-        (2 * (Real.sqrt N)⁻¹) (2 * k)).congr (ae_of_all _ fun y => by rw [add_comm]))
+        (2 * (Real.sqrt N)⁻¹) (2 * k)).congr (ae_of_all _ fun y =>
+          show (1 + 2 * (Real.sqrt N)⁻¹ * ∑ i, |y i|) ^ (2 * k) =
+            (2 * (Real.sqrt N)⁻¹ * ∑ i, |y i| + 1) ^ (2 * k) by rw [add_comm]))
   have hpos : 0 ≤ (Real.sqrt N)⁻¹ := inv_nonneg.mpr (Real.sqrt_nonneg _)
   have hmeas : Measurable fun w : Ω₀ × (Fin N → ℝ) =>
       (Real.sqrt N)⁻¹ * ∑ i, w.2 i * F w i - b * s w - (Real.sqrt N)⁻¹ * ∑ i, w.2 i * m w i := by
@@ -203,7 +205,7 @@ theorem sk_tap_equation (β₀ : ℝ) (hβ₀ : 0 ≤ β₀) (hβ₀' : 4 * β�
   let Df : (FinPairs N → ℝ) × (Fin N → ℝ) → ℝ := fun w =>
     sW w - Real.tanh (c * ∑ i, w.2 i * FW w i + h - β ^ 2 * (1 - q) * sW w)
   have hX_int : Integrable (fun w => Xf w ^ (2 * k)) (P.prod Q) :=
-    integrable_pow_tap_field P hN (bm * (1 - qm)) hb1 FW mW sW hFW hmW hsW hF1 hm1 hs1' hk
+    integrable_pow_tap_field P hN (bm * (1 - qm)) hb1 FW mW sW hFW hmW hsW hF1 hm1 hs1'
   have hX_le : ∫ w, Xf w ^ (2 * k) ∂(P.prod Q) ≤ K2 / (N : ℝ) ^ k := by
     rw [integral_prod _ hX_int]; exact hKX
   have hUmeas : Measurable Uf := by
