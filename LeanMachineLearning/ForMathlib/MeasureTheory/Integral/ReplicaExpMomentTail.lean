@@ -5,6 +5,8 @@ Authors: LML Contributors
 -/
 module
 
+import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.ExpMoment
+
 public import Mathlib.MeasureTheory.Integral.Pi
 public import Mathlib.MeasureTheory.Integral.Prod
 public import Mathlib.Analysis.Complex.Exponential
@@ -103,12 +105,8 @@ theorem integral_integral_pi_tail_and_pow_le_of_exp_moment {Ω α R : Type*} [Me
   have hpow8 : ∀ x : ℝ, 0 ≤ x →
       (x / n) ^ 8 ≤ 2 ^ 7 * (L ^ 8 + 8 ^ 8 * Real.exp (-(L * n)) * Real.exp x) := by
     intro x hx
-    have hexp8 : ∀ y : ℝ, 0 ≤ y → y ^ 8 ≤ 8 ^ 8 * Real.exp y := fun y hy => by
-      have h1 : (y / 8) ^ 8 ≤ Real.exp (y / 8) ^ 8 :=
-        pow_le_pow_left₀ (by positivity) (by linarith [Real.add_one_le_exp (y / 8)]) 8
-      rw [← Real.exp_nat_mul, show ((8 : ℕ) : ℝ) * (y / 8) = y by push_cast; ring, div_pow,
-        div_le_iff₀' (by positivity)] at h1
-      exact h1
+    have hexp8 (y : ℝ) (hy : 0 ≤ y) : y ^ 8 ≤ 8 ^ 8 * Real.exp y := by
+      simpa using Real.pow_le_natCast_pow_mul_exp hy 8
     set m : ℝ := max (x - L * n) 0 with hm
     have hm8 : m ^ 8 ≤ 8 ^ 8 * (Real.exp (-(L * n)) * Real.exp x) := by
       rw [← Real.exp_add, neg_add_eq_sub]

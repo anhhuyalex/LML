@@ -5,6 +5,8 @@ Authors: LML Contributors
 -/
 module
 
+import Mathlib.Analysis.MeanInequalities
+
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.CavityLastSpinAssembly
 
 /-!
@@ -61,46 +63,17 @@ local notation "cfield[" N ", " t ", " g ", " k ", " σ "]" =>
 /-- Elementary 4-factor AM-GM bound: `(a * b * c * d)² ≤ (a⁸ + b⁸ + c⁸ + d⁸) / 4`. -/
 private lemma mul_four_sq_le_sum_pow_eight (a b c d : ℝ) :
     (a * b * c * d) ^ 2 ≤ (a ^ 8 + b ^ 8 + c ^ 8 + d ^ 8) / 4 := by
-  have h1 : (a * b) ^ 2 ≤ (a ^ 4 + b ^ 4) / 2 := by
-    rw [mul_pow, le_div_iff₀ two_pos]
-    have hsq := sq_nonneg (a ^ 2 - b ^ 2)
-    have hid : (a ^ 2 - b ^ 2) ^ 2 = a ^ 4 + b ^ 4 - 2 * (a ^ 2 * b ^ 2) := by ring
-    linarith only [hsq, hid]
-  have h2 : (c * d) ^ 2 ≤ (c ^ 4 + d ^ 4) / 2 := by
-    rw [mul_pow, le_div_iff₀ two_pos]
-    have hsq := sq_nonneg (c ^ 2 - d ^ 2)
-    have hid : (c ^ 2 - d ^ 2) ^ 2 = c ^ 4 + d ^ 4 - 2 * (c ^ 2 * d ^ 2) := by ring
-    linarith only [hsq, hid]
-  have h3 : (a ^ 4 + b ^ 4) * (c ^ 4 + d ^ 4) ≤
-      ((a ^ 4 + b ^ 4) ^ 2 + (c ^ 4 + d ^ 4) ^ 2) / 2 := by
-    rw [le_div_iff₀ two_pos]
-    have hsq := sq_nonneg ((a ^ 4 + b ^ 4) - (c ^ 4 + d ^ 4))
-    have hid : ((a ^ 4 + b ^ 4) - (c ^ 4 + d ^ 4)) ^ 2 =
-        (a ^ 4 + b ^ 4) ^ 2 + (c ^ 4 + d ^ 4) ^ 2 - 2 * ((a ^ 4 + b ^ 4) * (c ^ 4 + d ^ 4)) := by
-      ring
-    linarith only [hsq, hid]
-  have h4 : (a ^ 4 + b ^ 4) ^ 2 ≤ 2 * (a ^ 8 + b ^ 8) := by
-    have hsq := sq_nonneg (a ^ 4 - b ^ 4)
-    have hid : (a ^ 4 - b ^ 4) ^ 2 = a ^ 8 + b ^ 8 - 2 * (a ^ 4 * b ^ 4) := by ring
-    have hid2 : (a ^ 4 + b ^ 4) ^ 2 = a ^ 8 + b ^ 8 + 2 * (a ^ 4 * b ^ 4) := by ring
-    linarith only [hsq, hid, hid2]
-  have h5 : (c ^ 4 + d ^ 4) ^ 2 ≤ 2 * (c ^ 8 + d ^ 8) := by
-    have hsq := sq_nonneg (c ^ 4 - d ^ 4)
-    have hid : (c ^ 4 - d ^ 4) ^ 2 = c ^ 8 + d ^ 8 - 2 * (c ^ 4 * d ^ 4) := by ring
-    have hid2 : (c ^ 4 + d ^ 4) ^ 2 = c ^ 8 + d ^ 8 + 2 * (c ^ 4 * d ^ 4) := by ring
-    linarith only [hsq, hid, hid2]
-  have hprod : (a * b * c * d) ^ 2 = (a * b) ^ 2 * (c * d) ^ 2 := by ring
-  rw [hprod]
-  calc (a * b) ^ 2 * (c * d) ^ 2
-      ≤ ((a ^ 4 + b ^ 4) / 2) * ((c ^ 4 + d ^ 4) / 2) :=
-        mul_le_mul h1 h2 (sq_nonneg _) (by positivity)
-    _ = ((a ^ 4 + b ^ 4) * (c ^ 4 + d ^ 4)) / 4 := by ring
-    _ ≤ (((a ^ 4 + b ^ 4) ^ 2 + (c ^ 4 + d ^ 4) ^ 2) / 2) / 4 :=
-        div_le_div_of_nonneg_right h3 (by norm_num)
-    _ ≤ ((2 * (a ^ 8 + b ^ 8) + 2 * (c ^ 8 + d ^ 8)) / 2) / 4 :=
-        div_le_div_of_nonneg_right (div_le_div_of_nonneg_right (add_le_add h4 h5) two_pos.le)
-          (by norm_num)
-    _ = (a ^ 8 + b ^ 8 + c ^ 8 + d ^ 8) / 4 := by ring
+  have hp (x : ℝ) : (x ^ 8) ^ (1 / 4 : ℝ) = x ^ 2 := by
+    have habs : |x| ^ 8 = x ^ 8 := (even_two_mul 4).pow_abs x
+    rw [← habs, ← Real.rpow_natCast_mul (abs_nonneg _),
+      show ((8 : ℕ) : ℝ) * (1 / 4) = 2 by norm_num, Real.rpow_two, sq_abs]
+  have h := Real.geom_mean_le_arith_mean4_weighted
+    (w₁ := 1 / 4) (w₂ := 1 / 4) (w₃ := 1 / 4) (w₄ := 1 / 4)
+    (by norm_num) (by norm_num) (by norm_num) (by norm_num)
+    (show 0 ≤ a ^ 8 by positivity) (show 0 ≤ b ^ 8 by positivity)
+    (show 0 ≤ c ^ 8 by positivity) (show 0 ≤ d ^ 8 by positivity) (by norm_num)
+  simp only [hp] at h
+  convert h using 1 <;> ring
 
 /-- Under `ν_{t,s}`, the second moment of any 4-fold product of last spins
 `ε_{i₁} ε_{i₂} ε_{i₃} ε_{i₄}` is uniformly bounded by `24 * K_last ^ 5` via Eq. (3.100). -/

@@ -25,8 +25,7 @@ This file proves:
    |ρ - (1 / a + (r + h²) / a²)| ≤ K / √(N + 1),
    |q - (r + h²) / a²| ≤ K / √(N + 1),
    ```
-   where `a = 2 κ + r - r̄` and `(r, r̄)` are the RS parameters (3.69) at `α = (M + 1) / (N + 1)`
-   (for `M + 1` constraints with `M ≤ 10 (N + 1)`).
+   where `a = 2 κ + r - r̄` and `(r, r̄)` are the RS parameters (3.69) at `α = M / (N + 1)`.
 
 ## Main declarations
 
@@ -567,9 +566,8 @@ private theorem exists_hasDerivAt_shcherbinaTirozziCavity_abs_le_of_sub_const_sq
             (|D| + |D| ^ 2) * σ (Fin.last N) ^ 2 := fun σ => by
         rw [abs_mul, abs_of_nonneg (sq_nonneg (σ (Fin.last N)))]
         refine mul_le_mul_of_nonneg_right ?_ (sq_nonneg _)
-        refine (abs_add_le _ _).trans (add_le_add ((hD2 _).trans (le_abs_self _)) ?_)
-        rw [abs_pow]
-        exact pow_le_pow_left₀ (abs_nonneg _) ((hD1 _).trans (le_abs_self _)) 2
+        exact abs_deriv_deriv_add_sq_deriv_le
+          (fun x => (hD1 x).trans (le_abs_self D)) (fun x => (hD2 x).trans (le_abs_self D)) _
       exact (abs_replicaDiff_le_of_le_mul_sq hfc_m hgm (by positivity) hgb (hfc2_d d)
         (hε4_d d)).trans_eq (by ring)
     refine abs_integral_le_integral_abs.trans ((integral_mono (hIV k).abs
@@ -945,6 +943,61 @@ private lemma sqrt_integral_integral_sub_sq_le {Ω α : Type*} [MeasurableSpace 
     _ = Real.sqrt (2 * ∫ d, ∫ x, (X x - c_t) ^ 2 ∂(G d) ∂P) + Real.sqrt 2 * |c_t - c| := by
         congr 1; rw [Real.sqrt_mul zero_le_two, Real.sqrt_sq_eq_abs]
 
+/-- Recenter a second-moment bound when the displacement is bounded at the same scale. -/
+private lemma sqrt_integral_integral_sub_sq_le_of_le_div {Ω α : Type*} [MeasurableSpace Ω]
+    [MeasurableSpace α] {P : Measure Ω} [IsProbabilityMeasure P] {G : Ω → Measure α}
+    [∀ d, IsProbabilityMeasure (G d)] {X : α → ℝ} {c c_t n A B : ℝ}
+    (hA : 0 ≤ A) (hXm : Measurable X)
+    (hX_int : ∀ d, Integrable (fun x => (X x - c_t) ^ 2) (G d))
+    (h_int : Integrable (fun d => ∫ x, (X x - c_t) ^ 2 ∂(G d)) P)
+    (hvar : ∫ d, ∫ x, (X x - c_t) ^ 2 ∂(G d) ∂P ≤ A / n)
+    (hmean : |c_t - c| ≤ B / Real.sqrt n) :
+    Real.sqrt (∫ d, ∫ x, (X x - c) ^ 2 ∂(G d) ∂P) ≤
+      (Real.sqrt (2 * A) + Real.sqrt 2 * B) / Real.sqrt n := by
+  refine (sqrt_integral_integral_sub_sq_le hXm hX_int h_int).trans ?_
+  rw [add_div, ← Real.sqrt_div (mul_nonneg zero_le_two hA), mul_div_assoc, mul_div_assoc]
+  exact add_le_add (Real.sqrt_le_sqrt (mul_le_mul_of_nonneg_left hvar zero_le_two))
+    (mul_le_mul_of_nonneg_left hmean (Real.sqrt_nonneg _))
+
+/-- The mean inner product of independent replicas is the squared norm of the mean spin. -/
+private lemma integral_pi_inner_eq_sum_sq {N : ℕ} (μ : Measure (ℝ^N)) [IsProbabilityMeasure μ]
+    (hi : Integrable (fun σ : ℝ^N => σ) μ) :
+    ∫ p : Fin 2 → ℝ^N, ⟪p 0, p 1⟫ ∂(Measure.pi fun _ : Fin 2 => μ) =
+      ∑ i, (∫ σ : ℝ^N, σ i ∂μ) ^ 2 := by
+  calc
+    _ = ∫ p : ℝ^N × ℝ^N, ⟪p.1, p.2⟫ ∂(μ.prod μ) :=
+      integral_pi_pair_eq_prod μ (show (0 : Fin 2) ≠ 1 by decide)
+        (fun x y => ⟪x, y⟫) (by fun_prop)
+    _ = ‖∫ σ, σ ∂μ‖ ^ 2 :=
+      (integral_prod_bilin (innerSL ℝ) hi hi).trans (real_inner_self_eq_norm_sq _)
+    _ = _ := by
+      rw [EuclideanSpace.real_norm_sq_eq]
+      refine Finset.sum_congr rfl fun i _ => ?_
+      rw [← (EuclideanSpace.proj (𝕜 := ℝ) i).integral_comp_comm hi]
+      rfl
+
+/-- A fourth norm moment controls the centered square of a scaled replica inner product. -/
+private lemma integrable_sq_scaled_inner_sub_pi {E : Type*} [NormedAddCommGroup E]
+    [InnerProductSpace ℝ E] [MeasurableSpace E] [BorelSpace E] [SecondCountableTopology E]
+    (μ : Measure E) [IsProbabilityMeasure μ] (s c : ℝ)
+    (hfour : Integrable (fun x : E => ‖x‖ ^ 4) μ) :
+    Integrable (fun p : Fin 2 → E => (s * ⟪p 0, p 1⟫ - c) ^ 2)
+      (Measure.pi fun _ : Fin 2 => μ) := by
+  have hnorm : Integrable (fun x : E => ‖x‖ ^ 2) μ :=
+    ((integrable_const (1 : ℝ)).add hfour).mono'
+      (measurable_norm.pow_const 2).aestronglyMeasurable (ae_of_all _ fun x => by
+        rw [Real.norm_of_nonneg (sq_nonneg _)]
+        nlinarith [sq_nonneg (‖x‖ ^ 2 - 1)])
+  have hprod := Integrable.fintype_prod (f := fun _ : Fin 2 => fun x : E => ‖x‖ ^ 2)
+    (fun _ => hnorm)
+  simp only [Fin.prod_univ_two] at hprod
+  refine integrable_sub_pow_of_integrable_abs_pow
+    (((measurable_pi_apply (0 : Fin 2)).inner (measurable_pi_apply (1 : Fin 2))).const_mul _)
+    (c := 0) ((hprod.const_mul (s ^ 2)).mono' (by fun_prop) (ae_of_all _ fun p => ?_)) c
+  rw [sub_zero, Real.norm_of_nonneg (sq_nonneg _), abs_mul, mul_pow, ← mul_pow]
+  exact mul_le_mul_of_nonneg_left
+    (pow_le_pow_left₀ (abs_nonneg _) (abs_real_inner_le_norm _ _) 2) (sq_nonneg _)
+
 /-- **Talagrand, Proposition 3.2.12 (Eq. (3.115)):** at the physical parameters `(q, ρ, r, r̄)`
 for the Shcherbina--Tirozzi model on `ℝ^(N+1)` with `M` constraints (`M ≤ 10 (N + 1)`,
 `4 ≤ N + 1`), the replica-symmetric equations (3.69), (3.74), (3.75) hold with accuracy
@@ -1063,6 +1116,29 @@ theorem exists_shcherbinaTirozzi_rsEquations_accuracy (κ₀ h₀ D : ℝ) (hκ�
   set G_full : ℝ → Dis[N, M' + 1] → Measure (ℝ^(N + 1)) := fun s d =>
     volume.tilted fun σ =>
       -shcherbinaTirozziCavityHamiltonian κ h r.toNNReal rBar s d.1 u d.2.1 d.2.2 σ
+  have hprob : ∀ s ∈ Icc (0 : ℝ) 1, ∀ d : Dis[N, M' + 1],
+      IsProbabilityMeasure (G_full s d) := fun s hs d =>
+    isProbabilityMeasure_tilted
+      (integrable_exp_neg_shcherbinaTirozziCavityHamiltonian hκ0
+        (mul_nonneg (sub_nonneg.2 hs.2) (sub_nonneg.2 (by rwa [hr_coe]))) hum hu0 d.2.1 d.2.2)
+  have hfour (s : ℝ) (hs : s ∈ Icc (0 : ℝ) 1) (d : Dis[N, M' + 1]) :
+      Integrable (fun x : ℝ^(N + 1) => ‖x‖ ^ 4) (G_full s d) :=
+    (memLp_of_poly_bound_of_confining hκ0
+      (measurable_shcherbinaTirozziCavityHamiltonian_apply κ h r.toNNReal rBar s d.1 hum
+        d.2.1 d.2.2).neg
+      (fun σ => by
+        rw [zero_add]
+        exact neg_shcherbinaTirozziCavityHamiltonian_le κ h d.1
+          (by rwa [hr_coe]) hs.1 hs.2 hu0 d.2.1 d.2.2 σ)
+      (measurable_norm.pow_const 4).aestronglyMeasurable (C := 1) (m := 4) (fun x => by
+        rw [one_mul, Real.norm_of_nonneg (by positivity)]
+        exact pow_le_pow_left₀ (norm_nonneg _) (le_add_of_nonneg_left zero_le_one) 4)
+      1).integrable le_rfl
+  have hG1 : ∀ d : Dis[N, M' + 1], G_full 1 d = G d.2 := fun d => by
+    dsimp only [G_full, G]
+    congr 1
+    funext σ
+    rw [shcherbinaTirozziCavityHamiltonian_one]
   -- Shared bound on the error term `Err(t)` for every `t ∈ (0, 1)`
   have hErr_bd : ∀ t ∈ Ioo (0 : ℝ) 1,
       Real.sqrt (∫ d, ∫ p : Fin 2 → ℝ^(N + 1),
@@ -1072,10 +1148,7 @@ theorem exists_shcherbinaTirozzi_rsEquations_accuracy (κ₀ h₀ D : ℝ) (hκ�
           (((N : ℝ) + 1)⁻¹ * ‖x‖ ^ 2 - ρ) ^ 2 ∂(G_full t d) ∂P_full) +
         ((N : ℝ) + 1)⁻¹ ≤ E_c / Real.sqrt ((N : ℝ) + 1) := by
     intro t ht
-    have hprob_t : ∀ d : Dis[N, M' + 1], IsProbabilityMeasure (G_full t d) := fun d =>
-      isProbabilityMeasure_tilted
-        (integrable_exp_neg_shcherbinaTirozziCavityHamiltonian hκ0
-          (mul_nonneg (sub_nonneg.2 ht.2.le) (sub_nonneg.2 (by rwa [hr_coe]))) hum hu0 d.2.1 d.2.2)
+    letI : ∀ d, IsProbabilityMeasure (G_full t d) := hprob t ⟨ht.1.le, ht.2.le⟩
     have hN0 : (0 : ℝ) < (N : ℝ) + 1 := by positivity
     -- 1. Self-overlap error `√(ν_t((R_{1,1} - ρ)²))`
     have h_self : Real.sqrt (∫ d, ∫ x : ℝ^(N + 1),
@@ -1087,70 +1160,25 @@ theorem exists_shcherbinaTirozzi_rsEquations_accuracy (κ₀ h₀ D : ℝ) (hκ�
       simp only [mul_one, Nat.cast_one, pow_one] at hc_i hc_le
       set ρ_t : ℝ := ∫ e, ∫ τ : ℝ^(N + 1), ((N : ℝ) + 1)⁻¹ * ‖τ‖ ^ 2 ∂(G_full t e) ∂P_full
       have hρ1_eq : ∫ e, ∫ τ : ℝ^(N + 1), ((N : ℝ) + 1)⁻¹ * ‖τ‖ ^ 2 ∂(G_full 1 e) ∂P_full = ρ := by
-        have hG1 : ∀ d : Dis[N, M' + 1], G_full 1 d = G d.2 := fun d => by
-          dsimp only [G_full, G]
-          congr 1; funext σ
-          rw [shcherbinaTirozziCavityHamiltonian_one]
         simp_rw [hG1]
-        have hmp_snd : MeasurePreserving Prod.snd P_full P :=
-          measurePreserving_snd (μ := gaussianReal 0 r.toNNReal) (ν := P)
-        have hRm : Measurable fun d : (Fin (M' + 1) → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ) =>
-            ∫ τ : ℝ^(N + 1), ((N : ℝ) + 1)⁻¹ * ‖τ‖ ^ 2 ∂(G d) :=
-          measurable_integral_tilted
-            (e := fun (d : (Fin (M' + 1) → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) σ =>
-              -shcherbinaTirozziHamiltonian κ h u d.1 d.2 σ)
-            (measurable_shcherbinaTirozziHamiltonian κ h hum).neg
-            ((measurable_norm.pow_const 2).const_mul _)
-        exact (integral_map hmp_snd.measurable.aemeasurable
-          (by rw [hmp_snd.map_eq]; exact hRm.aestronglyMeasurable)).symm.trans
-          (by rw [hmp_snd.map_eq])
+        exact integral_prod_fun_snd_of_isProbabilityMeasure (gaussianReal 0 r.toNNReal) P
+          (fun d => ∫ x : ℝ^(N + 1), ((N : ℝ) + 1)⁻¹ * ‖x‖ ^ 2 ∂(G d))
       have hdiff1 : |ρ_t - ρ| ≤ K_l1 / Real.sqrt ((N : ℝ) + 1) := by
         rw [← hρ1_eq]
         exact hlem1 N (M' + 1) κ h t rBar r.toNNReal u hκ hh ht.1.le ht.2.le
           (by rwa [hr_coe]) (by rwa [hr_coe]) (by rwa [hr_coe]) hM hN4 huc hu0 hgrow hu1 hu2 hD1
           hD2
-      have hX_int : ∀ d : Dis[N, M' + 1], Integrable (fun x : ℝ^(N + 1) =>
-          (((N : ℝ) + 1)⁻¹ * ‖x‖ ^ 2 - ρ_t) ^ 2) (G_full t d) := fun d =>
-        (memLp_of_poly_bound_of_confining hκ0
-          (measurable_shcherbinaTirozziCavityHamiltonian_apply κ h r.toNNReal rBar t d.1 hum
-            d.2.1 d.2.2).neg
-          (fun σ => by
-            rw [zero_add]
-            exact neg_shcherbinaTirozziCavityHamiltonian_le κ h d.1 (by rwa [hr_coe]) ht.1.le
-              ht.2.le hu0 d.2.1 d.2.2 σ)
-          ((((measurable_norm.pow_const 2).const_mul _).sub_const ρ_t).pow_const
-            2).aestronglyMeasurable
-          (C := (((N : ℝ) + 1)⁻¹ + |ρ_t|) ^ 2) (m := 4) (fun σ => by
-            rw [Real.norm_of_nonneg (sq_nonneg _), ← sq_abs]
-            have h1 : |((N : ℝ) + 1)⁻¹ * ‖σ‖ ^ 2 - ρ_t| ≤
-                (((N : ℝ) + 1)⁻¹ + |ρ_t|) * (1 + ‖σ‖) ^ 2 := by
-              have hsq : ‖σ‖ ^ 2 ≤ (1 + ‖σ‖) ^ 2 :=
-                pow_le_pow_left₀ (norm_nonneg _) (le_add_of_nonneg_left zero_le_one) 2
-              have h1' : (1 : ℝ) ≤ (1 + ‖σ‖) ^ 2 :=
-                one_le_pow₀ (le_add_of_nonneg_right (norm_nonneg _))
-              refine (abs_sub _ _).trans ?_
-              rw [abs_of_nonneg (by positivity)]
-              nlinarith [mul_le_mul_of_nonneg_left hsq (inv_nonneg.2 hN0.le),
-                le_mul_of_one_le_right (abs_nonneg ρ_t) h1']
-            refine (pow_le_pow_left₀ (abs_nonneg _) h1 2).trans_eq ?_
-            rw [mul_pow, ← pow_mul]) 1).integrable le_rfl
-      have htri := sqrt_integral_integral_sub_sq_le (P := P_full) (G := G_full t)
-        (X := fun x : ℝ^(N + 1) => ((N : ℝ) + 1)⁻¹ * ‖x‖ ^ 2) (c := ρ) (c_t := ρ_t)
-        ((measurable_norm.pow_const 2).const_mul _) hX_int hc_i
-      refine htri.trans ?_
-      have h1 : Real.sqrt (2 * ∫ d, ∫ x : ℝ^(N + 1), (((N : ℝ) + 1)⁻¹ * ‖x‖ ^ 2 - ρ_t) ^ 2
-            ∂(G_full t d) ∂P_full) ≤ Real.sqrt (2 * K_c1) / Real.sqrt ((N : ℝ) + 1) := by
-        calc Real.sqrt (2 * ∫ d, ∫ x : ℝ^(N + 1), (((N : ℝ) + 1)⁻¹ * ‖x‖ ^ 2 - ρ_t) ^ 2
-              ∂(G_full t d) ∂P_full)
-            ≤ Real.sqrt (2 * (K_c1 / ((N : ℝ) + 1))) :=
-              Real.sqrt_le_sqrt (mul_le_mul_of_nonneg_left hc_le zero_le_two)
-          _ = Real.sqrt (2 * K_c1) / Real.sqrt ((N : ℝ) + 1) := by
-              rw [← mul_div_assoc, Real.sqrt_div (by positivity)]
-      have h2 : Real.sqrt 2 * |ρ_t - ρ| ≤ Real.sqrt 2 * K_l1 / Real.sqrt ((N : ℝ) + 1) := by
-        rw [mul_div_assoc]
-        exact mul_le_mul_of_nonneg_left hdiff1 (Real.sqrt_nonneg _)
-      rw [add_div]
-      exact add_le_add h1 h2
+      have hX_int (d : Dis[N, M' + 1]) : Integrable (fun x : ℝ^(N + 1) =>
+          (((N : ℝ) + 1)⁻¹ * ‖x‖ ^ 2 - ρ_t) ^ 2) (G_full t d) :=
+        integrable_sub_pow_of_integrable_abs_pow
+          ((measurable_norm.pow_const 2).const_mul _)
+          (c := 0)
+          (by simpa only [sub_zero, abs_mul, abs_of_nonneg (sq_nonneg _), mul_pow, ← pow_mul] using
+              (hfour t ⟨ht.1.le, ht.2.le⟩ d).const_mul (|((N : ℝ) + 1)⁻¹| ^ 2))
+          ρ_t
+      exact sqrt_integral_integral_sub_sq_le_of_le_div (P := P_full) (G := G_full t)
+        (X := fun x : ℝ^(N + 1) => ((N : ℝ) + 1)⁻¹ * ‖x‖ ^ 2) hK_c1
+        ((measurable_norm.pow_const 2).const_mul _) hX_int hc_i hc_le hdiff1
     -- 2. Overlap error `√(ν_t((R_{1,2} - q)²))`
     have h_ov : Real.sqrt (∫ d, ∫ p : Fin 2 → ℝ^(N + 1),
           (((N : ℝ) + 1)⁻¹ * ⟪p 0, p 1⟫ - q) ^ 2
@@ -1160,134 +1188,50 @@ theorem exists_shcherbinaTirozzi_rsEquations_accuracy (κ₀ h₀ D : ℝ) (hκ�
         (by rwa [hr_coe]) (by rwa [hr_coe]) (by rwa [hr_coe]) hM (by omega) huc hu0 hgrow hu1 hD1
         hD_lip
       simp only [mul_one, Nat.cast_one, pow_one] at hc_i hc_le
-      have hmp2 : ∀ (s : ℝ), s ∈ Icc (0 : ℝ) 1 → ∀ d : Dis[N, M' + 1],
-          MeasurePreserving (fun p : Fin 2 → ℝ^(N + 1) => (p 0, p 1))
-            (Measure.pi fun _ : Fin 2 => G_full s d) ((G_full s d).prod (G_full s d)) := fun s hs d => by
-        have : IsProbabilityMeasure (G_full s d) := isProbabilityMeasure_tilted
-          (integrable_exp_neg_shcherbinaTirozziCavityHamiltonian hκ0
-            (mul_nonneg (sub_nonneg.2 hs.2) (sub_nonneg.2 (by rwa [hr_coe]))) hum hu0 d.2.1 d.2.2)
-        exact measurePreserving_piFinTwo (fun _ : Fin 2 => G_full s d)
-      set q_t : ℝ := ∫ e, ∫ p : Fin 2 → ℝ^(N + 1), ((N : ℝ) + 1)⁻¹ * ⟪p 0, p 1⟫
-          ∂(Measure.pi fun _ : Fin 2 => G_full t e) ∂P_full
-      have hqt_prod : q_t = ∫ e, ∫ q' : ℝ^(N + 1) × ℝ^(N + 1), ((N : ℝ) + 1)⁻¹ * ⟪q'.1, q'.2⟫
-          ∂((G_full t e).prod (G_full t e)) ∂P_full := by
+      set q_t : ℝ := ∫ e, ∫ p : ℝ^(N + 1) × ℝ^(N + 1),
+        ((N : ℝ) + 1)⁻¹ * ⟪p.1, p.2⟫ ∂((G_full t e).prod (G_full t e)) ∂P_full
+      have hqt_pi : q_t = ∫ e, ∫ p : Fin 2 → ℝ^(N + 1), ((N : ℝ) + 1)⁻¹ * ⟪p 0, p 1⟫
+          ∂(Measure.pi fun _ : Fin 2 => G_full t e) ∂P_full := by
         refine integral_congr_ae (ae_of_all _ fun e => ?_)
-        have hc : Continuous fun q' : ℝ^(N + 1) × ℝ^(N + 1) => ((N : ℝ) + 1)⁻¹ * ⟪q'.1, q'.2⟫ := by
-          fun_prop
-        rw [← (hmp2 t ⟨ht.1.le, ht.2.le⟩ e).map_eq,
-          integral_map (hmp2 t ⟨ht.1.le, ht.2.le⟩ e).measurable.aemeasurable hc.aestronglyMeasurable]
+        exact (integral_pi_pair_eq_prod (G_full t e) (show (0 : Fin 2) ≠ 1 by decide)
+          (fun x y => ((N : ℝ) + 1)⁻¹ * ⟪x, y⟫) (by fun_prop)).symm
       have hq1_eq : ∫ e, ∫ p : Fin 2 → ℝ^(N + 1), ((N : ℝ) + 1)⁻¹ * ⟪p 0, p 1⟫
             ∂(Measure.pi fun _ : Fin 2 => G_full 1 e) ∂P_full = q := by
-        have hG1 : ∀ d : Dis[N, M' + 1], G_full 1 d = G d.2 := fun d => by
-          dsimp only [G_full, G]
-          congr 1; funext σ
-          rw [shcherbinaTirozziCavityHamiltonian_one]
         have hpt1 : ∀ d : Dis[N, M' + 1],
             ∫ p : Fin 2 → ℝ^(N + 1), ((N : ℝ) + 1)⁻¹ * ⟪p 0, p 1⟫
               ∂(Measure.pi fun _ : Fin 2 => G_full 1 d) =
             ((N : ℝ) + 1)⁻¹ * ∑ i, (∫ σ, σ i ∂(G d.2)) ^ 2 := fun d => by
           have : IsProbabilityMeasure (G d.2) :=
             isProbabilityMeasure_shcherbinaTirozziGibbs hκ0 hum hu0 _ _
-          have hc : Continuous fun q' : ℝ^(N + 1) × ℝ^(N + 1) => ((N : ℝ) + 1)⁻¹ * ⟪q'.1, q'.2⟫ :=
-            by fun_prop
-          rw [← (hmp2 1 ⟨zero_le_one, le_rfl⟩ d).map_eq,
-            integral_map (hmp2 1 ⟨zero_le_one, le_rfl⟩ d).measurable.aemeasurable
-              hc.aestronglyMeasurable, hG1 d, integral_const_mul]
-          have hmem : MemLp (fun σ : ℝ^(N + 1) => σ) 2 (G d.2) :=
-            memLp_id_shcherbinaTirozziGibbs hκ0 hum hu0 d.2.1 d.2.2
-          have h1 := hmem.integrable one_le_two
-          rw [integral_prod_bilin (innerSL ℝ) h1 h1, real_inner_self_eq_norm_sq,
-            EuclideanSpace.real_norm_sq_eq]
-          congr 1
-          refine Finset.sum_congr rfl fun i _ => ?_
-          have hi : (∫ σ, σ ∂(G d.2)) i = ∫ σ, σ i ∂(G d.2) :=
-            ((EuclideanSpace.proj (𝕜 := ℝ) i).integral_comp_comm h1).symm
-          rw [hi]
+          simp only [hG1 d, integral_const_mul]
+          exact congrArg (((N : ℝ) + 1)⁻¹ * ·)
+            (integral_pi_inner_eq_sum_sq (G d.2)
+              ((memLp_id_shcherbinaTirozziGibbs hκ0 hum hu0 d.2.1 d.2.2).integrable one_le_two))
         simp_rw [hpt1]
-        have hmp_snd : MeasurePreserving Prod.snd P_full P :=
-          measurePreserving_snd (μ := gaussianReal 0 r.toNNReal) (ν := P)
-        have hqm : Measurable fun d : (Fin (M' + 1) → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ) =>
-            ((N : ℝ) + 1)⁻¹ * ∑ i, (∫ σ, σ i ∂(G d)) ^ 2 := by
-          refine (Finset.measurable_sum _ fun i _ => ?_).const_mul _
-          exact (measurable_integral_tilted
-            (e := fun (d : (Fin (M' + 1) → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) σ =>
-              -shcherbinaTirozziHamiltonian κ h u d.1 d.2 σ)
-            (measurable_shcherbinaTirozziHamiltonian κ h hum).neg
-            (PiLp.continuous_apply 2 (fun _ : Fin (N + 1) => ℝ) i).measurable).pow_const 2
-        exact (integral_map hmp_snd.measurable.aemeasurable
-          (by rw [hmp_snd.map_eq]; exact hqm.aestronglyMeasurable)).symm.trans
-          (by rw [hmp_snd.map_eq])
+        exact integral_prod_fun_snd_of_isProbabilityMeasure (gaussianReal 0 r.toNNReal) P
+          (fun d => ((N : ℝ) + 1)⁻¹ * ∑ i, (∫ x, x i ∂(G d)) ^ 2)
       have hdiff2 : |q_t - q| ≤ K_l2 / Real.sqrt ((N : ℝ) + 1) := by
-        rw [← hq1_eq]
+        rw [hqt_pi, ← hq1_eq]
         exact hlem2 N (M' + 1) κ h t rBar r.toNNReal u hκ hh ht.1.le ht.2.le
           (by rwa [hr_coe]) (by rwa [hr_coe]) (by rwa [hr_coe]) hM hN4 huc hu0 hgrow hu1 hu2 hD1
           hD2
-      have hpi_sq : ∀ d : Dis[N, M' + 1],
-          ∫ p : Fin 2 → ℝ^(N + 1), (((N : ℝ) + 1)⁻¹ * ⟪p 0, p 1⟫ - q_t) ^ 2
+      have hpi_sq (c : ℝ) (d : Dis[N, M' + 1]) :
+          ∫ p : Fin 2 → ℝ^(N + 1), (((N : ℝ) + 1)⁻¹ * ⟪p 0, p 1⟫ - c) ^ 2
             ∂(Measure.pi fun _ : Fin 2 => G_full t d) =
-          ∫ q' : ℝ^(N + 1) × ℝ^(N + 1), (((N : ℝ) + 1)⁻¹ * ⟪q'.1, q'.2⟫ - q_t) ^ 2
-            ∂((G_full t d).prod (G_full t d)) := fun d => by
-        have hc : Continuous fun q' : ℝ^(N + 1) × ℝ^(N + 1) =>
-            (((N : ℝ) + 1)⁻¹ * ⟪q'.1, q'.2⟫ - q_t) ^ 2 := by fun_prop
-        rw [← (hmp2 t ⟨ht.1.le, ht.2.le⟩ d).map_eq,
-          integral_map (hmp2 t ⟨ht.1.le, ht.2.le⟩ d).measurable.aemeasurable hc.aestronglyMeasurable]
-      have hc_i' : Integrable (fun d => ∫ p : Fin 2 → ℝ^(N + 1),
-          (((N : ℝ) + 1)⁻¹ * ⟪p 0, p 1⟫ - q_t) ^ 2
-          ∂(Measure.pi fun _ : Fin 2 => G_full t d)) P_full := by
-        simp_rw [hpi_sq, hqt_prod]; exact hc_i
-      have hc_le' : ∫ d, ∫ p : Fin 2 → ℝ^(N + 1),
-          (((N : ℝ) + 1)⁻¹ * ⟪p 0, p 1⟫ - q_t) ^ 2
-          ∂(Measure.pi fun _ : Fin 2 => G_full t d) ∂P_full ≤ K_c2 / ((N : ℝ) + 1) := by
-        simp_rw [hpi_sq, hqt_prod]; exact hc_le
-      have hX_int : ∀ d : Dis[N, M' + 1], Integrable (fun p : Fin 2 → ℝ^(N + 1) =>
+          ∫ p : ℝ^(N + 1) × ℝ^(N + 1), (((N : ℝ) + 1)⁻¹ * ⟪p.1, p.2⟫ - c) ^ 2
+            ∂((G_full t d).prod (G_full t d)) :=
+        integral_pi_pair_eq_prod (G_full t d) (show (0 : Fin 2) ≠ 1 by decide)
+          (fun x y => (((N : ℝ) + 1)⁻¹ * ⟪x, y⟫ - c) ^ 2) (by fun_prop)
+      have hpi_int : ∀ d : Dis[N, M' + 1], Integrable (fun p : Fin 2 → ℝ^(N + 1) =>
           (((N : ℝ) + 1)⁻¹ * ⟪p 0, p 1⟫ - q_t) ^ 2) (Measure.pi fun _ : Fin 2 => G_full t d) :=
-        fun d => integrable_pi_tilted_of_confining hκ0
-          (measurable_shcherbinaTirozziCavityHamiltonian_apply κ h r.toNNReal rBar t d.1 hum
-            d.2.1 d.2.2).neg
-          (fun σ => by
-            rw [zero_add]
-            exact neg_shcherbinaTirozziCavityHamiltonian_le κ h d.1 (by rwa [hr_coe]) ht.1.le
-              ht.2.le hu0 d.2.1 d.2.2 σ)
-          (((((measurable_pi_apply (0 : Fin 2)).inner (measurable_pi_apply (1 : Fin 2))).const_mul
-            _).sub_const q_t).pow_const 2).aestronglyMeasurable
-          (C := (((N : ℝ) + 1)⁻¹ + |q_t|) ^ 2) (m := 2) fun p => by
-            rw [Real.norm_of_nonneg (sq_nonneg _), ← sq_abs, Fin.prod_univ_two]
-            have h1 : |((N : ℝ) + 1)⁻¹ * ⟪p 0, p 1⟫ - q_t| ≤
-                (((N : ℝ) + 1)⁻¹ + |q_t|) * ((1 + ‖p 0‖) * (1 + ‖p 1‖)) := by
-              have hin : |⟪p 0, p 1⟫| ≤ (1 + ‖p 0‖) * (1 + ‖p 1‖) :=
-                (abs_real_inner_le_norm _ _).trans (mul_le_mul (le_add_of_nonneg_left zero_le_one)
-                  (le_add_of_nonneg_left zero_le_one) (norm_nonneg _) (by positivity))
-              have h1' : (1 : ℝ) ≤ (1 + ‖p 0‖) * (1 + ‖p 1‖) :=
-                one_le_mul_of_one_le_of_one_le (le_add_of_nonneg_right (norm_nonneg _))
-                  (le_add_of_nonneg_right (norm_nonneg _))
-              refine (abs_sub _ _).trans ?_
-              rw [abs_mul, abs_of_nonneg (inv_nonneg.2 hN0.le)]
-              nlinarith [mul_le_mul_of_nonneg_left hin (inv_nonneg.2 hN0.le),
-                le_mul_of_one_le_right (abs_nonneg q_t) h1']
-            refine (pow_le_pow_left₀ (abs_nonneg _) h1 2).trans_eq ?_
-            rw [mul_pow, mul_pow]
-      have htri := sqrt_integral_integral_sub_sq_le (P := P_full)
+        fun d => integrable_sq_scaled_inner_sub_pi (G_full t d)
+          (((N : ℝ) + 1)⁻¹) q_t (hfour t ⟨ht.1.le, ht.2.le⟩ d)
+      exact sqrt_integral_integral_sub_sq_le_of_le_div (P := P_full)
         (G := fun d => Measure.pi fun _ : Fin 2 => G_full t d)
-        (X := fun p : Fin 2 → ℝ^(N + 1) => ((N : ℝ) + 1)⁻¹ * ⟪p 0, p 1⟫) (c := q) (c_t := q_t)
+        (X := fun p : Fin 2 → ℝ^(N + 1) => ((N : ℝ) + 1)⁻¹ * ⟪p 0, p 1⟫) hK_c2
         (((measurable_pi_apply (0 : Fin 2)).inner (measurable_pi_apply (1 : Fin 2))).const_mul _)
-        hX_int hc_i'
-      refine htri.trans ?_
-      have h1 : Real.sqrt (2 * ∫ d, ∫ p : Fin 2 → ℝ^(N + 1),
-            (((N : ℝ) + 1)⁻¹ * ⟪p 0, p 1⟫ - q_t) ^ 2
-            ∂(Measure.pi fun _ : Fin 2 => G_full t d) ∂P_full) ≤
-          Real.sqrt (2 * K_c2) / Real.sqrt ((N : ℝ) + 1) := by
-        calc Real.sqrt (2 * ∫ d, ∫ p : Fin 2 → ℝ^(N + 1),
-              (((N : ℝ) + 1)⁻¹ * ⟪p 0, p 1⟫ - q_t) ^ 2
-              ∂(Measure.pi fun _ : Fin 2 => G_full t d) ∂P_full)
-            ≤ Real.sqrt (2 * (K_c2 / ((N : ℝ) + 1))) :=
-              Real.sqrt_le_sqrt (mul_le_mul_of_nonneg_left hc_le' zero_le_two)
-          _ = Real.sqrt (2 * K_c2) / Real.sqrt ((N : ℝ) + 1) := by
-              rw [← mul_div_assoc, Real.sqrt_div (by positivity)]
-      have h2 : Real.sqrt 2 * |q_t - q| ≤ Real.sqrt 2 * K_l2 / Real.sqrt ((N : ℝ) + 1) := by
-        rw [mul_div_assoc]
-        exact mul_le_mul_of_nonneg_left hdiff2 (Real.sqrt_nonneg _)
-      rw [add_div]
-      exact add_le_add h1 h2
+        hpi_int (hc_i.congr (ae_of_all _ fun d => (hpi_sq q_t d).symm))
+        ((integral_congr_ae (ae_of_all _ (hpi_sq q_t))).trans_le hc_le) hdiff2
     -- 3. `((N : ℝ) + 1)⁻¹ ≤ 1 / √((N : ℝ) + 1)`
     have h_inv : ((N : ℝ) + 1)⁻¹ ≤ 1 / Real.sqrt ((N : ℝ) + 1) := by
       rw [one_div]
@@ -1324,9 +1268,7 @@ theorem exists_shcherbinaTirozzi_rsEquations_accuracy (κ₀ h₀ D : ℝ) (hκ�
         r.toNNReal (by rwa [hr_coe]) hu0 hu1 hD1 hf₁m hf₁b
       refine hc.congr fun s hs => ?_
       refine integral_congr_ae (ae_of_all _ fun d => ?_)
-      have : IsProbabilityMeasure (G_full s d) := isProbabilityMeasure_tilted
-        (integrable_exp_neg_shcherbinaTirozziCavityHamiltonian hκ0
-          (mul_nonneg (sub_nonneg.2 hs.2) (sub_nonneg.2 (by rwa [hr_coe]))) hum hu0 d.2.1 d.2.2)
+      letI := hprob s hs d
       exact (integral_pi_eval (G_full s d) (0 : Fin 1)
         (fun x : ℝ^(N + 1) => x (Fin.last N) ^ 2)
         (((PiLp.continuous_apply 2 (fun _ : Fin (N + 1) => ℝ) (Fin.last N)).measurable).pow_const
@@ -1353,68 +1295,26 @@ theorem exists_shcherbinaTirozzi_rsEquations_accuracy (κ₀ h₀ D : ℝ) (hκ�
     -- Identify `φ₁ 1 - φ₁ 0` with `ρ - (a⁻¹ + (r + h²) / a²)`
     have hφ₁_1 : φ₁ 1 = ∫ d, ∫ σ, σ (Fin.last N) ^ 2 ∂(G d) ∂P := by
       dsimp only [φ₁]
-      have hG1 : ∀ d : Dis[N, M' + 1], G_full 1 d = G d.2 := fun d => by
-        dsimp only [G_full, G]
-        congr 1; funext σ; rw [shcherbinaTirozziCavityHamiltonian_one]
       simp_rw [hG1]
-      have hmp_snd : MeasurePreserving Prod.snd P_full P :=
-        measurePreserving_snd (μ := gaussianReal 0 r.toNNReal) (ν := P)
-      have hm : Measurable fun d : (Fin (M' + 1) → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ) =>
-          ∫ σ : ℝ^(N + 1), σ (Fin.last N) ^ 2 ∂(G d) :=
-        measurable_integral_tilted
-          (e := fun (d : (Fin (M' + 1) → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) σ =>
-            -shcherbinaTirozziHamiltonian κ h u d.1 d.2 σ)
-          (measurable_shcherbinaTirozziHamiltonian κ h hum).neg
-          (((PiLp.continuous_apply 2 (fun _ : Fin (N + 1) => ℝ) (Fin.last N)).measurable).pow_const
-            2)
-      exact (integral_map hmp_snd.measurable.aemeasurable
-        (by rw [hmp_snd.map_eq]; exact hm.aestronglyMeasurable)).symm.trans
-        (by rw [hmp_snd.map_eq])
+      exact integral_prod_fun_snd_of_isProbabilityMeasure (gaussianReal 0 r.toNNReal) P
+        (fun d => ∫ x, x (Fin.last N) ^ 2 ∂(G d))
     have hφ₁_0 : φ₁ 0 = ∫ y, ∫ d, ∫ σ, σ (Fin.last N) ^ 2
         ∂(volume.tilted fun σ => -shcherbinaTirozziCavityHamiltonian κ h r rBar 0 y u d.1 d.2 σ)
         ∂P ∂(gaussianReal 0 r.toNNReal) := by
       dsimp only [φ₁, G_full, P_full]
       simp_rw [hr_coe]
-      have hA0_int : Integrable (fun d : Dis[N, M' + 1] => ∫ x : ℝ^(N + 1), x (Fin.last N) ^ 2
-          ∂(volume.tilted fun σ => -shcherbinaTirozziCavityHamiltonian κ h r rBar 0 d.1 u d.2.1
-            d.2.2 σ)) (cavLaw[N, M' + 1, r.toNNReal]) := by
-        obtain ⟨A0, -, hA0⟩ := exists_integral_one_add_norm_pow_cavity_le (N := N) (M := M' + 1)
-          (κ := κ) (h := h) (r := r.toNNReal) (rBar := rBar) (u := u) hκ0 (by rwa [hr_coe]) hu1 hu0
-          hD1 2
-        have hm : Measurable fun d : Dis[N, M' + 1] => ∫ x : ℝ^(N + 1), x (Fin.last N) ^ 2
-            ∂(volume.tilted fun σ => -shcherbinaTirozziCavityHamiltonian κ h r.toNNReal rBar 0 d.1 u
-              d.2.1 d.2.2 σ) :=
-          measurable_integral_tilted
-            (measurable_cavity_exponent (κ := κ) (h := h) (r := r.toNNReal) (rBar := rBar) hum 0)
-            (((PiLp.continuous_apply 2 (fun _ : Fin (N + 1) => ℝ) (Fin.last N)).measurable).pow_const
-              2)
-        simp_rw [← hr_coe]
-        refine integrable_of_abs_le_cavity_disorder_pow r.toNNReal hm (K := A0) (d := 2) fun d => ?_
-        rw [abs_of_nonneg (integral_nonneg fun _ => sq_nonneg _)]
-        have hle : ∫ x : ℝ^(N + 1), x (Fin.last N) ^ 2 ∂(G_full 0 d) ≤
-            ∫ x : ℝ^(N + 1), (1 + ‖x‖) ^ 2 ∂(G_full 0 d) := by
-          have hi2 : Integrable (fun x : ℝ^(N + 1) => (1 + ‖x‖) ^ 2) (G_full 0 d) :=
-            (memLp_of_poly_bound_of_confining hκ0
-              (measurable_shcherbinaTirozziCavityHamiltonian_apply κ h r.toNNReal rBar 0 d.1 hum
-                d.2.1 d.2.2).neg
-              (fun σ => by
-                rw [zero_add]
-                exact neg_shcherbinaTirozziCavityHamiltonian_le κ h d.1 (by rwa [hr_coe]) le_rfl
-                  zero_le_one hu0 d.2.1 d.2.2 σ)
-              ((measurable_const.add measurable_norm).pow_const 2).aestronglyMeasurable
-              (C := 1) (m := 2) (fun σ => by rw [one_mul, Real.norm_of_nonneg (sq_nonneg _)])
-              1).integrable le_rfl
-          have hpt : ∀ x : ℝ^(N + 1), x (Fin.last N) ^ 2 ≤ (1 + ‖x‖) ^ 2 := fun x => by
-            rw [← sq_abs]
-            exact pow_le_pow_left₀ (abs_nonneg _)
-              ((show |x (Fin.last N)| ≤ ‖x‖ by
-                simpa only [Real.norm_eq_abs] using PiLp.norm_apply_le x (Fin.last N)).trans
-                (by linarith)) 2
-          exact integral_mono (hi2.mono' (((PiLp.continuous_apply 2
-            (fun _ : Fin (N + 1) => ℝ) (Fin.last N)).measurable).pow_const 2).aestronglyMeasurable
-            (ae_of_all _ fun x => by rw [Real.norm_of_nonneg (sq_nonneg _)]; exact hpt x)) hi2 hpt
-        exact hle.trans (hA0 0 le_rfl zero_le_one d)
-      exact integral_prod _ hA0_int
+      have hA0 := integrable_integral_pi_shcherbinaTirozziCavity (R := Fin 1)
+        (N := N) (M := M' + 1) hκ0 r.toNNReal (by rwa [hr_coe]) (t := 0)
+        ⟨le_rfl, zero_le_one⟩ hu0 hu1 hD1 hf₁m hf₁b
+      have hpt : ∀ d : Dis[N, M' + 1],
+          ∫ x : ℝ^(N + 1), x (Fin.last N) ^ 2 ∂(G_full 0 d) =
+            ∫ x : Fin 1 → ℝ^(N + 1), f₁ x ∂(Measure.pi fun _ : Fin 1 => G_full 0 d) :=
+        fun d => by
+          letI : IsProbabilityMeasure (G_full 0 d) := hprob 0 ⟨le_rfl, zero_le_one⟩ d
+          exact (integral_pi_eval (G_full 0 d) (0 : Fin 1)
+            (fun x : ℝ^(N + 1) => x (Fin.last N) ^ 2) (by fun_prop)).symm
+      have hi := integral_prod _ (hA0.congr (ae_of_all _ fun d => (hpt d).symm))
+      simpa only [G_full, P_full, hr_coe] using hi
     rw [hres_ρ, ← hφ₁_1, ← hφ₁_0]
     exact hmv
   · -- `q` residual via `f = ε₁ ε₂`
@@ -1463,7 +1363,8 @@ theorem exists_shcherbinaTirozzi_rsEquations_accuracy (κ₀ h₀ D : ℝ) (hκ�
     have hpi_sq_last : ∀ (μ : Measure (ℝ^(N + 1))), IsProbabilityMeasure μ →
         ∫ σ : Fin 2 → ℝ^(N + 1), (σ 0) (Fin.last N) * (σ 1) (Fin.last N)
           ∂(Measure.pi fun _ : Fin 2 => μ) = (∫ x : ℝ^(N + 1), x (Fin.last N) ∂μ) ^ 2 := by
-      intro μ _
+      intro μ hμ
+      letI := hμ
       have h1 := integral_fintype_prod_eq_pow (ι := Fin 2) (μ := μ)
         (fun x : ℝ^(N + 1) => x (Fin.last N))
       simpa only [Fin.prod_univ_two, Fintype.card_fin] using h1
@@ -1473,23 +1374,11 @@ theorem exists_shcherbinaTirozzi_rsEquations_accuracy (κ₀ h₀ D : ℝ) (hκ�
           ∫ σ : Fin 2 → ℝ^(N + 1), (σ 0) (Fin.last N) * (σ 1) (Fin.last N)
             ∂(Measure.pi fun _ : Fin 2 => G_full 1 d) = (∫ σ, σ (Fin.last N) ∂(G d.2)) ^ 2 := by
         intro d
-        have hG1 : G_full 1 d = G d.2 := by
-          dsimp only [G_full, G]; congr 1; funext σ; rw [shcherbinaTirozziCavityHamiltonian_one]
-        rw [hG1]
+        rw [hG1 d]
         exact hpi_sq_last (G d.2) (isProbabilityMeasure_shcherbinaTirozziGibbs hκ0 hum hu0 _ _)
       simp_rw [hpt]
-      have hmp_snd : MeasurePreserving Prod.snd P_full P :=
-        measurePreserving_snd (μ := gaussianReal 0 r.toNNReal) (ν := P)
-      have hm : Measurable fun d : (Fin (M' + 1) → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ) =>
-          (∫ σ : ℝ^(N + 1), σ (Fin.last N) ∂(G d)) ^ 2 :=
-        (measurable_integral_tilted
-          (e := fun (d : (Fin (M' + 1) → Fin (N + 1) → ℝ) × (Fin (N + 1) → ℝ)) σ =>
-            -shcherbinaTirozziHamiltonian κ h u d.1 d.2 σ)
-          (measurable_shcherbinaTirozziHamiltonian κ h hum).neg
-          (PiLp.continuous_apply 2 (fun _ : Fin (N + 1) => ℝ) (Fin.last N)).measurable).pow_const 2
-      exact (integral_map hmp_snd.measurable.aemeasurable
-        (by rw [hmp_snd.map_eq]; exact hm.aestronglyMeasurable)).symm.trans
-        (by rw [hmp_snd.map_eq])
+      exact integral_prod_fun_snd_of_isProbabilityMeasure (gaussianReal 0 r.toNNReal) P
+        (fun d => (∫ x, x (Fin.last N) ∂(G d)) ^ 2)
     have hφ₂_0 : φ₂ 0 = ∫ y, ∫ d, (∫ σ, σ (Fin.last N)
         ∂(volume.tilted fun σ => -shcherbinaTirozziCavityHamiltonian κ h r rBar 0 y u d.1 d.2 σ)) ^ 2
         ∂P ∂(gaussianReal 0 r.toNNReal) := by
@@ -1498,49 +1387,13 @@ theorem exists_shcherbinaTirozzi_rsEquations_accuracy (κ₀ h₀ D : ℝ) (hκ�
           ∫ σ : Fin 2 → ℝ^(N + 1), (σ 0) (Fin.last N) * (σ 1) (Fin.last N)
             ∂(Measure.pi fun _ : Fin 2 => G_full 0 d) =
           (∫ x : ℝ^(N + 1), x (Fin.last N) ∂(G_full 0 d)) ^ 2 := fun d =>
-        hpi_sq_last (G_full 0 d) (isProbabilityMeasure_tilted
-          (integrable_exp_neg_shcherbinaTirozziCavityHamiltonian hκ0
-            (mul_nonneg zero_le_one (sub_nonneg.2 (by rwa [hr_coe]))) hum hu0 d.2.1 d.2.2))
+        hpi_sq_last (G_full 0 d) (hprob 0 ⟨le_rfl, zero_le_one⟩ d)
       simp_rw [hpt]
-      have hA0_int : Integrable (fun d : Dis[N, M' + 1] =>
-          (∫ x : ℝ^(N + 1), x (Fin.last N) ∂(G_full 0 d)) ^ 2) (cavLaw[N, M' + 1, r.toNNReal]) := by
-        obtain ⟨A0, -, hA0⟩ := exists_integral_one_add_norm_pow_cavity_le (N := N) (M := M' + 1)
-          (κ := κ) (h := h) (r := r.toNNReal) (rBar := rBar) (u := u) hκ0 (by rwa [hr_coe]) hu1 hu0
-          hD1 1
-        have hm : Measurable fun d : Dis[N, M' + 1] =>
-            (∫ x : ℝ^(N + 1), x (Fin.last N) ∂(G_full 0 d)) ^ 2 :=
-          (measurable_integral_tilted
-            (measurable_cavity_exponent (κ := κ) (h := h) (r := r.toNNReal) (rBar := rBar) hum 0)
-            (PiLp.continuous_apply 2 (fun _ : Fin (N + 1) => ℝ) (Fin.last N)).measurable).pow_const 2
-        refine integrable_of_abs_le_cavity_disorder_pow r.toNNReal hm (K := A0 ^ 2) (d := 2) fun d => ?_
-        rw [abs_of_nonneg (sq_nonneg _)]
-        have hle : |∫ x : ℝ^(N + 1), x (Fin.last N) ∂(G_full 0 d)| ≤
-            ∫ x : ℝ^(N + 1), (1 + ‖x‖) ^ 1 ∂(G_full 0 d) := by
-          have hi1 : Integrable (fun x : ℝ^(N + 1) => (1 + ‖x‖) ^ 1) (G_full 0 d) :=
-            (memLp_of_poly_bound_of_confining hκ0
-              (measurable_shcherbinaTirozziCavityHamiltonian_apply κ h r.toNNReal rBar 0 d.1 hum
-                d.2.1 d.2.2).neg
-              (fun σ => by
-                rw [zero_add]
-                exact neg_shcherbinaTirozziCavityHamiltonian_le κ h d.1 (by rwa [hr_coe]) le_rfl
-                  zero_le_one hu0 d.2.1 d.2.2 σ)
-              ((measurable_const.add measurable_norm).pow_const 1).aestronglyMeasurable
-              (C := 1) (m := 1) (fun σ => by rw [one_mul, Real.norm_of_nonneg (by positivity)])
-              1).integrable le_rfl
-          rw [← Real.norm_eq_abs]
-          exact norm_integral_le_of_norm_le hi1 (ae_of_all _ fun x => by
-            rw [Real.norm_eq_abs, pow_one]
-            exact (show |x (Fin.last N)| ≤ ‖x‖ by
-              simpa only [Real.norm_eq_abs] using PiLp.norm_apply_le x (Fin.last N)).trans
-              (by linarith))
-        have hsq : (∫ x : ℝ^(N + 1), x (Fin.last N) ∂(G_full 0 d)) ^ 2 ≤
-            (A0 * (1 + |d.1| + (∑ k, ∑ i, |d.2.1 k i|) + ∑ i, |d.2.2 i|) ^ 1) ^ 2 := by
-          rw [← sq_abs]
-          exact pow_le_pow_left₀ (abs_nonneg _) (hle.trans (hA0 0 le_rfl zero_le_one d)) 2
-        refine hsq.trans_eq ?_
-        rw [mul_pow, pow_one]
-      have hprod := integral_prod _ hA0_int
-      simpa only [G_full, hr_coe] using hprod
+      have hA0 := integrable_integral_pi_shcherbinaTirozziCavity (R := Fin 2)
+        (N := N) (M := M' + 1) hκ0 r.toNNReal (by rwa [hr_coe]) (t := 0)
+        ⟨le_rfl, zero_le_one⟩ hu0 hu1 hD1 hf₂m hf₂b
+      have hi := integral_prod _ (hA0.congr (ae_of_all _ hpt))
+      simpa only [G_full, P_full, hr_coe] using hi
     rw [hres_q, ← hφ₂_1, ← hφ₂_0]
     exact hmv
 

@@ -445,45 +445,6 @@ theorem exists_integral_sub_integral_pow_le_of_disorder_gradient (K₉ K₁₆ :
   ring
 
 
-/-- **Combining the two concentrations.** If the Gibbs fluctuations `𝔼⟨(R - ⟨R⟩)^{2k}⟩` are at
-most `a ^ k` and the disorder fluctuations `𝔼 (⟨R⟩ - 𝔼⟨R⟩)^{2k}` at most `b ^ k`, then
-`𝔼⟨(R - 𝔼⟨R⟩)^{2k}⟩ ≤ (4 (a + b)) ^ k`. -/
-private theorem integral_integral_sub_pow_le {Ω α : Type*} [MeasurableSpace Ω]
-    [MeasurableSpace α] {P : Measure Ω} {G : Ω → Measure α}
-    [∀ d, IsProbabilityMeasure (G d)] {R : α → ℝ} (hR : Measurable R) {k : ℕ} (hk : k ≠ 0)
-    (c : ℝ) (hm : Measurable fun d => ∫ σ, (R σ - c) ^ (2 * k) ∂(G d))
-    (hfix : ∀ d, Integrable (fun σ => (R σ - ∫ τ, R τ ∂(G d)) ^ (2 * k)) (G d))
-    {a b : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b)
-    (h1i : Integrable (fun d => ∫ σ, (R σ - ∫ τ, R τ ∂(G d)) ^ (2 * k) ∂(G d)) P)
-    (h1 : ∫ d, ∫ σ, (R σ - ∫ τ, R τ ∂(G d)) ^ (2 * k) ∂(G d) ∂P ≤ a ^ k)
-    (h2i : Integrable (fun d => ((∫ τ, R τ ∂(G d)) - c) ^ (2 * k)) P)
-    (h2 : ∫ d, ((∫ τ, R τ ∂(G d)) - c) ^ (2 * k) ∂P ≤ b ^ k) :
-    Integrable (fun d => ∫ σ, (R σ - c) ^ (2 * k) ∂(G d)) P ∧
-      ∫ d, ∫ σ, (R σ - c) ^ (2 * k) ∂(G d) ∂P ≤ (4 * (a + b)) ^ k := by
-  have heven : Even (2 * k) := even_two_mul k
-  have hpt : ∀ d, ∫ σ, (R σ - c) ^ (2 * k) ∂(G d) ≤ 2 ^ (2 * k - 1) *
-      ((∫ σ, (R σ - ∫ τ, R τ ∂(G d)) ^ (2 * k) ∂(G d)) +
-        ((∫ τ, R τ ∂(G d)) - c) ^ (2 * k)) := fun d => by
-    have h := (integral_add_pow_two_mul_le (μ := G d)
-      (X := fun σ => R σ - ∫ τ, R τ ∂(G d)) (Y := fun _ => (∫ τ, R τ ∂(G d)) - c)
-      (hR.sub_const _).aestronglyMeasurable aestronglyMeasurable_const (hfix d)
-      (integrable_const _)).2
-    simpa only [sub_add_sub_cancel, integral_const, probReal_univ, one_smul] using h
-  have hdom := (h1i.add h2i).const_mul (2 ^ (2 * k - 1) : ℝ)
-  have hi : Integrable (fun d => ∫ σ, (R σ - c) ^ (2 * k) ∂(G d)) P :=
-    Integrable.mono' hdom hm.aestronglyMeasurable (ae_of_all _ fun d => by
-      rw [Real.norm_of_nonneg (integral_nonneg fun σ => heven.pow_nonneg _)]
-      exact hpt d)
-  refine ⟨hi, (integral_mono hi hdom hpt).trans ?_⟩
-  simp only [Pi.add_apply]
-  rw [integral_const_mul, integral_add h1i h2i]
-  refine (mul_le_mul_of_nonneg_left (add_le_add h1 h2) (by positivity)).trans ?_
-  have h4 : (2 : ℝ) ^ (2 * k - 1) ≤ 4 ^ k := by
-    rw [show (4 : ℝ) ^ k = 2 ^ (2 * k) by rw [pow_mul]; norm_num]
-    exact pow_le_pow_right₀ one_le_two (by omega)
-  rw [mul_pow]
-  exact mul_le_mul h4 (pow_add_pow_le ha hb hk) (by positivity) (by positivity)
-
 /-- **Theorem 3.1.18 (Theorem 3.1.1) for `R_{1,1}`, Eqs. (3.8), (3.57):** for `4 k ≤ N`,
 `ν ((R_{1,1} - ν (R_{1,1})) ^ (2 k)) ≤ (K k / N) ^ k`, where `ν f = 𝔼 ⟨f⟩` and `K` depends only
 on `κ₀, h₀, D`. -/
@@ -564,7 +525,7 @@ theorem exists_integral_shcherbinaTirozzi_selfOverlap_sub_pow_le (κ₀ h₀ D :
   have hmc : Measurable fun d => ∫ σ, ((N : ℝ)⁻¹ * ‖σ‖ ^ 2 - c) ^ (2 * k) ∂(G d) := by
     simp_rw [hG]
     exact measurable_integral_tilted hE ((hRm.sub_const c).pow_const _)
-  have h := integral_integral_sub_pow_le (P := P) (G := G)
+  have h := integral_integral_sub_pow_le_of_center (P := P) (G := G)
     (R := fun σ : ℝ^N => (N : ℝ)⁻¹ * ‖σ‖ ^ 2) hRm hk0 c hmc hfix
     (a := K₁₂ * k / N) (b := K₁₇ * k / N) (by positivity) (by positivity) h12.1 h12.2
     (by simpa only [hm, hcm] using h17.1) (by simpa only [hm, hcm] using h17.2)
@@ -673,7 +634,7 @@ theorem exists_integral_shcherbinaTirozzi_overlap_sub_pow_le (κ₀ h₀ D : ℝ
   have hmc : Measurable fun d => ∫ p, ((N : ℝ)⁻¹ * ⟪p.1, p.2⟫ - c) ^ (2 * k)
       ∂((G d).prod (G d)) :=
     hmeas _ ((hRm.sub_const c).pow_const _) hci
-  have h := integral_integral_sub_pow_le (P := P) (G := fun d => (G d).prod (G d))
+  have h := integral_integral_sub_pow_le_of_center (P := P) (G := fun d => (G d).prod (G d))
     (R := fun p : ℝ^N × ℝ^N =>
       (N : ℝ)⁻¹ * ⟪p.1, p.2⟫) hRm hk0 c hmc hfix
     (a := K₁₂ * k / N) (b := K₁₇ * k / N) (by positivity) (by positivity) h12.1 h12.2

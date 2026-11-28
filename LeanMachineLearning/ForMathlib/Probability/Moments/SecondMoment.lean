@@ -5,6 +5,9 @@ Authors: LML Contributors
 -/
 module
 
+import LeanMachineLearning.ForMathlib.Analysis.Convex.Integral
+import Mathlib.MeasureTheory.Integral.Prod
+
 public import LeanMachineLearning.ForMathlib.Analysis.SpecialFunctions.AddPowEstimates
 public import LeanMachineLearning.ForMathlib.MeasureTheory.Integral.SqSub
 public import Mathlib.MeasureTheory.Integral.Bochner.Basic
@@ -529,5 +532,122 @@ theorem integral_integral_mul_le_add_indicator_tail {Ω Γ : Type*} [MeasurableS
   rw [integral_add' (hF1i.const_mul K₀) hFXS.1, integral_const_mul]
   have htail := (le_abs_self _).trans hFXS.2
   linarith
+
+section
+
+open scoped RealInnerProductSpace ENNReal
+
+variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [CompleteSpace E]
+  [MeasurableSpace E] [BorelSpace E] [SecondCountableTopology E]
+
+/-- Common conditional-centering argument for a scaled inner product of two independent samples. -/
+theorem integral_prod_inner_sub_mean_pow_le (μ : Measure E) [IsProbabilityMeasure μ] (s : ℝ)
+    {k : ℕ} (hk : k ≠ 0) {A B : ℝ} (hA : 0 ≤ A)
+    (hnorm : Integrable (fun x : E => ‖x‖ ^ (2 * k)) μ)
+    (hB : ∫ x : E, ‖x‖ ^ (2 * k) ∂μ ≤ B)
+    (hproj : let b : E := ∫ x, x ∂μ
+      ∀ a : E, Integrable (fun x => (s * ⟪a, x⟫ - s * ⟪a, b⟫) ^ (2 * k)) μ ∧
+        ∫ x, (s * ⟪a, x⟫ - s * ⟪a, b⟫) ^ (2 * k) ∂μ ≤ A * ‖a‖ ^ (2 * k)) :
+    Integrable (fun p : E × E =>
+      (s * ⟪p.1, p.2⟫ - ∫ q : E × E, s * ⟪q.1, q.2⟫ ∂(μ.prod μ)) ^ (2 * k)) (μ.prod μ) ∧
+    ∫ p : E × E, (s * ⟪p.1, p.2⟫ - ∫ q : E × E, s * ⟪q.1, q.2⟫ ∂(μ.prod μ)) ^ (2 * k)
+      ∂(μ.prod μ) ≤ 4 ^ k * (A * B) := by
+  have hn : 1 ≤ 2 * k := by omega
+  let p : ℝ≥0∞ := Nat.cast (2 * k)
+  have hp1 : 1 ≤ p := by exact_mod_cast hn
+  have hp0 : p ≠ 0 := (zero_lt_one.trans_le hp1).ne'
+  have hpt : p ≠ ∞ := ENNReal.natCast_ne_top _
+  have hpow : p.toReal = ((2 * k : ℕ) : ℝ) := by simp [p]
+  have hmem : MemLp (fun x : E => x) p μ :=
+    (integrable_norm_rpow_iff aestronglyMeasurable_id hp0 hpt).1
+      (by simpa only [id_eq, hpow, Real.rpow_natCast] using hnorm)
+  let b : E := ∫ x, x ∂μ
+  have hid := hmem.integrable hp1
+  have hb : ‖b‖ ^ (2 * k) ≤ B := by
+    have hb' := norm_integral_rpow_le_integral_norm_rpow hp1 hpt hmem
+    have hj : ‖b‖ ^ (2 * k) ≤ ∫ x : E, ‖x‖ ^ (2 * k) ∂μ := by
+      simpa only [b, hpow, Real.rpow_natCast] using hb'
+    exact hj.trans hB
+  have hmean : ∫ q : E × E, s * ⟪q.1, q.2⟫ ∂(μ.prod μ) = s * ⟪b, b⟫ := by
+    rw [integral_const_mul]
+    exact congrArg (s * ·) (integral_prod_bilin (innerSL ℝ) hid hid)
+  let X : E × E → ℝ := fun p => s * ⟪p.1, p.2⟫ - s * ⟪p.1, b⟫
+  let Y : E → ℝ := fun x => s * ⟪b, x⟫ - s * ⟪b, b⟫
+  have hXm : Measurable X := by fun_prop
+  have hYm : Measurable Y := by fun_prop
+  have heven : Even (2 * k) := even_two_mul k
+  have hXsec : Integrable (fun x => ∫ y, ‖X (x, y) ^ (2 * k)‖ ∂μ) μ := by
+    refine (hnorm.const_mul A).mono'
+      (((hXm.pow_const _).norm.stronglyMeasurable.integral_prod_right').aestronglyMeasurable)
+      (ae_of_all _ fun x => ?_)
+    rw [Real.norm_of_nonneg (integral_nonneg fun _ => norm_nonneg _)]
+    simp_rw [Real.norm_of_nonneg (heven.pow_nonneg _)]
+    exact (hproj x).2
+  have hXi : Integrable (fun p => X p ^ (2 * k)) (μ.prod μ) :=
+    (integrable_prod_iff (hXm.pow_const _).aestronglyMeasurable).2
+      ⟨ae_of_all _ fun x => (hproj x).1, hXsec⟩
+  have hXI : ∫ p, X p ^ (2 * k) ∂(μ.prod μ) ≤ A * B := by
+    rw [integral_prod _ hXi]
+    refine (integral_mono hXi.integral_prod_left (hnorm.const_mul A) fun x => (hproj x).2).trans ?_
+    rw [integral_const_mul]
+    exact mul_le_mul_of_nonneg_left hB hA
+  have hYi : Integrable (fun p : E × E => Y p.1 ^ (2 * k)) (μ.prod μ) :=
+    (hproj b).1.comp_fst μ
+  have hYI : ∫ p : E × E, Y p.1 ^ (2 * k) ∂(μ.prod μ) ≤ A * B := by
+    rw [integral_fun_fst (fun x => Y x ^ (2 * k)), probReal_univ, one_smul]
+    exact (hproj b).2.trans (mul_le_mul_of_nonneg_left hb hA)
+  have hsum := integral_add_pow_two_mul_le (μ := μ.prod μ) (X := X) (Y := fun p => Y p.1)
+    hXm.aestronglyMeasurable (hYm.comp measurable_fst).aestronglyMeasurable hXi hYi
+  have e (p : E × E) : s * ⟪p.1, p.2⟫ - s * ⟪b, b⟫ = X p + Y p.1 := by
+    dsimp [X, Y]
+    rw [real_inner_comm p.1 b]
+    ring
+  simp_rw [hmean, e]
+  refine ⟨hsum.1, hsum.2.trans ?_⟩
+  refine (mul_le_mul_of_nonneg_left (add_le_add hXI hYI) (by positivity)).trans_eq ?_
+  rw [← two_mul, ← mul_assoc, ← pow_succ,
+    show 2 * k - 1 + 1 = 2 * k by omega, pow_mul]
+  norm_num
+
+end
+
+/-- Combine an even moment around an environment-dependent center with the moment of
+the displacement of that center from a fixed target. -/
+theorem integral_integral_sub_pow_le_of_center {Ω α : Type*} [MeasurableSpace Ω]
+    [MeasurableSpace α] {P : Measure Ω} {G : Ω → Measure α}
+    [∀ d, IsProbabilityMeasure (G d)] {R : α → ℝ} (hR : Measurable R) {k : ℕ} (hk : k ≠ 0)
+    {center : Ω → ℝ}
+    (c : ℝ) (hm : Measurable fun d => ∫ σ, (R σ - c) ^ (2 * k) ∂(G d))
+    (hfix : ∀ d, Integrable (fun σ => (R σ - center d) ^ (2 * k)) (G d))
+    {a b : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b)
+    (h1i : Integrable (fun d => ∫ σ, (R σ - center d) ^ (2 * k) ∂(G d)) P)
+    (h1 : ∫ d, ∫ σ, (R σ - center d) ^ (2 * k) ∂(G d) ∂P ≤ a ^ k)
+    (h2i : Integrable (fun d => (center d - c) ^ (2 * k)) P)
+    (h2 : ∫ d, (center d - c) ^ (2 * k) ∂P ≤ b ^ k) :
+    Integrable (fun d => ∫ σ, (R σ - c) ^ (2 * k) ∂(G d)) P ∧
+      ∫ d, ∫ σ, (R σ - c) ^ (2 * k) ∂(G d) ∂P ≤ (4 * (a + b)) ^ k := by
+  have heven : Even (2 * k) := even_two_mul k
+  have hpt : ∀ d, ∫ σ, (R σ - c) ^ (2 * k) ∂(G d) ≤ 2 ^ (2 * k - 1) *
+      ((∫ σ, (R σ - center d) ^ (2 * k) ∂(G d)) +
+        (center d - c) ^ (2 * k)) := fun d => by
+    have h := (integral_add_pow_two_mul_le (μ := G d)
+      (X := fun σ => R σ - center d) (Y := fun _ => center d - c)
+      (hR.sub_const _).aestronglyMeasurable aestronglyMeasurable_const (hfix d)
+      (integrable_const _)).2
+    simpa only [sub_add_sub_cancel, integral_const, probReal_univ, one_smul] using h
+  have hdom := (h1i.add h2i).const_mul (2 ^ (2 * k - 1) : ℝ)
+  have hi : Integrable (fun d => ∫ σ, (R σ - c) ^ (2 * k) ∂(G d)) P :=
+    Integrable.mono' hdom hm.aestronglyMeasurable (ae_of_all _ fun d => by
+      rw [Real.norm_of_nonneg (integral_nonneg fun σ => heven.pow_nonneg _)]
+      exact hpt d)
+  refine ⟨hi, (integral_mono hi hdom hpt).trans ?_⟩
+  simp only [Pi.add_apply]
+  rw [integral_const_mul, integral_add h1i h2i]
+  refine (mul_le_mul_of_nonneg_left (add_le_add h1 h2) (by positivity)).trans ?_
+  have h4 : (2 : ℝ) ^ (2 * k - 1) ≤ 4 ^ k := by
+    rw [show (4 : ℝ) ^ k = 2 ^ (2 * k) by rw [pow_mul]; norm_num]
+    exact pow_le_pow_right₀ one_le_two (by omega)
+  rw [mul_pow]
+  exact mul_le_mul h4 (pow_add_pow_le ha hb hk) (by positivity) (by positivity)
 
 end ProbabilityTheory

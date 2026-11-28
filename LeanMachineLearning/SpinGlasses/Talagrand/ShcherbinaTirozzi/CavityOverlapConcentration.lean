@@ -42,7 +42,8 @@ The proof follows Section 3.1 word for word with the cavity radius
 @[expose] public section
 
 open MeasureTheory ProbabilityTheory Module Matrix
-open scoped RealInnerProductSpace Real NNReal Matrix.Norms.L2Operator Topology
+open scoped RealInnerProductSpace Real ENNReal NNReal Matrix.Norms.L2Operator Topology
+
 
 namespace SpinGlasses
 
@@ -496,9 +497,6 @@ theorem exists_integral_shcherbinaTirozziCavity_overlap_sub_mean_pow_le
     (integrable_norm_iff aestronglyMeasurable_id).1 hnorm
   set b : ℝ^(N + 1) := ∫ σ, σ ∂G with hb
   have hinner : ∀ a : ℝ^(N + 1), ∫ τ, ⟪a, τ⟫ ∂G = ⟪a, b⟫ := fun a => integral_inner hid a
-  have hmean : ∫ q, ((N : ℝ) + 1)⁻¹ * ⟪q.1, q.2⟫ ∂(G.prod G) = ((N : ℝ) + 1)⁻¹ * ⟪b, b⟫ := by
-    rw [integral_const_mul]
-    exact congrArg _ (integral_prod_bilin (innerSL ℝ) hid hid)
   set C : ℝ := 8 * k * (K₉ * B) / (((N : ℝ) + 1) ^ 2 * κ) with hC
   have hC0 : 0 ≤ C := by have := mul_nonneg hK₉ hB0; positivity
   have hMau : ∀ a : ℝ^(N + 1),
@@ -519,68 +517,21 @@ theorem exists_integral_shcherbinaTirozziCavity_overlap_sub_mean_pow_le
     refine ⟨key.1, key.2.trans_eq ?_⟩
     rw [pow_mul ‖a‖, mul_assoc (4 : ℝ), ← mul_pow]
     congr 2; field_simp
-  set X : ℝ^(N + 1) × ℝ^(N + 1) → ℝ :=
-    fun p => ((N : ℝ) + 1)⁻¹ * ⟪p.1, p.2⟫ - ((N : ℝ) + 1)⁻¹ * ⟪p.1, b⟫ with hX
-  set Y : ℝ^(N + 1) → ℝ :=
-    fun σ => ((N : ℝ) + 1)⁻¹ * ⟪b, σ⟫ - ((N : ℝ) + 1)⁻¹ * ⟪b, b⟫ with hY
-  have hXm : Measurable X := by fun_prop
-  have hYm : Measurable Y := by fun_prop
-  have heven : Even (2 * k) := even_two_mul k
-  set c : ℝ := 4 * (8 * k / (((N : ℝ) + 1) ^ 2 * κ)) ^ k with hc
-  have hc0 : 0 ≤ c := by positivity
-  have hcC : c * (K₉ * B) ^ k = 4 * C ^ k := by
-    rw [hc, hC, mul_assoc, ← mul_pow]; congr 2; ring
-  have hXsec : Integrable (fun σ => ∫ τ, ‖X (σ, τ) ^ (2 * k)‖ ∂G) G := by
-    refine Integrable.mono' ((hmom k hk4).1.const_mul c)
-      (((hXm.pow_const _).norm.stronglyMeasurable.integral_prod_right').aestronglyMeasurable)
-      (ae_of_all _ fun σ => ?_)
-    rw [Real.norm_of_nonneg (integral_nonneg fun _ => norm_nonneg _)]
-    simp_rw [Real.norm_of_nonneg (heven.pow_nonneg _)]
-    exact (hMau σ).2
-  have hXi : Integrable (fun p => X p ^ (2 * k)) (G.prod G) :=
-    (integrable_prod_iff (hXm.pow_const _).aestronglyMeasurable).2
-      ⟨ae_of_all _ fun σ => (hMau σ).1, hXsec⟩
-  have hXI : ∫ p, X p ^ (2 * k) ∂(G.prod G) ≤ 4 * C ^ k := by
-    rw [integral_prod _ hXi]
-    refine (integral_mono hXi.integral_prod_left ((hmom k hk4).1.const_mul c)
-      fun σ => (hMau σ).2).trans ?_
-    rw [integral_const_mul, ← hcC]
-    exact mul_le_mul_of_nonneg_left (hmom k hk4).2 hc0
-  have hbk : ‖b‖ ^ (2 * k) ≤ (K₉ * B) ^ k := by
-    have h1 : ‖b‖ ≤ ∫ σ, ‖σ‖ ∂G := norm_integral_le_integral_norm _
-    have h2 : (∫ σ, ‖σ‖ ∂G) ^ (2 * k) ≤ ∫ σ, ‖σ‖ ^ (2 * k) ∂G :=
-      ConvexOn.map_integral_le (heven.convexOn_pow (𝕜 := ℝ)) (continuous_pow _).continuousOn
-        isClosed_univ (ae_of_all _ fun _ => Set.mem_univ _) hnorm (hmom k hk4).1
-    exact ((pow_le_pow_left₀ (norm_nonneg _) h1 _).trans h2).trans (hmom k hk4).2
-  have hYi : Integrable (fun p : ℝ^(N + 1) × ℝ^(N + 1) =>
-      Y p.1 ^ (2 * k)) (G.prod G) := (hMau b).1.comp_fst G
-  have hYI : ∫ p : ℝ^(N + 1) × ℝ^(N + 1), Y p.1 ^ (2 * k) ∂(G.prod G) ≤ 4 * C ^ k := by
-    rw [integral_fun_fst (fun σ => Y σ ^ (2 * k)), probReal_univ, one_smul]
-    refine (hMau b).2.trans ?_
-    rw [← hcC]
-    exact mul_le_mul_of_nonneg_left hbk hc0
-  have hsum := integral_add_pow_two_mul_le (μ := G.prod G) (X := X) (Y := fun p => Y p.1)
-    hXm.aestronglyMeasurable (hYm.comp measurable_fst).aestronglyMeasurable hXi hYi
-  have e : (fun p : ℝ^(N + 1) × ℝ^(N + 1) =>
-      (((N : ℝ) + 1)⁻¹ * ⟪p.1, p.2⟫ -
-        ∫ q, ((N : ℝ) + 1)⁻¹ * ⟪q.1, q.2⟫ ∂(G.prod G)) ^ (2 * k)) =
-      fun p => (X p + Y p.1) ^ (2 * k) := funext fun p => by
-    rw [hmean, hX, hY]; simp only; rw [real_inner_comm p.1 b]; congr 1; ring
-  rw [e]
-  refine ⟨hsum.1, hsum.2.trans ?_⟩
-  refine (mul_le_mul_of_nonneg_left (add_le_add hXI hYI) (by positivity)).trans ?_
-  have h4 : (2 : ℝ) ^ (2 * k - 1) * 2 = 4 ^ k := by
-    rw [← pow_succ, show 2 * k - 1 + 1 = 2 * k by omega, pow_mul]; norm_num
-  have h16 : (2 : ℝ) ^ (2 * k - 1) * (4 * C ^ k + 4 * C ^ k) ≤ (16 * C) ^ k := by
-    have h4k : (4 : ℝ) ≤ 4 ^ k := le_self_pow₀ (by norm_num) hk0
-    calc (2 : ℝ) ^ (2 * k - 1) * (4 * C ^ k + 4 * C ^ k)
-        = (2 ^ (2 * k - 1) * 2) * (4 * C ^ k) := by ring
-      _ = 4 ^ k * (4 * C ^ k) := by rw [h4]
-      _ ≤ 4 ^ k * (4 ^ k * C ^ k) :=
-          mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_right h4k (pow_nonneg hC0 _))
-            (by positivity)
+  have hPair := integral_prod_inner_sub_mean_pow_le G ((N : ℝ) + 1)⁻¹ hk0
+    (A := 4 * (8 * k / (((N : ℝ) + 1) ^ 2 * κ)) ^ k) (by positivity)
+    (hmom k hk4).1 (hmom k hk4).2 hMau
+  refine ⟨hPair.1, hPair.2.trans ?_⟩
+  have hAC : (4 * (8 * k / (((N : ℝ) + 1) ^ 2 * κ)) ^ k) * (K₉ * B) ^ k = 4 * C ^ k := by
+    rw [hC, mul_assoc, ← mul_pow]
+    congr 2
+    ring
+  rw [hAC]
+  have h44 : (4 : ℝ) ≤ 4 ^ k := le_self_pow₀ (by norm_num) hk0
+  have hbound : (4 : ℝ) ^ k * (4 * C ^ k) ≤ (16 * C) ^ k := by
+    calc (4 : ℝ) ^ k * (4 * C ^ k) ≤ 4 ^ k * (4 ^ k * C ^ k) := by gcongr
       _ = (16 * C) ^ k := by rw [← mul_pow, ← mul_pow]; congr 1; ring
-  refine h16.trans (pow_le_pow_left₀ (by positivity) ?_ k)
+  refine hbound.trans ?_
+  refine pow_le_pow_left₀ (by positivity) ?_ k
   rw [hC]
   have hnum : 0 ≤ 128 * K₉ * k * B / ((N : ℝ) + 1) ^ 2 := by
     have := mul_nonneg hK₉ hB0; positivity

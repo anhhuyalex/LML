@@ -539,44 +539,6 @@ private theorem exists_integral_sub_integral_pow_le_of_cavityDisorder_gradient (
   refine (mul_le_mul_of_nonneg_left hmed (by positivity)).trans_eq ?_
   rw [pow_mul, ← mul_pow]; congr 1; ring
 
-/-- Combining quenched and disorder fluctuations (copy of the private helper in
-`DisorderConcentration.lean`). -/
-private theorem integral_integral_sub_pow_le' {Ω α : Type*} [MeasurableSpace Ω]
-    [MeasurableSpace α] {P : Measure Ω} {G : Ω → Measure α}
-    [∀ d, IsProbabilityMeasure (G d)] {R : α → ℝ} (hR : Measurable R) {k : ℕ} (hk : k ≠ 0)
-    (c : ℝ) (hm : Measurable fun d => ∫ σ, (R σ - c) ^ (2 * k) ∂(G d))
-    (hfix : ∀ d, Integrable (fun σ => (R σ - ∫ τ, R τ ∂(G d)) ^ (2 * k)) (G d))
-    {a b : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b)
-    (h1i : Integrable (fun d => ∫ σ, (R σ - ∫ τ, R τ ∂(G d)) ^ (2 * k) ∂(G d)) P)
-    (h1 : ∫ d, ∫ σ, (R σ - ∫ τ, R τ ∂(G d)) ^ (2 * k) ∂(G d) ∂P ≤ a ^ k)
-    (h2i : Integrable (fun d => ((∫ τ, R τ ∂(G d)) - c) ^ (2 * k)) P)
-    (h2 : ∫ d, ((∫ τ, R τ ∂(G d)) - c) ^ (2 * k) ∂P ≤ b ^ k) :
-    Integrable (fun d => ∫ σ, (R σ - c) ^ (2 * k) ∂(G d)) P ∧
-      ∫ d, ∫ σ, (R σ - c) ^ (2 * k) ∂(G d) ∂P ≤ (4 * (a + b)) ^ k := by
-  have heven : Even (2 * k) := even_two_mul k
-  have hpt : ∀ d, ∫ σ, (R σ - c) ^ (2 * k) ∂(G d) ≤ 2 ^ (2 * k - 1) *
-      ((∫ σ, (R σ - ∫ τ, R τ ∂(G d)) ^ (2 * k) ∂(G d)) +
-        ((∫ τ, R τ ∂(G d)) - c) ^ (2 * k)) := fun d => by
-    have h := (integral_add_pow_two_mul_le (μ := G d)
-      (X := fun σ => R σ - ∫ τ, R τ ∂(G d)) (Y := fun _ => (∫ τ, R τ ∂(G d)) - c)
-      (hR.sub_const _).aestronglyMeasurable aestronglyMeasurable_const (hfix d)
-      (integrable_const _)).2
-    simpa only [sub_add_sub_cancel, integral_const, probReal_univ, one_smul] using h
-  have hdom := (h1i.add h2i).const_mul (2 ^ (2 * k - 1) : ℝ)
-  have hi : Integrable (fun d => ∫ σ, (R σ - c) ^ (2 * k) ∂(G d)) P :=
-    Integrable.mono' hdom hm.aestronglyMeasurable (ae_of_all _ fun d => by
-      rw [Real.norm_of_nonneg (integral_nonneg fun σ => heven.pow_nonneg _)]
-      exact hpt d)
-  refine ⟨hi, (integral_mono hi hdom hpt).trans ?_⟩
-  simp only [Pi.add_apply]
-  rw [integral_const_mul, integral_add h1i h2i]
-  refine (mul_le_mul_of_nonneg_left (add_le_add h1 h2) (by positivity)).trans ?_
-  have h4 : (2 : ℝ) ^ (2 * k - 1) ≤ 4 ^ k := by
-    rw [show (4 : ℝ) ^ k = 2 ^ (2 * k) by rw [pow_mul]; norm_num]
-    exact pow_le_pow_right₀ one_le_two (by omega)
-  rw [mul_pow]
-  exact mul_le_mul h4 (pow_add_pow_le ha hb hk) (by positivity) (by positivity)
-
 /-- **Talagrand, Eq. (3.111) (uniform-in-`t` Theorem 3.1.18) for `R_{1,1}`:** for `4 k ≤ N + 1`,
 `ν_t ((R_{1,1} - ν_t (R_{1,1})) ^ (2 k)) ≤ (K k / (N + 1)) ^ k`, uniformly in `t ∈ [0, 1]`,
 where `K` depends only on `κ₀, h₀, D, R, R_diff`. -/
@@ -774,7 +736,7 @@ theorem exists_integral_shcherbinaTirozziCavity_selfOverlap_sub_pow_le
   rw [hcm]
   have hmc : Measurable fun d => ∫ σ, (((N : ℝ) + 1)⁻¹ * ‖σ‖ ^ 2 - c) ^ (2 * k) ∂(G d) :=
     measurable_integral_tilted hE ((hRm.sub_const c).pow_const _)
-  have h := integral_integral_sub_pow_le' (P := cavLaw[N, M, r]) (G := G)
+  have h := integral_integral_sub_pow_le_of_center (P := cavLaw[N, M, r]) (G := G)
     (R := fun σ : ℝ^(N + 1) => ((N : ℝ) + 1)⁻¹ * ‖σ‖ ^ 2) hRm hk0 c hmc hfix
     (a := 48 * K₁₁ * (1 + R) * k / ((N : ℝ) + 1)) (b := K₁₇ * k / ((N : ℝ) + 1))
     (by positivity) (by positivity) h12.1 h12.2
@@ -1022,7 +984,7 @@ theorem exists_integral_shcherbinaTirozziCavity_overlap_sub_pow_le
       ∂((G d).prod (G d)) :=
     hmeas (fun _ p => (((N : ℝ) + 1)⁻¹ * ⟪p.1, p.2⟫ - c) ^ (2 * k))
       (((hRm.sub_const c).pow_const _).comp measurable_snd) hci
-  have h := integral_integral_sub_pow_le' (P := cavLaw[N, M, r]) (G := fun d => (G d).prod (G d))
+  have h := integral_integral_sub_pow_le_of_center (P := cavLaw[N, M, r]) (G := fun d => (G d).prod (G d))
     (R := fun p : ℝ^(N + 1) × ℝ^(N + 1) => ((N : ℝ) + 1)⁻¹ * ⟪p.1, p.2⟫) hRm hk0 c hmc hfix
     (a := 48 * K₁₁ * (1 + R) * k / ((N : ℝ) + 1)) (b := K₁₇ * k / ((N : ℝ) + 1))
     (by positivity) (by positivity) h12.1 h12.2

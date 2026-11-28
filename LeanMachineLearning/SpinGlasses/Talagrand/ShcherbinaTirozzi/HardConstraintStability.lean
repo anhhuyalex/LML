@@ -86,40 +86,23 @@ private theorem integral_deriv_two_add_sq_mul_exp_eq_inv_sq_mul {u : ℝ → ℝ
         Real.exp (u (y + c * ξ)) ∂(gaussianReal 0 1) =
       c⁻¹ ^ 2 * ∫ ξ, (ξ ^ 2 - 1) * Real.exp (u (y + c * ξ)) ∂(gaussianReal 0 1) := by
   have hum : Measurable u := hu.continuous.measurable
-  have hdu_m : Measurable (deriv u) := measurable_deriv u
   have haff : Measurable fun ξ : ℝ => y + c * ξ := by fun_prop
   set g : ℝ → ℝ := fun ξ => deriv u (y + c * ξ) * Real.exp (u (y + c * ξ))
-  have hg_deriv : ∀ ξ, HasDerivAt g
-      (c * ((deriv (deriv u) (y + c * ξ) + deriv u (y + c * ξ) ^ 2) *
-        Real.exp (u (y + c * ξ)))) ξ := fun ξ => by
-    have h1 : HasDerivAt (fun ξ => y + c * ξ) c ξ := by
-      simpa using ((hasDerivAt_id ξ).const_mul c).const_add y
-    have hdu' := (hu2 _).hasDerivAt.comp ξ h1
-    have hexp' := ((hu _).hasDerivAt.comp ξ h1).exp
-    refine (hdu'.mul hexp').congr_deriv ?_
-    simp only [Function.comp_apply]; ring
   have hgi : Integrable (fun ξ => ξ * g ξ) (gaussianReal 0 1) := by
-    have hid : Integrable (fun ξ : ℝ => |ξ|) (gaussianReal 0 1) :=
-      (memLp_id_gaussianReal 1).abs.integrable le_rfl
-    refine (hid.const_mul D).mono'
-      (measurable_id.mul ((hdu_m.comp haff).mul (hum.comp haff).exp)).aestronglyMeasurable
-      (ae_of_all _ fun ξ => ?_)
-    rw [Real.norm_eq_abs, abs_mul, abs_mul, abs_of_pos (Real.exp_pos _)]
-    have hD0 : 0 ≤ D := (abs_nonneg _).trans (hD 0)
-    calc |ξ| * (|deriv u (y + c * ξ)| * Real.exp (u (y + c * ξ)))
-        ≤ |ξ| * (D * 1) := mul_le_mul_of_nonneg_left
-          (mul_le_mul (hD _) (Real.exp_le_one_iff.2 (hu0 _)) (Real.exp_pos _).le hD0) (abs_nonneg _)
-      _ = D * |ξ| := by ring
-  have hW_int : Integrable (fun ξ => (deriv (deriv u) (y + c * ξ) + deriv u (y + c * ξ) ^ 2) *
-      Real.exp (u (y + c * ξ))) (gaussianReal 0 1) :=
-    integrable_mul_exp_comp_add_gaussianReal hum hu0
-      ((measurable_deriv (deriv u)).add (hdu_m.pow_const 2))
-      (abs_deriv_deriv_add_sq_deriv_le hD hD₂) y c
+    have hid : Integrable (id : ℝ → ℝ) (gaussianReal 0 1) := IsGaussian.integrable_id
+    have hg : AEStronglyMeasurable g (gaussianReal 0 1) :=
+      (((measurable_deriv u).comp haff).mul (hum.comp haff).exp).aestronglyMeasurable
+    have hgb : ∀ᵐ ξ ∂gaussianReal 0 1, ‖g ξ‖ ≤ D :=
+      ae_of_all _ fun ξ => by
+        simpa only [g, Real.norm_eq_abs, Real.exp_zero, mul_one] using
+          abs_mul_exp_le (hD (y + c * ξ)) (hu0 (y + c * ξ))
+    simpa only [id_eq, mul_comm] using hid.bdd_mul hg hgb
   have hIBP1 : ∫ ξ, ξ * g ξ ∂(gaussianReal 0 1) =
       c * ∫ ξ, (deriv (deriv u) (y + c * ξ) + deriv u (y + c * ξ) ^ 2) *
         Real.exp (u (y + c * ξ)) ∂(gaussianReal 0 1) := by
-    rw [integral_id_mul_gaussianReal_eq 1 hg_deriv hgi (hW_int.const_mul c),
-      NNReal.coe_one, one_mul, integral_const_mul]
+    simpa only [NNReal.coe_one, one_mul, g] using
+      integral_id_mul_deriv_u_mul_exp_affine_gaussianReal 1
+        (fun x => (hu x).hasDerivAt) (fun x => (hu2 x).hasDerivAt) hu0 hD hD₂ y c
   -- Also integrate `ξ * (ξ * exp (u (y + c ξ)))` by parts
   have h2_deriv : ∀ ξ, HasDerivAt (fun ξ => ξ * Real.exp (u (y + c * ξ)))
       (Real.exp (u (y + c * ξ)) + c * (ξ * g ξ)) ξ := fun ξ => by
@@ -422,8 +405,7 @@ theorem hasDerivAt_shcherbinaTirozziHardFunctional_self_fixed (α κ h τ : ℝ)
 critical point of `shcherbinaTirozziHardFunctional α κ h τ` (one-sided in `q` at `q = 0`). -/
 theorem isCritical_shcherbinaTirozziHardFunctional_of_tendsto_soft
     {α κ h q ρ r rBar : ℕ → ℝ} {u : ℕ → ℝ → ℝ} {D D₂ ε : ℕ → ℝ}
-    {α₀ κ₀ h₀ q₀ ρ₀ τ : ℝ} (hκ₀ : 0 < κ₀) (hq₀ : 0 ≤ q₀) (hqρ₀ : q₀ < ρ₀)
-    (hτ : 0 ≤ τ)
+    {α₀ κ₀ h₀ q₀ ρ₀ τ : ℝ} (hqρ₀ : q₀ < ρ₀)
     (hαn : ∀ n, 0 ≤ α n) (huc : ∀ n, ConcaveOn ℝ univ (u n)) (hu0 : ∀ n x, u n x ≤ 0)
     (huτ : ∀ n x, τ ≤ x → u n x = 0) (hu1 : ∀ n, Differentiable ℝ (u n))
     (hu2 : ∀ n, Differentiable ℝ (deriv (u n))) (hD : ∀ n x, |deriv (u n) x| ≤ D n)
@@ -460,6 +442,7 @@ theorem isCritical_shcherbinaTirozziHardFunctional_of_tendsto_soft
     have hr0 : 0 ≤ r n := by
       rw [hr_eq n]; exact mul_nonneg (hαn n) (integral_nonneg fun _ => sq_nonneg _)
     exact div_nonneg (add_nonneg hr0 (sq_nonneg _)) (sq_nonneg _)
+  have hq₀ : 0 ≤ q₀ := ge_of_tendsto hq_lim (Eventually.of_forall hq_nn)
   have hsq_lim : Tendsto (fun n => Real.sqrt (q n)) atTop (𝓝 (Real.sqrt q₀)) := hq_lim.sqrt
   have hsq_ub : ∀ᶠ n in atTop, Real.sqrt (q n) ≤ Real.sqrt q₀ + 1 :=
     hsq_lim.eventually (Iic_mem_nhds (by linarith))
@@ -470,12 +453,12 @@ theorem isCritical_shcherbinaTirozziHardFunctional_of_tendsto_soft
   set M_c : ℝ := (c₀ / 2)⁻¹
   have hMc0 : 0 < M_c := inv_pos.2 (half_pos hc₀)
   set B_V : ℝ → ℝ := fun z =>
-    M_c ^ 2 * ((M_c * (τ + (Real.sqrt q₀ + 1) * |z|)) ^ 2 + L)
+    M_c ^ 2 * ((M_c * (|τ| + (Real.sqrt q₀ + 1) * |z|)) ^ 2 + L)
   set B_dom : ℝ → ℝ := fun z => B_V z + M_c ^ 2
   have hB_int : Integrable B_dom (gaussianReal 0 1) := by
     have hid : MemLp (fun z : ℝ => |z|) 2 (gaussianReal 0 1) := (memLp_id_gaussianReal 2).abs
-    have hlin : MemLp (fun z : ℝ => M_c * (τ + (Real.sqrt q₀ + 1) * |z|)) 2 (gaussianReal 0 1) :=
-      ((memLp_const τ).add (hid.const_mul _)).const_mul M_c
+    have hlin : MemLp (fun z : ℝ => M_c * (|τ| + (Real.sqrt q₀ + 1) * |z|)) 2 (gaussianReal 0 1) :=
+      ((memLp_const |τ|).add (hid.const_mul _)).const_mul M_c
     exact ((hlin.integrable_sq.add (integrable_const L)).const_mul (M_c ^ 2)).add
       (integrable_const (M_c ^ 2))
   -- Define the soft `V_n`, `W_n`
@@ -503,22 +486,22 @@ theorem isCritical_shcherbinaTirozziHardFunctional_of_tendsto_soft
       linarith [show (c n)⁻¹ ^ 2 * (c n ^ 2 * V_n n (Real.sqrt (q n) * z) ^ 2) =
         V_n n (Real.sqrt (q n) * z) ^ 2 by linear_combination V_n n (Real.sqrt (q n) * z) ^ 2 * hc2]
     have hmax : max ((τ - Real.sqrt (q n) * z) / c n) 0 ≤
-        M_c * (τ + (Real.sqrt q₀ + 1) * |z|) := by
+        M_c * (|τ| + (Real.sqrt q₀ + 1) * |z|) := by
       refine max_le ?_ (by positivity)
       rw [div_eq_inv_mul]
-      have h1 : τ - Real.sqrt (q n) * z ≤ τ + (Real.sqrt q₀ + 1) * |z| := by
+      have h1 : τ - Real.sqrt (q n) * z ≤ |τ| + (Real.sqrt q₀ + 1) * |z| := by
         have := neg_abs_le (Real.sqrt (q n) * z)
         rw [abs_mul, abs_of_nonneg (Real.sqrt_nonneg _)] at this
-        nlinarith [abs_nonneg z]
+        nlinarith [abs_nonneg z, le_abs_self τ]
       refine (mul_le_mul_of_nonneg_left h1 (inv_pos.2 hcn0).le).trans ?_
       exact mul_le_mul_of_nonneg_right hinv_le (by positivity)
     have hmax2 : max ((τ - Real.sqrt (q n) * z) / c n) 0 ^ 2 ≤
-        (M_c * (τ + (Real.sqrt q₀ + 1) * |z|)) ^ 2 :=
+        (M_c * (|τ| + (Real.sqrt q₀ + 1) * |z|)) ^ 2 :=
       pow_le_pow_left₀ (le_max_right _ _) hmax 2
     have hinv2 : (c n)⁻¹ ^ 2 ≤ M_c ^ 2 := pow_le_pow_left₀ (inv_pos.2 hcn0).le hinv_le 2
     refine hV2.trans ?_
     dsimp only [B_V]
-    nlinarith [sq_nonneg (M_c * (τ + (Real.sqrt q₀ + 1) * |z|))]
+    nlinarith [sq_nonneg (M_c * (|τ| + (Real.sqrt q₀ + 1) * |z|))]
   have hV_dom : ∀ᶠ n in atTop, ∀ z : ℝ, V_n n (Real.sqrt (q n) * z) ^ 2 ≤ B_dom z :=
     hV_dom0.mono fun n hn z => (hn z).trans (le_add_of_nonneg_right (sq_nonneg M_c))
   have hW_dom : ∀ᶠ n in atTop, ∀ z : ℝ, |W_n n (Real.sqrt (q n) * z)| ≤ B_dom z := by
@@ -578,23 +561,13 @@ theorem isCritical_shcherbinaTirozziHardFunctional_of_tendsto_soft
   set d₀ : ℝ := 2 * κ₀ + r₀ - rBar₀
   have hd_lim : Tendsto (fun n => 2 * κ n + r n - rBar n) atTop (𝓝 d₀) :=
     ((hκ_lim.const_mul 2).add hr_lim).sub hrBar_lim
-  have hd₀_pos : 0 < d₀ := by
-    have hd_ge : ∀ᶠ n in atTop, κ₀ ≤ 2 * κ n + r n - rBar n := by
-      filter_upwards [hκ_lim.eventually (Ioi_mem_nhds (half_lt_self hκ₀))] with n hκn
-      have hrr : rBar n ≤ r n := by
-        rw [hr_eq n, hrBar_eq n]
-        exact mul_le_mul_of_nonneg_left
-          (integral_deriv_two_add_sq_div_le_integral_sq_div (huc n) (hu1 n) (hu2 n) (hD n) (hD₂ n)
-            (a := fun z => Real.sqrt (q n) * z) (by fun_prop) (c n)) (hαn n)
-      linarith
-    exact hκ₀.trans_le (ge_of_tendsto hd_lim hd_ge)
-  have hgap_eq : ρ₀ - q₀ = d₀⁻¹ := by
-    have h1 : Tendsto (fun n => ρ n - q n) atTop (𝓝 (ρ₀ - q₀)) := hρ_lim.sub hq_lim
-    have h2 : Tendsto (fun n => (2 * κ n + r n - rBar n)⁻¹) atTop (𝓝 d₀⁻¹) :=
-      hd_lim.inv₀ hd₀_pos.ne'
-    have heq : ∀ n, ρ n - q n = (2 * κ n + r n - rBar n)⁻¹ := fun n => by
-      linarith [hρ_eq n, hq_eq n]
-    exact tendsto_nhds_unique (h1.congr heq) h2
+  have hd_eq (n : ℕ) : 2 * κ n + r n - rBar n = (ρ n - q n)⁻¹ := by
+    have hgap : ρ n - q n = (2 * κ n + r n - rBar n)⁻¹ := by linarith [hρ_eq n, hq_eq n]
+    rw [hgap, inv_inv]
+  have hd₀_eq : d₀ = (ρ₀ - q₀)⁻¹ :=
+    tendsto_nhds_unique hd_lim
+      (((hρ_lim.sub hq_lim).inv₀ hs₀.ne').congr fun n => (hd_eq n).symm)
+  have hd₀_pos : 0 < d₀ := by rw [hd₀_eq]; exact inv_pos.2 hs₀
   have hq0_eq : q₀ = (r₀ + h₀ ^ 2) / d₀ ^ 2 := by
     have h2 : Tendsto (fun n => (r n + h n ^ 2) / (2 * κ n + r n - rBar n) ^ 2) atTop
         (𝓝 ((r₀ + h₀ ^ 2) / d₀ ^ 2)) :=
@@ -615,7 +588,6 @@ theorem isCritical_shcherbinaTirozziHardFunctional_of_tendsto_soft
       rw [inv_pow, Real.sq_sqrt hs₀.le]
     simp_rw [h1, integral_const_mul]
     ring
-  have hd₀_eq : d₀ = (ρ₀ - q₀)⁻¹ := by rw [hgap_eq, inv_inv]
   have hq_stat : q₀ / (ρ₀ - q₀) ^ 2 - r₀ - h₀ ^ 2 = 0 := by
     have h1 : q₀ * d₀ ^ 2 = r₀ + h₀ ^ 2 := by
       rw [hq0_eq, div_mul_cancel₀ _ (pow_ne_zero 2 hd₀_pos.ne')]
@@ -1122,7 +1094,7 @@ theorem exists_soft_rs_close_to_hard (κ₀ κ₁ α₀ h₀ τ ε : ℝ)
   have hq_lim0 : 0 ≤ q_lim := hlim_mem.2.1.1.1
   have hq₀_lim0 : 0 ≤ q₀_lim := hlim_mem.2.2.1.1
   obtain ⟨hcq_lim, hcρ_lim⟩ := isCritical_shcherbinaTirozziHardFunctional_of_tendsto_soft
-    hκ_lim0 hq_lim0 hqρ_lim hτ
+    hqρ_lim
     (fun k => hα0 (φ k)) (fun k => huc (φ k)) (fun k => hu0 (φ k)) (fun k => huτ (φ k))
     (fun k => hu1 (φ k)) (fun k => hu2 (φ k)) (fun k => hD (φ k)) (fun k => hD₂ (φ k))
     (fun k => huε (φ k)) hε_l hα_l hκ_l hh_l hq_l hρ_l

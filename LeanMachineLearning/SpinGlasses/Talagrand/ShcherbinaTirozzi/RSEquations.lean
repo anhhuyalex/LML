@@ -5,6 +5,7 @@ Authors: LML Contributors
 -/
 module
 
+import LeanMachineLearning.ForMathlib.Analysis.Convex.Integral
 public import LeanMachineLearning.ForMathlib.Probability.Distributions.Gaussian.LogSmoothing
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.LastSpinTail
 public import LeanMachineLearning.SpinGlasses.Talagrand.ShcherbinaTirozzi.Moments
@@ -55,10 +56,7 @@ theorem shcherbinaTirozzi_rsParameters_bounds {u : ℝ → ℝ} (hu : ConcaveOn 
     (integrable_exp_comp_add_gaussianReal hum hu0 y c)
   have hWD : ∀ y, |W y| ≤ D₂ + D ^ 2 := fun y =>
     abs_integral_mul_exp_comp_add_div_le (f := fun x => deriv (deriv u) x + deriv u x ^ 2)
-      (B := D₂ + D ^ 2) (fun x => by
-        refine (abs_add_le _ _).trans (add_le_add (hD₂ x) ?_)
-        rw [abs_pow]
-        exact pow_le_pow_left₀ (abs_nonneg _) (hD x) 2)
+      (abs_deriv_deriv_add_sq_deriv_le hD hD₂)
       (integrable_exp_comp_add_gaussianReal hum hu0 y c)
   refine ⟨mul_nonneg hα (integral_nonneg fun _ => sq_nonneg _),
     mul_le_mul_of_nonneg_left ?_ hα, mul_le_mul_of_nonneg_left
@@ -70,12 +68,8 @@ theorem shcherbinaTirozzi_rsParameters_bounds {u : ℝ → ℝ} (hu : ConcaveOn 
   · rw [← mul_neg]
     refine mul_le_mul_of_nonneg_left ?_ hα
     have hWm : Measurable W :=
-      (measurable_integral_mul_exp_comp_add_gaussianReal hum
-        ((measurable_deriv (deriv u)).add ((measurable_deriv u).pow_const 2))
-        measurable_id c).div (by
-        simpa only [one_mul, id_eq] using
-          measurable_integral_mul_exp_comp_add_gaussianReal hum
-            (measurable_const (a := (1 : ℝ))) measurable_id c)
+      measurable_integral_mul_exp_comp_add_div hum
+        ((measurable_deriv (deriv u)).add ((measurable_deriv u).pow_const 2)) measurable_id c
     have hWi : Integrable (fun z => W (Real.sqrt q * z)) (gaussianReal 0 1) :=
       Integrable.of_bound (hWm.comp (by fun_prop)).aestronglyMeasurable (D₂ + D ^ 2)
         (ae_of_all _ fun z => (Real.norm_eq_abs _).trans_le (hWD _))
@@ -262,34 +256,15 @@ theorem exists_shcherbinaTirozzi_physical_parameter_bounds (κ₀ h₀ D : ℝ) 
       intro d
       have : IsProbabilityMeasure (G d) :=
         isProbabilityMeasure_shcherbinaTirozziGibbs hκ0 hum hu0 _ _
-      have hsq_int : Integrable (fun σ : ℝ^(N + 1) => ‖σ‖ ^ 2) (G d) := by
-        simpa only [mul_one] using
-          (hK (N + 1) M 1 κ h u d.1 d.2 hκ hh hM (by omega) hum hu0 hgrow).1
+      have hmem : MemLp (fun σ : ℝ^(N + 1) => σ) 2 (G d) :=
+        memLp_id_shcherbinaTirozziGibbs hκ0 hum hu0 _ _
+      have hj := sq_norm_integral_le_integral_sq_norm hmem
+      rw [EuclideanSpace.real_norm_sq_eq] at hj
+      have hcoord (i : Fin (N + 1)) : (∫ σ, σ ∂(G d)) i = ∫ σ, σ i ∂(G d) :=
+        ((EuclideanSpace.proj (𝕜 := ℝ) i).integral_comp_comm (hmem.integrable one_le_two)).symm
+      simp_rw [hcoord] at hj
       rw [integral_const_mul]
-      refine mul_le_mul_of_nonneg_left ?_ (by positivity)
-      have hcoord_sq : ∀ i : Fin (N + 1), Integrable (fun σ : ℝ^(N + 1) => σ i ^ 2) (G d) :=
-        fun i => hsq_int.mono'
-          (((PiLp.continuous_apply 2 (fun _ : Fin (N + 1) => ℝ) i).measurable).pow_const
-            2).aestronglyMeasurable
-          (ae_of_all _ fun σ => by
-            rw [Real.norm_of_nonneg (sq_nonneg _), ← sq_abs]
-            exact pow_le_pow_left₀ (abs_nonneg _)
-              (by simpa only [Real.norm_eq_abs] using PiLp.norm_apply_le σ i) 2)
-      have hjen : ∀ i : Fin (N + 1), (∫ σ, σ i ∂(G d)) ^ 2 ≤ ∫ σ, σ i ^ 2 ∂(G d) := fun i => by
-        have hmem : MemLp (fun σ : ℝ^(N + 1) => σ i) 2 (G d) :=
-          (memLp_two_iff_integrable_sq
-            (PiLp.continuous_apply 2
-              (fun _ : Fin (N + 1) => ℝ) i).measurable.aestronglyMeasurable).2
-            (hcoord_sq i)
-        have hv : 0 ≤ variance (fun σ : ℝ^(N + 1) => σ i) (G d) := variance_nonneg _ _
-        rw [variance_eq_sub hmem] at hv
-        simp only [Pi.pow_apply] at hv
-        linarith
-      calc ∑ i, (∫ σ, σ i ∂(G d)) ^ 2 ≤ ∑ i, ∫ σ, σ i ^ 2 ∂(G d) :=
-            Finset.sum_le_sum fun i _ => hjen i
-        _ = ∫ σ, ∑ i, σ i ^ 2 ∂(G d) := (integral_finsetSum _ fun i _ => hcoord_sq i).symm
-        _ = ∫ σ, ‖σ‖ ^ 2 ∂(G d) := by
-            congr 1; funext σ; exact (EuclideanSpace.real_norm_sq_eq σ).symm
+      exact mul_le_mul_of_nonneg_left hj (by positivity)
     have hqm : Measurable fun d => ((N : ℝ) + 1)⁻¹ * ∑ i, (∫ σ, σ i ∂(G d)) ^ 2 := by
       refine (Finset.measurable_sum _ fun i _ => ?_).const_mul _
       exact (measurable_integral_tilted
